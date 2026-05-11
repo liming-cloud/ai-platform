@@ -1,0 +1,64 @@
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: ai-platform-postgres
+    environment:
+      POSTGRES_DB: ${AI_PLATFORM_POSTGRES_DB}
+      POSTGRES_USER: ${AI_PLATFORM_POSTGRES_USER}
+      POSTGRES_PASSWORD: ${AI_PLATFORM_POSTGRES_PASSWORD}
+    ports:
+      - "${AI_PLATFORM_POSTGRES_PORT}:5432"
+    volumes:
+      - ai-platform-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${AI_PLATFORM_POSTGRES_USER} -d ${AI_PLATFORM_POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - ai-platform-dev
+
+  redis:
+    image: redis:7.2-alpine
+    container_name: ai-platform-redis
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "${AI_PLATFORM_REDIS_PORT}:6379"
+    volumes:
+      - ai-platform-redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - ai-platform-dev
+
+  minio:
+    image: minio/minio:latest
+    container_name: ai-platform-minio
+    command: ["server", "/data", "--console-address", ":9001"]
+    environment:
+      MINIO_ROOT_USER: ${AI_PLATFORM_MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${AI_PLATFORM_MINIO_ROOT_PASSWORD}
+    ports:
+      - "${AI_PLATFORM_MINIO_API_PORT}:9000"
+      - "${AI_PLATFORM_MINIO_CONSOLE_PORT}:9001"
+    volumes:
+      - ai-platform-minio-data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - ai-platform-dev
+
+volumes:
+  ai-platform-postgres-data:
+  ai-platform-redis-data:
+  ai-platform-minio-data:
+
+networks:
+  ai-platform-dev:
+    name: ai-platform-dev

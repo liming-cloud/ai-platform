@@ -1,0 +1,20 @@
+.DS_Store
+.idea/
+.codex-runtime/
+.superpowers/
+
+# Local environments
+.env
+.env.*
+!.env.example
+!**/.env.example
+
+# Build outputs
+target/
+dist/
+build/
+node_modules/
+
+# Python cache
+__pycache__/
+*.pyc
