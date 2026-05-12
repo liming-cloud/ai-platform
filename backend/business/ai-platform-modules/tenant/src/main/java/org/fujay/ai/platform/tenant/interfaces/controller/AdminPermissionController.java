@@ -5,7 +5,7 @@ import java.util.List;
 import org.fujay.ai.platform.shared.response.ApiResponse;
 import org.fujay.ai.platform.shared.trace.TraceContext;
 import org.fujay.ai.platform.tenant.application.command.SavePermissionCommand;
-import org.fujay.ai.platform.tenant.application.service.TenantAccessApplicationService;
+import org.fujay.ai.platform.tenant.application.service.IamAdminApplicationService;
 import org.fujay.ai.platform.tenant.interfaces.assembler.TenantAccessAssembler;
 import org.fujay.ai.platform.tenant.interfaces.request.PermissionSaveRequest;
 import org.fujay.ai.platform.tenant.interfaces.response.RoleManagementResponse.PermissionResponse;
@@ -19,11 +19,11 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/admin/permissions")
 public class AdminPermissionController {
 
-    private final TenantAccessApplicationService applicationService;
+    private final IamAdminApplicationService iamAdminService;
     private final TenantAccessAssembler assembler;
 
-    public AdminPermissionController(TenantAccessApplicationService applicationService, TenantAccessAssembler assembler) {
-        this.applicationService = applicationService;
+    public AdminPermissionController(IamAdminApplicationService iamAdminService, TenantAccessAssembler assembler) {
+        this.iamAdminService = iamAdminService;
         this.assembler = assembler;
     }
 
@@ -32,7 +32,7 @@ public class AdminPermissionController {
     public ApiResponse<List<PermissionResponse>> listPermissions() {
         return ApiResponse.success(
                 TraceContext.currentTraceId(),
-                applicationService.listPermissionsForAdmin().stream().map(assembler::toPermissionResponse).toList());
+                iamAdminService.listPermissionsForAdmin().stream().map(assembler::toPermissionResponse).toList());
     }
 
     @PostMapping
@@ -40,7 +40,7 @@ public class AdminPermissionController {
     public ApiResponse<PermissionResponse> savePermission(@RequestBody PermissionSaveRequest request) {
         return ApiResponse.success(
                 TraceContext.currentTraceId(),
-                assembler.toPermissionResponse(applicationService.savePermissionForAdmin(new SavePermissionCommand(
+                assembler.toPermissionResponse(iamAdminService.savePermissionForAdmin(new SavePermissionCommand(
                         request.permissionId(), request.permissionCode(), request.permissionName(), request.status()))));
     }
 }

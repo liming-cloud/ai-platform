@@ -10,7 +10,7 @@ Inputs: `docs/30-project-harness.md`
 Outputs: 后续 agent 的最小上下文加载策略  
 Depends On: `docs/00-index.md`, `docs/30-project-harness.md`  
 Load When: before-implementation/quality/review  
-Next: 先完成前端控制台企业级设计系统加固，再启动 S5.1 统一模型调用、trace 和 usage 基线
+Next: 先完成 DDD 领域内聚恢复，再恢复 S5 Model Gateway 后续功能开发
 
 ## 加载优先级
 
@@ -61,6 +61,7 @@ Tier 3：代码和配置
 | 后端业务模块开发 | `context-pack`, `50` 当前切片, `45-details/00-index`, `45-details/01-backend-code-organization` | `facts/framework-official-research`, `facts/cache-official-research`, `45-details/02-platform-infrastructure-design`, `32`, 当前模块设计、相关源码和测试 |
 | 实现某个切片 | `context-pack`, `50`, 当前切片对应详细设计, `32` | 涉及前端页面时追加 `docs/45-details/03-frontend-console-design-system.md`、相关源码和测试 |
 | 质量修复 | `context-pack`, `70` 或失败证据, 当前切片 `60` | 相关源码、测试、脚本 |
+| DDD 领域内聚恢复 | `context-pack`, `docs/evidence/ddd-architecture-drift-review-2026-05-11.md`, `32`, `45-details/01-backend-code-organization.md` | `backend/business/ai-platform-modules/**/application/service`, `domain`, `infrastructure/persistence/repository`, `scripts/harness_ddd_guard.py` |
 | 竞品更新 | `10`, `facts/market-sources` | 官方资料和最新来源 |
 
 ## 停止继续加载的条件

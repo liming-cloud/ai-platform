@@ -26,12 +26,7 @@ import org.springframework.test.context.DynamicPropertySource;
             "spring.datasource.password=ai_platform_dev",
             "spring.data.redis.host=localhost",
             "spring.data.redis.port=6379",
-            "ai.platform.bootstrap.enabled=true",
-            "ai.platform.bootstrap.tenant-code=demo",
-            "ai.platform.bootstrap.tenant-name=演示租户",
-            "ai.platform.bootstrap.admin-username=admin",
-            "ai.platform.bootstrap.admin-display-name=平台管理员",
-            "ai.platform.bootstrap.admin-password=AiPlatform2026!",
+            "ai.platform.secret.master-key=test-master-key-change-me",
             "ai.platform.model.bootstrap.openai.enabled=false"
         })
 class AuthApiSmokeTest {
@@ -101,9 +96,28 @@ class AuthApiSmokeTest {
                         "rbac:permission:write",
                         "rbac:menu:write",
                         "model:platform-catalog:write",
-                        "model:tenant-config:write");
+                        "model:tenant-config:write",
+                        "model:invocation:execute");
         assertThat(meResponse.getBody().path("data").path("menus").findValuesAsText("menuCode"))
                 .contains("platform.tenants", "platform.roles", "platform.permissions", "platform.menus", "tenant.models");
+
+        ResponseEntity<JsonNode> passwordChangeResponse = restTemplate.exchange(
+                url("/api/auth/password"),
+                HttpMethod.POST,
+                new HttpEntity<>(
+                        Map.of("oldPassword", "AiPlatform2026!", "newPassword", "AiPlatform2026!Changed"),
+                        headers),
+                JsonNode.class);
+        assertSuccess(passwordChangeResponse);
+
+        ResponseEntity<JsonNode> changedPasswordLoginResponse = restTemplate.postForEntity(
+                url("/api/auth/login"),
+                Map.of(
+                        "tenantCode", "demo",
+                        "username", "admin",
+                        "password", "AiPlatform2026!Changed"),
+                JsonNode.class);
+        assertSuccess(changedPasswordLoginResponse);
 
         ResponseEntity<JsonNode> currentTenantResponse =
                 restTemplate.exchange(url("/api/tenants/current"), HttpMethod.GET, authenticated, JsonNode.class);
@@ -238,14 +252,21 @@ class AuthApiSmokeTest {
                 restTemplate.exchange(url("/api/admin/roles"), HttpMethod.GET, authenticated, JsonNode.class);
         assertSuccess(rolesResponse);
         JsonNode roleData = rolesResponse.getBody().path("data");
-        String roleId = roleData.path("roles").get(0).path("roleId").asText();
+        String platformAdminRoleId = "";
+        for (JsonNode roleNode : roleData.path("roles")) {
+            if ("PLATFORM_ADMIN".equals(roleNode.path("roleCode").asText())) {
+                platformAdminRoleId = roleNode.path("roleId").asText();
+            }
+        }
+        assertThat(platformAdminRoleId).isNotBlank();
         assertThat(roleData.path("roles").get(0).path("permissions").findValuesAsText("permissionCode"))
                 .contains(
                         "platform:tenant:write",
                         "rbac:permission:write",
                         "rbac:menu:write",
                         "model:platform-catalog:write",
-                        "model:tenant-config:write");
+                        "model:tenant-config:write",
+                        "model:invocation:execute");
         assertThat(roleData.path("roles").get(0).path("menus").findValuesAsText("menuCode"))
                 .contains("platform.tenants", "platform.roles", "platform.permissions", "platform.menus", "tenant.models");
 
@@ -321,7 +342,7 @@ class AuthApiSmokeTest {
                 .contains("tenant.reports");
 
         ResponseEntity<JsonNode> roleBindingResponse = restTemplate.exchange(
-                url("/api/admin/roles/" + roleId + "/bindings"),
+                url("/api/admin/roles/" + platformAdminRoleId + "/bindings"),
                 HttpMethod.PUT,
                 new HttpEntity<>(
                         Map.of(
@@ -333,7 +354,8 @@ class AuthApiSmokeTest {
                                         "rbac:permission:write",
                                         "rbac:menu:write",
                                         "model:tenant-config:read",
-                                        "model:tenant-config:write"),
+                                        "model:tenant-config:write",
+                                        "model:invocation:execute"),
                                 "menuCodes",
                                 List.of(
                                         "platform.root",
@@ -345,22 +367,16 @@ class AuthApiSmokeTest {
                                         "tenant.models")),
                         headers),
                 JsonNode.class);
-        assertSuccess(roleBindingResponse);
-        assertThat(roleBindingResponse.getBody().path("data").path("permissions").findValuesAsText("permissionCode"))
-                .doesNotContain("rbac:menu:read")
-                .doesNotContain("rbac:role:read")
-                .contains("rbac:role:write");
-        assertThat(roleBindingResponse.getBody().path("data").path("menus").findValuesAsText("menuCode"))
-                .doesNotContain("platform.rbac")
-                .contains("tenant.models");
+        assertThat(roleBindingResponse.getStatusCode())
+                .as(() -> String.valueOf(roleBindingResponse.getBody()))
+                .isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(roleBindingResponse.getBody().path("code").asText()).isEqualTo("COMMON-400");
 
-        ResponseEntity<JsonNode> forbiddenRolesResponse =
+        ResponseEntity<JsonNode> protectedAdminRolesResponse =
                 restTemplate.exchange(url("/api/admin/roles"), HttpMethod.GET, authenticated, JsonNode.class);
-        assertThat(forbiddenRolesResponse.getStatusCode())
-                .as(() -> String.valueOf(forbiddenRolesResponse.getBody()))
-                .isEqualTo(HttpStatus.FORBIDDEN);
-        assertThat(forbiddenRolesResponse.getBody().path("code").asText()).isEqualTo("COMMON-403");
-        assertThat(forbiddenRolesResponse.getBody().path("message").asText()).isEqualTo("没有权限访问该资源");
+        assertSuccess(protectedAdminRolesResponse);
+        assertThat(protectedAdminRolesResponse.getBody().path("data").path("roles").findValuesAsText("roleCode"))
+                .contains("PLATFORM_ADMIN");
 
         ResponseEntity<JsonNode> providerResponse = restTemplate.exchange(
                 url("/api/model-providers"),

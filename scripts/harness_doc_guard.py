@@ -32,6 +32,8 @@ REQUIRED_DOCS = [
     "docs/evidence/gate-verdicts.md",
     "docs/evidence/overall-design-review-2026-05-10.md",
     "docs/evidence/team-startup-review-2026-05-10.md",
+    "docs/evidence/ddd-architecture-drift-review-2026-05-11.md",
+    "docs/evidence/full-code-compliance-audit-2026-05-11.md",
     "docs/evidence/s1-s2-implementation-evidence-2026-05-10.md",
     "docs/evidence/s3-auth-slice-evidence-2026-05-10.md",
     "docs/evidence/s4-provider-catalog-evidence-2026-05-10.md",
@@ -170,10 +172,18 @@ def main() -> int:
         failures.append("environment_ready must be pass after S1 evidence")
     if gates.get("backend_baseline_ready") != "pass":
         failures.append("backend_baseline_ready must be pass after S2 evidence")
-    if gates.get("build_ready") != "pass-for-s4":
-        failures.append("build_ready must be pass-for-s4 after provider catalog runtime evidence")
-    if gates.get("quality_gate") != "pass-for-s4":
-        failures.append("quality_gate must be pass-for-s4 after S4 verification evidence")
+    if gates.get("build_ready") not in {"pass-for-s4", "blocked-ddd-architecture-drift", "pass-after-ddd-recovery"}:
+        failures.append("build_ready must be pass-for-s4, blocked-ddd-architecture-drift, or pass-after-ddd-recovery")
+    if gates.get("quality_gate") not in {"pass-for-s4", "blocked-ddd-architecture-drift", "pass-after-ddd-recovery"}:
+        failures.append("quality_gate must be pass-for-s4, blocked-ddd-architecture-drift, or pass-after-ddd-recovery")
+    if gates.get("quality_gate") == "blocked-ddd-architecture-drift" and not (
+        ROOT / "docs/evidence/ddd-architecture-drift-review-2026-05-11.md"
+    ).exists():
+        failures.append("blocked DDD architecture drift must have evidence doc")
+    if gates.get("quality_gate") == "blocked-ddd-architecture-drift" and not (
+        ROOT / "docs/evidence/full-code-compliance-audit-2026-05-11.md"
+    ).exists():
+        failures.append("blocked DDD architecture drift must have full code compliance audit doc")
 
     for doc in [
         "docs/00-index.md",
@@ -197,11 +207,20 @@ def main() -> int:
         "docs/evidence/s4-provider-catalog-evidence-2026-05-10.md",
     ]:
         require_metadata(failures, doc, status="current", review="agent-reviewed", approval="agent-approved")
+    for doc in [
+        "docs/evidence/ddd-architecture-drift-review-2026-05-11.md",
+        "docs/evidence/full-code-compliance-audit-2026-05-11.md",
+    ]:
+        require_metadata(failures, doc, status="current", review="agent-reviewed", approval="agent-approved")
 
     gate_verdicts = read_text("docs/evidence/gate-verdicts.md")
     review_report = read_text("docs/evidence/overall-design-review-2026-05-10.md")
-    if "controlled-agent-flow-for-s5-model-gateway" not in gate_verdicts:
-        failures.append("gate verdicts must use controlled-agent-flow-for-s5-model-gateway")
+    if (
+        "controlled-agent-flow-for-s5-model-gateway" not in gate_verdicts
+        and "blocked-ddd-domain-recovery-before-s5" not in gate_verdicts
+        and "controlled-agent-flow-for-s5-model-gateway-after-ddd-recovery" not in gate_verdicts
+    ):
+        failures.append("gate verdicts must use controlled-agent-flow-for-s5-model-gateway, blocked-ddd-domain-recovery-before-s5, or controlled-agent-flow-for-s5-model-gateway-after-ddd-recovery")
     if "controlled-agent-flow-for-s5-model-gateway" not in review_report:
         failures.append("overall design review must use controlled-agent-flow-for-s5-model-gateway")
     delivery_plan = read_text("docs/50-delivery-plan.md")

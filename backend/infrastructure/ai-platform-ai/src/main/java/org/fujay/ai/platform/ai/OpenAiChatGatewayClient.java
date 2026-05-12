@@ -3,6 +3,7 @@ package org.fujay.ai.platform.ai;
 import io.micrometer.observation.ObservationRegistry;
 import java.util.Set;
 import org.springframework.ai.chat.model.ChatResponse;
+import org.springframework.ai.chat.metadata.Usage;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.openai.OpenAiChatModel;
 import org.springframework.ai.openai.OpenAiChatOptions;
@@ -22,6 +23,27 @@ public class OpenAiChatGatewayClient implements AiGatewayClient {
 
     @Override
     public ChatTestResult testChat(ChatTestCommand command) {
+        ChatInvocationResult result = invokeChat(new ChatInvocationCommand(
+                command.providerType(),
+                command.baseUrl(),
+                command.apiKey(),
+                command.modelCode(),
+                command.prompt(),
+                command.maxOutputTokens(),
+                command.temperature(),
+                command.topP(),
+                command.frequencyPenalty(),
+                command.presencePenalty(),
+                command.reasoningEffort()));
+        return new ChatTestResult(
+                result.output(),
+                result.promptTokens(),
+                result.completionTokens(),
+                result.totalTokens());
+    }
+
+    @Override
+    public ChatInvocationResult invokeChat(ChatInvocationCommand command) {
         OpenAiApi api = OpenAiApi.builder()
                 .baseUrl(resolveBaseUrl(command))
                 .apiKey(command.apiKey())
@@ -36,10 +58,15 @@ public class OpenAiChatGatewayClient implements AiGatewayClient {
 
         ChatResponse response = chatModel.call(new Prompt(command.prompt(), options));
         String text = response.getResult() == null ? "" : response.getResult().getOutput().getText();
-        return new ChatTestResult(text, null, null, null);
+        Usage usage = response.getMetadata() == null ? null : response.getMetadata().getUsage();
+        return new ChatInvocationResult(
+                text,
+                usage == null ? null : usage.getPromptTokens(),
+                usage == null ? null : usage.getCompletionTokens(),
+                usage == null ? null : usage.getTotalTokens());
     }
 
-    private OpenAiChatOptions buildOptions(ChatTestCommand command) {
+    private OpenAiChatOptions buildOptions(ChatInvocationCommand command) {
         OpenAiChatOptions.Builder builder = OpenAiChatOptions.builder()
                 .model(command.modelCode())
                 .maxCompletionTokens(command.maxOutputTokens());
@@ -61,7 +88,7 @@ public class OpenAiChatGatewayClient implements AiGatewayClient {
         return builder.build();
     }
 
-    private String resolveBaseUrl(ChatTestCommand command) {
+    private String resolveBaseUrl(ChatInvocationCommand command) {
         if (command.providerType() == AiProviderType.OPENAI
                 && (command.baseUrl() == null
                         || command.baseUrl().isBlank()

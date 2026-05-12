@@ -1,0 +1,9 @@
+ai:
+  platform:
+    secret:
+      master-key: ${AI_PLATFORM_SECRET_MASTER_KEY:ai-platform-local-secret-change-me}
+    model:
+      bootstrap:
+        openai:
+          enabled: ${AI_PLATFORM_OPENAI_BOOTSTRAP_ENABLED:true}
+          tenant-code: ${AI_PLATFORM_MODEL_BOOTSTRAP_TENANT_CODE:demo}

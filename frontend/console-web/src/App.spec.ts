@@ -227,6 +227,34 @@ describe('App', () => {
           }
         });
       }
+      if (url === '/api/model-invocations/chat' && method === 'POST') {
+        const request = JSON.parse(String(init?.body));
+        expect(request.modelId).toBe('4001');
+        expect(request.prompt).toBe('请返回一次正式调用结果');
+        return jsonResponse({
+          code: '0',
+          message: '成功',
+          traceId: 'trace-invoke',
+          data: {
+            success: true,
+            providerId: '3001',
+            modelId: '4001',
+            providerName: 'SiliconFlow',
+            modelCode: 'Qwen/Qwen2.5-7B-Instruct',
+            displayName: 'Qwen2.5-7B 免费对话模型',
+            capabilityType: 'CHAT',
+            traceId: 'trace-s5-chat',
+            latencyMs: 280,
+            output: '正式调用成功',
+            promptTokens: 8,
+            completionTokens: 5,
+            totalTokens: 13,
+            usageMissingReason: null,
+            costUsd: null,
+            costMissingReason: '模型计费单价未配置'
+          }
+        });
+      }
       if (url === '/api/tenants/1') {
         return jsonResponse({ code: 'COMMON-403', message: '没有权限访问该资源', traceId: 'trace-forbidden', data: null }, 403);
       }
@@ -253,12 +281,16 @@ describe('App', () => {
     await wrapper.get('[data-test="menu-platform-model-catalog"]').trigger('click');
     await flushPromises();
     expect(wrapper.text()).toContain('平台模型基础配置');
+    await wrapper.get('[data-test="edit-platform-provider-5002"]').trigger('click');
+    await flushPromises();
     await wrapper.get('input[name="platformProviderDisplayName"]').setValue('硅基流动');
     await wrapper.get('input[name="platformProviderBaseUrl"]').setValue('https://api.siliconflow.cn');
     await wrapper.get('.platform-provider-form').trigger('submit.prevent');
     await flushPromises();
     expect(wrapper.text()).toContain('供应商类型已保存');
 
+    await wrapper.get('[data-test="open-platform-model-create"]').trigger('click');
+    await flushPromises();
     await wrapper.get('select[name="platformModelProviderTypeId"]').setValue('5002');
     await wrapper.get('input[name="platformModelCode"]').setValue('Qwen/Qwen2.5-7B-Instruct');
     await wrapper.get('input[name="platformModelDisplayName"]').setValue('Qwen2.5-7B 免费对话模型');
@@ -272,11 +304,14 @@ describe('App', () => {
 
     await wrapper.get('[data-test="menu-tenant-models"]').trigger('click');
     await flushPromises();
+    await wrapper.get('[data-test="open-tenant-model-create"]').trigger('click');
+    await flushPromises();
     expect(wrapper.find('select[name="providerType"]').text()).toContain('硅基流动');
+    await wrapper.get('select[name="providerType"]').setValue('OPENAI_COMPATIBLE');
+    await flushPromises();
     expect(wrapper.find('select[name="modelOption"]').text()).toContain('Hunyuan-MT-7B 免费翻译模型');
     expect(wrapper.find('select[name="modelOption"]').text()).toContain('Qwen2.5-7B 免费对话模型');
 
-    await wrapper.get('select[name="providerType"]').setValue('OPENAI_COMPATIBLE');
     await wrapper.get('select[name="modelOption"]').setValue('5003');
     expect(wrapper.text()).toContain('请先保存当前聊天模型配置');
     expect(wrapper.get('[data-test="provider-test"]').attributes('disabled')).toBeDefined();
@@ -292,6 +327,13 @@ describe('App', () => {
     expect(wrapper.text()).toContain('连接成功');
     expect(wrapper.text()).toContain('将测试');
     expect(wrapper.text()).toContain('SiliconFlow / Qwen/Qwen2.5-7B-Instruct');
+    expect(wrapper.get('[data-test="invoke-chat"]').attributes('disabled')).toBeUndefined();
+    await wrapper.get('[data-test="invocation-prompt"]').setValue('请返回一次正式调用结果');
+    await wrapper.get('.invocation-form').trigger('submit.prevent');
+    await flushPromises();
+    expect(wrapper.text()).toContain('trace-s5-chat');
+    expect(wrapper.text()).toContain('正式调用成功');
+    expect(wrapper.text()).toContain('模型计费单价未配置');
 
     await wrapper.get('[data-test="menu-platform-tenants"]').trigger('click');
     await flushPromises();
@@ -302,6 +344,8 @@ describe('App', () => {
     await flushPromises();
     expect(wrapper.text()).toContain('已禁用');
     expect(wrapper.text()).toContain('租户状态已更新为已禁用');
+    await wrapper.get('[data-test="open-tenant-create"]').trigger('click');
+    await flushPromises();
     await wrapper.get('input[name="tenantCode"]').setValue('acme');
     await wrapper.get('input[name="tenantName"]').setValue('Acme 租户');
     await wrapper.get('input[name="adminUsername"]').setValue('tenant_admin');
@@ -315,6 +359,8 @@ describe('App', () => {
     await wrapper.get('[data-test="menu-platform-permissions"]').trigger('click');
     await flushPromises();
     expect(wrapper.text()).toContain('权限管理');
+    await wrapper.get('[data-test="open-permission-create"]').trigger('click');
+    await flushPromises();
     await wrapper.get('input[name="permissionCode"]').setValue('report:dataset:read');
     await wrapper.get('input[name="permissionName"]').setValue('查看报表数据集');
     await wrapper.get('.permission-form').trigger('submit.prevent');
@@ -324,6 +370,8 @@ describe('App', () => {
     await wrapper.get('[data-test="menu-platform-menus"]').trigger('click');
     await flushPromises();
     expect(wrapper.text()).toContain('菜单管理');
+    await wrapper.get('[data-test="open-menu-create"]').trigger('click');
+    await flushPromises();
     await wrapper.get('input[name="menuCode"]').setValue('tenant.reports');
     await wrapper.get('input[name="menuName"]').setValue('报表中心');
     await wrapper.get('select[name="menuParentCode"]').setValue('tenant.root');
@@ -337,16 +385,22 @@ describe('App', () => {
     await wrapper.get('[data-test="menu-platform-roles"]').trigger('click');
     await flushPromises();
     expect(wrapper.text()).toContain('角色管理');
+    await wrapper.get('[data-test="open-role-create"]').trigger('click');
+    await flushPromises();
     await wrapper.get('input[name="roleCode"]').setValue('REPORT_VIEWER');
     await wrapper.get('input[name="roleName"]').setValue('报表查看员');
     await wrapper.get('.role-form').trigger('submit.prevent');
     await flushPromises();
     expect(wrapper.text()).toContain('角色已保存');
+    await wrapper.get('[data-test="open-role-access-9002"]').trigger('click');
+    await flushPromises();
     await wrapper.get('[data-test="permission-9002-report-dataset-read"]').setValue(true);
     await wrapper.get('[data-test="menu-9002-tenant-reports"]').setValue(true);
     await wrapper.get('[data-test="save-role-9002"]').trigger('click');
     await flushPromises();
     expect(wrapper.text()).toContain('角色权限已保存');
+    await wrapper.get('[data-test="open-role-access-9001"]').trigger('click');
+    await flushPromises();
     await wrapper.get('[data-test="save-role-9001"]').trigger('click');
     await flushPromises();
     expect(wrapper.text()).toContain('角色权限已保存');
@@ -449,7 +503,8 @@ function currentUserFixture() {
       { permissionId: '9104', permissionCode: 'model:tenant-config:write', permissionName: '维护租户模型配置' },
       { permissionId: '9105', permissionCode: 'rbac:role:write', permissionName: '维护角色' },
       { permissionId: '9106', permissionCode: 'rbac:permission:write', permissionName: '维护权限点' },
-      { permissionId: '9107', permissionCode: 'rbac:menu:write', permissionName: '维护菜单' }
+      { permissionId: '9107', permissionCode: 'rbac:menu:write', permissionName: '维护菜单' },
+      { permissionId: '9108', permissionCode: 'model:invocation:execute', permissionName: '执行模型调用' }
     ],
     menus: [
       { menuId: '9201', menuCode: 'platform.root', menuName: '平台管理', parentCode: null, routePath: '/platform', componentKey: 'PlatformLayout', platformScope: 'PLATFORM', sortOrder: 10 },
@@ -528,7 +583,8 @@ function roleManagementFixture() {
         { permissionId: '9104', permissionCode: 'model:tenant-config:write', permissionName: '维护租户模型配置' },
         { permissionId: '9105', permissionCode: 'rbac:role:write', permissionName: '维护角色' },
         { permissionId: '9106', permissionCode: 'rbac:permission:write', permissionName: '维护权限点' },
-        { permissionId: '9107', permissionCode: 'rbac:menu:write', permissionName: '维护菜单' }
+        { permissionId: '9107', permissionCode: 'rbac:menu:write', permissionName: '维护菜单' },
+        { permissionId: '9108', permissionCode: 'model:invocation:execute', permissionName: '执行模型调用' }
       ],
       menus: [
         { menuId: '9201', menuCode: 'platform.root', menuName: '平台管理', parentCode: null, routePath: '/platform', componentKey: 'PlatformLayout', platformScope: 'PLATFORM', sortOrder: 10 },
@@ -548,7 +604,8 @@ function roleManagementFixture() {
       { permissionId: '9104', permissionCode: 'model:tenant-config:write', permissionName: '维护租户模型配置' },
       { permissionId: '9105', permissionCode: 'rbac:role:write', permissionName: '维护角色' },
       { permissionId: '9106', permissionCode: 'rbac:permission:write', permissionName: '维护权限点' },
-      { permissionId: '9107', permissionCode: 'rbac:menu:write', permissionName: '维护菜单' }
+      { permissionId: '9107', permissionCode: 'rbac:menu:write', permissionName: '维护菜单' },
+      { permissionId: '9108', permissionCode: 'model:invocation:execute', permissionName: '执行模型调用' }
     ],
     menus: [
       { menuId: '9201', menuCode: 'platform.root', menuName: '平台管理', parentCode: null, routePath: '/platform', componentKey: 'PlatformLayout', platformScope: 'PLATFORM', sortOrder: 10 },

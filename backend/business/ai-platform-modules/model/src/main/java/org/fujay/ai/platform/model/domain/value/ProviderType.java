@@ -1,6 +1,8 @@
 package org.fujay.ai.platform.model.domain.value;
 
-public enum ProviderType {
+import org.fujay.ai.platform.shared.ddd.ValueObject;
+
+public enum ProviderType implements ValueObject {
     OPENAI,
     OPENAI_COMPATIBLE,
     AZURE_OPENAI,

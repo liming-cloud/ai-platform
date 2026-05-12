@@ -2,9 +2,11 @@ package org.fujay.ai.platform.tenant.interfaces.controller;
 
 import org.fujay.ai.platform.shared.response.ApiResponse;
 import org.fujay.ai.platform.shared.trace.TraceContext;
+import org.fujay.ai.platform.tenant.application.command.ChangePasswordCommand;
 import org.fujay.ai.platform.tenant.application.command.LoginCommand;
-import org.fujay.ai.platform.tenant.application.service.TenantAccessApplicationService;
+import org.fujay.ai.platform.tenant.application.service.TenantAuthApplicationService;
 import org.fujay.ai.platform.tenant.interfaces.assembler.TenantAccessAssembler;
+import org.fujay.ai.platform.tenant.interfaces.request.ChangePasswordRequest;
 import org.fujay.ai.platform.tenant.interfaces.request.LoginRequest;
 import org.fujay.ai.platform.tenant.interfaces.response.CurrentUserResponse;
 import org.fujay.ai.platform.tenant.interfaces.response.LoginResponse;
@@ -18,17 +20,17 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/auth")
 public class AuthController {
 
-    private final TenantAccessApplicationService applicationService;
+    private final TenantAuthApplicationService authService;
     private final TenantAccessAssembler assembler;
 
-    public AuthController(TenantAccessApplicationService applicationService, TenantAccessAssembler assembler) {
-        this.applicationService = applicationService;
+    public AuthController(TenantAuthApplicationService authService, TenantAccessAssembler assembler) {
+        this.authService = authService;
         this.assembler = assembler;
     }
 
     @PostMapping("/login")
     public ApiResponse<LoginResponse> login(@RequestBody LoginRequest request) {
-        LoginResponse response = assembler.toLoginResponse(applicationService.login(
+        LoginResponse response = assembler.toLoginResponse(authService.login(
                 new LoginCommand(request.tenantCode(), request.username(), request.password())));
         return ApiResponse.success(TraceContext.currentTraceId(), response);
     }
@@ -37,12 +39,18 @@ public class AuthController {
     public ApiResponse<CurrentUserResponse> me() {
         return ApiResponse.success(
                 TraceContext.currentTraceId(),
-                assembler.toCurrentUserResponse(applicationService.currentUser()));
+                assembler.toCurrentUserResponse(authService.currentUser()));
     }
 
     @PostMapping("/logout")
     public ApiResponse<Void> logout() {
-        applicationService.logout();
+        authService.logout();
+        return ApiResponse.success(TraceContext.currentTraceId(), null);
+    }
+
+    @PostMapping("/password")
+    public ApiResponse<Void> changePassword(@RequestBody ChangePasswordRequest request) {
+        authService.changePassword(new ChangePasswordCommand(request.oldPassword(), request.newPassword()));
         return ApiResponse.success(TraceContext.currentTraceId(), null);
     }
 }

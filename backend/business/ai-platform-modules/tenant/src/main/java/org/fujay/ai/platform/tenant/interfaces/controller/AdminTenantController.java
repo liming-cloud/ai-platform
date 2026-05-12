@@ -6,7 +6,7 @@ import org.fujay.ai.platform.shared.response.ApiResponse;
 import org.fujay.ai.platform.shared.trace.TraceContext;
 import org.fujay.ai.platform.tenant.application.command.CreateTenantCommand;
 import org.fujay.ai.platform.tenant.application.command.UpdateTenantCommand;
-import org.fujay.ai.platform.tenant.application.service.TenantAccessApplicationService;
+import org.fujay.ai.platform.tenant.application.service.TenantAdminApplicationService;
 import org.fujay.ai.platform.tenant.interfaces.assembler.TenantAccessAssembler;
 import org.fujay.ai.platform.tenant.interfaces.request.TenantCreateRequest;
 import org.fujay.ai.platform.tenant.interfaces.request.TenantStatusRequest;
@@ -25,11 +25,11 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/admin/tenants")
 public class AdminTenantController {
 
-    private final TenantAccessApplicationService applicationService;
+    private final TenantAdminApplicationService tenantAdminService;
     private final TenantAccessAssembler assembler;
 
-    public AdminTenantController(TenantAccessApplicationService applicationService, TenantAccessAssembler assembler) {
-        this.applicationService = applicationService;
+    public AdminTenantController(TenantAdminApplicationService tenantAdminService, TenantAccessAssembler assembler) {
+        this.tenantAdminService = tenantAdminService;
         this.assembler = assembler;
     }
 
@@ -38,7 +38,7 @@ public class AdminTenantController {
     public ApiResponse<List<TenantResponse>> listTenants() {
         return ApiResponse.success(
                 TraceContext.currentTraceId(),
-                applicationService.listTenantsForAdmin().stream().map(assembler::toTenantResponse).toList());
+                tenantAdminService.listTenantsForAdmin().stream().map(assembler::toTenantResponse).toList());
     }
 
     @PostMapping
@@ -46,7 +46,7 @@ public class AdminTenantController {
     public ApiResponse<TenantResponse> createTenant(@RequestBody TenantCreateRequest request) {
         return ApiResponse.success(
                 TraceContext.currentTraceId(),
-                assembler.toTenantResponse(applicationService.createTenantForAdmin(new CreateTenantCommand(
+                assembler.toTenantResponse(tenantAdminService.createTenantForAdmin(new CreateTenantCommand(
                         request.tenantCode(),
                         request.tenantName(),
                         request.adminUsername(),
@@ -61,7 +61,7 @@ public class AdminTenantController {
             @PathVariable("tenantId") String tenantId, @RequestBody TenantUpdateRequest request) {
         return ApiResponse.success(
                 TraceContext.currentTraceId(),
-                assembler.toTenantResponse(applicationService.updateTenantForAdmin(
+                assembler.toTenantResponse(tenantAdminService.updateTenantForAdmin(
                         tenantId, new UpdateTenantCommand(request.tenantName(), request.status()))));
     }
 
@@ -71,6 +71,6 @@ public class AdminTenantController {
             @PathVariable("tenantId") String tenantId, @RequestBody TenantStatusRequest request) {
         return ApiResponse.success(
                 TraceContext.currentTraceId(),
-                assembler.toTenantResponse(applicationService.updateTenantStatusForAdmin(tenantId, request.status())));
+                assembler.toTenantResponse(tenantAdminService.updateTenantStatusForAdmin(tenantId, request.status())));
     }
 }

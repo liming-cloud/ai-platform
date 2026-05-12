@@ -1,6 +1,7 @@
 package org.fujay.ai.platform.model.domain.value;
 
 import java.math.BigDecimal;
+import org.fujay.ai.platform.shared.ddd.ValueObject;
 
 public record ModelParameterDefaults(
         Integer contextWindow,
@@ -11,7 +12,7 @@ public record ModelParameterDefaults(
         Integer topK,
         BigDecimal frequencyPenalty,
         BigDecimal presencePenalty,
-        String reasoningEffort) {
+        String reasoningEffort) implements ValueObject {
 
     public void validate(ProviderType providerType, ModelCapabilityType capabilityType) {
         requirePositive(contextWindow, "上下文窗口必须大于 0");

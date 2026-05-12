@@ -59,7 +59,7 @@ public class GlobalApiExceptionHandler {
             case "COMMON-400" -> HttpStatus.BAD_REQUEST;
             case "MODEL-400-CAPABILITY" -> HttpStatus.BAD_REQUEST;
             case "MODEL-404-PROVIDER", "MODEL-404-MODEL" -> HttpStatus.NOT_FOUND;
-            case "MODEL-502-PROVIDER" -> HttpStatus.BAD_GATEWAY;
+            case "MODEL-502-PROVIDER", "MODEL-502-INVOCATION" -> HttpStatus.BAD_GATEWAY;
             default -> HttpStatus.INTERNAL_SERVER_ERROR;
         };
     }

@@ -109,7 +109,7 @@ backend/
 | `backend/infrastructure/ai-platform-persistence` / `artifactId=ai-platform-persistence` | `jar` | MyBatis-Plus 基础设施：interceptor、tenant line、pagination、optimistic lock、meta object handler |
 | `backend/infrastructure/ai-platform-storage` / `artifactId=ai-platform-storage` | `jar` | MinIO / S3 基础设施：object client、object key、pre-signed URL、multipart、checksum |
 | `backend/infrastructure/ai-platform-telemetry` / `artifactId=ai-platform-telemetry` | `jar` | OpenTelemetry、metrics、日志脱敏和 framework observation bridge |
-| `backend/infrastructure/ai-platform-shared` / `artifactId=ai-platform-shared` | `jar` | 稳定共享内核：typed id、统一响应、统一异常、错误码、分页、trace、tenant 基础类型 |
+| `backend/infrastructure/ai-platform-shared` / `artifactId=ai-platform-shared` | `jar` | 稳定共享内核：DDD 标记接口、typed id、统一响应、统一异常、错误码、分页、trace、tenant 基础类型 |
 | `backend/business/ai-platform-modules/<context>` / `artifactId=ai-platform-<context>` | `jar` | 各 bounded context 的领域、应用、接口和基础设施实现 |
 | `backend/quality/ai-platform-architecture-tests` / `artifactId=ai-platform-architecture-tests` | `jar` | 架构与结构约束测试 |
 
@@ -173,12 +173,15 @@ org.fujay.ai.platform.<context>/
   domain/
     aggregate/
     entity/
+    model/
     valueobject/
+    value/
     service/
     repository/
     event/
   infrastructure/
     persistence/
+      converter/
       mapper/
       po/
       repository/
@@ -206,6 +209,27 @@ org.fujay.ai.platform.<context>/
 | MyBatis-Plus Mapper | `Mapper` | `ProviderConfigMapper` | `infrastructure/persistence/mapper` |
 | 仓储实现 | `RepositoryImpl` | `MybatisPlusProviderRepository` | `infrastructure/persistence/repository` |
 | 装配器 | `Assembler` | `ProviderAssembler` | `interfaces/assembler` |
+
+### DDD 领域内聚红线
+
+`springboot-enterprise-ddd` profile 下，代码组织不只检查包名和依赖方向，还必须检查业务行为归属：
+
+- `application/service` 只允许编排用例、打开事务、读取当前主体、调用领域对象和仓储端口；不得把状态流转、能力校验、唯一性规则、绑定规则、默认目录规则和领域 ID 生成写成私有 helper。
+- shared kernel 必须提供 `AggregateRoot`、`Entity`、`ValueObject` 标记接口；domain 下的聚合、实体和值对象必须显式实现对应标记，禁止 `domain/model` 下出现无语义的贫血 record/class。
+- `domain/repository` 是领域端口，不是数据传输结构容器；禁止在 repository interface 内声明对外传播的内部 `record`，尤其是 `*Record`。
+- `Repository` 方法应围绕聚合保存/加载或明确 query projection 设计；不能用 `ProviderRecord`、`ModelRecord`、`TenantRecord` 这类贫血数据快照替代聚合、实体和值对象。
+- `infrastructure/persistence/repository` 只实现持久化端口和结构映射；禁止成为超大实现类，禁止承载 bootstrap seed、默认菜单/权限、业务绑定策略和多个聚合的规则。
+- repository 已按聚合或业务能力拆分后，禁止再增加 `infrastructure/persistence/store` 包；store 会把巨型 repository 复杂度转移到另一层，不能作为完成态。
+- PO 到领域对象的转换应拆到专门 mapper/converter，并保持纯结构映射；转换方法不得成为隐藏业务规则的私有方法堆。
+- `record` 可用于 HTTP request/response、application command/query/dto、不可变值对象或局部私有不可跨层传播结构；不能用 repository 内部 `record` 作为领域模型。
+
+实现前必须运行：
+
+```bash
+python3 scripts/harness_ddd_guard.py
+```
+
+当前该脚本结论为 `pass`，后续功能开发必须保持该脚本绿色；任何 blocker 级回归都必须先恢复 DDD 领域内聚。
 
 ## 统一响应规范
 

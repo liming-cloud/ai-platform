@@ -40,19 +40,12 @@ management:
 ai:
   platform:
     secret:
-      master-key: ${AI_PLATFORM_SECRET_MASTER_KEY:ai-platform-local-secret-change-me}
-    bootstrap:
-      enabled: ${AI_PLATFORM_BOOTSTRAP_ENABLED:true}
-      tenant-code: ${AI_PLATFORM_BOOTSTRAP_TENANT_CODE:demo}
-      tenant-name: ${AI_PLATFORM_BOOTSTRAP_TENANT_NAME:演示租户}
-      admin-username: ${AI_PLATFORM_BOOTSTRAP_ADMIN_USERNAME:admin}
-      admin-display-name: ${AI_PLATFORM_BOOTSTRAP_ADMIN_DISPLAY_NAME:平台管理员}
-      admin-password: ${AI_PLATFORM_BOOTSTRAP_ADMIN_PASSWORD:AiPlatform2026!}
+      master-key: ${AI_PLATFORM_SECRET_MASTER_KEY}
     model:
       bootstrap:
         openai:
-          enabled: ${AI_PLATFORM_OPENAI_BOOTSTRAP_ENABLED:true}
-          tenant-code: ${AI_PLATFORM_BOOTSTRAP_TENANT_CODE:demo}
+          enabled: ${AI_PLATFORM_OPENAI_BOOTSTRAP_ENABLED:false}
+          tenant-code: ${AI_PLATFORM_MODEL_BOOTSTRAP_TENANT_CODE:}
           provider-name: ${AI_PLATFORM_OPENAI_PROVIDER_NAME:OpenAI}
           api-key: ${AI_PLATFORM_OPENAI_API_KEY:${OPEN_AI_APIKEY:}}
           chat-model: ${AI_PLATFORM_OPENAI_CHAT_MODEL:o3}

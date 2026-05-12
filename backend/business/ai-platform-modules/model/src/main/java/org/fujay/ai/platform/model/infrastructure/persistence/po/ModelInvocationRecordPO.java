@@ -3,6 +3,7 @@ package org.fujay.ai.platform.model.infrastructure.persistence.po;
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @TableName("model_invocation_record")
@@ -16,11 +17,17 @@ public class ModelInvocationRecordPO {
     private String providerType;
     private String modelCode;
     private String capabilityType;
+    private String invocationKind;
+    private String traceId;
     private String status;
     private Long latencyMs;
     private Integer promptTokens;
     private Integer completionTokens;
     private Integer totalTokens;
+    private Integer inputChars;
+    private Integer outputChars;
+    private BigDecimal costUsd;
+    private String costMissingReason;
     private String errorCode;
     private String errorMessage;
     private LocalDateTime createdAt;
@@ -81,6 +88,22 @@ public class ModelInvocationRecordPO {
         this.capabilityType = capabilityType;
     }
 
+    public String getInvocationKind() {
+        return invocationKind;
+    }
+
+    public void setInvocationKind(String invocationKind) {
+        this.invocationKind = invocationKind;
+    }
+
+    public String getTraceId() {
+        return traceId;
+    }
+
+    public void setTraceId(String traceId) {
+        this.traceId = traceId;
+    }
+
     public String getStatus() {
         return status;
     }
@@ -119,6 +142,38 @@ public class ModelInvocationRecordPO {
 
     public void setTotalTokens(Integer totalTokens) {
         this.totalTokens = totalTokens;
+    }
+
+    public Integer getInputChars() {
+        return inputChars;
+    }
+
+    public void setInputChars(Integer inputChars) {
+        this.inputChars = inputChars;
+    }
+
+    public Integer getOutputChars() {
+        return outputChars;
+    }
+
+    public void setOutputChars(Integer outputChars) {
+        this.outputChars = outputChars;
+    }
+
+    public BigDecimal getCostUsd() {
+        return costUsd;
+    }
+
+    public void setCostUsd(BigDecimal costUsd) {
+        this.costUsd = costUsd;
+    }
+
+    public String getCostMissingReason() {
+        return costMissingReason;
+    }
+
+    public void setCostMissingReason(String costMissingReason) {
+        this.costMissingReason = costMissingReason;
     }
 
     public String getErrorCode() {

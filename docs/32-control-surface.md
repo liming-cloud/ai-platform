@@ -27,6 +27,7 @@ Next: 先完成前端控制台企业级设计系统加固，再启动 S5.1 统�
 | 架构 profile | `springboot-enterprise-ddd` in `docs/40/45/50` | draft |
 | 研发环境 | `deploy/docker-compose.yml`, `deploy/scripts/*` | current |
 | 后端组织规范 | `docs/45-details/01-backend-code-organization.md` | current |
+| DDD 领域内聚守卫 | `scripts/harness_ddd_guard.py`, `docs/evidence/ddd-architecture-drift-review-2026-05-11.md` | current-required |
 | 前端控制台设计系统 | `docs/45-details/03-frontend-console-design-system.md`, `frontend/console-web/src/styles.css` | current |
 | 后端 Maven 基线 | `backend/pom.xml`, `backend/infrastructure/ai-platform-bom`, `BackendMavenBaselineTest` | current |
 | S3 可运行纵切 | `backend/apps/ai-platform-boot`, `frontend/console-web`, `docs/evidence/s3-auth-slice-evidence-2026-05-10.md` | current |
@@ -53,6 +54,13 @@ Next: 先完成前端控制台企业级设计系统加固，再启动 S5.1 统�
 
 - 后端必须按 bounded context / module 划分，禁止 controller 直接拼接外部 provider、数据库 SQL 或工具调用。
 - DDD 分层必须遵守 `interfaces -> application -> domain <- infrastructure` 的依赖方向；domain 不依赖 Spring Web、MyBatis-Plus、Sa-Token 或 Spring AI 类型。
+- 领域规则必须内聚在聚合、实体、值对象和领域服务中；application service 只做用例编排、事务边界和上下文协调。
+- shared kernel 必须提供 `AggregateRoot`、`Entity`、`ValueObject` 标记接口；domain 类型必须显式声明聚合根、实体或值对象语义。
+- `domain/repository` 禁止声明对外传播的内部 `record`，尤其是 `*Record`；repository port 必须以聚合、领域对象或明确 query projection 为边界。
+- `application/service` 禁止构造 repository record、PO 或领域持久化快照，禁止承载状态流转、能力校验、唯一性规则、绑定规则、默认目录规则和领域 ID 生成。
+- `infrastructure/persistence/repository` 禁止成为超大实现类；不得同时承载多个聚合、bootstrap seed、默认目录、业务绑定策略和大量私有转换方法。
+- repository 已按业务拆分后，禁止再通过 `infrastructure/persistence/store` 包做二次转发或重新聚合持久化能力；PO 转换只能进入纯 converter。
+- 只允许 `interfaces/request/response`、`application/command/query/dto`、值对象或局部私有不可跨层传播结构使用 `record`；repository port 内部 `record` 不作为完成态。
 - 所有功能切片必须执行 TDD：先写失败测试，确认红灯，再写实现，再重构。
 - 所有后台功能必须先分类为平台管理或租户平台；平台管理功能必须绑定平台权限和平台菜单，租户平台功能必须绑定租户权限和租户菜单。
 - 模型调用必须经过 model gateway，禁止业务模块直接调用 provider SDK。
@@ -146,7 +154,7 @@ Next: 先完成前端控制台企业级设计系统加固，再启动 S5.1 统�
 
 - 架构边界检查脚本。
 - TDD 检查清单和测试命名规范。
-- DDD 分层 ArchUnit 检查。
+- DDD 分层 ArchUnit 检查；`scripts/harness_ddd_guard.py` 已纳入强制质量门禁，任何 blocker 级命中都必须阻断功能开发。
 - API contract 检查。
 - migration 检查。
 - 禁止 `InMemory*` / `Fake*` 完成态的扫描。

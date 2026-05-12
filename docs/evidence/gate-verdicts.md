@@ -10,7 +10,7 @@ Inputs: `docs/00-index.md`, `docs/10-*`, `docs/20-*`, `docs/30-*`, `docs/40-*`, 
 Outputs: 当前 gate verdict  
 Depends On: all stage docs  
 Load When: always-entry  
-Next: 先完成前端控制台企业级设计系统加固，再启动 S5.1 统一模型调用、trace 和 usage 基线，继续保持真实环境运行证据有效
+Next: 在 DDD 守卫保持绿色的前提下，受控推进 S5 Model Gateway 后续功能开发，继续保持真实环境运行证据有效
 
 | Gate | Verdict | Evidence | Blocker |
 | --- | --- | --- | --- |
@@ -23,12 +23,12 @@ Next: 先完成前端控制台企业级设计系统加固，再启动 S5.1 统�
 | Design Review Passed | agent-approved | `docs/40/45/45-details/50`, `docs/45-details/03-frontend-console-design-system.md`, `docs/evidence/overall-design-review-2026-05-10.md` | 多角色复审 blocking 已整改；前端企业级设计系统已纳入控制面；原则变更才需要人工介入 |
 | Environment Ready | pass | `docs/facts/environment-readiness.md`, `docs/evidence/s1-s2-implementation-evidence-2026-05-10.md` | 无；后续切片仍需保持 healthcheck 通过 |
 | Backend Baseline Ready | pass | `backend/pom.xml`, `backend/infrastructure/ai-platform-bom/pom.xml`, `BackendMavenBaselineTest`, `docs/60-implementation-notes.md` | 无；后续模块必须继续遵守 BOM、类型目录和 DDD 边界 |
-| Build Ready | pass-for-s4 | `docs/evidence/s3-auth-slice-evidence-2026-05-10.md`, `docs/evidence/s4-provider-catalog-evidence-2026-05-10.md`, `docs/60-implementation-notes.md` | 无 |
-| Quality Gate Exit | pass-for-s4 | `deploy/scripts/healthcheck.sh`, `mvn -f backend/pom.xml test`, `pnpm test`, `pnpm build`, browser UI smoke, SiliconFlow real provider test, RBAC negative restore, IAM CRUD smoke | S5.1 前仍需为统一模型调用、trace 和 usage 增加对应测试和运行证据 |
+| Build Ready | pass-after-ddd-recovery | `docs/evidence/ddd-architecture-drift-review-2026-05-11.md`, `docs/evidence/full-code-compliance-audit-2026-05-11.md`, `python3 scripts/harness_ddd_guard.py`, `mvn -f backend/pom.xml test` | 无；后续功能必须先建领域模型，再扩展端口和仓储实现 |
+| Quality Gate Exit | pass-after-ddd-recovery | `scripts/harness_ddd_guard.py` 返回 `ddd_guard=pass warning_count=0`；`BackendMavenBaselineTest` 20 项通过；后端全量 Maven 测试通过 | 无；如果 fat service、repository port 内部 record、超大 repository impl、persistence store、缺失 DDD marker、主配置本地 secret fallback 或 bootstrap direct mapper/PO 回归，立即阻断 |
 | Release Ready | not-started | 无发布材料 | 未进入发布 |
 
 ## Auto-Flow Verdict
 
-`controlled-agent-flow-for-s5-model-gateway`。
+`controlled-agent-flow-for-s5-model-gateway-after-ddd-recovery`。
 
-原因：S1/S2/S2.1/S3/S4 已完成，S4.4 已补齐完整 IAM 平台管理闭环，后端、前端和 Docker Compose 依赖已形成真实可运行纵切，Provider Catalog、租户/角色/权限/菜单管理和 SiliconFlow 真实模型调用已通过。用户指出当前前端视觉和规范未达到企业级控制台标准，已将 S4.5 前端设计系统加固列为 S5.1 新前端入口前置任务。后续 agent 可以按 `docs/50-delivery-plan.md` 先完成 S4.5，再启动 S5.1 统一模型调用，但不得跳过真实环境完成标准，也不得把知识库、数据库知识源、tool 或完整观测大屏扩散进同一切片。
+原因：S1/S2/S2.1/S3/S4/S5.1 已完成且已有真实运行证据；2026-05-11 人工中断指出的 DDD 领域设计偏移已通过聚合、端口、仓储实现和架构测试恢复。后续 agent 可以受控推进 S5.2，但不得回到“加字段、补 DTO、补转换”的扩散路径；每个功能必须先经过领域模型、TDD 和 DDD 守卫。

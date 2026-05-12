@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Pattern;
 import javax.xml.parsers.DocumentBuilderFactory;
 import org.junit.jupiter.api.Test;
 import org.w3c.dom.Element;
@@ -63,6 +64,20 @@ class BackendMavenBaselineTest {
             "org.springframework.ai.",
             "io.minio.",
             "software.amazon.awssdk.");
+    private static final List<String> BUSINESS_LAYER_FORBIDDEN_PLATFORM_IMPORTS = List.of(
+            "org.fujay.ai.platform.ai.",
+            "org.fujay.ai.platform.security.",
+            "org.fujay.ai.platform.persistence.",
+            "org.fujay.ai.platform.cache.",
+            "org.fujay.ai.platform.storage.",
+            "org.fujay.ai.platform.telemetry.");
+    private static final Pattern NESTED_RECORD = Pattern.compile("^\\s*(?:public\\s+)?record\\s+\\w+\\s*\\(",
+            Pattern.MULTILINE);
+    private static final Pattern REPOSITORY_RECORD_IMPORT = Pattern.compile(
+            "import\\s+org\\.fujay\\.ai\\.platform\\.[^.]+\\.domain\\.repository\\.[^;]+\\.\\w+Record;");
+    private static final Pattern REPOSITORY_RECORD_CONSTRUCTION = Pattern.compile("new\\s+\\w+Record\\s*\\(");
+    private static final Pattern PRIVATE_CONVERSION_METHOD = Pattern.compile(
+            "^\\s*private\\s+[\\w<>, ?]+\\s+(?:to|from)[A-Z]\\w*\\s*\\(", Pattern.MULTILINE);
 
     @Test
     void backendReactorDeclaresRequiredModules() throws Exception {
@@ -198,12 +213,221 @@ class BackendMavenBaselineTest {
         }
     }
 
-    private static List<Path> javaFiles() throws Exception {
-        return Files.walk(BACKEND_ROOT)
-                .filter(path -> path.getFileName().toString().endsWith(".java"))
-                .filter(path -> path.toString().contains("/src/main/java/"))
-                .filter(path -> !path.toString().contains("/target/"))
+    @Test
+    void repositoryPortsDoNotExposeNestedRecordContracts() throws Exception {
+        List<Path> repositoryPorts = javaFiles().stream()
+                .filter(path -> path.toString().contains("/domain/repository/"))
                 .toList();
+
+        assertFalse(repositoryPorts.isEmpty(), "必须存在 domain repository port");
+        for (Path javaFile : repositoryPorts) {
+            String text = Files.readString(javaFile);
+            assertFalse(NESTED_RECORD.matcher(text).find(), "repository port 不得声明内部 record 合同：" + javaFile);
+        }
+    }
+
+    @Test
+    void applicationServicesDoNotConsumeRepositoryRecordsOrPlatformInfrastructure() throws Exception {
+        for (Path javaFile : javaFiles()) {
+            String fileName = javaFile.getFileName().toString();
+            String path = javaFile.toString();
+            if (!path.contains("/application/service/") || !fileName.endsWith("ApplicationService.java")) {
+                continue;
+            }
+
+            String text = Files.readString(javaFile);
+            assertTrue(text.lines().count() <= 300, "application service 超过 300 行，疑似承载领域行为：" + javaFile);
+            assertFalse(
+                    REPOSITORY_RECORD_IMPORT.matcher(text).find(),
+                    "application service 不得 import repository 内部 record：" + javaFile);
+            assertFalse(
+                    REPOSITORY_RECORD_CONSTRUCTION.matcher(text).find(),
+                    "application service 不得构造 repository record：" + javaFile);
+            assertFalse(text.contains("SnowflakeIdGenerator"), "application service 不得直接生成领域 ID：" + javaFile);
+            if (path.contains("/business/ai-platform-modules/model/")) {
+                assertFalse(
+                        text.contains("import org.fujay.ai.platform.ai."),
+                        "model application service 不得直接依赖平台 AI facade：" + javaFile);
+                assertFalse(
+                        text.contains("import org.fujay.ai.platform.security.SecretCipher;"),
+                        "model application service 不得直接处理 provider 密钥：" + javaFile);
+            }
+        }
+    }
+
+    @Test
+    void businessApplicationAndDomainLayersOnlyDependOnLocalPortsOrSharedKernel() throws Exception {
+        for (Path javaFile : javaFiles()) {
+            String path = javaFile.toString();
+            if (!path.contains("/business/ai-platform-modules/")
+                    || !(path.contains("/application/") || path.contains("/domain/"))) {
+                continue;
+            }
+
+            String text = Files.readString(javaFile);
+            for (String forbiddenImport : BUSINESS_LAYER_FORBIDDEN_PLATFORM_IMPORTS) {
+                assertFalse(
+                        text.contains("import " + forbiddenImport),
+                        "业务 application/domain 不得直接依赖平台基础设施模块，应通过本模块 port + infrastructure adapter 接入："
+                                + javaFile);
+            }
+        }
+    }
+
+    @Test
+    void tenantAccessDoesNotUseRedundantApplicationFacadeOrGodRepository() throws Exception {
+        Path tenantRoot = BACKEND_ROOT.resolve("business/ai-platform-modules/tenant/src/main/java/org/fujay/ai/platform/tenant");
+
+        assertFalse(
+                Files.exists(tenantRoot.resolve("application/service/TenantAccessApplicationService.java")),
+                "TenantAccessApplicationService 只是总入口转发时应删除，controller 直接调用具体 application service");
+        assertFalse(
+                Files.exists(tenantRoot.resolve("domain/repository/TenantAccessRepository.java")),
+                "TenantAccessRepository 不得作为跨租户、用户、IAM、审计和 bootstrap 的总仓储");
+        assertFalse(
+                Files.exists(tenantRoot.resolve("infrastructure/persistence/repository/MybatisPlusTenantAccessRepository.java")),
+                "MybatisPlusTenantAccessRepository 不得作为万能 MyBatis-Plus repository 实现");
+    }
+
+    @Test
+    void tenantModuleDoesNotBootstrapAdminAccountOnStartup() throws Exception {
+        Path tenantBootstrapRoot = BACKEND_ROOT.resolve(
+                "business/ai-platform-modules/tenant/src/main/java/org/fujay/ai/platform/tenant/infrastructure/bootstrap");
+        if (!Files.exists(tenantBootstrapRoot)) {
+            return;
+        }
+
+        for (Path javaFile : Files.walk(tenantBootstrapRoot)
+                .filter(path -> path.getFileName().toString().endsWith(".java"))
+                .toList()) {
+            String text = Files.readString(javaFile);
+            assertFalse(text.contains("ApplicationRunner"), "tenant 模块不得在启动时初始化管理员账号：" + javaFile);
+            assertFalse(text.contains("CommandLineRunner"), "tenant 模块不得在启动时初始化管理员账号：" + javaFile);
+            assertFalse(text.contains("@PostConstruct"), "tenant 模块不得在 Bean 初始化时创建管理员账号：" + javaFile);
+            assertFalse(text.contains("bootstrapTenantUser"), "管理员初始化应由 Flyway SQL 一次性完成：" + javaFile);
+        }
+    }
+
+    @Test
+    void persistenceRepositoryImplementationsStayFocusedOnOnePersistenceConcern() throws Exception {
+        for (Path javaFile : javaFiles()) {
+            String path = javaFile.toString();
+            if (!path.contains("/infrastructure/persistence/repository/")) {
+                continue;
+            }
+
+            String text = Files.readString(javaFile);
+            assertTrue(text.lines().count() <= 300, "repository impl 不得成为超大多聚合实现类：" + javaFile);
+            assertFalse(text.contains("private record "), "repository impl 不得用 private record 承载业务事实：" + javaFile);
+            assertFalse(text.contains("DEFAULT_"), "repository impl 不得拥有默认 seed/catalog 数据：" + javaFile);
+            long conversionMethodCount = PRIVATE_CONVERSION_METHOD.matcher(text).results().count();
+            assertTrue(conversionMethodCount <= 6, "repository impl 私有转换方法过多，应拆 converter：" + javaFile);
+        }
+    }
+
+    @Test
+    void persistenceStoresStayFocusedAndDoNotBecomeRepositoryWorkarounds() throws Exception {
+        List<Path> storeFiles = javaFiles().stream()
+                .filter(path -> path.toString().contains("/business/ai-platform-modules/"))
+                .filter(path -> path.toString().contains("/infrastructure/persistence/store/"))
+                .toList();
+
+        assertTrue(storeFiles.isEmpty(), "repository 已按业务拆分后不得再保留 persistence store 层：" + storeFiles);
+    }
+
+    @Test
+    void sharedKernelProvidesDddStereotypeMarkers() {
+        Path markerRoot = BACKEND_ROOT.resolve(
+                "infrastructure/ai-platform-shared/src/main/java/org/fujay/ai/platform/shared/ddd");
+
+        for (String marker : List.of("DomainObject", "AggregateRoot", "Entity", "ValueObject")) {
+            assertTrue(Files.exists(markerRoot.resolve(marker + ".java")), "shared 必须提供 DDD 标记接口：" + marker);
+        }
+    }
+
+    @Test
+    void domainModelTypesDeclareDddStereotypeMarkers() throws Exception {
+        for (Path javaFile : javaFiles()) {
+            String path = javaFile.toString();
+            if (!path.contains("/business/ai-platform-modules/")
+                    || !(path.contains("/domain/aggregate/")
+                            || path.contains("/domain/model/")
+                            || path.contains("/domain/value/")
+                            || path.contains("/domain/valueobject/"))) {
+                continue;
+            }
+
+            String text = Files.readString(javaFile);
+            if (path.contains("/domain/aggregate/")) {
+                assertTrue(declaresDddMarker(text, "AggregateRoot"), "domain aggregate 必须声明 AggregateRoot 标记："
+                        + javaFile);
+                continue;
+            }
+            if (path.contains("/domain/value/") || path.contains("/domain/valueobject/")) {
+                assertTrue(declaresDddMarker(text, "ValueObject"), "domain value object 必须声明 ValueObject 标记："
+                        + javaFile);
+                continue;
+            }
+            assertTrue(
+                    declaresDddMarker(text, "AggregateRoot")
+                            || declaresDddMarker(text, "Entity")
+                            || declaresDddMarker(text, "ValueObject"),
+                    "domain model 不得作为无语义 record/class 存在，必须声明 AggregateRoot/Entity/ValueObject："
+                            + javaFile);
+        }
+    }
+
+    @Test
+    void bootstrapRunnersDoNotBypassApplicationAndDomainBoundaries() throws Exception {
+        for (Path javaFile : javaFiles()) {
+            String path = javaFile.toString();
+            if (!path.contains("/infrastructure/bootstrap/")) {
+                continue;
+            }
+
+            String text = Files.readString(javaFile);
+            assertFalse(
+                    text.contains(".infrastructure.persistence.mapper.") || text.contains(".infrastructure.persistence.po."),
+                    "bootstrap runner 不得直接 import Mapper/PO：" + javaFile);
+            assertFalse(
+                    REPOSITORY_RECORD_IMPORT.matcher(text).find()
+                            || REPOSITORY_RECORD_CONSTRUCTION.matcher(text).find(),
+                    "bootstrap runner 不得构造 repository record 绕过 application/domain：" + javaFile);
+        }
+    }
+
+    @Test
+    void productionConfigurationDoesNotShipLocalSecretFallbacks() throws Exception {
+        Path applicationYaml = BACKEND_ROOT.resolve("apps/ai-platform-boot/src/main/resources/application.yml");
+        Path secretCipher = BACKEND_ROOT.resolve(
+                "infrastructure/ai-platform-security/src/main/java/org/fujay/ai/platform/security/SecretCipher.java");
+
+        String yaml = Files.readString(applicationYaml);
+        String cipher = Files.readString(secretCipher);
+        assertFalse(yaml.contains("ai-platform-local-secret-change-me"), "主配置不得内置本地 master key 默认值");
+        assertFalse(yaml.contains("master-key: ${AI_PLATFORM_SECRET_MASTER_KEY:"), "主配置必须显式提供 master key");
+        assertFalse(cipher.contains("ai-platform-local-secret-change-me"), "SecretCipher 不得在代码中内置本地 master key 默认值");
+        assertFalse(cipher.contains("${ai.platform.secret.master-key:"), "SecretCipher 必须依赖显式配置的 master key");
+    }
+
+    private static List<Path> javaFiles() throws Exception {
+        List<Path> files = new ArrayList<>();
+        for (String module : REQUIRED_MODULES) {
+            Path sourceRoot = BACKEND_ROOT.resolve(module).resolve("src/main/java");
+            if (!Files.exists(sourceRoot)) {
+                continue;
+            }
+            try (var sourceFiles = Files.walk(sourceRoot)) {
+                files.addAll(sourceFiles
+                        .filter(path -> path.getFileName().toString().endsWith(".java"))
+                        .toList());
+            }
+        }
+        return files;
+    }
+
+    private static boolean declaresDddMarker(String source, String marker) {
+        return Pattern.compile("\\bimplements\\b[^{;]*\\b" + marker + "\\b").matcher(source).find();
     }
 
     private static List<String> childTextValues(Path pom, String parentTag, String childTag) throws Exception {

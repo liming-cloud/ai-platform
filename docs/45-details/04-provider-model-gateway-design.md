@@ -120,6 +120,7 @@ S4 必须落库：
 - `GET /api/model-providers/options`
 - `POST /api/model-providers`
 - `POST /api/model-providers/test`
+- `POST /api/model-invocations/chat`
 
 平台目录 API 必须使用 Sa-Token 权限控制：
 
@@ -130,10 +131,13 @@ S4 必须落库：
 
 - `model:tenant-config:read`
 - `model:tenant-config:write`
+- `model:invocation:execute`：执行正式模型调用。
 
 所有响应必须使用统一 `ApiResponse`。响应只允许返回 `apiKeyLast4`，不得返回明文 API Key 或密文。
 
 接口响应中的 `providerId`、`modelId`、`tenantId` 可作为字符串返回给前端，避免 JavaScript 大整数精度损失；数据库和后端领域/持久化模型仍必须使用 Long。
+
+S5.1 正式调用响应必须返回 `traceId`、`latencyMs`、`promptTokens`、`completionTokens`、`totalTokens`、`costUsd` 或 `costMissingReason`。`model_invocation_record` 只保存 trace、token、字符数、成本和错误摘要，不保存 prompt/completion 明文。
 
 ## 测试要求
 

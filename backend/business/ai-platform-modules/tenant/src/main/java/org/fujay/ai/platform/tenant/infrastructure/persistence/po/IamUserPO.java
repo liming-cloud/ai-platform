@@ -14,6 +14,7 @@ public class IamUserPO {
     private String username;
     private String displayName;
     private String status;
+    private boolean systemAccount;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
@@ -55,6 +56,14 @@ public class IamUserPO {
 
     public void setStatus(String status) {
         this.status = status;
+    }
+
+    public boolean isSystemAccount() {
+        return systemAccount;
+    }
+
+    public void setSystemAccount(boolean systemAccount) {
+        this.systemAccount = systemAccount;
     }
 
     public LocalDateTime getCreatedAt() {

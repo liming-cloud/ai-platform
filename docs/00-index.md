@@ -10,15 +10,15 @@ Inputs: 用户产品愿景、仓库预检、公开竞品资料
 Outputs: 阶段文档导航、当前 gate、下一步  
 Depends On: README.md  
 Load When: always-entry  
-Next: 先完成前端控制台企业级设计系统加固，再启动 S5.1 统一模型调用、trace 和 usage 基线；产品原则或架构原则变化时再进入人工决策
+Next: 在 DDD 领域内聚守卫保持绿色的前提下，受控推进 S5 Model Gateway 后续功能；产品原则或架构原则变化时再进入人工决策
 
 ## 当前状态
 
 - 项目态：greenfield。
 - 交付目标：production-targeted。
-- 当前阶段：S1/S2/S2.1/S3/S4 已完成，S4.4 完整 IAM 平台管理闭环已补齐，进入 S5 Model Gateway 的最小切片准备。
-- 当前 gate：`s5-model-gateway-entry`。
-- 下一步唯一动作：完成前端控制台企业级设计系统加固并保持真实页面 smoke 证据，然后启动 S5.1 统一模型调用、trace 和 usage 基线；不得把知识库、tool、数据库知识源或完整观测大屏并入 S5.1。
+- 当前阶段：S1/S2/S2.1/S3/S4/S5.1 和 DDD 领域内聚恢复已形成真实运行证据。
+- 当前 gate：`pass-after-ddd-recovery`。
+- 下一步动作：受控推进 S5.2 配额、计费、重试或路由功能；每次扩展必须先明确领域模型，并保持 `scripts/harness_ddd_guard.py`、`BackendMavenBaselineTest`、后端测试和前端测试全绿。
 
 ## 文档顺序
 
@@ -54,6 +54,8 @@ Next: 先完成前端控制台企业级设计系统加固，再启动 S5.1 统�
 | evidence-04 | `docs/evidence/s1-s2-implementation-evidence-2026-05-10.md` | evidence | current | agent-reviewed | S1/S2 真实环境和后端基线证据 | deploy、backend、Maven test | S3 准入判断 | implementation/quality/S3-prep | P0 |
 | evidence-05 | `docs/evidence/s3-auth-slice-evidence-2026-05-10.md` | evidence | current | agent-reviewed | S3 前后端真实运行证据 | backend、frontend、deploy、UI smoke | S4 准入判断 | implementation/quality/S4-prep | P0 |
 | evidence-06 | `docs/evidence/s4-provider-catalog-evidence-2026-05-10.md` | evidence | current | agent-reviewed | S4 provider catalog、RBAC/menu、真实模型调用和页面操作证据 | backend、frontend、deploy、UI smoke | S5 准入判断 | implementation/quality/S5-prep | P0 |
+| evidence-07 | `docs/evidence/ddd-architecture-drift-review-2026-05-11.md` | evidence | current | agent-reviewed | DDD 领域内聚偏移复核、恢复结果和防再发门禁 | 用户人工中断反馈、源码扫描、恢复验证 | 后续 S5.2 准入判断 | architecture-drift/domain-recovery | P0 |
+| evidence-08 | `docs/evidence/full-code-compliance-audit-2026-05-11.md` | evidence | current | agent-reviewed | 全量后端代码规范排查、恢复结果和防再发验收标准 | 架构师审查、后端源码扫描、DDD guard、Maven test | 后续功能扩展质量门禁 | architecture-drift/domain-recovery/backend-compliance | P0 |
 
 ## 未来阶段入口
 
@@ -73,5 +75,5 @@ Next: 先完成前端控制台企业级设计系统加固，再启动 S5.1 统�
 - PRD Ready: pending-review。
 - Harness Ready: agent-approved。
 - Design Review Passed: agent-approved。
-- Build Ready: pass-for-s4。
-- Quality Gate Exit: pass-for-s4。
+- Build Ready: pass-after-ddd-recovery。
+- Quality Gate Exit: pass-after-ddd-recovery。

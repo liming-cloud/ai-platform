@@ -15,4 +15,9 @@ public class SpringAiGatewayFacade implements AiGatewayFacade {
     public ChatTestResult testChat(ChatTestCommand command) {
         return clientFactory.requiredClient(command.providerType()).testChat(command);
     }
+
+    @Override
+    public ChatInvocationResult invokeChat(ChatInvocationCommand command) {
+        return clientFactory.requiredClient(command.providerType()).invokeChat(command);
+    }
 }

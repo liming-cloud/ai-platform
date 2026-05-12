@@ -36,6 +36,32 @@ class AiGatewayFactoryTest {
     }
 
     @Test
+    void facadeDelegatesFormalChatInvocationToClientSelectedByProviderType() {
+        StubGatewayClient openAiClient = new StubGatewayClient(Set.of(AiProviderType.OPENAI), "openai");
+        StubGatewayClient compatibleClient =
+                new StubGatewayClient(Set.of(AiProviderType.OPENAI_COMPATIBLE), "compatible");
+        AiGatewayFacade facade =
+                new SpringAiGatewayFacade(new AiGatewayClientFactory(List.of(openAiClient, compatibleClient)));
+
+        ChatInvocationResult result = facade.invokeChat(new ChatInvocationCommand(
+                AiProviderType.OPENAI_COMPATIBLE,
+                "https://models.example.com",
+                "sk-test",
+                "qwen-compatible",
+                "ping",
+                128,
+                null,
+                null,
+                null,
+                null,
+                null));
+
+        assertThat(result.output()).isEqualTo("compatible");
+        assertThat(openAiClient.invokeCount).isZero();
+        assertThat(compatibleClient.invokeCount).isEqualTo(1);
+    }
+
+    @Test
     void factoryRejectsProviderTypeWithoutClientImplementation() {
         AiGatewayClientFactory factory =
                 new AiGatewayClientFactory(List.of(new StubGatewayClient(Set.of(AiProviderType.OPENAI), "openai")));
@@ -49,6 +75,7 @@ class AiGatewayFactoryTest {
         private final Set<AiProviderType> providerTypes;
         private final String message;
         private int callCount;
+        private int invokeCount;
 
         private StubGatewayClient(Set<AiProviderType> providerTypes, String message) {
             this.providerTypes = providerTypes;
@@ -64,6 +91,12 @@ class AiGatewayFactoryTest {
         public ChatTestResult testChat(ChatTestCommand command) {
             callCount++;
             return new ChatTestResult(message, null, null, null);
+        }
+
+        @Override
+        public ChatInvocationResult invokeChat(ChatInvocationCommand command) {
+            invokeCount++;
+            return new ChatInvocationResult(message, null, null, null);
         }
     }
 }

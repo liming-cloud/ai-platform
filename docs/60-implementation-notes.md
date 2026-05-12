@@ -7,16 +7,169 @@ Review Status: agent-reviewed
 Reviewers: architect, product engineer, senior backend engineer, senior frontend engineer, UI engineer  
 Approval: agent-approved  
 Inputs: `docs/50-delivery-plan.md`, `docs/facts/environment-readiness.md`, `backend/pom.xml`  
-Outputs: S1/S2/S3/S4/S4.5 实施证据、当前状态和下一步  
+Outputs: S1/S2/S3/S4/S4.5/S5.1 实施证据、当前状态和下一步
 Depends On: `docs/32-control-surface.md`, `docs/50-delivery-plan.md`  
 Load When: implementation/quality/S5-prep  
-Next: 先完成前端控制台企业级设计系统加固，再启动 S5.1 统一模型调用、trace 和 usage 基线
+Next: 在 DDD 领域内聚守卫保持绿色后推进 S5.2 调用配额、重试/路由策略和模型成本单价配置
 
 ## 当前结论
 
-S1/S2/S2.1/S3/S4 已完成，Build Ready 对 Provider Catalog 和 RBAC/menu 闭环为 `pass-for-s4`。当前追加 S4.5 Frontend Console Design System Hardening，用于修复现有控制台“可用但不够企业级”的设计系统缺口。
+S1/S2/S2.1/S3/S4/S4.5/S5.1 已完成，2026-05-11 人工中断指出的 DDD 领域内聚偏移已恢复。当前 Build Ready 和 Quality Gate Exit 为 `pass-after-ddd-recovery`。
 
-证据：真实研发依赖、后端 Maven 多模块、模块类型目录、Spring Boot 鉴权 API、Vue 3 控制台、Provider Catalog、平台模型基础配置、平台模型选项目录、租户模型配置、RBAC/menu、前后端同时启动和页面操作均已验证。后续进入 S5.1 前，必须继续沿用真实环境完成标准，不得把未验证页面或 mock 数据作为完成态；新增前端页面还必须满足 `docs/45-details/03-frontend-console-design-system.md`。
+证据：真实研发依赖、后端 Maven 多模块、模块类型目录、Spring Boot 鉴权 API、Vue 3 控制台、Provider Catalog、平台模型基础配置、平台模型选项目录、租户模型配置、RBAC/menu、前端企业级管理页、统一模型调用 API、真实 SiliconFlow 正式调用、trace/usage 持久化、DDD 守卫、后端全量测试和页面操作均已验证。后续 S5.2 不得把知识库、tool runtime、数据库知识源或完整观测大屏提前并入。
+
+## DDD Domain Cohesion Recovery
+
+写集：
+
+- `backend/business/ai-platform-modules/tenant/**`
+- `backend/business/ai-platform-modules/model/**`
+- `backend/quality/ai-platform-architecture-tests/**`
+- `scripts/harness_ddd_guard.py`
+- `docs/evidence/ddd-architecture-drift-review-2026-05-11.md`
+- `docs/evidence/full-code-compliance-audit-2026-05-11.md`
+
+恢复结果：
+
+- Tenant/IAM：`TenantAccessRepository` 和 `TenantAccessApplicationService` 已删除，controller 直接调用登录、租户管理和 IAM 管理的聚焦 application service；补齐 Tenant、User/Credential、Role、Permission、Menu、RoleAccess、Bootstrap catalog 等领域对象。
+- Tenant persistence：`MybatisPlusTenantAccessRepository` 和 `infrastructure/persistence/store/**` 已删除，持久化端口拆为 Tenant、User、Authorization、Role、Permission、Menu、Provisioning、Audit 聚焦 repository；repository 直接使用 Mapper/PO 和纯 converter，不再通过 store 二次转发。
+- Tenant admin seed：tenant 启动管理员初始化 runner 已删除，管理员一次性初始化进入 Flyway V5；`system_account` 规则保护管理员不可删除、不可禁用、不可改角色权限、只能改密码且天然拥有平台权限。
+- Shared/domain markers：`ai-platform-shared` 增加 `AggregateRoot`、`Entity`、`ValueObject` 标记接口，Tenant/IAM 和 Model 的聚合根、实体和值对象均显式声明语义。
+- Model：`ModelProviderRepository` 删除 provider/model/invocation/platform option 内部 record，拆出 `PlatformModelCatalogRepository` 和 `ModelInvocationRepository`；`ModelProvider`、`PlatformModelOption`、`PlatformProviderTypeOption`、`ModelInvocation` 为聚合根，`ConfiguredModel` 调整为 `ModelProvider` 聚合内实体。
+- Model application：`ModelProviderApplicationService` 退为 facade，provider 管理、平台目录和 provider test 分离；model application 通过 `CurrentPrincipalPort`、`ProviderSecretPort`、`ModelGatewayPort` 和 `DomainIdGeneratorPort` 访问外部能力。
+- Model persistence：`MybatisPlusModelProviderRepository` 聚焦 provider/model 聚合，平台目录和 invocation 拆为独立 repository，PO 转换进入专用 converter。
+- Bootstrap：平台模型目录和默认 provider runner 只调用 application use case，不再直连 Mapper/PO 或构造 repository record。
+- 防再发：`scripts/harness_ddd_guard.py` 和 `BackendMavenBaselineTest` 增加 fat service、repository port 内部 record、bootstrap direct mapper/PO、application service 直接依赖平台基础设施、禁止 persistence store、DDD 标记接口等规则。
+
+验证命令：
+
+```bash
+python3 scripts/harness_ddd_guard.py
+mvn -f backend/pom.xml -pl quality/ai-platform-architecture-tests test
+mvn -f backend/pom.xml -pl business/ai-platform-modules/model -am test
+mvn -f backend/pom.xml -pl business/ai-platform-modules/tenant -am test
+mvn -f backend/pom.xml test
+```
+
+验证结果：
+
+- `scripts/harness_ddd_guard.py`：`ddd_guard=pass warning_count=0`。
+- `BackendMavenBaselineTest`：20 个测试通过。
+- Model 模块：9 个测试通过。
+- Tenant 模块：编译通过，无测试失败。
+- 后端全量 Maven：13 个 reactor 模块全部 `SUCCESS`，`AuthApiSmokeTest` 2 个测试通过。
+
+## Backend Compliance Continuation
+
+写集：
+
+- `backend/business/ai-platform-modules/tenant/src/main/java/org/fujay/ai/platform/tenant/infrastructure/persistence/repository/**`
+- `backend/business/ai-platform-modules/tenant/src/main/java/org/fujay/ai/platform/tenant/infrastructure/persistence/converter/**`
+- `backend/infrastructure/ai-platform-shared/src/main/java/org/fujay/ai/platform/shared/ddd/**`
+- `backend/apps/ai-platform-boot/src/main/resources/application.yml`
+- `backend/apps/ai-platform-boot/src/main/resources/application-local.yml`
+- `backend/infrastructure/ai-platform-security/src/main/java/org/fujay/ai/platform/security/SecretCipher.java`
+- `backend/quality/ai-platform-architecture-tests/src/test/java/org/fujay/ai/platform/architecture/BackendMavenBaselineTest.java`
+- `scripts/harness_ddd_guard.py`
+- `docs/evidence/full-code-compliance-audit-2026-05-11.md`
+
+排查结果：
+
+- application/domain/controller 分层扫描无新增违规：application 不 import infrastructure，domain 不 import application/interfaces/infrastructure，controller 不 import domain/repository/infrastructure。
+- MyBatis-Plus、Spring AI、`StpUtil` 扫描无新增违规：MyBatis 类型未进入 application/controller/domain，Spring AI 类型只在 AI 基础设施或业务 AI adapter，`StpUtil` 只在 security infrastructure。
+- 发现 `IamAccessPersistenceStore` 被拆成多个 store 后仍属于“巨型 repository 被 store 包装替代”的结构性偏移：repository 已按业务拆分后，store 层没有必要且会继续隐藏持久化复杂度。
+- 发现主 `application.yml` 和 `SecretCipher` 仍内置 `ai-platform-local-secret-change-me` 默认 master key，production-targeted 主配置不应携带本地密钥 fallback。
+
+恢复结果：
+
+- 删除所有 `infrastructure/persistence/store/**`，IAM/Tenant repository 实现按自身业务对象直接注入 Mapper/PO，PO 到领域对象转换进入 `TenantPersistenceConverter`。
+- `BackendMavenBaselineTest` 增加禁止 business persistence store、DDD marker 和主配置不得携带本地 secret fallback 的架构测试。
+- `scripts/harness_ddd_guard.py` 同步增加禁止 persistence store、DDD marker 和 master key fallback 检查。
+- 主 `application.yml` 要求显式 `AI_PLATFORM_SECRET_MASTER_KEY`；本地默认值只放入 `application-local.yml`，本地启动需启用 `local` profile 或显式设置环境变量。
+
+验证命令：
+
+```bash
+python3 scripts/harness_doc_guard.py
+python3 scripts/harness_ddd_guard.py
+git diff --check
+mvn -f backend/pom.xml -pl business/ai-platform-modules/tenant -am test
+mvn -f backend/pom.xml -pl quality/ai-platform-architecture-tests test -Dtest=BackendMavenBaselineTest
+mvn -f backend/pom.xml test
+mvn -f backend/pom.xml -pl apps/ai-platform-boot -am -DskipTests package
+SPRING_PROFILES_ACTIVE=local java -jar backend/apps/ai-platform-boot/target/ai-platform-boot-0.1.0-SNAPSHOT.jar
+deploy/scripts/healthcheck.sh
+```
+
+验证结果：
+
+- 文档守卫、DDD 守卫和 `git diff --check` 通过。
+- Tenant 模块编译和 `TenantUserTest` 通过。
+- `BackendMavenBaselineTest`：20 个测试通过。
+- 后端全量 Maven：13 个 reactor 模块全部 `SUCCESS`，`AuthApiSmokeTest` 2 个测试通过。
+- Boot jar 使用 `SPRING_PROFILES_ACTIVE=local` 启动成功，`/actuator/health` 返回 `UP`。
+- 真实依赖 healthcheck 通过，PostgreSQL、Redis、MinIO 均 healthy。
+- 真实 API smoke：`demo/admin` 登录成功，`/api/auth/me` 返回成功。
+
+## S5.1 Unified Chat Invocation
+
+写集：
+
+- `backend/business/ai-platform-modules/model/**`
+- `backend/infrastructure/ai-platform-ai/**`
+- `backend/apps/ai-platform-boot/src/main/resources/db/migration/V4__s5_1_model_chat_invocation_trace_usage.sql`
+- `backend/apps/ai-platform-boot/src/main/java/org/fujay/ai/platform/boot/interfaces/GlobalApiExceptionHandler.java`
+- `backend/business/ai-platform-modules/tenant/src/main/java/org/fujay/ai/platform/tenant/infrastructure/persistence/repository/MybatisPlus*Repository.java`
+- `frontend/console-web/src/App.vue`
+- `frontend/console-web/src/App.spec.ts`
+- `frontend/console-web/src/styles.css`
+- `docs/50-delivery-plan.md`
+- `docs/60-implementation-notes.md`
+- `scripts/generate_context_pack.py`
+
+设计结论：
+
+- S5.1 只实现统一 `CHAT` 调用，不扩展知识库、tool、数据库知识源、完整观测大屏、quota 或 routing 策略。
+- 正式调用入口为 `POST /api/model-invocations/chat`，权限码为 `model:invocation:execute`；菜单仍复用 `tenant.models`，不新增导航。
+- 应用层复用 S4 租户 provider/model 配置和加密密钥，只允许调用当前租户已配置的 `CHAT` 模型。
+- `AiGatewayFacade` 从连接测试扩展为正式 `invokeChat`，OpenAI/OpenAI Compatible 仍通过 Spring AI adapter 调用，不允许业务模块直接依赖 Spring AI 类型。
+- `model_invocation_record` 增加 `invocation_kind`、`trace_id`、`input_chars`、`output_chars`、`cost_usd`、`cost_missing_reason`；不保存 prompt/completion 明文。
+- 当前成本只记录 `costMissingReason=模型计费单价未配置`，S5.2 再补模型单价和成本计算。
+- 前端只在租户模型配置页增加最小调用验收面板，列表优先、弹窗编辑、新增/详情模式不回退。
+
+TDD 记录：
+
+- Red：`ModelInvocationApplicationServiceTest` 和 `AiGatewayFactoryTest` 先失败，失败点为缺少正式 `ChatInvocationCommand/Result` 与 `invokeChat` facade 契约。
+- Green：补齐 application service、interface controller、AI adapter 正式调用、V4 migration、权限码和前端调用面板后通过。
+- 回归修正：`AiGatewayFacade` 扩展为多方法接口后，旧 `ModelProviderApplicationServiceTest` 的 lambda stub 失效，已改为显式 `StubGatewayFacade`。
+
+验证命令：
+
+```bash
+mvn -f backend/pom.xml -pl infrastructure/ai-platform-ai -Dtest=AiGatewayFactoryTest -Dsurefire.failIfNoSpecifiedTests=false test
+mvn -f backend/pom.xml -pl business/ai-platform-modules/model -am -Dtest=ModelInvocationApplicationServiceTest,ModelProviderApplicationServiceTest,MybatisPlusModelProviderRepositoryTest -Dsurefire.failIfNoSpecifiedTests=false test
+mvn -f backend/pom.xml -pl apps/ai-platform-boot -am -Dtest=AuthApiSmokeTest -Dsurefire.failIfNoSpecifiedTests=false test
+pnpm --dir frontend/console-web test
+pnpm --dir frontend/console-web build
+deploy/scripts/healthcheck.sh
+```
+
+验证结果：
+
+- `AiGatewayFactoryTest`：3 个测试通过。
+- `ModelInvocationApplicationServiceTest`、`ModelProviderApplicationServiceTest`、`MybatisPlusModelProviderRepositoryTest`：9 个测试通过。
+- `AuthApiSmokeTest`：2 个测试通过；Flyway 在独立测试 schema 成功应用 V1-V4。
+- `frontend/console-web` Vitest：2 个测试通过，覆盖正式调用面板请求 `POST /api/model-invocations/chat` 和 trace/成本缺失原因展示。
+- `vue-tsc --noEmit && vite build` 通过。
+- `deploy/scripts/healthcheck.sh` 通过，PostgreSQL、Redis、MinIO 均 healthy。
+
+真实运行证据：
+
+- 已重新打包并启动 boot jar，`public` schema 从 v3 迁移到 v4。
+- 登录 `demo / admin` 后 `/api/auth/me` 返回 `model:invocation:execute`。
+- 当前租户已有 SiliconFlow `tencent/Hunyuan-MT-7B` 可用聊天模型。
+- `POST /api/model-invocations/chat` 真实调用成功：provider=`SiliconFlow`，model=`tencent/Hunyuan-MT-7B`，traceId=`560db837-792d-4fb6-9830-735021ee3a42`，latency=`719ms`，promptTokens=`14`，completionTokens=`10`，totalTokens=`24`，返回文本为 `S5.1 invocation smoke is considered acceptable.`。
+- 数据库 `model_invocation_record` 最新 `CHAT` 记录为 `SUCCESS`，同一 traceId 下写入 token、input/output 字符数和 `模型计费单价未配置`，未保存 prompt/completion 明文字段。
 
 ## S4.5 Frontend Console Design System Hardening
 
@@ -54,6 +207,11 @@ S1/S2/S2.1/S3/S4 已完成，Build Ready 对 Provider Catalog 和 RBAC/menu 闭�
 - `frontend/console-web/src/App.vue` 为 RBAC 菜单补充按菜单类型区分的导航图标 class，并将实现文案统一回中文企业后台表达，降低 demo 感。
 - 现有 `App.vue` 的真实 API contract、RBAC 菜单来源和测试断言未改变。
 - `scripts/generate_context_pack.py` 和 `scripts/harness_doc_guard.py` 已识别前端设计系统文档。
+- 用户继续复核后，本轮把 `A2+` 管理页面完成态落到实现：所有平台管理页面默认进入分页列表，新增、编辑、详情进入弹窗，列表最右侧统一操作列。
+- 菜单管理已由平铺表格调整为基于 `parentCode` 的菜单树表格，支持根菜单新增、节点详情、节点编辑和新增子菜单。
+- 角色管理已由角色卡片长 checkbox 调整为角色分页列表，权限设置进入专用弹窗；权限点按 code 前缀分组，菜单授权复用同一菜单树。
+- 租户模型配置和平台模型目录已从常驻表单改为列表优先；模型配置弹窗继续遵守 API Key 不回显，仅展示 `last4` 的安全边界。
+- 宽屏布局 token 调整为 `--content-max: 1680px` 与更小 `--page-gutter`，解决用户截图中左右留白过大的验收问题，同时保留移动端横向导航和表格滚动容器。
 
 验证命令：
 
@@ -83,6 +241,10 @@ git diff --check
 - 移动视口 `390x900`：`scrollWidth=390`，无页面横向溢出，当前菜单仍为 `模型配置`。
 - A2 截图证据保存在 `.codex-runtime/frontend-console-a2-desktop.png` 和 `.codex-runtime/frontend-console-a2-mobile.png`。
 - A2+ 多分辨率截图证据保存在 `.codex-runtime/frontend-console-a2plus-1440.png`、`.codex-runtime/frontend-console-a2plus-1024.png` 和 `.codex-runtime/frontend-console-a2plus-390.png`。
+- A2+ 管理页重构后，Chrome headless 真实登录验证 `模型配置` 在 `1440/1848/1024/390` 视口下 `scrollWidth == innerWidth`，无整页横向溢出。
+- `菜单管理` 树表在 `1440` 下整页无横向溢出，表格横向滚动由 `.table-scroll` 承担；`390` 下整页 `scrollWidth=390`，菜单树表格 `scrollWidth=1180/clientWidth=322`。
+- 菜单新增弹窗和角色权限设置弹窗已通过真实页面打开验证，console error 与 request failed 均为空。
+- 本轮截图证据保存在 `.codex-runtime/frontend-management-models-1440.png`、`.codex-runtime/frontend-management-models-390.png`、`.codex-runtime/frontend-management-menu-tree-1440.png`、`.codex-runtime/frontend-management-menu-modal-1440.png`、`.codex-runtime/frontend-management-role-access-1440.png` 和 `.codex-runtime/frontend-management-menu-tree-390.png`。
 
 ## S1 Dev Environment
 

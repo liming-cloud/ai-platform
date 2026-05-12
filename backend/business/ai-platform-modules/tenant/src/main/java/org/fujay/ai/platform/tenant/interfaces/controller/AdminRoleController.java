@@ -4,7 +4,7 @@ import cn.dev33.satoken.annotation.SaCheckPermission;
 import org.fujay.ai.platform.shared.response.ApiResponse;
 import org.fujay.ai.platform.shared.trace.TraceContext;
 import org.fujay.ai.platform.tenant.application.command.SaveRoleCommand;
-import org.fujay.ai.platform.tenant.application.service.TenantAccessApplicationService;
+import org.fujay.ai.platform.tenant.application.service.IamAdminApplicationService;
 import org.fujay.ai.platform.tenant.interfaces.assembler.TenantAccessAssembler;
 import org.fujay.ai.platform.tenant.interfaces.request.RoleBindingRequest;
 import org.fujay.ai.platform.tenant.interfaces.request.RoleSaveRequest;
@@ -22,11 +22,11 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/admin/roles")
 public class AdminRoleController {
 
-    private final TenantAccessApplicationService applicationService;
+    private final IamAdminApplicationService iamAdminService;
     private final TenantAccessAssembler assembler;
 
-    public AdminRoleController(TenantAccessApplicationService applicationService, TenantAccessAssembler assembler) {
-        this.applicationService = applicationService;
+    public AdminRoleController(IamAdminApplicationService iamAdminService, TenantAccessAssembler assembler) {
+        this.iamAdminService = iamAdminService;
         this.assembler = assembler;
     }
 
@@ -34,7 +34,7 @@ public class AdminRoleController {
     @SaCheckPermission("rbac:role:read")
     public ApiResponse<RoleManagementResponse> roleManagement() {
         return ApiResponse.success(
-                TraceContext.currentTraceId(), assembler.toRoleManagementResponse(applicationService.roleManagementForAdmin()));
+                TraceContext.currentTraceId(), assembler.toRoleManagementResponse(iamAdminService.roleManagementForAdmin()));
     }
 
     @PostMapping
@@ -42,7 +42,7 @@ public class AdminRoleController {
     public ApiResponse<RoleAccessResponse> saveRole(@RequestBody RoleSaveRequest request) {
         return ApiResponse.success(
                 TraceContext.currentTraceId(),
-                assembler.toRoleAccessResponse(applicationService.saveRoleForAdmin(new SaveRoleCommand(
+                assembler.toRoleAccessResponse(iamAdminService.saveRoleForAdmin(new SaveRoleCommand(
                         request.roleId(), request.roleCode(), request.roleName(), request.status()))));
     }
 
@@ -52,7 +52,7 @@ public class AdminRoleController {
             @PathVariable("roleId") String roleId, @RequestBody RoleBindingRequest request) {
         return ApiResponse.success(
                 TraceContext.currentTraceId(),
-                assembler.toRoleAccessResponse(applicationService.updateRoleBindingsForAdmin(
+                assembler.toRoleAccessResponse(iamAdminService.updateRoleBindingsForAdmin(
                         roleId, request.permissionCodes(), request.menuCodes())));
     }
 }

@@ -1,6 +1,8 @@
 package org.fujay.ai.platform.model.domain.value;
 
-public enum ModelCapabilityType {
+import org.fujay.ai.platform.shared.ddd.ValueObject;
+
+public enum ModelCapabilityType implements ValueObject {
     CHAT,
     EMBEDDING,
     RERANK,

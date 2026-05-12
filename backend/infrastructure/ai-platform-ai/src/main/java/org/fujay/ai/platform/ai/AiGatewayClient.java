@@ -7,4 +7,6 @@ public interface AiGatewayClient {
     Set<AiProviderType> supportedProviderTypes();
 
     ChatTestResult testChat(ChatTestCommand command);
+
+    ChatInvocationResult invokeChat(ChatInvocationCommand command);
 }

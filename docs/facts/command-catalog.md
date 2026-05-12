@@ -46,11 +46,11 @@ mvn -f backend/pom.xml test
 mvn -f backend/pom.xml verify
 ```
 
-后端本机启动采用先打包再运行可执行 jar。不要使用父 reactor 直接执行 `spring-boot:run` 作为验收命令，因为 Maven 会在父模块尝试解析 main class。
+后端本机启动采用先打包再运行可执行 jar。不要使用父 reactor 直接执行 `spring-boot:run` 作为验收命令，因为 Maven 会在父模块尝试解析 main class。默认 profile 不再内置 master key；本地开发可以启用 `local` profile，生产或默认 profile 必须显式设置 `AI_PLATFORM_SECRET_MASTER_KEY`。
 
 ```bash
 mvn -f backend/pom.xml -pl apps/ai-platform-boot -am -DskipTests package
-java -jar backend/apps/ai-platform-boot/target/ai-platform-boot-0.1.0-SNAPSHOT.jar
+SPRING_PROFILES_ACTIVE=local java -jar backend/apps/ai-platform-boot/target/ai-platform-boot-0.1.0-SNAPSHOT.jar
 ```
 
 S3 后端 API smoke 使用真实 PostgreSQL/Redis：
@@ -80,7 +80,7 @@ async function request(path, options = {}) {
 NODE
 ```
 
-S2/S3/S4 结果：后端 reactor 构建成功，`BackendMavenBaselineTest` 9/9 通过，`AuthApiSmokeTest` 2/2 通过。
+S2/S3/S4/S5 和 DDD 恢复结果：后端 reactor 构建成功，`BackendMavenBaselineTest` 18/18 通过，`AuthApiSmokeTest` 2/2 通过。
 
 后端 Maven 坐标必须固定为：
 

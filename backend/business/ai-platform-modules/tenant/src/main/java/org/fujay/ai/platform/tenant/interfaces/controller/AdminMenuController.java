@@ -5,7 +5,7 @@ import java.util.List;
 import org.fujay.ai.platform.shared.response.ApiResponse;
 import org.fujay.ai.platform.shared.trace.TraceContext;
 import org.fujay.ai.platform.tenant.application.command.SaveMenuCommand;
-import org.fujay.ai.platform.tenant.application.service.TenantAccessApplicationService;
+import org.fujay.ai.platform.tenant.application.service.IamAdminApplicationService;
 import org.fujay.ai.platform.tenant.interfaces.assembler.TenantAccessAssembler;
 import org.fujay.ai.platform.tenant.interfaces.request.MenuSaveRequest;
 import org.fujay.ai.platform.tenant.interfaces.response.RoleManagementResponse.MenuResponse;
@@ -19,11 +19,11 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/admin/menus")
 public class AdminMenuController {
 
-    private final TenantAccessApplicationService applicationService;
+    private final IamAdminApplicationService iamAdminService;
     private final TenantAccessAssembler assembler;
 
-    public AdminMenuController(TenantAccessApplicationService applicationService, TenantAccessAssembler assembler) {
-        this.applicationService = applicationService;
+    public AdminMenuController(IamAdminApplicationService iamAdminService, TenantAccessAssembler assembler) {
+        this.iamAdminService = iamAdminService;
         this.assembler = assembler;
     }
 
@@ -32,7 +32,7 @@ public class AdminMenuController {
     public ApiResponse<List<MenuResponse>> listMenus() {
         return ApiResponse.success(
                 TraceContext.currentTraceId(),
-                applicationService.listMenusForAdmin().stream().map(assembler::toMenuResponse).toList());
+                iamAdminService.listMenusForAdmin().stream().map(assembler::toMenuResponse).toList());
     }
 
     @PostMapping
@@ -40,7 +40,7 @@ public class AdminMenuController {
     public ApiResponse<MenuResponse> saveMenu(@RequestBody MenuSaveRequest request) {
         return ApiResponse.success(
                 TraceContext.currentTraceId(),
-                assembler.toMenuResponse(applicationService.saveMenuForAdmin(new SaveMenuCommand(
+                assembler.toMenuResponse(iamAdminService.saveMenuForAdmin(new SaveMenuCommand(
                         request.menuId(),
                         request.menuCode(),
                         request.menuName(),

@@ -22,7 +22,10 @@ public class SecretCipher {
 
     private final SecretKeySpec keySpec;
 
-    public SecretCipher(@Value("${ai.platform.secret.master-key:ai-platform-local-secret-change-me}") String masterKey) {
+    public SecretCipher(@Value("${ai.platform.secret.master-key}") String masterKey) {
+        if (masterKey == null || masterKey.isBlank()) {
+            throw new IllegalArgumentException("平台主密钥不能为空");
+        }
         this.keySpec = new SecretKeySpec(sha256(masterKey), "AES");
     }
 
