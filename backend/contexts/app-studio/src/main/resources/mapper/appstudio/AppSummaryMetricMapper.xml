@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aiplatform.appstudio.infrastructure.persistence.mapper.AppSummaryMetricMapper">
+  <sql id="latestFailedPreflights">
+    SELECT DISTINCT ON (tenant_id, application_id) tenant_id, application_id, passed
+    FROM app_publish_preflight_result
+    ORDER BY tenant_id, application_id, checked_at DESC, id DESC
+  </sql>
+
+  <select id="countPlatformPublishBlockedApplications" resultType="long">
+    SELECT count(*) FROM (<include refid="latestFailedPreflights"/>) latest WHERE latest.passed = false
+  </select>
+
+  <select id="countApplications" resultType="long">
+    SELECT count(*) FROM app_application
+    WHERE tenant_id = #{tenantId} AND deleted_at IS NULL
+  </select>
+
+  <select id="countPublishedApplications" resultType="long">
+    SELECT count(*) FROM app_application
+    WHERE tenant_id = #{tenantId} AND status = 'ACTIVE' AND published_at IS NOT NULL AND deleted_at IS NULL
+  </select>
+
+  <select id="countDraftApplications" resultType="long">
+    SELECT count(*) FROM app_application
+    WHERE tenant_id = #{tenantId} AND status = 'DRAFT' AND deleted_at IS NULL
+  </select>
+
+  <select id="countPublishBlockedApplications" resultType="long">
+    SELECT count(*) FROM (<include refid="latestFailedPreflights"/>) latest
+    WHERE latest.tenant_id = #{tenantId} AND latest.passed = false
+  </select>
+</mapper>

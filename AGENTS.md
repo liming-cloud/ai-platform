@@ -1,36 +1,126 @@
-# AI Platform Agent Guide
+# AGENTS.md
 
-本仓库当前处于绿地项目的产品规划、架构设计和实施路径阶段。所有 agent 必须先读取 [docs/00-index.md](docs/00-index.md)，再按当前任务加载对应阶段文档。
+## engineering-assistant plugin protocol
 
-## 默认规则
+When a user asks to use the `engineering-assistant` plugin, do not only claim it verbally and do not substitute generic skills by default.
 
-- 文档和评审说明使用简体中文。
-- 交付目标默认为 `production-targeted`。
-- 后端技术栈已确认：Spring Boot + Spring AI + Sa-Token + MyBatis-Plus。
-- 后端架构 profile 启用 `springboot-enterprise-ddd`，所有核心功能按 TDD 推进。
-- `30` / `40` / `45` / `50` 未评审通过前，不进入业务代码实现。
-- 不允许以 `InMemory*`、`Fake*`、硬编码租户、伪 provider、伪索引、伪监控作为正式完成态。
-- 不引入 Python worker；AI 能力优先通过 Spring AI 适配，必要的文档解析或异步任务也由 Java 模块承载。
-- 框架用法先看 `docs/facts/framework-official-research.md`；禁止把 Spring AI、Sa-Token、MyBatis-Plus 的泛泛经验替代本项目已回写的约束。
-- `ChatClient` / `ChatModel` / `VectorStore` 只允许在 Spring AI adapter 或 boot configuration；`StpUtil` 只允许在 auth adapter / auth service；MyBatis-Plus PO / Mapper / Wrapper / `IPage` 不得进入 domain 或 HTTP 响应。
-- 多租户 IAM、RBAC、菜单和前端授权渲染先看 `docs/facts/iam-rbac-official-research.md`；菜单只控制导航可见性，接口必须由权限码和 Sa-Token/application check 保护。
-- 缓存设计先看 `docs/facts/cache-official-research.md`；二级缓存统一使用 Caffeine L1 + Redisson/Redis L2，业务模块不得自建缓存或缓存敏感明文。
-- 平台基础设施模块边界先看 `docs/45-details/02-platform-infrastructure-design.md`；Spring AI、Sa-Token、MyBatis-Plus、Redisson/Caffeine、S3/MinIO、OpenTelemetry 等非业务框架能力必须落到同级基础设施模块，业务 domain 不得依赖这些模块。
-- 前端控制台设计、页面样式和交互状态先看 `docs/45-details/03-frontend-console-design-system.md`；企业控制台不得以能启动的 smoke 页面、营销型展示、大面积装饰视觉或临时单页样式作为完成态。
-- 任何涉及模型密钥、租户数据、知识库数据、工具凭证的动作必须有审计和权限边界。
-- 后续实现必须先消费 `docs/_generated/context-pack.json`；不存在或过期时先运行 `python3 scripts/generate_context_pack.py`。
-- 团队拓扑固定为架构师、产品工程师、资深后端研发、资深前端工程师、UI 工程师；角色职责和切片参与规则见 `docs/33-team-topology.md`。
+Required protocol:
 
-## 最小加载路径
+1. Select the active plugin runtime
+   - Prefer the plugin capabilities exposed by the current agent runtime, such as plugin-provided skills or MCP tools already listed in the current tool context.
+   - Do not assume Hermes is the only plugin runtime.
+   - Use Hermes commands only when one of these is true:
+     - the user explicitly asks to use Hermes;
+     - the current execution environment is Hermes CLI;
+     - no current-runtime plugin capability is available and a Hermes installation must be checked as a fallback.
 
-1. `docs/00-index.md`
-2. `docs/_generated/context-pack.json`
-3. 当前阶段主文档
-4. 相关 facts / evidence
+2. Route to the minimum sufficient plugin skill
+   - If the current runtime exposes plugin-qualified skills, choose the minimum sufficient `engineering-assistant:<skill-id>` skill from those capabilities.
+   - If using Hermes, run:
+     `hermes plugins list --plain --no-bundled | grep '^engineering-assistant\b' || true`
+     then:
+     `python3 ~/.hermes/plugins/engineering-assistant/engineering-assistant/scripts/route_skill.py --root ~/.hermes/plugins/engineering-assistant --prompt '<user request>'`
+   - If a router is used, respect router output:
+     - `selected`: use that plugin skill
+     - `waiting_for_input`: do not guess; surface the minimal ambiguity
+     - `rejected`: explain-only request; do not fake stage execution
 
-## 当前禁止动作
+3. Explicitly load the plugin-qualified skill
+   - Load or invoke the plugin-qualified skill through the active runtime.
+   - Do not treat a plugin availability check as proof the plugin was used.
+   - Do not run Hermes-only commands merely to satisfy evidence reporting when the active runtime is not Hermes.
 
-- 不直接生成后端或前端业务骨架。
-- 不选择云厂商锁定实现作为唯一架构。
-- 不把竞品功能清单直接等同于产品范围。
-- 不跳过评审直接进入编码。
+4. Consume control-plane assets when relevant
+   - Read the smallest sufficient set from the active runtime's plugin assets.
+   - For Hermes fallback, the asset paths are:
+     - `~/.hermes/plugins/engineering-assistant/engineering-assistant/registry/workflows.yaml`
+     - `~/.hermes/plugins/engineering-assistant/engineering-assistant/workflows/*.yaml`
+     - `~/.hermes/plugins/engineering-assistant/engineering-assistant/runtime/compiled/skill-runtime-index.json`
+     - relevant `standards/*` or `checklists/*`
+   - Use these files to decide workflow, risk, explicit-only skills, gates, and expected artifacts
+
+5. Validate plugin-style stage outputs
+   - If a StageRunResult JSON or equivalent stage artifact is produced, validate it with the validator for the active runtime.
+   - For Hermes fallback, run:
+     `python3 ~/.hermes/plugins/engineering-assistant/engineering-assistant/scripts/validate_stage_run_result.py <result.json>`
+   - If validation fails, do not claim success
+
+6. Response evidence requirement
+   - Final reports must state:
+     - active plugin runtime
+     - plugin availability or capability source
+     - routed skill id
+     - explicitly loaded plugin-qualified skill
+     - workflow/control-plane files consumed
+     - validator result if applicable
+
+## codegraph usage protocol
+
+The current repository already has a working codegraph index. For code understanding, architecture tracing, impact analysis, and non-trivial debugging, prefer codegraph as the first discovery tool instead of blind file search.
+
+Required protocol:
+
+1. Use `mcp_codegraph_codegraph_explore` first for almost all codebase questions
+   - Apply this to questions like:
+     - how does feature X work
+     - where is module Y implemented
+     - why does flow Z fail
+     - what should change for a refactor
+     - what code paths touch entity/service/controller/repository A
+   - Prefer a natural-language query or a compact bag of symbols/files
+   - Do not start with broad `search_files`/grep when the goal is understanding behavior or architecture
+
+2. Use the codegraph tool priority in this order
+   - `mcp_codegraph_codegraph_explore`: primary entrypoint for understanding an area
+   - `mcp_codegraph_codegraph_node`: when one specific symbol body or overload needs full detail
+   - `mcp_codegraph_codegraph_impact`: before non-trivial refactors or schema/API changes
+   - `mcp_codegraph_codegraph_callers` / `mcp_codegraph_codegraph_callees`: when tracing direct call relationships
+   - `mcp_codegraph_codegraph_search`: only to find symbol names when the exact symbol is unknown
+   - `mcp_codegraph_codegraph_files`: for indexed tree/layout inspection
+
+3. Only fall back to `read_file` / `search_files` after codegraph narrows the target
+   - Use file tools to inspect raw config, YAML, SQL, generated artifacts, or long non-indexed text
+   - Use file tools when codegraph output is insufficient or when verifying exact surrounding text in a file
+   - Do not reopen large files just to rediscover code already returned by `codegraph_explore`
+
+4. Use codegraph before editing or reviewing risky code
+   - Before changing important services, aggregates, controllers, repositories, routes, or shared contracts:
+     - inspect the area with `codegraph_explore`
+     - inspect the target symbol with `codegraph_node` if needed
+     - run `codegraph_impact` for non-local changes
+   - Summaries and implementation plans should mention the key symbols/files identified via codegraph when relevant
+
+5. Mention codegraph evidence in the response when it materially informed the work
+   - Examples:
+     - explored `AuthApplicationService login SessionController`
+     - impact checked for `KnowledgeBaseService`
+     - traced callers of `ModelProviderService.save`
+
+Practical rules:
+- For architecture/debugging/refactor questions, codegraph is the default first step
+- For one exact known file with a small targeted read, `read_file` is fine directly
+- For repo-wide regex hunting in non-code assets, `search_files` is fine directly
+- When codegraph and raw files disagree, verify with `read_file` and report the discrepancy explicitly
+
+## High-risk plugin skills
+
+Treat the following as explicit-only unless the user intent is explicit and the plugin router selects them:
+- `engineering-assistant:workflow-orchestrator`
+- `engineering-assistant:code-development`
+- `engineering-assistant:implementation-controller`
+- `engineering-assistant:code-quality-governor`
+- `engineering-assistant:release-readiness`
+- `engineering-assistant:release-verification`
+- `engineering-assistant:engineering-knowledge-miner`
+
+## Invalid behavior
+
+The following does NOT count as using the plugin:
+- only checking that `engineering-assistant` is installed
+- only saying "using engineering-assistant" in prose
+- using only generic skills when a relevant plugin-qualified skill exists
+
+The following is invalid code investigation behavior for this repository:
+- starting broad architecture/debugging/refactor analysis with `search_files` alone when codegraph could answer faster and better
+- reading many whole files manually before trying `mcp_codegraph_codegraph_explore`
+- claiming impact is understood for a non-trivial change without using `codegraph_impact` or equivalent codegraph tracing

@@ -1,5 +1,6 @@
 .DS_Store
 .idea/
+.codegraph/
 .codex-runtime/
 .superpowers/
 
@@ -14,6 +15,16 @@ target/
 dist/
 build/
 node_modules/
+*.tsbuildinfo
+
+# Runtime logs
+*.log
+*.pid
+artifacts/_control/quality-run-report.json
+artifacts/acceptance/
+artifacts/evaluation/**/raw-evidence.tar.gz
+test-results/
+playwright-report/
 
 # Python cache
 __pycache__/

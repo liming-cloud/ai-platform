@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aiplatform.appstudio.infrastructure.persistence.mapper.AppApplicationReleaseMapper">
+    <resultMap id="releaseMap" type="com.aiplatform.appstudio.infrastructure.persistence.entity.AppApplicationReleasePersistenceEntity">
+        <id property="id" column="id"/>
+        <result property="tenantId" column="tenant_id"/>
+        <result property="applicationId" column="application_id"/>
+        <result property="versionNo" column="version_no"/>
+        <result property="sourceReleaseId" column="source_release_id"/>
+        <result property="requestId" column="request_id"/>
+        <result property="operation" column="operation"/>
+        <result property="applicationType" column="application_type"/>
+        <result property="applicationName" column="application_name"/>
+        <result property="description" column="description"/>
+        <result property="modelConfigId" column="model_config_id"/>
+        <result property="systemPrompt" column="system_prompt"/>
+        <result property="knowledgeBaseIdsJson" column="knowledge_base_ids_json"/>
+        <result property="toolIdsJson" column="tool_ids_json"/>
+        <result property="ownerUserIdsJson" column="owner_user_ids_json"/>
+        <result property="allowedUserIdsJson" column="allowed_user_ids_json"/>
+        <result property="applicationCreatedAt" column="application_created_at"/>
+        <result property="publishedBy" column="published_by"/>
+        <result property="reason" column="reason"/>
+        <result property="traceId" column="trace_id"/>
+        <result property="publishedAt" column="published_at"/>
+    </resultMap>
+
+    <sql id="releaseColumns">
+        release.id, release.tenant_id, release.application_id, release.version_no, release.source_release_id,
+        release.request_id, release.operation, release.application_type, release.application_name, release.description,
+        release.model_config_id, release.system_prompt,
+        release.knowledge_base_ids_json::text AS knowledge_base_ids_json,
+        release.tool_ids_json::text AS tool_ids_json,
+        release.owner_user_ids_json::text AS owner_user_ids_json,
+        release.allowed_user_ids_json::text AS allowed_user_ids_json,
+        release.application_created_at, release.published_by, release.reason, release.trace_id, release.published_at
+    </sql>
+
+    <select id="lockApplication" resultType="java.time.Instant" flushCache="true" useCache="false">
+        SELECT updated_at
+        FROM app_application
+        WHERE tenant_id = #{tenantId}
+          AND id = #{applicationId}
+          AND deleted_at IS NULL
+        FOR UPDATE
+    </select>
+
+    <select id="nextReleaseId" resultType="java.lang.Long">
+        SELECT nextval(pg_get_serial_sequence('app_application_release', 'id'))
+    </select>
+
+    <select id="nextVersion" resultType="java.lang.Long">
+        SELECT COALESCE(MAX(version_no), 0) + 1
+        FROM app_application_release
+        WHERE tenant_id = #{tenantId}
+          AND application_id = #{applicationId}
+    </select>
+
+    <insert id="insertRelease">
+        INSERT INTO app_application_release (
+            id, tenant_id, application_id, version_no, source_release_id,
+            request_id, operation, application_type, application_name, description,
+            model_config_id, system_prompt, knowledge_base_ids_json, tool_ids_json,
+            owner_user_ids_json, allowed_user_ids_json, application_created_at,
+            published_by, reason, trace_id, published_at
+        ) VALUES (
+            #{id}, #{tenantId}, #{applicationId}, #{versionNo}, #{sourceReleaseId},
+            #{requestId}, #{operation}, #{applicationType}, #{applicationName}, #{description},
+            #{modelConfigId}, #{systemPrompt}, CAST(#{knowledgeBaseIdsJson} AS JSONB),
+            CAST(#{toolIdsJson} AS JSONB), CAST(#{ownerUserIdsJson} AS JSONB),
+            CAST(#{allowedUserIdsJson} AS JSONB), #{applicationCreatedAt},
+            #{publishedBy}, #{reason}, #{traceId}, #{publishedAt}
+        )
+    </insert>
+
+    <insert id="activateRelease">
+        INSERT INTO app_application_active_release (
+            tenant_id, application_id, active_release_id, activated_by, activated_at
+        ) VALUES (
+            #{tenantId}, #{applicationId}, #{releaseId}, #{actorId}, #{now}
+        )
+        ON CONFLICT (tenant_id, application_id) DO UPDATE
+        SET active_release_id = EXCLUDED.active_release_id,
+            activated_by = EXCLUDED.activated_by,
+            activated_at = EXCLUDED.activated_at
+    </insert>
+
+    <update id="markApplicationPublished">
+        UPDATE app_application
+        SET status = 'ACTIVE',
+            published_at = #{now},
+            updated_at = #{now},
+            updated_by = #{actorId},
+            version = version + 1
+        WHERE tenant_id = #{tenantId}
+          AND id = #{applicationId}
+          AND deleted_at IS NULL
+    </update>
+
+    <select id="findActive" resultMap="releaseMap">
+        SELECT <include refid="releaseColumns"/>
+        FROM app_application_release release
+        JOIN app_application_active_release active
+          ON active.tenant_id = release.tenant_id
+         AND active.application_id = release.application_id
+         AND active.active_release_id = release.id
+        WHERE release.tenant_id = #{tenantId}
+          AND release.application_id = #{applicationId}
+        LIMIT 1
+    </select>
+
+    <select id="findActiveByApplicationIds" resultMap="releaseMap">
+        SELECT <include refid="releaseColumns"/>
+        FROM app_application_release release
+        JOIN app_application_active_release active
+          ON active.tenant_id = release.tenant_id
+         AND active.application_id = release.application_id
+         AND active.active_release_id = release.id
+        WHERE release.tenant_id = #{tenantId}
+          AND release.application_id IN
+          <foreach collection="applicationIds" item="applicationId" open="(" separator="," close=")">
+              #{applicationId}
+          </foreach>
+        ORDER BY release.application_id
+    </select>
+
+    <select id="findByRequestId" resultMap="releaseMap">
+        SELECT <include refid="releaseColumns"/>
+        FROM app_application_release release
+        WHERE release.tenant_id = #{tenantId}
+          AND release.application_id = #{applicationId}
+          AND release.request_id = #{requestId}
+        LIMIT 1
+    </select>
+
+    <select id="findById" resultMap="releaseMap">
+        SELECT <include refid="releaseColumns"/>
+        FROM app_application_release release
+        WHERE release.tenant_id = #{tenantId}
+          AND release.application_id = #{applicationId}
+          AND release.id = #{releaseId}
+        LIMIT 1
+    </select>
+
+    <select id="findAll" resultMap="releaseMap">
+        SELECT <include refid="releaseColumns"/>
+        FROM app_application_release release
+        WHERE release.tenant_id = #{tenantId}
+          AND release.application_id = #{applicationId}
+        ORDER BY release.version_no DESC
+    </select>
+</mapper>

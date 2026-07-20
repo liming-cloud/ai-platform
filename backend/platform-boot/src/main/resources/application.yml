@@ -1,0 +1,425 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: ai-platform
+  servlet:
+    multipart:
+      max-file-size: ${AIP_MULTIPART_MAX_FILE_SIZE:12MB}
+      max-request-size: ${AIP_MULTIPART_MAX_REQUEST_SIZE:12MB}
+  datasource:
+    url: ${AIP_DATASOURCE_URL:jdbc:postgresql://localhost:5432/aip}
+    username: ${AIP_DATASOURCE_USERNAME:aip}
+    password: ${AIP_DATASOURCE_PASSWORD}
+    hikari:
+      connection-timeout: ${AIP_DATASOURCE_CONNECTION_TIMEOUT_MS:2000}
+      validation-timeout: ${AIP_DATASOURCE_VALIDATION_TIMEOUT_MS:1000}
+  data:
+    redis:
+      host: ${AIP_REDIS_HOST:localhost}
+      port: ${AIP_REDIS_PORT:6379}
+      connect-timeout: ${AIP_REDIS_CONNECT_TIMEOUT:2s}
+      timeout: ${AIP_REDIS_COMMAND_TIMEOUT:2s}
+  mail:
+    host: ${AIP_SMTP_HOST:localhost}
+    port: ${AIP_SMTP_PORT:25}
+    username: ${AIP_SMTP_USERNAME:}
+    password: ${AIP_SMTP_PASSWORD:}
+    properties:
+      mail.smtp.auth: ${AIP_SMTP_AUTH:false}
+      mail.smtp.starttls.enable: ${AIP_SMTP_STARTTLS:false}
+  cloud:
+    function:
+      definition: modelConfigApprovalRequested;approvalDecisionRecorded;modelUsagePolicyPublished;appStudioModelUsagePolicyPublished;documentIngestRequested
+    stream:
+      bindings:
+        domainEvent-out-0:
+          destination: ${AIP_ROCKETMQ_DOMAIN_EVENT_TOPIC:topic-ai-platform-domain-event}
+          content-type: application/json
+          producer:
+            use-native-encoding: true
+        modelConfigApprovalRequested-in-0:
+          destination: ${AIP_ROCKETMQ_DOMAIN_EVENT_TOPIC:topic-ai-platform-domain-event}
+          group: ${AIP_ROCKETMQ_APPROVAL_GROUP:cg-ai-platform-approval}
+          content-type: application/json
+          consumer:
+            max-attempts: 1
+        approvalDecisionRecorded-in-0:
+          destination: ${AIP_ROCKETMQ_DOMAIN_EVENT_TOPIC:topic-ai-platform-domain-event}
+          group: ${AIP_ROCKETMQ_MODEL_HUB_GROUP:cg-ai-platform-model-hub}
+          content-type: application/json
+          consumer:
+            max-attempts: 1
+        modelUsagePolicyPublished-in-0:
+          destination: ${AIP_ROCKETMQ_DOMAIN_EVENT_TOPIC:topic-ai-platform-domain-event}
+          group: ${AIP_ROCKETMQ_KNOWLEDGE_GROUP:cg-ai-platform-knowledge}
+          content-type: application/json
+          consumer:
+            max-attempts: 1
+        appStudioModelUsagePolicyPublished-in-0:
+          destination: ${AIP_ROCKETMQ_DOMAIN_EVENT_TOPIC:topic-ai-platform-domain-event}
+          group: ${AIP_ROCKETMQ_APP_STUDIO_GROUP:cg-ai-platform-app-studio}
+          content-type: application/json
+          consumer:
+            max-attempts: 1
+        documentIngestRequested-in-0:
+          destination: ${AIP_ROCKETMQ_DOMAIN_EVENT_TOPIC:topic-ai-platform-domain-event}
+          group: ${AIP_ROCKETMQ_KNOWLEDGE_INGESTION_GROUP:cg-ai-platform-knowledge-ingestion}
+          content-type: application/json
+          consumer:
+            max-attempts: 1
+      rocketmq:
+        binder:
+          name-server: ${AIP_ROCKETMQ_NAME_SERVER:localhost:9876}
+          group: ${AIP_ROCKETMQ_PRODUCER_GROUP:cg-ai-platform-producer}
+        bindings:
+          domainEvent-out-0:
+            producer:
+              group: ${AIP_ROCKETMQ_PRODUCER_GROUP:cg-ai-platform-producer}
+          modelConfigApprovalRequested-in-0:
+            consumer:
+              group: ${AIP_ROCKETMQ_APPROVAL_GROUP:cg-ai-platform-approval}
+              push:
+                max-reconsume-times: ${AIP_ROCKETMQ_CONSUMER_MAX_RECONSUME_TIMES:5}
+                delay-level-when-next-consume: ${AIP_ROCKETMQ_CONSUMER_DELAY_LEVEL_WHEN_NEXT_CONSUME:3}
+          approvalDecisionRecorded-in-0:
+            consumer:
+              group: ${AIP_ROCKETMQ_MODEL_HUB_GROUP:cg-ai-platform-model-hub}
+              push:
+                max-reconsume-times: ${AIP_ROCKETMQ_CONSUMER_MAX_RECONSUME_TIMES:5}
+                delay-level-when-next-consume: ${AIP_ROCKETMQ_CONSUMER_DELAY_LEVEL_WHEN_NEXT_CONSUME:3}
+          modelUsagePolicyPublished-in-0:
+            consumer:
+              group: ${AIP_ROCKETMQ_KNOWLEDGE_GROUP:cg-ai-platform-knowledge}
+              push:
+                max-reconsume-times: ${AIP_ROCKETMQ_CONSUMER_MAX_RECONSUME_TIMES:5}
+                delay-level-when-next-consume: ${AIP_ROCKETMQ_CONSUMER_DELAY_LEVEL_WHEN_NEXT_CONSUME:3}
+          appStudioModelUsagePolicyPublished-in-0:
+            consumer:
+              group: ${AIP_ROCKETMQ_APP_STUDIO_GROUP:cg-ai-platform-app-studio}
+              push:
+                max-reconsume-times: ${AIP_ROCKETMQ_CONSUMER_MAX_RECONSUME_TIMES:5}
+                delay-level-when-next-consume: ${AIP_ROCKETMQ_CONSUMER_DELAY_LEVEL_WHEN_NEXT_CONSUME:3}
+          documentIngestRequested-in-0:
+            consumer:
+              group: ${AIP_ROCKETMQ_KNOWLEDGE_INGESTION_GROUP:cg-ai-platform-knowledge-ingestion}
+              push:
+                max-reconsume-times: ${AIP_ROCKETMQ_CONSUMER_MAX_RECONSUME_TIMES:5}
+                delay-level-when-next-consume: ${AIP_ROCKETMQ_CONSUMER_DELAY_LEVEL_WHEN_NEXT_CONSUME:3}
+
+sa-token:
+  token-name: Authorization
+  token-prefix: Bearer
+  timeout: ${AIP_SESSION_TIMEOUT_SECONDS:28800}
+  is-concurrent: true
+  is-share: false
+  is-read-header: true
+  is-read-cookie: false
+  is-write-header: false
+
+aip:
+  identity:
+    activation-base-url: ${AIP_IDENTITY_ACTIVATION_BASE_URL:http://127.0.0.1:5173/activate}
+    invitation-signing-key: ${AIP_IDENTITY_INVITATION_SIGNING_KEY}
+    invitation-outbox:
+      kms-key-id: ${AIP_IDENTITY_INVITATION_OUTBOX_KMS_KEY_ID}
+      encryption-key: ${AIP_IDENTITY_INVITATION_OUTBOX_ENCRYPTION_KEY}
+      previous-keys: ${AIP_IDENTITY_INVITATION_OUTBOX_PREVIOUS_KEYS:}
+    login-protection:
+      max-failures: ${AIP_LOGIN_MAX_FAILURES:5}
+      window: ${AIP_LOGIN_FAILURE_WINDOW:PT15M}
+    invitation-mail:
+      enabled: ${AIP_IDENTITY_INVITATION_MAIL_ENABLED:false}
+      from: ${AIP_IDENTITY_INVITATION_MAIL_FROM:no-reply@example.com}
+  object-storage:
+    endpoint: ${AIP_OBJECT_STORAGE_ENDPOINT:http://localhost:9000}
+    access-key: ${AIP_OBJECT_STORAGE_ACCESS_KEY}
+    secret-key: ${AIP_OBJECT_STORAGE_SECRET_KEY}
+    bucket: ${AIP_OBJECT_STORAGE_BUCKET:aip-knowledge}
+    region: ${AIP_OBJECT_STORAGE_REGION:us-east-1}
+  knowledge:
+    job-worker:
+      enabled: ${AIP_KNOWLEDGE_JOB_WORKER_ENABLED:true}
+      initial-delay-ms: ${AIP_KNOWLEDGE_JOB_INITIAL_DELAY_MS:1000}
+      poll-delay-ms: ${AIP_KNOWLEDGE_JOB_POLL_DELAY_MS:1000}
+      batch-size: ${AIP_KNOWLEDGE_JOB_BATCH_SIZE:8}
+      max-attempts: ${AIP_KNOWLEDGE_JOB_MAX_ATTEMPTS:5}
+      lease-duration: ${AIP_KNOWLEDGE_JOB_LEASE_DURATION:PT15M}
+      initial-backoff: ${AIP_KNOWLEDGE_JOB_INITIAL_BACKOFF:PT30S}
+  model-hub:
+    secret:
+      kms-key-id: ${AIP_MODEL_HUB_SECRET_KMS_KEY_ID}
+      encryption-key: ${AIP_MODEL_HUB_SECRET_ENCRYPTION_KEY}
+      previous-keys: ${AIP_MODEL_HUB_SECRET_PREVIOUS_KEYS:}
+      rotation:
+        enabled: ${AIP_MODEL_HUB_SECRET_ROTATION_ENABLED:false}
+        batch-size: ${AIP_MODEL_HUB_SECRET_ROTATION_BATCH_SIZE:20}
+        poll-delay-ms: ${AIP_MODEL_HUB_SECRET_ROTATION_POLL_DELAY_MS:5000}
+  rocketmq:
+    domain-event:
+      binding-name: domainEvent-out-0
+    readiness:
+      name-servers:
+        - host: ${AIP_ROCKETMQ_READINESS_NAME_SERVER_HOST:localhost}
+          port: ${AIP_ROCKETMQ_READINESS_NAME_SERVER_PORT:9876}
+      brokers:
+        - host: ${AIP_ROCKETMQ_READINESS_BROKER_HOST:localhost}
+          port: ${AIP_ROCKETMQ_READINESS_BROKER_PORT:10911}
+      connect-timeout: ${AIP_ROCKETMQ_READINESS_CONNECT_TIMEOUT:250ms}
+  security:
+    session:
+      token-ttl-seconds: ${AIP_SESSION_TIMEOUT_SECONDS:28800}
+    route-permissions:
+      - method: GET
+        pattern: /api/v1/auth/me
+        permission: identity-access:session:read
+      - method: POST
+        pattern: /api/v1/auth/logout
+        permission: identity-access:session:logout
+      - method: GET
+        pattern: /api/v1/iam/menus
+        permission: identity-access:iam-config:read
+      - method: POST
+        pattern: /api/v1/iam/menus
+        permission: identity-access:iam-menu:manage
+      - method: GET
+        pattern: /api/v1/iam/tenant-features
+        permission: identity-access:iam-config:read
+      - method: GET
+        pattern: /api/v1/iam/roles
+        permission: identity-access:iam-config:read
+      - method: GET
+        pattern: /api/v1/iam/users
+        permission: identity-access:iam-config:read
+      - method: POST
+        pattern: /api/v1/iam/user-invitations
+        permission: identity-access:tenant-setting:manage
+      - method: GET
+        pattern: /api/v1/iam/user-invitations
+        permission: identity-access:tenant-setting:manage
+      - method: POST
+        pattern: /api/v1/iam/user-invitations/*/resend
+        permission: identity-access:tenant-setting:manage
+      - method: POST
+        pattern: /api/v1/iam/user-invitations/*/revoke
+        permission: identity-access:tenant-setting:manage
+      - method: GET
+        pattern: /api/v1/iam/permissions
+        permission: identity-access:iam-config:read
+      - method: GET
+        pattern: /api/v1/iam/roles/*/menus
+        permission: identity-access:iam-config:read
+      - method: GET
+        pattern: /api/v1/iam/roles/*/permissions
+        permission: identity-access:iam-config:read
+      - method: PATCH
+        pattern: /api/v1/iam/menus/*
+        permission: identity-access:iam-menu:manage
+      - method: PUT
+        pattern: /api/v1/iam/menus/*/features
+        permission: identity-access:iam-menu:manage
+      - method: PUT
+        pattern: /api/v1/iam/tenant-features/*
+        permission: identity-access:tenant-feature:manage
+      - method: PUT
+        pattern: /api/v1/iam/roles/*/menus
+        permission: identity-access:role-menu:manage
+      - method: PUT
+        pattern: /api/v1/iam/roles/*/permissions
+        permission: identity-access:role-permission:manage
+      - method: PUT
+        pattern: /api/v1/iam/roles/*/default-menu
+        permission: identity-access:role-default-menu:manage
+      - method: POST
+        pattern: /api/v1/iam/tenants/*/delegated-admin-actions
+        permission: identity-access:tenant-delegation:manage
+      - method: GET
+        pattern: /api/v1/iam/tenants
+        permission: identity-access:tenant-delegation:manage
+      - method: POST
+        pattern: /api/v1/iam/tenants
+        permission: identity-access:tenant-delegation:manage
+      - method: PUT
+        pattern: /api/v1/iam/tenants/*
+        permission: identity-access:tenant-delegation:manage
+      - method: POST
+        pattern: /api/v1/iam/tenants/*/status
+        permission: identity-access:tenant-delegation:manage
+      - method: GET
+        pattern: /api/v1/iam/tenants/*/features
+        permission: identity-access:tenant-delegation:manage
+      - method: PUT
+        pattern: /api/v1/iam/tenants/*/features/*
+        permission: identity-access:tenant-delegation:manage
+      - method: POST
+        pattern: /api/v1/permission-requests
+        permission: identity-access:permission-request:create
+      - method: GET
+        pattern: /api/v1/permission-requests
+        permission: identity-access:permission-request:manage
+      - method: POST
+        pattern: /api/v1/permission-requests/*/actions
+        permission: identity-access:permission-request:manage
+      - method: GET
+        pattern: /api/v1/summary/platform-overview
+        permission: summary-ops:platform-overview:read
+      - method: GET
+        pattern: /api/v1/summary/tenant-workbench
+        permission: summary-ops:tenant-workbench:read
+      - method: GET
+        pattern: /api/v1/audit/security-logs
+        permission: observability-audit:security-log:read
+      - method: GET
+        pattern: /api/v1/model-providers
+        permission: model-hub:provider:read
+      - method: GET
+        pattern: /api/v1/model-providers/embedding-options
+        permission: knowledge-base:knowledge-base:create
+      - method: POST
+        pattern: /api/v1/model-providers
+        permission: model-hub:provider:create
+      - method: POST
+        pattern: /api/v1/model-providers/*/disable
+        permission: model-hub:provider:disable
+      - method: GET
+        pattern: /api/v1/model-providers/*/models
+        permission: model-hub:model-config:read
+      - method: POST
+        pattern: /api/v1/model-providers/*/models
+        permission: model-hub:model-config:create
+      - method: PUT
+        pattern: /api/v1/model-providers/*/models/*
+        permission: model-hub:model-config:update
+      - method: POST
+        pattern: /api/v1/model-providers/*/models/*/disable
+        permission: model-hub:model-config:disable
+      - method: POST
+        pattern: /api/v1/model-providers/*/models/*/connectivity-test
+        permission: model-hub:model-config:test-connectivity
+      - method: GET
+        pattern: /api/v1/approvals/tasks
+        permission: approval-center:task:read
+      - method: GET
+        pattern: /api/v1/approvals/tasks/*
+        permission: approval-center:task:read
+      - method: POST
+        pattern: /api/v1/approvals/tasks/*/actions
+        permission: approval-center:task:decide
+      - method: POST
+        pattern: /api/v1/knowledge-bases
+        permission: knowledge-base:knowledge-base:create
+      - method: GET
+        pattern: /api/v1/knowledge-bases
+        permission: knowledge-base:knowledge-base:read
+      - method: GET
+        pattern: /api/v1/knowledge-bases/*/documents
+        permission: knowledge-base:document:read
+      - method: PUT
+        pattern: /api/v1/knowledge-bases/*
+        permission: knowledge-base:knowledge-base:update
+      - method: POST
+        pattern: /api/v1/knowledge-bases/*/disable
+        permission: knowledge-base:knowledge-base:disable
+      - method: GET
+        pattern: /api/v1/knowledge-bases/*
+        permission: knowledge-base:knowledge-base:read
+      - method: POST
+        pattern: /api/v1/knowledge-bases/*/documents
+        permission: knowledge-base:document:upload
+      - method: DELETE
+        pattern: /api/v1/knowledge-bases/*/documents/*
+        permission: knowledge-base:document:delete
+      - method: POST
+        pattern: /api/v1/knowledge-bases/*/documents/*/parse
+        permission: knowledge-base:document:parse
+      - method: POST
+        pattern: /api/v1/knowledge-bases/*/documents/*/index
+        permission: knowledge-base:document:index
+      - method: POST
+        pattern: /api/v1/knowledge-bases/*/documents/*/cancel
+        permission: knowledge-base:document:cancel
+      - method: POST
+        pattern: /api/v1/knowledge-retrieval
+        permission: knowledge-base:retrieval:query
+      - method: POST
+        pattern: /api/v1/knowledge-retrieval/search
+        permission: knowledge-base:retrieval:query
+      - method: POST
+        pattern: /api/v1/knowledge/retrieval
+        permission: knowledge-base:retrieval:query
+      - method: POST
+        pattern: /api/v1/knowledge/retrieval/search
+        permission: knowledge-base:retrieval:query
+      - method: GET
+        pattern: /api/v1/ai-applications
+        permission: app-studio:application:read
+      - method: POST
+        pattern: /api/v1/ai-applications
+        permission: app-studio:application:create
+      - method: PUT
+        pattern: /api/v1/ai-applications/*
+        permission: app-studio:application:update
+      - method: PUT
+        pattern: /api/v1/ai-applications/*/access-policy
+        permission: app-studio:application:manage-acl
+      - method: POST
+        pattern: /api/v1/ai-applications/*/publish
+        permission: app-studio:application:publish
+      - method: POST
+        pattern: /api/v1/ai-applications/*/publish/preflight
+        permission: app-studio:application:publish
+      - method: GET
+        pattern: /api/v1/ai-applications/*/releases
+        permission: app-studio:application:read
+      - method: GET
+        pattern: /api/v1/ai-applications/*/releases/*
+        permission: app-studio:application:read
+      - method: POST
+        pattern: /api/v1/ai-applications/*/releases/*/rollback
+        permission: app-studio:application:publish
+      - method: POST
+        pattern: /api/v1/ai-applications/*/chat-sessions
+        permission: app-studio:application:use
+      - method: GET
+        pattern: /api/v1/ai-applications/*/chat-sessions
+        permission: app-studio:application:use
+      - method: GET
+        pattern: /api/v1/ai-applications/*/debug-runs
+        permission: app-studio:application:use
+      - method: GET
+        pattern: /api/v1/ai-applications/*/debug-runs/*
+        permission: app-studio:application:use
+      - method: POST
+        pattern: /api/v1/chat-sessions/*/messages
+        permission: app-studio:model:use
+      - method: GET
+        pattern: /api/v1/chat-sessions/*/messages
+        permission: app-studio:application:use
+      - method: POST
+        pattern: /api/v1/chat-sessions/*/messages/*/feedback
+        permission: app-studio:application:use
+      - method: GET
+        pattern: /api/v1/chat-runs/dead-letters
+        permission: app-studio:application:manage-acl
+      - method: POST
+        pattern: /api/v1/chat-runs/*/dead-letter/replay
+        permission: app-studio:application:manage-acl
+
+management:
+  health:
+    mail:
+      enabled: ${AIP_IDENTITY_INVITATION_MAIL_ENABLED:false}
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: never
+      show-components: never
+      group:
+        readiness:
+          include: readinessState,db,redis,minio,binders,rocketmq
+  endpoints:
+    web:
+      exposure:
+        include: health,info

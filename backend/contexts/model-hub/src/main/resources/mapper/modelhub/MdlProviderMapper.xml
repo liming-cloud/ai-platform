@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aiplatform.modelhub.infrastructure.persistence.mapper.MdlProviderMapper">
+    <select id="nextProviderId" resultType="java.lang.Long">
+        SELECT nextval('mdl_provider_id_seq')
+    </select>
+
+    <update id="compareAndSet">
+        UPDATE mdl_provider
+        SET provider_code = #{updated.providerCode},
+            provider_name = #{updated.providerName},
+            base_url = #{updated.baseUrl},
+            auth_type = #{updated.authType},
+            status = #{updated.status},
+            approval_request_id = #{updated.approvalRequestId},
+            approval_evidence_schema = #{updated.approvalEvidenceSchema},
+            approval_evidence_digest = #{updated.approvalEvidenceDigest},
+            approval_target_digest = #{updated.approvalTargetDigest},
+            updated_at = #{updated.updatedAt},
+            version = #{expectedVersion} + 1
+        WHERE tenant_id = #{updated.tenantId}
+          AND id = #{updated.id}
+          AND deleted_at IS NULL
+          AND version = #{expectedVersion}
+          AND status = #{expectedStatus}
+    </update>
+
+    <update id="compareAndSetApprovalDecision">
+        UPDATE mdl_provider
+        SET status = #{decision.status},
+            approval_evidence_schema = NULL,
+            approval_evidence_digest = NULL,
+            approval_target_digest = NULL,
+            updated_at = #{decision.updatedAt},
+            version = #{expectedVersion} + 1
+        WHERE tenant_id = #{decision.tenantId}
+          AND id = #{decision.id}
+          AND deleted_at IS NULL
+          AND version = #{expectedVersion}
+          AND status = #{expectedStatus}
+          AND approval_request_id = #{expectedApprovalRequestId}
+          AND approval_evidence_schema = 'model-approval-evidence/v1'
+          AND approval_evidence_digest = #{expectedEvidenceDigest}
+          AND approval_target_digest = #{expectedTargetDigest}
+    </update>
+</mapper>

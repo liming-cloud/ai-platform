@@ -1,0 +1,216 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aiplatform.approval.infrastructure.persistence.mapper.ApprTaskMapper">
+    <resultMap id="approvalTask" type="com.aiplatform.approval.infrastructure.persistence.entity.ApprTaskPersistenceEntity">
+        <id property="id" column="id"/>
+        <result property="tenantId" column="tenant_id"/>
+        <result property="approvalRequestId" column="approval_request_id"/>
+        <result property="approvalType" column="approval_type"/>
+        <result property="sourceContext" column="source_context"/>
+        <result property="sourceResourceType" column="source_resource_type"/>
+        <result property="sourceResourceId" column="source_resource_id"/>
+        <result property="title" column="title"/>
+        <result property="riskLevel" column="risk_level"/>
+        <result property="requesterId" column="requester_id"/>
+        <result property="approverId" column="approver_id"/>
+        <result property="status" column="status"/>
+        <result property="dueAt" column="due_at"/>
+        <result property="decisionAt" column="decision_at"/>
+        <result property="traceId" column="trace_id"/>
+        <result property="evidenceSchema" column="evidence_schema"/>
+        <result property="evidenceDigest" column="evidence_digest"/>
+        <result property="targetDigest" column="target_digest"/>
+        <result property="evidenceJson" column="evidence_json"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="createdBy" column="created_by"/>
+        <result property="updatedAt" column="updated_at"/>
+        <result property="updatedBy" column="updated_by"/>
+        <result property="deletedAt" column="deleted_at"/>
+        <result property="version" column="version"/>
+    </resultMap>
+
+    <select id="lockApprovalRequest" resultType="java.lang.Long">
+        SELECT 1
+        FROM (
+            SELECT pg_advisory_xact_lock(hashtextextended(
+                #{tenantId}::text || ':' || #{approvalRequestId},
+                0
+            ))
+        ) request_lock
+    </select>
+
+    <select id="upsertPending" resultType="java.lang.Long" affectData="true" flushCache="true">
+        INSERT INTO appr_task (
+            tenant_id, approval_request_id, approval_type, source_context, source_resource_type, source_resource_id,
+            title, risk_level, requester_id, status, trace_id,
+            evidence_schema, evidence_digest, target_digest, evidence_json,
+            created_at, created_by, updated_at, updated_by, version
+        ) VALUES (
+            #{entity.tenantId}, #{entity.approvalRequestId}, #{entity.approvalType}, #{entity.sourceContext},
+            #{entity.sourceResourceType}, #{entity.sourceResourceId}, #{entity.title},
+            #{entity.riskLevel}, #{entity.requesterId}, 'PENDING', #{entity.traceId},
+            #{entity.evidenceSchema}, #{entity.evidenceDigest}, #{entity.targetDigest},
+            CAST(#{entity.evidenceJson} AS JSONB),
+            #{entity.createdAt}, #{entity.createdBy}, #{entity.updatedAt}, #{entity.updatedBy}, 0
+        )
+        ON CONFLICT (tenant_id, approval_request_id)
+        DO UPDATE SET id = appr_task.id
+        WHERE appr_task.approval_type = EXCLUDED.approval_type
+          AND appr_task.source_context = EXCLUDED.source_context
+          AND appr_task.source_resource_type = EXCLUDED.source_resource_type
+          AND appr_task.source_resource_id = EXCLUDED.source_resource_id
+          AND appr_task.title = EXCLUDED.title
+          AND appr_task.risk_level = EXCLUDED.risk_level
+          AND appr_task.requester_id = EXCLUDED.requester_id
+          AND appr_task.trace_id = EXCLUDED.trace_id
+          AND appr_task.evidence_schema = EXCLUDED.evidence_schema
+          AND appr_task.evidence_digest = EXCLUDED.evidence_digest
+          AND appr_task.target_digest = EXCLUDED.target_digest
+          AND appr_task.evidence_json = EXCLUDED.evidence_json
+        RETURNING id
+    </select>
+
+    <select id="upsertCancellation" resultType="java.lang.Long" affectData="true" flushCache="true">
+        INSERT INTO appr_model_approval_cancellation (
+            event_id, tenant_id, approval_request_id, source_context,
+            source_resource_type, source_resource_id, actor_id, reason,
+            trace_id, requested_at, status, created_at, updated_at
+        ) VALUES (
+            #{cancellation.eventId}, CAST(#{cancellation.tenantId.value} AS BIGINT),
+            #{cancellation.approvalRequestId}, #{cancellation.sourceContext},
+            #{cancellation.sourceResourceType}, #{cancellation.sourceResourceId},
+            CAST(#{cancellation.actorId} AS BIGINT), #{cancellation.reason},
+            #{cancellation.traceId}, #{cancellation.requestedAt}, 'PENDING', NOW(), NOW()
+        )
+        ON CONFLICT (tenant_id, approval_request_id)
+        DO UPDATE SET event_id = appr_model_approval_cancellation.event_id
+        WHERE appr_model_approval_cancellation.event_id = EXCLUDED.event_id
+          AND appr_model_approval_cancellation.source_context = EXCLUDED.source_context
+          AND appr_model_approval_cancellation.source_resource_type = EXCLUDED.source_resource_type
+          AND appr_model_approval_cancellation.source_resource_id = EXCLUDED.source_resource_id
+          AND appr_model_approval_cancellation.actor_id = EXCLUDED.actor_id
+          AND appr_model_approval_cancellation.reason = EXCLUDED.reason
+          AND appr_model_approval_cancellation.trace_id = EXCLUDED.trace_id
+          AND appr_model_approval_cancellation.requested_at = EXCLUDED.requested_at
+        RETURNING id
+    </select>
+
+    <insert id="reconcileCancellation" flushCache="true">
+        WITH cancellation AS (
+            SELECT cancellation.*
+            FROM appr_model_approval_cancellation cancellation
+            WHERE cancellation.tenant_id = #{tenantId}
+              AND cancellation.approval_request_id = #{approvalRequestId}
+              AND cancellation.status = 'PENDING'
+            FOR UPDATE
+        ), cancelled AS (
+            UPDATE appr_task task
+            SET status = 'CANCELLED',
+                approver_id = cancellation.actor_id,
+                decision_at = cancellation.requested_at,
+                updated_at = cancellation.requested_at,
+                updated_by = cancellation.actor_id,
+                version = task.version + 1
+            FROM cancellation
+            WHERE task.tenant_id = cancellation.tenant_id
+              AND task.approval_request_id = cancellation.approval_request_id
+              AND task.source_context = cancellation.source_context
+              AND task.source_resource_type = cancellation.source_resource_type
+              AND task.source_resource_id::text = cancellation.source_resource_id
+              AND task.status = 'PENDING'
+              AND task.deleted_at IS NULL
+            RETURNING task.id AS task_id, cancellation.id AS cancellation_id,
+                      cancellation.tenant_id, cancellation.actor_id,
+                      cancellation.reason, cancellation.requested_at
+        ), marked AS (
+            UPDATE appr_model_approval_cancellation cancellation
+            SET status = 'APPLIED',
+                task_id = cancelled.task_id,
+                resolved_at = cancelled.requested_at,
+                updated_at = NOW()
+            FROM cancelled
+            WHERE cancellation.id = cancelled.cancellation_id
+            RETURNING cancelled.task_id, cancelled.tenant_id, cancelled.actor_id,
+                      cancelled.reason, cancelled.requested_at
+        )
+        INSERT INTO appr_record (
+            tenant_id, task_id, actor_id, action, comment, action_at, created_at
+        )
+        SELECT tenant_id, task_id, actor_id, 'CANCEL', reason, requested_at, NOW()
+        FROM marked
+    </insert>
+
+    <update id="markCancellationAfterTerminalDecision">
+        UPDATE appr_model_approval_cancellation cancellation
+        SET status = CASE WHEN task.status = 'CANCELLED' THEN 'APPLIED' ELSE 'DECISION_WON' END,
+            task_id = task.id,
+            resolved_at = COALESCE(task.decision_at, NOW()),
+            updated_at = NOW()
+        FROM appr_task task
+        WHERE cancellation.tenant_id = #{tenantId}
+          AND cancellation.approval_request_id = #{approvalRequestId}
+          AND cancellation.status = 'PENDING'
+          AND task.tenant_id = cancellation.tenant_id
+          AND task.approval_request_id = cancellation.approval_request_id
+          AND task.source_context = cancellation.source_context
+          AND task.source_resource_type = cancellation.source_resource_type
+          AND task.source_resource_id::text = cancellation.source_resource_id
+          AND task.status &lt;&gt; 'PENDING'
+          AND task.deleted_at IS NULL
+    </update>
+
+    <update id="decidePending">
+        UPDATE appr_task
+        SET status = #{targetStatus},
+            approver_id = #{approverId},
+            decision_at = #{decisionAt},
+            updated_at = #{decisionAt},
+            updated_by = #{approverId},
+            version = version + 1
+        WHERE tenant_id = #{tenantId}
+          AND id = #{taskId}
+          AND status = 'PENDING'
+          AND version = #{expectedVersion}
+          AND deleted_at IS NULL
+    </update>
+
+    <sql id="ApprovalTaskWhere">
+        WHERE tenant_id = CAST(#{query.tenantId.value} AS BIGINT)
+          AND deleted_at IS NULL
+        <if test="query.status != null">
+            AND status = #{query.status}
+        </if>
+        <if test="query.riskLevel != null">
+            AND risk_level = #{query.riskLevel}
+        </if>
+        <if test="query.sourceContext != null">
+            AND LOWER(source_context) = #{query.sourceContext}
+        </if>
+        <if test="query.keyword != ''">
+            AND (
+                LOWER(title) LIKE #{query.keywordPattern} ESCAPE E'\\'
+                OR CAST(source_resource_id AS TEXT) LIKE #{query.keywordPattern} ESCAPE E'\\'
+            )
+        </if>
+    </sql>
+
+    <select id="countTasks" resultType="long">
+        SELECT COUNT(*)
+        FROM appr_task
+        <include refid="ApprovalTaskWhere"/>
+    </select>
+
+    <select id="findTasks" resultMap="approvalTask">
+        SELECT id, tenant_id, approval_request_id, approval_type, source_context, source_resource_type,
+               source_resource_id, title, risk_level, requester_id, approver_id,
+               status, due_at, decision_at, trace_id,
+               evidence_schema, evidence_digest, target_digest, evidence_json,
+               created_at, created_by,
+               updated_at, updated_by, deleted_at, version
+        FROM appr_task
+        <include refid="ApprovalTaskWhere"/>
+        ORDER BY created_at DESC, id DESC
+        LIMIT #{query.pageSize}
+        OFFSET #{query.offset}
+    </select>
+</mapper>

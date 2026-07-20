@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aiplatform.audit.infrastructure.persistence.mapper.RagAuthorizationDecisionLogMapper">
+  <insert id="insertLog" parameterType="com.aiplatform.audit.infrastructure.persistence.entity.RagAuthorizationDecisionLogPersistenceEntity">
+    INSERT INTO rag_authorization_decision_log (
+      tenant_id, actor_id, resource_type, resource_id, decision,
+      reason_code, trace_id, details_json, created_at
+    ) VALUES (
+      #{tenantId}, #{actorId}, #{resourceType}, #{resourceId}, #{decision},
+      #{reasonCode}, #{traceId}, CAST(#{detailsJson} AS jsonb), #{createdAt}
+    )
+  </insert>
+</mapper>

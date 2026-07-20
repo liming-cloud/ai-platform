@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aiplatform.approval.infrastructure.persistence.mapper.ApprovalSummaryMetricMapper">
+  <select id="countPlatformPendingTasks" resultType="long">
+    SELECT count(*) FROM appr_task WHERE status = 'PENDING' AND deleted_at IS NULL
+  </select>
+
+  <select id="countTenantPermissionPendingTasks" resultType="long">
+    SELECT count(*)
+    FROM appr_task
+    WHERE tenant_id = #{tenantId}
+      AND status = 'PENDING'
+      AND deleted_at IS NULL
+      AND (source_context = 'identity-access' OR approval_type ILIKE '%permission%')
+  </select>
+</mapper>

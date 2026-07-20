@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aiplatform.modelhub.infrastructure.persistence.mapper.ModelCreationRequestMapper">
+    <resultMap id="ModelCreationRequestResultMap"
+               type="com.aiplatform.modelhub.infrastructure.persistence.entity.ModelCreationRequestPersistenceEntity">
+        <id property="id" column="id"/>
+        <result property="tenantId" column="tenant_id"/>
+        <result property="resourceType" column="resource_type"/>
+        <result property="requestId" column="request_id"/>
+        <result property="requestDigest" column="request_digest"/>
+        <result property="resultParentResourceId" column="result_parent_resource_id"/>
+        <result property="resultResourceId" column="result_resource_id"/>
+        <result property="resultResourceCode" column="result_resource_code"/>
+        <result property="resultModelType" column="result_model_type"/>
+        <result property="resultStatus" column="result_status"/>
+        <result property="resultApprovalRequestId" column="result_approval_request_id"/>
+        <result property="resultConnectivityStatus" column="result_connectivity_status"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="completedAt" column="completed_at"/>
+    </resultMap>
+
+    <select id="insertClaim" resultType="long" affectData="true" flushCache="true">
+        INSERT INTO mdl_creation_request (
+            tenant_id, resource_type, request_id, request_digest
+        ) VALUES (
+            #{tenantId}, #{resourceType}, #{requestId}, #{requestDigest}
+        )
+        ON CONFLICT (tenant_id, resource_type, request_id) DO NOTHING
+        RETURNING id
+    </select>
+
+    <select id="findClaim" resultMap="ModelCreationRequestResultMap">
+        SELECT id, tenant_id, resource_type, request_id, request_digest,
+               result_parent_resource_id, result_resource_id, result_resource_code,
+               result_model_type, result_status, result_approval_request_id,
+               result_connectivity_status, created_at, completed_at
+        FROM mdl_creation_request
+        WHERE tenant_id = #{tenantId}
+          AND resource_type = #{resourceType}
+          AND request_id = #{requestId}
+    </select>
+
+    <update id="completeClaim">
+        UPDATE mdl_creation_request
+        SET result_parent_resource_id = #{resultParentResourceId},
+            result_resource_id = #{resultResourceId},
+            result_resource_code = #{resultResourceCode},
+            result_model_type = #{resultModelType},
+            result_status = #{resultStatus},
+            result_approval_request_id = #{resultApprovalRequestId},
+            result_connectivity_status = #{resultConnectivityStatus},
+            completed_at = now()
+        WHERE tenant_id = #{tenantId}
+          AND resource_type = #{resourceType}
+          AND request_id = #{requestId}
+          AND request_digest = #{requestDigest}
+          AND result_resource_id IS NULL
+          AND completed_at IS NULL
+    </update>
+</mapper>

@@ -1,64 +1,355 @@
+name: ai-platform-local
+
 services:
-  postgres:
-    image: pgvector/pgvector:pg16
-    container_name: ai-platform-postgres
+  deploy-preflight:
+    image: public.ecr.aws/docker/library/alpine:3.24.1
+    restart: "no"
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
     environment:
-      POSTGRES_DB: ${AI_PLATFORM_POSTGRES_DB}
-      POSTGRES_USER: ${AI_PLATFORM_POSTGRES_USER}
-      POSTGRES_PASSWORD: ${AI_PLATFORM_POSTGRES_PASSWORD}
-    ports:
-      - "${AI_PLATFORM_POSTGRES_PORT}:5432"
+      AIP_BIND_ADDRESS: ${AIP_BIND_ADDRESS:-127.0.0.1}
+      AIP_POSTGRES_DB: ${AIP_POSTGRES_DB:-aip}
+      AIP_POSTGRES_USER: ${AIP_POSTGRES_USER:-aip_local}
+      AIP_POSTGRES_PASSWORD: ${AIP_POSTGRES_PASSWORD:?set AIP_POSTGRES_PASSWORD in deploy/.env}
+      AIP_POSTGRES_RUNTIME_USER: ${AIP_POSTGRES_RUNTIME_USER:-aip_runtime}
+      AIP_POSTGRES_RUNTIME_PASSWORD: ${AIP_POSTGRES_RUNTIME_PASSWORD:?set AIP_POSTGRES_RUNTIME_PASSWORD in deploy/.env}
+      AIP_MINIO_SERVICE_ACCESS_KEY: ${AIP_MINIO_SERVICE_ACCESS_KEY:-aip_backend_storage}
+      AIP_MINIO_SERVICE_SECRET_KEY: ${AIP_MINIO_SERVICE_SECRET_KEY:?set AIP_MINIO_SERVICE_SECRET_KEY in deploy/.env}
+      AIP_OBJECT_STORAGE_BUCKET: ${AIP_OBJECT_STORAGE_BUCKET:-aip-knowledge}
+      AIP_MODEL_HUB_SECRET_KMS_KEY_ID: ${AIP_MODEL_HUB_SECRET_KMS_KEY_ID:?set AIP_MODEL_HUB_SECRET_KMS_KEY_ID in deploy/.env}
+      AIP_MODEL_HUB_SECRET_ENCRYPTION_KEY: ${AIP_MODEL_HUB_SECRET_ENCRYPTION_KEY:?set AIP_MODEL_HUB_SECRET_ENCRYPTION_KEY in deploy/.env}
+      AIP_MODEL_HUB_SECRET_PREVIOUS_KEYS: ${AIP_MODEL_HUB_SECRET_PREVIOUS_KEYS:-}
+      AIP_MODEL_HUB_SECRET_ROTATION_ENABLED: ${AIP_MODEL_HUB_SECRET_ROTATION_ENABLED:-false}
+      AIP_MODEL_HUB_SECRET_ROTATION_BATCH_SIZE: ${AIP_MODEL_HUB_SECRET_ROTATION_BATCH_SIZE:-20}
+      AIP_MODEL_HUB_SECRET_ROTATION_POLL_DELAY_MS: ${AIP_MODEL_HUB_SECRET_ROTATION_POLL_DELAY_MS:-5000}
+      AIP_MODEL_HUB_LOCAL_DETERMINISTIC_ENABLED: ${AIP_MODEL_HUB_LOCAL_DETERMINISTIC_ENABLED:?set AIP_MODEL_HUB_LOCAL_DETERMINISTIC_ENABLED in deploy/.env}
+      AIP_IDENTITY_INVITATION_SIGNING_KEY: ${AIP_IDENTITY_INVITATION_SIGNING_KEY:?set AIP_IDENTITY_INVITATION_SIGNING_KEY in deploy/.env}
+      AIP_IDENTITY_INVITATION_OUTBOX_KMS_KEY_ID: ${AIP_IDENTITY_INVITATION_OUTBOX_KMS_KEY_ID:?set AIP_IDENTITY_INVITATION_OUTBOX_KMS_KEY_ID in deploy/.env}
+      AIP_IDENTITY_INVITATION_OUTBOX_ENCRYPTION_KEY: ${AIP_IDENTITY_INVITATION_OUTBOX_ENCRYPTION_KEY:?set AIP_IDENTITY_INVITATION_OUTBOX_ENCRYPTION_KEY in deploy/.env}
+      AIP_IDENTITY_INVITATION_OUTBOX_PREVIOUS_KEYS: ${AIP_IDENTITY_INVITATION_OUTBOX_PREVIOUS_KEYS:-}
+      AIP_BOOTSTRAP_ADMIN_PASSWORD: ${AIP_BOOTSTRAP_ADMIN_PASSWORD:?set AIP_BOOTSTRAP_ADMIN_PASSWORD in deploy/.env}
+      AIP_BOOTSTRAP_ADMIN_PASSWORD_HASH: ${AIP_BOOTSTRAP_ADMIN_PASSWORD_HASH:?set AIP_BOOTSTRAP_ADMIN_PASSWORD_HASH in deploy/.env}
     volumes:
-      - ai-platform-postgres-data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${AI_PLATFORM_POSTGRES_USER} -d ${AI_PLATFORM_POSTGRES_DB}"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
+      - ./bin/validate-env.sh:/usr/local/bin/validate-env.sh:ro
+    entrypoint: ["/bin/sh", "/usr/local/bin/validate-env.sh"]
+
+  postgres:
+    image: pgvector/pgvector:0.8.2-pg16-bookworm
+    restart: unless-stopped
+    user: "999:999"
+    depends_on:
+      deploy-preflight:
+        condition: service_completed_successfully
+    environment:
+      POSTGRES_DB: ${AIP_POSTGRES_DB:-aip}
+      POSTGRES_USER: ${AIP_POSTGRES_USER:-aip_local}
+      POSTGRES_PASSWORD: ${AIP_POSTGRES_PASSWORD:?set AIP_POSTGRES_PASSWORD in deploy/.env}
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
     networks:
-      - ai-platform-dev
+      - database
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./postgres/runtime-object-policy.sql:/runtime-role/runtime-object-policy.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+    stop_grace_period: 30s
+
+  database-initialize:
+    image: pgvector/pgvector:0.8.2-pg16-bookworm
+    restart: "no"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PGHOST: postgres
+      PGPORT: 5432
+      PGDATABASE: ${AIP_POSTGRES_DB:-aip}
+      PGUSER: ${AIP_POSTGRES_USER:-aip_local}
+      PGPASSWORD: ${AIP_POSTGRES_PASSWORD:?set AIP_POSTGRES_PASSWORD in deploy/.env}
+      AIP_POSTGRES_RUNTIME_USER: ${AIP_POSTGRES_RUNTIME_USER:-aip_runtime}
+      AIP_POSTGRES_RUNTIME_PASSWORD: ${AIP_POSTGRES_RUNTIME_PASSWORD:?set AIP_POSTGRES_RUNTIME_PASSWORD in deploy/.env}
+      AIP_BOOTSTRAP_ADMIN_PASSWORD_HASH: ${AIP_BOOTSTRAP_ADMIN_PASSWORD_HASH:?set AIP_BOOTSTRAP_ADMIN_PASSWORD_HASH in deploy/.env}
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - database
+    volumes:
+      - ./postgres/initialize.sh:/usr/local/bin/aip-initialize.sh:ro
+      - ./postgres/init:/schema:ro
+      - ./postgres/configure-runtime-role.sql:/runtime-role/configure-runtime-role.sql:ro
+      - ./postgres/runtime-object-policy.sql:/runtime-role/runtime-object-policy.sql:ro
+      - ./postgres/verify-schema.sql:/verify/verify-schema.sql:ro
+    entrypoint: ["/bin/sh", "/usr/local/bin/aip-initialize.sh"]
+
+  redis-volume-permissions:
+    image: public.ecr.aws/docker/library/alpine:3.24.1
+    restart: "no"
+    user: "0:0"
+    read_only: true
+    network_mode: none
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - DAC_READ_SEARCH
+    security_opt:
+      - no-new-privileges:true
+    depends_on:
+      deploy-preflight:
+        condition: service_completed_successfully
+    volumes:
+      - redis-data:/data
+    command: ["chown", "-R", "999:1000", "/data"]
 
   redis:
-    image: redis:7.2-alpine
-    container_name: ai-platform-redis
-    command: ["redis-server", "--appendonly", "yes"]
+    image: public.ecr.aws/docker/library/redis:8.8.0-alpine3.23
+    restart: unless-stopped
+    user: "999:1000"
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    depends_on:
+      redis-volume-permissions:
+        condition: service_completed_successfully
+    command: ["redis-server", "--appendonly", "yes", "--save", "60", "1000"]
     ports:
-      - "${AI_PLATFORM_REDIS_PORT}:6379"
+      - "${AIP_BIND_ADDRESS:-127.0.0.1}:${AIP_REDIS_PORT:-6379}:6379"
     volumes:
-      - ai-platform-redis-data:/data
+      - redis-data:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-    networks:
-      - ai-platform-dev
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 5s
 
-  minio:
-    image: minio/minio:latest
-    container_name: ai-platform-minio
-    command: ["server", "/data", "--console-address", ":9001"]
+  object-storage:
+    image: chrislusf/seaweedfs:4.29
+    restart: unless-stopped
+    user: "1000:1000"
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    depends_on:
+      deploy-preflight:
+        condition: service_completed_successfully
+    command: ["mini", "-dir=/data"]
     environment:
-      MINIO_ROOT_USER: ${AI_PLATFORM_MINIO_ROOT_USER}
-      MINIO_ROOT_PASSWORD: ${AI_PLATFORM_MINIO_ROOT_PASSWORD}
+      AWS_ACCESS_KEY_ID: ${AIP_MINIO_SERVICE_ACCESS_KEY:-aip_backend_storage}
+      AWS_SECRET_ACCESS_KEY: ${AIP_MINIO_SERVICE_SECRET_KEY:?set AIP_MINIO_SERVICE_SECRET_KEY in deploy/.env}
+      S3_BUCKET: ${AIP_OBJECT_STORAGE_BUCKET:-aip-knowledge}
     ports:
-      - "${AI_PLATFORM_MINIO_API_PORT}:9000"
-      - "${AI_PLATFORM_MINIO_CONSOLE_PORT}:9001"
+      - "${AIP_BIND_ADDRESS:-127.0.0.1}:${AIP_MINIO_API_PORT:-9000}:8333"
     volumes:
-      - ai-platform-minio-data:/data
+      - object-storage-data:/data
     healthcheck:
-      test: ["CMD", "mc", "ready", "local"]
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:8333/healthz"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+
+  rocketmq-namesrv:
+    image: apache/rocketmq:5.5.0
+    restart: unless-stopped
+    environment:
+      JAVA_OPT_EXT: >-
+        -Xms256m -Xmx256m -XX:MaxDirectMemorySize=256m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    depends_on:
+      deploy-preflight:
+        condition: service_completed_successfully
+    command: sh mqnamesrv
+    ports:
+      - "${AIP_BIND_ADDRESS:-127.0.0.1}:${AIP_ROCKETMQ_NAMESRV_PORT:-9876}:9876"
+    healthcheck:
+      test: ["CMD", "bash", "-ec", ": >/dev/tcp/127.0.0.1/9876"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 15s
+
+  rocketmq-volume-permissions:
+    image: public.ecr.aws/docker/library/alpine:3.24.1
+    restart: "no"
+    user: "0:0"
+    read_only: true
+    network_mode: none
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - DAC_READ_SEARCH
+    security_opt:
+      - no-new-privileges:true
+    depends_on:
+      deploy-preflight:
+        condition: service_completed_successfully
+    volumes:
+      - rocketmq-broker-store:/data
+    command: ["chown", "-R", "3000:3000", "/data"]
+
+  rocketmq-broker:
+    image: apache/rocketmq:5.5.0
+    restart: unless-stopped
+    user: "3000:3000"
+    environment:
+      JAVA_OPT_EXT: >-
+        -Xms512m -Xmx512m -XX:MaxDirectMemorySize=1g -XX:-AlwaysPreTouch
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    depends_on:
+      rocketmq-namesrv:
+        condition: service_healthy
+      rocketmq-volume-permissions:
+        condition: service_completed_successfully
+    command: sh mqbroker -n rocketmq-namesrv:9876 -c /home/rocketmq/broker.conf
+    volumes:
+      - ./rocketmq/broker.conf:/home/rocketmq/broker.conf:ro
+      - rocketmq-broker-store:/home/rocketmq/store
+    ports:
+      - "${AIP_BIND_ADDRESS:-127.0.0.1}:${AIP_ROCKETMQ_BROKER_PORT:-10911}:10911"
+      - "${AIP_BIND_ADDRESS:-127.0.0.1}:${AIP_ROCKETMQ_FAST_PORT:-10909}:10909"
+    healthcheck:
+      test: ["CMD", "bash", "-ec", ": >/dev/tcp/127.0.0.1/10911"]
+      interval: 5s
+      timeout: 5s
+      retries: 24
+      start_period: 30s
+    stop_grace_period: 30s
+
+  backend:
+    build:
+      context: ../backend
+    image: ai-platform/backend:${AIP_SOURCE_REVISION:-development}
+    restart: unless-stopped
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    depends_on:
+      database-initialize:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+      object-storage:
+        condition: service_healthy
+      rocketmq-broker:
+        condition: service_healthy
+    environment:
+      JAVA_TOOL_OPTIONS: "-Drocketmq.log.root=/tmp/rocketmqlogs -Drocketmq.log.file.maxIndex=3"
+      AIP_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${AIP_POSTGRES_DB:-aip}
+      AIP_DATASOURCE_USERNAME: ${AIP_POSTGRES_RUNTIME_USER:-aip_runtime}
+      AIP_DATASOURCE_PASSWORD: ${AIP_POSTGRES_RUNTIME_PASSWORD:?set AIP_POSTGRES_RUNTIME_PASSWORD in deploy/.env}
+      AIP_REDIS_HOST: redis
+      AIP_REDIS_PORT: 6379
+      AIP_OBJECT_STORAGE_ENDPOINT: http://object-storage:8333
+      AIP_OBJECT_STORAGE_ACCESS_KEY: ${AIP_MINIO_SERVICE_ACCESS_KEY:-aip_backend_storage}
+      AIP_OBJECT_STORAGE_SECRET_KEY: ${AIP_MINIO_SERVICE_SECRET_KEY:?set AIP_MINIO_SERVICE_SECRET_KEY in deploy/.env}
+      AIP_OBJECT_STORAGE_BUCKET: ${AIP_OBJECT_STORAGE_BUCKET:-aip-knowledge}
+      AIP_OBJECT_STORAGE_REGION: ${AIP_OBJECT_STORAGE_REGION:-us-east-1}
+      AIP_MULTIPART_MAX_FILE_SIZE: ${AIP_MULTIPART_MAX_FILE_SIZE:-12MB}
+      AIP_MULTIPART_MAX_REQUEST_SIZE: ${AIP_MULTIPART_MAX_REQUEST_SIZE:-12MB}
+      AIP_MODEL_HUB_SECRET_KMS_KEY_ID: ${AIP_MODEL_HUB_SECRET_KMS_KEY_ID:?set AIP_MODEL_HUB_SECRET_KMS_KEY_ID in deploy/.env}
+      AIP_MODEL_HUB_SECRET_ENCRYPTION_KEY: ${AIP_MODEL_HUB_SECRET_ENCRYPTION_KEY:?set AIP_MODEL_HUB_SECRET_ENCRYPTION_KEY in deploy/.env}
+      AIP_MODEL_HUB_SECRET_PREVIOUS_KEYS: ${AIP_MODEL_HUB_SECRET_PREVIOUS_KEYS:-}
+      AIP_MODEL_HUB_SECRET_ROTATION_ENABLED: ${AIP_MODEL_HUB_SECRET_ROTATION_ENABLED:-false}
+      AIP_MODEL_HUB_SECRET_ROTATION_BATCH_SIZE: ${AIP_MODEL_HUB_SECRET_ROTATION_BATCH_SIZE:-20}
+      AIP_MODEL_HUB_SECRET_ROTATION_POLL_DELAY_MS: ${AIP_MODEL_HUB_SECRET_ROTATION_POLL_DELAY_MS:-5000}
+      AIP_MODEL_HUB_LOCAL_DETERMINISTIC_ENABLED: ${AIP_MODEL_HUB_LOCAL_DETERMINISTIC_ENABLED:?set AIP_MODEL_HUB_LOCAL_DETERMINISTIC_ENABLED in deploy/.env}
+      AIP_IDENTITY_INVITATION_SIGNING_KEY: ${AIP_IDENTITY_INVITATION_SIGNING_KEY:?set AIP_IDENTITY_INVITATION_SIGNING_KEY in deploy/.env}
+      AIP_IDENTITY_INVITATION_OUTBOX_KMS_KEY_ID: ${AIP_IDENTITY_INVITATION_OUTBOX_KMS_KEY_ID:?set AIP_IDENTITY_INVITATION_OUTBOX_KMS_KEY_ID in deploy/.env}
+      AIP_IDENTITY_INVITATION_OUTBOX_ENCRYPTION_KEY: ${AIP_IDENTITY_INVITATION_OUTBOX_ENCRYPTION_KEY:?set AIP_IDENTITY_INVITATION_OUTBOX_ENCRYPTION_KEY in deploy/.env}
+      AIP_IDENTITY_INVITATION_OUTBOX_PREVIOUS_KEYS: ${AIP_IDENTITY_INVITATION_OUTBOX_PREVIOUS_KEYS:-}
+      AIP_IDENTITY_ACTIVATION_BASE_URL: ${AIP_IDENTITY_ACTIVATION_BASE_URL:-http://127.0.0.1:5173/activate}
+      AIP_IDENTITY_INVITATION_MAIL_ENABLED: ${AIP_IDENTITY_INVITATION_MAIL_ENABLED:-false}
+      AIP_IDENTITY_INVITATION_MAIL_FROM: ${AIP_IDENTITY_INVITATION_MAIL_FROM:-no-reply@example.invalid}
+      AIP_SMTP_HOST: ${AIP_SMTP_HOST:-mail.example.invalid}
+      AIP_SMTP_PORT: ${AIP_SMTP_PORT:-25}
+      AIP_SMTP_USERNAME: ${AIP_SMTP_USERNAME:-}
+      AIP_SMTP_PASSWORD: ${AIP_SMTP_PASSWORD:-}
+      AIP_SMTP_AUTH: ${AIP_SMTP_AUTH:-false}
+      AIP_SMTP_STARTTLS: ${AIP_SMTP_STARTTLS:-false}
+      AIP_SESSION_TIMEOUT_SECONDS: ${AIP_SESSION_TIMEOUT_SECONDS:-28800}
+      AIP_ROCKETMQ_NAME_SERVER: rocketmq-namesrv:9876
+      AIP_ROCKETMQ_DOMAIN_EVENT_TOPIC: topic-ai-platform-domain-event
+      AIP_ROCKETMQ_PRODUCER_GROUP: cg-ai-platform-producer
+      AIP_ROCKETMQ_APPROVAL_GROUP: cg-ai-platform-approval
+      AIP_ROCKETMQ_MODEL_HUB_GROUP: cg-ai-platform-model-hub
+      AIP_ROCKETMQ_KNOWLEDGE_GROUP: cg-ai-platform-knowledge
+      AIP_ROCKETMQ_APP_STUDIO_GROUP: cg-ai-platform-app-studio
+      AIP_ROCKETMQ_KNOWLEDGE_INGESTION_GROUP: cg-ai-platform-knowledge-ingestion
+      AIP_ROCKETMQ_READINESS_NAME_SERVER_HOST: rocketmq-namesrv
+      AIP_ROCKETMQ_READINESS_NAME_SERVER_PORT: 9876
+      AIP_ROCKETMQ_READINESS_BROKER_HOST: rocketmq-broker
+      AIP_ROCKETMQ_READINESS_BROKER_PORT: 10911
+      AIP_ROCKETMQ_READINESS_CONNECT_TIMEOUT: 250ms
+      AIP_ROCKETMQ_CONSUMER_MAX_RECONSUME_TIMES: 5
+      AIP_ROCKETMQ_CONSUMER_DELAY_LEVEL_WHEN_NEXT_CONSUME: 3
+      AIP_SPRING_AI_EMBEDDING_OPENAI_COMPATIBLE_ENABLED: ${AIP_SPRING_AI_EMBEDDING_OPENAI_COMPATIBLE_ENABLED:-false}
+      AIP_SPRING_AI_EMBEDDING_OPENAI_COMPATIBLE_BASE_URL: ${AIP_SPRING_AI_EMBEDDING_OPENAI_COMPATIBLE_BASE_URL:-}
+      AIP_SPRING_AI_EMBEDDING_OPENAI_COMPATIBLE_API_KEY: ${AIP_SPRING_AI_EMBEDDING_OPENAI_COMPATIBLE_API_KEY:-}
+      AIP_SPRING_AI_EMBEDDING_OPENAI_COMPATIBLE_DIMENSIONS: ${AIP_SPRING_AI_EMBEDDING_OPENAI_COMPATIBLE_DIMENSIONS:-1536}
+    ports:
+      - "${AIP_BIND_ADDRESS:-127.0.0.1}:${AIP_BACKEND_PORT:-8080}:8080"
+    networks:
+      - default
+      - database
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/actuator/health/readiness"]
       interval: 10s
       timeout: 5s
-      retries: 10
-    networks:
-      - ai-platform-dev
+      retries: 18
+      start_period: 60s
+    stop_grace_period: 30s
+
+  frontend:
+    build:
+      context: ../frontend/console-web
+      args:
+        VITE_LOCAL_DETERMINISTIC_PROVIDER_ENABLED: ${AIP_MODEL_HUB_LOCAL_DETERMINISTIC_ENABLED:?set AIP_MODEL_HUB_LOCAL_DETERMINISTIC_ENABLED in deploy/.env}
+    image: ai-platform/frontend:${AIP_SOURCE_REVISION:-development}
+    restart: unless-stopped
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "${AIP_BIND_ADDRESS:-127.0.0.1}:${AIP_FRONTEND_PORT:-5173}:8080"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:8080/"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
 
 volumes:
-  ai-platform-postgres-data:
-  ai-platform-redis-data:
-  ai-platform-minio-data:
+  postgres-data:
+  redis-data:
+  object-storage-data:
+  rocketmq-broker-store:
 
 networks:
-  ai-platform-dev:
-    name: ai-platform-dev
+  database:
+    internal: true

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aiplatform.modelhub.infrastructure.persistence.mapper.ApprovalDecisionInboxMapper">
+    <insert id="insertReceipt">
+        INSERT INTO mdl_approval_decision_inbox (
+            event_id, event_type, tenant_id, task_id, approval_request_id, source_resource_type,
+            source_resource_id, trace_id, occurred_at, processed_at
+        ) VALUES (
+            #{receipt.eventId}, #{receipt.eventType}, #{receipt.tenantId},
+            #{receipt.taskId}, #{receipt.approvalRequestId}, #{receipt.sourceResourceType}, #{receipt.sourceResourceId},
+            #{receipt.traceId}, #{receipt.occurredAt}, NOW()
+        )
+        ON CONFLICT (event_id) DO NOTHING
+    </insert>
+
+    <select id="resolveLegacyApprovalRequestId" resultType="java.lang.String">
+        SELECT approval_request_id
+        FROM appr_task
+        WHERE tenant_id = #{tenantId}
+          AND id = #{taskId}
+          AND source_context = #{sourceContext}
+          AND source_resource_type = #{sourceResourceType}
+          AND source_resource_id = #{sourceResourceId}
+          AND deleted_at IS NULL
+        LIMIT 1
+    </select>
+</mapper>

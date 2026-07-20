@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aiplatform.audit.infrastructure.persistence.mapper.AuditSecurityLogQueryMapper">
+    <resultMap id="AuditSecurityLogResultMap" type="com.aiplatform.audit.infrastructure.persistence.entity.AuditSecurityLogPersistenceEntity">
+        <id property="id" column="id"/>
+        <result property="tenantId" column="tenant_id"/>
+        <result property="actorId" column="actor_id"/>
+        <result property="eventType" column="event_type"/>
+        <result property="riskLevel" column="risk_level"/>
+        <result property="subjectType" column="subject_type"/>
+        <result property="subjectId" column="subject_id"/>
+        <result property="subjectRef" column="subject_ref"/>
+        <result property="resultStatus" column="result_status"/>
+        <result property="detailJson" column="detail_json"/>
+        <result property="traceId" column="trace_id"/>
+        <result property="createdAt" column="created_at"/>
+    </resultMap>
+
+    <sql id="AuditSecurityLogWhere">
+        WHERE tenant_id = #{query.tenantId}
+        <if test="query.actorId != null">
+            AND actor_id = #{query.actorId}
+        </if>
+        <if test="query.eventType != null and query.eventType != ''">
+            AND event_type = #{query.eventType}
+        </if>
+        <if test="query.subjectType != null and query.subjectType != ''">
+            AND subject_type = #{query.subjectType}
+        </if>
+        <if test="query.subjectRef != null and query.subjectRef != ''">
+            AND subject_ref = #{query.subjectRef}
+        </if>
+        <if test="query.traceId != null and query.traceId != ''">
+            AND trace_id = #{query.traceId}
+        </if>
+        <if test="query.riskLevel != null and query.riskLevel != ''">
+            AND risk_level = #{query.riskLevel}
+        </if>
+        <if test="query.resultStatus != null and query.resultStatus != ''">
+            AND result_status = #{query.resultStatus}
+        </if>
+        <if test="query.createdFrom != null">
+            AND created_at &gt;= #{query.createdFrom}
+        </if>
+        <if test="query.createdTo != null">
+            AND created_at &lt;= #{query.createdTo}
+        </if>
+    </sql>
+
+    <select id="countLogs" resultType="long">
+        SELECT COUNT(*)
+        FROM audit_security_log
+        <include refid="AuditSecurityLogWhere"/>
+    </select>
+
+    <select id="findLogs" resultMap="AuditSecurityLogResultMap">
+        SELECT
+            id,
+            tenant_id,
+            actor_id,
+            event_type,
+            risk_level,
+            subject_type,
+            subject_id,
+            subject_ref,
+            result_status,
+            CAST(detail_json AS text) AS detail_json,
+            trace_id,
+            created_at
+        FROM audit_security_log
+        <include refid="AuditSecurityLogWhere"/>
+        ORDER BY created_at DESC, id DESC
+        LIMIT #{query.pageSize}
+        OFFSET #{query.offset}
+    </select>
+</mapper>

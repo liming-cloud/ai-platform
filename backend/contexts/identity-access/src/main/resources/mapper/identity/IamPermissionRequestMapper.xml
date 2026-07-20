@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aiplatform.identity.infrastructure.persistence.mapper.IamPermissionRequestMapper">
+    <resultMap id="PermissionRequestResultMap" type="com.aiplatform.identity.infrastructure.persistence.entity.IamPermissionRequestPersistenceEntity">
+        <id column="request_id" property="requestId"/>
+        <result column="tenant_id" property="tenantId"/>
+        <result column="requester_id" property="requesterId"/>
+        <result column="resource_type" property="resourceType"/>
+        <result column="resource_id" property="resourceId"/>
+        <result column="permission_code" property="permissionCode"/>
+        <result column="reason" property="reason"/>
+        <result column="status" property="status"/>
+        <result column="reviewer_id" property="reviewerId"/>
+        <result column="decision_comment" property="decisionComment"/>
+        <result column="created_at" property="createdAt"/>
+        <result column="updated_at" property="updatedAt"/>
+    </resultMap>
+
+    <sql id="Columns">tenant_id, request_id, requester_id, resource_type, resource_id, permission_code, reason, status, reviewer_id, decision_comment, created_at, updated_at</sql>
+
+    <insert id="insertRequest">
+        INSERT INTO iam_permission_request (<include refid="Columns"/>)
+        VALUES (#{tenantId}, #{requestId}, #{requesterId}, #{resourceType}, #{resourceId}, #{permissionCode}, #{reason}, #{status}, #{reviewerId}, #{decisionComment}, #{createdAt}, #{updatedAt})
+    </insert>
+
+    <update id="updateDecision">
+        UPDATE iam_permission_request
+        SET reason = #{reason}, status = #{status}, reviewer_id = #{reviewerId},
+            decision_comment = #{decisionComment}, updated_at = #{updatedAt}
+        WHERE tenant_id = #{tenantId} AND request_id = #{requestId} AND status = 'PENDING'
+    </update>
+
+    <select id="findById" resultMap="PermissionRequestResultMap">
+        SELECT <include refid="Columns"/> FROM iam_permission_request
+        WHERE tenant_id = #{tenantId} AND request_id = #{requestId}
+    </select>
+
+    <sql id="PageFilter">
+        WHERE tenant_id = #{tenantId}
+        <if test="status != null">
+            AND status = #{status}
+        </if>
+    </sql>
+
+    <select id="countByTenant" resultType="long">
+        SELECT COUNT(*) FROM iam_permission_request
+        <include refid="PageFilter"/>
+    </select>
+
+    <select id="findPage" resultMap="PermissionRequestResultMap">
+        SELECT <include refid="Columns"/> FROM iam_permission_request
+        <include refid="PageFilter"/>
+        ORDER BY CASE status WHEN 'PENDING' THEN 0 ELSE 1 END,
+                 created_at DESC,
+                 request_id DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+</mapper>

@@ -1,0 +1,927 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aiplatform.identity.infrastructure.persistence.mapper.IamAuthorizationMapper">
+    <select id="findIamTenants" resultType="com.aiplatform.identity.infrastructure.persistence.entity.IamTenantConfigurationPersistenceEntity">
+        SELECT id, tenant_code, tenant_name, status, plan_code
+        FROM iam_tenant
+        WHERE deleted_at IS NULL
+        ORDER BY tenant_name ASC, id ASC
+    </select>
+    <select id="countIamTenantByCode" resultType="int">
+        SELECT count(*) FROM iam_tenant WHERE tenant_code = #{tenantCode} AND deleted_at IS NULL
+    </select>
+    <select id="insertIamTenant" resultType="long">
+        INSERT INTO iam_tenant (tenant_code, tenant_name, status, plan_code, created_at, updated_at, version)
+        VALUES (#{tenantCode}, #{tenantName}, 'ACTIVE', #{planCode}, now(), now(), 0)
+        RETURNING id
+    </select>
+    <update id="updateIamTenant">
+        UPDATE iam_tenant SET tenant_name = #{tenantName}, plan_code = #{planCode}, updated_at = now(), version = version + 1
+        WHERE id = #{tenantId} AND deleted_at IS NULL
+    </update>
+    <update id="updateIamTenantStatus">
+        UPDATE iam_tenant SET status = #{status}, updated_at = now(), version = version + 1
+        WHERE id = #{tenantId} AND deleted_at IS NULL
+    </update>
+    <resultMap id="IamResourceAclResultMap"
+               type="com.aiplatform.identity.infrastructure.persistence.entity.IamResourceAclPersistenceEntity">
+        <id column="id" property="id"/>
+        <result column="tenant_id" property="tenantId"/>
+        <result column="resource_type" property="resourceType"/>
+        <result column="resource_id" property="resourceId"/>
+        <result column="subject_type" property="subjectType"/>
+        <result column="subject_id" property="subjectId"/>
+        <result column="permission_code" property="permissionCode"/>
+        <result column="effect" property="effect"/>
+        <result column="expires_at" property="expiresAt"/>
+    </resultMap>
+
+    <resultMap id="IamConsoleMenuResultMap"
+               type="com.aiplatform.identity.infrastructure.persistence.entity.IamConsoleMenuPersistenceEntity">
+        <result column="menu_code" property="code"/>
+        <result column="menu_name" property="name"/>
+        <result column="scope" property="platform"/>
+        <result column="path" property="path"/>
+        <result column="route_name" property="routeName"/>
+        <result column="component_key" property="componentKey"/>
+        <result column="required_permission_code" property="permission"/>
+        <result column="sort_order" property="sort"/>
+    </resultMap>
+
+    <resultMap id="IamMenuConfigurationResultMap"
+               type="com.aiplatform.identity.infrastructure.persistence.entity.IamMenuConfigurationPersistenceEntity">
+        <id column="id" property="id"/>
+        <result column="menu_code" property="code"/>
+        <result column="menu_name" property="name"/>
+        <result column="scope" property="scope"/>
+        <result column="path" property="path"/>
+        <result column="route_name" property="routeName"/>
+        <result column="component_key" property="componentKey"/>
+        <result column="icon" property="icon"/>
+        <result column="required_permission_code" property="requiredPermissionCode"/>
+        <result column="sort_order" property="sort"/>
+        <result column="status" property="status"/>
+        <result column="system_builtin" property="systemBuiltin"/>
+        <result column="feature_codes" property="featureCodes"/>
+        <result column="tenant_feature_enabled" property="tenantFeatureEnabled"/>
+    </resultMap>
+
+    <resultMap id="IamTenantFeatureResultMap"
+               type="com.aiplatform.identity.infrastructure.persistence.entity.IamTenantFeaturePersistenceEntity">
+        <result column="feature_code" property="featureCode"/>
+        <result column="feature_name" property="featureName"/>
+        <result column="enabled" property="enabled"/>
+        <result column="source" property="source"/>
+    </resultMap>
+
+    <resultMap id="IamRoleResultMap"
+               type="com.aiplatform.identity.infrastructure.persistence.entity.IamRolePersistenceEntity">
+        <id column="id" property="id"/>
+        <result column="role_code" property="code"/>
+        <result column="role_name" property="name"/>
+        <result column="role_type" property="type"/>
+        <result column="default_menu_code" property="defaultMenuCode"/>
+        <result column="status" property="status"/>
+        <result column="description" property="description"/>
+    </resultMap>
+
+    <resultMap id="IamPermissionResultMap"
+               type="com.aiplatform.identity.infrastructure.persistence.entity.IamPermissionPersistenceEntity">
+        <id column="id" property="id"/>
+        <result column="permission_code" property="code"/>
+        <result column="permission_name" property="name"/>
+        <result column="resource_type" property="resourceType"/>
+        <result column="action_code" property="actionCode"/>
+        <result column="description" property="description"/>
+        <result column="status" property="status"/>
+    </resultMap>
+
+    <sql id="ActiveAuthorizationPrincipalJoins">
+        JOIN iam_tenant authorization_tenant ON authorization_tenant.id = ur.tenant_id
+        JOIN iam_user authorization_user ON authorization_user.id = ur.user_id
+            AND authorization_user.tenant_id = ur.tenant_id
+        AND authorization_tenant.deleted_at IS NULL
+        AND authorization_tenant.status = 'ACTIVE'
+        AND authorization_user.deleted_at IS NULL
+        AND authorization_user.status = 'ACTIVE'
+    </sql>
+
+    <select id="findActiveRoleCodes" resultType="java.lang.String">
+        SELECT DISTINCT r.role_code
+        FROM iam_user_role ur
+        <include refid="ActiveAuthorizationPrincipalJoins"/>
+        JOIN iam_role r ON r.id = ur.role_id
+        WHERE ur.tenant_id = #{tenantId}
+          AND ur.user_id = #{userId}
+          AND ur.deleted_at IS NULL
+          AND (ur.expires_at IS NULL OR ur.expires_at &gt; now())
+          AND r.tenant_id = #{tenantId}
+          AND r.deleted_at IS NULL
+          AND r.status = 'ACTIVE'
+    </select>
+
+    <select id="findActivePermissionCodes" resultType="java.lang.String">
+        SELECT DISTINCT p.permission_code
+        FROM iam_user_role ur
+        <include refid="ActiveAuthorizationPrincipalJoins"/>
+        JOIN iam_role r ON r.id = ur.role_id
+        JOIN iam_role_permission rp ON rp.role_id = r.id
+        JOIN iam_permission p ON p.id = rp.permission_id
+        WHERE ur.tenant_id = #{tenantId}
+          AND ur.user_id = #{userId}
+          AND ur.deleted_at IS NULL
+          AND (ur.expires_at IS NULL OR ur.expires_at &gt; now())
+          AND r.tenant_id = #{tenantId}
+          AND r.deleted_at IS NULL
+          AND r.status = 'ACTIVE'
+          AND rp.tenant_id = #{tenantId}
+          AND rp.deleted_at IS NULL
+          AND p.status = 'ACTIVE'
+    </select>
+
+    <select id="findAuthorizedConsoleMenus" resultMap="IamConsoleMenuResultMap">
+        SELECT DISTINCT m.menu_code,
+                        m.menu_name,
+                        m.scope,
+                        m.path,
+                        m.route_name,
+                        m.component_key,
+                        m.required_permission_code,
+                        m.sort_order
+        FROM iam_user_role ur
+        <include refid="ActiveAuthorizationPrincipalJoins"/>
+        JOIN iam_role r ON r.id = ur.role_id
+        JOIN iam_role_menu rm ON rm.role_id = r.id
+        JOIN iam_menu m ON m.id = rm.menu_id
+        JOIN iam_permission p ON p.permission_code = m.required_permission_code
+        LEFT JOIN iam_menu_feature mf ON mf.menu_id = m.id
+        LEFT JOIN iam_tenant_feature tf
+               ON tf.tenant_id = ur.tenant_id
+              AND tf.feature_code = mf.feature_code
+        WHERE ur.tenant_id = #{tenantId}
+          AND ur.user_id = #{userId}
+          AND ur.deleted_at IS NULL
+          AND (ur.expires_at IS NULL OR ur.expires_at &gt; now())
+          AND r.tenant_id = #{tenantId}
+          AND r.deleted_at IS NULL
+          AND r.status = 'ACTIVE'
+          AND rm.tenant_id = #{tenantId}
+          AND rm.deleted_at IS NULL
+          AND m.deleted_at IS NULL
+          AND m.status = 'ACTIVE'
+          AND p.status = 'ACTIVE'
+          AND m.required_permission_code IN
+          <foreach collection="permissionCodes" item="permissionCode" open="(" separator="," close=")">
+              #{permissionCode}
+          </foreach>
+          AND (
+                mf.feature_code IS NULL
+                OR (
+                    tf.enabled = TRUE
+                    AND (tf.effective_from IS NULL OR tf.effective_from &lt;= now())
+                    AND (tf.effective_to IS NULL OR tf.effective_to &gt; now())
+                )
+              )
+        ORDER BY m.sort_order ASC, m.menu_code ASC
+    </select>
+
+    <select id="findActiveRoleDefaultMenuCodes" resultType="java.lang.String">
+        SELECT r.default_menu_code
+        FROM iam_user_role ur
+        <include refid="ActiveAuthorizationPrincipalJoins"/>
+        JOIN iam_role r ON r.id = ur.role_id
+        WHERE ur.tenant_id = #{tenantId}
+          AND ur.user_id = #{userId}
+          AND ur.deleted_at IS NULL
+          AND (ur.expires_at IS NULL OR ur.expires_at &gt; now())
+          AND r.tenant_id = #{tenantId}
+          AND r.deleted_at IS NULL
+          AND r.status = 'ACTIVE'
+          AND r.default_menu_code IS NOT NULL
+        ORDER BY r.id ASC
+    </select>
+
+    <sql id="IamMenuConfigurationColumns">
+        m.id,
+        m.menu_code,
+        m.menu_name,
+        m.scope,
+        m.path,
+        m.route_name,
+        m.component_key,
+        m.icon,
+        m.required_permission_code,
+        m.sort_order,
+        m.status,
+        m.system_builtin,
+        string_agg(DISTINCT mf.feature_code, ',' ORDER BY mf.feature_code) AS feature_codes,
+        bool_and(
+            mf.feature_code IS NULL
+            OR (
+                tf.enabled = TRUE
+                AND (tf.effective_from IS NULL OR tf.effective_from &lt;= now())
+                AND (tf.effective_to IS NULL OR tf.effective_to &gt; now())
+            )
+        ) AS tenant_feature_enabled
+    </sql>
+
+    <select id="findIamConfigurationMenus" resultMap="IamMenuConfigurationResultMap">
+        SELECT
+        <include refid="IamMenuConfigurationColumns"/>
+        FROM iam_menu m
+        LEFT JOIN iam_menu_feature mf ON mf.menu_id = m.id
+        LEFT JOIN iam_tenant_feature tf
+               ON tf.tenant_id = #{tenantId}
+              AND tf.feature_code = mf.feature_code
+        WHERE m.deleted_at IS NULL
+        GROUP BY m.id,
+                 m.menu_code,
+                 m.menu_name,
+                 m.scope,
+                 m.path,
+                 m.route_name,
+                 m.component_key,
+                 m.icon,
+                 m.required_permission_code,
+                 m.sort_order,
+                 m.status,
+                 m.system_builtin
+        ORDER BY m.sort_order ASC, m.menu_code ASC
+    </select>
+
+    <select id="findIamTenantFeatures" resultMap="IamTenantFeatureResultMap">
+        SELECT feature_code,
+               feature_name,
+               enabled,
+               source
+        FROM iam_tenant_feature
+        WHERE tenant_id = #{tenantId}
+        ORDER BY feature_code ASC
+    </select>
+
+    <select id="findIamRoles" resultMap="IamRoleResultMap">
+        SELECT id,
+               role_code,
+               role_name,
+               role_type,
+               default_menu_code,
+               status,
+               description
+        FROM iam_role
+        WHERE tenant_id = #{tenantId}
+          AND deleted_at IS NULL
+        ORDER BY role_type ASC, role_code ASC
+    </select>
+
+    <select id="findIamRoleMenus" resultMap="IamMenuConfigurationResultMap">
+        SELECT
+        <include refid="IamMenuConfigurationColumns"/>
+        FROM iam_role r
+        JOIN iam_role_menu rm ON rm.role_id = r.id
+        JOIN iam_menu m ON m.id = rm.menu_id
+        LEFT JOIN iam_menu_feature mf ON mf.menu_id = m.id
+        LEFT JOIN iam_tenant_feature tf
+               ON tf.tenant_id = r.tenant_id
+              AND tf.feature_code = mf.feature_code
+        WHERE r.tenant_id = #{tenantId}
+          AND r.id = #{roleId}
+          AND r.deleted_at IS NULL
+          AND rm.tenant_id = #{tenantId}
+          AND rm.deleted_at IS NULL
+          AND m.deleted_at IS NULL
+        GROUP BY m.id,
+                 m.menu_code,
+                 m.menu_name,
+                 m.scope,
+                 m.path,
+                 m.route_name,
+                 m.component_key,
+                 m.icon,
+                 m.required_permission_code,
+                 m.sort_order,
+                 m.status,
+                 m.system_builtin
+        ORDER BY m.sort_order ASC, m.menu_code ASC
+    </select>
+
+    <select id="findIamRolePermissions" resultMap="IamPermissionResultMap">
+        SELECT p.id,
+               p.permission_code,
+               p.permission_name,
+               p.resource_type,
+               p.action_code,
+               p.description,
+               p.status
+        FROM iam_role r
+        JOIN iam_role_permission rp ON rp.role_id = r.id
+        JOIN iam_permission p ON p.id = rp.permission_id
+        WHERE r.tenant_id = #{tenantId}
+          AND r.id = #{roleId}
+          AND r.deleted_at IS NULL
+          AND rp.tenant_id = #{tenantId}
+          AND rp.deleted_at IS NULL
+        ORDER BY p.resource_type ASC, p.permission_code ASC
+    </select>
+
+    <sql id="ManageableIamUserPredicate">
+        u.tenant_id = #{tenantId} AND u.deleted_at IS NULL
+        AND NOT EXISTS (
+            SELECT 1
+            FROM iam_user_role system_ur
+            JOIN iam_role system_role ON system_role.tenant_id = system_ur.tenant_id AND system_role.id = system_ur.role_id
+            WHERE system_ur.tenant_id = u.tenant_id
+              AND system_ur.user_id = u.id
+              AND system_ur.deleted_at IS NULL
+              AND system_role.role_type = 'system'
+              AND system_role.status = 'ACTIVE'
+              AND system_role.deleted_at IS NULL
+        )
+    </sql>
+
+    <select id="countIamUsers" resultType="java.lang.Long">
+        SELECT count(*)
+        FROM iam_user u
+        WHERE <include refid="ManageableIamUserPredicate"/>
+    </select>
+
+    <select id="findIamUsers" resultType="com.aiplatform.identity.infrastructure.persistence.entity.IamUserConfigurationPersistenceEntity">
+        SELECT u.id,
+               u.username,
+               u.display_name,
+               u.email,
+               u.status,
+               COALESCE(string_agg(DISTINCT r.role_code, ',' ORDER BY r.role_code), '') AS role_codes
+        FROM iam_user u
+        LEFT JOIN iam_user_role ur ON ur.tenant_id = u.tenant_id AND ur.user_id = u.id AND ur.deleted_at IS NULL
+        LEFT JOIN iam_role r ON r.tenant_id = u.tenant_id AND r.id = ur.role_id AND r.deleted_at IS NULL AND r.status = 'ACTIVE'
+        WHERE <include refid="ManageableIamUserPredicate"/>
+        GROUP BY u.id, u.username, u.display_name, u.email, u.status
+        ORDER BY u.display_name ASC, u.id ASC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="findIamPermissions" resultMap="IamPermissionResultMap">
+        SELECT p.id,
+               p.permission_code,
+               p.permission_name,
+               p.resource_type,
+               p.action_code,
+               p.description,
+               p.status
+        FROM iam_permission p
+        WHERE p.status = 'ACTIVE'
+          AND p.permission_code IN (
+              'app-studio:application:read',
+              'app-studio:application:use',
+              'app-studio:model:use',
+              'identity-access:permission-request:create',
+              'identity-access:session:logout',
+              'identity-access:session:read',
+              'identity-access:workspace:use',
+              'knowledge-base:knowledge-base:read',
+              'knowledge-base:retrieval:query'
+          )
+        ORDER BY p.resource_type ASC, p.permission_code ASC
+    </select>
+
+    <select id="countActivePermissionByCode" resultType="int">
+        SELECT count(*)
+        FROM iam_permission
+        WHERE permission_code = #{permissionCode}
+          AND status = 'ACTIVE'
+    </select>
+
+    <select id="countIamMenuById" resultType="int">
+        SELECT count(*)
+        FROM iam_menu
+        WHERE id = #{menuId}
+          AND deleted_at IS NULL
+    </select>
+
+    <select id="countIamMenuByCodeOrPath" resultType="int">
+        SELECT count(*)
+        FROM iam_menu
+        WHERE deleted_at IS NULL
+          AND (menu_code = #{code} OR path = #{path})
+    </select>
+
+    <select id="countTenantFeatures" resultType="int">
+        SELECT count(DISTINCT feature_code)
+        FROM iam_tenant_feature
+        WHERE tenant_id = #{tenantId}
+          AND enabled = true
+          AND feature_code IN
+          <foreach collection="featureCodes" item="featureCode" open="(" separator="," close=")">
+              #{featureCode}
+          </foreach>
+    </select>
+
+    <select id="insertIamMenu" resultType="long">
+        INSERT INTO iam_menu (
+            menu_code,
+            menu_name,
+            scope,
+            path,
+            route_name,
+            component_key,
+            icon,
+            required_permission_code,
+            sort_order,
+            status,
+            system_builtin,
+            created_by,
+            updated_by,
+            created_at,
+            updated_at,
+            version
+        )
+        VALUES (
+            #{code},
+            #{name},
+            #{scope},
+            #{path},
+            #{routeName},
+            #{componentKey},
+            #{icon},
+            #{requiredPermissionCode},
+            #{sort},
+            #{status},
+            false,
+            #{actorId},
+            #{actorId},
+            now(),
+            now(),
+            0
+        )
+        RETURNING id
+    </select>
+
+    <select id="countActiveTenantUser" resultType="int">
+        SELECT count(*)
+        FROM iam_user
+        WHERE tenant_id = #{tenantId}
+          AND id = #{userId}
+          AND status = 'ACTIVE'
+          AND deleted_at IS NULL
+    </select>
+
+    <select id="countActiveTenantAdminRole" resultType="int">
+        SELECT count(*)
+        FROM iam_role
+        WHERE tenant_id = #{tenantId}
+          AND id = #{roleId}
+          AND role_code = 'tenant-admin'
+          AND role_type = 'tenant'
+          AND status = 'ACTIVE'
+          AND deleted_at IS NULL
+    </select>
+
+    <insert id="insertIamUserRole">
+        INSERT INTO iam_user_role (
+            tenant_id,
+            user_id,
+            role_id,
+            grant_source,
+            created_at,
+            updated_at,
+            version
+        )
+        VALUES (
+            #{tenantId},
+            #{userId},
+            #{roleId},
+            #{grantSource},
+            now(),
+            now(),
+            0
+        )
+        ON CONFLICT DO NOTHING
+    </insert>
+
+    <select id="countInvitationAssignableRole" resultType="int">
+        SELECT count(*) FROM iam_role
+        WHERE tenant_id = #{tenantId} AND id = #{roleId} AND role_type = 'business' AND status = 'ACTIVE' AND deleted_at IS NULL
+    </select>
+
+    <select id="countTenantUserByUsernameOrEmail" resultType="int">
+        SELECT count(*) FROM iam_user
+        WHERE tenant_id = #{tenantId} AND deleted_at IS NULL AND (lower(username) = lower(#{username}) OR lower(email) = lower(#{email}))
+    </select>
+
+    <select id="insertPendingActivationUser" resultType="long">
+        INSERT INTO iam_user (tenant_id, username, display_name, email, password_hash, status, created_by, updated_by, created_at, updated_at, version)
+        VALUES (#{tenantId}, #{username}, #{displayName}, #{email}, #{passwordHash}, 'PENDING_ACTIVATION', #{actorId}, #{actorId}, now(), now(), 0)
+        RETURNING id
+    </select>
+
+    <insert id="insertUserInvitation">
+        INSERT INTO iam_user_invitation (id, tenant_id, user_id, role_id, email, token_digest, status, expires_at, invited_by, created_at, updated_at)
+        VALUES (#{invitationId}, #{tenantId}, #{userId}, #{roleId}, #{email}, #{tokenDigest}, 'PENDING', #{expiresAt}, #{actorId}, now(), now())
+    </insert>
+
+    <insert id="insertInvitationNotification">
+        INSERT INTO iam_notification_outbox (tenant_id, aggregate_type, aggregate_id, template_code, recipient, payload_json, delivery_status, created_at, updated_at)
+        VALUES (#{tenantId}, 'IAM_USER_INVITATION', #{invitationId}, 'USER_ACTIVATION', #{recipient}, #{payloadJson}, 'QUEUED', now(), now())
+    </insert>
+    <select id="findQueuedInvitationNotifications" resultType="com.aiplatform.identity.infrastructure.persistence.entity.IamNotificationOutboxPersistenceEntity">
+        SELECT n.id, n.tenant_id, n.aggregate_id, n.recipient, n.payload_json
+        FROM iam_notification_outbox n
+        JOIN iam_user_invitation i ON i.tenant_id = n.tenant_id AND i.id = n.aggregate_id
+        WHERE n.aggregate_type = 'IAM_USER_INVITATION'
+          AND i.status = 'PENDING'
+          AND i.expires_at &gt; now()
+          AND n.attempts &lt; 5 AND (
+          n.delivery_status = 'QUEUED'
+          OR (n.delivery_status = 'FAILED' AND n.updated_at &lt; now() - make_interval(mins =&gt; CAST(power(2, n.attempts) AS integer)))
+          OR (n.delivery_status = 'PROCESSING' AND n.updated_at &lt; now() - interval '10 minutes')
+        )
+        ORDER BY n.created_at ASC, n.id ASC LIMIT #{limit}
+    </select>
+    <update id="claimInvitationNotification">
+        UPDATE iam_notification_outbox SET delivery_status = 'PROCESSING', updated_at = now()
+        WHERE id = #{id} AND attempts &lt; 5 AND (
+          delivery_status = 'QUEUED'
+          OR (delivery_status = 'FAILED' AND updated_at &lt; now() - make_interval(mins =&gt; CAST(power(2, attempts) AS integer)))
+          OR (delivery_status = 'PROCESSING' AND updated_at &lt; now() - interval '10 minutes')
+        )
+          AND EXISTS (
+            SELECT 1 FROM iam_user_invitation i
+            WHERE i.tenant_id = iam_notification_outbox.tenant_id
+              AND i.id = iam_notification_outbox.aggregate_id
+              AND i.status = 'PENDING'
+              AND i.expires_at &gt; now()
+          )
+    </update>
+    <update id="markInvitationNotificationDelivered">
+        UPDATE iam_notification_outbox SET delivery_status = 'DELIVERED', attempts = attempts + 1,
+          payload_json = '{}', last_error = NULL, delivered_at = now(), updated_at = now()
+        WHERE id = #{id} AND delivery_status = 'PROCESSING'
+    </update>
+    <update id="markInvitationNotificationFailed">
+        UPDATE iam_notification_outbox SET delivery_status = 'FAILED', attempts = attempts + 1,
+          last_error = #{lastError}, updated_at = now()
+        WHERE id = #{id} AND delivery_status = 'PROCESSING'
+    </update>
+    <update id="expireInvitationNotificationPayloads">
+        UPDATE iam_notification_outbox n
+        SET delivery_status = 'EXPIRED', payload_json = '{}', last_error = NULL, updated_at = now()
+        FROM iam_user_invitation i
+        WHERE n.aggregate_type = 'IAM_USER_INVITATION'
+          AND n.tenant_id = i.tenant_id
+          AND n.aggregate_id = i.id
+          AND i.expires_at &lt;= now()
+          AND n.payload_json &lt;&gt; '{}'
+    </update>
+    <update id="clearInvitationNotificationPayloads">
+        UPDATE iam_notification_outbox
+        SET delivery_status = CASE
+              WHEN delivery_status = 'DELIVERED' THEN delivery_status
+              ELSE #{terminalStatus}
+            END,
+            payload_json = '{}',
+            last_error = NULL,
+            updated_at = now()
+        WHERE tenant_id = #{tenantId}
+          AND aggregate_type = 'IAM_USER_INVITATION'
+          AND aggregate_id = #{invitationId}
+          AND payload_json &lt;&gt; '{}'
+    </update>
+    <select id="findUserInvitations" resultType="com.aiplatform.identity.infrastructure.persistence.entity.IamUserInvitationOverviewPersistenceEntity">
+        SELECT i.id invitation_id, i.user_id, i.email, i.status, i.expires_at, i.created_at,
+          COALESCE(n.delivery_status, 'NOT_QUEUED') delivery_status, COALESCE(n.attempts, 0) delivery_attempts, n.last_error delivery_error
+        FROM iam_user_invitation i
+        LEFT JOIN LATERAL (SELECT delivery_status, attempts, last_error FROM iam_notification_outbox
+          WHERE aggregate_type = 'IAM_USER_INVITATION' AND aggregate_id = i.id ORDER BY id DESC LIMIT 1) n ON true
+        WHERE i.tenant_id = #{tenantId} ORDER BY i.created_at DESC
+    </select>
+    <select id="findUserInvitation" resultType="com.aiplatform.identity.infrastructure.persistence.entity.IamUserInvitationOverviewPersistenceEntity">
+        SELECT id invitation_id, user_id, email, status, expires_at, created_at,
+          'NOT_QUEUED' delivery_status, 0 delivery_attempts, NULL delivery_error
+        FROM iam_user_invitation WHERE tenant_id = #{tenantId} AND id = #{invitationId}
+    </select>
+    <update id="reissueUserInvitation">
+        UPDATE iam_user_invitation SET token_digest = #{tokenDigest}, status = 'PENDING', expires_at = #{expiresAt}, accepted_at = NULL, updated_at = now()
+        WHERE tenant_id = #{tenantId} AND id = #{invitationId} AND status = 'PENDING'
+    </update>
+    <update id="revokeUserInvitation">
+        UPDATE iam_user_invitation SET status = 'REVOKED', updated_at = now()
+        WHERE tenant_id = #{tenantId} AND id = #{invitationId} AND status = 'PENDING'
+    </update>
+    <update id="disablePendingInvitationUser">
+        UPDATE iam_user SET status = 'DISABLED', updated_by = #{actorId}, updated_at = now(), version = version + 1
+        WHERE tenant_id = #{tenantId} AND id = #{userId} AND status = 'PENDING_ACTIVATION' AND deleted_at IS NULL
+    </update>
+
+    <select id="findPendingUserInvitationByDigest" resultType="com.aiplatform.identity.infrastructure.persistence.entity.IamUserInvitationPersistenceEntity">
+        SELECT id, tenant_id, user_id, expires_at
+        FROM iam_user_invitation
+        WHERE token_digest = #{tokenDigest} AND status = 'PENDING'
+    </select>
+
+    <update id="activateInvitedUser">
+        UPDATE iam_user SET password_hash = #{passwordHash}, status = 'ACTIVE', updated_at = now(), version = version + 1
+        WHERE tenant_id = #{tenantId} AND id = #{userId} AND status = 'PENDING_ACTIVATION' AND deleted_at IS NULL
+    </update>
+
+    <update id="acceptUserInvitation">
+        UPDATE iam_user_invitation SET status = 'ACCEPTED', accepted_at = #{activatedAt}, updated_at = now()
+        WHERE id = #{invitationId} AND status = 'PENDING'
+    </update>
+
+    <select id="countManageableIamRoleByTenant" resultType="int">
+        SELECT count(*)
+        FROM iam_role
+        WHERE tenant_id = #{tenantId}
+          AND id = #{roleId}
+          AND role_type = 'business'
+          AND deleted_at IS NULL
+    </select>
+
+    <select id="countAssignableRoleMenus" resultType="int">
+        SELECT count(DISTINCT m.id)
+        FROM iam_menu m
+        LEFT JOIN iam_menu_feature mf ON mf.menu_id = m.id
+        LEFT JOIN iam_tenant_feature tf
+               ON tf.tenant_id = #{tenantId}
+              AND tf.feature_code = mf.feature_code
+        WHERE m.id IN
+          <foreach collection="menuIds" item="menuId" open="(" separator="," close=")">
+              #{menuId}
+          </foreach>
+          AND m.deleted_at IS NULL
+          AND m.status = 'ACTIVE'
+          AND m.scope &lt;&gt; 'ADMIN'
+          AND (
+                mf.feature_code IS NULL
+                OR (
+                    tf.enabled = TRUE
+                    AND (tf.effective_from IS NULL OR tf.effective_from &lt;= now())
+                    AND (tf.effective_to IS NULL OR tf.effective_to &gt; now())
+                )
+              )
+    </select>
+
+    <select id="countAssignableRolePermissions" resultType="int">
+        SELECT count(DISTINCT permission_code)
+        FROM iam_permission
+        WHERE permission_code IN
+          <foreach collection="permissionCodes" item="permissionCode" open="(" separator="," close=")">
+              #{permissionCode}
+          </foreach>
+          AND status = 'ACTIVE'
+          AND permission_code IN (
+              'app-studio:application:read',
+              'app-studio:application:use',
+              'app-studio:model:use',
+              'identity-access:permission-request:create',
+              'identity-access:session:logout',
+              'identity-access:session:read',
+              'identity-access:workspace:use',
+              'knowledge-base:knowledge-base:read',
+              'knowledge-base:retrieval:query'
+          )
+    </select>
+
+    <select id="countRoleAssignedMenuCode" resultType="int">
+        SELECT count(DISTINCT m.menu_code)
+        FROM iam_role_menu rm
+        JOIN iam_menu m ON m.id = rm.menu_id
+        LEFT JOIN iam_menu_feature mf ON mf.menu_id = m.id
+        LEFT JOIN iam_tenant_feature tf
+               ON tf.tenant_id = rm.tenant_id
+              AND tf.feature_code = mf.feature_code
+        WHERE rm.tenant_id = #{tenantId}
+          AND rm.role_id = #{roleId}
+          AND rm.deleted_at IS NULL
+          AND m.menu_code = #{menuCode}
+          AND m.deleted_at IS NULL
+          AND m.status = 'ACTIVE'
+          AND (
+                mf.feature_code IS NULL
+                OR (
+                    tf.enabled = TRUE
+                    AND (tf.effective_from IS NULL OR tf.effective_from &lt;= now())
+                    AND (tf.effective_to IS NULL OR tf.effective_to &gt; now())
+                )
+              )
+    </select>
+
+    <update id="updateIamMenu">
+        UPDATE iam_menu
+        SET menu_name = #{name},
+            path = #{path},
+            route_name = #{routeName},
+            component_key = #{componentKey},
+            icon = #{icon},
+            required_permission_code = #{requiredPermissionCode},
+            sort_order = #{sort},
+            status = #{status},
+            updated_by = #{actorId},
+            updated_at = now(),
+            version = version + 1
+        WHERE id = #{menuId}
+          AND deleted_at IS NULL
+    </update>
+
+    <delete id="deleteIamMenuFeatures">
+        DELETE FROM iam_menu_feature
+        WHERE menu_id = #{menuId}
+    </delete>
+
+    <insert id="insertIamMenuFeature">
+        INSERT INTO iam_menu_feature (menu_id, feature_code, created_at)
+        VALUES (#{menuId}, #{featureCode}, now())
+        ON CONFLICT DO NOTHING
+    </insert>
+
+    <update id="updateIamTenantFeature">
+        UPDATE iam_tenant_feature
+        SET enabled = #{enabled},
+            updated_by = #{actorId},
+            updated_at = now(),
+            version = version + 1
+        WHERE tenant_id = #{tenantId}
+          AND feature_code = #{featureCode}
+    </update>
+
+    <update id="softDeleteIamRoleMenus">
+        UPDATE iam_role_menu
+        SET deleted_at = now(),
+            updated_by = #{actorId},
+            updated_at = now(),
+            version = version + 1
+        WHERE tenant_id = #{tenantId}
+          AND role_id = #{roleId}
+          AND deleted_at IS NULL
+    </update>
+
+    <insert id="insertIamRoleMenu">
+        INSERT INTO iam_role_menu (tenant_id, role_id, menu_id, created_at, created_by, updated_at, updated_by, version)
+        VALUES (#{tenantId}, #{roleId}, #{menuId}, now(), #{actorId}, now(), #{actorId}, 0)
+        ON CONFLICT (tenant_id, role_id, menu_id) WHERE deleted_at IS NULL DO NOTHING
+    </insert>
+
+    <update id="softDeleteIamRolePermissions">
+        UPDATE iam_role_permission
+        SET deleted_at = now(),
+            updated_by = #{actorId},
+            updated_at = now(),
+            version = version + 1
+        WHERE tenant_id = #{tenantId}
+          AND role_id = #{roleId}
+          AND deleted_at IS NULL
+    </update>
+
+    <insert id="insertIamRolePermissionByCode">
+        INSERT INTO iam_role_permission (tenant_id, role_id, permission_id, created_at, created_by, updated_at, updated_by, version)
+        SELECT #{tenantId}, #{roleId}, p.id, now(), #{actorId}, now(), #{actorId}, 0
+        FROM iam_permission p
+        WHERE p.permission_code = #{permissionCode}
+          AND p.status = 'ACTIVE'
+        ON CONFLICT (tenant_id, role_id, permission_id) WHERE deleted_at IS NULL DO NOTHING
+    </insert>
+
+    <update id="updateIamRoleDefaultMenu">
+        UPDATE iam_role
+        SET default_menu_code = #{defaultMenuCode},
+            updated_by = #{actorId},
+            updated_at = now(),
+            version = version + 1
+        WHERE tenant_id = #{tenantId}
+          AND id = #{roleId}
+          AND deleted_at IS NULL
+    </update>
+
+    <select id="findActiveResourceAcls" resultMap="IamResourceAclResultMap">
+        SELECT DISTINCT acl.id,
+                        acl.tenant_id,
+                        acl.resource_type,
+                        acl.resource_id,
+                        acl.subject_type,
+                        acl.subject_id,
+                        acl.permission_code,
+                        acl.effect,
+                        acl.expires_at
+        FROM iam_resource_acl acl
+        LEFT JOIN iam_user_role ur
+               ON acl.subject_type = 'role'
+              AND ur.role_id = acl.subject_id
+              AND ur.tenant_id = acl.tenant_id
+              AND ur.user_id = #{userId}
+              AND ur.deleted_at IS NULL
+              AND (ur.expires_at IS NULL OR ur.expires_at &gt; now())
+        LEFT JOIN iam_role r
+               ON r.id = ur.role_id
+              AND r.tenant_id = acl.tenant_id
+              AND r.deleted_at IS NULL
+              AND r.status = 'ACTIVE'
+        WHERE acl.tenant_id = #{tenantId}
+          AND acl.resource_type = #{resourceType}
+          AND acl.resource_id = #{resourceId}
+          AND acl.permission_code = #{permissionCode}
+          AND acl.deleted_at IS NULL
+          AND (acl.expires_at IS NULL OR acl.expires_at &gt; now())
+          AND (
+                (acl.subject_type = 'user' AND acl.subject_id = #{userId})
+                OR
+                (acl.subject_type = 'role' AND r.id IS NOT NULL)
+              )
+    </select>
+
+    <select id="findAllowedResourceUserIds" resultType="java.lang.Long">
+        SELECT acl.subject_id
+        FROM iam_resource_acl acl
+        JOIN iam_user u
+          ON acl.subject_type = 'user'
+         AND u.id = acl.subject_id
+         AND u.tenant_id = acl.tenant_id
+         AND u.status = 'ACTIVE'
+         AND u.deleted_at IS NULL
+        WHERE acl.tenant_id = #{tenantId}
+          AND acl.resource_type = #{resourceType}
+          AND acl.resource_id = #{resourceId}
+          AND acl.permission_code = #{permissionCode}
+          AND lower(acl.effect) = 'allow'
+          AND acl.deleted_at IS NULL
+          AND (acl.expires_at IS NULL OR acl.expires_at &gt; now())
+        UNION
+        SELECT ur.user_id
+        FROM iam_resource_acl acl
+        JOIN iam_role r
+          ON acl.subject_type = 'role'
+         AND r.id = acl.subject_id
+         AND r.tenant_id = acl.tenant_id
+         AND r.status = 'ACTIVE'
+         AND r.deleted_at IS NULL
+        JOIN iam_user_role ur
+          ON ur.tenant_id = acl.tenant_id
+         AND ur.role_id = r.id
+         AND ur.deleted_at IS NULL
+         AND (ur.expires_at IS NULL OR ur.expires_at &gt; now())
+        JOIN iam_user u
+          ON u.tenant_id = ur.tenant_id
+         AND u.id = ur.user_id
+         AND u.status = 'ACTIVE'
+         AND u.deleted_at IS NULL
+        WHERE acl.tenant_id = #{tenantId}
+          AND acl.resource_type = #{resourceType}
+          AND acl.resource_id = #{resourceId}
+          AND acl.permission_code = #{permissionCode}
+          AND lower(acl.effect) = 'allow'
+          AND acl.deleted_at IS NULL
+          AND (acl.expires_at IS NULL OR acl.expires_at &gt; now())
+    </select>
+
+    <select id="countActiveAclSubject" resultType="int">
+        SELECT CASE
+                 WHEN #{subjectType} = 'user' THEN (
+                   SELECT count(*)
+                   FROM iam_user
+                   WHERE tenant_id = #{tenantId}
+                     AND id = #{subjectId}
+                     AND status = 'ACTIVE'
+                     AND deleted_at IS NULL
+                 )
+                 WHEN #{subjectType} = 'role' THEN (
+                   SELECT count(*)
+                   FROM iam_role
+                   WHERE tenant_id = #{tenantId}
+                     AND id = #{subjectId}
+                     AND status = 'ACTIVE'
+                     AND deleted_at IS NULL
+                 )
+                 ELSE 0
+               END
+    </select>
+
+    <update id="softDeleteResourceAcls">
+        UPDATE iam_resource_acl
+        SET deleted_at = now(),
+            updated_at = now(),
+            updated_by = #{actorId},
+            version = version + 1
+        WHERE tenant_id = #{tenantId}
+          AND resource_type = #{resourceType}
+          AND resource_id = #{resourceId}
+          AND permission_code = #{permissionCode}
+          AND deleted_at IS NULL
+    </update>
+
+    <insert id="insertResourceAcl">
+        INSERT INTO iam_resource_acl (
+          tenant_id, resource_type, resource_id, subject_type, subject_id,
+          permission_code, effect, created_by, updated_by
+        ) VALUES (
+          #{tenantId}, #{resourceType}, #{resourceId}, #{subjectType}, #{subjectId},
+          #{permissionCode}, 'allow', #{actorId}, #{actorId}
+        )
+    </insert>
+    <select id="countActiveResourceAcl" resultType="int">
+        SELECT count(*) FROM iam_resource_acl
+        WHERE tenant_id = #{tenantId} AND resource_type = #{resourceType} AND resource_id = #{resourceId}
+          AND subject_type = #{subjectType} AND subject_id = #{subjectId} AND permission_code = #{permissionCode}
+          AND effect = 'allow' AND deleted_at IS NULL
+    </select>
+</mapper>

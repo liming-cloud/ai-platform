@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aiplatform.summary.infrastructure.persistence.mapper.SummaryMetricSnapshotMapper">
+  <resultMap id="snapshotMap" type="com.aiplatform.summary.infrastructure.persistence.entity.SummaryMetricSnapshotPersistenceEntity">
+    <id property="id" column="id"/>
+    <result property="tenantId" column="tenant_id"/>
+    <result property="scopeType" column="scope_type"/>
+    <result property="metricCode" column="metric_code"/>
+    <result property="metricPayload" column="metric_payload"/>
+    <result property="freshness" column="freshness"/>
+    <result property="partial" column="partial"/>
+    <result property="failedReason" column="failed_reason"/>
+    <result property="asOf" column="as_of"/>
+    <result property="createdAt" column="created_at"/>
+    <result property="updatedAt" column="updated_at"/>
+    <result property="version" column="version"/>
+  </resultMap>
+
+  <insert id="upsert">
+    INSERT INTO summary_metric_snapshot (
+      tenant_id, scope_type, metric_code, metric_payload, freshness,
+      partial, failed_reason, as_of, created_at, updated_at, version
+    ) VALUES (
+      #{tenantId}, #{scopeType}, #{metricCode}, CAST(#{metricPayload} AS jsonb), #{freshness},
+      #{partial}, #{failedReason}, #{asOf}, now(), now(), 0
+    )
+    ON CONFLICT (tenant_id, scope_type, metric_code)
+    DO UPDATE SET
+      metric_payload = EXCLUDED.metric_payload,
+      freshness = EXCLUDED.freshness,
+      partial = EXCLUDED.partial,
+      failed_reason = EXCLUDED.failed_reason,
+      as_of = EXCLUDED.as_of,
+      updated_at = now(),
+      version = summary_metric_snapshot.version + 1
+  </insert>
+
+  <select id="findByScope" resultMap="snapshotMap">
+    SELECT id, tenant_id, scope_type, metric_code, metric_payload::text AS metric_payload,
+           freshness, partial, failed_reason, as_of, created_at, updated_at, version
+    FROM summary_metric_snapshot
+    WHERE tenant_id = #{tenantId}
+      AND scope_type = #{scopeType}
+    ORDER BY metric_code
+  </select>
+</mapper>

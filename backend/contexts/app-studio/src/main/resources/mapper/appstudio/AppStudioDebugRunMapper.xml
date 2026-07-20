@@ -1,0 +1,208 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aiplatform.appstudio.infrastructure.persistence.mapper.AppStudioDebugRunMapper">
+    <resultMap id="summaryRowMap" type="com.aiplatform.appstudio.infrastructure.persistence.projection.AppStudioDebugRunSummaryRow">
+        <result property="assistantMessageId" column="assistant_message_id"/>
+        <result property="userMessageId" column="user_message_id"/>
+        <result property="applicationId" column="application_id"/>
+        <result property="sessionId" column="session_id"/>
+        <result property="traceId" column="trace_id"/>
+        <result property="modelInvocationLogId" column="model_invocation_log_id"/>
+        <result property="invocationStatus" column="invocation_status"/>
+        <result property="decisionSource" column="decision_source"/>
+        <result property="citationCount" column="citation_count"/>
+        <result property="evidenceCount" column="evidence_count"/>
+        <result property="providerCode" column="provider_code"/>
+        <result property="modelCode" column="model_code"/>
+        <result property="inputTokens" column="input_tokens"/>
+        <result property="outputTokens" column="output_tokens"/>
+        <result property="latencyMs" column="latency_ms"/>
+        <result property="createdAt" column="created_at"/>
+    </resultMap>
+
+    <resultMap id="detailRowMap" type="com.aiplatform.appstudio.infrastructure.persistence.projection.AppStudioDebugRunDetailRow">
+        <result property="assistantMessageId" column="assistant_message_id"/>
+        <result property="userMessageId" column="user_message_id"/>
+        <result property="applicationId" column="application_id"/>
+        <result property="sessionId" column="session_id"/>
+        <result property="traceId" column="trace_id"/>
+        <result property="modelInvocationLogId" column="model_invocation_log_id"/>
+        <result property="invocationStatus" column="invocation_status"/>
+        <result property="userMessageContent" column="user_message_content"/>
+        <result property="assistantMessageContent" column="assistant_message_content"/>
+        <result property="providerCode" column="provider_code"/>
+        <result property="modelCode" column="model_code"/>
+        <result property="decisionSource" column="decision_source"/>
+        <result property="inputTokens" column="input_tokens"/>
+        <result property="outputTokens" column="output_tokens"/>
+        <result property="latencyMs" column="latency_ms"/>
+        <result property="sourceContext" column="source_context"/>
+        <result property="sourceResourceType" column="source_resource_type"/>
+        <result property="sourceResourceId" column="source_resource_id"/>
+        <result property="errorCode" column="error_code"/>
+        <result property="errorMessage" column="error_message"/>
+        <result property="createdAt" column="created_at"/>
+    </resultMap>
+
+    <insert id="insertRetrievalEvidence" parameterType="com.aiplatform.appstudio.infrastructure.persistence.entity.AppChatRetrievalEvidencePersistenceEntity" useGeneratedKeys="true" keyProperty="id">
+        insert into app_chat_retrieval_evidence (
+            tenant_id,
+            assistant_message_id,
+            trace_id,
+            knowledge_base_id,
+            document_id,
+            chunk_id,
+            score,
+            retrieval_signal,
+            index_version,
+            created_at
+        ) values (
+            #{tenantId},
+            #{assistantMessageId},
+            #{traceId},
+            #{knowledgeBaseId},
+            #{documentId},
+            #{chunkId},
+            #{score},
+            #{retrievalSignal},
+            #{indexVersion},
+            #{createdAt}
+        )
+    </insert>
+
+    <select id="findDebugRunSummaries" resultMap="summaryRowMap">
+        select
+            assistant.id as assistant_message_id,
+            user_msg.id as user_message_id,
+            assistant.application_id as application_id,
+            assistant.session_id as session_id,
+            assistant.trace_id as trace_id,
+            assistant.model_invocation_log_id as model_invocation_log_id,
+            mil.status as invocation_status,
+            case
+                when assistant.model_invocation_log_id is null then 'knowledge-retrieval-fail-closed'
+                when mil.status = 'FAILED' then 'model-invocation-failed'
+                else 'spring-ai-chat-completion'
+            end as decision_source,
+            assistant.citation_count as citation_count,
+            count(evidence.id) as evidence_count,
+            provider.provider_code as provider_code,
+            config.model_code as model_code,
+            mil.input_tokens as input_tokens,
+            mil.output_tokens as output_tokens,
+            mil.latency_ms as latency_ms,
+            assistant.created_at as created_at
+        from app_chat_message assistant
+        join app_chat_session session on session.id = assistant.session_id
+            and session.tenant_id = assistant.tenant_id
+            and session.deleted_at is null
+        left join app_chat_message user_msg on user_msg.tenant_id = assistant.tenant_id
+            and user_msg.session_id = assistant.session_id
+            and user_msg.trace_id = assistant.trace_id
+            and user_msg.role = 'user'
+        left join mdl_invocation_log mil on mil.id = assistant.model_invocation_log_id
+            and mil.tenant_id = assistant.tenant_id
+        left join mdl_config config on config.id = mil.model_config_id
+            and config.tenant_id = assistant.tenant_id
+            and config.deleted_at is null
+        left join mdl_provider provider on provider.id = config.provider_id
+            and provider.tenant_id = assistant.tenant_id
+            and provider.deleted_at is null
+        left join app_chat_retrieval_evidence evidence on evidence.tenant_id = assistant.tenant_id
+            and evidence.assistant_message_id = assistant.id
+        where assistant.tenant_id = #{tenantId}
+          and assistant.role = 'assistant'
+          and assistant.trace_id is not null
+          and user_msg.id is not null
+          and session.application_id = #{applicationId}
+          and session.user_id = #{userId}
+        <if test="sessionId != null">
+          and assistant.session_id = #{sessionId}
+        </if>
+        <if test="traceId != null and traceId != ''">
+          and assistant.trace_id = #{traceId}
+        </if>
+        <if test="modelInvocationLogId != null">
+          and assistant.model_invocation_log_id = #{modelInvocationLogId}
+        </if>
+        <if test="invocationStatus != null and invocationStatus != ''">
+          and mil.status = #{invocationStatus}
+        </if>
+        group by assistant.id, user_msg.id, assistant.application_id, assistant.session_id, assistant.trace_id,
+                 assistant.model_invocation_log_id, mil.status, assistant.citation_count, provider.provider_code,
+                 config.model_code, mil.input_tokens, mil.output_tokens, mil.latency_ms, assistant.created_at
+        order by assistant.created_at desc, assistant.id desc
+        limit #{limit}
+    </select>
+
+    <select id="findDebugRunDetail" resultMap="detailRowMap">
+        select
+            assistant.id as assistant_message_id,
+            user_msg.id as user_message_id,
+            assistant.application_id as application_id,
+            assistant.session_id as session_id,
+            assistant.trace_id as trace_id,
+            assistant.model_invocation_log_id as model_invocation_log_id,
+            mil.status as invocation_status,
+            user_msg.content as user_message_content,
+            assistant.content as assistant_message_content,
+            provider.provider_code as provider_code,
+            config.model_code as model_code,
+            case
+                when assistant.model_invocation_log_id is null then 'knowledge-retrieval-fail-closed'
+                when mil.status = 'FAILED' then 'model-invocation-failed'
+                else 'spring-ai-chat-completion'
+            end as decision_source,
+            mil.input_tokens as input_tokens,
+            mil.output_tokens as output_tokens,
+            mil.latency_ms as latency_ms,
+            mil.source_context as source_context,
+            mil.source_resource_type as source_resource_type,
+            cast(mil.source_resource_id as text) as source_resource_id,
+            mil.error_code as error_code,
+            mil.error_message as error_message,
+            assistant.created_at as created_at
+        from app_chat_message assistant
+        join app_chat_session session on session.id = assistant.session_id
+            and session.tenant_id = assistant.tenant_id
+            and session.deleted_at is null
+        left join app_chat_message user_msg on user_msg.tenant_id = assistant.tenant_id
+            and user_msg.session_id = assistant.session_id
+            and user_msg.trace_id = assistant.trace_id
+            and user_msg.role = 'user'
+        left join mdl_invocation_log mil on mil.id = assistant.model_invocation_log_id
+            and mil.tenant_id = assistant.tenant_id
+        left join mdl_config config on config.id = mil.model_config_id
+            and config.tenant_id = assistant.tenant_id
+            and config.deleted_at is null
+        left join mdl_provider provider on provider.id = config.provider_id
+            and provider.tenant_id = assistant.tenant_id
+            and provider.deleted_at is null
+        where assistant.tenant_id = #{tenantId}
+          and assistant.id = #{assistantMessageId}
+          and assistant.role = 'assistant'
+          and session.application_id = #{applicationId}
+        <if test="userId != null">
+          and session.user_id = #{userId}
+        </if>
+        limit 1
+    </select>
+
+    <select id="findCitationRecordsByChatMessageId" resultType="com.aiplatform.appstudio.infrastructure.persistence.entity.KbCitationRecordPersistenceEntity">
+        select id, tenant_id, chat_message_id, knowledge_base_id, document_id, chunk_id, score, citation_text, created_at
+        from kb_citation_record
+        where tenant_id = #{tenantId}
+          and chat_message_id = #{chatMessageId}
+        order by id asc
+    </select>
+
+    <select id="findRetrievalEvidencesByAssistantMessageId" resultType="com.aiplatform.appstudio.infrastructure.persistence.entity.AppChatRetrievalEvidencePersistenceEntity">
+        select id, tenant_id, assistant_message_id, trace_id, knowledge_base_id, document_id, chunk_id, score, retrieval_signal, index_version, created_at
+        from app_chat_retrieval_evidence
+        where tenant_id = #{tenantId}
+          and assistant_message_id = #{assistantMessageId}
+        order by id asc
+    </select>
+</mapper>

@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aiplatform.appstudio.infrastructure.persistence.mapper.AppPublishPreflightMapper">
+    <resultMap id="preflightResultMap" type="com.aiplatform.appstudio.infrastructure.persistence.entity.AppPublishPreflightPersistenceEntity">
+        <id property="id" column="id"/>
+        <result property="tenantId" column="tenant_id"/>
+        <result property="applicationId" column="application_id"/>
+        <result property="publishRequestId" column="publish_request_id"/>
+        <result property="candidateFingerprint" column="candidate_fingerprint"/>
+        <result property="passed" column="passed"/>
+        <result property="blockersJson" column="blockers_json"/>
+        <result property="warningsJson" column="warnings_json"/>
+        <result property="traceId" column="trace_id"/>
+        <result property="checkedBy" column="checked_by"/>
+        <result property="checkedAt" column="checked_at"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+        <result property="version" column="version"/>
+    </resultMap>
+
+    <insert id="insertResult">
+        INSERT INTO app_publish_preflight_result (
+            tenant_id, application_id, publish_request_id, candidate_fingerprint, passed,
+            blockers_json, warnings_json, trace_id, checked_by, checked_at,
+            created_at, updated_at, version
+        ) VALUES (
+            #{tenantId}, #{applicationId}, #{publishRequestId}, #{candidateFingerprint}, #{passed},
+            CAST(#{blockersJson} AS jsonb), CAST(#{warningsJson} AS jsonb),
+            #{traceId}, #{checkedBy}, #{checkedAt}, #{createdAt}, #{updatedAt}, #{version}
+        )
+        ON CONFLICT (tenant_id, application_id, publish_request_id) DO NOTHING
+    </insert>
+
+    <select id="findByRequestId" resultMap="preflightResultMap">
+        SELECT id, tenant_id, application_id, publish_request_id, candidate_fingerprint, passed,
+               blockers_json::text AS blockers_json,
+               warnings_json::text AS warnings_json,
+               trace_id, checked_by, checked_at, created_at, updated_at, version
+        FROM app_publish_preflight_result
+        WHERE tenant_id = #{tenantId}
+          AND application_id = #{applicationId}
+          AND publish_request_id = #{publishRequestId}
+        LIMIT 1
+    </select>
+</mapper>

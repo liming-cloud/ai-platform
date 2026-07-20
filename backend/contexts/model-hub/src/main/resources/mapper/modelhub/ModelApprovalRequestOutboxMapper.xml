@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aiplatform.modelhub.infrastructure.persistence.mapper.ModelApprovalRequestOutboxMapper">
+    <resultMap id="outboxRecord" type="com.aiplatform.modelhub.infrastructure.messaging.outbox.ModelApprovalRequestOutboxRecord">
+        <id property="id" column="id"/>
+        <result property="eventId" column="event_id"/>
+        <result property="eventType" column="event_type"/>
+        <result property="tenantId" column="tenant_id"/>
+        <result property="aggregateType" column="aggregate_type"/>
+        <result property="aggregateId" column="aggregate_id"/>
+        <result property="eventVersion" column="event_version"/>
+        <result property="schemaVersion" column="schema_version"/>
+        <result property="occurredAt" column="occurred_at"/>
+        <result property="traceId" column="trace_id"/>
+        <result property="producer" column="producer"/>
+        <result property="payloadJson" column="payload_json"/>
+        <result property="attempts" column="attempts"/>
+    </resultMap>
+
+    <insert id="enqueue">
+        INSERT INTO mdl_approval_request_outbox (
+            event_id, event_type, tenant_id, aggregate_type, aggregate_id,
+            event_version, schema_version, occurred_at, trace_id, producer,
+            payload_json, status, attempts, next_attempt_at, created_at, updated_at
+        ) VALUES (
+            #{message.messageId}, #{message.eventType}, #{message.tenantId},
+            #{message.aggregateType}, #{message.aggregateId}, #{message.version},
+            #{message.schemaVersion}, #{message.occurredAt}, #{message.traceId},
+            #{message.producer}, CAST(#{message.payloadJson} AS JSONB),
+            'PENDING', 0, NOW(), NOW(), NOW()
+        )
+        ON CONFLICT (event_id) DO NOTHING
+    </insert>
+
+    <select id="claimBatch" resultMap="outboxRecord" affectData="true" flushCache="true">
+        WITH candidates AS (
+            SELECT outbox.id
+            FROM mdl_approval_request_outbox outbox
+            WHERE outbox.next_attempt_at &lt;= #{now}
+              AND (
+                outbox.status = 'PENDING'
+                OR (outbox.status = 'IN_FLIGHT' AND outbox.lease_until &lt;= #{now})
+              )
+            ORDER BY outbox.next_attempt_at, outbox.created_at, outbox.id
+            FOR UPDATE SKIP LOCKED
+            LIMIT #{limit}
+        )
+        UPDATE mdl_approval_request_outbox outbox
+        SET status = 'IN_FLIGHT',
+            lease_owner = #{workerId},
+            lease_until = #{leaseUntil},
+            attempts = outbox.attempts + 1,
+            updated_at = #{now}
+        FROM candidates
+        WHERE outbox.id = candidates.id
+        RETURNING outbox.id, outbox.event_id, outbox.event_type, outbox.tenant_id,
+                  outbox.aggregate_type, outbox.aggregate_id, outbox.event_version,
+                  outbox.schema_version, outbox.occurred_at, outbox.trace_id,
+                  outbox.producer, outbox.payload_json::text AS payload_json,
+                  outbox.attempts
+    </select>
+
+    <update id="markPublished">
+        UPDATE mdl_approval_request_outbox
+        SET status = 'PUBLISHED',
+            published_at = #{now},
+            lease_owner = NULL,
+            lease_until = NULL,
+            last_error = NULL,
+            updated_at = #{now}
+        WHERE id = #{id}
+          AND status = 'IN_FLIGHT'
+          AND lease_owner = #{workerId}
+    </update>
+
+    <update id="markRetry">
+        UPDATE mdl_approval_request_outbox
+        SET status = 'PENDING',
+            next_attempt_at = #{nextAttemptAt},
+            lease_owner = NULL,
+            lease_until = NULL,
+            last_error = #{lastError},
+            updated_at = #{now}
+        WHERE id = #{id}
+          AND status = 'IN_FLIGHT'
+          AND lease_owner = #{workerId}
+    </update>
+</mapper>

@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aiplatform.identity.infrastructure.persistence.mapper.IamSummaryMetricMapper">
+  <sql id="tenantFilter">
+    deleted_at IS NULL
+    <if test="tenantStatus != null and tenantStatus != ''">
+      AND status = #{tenantStatus}
+    </if>
+  </sql>
+
+  <select id="countTenants" resultType="long">
+    SELECT count(*) FROM iam_tenant WHERE <include refid="tenantFilter"/>
+  </select>
+
+  <select id="countActiveTenants" resultType="long">
+    SELECT count(*) FROM iam_tenant WHERE <include refid="tenantFilter"/> AND status = 'ACTIVE'
+  </select>
+
+  <select id="countAbnormalTenants" resultType="long">
+    SELECT count(*) FROM iam_tenant WHERE <include refid="tenantFilter"/> AND status != 'ACTIVE'
+  </select>
+
+  <select id="countTenantsMissingAdministrator" resultType="long">
+    SELECT count(*)
+    FROM iam_tenant t
+    WHERE t.deleted_at IS NULL
+      <if test="tenantStatus != null and tenantStatus != ''">
+        AND t.status = #{tenantStatus}
+      </if>
+      AND NOT EXISTS (
+        SELECT 1
+        FROM iam_role r
+        JOIN iam_user_role ur
+          ON ur.tenant_id = r.tenant_id
+         AND ur.role_id = r.id
+         AND ur.deleted_at IS NULL
+         AND (ur.expires_at IS NULL OR ur.expires_at &gt; now())
+        JOIN iam_user u
+          ON u.tenant_id = ur.tenant_id
+         AND u.id = ur.user_id
+         AND u.status = 'ACTIVE'
+         AND u.deleted_at IS NULL
+        WHERE r.tenant_id = t.id
+          AND r.role_code = 'tenant-admin'
+          AND r.status = 'ACTIVE'
+          AND r.deleted_at IS NULL
+      )
+  </select>
+
+  <select id="findEnabledFeatureCodes" resultType="string">
+    SELECT feature_code
+    FROM iam_tenant_feature
+    WHERE tenant_id = #{tenantId}
+      AND enabled = true
+      AND (effective_from IS NULL OR effective_from &lt;= now())
+      AND (effective_to IS NULL OR effective_to &gt; now())
+    ORDER BY feature_code
+  </select>
+
+  <select id="countActiveUsers" resultType="long">
+    SELECT count(*) FROM iam_user
+    WHERE tenant_id = #{tenantId} AND status = 'ACTIVE' AND deleted_at IS NULL
+  </select>
+
+  <select id="countActiveUsersWithoutRole" resultType="long">
+    SELECT count(*)
+    FROM iam_user u
+    WHERE u.tenant_id = #{tenantId}
+      AND u.status = 'ACTIVE'
+      AND u.deleted_at IS NULL
+      AND NOT EXISTS (
+        SELECT 1 FROM iam_user_role ur
+        JOIN iam_role r ON r.tenant_id = ur.tenant_id AND r.id = ur.role_id
+        WHERE ur.tenant_id = u.tenant_id
+          AND ur.user_id = u.id
+          AND ur.deleted_at IS NULL
+          AND (ur.expires_at IS NULL OR ur.expires_at &gt; now())
+          AND r.status = 'ACTIVE'
+          AND r.deleted_at IS NULL
+      )
+  </select>
+
+  <select id="countActiveRolesWithoutPermission" resultType="long">
+    SELECT count(*)
+    FROM iam_role r
+    WHERE r.tenant_id = #{tenantId}
+      AND r.status = 'ACTIVE'
+      AND r.deleted_at IS NULL
+      AND NOT EXISTS (
+        SELECT 1 FROM iam_role_permission rp
+        JOIN iam_permission p ON p.id = rp.permission_id AND p.status = 'ACTIVE'
+        WHERE rp.tenant_id = r.tenant_id
+          AND rp.role_id = r.id
+          AND rp.deleted_at IS NULL
+      )
+  </select>
+</mapper>

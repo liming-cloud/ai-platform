@@ -1,0 +1,301 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aiplatform.knowledge.infrastructure.persistence.mapper.KnowledgeIndexRebuildMapper">
+    <resultMap id="rebuildPlan" type="com.aiplatform.knowledge.infrastructure.persistence.projection.KnowledgeIndexRebuildRow">
+        <id property="id" column="id"/>
+        <result property="tenantId" column="tenant_id"/>
+        <result property="knowledgeBaseId" column="knowledge_base_id"/>
+        <result property="generation" column="generation"/>
+        <result property="targetModelConfigId" column="target_model_config_id"/>
+        <result property="targetEmbeddingModel" column="target_embedding_model"/>
+        <result property="indexVersion" column="index_version"/>
+        <result property="status" column="status"/>
+        <result property="membersFrozenAt" column="members_frozen_at"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="createdBy" column="created_by"/>
+    </resultMap>
+
+    <select id="lockKnowledgeBase" resultType="java.lang.Long">
+        SELECT id
+        FROM kb_knowledge_base
+        WHERE tenant_id = #{tenantId}
+          AND id = #{knowledgeBaseId}
+          AND deleted_at IS NULL
+        FOR UPDATE
+    </select>
+
+    <select id="nextRebuildId" resultType="java.lang.Long">
+        SELECT nextval('kb_knowledge_index_rebuild_id_seq')
+    </select>
+
+    <select id="nextGeneration" resultType="java.lang.Long">
+        SELECT coalesce((
+            SELECT desired_generation + 1
+            FROM kb_knowledge_index_desired
+            WHERE tenant_id = #{tenantId}
+              AND knowledge_base_id = #{knowledgeBaseId}
+        ), 1)
+    </select>
+
+    <select id="findActive" resultMap="rebuildPlan">
+        SELECT id, tenant_id, knowledge_base_id, generation,
+               target_model_config_id, target_embedding_model, index_version,
+               status, members_frozen_at, created_at, created_by
+        FROM kb_knowledge_index_rebuild
+        WHERE tenant_id = #{tenantId}
+          AND knowledge_base_id = #{knowledgeBaseId}
+          AND status = 'ACTIVE'
+        LIMIT 1
+    </select>
+
+    <select id="findById" resultMap="rebuildPlan">
+        SELECT id, tenant_id, knowledge_base_id, generation,
+               target_model_config_id, target_embedding_model, index_version,
+               status, members_frozen_at, created_at, created_by
+        FROM kb_knowledge_index_rebuild
+        WHERE tenant_id = #{tenantId}
+          AND id = #{rebuildId}
+        LIMIT 1
+    </select>
+
+    <update id="failActive">
+        UPDATE kb_knowledge_index_rebuild
+        SET status = 'FAILED',
+            failure_code = #{failureCode},
+            failure_reason = #{failureReason},
+            completed_at = #{now},
+            updated_at = #{now},
+            updated_by = #{operatorId},
+            version = version + 1
+        WHERE tenant_id = #{tenantId}
+          AND knowledge_base_id = #{knowledgeBaseId}
+          AND id = #{rebuildId}
+          AND status = 'ACTIVE'
+    </update>
+
+    <insert id="insertPlan">
+        INSERT INTO kb_knowledge_index_rebuild (
+            id, tenant_id, knowledge_base_id, generation,
+            target_model_config_id, target_embedding_model, index_version,
+            status, members_frozen_at, created_at, created_by, updated_at, updated_by
+        ) VALUES (
+            #{plan.id}, #{plan.tenantId}, #{plan.knowledgeBaseId}, #{plan.generation},
+            #{plan.targetModelConfigId}, #{plan.targetEmbeddingModel}, #{plan.indexVersion},
+            #{plan.status}, #{plan.membersFrozenAt}, #{plan.createdAt}, #{plan.createdBy},
+            #{plan.createdAt}, #{plan.createdBy}
+        )
+    </insert>
+
+    <insert id="insertMember">
+        INSERT INTO kb_knowledge_index_rebuild_member (
+            tenant_id, rebuild_id, knowledge_base_id, document_id,
+            document_updated_at, expected_chunk_count, created_at
+        ) VALUES (
+            #{tenantId}, #{rebuildId}, #{knowledgeBaseId}, #{documentId},
+            #{documentUpdatedAt}, #{expectedChunkCount}, now()
+        )
+        ON CONFLICT (tenant_id, rebuild_id, document_id) DO NOTHING
+    </insert>
+
+    <insert id="pointDesired">
+        INSERT INTO kb_knowledge_index_desired (
+            tenant_id, knowledge_base_id, desired_rebuild_id, desired_generation,
+            next_generation_required, requested_by, created_at, updated_at
+        ) VALUES (
+            #{tenantId}, #{knowledgeBaseId}, #{rebuildId}, #{generation},
+            #{nextGenerationRequired}, #{operatorId}, #{now}, #{now}
+        )
+        ON CONFLICT (tenant_id, knowledge_base_id) DO UPDATE
+        SET desired_rebuild_id = EXCLUDED.desired_rebuild_id,
+            desired_generation = EXCLUDED.desired_generation,
+            next_generation_required = EXCLUDED.next_generation_required,
+            requested_by = EXCLUDED.requested_by,
+            updated_at = EXCLUDED.updated_at,
+            version = kb_knowledge_index_desired.version + 1
+    </insert>
+
+    <update id="markNextGenerationRequired">
+        UPDATE kb_knowledge_index_desired
+        SET next_generation_required = true,
+            requested_by = #{operatorId},
+            updated_at = #{now},
+            version = version + 1
+        WHERE tenant_id = #{tenantId}
+          AND knowledge_base_id = #{knowledgeBaseId}
+    </update>
+
+    <select id="lockLatestActive" resultType="java.lang.Long">
+        SELECT plan.id
+        FROM kb_knowledge_index_rebuild plan
+        JOIN kb_knowledge_index_desired desired
+          ON desired.tenant_id = plan.tenant_id
+         AND desired.knowledge_base_id = plan.knowledge_base_id
+        WHERE plan.tenant_id = #{tenantId}
+          AND plan.knowledge_base_id = #{knowledgeBaseId}
+          AND plan.id = #{rebuildId}
+          AND plan.generation = #{generation}
+          AND plan.status = 'ACTIVE'
+          AND desired.desired_rebuild_id = plan.id
+          AND desired.desired_generation = plan.generation
+        FOR UPDATE OF plan, desired
+    </select>
+
+    <select id="lockFrozenMembers" resultType="java.lang.Long">
+        SELECT member.document_id
+        FROM kb_knowledge_index_rebuild_member member
+        JOIN kb_document document
+          ON document.tenant_id = member.tenant_id
+         AND document.knowledge_base_id = member.knowledge_base_id
+         AND document.id = member.document_id
+        WHERE member.tenant_id = #{tenantId}
+          AND member.rebuild_id = #{rebuildId}
+          AND member.knowledge_base_id = #{knowledgeBaseId}
+        ORDER BY member.document_id
+        FOR UPDATE OF member, document
+    </select>
+
+    <select id="lockCurrentMember" resultType="java.lang.Long">
+        SELECT member.document_id
+        FROM kb_knowledge_index_rebuild_member member
+        JOIN kb_document document
+          ON document.tenant_id = member.tenant_id
+         AND document.knowledge_base_id = member.knowledge_base_id
+         AND document.id = member.document_id
+         AND document.deleted_at IS NULL
+        WHERE member.tenant_id = #{tenantId}
+          AND member.rebuild_id = #{rebuildId}
+          AND member.knowledge_base_id = #{knowledgeBaseId}
+          AND member.document_id = #{documentId}
+          AND member.document_updated_at = #{documentUpdatedAt}
+          AND member.expected_chunk_count = (
+              SELECT count(*)
+              FROM kb_document_chunk chunk
+              WHERE chunk.tenant_id = member.tenant_id
+                AND chunk.knowledge_base_id = member.knowledge_base_id
+                AND chunk.document_id = member.document_id
+                AND chunk.status = 'ACTIVE'
+                AND chunk.deleted_at IS NULL
+          )
+        FOR UPDATE OF member, document
+    </select>
+
+    <select id="activateLatestIfComplete" resultType="java.lang.Long" affectData="true" flushCache="true">
+        WITH locked_plan AS MATERIALIZED (
+            SELECT plan.id, plan.tenant_id, plan.knowledge_base_id, plan.generation,
+                   plan.target_embedding_model, plan.index_version
+            FROM kb_knowledge_index_rebuild plan
+            JOIN kb_knowledge_index_desired desired
+              ON desired.tenant_id = plan.tenant_id
+             AND desired.knowledge_base_id = plan.knowledge_base_id
+            WHERE plan.tenant_id = #{tenantId}
+              AND plan.knowledge_base_id = #{knowledgeBaseId}
+              AND plan.id = #{rebuildId}
+              AND plan.generation = #{generation}
+              AND plan.status = 'ACTIVE'
+              AND desired.desired_rebuild_id = plan.id
+              AND desired.desired_generation = plan.generation
+            FOR UPDATE OF plan, desired
+        ),
+        eligible_plan AS (
+            SELECT plan.*
+            FROM locked_plan plan
+            WHERE EXISTS (
+                SELECT 1
+                FROM kb_knowledge_index_rebuild_member member
+                WHERE member.tenant_id = plan.tenant_id
+                  AND member.rebuild_id = plan.id
+            )
+              AND NOT EXISTS (
+                SELECT 1
+                FROM kb_knowledge_index_rebuild_member member
+                LEFT JOIN kb_document document
+                  ON document.tenant_id = member.tenant_id
+                 AND document.knowledge_base_id = member.knowledge_base_id
+                 AND document.id = member.document_id
+                 AND document.deleted_at IS NULL
+                WHERE member.tenant_id = plan.tenant_id
+                  AND member.rebuild_id = plan.id
+                  AND (
+                    document.id IS NULL
+                    OR member.document_updated_at = document.updated_at IS NOT TRUE
+                    OR document.parse_status NOT IN ('CHUNKED', 'VECTORIZING', 'AVAILABLE')
+                    OR member.expected_chunk_count &lt;&gt; (
+                        SELECT count(*)
+                        FROM kb_document_chunk chunk
+                        WHERE chunk.tenant_id = member.tenant_id
+                          AND chunk.knowledge_base_id = member.knowledge_base_id
+                          AND chunk.document_id = member.document_id
+                          AND chunk.status = 'ACTIVE'
+                          AND chunk.deleted_at IS NULL
+                    )
+                    OR member.expected_chunk_count &lt;&gt; (
+                        SELECT count(DISTINCT candidate.chunk_id)
+                        FROM kb_document_chunk chunk
+                        JOIN kb_document_chunk_embedding candidate
+                          ON candidate.tenant_id = chunk.tenant_id
+                         AND candidate.knowledge_base_id = chunk.knowledge_base_id
+                         AND candidate.document_id = chunk.document_id
+                         AND candidate.chunk_id = chunk.id
+                        WHERE chunk.tenant_id = member.tenant_id
+                          AND chunk.knowledge_base_id = member.knowledge_base_id
+                          AND chunk.document_id = member.document_id
+                          AND chunk.status = 'ACTIVE'
+                          AND chunk.deleted_at IS NULL
+                          AND candidate.embedding_model = plan.target_embedding_model
+                          AND candidate.index_version = plan.index_version
+                    )
+                  )
+              )
+        ),
+        activated AS (
+            INSERT INTO kb_knowledge_index_active (
+                tenant_id, knowledge_base_id, embedding_model, active_index_version,
+                activated_at, activated_by, updated_at, updated_by
+            )
+            SELECT tenant_id, knowledge_base_id, target_embedding_model, index_version,
+                   #{now}, #{operatorId}, #{now}, #{operatorId}
+            FROM eligible_plan
+            ON CONFLICT (tenant_id, knowledge_base_id) DO UPDATE
+            SET embedding_model = EXCLUDED.embedding_model,
+                active_index_version = EXCLUDED.active_index_version,
+                activated_at = EXCLUDED.activated_at,
+                activated_by = EXCLUDED.activated_by,
+                updated_at = EXCLUDED.updated_at,
+                updated_by = EXCLUDED.updated_by,
+                version = kb_knowledge_index_active.version + 1
+            RETURNING tenant_id, knowledge_base_id
+        ),
+        completed AS (
+            UPDATE kb_knowledge_index_rebuild rebuild
+            SET status = 'COMPLETED',
+                completed_at = #{now},
+                updated_at = #{now},
+                updated_by = #{operatorId},
+                version = rebuild.version + 1
+            FROM activated
+            WHERE rebuild.tenant_id = activated.tenant_id
+              AND rebuild.knowledge_base_id = activated.knowledge_base_id
+              AND rebuild.id = #{rebuildId}
+              AND rebuild.status = 'ACTIVE'
+            RETURNING rebuild.id
+        ),
+        available_documents AS (
+            UPDATE kb_document document
+            SET parse_status = 'AVAILABLE',
+                updated_at = #{now},
+                updated_by = #{operatorId},
+                version = document.version + 1
+            FROM kb_knowledge_index_rebuild_member member, completed rebuild
+            WHERE member.tenant_id = #{tenantId}
+              AND member.rebuild_id = rebuild.id
+              AND document.tenant_id = member.tenant_id
+              AND document.knowledge_base_id = member.knowledge_base_id
+              AND document.id = member.document_id
+              AND document.deleted_at IS NULL
+            RETURNING document.id
+        )
+        SELECT rebuild.id
+        FROM completed rebuild
+        WHERE (SELECT count(*) FROM available_documents) &gt;= 0
+    </select>
+</mapper>

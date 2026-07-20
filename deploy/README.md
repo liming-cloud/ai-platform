@@ -1,32 +1,60 @@
-# AI Platform Deploy
+# 本地部署
 
-`deploy/` 是本项目研发环境和后续部署资产的唯一入口。研发第一步必须先让这里的真实依赖可启动、可检查、可复现。
+`deploy/docker-compose.yml` 是项目唯一的本地部署入口。
 
-## 当前本地依赖
-
-- PostgreSQL 16 + pgvector
-- Redis 7
-- MinIO
-
-这些依赖覆盖首批后端切片需要的主库、Sa-Token Redis session、对象存储和向量能力。后续如果引入 OpenSearch、消息队列或独立向量库，也必须先追加到 `deploy/`，再更新 `docs/facts/environment-readiness.md` 和 `docs/facts/command-catalog.md`。
-
-## 使用方式
+## 启动
 
 ```bash
-cp deploy/.env.example deploy/.env
-deploy/scripts/up.sh
-deploy/scripts/healthcheck.sh
+make deploy-env
+make deploy-up
+make deploy-status
+make deploy-smoke
 ```
 
-停止环境：
+`make deploy-env` 只在 `deploy/.env` 不存在时生成随机秘密。首次登录使用：
+
+- 租户 ID：`2001`
+- 用户：`admin`
+- 密码：`deploy/.env` 中的 `AIP_BOOTSTRAP_ADMIN_PASSWORD`
+
+## 常用命令
 
 ```bash
-deploy/scripts/down.sh
+make deploy-config
+make deploy-initialize
+make deploy-down
 ```
 
-## 规则
+删除当前 Compose project 的数据卷必须显式确认：
 
-- 不在根目录散落 Docker Compose、临时 shell 或环境变量说明。
-- 不允许应用代码绕过 `deploy/` 假设本机已经存在依赖。
-- 所有服务必须有 healthcheck 或等价验证命令。
-- 完成标准不是容器启动，而是后续前后端连接这些真实依赖后页面操作无报错、功能正常。
+```bash
+make ALLOW_DEPLOY_RESET=yes deploy-reset
+```
+
+指定独立 project 或端口：
+
+```bash
+make \
+  DEPLOY_PROJECT=ai-platform-dev2 \
+  DEPLOY_BACKEND_PORT=18080 \
+  DEPLOY_FRONTEND_PORT=15173 \
+  deploy-up
+```
+
+## 镜像
+
+PostgreSQL/pgvector、Redis、SeaweedFS、RocketMQ 和辅助 Alpine 容器直接使用公开版本标签。仓库不再为这些开源基础设施维护 Dockerfile。只有 backend 和 frontend 从本项目源码构建。
+
+## 数据库
+
+数据库初始化内容：
+
+1. `postgres/init/01-schema.sql`：全新数据库的完整最终结构
+2. `postgres/init/02-seed-base.sql`：平台基础元数据和 bootstrap 管理员
+3. `postgres/configure-runtime-role.sql`：后端运行账号最小权限
+4. `postgres/verify-schema.sql`：初始化结果校验
+
+基础 seed 只创建平台 bootstrap 管理员和系统权限/菜单元数据，不创建租户管理员、普通用户或业务样例。
+`make deploy-initialize` 可重复执行，用于校验结构、刷新 bootstrap 管理员密码和运行账号授权；它不会重建已有数据库。
+
+不得执行 Docker 全局 prune。

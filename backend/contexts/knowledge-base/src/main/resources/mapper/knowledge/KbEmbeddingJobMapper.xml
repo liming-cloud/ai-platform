@@ -1,0 +1,239 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aiplatform.knowledge.infrastructure.persistence.mapper.KbEmbeddingJobMapper">
+    <resultMap id="embeddingJob" type="com.aiplatform.knowledge.infrastructure.persistence.entity.KbEmbeddingJobPersistenceEntity">
+        <id property="id" column="id"/>
+        <result property="tenantId" column="tenant_id"/>
+        <result property="knowledgeBaseId" column="knowledge_base_id"/>
+        <result property="documentId" column="document_id"/>
+        <result property="jobType" column="job_type"/>
+        <result property="status" column="status"/>
+        <result property="retryCount" column="retry_count"/>
+        <result property="nextRetryAt" column="next_retry_at"/>
+        <result property="failureCode" column="failure_code"/>
+        <result property="failureReason" column="failure_reason"/>
+        <result property="cancelReason" column="cancel_reason"/>
+        <result property="cancelledBy" column="cancelled_by"/>
+        <result property="cancelTraceId" column="cancel_trace_id"/>
+        <result property="cancelledAt" column="cancelled_at"/>
+        <result property="leaseOwner" column="lease_owner"/>
+        <result property="leaseToken" column="lease_token"/>
+        <result property="leaseUntil" column="lease_until"/>
+        <result property="rebuildId" column="rebuild_id"/>
+        <result property="targetModelConfigId" column="target_model_config_id"/>
+        <result property="targetEmbeddingModel" column="target_embedding_model"/>
+        <result property="indexVersion" column="index_version"/>
+        <result property="operatorType" column="operator_type"/>
+        <result property="traceId" column="trace_id"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="createdBy" column="created_by"/>
+        <result property="updatedAt" column="updated_at"/>
+        <result property="updatedBy" column="updated_by"/>
+        <result property="deletedAt" column="deleted_at"/>
+        <result property="version" column="version"/>
+    </resultMap>
+
+    <select id="nextJobId" resultType="java.lang.Long">
+        SELECT nextval('kb_embedding_job_id_seq')
+    </select>
+
+    <select id="findLatestSnapshots" resultMap="embeddingJob">
+        SELECT DISTINCT ON (job.document_id) job.*
+        FROM kb_embedding_job job
+        WHERE job.tenant_id = #{tenantId}
+          AND job.knowledge_base_id = #{knowledgeBaseId}
+          AND job.document_id IN
+          <foreach collection="documentIds" item="documentId" open="(" separator="," close=")">
+              #{documentId}
+          </foreach>
+          AND job.deleted_at IS NULL
+        ORDER BY job.document_id, job.created_at DESC, job.id DESC
+    </select>
+
+    <select id="claimNext" resultMap="embeddingJob" affectData="true" flushCache="true">
+        WITH candidate AS (
+            SELECT job.id
+            FROM kb_embedding_job job
+            WHERE job.deleted_at IS NULL
+              AND (
+                (job.status IN ('PENDING', 'RETRY_WAIT')
+                    AND job.retry_count &lt; #{maxAttempts}
+                    AND job.next_retry_at &lt;= #{now})
+                OR (job.status IN ('PARSING', 'INDEXING')
+                    AND job.retry_count &lt;= #{maxAttempts}
+                    AND job.lease_until &lt;= #{now})
+              )
+            ORDER BY job.next_retry_at, job.created_at, job.id
+            FOR UPDATE SKIP LOCKED
+            LIMIT 1
+        )
+        UPDATE kb_embedding_job job
+        SET status = CASE job.job_type
+                WHEN 'DOCUMENT_PARSE' THEN 'PARSING'
+                WHEN 'DOCUMENT_INDEX' THEN 'INDEXING'
+                ELSE job.status
+            END,
+            retry_count = job.retry_count + 1,
+            next_retry_at = NULL,
+            failure_code = NULL,
+            failure_reason = NULL,
+            lease_owner = #{workerId},
+            lease_token = #{leaseToken},
+            lease_until = #{leaseUntil},
+            updated_at = #{now},
+            version = job.version + 1
+        FROM candidate
+        WHERE job.id = candidate.id
+        RETURNING job.*
+    </select>
+
+    <select id="cancelLatest" resultMap="embeddingJob" affectData="true" flushCache="true">
+        WITH candidate AS (
+            SELECT job.id
+            FROM kb_embedding_job job
+            WHERE job.tenant_id = #{tenantId}
+              AND job.knowledge_base_id = #{knowledgeBaseId}
+              AND job.document_id = #{documentId}
+              AND job.deleted_at IS NULL
+            ORDER BY job.created_at DESC, job.id DESC
+            LIMIT 1
+            FOR UPDATE
+        )
+        UPDATE kb_embedding_job job
+        SET status = 'CANCELLED',
+            next_retry_at = NULL,
+            failure_code = NULL,
+            failure_reason = NULL,
+            cancel_reason = #{reason},
+            cancelled_by = #{operatorId},
+            cancel_trace_id = #{traceId},
+            cancelled_at = #{now},
+            lease_owner = NULL,
+            lease_token = NULL,
+            lease_until = NULL,
+            updated_at = #{now},
+            updated_by = #{operatorId},
+            version = job.version + 1
+        FROM candidate
+        WHERE job.id = candidate.id
+          AND job.tenant_id = #{tenantId}
+          AND job.knowledge_base_id = #{knowledgeBaseId}
+          AND job.document_id = #{documentId}
+          AND job.status IN ('PENDING', 'RETRY_WAIT', 'PARSING', 'INDEXING')
+          AND job.deleted_at IS NULL
+        RETURNING job.*
+    </select>
+
+    <select id="lockOwned" resultType="java.lang.Long">
+        SELECT id
+        FROM kb_embedding_job
+        WHERE tenant_id = #{tenantId}
+          AND id = #{jobId}
+          AND status IN ('PARSING', 'INDEXING')
+          AND lease_owner = #{leaseOwner}
+          AND lease_token = #{leaseToken}
+          AND version = #{fenceVersion}
+          AND lease_until &gt; #{now}
+          AND deleted_at IS NULL
+        FOR UPDATE
+    </select>
+
+    <update id="renewOwned">
+        UPDATE kb_embedding_job
+        SET lease_until = #{leaseUntil},
+            updated_at = #{now}
+        WHERE tenant_id = #{tenantId}
+          AND id = #{jobId}
+          AND status IN ('PARSING', 'INDEXING')
+          AND lease_owner = #{leaseOwner}
+          AND lease_token = #{leaseToken}
+          AND version = #{fenceVersion}
+          AND lease_until &gt; #{now}
+          AND #{leaseUntil} &gt; #{now}
+          AND deleted_at IS NULL
+    </update>
+
+    <update id="retryFailedManually">
+        UPDATE kb_embedding_job
+        SET status = 'PENDING',
+            retry_count = 0,
+            next_retry_at = #{now},
+            failure_code = NULL,
+            failure_reason = NULL,
+            lease_owner = NULL,
+            lease_token = NULL,
+            lease_until = NULL,
+            updated_at = #{now},
+            updated_by = #{operatorId},
+            version = version + 1
+        WHERE tenant_id = #{tenantId}
+          AND id = #{jobId}
+          AND status = 'FAILED'
+          AND deleted_at IS NULL
+    </update>
+
+    <update id="completeOwned">
+        UPDATE kb_embedding_job
+        SET status = 'COMPLETED',
+            next_retry_at = NULL,
+            failure_code = NULL,
+            failure_reason = NULL,
+            lease_owner = NULL,
+            lease_token = NULL,
+            lease_until = NULL,
+            updated_at = #{now},
+            version = version + 1
+        WHERE tenant_id = #{tenantId}
+          AND id = #{jobId}
+          AND status IN ('PARSING', 'INDEXING')
+          AND lease_owner = #{leaseOwner}
+          AND lease_token = #{leaseToken}
+          AND version = #{fenceVersion}
+          AND lease_until &gt; #{now}
+          AND deleted_at IS NULL
+    </update>
+
+    <update id="retryOwned">
+        UPDATE kb_embedding_job
+        SET status = 'RETRY_WAIT',
+            next_retry_at = #{nextRetryAt},
+            failure_code = #{failureCode},
+            failure_reason = #{failureSummary},
+            lease_owner = NULL,
+            lease_token = NULL,
+            lease_until = NULL,
+            updated_at = #{now},
+            version = version + 1
+        WHERE tenant_id = #{tenantId}
+          AND id = #{jobId}
+          AND status IN ('PARSING', 'INDEXING')
+          AND lease_owner = #{leaseOwner}
+          AND lease_token = #{leaseToken}
+          AND version = #{fenceVersion}
+          AND lease_until &gt; #{now}
+          AND deleted_at IS NULL
+    </update>
+
+    <update id="failOwned">
+        UPDATE kb_embedding_job
+        SET status = 'FAILED',
+            next_retry_at = NULL,
+            failure_code = #{failureCode},
+            failure_reason = #{failureSummary},
+            lease_owner = NULL,
+            lease_token = NULL,
+            lease_until = NULL,
+            updated_at = #{now},
+            version = version + 1
+        WHERE tenant_id = #{tenantId}
+          AND id = #{jobId}
+          AND status IN ('PARSING', 'INDEXING')
+          AND lease_owner = #{leaseOwner}
+          AND lease_token = #{leaseToken}
+          AND version = #{fenceVersion}
+          AND lease_until &gt; #{now}
+          AND deleted_at IS NULL
+    </update>
+</mapper>

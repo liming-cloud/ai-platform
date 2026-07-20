@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aiplatform.appstudio.infrastructure.persistence.mapper.AppApplicationMapper">
+    <select id="nextApplicationId" resultType="java.lang.Long">
+        SELECT nextval('app_application_id_seq')
+    </select>
+
+    <select id="lockApplication" resultType="java.time.Instant" flushCache="true" useCache="false">
+        SELECT updated_at
+        FROM app_application
+        WHERE tenant_id = #{tenantId}
+          AND id = #{applicationId}
+          AND deleted_at IS NULL
+        FOR UPDATE
+    </select>
+
+    <select id="findActiveBindings" resultType="com.aiplatform.appstudio.infrastructure.persistence.entity.AppBoundKnowledgeBasePersistenceEntity">
+        SELECT id,
+               tenant_id,
+               application_id,
+               knowledge_base_id,
+               status
+        FROM app_bound_knowledge_base
+        WHERE tenant_id = #{tenantId}
+          AND application_id = #{applicationId}
+          AND deleted_at IS NULL
+          AND status = 'ACTIVE'
+        ORDER BY id
+    </select>
+
+    <select id="findActiveBindingsByApplicationIds"
+            resultType="com.aiplatform.appstudio.infrastructure.persistence.entity.AppBoundKnowledgeBasePersistenceEntity">
+        SELECT id,
+               tenant_id,
+               application_id,
+               knowledge_base_id,
+               status
+        FROM app_bound_knowledge_base
+        WHERE tenant_id = #{tenantId}
+          AND application_id IN
+          <foreach collection="applicationIds" item="applicationId" open="(" separator="," close=")">
+              #{applicationId}
+          </foreach>
+          AND deleted_at IS NULL
+          AND status = 'ACTIVE'
+        ORDER BY application_id, id
+    </select>
+
+    <update id="softDeleteBindings">
+        UPDATE app_bound_knowledge_base
+        SET deleted_at = now(),
+            updated_at = now(),
+            updated_by = #{updatedBy}
+        WHERE tenant_id = #{tenantId}
+          AND application_id = #{applicationId}
+          AND deleted_at IS NULL
+    </update>
+
+    <insert id="insertBinding" parameterType="com.aiplatform.appstudio.infrastructure.persistence.entity.AppBoundKnowledgeBasePersistenceEntity"
+            useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO app_bound_knowledge_base (
+            tenant_id,
+            application_id,
+            knowledge_base_id,
+            status,
+            created_by,
+            updated_by
+        ) VALUES (
+            #{tenantId},
+            #{applicationId},
+            #{knowledgeBaseId},
+            #{status},
+            #{tenantId},
+            #{tenantId}
+        )
+    </insert>
+</mapper>

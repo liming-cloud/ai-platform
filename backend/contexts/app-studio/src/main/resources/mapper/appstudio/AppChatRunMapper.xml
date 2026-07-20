@@ -1,0 +1,364 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aiplatform.appstudio.infrastructure.persistence.mapper.AppChatRunMapper">
+    <resultMap id="chatRunRow" type="com.aiplatform.appstudio.infrastructure.persistence.entity.AppChatRunPersistenceEntity">
+        <id column="run_id" property="runId"/>
+        <result column="tenant_id" property="tenantId"/>
+        <result column="session_id" property="sessionId"/>
+        <result column="application_id" property="applicationId"/>
+        <result column="actor_id" property="actorId"/>
+        <result column="client_message_id" property="clientMessageId"/>
+        <result column="command_hash" property="commandHash"/>
+        <result column="status" property="status"/>
+        <result column="phase" property="phase"/>
+        <result column="lease_owner" property="leaseOwner"/>
+        <result column="lease_expires_at" property="leaseExpiresAt"/>
+        <result column="fencing_token" property="fencingToken"/>
+        <result column="attempt_count" property="attemptCount"/>
+        <result column="finalization_attempt_count" property="finalizationAttemptCount"/>
+        <result column="finalization_cycle_attempt_count" property="finalizationCycleAttemptCount"/>
+        <result column="manual_replay_count" property="manualReplayCount"/>
+        <result column="finalization_json" property="finalizationJson"/>
+        <result column="result_json" property="resultJson"/>
+        <result column="failure_code" property="failureCode"/>
+        <result column="failure_summary" property="failureSummary"/>
+        <result column="failure_trace_id" property="failureTraceId"/>
+        <result column="last_replay_request_id" property="lastReplayRequestId"/>
+        <result column="last_replay_reason" property="lastReplayReason"/>
+        <result column="completed_at" property="completedAt"/>
+        <result column="created_at" property="createdAt"/>
+        <result column="updated_at" property="updatedAt"/>
+    </resultMap>
+
+    <insert id="insertIfAbsent" parameterType="com.aiplatform.appstudio.infrastructure.persistence.entity.AppChatRunPersistenceEntity">
+        INSERT INTO app_chat_run (
+            tenant_id, session_id, application_id, actor_id, client_message_id, command_hash,
+            status, phase, lease_owner, lease_expires_at, fencing_token, attempt_count,
+            finalization_attempt_count, finalization_cycle_attempt_count, manual_replay_count,
+            created_at, updated_at
+        ) VALUES (
+            #{tenantId}, #{sessionId}, #{applicationId}, #{actorId}, #{clientMessageId}, #{commandHash},
+            #{status}, #{phase}, #{leaseOwner}, #{leaseExpiresAt}, #{fencingToken}, #{attemptCount},
+            #{finalizationAttemptCount}, #{finalizationCycleAttemptCount}, #{manualReplayCount},
+            #{createdAt}, #{updatedAt}
+        )
+        ON CONFLICT (tenant_id, session_id, client_message_id) DO NOTHING
+    </insert>
+
+    <select id="selectForUpdate" resultMap="chatRunRow">
+        SELECT run_id, tenant_id, session_id, application_id, actor_id, client_message_id, command_hash,
+               status, phase, lease_owner, lease_expires_at, fencing_token, attempt_count,
+               finalization_attempt_count, finalization_cycle_attempt_count, manual_replay_count,
+               finalization_json::text AS finalization_json, result_json::text AS result_json,
+               failure_code, failure_summary, failure_trace_id, last_replay_request_id, last_replay_reason,
+               completed_at, created_at, updated_at
+        FROM app_chat_run
+        WHERE tenant_id = #{tenantId}
+          AND session_id = #{sessionId}
+          AND client_message_id = #{clientMessageId}
+        FOR UPDATE
+    </select>
+
+    <select id="selectRunForUpdate" resultMap="chatRunRow">
+        SELECT run_id, tenant_id, session_id, application_id, actor_id, client_message_id, command_hash,
+               status, phase, lease_owner, lease_expires_at, fencing_token, attempt_count,
+               finalization_attempt_count, finalization_cycle_attempt_count, manual_replay_count,
+               finalization_json::text AS finalization_json, result_json::text AS result_json,
+               failure_code, failure_summary, failure_trace_id, last_replay_request_id, last_replay_reason,
+               completed_at, created_at, updated_at
+        FROM app_chat_run
+        WHERE tenant_id = #{tenantId}
+          AND run_id = #{runId}
+        FOR UPDATE
+    </select>
+
+    <update id="reclaimPreparing">
+        UPDATE app_chat_run
+        SET lease_owner = #{newLeaseOwner},
+            lease_expires_at = #{newLeaseExpiresAt},
+            fencing_token = fencing_token + 1,
+            attempt_count = attempt_count + 1,
+            updated_at = #{now}
+        WHERE tenant_id = #{tenantId}
+          AND run_id = #{runId}
+          AND lease_owner = #{leaseOwner}
+          AND fencing_token = #{fencingToken}
+          AND status = 'IN_PROGRESS'
+          AND phase = 'PREPARING'
+          AND lease_expires_at &lt;= #{now}
+    </update>
+
+    <update id="markExpiredDispatchedUncertain">
+        UPDATE app_chat_run
+        SET status = 'UNCERTAIN',
+            failure_code = 'MODEL_RESULT_UNCERTAIN',
+            failure_summary = '模型调用已派发但结果尚未确认',
+            updated_at = #{now}
+        WHERE tenant_id = #{tenantId}
+          AND run_id = #{runId}
+          AND lease_owner = #{leaseOwner}
+          AND fencing_token = #{fencingToken}
+          AND status = 'IN_PROGRESS'
+          AND phase = 'MODEL_DISPATCHED'
+          AND lease_expires_at &lt;= #{now}
+    </update>
+
+    <update id="markModelDispatched">
+        UPDATE app_chat_run
+        SET phase = 'MODEL_DISPATCHED', lease_expires_at = #{leaseExpiresAt}, updated_at = #{now}
+        WHERE tenant_id = #{tenantId}
+          AND run_id = #{runId}
+          AND lease_owner = #{leaseOwner}
+          AND fencing_token = #{fencingToken}
+          AND status = 'IN_PROGRESS'
+          AND phase = 'PREPARING'
+          AND lease_expires_at &gt; #{now}
+    </update>
+
+    <update id="recordResultReceived">
+        UPDATE app_chat_run
+        SET status = 'IN_PROGRESS',
+            phase = 'RESULT_RECEIVED',
+            finalization_json = CAST(#{finalizationJson} AS jsonb),
+            finalization_attempt_count = 1,
+            finalization_cycle_attempt_count = 1,
+            lease_expires_at = #{leaseExpiresAt},
+            failure_code = NULL,
+            failure_summary = NULL,
+            failure_trace_id = NULL,
+            updated_at = #{now}
+        WHERE tenant_id = #{tenantId}
+          AND run_id = #{runId}
+          AND lease_owner = #{leaseOwner}
+          AND fencing_token = #{fencingToken}
+          AND (
+              (status = 'IN_PROGRESS' AND phase IN ('PREPARING', 'MODEL_DISPATCHED'))
+              OR (status = 'UNCERTAIN' AND phase = 'MODEL_DISPATCHED')
+          )
+    </update>
+
+    <update id="reclaimResultReceived">
+        UPDATE app_chat_run
+        SET lease_owner = #{newLeaseOwner},
+            lease_expires_at = #{newLeaseExpiresAt},
+            fencing_token = fencing_token + 1,
+            attempt_count = attempt_count + 1,
+            finalization_attempt_count = finalization_attempt_count + 1,
+            finalization_cycle_attempt_count = finalization_cycle_attempt_count + 1,
+            updated_at = #{now}
+        WHERE tenant_id = #{tenantId}
+          AND run_id = #{runId}
+          AND lease_owner = #{leaseOwner}
+          AND fencing_token = #{fencingToken}
+          AND status = 'IN_PROGRESS'
+          AND phase = 'RESULT_RECEIVED'
+          AND finalization_json IS NOT NULL
+          AND finalization_cycle_attempt_count &lt; 3
+          AND lease_expires_at &lt;= #{now}
+    </update>
+
+    <select id="claimRecoverableResults" resultMap="chatRunRow">
+        WITH candidates AS (
+            SELECT tenant_id, run_id, lease_owner, fencing_token
+            FROM app_chat_run
+            WHERE status = 'IN_PROGRESS'
+              AND phase = 'RESULT_RECEIVED'
+              AND finalization_json IS NOT NULL
+              AND finalization_cycle_attempt_count &lt; #{maxAttempts}
+              AND lease_expires_at &lt;= #{now}
+            ORDER BY lease_expires_at, run_id
+            FOR UPDATE SKIP LOCKED
+            LIMIT #{limit}
+        )
+        UPDATE app_chat_run AS run
+        SET lease_owner = #{newLeaseOwner},
+            lease_expires_at = #{newLeaseExpiresAt},
+            fencing_token = run.fencing_token + 1,
+            attempt_count = run.attempt_count + 1,
+            finalization_attempt_count = run.finalization_attempt_count + 1,
+            finalization_cycle_attempt_count = run.finalization_cycle_attempt_count + 1,
+            updated_at = #{now}
+        FROM candidates
+        WHERE run.tenant_id = candidates.tenant_id
+          AND run.run_id = candidates.run_id
+          AND run.lease_owner = candidates.lease_owner
+          AND run.fencing_token = candidates.fencing_token
+          AND run.status = 'IN_PROGRESS'
+          AND run.phase = 'RESULT_RECEIVED'
+          AND run.finalization_json IS NOT NULL
+          AND run.finalization_cycle_attempt_count &lt; #{maxAttempts}
+          AND run.lease_expires_at &lt;= #{now}
+        RETURNING run.run_id, run.tenant_id, run.session_id, run.application_id, run.actor_id,
+                  run.client_message_id, run.command_hash, run.status, run.phase, run.lease_owner,
+                  run.lease_expires_at, run.fencing_token, run.attempt_count,
+                  run.finalization_attempt_count, run.finalization_cycle_attempt_count, run.manual_replay_count,
+                  run.finalization_json::text AS finalization_json, run.result_json::text AS result_json,
+                  run.failure_code, run.failure_summary, run.failure_trace_id,
+                  run.last_replay_request_id, run.last_replay_reason,
+                  run.completed_at, run.created_at, run.updated_at
+    </select>
+
+    <update id="recordFinalizationFailure">
+        UPDATE app_chat_run
+        SET status = CASE
+                WHEN finalization_cycle_attempt_count &gt;= #{maxAttempts} THEN 'DEAD_LETTER'
+                ELSE 'IN_PROGRESS'
+            END,
+            lease_expires_at = CASE
+                WHEN finalization_cycle_attempt_count &gt;= #{maxAttempts} THEN #{now}
+                ELSE #{now} + (
+                    LEAST(finalization_cycle_attempt_count, #{maxAttempts}) * #{baseBackoffSeconds}
+                ) * INTERVAL '1 second'
+            END,
+            failure_code = #{failureCode},
+            failure_summary = #{failureSummary},
+            failure_trace_id = #{traceId},
+            updated_at = #{now}
+        WHERE tenant_id = #{tenantId}
+          AND run_id = #{runId}
+          AND lease_owner = #{leaseOwner}
+          AND fencing_token = #{fencingToken}
+          AND status = 'IN_PROGRESS'
+          AND phase = 'RESULT_RECEIVED'
+          AND finalization_json IS NOT NULL
+    </update>
+
+    <update id="deadLetterExhaustedFinalizations">
+        WITH candidates AS (
+            SELECT tenant_id, run_id
+            FROM app_chat_run
+            WHERE status = 'IN_PROGRESS'
+              AND phase = 'RESULT_RECEIVED'
+              AND finalization_json IS NOT NULL
+              AND finalization_cycle_attempt_count &gt;= #{maxAttempts}
+              AND lease_expires_at &lt;= #{now}
+            ORDER BY lease_expires_at, run_id
+            FOR UPDATE SKIP LOCKED
+            LIMIT #{limit}
+        )
+        UPDATE app_chat_run AS run
+        SET status = 'DEAD_LETTER',
+            failure_code = COALESCE(run.failure_code, #{failureCode}),
+            failure_summary = COALESCE(run.failure_summary, #{failureSummary}),
+            failure_trace_id = COALESCE(run.failure_trace_id, #{traceId}),
+            updated_at = #{now}
+        FROM candidates
+        WHERE run.tenant_id = candidates.tenant_id
+          AND run.run_id = candidates.run_id
+          AND run.status = 'IN_PROGRESS'
+          AND run.phase = 'RESULT_RECEIVED'
+          AND run.finalization_json IS NOT NULL
+          AND run.finalization_cycle_attempt_count &gt;= #{maxAttempts}
+          AND run.lease_expires_at &lt;= #{now}
+    </update>
+
+    <select id="findDeadLetters" resultMap="chatRunRow">
+        SELECT run_id, tenant_id, session_id, application_id, actor_id, client_message_id, command_hash,
+               status, phase, lease_owner, lease_expires_at, fencing_token, attempt_count,
+               finalization_attempt_count, finalization_cycle_attempt_count, manual_replay_count,
+               finalization_json::text AS finalization_json, result_json::text AS result_json,
+               failure_code, failure_summary, failure_trace_id, last_replay_request_id, last_replay_reason,
+               completed_at, created_at, updated_at
+        FROM app_chat_run
+        WHERE tenant_id = #{tenantId}
+          AND status = 'DEAD_LETTER'
+          AND phase = 'RESULT_RECEIVED'
+          AND finalization_json IS NOT NULL
+        ORDER BY updated_at DESC, run_id DESC
+        LIMIT #{limit}
+    </select>
+
+    <update id="claimDeadLetterForReplay">
+        UPDATE app_chat_run
+        SET status = 'IN_PROGRESS',
+            lease_owner = #{newLeaseOwner},
+            lease_expires_at = #{newLeaseExpiresAt},
+            fencing_token = fencing_token + 1,
+            attempt_count = attempt_count + 1,
+            finalization_attempt_count = finalization_attempt_count + 1,
+            finalization_cycle_attempt_count = 1,
+            manual_replay_count = manual_replay_count + 1,
+            last_replay_request_id = #{replayRequestId},
+            last_replay_reason = #{reason},
+            failure_code = NULL,
+            failure_summary = NULL,
+            failure_trace_id = NULL,
+            updated_at = #{now}
+        WHERE tenant_id = #{tenantId}
+          AND run_id = #{runId}
+          AND status = 'DEAD_LETTER'
+          AND phase = 'RESULT_RECEIVED'
+          AND finalization_json IS NOT NULL
+          AND (last_replay_request_id IS NULL OR last_replay_request_id &lt;&gt; #{replayRequestId})
+    </update>
+
+    <select id="findReplayRequestRunId" resultType="long">
+        SELECT run_id
+        FROM app_chat_run_replay_request
+        WHERE tenant_id = #{tenantId}
+          AND replay_request_id = #{replayRequestId}
+    </select>
+
+    <insert id="insertReplayRequest">
+        INSERT INTO app_chat_run_replay_request (
+            tenant_id, run_id, replay_request_id, actor_id, reason, created_at
+        ) VALUES (
+            #{tenantId}, #{runId}, #{replayRequestId}, #{actorId}, #{reason}, #{createdAt}
+        )
+        ON CONFLICT (tenant_id, replay_request_id) DO NOTHING
+    </insert>
+
+    <update id="quarantineInvalidFinalization">
+        UPDATE app_chat_run
+        SET status = 'QUARANTINED',
+            finalization_json = NULL,
+            failure_code = #{failureCode},
+            failure_summary = #{failureSummary},
+            failure_trace_id = NULL,
+            updated_at = #{now}
+        WHERE tenant_id = #{tenantId}
+          AND run_id = #{runId}
+          AND lease_owner = #{leaseOwner}
+          AND fencing_token = #{fencingToken}
+          AND status = 'IN_PROGRESS'
+          AND phase = 'RESULT_RECEIVED'
+          AND finalization_json IS NOT NULL
+    </update>
+
+    <update id="complete">
+        UPDATE app_chat_run
+        SET status = 'COMPLETED', result_json = CAST(#{resultJson} AS jsonb),
+            finalization_json = NULL, failure_code = NULL, failure_summary = NULL,
+            failure_trace_id = NULL,
+            completed_at = #{now}, updated_at = #{now}
+        WHERE tenant_id = #{tenantId}
+          AND run_id = #{runId}
+          AND lease_owner = #{leaseOwner}
+          AND fencing_token = #{fencingToken}
+          AND status = 'IN_PROGRESS'
+          AND phase = 'RESULT_RECEIVED'
+          AND finalization_json IS NOT NULL
+    </update>
+
+    <update id="failPreparing">
+        UPDATE app_chat_run
+        SET status = 'FAILED', failure_code = #{failureCode}, failure_summary = #{failureSummary}, updated_at = #{now}
+        WHERE tenant_id = #{tenantId}
+          AND run_id = #{runId}
+          AND lease_owner = #{leaseOwner}
+          AND fencing_token = #{fencingToken}
+          AND status = 'IN_PROGRESS'
+          AND phase = 'PREPARING'
+    </update>
+
+    <update id="markDispatchedUncertain">
+        UPDATE app_chat_run
+        SET status = 'UNCERTAIN', failure_code = #{failureCode}, failure_summary = #{failureSummary}, updated_at = #{now}
+        WHERE tenant_id = #{tenantId}
+          AND run_id = #{runId}
+          AND lease_owner = #{leaseOwner}
+          AND fencing_token = #{fencingToken}
+          AND status = 'IN_PROGRESS'
+          AND phase = 'MODEL_DISPATCHED'
+    </update>
+</mapper>

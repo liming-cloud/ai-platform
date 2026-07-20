@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aiplatform.appstudio.infrastructure.persistence.mapper.AppChatSessionMapper">
+    <select id="nextSessionId" resultType="java.lang.Long">
+        SELECT nextval('app_chat_session_id_seq')
+    </select>
+
+    <select id="nextMessageId" resultType="java.lang.Long">
+        SELECT nextval('app_chat_message_id_seq')
+    </select>
+
+    <insert id="insertMessage" parameterType="com.aiplatform.appstudio.infrastructure.persistence.entity.AppChatMessagePersistenceEntity">
+        INSERT INTO app_chat_message (
+            id,
+            tenant_id,
+            session_id,
+            application_id,
+            role,
+            content,
+            content_format,
+            model_invocation_log_id,
+            token_count,
+            citation_count,
+            client_message_id,
+            trace_id,
+            created_at,
+            created_by
+        ) VALUES (
+            #{id},
+            #{tenantId},
+            #{sessionId},
+            #{applicationId},
+            #{role},
+            #{content},
+            #{contentFormat},
+            #{modelInvocationLogId},
+            #{tokenCount},
+            #{citationCount},
+            #{clientMessageId},
+            #{traceId},
+            #{createdAt},
+            #{createdBy}
+        )
+    </insert>
+
+    <select id="existsByClientMessageId" resultType="boolean">
+        SELECT EXISTS (
+            SELECT 1
+            FROM app_chat_message
+            WHERE tenant_id = #{tenantId}
+              AND session_id = #{sessionId}
+              AND role = 'user'
+              AND client_message_id = #{clientMessageId}
+        )
+    </select>
+
+    <insert id="insertCitationRecord" parameterType="com.aiplatform.appstudio.infrastructure.persistence.entity.KbCitationRecordPersistenceEntity">
+        INSERT INTO kb_citation_record (
+            tenant_id,
+            chat_message_id,
+            knowledge_base_id,
+            document_id,
+            chunk_id,
+            score,
+            citation_text,
+            created_at
+        ) VALUES (
+            #{tenantId},
+            #{chatMessageId},
+            #{knowledgeBaseId},
+            #{documentId},
+            #{chunkId},
+            #{score},
+            #{citationText},
+            #{createdAt}
+        )
+    </insert>
+
+    <update id="touchSession">
+        UPDATE app_chat_session
+        SET last_message_at = #{updatedAt},
+            updated_at = #{updatedAt}
+        WHERE tenant_id = #{tenantId}
+          AND id = #{sessionId}
+          AND deleted_at IS NULL
+    </update>
+
+    <select id="findSessions" resultType="com.aiplatform.appstudio.infrastructure.persistence.entity.AppChatSessionPersistenceEntity">
+        SELECT id,
+               tenant_id,
+               application_id,
+               release_id,
+               release_version,
+               user_id,
+               title,
+               status,
+               last_message_at,
+               trace_id,
+               created_at,
+               created_by,
+               updated_at,
+               updated_by,
+               deleted_at,
+               version
+        FROM app_chat_session
+        WHERE tenant_id = #{tenantId}
+          AND application_id = #{applicationId}
+          AND user_id = #{userId}
+          AND status = 'ACTIVE'
+          AND deleted_at IS NULL
+        ORDER BY last_message_at DESC NULLS LAST, id DESC
+    </select>
+
+    <select id="findMessages" resultType="com.aiplatform.appstudio.infrastructure.persistence.entity.AppChatMessagePersistenceEntity">
+        SELECT id,
+               tenant_id,
+               session_id,
+               application_id,
+               role,
+               content,
+               content_format,
+               model_invocation_log_id,
+               token_count,
+               citation_count,
+               client_message_id,
+               trace_id,
+               created_at,
+               created_by
+        FROM app_chat_message
+        WHERE tenant_id = #{tenantId}
+          AND session_id = #{sessionId}
+        ORDER BY created_at ASC, id ASC
+    </select>
+
+    <select id="findCitationRecordsByMessageIds" resultType="com.aiplatform.appstudio.infrastructure.persistence.entity.KbCitationRecordPersistenceEntity">
+        SELECT tenant_id,
+               chat_message_id,
+               knowledge_base_id,
+               document_id,
+               chunk_id,
+               score,
+               citation_text,
+               created_at
+        FROM kb_citation_record
+        WHERE tenant_id = #{tenantId}
+          AND chat_message_id IN
+          <foreach collection="messageIds" item="messageId" open="(" separator="," close=")">
+              #{messageId}
+          </foreach>
+        ORDER BY chat_message_id ASC, created_at ASC
+    </select>
+</mapper>
