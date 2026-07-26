@@ -14,6 +14,8 @@ import com.aiplatform.foundation.trustedquery.application.QueryQuotaLimitType;
 import com.aiplatform.foundation.trustedquery.application.port.out.QueryRunClaimState;
 import com.aiplatform.foundation.trustedquery.application.port.out.QueryQuotaPolicy;
 import com.aiplatform.foundation.trustedquery.application.port.out.QueryRunRepository;
+import com.aiplatform.foundation.trustedquery.api.operations.QueryOperationsFactSource;
+import com.aiplatform.foundation.trustedquery.api.operations.QueryUsageFactQuery;
 import com.aiplatform.foundation.trustedquery.domain.QueryCitation;
 import com.aiplatform.foundation.trustedquery.domain.QueryRun;
 import java.sql.Timestamp;
@@ -72,6 +74,9 @@ class PostgresQueryRunRepositoryTest {
 
     @Autowired
     private QueryRunRepository repository;
+
+    @Autowired
+    private QueryOperationsFactSource operations;
 
     @Autowired
     private JdbcTemplate jdbc;
@@ -314,6 +319,71 @@ class PostgresQueryRunRepositoryTest {
                         Integer.class));
     }
 
+    @Test
+    void 用量和审计投影只读取当前租户的脱敏查询事实() {
+        var answeredClaim = repository.claim(
+                runningAt(NOW),
+                "operations-key-001",
+                "6".repeat(64),
+                QUOTA);
+        repository.complete(
+                answeredClaim.queryRun().answer(
+                        "牛奶位于一层。\n\n引用：[1]",
+                        List.of(new QueryCitation(
+                                1,
+                                UUID.randomUUID(),
+                                1,
+                                "7".repeat(64),
+                                0,
+                                "牛奶位于一层冷藏区。",
+                                0.9)),
+                        new ModelUsage(10, 5, 15),
+                        NOW.plusSeconds(1)),
+                0);
+        var refusedClaim = repository.claim(
+                runningAt(NOW.plusSeconds(2)),
+                "operations-key-002",
+                "8".repeat(64),
+                QUOTA);
+        repository.complete(
+                refusedClaim.queryRun().refuse(
+                        com.aiplatform.foundation.trustedquery.domain
+                                .QueryRefusalReason.INSUFFICIENT_EVIDENCE,
+                        NOW.plusSeconds(3)),
+                0);
+
+        var usage = operations.summarize(new QueryUsageFactQuery(
+                TENANT,
+                Instant.parse("2026-07-27T00:00:00Z"),
+                Instant.parse("2026-07-28T00:00:00Z"),
+                Instant.parse("2026-07-27T00:00:00Z"),
+                Instant.parse("2026-07-28T00:00:00Z"),
+                NOW.plusSeconds(4)));
+        var firstPage = operations.listAuditRecords(TENANT, null, 1);
+        var secondPage = operations.listAuditRecords(
+                TENANT,
+                firstPage.nextCursor(),
+                1);
+        var crossTenant = operations.listAuditRecords(
+                new TenantId(UUID.randomUUID()),
+                null,
+                20);
+
+        assertEquals(2, usage.acceptedQueries());
+        assertEquals(1, usage.answeredQueries());
+        assertEquals(1, usage.refusedQueries());
+        assertEquals(15, usage.totalTokens());
+        assertEquals(2, usage.dailyUsed());
+        assertEquals(0, usage.concurrentUsed());
+        assertEquals(
+                refusedClaim.queryRun().id(),
+                firstPage.items().getFirst().queryRunId());
+        assertEquals(
+                answeredClaim.queryRun().id(),
+                secondPage.items().getFirst().queryRunId());
+        assertTrue(crossTenant.items().isEmpty());
+    }
+
     private static QueryRun running() {
         return runningAt(NOW);
     }
@@ -439,6 +509,12 @@ class PostgresQueryRunRepositoryTest {
                 QueryRunMapper mapper,
                 PlatformTransactionManager transactions) {
             return new PostgresQueryRunRepository(mapper, transactions);
+        }
+
+        @Bean
+        QueryOperationsFactSource queryOperationsFactSource(
+                QueryRunMapper mapper) {
+            return new PostgresQueryOperationsFactSource(mapper);
         }
     }
 }

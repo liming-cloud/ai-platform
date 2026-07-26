@@ -19,6 +19,7 @@ export interface ProductShellProps {
   pageSummary: string;
   navigation: readonly NavigationItem[];
   activeNavigationId: string;
+  onNavigationChange?: (navigationId: string) => void;
   children: ReactNode;
   accountLabel?: string;
 }
@@ -32,6 +33,7 @@ export function ProductShell({
   pageSummary,
   navigation,
   activeNavigationId,
+  onNavigationChange,
   children,
   accountLabel = "演示租户",
 }: ProductShellProps) {
@@ -47,6 +49,9 @@ export function ProductShell({
           aria-label="主要导航"
           className="desktop-navigation"
           selectedValue={activeNavigationId}
+          onTabSelect={(_, data) => {
+            onNavigationChange?.(String(data.value));
+          }}
         >
           {navigation.map((item) => (
             <Tab key={item.id} value={item.id}>

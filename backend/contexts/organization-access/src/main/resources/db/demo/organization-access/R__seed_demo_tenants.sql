@@ -82,6 +82,16 @@ INSERT INTO organization_access.membership_permission (
         'assistant:query'
     ),
     (
+        '10000000-0000-0000-0000-000000000001',
+        '30000000-0000-0000-0000-000000000001',
+        'usage:read'
+    ),
+    (
+        '10000000-0000-0000-0000-000000000001',
+        '30000000-0000-0000-0000-000000000001',
+        'audit:read'
+    ),
+    (
         '10000000-0000-0000-0000-000000000002',
         '30000000-0000-0000-0000-000000000002',
         'knowledge:read'
@@ -115,5 +125,24 @@ INSERT INTO organization_access.membership_permission (
         '10000000-0000-0000-0000-000000000002',
         '30000000-0000-0000-0000-000000000002',
         'assistant:query'
+    ),
+    (
+        '10000000-0000-0000-0000-000000000002',
+        '30000000-0000-0000-0000-000000000002',
+        'usage:read'
+    ),
+    (
+        '10000000-0000-0000-0000-000000000002',
+        '30000000-0000-0000-0000-000000000002',
+        'audit:read'
     )
 ON CONFLICT DO NOTHING;
+
+UPDATE organization_access.membership_credential
+SET permission_version = 2
+WHERE tenant_id IN (
+          '10000000-0000-0000-0000-000000000001',
+          '10000000-0000-0000-0000-000000000002'
+      )
+  AND login_name = 'admin'
+  AND permission_version < 2;

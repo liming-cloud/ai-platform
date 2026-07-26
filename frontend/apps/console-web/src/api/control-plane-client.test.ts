@@ -182,6 +182,65 @@ describe("ControlPlaneClient", () => {
       "request-key-002",
     );
   });
+
+  it("按租户会话读取用量和脱敏审计分页", async () => {
+    const requests: Request[] = [];
+    const responses = [
+      new Response(
+        JSON.stringify({
+          from: "2026-07-27T00:00:00Z",
+          to: "2026-07-28T00:00:00Z",
+          acceptedQueries: 2,
+          answeredQueries: 1,
+          refusedQueries: 1,
+          failedQueries: 0,
+          runningQueries: 0,
+          inputTokens: 5,
+          outputTokens: 8,
+          totalTokens: 13,
+          dailyQuota: {
+            used: 2,
+            limit: 100,
+            resetsAt: "2026-07-28T00:00:00Z",
+          },
+          concurrentQuota: { used: 0, limit: 4 },
+          generatedAt: "2026-07-27T08:00:00Z",
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      ),
+      new Response(
+        JSON.stringify({
+          items: [],
+          nextCursor: "下一页",
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      ),
+    ];
+    const client = authenticatedClient(async (input, init) => {
+      requests.push(new Request(input, init));
+      return responses.shift() ?? new Response(null, { status: 500 });
+    });
+
+    const usage = await client.getQueryUsage(
+      "2026-07-27T00:00:00Z",
+      "2026-07-28T00:00:00Z",
+    );
+    const audit = await client.listQueryAuditRecords("上一页", 5);
+
+    expect(client.hasSession()).toBe(true);
+    expect(usage.dailyQuota.limit).toBe(100);
+    expect(audit.nextCursor).toBe("下一页");
+    expect(requests[0]?.url).toContain(
+      "from=2026-07-27T00%3A00%3A00Z",
+    );
+    expect(requests[1]?.url).toContain("limit=5");
+    expect(requests[1]?.url).toContain(
+      `cursor=${encodeURIComponent("上一页")}`,
+    );
+    expect(requests.every((request) =>
+      request.headers.get("Authorization") === "Bearer demo-token"
+    )).toBe(true);
+  });
 });
 
 function authenticatedClient(fetcher: typeof fetch) {

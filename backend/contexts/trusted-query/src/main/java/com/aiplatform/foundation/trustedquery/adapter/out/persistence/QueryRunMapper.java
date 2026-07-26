@@ -72,6 +72,133 @@ public interface QueryRunMapper {
             @Param("tenantId") UUID tenantId,
             @Param("acceptedAt") Instant acceptedAt);
 
+    @Select("""
+            SELECT count(*) FILTER (
+                       WHERE created_at >= #{from}
+                         AND created_at < #{to}
+                   ) AS accepted_queries,
+                   count(*) FILTER (
+                       WHERE created_at >= #{from}
+                         AND created_at < #{to}
+                         AND status = 'ANSWERED'
+                   ) AS answered_queries,
+                   count(*) FILTER (
+                       WHERE created_at >= #{from}
+                         AND created_at < #{to}
+                         AND status = 'REFUSED'
+                   ) AS refused_queries,
+                   count(*) FILTER (
+                       WHERE created_at >= #{from}
+                         AND created_at < #{to}
+                         AND status = 'FAILED'
+                   ) AS failed_queries,
+                   count(*) FILTER (
+                       WHERE created_at >= #{from}
+                         AND created_at < #{to}
+                         AND status = 'RUNNING'
+                   ) AS running_queries,
+                   coalesce(sum(input_tokens) FILTER (
+                       WHERE created_at >= #{from}
+                         AND created_at < #{to}
+                   ), 0) AS input_tokens,
+                   coalesce(sum(output_tokens) FILTER (
+                       WHERE created_at >= #{from}
+                         AND created_at < #{to}
+                   ), 0) AS output_tokens,
+                   coalesce(sum(total_tokens) FILTER (
+                       WHERE created_at >= #{from}
+                         AND created_at < #{to}
+                   ), 0) AS total_tokens,
+                   count(*) FILTER (
+                       WHERE created_at >= #{currentPeriodStart}
+                         AND created_at < #{currentPeriodEnd}
+                   ) AS daily_used,
+                   count(*) FILTER (
+                       WHERE status = 'RUNNING'
+                         AND running_lease_until > #{observedAt}
+                   ) AS concurrent_used
+            FROM trusted_query.query_run
+            WHERE tenant_id = #{tenantId}
+            """)
+    @Results(id = "queryUsageRow", value = {
+        @Result(column = "accepted_queries", property = "acceptedQueries"),
+        @Result(column = "answered_queries", property = "answeredQueries"),
+        @Result(column = "refused_queries", property = "refusedQueries"),
+        @Result(column = "failed_queries", property = "failedQueries"),
+        @Result(column = "running_queries", property = "runningQueries"),
+        @Result(column = "input_tokens", property = "inputTokens"),
+        @Result(column = "output_tokens", property = "outputTokens"),
+        @Result(column = "total_tokens", property = "totalTokens"),
+        @Result(column = "daily_used", property = "dailyUsed"),
+        @Result(column = "concurrent_used", property = "concurrentUsed")
+    })
+    QueryUsageRow summarizeUsage(
+            @Param("tenantId") UUID tenantId,
+            @Param("from") Instant from,
+            @Param("to") Instant to,
+            @Param("currentPeriodStart") Instant currentPeriodStart,
+            @Param("currentPeriodEnd") Instant currentPeriodEnd,
+            @Param("observedAt") Instant observedAt);
+
+    @Select("""
+            SELECT id::text AS query_run_id,
+                   requested_by::text AS requested_by,
+                   assistant_version_id::text AS assistant_version_id,
+                   question_digest,
+                   status,
+                   refusal_reason,
+                   input_tokens,
+                   output_tokens,
+                   total_tokens,
+                   created_at,
+                   completed_at
+            FROM trusted_query.query_run
+            WHERE tenant_id = #{tenantId}
+            ORDER BY created_at DESC, id DESC
+            LIMIT #{limit}
+            """)
+    @Results(id = "queryAuditFactRow", value = {
+        @Result(column = "query_run_id", property = "queryRunId"),
+        @Result(column = "requested_by", property = "requestedBy"),
+        @Result(column = "assistant_version_id", property = "assistantVersionId"),
+        @Result(column = "question_digest", property = "questionDigest"),
+        @Result(column = "status", property = "status"),
+        @Result(column = "refusal_reason", property = "refusalReason"),
+        @Result(column = "input_tokens", property = "inputTokens"),
+        @Result(column = "output_tokens", property = "outputTokens"),
+        @Result(column = "total_tokens", property = "totalTokens"),
+        @Result(column = "created_at", property = "createdAt"),
+        @Result(column = "completed_at", property = "completedAt")
+    })
+    List<QueryAuditFactRow> findFirstAuditPage(
+            @Param("tenantId") UUID tenantId,
+            @Param("limit") int limit);
+
+    @Select("""
+            SELECT id::text AS query_run_id,
+                   requested_by::text AS requested_by,
+                   assistant_version_id::text AS assistant_version_id,
+                   question_digest,
+                   status,
+                   refusal_reason,
+                   input_tokens,
+                   output_tokens,
+                   total_tokens,
+                   created_at,
+                   completed_at
+            FROM trusted_query.query_run
+            WHERE tenant_id = #{tenantId}
+              AND (created_at, id) < (#{createdAt}, #{id})
+            ORDER BY created_at DESC, id DESC
+            LIMIT #{limit}
+            """)
+    @ResultMap("queryAuditFactRow")
+    List<QueryAuditFactRow> findAuditAfter(
+            @Param("tenantId") UUID tenantId,
+            @Param("createdAt") Instant createdAt,
+            @Param("id") UUID id,
+            @Param("limit") int limit);
+
     @Insert("""
             INSERT INTO trusted_query.query_run (
                 tenant_id,

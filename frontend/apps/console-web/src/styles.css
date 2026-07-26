@@ -129,6 +129,148 @@
   font-weight: 600;
 }
 
+.governance-login {
+  display: grid;
+  gap: 1rem;
+  max-width: 46rem;
+}
+
+.governance-login .task-heading {
+  margin-bottom: 1rem;
+}
+
+.governance-workspace {
+  display: grid;
+  gap: 2rem;
+}
+
+.governance-toolbar,
+.operations-heading,
+.quota-label {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: center;
+}
+
+.governance-toolbar {
+  min-height: 3rem;
+  color: var(--colorNeutralForeground2);
+}
+
+.governance-toolbar > span {
+  max-width: 48rem;
+  line-height: 1.5;
+}
+
+.operations-section {
+  display: grid;
+  gap: 1.5rem;
+  padding-top: 1.75rem;
+  border-top: 1px solid var(--colorNeutralStroke1);
+}
+
+.operations-heading {
+  align-items: end;
+}
+
+.operations-heading > div {
+  display: grid;
+  gap: 0.375rem;
+}
+
+.operations-heading span {
+  color: var(--colorNeutralForeground3);
+}
+
+.operations-metrics {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  margin: 0;
+  border-block: 1px solid var(--colorNeutralStroke2);
+}
+
+.operations-metrics > div {
+  display: grid;
+  gap: 0.375rem;
+  padding: 1.25rem 1rem;
+  border-right: 1px solid var(--colorNeutralStroke2);
+}
+
+.operations-metrics > div:last-child {
+  border-right: 0;
+}
+
+.operations-metrics dt {
+  color: var(--colorNeutralForeground3);
+  font-size: 0.75rem;
+}
+
+.operations-metrics dd {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.quota-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 2rem;
+}
+
+.quota-line {
+  display: grid;
+  gap: 0.625rem;
+}
+
+.quota-line > span {
+  color: var(--colorNeutralForeground3);
+}
+
+.audit-table-scroll {
+  overflow-x: auto;
+  border-block: 1px solid var(--colorNeutralStroke2);
+}
+
+.audit-table {
+  width: 100%;
+  min-width: 52rem;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.audit-table th,
+.audit-table td {
+  padding: 0.875rem 0.75rem;
+  text-align: left;
+  white-space: nowrap;
+  border-bottom: 1px solid var(--colorNeutralStroke2);
+}
+
+.audit-table th {
+  color: var(--colorNeutralForeground3);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.audit-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.audit-table td:nth-last-child(-n + 3),
+.audit-table th:nth-last-child(-n + 3) {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.operations-skeleton {
+  display: grid;
+  gap: 1rem;
+  padding-block: 1.5rem;
+  border-top: 1px solid var(--colorNeutralStroke2);
+}
+
 @media (max-width: 800px) {
   .publication-layout {
     grid-template-columns: minmax(0, 1fr);
@@ -140,6 +282,28 @@
   }
 
   .review-list {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .governance-toolbar,
+  .operations-heading {
+    align-items: start;
+    flex-direction: column;
+  }
+
+  .operations-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .operations-metrics > div:nth-child(2n) {
+    border-right: 0;
+  }
+
+  .operations-metrics > div:nth-child(-n + 4) {
+    border-bottom: 1px solid var(--colorNeutralStroke2);
+  }
+
+  .quota-list {
     grid-template-columns: minmax(0, 1fr);
   }
 }

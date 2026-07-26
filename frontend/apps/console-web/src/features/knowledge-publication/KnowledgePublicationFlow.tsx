@@ -1,4 +1,11 @@
-import { useEffect, useMemo, useReducer, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useReducer,
+  useRef,
+  useState,
+} from "react";
 import {
   ApiRequestError,
   ControlPlaneClient,
@@ -22,8 +29,17 @@ import {
   WorkflowFeedback,
 } from "./PublicationViews";
 
-export function KnowledgePublicationFlow() {
-  const client = useMemo(() => new ControlPlaneClient(), []);
+export function KnowledgePublicationFlow({
+  client: providedClient,
+  sessionRevision: sharedSessionRevision = 0,
+  onSessionChanged,
+}: {
+  client?: ControlPlaneClient;
+  sessionRevision?: number;
+  onSessionChanged?: () => void;
+}) {
+  const ownedClient = useMemo(() => new ControlPlaneClient(), []);
+  const client = providedClient ?? ownedClient;
   const [workflow, dispatch] = useReducer(reduceWorkflow, initialWorkflow);
   const [spaces, setSpaces] = useState<KnowledgeSpace[]>([]);
   const [selectedSpaceId, setSelectedSpaceId] = useState("");
@@ -39,6 +55,37 @@ export function KnowledgePublicationFlow() {
     mounted.current = false;
   }, []);
 
+  const loadSpaces = useCallback(async () => {
+    dispatch({ type: "submitting" });
+    try {
+      const page = await client.listKnowledgeSpaces();
+      setSpaces(page.items);
+      setSelectedSpaceId(page.items[0]?.id ?? "");
+      setCreatingSpace(page.items.length === 0);
+      dispatch({ type: "authenticated" });
+    } catch (error) {
+      dispatchFailure(dispatch, error);
+    }
+  }, [client]);
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => {
+      if (!client.hasSession() && workflow.stage !== "login") {
+        setSpaces([]);
+        setSelectedSpaceId("");
+        setCreatingSpace(false);
+        setContent("");
+        requestKeys.current.clear();
+        dispatch({ type: "signed-out" });
+        return;
+      }
+      if (workflow.stage === "login" && client.hasSession()) {
+        void loadSpaces();
+      }
+    }, 0);
+    return () => window.clearTimeout(timeout);
+  }, [client, loadSpaces, sharedSessionRevision, workflow.stage]);
+
   async function login(credentials: {
     tenantCode: string;
     loginName: string;
@@ -47,11 +94,8 @@ export function KnowledgePublicationFlow() {
     dispatch({ type: "submitting" });
     try {
       await client.login(credentials);
-      const page = await client.listKnowledgeSpaces();
-      setSpaces(page.items);
-      setSelectedSpaceId(page.items[0]?.id ?? "");
-      setCreatingSpace(page.items.length === 0);
-      dispatch({ type: "authenticated" });
+      await loadSpaces();
+      onSessionChanged?.();
     } catch (error) {
       dispatchFailure(dispatch, error);
     }
@@ -270,6 +314,7 @@ export function KnowledgePublicationFlow() {
       setContent("");
       requestKeys.current.clear();
       dispatch({ type: "signed-out" });
+      onSessionChanged?.();
     }
   }
 

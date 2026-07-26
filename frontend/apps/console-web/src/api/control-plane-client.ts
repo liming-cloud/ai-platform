@@ -58,7 +58,44 @@ export interface ModelDeployment {
   embeddingDimension: number | null;
 }
 
-interface CursorPage<T> {
+export interface QueryUsage {
+  from: string;
+  to: string;
+  acceptedQueries: number;
+  answeredQueries: number;
+  refusedQueries: number;
+  failedQueries: number;
+  runningQueries: number;
+  inputTokens: number;
+  outputTokens: number;
+  totalTokens: number;
+  dailyQuota: {
+    used: number;
+    limit: number;
+    resetsAt: string;
+  };
+  concurrentQuota: {
+    used: number;
+    limit: number;
+  };
+  generatedAt: string;
+}
+
+export interface QueryAuditRecord {
+  queryRunId: string;
+  requestedBy: string;
+  assistantVersionId: string;
+  questionDigest: string;
+  status: "RUNNING" | "ANSWERED" | "REFUSED" | "FAILED";
+  refusalReason: string | null;
+  inputTokens: number;
+  outputTokens: number;
+  totalTokens: number;
+  createdAt: string;
+  completedAt: string | null;
+}
+
+export interface CursorPage<T> {
   items: T[];
   nextCursor: string | null;
 }
@@ -108,6 +145,35 @@ export class ControlPlaneClient {
   async logout(): Promise<void> {
     await this.request<void>("/auth/sessions/current", { method: "DELETE" });
     this.tokenValue = undefined;
+  }
+
+  hasSession(): boolean {
+    return this.tokenValue !== undefined;
+  }
+
+  async getQueryUsage(from?: string, to?: string): Promise<QueryUsage> {
+    const query = new URLSearchParams();
+    if (from !== undefined) {
+      query.set("from", from);
+    }
+    if (to !== undefined) {
+      query.set("to", to);
+    }
+    const suffix = query.size === 0 ? "" : `?${query}`;
+    return this.request<QueryUsage>(`/usage${suffix}`);
+  }
+
+  async listQueryAuditRecords(
+    cursor?: string,
+    limit = 20,
+  ): Promise<CursorPage<QueryAuditRecord>> {
+    const query = new URLSearchParams({ limit: String(limit) });
+    if (cursor !== undefined) {
+      query.set("cursor", cursor);
+    }
+    return this.request<CursorPage<QueryAuditRecord>>(
+      `/audit-records?${query}`,
+    );
   }
 
   async listKnowledgeSpaces(): Promise<CursorPage<KnowledgeSpace>> {

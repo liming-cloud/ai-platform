@@ -10,6 +10,7 @@ import com.aiplatform.foundation.assistantdelivery.application.AssistantReferenc
 import com.aiplatform.foundation.assistantdelivery.application.AssistantVersionNotFoundException;
 import com.aiplatform.foundation.assistantdelivery.application.AssistantVersionQuotaExceededException;
 import com.aiplatform.foundation.assistantdelivery.domain.AssistantVersionStateException;
+import com.aiplatform.foundation.evaluationoperations.application.OperationsPermissionDeniedException;
 import com.aiplatform.foundation.organizationaccess.adapter.out.session.InvalidAuthenticatedSessionException;
 import com.aiplatform.foundation.knowledgedata.application.datasource.DataSourceConcurrentModificationException;
 import com.aiplatform.foundation.knowledgedata.application.datasource.DataSourceNameConflictException;
@@ -79,6 +80,11 @@ public class GlobalApiExceptionHandler {
 
     @ExceptionHandler(AssistantPermissionDeniedException.class)
     ResponseEntity<ApiErrorResponse> assistantAccessDenied() {
+        return error(HttpStatus.FORBIDDEN, "ACCESS_DENIED", "没有执行该操作的权限");
+    }
+
+    @ExceptionHandler(OperationsPermissionDeniedException.class)
+    ResponseEntity<ApiErrorResponse> operationsAccessDenied() {
         return error(HttpStatus.FORBIDDEN, "ACCESS_DENIED", "没有执行该操作的权限");
     }
 

@@ -41,6 +41,11 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
+            <artifactId>evaluation-operations</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
             <artifactId>provider-deterministic</artifactId>
             <version>${project.version}</version>
         </dependency>

@@ -30,9 +30,16 @@ sa-token:
 foundation:
   assistant-delivery:
     enabled: true
+  evaluation-operations:
+    enabled: true
   knowledge-data:
     object-storage:
       enabled: false
+  query:
+    quota:
+      daily-limit: ${FOUNDATION_QUERY_QUOTA_DAILY_LIMIT:100}
+      concurrent-limit: ${FOUNDATION_QUERY_QUOTA_CONCURRENT_LIMIT:4}
+      running-lease: ${FOUNDATION_QUERY_QUOTA_RUNNING_LEASE:PT2M}
   model-runtime:
     enabled: true
     allowed-endpoints: ${MODEL_ALLOWED_ENDPOINTS:}
