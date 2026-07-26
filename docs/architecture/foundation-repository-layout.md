@@ -248,7 +248,7 @@ backend/contexts/<context>/
 ├── pom.xml
 └── src/
     ├── main/
-    │   ├── java/com/example/foundation/<context>/
+    │   ├── java/com/aiplatform/foundation/<context>/
     │   │   ├── package-info.java
     │   │   ├── api/
     │   │   │   ├── command/
@@ -281,7 +281,7 @@ backend/contexts/<context>/
     │       ├── db/migration/<context>/
     │       └── META-INF/spring/
     └── test/
-        ├── java/com/example/foundation/<context>/
+        ├── java/com/aiplatform/foundation/<context>/
         │   ├── domain/
         │   ├── application/
         │   ├── adapter/

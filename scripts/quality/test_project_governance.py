@@ -135,6 +135,19 @@ class ProjectGovernanceTest(unittest.TestCase):
         with self.assertRaisesRegex(MODULE.GovernanceError, "详细目录规划缺少章节"):
             MODULE.verify(self.root)
 
+    def test_m1_requires_planned_context_modules(self):
+        state = self.root / "project/STATE.yaml"
+        state.write_text(
+            state.read_text(encoding="utf-8").replace(
+                "currentMilestone: M0",
+                "currentMilestone: M1",
+            ),
+            encoding="utf-8",
+        )
+
+        with self.assertRaisesRegex(MODULE.GovernanceError, "M1 缺少限界上下文模块"):
+            MODULE.verify(self.root)
+
 
 if __name__ == "__main__":
     unittest.main()

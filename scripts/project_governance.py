@@ -49,6 +49,14 @@ REQUIRED_REPOSITORY_LAYOUT_SECTIONS = {
     "自动化门禁",
     "目录设计验收",
 }
+M1_REQUIRED_CONTEXT_MODULES = {
+    "organization-access": "organizationaccess",
+    "knowledge-data": "knowledgedata",
+    "model-runtime": "modelruntime",
+    "assistant-delivery": "assistantdelivery",
+    "trusted-query": "trustedquery",
+    "evaluation-operations": "evaluationoperations",
+}
 M0_FORBIDDEN_TRACKED_PREFIXES = (
     "backend/",
     "frontend/",
@@ -277,6 +285,35 @@ def markdown_level_two_sections(path: Path) -> set[str]:
     }
 
 
+def verify_m1_context_modules(root: Path) -> None:
+    contexts_pom = root / "backend" / "contexts" / "pom.xml"
+    pom_text = contexts_pom.read_text(encoding="utf-8") if contexts_pom.is_file() else ""
+    missing: list[str] = []
+    for module, namespace in M1_REQUIRED_CONTEXT_MODULES.items():
+        module_root = root / "backend" / "contexts" / module
+        package_info = (
+            module_root
+            / "src"
+            / "main"
+            / "java"
+            / "com"
+            / "aiplatform"
+            / "foundation"
+            / namespace
+            / "package-info.java"
+        )
+        if (
+            not (module_root / "pom.xml").is_file()
+            or not package_info.is_file()
+            or f"<module>{module}</module>" not in pom_text
+        ):
+            missing.append(module)
+    if missing:
+        raise GovernanceError(
+            "M1 缺少限界上下文模块：" + ", ".join(sorted(missing))
+        )
+
+
 def verify(root: Path) -> tuple[dict[str, str | list[str]], dict[str, WorkPackage]]:
     required_files = {
         root / "project" / "CHARTER.md",
@@ -306,6 +343,8 @@ def verify(root: Path) -> tuple[dict[str, str | list[str]], dict[str, WorkPackag
         raise GovernanceError(
             "详细目录规划缺少章节：" + ", ".join(sorted(missing_layout_sections))
         )
+    if state["currentMilestone"] != "M0":
+        verify_m1_context_modules(root)
     if state["currentMilestone"] == "M0" and (root / ".git").exists():
         current_tracked_files = tracked_files(root)
         forbidden_files = sorted(

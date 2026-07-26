@@ -15,6 +15,11 @@
     <packaging>pom</packaging>
 
     <modules>
+        <module>organization-access</module>
+        <module>knowledge-data</module>
         <module>model-runtime</module>
+        <module>assistant-delivery</module>
+        <module>trusted-query</module>
+        <module>evaluation-operations</module>
     </modules>
 </project>
