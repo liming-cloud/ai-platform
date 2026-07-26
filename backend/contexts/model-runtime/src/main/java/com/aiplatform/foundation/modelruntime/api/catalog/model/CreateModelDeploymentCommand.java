@@ -1,7 +1,7 @@
 package com.aiplatform.foundation.modelruntime.api.catalog.model;
 
 import com.aiplatform.foundation.modelruntime.api.model.ModelCapability;
-import com.aiplatform.foundation.modelruntime.domain.model.ModelType;
+import com.aiplatform.foundation.modelruntime.api.model.ModelType;
 import com.aiplatform.foundation.organizationaccess.api.model.TrustedRequestContext;
 import java.util.Objects;
 import java.util.Set;

@@ -29,6 +29,13 @@ foundation:
   knowledge-data:
     object-storage:
       enabled: false
+  model-runtime:
+    enabled: true
+    allowed-endpoints: ${MODEL_ALLOWED_ENDPOINTS:}
+    call-timeout: ${MODEL_CALL_TIMEOUT:PT30S}
+    cache:
+      maximum-size: ${MODEL_RUNTIME_CACHE_MAXIMUM_SIZE:64}
+      idle-timeout: ${MODEL_RUNTIME_CACHE_IDLE_TIMEOUT:PT30M}
 
 server:
   port: 8080

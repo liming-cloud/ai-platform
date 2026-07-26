@@ -2,6 +2,7 @@ package com.aiplatform.foundation.provider.deterministic;
 
 import com.aiplatform.foundation.modelruntime.api.invocation.EmbeddingModelPort;
 import com.aiplatform.foundation.modelruntime.api.model.EmbeddingBatch;
+import com.aiplatform.foundation.modelruntime.api.model.EmbeddingDeploymentRef;
 import com.aiplatform.foundation.modelruntime.api.model.EmbeddingRequest;
 import com.aiplatform.foundation.modelruntime.api.model.EmbeddingVector;
 import java.text.Normalizer;
@@ -24,6 +25,18 @@ public final class DeterministicEmbeddingModel implements EmbeddingModelPort {
     private static final long FNV_OFFSET = 0xcbf29ce484222325L;
     private static final long FNV_PRIME = 0x100000001b3L;
 
+    private final EmbeddingDeploymentRef deployment;
+
+    public DeterministicEmbeddingModel() {
+        this(new EmbeddingDeploymentRef(DEPLOYMENT_ID, DEPLOYMENT_REVISION, DIMENSION));
+    }
+
+    public DeterministicEmbeddingModel(EmbeddingDeploymentRef deployment) {
+        this.deployment = java.util.Objects.requireNonNull(
+                deployment,
+                "确定性嵌入部署不能为空");
+    }
+
     @Override
     public EmbeddingBatch embed(EmbeddingRequest request) {
         requireDeployment(request);
@@ -36,14 +49,14 @@ public final class DeterministicEmbeddingModel implements EmbeddingModelPort {
         return new EmbeddingBatch(request.deployment(), vectors);
     }
 
-    private static float[] embedText(String text) {
+    private float[] embedText(String text) {
         var normalized = Normalizer
                 .normalize(text, Normalizer.Form.NFKC)
                 .toLowerCase(Locale.ROOT);
         var codePoints = normalized.codePoints()
                 .filter(value -> !Character.isWhitespace(value))
                 .toArray();
-        var vector = new float[DIMENSION];
+        var vector = new float[deployment.dimension()];
         for (var index = 0; index < codePoints.length; index++) {
             accumulate(vector, hash(codePoints[index]), 1.0f);
             if (index + 1 < codePoints.length) {
@@ -88,10 +101,8 @@ public final class DeterministicEmbeddingModel implements EmbeddingModelPort {
         }
     }
 
-    private static void requireDeployment(EmbeddingRequest request) {
-        if (!DEPLOYMENT_ID.equals(request.deployment().deploymentId())
-                || request.deployment().revision() != DEPLOYMENT_REVISION
-                || request.deployment().dimension() != DIMENSION) {
+    private void requireDeployment(EmbeddingRequest request) {
+        if (!deployment.equals(request.deployment())) {
             throw new IllegalArgumentException("确定性嵌入部署不匹配");
         }
     }

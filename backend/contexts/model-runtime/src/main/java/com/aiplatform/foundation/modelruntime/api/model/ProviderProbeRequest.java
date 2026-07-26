@@ -5,6 +5,7 @@ import com.aiplatform.foundation.security.secret.SecretReference;
 import java.net.URI;
 import java.time.Duration;
 import java.util.Objects;
+import java.util.Set;
 
 /**
  * 供应商连接探测的公共输入。
@@ -18,6 +19,7 @@ public record ProviderProbeRequest(
         URI endpoint,
         SecretReference credentialReference,
         String modelCode,
+        Set<ModelCapability> requestedCapabilities,
         Duration timeout) {
 
     public ProviderProbeRequest {
@@ -26,6 +28,8 @@ public record ProviderProbeRequest(
         Objects.requireNonNull(endpoint, "供应商地址不能为空");
         Objects.requireNonNull(credentialReference, "密钥引用不能为空");
         Objects.requireNonNull(modelCode, "探测模型编码不能为空");
+        Objects.requireNonNull(requestedCapabilities, "待探测模型能力不能为空");
+        requestedCapabilities = Set.copyOf(requestedCapabilities);
         Objects.requireNonNull(timeout, "探测超时不能为空");
         if (modelCode.isBlank() || modelCode.length() > 256) {
             throw new IllegalArgumentException("探测模型编码格式不正确");

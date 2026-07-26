@@ -34,6 +34,7 @@ class DeterministicProviderConnectionProbeTest {
                 URI.create(endpoint),
                 new SecretReference("secret://local/demo"),
                 "deterministic-chat",
+                java.util.Set.of(),
                 Duration.ofSeconds(2));
     }
 }

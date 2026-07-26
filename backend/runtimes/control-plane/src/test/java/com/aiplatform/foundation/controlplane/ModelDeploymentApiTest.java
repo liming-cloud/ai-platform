@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.aiplatform.foundation.modelruntime.api.invocation.ModelRuntimeResolver;
 import com.redis.testcontainers.RedisContainer;
 import java.util.List;
 import java.util.Map;
@@ -52,6 +53,9 @@ class ModelDeploymentApiTest {
     @Autowired
     private JdbcTemplate jdbc;
 
+    @Autowired
+    private ModelRuntimeResolver modelRuntimeResolver;
+
     @DynamicPropertySource
     static void infrastructureProperties(DynamicPropertyRegistry registry) {
         registry.add("spring.datasource.url", POSTGRES::getJdbcUrl);
@@ -71,6 +75,7 @@ class ModelDeploymentApiTest {
 
     @Test
     void 租户管理员可创建探测发布并列出冻结修订的模型部署() {
+        assertNotNull(modelRuntimeResolver);
         var storeToken = login("demo-store");
         var campusToken = login("demo-campus");
         var provider = createVerifiedProvider(storeToken);

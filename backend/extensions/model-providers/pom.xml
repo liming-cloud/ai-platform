@@ -16,6 +16,8 @@
 
     <modules>
         <module>provider-deterministic</module>
+        <module>provider-spring-ai-common</module>
         <module>provider-openai-compatible</module>
+        <module>provider-ollama</module>
     </modules>
 </project>

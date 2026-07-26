@@ -72,6 +72,7 @@ class DefaultProbeProviderServiceTest {
                 URI.create("memory://deterministic"),
                 new SecretReference("secret://local/demo"),
                 "deterministic-chat",
+                Set.of(),
                 Duration.ofSeconds(2));
     }
 }

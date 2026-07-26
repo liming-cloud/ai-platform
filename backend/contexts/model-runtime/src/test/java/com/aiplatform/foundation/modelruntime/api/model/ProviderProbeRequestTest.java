@@ -21,6 +21,7 @@ class ProviderProbeRequestTest {
                         URI.create("https://models.example/v1"),
                         new SecretReference("secret://vault/provider"),
                         " ",
+                        java.util.Set.of(),
                         Duration.ofSeconds(2)));
     }
 }

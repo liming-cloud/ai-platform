@@ -18,6 +18,7 @@ import java.net.InetSocketAddress;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.junit.jupiter.api.AfterEach;
@@ -62,6 +63,32 @@ class OpenAiCompatibleConnectionProbeTest {
     }
 
     @Test
+    void 应按待验证能力执行最小嵌入调用() {
+        server.createContext("/v1/embeddings", exchange ->
+                respond(exchange, 200, """
+                        {
+                          "object": "list",
+                          "model": "demo-embedding",
+                          "data": [
+                            {"object": "embedding", "index": 0, "embedding": [0.1, 0.2]}
+                          ],
+                          "usage": {"prompt_tokens": 1, "total_tokens": 1}
+                        }
+                        """));
+        var probe = new OpenAiCompatibleConnectionProbe(
+                reference -> SecretValue.copyOf(SECRET.toCharArray()),
+                endpoint -> {
+                });
+
+        var observation = probe.probe(request(
+                "demo-embedding",
+                Set.of(ModelCapability.EMBEDDING)));
+
+        assertTrue(observation.reachable());
+        assertEquals(Set.of(ModelCapability.EMBEDDING), observation.capabilities());
+    }
+
+    @Test
     void 应在出站策略拒绝时停止密钥解析和网络调用() {
         var resolved = new AtomicBoolean();
         var probe = new OpenAiCompatibleConnectionProbe(
@@ -98,12 +125,19 @@ class OpenAiCompatibleConnectionProbeTest {
     }
 
     private ProviderProbeRequest request() {
+        return request("demo-chat", Set.of(ModelCapability.CHAT));
+    }
+
+    private ProviderProbeRequest request(
+            String modelCode,
+            Set<ModelCapability> capabilities) {
         return new ProviderProbeRequest(
                 new TenantId(UUID.fromString("10000000-0000-0000-0000-000000000001")),
                 ProviderKind.OPENAI_COMPATIBLE,
                 URI.create("http://127.0.0.1:" + server.getAddress().getPort() + "/v1"),
                 new SecretReference("secret://test/openai"),
-                "demo-chat",
+                modelCode,
+                capabilities,
                 Duration.ofSeconds(2));
     }
 

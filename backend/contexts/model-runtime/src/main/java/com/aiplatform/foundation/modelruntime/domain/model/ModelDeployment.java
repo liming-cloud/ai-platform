@@ -2,6 +2,7 @@ package com.aiplatform.foundation.modelruntime.domain.model;
 
 import com.aiplatform.foundation.kernel.tenant.TenantId;
 import com.aiplatform.foundation.modelruntime.api.model.ModelCapability;
+import com.aiplatform.foundation.modelruntime.api.model.ModelType;
 import java.time.Instant;
 import java.util.Objects;
 import java.util.Set;

@@ -1,7 +1,7 @@
 package com.aiplatform.foundation.controlplane.web.modelcatalog;
 
 import com.aiplatform.foundation.modelruntime.api.model.ModelCapability;
-import com.aiplatform.foundation.modelruntime.domain.model.ModelType;
+import com.aiplatform.foundation.modelruntime.api.model.ModelType;
 import java.util.Set;
 import java.util.UUID;
 

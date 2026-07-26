@@ -25,7 +25,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.transaction.PlatformTransactionManager;
 
 /**
- * 控制面使用的模型目录与确定性供应商显式装配。
+ * 控制面使用的模型目录与供应商探测显式装配。
  */
 @Configuration(proxyBeanMethods = false)
 @ConditionalOnProperty(

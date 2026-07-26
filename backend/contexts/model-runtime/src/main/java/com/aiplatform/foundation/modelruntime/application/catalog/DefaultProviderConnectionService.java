@@ -113,6 +113,7 @@ public final class DefaultProviderConnectionService implements ProviderConnectio
                 connection.endpoint(),
                 connection.credentialReference(),
                 command.modelCode(),
+                java.util.Set.of(),
                 command.timeout()));
         var updated = result.reachable()
                 ? connection.recordSuccessfulProbe(result.detailCode(), result.probedAt())

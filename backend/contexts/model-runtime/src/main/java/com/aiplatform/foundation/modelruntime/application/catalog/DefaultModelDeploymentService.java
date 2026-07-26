@@ -126,6 +126,7 @@ public final class DefaultModelDeploymentService implements ModelDeploymentUseCa
                 provider.endpoint(),
                 provider.credentialReference(),
                 deployment.modelCode(),
+                deployment.capabilities(),
                 command.timeout()));
         if (!result.reachable()) {
             return new ProbeModelDeploymentResult(

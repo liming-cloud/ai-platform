@@ -18,14 +18,18 @@ import java.util.Objects;
 import java.util.Set;
 import org.springframework.ai.openai.OpenAiChatModel;
 import org.springframework.ai.openai.OpenAiChatOptions;
+import org.springframework.ai.openai.OpenAiEmbeddingModel;
+import org.springframework.ai.openai.OpenAiEmbeddingOptions;
 
 /**
  * 使用 Spring AI 执行最小真实调用的 OpenAI 兼容协议探测器。
  */
 public final class OpenAiCompatibleConnectionProbe implements ProviderConnectionProbe {
 
-    private static final Set<ModelCapability> CAPABILITIES =
+    private static final Set<ModelCapability> CHAT_CAPABILITIES =
             Set.of(ModelCapability.CHAT, ModelCapability.STREAMING_CHAT);
+    private static final Set<ModelCapability> EMBEDDING_CAPABILITIES =
+            Set.of(ModelCapability.EMBEDDING);
     private static final String PROBE_PROMPT = "只回复 OK。";
 
     private final SecretResolver secretResolver;
@@ -73,7 +77,7 @@ public final class OpenAiCompatibleConnectionProbe implements ProviderConnection
             });
             return new ProviderProbeObservation(
                     true,
-                    CAPABILITIES,
+                    detectedCapabilities(request),
                     elapsedSince(startedAt),
                     "OPENAI_COMPATIBLE_OK");
         } catch (UnauthorizedException | PermissionDeniedException exception) {
@@ -88,6 +92,14 @@ public final class OpenAiCompatibleConnectionProbe implements ProviderConnection
     }
 
     private static void callModel(ProviderProbeRequest request, String apiKey) {
+        if (request.requestedCapabilities().contains(ModelCapability.EMBEDDING)) {
+            callEmbeddingModel(request, apiKey);
+            return;
+        }
+        callChatModel(request, apiKey);
+    }
+
+    private static void callChatModel(ProviderProbeRequest request, String apiKey) {
         var options = OpenAiChatOptions.builder()
                 .baseUrl(request.endpoint().toString())
                 .apiKey(apiKey)
@@ -100,6 +112,26 @@ public final class OpenAiCompatibleConnectionProbe implements ProviderConnection
                 .build();
 
         model.call(PROBE_PROMPT);
+    }
+
+    private static void callEmbeddingModel(ProviderProbeRequest request, String apiKey) {
+        var options = OpenAiEmbeddingOptions.builder()
+                .baseUrl(request.endpoint().toString())
+                .apiKey(apiKey)
+                .model(request.modelCode())
+                .timeout(request.timeout())
+                .maxRetries(0)
+                .build();
+        var model = OpenAiEmbeddingModel.builder()
+                .options(options)
+                .build();
+        model.embed(PROBE_PROMPT);
+    }
+
+    private static Set<ModelCapability> detectedCapabilities(ProviderProbeRequest request) {
+        return request.requestedCapabilities().contains(ModelCapability.EMBEDDING)
+                ? EMBEDDING_CAPABILITIES
+                : CHAT_CAPABILITIES;
     }
 
     private static ProviderProbeObservation failure(long startedAt, String detailCode) {

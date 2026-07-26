@@ -36,6 +36,28 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
+            <artifactId>provider-openai-compatible</artifactId>
+            <version>${project.version}</version>
+            <exclusions>
+                <!-- 控制面由 MinIO 统一提供 OkHttp 5，避免同时装载 Spring AI 带入的旧代网络库。 -->
+                <exclusion>
+                    <groupId>com.squareup.okhttp3</groupId>
+                    <artifactId>okhttp</artifactId>
+                </exclusion>
+                <!-- 该注解仅用于编译分析，复用 Guava 路径中的统一版本。 -->
+                <exclusion>
+                    <groupId>com.google.errorprone</groupId>
+                    <artifactId>error_prone_annotations</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>provider-ollama</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
             <artifactId>object-storage-minio</artifactId>
             <version>${project.version}</version>
         </dependency>

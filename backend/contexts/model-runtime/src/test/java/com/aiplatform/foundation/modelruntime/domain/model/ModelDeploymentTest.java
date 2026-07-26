@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.aiplatform.foundation.kernel.tenant.TenantId;
 import com.aiplatform.foundation.modelruntime.api.model.ModelCapability;
+import com.aiplatform.foundation.modelruntime.api.model.ModelType;
 import java.time.Instant;
 import java.util.Set;
 import java.util.UUID;

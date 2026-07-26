@@ -12,7 +12,7 @@ import com.aiplatform.foundation.modelruntime.application.port.out.ModelDeployme
 import com.aiplatform.foundation.modelruntime.domain.model.ModelDeployment;
 import com.aiplatform.foundation.modelruntime.domain.model.ModelDeploymentId;
 import com.aiplatform.foundation.modelruntime.domain.model.ModelDeploymentStatus;
-import com.aiplatform.foundation.modelruntime.domain.model.ModelType;
+import com.aiplatform.foundation.modelruntime.api.model.ModelType;
 import com.aiplatform.foundation.modelruntime.domain.model.ProviderConnectionId;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;

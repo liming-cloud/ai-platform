@@ -24,7 +24,7 @@ import com.aiplatform.foundation.modelruntime.domain.model.AuthenticationType;
 import com.aiplatform.foundation.modelruntime.domain.model.ModelDeployment;
 import com.aiplatform.foundation.modelruntime.domain.model.ModelDeploymentId;
 import com.aiplatform.foundation.modelruntime.domain.model.ModelDeploymentStatus;
-import com.aiplatform.foundation.modelruntime.domain.model.ModelType;
+import com.aiplatform.foundation.modelruntime.api.model.ModelType;
 import com.aiplatform.foundation.modelruntime.domain.model.ProviderConnection;
 import com.aiplatform.foundation.modelruntime.domain.model.ProviderConnectionId;
 import com.aiplatform.foundation.organizationaccess.api.model.AccessChannel;
