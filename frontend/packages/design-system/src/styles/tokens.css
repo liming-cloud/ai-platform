@@ -1,0 +1,46 @@
+:root {
+  color-scheme: light dark;
+  font-family:
+    "Segoe UI Variable",
+    "Segoe UI",
+    "Microsoft YaHei UI",
+    sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100dvh;
+}
+
+button,
+input,
+textarea {
+  font: inherit;
+}
+
+.foundation-provider {
+  min-height: 100dvh;
+  background:
+    linear-gradient(
+      145deg,
+      color-mix(in srgb, var(--colorBrandBackground2) 25%, transparent),
+      transparent 32rem
+    ),
+    var(--colorNeutralBackground1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}

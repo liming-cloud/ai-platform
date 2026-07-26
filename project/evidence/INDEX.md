@@ -28,6 +28,7 @@
 | --- | --- | --- | --- |
 | 工作包激活 | `project/evidence/M0-design-approval.md` | `f2f285c676c29d680d58c65b46cecd78b3267cc1` | M0 已通过，实施分支已创建 |
 | 后端工程基线 | `project/evidence/WP-0002-backend-baseline.md` | 待提交 | 固定工具链、三运行入口和确定性供应商契约验证通过 |
+| 前端工程基线 | `project/evidence/WP-0002-frontend-baseline.md` | 待提交 | 双应用、Fluent UI、状态设计和响应式浏览器验收通过 |
 
 ## 证据规则
 

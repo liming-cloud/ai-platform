@@ -1,0 +1,20 @@
+.state-panel {
+  display: grid;
+  justify-items: start;
+  gap: 0.75rem;
+  min-height: 14rem;
+  padding: 2rem;
+  border: 1px solid var(--colorNeutralStroke2);
+  border-radius: 0.75rem;
+  background: var(--colorNeutralBackground1);
+}
+
+.state-description {
+  max-width: 38rem;
+  color: var(--colorNeutralForeground2);
+  line-height: 1.6;
+}
+
+.state-panel-loading {
+  opacity: 0.72;
+}
