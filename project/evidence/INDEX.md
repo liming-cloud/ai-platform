@@ -80,6 +80,7 @@
 | 原子查询配额边界 | `project/evidence/WP-0006-query-quota.md` | `29050035252d88681b311ca984f1b68251378f33` | 198 项后端测试、真实 PostgreSQL 并发竞争、旧卷增量迁移、稳定 429、幂等重放和完整容器验收通过 |
 | 查询运营与治理控制台 | `project/evidence/WP-0006-query-operations.md` | `9a59c41fc807aa073159397f7e2548c6197ff597` | 205 项后端、27 项前端测试、租户用量实数、脱敏审计、权限、游标、完整状态和容器验收通过 |
 | 确定性演示评测与混合重排 | `project/evidence/WP-0006-demo-evaluation.md` | `cfa36bffdd9330329e3c1d13049a9e540d812bac` | 207 项后端、27 项前端测试，8 个固定问题、2 个跨租户和 2 个拒答用例全部通过，二十条候选池性能达标 |
+| 查询与治理真实浏览器验收 | `project/evidence/WP-0006-browser-acceptance.md` | `be2ecd65faa4ec62a6c8d7864d4c23a73322a3aa` | 210 项后端、28 项前端测试，查询与治理桌面任务通过，最终评测全部达标且跨租户泄漏为零 |
 
 ## 证据规则
 
