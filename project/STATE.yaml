@@ -2,7 +2,7 @@ schemaVersion: 1
 productVersion: foundation-v1
 currentMilestone: M1
 currentFrontier: WP-0003
-lastVerifiedCommit: 4e0c258b2205a7ecb21d606860366bbf28b69810
+lastVerifiedCommit: 02e4a64aea30c6acc485c93e6c5371a1cc9c2fa7
 activeWorkPackages:
   - WP-0003
 blockedWorkPackages:
@@ -26,6 +26,7 @@ latestEvidence:
   - project/evidence/WP-0003-trusted-context.md
   - project/evidence/WP-0003-sa-token-session.md
   - project/evidence/WP-0003-authentication-foundation.md
+  - project/evidence/WP-0003-knowledge-space.md
 nextReviewAt: 2026-08-02
-updatedAt: 2026-07-27T00:41:00+08:00
+updatedAt: 2026-07-27T00:50:05+08:00
 updatedBy: codex
