@@ -74,6 +74,13 @@ services:
     image: trusted-rag/control-plane:foundation-v1
     environment:
       SERVER_PORT: "8080"
+      SPRING_PROFILES_ACTIVE: demo
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${FOUNDATION_POSTGRES_DATABASE:?必须设置数据库名称}
+      SPRING_DATASOURCE_USERNAME: ${FOUNDATION_POSTGRES_USER:?必须设置数据库用户}
+      SPRING_DATASOURCE_PASSWORD: ${FOUNDATION_POSTGRES_PASSWORD:?必须设置数据库密码}
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: "6379"
+      SPRING_DATA_REDIS_PASSWORD: ${FOUNDATION_REDIS_PASSWORD:?必须设置 Redis 密码}
     depends_on:
       postgres:
         condition: service_healthy

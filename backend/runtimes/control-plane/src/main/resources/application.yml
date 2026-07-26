@@ -3,6 +3,25 @@ spring:
     name: control-plane
   main:
     banner-mode: "off"
+  flyway:
+    locations:
+      - classpath:db/migration/organization-access
+  data:
+    redis:
+      repositories:
+        enabled: false
+
+sa-token:
+  token-name: Authorization
+  token-prefix: Bearer
+  timeout: 3600
+  active-timeout: 1800
+  is-concurrent: false
+  is-share: false
+  is-read-cookie: false
+  is-read-header: true
+  is-read-body: false
+  auto-renew: true
 
 server:
   port: 8080
