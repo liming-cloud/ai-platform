@@ -9,5 +9,6 @@
 | G5 可度量质量 | 评测并发布助手版本 | 评测与运营 | `/api/v1/evaluation-runs`、评测流程 | WP-0001、WP-0006 | 黄金集、发布门禁 | M1 待产生 |
 | G6 可运维产品 | 部署、观测、备份和恢复 | 运行时运维 | Docker、运维页面 | WP-0001、WP-0007 | 冒烟、恢复、性能测试 | M1 待产生 |
 | G7 跨会话连续性 | 不依赖聊天记录恢复任务 | 项目控制面 | `make resume-context` | WP-0001 | `make project-verify` | `project/evidence/INDEX.md` |
+| G8 绿地事实边界 | 评审时只看到新基座设计 | 项目治理 | 根目录、设计文档和 Git 历史 | WP-0001 | 旧实现清单和受控文件检查 | `project/evidence/INDEX.md#wp-0001` |
 
 每个实施工作包在激活前必须新增或细化至少一行。
