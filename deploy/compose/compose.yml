@@ -1,0 +1,207 @@
+name: trusted-rag-foundation-v1
+
+services:
+  postgres:
+    image: postgres:18.4-alpine3.24@sha256:9a8afca54e7861fd90fab5fdf4c42477a6b1cb7d293595148e674e0a3181de15
+    environment:
+      POSTGRES_DB: ${FOUNDATION_POSTGRES_DATABASE:?必须设置数据库名称}
+      POSTGRES_USER: ${FOUNDATION_POSTGRES_USER:?必须设置数据库用户}
+      POSTGRES_PASSWORD: ${FOUNDATION_POSTGRES_PASSWORD:?必须设置数据库密码}
+    volumes:
+      # PostgreSQL 18 使用按主版本分层的数据目录，卷必须挂载在其父目录。
+      - foundation_v1_postgres:/var/lib/postgresql
+    networks:
+      - foundation-internal
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    restart: unless-stopped
+
+  redis:
+    image: redis:8.8.1-trixie@sha256:c88d347edef6249a6d2293f926f1eeb48bd40c57cbcd02c07f52e7f1fd2cb46b
+    command:
+      - redis-server
+      - --appendonly
+      - "yes"
+      - --requirepass
+      - ${FOUNDATION_REDIS_PASSWORD:?必须设置 Redis 密码}
+    volumes:
+      - foundation_v1_redis:/data
+    networks:
+      - foundation-internal
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - redis-cli -a "$${FOUNDATION_REDIS_PASSWORD}" ping | grep PONG
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    environment:
+      FOUNDATION_REDIS_PASSWORD: ${FOUNDATION_REDIS_PASSWORD:?必须设置 Redis 密码}
+    restart: unless-stopped
+
+  minio:
+    image: minio/minio:RELEASE.2025-09-07T16-13-09Z@sha256:14cea493d9a34af32f524e538b8346cf79f3321eff8e708c1e2960462bd8936e
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${FOUNDATION_MINIO_USER:?必须设置对象存储用户}
+      MINIO_ROOT_PASSWORD: ${FOUNDATION_MINIO_PASSWORD:?必须设置对象存储密码}
+    volumes:
+      - foundation_v1_minio:/data
+    networks:
+      - foundation-internal
+    healthcheck:
+      test:
+        - CMD
+        - mc
+        - ready
+        - local
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    restart: unless-stopped
+
+  control-plane:
+    build:
+      context: ../..
+      dockerfile: deploy/images/backend.Dockerfile
+      args:
+        RUNTIME: control-plane
+    image: trusted-rag/control-plane:foundation-v1
+    environment:
+      SERVER_PORT: "8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:18080:8080"
+    networks:
+      - foundation-internal
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    restart: unless-stopped
+
+  query-runtime:
+    build:
+      context: ../..
+      dockerfile: deploy/images/backend.Dockerfile
+      args:
+        RUNTIME: query-runtime
+    image: trusted-rag/query-runtime:foundation-v1
+    environment:
+      SERVER_PORT: "8081"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:18081:8081"
+    networks:
+      - foundation-internal
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    restart: unless-stopped
+
+  ingestion-worker:
+    build:
+      context: ../..
+      dockerfile: deploy/images/backend.Dockerfile
+      args:
+        RUNTIME: ingestion-worker
+    image: trusted-rag/ingestion-worker:foundation-v1
+    environment:
+      SERVER_PORT: "8082"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:18082:8082"
+    networks:
+      - foundation-internal
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    restart: unless-stopped
+
+  console-web:
+    build:
+      context: ../..
+      dockerfile: deploy/images/frontend.Dockerfile
+      args:
+        APP: console-web
+    image: trusted-rag/console-web:foundation-v1
+    ports:
+      - "127.0.0.1:13000:8080"
+    networks:
+      - foundation-internal
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /var/cache/nginx
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    restart: unless-stopped
+
+  query-web:
+    build:
+      context: ../..
+      dockerfile: deploy/images/frontend.Dockerfile
+      args:
+        APP: query-web
+    image: trusted-rag/query-web:foundation-v1
+    ports:
+      - "127.0.0.1:13001:8080"
+    networks:
+      - foundation-internal
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /var/cache/nginx
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    restart: unless-stopped
+
+networks:
+  foundation-internal:
+    name: trusted-rag-foundation-v1
+
+volumes:
+  foundation_v1_postgres:
+    name: trusted-rag-foundation-v1-postgres
+  foundation_v1_redis:
+    name: trusted-rag-foundation-v1-redis
+  foundation_v1_minio:
+    name: trusted-rag-foundation-v1-minio

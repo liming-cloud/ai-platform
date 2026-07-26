@@ -1,0 +1,11 @@
+.git
+.github
+.idea
+.codegraph
+.codex-runtime
+**/node_modules
+**/target
+**/dist
+**/*.log
+project/evidence
+docs
