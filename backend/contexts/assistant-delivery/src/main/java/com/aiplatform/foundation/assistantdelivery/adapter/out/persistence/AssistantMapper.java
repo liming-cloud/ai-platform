@@ -188,6 +188,80 @@ public interface AssistantMapper {
             @Param("limit") int limit);
 
     @Select("""
+            WITH latest_published AS (
+                SELECT DISTINCT ON (assistant.id)
+                       assistant.id AS assistant_id,
+                       assistant.display_name,
+                       version.id AS assistant_version_id,
+                       version.version_number,
+                       version.published_at
+                FROM assistant_delivery.assistant AS assistant
+                JOIN assistant_delivery.assistant_version AS version
+                  ON version.tenant_id = assistant.tenant_id
+                 AND version.assistant_id = assistant.id
+                WHERE assistant.tenant_id = #{tenantId}
+                  AND version.status = 'PUBLISHED'
+                ORDER BY assistant.id,
+                         version.version_number DESC,
+                         version.id DESC
+            )
+            SELECT assistant_id::text AS assistant_id,
+                   display_name,
+                   assistant_version_id::text AS assistant_version_id,
+                   version_number,
+                   published_at
+            FROM latest_published
+            ORDER BY published_at DESC, assistant_version_id DESC
+            LIMIT #{limit}
+            """)
+    @Results(id = "publishedAssistantRow", value = {
+        @Result(column = "assistant_id", property = "assistantId"),
+        @Result(column = "display_name", property = "displayName"),
+        @Result(column = "assistant_version_id", property = "assistantVersionId"),
+        @Result(column = "version_number", property = "versionNumber"),
+        @Result(column = "published_at", property = "publishedAt")
+    })
+    List<PublishedAssistantRow> findFirstPublishedPage(
+            @Param("tenantId") UUID tenantId,
+            @Param("limit") int limit);
+
+    @Select("""
+            WITH latest_published AS (
+                SELECT DISTINCT ON (assistant.id)
+                       assistant.id AS assistant_id,
+                       assistant.display_name,
+                       version.id AS assistant_version_id,
+                       version.version_number,
+                       version.published_at
+                FROM assistant_delivery.assistant AS assistant
+                JOIN assistant_delivery.assistant_version AS version
+                  ON version.tenant_id = assistant.tenant_id
+                 AND version.assistant_id = assistant.id
+                WHERE assistant.tenant_id = #{tenantId}
+                  AND version.status = 'PUBLISHED'
+                ORDER BY assistant.id,
+                         version.version_number DESC,
+                         version.id DESC
+            )
+            SELECT assistant_id::text AS assistant_id,
+                   display_name,
+                   assistant_version_id::text AS assistant_version_id,
+                   version_number,
+                   published_at
+            FROM latest_published
+            WHERE (published_at, assistant_version_id)
+                < (#{publishedAt}, #{assistantVersionId})
+            ORDER BY published_at DESC, assistant_version_id DESC
+            LIMIT #{limit}
+            """)
+    @ResultMap("publishedAssistantRow")
+    List<PublishedAssistantRow> findPublishedAfter(
+            @Param("tenantId") UUID tenantId,
+            @Param("publishedAt") Instant publishedAt,
+            @Param("assistantVersionId") UUID assistantVersionId,
+            @Param("limit") int limit);
+
+    @Select("""
             SELECT count(*)
             FROM assistant_delivery.assistant_version
             WHERE tenant_id = #{tenantId}

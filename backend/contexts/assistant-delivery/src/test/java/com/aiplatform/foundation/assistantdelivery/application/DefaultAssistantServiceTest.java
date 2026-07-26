@@ -15,6 +15,7 @@ import com.aiplatform.foundation.assistantdelivery.application.port.out.Assistan
 import com.aiplatform.foundation.assistantdelivery.application.port.out.AssistantVersionCreationOutcome;
 import com.aiplatform.foundation.assistantdelivery.application.port.out.AssistantVersionPublication;
 import com.aiplatform.foundation.assistantdelivery.application.port.out.AssistantVersionPublicationOutcome;
+import com.aiplatform.foundation.assistantdelivery.application.port.out.PublishedAssistantSlice;
 import com.aiplatform.foundation.assistantdelivery.domain.Assistant;
 import com.aiplatform.foundation.assistantdelivery.domain.AssistantId;
 import com.aiplatform.foundation.assistantdelivery.domain.AssistantVersion;
@@ -213,6 +214,14 @@ class DefaultAssistantServiceTest {
             return new AssistantSlice(
                     assistant == null ? List.of() : List.of(assistant),
                     null);
+        }
+
+        @Override
+        public PublishedAssistantSlice findPublishedPage(
+                TenantId tenantId,
+                String cursor,
+                int limit) {
+            return new PublishedAssistantSlice(List.of(), null);
         }
 
         @Override

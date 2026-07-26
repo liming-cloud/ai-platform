@@ -2,6 +2,7 @@ package com.aiplatform.foundation.assistantdelivery.adapter.out.persistence;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -211,6 +212,56 @@ class PostgresAssistantRepositoryTest {
         assertEquals(4, restored.indexVersionRevision());
     }
 
+    @Test
+    void 查询目录只返回每个助手最新已发布版本并支持租户游标隔离() {
+        var first = createPublishedAssistant(
+                "门店导购助手",
+                "catalog-1",
+                "4",
+                NOW.plusSeconds(60));
+        createPublishedAssistant(
+                "校园问答助手",
+                "catalog-2",
+                "5",
+                NOW.plusSeconds(90));
+
+        var current = repository
+                .findAssistant(STORE, first.assistant().id())
+                .orElseThrow();
+        var advanced = current.advanceVersion();
+        var secondVersion = version(advanced);
+        repository.createVersion(
+                new AssistantVersionCreation(
+                        current,
+                        advanced,
+                        secondVersion,
+                        "catalog-version-3",
+                        "6".repeat(64)),
+                20);
+        repository.publishVersion(new AssistantVersionPublication(
+                secondVersion.publish(NOW.plusSeconds(120)),
+                0,
+                "catalog-publish-3",
+                "7".repeat(64)));
+
+        var firstPage = repository.findPublishedPage(STORE, null, 1);
+        var secondPage = repository.findPublishedPage(
+                STORE,
+                firstPage.nextCursor(),
+                1);
+
+        assertEquals(1, firstPage.items().size());
+        assertEquals(secondVersion.id().value(), firstPage.items()
+                .getFirst()
+                .assistantVersionId());
+        assertEquals(2, firstPage.items().getFirst().versionNumber());
+        assertEquals("校园问答助手", secondPage.items().getFirst().displayName());
+        assertNull(secondPage.nextCursor());
+        assertTrue(repository.findPublishedPage(CAMPUS, null, 20)
+                .items()
+                .isEmpty());
+    }
+
     private static Assistant assistant(TenantId tenantId, String name) {
         return Assistant.create(
                 tenantId,
@@ -247,6 +298,36 @@ class PostgresAssistantRepositoryTest {
                 RefusalPolicy.INSUFFICIENT_EVIDENCE,
                 CREATOR,
                 NOW);
+    }
+
+    private PublishedFixture createPublishedAssistant(
+            String name,
+            String keySuffix,
+            String fingerprintCharacter,
+            Instant publishedAt) {
+        var assistant = assistant(STORE, name);
+        repository.create(
+                new AssistantCreation(
+                        assistant,
+                        "catalog-assistant-" + keySuffix,
+                        fingerprintCharacter.repeat(64)),
+                5);
+        var advanced = assistant.advanceVersion();
+        var draft = version(advanced);
+        repository.createVersion(
+                new AssistantVersionCreation(
+                        assistant,
+                        advanced,
+                        draft,
+                        "catalog-version-" + keySuffix,
+                        fingerprintCharacter.repeat(64)),
+                20);
+        repository.publishVersion(new AssistantVersionPublication(
+                draft.publish(publishedAt),
+                0,
+                "catalog-publish-" + keySuffix,
+                fingerprintCharacter.repeat(64)));
+        return new PublishedFixture(assistant, draft);
     }
 
     private void seedReferences() {
@@ -322,5 +403,10 @@ class PostgresAssistantRepositoryTest {
                 PlatformTransactionManager transactions) {
             return new PostgresAssistantRepository(mapper, transactions);
         }
+    }
+
+    private record PublishedFixture(
+            Assistant assistant,
+            AssistantVersion version) {
     }
 }

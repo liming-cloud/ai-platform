@@ -215,6 +215,11 @@ services:
       args:
         APP: query-web
     image: trusted-rag/query-web:foundation-v1
+    depends_on:
+      control-plane:
+        condition: service_healthy
+      query-runtime:
+        condition: service_healthy
     ports:
       - "127.0.0.1:13001:8080"
     networks:

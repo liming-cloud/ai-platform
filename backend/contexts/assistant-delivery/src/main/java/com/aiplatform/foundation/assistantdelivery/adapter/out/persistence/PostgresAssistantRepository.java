@@ -14,6 +14,8 @@ import com.aiplatform.foundation.assistantdelivery.application.port.out.Assistan
 import com.aiplatform.foundation.assistantdelivery.application.port.out.AssistantVersionCreationOutcome;
 import com.aiplatform.foundation.assistantdelivery.application.port.out.AssistantVersionPublication;
 import com.aiplatform.foundation.assistantdelivery.application.port.out.AssistantVersionPublicationOutcome;
+import com.aiplatform.foundation.assistantdelivery.application.port.out.PublishedAssistantSlice;
+import com.aiplatform.foundation.assistantdelivery.application.port.out.PublishedAssistantSummary;
 import com.aiplatform.foundation.assistantdelivery.domain.Assistant;
 import com.aiplatform.foundation.assistantdelivery.domain.AssistantId;
 import com.aiplatform.foundation.assistantdelivery.domain.AssistantVersion;
@@ -115,6 +117,40 @@ public final class PostgresAssistantRepository implements AssistantRepository {
                         UUID.fromString(pageRows.getLast().getId()))
                 : null;
         return new AssistantSlice(items, nextCursor);
+    }
+
+    @Override
+    public PublishedAssistantSlice findPublishedPage(
+            TenantId tenantId,
+            String cursor,
+            int limit) {
+        Objects.requireNonNull(tenantId, "租户标识不能为空");
+        if (limit < 1 || limit > 100) {
+            throw new IllegalArgumentException("分页条数必须在 1 到 100 之间");
+        }
+        var fetchLimit = limit + 1;
+        List<PublishedAssistantRow> rows;
+        if (cursor == null) {
+            rows = mapper.findFirstPublishedPage(tenantId.value(), fetchLimit);
+        } else {
+            var position = decodeCursor(cursor);
+            rows = mapper.findPublishedAfter(
+                    tenantId.value(),
+                    position.createdAt(),
+                    position.id(),
+                    fetchLimit);
+        }
+        var hasNext = rows.size() > limit;
+        var pageRows = hasNext ? rows.subList(0, limit) : rows;
+        var items = pageRows.stream()
+                .map(PostgresAssistantRepository::toPublishedSummary)
+                .toList();
+        var nextCursor = hasNext
+                ? encodeCursor(
+                        pageRows.getLast().getPublishedAt(),
+                        UUID.fromString(pageRows.getLast().getAssistantVersionId()))
+                : null;
+        return new PublishedAssistantSlice(items, nextCursor);
     }
 
     @Override
@@ -390,6 +426,16 @@ public final class PostgresAssistantRepository implements AssistantRepository {
                 row.getVersion(),
                 new MembershipId(UUID.fromString(row.getCreatedBy())),
                 row.getCreatedAt(),
+                row.getPublishedAt());
+    }
+
+    private static PublishedAssistantSummary toPublishedSummary(
+            PublishedAssistantRow row) {
+        return new PublishedAssistantSummary(
+                UUID.fromString(row.getAssistantId()),
+                row.getDisplayName(),
+                UUID.fromString(row.getAssistantVersionId()),
+                row.getVersionNumber(),
                 row.getPublishedAt());
     }
 

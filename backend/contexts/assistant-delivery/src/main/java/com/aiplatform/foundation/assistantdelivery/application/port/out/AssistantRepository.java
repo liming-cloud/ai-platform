@@ -18,6 +18,11 @@ public interface AssistantRepository {
 
     AssistantSlice findPage(TenantId tenantId, String cursor, int limit);
 
+    PublishedAssistantSlice findPublishedPage(
+            TenantId tenantId,
+            String cursor,
+            int limit);
+
     AssistantVersionCreationOutcome createVersion(
             AssistantVersionCreation creation,
             int perAssistantLimit);

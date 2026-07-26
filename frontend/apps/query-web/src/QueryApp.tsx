@@ -1,10 +1,13 @@
-import { BookInformation24Regular } from "@fluentui/react-icons";
-import { ProductShell, StatePanel } from "@foundation/design-system";
+import {
+  MessageBar,
+  MessageBarBody,
+  MessageBarTitle,
+} from "@fluentui/react-components";
+import { ProductShell } from "@foundation/design-system";
+import { QueryWorkspace } from "./features/query/QueryWorkspace";
 
 const NAVIGATION = [
-  { id: "ask", label: "开始提问" },
-  { id: "history", label: "历史记录" },
-  { id: "help", label: "使用说明" },
+  { id: "ask", label: "可信问答" },
 ] as const;
 
 export function QueryApp() {
@@ -15,16 +18,15 @@ export function QueryApp() {
       pageSummary="答案必须附带可核验来源。没有足够证据或没有访问权限时，系统会明确拒绝回答。"
       navigation={NAVIGATION}
       activeNavigationId="ask"
-      accountLabel="演示访客"
+      accountLabel="受限演示环境"
     >
-      <div className="query-empty-state">
-        <StatePanel
-          kind="empty"
-          icon={<BookInformation24Regular aria-hidden />}
-          title="当前没有已发布助手"
-          description="管理员完成模型连接、知识空间索引和评测后，这里才会开放提问入口。"
-        />
-      </div>
+      <MessageBar intent="info" className="query-usage-notice">
+        <MessageBarBody>
+          <MessageBarTitle>演示环境限制</MessageBarTitle>
+          当前站点只使用合成数据，并限制查询次数、并发会话和回答长度。
+        </MessageBarBody>
+      </MessageBar>
+      <QueryWorkspace />
     </ProductShell>
   );
 }

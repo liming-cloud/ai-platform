@@ -1,3 +1,220 @@
-.query-empty-state {
-  max-width: 52rem;
+.query-usage-notice {
+  margin-bottom: 1.5rem;
+}
+
+.query-workspace,
+.query-state-stack {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.query-login,
+.query-task,
+.query-answer,
+.query-refusal,
+.query-catalog-skeleton {
+  display: grid;
+  gap: 1.5rem;
+  padding: 2rem;
+  border: 1px solid var(--colorNeutralStroke2);
+  border-radius: 0.75rem;
+  background: var(--colorNeutralBackground1);
+}
+
+.query-login {
+  max-width: 42rem;
+}
+
+.query-task {
+  min-height: 22rem;
+}
+
+.query-task-heading {
+  display: grid;
+  gap: 0.5rem;
+  max-width: 42rem;
+}
+
+.query-task-heading > span {
+  color: var(--colorNeutralForeground2);
+  line-height: 1.6;
+}
+
+.query-form {
+  display: grid;
+  gap: 1.25rem;
+  max-width: 44rem;
+}
+
+.query-form textarea {
+  min-height: 7rem;
+}
+
+.query-form > button {
+  justify-self: start;
+}
+
+.query-session-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  min-height: 3.5rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--colorNeutralStroke2);
+  border-radius: 0.75rem;
+  background: var(--colorNeutralBackground1);
+}
+
+.query-session-bar > div {
+  display: grid;
+  gap: 0.125rem;
+}
+
+.query-session-bar > div > span:last-child {
+  color: var(--colorNeutralForeground3);
+}
+
+.assistant-fact,
+.answer-heading,
+.citation-heading {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+}
+
+.assistant-fact {
+  flex-wrap: wrap;
+  color: var(--colorNeutralForeground2);
+}
+
+.query-answer {
+  border-left: 0.25rem solid var(--colorPaletteGreenBorderActive);
+}
+
+.answer-heading {
+  color: var(--colorPaletteGreenForeground1);
+}
+
+.answer-body {
+  max-width: 54rem;
+  margin: 0;
+  font-size: 1.0625rem;
+  line-height: 1.75;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.query-refusal {
+  max-width: 54rem;
+  border-left: 0.25rem solid var(--colorPaletteMarigoldBorderActive);
+}
+
+.query-refusal > span {
+  color: var(--colorNeutralForeground2);
+  line-height: 1.6;
+}
+
+.query-failure {
+  display: grid;
+  gap: 1rem;
+}
+
+.query-recovery-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.citation-section {
+  display: grid;
+  gap: 1rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--colorNeutralStroke2);
+}
+
+.citation-list {
+  display: grid;
+  gap: 0.875rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.citation-list li {
+  display: grid;
+  gap: 0.625rem;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  background: var(--colorNeutralBackground2);
+}
+
+.citation-heading {
+  justify-content: space-between;
+}
+
+.citation-heading > span:last-child {
+  color: var(--colorNeutralForeground3);
+}
+
+.citation-list blockquote {
+  margin: 0;
+  color: var(--colorNeutralForeground2);
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+.query-catalog-skeleton {
+  min-height: 26rem;
+}
+
+.query-catalog-skeleton [role="progressbar"] {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.skeleton-heading {
+  width: min(60%, 24rem);
+  height: 2rem;
+}
+
+.skeleton-field {
+  width: min(100%, 44rem);
+  height: 5rem;
+}
+
+.skeleton-answer {
+  width: min(90%, 52rem);
+  height: 10rem;
+}
+
+.query-state-stack > button {
+  justify-self: start;
+}
+
+@media (max-width: 720px) {
+  .query-login,
+  .query-task,
+  .query-answer,
+  .query-refusal,
+  .query-catalog-skeleton {
+    padding: 1.25rem;
+  }
+
+  .query-session-bar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .query-session-bar > button,
+  .query-form > button,
+  .query-recovery-actions > button {
+    width: 100%;
+  }
+
+  .citation-heading {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
 }

@@ -1,5 +1,6 @@
 package com.aiplatform.foundation.queryruntime;
 
+import com.aiplatform.foundation.assistantdelivery.application.AssistantPermissionDeniedException;
 import com.aiplatform.foundation.organizationaccess.adapter.out.session.InvalidAuthenticatedSessionException;
 import com.aiplatform.foundation.trustedquery.application.CandidateSearchPermissionDeniedException;
 import com.aiplatform.foundation.trustedquery.application.QueryAssistantUnavailableException;
@@ -30,7 +31,10 @@ public class QueryApiExceptionHandler {
                 "需要有效会话");
     }
 
-    @ExceptionHandler(CandidateSearchPermissionDeniedException.class)
+    @ExceptionHandler({
+        AssistantPermissionDeniedException.class,
+        CandidateSearchPermissionDeniedException.class
+    })
     ResponseEntity<QueryApiError> accessDenied() {
         return error(
                 HttpStatus.FORBIDDEN,

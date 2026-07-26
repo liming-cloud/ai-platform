@@ -6,6 +6,8 @@ import cn.dev33.satoken.stp.StpLogic;
 import com.aiplatform.foundation.assistantdelivery.adapter.out.persistence.AssistantMapper;
 import com.aiplatform.foundation.assistantdelivery.adapter.out.persistence.PostgresAssistantRepository;
 import com.aiplatform.foundation.assistantdelivery.api.PublishedAssistantVersionLookup;
+import com.aiplatform.foundation.assistantdelivery.api.QueryAssistantCatalogUseCase;
+import com.aiplatform.foundation.assistantdelivery.application.DefaultQueryAssistantCatalogService;
 import com.aiplatform.foundation.assistantdelivery.application.DefaultPublishedAssistantVersionLookup;
 import com.aiplatform.foundation.assistantdelivery.application.port.out.AssistantRepository;
 import com.aiplatform.foundation.modelruntime.adapter.out.persistence.ModelDeploymentMapper;
@@ -105,6 +107,12 @@ public class QueryRuntimeConfiguration {
     PublishedAssistantVersionLookup queryPublishedAssistantVersionLookup(
             AssistantRepository repository) {
         return new DefaultPublishedAssistantVersionLookup(repository);
+    }
+
+    @Bean
+    QueryAssistantCatalogUseCase queryAssistantCatalogUseCase(
+            AssistantRepository repository) {
+        return new DefaultQueryAssistantCatalogService(repository);
     }
 
     @Bean

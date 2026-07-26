@@ -1,0 +1,647 @@
+import {
+  Badge,
+  Button,
+  Dropdown,
+  Field,
+  Input,
+  MessageBar,
+  MessageBarBody,
+  MessageBarTitle,
+  Option,
+  Skeleton,
+  SkeletonItem,
+  Text,
+  Textarea,
+  Title3,
+} from "@fluentui/react-components";
+import {
+  BookInformation24Regular,
+  CheckmarkCircle24Filled,
+  LockClosed24Regular,
+  Warning24Regular,
+} from "@fluentui/react-icons";
+import { StatePanel } from "@foundation/design-system";
+import {
+  type FormEvent,
+  type Dispatch,
+  useEffect,
+  useMemo,
+  useReducer,
+  useRef,
+  useState,
+} from "react";
+import {
+  type LoginCredentials,
+  QueryApiError,
+  QueryClient,
+} from "../../api/query-client";
+import {
+  QueryRequestScope,
+  initialQueryWorkflow,
+  reduceQueryWorkflow,
+  stableQueryRequestKey,
+} from "./query-workflow";
+
+export function QueryWorkspace() {
+  const client = useMemo(() => new QueryClient(), []);
+  const requests = useMemo(() => new QueryRequestScope(), []);
+  const requestKeys = useRef(
+    new Map<string, { fingerprint: string; key: string }>(),
+  );
+  const [workflow, dispatch] = useReducer(
+    reduceQueryWorkflow,
+    initialQueryWorkflow,
+  );
+  const [question, setQuestion] = useState("");
+
+  useEffect(() => () => requests.cancel(), [requests]);
+
+  async function login(credentials: LoginCredentials) {
+    const owner = requests.replace();
+    dispatch({ type: "authenticating" });
+    try {
+      await client.login(credentials, owner.signal);
+      if (!requests.isCurrent(owner)) {
+        return;
+      }
+      dispatch({ type: "loading-catalog" });
+      const page = await client.listAssistants(owner.signal);
+      if (requests.isCurrent(owner)) {
+        dispatch({ type: "catalog-loaded", assistants: page.items });
+      }
+    } catch (error) {
+      if (requests.isCurrent(owner)) {
+        dispatchFailure(dispatch, error, client);
+      }
+    }
+  }
+
+  async function reloadCatalog() {
+    const owner = requests.replace();
+    dispatch({ type: "loading-catalog" });
+    try {
+      const page = await client.listAssistants(owner.signal);
+      if (requests.isCurrent(owner)) {
+        dispatch({ type: "catalog-loaded", assistants: page.items });
+      }
+    } catch (error) {
+      if (requests.isCurrent(owner)) {
+        dispatchFailure(dispatch, error, client);
+      }
+    }
+  }
+
+  async function ask() {
+    const assistantVersionId = workflow.selectedAssistantVersionId;
+    const normalizedQuestion = question.trim();
+    if (
+      assistantVersionId === undefined
+      || normalizedQuestion.length === 0
+    ) {
+      return;
+    }
+    const owner = requests.replace();
+    const idempotencyKey = stableQueryRequestKey(
+      requestKeys.current,
+      assistantVersionId,
+      normalizedQuestion,
+    );
+    dispatch({
+      type: "querying",
+      question: normalizedQuestion,
+    });
+    try {
+      const run = await client.createQuery(
+        assistantVersionId,
+        normalizedQuestion,
+        idempotencyKey,
+        owner.signal,
+      );
+      if (!requests.isCurrent(owner)) {
+        return;
+      }
+      dispatch({ type: "run-created", queryRunId: run.id });
+      const completed = await receiveEvents(run.id, 0, owner);
+      if (completed) {
+        requestKeys.current.delete("query");
+      }
+    } catch (error) {
+      if (requests.isCurrent(owner)) {
+        dispatchFailure(dispatch, error, client);
+      }
+    }
+  }
+
+  async function resume() {
+    if (workflow.queryRunId === undefined) {
+      await ask();
+      return;
+    }
+    const owner = requests.replace();
+    dispatch({ type: "resuming" });
+    try {
+      const completed = await receiveEvents(
+        workflow.queryRunId,
+        workflow.lastEventSequence,
+        owner,
+      );
+      if (completed) {
+        requestKeys.current.delete("query");
+      }
+    } catch (error) {
+      if (requests.isCurrent(owner)) {
+        dispatchFailure(dispatch, error, client);
+      }
+    }
+  }
+
+  async function receiveEvents(
+    queryRunId: string,
+    afterSequence: number,
+    owner: ReturnType<QueryRequestScope["replace"]>,
+  ) {
+    const events = await client.listQueryEvents(
+      queryRunId,
+      afterSequence,
+      owner.signal,
+    );
+    if (!requests.isCurrent(owner)) {
+      return false;
+    }
+    for (const event of events) {
+      dispatch({ type: "terminal-event", event });
+    }
+    const completed = events.some((event) => event.terminal);
+    if (!completed) {
+      throw new QueryApiError(
+        503,
+        "EVENT_STREAM_INCOMPLETE",
+        "结果连接已中断，可以从最近进度继续接收",
+        "",
+      );
+    }
+    return true;
+  }
+
+  async function signOut() {
+    requests.cancel();
+    requestKeys.current.clear();
+    setQuestion("");
+    dispatch({ type: "signed-out" });
+    try {
+      await client.logout();
+    } catch {
+      client.discardSession();
+    }
+  }
+
+  if (
+    workflow.stage === "login"
+    || workflow.stage === "authenticating"
+    || (
+      workflow.stage === "failed"
+      && workflow.failureContext === "login"
+    )
+  ) {
+    return (
+      <LoginView
+        busy={workflow.stage === "authenticating"}
+        feedback={workflow.feedback}
+        onSubmit={login}
+      />
+    );
+  }
+
+  if (workflow.stage === "loading-catalog") {
+    return <CatalogSkeleton />;
+  }
+
+  if (
+    workflow.stage === "failed"
+    && workflow.failureContext === "catalog"
+  ) {
+    return (
+      <div className="query-state-stack">
+        <StatePanel
+          kind="error"
+          title="已登录，但无法加载助手"
+          description={formatFeedback(
+            workflow.feedback,
+            "请检查网络后重新加载。",
+          )}
+          actionLabel="重新加载助手"
+          onAction={() => void reloadCatalog()}
+          icon={<Warning24Regular aria-hidden />}
+        />
+        <Button appearance="secondary" onClick={() => void signOut()}>
+          退出当前账户
+        </Button>
+      </div>
+    );
+  }
+
+  if (workflow.stage === "session-expired") {
+    return (
+      <StatePanel
+        kind="stale"
+        title="登录会话已经失效"
+        description="当前页面已清除会话和助手数据，请重新登录后继续。"
+        actionLabel="返回登录"
+        onAction={() => dispatch({ type: "signed-out" })}
+        icon={<LockClosed24Regular aria-hidden />}
+      />
+    );
+  }
+
+  if (workflow.stage === "denied") {
+    return (
+      <StatePanel
+        kind="denied"
+        title="当前账户不能使用可信问答"
+        description="需要同时具备助手查询和知识读取权限。页面不会显示无权资源是否存在。"
+        actionLabel="退出当前账户"
+        onAction={() => void signOut()}
+        icon={<LockClosed24Regular aria-hidden />}
+      />
+    );
+  }
+
+  if (workflow.stage === "empty") {
+    return (
+      <div className="query-state-stack">
+        <StatePanel
+          kind="empty"
+          title="当前没有可查询的已发布助手"
+          description="管理员完成知识索引、助手版本冻结和发布后，这里才会开放提问。"
+          icon={<BookInformation24Regular aria-hidden />}
+        />
+        <Button appearance="secondary" onClick={() => void signOut()}>
+          退出当前账户
+        </Button>
+      </div>
+    );
+  }
+
+  const selectedAssistant = workflow.assistants.find(
+    (assistant) =>
+      assistant.assistantVersionId
+      === workflow.selectedAssistantVersionId,
+  );
+
+  return (
+    <section className="query-workspace" aria-live="polite">
+      <header className="query-session-bar">
+        <div>
+          <Text weight="semibold">查询会话已受保护</Text>
+          <Text size={200}>
+            凭据和令牌只保存在当前页面内存
+          </Text>
+        </div>
+        <Button appearance="subtle" onClick={() => void signOut()}>
+          退出登录
+        </Button>
+      </header>
+
+      <div className="query-task">
+        <div className="query-task-heading">
+          <Title3>向已发布助手提问</Title3>
+          <Text>
+            系统只会展示经过授权和引用校验的最终回答。
+          </Text>
+        </div>
+
+        <form
+          className="query-form"
+          onSubmit={(event) => {
+            event.preventDefault();
+            void ask();
+          }}
+        >
+          <Field label="已发布助手" required>
+            <Dropdown
+              value={selectedAssistant?.displayName ?? ""}
+              selectedOptions={
+                workflow.selectedAssistantVersionId === undefined
+                  ? []
+                  : [workflow.selectedAssistantVersionId]
+              }
+              disabled={workflow.stage === "querying"}
+              onOptionSelect={(_, data) => {
+                if (data.optionValue !== undefined) {
+                  dispatch({
+                    type: "assistant-selected",
+                    assistantVersionId: data.optionValue,
+                  });
+                }
+              }}
+            >
+              {workflow.assistants.map((assistant) => (
+                <Option
+                  key={assistant.assistantVersionId}
+                  value={assistant.assistantVersionId}
+                  text={`${assistant.displayName}，版本 ${assistant.versionNumber}`}
+                >
+                  {assistant.displayName}
+                  <Text size={200}>
+                    版本 {assistant.versionNumber}
+                  </Text>
+                </Option>
+              ))}
+            </Dropdown>
+          </Field>
+
+          <Field
+            label="问题"
+            hint={`${question.length} / 2000 个字符`}
+            required
+          >
+            <Textarea
+              value={question}
+              maxLength={2000}
+              resize="vertical"
+              disabled={workflow.stage === "querying"}
+              placeholder="请输入需要从已授权资料中核验的问题"
+              onChange={(_, data) => setQuestion(data.value)}
+            />
+          </Field>
+
+          <Button
+            appearance="primary"
+            type="submit"
+            disabled={
+              workflow.stage === "querying"
+              || workflow.selectedAssistantVersionId === undefined
+              || question.trim().length === 0
+            }
+          >
+            {workflow.stage === "querying"
+              ? "正在核验证据"
+              : "提交问题"}
+          </Button>
+        </form>
+
+        {selectedAssistant ? (
+          <div className="assistant-fact">
+            <Badge appearance="tint" color="informative">
+              已发布
+            </Badge>
+            <Text>
+              {selectedAssistant.displayName}，版本{" "}
+              {selectedAssistant.versionNumber}
+            </Text>
+          </div>
+        ) : null}
+      </div>
+
+      <QueryResult
+        workflow={workflow}
+        onRetry={workflow.queryRunId === undefined ? ask : resume}
+        onReloadCatalog={reloadCatalog}
+      />
+    </section>
+  );
+}
+
+function LoginView({
+  busy,
+  feedback,
+  onSubmit,
+}: {
+  busy: boolean;
+  feedback?: QueryWorkflowFeedback;
+  onSubmit: (credentials: LoginCredentials) => Promise<void>;
+}) {
+  const [tenantCode, setTenantCode] = useState("demo-store");
+  const [loginName, setLoginName] = useState("admin");
+  const [password, setPassword] = useState("");
+
+  function submit(event: FormEvent) {
+    event.preventDefault();
+    void onSubmit({ tenantCode, loginName, password });
+  }
+
+  return (
+    <section className="query-login">
+      <div className="query-task-heading">
+        <LockClosed24Regular aria-hidden />
+        <Title3>登录受限演示租户</Title3>
+        <Text>
+          账户决定可用助手和知识范围。凭据不会写入浏览器存储。
+        </Text>
+      </div>
+      {feedback ? (
+        <MessageBar intent="error">
+          <MessageBarBody>
+            <MessageBarTitle>登录未成功</MessageBarTitle>
+            {formatFeedback(feedback, "请检查租户、登录名和密码。")}
+          </MessageBarBody>
+        </MessageBar>
+      ) : null}
+      <form className="query-form" onSubmit={submit}>
+        <Field label="租户编码" required>
+          <Input
+            value={tenantCode}
+            autoComplete="organization"
+            disabled={busy}
+            onChange={(_, data) => setTenantCode(data.value)}
+          />
+        </Field>
+        <Field label="登录名" required>
+          <Input
+            value={loginName}
+            autoComplete="username"
+            disabled={busy}
+            onChange={(_, data) => setLoginName(data.value)}
+          />
+        </Field>
+        <Field label="密码" required>
+          <Input
+            value={password}
+            type="password"
+            autoComplete="current-password"
+            disabled={busy}
+            onChange={(_, data) => setPassword(data.value)}
+          />
+        </Field>
+        <Button
+          appearance="primary"
+          type="submit"
+          disabled={
+            busy
+            || tenantCode.trim().length === 0
+            || loginName.trim().length === 0
+            || password.length === 0
+          }
+        >
+          {busy ? "正在验证身份" : "登录并查看助手"}
+        </Button>
+      </form>
+    </section>
+  );
+}
+
+function CatalogSkeleton() {
+  return (
+    <section
+      className="query-catalog-skeleton"
+      aria-busy="true"
+      aria-label="正在加载已发布助手"
+    >
+      <Skeleton>
+        <SkeletonItem className="skeleton-heading" />
+        <SkeletonItem className="skeleton-field" />
+        <SkeletonItem className="skeleton-answer" />
+      </Skeleton>
+    </section>
+  );
+}
+
+function QueryResult({
+  workflow,
+  onRetry,
+  onReloadCatalog,
+}: {
+  workflow: ReturnType<typeof reduceQueryWorkflow>;
+  onRetry: () => Promise<void>;
+  onReloadCatalog: () => Promise<void>;
+}) {
+  if (workflow.stage === "querying") {
+    return (
+      <MessageBar intent="info">
+        <MessageBarBody>
+          <MessageBarTitle>正在查找并核验授权证据</MessageBarTitle>
+          只有引用验证完成后，回答才会显示。
+        </MessageBarBody>
+      </MessageBar>
+    );
+  }
+
+  if (workflow.stage === "answered" && workflow.answer !== undefined) {
+    return (
+      <article className="query-answer" aria-labelledby="answer-title">
+        <div className="answer-heading">
+          <CheckmarkCircle24Filled aria-hidden />
+          <Title3 id="answer-title">可信回答</Title3>
+        </div>
+        <p className="answer-body">{workflow.answer}</p>
+        <CitationList citations={workflow.citations} />
+      </article>
+    );
+  }
+
+  if (workflow.stage === "refused") {
+    return (
+      <section className="query-refusal">
+        <Warning24Regular aria-hidden />
+        <Title3>没有足够的授权证据</Title3>
+        <Text>
+          没有找到能够回答该问题的已授权且有效的信息。可以换一种问法，
+          或联系知识管理员补充资料。
+        </Text>
+      </section>
+    );
+  }
+
+  if (workflow.stage === "failed" && workflow.feedback) {
+    return (
+      <section className="query-failure">
+        <MessageBar intent="error">
+          <MessageBarBody>
+            <MessageBarTitle>查询未能完成</MessageBarTitle>
+            {workflow.feedback.message}
+            {workflow.feedback.traceId.length > 0
+              ? `，追踪编号：${workflow.feedback.traceId}`
+              : ""}
+          </MessageBarBody>
+        </MessageBar>
+        <div className="query-recovery-actions">
+          <Button appearance="primary" onClick={() => void onRetry()}>
+            {workflow.queryRunId === undefined
+              ? "重试提问"
+              : "继续接收结果"}
+          </Button>
+          <Button
+            appearance="secondary"
+            onClick={() => void onReloadCatalog()}
+          >
+            重新加载助手
+          </Button>
+        </div>
+      </section>
+    );
+  }
+
+  return null;
+}
+
+function CitationList({
+  citations,
+}: {
+  citations: ReturnType<typeof reduceQueryWorkflow>["citations"];
+}) {
+  if (citations.length === 0) {
+    return null;
+  }
+  return (
+    <section className="citation-section" aria-labelledby="citation-title">
+      <Title3 id="citation-title">核验来源</Title3>
+      <ol className="citation-list">
+        {citations.map((citation) => (
+          <li
+            id={`source-${citation.sequence}`}
+            key={`${citation.dataSourceId}-${citation.sequence}`}
+          >
+            <div className="citation-heading">
+              <Text weight="semibold">来源 {citation.sequence}</Text>
+              <Text size={200}>内容版本 {citation.contentVersion}</Text>
+            </div>
+            <blockquote>{citation.quote}</blockquote>
+          </li>
+        ))}
+      </ol>
+    </section>
+  );
+}
+
+function dispatchFailure(
+  dispatch: Dispatch<Parameters<typeof reduceQueryWorkflow>[1]>,
+  error: unknown,
+  client: QueryClient,
+) {
+  if (error instanceof DOMException && error.name === "AbortError") {
+    return;
+  }
+  if (error instanceof QueryApiError) {
+    if (error.status === 401) {
+      client.discardSession();
+    }
+    dispatch({
+      type: "failed",
+      code: error.code,
+      message: error.message,
+      traceId: error.traceId,
+    });
+    return;
+  }
+  dispatch({
+    type: "failed",
+    code: "NETWORK_FAILURE",
+    message: "无法连接查询服务，请检查网络后重试",
+    traceId: "",
+  });
+}
+
+type QueryWorkflowFeedback =
+  ReturnType<typeof reduceQueryWorkflow>["feedback"];
+
+function formatFeedback(
+  feedback: QueryWorkflowFeedback,
+  fallback: string,
+): string {
+  if (feedback === undefined) {
+    return fallback;
+  }
+  return feedback.traceId.length > 0
+    ? `${feedback.message}，追踪编号：${feedback.traceId}`
+    : feedback.message;
+}

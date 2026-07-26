@@ -35,6 +35,11 @@ export function StatePanel({
         <MessageBarBody>
           <MessageBarTitle>{title}</MessageBarTitle>
           {description}
+          {actionLabel && onAction ? (
+            <Button appearance="primary" onClick={onAction}>
+              {actionLabel}
+            </Button>
+          ) : null}
         </MessageBarBody>
       </MessageBar>
     );
