@@ -8,13 +8,15 @@ COPY frontend/package.json frontend/package-lock.json ./
 COPY frontend/apps/console-web/package.json apps/console-web/package.json
 COPY frontend/apps/query-web/package.json apps/query-web/package.json
 COPY frontend/packages/design-system/package.json packages/design-system/package.json
+COPY deploy/config/nginx.conf deploy/config/nginx-console.conf /workspace/runtime-config/
 RUN npm ci
 
 COPY frontend .
 
 # 应用名使用白名单，确保每个镜像只包含一个前端产物。
 RUN case "${APP}" in \
-      console-web|query-web) ;; \
+      console-web) cp /workspace/runtime-config/nginx-console.conf /workspace/runtime-nginx.conf ;; \
+      query-web) cp /workspace/runtime-config/nginx.conf /workspace/runtime-nginx.conf ;; \
       *) echo "不支持的前端应用: ${APP}" >&2; exit 1 ;; \
     esac \
     && npm run build --workspace "@foundation/${APP}"
@@ -22,7 +24,7 @@ RUN case "${APP}" in \
 FROM nginxinc/nginx-unprivileged:1.29.8-alpine3.23@sha256:0c79d56aee561a1d81c63f00eee5fb5fe29279560cdc55e91425133104c7fbe6
 
 ARG APP
-COPY deploy/config/nginx.conf /etc/nginx/conf.d/default.conf
+COPY --from=builder /workspace/runtime-nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=builder "/workspace/apps/${APP}/dist/app" /usr/share/nginx/html
 
 EXPOSE 8080

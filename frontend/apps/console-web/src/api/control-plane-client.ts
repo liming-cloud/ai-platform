@@ -1,0 +1,236 @@
+export interface LoginCredentials {
+  tenantCode: string;
+  loginName: string;
+  password: string;
+}
+
+export interface Session {
+  tokenName: string;
+  tokenValue: string;
+  expiresInSeconds: number;
+}
+
+export interface KnowledgeSpace {
+  id: string;
+  name: string;
+  description: string | null;
+  status: string;
+  version: number;
+  createdAt: string;
+}
+
+export interface TextDataSource {
+  id: string;
+  knowledgeSpaceId: string;
+  name: string;
+  status: string;
+  version: number;
+  contentVersion: number;
+  publishedContentVersion: number;
+  createdAt: string;
+}
+
+interface CursorPage<T> {
+  items: T[];
+  nextCursor: string | null;
+}
+
+interface ApiErrorBody {
+  code: string;
+  message: string;
+  traceId: string;
+}
+
+type IdentifierFactory = () => string;
+
+/**
+ * 控制平面的最小浏览器客户端，只暴露当前知识发布任务所需接口。
+ */
+export class ControlPlaneClient {
+  private tokenValue: string | undefined;
+
+  constructor(
+    private readonly fetcher: typeof fetch = (...args) => fetch(...args),
+    private readonly identifierFactory: IdentifierFactory = () =>
+      crypto.randomUUID(),
+    private readonly baseUrl = "/api/v1",
+  ) {}
+
+  async login(credentials: LoginCredentials): Promise<Session> {
+    const session = await this.request<Session>(
+      "/auth/sessions",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(credentials),
+      },
+      false,
+    );
+    this.tokenValue = session.tokenValue;
+    return session;
+  }
+
+  restoreSession(tokenValue: string): void {
+    if (tokenValue.trim().length === 0) {
+      throw new Error("会话令牌不能为空");
+    }
+    this.tokenValue = tokenValue;
+  }
+
+  async logout(): Promise<void> {
+    await this.request<void>("/auth/sessions/current", { method: "DELETE" });
+    this.tokenValue = undefined;
+  }
+
+  async listKnowledgeSpaces(): Promise<CursorPage<KnowledgeSpace>> {
+    return this.request<CursorPage<KnowledgeSpace>>(
+      "/knowledge-spaces?limit=20",
+    );
+  }
+
+  async createKnowledgeSpace(input: {
+    name: string;
+    description: string;
+  }, idempotencyKey?: string): Promise<KnowledgeSpace> {
+    return this.request<KnowledgeSpace>("/knowledge-spaces", {
+      method: "POST",
+      headers: this.writeHeaders("application/json", idempotencyKey),
+      body: JSON.stringify(input),
+    });
+  }
+
+  async createTextDataSource(
+    knowledgeSpaceId: string,
+    name: string,
+    idempotencyKey?: string,
+  ): Promise<TextDataSource> {
+    return this.request<TextDataSource>("/data-sources", {
+      method: "POST",
+      headers: this.writeHeaders("application/json", idempotencyKey),
+      body: JSON.stringify({ knowledgeSpaceId, name }),
+    });
+  }
+
+  async uploadTextContent(
+    knowledgeSpaceId: string,
+    dataSourceId: string,
+    expectedVersion: number,
+    content: string,
+    idempotencyKey?: string,
+  ): Promise<TextDataSource> {
+    const query = new URLSearchParams({
+      knowledgeSpaceId,
+      expectedVersion: String(expectedVersion),
+    });
+    return this.request<TextDataSource>(
+      `/data-sources/${encodeURIComponent(dataSourceId)}/content?${query}`,
+      {
+        method: "POST",
+        headers: this.writeHeaders(
+          "text/plain; charset=UTF-8",
+          idempotencyKey,
+        ),
+        body: content,
+      },
+    );
+  }
+
+  async publishTextDataSource(
+    knowledgeSpaceId: string,
+    dataSourceId: string,
+    expectedVersion: number,
+    idempotencyKey?: string,
+  ): Promise<TextDataSource> {
+    return this.request<TextDataSource>(
+      `/data-sources/${encodeURIComponent(dataSourceId)}/publish`,
+      {
+        method: "POST",
+        headers: this.writeHeaders("application/json", idempotencyKey),
+        body: JSON.stringify({ knowledgeSpaceId, expectedVersion }),
+      },
+    );
+  }
+
+  private writeHeaders(
+    contentType: string,
+    idempotencyKey?: string,
+  ): HeadersInit {
+    return {
+      "Content-Type": contentType,
+      "Idempotency-Key": idempotencyKey ?? this.identifierFactory(),
+    };
+  }
+
+  private async request<T>(
+    path: string,
+    init: RequestInit = {},
+    authenticated = true,
+  ): Promise<T> {
+    const headers = new Headers(init.headers);
+    headers.set("Accept", "application/json");
+    if (authenticated) {
+      if (this.tokenValue === undefined) {
+        throw new ApiRequestError(
+          401,
+          "AUTHENTICATION_REQUIRED",
+          "需要先登录",
+          "",
+        );
+      }
+      headers.set("Authorization", `Bearer ${this.tokenValue}`);
+    }
+    const response = await this.fetcher(`${this.baseUrl}${path}`, {
+      ...init,
+      headers,
+    });
+    if (!response.ok) {
+      throw await toApiRequestError(response);
+    }
+    if (response.status === 204) {
+      return undefined as T;
+    }
+    return response.json() as Promise<T>;
+  }
+}
+
+export class ApiRequestError extends Error {
+  constructor(
+    readonly status: number,
+    readonly code: string,
+    message: string,
+    readonly traceId: string,
+  ) {
+    super(message);
+    this.name = "ApiRequestError";
+  }
+}
+
+async function toApiRequestError(response: Response): Promise<ApiRequestError> {
+  const fallback = new ApiRequestError(
+    response.status,
+    "REQUEST_FAILED",
+    "请求处理失败，请稍后重试",
+    "",
+  );
+  if (!response.headers.get("Content-Type")?.includes("application/json")) {
+    return fallback;
+  }
+  try {
+    const body = await response.json() as Partial<ApiErrorBody>;
+    if (
+      typeof body.code === "string"
+      && typeof body.message === "string"
+      && typeof body.traceId === "string"
+    ) {
+      return new ApiRequestError(
+        response.status,
+        body.code,
+        body.message,
+        body.traceId,
+      );
+    }
+    return fallback;
+  } catch {
+    return fallback;
+  }
+}
