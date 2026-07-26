@@ -1,10 +1,10 @@
 schemaVersion: 1
 productVersion: foundation-v1
 currentMilestone: M1
-currentFrontier: WP-0003
-lastVerifiedCommit: 8078142163c64841fc59e548cc50df453676bb96
+currentFrontier: WP-0004
+lastVerifiedCommit: 5a5a0ad83e5879979725b60304441568211aaeb4
 activeWorkPackages:
-  - WP-0003
+  - WP-0004
 blockedWorkPackages:
 confirmedDecisions:
   - ADR-0001
@@ -34,6 +34,8 @@ latestEvidence:
   - project/evidence/WP-0003-text-upload-orchestration.md
   - project/evidence/WP-0003-console-publication-flow.md
   - project/evidence/WP-0003-demo-fixtures.md
+  - docs/research/WP-0003-minio-client.md
+  - project/evidence/WP-0003-minio-publication.md
 nextReviewAt: 2026-08-02
-updatedAt: 2026-07-27T01:41:49+08:00
+updatedAt: 2026-07-27T02:07:47+08:00
 updatedBy: codex
