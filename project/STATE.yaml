@@ -1,10 +1,10 @@
 schemaVersion: 1
 productVersion: foundation-v1
 currentMilestone: M1
-currentFrontier: WP-0004
-lastVerifiedCommit: 5a5a0ad83e5879979725b60304441568211aaeb4
+currentFrontier: WP-0005
+lastVerifiedCommit: d78047a9bb58137c6910dbcaac98ac606fbc4867
 activeWorkPackages:
-  - WP-0004
+  - WP-0005
 blockedWorkPackages:
 confirmedDecisions:
   - ADR-0001
@@ -38,6 +38,7 @@ latestEvidence:
   - docs/research/WP-0003-minio-client.md
   - project/evidence/WP-0003-minio-publication.md
   - docs/research/WP-0004-indexing-baseline.md
+  - project/evidence/WP-0004-versioned-index-search.md
 nextReviewAt: 2026-08-02
-updatedAt: 2026-07-27T02:22:00+08:00
+updatedAt: 2026-07-27T03:06:00+08:00
 updatedBy: codex
