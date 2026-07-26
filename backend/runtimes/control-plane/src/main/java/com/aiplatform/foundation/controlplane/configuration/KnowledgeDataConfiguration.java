@@ -5,6 +5,8 @@ import com.aiplatform.foundation.knowledgedata.adapter.out.persistence.PostgresK
 import com.aiplatform.foundation.knowledgedata.adapter.out.persistence.PostgresTextDataSourceRepository;
 import com.aiplatform.foundation.knowledgedata.adapter.out.persistence.TextDataSourceMapper;
 import com.aiplatform.foundation.knowledgedata.api.KnowledgeSpaceUseCase;
+import com.aiplatform.foundation.knowledgedata.api.TextDataSourceUseCase;
+import com.aiplatform.foundation.knowledgedata.application.datasource.DefaultTextDataSourceService;
 import com.aiplatform.foundation.knowledgedata.application.knowledge.DefaultKnowledgeSpaceService;
 import com.aiplatform.foundation.knowledgedata.application.port.out.KnowledgeSpaceRepository;
 import com.aiplatform.foundation.knowledgedata.application.port.out.TextDataSourceRepository;
@@ -51,5 +53,16 @@ public class KnowledgeDataConfiguration {
             TextDataSourceMapper mapper,
             PlatformTransactionManager transactions) {
         return new PostgresTextDataSourceRepository(mapper, transactions);
+    }
+
+    @Bean
+    TextDataSourceUseCase textDataSourceUseCase(
+            TextDataSourceRepository repository,
+            @Value("${foundation.demo.data-source-limit:20}") int tenantLimit) {
+        return new DefaultTextDataSourceService(
+                repository,
+                Clock.systemUTC(),
+                UUID::randomUUID,
+                tenantLimit);
     }
 }

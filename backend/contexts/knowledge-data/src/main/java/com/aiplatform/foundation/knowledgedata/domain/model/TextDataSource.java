@@ -144,7 +144,7 @@ public final class TextDataSource {
 
     public TextDataSource publish() {
         if (status != DataSourceStatus.CONTENT_READY || currentContent == null) {
-            throw new IllegalStateException("只有内容已就绪的数据源才能发布");
+            throw new DataSourceStateException("只有内容已就绪的数据源才能发布");
         }
         return new TextDataSource(
                 tenantId,

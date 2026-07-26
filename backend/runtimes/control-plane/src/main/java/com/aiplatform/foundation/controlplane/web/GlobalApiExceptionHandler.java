@@ -1,17 +1,24 @@
 package com.aiplatform.foundation.controlplane.web;
 
 import com.aiplatform.foundation.organizationaccess.adapter.out.session.InvalidAuthenticatedSessionException;
+import com.aiplatform.foundation.knowledgedata.application.datasource.DataSourceConcurrentModificationException;
+import com.aiplatform.foundation.knowledgedata.application.datasource.DataSourceNameConflictException;
+import com.aiplatform.foundation.knowledgedata.application.datasource.DataSourceNotFoundException;
+import com.aiplatform.foundation.knowledgedata.application.datasource.DataSourceQuotaExceededException;
 import com.aiplatform.foundation.knowledgedata.application.knowledge.IdempotencyConflictException;
 import com.aiplatform.foundation.knowledgedata.application.knowledge.KnowledgePermissionDeniedException;
 import com.aiplatform.foundation.knowledgedata.application.knowledge.KnowledgeSpaceNameConflictException;
 import com.aiplatform.foundation.knowledgedata.application.knowledge.KnowledgeSpaceQuotaExceededException;
+import com.aiplatform.foundation.knowledgedata.domain.model.DataSourceStateException;
 import com.aiplatform.foundation.organizationaccess.application.authentication.InvalidCredentialsException;
 import java.util.Map;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 /**
  * 把内部异常归一为不泄漏资源和凭据事实的公共错误。
@@ -58,9 +65,48 @@ public class GlobalApiExceptionHandler {
                 "知识空间数量已经达到租户配额");
     }
 
+    @ExceptionHandler(DataSourceNotFoundException.class)
+    ResponseEntity<ApiErrorResponse> dataSourceNotFound() {
+        return error(HttpStatus.NOT_FOUND, "RESOURCE_NOT_FOUND", "目标资源不存在");
+    }
+
+    @ExceptionHandler(DataSourceNameConflictException.class)
+    ResponseEntity<ApiErrorResponse> dataSourceNameConflict() {
+        return error(
+                HttpStatus.CONFLICT,
+                "DATA_SOURCE_NAME_CONFLICT",
+                "当前知识空间已经存在同名数据源");
+    }
+
+    @ExceptionHandler(DataSourceQuotaExceededException.class)
+    ResponseEntity<ApiErrorResponse> dataSourceQuotaExceeded() {
+        return error(
+                HttpStatus.TOO_MANY_REQUESTS,
+                "DATA_SOURCE_QUOTA_EXCEEDED",
+                "数据源数量已经达到租户配额");
+    }
+
+    @ExceptionHandler(DataSourceConcurrentModificationException.class)
+    ResponseEntity<ApiErrorResponse> dataSourceVersionConflict() {
+        return error(
+                HttpStatus.CONFLICT,
+                "DATA_SOURCE_VERSION_CONFLICT",
+                "数据源版本已经变化");
+    }
+
+    @ExceptionHandler(DataSourceStateException.class)
+    ResponseEntity<ApiErrorResponse> dataSourceStateConflict() {
+        return error(
+                HttpStatus.CONFLICT,
+                "DATA_SOURCE_STATE_CONFLICT",
+                "数据源当前状态不允许该操作");
+    }
+
     @ExceptionHandler({
         IllegalArgumentException.class,
-        HttpMessageNotReadableException.class
+        HttpMessageNotReadableException.class,
+        MissingServletRequestParameterException.class,
+        MethodArgumentTypeMismatchException.class
     })
     ResponseEntity<ApiErrorResponse> invalidRequest() {
         return error(HttpStatus.BAD_REQUEST, "INVALID_REQUEST", "请求格式不正确");

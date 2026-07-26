@@ -11,6 +11,8 @@ import com.aiplatform.foundation.knowledgedata.application.port.out.TextDataSour
 import com.aiplatform.foundation.knowledgedata.application.port.out.TextDataSourceMutationOutcome;
 import com.aiplatform.foundation.knowledgedata.application.port.out.TextDataSourcePublication;
 import com.aiplatform.foundation.knowledgedata.application.port.out.TextDataSourceRepository;
+import com.aiplatform.foundation.knowledgedata.application.port.out.TextDataSourceSlice;
+import com.aiplatform.foundation.knowledgedata.application.port.out.TextDataSourceSummary;
 import com.aiplatform.foundation.knowledgedata.domain.model.DataSourceId;
 import com.aiplatform.foundation.knowledgedata.domain.model.DataSourceStatus;
 import com.aiplatform.foundation.knowledgedata.domain.model.KnowledgeSpaceId;
@@ -21,7 +23,9 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
+import java.util.Base64;
 import java.util.HexFormat;
+import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 import org.springframework.dao.DuplicateKeyException;
@@ -33,6 +37,7 @@ import org.springframework.transaction.support.TransactionTemplate;
  */
 public final class PostgresTextDataSourceRepository implements TextDataSourceRepository {
 
+    private static final int MAX_CURSOR_LENGTH = 512;
     private static final String CREATE = "CREATE";
     private static final String ATTACH_CONTENT = "ATTACH_CONTENT";
     private static final String PUBLISH = "PUBLISH";
@@ -74,6 +79,46 @@ public final class PostgresTextDataSourceRepository implements TextDataSourceRep
         Objects.requireNonNull(publication, "数据源发布请求不能为空");
         var result = transactions.execute(status -> publishInTransaction(publication));
         return Objects.requireNonNull(result, "数据源发布事务没有返回结果");
+    }
+
+    @Override
+    public TextDataSourceSlice findPage(
+            TenantId tenantId,
+            KnowledgeSpaceId knowledgeSpaceId,
+            String cursor,
+            int limit) {
+        Objects.requireNonNull(tenantId, "租户标识不能为空");
+        Objects.requireNonNull(knowledgeSpaceId, "知识空间标识不能为空");
+        if (limit < 1 || limit > 100) {
+            throw new IllegalArgumentException("分页条数必须在 1 到 100 之间");
+        }
+        var fetchLimit = limit + 1;
+        List<TextDataSourceRow> rows;
+        if (cursor == null) {
+            rows = mapper.findFirstPage(
+                    tenantId.value(),
+                    knowledgeSpaceId.value(),
+                    fetchLimit);
+        } else {
+            var position = decodeCursor(cursor);
+            rows = mapper.findAfter(
+                    tenantId.value(),
+                    knowledgeSpaceId.value(),
+                    position.createdAt(),
+                    position.id(),
+                    fetchLimit);
+        }
+        var hasNext = rows.size() > limit;
+        var pageRows = hasNext ? rows.subList(0, limit) : rows;
+        var items = pageRows.stream()
+                .map(PostgresTextDataSourceRepository::toSummary)
+                .toList();
+        var nextCursor = hasNext
+                ? encodeCursor(
+                        pageRows.getLast().getCreatedAt(),
+                        UUID.fromString(pageRows.getLast().getId()))
+                : null;
+        return new TextDataSourceSlice(items, nextCursor);
     }
 
     private TextDataSourceMutationOutcome createInTransaction(
@@ -274,6 +319,18 @@ public final class PostgresTextDataSourceRepository implements TextDataSourceRep
                 row.getCreatedAt());
     }
 
+    private static TextDataSourceSummary toSummary(TextDataSourceRow row) {
+        return new TextDataSourceSummary(
+                new DataSourceId(UUID.fromString(row.getId())),
+                new KnowledgeSpaceId(UUID.fromString(row.getKnowledgeSpaceId())),
+                row.getName(),
+                DataSourceStatus.valueOf(row.getStatus()),
+                row.getVersion(),
+                row.getContentVersion(),
+                row.getPublishedContentVersion(),
+                row.getCreatedAt());
+    }
+
     private TextContentReference requireContent(
             UUID tenantId,
             UUID knowledgeSpaceId,
@@ -358,5 +415,38 @@ public final class PostgresTextDataSourceRepository implements TextDataSourceRep
         } catch (NoSuchAlgorithmException exception) {
             throw new IllegalStateException("当前 JDK 不支持 SHA-256", exception);
         }
+    }
+
+    private static String encodeCursor(Instant createdAt, UUID id) {
+        var payload = createdAt + "|" + id;
+        return Base64.getUrlEncoder()
+                .withoutPadding()
+                .encodeToString(payload.getBytes(StandardCharsets.UTF_8));
+    }
+
+    private static CursorPosition decodeCursor(String cursor) {
+        if (cursor == null
+                || cursor.isBlank()
+                || cursor.length() > MAX_CURSOR_LENGTH
+                || !cursor.equals(cursor.trim())) {
+            throw new IllegalArgumentException("游标格式不正确");
+        }
+        try {
+            var payload = new String(
+                    Base64.getUrlDecoder().decode(cursor),
+                    StandardCharsets.UTF_8);
+            var separator = payload.lastIndexOf('|');
+            if (separator < 1 || separator == payload.length() - 1) {
+                throw new IllegalArgumentException("游标格式不正确");
+            }
+            return new CursorPosition(
+                    Instant.parse(payload.substring(0, separator)),
+                    UUID.fromString(payload.substring(separator + 1)));
+        } catch (IllegalArgumentException exception) {
+            throw new IllegalArgumentException("游标格式不正确", exception);
+        }
+    }
+
+    private record CursorPosition(Instant createdAt, UUID id) {
     }
 }

@@ -1,6 +1,7 @@
 package com.aiplatform.foundation.knowledgedata.adapter.out.persistence;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Param;
@@ -132,6 +133,55 @@ public interface TextDataSourceMapper {
             @Param("tenantId") UUID tenantId,
             @Param("knowledgeSpaceId") UUID knowledgeSpaceId,
             @Param("id") UUID id);
+
+    @Select("""
+            SELECT tenant_id::text AS tenant_id,
+                   knowledge_space_id::text AS knowledge_space_id,
+                   id::text AS id,
+                   name,
+                   status,
+                   version,
+                   content_version,
+                   published_content_version,
+                   created_by::text AS created_by,
+                   created_at
+            FROM knowledge_data.text_data_source
+            WHERE tenant_id = #{tenantId}
+              AND knowledge_space_id = #{knowledgeSpaceId}
+            ORDER BY created_at DESC, id DESC
+            LIMIT #{limit}
+            """)
+    @ResultMap("textDataSourceRow")
+    List<TextDataSourceRow> findFirstPage(
+            @Param("tenantId") UUID tenantId,
+            @Param("knowledgeSpaceId") UUID knowledgeSpaceId,
+            @Param("limit") int limit);
+
+    @Select("""
+            SELECT tenant_id::text AS tenant_id,
+                   knowledge_space_id::text AS knowledge_space_id,
+                   id::text AS id,
+                   name,
+                   status,
+                   version,
+                   content_version,
+                   published_content_version,
+                   created_by::text AS created_by,
+                   created_at
+            FROM knowledge_data.text_data_source
+            WHERE tenant_id = #{tenantId}
+              AND knowledge_space_id = #{knowledgeSpaceId}
+              AND (created_at, id) < (#{createdAt}, #{id})
+            ORDER BY created_at DESC, id DESC
+            LIMIT #{limit}
+            """)
+    @ResultMap("textDataSourceRow")
+    List<TextDataSourceRow> findAfter(
+            @Param("tenantId") UUID tenantId,
+            @Param("knowledgeSpaceId") UUID knowledgeSpaceId,
+            @Param("createdAt") Instant createdAt,
+            @Param("id") UUID id,
+            @Param("limit") int limit);
 
     @Select("""
             SELECT request_fingerprint,

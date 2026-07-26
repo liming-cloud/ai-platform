@@ -297,6 +297,42 @@ class PostgresTextDataSourceRepositoryTest {
         assertEquals(0, countEvents(STORE_TENANT, "TEXT_DATA_SOURCE_PUBLISHED"));
     }
 
+    @Test
+    void 数据源列表使用稳定游标并拒绝畸形游标() {
+        for (var index = 0; index < 3; index++) {
+            repository.create(creation(
+                    STORE_TENANT,
+                    STORE_SPACE,
+                    new DataSourceId(UUID.randomUUID()),
+                    "分页文本" + index,
+                    "page-source-000" + index,
+                    Integer.toHexString(index).repeat(64)), 20);
+        }
+
+        var first = repository.findPage(STORE_TENANT, STORE_SPACE, null, 2);
+        var second = repository.findPage(
+                STORE_TENANT,
+                STORE_SPACE,
+                first.nextCursor(),
+                2);
+
+        assertEquals(2, first.items().size());
+        assertEquals(1, second.items().size());
+        assertTrue(first.nextCursor() != null);
+        assertTrue(second.nextCursor() == null);
+        assertFalse(first.items().stream()
+                .map(item -> item.id())
+                .toList()
+                .contains(second.items().getFirst().id()));
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> repository.findPage(
+                        STORE_TENANT,
+                        STORE_SPACE,
+                        "不是有效游标",
+                        2));
+    }
+
     private static TextDataSourceCreation creation(
             TenantId tenantId,
             KnowledgeSpaceId spaceId,
