@@ -2,7 +2,7 @@ schemaVersion: 1
 productVersion: foundation-v1
 currentMilestone: M1
 currentFrontier: WP-0006
-lastVerifiedCommit: 656eafab3564cbe5e79ec74e17a4fd87a189a796
+lastVerifiedCommit: 29050035252d88681b311ca984f1b68251378f33
 activeWorkPackages:
   - WP-0006
 blockedWorkPackages:
@@ -51,6 +51,7 @@ latestEvidence:
   - project/evidence/WP-0005-trusted-query-core.md
   - project/evidence/WP-0005-query-event-stream.md
   - project/evidence/WP-0005-query-web-flow.md
+  - project/evidence/WP-0006-query-quota.md
 nextReviewAt: 2026-08-02
-updatedAt: 2026-07-27T06:22:30+08:00
+updatedAt: 2026-07-27T06:37:21+08:00
 updatedBy: codex
