@@ -87,6 +87,7 @@ class PostgresQueryRunRepositoryTest {
 
     @BeforeEach
     void prepareFacts() {
+        jdbc.update("DELETE FROM trusted_query.query_run_event");
         jdbc.update("DELETE FROM trusted_query.query_citation");
         jdbc.update("DELETE FROM trusted_query.query_run_request");
         jdbc.update("DELETE FROM trusted_query.query_run");
@@ -135,6 +136,8 @@ class PostgresQueryRunRepositoryTest {
                 running(),
                 "query-key-001",
                 "b".repeat(64));
+        var allEvents = repository.findEvents(TENANT, answered.id(), 0, 10);
+        var resumedEvents = repository.findEvents(TENANT, answered.id(), 1, 10);
 
         assertEquals(QueryRunClaimState.CLAIMED, claimed.state());
         assertEquals(QueryRunClaimState.IN_PROGRESS, inProgress.state());
@@ -142,9 +145,25 @@ class PostgresQueryRunRepositoryTest {
         assertEquals(answered.id(), replayed.queryRun().id());
         assertEquals(1, replayed.queryRun().citations().size());
         assertEquals(15, replayed.queryRun().usage().totalTokens());
+        assertEquals(List.of(1L, 2L), allEvents.stream()
+                .map(event -> event.sequence())
+                .toList());
+        assertEquals(
+                com.aiplatform.foundation.trustedquery.domain.QueryRunEventType
+                        .QUERY_ANSWERED,
+                allEvents.getLast().type());
+        assertEquals(answered.citations(), allEvents.getLast().citations());
+        assertEquals(List.of(2L), resumedEvents.stream()
+                .map(event -> event.sequence())
+                .toList());
         assertTrue(repository.find(
                 new TenantId(UUID.randomUUID()),
                 answered.id()).isEmpty());
+        assertTrue(repository.findEvents(
+                new TenantId(UUID.randomUUID()),
+                answered.id(),
+                0,
+                10).isEmpty());
     }
 
     @Test

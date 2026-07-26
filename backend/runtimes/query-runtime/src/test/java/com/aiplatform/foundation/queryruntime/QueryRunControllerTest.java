@@ -1,6 +1,7 @@
 package com.aiplatform.foundation.queryruntime;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import com.aiplatform.foundation.kernel.tenant.TenantId;
 import com.aiplatform.foundation.modelruntime.api.model.ModelUsage;
@@ -10,10 +11,14 @@ import com.aiplatform.foundation.organizationaccess.api.model.MembershipId;
 import com.aiplatform.foundation.organizationaccess.api.model.PermissionCode;
 import com.aiplatform.foundation.organizationaccess.api.model.SubjectId;
 import com.aiplatform.foundation.organizationaccess.api.model.TrustedRequestContext;
+import com.aiplatform.foundation.trustedquery.api.QueryRunEventUseCase;
 import com.aiplatform.foundation.trustedquery.api.QueryRunUseCase;
 import com.aiplatform.foundation.trustedquery.api.model.CreateQueryRunCommand;
 import com.aiplatform.foundation.trustedquery.api.model.CreateQueryRunResult;
 import com.aiplatform.foundation.trustedquery.api.model.GetQueryRunQuery;
+import com.aiplatform.foundation.trustedquery.api.model.ListQueryRunEventsQuery;
+import com.aiplatform.foundation.trustedquery.api.model.QueryRunEventPage;
+import com.aiplatform.foundation.trustedquery.api.model.QueryRunEventView;
 import com.aiplatform.foundation.trustedquery.api.model.QueryRunView;
 import java.time.Instant;
 import java.util.List;
@@ -32,7 +37,9 @@ class QueryRunControllerTest {
     @Test
     void 创建接口传递可信上下文和幂等键并返回资源位置() {
         var useCase = new RecordingUseCase();
-        var controller = new QueryRunController(useCase);
+        var controller = new QueryRunController(
+                useCase,
+                new RecordingEventUseCase());
 
         var response = controller.create(
                 context(),
@@ -44,6 +51,18 @@ class QueryRunControllerTest {
         assertEquals("false", response.getHeaders().getFirst("Idempotency-Replayed"));
         assertEquals("query-key-001", useCase.command.idempotencyKey());
         assertEquals(VERSION, useCase.command.assistantVersionId());
+    }
+
+    @Test
+    void 事件接口使用最后事件编号恢复且不重复返回旧事件() {
+        var events = new RecordingEventUseCase();
+        var controller = new QueryRunController(new RecordingUseCase(), events);
+
+        var emitter = controller.events(context(), RUN, "1", 0);
+
+        assertNotNull(emitter);
+        assertEquals(1, events.query.afterSequence());
+        assertEquals(RUN, events.query.queryRunId());
     }
 
     private static TrustedRequestContext context() {
@@ -87,6 +106,30 @@ class QueryRunControllerTest {
         @Override
         public QueryRunView get(GetQueryRunQuery query) {
             return view();
+        }
+    }
+
+    private static final class RecordingEventUseCase
+            implements QueryRunEventUseCase {
+
+        private ListQueryRunEventsQuery query;
+
+        @Override
+        public QueryRunEventPage list(ListQueryRunEventsQuery value) {
+            query = value;
+            return new QueryRunEventPage(
+                    List.of(new QueryRunEventView(
+                            2,
+                            "QUERY_REFUSED",
+                            "REFUSED",
+                            null,
+                            "INSUFFICIENT_EVIDENCE",
+                            List.of(),
+                            ModelUsage.UNKNOWN,
+                            Instant.parse("2026-07-27T05:00:01Z"),
+                            true)),
+                    2,
+                    true);
         }
     }
 }

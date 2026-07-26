@@ -11,11 +11,14 @@ import com.aiplatform.foundation.trustedquery.application.port.out.QueryRunRepos
 import com.aiplatform.foundation.trustedquery.domain.QueryCitation;
 import com.aiplatform.foundation.trustedquery.domain.QueryRefusalReason;
 import com.aiplatform.foundation.trustedquery.domain.QueryRun;
+import com.aiplatform.foundation.trustedquery.domain.QueryRunEvent;
+import com.aiplatform.foundation.trustedquery.domain.QueryRunEventType;
 import com.aiplatform.foundation.trustedquery.domain.QueryRunStatus;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
@@ -83,6 +86,7 @@ public final class PostgresQueryRunRepository implements QueryRunRepository {
             for (var citation : queryRun.citations()) {
                 insertCitation(queryRun, citation);
             }
+            insertEvent(QueryRunEvent.completed(queryRun, 2));
             return Boolean.TRUE;
         });
         Objects.requireNonNull(result, "查询完成事务没有返回结果");
@@ -94,6 +98,34 @@ public final class PostgresQueryRunRepository implements QueryRunRepository {
         Objects.requireNonNull(queryRunId, "查询运行标识不能为空");
         var row = mapper.findRun(tenantId.value(), queryRunId);
         return row == null ? Optional.empty() : Optional.of(toRun(row));
+    }
+
+    @Override
+    public List<QueryRunEvent> findEvents(
+            TenantId tenantId,
+            UUID queryRunId,
+            long afterSequence,
+            int limit) {
+        Objects.requireNonNull(tenantId, "租户标识不能为空");
+        Objects.requireNonNull(queryRunId, "查询运行标识不能为空");
+        if (afterSequence < 0 || limit < 1 || limit > 100) {
+            throw new IllegalArgumentException("查询事件游标或数量不正确");
+        }
+        var rows = mapper.findEvents(
+                tenantId.value(),
+                queryRunId,
+                afterSequence,
+                limit);
+        var citations = rows.stream()
+                .anyMatch(row -> QueryRunStatus.ANSWERED.name().equals(row.getStatus()))
+                ? mapper.findCitations(tenantId.value(), queryRunId)
+                        .stream()
+                        .map(PostgresQueryRunRepository::toCitation)
+                        .toList()
+                : List.<QueryCitation>of();
+        return rows.stream()
+                .map(row -> toEvent(row, citations))
+                .toList();
     }
 
     private QueryRunClaim claimInTransaction(
@@ -133,6 +165,7 @@ public final class PostgresQueryRunRepository implements QueryRunRepository {
                 requestFingerprint,
                 queryRun.id(),
                 queryRun.createdAt());
+        insertEvent(QueryRunEvent.started(queryRun));
         return new QueryRunClaim(queryRun, QueryRunClaimState.CLAIMED);
     }
 
@@ -174,6 +207,47 @@ public final class PostgresQueryRunRepository implements QueryRunRepository {
                 citation.ordinal(),
                 citation.quote(),
                 citation.score());
+    }
+
+    private void insertEvent(QueryRunEvent event) {
+        var usage = event.usage();
+        mapper.insertEvent(
+                event.tenantId().value(),
+                event.queryRunId(),
+                event.sequence(),
+                event.type().name(),
+                event.status().name(),
+                event.answer(),
+                event.refusalReason() == null
+                        ? null
+                        : event.refusalReason().name(),
+                usage.inputTokens(),
+                usage.outputTokens(),
+                usage.totalTokens(),
+                event.occurredAt());
+    }
+
+    private static QueryRunEvent toEvent(
+            QueryRunEventRow row,
+            List<QueryCitation> citations) {
+        return QueryRunEvent.reconstitute(
+                TenantId.parse(row.getTenantId()),
+                UUID.fromString(row.getQueryRunId()),
+                row.getSequence(),
+                QueryRunEventType.valueOf(row.getEventType()),
+                QueryRunStatus.valueOf(row.getStatus()),
+                row.getAnswer(),
+                row.getRefusalReason() == null
+                        ? null
+                        : QueryRefusalReason.valueOf(row.getRefusalReason()),
+                QueryRunStatus.ANSWERED.name().equals(row.getStatus())
+                        ? citations
+                        : List.of(),
+                new ModelUsage(
+                        row.getInputTokens(),
+                        row.getOutputTokens(),
+                        row.getTotalTokens()),
+                row.getOccurredAt());
     }
 
     private static QueryCitation toCitation(QueryCitationRow row) {

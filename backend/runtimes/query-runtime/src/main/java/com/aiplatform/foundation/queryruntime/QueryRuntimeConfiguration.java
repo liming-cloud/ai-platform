@@ -28,8 +28,10 @@ import com.aiplatform.foundation.provider.deterministic.DeterministicEmbeddingMo
 import com.aiplatform.foundation.trustedquery.adapter.out.persistence.PostgresQueryRunRepository;
 import com.aiplatform.foundation.trustedquery.adapter.out.persistence.QueryRunMapper;
 import com.aiplatform.foundation.trustedquery.api.CandidateSearchUseCase;
+import com.aiplatform.foundation.trustedquery.api.QueryRunEventUseCase;
 import com.aiplatform.foundation.trustedquery.api.QueryRunUseCase;
 import com.aiplatform.foundation.trustedquery.application.DefaultCandidateSearchService;
+import com.aiplatform.foundation.trustedquery.application.DefaultQueryRunEventService;
 import com.aiplatform.foundation.trustedquery.application.DefaultQueryRunService;
 import com.aiplatform.foundation.trustedquery.application.port.out.QueryRunRepository;
 import com.aiplatform.foundation.vectorstore.pgvector.PgVectorIndexStore;
@@ -161,5 +163,10 @@ public class QueryRuntimeConfiguration {
                 repository,
                 Clock.systemUTC(),
                 UUID::randomUUID);
+    }
+
+    @Bean
+    QueryRunEventUseCase queryRunEventUseCase(QueryRunRepository repository) {
+        return new DefaultQueryRunEventService(repository);
     }
 }

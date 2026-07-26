@@ -2,6 +2,8 @@ package com.aiplatform.foundation.trustedquery.application.port.out;
 
 import com.aiplatform.foundation.kernel.tenant.TenantId;
 import com.aiplatform.foundation.trustedquery.domain.QueryRun;
+import com.aiplatform.foundation.trustedquery.domain.QueryRunEvent;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -18,4 +20,10 @@ public interface QueryRunRepository {
     void complete(QueryRun queryRun, long expectedVersion);
 
     Optional<QueryRun> find(TenantId tenantId, UUID queryRunId);
+
+    List<QueryRunEvent> findEvents(
+            TenantId tenantId,
+            UUID queryRunId,
+            long afterSequence,
+            int limit);
 }

@@ -227,4 +227,82 @@ public interface QueryRunMapper {
             @Param("ordinal") int ordinal,
             @Param("quote") String quote,
             @Param("score") double score);
+
+    @Insert("""
+            INSERT INTO trusted_query.query_run_event (
+                tenant_id,
+                query_run_id,
+                sequence,
+                event_type,
+                status,
+                answer,
+                refusal_reason,
+                input_tokens,
+                output_tokens,
+                total_tokens,
+                occurred_at
+            ) VALUES (
+                #{tenantId},
+                #{queryRunId},
+                #{sequence},
+                #{eventType},
+                #{status},
+                #{answer},
+                #{refusalReason},
+                #{inputTokens},
+                #{outputTokens},
+                #{totalTokens},
+                #{occurredAt}
+            )
+            """)
+    int insertEvent(
+            @Param("tenantId") UUID tenantId,
+            @Param("queryRunId") UUID queryRunId,
+            @Param("sequence") long sequence,
+            @Param("eventType") String eventType,
+            @Param("status") String status,
+            @Param("answer") String answer,
+            @Param("refusalReason") String refusalReason,
+            @Param("inputTokens") int inputTokens,
+            @Param("outputTokens") int outputTokens,
+            @Param("totalTokens") int totalTokens,
+            @Param("occurredAt") Instant occurredAt);
+
+    @Select("""
+            SELECT tenant_id::text AS tenant_id,
+                   query_run_id::text AS query_run_id,
+                   sequence,
+                   event_type,
+                   status,
+                   answer,
+                   refusal_reason,
+                   input_tokens,
+                   output_tokens,
+                   total_tokens,
+                   occurred_at
+            FROM trusted_query.query_run_event
+            WHERE tenant_id = #{tenantId}
+              AND query_run_id = #{queryRunId}
+              AND sequence > #{afterSequence}
+            ORDER BY sequence
+            LIMIT #{limit}
+            """)
+    @Results(id = "queryRunEventRow", value = {
+        @Result(column = "tenant_id", property = "tenantId"),
+        @Result(column = "query_run_id", property = "queryRunId"),
+        @Result(column = "sequence", property = "sequence"),
+        @Result(column = "event_type", property = "eventType"),
+        @Result(column = "status", property = "status"),
+        @Result(column = "answer", property = "answer"),
+        @Result(column = "refusal_reason", property = "refusalReason"),
+        @Result(column = "input_tokens", property = "inputTokens"),
+        @Result(column = "output_tokens", property = "outputTokens"),
+        @Result(column = "total_tokens", property = "totalTokens"),
+        @Result(column = "occurred_at", property = "occurredAt")
+    })
+    List<QueryRunEventRow> findEvents(
+            @Param("tenantId") UUID tenantId,
+            @Param("queryRunId") UUID queryRunId,
+            @Param("afterSequence") long afterSequence,
+            @Param("limit") int limit);
 }

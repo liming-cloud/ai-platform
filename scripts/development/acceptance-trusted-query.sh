@@ -75,6 +75,22 @@ query() {
       "${QUERY_API_ROOT}/query-runs"
 }
 
+query_events() {
+  local token="$1"
+  local query_run_id="$2"
+  local last_event_id="${3:-}"
+  local -a headers=(
+    -H "Authorization: Bearer ${token}"
+    -H "Accept: text/event-stream"
+  )
+  if [[ -n "${last_event_id}" ]]; then
+    headers+=(-H "Last-Event-ID: ${last_event_id}")
+  fi
+  curl --fail-with-body --silent --show-error \
+    "${headers[@]}" \
+    "${QUERY_API_ROOT}/query-runs/${query_run_id}/events"
+}
+
 create_strict_version() {
   local token="$1"
   local assistant_id="$2"
@@ -163,6 +179,23 @@ jq -e \
   '.id == $id and .status == "ANSWERED"' \
   >/dev/null <<<"${store_replayed}"
 
+store_run_id="$(jq -er '.id' <<<"${store_answer}")"
+store_events="$(query_events "${store_token}" "${store_run_id}" | tr -d '\r')"
+store_resumed_events="$(
+  query_events "${store_token}" "${store_run_id}" "1" | tr -d '\r'
+)"
+store_completed_events="$(
+  query_events "${store_token}" "${store_run_id}" "2" | tr -d '\r'
+)"
+[[ "$(awk -F: '/^id:/{print $2}' <<<"${store_events}")" == $'1\n2' ]]
+[[ "$(awk -F: '/^event:/{print $2}' <<<"${store_events}")" \
+  == $'QUERY_STARTED\nQUERY_ANSWERED' ]]
+grep -q '"sequence":1' <<<"${store_events}"
+grep -q '"sequence":2' <<<"${store_events}"
+[[ "$(awk -F: '/^id:/{print $2}' <<<"${store_resumed_events}")" == "2" ]]
+! grep -q '^id:1$' <<<"${store_resumed_events}"
+[[ -z "${store_completed_events}" ]]
+
 IFS='|' read -r assistant_id deployment_id space_id <<<"$(
   compose exec -T postgres \
     psql \
@@ -206,13 +239,19 @@ jq -e \
     and (.citations | length == 0)' \
   >/dev/null <<<"${refused}"
 
-store_run_id="$(jq -er '.id' <<<"${store_answer}")"
 cross_status="$(
   curl --silent --output /dev/null --write-out "%{http_code}" \
     -H "Authorization: Bearer ${campus_token}" \
     "${QUERY_API_ROOT}/query-runs/${store_run_id}"
 )"
 [[ "${cross_status}" == "404" ]]
+cross_event_status="$(
+  curl --silent --output /dev/null --write-out "%{http_code}" \
+    -H "Authorization: Bearer ${campus_token}" \
+    -H "Accept: text/event-stream" \
+    "${QUERY_API_ROOT}/query-runs/${store_run_id}/events"
+)"
+[[ "${cross_event_status}" == "404" ]]
 
 readonly STORE_ANSWER_KEY_HASH="$(
   printf '%s' 'acceptance-store-query-v3' | shasum -a 256 | awk '{print $1}'
@@ -237,5 +276,19 @@ readonly STORE_RUN_COUNT="$(
     "
 )"
 [[ "${STORE_RUN_COUNT}" == "2" ]]
+readonly STORE_EVENT_COUNT="$(
+  compose exec -T postgres \
+    psql \
+    -U foundation_app \
+    -d foundation_v1 \
+    -At \
+    -c "
+      SELECT count(*)
+      FROM trusted_query.query_run_event
+      WHERE tenant_id = '${STORE_TENANT}'
+        AND query_run_id = '${store_run_id}';
+    "
+)"
+[[ "${STORE_EVENT_COUNT}" == "2" ]]
 
-echo "可信查询容器验收通过：门店与校园带引用回答、证据不足拒答、幂等计量和租户隔离均通过"
+echo "可信查询容器验收通过：带引用回答、拒答、幂等计量、单调事件重连和租户隔离均通过"

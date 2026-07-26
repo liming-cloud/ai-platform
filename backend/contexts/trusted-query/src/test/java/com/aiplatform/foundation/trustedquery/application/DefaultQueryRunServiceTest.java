@@ -292,5 +292,14 @@ class DefaultQueryRunServiceTest {
             }
             return Optional.empty();
         }
+
+        @Override
+        public List<com.aiplatform.foundation.trustedquery.domain.QueryRunEvent> findEvents(
+                TenantId tenantId,
+                UUID queryRunId,
+                long afterSequence,
+                int limit) {
+            return List.of();
+        }
     }
 }
