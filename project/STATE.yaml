@@ -2,7 +2,7 @@ schemaVersion: 1
 productVersion: foundation-v1
 currentMilestone: M1
 currentFrontier: WP-0003
-lastVerifiedCommit: 8821c0b92758878eec954969ad5e5d857786d07a
+lastVerifiedCommit: b7474dd72a5218f8b2160066ebe7607c38cc9546
 activeWorkPackages:
   - WP-0003
 blockedWorkPackages:
@@ -30,6 +30,7 @@ latestEvidence:
   - project/evidence/WP-0003-knowledge-space.md
   - project/evidence/WP-0003-text-staging.md
   - project/evidence/WP-0003-text-data-source-transaction.md
+  - project/evidence/WP-0003-text-data-source-api.md
 nextReviewAt: 2026-08-02
-updatedAt: 2026-07-27T01:07:00+08:00
+updatedAt: 2026-07-27T01:14:00+08:00
 updatedBy: codex
