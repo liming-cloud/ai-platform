@@ -16,6 +16,7 @@ confirmedDecisions:
   - ADR-0007
   - ADR-0008
   - ADR-0009
+  - ADR-0010
 openDecisions: []
 latestEvidence:
   - project/evidence/WP-0002-backend-baseline.md
