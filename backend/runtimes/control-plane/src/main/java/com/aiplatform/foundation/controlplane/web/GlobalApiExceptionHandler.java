@@ -5,6 +5,10 @@ import com.aiplatform.foundation.knowledgedata.application.datasource.DataSource
 import com.aiplatform.foundation.knowledgedata.application.datasource.DataSourceNameConflictException;
 import com.aiplatform.foundation.knowledgedata.application.datasource.DataSourceNotFoundException;
 import com.aiplatform.foundation.knowledgedata.application.datasource.DataSourceQuotaExceededException;
+import com.aiplatform.foundation.knowledgedata.application.content.InvalidTextContentException;
+import com.aiplatform.foundation.knowledgedata.application.content.ObjectStorageUnavailableException;
+import com.aiplatform.foundation.knowledgedata.application.content.TextContentIntegrityException;
+import com.aiplatform.foundation.knowledgedata.application.content.TextContentProcessingException;
 import com.aiplatform.foundation.knowledgedata.application.knowledge.IdempotencyConflictException;
 import com.aiplatform.foundation.knowledgedata.application.knowledge.KnowledgePermissionDeniedException;
 import com.aiplatform.foundation.knowledgedata.application.knowledge.KnowledgeSpaceNameConflictException;
@@ -100,6 +104,38 @@ public class GlobalApiExceptionHandler {
                 HttpStatus.CONFLICT,
                 "DATA_SOURCE_STATE_CONFLICT",
                 "数据源当前状态不允许该操作");
+    }
+
+    @ExceptionHandler(InvalidTextContentException.class)
+    ResponseEntity<ApiErrorResponse> invalidTextContent() {
+        return error(
+                HttpStatus.BAD_REQUEST,
+                "INVALID_TEXT_CONTENT",
+                "文本内容不符合上传要求");
+    }
+
+    @ExceptionHandler(ObjectStorageUnavailableException.class)
+    ResponseEntity<ApiErrorResponse> objectStorageUnavailable() {
+        return error(
+                HttpStatus.SERVICE_UNAVAILABLE,
+                "OBJECT_STORAGE_UNAVAILABLE",
+                "对象存储当前不可用");
+    }
+
+    @ExceptionHandler(TextContentIntegrityException.class)
+    ResponseEntity<ApiErrorResponse> textContentIntegrityFailure() {
+        return error(
+                HttpStatus.BAD_GATEWAY,
+                "TEXT_CONTENT_INTEGRITY_FAILURE",
+                "文本内容完整性核验失败");
+    }
+
+    @ExceptionHandler(TextContentProcessingException.class)
+    ResponseEntity<ApiErrorResponse> textContentProcessingFailure() {
+        return error(
+                HttpStatus.SERVICE_UNAVAILABLE,
+                "TEXT_CONTENT_PROCESSING_FAILURE",
+                "文本内容处理暂时失败");
     }
 
     @ExceptionHandler({

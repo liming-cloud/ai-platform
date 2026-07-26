@@ -8,17 +8,30 @@ import com.aiplatform.foundation.knowledgedata.api.model.PublishTextDataSourceCo
 import com.aiplatform.foundation.knowledgedata.api.model.PublishTextDataSourceResult;
 import com.aiplatform.foundation.knowledgedata.api.model.TextDataSourcePage;
 import com.aiplatform.foundation.knowledgedata.api.model.TextDataSourceView;
+import com.aiplatform.foundation.knowledgedata.api.model.UploadTextContentCommand;
+import com.aiplatform.foundation.knowledgedata.api.model.UploadTextContentResult;
+import com.aiplatform.foundation.knowledgedata.application.content.InvalidTextContentException;
+import com.aiplatform.foundation.knowledgedata.application.content.TextContentIntegrityException;
+import com.aiplatform.foundation.knowledgedata.application.content.TextContentProcessingException;
 import com.aiplatform.foundation.knowledgedata.application.knowledge.KnowledgePermissionDeniedException;
+import com.aiplatform.foundation.knowledgedata.application.port.out.TextContentAttachment;
+import com.aiplatform.foundation.knowledgedata.application.port.out.TextContentObjectMetadata;
+import com.aiplatform.foundation.knowledgedata.application.port.out.TextContentObjectStoragePort;
+import com.aiplatform.foundation.knowledgedata.application.port.out.TextContentStagingPort;
+import com.aiplatform.foundation.knowledgedata.application.port.out.TextContentStorageRequest;
 import com.aiplatform.foundation.knowledgedata.application.port.out.TextDataSourceCreation;
 import com.aiplatform.foundation.knowledgedata.application.port.out.TextDataSourcePublication;
 import com.aiplatform.foundation.knowledgedata.application.port.out.TextDataSourceRepository;
 import com.aiplatform.foundation.knowledgedata.application.port.out.TextDataSourceSummary;
 import com.aiplatform.foundation.knowledgedata.domain.model.DataSourceId;
+import com.aiplatform.foundation.knowledgedata.domain.model.DataSourceStateException;
 import com.aiplatform.foundation.knowledgedata.domain.model.KnowledgeSpaceId;
+import com.aiplatform.foundation.knowledgedata.domain.model.TextContentReference;
 import com.aiplatform.foundation.knowledgedata.domain.model.TextDataSource;
 import com.aiplatform.foundation.organizationaccess.api.model.PermissionCode;
 import com.aiplatform.foundation.organizationaccess.api.model.TrustedRequestContext;
 import java.nio.charset.StandardCharsets;
+import java.io.IOException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Clock;
@@ -36,16 +49,24 @@ public final class DefaultTextDataSourceService implements TextDataSourceUseCase
     private static final PermissionCode WRITE = new PermissionCode("knowledge:write");
 
     private final TextDataSourceRepository repository;
+    private final TextContentStagingPort staging;
+    private final TextContentObjectStoragePort objectStorage;
     private final Clock clock;
     private final Supplier<UUID> identifiers;
     private final int tenantLimit;
 
     public DefaultTextDataSourceService(
             TextDataSourceRepository repository,
+            TextContentStagingPort staging,
+            TextContentObjectStoragePort objectStorage,
             Clock clock,
             Supplier<UUID> identifiers,
             int tenantLimit) {
         this.repository = Objects.requireNonNull(repository, "文本数据源仓储不能为空");
+        this.staging = Objects.requireNonNull(staging, "文本内容暂存端口不能为空");
+        this.objectStorage = Objects.requireNonNull(
+                objectStorage,
+                "文本对象存储端口不能为空");
         this.clock = Objects.requireNonNull(clock, "时钟不能为空");
         this.identifiers = Objects.requireNonNull(identifiers, "标识生成器不能为空");
         if (tenantLimit < 1) {
@@ -98,27 +119,133 @@ public final class DefaultTextDataSourceService implements TextDataSourceUseCase
     }
 
     @Override
+    public UploadTextContentResult upload(UploadTextContentCommand command) {
+        Objects.requireNonNull(command, "文本内容上传命令不能为空");
+        requirePermission(command.context(), WRITE);
+        if (!TextContentReference.UTF8_TEXT.equals(command.mediaType())) {
+            throw new InvalidTextContentException("只支持 UTF-8 纯文本");
+        }
+        var context = command.context();
+        var knowledgeSpaceId = new KnowledgeSpaceId(command.knowledgeSpaceId());
+        var dataSourceId = new DataSourceId(command.dataSourceId());
+        try (var staged = staging.stage(command.content())) {
+            var requestFingerprint = fingerprint(
+                    "ATTACH_CONTENT",
+                    knowledgeSpaceId.value().toString(),
+                    dataSourceId.value().toString(),
+                    Long.toString(command.expectedVersion()),
+                    staged.sha256());
+            var replay = repository.findAttachmentReplay(
+                    context.tenantId(),
+                    command.idempotencyKey(),
+                    requestFingerprint);
+            if (replay.isPresent()) {
+                return new UploadTextContentResult(
+                        toView(replay.orElseThrow().source()),
+                        true);
+            }
+
+            var current = repository.findById(
+                    context.tenantId(),
+                    knowledgeSpaceId,
+                    dataSourceId);
+            if (current.version() != command.expectedVersion()) {
+                throw new DataSourceConcurrentModificationException();
+            }
+            var stored = objectStorage.put(new TextContentStorageRequest(
+                    context.tenantId(),
+                    knowledgeSpaceId,
+                    dataSourceId,
+                    current.contentVersion() + 1,
+                    staged,
+                    clock.instant()));
+            requireStoredContent(
+                    current.contentVersion() + 1,
+                    staged.sha256(),
+                    staged.byteSize(),
+                    stored);
+            var outcome = repository.attach(new TextContentAttachment(
+                    context.tenantId(),
+                    knowledgeSpaceId,
+                    dataSourceId,
+                    command.expectedVersion(),
+                    stored,
+                    command.idempotencyKey(),
+                    requestFingerprint));
+            return new UploadTextContentResult(
+                    toView(outcome.source()),
+                    outcome.replayed());
+        } catch (IOException exception) {
+            throw new TextContentProcessingException(exception);
+        }
+    }
+
+    @Override
     public PublishTextDataSourceResult publish(PublishTextDataSourceCommand command) {
         Objects.requireNonNull(command, "数据源发布命令不能为空");
         requirePermission(command.context(), WRITE);
         var context = command.context();
         var knowledgeSpaceId = new KnowledgeSpaceId(command.knowledgeSpaceId());
         var dataSourceId = new DataSourceId(command.dataSourceId());
+        var requestFingerprint = fingerprint(
+                "PUBLISH",
+                knowledgeSpaceId.value().toString(),
+                dataSourceId.value().toString(),
+                Long.toString(command.expectedVersion()));
+        var replay = repository.findPublicationReplay(
+                context.tenantId(),
+                command.idempotencyKey(),
+                requestFingerprint);
+        if (replay.isPresent()) {
+            return new PublishTextDataSourceResult(
+                    toView(replay.orElseThrow().source()),
+                    true);
+        }
+        var current = repository.findById(
+                context.tenantId(),
+                knowledgeSpaceId,
+                dataSourceId);
+        if (current.currentContent() == null) {
+            throw new DataSourceStateException("数据源没有可发布的内容");
+        }
+        requireStoredMetadata(
+                current.currentContent(),
+                objectStorage.metadata(current.currentContent()));
         var outcome = repository.publish(new TextDataSourcePublication(
                 context.tenantId(),
                 knowledgeSpaceId,
                 dataSourceId,
                 command.expectedVersion(),
                 command.idempotencyKey(),
-                fingerprint(
-                        "PUBLISH",
-                        knowledgeSpaceId.value().toString(),
-                        dataSourceId.value().toString(),
-                        Long.toString(command.expectedVersion())),
+                requestFingerprint,
                 clock.instant()));
         return new PublishTextDataSourceResult(
                 toView(outcome.source()),
                 outcome.replayed());
+    }
+
+    private static void requireStoredContent(
+            int expectedVersion,
+            String expectedSha256,
+            long expectedByteSize,
+            TextContentReference stored) {
+        if (expectedVersion != stored.version()
+                || !expectedSha256.equals(stored.sha256())
+                || expectedByteSize != stored.byteSize()
+                || !TextContentReference.UTF8_TEXT.equals(stored.mediaType())) {
+            throw new TextContentIntegrityException();
+        }
+    }
+
+    private static void requireStoredMetadata(
+            TextContentReference reference,
+            TextContentObjectMetadata metadata) {
+        if (!reference.objectKey().equals(metadata.objectKey())
+                || !reference.sha256().equals(metadata.sha256())
+                || reference.byteSize() != metadata.byteSize()
+                || !reference.mediaType().equals(metadata.mediaType())) {
+            throw new TextContentIntegrityException();
+        }
     }
 
     private static void requirePermission(

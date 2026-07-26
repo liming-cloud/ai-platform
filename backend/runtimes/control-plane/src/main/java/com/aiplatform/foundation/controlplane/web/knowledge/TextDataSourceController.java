@@ -6,11 +6,19 @@ import com.aiplatform.foundation.knowledgedata.api.model.ListTextDataSourcesQuer
 import com.aiplatform.foundation.knowledgedata.api.model.PublishTextDataSourceCommand;
 import com.aiplatform.foundation.knowledgedata.api.model.TextDataSourcePage;
 import com.aiplatform.foundation.knowledgedata.api.model.TextDataSourceView;
+import com.aiplatform.foundation.knowledgedata.api.model.UploadTextContentCommand;
+import com.aiplatform.foundation.knowledgedata.application.content.TextContentProcessingException;
+import com.aiplatform.foundation.knowledgedata.domain.model.TextContentReference;
 import com.aiplatform.foundation.organizationaccess.api.model.TrustedRequestContext;
+import jakarta.servlet.http.HttpServletRequest;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.Objects;
 import java.util.UUID;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -70,6 +78,35 @@ public class TextDataSourceController {
                 limit));
     }
 
+    @PostMapping(
+            value = "/{dataSourceId}/content",
+            consumes = MediaType.TEXT_PLAIN_VALUE)
+    public ResponseEntity<TextDataSourceView> upload(
+            TrustedRequestContext context,
+            @PathVariable UUID dataSourceId,
+            @RequestParam UUID knowledgeSpaceId,
+            @RequestParam long expectedVersion,
+            @RequestHeader(name = IDEMPOTENCY_KEY, required = false) String idempotencyKey,
+            @RequestHeader(name = HttpHeaders.CONTENT_TYPE, required = false) String mediaType,
+            HttpServletRequest request) {
+        try {
+            var result = dataSources.upload(new UploadTextContentCommand(
+                    context,
+                    knowledgeSpaceId,
+                    dataSourceId,
+                    expectedVersion,
+                    requireIdempotencyKey(idempotencyKey),
+                    requireUtf8TextMediaType(mediaType),
+                    request.getInputStream()));
+            return ResponseEntity
+                    .ok()
+                    .header(IDEMPOTENCY_REPLAYED, Boolean.toString(result.replayed()))
+                    .body(result.dataSource());
+        } catch (IOException exception) {
+            throw new TextContentProcessingException(exception);
+        }
+    }
+
     @PostMapping("/{dataSourceId}/publish")
     public ResponseEntity<TextDataSourceView> publish(
             TrustedRequestContext context,
@@ -117,5 +154,18 @@ public class TextDataSourceController {
             throw new IllegalArgumentException("必须提供数据源名称");
         }
         return value;
+    }
+
+    private static String requireUtf8TextMediaType(String value) {
+        if (value == null) {
+            throw new IllegalArgumentException("必须提供媒体类型");
+        }
+        var parsed = MediaType.parseMediaType(value);
+        if (!MediaType.TEXT_PLAIN.includes(parsed)
+                || !StandardCharsets.UTF_8.equals(parsed.getCharset())
+                || parsed.getParameters().size() != 1) {
+            throw new IllegalArgumentException("只支持 UTF-8 纯文本");
+        }
+        return TextContentReference.UTF8_TEXT;
     }
 }

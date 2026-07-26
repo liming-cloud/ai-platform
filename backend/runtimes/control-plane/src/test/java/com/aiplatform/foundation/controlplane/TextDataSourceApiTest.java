@@ -5,10 +5,9 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.aiplatform.foundation.kernel.tenant.TenantId;
-import com.aiplatform.foundation.knowledgedata.application.port.out.TextContentAttachment;
-import com.aiplatform.foundation.knowledgedata.application.port.out.TextDataSourceRepository;
-import com.aiplatform.foundation.knowledgedata.domain.model.DataSourceId;
-import com.aiplatform.foundation.knowledgedata.domain.model.KnowledgeSpaceId;
+import com.aiplatform.foundation.knowledgedata.application.port.out.TextContentObjectMetadata;
+import com.aiplatform.foundation.knowledgedata.application.port.out.TextContentObjectStoragePort;
+import com.aiplatform.foundation.knowledgedata.application.port.out.TextContentStorageRequest;
 import com.aiplatform.foundation.knowledgedata.domain.model.TextContentReference;
 import com.aiplatform.foundation.organizationaccess.api.model.AccessChannel;
 import com.aiplatform.foundation.organizationaccess.api.model.CredentialType;
@@ -19,6 +18,7 @@ import com.aiplatform.foundation.organizationaccess.api.model.TrustedRequestCont
 import com.aiplatform.foundation.organizationaccess.application.port.out.AuthenticatedSessionGateway;
 import com.redis.testcontainers.RedisContainer;
 import java.time.Instant;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -29,15 +29,20 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.resttestclient.TestRestTemplate;
 import org.springframework.boot.resttestclient.autoconfigure.AutoConfigureTestRestTemplate;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Import;
+import org.springframework.context.annotation.Primary;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
@@ -46,12 +51,11 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 @AutoConfigureTestRestTemplate
 @ActiveProfiles("demo")
 @Testcontainers
+@Import(TextDataSourceApiTest.StorageConfiguration.class)
 class TextDataSourceApiTest {
 
     private static final UUID STORE_TENANT =
             UUID.fromString("10000000-0000-0000-0000-000000000001");
-    private static final Instant CONTENT_AT = Instant.parse("2026-07-27T02:00:00Z");
-
     @Container
     private static final PostgreSQLContainer POSTGRES =
             new PostgreSQLContainer("postgres:18.4-alpine3.24")
@@ -75,7 +79,7 @@ class TextDataSourceApiTest {
     private AuthenticatedSessionGateway sessions;
 
     @Autowired
-    private TextDataSourceRepository repository;
+    private TestTextContentObjectStorage testStorage;
 
     @DynamicPropertySource
     static void infrastructureProperties(DynamicPropertyRegistry registry) {
@@ -88,6 +92,7 @@ class TextDataSourceApiTest {
 
     @BeforeEach
     void clearKnowledgeData() {
+        testStorage.clear();
         jdbc.update("DELETE FROM knowledge_data.outbox_event");
         jdbc.update("DELETE FROM knowledge_data.text_data_source_request");
         jdbc.update("DELETE FROM knowledge_data.text_data_source_content");
@@ -211,20 +216,31 @@ class TextDataSourceApiTest {
         var token = login("demo-store");
         var space = createSpace(token, "space-publish-001", "发布知识");
         var source = createSource(token, space.id(), "source-publish-001", "待发布文本");
-        repository.attach(new TextContentAttachment(
-                new TenantId(STORE_TENANT),
-                new KnowledgeSpaceId(space.id()),
-                new DataSourceId(source.id()),
-                0,
-                new TextContentReference(
-                        1,
-                        "foundation-v1/store/publish/content.txt",
-                        "a".repeat(64),
-                        128,
-                        TextContentReference.UTF8_TEXT,
-                        CONTENT_AT),
-                "prepare-publish-001",
-                "b".repeat(64)));
+        var uploadHeaders = authorized(token);
+        uploadHeaders.add("Idempotency-Key", "upload-http-001");
+        uploadHeaders.setContentType(new MediaType(
+                "text",
+                "plain",
+                java.nio.charset.StandardCharsets.UTF_8));
+        var uploadRequest = new HttpEntity<>("发布内容", uploadHeaders);
+        var uploaded = http.postForEntity(
+                url("/api/v1/data-sources/" + source.id()
+                        + "/content?knowledgeSpaceId=" + space.id()
+                        + "&expectedVersion=0"),
+                uploadRequest,
+                SourceResponse.class);
+        var uploadReplay = http.postForEntity(
+                url("/api/v1/data-sources/" + source.id()
+                        + "/content?knowledgeSpaceId=" + space.id()
+                        + "&expectedVersion=0"),
+                uploadRequest,
+                SourceResponse.class);
+        assertEquals(HttpStatus.OK, uploaded.getStatusCode());
+        assertEquals(HttpStatus.OK, uploadReplay.getStatusCode());
+        assertNotNull(uploaded.getBody());
+        assertEquals("CONTENT_READY", uploaded.getBody().status());
+        assertEquals("true", uploadReplay.getHeaders().getFirst("Idempotency-Replayed"));
+
         var headers = authorized(token);
         headers.add("Idempotency-Key", "publish-http-001");
         var request = new HttpEntity<>(
@@ -248,6 +264,44 @@ class TextDataSourceApiTest {
         assertEquals("PUBLISHED", published.getBody().status());
         assertEquals(1, published.getBody().publishedContentVersion());
         assertEquals("true", replayed.getHeaders().getFirst("Idempotency-Replayed"));
+    }
+
+    @Test
+    void 对象元数据不一致时拒绝发布且不产生发布事实() {
+        var token = login("demo-store");
+        var space = createSpace(token, "space-integrity-001", "完整性知识");
+        var source = createSource(token, space.id(), "source-integrity-001", "完整性文本");
+        uploadContent(token, space.id(), source.id(), "upload-integrity-001", "完整性内容");
+        testStorage.corruptAll();
+        var headers = authorized(token);
+        headers.add("Idempotency-Key", "publish-integrity-001");
+
+        var response = http.postForEntity(
+                url("/api/v1/data-sources/" + source.id() + "/publish"),
+                new HttpEntity<>(
+                        Map.of(
+                                "knowledgeSpaceId", space.id(),
+                                "expectedVersion", 1),
+                        headers),
+                ApiError.class);
+
+        assertEquals(HttpStatus.BAD_GATEWAY, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertEquals("TEXT_CONTENT_INTEGRITY_FAILURE", response.getBody().code());
+        assertEquals(
+                "CONTENT_READY",
+                jdbc.queryForObject(
+                        "SELECT status FROM knowledge_data.text_data_source "
+                                + "WHERE tenant_id = ? AND id = ?",
+                        String.class,
+                        STORE_TENANT,
+                        source.id()));
+        assertEquals(
+                0,
+                jdbc.queryForObject(
+                        "SELECT count(*) FROM knowledge_data.outbox_event "
+                                + "WHERE event_type = 'TEXT_DATA_SOURCE_PUBLISHED'",
+                        Integer.class));
     }
 
     private SpaceResponse createSpace(String token, String key, String name) {
@@ -278,6 +332,29 @@ class TextDataSourceApiTest {
                         headers),
                 SourceResponse.class);
         assertEquals(HttpStatus.CREATED, response.getStatusCode());
+        assertNotNull(response.getBody());
+        return response.getBody();
+    }
+
+    private SourceResponse uploadContent(
+            String token,
+            UUID knowledgeSpaceId,
+            UUID dataSourceId,
+            String key,
+            String content) {
+        var headers = authorized(token);
+        headers.add("Idempotency-Key", key);
+        headers.setContentType(new MediaType(
+                "text",
+                "plain",
+                java.nio.charset.StandardCharsets.UTF_8));
+        var response = http.postForEntity(
+                url("/api/v1/data-sources/" + dataSourceId
+                        + "/content?knowledgeSpaceId=" + knowledgeSpaceId
+                        + "&expectedVersion=0"),
+                new HttpEntity<>(content, headers),
+                SourceResponse.class);
+        assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
         return response.getBody();
     }
@@ -341,5 +418,81 @@ class TextDataSourceApiTest {
             String message,
             String traceId,
             Map<String, Object> details) {
+    }
+
+    @TestConfiguration(proxyBeanMethods = false)
+    static class StorageConfiguration {
+
+        @Bean
+        @Primary
+        TestTextContentObjectStorage textContentObjectStoragePort() {
+            return new TestTextContentObjectStorage();
+        }
+    }
+
+    private static final class TestTextContentObjectStorage
+            implements TextContentObjectStoragePort {
+
+        private final Map<String, TextContentObjectMetadata> objects =
+                new ConcurrentHashMap<>();
+
+        @Override
+        public TextContentReference put(TextContentStorageRequest request) {
+            try (var input = request.content().openStream()) {
+                var bytes = input.readAllBytes();
+                if (bytes.length != request.content().byteSize()) {
+                    throw new AssertionError("测试对象写入字节数不一致");
+                }
+                var objectKey = "foundation-v1/"
+                        + request.tenantId().value() + "/"
+                        + request.knowledgeSpaceId().value() + "/"
+                        + request.dataSourceId().value() + "/"
+                        + request.contentVersion() + "/"
+                        + request.content().sha256() + ".txt";
+                var reference = new TextContentReference(
+                        request.contentVersion(),
+                        objectKey,
+                        request.content().sha256(),
+                        request.content().byteSize(),
+                        TextContentReference.UTF8_TEXT,
+                        request.createdAt());
+                objects.putIfAbsent(
+                        objectKey,
+                        new TextContentObjectMetadata(
+                                objectKey,
+                                reference.sha256(),
+                                reference.byteSize(),
+                                reference.mediaType()));
+                return reference;
+            } catch (java.io.IOException exception) {
+                throw new AssertionError(exception);
+            }
+        }
+
+        @Override
+        public TextContentObjectMetadata metadata(TextContentReference reference) {
+            var metadata = objects.get(reference.objectKey());
+            if (metadata == null) {
+                throw new AssertionError("测试对象不存在");
+            }
+            return metadata;
+        }
+
+        @Override
+        public void delete(TextContentReference reference) {
+            objects.remove(reference.objectKey());
+        }
+
+        void clear() {
+            objects.clear();
+        }
+
+        void corruptAll() {
+            objects.replaceAll((key, value) -> new TextContentObjectMetadata(
+                    key,
+                    "f".repeat(64),
+                    value.byteSize(),
+                    value.mediaType()));
+        }
     }
 }

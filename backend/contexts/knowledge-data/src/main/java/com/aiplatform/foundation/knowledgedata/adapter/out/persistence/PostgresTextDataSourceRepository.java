@@ -27,6 +27,7 @@ import java.util.Base64;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -79,6 +80,48 @@ public final class PostgresTextDataSourceRepository implements TextDataSourceRep
         Objects.requireNonNull(publication, "数据源发布请求不能为空");
         var result = transactions.execute(status -> publishInTransaction(publication));
         return Objects.requireNonNull(result, "数据源发布事务没有返回结果");
+    }
+
+    @Override
+    public TextDataSource findById(
+            TenantId tenantId,
+            KnowledgeSpaceId knowledgeSpaceId,
+            DataSourceId dataSourceId) {
+        Objects.requireNonNull(tenantId, "租户标识不能为空");
+        Objects.requireNonNull(knowledgeSpaceId, "知识空间标识不能为空");
+        Objects.requireNonNull(dataSourceId, "数据源标识不能为空");
+        var row = mapper.findById(
+                tenantId.value(),
+                knowledgeSpaceId.value(),
+                dataSourceId.value());
+        if (row == null) {
+            throw new DataSourceNotFoundException();
+        }
+        return toCurrentDomain(row);
+    }
+
+    @Override
+    public Optional<TextDataSourceMutationOutcome> findAttachmentReplay(
+            TenantId tenantId,
+            String idempotencyKey,
+            String requestFingerprint) {
+        return findReplay(
+                tenantId,
+                ATTACH_CONTENT,
+                idempotencyKey,
+                requestFingerprint);
+    }
+
+    @Override
+    public Optional<TextDataSourceMutationOutcome> findPublicationReplay(
+            TenantId tenantId,
+            String idempotencyKey,
+            String requestFingerprint) {
+        return findReplay(
+                tenantId,
+                PUBLISH,
+                idempotencyKey,
+                requestFingerprint);
     }
 
     @Override
@@ -292,6 +335,26 @@ public final class PostgresTextDataSourceRepository implements TextDataSourceRep
                 new MembershipId(UUID.fromString(identity.getCreatedBy())),
                 identity.getCreatedAt());
         return new TextDataSourceMutationOutcome(source, true);
+    }
+
+    private Optional<TextDataSourceMutationOutcome> findReplay(
+            TenantId tenantId,
+            String operation,
+            String idempotencyKey,
+            String requestFingerprint) {
+        Objects.requireNonNull(tenantId, "租户标识不能为空");
+        Objects.requireNonNull(idempotencyKey, "幂等键不能为空");
+        Objects.requireNonNull(requestFingerprint, "请求指纹不能为空");
+        var existing = mapper.findRequest(
+                tenantId.value(),
+                operation,
+                sha256(idempotencyKey));
+        return existing == null
+                ? Optional.empty()
+                : Optional.of(replay(
+                        tenantId.value(),
+                        existing,
+                        requestFingerprint));
     }
 
     private TextDataSource toCurrentDomain(TextDataSourceRow row) {
