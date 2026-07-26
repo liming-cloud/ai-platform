@@ -21,6 +21,7 @@ confirmedDecisions:
   - ADR-0012
   - ADR-0013
   - ADR-0014
+  - ADR-0015
 openDecisions: []
 latestEvidence:
   - docs/research/WP-0003-framework-baseline.md
@@ -36,6 +37,7 @@ latestEvidence:
   - project/evidence/WP-0003-demo-fixtures.md
   - docs/research/WP-0003-minio-client.md
   - project/evidence/WP-0003-minio-publication.md
+  - docs/research/WP-0004-indexing-baseline.md
 nextReviewAt: 2026-08-02
-updatedAt: 2026-07-27T02:07:47+08:00
+updatedAt: 2026-07-27T02:22:00+08:00
 updatedBy: codex
