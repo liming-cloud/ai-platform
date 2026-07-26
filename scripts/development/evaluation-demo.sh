@@ -166,7 +166,7 @@ request_key() {
       shasum -a 256 |
       awk '{print $1}'
   )"
-  printf 'evaluation-v2-%s-%s' "${purpose}" "${request_hash}"
+  printf 'evaluation-v3-%s-%s' "${purpose}" "${request_hash}"
 }
 
 append_standard_cases() {
@@ -239,12 +239,12 @@ restore_standard_version() {
       "${deployment_id}" \
       "${space_id}" \
       "0" \
-      "evaluation-v2-${scenario}-standard-version"
+      "evaluation-v3-${scenario}-standard-version"
   )"
   ensure_published \
     "${token}" \
     "${standard}" \
-    "evaluation-v2-${scenario}-standard-publish" \
+    "evaluation-v3-${scenario}-standard-publish" \
     >/dev/null
 }
 
@@ -265,13 +265,13 @@ append_refusal_case() {
       "${deployment_id}" \
       "${space_id}" \
       "1.0" \
-      "evaluation-v2-${scenario}-strict-version"
+      "evaluation-v3-${scenario}-strict-version"
   )"
   strict="$(
     ensure_published \
       "${token}" \
       "${strict}" \
-      "evaluation-v2-${scenario}-strict-publish"
+      "evaluation-v3-${scenario}-strict-publish"
   )"
   strict_id="$(jq -er '.id' <<<"${strict}")"
   if ! response="$(

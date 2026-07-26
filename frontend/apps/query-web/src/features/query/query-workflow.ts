@@ -57,6 +57,12 @@ export const initialQueryWorkflow: QueryWorkflow = {
   lastEventSequence: 0,
 };
 
+export function queryMainLayoutClassName(stage: QueryStage): string {
+  return ["querying", "answered", "refused", "failed"].includes(stage)
+    ? "query-main-layout has-result"
+    : "query-main-layout";
+}
+
 /**
  * 查询页面单向状态机。只有持久化终态事件可以产生回答或拒答。
  */

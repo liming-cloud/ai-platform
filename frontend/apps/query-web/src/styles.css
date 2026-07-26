@@ -8,6 +8,30 @@
   gap: 1.5rem;
 }
 
+.query-main-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1.5rem;
+  align-items: start;
+}
+
+.query-main-layout.has-result {
+  grid-template-columns: minmax(20rem, 0.85fr) minmax(0, 1.15fr);
+}
+
+.query-main-layout > *,
+.query-result-region {
+  min-width: 0;
+}
+
+.query-result-region:empty {
+  display: none;
+}
+
+.query-main-layout.has-result .query-form {
+  max-width: none;
+}
+
 .query-login,
 .query-task,
 .query-answer,
@@ -190,6 +214,12 @@
 
 .query-state-stack > button {
   justify-self: start;
+}
+
+@media (max-width: 900px) {
+  .query-main-layout.has-result {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 @media (max-width: 720px) {

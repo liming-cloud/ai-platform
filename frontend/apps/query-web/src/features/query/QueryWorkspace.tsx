@@ -38,6 +38,7 @@ import {
 import {
   QueryRequestScope,
   initialQueryWorkflow,
+  queryMainLayoutClassName,
   reduceQueryWorkflow,
   stableQueryRequestKey,
 } from "./query-workflow";
@@ -287,7 +288,6 @@ export function QueryWorkspace() {
       assistant.assistantVersionId
       === workflow.selectedAssistantVersionId,
   );
-
   return (
     <section className="query-workspace" aria-live="polite">
       <header className="query-session-bar">
@@ -302,102 +302,106 @@ export function QueryWorkspace() {
         </Button>
       </header>
 
-      <div className="query-task">
-        <div className="query-task-heading">
-          <Title3>向已发布助手提问</Title3>
-          <Text>
-            系统只会展示经过授权和引用校验的最终回答。
-          </Text>
-        </div>
-
-        <form
-          className="query-form"
-          onSubmit={(event) => {
-            event.preventDefault();
-            void ask();
-          }}
-        >
-          <Field label="已发布助手" required>
-            <Dropdown
-              value={selectedAssistant?.displayName ?? ""}
-              selectedOptions={
-                workflow.selectedAssistantVersionId === undefined
-                  ? []
-                  : [workflow.selectedAssistantVersionId]
-              }
-              disabled={workflow.stage === "querying"}
-              onOptionSelect={(_, data) => {
-                if (data.optionValue !== undefined) {
-                  dispatch({
-                    type: "assistant-selected",
-                    assistantVersionId: data.optionValue,
-                  });
-                }
-              }}
-            >
-              {workflow.assistants.map((assistant) => (
-                <Option
-                  key={assistant.assistantVersionId}
-                  value={assistant.assistantVersionId}
-                  text={`${assistant.displayName}，版本 ${assistant.versionNumber}`}
-                >
-                  {assistant.displayName}
-                  <Text size={200}>
-                    版本 {assistant.versionNumber}
-                  </Text>
-                </Option>
-              ))}
-            </Dropdown>
-          </Field>
-
-          <Field
-            label="问题"
-            hint={`${question.length} / 2000 个字符`}
-            required
-          >
-            <Textarea
-              value={question}
-              maxLength={2000}
-              resize="vertical"
-              disabled={workflow.stage === "querying"}
-              placeholder="请输入需要从已授权资料中核验的问题"
-              onChange={(_, data) => setQuestion(data.value)}
-            />
-          </Field>
-
-          <Button
-            appearance="primary"
-            type="submit"
-            disabled={
-              workflow.stage === "querying"
-              || workflow.selectedAssistantVersionId === undefined
-              || question.trim().length === 0
-            }
-          >
-            {workflow.stage === "querying"
-              ? "正在核验证据"
-              : "提交问题"}
-          </Button>
-        </form>
-
-        {selectedAssistant ? (
-          <div className="assistant-fact">
-            <Badge appearance="tint" color="informative">
-              已发布
-            </Badge>
+      <div className={queryMainLayoutClassName(workflow.stage)}>
+        <div className="query-task">
+          <div className="query-task-heading">
+            <Title3>向已发布助手提问</Title3>
             <Text>
-              {selectedAssistant.displayName}，版本{" "}
-              {selectedAssistant.versionNumber}
+              系统只会展示经过授权和引用校验的最终回答。
             </Text>
           </div>
-        ) : null}
-      </div>
 
-      <QueryResult
-        workflow={workflow}
-        onRetry={workflow.queryRunId === undefined ? ask : resume}
-        onReloadCatalog={reloadCatalog}
-      />
+          <form
+            className="query-form"
+            onSubmit={(event) => {
+              event.preventDefault();
+              void ask();
+            }}
+          >
+            <Field label="已发布助手" required>
+              <Dropdown
+                value={selectedAssistant?.displayName ?? ""}
+                selectedOptions={
+                  workflow.selectedAssistantVersionId === undefined
+                    ? []
+                    : [workflow.selectedAssistantVersionId]
+                }
+                disabled={workflow.stage === "querying"}
+                onOptionSelect={(_, data) => {
+                  if (data.optionValue !== undefined) {
+                    dispatch({
+                      type: "assistant-selected",
+                      assistantVersionId: data.optionValue,
+                    });
+                  }
+                }}
+              >
+                {workflow.assistants.map((assistant) => (
+                  <Option
+                    key={assistant.assistantVersionId}
+                    value={assistant.assistantVersionId}
+                    text={`${assistant.displayName}，版本 ${assistant.versionNumber}`}
+                  >
+                    {assistant.displayName}
+                    <Text size={200}>
+                      版本 {assistant.versionNumber}
+                    </Text>
+                  </Option>
+                ))}
+              </Dropdown>
+            </Field>
+
+            <Field
+              label="问题"
+              hint={`${question.length} / 2000 个字符`}
+              required
+            >
+              <Textarea
+                value={question}
+                maxLength={2000}
+                resize="vertical"
+                disabled={workflow.stage === "querying"}
+                placeholder="请输入需要从已授权资料中核验的问题"
+                onChange={(_, data) => setQuestion(data.value)}
+              />
+            </Field>
+
+            <Button
+              appearance="primary"
+              type="submit"
+              disabled={
+                workflow.stage === "querying"
+                || workflow.selectedAssistantVersionId === undefined
+                || question.trim().length === 0
+              }
+            >
+              {workflow.stage === "querying"
+                ? "正在核验证据"
+                : "提交问题"}
+            </Button>
+          </form>
+
+          {selectedAssistant ? (
+            <div className="assistant-fact">
+              <Badge appearance="tint" color="informative">
+                已发布
+              </Badge>
+              <Text>
+                {selectedAssistant.displayName}，版本{" "}
+                {selectedAssistant.versionNumber}
+              </Text>
+            </div>
+          ) : null}
+        </div>
+
+        <div className="query-result-region">
+          <QueryResult
+            workflow={workflow}
+            onRetry={workflow.queryRunId === undefined ? ask : resume}
+            onReloadCatalog={reloadCatalog}
+          />
+        </div>
+      </div>
     </section>
   );
 }

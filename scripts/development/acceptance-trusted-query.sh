@@ -187,7 +187,7 @@ jq -e \
   >/dev/null <<<"${store_answer}"
 jq -e \
   '.status == "ANSWERED"
-    and (.answer | contains("周六至周日: 09:00-18:00"))
+    and (.answer | contains("周末开放时间为09:00-18:00"))
     and (.citations | length > 0)
     and any(.citations[]; .quote | contains("图书馆"))' \
   >/dev/null <<<"${campus_answer}"
