@@ -26,7 +26,7 @@
 
 | 证据 | 命令或评审 | 提交 | 结果 |
 | --- | --- | --- | --- |
-| 工作包激活 | `project/evidence/M0-design-approval.md` | 待产生 | M0 已通过，等待实施分支创建 |
+| 工作包激活 | `project/evidence/M0-design-approval.md` | `f2f285c676c29d680d58c65b46cecd78b3267cc1` | M0 已通过，实施分支已创建 |
 
 ## 证据规则
 

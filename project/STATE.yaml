@@ -2,7 +2,7 @@ schemaVersion: 1
 productVersion: foundation-v1
 currentMilestone: M1
 currentFrontier: WP-0002
-lastVerifiedCommit: 8b801f405e7651b506c681b5dfcc5c9e162dbbdb
+lastVerifiedCommit: f2f285c676c29d680d58c65b46cecd78b3267cc1
 activeWorkPackages:
   - WP-0002
 blockedWorkPackages:
@@ -22,5 +22,5 @@ latestEvidence:
   - project/evidence/WP-0001-repository-layout.md
   - project/evidence/M0-design-approval.md
 nextReviewAt: 2026-08-02
-updatedAt: 2026-07-26T23:10:00+08:00
+updatedAt: 2026-07-26T23:18:00+08:00
 updatedBy: codex
