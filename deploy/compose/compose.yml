@@ -81,6 +81,12 @@ services:
       SPRING_DATA_REDIS_HOST: redis
       SPRING_DATA_REDIS_PORT: "6379"
       SPRING_DATA_REDIS_PASSWORD: ${FOUNDATION_REDIS_PASSWORD:?必须设置 Redis 密码}
+      FOUNDATION_KNOWLEDGE_DATA_OBJECT_STORAGE_ENABLED: "true"
+      FOUNDATION_KNOWLEDGE_DATA_OBJECT_STORAGE_ENDPOINT: http://minio:9000
+      FOUNDATION_KNOWLEDGE_DATA_OBJECT_STORAGE_ACCESS_KEY: ${FOUNDATION_MINIO_USER:?必须设置对象存储用户}
+      FOUNDATION_KNOWLEDGE_DATA_OBJECT_STORAGE_SECRET_KEY: ${FOUNDATION_MINIO_PASSWORD:?必须设置对象存储密码}
+      FOUNDATION_KNOWLEDGE_DATA_OBJECT_STORAGE_BUCKET: foundation-v1-private
+      FOUNDATION_KNOWLEDGE_DATA_OBJECT_STORAGE_CREATE_BUCKET_IF_MISSING: "true"
     depends_on:
       postgres:
         condition: service_healthy
@@ -166,6 +172,9 @@ services:
       args:
         APP: console-web
     image: trusted-rag/console-web:foundation-v1
+    depends_on:
+      control-plane:
+        condition: service_healthy
     ports:
       - "127.0.0.1:13000:8080"
     networks:

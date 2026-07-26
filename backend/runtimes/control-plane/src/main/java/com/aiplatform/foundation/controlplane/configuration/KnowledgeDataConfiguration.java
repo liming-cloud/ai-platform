@@ -15,13 +15,14 @@ import com.aiplatform.foundation.knowledgedata.application.port.out.TextContentO
 import com.aiplatform.foundation.knowledgedata.application.port.out.TextContentStagingPort;
 import com.aiplatform.foundation.knowledgedata.application.port.out.TextDataSourceRepository;
 import com.aiplatform.foundation.knowledgedata.domain.model.TextContentReference;
+import com.aiplatform.foundation.objectstorage.minio.MinioTextContentObjectStorageAdapter;
+import io.minio.MinioClient;
 import java.nio.file.Path;
 import java.time.Clock;
 import java.util.UUID;
 import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -75,9 +76,61 @@ public class KnowledgeDataConfiguration {
     }
 
     @Bean
-    @ConditionalOnMissingBean(TextContentObjectStoragePort.class)
+    @ConditionalOnProperty(
+            name = "foundation.knowledge-data.object-storage.enabled",
+            havingValue = "false",
+            matchIfMissing = true)
     TextContentObjectStoragePort unavailableTextContentObjectStorage() {
         return new UnavailableTextContentObjectStorageAdapter();
+    }
+
+    @Bean(destroyMethod = "close")
+    @ConditionalOnProperty(
+            name = "foundation.knowledge-data.object-storage.enabled",
+            havingValue = "true")
+    MinioClient minioClient(
+            @Value("${foundation.knowledge-data.object-storage.endpoint}")
+            String endpoint,
+            @Value("${foundation.knowledge-data.object-storage.access-key}")
+            String accessKey,
+            @Value("${foundation.knowledge-data.object-storage.secret-key}")
+            String secretKey,
+            @Value(
+                    "${foundation.knowledge-data.object-storage."
+                            + "connect-timeout-millis:5000}")
+            long connectTimeout,
+            @Value(
+                    "${foundation.knowledge-data.object-storage."
+                            + "write-timeout-millis:60000}")
+            long writeTimeout,
+            @Value(
+                    "${foundation.knowledge-data.object-storage."
+                            + "read-timeout-millis:10000}")
+            long readTimeout) {
+        var client = MinioClient.builder()
+                .endpoint(endpoint)
+                .credentials(accessKey, secretKey)
+                .build();
+        client.setTimeout(connectTimeout, writeTimeout, readTimeout);
+        client.setAppInfo("trusted-rag-foundation", "foundation-v1");
+        return client;
+    }
+
+    @Bean
+    @ConditionalOnProperty(
+            name = "foundation.knowledge-data.object-storage.enabled",
+            havingValue = "true")
+    TextContentObjectStoragePort minioTextContentObjectStorage(
+            MinioClient client,
+            @Value("${foundation.knowledge-data.object-storage.bucket}")
+            String bucket,
+            @Value(
+                    "${foundation.knowledge-data.object-storage."
+                            + "create-bucket-if-missing:false}")
+            boolean createBucketIfMissing) {
+        var adapter = new MinioTextContentObjectStorageAdapter(client, bucket);
+        adapter.ensureBucket(createBucketIfMissing);
+        return adapter;
     }
 
     @Bean

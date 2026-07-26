@@ -1,4 +1,4 @@
-.PHONY: project-status project-verify resume-context backend-test frontend-test demo-fixtures-verify deploy-config deploy-up deploy-smoke deploy-down validate
+.PHONY: project-status project-verify resume-context backend-test frontend-test demo-fixtures-verify deploy-config deploy-up deploy-smoke acceptance-knowledge-space deploy-down validate
 
 project-status:
 	python3 scripts/project_governance.py status
@@ -28,6 +28,9 @@ deploy-up:
 
 deploy-smoke:
 	bash scripts/development/deploy-smoke.sh
+
+acceptance-knowledge-space:
+	bash scripts/development/acceptance-knowledge-space.sh
 
 deploy-down:
 	docker compose --env-file deploy/compose/.env.example -f deploy/compose/compose.yml down

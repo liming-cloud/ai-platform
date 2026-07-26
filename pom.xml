@@ -27,6 +27,9 @@
         <mybatis-plus.version>3.5.17</mybatis-plus.version>
         <hutool.version>5.8.47</hutool.version>
         <spring-modulith.version>2.1.0</spring-modulith.version>
+        <minio.version>8.6.0</minio.version>
+        <okhttp.version>5.1.0</okhttp.version>
+        <spotbugs-annotations.version>4.9.3</spotbugs-annotations.version>
         <archunit.version>1.4.2</archunit.version>
         <maven-compiler-plugin.version>3.14.1</maven-compiler-plugin.version>
         <maven-enforcer-plugin.version>3.6.1</maven-enforcer-plugin.version>
@@ -77,6 +80,21 @@
                 <groupId>cn.hutool</groupId>
                 <artifactId>hutool-all</artifactId>
                 <version>${hutool.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.minio</groupId>
+                <artifactId>minio</artifactId>
+                <version>${minio.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.squareup.okhttp3</groupId>
+                <artifactId>okhttp-jvm</artifactId>
+                <version>${okhttp.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.github.spotbugs</groupId>
+                <artifactId>spotbugs-annotations</artifactId>
+                <version>${spotbugs-annotations.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.tngtech.archunit</groupId>

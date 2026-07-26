@@ -16,5 +16,6 @@
 
     <modules>
         <module>model-providers</module>
+        <module>object-storage</module>
     </modules>
 </project>

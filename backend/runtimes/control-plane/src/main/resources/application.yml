@@ -24,6 +24,11 @@ sa-token:
   is-read-body: false
   auto-renew: true
 
+foundation:
+  knowledge-data:
+    object-storage:
+      enabled: false
+
 server:
   port: 8080
   shutdown: graceful
