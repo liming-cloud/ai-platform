@@ -4,7 +4,7 @@
 | --- | --- | --- | --- | --- | --- | --- |
 | G1 企业知识受控发布 | 以租户管理员身份创建知识空间并发布文本数据 | 组织与权限、知识与数据源 | `/api/v1/auth/sessions`、`/api/v1/knowledge-spaces`、`/api/v1/data-sources`、数据流程 | WP-0001、WP-0003 | 权限反例、真实事务、幂等、对象存储和浏览器任务流 | `project/evidence/WP-0003-minio-publication.md` |
 | G2 多厂商模型 | 配置并探测模型部署 | 模型目录与运行时 | `/api/v1/model-providers`、模型治理流程 | WP-0001、WP-0002、WP-0005 | 厂商契约、密钥测试 | `project/evidence/WP-0002-provider-security.md` |
-| G3 可信回答 | 登录、选择已发布助手、提问并查看可追溯回答 | 助手交付、可信查询运行时 | `/api/v1/query-assistants`、`/api/v1/query-runs`、查询站点 | WP-0001、WP-0004、WP-0005 | 目录隔离、浏览器身份状态、检索、引用、拒答和事件续传测试 | `project/evidence/WP-0005-query-event-stream.md`，查询站点证据待产生 |
+| G3 可信回答 | 登录、选择已发布助手、提问并查看可追溯回答 | 助手交付、可信查询运行时 | `/api/v1/query-assistants`、`/api/v1/query-runs`、查询站点 | WP-0001、WP-0004、WP-0005 | 目录隔离、浏览器身份状态、检索、引用、拒答和事件续传测试 | `project/evidence/WP-0005-query-event-stream.md`、`project/evidence/WP-0005-query-web-flow.md` |
 | G4 安全交付 | 将助手发布到网页、API 或设备 | 助手与交付 | `/api/v1/assistants`、助手流程 | WP-0001、WP-0005 | 角色、配额、设备凭据测试 | M1 待产生 |
 | G5 可度量质量 | 评测并发布助手版本 | 评测与运营 | `/api/v1/evaluation-runs`、评测流程 | WP-0001、WP-0006 | 黄金集、发布门禁 | M1 待产生 |
 | G6 可运维产品 | 部署、观测、备份和恢复 | 运行时运维 | Docker、运维页面 | WP-0001、WP-0007 | 冒烟、恢复、性能测试 | M1 待产生 |
