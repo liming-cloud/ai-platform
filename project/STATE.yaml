@@ -1,0 +1,22 @@
+schemaVersion: 1
+productVersion: foundation-v1
+currentMilestone: M0
+currentFrontier: WP-0001
+lastVerifiedCommit: 6969e5c6f4af7af2f9db1eb3cc447fd278b997d5
+activeWorkPackages:
+  - WP-0001
+blockedWorkPackages:
+confirmedDecisions:
+  - ADR-0001
+  - ADR-0002
+  - ADR-0003
+  - ADR-0004
+  - ADR-0005
+  - ADR-0006
+openDecisions:
+  - HITL-0001-M0-DESIGN-APPROVAL
+latestEvidence:
+  - project/evidence/INDEX.md
+nextReviewAt: 2026-07-27
+updatedAt: 2026-07-26T00:00:00+08:00
+updatedBy: codex

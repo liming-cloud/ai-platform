@@ -1,4 +1,4 @@
-.PHONY: delivery-contract backend-context-modules backend-test frontend-lint frontend-audit frontend-test frontend-build frontend-e2e-list deploy-env deploy-config deploy-up deploy-status deploy-initialize deploy-smoke deploy-down deploy-reset validate
+.PHONY: project-status project-verify resume-context delivery-contract backend-context-modules backend-test frontend-lint frontend-audit frontend-test frontend-build frontend-e2e-list deploy-env deploy-config deploy-up deploy-status deploy-initialize deploy-smoke deploy-down deploy-reset validate
 
 BACKEND_JAVA_HOME ?= $(shell /usr/libexec/java_home -v 21 2>/dev/null)
 BACKEND_ENV := $(if $(BACKEND_JAVA_HOME),JAVA_HOME=$(BACKEND_JAVA_HOME),)
@@ -16,6 +16,16 @@ DEPLOY_COMPOSE_ENV := \
 	$(if $(DEPLOY_ROCKETMQ_FAST_PORT),AIP_ROCKETMQ_FAST_PORT=$(DEPLOY_ROCKETMQ_FAST_PORT)) \
 	$(if $(DEPLOY_BACKEND_PORT),AIP_BACKEND_PORT=$(DEPLOY_BACKEND_PORT)) \
 	$(if $(DEPLOY_FRONTEND_PORT),AIP_FRONTEND_PORT=$(DEPLOY_FRONTEND_PORT))
+
+project-status:
+	python3 scripts/project_governance.py status
+
+project-verify:
+	python3 -m unittest scripts.quality.test_project_governance
+	python3 scripts/project_governance.py verify
+
+resume-context:
+	python3 scripts/project_governance.py resume
 
 delivery-contract:
 	python3 scripts/quality/test_delivery_cleanup.py
@@ -77,4 +87,4 @@ deploy-reset:
 	@test "$(ALLOW_DEPLOY_RESET)" = "yes" || { echo "set ALLOW_DEPLOY_RESET=yes to delete only project $(DEPLOY_PROJECT) volumes" >&2; exit 1; }
 	$(DEPLOY_COMPOSE_ENV) $(DEPLOY_COMPOSE) down --volumes --remove-orphans
 
-validate: delivery-contract backend-test frontend-lint frontend-audit frontend-test frontend-build
+validate: project-verify delivery-contract backend-test frontend-lint frontend-audit frontend-test frontend-build

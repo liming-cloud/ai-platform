@@ -1,5 +1,35 @@
 # AGENTS.md
 
+## 长期基座任务协议
+
+可信 RAG 基座以仓库为唯一事实来源。聊天记录、Agent 记忆和任务摘要不具有权威性。
+
+修改受版本控制的文件前：
+
+1. 确认仓库、分支、HEAD 和工作区状态。
+2. 读取 `project/CHARTER.md`、`project/STATE.yaml` 和 `currentFrontier` 指向的工作包。
+3. 读取该工作包引用的全部 ADR。
+4. 运行 `make project-status`。
+5. 说明本会话唯一工作包结果、范围外内容和验证命令。
+6. 如果代码与项目状态不一致，先停止实施并修复控制面。
+
+工作过程中：
+
+- 每个会话只推进一个主要工作包。
+- 不得静默扩大范围，应登记风险、ADR 或新工作包。
+- 公共契约、领域边界、权限语义、模型能力和持久化结构变更必须先有已接受 ADR。
+- 聊天中的决定在提交到仓库前不生效。
+
+报告完成前：
+
+1. 执行工作包声明的验证。
+2. 在 `project/evidence/INDEX.md` 登记可复现证据。
+3. 更新工作包和 `project/STATE.yaml`。
+4. 运行 `make project-verify`。
+5. 没有绑定提交的证据不得标记为完成。
+
+在 `WP-0001` 的人工设计评审结果登记到仓库前，设计分支不得创建绿地实施分支。
+
 ## engineering-assistant plugin protocol
 
 When a user asks to use the `engineering-assistant` plugin, do not only claim it verbally and do not substitute generic skills by default.
