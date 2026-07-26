@@ -79,6 +79,7 @@ class DefaultQueryRunServiceTest {
         assertEquals(15, first.queryRun().usage().totalTokens());
         assertEquals(INDEX, retrieval.query.indexVersionId());
         assertEquals(EMBEDDING, retrieval.query.embeddingDeploymentId());
+        assertEquals(20, retrieval.query.limit());
         assertEquals(256, models.chatRequest.maxOutputTokens());
         assertEquals(1, models.chatCalls);
         assertTrue(replayed.replayed());

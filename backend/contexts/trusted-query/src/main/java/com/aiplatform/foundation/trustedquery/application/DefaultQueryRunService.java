@@ -145,17 +145,20 @@ public final class DefaultQueryRunService implements QueryRunUseCase {
                 || embedded.vectors().getFirst().index() != 0) {
             throw new IllegalStateException("查询嵌入结果不符合助手冻结部署");
         }
-        var authorized = candidates.retrieve(new IndexCandidateQuery(
+        var retrieved = candidates.retrieve(new IndexCandidateQuery(
                         context.tenantId().value(),
                         assistant.knowledgeSpaceId(),
                         assistant.indexVersionId(),
                         assistant.embeddingDeploymentId(),
                         assistant.embeddingDeploymentRevision(),
                         embedded.vectors().getFirst().values(),
-                        assistant.retrievalLimit()))
-                .stream()
-                .filter(candidate -> candidate.score() >= assistant.minimumScore())
-                .toList();
+                        QueryEvidenceSelector.candidateLimit(
+                                assistant.retrievalLimit())));
+        var authorized = QueryEvidenceSelector.select(
+                question,
+                retrieved,
+                assistant.retrievalLimit(),
+                assistant.minimumScore());
         if (authorized.isEmpty()) {
             return started.refuse(
                     QueryRefusalReason.INSUFFICIENT_EVIDENCE,

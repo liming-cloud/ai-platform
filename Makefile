@@ -1,4 +1,4 @@
-.PHONY: project-status project-verify resume-context backend-test frontend-test demo-fixtures-verify deploy-config deploy-up deploy-smoke acceptance-knowledge-space acceptance-model-provider acceptance-model-deployment acceptance-index-search acceptance-assistant acceptance-trusted-query acceptance-query-web acceptance-query-quota acceptance-query-operations performance-index-search deploy-down validate
+.PHONY: project-status project-verify resume-context backend-test frontend-test demo-fixtures-verify deploy-config deploy-up deploy-smoke acceptance-knowledge-space acceptance-model-provider acceptance-model-deployment acceptance-index-search acceptance-assistant acceptance-trusted-query acceptance-query-web acceptance-query-quota acceptance-query-operations evaluation-demo performance-index-search performance-query-candidate-pool deploy-down validate
 
 project-status:
 	python3 scripts/project_governance.py status
@@ -17,7 +17,7 @@ frontend-test:
 	cd frontend && npm run typecheck && npm run lint && npm run test && npm run build
 
 demo-fixtures-verify:
-	python3 -m unittest scripts.quality.test_demo_fixtures
+	python3 -m unittest scripts.quality.test_demo_fixtures scripts.quality.test_demo_evaluation
 	python3 scripts/quality/demo_fixtures.py
 
 deploy-config:
@@ -56,8 +56,14 @@ acceptance-query-quota: acceptance-trusted-query
 acceptance-query-operations: acceptance-trusted-query
 	bash scripts/development/acceptance-query-operations.sh
 
+evaluation-demo: acceptance-trusted-query
+	bash scripts/development/evaluation-demo.sh
+
 performance-index-search:
 	bash scripts/development/performance-index-search.sh
+
+performance-query-candidate-pool:
+	bash scripts/development/performance-query-candidate-pool.sh
 
 deploy-down:
 	docker compose --env-file deploy/compose/.env.example -f deploy/compose/compose.yml down

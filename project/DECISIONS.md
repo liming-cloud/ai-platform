@@ -20,6 +20,7 @@
 | ADR-0016 | 已接受 | 按配置修订构建动态模型运行时，以不可变助手版本和平台后校验生成可信引用回答 | `docs/adr/ADR-0016-model-runtime-assistant-and-trusted-answer.md` | M1-M8 |
 | ADR-0017 | 已接受 | 查询渠道只读取最新已发布助手版本，浏览器使用内存会话和可取消的事件续传 | `docs/adr/ADR-0017-query-channel-catalog-and-browser-state.md` | M1-M8 |
 | ADR-0018 | 已接受 | 查询接受时原子占用演示配额，运营接口只读取脱敏查询事实 | `docs/adr/ADR-0018-demo-query-quota-and-operations-projection.md` | M1-M8 |
+| ADR-0019 | 已接受 | 在授权向量候选池内执行查询感知的混合重排 | `docs/adr/ADR-0019-query-aware-candidate-selection.md` | M1-M4 |
 
 ## 已确认人工决策
 

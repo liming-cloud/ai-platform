@@ -1,0 +1,139 @@
+{
+  "caseCount": 8,
+  "caseResults": [
+    {
+      "answerPointCount": 2,
+      "expectedRecordCount": 1,
+      "failures": [],
+      "id": "store-search-001",
+      "matchedAnswerPointCount": 2,
+      "matchedRecordCount": 1,
+      "passed": true,
+      "scenario": "store",
+      "targetHit": true
+    },
+    {
+      "answerPointCount": 2,
+      "expectedRecordCount": 3,
+      "failures": [],
+      "id": "store-search-002",
+      "matchedAnswerPointCount": 2,
+      "matchedRecordCount": 3,
+      "passed": true,
+      "scenario": "store",
+      "targetHit": true
+    },
+    {
+      "answerPointCount": 2,
+      "expectedRecordCount": 1,
+      "failures": [],
+      "id": "store-search-003",
+      "matchedAnswerPointCount": 2,
+      "matchedRecordCount": 1,
+      "passed": true,
+      "scenario": "store",
+      "targetHit": true
+    },
+    {
+      "answerPointCount": 2,
+      "expectedRecordCount": 1,
+      "failures": [],
+      "id": "store-search-004",
+      "matchedAnswerPointCount": 2,
+      "matchedRecordCount": 1,
+      "passed": true,
+      "scenario": "store",
+      "targetHit": true
+    },
+    {
+      "answerPointCount": 2,
+      "expectedRecordCount": 1,
+      "failures": [],
+      "id": "campus-search-001",
+      "matchedAnswerPointCount": 2,
+      "matchedRecordCount": 1,
+      "passed": true,
+      "scenario": "campus",
+      "targetHit": true
+    },
+    {
+      "answerPointCount": 2,
+      "expectedRecordCount": 1,
+      "failures": [],
+      "id": "campus-search-002",
+      "matchedAnswerPointCount": 2,
+      "matchedRecordCount": 1,
+      "passed": true,
+      "scenario": "campus",
+      "targetHit": true
+    },
+    {
+      "answerPointCount": 2,
+      "expectedRecordCount": 1,
+      "failures": [],
+      "id": "campus-search-003",
+      "matchedAnswerPointCount": 2,
+      "matchedRecordCount": 1,
+      "passed": true,
+      "scenario": "campus",
+      "targetHit": true
+    },
+    {
+      "answerPointCount": 2,
+      "expectedRecordCount": 1,
+      "failures": [],
+      "id": "campus-search-004",
+      "matchedAnswerPointCount": 2,
+      "matchedRecordCount": 1,
+      "passed": true,
+      "scenario": "campus",
+      "targetHit": true
+    }
+  ],
+  "crossTenantCaseCount": 2,
+  "crossTenantResults": [
+    {
+      "id": "store-asks-campus-001",
+      "leakCount": 0,
+      "leakedRecordIds": [],
+      "passed": true
+    },
+    {
+      "id": "campus-asks-store-001",
+      "leakCount": 0,
+      "leakedRecordIds": [],
+      "passed": true
+    }
+  ],
+  "datasetDigest": "5ba7666c5a1ab2a397fcca04da8eb0bd5a4dddf474ee6b3e02d2e3cb91e622ee",
+  "metrics": {
+    "answerPointCoverage": 1.0,
+    "citationCompleteness": 1.0,
+    "crossTenantLeakCount": 0,
+    "expectedRefusalRate": 1.0,
+    "targetHitRate": 1.0
+  },
+  "passed": true,
+  "refusalCaseCount": 2,
+  "refusalResults": [
+    {
+      "id": "store-refusal-001",
+      "passed": true
+    },
+    {
+      "id": "campus-refusal-001",
+      "passed": true
+    }
+  ],
+  "runtime": {
+    "providerKind": "DETERMINISTIC"
+  },
+  "schemaVersion": 1,
+  "thresholds": {
+    "answerPointCoverage": 1.0,
+    "citationCompleteness": 1.0,
+    "crossTenantLeakCount": 0,
+    "expectedRefusalRate": 1.0,
+    "targetHitRate": 1.0
+  }
+}
