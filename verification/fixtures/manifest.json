@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "fixtures": [
+    {
+      "scenario": "store",
+      "tenantCode": "demo-store",
+      "knowledgeFile": "store/knowledge.txt",
+      "searchCasesFile": "store/search-cases.json",
+      "sha256": "6b4d56107acd49007dd54fe2d889f6ea8dabeb5ea3e140ef16d5c93125d40b6d"
+    },
+    {
+      "scenario": "campus",
+      "tenantCode": "demo-campus",
+      "knowledgeFile": "campus/knowledge.txt",
+      "searchCasesFile": "campus/search-cases.json",
+      "sha256": "136a567b6ec1b72f3aec295479747dd05735b16fef2b618f56bd563028788664"
+    }
+  ]
+}

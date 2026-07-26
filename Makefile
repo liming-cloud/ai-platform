@@ -1,4 +1,4 @@
-.PHONY: project-status project-verify resume-context backend-test frontend-test deploy-config deploy-up deploy-smoke deploy-down validate
+.PHONY: project-status project-verify resume-context backend-test frontend-test demo-fixtures-verify deploy-config deploy-up deploy-smoke deploy-down validate
 
 project-status:
 	python3 scripts/project_governance.py status
@@ -16,6 +16,10 @@ backend-test:
 frontend-test:
 	cd frontend && npm run typecheck && npm run lint && npm run test && npm run build
 
+demo-fixtures-verify:
+	python3 -m unittest scripts.quality.test_demo_fixtures
+	python3 scripts/quality/demo_fixtures.py
+
 deploy-config:
 	docker compose --env-file deploy/compose/.env.example -f deploy/compose/compose.yml config --quiet
 
@@ -28,4 +32,4 @@ deploy-smoke:
 deploy-down:
 	docker compose --env-file deploy/compose/.env.example -f deploy/compose/compose.yml down
 
-validate: project-verify backend-test frontend-test
+validate: project-verify backend-test frontend-test demo-fixtures-verify

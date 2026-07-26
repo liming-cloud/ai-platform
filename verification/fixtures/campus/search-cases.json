@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "cases": [
+    {
+      "id": "campus-search-001",
+      "query": "中心图书馆周末几点开门？",
+      "expectedRecordIds": ["campus-library-001"],
+      "mustMention": ["09:00", "18:00"]
+    },
+    {
+      "id": "campus-search-002",
+      "query": "本科生一次可以借多少本书，借多久？",
+      "expectedRecordIds": ["campus-library-002"],
+      "mustMention": ["20 册", "30 天"]
+    },
+    {
+      "id": "campus-search-003",
+      "query": "校园卡丢了去哪里补办？",
+      "expectedRecordIds": ["campus-service-001"],
+      "mustMention": ["学生服务大厅 2 号窗口", "工作日"]
+    },
+    {
+      "id": "campus-search-004",
+      "query": "研讨室预约后最晚多久签到？",
+      "expectedRecordIds": ["campus-space-001"],
+      "mustMention": ["15 分钟", "释放房间"]
+    }
+  ]
+}

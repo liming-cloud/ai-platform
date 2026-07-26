@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "cases": [
+    {
+      "id": "store-search-001",
+      "query": "青柚气泡水在哪里，多少钱？",
+      "expectedRecordIds": ["store-product-001"],
+      "mustMention": ["一层 A 区 03 号货架第二层", "6.80 元/瓶"]
+    },
+    {
+      "id": "store-search-002",
+      "query": "最近 30 天卖得最多的是哪件商品？",
+      "expectedRecordIds": ["store-product-001", "store-product-002", "store-product-003"],
+      "mustMention": ["青柚气泡水", "428 瓶"]
+    },
+    {
+      "id": "store-search-003",
+      "query": "原味燕麦脆片还有货吗？",
+      "expectedRecordIds": ["store-product-002"],
+      "mustMention": ["库存状态", "少量"]
+    },
+    {
+      "id": "store-search-004",
+      "query": "机器人不能确认实时库存时怎么办？",
+      "expectedRecordIds": ["store-service-001"],
+      "mustMention": ["服务台", "不得承诺预留商品"]
+    }
+  ]
+}
