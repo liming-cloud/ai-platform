@@ -38,6 +38,40 @@ public interface QueryRunMapper {
             @Param("tenantId") UUID tenantId,
             @Param("keyHash") String keyHash);
 
+    @Select("""
+            SELECT count(*)
+            FROM trusted_query.query_run
+            WHERE tenant_id = #{tenantId}
+              AND created_at >= #{periodStart}
+              AND created_at < #{periodEnd}
+            """)
+    int countAcceptedInPeriod(
+            @Param("tenantId") UUID tenantId,
+            @Param("periodStart") Instant periodStart,
+            @Param("periodEnd") Instant periodEnd);
+
+    @Select("""
+            SELECT count(*)
+            FROM trusted_query.query_run
+            WHERE tenant_id = #{tenantId}
+              AND status = 'RUNNING'
+              AND running_lease_until > #{acceptedAt}
+            """)
+    int countActiveLeases(
+            @Param("tenantId") UUID tenantId,
+            @Param("acceptedAt") Instant acceptedAt);
+
+    @Select("""
+            SELECT min(running_lease_until)
+            FROM trusted_query.query_run
+            WHERE tenant_id = #{tenantId}
+              AND status = 'RUNNING'
+              AND running_lease_until > #{acceptedAt}
+            """)
+    Instant findEarliestActiveLeaseExpiry(
+            @Param("tenantId") UUID tenantId,
+            @Param("acceptedAt") Instant acceptedAt);
+
     @Insert("""
             INSERT INTO trusted_query.query_run (
                 tenant_id,
@@ -45,6 +79,13 @@ public interface QueryRunMapper {
                 assistant_version_id,
                 requested_by,
                 question_digest,
+                quota_period_start,
+                quota_period_end,
+                daily_query_limit,
+                daily_query_ordinal,
+                concurrent_query_limit,
+                accepted_lease_until,
+                running_lease_until,
                 status,
                 answer,
                 refusal_reason,
@@ -60,6 +101,13 @@ public interface QueryRunMapper {
                 #{assistantVersionId},
                 #{requestedBy},
                 #{questionDigest},
+                #{quotaPeriodStart},
+                #{quotaPeriodEnd},
+                #{dailyQueryLimit},
+                #{dailyQueryOrdinal},
+                #{concurrentQueryLimit},
+                #{acceptedLeaseUntil},
+                #{acceptedLeaseUntil},
                 'RUNNING',
                 NULL,
                 NULL,
@@ -77,6 +125,12 @@ public interface QueryRunMapper {
             @Param("assistantVersionId") UUID assistantVersionId,
             @Param("requestedBy") UUID requestedBy,
             @Param("questionDigest") String questionDigest,
+            @Param("quotaPeriodStart") Instant quotaPeriodStart,
+            @Param("quotaPeriodEnd") Instant quotaPeriodEnd,
+            @Param("dailyQueryLimit") int dailyQueryLimit,
+            @Param("dailyQueryOrdinal") int dailyQueryOrdinal,
+            @Param("concurrentQueryLimit") int concurrentQueryLimit,
+            @Param("acceptedLeaseUntil") Instant acceptedLeaseUntil,
             @Param("createdAt") Instant createdAt);
 
     @Insert("""
@@ -107,6 +161,12 @@ public interface QueryRunMapper {
                    assistant_version_id::text AS assistant_version_id,
                    requested_by::text AS requested_by,
                    question_digest,
+                   quota_period_start,
+                   quota_period_end,
+                   daily_query_limit,
+                   daily_query_ordinal,
+                   concurrent_query_limit,
+                   accepted_lease_until,
                    status,
                    answer,
                    refusal_reason,
@@ -126,6 +186,12 @@ public interface QueryRunMapper {
         @Result(column = "assistant_version_id", property = "assistantVersionId"),
         @Result(column = "requested_by", property = "requestedBy"),
         @Result(column = "question_digest", property = "questionDigest"),
+        @Result(column = "quota_period_start", property = "quotaPeriodStart"),
+        @Result(column = "quota_period_end", property = "quotaPeriodEnd"),
+        @Result(column = "daily_query_limit", property = "dailyQueryLimit"),
+        @Result(column = "daily_query_ordinal", property = "dailyQueryOrdinal"),
+        @Result(column = "concurrent_query_limit", property = "concurrentQueryLimit"),
+        @Result(column = "accepted_lease_until", property = "acceptedLeaseUntil"),
         @Result(column = "status", property = "status"),
         @Result(column = "answer", property = "answer"),
         @Result(column = "refusal_reason", property = "refusalReason"),
@@ -175,7 +241,8 @@ public interface QueryRunMapper {
                 output_tokens = #{outputTokens},
                 total_tokens = #{totalTokens},
                 version = #{newVersion},
-                completed_at = #{completedAt}
+                completed_at = #{completedAt},
+                running_lease_until = NULL
             WHERE tenant_id = #{tenantId}
               AND id = #{queryRunId}
               AND status = 'RUNNING'

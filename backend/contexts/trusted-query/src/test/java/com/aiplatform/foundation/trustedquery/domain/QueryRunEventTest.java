@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import com.aiplatform.foundation.kernel.tenant.TenantId;
 import com.aiplatform.foundation.modelruntime.api.model.ModelUsage;
 import com.aiplatform.foundation.organizationaccess.api.model.MembershipId;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
@@ -75,6 +76,12 @@ class QueryRunEventTest {
                 new MembershipId(
                         UUID.fromString("40000000-0000-0000-0000-000000000001")),
                 "a".repeat(64),
-                NOW);
+                NOW)
+                .acceptQuota(QueryQuotaSnapshot.forAcceptedQuery(
+                        NOW,
+                        10,
+                        1,
+                        2,
+                        Duration.ofMinutes(2)));
     }
 }

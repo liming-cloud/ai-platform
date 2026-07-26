@@ -12,11 +12,14 @@ import com.aiplatform.foundation.organizationaccess.api.model.SubjectId;
 import com.aiplatform.foundation.organizationaccess.api.model.TrustedRequestContext;
 import com.aiplatform.foundation.trustedquery.api.model.ListQueryRunEventsQuery;
 import com.aiplatform.foundation.trustedquery.application.port.out.QueryRunClaim;
+import com.aiplatform.foundation.trustedquery.application.port.out.QueryQuotaPolicy;
 import com.aiplatform.foundation.trustedquery.application.port.out.QueryRunRepository;
+import com.aiplatform.foundation.trustedquery.domain.QueryQuotaSnapshot;
 import com.aiplatform.foundation.trustedquery.domain.QueryRefusalReason;
 import com.aiplatform.foundation.trustedquery.domain.QueryRun;
 import com.aiplatform.foundation.trustedquery.domain.QueryRunEvent;
 import java.time.Instant;
+import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -74,7 +77,13 @@ class DefaultQueryRunEventServiceTest {
                 UUID.randomUUID(),
                 context().membershipId(),
                 "a".repeat(64),
-                NOW);
+                NOW)
+                .acceptQuota(QueryQuotaSnapshot.forAcceptedQuery(
+                        NOW,
+                        10,
+                        1,
+                        2,
+                        Duration.ofMinutes(2)));
         private final QueryRun completed = running.refuse(
                 QueryRefusalReason.INSUFFICIENT_EVIDENCE,
                 NOW.plusSeconds(1));
@@ -85,7 +94,8 @@ class DefaultQueryRunEventServiceTest {
         public QueryRunClaim claim(
                 QueryRun queryRun,
                 String idempotencyKey,
-                String requestFingerprint) {
+                String requestFingerprint,
+                QueryQuotaPolicy quota) {
             throw new UnsupportedOperationException();
         }
 

@@ -15,7 +15,8 @@ public interface QueryRunRepository {
     QueryRunClaim claim(
             QueryRun queryRun,
             String idempotencyKey,
-            String requestFingerprint);
+            String requestFingerprint,
+            QueryQuotaPolicy quota);
 
     void complete(QueryRun queryRun, long expectedVersion);
 

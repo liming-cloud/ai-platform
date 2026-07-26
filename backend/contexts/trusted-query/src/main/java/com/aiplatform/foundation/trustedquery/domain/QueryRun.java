@@ -22,6 +22,7 @@ public final class QueryRun {
     private final UUID assistantVersionId;
     private final MembershipId requestedBy;
     private final String questionDigest;
+    private final QueryQuotaSnapshot quota;
     private final QueryRunStatus status;
     private final String answer;
     private final QueryRefusalReason refusalReason;
@@ -37,6 +38,7 @@ public final class QueryRun {
             UUID assistantVersionId,
             MembershipId requestedBy,
             String questionDigest,
+            QueryQuotaSnapshot quota,
             QueryRunStatus status,
             String answer,
             QueryRefusalReason refusalReason,
@@ -54,6 +56,7 @@ public final class QueryRun {
             throw new IllegalArgumentException("问题摘要格式不正确");
         }
         this.questionDigest = questionDigest;
+        this.quota = quota;
         this.status = Objects.requireNonNull(status, "查询运行状态不能为空");
         this.answer = answer;
         this.refusalReason = refusalReason;
@@ -82,6 +85,7 @@ public final class QueryRun {
                 assistantVersionId,
                 requestedBy,
                 questionDigest,
+                null,
                 QueryRunStatus.RUNNING,
                 null,
                 null,
@@ -98,6 +102,7 @@ public final class QueryRun {
             UUID assistantVersionId,
             MembershipId requestedBy,
             String questionDigest,
+            QueryQuotaSnapshot quota,
             QueryRunStatus status,
             String answer,
             QueryRefusalReason refusalReason,
@@ -112,6 +117,33 @@ public final class QueryRun {
                 assistantVersionId,
                 requestedBy,
                 questionDigest,
+                Objects.requireNonNull(quota, "已持久化查询的配额快照不能为空"),
+                status,
+                answer,
+                refusalReason,
+                citations,
+                usage,
+                version,
+                createdAt,
+                completedAt);
+    }
+
+    /**
+     * 将尚未持久化的查询提案绑定到原子占用得到的配额事实。
+     *
+     * @throws IllegalStateException 查询已经占用配额或不再处于运行状态
+     */
+    public QueryRun acceptQuota(QueryQuotaSnapshot snapshot) {
+        if (status != QueryRunStatus.RUNNING || quota != null) {
+            throw new IllegalStateException("查询只能占用一次配额");
+        }
+        return new QueryRun(
+                tenantId,
+                id,
+                assistantVersionId,
+                requestedBy,
+                questionDigest,
+                Objects.requireNonNull(snapshot, "配额快照不能为空"),
                 status,
                 answer,
                 refusalReason,
@@ -134,6 +166,7 @@ public final class QueryRun {
                 assistantVersionId,
                 requestedBy,
                 questionDigest,
+                quota,
                 QueryRunStatus.ANSWERED,
                 requireAnswer(content),
                 null,
@@ -152,6 +185,7 @@ public final class QueryRun {
                 assistantVersionId,
                 requestedBy,
                 questionDigest,
+                quota,
                 QueryRunStatus.REFUSED,
                 null,
                 Objects.requireNonNull(reason, "拒答原因不能为空"),
@@ -170,6 +204,7 @@ public final class QueryRun {
                 assistantVersionId,
                 requestedBy,
                 questionDigest,
+                quota,
                 QueryRunStatus.FAILED,
                 null,
                 null,
@@ -198,6 +233,10 @@ public final class QueryRun {
 
     public String questionDigest() {
         return questionDigest;
+    }
+
+    public QueryQuotaSnapshot quota() {
+        return quota;
     }
 
     public QueryRunStatus status() {
@@ -233,8 +272,8 @@ public final class QueryRun {
     }
 
     private void requireRunning() {
-        if (status != QueryRunStatus.RUNNING) {
-            throw new IllegalStateException("只有运行中的查询可以进入终态");
+        if (status != QueryRunStatus.RUNNING || quota == null) {
+            throw new IllegalStateException("只有已占用配额的运行中查询可以进入终态");
         }
     }
 
@@ -247,19 +286,22 @@ public final class QueryRun {
                             && completedAt == null
                             && version == 0);
             case ANSWERED -> require(
-                    answer != null
+                    quota != null
+                            && answer != null
                             && refusalReason == null
                             && !citations.isEmpty()
                             && completedAt != null
                             && version > 0);
             case REFUSED -> require(
-                    answer == null
+                    quota != null
+                            && answer == null
                             && refusalReason != null
                             && citations.isEmpty()
                             && completedAt != null
                             && version > 0);
             case FAILED -> require(
-                    answer == null
+                    quota != null
+                            && answer == null
                             && refusalReason == null
                             && citations.isEmpty()
                             && completedAt != null

@@ -1,4 +1,4 @@
-.PHONY: project-status project-verify resume-context backend-test frontend-test demo-fixtures-verify deploy-config deploy-up deploy-smoke acceptance-knowledge-space acceptance-model-provider acceptance-model-deployment acceptance-index-search acceptance-assistant acceptance-trusted-query acceptance-query-web performance-index-search deploy-down validate
+.PHONY: project-status project-verify resume-context backend-test frontend-test demo-fixtures-verify deploy-config deploy-up deploy-smoke acceptance-knowledge-space acceptance-model-provider acceptance-model-deployment acceptance-index-search acceptance-assistant acceptance-trusted-query acceptance-query-web acceptance-query-quota performance-index-search deploy-down validate
 
 project-status:
 	python3 scripts/project_governance.py status
@@ -49,6 +49,9 @@ acceptance-trusted-query: acceptance-assistant
 
 acceptance-query-web: acceptance-trusted-query
 	bash scripts/development/acceptance-query-web.sh
+
+acceptance-query-quota: acceptance-trusted-query
+	bash scripts/development/acceptance-query-quota.sh
 
 performance-index-search:
 	bash scripts/development/performance-index-search.sh

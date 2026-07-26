@@ -9,14 +9,20 @@ import com.aiplatform.foundation.modelruntime.api.model.ModelUsage;
 import com.aiplatform.foundation.organizationaccess.api.model.MembershipId;
 import com.aiplatform.foundation.trustedquery.application.QueryRunConcurrentModificationException;
 import com.aiplatform.foundation.trustedquery.application.QueryRunIdempotencyConflictException;
+import com.aiplatform.foundation.trustedquery.application.QueryQuotaExceededException;
+import com.aiplatform.foundation.trustedquery.application.QueryQuotaLimitType;
 import com.aiplatform.foundation.trustedquery.application.port.out.QueryRunClaimState;
+import com.aiplatform.foundation.trustedquery.application.port.out.QueryQuotaPolicy;
 import com.aiplatform.foundation.trustedquery.application.port.out.QueryRunRepository;
 import com.aiplatform.foundation.trustedquery.domain.QueryCitation;
 import com.aiplatform.foundation.trustedquery.domain.QueryRun;
 import java.sql.Timestamp;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mybatis.spring.annotation.MapperScan;
@@ -54,6 +60,8 @@ class PostgresQueryRunRepositoryTest {
     private static final UUID EMBEDDING =
             UUID.fromString("46000000-0000-0000-0000-000000000001");
     private static final Instant NOW = Instant.parse("2026-07-27T05:00:00Z");
+    private static final QueryQuotaPolicy QUOTA =
+            new QueryQuotaPolicy(100, 4, Duration.ofMinutes(2));
 
     @Container
     private static final PostgreSQLContainer POSTGRES =
@@ -114,12 +122,14 @@ class PostgresQueryRunRepositoryTest {
         var claimed = repository.claim(
                 running,
                 "query-key-001",
-                "b".repeat(64));
+                "b".repeat(64),
+                QUOTA);
         var inProgress = repository.claim(
                 running(),
                 "query-key-001",
-                "b".repeat(64));
-        var answered = running.answer(
+                "b".repeat(64),
+                QUOTA);
+        var answered = claimed.queryRun().answer(
                 "牛奶位于一层。\n\n引用：[1]",
                 List.of(new QueryCitation(
                         1,
@@ -131,11 +141,12 @@ class PostgresQueryRunRepositoryTest {
                         0.9)),
                 new ModelUsage(10, 5, 15),
                 NOW.plusSeconds(1));
-        repository.complete(answered, running.version());
+        repository.complete(answered, claimed.queryRun().version());
         var replayed = repository.claim(
                 running(),
                 "query-key-001",
-                "b".repeat(64));
+                "b".repeat(64),
+                QUOTA);
         var allEvents = repository.findEvents(TENANT, answered.id(), 0, 10);
         var resumedEvents = repository.findEvents(TENANT, answered.id(), 1, 10);
 
@@ -169,8 +180,12 @@ class PostgresQueryRunRepositoryTest {
     @Test
     void 不同请求不能复用幂等键且终态不能重复提交() {
         var running = running();
-        repository.claim(running, "query-key-002", "d".repeat(64));
-        var refused = running.refuse(
+        var claimed = repository.claim(
+                running,
+                "query-key-002",
+                "d".repeat(64),
+                QUOTA);
+        var refused = claimed.queryRun().refuse(
                 com.aiplatform.foundation.trustedquery.domain.QueryRefusalReason
                         .INSUFFICIENT_EVIDENCE,
                 NOW.plusSeconds(1));
@@ -181,20 +196,136 @@ class PostgresQueryRunRepositoryTest {
                 () -> repository.claim(
                         running(),
                         "query-key-002",
-                        "e".repeat(64)));
+                        "e".repeat(64),
+                        QUOTA));
         assertThrows(
                 QueryRunConcurrentModificationException.class,
                 () -> repository.complete(refused, 0));
     }
 
+    @Test
+    void 每日限额在同一事务内占用且幂等重放不重复计量() {
+        var policy = new QueryQuotaPolicy(1, 1, Duration.ofMinutes(2));
+        var first = runningAt(NOW);
+        var claimed = repository.claim(
+                first,
+                "daily-key-001",
+                "1".repeat(64),
+                policy);
+        repository.complete(
+                claimed.queryRun().refuse(
+                        com.aiplatform.foundation.trustedquery.domain
+                                .QueryRefusalReason.INSUFFICIENT_EVIDENCE,
+                        NOW.plusSeconds(1)),
+                0);
+
+        var replayed = repository.claim(
+                runningAt(NOW.plusSeconds(2)),
+                "daily-key-001",
+                "1".repeat(64),
+                policy);
+        var exceeded = assertThrows(
+                QueryQuotaExceededException.class,
+                () -> repository.claim(
+                        runningAt(NOW.plusSeconds(2)),
+                        "daily-key-002",
+                        "2".repeat(64),
+                        policy));
+
+        assertEquals(QueryRunClaimState.REPLAYED, replayed.state());
+        assertEquals(QueryQuotaLimitType.DAILY, exceeded.limitType());
+        assertEquals(1, exceeded.limit());
+        assertEquals(Instant.parse("2026-07-28T00:00:00Z"), exceeded.retryAt());
+        assertEquals(
+                1,
+                jdbc.queryForObject(
+                        "SELECT count(*) FROM trusted_query.query_run",
+                        Integer.class));
+    }
+
+    @Test
+    void 运行租约限制并发且过期后自动释放() {
+        var policy = new QueryQuotaPolicy(10, 1, Duration.ofSeconds(30));
+        var first = repository.claim(
+                runningAt(NOW),
+                "concurrent-key-001",
+                "3".repeat(64),
+                policy);
+
+        var exceeded = assertThrows(
+                QueryQuotaExceededException.class,
+                () -> repository.claim(
+                        runningAt(NOW.plusSeconds(10)),
+                        "concurrent-key-002",
+                        "4".repeat(64),
+                        policy));
+        var afterExpiry = repository.claim(
+                runningAt(NOW.plusSeconds(31)),
+                "concurrent-key-003",
+                "5".repeat(64),
+                policy);
+
+        assertEquals(QueryRunClaimState.CLAIMED, first.state());
+        assertEquals(QueryQuotaLimitType.CONCURRENT, exceeded.limitType());
+        assertEquals(NOW.plusSeconds(30), exceeded.retryAt());
+        assertEquals(QueryRunClaimState.CLAIMED, afterExpiry.state());
+        assertEquals(2, afterExpiry.queryRun().quota().dailyOrdinal());
+    }
+
+    @Test
+    void 并发竞争不能共同越过每日限额() throws Exception {
+        var policy = new QueryQuotaPolicy(1, 4, Duration.ofMinutes(2));
+        var start = new CountDownLatch(1);
+        try (var executor = Executors.newFixedThreadPool(4)) {
+            var futures = java.util.stream.IntStream.range(0, 4)
+                    .mapToObj(index -> executor.submit(() -> {
+                        start.await();
+                        try {
+                            repository.claim(
+                                    runningAt(NOW),
+                                    "race-key-" + index,
+                                    Integer.toHexString(index + 10).repeat(64),
+                                    policy);
+                            return true;
+                        } catch (QueryQuotaExceededException exception) {
+                            return false;
+                        }
+                    }))
+                    .toList();
+
+            start.countDown();
+
+            assertEquals(
+                    1,
+                    futures.stream()
+                            .filter(future -> {
+                                try {
+                                    return future.get();
+                                } catch (Exception exception) {
+                                    throw new AssertionError(exception);
+                                }
+                            })
+                            .count());
+        }
+        assertEquals(
+                1,
+                jdbc.queryForObject(
+                        "SELECT count(*) FROM trusted_query.query_run",
+                        Integer.class));
+    }
+
     private static QueryRun running() {
+        return runningAt(NOW);
+    }
+
+    private static QueryRun runningAt(Instant time) {
         return QueryRun.start(
                 TENANT,
                 UUID.randomUUID(),
                 ASSISTANT_VERSION,
                 MEMBER,
                 "a".repeat(64),
-                NOW);
+                time);
     }
 
     private void seedAssistantVersion() {

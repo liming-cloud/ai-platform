@@ -25,6 +25,10 @@ sa-token:
 foundation:
   query:
     enabled: false
+    quota:
+      daily-limit: ${FOUNDATION_QUERY_QUOTA_DAILY_LIMIT:100}
+      concurrent-limit: ${FOUNDATION_QUERY_QUOTA_CONCURRENT_LIMIT:4}
+      running-lease: ${FOUNDATION_QUERY_QUOTA_RUNNING_LEASE:PT2M}
 
 server:
   port: 8081

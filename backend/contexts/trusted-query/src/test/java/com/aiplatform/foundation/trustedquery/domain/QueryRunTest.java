@@ -54,7 +54,45 @@ class QueryRunTest {
                         NOW.plusSeconds(1)));
     }
 
+    @Test
+    void 未占用配额的查询提案不能执行且占用事实会进入终态() {
+        var proposed = proposed();
+        var quota = new QueryQuotaSnapshot(
+                Instant.parse("2026-07-27T00:00:00Z"),
+                Instant.parse("2026-07-28T00:00:00Z"),
+                10,
+                3,
+                2,
+                NOW.plusSeconds(30));
+
+        assertThrows(
+                IllegalStateException.class,
+                () -> proposed.refuse(
+                        QueryRefusalReason.INSUFFICIENT_EVIDENCE,
+                        NOW.plusSeconds(1)));
+
+        var accepted = proposed.acceptQuota(quota);
+        var refused = accepted.refuse(
+                QueryRefusalReason.INSUFFICIENT_EVIDENCE,
+                NOW.plusSeconds(1));
+
+        assertEquals(quota, refused.quota());
+        assertThrows(
+                IllegalStateException.class,
+                () -> accepted.acceptQuota(quota));
+    }
+
     private static QueryRun running() {
+        return proposed().acceptQuota(new QueryQuotaSnapshot(
+                Instant.parse("2026-07-27T00:00:00Z"),
+                Instant.parse("2026-07-28T00:00:00Z"),
+                10,
+                1,
+                2,
+                NOW.plusSeconds(30)));
+    }
+
+    private static QueryRun proposed() {
         return QueryRun.start(
                 new TenantId(UUID.randomUUID()),
                 UUID.randomUUID(),

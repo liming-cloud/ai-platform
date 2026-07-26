@@ -18,6 +18,7 @@ import com.aiplatform.foundation.trustedquery.api.model.CreateQueryRunResult;
 import com.aiplatform.foundation.trustedquery.api.model.GetQueryRunQuery;
 import com.aiplatform.foundation.trustedquery.api.model.QueryCitationView;
 import com.aiplatform.foundation.trustedquery.api.model.QueryRunView;
+import com.aiplatform.foundation.trustedquery.application.port.out.QueryQuotaPolicy;
 import com.aiplatform.foundation.trustedquery.application.port.out.QueryRunClaimState;
 import com.aiplatform.foundation.trustedquery.application.port.out.QueryRunRepository;
 import com.aiplatform.foundation.trustedquery.domain.QueryCitation;
@@ -47,6 +48,7 @@ public final class DefaultQueryRunService implements QueryRunUseCase {
     private final ModelRuntimeResolver models;
     private final IndexCandidateRetriever candidates;
     private final QueryRunRepository repository;
+    private final QueryQuotaPolicy quota;
     private final Clock clock;
     private final Supplier<UUID> identifiers;
 
@@ -55,6 +57,7 @@ public final class DefaultQueryRunService implements QueryRunUseCase {
             ModelRuntimeResolver models,
             IndexCandidateRetriever candidates,
             QueryRunRepository repository,
+            QueryQuotaPolicy quota,
             Clock clock,
             Supplier<UUID> identifiers) {
         this.assistants = Objects.requireNonNull(
@@ -63,6 +66,7 @@ public final class DefaultQueryRunService implements QueryRunUseCase {
         this.models = Objects.requireNonNull(models, "模型运行时解析器不能为空");
         this.candidates = Objects.requireNonNull(candidates, "候选检索器不能为空");
         this.repository = Objects.requireNonNull(repository, "查询运行仓储不能为空");
+        this.quota = Objects.requireNonNull(quota, "查询配额策略不能为空");
         this.clock = Objects.requireNonNull(clock, "时钟不能为空");
         this.identifiers = Objects.requireNonNull(identifiers, "标识生成器不能为空");
     }
@@ -86,7 +90,8 @@ public final class DefaultQueryRunService implements QueryRunUseCase {
         var claim = repository.claim(
                 started,
                 command.idempotencyKey(),
-                fingerprint(command.assistantVersionId(), command.question()));
+                fingerprint(command.assistantVersionId(), command.question()),
+                quota);
         if (claim.state() == QueryRunClaimState.REPLAYED) {
             return new CreateQueryRunResult(toView(claim.queryRun()), true);
         }

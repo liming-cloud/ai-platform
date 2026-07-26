@@ -3,12 +3,16 @@ package com.aiplatform.foundation.trustedquery.adapter.out.persistence;
 import com.aiplatform.foundation.kernel.tenant.TenantId;
 import com.aiplatform.foundation.modelruntime.api.model.ModelUsage;
 import com.aiplatform.foundation.organizationaccess.api.model.MembershipId;
+import com.aiplatform.foundation.trustedquery.application.QueryQuotaExceededException;
+import com.aiplatform.foundation.trustedquery.application.QueryQuotaLimitType;
 import com.aiplatform.foundation.trustedquery.application.QueryRunConcurrentModificationException;
 import com.aiplatform.foundation.trustedquery.application.QueryRunIdempotencyConflictException;
+import com.aiplatform.foundation.trustedquery.application.port.out.QueryQuotaPolicy;
 import com.aiplatform.foundation.trustedquery.application.port.out.QueryRunClaim;
 import com.aiplatform.foundation.trustedquery.application.port.out.QueryRunClaimState;
 import com.aiplatform.foundation.trustedquery.application.port.out.QueryRunRepository;
 import com.aiplatform.foundation.trustedquery.domain.QueryCitation;
+import com.aiplatform.foundation.trustedquery.domain.QueryQuotaSnapshot;
 import com.aiplatform.foundation.trustedquery.domain.QueryRefusalReason;
 import com.aiplatform.foundation.trustedquery.domain.QueryRun;
 import com.aiplatform.foundation.trustedquery.domain.QueryRunEvent;
@@ -45,8 +49,10 @@ public final class PostgresQueryRunRepository implements QueryRunRepository {
     public QueryRunClaim claim(
             QueryRun queryRun,
             String idempotencyKey,
-            String requestFingerprint) {
+            String requestFingerprint,
+            QueryQuotaPolicy quota) {
         Objects.requireNonNull(queryRun, "查询运行不能为空");
+        Objects.requireNonNull(quota, "查询配额策略不能为空");
         requireDigest(requestFingerprint, "请求指纹");
         if (idempotencyKey == null || idempotencyKey.isBlank()) {
             throw new IllegalArgumentException("幂等键不能为空");
@@ -54,7 +60,8 @@ public final class PostgresQueryRunRepository implements QueryRunRepository {
         var result = transactions.execute(status -> claimInTransaction(
                 queryRun,
                 sha256(idempotencyKey),
-                requestFingerprint));
+                requestFingerprint,
+                quota));
         return Objects.requireNonNull(result, "查询占位事务没有返回结果");
     }
 
@@ -131,9 +138,11 @@ public final class PostgresQueryRunRepository implements QueryRunRepository {
     private QueryRunClaim claimInTransaction(
             QueryRun queryRun,
             String keyHash,
-            String requestFingerprint) {
+            String requestFingerprint,
+            QueryQuotaPolicy quota) {
         var tenantId = queryRun.tenantId().value();
-        mapper.lockScope(tenantId + ":" + keyHash);
+        // 同一租户的幂等判断、计数和插入必须串行，避免并发请求共同越过限额。
+        mapper.lockScope("query-quota:" + tenantId);
         var request = mapper.findRequest(tenantId, keyHash);
         if (request != null) {
             if (!requestFingerprint.equals(request.getRequestFingerprint())) {
@@ -152,21 +161,61 @@ public final class PostgresQueryRunRepository implements QueryRunRepository {
                             ? QueryRunClaimState.IN_PROGRESS
                             : QueryRunClaimState.REPLAYED);
         }
+        var proposedQuota = QueryQuotaSnapshot.forAcceptedQuery(
+                queryRun.createdAt(),
+                quota.dailyQueryLimit(),
+                1,
+                quota.concurrentQueryLimit(),
+                quota.runningLease());
+        var dailyCount = mapper.countAcceptedInPeriod(
+                tenantId,
+                proposedQuota.periodStart(),
+                proposedQuota.periodEnd());
+        if (dailyCount >= quota.dailyQueryLimit()) {
+            throw new QueryQuotaExceededException(
+                    QueryQuotaLimitType.DAILY,
+                    quota.dailyQueryLimit(),
+                    proposedQuota.periodEnd());
+        }
+        var activeLeases = mapper.countActiveLeases(
+                tenantId,
+                queryRun.createdAt());
+        if (activeLeases >= quota.concurrentQueryLimit()) {
+            var retryAt = mapper.findEarliestActiveLeaseExpiry(
+                    tenantId,
+                    queryRun.createdAt());
+            throw new QueryQuotaExceededException(
+                    QueryQuotaLimitType.CONCURRENT,
+                    quota.concurrentQueryLimit(),
+                    Objects.requireNonNull(retryAt, "有效运行租约缺少截止时间"));
+        }
+        var accepted = queryRun.acceptQuota(QueryQuotaSnapshot.forAcceptedQuery(
+                queryRun.createdAt(),
+                quota.dailyQueryLimit(),
+                dailyCount + 1,
+                quota.concurrentQueryLimit(),
+                quota.runningLease()));
         mapper.insertRun(
                 tenantId,
-                queryRun.id(),
-                queryRun.assistantVersionId(),
-                queryRun.requestedBy().value(),
-                queryRun.questionDigest(),
-                queryRun.createdAt());
+                accepted.id(),
+                accepted.assistantVersionId(),
+                accepted.requestedBy().value(),
+                accepted.questionDigest(),
+                accepted.quota().periodStart(),
+                accepted.quota().periodEnd(),
+                accepted.quota().dailyLimit(),
+                accepted.quota().dailyOrdinal(),
+                accepted.quota().concurrentLimit(),
+                accepted.quota().acceptedLeaseUntil(),
+                accepted.createdAt());
         mapper.insertRequest(
                 tenantId,
                 keyHash,
                 requestFingerprint,
-                queryRun.id(),
-                queryRun.createdAt());
-        insertEvent(QueryRunEvent.started(queryRun));
-        return new QueryRunClaim(queryRun, QueryRunClaimState.CLAIMED);
+                accepted.id(),
+                accepted.createdAt());
+        insertEvent(QueryRunEvent.started(accepted));
+        return new QueryRunClaim(accepted, QueryRunClaimState.CLAIMED);
     }
 
     private QueryRun toRun(QueryRunRow row) {
@@ -178,6 +227,13 @@ public final class PostgresQueryRunRepository implements QueryRunRepository {
                 UUID.fromString(row.getAssistantVersionId()),
                 new MembershipId(UUID.fromString(row.getRequestedBy())),
                 row.getQuestionDigest(),
+                new QueryQuotaSnapshot(
+                        row.getQuotaPeriodStart(),
+                        row.getQuotaPeriodEnd(),
+                        row.getDailyQueryLimit(),
+                        row.getDailyQueryOrdinal(),
+                        row.getConcurrentQueryLimit(),
+                        row.getAcceptedLeaseUntil()),
                 QueryRunStatus.valueOf(row.getStatus()),
                 row.getAnswer(),
                 row.getRefusalReason() == null

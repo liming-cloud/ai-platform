@@ -35,6 +35,7 @@ import com.aiplatform.foundation.trustedquery.api.QueryRunUseCase;
 import com.aiplatform.foundation.trustedquery.application.DefaultCandidateSearchService;
 import com.aiplatform.foundation.trustedquery.application.DefaultQueryRunEventService;
 import com.aiplatform.foundation.trustedquery.application.DefaultQueryRunService;
+import com.aiplatform.foundation.trustedquery.application.port.out.QueryQuotaPolicy;
 import com.aiplatform.foundation.trustedquery.application.port.out.QueryRunRepository;
 import com.aiplatform.foundation.vectorstore.pgvector.PgVectorIndexStore;
 import java.time.Clock;
@@ -163,12 +164,22 @@ public class QueryRuntimeConfiguration {
             PublishedAssistantVersionLookup assistants,
             ModelRuntimeResolver models,
             PgVectorIndexStore candidates,
-            QueryRunRepository repository) {
+            QueryRunRepository repository,
+            @Value("${foundation.query.quota.daily-limit:100}")
+                    int dailyQueryLimit,
+            @Value("${foundation.query.quota.concurrent-limit:4}")
+                    int concurrentQueryLimit,
+            @Value("${foundation.query.quota.running-lease:PT2M}")
+                    Duration runningLease) {
         return new DefaultQueryRunService(
                 assistants,
                 models,
                 candidates,
                 repository,
+                new QueryQuotaPolicy(
+                        dailyQueryLimit,
+                        concurrentQueryLimit,
+                        runningLease),
                 Clock.systemUTC(),
                 UUID::randomUUID);
     }

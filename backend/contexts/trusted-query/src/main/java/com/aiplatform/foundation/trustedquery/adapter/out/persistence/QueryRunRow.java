@@ -12,6 +12,12 @@ public final class QueryRunRow {
     private String assistantVersionId;
     private String requestedBy;
     private String questionDigest;
+    private Instant quotaPeriodStart;
+    private Instant quotaPeriodEnd;
+    private int dailyQueryLimit;
+    private int dailyQueryOrdinal;
+    private int concurrentQueryLimit;
+    private Instant acceptedLeaseUntil;
     private String status;
     private String answer;
     private String refusalReason;
@@ -32,6 +38,18 @@ public final class QueryRunRow {
     public void setRequestedBy(String value) { requestedBy = value; }
     public String getQuestionDigest() { return questionDigest; }
     public void setQuestionDigest(String value) { questionDigest = value; }
+    public Instant getQuotaPeriodStart() { return quotaPeriodStart; }
+    public void setQuotaPeriodStart(Instant value) { quotaPeriodStart = value; }
+    public Instant getQuotaPeriodEnd() { return quotaPeriodEnd; }
+    public void setQuotaPeriodEnd(Instant value) { quotaPeriodEnd = value; }
+    public int getDailyQueryLimit() { return dailyQueryLimit; }
+    public void setDailyQueryLimit(int value) { dailyQueryLimit = value; }
+    public int getDailyQueryOrdinal() { return dailyQueryOrdinal; }
+    public void setDailyQueryOrdinal(int value) { dailyQueryOrdinal = value; }
+    public int getConcurrentQueryLimit() { return concurrentQueryLimit; }
+    public void setConcurrentQueryLimit(int value) { concurrentQueryLimit = value; }
+    public Instant getAcceptedLeaseUntil() { return acceptedLeaseUntil; }
+    public void setAcceptedLeaseUntil(Instant value) { acceptedLeaseUntil = value; }
     public String getStatus() { return status; }
     public void setStatus(String value) { status = value; }
     public String getAnswer() { return answer; }

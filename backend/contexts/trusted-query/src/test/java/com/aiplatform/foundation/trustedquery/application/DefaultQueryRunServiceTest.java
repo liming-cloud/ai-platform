@@ -28,9 +28,11 @@ import com.aiplatform.foundation.organizationaccess.api.model.TrustedRequestCont
 import com.aiplatform.foundation.trustedquery.api.model.CreateQueryRunCommand;
 import com.aiplatform.foundation.trustedquery.application.port.out.QueryRunClaim;
 import com.aiplatform.foundation.trustedquery.application.port.out.QueryRunClaimState;
+import com.aiplatform.foundation.trustedquery.application.port.out.QueryQuotaPolicy;
 import com.aiplatform.foundation.trustedquery.application.port.out.QueryRunRepository;
 import com.aiplatform.foundation.trustedquery.domain.QueryRun;
 import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
@@ -125,6 +127,26 @@ class DefaultQueryRunServiceTest {
         assertEquals(null, repository.current);
     }
 
+    @Test
+    void 超出配额时不执行检索或模型调用() {
+        var repository = new MemoryRepository();
+        repository.rejectQuota = true;
+        var models = new RecordingModels();
+        var retrieval = new RecordingRetrieval(List.of(candidate(1.0)));
+        var service = service(repository, models, retrieval);
+
+        assertThrows(
+                QueryQuotaExceededException.class,
+                () -> service.create(new CreateQueryRunCommand(
+                        context("assistant:query", "knowledge:read"),
+                        "query-key-quota",
+                        ASSISTANT_VERSION,
+                        "牛奶在哪里")));
+
+        assertEquals(null, retrieval.query);
+        assertEquals(0, models.chatCalls);
+    }
+
     private static DefaultQueryRunService service(
             QueryRunRepository repository,
             RecordingModels models,
@@ -138,6 +160,7 @@ class DefaultQueryRunServiceTest {
                 models,
                 retrieval::retrieve,
                 repository,
+                new QueryQuotaPolicy(100, 4, Duration.ofMinutes(2)),
                 Clock.fixed(NOW, ZoneOffset.UTC),
                 () -> UUID.fromString(
                         "70000000-0000-0000-0000-000000000001"));
@@ -253,14 +276,29 @@ class DefaultQueryRunServiceTest {
         private QueryRun current;
         private String key;
         private String fingerprint;
+        private boolean rejectQuota;
 
         @Override
         public QueryRunClaim claim(
                 QueryRun queryRun,
                 String idempotencyKey,
-                String requestFingerprint) {
+                String requestFingerprint,
+                QueryQuotaPolicy quota) {
+            if (rejectQuota) {
+                throw new QueryQuotaExceededException(
+                        QueryQuotaLimitType.DAILY,
+                        quota.dailyQueryLimit(),
+                        NOW.plusSeconds(60));
+            }
             if (current == null) {
-                current = queryRun;
+                current = queryRun.acceptQuota(
+                        com.aiplatform.foundation.trustedquery.domain
+                                .QueryQuotaSnapshot.forAcceptedQuery(
+                                        queryRun.createdAt(),
+                                        quota.dailyQueryLimit(),
+                                        1,
+                                        quota.concurrentQueryLimit(),
+                                        quota.runningLease()));
                 key = idempotencyKey;
                 fingerprint = requestFingerprint;
                 return new QueryRunClaim(current, QueryRunClaimState.CLAIMED);

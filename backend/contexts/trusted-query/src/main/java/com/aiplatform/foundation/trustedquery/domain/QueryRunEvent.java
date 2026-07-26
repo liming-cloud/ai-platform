@@ -53,8 +53,9 @@ public final class QueryRunEvent {
 
     public static QueryRunEvent started(QueryRun queryRun) {
         Objects.requireNonNull(queryRun, "查询运行不能为空");
-        if (queryRun.status() != QueryRunStatus.RUNNING) {
-            throw new IllegalArgumentException("开始事件只能来自运行中查询");
+        if (queryRun.status() != QueryRunStatus.RUNNING
+                || queryRun.quota() == null) {
+            throw new IllegalArgumentException("开始事件只能来自已占用配额的运行中查询");
         }
         return new QueryRunEvent(
                 queryRun.tenantId(),

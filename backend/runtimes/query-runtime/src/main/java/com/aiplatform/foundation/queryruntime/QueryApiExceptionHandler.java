@@ -3,6 +3,7 @@ package com.aiplatform.foundation.queryruntime;
 import com.aiplatform.foundation.assistantdelivery.application.AssistantPermissionDeniedException;
 import com.aiplatform.foundation.organizationaccess.adapter.out.session.InvalidAuthenticatedSessionException;
 import com.aiplatform.foundation.trustedquery.application.CandidateSearchPermissionDeniedException;
+import com.aiplatform.foundation.trustedquery.application.QueryQuotaExceededException;
 import com.aiplatform.foundation.trustedquery.application.QueryAssistantUnavailableException;
 import com.aiplatform.foundation.trustedquery.application.QueryRunConcurrentModificationException;
 import com.aiplatform.foundation.trustedquery.application.QueryRunIdempotencyConflictException;
@@ -53,6 +54,19 @@ public class QueryApiExceptionHandler {
     @ExceptionHandler(QueryRunInProgressException.class)
     ResponseEntity<QueryApiError> inProgress() {
         return error(HttpStatus.CONFLICT, "QUERY_IN_PROGRESS", "相同查询仍在处理中");
+    }
+
+    @ExceptionHandler(QueryQuotaExceededException.class)
+    ResponseEntity<QueryApiError> quotaExceeded(QueryQuotaExceededException exception) {
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .body(new QueryApiError(
+                        "QUERY_QUOTA_EXCEEDED",
+                        "查询配额已用尽",
+                        UUID.randomUUID().toString(),
+                        Map.of(
+                                "limitType", exception.limitType().name(),
+                                "limit", exception.limit(),
+                                "retryAt", exception.retryAt().toString())));
     }
 
     @ExceptionHandler({
