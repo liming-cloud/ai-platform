@@ -3,6 +3,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 
 SCRIPT = Path(__file__).resolve().parents[1] / "project_governance.py"
@@ -31,7 +32,9 @@ class ProjectGovernanceTest(unittest.TestCase):
             "project/RISKS.md",
             "project/evidence/INDEX.md",
             "docs/adr/ADR-0001-test.md",
+            *MODULE.REQUIRED_DESIGN_FILES,
         ):
+            (self.root / relative).parent.mkdir(parents=True, exist_ok=True)
             (self.root / relative).write_text("# 测试\n", encoding="utf-8")
         self.write_state(["WP-0001"])
         self.write_work_package("WP-0001", owner="后端")
@@ -103,6 +106,16 @@ class ProjectGovernanceTest(unittest.TestCase):
         self.write_work_package("WP-0002", owner="产品")
         self.write_state(["WP-0002"])
         with self.assertRaisesRegex(MODULE.GovernanceError, "已完成但没有证据"):
+            MODULE.verify(self.root)
+
+    def test_m0_rejects_legacy_tracked_files(self):
+        (self.root / ".git").mkdir()
+        with (
+            mock.patch.object(MODULE, "tracked_files", return_value={"backend/pom.xml"}),
+            mock.patch.object(MODULE, "git_commit_exists", return_value=True),
+            mock.patch.object(MODULE, "is_ancestor", return_value=True),
+            self.assertRaisesRegex(MODULE.GovernanceError, "仍包含旧实现文件"),
+        ):
             MODULE.verify(self.root)
 
 

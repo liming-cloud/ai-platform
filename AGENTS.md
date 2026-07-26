@@ -1,5 +1,42 @@
 # AGENTS.md
 
+## 语言规范
+
+- 面向用户的说明、计划、进度、错误、提交信息和文档统一使用简体中文。
+- 工具名、命令、路径、代码标识、协议字段、厂商名和无法翻译的技术名词保留原值。
+- 不使用整段英文解释，不中英文重复表达同一内容。
+
+## 编码前思考
+
+- 先明确目标、成功标准、范围内和范围外内容。
+- 明确写出会改变结果的假设。
+- 存在多种实质不同的解释时，不得静默选择。
+- 发现代码、控制面或需求相互矛盾时，先停止实施并恢复一致性。
+- 复杂任务先给出简短执行计划和验证方式。
+
+## 简洁优先
+
+- 使用能够满足当前需求的最小设计。
+- 不为一次性需求建立推测性抽象。
+- 不因“以后可能需要”增加没有调用方的接口或模块。
+- 模块数量增加不代表设计质量提高。
+- 代码或流程过于复杂时，优先缩小边界和简化状态。
+
+## 精准修改
+
+- 只修改当前工作包直接要求的内容。
+- 不顺手重构无关模块。
+- 保留用户已有且与任务无冲突的修改。
+- 发现无关死代码时只登记风险，不自行扩大删除范围。
+- 删除操作必须先确认准确目标，并优先保证可由 Git 或其他机制恢复。
+
+## 目标驱动执行
+
+- 每项工作都必须有可执行验收标准。
+- 修复缺陷时先用测试或最小复现证明问题。
+- 完成结论必须绑定测试、报告、截图、部署记录或其他可复核证据。
+- 没有证据时只能报告“已实现待验证”，不能报告“已完成”。
+
 ## 长期基座任务协议
 
 可信 RAG 基座以仓库为唯一事实来源。聊天记录、Agent 记忆和任务摘要不具有权威性。
@@ -8,133 +45,171 @@
 
 1. 确认仓库、分支、HEAD 和工作区状态。
 2. 读取 `project/CHARTER.md`、`project/STATE.yaml` 和 `currentFrontier` 指向的工作包。
-3. 读取该工作包引用的全部 ADR。
-4. 运行 `make project-status`。
-5. 说明本会话唯一工作包结果、范围外内容和验证命令。
-6. 如果代码与项目状态不一致，先停止实施并修复控制面。
+3. 读取当前工作包引用的全部 ADR。
+4. 检查 `lastVerifiedCommit` 与当前 HEAD 的关系。
+5. 运行 `make project-status`。
+6. 说明本会话唯一工作包结果、范围外内容和验证命令。
+7. 如果代码与项目状态不一致，先停止实施并修复控制面。
 
 工作过程中：
 
 - 每个会话只推进一个主要工作包。
-- 不得静默扩大范围，应登记风险、ADR 或新工作包。
+- 不得静默扩大范围，新发现应登记到风险、ADR 或新工作包。
 - 公共契约、领域边界、权限语义、模型能力和持久化结构变更必须先有已接受 ADR。
-- 聊天中的决定在提交到仓库前不生效。
+- 对话中的决定只有写入仓库并提交后才生效。
+- 不以代码存在代替产品闭环，不以页面存在代替用户任务完成。
 
 报告完成前：
 
-1. 执行工作包声明的验证。
+1. 执行工作包声明的全部验证。
 2. 在 `project/evidence/INDEX.md` 登记可复现证据。
 3. 更新工作包和 `project/STATE.yaml`。
 4. 运行 `make project-verify`。
-5. 没有绑定提交的证据不得标记为完成。
+5. 确认工作区没有遗漏的任务内修改。
+6. 使用中文提交信息，前缀使用 `feat`、`bug`、`build` 或 `doc`。
+7. 没有绑定提交的证据不得把工作包标记为已完成。
 
-在 `WP-0001` 的人工设计评审结果登记到仓库前，设计分支不得创建绿地实施分支。
+在 `WP-0001` 的人工设计评审结果登记到仓库前，不得创建绿地实施分支。
 
-## engineering-assistant plugin protocol
+## M0 设计分支边界
 
-When a user asks to use the `engineering-assistant` plugin, do not only claim it verbally and do not substitute generic skills by default.
+当 `project/STATE.yaml` 的 `currentMilestone` 为 `M0` 时：
 
-Required protocol:
+- 当前分支只保留项目控制面、ADR、产品设计、前端设计、架构设计、交付计划和治理脚本。
+- 不得恢复旧 `backend/`、`frontend/`、`deploy/` 或描述旧实现的文档。
+- 不得创建新的可运行产品源码。
+- 本地未受版本控制的 `.env`、密钥和个人配置不得自动删除或提交。
+- 需要查阅旧实现时使用 Git 历史、固定提交或代码图谱，不把旧代码复制回当前分支。
 
-1. Select the active plugin runtime
-   - Prefer the plugin capabilities exposed by the current agent runtime, such as plugin-provided skills or MCP tools already listed in the current tool context.
-   - Do not assume Hermes is the only plugin runtime.
-   - Use Hermes commands only when one of these is true:
-     - the user explicitly asks to use Hermes;
-     - the current execution environment is Hermes CLI;
-     - no current-runtime plugin capability is available and a Hermes installation must be checked as a fallback.
+## 工程助手插件协议
 
-2. Route to the minimum sufficient plugin skill
-   - If the current runtime exposes plugin-qualified skills, choose the minimum sufficient `engineering-assistant:<skill-id>` skill from those capabilities.
-   - If using Hermes, run:
-     `hermes plugins list --plain --no-bundled | grep '^engineering-assistant\b' || true`
-     then:
-     `python3 ~/.hermes/plugins/engineering-assistant/engineering-assistant/scripts/route_skill.py --root ~/.hermes/plugins/engineering-assistant --prompt '<user request>'`
-   - If a router is used, respect router output:
-     - `selected`: use that plugin skill
-     - `waiting_for_input`: do not guess; surface the minimal ambiguity
-     - `rejected`: explain-only request; do not fake stage execution
+用户要求使用 `engineering-assistant` 插件时，不能只在文字中声称使用，也不能默认用通用能力替代插件能力。
 
-3. Explicitly load the plugin-qualified skill
-   - Load or invoke the plugin-qualified skill through the active runtime.
-   - Do not treat a plugin availability check as proof the plugin was used.
-   - Do not run Hermes-only commands merely to satisfy evidence reporting when the active runtime is not Hermes.
+### 1. 选择当前插件运行环境
 
-4. Consume control-plane assets when relevant
-   - Read the smallest sufficient set from the active runtime's plugin assets.
-   - For Hermes fallback, the asset paths are:
-     - `~/.hermes/plugins/engineering-assistant/engineering-assistant/registry/workflows.yaml`
-     - `~/.hermes/plugins/engineering-assistant/engineering-assistant/workflows/*.yaml`
-     - `~/.hermes/plugins/engineering-assistant/engineering-assistant/runtime/compiled/skill-runtime-index.json`
-     - relevant `standards/*` or `checklists/*`
-   - Use these files to decide workflow, risk, explicit-only skills, gates, and expected artifacts
+- 优先使用当前 Agent 运行环境已经提供的插件技能或 MCP 工具。
+- 不得假设 Hermes 是唯一插件运行环境。
+- 只有以下情况之一成立时才使用 Hermes 命令：
+  - 用户明确要求使用 Hermes。
+  - 当前执行环境就是 Hermes 命令行。
+  - 当前环境没有可用的插件能力，需要把 Hermes 作为后备方案检查。
 
-5. Validate plugin-style stage outputs
-   - If a StageRunResult JSON or equivalent stage artifact is produced, validate it with the validator for the active runtime.
-   - For Hermes fallback, run:
-     `python3 ~/.hermes/plugins/engineering-assistant/engineering-assistant/scripts/validate_stage_run_result.py <result.json>`
-   - If validation fails, do not claim success
+### 2. 路由到最小充分技能
 
-6. Response evidence requirement
-   - Final reports must state:
-     - active plugin runtime
-     - plugin availability or capability source
-     - routed skill id
-     - explicitly loaded plugin-qualified skill
-     - workflow/control-plane files consumed
-     - validator result if applicable
+- 当前环境提供插件限定技能时，选择最小充分的 `engineering-assistant:<skill-id>`。
+- 使用 Hermes 时先运行：
 
-## codegraph usage protocol
+```bash
+hermes plugins list --plain --no-bundled | grep '^engineering-assistant\b' || true
+```
 
-The current repository already has a working codegraph index. For code understanding, architecture tracing, impact analysis, and non-trivial debugging, prefer codegraph as the first discovery tool instead of blind file search.
+再运行：
 
-Required protocol:
+```bash
+python3 ~/.hermes/plugins/engineering-assistant/engineering-assistant/scripts/route_skill.py \
+  --root ~/.hermes/plugins/engineering-assistant \
+  --prompt '<用户请求>'
+```
 
-1. Use `mcp_codegraph_codegraph_explore` first for almost all codebase questions
-   - Apply this to questions like:
-     - how does feature X work
-     - where is module Y implemented
-     - why does flow Z fail
-     - what should change for a refactor
-     - what code paths touch entity/service/controller/repository A
-   - Prefer a natural-language query or a compact bag of symbols/files
-   - Do not start with broad `search_files`/grep when the goal is understanding behavior or architecture
+- 使用路由器后必须遵守结果：
+  - `selected`：使用返回的插件技能。
+  - `waiting_for_input`：不得猜测，只提出最小必要问题。
+  - `rejected`：当前请求只需解释，不得伪造阶段执行。
 
-2. Use the codegraph tool priority in this order
-   - `mcp_codegraph_codegraph_explore`: primary entrypoint for understanding an area
-   - `mcp_codegraph_codegraph_node`: when one specific symbol body or overload needs full detail
-   - `mcp_codegraph_codegraph_impact`: before non-trivial refactors or schema/API changes
-   - `mcp_codegraph_codegraph_callers` / `mcp_codegraph_codegraph_callees`: when tracing direct call relationships
-   - `mcp_codegraph_codegraph_search`: only to find symbol names when the exact symbol is unknown
-   - `mcp_codegraph_codegraph_files`: for indexed tree/layout inspection
+### 3. 显式加载插件技能
 
-3. Only fall back to `read_file` / `search_files` after codegraph narrows the target
-   - Use file tools to inspect raw config, YAML, SQL, generated artifacts, or long non-indexed text
-   - Use file tools when codegraph output is insufficient or when verifying exact surrounding text in a file
-   - Do not reopen large files just to rediscover code already returned by `codegraph_explore`
+- 通过当前运行环境加载或调用插件限定技能。
+- 只检查插件是否存在不代表已经使用插件。
+- 当前环境不是 Hermes 时，不得仅为生成证据而运行 Hermes 专用命令。
 
-4. Use codegraph before editing or reviewing risky code
-   - Before changing important services, aggregates, controllers, repositories, routes, or shared contracts:
-     - inspect the area with `codegraph_explore`
-     - inspect the target symbol with `codegraph_node` if needed
-     - run `codegraph_impact` for non-local changes
-   - Summaries and implementation plans should mention the key symbols/files identified via codegraph when relevant
+### 4. 使用控制面资产
 
-5. Mention codegraph evidence in the response when it materially informed the work
-   - Examples:
-     - explored `AuthApplicationService login SessionController`
-     - impact checked for `KnowledgeBaseService`
-     - traced callers of `ModelProviderService.save`
+- 只读取能够改变当前结论的最小插件资产集合。
+- 使用 Hermes 后备方案时，相关资产位于：
+  - `~/.hermes/plugins/engineering-assistant/engineering-assistant/registry/workflows.yaml`
+  - `~/.hermes/plugins/engineering-assistant/engineering-assistant/workflows/*.yaml`
+  - `~/.hermes/plugins/engineering-assistant/engineering-assistant/runtime/compiled/skill-runtime-index.json`
+  - 与任务相关的 `standards/*` 或 `checklists/*`
+- 使用这些资产确定流程、风险、需要显式授权的技能、门禁和预期产物。
 
-Practical rules:
-- For architecture/debugging/refactor questions, codegraph is the default first step
-- For one exact known file with a small targeted read, `read_file` is fine directly
-- For repo-wide regex hunting in non-code assets, `search_files` is fine directly
-- When codegraph and raw files disagree, verify with `read_file` and report the discrepancy explicitly
+### 5. 校验阶段结果
 
-## High-risk plugin skills
+- 产生 `StageRunResult` JSON 或等价阶段产物时，必须使用当前运行环境提供的校验器。
+- 使用 Hermes 后备方案时运行：
 
-Treat the following as explicit-only unless the user intent is explicit and the plugin router selects them:
+```bash
+python3 ~/.hermes/plugins/engineering-assistant/engineering-assistant/scripts/validate_stage_run_result.py <结果文件>
+```
+
+- 校验失败时不得声称阶段成功。
+
+### 6. 最终证据
+
+最终报告必须说明：
+
+- 当前插件运行环境。
+- 插件可用性或能力来源。
+- 路由到的技能标识。
+- 显式加载的插件限定技能。
+- 已使用的流程或控制面文件。
+- 阶段结果校验结论；未产生阶段结果时说明不适用。
+
+## 代码图谱使用协议
+
+当前仓库已经建立代码图谱索引。理解代码、追踪架构、分析影响和诊断复杂问题时，必须优先使用代码图谱，不能先进行盲目的全仓库文本搜索。
+
+### 1. 默认先使用 `mcp_codegraph_codegraph_explore`
+
+以下问题默认先使用一次聚焦的代码图谱探索：
+
+- 功能如何工作。
+- 模块在哪里实现。
+- 请求如何跨层流动。
+- 某条路径为什么失败。
+- 重构应该改变哪些边界。
+- 哪些代码会接触某个实体、服务、控制器或仓储。
+
+查询使用自然语言或少量符号、文件名组合。代码图谱已经返回的源码不得再用文件读取工具重复打开。
+
+### 2. 工具优先级
+
+按以下顺序选择：
+
+1. `mcp_codegraph_codegraph_explore`：理解一个区域或完整流程。
+2. `mcp_codegraph_codegraph_node`：读取一个确定符号的完整实现或区分重载。
+3. `mcp_codegraph_codegraph_impact`：非局部重构、接口或结构变化前分析影响。
+4. `mcp_codegraph_codegraph_callers` 与 `mcp_codegraph_codegraph_callees`：追踪直接调用关系。
+5. `mcp_codegraph_codegraph_search`：只在不知道准确符号名时定位名称。
+6. `mcp_codegraph_codegraph_files`：查看索引目录结构。
+
+### 3. 文件工具的后备边界
+
+- 代码图谱缩小范围后，才使用文件读取或文本搜索补充精确内容。
+- YAML、SQL、配置、生成产物和长篇非代码文档可以直接使用文件工具。
+- 不得重新读取代码图谱已经完整返回的大文件。
+- 代码图谱与磁盘文件不一致时，以精确文件读取为准，并明确报告差异。
+
+### 4. 高风险修改前
+
+修改重要服务、聚合、控制器、仓储、路由或共享契约前：
+
+1. 使用 `mcp_codegraph_codegraph_explore` 理解区域。
+2. 必要时使用 `mcp_codegraph_codegraph_node` 查看目标符号。
+3. 对非局部变化使用 `mcp_codegraph_codegraph_impact`。
+4. 把关键符号、文件和影响写入实施说明或证据。
+
+### 5. 最终说明
+
+代码图谱实质影响设计、诊断或修改时，最终报告必须说明：
+
+- 探索过的关键符号或文件。
+- 执行过的影响分析。
+- 代码图谱结论如何改变了清理、设计或实现。
+
+## 高风险插件技能
+
+以下技能默认只能在用户意图明确且插件路由选中时使用：
+
 - `engineering-assistant:workflow-orchestrator`
 - `engineering-assistant:code-development`
 - `engineering-assistant:implementation-controller`
@@ -143,14 +218,16 @@ Treat the following as explicit-only unless the user intent is explicit and the 
 - `engineering-assistant:release-verification`
 - `engineering-assistant:engineering-knowledge-miner`
 
-## Invalid behavior
+## 无效行为
 
-The following does NOT count as using the plugin:
-- only checking that `engineering-assistant` is installed
-- only saying "using engineering-assistant" in prose
-- using only generic skills when a relevant plugin-qualified skill exists
+以下行为不算使用工程助手插件：
 
-The following is invalid code investigation behavior for this repository:
-- starting broad architecture/debugging/refactor analysis with `search_files` alone when codegraph could answer faster and better
-- reading many whole files manually before trying `mcp_codegraph_codegraph_explore`
-- claiming impact is understood for a non-trivial change without using `codegraph_impact` or equivalent codegraph tracing
+- 只检查 `engineering-assistant` 是否安装。
+- 只在回复中说“正在使用工程助手”。
+- 存在相关插件限定技能时只使用通用技能。
+
+以下代码调查行为无效：
+
+- 能用代码图谱回答架构、诊断或重构问题时，先进行宽泛文件搜索。
+- 在使用 `mcp_codegraph_codegraph_explore` 前手工读取大量完整源码。
+- 未使用 `mcp_codegraph_codegraph_impact` 或等价影响追踪，却声称已经理解非局部变化的影响。

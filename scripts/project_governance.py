@@ -25,6 +25,30 @@ REQUIRED_STATE_KEYS = {
     "updatedAt",
     "updatedBy",
 }
+REQUIRED_DESIGN_FILES = {
+    "docs/product/foundation-product-design.md",
+    "docs/design/foundation-frontend-design.md",
+    "docs/architecture/foundation-domain-design.md",
+    "docs/architecture/foundation-backend-design.md",
+    "docs/architecture/foundation-api-and-data-contracts.md",
+    "docs/planning/foundation-delivery-plan.md",
+}
+M0_FORBIDDEN_TRACKED_PREFIXES = (
+    "backend/",
+    "frontend/",
+    "deploy/",
+    "docs/decisions/",
+    "docs/engineering/",
+)
+M0_FORBIDDEN_TRACKED_FILES = {
+    "docs/PROJECT_DELIVERY.md",
+    "docs/architecture/target-architecture.md",
+    "docs/design/global-ui-design.md",
+    "docs/design/product-and-ux-design.md",
+    "scripts/quality/test_delivery_cleanup.py",
+    "scripts/quality/test_validate_backend_context_modules.py",
+    "scripts/quality/validate_backend_context_modules.py",
+}
 LIST_STATE_KEYS = {
     "activeWorkPackages",
     "blockedWorkPackages",
@@ -213,6 +237,19 @@ def find_adr(root: Path, identifier: str) -> list[Path]:
     return sorted((root / "docs" / "adr").glob(f"{identifier}-*.md"))
 
 
+def tracked_files(root: Path) -> set[str]:
+    result = subprocess.run(
+        ["git", "ls-files"],
+        cwd=root,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if result.returncode != 0:
+        raise GovernanceError("无法读取 Git 受控文件清单")
+    return {line for line in result.stdout.splitlines() if line}
+
+
 def verify(root: Path) -> tuple[dict[str, str | list[str]], dict[str, WorkPackage]]:
     required_files = {
         root / "project" / "CHARTER.md",
@@ -228,6 +265,23 @@ def verify(root: Path) -> tuple[dict[str, str | list[str]], dict[str, WorkPackag
         raise GovernanceError(f"缺少控制面文件：{', '.join(sorted(missing_files))}")
 
     state = parse_state(root / "project" / "STATE.yaml")
+    missing_design_files = [
+        path for path in sorted(REQUIRED_DESIGN_FILES) if not (root / path).is_file()
+    ]
+    if missing_design_files:
+        raise GovernanceError(f"缺少基座设计文件：{', '.join(missing_design_files)}")
+    if state["currentMilestone"] == "M0" and (root / ".git").exists():
+        current_tracked_files = tracked_files(root)
+        forbidden_files = sorted(
+            path
+            for path in current_tracked_files
+            if path in M0_FORBIDDEN_TRACKED_FILES
+            or path.startswith(M0_FORBIDDEN_TRACKED_PREFIXES)
+        )
+        if forbidden_files:
+            raise GovernanceError(
+                "M0 设计分支仍包含旧实现文件：" + ", ".join(forbidden_files[:10])
+            )
     packages: dict[str, WorkPackage] = {}
     for path in sorted((root / "project" / "work-packages").glob("WP-*.md")):
         package = parse_work_package(path)
