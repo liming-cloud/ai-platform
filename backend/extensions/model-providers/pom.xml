@@ -16,5 +16,6 @@
 
     <modules>
         <module>provider-deterministic</module>
+        <module>provider-openai-compatible</module>
     </modules>
 </project>

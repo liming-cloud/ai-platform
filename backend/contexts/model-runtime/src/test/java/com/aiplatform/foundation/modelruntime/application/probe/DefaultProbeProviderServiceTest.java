@@ -10,6 +10,7 @@ import com.aiplatform.foundation.modelruntime.api.model.ModelCapability;
 import com.aiplatform.foundation.modelruntime.api.model.ProviderKind;
 import com.aiplatform.foundation.modelruntime.api.model.ProviderProbeObservation;
 import com.aiplatform.foundation.modelruntime.api.model.ProviderProbeRequest;
+import com.aiplatform.foundation.security.secret.SecretReference;
 import java.net.URI;
 import java.time.Clock;
 import java.time.Duration;
@@ -69,7 +70,8 @@ class DefaultProbeProviderServiceTest {
                 new TenantId(UUID.fromString("10000000-0000-0000-0000-000000000001")),
                 providerKind,
                 URI.create("memory://deterministic"),
-                "secret://local/demo",
+                new SecretReference("secret://local/demo"),
+                "deterministic-chat",
                 Duration.ofSeconds(2));
     }
 }

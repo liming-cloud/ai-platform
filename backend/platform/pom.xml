@@ -16,5 +16,6 @@
 
     <modules>
         <module>platform-kernel</module>
+        <module>platform-security</module>
     </modules>
 </project>
