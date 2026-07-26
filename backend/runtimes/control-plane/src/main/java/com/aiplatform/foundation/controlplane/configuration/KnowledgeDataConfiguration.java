@@ -2,9 +2,12 @@ package com.aiplatform.foundation.controlplane.configuration;
 
 import com.aiplatform.foundation.knowledgedata.adapter.out.persistence.KnowledgeSpaceMapper;
 import com.aiplatform.foundation.knowledgedata.adapter.out.persistence.PostgresKnowledgeSpaceRepository;
+import com.aiplatform.foundation.knowledgedata.adapter.out.persistence.PostgresTextDataSourceRepository;
+import com.aiplatform.foundation.knowledgedata.adapter.out.persistence.TextDataSourceMapper;
 import com.aiplatform.foundation.knowledgedata.api.KnowledgeSpaceUseCase;
 import com.aiplatform.foundation.knowledgedata.application.knowledge.DefaultKnowledgeSpaceService;
 import com.aiplatform.foundation.knowledgedata.application.port.out.KnowledgeSpaceRepository;
+import com.aiplatform.foundation.knowledgedata.application.port.out.TextDataSourceRepository;
 import java.time.Clock;
 import java.util.UUID;
 import org.mybatis.spring.annotation.MapperScan;
@@ -41,5 +44,12 @@ public class KnowledgeDataConfiguration {
                 Clock.systemUTC(),
                 UUID::randomUUID,
                 tenantLimit);
+    }
+
+    @Bean
+    TextDataSourceRepository textDataSourceRepository(
+            TextDataSourceMapper mapper,
+            PlatformTransactionManager transactions) {
+        return new PostgresTextDataSourceRepository(mapper, transactions);
     }
 }

@@ -60,6 +60,10 @@ public final class TextDataSource {
         if (status == DataSourceStatus.DRAFT && contentVersion != 0) {
             throw new IllegalArgumentException("草稿数据源不能包含内容");
         }
+        if (status == DataSourceStatus.CONTENT_READY
+                && publishedContentVersion >= contentVersion) {
+            throw new IllegalArgumentException("内容就绪状态必须包含尚未发布的新版本");
+        }
         if (status == DataSourceStatus.PUBLISHED
                 && publishedContentVersion != contentVersion) {
             throw new IllegalArgumentException("发布状态必须指向当前内容版本");

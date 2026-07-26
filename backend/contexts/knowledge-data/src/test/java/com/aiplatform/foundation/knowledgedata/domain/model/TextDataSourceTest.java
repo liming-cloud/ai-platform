@@ -83,6 +83,22 @@ class TextDataSourceTest {
         assertEquals(3, ready.version());
     }
 
+    @Test
+    void 内容就绪状态必须存在尚未发布的新版本() {
+        assertThrows(IllegalArgumentException.class, () -> TextDataSource.reconstitute(
+                TENANT_ID,
+                SPACE_ID,
+                SOURCE_ID,
+                "门店商品说明",
+                DataSourceStatus.CONTENT_READY,
+                2,
+                1,
+                1,
+                content(1),
+                CREATOR_ID,
+                CREATED_AT));
+    }
+
     private static TextDataSource draft() {
         return TextDataSource.create(
                 TENANT_ID,
