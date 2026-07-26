@@ -91,27 +91,30 @@ query_events() {
     "${QUERY_API_ROOT}/query-runs/${query_run_id}/events"
 }
 
-create_strict_version() {
+create_version() {
   local token="$1"
   local assistant_id="$2"
   local deployment_id="$3"
   local space_id="$4"
+  local minimum_score="$5"
+  local idempotency_key="$6"
   jq -n \
     --arg deployment_id "${deployment_id}" \
     --arg space_id "${space_id}" \
+    --argjson minimum_score "${minimum_score}" \
     '{
       chatDeploymentId: $deployment_id,
       knowledgeSpaceId: $space_id,
       systemInstruction: "只依据获得授权的编号证据回答，不得补充证据外信息。",
       maxOutputTokens: 256,
       retrievalLimit: 5,
-      minimumScore: 1.0,
+      minimumScore: $minimum_score,
       citationPolicy: "REQUIRED",
       refusalPolicy: "INSUFFICIENT_EVIDENCE"
     }' |
     curl --fail-with-body --silent --show-error \
       -H "Authorization: Bearer ${token}" \
-      -H "Idempotency-Key: acceptance-strict-assistant-version-v3" \
+      -H "Idempotency-Key: ${idempotency_key}" \
       -H "Content-Type: application/json" \
       --data-binary @- \
       "${CONTROL_API_ROOT}/assistants/${assistant_id}/versions"
@@ -121,15 +124,29 @@ publish_version() {
   local token="$1"
   local version_id="$2"
   local expected_version="$3"
+  local idempotency_key="$4"
   jq -n \
     --argjson expected_version "${expected_version}" \
     '{expectedVersion: $expected_version}' |
     curl --fail-with-body --silent --show-error \
       -H "Authorization: Bearer ${token}" \
-      -H "Idempotency-Key: acceptance-strict-assistant-publish-v3" \
+      -H "Idempotency-Key: ${idempotency_key}" \
       -H "Content-Type: application/json" \
       --data-binary @- \
       "${CONTROL_API_ROOT}/assistant-versions/${version_id}/publish"
+}
+
+query_request_key() {
+  local purpose="$1"
+  local assistant_version_id="$2"
+  local question="$3"
+  local request_hash
+  request_hash="$(
+    printf '%s\0%s' "${assistant_version_id}" "${question}" |
+      shasum -a 256 |
+      awk '{print $1}'
+  )"
+  printf 'acceptance-%s-query-%s' "${purpose}" "${request_hash}"
 }
 
 store_token="$(login "demo-store")"
@@ -138,20 +155,28 @@ store_version_id="$(latest_standard_version "${STORE_TENANT}")"
 campus_version_id="$(latest_standard_version "${CAMPUS_TENANT}")"
 [[ -n "${store_version_id}" ]]
 [[ -n "${campus_version_id}" ]]
+readonly STORE_QUESTION="青柚气泡水在哪里，价格是多少"
+readonly CAMPUS_QUESTION="中心图书馆周末开放到几点"
+store_query_key="$(
+  query_request_key "store" "${store_version_id}" "${STORE_QUESTION}"
+)"
+campus_query_key="$(
+  query_request_key "campus" "${campus_version_id}" "${CAMPUS_QUESTION}"
+)"
 
 store_answer="$(
   query \
     "${store_token}" \
-    "acceptance-store-query-v3" \
+    "${store_query_key}" \
     "${store_version_id}" \
-    "青柚气泡水在哪里，价格是多少"
+    "${STORE_QUESTION}"
 )"
 campus_answer="$(
   query \
     "${campus_token}" \
-    "acceptance-campus-query-v3" \
+    "${campus_query_key}" \
     "${campus_version_id}" \
-    "中心图书馆周末开放到几点"
+    "${CAMPUS_QUESTION}"
 )"
 
 jq -e \
@@ -170,9 +195,9 @@ jq -e \
 store_replayed="$(
   query \
     "${store_token}" \
-    "acceptance-store-query-v3" \
+    "${store_query_key}" \
     "${store_version_id}" \
-    "青柚气泡水在哪里，价格是多少"
+    "${STORE_QUESTION}"
 )"
 jq -e \
   --arg id "$(jq -er '.id' <<<"${store_answer}")" \
@@ -211,26 +236,36 @@ IFS='|' read -r assistant_id deployment_id space_id <<<"$(
     "
 )"
 strict_version="$(
-  create_strict_version \
+  create_version \
     "${store_token}" \
     "${assistant_id}" \
     "${deployment_id}" \
-    "${space_id}"
+    "${space_id}" \
+    "1.0" \
+    "acceptance-strict-assistant-version-v3"
 )"
 if [[ "$(jq -er '.status' <<<"${strict_version}")" == "DRAFT" ]]; then
   strict_version="$(
     publish_version \
       "${store_token}" \
       "$(jq -er '.id' <<<"${strict_version}")" \
-      "$(jq -er '.version' <<<"${strict_version}")"
+      "$(jq -er '.version' <<<"${strict_version}")" \
+      "acceptance-strict-assistant-publish-v3"
   )"
 fi
+readonly REFUSED_QUESTION="火星基地第九仓库的量子雨伞库存是多少"
+refused_query_key="$(
+  query_request_key \
+    "refused" \
+    "$(jq -er '.id' <<<"${strict_version}")" \
+    "${REFUSED_QUESTION}"
+)"
 refused="$(
   query \
     "${store_token}" \
-    "acceptance-refused-query-v3" \
+    "${refused_query_key}" \
     "$(jq -er '.id' <<<"${strict_version}")" \
-    "火星基地第九仓库的量子雨伞库存是多少"
+    "${REFUSED_QUESTION}"
 )"
 jq -e \
   '.status == "REFUSED"
@@ -238,6 +273,29 @@ jq -e \
     and .answer == null
     and (.citations | length == 0)' \
   >/dev/null <<<"${refused}"
+
+# 拒答验收不能污染演示站点的默认助手，结束后恢复正常检索阈值。
+standard_version="$(
+  create_version \
+    "${store_token}" \
+    "${assistant_id}" \
+    "${deployment_id}" \
+    "${space_id}" \
+    "0" \
+    "acceptance-standard-assistant-version-v1"
+)"
+if [[ "$(jq -er '.status' <<<"${standard_version}")" == "DRAFT" ]]; then
+  standard_version="$(
+    publish_version \
+      "${store_token}" \
+      "$(jq -er '.id' <<<"${standard_version}")" \
+      "$(jq -er '.version' <<<"${standard_version}")" \
+      "acceptance-standard-assistant-publish-v1"
+  )"
+fi
+jq -e \
+  '.status == "PUBLISHED" and .minimumScore == 0' \
+  >/dev/null <<<"${standard_version}"
 
 cross_status="$(
   curl --silent --output /dev/null --write-out "%{http_code}" \
@@ -254,10 +312,10 @@ cross_event_status="$(
 [[ "${cross_event_status}" == "404" ]]
 
 readonly STORE_ANSWER_KEY_HASH="$(
-  printf '%s' 'acceptance-store-query-v3' | shasum -a 256 | awk '{print $1}'
+  printf '%s' "${store_query_key}" | shasum -a 256 | awk '{print $1}'
 )"
 readonly STORE_REFUSED_KEY_HASH="$(
-  printf '%s' 'acceptance-refused-query-v3' | shasum -a 256 | awk '{print $1}'
+  printf '%s' "${refused_query_key}" | shasum -a 256 | awk '{print $1}'
 )"
 readonly STORE_RUN_COUNT="$(
   compose exec -T postgres \

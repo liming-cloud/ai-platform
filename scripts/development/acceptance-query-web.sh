@@ -117,14 +117,14 @@ query_run="$(
     "青柚气泡水在哪里，价格是多少"
 )"
 jq -e \
-  '.status == "ANSWERED" or .status == "REFUSED"' \
+  '.status == "ANSWERED" and (.citations | length > 0)' \
   >/dev/null <<<"${query_run}"
 
 query_run_id="$(jq -er ".id" <<<"${query_run}")"
 events="$(query_events "${store_token}" "${query_run_id}" | tr -d '\r')"
 [[ "$(awk -F: '/^id:/{print $2}' <<<"${events}")" == $'1\n2' ]]
 grep -q '^event:QUERY_STARTED$' <<<"${events}"
-grep -Eq '^event:QUERY_(ANSWERED|REFUSED)$' <<<"${events}"
+grep -q '^event:QUERY_ANSWERED$' <<<"${events}"
 grep -q '"terminal":true' <<<"${events}"
 
 cross_tenant_status="$(
