@@ -1,0 +1,73 @@
+package com.aiplatform.foundation.knowledgedata.domain.model;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
+import com.aiplatform.foundation.kernel.tenant.TenantId;
+import com.aiplatform.foundation.organizationaccess.api.model.MembershipId;
+import java.time.Instant;
+import java.util.UUID;
+import org.junit.jupiter.api.Test;
+
+class KnowledgeSpaceTest {
+
+    private static final TenantId TENANT_ID =
+            new TenantId(UUID.fromString("10000000-0000-0000-0000-000000000001"));
+    private static final MembershipId CREATOR_ID =
+            new MembershipId(UUID.fromString("20000000-0000-0000-0000-000000000001"));
+    private static final Instant CREATED_AT = Instant.parse("2026-07-27T00:00:00Z");
+
+    @Test
+    void 创建草稿知识空间并保留明确租户边界() {
+        var space = KnowledgeSpace.create(
+                TENANT_ID,
+                new KnowledgeSpaceId(UUID.fromString("30000000-0000-0000-0000-000000000001")),
+                "门店商品知识",
+                "供门店机器人回答商品问题",
+                CREATOR_ID,
+                CREATED_AT);
+
+        assertEquals(TENANT_ID, space.tenantId());
+        assertEquals("门店商品知识", space.name());
+        assertEquals("供门店机器人回答商品问题", space.description());
+        assertEquals(KnowledgeSpaceStatus.DRAFT, space.status());
+        assertEquals(0, space.version());
+        assertEquals(CREATED_AT, space.createdAt());
+    }
+
+    @Test
+    void 拒绝首尾空白和控制字符名称() {
+        assertThrows(IllegalArgumentException.class, () -> KnowledgeSpace.create(
+                TENANT_ID,
+                new KnowledgeSpaceId(UUID.randomUUID()),
+                " 门店商品知识",
+                null,
+                CREATOR_ID,
+                CREATED_AT));
+        assertThrows(IllegalArgumentException.class, () -> KnowledgeSpace.create(
+                TENANT_ID,
+                new KnowledgeSpaceId(UUID.randomUUID()),
+                "门店\n商品知识",
+                null,
+                CREATOR_ID,
+                CREATED_AT));
+    }
+
+    @Test
+    void 拒绝超过页面预算的名称和说明() {
+        assertThrows(IllegalArgumentException.class, () -> KnowledgeSpace.create(
+                TENANT_ID,
+                new KnowledgeSpaceId(UUID.randomUUID()),
+                "知".repeat(81),
+                null,
+                CREATOR_ID,
+                CREATED_AT));
+        assertThrows(IllegalArgumentException.class, () -> KnowledgeSpace.create(
+                TENANT_ID,
+                new KnowledgeSpaceId(UUID.randomUUID()),
+                "校园知识",
+                "说".repeat(501),
+                CREATOR_ID,
+                CREATED_AT));
+    }
+}
