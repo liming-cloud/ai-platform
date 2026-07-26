@@ -1,10 +1,10 @@
 schemaVersion: 1
 productVersion: foundation-v1
 currentMilestone: M1
-currentFrontier: WP-0002
-lastVerifiedCommit: 925590273f718f5c72361224c634b86a457b6407
+currentFrontier: WP-0003
+lastVerifiedCommit: 7bc8d23a9deda206adc4694559c4cb17baae97bd
 activeWorkPackages:
-  - WP-0002
+  - WP-0003
 blockedWorkPackages:
 confirmedDecisions:
   - ADR-0001
@@ -19,11 +19,7 @@ confirmedDecisions:
   - ADR-0010
 openDecisions: []
 latestEvidence:
-  - project/evidence/WP-0002-backend-baseline.md
-  - project/evidence/WP-0002-frontend-baseline.md
-  - project/evidence/WP-0002-docker-baseline.md
-  - project/evidence/WP-0002-provider-security.md
-  - project/evidence/WP-0002-context-boundaries.md
+  - project/evidence/WP-0002-acceptance.md
 nextReviewAt: 2026-08-02
-updatedAt: 2026-07-26T23:58:40+08:00
+updatedAt: 2026-07-27T00:01:53+08:00
 updatedBy: codex
