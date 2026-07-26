@@ -4,13 +4,18 @@
 
 第一阶段采用模块化单体和独立运行进程组合，优先保证领域边界、事务清晰、部署简单和可观测性。模块边界稳定且存在独立扩缩容证据后，才允许拆分服务。
 
-计划中的绿地目录：
+后端采用“平台机制、限界上下文、编译期扩展、运行入口、测试支持、架构测试”六类模块：
 
 ```text
-foundation/
-├── pom.xml
-├── foundation-contracts/
-├── foundation-domain/
+backend/
+├── platform/
+│   ├── platform-kernel/
+│   ├── platform-web/
+│   ├── platform-security/
+│   ├── platform-persistence/
+│   ├── platform-observability/
+│   └── platform-outbox/
+├── contexts/
 │   ├── organization-access/
 │   ├── knowledge-data/
 │   ├── model-runtime/
@@ -18,20 +23,23 @@ foundation/
 │   ├── trusted-query/
 │   ├── evaluation-operations/
 │   └── profile-consent/
-├── foundation-application/
-├── foundation-adapters/
-│   ├── web/
-│   ├── persistence/
-│   ├── security/
-│   ├── model/
-│   ├── vector/
-│   ├── object-storage/
-│   └── observability/
-├── foundation-control-plane/
-├── foundation-query-runtime/
-├── foundation-ingestion-worker/
-└── foundation-architecture-tests/
+├── extensions/
+│   ├── model-providers/
+│   ├── data-connectors/
+│   ├── vector-stores/
+│   ├── object-stores/
+│   ├── secret-stores/
+│   ├── delivery-channels/
+│   └── tool-providers/
+├── runtimes/
+│   ├── control-plane/
+│   ├── query-runtime/
+│   └── ingestion-worker/
+├── test-support/
+└── architecture-tests/
 ```
+
+每个限界上下文默认是一个 Maven 模块，内部按 `api`、`domain`、`application`、`adapter` 分包。厂商、连接器、存储和渠道等高变化能力使用独立扩展模块。完整仓库树、模块模板、依赖矩阵、存储所有权和 M1 最小落地范围见 `docs/architecture/foundation-repository-layout.md`。
 
 三个可部署进程：
 
@@ -59,6 +67,8 @@ foundation/
 - 适配器实现端口并完成框架类型转换。
 - 启动模块只负责装配、配置和进程入口。
 - 上下文内部包默认不可见，只有公开契约包可被其他上下文依赖。
+- 厂商和连接器扩展只依赖对应上下文的公开扩展接口。
+- 平台机制不得依赖任何业务上下文。
 
 ## 3. Spring Boot 使用规范
 

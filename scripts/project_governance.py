@@ -31,7 +31,23 @@ REQUIRED_DESIGN_FILES = {
     "docs/architecture/foundation-domain-design.md",
     "docs/architecture/foundation-backend-design.md",
     "docs/architecture/foundation-api-and-data-contracts.md",
+    "docs/architecture/foundation-repository-layout.md",
     "docs/planning/foundation-delivery-plan.md",
+}
+REQUIRED_REPOSITORY_LAYOUT_SECTIONS = {
+    "规划后的仓库根目录",
+    "后端 Maven 反应堆",
+    "限界上下文标准模板",
+    "扩展模块",
+    "三个运行模块",
+    "前端工作区",
+    "公共契约目录",
+    "数据库与存储所有权",
+    "Docker 与部署目录",
+    "跨系统验证目录",
+    "M1 最小落地目录",
+    "自动化门禁",
+    "目录设计验收",
 }
 M0_FORBIDDEN_TRACKED_PREFIXES = (
     "backend/",
@@ -250,6 +266,17 @@ def tracked_files(root: Path) -> set[str]:
     return {line for line in result.stdout.splitlines() if line}
 
 
+def markdown_level_two_sections(path: Path) -> set[str]:
+    return {
+        match.group(1).strip()
+        for match in re.finditer(
+            r"^##\s+(?:\d+\.\s+)?(.+?)\s*$",
+            path.read_text(encoding="utf-8"),
+            flags=re.MULTILINE,
+        )
+    }
+
+
 def verify(root: Path) -> tuple[dict[str, str | list[str]], dict[str, WorkPackage]]:
     required_files = {
         root / "project" / "CHARTER.md",
@@ -270,6 +297,15 @@ def verify(root: Path) -> tuple[dict[str, str | list[str]], dict[str, WorkPackag
     ]
     if missing_design_files:
         raise GovernanceError(f"缺少基座设计文件：{', '.join(missing_design_files)}")
+    repository_layout_path = root / "docs" / "architecture" / "foundation-repository-layout.md"
+    missing_layout_sections = (
+        REQUIRED_REPOSITORY_LAYOUT_SECTIONS
+        - markdown_level_two_sections(repository_layout_path)
+    )
+    if missing_layout_sections:
+        raise GovernanceError(
+            "详细目录规划缺少章节：" + ", ".join(sorted(missing_layout_sections))
+        )
     if state["currentMilestone"] == "M0" and (root / ".git").exists():
         current_tracked_files = tracked_files(root)
         forbidden_files = sorted(

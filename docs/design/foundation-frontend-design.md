@@ -603,41 +603,35 @@
 
 ## 24. 前端模块边界
 
-计划中的源码结构按用户任务组织：
+前端采用 npm 工作区，控制台、问答和设备界面是独立构建应用，共享包只有出现两个真实消费者时才创建。完整工作区目录和创建门槛见 `docs/architecture/foundation-repository-layout.md`。
 
 ```text
-src/
-├── app/
-│   ├── providers/
-│   ├── routing/
-│   └── shells/
-├── capabilities/
-│   ├── access/
-│   ├── data-publishing/
-│   ├── model-governance/
-│   ├── assistant-release/
-│   ├── evaluation/
-│   ├── trusted-query/
-│   └── operations/
-├── shared/
-│   ├── api/
+frontend/
+├── apps/
+│   ├── console-web/
+│   ├── query-web/
+│   └── device-web/
+├── packages/
+│   ├── design-system/
+│   ├── api-client/
 │   ├── auth/
-│   ├── errors/
-│   ├── events/
-│   ├── formatting/
-│   └── ui/
-└── test-support/
+│   ├── query-stream/
+│   ├── telemetry/
+│   └── test-support/
+└── e2e/
 ```
 
 边界规则：
 
-- `capabilities` 之间不导入内部页面或状态，只使用公开能力接口。
-- `shared/ui` 只包含无业务含义的 Fluent 组合组件。
-- 权限、错误、配额、SSE 和追踪由共享能力统一处理。
-- OpenAPI 生成类型位于 `shared/api`，不能直接作为组件属性。
+- 应用不能导入其他应用内部源码。
+- 控制台内部按 `capabilities/<task>` 组织，每个能力只有 `index.ts` 可以被外部引用。
+- `design-system` 只包含品牌令牌和至少被两个应用使用的 Fluent 组合组件，不包装所有基础组件。
+- 权限、SSE、追踪和生成接口客户端通过真实共享包统一处理。
+- OpenAPI 生成类型位于 `api-client`，不能直接作为组件属性。
 - 页面使用视图模型，将接口状态转换为用户任务状态。
 - 路由级加载负责首屏数据，查询缓存只保存服务器事实。
 - 表单草稿、弹窗和本地选择使用局部状态，不建立全局状态仓库。
+- M1 只创建 `console-web` 和 `query-web`，`device-web` 到 M7 再创建。
 
 ## 25. 前端性能预算
 

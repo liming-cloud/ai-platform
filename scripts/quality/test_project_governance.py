@@ -36,6 +36,17 @@ class ProjectGovernanceTest(unittest.TestCase):
         ):
             (self.root / relative).parent.mkdir(parents=True, exist_ok=True)
             (self.root / relative).write_text("# 测试\n", encoding="utf-8")
+        layout_sections = "\n".join(
+            f"## {index}. {section}\n\n内容\n"
+            for index, section in enumerate(
+                sorted(MODULE.REQUIRED_REPOSITORY_LAYOUT_SECTIONS),
+                start=1,
+            )
+        )
+        (
+            self.root
+            / "docs/architecture/foundation-repository-layout.md"
+        ).write_text(layout_sections, encoding="utf-8")
         self.write_state(["WP-0001"])
         self.write_work_package("WP-0001", owner="后端")
 
@@ -116,6 +127,12 @@ class ProjectGovernanceTest(unittest.TestCase):
             mock.patch.object(MODULE, "is_ancestor", return_value=True),
             self.assertRaisesRegex(MODULE.GovernanceError, "仍包含旧实现文件"),
         ):
+            MODULE.verify(self.root)
+
+    def test_repository_layout_requires_all_boundary_sections(self):
+        layout = self.root / "docs/architecture/foundation-repository-layout.md"
+        layout.write_text("# 不完整目录设计\n", encoding="utf-8")
+        with self.assertRaisesRegex(MODULE.GovernanceError, "详细目录规划缺少章节"):
             MODULE.verify(self.root)
 
 

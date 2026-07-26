@@ -10,5 +10,6 @@
 | G6 可运维产品 | 部署、观测、备份和恢复 | 运行时运维 | Docker、运维页面 | WP-0001、WP-0007 | 冒烟、恢复、性能测试 | M1 待产生 |
 | G7 跨会话连续性 | 不依赖聊天记录恢复任务 | 项目控制面 | `make resume-context` | WP-0001 | `make project-verify` | `project/evidence/INDEX.md` |
 | G8 绿地事实边界 | 评审时只看到新基座设计 | 项目治理 | 根目录、设计文档和 Git 历史 | WP-0001 | 旧实现清单和受控文件检查 | `project/evidence/INDEX.md#wp-0001` |
+| G9 可扩展工程边界 | 新增厂商、连接器、渠道或界面时局部修改 | 模块与扩展治理 | `foundation-repository-layout.md` | WP-0001、WP-0002 | 依赖、目录、契约和装配架构测试 | M1 待产生 |
 
 每个实施工作包在激活前必须新增或细化至少一行。

@@ -14,11 +14,12 @@ confirmedDecisions:
   - ADR-0005
   - ADR-0006
   - ADR-0007
+  - ADR-0008
 openDecisions:
   - HITL-0001-M0-DESIGN-APPROVAL
 latestEvidence:
   - project/evidence/INDEX.md#wp-0001
   - project/evidence/WP-0001-cleanup.md
 nextReviewAt: 2026-07-27
-updatedAt: 2026-07-26T22:16:39+08:00
+updatedAt: 2026-07-27T00:02:00+08:00
 updatedBy: codex

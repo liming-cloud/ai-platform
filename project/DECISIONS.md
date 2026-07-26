@@ -9,6 +9,7 @@
 | ADR-0005 | 已接受 | 使用任务导向的 Fluent UI v9 和页面复杂度预算 | `docs/adr/ADR-0005-task-first-fluent-ui.md` | M0-M8 |
 | ADR-0006 | 已接受 | 固定正式 GA 技术基线，禁止预览依赖 | `docs/adr/ADR-0006-stable-ga-technology-baseline.md` | M0-M8 |
 | ADR-0007 | 已接受 | 在设计分支删除可由 Git 恢复的旧实现，只保留绿地控制面与设计 | `docs/adr/ADR-0007-clean-design-branch.md` | M0 |
+| ADR-0008 | 已接受 | 使用限界上下文单模块、独立扩展、三运行入口和多前端应用的详细目录 | `docs/adr/ADR-0008-scalable-repository-layout.md` | M0-M8 |
 
 ## 待人工决策
 
