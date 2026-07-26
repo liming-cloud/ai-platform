@@ -1,4 +1,4 @@
-.PHONY: project-status project-verify resume-context validate
+.PHONY: project-status project-verify resume-context backend-test validate
 
 project-status:
 	python3 scripts/project_governance.py status
@@ -10,4 +10,7 @@ project-verify:
 resume-context:
 	python3 scripts/project_governance.py resume
 
-validate: project-verify
+backend-test:
+	./mvnw -q clean test
+
+validate: project-verify backend-test

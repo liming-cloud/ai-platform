@@ -1,0 +1,20 @@
+spring:
+  application:
+    name: control-plane
+  main:
+    banner-mode: "off"
+
+server:
+  port: 8080
+  shutdown: graceful
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: never
