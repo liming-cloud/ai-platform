@@ -2,7 +2,7 @@ schemaVersion: 1
 productVersion: foundation-v1
 currentMilestone: M0
 currentFrontier: WP-0001
-lastVerifiedCommit: 6969e5c6f4af7af2f9db1eb3cc447fd278b997d5
+lastVerifiedCommit: e1e5ccced4457af85ac84ddea2db9a0663e3173b
 activeWorkPackages:
   - WP-0001
 blockedWorkPackages:
@@ -16,7 +16,7 @@ confirmedDecisions:
 openDecisions:
   - HITL-0001-M0-DESIGN-APPROVAL
 latestEvidence:
-  - project/evidence/INDEX.md
+  - project/evidence/INDEX.md#wp-0001
 nextReviewAt: 2026-07-27
-updatedAt: 2026-07-26T00:00:00+08:00
+updatedAt: 2026-07-26T21:40:03+08:00
 updatedBy: codex

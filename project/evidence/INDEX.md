@@ -6,10 +6,14 @@
 
 | 证据 | 命令或评审 | 提交 | 结果 |
 | --- | --- | --- | --- |
-| 治理单元测试 | `python3 -m unittest scripts.quality.test_project_governance` | 待产生 | 待执行 |
-| 仓库控制面验证 | `python3 scripts/project_governance.py verify` | 待产生 | 待执行 |
-| 跨会话恢复输出 | `make resume-context` | 待产生 | 待执行 |
-| 产品与架构设计评审 | 人工评审 M0 文档 | 待产生 | 等待产品负责人 |
+| 治理单元测试 | `python3 -m unittest scripts.quality.test_project_governance` | `e1e5ccced4457af85ac84ddea2db9a0663e3173b` | 4 项通过 |
+| 仓库控制面验证 | `python3 scripts/project_governance.py verify` | `e1e5ccced4457af85ac84ddea2db9a0663e3173b` | 通过，识别 2 个工作包，当前前沿为 WP-0001 |
+| 跨会话恢复输出 | `make resume-context` | `e1e5ccced4457af85ac84ddea2db9a0663e3173b` | 通过，输出 89 行最小恢复上下文 |
+| 既有交付契约 | `make delivery-contract` | `e1e5ccced4457af85ac84ddea2db9a0663e3173b` | 5 项测试与 4 个脚本语法检查通过 |
+| 流水线配置语法 | Ruby 标准 YAML 解析器读取 `.github/workflows/ci.yml` | `e1e5ccced4457af85ac84ddea2db9a0663e3173b` | 通过 |
+| 产品与架构设计评审 | 人工评审 M0 文档 | `e1e5ccced4457af85ac84ddea2db9a0663e3173b` | 等待产品负责人 |
+
+自动证据执行时间为 2026-07-26，执行环境为当前 macOS 工作区。WP-0001 仍为进行中，人工评审未通过前不得创建实施分支。
 
 ## 证据规则
 
