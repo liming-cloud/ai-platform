@@ -26,6 +26,7 @@ confirmedDecisions:
   - ADR-0017
   - ADR-0018
   - ADR-0019
+  - ADR-0020
 openDecisions: []
 latestEvidence:
   - docs/research/WP-0003-framework-baseline.md
@@ -57,5 +58,5 @@ latestEvidence:
   - project/evidence/WP-0006-demo-evaluation.md
   - project/evidence/WP-0006-browser-acceptance.md
 nextReviewAt: 2026-08-02
-updatedAt: 2026-07-27T07:51:02+08:00
+updatedAt: 2026-07-27T07:57:42+08:00
 updatedBy: codex

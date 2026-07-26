@@ -21,6 +21,7 @@
 | ADR-0017 | 已接受 | 查询渠道只读取最新已发布助手版本，浏览器使用内存会话和可取消的事件续传 | `docs/adr/ADR-0017-query-channel-catalog-and-browser-state.md` | M1-M8 |
 | ADR-0018 | 已接受 | 查询接受时原子占用演示配额，运营接口只读取脱敏查询事实 | `docs/adr/ADR-0018-demo-query-quota-and-operations-projection.md` | M1-M8 |
 | ADR-0019 | 已接受 | 在授权向量候选池内执行查询感知的混合重排 | `docs/adr/ADR-0019-query-aware-candidate-selection.md` | M1-M4 |
+| ADR-0020 | 已接受 | PostgreSQL 与 MinIO 组成业务备份集，Redis 会话不恢复，并在独立 Docker 项目中验收恢复 | `docs/adr/ADR-0020-demo-backup-and-isolated-recovery.md` | M1 |
 
 ## 已确认人工决策
 
