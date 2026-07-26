@@ -17,6 +17,12 @@ import com.aiplatform.foundation.knowledgedata.application.indexversion.IndexVer
 import com.aiplatform.foundation.knowledgedata.application.indexversion.IndexVersionNotFoundException;
 import com.aiplatform.foundation.knowledgedata.application.indexversion.NoPublishedSourceException;
 import com.aiplatform.foundation.knowledgedata.domain.model.DataSourceStateException;
+import com.aiplatform.foundation.modelruntime.application.catalog.ModelCatalogPermissionDeniedException;
+import com.aiplatform.foundation.modelruntime.application.catalog.ProviderConnectionConcurrentModificationException;
+import com.aiplatform.foundation.modelruntime.application.catalog.ProviderConnectionIdempotencyConflictException;
+import com.aiplatform.foundation.modelruntime.application.catalog.ProviderConnectionNotFoundException;
+import com.aiplatform.foundation.modelruntime.application.catalog.ProviderConnectionNameConflictException;
+import com.aiplatform.foundation.modelruntime.application.catalog.ProviderConnectionQuotaExceededException;
 import com.aiplatform.foundation.organizationaccess.application.authentication.InvalidCredentialsException;
 import java.util.Map;
 import org.springframework.http.HttpStatus;
@@ -48,12 +54,54 @@ public class GlobalApiExceptionHandler {
         return error(HttpStatus.FORBIDDEN, "ACCESS_DENIED", "没有执行该操作的权限");
     }
 
+    @ExceptionHandler(ModelCatalogPermissionDeniedException.class)
+    ResponseEntity<ApiErrorResponse> modelCatalogAccessDenied() {
+        return error(HttpStatus.FORBIDDEN, "ACCESS_DENIED", "没有执行该操作的权限");
+    }
+
     @ExceptionHandler(IdempotencyConflictException.class)
     ResponseEntity<ApiErrorResponse> idempotencyConflict() {
         return error(
                 HttpStatus.CONFLICT,
                 "IDEMPOTENCY_CONFLICT",
                 "幂等键已经用于不同请求");
+    }
+
+    @ExceptionHandler(ProviderConnectionIdempotencyConflictException.class)
+    ResponseEntity<ApiErrorResponse> providerConnectionIdempotencyConflict() {
+        return error(
+                HttpStatus.CONFLICT,
+                "IDEMPOTENCY_CONFLICT",
+                "幂等键已经用于不同请求");
+    }
+
+    @ExceptionHandler(ProviderConnectionNotFoundException.class)
+    ResponseEntity<ApiErrorResponse> providerConnectionNotFound() {
+        return error(HttpStatus.NOT_FOUND, "RESOURCE_NOT_FOUND", "目标资源不存在");
+    }
+
+    @ExceptionHandler(ProviderConnectionNameConflictException.class)
+    ResponseEntity<ApiErrorResponse> providerConnectionNameConflict() {
+        return error(
+                HttpStatus.CONFLICT,
+                "PROVIDER_CONNECTION_NAME_CONFLICT",
+                "当前租户已经存在同名供应商连接");
+    }
+
+    @ExceptionHandler(ProviderConnectionConcurrentModificationException.class)
+    ResponseEntity<ApiErrorResponse> providerConnectionVersionConflict() {
+        return error(
+                HttpStatus.CONFLICT,
+                "PROVIDER_CONNECTION_VERSION_CONFLICT",
+                "供应商连接版本已经变化");
+    }
+
+    @ExceptionHandler(ProviderConnectionQuotaExceededException.class)
+    ResponseEntity<ApiErrorResponse> providerConnectionQuotaExceeded() {
+        return error(
+                HttpStatus.TOO_MANY_REQUESTS,
+                "PROVIDER_CONNECTION_QUOTA_EXCEEDED",
+                "供应商连接数量已经达到租户配额");
     }
 
     @ExceptionHandler(KnowledgeSpaceNameConflictException.class)

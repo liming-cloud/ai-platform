@@ -7,6 +7,7 @@ spring:
     locations:
       - classpath:db/migration/organization-access
       - classpath:db/migration/knowledge-data
+      - classpath:db/migration/model-runtime
   data:
     redis:
       repositories:

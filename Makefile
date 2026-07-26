@@ -1,4 +1,4 @@
-.PHONY: project-status project-verify resume-context backend-test frontend-test demo-fixtures-verify deploy-config deploy-up deploy-smoke acceptance-knowledge-space acceptance-index-search performance-index-search deploy-down validate
+.PHONY: project-status project-verify resume-context backend-test frontend-test demo-fixtures-verify deploy-config deploy-up deploy-smoke acceptance-knowledge-space acceptance-model-provider acceptance-index-search performance-index-search deploy-down validate
 
 project-status:
 	python3 scripts/project_governance.py status
@@ -31,6 +31,9 @@ deploy-smoke:
 
 acceptance-knowledge-space:
 	bash scripts/development/acceptance-knowledge-space.sh
+
+acceptance-model-provider:
+	bash scripts/development/acceptance-model-provider.sh
 
 acceptance-index-search: acceptance-knowledge-space
 	bash scripts/development/acceptance-index-search.sh
