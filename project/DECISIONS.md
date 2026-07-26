@@ -17,6 +17,7 @@
 | ADR-0013 | 已接受 | 知识空间的租户、幂等、配额和插入使用可信上下文与单一数据库事务 | `docs/adr/ADR-0013-knowledge-space-transaction-boundary.md` | M1-M8 |
 | ADR-0014 | 已接受 | 文本内容经受限暂存和内容寻址对象写入后登记，并以乐观锁发布 | `docs/adr/ADR-0014-text-content-object-publication.md` | M1-M8 |
 | ADR-0015 | 已接受 | 索引版本冻结来源、分块和嵌入配置，异步构建并原子激活，M1 使用精确向量检索 | `docs/adr/ADR-0015-versioned-vector-index-lifecycle.md` | M1-M8 |
+| ADR-0016 | 已接受 | 按配置修订构建动态模型运行时，以不可变助手版本和平台后校验生成可信引用回答 | `docs/adr/ADR-0016-model-runtime-assistant-and-trusted-answer.md` | M1-M8 |
 
 ## 已确认人工决策
 

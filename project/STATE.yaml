@@ -22,6 +22,7 @@ confirmedDecisions:
   - ADR-0013
   - ADR-0014
   - ADR-0015
+  - ADR-0016
 openDecisions: []
 latestEvidence:
   - docs/research/WP-0003-framework-baseline.md
@@ -39,6 +40,7 @@ latestEvidence:
   - project/evidence/WP-0003-minio-publication.md
   - docs/research/WP-0004-indexing-baseline.md
   - project/evidence/WP-0004-versioned-index-search.md
+  - docs/research/WP-0005-spring-ai-runtime.md
 nextReviewAt: 2026-08-02
-updatedAt: 2026-07-27T03:06:00+08:00
+updatedAt: 2026-07-27T03:32:00+08:00
 updatedBy: codex
