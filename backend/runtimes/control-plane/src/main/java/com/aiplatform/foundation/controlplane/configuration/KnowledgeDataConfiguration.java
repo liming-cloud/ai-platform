@@ -9,10 +9,12 @@ import com.aiplatform.foundation.knowledgedata.adapter.out.persistence.TextDataS
 import com.aiplatform.foundation.knowledgedata.adapter.out.objectstorage.UnavailableTextContentObjectStorageAdapter;
 import com.aiplatform.foundation.knowledgedata.adapter.out.staging.LocalTextContentStagingAdapter;
 import com.aiplatform.foundation.knowledgedata.api.IndexVersionUseCase;
+import com.aiplatform.foundation.knowledgedata.api.ActiveIndexLookup;
 import com.aiplatform.foundation.knowledgedata.api.KnowledgeSpaceUseCase;
 import com.aiplatform.foundation.knowledgedata.api.TextDataSourceUseCase;
 import com.aiplatform.foundation.knowledgedata.application.datasource.DefaultTextDataSourceService;
 import com.aiplatform.foundation.knowledgedata.application.indexversion.DefaultIndexVersionService;
+import com.aiplatform.foundation.knowledgedata.application.indexversion.DefaultActiveIndexLookup;
 import com.aiplatform.foundation.knowledgedata.application.knowledge.DefaultKnowledgeSpaceService;
 import com.aiplatform.foundation.knowledgedata.application.port.out.IndexVersionRepository;
 import com.aiplatform.foundation.knowledgedata.application.port.out.KnowledgeSpaceRepository;
@@ -75,6 +77,11 @@ public class KnowledgeDataConfiguration {
             IndexVersionMapper mapper,
             PlatformTransactionManager transactions) {
         return new PostgresIndexVersionRepository(mapper, transactions);
+    }
+
+    @Bean
+    ActiveIndexLookup activeIndexLookup(IndexVersionRepository repository) {
+        return new DefaultActiveIndexLookup(repository);
     }
 
     @Bean

@@ -24,6 +24,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -125,6 +126,13 @@ class DefaultIndexVersionServiceTest {
                 String cursor,
                 int limit) {
             return new IndexVersionSlice(List.of(), null);
+        }
+
+        @Override
+        public Optional<IndexVersion> findActive(
+                TenantId tenantId,
+                KnowledgeSpaceId knowledgeSpaceId) {
+            return Optional.empty();
         }
 
         @Override

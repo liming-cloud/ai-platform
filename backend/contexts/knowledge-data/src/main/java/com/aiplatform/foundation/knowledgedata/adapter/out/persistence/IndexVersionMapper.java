@@ -307,6 +307,35 @@ public interface IndexVersionMapper {
             FROM knowledge_data.index_version
             WHERE tenant_id = #{tenantId}
               AND knowledge_space_id = #{knowledgeSpaceId}
+              AND status = 'ACTIVE'
+            """)
+    @ResultMap("indexVersionRow")
+    IndexVersionRow findActive(
+            @Param("tenantId") UUID tenantId,
+            @Param("knowledgeSpaceId") UUID knowledgeSpaceId);
+
+    @Select("""
+            SELECT tenant_id::text AS tenant_id,
+                   knowledge_space_id::text AS knowledge_space_id,
+                   id::text AS id,
+                   source_snapshot_digest,
+                   chunk_policy,
+                   embedding_deployment_id::text AS embedding_deployment_id,
+                   embedding_deployment_revision,
+                   embedding_dimension,
+                   status,
+                   version,
+                   build_digest,
+                   chunk_count,
+                   failure_code,
+                   created_by::text AS created_by,
+                   created_at,
+                   ready_at,
+                   activated_at,
+                   superseded_at
+            FROM knowledge_data.index_version
+            WHERE tenant_id = #{tenantId}
+              AND knowledge_space_id = #{knowledgeSpaceId}
               AND id = #{id}
             FOR UPDATE
             """)

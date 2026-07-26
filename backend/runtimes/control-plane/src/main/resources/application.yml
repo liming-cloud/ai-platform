@@ -8,6 +8,7 @@ spring:
       - classpath:db/migration/organization-access
       - classpath:db/migration/knowledge-data
       - classpath:db/migration/model-runtime
+      - classpath:db/migration/assistant-delivery
   data:
     redis:
       repositories:
@@ -26,6 +27,8 @@ sa-token:
   auto-renew: true
 
 foundation:
+  assistant-delivery:
+    enabled: true
   knowledge-data:
     object-storage:
       enabled: false

@@ -5,10 +5,12 @@ import com.aiplatform.foundation.modelruntime.adapter.out.persistence.PostgresMo
 import com.aiplatform.foundation.modelruntime.adapter.out.persistence.PostgresProviderConnectionRepository;
 import com.aiplatform.foundation.modelruntime.adapter.out.persistence.ProviderConnectionMapper;
 import com.aiplatform.foundation.modelruntime.api.catalog.ModelDeploymentUseCase;
+import com.aiplatform.foundation.modelruntime.api.catalog.PublishedChatDeploymentLookup;
 import com.aiplatform.foundation.modelruntime.api.catalog.ProviderConnectionUseCase;
 import com.aiplatform.foundation.modelruntime.api.extension.ProviderConnectionProbe;
 import com.aiplatform.foundation.modelruntime.api.probe.ProbeProviderUseCase;
 import com.aiplatform.foundation.modelruntime.application.catalog.DefaultModelDeploymentService;
+import com.aiplatform.foundation.modelruntime.application.catalog.DefaultPublishedChatDeploymentLookup;
 import com.aiplatform.foundation.modelruntime.application.catalog.DefaultProviderConnectionService;
 import com.aiplatform.foundation.modelruntime.application.port.out.ModelDeploymentRepository;
 import com.aiplatform.foundation.modelruntime.application.port.out.ProviderConnectionRepository;
@@ -47,6 +49,12 @@ public class ModelCatalogConfiguration {
             ModelDeploymentMapper mapper,
             PlatformTransactionManager transactions) {
         return new PostgresModelDeploymentRepository(mapper, transactions);
+    }
+
+    @Bean
+    PublishedChatDeploymentLookup publishedChatDeploymentLookup(
+            ModelDeploymentRepository repository) {
+        return new DefaultPublishedChatDeploymentLookup(repository);
     }
 
     @Bean

@@ -4,4 +4,5 @@ spring:
       - classpath:db/migration/organization-access
       - classpath:db/migration/knowledge-data
       - classpath:db/migration/model-runtime
+      - classpath:db/migration/assistant-delivery
       - classpath:db/demo/organization-access

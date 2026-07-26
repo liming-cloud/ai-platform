@@ -23,6 +23,7 @@ import java.util.Base64;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -92,6 +93,18 @@ public final class PostgresIndexVersionRepository implements IndexVersionReposit
                         UUID.fromString(pageRows.getLast().getId()))
                 : null;
         return new IndexVersionSlice(items, nextCursor);
+    }
+
+    @Override
+    public Optional<IndexVersion> findActive(
+            TenantId tenantId,
+            KnowledgeSpaceId knowledgeSpaceId) {
+        Objects.requireNonNull(tenantId, "租户标识不能为空");
+        Objects.requireNonNull(knowledgeSpaceId, "知识空间标识不能为空");
+        return Optional.ofNullable(mapper.findActive(
+                        tenantId.value(),
+                        knowledgeSpaceId.value()))
+                .map(PostgresIndexVersionRepository::toDomain);
     }
 
     @Override
