@@ -27,8 +27,9 @@
 | 证据 | 命令或评审 | 提交 | 结果 |
 | --- | --- | --- | --- |
 | 工作包激活 | `project/evidence/M0-design-approval.md` | `f2f285c676c29d680d58c65b46cecd78b3267cc1` | M0 已通过，实施分支已创建 |
-| 后端工程基线 | `project/evidence/WP-0002-backend-baseline.md` | 待提交 | 固定工具链、三运行入口和确定性供应商契约验证通过 |
-| 前端工程基线 | `project/evidence/WP-0002-frontend-baseline.md` | 待提交 | 双应用、Fluent UI、状态设计和响应式浏览器验收通过 |
+| 后端工程基线 | `project/evidence/WP-0002-backend-baseline.md` | `8f2275a0fec8468fef5326b13a9eb18c179edf57` | 固定工具链、三运行入口和确定性供应商契约验证通过 |
+| 前端工程基线 | `project/evidence/WP-0002-frontend-baseline.md` | `ddaf319980968611f95d6367845c80d7724023c7` | 双应用、Fluent UI、状态设计和响应式浏览器验收通过 |
+| 容器化运行基线 | `project/evidence/WP-0002-docker-baseline.md` | `ccc61569ca1560c7fc9b8cb0081330ab10e4c664` | 八个服务健康，五个应用入口及容器安全属性验证通过 |
 
 ## 证据规则
 
