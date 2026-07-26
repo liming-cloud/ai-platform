@@ -7,11 +7,13 @@ import com.aiplatform.foundation.knowledgedata.application.port.out.TextContentO
 import com.aiplatform.foundation.knowledgedata.application.port.out.TextContentStorageRequest;
 import com.aiplatform.foundation.knowledgedata.domain.model.TextContentReference;
 import io.minio.BucketExistsArgs;
+import io.minio.GetObjectArgs;
 import io.minio.MakeBucketArgs;
 import io.minio.MinioClient;
 import io.minio.PutObjectArgs;
 import io.minio.RemoveObjectArgs;
 import io.minio.StatObjectArgs;
+import java.io.InputStream;
 import java.util.Map;
 import java.util.Objects;
 import java.util.regex.Pattern;
@@ -101,6 +103,19 @@ public final class MinioTextContentObjectStorageAdapter
                 sha256,
                 response.size(),
                 response.contentType());
+    }
+
+    @Override
+    public InputStream read(TextContentReference reference) {
+        Objects.requireNonNull(reference, "文本对象引用不能为空");
+        try {
+            return client.getObject(GetObjectArgs.builder()
+                    .bucket(bucket)
+                    .object(reference.objectKey())
+                    .build());
+        } catch (Exception exception) {
+            throw unavailable(exception);
+        }
     }
 
     @Override

@@ -17,6 +17,8 @@ import com.aiplatform.foundation.organizationaccess.api.model.SubjectId;
 import com.aiplatform.foundation.organizationaccess.api.model.TrustedRequestContext;
 import com.aiplatform.foundation.organizationaccess.application.port.out.AuthenticatedSessionGateway;
 import com.redis.testcontainers.RedisContainer;
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
 import java.time.Instant;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.List;
@@ -58,7 +60,7 @@ class TextDataSourceApiTest {
             UUID.fromString("10000000-0000-0000-0000-000000000001");
     @Container
     private static final PostgreSQLContainer POSTGRES =
-            new PostgreSQLContainer("postgres:18.4-alpine3.24")
+            new PostgreSQLContainer("pgvector/pgvector:0.8.5-pg18-trixie")
                     .withDatabaseName("foundation_test")
                     .withUsername("foundation")
                     .withPassword("foundation_test_only");
@@ -435,6 +437,7 @@ class TextDataSourceApiTest {
 
         private final Map<String, TextContentObjectMetadata> objects =
                 new ConcurrentHashMap<>();
+        private final Map<String, byte[]> contents = new ConcurrentHashMap<>();
 
         @Override
         public TextContentReference put(TextContentStorageRequest request) {
@@ -463,6 +466,7 @@ class TextDataSourceApiTest {
                                 reference.sha256(),
                                 reference.byteSize(),
                                 reference.mediaType()));
+                contents.putIfAbsent(objectKey, bytes.clone());
                 return reference;
             } catch (java.io.IOException exception) {
                 throw new AssertionError(exception);
@@ -479,12 +483,23 @@ class TextDataSourceApiTest {
         }
 
         @Override
+        public InputStream read(TextContentReference reference) {
+            var bytes = contents.get(reference.objectKey());
+            if (bytes == null) {
+                throw new AssertionError("测试对象不存在");
+            }
+            return new ByteArrayInputStream(bytes);
+        }
+
+        @Override
         public void delete(TextContentReference reference) {
             objects.remove(reference.objectKey());
+            contents.remove(reference.objectKey());
         }
 
         void clear() {
             objects.clear();
+            contents.clear();
         }
 
         void corruptAll() {

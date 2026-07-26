@@ -17,5 +17,6 @@
     <modules>
         <module>model-providers</module>
         <module>object-storage</module>
+        <module>vector-stores</module>
     </modules>
 </project>

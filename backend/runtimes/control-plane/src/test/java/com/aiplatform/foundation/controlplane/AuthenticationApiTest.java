@@ -37,7 +37,7 @@ class AuthenticationApiTest {
 
     @Container
     private static final PostgreSQLContainer POSTGRES =
-            new PostgreSQLContainer("postgres:18.4-alpine3.24")
+            new PostgreSQLContainer("pgvector/pgvector:0.8.5-pg18-trixie")
                     .withDatabaseName("foundation_test")
                     .withUsername("foundation")
                     .withPassword("foundation_test_only");

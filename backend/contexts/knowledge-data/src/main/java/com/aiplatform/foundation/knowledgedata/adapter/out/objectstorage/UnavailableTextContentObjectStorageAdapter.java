@@ -5,6 +5,7 @@ import com.aiplatform.foundation.knowledgedata.application.port.out.TextContentO
 import com.aiplatform.foundation.knowledgedata.application.port.out.TextContentObjectStoragePort;
 import com.aiplatform.foundation.knowledgedata.application.port.out.TextContentStorageRequest;
 import com.aiplatform.foundation.knowledgedata.domain.model.TextContentReference;
+import java.io.InputStream;
 
 /**
  * 未配置正式对象存储时拒绝所有内容操作，避免产生伪成功。
@@ -19,6 +20,11 @@ public final class UnavailableTextContentObjectStorageAdapter
 
     @Override
     public TextContentObjectMetadata metadata(TextContentReference reference) {
+        throw new ObjectStorageUnavailableException();
+    }
+
+    @Override
+    public InputStream read(TextContentReference reference) {
         throw new ObjectStorageUnavailableException();
     }
 
