@@ -1,7 +1,6 @@
 package com.aiplatform.foundation.controlplane.web.auth;
 
 import com.aiplatform.foundation.controlplane.web.TraceIds;
-import com.aiplatform.foundation.organizationaccess.adapter.out.session.InvalidAuthenticatedSessionException;
 import com.aiplatform.foundation.organizationaccess.api.PersonAuthenticationUseCase;
 import com.aiplatform.foundation.organizationaccess.api.model.AccessChannel;
 import com.aiplatform.foundation.organizationaccess.api.model.PersonLoginCommand;
@@ -25,9 +24,6 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/v1/auth/sessions")
 @ConditionalOnBean(PersonAuthenticationUseCase.class)
 public class AuthenticationController {
-
-    private static final String BEARER_PREFIX = "Bearer ";
-    private static final int MAX_TOKEN_LENGTH = 512;
 
     private final PersonAuthenticationUseCase authentication;
     private final AuthenticatedSessionGateway sessions;
@@ -65,22 +61,6 @@ public class AuthenticationController {
     public void logout(
             @RequestHeader(name = HttpHeaders.AUTHORIZATION, required = false)
             String authorization) {
-        sessions.revoke(requireBearerToken(authorization));
-    }
-
-    private static String requireBearerToken(String authorization) {
-        if (authorization == null
-                || !authorization.startsWith(BEARER_PREFIX)
-                || authorization.length() <= BEARER_PREFIX.length()) {
-            throw new InvalidAuthenticatedSessionException();
-        }
-        var token = authorization.substring(BEARER_PREFIX.length());
-        if (token.isBlank()
-                || token.length() > MAX_TOKEN_LENGTH
-                || !token.equals(token.trim())
-                || token.indexOf(' ') >= 0) {
-            throw new InvalidAuthenticatedSessionException();
-        }
-        return token;
+        sessions.revoke(BearerTokens.require(authorization));
     }
 }

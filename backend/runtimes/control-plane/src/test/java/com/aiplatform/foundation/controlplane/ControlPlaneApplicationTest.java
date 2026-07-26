@@ -15,6 +15,7 @@ class ControlPlaneApplicationTest {
                 .run(
                         "--spring.main.banner-mode=off",
                         "--foundation.organization-access.enabled=false",
+                        "--foundation.knowledge-data.enabled=false",
                         "--spring.autoconfigure.exclude="
                                 + "org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration,"
                                 + "org.springframework.boot.flyway.autoconfigure.FlywayAutoConfiguration,"
