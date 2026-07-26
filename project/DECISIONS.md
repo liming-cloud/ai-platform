@@ -11,6 +11,6 @@
 | ADR-0007 | 已接受 | 在设计分支删除可由 Git 恢复的旧实现，只保留绿地控制面与设计 | `docs/adr/ADR-0007-clean-design-branch.md` | M0 |
 | ADR-0008 | 已接受 | 使用限界上下文单模块、独立扩展、三运行入口和多前端应用的详细目录 | `docs/adr/ADR-0008-scalable-repository-layout.md` | M0-M8 |
 
-## 待人工决策
+## 已确认人工决策
 
-- `HITL-0001-M0-DESIGN-APPROVAL`：产品负责人必须对 M0 设计作出通过、修改或拒绝决定，之后才能创建 `codex/trusted-rag-foundation-v1`。
+- `HITL-0001-M0-DESIGN-APPROVAL`：产品负责人已批准 M0 设计，批准基线与范围见 `project/evidence/M0-design-approval.md`。

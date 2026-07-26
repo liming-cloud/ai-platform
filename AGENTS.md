@@ -30,6 +30,49 @@
 - 发现无关死代码时只登记风险，不自行扩大删除范围。
 - 删除操作必须先确认准确目标，并优先保证可由 Git 或其他机制恢复。
 
+## 中文注释规范
+
+### 基本原则
+
+- 源码注释、Javadoc、TSDoc、SQL 说明、YAML 说明和 Dockerfile 说明统一使用简体中文。
+- 类名、方法名、字段名、协议字段、标准缩写、命令、路径、厂商名和无法翻译的技术名词保留原值。
+- 注释解释设计原因、业务不变量、安全边界、失败语义和非常规取舍，不逐行复述代码。
+- 能通过清晰命名和小函数表达的内容，不增加重复注释。
+- 修改行为时同步修改相关注释；无法确认仍然正确的旧注释必须删除或修正。
+
+### 必须注释
+
+- 公共契约、扩展接口、领域聚合根和值对象的职责与不变量。
+- 权限、租户隔离、密钥、SSRF、脱敏、幂等和数据清除等安全边界。
+- 跨上下文事件的触发条件、顺序要求、幂等语义和失败补偿。
+- Spring AI、Sa-Token、MyBatis-Plus、Hutool 或厂商 SDK 的非直观适配与限制。
+- 不能通过代码直接看出的性能取舍、缓存失效、重试、超时和并发约束。
+- 数据库迁移的业务目的、数据影响、回滚限制和所属上下文。
+- YAML、Docker 和流水线中与安全、可用性或环境差异相关的配置原因。
+
+### 禁止注释
+
+- 不写“给字段赋值”“调用某方法”等代码复述。
+- 不把已删除实现、临时调试过程或聊天结论留在注释中。
+- 不在注释中记录密钥、令牌、真实租户数据、内部地址和个人信息。
+- 不使用注释掩盖过长方法、含糊命名、错误分层或重复代码。
+- 不写没有负责人、工作包和退出条件的模糊 TODO。
+
+### 格式要求
+
+- Java 公共类型和公开方法使用中文 Javadoc；领域不变量使用 `@throws` 说明拒绝条件。
+- TypeScript 跨应用公开接口和复杂状态转换使用中文 TSDoc；页面内部直观组件不强制写注释。
+- SQL 迁移文件头说明所属上下文、目的、影响和是否可回滚。
+- YAML 与 Dockerfile 注释放在相关配置前一行，说明为什么需要该配置。
+- 待办统一使用 `TODO(WP-xxxx): 中文说明`，并写明完成条件；没有工作包编号不得提交。
+- 注释中的标点使用中文标点，代码标识使用反引号包裹。
+
+### 评审门禁
+
+- 评审必须检查重要不变量和安全边界是否有中文注释。
+- 发现英文自然语言注释时，除协议原文或无法翻译的专有名词外，必须改为简体中文。
+- 注释与行为不一致视为缺陷，不能以“仅文档问题”降低优先级。
+
 ## 目标驱动执行
 
 - 每项工作都必须有可执行验收标准。
@@ -205,18 +248,6 @@ python3 ~/.hermes/plugins/engineering-assistant/engineering-assistant/scripts/va
 - 探索过的关键符号或文件。
 - 执行过的影响分析。
 - 代码图谱结论如何改变了清理、设计或实现。
-
-## 高风险插件技能
-
-以下技能默认只能在用户意图明确且插件路由选中时使用：
-
-- `engineering-assistant:workflow-orchestrator`
-- `engineering-assistant:code-development`
-- `engineering-assistant:implementation-controller`
-- `engineering-assistant:code-quality-governor`
-- `engineering-assistant:release-readiness`
-- `engineering-assistant:release-verification`
-- `engineering-assistant:engineering-knowledge-miner`
 
 ## 无效行为
 

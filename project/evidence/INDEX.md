@@ -18,9 +18,15 @@
 | 流水线配置语法 | Ruby 标准 YAML 解析器读取 `.github/workflows/ci.yml` | `f1eb43bb4fb74fc2678b9bb38791f8393aeb4548` | 通过 |
 | 可扩展研发目录规划 | `make validate` 与目录章节门禁 | `8b801f405e7651b506c681b5dfcc5c9e162dbbdb` | 6 项治理测试通过，26 个二级章节和 28 个目录树完整 |
 | 目录方案评审证据 | `project/evidence/WP-0001-repository-layout.md` | `8b801f405e7651b506c681b5dfcc5c9e162dbbdb` | 完成两种方案比较、依赖矩阵、扩展路径和 M1 最小落地范围 |
-| 产品与架构设计评审 | 人工评审 M0 文档 | `8b801f405e7651b506c681b5dfcc5c9e162dbbdb` | 等待产品负责人 |
+| 产品与架构设计评审 | `project/evidence/M0-design-approval.md` | `66930880d2e1f0b872d7f2600b82a8cee2e4fe2e` | 产品负责人已批准 M0 |
 
-最新自动证据执行时间为 2026-07-26，执行环境为当前 macOS 工作区。WP-0001 仍为进行中，人工评审未通过前不得创建实施分支。
+最新自动证据执行时间为 2026-07-26，执行环境为当前 macOS 工作区。WP-0001 已通过人工评审并关闭。
+
+## WP-0002
+
+| 证据 | 命令或评审 | 提交 | 结果 |
+| --- | --- | --- | --- |
+| 工作包激活 | `project/evidence/M0-design-approval.md` | 待产生 | M0 已通过，等待实施分支创建 |
 
 ## 证据规则
 
