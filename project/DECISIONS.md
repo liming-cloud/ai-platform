@@ -12,6 +12,7 @@
 | ADR-0008 | 已接受 | 使用限界上下文单模块、独立扩展、三运行入口和多前端应用的详细目录 | `docs/adr/ADR-0008-scalable-repository-layout.md` | M0-M8 |
 | ADR-0009 | 已接受 | Java 根命名空间使用 `com.aiplatform.foundation` | `docs/adr/ADR-0009-java-namespace.md` | M1-M8 |
 | ADR-0010 | 已接受 | 统一模型供应商密钥生命周期和出站访问边界 | `docs/adr/ADR-0010-secret-and-egress-boundary.md` | M1-M8 |
+| ADR-0011 | 已接受 | 租户来自可信会话，持久化使用显式租户条件和纵深防御 | `docs/adr/ADR-0011-tenant-auth-and-persistence-boundary.md` | M1-M8 |
 
 ## 已确认人工决策
 

@@ -17,6 +17,7 @@ confirmedDecisions:
   - ADR-0008
   - ADR-0009
   - ADR-0010
+  - ADR-0011
 openDecisions: []
 latestEvidence:
   - project/evidence/WP-0002-acceptance.md
