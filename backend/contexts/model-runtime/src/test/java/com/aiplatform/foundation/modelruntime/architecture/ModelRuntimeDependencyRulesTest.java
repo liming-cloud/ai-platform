@@ -19,7 +19,8 @@ class ModelRuntimeDependencyRulesTest {
                 .that()
                 .resideInAnyPackage(
                         "com.aiplatform.foundation.modelruntime.api..",
-                        "com.aiplatform.foundation.modelruntime.application..")
+                        "com.aiplatform.foundation.modelruntime.application..",
+                        "com.aiplatform.foundation.modelruntime.domain..")
                 .should()
                 .dependOnClassesThat()
                 .resideInAnyPackage(
