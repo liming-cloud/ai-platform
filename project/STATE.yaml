@@ -2,7 +2,7 @@ schemaVersion: 1
 productVersion: foundation-v1
 currentMilestone: M1
 currentFrontier: WP-0005
-lastVerifiedCommit: 02580199fa97b8f9f5e4b7d71518dc75c2ac374d
+lastVerifiedCommit: cf7a14cf494a91cdb34f9116a8e0a062340e86b3
 activeWorkPackages:
   - WP-0005
 blockedWorkPackages:
@@ -47,6 +47,7 @@ latestEvidence:
   - project/evidence/WP-0005-model-runtime-factories.md
   - project/evidence/WP-0005-assistant-version-publication.md
   - project/evidence/WP-0005-trusted-query-core.md
+  - project/evidence/WP-0005-query-event-stream.md
 nextReviewAt: 2026-08-02
-updatedAt: 2026-07-27T05:30:37+08:00
+updatedAt: 2026-07-27T05:49:37+08:00
 updatedBy: codex
