@@ -18,11 +18,18 @@ import com.aiplatform.foundation.knowledgedata.application.indexversion.IndexVer
 import com.aiplatform.foundation.knowledgedata.application.indexversion.NoPublishedSourceException;
 import com.aiplatform.foundation.knowledgedata.domain.model.DataSourceStateException;
 import com.aiplatform.foundation.modelruntime.application.catalog.ModelCatalogPermissionDeniedException;
+import com.aiplatform.foundation.modelruntime.application.catalog.ModelDeploymentConcurrentModificationException;
+import com.aiplatform.foundation.modelruntime.application.catalog.ModelDeploymentIdempotencyConflictException;
+import com.aiplatform.foundation.modelruntime.application.catalog.ModelDeploymentNameConflictException;
+import com.aiplatform.foundation.modelruntime.application.catalog.ModelDeploymentNotFoundException;
+import com.aiplatform.foundation.modelruntime.application.catalog.ModelDeploymentProviderUnavailableException;
+import com.aiplatform.foundation.modelruntime.application.catalog.ModelDeploymentQuotaExceededException;
 import com.aiplatform.foundation.modelruntime.application.catalog.ProviderConnectionConcurrentModificationException;
 import com.aiplatform.foundation.modelruntime.application.catalog.ProviderConnectionIdempotencyConflictException;
 import com.aiplatform.foundation.modelruntime.application.catalog.ProviderConnectionNotFoundException;
 import com.aiplatform.foundation.modelruntime.application.catalog.ProviderConnectionNameConflictException;
 import com.aiplatform.foundation.modelruntime.application.catalog.ProviderConnectionQuotaExceededException;
+import com.aiplatform.foundation.modelruntime.domain.model.ModelDeploymentStateException;
 import com.aiplatform.foundation.organizationaccess.application.authentication.InvalidCredentialsException;
 import java.util.Map;
 import org.springframework.http.HttpStatus;
@@ -102,6 +109,59 @@ public class GlobalApiExceptionHandler {
                 HttpStatus.TOO_MANY_REQUESTS,
                 "PROVIDER_CONNECTION_QUOTA_EXCEEDED",
                 "供应商连接数量已经达到租户配额");
+    }
+
+    @ExceptionHandler(ModelDeploymentIdempotencyConflictException.class)
+    ResponseEntity<ApiErrorResponse> modelDeploymentIdempotencyConflict() {
+        return error(
+                HttpStatus.CONFLICT,
+                "IDEMPOTENCY_CONFLICT",
+                "幂等键已经用于不同请求");
+    }
+
+    @ExceptionHandler(ModelDeploymentNotFoundException.class)
+    ResponseEntity<ApiErrorResponse> modelDeploymentNotFound() {
+        return error(HttpStatus.NOT_FOUND, "RESOURCE_NOT_FOUND", "目标资源不存在");
+    }
+
+    @ExceptionHandler(ModelDeploymentNameConflictException.class)
+    ResponseEntity<ApiErrorResponse> modelDeploymentNameConflict() {
+        return error(
+                HttpStatus.CONFLICT,
+                "MODEL_DEPLOYMENT_NAME_CONFLICT",
+                "当前租户已经存在同名模型部署");
+    }
+
+    @ExceptionHandler(ModelDeploymentConcurrentModificationException.class)
+    ResponseEntity<ApiErrorResponse> modelDeploymentVersionConflict() {
+        return error(
+                HttpStatus.CONFLICT,
+                "MODEL_DEPLOYMENT_VERSION_CONFLICT",
+                "模型部署版本已经变化");
+    }
+
+    @ExceptionHandler(ModelDeploymentProviderUnavailableException.class)
+    ResponseEntity<ApiErrorResponse> modelDeploymentProviderUnavailable() {
+        return error(
+                HttpStatus.CONFLICT,
+                "MODEL_DEPLOYMENT_PROVIDER_UNAVAILABLE",
+                "模型部署冻结的供应商连接不可用");
+    }
+
+    @ExceptionHandler(ModelDeploymentStateException.class)
+    ResponseEntity<ApiErrorResponse> modelDeploymentStateConflict() {
+        return error(
+                HttpStatus.CONFLICT,
+                "MODEL_DEPLOYMENT_STATE_CONFLICT",
+                "模型部署当前状态不允许该操作");
+    }
+
+    @ExceptionHandler(ModelDeploymentQuotaExceededException.class)
+    ResponseEntity<ApiErrorResponse> modelDeploymentQuotaExceeded() {
+        return error(
+                HttpStatus.TOO_MANY_REQUESTS,
+                "MODEL_DEPLOYMENT_QUOTA_EXCEEDED",
+                "模型部署数量已经达到租户配额");
     }
 
     @ExceptionHandler(KnowledgeSpaceNameConflictException.class)
