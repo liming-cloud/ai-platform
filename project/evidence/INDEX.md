@@ -16,7 +16,9 @@
 | 前端设计完整性 | 检查 `docs/design/foundation-frontend-design.md` 的标题与禁止样式 | `f1eb43bb4fb74fc2678b9bb38791f8393aeb4548` | 27 个二级章节、24 个三级章节、长破折号 0 个 |
 | 规则文档中文化 | 检查根 `AGENTS.md` 的自然语言行 | `f1eb43bb4fb74fc2678b9bb38791f8393aeb4548` | 未发现整行英文说明候选 |
 | 流水线配置语法 | Ruby 标准 YAML 解析器读取 `.github/workflows/ci.yml` | `f1eb43bb4fb74fc2678b9bb38791f8393aeb4548` | 通过 |
-| 产品与架构设计评审 | 人工评审 M0 文档 | `f1eb43bb4fb74fc2678b9bb38791f8393aeb4548` | 等待产品负责人 |
+| 可扩展研发目录规划 | `make validate` 与目录章节门禁 | `8b801f405e7651b506c681b5dfcc5c9e162dbbdb` | 6 项治理测试通过，26 个二级章节和 28 个目录树完整 |
+| 目录方案评审证据 | `project/evidence/WP-0001-repository-layout.md` | `8b801f405e7651b506c681b5dfcc5c9e162dbbdb` | 完成两种方案比较、依赖矩阵、扩展路径和 M1 最小落地范围 |
+| 产品与架构设计评审 | 人工评审 M0 文档 | `8b801f405e7651b506c681b5dfcc5c9e162dbbdb` | 等待产品负责人 |
 
 最新自动证据执行时间为 2026-07-26，执行环境为当前 macOS 工作区。WP-0001 仍为进行中，人工评审未通过前不得创建实施分支。
 
