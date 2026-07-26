@@ -13,6 +13,9 @@ import com.aiplatform.foundation.knowledgedata.application.knowledge.Idempotency
 import com.aiplatform.foundation.knowledgedata.application.knowledge.KnowledgePermissionDeniedException;
 import com.aiplatform.foundation.knowledgedata.application.knowledge.KnowledgeSpaceNameConflictException;
 import com.aiplatform.foundation.knowledgedata.application.knowledge.KnowledgeSpaceQuotaExceededException;
+import com.aiplatform.foundation.knowledgedata.application.indexversion.IndexVersionConcurrentModificationException;
+import com.aiplatform.foundation.knowledgedata.application.indexversion.IndexVersionNotFoundException;
+import com.aiplatform.foundation.knowledgedata.application.indexversion.NoPublishedSourceException;
 import com.aiplatform.foundation.knowledgedata.domain.model.DataSourceStateException;
 import com.aiplatform.foundation.organizationaccess.application.authentication.InvalidCredentialsException;
 import java.util.Map;
@@ -104,6 +107,27 @@ public class GlobalApiExceptionHandler {
                 HttpStatus.CONFLICT,
                 "DATA_SOURCE_STATE_CONFLICT",
                 "数据源当前状态不允许该操作");
+    }
+
+    @ExceptionHandler(IndexVersionNotFoundException.class)
+    ResponseEntity<ApiErrorResponse> indexVersionNotFound() {
+        return error(HttpStatus.NOT_FOUND, "RESOURCE_NOT_FOUND", "目标资源不存在");
+    }
+
+    @ExceptionHandler(IndexVersionConcurrentModificationException.class)
+    ResponseEntity<ApiErrorResponse> indexVersionConflict() {
+        return error(
+                HttpStatus.CONFLICT,
+                "INDEX_VERSION_CONFLICT",
+                "索引版本状态或修订已经变化");
+    }
+
+    @ExceptionHandler(NoPublishedSourceException.class)
+    ResponseEntity<ApiErrorResponse> noPublishedSource() {
+        return error(
+                HttpStatus.CONFLICT,
+                "NO_PUBLISHED_SOURCE",
+                "知识空间没有可构建索引的已发布内容");
     }
 
     @ExceptionHandler(InvalidTextContentException.class)

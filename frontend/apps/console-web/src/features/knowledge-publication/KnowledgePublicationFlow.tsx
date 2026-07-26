@@ -1,4 +1,4 @@
-import { useMemo, useReducer, useRef, useState } from "react";
+import { useEffect, useMemo, useReducer, useRef, useState } from "react";
 import {
   ApiRequestError,
   ControlPlaneClient,
@@ -8,11 +8,13 @@ import {
   initialWorkflow,
   reduceWorkflow,
   stableRequestKey,
+  type PublicationWorkflow,
 } from "./publication-workflow";
 import { PublicationProgress } from "./PublicationProgress";
 import {
   Completion,
   ContentForm,
+  IndexBuildReview,
   LoginForm,
   PublishReview,
   SpaceForm,
@@ -30,6 +32,12 @@ export function KnowledgePublicationFlow() {
   const requestKeys = useRef(
     new Map<string, { fingerprint: string; key: string }>(),
   );
+  const mounted = useRef(true);
+  const sessionRevision = useRef(0);
+
+  useEffect(() => () => {
+    mounted.current = false;
+  }, []);
 
   async function login(credentials: {
     tenantCode: string;
@@ -148,13 +156,100 @@ export function KnowledgePublicationFlow() {
         }),
       );
       requestKeys.current.delete("publish-source");
-      dispatch({ type: "published", version: published.version });
+      dispatch({ type: "source-published", version: published.version });
+    } catch (error) {
+      dispatchFailure(dispatch, error);
+    }
+  }
+
+  async function buildIndex() {
+    if (workflow.space === undefined) {
+      return;
+    }
+    const revision = sessionRevision.current;
+    dispatch({ type: "submitting" });
+    try {
+      const created = await client.createIndexVersion(
+        workflow.space.id,
+        stableRequestKey(requestKeys.current, "create-index", {
+          knowledgeSpaceId: workflow.space.id,
+          sourceVersion: workflow.source?.version,
+        }),
+      );
+      requestKeys.current.delete("create-index");
+      updateIndex(created);
+      await waitForIndex(workflow.space.id, created.id, revision);
+    } catch (error) {
+      if (mounted.current && revision === sessionRevision.current) {
+        dispatchFailure(dispatch, error);
+      }
+    }
+  }
+
+  async function waitForIndex(
+    knowledgeSpaceId: string,
+    indexVersionId: string,
+    revision: number,
+  ) {
+    for (let attempt = 0; attempt < 90; attempt += 1) {
+      if (!mounted.current || revision !== sessionRevision.current) {
+        return;
+      }
+      const page = await client.listIndexVersions(knowledgeSpaceId);
+      const current = page.items.find(
+        (candidate) => candidate.id === indexVersionId,
+      );
+      if (current === undefined) {
+        throw new Error("服务端未返回刚创建的索引版本");
+      }
+      updateIndex(current);
+      if (current.status === "READY" || current.status === "FAILED") {
+        return;
+      }
+      await delay(1000);
+    }
+    throw new Error("索引构建仍在进行，请稍后重新进入页面查看");
+  }
+
+  function updateIndex(indexVersion: Parameters<typeof toWorkflowIndex>[0]) {
+    dispatch({
+      type: "index-updated",
+      indexVersion: toWorkflowIndex(indexVersion),
+    });
+  }
+
+  async function publishIndex() {
+    if (
+      workflow.space === undefined
+      || workflow.indexVersion === undefined
+      || workflow.indexVersion.status !== "READY"
+    ) {
+      return;
+    }
+    dispatch({ type: "submitting" });
+    try {
+      const published = await client.publishIndexVersion(
+        workflow.space.id,
+        workflow.indexVersion.id,
+        workflow.indexVersion.version,
+        stableRequestKey(requestKeys.current, "publish-index", {
+          knowledgeSpaceId: workflow.space.id,
+          indexVersionId: workflow.indexVersion.id,
+          expectedVersion: workflow.indexVersion.version,
+        }),
+      );
+      requestKeys.current.delete("publish-index");
+      dispatch({
+        type: "index-published",
+        indexVersion: toWorkflowIndex(published),
+      });
     } catch (error) {
       dispatchFailure(dispatch, error);
     }
   }
 
   async function signOut() {
+    sessionRevision.current += 1;
     try {
       await client.logout();
     } finally {
@@ -220,16 +315,56 @@ export function KnowledgePublicationFlow() {
           />
         ) : null}
 
+        {workflow.stage === "index" ? (
+          <IndexBuildReview
+            busy={workflow.busy}
+            indexVersion={workflow.indexVersion}
+            onBuild={buildIndex}
+            onPublish={publishIndex}
+          />
+        ) : null}
+
         {workflow.stage === "complete" ? (
           <Completion
             spaceName={workflow.space?.name ?? ""}
             sourceName={workflow.source?.name ?? ""}
+            chunkCount={workflow.indexVersion?.chunkCount ?? 0}
             onSignOut={signOut}
           />
         ) : null}
       </section>
     </div>
   );
+}
+
+function toWorkflowIndex(indexVersion: {
+  id: string;
+  status: string;
+  version: number;
+  chunkCount: number;
+  failureCode: string | null;
+}): NonNullable<PublicationWorkflow["indexVersion"]> {
+  if (
+    indexVersion.status !== "BUILDING"
+    && indexVersion.status !== "READY"
+    && indexVersion.status !== "ACTIVE"
+    && indexVersion.status !== "FAILED"
+  ) {
+    throw new Error(`索引状态不受支持：${indexVersion.status}`);
+  }
+  return {
+    id: indexVersion.id,
+    status: indexVersion.status,
+    version: indexVersion.version,
+    chunkCount: indexVersion.chunkCount,
+    failureCode: indexVersion.failureCode,
+  };
+}
+
+function delay(milliseconds: number) {
+  return new Promise<void>((resolve) => {
+    window.setTimeout(resolve, milliseconds);
+  });
 }
 
 function dispatchFailure(

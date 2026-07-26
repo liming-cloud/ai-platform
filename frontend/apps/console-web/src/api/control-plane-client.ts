@@ -30,6 +30,25 @@ export interface TextDataSource {
   createdAt: string;
 }
 
+export interface IndexVersion {
+  id: string;
+  knowledgeSpaceId: string;
+  sourceSnapshotDigest: string;
+  chunkPolicy: string;
+  embeddingDeploymentId: string;
+  embeddingDeploymentRevision: number;
+  embeddingDimension: number;
+  status: "BUILDING" | "READY" | "ACTIVE" | "SUPERSEDED" | "FAILED";
+  version: number;
+  buildDigest: string | null;
+  chunkCount: number;
+  failureCode: string | null;
+  createdAt: string;
+  readyAt: string | null;
+  activatedAt: string | null;
+  supersededAt: string | null;
+}
+
 interface CursorPage<T> {
   items: T[];
   nextCursor: string | null;
@@ -147,6 +166,43 @@ export class ControlPlaneClient {
         method: "POST",
         headers: this.writeHeaders("application/json", idempotencyKey),
         body: JSON.stringify({ knowledgeSpaceId, expectedVersion }),
+      },
+    );
+  }
+
+  async createIndexVersion(
+    knowledgeSpaceId: string,
+    idempotencyKey?: string,
+  ): Promise<IndexVersion> {
+    return this.request<IndexVersion>(
+      `/knowledge-spaces/${encodeURIComponent(knowledgeSpaceId)}/index-versions`,
+      {
+        method: "POST",
+        headers: this.writeHeaders("application/json", idempotencyKey),
+      },
+    );
+  }
+
+  async listIndexVersions(
+    knowledgeSpaceId: string,
+  ): Promise<CursorPage<IndexVersion>> {
+    return this.request<CursorPage<IndexVersion>>(
+      `/knowledge-spaces/${encodeURIComponent(knowledgeSpaceId)}/index-versions?limit=20`,
+    );
+  }
+
+  async publishIndexVersion(
+    knowledgeSpaceId: string,
+    indexVersionId: string,
+    expectedVersion: number,
+    idempotencyKey?: string,
+  ): Promise<IndexVersion> {
+    return this.request<IndexVersion>(
+      `/knowledge-spaces/${encodeURIComponent(knowledgeSpaceId)}/index-versions/${encodeURIComponent(indexVersionId)}/publish`,
+      {
+        method: "POST",
+        headers: this.writeHeaders("application/json", idempotencyKey),
+        body: JSON.stringify({ expectedVersion }),
       },
     );
   }

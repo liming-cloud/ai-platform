@@ -60,7 +60,7 @@ class DefaultIndexVersionServiceTest {
                 SPACE_ID,
                 "index-request-0001"));
 
-        assertEquals(INDEX_ID, result.indexVersion().id().value());
+        assertEquals(INDEX_ID, result.indexVersion().id());
         assertEquals(TENANT_ID, repository.request.tenantId());
         assertEquals(new KnowledgeSpaceId(SPACE_ID), repository.request.knowledgeSpaceId());
         assertEquals(EMBEDDING, repository.request.embedding());

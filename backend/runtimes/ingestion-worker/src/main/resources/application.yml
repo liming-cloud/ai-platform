@@ -3,6 +3,12 @@ spring:
     name: ingestion-worker
   main:
     banner-mode: "off"
+  flyway:
+    enabled: false
+
+foundation:
+  ingestion:
+    enabled: false
 
 server:
   port: 8082

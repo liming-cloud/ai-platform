@@ -12,7 +12,13 @@ class IngestionWorkerApplicationTest {
     void 应在无外部基础设施时完成最小上下文启动() {
         try (var context = new SpringApplicationBuilder(IngestionWorkerApplication.class)
                 .web(WebApplicationType.NONE)
-                .run("--spring.main.banner-mode=off")) {
+                .run(
+                        "--spring.main.banner-mode=off",
+                        "--spring.autoconfigure.exclude="
+                                + "org.springframework.boot.jdbc.autoconfigure."
+                                + "DataSourceAutoConfiguration,"
+                                + "org.mybatis.spring.boot.autoconfigure."
+                                + "MybatisAutoConfiguration")) {
             assertTrue(context.isActive());
         }
     }

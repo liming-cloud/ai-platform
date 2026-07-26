@@ -3,6 +3,28 @@ spring:
     name: query-runtime
   main:
     banner-mode: "off"
+  flyway:
+    enabled: false
+  data:
+    redis:
+      repositories:
+        enabled: false
+
+sa-token:
+  token-name: Authorization
+  token-prefix: Bearer
+  timeout: 3600
+  active-timeout: 1800
+  is-concurrent: false
+  is-share: false
+  is-read-cookie: false
+  is-read-header: true
+  is-read-body: false
+  auto-renew: true
+
+foundation:
+  query:
+    enabled: false
 
 server:
   port: 8081

@@ -3,6 +3,7 @@ export type PublicationStage =
   | "space"
   | "content"
   | "publish"
+  | "index"
   | "complete";
 
 export type FeedbackKind =
@@ -23,6 +24,13 @@ export interface PublicationWorkflow {
     name: string;
     version: number;
   };
+  indexVersion?: {
+    id: string;
+    status: "BUILDING" | "READY" | "ACTIVE" | "FAILED";
+    version: number;
+    chunkCount: number;
+    failureCode: string | null;
+  };
   feedback?: {
     kind: FeedbackKind;
     message: string;
@@ -41,7 +49,15 @@ export type PublicationEvent =
       version: number;
     }
   | { type: "content-ready"; version: number }
-  | { type: "published"; version: number }
+  | { type: "source-published"; version: number }
+  | {
+      type: "index-updated";
+      indexVersion: NonNullable<PublicationWorkflow["indexVersion"]>;
+    }
+  | {
+      type: "index-published";
+      indexVersion: NonNullable<PublicationWorkflow["indexVersion"]>;
+    }
   | {
       type: "failed";
       code: string;
@@ -96,14 +112,32 @@ export function reduceWorkflow(
             source: { ...state.source, version: event.version },
             feedback: undefined,
           };
-    case "published":
+    case "source-published":
       return state.source === undefined
+        ? state
+        : {
+            ...state,
+            stage: "index",
+            busy: false,
+            source: { ...state.source, version: event.version },
+            feedback: undefined,
+          };
+    case "index-updated":
+      return {
+        ...state,
+        stage: "index",
+        busy: false,
+        indexVersion: event.indexVersion,
+        feedback: undefined,
+      };
+    case "index-published":
+      return event.indexVersion.status !== "ACTIVE"
         ? state
         : {
             ...state,
             stage: "complete",
             busy: false,
-            source: { ...state.source, version: event.version },
+            indexVersion: event.indexVersion,
             feedback: undefined,
           };
     case "failed":
@@ -133,7 +167,7 @@ function feedbackKind(
   if (code === "DATA_SOURCE_VERSION_CONFLICT") {
     return "stale";
   }
-  if (stage === "publish") {
+  if (stage === "publish" || stage === "index") {
     return "partial";
   }
   return "error";

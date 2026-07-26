@@ -1,0 +1,110 @@
+package com.aiplatform.foundation.trustedquery.application;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
+import com.aiplatform.foundation.kernel.tenant.TenantId;
+import com.aiplatform.foundation.knowledgedata.api.extension.IndexCandidate;
+import com.aiplatform.foundation.knowledgedata.api.extension.IndexCandidateQuery;
+import com.aiplatform.foundation.modelruntime.api.model.EmbeddingBatch;
+import com.aiplatform.foundation.modelruntime.api.model.EmbeddingDeploymentRef;
+import com.aiplatform.foundation.modelruntime.api.model.EmbeddingVector;
+import com.aiplatform.foundation.organizationaccess.api.model.AccessChannel;
+import com.aiplatform.foundation.organizationaccess.api.model.CredentialType;
+import com.aiplatform.foundation.organizationaccess.api.model.MembershipId;
+import com.aiplatform.foundation.organizationaccess.api.model.PermissionCode;
+import com.aiplatform.foundation.organizationaccess.api.model.SubjectId;
+import com.aiplatform.foundation.organizationaccess.api.model.TrustedRequestContext;
+import com.aiplatform.foundation.trustedquery.api.model.CandidateSearchQuery;
+import java.util.List;
+import java.util.Set;
+import java.util.UUID;
+import org.junit.jupiter.api.Test;
+
+class DefaultCandidateSearchServiceTest {
+
+    private static final TenantId TENANT =
+            new TenantId(UUID.fromString("10000000-0000-0000-0000-000000000001"));
+    private static final UUID SPACE =
+            UUID.fromString("20000000-0000-0000-0000-000000000001");
+    private static final EmbeddingDeploymentRef DEPLOYMENT =
+            new EmbeddingDeploymentRef(
+                    UUID.fromString("30000000-0000-0000-0000-000000000001"),
+                    1,
+                    4);
+
+    @Test
+    void 可信租户和冻结嵌入修订必须进入候选检索端口() {
+        var retriever = new RecordingRetriever();
+        var service = new DefaultCandidateSearchService(
+                request -> new EmbeddingBatch(
+                        request.deployment(),
+                        List.of(new EmbeddingVector(
+                                0,
+                                new float[] {1, 0, 0, 0}))),
+                DEPLOYMENT,
+                retriever);
+
+        var result = service.search(new CandidateSearchQuery(
+                context("knowledge:read"),
+                SPACE,
+                "一层有什么商品",
+                5));
+
+        assertEquals(1, result.candidates().size());
+        assertEquals(TENANT.value(), retriever.query.tenantId());
+        assertEquals(SPACE, retriever.query.knowledgeSpaceId());
+        assertEquals(DEPLOYMENT.deploymentId(), retriever.query.embeddingDeploymentId());
+        assertEquals(DEPLOYMENT.revision(), retriever.query.embeddingRevision());
+    }
+
+    @Test
+    void 缺少读取权限时不调用嵌入和检索外部依赖() {
+        var retriever = new RecordingRetriever();
+        var service = new DefaultCandidateSearchService(
+                request -> {
+                    throw new AssertionError("无权限请求不能调用嵌入模型");
+                },
+                DEPLOYMENT,
+                retriever);
+
+        assertThrows(
+                CandidateSearchPermissionDeniedException.class,
+                () -> service.search(new CandidateSearchQuery(
+                        context("knowledge:write"),
+                        SPACE,
+                        "一层有什么商品",
+                        5)));
+        assertEquals(null, retriever.query);
+    }
+
+    private static TrustedRequestContext context(String permission) {
+        return new TrustedRequestContext(
+                TENANT,
+                new SubjectId(UUID.fromString("40000000-0000-0000-0000-000000000001")),
+                new MembershipId(UUID.fromString("50000000-0000-0000-0000-000000000001")),
+                CredentialType.PERSON,
+                AccessChannel.CONSOLE,
+                1,
+                Set.of(new PermissionCode(permission)),
+                "trace-candidate-001");
+    }
+
+    private static final class RecordingRetriever
+            implements com.aiplatform.foundation.knowledgedata.api.extension.IndexCandidateRetriever {
+
+        private IndexCandidateQuery query;
+
+        @Override
+        public List<IndexCandidate> retrieve(IndexCandidateQuery value) {
+            query = value;
+            return List.of(new IndexCandidate(
+                    UUID.fromString("60000000-0000-0000-0000-000000000001"),
+                    1,
+                    "a".repeat(64),
+                    0,
+                    "一层商品",
+                    1.0));
+        }
+    }
+}

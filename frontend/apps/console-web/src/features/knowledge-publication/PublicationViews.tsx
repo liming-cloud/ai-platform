@@ -16,6 +16,7 @@ import { CheckmarkCircle20Filled } from "@fluentui/react-icons";
 import { StatePanel } from "@foundation/design-system";
 import { type FormEvent, type ReactNode, useState } from "react";
 import type { KnowledgeSpace } from "../../api/control-plane-client";
+import type { PublicationWorkflow } from "./publication-workflow";
 
 export function LoginForm({
   busy,
@@ -321,21 +322,100 @@ export function PublishReview({
 export function Completion({
   spaceName,
   sourceName,
+  chunkCount,
   onSignOut,
 }: {
   spaceName: string;
   sourceName: string;
+  chunkCount: number;
   onSignOut: () => Promise<void>;
 }) {
   return (
     <StatePanel
       kind="empty"
-      title="首份知识数据已发布"
-      description={`“${sourceName}”已进入“${spaceName}”。后续索引工作包可以消费已发布版本。`}
+      title="首份知识数据已可检索"
+      description={`“${sourceName}”已进入“${spaceName}”，当前索引包含 ${chunkCount} 个文本分块。`}
       actionLabel="退出演示会话"
       onAction={() => void onSignOut()}
       icon={<CheckmarkCircle20Filled aria-hidden />}
     />
+  );
+}
+
+export function IndexBuildReview({
+  busy,
+  indexVersion,
+  onBuild,
+  onPublish,
+}: {
+  busy: boolean;
+  indexVersion: PublicationWorkflow["indexVersion"];
+  onBuild: () => Promise<void>;
+  onPublish: () => Promise<void>;
+}) {
+  if (indexVersion === undefined || indexVersion.status === "FAILED") {
+    return (
+      <TaskSection
+        title={
+          indexVersion === undefined ? "构建检索索引" : "重新构建检索索引"
+        }
+        description={
+          indexVersion === undefined
+            ? "系统将固定数据快照、分块规则和嵌入模型版本，并在后台生成可核验的索引。"
+            : `上次构建未完成，错误码为 ${indexVersion.failureCode ?? "未知"}。重新构建会创建新版本，不覆盖失败记录。`
+        }
+      >
+        <Button
+          appearance="primary"
+          disabled={busy}
+          onClick={() => void onBuild()}
+        >
+          {busy ? "正在提交" : "开始构建"}
+        </Button>
+      </TaskSection>
+    );
+  }
+
+  const ready = indexVersion.status === "READY";
+  return (
+    <TaskSection
+      title={ready ? "发布检索索引" : "正在构建检索索引"}
+      description={
+        ready
+          ? "索引已完成一致性核验。发布后，它将成为该知识空间唯一可查询的活动版本。"
+          : "后台正在进行确定性分块和向量写入。页面会自动读取服务端状态。"
+      }
+    >
+      <dl className="review-list">
+        <div>
+          <dt>索引状态</dt>
+          <dd>
+            <Badge appearance="tint">
+              {ready ? "构建就绪" : "构建中"}
+            </Badge>
+          </dd>
+        </div>
+        <div>
+          <dt>文本分块</dt>
+          <dd>{ready ? `${indexVersion.chunkCount} 个` : "计算中"}</dd>
+        </div>
+        <div>
+          <dt>索引版本</dt>
+          <dd>{indexVersion.version}</dd>
+        </div>
+        <div>
+          <dt>发布约束</dt>
+          <dd>{ready ? "允许发布" : "等待构建完成"}</dd>
+        </div>
+      </dl>
+      <Button
+        appearance="primary"
+        disabled={busy || !ready}
+        onClick={() => void onPublish()}
+      >
+        {busy ? "正在发布" : ready ? "发布检索索引" : "正在等待"}
+      </Button>
+    </TaskSection>
   );
 }
 
