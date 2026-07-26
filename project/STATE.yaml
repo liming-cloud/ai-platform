@@ -23,6 +23,7 @@ confirmedDecisions:
   - ADR-0014
   - ADR-0015
   - ADR-0016
+  - ADR-0017
 openDecisions: []
 latestEvidence:
   - docs/research/WP-0003-framework-baseline.md
@@ -49,5 +50,5 @@ latestEvidence:
   - project/evidence/WP-0005-trusted-query-core.md
   - project/evidence/WP-0005-query-event-stream.md
 nextReviewAt: 2026-08-02
-updatedAt: 2026-07-27T05:49:37+08:00
+updatedAt: 2026-07-27T05:53:02+08:00
 updatedBy: codex
