@@ -2,7 +2,7 @@ schemaVersion: 1
 productVersion: foundation-v1
 currentMilestone: M1
 currentFrontier: WP-0006
-lastVerifiedCommit: 9a59c41fc807aa073159397f7e2548c6197ff597
+lastVerifiedCommit: cfa36bffdd9330329e3c1d13049a9e540d812bac
 activeWorkPackages:
   - WP-0006
 blockedWorkPackages:
@@ -25,6 +25,7 @@ confirmedDecisions:
   - ADR-0016
   - ADR-0017
   - ADR-0018
+  - ADR-0019
 openDecisions: []
 latestEvidence:
   - docs/research/WP-0003-framework-baseline.md
@@ -53,6 +54,7 @@ latestEvidence:
   - project/evidence/WP-0005-query-web-flow.md
   - project/evidence/WP-0006-query-quota.md
   - project/evidence/WP-0006-query-operations.md
+  - project/evidence/WP-0006-demo-evaluation.md
 nextReviewAt: 2026-08-02
-updatedAt: 2026-07-27T07:01:22+08:00
+updatedAt: 2026-07-27T07:19:02+08:00
 updatedBy: codex
