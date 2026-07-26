@@ -20,6 +20,7 @@ confirmedDecisions:
   - ADR-0011
   - ADR-0012
   - ADR-0013
+  - ADR-0014
 openDecisions: []
 latestEvidence:
   - docs/research/WP-0003-framework-baseline.md
@@ -28,5 +29,5 @@ latestEvidence:
   - project/evidence/WP-0003-authentication-foundation.md
   - project/evidence/WP-0003-knowledge-space.md
 nextReviewAt: 2026-08-02
-updatedAt: 2026-07-27T00:50:05+08:00
+updatedAt: 2026-07-27T00:54:00+08:00
 updatedBy: codex

@@ -15,6 +15,7 @@
 | ADR-0011 | 已接受 | 租户来自可信会话，持久化使用显式租户条件和纵深防御 | `docs/adr/ADR-0011-tenant-auth-and-persistence-boundary.md` | M1-M8 |
 | ADR-0012 | 已接受 | 人员密码使用可升级的 PBKDF2-HMAC-SHA256 摘要和拒绝上限 | `docs/adr/ADR-0012-password-hashing-boundary.md` | M1-M8 |
 | ADR-0013 | 已接受 | 知识空间的租户、幂等、配额和插入使用可信上下文与单一数据库事务 | `docs/adr/ADR-0013-knowledge-space-transaction-boundary.md` | M1-M8 |
+| ADR-0014 | 已接受 | 文本内容经受限暂存和内容寻址对象写入后登记，并以乐观锁发布 | `docs/adr/ADR-0014-text-content-object-publication.md` | M1-M8 |
 
 ## 已确认人工决策
 
