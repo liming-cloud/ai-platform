@@ -2,7 +2,7 @@ schemaVersion: 1
 productVersion: foundation-v1
 currentMilestone: M1
 currentFrontier: WP-0005
-lastVerifiedCommit: 20583849262def84b61a5d8afa1d99cfaac5fd69
+lastVerifiedCommit: e89b19a10e6ba705f98b8d72091c1ce8a94a1fd8
 activeWorkPackages:
   - WP-0005
 blockedWorkPackages:
@@ -43,6 +43,7 @@ latestEvidence:
   - docs/research/WP-0005-spring-ai-runtime.md
   - project/evidence/WP-0005-model-catalog-domain.md
   - project/evidence/WP-0005-provider-connections.md
+  - project/evidence/WP-0005-model-deployments.md
 nextReviewAt: 2026-08-02
-updatedAt: 2026-07-27T03:36:00+08:00
+updatedAt: 2026-07-27T03:50:00+08:00
 updatedBy: codex
