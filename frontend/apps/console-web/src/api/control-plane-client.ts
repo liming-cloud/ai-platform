@@ -49,6 +49,15 @@ export interface IndexVersion {
   supersededAt: string | null;
 }
 
+export interface ModelDeployment {
+  id: string;
+  modelType: "CHAT" | "EMBEDDING";
+  displayName: string;
+  status: string;
+  version: number;
+  embeddingDimension: number | null;
+}
+
 interface CursorPage<T> {
   items: T[];
   nextCursor: string | null;
@@ -172,6 +181,7 @@ export class ControlPlaneClient {
 
   async createIndexVersion(
     knowledgeSpaceId: string,
+    embeddingDeploymentId: string,
     idempotencyKey?: string,
   ): Promise<IndexVersion> {
     return this.request<IndexVersion>(
@@ -179,7 +189,14 @@ export class ControlPlaneClient {
       {
         method: "POST",
         headers: this.writeHeaders("application/json", idempotencyKey),
+        body: JSON.stringify({ embeddingDeploymentId }),
       },
+    );
+  }
+
+  async listModelDeployments(): Promise<CursorPage<ModelDeployment>> {
+    return this.request<CursorPage<ModelDeployment>>(
+      "/model-deployments?limit=20",
     );
   }
 

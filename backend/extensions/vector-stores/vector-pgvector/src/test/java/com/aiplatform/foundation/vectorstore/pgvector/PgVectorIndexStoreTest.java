@@ -143,6 +143,41 @@ class PgVectorIndexStoreTest {
                 10)).isEmpty());
     }
 
+    @Test
+    void 冻结索引被新版本替代后仍按指定版本检索() {
+        store.replace(batch(
+                TENANT,
+                INDEX,
+                List.of(vector(
+                        "1".repeat(64),
+                        0,
+                        "冻结版本证据",
+                        new float[] {1, 0, 0, 0}))));
+        jdbc.update(
+                """
+                UPDATE knowledge_data.index_version
+                SET status = 'SUPERSEDED',
+                    superseded_at = ?
+                WHERE tenant_id = ?
+                  AND id = ?
+                """,
+                NOW.plusSeconds(60).atOffset(ZoneOffset.UTC),
+                TENANT,
+                INDEX);
+
+        var result = store.retrieve(new IndexCandidateQuery(
+                TENANT,
+                SPACE,
+                INDEX,
+                DEPLOYMENT,
+                1,
+                new float[] {1, 0, 0, 0},
+                10));
+
+        assertEquals(1, result.size());
+        assertEquals("冻结版本证据", result.getFirst().content());
+    }
+
     private static IndexVectorBatch batch(
             UUID tenantId,
             UUID indexVersionId,

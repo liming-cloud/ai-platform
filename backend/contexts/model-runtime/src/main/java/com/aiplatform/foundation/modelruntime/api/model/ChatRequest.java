@@ -8,9 +8,16 @@ import java.util.Objects;
  */
 public record ChatRequest(
         ChatDeploymentRef deployment,
-        List<ChatMessage> messages) {
+        List<ChatMessage> messages,
+        int maxOutputTokens) {
 
     public static final int MAX_MESSAGES = 64;
+
+    public ChatRequest(
+            ChatDeploymentRef deployment,
+            List<ChatMessage> messages) {
+        this(deployment, messages, 0);
+    }
 
     public ChatRequest {
         Objects.requireNonNull(deployment, "对话部署不能为空");
@@ -21,6 +28,9 @@ public record ChatRequest(
         }
         for (var message : messages) {
             Objects.requireNonNull(message, "对话消息不能包含空值");
+        }
+        if (maxOutputTokens < 0) {
+            throw new IllegalArgumentException("回答令牌上限不能为负数");
         }
     }
 }

@@ -32,6 +32,7 @@ class AssistantVersionTest {
         assertEquals(7, published.chatDeploymentRevision());
         assertEquals(5, published.indexVersionRevision());
         assertEquals(3, published.embeddingDeploymentRevision());
+        assertEquals(8, published.embeddingDimension());
         assertEquals(CitationPolicy.REQUIRED, published.citationPolicy());
         assertEquals(RefusalPolicy.INSUFFICIENT_EVIDENCE, published.refusalPolicy());
         assertThrows(
@@ -56,6 +57,7 @@ class AssistantVersionTest {
                         5,
                         UUID.randomUUID(),
                         3,
+                        8,
                         "只依据证据回答。",
                         2048,
                         5,
@@ -94,6 +96,7 @@ class AssistantVersionTest {
                 5,
                 UUID.fromString("80000000-0000-0000-0000-000000000001"),
                 3,
+                8,
                 "只依据编号证据回答，并在结论后标注引用。",
                 maxOutputTokens,
                 5,
@@ -120,6 +123,7 @@ class AssistantVersionTest {
                 5,
                 UUID.randomUUID(),
                 3,
+                8,
                 "只依据证据回答。",
                 512,
                 5,

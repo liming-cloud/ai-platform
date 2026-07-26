@@ -26,6 +26,7 @@ public final class AssistantVersion {
     private final long indexVersionRevision;
     private final UUID embeddingDeploymentId;
     private final long embeddingDeploymentRevision;
+    private final int embeddingDimension;
     private final String systemInstruction;
     private final int maxOutputTokens;
     private final int retrievalLimit;
@@ -51,6 +52,7 @@ public final class AssistantVersion {
             long indexVersionRevision,
             UUID embeddingDeploymentId,
             long embeddingDeploymentRevision,
+            int embeddingDimension,
             String systemInstruction,
             int maxOutputTokens,
             int retrievalLimit,
@@ -82,11 +84,14 @@ public final class AssistantVersion {
                 Objects.requireNonNull(indexVersionId, "索引版本标识不能为空");
         this.embeddingDeploymentId =
                 Objects.requireNonNull(embeddingDeploymentId, "嵌入部署标识不能为空");
-        if (indexVersionRevision < 1 || embeddingDeploymentRevision < 1) {
-            throw new IllegalArgumentException("索引和嵌入部署修订必须大于零");
+        if (indexVersionRevision < 1
+                || embeddingDeploymentRevision < 1
+                || embeddingDimension < 1) {
+            throw new IllegalArgumentException("索引、嵌入部署修订和维度必须大于零");
         }
         this.indexVersionRevision = indexVersionRevision;
         this.embeddingDeploymentRevision = embeddingDeploymentRevision;
+        this.embeddingDimension = embeddingDimension;
         this.systemInstruction = requireInstruction(systemInstruction);
         if (maxOutputTokens < 1 || maxOutputTokens > chatDeploymentOutputLimit) {
             throw new IllegalArgumentException("回答上限必须在模型部署允许范围内");
@@ -134,6 +139,7 @@ public final class AssistantVersion {
             long indexVersionRevision,
             UUID embeddingDeploymentId,
             long embeddingDeploymentRevision,
+            int embeddingDimension,
             String systemInstruction,
             int maxOutputTokens,
             int retrievalLimit,
@@ -155,6 +161,7 @@ public final class AssistantVersion {
                 indexVersionRevision,
                 embeddingDeploymentId,
                 embeddingDeploymentRevision,
+                embeddingDimension,
                 systemInstruction,
                 maxOutputTokens,
                 retrievalLimit,
@@ -181,6 +188,7 @@ public final class AssistantVersion {
             long indexVersionRevision,
             UUID embeddingDeploymentId,
             long embeddingDeploymentRevision,
+            int embeddingDimension,
             String systemInstruction,
             int maxOutputTokens,
             int retrievalLimit,
@@ -205,6 +213,7 @@ public final class AssistantVersion {
                 indexVersionRevision,
                 embeddingDeploymentId,
                 embeddingDeploymentRevision,
+                embeddingDimension,
                 systemInstruction,
                 maxOutputTokens,
                 retrievalLimit,
@@ -235,6 +244,7 @@ public final class AssistantVersion {
                 indexVersionRevision,
                 embeddingDeploymentId,
                 embeddingDeploymentRevision,
+                embeddingDimension,
                 systemInstruction,
                 maxOutputTokens,
                 retrievalLimit,
@@ -294,6 +304,10 @@ public final class AssistantVersion {
 
     public long embeddingDeploymentRevision() {
         return embeddingDeploymentRevision;
+    }
+
+    public int embeddingDimension() {
+        return embeddingDimension;
     }
 
     public String systemInstruction() {

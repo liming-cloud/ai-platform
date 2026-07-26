@@ -8,9 +8,8 @@ import com.aiplatform.foundation.knowledgedata.application.port.out.IndexBuildCo
 import com.aiplatform.foundation.knowledgedata.application.port.out.IndexBuildQueuePort;
 import com.aiplatform.foundation.knowledgedata.application.port.out.TextContentObjectStoragePort;
 import com.aiplatform.foundation.knowledgedata.domain.indexversion.ParagraphWindowChunker;
-import com.aiplatform.foundation.modelruntime.api.invocation.EmbeddingModelPort;
+import com.aiplatform.foundation.modelruntime.api.invocation.ModelRuntimeResolver;
 import com.aiplatform.foundation.objectstorage.minio.MinioTextContentObjectStorageAdapter;
-import com.aiplatform.foundation.provider.deterministic.DeterministicEmbeddingModel;
 import com.aiplatform.foundation.vectorstore.pgvector.PgVectorIndexStore;
 import io.minio.MinioClient;
 import java.time.Clock;
@@ -53,11 +52,6 @@ public class IndexIngestionConfiguration {
         return new PostgresIndexBuildCompletion(mapper, vectors, transactions);
     }
 
-    @Bean
-    EmbeddingModelPort embeddingModel() {
-        return new DeterministicEmbeddingModel();
-    }
-
     @Bean(destroyMethod = "close")
     MinioClient minioClient(
             @Value("${foundation.ingestion.object-storage.endpoint}")
@@ -96,14 +90,14 @@ public class IndexIngestionConfiguration {
             IndexBuildQueuePort queue,
             IndexBuildCompletionPort completion,
             TextContentObjectStoragePort objectStorage,
-            EmbeddingModelPort embeddingModel,
+            ModelRuntimeResolver models,
             @Value("${foundation.ingestion.lease-duration:PT1M}")
             Duration leaseDuration) {
         return new DefaultIndexBuildWorker(
                 queue,
                 completion,
                 objectStorage,
-                embeddingModel,
+                models,
                 new ParagraphWindowChunker(),
                 Clock.systemUTC(),
                 leaseDuration);

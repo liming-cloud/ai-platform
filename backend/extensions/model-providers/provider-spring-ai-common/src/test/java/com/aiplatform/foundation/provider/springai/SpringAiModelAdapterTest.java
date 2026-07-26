@@ -16,6 +16,7 @@ import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Flow;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Test;
 import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.metadata.ChatGenerationMetadata;
@@ -38,7 +39,11 @@ class SpringAiModelAdapterTest {
 
     @Test
     void 对话适配器应映射回答结束原因和令牌用量() {
-        ChatModel model = prompt -> response("可信回答", "STOP", 7, 3);
+        var capturedPrompt = new AtomicReference<Prompt>();
+        ChatModel model = prompt -> {
+            capturedPrompt.set(prompt);
+            return response("可信回答", "STOP", 7, 3);
+        };
         var deployment = new ChatDeploymentRef(DEPLOYMENT_ID, 2);
         var adapter = new SpringAiChatModelAdapter(model, deployment);
 
@@ -46,13 +51,15 @@ class SpringAiModelAdapterTest {
                 deployment,
                 List.of(
                         new ChatMessage(ChatRole.SYSTEM, "只依据证据回答"),
-                        new ChatMessage(ChatRole.USER, "商品在哪里？"))));
+                        new ChatMessage(ChatRole.USER, "商品在哪里？")),
+                256));
 
         assertEquals("可信回答", result.content());
         assertEquals("STOP", result.finishReason());
         assertEquals(7, result.usage().inputTokens());
         assertEquals(3, result.usage().outputTokens());
         assertEquals(10, result.usage().totalTokens());
+        assertEquals(256, capturedPrompt.get().getOptions().getMaxTokens());
     }
 
     @Test

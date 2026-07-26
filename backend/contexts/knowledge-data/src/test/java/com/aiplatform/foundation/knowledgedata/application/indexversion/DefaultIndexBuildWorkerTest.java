@@ -22,6 +22,8 @@ import com.aiplatform.foundation.knowledgedata.domain.model.DataSourceId;
 import com.aiplatform.foundation.knowledgedata.domain.model.KnowledgeSpaceId;
 import com.aiplatform.foundation.knowledgedata.domain.model.TextContentReference;
 import com.aiplatform.foundation.modelruntime.api.invocation.EmbeddingModelPort;
+import com.aiplatform.foundation.modelruntime.api.invocation.ChatModelPort;
+import com.aiplatform.foundation.modelruntime.api.invocation.ModelRuntimeResolver;
 import com.aiplatform.foundation.modelruntime.api.model.EmbeddingBatch;
 import com.aiplatform.foundation.modelruntime.api.model.EmbeddingDeploymentRef;
 import com.aiplatform.foundation.modelruntime.api.model.EmbeddingRequest;
@@ -68,7 +70,7 @@ class DefaultIndexBuildWorkerTest {
                 queue,
                 completion,
                 new ContentStore(content),
-                new FourDimensionEmbedding(),
+                new FixedModelRuntimeResolver(new FourDimensionEmbedding()),
                 new ParagraphWindowChunker(),
                 CLOCK,
                 Duration.ofMinutes(1));
@@ -94,12 +96,14 @@ class DefaultIndexBuildWorkerTest {
                 queue,
                 completion,
                 new ContentStore(content),
-                request -> new EmbeddingBatch(
-                        new EmbeddingDeploymentRef(
-                                request.deployment().deploymentId(),
-                                request.deployment().revision(),
-                                3),
-                        List.of(new EmbeddingVector(0, new float[] {1, 0, 0}))),
+                new FixedModelRuntimeResolver(request -> new EmbeddingBatch(
+                                new EmbeddingDeploymentRef(
+                                        request.deployment().deploymentId(),
+                                        request.deployment().revision(),
+                                        3),
+                                List.of(new EmbeddingVector(
+                                        0,
+                                        new float[] {1, 0, 0})))),
                 new ParagraphWindowChunker(),
                 CLOCK,
                 Duration.ofMinutes(1));
@@ -116,7 +120,7 @@ class DefaultIndexBuildWorkerTest {
                 new RecordingQueue(null),
                 new RecordingCompletion(),
                 new ContentStore("不会读取"),
-                new FourDimensionEmbedding(),
+                new FixedModelRuntimeResolver(new FourDimensionEmbedding()),
                 new ParagraphWindowChunker(),
                 CLOCK,
                 Duration.ofMinutes(1));
@@ -237,6 +241,38 @@ class DefaultIndexBuildWorkerTest {
                         new float[] {index + 1, 1, 0, 0}));
             }
             return new EmbeddingBatch(request.deployment(), vectors);
+        }
+    }
+
+    private static final class FixedModelRuntimeResolver
+            implements ModelRuntimeResolver {
+
+        private final EmbeddingModelPort embedding;
+
+        private FixedModelRuntimeResolver(EmbeddingModelPort embedding) {
+            this.embedding = embedding;
+        }
+
+        @Override
+        public ChatModelPort resolveChat(TenantId tenantId, UUID deploymentId) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public EmbeddingModelPort resolveEmbedding(
+                TenantId tenantId,
+                UUID deploymentId) {
+            assertEquals(TENANT_ID, tenantId);
+            assertEquals(EMBEDDING.deploymentId(), deploymentId);
+            return embedding;
+        }
+
+        @Override
+        public void evictProvider(TenantId tenantId, UUID providerConnectionId) {
+        }
+
+        @Override
+        public void evictDeployment(TenantId tenantId, UUID deploymentId) {
         }
     }
 }

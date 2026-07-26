@@ -23,6 +23,7 @@ import com.aiplatform.foundation.knowledgedata.application.knowledge.Idempotency
 import com.aiplatform.foundation.knowledgedata.application.knowledge.KnowledgePermissionDeniedException;
 import com.aiplatform.foundation.knowledgedata.application.knowledge.KnowledgeSpaceNameConflictException;
 import com.aiplatform.foundation.knowledgedata.application.knowledge.KnowledgeSpaceQuotaExceededException;
+import com.aiplatform.foundation.knowledgedata.application.indexversion.IndexEmbeddingDeploymentUnavailableException;
 import com.aiplatform.foundation.knowledgedata.application.indexversion.IndexVersionConcurrentModificationException;
 import com.aiplatform.foundation.knowledgedata.application.indexversion.IndexVersionNotFoundException;
 import com.aiplatform.foundation.knowledgedata.application.indexversion.NoPublishedSourceException;
@@ -307,6 +308,14 @@ public class GlobalApiExceptionHandler {
                 HttpStatus.CONFLICT,
                 "INDEX_VERSION_CONFLICT",
                 "索引版本状态或修订已经变化");
+    }
+
+    @ExceptionHandler(IndexEmbeddingDeploymentUnavailableException.class)
+    ResponseEntity<ApiErrorResponse> indexEmbeddingDeploymentUnavailable() {
+        return error(
+                HttpStatus.CONFLICT,
+                "EMBEDDING_DEPLOYMENT_UNAVAILABLE",
+                "索引只能使用当前租户已发布的嵌入部署");
     }
 
     @ExceptionHandler(NoPublishedSourceException.class)

@@ -238,6 +238,7 @@ class PostgresAssistantRepositoryTest {
                 4,
                 EMBEDDING,
                 3,
+                8,
                 "只依据编号证据回答，并在结论后标注引用。",
                 512,
                 5,

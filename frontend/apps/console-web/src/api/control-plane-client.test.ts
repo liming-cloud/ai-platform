@@ -155,7 +155,10 @@ describe("ControlPlaneClient", () => {
       return responses.shift() ?? new Response(null, { status: 500 });
     });
 
-    await client.createIndexVersion(indexVersion.knowledgeSpaceId);
+    await client.createIndexVersion(
+      indexVersion.knowledgeSpaceId,
+      indexVersion.embeddingDeploymentId,
+    );
     await client.listIndexVersions(indexVersion.knowledgeSpaceId);
     await client.publishIndexVersion(
       indexVersion.knowledgeSpaceId,
@@ -171,6 +174,9 @@ describe("ControlPlaneClient", () => {
     expect(requests[0]?.url).toContain(
       `/knowledge-spaces/${indexVersion.knowledgeSpaceId}/index-versions`,
     );
+    expect(await requests[0]?.json()).toEqual({
+      embeddingDeploymentId: indexVersion.embeddingDeploymentId,
+    });
     expect(await requests[2]?.json()).toEqual({ expectedVersion: 1 });
     expect(requests[2]?.headers.get("Idempotency-Key")).toBe(
       "request-key-002",

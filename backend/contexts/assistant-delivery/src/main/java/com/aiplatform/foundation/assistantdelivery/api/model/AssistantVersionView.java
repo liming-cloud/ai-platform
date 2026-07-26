@@ -19,6 +19,7 @@ public record AssistantVersionView(
         long indexVersionRevision,
         UUID embeddingDeploymentId,
         long embeddingDeploymentRevision,
+        int embeddingDimension,
         String systemInstruction,
         int maxOutputTokens,
         int retrievalLimit,

@@ -18,6 +18,7 @@ import org.springframework.ai.chat.messages.SystemMessage;
 import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.model.ChatResponse;
+import org.springframework.ai.chat.prompt.ChatOptions;
 import org.springframework.ai.chat.prompt.Prompt;
 import reactor.adapter.JdkFlowAdapter;
 import reactor.core.publisher.Mono;
@@ -40,7 +41,7 @@ public final class SpringAiChatModelAdapter implements ChatModelPort {
     @Override
     public ChatResult chat(ChatRequest request) {
         requireDeployment(request);
-        var response = model.call(toPrompt(request.messages()));
+        var response = model.call(toPrompt(request));
         return new ChatResult(
                 deployment,
                 content(response),
@@ -53,7 +54,7 @@ public final class SpringAiChatModelAdapter implements ChatModelPort {
         requireDeployment(request);
         var sequence = new AtomicLong();
         var finalUsage = new AtomicReference<>(ModelUsage.UNKNOWN);
-        var chunks = model.stream(toPrompt(request.messages()))
+        var chunks = model.stream(toPrompt(request))
                 .map(response -> {
                     finalUsage.set(usage(response));
                     return new ChatChunk(
@@ -79,10 +80,18 @@ public final class SpringAiChatModelAdapter implements ChatModelPort {
         }
     }
 
-    private static Prompt toPrompt(List<ChatMessage> messages) {
-        return new Prompt(messages.stream()
+    private static Prompt toPrompt(ChatRequest request) {
+        var messages = request.messages().stream()
                 .map(SpringAiChatModelAdapter::toSpringMessage)
-                .toList());
+                .toList();
+        if (request.maxOutputTokens() == 0) {
+            return new Prompt(messages);
+        }
+        return new Prompt(
+                messages,
+                ChatOptions.builder()
+                        .maxTokens(request.maxOutputTokens())
+                        .build());
     }
 
     private static Message toSpringMessage(ChatMessage message) {

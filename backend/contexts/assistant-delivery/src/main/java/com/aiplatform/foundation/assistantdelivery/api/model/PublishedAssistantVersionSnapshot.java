@@ -19,6 +19,7 @@ public record PublishedAssistantVersionSnapshot(
         long indexVersionRevision,
         UUID embeddingDeploymentId,
         long embeddingDeploymentRevision,
+        int embeddingDimension,
         String systemInstruction,
         int maxOutputTokens,
         int retrievalLimit,
@@ -40,6 +41,7 @@ public record PublishedAssistantVersionSnapshot(
                 || chatDeploymentRevision < 1
                 || indexVersionRevision < 1
                 || embeddingDeploymentRevision < 1
+                || embeddingDimension < 1
                 || maxOutputTokens < 1
                 || retrievalLimit < 1
                 || !Double.isFinite(minimumScore)

@@ -77,6 +77,11 @@ INSERT INTO organization_access.membership_permission (
         'assistant:write'
     ),
     (
+        '10000000-0000-0000-0000-000000000001',
+        '30000000-0000-0000-0000-000000000001',
+        'assistant:query'
+    ),
+    (
         '10000000-0000-0000-0000-000000000002',
         '30000000-0000-0000-0000-000000000002',
         'knowledge:read'
@@ -105,5 +110,10 @@ INSERT INTO organization_access.membership_permission (
         '10000000-0000-0000-0000-000000000002',
         '30000000-0000-0000-0000-000000000002',
         'assistant:write'
+    ),
+    (
+        '10000000-0000-0000-0000-000000000002',
+        '30000000-0000-0000-0000-000000000002',
+        'assistant:query'
     )
 ON CONFLICT DO NOTHING;

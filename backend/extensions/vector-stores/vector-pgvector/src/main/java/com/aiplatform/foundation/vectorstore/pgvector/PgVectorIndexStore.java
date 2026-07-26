@@ -54,7 +54,10 @@ public final class PgVectorIndexStore
              AND version.id = chunk.index_version_id
             WHERE chunk.tenant_id = ?
               AND chunk.knowledge_space_id = ?
-              AND version.status = 'ACTIVE'
+              AND (
+                    (CAST(? AS uuid) IS NULL AND version.status = 'ACTIVE')
+                    OR chunk.index_version_id = CAST(? AS uuid)
+              )
               AND chunk.embedding_deployment_id = ?
               AND chunk.embedding_deployment_revision = ?
               AND chunk.embedding_dimension = ?
@@ -126,6 +129,8 @@ public final class PgVectorIndexStore
                 embedding,
                 query.tenantId(),
                 query.knowledgeSpaceId(),
+                query.indexVersionId(),
+                query.indexVersionId(),
                 query.embeddingDeploymentId(),
                 query.embeddingRevision(),
                 query.embeddingDimension(),

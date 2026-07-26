@@ -42,6 +42,7 @@ public final class DefaultPublishedAssistantVersionLookup
                         version.indexVersionRevision(),
                         version.embeddingDeploymentId(),
                         version.embeddingDeploymentRevision(),
+                        version.embeddingDimension(),
                         version.systemInstruction(),
                         version.maxOutputTokens(),
                         version.retrievalLimit(),

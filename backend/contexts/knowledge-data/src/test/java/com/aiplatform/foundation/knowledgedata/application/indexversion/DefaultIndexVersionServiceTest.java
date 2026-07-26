@@ -14,6 +14,8 @@ import com.aiplatform.foundation.knowledgedata.application.port.out.IndexVersion
 import com.aiplatform.foundation.knowledgedata.domain.indexversion.EmbeddingConfiguration;
 import com.aiplatform.foundation.knowledgedata.domain.indexversion.IndexVersion;
 import com.aiplatform.foundation.knowledgedata.domain.model.KnowledgeSpaceId;
+import com.aiplatform.foundation.modelruntime.api.catalog.PublishedEmbeddingDeploymentLookup;
+import com.aiplatform.foundation.modelruntime.api.catalog.model.PublishedEmbeddingDeploymentSnapshot;
 import com.aiplatform.foundation.organizationaccess.api.model.AccessChannel;
 import com.aiplatform.foundation.organizationaccess.api.model.CredentialType;
 import com.aiplatform.foundation.organizationaccess.api.model.MembershipId;
@@ -52,13 +54,14 @@ class DefaultIndexVersionServiceTest {
         var repository = new RecordingRepository();
         var service = new DefaultIndexVersionService(
                 repository,
-                EMBEDDING,
+                publishedEmbedding(),
                 CLOCK,
                 () -> INDEX_ID);
 
         var result = service.create(new CreateIndexVersionCommand(
                 context("knowledge:write"),
                 SPACE_ID,
+                EMBEDDING.deploymentId(),
                 "index-request-0001"));
 
         assertEquals(INDEX_ID, result.indexVersion().id());
@@ -75,7 +78,7 @@ class DefaultIndexVersionServiceTest {
         var repository = new RecordingRepository();
         var service = new DefaultIndexVersionService(
                 repository,
-                EMBEDDING,
+                publishedEmbedding(),
                 CLOCK,
                 () -> INDEX_ID);
 
@@ -84,8 +87,36 @@ class DefaultIndexVersionServiceTest {
                 () -> service.create(new CreateIndexVersionCommand(
                         context("knowledge:read"),
                         SPACE_ID,
+                        EMBEDDING.deploymentId(),
                         "index-request-0001")));
         assertTrue(repository.request == null);
+    }
+
+    @Test
+    void 未发布或非嵌入部署不能创建索引() {
+        var repository = new RecordingRepository();
+        var service = new DefaultIndexVersionService(
+                repository,
+                (tenantId, deploymentId) -> Optional.empty(),
+                CLOCK,
+                () -> INDEX_ID);
+
+        assertThrows(
+                IndexEmbeddingDeploymentUnavailableException.class,
+                () -> service.create(new CreateIndexVersionCommand(
+                        context("knowledge:write"),
+                        SPACE_ID,
+                        EMBEDDING.deploymentId(),
+                        "index-request-0001")));
+        assertTrue(repository.request == null);
+    }
+
+    private static PublishedEmbeddingDeploymentLookup publishedEmbedding() {
+        return (tenantId, deploymentId) -> Optional.of(
+                new PublishedEmbeddingDeploymentSnapshot(
+                        deploymentId,
+                        EMBEDDING.deploymentRevision(),
+                        EMBEDDING.dimension()));
     }
 
     private static TrustedRequestContext context(String permission) {

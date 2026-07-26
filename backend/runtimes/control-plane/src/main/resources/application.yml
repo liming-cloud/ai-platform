@@ -9,6 +9,7 @@ spring:
       - classpath:db/migration/knowledge-data
       - classpath:db/migration/model-runtime
       - classpath:db/migration/assistant-delivery
+      - classpath:db/migration/trusted-query
   data:
     redis:
       repositories:

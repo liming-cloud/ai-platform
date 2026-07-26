@@ -45,10 +45,15 @@ public class IndexVersionController {
             TrustedRequestContext context,
             @PathVariable UUID knowledgeSpaceId,
             @RequestHeader(name = IDEMPOTENCY_KEY, required = false)
-            String idempotencyKey) {
+            String idempotencyKey,
+            @RequestBody CreateIndexVersionRequest request) {
+        if (request == null || request.embeddingDeploymentId() == null) {
+            throw new IllegalArgumentException("必须选择嵌入部署");
+        }
         var result = indexVersions.create(new CreateIndexVersionCommand(
                 context,
                 knowledgeSpaceId,
+                request.embeddingDeploymentId(),
                 requireIdempotencyKey(idempotencyKey)));
         return ResponseEntity
                 .status(HttpStatus.ACCEPTED)

@@ -19,6 +19,7 @@ public final class AssistantVersionRow {
     private long indexVersionRevision;
     private String embeddingDeploymentId;
     private long embeddingDeploymentRevision;
+    private int embeddingDimension;
     private String systemInstruction;
     private int maxOutputTokens;
     private int retrievalLimit;
@@ -55,6 +56,8 @@ public final class AssistantVersionRow {
     public void setEmbeddingDeploymentId(String value) { embeddingDeploymentId = value; }
     public long getEmbeddingDeploymentRevision() { return embeddingDeploymentRevision; }
     public void setEmbeddingDeploymentRevision(long value) { embeddingDeploymentRevision = value; }
+    public int getEmbeddingDimension() { return embeddingDimension; }
+    public void setEmbeddingDimension(int value) { embeddingDimension = value; }
     public String getSystemInstruction() { return systemInstruction; }
     public void setSystemInstruction(String value) { systemInstruction = value; }
     public int getMaxOutputTokens() { return maxOutputTokens; }

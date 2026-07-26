@@ -1,0 +1,298 @@
+package com.aiplatform.foundation.trustedquery.domain;
+
+import com.aiplatform.foundation.kernel.tenant.TenantId;
+import com.aiplatform.foundation.modelruntime.api.model.ModelUsage;
+import com.aiplatform.foundation.organizationaccess.api.model.MembershipId;
+import java.time.Instant;
+import java.util.List;
+import java.util.Objects;
+import java.util.UUID;
+import java.util.regex.Pattern;
+
+/**
+ * 管理一次查询从占位、回答或拒答到终态的事务边界。
+ */
+public final class QueryRun {
+
+    private static final Pattern SHA256 = Pattern.compile("[0-9a-f]{64}");
+    private static final int MAX_ANSWER_CODE_POINTS = 32_768;
+
+    private final TenantId tenantId;
+    private final UUID id;
+    private final UUID assistantVersionId;
+    private final MembershipId requestedBy;
+    private final String questionDigest;
+    private final QueryRunStatus status;
+    private final String answer;
+    private final QueryRefusalReason refusalReason;
+    private final List<QueryCitation> citations;
+    private final ModelUsage usage;
+    private final long version;
+    private final Instant createdAt;
+    private final Instant completedAt;
+
+    private QueryRun(
+            TenantId tenantId,
+            UUID id,
+            UUID assistantVersionId,
+            MembershipId requestedBy,
+            String questionDigest,
+            QueryRunStatus status,
+            String answer,
+            QueryRefusalReason refusalReason,
+            List<QueryCitation> citations,
+            ModelUsage usage,
+            long version,
+            Instant createdAt,
+            Instant completedAt) {
+        this.tenantId = Objects.requireNonNull(tenantId, "租户标识不能为空");
+        this.id = Objects.requireNonNull(id, "查询运行标识不能为空");
+        this.assistantVersionId =
+                Objects.requireNonNull(assistantVersionId, "助手版本标识不能为空");
+        this.requestedBy = Objects.requireNonNull(requestedBy, "请求成员不能为空");
+        if (questionDigest == null || !SHA256.matcher(questionDigest).matches()) {
+            throw new IllegalArgumentException("问题摘要格式不正确");
+        }
+        this.questionDigest = questionDigest;
+        this.status = Objects.requireNonNull(status, "查询运行状态不能为空");
+        this.answer = answer;
+        this.refusalReason = refusalReason;
+        this.citations = List.copyOf(
+                Objects.requireNonNull(citations, "查询引用不能为空"));
+        this.usage = Objects.requireNonNull(usage, "模型用量不能为空");
+        if (version < 0) {
+            throw new IllegalArgumentException("查询运行版本不能为负数");
+        }
+        this.version = version;
+        this.createdAt = Objects.requireNonNull(createdAt, "创建时间不能为空");
+        this.completedAt = completedAt;
+        verifyState();
+    }
+
+    public static QueryRun start(
+            TenantId tenantId,
+            UUID id,
+            UUID assistantVersionId,
+            MembershipId requestedBy,
+            String questionDigest,
+            Instant createdAt) {
+        return new QueryRun(
+                tenantId,
+                id,
+                assistantVersionId,
+                requestedBy,
+                questionDigest,
+                QueryRunStatus.RUNNING,
+                null,
+                null,
+                List.of(),
+                ModelUsage.UNKNOWN,
+                0,
+                createdAt,
+                null);
+    }
+
+    public static QueryRun reconstitute(
+            TenantId tenantId,
+            UUID id,
+            UUID assistantVersionId,
+            MembershipId requestedBy,
+            String questionDigest,
+            QueryRunStatus status,
+            String answer,
+            QueryRefusalReason refusalReason,
+            List<QueryCitation> citations,
+            ModelUsage usage,
+            long version,
+            Instant createdAt,
+            Instant completedAt) {
+        return new QueryRun(
+                tenantId,
+                id,
+                assistantVersionId,
+                requestedBy,
+                questionDigest,
+                status,
+                answer,
+                refusalReason,
+                citations,
+                usage,
+                version,
+                createdAt,
+                completedAt);
+    }
+
+    public QueryRun answer(
+            String content,
+            List<QueryCitation> evidence,
+            ModelUsage modelUsage,
+            Instant time) {
+        requireRunning();
+        return new QueryRun(
+                tenantId,
+                id,
+                assistantVersionId,
+                requestedBy,
+                questionDigest,
+                QueryRunStatus.ANSWERED,
+                requireAnswer(content),
+                null,
+                requireCitations(evidence),
+                modelUsage,
+                version + 1,
+                createdAt,
+                Objects.requireNonNull(time, "完成时间不能为空"));
+    }
+
+    public QueryRun refuse(QueryRefusalReason reason, Instant time) {
+        requireRunning();
+        return new QueryRun(
+                tenantId,
+                id,
+                assistantVersionId,
+                requestedBy,
+                questionDigest,
+                QueryRunStatus.REFUSED,
+                null,
+                Objects.requireNonNull(reason, "拒答原因不能为空"),
+                List.of(),
+                ModelUsage.UNKNOWN,
+                version + 1,
+                createdAt,
+                Objects.requireNonNull(time, "完成时间不能为空"));
+    }
+
+    public QueryRun fail(Instant time) {
+        requireRunning();
+        return new QueryRun(
+                tenantId,
+                id,
+                assistantVersionId,
+                requestedBy,
+                questionDigest,
+                QueryRunStatus.FAILED,
+                null,
+                null,
+                List.of(),
+                ModelUsage.UNKNOWN,
+                version + 1,
+                createdAt,
+                Objects.requireNonNull(time, "失败时间不能为空"));
+    }
+
+    public TenantId tenantId() {
+        return tenantId;
+    }
+
+    public UUID id() {
+        return id;
+    }
+
+    public UUID assistantVersionId() {
+        return assistantVersionId;
+    }
+
+    public MembershipId requestedBy() {
+        return requestedBy;
+    }
+
+    public String questionDigest() {
+        return questionDigest;
+    }
+
+    public QueryRunStatus status() {
+        return status;
+    }
+
+    public String answer() {
+        return answer;
+    }
+
+    public QueryRefusalReason refusalReason() {
+        return refusalReason;
+    }
+
+    public List<QueryCitation> citations() {
+        return citations;
+    }
+
+    public ModelUsage usage() {
+        return usage;
+    }
+
+    public long version() {
+        return version;
+    }
+
+    public Instant createdAt() {
+        return createdAt;
+    }
+
+    public Instant completedAt() {
+        return completedAt;
+    }
+
+    private void requireRunning() {
+        if (status != QueryRunStatus.RUNNING) {
+            throw new IllegalStateException("只有运行中的查询可以进入终态");
+        }
+    }
+
+    private void verifyState() {
+        switch (status) {
+            case RUNNING -> require(
+                    answer == null
+                            && refusalReason == null
+                            && citations.isEmpty()
+                            && completedAt == null
+                            && version == 0);
+            case ANSWERED -> require(
+                    answer != null
+                            && refusalReason == null
+                            && !citations.isEmpty()
+                            && completedAt != null
+                            && version > 0);
+            case REFUSED -> require(
+                    answer == null
+                            && refusalReason != null
+                            && citations.isEmpty()
+                            && completedAt != null
+                            && version > 0);
+            case FAILED -> require(
+                    answer == null
+                            && refusalReason == null
+                            && citations.isEmpty()
+                            && completedAt != null
+                            && version > 0);
+        }
+    }
+
+    private static String requireAnswer(String value) {
+        Objects.requireNonNull(value, "回答不能为空");
+        if (value.isBlank()
+                || value.codePointCount(0, value.length()) > MAX_ANSWER_CODE_POINTS) {
+            throw new IllegalArgumentException("回答内容格式不正确");
+        }
+        return value;
+    }
+
+    private static List<QueryCitation> requireCitations(List<QueryCitation> values) {
+        var copied = List.copyOf(
+                Objects.requireNonNull(values, "回答引用不能为空"));
+        if (copied.isEmpty()) {
+            throw new IllegalArgumentException("可信回答必须至少包含一项引用");
+        }
+        for (var index = 0; index < copied.size(); index++) {
+            if (copied.get(index).sequence() != index + 1) {
+                throw new IllegalArgumentException("引用序号必须连续且从一开始");
+            }
+        }
+        return copied;
+    }
+
+    private static void require(boolean valid) {
+        if (!valid) {
+            throw new IllegalArgumentException("查询运行状态字段不一致");
+        }
+    }
+}

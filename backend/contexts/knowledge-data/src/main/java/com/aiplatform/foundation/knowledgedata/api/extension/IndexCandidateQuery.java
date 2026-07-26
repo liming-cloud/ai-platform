@@ -10,6 +10,7 @@ public final class IndexCandidateQuery {
 
     private final UUID tenantId;
     private final UUID knowledgeSpaceId;
+    private final UUID indexVersionId;
     private final UUID embeddingDeploymentId;
     private final long embeddingRevision;
     private final float[] embedding;
@@ -22,10 +23,32 @@ public final class IndexCandidateQuery {
             long embeddingRevision,
             float[] embedding,
             int limit) {
+        this(
+                tenantId,
+                knowledgeSpaceId,
+                null,
+                embeddingDeploymentId,
+                embeddingRevision,
+                embedding,
+                limit);
+    }
+
+    /**
+     * 创建绑定不可变索引版本的候选查询。
+     */
+    public IndexCandidateQuery(
+            UUID tenantId,
+            UUID knowledgeSpaceId,
+            UUID indexVersionId,
+            UUID embeddingDeploymentId,
+            long embeddingRevision,
+            float[] embedding,
+            int limit) {
         this.tenantId = Objects.requireNonNull(tenantId, "租户标识不能为空");
         this.knowledgeSpaceId = Objects.requireNonNull(
                 knowledgeSpaceId,
                 "知识空间标识不能为空");
+        this.indexVersionId = indexVersionId;
         this.embeddingDeploymentId = Objects.requireNonNull(
                 embeddingDeploymentId,
                 "嵌入部署标识不能为空");
@@ -55,6 +78,10 @@ public final class IndexCandidateQuery {
 
     public UUID knowledgeSpaceId() {
         return knowledgeSpaceId;
+    }
+
+    public UUID indexVersionId() {
+        return indexVersionId;
     }
 
     public UUID embeddingDeploymentId() {

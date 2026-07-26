@@ -16,6 +16,7 @@ import com.aiplatform.foundation.knowledgedata.domain.indexversion.IndexVersion;
 import com.aiplatform.foundation.knowledgedata.domain.indexversion.IndexVersionId;
 import com.aiplatform.foundation.knowledgedata.domain.indexversion.ParagraphWindowChunker;
 import com.aiplatform.foundation.knowledgedata.domain.model.KnowledgeSpaceId;
+import com.aiplatform.foundation.modelruntime.api.catalog.PublishedEmbeddingDeploymentLookup;
 import com.aiplatform.foundation.organizationaccess.api.model.PermissionCode;
 import com.aiplatform.foundation.organizationaccess.api.model.TrustedRequestContext;
 import java.nio.charset.StandardCharsets;
@@ -36,17 +37,19 @@ public final class DefaultIndexVersionService implements IndexVersionUseCase {
     private static final PermissionCode WRITE = new PermissionCode("knowledge:write");
 
     private final IndexVersionRepository repository;
-    private final EmbeddingConfiguration embedding;
+    private final PublishedEmbeddingDeploymentLookup embeddingDeployments;
     private final Clock clock;
     private final Supplier<UUID> identifiers;
 
     public DefaultIndexVersionService(
             IndexVersionRepository repository,
-            EmbeddingConfiguration embedding,
+            PublishedEmbeddingDeploymentLookup embeddingDeployments,
             Clock clock,
             Supplier<UUID> identifiers) {
         this.repository = Objects.requireNonNull(repository, "索引版本仓储不能为空");
-        this.embedding = Objects.requireNonNull(embedding, "嵌入配置不能为空");
+        this.embeddingDeployments = Objects.requireNonNull(
+                embeddingDeployments,
+                "已发布嵌入部署查询不能为空");
         this.clock = Objects.requireNonNull(clock, "时钟不能为空");
         this.identifiers = Objects.requireNonNull(identifiers, "标识生成器不能为空");
     }
@@ -58,6 +61,13 @@ public final class DefaultIndexVersionService implements IndexVersionUseCase {
             throw new KnowledgePermissionDeniedException();
         }
         var context = command.context();
+        var deployment = embeddingDeployments
+                .find(context.tenantId(), command.embeddingDeploymentId())
+                .orElseThrow(IndexEmbeddingDeploymentUnavailableException::new);
+        var embedding = new EmbeddingConfiguration(
+                deployment.deploymentId(),
+                deployment.deploymentRevision(),
+                deployment.dimension());
         var request = new IndexVersionBuildRequest(
                 context.tenantId(),
                 new KnowledgeSpaceId(command.knowledgeSpaceId()),

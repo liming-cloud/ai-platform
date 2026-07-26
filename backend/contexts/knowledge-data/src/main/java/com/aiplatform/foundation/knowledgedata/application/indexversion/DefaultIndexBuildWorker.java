@@ -9,7 +9,7 @@ import com.aiplatform.foundation.knowledgedata.application.port.out.TextContentO
 import com.aiplatform.foundation.knowledgedata.domain.indexversion.ParagraphWindowChunker;
 import com.aiplatform.foundation.knowledgedata.domain.indexversion.TextChunk;
 import com.aiplatform.foundation.knowledgedata.domain.model.TextContentReference;
-import com.aiplatform.foundation.modelruntime.api.invocation.EmbeddingModelPort;
+import com.aiplatform.foundation.modelruntime.api.invocation.ModelRuntimeResolver;
 import com.aiplatform.foundation.modelruntime.api.model.EmbeddingDeploymentRef;
 import com.aiplatform.foundation.modelruntime.api.model.EmbeddingRequest;
 import java.io.IOException;
@@ -40,7 +40,7 @@ public final class DefaultIndexBuildWorker {
     private final IndexBuildQueuePort queue;
     private final IndexBuildCompletionPort completion;
     private final TextContentObjectStoragePort objectStorage;
-    private final EmbeddingModelPort embeddingModel;
+    private final ModelRuntimeResolver models;
     private final ParagraphWindowChunker chunker;
     private final Clock clock;
     private final Duration leaseDuration;
@@ -49,14 +49,14 @@ public final class DefaultIndexBuildWorker {
             IndexBuildQueuePort queue,
             IndexBuildCompletionPort completion,
             TextContentObjectStoragePort objectStorage,
-            EmbeddingModelPort embeddingModel,
+            ModelRuntimeResolver models,
             ParagraphWindowChunker chunker,
             Clock clock,
             Duration leaseDuration) {
         this.queue = Objects.requireNonNull(queue, "索引构建队列不能为空");
         this.completion = Objects.requireNonNull(completion, "构建完成端口不能为空");
         this.objectStorage = Objects.requireNonNull(objectStorage, "对象存储不能为空");
-        this.embeddingModel = Objects.requireNonNull(embeddingModel, "嵌入模型不能为空");
+        this.models = Objects.requireNonNull(models, "模型运行时解析器不能为空");
         this.chunker = Objects.requireNonNull(chunker, "分块器不能为空");
         this.clock = Objects.requireNonNull(clock, "时钟不能为空");
         this.leaseDuration = requirePositive(leaseDuration);
@@ -109,6 +109,9 @@ public final class DefaultIndexBuildWorker {
                 embedding.deploymentId(),
                 embedding.deploymentRevision(),
                 embedding.dimension());
+        var embeddingModel = models.resolveEmbedding(
+                indexVersion.tenantId(),
+                embedding.deploymentId());
         var vectors = new ArrayList<IndexVector>(chunks.size());
         for (var start = 0; start < chunks.size(); start += EmbeddingRequest.MAX_BATCH_SIZE) {
             var end = Math.min(start + EmbeddingRequest.MAX_BATCH_SIZE, chunks.size());

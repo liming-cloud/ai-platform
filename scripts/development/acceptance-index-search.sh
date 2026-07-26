@@ -46,11 +46,27 @@ create_index() {
   local token="$1"
   local scenario="$2"
   local space_id="$3"
+  local embedding_deployment_id="$4"
+  jq -n \
+    --arg embeddingDeploymentId "${embedding_deployment_id}" \
+    '{embeddingDeploymentId: $embeddingDeploymentId}' |
+    curl --fail-with-body --silent --show-error \
+      -H "Authorization: Bearer ${token}" \
+      -H "Idempotency-Key: acceptance-${scenario}-index-v2" \
+      -H "Content-Type: application/json" \
+      --data-binary @- \
+      "${CONTROL_API_ROOT}/knowledge-spaces/${space_id}/index-versions"
+}
+
+find_embedding_deployment() {
+  local token="$1"
   curl --fail-with-body --silent --show-error \
-    -X POST \
     -H "Authorization: Bearer ${token}" \
-    -H "Idempotency-Key: acceptance-${scenario}-index-v1" \
-    "${CONTROL_API_ROOT}/knowledge-spaces/${space_id}/index-versions"
+    "${CONTROL_API_ROOT}/model-deployments" |
+    jq -er \
+      '[.items[]
+        | select(.modelType == "EMBEDDING" and .status == "PUBLISHED")
+        | .id][0]'
 }
 
 wait_for_index() {
@@ -104,7 +120,7 @@ publish_index() {
     '{expectedVersion: $expectedVersion}' |
     curl --fail-with-body --silent --show-error \
       -H "Authorization: Bearer ${token}" \
-      -H "Idempotency-Key: acceptance-${scenario}-activate-index-v1" \
+      -H "Idempotency-Key: acceptance-${scenario}-activate-index-v2" \
       -H "Content-Type: application/json" \
       --data-binary @- \
       "${CONTROL_API_ROOT}/knowledge-spaces/${space_id}/index-versions/${index_id}/publish"
@@ -133,6 +149,7 @@ accept_scenario() {
   local expected_text="$5"
   local token
   local space_id
+  local embedding_deployment_id
   local created
   local index_json
   local active
@@ -140,7 +157,12 @@ accept_scenario() {
 
   token="$(login "${tenant_code}")"
   space_id="$(find_space "${token}" "${space_name}")"
-  created="$(create_index "${token}" "${scenario}" "${space_id}")"
+  embedding_deployment_id="$(find_embedding_deployment "${token}")"
+  created="$(create_index \
+    "${token}" \
+    "${scenario}" \
+    "${space_id}" \
+    "${embedding_deployment_id}")"
   index_json="$(wait_for_index \
     "${token}" \
     "${space_id}" \
@@ -151,7 +173,13 @@ accept_scenario() {
     "${space_id}" \
     "${index_json}")"
   jq -e \
-    '.status == "ACTIVE" and .chunkCount > 0 and .buildDigest != null' \
+    --arg embedding_deployment_id "${embedding_deployment_id}" \
+    '.status == "ACTIVE"
+      and .embeddingDeploymentId == $embedding_deployment_id
+      and .embeddingDeploymentRevision > 0
+      and .embeddingDimension == 128
+      and .chunkCount > 0
+      and .buildDigest != null' \
     >/dev/null <<<"${active}"
 
   result="$(search_candidates "${token}" "${space_id}" "${query}")"

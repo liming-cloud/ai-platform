@@ -21,10 +21,9 @@ import com.aiplatform.foundation.knowledgedata.application.port.out.KnowledgeSpa
 import com.aiplatform.foundation.knowledgedata.application.port.out.TextContentObjectStoragePort;
 import com.aiplatform.foundation.knowledgedata.application.port.out.TextContentStagingPort;
 import com.aiplatform.foundation.knowledgedata.application.port.out.TextDataSourceRepository;
-import com.aiplatform.foundation.knowledgedata.domain.indexversion.EmbeddingConfiguration;
 import com.aiplatform.foundation.knowledgedata.domain.model.TextContentReference;
 import com.aiplatform.foundation.objectstorage.minio.MinioTextContentObjectStorageAdapter;
-import com.aiplatform.foundation.provider.deterministic.DeterministicEmbeddingModel;
+import com.aiplatform.foundation.modelruntime.api.catalog.PublishedEmbeddingDeploymentLookup;
 import io.minio.MinioClient;
 import java.nio.file.Path;
 import java.time.Clock;
@@ -85,13 +84,12 @@ public class KnowledgeDataConfiguration {
     }
 
     @Bean
-    IndexVersionUseCase indexVersionUseCase(IndexVersionRepository repository) {
+    IndexVersionUseCase indexVersionUseCase(
+            IndexVersionRepository repository,
+            PublishedEmbeddingDeploymentLookup embeddingDeployments) {
         return new DefaultIndexVersionService(
                 repository,
-                new EmbeddingConfiguration(
-                        DeterministicEmbeddingModel.DEPLOYMENT_ID,
-                        DeterministicEmbeddingModel.DEPLOYMENT_REVISION,
-                        DeterministicEmbeddingModel.DIMENSION),
+                embeddingDeployments,
                 Clock.systemUTC(),
                 UUID::randomUUID);
     }

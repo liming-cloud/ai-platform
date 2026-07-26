@@ -169,11 +169,22 @@ export function KnowledgePublicationFlow() {
     const revision = sessionRevision.current;
     dispatch({ type: "submitting" });
     try {
+      const deployments = await client.listModelDeployments();
+      const embedding = deployments.items.find(
+        (deployment) =>
+          deployment.modelType === "EMBEDDING"
+          && deployment.status === "PUBLISHED",
+      );
+      if (embedding === undefined) {
+        throw new Error("请先在治理中发布一个嵌入模型部署");
+      }
       const created = await client.createIndexVersion(
         workflow.space.id,
+        embedding.id,
         stableRequestKey(requestKeys.current, "create-index", {
           knowledgeSpaceId: workflow.space.id,
           sourceVersion: workflow.source?.version,
+          embeddingDeploymentId: embedding.id,
         }),
       );
       requestKeys.current.delete("create-index");

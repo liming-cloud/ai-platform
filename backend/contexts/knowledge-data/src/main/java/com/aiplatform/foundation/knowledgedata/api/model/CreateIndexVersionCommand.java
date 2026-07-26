@@ -11,6 +11,7 @@ import java.util.regex.Pattern;
 public record CreateIndexVersionCommand(
         TrustedRequestContext context,
         UUID knowledgeSpaceId,
+        UUID embeddingDeploymentId,
         String idempotencyKey) {
 
     private static final Pattern IDEMPOTENCY_KEY =
@@ -19,6 +20,7 @@ public record CreateIndexVersionCommand(
     public CreateIndexVersionCommand {
         Objects.requireNonNull(context, "可信请求上下文不能为空");
         Objects.requireNonNull(knowledgeSpaceId, "知识空间标识不能为空");
+        Objects.requireNonNull(embeddingDeploymentId, "嵌入部署标识不能为空");
         Objects.requireNonNull(idempotencyKey, "幂等键不能为空");
         if (!IDEMPOTENCY_KEY.matcher(idempotencyKey).matches()) {
             throw new IllegalArgumentException("幂等键格式不正确");
