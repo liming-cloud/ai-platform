@@ -8,7 +8,7 @@
 | G4 安全交付 | 将助手发布到网页、API 或设备 | 助手与交付 | `/api/v1/assistants`、助手流程 | WP-0001、WP-0005 | 角色、配额、设备凭据测试 | M1 待产生 |
 | G5 可度量质量 | 运行固定评测并阻止质量回归 | 评测与运营 | `make evaluation-demo`、脱敏评测报告 | WP-0001、WP-0006 | 固定集、目标命中、引用完整、答案要点、跨租户和拒答门禁 | `project/evidence/WP-0006-demo-evaluation.md` |
 | G10 可解释用量治理 | 租户管理员查看查询用量、限额和脱敏审计事实 | 可信查询、评测与运营 | `/api/v1/usage`、`/api/v1/audit-records`、治理流程 | WP-0006 | 原子配额、幂等重放、权限、租户隔离、游标和控制台状态 | `project/evidence/WP-0006-query-quota.md`、`project/evidence/WP-0006-query-operations.md` |
-| G6 可运维产品 | 从空环境部署、在隔离环境恢复并完成门店与校园演示 | 运行时运维 | Docker、运行手册、备份恢复与演示脚本 | WP-0001、WP-0007 | 空环境启动、五入口冒烟、隔离恢复、故障演练、容量与最终演示验收 | WP-0007 待产生 |
+| G6 可运维产品 | 从空环境部署、在隔离环境恢复并完成门店与校园演示 | 运行时运维 | Docker、运行手册、备份恢复与演示脚本 | WP-0001、WP-0007 | 空环境启动、五入口冒烟、隔离恢复、故障演练、容量与最终演示验收 | `project/evidence/WP-0007-backup-recovery.md`；容量与最终验收待产生 |
 | G7 跨会话连续性 | 不依赖聊天记录恢复任务 | 项目控制面 | `make resume-context` | WP-0001 | `make project-verify` | `project/evidence/INDEX.md` |
 | G8 绿地事实边界 | 评审时只看到新基座设计 | 项目治理 | 根目录、设计文档和 Git 历史 | WP-0001 | 旧实现清单和受控文件检查 | `project/evidence/INDEX.md#wp-0001` |
 | G9 可扩展工程边界 | 新增厂商、连接器、渠道或界面时局部修改 | 模块与扩展治理 | `foundation-repository-layout.md` | WP-0001、WP-0002 | 依赖、目录、契约和装配架构测试 | M1 待产生 |

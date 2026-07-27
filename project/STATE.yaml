@@ -2,7 +2,7 @@ schemaVersion: 1
 productVersion: foundation-v1
 currentMilestone: M1
 currentFrontier: WP-0007
-lastVerifiedCommit: be2ecd65faa4ec62a6c8d7864d4c23a73322a3aa
+lastVerifiedCommit: c0f2906352e82905bae999cba7369928dc24d8c5
 activeWorkPackages:
   - WP-0007
 blockedWorkPackages:
@@ -57,6 +57,7 @@ latestEvidence:
   - project/evidence/WP-0006-query-operations.md
   - project/evidence/WP-0006-demo-evaluation.md
   - project/evidence/WP-0006-browser-acceptance.md
+  - project/evidence/WP-0007-backup-recovery.md
 nextReviewAt: 2026-08-02
-updatedAt: 2026-07-27T07:57:42+08:00
+updatedAt: 2026-07-27T08:10:01+08:00
 updatedBy: codex
