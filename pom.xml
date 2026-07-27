@@ -135,6 +135,7 @@
                         <useModulePath>false</useModulePath>
                         <argLine>
                             -javaagent:${settings.localRepository}/org/mockito/mockito-core/${mockito.version}/mockito-core-${mockito.version}.jar
+                            --enable-final-field-mutation=ALL-UNNAMED
                         </argLine>
                     </configuration>
                 </plugin>
