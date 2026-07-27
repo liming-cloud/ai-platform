@@ -2,7 +2,7 @@ schemaVersion: 1
 productVersion: foundation-v1
 currentMilestone: M1
 currentFrontier: WP-0009
-lastVerifiedCommit: 3d3090cdf1f04e0b17e18514f97baa0c0d4aba53
+lastVerifiedCommit: 49868ba7199d0cb1934f3147a1b594c3407d851a
 activeWorkPackages:
   - WP-0009
 blockedWorkPackages:
@@ -83,6 +83,7 @@ latestEvidence:
   - project/evidence/WP-0009-model-runtime-context.md
   - project/evidence/WP-0009-assistant-delivery-context.md
   - project/evidence/WP-0009-trusted-query-context.md
+  - project/evidence/WP-0009-evaluation-operations-context.md
 nextReviewAt: 2026-08-02
-updatedAt: 2026-07-27T16:51:52+08:00
+updatedAt: 2026-07-27T17:00:47+08:00
 updatedBy: codex

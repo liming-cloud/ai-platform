@@ -119,6 +119,7 @@
 | 模型运行时上下文迁移 | `project/evidence/WP-0009-model-runtime-context.md` | `98e97ab0d` | 经典四层、两个真实页码列表、统一异常、跨上下文门面及三类模型扩展自动配置通过 335 项全反应堆验证 |
 | 助手交付上下文迁移 | `project/evidence/WP-0009-assistant-delivery-context.md` | `6965430af` | 经典四层、助手及发布目录页码分页、统一异常、发布版本门面和分角色自动配置通过纵向回归 |
 | 可信查询上下文迁移 | `project/evidence/WP-0009-trusted-query-context.md` | `3d3090cdf` | 经典四层、审计真实页码分页、统一异常、脱敏运营门面和查询自动配置通过纵向回归 |
+| 评测运维上下文迁移 | `project/evidence/WP-0009-evaluation-operations-context.md` | `49868ba71` | 最后一个上下文完成经典四层、统一异常和自主装配，六上下文旧目录文件归零 |
 
 ## 证据规则
 
