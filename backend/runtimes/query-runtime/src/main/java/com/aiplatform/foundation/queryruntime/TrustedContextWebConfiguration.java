@@ -1,5 +1,6 @@
 package com.aiplatform.foundation.queryruntime;
 
+import com.aiplatform.foundation.kernel.identifier.EntityIdGenerator;
 import com.aiplatform.foundation.organizationaccess.application.port.out.AuthenticatedSessionGateway;
 import java.util.List;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -18,8 +19,10 @@ public class TrustedContextWebConfiguration implements WebMvcConfigurer {
 
     private final QueryTrustedContextArgumentResolver resolver;
 
-    public TrustedContextWebConfiguration(AuthenticatedSessionGateway sessions) {
-        resolver = new QueryTrustedContextArgumentResolver(sessions);
+    public TrustedContextWebConfiguration(
+            AuthenticatedSessionGateway sessions,
+            EntityIdGenerator identifiers) {
+        resolver = new QueryTrustedContextArgumentResolver(sessions, identifiers);
     }
 
     @Override

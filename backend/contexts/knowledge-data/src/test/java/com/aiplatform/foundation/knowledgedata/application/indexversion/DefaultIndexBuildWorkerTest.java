@@ -41,7 +41,6 @@ import java.util.ArrayList;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
 class DefaultIndexBuildWorkerTest {
@@ -149,7 +148,7 @@ class DefaultIndexBuildWorkerTest {
                 new MembershipId(6765477786913079298L),
                 NOW);
         return new IndexBuildLease(
-                UUID.fromString("70000000-0000-0000-0000-000000000001"),
+                540000000000000001L,
                 index,
                 List.of(new IndexSourceSnapshot(SOURCE_ID, reference)),
                 1);

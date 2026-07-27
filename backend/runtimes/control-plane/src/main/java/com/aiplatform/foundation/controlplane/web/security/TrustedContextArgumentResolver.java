@@ -1,7 +1,8 @@
 package com.aiplatform.foundation.controlplane.web.security;
 
-import com.aiplatform.foundation.controlplane.web.TraceIds;
 import com.aiplatform.foundation.controlplane.web.auth.BearerTokens;
+import com.aiplatform.foundation.kernel.identifier.EntityIdGenerator;
+import com.aiplatform.foundation.kernel.identifier.TraceIds;
 import com.aiplatform.foundation.organizationaccess.api.model.TrustedRequestContext;
 import com.aiplatform.foundation.organizationaccess.application.port.out.AuthenticatedSessionGateway;
 import java.util.Objects;
@@ -18,9 +19,13 @@ import org.springframework.web.method.support.ModelAndViewContainer;
 public final class TrustedContextArgumentResolver implements HandlerMethodArgumentResolver {
 
     private final AuthenticatedSessionGateway sessions;
+    private final EntityIdGenerator identifiers;
 
-    public TrustedContextArgumentResolver(AuthenticatedSessionGateway sessions) {
+    public TrustedContextArgumentResolver(
+            AuthenticatedSessionGateway sessions,
+            EntityIdGenerator identifiers) {
         this.sessions = Objects.requireNonNull(sessions, "认证会话网关不能为空");
+        this.identifiers = Objects.requireNonNull(identifiers, "标识生成器不能为空");
     }
 
     @Override
@@ -44,6 +49,6 @@ public final class TrustedContextArgumentResolver implements HandlerMethodArgume
                 session.channel(),
                 session.permissionVersion(),
                 session.permissions(),
-                TraceIds.next());
+                TraceIds.next(identifiers));
     }
 }

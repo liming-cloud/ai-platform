@@ -2,7 +2,6 @@ package com.aiplatform.foundation.knowledgedata.adapter.out.persistence;
 
 import java.time.Instant;
 import java.util.List;
-import java.util.UUID;
 import org.apache.ibatis.annotations.Param;
 
 /**
@@ -94,7 +93,7 @@ public interface IndexVersionMapper {
             @Param("tenantId") long tenantId,
             @Param("knowledgeSpaceId") long knowledgeSpaceId,
             @Param("indexVersionId") long indexVersionId,
-            @Param("leaseId") UUID leaseId,
+            @Param("leaseId") long leaseId,
             @Param("leaseUntil") Instant leaseUntil);
 
     List<IndexSourceRow> findSources(
@@ -106,7 +105,7 @@ public interface IndexVersionMapper {
             @Param("tenantId") long tenantId,
             @Param("knowledgeSpaceId") long knowledgeSpaceId,
             @Param("indexVersionId") long indexVersionId,
-            @Param("leaseId") UUID leaseId);
+            @Param("leaseId") long leaseId);
 
     int markReady(
             @Param("tenantId") long tenantId,
@@ -120,7 +119,7 @@ public interface IndexVersionMapper {
             @Param("tenantId") long tenantId,
             @Param("knowledgeSpaceId") long knowledgeSpaceId,
             @Param("indexVersionId") long indexVersionId,
-            @Param("leaseId") UUID leaseId,
+            @Param("leaseId") long leaseId,
             @Param("completedAt") Instant completedAt);
 
     int markFailedVersion(
@@ -133,7 +132,7 @@ public interface IndexVersionMapper {
             @Param("tenantId") long tenantId,
             @Param("knowledgeSpaceId") long knowledgeSpaceId,
             @Param("indexVersionId") long indexVersionId,
-            @Param("leaseId") UUID leaseId,
+            @Param("leaseId") long leaseId,
             @Param("failureCode") String failureCode,
             @Param("failedAt") Instant failedAt);
 

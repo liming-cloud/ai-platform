@@ -13,7 +13,8 @@ class QueryApiExceptionHandlerTest {
 
     @Test
     void 超额错误只返回稳定限额事实() {
-        var response = new QueryApiExceptionHandler().quotaExceeded(
+        var response = new QueryApiExceptionHandler(
+                () -> 540000000000000001L).quotaExceeded(
                 new QueryQuotaExceededException(
                         QueryQuotaLimitType.DAILY,
                         100,

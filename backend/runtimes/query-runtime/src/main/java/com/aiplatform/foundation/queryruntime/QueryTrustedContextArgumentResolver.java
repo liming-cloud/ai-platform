@@ -1,9 +1,10 @@
 package com.aiplatform.foundation.queryruntime;
 
+import com.aiplatform.foundation.kernel.identifier.EntityIdGenerator;
+import com.aiplatform.foundation.kernel.identifier.TraceIds;
 import com.aiplatform.foundation.organizationaccess.api.model.TrustedRequestContext;
 import com.aiplatform.foundation.organizationaccess.application.port.out.AuthenticatedSessionGateway;
 import java.util.Objects;
-import java.util.UUID;
 import org.springframework.core.MethodParameter;
 import org.springframework.http.HttpHeaders;
 import org.springframework.web.bind.support.WebDataBinderFactory;
@@ -20,10 +21,13 @@ public final class QueryTrustedContextArgumentResolver
     private static final String PREFIX = "Bearer ";
 
     private final AuthenticatedSessionGateway sessions;
+    private final EntityIdGenerator identifiers;
 
     public QueryTrustedContextArgumentResolver(
-            AuthenticatedSessionGateway sessions) {
+            AuthenticatedSessionGateway sessions,
+            EntityIdGenerator identifiers) {
         this.sessions = Objects.requireNonNull(sessions, "认证会话网关不能为空");
+        this.identifiers = Objects.requireNonNull(identifiers, "标识生成器不能为空");
     }
 
     @Override
@@ -47,7 +51,7 @@ public final class QueryTrustedContextArgumentResolver
                 session.channel(),
                 session.permissionVersion(),
                 session.permissions(),
-                UUID.randomUUID().toString());
+                TraceIds.next(identifiers));
     }
 
     private static String requireBearer(String value) {

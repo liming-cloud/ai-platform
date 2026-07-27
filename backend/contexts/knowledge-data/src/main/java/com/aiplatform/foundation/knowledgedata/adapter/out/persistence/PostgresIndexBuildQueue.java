@@ -1,5 +1,6 @@
 package com.aiplatform.foundation.knowledgedata.adapter.out.persistence;
 
+import com.aiplatform.foundation.kernel.identifier.EntityIdGenerator;
 import com.aiplatform.foundation.kernel.tenant.TenantId;
 import com.aiplatform.foundation.knowledgedata.application.indexversion.IndexVersionConcurrentModificationException;
 import com.aiplatform.foundation.knowledgedata.application.indexversion.IndexVersionNotFoundException;
@@ -14,7 +15,6 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.UUID;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
@@ -25,13 +25,16 @@ public final class PostgresIndexBuildQueue implements IndexBuildQueuePort {
 
     private final IndexVersionMapper mapper;
     private final TransactionTemplate transactions;
+    private final EntityIdGenerator identifiers;
 
     public PostgresIndexBuildQueue(
             IndexVersionMapper mapper,
-            PlatformTransactionManager transactionManager) {
+            PlatformTransactionManager transactionManager,
+            EntityIdGenerator identifiers) {
         this.mapper = Objects.requireNonNull(mapper, "索引版本映射器不能为空");
         transactions = new TransactionTemplate(
                 Objects.requireNonNull(transactionManager, "事务管理器不能为空"));
+        this.identifiers = Objects.requireNonNull(identifiers, "标识生成器不能为空");
     }
 
     @Override
@@ -73,7 +76,7 @@ public final class PostgresIndexBuildQueue implements IndexBuildQueuePort {
         var tenantId = Long.parseLong(job.getTenantId());
         var knowledgeSpaceId = Long.parseLong(job.getKnowledgeSpaceId());
         var indexVersionId = Long.parseLong(job.getIndexVersionId());
-        var leaseId = UUID.randomUUID();
+        var leaseId = identifiers.nextId();
         if (mapper.markClaimed(
                 tenantId,
                 knowledgeSpaceId,

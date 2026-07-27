@@ -1,6 +1,8 @@
 package com.aiplatform.foundation.queryruntime;
 
 import com.aiplatform.foundation.assistantdelivery.application.AssistantPermissionDeniedException;
+import com.aiplatform.foundation.kernel.identifier.EntityIdGenerator;
+import com.aiplatform.foundation.kernel.identifier.TraceIds;
 import com.aiplatform.foundation.organizationaccess.adapter.out.session.InvalidAuthenticatedSessionException;
 import com.aiplatform.foundation.trustedquery.application.CandidateSearchPermissionDeniedException;
 import com.aiplatform.foundation.trustedquery.application.QueryQuotaExceededException;
@@ -10,7 +12,7 @@ import com.aiplatform.foundation.trustedquery.application.QueryRunIdempotencyCon
 import com.aiplatform.foundation.trustedquery.application.QueryRunInProgressException;
 import com.aiplatform.foundation.trustedquery.application.QueryRunNotFoundException;
 import java.util.Map;
-import java.util.UUID;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -22,7 +24,16 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
  * 在线查询错误归一化，不泄漏租户、会话和数据库事实。
  */
 @RestControllerAdvice
+@ConditionalOnProperty(
+        name = "foundation.query.enabled",
+        havingValue = "true")
 public class QueryApiExceptionHandler {
+
+    private final EntityIdGenerator identifiers;
+
+    public QueryApiExceptionHandler(EntityIdGenerator identifiers) {
+        this.identifiers = identifiers;
+    }
 
     @ExceptionHandler(InvalidAuthenticatedSessionException.class)
     ResponseEntity<QueryApiError> invalidSession() {
@@ -62,7 +73,7 @@ public class QueryApiExceptionHandler {
                 .body(new QueryApiError(
                         "QUERY_QUOTA_EXCEEDED",
                         "查询配额已用尽",
-                        UUID.randomUUID().toString(),
+                        TraceIds.next(identifiers),
                         Map.of(
                                 "limitType", exception.limitType().name(),
                                 "limit", exception.limit(),
@@ -86,14 +97,14 @@ public class QueryApiExceptionHandler {
         return error(HttpStatus.BAD_REQUEST, "INVALID_REQUEST", "请求格式不正确");
     }
 
-    private static ResponseEntity<QueryApiError> error(
+    private ResponseEntity<QueryApiError> error(
             HttpStatus status,
             String code,
             String message) {
         return ResponseEntity.status(status).body(new QueryApiError(
                 code,
                 message,
-                UUID.randomUUID().toString(),
+                TraceIds.next(identifiers),
                 Map.of()));
     }
 

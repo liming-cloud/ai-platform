@@ -8,7 +8,6 @@ import com.aiplatform.foundation.knowledgedata.api.model.ListIndexVersionsQuery;
 import com.aiplatform.foundation.knowledgedata.api.model.PublishIndexVersionCommand;
 import com.aiplatform.foundation.organizationaccess.api.model.TrustedRequestContext;
 import java.util.Objects;
-import java.util.UUID;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

@@ -68,8 +68,12 @@ public class KnowledgeDataConfiguration {
     @Bean
     TextDataSourceRepository textDataSourceRepository(
             TextDataSourceMapper mapper,
-            PlatformTransactionManager transactions) {
-        return new PostgresTextDataSourceRepository(mapper, transactions);
+            PlatformTransactionManager transactions,
+            EntityIdGenerator identifiers) {
+        return new PostgresTextDataSourceRepository(
+                mapper,
+                transactions,
+                identifiers);
     }
 
     @Bean

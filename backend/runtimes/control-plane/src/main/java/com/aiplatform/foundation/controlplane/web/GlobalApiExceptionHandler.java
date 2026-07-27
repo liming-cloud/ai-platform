@@ -1,5 +1,7 @@
 package com.aiplatform.foundation.controlplane.web;
 
+import com.aiplatform.foundation.kernel.identifier.EntityIdGenerator;
+import com.aiplatform.foundation.kernel.identifier.TraceIds;
 import com.aiplatform.foundation.assistantdelivery.application.AssistantConcurrentModificationException;
 import com.aiplatform.foundation.assistantdelivery.application.AssistantIdempotencyConflictException;
 import com.aiplatform.foundation.assistantdelivery.application.AssistantNameConflictException;
@@ -57,6 +59,12 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
  */
 @RestControllerAdvice
 public class GlobalApiExceptionHandler {
+
+    private final EntityIdGenerator identifiers;
+
+    public GlobalApiExceptionHandler(EntityIdGenerator identifiers) {
+        this.identifiers = identifiers;
+    }
 
     @ExceptionHandler(InvalidCredentialsException.class)
     ResponseEntity<ApiErrorResponse> invalidCredentials() {
@@ -374,12 +382,16 @@ public class GlobalApiExceptionHandler {
         return error(HttpStatus.BAD_REQUEST, "INVALID_REQUEST", "请求格式不正确");
     }
 
-    private static ResponseEntity<ApiErrorResponse> error(
+    private ResponseEntity<ApiErrorResponse> error(
             HttpStatus status,
             String code,
             String message) {
         return ResponseEntity
                 .status(status)
-                .body(new ApiErrorResponse(code, message, TraceIds.next(), Map.of()));
+                .body(new ApiErrorResponse(
+                        code,
+                        message,
+                        TraceIds.next(identifiers),
+                        Map.of()));
     }
 }

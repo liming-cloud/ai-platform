@@ -14,12 +14,14 @@ import com.aiplatform.foundation.organizationaccess.api.model.SubjectId;
 import com.aiplatform.foundation.organizationaccess.api.model.TrustedRequestContext;
 import java.time.Duration;
 import java.util.Set;
-import java.util.UUID;
+import java.util.concurrent.atomic.AtomicLong;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 class SaTokenSessionGatewayTest {
 
+    private static final AtomicLong LOGIN_TYPES =
+            new AtomicLong(540000000000000000L);
     private static final MembershipId MEMBERSHIP_ID =
             new MembershipId(3382738893456539650L);
     private StpLogic logic;
@@ -27,7 +29,7 @@ class SaTokenSessionGatewayTest {
 
     @BeforeEach
     void setUp() {
-        var loginType = "member-test-" + UUID.randomUUID();
+        var loginType = "member-test-" + LOGIN_TYPES.incrementAndGet();
         logic = new StpLogic(loginType).setConfig(new SaTokenConfig()
                 .setTokenName("foundation-token")
                 .setTimeout(1800)

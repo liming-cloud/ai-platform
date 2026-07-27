@@ -1,5 +1,6 @@
 package com.aiplatform.foundation.knowledgedata.adapter.out.persistence;
 
+import com.aiplatform.foundation.kernel.identifier.EntityIdGenerator;
 import com.aiplatform.foundation.kernel.tenant.TenantId;
 import com.aiplatform.foundation.knowledgedata.application.datasource.DataSourceConcurrentModificationException;
 import com.aiplatform.foundation.knowledgedata.application.datasource.DataSourceNameConflictException;
@@ -28,7 +29,6 @@ import java.util.HexFormat;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.UUID;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -45,13 +45,16 @@ public final class PostgresTextDataSourceRepository implements TextDataSourceRep
 
     private final TextDataSourceMapper mapper;
     private final TransactionTemplate transactions;
+    private final EntityIdGenerator identifiers;
 
     public PostgresTextDataSourceRepository(
             TextDataSourceMapper mapper,
-            PlatformTransactionManager transactionManager) {
+            PlatformTransactionManager transactionManager,
+            EntityIdGenerator identifiers) {
         this.mapper = Objects.requireNonNull(mapper, "文本数据源映射器不能为空");
         this.transactions = new TransactionTemplate(
                 Objects.requireNonNull(transactionManager, "事务管理器不能为空"));
+        this.identifiers = Objects.requireNonNull(identifiers, "标识生成器不能为空");
     }
 
     @Override
@@ -463,7 +466,7 @@ public final class PostgresTextDataSourceRepository implements TextDataSourceRep
                         source.version()).strip();
         mapper.insertOutboxEvent(
                 source.tenantId().value(),
-                UUID.randomUUID(),
+                identifiers.nextId(),
                 source.id().value(),
                 eventType,
                 payload,

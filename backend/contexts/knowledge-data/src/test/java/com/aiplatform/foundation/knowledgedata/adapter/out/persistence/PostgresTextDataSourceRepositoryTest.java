@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.aiplatform.foundation.kernel.identifier.EntityIdGenerator;
 import com.aiplatform.foundation.kernel.tenant.TenantId;
 import com.aiplatform.foundation.knowledgedata.application.datasource.DataSourceConcurrentModificationException;
 import com.aiplatform.foundation.knowledgedata.application.datasource.DataSourceNotFoundException;
@@ -53,6 +54,8 @@ class PostgresTextDataSourceRepositoryTest {
             new KnowledgeSpaceId(210000000000000001L);
     private static final AtomicLong SOURCE_IDS =
             new AtomicLong(220000000000000000L);
+    private static final AtomicLong TECHNICAL_IDS =
+            new AtomicLong(540000000000000000L);
     private static final MembershipId CREATOR =
             new MembershipId(4921825928971026434L);
     private static final Instant CREATED_AT = Instant.parse("2026-07-27T01:00:00Z");
@@ -426,8 +429,17 @@ class PostgresTextDataSourceRepositoryTest {
         @Bean
         TextDataSourceRepository textDataSourceRepository(
                 TextDataSourceMapper mapper,
-                PlatformTransactionManager transactions) {
-            return new PostgresTextDataSourceRepository(mapper, transactions);
+                PlatformTransactionManager transactions,
+                EntityIdGenerator identifiers) {
+            return new PostgresTextDataSourceRepository(
+                    mapper,
+                    transactions,
+                    identifiers);
+        }
+
+        @Bean
+        EntityIdGenerator entityIdGenerator() {
+            return TECHNICAL_IDS::incrementAndGet;
         }
     }
 }

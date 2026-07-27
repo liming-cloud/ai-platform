@@ -1,6 +1,7 @@
 package com.aiplatform.foundation.controlplane.web.auth;
 
-import com.aiplatform.foundation.controlplane.web.TraceIds;
+import com.aiplatform.foundation.kernel.identifier.EntityIdGenerator;
+import com.aiplatform.foundation.kernel.identifier.TraceIds;
 import com.aiplatform.foundation.organizationaccess.api.PersonAuthenticationUseCase;
 import com.aiplatform.foundation.organizationaccess.api.model.AccessChannel;
 import com.aiplatform.foundation.organizationaccess.api.model.PersonLoginCommand;
@@ -27,12 +28,15 @@ public class AuthenticationController {
 
     private final PersonAuthenticationUseCase authentication;
     private final AuthenticatedSessionGateway sessions;
+    private final EntityIdGenerator identifiers;
 
     public AuthenticationController(
             PersonAuthenticationUseCase authentication,
-            AuthenticatedSessionGateway sessions) {
+            AuthenticatedSessionGateway sessions,
+            EntityIdGenerator identifiers) {
         this.authentication = authentication;
         this.sessions = sessions;
+        this.identifiers = identifiers;
     }
 
     @PostMapping
@@ -44,7 +48,7 @@ public class AuthenticationController {
                 request.loginName(),
                 password,
                 AccessChannel.CONSOLE,
-                TraceIds.next())) {
+                TraceIds.next(identifiers))) {
             var issued = authentication.authenticate(command);
             return new SessionResponse(
                     issued.tokenName(),

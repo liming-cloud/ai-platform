@@ -2,7 +2,6 @@ package com.aiplatform.foundation.knowledgedata.adapter.out.persistence;
 
 import java.time.Instant;
 import java.util.List;
-import java.util.UUID;
 import org.apache.ibatis.annotations.Param;
 
 /**
@@ -99,7 +98,7 @@ public interface TextDataSourceMapper {
 
     int insertOutboxEvent(
             @Param("tenantId") long tenantId,
-            @Param("eventId") UUID eventId,
+            @Param("eventId") long eventId,
             @Param("aggregateId") long aggregateId,
             @Param("eventType") String eventType,
             @Param("payload") String payload,

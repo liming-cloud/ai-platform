@@ -155,7 +155,7 @@ CREATE TABLE knowledge_data.index_build_job (
     index_version_id BIGINT NOT NULL,
     status VARCHAR(24) NOT NULL,
     attempt INTEGER NOT NULL,
-    lease_id UUID,
+    lease_id BIGINT,
     lease_until TIMESTAMPTZ,
     failure_code VARCHAR(96),
     available_at TIMESTAMPTZ NOT NULL,

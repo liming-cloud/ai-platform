@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.aiplatform.foundation.kernel.identifier.EntityIdGenerator;
 import com.aiplatform.foundation.kernel.tenant.TenantId;
 import com.aiplatform.foundation.knowledgedata.api.extension.IndexVector;
 import com.aiplatform.foundation.knowledgedata.api.extension.IndexVectorBatch;
@@ -24,6 +25,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicLong;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mybatis.spring.annotation.MapperScan;
@@ -44,6 +46,8 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 @Testcontainers
 class PostgresIndexVersionPersistenceTest {
 
+    private static final AtomicLong TECHNICAL_IDS =
+            new AtomicLong(540000000000000000L);
     private static final TenantId TENANT =
             new TenantId(100000000000000001L);
     private static final TenantId OTHER_TENANT =
@@ -316,8 +320,17 @@ class PostgresIndexVersionPersistenceTest {
         @Bean
         IndexBuildQueuePort indexBuildQueuePort(
                 IndexVersionMapper mapper,
-                PlatformTransactionManager transactionManager) {
-            return new PostgresIndexBuildQueue(mapper, transactionManager);
+                PlatformTransactionManager transactionManager,
+                EntityIdGenerator identifiers) {
+            return new PostgresIndexBuildQueue(
+                    mapper,
+                    transactionManager,
+                    identifiers);
+        }
+
+        @Bean
+        EntityIdGenerator entityIdGenerator() {
+            return TECHNICAL_IDS::incrementAndGet;
         }
 
         @Bean

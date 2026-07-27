@@ -1,6 +1,7 @@
 package com.aiplatform.foundation.controlplane.configuration;
 
 import com.aiplatform.foundation.controlplane.web.security.TrustedContextArgumentResolver;
+import com.aiplatform.foundation.kernel.identifier.EntityIdGenerator;
 import com.aiplatform.foundation.organizationaccess.application.port.out.AuthenticatedSessionGateway;
 import java.util.List;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
@@ -17,8 +18,10 @@ public class TrustedContextWebConfiguration implements WebMvcConfigurer {
 
     private final TrustedContextArgumentResolver resolver;
 
-    public TrustedContextWebConfiguration(AuthenticatedSessionGateway sessions) {
-        this.resolver = new TrustedContextArgumentResolver(sessions);
+    public TrustedContextWebConfiguration(
+            AuthenticatedSessionGateway sessions,
+            EntityIdGenerator identifiers) {
+        this.resolver = new TrustedContextArgumentResolver(sessions, identifiers);
     }
 
     @Override

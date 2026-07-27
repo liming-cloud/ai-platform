@@ -123,7 +123,7 @@ CREATE TABLE knowledge_data.text_data_source_request (
 
 CREATE TABLE knowledge_data.outbox_event (
     tenant_id BIGINT NOT NULL,
-    event_id UUID NOT NULL,
+    event_id BIGINT NOT NULL,
     aggregate_type VARCHAR(80) NOT NULL,
     aggregate_id BIGINT NOT NULL,
     event_type VARCHAR(120) NOT NULL,

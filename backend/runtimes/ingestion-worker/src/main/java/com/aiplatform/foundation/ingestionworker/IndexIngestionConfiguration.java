@@ -8,6 +8,7 @@ import com.aiplatform.foundation.knowledgedata.application.port.out.IndexBuildCo
 import com.aiplatform.foundation.knowledgedata.application.port.out.IndexBuildQueuePort;
 import com.aiplatform.foundation.knowledgedata.application.port.out.TextContentObjectStoragePort;
 import com.aiplatform.foundation.knowledgedata.domain.indexversion.ParagraphWindowChunker;
+import com.aiplatform.foundation.kernel.identifier.EntityIdGenerator;
 import com.aiplatform.foundation.modelruntime.api.invocation.ModelRuntimeResolver;
 import com.aiplatform.foundation.objectstorage.minio.MinioTextContentObjectStorageAdapter;
 import com.aiplatform.foundation.vectorstore.pgvector.PgVectorIndexStore;
@@ -35,8 +36,9 @@ public class IndexIngestionConfiguration {
     @Bean
     IndexBuildQueuePort indexBuildQueue(
             IndexVersionMapper mapper,
-            PlatformTransactionManager transactions) {
-        return new PostgresIndexBuildQueue(mapper, transactions);
+            PlatformTransactionManager transactions,
+            EntityIdGenerator identifiers) {
+        return new PostgresIndexBuildQueue(mapper, transactions, identifiers);
     }
 
     @Bean
