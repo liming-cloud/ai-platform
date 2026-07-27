@@ -101,6 +101,7 @@
 | 主体与成员雪花标识 | `project/evidence/WP-0008-organization-identifiers.md` | `a6415c6e2761501952e9dfdfbaf22163862b8ac3` | 主体、成员、会话、审计和跨上下文成员列改为 64 位标识；218 项后端和 28 项前端测试通过 |
 | 全局租户雪花标识 | `project/evidence/WP-0008-tenant-identifier.md` | `0f375f40a436a38ab66eaeb8362bb8dcd7ac4f62` | 六个上下文、向量扩展、数据库与验收脚本统一使用 64 位租户标识；219 项后端和 28 项前端测试通过 |
 | 知识聚合雪花标识 | `project/evidence/WP-0008-knowledge-identifiers.md` | `c51337b109716f94a2910e29d6dc5338f3a38e40` | 知识空间、数据源、索引版本及跨上下文引用统一使用 64 位标识；221 项后端和 28 项前端测试通过 |
+| 模型目录雪花标识 | `project/evidence/WP-0008-model-identifiers.md` | `4fe3552ff4cef64f18563d2af2d343a418594636` | 供应商连接、模型部署及全部跨上下文模型引用统一使用 64 位标识；223 项后端和 28 项前端测试通过 |
 
 ## 证据规则
 
