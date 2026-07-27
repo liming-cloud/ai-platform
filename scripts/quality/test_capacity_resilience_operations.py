@@ -1,3 +1,4 @@
+import json
 import stat
 import subprocess
 import unittest
@@ -6,6 +7,13 @@ from pathlib import Path
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 OPERATIONS_DIRECTORY = REPOSITORY_ROOT / "scripts" / "operations"
+REPORT_FILE = (
+    REPOSITORY_ROOT
+    / "project"
+    / "evidence"
+    / "artifacts"
+    / "WP-0007-capacity-resilience.json"
+)
 
 
 class CapacityResilienceOperationsTest(unittest.TestCase):
@@ -63,6 +71,43 @@ class CapacityResilienceOperationsTest(unittest.TestCase):
         self.assertIn("trap cleanup EXIT", drill)
         self.assertNotIn("source_compose stop postgres", drill)
         self.assertNotIn("source_compose stop minio", drill)
+
+    def test_committed_report_meets_capacity_and_recovery_contract(self) -> None:
+        report_text = REPORT_FILE.read_text(encoding="utf-8")
+        report = json.loads(report_text)
+
+        self.assertEqual(1, report["schemaVersion"])
+        self.assertTrue(report["passed"])
+        self.assertEqual(2, report["capacity"]["tenantCount"])
+        self.assertEqual(4, report["capacity"]["concurrencyPerTenant"])
+        self.assertEqual(0, report["capacity"]["errorCount"])
+        self.assertEqual(0, report["capacity"]["replayedCount"])
+        self.assertLessEqual(
+            report["capacity"]["p95Milliseconds"],
+            report["capacity"]["p95LimitMilliseconds"],
+        )
+        self.assertGreaterEqual(
+            report["capacity"]["throughputPerSecond"],
+            report["capacity"]["minimumThroughputPerSecond"],
+        )
+        self.assertEqual(
+            ["postgres", "minio", "query-runtime", "ingestion-worker"],
+            report["resilience"]["services"],
+        )
+        self.assertTrue(report["resilience"]["allRecovered"])
+        self.assertTrue(report["resilience"]["postRestartQueryPassed"])
+        self.assertTrue(report["sourceEnvironmentHealthy"])
+        self.assertTrue(report["recoveryResourcesRemoved"])
+        self.assertFalse(report["secretsIncluded"])
+
+        for forbidden in [
+            "Demo@2026",
+            "local-demo-",
+            "tokenValue",
+            "object_key",
+            "tenant_id",
+        ]:
+            self.assertNotIn(forbidden, report_text)
 
 
 if __name__ == "__main__":
