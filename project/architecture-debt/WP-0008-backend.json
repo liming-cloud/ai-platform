@@ -5,5 +5,9 @@
   "runtimeNonEntryFiles": [],
   "saTokenOutsidePlatformFiles": [],
   "flatPackages": {},
-  "forbiddenInfrastructureFiles": []
+  "legacyContextApiCount": 124,
+  "legacyContextAdapterCount": 79,
+  "runtimeDirectoryFileCount": 27,
+  "cursorListContractCount": 54,
+  "manualListLimitCount": 16
 }

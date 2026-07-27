@@ -124,6 +124,22 @@
 - 本地未受版本控制的 `.env`、密钥和个人配置不得自动删除或提交。
 - 需要查阅旧实现时使用 Git 历史、固定提交或代码图谱，不把旧代码复制回当前分支。
 
+## WP-0009 后端结构约束
+
+当 `project/STATE.yaml` 的当前前沿为 `WP-0009` 时：
+
+- 后端目标结构以 ADR-0022 和
+  `docs/architecture/foundation-backend-development-structure.md` 为准。
+- 只允许 `interfaces -> application -> domain` 和
+  `infrastructure -> application/domain` 的依赖方向。
+- 不得新增上下文 `api`、`adapter` 或 `backend/runtimes` 文件；现有数量只能递减。
+- `infrastructure` 是上下文拥有的技术实现层，不得再按旧门禁禁止。
+- 普通列表必须使用页码、页大小和总数；事件序号、向量候选与任务批次保持原协议。
+- MyBatis-Plus 的 `Page`、`IPage` 和 Wrapper 只能存在于 infrastructure。
+- 新增或迁移模块必须同步提供简体中文 `package-info.java` 和自动配置测试。
+- bootstrap 主代码只保留唯一启动类，不得新增业务 Bean。
+- 每次只迁移一个上下文；organization-access 试点未通过前不得批量移动其他上下文。
+
 ## 工程助手插件协议
 
 用户要求使用 `engineering-assistant` 插件时，不能只在文字中声称使用，也不能默认用通用能力替代插件能力。

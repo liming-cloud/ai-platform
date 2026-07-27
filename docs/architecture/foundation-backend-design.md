@@ -1,5 +1,10 @@
 # 可信 RAG 基座后端设计
 
+> ADR-0022 已将上下文内部结构调整为经典四层，并把三个 bootstrap 变成可执行应用。
+> 详细依赖、目录和自动配置规则见
+> `docs/architecture/foundation-backend-development-structure.md`。本文出现的 `api`、
+> `adapter` 或 `runtimes` 旧路径不再作为实现依据。
+
 ## 1. 工程形态
 
 第一阶段采用模块化单体和独立运行进程组合，优先保证领域边界、事务清晰、部署简单和可观测性。模块边界稳定且存在独立扩缩容证据后，才允许拆分服务。

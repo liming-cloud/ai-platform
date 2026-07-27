@@ -1,5 +1,10 @@
 # 可信 RAG 基座详细目录规划
 
+> ADR-0022 已替代本文中关于后端 `api`、`adapter`、`runtimes` 和普通列表游标分页的
+> 旧决策。后端研发结构以
+> `docs/architecture/foundation-backend-development-structure.md` 为唯一实施细则；
+> 本文其余内容继续约束仓库根目录、前端、部署和跨系统验证。
+
 ## 1. 目标
 
 目录结构必须同时解决：

@@ -13,6 +13,12 @@ SQL_ANNOTATION = re.compile(
 )
 UUID_REFERENCE = re.compile(r"\bUUID\b")
 SA_TOKEN_REFERENCE = re.compile(r"\bcn\.dev33\.satoken\b")
+CURSOR_LIST_CONTRACT = re.compile(r"\b(?:nextCursor|String\s+cursor)\b")
+MANUAL_LIST_SELECT = re.compile(
+    r"<select\b[^>]*\bid=\"[^\"]*(?:Page|After)[^\"]*\"[^>]*>"
+    r".*?\bLIMIT\s+#\{limit\}",
+    flags=re.IGNORECASE | re.DOTALL,
+)
 MAX_PACKAGE_CLASSES = 12
 BASELINE = Path("project/architecture-debt/WP-0008-backend.json")
 LIST_CATEGORIES = {
@@ -21,12 +27,40 @@ LIST_CATEGORIES = {
     "runtimeNonEntryFiles": "运行模块业务类",
     "saTokenOutsidePlatformFiles": "Sa-Token 越界",
 }
+COUNT_CATEGORIES = {
+    "legacyContextApiCount": "上下文 api 目录",
+    "legacyContextAdapterCount": "上下文 adapter 目录",
+    "runtimeDirectoryFileCount": "运行模块目录",
+    "cursorListContractCount": "游标列表分页",
+    "manualListLimitCount": "手工列表分页",
+}
 
 
 def main_java_files(root):
     return sorted(
         path
         for path in (root / "backend").glob("**/src/main/java/**/*.java")
+        if path.is_file()
+    )
+
+
+def production_runtime_files(root):
+    runtime_root = root / "backend" / "runtimes"
+    if not runtime_root.is_dir():
+        return []
+    return sorted(
+        path
+        for path in runtime_root.glob("**/*")
+        if path.is_file() and "target" not in path.parts
+    )
+
+
+def mapper_xml_files(root):
+    return sorted(
+        path
+        for path in (root / "backend" / "contexts").glob(
+            "*/src/main/resources/mapper/**/*.xml"
+        )
         if path.is_file()
     )
 
@@ -46,6 +80,15 @@ def scan(root):
         relative(root, path.parent)
         for path in files
     )
+    context_files = [
+        path
+        for path in files
+        if relative(root, path).startswith("backend/contexts/")
+    ]
+    mapper_texts = {
+        path: path.read_text(encoding="utf-8")
+        for path in mapper_xml_files(root)
+    }
     return {
         "schemaVersion": 1,
         "sqlAnnotationFiles": [
@@ -78,11 +121,22 @@ def scan(root):
             for package, count in sorted(package_counts.items())
             if count > MAX_PACKAGE_CLASSES
         },
-        "forbiddenInfrastructureFiles": [
-            relative(root, path)
-            for path in files
-            if {"infrastructure", "infra"} & set(path.parts)
-        ],
+        "legacyContextApiCount": sum(
+            1 for path in context_files if "api" in path.parts
+        ),
+        "legacyContextAdapterCount": sum(
+            1 for path in context_files if "adapter" in path.parts
+        ),
+        "runtimeDirectoryFileCount": len(production_runtime_files(root)),
+        "cursorListContractCount": sum(
+            1
+            for path in context_files
+            if CURSOR_LIST_CONTRACT.search(texts[path])
+        ),
+        "manualListLimitCount": sum(
+            len(MANUAL_LIST_SELECT.findall(text))
+            for text in mapper_texts.values()
+        ),
     }
 
 
@@ -100,6 +154,14 @@ def compare(actual, baseline):
                 f"新增{label}违规：" + ", ".join(new_items)
             )
 
+    for category, label in COUNT_CATEGORIES.items():
+        current = int(actual.get(category, 0))
+        allowed = int(baseline.get(category, 0))
+        if current > allowed:
+            errors.append(
+                f"{label}新增违规：当前 {current}，允许 {allowed}"
+            )
+
     baseline_packages = baseline.get("flatPackages", {})
     for package, count in actual.get("flatPackages", {}).items():
         allowed = baseline_packages.get(package, MAX_PACKAGE_CLASSES)
@@ -108,11 +170,6 @@ def compare(actual, baseline):
                 f"包规模新增违规：{package} 当前 {count}，允许 {allowed}"
             )
 
-    infrastructure = actual.get("forbiddenInfrastructureFiles", [])
-    if infrastructure:
-        errors.append(
-            "新增基础设施目录违规：" + ", ".join(infrastructure)
-        )
     return errors
 
 
@@ -145,7 +202,12 @@ def verify(root):
         f"UUID 文件 {len(actual['uuidMainFiles'])}，"
         f"运行时非启动文件 {len(actual['runtimeNonEntryFiles'])}，"
         f"Sa-Token 越界文件 {len(actual['saTokenOutsidePlatformFiles'])}，"
-        f"超预算包 {len(actual['flatPackages'])}"
+        f"超预算包 {len(actual['flatPackages'])}，"
+        f"旧 api 文件 {actual['legacyContextApiCount']}，"
+        f"旧 adapter 文件 {actual['legacyContextAdapterCount']}，"
+        f"runtimes 文件 {actual['runtimeDirectoryFileCount']}，"
+        f"游标列表契约 {actual['cursorListContractCount']}，"
+        f"手工列表分页 {actual['manualListLimitCount']}"
     )
 
 

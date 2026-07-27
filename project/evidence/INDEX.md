@@ -108,6 +108,12 @@
 | 运行入口与装配边界 | `project/evidence/WP-0008-runtime-bootstrap-boundary.md` | `d9edc1fb0eeffea1d1df81dfc918500eb447ca07` | 三个独立装配模块建立，运行时非启动文件从 41 降至 0 |
 | 后端架构整改最终验收 | `project/evidence/WP-0008-final-acceptance.md` | `f88ae6493279b114a7238433d71c2103a2126d37` | 八项阻断问题全部关闭，全量测试、代码走查和最终空环境交付通过，架构债务计数归零 |
 
+## WP-0009
+
+| 证据 | 命令或评审 | 提交 | 结果 |
+| --- | --- | --- | --- |
+| 二次重构架构门禁红绿证据 | `project/evidence/WP-0009-architecture-guard-red-green.md` | 待提交 | 新增六项预期红灯后实现递减门禁，12 项门禁测试转绿 |
+
 ## 证据规则
 
 - 命令证据记录完整命令、提交、环境和结果。

@@ -1,9 +1,10 @@
 schemaVersion: 1
 productVersion: foundation-v1
 currentMilestone: M1
-currentFrontier: WP-0007
-lastVerifiedCommit: f88ae6493279b114a7238433d71c2103a2126d37
-activeWorkPackages: []
+currentFrontier: WP-0009
+lastVerifiedCommit: bdba7575d8a1e01fdc536d3b2b3981b7223f26e6
+activeWorkPackages:
+  - WP-0009
 blockedWorkPackages:
   - WP-0007
 confirmedDecisions:
@@ -28,6 +29,7 @@ confirmedDecisions:
   - ADR-0019
   - ADR-0020
   - ADR-0021
+  - ADR-0022
 openDecisions: []
 latestEvidence:
   - docs/research/WP-0003-framework-baseline.md
@@ -74,6 +76,7 @@ latestEvidence:
   - project/evidence/WP-0008-security-platform-boundary.md
   - project/evidence/WP-0008-runtime-bootstrap-boundary.md
   - project/evidence/WP-0008-final-acceptance.md
+  - project/evidence/WP-0009-architecture-guard-red-green.md
 nextReviewAt: 2026-08-02
-updatedAt: 2026-07-27T13:02:00+08:00
+updatedAt: 2026-07-27T14:30:00+08:00
 updatedBy: codex

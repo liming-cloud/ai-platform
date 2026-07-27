@@ -30,6 +30,7 @@ REQUIRED_DESIGN_FILES = {
     "docs/design/foundation-frontend-design.md",
     "docs/architecture/foundation-domain-design.md",
     "docs/architecture/foundation-backend-design.md",
+    "docs/architecture/foundation-backend-development-structure.md",
     "docs/architecture/foundation-api-and-data-contracts.md",
     "docs/architecture/foundation-repository-layout.md",
     "docs/planning/foundation-delivery-plan.md",

@@ -155,6 +155,15 @@ class ProjectGovernanceTest(unittest.TestCase):
         with self.assertRaisesRegex(MODULE.GovernanceError, "详细目录规划缺少章节"):
             MODULE.verify(self.root)
 
+    def test_backend_development_structure_is_required(self):
+        (
+            self.root
+            / "docs/architecture/foundation-backend-development-structure.md"
+        ).unlink()
+
+        with self.assertRaisesRegex(MODULE.GovernanceError, "缺少基座设计文件"):
+            MODULE.verify(self.root)
+
     def test_m1_requires_planned_context_modules(self):
         state = self.root / "project/STATE.yaml"
         state.write_text(

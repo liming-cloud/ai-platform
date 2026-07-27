@@ -83,7 +83,7 @@ class BackendArchitectureGuardTest(unittest.TestCase):
 
         self.assertTrue(any("包规模" in error for error in errors))
 
-    def test_infrastructure_directory_is_always_rejected(self):
+    def test_context_infrastructure_directory_is_allowed(self):
         baseline = MODULE.scan(self.root)
         self.write_java(
             "backend/contexts/demo/src/main/java/demo/infrastructure/Thing.java",
@@ -92,7 +92,70 @@ class BackendArchitectureGuardTest(unittest.TestCase):
 
         errors = MODULE.compare(MODULE.scan(self.root), baseline)
 
-        self.assertTrue(any("基础设施目录" in error for error in errors))
+        self.assertFalse(any("基础设施目录" in error for error in errors))
+
+    def test_new_context_api_directory_is_rejected(self):
+        baseline = MODULE.scan(self.root)
+        self.write_java(
+            "backend/contexts/demo/src/main/java/demo/api/DemoUseCase.java",
+            "interface DemoUseCase {}\n",
+        )
+
+        errors = MODULE.compare(MODULE.scan(self.root), baseline)
+
+        self.assertTrue(any("上下文 api 目录" in error for error in errors))
+
+    def test_new_context_adapter_directory_is_rejected(self):
+        baseline = MODULE.scan(self.root)
+        self.write_java(
+            "backend/contexts/demo/src/main/java/demo/adapter/DemoAdapter.java",
+            "final class DemoAdapter {}\n",
+        )
+
+        errors = MODULE.compare(MODULE.scan(self.root), baseline)
+
+        self.assertTrue(any("上下文 adapter 目录" in error for error in errors))
+
+    def test_new_runtime_file_is_rejected(self):
+        baseline = MODULE.scan(self.root)
+        self.write_java(
+            "backend/runtimes/demo/src/main/java/demo/DemoApplication.java",
+            "final class DemoApplication {}\n",
+        )
+
+        errors = MODULE.compare(MODULE.scan(self.root), baseline)
+
+        self.assertTrue(any("运行模块目录" in error for error in errors))
+
+    def test_new_cursor_list_contract_is_rejected(self):
+        baseline = MODULE.scan(self.root)
+        self.write_java(
+            "backend/contexts/demo/src/main/java/demo/application/list/DemoPage.java",
+            "record DemoPage(String nextCursor) {}\n",
+        )
+
+        errors = MODULE.compare(MODULE.scan(self.root), baseline)
+
+        self.assertTrue(any("游标列表分页" in error for error in errors))
+
+    def test_new_manual_list_limit_is_rejected(self):
+        baseline = MODULE.scan(self.root)
+        mapper = self.root / (
+            "backend/contexts/demo/src/main/resources/mapper/demo/DemoMapper.xml"
+        )
+        mapper.parent.mkdir(parents=True, exist_ok=True)
+        mapper.write_text(
+            """
+            <mapper namespace="demo.DemoMapper">
+              <select id="findPage">SELECT * FROM demo LIMIT #{limit}</select>
+            </mapper>
+            """,
+            encoding="utf-8",
+        )
+
+        errors = MODULE.compare(MODULE.scan(self.root), baseline)
+
+        self.assertTrue(any("手工列表分页" in error for error in errors))
 
     def test_removing_existing_debt_is_allowed(self):
         path = self.write_java(
