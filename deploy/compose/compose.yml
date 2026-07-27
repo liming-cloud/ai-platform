@@ -1,4 +1,4 @@
-name: trusted-rag-foundation-v1
+name: ${FOUNDATION_COMPOSE_PROJECT_NAME:-trusted-rag-foundation-v1}
 
 services:
   postgres:
@@ -98,7 +98,7 @@ services:
       minio:
         condition: service_healthy
     ports:
-      - "127.0.0.1:18080:8080"
+      - "127.0.0.1:${FOUNDATION_CONTROL_PLANE_PORT:-18080}:8080"
     networks:
       - foundation-internal
     read_only: true
@@ -139,7 +139,7 @@ services:
       control-plane:
         condition: service_healthy
     ports:
-      - "127.0.0.1:18081:8081"
+      - "127.0.0.1:${FOUNDATION_QUERY_RUNTIME_PORT:-18081}:8081"
     networks:
       - foundation-internal
     read_only: true
@@ -178,7 +178,7 @@ services:
       control-plane:
         condition: service_healthy
     ports:
-      - "127.0.0.1:18082:8082"
+      - "127.0.0.1:${FOUNDATION_INGESTION_WORKER_PORT:-18082}:8082"
     networks:
       - foundation-internal
     read_only: true
@@ -201,7 +201,7 @@ services:
       control-plane:
         condition: service_healthy
     ports:
-      - "127.0.0.1:13000:8080"
+      - "127.0.0.1:${FOUNDATION_CONSOLE_WEB_PORT:-13000}:8080"
     networks:
       - foundation-internal
     read_only: true
@@ -227,7 +227,7 @@ services:
       query-runtime:
         condition: service_healthy
     ports:
-      - "127.0.0.1:13001:8080"
+      - "127.0.0.1:${FOUNDATION_QUERY_WEB_PORT:-13001}:8080"
     networks:
       - foundation-internal
     read_only: true
@@ -242,12 +242,12 @@ services:
 
 networks:
   foundation-internal:
-    name: trusted-rag-foundation-v1
+    name: ${FOUNDATION_NETWORK_NAME:-trusted-rag-foundation-v1}
 
 volumes:
   foundation_v1_postgres:
-    name: trusted-rag-foundation-v1-postgres
+    name: ${FOUNDATION_POSTGRES_VOLUME_NAME:-trusted-rag-foundation-v1-postgres}
   foundation_v1_redis:
-    name: trusted-rag-foundation-v1-redis
+    name: ${FOUNDATION_REDIS_VOLUME_NAME:-trusted-rag-foundation-v1-redis}
   foundation_v1_minio:
-    name: trusted-rag-foundation-v1-minio
+    name: ${FOUNDATION_MINIO_VOLUME_NAME:-trusted-rag-foundation-v1-minio}

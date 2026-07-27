@@ -1,4 +1,4 @@
-.PHONY: project-status project-verify resume-context backend-test frontend-test demo-fixtures-verify deploy-config deploy-up deploy-smoke acceptance-knowledge-space acceptance-model-provider acceptance-model-deployment acceptance-index-search acceptance-assistant acceptance-trusted-query acceptance-query-web acceptance-query-quota acceptance-query-operations evaluation-demo performance-index-search performance-query-candidate-pool deploy-down validate
+.PHONY: project-status project-verify resume-context backend-test frontend-test demo-fixtures-verify recovery-operations-test recovery-demo deploy-config deploy-up deploy-smoke acceptance-knowledge-space acceptance-model-provider acceptance-model-deployment acceptance-index-search acceptance-assistant acceptance-trusted-query acceptance-query-web acceptance-query-quota acceptance-query-operations evaluation-demo performance-index-search performance-query-candidate-pool deploy-down validate
 
 project-status:
 	python3 scripts/project_governance.py status
@@ -19,6 +19,12 @@ frontend-test:
 demo-fixtures-verify:
 	python3 -m unittest scripts.quality.test_demo_fixtures scripts.quality.test_demo_evaluation
 	python3 scripts/quality/demo_fixtures.py
+
+recovery-operations-test:
+	python3 -m unittest scripts.quality.test_recovery_operations
+
+recovery-demo:
+	bash scripts/operations/demo-recovery-drill.sh
 
 deploy-config:
 	docker compose --env-file deploy/compose/.env.example -f deploy/compose/compose.yml config --quiet
@@ -68,4 +74,4 @@ performance-query-candidate-pool:
 deploy-down:
 	docker compose --env-file deploy/compose/.env.example -f deploy/compose/compose.yml down
 
-validate: project-verify backend-test frontend-test demo-fixtures-verify
+validate: project-verify backend-test frontend-test demo-fixtures-verify recovery-operations-test
