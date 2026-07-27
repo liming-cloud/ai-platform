@@ -1,0 +1,509 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aiplatform.foundation.knowledgedata.adapter.out.persistence.IndexVersionMapper">
+
+    <resultMap id="indexRequestRow" type="com.aiplatform.foundation.knowledgedata.adapter.out.persistence.IndexVersionRequestRow">
+        <result column="request_fingerprint" property="requestFingerprint"/>
+        <result column="knowledge_space_id" property="knowledgeSpaceId"/>
+        <result column="index_version_id" property="indexVersionId"/>
+    </resultMap>
+
+    <resultMap id="indexSourceRow" type="com.aiplatform.foundation.knowledgedata.adapter.out.persistence.IndexSourceRow">
+        <result column="data_source_id" property="dataSourceId"/>
+        <result column="content_version" property="contentVersion"/>
+        <result column="object_key" property="objectKey"/>
+        <result column="sha256" property="sha256"/>
+        <result column="byte_size" property="byteSize"/>
+        <result column="media_type" property="mediaType"/>
+        <result column="content_created_at" property="contentCreatedAt"/>
+    </resultMap>
+
+    <resultMap id="indexVersionRow" type="com.aiplatform.foundation.knowledgedata.adapter.out.persistence.IndexVersionRow">
+        <result column="tenant_id" property="tenantId"/>
+        <result column="knowledge_space_id" property="knowledgeSpaceId"/>
+        <result column="id" property="id"/>
+        <result column="source_snapshot_digest" property="sourceSnapshotDigest"/>
+        <result column="chunk_policy" property="chunkPolicy"/>
+        <result column="embedding_deployment_id" property="embeddingDeploymentId"/>
+        <result column="embedding_deployment_revision" property="embeddingDeploymentRevision"/>
+        <result column="embedding_dimension" property="embeddingDimension"/>
+        <result column="status" property="status"/>
+        <result column="version" property="version"/>
+        <result column="build_digest" property="buildDigest"/>
+        <result column="chunk_count" property="chunkCount"/>
+        <result column="failure_code" property="failureCode"/>
+        <result column="created_by" property="createdBy"/>
+        <result column="created_at" property="createdAt"/>
+        <result column="ready_at" property="readyAt"/>
+        <result column="activated_at" property="activatedAt"/>
+        <result column="superseded_at" property="supersededAt"/>
+    </resultMap>
+
+    <resultMap id="indexBuildJobRow" type="com.aiplatform.foundation.knowledgedata.adapter.out.persistence.IndexBuildJobRow">
+        <result column="tenant_id" property="tenantId"/>
+        <result column="knowledge_space_id" property="knowledgeSpaceId"/>
+        <result column="index_version_id" property="indexVersionId"/>
+        <result column="attempt" property="attempt"/>
+    </resultMap>
+
+    <select id="lockSpace" resultType="java.lang.String">
+        <![CDATA[
+        SELECT pg_advisory_xact_lock(
+            hashtextextended(#{scope}, 20260729)
+        )
+        ]]>
+    </select>
+
+    <select id="findRequest" resultMap="indexRequestRow">
+        <![CDATA[
+        SELECT request_fingerprint,
+               knowledge_space_id::text AS knowledge_space_id,
+               index_version_id::text AS index_version_id
+        FROM knowledge_data.index_version_request
+        WHERE tenant_id = #{tenantId}
+          AND operation = #{operation}
+          AND idempotency_key_hash = #{keyHash}
+        ]]>
+    </select>
+
+    <select id="findPublishedSources" resultMap="indexSourceRow">
+        <![CDATA[
+        SELECT source.id::text AS data_source_id,
+               content.version AS content_version,
+               content.object_key,
+               content.sha256,
+               content.byte_size,
+               content.media_type,
+               content.created_at AS content_created_at
+        FROM knowledge_data.text_data_source source
+        JOIN knowledge_data.text_data_source_content content
+          ON content.tenant_id = source.tenant_id
+         AND content.knowledge_space_id = source.knowledge_space_id
+         AND content.data_source_id = source.id
+         AND content.version = source.published_content_version
+        WHERE source.tenant_id = #{tenantId}
+          AND source.knowledge_space_id = #{knowledgeSpaceId}
+          AND source.status = 'PUBLISHED'
+        ORDER BY source.id
+        FOR SHARE OF source, content
+        ]]>
+    </select>
+
+    <insert id="insertVersion">
+        <![CDATA[
+        INSERT INTO knowledge_data.index_version (
+            tenant_id,
+            knowledge_space_id,
+            id,
+            source_snapshot_digest,
+            chunk_policy,
+            embedding_deployment_id,
+            embedding_deployment_revision,
+            embedding_dimension,
+            status,
+            version,
+            build_digest,
+            chunk_count,
+            failure_code,
+            created_by,
+            created_at,
+            ready_at,
+            activated_at,
+            superseded_at
+        ) VALUES (
+            #{tenantId},
+            #{knowledgeSpaceId},
+            #{id},
+            #{sourceSnapshotDigest},
+            #{chunkPolicy},
+            #{embeddingDeploymentId},
+            #{embeddingDeploymentRevision},
+            #{embeddingDimension},
+            'BUILDING',
+            0,
+            NULL,
+            0,
+            NULL,
+            #{createdBy},
+            #{createdAt},
+            NULL,
+            NULL,
+            NULL
+        )
+        ]]>
+    </insert>
+
+    <insert id="insertSource">
+        <![CDATA[
+        INSERT INTO knowledge_data.index_version_source (
+            tenant_id,
+            knowledge_space_id,
+            index_version_id,
+            data_source_id,
+            content_version,
+            object_key,
+            sha256,
+            byte_size,
+            media_type,
+            content_created_at
+        ) VALUES (
+            #{tenantId},
+            #{knowledgeSpaceId},
+            #{indexVersionId},
+            #{dataSourceId},
+            #{contentVersion},
+            #{objectKey},
+            #{sha256},
+            #{byteSize},
+            #{mediaType},
+            #{contentCreatedAt}
+        )
+        ]]>
+    </insert>
+
+    <insert id="insertJob">
+        <![CDATA[
+        INSERT INTO knowledge_data.index_build_job (
+            tenant_id,
+            knowledge_space_id,
+            index_version_id,
+            status,
+            attempt,
+            lease_id,
+            lease_until,
+            failure_code,
+            available_at,
+            created_at,
+            completed_at
+        ) VALUES (
+            #{tenantId},
+            #{knowledgeSpaceId},
+            #{indexVersionId},
+            'PENDING',
+            0,
+            NULL,
+            NULL,
+            NULL,
+            #{createdAt},
+            #{createdAt},
+            NULL
+        )
+        ]]>
+    </insert>
+
+    <insert id="insertRequest">
+        <![CDATA[
+        INSERT INTO knowledge_data.index_version_request (
+            tenant_id,
+            operation,
+            idempotency_key_hash,
+            request_fingerprint,
+            knowledge_space_id,
+            index_version_id,
+            result_status,
+            result_version,
+            created_at
+        ) VALUES (
+            #{tenantId},
+            #{operation},
+            #{keyHash},
+            #{requestFingerprint},
+            #{knowledgeSpaceId},
+            #{indexVersionId},
+            #{resultStatus},
+            #{resultVersion},
+            #{createdAt}
+        )
+        ]]>
+    </insert>
+
+    <select id="findVersion" resultMap="indexVersionRow">
+        <![CDATA[
+        SELECT tenant_id::text AS tenant_id,
+               knowledge_space_id::text AS knowledge_space_id,
+               id::text AS id,
+               source_snapshot_digest,
+               chunk_policy,
+               embedding_deployment_id::text AS embedding_deployment_id,
+               embedding_deployment_revision,
+               embedding_dimension,
+               status,
+               version,
+               build_digest,
+               chunk_count,
+               failure_code,
+               created_by::text AS created_by,
+               created_at,
+               ready_at,
+               activated_at,
+               superseded_at
+        FROM knowledge_data.index_version
+        WHERE tenant_id = #{tenantId}
+          AND knowledge_space_id = #{knowledgeSpaceId}
+          AND id = #{id}
+        ]]>
+    </select>
+
+    <select id="findActive" resultMap="indexVersionRow">
+        <![CDATA[
+        SELECT tenant_id::text AS tenant_id,
+               knowledge_space_id::text AS knowledge_space_id,
+               id::text AS id,
+               source_snapshot_digest,
+               chunk_policy,
+               embedding_deployment_id::text AS embedding_deployment_id,
+               embedding_deployment_revision,
+               embedding_dimension,
+               status,
+               version,
+               build_digest,
+               chunk_count,
+               failure_code,
+               created_by::text AS created_by,
+               created_at,
+               ready_at,
+               activated_at,
+               superseded_at
+        FROM knowledge_data.index_version
+        WHERE tenant_id = #{tenantId}
+          AND knowledge_space_id = #{knowledgeSpaceId}
+          AND status = 'ACTIVE'
+        ]]>
+    </select>
+
+    <select id="findVersionForUpdate" resultMap="indexVersionRow">
+        <![CDATA[
+        SELECT tenant_id::text AS tenant_id,
+               knowledge_space_id::text AS knowledge_space_id,
+               id::text AS id,
+               source_snapshot_digest,
+               chunk_policy,
+               embedding_deployment_id::text AS embedding_deployment_id,
+               embedding_deployment_revision,
+               embedding_dimension,
+               status,
+               version,
+               build_digest,
+               chunk_count,
+               failure_code,
+               created_by::text AS created_by,
+               created_at,
+               ready_at,
+               activated_at,
+               superseded_at
+        FROM knowledge_data.index_version
+        WHERE tenant_id = #{tenantId}
+          AND knowledge_space_id = #{knowledgeSpaceId}
+          AND id = #{id}
+        FOR UPDATE
+        ]]>
+    </select>
+
+    <select id="findFirstPage" resultMap="indexVersionRow">
+        <![CDATA[
+        SELECT tenant_id::text AS tenant_id,
+               knowledge_space_id::text AS knowledge_space_id,
+               id::text AS id,
+               source_snapshot_digest,
+               chunk_policy,
+               embedding_deployment_id::text AS embedding_deployment_id,
+               embedding_deployment_revision,
+               embedding_dimension,
+               status,
+               version,
+               build_digest,
+               chunk_count,
+               failure_code,
+               created_by::text AS created_by,
+               created_at,
+               ready_at,
+               activated_at,
+               superseded_at
+        FROM knowledge_data.index_version
+        WHERE tenant_id = #{tenantId}
+          AND knowledge_space_id = #{knowledgeSpaceId}
+        ORDER BY created_at DESC, id DESC
+        LIMIT #{limit}
+        ]]>
+    </select>
+
+    <select id="findAfter" resultMap="indexVersionRow">
+        <![CDATA[
+        SELECT tenant_id::text AS tenant_id,
+               knowledge_space_id::text AS knowledge_space_id,
+               id::text AS id,
+               source_snapshot_digest,
+               chunk_policy,
+               embedding_deployment_id::text AS embedding_deployment_id,
+               embedding_deployment_revision,
+               embedding_dimension,
+               status,
+               version,
+               build_digest,
+               chunk_count,
+               failure_code,
+               created_by::text AS created_by,
+               created_at,
+               ready_at,
+               activated_at,
+               superseded_at
+        FROM knowledge_data.index_version
+        WHERE tenant_id = #{tenantId}
+          AND knowledge_space_id = #{knowledgeSpaceId}
+          AND (created_at, id) < (#{createdAt}, #{id})
+        ORDER BY created_at DESC, id DESC
+        LIMIT #{limit}
+        ]]>
+    </select>
+
+    <select id="claimableJob" resultMap="indexBuildJobRow">
+        <![CDATA[
+        SELECT tenant_id::text AS tenant_id,
+               knowledge_space_id::text AS knowledge_space_id,
+               index_version_id::text AS index_version_id,
+               attempt
+        FROM knowledge_data.index_build_job
+        WHERE available_at <= #{now}
+          AND (
+                status = 'PENDING'
+                OR (status = 'RUNNING' AND lease_until <= #{now})
+          )
+        ORDER BY available_at, created_at, index_version_id
+        FOR UPDATE SKIP LOCKED
+        LIMIT 1
+        ]]>
+    </select>
+
+    <update id="markClaimed">
+        <![CDATA[
+        UPDATE knowledge_data.index_build_job
+        SET status = 'RUNNING',
+            attempt = attempt + 1,
+            lease_id = #{leaseId},
+            lease_until = #{leaseUntil},
+            failure_code = NULL,
+            completed_at = NULL
+        WHERE tenant_id = #{tenantId}
+          AND knowledge_space_id = #{knowledgeSpaceId}
+          AND index_version_id = #{indexVersionId}
+        ]]>
+    </update>
+
+    <select id="findSources" resultMap="indexSourceRow">
+        <![CDATA[
+        SELECT data_source_id::text AS data_source_id,
+               content_version,
+               object_key,
+               sha256,
+               byte_size,
+               media_type,
+               content_created_at
+        FROM knowledge_data.index_version_source
+        WHERE tenant_id = #{tenantId}
+          AND knowledge_space_id = #{knowledgeSpaceId}
+          AND index_version_id = #{indexVersionId}
+        ORDER BY data_source_id
+        ]]>
+    </select>
+
+    <select id="findRunningLease" resultType="java.lang.Integer">
+        <![CDATA[
+        SELECT 1
+        FROM knowledge_data.index_build_job
+        WHERE tenant_id = #{tenantId}
+          AND knowledge_space_id = #{knowledgeSpaceId}
+          AND index_version_id = #{indexVersionId}
+          AND status = 'RUNNING'
+          AND lease_id = #{leaseId}
+        FOR UPDATE
+        ]]>
+    </select>
+
+    <update id="markReady">
+        <![CDATA[
+        UPDATE knowledge_data.index_version
+        SET status = 'READY',
+            version = version + 1,
+            build_digest = #{buildDigest},
+            chunk_count = #{chunkCount},
+            ready_at = #{completedAt}
+        WHERE tenant_id = #{tenantId}
+          AND knowledge_space_id = #{knowledgeSpaceId}
+          AND id = #{indexVersionId}
+          AND status = 'BUILDING'
+        ]]>
+    </update>
+
+    <update id="markDone">
+        <![CDATA[
+        UPDATE knowledge_data.index_build_job
+        SET status = 'DONE',
+            lease_id = NULL,
+            lease_until = NULL,
+            failure_code = NULL,
+            completed_at = #{completedAt}
+        WHERE tenant_id = #{tenantId}
+          AND knowledge_space_id = #{knowledgeSpaceId}
+          AND index_version_id = #{indexVersionId}
+          AND status = 'RUNNING'
+          AND lease_id = #{leaseId}
+        ]]>
+    </update>
+
+    <update id="markFailedVersion">
+        <![CDATA[
+        UPDATE knowledge_data.index_version
+        SET status = 'FAILED',
+            version = version + 1,
+            failure_code = #{failureCode}
+        WHERE tenant_id = #{tenantId}
+          AND knowledge_space_id = #{knowledgeSpaceId}
+          AND id = #{indexVersionId}
+          AND status = 'BUILDING'
+        ]]>
+    </update>
+
+    <update id="markFailedJob">
+        <![CDATA[
+        UPDATE knowledge_data.index_build_job
+        SET status = 'FAILED',
+            lease_id = NULL,
+            lease_until = NULL,
+            failure_code = #{failureCode},
+            completed_at = #{failedAt}
+        WHERE tenant_id = #{tenantId}
+          AND knowledge_space_id = #{knowledgeSpaceId}
+          AND index_version_id = #{indexVersionId}
+          AND status = 'RUNNING'
+          AND lease_id = #{leaseId}
+        ]]>
+    </update>
+
+    <update id="supersedeActive">
+        <![CDATA[
+        UPDATE knowledge_data.index_version
+        SET status = 'SUPERSEDED',
+            version = version + 1,
+            superseded_at = #{supersededAt}
+        WHERE tenant_id = #{tenantId}
+          AND knowledge_space_id = #{knowledgeSpaceId}
+          AND status = 'ACTIVE'
+        ]]>
+    </update>
+
+    <update id="activateReady">
+        <![CDATA[
+        UPDATE knowledge_data.index_version
+        SET status = 'ACTIVE',
+            version = version + 1,
+            activated_at = #{activatedAt}
+        WHERE tenant_id = #{tenantId}
+          AND knowledge_space_id = #{knowledgeSpaceId}
+          AND id = #{indexVersionId}
+          AND status = 'READY'
+          AND version = #{expectedVersion}
+        ]]>
+    </update>
+</mapper>

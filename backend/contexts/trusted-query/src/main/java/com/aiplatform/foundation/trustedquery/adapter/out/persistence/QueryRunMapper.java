@@ -3,135 +3,32 @@ package com.aiplatform.foundation.trustedquery.adapter.out.persistence;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
-import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Param;
-import org.apache.ibatis.annotations.Result;
-import org.apache.ibatis.annotations.ResultMap;
-import org.apache.ibatis.annotations.Results;
-import org.apache.ibatis.annotations.Select;
-import org.apache.ibatis.annotations.Update;
 
 /**
  * 查询运行、幂等占位和引用事实数据库映射器。
  */
 public interface QueryRunMapper {
 
-    @Select("""
-            SELECT pg_advisory_xact_lock(
-                hashtextextended(#{scope}, 20260731)
-            )
-            """)
     String lockScope(@Param("scope") String scope);
 
-    @Select("""
-            SELECT request_fingerprint,
-                   query_run_id::text AS query_run_id
-            FROM trusted_query.query_run_request
-            WHERE tenant_id = #{tenantId}
-              AND idempotency_key_hash = #{keyHash}
-            """)
-    @Results(id = "queryRunRequestRow", value = {
-        @Result(column = "request_fingerprint", property = "requestFingerprint"),
-        @Result(column = "query_run_id", property = "queryRunId")
-    })
     QueryRunRequestRow findRequest(
             @Param("tenantId") UUID tenantId,
             @Param("keyHash") String keyHash);
 
-    @Select("""
-            SELECT count(*)
-            FROM trusted_query.query_run
-            WHERE tenant_id = #{tenantId}
-              AND created_at >= #{periodStart}
-              AND created_at < #{periodEnd}
-            """)
     int countAcceptedInPeriod(
             @Param("tenantId") UUID tenantId,
             @Param("periodStart") Instant periodStart,
             @Param("periodEnd") Instant periodEnd);
 
-    @Select("""
-            SELECT count(*)
-            FROM trusted_query.query_run
-            WHERE tenant_id = #{tenantId}
-              AND status = 'RUNNING'
-              AND running_lease_until > #{acceptedAt}
-            """)
     int countActiveLeases(
             @Param("tenantId") UUID tenantId,
             @Param("acceptedAt") Instant acceptedAt);
 
-    @Select("""
-            SELECT min(running_lease_until)
-            FROM trusted_query.query_run
-            WHERE tenant_id = #{tenantId}
-              AND status = 'RUNNING'
-              AND running_lease_until > #{acceptedAt}
-            """)
     Instant findEarliestActiveLeaseExpiry(
             @Param("tenantId") UUID tenantId,
             @Param("acceptedAt") Instant acceptedAt);
 
-    @Select("""
-            SELECT count(*) FILTER (
-                       WHERE created_at >= #{from}
-                         AND created_at < #{to}
-                   ) AS accepted_queries,
-                   count(*) FILTER (
-                       WHERE created_at >= #{from}
-                         AND created_at < #{to}
-                         AND status = 'ANSWERED'
-                   ) AS answered_queries,
-                   count(*) FILTER (
-                       WHERE created_at >= #{from}
-                         AND created_at < #{to}
-                         AND status = 'REFUSED'
-                   ) AS refused_queries,
-                   count(*) FILTER (
-                       WHERE created_at >= #{from}
-                         AND created_at < #{to}
-                         AND status = 'FAILED'
-                   ) AS failed_queries,
-                   count(*) FILTER (
-                       WHERE created_at >= #{from}
-                         AND created_at < #{to}
-                         AND status = 'RUNNING'
-                   ) AS running_queries,
-                   coalesce(sum(input_tokens) FILTER (
-                       WHERE created_at >= #{from}
-                         AND created_at < #{to}
-                   ), 0) AS input_tokens,
-                   coalesce(sum(output_tokens) FILTER (
-                       WHERE created_at >= #{from}
-                         AND created_at < #{to}
-                   ), 0) AS output_tokens,
-                   coalesce(sum(total_tokens) FILTER (
-                       WHERE created_at >= #{from}
-                         AND created_at < #{to}
-                   ), 0) AS total_tokens,
-                   count(*) FILTER (
-                       WHERE created_at >= #{currentPeriodStart}
-                         AND created_at < #{currentPeriodEnd}
-                   ) AS daily_used,
-                   count(*) FILTER (
-                       WHERE status = 'RUNNING'
-                         AND running_lease_until > #{observedAt}
-                   ) AS concurrent_used
-            FROM trusted_query.query_run
-            WHERE tenant_id = #{tenantId}
-            """)
-    @Results(id = "queryUsageRow", value = {
-        @Result(column = "accepted_queries", property = "acceptedQueries"),
-        @Result(column = "answered_queries", property = "answeredQueries"),
-        @Result(column = "refused_queries", property = "refusedQueries"),
-        @Result(column = "failed_queries", property = "failedQueries"),
-        @Result(column = "running_queries", property = "runningQueries"),
-        @Result(column = "input_tokens", property = "inputTokens"),
-        @Result(column = "output_tokens", property = "outputTokens"),
-        @Result(column = "total_tokens", property = "totalTokens"),
-        @Result(column = "daily_used", property = "dailyUsed"),
-        @Result(column = "concurrent_used", property = "concurrentUsed")
-    })
     QueryUsageRow summarizeUsage(
             @Param("tenantId") UUID tenantId,
             @Param("from") Instant from,
@@ -140,112 +37,16 @@ public interface QueryRunMapper {
             @Param("currentPeriodEnd") Instant currentPeriodEnd,
             @Param("observedAt") Instant observedAt);
 
-    @Select("""
-            SELECT id::text AS query_run_id,
-                   requested_by::text AS requested_by,
-                   assistant_version_id::text AS assistant_version_id,
-                   question_digest,
-                   status,
-                   refusal_reason,
-                   input_tokens,
-                   output_tokens,
-                   total_tokens,
-                   created_at,
-                   completed_at
-            FROM trusted_query.query_run
-            WHERE tenant_id = #{tenantId}
-            ORDER BY created_at DESC, id DESC
-            LIMIT #{limit}
-            """)
-    @Results(id = "queryAuditFactRow", value = {
-        @Result(column = "query_run_id", property = "queryRunId"),
-        @Result(column = "requested_by", property = "requestedBy"),
-        @Result(column = "assistant_version_id", property = "assistantVersionId"),
-        @Result(column = "question_digest", property = "questionDigest"),
-        @Result(column = "status", property = "status"),
-        @Result(column = "refusal_reason", property = "refusalReason"),
-        @Result(column = "input_tokens", property = "inputTokens"),
-        @Result(column = "output_tokens", property = "outputTokens"),
-        @Result(column = "total_tokens", property = "totalTokens"),
-        @Result(column = "created_at", property = "createdAt"),
-        @Result(column = "completed_at", property = "completedAt")
-    })
     List<QueryAuditFactRow> findFirstAuditPage(
             @Param("tenantId") UUID tenantId,
             @Param("limit") int limit);
 
-    @Select("""
-            SELECT id::text AS query_run_id,
-                   requested_by::text AS requested_by,
-                   assistant_version_id::text AS assistant_version_id,
-                   question_digest,
-                   status,
-                   refusal_reason,
-                   input_tokens,
-                   output_tokens,
-                   total_tokens,
-                   created_at,
-                   completed_at
-            FROM trusted_query.query_run
-            WHERE tenant_id = #{tenantId}
-              AND (created_at, id) < (#{createdAt}, #{id})
-            ORDER BY created_at DESC, id DESC
-            LIMIT #{limit}
-            """)
-    @ResultMap("queryAuditFactRow")
     List<QueryAuditFactRow> findAuditAfter(
             @Param("tenantId") UUID tenantId,
             @Param("createdAt") Instant createdAt,
             @Param("id") UUID id,
             @Param("limit") int limit);
 
-    @Insert("""
-            INSERT INTO trusted_query.query_run (
-                tenant_id,
-                id,
-                assistant_version_id,
-                requested_by,
-                question_digest,
-                quota_period_start,
-                quota_period_end,
-                daily_query_limit,
-                daily_query_ordinal,
-                concurrent_query_limit,
-                accepted_lease_until,
-                running_lease_until,
-                status,
-                answer,
-                refusal_reason,
-                input_tokens,
-                output_tokens,
-                total_tokens,
-                version,
-                created_at,
-                completed_at
-            ) VALUES (
-                #{tenantId},
-                #{id},
-                #{assistantVersionId},
-                #{requestedBy},
-                #{questionDigest},
-                #{quotaPeriodStart},
-                #{quotaPeriodEnd},
-                #{dailyQueryLimit},
-                #{dailyQueryOrdinal},
-                #{concurrentQueryLimit},
-                #{acceptedLeaseUntil},
-                #{acceptedLeaseUntil},
-                'RUNNING',
-                NULL,
-                NULL,
-                0,
-                0,
-                0,
-                0,
-                #{createdAt},
-                NULL
-            )
-            """)
     int insertRun(
             @Param("tenantId") UUID tenantId,
             @Param("id") UUID id,
@@ -260,21 +61,6 @@ public interface QueryRunMapper {
             @Param("acceptedLeaseUntil") Instant acceptedLeaseUntil,
             @Param("createdAt") Instant createdAt);
 
-    @Insert("""
-            INSERT INTO trusted_query.query_run_request (
-                tenant_id,
-                idempotency_key_hash,
-                request_fingerprint,
-                query_run_id,
-                created_at
-            ) VALUES (
-                #{tenantId},
-                #{keyHash},
-                #{requestFingerprint},
-                #{queryRunId},
-                #{createdAt}
-            )
-            """)
     int insertRequest(
             @Param("tenantId") UUID tenantId,
             @Param("keyHash") String keyHash,
@@ -282,99 +68,14 @@ public interface QueryRunMapper {
             @Param("queryRunId") UUID queryRunId,
             @Param("createdAt") Instant createdAt);
 
-    @Select("""
-            SELECT tenant_id::text AS tenant_id,
-                   id::text AS id,
-                   assistant_version_id::text AS assistant_version_id,
-                   requested_by::text AS requested_by,
-                   question_digest,
-                   quota_period_start,
-                   quota_period_end,
-                   daily_query_limit,
-                   daily_query_ordinal,
-                   concurrent_query_limit,
-                   accepted_lease_until,
-                   status,
-                   answer,
-                   refusal_reason,
-                   input_tokens,
-                   output_tokens,
-                   total_tokens,
-                   version,
-                   created_at,
-                   completed_at
-            FROM trusted_query.query_run
-            WHERE tenant_id = #{tenantId}
-              AND id = #{queryRunId}
-            """)
-    @Results(id = "queryRunRow", value = {
-        @Result(column = "tenant_id", property = "tenantId"),
-        @Result(column = "id", property = "id"),
-        @Result(column = "assistant_version_id", property = "assistantVersionId"),
-        @Result(column = "requested_by", property = "requestedBy"),
-        @Result(column = "question_digest", property = "questionDigest"),
-        @Result(column = "quota_period_start", property = "quotaPeriodStart"),
-        @Result(column = "quota_period_end", property = "quotaPeriodEnd"),
-        @Result(column = "daily_query_limit", property = "dailyQueryLimit"),
-        @Result(column = "daily_query_ordinal", property = "dailyQueryOrdinal"),
-        @Result(column = "concurrent_query_limit", property = "concurrentQueryLimit"),
-        @Result(column = "accepted_lease_until", property = "acceptedLeaseUntil"),
-        @Result(column = "status", property = "status"),
-        @Result(column = "answer", property = "answer"),
-        @Result(column = "refusal_reason", property = "refusalReason"),
-        @Result(column = "input_tokens", property = "inputTokens"),
-        @Result(column = "output_tokens", property = "outputTokens"),
-        @Result(column = "total_tokens", property = "totalTokens"),
-        @Result(column = "version", property = "version"),
-        @Result(column = "created_at", property = "createdAt"),
-        @Result(column = "completed_at", property = "completedAt")
-    })
     QueryRunRow findRun(
             @Param("tenantId") UUID tenantId,
             @Param("queryRunId") UUID queryRunId);
 
-    @Select("""
-            SELECT sequence,
-                   data_source_id::text AS data_source_id,
-                   content_version,
-                   chunk_id,
-                   ordinal,
-                   quote,
-                   score
-            FROM trusted_query.query_citation
-            WHERE tenant_id = #{tenantId}
-              AND query_run_id = #{queryRunId}
-            ORDER BY sequence
-            """)
-    @Results(id = "queryCitationRow", value = {
-        @Result(column = "sequence", property = "sequence"),
-        @Result(column = "data_source_id", property = "dataSourceId"),
-        @Result(column = "content_version", property = "contentVersion"),
-        @Result(column = "chunk_id", property = "chunkId"),
-        @Result(column = "ordinal", property = "ordinal"),
-        @Result(column = "quote", property = "quote"),
-        @Result(column = "score", property = "score")
-    })
     List<QueryCitationRow> findCitations(
             @Param("tenantId") UUID tenantId,
             @Param("queryRunId") UUID queryRunId);
 
-    @Update("""
-            UPDATE trusted_query.query_run
-            SET status = #{status},
-                answer = #{answer},
-                refusal_reason = #{refusalReason},
-                input_tokens = #{inputTokens},
-                output_tokens = #{outputTokens},
-                total_tokens = #{totalTokens},
-                version = #{newVersion},
-                completed_at = #{completedAt},
-                running_lease_until = NULL
-            WHERE tenant_id = #{tenantId}
-              AND id = #{queryRunId}
-              AND status = 'RUNNING'
-              AND version = #{expectedVersion}
-            """)
     int completeRun(
             @Param("tenantId") UUID tenantId,
             @Param("queryRunId") UUID queryRunId,
@@ -388,29 +89,6 @@ public interface QueryRunMapper {
             @Param("completedAt") Instant completedAt,
             @Param("expectedVersion") long expectedVersion);
 
-    @Insert("""
-            INSERT INTO trusted_query.query_citation (
-                tenant_id,
-                query_run_id,
-                sequence,
-                data_source_id,
-                content_version,
-                chunk_id,
-                ordinal,
-                quote,
-                score
-            ) VALUES (
-                #{tenantId},
-                #{queryRunId},
-                #{sequence},
-                #{dataSourceId},
-                #{contentVersion},
-                #{chunkId},
-                #{ordinal},
-                #{quote},
-                #{score}
-            )
-            """)
     int insertCitation(
             @Param("tenantId") UUID tenantId,
             @Param("queryRunId") UUID queryRunId,
@@ -422,33 +100,6 @@ public interface QueryRunMapper {
             @Param("quote") String quote,
             @Param("score") double score);
 
-    @Insert("""
-            INSERT INTO trusted_query.query_run_event (
-                tenant_id,
-                query_run_id,
-                sequence,
-                event_type,
-                status,
-                answer,
-                refusal_reason,
-                input_tokens,
-                output_tokens,
-                total_tokens,
-                occurred_at
-            ) VALUES (
-                #{tenantId},
-                #{queryRunId},
-                #{sequence},
-                #{eventType},
-                #{status},
-                #{answer},
-                #{refusalReason},
-                #{inputTokens},
-                #{outputTokens},
-                #{totalTokens},
-                #{occurredAt}
-            )
-            """)
     int insertEvent(
             @Param("tenantId") UUID tenantId,
             @Param("queryRunId") UUID queryRunId,
@@ -462,38 +113,6 @@ public interface QueryRunMapper {
             @Param("totalTokens") int totalTokens,
             @Param("occurredAt") Instant occurredAt);
 
-    @Select("""
-            SELECT tenant_id::text AS tenant_id,
-                   query_run_id::text AS query_run_id,
-                   sequence,
-                   event_type,
-                   status,
-                   answer,
-                   refusal_reason,
-                   input_tokens,
-                   output_tokens,
-                   total_tokens,
-                   occurred_at
-            FROM trusted_query.query_run_event
-            WHERE tenant_id = #{tenantId}
-              AND query_run_id = #{queryRunId}
-              AND sequence > #{afterSequence}
-            ORDER BY sequence
-            LIMIT #{limit}
-            """)
-    @Results(id = "queryRunEventRow", value = {
-        @Result(column = "tenant_id", property = "tenantId"),
-        @Result(column = "query_run_id", property = "queryRunId"),
-        @Result(column = "sequence", property = "sequence"),
-        @Result(column = "event_type", property = "eventType"),
-        @Result(column = "status", property = "status"),
-        @Result(column = "answer", property = "answer"),
-        @Result(column = "refusal_reason", property = "refusalReason"),
-        @Result(column = "input_tokens", property = "inputTokens"),
-        @Result(column = "output_tokens", property = "outputTokens"),
-        @Result(column = "total_tokens", property = "totalTokens"),
-        @Result(column = "occurred_at", property = "occurredAt")
-    })
     List<QueryRunEventRow> findEvents(
             @Param("tenantId") UUID tenantId,
             @Param("queryRunId") UUID queryRunId,

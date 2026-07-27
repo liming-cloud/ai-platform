@@ -1,15 +1,6 @@
 {
   "schemaVersion": 1,
-  "sqlAnnotationFiles": [
-    "backend/contexts/assistant-delivery/src/main/java/com/aiplatform/foundation/assistantdelivery/adapter/out/persistence/AssistantMapper.java",
-    "backend/contexts/knowledge-data/src/main/java/com/aiplatform/foundation/knowledgedata/adapter/out/persistence/IndexVersionMapper.java",
-    "backend/contexts/knowledge-data/src/main/java/com/aiplatform/foundation/knowledgedata/adapter/out/persistence/KnowledgeSpaceMapper.java",
-    "backend/contexts/knowledge-data/src/main/java/com/aiplatform/foundation/knowledgedata/adapter/out/persistence/TextDataSourceMapper.java",
-    "backend/contexts/model-runtime/src/main/java/com/aiplatform/foundation/modelruntime/adapter/out/persistence/ModelDeploymentMapper.java",
-    "backend/contexts/model-runtime/src/main/java/com/aiplatform/foundation/modelruntime/adapter/out/persistence/ProviderConnectionMapper.java",
-    "backend/contexts/organization-access/src/main/java/com/aiplatform/foundation/organizationaccess/adapter/out/persistence/TenantMemberCredentialMapper.java",
-    "backend/contexts/trusted-query/src/main/java/com/aiplatform/foundation/trustedquery/adapter/out/persistence/QueryRunMapper.java"
-  ],
+  "sqlAnnotationFiles": [],
   "uuidMainFiles": [
     "backend/contexts/assistant-delivery/src/main/java/com/aiplatform/foundation/assistantdelivery/adapter/out/persistence/AssistantMapper.java",
     "backend/contexts/assistant-delivery/src/main/java/com/aiplatform/foundation/assistantdelivery/adapter/out/persistence/PostgresAssistantRepository.java",

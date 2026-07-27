@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aiplatform.foundation.knowledgedata.adapter.out.persistence.KnowledgeSpaceMapper">
+
+    <resultMap id="findRequestResultMap" type="com.aiplatform.foundation.knowledgedata.adapter.out.persistence.IdempotencyRow">
+        <result column="request_fingerprint" property="requestFingerprint"/>
+        <result column="knowledge_space_id" property="knowledgeSpaceId"/>
+    </resultMap>
+
+    <resultMap id="knowledgeSpaceRow" type="com.aiplatform.foundation.knowledgedata.adapter.out.persistence.KnowledgeSpaceRow">
+        <result column="tenant_id" property="tenantId"/>
+        <result column="id" property="id"/>
+        <result column="name" property="name"/>
+        <result column="description" property="description"/>
+        <result column="status" property="status"/>
+        <result column="version" property="version"/>
+        <result column="created_by" property="createdBy"/>
+        <result column="created_at" property="createdAt"/>
+    </resultMap>
+
+    <resultMap id="findFirstPageResultMap" type="com.aiplatform.foundation.knowledgedata.adapter.out.persistence.KnowledgeSpaceRow">
+        <result column="tenant_id" property="tenantId"/>
+        <result column="id" property="id"/>
+        <result column="name" property="name"/>
+        <result column="description" property="description"/>
+        <result column="status" property="status"/>
+        <result column="version" property="version"/>
+        <result column="created_by" property="createdBy"/>
+        <result column="created_at" property="createdAt"/>
+    </resultMap>
+
+    <resultMap id="findAfterResultMap" type="com.aiplatform.foundation.knowledgedata.adapter.out.persistence.KnowledgeSpaceRow">
+        <result column="tenant_id" property="tenantId"/>
+        <result column="id" property="id"/>
+        <result column="name" property="name"/>
+        <result column="description" property="description"/>
+        <result column="status" property="status"/>
+        <result column="version" property="version"/>
+        <result column="created_by" property="createdBy"/>
+        <result column="created_at" property="createdAt"/>
+    </resultMap>
+
+    <select id="lockTenant" resultType="java.lang.String">
+        <![CDATA[
+        SELECT pg_advisory_xact_lock(hashtextextended(#{tenantId}, 20260727))
+        ]]>
+    </select>
+
+    <select id="findRequest" resultMap="findRequestResultMap">
+        <![CDATA[
+        SELECT request_fingerprint,
+               knowledge_space_id::text AS knowledge_space_id
+        FROM knowledge_data.knowledge_space_request
+        WHERE tenant_id = #{tenantId}
+          AND idempotency_key_hash = #{keyHash}
+        ]]>
+    </select>
+
+    <select id="countActive" resultType="int">
+        <![CDATA[
+        SELECT count(*)
+        FROM knowledge_data.knowledge_space
+        WHERE tenant_id = #{tenantId}
+          AND status <> 'DELETED'
+        ]]>
+    </select>
+
+    <insert id="insertSpace">
+        <![CDATA[
+        INSERT INTO knowledge_data.knowledge_space (
+            tenant_id, id, name, description, status, version, created_by, created_at
+        ) VALUES (
+            #{tenantId}, #{id}, #{name}, #{description},
+            #{status}, #{version}, #{createdBy}, #{createdAt}
+        )
+        ]]>
+    </insert>
+
+    <insert id="insertRequest">
+        <![CDATA[
+        INSERT INTO knowledge_data.knowledge_space_request (
+            tenant_id, idempotency_key_hash, request_fingerprint,
+            knowledge_space_id, created_at
+        ) VALUES (
+            #{tenantId}, #{keyHash}, #{requestFingerprint},
+            #{knowledgeSpaceId}, #{createdAt}
+        )
+        ]]>
+    </insert>
+
+    <select id="findById" resultMap="knowledgeSpaceRow">
+        <![CDATA[
+        SELECT tenant_id::text AS tenant_id,
+               id::text AS id,
+               name,
+               description,
+               status,
+               version,
+               created_by::text AS created_by,
+               created_at
+        FROM knowledge_data.knowledge_space
+        WHERE tenant_id = #{tenantId}
+          AND id = #{id}
+        ]]>
+    </select>
+
+    <select id="findFirstPage" resultMap="findFirstPageResultMap">
+        <![CDATA[
+        SELECT tenant_id::text AS tenant_id,
+               id::text AS id,
+               name,
+               description,
+               status,
+               version,
+               created_by::text AS created_by,
+               created_at
+        FROM knowledge_data.knowledge_space
+        WHERE tenant_id = #{tenantId}
+          AND status <> 'DELETED'
+        ORDER BY created_at DESC, id DESC
+        LIMIT #{limit}
+        ]]>
+    </select>
+
+    <select id="findAfter" resultMap="findAfterResultMap">
+        <![CDATA[
+        SELECT tenant_id::text AS tenant_id,
+               id::text AS id,
+               name,
+               description,
+               status,
+               version,
+               created_by::text AS created_by,
+               created_at
+        FROM knowledge_data.knowledge_space
+        WHERE tenant_id = #{tenantId}
+          AND status <> 'DELETED'
+          AND (created_at, id) < (#{createdAt}, #{id})
+        ORDER BY created_at DESC, id DESC
+        LIMIT #{limit}
+        ]]>
+    </select>
+</mapper>

@@ -1,0 +1,159 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aiplatform.foundation.modelruntime.adapter.out.persistence.ModelDeploymentMapper">
+
+    <resultMap id="findRequestResultMap" type="com.aiplatform.foundation.modelruntime.adapter.out.persistence.ModelDeploymentRequestRow">
+        <result column="request_fingerprint" property="requestFingerprint"/>
+        <result column="model_deployment_id" property="modelDeploymentId"/>
+    </resultMap>
+
+    <resultMap id="modelDeploymentRow" type="com.aiplatform.foundation.modelruntime.adapter.out.persistence.ModelDeploymentRow">
+        <result column="tenant_id" property="tenantId"/>
+        <result column="id" property="id"/>
+        <result column="provider_connection_id" property="providerConnectionId"/>
+        <result column="provider_connection_revision" property="providerConnectionRevision"/>
+        <result column="model_code" property="modelCode"/>
+        <result column="display_name" property="displayName"/>
+        <result column="model_type" property="modelType"/>
+        <result column="capabilities" property="capabilities"/>
+        <result column="context_window" property="contextWindow"/>
+        <result column="output_limit" property="outputLimit"/>
+        <result column="embedding_dimension" property="embeddingDimension"/>
+        <result column="status" property="status"/>
+        <result column="version" property="version"/>
+        <result column="created_at" property="createdAt"/>
+    </resultMap>
+
+    <select id="lockTenant" resultType="java.lang.String">
+        <![CDATA[
+        SELECT pg_advisory_xact_lock(hashtextextended(#{tenantId}, 20260729))
+        ]]>
+    </select>
+
+    <select id="findRequest" resultMap="findRequestResultMap">
+        <![CDATA[
+        SELECT request_fingerprint,
+               model_deployment_id::text AS model_deployment_id
+        FROM model_runtime.model_deployment_request
+        WHERE tenant_id = #{tenantId}
+          AND idempotency_key_hash = #{keyHash}
+        ]]>
+    </select>
+
+    <select id="countAll" resultType="int">
+        <![CDATA[
+        SELECT count(*)
+        FROM model_runtime.model_deployment
+        WHERE tenant_id = #{tenantId}
+        ]]>
+    </select>
+
+    <insert id="insertDeployment">
+        <![CDATA[
+        INSERT INTO model_runtime.model_deployment (
+            tenant_id, id, provider_connection_id, provider_connection_revision,
+            model_code, display_name, model_type, capabilities, context_window,
+            output_limit, embedding_dimension, status, version, created_at
+        ) VALUES (
+            #{tenantId}, #{id}, #{providerConnectionId}, #{providerConnectionRevision},
+            #{modelCode}, #{displayName}, #{modelType},
+            string_to_array(#{capabilities}, ','), #{contextWindow},
+            #{outputLimit}, #{embeddingDimension}, #{status}, #{version}, #{createdAt}
+        )
+        ]]>
+    </insert>
+
+    <insert id="insertRequest">
+        <![CDATA[
+        INSERT INTO model_runtime.model_deployment_request (
+            tenant_id, idempotency_key_hash, request_fingerprint,
+            model_deployment_id, created_at
+        ) VALUES (
+            #{tenantId}, #{keyHash}, #{requestFingerprint},
+            #{modelDeploymentId}, #{createdAt}
+        )
+        ]]>
+    </insert>
+
+    <select id="findById" resultMap="modelDeploymentRow">
+        <![CDATA[
+        SELECT tenant_id::text AS tenant_id,
+               id::text AS id,
+               provider_connection_id::text AS provider_connection_id,
+               provider_connection_revision,
+               model_code,
+               display_name,
+               model_type,
+               array_to_string(capabilities, ',') AS capabilities,
+               context_window,
+               output_limit,
+               embedding_dimension,
+               status,
+               version,
+               created_at
+        FROM model_runtime.model_deployment
+        WHERE tenant_id = #{tenantId}
+          AND id = #{id}
+        ]]>
+    </select>
+
+    <select id="findFirstPage" resultMap="modelDeploymentRow">
+        <![CDATA[
+        SELECT tenant_id::text AS tenant_id,
+               id::text AS id,
+               provider_connection_id::text AS provider_connection_id,
+               provider_connection_revision,
+               model_code,
+               display_name,
+               model_type,
+               array_to_string(capabilities, ',') AS capabilities,
+               context_window,
+               output_limit,
+               embedding_dimension,
+               status,
+               version,
+               created_at
+        FROM model_runtime.model_deployment
+        WHERE tenant_id = #{tenantId}
+        ORDER BY created_at DESC, id DESC
+        LIMIT #{limit}
+        ]]>
+    </select>
+
+    <select id="findAfter" resultMap="modelDeploymentRow">
+        <![CDATA[
+        SELECT tenant_id::text AS tenant_id,
+               id::text AS id,
+               provider_connection_id::text AS provider_connection_id,
+               provider_connection_revision,
+               model_code,
+               display_name,
+               model_type,
+               array_to_string(capabilities, ',') AS capabilities,
+               context_window,
+               output_limit,
+               embedding_dimension,
+               status,
+               version,
+               created_at
+        FROM model_runtime.model_deployment
+        WHERE tenant_id = #{tenantId}
+          AND (created_at, id) < (#{createdAt}, #{id})
+        ORDER BY created_at DESC, id DESC
+        LIMIT #{limit}
+        ]]>
+    </select>
+
+    <update id="updateStatus">
+        <![CDATA[
+        UPDATE model_runtime.model_deployment
+        SET status = #{status},
+            version = #{nextVersion}
+        WHERE tenant_id = #{tenantId}
+          AND id = #{id}
+          AND version = #{expectedVersion}
+        ]]>
+    </update>
+</mapper>

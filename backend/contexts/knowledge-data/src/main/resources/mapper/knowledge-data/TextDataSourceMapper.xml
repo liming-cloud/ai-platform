@@ -1,0 +1,294 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aiplatform.foundation.knowledgedata.adapter.out.persistence.TextDataSourceMapper">
+
+    <resultMap id="textDataSourceRow" type="com.aiplatform.foundation.knowledgedata.adapter.out.persistence.TextDataSourceRow">
+        <result column="tenant_id" property="tenantId"/>
+        <result column="knowledge_space_id" property="knowledgeSpaceId"/>
+        <result column="id" property="id"/>
+        <result column="name" property="name"/>
+        <result column="status" property="status"/>
+        <result column="version" property="version"/>
+        <result column="content_version" property="contentVersion"/>
+        <result column="published_content_version" property="publishedContentVersion"/>
+        <result column="created_by" property="createdBy"/>
+        <result column="created_at" property="createdAt"/>
+    </resultMap>
+
+    <resultMap id="findRequestResultMap" type="com.aiplatform.foundation.knowledgedata.adapter.out.persistence.TextDataSourceRequestRow">
+        <result column="request_fingerprint" property="requestFingerprint"/>
+        <result column="knowledge_space_id" property="knowledgeSpaceId"/>
+        <result column="data_source_id" property="dataSourceId"/>
+        <result column="result_status" property="resultStatus"/>
+        <result column="result_version" property="resultVersion"/>
+        <result column="result_content_version" property="resultContentVersion"/>
+        <result column="result_published_content_version" property="resultPublishedContentVersion"/>
+    </resultMap>
+
+    <resultMap id="findContentResultMap" type="com.aiplatform.foundation.knowledgedata.adapter.out.persistence.TextContentRow">
+        <result column="version" property="version"/>
+        <result column="object_key" property="objectKey"/>
+        <result column="sha256" property="sha256"/>
+        <result column="byte_size" property="byteSize"/>
+        <result column="media_type" property="mediaType"/>
+        <result column="created_at" property="createdAt"/>
+    </resultMap>
+
+    <select id="lockTenant" resultType="java.lang.String">
+        <![CDATA[
+        SELECT pg_advisory_xact_lock(hashtextextended(#{tenantId}, 20260728))
+        ]]>
+    </select>
+
+    <select id="countKnowledgeSpace" resultType="int">
+        <![CDATA[
+        SELECT count(*)
+        FROM knowledge_data.knowledge_space
+        WHERE tenant_id = #{tenantId}
+          AND id = #{knowledgeSpaceId}
+          AND status <> 'DELETED'
+        ]]>
+    </select>
+
+    <select id="countTenantSources" resultType="int">
+        <![CDATA[
+        SELECT count(*)
+        FROM knowledge_data.text_data_source
+        WHERE tenant_id = #{tenantId}
+        ]]>
+    </select>
+
+    <insert id="insertSource">
+        <![CDATA[
+        INSERT INTO knowledge_data.text_data_source (
+            tenant_id,
+            knowledge_space_id,
+            id,
+            name,
+            status,
+            version,
+            content_version,
+            published_content_version,
+            created_by,
+            created_at
+        ) VALUES (
+            #{tenantId},
+            #{knowledgeSpaceId},
+            #{id},
+            #{name},
+            #{status},
+            #{version},
+            #{contentVersion},
+            #{publishedContentVersion},
+            #{createdBy},
+            #{createdAt}
+        )
+        ]]>
+    </insert>
+
+    <select id="findByIdForUpdate" resultMap="textDataSourceRow">
+        <![CDATA[
+        SELECT tenant_id::text AS tenant_id,
+               knowledge_space_id::text AS knowledge_space_id,
+               id::text AS id,
+               name,
+               status,
+               version,
+               content_version,
+               published_content_version,
+               created_by::text AS created_by,
+               created_at
+        FROM knowledge_data.text_data_source
+        WHERE tenant_id = #{tenantId}
+          AND knowledge_space_id = #{knowledgeSpaceId}
+          AND id = #{id}
+        FOR UPDATE
+        ]]>
+    </select>
+
+    <select id="findById" resultMap="textDataSourceRow">
+        <![CDATA[
+        SELECT tenant_id::text AS tenant_id,
+               knowledge_space_id::text AS knowledge_space_id,
+               id::text AS id,
+               name,
+               status,
+               version,
+               content_version,
+               published_content_version,
+               created_by::text AS created_by,
+               created_at
+        FROM knowledge_data.text_data_source
+        WHERE tenant_id = #{tenantId}
+          AND knowledge_space_id = #{knowledgeSpaceId}
+          AND id = #{id}
+        ]]>
+    </select>
+
+    <select id="findFirstPage" resultMap="textDataSourceRow">
+        <![CDATA[
+        SELECT tenant_id::text AS tenant_id,
+               knowledge_space_id::text AS knowledge_space_id,
+               id::text AS id,
+               name,
+               status,
+               version,
+               content_version,
+               published_content_version,
+               created_by::text AS created_by,
+               created_at
+        FROM knowledge_data.text_data_source
+        WHERE tenant_id = #{tenantId}
+          AND knowledge_space_id = #{knowledgeSpaceId}
+        ORDER BY created_at DESC, id DESC
+        LIMIT #{limit}
+        ]]>
+    </select>
+
+    <select id="findAfter" resultMap="textDataSourceRow">
+        <![CDATA[
+        SELECT tenant_id::text AS tenant_id,
+               knowledge_space_id::text AS knowledge_space_id,
+               id::text AS id,
+               name,
+               status,
+               version,
+               content_version,
+               published_content_version,
+               created_by::text AS created_by,
+               created_at
+        FROM knowledge_data.text_data_source
+        WHERE tenant_id = #{tenantId}
+          AND knowledge_space_id = #{knowledgeSpaceId}
+          AND (created_at, id) < (#{createdAt}, #{id})
+        ORDER BY created_at DESC, id DESC
+        LIMIT #{limit}
+        ]]>
+    </select>
+
+    <select id="findRequest" resultMap="findRequestResultMap">
+        <![CDATA[
+        SELECT request_fingerprint,
+               knowledge_space_id::text AS knowledge_space_id,
+               data_source_id::text AS data_source_id,
+               result_status,
+               result_version,
+               result_content_version,
+               result_published_content_version
+        FROM knowledge_data.text_data_source_request
+        WHERE tenant_id = #{tenantId}
+          AND operation = #{operation}
+          AND idempotency_key_hash = #{keyHash}
+        ]]>
+    </select>
+
+    <select id="findContent" resultMap="findContentResultMap">
+        <![CDATA[
+        SELECT version,
+               object_key,
+               sha256,
+               byte_size,
+               media_type,
+               created_at
+        FROM knowledge_data.text_data_source_content
+        WHERE tenant_id = #{tenantId}
+          AND knowledge_space_id = #{knowledgeSpaceId}
+          AND data_source_id = #{dataSourceId}
+          AND version = #{version}
+        ]]>
+    </select>
+
+    <insert id="insertContent">
+        <![CDATA[
+        INSERT INTO knowledge_data.text_data_source_content (
+            tenant_id,
+            knowledge_space_id,
+            data_source_id,
+            version,
+            object_key,
+            sha256,
+            byte_size,
+            media_type,
+            created_at
+        ) VALUES (
+            #{tenantId},
+            #{knowledgeSpaceId},
+            #{dataSourceId},
+            #{version},
+            #{objectKey},
+            #{sha256},
+            #{byteSize},
+            #{mediaType},
+            #{createdAt}
+        )
+        ]]>
+    </insert>
+
+    <update id="updateSource">
+        <![CDATA[
+        UPDATE knowledge_data.text_data_source
+        SET status = #{status},
+            version = #{newVersion},
+            content_version = #{contentVersion},
+            published_content_version = #{publishedContentVersion}
+        WHERE tenant_id = #{tenantId}
+          AND knowledge_space_id = #{knowledgeSpaceId}
+          AND id = #{id}
+          AND version = #{expectedVersion}
+        ]]>
+    </update>
+
+    <insert id="insertRequest">
+        <![CDATA[
+        INSERT INTO knowledge_data.text_data_source_request (
+            tenant_id,
+            operation,
+            idempotency_key_hash,
+            request_fingerprint,
+            knowledge_space_id,
+            data_source_id,
+            result_status,
+            result_version,
+            result_content_version,
+            result_published_content_version,
+            created_at
+        ) VALUES (
+            #{tenantId},
+            #{operation},
+            #{keyHash},
+            #{requestFingerprint},
+            #{knowledgeSpaceId},
+            #{dataSourceId},
+            #{resultStatus},
+            #{resultVersion},
+            #{resultContentVersion},
+            #{resultPublishedContentVersion},
+            #{createdAt}
+        )
+        ]]>
+    </insert>
+
+    <insert id="insertOutboxEvent">
+        <![CDATA[
+        INSERT INTO knowledge_data.outbox_event (
+            tenant_id,
+            event_id,
+            aggregate_type,
+            aggregate_id,
+            event_type,
+            payload,
+            occurred_at
+        ) VALUES (
+            #{tenantId},
+            #{eventId},
+            'TEXT_DATA_SOURCE',
+            #{aggregateId},
+            #{eventType},
+            CAST(#{payload} AS JSONB),
+            #{occurredAt}
+        )
+        ]]>
+    </insert>
+</mapper>
