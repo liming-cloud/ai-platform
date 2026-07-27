@@ -97,6 +97,7 @@
 | --- | --- | --- | --- |
 | 后端架构整改研究基线 | `docs/research/WP-0008-architecture-remediation-baseline.md` | `597fe687f5d91c7f378cb2fdbde59ebcb909e7a7` | 8 个阻断问题、两种结构方案和官方框架依据已固定；实现证据待产生 |
 | 平台持久化与雪花标识基座 | `project/evidence/WP-0008-persistence-foundation.md` | `29e9cc098cb03582ee1ad89e409160eb97fe8fd9` | 新增统一雪花标识、MyBatis-Plus 配置和债务递减门禁；216 项后端测试和 7 项门禁测试通过 |
+| MyBatis 映射文件整改 | `project/evidence/WP-0008-mybatis-xml.md` | `8104ea62c251eec102bf8fe0de5c858d42ad8448` | 96 条 SQL 迁入 8 个 Mapper XML，注解 SQL 归零，216 项后端测试通过 |
 
 ## 证据规则
 
