@@ -2,6 +2,7 @@ package com.aiplatform.foundation.assistantdelivery.infrastructure.configuration
 
 import com.aiplatform.foundation.assistantdelivery.domain.assistant.repository.AssistantRepository;
 import com.aiplatform.foundation.assistantdelivery.infrastructure.persistence.assistant.mapper.AssistantMapper;
+import com.aiplatform.foundation.assistantdelivery.infrastructure.persistence.assistant.mapper.AssistantRequestMapper;
 import com.aiplatform.foundation.assistantdelivery.infrastructure.persistence.assistant.mapper.AssistantVersionMapper;
 import com.aiplatform.foundation.assistantdelivery.infrastructure.persistence.assistant.repository.PostgresAssistantRepository;
 import com.baomidou.mybatisplus.autoconfigure.MybatisPlusAutoConfiguration;
@@ -30,8 +31,13 @@ public class AssistantDeliveryPersistenceAutoConfiguration {
     @ConditionalOnMissingBean
     AssistantRepository assistantRepository(
             AssistantMapper mapper,
+            AssistantRequestMapper requestMapper,
             AssistantVersionMapper versionMapper,
             PlatformTransactionManager transactions) {
-        return new PostgresAssistantRepository(mapper, versionMapper, transactions);
+        return new PostgresAssistantRepository(
+                mapper,
+                requestMapper,
+                versionMapper,
+                transactions);
     }
 }

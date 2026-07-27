@@ -20,6 +20,7 @@ import com.aiplatform.foundation.assistantdelivery.domain.assistant.model.Citati
 import com.aiplatform.foundation.assistantdelivery.domain.assistant.model.CreatorId;
 import com.aiplatform.foundation.assistantdelivery.domain.assistant.model.RefusalPolicy;
 import com.aiplatform.foundation.assistantdelivery.infrastructure.persistence.assistant.mapper.AssistantMapper;
+import com.aiplatform.foundation.assistantdelivery.infrastructure.persistence.assistant.mapper.AssistantRequestMapper;
 import com.aiplatform.foundation.assistantdelivery.infrastructure.persistence.assistant.mapper.AssistantVersionMapper;
 import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
 import java.sql.Timestamp;
@@ -399,9 +400,14 @@ class PostgresAssistantRepositoryTest {
         @Bean
         AssistantRepository assistantRepository(
                 AssistantMapper mapper,
+                AssistantRequestMapper requestMapper,
                 AssistantVersionMapper versionMapper,
                 PlatformTransactionManager transactions) {
-            return new PostgresAssistantRepository(mapper, versionMapper, transactions);
+            return new PostgresAssistantRepository(
+                    mapper,
+                    requestMapper,
+                    versionMapper,
+                    transactions);
         }
     }
 

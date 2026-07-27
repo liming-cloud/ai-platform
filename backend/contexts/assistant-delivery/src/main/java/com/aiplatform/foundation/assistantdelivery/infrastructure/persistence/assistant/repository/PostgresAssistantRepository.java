@@ -25,10 +25,11 @@ import com.aiplatform.foundation.assistantdelivery.domain.assistant.model.Citati
 import com.aiplatform.foundation.assistantdelivery.domain.assistant.model.CreatorId;
 import com.aiplatform.foundation.assistantdelivery.domain.assistant.model.RefusalPolicy;
 import com.aiplatform.foundation.assistantdelivery.infrastructure.persistence.assistant.entity.AssistantEntity;
+import com.aiplatform.foundation.assistantdelivery.infrastructure.persistence.assistant.entity.AssistantRequestEntity;
 import com.aiplatform.foundation.assistantdelivery.infrastructure.persistence.assistant.entity.AssistantVersionEntity;
 import com.aiplatform.foundation.assistantdelivery.infrastructure.persistence.assistant.mapper.AssistantMapper;
+import com.aiplatform.foundation.assistantdelivery.infrastructure.persistence.assistant.mapper.AssistantRequestMapper;
 import com.aiplatform.foundation.assistantdelivery.infrastructure.persistence.assistant.mapper.AssistantVersionMapper;
-import com.aiplatform.foundation.assistantdelivery.infrastructure.persistence.assistant.projection.AssistantRequestRow;
 import com.aiplatform.foundation.assistantdelivery.infrastructure.persistence.assistant.projection.PublishedAssistantRow;
 import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
@@ -54,14 +55,19 @@ public final class PostgresAssistantRepository implements AssistantRepository {
     private static final String PUBLISH_VERSION = "PUBLISH_VERSION";
 
     private final AssistantMapper mapper;
+    private final AssistantRequestMapper requestMapper;
     private final AssistantVersionMapper versionMapper;
     private final TransactionTemplate transactions;
 
     public PostgresAssistantRepository(
             AssistantMapper mapper,
+            AssistantRequestMapper requestMapper,
             AssistantVersionMapper versionMapper,
             PlatformTransactionManager transactionManager) {
         this.mapper = Objects.requireNonNull(mapper, "助手映射器不能为空");
+        this.requestMapper = Objects.requireNonNull(
+                requestMapper,
+                "助手幂等请求映射器不能为空");
         this.versionMapper = Objects.requireNonNull(
                 versionMapper,
                 "助手版本映射器不能为空");
@@ -167,7 +173,7 @@ public final class PostgresAssistantRepository implements AssistantRepository {
         Objects.requireNonNull(assistantVersionId, "助手版本标识不能为空");
         Objects.requireNonNull(idempotencyKey, "幂等键不能为空");
         Objects.requireNonNull(requestFingerprint, "请求指纹不能为空");
-        var request = mapper.findRequest(
+        var request = findRequest(
                 tenantId.value(),
                 PUBLISH_VERSION,
                 sha256(idempotencyKey));
@@ -175,8 +181,7 @@ public final class PostgresAssistantRepository implements AssistantRepository {
             return Optional.empty();
         }
         requireFingerprint(request, requestFingerprint);
-        if (!assistantVersionId.toString().equals(
-                request.getAssistantVersionId())) {
+        if (assistantVersionId.value() != request.getAssistantVersionId()) {
             throw new AssistantIdempotencyConflictException();
         }
         var row = versionMapper.selectOne(
@@ -207,12 +212,12 @@ public final class PostgresAssistantRepository implements AssistantRepository {
         var tenantId = assistant.tenantId().value();
         mapper.lockScope(Long.toString(tenantId));
         var keyHash = sha256(creation.idempotencyKey());
-        var existing = mapper.findRequest(tenantId, CREATE_ASSISTANT, keyHash);
+        var existing = findRequest(tenantId, CREATE_ASSISTANT, keyHash);
         if (existing != null) {
             requireFingerprint(existing, creation.requestFingerprint());
             var replayed = mapper.selectOne(new LambdaQueryWrapper<AssistantEntity>()
                     .eq(AssistantEntity::getTenantId, tenantId)
-                    .eq(AssistantEntity::getId, Long.parseLong(existing.getAssistantId())));
+                    .eq(AssistantEntity::getId, existing.getAssistantId()));
             if (replayed == null) {
                 throw new IllegalStateException("幂等记录引用的助手不存在");
             }
@@ -224,14 +229,14 @@ public final class PostgresAssistantRepository implements AssistantRepository {
         }
         try {
             mapper.insert(toEntity(assistant));
-            mapper.insertRequest(
+            requestMapper.insert(requestEntity(
                     tenantId,
                     CREATE_ASSISTANT,
                     keyHash,
                     creation.requestFingerprint(),
                     assistant.id().value(),
                     null,
-                    assistant.createdAt());
+                    assistant.createdAt()));
         } catch (DuplicateKeyException exception) {
             throw new AssistantNameConflictException();
         }
@@ -246,12 +251,12 @@ public final class PostgresAssistantRepository implements AssistantRepository {
         var assistantId = expected.id().value();
         mapper.lockScope(tenantId + ":" + assistantId);
         var keyHash = sha256(creation.idempotencyKey());
-        var existing = mapper.findRequest(tenantId, CREATE_VERSION, keyHash);
+        var existing = findRequest(tenantId, CREATE_VERSION, keyHash);
         if (existing != null) {
             requireFingerprint(existing, creation.requestFingerprint());
             var replayed = versionMapper.selectOne(versionQuery(
                     tenantId,
-                    Long.parseLong(existing.getAssistantVersionId())));
+                    existing.getAssistantVersionId()));
             if (replayed == null) {
                 throw new IllegalStateException("幂等记录引用的助手版本不存在");
             }
@@ -289,14 +294,14 @@ public final class PostgresAssistantRepository implements AssistantRepository {
                 throw new AssistantConcurrentModificationException();
             }
             versionMapper.insert(toVersionEntity(version));
-            mapper.insertRequest(
+            requestMapper.insert(requestEntity(
                     tenantId,
                     CREATE_VERSION,
                     keyHash,
                     creation.requestFingerprint(),
                     assistantId,
                     version.id().value(),
-                    version.createdAt());
+                    version.createdAt()));
         } catch (DuplicateKeyException exception) {
             throw new AssistantConcurrentModificationException();
         }
@@ -309,12 +314,12 @@ public final class PostgresAssistantRepository implements AssistantRepository {
         var tenantId = version.tenantId().value();
         mapper.lockScope(tenantId + ":" + version.id().value());
         var keyHash = sha256(publication.idempotencyKey());
-        var existing = mapper.findRequest(tenantId, PUBLISH_VERSION, keyHash);
+        var existing = findRequest(tenantId, PUBLISH_VERSION, keyHash);
         if (existing != null) {
             requireFingerprint(existing, publication.requestFingerprint());
             var replayed = versionMapper.selectOne(versionQuery(
                     tenantId,
-                    Long.parseLong(existing.getAssistantVersionId())));
+                    existing.getAssistantVersionId()));
             if (replayed == null) {
                 throw new IllegalStateException("幂等记录引用的助手版本不存在");
             }
@@ -335,14 +340,14 @@ public final class PostgresAssistantRepository implements AssistantRepository {
                 != 1) {
             throw new AssistantConcurrentModificationException();
         }
-        mapper.insertRequest(
+        requestMapper.insert(requestEntity(
                 tenantId,
                 PUBLISH_VERSION,
                 keyHash,
                 publication.requestFingerprint(),
                 version.assistantId().value(),
                 version.id().value(),
-                version.publishedAt());
+                version.publishedAt()));
         return new AssistantVersionPublicationOutcome(version, false);
     }
 
@@ -445,11 +450,43 @@ public final class PostgresAssistantRepository implements AssistantRepository {
     }
 
     private static void requireFingerprint(
-            AssistantRequestRow row,
+            AssistantRequestEntity row,
             String expected) {
         if (!row.getRequestFingerprint().equals(expected)) {
             throw new AssistantIdempotencyConflictException();
         }
+    }
+
+    private AssistantRequestEntity findRequest(
+            long tenantId,
+            String operation,
+            String keyHash) {
+        return requestMapper.selectOne(
+                new LambdaQueryWrapper<AssistantRequestEntity>()
+                        .eq(AssistantRequestEntity::getTenantId, tenantId)
+                        .eq(AssistantRequestEntity::getOperation, operation)
+                        .eq(
+                                AssistantRequestEntity::getIdempotencyKeyHash,
+                                keyHash));
+    }
+
+    private static AssistantRequestEntity requestEntity(
+            long tenantId,
+            String operation,
+            String keyHash,
+            String requestFingerprint,
+            long assistantId,
+            Long assistantVersionId,
+            java.time.Instant createdAt) {
+        var entity = new AssistantRequestEntity();
+        entity.setTenantId(tenantId);
+        entity.setOperation(operation);
+        entity.setIdempotencyKeyHash(keyHash);
+        entity.setRequestFingerprint(requestFingerprint);
+        entity.setAssistantId(assistantId);
+        entity.setAssistantVersionId(assistantVersionId);
+        entity.setCreatedAt(createdAt);
+        return entity;
     }
 
     private static String sha256(String value) {
