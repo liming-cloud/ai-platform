@@ -1,13 +1,13 @@
 package com.aiplatform.foundation.knowledgedata.api;
 
-import com.aiplatform.foundation.knowledgedata.api.model.CreateTextDataSourceCommand;
-import com.aiplatform.foundation.knowledgedata.api.model.CreateTextDataSourceResult;
-import com.aiplatform.foundation.knowledgedata.api.model.ListTextDataSourcesQuery;
-import com.aiplatform.foundation.knowledgedata.api.model.PublishTextDataSourceCommand;
-import com.aiplatform.foundation.knowledgedata.api.model.PublishTextDataSourceResult;
-import com.aiplatform.foundation.knowledgedata.api.model.TextDataSourcePage;
-import com.aiplatform.foundation.knowledgedata.api.model.UploadTextContentCommand;
-import com.aiplatform.foundation.knowledgedata.api.model.UploadTextContentResult;
+import com.aiplatform.foundation.knowledgedata.api.model.datasource.CreateTextDataSourceCommand;
+import com.aiplatform.foundation.knowledgedata.api.model.datasource.CreateTextDataSourceResult;
+import com.aiplatform.foundation.knowledgedata.api.model.datasource.ListTextDataSourcesQuery;
+import com.aiplatform.foundation.knowledgedata.api.model.datasource.PublishTextDataSourceCommand;
+import com.aiplatform.foundation.knowledgedata.api.model.datasource.PublishTextDataSourceResult;
+import com.aiplatform.foundation.knowledgedata.api.model.datasource.TextDataSourcePage;
+import com.aiplatform.foundation.knowledgedata.api.model.datasource.UploadTextContentCommand;
+import com.aiplatform.foundation.knowledgedata.api.model.datasource.UploadTextContentResult;
 
 /**
  * 文本数据源登记、查询和发布的公开应用契约。

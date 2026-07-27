@@ -4,12 +4,12 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.aiplatform.foundation.modelruntime.api.model.ChatDeploymentRef;
-import com.aiplatform.foundation.modelruntime.api.model.ChatMessage;
-import com.aiplatform.foundation.modelruntime.api.model.ChatRequest;
-import com.aiplatform.foundation.modelruntime.api.model.ChatRole;
-import com.aiplatform.foundation.modelruntime.api.model.EmbeddingDeploymentRef;
-import com.aiplatform.foundation.modelruntime.api.model.EmbeddingRequest;
+import com.aiplatform.foundation.modelruntime.api.model.chat.ChatDeploymentRef;
+import com.aiplatform.foundation.modelruntime.api.model.chat.ChatMessage;
+import com.aiplatform.foundation.modelruntime.api.model.chat.ChatRequest;
+import com.aiplatform.foundation.modelruntime.api.model.chat.ChatRole;
+import com.aiplatform.foundation.modelruntime.api.model.embedding.EmbeddingDeploymentRef;
+import com.aiplatform.foundation.modelruntime.api.model.embedding.EmbeddingRequest;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
@@ -178,9 +178,9 @@ class SpringAiModelAdapterTest {
     }
 
     private static final class CollectingSubscriber
-            implements Flow.Subscriber<com.aiplatform.foundation.modelruntime.api.model.ChatChunk> {
+            implements Flow.Subscriber<com.aiplatform.foundation.modelruntime.api.model.chat.ChatChunk> {
 
-        private final List<com.aiplatform.foundation.modelruntime.api.model.ChatChunk> items =
+        private final List<com.aiplatform.foundation.modelruntime.api.model.chat.ChatChunk> items =
                 new ArrayList<>();
         private final CountDownLatch completed = new CountDownLatch(1);
 
@@ -191,7 +191,7 @@ class SpringAiModelAdapterTest {
 
         @Override
         public void onNext(
-                com.aiplatform.foundation.modelruntime.api.model.ChatChunk item) {
+                com.aiplatform.foundation.modelruntime.api.model.chat.ChatChunk item) {
             items.add(item);
         }
 

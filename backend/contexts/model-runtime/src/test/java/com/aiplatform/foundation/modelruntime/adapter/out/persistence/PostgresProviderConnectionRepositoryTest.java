@@ -6,10 +6,10 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.aiplatform.foundation.kernel.tenant.TenantId;
-import com.aiplatform.foundation.modelruntime.api.model.ProviderKind;
-import com.aiplatform.foundation.modelruntime.application.catalog.ProviderConnectionIdempotencyConflictException;
-import com.aiplatform.foundation.modelruntime.application.catalog.ProviderConnectionNameConflictException;
-import com.aiplatform.foundation.modelruntime.application.catalog.ProviderConnectionQuotaExceededException;
+import com.aiplatform.foundation.modelruntime.api.model.provider.ProviderKind;
+import com.aiplatform.foundation.modelruntime.application.catalog.provider.ProviderConnectionIdempotencyConflictException;
+import com.aiplatform.foundation.modelruntime.application.catalog.provider.ProviderConnectionNameConflictException;
+import com.aiplatform.foundation.modelruntime.application.catalog.provider.ProviderConnectionQuotaExceededException;
 import com.aiplatform.foundation.modelruntime.application.port.out.ProviderConnectionCreation;
 import com.aiplatform.foundation.modelruntime.application.port.out.ProviderConnectionRepository;
 import com.aiplatform.foundation.modelruntime.domain.model.AuthenticationType;

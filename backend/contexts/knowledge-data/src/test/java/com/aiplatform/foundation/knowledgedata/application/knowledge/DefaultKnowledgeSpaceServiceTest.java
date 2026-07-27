@@ -5,12 +5,12 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.aiplatform.foundation.kernel.tenant.TenantId;
-import com.aiplatform.foundation.knowledgedata.api.model.CreateKnowledgeSpaceCommand;
-import com.aiplatform.foundation.knowledgedata.api.model.ListKnowledgeSpacesQuery;
-import com.aiplatform.foundation.knowledgedata.application.port.out.KnowledgeSpaceCreation;
-import com.aiplatform.foundation.knowledgedata.application.port.out.KnowledgeSpaceCreationOutcome;
-import com.aiplatform.foundation.knowledgedata.application.port.out.KnowledgeSpaceRepository;
-import com.aiplatform.foundation.knowledgedata.application.port.out.KnowledgeSpaceSlice;
+import com.aiplatform.foundation.knowledgedata.api.model.knowledge.CreateKnowledgeSpaceCommand;
+import com.aiplatform.foundation.knowledgedata.api.model.knowledge.ListKnowledgeSpacesQuery;
+import com.aiplatform.foundation.knowledgedata.application.port.out.knowledge.KnowledgeSpaceCreation;
+import com.aiplatform.foundation.knowledgedata.application.port.out.knowledge.KnowledgeSpaceCreationOutcome;
+import com.aiplatform.foundation.knowledgedata.application.port.out.knowledge.KnowledgeSpaceRepository;
+import com.aiplatform.foundation.knowledgedata.application.port.out.knowledge.KnowledgeSpaceSlice;
 import com.aiplatform.foundation.knowledgedata.domain.model.KnowledgeSpace;
 import com.aiplatform.foundation.security.identity.AccessChannel;
 import com.aiplatform.foundation.security.identity.CredentialType;

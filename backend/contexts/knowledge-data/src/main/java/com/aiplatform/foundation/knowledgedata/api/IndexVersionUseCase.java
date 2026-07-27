@@ -1,11 +1,11 @@
 package com.aiplatform.foundation.knowledgedata.api;
 
-import com.aiplatform.foundation.knowledgedata.api.model.CreateIndexVersionCommand;
-import com.aiplatform.foundation.knowledgedata.api.model.CreateIndexVersionResult;
-import com.aiplatform.foundation.knowledgedata.api.model.IndexVersionPage;
-import com.aiplatform.foundation.knowledgedata.api.model.ListIndexVersionsQuery;
-import com.aiplatform.foundation.knowledgedata.api.model.PublishIndexVersionCommand;
-import com.aiplatform.foundation.knowledgedata.api.model.PublishIndexVersionResult;
+import com.aiplatform.foundation.knowledgedata.api.model.index.CreateIndexVersionCommand;
+import com.aiplatform.foundation.knowledgedata.api.model.index.CreateIndexVersionResult;
+import com.aiplatform.foundation.knowledgedata.api.model.index.IndexVersionPage;
+import com.aiplatform.foundation.knowledgedata.api.model.index.ListIndexVersionsQuery;
+import com.aiplatform.foundation.knowledgedata.api.model.index.PublishIndexVersionCommand;
+import com.aiplatform.foundation.knowledgedata.api.model.index.PublishIndexVersionResult;
 
 /**
  * 索引版本创建、查看和发布的公共用例。

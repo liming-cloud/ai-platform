@@ -2,10 +2,10 @@ package com.aiplatform.foundation.provider.openaicompatible;
 
 import com.aiplatform.foundation.modelruntime.api.extension.EmbeddingModelFactory;
 import com.aiplatform.foundation.modelruntime.api.invocation.EmbeddingModelPort;
-import com.aiplatform.foundation.modelruntime.api.model.EmbeddingDeploymentRef;
-import com.aiplatform.foundation.modelruntime.api.model.ModelRuntimeSpecification;
-import com.aiplatform.foundation.modelruntime.api.model.ModelType;
-import com.aiplatform.foundation.modelruntime.api.model.ProviderKind;
+import com.aiplatform.foundation.modelruntime.api.model.embedding.EmbeddingDeploymentRef;
+import com.aiplatform.foundation.modelruntime.api.model.common.ModelRuntimeSpecification;
+import com.aiplatform.foundation.modelruntime.api.model.common.ModelType;
+import com.aiplatform.foundation.modelruntime.api.model.provider.ProviderKind;
 import com.aiplatform.foundation.provider.springai.SpringAiEmbeddingModelAdapter;
 import com.aiplatform.foundation.security.egress.OutboundEndpointPolicy;
 import com.aiplatform.foundation.security.secret.SecretResolver;

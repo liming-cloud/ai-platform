@@ -1,9 +1,9 @@
 package com.aiplatform.foundation.assistantdelivery.application;
 
 import com.aiplatform.foundation.assistantdelivery.api.QueryAssistantCatalogUseCase;
-import com.aiplatform.foundation.assistantdelivery.api.model.ListQueryAssistantsQuery;
-import com.aiplatform.foundation.assistantdelivery.api.model.QueryAssistantPage;
-import com.aiplatform.foundation.assistantdelivery.api.model.QueryAssistantView;
+import com.aiplatform.foundation.assistantdelivery.api.model.query.ListQueryAssistantsQuery;
+import com.aiplatform.foundation.assistantdelivery.api.model.query.QueryAssistantPage;
+import com.aiplatform.foundation.assistantdelivery.api.model.query.QueryAssistantView;
 import com.aiplatform.foundation.assistantdelivery.application.port.out.AssistantRepository;
 import com.aiplatform.foundation.assistantdelivery.application.port.out.PublishedAssistantSummary;
 import com.aiplatform.foundation.security.identity.PermissionCode;

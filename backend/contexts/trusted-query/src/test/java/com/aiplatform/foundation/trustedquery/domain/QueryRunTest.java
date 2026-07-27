@@ -4,7 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.aiplatform.foundation.kernel.tenant.TenantId;
-import com.aiplatform.foundation.modelruntime.api.model.ModelUsage;
+import com.aiplatform.foundation.modelruntime.api.model.common.ModelUsage;
 import com.aiplatform.foundation.security.identity.MembershipId;
 import java.time.Instant;
 import java.util.List;

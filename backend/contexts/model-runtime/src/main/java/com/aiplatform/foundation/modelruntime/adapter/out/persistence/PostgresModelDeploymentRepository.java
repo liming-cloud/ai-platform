@@ -1,10 +1,10 @@
 package com.aiplatform.foundation.modelruntime.adapter.out.persistence;
 
 import com.aiplatform.foundation.kernel.tenant.TenantId;
-import com.aiplatform.foundation.modelruntime.api.model.ModelCapability;
-import com.aiplatform.foundation.modelruntime.application.catalog.ModelDeploymentIdempotencyConflictException;
-import com.aiplatform.foundation.modelruntime.application.catalog.ModelDeploymentNameConflictException;
-import com.aiplatform.foundation.modelruntime.application.catalog.ModelDeploymentQuotaExceededException;
+import com.aiplatform.foundation.modelruntime.api.model.common.ModelCapability;
+import com.aiplatform.foundation.modelruntime.application.catalog.deployment.ModelDeploymentIdempotencyConflictException;
+import com.aiplatform.foundation.modelruntime.application.catalog.deployment.ModelDeploymentNameConflictException;
+import com.aiplatform.foundation.modelruntime.application.catalog.deployment.ModelDeploymentQuotaExceededException;
 import com.aiplatform.foundation.modelruntime.application.port.out.ModelDeploymentCreation;
 import com.aiplatform.foundation.modelruntime.application.port.out.ModelDeploymentCreationOutcome;
 import com.aiplatform.foundation.modelruntime.application.port.out.ModelDeploymentRepository;
@@ -12,7 +12,7 @@ import com.aiplatform.foundation.modelruntime.application.port.out.ModelDeployme
 import com.aiplatform.foundation.modelruntime.domain.model.ModelDeployment;
 import com.aiplatform.foundation.modelruntime.domain.model.ModelDeploymentId;
 import com.aiplatform.foundation.modelruntime.domain.model.ModelDeploymentStatus;
-import com.aiplatform.foundation.modelruntime.api.model.ModelType;
+import com.aiplatform.foundation.modelruntime.api.model.common.ModelType;
 import com.aiplatform.foundation.modelruntime.domain.model.ProviderConnectionId;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;

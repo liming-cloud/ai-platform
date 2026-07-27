@@ -1,13 +1,13 @@
 package com.aiplatform.foundation.knowledgedata.application.knowledge;
 
 import com.aiplatform.foundation.knowledgedata.api.KnowledgeSpaceUseCase;
-import com.aiplatform.foundation.knowledgedata.api.model.CreateKnowledgeSpaceCommand;
-import com.aiplatform.foundation.knowledgedata.api.model.CreateKnowledgeSpaceResult;
-import com.aiplatform.foundation.knowledgedata.api.model.KnowledgeSpacePage;
-import com.aiplatform.foundation.knowledgedata.api.model.KnowledgeSpaceView;
-import com.aiplatform.foundation.knowledgedata.api.model.ListKnowledgeSpacesQuery;
-import com.aiplatform.foundation.knowledgedata.application.port.out.KnowledgeSpaceCreation;
-import com.aiplatform.foundation.knowledgedata.application.port.out.KnowledgeSpaceRepository;
+import com.aiplatform.foundation.knowledgedata.api.model.knowledge.CreateKnowledgeSpaceCommand;
+import com.aiplatform.foundation.knowledgedata.api.model.knowledge.CreateKnowledgeSpaceResult;
+import com.aiplatform.foundation.knowledgedata.api.model.knowledge.KnowledgeSpacePage;
+import com.aiplatform.foundation.knowledgedata.api.model.knowledge.KnowledgeSpaceView;
+import com.aiplatform.foundation.knowledgedata.api.model.knowledge.ListKnowledgeSpacesQuery;
+import com.aiplatform.foundation.knowledgedata.application.port.out.knowledge.KnowledgeSpaceCreation;
+import com.aiplatform.foundation.knowledgedata.application.port.out.knowledge.KnowledgeSpaceRepository;
 import com.aiplatform.foundation.knowledgedata.domain.model.KnowledgeSpace;
 import com.aiplatform.foundation.knowledgedata.domain.model.KnowledgeSpaceId;
 import com.aiplatform.foundation.kernel.identifier.EntityIdGenerator;

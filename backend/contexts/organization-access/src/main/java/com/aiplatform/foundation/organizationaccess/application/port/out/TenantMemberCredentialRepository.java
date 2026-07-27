@@ -1,6 +1,6 @@
 package com.aiplatform.foundation.organizationaccess.application.port.out;
 
-import com.aiplatform.foundation.organizationaccess.application.authentication.AuthenticatedMember;
+import com.aiplatform.foundation.organizationaccess.domain.authentication.MemberAuthenticationProfile;
 import java.util.Optional;
 
 /**
@@ -9,5 +9,7 @@ import java.util.Optional;
 @FunctionalInterface
 public interface TenantMemberCredentialRepository {
 
-    Optional<AuthenticatedMember> findEnabled(String tenantCode, String loginName);
+    Optional<MemberAuthenticationProfile> findEnabled(
+            String tenantCode,
+            String loginName);
 }

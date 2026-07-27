@@ -1,5 +1,8 @@
 package com.aiplatform.foundation.organizationaccess.application.authentication;
 
+import com.aiplatform.foundation.organizationaccess.domain.authentication.EncodedPassword;
+import com.aiplatform.foundation.organizationaccess.domain.authentication.MemberAuthenticationProfile;
+import com.aiplatform.foundation.organizationaccess.domain.authorization.PermissionGrantSet;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -91,7 +94,7 @@ class DefaultPersonAuthenticationServiceTest {
     }
 
     private static DefaultPersonAuthenticationService service(
-            Optional<AuthenticatedMember> member,
+            Optional<MemberAuthenticationProfile> member,
             PasswordVerifier passwordVerifier,
             SessionIssuer sessionIssuer) {
         TenantMemberCredentialRepository repository =
@@ -115,14 +118,13 @@ class DefaultPersonAuthenticationServiceTest {
         return new DefaultPersonAuthenticationService(repository, passwordVerifier, sessions, "dummy");
     }
 
-    private static AuthenticatedMember member() {
-        return new AuthenticatedMember(
+    private static MemberAuthenticationProfile member() {
+        return new MemberAuthenticationProfile(
                 TENANT_ID,
                 SUBJECT_ID,
                 MEMBERSHIP_ID,
-                "valid",
-                2,
-                Set.of(KNOWLEDGE_WRITE));
+                new EncodedPassword("valid"),
+                new PermissionGrantSet(2, Set.of(KNOWLEDGE_WRITE)));
     }
 
     private static PersonLoginCommand command(String password) {

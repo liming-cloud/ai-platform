@@ -1,7 +1,7 @@
 package com.aiplatform.foundation.modelruntime.api.catalog;
 
 import com.aiplatform.foundation.kernel.tenant.TenantId;
-import com.aiplatform.foundation.modelruntime.api.catalog.model.PublishedEmbeddingDeploymentSnapshot;
+import com.aiplatform.foundation.modelruntime.api.catalog.model.deployment.PublishedEmbeddingDeploymentSnapshot;
 import java.util.Optional;
 
 /**

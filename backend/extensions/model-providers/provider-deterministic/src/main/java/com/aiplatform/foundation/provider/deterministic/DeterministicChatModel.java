@@ -1,12 +1,12 @@
 package com.aiplatform.foundation.provider.deterministic;
 
 import com.aiplatform.foundation.modelruntime.api.invocation.ChatModelPort;
-import com.aiplatform.foundation.modelruntime.api.model.ChatChunk;
-import com.aiplatform.foundation.modelruntime.api.model.ChatDeploymentRef;
-import com.aiplatform.foundation.modelruntime.api.model.ChatRequest;
-import com.aiplatform.foundation.modelruntime.api.model.ChatResult;
-import com.aiplatform.foundation.modelruntime.api.model.ChatRole;
-import com.aiplatform.foundation.modelruntime.api.model.ModelUsage;
+import com.aiplatform.foundation.modelruntime.api.model.chat.ChatChunk;
+import com.aiplatform.foundation.modelruntime.api.model.chat.ChatDeploymentRef;
+import com.aiplatform.foundation.modelruntime.api.model.chat.ChatRequest;
+import com.aiplatform.foundation.modelruntime.api.model.chat.ChatResult;
+import com.aiplatform.foundation.modelruntime.api.model.chat.ChatRole;
+import com.aiplatform.foundation.modelruntime.api.model.common.ModelUsage;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;

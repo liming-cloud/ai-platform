@@ -1,11 +1,11 @@
 package com.aiplatform.foundation.bootstrap.controlplane.configuration;
 
-import com.aiplatform.foundation.knowledgedata.adapter.out.persistence.KnowledgeSpaceMapper;
-import com.aiplatform.foundation.knowledgedata.adapter.out.persistence.IndexVersionMapper;
-import com.aiplatform.foundation.knowledgedata.adapter.out.persistence.PostgresIndexVersionRepository;
-import com.aiplatform.foundation.knowledgedata.adapter.out.persistence.PostgresKnowledgeSpaceRepository;
-import com.aiplatform.foundation.knowledgedata.adapter.out.persistence.PostgresTextDataSourceRepository;
-import com.aiplatform.foundation.knowledgedata.adapter.out.persistence.TextDataSourceMapper;
+import com.aiplatform.foundation.knowledgedata.adapter.out.persistence.knowledge.KnowledgeSpaceMapper;
+import com.aiplatform.foundation.knowledgedata.adapter.out.persistence.index.IndexVersionMapper;
+import com.aiplatform.foundation.knowledgedata.adapter.out.persistence.index.PostgresIndexVersionRepository;
+import com.aiplatform.foundation.knowledgedata.adapter.out.persistence.knowledge.PostgresKnowledgeSpaceRepository;
+import com.aiplatform.foundation.knowledgedata.adapter.out.persistence.datasource.PostgresTextDataSourceRepository;
+import com.aiplatform.foundation.knowledgedata.adapter.out.persistence.datasource.TextDataSourceMapper;
 import com.aiplatform.foundation.knowledgedata.adapter.out.objectstorage.UnavailableTextContentObjectStorageAdapter;
 import com.aiplatform.foundation.knowledgedata.adapter.out.staging.LocalTextContentStagingAdapter;
 import com.aiplatform.foundation.knowledgedata.api.IndexVersionUseCase;
@@ -16,11 +16,11 @@ import com.aiplatform.foundation.knowledgedata.application.datasource.DefaultTex
 import com.aiplatform.foundation.knowledgedata.application.indexversion.DefaultIndexVersionService;
 import com.aiplatform.foundation.knowledgedata.application.indexversion.DefaultActiveIndexLookup;
 import com.aiplatform.foundation.knowledgedata.application.knowledge.DefaultKnowledgeSpaceService;
-import com.aiplatform.foundation.knowledgedata.application.port.out.IndexVersionRepository;
-import com.aiplatform.foundation.knowledgedata.application.port.out.KnowledgeSpaceRepository;
-import com.aiplatform.foundation.knowledgedata.application.port.out.TextContentObjectStoragePort;
-import com.aiplatform.foundation.knowledgedata.application.port.out.TextContentStagingPort;
-import com.aiplatform.foundation.knowledgedata.application.port.out.TextDataSourceRepository;
+import com.aiplatform.foundation.knowledgedata.application.port.out.index.IndexVersionRepository;
+import com.aiplatform.foundation.knowledgedata.application.port.out.knowledge.KnowledgeSpaceRepository;
+import com.aiplatform.foundation.knowledgedata.application.port.out.content.TextContentObjectStoragePort;
+import com.aiplatform.foundation.knowledgedata.application.port.out.content.TextContentStagingPort;
+import com.aiplatform.foundation.knowledgedata.application.port.out.datasource.TextDataSourceRepository;
 import com.aiplatform.foundation.knowledgedata.domain.model.TextContentReference;
 import com.aiplatform.foundation.kernel.identifier.EntityIdGenerator;
 import com.aiplatform.foundation.objectstorage.minio.MinioTextContentObjectStorageAdapter;

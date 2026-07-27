@@ -1,7 +1,7 @@
 package com.aiplatform.foundation.knowledgedata.api;
 
 import com.aiplatform.foundation.kernel.tenant.TenantId;
-import com.aiplatform.foundation.knowledgedata.api.model.ActiveIndexSnapshot;
+import com.aiplatform.foundation.knowledgedata.api.model.index.ActiveIndexSnapshot;
 import java.util.Optional;
 
 /**

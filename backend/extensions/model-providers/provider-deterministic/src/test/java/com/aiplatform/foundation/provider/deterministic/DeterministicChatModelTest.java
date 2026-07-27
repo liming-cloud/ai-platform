@@ -4,10 +4,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.aiplatform.foundation.modelruntime.api.model.ChatDeploymentRef;
-import com.aiplatform.foundation.modelruntime.api.model.ChatMessage;
-import com.aiplatform.foundation.modelruntime.api.model.ChatRequest;
-import com.aiplatform.foundation.modelruntime.api.model.ChatRole;
+import com.aiplatform.foundation.modelruntime.api.model.chat.ChatDeploymentRef;
+import com.aiplatform.foundation.modelruntime.api.model.chat.ChatMessage;
+import com.aiplatform.foundation.modelruntime.api.model.chat.ChatRequest;
+import com.aiplatform.foundation.modelruntime.api.model.chat.ChatRole;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 

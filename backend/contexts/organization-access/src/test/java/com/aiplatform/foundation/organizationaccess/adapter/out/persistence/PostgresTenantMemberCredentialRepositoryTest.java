@@ -84,14 +84,14 @@ class PostgresTenantMemberCredentialRepositoryTest {
         var campus = repository.findEnabled("demo-campus", "admin").orElseThrow();
 
         assertEquals(STORE_TENANT, store.tenantId().value());
-        assertEquals("store-hash", store.encodedPassword());
+        assertEquals("store-hash", store.encodedPassword().verificationValue());
         assertEquals(STORE_MEMBERSHIP, store.membershipId().value());
         assertEquals(
                 java.util.Set.of(new PermissionCode("knowledge:read")),
                 store.permissions());
 
         assertEquals(CAMPUS_TENANT, campus.tenantId().value());
-        assertEquals("campus-hash", campus.encodedPassword());
+        assertEquals("campus-hash", campus.encodedPassword().verificationValue());
         assertEquals(CAMPUS_MEMBERSHIP, campus.membershipId().value());
         assertEquals(
                 java.util.Set.of(new PermissionCode("knowledge:write")),

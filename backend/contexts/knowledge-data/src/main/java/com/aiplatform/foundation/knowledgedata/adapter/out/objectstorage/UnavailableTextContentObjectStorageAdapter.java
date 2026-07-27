@@ -1,9 +1,9 @@
 package com.aiplatform.foundation.knowledgedata.adapter.out.objectstorage;
 
 import com.aiplatform.foundation.knowledgedata.application.content.ObjectStorageUnavailableException;
-import com.aiplatform.foundation.knowledgedata.application.port.out.TextContentObjectMetadata;
-import com.aiplatform.foundation.knowledgedata.application.port.out.TextContentObjectStoragePort;
-import com.aiplatform.foundation.knowledgedata.application.port.out.TextContentStorageRequest;
+import com.aiplatform.foundation.knowledgedata.application.port.out.content.TextContentObjectMetadata;
+import com.aiplatform.foundation.knowledgedata.application.port.out.content.TextContentObjectStoragePort;
+import com.aiplatform.foundation.knowledgedata.application.port.out.content.TextContentStorageRequest;
 import com.aiplatform.foundation.knowledgedata.domain.model.TextContentReference;
 import java.io.InputStream;
 

@@ -1,8 +1,8 @@
 package com.aiplatform.foundation.modelruntime.api.invocation;
 
-import com.aiplatform.foundation.modelruntime.api.model.ChatChunk;
-import com.aiplatform.foundation.modelruntime.api.model.ChatRequest;
-import com.aiplatform.foundation.modelruntime.api.model.ChatResult;
+import com.aiplatform.foundation.modelruntime.api.model.chat.ChatChunk;
+import com.aiplatform.foundation.modelruntime.api.model.chat.ChatRequest;
+import com.aiplatform.foundation.modelruntime.api.model.chat.ChatResult;
 import java.util.concurrent.Flow;
 
 /**

@@ -1,10 +1,10 @@
 package com.aiplatform.foundation.provider.deterministic;
 
 import com.aiplatform.foundation.modelruntime.api.invocation.EmbeddingModelPort;
-import com.aiplatform.foundation.modelruntime.api.model.EmbeddingBatch;
-import com.aiplatform.foundation.modelruntime.api.model.EmbeddingDeploymentRef;
-import com.aiplatform.foundation.modelruntime.api.model.EmbeddingRequest;
-import com.aiplatform.foundation.modelruntime.api.model.EmbeddingVector;
+import com.aiplatform.foundation.modelruntime.api.model.embedding.EmbeddingBatch;
+import com.aiplatform.foundation.modelruntime.api.model.embedding.EmbeddingDeploymentRef;
+import com.aiplatform.foundation.modelruntime.api.model.embedding.EmbeddingRequest;
+import com.aiplatform.foundation.modelruntime.api.model.embedding.EmbeddingVector;
 import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.Locale;

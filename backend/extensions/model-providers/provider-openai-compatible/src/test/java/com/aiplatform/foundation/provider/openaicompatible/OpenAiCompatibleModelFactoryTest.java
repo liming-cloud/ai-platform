@@ -5,9 +5,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.aiplatform.foundation.kernel.tenant.TenantId;
-import com.aiplatform.foundation.modelruntime.api.model.ModelRuntimeSpecification;
-import com.aiplatform.foundation.modelruntime.api.model.ModelType;
-import com.aiplatform.foundation.modelruntime.api.model.ProviderKind;
+import com.aiplatform.foundation.modelruntime.api.model.common.ModelRuntimeSpecification;
+import com.aiplatform.foundation.modelruntime.api.model.common.ModelType;
+import com.aiplatform.foundation.modelruntime.api.model.provider.ProviderKind;
 import com.aiplatform.foundation.security.secret.SecretReference;
 import com.aiplatform.foundation.security.secret.SecretValue;
 import java.net.URI;

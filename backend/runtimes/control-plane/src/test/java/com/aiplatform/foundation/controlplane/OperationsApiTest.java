@@ -16,7 +16,7 @@ import com.aiplatform.foundation.evaluationoperations.api.model.QueryAuditRecord
 import com.aiplatform.foundation.evaluationoperations.api.model.QueryAuditRecordView;
 import com.aiplatform.foundation.evaluationoperations.api.model.QueryUsageQuery;
 import com.aiplatform.foundation.evaluationoperations.api.model.QueryUsageView;
-import com.aiplatform.foundation.evaluationoperations.application.OperationsPermissionDeniedException;
+import com.aiplatform.foundation.evaluationoperations.domain.authorization.OperationsPermissionDeniedException;
 import com.redis.testcontainers.RedisContainer;
 import java.time.Instant;
 import java.util.List;

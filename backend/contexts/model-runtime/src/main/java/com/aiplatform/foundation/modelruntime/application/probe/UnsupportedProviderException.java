@@ -1,6 +1,6 @@
 package com.aiplatform.foundation.modelruntime.application.probe;
 
-import com.aiplatform.foundation.modelruntime.api.model.ProviderKind;
+import com.aiplatform.foundation.modelruntime.api.model.provider.ProviderKind;
 import java.util.Objects;
 
 /**

@@ -4,8 +4,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.aiplatform.foundation.kernel.tenant.TenantId;
-import com.aiplatform.foundation.modelruntime.api.model.ModelCapability;
-import com.aiplatform.foundation.modelruntime.api.model.ModelType;
+import com.aiplatform.foundation.modelruntime.api.model.common.ModelCapability;
+import com.aiplatform.foundation.modelruntime.api.model.common.ModelType;
 import java.time.Instant;
 import java.util.Set;
 import org.junit.jupiter.api.Test;

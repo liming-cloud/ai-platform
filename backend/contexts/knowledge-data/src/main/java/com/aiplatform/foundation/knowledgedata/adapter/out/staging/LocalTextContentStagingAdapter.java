@@ -1,8 +1,8 @@
 package com.aiplatform.foundation.knowledgedata.adapter.out.staging;
 
 import com.aiplatform.foundation.knowledgedata.application.content.InvalidTextContentException;
-import com.aiplatform.foundation.knowledgedata.application.port.out.StagedTextContent;
-import com.aiplatform.foundation.knowledgedata.application.port.out.TextContentStagingPort;
+import com.aiplatform.foundation.knowledgedata.application.port.out.content.StagedTextContent;
+import com.aiplatform.foundation.knowledgedata.application.port.out.content.TextContentStagingPort;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;

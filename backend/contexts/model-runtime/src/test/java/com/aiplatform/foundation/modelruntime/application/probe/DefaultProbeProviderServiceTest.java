@@ -6,10 +6,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.aiplatform.foundation.kernel.tenant.TenantId;
 import com.aiplatform.foundation.modelruntime.api.extension.ProviderConnectionProbe;
-import com.aiplatform.foundation.modelruntime.api.model.ModelCapability;
-import com.aiplatform.foundation.modelruntime.api.model.ProviderKind;
-import com.aiplatform.foundation.modelruntime.api.model.ProviderProbeObservation;
-import com.aiplatform.foundation.modelruntime.api.model.ProviderProbeRequest;
+import com.aiplatform.foundation.modelruntime.api.model.common.ModelCapability;
+import com.aiplatform.foundation.modelruntime.api.model.provider.ProviderKind;
+import com.aiplatform.foundation.modelruntime.api.model.provider.ProviderProbeObservation;
+import com.aiplatform.foundation.modelruntime.api.model.provider.ProviderProbeRequest;
 import com.aiplatform.foundation.security.secret.SecretReference;
 import java.net.URI;
 import java.time.Clock;

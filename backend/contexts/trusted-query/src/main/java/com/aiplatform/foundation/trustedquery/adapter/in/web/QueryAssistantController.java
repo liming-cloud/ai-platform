@@ -1,8 +1,8 @@
 package com.aiplatform.foundation.trustedquery.adapter.in.web;
 
 import com.aiplatform.foundation.assistantdelivery.api.QueryAssistantCatalogUseCase;
-import com.aiplatform.foundation.assistantdelivery.api.model.ListQueryAssistantsQuery;
-import com.aiplatform.foundation.assistantdelivery.api.model.QueryAssistantPage;
+import com.aiplatform.foundation.assistantdelivery.api.model.query.ListQueryAssistantsQuery;
+import com.aiplatform.foundation.assistantdelivery.api.model.query.QueryAssistantPage;
 import com.aiplatform.foundation.security.identity.TrustedRequestContext;
 import java.util.Objects;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;

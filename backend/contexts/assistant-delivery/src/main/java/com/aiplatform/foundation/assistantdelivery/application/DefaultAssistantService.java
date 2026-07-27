@@ -1,16 +1,16 @@
 package com.aiplatform.foundation.assistantdelivery.application;
 
 import com.aiplatform.foundation.assistantdelivery.api.AssistantUseCase;
-import com.aiplatform.foundation.assistantdelivery.api.model.AssistantPage;
-import com.aiplatform.foundation.assistantdelivery.api.model.AssistantVersionView;
-import com.aiplatform.foundation.assistantdelivery.api.model.AssistantView;
-import com.aiplatform.foundation.assistantdelivery.api.model.CreateAssistantCommand;
-import com.aiplatform.foundation.assistantdelivery.api.model.CreateAssistantResult;
-import com.aiplatform.foundation.assistantdelivery.api.model.CreateAssistantVersionCommand;
-import com.aiplatform.foundation.assistantdelivery.api.model.CreateAssistantVersionResult;
-import com.aiplatform.foundation.assistantdelivery.api.model.ListAssistantsQuery;
-import com.aiplatform.foundation.assistantdelivery.api.model.PublishAssistantVersionCommand;
-import com.aiplatform.foundation.assistantdelivery.api.model.PublishAssistantVersionResult;
+import com.aiplatform.foundation.assistantdelivery.api.model.assistant.AssistantPage;
+import com.aiplatform.foundation.assistantdelivery.api.model.version.AssistantVersionView;
+import com.aiplatform.foundation.assistantdelivery.api.model.assistant.AssistantView;
+import com.aiplatform.foundation.assistantdelivery.api.model.assistant.CreateAssistantCommand;
+import com.aiplatform.foundation.assistantdelivery.api.model.assistant.CreateAssistantResult;
+import com.aiplatform.foundation.assistantdelivery.api.model.version.CreateAssistantVersionCommand;
+import com.aiplatform.foundation.assistantdelivery.api.model.version.CreateAssistantVersionResult;
+import com.aiplatform.foundation.assistantdelivery.api.model.assistant.ListAssistantsQuery;
+import com.aiplatform.foundation.assistantdelivery.api.model.version.PublishAssistantVersionCommand;
+import com.aiplatform.foundation.assistantdelivery.api.model.version.PublishAssistantVersionResult;
 import com.aiplatform.foundation.assistantdelivery.application.port.out.AssistantCreation;
 import com.aiplatform.foundation.assistantdelivery.application.port.out.AssistantRepository;
 import com.aiplatform.foundation.assistantdelivery.application.port.out.AssistantVersionCreation;

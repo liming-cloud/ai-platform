@@ -1,10 +1,10 @@
 package com.aiplatform.foundation.knowledgedata.adapter.in.web;
 
 import com.aiplatform.foundation.knowledgedata.api.KnowledgeSpaceUseCase;
-import com.aiplatform.foundation.knowledgedata.api.model.CreateKnowledgeSpaceCommand;
-import com.aiplatform.foundation.knowledgedata.api.model.KnowledgeSpacePage;
-import com.aiplatform.foundation.knowledgedata.api.model.KnowledgeSpaceView;
-import com.aiplatform.foundation.knowledgedata.api.model.ListKnowledgeSpacesQuery;
+import com.aiplatform.foundation.knowledgedata.api.model.knowledge.CreateKnowledgeSpaceCommand;
+import com.aiplatform.foundation.knowledgedata.api.model.knowledge.KnowledgeSpacePage;
+import com.aiplatform.foundation.knowledgedata.api.model.knowledge.KnowledgeSpaceView;
+import com.aiplatform.foundation.knowledgedata.api.model.knowledge.ListKnowledgeSpacesQuery;
 import com.aiplatform.foundation.security.identity.TrustedRequestContext;
 import java.util.Objects;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;

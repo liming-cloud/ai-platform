@@ -2,8 +2,8 @@ package com.aiplatform.foundation.knowledgedata.application.indexversion;
 
 import com.aiplatform.foundation.kernel.tenant.TenantId;
 import com.aiplatform.foundation.knowledgedata.api.ActiveIndexLookup;
-import com.aiplatform.foundation.knowledgedata.api.model.ActiveIndexSnapshot;
-import com.aiplatform.foundation.knowledgedata.application.port.out.IndexVersionRepository;
+import com.aiplatform.foundation.knowledgedata.api.model.index.ActiveIndexSnapshot;
+import com.aiplatform.foundation.knowledgedata.application.port.out.index.IndexVersionRepository;
 import com.aiplatform.foundation.knowledgedata.domain.model.KnowledgeSpaceId;
 import java.util.Objects;
 import java.util.Optional;

@@ -1,16 +1,16 @@
 package com.aiplatform.foundation.knowledgedata.application.indexversion;
 
 import com.aiplatform.foundation.knowledgedata.api.IndexVersionUseCase;
-import com.aiplatform.foundation.knowledgedata.api.model.CreateIndexVersionCommand;
-import com.aiplatform.foundation.knowledgedata.api.model.CreateIndexVersionResult;
-import com.aiplatform.foundation.knowledgedata.api.model.IndexVersionPage;
-import com.aiplatform.foundation.knowledgedata.api.model.IndexVersionView;
-import com.aiplatform.foundation.knowledgedata.api.model.ListIndexVersionsQuery;
-import com.aiplatform.foundation.knowledgedata.api.model.PublishIndexVersionCommand;
-import com.aiplatform.foundation.knowledgedata.api.model.PublishIndexVersionResult;
+import com.aiplatform.foundation.knowledgedata.api.model.index.CreateIndexVersionCommand;
+import com.aiplatform.foundation.knowledgedata.api.model.index.CreateIndexVersionResult;
+import com.aiplatform.foundation.knowledgedata.api.model.index.IndexVersionPage;
+import com.aiplatform.foundation.knowledgedata.api.model.index.IndexVersionView;
+import com.aiplatform.foundation.knowledgedata.api.model.index.ListIndexVersionsQuery;
+import com.aiplatform.foundation.knowledgedata.api.model.index.PublishIndexVersionCommand;
+import com.aiplatform.foundation.knowledgedata.api.model.index.PublishIndexVersionResult;
 import com.aiplatform.foundation.knowledgedata.application.knowledge.KnowledgePermissionDeniedException;
-import com.aiplatform.foundation.knowledgedata.application.port.out.IndexVersionBuildRequest;
-import com.aiplatform.foundation.knowledgedata.application.port.out.IndexVersionRepository;
+import com.aiplatform.foundation.knowledgedata.application.port.out.index.IndexVersionBuildRequest;
+import com.aiplatform.foundation.knowledgedata.application.port.out.index.IndexVersionRepository;
 import com.aiplatform.foundation.knowledgedata.domain.indexversion.EmbeddingConfiguration;
 import com.aiplatform.foundation.knowledgedata.domain.indexversion.IndexVersion;
 import com.aiplatform.foundation.knowledgedata.domain.indexversion.IndexVersionId;

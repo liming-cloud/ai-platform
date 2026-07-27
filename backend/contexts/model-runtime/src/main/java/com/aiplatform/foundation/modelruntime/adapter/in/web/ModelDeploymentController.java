@@ -1,13 +1,13 @@
 package com.aiplatform.foundation.modelruntime.adapter.in.web;
 
 import com.aiplatform.foundation.modelruntime.api.catalog.ModelDeploymentUseCase;
-import com.aiplatform.foundation.modelruntime.api.catalog.model.CreateModelDeploymentCommand;
-import com.aiplatform.foundation.modelruntime.api.catalog.model.ListModelDeploymentsQuery;
-import com.aiplatform.foundation.modelruntime.api.catalog.model.ModelDeploymentPage;
-import com.aiplatform.foundation.modelruntime.api.catalog.model.ModelDeploymentView;
-import com.aiplatform.foundation.modelruntime.api.catalog.model.ProbeModelDeploymentCommand;
-import com.aiplatform.foundation.modelruntime.api.catalog.model.ProbeModelDeploymentResult;
-import com.aiplatform.foundation.modelruntime.api.catalog.model.PublishModelDeploymentCommand;
+import com.aiplatform.foundation.modelruntime.api.catalog.model.deployment.CreateModelDeploymentCommand;
+import com.aiplatform.foundation.modelruntime.api.catalog.model.deployment.ListModelDeploymentsQuery;
+import com.aiplatform.foundation.modelruntime.api.catalog.model.deployment.ModelDeploymentPage;
+import com.aiplatform.foundation.modelruntime.api.catalog.model.deployment.ModelDeploymentView;
+import com.aiplatform.foundation.modelruntime.api.catalog.model.deployment.ProbeModelDeploymentCommand;
+import com.aiplatform.foundation.modelruntime.api.catalog.model.deployment.ProbeModelDeploymentResult;
+import com.aiplatform.foundation.modelruntime.api.catalog.model.deployment.PublishModelDeploymentCommand;
 import com.aiplatform.foundation.security.identity.TrustedRequestContext;
 import java.time.Duration;
 import java.util.Objects;

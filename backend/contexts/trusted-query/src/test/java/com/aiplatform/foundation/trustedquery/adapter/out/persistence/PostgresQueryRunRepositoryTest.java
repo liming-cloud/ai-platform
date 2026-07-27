@@ -5,12 +5,12 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.aiplatform.foundation.kernel.tenant.TenantId;
-import com.aiplatform.foundation.modelruntime.api.model.ModelUsage;
+import com.aiplatform.foundation.modelruntime.api.model.common.ModelUsage;
 import com.aiplatform.foundation.security.identity.MembershipId;
-import com.aiplatform.foundation.trustedquery.application.QueryRunConcurrentModificationException;
-import com.aiplatform.foundation.trustedquery.application.QueryRunIdempotencyConflictException;
-import com.aiplatform.foundation.trustedquery.application.QueryQuotaExceededException;
-import com.aiplatform.foundation.trustedquery.application.QueryQuotaLimitType;
+import com.aiplatform.foundation.trustedquery.application.run.QueryRunConcurrentModificationException;
+import com.aiplatform.foundation.trustedquery.application.run.QueryRunIdempotencyConflictException;
+import com.aiplatform.foundation.trustedquery.application.quota.QueryQuotaExceededException;
+import com.aiplatform.foundation.trustedquery.application.quota.QueryQuotaLimitType;
 import com.aiplatform.foundation.trustedquery.application.port.out.QueryRunClaimState;
 import com.aiplatform.foundation.trustedquery.application.port.out.QueryQuotaPolicy;
 import com.aiplatform.foundation.trustedquery.application.port.out.QueryRunRepository;

@@ -1,7 +1,7 @@
 package com.aiplatform.foundation.trustedquery.domain;
 
 import com.aiplatform.foundation.kernel.tenant.TenantId;
-import com.aiplatform.foundation.modelruntime.api.model.ModelUsage;
+import com.aiplatform.foundation.modelruntime.api.model.common.ModelUsage;
 import java.time.Instant;
 import java.util.List;
 import java.util.Objects;

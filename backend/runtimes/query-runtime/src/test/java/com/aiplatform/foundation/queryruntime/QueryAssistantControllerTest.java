@@ -4,9 +4,9 @@ import com.aiplatform.foundation.trustedquery.adapter.in.web.QueryAssistantContr
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.aiplatform.foundation.assistantdelivery.api.QueryAssistantCatalogUseCase;
-import com.aiplatform.foundation.assistantdelivery.api.model.ListQueryAssistantsQuery;
-import com.aiplatform.foundation.assistantdelivery.api.model.QueryAssistantPage;
-import com.aiplatform.foundation.assistantdelivery.api.model.QueryAssistantView;
+import com.aiplatform.foundation.assistantdelivery.api.model.query.ListQueryAssistantsQuery;
+import com.aiplatform.foundation.assistantdelivery.api.model.query.QueryAssistantPage;
+import com.aiplatform.foundation.assistantdelivery.api.model.query.QueryAssistantView;
 import com.aiplatform.foundation.kernel.tenant.TenantId;
 import com.aiplatform.foundation.security.identity.AccessChannel;
 import com.aiplatform.foundation.security.identity.CredentialType;

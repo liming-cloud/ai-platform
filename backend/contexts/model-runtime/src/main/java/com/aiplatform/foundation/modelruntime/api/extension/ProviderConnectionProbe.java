@@ -1,8 +1,8 @@
 package com.aiplatform.foundation.modelruntime.api.extension;
 
-import com.aiplatform.foundation.modelruntime.api.model.ProviderKind;
-import com.aiplatform.foundation.modelruntime.api.model.ProviderProbeObservation;
-import com.aiplatform.foundation.modelruntime.api.model.ProviderProbeRequest;
+import com.aiplatform.foundation.modelruntime.api.model.provider.ProviderKind;
+import com.aiplatform.foundation.modelruntime.api.model.provider.ProviderProbeObservation;
+import com.aiplatform.foundation.modelruntime.api.model.provider.ProviderProbeRequest;
 
 /**
  * 供应商协议扩展必须实现的最小连接探测契约。

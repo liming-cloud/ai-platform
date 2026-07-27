@@ -1,12 +1,12 @@
 package com.aiplatform.foundation.bootstrap.ingestion.configuration;
 
-import com.aiplatform.foundation.knowledgedata.adapter.out.persistence.IndexVersionMapper;
-import com.aiplatform.foundation.knowledgedata.adapter.out.persistence.PostgresIndexBuildCompletion;
-import com.aiplatform.foundation.knowledgedata.adapter.out.persistence.PostgresIndexBuildQueue;
+import com.aiplatform.foundation.knowledgedata.adapter.out.persistence.index.IndexVersionMapper;
+import com.aiplatform.foundation.knowledgedata.adapter.out.persistence.index.PostgresIndexBuildCompletion;
+import com.aiplatform.foundation.knowledgedata.adapter.out.persistence.index.PostgresIndexBuildQueue;
 import com.aiplatform.foundation.knowledgedata.application.indexversion.DefaultIndexBuildWorker;
-import com.aiplatform.foundation.knowledgedata.application.port.out.IndexBuildCompletionPort;
-import com.aiplatform.foundation.knowledgedata.application.port.out.IndexBuildQueuePort;
-import com.aiplatform.foundation.knowledgedata.application.port.out.TextContentObjectStoragePort;
+import com.aiplatform.foundation.knowledgedata.application.port.out.index.IndexBuildCompletionPort;
+import com.aiplatform.foundation.knowledgedata.application.port.out.index.IndexBuildQueuePort;
+import com.aiplatform.foundation.knowledgedata.application.port.out.content.TextContentObjectStoragePort;
 import com.aiplatform.foundation.knowledgedata.domain.indexversion.ParagraphWindowChunker;
 import com.aiplatform.foundation.kernel.identifier.EntityIdGenerator;
 import com.aiplatform.foundation.modelruntime.api.invocation.ModelRuntimeResolver;

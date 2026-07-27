@@ -2,10 +2,10 @@ package com.aiplatform.foundation.provider.ollama;
 
 import com.aiplatform.foundation.modelruntime.api.extension.ChatModelFactory;
 import com.aiplatform.foundation.modelruntime.api.invocation.ChatModelPort;
-import com.aiplatform.foundation.modelruntime.api.model.ChatDeploymentRef;
-import com.aiplatform.foundation.modelruntime.api.model.ModelRuntimeSpecification;
-import com.aiplatform.foundation.modelruntime.api.model.ModelType;
-import com.aiplatform.foundation.modelruntime.api.model.ProviderKind;
+import com.aiplatform.foundation.modelruntime.api.model.chat.ChatDeploymentRef;
+import com.aiplatform.foundation.modelruntime.api.model.common.ModelRuntimeSpecification;
+import com.aiplatform.foundation.modelruntime.api.model.common.ModelType;
+import com.aiplatform.foundation.modelruntime.api.model.provider.ProviderKind;
 import com.aiplatform.foundation.provider.springai.SpringAiChatModelAdapter;
 import com.aiplatform.foundation.security.egress.OutboundEndpointPolicy;
 import java.util.Objects;

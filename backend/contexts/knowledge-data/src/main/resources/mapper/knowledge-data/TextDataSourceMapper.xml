@@ -2,9 +2,9 @@
 <!DOCTYPE mapper
         PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="com.aiplatform.foundation.knowledgedata.adapter.out.persistence.TextDataSourceMapper">
+<mapper namespace="com.aiplatform.foundation.knowledgedata.adapter.out.persistence.datasource.TextDataSourceMapper">
 
-    <resultMap id="textDataSourceRow" type="com.aiplatform.foundation.knowledgedata.adapter.out.persistence.TextDataSourceRow">
+    <resultMap id="textDataSourceRow" type="com.aiplatform.foundation.knowledgedata.adapter.out.persistence.datasource.TextDataSourceRow">
         <result column="tenant_id" property="tenantId"/>
         <result column="knowledge_space_id" property="knowledgeSpaceId"/>
         <result column="id" property="id"/>
@@ -17,7 +17,7 @@
         <result column="created_at" property="createdAt"/>
     </resultMap>
 
-    <resultMap id="findRequestResultMap" type="com.aiplatform.foundation.knowledgedata.adapter.out.persistence.TextDataSourceRequestRow">
+    <resultMap id="findRequestResultMap" type="com.aiplatform.foundation.knowledgedata.adapter.out.persistence.datasource.TextDataSourceRequestRow">
         <result column="request_fingerprint" property="requestFingerprint"/>
         <result column="knowledge_space_id" property="knowledgeSpaceId"/>
         <result column="data_source_id" property="dataSourceId"/>
@@ -27,7 +27,7 @@
         <result column="result_published_content_version" property="resultPublishedContentVersion"/>
     </resultMap>
 
-    <resultMap id="findContentResultMap" type="com.aiplatform.foundation.knowledgedata.adapter.out.persistence.TextContentRow">
+    <resultMap id="findContentResultMap" type="com.aiplatform.foundation.knowledgedata.adapter.out.persistence.datasource.TextContentRow">
         <result column="version" property="version"/>
         <result column="object_key" property="objectKey"/>
         <result column="sha256" property="sha256"/>

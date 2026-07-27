@@ -1,9 +1,9 @@
 package com.aiplatform.foundation.modelruntime.application.probe;
 
 import com.aiplatform.foundation.modelruntime.api.extension.ProviderConnectionProbe;
-import com.aiplatform.foundation.modelruntime.api.model.ProviderKind;
-import com.aiplatform.foundation.modelruntime.api.model.ProviderProbeRequest;
-import com.aiplatform.foundation.modelruntime.api.model.ProviderProbeResult;
+import com.aiplatform.foundation.modelruntime.api.model.provider.ProviderKind;
+import com.aiplatform.foundation.modelruntime.api.model.provider.ProviderProbeRequest;
+import com.aiplatform.foundation.modelruntime.api.model.provider.ProviderProbeResult;
 import com.aiplatform.foundation.modelruntime.api.probe.ProbeProviderUseCase;
 import java.time.Clock;
 import java.util.EnumMap;

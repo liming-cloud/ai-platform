@@ -2,15 +2,15 @@
 <!DOCTYPE mapper
         PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="com.aiplatform.foundation.knowledgedata.adapter.out.persistence.IndexVersionMapper">
+<mapper namespace="com.aiplatform.foundation.knowledgedata.adapter.out.persistence.index.IndexVersionMapper">
 
-    <resultMap id="indexRequestRow" type="com.aiplatform.foundation.knowledgedata.adapter.out.persistence.IndexVersionRequestRow">
+    <resultMap id="indexRequestRow" type="com.aiplatform.foundation.knowledgedata.adapter.out.persistence.index.IndexVersionRequestRow">
         <result column="request_fingerprint" property="requestFingerprint"/>
         <result column="knowledge_space_id" property="knowledgeSpaceId"/>
         <result column="index_version_id" property="indexVersionId"/>
     </resultMap>
 
-    <resultMap id="indexSourceRow" type="com.aiplatform.foundation.knowledgedata.adapter.out.persistence.IndexSourceRow">
+    <resultMap id="indexSourceRow" type="com.aiplatform.foundation.knowledgedata.adapter.out.persistence.index.IndexSourceRow">
         <result column="data_source_id" property="dataSourceId"/>
         <result column="content_version" property="contentVersion"/>
         <result column="object_key" property="objectKey"/>
@@ -20,7 +20,7 @@
         <result column="content_created_at" property="contentCreatedAt"/>
     </resultMap>
 
-    <resultMap id="indexVersionRow" type="com.aiplatform.foundation.knowledgedata.adapter.out.persistence.IndexVersionRow">
+    <resultMap id="indexVersionRow" type="com.aiplatform.foundation.knowledgedata.adapter.out.persistence.index.IndexVersionRow">
         <result column="tenant_id" property="tenantId"/>
         <result column="knowledge_space_id" property="knowledgeSpaceId"/>
         <result column="id" property="id"/>
@@ -41,7 +41,7 @@
         <result column="superseded_at" property="supersededAt"/>
     </resultMap>
 
-    <resultMap id="indexBuildJobRow" type="com.aiplatform.foundation.knowledgedata.adapter.out.persistence.IndexBuildJobRow">
+    <resultMap id="indexBuildJobRow" type="com.aiplatform.foundation.knowledgedata.adapter.out.persistence.index.IndexBuildJobRow">
         <result column="tenant_id" property="tenantId"/>
         <result column="knowledge_space_id" property="knowledgeSpaceId"/>
         <result column="index_version_id" property="indexVersionId"/>

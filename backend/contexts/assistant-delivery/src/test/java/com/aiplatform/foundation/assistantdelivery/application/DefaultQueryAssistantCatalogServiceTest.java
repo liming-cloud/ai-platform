@@ -3,7 +3,7 @@ package com.aiplatform.foundation.assistantdelivery.application;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import com.aiplatform.foundation.assistantdelivery.api.model.ListQueryAssistantsQuery;
+import com.aiplatform.foundation.assistantdelivery.api.model.query.ListQueryAssistantsQuery;
 import com.aiplatform.foundation.assistantdelivery.application.port.out.AssistantCreation;
 import com.aiplatform.foundation.assistantdelivery.application.port.out.AssistantCreationOutcome;
 import com.aiplatform.foundation.assistantdelivery.application.port.out.AssistantRepository;

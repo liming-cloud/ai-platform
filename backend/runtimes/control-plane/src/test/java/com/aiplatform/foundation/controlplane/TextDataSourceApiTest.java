@@ -5,9 +5,9 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.aiplatform.foundation.kernel.tenant.TenantId;
-import com.aiplatform.foundation.knowledgedata.application.port.out.TextContentObjectMetadata;
-import com.aiplatform.foundation.knowledgedata.application.port.out.TextContentObjectStoragePort;
-import com.aiplatform.foundation.knowledgedata.application.port.out.TextContentStorageRequest;
+import com.aiplatform.foundation.knowledgedata.application.port.out.content.TextContentObjectMetadata;
+import com.aiplatform.foundation.knowledgedata.application.port.out.content.TextContentObjectStoragePort;
+import com.aiplatform.foundation.knowledgedata.application.port.out.content.TextContentStorageRequest;
 import com.aiplatform.foundation.knowledgedata.domain.model.TextContentReference;
 import com.aiplatform.foundation.security.identity.AccessChannel;
 import com.aiplatform.foundation.security.identity.CredentialType;

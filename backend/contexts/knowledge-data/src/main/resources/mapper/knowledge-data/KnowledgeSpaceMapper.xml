@@ -2,14 +2,14 @@
 <!DOCTYPE mapper
         PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="com.aiplatform.foundation.knowledgedata.adapter.out.persistence.KnowledgeSpaceMapper">
+<mapper namespace="com.aiplatform.foundation.knowledgedata.adapter.out.persistence.knowledge.KnowledgeSpaceMapper">
 
-    <resultMap id="findRequestResultMap" type="com.aiplatform.foundation.knowledgedata.adapter.out.persistence.IdempotencyRow">
+    <resultMap id="findRequestResultMap" type="com.aiplatform.foundation.knowledgedata.adapter.out.persistence.datasource.IdempotencyRow">
         <result column="request_fingerprint" property="requestFingerprint"/>
         <result column="knowledge_space_id" property="knowledgeSpaceId"/>
     </resultMap>
 
-    <resultMap id="knowledgeSpaceRow" type="com.aiplatform.foundation.knowledgedata.adapter.out.persistence.KnowledgeSpaceRow">
+    <resultMap id="knowledgeSpaceRow" type="com.aiplatform.foundation.knowledgedata.adapter.out.persistence.knowledge.KnowledgeSpaceRow">
         <result column="tenant_id" property="tenantId"/>
         <result column="id" property="id"/>
         <result column="name" property="name"/>
@@ -20,7 +20,7 @@
         <result column="created_at" property="createdAt"/>
     </resultMap>
 
-    <resultMap id="findFirstPageResultMap" type="com.aiplatform.foundation.knowledgedata.adapter.out.persistence.KnowledgeSpaceRow">
+    <resultMap id="findFirstPageResultMap" type="com.aiplatform.foundation.knowledgedata.adapter.out.persistence.knowledge.KnowledgeSpaceRow">
         <result column="tenant_id" property="tenantId"/>
         <result column="id" property="id"/>
         <result column="name" property="name"/>
@@ -31,7 +31,7 @@
         <result column="created_at" property="createdAt"/>
     </resultMap>
 
-    <resultMap id="findAfterResultMap" type="com.aiplatform.foundation.knowledgedata.adapter.out.persistence.KnowledgeSpaceRow">
+    <resultMap id="findAfterResultMap" type="com.aiplatform.foundation.knowledgedata.adapter.out.persistence.knowledge.KnowledgeSpaceRow">
         <result column="tenant_id" property="tenantId"/>
         <result column="id" property="id"/>
         <result column="name" property="name"/>

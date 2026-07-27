@@ -1,10 +1,9 @@
 package com.aiplatform.foundation.organizationaccess.application.authentication;
 
 import com.aiplatform.foundation.organizationaccess.api.PersonAuthenticationUseCase;
-import com.aiplatform.foundation.security.identity.CredentialType;
 import com.aiplatform.foundation.security.session.IssuedSession;
 import com.aiplatform.foundation.organizationaccess.api.model.PersonLoginCommand;
-import com.aiplatform.foundation.security.identity.TrustedRequestContext;
+import com.aiplatform.foundation.organizationaccess.domain.authentication.MemberAuthenticationProfile;
 import com.aiplatform.foundation.security.session.AuthenticatedSessionGateway;
 import com.aiplatform.foundation.organizationaccess.application.port.out.PasswordVerifier;
 import com.aiplatform.foundation.organizationaccess.application.port.out.TenantMemberCredentialRepository;
@@ -37,7 +36,8 @@ public final class DefaultPersonAuthenticationService implements PersonAuthentic
         Objects.requireNonNull(command, "登录命令不能为空");
         var member = members.findEnabled(command.tenantCode(), command.loginName());
         var encodedPassword = member
-                .map(AuthenticatedMember::encodedPassword)
+                .map(MemberAuthenticationProfile::encodedPassword)
+                .map(password -> password.verificationValue())
                 .orElse(dummyEncodedPassword);
         var candidate = command.copyPassword();
         boolean matched;
@@ -51,16 +51,9 @@ public final class DefaultPersonAuthenticationService implements PersonAuthentic
         }
 
         var authenticated = member.orElseThrow();
-        var context = new TrustedRequestContext(
-                authenticated.tenantId(),
-                authenticated.subjectId(),
-                authenticated.membershipId(),
-                CredentialType.PERSON,
+        return sessions.issue(authenticated.trustedContext(
                 command.channel(),
-                authenticated.permissionVersion(),
-                authenticated.permissions(),
-                command.traceId());
-        return sessions.issue(context);
+                command.traceId()));
     }
 
     private static String requireDummyPassword(String value) {

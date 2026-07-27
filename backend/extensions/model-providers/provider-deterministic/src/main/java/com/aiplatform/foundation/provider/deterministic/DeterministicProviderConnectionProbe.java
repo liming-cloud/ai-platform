@@ -1,10 +1,10 @@
 package com.aiplatform.foundation.provider.deterministic;
 
 import com.aiplatform.foundation.modelruntime.api.extension.ProviderConnectionProbe;
-import com.aiplatform.foundation.modelruntime.api.model.ModelCapability;
-import com.aiplatform.foundation.modelruntime.api.model.ProviderKind;
-import com.aiplatform.foundation.modelruntime.api.model.ProviderProbeObservation;
-import com.aiplatform.foundation.modelruntime.api.model.ProviderProbeRequest;
+import com.aiplatform.foundation.modelruntime.api.model.common.ModelCapability;
+import com.aiplatform.foundation.modelruntime.api.model.provider.ProviderKind;
+import com.aiplatform.foundation.modelruntime.api.model.provider.ProviderProbeObservation;
+import com.aiplatform.foundation.modelruntime.api.model.provider.ProviderProbeRequest;
 import java.time.Duration;
 import java.util.Set;
 

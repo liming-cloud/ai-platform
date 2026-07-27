@@ -1,12 +1,12 @@
 package com.aiplatform.foundation.assistantdelivery.adapter.in.web;
 
 import com.aiplatform.foundation.assistantdelivery.api.AssistantUseCase;
-import com.aiplatform.foundation.assistantdelivery.api.model.AssistantPage;
-import com.aiplatform.foundation.assistantdelivery.api.model.AssistantVersionView;
-import com.aiplatform.foundation.assistantdelivery.api.model.AssistantView;
-import com.aiplatform.foundation.assistantdelivery.api.model.CreateAssistantCommand;
-import com.aiplatform.foundation.assistantdelivery.api.model.CreateAssistantVersionCommand;
-import com.aiplatform.foundation.assistantdelivery.api.model.ListAssistantsQuery;
+import com.aiplatform.foundation.assistantdelivery.api.model.assistant.AssistantPage;
+import com.aiplatform.foundation.assistantdelivery.api.model.version.AssistantVersionView;
+import com.aiplatform.foundation.assistantdelivery.api.model.assistant.AssistantView;
+import com.aiplatform.foundation.assistantdelivery.api.model.assistant.CreateAssistantCommand;
+import com.aiplatform.foundation.assistantdelivery.api.model.version.CreateAssistantVersionCommand;
+import com.aiplatform.foundation.assistantdelivery.api.model.assistant.ListAssistantsQuery;
 import com.aiplatform.foundation.security.identity.TrustedRequestContext;
 import java.util.Objects;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;

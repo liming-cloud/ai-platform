@@ -11,10 +11,10 @@ import com.aiplatform.foundation.modelruntime.api.catalog.PublishedEmbeddingDepl
 import com.aiplatform.foundation.modelruntime.api.catalog.ProviderConnectionUseCase;
 import com.aiplatform.foundation.modelruntime.api.extension.ProviderConnectionProbe;
 import com.aiplatform.foundation.modelruntime.api.probe.ProbeProviderUseCase;
-import com.aiplatform.foundation.modelruntime.application.catalog.DefaultModelDeploymentService;
-import com.aiplatform.foundation.modelruntime.application.catalog.DefaultPublishedChatDeploymentLookup;
-import com.aiplatform.foundation.modelruntime.application.catalog.DefaultPublishedEmbeddingDeploymentLookup;
-import com.aiplatform.foundation.modelruntime.application.catalog.DefaultProviderConnectionService;
+import com.aiplatform.foundation.modelruntime.application.catalog.deployment.DefaultModelDeploymentService;
+import com.aiplatform.foundation.modelruntime.application.catalog.deployment.DefaultPublishedChatDeploymentLookup;
+import com.aiplatform.foundation.modelruntime.application.catalog.deployment.DefaultPublishedEmbeddingDeploymentLookup;
+import com.aiplatform.foundation.modelruntime.application.catalog.provider.DefaultProviderConnectionService;
 import com.aiplatform.foundation.modelruntime.application.port.out.ModelDeploymentRepository;
 import com.aiplatform.foundation.modelruntime.application.port.out.ProviderConnectionRepository;
 import com.aiplatform.foundation.modelruntime.application.probe.DefaultProbeProviderService;

@@ -2,12 +2,11 @@ package com.aiplatform.foundation.bootstrap.controlplane.configuration;
 
 import com.aiplatform.foundation.evaluationoperations.api.OperationsQueryUseCase;
 import com.aiplatform.foundation.evaluationoperations.application.DefaultOperationsQueryService;
+import com.aiplatform.foundation.evaluationoperations.domain.usage.OperationsQuotaPolicy;
 import com.aiplatform.foundation.trustedquery.adapter.out.persistence.PostgresQueryOperationsFactSource;
 import com.aiplatform.foundation.trustedquery.adapter.out.persistence.QueryRunMapper;
 import com.aiplatform.foundation.trustedquery.api.operations.QueryOperationsFactSource;
-import com.aiplatform.foundation.trustedquery.application.port.out.QueryQuotaPolicy;
 import java.time.Clock;
-import java.time.Duration;
 import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -36,15 +35,12 @@ public class EvaluationOperationsConfiguration {
             @Value("${foundation.query.quota.daily-limit:100}")
                     int dailyQueryLimit,
             @Value("${foundation.query.quota.concurrent-limit:4}")
-                    int concurrentQueryLimit,
-            @Value("${foundation.query.quota.running-lease:PT2M}")
-                    Duration runningLease) {
+                    int concurrentQueryLimit) {
         return new DefaultOperationsQueryService(
                 facts,
-                new QueryQuotaPolicy(
+                new OperationsQuotaPolicy(
                         dailyQueryLimit,
-                        concurrentQueryLimit,
-                        runningLease),
+                        concurrentQueryLimit),
                 Clock.systemUTC());
     }
 }

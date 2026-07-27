@@ -5,6 +5,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.aiplatform.foundation.evaluationoperations.api.model.ListQueryAuditRecordsQuery;
 import com.aiplatform.foundation.evaluationoperations.api.model.QueryUsageQuery;
+import com.aiplatform.foundation.evaluationoperations.domain.authorization.OperationsPermissionDeniedException;
+import com.aiplatform.foundation.evaluationoperations.domain.usage.OperationsQuotaPolicy;
 import com.aiplatform.foundation.kernel.tenant.TenantId;
 import com.aiplatform.foundation.security.identity.AccessChannel;
 import com.aiplatform.foundation.security.identity.CredentialType;
@@ -17,7 +19,6 @@ import com.aiplatform.foundation.trustedquery.api.operations.QueryAuditFactPage;
 import com.aiplatform.foundation.trustedquery.api.operations.QueryOperationsFactSource;
 import com.aiplatform.foundation.trustedquery.api.operations.QueryUsageFactQuery;
 import com.aiplatform.foundation.trustedquery.api.operations.QueryUsageFacts;
-import com.aiplatform.foundation.trustedquery.application.port.out.QueryQuotaPolicy;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -30,8 +31,8 @@ class DefaultOperationsQueryServiceTest {
 
     private static final Instant NOW = Instant.parse("2026-07-27T06:00:00Z");
     private static final TenantId TENANT = new TenantId(100000000000000001L);
-    private static final QueryQuotaPolicy QUOTA =
-            new QueryQuotaPolicy(100, 4, Duration.ofMinutes(2));
+    private static final OperationsQuotaPolicy QUOTA =
+            new OperationsQuotaPolicy(100, 4);
 
     @Test
     void 默认汇总当前自然日并组合真实用量与固定限额() {

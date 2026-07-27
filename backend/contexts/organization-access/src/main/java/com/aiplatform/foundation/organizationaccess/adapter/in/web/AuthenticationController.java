@@ -6,8 +6,8 @@ import com.aiplatform.foundation.organizationaccess.api.PersonAuthenticationUseC
 import com.aiplatform.foundation.security.identity.AccessChannel;
 import com.aiplatform.foundation.organizationaccess.api.model.PersonLoginCommand;
 import com.aiplatform.foundation.security.session.AuthenticatedSessionGateway;
-import java.util.Arrays;
 import com.aiplatform.foundation.security.web.BearerTokens;
+import java.util.Arrays;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;

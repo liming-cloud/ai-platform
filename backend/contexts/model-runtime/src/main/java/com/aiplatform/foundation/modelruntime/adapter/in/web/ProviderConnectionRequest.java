@@ -1,6 +1,6 @@
 package com.aiplatform.foundation.modelruntime.adapter.in.web;
 
-import com.aiplatform.foundation.modelruntime.api.model.ProviderKind;
+import com.aiplatform.foundation.modelruntime.api.model.provider.ProviderKind;
 import com.aiplatform.foundation.modelruntime.domain.model.AuthenticationType;
 import java.net.URI;
 

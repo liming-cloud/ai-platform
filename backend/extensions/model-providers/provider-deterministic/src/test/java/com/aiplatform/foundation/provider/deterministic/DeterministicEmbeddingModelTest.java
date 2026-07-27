@@ -4,8 +4,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.aiplatform.foundation.modelruntime.api.model.EmbeddingDeploymentRef;
-import com.aiplatform.foundation.modelruntime.api.model.EmbeddingRequest;
+import com.aiplatform.foundation.modelruntime.api.model.embedding.EmbeddingDeploymentRef;
+import com.aiplatform.foundation.modelruntime.api.model.embedding.EmbeddingRequest;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 

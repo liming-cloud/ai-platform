@@ -4,7 +4,9 @@ import com.aiplatform.foundation.kernel.tenant.TenantId;
 import com.aiplatform.foundation.security.identity.MembershipId;
 import com.aiplatform.foundation.security.identity.PermissionCode;
 import com.aiplatform.foundation.security.identity.SubjectId;
-import com.aiplatform.foundation.organizationaccess.application.authentication.AuthenticatedMember;
+import com.aiplatform.foundation.organizationaccess.domain.authentication.EncodedPassword;
+import com.aiplatform.foundation.organizationaccess.domain.authentication.MemberAuthenticationProfile;
+import com.aiplatform.foundation.organizationaccess.domain.authorization.PermissionGrantSet;
 import com.aiplatform.foundation.organizationaccess.application.port.out.TenantMemberCredentialRepository;
 import java.util.Objects;
 import java.util.Optional;
@@ -23,7 +25,9 @@ public final class PostgresTenantMemberCredentialRepository
     }
 
     @Override
-    public Optional<AuthenticatedMember> findEnabled(String tenantCode, String loginName) {
+    public Optional<MemberAuthenticationProfile> findEnabled(
+            String tenantCode,
+            String loginName) {
         var row = mapper.findEnabled(
                 Objects.requireNonNull(tenantCode, "租户编码不能为空"),
                 Objects.requireNonNull(loginName, "登录名不能为空"));
@@ -37,12 +41,11 @@ public final class PostgresTenantMemberCredentialRepository
                 .stream()
                 .map(PermissionCode::new)
                 .collect(Collectors.toUnmodifiableSet());
-        return Optional.of(new AuthenticatedMember(
+        return Optional.of(new MemberAuthenticationProfile(
                 new TenantId(tenantId),
                 new SubjectId(row.getSubjectId()),
                 new MembershipId(membershipId),
-                row.getPasswordHash(),
-                row.getPermissionVersion(),
-                permissions));
+                new EncodedPassword(row.getPasswordHash()),
+                new PermissionGrantSet(row.getPermissionVersion(), permissions)));
     }
 }

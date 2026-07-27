@@ -4,8 +4,8 @@ import com.aiplatform.foundation.bootstrap.query.web.QueryApiExceptionHandler;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
-import com.aiplatform.foundation.trustedquery.application.QueryQuotaExceededException;
-import com.aiplatform.foundation.trustedquery.application.QueryQuotaLimitType;
+import com.aiplatform.foundation.trustedquery.application.quota.QueryQuotaExceededException;
+import com.aiplatform.foundation.trustedquery.application.quota.QueryQuotaLimitType;
 import java.time.Instant;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;

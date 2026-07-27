@@ -1,11 +1,11 @@
 package com.aiplatform.foundation.knowledgedata.adapter.in.web;
 
 import com.aiplatform.foundation.knowledgedata.api.IndexVersionUseCase;
-import com.aiplatform.foundation.knowledgedata.api.model.CreateIndexVersionCommand;
-import com.aiplatform.foundation.knowledgedata.api.model.IndexVersionPage;
-import com.aiplatform.foundation.knowledgedata.api.model.IndexVersionView;
-import com.aiplatform.foundation.knowledgedata.api.model.ListIndexVersionsQuery;
-import com.aiplatform.foundation.knowledgedata.api.model.PublishIndexVersionCommand;
+import com.aiplatform.foundation.knowledgedata.api.model.index.CreateIndexVersionCommand;
+import com.aiplatform.foundation.knowledgedata.api.model.index.IndexVersionPage;
+import com.aiplatform.foundation.knowledgedata.api.model.index.IndexVersionView;
+import com.aiplatform.foundation.knowledgedata.api.model.index.ListIndexVersionsQuery;
+import com.aiplatform.foundation.knowledgedata.api.model.index.PublishIndexVersionCommand;
 import com.aiplatform.foundation.security.identity.TrustedRequestContext;
 import java.util.Objects;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;

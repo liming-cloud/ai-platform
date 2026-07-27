@@ -1,12 +1,12 @@
 package com.aiplatform.foundation.knowledgedata.adapter.in.web;
 
 import com.aiplatform.foundation.knowledgedata.api.TextDataSourceUseCase;
-import com.aiplatform.foundation.knowledgedata.api.model.CreateTextDataSourceCommand;
-import com.aiplatform.foundation.knowledgedata.api.model.ListTextDataSourcesQuery;
-import com.aiplatform.foundation.knowledgedata.api.model.PublishTextDataSourceCommand;
-import com.aiplatform.foundation.knowledgedata.api.model.TextDataSourcePage;
-import com.aiplatform.foundation.knowledgedata.api.model.TextDataSourceView;
-import com.aiplatform.foundation.knowledgedata.api.model.UploadTextContentCommand;
+import com.aiplatform.foundation.knowledgedata.api.model.datasource.CreateTextDataSourceCommand;
+import com.aiplatform.foundation.knowledgedata.api.model.datasource.ListTextDataSourcesQuery;
+import com.aiplatform.foundation.knowledgedata.api.model.datasource.PublishTextDataSourceCommand;
+import com.aiplatform.foundation.knowledgedata.api.model.datasource.TextDataSourcePage;
+import com.aiplatform.foundation.knowledgedata.api.model.datasource.TextDataSourceView;
+import com.aiplatform.foundation.knowledgedata.api.model.datasource.UploadTextContentCommand;
 import com.aiplatform.foundation.knowledgedata.application.content.TextContentProcessingException;
 import com.aiplatform.foundation.knowledgedata.domain.model.TextContentReference;
 import com.aiplatform.foundation.security.identity.TrustedRequestContext;

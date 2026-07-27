@@ -1,7 +1,7 @@
 package com.aiplatform.foundation.assistantdelivery.application;
 
 import com.aiplatform.foundation.assistantdelivery.api.PublishedAssistantVersionLookup;
-import com.aiplatform.foundation.assistantdelivery.api.model.PublishedAssistantVersionSnapshot;
+import com.aiplatform.foundation.assistantdelivery.api.model.version.PublishedAssistantVersionSnapshot;
 import com.aiplatform.foundation.assistantdelivery.application.port.out.AssistantRepository;
 import com.aiplatform.foundation.assistantdelivery.domain.AssistantVersionId;
 import com.aiplatform.foundation.assistantdelivery.domain.AssistantVersionStatus;
