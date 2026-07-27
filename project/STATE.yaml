@@ -2,7 +2,7 @@ schemaVersion: 1
 productVersion: foundation-v1
 currentMilestone: M1
 currentFrontier: WP-0008
-lastVerifiedCommit: 8df4d0cfbaab45807b3469d95f024c936b872028
+lastVerifiedCommit: 29e9cc098cb03582ee1ad89e409160eb97fe8fd9
 activeWorkPackages:
   - WP-0008
 blockedWorkPackages:
@@ -64,6 +64,7 @@ latestEvidence:
   - project/evidence/WP-0007-M1-technical-acceptance.md
   - project/evidence/artifacts/WP-0007-upgrade-drill.json
   - docs/research/WP-0008-architecture-remediation-baseline.md
+  - project/evidence/WP-0008-persistence-foundation.md
 nextReviewAt: 2026-08-02
-updatedAt: 2026-07-27T10:00:17+08:00
+updatedAt: 2026-07-27T10:12:13+08:00
 updatedBy: codex
