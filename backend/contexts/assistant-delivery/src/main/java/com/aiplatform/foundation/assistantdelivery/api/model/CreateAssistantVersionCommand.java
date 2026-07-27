@@ -4,7 +4,6 @@ import com.aiplatform.foundation.assistantdelivery.domain.CitationPolicy;
 import com.aiplatform.foundation.assistantdelivery.domain.RefusalPolicy;
 import com.aiplatform.foundation.organizationaccess.api.model.TrustedRequestContext;
 import java.util.Objects;
-import java.util.UUID;
 
 /**
  * 以当前已发布模型和活动索引创建助手版本草稿。
@@ -12,7 +11,7 @@ import java.util.UUID;
 public record CreateAssistantVersionCommand(
         TrustedRequestContext context,
         String idempotencyKey,
-        UUID assistantId,
+        String assistantId,
         String chatDeploymentId,
         String knowledgeSpaceId,
         String systemInstruction,

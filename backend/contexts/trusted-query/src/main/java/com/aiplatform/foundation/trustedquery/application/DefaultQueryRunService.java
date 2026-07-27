@@ -2,6 +2,7 @@ package com.aiplatform.foundation.trustedquery.application;
 
 import com.aiplatform.foundation.assistantdelivery.api.PublishedAssistantVersionLookup;
 import com.aiplatform.foundation.assistantdelivery.api.model.PublishedAssistantVersionSnapshot;
+import com.aiplatform.foundation.kernel.identifier.EntityIdGenerator;
 import com.aiplatform.foundation.knowledgedata.api.extension.IndexCandidate;
 import com.aiplatform.foundation.knowledgedata.api.extension.IndexCandidateQuery;
 import com.aiplatform.foundation.knowledgedata.api.extension.IndexCandidateRetriever;
@@ -24,6 +25,7 @@ import com.aiplatform.foundation.trustedquery.application.port.out.QueryRunRepos
 import com.aiplatform.foundation.trustedquery.domain.QueryCitation;
 import com.aiplatform.foundation.trustedquery.domain.QueryRefusalReason;
 import com.aiplatform.foundation.trustedquery.domain.QueryRun;
+import com.aiplatform.foundation.trustedquery.domain.QueryRunId;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -31,8 +33,6 @@ import java.time.Clock;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Objects;
-import java.util.UUID;
-import java.util.function.Supplier;
 import java.util.stream.IntStream;
 
 /**
@@ -50,7 +50,7 @@ public final class DefaultQueryRunService implements QueryRunUseCase {
     private final QueryRunRepository repository;
     private final QueryQuotaPolicy quota;
     private final Clock clock;
-    private final Supplier<UUID> identifiers;
+    private final EntityIdGenerator identifiers;
 
     public DefaultQueryRunService(
             PublishedAssistantVersionLookup assistants,
@@ -59,7 +59,7 @@ public final class DefaultQueryRunService implements QueryRunUseCase {
             QueryRunRepository repository,
             QueryQuotaPolicy quota,
             Clock clock,
-            Supplier<UUID> identifiers) {
+            EntityIdGenerator identifiers) {
         this.assistants = Objects.requireNonNull(
                 assistants,
                 "已发布助手版本查询不能为空");
@@ -78,11 +78,13 @@ public final class DefaultQueryRunService implements QueryRunUseCase {
         var assistant = assistants
                 .find(
                         command.context().tenantId(),
-                        command.assistantVersionId())
+                        parsePositiveIdentifier(
+                                command.assistantVersionId(),
+                                "助手版本标识"))
                 .orElseThrow(QueryAssistantUnavailableException::new);
         var started = QueryRun.start(
                 command.context().tenantId(),
-                identifiers.get(),
+                new QueryRunId(identifiers.nextId()),
                 assistant.assistantVersionId(),
                 command.context().membershipId(),
                 digest(command.question()),
@@ -120,7 +122,9 @@ public final class DefaultQueryRunService implements QueryRunUseCase {
         Objects.requireNonNull(query, "查询运行读取请求不能为空");
         requirePermissions(query.context());
         return repository
-                .find(query.context().tenantId(), query.queryRunId())
+                .find(
+                        query.context().tenantId(),
+                        QueryRunId.parse(query.queryRunId()))
                 .map(DefaultQueryRunService::toView)
                 .orElseThrow(QueryRunNotFoundException::new);
     }
@@ -229,8 +233,8 @@ public final class DefaultQueryRunService implements QueryRunUseCase {
 
     private static QueryRunView toView(QueryRun queryRun) {
         return new QueryRunView(
-                queryRun.id(),
-                queryRun.assistantVersionId(),
+                queryRun.id().toString(),
+                Long.toString(queryRun.assistantVersionId()),
                 queryRun.status().name(),
                 queryRun.answer(),
                 queryRun.refusalReason() == null
@@ -258,7 +262,7 @@ public final class DefaultQueryRunService implements QueryRunUseCase {
         return HexFormat.of().formatHex(digest.digest());
     }
 
-    private static String fingerprint(UUID assistantVersionId, String question) {
+    private static String fingerprint(String assistantVersionId, String question) {
         var digest = sha256();
         update(digest, assistantVersionId.toString());
         update(digest, question);
@@ -276,5 +280,18 @@ public final class DefaultQueryRunService implements QueryRunUseCase {
     private static void update(MessageDigest digest, String value) {
         digest.update(value.getBytes(StandardCharsets.UTF_8));
         digest.update((byte) 0);
+    }
+
+    private static long parsePositiveIdentifier(String value, String field) {
+        Objects.requireNonNull(value, field + "不能为空");
+        try {
+            var parsed = Long.parseLong(value);
+            if (parsed <= 0) {
+                throw new IllegalArgumentException(field + "必须是正整数");
+            }
+            return parsed;
+        } catch (NumberFormatException exception) {
+            throw new IllegalArgumentException(field + "格式不正确", exception);
+        }
     }
 }

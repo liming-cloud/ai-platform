@@ -2,7 +2,6 @@ package com.aiplatform.foundation.assistantdelivery.adapter.out.persistence;
 
 import java.time.Instant;
 import java.util.List;
-import java.util.UUID;
 import org.apache.ibatis.annotations.Param;
 
 /**
@@ -21,7 +20,7 @@ public interface AssistantMapper {
 
     int insertAssistant(
             @Param("tenantId") long tenantId,
-            @Param("id") UUID id,
+            @Param("id") long id,
             @Param("displayName") String displayName,
             @Param("latestVersionNumber") int latestVersionNumber,
             @Param("version") long version,
@@ -33,17 +32,17 @@ public interface AssistantMapper {
             @Param("operation") String operation,
             @Param("keyHash") String keyHash,
             @Param("requestFingerprint") String requestFingerprint,
-            @Param("assistantId") UUID assistantId,
-            @Param("assistantVersionId") UUID assistantVersionId,
+            @Param("assistantId") long assistantId,
+            @Param("assistantVersionId") Long assistantVersionId,
             @Param("createdAt") Instant createdAt);
 
     AssistantRow findAssistant(
             @Param("tenantId") long tenantId,
-            @Param("assistantId") UUID assistantId);
+            @Param("assistantId") long assistantId);
 
     AssistantRow findAssistantForUpdate(
             @Param("tenantId") long tenantId,
-            @Param("assistantId") UUID assistantId);
+            @Param("assistantId") long assistantId);
 
     List<AssistantRow> findFirstPage(
             @Param("tenantId") long tenantId,
@@ -52,7 +51,7 @@ public interface AssistantMapper {
     List<AssistantRow> findAfter(
             @Param("tenantId") long tenantId,
             @Param("createdAt") Instant createdAt,
-            @Param("id") UUID id,
+            @Param("id") long id,
             @Param("limit") int limit);
 
     List<PublishedAssistantRow> findFirstPublishedPage(
@@ -62,24 +61,24 @@ public interface AssistantMapper {
     List<PublishedAssistantRow> findPublishedAfter(
             @Param("tenantId") long tenantId,
             @Param("publishedAt") Instant publishedAt,
-            @Param("assistantVersionId") UUID assistantVersionId,
+            @Param("assistantVersionId") long assistantVersionId,
             @Param("limit") int limit);
 
     int countVersions(
             @Param("tenantId") long tenantId,
-            @Param("assistantId") UUID assistantId);
+            @Param("assistantId") long assistantId);
 
     int advanceAssistant(
             @Param("tenantId") long tenantId,
-            @Param("assistantId") UUID assistantId,
+            @Param("assistantId") long assistantId,
             @Param("latestVersionNumber") int latestVersionNumber,
             @Param("newVersion") long newVersion,
             @Param("expectedVersion") long expectedVersion);
 
     int insertVersion(
             @Param("tenantId") long tenantId,
-            @Param("id") UUID id,
-            @Param("assistantId") UUID assistantId,
+            @Param("id") long id,
+            @Param("assistantId") long assistantId,
             @Param("versionNumber") int versionNumber,
             @Param("chatDeploymentId") long chatDeploymentId,
             @Param("chatDeploymentRevision") long chatDeploymentRevision,
@@ -104,11 +103,11 @@ public interface AssistantMapper {
 
     AssistantVersionRow findVersion(
             @Param("tenantId") long tenantId,
-            @Param("assistantVersionId") UUID assistantVersionId);
+            @Param("assistantVersionId") long assistantVersionId);
 
     int publishVersion(
             @Param("tenantId") long tenantId,
-            @Param("assistantVersionId") UUID assistantVersionId,
+            @Param("assistantVersionId") long assistantVersionId,
             @Param("status") String status,
             @Param("newVersion") long newVersion,
             @Param("publishedAt") Instant publishedAt,

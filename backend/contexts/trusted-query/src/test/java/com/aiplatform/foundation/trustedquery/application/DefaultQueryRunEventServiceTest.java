@@ -18,20 +18,20 @@ import com.aiplatform.foundation.trustedquery.domain.QueryQuotaSnapshot;
 import com.aiplatform.foundation.trustedquery.domain.QueryRefusalReason;
 import com.aiplatform.foundation.trustedquery.domain.QueryRun;
 import com.aiplatform.foundation.trustedquery.domain.QueryRunEvent;
+import com.aiplatform.foundation.trustedquery.domain.QueryRunId;
 import java.time.Instant;
 import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
 class DefaultQueryRunEventServiceTest {
 
     private static final TenantId TENANT =
             new TenantId(100000000000000001L);
-    private static final UUID RUN =
-            UUID.fromString("20000000-0000-0000-0000-000000000001");
+    private static final QueryRunId RUN =
+            new QueryRunId(430000000000000001L);
     private static final Instant NOW = Instant.parse("2026-07-27T06:00:00Z");
 
     @Test
@@ -41,7 +41,7 @@ class DefaultQueryRunEventServiceTest {
 
         var page = service.list(new ListQueryRunEventsQuery(
                 context(),
-                RUN,
+                RUN.toString(),
                 1,
                 10));
 
@@ -74,7 +74,7 @@ class DefaultQueryRunEventServiceTest {
         private final QueryRun running = QueryRun.start(
                 TENANT,
                 RUN,
-                UUID.randomUUID(),
+                420000000000000001L,
                 context().membershipId(),
                 "a".repeat(64),
                 NOW)
@@ -105,7 +105,7 @@ class DefaultQueryRunEventServiceTest {
         }
 
         @Override
-        public Optional<QueryRun> find(TenantId tenantId, UUID queryRunId) {
+        public Optional<QueryRun> find(TenantId tenantId, QueryRunId queryRunId) {
             return TENANT.equals(tenantId) && RUN.equals(queryRunId)
                     ? Optional.of(completed)
                     : Optional.empty();
@@ -114,7 +114,7 @@ class DefaultQueryRunEventServiceTest {
         @Override
         public List<QueryRunEvent> findEvents(
                 TenantId value,
-                UUID queryRunId,
+                QueryRunId queryRunId,
                 long after,
                 int limit) {
             tenantId = value;

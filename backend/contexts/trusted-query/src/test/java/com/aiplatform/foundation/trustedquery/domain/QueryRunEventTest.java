@@ -11,7 +11,6 @@ import com.aiplatform.foundation.organizationaccess.api.model.MembershipId;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
-import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
 class QueryRunEventTest {
@@ -71,8 +70,8 @@ class QueryRunEventTest {
     private static QueryRun running() {
         return QueryRun.start(
                 new TenantId(100000000000000001L),
-                UUID.fromString("20000000-0000-0000-0000-000000000001"),
-                UUID.fromString("30000000-0000-0000-0000-000000000001"),
+                new QueryRunId(430000000000000001L),
+                420000000000000001L,
                 new MembershipId(1843651857942052866L),
                 "a".repeat(64),
                 NOW)

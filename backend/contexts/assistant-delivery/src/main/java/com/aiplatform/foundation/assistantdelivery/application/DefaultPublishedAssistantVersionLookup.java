@@ -8,7 +8,6 @@ import com.aiplatform.foundation.assistantdelivery.domain.AssistantVersionStatus
 import com.aiplatform.foundation.kernel.tenant.TenantId;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.UUID;
 
 /**
  * 从助手仓储投影可信查询可用的已发布版本快照。
@@ -25,9 +24,11 @@ public final class DefaultPublishedAssistantVersionLookup
     @Override
     public Optional<PublishedAssistantVersionSnapshot> find(
             TenantId tenantId,
-            UUID assistantVersionId) {
+            long assistantVersionId) {
         Objects.requireNonNull(tenantId, "租户标识不能为空");
-        Objects.requireNonNull(assistantVersionId, "助手版本标识不能为空");
+        if (assistantVersionId <= 0) {
+            throw new IllegalArgumentException("助手版本标识必须是正整数");
+        }
         return assistants
                 .findVersion(tenantId, new AssistantVersionId(assistantVersionId))
                 .filter(version -> version.status() == AssistantVersionStatus.PUBLISHED)

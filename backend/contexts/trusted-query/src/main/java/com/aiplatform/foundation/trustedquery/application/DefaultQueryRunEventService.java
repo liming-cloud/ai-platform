@@ -7,6 +7,7 @@ import com.aiplatform.foundation.trustedquery.api.model.QueryCitationView;
 import com.aiplatform.foundation.trustedquery.api.model.QueryRunEventPage;
 import com.aiplatform.foundation.trustedquery.api.model.QueryRunEventView;
 import com.aiplatform.foundation.trustedquery.application.port.out.QueryRunRepository;
+import com.aiplatform.foundation.trustedquery.domain.QueryRunId;
 import com.aiplatform.foundation.trustedquery.domain.QueryCitation;
 import com.aiplatform.foundation.trustedquery.domain.QueryRunEvent;
 import com.aiplatform.foundation.trustedquery.domain.QueryRunStatus;
@@ -31,12 +32,13 @@ public final class DefaultQueryRunEventService implements QueryRunEventUseCase {
     public QueryRunEventPage list(ListQueryRunEventsQuery query) {
         Objects.requireNonNull(query, "查询事件读取请求不能为空");
         requirePermissions(query);
+        var queryRunId = QueryRunId.parse(query.queryRunId());
         var run = repository
-                .find(query.context().tenantId(), query.queryRunId())
+                .find(query.context().tenantId(), queryRunId)
                 .orElseThrow(QueryRunNotFoundException::new);
         var events = repository.findEvents(
                 query.context().tenantId(),
-                query.queryRunId(),
+                queryRunId,
                 query.afterSequence(),
                 query.limit());
         var views = events.stream()

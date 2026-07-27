@@ -10,7 +10,6 @@ import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -156,7 +155,7 @@ class AssistantApiTest {
         assertTrue(publishedVersions.find(
                         com.aiplatform.foundation.kernel.tenant.TenantId.parse(
                                 Long.toString(STORE)),
-                        published.getBody().id())
+                        Long.parseLong(published.getBody().id()))
                 .isPresent());
 
         assertEquals(List.of(created.id()), list(storeToken).items().stream()
@@ -294,11 +293,11 @@ class AssistantApiTest {
     private record SessionResponse(String tokenValue) {
     }
 
-    private record AssistantResponse(UUID id, int latestVersionNumber, long version) {
+    private record AssistantResponse(String id, int latestVersionNumber, long version) {
     }
 
     private record AssistantVersionResponse(
-            UUID id,
+            String id,
             long chatDeploymentRevision,
             long indexVersionRevision,
             long embeddingDeploymentRevision,

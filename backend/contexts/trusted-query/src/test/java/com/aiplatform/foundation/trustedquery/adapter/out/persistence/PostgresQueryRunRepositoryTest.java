@@ -18,11 +18,12 @@ import com.aiplatform.foundation.trustedquery.api.operations.QueryOperationsFact
 import com.aiplatform.foundation.trustedquery.api.operations.QueryUsageFactQuery;
 import com.aiplatform.foundation.trustedquery.domain.QueryCitation;
 import com.aiplatform.foundation.trustedquery.domain.QueryRun;
+import com.aiplatform.foundation.trustedquery.domain.QueryRunId;
 import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
-import java.util.UUID;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import org.junit.jupiter.api.BeforeEach;
@@ -47,10 +48,8 @@ class PostgresQueryRunRepositoryTest {
 
     private static final TenantId TENANT = new TenantId(100000000000000001L);
     private static final MembershipId MEMBER = new MembershipId(3382738893456539650L);
-    private static final UUID ASSISTANT =
-            UUID.fromString("41000000-0000-0000-0000-000000000001");
-    private static final UUID ASSISTANT_VERSION =
-            UUID.fromString("42000000-0000-0000-0000-000000000001");
+    private static final long ASSISTANT = 410000000000000001L;
+    private static final long ASSISTANT_VERSION = 420000000000000001L;
     private static final long CHAT = 320000000000000001L;
     private static final long SPACE = 210000000000000001L;
     private static final long INDEX = 230000000000000001L;
@@ -58,6 +57,8 @@ class PostgresQueryRunRepositoryTest {
     private static final Instant NOW = Instant.parse("2026-07-27T05:00:00Z");
     private static final QueryQuotaPolicy QUOTA =
             new QueryQuotaPolicy(100, 4, Duration.ofMinutes(2));
+    private static final AtomicLong IDENTIFIERS =
+            new AtomicLong(430000000000000000L);
 
     @Container
     private static final PostgreSQLContainer POSTGRES =
@@ -370,10 +371,10 @@ class PostgresQueryRunRepositoryTest {
         assertEquals(2, usage.dailyUsed());
         assertEquals(0, usage.concurrentUsed());
         assertEquals(
-                refusedClaim.queryRun().id(),
+                refusedClaim.queryRun().id().toString(),
                 firstPage.items().getFirst().queryRunId());
         assertEquals(
-                answeredClaim.queryRun().id(),
+                answeredClaim.queryRun().id().toString(),
                 secondPage.items().getFirst().queryRunId());
         assertTrue(crossTenant.items().isEmpty());
     }
@@ -385,7 +386,7 @@ class PostgresQueryRunRepositoryTest {
     private static QueryRun runningAt(Instant time) {
         return QueryRun.start(
                 TENANT,
-                UUID.randomUUID(),
+                new QueryRunId(IDENTIFIERS.incrementAndGet()),
                 ASSISTANT_VERSION,
                 MEMBER,
                 "a".repeat(64),

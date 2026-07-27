@@ -40,17 +40,14 @@ import java.util.ArrayDeque;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
 class DefaultAssistantServiceTest {
 
     private static final TenantId TENANT =
             new TenantId(100000000000000001L);
-    private static final UUID ASSISTANT_ID =
-            UUID.fromString("20000000-0000-0000-0000-000000000001");
-    private static final UUID VERSION_ID =
-            UUID.fromString("30000000-0000-0000-0000-000000000001");
+    private static final long ASSISTANT_ID = 410000000000000001L;
+    private static final long VERSION_ID = 420000000000000001L;
     private static final long CHAT_ID = 320000000000000001L;
     private static final long SPACE_ID = 210000000000000001L;
     private static final long INDEX_ID = 230000000000000001L;
@@ -73,8 +70,8 @@ class DefaultAssistantServiceTest {
                 created.assistantVersion().id(),
                 0));
 
-        assertEquals(ASSISTANT_ID, assistant.assistant().id());
-        assertEquals(VERSION_ID, created.assistantVersion().id());
+        assertEquals(Long.toString(ASSISTANT_ID), assistant.assistant().id());
+        assertEquals(Long.toString(VERSION_ID), created.assistantVersion().id());
         assertEquals(9, created.assistantVersion().chatDeploymentRevision());
         assertEquals(4, created.assistantVersion().indexVersionRevision());
         assertEquals(3, created.assistantVersion().embeddingDeploymentRevision());
@@ -99,12 +96,12 @@ class DefaultAssistantServiceTest {
 
         assertThrows(
                 AssistantReferenceUnavailableException.class,
-                () -> noModel.createVersion(versionCommand(ASSISTANT_ID)));
+                () -> noModel.createVersion(versionCommand(Long.toString(ASSISTANT_ID))));
 
         var noIndex = service(repository, true, false);
         assertThrows(
                 AssistantReferenceUnavailableException.class,
-                () -> noIndex.createVersion(versionCommand(ASSISTANT_ID)));
+                () -> noIndex.createVersion(versionCommand(Long.toString(ASSISTANT_ID))));
     }
 
     @Test
@@ -154,7 +151,7 @@ class DefaultAssistantServiceTest {
                 20);
     }
 
-    private static CreateAssistantVersionCommand versionCommand(UUID assistantId) {
+    private static CreateAssistantVersionCommand versionCommand(String assistantId) {
         return new CreateAssistantVersionCommand(
                 context("assistant:write"),
                 "assistant-version-0001",

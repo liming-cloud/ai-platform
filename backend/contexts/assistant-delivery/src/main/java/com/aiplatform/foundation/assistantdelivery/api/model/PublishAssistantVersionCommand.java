@@ -2,7 +2,6 @@ package com.aiplatform.foundation.assistantdelivery.api.model;
 
 import com.aiplatform.foundation.organizationaccess.api.model.TrustedRequestContext;
 import java.util.Objects;
-import java.util.UUID;
 
 /**
  * 发布一个冻结的助手版本。
@@ -10,7 +9,7 @@ import java.util.UUID;
 public record PublishAssistantVersionCommand(
         TrustedRequestContext context,
         String idempotencyKey,
-        UUID assistantVersionId,
+        String assistantVersionId,
         long expectedVersion) {
 
     public PublishAssistantVersionCommand {

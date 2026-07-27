@@ -21,7 +21,6 @@ import com.redis.testcontainers.RedisContainer;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -52,12 +51,9 @@ class OperationsApiTest {
             100000000000000001L;
     private static final Instant FROM = Instant.parse("2026-07-27T00:00:00Z");
     private static final Instant TO = Instant.parse("2026-07-28T00:00:00Z");
-    private static final UUID QUERY_RUN_ID =
-            UUID.fromString("81000000-0000-0000-0000-000000000001");
-    private static final UUID REQUESTED_BY =
-            UUID.fromString("30000000-0000-0000-0000-000000000001");
-    private static final UUID ASSISTANT_VERSION_ID =
-            UUID.fromString("82000000-0000-0000-0000-000000000001");
+    private static final String QUERY_RUN_ID = "430000000000000001";
+    private static final String REQUESTED_BY = "730000000000000001";
+    private static final String ASSISTANT_VERSION_ID = "420000000000000001";
 
     @Container
     private static final PostgreSQLContainer POSTGRES =
@@ -189,7 +185,7 @@ class OperationsApiTest {
         return new QueryAuditRecordPage(
                 List.of(new QueryAuditRecordView(
                         QUERY_RUN_ID,
-                        REQUESTED_BY.toString(),
+                        REQUESTED_BY,
                         ASSISTANT_VERSION_ID,
                         "a".repeat(64),
                         "ANSWERED",

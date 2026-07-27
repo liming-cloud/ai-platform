@@ -5,7 +5,6 @@ import com.aiplatform.foundation.modelruntime.api.model.ModelUsage;
 import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
-import java.util.UUID;
 
 /**
  * 可持久化并按序重放的查询运行状态快照。
@@ -13,7 +12,7 @@ import java.util.UUID;
 public final class QueryRunEvent {
 
     private final TenantId tenantId;
-    private final UUID queryRunId;
+    private final QueryRunId queryRunId;
     private final long sequence;
     private final QueryRunEventType type;
     private final QueryRunStatus status;
@@ -25,7 +24,7 @@ public final class QueryRunEvent {
 
     private QueryRunEvent(
             TenantId tenantId,
-            UUID queryRunId,
+            QueryRunId queryRunId,
             long sequence,
             QueryRunEventType type,
             QueryRunStatus status,
@@ -90,7 +89,7 @@ public final class QueryRunEvent {
 
     public static QueryRunEvent reconstitute(
             TenantId tenantId,
-            UUID queryRunId,
+            QueryRunId queryRunId,
             long sequence,
             QueryRunEventType type,
             QueryRunStatus status,
@@ -116,7 +115,7 @@ public final class QueryRunEvent {
         return tenantId;
     }
 
-    public UUID queryRunId() {
+    public QueryRunId queryRunId() {
         return queryRunId;
     }
 

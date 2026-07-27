@@ -2,15 +2,14 @@ package com.aiplatform.foundation.assistantdelivery.api.model;
 
 import java.time.Instant;
 import java.util.Objects;
-import java.util.UUID;
 
 /**
  * 查询渠道可展示的最小已发布助手事实。
  */
 public record QueryAssistantView(
-        UUID assistantId,
+        String assistantId,
         String displayName,
-        UUID assistantVersionId,
+        String assistantVersionId,
         int versionNumber,
         Instant publishedAt) {
 

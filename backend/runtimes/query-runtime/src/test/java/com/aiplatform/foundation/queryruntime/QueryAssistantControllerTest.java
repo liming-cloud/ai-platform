@@ -16,15 +16,12 @@ import com.aiplatform.foundation.organizationaccess.api.model.TrustedRequestCont
 import java.time.Instant;
 import java.util.List;
 import java.util.Set;
-import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
 class QueryAssistantControllerTest {
 
-    private static final UUID ASSISTANT =
-            UUID.fromString("10000000-0000-0000-0000-000000000001");
-    private static final UUID VERSION =
-            UUID.fromString("20000000-0000-0000-0000-000000000001");
+    private static final String ASSISTANT = "410000000000000001";
+    private static final String VERSION = "420000000000000001";
 
     @Test
     void 目录接口传递可信上下文和游标且只返回查询视图() {

@@ -31,6 +31,7 @@ import com.aiplatform.foundation.trustedquery.application.port.out.QueryRunClaim
 import com.aiplatform.foundation.trustedquery.application.port.out.QueryQuotaPolicy;
 import com.aiplatform.foundation.trustedquery.application.port.out.QueryRunRepository;
 import com.aiplatform.foundation.trustedquery.domain.QueryRun;
+import com.aiplatform.foundation.trustedquery.domain.QueryRunId;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -38,7 +39,6 @@ import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import java.util.UUID;
 import java.util.concurrent.Flow;
 import org.junit.jupiter.api.Test;
 
@@ -46,8 +46,7 @@ class DefaultQueryRunServiceTest {
 
     private static final TenantId TENANT =
             new TenantId(100000000000000001L);
-    private static final UUID ASSISTANT_VERSION =
-            UUID.fromString("20000000-0000-0000-0000-000000000001");
+    private static final long ASSISTANT_VERSION = 420000000000000001L;
     private static final long CHAT = 320000000000000001L;
     private static final long EMBEDDING = 320000000000000002L;
     private static final long SPACE = 210000000000000001L;
@@ -63,7 +62,7 @@ class DefaultQueryRunServiceTest {
         var command = new CreateQueryRunCommand(
                 context("assistant:query", "knowledge:read"),
                 "query-key-001",
-                ASSISTANT_VERSION,
+                Long.toString(ASSISTANT_VERSION),
                 "牛奶在哪里");
 
         var first = service.create(command);
@@ -94,7 +93,7 @@ class DefaultQueryRunServiceTest {
         var result = service.create(new CreateQueryRunCommand(
                 context("assistant:query", "knowledge:read"),
                 "query-key-002",
-                ASSISTANT_VERSION,
+                Long.toString(ASSISTANT_VERSION),
                 "不存在的信息"));
 
         assertEquals("REFUSED", result.queryRun().status());
@@ -118,7 +117,7 @@ class DefaultQueryRunServiceTest {
                 () -> service.create(new CreateQueryRunCommand(
                         context("knowledge:read"),
                         "query-key-003",
-                        ASSISTANT_VERSION,
+                        Long.toString(ASSISTANT_VERSION),
                         "牛奶在哪里")));
         assertEquals(0, models.chatCalls);
         assertEquals(null, repository.current);
@@ -137,7 +136,7 @@ class DefaultQueryRunServiceTest {
                 () -> service.create(new CreateQueryRunCommand(
                         context("assistant:query", "knowledge:read"),
                         "query-key-quota",
-                        ASSISTANT_VERSION,
+                        Long.toString(ASSISTANT_VERSION),
                         "牛奶在哪里")));
 
         assertEquals(null, retrieval.query);
@@ -151,7 +150,7 @@ class DefaultQueryRunServiceTest {
         return new DefaultQueryRunService(
                 (tenantId, assistantVersionId) ->
                         tenantId.equals(TENANT)
-                                        && assistantVersionId.equals(ASSISTANT_VERSION)
+                                        && assistantVersionId == ASSISTANT_VERSION
                                 ? Optional.of(snapshot())
                                 : Optional.empty(),
                 models,
@@ -159,14 +158,13 @@ class DefaultQueryRunServiceTest {
                 repository,
                 new QueryQuotaPolicy(100, 4, Duration.ofMinutes(2)),
                 Clock.fixed(NOW, ZoneOffset.UTC),
-                () -> UUID.fromString(
-                        "70000000-0000-0000-0000-000000000001"));
+                () -> 430000000000000001L);
     }
 
     private static PublishedAssistantVersionSnapshot snapshot() {
         return new PublishedAssistantVersionSnapshot(
                 ASSISTANT_VERSION,
-                UUID.randomUUID(),
+                410000000000000001L,
                 1,
                 CHAT,
                 7,
@@ -319,7 +317,7 @@ class DefaultQueryRunServiceTest {
         }
 
         @Override
-        public Optional<QueryRun> find(TenantId tenantId, UUID queryRunId) {
+        public Optional<QueryRun> find(TenantId tenantId, QueryRunId queryRunId) {
             if (current != null
                     && current.tenantId().equals(tenantId)
                     && current.id().equals(queryRunId)) {
@@ -331,7 +329,7 @@ class DefaultQueryRunServiceTest {
         @Override
         public List<com.aiplatform.foundation.trustedquery.domain.QueryRunEvent> findEvents(
                 TenantId tenantId,
-                UUID queryRunId,
+                QueryRunId queryRunId,
                 long afterSequence,
                 int limit) {
             return List.of();

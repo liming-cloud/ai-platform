@@ -2,7 +2,6 @@ package com.aiplatform.foundation.trustedquery.api.model;
 
 import com.aiplatform.foundation.organizationaccess.api.model.TrustedRequestContext;
 import java.util.Objects;
-import java.util.UUID;
 
 /**
  * 在可信会话中执行已发布助手版本的请求。
@@ -10,7 +9,7 @@ import java.util.UUID;
 public record CreateQueryRunCommand(
         TrustedRequestContext context,
         String idempotencyKey,
-        UUID assistantVersionId,
+        String assistantVersionId,
         String question) {
 
     public CreateQueryRunCommand {

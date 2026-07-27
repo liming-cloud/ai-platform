@@ -23,16 +23,13 @@ import com.aiplatform.foundation.trustedquery.api.model.QueryRunView;
 import java.time.Instant;
 import java.util.List;
 import java.util.Set;
-import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 
 class QueryRunControllerTest {
 
-    private static final UUID VERSION =
-            UUID.fromString("10000000-0000-0000-0000-000000000001");
-    private static final UUID RUN =
-            UUID.fromString("20000000-0000-0000-0000-000000000001");
+    private static final String VERSION = "420000000000000001";
+    private static final String RUN = "430000000000000001";
 
     @Test
     void 创建接口传递可信上下文和幂等键并返回资源位置() {

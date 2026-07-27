@@ -22,7 +22,7 @@ import com.aiplatform.foundation.kernel.tenant.TenantId;
 import com.aiplatform.foundation.organizationaccess.api.model.MembershipId;
 import java.sql.Timestamp;
 import java.time.Instant;
-import java.util.UUID;
+import java.util.concurrent.atomic.AtomicLong;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mybatis.spring.annotation.MapperScan;
@@ -53,6 +53,8 @@ class PostgresAssistantRepositoryTest {
     private static final long INDEX = 230000000000000001L;
     private static final long EMBEDDING = 320000000000000002L;
     private static final Instant NOW = Instant.parse("2026-07-27T06:00:00Z");
+    private static final AtomicLong IDENTIFIERS =
+            new AtomicLong(410000000000000000L);
 
     @Container
     private static final PostgreSQLContainer POSTGRES =
@@ -168,7 +170,7 @@ class PostgresAssistantRepositoryTest {
                         new AssistantVersionCreation(
                                 assistant,
                                 advanced,
-                                versionWithId(advanced, UUID.randomUUID()),
+                                versionWithId(advanced, IDENTIFIERS.incrementAndGet()),
                                 "version-key-0003",
                                 "f".repeat(64)),
                         20));
@@ -260,17 +262,17 @@ class PostgresAssistantRepositoryTest {
     private static Assistant assistant(TenantId tenantId, String name) {
         return Assistant.create(
                 tenantId,
-                new AssistantId(UUID.randomUUID()),
+                new AssistantId(IDENTIFIERS.incrementAndGet()),
                 name,
                 CREATOR,
                 NOW);
     }
 
     private static AssistantVersion version(Assistant advanced) {
-        return versionWithId(advanced, UUID.randomUUID());
+        return versionWithId(advanced, IDENTIFIERS.incrementAndGet());
     }
 
-    private static AssistantVersion versionWithId(Assistant advanced, UUID id) {
+    private static AssistantVersion versionWithId(Assistant advanced, long id) {
         return AssistantVersion.draft(
                 STORE,
                 new AssistantVersionId(id),

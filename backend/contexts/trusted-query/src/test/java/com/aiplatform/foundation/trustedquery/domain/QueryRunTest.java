@@ -8,7 +8,6 @@ import com.aiplatform.foundation.modelruntime.api.model.ModelUsage;
 import com.aiplatform.foundation.organizationaccess.api.model.MembershipId;
 import java.time.Instant;
 import java.util.List;
-import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
 class QueryRunTest {
@@ -95,8 +94,8 @@ class QueryRunTest {
     private static QueryRun proposed() {
         return QueryRun.start(
                 new TenantId(7100000000000000004L),
-                UUID.randomUUID(),
-                UUID.randomUUID(),
+                new QueryRunId(430000000000000001L),
+                420000000000000001L,
                 new MembershipId(7300000000000000005L),
                 "a".repeat(64),
                 NOW);

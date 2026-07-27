@@ -46,9 +46,9 @@ public final class DefaultQueryAssistantCatalogService
 
     private static QueryAssistantView toView(PublishedAssistantSummary summary) {
         return new QueryAssistantView(
-                summary.assistantId(),
+                Long.toString(summary.assistantId()),
                 summary.displayName(),
-                summary.assistantVersionId(),
+                Long.toString(summary.assistantVersionId()),
                 summary.versionNumber(),
                 summary.publishedAt());
     }

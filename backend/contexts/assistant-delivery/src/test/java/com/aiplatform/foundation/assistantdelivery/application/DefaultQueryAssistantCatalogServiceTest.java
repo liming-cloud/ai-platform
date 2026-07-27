@@ -29,17 +29,14 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
 class DefaultQueryAssistantCatalogServiceTest {
 
     private static final TenantId TENANT =
             new TenantId(100000000000000001L);
-    private static final UUID ASSISTANT =
-            UUID.fromString("20000000-0000-0000-0000-000000000001");
-    private static final UUID VERSION =
-            UUID.fromString("30000000-0000-0000-0000-000000000001");
+    private static final long ASSISTANT = 410000000000000001L;
+    private static final long VERSION = 420000000000000001L;
     private static final Instant PUBLISHED_AT =
             Instant.parse("2026-07-27T06:00:00Z");
 
@@ -56,8 +53,8 @@ class DefaultQueryAssistantCatalogServiceTest {
                 20));
 
         assertEquals(TENANT, repository.tenantId);
-        assertEquals(ASSISTANT, page.items().getFirst().assistantId());
-        assertEquals(VERSION, page.items().getFirst().assistantVersionId());
+        assertEquals(Long.toString(ASSISTANT), page.items().getFirst().assistantId());
+        assertEquals(Long.toString(VERSION), page.items().getFirst().assistantVersionId());
         assertEquals("门店导购助手", page.items().getFirst().displayName());
         assertEquals("next", page.nextCursor());
     }

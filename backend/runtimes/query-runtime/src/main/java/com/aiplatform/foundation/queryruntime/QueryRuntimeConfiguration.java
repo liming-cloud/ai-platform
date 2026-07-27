@@ -10,6 +10,7 @@ import com.aiplatform.foundation.assistantdelivery.api.QueryAssistantCatalogUseC
 import com.aiplatform.foundation.assistantdelivery.application.DefaultQueryAssistantCatalogService;
 import com.aiplatform.foundation.assistantdelivery.application.DefaultPublishedAssistantVersionLookup;
 import com.aiplatform.foundation.assistantdelivery.application.port.out.AssistantRepository;
+import com.aiplatform.foundation.kernel.identifier.EntityIdGenerator;
 import com.aiplatform.foundation.modelruntime.adapter.out.persistence.ModelDeploymentMapper;
 import com.aiplatform.foundation.modelruntime.adapter.out.persistence.PostgresModelDeploymentRepository;
 import com.aiplatform.foundation.modelruntime.adapter.out.persistence.PostgresProviderConnectionRepository;
@@ -41,7 +42,6 @@ import com.aiplatform.foundation.vectorstore.pgvector.PgVectorIndexStore;
 import java.time.Clock;
 import java.time.Duration;
 import java.util.List;
-import java.util.UUID;
 import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -165,6 +165,7 @@ public class QueryRuntimeConfiguration {
             ModelRuntimeResolver models,
             PgVectorIndexStore candidates,
             QueryRunRepository repository,
+            EntityIdGenerator identifiers,
             @Value("${foundation.query.quota.daily-limit:100}")
                     int dailyQueryLimit,
             @Value("${foundation.query.quota.concurrent-limit:4}")
@@ -181,7 +182,7 @@ public class QueryRuntimeConfiguration {
                         concurrentQueryLimit,
                         runningLease),
                 Clock.systemUTC(),
-                UUID::randomUUID);
+                identifiers);
     }
 
     @Bean

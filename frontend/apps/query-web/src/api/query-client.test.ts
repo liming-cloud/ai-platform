@@ -15,17 +15,17 @@ describe("QueryClient", () => {
       }, 201),
       jsonResponse({
         items: [{
-          assistantId: "10000000-0000-0000-0000-000000000001",
+          assistantId: "410000000000000001",
           displayName: "门店导购助手",
-          assistantVersionId: "20000000-0000-0000-0000-000000000001",
+          assistantVersionId: "420000000000000001",
           versionNumber: 2,
           publishedAt: "2026-07-27T06:00:00Z",
         }],
         nextCursor: null,
       }),
       jsonResponse({
-        id: "30000000-0000-0000-0000-000000000001",
-        assistantVersionId: "20000000-0000-0000-0000-000000000001",
+        id: "430000000000000001",
+        assistantVersionId: "420000000000000001",
         status: "ANSWERED",
       }, 201),
     ];
@@ -86,7 +86,7 @@ describe("QueryClient", () => {
     });
 
     const events = await client.listQueryEvents(
-      "30000000-0000-0000-0000-000000000001",
+      "430000000000000001",
       1,
     );
 

@@ -2,7 +2,7 @@ CREATE SCHEMA IF NOT EXISTS assistant_delivery;
 
 CREATE TABLE assistant_delivery.assistant (
     tenant_id BIGINT NOT NULL,
-    id UUID NOT NULL,
+    id BIGINT NOT NULL,
     display_name VARCHAR(320) NOT NULL,
     latest_version_number INTEGER NOT NULL,
     version BIGINT NOT NULL,
@@ -21,8 +21,8 @@ CREATE INDEX idx_assistant_tenant_created
 
 CREATE TABLE assistant_delivery.assistant_version (
     tenant_id BIGINT NOT NULL,
-    id UUID NOT NULL,
-    assistant_id UUID NOT NULL,
+    id BIGINT NOT NULL,
+    assistant_id BIGINT NOT NULL,
     version_number INTEGER NOT NULL,
     chat_deployment_id BIGINT NOT NULL,
     chat_deployment_revision BIGINT NOT NULL,
@@ -100,8 +100,8 @@ CREATE TABLE assistant_delivery.assistant_request (
     operation VARCHAR(32) NOT NULL,
     idempotency_key_hash CHAR(64) NOT NULL,
     request_fingerprint CHAR(64) NOT NULL,
-    assistant_id UUID NOT NULL,
-    assistant_version_id UUID,
+    assistant_id BIGINT NOT NULL,
+    assistant_version_id BIGINT,
     created_at TIMESTAMPTZ NOT NULL,
     CONSTRAINT pk_assistant_request
         PRIMARY KEY (tenant_id, operation, idempotency_key_hash),

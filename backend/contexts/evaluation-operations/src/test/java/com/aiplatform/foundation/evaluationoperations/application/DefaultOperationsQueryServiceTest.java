@@ -24,7 +24,6 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Set;
-import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
 class DefaultOperationsQueryServiceTest {
@@ -133,9 +132,9 @@ class DefaultOperationsQueryServiceTest {
                 int limit) {
             return new QueryAuditFactPage(
                     List.of(new QueryAuditFact(
-                            UUID.randomUUID(),
+                            "430000000000000001",
                             new MembershipId(730000000000000003L),
-                            UUID.randomUUID(),
+                            "420000000000000001",
                             "a".repeat(64),
                             "ANSWERED",
                             null,

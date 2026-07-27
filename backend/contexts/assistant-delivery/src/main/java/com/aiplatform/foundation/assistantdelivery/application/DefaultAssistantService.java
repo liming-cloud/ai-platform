@@ -20,6 +20,7 @@ import com.aiplatform.foundation.assistantdelivery.domain.AssistantId;
 import com.aiplatform.foundation.assistantdelivery.domain.AssistantVersion;
 import com.aiplatform.foundation.assistantdelivery.domain.AssistantVersionId;
 import com.aiplatform.foundation.knowledgedata.api.ActiveIndexLookup;
+import com.aiplatform.foundation.kernel.identifier.EntityIdGenerator;
 import com.aiplatform.foundation.modelruntime.api.catalog.PublishedChatDeploymentLookup;
 import com.aiplatform.foundation.organizationaccess.api.model.PermissionCode;
 import com.aiplatform.foundation.organizationaccess.api.model.TrustedRequestContext;
@@ -29,8 +30,6 @@ import java.security.NoSuchAlgorithmException;
 import java.time.Clock;
 import java.util.HexFormat;
 import java.util.Objects;
-import java.util.UUID;
-import java.util.function.Supplier;
 
 /**
  * 在可信租户边界内创建助手并冻结模型、索引与回答策略。
@@ -44,7 +43,7 @@ public final class DefaultAssistantService implements AssistantUseCase {
     private final PublishedChatDeploymentLookup chatDeployments;
     private final ActiveIndexLookup activeIndexes;
     private final Clock clock;
-    private final Supplier<UUID> identifiers;
+    private final EntityIdGenerator identifiers;
     private final int tenantLimit;
     private final int versionLimit;
 
@@ -53,7 +52,7 @@ public final class DefaultAssistantService implements AssistantUseCase {
             PublishedChatDeploymentLookup chatDeployments,
             ActiveIndexLookup activeIndexes,
             Clock clock,
-            Supplier<UUID> identifiers,
+            EntityIdGenerator identifiers,
             int tenantLimit,
             int versionLimit) {
         this.repository = Objects.requireNonNull(repository, "助手仓储不能为空");
@@ -75,7 +74,7 @@ public final class DefaultAssistantService implements AssistantUseCase {
         requirePermission(command.context(), WRITE);
         var assistant = Assistant.create(
                 command.context().tenantId(),
-                new AssistantId(identifiers.get()),
+                new AssistantId(identifiers.nextId()),
                 command.displayName(),
                 command.context().membershipId(),
                 clock.instant());
@@ -111,7 +110,7 @@ public final class DefaultAssistantService implements AssistantUseCase {
         var assistant = repository
                 .findAssistant(
                         command.context().tenantId(),
-                        new AssistantId(command.assistantId()))
+                        AssistantId.parse(command.assistantId()))
                 .orElseThrow(AssistantNotFoundException::new);
         var chat = chatDeployments
                 .find(
@@ -130,7 +129,7 @@ public final class DefaultAssistantService implements AssistantUseCase {
         var advanced = assistant.advanceVersion();
         var version = AssistantVersion.draft(
                 command.context().tenantId(),
-                new AssistantVersionId(identifiers.get()),
+                new AssistantVersionId(identifiers.nextId()),
                 assistant.id(),
                 advanced.latestVersionNumber(),
                 chat.deploymentId(),
@@ -168,7 +167,7 @@ public final class DefaultAssistantService implements AssistantUseCase {
             PublishAssistantVersionCommand command) {
         Objects.requireNonNull(command, "发布助手版本命令不能为空");
         requirePermission(command.context(), WRITE);
-        var versionId = new AssistantVersionId(command.assistantVersionId());
+        var versionId = AssistantVersionId.parse(command.assistantVersionId());
         var fingerprint = fingerprint(
                 command.assistantVersionId(),
                 command.expectedVersion());
@@ -211,7 +210,7 @@ public final class DefaultAssistantService implements AssistantUseCase {
 
     private static AssistantView toView(Assistant assistant) {
         return new AssistantView(
-                assistant.id().value(),
+                assistant.id().toString(),
                 assistant.displayName(),
                 assistant.latestVersionNumber(),
                 assistant.version(),
@@ -220,8 +219,8 @@ public final class DefaultAssistantService implements AssistantUseCase {
 
     static AssistantVersionView toView(AssistantVersion version) {
         return new AssistantVersionView(
-                version.id().value(),
-                version.assistantId().value(),
+                version.id().toString(),
+                version.assistantId().toString(),
                 version.number(),
                 Long.toString(version.chatDeploymentId()),
                 version.chatDeploymentRevision(),
@@ -276,7 +275,7 @@ public final class DefaultAssistantService implements AssistantUseCase {
         }
     }
 
-    private static String fingerprint(UUID assistantVersionId, long expectedVersion) {
+    private static String fingerprint(String assistantVersionId, long expectedVersion) {
         var digest = digest();
         update(digest, assistantVersionId.toString());
         update(digest, Long.toString(expectedVersion));

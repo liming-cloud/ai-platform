@@ -5,7 +5,6 @@ import com.aiplatform.foundation.assistantdelivery.api.model.AssistantVersionVie
 import com.aiplatform.foundation.assistantdelivery.api.model.PublishAssistantVersionCommand;
 import com.aiplatform.foundation.organizationaccess.api.model.TrustedRequestContext;
 import java.util.Objects;
-import java.util.UUID;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -32,7 +31,7 @@ public class AssistantVersionController {
     @PostMapping("/{assistantVersionId}/publish")
     public ResponseEntity<AssistantVersionView> publishVersion(
             TrustedRequestContext context,
-            @PathVariable UUID assistantVersionId,
+            @PathVariable String assistantVersionId,
             @RequestHeader(name = "Idempotency-Key", required = false)
             String idempotencyKey,
             @RequestBody AssistantVersionPublishRequest request) {

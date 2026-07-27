@@ -1,6 +1,6 @@
 CREATE TABLE trusted_query.query_run_event (
     tenant_id BIGINT NOT NULL,
-    query_run_id UUID NOT NULL,
+    query_run_id BIGINT NOT NULL,
     sequence BIGINT NOT NULL,
     event_type VARCHAR(32) NOT NULL,
     status VARCHAR(16) NOT NULL,

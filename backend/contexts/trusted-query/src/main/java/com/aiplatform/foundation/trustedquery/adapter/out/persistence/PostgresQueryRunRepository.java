@@ -17,6 +17,7 @@ import com.aiplatform.foundation.trustedquery.domain.QueryRefusalReason;
 import com.aiplatform.foundation.trustedquery.domain.QueryRun;
 import com.aiplatform.foundation.trustedquery.domain.QueryRunEvent;
 import com.aiplatform.foundation.trustedquery.domain.QueryRunEventType;
+import com.aiplatform.foundation.trustedquery.domain.QueryRunId;
 import com.aiplatform.foundation.trustedquery.domain.QueryRunStatus;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -25,7 +26,6 @@ import java.util.HexFormat;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.UUID;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
@@ -75,7 +75,7 @@ public final class PostgresQueryRunRepository implements QueryRunRepository {
             var usage = queryRun.usage();
             var updated = mapper.completeRun(
                     queryRun.tenantId().value(),
-                    queryRun.id(),
+                    queryRun.id().value(),
                     queryRun.status().name(),
                     queryRun.answer(),
                     queryRun.refusalReason() == null
@@ -100,17 +100,17 @@ public final class PostgresQueryRunRepository implements QueryRunRepository {
     }
 
     @Override
-    public Optional<QueryRun> find(TenantId tenantId, UUID queryRunId) {
+    public Optional<QueryRun> find(TenantId tenantId, QueryRunId queryRunId) {
         Objects.requireNonNull(tenantId, "租户标识不能为空");
         Objects.requireNonNull(queryRunId, "查询运行标识不能为空");
-        var row = mapper.findRun(tenantId.value(), queryRunId);
+        var row = mapper.findRun(tenantId.value(), queryRunId.value());
         return row == null ? Optional.empty() : Optional.of(toRun(row));
     }
 
     @Override
     public List<QueryRunEvent> findEvents(
             TenantId tenantId,
-            UUID queryRunId,
+            QueryRunId queryRunId,
             long afterSequence,
             int limit) {
         Objects.requireNonNull(tenantId, "租户标识不能为空");
@@ -120,12 +120,12 @@ public final class PostgresQueryRunRepository implements QueryRunRepository {
         }
         var rows = mapper.findEvents(
                 tenantId.value(),
-                queryRunId,
+                queryRunId.value(),
                 afterSequence,
                 limit);
         var citations = rows.stream()
                 .anyMatch(row -> QueryRunStatus.ANSWERED.name().equals(row.getStatus()))
-                ? mapper.findCitations(tenantId.value(), queryRunId)
+                ? mapper.findCitations(tenantId.value(), queryRunId.value())
                         .stream()
                         .map(PostgresQueryRunRepository::toCitation)
                         .toList()
@@ -150,7 +150,7 @@ public final class PostgresQueryRunRepository implements QueryRunRepository {
             }
             var replayed = mapper.findRun(
                     tenantId,
-                    UUID.fromString(request.getQueryRunId()));
+                    Long.parseLong(request.getQueryRunId()));
             if (replayed == null) {
                 throw new IllegalStateException("查询幂等记录引用的运行不存在");
             }
@@ -197,7 +197,7 @@ public final class PostgresQueryRunRepository implements QueryRunRepository {
                 quota.runningLease()));
         mapper.insertRun(
                 tenantId,
-                accepted.id(),
+                accepted.id().value(),
                 accepted.assistantVersionId(),
                 accepted.requestedBy().value(),
                 accepted.questionDigest(),
@@ -212,7 +212,7 @@ public final class PostgresQueryRunRepository implements QueryRunRepository {
                 tenantId,
                 keyHash,
                 requestFingerprint,
-                accepted.id(),
+                accepted.id().value(),
                 accepted.createdAt());
         insertEvent(QueryRunEvent.started(accepted));
         return new QueryRunClaim(accepted, QueryRunClaimState.CLAIMED);
@@ -220,11 +220,11 @@ public final class PostgresQueryRunRepository implements QueryRunRepository {
 
     private QueryRun toRun(QueryRunRow row) {
         var tenantId = TenantId.parse(row.getTenantId());
-        var queryRunId = UUID.fromString(row.getId());
+        var queryRunId = QueryRunId.parse(row.getId());
         return QueryRun.reconstitute(
                 tenantId,
                 queryRunId,
-                UUID.fromString(row.getAssistantVersionId()),
+                Long.parseLong(row.getAssistantVersionId()),
                 MembershipId.parse(row.getRequestedBy()),
                 row.getQuestionDigest(),
                 new QueryQuotaSnapshot(
@@ -239,7 +239,7 @@ public final class PostgresQueryRunRepository implements QueryRunRepository {
                 row.getRefusalReason() == null
                         ? null
                         : QueryRefusalReason.valueOf(row.getRefusalReason()),
-                mapper.findCitations(tenantId.value(), queryRunId)
+                mapper.findCitations(tenantId.value(), queryRunId.value())
                         .stream()
                         .map(PostgresQueryRunRepository::toCitation)
                         .toList(),
@@ -255,7 +255,7 @@ public final class PostgresQueryRunRepository implements QueryRunRepository {
     private void insertCitation(QueryRun queryRun, QueryCitation citation) {
         mapper.insertCitation(
                 queryRun.tenantId().value(),
-                queryRun.id(),
+                queryRun.id().value(),
                 citation.sequence(),
                 citation.dataSourceId(),
                 citation.contentVersion(),
@@ -269,7 +269,7 @@ public final class PostgresQueryRunRepository implements QueryRunRepository {
         var usage = event.usage();
         mapper.insertEvent(
                 event.tenantId().value(),
-                event.queryRunId(),
+                event.queryRunId().value(),
                 event.sequence(),
                 event.type().name(),
                 event.status().name(),
@@ -288,7 +288,7 @@ public final class PostgresQueryRunRepository implements QueryRunRepository {
             List<QueryCitation> citations) {
         return QueryRunEvent.reconstitute(
                 TenantId.parse(row.getTenantId()),
-                UUID.fromString(row.getQueryRunId()),
+                QueryRunId.parse(row.getQueryRunId()),
                 row.getSequence(),
                 QueryRunEventType.valueOf(row.getEventType()),
                 QueryRunStatus.valueOf(row.getStatus()),

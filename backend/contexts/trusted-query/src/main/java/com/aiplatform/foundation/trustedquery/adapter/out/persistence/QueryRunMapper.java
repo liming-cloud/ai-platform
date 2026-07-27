@@ -2,7 +2,6 @@ package com.aiplatform.foundation.trustedquery.adapter.out.persistence;
 
 import java.time.Instant;
 import java.util.List;
-import java.util.UUID;
 import org.apache.ibatis.annotations.Param;
 
 /**
@@ -44,13 +43,13 @@ public interface QueryRunMapper {
     List<QueryAuditFactRow> findAuditAfter(
             @Param("tenantId") long tenantId,
             @Param("createdAt") Instant createdAt,
-            @Param("id") UUID id,
+            @Param("id") long id,
             @Param("limit") int limit);
 
     int insertRun(
             @Param("tenantId") long tenantId,
-            @Param("id") UUID id,
-            @Param("assistantVersionId") UUID assistantVersionId,
+            @Param("id") long id,
+            @Param("assistantVersionId") long assistantVersionId,
             @Param("requestedBy") long requestedBy,
             @Param("questionDigest") String questionDigest,
             @Param("quotaPeriodStart") Instant quotaPeriodStart,
@@ -65,20 +64,20 @@ public interface QueryRunMapper {
             @Param("tenantId") long tenantId,
             @Param("keyHash") String keyHash,
             @Param("requestFingerprint") String requestFingerprint,
-            @Param("queryRunId") UUID queryRunId,
+            @Param("queryRunId") long queryRunId,
             @Param("createdAt") Instant createdAt);
 
     QueryRunRow findRun(
             @Param("tenantId") long tenantId,
-            @Param("queryRunId") UUID queryRunId);
+            @Param("queryRunId") long queryRunId);
 
     List<QueryCitationRow> findCitations(
             @Param("tenantId") long tenantId,
-            @Param("queryRunId") UUID queryRunId);
+            @Param("queryRunId") long queryRunId);
 
     int completeRun(
             @Param("tenantId") long tenantId,
-            @Param("queryRunId") UUID queryRunId,
+            @Param("queryRunId") long queryRunId,
             @Param("status") String status,
             @Param("answer") String answer,
             @Param("refusalReason") String refusalReason,
@@ -91,7 +90,7 @@ public interface QueryRunMapper {
 
     int insertCitation(
             @Param("tenantId") long tenantId,
-            @Param("queryRunId") UUID queryRunId,
+            @Param("queryRunId") long queryRunId,
             @Param("sequence") int sequence,
             @Param("dataSourceId") long dataSourceId,
             @Param("contentVersion") int contentVersion,
@@ -102,7 +101,7 @@ public interface QueryRunMapper {
 
     int insertEvent(
             @Param("tenantId") long tenantId,
-            @Param("queryRunId") UUID queryRunId,
+            @Param("queryRunId") long queryRunId,
             @Param("sequence") long sequence,
             @Param("eventType") String eventType,
             @Param("status") String status,
@@ -115,7 +114,7 @@ public interface QueryRunMapper {
 
     List<QueryRunEventRow> findEvents(
             @Param("tenantId") long tenantId,
-            @Param("queryRunId") UUID queryRunId,
+            @Param("queryRunId") long queryRunId,
             @Param("afterSequence") long afterSequence,
             @Param("limit") int limit);
 }

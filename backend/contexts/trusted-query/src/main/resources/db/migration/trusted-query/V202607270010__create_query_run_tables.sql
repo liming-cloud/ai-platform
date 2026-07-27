@@ -2,8 +2,8 @@ CREATE SCHEMA IF NOT EXISTS trusted_query;
 
 CREATE TABLE trusted_query.query_run (
     tenant_id BIGINT NOT NULL,
-    id UUID NOT NULL,
-    assistant_version_id UUID NOT NULL,
+    id BIGINT NOT NULL,
+    assistant_version_id BIGINT NOT NULL,
     requested_by BIGINT NOT NULL,
     question_digest CHAR(64) NOT NULL,
     status VARCHAR(16) NOT NULL,
@@ -75,7 +75,7 @@ CREATE TABLE trusted_query.query_run_request (
     tenant_id BIGINT NOT NULL,
     idempotency_key_hash CHAR(64) NOT NULL,
     request_fingerprint CHAR(64) NOT NULL,
-    query_run_id UUID NOT NULL,
+    query_run_id BIGINT NOT NULL,
     created_at TIMESTAMPTZ NOT NULL,
     PRIMARY KEY (tenant_id, idempotency_key_hash),
     CONSTRAINT fk_query_run_request_run
@@ -89,7 +89,7 @@ CREATE TABLE trusted_query.query_run_request (
 
 CREATE TABLE trusted_query.query_citation (
     tenant_id BIGINT NOT NULL,
-    query_run_id UUID NOT NULL,
+    query_run_id BIGINT NOT NULL,
     sequence INTEGER NOT NULL,
     data_source_id BIGINT NOT NULL,
     content_version INTEGER NOT NULL,

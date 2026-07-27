@@ -10,7 +10,6 @@ import com.aiplatform.foundation.trustedquery.api.model.QueryRunView;
 import java.io.IOException;
 import java.net.URI;
 import java.util.Objects;
-import java.util.UUID;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -71,7 +70,7 @@ public class QueryRunController {
     @GetMapping("/{queryRunId}")
     public QueryRunView get(
             TrustedRequestContext context,
-            @PathVariable UUID queryRunId) {
+            @PathVariable String queryRunId) {
         return queryRuns.get(new GetQueryRunQuery(context, queryRunId));
     }
 
@@ -80,7 +79,7 @@ public class QueryRunController {
             produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter events(
             TrustedRequestContext context,
-            @PathVariable UUID queryRunId,
+            @PathVariable String queryRunId,
             @RequestHeader(name = "Last-Event-ID", required = false)
             String lastEventId,
             @RequestParam(defaultValue = "0") long afterSequence) {
@@ -109,7 +108,7 @@ public class QueryRunController {
      * 查询正文只包含已发布助手版本和问题，不接受租户或模型覆盖参数。
      */
     public record QueryRunRequest(
-            UUID assistantVersionId,
+            String assistantVersionId,
             String question) {
     }
 

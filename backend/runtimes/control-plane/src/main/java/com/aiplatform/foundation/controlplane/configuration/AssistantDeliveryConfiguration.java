@@ -8,9 +8,9 @@ import com.aiplatform.foundation.assistantdelivery.application.DefaultAssistantS
 import com.aiplatform.foundation.assistantdelivery.application.DefaultPublishedAssistantVersionLookup;
 import com.aiplatform.foundation.assistantdelivery.application.port.out.AssistantRepository;
 import com.aiplatform.foundation.knowledgedata.api.ActiveIndexLookup;
+import com.aiplatform.foundation.kernel.identifier.EntityIdGenerator;
 import com.aiplatform.foundation.modelruntime.api.catalog.PublishedChatDeploymentLookup;
 import java.time.Clock;
-import java.util.UUID;
 import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -48,6 +48,7 @@ public class AssistantDeliveryConfiguration {
             AssistantRepository repository,
             PublishedChatDeploymentLookup chatDeployments,
             ActiveIndexLookup activeIndexes,
+            EntityIdGenerator identifiers,
             @Value("${foundation.demo.assistant-limit:5}") int tenantLimit,
             @Value("${foundation.demo.assistant-version-limit:20}") int versionLimit) {
         return new DefaultAssistantService(
@@ -55,7 +56,7 @@ public class AssistantDeliveryConfiguration {
                 chatDeployments,
                 activeIndexes,
                 Clock.systemUTC(),
-                UUID::randomUUID,
+                identifiers,
                 tenantLimit,
                 versionLimit);
     }

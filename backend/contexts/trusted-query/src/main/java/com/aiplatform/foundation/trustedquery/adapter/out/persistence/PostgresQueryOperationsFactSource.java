@@ -12,7 +12,6 @@ import java.time.Instant;
 import java.util.Base64;
 import java.util.List;
 import java.util.Objects;
-import java.util.UUID;
 
 /**
  * 从查询运行唯一事实生成运营投影，数据库选择列禁止包含敏感正文。
@@ -83,16 +82,16 @@ public final class PostgresQueryOperationsFactSource
         var nextCursor = hasNext
                 ? encodeCursor(
                         pageRows.getLast().getCreatedAt(),
-                        UUID.fromString(pageRows.getLast().getQueryRunId()))
+                        Long.parseLong(pageRows.getLast().getQueryRunId()))
                 : null;
         return new QueryAuditFactPage(items, nextCursor);
     }
 
     private static QueryAuditFact toFact(QueryAuditFactRow row) {
         return new QueryAuditFact(
-                UUID.fromString(row.getQueryRunId()),
+                row.getQueryRunId(),
                 MembershipId.parse(row.getRequestedBy()),
-                UUID.fromString(row.getAssistantVersionId()),
+                row.getAssistantVersionId(),
                 row.getQuestionDigest(),
                 row.getStatus(),
                 row.getRefusalReason(),
@@ -103,7 +102,7 @@ public final class PostgresQueryOperationsFactSource
                 row.getCompletedAt());
     }
 
-    private static String encodeCursor(Instant createdAt, UUID id) {
+    private static String encodeCursor(Instant createdAt, long id) {
         var payload = createdAt + "|" + id;
         return Base64.getUrlEncoder()
                 .withoutPadding()
@@ -127,12 +126,12 @@ public final class PostgresQueryOperationsFactSource
             }
             return new CursorPosition(
                     Instant.parse(payload.substring(0, separator)),
-                    UUID.fromString(payload.substring(separator + 1)));
+                    Long.parseLong(payload.substring(separator + 1)));
         } catch (IllegalArgumentException exception) {
             throw new IllegalArgumentException("游标格式不正确", exception);
         }
     }
 
-    private record CursorPosition(Instant createdAt, UUID id) {
+    private record CursorPosition(Instant createdAt, long id) {
     }
 }

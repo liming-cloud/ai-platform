@@ -1,15 +1,14 @@
 package com.aiplatform.foundation.evaluationoperations.api.model;
 
 import java.time.Instant;
-import java.util.UUID;
 
 /**
  * 不包含问题正文、回答和引用内容的查询审计视图。
  */
 public record QueryAuditRecordView(
-        UUID queryRunId,
+        String queryRunId,
         String requestedBy,
-        UUID assistantVersionId,
+        String assistantVersionId,
         String questionDigest,
         String status,
         String refusalReason,

@@ -9,7 +9,6 @@ import com.aiplatform.foundation.assistantdelivery.api.model.CreateAssistantVers
 import com.aiplatform.foundation.assistantdelivery.api.model.ListAssistantsQuery;
 import com.aiplatform.foundation.organizationaccess.api.model.TrustedRequestContext;
 import java.util.Objects;
-import java.util.UUID;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -65,7 +64,7 @@ public class AssistantController {
     @PostMapping("/{assistantId}/versions")
     public ResponseEntity<AssistantVersionView> createVersion(
             TrustedRequestContext context,
-            @PathVariable UUID assistantId,
+            @PathVariable String assistantId,
             @RequestHeader(name = IDEMPOTENCY_KEY, required = false) String idempotencyKey,
             @RequestBody AssistantVersionRequest request) {
         var result = assistants.createVersion(new CreateAssistantVersionCommand(

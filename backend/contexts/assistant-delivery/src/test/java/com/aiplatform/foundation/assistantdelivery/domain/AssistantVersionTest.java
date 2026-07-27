@@ -6,7 +6,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import com.aiplatform.foundation.kernel.tenant.TenantId;
 import com.aiplatform.foundation.organizationaccess.api.model.MembershipId;
 import java.time.Instant;
-import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
 class AssistantVersionTest {
@@ -14,9 +13,9 @@ class AssistantVersionTest {
     private static final TenantId TENANT =
             new TenantId(100000000000000001L);
     private static final AssistantId ASSISTANT_ID =
-            new AssistantId(UUID.fromString("20000000-0000-0000-0000-000000000001"));
+            new AssistantId(410000000000000001L);
     private static final AssistantVersionId VERSION_ID =
-            new AssistantVersionId(UUID.fromString("30000000-0000-0000-0000-000000000001"));
+            new AssistantVersionId(420000000000000001L);
     private static final MembershipId CREATOR =
             new MembershipId(1843651857942052866L);
     private static final Instant NOW = Instant.parse("2026-07-27T00:00:00Z");

@@ -3,14 +3,13 @@ package com.aiplatform.foundation.assistantdelivery.api.model;
 import com.aiplatform.foundation.assistantdelivery.domain.CitationPolicy;
 import com.aiplatform.foundation.assistantdelivery.domain.RefusalPolicy;
 import java.util.Objects;
-import java.util.UUID;
 
 /**
  * 可信查询执行时冻结使用的已发布助手版本事实。
  */
 public record PublishedAssistantVersionSnapshot(
-        UUID assistantVersionId,
-        UUID assistantId,
+        long assistantVersionId,
+        long assistantId,
         int number,
         long chatDeploymentId,
         long chatDeploymentRevision,
@@ -28,10 +27,11 @@ public record PublishedAssistantVersionSnapshot(
         RefusalPolicy refusalPolicy) {
 
     public PublishedAssistantVersionSnapshot {
-        Objects.requireNonNull(assistantVersionId, "助手版本标识不能为空");
-        Objects.requireNonNull(assistantId, "助手标识不能为空");
-        if (knowledgeSpaceId <= 0 || indexVersionId <= 0) {
-            throw new IllegalArgumentException("知识空间标识和索引版本标识必须是正整数");
+        if (assistantVersionId <= 0
+                || assistantId <= 0
+                || knowledgeSpaceId <= 0
+                || indexVersionId <= 0) {
+            throw new IllegalArgumentException("助手、知识空间和索引版本标识必须是正整数");
         }
         Objects.requireNonNull(systemInstruction, "系统指令不能为空");
         Objects.requireNonNull(citationPolicy, "引用策略不能为空");

@@ -3,16 +3,15 @@ package com.aiplatform.foundation.trustedquery.api.operations;
 import com.aiplatform.foundation.organizationaccess.api.model.MembershipId;
 import java.time.Instant;
 import java.util.Objects;
-import java.util.UUID;
 import java.util.regex.Pattern;
 
 /**
  * 可信查询上下文发布的单条脱敏审计事实。
  */
 public record QueryAuditFact(
-        UUID queryRunId,
+        String queryRunId,
         MembershipId requestedBy,
-        UUID assistantVersionId,
+        String assistantVersionId,
         String questionDigest,
         String status,
         String refusalReason,

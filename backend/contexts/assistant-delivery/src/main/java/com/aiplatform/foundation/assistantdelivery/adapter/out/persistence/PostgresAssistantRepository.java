@@ -34,7 +34,6 @@ import java.util.HexFormat;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.UUID;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -114,7 +113,7 @@ public final class PostgresAssistantRepository implements AssistantRepository {
         var nextCursor = hasNext
                 ? encodeCursor(
                         pageRows.getLast().getCreatedAt(),
-                        UUID.fromString(pageRows.getLast().getId()))
+                        Long.parseLong(pageRows.getLast().getId()))
                 : null;
         return new AssistantSlice(items, nextCursor);
     }
@@ -148,7 +147,7 @@ public final class PostgresAssistantRepository implements AssistantRepository {
         var nextCursor = hasNext
                 ? encodeCursor(
                         pageRows.getLast().getPublishedAt(),
-                        UUID.fromString(pageRows.getLast().getAssistantVersionId()))
+                        Long.parseLong(pageRows.getLast().getAssistantVersionId()))
                 : null;
         return new PublishedAssistantSlice(items, nextCursor);
     }
@@ -196,7 +195,7 @@ public final class PostgresAssistantRepository implements AssistantRepository {
             return Optional.empty();
         }
         requireFingerprint(request, requestFingerprint);
-        if (!assistantVersionId.value().toString().equals(
+        if (!assistantVersionId.toString().equals(
                 request.getAssistantVersionId())) {
             throw new AssistantIdempotencyConflictException();
         }
@@ -234,7 +233,7 @@ public final class PostgresAssistantRepository implements AssistantRepository {
             requireFingerprint(existing, creation.requestFingerprint());
             var replayed = mapper.findAssistant(
                     tenantId,
-                    UUID.fromString(existing.getAssistantId()));
+                    Long.parseLong(existing.getAssistantId()));
             if (replayed == null) {
                 throw new IllegalStateException("幂等记录引用的助手不存在");
             }
@@ -279,7 +278,7 @@ public final class PostgresAssistantRepository implements AssistantRepository {
             requireFingerprint(existing, creation.requestFingerprint());
             var replayed = mapper.findVersion(
                     tenantId,
-                    UUID.fromString(existing.getAssistantVersionId()));
+                    Long.parseLong(existing.getAssistantVersionId()));
             if (replayed == null) {
                 throw new IllegalStateException("幂等记录引用的助手版本不存在");
             }
@@ -334,7 +333,7 @@ public final class PostgresAssistantRepository implements AssistantRepository {
             requireFingerprint(existing, publication.requestFingerprint());
             var replayed = mapper.findVersion(
                     tenantId,
-                    UUID.fromString(existing.getAssistantVersionId()));
+                    Long.parseLong(existing.getAssistantVersionId()));
             if (replayed == null) {
                 throw new IllegalStateException("幂等记录引用的助手版本不存在");
             }
@@ -393,7 +392,7 @@ public final class PostgresAssistantRepository implements AssistantRepository {
     private static Assistant toAssistant(AssistantRow row) {
         return Assistant.reconstitute(
                 TenantId.parse(row.getTenantId()),
-                new AssistantId(UUID.fromString(row.getId())),
+                AssistantId.parse(row.getId()),
                 row.getDisplayName(),
                 row.getLatestVersionNumber(),
                 row.getVersion(),
@@ -404,8 +403,8 @@ public final class PostgresAssistantRepository implements AssistantRepository {
     private static AssistantVersion toVersion(AssistantVersionRow row) {
         return AssistantVersion.reconstitute(
                 TenantId.parse(row.getTenantId()),
-                new AssistantVersionId(UUID.fromString(row.getId())),
-                new AssistantId(UUID.fromString(row.getAssistantId())),
+                AssistantVersionId.parse(row.getId()),
+                AssistantId.parse(row.getAssistantId()),
                 row.getVersionNumber(),
                 row.getChatDeploymentId(),
                 row.getChatDeploymentRevision(),
@@ -432,9 +431,9 @@ public final class PostgresAssistantRepository implements AssistantRepository {
     private static PublishedAssistantSummary toPublishedSummary(
             PublishedAssistantRow row) {
         return new PublishedAssistantSummary(
-                UUID.fromString(row.getAssistantId()),
+                Long.parseLong(row.getAssistantId()),
                 row.getDisplayName(),
-                UUID.fromString(row.getAssistantVersionId()),
+                Long.parseLong(row.getAssistantVersionId()),
                 row.getVersionNumber(),
                 row.getPublishedAt());
     }
@@ -457,7 +456,7 @@ public final class PostgresAssistantRepository implements AssistantRepository {
         }
     }
 
-    private static String encodeCursor(Instant createdAt, UUID id) {
+    private static String encodeCursor(Instant createdAt, long id) {
         var payload = createdAt + "|" + id;
         return Base64.getUrlEncoder()
                 .withoutPadding()
@@ -481,12 +480,12 @@ public final class PostgresAssistantRepository implements AssistantRepository {
             }
             return new CursorPosition(
                     Instant.parse(payload.substring(0, separator)),
-                    UUID.fromString(payload.substring(separator + 1)));
+                    Long.parseLong(payload.substring(separator + 1)));
         } catch (IllegalArgumentException exception) {
             throw new IllegalArgumentException("游标格式不正确", exception);
         }
     }
 
-    private record CursorPosition(Instant createdAt, UUID id) {
+    private record CursorPosition(Instant createdAt, long id) {
     }
 }

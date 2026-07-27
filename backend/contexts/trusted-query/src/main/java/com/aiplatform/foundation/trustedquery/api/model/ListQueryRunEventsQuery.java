@@ -2,14 +2,13 @@ package com.aiplatform.foundation.trustedquery.api.model;
 
 import com.aiplatform.foundation.organizationaccess.api.model.TrustedRequestContext;
 import java.util.Objects;
-import java.util.UUID;
 
 /**
  * 从指定序号之后读取查询事件。
  */
 public record ListQueryRunEventsQuery(
         TrustedRequestContext context,
-        UUID queryRunId,
+        String queryRunId,
         long afterSequence,
         int limit) {
 

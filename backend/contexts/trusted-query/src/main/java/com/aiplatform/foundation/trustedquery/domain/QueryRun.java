@@ -6,7 +6,6 @@ import com.aiplatform.foundation.organizationaccess.api.model.MembershipId;
 import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
-import java.util.UUID;
 import java.util.regex.Pattern;
 
 /**
@@ -18,8 +17,8 @@ public final class QueryRun {
     private static final int MAX_ANSWER_CODE_POINTS = 32_768;
 
     private final TenantId tenantId;
-    private final UUID id;
-    private final UUID assistantVersionId;
+    private final QueryRunId id;
+    private final long assistantVersionId;
     private final MembershipId requestedBy;
     private final String questionDigest;
     private final QueryQuotaSnapshot quota;
@@ -34,8 +33,8 @@ public final class QueryRun {
 
     private QueryRun(
             TenantId tenantId,
-            UUID id,
-            UUID assistantVersionId,
+            QueryRunId id,
+            long assistantVersionId,
             MembershipId requestedBy,
             String questionDigest,
             QueryQuotaSnapshot quota,
@@ -49,8 +48,10 @@ public final class QueryRun {
             Instant completedAt) {
         this.tenantId = Objects.requireNonNull(tenantId, "租户标识不能为空");
         this.id = Objects.requireNonNull(id, "查询运行标识不能为空");
-        this.assistantVersionId =
-                Objects.requireNonNull(assistantVersionId, "助手版本标识不能为空");
+        if (assistantVersionId <= 0) {
+            throw new IllegalArgumentException("助手版本标识必须是正整数");
+        }
+        this.assistantVersionId = assistantVersionId;
         this.requestedBy = Objects.requireNonNull(requestedBy, "请求成员不能为空");
         if (questionDigest == null || !SHA256.matcher(questionDigest).matches()) {
             throw new IllegalArgumentException("问题摘要格式不正确");
@@ -74,8 +75,8 @@ public final class QueryRun {
 
     public static QueryRun start(
             TenantId tenantId,
-            UUID id,
-            UUID assistantVersionId,
+            QueryRunId id,
+            long assistantVersionId,
             MembershipId requestedBy,
             String questionDigest,
             Instant createdAt) {
@@ -98,8 +99,8 @@ public final class QueryRun {
 
     public static QueryRun reconstitute(
             TenantId tenantId,
-            UUID id,
-            UUID assistantVersionId,
+            QueryRunId id,
+            long assistantVersionId,
             MembershipId requestedBy,
             String questionDigest,
             QueryQuotaSnapshot quota,
@@ -219,11 +220,11 @@ public final class QueryRun {
         return tenantId;
     }
 
-    public UUID id() {
+    public QueryRunId id() {
         return id;
     }
 
-    public UUID assistantVersionId() {
+    public long assistantVersionId() {
         return assistantVersionId;
     }
 

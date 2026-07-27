@@ -3,14 +3,13 @@ package com.aiplatform.foundation.assistantdelivery.api.model;
 import com.aiplatform.foundation.assistantdelivery.domain.CitationPolicy;
 import com.aiplatform.foundation.assistantdelivery.domain.RefusalPolicy;
 import java.time.Instant;
-import java.util.UUID;
 
 /**
  * 助手版本的公共只读视图。
  */
 public record AssistantVersionView(
-        UUID id,
-        UUID assistantId,
+        String id,
+        String assistantId,
         int number,
         String chatDeploymentId,
         long chatDeploymentRevision,
