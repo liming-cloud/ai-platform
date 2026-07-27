@@ -7,9 +7,10 @@ readonly REPOSITORY_ROOT="$(
 )"
 readonly COMPOSE_FILE="${REPOSITORY_ROOT}/deploy/compose/compose.yml"
 readonly ENV_FILE="${REPOSITORY_ROOT}/deploy/compose/.env.example"
-readonly CONTROL_API_ROOT="http://127.0.0.1:13000/api/v1"
-readonly QUERY_API_ROOT="http://127.0.0.1:18081/api/v1"
-readonly DEMO_PASSWORD="Demo@2026!"
+readonly CONTROL_API_ROOT="${FOUNDATION_ACCEPTANCE_CONTROL_API_ROOT:-http://127.0.0.1:13000/api/v1}"
+readonly QUERY_API_ROOT="${FOUNDATION_ACCEPTANCE_QUERY_API_ROOT:-http://127.0.0.1:18081/api/v1}"
+readonly QUERY_HEALTH_ROOT="${FOUNDATION_ACCEPTANCE_QUERY_HEALTH_ROOT:-http://127.0.0.1:18081}"
+readonly DEMO_PASSWORD="${FOUNDATION_ACCEPTANCE_DEMO_PASSWORD:-Demo@2026!}"
 readonly STORE_TENANT="10000000-0000-0000-0000-000000000001"
 readonly RESPONSE_FILE="$(mktemp)"
 
@@ -31,7 +32,7 @@ wait_for_query_runtime() {
   local attempt
   for attempt in $(seq 1 30); do
     if curl --fail --silent \
-      "http://127.0.0.1:18081/actuator/health" >/dev/null 2>&1; then
+      "${QUERY_HEALTH_ROOT}/actuator/health" >/dev/null 2>&1; then
       return
     fi
     sleep 1

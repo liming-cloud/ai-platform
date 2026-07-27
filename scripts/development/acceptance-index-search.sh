@@ -7,9 +7,9 @@ readonly REPOSITORY_ROOT="$(
 )"
 readonly COMPOSE_FILE="${REPOSITORY_ROOT}/deploy/compose/compose.yml"
 readonly ENV_FILE="${REPOSITORY_ROOT}/deploy/compose/.env.example"
-readonly CONTROL_API_ROOT="http://127.0.0.1:13000/api/v1"
-readonly QUERY_API_ROOT="http://127.0.0.1:18081/api/v1"
-readonly DEMO_PASSWORD="Demo@2026!"
+readonly CONTROL_API_ROOT="${FOUNDATION_ACCEPTANCE_CONTROL_API_ROOT:-http://127.0.0.1:13000/api/v1}"
+readonly QUERY_API_ROOT="${FOUNDATION_ACCEPTANCE_QUERY_API_ROOT:-http://127.0.0.1:18081/api/v1}"
+readonly DEMO_PASSWORD="${FOUNDATION_ACCEPTANCE_DEMO_PASSWORD:-Demo@2026!}"
 
 compose() {
   docker compose \

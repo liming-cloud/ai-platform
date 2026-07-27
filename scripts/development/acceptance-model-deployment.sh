@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-readonly API_ROOT="http://127.0.0.1:13000/api/v1"
-readonly DEMO_PASSWORD="Demo@2026!"
+readonly API_ROOT="${FOUNDATION_ACCEPTANCE_CONTROL_API_ROOT:-http://127.0.0.1:13000/api/v1}"
+readonly DEMO_PASSWORD="${FOUNDATION_ACCEPTANCE_DEMO_PASSWORD:-Demo@2026!}"
 readonly CREDENTIAL_REFERENCE="secret://demo/deployment-provider"
 
 login() {

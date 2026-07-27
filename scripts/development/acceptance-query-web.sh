@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-readonly QUERY_WEB_ROOT="http://127.0.0.1:13001"
+readonly QUERY_WEB_ROOT="${FOUNDATION_ACCEPTANCE_QUERY_WEB_ROOT:-http://127.0.0.1:13001}"
 readonly QUERY_API_ROOT="${QUERY_WEB_ROOT}/api/v1"
-readonly DEMO_PASSWORD="Demo@2026!"
+readonly DEMO_PASSWORD="${FOUNDATION_ACCEPTANCE_DEMO_PASSWORD:-Demo@2026!}"
 
 login() {
   local tenant_code="$1"
