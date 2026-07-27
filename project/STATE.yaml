@@ -2,7 +2,7 @@ schemaVersion: 1
 productVersion: foundation-v1
 currentMilestone: M1
 currentFrontier: WP-0008
-lastVerifiedCommit: 4fe3552ff4cef64f18563d2af2d343a418594636
+lastVerifiedCommit: 7d6d9e9202830971a3f2a01d1db989c0334df37b
 activeWorkPackages:
   - WP-0008
 blockedWorkPackages:
@@ -70,6 +70,7 @@ latestEvidence:
   - project/evidence/WP-0008-tenant-identifier.md
   - project/evidence/WP-0008-knowledge-identifiers.md
   - project/evidence/WP-0008-model-identifiers.md
+  - project/evidence/WP-0008-assistant-query-identifiers.md
 nextReviewAt: 2026-08-02
-updatedAt: 2026-07-27T11:30:09+08:00
+updatedAt: 2026-07-27T11:45:30+08:00
 updatedBy: codex
