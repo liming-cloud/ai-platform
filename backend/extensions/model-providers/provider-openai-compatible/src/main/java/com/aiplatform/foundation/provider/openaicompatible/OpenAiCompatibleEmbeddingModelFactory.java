@@ -1,14 +1,15 @@
 package com.aiplatform.foundation.provider.openaicompatible;
 
-import com.aiplatform.foundation.modelruntime.api.extension.EmbeddingModelFactory;
-import com.aiplatform.foundation.modelruntime.api.invocation.EmbeddingModelPort;
-import com.aiplatform.foundation.modelruntime.api.model.embedding.EmbeddingDeploymentRef;
-import com.aiplatform.foundation.modelruntime.api.model.common.ModelRuntimeSpecification;
-import com.aiplatform.foundation.modelruntime.api.model.common.ModelType;
-import com.aiplatform.foundation.modelruntime.api.model.provider.ProviderKind;
+import com.aiplatform.foundation.modelruntime.application.runtime.port.out.EmbeddingModelFactory;
+import com.aiplatform.foundation.modelruntime.application.runtime.facade.EmbeddingModelPort;
+import com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.embedding.EmbeddingDeploymentRef;
+import com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.common.ModelRuntimeSpecification;
+import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelType;
+import com.aiplatform.foundation.modelruntime.domain.provider.model.ProviderKind;
 import com.aiplatform.foundation.provider.springai.SpringAiEmbeddingModelAdapter;
 import com.aiplatform.foundation.security.egress.OutboundEndpointPolicy;
 import com.aiplatform.foundation.security.secret.SecretResolver;
+import com.aiplatform.foundation.security.secret.SecretReference;
 import java.time.Duration;
 import java.util.Objects;
 import org.springframework.ai.openai.OpenAiEmbeddingModel;
@@ -41,7 +42,8 @@ public final class OpenAiCompatibleEmbeddingModelFactory implements EmbeddingMod
     public EmbeddingModelPort create(ModelRuntimeSpecification specification) {
         requireSpecification(specification);
         endpointPolicy.verify(specification.endpoint());
-        try (var secret = secrets.resolve(specification.credentialReference())) {
+        try (var secret = secrets.resolve(new SecretReference(
+                specification.credentialReference().value()))) {
             return secret.use(chars -> {
                 var options = OpenAiEmbeddingOptions.builder()
                         .baseUrl(specification.endpoint().toString())

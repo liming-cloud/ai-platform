@@ -9,9 +9,9 @@ import com.aiplatform.foundation.knowledgedata.application.port.out.content.Text
 import com.aiplatform.foundation.knowledgedata.domain.indexversion.model.ParagraphWindowChunker;
 import com.aiplatform.foundation.knowledgedata.domain.indexversion.model.TextChunk;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.model.TextContentReference;
-import com.aiplatform.foundation.modelruntime.api.invocation.ModelRuntimeResolver;
-import com.aiplatform.foundation.modelruntime.api.model.embedding.EmbeddingDeploymentRef;
-import com.aiplatform.foundation.modelruntime.api.model.embedding.EmbeddingRequest;
+import com.aiplatform.foundation.modelruntime.application.runtime.facade.ModelRuntimeResolver;
+import com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.embedding.EmbeddingDeploymentRef;
+import com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.embedding.EmbeddingRequest;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.charset.CharacterCodingException;

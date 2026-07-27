@@ -14,14 +14,14 @@ import com.aiplatform.foundation.assistantdelivery.domain.RefusalPolicy;
 import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
 import com.aiplatform.foundation.knowledgedata.application.indexversion.port.out.vector.IndexCandidate;
 import com.aiplatform.foundation.knowledgedata.application.indexversion.port.out.vector.IndexCandidateQuery;
-import com.aiplatform.foundation.modelruntime.api.invocation.ChatModelPort;
-import com.aiplatform.foundation.modelruntime.api.invocation.ModelRuntimeResolver;
-import com.aiplatform.foundation.modelruntime.api.model.chat.ChatChunk;
-import com.aiplatform.foundation.modelruntime.api.model.chat.ChatRequest;
-import com.aiplatform.foundation.modelruntime.api.model.chat.ChatResult;
-import com.aiplatform.foundation.modelruntime.api.model.embedding.EmbeddingBatch;
-import com.aiplatform.foundation.modelruntime.api.model.embedding.EmbeddingVector;
-import com.aiplatform.foundation.modelruntime.api.model.common.ModelUsage;
+import com.aiplatform.foundation.modelruntime.application.runtime.facade.ChatModelPort;
+import com.aiplatform.foundation.modelruntime.application.runtime.facade.ModelRuntimeResolver;
+import com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.chat.ChatChunk;
+import com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.chat.ChatRequest;
+import com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.chat.ChatResult;
+import com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.embedding.EmbeddingBatch;
+import com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.embedding.EmbeddingVector;
+import com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.common.ModelUsage;
 import com.aiplatform.foundation.security.identity.AccessChannel;
 import com.aiplatform.foundation.security.identity.CredentialType;
 import com.aiplatform.foundation.security.identity.MembershipId;
@@ -251,7 +251,7 @@ class DefaultQueryRunServiceTest {
         }
 
         @Override
-        public com.aiplatform.foundation.modelruntime.api.invocation.EmbeddingModelPort
+        public com.aiplatform.foundation.modelruntime.application.runtime.facade.EmbeddingModelPort
                 resolveEmbedding(TenantId tenantId, long deploymentId) {
             return request -> new EmbeddingBatch(
                     request.deployment(),

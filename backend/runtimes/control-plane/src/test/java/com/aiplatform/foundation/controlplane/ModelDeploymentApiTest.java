@@ -1,10 +1,11 @@
 package com.aiplatform.foundation.controlplane;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.aiplatform.foundation.modelruntime.api.invocation.ModelRuntimeResolver;
+import com.aiplatform.foundation.modelruntime.application.runtime.facade.ModelRuntimeResolver;
 import com.redis.testcontainers.RedisContainer;
 import java.util.List;
 import java.util.Map;
@@ -112,7 +113,12 @@ class ModelDeploymentApiTest {
         assertEquals(List.of(created.id()), store.items().stream()
                 .map(DeploymentResponse::id)
                 .toList());
+        assertEquals(1, store.totalElements());
+        assertEquals(1, store.totalPages());
+        assertFalse(store.hasPrevious());
+        assertFalse(store.hasNext());
         assertTrue(campus.items().isEmpty());
+        assertEquals(0, campus.totalElements());
     }
 
     @Test
@@ -239,7 +245,14 @@ class ModelDeploymentApiTest {
             String detailCode) {
     }
 
-    private record DeploymentPage(List<DeploymentResponse> items, String nextCursor) {
+    private record DeploymentPage(
+            List<DeploymentResponse> items,
+            long pageNumber,
+            long pageSize,
+            long totalElements,
+            long totalPages,
+            boolean hasPrevious,
+            boolean hasNext) {
     }
 
     private record ApiError(

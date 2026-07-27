@@ -4,12 +4,12 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.aiplatform.foundation.modelruntime.api.model.chat.ChatDeploymentRef;
-import com.aiplatform.foundation.modelruntime.api.model.chat.ChatMessage;
-import com.aiplatform.foundation.modelruntime.api.model.chat.ChatRequest;
-import com.aiplatform.foundation.modelruntime.api.model.chat.ChatRole;
-import com.aiplatform.foundation.modelruntime.api.model.embedding.EmbeddingDeploymentRef;
-import com.aiplatform.foundation.modelruntime.api.model.embedding.EmbeddingRequest;
+import com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.chat.ChatDeploymentRef;
+import com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.chat.ChatMessage;
+import com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.chat.ChatRequest;
+import com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.chat.ChatRole;
+import com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.embedding.EmbeddingDeploymentRef;
+import com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.embedding.EmbeddingRequest;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
@@ -178,9 +178,9 @@ class SpringAiModelAdapterTest {
     }
 
     private static final class CollectingSubscriber
-            implements Flow.Subscriber<com.aiplatform.foundation.modelruntime.api.model.chat.ChatChunk> {
+            implements Flow.Subscriber<com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.chat.ChatChunk> {
 
-        private final List<com.aiplatform.foundation.modelruntime.api.model.chat.ChatChunk> items =
+        private final List<com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.chat.ChatChunk> items =
                 new ArrayList<>();
         private final CountDownLatch completed = new CountDownLatch(1);
 
@@ -191,7 +191,7 @@ class SpringAiModelAdapterTest {
 
         @Override
         public void onNext(
-                com.aiplatform.foundation.modelruntime.api.model.chat.ChatChunk item) {
+                com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.chat.ChatChunk item) {
             items.add(item);
         }
 

@@ -1,6 +1,6 @@
 package com.aiplatform.foundation.trustedquery.api.model;
 
-import com.aiplatform.foundation.modelruntime.api.model.common.ModelUsage;
+import com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.common.ModelUsage;
 import java.time.Instant;
 import java.util.List;
 import java.util.Objects;

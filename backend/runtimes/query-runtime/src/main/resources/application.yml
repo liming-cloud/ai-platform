@@ -29,6 +29,12 @@ foundation:
   vector-store:
     pgvector:
       enabled: true
+  model-runtime:
+    enabled: true
+    persistence:
+      enabled: true
+    cache-maximum-size: ${MODEL_RUNTIME_CACHE_MAXIMUM_SIZE:64}
+    cache-idle-timeout: ${MODEL_RUNTIME_CACHE_IDLE_TIMEOUT:PT30M}
   persistence:
     snowflake:
       worker-id: ${FOUNDATION_SNOWFLAKE_WORKER_ID}

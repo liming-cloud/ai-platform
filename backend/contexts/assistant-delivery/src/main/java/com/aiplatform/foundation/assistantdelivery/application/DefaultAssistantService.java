@@ -21,7 +21,7 @@ import com.aiplatform.foundation.assistantdelivery.domain.AssistantVersion;
 import com.aiplatform.foundation.assistantdelivery.domain.AssistantVersionId;
 import com.aiplatform.foundation.knowledgedata.application.indexversion.facade.ActiveIndexLookup;
 import com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator;
-import com.aiplatform.foundation.modelruntime.api.catalog.PublishedChatDeploymentLookup;
+import com.aiplatform.foundation.modelruntime.application.deployment.facade.PublishedChatDeploymentLookup;
 import com.aiplatform.foundation.security.identity.PermissionCode;
 import com.aiplatform.foundation.security.identity.TrustedRequestContext;
 import java.nio.charset.StandardCharsets;

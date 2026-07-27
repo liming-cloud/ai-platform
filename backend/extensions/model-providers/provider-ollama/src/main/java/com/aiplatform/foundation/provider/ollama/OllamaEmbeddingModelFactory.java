@@ -1,11 +1,11 @@
 package com.aiplatform.foundation.provider.ollama;
 
-import com.aiplatform.foundation.modelruntime.api.extension.EmbeddingModelFactory;
-import com.aiplatform.foundation.modelruntime.api.invocation.EmbeddingModelPort;
-import com.aiplatform.foundation.modelruntime.api.model.embedding.EmbeddingDeploymentRef;
-import com.aiplatform.foundation.modelruntime.api.model.common.ModelRuntimeSpecification;
-import com.aiplatform.foundation.modelruntime.api.model.common.ModelType;
-import com.aiplatform.foundation.modelruntime.api.model.provider.ProviderKind;
+import com.aiplatform.foundation.modelruntime.application.runtime.port.out.EmbeddingModelFactory;
+import com.aiplatform.foundation.modelruntime.application.runtime.facade.EmbeddingModelPort;
+import com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.embedding.EmbeddingDeploymentRef;
+import com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.common.ModelRuntimeSpecification;
+import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelType;
+import com.aiplatform.foundation.modelruntime.domain.provider.model.ProviderKind;
 import com.aiplatform.foundation.provider.springai.SpringAiEmbeddingModelAdapter;
 import com.aiplatform.foundation.security.egress.OutboundEndpointPolicy;
 import java.util.Objects;

@@ -1,13 +1,14 @@
 package com.aiplatform.foundation.provider.openaicompatible;
 
-import com.aiplatform.foundation.modelruntime.api.extension.ProviderConnectionProbe;
-import com.aiplatform.foundation.modelruntime.api.model.common.ModelCapability;
-import com.aiplatform.foundation.modelruntime.api.model.provider.ProviderKind;
-import com.aiplatform.foundation.modelruntime.api.model.provider.ProviderProbeObservation;
-import com.aiplatform.foundation.modelruntime.api.model.provider.ProviderProbeRequest;
+import com.aiplatform.foundation.modelruntime.application.probe.port.out.ProviderConnectionProbe;
+import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelCapability;
+import com.aiplatform.foundation.modelruntime.domain.provider.model.ProviderKind;
+import com.aiplatform.foundation.modelruntime.application.probe.dto.ProviderProbeObservation;
+import com.aiplatform.foundation.modelruntime.application.probe.dto.ProviderProbeRequest;
 import com.aiplatform.foundation.security.egress.OutboundEndpointPolicy;
 import com.aiplatform.foundation.security.egress.UnsafeOutboundEndpointException;
 import com.aiplatform.foundation.security.secret.SecretResolver;
+import com.aiplatform.foundation.security.secret.SecretReference;
 import com.aiplatform.foundation.security.secret.SecretValue;
 import com.openai.errors.OpenAIException;
 import com.openai.errors.PermissionDeniedException;
@@ -64,7 +65,8 @@ public final class OpenAiCompatibleConnectionProbe implements ProviderConnection
         final SecretValue secret;
         try {
             secret = Objects.requireNonNull(
-                    secretResolver.resolve(request.credentialReference()),
+                    secretResolver.resolve(new SecretReference(
+                            request.credentialReference().value())),
                     "密钥解析结果不能为空");
         } catch (RuntimeException exception) {
             return failure(startedAt, "OPENAI_COMPATIBLE_SECRET_RESOLUTION_FAILED");

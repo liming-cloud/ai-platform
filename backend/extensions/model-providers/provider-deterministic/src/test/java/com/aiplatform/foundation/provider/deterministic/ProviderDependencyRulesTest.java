@@ -19,9 +19,11 @@ class ProviderDependencyRulesTest {
                 .should()
                 .dependOnClassesThat()
                 .resideInAnyPackage(
-                        "com.aiplatform.foundation.modelruntime.application..",
-                        "com.aiplatform.foundation.modelruntime.domain..",
-                        "com.aiplatform.foundation.modelruntime.adapter..")
+                        "com.aiplatform.foundation.modelruntime.interfaces..",
+                        "com.aiplatform.foundation.modelruntime.infrastructure..",
+                        "com.aiplatform.foundation.modelruntime.application.provider..",
+                        "com.aiplatform.foundation.modelruntime.application.deployment..",
+                        "com.aiplatform.foundation.modelruntime.application.runtime.service..")
                 .check(classes);
     }
 }

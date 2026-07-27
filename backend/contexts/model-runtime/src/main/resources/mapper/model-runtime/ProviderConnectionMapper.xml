@@ -2,62 +2,11 @@
 <!DOCTYPE mapper
         PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="com.aiplatform.foundation.modelruntime.adapter.out.persistence.ProviderConnectionMapper">
+<mapper namespace="com.aiplatform.foundation.modelruntime.infrastructure.persistence.provider.mapper.ProviderConnectionMapper">
 
-    <resultMap id="findRequestResultMap" type="com.aiplatform.foundation.modelruntime.adapter.out.persistence.ProviderConnectionRequestRow">
+    <resultMap id="findRequestResultMap" type="com.aiplatform.foundation.modelruntime.infrastructure.persistence.provider.projection.ProviderConnectionRequestRow">
         <result column="request_fingerprint" property="requestFingerprint"/>
         <result column="provider_connection_id" property="providerConnectionId"/>
-    </resultMap>
-
-    <resultMap id="providerConnectionRow" type="com.aiplatform.foundation.modelruntime.adapter.out.persistence.ProviderConnectionRow">
-        <result column="tenant_id" property="tenantId"/>
-        <result column="id" property="id"/>
-        <result column="provider_kind" property="providerKind"/>
-        <result column="display_name" property="displayName"/>
-        <result column="endpoint" property="endpoint"/>
-        <result column="region" property="region"/>
-        <result column="authentication_type" property="authenticationType"/>
-        <result column="credential_reference" property="credentialReference"/>
-        <result column="status" property="status"/>
-        <result column="version" property="version"/>
-        <result column="last_probe_succeeded" property="lastProbeSucceeded"/>
-        <result column="last_probe_code" property="lastProbeCode"/>
-        <result column="last_probed_at" property="lastProbedAt"/>
-        <result column="created_at" property="createdAt"/>
-    </resultMap>
-
-    <resultMap id="findFirstPageResultMap" type="com.aiplatform.foundation.modelruntime.adapter.out.persistence.ProviderConnectionRow">
-        <result column="tenant_id" property="tenantId"/>
-        <result column="id" property="id"/>
-        <result column="provider_kind" property="providerKind"/>
-        <result column="display_name" property="displayName"/>
-        <result column="endpoint" property="endpoint"/>
-        <result column="region" property="region"/>
-        <result column="authentication_type" property="authenticationType"/>
-        <result column="credential_reference" property="credentialReference"/>
-        <result column="status" property="status"/>
-        <result column="version" property="version"/>
-        <result column="last_probe_succeeded" property="lastProbeSucceeded"/>
-        <result column="last_probe_code" property="lastProbeCode"/>
-        <result column="last_probed_at" property="lastProbedAt"/>
-        <result column="created_at" property="createdAt"/>
-    </resultMap>
-
-    <resultMap id="findAfterResultMap" type="com.aiplatform.foundation.modelruntime.adapter.out.persistence.ProviderConnectionRow">
-        <result column="tenant_id" property="tenantId"/>
-        <result column="id" property="id"/>
-        <result column="provider_kind" property="providerKind"/>
-        <result column="display_name" property="displayName"/>
-        <result column="endpoint" property="endpoint"/>
-        <result column="region" property="region"/>
-        <result column="authentication_type" property="authenticationType"/>
-        <result column="credential_reference" property="credentialReference"/>
-        <result column="status" property="status"/>
-        <result column="version" property="version"/>
-        <result column="last_probe_succeeded" property="lastProbeSucceeded"/>
-        <result column="last_probe_code" property="lastProbeCode"/>
-        <result column="last_probed_at" property="lastProbedAt"/>
-        <result column="created_at" property="createdAt"/>
     </resultMap>
 
     <select id="lockTenant" resultType="java.lang.String">
@@ -76,29 +25,6 @@
         ]]>
     </select>
 
-    <select id="countActive" resultType="int">
-        <![CDATA[
-        SELECT count(*)
-        FROM model_runtime.provider_connection
-        WHERE tenant_id = #{tenantId}
-          AND status <> 'DISABLED'
-        ]]>
-    </select>
-
-    <insert id="insertConnection">
-        <![CDATA[
-        INSERT INTO model_runtime.provider_connection (
-            tenant_id, id, provider_kind, display_name, endpoint, region,
-            authentication_type, credential_reference, status, version,
-            last_probe_succeeded, last_probe_code, last_probed_at, created_at
-        ) VALUES (
-            #{tenantId}, #{id}, #{providerKind}, #{displayName}, #{endpoint}, #{region},
-            #{authenticationType}, #{credentialReference}, #{status}, #{version},
-            #{lastProbeSucceeded}, #{lastProbeCode}, #{lastProbedAt}, #{createdAt}
-        )
-        ]]>
-    </insert>
-
     <insert id="insertRequest">
         <![CDATA[
         INSERT INTO model_runtime.provider_connection_request (
@@ -111,86 +37,4 @@
         ]]>
     </insert>
 
-    <select id="findById" resultMap="providerConnectionRow">
-        <![CDATA[
-        SELECT tenant_id::text AS tenant_id,
-               id,
-               provider_kind,
-               display_name,
-               endpoint,
-               region,
-               authentication_type,
-               credential_reference,
-               status,
-               version,
-               last_probe_succeeded,
-               last_probe_code,
-               last_probed_at,
-               created_at
-        FROM model_runtime.provider_connection
-        WHERE tenant_id = #{tenantId}
-          AND id = #{id}
-        ]]>
-    </select>
-
-    <select id="findFirstPage" resultMap="findFirstPageResultMap">
-        <![CDATA[
-        SELECT tenant_id::text AS tenant_id,
-               id,
-               provider_kind,
-               display_name,
-               endpoint,
-               region,
-               authentication_type,
-               credential_reference,
-               status,
-               version,
-               last_probe_succeeded,
-               last_probe_code,
-               last_probed_at,
-               created_at
-        FROM model_runtime.provider_connection
-        WHERE tenant_id = #{tenantId}
-        ORDER BY created_at DESC, id DESC
-        LIMIT #{limit}
-        ]]>
-    </select>
-
-    <select id="findAfter" resultMap="findAfterResultMap">
-        <![CDATA[
-        SELECT tenant_id::text AS tenant_id,
-               id,
-               provider_kind,
-               display_name,
-               endpoint,
-               region,
-               authentication_type,
-               credential_reference,
-               status,
-               version,
-               last_probe_succeeded,
-               last_probe_code,
-               last_probed_at,
-               created_at
-        FROM model_runtime.provider_connection
-        WHERE tenant_id = #{tenantId}
-          AND (created_at, id) < (#{createdAt}, #{id})
-        ORDER BY created_at DESC, id DESC
-        LIMIT #{limit}
-        ]]>
-    </select>
-
-    <update id="updateProbeFact">
-        <![CDATA[
-        UPDATE model_runtime.provider_connection
-        SET status = #{status},
-            version = #{nextVersion},
-            last_probe_succeeded = #{lastProbeSucceeded},
-            last_probe_code = #{lastProbeCode},
-            last_probed_at = #{lastProbedAt}
-        WHERE tenant_id = #{tenantId}
-          AND id = #{id}
-          AND version = #{expectedVersion}
-        ]]>
-    </update>
 </mapper>

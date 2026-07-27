@@ -1,0 +1,78 @@
+package com.aiplatform.foundation.modelruntime.application.probe.service;
+
+import com.aiplatform.foundation.modelruntime.application.probe.exception.UnsupportedProviderException;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
+import com.aiplatform.foundation.modelruntime.application.probe.port.out.ProviderConnectionProbe;
+import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelCapability;
+import com.aiplatform.foundation.modelruntime.domain.provider.model.ProviderKind;
+import com.aiplatform.foundation.modelruntime.application.probe.dto.ProviderProbeObservation;
+import com.aiplatform.foundation.modelruntime.application.probe.dto.ProviderProbeRequest;
+import com.aiplatform.foundation.modelruntime.domain.provider.model.CredentialReference;
+import java.net.URI;
+import java.time.Clock;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.ZoneOffset;
+import java.util.List;
+import java.util.Set;
+import org.junit.jupiter.api.Test;
+
+class ProbeProviderServiceTest {
+
+    private static final Instant NOW = Instant.parse("2026-07-26T12:00:00Z");
+
+    @Test
+    void 应通过已装配扩展返回稳定探测结果() {
+        var service = new ProbeProviderService(
+                List.of(successfulProbe()), Clock.fixed(NOW, ZoneOffset.UTC));
+
+        var result = service.probe(request(ProviderKind.DETERMINISTIC));
+
+        assertTrue(result.reachable());
+        assertEquals(Set.of(ModelCapability.CHAT, ModelCapability.EMBEDDING), result.capabilities());
+        assertEquals(NOW, result.probedAt());
+    }
+
+    @Test
+    void 应拒绝未装配的供应商协议() {
+        var service = new ProbeProviderService(
+                List.of(successfulProbe()), Clock.fixed(NOW, ZoneOffset.UTC));
+
+        assertThrows(
+                UnsupportedProviderException.class,
+                () -> service.probe(request(ProviderKind.OPENAI_COMPATIBLE)));
+    }
+
+    private static ProviderConnectionProbe successfulProbe() {
+        return new ProviderConnectionProbe() {
+            @Override
+            public ProviderKind providerKind() {
+                return ProviderKind.DETERMINISTIC;
+            }
+
+            @Override
+            public ProviderProbeObservation probe(ProviderProbeRequest request) {
+                return new ProviderProbeObservation(
+                        true,
+                        Set.of(ModelCapability.CHAT, ModelCapability.EMBEDDING),
+                        Duration.ZERO,
+                        "DETERMINISTIC_OK");
+            }
+        };
+    }
+
+    private static ProviderProbeRequest request(ProviderKind providerKind) {
+        return new ProviderProbeRequest(
+                new TenantId(100000000000000001L),
+                providerKind,
+                URI.create("memory://deterministic"),
+                new CredentialReference("secret://local/demo"),
+                "deterministic-chat",
+                Set.of(),
+                Duration.ofSeconds(2));
+    }
+}

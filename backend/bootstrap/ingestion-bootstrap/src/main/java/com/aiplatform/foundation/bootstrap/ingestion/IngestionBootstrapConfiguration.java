@@ -1,8 +1,6 @@
 package com.aiplatform.foundation.bootstrap.ingestion;
 
-import com.aiplatform.foundation.bootstrap.ingestion.configuration.IngestionModelRuntimeConfiguration;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Import;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
 /**
@@ -10,8 +8,5 @@ import org.springframework.scheduling.annotation.EnableScheduling;
  */
 @Configuration(proxyBeanMethods = false)
 @EnableScheduling
-@Import({
-    IngestionModelRuntimeConfiguration.class
-})
 public class IngestionBootstrapConfiguration {
 }

@@ -4,9 +4,9 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
-import com.aiplatform.foundation.modelruntime.api.model.provider.ProviderKind;
-import com.aiplatform.foundation.modelruntime.api.model.provider.ProviderProbeRequest;
-import com.aiplatform.foundation.security.secret.SecretReference;
+import com.aiplatform.foundation.modelruntime.domain.provider.model.ProviderKind;
+import com.aiplatform.foundation.modelruntime.application.probe.dto.ProviderProbeRequest;
+import com.aiplatform.foundation.modelruntime.domain.provider.model.CredentialReference;
 import java.net.URI;
 import java.time.Duration;
 import org.junit.jupiter.api.Test;
@@ -31,7 +31,7 @@ class DeterministicProviderConnectionProbeTest {
                 new TenantId(100000000000000001L),
                 ProviderKind.DETERMINISTIC,
                 URI.create(endpoint),
-                new SecretReference("secret://local/demo"),
+                new CredentialReference("secret://local/demo"),
                 "deterministic-chat",
                 java.util.Set.of(),
                 Duration.ofSeconds(2));

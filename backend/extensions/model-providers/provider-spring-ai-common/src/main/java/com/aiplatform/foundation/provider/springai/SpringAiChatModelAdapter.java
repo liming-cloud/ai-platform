@@ -1,12 +1,12 @@
 package com.aiplatform.foundation.provider.springai;
 
-import com.aiplatform.foundation.modelruntime.api.invocation.ChatModelPort;
-import com.aiplatform.foundation.modelruntime.api.model.chat.ChatChunk;
-import com.aiplatform.foundation.modelruntime.api.model.chat.ChatDeploymentRef;
-import com.aiplatform.foundation.modelruntime.api.model.chat.ChatMessage;
-import com.aiplatform.foundation.modelruntime.api.model.chat.ChatRequest;
-import com.aiplatform.foundation.modelruntime.api.model.chat.ChatResult;
-import com.aiplatform.foundation.modelruntime.api.model.common.ModelUsage;
+import com.aiplatform.foundation.modelruntime.application.runtime.facade.ChatModelPort;
+import com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.chat.ChatChunk;
+import com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.chat.ChatDeploymentRef;
+import com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.chat.ChatMessage;
+import com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.chat.ChatRequest;
+import com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.chat.ChatResult;
+import com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.common.ModelUsage;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.Flow;

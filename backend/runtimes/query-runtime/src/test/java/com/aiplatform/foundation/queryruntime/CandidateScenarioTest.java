@@ -8,11 +8,11 @@ import com.aiplatform.foundation.knowledgedata.application.indexversion.facade.A
 import com.aiplatform.foundation.knowledgedata.application.indexversion.port.out.vector.IndexVector;
 import com.aiplatform.foundation.knowledgedata.application.indexversion.port.out.vector.IndexVectorBatch;
 import com.aiplatform.foundation.knowledgedata.application.indexversion.dto.ActiveIndexSnapshot;
-import com.aiplatform.foundation.modelruntime.api.invocation.ChatModelPort;
-import com.aiplatform.foundation.modelruntime.api.invocation.EmbeddingModelPort;
-import com.aiplatform.foundation.modelruntime.api.invocation.ModelRuntimeResolver;
-import com.aiplatform.foundation.modelruntime.api.model.embedding.EmbeddingDeploymentRef;
-import com.aiplatform.foundation.modelruntime.api.model.embedding.EmbeddingRequest;
+import com.aiplatform.foundation.modelruntime.application.runtime.facade.ChatModelPort;
+import com.aiplatform.foundation.modelruntime.application.runtime.facade.EmbeddingModelPort;
+import com.aiplatform.foundation.modelruntime.application.runtime.facade.ModelRuntimeResolver;
+import com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.embedding.EmbeddingDeploymentRef;
+import com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.embedding.EmbeddingRequest;
 import com.aiplatform.foundation.security.identity.AccessChannel;
 import com.aiplatform.foundation.security.identity.CredentialType;
 import com.aiplatform.foundation.security.identity.MembershipId;

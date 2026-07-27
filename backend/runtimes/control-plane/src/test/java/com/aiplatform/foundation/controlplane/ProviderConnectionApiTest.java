@@ -100,6 +100,25 @@ class ProviderConnectionApiTest {
         assertEquals("true", replayed.getHeaders().getFirst("Idempotency-Replayed"));
         assertTrue(created.getBody().credentialConfigured());
 
+        var conflictingRequest = new HttpEntity<>(
+                Map.of(
+                        "providerKind", "DETERMINISTIC",
+                        "displayName", "不同的模型连接",
+                        "endpoint", "memory://deterministic",
+                        "region", "本地",
+                        "authenticationType", "API_KEY",
+                        "credentialReference", "secret://demo/provider"),
+                headers);
+        var conflict = http.postForEntity(
+                url("/api/v1/model-providers"),
+                conflictingRequest,
+                ApiError.class);
+        assertEquals(HttpStatus.CONFLICT, conflict.getStatusCode());
+        assertNotNull(conflict.getBody());
+        assertEquals(
+                "MODEL_RUNTIME.CONFLICT.0002",
+                conflict.getBody().code());
+
         var rawList = http.exchange(
                 url("/api/v1/model-providers"),
                 HttpMethod.GET,
@@ -144,6 +163,10 @@ class ProviderConnectionApiTest {
         assertEquals(List.of("校园模型"), campus.items().stream()
                 .map(ProviderResponse::displayName)
                 .toList());
+        assertEquals(1, store.totalElements());
+        assertEquals(1, store.totalPages());
+        assertFalse(store.hasPrevious());
+        assertFalse(store.hasNext());
     }
 
     @Test
@@ -228,7 +251,14 @@ class ProviderConnectionApiTest {
             Instant createdAt) {
     }
 
-    private record ProviderPage(List<ProviderResponse> items, String nextCursor) {
+    private record ProviderPage(
+            List<ProviderResponse> items,
+            long pageNumber,
+            long pageSize,
+            long totalElements,
+            long totalPages,
+            boolean hasPrevious,
+            boolean hasNext) {
     }
 
     private record ProbeResponse(

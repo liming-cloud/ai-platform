@@ -9,7 +9,7 @@ import com.aiplatform.foundation.assistantdelivery.application.DefaultPublishedA
 import com.aiplatform.foundation.assistantdelivery.application.port.out.AssistantRepository;
 import com.aiplatform.foundation.knowledgedata.application.indexversion.facade.ActiveIndexLookup;
 import com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator;
-import com.aiplatform.foundation.modelruntime.api.catalog.PublishedChatDeploymentLookup;
+import com.aiplatform.foundation.modelruntime.application.deployment.facade.PublishedChatDeploymentLookup;
 import java.time.Clock;
 import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.beans.factory.annotation.Value;

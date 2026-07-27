@@ -2,14 +2,14 @@
 <!DOCTYPE mapper
         PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="com.aiplatform.foundation.modelruntime.adapter.out.persistence.ModelDeploymentMapper">
+<mapper namespace="com.aiplatform.foundation.modelruntime.infrastructure.persistence.deployment.mapper.ModelDeploymentMapper">
 
-    <resultMap id="findRequestResultMap" type="com.aiplatform.foundation.modelruntime.adapter.out.persistence.ModelDeploymentRequestRow">
+    <resultMap id="findRequestResultMap" type="com.aiplatform.foundation.modelruntime.infrastructure.persistence.deployment.projection.ModelDeploymentRequestRow">
         <result column="request_fingerprint" property="requestFingerprint"/>
         <result column="model_deployment_id" property="modelDeploymentId"/>
     </resultMap>
 
-    <resultMap id="modelDeploymentRow" type="com.aiplatform.foundation.modelruntime.adapter.out.persistence.ModelDeploymentRow">
+    <resultMap id="modelDeploymentRow" type="com.aiplatform.foundation.modelruntime.infrastructure.persistence.deployment.projection.ModelDeploymentRow">
         <result column="tenant_id" property="tenantId"/>
         <result column="id" property="id"/>
         <result column="provider_connection_id" property="providerConnectionId"/>
@@ -39,14 +39,6 @@
         FROM model_runtime.model_deployment_request
         WHERE tenant_id = #{tenantId}
           AND idempotency_key_hash = #{keyHash}
-        ]]>
-    </select>
-
-    <select id="countAll" resultType="int">
-        <![CDATA[
-        SELECT count(*)
-        FROM model_runtime.model_deployment
-        WHERE tenant_id = #{tenantId}
         ]]>
     </select>
 
@@ -99,7 +91,7 @@
         ]]>
     </select>
 
-    <select id="findFirstPage" resultMap="modelDeploymentRow">
+    <select id="findPage" resultMap="modelDeploymentRow">
         <![CDATA[
         SELECT tenant_id::text AS tenant_id,
                id,
@@ -118,42 +110,7 @@
         FROM model_runtime.model_deployment
         WHERE tenant_id = #{tenantId}
         ORDER BY created_at DESC, id DESC
-        LIMIT #{limit}
         ]]>
     </select>
 
-    <select id="findAfter" resultMap="modelDeploymentRow">
-        <![CDATA[
-        SELECT tenant_id::text AS tenant_id,
-               id,
-               provider_connection_id,
-               provider_connection_revision,
-               model_code,
-               display_name,
-               model_type,
-               array_to_string(capabilities, ',') AS capabilities,
-               context_window,
-               output_limit,
-               embedding_dimension,
-               status,
-               version,
-               created_at
-        FROM model_runtime.model_deployment
-        WHERE tenant_id = #{tenantId}
-          AND (created_at, id) < (#{createdAt}, #{id})
-        ORDER BY created_at DESC, id DESC
-        LIMIT #{limit}
-        ]]>
-    </select>
-
-    <update id="updateStatus">
-        <![CDATA[
-        UPDATE model_runtime.model_deployment
-        SET status = #{status},
-            version = #{nextVersion}
-        WHERE tenant_id = #{tenantId}
-          AND id = #{id}
-          AND version = #{expectedVersion}
-        ]]>
-    </update>
 </mapper>

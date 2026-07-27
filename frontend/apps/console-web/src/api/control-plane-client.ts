@@ -273,9 +273,12 @@ export class ControlPlaneClient {
     );
   }
 
-  async listModelDeployments(): Promise<CursorPage<ModelDeployment>> {
-    return this.request<CursorPage<ModelDeployment>>(
-      "/model-deployments?limit=20",
+  async listModelDeployments(
+    pageNumber = 1,
+    pageSize = 20,
+  ): Promise<PageResult<ModelDeployment>> {
+    return this.request<PageResult<ModelDeployment>>(
+      `/model-deployments?pageNumber=${pageNumber}&pageSize=${pageSize}`,
     );
   }
 

@@ -14,19 +14,6 @@ import com.aiplatform.foundation.assistantdelivery.application.AssistantVersionQ
 import com.aiplatform.foundation.assistantdelivery.domain.AssistantVersionStateException;
 import com.aiplatform.foundation.evaluationoperations.domain.authorization.OperationsPermissionDeniedException;
 import com.aiplatform.foundation.security.session.InvalidAuthenticatedSessionException;
-import com.aiplatform.foundation.modelruntime.application.catalog.common.ModelCatalogPermissionDeniedException;
-import com.aiplatform.foundation.modelruntime.application.catalog.deployment.ModelDeploymentConcurrentModificationException;
-import com.aiplatform.foundation.modelruntime.application.catalog.deployment.ModelDeploymentIdempotencyConflictException;
-import com.aiplatform.foundation.modelruntime.application.catalog.deployment.ModelDeploymentNameConflictException;
-import com.aiplatform.foundation.modelruntime.application.catalog.deployment.ModelDeploymentNotFoundException;
-import com.aiplatform.foundation.modelruntime.application.catalog.deployment.ModelDeploymentProviderUnavailableException;
-import com.aiplatform.foundation.modelruntime.application.catalog.deployment.ModelDeploymentQuotaExceededException;
-import com.aiplatform.foundation.modelruntime.application.catalog.provider.ProviderConnectionConcurrentModificationException;
-import com.aiplatform.foundation.modelruntime.application.catalog.provider.ProviderConnectionIdempotencyConflictException;
-import com.aiplatform.foundation.modelruntime.application.catalog.provider.ProviderConnectionNotFoundException;
-import com.aiplatform.foundation.modelruntime.application.catalog.provider.ProviderConnectionNameConflictException;
-import com.aiplatform.foundation.modelruntime.application.catalog.provider.ProviderConnectionQuotaExceededException;
-import com.aiplatform.foundation.modelruntime.domain.model.ModelDeploymentStateException;
 import com.aiplatform.foundation.organizationaccess.application.authentication.exception.InvalidCredentialsException;
 import java.util.Map;
 import org.springframework.http.HttpStatus;
@@ -57,11 +44,6 @@ public class GlobalApiExceptionHandler {
     @ExceptionHandler(InvalidAuthenticatedSessionException.class)
     ResponseEntity<ApiErrorResponse> invalidSession() {
         return error(HttpStatus.UNAUTHORIZED, "AUTHENTICATION_REQUIRED", "需要有效会话");
-    }
-
-    @ExceptionHandler(ModelCatalogPermissionDeniedException.class)
-    ResponseEntity<ApiErrorResponse> modelCatalogAccessDenied() {
-        return error(HttpStatus.FORBIDDEN, "ACCESS_DENIED", "没有执行该操作的权限");
     }
 
     @ExceptionHandler(AssistantPermissionDeniedException.class)
@@ -136,96 +118,6 @@ public class GlobalApiExceptionHandler {
                 HttpStatus.TOO_MANY_REQUESTS,
                 "ASSISTANT_VERSION_QUOTA_EXCEEDED",
                 "助手版本数量已经达到配额");
-    }
-
-    @ExceptionHandler(ProviderConnectionIdempotencyConflictException.class)
-    ResponseEntity<ApiErrorResponse> providerConnectionIdempotencyConflict() {
-        return error(
-                HttpStatus.CONFLICT,
-                "IDEMPOTENCY_CONFLICT",
-                "幂等键已经用于不同请求");
-    }
-
-    @ExceptionHandler(ProviderConnectionNotFoundException.class)
-    ResponseEntity<ApiErrorResponse> providerConnectionNotFound() {
-        return error(HttpStatus.NOT_FOUND, "RESOURCE_NOT_FOUND", "目标资源不存在");
-    }
-
-    @ExceptionHandler(ProviderConnectionNameConflictException.class)
-    ResponseEntity<ApiErrorResponse> providerConnectionNameConflict() {
-        return error(
-                HttpStatus.CONFLICT,
-                "PROVIDER_CONNECTION_NAME_CONFLICT",
-                "当前租户已经存在同名供应商连接");
-    }
-
-    @ExceptionHandler(ProviderConnectionConcurrentModificationException.class)
-    ResponseEntity<ApiErrorResponse> providerConnectionVersionConflict() {
-        return error(
-                HttpStatus.CONFLICT,
-                "PROVIDER_CONNECTION_VERSION_CONFLICT",
-                "供应商连接版本已经变化");
-    }
-
-    @ExceptionHandler(ProviderConnectionQuotaExceededException.class)
-    ResponseEntity<ApiErrorResponse> providerConnectionQuotaExceeded() {
-        return error(
-                HttpStatus.TOO_MANY_REQUESTS,
-                "PROVIDER_CONNECTION_QUOTA_EXCEEDED",
-                "供应商连接数量已经达到租户配额");
-    }
-
-    @ExceptionHandler(ModelDeploymentIdempotencyConflictException.class)
-    ResponseEntity<ApiErrorResponse> modelDeploymentIdempotencyConflict() {
-        return error(
-                HttpStatus.CONFLICT,
-                "IDEMPOTENCY_CONFLICT",
-                "幂等键已经用于不同请求");
-    }
-
-    @ExceptionHandler(ModelDeploymentNotFoundException.class)
-    ResponseEntity<ApiErrorResponse> modelDeploymentNotFound() {
-        return error(HttpStatus.NOT_FOUND, "RESOURCE_NOT_FOUND", "目标资源不存在");
-    }
-
-    @ExceptionHandler(ModelDeploymentNameConflictException.class)
-    ResponseEntity<ApiErrorResponse> modelDeploymentNameConflict() {
-        return error(
-                HttpStatus.CONFLICT,
-                "MODEL_DEPLOYMENT_NAME_CONFLICT",
-                "当前租户已经存在同名模型部署");
-    }
-
-    @ExceptionHandler(ModelDeploymentConcurrentModificationException.class)
-    ResponseEntity<ApiErrorResponse> modelDeploymentVersionConflict() {
-        return error(
-                HttpStatus.CONFLICT,
-                "MODEL_DEPLOYMENT_VERSION_CONFLICT",
-                "模型部署版本已经变化");
-    }
-
-    @ExceptionHandler(ModelDeploymentProviderUnavailableException.class)
-    ResponseEntity<ApiErrorResponse> modelDeploymentProviderUnavailable() {
-        return error(
-                HttpStatus.CONFLICT,
-                "MODEL_DEPLOYMENT_PROVIDER_UNAVAILABLE",
-                "模型部署冻结的供应商连接不可用");
-    }
-
-    @ExceptionHandler(ModelDeploymentStateException.class)
-    ResponseEntity<ApiErrorResponse> modelDeploymentStateConflict() {
-        return error(
-                HttpStatus.CONFLICT,
-                "MODEL_DEPLOYMENT_STATE_CONFLICT",
-                "模型部署当前状态不允许该操作");
-    }
-
-    @ExceptionHandler(ModelDeploymentQuotaExceededException.class)
-    ResponseEntity<ApiErrorResponse> modelDeploymentQuotaExceeded() {
-        return error(
-                HttpStatus.TOO_MANY_REQUESTS,
-                "MODEL_DEPLOYMENT_QUOTA_EXCEEDED",
-                "模型部署数量已经达到租户配额");
     }
 
     @ExceptionHandler({

@@ -49,13 +49,18 @@ foundation:
       daily-limit: ${FOUNDATION_QUERY_QUOTA_DAILY_LIMIT:100}
       concurrent-limit: ${FOUNDATION_QUERY_QUOTA_CONCURRENT_LIMIT:4}
       running-lease: ${FOUNDATION_QUERY_QUOTA_RUNNING_LEASE:PT2M}
+  model-catalog:
+    enabled: true
+    provider-connection-limit: ${FOUNDATION_PROVIDER_CONNECTION_LIMIT:3}
+    model-deployment-limit: ${FOUNDATION_MODEL_DEPLOYMENT_LIMIT:6}
   model-runtime:
     enabled: true
+    persistence:
+      enabled: true
     allowed-endpoints: ${MODEL_ALLOWED_ENDPOINTS:}
     call-timeout: ${MODEL_CALL_TIMEOUT:PT30S}
-    cache:
-      maximum-size: ${MODEL_RUNTIME_CACHE_MAXIMUM_SIZE:64}
-      idle-timeout: ${MODEL_RUNTIME_CACHE_IDLE_TIMEOUT:PT30M}
+    cache-maximum-size: ${MODEL_RUNTIME_CACHE_MAXIMUM_SIZE:64}
+    cache-idle-timeout: ${MODEL_RUNTIME_CACHE_IDLE_TIMEOUT:PT30M}
 
 server:
   port: 8080

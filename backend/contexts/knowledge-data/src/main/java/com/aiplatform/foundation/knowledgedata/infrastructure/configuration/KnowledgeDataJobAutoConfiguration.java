@@ -10,7 +10,7 @@ import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.index.
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.index.repository.PostgresIndexBuildCompletion;
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.index.repository.PostgresIndexBuildQueue;
 import com.aiplatform.foundation.knowledgedata.interfaces.job.indexversion.IndexBuildScheduler;
-import com.aiplatform.foundation.modelruntime.api.invocation.ModelRuntimeResolver;
+import com.aiplatform.foundation.modelruntime.application.runtime.facade.ModelRuntimeResolver;
 import com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator;
 import java.time.Clock;
 import org.springframework.boot.autoconfigure.AutoConfiguration;

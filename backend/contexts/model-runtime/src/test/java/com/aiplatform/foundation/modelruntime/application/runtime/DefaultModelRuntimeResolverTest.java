@@ -5,31 +5,31 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
-import com.aiplatform.foundation.modelruntime.api.extension.ChatModelFactory;
-import com.aiplatform.foundation.modelruntime.api.invocation.ChatModelPort;
-import com.aiplatform.foundation.modelruntime.api.model.chat.ChatChunk;
-import com.aiplatform.foundation.modelruntime.api.model.chat.ChatRequest;
-import com.aiplatform.foundation.modelruntime.api.model.chat.ChatResult;
-import com.aiplatform.foundation.modelruntime.api.model.common.ModelCapability;
-import com.aiplatform.foundation.modelruntime.api.model.common.ModelRuntimeSpecification;
-import com.aiplatform.foundation.modelruntime.api.model.common.ModelType;
-import com.aiplatform.foundation.modelruntime.api.model.provider.ProviderKind;
-import com.aiplatform.foundation.modelruntime.application.port.out.ModelDeploymentCreation;
-import com.aiplatform.foundation.modelruntime.application.port.out.ModelDeploymentCreationOutcome;
-import com.aiplatform.foundation.modelruntime.application.port.out.ModelDeploymentRepository;
-import com.aiplatform.foundation.modelruntime.application.port.out.ModelDeploymentSlice;
-import com.aiplatform.foundation.modelruntime.application.port.out.ProviderConnectionCreation;
-import com.aiplatform.foundation.modelruntime.application.port.out.ProviderConnectionCreationOutcome;
-import com.aiplatform.foundation.modelruntime.application.port.out.ProviderConnectionRepository;
-import com.aiplatform.foundation.modelruntime.application.port.out.ProviderConnectionSlice;
-import com.aiplatform.foundation.modelruntime.domain.model.AuthenticationType;
-import com.aiplatform.foundation.modelruntime.domain.model.ModelDeployment;
-import com.aiplatform.foundation.modelruntime.domain.model.ModelDeploymentId;
-import com.aiplatform.foundation.modelruntime.domain.model.ModelDeploymentStatus;
-import com.aiplatform.foundation.modelruntime.domain.model.ProviderConnection;
-import com.aiplatform.foundation.modelruntime.domain.model.ProviderConnectionId;
-import com.aiplatform.foundation.modelruntime.domain.model.ProviderConnectionStatus;
-import com.aiplatform.foundation.security.secret.SecretReference;
+import com.aiplatform.foundation.modelruntime.application.runtime.port.out.ChatModelFactory;
+import com.aiplatform.foundation.modelruntime.application.runtime.facade.ChatModelPort;
+import com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.chat.ChatChunk;
+import com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.chat.ChatRequest;
+import com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.chat.ChatResult;
+import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelCapability;
+import com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.common.ModelRuntimeSpecification;
+import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelType;
+import com.aiplatform.foundation.modelruntime.domain.provider.model.ProviderKind;
+import com.aiplatform.foundation.modelruntime.domain.deployment.repository.ModelDeploymentCreation;
+import com.aiplatform.foundation.modelruntime.domain.deployment.repository.ModelDeploymentCreationOutcome;
+import com.aiplatform.foundation.modelruntime.domain.deployment.repository.ModelDeploymentRepository;
+import com.aiplatform.foundation.modelruntime.domain.deployment.repository.ModelDeploymentPage;
+import com.aiplatform.foundation.modelruntime.domain.provider.repository.ProviderConnectionCreation;
+import com.aiplatform.foundation.modelruntime.domain.provider.repository.ProviderConnectionCreationOutcome;
+import com.aiplatform.foundation.modelruntime.domain.provider.repository.ProviderConnectionRepository;
+import com.aiplatform.foundation.modelruntime.domain.provider.repository.ProviderConnectionPage;
+import com.aiplatform.foundation.modelruntime.domain.provider.model.AuthenticationType;
+import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelDeployment;
+import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelDeploymentId;
+import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelDeploymentStatus;
+import com.aiplatform.foundation.modelruntime.domain.provider.model.ProviderConnection;
+import com.aiplatform.foundation.modelruntime.domain.provider.model.ProviderConnectionId;
+import com.aiplatform.foundation.modelruntime.domain.provider.model.ProviderConnectionStatus;
+import com.aiplatform.foundation.modelruntime.domain.provider.model.CredentialReference;
 import java.net.URI;
 import java.time.Clock;
 import java.time.Duration;
@@ -174,7 +174,7 @@ class DefaultModelRuntimeResolverTest {
                 URI.create("https://models.example.com/v1"),
                 "cn-test",
                 AuthenticationType.API_KEY,
-                new SecretReference("secret://vault/tenant/openai"),
+                new CredentialReference("secret://vault/tenant/openai"),
                 ProviderConnectionStatus.VERIFIED,
                 revision,
                 true,
@@ -230,7 +230,7 @@ class DefaultModelRuntimeResolverTest {
         }
 
         @Override
-        public ModelDeploymentSlice findPage(TenantId tenantId, String cursor, int limit) {
+        public ModelDeploymentPage findPage(TenantId tenantId, long pageNumber, long pageSize) {
             throw new UnsupportedOperationException();
         }
 
@@ -261,7 +261,7 @@ class DefaultModelRuntimeResolverTest {
         }
 
         @Override
-        public ProviderConnectionSlice findPage(TenantId tenantId, String cursor, int limit) {
+        public ProviderConnectionPage findPage(TenantId tenantId, long pageNumber, long pageSize) {
             throw new UnsupportedOperationException();
         }
 

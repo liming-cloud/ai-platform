@@ -2,8 +2,8 @@ package com.aiplatform.foundation.trustedquery.application.run;
 
 import com.aiplatform.foundation.assistantdelivery.api.model.version.PublishedAssistantVersionSnapshot;
 import com.aiplatform.foundation.knowledgedata.application.indexversion.port.out.vector.IndexCandidate;
-import com.aiplatform.foundation.modelruntime.api.model.chat.ChatMessage;
-import com.aiplatform.foundation.modelruntime.api.model.chat.ChatRole;
+import com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.chat.ChatMessage;
+import com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.chat.ChatRole;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;

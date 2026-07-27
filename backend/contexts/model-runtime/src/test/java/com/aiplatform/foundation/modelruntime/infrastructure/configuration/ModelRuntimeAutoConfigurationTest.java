@@ -1,0 +1,139 @@
+package com.aiplatform.foundation.modelruntime.infrastructure.configuration;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
+
+import com.aiplatform.foundation.modelruntime.application.deployment.facade.PublishedChatDeploymentLookup;
+import com.aiplatform.foundation.modelruntime.application.deployment.facade.PublishedEmbeddingDeploymentLookup;
+import com.aiplatform.foundation.modelruntime.application.deployment.service.ModelDeploymentService;
+import com.aiplatform.foundation.modelruntime.application.probe.service.ProbeProviderService;
+import com.aiplatform.foundation.modelruntime.application.provider.service.ProviderConnectionService;
+import com.aiplatform.foundation.modelruntime.application.runtime.facade.ModelRuntimeResolver;
+import com.aiplatform.foundation.modelruntime.domain.deployment.repository.ModelDeploymentRepository;
+import com.aiplatform.foundation.modelruntime.domain.provider.repository.ProviderConnectionRepository;
+import com.aiplatform.foundation.modelruntime.infrastructure.persistence.deployment.mapper.ModelDeploymentMapper;
+import com.aiplatform.foundation.modelruntime.infrastructure.persistence.provider.mapper.ProviderConnectionMapper;
+import com.aiplatform.foundation.modelruntime.interfaces.web.deployment.controller.ModelDeploymentController;
+import com.aiplatform.foundation.modelruntime.interfaces.web.provider.controller.ProviderConnectionController;
+import com.aiplatform.foundation.security.egress.OutboundEndpointPolicy;
+import com.aiplatform.foundation.security.secret.SecretResolver;
+import com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator;
+import org.apache.ibatis.session.SqlSessionFactory;
+import org.junit.jupiter.api.Test;
+import org.springframework.boot.autoconfigure.AutoConfigurations;
+import org.springframework.boot.test.context.runner.ApplicationContextRunner;
+import org.springframework.transaction.PlatformTransactionManager;
+
+class ModelRuntimeAutoConfigurationTest {
+
+    @Test
+    void 核心能力仅在显式启用且依赖完整时注册() {
+        new ApplicationContextRunner()
+                .withConfiguration(AutoConfigurations.of(
+                        ModelRuntimeCoreAutoConfiguration.class))
+                .withPropertyValues(
+                        "foundation.model-catalog.enabled=true",
+                        "foundation.model-catalog.provider-connection-limit=4",
+                        "foundation.model-catalog.model-deployment-limit=8")
+                .withBean(
+                        ProviderConnectionRepository.class,
+                        () -> mock(ProviderConnectionRepository.class))
+                .withBean(
+                        ModelDeploymentRepository.class,
+                        () -> mock(ModelDeploymentRepository.class))
+                .withBean(EntityIdGenerator.class, () -> () -> 1001L)
+                .run(context -> {
+                    assertThat(context).hasNotFailed();
+                    assertThat(context).hasSingleBean(ProbeProviderService.class);
+                    assertThat(context).hasSingleBean(ProviderConnectionService.class);
+                    assertThat(context).hasSingleBean(ModelDeploymentService.class);
+                    assertThat(context).hasSingleBean(PublishedChatDeploymentLookup.class);
+                    assertThat(context).hasSingleBean(PublishedEmbeddingDeploymentLookup.class);
+                });
+    }
+
+    @Test
+    void 核心能力关闭或缺少仓储时不允许静默装配() {
+        new ApplicationContextRunner()
+                .withConfiguration(AutoConfigurations.of(
+                        ModelRuntimeCoreAutoConfiguration.class))
+                .run(context -> assertThat(context)
+                        .doesNotHaveBean(ProviderConnectionService.class));
+
+        new ApplicationContextRunner()
+                .withConfiguration(AutoConfigurations.of(
+                        ModelRuntimeCoreAutoConfiguration.class))
+                .withPropertyValues("foundation.model-catalog.enabled=true")
+                .run(context -> assertThat(context).hasFailed());
+    }
+
+    @Test
+    void Web能力只导入入口且要求应用服务存在() {
+        new ApplicationContextRunner()
+                .withConfiguration(AutoConfigurations.of(
+                        ModelRuntimeWebAutoConfiguration.class))
+                .withPropertyValues("foundation.model-catalog.enabled=true")
+                .withBean(
+                        ProviderConnectionService.class,
+                        () -> mock(ProviderConnectionService.class))
+                .withBean(
+                        ModelDeploymentService.class,
+                        () -> mock(ModelDeploymentService.class))
+                .run(context -> {
+                    assertThat(context).hasNotFailed();
+                    assertThat(context).hasSingleBean(ProviderConnectionController.class);
+                    assertThat(context).hasSingleBean(ModelDeploymentController.class);
+                });
+    }
+
+    @Test
+    void 运行时能力支持端口覆盖并在仓储齐全时注册解析器() {
+        var secretResolver = mock(SecretResolver.class);
+        var endpointPolicy = mock(OutboundEndpointPolicy.class);
+        new ApplicationContextRunner()
+                .withConfiguration(AutoConfigurations.of(
+                        ModelRuntimeExecutionAutoConfiguration.class))
+                .withPropertyValues("foundation.model-runtime.enabled=true")
+                .withBean(
+                        ProviderConnectionRepository.class,
+                        () -> mock(ProviderConnectionRepository.class))
+                .withBean(
+                        ModelDeploymentRepository.class,
+                        () -> mock(ModelDeploymentRepository.class))
+                .withBean(SecretResolver.class, () -> secretResolver)
+                .withBean(OutboundEndpointPolicy.class, () -> endpointPolicy)
+                .run(context -> {
+                    assertThat(context).hasNotFailed();
+                    assertThat(context.getBean(SecretResolver.class)).isSameAs(secretResolver);
+                    assertThat(context.getBean(OutboundEndpointPolicy.class))
+                            .isSameAs(endpointPolicy);
+                    assertThat(context).hasSingleBean(ModelRuntimeResolver.class);
+                });
+    }
+
+    @Test
+    void 持久化能力显式启用时注册两个聚合仓储() {
+        new ApplicationContextRunner()
+                .withConfiguration(AutoConfigurations.of(
+                        ModelRuntimePersistenceAutoConfiguration.class))
+                .withPropertyValues(
+                        "foundation.model-runtime.persistence.enabled=true")
+                .withBean(
+                        ProviderConnectionMapper.class,
+                        () -> mock(ProviderConnectionMapper.class))
+                .withBean(
+                        ModelDeploymentMapper.class,
+                        () -> mock(ModelDeploymentMapper.class))
+                .withBean(
+                        PlatformTransactionManager.class,
+                        () -> mock(PlatformTransactionManager.class))
+                .withBean(
+                        SqlSessionFactory.class,
+                        () -> mock(SqlSessionFactory.class))
+                .run(context -> {
+                    assertThat(context).hasNotFailed();
+                    assertThat(context).hasSingleBean(ProviderConnectionRepository.class);
+                    assertThat(context).hasSingleBean(ModelDeploymentRepository.class);
+                });
+    }
+}

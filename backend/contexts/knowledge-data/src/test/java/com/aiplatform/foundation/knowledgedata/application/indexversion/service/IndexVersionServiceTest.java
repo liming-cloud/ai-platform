@@ -16,8 +16,8 @@ import com.aiplatform.foundation.knowledgedata.domain.indexversion.repository.In
 import com.aiplatform.foundation.knowledgedata.domain.indexversion.model.EmbeddingConfiguration;
 import com.aiplatform.foundation.knowledgedata.domain.indexversion.model.IndexVersion;
 import com.aiplatform.foundation.knowledgedata.domain.knowledge.model.KnowledgeSpaceId;
-import com.aiplatform.foundation.modelruntime.api.catalog.PublishedEmbeddingDeploymentLookup;
-import com.aiplatform.foundation.modelruntime.api.catalog.model.deployment.PublishedEmbeddingDeploymentSnapshot;
+import com.aiplatform.foundation.modelruntime.application.deployment.facade.PublishedEmbeddingDeploymentLookup;
+import com.aiplatform.foundation.modelruntime.application.deployment.dto.PublishedEmbeddingDeploymentSnapshot;
 import com.aiplatform.foundation.security.identity.AccessChannel;
 import com.aiplatform.foundation.security.identity.CredentialType;
 import com.aiplatform.foundation.security.identity.MembershipId;

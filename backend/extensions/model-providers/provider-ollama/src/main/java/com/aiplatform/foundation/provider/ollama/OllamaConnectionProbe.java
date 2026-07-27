@@ -1,10 +1,10 @@
 package com.aiplatform.foundation.provider.ollama;
 
-import com.aiplatform.foundation.modelruntime.api.extension.ProviderConnectionProbe;
-import com.aiplatform.foundation.modelruntime.api.model.common.ModelCapability;
-import com.aiplatform.foundation.modelruntime.api.model.provider.ProviderKind;
-import com.aiplatform.foundation.modelruntime.api.model.provider.ProviderProbeObservation;
-import com.aiplatform.foundation.modelruntime.api.model.provider.ProviderProbeRequest;
+import com.aiplatform.foundation.modelruntime.application.probe.port.out.ProviderConnectionProbe;
+import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelCapability;
+import com.aiplatform.foundation.modelruntime.domain.provider.model.ProviderKind;
+import com.aiplatform.foundation.modelruntime.application.probe.dto.ProviderProbeObservation;
+import com.aiplatform.foundation.modelruntime.application.probe.dto.ProviderProbeRequest;
 import com.aiplatform.foundation.security.egress.OutboundEndpointPolicy;
 import com.aiplatform.foundation.security.egress.UnsafeOutboundEndpointException;
 import java.time.Duration;

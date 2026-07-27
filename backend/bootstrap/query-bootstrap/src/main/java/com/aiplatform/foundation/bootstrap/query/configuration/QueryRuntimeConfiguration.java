@@ -9,18 +9,7 @@ import com.aiplatform.foundation.assistantdelivery.application.DefaultPublishedA
 import com.aiplatform.foundation.assistantdelivery.application.port.out.AssistantRepository;
 import com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator;
 import com.aiplatform.foundation.knowledgedata.application.indexversion.facade.ActiveIndexLookup;
-import com.aiplatform.foundation.modelruntime.adapter.out.persistence.ModelDeploymentMapper;
-import com.aiplatform.foundation.modelruntime.adapter.out.persistence.PostgresModelDeploymentRepository;
-import com.aiplatform.foundation.modelruntime.adapter.out.persistence.PostgresProviderConnectionRepository;
-import com.aiplatform.foundation.modelruntime.adapter.out.persistence.ProviderConnectionMapper;
-import com.aiplatform.foundation.modelruntime.api.extension.ChatModelFactory;
-import com.aiplatform.foundation.modelruntime.api.extension.EmbeddingModelFactory;
-import com.aiplatform.foundation.modelruntime.api.invocation.ModelRuntimeResolver;
-import com.aiplatform.foundation.modelruntime.application.port.out.ModelDeploymentRepository;
-import com.aiplatform.foundation.modelruntime.application.port.out.ProviderConnectionRepository;
-import com.aiplatform.foundation.modelruntime.application.runtime.DefaultModelRuntimeResolver;
-import com.aiplatform.foundation.provider.deterministic.DeterministicChatModelFactory;
-import com.aiplatform.foundation.provider.deterministic.DeterministicEmbeddingModelFactory;
+import com.aiplatform.foundation.modelruntime.application.runtime.facade.ModelRuntimeResolver;
 import com.aiplatform.foundation.trustedquery.adapter.out.persistence.PostgresQueryRunRepository;
 import com.aiplatform.foundation.trustedquery.adapter.out.persistence.QueryRunMapper;
 import com.aiplatform.foundation.trustedquery.api.CandidateSearchUseCase;
@@ -34,7 +23,6 @@ import com.aiplatform.foundation.trustedquery.application.port.out.QueryRunRepos
 import com.aiplatform.foundation.vectorstore.pgvector.PgVectorIndexStore;
 import java.time.Clock;
 import java.time.Duration;
-import java.util.List;
 import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -52,7 +40,6 @@ import org.springframework.transaction.PlatformTransactionManager;
         havingValue = "true")
 @MapperScan(basePackageClasses = {
     AssistantMapper.class,
-    ProviderConnectionMapper.class,
     QueryRunMapper.class
 })
 public class QueryRuntimeConfiguration {
@@ -85,42 +72,6 @@ public class QueryRuntimeConfiguration {
     QueryAssistantCatalogUseCase queryAssistantCatalogUseCase(
             AssistantRepository repository) {
         return new DefaultQueryAssistantCatalogService(repository);
-    }
-
-    @Bean
-    ProviderConnectionRepository queryProviderConnectionRepository(
-            ProviderConnectionMapper mapper,
-            PlatformTransactionManager transactions) {
-        return new PostgresProviderConnectionRepository(mapper, transactions);
-    }
-
-    @Bean
-    ModelDeploymentRepository queryModelDeploymentRepository(
-            ModelDeploymentMapper mapper,
-            PlatformTransactionManager transactions) {
-        return new PostgresModelDeploymentRepository(mapper, transactions);
-    }
-
-    @Bean
-    ModelRuntimeResolver queryModelRuntimeResolver(
-            ModelDeploymentRepository deployments,
-            ProviderConnectionRepository providers,
-            @Value("${foundation.model-runtime.cache.maximum-size:64}")
-                    int maximumCacheSize,
-            @Value("${foundation.model-runtime.cache.idle-timeout:PT30M}")
-                    Duration idleTimeout) {
-        List<ChatModelFactory> chatFactories =
-                List.of(new DeterministicChatModelFactory());
-        List<EmbeddingModelFactory> embeddingFactories =
-                List.of(new DeterministicEmbeddingModelFactory());
-        return new DefaultModelRuntimeResolver(
-                deployments,
-                providers,
-                chatFactories,
-                embeddingFactories,
-                maximumCacheSize,
-                idleTimeout,
-                Clock.systemUTC());
     }
 
     @Bean
