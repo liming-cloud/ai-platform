@@ -1,14 +1,14 @@
 {
   "schemaVersion": 1,
   "passed": true,
-  "gitCommit": "d0fc7aa649bc6869205cde49e8c071abe57deef6",
+  "gitCommit": "e54cf35169b8c3f69ff8727c67905b526d713380",
   "upgradeType": "既有数据卷受控重部署",
-  "databaseBackupSha256": "914fc4806b2efd0285ffd87292ff0fa982687c8816a3a1850c6ed1e4f7fc42cb",
-  "factsBeforeSha256": "51b3e39ffefeecc45bf0df38c38ea6c12c8762c6f46bc4b385dbd29b47a938c7",
-  "factsAfterSha256": "51b3e39ffefeecc45bf0df38c38ea6c12c8762c6f46bc4b385dbd29b47a938c7",
+  "databaseBackupSha256": "1fdea0b37ea0166d4fc6c50730afb17d9173fb72ca25cedd7f7069ce1ea00417",
+  "factsBeforeSha256": "4885eb45c8a06e1f27271829772e5bbeeb96f6fd894b49f248257af8f09219c9",
+  "factsAfterSha256": "4885eb45c8a06e1f27271829772e5bbeeb96f6fd894b49f248257af8f09219c9",
   "factsMatch": true,
-  "migrationCountBefore": 18,
-  "migrationCountAfter": 18,
+  "migrationCountBefore": 14,
+  "migrationCountAfter": 14,
   "serviceCount": 8,
   "applicationEntryCount": 5,
   "evaluation": {
@@ -172,35 +172,35 @@
     {
       "repository": "trusted-rag/console-web",
       "tag": "foundation-v1",
-      "contentId": "sha256:379b95d697b30ced2c21cb759a142a84cf581d3158a2f6110b0767ccade42fb7",
+      "contentId": "sha256:bfe22d22ad0fc4e2757623dd00839aa60752a7361f77c2a5493b84e28e43a697",
       "platform": "linux/arm64"
     },
     {
       "repository": "trusted-rag/control-plane",
       "tag": "foundation-v1",
-      "contentId": "sha256:c0dee1367369b4852e9ed463a704042407d83e10a9350519770939fb7d695486",
+      "contentId": "sha256:997c357409069f7b36450010bbfe36a402ef3a05bdaf152c3c271275e87cd12b",
       "platform": "linux/arm64"
     },
     {
       "repository": "trusted-rag/ingestion-worker",
       "tag": "foundation-v1",
-      "contentId": "sha256:1a14721a669540350cfe7b86ed52a8467972f1a57a1affe256ec5427c5386603",
+      "contentId": "sha256:4e7e18729c2898d98633df3239efe5d3e6be34aadc86c07a9be7497656e9b4cd",
       "platform": "linux/arm64"
     },
     {
       "repository": "trusted-rag/query-runtime",
       "tag": "foundation-v1",
-      "contentId": "sha256:48185eaea6306aab93d20dcb34694fd91c7ef721281624fe5e8df4cb19689090",
+      "contentId": "sha256:62641f613a286fe23216cee1d0e6f57f6cdd53c548259d85b15d225aaae3d4eb",
       "platform": "linux/arm64"
     },
     {
       "repository": "trusted-rag/query-web",
       "tag": "foundation-v1",
-      "contentId": "sha256:9ceb1e76c6dc3ecc2a9f1a8b32b93a673fae58e0dd6b281dedcaabfc44a4134b",
+      "contentId": "sha256:e015b8260926a06ce5e506820b7f5278f9c65f23f114f1603d644fda750bfed0",
       "platform": "linux/arm64"
     }
   ],
-  "durationSeconds": 39,
+  "durationSeconds": 42,
   "sourceEnvironmentHealthy": true,
   "rollbackBackupCreated": true,
   "rollbackBackupDeletedAfterSuccess": true,

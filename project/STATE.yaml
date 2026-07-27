@@ -1,10 +1,9 @@
 schemaVersion: 1
 productVersion: foundation-v1
 currentMilestone: M1
-currentFrontier: WP-0008
-lastVerifiedCommit: d9edc1fb0eeffea1d1df81dfc918500eb447ca07
-activeWorkPackages:
-  - WP-0008
+currentFrontier: WP-0007
+lastVerifiedCommit: f88ae6493279b114a7238433d71c2103a2126d37
+activeWorkPackages: []
 blockedWorkPackages:
   - WP-0007
 confirmedDecisions:
@@ -74,6 +73,7 @@ latestEvidence:
   - project/evidence/WP-0008-snowflake-identifiers-complete.md
   - project/evidence/WP-0008-security-platform-boundary.md
   - project/evidence/WP-0008-runtime-bootstrap-boundary.md
+  - project/evidence/WP-0008-final-acceptance.md
 nextReviewAt: 2026-08-02
-updatedAt: 2026-07-27T12:08:42+08:00
+updatedAt: 2026-07-27T13:02:00+08:00
 updatedBy: codex

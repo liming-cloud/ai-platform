@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "passed": true,
-  "gitCommit": "a1bc72c8749314687bfd160b8fd06949f1a97f2f",
+  "gitCommit": "f88ae6493279b114a7238433d71c2103a2126d37",
   "initialBusinessFactCount": 0,
   "serviceCount": 8,
   "applicationEntryCount": 5,
@@ -177,9 +177,9 @@
     "publicProductionUse": false
   },
   "durations": {
-    "deploymentSeconds": 218,
-    "acceptanceSeconds": 76,
-    "totalSeconds": 298
+    "deploymentSeconds": 208,
+    "acceptanceSeconds": 35,
+    "totalSeconds": 245
   },
   "images": [
     {
@@ -203,31 +203,31 @@
     {
       "repository": "trusted-rag/console-web",
       "tag": "foundation-v1",
-      "contentId": "sha256:429815c5e312caa2ba795c4338e978fb8aa2e4347a6e246422b7ebac914074c4",
+      "contentId": "sha256:144774e44cbf18da3cffd6c7d6e9d978808518ded0b87974c1142c967e7f4a8d",
       "platform": "linux/arm64"
     },
     {
       "repository": "trusted-rag/control-plane",
       "tag": "foundation-v1",
-      "contentId": "sha256:62159f7142a032db5a2d107b16fea5d73e6abbaba9b688db4b8795916f928b21",
+      "contentId": "sha256:953ed2a2fe07a311826f28558912c20dcf9dfc7310b3add409162349a4be7bab",
       "platform": "linux/arm64"
     },
     {
       "repository": "trusted-rag/ingestion-worker",
       "tag": "foundation-v1",
-      "contentId": "sha256:a49f10b013bc373e7984220eba9b44b1f212060de9793c81ea14232daa6b0ec9",
+      "contentId": "sha256:84aa20754cce3f08bb745df64a1b73f3822d4d3485214a201b236bbbd70dbd7c",
       "platform": "linux/arm64"
     },
     {
       "repository": "trusted-rag/query-runtime",
       "tag": "foundation-v1",
-      "contentId": "sha256:772e102f187c1755bd2ef19347430e95c2adae80521f4648d2cfcf04be7c3798",
+      "contentId": "sha256:d82c1fc17369103855434d6e5a653ce3a94b48d35b25e254dd22048f30f56c0a",
       "platform": "linux/arm64"
     },
     {
       "repository": "trusted-rag/query-web",
       "tag": "foundation-v1",
-      "contentId": "sha256:68b818760d90d9465b2d8375236ead938f01a22287e4d58461cdabd7444e7a7e",
+      "contentId": "sha256:20e6ec4c6955cf1e2d271b41f503dcd32f8ded32256c0ae7d83f0b38d495798f",
       "platform": "linux/arm64"
     }
   ],

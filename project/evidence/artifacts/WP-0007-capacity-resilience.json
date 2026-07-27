@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "passed": true,
-  "gitCommit": "ea40372ae224d6898318ee1262d2b432c0f88022",
+  "gitCommit": "e54cf35169b8c3f69ff8727c67905b526d713380",
   "capacity": {
     "passed": true,
     "modelType": "本地确定性对话与嵌入模型",
@@ -13,12 +13,12 @@
     "errorCount": 0,
     "errorTypes": {},
     "replayedCount": 0,
-    "p50Milliseconds": 32.955,
-    "p95Milliseconds": 50.201,
-    "p99Milliseconds": 58.71,
-    "maximumMilliseconds": 58.71,
+    "p50Milliseconds": 37.219,
+    "p95Milliseconds": 65.884,
+    "p99Milliseconds": 71.711,
+    "maximumMilliseconds": 71.711,
     "p95LimitMilliseconds": 1000,
-    "throughputPerSecond": 219.873,
+    "throughputPerSecond": 180.857,
     "minimumThroughputPerSecond": 5.0
   },
   "resilience": {
@@ -44,16 +44,16 @@
       },
       {
         "service": "ingestion-worker",
-        "recoverySeconds": 5
+        "recoverySeconds": 4
       }
     ],
     "postRestartQueryPassed": true
   },
   "dataset": {
     "tenantCount": 2,
-    "knowledgeObjectCount": 3,
-    "indexChunkCount": 22,
-    "publishedAssistantVersionCount": 21
+    "knowledgeObjectCount": 2,
+    "indexChunkCount": 10,
+    "publishedAssistantVersionCount": 8
   },
   "environment": {
     "operatingSystem": "Darwin 25.5.0 arm64",
@@ -85,31 +85,31 @@
     {
       "repository": "trusted-rag/console-web",
       "tag": "foundation-v1",
-      "contentId": "sha256:4fdd2843f65927a8dc6302a587f8cac3bc7f7371e5976ef0926fca1981e572ee",
+      "contentId": "sha256:55801e3629f435f281afb1c54eb672d5a1a64759a32cdbb88abc7f68d99bf0bb",
       "platform": "linux/arm64"
     },
     {
       "repository": "trusted-rag/control-plane",
       "tag": "foundation-v1",
-      "contentId": "sha256:60d5d4a71c83e8b94c17746cc2511bfd394128ed5643293e992699e0cb566828",
+      "contentId": "sha256:c4ba381032857ec24a6095a354353776eff32b25af3913b8e1d5c7aeb8126f24",
       "platform": "linux/arm64"
     },
     {
       "repository": "trusted-rag/ingestion-worker",
       "tag": "foundation-v1",
-      "contentId": "sha256:e5088cbdbb348fd68907d8b1d118dc7e57cbcd37bdf3cd8ea45d8a65444c24f1",
+      "contentId": "sha256:543a46e33b6c64db3d7d7f6648f5cdf18f3a237bfb0f9dce2693defc9228bcd2",
       "platform": "linux/arm64"
     },
     {
       "repository": "trusted-rag/query-runtime",
       "tag": "foundation-v1",
-      "contentId": "sha256:f1e6fd5691a936c74aafe2f99d40b57df59685fb1d0d2deda3e7ca74439b4d47",
+      "contentId": "sha256:c1c3aa5dc0a2b1a0f4113947ef9e45b22fd6419daa8215ea6ed0cbc07eeff174",
       "platform": "linux/arm64"
     },
     {
       "repository": "trusted-rag/query-web",
       "tag": "foundation-v1",
-      "contentId": "sha256:60ad8fce7dc76fb96eab85ceb7d7be5d0f89cc4e57b8bc7c2757fab5e4ccb4fa",
+      "contentId": "sha256:6857653f65fdd1aa05e594b4ee8cc4cfb7fcc10ddcd9a1c09978ac4e1dc8667e",
       "platform": "linux/arm64"
     }
   ],

@@ -106,6 +106,7 @@
 | 全仓雪花标识收口 | `project/evidence/WP-0008-snowflake-identifiers-complete.md` | `b26a21070a610205c95324a5b758168ddc383a34` | 索引租约、事务事件和追踪标识完成迁移，全仓 Java UUID 文件归零 |
 | 安全平台边界 | `project/evidence/WP-0008-security-platform-boundary.md` | `834dddd2adad0db33b37afb309c26ee7502f74d4` | 安全核心与 Sa-Token 实现分层，Sa-Token 越界文件归零 |
 | 运行入口与装配边界 | `project/evidence/WP-0008-runtime-bootstrap-boundary.md` | `d9edc1fb0eeffea1d1df81dfc918500eb447ca07` | 三个独立装配模块建立，运行时非启动文件从 41 降至 0 |
+| 后端架构整改最终验收 | `project/evidence/WP-0008-final-acceptance.md` | `f88ae6493279b114a7238433d71c2103a2126d37` | 八项阻断问题全部关闭，全量测试、代码走查和最终空环境交付通过，架构债务计数归零 |
 
 ## 证据规则
 
