@@ -110,6 +110,7 @@ STATUS_VALUES = {
 WORK_PACKAGE_ID = re.compile(r"^WP-\d{4}$")
 ADR_ID = re.compile(r"^ADR-\d{4}$")
 COMMIT_SHA = re.compile(r"^[0-9a-f]{7,40}$")
+STALE_ACTIVE_STATEMENT = re.compile(r"(?:本|该)?工作包(?:仍|继续)?保持进行中")
 
 
 class GovernanceError(RuntimeError):
@@ -221,9 +222,12 @@ def parse_work_package(path: Path) -> WorkPackage:
     if path.stem != identifier:
         raise GovernanceError(f"{path}：文件名必须与工作包编号一致")
     adrs = tuple(item.strip() for item in metadata["ADRs"].split(",") if item.strip())
+    status = STATUS_VALUES.get(metadata["Status"], metadata["Status"].lower())
+    if status == "done" and STALE_ACTIVE_STATEMENT.search(text):
+        raise GovernanceError(f"{path}：已完成但正文仍声明进行中")
     return WorkPackage(
         identifier=identifier,
-        status=STATUS_VALUES.get(metadata["Status"], metadata["Status"].lower()),
+        status=status,
         owner=metadata["Owner"],
         branch=metadata["Branch"],
         milestone=metadata["Milestone"],

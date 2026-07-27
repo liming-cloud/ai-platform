@@ -119,6 +119,26 @@ class ProjectGovernanceTest(unittest.TestCase):
         with self.assertRaisesRegex(MODULE.GovernanceError, "已完成但没有证据"):
             MODULE.verify(self.root)
 
+    def test_done_package_rejects_stale_active_statement(self):
+        self.write_work_package(
+            "WP-0001",
+            owner="后端",
+            status="done",
+            evidence="project/evidence/INDEX.md",
+            commit="6969e5c6f4af7af2f9db1eb3cc447fd278b997d5",
+        )
+        self.write_work_package("WP-0002", owner="产品")
+        self.write_state(["WP-0002"])
+        package = self.root / "project/work-packages/WP-0001.md"
+        package.write_text(
+            package.read_text(encoding="utf-8")
+            + "\n因此工作包保持进行中。\n",
+            encoding="utf-8",
+        )
+
+        with self.assertRaisesRegex(MODULE.GovernanceError, "正文仍声明进行中"):
+            MODULE.verify(self.root)
+
     def test_m0_rejects_legacy_tracked_files(self):
         (self.root / ".git").mkdir()
         with (
