@@ -34,6 +34,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.Executors;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringBootConfiguration;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
@@ -427,6 +428,7 @@ class PostgresTextDataSourceRepositoryTest {
 
     @SpringBootConfiguration
     @EnableAutoConfiguration
+    @MapperScan("com.aiplatform.foundation.knowledgedata.infrastructure.persistence")
     static class TestApplication {
 
         @Bean

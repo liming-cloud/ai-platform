@@ -24,6 +24,7 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringBootConfiguration;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
@@ -246,6 +247,7 @@ class PostgresModelDeploymentRepositoryTest {
 
     @SpringBootConfiguration
     @EnableAutoConfiguration
+    @MapperScan("com.aiplatform.foundation.modelruntime.infrastructure.persistence")
     static class TestApplication {
 
         @Bean
