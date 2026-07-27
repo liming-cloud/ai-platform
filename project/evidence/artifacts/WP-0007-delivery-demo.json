@@ -1,0 +1,238 @@
+{
+  "schemaVersion": 1,
+  "passed": true,
+  "gitCommit": "a1bc72c8749314687bfd160b8fd06949f1a97f2f",
+  "initialBusinessFactCount": 0,
+  "serviceCount": 8,
+  "applicationEntryCount": 5,
+  "scenarios": [
+    "门店",
+    "校园"
+  ],
+  "tasks": {
+    "knowledgePublication": true,
+    "modelProbeAndPublication": true,
+    "assistantPublication": true,
+    "citedQueryAndRefusal": true,
+    "queryEventResume": true,
+    "quotaRejection": true,
+    "usageAndAudit": true,
+    "tenantIsolation": true,
+    "logoutAndRevocation": true
+  },
+  "evaluation": {
+    "caseCount": 8,
+    "caseResults": [
+      {
+        "answerPointCount": 2,
+        "expectedRecordCount": 1,
+        "failures": [],
+        "id": "store-search-001",
+        "matchedAnswerPointCount": 2,
+        "matchedRecordCount": 1,
+        "passed": true,
+        "scenario": "store",
+        "targetHit": true
+      },
+      {
+        "answerPointCount": 2,
+        "expectedRecordCount": 3,
+        "failures": [],
+        "id": "store-search-002",
+        "matchedAnswerPointCount": 2,
+        "matchedRecordCount": 3,
+        "passed": true,
+        "scenario": "store",
+        "targetHit": true
+      },
+      {
+        "answerPointCount": 2,
+        "expectedRecordCount": 1,
+        "failures": [],
+        "id": "store-search-003",
+        "matchedAnswerPointCount": 2,
+        "matchedRecordCount": 1,
+        "passed": true,
+        "scenario": "store",
+        "targetHit": true
+      },
+      {
+        "answerPointCount": 2,
+        "expectedRecordCount": 1,
+        "failures": [],
+        "id": "store-search-004",
+        "matchedAnswerPointCount": 2,
+        "matchedRecordCount": 1,
+        "passed": true,
+        "scenario": "store",
+        "targetHit": true
+      },
+      {
+        "answerPointCount": 2,
+        "expectedRecordCount": 1,
+        "failures": [],
+        "id": "campus-search-001",
+        "matchedAnswerPointCount": 2,
+        "matchedRecordCount": 1,
+        "passed": true,
+        "scenario": "campus",
+        "targetHit": true
+      },
+      {
+        "answerPointCount": 2,
+        "expectedRecordCount": 1,
+        "failures": [],
+        "id": "campus-search-002",
+        "matchedAnswerPointCount": 2,
+        "matchedRecordCount": 1,
+        "passed": true,
+        "scenario": "campus",
+        "targetHit": true
+      },
+      {
+        "answerPointCount": 2,
+        "expectedRecordCount": 1,
+        "failures": [],
+        "id": "campus-search-003",
+        "matchedAnswerPointCount": 2,
+        "matchedRecordCount": 1,
+        "passed": true,
+        "scenario": "campus",
+        "targetHit": true
+      },
+      {
+        "answerPointCount": 2,
+        "expectedRecordCount": 1,
+        "failures": [],
+        "id": "campus-search-004",
+        "matchedAnswerPointCount": 2,
+        "matchedRecordCount": 1,
+        "passed": true,
+        "scenario": "campus",
+        "targetHit": true
+      }
+    ],
+    "crossTenantCaseCount": 2,
+    "crossTenantResults": [
+      {
+        "id": "store-asks-campus-001",
+        "leakCount": 0,
+        "leakedRecordIds": [],
+        "passed": true
+      },
+      {
+        "id": "campus-asks-store-001",
+        "leakCount": 0,
+        "leakedRecordIds": [],
+        "passed": true
+      }
+    ],
+    "datasetDigest": "5ba7666c5a1ab2a397fcca04da8eb0bd5a4dddf474ee6b3e02d2e3cb91e622ee",
+    "metrics": {
+      "answerPointCoverage": 1.0,
+      "citationCompleteness": 1.0,
+      "crossTenantLeakCount": 0,
+      "expectedRefusalRate": 1.0,
+      "targetHitRate": 1.0
+    },
+    "passed": true,
+    "refusalCaseCount": 2,
+    "refusalResults": [
+      {
+        "id": "store-refusal-001",
+        "passed": true
+      },
+      {
+        "id": "campus-refusal-001",
+        "passed": true
+      }
+    ],
+    "runtime": {
+      "providerKind": "DETERMINISTIC"
+    },
+    "schemaVersion": 1,
+    "thresholds": {
+      "answerPointCoverage": 1.0,
+      "citationCompleteness": 1.0,
+      "crossTenantLeakCount": 0,
+      "expectedRefusalRate": 1.0,
+      "targetHitRate": 1.0
+    }
+  },
+  "facts": {
+    "tenantCount": 2,
+    "knowledgeSpaceCount": 2,
+    "knowledgeObjectCount": 2,
+    "activeIndexCount": 2,
+    "publishedModelDeploymentCount": 4,
+    "publishedAssistantVersionCount": 8,
+    "queryRunCount": 17,
+    "citationCount": 70
+  },
+  "demoLimits": {
+    "dailyQueryLimit": 100,
+    "concurrentQueryLimit": 4,
+    "model": "本地确定性模型",
+    "data": "门店与校园合成数据",
+    "publicProductionUse": false
+  },
+  "durations": {
+    "deploymentSeconds": 218,
+    "acceptanceSeconds": 76,
+    "totalSeconds": 298
+  },
+  "images": [
+    {
+      "repository": "minio/minio",
+      "tag": "",
+      "contentId": "sha256:14cea493d9a34af32f524e538b8346cf79f3321eff8e708c1e2960462bd8936e",
+      "platform": "linux/arm64"
+    },
+    {
+      "repository": "pgvector/pgvector",
+      "tag": "",
+      "contentId": "sha256:9d2e61c7352b9e9f4798df5fd9a498f043f4cda1cdacc707de3d198650f4321e",
+      "platform": "linux/arm64"
+    },
+    {
+      "repository": "redis",
+      "tag": "",
+      "contentId": "sha256:c88d347edef6249a6d2293f926f1eeb48bd40c57cbcd02c07f52e7f1fd2cb46b",
+      "platform": "linux/arm64/v8"
+    },
+    {
+      "repository": "trusted-rag/console-web",
+      "tag": "foundation-v1",
+      "contentId": "sha256:429815c5e312caa2ba795c4338e978fb8aa2e4347a6e246422b7ebac914074c4",
+      "platform": "linux/arm64"
+    },
+    {
+      "repository": "trusted-rag/control-plane",
+      "tag": "foundation-v1",
+      "contentId": "sha256:62159f7142a032db5a2d107b16fea5d73e6abbaba9b688db4b8795916f928b21",
+      "platform": "linux/arm64"
+    },
+    {
+      "repository": "trusted-rag/ingestion-worker",
+      "tag": "foundation-v1",
+      "contentId": "sha256:a49f10b013bc373e7984220eba9b44b1f212060de9793c81ea14232daa6b0ec9",
+      "platform": "linux/arm64"
+    },
+    {
+      "repository": "trusted-rag/query-runtime",
+      "tag": "foundation-v1",
+      "contentId": "sha256:772e102f187c1755bd2ef19347430e95c2adae80521f4648d2cfcf04be7c3798",
+      "platform": "linux/arm64"
+    },
+    {
+      "repository": "trusted-rag/query-web",
+      "tag": "foundation-v1",
+      "contentId": "sha256:68b818760d90d9465b2d8375236ead938f01a22287e4d58461cdabd7444e7a7e",
+      "platform": "linux/arm64"
+    }
+  ],
+  "sourceEnvironmentHealthy": true,
+  "deliveryResourcesRemoved": true,
+  "secretsIncluded": false,
+  "humanMilestoneApprovalRequired": true
+}

@@ -1,3 +1,4 @@
+import json
 import stat
 import subprocess
 import unittest
@@ -9,6 +10,13 @@ DELIVERY_DRILL = (
     REPOSITORY_ROOT / "scripts" / "operations" / "demo-delivery-drill.sh"
 )
 RUNBOOK = REPOSITORY_ROOT / "docs" / "runbooks" / "demo-delivery.md"
+REPORT_FILE = (
+    REPOSITORY_ROOT
+    / "project"
+    / "evidence"
+    / "artifacts"
+    / "WP-0007-delivery-demo.json"
+)
 
 
 class DeliveryOperationsTest(unittest.TestCase):
@@ -88,6 +96,45 @@ class DeliveryOperationsTest(unittest.TestCase):
         self.assertIn("trap cleanup EXIT", content)
         self.assertNotIn("source_compose down", content)
         self.assertNotIn("source_compose stop postgres", content)
+
+    def test_committed_delivery_report_meets_the_final_contract(self) -> None:
+        report_text = REPORT_FILE.read_text(encoding="utf-8")
+        report = json.loads(report_text)
+
+        self.assertEqual(1, report["schemaVersion"])
+        self.assertTrue(report["passed"])
+        self.assertEqual(0, report["initialBusinessFactCount"])
+        self.assertEqual(8, report["serviceCount"])
+        self.assertEqual(5, report["applicationEntryCount"])
+        self.assertEqual(["门店", "校园"], report["scenarios"])
+        self.assertTrue(all(report["tasks"].values()))
+        self.assertTrue(report["evaluation"]["passed"])
+        self.assertEqual(8, report["evaluation"]["caseCount"])
+        self.assertEqual(
+            0,
+            report["evaluation"]["metrics"]["crossTenantLeakCount"],
+        )
+        self.assertEqual(2, report["facts"]["tenantCount"])
+        self.assertGreaterEqual(report["facts"]["knowledgeObjectCount"], 2)
+        self.assertGreater(report["facts"]["citationCount"], 0)
+        self.assertEqual(100, report["demoLimits"]["dailyQueryLimit"])
+        self.assertEqual(4, report["demoLimits"]["concurrentQueryLimit"])
+        self.assertFalse(report["demoLimits"]["publicProductionUse"])
+        self.assertEqual(8, len(report["images"]))
+        self.assertTrue(report["sourceEnvironmentHealthy"])
+        self.assertTrue(report["deliveryResourcesRemoved"])
+        self.assertFalse(report["secretsIncluded"])
+        self.assertTrue(report["humanMilestoneApprovalRequired"])
+
+        for forbidden in [
+            "Demo@2026",
+            "local-demo-",
+            "tokenValue",
+            "object_key",
+            "tenant_id",
+            "secret://",
+        ]:
+            self.assertNotIn(forbidden, report_text)
 
 
 if __name__ == "__main__":
