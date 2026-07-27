@@ -1,5 +1,6 @@
 import json
 import os
+import re
 import subprocess
 import tempfile
 import unittest
@@ -129,6 +130,20 @@ class RecoveryOperationsTest(unittest.TestCase):
         self.assertIn("Redis 键数为零", runbook)
         self.assertIn("不得提交 Git", runbook)
         self.assertIn("不超过 60 分钟", runbook)
+
+    def test_minio_container_steps_do_not_depend_on_awk(self) -> None:
+        for script_name in [
+            "demo-backup.sh",
+            "demo-restore.sh",
+            "demo-recovery-verify.sh",
+        ]:
+            content = (OPERATIONS_DIRECTORY / script_name).read_text(
+                encoding="utf-8"
+            )
+            self.assertIsNone(
+                re.search(r"sha256sum[^\n]*\|\s*awk", content),
+                script_name,
+            )
 
     def test_recovery_name_guard_rejects_source_and_uncontrolled_names(self) -> None:
         common = OPERATIONS_DIRECTORY / "recovery-common.sh"

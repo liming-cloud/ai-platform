@@ -92,7 +92,8 @@ readonly RESTORED_OBJECT_COUNT="$(
         mc cp --quiet \
           "target/${RECOVERY_BUCKET}/${object_key}" \
           /tmp/recovery-verification-object
-        actual_sha="$(sha256sum /tmp/recovery-verification-object | awk "{print \$1}")"
+        actual_sha="$(sha256sum /tmp/recovery-verification-object)"
+        actual_sha="${actual_sha%% *}"
         actual_size="$(wc -c </tmp/recovery-verification-object | tr -d " ")"
         rm -f /tmp/recovery-verification-object
         if [ "${actual_sha}" != "${expected_sha}" ] ||

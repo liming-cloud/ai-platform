@@ -79,7 +79,8 @@ docker run \
         echo "备份对象文件不存在：${object_key}" >&2
         exit 1
       fi
-      actual_sha="$(sha256sum "${source_file}" | awk "{print \$1}")"
+      actual_sha="$(sha256sum "${source_file}")"
+      actual_sha="${actual_sha%% *}"
       actual_size="$(wc -c <"${source_file}" | tr -d " ")"
       if [ "${actual_sha}" != "${expected_sha}" ] ||
         [ "${actual_size}" != "${expected_size}" ]; then

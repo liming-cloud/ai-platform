@@ -116,7 +116,8 @@ docker run \
       target="/backup/objects/${object_key}"
       mkdir -p "$(dirname "${target}")"
       mc cp --quiet "source/${RECOVERY_BUCKET}/${object_key}" "${target}"
-      actual_sha="$(sha256sum "${target}" | awk "{print \$1}")"
+      actual_sha="$(sha256sum "${target}")"
+      actual_sha="${actual_sha%% *}"
       actual_size="$(wc -c <"${target}" | tr -d " ")"
       if [ "${actual_sha}" != "${expected_sha}" ]; then
         echo "对象摘要不一致：${object_key}" >&2
