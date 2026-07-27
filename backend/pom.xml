@@ -19,6 +19,5 @@
         <module>contexts</module>
         <module>extensions</module>
         <module>bootstrap</module>
-        <module>runtimes</module>
     </modules>
 </project>

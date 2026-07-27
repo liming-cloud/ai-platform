@@ -23,6 +23,8 @@ sa-token:
   auto-renew: true
 
 foundation:
+  application-role-validation:
+    enabled: true
   knowledge-data:
     persistence:
       enabled: true
@@ -40,7 +42,7 @@ foundation:
       worker-id: ${FOUNDATION_SNOWFLAKE_WORKER_ID}
       datacenter-id: ${FOUNDATION_SNOWFLAKE_DATACENTER_ID}
   query:
-    enabled: false
+    enabled: true
     quota:
       daily-limit: ${FOUNDATION_QUERY_QUOTA_DAILY_LIMIT:100}
       concurrent-limit: ${FOUNDATION_QUERY_QUOTA_CONCURRENT_LIMIT:4}

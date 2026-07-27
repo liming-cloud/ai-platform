@@ -1,1 +1,2 @@
 com.aiplatform.foundation.platform.web.autoconfigure.PlatformWebAutoConfiguration
+com.aiplatform.foundation.platform.web.role.ApplicationRoleAutoConfiguration

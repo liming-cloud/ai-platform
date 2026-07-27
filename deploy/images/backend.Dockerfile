@@ -14,11 +14,13 @@ COPY backend backend
 
 # 运行入口使用白名单，避免构建参数被解释成任意 Maven 路径。
 RUN case "${RUNTIME}" in \
-      control-plane|query-runtime|ingestion-worker) ;; \
+      control-plane) BOOTSTRAP=control-plane-bootstrap ;; \
+      query-runtime) BOOTSTRAP=query-bootstrap ;; \
+      ingestion-worker) BOOTSTRAP=ingestion-bootstrap ;; \
       *) echo "不支持的运行入口: ${RUNTIME}" >&2; exit 1 ;; \
     esac \
-    && ./mvnw -q -pl "backend/runtimes/${RUNTIME}" -am package -DskipTests \
-    && cp "backend/runtimes/${RUNTIME}/target/${RUNTIME}-0.1.0-SNAPSHOT.jar" /workspace/application.jar
+    && ./mvnw -q -pl "backend/bootstrap/${BOOTSTRAP}" -am package -DskipTests \
+    && cp "backend/bootstrap/${BOOTSTRAP}/target/${BOOTSTRAP}-0.1.0-SNAPSHOT.jar" /workspace/application.jar
 
 # 运行阶段不包含 Maven 与源码。后续通过 jlink 工作包进一步裁剪精确运行时。
 FROM amazoncorretto:26.0.2-al2023-headless@sha256:4ac0a394ad94cd1e25a0481e72a85451728faf7370fe053e13040d6629869463

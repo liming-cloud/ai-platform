@@ -1,15 +1,14 @@
 package com.aiplatform.foundation.ingestionworker;
 
-import com.aiplatform.foundation.bootstrap.ingestion.IngestionBootstrapConfiguration;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.context.annotation.Import;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
 /**
  * 数据摄取运行入口，独立承载连接器、解析、向量化和索引生命周期任务。
  */
 @SpringBootApplication
-@Import(IngestionBootstrapConfiguration.class)
+@EnableScheduling
 public class IngestionWorkerApplication {
 
     public static void main(String[] args) {

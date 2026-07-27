@@ -7,6 +7,8 @@ spring:
     enabled: false
 
 foundation:
+  application-role-validation:
+    enabled: true
   knowledge-data:
     persistence:
       enabled: true
@@ -24,7 +26,7 @@ foundation:
       worker-id: ${FOUNDATION_SNOWFLAKE_WORKER_ID}
       datacenter-id: ${FOUNDATION_SNOWFLAKE_DATACENTER_ID}
   ingestion:
-    enabled: false
+    enabled: true
 
 server:
   port: 8082
