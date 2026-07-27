@@ -34,7 +34,6 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringBootConfiguration;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
@@ -532,7 +531,6 @@ class PostgresQueryRunRepositoryTest {
 
     @SpringBootConfiguration
     @EnableAutoConfiguration
-    @MapperScan(basePackageClasses = QueryRunMapper.class)
     static class TestApplication {
 
         @Bean

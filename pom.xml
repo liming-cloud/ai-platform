@@ -36,6 +36,7 @@
         <maven-surefire-plugin.version>3.5.3</maven-surefire-plugin.version>
         <maven-failsafe-plugin.version>3.5.3</maven-failsafe-plugin.version>
         <cyclonedx-maven-plugin.version>2.9.1</cyclonedx-maven-plugin.version>
+        <mockito.version>5.23.0</mockito.version>
     </properties>
 
     <dependencyManagement>
@@ -132,6 +133,9 @@
                     <version>${maven-surefire-plugin.version}</version>
                     <configuration>
                         <useModulePath>false</useModulePath>
+                        <argLine>
+                            -javaagent:${settings.localRepository}/org/mockito/mockito-core/${mockito.version}/mockito-core-${mockito.version}.jar
+                        </argLine>
                     </configuration>
                 </plugin>
                 <plugin>

@@ -8,7 +8,6 @@ import com.aiplatform.foundation.organizationaccess.domain.member.repository.Ten
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.authentication.mapper.TenantMemberCredentialMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringBootConfiguration;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
@@ -154,7 +153,6 @@ class PostgresTenantMemberCredentialRepositoryTest {
 
     @SpringBootConfiguration
     @EnableAutoConfiguration
-    @MapperScan(basePackageClasses = TenantMemberCredentialMapper.class)
     @Import(PostgresTenantMemberCredentialRepository.class)
     static class TestApplication {
     }

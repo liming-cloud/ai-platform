@@ -33,7 +33,6 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringBootConfiguration;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
@@ -310,7 +309,6 @@ class PostgresIndexVersionPersistenceTest {
 
     @SpringBootConfiguration
     @EnableAutoConfiguration
-    @MapperScan("com.aiplatform.foundation.knowledgedata.infrastructure.persistence")
     static class TestApplication {
 
         @Bean
