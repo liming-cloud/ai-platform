@@ -95,7 +95,7 @@
 
 | 证据 | 命令或评审 | 提交 | 结果 |
 | --- | --- | --- | --- |
-| 后端架构整改研究基线 | `docs/research/WP-0008-architecture-remediation-baseline.md` | 待提交 | 8 个阻断问题、两种结构方案和官方框架依据已固定；实现证据待产生 |
+| 后端架构整改研究基线 | `docs/research/WP-0008-architecture-remediation-baseline.md` | `597fe687f5d91c7f378cb2fdbde59ebcb909e7a7` | 8 个阻断问题、两种结构方案和官方框架依据已固定；实现证据待产生 |
 
 ## 证据规则
 
