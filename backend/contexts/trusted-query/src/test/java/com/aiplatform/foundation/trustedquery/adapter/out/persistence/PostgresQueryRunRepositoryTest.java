@@ -47,8 +47,7 @@ class PostgresQueryRunRepositoryTest {
 
     private static final TenantId TENANT = new TenantId(
             UUID.fromString("10000000-0000-0000-0000-000000000001"));
-    private static final MembershipId MEMBER = new MembershipId(
-            UUID.fromString("30000000-0000-0000-0000-000000000001"));
+    private static final MembershipId MEMBER = new MembershipId(3382738893456539650L);
     private static final UUID ASSISTANT =
             UUID.fromString("41000000-0000-0000-0000-000000000001");
     private static final UUID ASSISTANT_VERSION =

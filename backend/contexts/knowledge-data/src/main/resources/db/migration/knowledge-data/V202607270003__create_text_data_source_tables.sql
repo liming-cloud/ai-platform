@@ -7,7 +7,7 @@ CREATE TABLE knowledge_data.text_data_source (
     version BIGINT NOT NULL,
     content_version INTEGER NOT NULL,
     published_content_version INTEGER NOT NULL,
-    created_by UUID NOT NULL,
+    created_by BIGINT NOT NULL,
     created_at TIMESTAMPTZ NOT NULL,
     CONSTRAINT pk_text_data_source
         PRIMARY KEY (tenant_id, knowledge_space_id, id),

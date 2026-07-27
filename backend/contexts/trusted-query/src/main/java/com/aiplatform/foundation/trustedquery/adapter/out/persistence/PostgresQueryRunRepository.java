@@ -225,7 +225,7 @@ public final class PostgresQueryRunRepository implements QueryRunRepository {
                 tenantId,
                 queryRunId,
                 UUID.fromString(row.getAssistantVersionId()),
-                new MembershipId(UUID.fromString(row.getRequestedBy())),
+                MembershipId.parse(row.getRequestedBy()),
                 row.getQuestionDigest(),
                 new QueryQuotaSnapshot(
                         row.getQuotaPeriodStart(),

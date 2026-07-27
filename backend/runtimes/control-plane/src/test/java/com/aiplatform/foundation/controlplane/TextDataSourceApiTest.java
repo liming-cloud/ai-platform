@@ -151,8 +151,8 @@ class TextDataSourceApiTest {
 
         var readOnly = sessions.issue(new TrustedRequestContext(
                 new TenantId(STORE_TENANT),
-                new SubjectId(UUID.fromString("40000000-0000-0000-0000-000000000001")),
-                new MembershipId(UUID.fromString("30000000-0000-0000-0000-000000000001")),
+                new SubjectId(1843651857942052866L),
+                new MembershipId(3382738893456539650L),
                 CredentialType.PERSON,
                 AccessChannel.CONSOLE,
                 1,

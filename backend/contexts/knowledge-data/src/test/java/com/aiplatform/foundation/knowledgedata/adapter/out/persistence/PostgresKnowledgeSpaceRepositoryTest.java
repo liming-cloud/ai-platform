@@ -43,7 +43,7 @@ class PostgresKnowledgeSpaceRepositoryTest {
     private static final TenantId CAMPUS_TENANT =
             new TenantId(UUID.fromString("10000000-0000-0000-0000-000000000002"));
     private static final MembershipId CREATOR =
-            new MembershipId(UUID.fromString("20000000-0000-0000-0000-000000000001"));
+            new MembershipId(4921825928971026434L);
     private static final Instant CREATED_AT = Instant.parse("2026-07-27T00:00:00Z");
 
     @Container

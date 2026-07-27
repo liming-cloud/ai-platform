@@ -81,8 +81,8 @@ class DefaultCandidateSearchServiceTest {
     private static TrustedRequestContext context(String permission) {
         return new TrustedRequestContext(
                 TENANT,
-                new SubjectId(UUID.fromString("40000000-0000-0000-0000-000000000001")),
-                new MembershipId(UUID.fromString("50000000-0000-0000-0000-000000000001")),
+                new SubjectId(1843651857942052866L),
+                new MembershipId(304564822427566082L),
                 CredentialType.PERSON,
                 AccessChannel.CONSOLE,
                 1,

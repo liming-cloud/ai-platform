@@ -97,7 +97,7 @@ class QueryRunTest {
                 new TenantId(UUID.randomUUID()),
                 UUID.randomUUID(),
                 UUID.randomUUID(),
-                new MembershipId(UUID.randomUUID()),
+                new MembershipId(7300000000000000005L),
                 "a".repeat(64),
                 NOW);
     }

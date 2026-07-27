@@ -18,9 +18,9 @@ CREATE TABLE organization_access.tenant (
 );
 
 CREATE TABLE organization_access.membership_credential (
-    membership_id UUID PRIMARY KEY,
+    membership_id BIGINT PRIMARY KEY,
     tenant_id UUID NOT NULL,
-    subject_id UUID NOT NULL,
+    subject_id BIGINT NOT NULL,
     login_name VARCHAR(64) NOT NULL,
     password_hash VARCHAR(256) NOT NULL,
     status VARCHAR(16) NOT NULL,
@@ -52,7 +52,7 @@ CREATE INDEX ix_oa_membership_tenant_subject
 
 CREATE TABLE organization_access.membership_permission (
     tenant_id UUID NOT NULL,
-    membership_id UUID NOT NULL,
+    membership_id BIGINT NOT NULL,
     permission_code VARCHAR(96) NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT pk_oa_membership_permission

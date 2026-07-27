@@ -6,8 +6,8 @@ package com.aiplatform.foundation.organizationaccess.adapter.out.persistence;
 public class AuthenticationRow {
 
     private String tenantId;
-    private String subjectId;
-    private String membershipId;
+    private Long subjectId;
+    private Long membershipId;
     private String passwordHash;
     private Long permissionVersion;
 
@@ -19,19 +19,19 @@ public class AuthenticationRow {
         this.tenantId = tenantId;
     }
 
-    public String getSubjectId() {
+    public Long getSubjectId() {
         return subjectId;
     }
 
-    public void setSubjectId(String subjectId) {
+    public void setSubjectId(Long subjectId) {
         this.subjectId = subjectId;
     }
 
-    public String getMembershipId() {
+    public Long getMembershipId() {
         return membershipId;
     }
 
-    public void setMembershipId(String membershipId) {
+    public void setMembershipId(Long membershipId) {
         this.membershipId = membershipId;
     }
 

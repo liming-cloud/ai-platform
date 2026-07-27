@@ -18,7 +18,7 @@ class AssistantVersionTest {
     private static final AssistantVersionId VERSION_ID =
             new AssistantVersionId(UUID.fromString("30000000-0000-0000-0000-000000000001"));
     private static final MembershipId CREATOR =
-            new MembershipId(UUID.fromString("40000000-0000-0000-0000-000000000001"));
+            new MembershipId(1843651857942052866L);
     private static final Instant NOW = Instant.parse("2026-07-27T00:00:00Z");
 
     @Test

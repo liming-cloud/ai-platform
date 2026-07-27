@@ -218,7 +218,7 @@ class PgVectorIndexStoreTest {
                 tenantId,
                 SPACE,
                 "空间-" + tenantId,
-                SOURCE,
+                730000000000000010L,
                 time);
         jdbc.update(
                 """
@@ -239,7 +239,7 @@ class PgVectorIndexStoreTest {
                 "b".repeat(64),
                 DEPLOYMENT,
                 "c".repeat(64),
-                SOURCE,
+                730000000000000010L,
                 time,
                 time,
                 time);

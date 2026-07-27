@@ -1,5 +1,6 @@
 package com.aiplatform.foundation.trustedquery.api.operations;
 
+import com.aiplatform.foundation.organizationaccess.api.model.MembershipId;
 import java.time.Instant;
 import java.util.Objects;
 import java.util.UUID;
@@ -10,7 +11,7 @@ import java.util.regex.Pattern;
  */
 public record QueryAuditFact(
         UUID queryRunId,
-        UUID requestedBy,
+        MembershipId requestedBy,
         UUID assistantVersionId,
         String questionDigest,
         String status,

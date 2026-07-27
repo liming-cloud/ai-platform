@@ -30,7 +30,7 @@ public interface IndexVersionMapper {
             @Param("embeddingDeploymentId") UUID embeddingDeploymentId,
             @Param("embeddingDeploymentRevision") long embeddingDeploymentRevision,
             @Param("embeddingDimension") int embeddingDimension,
-            @Param("createdBy") UUID createdBy,
+            @Param("createdBy") long createdBy,
             @Param("createdAt") Instant createdAt);
 
     int insertSource(

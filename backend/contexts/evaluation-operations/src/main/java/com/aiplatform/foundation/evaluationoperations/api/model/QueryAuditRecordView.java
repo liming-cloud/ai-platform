@@ -8,7 +8,7 @@ import java.util.UUID;
  */
 public record QueryAuditRecordView(
         UUID queryRunId,
-        UUID requestedBy,
+        String requestedBy,
         UUID assistantVersionId,
         String questionDigest,
         String status,

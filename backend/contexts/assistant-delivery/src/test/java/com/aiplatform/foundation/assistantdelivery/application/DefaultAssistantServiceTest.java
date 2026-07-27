@@ -176,8 +176,8 @@ class DefaultAssistantServiceTest {
     private static TrustedRequestContext context(String permission) {
         return new TrustedRequestContext(
                 TENANT,
-                new SubjectId(UUID.fromString("80000000-0000-0000-0000-000000000001")),
-                new MembershipId(UUID.fromString("90000000-0000-0000-0000-000000000001")),
+                new SubjectId(3687303715884105730L),
+                new MembershipId(2148216680369618946L),
                 CredentialType.PERSON,
                 AccessChannel.CONSOLE,
                 1,

@@ -100,7 +100,7 @@ public final class DefaultOperationsQueryService
     private static QueryAuditRecordView toView(QueryAuditFact fact) {
         return new QueryAuditRecordView(
                 fact.queryRunId(),
-                fact.requestedBy(),
+                fact.requestedBy().toString(),
                 fact.assistantVersionId(),
                 fact.questionDigest(),
                 fact.status(),

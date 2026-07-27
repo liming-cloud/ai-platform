@@ -289,7 +289,7 @@ public final class PostgresIndexVersionRepository implements IndexVersionReposit
                 row.getBuildDigest(),
                 row.getChunkCount(),
                 row.getFailureCode(),
-                new MembershipId(UUID.fromString(row.getCreatedBy())),
+                MembershipId.parse(row.getCreatedBy()),
                 row.getCreatedAt(),
                 row.getReadyAt(),
                 row.getActivatedAt(),

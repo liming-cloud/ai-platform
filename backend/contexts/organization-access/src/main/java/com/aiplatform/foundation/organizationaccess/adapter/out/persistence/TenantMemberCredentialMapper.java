@@ -16,5 +16,5 @@ public interface TenantMemberCredentialMapper extends BaseMapper<MembershipCrede
 
     List<String> findPermissionCodes(
             @Param("tenantId") UUID tenantId,
-            @Param("membershipId") UUID membershipId);
+            @Param("membershipId") long membershipId);
 }

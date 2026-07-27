@@ -73,8 +73,7 @@ class QueryRunEventTest {
                 TenantId.parse("10000000-0000-0000-0000-000000000001"),
                 UUID.fromString("20000000-0000-0000-0000-000000000001"),
                 UUID.fromString("30000000-0000-0000-0000-000000000001"),
-                new MembershipId(
-                        UUID.fromString("40000000-0000-0000-0000-000000000001")),
+                new MembershipId(1843651857942052866L),
                 "a".repeat(64),
                 NOW)
                 .acceptQuota(QueryQuotaSnapshot.forAcceptedQuery(

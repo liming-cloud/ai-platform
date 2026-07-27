@@ -29,10 +29,8 @@ class PostgresTenantMemberCredentialRepositoryTest {
             UUID.fromString("10000000-0000-0000-0000-000000000001");
     private static final UUID CAMPUS_TENANT =
             UUID.fromString("10000000-0000-0000-0000-000000000002");
-    private static final UUID STORE_MEMBERSHIP =
-            UUID.fromString("30000000-0000-0000-0000-000000000001");
-    private static final UUID CAMPUS_MEMBERSHIP =
-            UUID.fromString("30000000-0000-0000-0000-000000000002");
+    private static final long STORE_MEMBERSHIP = 3382738893456539650L;
+    private static final long CAMPUS_MEMBERSHIP = 3382738893456539651L;
 
     @Container
     private static final PostgreSQLContainer POSTGRES =
@@ -67,14 +65,14 @@ class PostgresTenantMemberCredentialRepositoryTest {
         insertTenant(CAMPUS_TENANT, "demo-campus", "校园演示租户");
         insertMembership(
                 STORE_TENANT,
-                UUID.fromString("20000000-0000-0000-0000-000000000001"),
+                4921825928971026434L,
                 STORE_MEMBERSHIP,
                 "admin",
                 "store-hash",
                 "ENABLED");
         insertMembership(
                 CAMPUS_TENANT,
-                UUID.fromString("20000000-0000-0000-0000-000000000002"),
+                4921825928971026435L,
                 CAMPUS_MEMBERSHIP,
                 "admin",
                 "campus-hash",
@@ -127,8 +125,8 @@ class PostgresTenantMemberCredentialRepositoryTest {
 
     private void insertMembership(
             UUID tenantId,
-            UUID subjectId,
-            UUID membershipId,
+            long subjectId,
+            long membershipId,
             String loginName,
             String encodedPassword,
             String status) {
@@ -145,7 +143,7 @@ class PostgresTenantMemberCredentialRepositoryTest {
                 status);
     }
 
-    private void insertPermission(UUID tenantId, UUID membershipId, String permissionCode) {
+    private void insertPermission(UUID tenantId, long membershipId, String permissionCode) {
         jdbc.update(
                 "INSERT INTO organization_access.membership_permission "
                         + "(tenant_id, membership_id, permission_code) VALUES (?, ?, ?)",

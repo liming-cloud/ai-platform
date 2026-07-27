@@ -189,7 +189,7 @@ class OperationsApiTest {
         return new QueryAuditRecordPage(
                 List.of(new QueryAuditRecordView(
                         QUERY_RUN_ID,
-                        REQUESTED_BY,
+                        REQUESTED_BY.toString(),
                         ASSISTANT_VERSION_ID,
                         "a".repeat(64),
                         "ANSWERED",

@@ -58,8 +58,8 @@ class DefaultQueryRunEventServiceTest {
     private static TrustedRequestContext context() {
         return new TrustedRequestContext(
                 TENANT,
-                new SubjectId(UUID.randomUUID()),
-                new MembershipId(UUID.randomUUID()),
+                new SubjectId(7200000000000000003L),
+                new MembershipId(7300000000000000003L),
                 CredentialType.PERSON,
                 AccessChannel.CONSOLE,
                 1,

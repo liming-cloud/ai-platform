@@ -147,8 +147,7 @@ class DefaultIndexBuildWorkerTest {
                 digest,
                 ParagraphWindowChunker.POLICY,
                 EMBEDDING,
-                new MembershipId(
-                        UUID.fromString("60000000-0000-0000-0000-000000000001")),
+                new MembershipId(6765477786913079298L),
                 NOW);
         return new IndexBuildLease(
                 UUID.fromString("70000000-0000-0000-0000-000000000001"),

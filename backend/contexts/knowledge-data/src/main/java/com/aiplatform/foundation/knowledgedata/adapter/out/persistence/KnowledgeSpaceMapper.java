@@ -26,7 +26,7 @@ public interface KnowledgeSpaceMapper extends BaseMapper<KnowledgeSpaceEntity> {
             @Param("description") String description,
             @Param("status") String status,
             @Param("version") long version,
-            @Param("createdBy") UUID createdBy,
+            @Param("createdBy") long createdBy,
             @Param("createdAt") Instant createdAt);
 
     int insertRequest(

@@ -31,7 +31,7 @@ class DefaultKnowledgeSpaceServiceTest {
     private static final TenantId TENANT_ID =
             new TenantId(UUID.fromString("10000000-0000-0000-0000-000000000001"));
     private static final MembershipId MEMBERSHIP_ID =
-            new MembershipId(UUID.fromString("20000000-0000-0000-0000-000000000001"));
+            new MembershipId(4921825928971026434L);
     private static final UUID SPACE_ID =
             UUID.fromString("30000000-0000-0000-0000-000000000001");
     private static final Clock CLOCK =
@@ -85,7 +85,7 @@ class DefaultKnowledgeSpaceServiceTest {
     private static TrustedRequestContext context(String permission) {
         return new TrustedRequestContext(
                 TENANT_ID,
-                new SubjectId(UUID.fromString("40000000-0000-0000-0000-000000000001")),
+                new SubjectId(1843651857942052866L),
                 MEMBERSHIP_ID,
                 CredentialType.PERSON,
                 AccessChannel.CONSOLE,

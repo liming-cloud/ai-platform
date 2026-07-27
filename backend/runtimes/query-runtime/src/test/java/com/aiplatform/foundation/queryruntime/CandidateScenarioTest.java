@@ -171,8 +171,8 @@ class CandidateScenarioTest {
     private static TrustedRequestContext context(TenantId tenant) {
         return new TrustedRequestContext(
                 tenant,
-                new SubjectId(UUID.fromString("50000000-0000-0000-0000-000000000001")),
-                new MembershipId(UUID.fromString("60000000-0000-0000-0000-000000000001")),
+                new SubjectId(304564822427566082L),
+                new MembershipId(6765477786913079298L),
                 CredentialType.PERSON,
                 AccessChannel.CONSOLE,
                 1,
@@ -191,7 +191,7 @@ class CandidateScenarioTest {
                 tenant.value(),
                 SPACE,
                 "场景空间-" + tenant.value(),
-                SOURCE,
+                730000000000000011L,
                 time);
         jdbc.update(
                 """
@@ -214,7 +214,7 @@ class CandidateScenarioTest {
                 DEPLOYMENT.revision(),
                 DEPLOYMENT.dimension(),
                 "e".repeat(64),
-                SOURCE,
+                730000000000000011L,
                 time,
                 time,
                 time);

@@ -17,7 +17,6 @@ import java.util.Collection;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
-import java.util.UUID;
 
 /**
  * 使用 Sa-Token 保存服务端会话状态的认证会话适配器。
@@ -56,7 +55,7 @@ public final class SaTokenSessionGateway implements AuthenticatedSessionGateway 
                     .setIsShare(false)
                     .setRightNowCreateTokenSession(true);
             tokenValue = stpLogic.createLoginSession(
-                    context.membershipId().value().toString(),
+                    Long.toString(context.membershipId().value()),
                     parameter);
             writeContext(stpLogic.getTokenSessionByToken(tokenValue, true), context);
             return new IssuedSession(stpLogic.getTokenName(), tokenValue, timeout);
@@ -78,13 +77,13 @@ public final class SaTokenSessionGateway implements AuthenticatedSessionGateway 
                 throw new InvalidAuthenticatedSessionException();
             }
 
-            var membershipId = new MembershipId(UUID.fromString(requiredString(session, MEMBERSHIP_ID)));
-            if (!membershipId.value().toString().equals(loginId.toString())) {
+            var membershipId = MembershipId.parse(requiredString(session, MEMBERSHIP_ID));
+            if (!membershipId.toString().equals(loginId.toString())) {
                 throw new InvalidAuthenticatedSessionException();
             }
             return new TrustedRequestContext(
                     TenantId.parse(requiredString(session, TENANT_ID)),
-                    new SubjectId(UUID.fromString(requiredString(session, SUBJECT_ID))),
+                    SubjectId.parse(requiredString(session, SUBJECT_ID)),
                     membershipId,
                     CredentialType.valueOf(requiredString(session, CREDENTIAL_TYPE)),
                     AccessChannel.valueOf(requiredString(session, CHANNEL)),
@@ -110,8 +109,8 @@ public final class SaTokenSessionGateway implements AuthenticatedSessionGateway 
             permissions.add(permission.value());
         }
         session.set(TENANT_ID, context.tenantId().toString())
-                .set(SUBJECT_ID, context.subjectId().value().toString())
-                .set(MEMBERSHIP_ID, context.membershipId().value().toString())
+                .set(SUBJECT_ID, context.subjectId().toString())
+                .set(MEMBERSHIP_ID, context.membershipId().toString())
                 .set(CREDENTIAL_TYPE, context.credentialType().name())
                 .set(CHANNEL, context.channel().name())
                 .set(PERMISSION_VERSION, context.permissionVersion())

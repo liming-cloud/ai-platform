@@ -21,7 +21,7 @@ import org.junit.jupiter.api.Test;
 class SaTokenSessionGatewayTest {
 
     private static final MembershipId MEMBERSHIP_ID =
-            new MembershipId(UUID.fromString("30000000-0000-0000-0000-000000000001"));
+            new MembershipId(3382738893456539650L);
     private StpLogic logic;
     private SaTokenSessionGateway gateway;
 
@@ -83,7 +83,7 @@ class SaTokenSessionGatewayTest {
     private static TrustedRequestContext context() {
         return new TrustedRequestContext(
                 new TenantId(UUID.fromString("10000000-0000-0000-0000-000000000001")),
-                new SubjectId(UUID.fromString("20000000-0000-0000-0000-000000000001")),
+                new SubjectId(4921825928971026434L),
                 MEMBERSHIP_ID,
                 CredentialType.PERSON,
                 AccessChannel.CONSOLE,

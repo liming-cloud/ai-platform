@@ -27,7 +27,7 @@ public interface TextDataSourceMapper {
             @Param("version") long version,
             @Param("contentVersion") int contentVersion,
             @Param("publishedContentVersion") int publishedContentVersion,
-            @Param("createdBy") UUID createdBy,
+            @Param("createdBy") long createdBy,
             @Param("createdAt") Instant createdAt);
 
     TextDataSourceRow findByIdForUpdate(

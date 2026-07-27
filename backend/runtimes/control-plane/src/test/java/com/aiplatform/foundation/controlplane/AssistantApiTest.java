@@ -38,8 +38,7 @@ class AssistantApiTest {
 
     private static final UUID STORE =
             UUID.fromString("10000000-0000-0000-0000-000000000001");
-    private static final UUID CREATOR =
-            UUID.fromString("30000000-0000-0000-0000-000000000001");
+    private static final long CREATOR = 3382738893456539650L;
     private static final UUID CHAT =
             UUID.fromString("41000000-0000-0000-0000-000000000001");
     private static final UUID SPACE =

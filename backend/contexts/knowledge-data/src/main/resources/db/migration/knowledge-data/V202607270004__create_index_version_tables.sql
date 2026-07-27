@@ -14,7 +14,7 @@ CREATE TABLE knowledge_data.index_version (
     build_digest CHAR(64),
     chunk_count INTEGER NOT NULL,
     failure_code VARCHAR(96),
-    created_by UUID NOT NULL,
+    created_by BIGINT NOT NULL,
     created_at TIMESTAMPTZ NOT NULL,
     ready_at TIMESTAMPTZ,
     activated_at TIMESTAMPTZ,

@@ -137,7 +137,7 @@ public final class PostgresKnowledgeSpaceRepository implements KnowledgeSpaceRep
                 row.getDescription(),
                 KnowledgeSpaceStatus.valueOf(row.getStatus()),
                 row.getVersion(),
-                new MembershipId(UUID.fromString(row.getCreatedBy())),
+                MembershipId.parse(row.getCreatedBy()),
                 row.getCreatedAt());
     }
 

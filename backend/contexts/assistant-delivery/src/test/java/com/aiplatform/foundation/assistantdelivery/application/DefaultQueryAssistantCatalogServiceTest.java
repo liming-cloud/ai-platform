@@ -78,8 +78,8 @@ class DefaultQueryAssistantCatalogServiceTest {
     private static TrustedRequestContext context(Set<PermissionCode> permissions) {
         return new TrustedRequestContext(
                 TENANT,
-                new SubjectId(UUID.randomUUID()),
-                new MembershipId(UUID.randomUUID()),
+                new SubjectId(7200000000000000001L),
+                new MembershipId(7300000000000000001L),
                 CredentialType.PERSON,
                 AccessChannel.CONSOLE,
                 1,

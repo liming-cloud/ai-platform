@@ -40,7 +40,7 @@ class DefaultIndexVersionServiceTest {
     private static final UUID INDEX_ID =
             UUID.fromString("30000000-0000-0000-0000-000000000001");
     private static final MembershipId MEMBER_ID =
-            new MembershipId(UUID.fromString("40000000-0000-0000-0000-000000000001"));
+            new MembershipId(1843651857942052866L);
     private static final EmbeddingConfiguration EMBEDDING =
             new EmbeddingConfiguration(
                     UUID.fromString("50000000-0000-0000-0000-000000000001"),
@@ -122,7 +122,7 @@ class DefaultIndexVersionServiceTest {
     private static TrustedRequestContext context(String permission) {
         return new TrustedRequestContext(
                 TENANT_ID,
-                new SubjectId(UUID.fromString("60000000-0000-0000-0000-000000000001")),
+                new SubjectId(6765477786913079298L),
                 MEMBER_ID,
                 CredentialType.PERSON,
                 AccessChannel.CONSOLE,

@@ -11,22 +11,22 @@ import java.util.UUID;
 @TableName("organization_access.membership_credential")
 public class MembershipCredentialEntity {
 
-    @TableId(type = IdType.INPUT)
-    private UUID membershipId;
+    @TableId(type = IdType.ASSIGN_ID)
+    private Long membershipId;
 
     private UUID tenantId;
-    private UUID subjectId;
+    private Long subjectId;
     private String loginName;
     private String passwordHash;
     private String status;
     private Long permissionVersion;
     private Long version;
 
-    public UUID getMembershipId() {
+    public Long getMembershipId() {
         return membershipId;
     }
 
-    public void setMembershipId(UUID membershipId) {
+    public void setMembershipId(Long membershipId) {
         this.membershipId = membershipId;
     }
 
@@ -38,11 +38,11 @@ public class MembershipCredentialEntity {
         this.tenantId = tenantId;
     }
 
-    public UUID getSubjectId() {
+    public Long getSubjectId() {
         return subjectId;
     }
 
-    public void setSubjectId(UUID subjectId) {
+    public void setSubjectId(Long subjectId) {
         this.subjectId = subjectId;
     }
 

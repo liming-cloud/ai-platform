@@ -397,7 +397,7 @@ public final class PostgresAssistantRepository implements AssistantRepository {
                 row.getDisplayName(),
                 row.getLatestVersionNumber(),
                 row.getVersion(),
-                new MembershipId(UUID.fromString(row.getCreatedBy())),
+                MembershipId.parse(row.getCreatedBy()),
                 row.getCreatedAt());
     }
 
@@ -424,7 +424,7 @@ public final class PostgresAssistantRepository implements AssistantRepository {
                 RefusalPolicy.valueOf(row.getRefusalPolicy()),
                 AssistantVersionStatus.valueOf(row.getStatus()),
                 row.getVersion(),
-                new MembershipId(UUID.fromString(row.getCreatedBy())),
+                MembershipId.parse(row.getCreatedBy()),
                 row.getCreatedAt(),
                 row.getPublishedAt());
     }

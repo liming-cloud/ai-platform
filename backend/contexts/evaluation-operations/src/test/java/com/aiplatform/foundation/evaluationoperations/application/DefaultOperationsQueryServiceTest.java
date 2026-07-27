@@ -105,8 +105,8 @@ class DefaultOperationsQueryServiceTest {
     private static TrustedRequestContext context(String... permissions) {
         return new TrustedRequestContext(
                 TENANT,
-                new SubjectId(UUID.randomUUID()),
-                new MembershipId(UUID.randomUUID()),
+                new SubjectId(7200000000000000002L),
+                new MembershipId(7300000000000000002L),
                 CredentialType.PERSON,
                 AccessChannel.CONSOLE,
                 1,
@@ -135,7 +135,7 @@ class DefaultOperationsQueryServiceTest {
             return new QueryAuditFactPage(
                     List.of(new QueryAuditFact(
                             UUID.randomUUID(),
-                            UUID.randomUUID(),
+                            new MembershipId(730000000000000003L),
                             UUID.randomUUID(),
                             "a".repeat(64),
                             "ANSWERED",

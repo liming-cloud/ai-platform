@@ -78,10 +78,10 @@ class TrustedRequestContextTest {
     }
 
     private static SubjectId subjectId() {
-        return new SubjectId(UUID.fromString("20000000-0000-0000-0000-000000000001"));
+        return new SubjectId(4921825928971026434L);
     }
 
     private static MembershipId membershipId() {
-        return new MembershipId(UUID.fromString("30000000-0000-0000-0000-000000000001"));
+        return new MembershipId(3382738893456539650L);
     }
 }

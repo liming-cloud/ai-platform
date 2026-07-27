@@ -25,7 +25,7 @@ public interface AssistantMapper {
             @Param("displayName") String displayName,
             @Param("latestVersionNumber") int latestVersionNumber,
             @Param("version") long version,
-            @Param("createdBy") UUID createdBy,
+            @Param("createdBy") long createdBy,
             @Param("createdAt") Instant createdAt);
 
     int insertRequest(
@@ -98,7 +98,7 @@ public interface AssistantMapper {
             @Param("refusalPolicy") String refusalPolicy,
             @Param("status") String status,
             @Param("version") long version,
-            @Param("createdBy") UUID createdBy,
+            @Param("createdBy") long createdBy,
             @Param("createdAt") Instant createdAt,
             @Param("publishedAt") Instant publishedAt);
 

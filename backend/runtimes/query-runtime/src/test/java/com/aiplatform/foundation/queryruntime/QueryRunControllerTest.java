@@ -68,8 +68,8 @@ class QueryRunControllerTest {
     private static TrustedRequestContext context() {
         return new TrustedRequestContext(
                 new TenantId(UUID.randomUUID()),
-                new SubjectId(UUID.randomUUID()),
-                new MembershipId(UUID.randomUUID()),
+                new SubjectId(7200000000000000006L),
+                new MembershipId(7300000000000000007L),
                 CredentialType.PERSON,
                 AccessChannel.CONSOLE,
                 1,

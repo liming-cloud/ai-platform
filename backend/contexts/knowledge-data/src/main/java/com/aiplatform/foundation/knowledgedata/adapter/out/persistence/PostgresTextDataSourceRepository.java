@@ -332,7 +332,7 @@ public final class PostgresTextDataSourceRepository implements TextDataSourceRep
                 request.getResultContentVersion(),
                 request.getResultPublishedContentVersion(),
                 content,
-                new MembershipId(UUID.fromString(identity.getCreatedBy())),
+                MembershipId.parse(identity.getCreatedBy()),
                 identity.getCreatedAt());
         return new TextDataSourceMutationOutcome(source, true);
     }
@@ -378,7 +378,7 @@ public final class PostgresTextDataSourceRepository implements TextDataSourceRep
                 row.getContentVersion(),
                 row.getPublishedContentVersion(),
                 content,
-                new MembershipId(UUID.fromString(row.getCreatedBy())),
+                MembershipId.parse(row.getCreatedBy()),
                 row.getCreatedAt());
     }
 

@@ -1,6 +1,7 @@
 package com.aiplatform.foundation.trustedquery.adapter.out.persistence;
 
 import com.aiplatform.foundation.kernel.tenant.TenantId;
+import com.aiplatform.foundation.organizationaccess.api.model.MembershipId;
 import com.aiplatform.foundation.trustedquery.api.operations.QueryAuditFact;
 import com.aiplatform.foundation.trustedquery.api.operations.QueryAuditFactPage;
 import com.aiplatform.foundation.trustedquery.api.operations.QueryOperationsFactSource;
@@ -90,7 +91,7 @@ public final class PostgresQueryOperationsFactSource
     private static QueryAuditFact toFact(QueryAuditFactRow row) {
         return new QueryAuditFact(
                 UUID.fromString(row.getQueryRunId()),
-                UUID.fromString(row.getRequestedBy()),
+                MembershipId.parse(row.getRequestedBy()),
                 UUID.fromString(row.getAssistantVersionId()),
                 row.getQuestionDigest(),
                 row.getStatus(),

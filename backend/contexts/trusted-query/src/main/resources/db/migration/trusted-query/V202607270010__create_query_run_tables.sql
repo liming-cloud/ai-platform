@@ -4,7 +4,7 @@ CREATE TABLE trusted_query.query_run (
     tenant_id UUID NOT NULL,
     id UUID NOT NULL,
     assistant_version_id UUID NOT NULL,
-    requested_by UUID NOT NULL,
+    requested_by BIGINT NOT NULL,
     question_digest CHAR(64) NOT NULL,
     status VARCHAR(16) NOT NULL,
     answer TEXT,

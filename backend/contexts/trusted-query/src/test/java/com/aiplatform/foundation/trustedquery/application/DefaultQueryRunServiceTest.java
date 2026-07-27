@@ -201,8 +201,8 @@ class DefaultQueryRunServiceTest {
     private static TrustedRequestContext context(String... permissions) {
         return new TrustedRequestContext(
                 TENANT,
-                new SubjectId(UUID.randomUUID()),
-                new MembershipId(UUID.randomUUID()),
+                new SubjectId(7200000000000000004L),
+                new MembershipId(7300000000000000004L),
                 CredentialType.PERSON,
                 AccessChannel.CONSOLE,
                 1,

@@ -7,7 +7,7 @@ CREATE TABLE knowledge_data.knowledge_space (
     description VARCHAR(2000),
     status VARCHAR(32) NOT NULL,
     version BIGINT NOT NULL,
-    created_by UUID NOT NULL,
+    created_by BIGINT NOT NULL,
     created_at TIMESTAMPTZ NOT NULL,
     CONSTRAINT pk_knowledge_space PRIMARY KEY (tenant_id, id),
     CONSTRAINT ck_knowledge_space_status

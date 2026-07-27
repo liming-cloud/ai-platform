@@ -51,7 +51,7 @@ public interface QueryRunMapper {
             @Param("tenantId") UUID tenantId,
             @Param("id") UUID id,
             @Param("assistantVersionId") UUID assistantVersionId,
-            @Param("requestedBy") UUID requestedBy,
+            @Param("requestedBy") long requestedBy,
             @Param("questionDigest") String questionDigest,
             @Param("quotaPeriodStart") Instant quotaPeriodStart,
             @Param("quotaPeriodEnd") Instant quotaPeriodEnd,

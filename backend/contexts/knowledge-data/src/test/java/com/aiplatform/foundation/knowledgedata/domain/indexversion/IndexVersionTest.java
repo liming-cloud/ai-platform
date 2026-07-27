@@ -19,7 +19,7 @@ class IndexVersionTest {
     private static final IndexVersionId INDEX_ID =
             new IndexVersionId(UUID.fromString("30000000-0000-0000-0000-000000000001"));
     private static final MembershipId MEMBER_ID =
-            new MembershipId(UUID.fromString("40000000-0000-0000-0000-000000000001"));
+            new MembershipId(1843651857942052866L);
     private static final Instant CREATED_AT = Instant.parse("2026-07-27T00:00:00Z");
     private static final EmbeddingConfiguration EMBEDDING =
             new EmbeddingConfiguration(

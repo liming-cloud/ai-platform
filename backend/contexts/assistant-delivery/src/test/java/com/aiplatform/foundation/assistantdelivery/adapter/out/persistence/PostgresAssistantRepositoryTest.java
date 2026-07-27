@@ -47,8 +47,7 @@ class PostgresAssistantRepositoryTest {
             TenantId.parse("10000000-0000-0000-0000-000000000001");
     private static final TenantId CAMPUS =
             TenantId.parse("10000000-0000-0000-0000-000000000002");
-    private static final MembershipId CREATOR = new MembershipId(
-            UUID.fromString("30000000-0000-0000-0000-000000000001"));
+    private static final MembershipId CREATOR = new MembershipId(3382738893456539650L);
     private static final UUID CHAT =
             UUID.fromString("40000000-0000-0000-0000-000000000001");
     private static final UUID SPACE =

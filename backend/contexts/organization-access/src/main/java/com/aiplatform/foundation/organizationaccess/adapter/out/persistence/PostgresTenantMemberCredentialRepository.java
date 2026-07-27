@@ -32,7 +32,7 @@ public final class PostgresTenantMemberCredentialRepository
             return Optional.empty();
         }
         var tenantId = UUID.fromString(row.getTenantId());
-        var membershipId = UUID.fromString(row.getMembershipId());
+        var membershipId = row.getMembershipId();
         var permissions = mapper
                 .findPermissionCodes(tenantId, membershipId)
                 .stream()
@@ -40,7 +40,7 @@ public final class PostgresTenantMemberCredentialRepository
                 .collect(Collectors.toUnmodifiableSet());
         return Optional.of(new AuthenticatedMember(
                 new TenantId(tenantId),
-                new SubjectId(UUID.fromString(row.getSubjectId())),
+                new SubjectId(row.getSubjectId()),
                 new MembershipId(membershipId),
                 row.getPasswordHash(),
                 row.getPermissionVersion(),
