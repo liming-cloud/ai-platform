@@ -96,6 +96,7 @@ CREATE INDEX idx_assistant_version_assistant_created
     );
 
 CREATE TABLE assistant_delivery.assistant_request (
+    id BIGINT PRIMARY KEY,
     tenant_id BIGINT NOT NULL,
     operation VARCHAR(32) NOT NULL,
     idempotency_key_hash CHAR(64) NOT NULL,
@@ -103,8 +104,8 @@ CREATE TABLE assistant_delivery.assistant_request (
     assistant_id BIGINT NOT NULL,
     assistant_version_id BIGINT,
     created_at TIMESTAMPTZ NOT NULL,
-    CONSTRAINT pk_assistant_request
-        PRIMARY KEY (tenant_id, operation, idempotency_key_hash),
+    CONSTRAINT uk_assistant_request_tenant_operation_key
+        UNIQUE (tenant_id, operation, idempotency_key_hash),
     CONSTRAINT fk_assistant_request_assistant
         FOREIGN KEY (tenant_id, assistant_id)
         REFERENCES assistant_delivery.assistant (tenant_id, id),

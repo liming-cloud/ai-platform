@@ -5,6 +5,7 @@ import com.aiplatform.foundation.assistantdelivery.infrastructure.persistence.as
 import com.aiplatform.foundation.assistantdelivery.infrastructure.persistence.assistant.mapper.AssistantRequestMapper;
 import com.aiplatform.foundation.assistantdelivery.infrastructure.persistence.assistant.mapper.AssistantVersionMapper;
 import com.aiplatform.foundation.assistantdelivery.infrastructure.persistence.assistant.repository.PostgresAssistantRepository;
+import com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator;
 import com.baomidou.mybatisplus.autoconfigure.MybatisPlusAutoConfiguration;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.mybatis.spring.annotation.MapperScan;
@@ -33,11 +34,13 @@ public class AssistantDeliveryPersistenceAutoConfiguration {
             AssistantMapper mapper,
             AssistantRequestMapper requestMapper,
             AssistantVersionMapper versionMapper,
+            EntityIdGenerator identifiers,
             PlatformTransactionManager transactions) {
         return new PostgresAssistantRepository(
                 mapper,
                 requestMapper,
                 versionMapper,
+                identifiers,
                 transactions);
     }
 }

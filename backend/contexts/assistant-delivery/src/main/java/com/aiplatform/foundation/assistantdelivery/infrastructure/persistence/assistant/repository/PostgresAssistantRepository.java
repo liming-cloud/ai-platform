@@ -31,6 +31,7 @@ import com.aiplatform.foundation.assistantdelivery.infrastructure.persistence.as
 import com.aiplatform.foundation.assistantdelivery.infrastructure.persistence.assistant.mapper.AssistantRequestMapper;
 import com.aiplatform.foundation.assistantdelivery.infrastructure.persistence.assistant.mapper.AssistantVersionMapper;
 import com.aiplatform.foundation.assistantdelivery.infrastructure.persistence.assistant.projection.PublishedAssistantRow;
+import com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator;
 import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
@@ -57,12 +58,14 @@ public final class PostgresAssistantRepository implements AssistantRepository {
     private final AssistantMapper mapper;
     private final AssistantRequestMapper requestMapper;
     private final AssistantVersionMapper versionMapper;
+    private final EntityIdGenerator identifiers;
     private final TransactionTemplate transactions;
 
     public PostgresAssistantRepository(
             AssistantMapper mapper,
             AssistantRequestMapper requestMapper,
             AssistantVersionMapper versionMapper,
+            EntityIdGenerator identifiers,
             PlatformTransactionManager transactionManager) {
         this.mapper = Objects.requireNonNull(mapper, "助手映射器不能为空");
         this.requestMapper = Objects.requireNonNull(
@@ -71,6 +74,9 @@ public final class PostgresAssistantRepository implements AssistantRepository {
         this.versionMapper = Objects.requireNonNull(
                 versionMapper,
                 "助手版本映射器不能为空");
+        this.identifiers = Objects.requireNonNull(
+                identifiers,
+                "标识生成器不能为空");
         transactions = new TransactionTemplate(
                 Objects.requireNonNull(transactionManager, "事务管理器不能为空"));
     }
@@ -470,15 +476,16 @@ public final class PostgresAssistantRepository implements AssistantRepository {
                                 keyHash));
     }
 
-    private static AssistantRequestEntity requestEntity(
+    private AssistantRequestEntity requestEntity(
             long tenantId,
             String operation,
             String keyHash,
             String requestFingerprint,
             long assistantId,
             Long assistantVersionId,
-            java.time.Instant createdAt) {
+        java.time.Instant createdAt) {
         var entity = new AssistantRequestEntity();
+        entity.setId(identifiers.nextId());
         entity.setTenantId(tenantId);
         entity.setOperation(operation);
         entity.setIdempotencyKeyHash(keyHash);

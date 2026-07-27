@@ -22,13 +22,13 @@ import com.aiplatform.foundation.assistantdelivery.domain.assistant.model.Refusa
 import com.aiplatform.foundation.assistantdelivery.infrastructure.persistence.assistant.mapper.AssistantMapper;
 import com.aiplatform.foundation.assistantdelivery.infrastructure.persistence.assistant.mapper.AssistantRequestMapper;
 import com.aiplatform.foundation.assistantdelivery.infrastructure.persistence.assistant.mapper.AssistantVersionMapper;
+import com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator;
 import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.concurrent.atomic.AtomicLong;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringBootConfiguration;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
@@ -143,6 +143,30 @@ class PostgresAssistantRepositoryTest {
         assertTrue(versionReplay.replayed());
         assertEquals(1, created.assistantVersion().number());
         assertTrue(repository.findVersion(CAMPUS, version.id()).isEmpty());
+    }
+
+    @Test
+    void 助手幂等请求使用独立雪花主键() {
+        var assistant = assistant(STORE, "雪花主键助手");
+        repository.create(
+                new AssistantCreation(
+                        assistant,
+                        "assistant-snowflake-key",
+                        "8".repeat(64)),
+                5);
+
+        var requestId = jdbc.queryForObject(
+                """
+                SELECT id
+                FROM assistant_delivery.assistant_request
+                WHERE tenant_id = ?
+                  AND operation = 'CREATE_ASSISTANT'
+                """,
+                Long.class,
+                STORE.value());
+
+        assertTrue(requestId != null && requestId > 0L);
+        assertTrue(requestId != assistant.id().value());
     }
 
     @Test
@@ -394,7 +418,6 @@ class PostgresAssistantRepositoryTest {
 
     @SpringBootConfiguration
     @EnableAutoConfiguration
-    @MapperScan("com.aiplatform.foundation.assistantdelivery.infrastructure.persistence.assistant.mapper")
     static class TestApplication {
 
         @Bean
@@ -402,11 +425,13 @@ class PostgresAssistantRepositoryTest {
                 AssistantMapper mapper,
                 AssistantRequestMapper requestMapper,
                 AssistantVersionMapper versionMapper,
+                EntityIdGenerator identifiers,
                 PlatformTransactionManager transactions) {
             return new PostgresAssistantRepository(
                     mapper,
                     requestMapper,
                     versionMapper,
+                    identifiers,
                     transactions);
         }
     }
