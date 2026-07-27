@@ -117,6 +117,7 @@
 | 组织权限经典四层试点 | `project/evidence/WP-0009-organization-access-pilot.md` | `6946c6bc1` | 经典四层、领域边界、能力自动配置和真实认证闭环通过全反应堆验证 |
 | 知识数据上下文迁移 | `project/evidence/WP-0009-knowledge-data-context.md` | `25e6070a3` | 经典四层、三个真实页码列表、统一异常、上下文及 MinIO、pgvector 自动配置通过 290 项全反应堆验证 |
 | 模型运行时上下文迁移 | `project/evidence/WP-0009-model-runtime-context.md` | `98e97ab0d` | 经典四层、两个真实页码列表、统一异常、跨上下文门面及三类模型扩展自动配置通过 335 项全反应堆验证 |
+| 助手交付上下文迁移 | `project/evidence/WP-0009-assistant-delivery-context.md` | `6965430af` | 经典四层、助手及发布目录页码分页、统一异常、发布版本门面和分角色自动配置通过纵向回归 |
 
 ## 证据规则
 
