@@ -1,6 +1,7 @@
 package com.aiplatform.foundation.security.satoken.session;
 
 import cn.dev33.satoken.session.SaSession;
+import cn.dev33.satoken.exception.NotLoginException;
 import cn.dev33.satoken.stp.StpLogic;
 import cn.dev33.satoken.stp.parameter.SaLoginParameter;
 import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
@@ -11,6 +12,7 @@ import com.aiplatform.foundation.security.identity.PermissionCode;
 import com.aiplatform.foundation.security.identity.SubjectId;
 import com.aiplatform.foundation.security.identity.TrustedRequestContext;
 import com.aiplatform.foundation.security.session.AuthenticatedSessionGateway;
+import com.aiplatform.foundation.security.session.AuthenticatedSessionUnavailableException;
 import com.aiplatform.foundation.security.session.InvalidAuthenticatedSessionException;
 import com.aiplatform.foundation.security.session.IssuedSession;
 import java.time.Duration;
@@ -64,22 +66,29 @@ public final class SaTokenSessionGateway implements AuthenticatedSessionGateway 
             return new IssuedSession(stpLogic.getTokenName(), tokenValue, timeout);
         } catch (RuntimeException exception) {
             if (tokenValue != null) {
-                stpLogic.logoutByTokenValue(tokenValue);
+                revokeAfterFailedIssue(tokenValue, exception);
             }
-            throw exception;
+            throw new AuthenticatedSessionUnavailableException(exception);
         }
     }
 
     @Override
     public TrustedRequestContext resolve(String tokenValue) {
         validateToken(tokenValue);
+        final Object loginId;
+        final SaSession session;
         try {
-            var loginId = stpLogic.getLoginIdByToken(tokenValue);
-            var session = stpLogic.getTokenSessionByToken(tokenValue, false);
+            loginId = stpLogic.getLoginIdByToken(tokenValue);
+            session = stpLogic.getTokenSessionByToken(tokenValue, false);
             if (loginId == null || session == null) {
                 throw new InvalidAuthenticatedSessionException();
             }
-
+        } catch (InvalidAuthenticatedSessionException | NotLoginException exception) {
+            throw new InvalidAuthenticatedSessionException();
+        } catch (RuntimeException exception) {
+            throw new AuthenticatedSessionUnavailableException(exception);
+        }
+        try {
             var membershipId = MembershipId.parse(requiredString(session, MEMBERSHIP_ID));
             if (!membershipId.toString().equals(loginId.toString())) {
                 throw new InvalidAuthenticatedSessionException();
@@ -103,7 +112,23 @@ public final class SaTokenSessionGateway implements AuthenticatedSessionGateway 
     @Override
     public void revoke(String tokenValue) {
         validateToken(tokenValue);
-        stpLogic.logoutByTokenValue(tokenValue);
+        try {
+            stpLogic.logoutByTokenValue(tokenValue);
+        } catch (NotLoginException exception) {
+            throw new InvalidAuthenticatedSessionException();
+        } catch (RuntimeException exception) {
+            throw new AuthenticatedSessionUnavailableException(exception);
+        }
+    }
+
+    private void revokeAfterFailedIssue(
+            String tokenValue,
+            RuntimeException original) {
+        try {
+            stpLogic.logoutByTokenValue(tokenValue);
+        } catch (RuntimeException cleanupFailure) {
+            original.addSuppressed(cleanupFailure);
+        }
     }
 
     private static void writeContext(SaSession session, TrustedRequestContext context) {

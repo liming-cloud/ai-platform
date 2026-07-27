@@ -2,11 +2,17 @@ package com.aiplatform.foundation.security.satoken.session;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import cn.dev33.satoken.config.SaTokenConfig;
 import cn.dev33.satoken.dao.SaTokenDao;
 import cn.dev33.satoken.dao.SaTokenDaoDefaultImpl;
 import cn.dev33.satoken.stp.StpLogic;
+import cn.dev33.satoken.stp.parameter.SaLoginParameter;
 import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
 import com.aiplatform.foundation.security.identity.AccessChannel;
 import com.aiplatform.foundation.security.identity.CredentialType;
@@ -15,6 +21,7 @@ import com.aiplatform.foundation.security.identity.PermissionCode;
 import com.aiplatform.foundation.security.identity.SubjectId;
 import com.aiplatform.foundation.security.identity.TrustedRequestContext;
 import com.aiplatform.foundation.security.session.InvalidAuthenticatedSessionException;
+import com.aiplatform.foundation.security.session.AuthenticatedSessionUnavailableException;
 import java.time.Duration;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
@@ -108,6 +115,35 @@ class SaTokenSessionGatewayTest {
         second.issue(context());
 
         assertEquals(context(), gateway.resolve(first.tokenValue()));
+    }
+
+    @Test
+    void 会话存储故障必须转译为可重试的平台异常() {
+        var failedLogic = mock(StpLogic.class);
+        var failedGateway = new SaTokenSessionGateway(
+                failedLogic,
+                Duration.ofMinutes(30));
+        when(failedLogic.createLoginSession(
+                anyString(),
+                any(SaLoginParameter.class)))
+                .thenThrow(new IllegalStateException("redis endpoint leaked"));
+
+        assertThrows(
+                AuthenticatedSessionUnavailableException.class,
+                () -> failedGateway.issue(context()));
+
+        when(failedLogic.getLoginIdByToken("broken-token"))
+                .thenThrow(new IllegalStateException("redis endpoint leaked"));
+        assertThrows(
+                AuthenticatedSessionUnavailableException.class,
+                () -> failedGateway.resolve("broken-token"));
+
+        doThrow(new IllegalStateException("redis endpoint leaked"))
+                .when(failedLogic)
+                .logoutByTokenValue("broken-token");
+        assertThrows(
+                AuthenticatedSessionUnavailableException.class,
+                () -> failedGateway.revoke("broken-token"));
     }
 
     private static TrustedRequestContext context() {

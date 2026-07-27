@@ -11,19 +11,28 @@ public enum PlatformSecurityErrorCode implements ErrorCode {
     INVALID_SESSION(
             "PLATFORM_SECURITY.AUTHENTICATION.0001",
             ErrorType.AUTHENTICATION,
-            "需要有效会话");
+            "需要有效会话",
+            false),
+    SESSION_DEPENDENCY_UNAVAILABLE(
+            "PLATFORM_SECURITY.DEPENDENCY_UNAVAILABLE.0001",
+            ErrorType.DEPENDENCY_UNAVAILABLE,
+            "会话服务暂时不可用",
+            true);
 
     private final String code;
     private final ErrorType type;
     private final String defaultMessage;
+    private final boolean retryable;
 
     PlatformSecurityErrorCode(
             String code,
             ErrorType type,
-            String defaultMessage) {
+            String defaultMessage,
+            boolean retryable) {
         this.code = code;
         this.type = type;
         this.defaultMessage = defaultMessage;
+        this.retryable = retryable;
     }
 
     @Override
@@ -43,7 +52,7 @@ public enum PlatformSecurityErrorCode implements ErrorCode {
 
     @Override
     public boolean retryable() {
-        return false;
+        return retryable;
     }
 
     @Override
