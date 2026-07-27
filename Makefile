@@ -1,4 +1,4 @@
-.PHONY: project-status project-verify resume-context backend-test frontend-test demo-fixtures-verify recovery-operations-test recovery-demo capacity-resilience-operations-test capacity-resilience-demo delivery-operations-test delivery-demo deploy-config deploy-up deploy-smoke acceptance-knowledge-space acceptance-model-provider acceptance-model-deployment acceptance-index-search acceptance-assistant acceptance-trusted-query acceptance-query-web acceptance-query-quota acceptance-query-operations evaluation-demo performance-index-search performance-query-candidate-pool deploy-down validate
+.PHONY: project-status project-verify resume-context backend-test frontend-test demo-fixtures-verify recovery-operations-test recovery-demo capacity-resilience-operations-test capacity-resilience-demo delivery-operations-test delivery-demo upgrade-demo deploy-config deploy-up deploy-smoke acceptance-knowledge-space acceptance-model-provider acceptance-model-deployment acceptance-index-search acceptance-assistant acceptance-trusted-query acceptance-query-web acceptance-query-quota acceptance-query-operations evaluation-demo performance-index-search performance-query-candidate-pool deploy-down validate
 
 project-status:
 	python3 scripts/project_governance.py status
@@ -37,6 +37,9 @@ delivery-operations-test:
 
 delivery-demo:
 	bash scripts/operations/demo-delivery-drill.sh
+
+upgrade-demo:
+	bash scripts/operations/demo-upgrade-drill.sh
 
 deploy-config:
 	docker compose --env-file deploy/compose/.env.example -f deploy/compose/compose.yml config --quiet

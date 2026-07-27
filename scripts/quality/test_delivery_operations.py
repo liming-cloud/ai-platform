@@ -9,6 +9,9 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 DELIVERY_DRILL = (
     REPOSITORY_ROOT / "scripts" / "operations" / "demo-delivery-drill.sh"
 )
+UPGRADE_DRILL = (
+    REPOSITORY_ROOT / "scripts" / "operations" / "demo-upgrade-drill.sh"
+)
 RUNBOOK = REPOSITORY_ROOT / "docs" / "runbooks" / "demo-delivery.md"
 REPORT_FILE = (
     REPOSITORY_ROOT
@@ -22,12 +25,16 @@ REPORT_FILE = (
 class DeliveryOperationsTest(unittest.TestCase):
 
     def test_delivery_drill_is_executable_and_has_valid_syntax(self) -> None:
-        self.assertTrue(DELIVERY_DRILL.is_file(), "缺少空环境交付演练脚本")
-        self.assertTrue(
-            DELIVERY_DRILL.stat().st_mode & stat.S_IXUSR,
-            "空环境交付演练脚本缺少执行权限",
-        )
-        subprocess.run(["bash", "-n", str(DELIVERY_DRILL)], check=True)
+        for script, label in [
+            (DELIVERY_DRILL, "空环境交付演练"),
+            (UPGRADE_DRILL, "受控升级演练"),
+        ]:
+            self.assertTrue(script.is_file(), f"缺少{label}脚本")
+            self.assertTrue(
+                script.stat().st_mode & stat.S_IXUSR,
+                f"{label}脚本缺少执行权限",
+            )
+            subprocess.run(["bash", "-n", str(script)], check=True)
 
     def test_acceptance_scripts_support_an_isolated_environment(self) -> None:
         expected_variables = {
@@ -80,9 +87,12 @@ class DeliveryOperationsTest(unittest.TestCase):
 
         self.assertIn("delivery-operations-test:", makefile)
         self.assertIn("delivery-demo:", makefile)
+        self.assertIn("upgrade-demo:", makefile)
         self.assertIn("make delivery-demo", runbook)
+        self.assertIn("make upgrade-demo", runbook)
         self.assertIn("门店演示任务", runbook)
         self.assertIn("校园演示任务", runbook)
+        self.assertIn("受控升级", runbook)
         self.assertIn("每日查询上限：100", runbook)
         self.assertIn("本地确定性模型", runbook)
         self.assertIn("退出登录", runbook)
