@@ -2,7 +2,7 @@ schemaVersion: 1
 productVersion: foundation-v1
 currentMilestone: M1
 currentFrontier: WP-0009
-lastVerifiedCommit: bdba7575d8a1e01fdc536d3b2b3981b7223f26e6
+lastVerifiedCommit: 6946c6bc1ae2375433daec19d93055f0802309e0
 activeWorkPackages:
   - WP-0009
 blockedWorkPackages:
@@ -78,6 +78,7 @@ latestEvidence:
   - project/evidence/WP-0008-final-acceptance.md
   - project/evidence/WP-0009-architecture-guard-red-green.md
   - project/evidence/WP-0009-shared-foundation.md
+  - project/evidence/WP-0009-organization-access-pilot.md
 nextReviewAt: 2026-08-02
-updatedAt: 2026-07-27T14:30:00+08:00
+updatedAt: 2026-07-27T14:46:00+08:00
 updatedBy: codex
