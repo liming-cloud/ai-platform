@@ -1,5 +1,7 @@
 package com.aiplatform.foundation.security.satoken.session;
 
+import cn.dev33.satoken.SaManager;
+import cn.dev33.satoken.dao.SaTokenDao;
 import cn.dev33.satoken.session.SaSession;
 import cn.dev33.satoken.stp.StpLogic;
 import cn.dev33.satoken.stp.parameter.SaLoginParameter;
@@ -18,12 +20,14 @@ import java.util.Collection;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.function.Supplier;
 
 /**
  * 使用 Sa-Token 保存服务端会话状态的认证会话适配器。
  */
 public final class SaTokenSessionGateway implements AuthenticatedSessionGateway {
 
+    private static final Object DAO_MONITOR = new Object();
     private static final String TENANT_ID = "tenantId";
     private static final String SUBJECT_ID = "subjectId";
     private static final String MEMBERSHIP_ID = "membershipId";
@@ -34,10 +38,15 @@ public final class SaTokenSessionGateway implements AuthenticatedSessionGateway 
     private static final String TRACE_ID = "traceId";
 
     private final StpLogic stpLogic;
+    private final SaTokenDao saTokenDao;
     private final Duration timeout;
 
-    public SaTokenSessionGateway(StpLogic stpLogic, Duration timeout) {
+    public SaTokenSessionGateway(
+            StpLogic stpLogic,
+            SaTokenDao saTokenDao,
+            Duration timeout) {
         this.stpLogic = Objects.requireNonNull(stpLogic, "Sa-Token 逻辑对象不能为空");
+        this.saTokenDao = Objects.requireNonNull(saTokenDao, "Sa-Token 数据访问器不能为空");
         this.timeout = Objects.requireNonNull(timeout, "会话有效期不能为空");
         if (timeout.isZero() || timeout.isNegative() || timeout.getNano() != 0) {
             throw new IllegalArgumentException("会话有效期必须是正整数秒");
@@ -47,6 +56,10 @@ public final class SaTokenSessionGateway implements AuthenticatedSessionGateway 
     @Override
     public IssuedSession issue(TrustedRequestContext context) {
         Objects.requireNonNull(context, "可信请求上下文不能为空");
+        return withBoundDao(() -> issueBound(context));
+    }
+
+    private IssuedSession issueBound(TrustedRequestContext context) {
         String tokenValue = null;
         try {
             var parameter = SaLoginParameter.create()
@@ -71,6 +84,10 @@ public final class SaTokenSessionGateway implements AuthenticatedSessionGateway 
     @Override
     public TrustedRequestContext resolve(String tokenValue) {
         validateToken(tokenValue);
+        return withBoundDao(() -> resolveBound(tokenValue));
+    }
+
+    private TrustedRequestContext resolveBound(String tokenValue) {
         try {
             var loginId = stpLogic.getLoginIdByToken(tokenValue);
             var session = stpLogic.getTokenSessionByToken(tokenValue, false);
@@ -101,7 +118,17 @@ public final class SaTokenSessionGateway implements AuthenticatedSessionGateway 
     @Override
     public void revoke(String tokenValue) {
         validateToken(tokenValue);
-        stpLogic.logoutByTokenValue(tokenValue);
+        withBoundDao(() -> {
+            stpLogic.logoutByTokenValue(tokenValue);
+            return null;
+        });
+    }
+
+    private <T> T withBoundDao(Supplier<T> operation) {
+        synchronized (DAO_MONITOR) {
+            SaManager.setSaTokenDao(saTokenDao);
+            return operation.get();
+        }
     }
 
     private static void writeContext(SaSession session, TrustedRequestContext context) {

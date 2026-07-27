@@ -4,6 +4,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import cn.dev33.satoken.config.SaTokenConfig;
+import cn.dev33.satoken.dao.SaTokenDao;
+import cn.dev33.satoken.dao.SaTokenDaoDefaultImpl;
 import cn.dev33.satoken.stp.StpLogic;
 import com.aiplatform.foundation.kernel.tenant.TenantId;
 import com.aiplatform.foundation.security.identity.AccessChannel;
@@ -26,6 +28,7 @@ class SaTokenSessionGatewayTest {
     private static final MembershipId MEMBERSHIP_ID =
             new MembershipId(3382738893456539650L);
     private StpLogic logic;
+    private SaTokenDao dao;
     private SaTokenSessionGateway gateway;
 
     @BeforeEach
@@ -36,7 +39,11 @@ class SaTokenSessionGatewayTest {
                 .setTimeout(1800)
                 .setIsConcurrent(false)
                 .setIsShare(false));
-        gateway = new SaTokenSessionGateway(logic, Duration.ofMinutes(30));
+        dao = new SaTokenDaoDefaultImpl();
+        gateway = new SaTokenSessionGateway(
+                logic,
+                dao,
+                Duration.ofMinutes(30));
     }
 
     @Test
@@ -54,7 +61,7 @@ class SaTokenSessionGatewayTest {
     @Test
     void 应在令牌会话字段损坏时失败关闭() {
         var issued = gateway.issue(context());
-        logic.getTokenSessionByToken(issued.tokenValue()).set("tenantId", "not-a-uuid");
+        logic.getTokenSessionByToken(issued.tokenValue()).set("tenantId", "非法标识");
 
         assertThrows(
                 InvalidAuthenticatedSessionException.class,
@@ -81,6 +88,21 @@ class SaTokenSessionGatewayTest {
         assertThrows(
                 InvalidAuthenticatedSessionException.class,
                 () -> gateway.resolve(issued.tokenValue()));
+    }
+
+    @Test
+    void 多应用上下文交替访问时应恢复各自的数据访问器() {
+        var first = gateway.issue(context());
+        var secondLogic = new StpLogic(
+                "member-test-" + LOGIN_TYPES.incrementAndGet());
+        var second = new SaTokenSessionGateway(
+                secondLogic,
+                new SaTokenDaoDefaultImpl(),
+                Duration.ofMinutes(30));
+
+        second.issue(context());
+
+        assertEquals(context(), gateway.resolve(first.tokenValue()));
     }
 
     private static TrustedRequestContext context() {

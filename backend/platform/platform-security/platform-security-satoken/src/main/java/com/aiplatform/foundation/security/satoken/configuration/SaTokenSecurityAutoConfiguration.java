@@ -1,6 +1,5 @@
 package com.aiplatform.foundation.security.satoken.configuration;
 
-import cn.dev33.satoken.SaManager;
 import cn.dev33.satoken.dao.SaTokenDao;
 import cn.dev33.satoken.stp.StpLogic;
 import com.aiplatform.foundation.security.satoken.session.SaTokenSessionGateway;
@@ -24,9 +23,9 @@ public class SaTokenSecurityAutoConfiguration {
     AuthenticatedSessionGateway authenticatedSessionGateway(
             SaTokenDao saTokenDao,
             SaTokenSecurityProperties properties) {
-        SaManager.setSaTokenDao(saTokenDao);
         return new SaTokenSessionGateway(
                 new StpLogic(properties.personLoginType()),
+                saTokenDao,
                 properties.sessionTimeout());
     }
 }
