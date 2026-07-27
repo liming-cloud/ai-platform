@@ -1,0 +1,191 @@
+{
+  "schemaVersion": 1,
+  "statements": [
+    {
+      "path": "backend/contexts/assistant-delivery/src/main/resources/mapper/assistant-delivery/AssistantMapper.xml",
+      "statementId": "lockScope",
+      "category": "POSTGRES_ADVISORY_LOCK",
+      "reason": "使用 PostgreSQL 事务级咨询锁串行化助手编号分配。"
+    },
+    {
+      "path": "backend/contexts/assistant-delivery/src/main/resources/mapper/assistant-delivery/AssistantMapper.xml",
+      "statementId": "findAssistantForUpdate",
+      "category": "ROW_LOCK",
+      "reason": "发布助手版本前必须锁定聚合根并保证版本号连续。"
+    },
+    {
+      "path": "backend/contexts/assistant-delivery/src/main/resources/mapper/assistant-delivery/AssistantMapper.xml",
+      "statementId": "findPublishedPage",
+      "category": "MULTI_TABLE",
+      "reason": "使用连接、公共表表达式和 DISTINCT ON 选择每个助手的最新发布版本。"
+    },
+    {
+      "path": "backend/contexts/knowledge-data/src/main/resources/mapper/knowledge-data/IndexVersionMapper.xml",
+      "statementId": "lockSpace",
+      "category": "POSTGRES_ADVISORY_LOCK",
+      "reason": "使用 PostgreSQL 事务级咨询锁串行化知识空间索引版本分配。"
+    },
+    {
+      "path": "backend/contexts/knowledge-data/src/main/resources/mapper/knowledge-data/IndexVersionMapper.xml",
+      "statementId": "findPublishedSources",
+      "category": "MULTI_TABLE",
+      "reason": "连接索引来源和数据源表读取已发布且可索引的来源快照。"
+    },
+    {
+      "path": "backend/contexts/knowledge-data/src/main/resources/mapper/knowledge-data/IndexVersionMapper.xml",
+      "statementId": "findVersionForUpdate",
+      "category": "ROW_LOCK",
+      "reason": "索引版本状态迁移前使用行锁保护聚合并发一致性。"
+    },
+    {
+      "path": "backend/contexts/knowledge-data/src/main/resources/mapper/knowledge-data/IndexVersionMapper.xml",
+      "statementId": "claimableJob",
+      "category": "SKIP_LOCKED",
+      "reason": "摄取工作节点使用 FOR UPDATE SKIP LOCKED 并发领取构建任务。"
+    },
+    {
+      "path": "backend/contexts/knowledge-data/src/main/resources/mapper/knowledge-data/IndexVersionMapper.xml",
+      "statementId": "markClaimed",
+      "category": "ATOMIC_STATE_TRANSITION",
+      "reason": "通过条件更新原子完成任务领取、租约和尝试次数迁移。"
+    },
+    {
+      "path": "backend/contexts/knowledge-data/src/main/resources/mapper/knowledge-data/IndexVersionMapper.xml",
+      "statementId": "findRunningLease",
+      "category": "AGGREGATE",
+      "reason": "对运行中任务租约进行条件聚合判断以防止重复领取。"
+    },
+    {
+      "path": "backend/contexts/knowledge-data/src/main/resources/mapper/knowledge-data/IndexVersionMapper.xml",
+      "statementId": "markReady",
+      "category": "ATOMIC_STATE_TRANSITION",
+      "reason": "按当前状态和租约所有者原子完成索引版本就绪迁移。"
+    },
+    {
+      "path": "backend/contexts/knowledge-data/src/main/resources/mapper/knowledge-data/IndexVersionMapper.xml",
+      "statementId": "markDone",
+      "category": "ATOMIC_STATE_TRANSITION",
+      "reason": "按当前状态和租约所有者原子完成构建任务结束迁移。"
+    },
+    {
+      "path": "backend/contexts/knowledge-data/src/main/resources/mapper/knowledge-data/IndexVersionMapper.xml",
+      "statementId": "markFailedVersion",
+      "category": "ATOMIC_STATE_TRANSITION",
+      "reason": "按当前状态原子记录索引版本失败及安全错误摘要。"
+    },
+    {
+      "path": "backend/contexts/knowledge-data/src/main/resources/mapper/knowledge-data/IndexVersionMapper.xml",
+      "statementId": "markFailedJob",
+      "category": "ATOMIC_STATE_TRANSITION",
+      "reason": "按租约所有者原子记录构建任务失败并释放租约。"
+    },
+    {
+      "path": "backend/contexts/knowledge-data/src/main/resources/mapper/knowledge-data/IndexVersionMapper.xml",
+      "statementId": "supersedeActive",
+      "category": "ATOMIC_STATE_TRANSITION",
+      "reason": "发布新索引时批量原子淘汰同一知识空间的旧活动版本。"
+    },
+    {
+      "path": "backend/contexts/knowledge-data/src/main/resources/mapper/knowledge-data/IndexVersionMapper.xml",
+      "statementId": "activateReady",
+      "category": "ATOMIC_STATE_TRANSITION",
+      "reason": "按就绪状态和版本号原子激活目标索引版本。"
+    },
+    {
+      "path": "backend/contexts/knowledge-data/src/main/resources/mapper/knowledge-data/KnowledgeSpaceMapper.xml",
+      "statementId": "lockTenant",
+      "category": "POSTGRES_ADVISORY_LOCK",
+      "reason": "使用 PostgreSQL 事务级咨询锁串行化租户内知识空间名称约束。"
+    },
+    {
+      "path": "backend/contexts/knowledge-data/src/main/resources/mapper/knowledge-data/TextDataSourceMapper.xml",
+      "statementId": "lockTenant",
+      "category": "POSTGRES_ADVISORY_LOCK",
+      "reason": "使用 PostgreSQL 事务级咨询锁串行化租户内数据源写入。"
+    },
+    {
+      "path": "backend/contexts/knowledge-data/src/main/resources/mapper/knowledge-data/TextDataSourceMapper.xml",
+      "statementId": "findByIdForUpdate",
+      "category": "ROW_LOCK",
+      "reason": "发布文本数据源前使用行锁保护版本和状态一致性。"
+    },
+    {
+      "path": "backend/contexts/knowledge-data/src/main/resources/mapper/knowledge-data/TextDataSourceMapper.xml",
+      "statementId": "insertOutboxEvent",
+      "category": "OUTBOX",
+      "reason": "使用 PostgreSQL JSONB 转换原子写入事务发件箱事件。"
+    },
+    {
+      "path": "backend/contexts/model-runtime/src/main/resources/mapper/model-runtime/ModelDeploymentMapper.xml",
+      "statementId": "lockTenant",
+      "category": "POSTGRES_ADVISORY_LOCK",
+      "reason": "使用 PostgreSQL 事务级咨询锁串行化租户内模型部署名称约束。"
+    },
+    {
+      "path": "backend/contexts/model-runtime/src/main/resources/mapper/model-runtime/ModelDeploymentMapper.xml",
+      "statementId": "insertDeployment",
+      "category": "POSTGRES_TYPE",
+      "reason": "写入 PostgreSQL 数组字段时需要显式执行 string_to_array 转换。"
+    },
+    {
+      "path": "backend/contexts/model-runtime/src/main/resources/mapper/model-runtime/ModelDeploymentMapper.xml",
+      "statementId": "findById",
+      "category": "POSTGRES_TYPE",
+      "reason": "读取 PostgreSQL 数组字段时需要显式执行 array_to_string 转换。"
+    },
+    {
+      "path": "backend/contexts/model-runtime/src/main/resources/mapper/model-runtime/ModelDeploymentMapper.xml",
+      "statementId": "findPage",
+      "category": "POSTGRES_TYPE",
+      "reason": "分页读取 PostgreSQL 数组字段并由分页插件追加分页和总数查询。"
+    },
+    {
+      "path": "backend/contexts/model-runtime/src/main/resources/mapper/model-runtime/ProviderConnectionMapper.xml",
+      "statementId": "lockTenant",
+      "category": "POSTGRES_ADVISORY_LOCK",
+      "reason": "使用 PostgreSQL 事务级咨询锁串行化租户内供应商连接名称约束。"
+    },
+    {
+      "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/TenantMemberCredentialMapper.xml",
+      "statementId": "findEnabled",
+      "category": "SECURITY_PROJECTION",
+      "reason": "连接租户、成员和凭据表构造认证所需的最小安全投影。"
+    },
+    {
+      "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/TenantMemberCredentialMapper.xml",
+      "statementId": "findPermissionCodes",
+      "category": "SECURITY_PROJECTION",
+      "reason": "连接成员角色、角色权限表读取服务端授权判定所需权限集合。"
+    },
+    {
+      "path": "backend/contexts/trusted-query/src/main/resources/mapper/trusted-query/QueryRunMapper.xml",
+      "statementId": "lockScope",
+      "category": "POSTGRES_ADVISORY_LOCK",
+      "reason": "使用 PostgreSQL 事务级咨询锁串行化查询配额竞争。"
+    },
+    {
+      "path": "backend/contexts/trusted-query/src/main/resources/mapper/trusted-query/QueryRunMapper.xml",
+      "statementId": "findEarliestActiveLeaseExpiry",
+      "category": "AGGREGATE",
+      "reason": "聚合租户和用户维度运行中查询的最早租约到期时间。"
+    },
+    {
+      "path": "backend/contexts/trusted-query/src/main/resources/mapper/trusted-query/QueryRunMapper.xml",
+      "statementId": "summarizeUsage",
+      "category": "AGGREGATE",
+      "reason": "按租户和时间窗口聚合查询次数、令牌数及完成状态用量。"
+    },
+    {
+      "path": "backend/contexts/trusted-query/src/main/resources/mapper/trusted-query/QueryRunMapper.xml",
+      "statementId": "completeRun",
+      "category": "ATOMIC_STATE_TRANSITION",
+      "reason": "按活动状态原子完成查询、写入终态指标并清除租约。"
+    },
+    {
+      "path": "backend/contexts/trusted-query/src/main/resources/mapper/trusted-query/QueryRunEventMapper.xml",
+      "statementId": "findAfter",
+      "category": "EVENT_REPLAY",
+      "reason": "按单调事件序号和固定上限回放服务端事件流，不属于列表分页。"
+    }
+  ]
+}

@@ -27,6 +27,20 @@ class BackendArchitectureGuardTest(unittest.TestCase):
         path.write_text(content, encoding="utf-8")
         return path
 
+    def write_allowlist(self, statements):
+        path = (
+            self.root
+            / "project/architecture-debt/complex-sql-allowlist.json"
+        )
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(
+            MODULE.json.dumps(
+                {"schemaVersion": 1, "statements": statements},
+                ensure_ascii=False,
+            ),
+            encoding="utf-8",
+        )
+
     def test_new_sql_annotation_is_rejected(self):
         baseline = MODULE.scan(self.root)
         self.write_java(
@@ -156,6 +170,69 @@ class BackendArchitectureGuardTest(unittest.TestCase):
         errors = MODULE.compare(MODULE.scan(self.root), baseline)
 
         self.assertTrue(any("手工列表分页" in error for error in errors))
+
+    def test_unregistered_mapper_statement_is_rejected(self):
+        mapper = self.root / (
+            "backend/contexts/demo/src/main/resources/mapper/demo/DemoMapper.xml"
+        )
+        mapper.parent.mkdir(parents=True, exist_ok=True)
+        mapper.write_text(
+            '<mapper namespace="demo.DemoMapper">'
+            '<select id="findOne">SELECT 1</select></mapper>',
+            encoding="utf-8",
+        )
+
+        errors = MODULE.compare(MODULE.scan(self.root), MODULE.scan(Path("/不存在")))
+
+        self.assertTrue(any("XML SQL 未登记" in error for error in errors))
+
+    def test_stale_complex_sql_registration_is_rejected(self):
+        self.write_allowlist(
+            [
+                {
+                    "path": (
+                        "backend/contexts/demo/src/main/resources/"
+                        "mapper/demo/DemoMapper.xml"
+                    ),
+                    "statementId": "missing",
+                    "category": "ROW_LOCK",
+                    "reason": "登记项已经没有对应的 XML 语句。",
+                }
+            ]
+        )
+
+        errors = MODULE.compare(MODULE.scan(self.root), MODULE.scan(Path("/不存在")))
+
+        self.assertTrue(any("复杂 SQL 失效登记" in error for error in errors))
+
+    def test_event_replay_limit_is_not_treated_as_page_pagination(self):
+        mapper_path = (
+            "backend/contexts/demo/src/main/resources/mapper/demo/DemoMapper.xml"
+        )
+        mapper = self.root / mapper_path
+        mapper.parent.mkdir(parents=True, exist_ok=True)
+        mapper.write_text(
+            '<mapper namespace="demo.DemoMapper">'
+            '<select id="findAfter">'
+            'SELECT * FROM event WHERE sequence > #{after} LIMIT #{limit}'
+            '</select></mapper>',
+            encoding="utf-8",
+        )
+        self.write_allowlist(
+            [
+                {
+                    "path": mapper_path,
+                    "statementId": "findAfter",
+                    "category": "EVENT_REPLAY",
+                    "reason": "按单调序号回放事件流，不属于列表分页。",
+                }
+            ]
+        )
+
+        actual = MODULE.scan(self.root)
+
+        self.assertEqual([], actual["complexSqlAllowlistErrors"])
+        self.assertEqual(0, actual["manualListLimitCount"])
 
     def test_invalid_error_code_is_rejected(self):
         baseline = MODULE.scan(self.root)
