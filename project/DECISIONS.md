@@ -24,6 +24,7 @@
 | ADR-0020 | 已接受 | PostgreSQL 与 MinIO 组成业务备份集，Redis 会话不恢复，并在独立 Docker 项目中验收恢复 | `docs/adr/ADR-0020-demo-backup-and-isolated-recovery.md` | M1 |
 | ADR-0021 | 部分被替代 | 禁止注解 SQL 和 UUID，补齐平台安全、平台持久化与领域边界 | `docs/adr/ADR-0021-backend-architecture-quality-reset.md` | M1-M8 |
 | ADR-0022 | 已接受 | 使用经典四层、模块自动装配、统一异常、页码分页并合并启动壳 | `docs/adr/ADR-0022-classic-ddd-autoconfiguration-and-page-contract.md` | M1-M8 |
+| ADR-0023 | 已接受 | 平台受控厂家目录、平台/租户/个人模型配置与数据库密文凭据 | `docs/adr/ADR-0023-model-configuration-governance-and-encrypted-credentials.md` | M2-M8 |
 
 ## 已确认人工决策
 
