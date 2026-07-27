@@ -59,7 +59,7 @@ describe("知识发布流程", () => {
   });
 
   it.each([
-    ["ACCESS_DENIED", "denied"],
+    ["KNOWLEDGE_DATA.AUTHORIZATION.0001", "denied"],
     ["DATA_SOURCE_VERSION_CONFLICT", "stale"],
     ["OBJECT_STORAGE_UNAVAILABLE", "partial"],
     ["UNEXPECTED_FAILURE", "partial"],

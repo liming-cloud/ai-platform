@@ -157,6 +157,32 @@ class BackendArchitectureGuardTest(unittest.TestCase):
 
         self.assertTrue(any("手工列表分页" in error for error in errors))
 
+    def test_invalid_error_code_is_rejected(self):
+        baseline = MODULE.scan(self.root)
+        self.write_java(
+            "backend/contexts/demo/src/main/java/demo/DemoErrorCode.java",
+            'enum DemoErrorCode { BAD("DEMO.UNKNOWN.1"); }\n',
+        )
+
+        errors = MODULE.compare(MODULE.scan(self.root), baseline)
+
+        self.assertTrue(any("错误码格式" in error for error in errors))
+
+    def test_duplicate_error_code_is_rejected(self):
+        baseline = MODULE.scan(self.root)
+        self.write_java(
+            "backend/contexts/demo/src/main/java/demo/FirstErrorCode.java",
+            'enum FirstErrorCode { BAD("DEMO.REQUEST.0001"); }\n',
+        )
+        self.write_java(
+            "backend/contexts/demo/src/main/java/demo/SecondErrorCode.java",
+            'enum SecondErrorCode { BAD("DEMO.REQUEST.0001"); }\n',
+        )
+
+        errors = MODULE.compare(MODULE.scan(self.root), baseline)
+
+        self.assertTrue(any("错误码重复" in error for error in errors))
+
     def test_removing_existing_debt_is_allowed(self):
         path = self.write_java(
             "backend/contexts/demo/src/main/java/demo/DemoId.java",

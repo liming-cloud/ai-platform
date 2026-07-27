@@ -104,7 +104,7 @@ describe("QueryClient", () => {
 
   it("统一错误只保留安全字段且会话失效后清除令牌", async () => {
     const client = await authenticatedClient(async () => jsonResponse({
-      code: "AUTHENTICATION_REQUIRED",
+      code: "PLATFORM_SECURITY.AUTHENTICATION.0001",
       message: "会话已失效",
       traceId: "trace-001",
       details: { internal: "不能进入前端错误" },
@@ -113,13 +113,13 @@ describe("QueryClient", () => {
     await expect(client.listAssistants()).rejects.toEqual(
       new QueryApiError(
         401,
-        "AUTHENTICATION_REQUIRED",
+        "PLATFORM_SECURITY.AUTHENTICATION.0001",
         "会话已失效",
         "trace-001",
       ),
     );
     await expect(client.listAssistants()).rejects.toMatchObject({
-      code: "AUTHENTICATION_REQUIRED",
+      code: "PLATFORM_SECURITY.AUTHENTICATION.0001",
     });
   });
 
@@ -161,12 +161,12 @@ describe("QueryClient", () => {
       password: "new-password",
     });
     completeOldRequest?.(jsonResponse({
-      code: "AUTHENTICATION_REQUIRED",
+      code: "PLATFORM_SECURITY.AUTHENTICATION.0001",
       message: "旧会话已失效",
       traceId: "trace-old",
     }, 401));
     await expect(oldRequest).rejects.toMatchObject({
-      code: "AUTHENTICATION_REQUIRED",
+      code: "PLATFORM_SECURITY.AUTHENTICATION.0001",
     });
 
     await client.listAssistants();

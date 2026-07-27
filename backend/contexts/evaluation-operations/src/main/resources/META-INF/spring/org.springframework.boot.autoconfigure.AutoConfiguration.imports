@@ -1,0 +1,2 @@
+com.aiplatform.foundation.evaluationoperations.infrastructure.configuration.EvaluationOperationsCoreAutoConfiguration
+com.aiplatform.foundation.evaluationoperations.infrastructure.configuration.EvaluationOperationsWebAutoConfiguration

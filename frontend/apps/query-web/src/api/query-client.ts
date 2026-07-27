@@ -245,7 +245,7 @@ export class QueryClient {
     if (token === undefined) {
       throw new QueryApiError(
         401,
-        "AUTHENTICATION_REQUIRED",
+        "PLATFORM_SECURITY.AUTHENTICATION.0001",
         "需要先登录",
         "",
       );

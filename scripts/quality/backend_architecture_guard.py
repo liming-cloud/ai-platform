@@ -19,6 +19,15 @@ MANUAL_LIST_SELECT = re.compile(
     r".*?\bLIMIT\s+#\{limit\}",
     flags=re.IGNORECASE | re.DOTALL,
 )
+ERROR_CODE_LITERAL = re.compile(
+    r'"([A-Z][A-Z_]*\.[A-Z_]+\.[^"]+)"'
+)
+VALID_ERROR_CODE = re.compile(
+    r"^[A-Z][A-Z_]*\."
+    r"(?:REQUEST|AUTHENTICATION|AUTHORIZATION|RESOURCE|CONFLICT|QUOTA|"
+    r"DEPENDENCY_UNAVAILABLE|DEPENDENCY_RESPONSE|SYSTEM)\."
+    r"\d{4}$"
+)
 MAX_PACKAGE_CLASSES = 12
 BASELINE = Path("project/architecture-debt/WP-0008-backend.json")
 LIST_CATEGORIES = {
@@ -89,6 +98,13 @@ def scan(root):
         path: path.read_text(encoding="utf-8")
         for path in mapper_xml_files(root)
     }
+    error_codes = [
+        code
+        for path, text in texts.items()
+        if path.name.endswith("ErrorCode.java")
+        for code in ERROR_CODE_LITERAL.findall(text)
+    ]
+    error_code_counts = Counter(error_codes)
     return {
         "schemaVersion": 1,
         "sqlAnnotationFiles": [
@@ -137,6 +153,12 @@ def scan(root):
             len(MANUAL_LIST_SELECT.findall(text))
             for text in mapper_texts.values()
         ),
+        "invalidErrorCodes": sorted(
+            code for code in error_codes if not VALID_ERROR_CODE.fullmatch(code)
+        ),
+        "duplicateErrorCodes": sorted(
+            code for code, count in error_code_counts.items() if count > 1
+        ),
     }
 
 
@@ -144,6 +166,16 @@ def compare(actual, baseline):
     errors = []
     if baseline.get("schemaVersion") != 1:
         return ["架构债务基线版本不受支持"]
+    if actual.get("invalidErrorCodes"):
+        errors.append(
+            "错误码格式违规："
+            + ", ".join(actual["invalidErrorCodes"])
+        )
+    if actual.get("duplicateErrorCodes"):
+        errors.append(
+            "错误码重复："
+            + ", ".join(actual["duplicateErrorCodes"])
+        )
     for category, label in LIST_CATEGORIES.items():
         new_items = sorted(
             set(actual.get(category, []))

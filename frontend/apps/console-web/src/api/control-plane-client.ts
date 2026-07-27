@@ -320,7 +320,7 @@ export class ControlPlaneClient {
       if (this.tokenValue === undefined) {
         throw new ApiRequestError(
           401,
-          "AUTHENTICATION_REQUIRED",
+          "PLATFORM_SECURITY.AUTHENTICATION.0001",
           "需要先登录",
           "",
         );

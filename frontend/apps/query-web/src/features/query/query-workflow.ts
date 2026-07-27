@@ -138,11 +138,11 @@ export function reduceQueryWorkflow(
           message: event.message,
           traceId: event.traceId,
         },
-        assistants: event.code === "AUTHENTICATION_REQUIRED"
+        assistants: event.code === "PLATFORM_SECURITY.AUTHENTICATION.0001"
           ? []
           : state.assistants,
         selectedAssistantVersionId:
-          event.code === "AUTHENTICATION_REQUIRED"
+          event.code === "PLATFORM_SECURITY.AUTHENTICATION.0001"
             ? undefined
             : state.selectedAssistantVersionId,
       };
@@ -283,10 +283,10 @@ function failureContext(
 }
 
 function failedStage(code: string): QueryStage {
-  if (code === "ACCESS_DENIED") {
+  if (code === "TRUSTED_QUERY.AUTHORIZATION.0001") {
     return "denied";
   }
-  if (code === "AUTHENTICATION_REQUIRED") {
+  if (code === "PLATFORM_SECURITY.AUTHENTICATION.0001") {
     return "session-expired";
   }
   return "failed";

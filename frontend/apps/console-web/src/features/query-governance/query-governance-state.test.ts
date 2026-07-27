@@ -12,12 +12,12 @@ describe("查询治理页面状态", () => {
     expect(resolveOperationsViewState(
       false,
       false,
-      ["AUTHENTICATION_REQUIRED", "AUTHENTICATION_REQUIRED"],
+      ["PLATFORM_SECURITY.AUTHENTICATION.0001", "PLATFORM_SECURITY.AUTHENTICATION.0001"],
     )).toBe("unauthenticated");
     expect(resolveOperationsViewState(
       false,
       false,
-      ["ACCESS_DENIED", "ACCESS_DENIED"],
+      ["EVALUATION_OPERATIONS.AUTHORIZATION.0001", "EVALUATION_OPERATIONS.AUTHORIZATION.0001"],
     )).toBe("denied");
     expect(resolveOperationsViewState(
       false,

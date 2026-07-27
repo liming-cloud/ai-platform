@@ -102,8 +102,8 @@ class AuthenticationApiTest {
         assertEquals(HttpStatus.UNAUTHORIZED, unknownMember.getStatusCode());
         assertNotNull(wrongPassword.getBody());
         assertNotNull(unknownMember.getBody());
-        assertEquals("AUTHENTICATION_FAILED", wrongPassword.getBody().code());
-        assertEquals("AUTHENTICATION_FAILED", unknownMember.getBody().code());
+        assertEquals("ORGANIZATION_ACCESS.AUTHENTICATION.0001", wrongPassword.getBody().code());
+        assertEquals("ORGANIZATION_ACCESS.AUTHENTICATION.0001", unknownMember.getBody().code());
         assertFalse(wrongPassword.getBody().message().contains("密码"));
         assertFalse(unknownMember.getBody().message().contains("账号"));
     }

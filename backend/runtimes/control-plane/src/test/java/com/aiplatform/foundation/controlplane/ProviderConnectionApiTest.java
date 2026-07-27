@@ -177,7 +177,7 @@ class ProviderConnectionApiTest {
 
         assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
         assertNotNull(response.getBody());
-        assertEquals("AUTHENTICATION_REQUIRED", response.getBody().code());
+        assertEquals("PLATFORM_SECURITY.AUTHENTICATION.0001", response.getBody().code());
     }
 
     private void create(String token, String idempotencyKey, String displayName) {

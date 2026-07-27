@@ -92,7 +92,7 @@ describe("ControlPlaneClient", () => {
   it("把统一错误转换为不泄漏响应体的前端错误", async () => {
     const client = new ControlPlaneClient(async () => new Response(
       JSON.stringify({
-        code: "ACCESS_DENIED",
+        code: "KNOWLEDGE_DATA.AUTHORIZATION.0001",
         message: "没有执行该操作的权限",
         traceId: "trace-001",
         details: {},
@@ -104,7 +104,7 @@ describe("ControlPlaneClient", () => {
     await expect(client.listKnowledgeSpaces()).rejects.toEqual(
       new ApiRequestError(
         403,
-        "ACCESS_DENIED",
+        "KNOWLEDGE_DATA.AUTHORIZATION.0001",
         "没有执行该操作的权限",
         "trace-001",
       ),

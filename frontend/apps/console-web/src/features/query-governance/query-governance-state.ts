@@ -17,12 +17,12 @@ export function resolveOperationsViewState(
   if (usageLoaded || auditLoaded) {
     return "partial";
   }
-  if (failureCodes.includes("AUTHENTICATION_REQUIRED")) {
+  if (failureCodes.includes("PLATFORM_SECURITY.AUTHENTICATION.0001")) {
     return "unauthenticated";
   }
   if (
     failureCodes.length > 0
-    && failureCodes.every((code) => code === "ACCESS_DENIED")
+    && failureCodes.every((code) => code === "EVALUATION_OPERATIONS.AUTHORIZATION.0001")
   ) {
     return "denied";
   }

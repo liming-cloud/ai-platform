@@ -128,7 +128,7 @@ class KnowledgeSpaceApiTest {
                 ApiError.class);
         assertEquals(HttpStatus.UNAUTHORIZED, unauthenticated.getStatusCode());
         assertNotNull(unauthenticated.getBody());
-        assertEquals("AUTHENTICATION_REQUIRED", unauthenticated.getBody().code());
+        assertEquals("PLATFORM_SECURITY.AUTHENTICATION.0001", unauthenticated.getBody().code());
 
         var readOnly = sessions.issue(new TrustedRequestContext(
                 new TenantId(STORE_TENANT),

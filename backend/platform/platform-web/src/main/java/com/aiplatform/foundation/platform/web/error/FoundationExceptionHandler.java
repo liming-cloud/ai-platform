@@ -11,9 +11,11 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MissingRequestHeaderException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 /**
  * 将平台异常映射为统一错误响应，并阻止内部实现信息泄漏。
@@ -48,6 +50,8 @@ public class FoundationExceptionHandler {
         IllegalArgumentException.class,
         HttpMessageNotReadableException.class,
         MissingRequestHeaderException.class,
+        MissingServletRequestParameterException.class,
+        MethodArgumentTypeMismatchException.class,
         MethodArgumentNotValidException.class
     })
     public ResponseEntity<ApiErrorResponse> invalidRequest(Exception exception) {

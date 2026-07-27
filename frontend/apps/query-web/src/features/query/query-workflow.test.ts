@@ -81,7 +81,7 @@ describe("查询站点状态机", () => {
       { ...initialQueryWorkflow, stage: "loading-catalog" },
       {
         type: "failed",
-        code: "ACCESS_DENIED",
+        code: "TRUSTED_QUERY.AUTHORIZATION.0001",
         message: "没有权限",
         traceId: "trace-denied",
       },
@@ -90,7 +90,7 @@ describe("查询站点状态机", () => {
       { ...initialQueryWorkflow, stage: "ready" },
       {
         type: "failed",
-        code: "AUTHENTICATION_REQUIRED",
+        code: "PLATFORM_SECURITY.AUTHENTICATION.0001",
         message: "会话已失效",
         traceId: "trace-expired",
       },

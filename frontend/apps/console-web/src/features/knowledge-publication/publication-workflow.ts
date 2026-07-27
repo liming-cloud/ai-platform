@@ -161,7 +161,7 @@ function feedbackKind(
   code: string,
   stage: PublicationStage,
 ): FeedbackKind {
-  if (code === "ACCESS_DENIED") {
+  if (code === "KNOWLEDGE_DATA.AUTHORIZATION.0001") {
     return "denied";
   }
   if (code === "DATA_SOURCE_VERSION_CONFLICT") {

@@ -146,7 +146,7 @@ class TextDataSourceApiTest {
                 ApiError.class);
         assertEquals(HttpStatus.UNAUTHORIZED, unauthenticated.getStatusCode());
         assertNotNull(unauthenticated.getBody());
-        assertEquals("AUTHENTICATION_REQUIRED", unauthenticated.getBody().code());
+        assertEquals("PLATFORM_SECURITY.AUTHENTICATION.0001", unauthenticated.getBody().code());
 
         var readOnly = sessions.issue(new TrustedRequestContext(
                 new TenantId(STORE_TENANT),
@@ -190,7 +190,7 @@ class TextDataSourceApiTest {
 
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
         assertNotNull(response.getBody());
-        assertEquals("INVALID_REQUEST", response.getBody().code());
+        assertEquals("COMMON.REQUEST.0001", response.getBody().code());
         assertNotNull(response.getBody().traceId());
     }
 

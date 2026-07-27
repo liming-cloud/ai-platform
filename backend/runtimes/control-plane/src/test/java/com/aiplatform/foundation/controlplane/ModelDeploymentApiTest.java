@@ -129,7 +129,7 @@ class ModelDeploymentApiTest {
 
         assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
         assertNotNull(response.getBody());
-        assertEquals("AUTHENTICATION_REQUIRED", response.getBody().code());
+        assertEquals("PLATFORM_SECURITY.AUTHENTICATION.0001", response.getBody().code());
     }
 
     private ProviderResponse createVerifiedProvider(String token) {

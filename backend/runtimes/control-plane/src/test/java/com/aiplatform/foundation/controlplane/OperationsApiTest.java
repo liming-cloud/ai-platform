@@ -8,14 +8,14 @@ import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.aiplatform.foundation.evaluationoperations.api.OperationsQueryUseCase;
-import com.aiplatform.foundation.evaluationoperations.api.model.ConcurrentQueryQuotaView;
-import com.aiplatform.foundation.evaluationoperations.api.model.DailyQueryQuotaView;
-import com.aiplatform.foundation.evaluationoperations.api.model.ListQueryAuditRecordsQuery;
-import com.aiplatform.foundation.evaluationoperations.api.model.QueryAuditRecordView;
-import com.aiplatform.foundation.evaluationoperations.api.model.QueryUsageQuery;
-import com.aiplatform.foundation.evaluationoperations.api.model.QueryUsageView;
-import com.aiplatform.foundation.evaluationoperations.domain.authorization.OperationsPermissionDeniedException;
+import com.aiplatform.foundation.evaluationoperations.application.operations.service.OperationsQueryService;
+import com.aiplatform.foundation.evaluationoperations.application.operations.dto.ConcurrentQueryQuotaView;
+import com.aiplatform.foundation.evaluationoperations.application.operations.dto.DailyQueryQuotaView;
+import com.aiplatform.foundation.evaluationoperations.application.operations.query.ListQueryAuditRecordsQuery;
+import com.aiplatform.foundation.evaluationoperations.application.operations.dto.QueryAuditRecordView;
+import com.aiplatform.foundation.evaluationoperations.application.operations.query.QueryUsageQuery;
+import com.aiplatform.foundation.evaluationoperations.application.operations.dto.QueryUsageView;
+import com.aiplatform.foundation.evaluationoperations.application.operations.policy.OperationsPermissionDeniedException;
 import com.aiplatform.foundation.shared.contract.paging.PageQuery;
 import com.aiplatform.foundation.shared.contract.paging.PageResult;
 import com.redis.testcontainers.RedisContainer;
@@ -74,7 +74,7 @@ class OperationsApiTest {
     private TestRestTemplate http;
 
     @MockitoBean
-    private OperationsQueryUseCase operations;
+    private OperationsQueryService operations;
 
     @DynamicPropertySource
     static void infrastructureProperties(DynamicPropertyRegistry registry) {
@@ -139,7 +139,7 @@ class OperationsApiTest {
                 ApiError.class);
         assertEquals(HttpStatus.UNAUTHORIZED, unauthenticated.getStatusCode());
         assertNotNull(unauthenticated.getBody());
-        assertEquals("AUTHENTICATION_REQUIRED", unauthenticated.getBody().code());
+        assertEquals("PLATFORM_SECURITY.AUTHENTICATION.0001", unauthenticated.getBody().code());
 
         when(operations.usage(any()))
                 .thenThrow(new OperationsPermissionDeniedException());
@@ -150,7 +150,7 @@ class OperationsApiTest {
                 ApiError.class);
         assertEquals(HttpStatus.FORBIDDEN, denied.getStatusCode());
         assertNotNull(denied.getBody());
-        assertEquals("ACCESS_DENIED", denied.getBody().code());
+        assertEquals("EVALUATION_OPERATIONS.AUTHORIZATION.0001", denied.getBody().code());
     }
 
     private String login() {
