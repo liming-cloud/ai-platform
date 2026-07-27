@@ -102,6 +102,10 @@
 | 全局租户雪花标识 | `project/evidence/WP-0008-tenant-identifier.md` | `0f375f40a436a38ab66eaeb8362bb8dcd7ac4f62` | 六个上下文、向量扩展、数据库与验收脚本统一使用 64 位租户标识；219 项后端和 28 项前端测试通过 |
 | 知识聚合雪花标识 | `project/evidence/WP-0008-knowledge-identifiers.md` | `c51337b109716f94a2910e29d6dc5338f3a38e40` | 知识空间、数据源、索引版本及跨上下文引用统一使用 64 位标识；221 项后端和 28 项前端测试通过 |
 | 模型目录雪花标识 | `project/evidence/WP-0008-model-identifiers.md` | `4fe3552ff4cef64f18563d2af2d343a418594636` | 供应商连接、模型部署及全部跨上下文模型引用统一使用 64 位标识；223 项后端和 28 项前端测试通过 |
+| 助手与查询雪花标识 | `project/evidence/WP-0008-assistant-query-identifiers.md` | `7d6d9e9202830971a3f2a01d1db989c0334df37b` | 助手、查询、事件、审计和前端字符串契约统一使用 64 位标识 |
+| 全仓雪花标识收口 | `project/evidence/WP-0008-snowflake-identifiers-complete.md` | `b26a21070a610205c95324a5b758168ddc383a34` | 索引租约、事务事件和追踪标识完成迁移，全仓 Java UUID 文件归零 |
+| 安全平台边界 | `project/evidence/WP-0008-security-platform-boundary.md` | `834dddd2adad0db33b37afb309c26ee7502f74d4` | 安全核心与 Sa-Token 实现分层，Sa-Token 越界文件归零 |
+| 运行入口与装配边界 | `project/evidence/WP-0008-runtime-bootstrap-boundary.md` | `d9edc1fb0eeffea1d1df81dfc918500eb447ca07` | 三个独立装配模块建立，运行时非启动文件从 41 降至 0 |
 
 ## 证据规则
 
