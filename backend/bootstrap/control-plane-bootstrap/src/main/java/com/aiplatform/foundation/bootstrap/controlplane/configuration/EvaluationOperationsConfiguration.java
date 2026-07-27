@@ -3,11 +3,8 @@ package com.aiplatform.foundation.bootstrap.controlplane.configuration;
 import com.aiplatform.foundation.evaluationoperations.api.OperationsQueryUseCase;
 import com.aiplatform.foundation.evaluationoperations.application.DefaultOperationsQueryService;
 import com.aiplatform.foundation.evaluationoperations.domain.usage.OperationsQuotaPolicy;
-import com.aiplatform.foundation.trustedquery.adapter.out.persistence.PostgresQueryOperationsFactSource;
-import com.aiplatform.foundation.trustedquery.adapter.out.persistence.QueryRunMapper;
-import com.aiplatform.foundation.trustedquery.api.operations.QueryOperationsFactSource;
+import com.aiplatform.foundation.trustedquery.application.operations.facade.QueryOperationsFactSource;
 import java.time.Clock;
-import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
@@ -21,13 +18,7 @@ import org.springframework.context.annotation.Configuration;
         name = "foundation.evaluation-operations.enabled",
         havingValue = "true",
         matchIfMissing = true)
-@MapperScan(basePackageClasses = QueryRunMapper.class)
 public class EvaluationOperationsConfiguration {
-
-    @Bean
-    QueryOperationsFactSource queryOperationsFactSource(QueryRunMapper mapper) {
-        return new PostgresQueryOperationsFactSource(mapper);
-    }
 
     @Bean
     OperationsQueryUseCase operationsQueryUseCase(

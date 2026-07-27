@@ -1,0 +1,3 @@
+com.aiplatform.foundation.trustedquery.infrastructure.configuration.TrustedQueryPersistenceAutoConfiguration
+com.aiplatform.foundation.trustedquery.infrastructure.configuration.TrustedQueryCoreAutoConfiguration
+com.aiplatform.foundation.trustedquery.infrastructure.configuration.TrustedQueryWebAutoConfiguration

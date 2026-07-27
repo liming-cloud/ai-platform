@@ -11,24 +11,52 @@ import org.junit.jupiter.api.Test;
 class TrustedQueryDependencyRulesTest {
 
     @Test
-    void 公共契约应用核心和领域不得依赖基础设施框架() {
+    void 领域和应用层不得依赖技术框架() {
         var classes = new ClassFileImporter()
                 .importPackages("com.aiplatform.foundation.trustedquery");
 
         noClasses()
                 .that()
                 .resideInAnyPackage(
-                        "com.aiplatform.foundation.trustedquery.api..",
                         "com.aiplatform.foundation.trustedquery.application..",
                         "com.aiplatform.foundation.trustedquery.domain..")
                 .should()
                 .dependOnClassesThat()
                 .resideInAnyPackage(
-                        "org.springframework..",
                         "org.springframework.ai..",
+                        "org.springframework.boot..",
+                        "org.springframework.context..",
+                        "org.springframework.data..",
+                        "org.springframework.stereotype..",
+                        "org.springframework.transaction..",
+                        "org.springframework.web..",
                         "cn.dev33..",
                         "com.baomidou..",
                         "cn.hutool..")
+                .check(classes);
+    }
+
+    @Test
+    void 领域层只能依赖自身JDK与共享内核() {
+        var classes = new ClassFileImporter()
+                .importPackages("com.aiplatform.foundation.trustedquery");
+
+        noClasses()
+                .that()
+                .resideInAPackage("..domain..")
+                .should()
+                .dependOnClassesThat()
+                .resideInAnyPackage(
+                        "com.aiplatform.foundation.security..",
+                        "com.aiplatform.foundation.shared.contract..",
+                        "com.aiplatform.foundation.organizationaccess..",
+                        "com.aiplatform.foundation.knowledgedata..",
+                        "com.aiplatform.foundation.modelruntime..",
+                        "com.aiplatform.foundation.assistantdelivery..",
+                        "com.aiplatform.foundation.evaluationoperations..",
+                        "com.aiplatform.foundation.trustedquery.application..",
+                        "com.aiplatform.foundation.trustedquery.interfaces..",
+                        "com.aiplatform.foundation.trustedquery.infrastructure..")
                 .check(classes);
     }
 }

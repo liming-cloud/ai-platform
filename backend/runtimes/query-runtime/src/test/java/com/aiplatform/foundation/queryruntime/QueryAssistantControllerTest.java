@@ -1,6 +1,6 @@
 package com.aiplatform.foundation.queryruntime;
 
-import com.aiplatform.foundation.trustedquery.adapter.in.web.QueryAssistantController;
+import com.aiplatform.foundation.trustedquery.interfaces.web.query.controller.QueryAssistantController;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;

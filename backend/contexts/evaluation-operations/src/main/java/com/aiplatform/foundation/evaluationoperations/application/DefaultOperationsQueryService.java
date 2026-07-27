@@ -4,16 +4,16 @@ import com.aiplatform.foundation.evaluationoperations.api.OperationsQueryUseCase
 import com.aiplatform.foundation.evaluationoperations.api.model.ConcurrentQueryQuotaView;
 import com.aiplatform.foundation.evaluationoperations.api.model.DailyQueryQuotaView;
 import com.aiplatform.foundation.evaluationoperations.api.model.ListQueryAuditRecordsQuery;
-import com.aiplatform.foundation.evaluationoperations.api.model.QueryAuditRecordPage;
 import com.aiplatform.foundation.evaluationoperations.api.model.QueryAuditRecordView;
 import com.aiplatform.foundation.evaluationoperations.api.model.QueryUsageQuery;
 import com.aiplatform.foundation.evaluationoperations.api.model.QueryUsageView;
 import com.aiplatform.foundation.evaluationoperations.domain.authorization.OperationsAccessPolicy;
 import com.aiplatform.foundation.evaluationoperations.domain.usage.OperationsQuotaPolicy;
 import com.aiplatform.foundation.evaluationoperations.domain.usage.ReportingPeriod;
-import com.aiplatform.foundation.trustedquery.api.operations.QueryAuditFact;
-import com.aiplatform.foundation.trustedquery.api.operations.QueryOperationsFactSource;
-import com.aiplatform.foundation.trustedquery.api.operations.QueryUsageFactQuery;
+import com.aiplatform.foundation.trustedquery.application.operations.dto.QueryAuditFact;
+import com.aiplatform.foundation.trustedquery.application.operations.facade.QueryOperationsFactSource;
+import com.aiplatform.foundation.trustedquery.application.operations.query.QueryUsageFactQuery;
+import com.aiplatform.foundation.shared.contract.paging.PageResult;
 import java.time.Clock;
 import java.util.Objects;
 
@@ -77,27 +77,24 @@ public final class DefaultOperationsQueryService
     }
 
     @Override
-    public QueryAuditRecordPage audit(ListQueryAuditRecordsQuery query) {
+    public PageResult<QueryAuditRecordView> audit(ListQueryAuditRecordsQuery query) {
         Objects.requireNonNull(query, "查询审计请求不能为空");
         access.requireAuditRead(query.context());
-        if (query.limit() < 1 || query.limit() > 100) {
-            throw new IllegalArgumentException("分页条数必须在 1 到 100 之间");
-        }
         var page = facts.listAuditRecords(
                 query.context().tenantId(),
-                query.cursor(),
-                query.limit());
-        return new QueryAuditRecordPage(
+                query.page());
+        return PageResult.of(
                 page.items().stream()
                         .map(DefaultOperationsQueryService::toView)
                         .toList(),
-                page.nextCursor());
+                query.page(),
+                page.totalElements());
     }
 
     private static QueryAuditRecordView toView(QueryAuditFact fact) {
         return new QueryAuditRecordView(
                 fact.queryRunId(),
-                fact.requestedBy().toString(),
+                Long.toString(fact.requestedBy()),
                 fact.assistantVersionId(),
                 fact.questionDigest(),
                 fact.status(),

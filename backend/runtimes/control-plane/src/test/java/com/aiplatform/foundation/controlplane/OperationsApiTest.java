@@ -12,11 +12,12 @@ import com.aiplatform.foundation.evaluationoperations.api.OperationsQueryUseCase
 import com.aiplatform.foundation.evaluationoperations.api.model.ConcurrentQueryQuotaView;
 import com.aiplatform.foundation.evaluationoperations.api.model.DailyQueryQuotaView;
 import com.aiplatform.foundation.evaluationoperations.api.model.ListQueryAuditRecordsQuery;
-import com.aiplatform.foundation.evaluationoperations.api.model.QueryAuditRecordPage;
 import com.aiplatform.foundation.evaluationoperations.api.model.QueryAuditRecordView;
 import com.aiplatform.foundation.evaluationoperations.api.model.QueryUsageQuery;
 import com.aiplatform.foundation.evaluationoperations.api.model.QueryUsageView;
 import com.aiplatform.foundation.evaluationoperations.domain.authorization.OperationsPermissionDeniedException;
+import com.aiplatform.foundation.shared.contract.paging.PageQuery;
+import com.aiplatform.foundation.shared.contract.paging.PageResult;
 import com.redis.testcontainers.RedisContainer;
 import java.time.Instant;
 import java.util.List;
@@ -33,6 +34,7 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -109,15 +111,15 @@ class OperationsApiTest {
     }
 
     @Test
-    void 租户管理员可使用游标读取脱敏审计记录() {
+    void 租户管理员可使用页码读取脱敏审计记录() {
         when(operations.audit(any())).thenReturn(auditPage());
         var token = login();
 
         var response = http.exchange(
-                url("/api/v1/audit-records?cursor=下一页&limit=5"),
+                url("/api/v1/audit-records?pageNumber=2&pageSize=5"),
                 HttpMethod.GET,
                 new HttpEntity<>(authorized(token)),
-                QueryAuditRecordPage.class);
+                new ParameterizedTypeReference<PageResult<QueryAuditRecordView>>() {});
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals(auditPage(), response.getBody());
@@ -126,8 +128,8 @@ class OperationsApiTest {
         var captured = ArgumentCaptor.forClass(ListQueryAuditRecordsQuery.class);
         verify(operations).audit(captured.capture());
         assertEquals(STORE, captured.getValue().context().tenantId().value());
-        assertEquals("下一页", captured.getValue().cursor());
-        assertEquals(5, captured.getValue().limit());
+        assertEquals(2, captured.getValue().page().pageNumber());
+        assertEquals(5, captured.getValue().page().pageSize());
     }
 
     @Test
@@ -181,8 +183,8 @@ class OperationsApiTest {
                 Instant.parse("2026-07-27T08:00:00Z"));
     }
 
-    private static QueryAuditRecordPage auditPage() {
-        return new QueryAuditRecordPage(
+    private static PageResult<QueryAuditRecordView> auditPage() {
+        return PageResult.of(
                 List.of(new QueryAuditRecordView(
                         QUERY_RUN_ID,
                         REQUESTED_BY,
@@ -195,7 +197,8 @@ class OperationsApiTest {
                         24,
                         FROM.plusSeconds(1),
                         FROM.plusSeconds(2))),
-                "后续页");
+                new PageQuery(2, 5),
+                8);
     }
 
     private static HttpHeaders authorized(String token) {

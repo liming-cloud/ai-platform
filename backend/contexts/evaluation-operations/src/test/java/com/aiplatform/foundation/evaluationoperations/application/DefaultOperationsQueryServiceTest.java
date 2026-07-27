@@ -8,17 +8,18 @@ import com.aiplatform.foundation.evaluationoperations.api.model.QueryUsageQuery;
 import com.aiplatform.foundation.evaluationoperations.domain.authorization.OperationsPermissionDeniedException;
 import com.aiplatform.foundation.evaluationoperations.domain.usage.OperationsQuotaPolicy;
 import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
+import com.aiplatform.foundation.shared.contract.paging.PageQuery;
+import com.aiplatform.foundation.shared.contract.paging.PageResult;
 import com.aiplatform.foundation.security.identity.AccessChannel;
 import com.aiplatform.foundation.security.identity.CredentialType;
 import com.aiplatform.foundation.security.identity.MembershipId;
 import com.aiplatform.foundation.security.identity.PermissionCode;
 import com.aiplatform.foundation.security.identity.SubjectId;
 import com.aiplatform.foundation.security.identity.TrustedRequestContext;
-import com.aiplatform.foundation.trustedquery.api.operations.QueryAuditFact;
-import com.aiplatform.foundation.trustedquery.api.operations.QueryAuditFactPage;
-import com.aiplatform.foundation.trustedquery.api.operations.QueryOperationsFactSource;
-import com.aiplatform.foundation.trustedquery.api.operations.QueryUsageFactQuery;
-import com.aiplatform.foundation.trustedquery.api.operations.QueryUsageFacts;
+import com.aiplatform.foundation.trustedquery.application.operations.dto.QueryAuditFact;
+import com.aiplatform.foundation.trustedquery.application.operations.facade.QueryOperationsFactSource;
+import com.aiplatform.foundation.trustedquery.application.operations.query.QueryUsageFactQuery;
+import com.aiplatform.foundation.trustedquery.application.operations.dto.QueryUsageFacts;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -56,17 +57,17 @@ class DefaultOperationsQueryServiceTest {
     }
 
     @Test
-    void 审计列表只映射脱敏查询事实并保留不透明游标() {
+    void 审计列表只映射脱敏查询事实并返回页码总数() {
         var service = service(new RecordingFacts());
 
         var page = service.audit(new ListQueryAuditRecordsQuery(
                 context("audit:read"),
-                null,
-                20));
+                new PageQuery(1, 20)));
 
         assertEquals(1, page.items().size());
         assertEquals("a".repeat(64), page.items().getFirst().questionDigest());
-        assertEquals("next-cursor", page.nextCursor());
+        assertEquals(1, page.totalElements());
+        assertEquals(1, page.totalPages());
     }
 
     @Test
@@ -83,8 +84,7 @@ class DefaultOperationsQueryServiceTest {
                 OperationsPermissionDeniedException.class,
                 () -> service.audit(new ListQueryAuditRecordsQuery(
                         context("usage:read"),
-                        null,
-                        20)));
+                        new PageQuery(1, 20))));
         assertThrows(
                 IllegalArgumentException.class,
                 () -> service.usage(new QueryUsageQuery(
@@ -127,14 +127,13 @@ class DefaultOperationsQueryServiceTest {
         }
 
         @Override
-        public QueryAuditFactPage listAuditRecords(
+        public PageResult<QueryAuditFact> listAuditRecords(
                 TenantId tenantId,
-                String cursor,
-                int limit) {
-            return new QueryAuditFactPage(
+                PageQuery page) {
+            return PageResult.of(
                     List.of(new QueryAuditFact(
                             "430000000000000001",
-                            new MembershipId(730000000000000003L),
+                            730000000000000003L,
                             "420000000000000001",
                             "a".repeat(64),
                             "ANSWERED",
@@ -144,7 +143,8 @@ class DefaultOperationsQueryServiceTest {
                             32,
                             NOW.minusSeconds(10),
                             NOW.minusSeconds(9))),
-                    "next-cursor");
+                    page,
+                    1);
         }
     }
 }

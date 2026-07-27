@@ -1,6 +1,7 @@
 package com.aiplatform.foundation.evaluationoperations.api.model;
 
 import com.aiplatform.foundation.security.identity.TrustedRequestContext;
+import com.aiplatform.foundation.shared.contract.paging.PageQuery;
 import java.util.Objects;
 
 /**
@@ -8,10 +9,10 @@ import java.util.Objects;
  */
 public record ListQueryAuditRecordsQuery(
         TrustedRequestContext context,
-        String cursor,
-        int limit) {
+        PageQuery page) {
 
     public ListQueryAuditRecordsQuery {
         Objects.requireNonNull(context, "可信请求上下文不能为空");
+        Objects.requireNonNull(page, "分页请求不能为空");
     }
 }

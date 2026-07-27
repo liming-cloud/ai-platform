@@ -14,6 +14,7 @@ class QueryRuntimeApplicationTest {
                 .web(WebApplicationType.NONE)
                 .run(
                         "--spring.main.banner-mode=off",
+                        "--foundation.assistant-delivery.enabled=false",
                         "--spring.autoconfigure.exclude="
                                 + "org.springframework.boot.jdbc.autoconfigure."
                                 + "DataSourceAutoConfiguration,"

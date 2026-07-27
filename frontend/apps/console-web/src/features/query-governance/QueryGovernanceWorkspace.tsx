@@ -49,7 +49,8 @@ export function QueryGovernanceWorkspace({
     useState<OperationsViewState>("unauthenticated");
   const [usage, setUsage] = useState<QueryUsage>();
   const [records, setRecords] = useState<QueryAuditRecord[]>([]);
-  const [nextCursor, setNextCursor] = useState<string>();
+  const [auditPageNumber, setAuditPageNumber] = useState(1);
+  const [hasNextAuditPage, setHasNextAuditPage] = useState(false);
   const [failure, setFailure] = useState<Failure>();
   const [loggingIn, setLoggingIn] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -60,14 +61,15 @@ export function QueryGovernanceWorkspace({
       setViewState("unauthenticated");
       setUsage(undefined);
       setRecords([]);
-      setNextCursor(undefined);
+      setAuditPageNumber(1);
+      setHasNextAuditPage(false);
       return;
     }
     setViewState("loading");
     setFailure(undefined);
     const [usageResult, auditResult] = await Promise.allSettled([
       client.getQueryUsage(),
-      client.listQueryAuditRecords(undefined, 20),
+      client.listQueryAuditRecords(1, 20),
     ]);
     setLoadedAt(Date.now());
     if (usageResult.status === "fulfilled") {
@@ -77,10 +79,12 @@ export function QueryGovernanceWorkspace({
     }
     if (auditResult.status === "fulfilled") {
       setRecords(auditResult.value.items);
-      setNextCursor(auditResult.value.nextCursor ?? undefined);
+      setAuditPageNumber(auditResult.value.pageNumber);
+      setHasNextAuditPage(auditResult.value.hasNext);
     } else {
       setRecords([]);
-      setNextCursor(undefined);
+      setAuditPageNumber(1);
+      setHasNextAuditPage(false);
     }
     const failures = [usageResult, auditResult]
       .filter((result) => result.status === "rejected")
@@ -130,19 +134,24 @@ export function QueryGovernanceWorkspace({
       setViewState("unauthenticated");
       setUsage(undefined);
       setRecords([]);
-      setNextCursor(undefined);
+      setAuditPageNumber(1);
+      setHasNextAuditPage(false);
     }
   }
 
   async function loadMore() {
-    if (nextCursor === undefined || loadingMore) {
+    if (!hasNextAuditPage || loadingMore) {
       return;
     }
     setLoadingMore(true);
     try {
-      const page = await client.listQueryAuditRecords(nextCursor, 20);
+      const page = await client.listQueryAuditRecords(
+        auditPageNumber + 1,
+        20,
+      );
       setRecords((current) => [...current, ...page.items]);
-      setNextCursor(page.nextCursor ?? undefined);
+      setAuditPageNumber(page.pageNumber);
+      setHasNextAuditPage(page.hasNext);
     } catch (error) {
       setFailure(toFailure(error));
       setViewState("partial");
@@ -240,7 +249,7 @@ export function QueryGovernanceWorkspace({
       {usage ? <UsageSummary usage={usage} /> : null}
       <AuditRecords
         records={records}
-        hasMore={nextCursor !== undefined}
+        hasMore={hasNextAuditPage}
         loadingMore={loadingMore}
         onLoadMore={loadMore}
       />

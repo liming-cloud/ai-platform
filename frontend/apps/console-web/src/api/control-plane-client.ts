@@ -95,11 +95,6 @@ export interface QueryAuditRecord {
   completedAt: string | null;
 }
 
-export interface CursorPage<T> {
-  items: T[];
-  nextCursor: string | null;
-}
-
 export interface PageResult<T> {
   items: T[];
   pageNumber: number;
@@ -174,15 +169,11 @@ export class ControlPlaneClient {
   }
 
   async listQueryAuditRecords(
-    cursor?: string,
-    limit = 20,
-  ): Promise<CursorPage<QueryAuditRecord>> {
-    const query = new URLSearchParams({ limit: String(limit) });
-    if (cursor !== undefined) {
-      query.set("cursor", cursor);
-    }
-    return this.request<CursorPage<QueryAuditRecord>>(
-      `/audit-records?${query}`,
+    pageNumber = 1,
+    pageSize = 20,
+  ): Promise<PageResult<QueryAuditRecord>> {
+    return this.request<PageResult<QueryAuditRecord>>(
+      `/audit-records?pageNumber=${pageNumber}&pageSize=${pageSize}`,
     );
   }
 

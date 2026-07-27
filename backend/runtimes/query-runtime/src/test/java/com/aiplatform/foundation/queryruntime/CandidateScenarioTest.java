@@ -20,9 +20,8 @@ import com.aiplatform.foundation.security.identity.PermissionCode;
 import com.aiplatform.foundation.security.identity.SubjectId;
 import com.aiplatform.foundation.security.identity.TrustedRequestContext;
 import com.aiplatform.foundation.provider.deterministic.DeterministicEmbeddingModel;
-import com.aiplatform.foundation.trustedquery.api.CandidateSearchUseCase;
-import com.aiplatform.foundation.trustedquery.api.model.CandidateSearchQuery;
-import com.aiplatform.foundation.trustedquery.application.candidate.DefaultCandidateSearchService;
+import com.aiplatform.foundation.trustedquery.application.candidate.query.CandidateSearchQuery;
+import com.aiplatform.foundation.trustedquery.application.candidate.service.CandidateSearchService;
 import com.aiplatform.foundation.vectorstore.pgvector.PgVectorIndexStore;
 import java.time.Instant;
 import java.time.ZoneOffset;
@@ -72,7 +71,7 @@ class CandidateScenarioTest {
     private PgVectorIndexStore vectors;
 
     @Autowired
-    private CandidateSearchUseCase searches;
+    private CandidateSearchService searches;
 
     @Autowired
     private JdbcTemplate jdbc;
@@ -277,11 +276,11 @@ class CandidateScenarioTest {
         }
 
         @Bean
-        CandidateSearchUseCase candidateSearchUseCase(
+        CandidateSearchService candidateSearchService(
                 ActiveIndexLookup indexes,
                 ModelRuntimeResolver models,
                 PgVectorIndexStore vectors) {
-            return new DefaultCandidateSearchService(
+            return new CandidateSearchService(
                     indexes,
                     models,
                     vectors);

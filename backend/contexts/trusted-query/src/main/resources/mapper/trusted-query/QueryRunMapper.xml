@@ -2,14 +2,14 @@
 <!DOCTYPE mapper
         PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="com.aiplatform.foundation.trustedquery.adapter.out.persistence.QueryRunMapper">
+<mapper namespace="com.aiplatform.foundation.trustedquery.infrastructure.persistence.query.mapper.QueryRunMapper">
 
-    <resultMap id="queryRunRequestRow" type="com.aiplatform.foundation.trustedquery.adapter.out.persistence.QueryRunRequestRow">
+    <resultMap id="queryRunRequestRow" type="com.aiplatform.foundation.trustedquery.infrastructure.persistence.query.projection.QueryRunRequestRow">
         <result column="request_fingerprint" property="requestFingerprint"/>
         <result column="query_run_id" property="queryRunId"/>
     </resultMap>
 
-    <resultMap id="queryUsageRow" type="com.aiplatform.foundation.trustedquery.adapter.out.persistence.QueryUsageRow">
+    <resultMap id="queryUsageRow" type="com.aiplatform.foundation.trustedquery.infrastructure.persistence.query.projection.QueryUsageRow">
         <result column="accepted_queries" property="acceptedQueries"/>
         <result column="answered_queries" property="answeredQueries"/>
         <result column="refused_queries" property="refusedQueries"/>
@@ -22,7 +22,7 @@
         <result column="concurrent_used" property="concurrentUsed"/>
     </resultMap>
 
-    <resultMap id="queryAuditFactRow" type="com.aiplatform.foundation.trustedquery.adapter.out.persistence.QueryAuditFactRow">
+    <resultMap id="queryAuditFactRow" type="com.aiplatform.foundation.trustedquery.infrastructure.persistence.query.projection.QueryAuditFactRow">
         <result column="query_run_id" property="queryRunId"/>
         <result column="requested_by" property="requestedBy"/>
         <result column="assistant_version_id" property="assistantVersionId"/>
@@ -36,7 +36,7 @@
         <result column="completed_at" property="completedAt"/>
     </resultMap>
 
-    <resultMap id="queryRunRow" type="com.aiplatform.foundation.trustedquery.adapter.out.persistence.QueryRunRow">
+    <resultMap id="queryRunRow" type="com.aiplatform.foundation.trustedquery.infrastructure.persistence.query.projection.QueryRunRow">
         <result column="tenant_id" property="tenantId"/>
         <result column="id" property="id"/>
         <result column="assistant_version_id" property="assistantVersionId"/>
@@ -59,7 +59,7 @@
         <result column="completed_at" property="completedAt"/>
     </resultMap>
 
-    <resultMap id="queryCitationRow" type="com.aiplatform.foundation.trustedquery.adapter.out.persistence.QueryCitationRow">
+    <resultMap id="queryCitationRow" type="com.aiplatform.foundation.trustedquery.infrastructure.persistence.query.projection.QueryCitationRow">
         <result column="sequence" property="sequence"/>
         <result column="data_source_id" property="dataSourceId"/>
         <result column="content_version" property="contentVersion"/>
@@ -69,7 +69,7 @@
         <result column="score" property="score"/>
     </resultMap>
 
-    <resultMap id="queryRunEventRow" type="com.aiplatform.foundation.trustedquery.adapter.out.persistence.QueryRunEventRow">
+    <resultMap id="queryRunEventRow" type="com.aiplatform.foundation.trustedquery.infrastructure.persistence.query.projection.QueryRunEventRow">
         <result column="tenant_id" property="tenantId"/>
         <result column="query_run_id" property="queryRunId"/>
         <result column="sequence" property="sequence"/>
@@ -182,7 +182,7 @@
         ]]>
     </select>
 
-    <select id="findFirstAuditPage" resultMap="queryAuditFactRow">
+    <select id="findAuditPage" resultMap="queryAuditFactRow">
         <![CDATA[
         SELECT id::text AS query_run_id,
                requested_by::text AS requested_by,
@@ -198,28 +198,6 @@
         FROM trusted_query.query_run
         WHERE tenant_id = #{tenantId}
         ORDER BY created_at DESC, id DESC
-        LIMIT #{limit}
-        ]]>
-    </select>
-
-    <select id="findAuditAfter" resultMap="queryAuditFactRow">
-        <![CDATA[
-        SELECT id::text AS query_run_id,
-               requested_by::text AS requested_by,
-               assistant_version_id::text AS assistant_version_id,
-               question_digest,
-               status,
-               refusal_reason,
-               input_tokens,
-               output_tokens,
-               total_tokens,
-               created_at,
-               completed_at
-        FROM trusted_query.query_run
-        WHERE tenant_id = #{tenantId}
-          AND (created_at, id) < (#{createdAt}, #{id})
-        ORDER BY created_at DESC, id DESC
-        LIMIT #{limit}
         ]]>
     </select>
 

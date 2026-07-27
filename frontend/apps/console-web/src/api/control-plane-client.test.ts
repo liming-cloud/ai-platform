@@ -220,7 +220,12 @@ describe("ControlPlaneClient", () => {
       new Response(
         JSON.stringify({
           items: [],
-          nextCursor: "下一页",
+          pageNumber: 2,
+          pageSize: 5,
+          totalElements: 7,
+          totalPages: 2,
+          hasPrevious: true,
+          hasNext: false,
         }),
         { status: 200, headers: { "Content-Type": "application/json" } },
       ),
@@ -234,18 +239,17 @@ describe("ControlPlaneClient", () => {
       "2026-07-27T00:00:00Z",
       "2026-07-28T00:00:00Z",
     );
-    const audit = await client.listQueryAuditRecords("上一页", 5);
+    const audit = await client.listQueryAuditRecords(2, 5);
 
     expect(client.hasSession()).toBe(true);
     expect(usage.dailyQuota.limit).toBe(100);
-    expect(audit.nextCursor).toBe("下一页");
+    expect(audit.pageNumber).toBe(2);
+    expect(audit.hasNext).toBe(false);
     expect(requests[0]?.url).toContain(
       "from=2026-07-27T00%3A00%3A00Z",
     );
-    expect(requests[1]?.url).toContain("limit=5");
-    expect(requests[1]?.url).toContain(
-      `cursor=${encodeURIComponent("上一页")}`,
-    );
+    expect(requests[1]?.url).toContain("pageNumber=2");
+    expect(requests[1]?.url).toContain("pageSize=5");
     expect(requests.every((request) =>
       request.headers.get("Authorization") === "Bearer demo-token"
     )).toBe(true);
