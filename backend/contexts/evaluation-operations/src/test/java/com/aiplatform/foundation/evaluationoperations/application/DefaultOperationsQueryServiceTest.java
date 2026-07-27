@@ -7,7 +7,7 @@ import com.aiplatform.foundation.evaluationoperations.api.model.ListQueryAuditRe
 import com.aiplatform.foundation.evaluationoperations.api.model.QueryUsageQuery;
 import com.aiplatform.foundation.evaluationoperations.domain.authorization.OperationsPermissionDeniedException;
 import com.aiplatform.foundation.evaluationoperations.domain.usage.OperationsQuotaPolicy;
-import com.aiplatform.foundation.kernel.tenant.TenantId;
+import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
 import com.aiplatform.foundation.security.identity.AccessChannel;
 import com.aiplatform.foundation.security.identity.CredentialType;
 import com.aiplatform.foundation.security.identity.MembershipId;

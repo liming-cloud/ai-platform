@@ -3,7 +3,7 @@ package com.aiplatform.foundation.security.satoken.session;
 import cn.dev33.satoken.session.SaSession;
 import cn.dev33.satoken.stp.StpLogic;
 import cn.dev33.satoken.stp.parameter.SaLoginParameter;
-import com.aiplatform.foundation.kernel.tenant.TenantId;
+import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
 import com.aiplatform.foundation.security.identity.AccessChannel;
 import com.aiplatform.foundation.security.identity.CredentialType;
 import com.aiplatform.foundation.security.identity.MembershipId;

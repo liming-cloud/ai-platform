@@ -1,6 +1,6 @@
 package com.aiplatform.foundation.knowledgedata.domain.model;
 
-import com.aiplatform.foundation.kernel.tenant.TenantId;
+import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
 import com.aiplatform.foundation.security.identity.MembershipId;
 import java.time.Instant;
 import java.util.Objects;

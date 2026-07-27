@@ -1,6 +1,6 @@
 package com.aiplatform.foundation.trustedquery.api.operations;
 
-import com.aiplatform.foundation.kernel.tenant.TenantId;
+import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
 import java.time.Instant;
 import java.util.Objects;
 

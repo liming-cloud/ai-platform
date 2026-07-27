@@ -4,7 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import com.aiplatform.foundation.kernel.tenant.TenantId;
+import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
 import com.aiplatform.foundation.knowledgedata.application.content.ObjectStorageUnavailableException;
 import com.aiplatform.foundation.knowledgedata.application.content.TextContentIntegrityException;
 import com.aiplatform.foundation.knowledgedata.application.port.out.content.StagedTextContent;

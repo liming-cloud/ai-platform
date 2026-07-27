@@ -4,7 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.aiplatform.foundation.kernel.identifier.EntityIdGenerator;
+import com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator;
 import java.util.HashSet;
 import java.util.stream.LongStream;
 import org.junit.jupiter.api.Test;

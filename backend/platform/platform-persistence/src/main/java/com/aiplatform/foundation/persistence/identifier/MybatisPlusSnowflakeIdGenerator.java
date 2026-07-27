@@ -1,6 +1,6 @@
 package com.aiplatform.foundation.persistence.identifier;
 
-import com.aiplatform.foundation.kernel.identifier.EntityIdGenerator;
+import com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator;
 import com.baomidou.mybatisplus.core.incrementer.DefaultIdentifierGenerator;
 import com.baomidou.mybatisplus.core.incrementer.IdentifierGenerator;
 

@@ -22,7 +22,7 @@ import com.aiplatform.foundation.knowledgedata.application.port.out.content.Text
 import com.aiplatform.foundation.knowledgedata.application.port.out.content.TextContentStagingPort;
 import com.aiplatform.foundation.knowledgedata.application.port.out.datasource.TextDataSourceRepository;
 import com.aiplatform.foundation.knowledgedata.domain.model.TextContentReference;
-import com.aiplatform.foundation.kernel.identifier.EntityIdGenerator;
+import com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator;
 import com.aiplatform.foundation.objectstorage.minio.MinioTextContentObjectStorageAdapter;
 import com.aiplatform.foundation.modelruntime.api.catalog.PublishedEmbeddingDeploymentLookup;
 import io.minio.MinioClient;

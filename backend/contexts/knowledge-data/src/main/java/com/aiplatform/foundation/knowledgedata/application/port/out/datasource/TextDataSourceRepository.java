@@ -1,6 +1,6 @@
 package com.aiplatform.foundation.knowledgedata.application.port.out.datasource;
 
-import com.aiplatform.foundation.kernel.tenant.TenantId;
+import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
 import com.aiplatform.foundation.knowledgedata.domain.model.KnowledgeSpaceId;
 import com.aiplatform.foundation.knowledgedata.domain.model.DataSourceId;
 import com.aiplatform.foundation.knowledgedata.domain.model.TextDataSource;

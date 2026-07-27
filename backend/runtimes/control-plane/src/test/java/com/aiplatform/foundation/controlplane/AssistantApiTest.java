@@ -153,7 +153,7 @@ class AssistantApiTest {
         assertNotNull(publishReplay.getBody());
         assertEquals(published.getBody().id(), publishReplay.getBody().id());
         assertTrue(publishedVersions.find(
-                        com.aiplatform.foundation.kernel.tenant.TenantId.parse(
+                        com.aiplatform.foundation.shared.kernel.tenant.TenantId.parse(
                                 Long.toString(STORE)),
                         Long.parseLong(published.getBody().id()))
                 .isPresent());

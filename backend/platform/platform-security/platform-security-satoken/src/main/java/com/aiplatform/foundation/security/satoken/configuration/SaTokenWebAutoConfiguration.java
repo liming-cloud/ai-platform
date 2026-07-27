@@ -1,6 +1,6 @@
 package com.aiplatform.foundation.security.satoken.configuration;
 
-import com.aiplatform.foundation.kernel.identifier.EntityIdGenerator;
+import com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator;
 import com.aiplatform.foundation.security.satoken.web.SaTokenTrustedContextArgumentResolver;
 import com.aiplatform.foundation.security.session.AuthenticatedSessionGateway;
 import java.util.List;

@@ -1,6 +1,6 @@
 package com.aiplatform.foundation.modelruntime.application.catalog.deployment;
 
-import com.aiplatform.foundation.kernel.tenant.TenantId;
+import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
 import com.aiplatform.foundation.modelruntime.api.catalog.PublishedChatDeploymentLookup;
 import com.aiplatform.foundation.modelruntime.api.catalog.model.deployment.PublishedChatDeploymentSnapshot;
 import com.aiplatform.foundation.modelruntime.api.model.common.ModelType;

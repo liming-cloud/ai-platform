@@ -23,7 +23,7 @@ import com.aiplatform.foundation.assistantdelivery.domain.AssistantVersionId;
 import com.aiplatform.foundation.assistantdelivery.domain.AssistantVersionStatus;
 import com.aiplatform.foundation.assistantdelivery.domain.CitationPolicy;
 import com.aiplatform.foundation.assistantdelivery.domain.RefusalPolicy;
-import com.aiplatform.foundation.kernel.tenant.TenantId;
+import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
 import com.aiplatform.foundation.security.identity.MembershipId;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;

@@ -113,6 +113,7 @@
 | 证据 | 命令或评审 | 提交 | 结果 |
 | --- | --- | --- | --- |
 | 二次重构架构门禁红绿证据 | `project/evidence/WP-0009-architecture-guard-red-green.md` | 待提交 | 新增六项预期红灯后实现递减门禁，12 项门禁测试转绿 |
+| 共享基础与平台 Web | `project/evidence/WP-0009-shared-foundation.md` | 待提交 | 共享标记、统一异常、页码契约、Web 自动配置和分页拦截器顺序完成红绿验证 |
 
 ## 证据规则
 

@@ -2,7 +2,7 @@ package com.aiplatform.foundation.persistence.configuration;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.aiplatform.foundation.kernel.identifier.EntityIdGenerator;
+import com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator;
 import com.aiplatform.foundation.persistence.identifier.MybatisPlusSnowflakeIdGenerator;
 import com.baomidou.mybatisplus.core.incrementer.IdentifierGenerator;
 import com.baomidou.mybatisplus.extension.plugins.MybatisPlusInterceptor;
@@ -41,8 +41,14 @@ class PlatformPersistenceAutoConfigurationTest {
                     .extracting(item -> item.getClass().getSimpleName())
                     .containsExactly(
                             OptimisticLockerInnerInterceptor.class.getSimpleName(),
-                            PaginationInnerInterceptor.class.getSimpleName(),
-                            BlockAttackInnerInterceptor.class.getSimpleName());
+                            BlockAttackInnerInterceptor.class.getSimpleName(),
+                            PaginationInnerInterceptor.class.getSimpleName());
+            var pagination = (PaginationInnerInterceptor)
+                    interceptor.getInterceptors().getLast();
+            assertThat(pagination.getDbType()).isEqualTo(
+                    com.baomidou.mybatisplus.annotation.DbType.POSTGRE_SQL);
+            assertThat(pagination.getMaxLimit()).isEqualTo(100L);
+            assertThat(pagination.isOverflow()).isFalse();
         });
     }
 

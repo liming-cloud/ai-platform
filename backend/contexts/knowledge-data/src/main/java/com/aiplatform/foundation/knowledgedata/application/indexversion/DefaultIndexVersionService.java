@@ -16,7 +16,7 @@ import com.aiplatform.foundation.knowledgedata.domain.indexversion.IndexVersion;
 import com.aiplatform.foundation.knowledgedata.domain.indexversion.IndexVersionId;
 import com.aiplatform.foundation.knowledgedata.domain.indexversion.ParagraphWindowChunker;
 import com.aiplatform.foundation.knowledgedata.domain.model.KnowledgeSpaceId;
-import com.aiplatform.foundation.kernel.identifier.EntityIdGenerator;
+import com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator;
 import com.aiplatform.foundation.modelruntime.api.catalog.PublishedEmbeddingDeploymentLookup;
 import com.aiplatform.foundation.security.identity.PermissionCode;
 import com.aiplatform.foundation.security.identity.TrustedRequestContext;

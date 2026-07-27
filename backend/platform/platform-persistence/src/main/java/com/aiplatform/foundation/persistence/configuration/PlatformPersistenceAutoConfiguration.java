@@ -32,8 +32,11 @@ public class PlatformPersistenceAutoConfiguration {
     MybatisPlusInterceptor platformMybatisPlusInterceptor() {
         var interceptor = new MybatisPlusInterceptor();
         interceptor.addInnerInterceptor(new OptimisticLockerInnerInterceptor());
-        interceptor.addInnerInterceptor(new PaginationInnerInterceptor(DbType.POSTGRE_SQL));
         interceptor.addInnerInterceptor(new BlockAttackInnerInterceptor());
+        var pagination = new PaginationInnerInterceptor(DbType.POSTGRE_SQL);
+        pagination.setOverflow(false);
+        pagination.setMaxLimit(100L);
+        interceptor.addInnerInterceptor(pagination);
         return interceptor;
     }
 }

@@ -2,7 +2,7 @@ package com.aiplatform.foundation.knowledgedata.adapter.out.objectstorage;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import com.aiplatform.foundation.kernel.tenant.TenantId;
+import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
 import com.aiplatform.foundation.knowledgedata.application.content.ObjectStorageUnavailableException;
 import com.aiplatform.foundation.knowledgedata.application.port.out.content.StagedTextContent;
 import com.aiplatform.foundation.knowledgedata.application.port.out.content.TextContentStorageRequest;

@@ -1,6 +1,6 @@
 package com.aiplatform.foundation.knowledgedata.api.extension;
 
-import com.aiplatform.foundation.kernel.tenant.TenantId;
+import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
 import java.util.List;
 import java.util.Objects;
 

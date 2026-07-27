@@ -1,7 +1,7 @@
 package com.aiplatform.foundation.security.satoken.web;
 
-import com.aiplatform.foundation.kernel.identifier.EntityIdGenerator;
-import com.aiplatform.foundation.kernel.identifier.TraceIds;
+import com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator;
+import com.aiplatform.foundation.shared.kernel.identifier.TraceIds;
 import com.aiplatform.foundation.security.identity.TrustedRequestContext;
 import com.aiplatform.foundation.security.session.AuthenticatedSessionGateway;
 import com.aiplatform.foundation.security.web.BearerTokens;

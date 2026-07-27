@@ -1,6 +1,6 @@
 package com.aiplatform.foundation.modelruntime.application.runtime;
 
-import com.aiplatform.foundation.kernel.tenant.TenantId;
+import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
 import com.aiplatform.foundation.modelruntime.api.extension.ChatModelFactory;
 import com.aiplatform.foundation.modelruntime.api.extension.EmbeddingModelFactory;
 import com.aiplatform.foundation.modelruntime.api.invocation.ChatModelPort;

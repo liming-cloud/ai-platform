@@ -3,7 +3,7 @@ package com.aiplatform.foundation.trustedquery.application.run;
 import com.aiplatform.foundation.trustedquery.application.candidate.CandidateSearchPermissionDeniedException;
 import com.aiplatform.foundation.assistantdelivery.api.PublishedAssistantVersionLookup;
 import com.aiplatform.foundation.assistantdelivery.api.model.version.PublishedAssistantVersionSnapshot;
-import com.aiplatform.foundation.kernel.identifier.EntityIdGenerator;
+import com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator;
 import com.aiplatform.foundation.knowledgedata.api.extension.IndexCandidate;
 import com.aiplatform.foundation.knowledgedata.api.extension.IndexCandidateQuery;
 import com.aiplatform.foundation.knowledgedata.api.extension.IndexCandidateRetriever;

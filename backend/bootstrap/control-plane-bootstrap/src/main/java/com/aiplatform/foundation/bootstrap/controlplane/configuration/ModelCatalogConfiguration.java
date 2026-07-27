@@ -1,6 +1,6 @@
 package com.aiplatform.foundation.bootstrap.controlplane.configuration;
 
-import com.aiplatform.foundation.kernel.identifier.EntityIdGenerator;
+import com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator;
 import com.aiplatform.foundation.modelruntime.adapter.out.persistence.ModelDeploymentMapper;
 import com.aiplatform.foundation.modelruntime.adapter.out.persistence.PostgresModelDeploymentRepository;
 import com.aiplatform.foundation.modelruntime.adapter.out.persistence.PostgresProviderConnectionRepository;

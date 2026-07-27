@@ -3,7 +3,7 @@ package com.aiplatform.foundation.queryruntime;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.aiplatform.foundation.kernel.tenant.TenantId;
+import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
 import com.aiplatform.foundation.knowledgedata.api.ActiveIndexLookup;
 import com.aiplatform.foundation.knowledgedata.api.extension.IndexVector;
 import com.aiplatform.foundation.knowledgedata.api.extension.IndexVectorBatch;

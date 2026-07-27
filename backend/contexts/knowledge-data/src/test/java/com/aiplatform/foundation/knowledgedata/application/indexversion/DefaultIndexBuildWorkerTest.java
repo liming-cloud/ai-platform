@@ -5,7 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.aiplatform.foundation.kernel.tenant.TenantId;
+import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
 import com.aiplatform.foundation.knowledgedata.api.extension.IndexVectorBatch;
 import com.aiplatform.foundation.knowledgedata.application.port.out.index.IndexBuildCompletionPort;
 import com.aiplatform.foundation.knowledgedata.application.port.out.index.IndexBuildLease;

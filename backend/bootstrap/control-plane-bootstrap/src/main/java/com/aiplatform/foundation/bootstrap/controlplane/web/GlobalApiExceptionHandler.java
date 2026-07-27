@@ -1,7 +1,7 @@
 package com.aiplatform.foundation.bootstrap.controlplane.web;
 
-import com.aiplatform.foundation.kernel.identifier.EntityIdGenerator;
-import com.aiplatform.foundation.kernel.identifier.TraceIds;
+import com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator;
+import com.aiplatform.foundation.shared.kernel.identifier.TraceIds;
 import com.aiplatform.foundation.assistantdelivery.application.AssistantConcurrentModificationException;
 import com.aiplatform.foundation.assistantdelivery.application.AssistantIdempotencyConflictException;
 import com.aiplatform.foundation.assistantdelivery.application.AssistantNameConflictException;

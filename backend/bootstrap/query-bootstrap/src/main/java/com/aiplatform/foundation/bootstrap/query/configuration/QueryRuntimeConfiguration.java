@@ -7,7 +7,7 @@ import com.aiplatform.foundation.assistantdelivery.api.QueryAssistantCatalogUseC
 import com.aiplatform.foundation.assistantdelivery.application.DefaultQueryAssistantCatalogService;
 import com.aiplatform.foundation.assistantdelivery.application.DefaultPublishedAssistantVersionLookup;
 import com.aiplatform.foundation.assistantdelivery.application.port.out.AssistantRepository;
-import com.aiplatform.foundation.kernel.identifier.EntityIdGenerator;
+import com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator;
 import com.aiplatform.foundation.knowledgedata.adapter.out.persistence.index.IndexVersionMapper;
 import com.aiplatform.foundation.knowledgedata.adapter.out.persistence.index.PostgresIndexVersionRepository;
 import com.aiplatform.foundation.knowledgedata.api.ActiveIndexLookup;

@@ -1,7 +1,7 @@
 package com.aiplatform.foundation.organizationaccess.adapter.in.web;
 
-import com.aiplatform.foundation.kernel.identifier.EntityIdGenerator;
-import com.aiplatform.foundation.kernel.identifier.TraceIds;
+import com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator;
+import com.aiplatform.foundation.shared.kernel.identifier.TraceIds;
 import com.aiplatform.foundation.organizationaccess.api.PersonAuthenticationUseCase;
 import com.aiplatform.foundation.security.identity.AccessChannel;
 import com.aiplatform.foundation.organizationaccess.api.model.PersonLoginCommand;

@@ -1,7 +1,7 @@
 package com.aiplatform.foundation.knowledgedata.adapter.out.persistence.index;
 
-import com.aiplatform.foundation.kernel.identifier.EntityIdGenerator;
-import com.aiplatform.foundation.kernel.tenant.TenantId;
+import com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator;
+import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
 import com.aiplatform.foundation.knowledgedata.application.indexversion.IndexVersionConcurrentModificationException;
 import com.aiplatform.foundation.knowledgedata.application.indexversion.IndexVersionNotFoundException;
 import com.aiplatform.foundation.knowledgedata.application.port.out.index.IndexBuildLease;

@@ -4,7 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import com.aiplatform.foundation.kernel.tenant.TenantId;
+import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
 import com.aiplatform.foundation.modelruntime.api.model.common.ModelRuntimeSpecification;
 import com.aiplatform.foundation.modelruntime.api.model.common.ModelType;
 import com.aiplatform.foundation.modelruntime.api.model.provider.ProviderKind;

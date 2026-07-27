@@ -20,7 +20,7 @@ import com.aiplatform.foundation.assistantdelivery.domain.AssistantId;
 import com.aiplatform.foundation.assistantdelivery.domain.AssistantVersion;
 import com.aiplatform.foundation.assistantdelivery.domain.AssistantVersionId;
 import com.aiplatform.foundation.knowledgedata.api.ActiveIndexLookup;
-import com.aiplatform.foundation.kernel.identifier.EntityIdGenerator;
+import com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator;
 import com.aiplatform.foundation.modelruntime.api.catalog.PublishedChatDeploymentLookup;
 import com.aiplatform.foundation.security.identity.PermissionCode;
 import com.aiplatform.foundation.security.identity.TrustedRequestContext;

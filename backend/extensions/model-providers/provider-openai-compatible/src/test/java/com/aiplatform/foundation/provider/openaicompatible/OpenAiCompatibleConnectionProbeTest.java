@@ -4,7 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.aiplatform.foundation.kernel.tenant.TenantId;
+import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
 import com.aiplatform.foundation.modelruntime.api.model.common.ModelCapability;
 import com.aiplatform.foundation.modelruntime.api.model.provider.ProviderKind;
 import com.aiplatform.foundation.modelruntime.api.model.provider.ProviderProbeRequest;

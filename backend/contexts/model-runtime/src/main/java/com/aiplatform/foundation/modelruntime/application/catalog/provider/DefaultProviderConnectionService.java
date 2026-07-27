@@ -1,7 +1,7 @@
 package com.aiplatform.foundation.modelruntime.application.catalog.provider;
 
 import com.aiplatform.foundation.modelruntime.application.catalog.common.ModelCatalogPermissionDeniedException;
-import com.aiplatform.foundation.kernel.identifier.EntityIdGenerator;
+import com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator;
 import com.aiplatform.foundation.modelruntime.api.catalog.ProviderConnectionUseCase;
 import com.aiplatform.foundation.modelruntime.api.catalog.model.provider.CreateProviderConnectionCommand;
 import com.aiplatform.foundation.modelruntime.api.catalog.model.provider.CreateProviderConnectionResult;

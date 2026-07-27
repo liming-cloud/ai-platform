@@ -21,7 +21,7 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>platform-kernel</artifactId>
+            <artifactId>shared-kernel</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>

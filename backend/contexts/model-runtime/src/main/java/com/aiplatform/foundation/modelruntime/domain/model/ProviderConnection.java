@@ -1,6 +1,6 @@
 package com.aiplatform.foundation.modelruntime.domain.model;
 
-import com.aiplatform.foundation.kernel.tenant.TenantId;
+import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
 import com.aiplatform.foundation.modelruntime.api.model.provider.ProviderKind;
 import com.aiplatform.foundation.security.secret.SecretReference;
 import java.net.URI;

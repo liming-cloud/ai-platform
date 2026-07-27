@@ -1,6 +1,6 @@
 package com.aiplatform.foundation.knowledgedata.application.port.out.knowledge;
 
-import com.aiplatform.foundation.kernel.tenant.TenantId;
+import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
 
 /**
  * 知识空间持久化端口。

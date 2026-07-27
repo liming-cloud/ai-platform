@@ -1,6 +1,6 @@
 package com.aiplatform.foundation.trustedquery.adapter.out.persistence;
 
-import com.aiplatform.foundation.kernel.tenant.TenantId;
+import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
 import com.aiplatform.foundation.modelruntime.api.model.common.ModelUsage;
 import com.aiplatform.foundation.security.identity.MembershipId;
 import com.aiplatform.foundation.trustedquery.application.quota.QueryQuotaExceededException;

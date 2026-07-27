@@ -7,7 +7,7 @@ import com.aiplatform.foundation.assistantdelivery.api.QueryAssistantCatalogUseC
 import com.aiplatform.foundation.assistantdelivery.api.model.query.ListQueryAssistantsQuery;
 import com.aiplatform.foundation.assistantdelivery.api.model.query.QueryAssistantPage;
 import com.aiplatform.foundation.assistantdelivery.api.model.query.QueryAssistantView;
-import com.aiplatform.foundation.kernel.tenant.TenantId;
+import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
 import com.aiplatform.foundation.security.identity.AccessChannel;
 import com.aiplatform.foundation.security.identity.CredentialType;
 import com.aiplatform.foundation.security.identity.MembershipId;

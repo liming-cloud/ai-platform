@@ -1,6 +1,6 @@
 package com.aiplatform.foundation.security.identity;
 
-import com.aiplatform.foundation.kernel.tenant.TenantId;
+import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
 import java.util.Objects;
 import java.util.Set;
 

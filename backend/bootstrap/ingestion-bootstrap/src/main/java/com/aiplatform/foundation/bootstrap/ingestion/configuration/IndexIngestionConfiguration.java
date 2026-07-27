@@ -8,7 +8,7 @@ import com.aiplatform.foundation.knowledgedata.application.port.out.index.IndexB
 import com.aiplatform.foundation.knowledgedata.application.port.out.index.IndexBuildQueuePort;
 import com.aiplatform.foundation.knowledgedata.application.port.out.content.TextContentObjectStoragePort;
 import com.aiplatform.foundation.knowledgedata.domain.indexversion.ParagraphWindowChunker;
-import com.aiplatform.foundation.kernel.identifier.EntityIdGenerator;
+import com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator;
 import com.aiplatform.foundation.modelruntime.api.invocation.ModelRuntimeResolver;
 import com.aiplatform.foundation.objectstorage.minio.MinioTextContentObjectStorageAdapter;
 import com.aiplatform.foundation.vectorstore.pgvector.PgVectorIndexStore;

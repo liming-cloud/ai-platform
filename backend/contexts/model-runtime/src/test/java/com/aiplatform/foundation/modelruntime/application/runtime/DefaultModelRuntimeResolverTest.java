@@ -4,7 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import com.aiplatform.foundation.kernel.tenant.TenantId;
+import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
 import com.aiplatform.foundation.modelruntime.api.extension.ChatModelFactory;
 import com.aiplatform.foundation.modelruntime.api.invocation.ChatModelPort;
 import com.aiplatform.foundation.modelruntime.api.model.chat.ChatChunk;

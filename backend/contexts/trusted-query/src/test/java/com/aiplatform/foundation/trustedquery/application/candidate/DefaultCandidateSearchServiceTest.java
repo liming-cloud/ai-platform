@@ -3,7 +3,7 @@ package com.aiplatform.foundation.trustedquery.application.candidate;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import com.aiplatform.foundation.kernel.tenant.TenantId;
+import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
 import com.aiplatform.foundation.knowledgedata.api.ActiveIndexLookup;
 import com.aiplatform.foundation.knowledgedata.api.extension.IndexCandidate;
 import com.aiplatform.foundation.knowledgedata.api.extension.IndexCandidateQuery;

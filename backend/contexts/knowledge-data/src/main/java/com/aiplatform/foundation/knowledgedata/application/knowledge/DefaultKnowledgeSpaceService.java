@@ -10,7 +10,7 @@ import com.aiplatform.foundation.knowledgedata.application.port.out.knowledge.Kn
 import com.aiplatform.foundation.knowledgedata.application.port.out.knowledge.KnowledgeSpaceRepository;
 import com.aiplatform.foundation.knowledgedata.domain.model.KnowledgeSpace;
 import com.aiplatform.foundation.knowledgedata.domain.model.KnowledgeSpaceId;
-import com.aiplatform.foundation.kernel.identifier.EntityIdGenerator;
+import com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator;
 import com.aiplatform.foundation.security.identity.PermissionCode;
 import com.aiplatform.foundation.security.identity.TrustedRequestContext;
 import java.nio.charset.StandardCharsets;

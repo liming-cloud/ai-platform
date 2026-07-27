@@ -1,7 +1,7 @@
 package com.aiplatform.foundation.knowledgedata.adapter.out.persistence.datasource;
 
-import com.aiplatform.foundation.kernel.identifier.EntityIdGenerator;
-import com.aiplatform.foundation.kernel.tenant.TenantId;
+import com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator;
+import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
 import com.aiplatform.foundation.knowledgedata.application.datasource.DataSourceConcurrentModificationException;
 import com.aiplatform.foundation.knowledgedata.application.datasource.DataSourceNameConflictException;
 import com.aiplatform.foundation.knowledgedata.application.datasource.DataSourceNotFoundException;

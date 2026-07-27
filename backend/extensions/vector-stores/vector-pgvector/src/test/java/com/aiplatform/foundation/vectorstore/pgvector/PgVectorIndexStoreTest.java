@@ -6,7 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import com.aiplatform.foundation.knowledgedata.api.extension.IndexCandidateQuery;
 import com.aiplatform.foundation.knowledgedata.api.extension.IndexVector;
 import com.aiplatform.foundation.knowledgedata.api.extension.IndexVectorBatch;
-import com.aiplatform.foundation.kernel.tenant.TenantId;
+import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;

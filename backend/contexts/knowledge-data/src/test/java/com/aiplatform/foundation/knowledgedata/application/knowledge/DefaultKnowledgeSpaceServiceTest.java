@@ -4,7 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.aiplatform.foundation.kernel.tenant.TenantId;
+import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
 import com.aiplatform.foundation.knowledgedata.api.model.knowledge.CreateKnowledgeSpaceCommand;
 import com.aiplatform.foundation.knowledgedata.api.model.knowledge.ListKnowledgeSpacesQuery;
 import com.aiplatform.foundation.knowledgedata.application.port.out.knowledge.KnowledgeSpaceCreation;

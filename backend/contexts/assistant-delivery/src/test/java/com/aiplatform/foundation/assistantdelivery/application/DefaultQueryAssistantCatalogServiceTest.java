@@ -18,7 +18,7 @@ import com.aiplatform.foundation.assistantdelivery.domain.Assistant;
 import com.aiplatform.foundation.assistantdelivery.domain.AssistantId;
 import com.aiplatform.foundation.assistantdelivery.domain.AssistantVersion;
 import com.aiplatform.foundation.assistantdelivery.domain.AssistantVersionId;
-import com.aiplatform.foundation.kernel.tenant.TenantId;
+import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
 import com.aiplatform.foundation.security.identity.AccessChannel;
 import com.aiplatform.foundation.security.identity.CredentialType;
 import com.aiplatform.foundation.security.identity.MembershipId;

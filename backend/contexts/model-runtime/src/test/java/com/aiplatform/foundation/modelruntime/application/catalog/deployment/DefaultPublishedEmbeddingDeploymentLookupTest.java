@@ -5,7 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import com.aiplatform.foundation.kernel.tenant.TenantId;
+import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
 import com.aiplatform.foundation.modelruntime.api.model.common.ModelCapability;
 import com.aiplatform.foundation.modelruntime.api.model.common.ModelType;
 import com.aiplatform.foundation.modelruntime.application.port.out.ModelDeploymentRepository;

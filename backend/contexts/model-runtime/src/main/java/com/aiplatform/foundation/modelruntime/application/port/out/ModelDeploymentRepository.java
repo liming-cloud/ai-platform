@@ -1,6 +1,6 @@
 package com.aiplatform.foundation.modelruntime.application.port.out;
 
-import com.aiplatform.foundation.kernel.tenant.TenantId;
+import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
 import com.aiplatform.foundation.modelruntime.domain.model.ModelDeployment;
 import com.aiplatform.foundation.modelruntime.domain.model.ModelDeploymentId;
 import java.util.Optional;

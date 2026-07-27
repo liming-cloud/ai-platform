@@ -1,7 +1,7 @@
 package com.aiplatform.foundation.assistantdelivery.api;
 
 import com.aiplatform.foundation.assistantdelivery.api.model.version.PublishedAssistantVersionSnapshot;
-import com.aiplatform.foundation.kernel.tenant.TenantId;
+import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
 import java.util.Optional;
 
 /**

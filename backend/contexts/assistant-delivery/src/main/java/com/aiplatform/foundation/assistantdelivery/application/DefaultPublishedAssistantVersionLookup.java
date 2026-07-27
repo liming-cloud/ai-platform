@@ -5,7 +5,7 @@ import com.aiplatform.foundation.assistantdelivery.api.model.version.PublishedAs
 import com.aiplatform.foundation.assistantdelivery.application.port.out.AssistantRepository;
 import com.aiplatform.foundation.assistantdelivery.domain.AssistantVersionId;
 import com.aiplatform.foundation.assistantdelivery.domain.AssistantVersionStatus;
-import com.aiplatform.foundation.kernel.tenant.TenantId;
+import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
 import java.util.Objects;
 import java.util.Optional;
 

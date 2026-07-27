@@ -22,7 +22,7 @@ import com.aiplatform.foundation.assistantdelivery.domain.AssistantVersion;
 import com.aiplatform.foundation.assistantdelivery.domain.AssistantVersionId;
 import com.aiplatform.foundation.assistantdelivery.domain.CitationPolicy;
 import com.aiplatform.foundation.assistantdelivery.domain.RefusalPolicy;
-import com.aiplatform.foundation.kernel.tenant.TenantId;
+import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
 import com.aiplatform.foundation.knowledgedata.api.ActiveIndexLookup;
 import com.aiplatform.foundation.knowledgedata.api.model.index.ActiveIndexSnapshot;
 import com.aiplatform.foundation.modelruntime.api.catalog.PublishedChatDeploymentLookup;

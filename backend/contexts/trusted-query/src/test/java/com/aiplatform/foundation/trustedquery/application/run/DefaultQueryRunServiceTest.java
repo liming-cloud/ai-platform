@@ -11,7 +11,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import com.aiplatform.foundation.assistantdelivery.api.model.version.PublishedAssistantVersionSnapshot;
 import com.aiplatform.foundation.assistantdelivery.domain.CitationPolicy;
 import com.aiplatform.foundation.assistantdelivery.domain.RefusalPolicy;
-import com.aiplatform.foundation.kernel.tenant.TenantId;
+import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
 import com.aiplatform.foundation.knowledgedata.api.extension.IndexCandidate;
 import com.aiplatform.foundation.knowledgedata.api.extension.IndexCandidateQuery;
 import com.aiplatform.foundation.modelruntime.api.invocation.ChatModelPort;

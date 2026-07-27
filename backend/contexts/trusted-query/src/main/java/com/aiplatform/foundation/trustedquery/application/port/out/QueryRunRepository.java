@@ -1,6 +1,6 @@
 package com.aiplatform.foundation.trustedquery.application.port.out;
 
-import com.aiplatform.foundation.kernel.tenant.TenantId;
+import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
 import com.aiplatform.foundation.trustedquery.domain.QueryRun;
 import com.aiplatform.foundation.trustedquery.domain.QueryRunEvent;
 import com.aiplatform.foundation.trustedquery.domain.QueryRunId;

@@ -2,7 +2,7 @@ package com.aiplatform.foundation.modelruntime.application.catalog.deployment;
 
 import com.aiplatform.foundation.modelruntime.application.catalog.common.ModelCatalogPermissionDeniedException;
 import com.aiplatform.foundation.modelruntime.application.catalog.provider.ProviderConnectionNotFoundException;
-import com.aiplatform.foundation.kernel.identifier.EntityIdGenerator;
+import com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator;
 import com.aiplatform.foundation.modelruntime.api.catalog.ModelDeploymentUseCase;
 import com.aiplatform.foundation.modelruntime.api.catalog.model.deployment.CreateModelDeploymentCommand;
 import com.aiplatform.foundation.modelruntime.api.catalog.model.deployment.CreateModelDeploymentResult;

@@ -4,7 +4,7 @@ import com.aiplatform.foundation.modelruntime.api.model.common.ModelCapability;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import com.aiplatform.foundation.kernel.tenant.TenantId;
+import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
 import com.aiplatform.foundation.security.secret.SecretReference;
 import java.net.URI;
 import java.time.Duration;

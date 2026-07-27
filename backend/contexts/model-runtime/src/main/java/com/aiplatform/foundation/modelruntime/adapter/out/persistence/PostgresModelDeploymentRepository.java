@@ -1,6 +1,6 @@
 package com.aiplatform.foundation.modelruntime.adapter.out.persistence;
 
-import com.aiplatform.foundation.kernel.tenant.TenantId;
+import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
 import com.aiplatform.foundation.modelruntime.api.model.common.ModelCapability;
 import com.aiplatform.foundation.modelruntime.application.catalog.deployment.ModelDeploymentIdempotencyConflictException;
 import com.aiplatform.foundation.modelruntime.application.catalog.deployment.ModelDeploymentNameConflictException;
