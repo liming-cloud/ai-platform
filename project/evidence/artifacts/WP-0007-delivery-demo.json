@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "passed": true,
-  "gitCommit": "f88ae6493279b114a7238433d71c2103a2126d37",
+  "gitCommit": "fb4371ced1db8990f61fb1c9c6d0a595b6cec155",
   "initialBusinessFactCount": 0,
   "serviceCount": 8,
   "applicationEntryCount": 5,
@@ -177,9 +177,9 @@
     "publicProductionUse": false
   },
   "durations": {
-    "deploymentSeconds": 208,
-    "acceptanceSeconds": 35,
-    "totalSeconds": 245
+    "deploymentSeconds": 21,
+    "acceptanceSeconds": 37,
+    "totalSeconds": 61
   },
   "images": [
     {
@@ -203,31 +203,31 @@
     {
       "repository": "trusted-rag/console-web",
       "tag": "foundation-v1",
-      "contentId": "sha256:144774e44cbf18da3cffd6c7d6e9d978808518ded0b87974c1142c967e7f4a8d",
+      "contentId": "sha256:15f9f4b6f5ad826c822e179abe058988d791670981c5321805473ee63bdb46e9",
       "platform": "linux/arm64"
     },
     {
       "repository": "trusted-rag/control-plane",
       "tag": "foundation-v1",
-      "contentId": "sha256:953ed2a2fe07a311826f28558912c20dcf9dfc7310b3add409162349a4be7bab",
+      "contentId": "sha256:82aa8375b67eaf2cf3025c015e17ec799c39d05e8e824c5a88bb259a12ef3a32",
       "platform": "linux/arm64"
     },
     {
       "repository": "trusted-rag/ingestion-worker",
       "tag": "foundation-v1",
-      "contentId": "sha256:84aa20754cce3f08bb745df64a1b73f3822d4d3485214a201b236bbbd70dbd7c",
+      "contentId": "sha256:c001cd9544cdafda680d0cf415b1fb91146a3e971ad57f7662d535fe82ef174d",
       "platform": "linux/arm64"
     },
     {
       "repository": "trusted-rag/query-runtime",
       "tag": "foundation-v1",
-      "contentId": "sha256:d82c1fc17369103855434d6e5a653ce3a94b48d35b25e254dd22048f30f56c0a",
+      "contentId": "sha256:5c5a7ba4079f9433a2c8e98e64d51da948a3bf0752de5618c1356961fa433102",
       "platform": "linux/arm64"
     },
     {
       "repository": "trusted-rag/query-web",
       "tag": "foundation-v1",
-      "contentId": "sha256:20e6ec4c6955cf1e2d271b41f503dcd32f8ded32256c0ae7d83f0b38d495798f",
+      "contentId": "sha256:38f81eff554f49e9a2a01bd21f8f45a1912fa26654821042edb0ce1fcd663bb4",
       "platform": "linux/arm64"
     }
   ],

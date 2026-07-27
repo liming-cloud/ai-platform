@@ -121,6 +121,9 @@
 | 可信查询上下文迁移 | `project/evidence/WP-0009-trusted-query-context.md` | `3d3090cdf` | 经典四层、审计真实页码分页、统一异常、脱敏运营门面和查询自动配置通过纵向回归 |
 | 评测运维上下文迁移 | `project/evidence/WP-0009-evaluation-operations-context.md` | `49868ba71` | 最后一个上下文完成经典四层、统一异常和自主装配，六上下文旧目录文件归零 |
 | 持久化与启动模块收口 | `project/evidence/WP-0009-persistence-and-bootstrap.md` | `eb2fb1f49` 至 `bec76c94b` | 普通单表操作迁入 MyBatis-Plus、31 条复杂 SQL 全量登记、三个 bootstrap 独立可执行、runtimes 文件归零 |
+| 全量代码与门禁验证 | `project/evidence/WP-0009-full-validation.md` | `d025a141e` | 309 项后端、28 项前端及全部治理、架构和运维脚本测试通过 |
+| 容器交付与运维演练 | `project/evidence/WP-0009-delivery-drills.md` | `d554b1fa5`、`fb4371ced` | 空环境交付、固定评测、18 秒隔离恢复、40 次容量样本、四服务恢复和既有卷升级通过 |
+| 六维代码走查 | `project/evidence/WP-0009-code-review.md` | `d025a141e` | 正确性、安全、复杂度、性能、架构和测试质量问题全部修复，无未关闭高优先级问题 |
 
 ## 证据规则
 

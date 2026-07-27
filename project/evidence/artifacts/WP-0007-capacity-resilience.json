@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "passed": true,
-  "gitCommit": "e54cf35169b8c3f69ff8727c67905b526d713380",
+  "gitCommit": "d554b1fa52970c97c7129b4369ffa6a485c8688f",
   "capacity": {
     "passed": true,
     "modelType": "本地确定性对话与嵌入模型",
@@ -13,12 +13,12 @@
     "errorCount": 0,
     "errorTypes": {},
     "replayedCount": 0,
-    "p50Milliseconds": 37.219,
-    "p95Milliseconds": 65.884,
-    "p99Milliseconds": 71.711,
-    "maximumMilliseconds": 71.711,
+    "p50Milliseconds": 65.344,
+    "p95Milliseconds": 114.933,
+    "p99Milliseconds": 123.373,
+    "maximumMilliseconds": 123.373,
     "p95LimitMilliseconds": 1000,
-    "throughputPerSecond": 180.857,
+    "throughputPerSecond": 114.563,
     "minimumThroughputPerSecond": 5.0
   },
   "resilience": {
@@ -32,7 +32,7 @@
     "recoveryDurations": [
       {
         "service": "postgres",
-        "recoverySeconds": 1
+        "recoverySeconds": 0
       },
       {
         "service": "minio",
@@ -44,7 +44,7 @@
       },
       {
         "service": "ingestion-worker",
-        "recoverySeconds": 4
+        "recoverySeconds": 5
       }
     ],
     "postRestartQueryPassed": true
@@ -85,31 +85,31 @@
     {
       "repository": "trusted-rag/console-web",
       "tag": "foundation-v1",
-      "contentId": "sha256:55801e3629f435f281afb1c54eb672d5a1a64759a32cdbb88abc7f68d99bf0bb",
+      "contentId": "sha256:cdd6a0d74a77d4639c0f42c80b127cf30db69d0f5ee49f5aa1f80a3f43f22a08",
       "platform": "linux/arm64"
     },
     {
       "repository": "trusted-rag/control-plane",
       "tag": "foundation-v1",
-      "contentId": "sha256:c4ba381032857ec24a6095a354353776eff32b25af3913b8e1d5c7aeb8126f24",
+      "contentId": "sha256:b6af0a4969c901376a6fb3a765fc186c4bf15751fba10c6c837e36fc63e2914b",
       "platform": "linux/arm64"
     },
     {
       "repository": "trusted-rag/ingestion-worker",
       "tag": "foundation-v1",
-      "contentId": "sha256:543a46e33b6c64db3d7d7f6648f5cdf18f3a237bfb0f9dce2693defc9228bcd2",
+      "contentId": "sha256:809e758b1cbe7e9b532be06dca54eaa3d8c7f05029d3b747eb80cada396f011c",
       "platform": "linux/arm64"
     },
     {
       "repository": "trusted-rag/query-runtime",
       "tag": "foundation-v1",
-      "contentId": "sha256:c1c3aa5dc0a2b1a0f4113947ef9e45b22fd6419daa8215ea6ed0cbc07eeff174",
+      "contentId": "sha256:7ca2ab90ca9401d3f9a2769b259263a350a8db5e59e3ff7b047d95c94749df24",
       "platform": "linux/arm64"
     },
     {
       "repository": "trusted-rag/query-web",
       "tag": "foundation-v1",
-      "contentId": "sha256:6857653f65fdd1aa05e594b4ee8cc4cfb7fcc10ddcd9a1c09978ac4e1dc8667e",
+      "contentId": "sha256:239410be5a0b3308e672403134d8289aea32347ccb912fb6e1043d0044873fba",
       "platform": "linux/arm64"
     }
   ],

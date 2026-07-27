@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
   "passed": true,
-  "gitCommit": "e54cf35169b8c3f69ff8727c67905b526d713380",
+  "gitCommit": "fb4371ced1db8990f61fb1c9c6d0a595b6cec155",
   "upgradeType": "既有数据卷受控重部署",
-  "databaseBackupSha256": "1fdea0b37ea0166d4fc6c50730afb17d9173fb72ca25cedd7f7069ce1ea00417",
-  "factsBeforeSha256": "4885eb45c8a06e1f27271829772e5bbeeb96f6fd894b49f248257af8f09219c9",
-  "factsAfterSha256": "4885eb45c8a06e1f27271829772e5bbeeb96f6fd894b49f248257af8f09219c9",
+  "databaseBackupSha256": "a52bd2647abe08b7291871a9aa8966c378dfe6d825c548f2a08e2442c8e46e57",
+  "factsBeforeSha256": "f470dc84c78af40feba73595687f087a513d3f5b6c80f289a817d8234546974b",
+  "factsAfterSha256": "f470dc84c78af40feba73595687f087a513d3f5b6c80f289a817d8234546974b",
   "factsMatch": true,
   "migrationCountBefore": 14,
   "migrationCountAfter": 14,
@@ -172,35 +172,35 @@
     {
       "repository": "trusted-rag/console-web",
       "tag": "foundation-v1",
-      "contentId": "sha256:bfe22d22ad0fc4e2757623dd00839aa60752a7361f77c2a5493b84e28e43a697",
+      "contentId": "sha256:e5f1f561b7e53d0beb34ef9d19efa1eefac585010dee221dc140e5971b947995",
       "platform": "linux/arm64"
     },
     {
       "repository": "trusted-rag/control-plane",
       "tag": "foundation-v1",
-      "contentId": "sha256:997c357409069f7b36450010bbfe36a402ef3a05bdaf152c3c271275e87cd12b",
+      "contentId": "sha256:785fc6b4ecc6694adf43f7f2d29a331d8b00429262ae199dc75bd3d2089392c8",
       "platform": "linux/arm64"
     },
     {
       "repository": "trusted-rag/ingestion-worker",
       "tag": "foundation-v1",
-      "contentId": "sha256:4e7e18729c2898d98633df3239efe5d3e6be34aadc86c07a9be7497656e9b4cd",
+      "contentId": "sha256:c9baaf00511a0071588c9dcbfa21b3ac9eb158082feb6c7845ed854c6928dec1",
       "platform": "linux/arm64"
     },
     {
       "repository": "trusted-rag/query-runtime",
       "tag": "foundation-v1",
-      "contentId": "sha256:62641f613a286fe23216cee1d0e6f57f6cdd53c548259d85b15d225aaae3d4eb",
+      "contentId": "sha256:2527755f8ca35ee1fa5184a612c095513d7d2b0b6363b6862fb69fca2915e279",
       "platform": "linux/arm64"
     },
     {
       "repository": "trusted-rag/query-web",
       "tag": "foundation-v1",
-      "contentId": "sha256:e015b8260926a06ce5e506820b7f5278f9c65f23f114f1603d644fda750bfed0",
+      "contentId": "sha256:cb6c5eebe960e8c97221088a3fa638f0c4ab49eb775439c1eca254c83d3e3280",
       "platform": "linux/arm64"
     }
   ],
-  "durationSeconds": 42,
+  "durationSeconds": 50,
   "sourceEnvironmentHealthy": true,
   "rollbackBackupCreated": true,
   "rollbackBackupDeletedAfterSuccess": true,
