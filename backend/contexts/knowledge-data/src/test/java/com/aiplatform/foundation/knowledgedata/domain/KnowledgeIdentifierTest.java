@@ -3,9 +3,9 @@ package com.aiplatform.foundation.knowledgedata.domain;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import com.aiplatform.foundation.knowledgedata.domain.indexversion.IndexVersionId;
-import com.aiplatform.foundation.knowledgedata.domain.model.DataSourceId;
-import com.aiplatform.foundation.knowledgedata.domain.model.KnowledgeSpaceId;
+import com.aiplatform.foundation.knowledgedata.domain.indexversion.model.IndexVersionId;
+import com.aiplatform.foundation.knowledgedata.domain.datasource.model.DataSourceId;
+import com.aiplatform.foundation.knowledgedata.domain.knowledge.model.KnowledgeSpaceId;
 import org.junit.jupiter.api.Test;
 
 class KnowledgeIdentifierTest {

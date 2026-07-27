@@ -111,7 +111,7 @@ class KnowledgeSpaceApiTest {
         assertEquals("true", replayed.getHeaders().getFirst("Idempotency-Replayed"));
 
         var listed = http.exchange(
-                url("/api/v1/knowledge-spaces?limit=20"),
+                url("/api/v1/knowledge-spaces?pageNumber=1&pageSize=20"),
                 HttpMethod.GET,
                 new HttpEntity<>(authorized(token)),
                 SpacePage.class);
@@ -148,7 +148,7 @@ class KnowledgeSpaceApiTest {
 
         assertEquals(HttpStatus.FORBIDDEN, denied.getStatusCode());
         assertNotNull(denied.getBody());
-        assertEquals("ACCESS_DENIED", denied.getBody().code());
+        assertEquals("KNOWLEDGE_DATA.AUTHORIZATION.0001", denied.getBody().code());
         assertEquals(
                 0,
                 jdbc.queryForObject(
@@ -228,7 +228,14 @@ class KnowledgeSpaceApiTest {
             Instant createdAt) {
     }
 
-    private record SpacePage(List<SpaceResponse> items, String nextCursor) {
+    private record SpacePage(
+            List<SpaceResponse> items,
+            long pageNumber,
+            long pageSize,
+            long totalElements,
+            long totalPages,
+            boolean hasPrevious,
+            boolean hasNext) {
     }
 
     private record ApiError(

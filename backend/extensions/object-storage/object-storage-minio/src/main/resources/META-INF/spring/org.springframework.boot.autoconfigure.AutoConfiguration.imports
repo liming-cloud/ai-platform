@@ -1,0 +1,2 @@
+com.aiplatform.foundation.objectstorage.minio.autoconfigure.MinioKnowledgeDataAutoConfiguration
+com.aiplatform.foundation.objectstorage.minio.autoconfigure.MinioIngestionAutoConfiguration

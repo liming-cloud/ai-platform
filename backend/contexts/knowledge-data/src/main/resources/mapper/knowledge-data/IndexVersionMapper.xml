@@ -2,15 +2,15 @@
 <!DOCTYPE mapper
         PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="com.aiplatform.foundation.knowledgedata.adapter.out.persistence.index.IndexVersionMapper">
+<mapper namespace="com.aiplatform.foundation.knowledgedata.infrastructure.persistence.index.mapper.IndexVersionMapper">
 
-    <resultMap id="indexRequestRow" type="com.aiplatform.foundation.knowledgedata.adapter.out.persistence.index.IndexVersionRequestRow">
+    <resultMap id="indexRequestRow" type="com.aiplatform.foundation.knowledgedata.infrastructure.persistence.index.projection.IndexVersionRequestRow">
         <result column="request_fingerprint" property="requestFingerprint"/>
         <result column="knowledge_space_id" property="knowledgeSpaceId"/>
         <result column="index_version_id" property="indexVersionId"/>
     </resultMap>
 
-    <resultMap id="indexSourceRow" type="com.aiplatform.foundation.knowledgedata.adapter.out.persistence.index.IndexSourceRow">
+    <resultMap id="indexSourceRow" type="com.aiplatform.foundation.knowledgedata.infrastructure.persistence.index.projection.IndexSourceRow">
         <result column="data_source_id" property="dataSourceId"/>
         <result column="content_version" property="contentVersion"/>
         <result column="object_key" property="objectKey"/>
@@ -20,7 +20,7 @@
         <result column="content_created_at" property="contentCreatedAt"/>
     </resultMap>
 
-    <resultMap id="indexVersionRow" type="com.aiplatform.foundation.knowledgedata.adapter.out.persistence.index.IndexVersionRow">
+    <resultMap id="indexVersionRow" type="com.aiplatform.foundation.knowledgedata.infrastructure.persistence.index.projection.IndexVersionRow">
         <result column="tenant_id" property="tenantId"/>
         <result column="knowledge_space_id" property="knowledgeSpaceId"/>
         <result column="id" property="id"/>
@@ -41,7 +41,7 @@
         <result column="superseded_at" property="supersededAt"/>
     </resultMap>
 
-    <resultMap id="indexBuildJobRow" type="com.aiplatform.foundation.knowledgedata.adapter.out.persistence.index.IndexBuildJobRow">
+    <resultMap id="indexBuildJobRow" type="com.aiplatform.foundation.knowledgedata.infrastructure.persistence.index.projection.IndexBuildJobRow">
         <result column="tenant_id" property="tenantId"/>
         <result column="knowledge_space_id" property="knowledgeSpaceId"/>
         <result column="index_version_id" property="indexVersionId"/>
@@ -301,7 +301,7 @@
         ]]>
     </select>
 
-    <select id="findFirstPage" resultMap="indexVersionRow">
+    <select id="findPage" resultMap="indexVersionRow">
         <![CDATA[
         SELECT tenant_id::text AS tenant_id,
                knowledge_space_id::text AS knowledge_space_id,
@@ -325,36 +325,6 @@
         WHERE tenant_id = #{tenantId}
           AND knowledge_space_id = #{knowledgeSpaceId}
         ORDER BY created_at DESC, id DESC
-        LIMIT #{limit}
-        ]]>
-    </select>
-
-    <select id="findAfter" resultMap="indexVersionRow">
-        <![CDATA[
-        SELECT tenant_id::text AS tenant_id,
-               knowledge_space_id::text AS knowledge_space_id,
-               id::text AS id,
-               source_snapshot_digest,
-               chunk_policy,
-               embedding_deployment_id,
-               embedding_deployment_revision,
-               embedding_dimension,
-               status,
-               version,
-               build_digest,
-               chunk_count,
-               failure_code,
-               created_by::text AS created_by,
-               created_at,
-               ready_at,
-               activated_at,
-               superseded_at
-        FROM knowledge_data.index_version
-        WHERE tenant_id = #{tenantId}
-          AND knowledge_space_id = #{knowledgeSpaceId}
-          AND (created_at, id) < (#{createdAt}, #{id})
-        ORDER BY created_at DESC, id DESC
-        LIMIT #{limit}
         ]]>
     </select>
 

@@ -8,11 +8,7 @@ import com.aiplatform.foundation.assistantdelivery.application.DefaultQueryAssis
 import com.aiplatform.foundation.assistantdelivery.application.DefaultPublishedAssistantVersionLookup;
 import com.aiplatform.foundation.assistantdelivery.application.port.out.AssistantRepository;
 import com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator;
-import com.aiplatform.foundation.knowledgedata.adapter.out.persistence.index.IndexVersionMapper;
-import com.aiplatform.foundation.knowledgedata.adapter.out.persistence.index.PostgresIndexVersionRepository;
-import com.aiplatform.foundation.knowledgedata.api.ActiveIndexLookup;
-import com.aiplatform.foundation.knowledgedata.application.indexversion.DefaultActiveIndexLookup;
-import com.aiplatform.foundation.knowledgedata.application.port.out.index.IndexVersionRepository;
+import com.aiplatform.foundation.knowledgedata.application.indexversion.facade.ActiveIndexLookup;
 import com.aiplatform.foundation.modelruntime.adapter.out.persistence.ModelDeploymentMapper;
 import com.aiplatform.foundation.modelruntime.adapter.out.persistence.PostgresModelDeploymentRepository;
 import com.aiplatform.foundation.modelruntime.adapter.out.persistence.PostgresProviderConnectionRepository;
@@ -56,16 +52,10 @@ import org.springframework.transaction.PlatformTransactionManager;
         havingValue = "true")
 @MapperScan(basePackageClasses = {
     AssistantMapper.class,
-    IndexVersionMapper.class,
     ProviderConnectionMapper.class,
     QueryRunMapper.class
 })
 public class QueryRuntimeConfiguration {
-
-    @Bean
-    PgVectorIndexStore pgVectorIndexStore(JdbcTemplate jdbc) {
-        return new PgVectorIndexStore(jdbc);
-    }
 
     @Bean
     CandidateSearchUseCase candidateSearchUseCase(
@@ -76,18 +66,6 @@ public class QueryRuntimeConfiguration {
                 activeIndexes,
                 models,
                 candidates);
-    }
-
-    @Bean
-    IndexVersionRepository queryIndexVersionRepository(
-            IndexVersionMapper mapper,
-            PlatformTransactionManager transactions) {
-        return new PostgresIndexVersionRepository(mapper, transactions);
-    }
-
-    @Bean
-    ActiveIndexLookup queryActiveIndexLookup(IndexVersionRepository repository) {
-        return new DefaultActiveIndexLookup(repository);
     }
 
     @Bean

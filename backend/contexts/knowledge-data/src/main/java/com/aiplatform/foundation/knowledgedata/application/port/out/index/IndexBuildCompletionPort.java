@@ -1,6 +1,6 @@
 package com.aiplatform.foundation.knowledgedata.application.port.out.index;
 
-import com.aiplatform.foundation.knowledgedata.api.extension.IndexVectorBatch;
+import com.aiplatform.foundation.knowledgedata.application.indexversion.port.out.vector.IndexVectorBatch;
 import java.time.Instant;
 
 /**

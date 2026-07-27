@@ -1,10 +1,10 @@
 package com.aiplatform.foundation.vectorstore.pgvector;
 
-import com.aiplatform.foundation.knowledgedata.api.extension.IndexCandidate;
-import com.aiplatform.foundation.knowledgedata.api.extension.IndexCandidateQuery;
-import com.aiplatform.foundation.knowledgedata.api.extension.IndexCandidateRetriever;
-import com.aiplatform.foundation.knowledgedata.api.extension.IndexVectorBatch;
-import com.aiplatform.foundation.knowledgedata.api.extension.IndexVectorWriter;
+import com.aiplatform.foundation.knowledgedata.application.indexversion.port.out.vector.IndexCandidate;
+import com.aiplatform.foundation.knowledgedata.application.indexversion.port.out.vector.IndexCandidateQuery;
+import com.aiplatform.foundation.knowledgedata.application.indexversion.port.out.vector.IndexCandidateRetriever;
+import com.aiplatform.foundation.knowledgedata.application.indexversion.port.out.vector.IndexVectorBatch;
+import com.aiplatform.foundation.knowledgedata.application.indexversion.port.out.vector.IndexVectorWriter;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.ArrayList;

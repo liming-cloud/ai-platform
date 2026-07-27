@@ -7,7 +7,7 @@ import com.aiplatform.foundation.assistantdelivery.api.PublishedAssistantVersion
 import com.aiplatform.foundation.assistantdelivery.application.DefaultAssistantService;
 import com.aiplatform.foundation.assistantdelivery.application.DefaultPublishedAssistantVersionLookup;
 import com.aiplatform.foundation.assistantdelivery.application.port.out.AssistantRepository;
-import com.aiplatform.foundation.knowledgedata.api.ActiveIndexLookup;
+import com.aiplatform.foundation.knowledgedata.application.indexversion.facade.ActiveIndexLookup;
 import com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator;
 import com.aiplatform.foundation.modelruntime.api.catalog.PublishedChatDeploymentLookup;
 import java.time.Clock;

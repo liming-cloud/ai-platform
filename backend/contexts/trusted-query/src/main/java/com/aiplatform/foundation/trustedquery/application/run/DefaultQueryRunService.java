@@ -4,9 +4,9 @@ import com.aiplatform.foundation.trustedquery.application.candidate.CandidateSea
 import com.aiplatform.foundation.assistantdelivery.api.PublishedAssistantVersionLookup;
 import com.aiplatform.foundation.assistantdelivery.api.model.version.PublishedAssistantVersionSnapshot;
 import com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator;
-import com.aiplatform.foundation.knowledgedata.api.extension.IndexCandidate;
-import com.aiplatform.foundation.knowledgedata.api.extension.IndexCandidateQuery;
-import com.aiplatform.foundation.knowledgedata.api.extension.IndexCandidateRetriever;
+import com.aiplatform.foundation.knowledgedata.application.indexversion.port.out.vector.IndexCandidate;
+import com.aiplatform.foundation.knowledgedata.application.indexversion.port.out.vector.IndexCandidateQuery;
+import com.aiplatform.foundation.knowledgedata.application.indexversion.port.out.vector.IndexCandidateRetriever;
 import com.aiplatform.foundation.modelruntime.api.invocation.ModelRuntimeResolver;
 import com.aiplatform.foundation.modelruntime.api.model.chat.ChatDeploymentRef;
 import com.aiplatform.foundation.modelruntime.api.model.chat.ChatRequest;

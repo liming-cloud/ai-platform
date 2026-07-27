@@ -16,4 +16,11 @@ public class ApplicationException extends FoundationException {
     public ApplicationException(ErrorCode errorCode, Map<String, ?> details) {
         super(errorCode, details);
     }
+
+    public ApplicationException(
+            ErrorCode errorCode,
+            Map<String, ?> details,
+            Throwable cause) {
+        super(errorCode, details, cause);
+    }
 }

@@ -1,7 +1,7 @@
 package com.aiplatform.foundation.knowledgedata.application.port.out.index;
 
-import com.aiplatform.foundation.knowledgedata.domain.model.DataSourceId;
-import com.aiplatform.foundation.knowledgedata.domain.model.TextContentReference;
+import com.aiplatform.foundation.knowledgedata.domain.datasource.model.DataSourceId;
+import com.aiplatform.foundation.knowledgedata.domain.datasource.model.TextContentReference;
 import java.util.Objects;
 
 /**

@@ -1,6 +1,6 @@
 package com.aiplatform.foundation.trustedquery.application.run;
 
-import com.aiplatform.foundation.knowledgedata.api.extension.IndexCandidate;
+import com.aiplatform.foundation.knowledgedata.application.indexversion.port.out.vector.IndexCandidate;
 import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.Comparator;

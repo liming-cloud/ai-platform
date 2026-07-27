@@ -2,9 +2,9 @@
 <!DOCTYPE mapper
         PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="com.aiplatform.foundation.knowledgedata.adapter.out.persistence.datasource.TextDataSourceMapper">
+<mapper namespace="com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.mapper.TextDataSourceMapper">
 
-    <resultMap id="textDataSourceRow" type="com.aiplatform.foundation.knowledgedata.adapter.out.persistence.datasource.TextDataSourceRow">
+    <resultMap id="textDataSourceRow" type="com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.projection.TextDataSourceRow">
         <result column="tenant_id" property="tenantId"/>
         <result column="knowledge_space_id" property="knowledgeSpaceId"/>
         <result column="id" property="id"/>
@@ -17,7 +17,7 @@
         <result column="created_at" property="createdAt"/>
     </resultMap>
 
-    <resultMap id="findRequestResultMap" type="com.aiplatform.foundation.knowledgedata.adapter.out.persistence.datasource.TextDataSourceRequestRow">
+    <resultMap id="findRequestResultMap" type="com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.projection.TextDataSourceRequestRow">
         <result column="request_fingerprint" property="requestFingerprint"/>
         <result column="knowledge_space_id" property="knowledgeSpaceId"/>
         <result column="data_source_id" property="dataSourceId"/>
@@ -27,7 +27,7 @@
         <result column="result_published_content_version" property="resultPublishedContentVersion"/>
     </resultMap>
 
-    <resultMap id="findContentResultMap" type="com.aiplatform.foundation.knowledgedata.adapter.out.persistence.datasource.TextContentRow">
+    <resultMap id="findContentResultMap" type="com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.projection.TextContentRow">
         <result column="version" property="version"/>
         <result column="object_key" property="objectKey"/>
         <result column="sha256" property="sha256"/>
@@ -127,7 +127,7 @@
         ]]>
     </select>
 
-    <select id="findFirstPage" resultMap="textDataSourceRow">
+    <select id="findPage" resultMap="textDataSourceRow">
         <![CDATA[
         SELECT tenant_id::text AS tenant_id,
                knowledge_space_id::text AS knowledge_space_id,
@@ -143,28 +143,6 @@
         WHERE tenant_id = #{tenantId}
           AND knowledge_space_id = #{knowledgeSpaceId}
         ORDER BY created_at DESC, id DESC
-        LIMIT #{limit}
-        ]]>
-    </select>
-
-    <select id="findAfter" resultMap="textDataSourceRow">
-        <![CDATA[
-        SELECT tenant_id::text AS tenant_id,
-               knowledge_space_id::text AS knowledge_space_id,
-               id::text AS id,
-               name,
-               status,
-               version,
-               content_version,
-               published_content_version,
-               created_by::text AS created_by,
-               created_at
-        FROM knowledge_data.text_data_source
-        WHERE tenant_id = #{tenantId}
-          AND knowledge_space_id = #{knowledgeSpaceId}
-          AND (created_at, id) < (#{createdAt}, #{id})
-        ORDER BY created_at DESC, id DESC
-        LIMIT #{limit}
         ]]>
     </select>
 

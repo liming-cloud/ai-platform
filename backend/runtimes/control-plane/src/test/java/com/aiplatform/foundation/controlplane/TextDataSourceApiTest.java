@@ -8,7 +8,7 @@ import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
 import com.aiplatform.foundation.knowledgedata.application.port.out.content.TextContentObjectMetadata;
 import com.aiplatform.foundation.knowledgedata.application.port.out.content.TextContentObjectStoragePort;
 import com.aiplatform.foundation.knowledgedata.application.port.out.content.TextContentStorageRequest;
-import com.aiplatform.foundation.knowledgedata.domain.model.TextContentReference;
+import com.aiplatform.foundation.knowledgedata.domain.datasource.model.TextContentReference;
 import com.aiplatform.foundation.security.identity.AccessChannel;
 import com.aiplatform.foundation.security.identity.CredentialType;
 import com.aiplatform.foundation.security.identity.MembershipId;
@@ -170,7 +170,7 @@ class TextDataSourceApiTest {
 
         assertEquals(HttpStatus.FORBIDDEN, denied.getStatusCode());
         assertNotNull(denied.getBody());
-        assertEquals("ACCESS_DENIED", denied.getBody().code());
+        assertEquals("KNOWLEDGE_DATA.AUTHORIZATION.0001", denied.getBody().code());
         assertEquals(
                 0,
                 jdbc.queryForObject(
@@ -288,7 +288,7 @@ class TextDataSourceApiTest {
 
         assertEquals(HttpStatus.BAD_GATEWAY, response.getStatusCode());
         assertNotNull(response.getBody());
-        assertEquals("TEXT_CONTENT_INTEGRITY_FAILURE", response.getBody().code());
+        assertEquals("KNOWLEDGE_DATA.DEPENDENCY_RESPONSE.0001", response.getBody().code());
         assertEquals(
                 "CONTENT_READY",
                 jdbc.queryForObject(
@@ -362,7 +362,8 @@ class TextDataSourceApiTest {
 
     private SourcePage list(String token, String knowledgeSpaceId) {
         var response = http.exchange(
-                url("/api/v1/data-sources?knowledgeSpaceId=" + knowledgeSpaceId),
+                url("/api/v1/data-sources?knowledgeSpaceId=" + knowledgeSpaceId
+                        + "&pageNumber=1&pageSize=20"),
                 HttpMethod.GET,
                 new HttpEntity<>(authorized(token)),
                 SourcePage.class);
@@ -411,7 +412,14 @@ class TextDataSourceApiTest {
             Instant createdAt) {
     }
 
-    private record SourcePage(List<SourceResponse> items, String nextCursor) {
+    private record SourcePage(
+            List<SourceResponse> items,
+            long pageNumber,
+            long pageSize,
+            long totalElements,
+            long totalPages,
+            boolean hasPrevious,
+            boolean hasNext) {
     }
 
     private record ApiError(

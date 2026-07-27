@@ -14,23 +14,6 @@ import com.aiplatform.foundation.assistantdelivery.application.AssistantVersionQ
 import com.aiplatform.foundation.assistantdelivery.domain.AssistantVersionStateException;
 import com.aiplatform.foundation.evaluationoperations.domain.authorization.OperationsPermissionDeniedException;
 import com.aiplatform.foundation.security.session.InvalidAuthenticatedSessionException;
-import com.aiplatform.foundation.knowledgedata.application.datasource.DataSourceConcurrentModificationException;
-import com.aiplatform.foundation.knowledgedata.application.datasource.DataSourceNameConflictException;
-import com.aiplatform.foundation.knowledgedata.application.datasource.DataSourceNotFoundException;
-import com.aiplatform.foundation.knowledgedata.application.datasource.DataSourceQuotaExceededException;
-import com.aiplatform.foundation.knowledgedata.application.content.InvalidTextContentException;
-import com.aiplatform.foundation.knowledgedata.application.content.ObjectStorageUnavailableException;
-import com.aiplatform.foundation.knowledgedata.application.content.TextContentIntegrityException;
-import com.aiplatform.foundation.knowledgedata.application.content.TextContentProcessingException;
-import com.aiplatform.foundation.knowledgedata.application.knowledge.IdempotencyConflictException;
-import com.aiplatform.foundation.knowledgedata.application.knowledge.KnowledgePermissionDeniedException;
-import com.aiplatform.foundation.knowledgedata.application.knowledge.KnowledgeSpaceNameConflictException;
-import com.aiplatform.foundation.knowledgedata.application.knowledge.KnowledgeSpaceQuotaExceededException;
-import com.aiplatform.foundation.knowledgedata.application.indexversion.IndexEmbeddingDeploymentUnavailableException;
-import com.aiplatform.foundation.knowledgedata.application.indexversion.IndexVersionConcurrentModificationException;
-import com.aiplatform.foundation.knowledgedata.application.indexversion.IndexVersionNotFoundException;
-import com.aiplatform.foundation.knowledgedata.application.indexversion.NoPublishedSourceException;
-import com.aiplatform.foundation.knowledgedata.domain.model.DataSourceStateException;
 import com.aiplatform.foundation.modelruntime.application.catalog.common.ModelCatalogPermissionDeniedException;
 import com.aiplatform.foundation.modelruntime.application.catalog.deployment.ModelDeploymentConcurrentModificationException;
 import com.aiplatform.foundation.modelruntime.application.catalog.deployment.ModelDeploymentIdempotencyConflictException;
@@ -74,11 +57,6 @@ public class GlobalApiExceptionHandler {
     @ExceptionHandler(InvalidAuthenticatedSessionException.class)
     ResponseEntity<ApiErrorResponse> invalidSession() {
         return error(HttpStatus.UNAUTHORIZED, "AUTHENTICATION_REQUIRED", "需要有效会话");
-    }
-
-    @ExceptionHandler(KnowledgePermissionDeniedException.class)
-    ResponseEntity<ApiErrorResponse> accessDenied() {
-        return error(HttpStatus.FORBIDDEN, "ACCESS_DENIED", "没有执行该操作的权限");
     }
 
     @ExceptionHandler(ModelCatalogPermissionDeniedException.class)
@@ -158,14 +136,6 @@ public class GlobalApiExceptionHandler {
                 HttpStatus.TOO_MANY_REQUESTS,
                 "ASSISTANT_VERSION_QUOTA_EXCEEDED",
                 "助手版本数量已经达到配额");
-    }
-
-    @ExceptionHandler(IdempotencyConflictException.class)
-    ResponseEntity<ApiErrorResponse> idempotencyConflict() {
-        return error(
-                HttpStatus.CONFLICT,
-                "IDEMPOTENCY_CONFLICT",
-                "幂等键已经用于不同请求");
     }
 
     @ExceptionHandler(ProviderConnectionIdempotencyConflictException.class)
@@ -256,120 +226,6 @@ public class GlobalApiExceptionHandler {
                 HttpStatus.TOO_MANY_REQUESTS,
                 "MODEL_DEPLOYMENT_QUOTA_EXCEEDED",
                 "模型部署数量已经达到租户配额");
-    }
-
-    @ExceptionHandler(KnowledgeSpaceNameConflictException.class)
-    ResponseEntity<ApiErrorResponse> knowledgeSpaceNameConflict() {
-        return error(
-                HttpStatus.CONFLICT,
-                "KNOWLEDGE_SPACE_NAME_CONFLICT",
-                "当前租户已经存在同名知识空间");
-    }
-
-    @ExceptionHandler(KnowledgeSpaceQuotaExceededException.class)
-    ResponseEntity<ApiErrorResponse> knowledgeSpaceQuotaExceeded() {
-        return error(
-                HttpStatus.TOO_MANY_REQUESTS,
-                "KNOWLEDGE_SPACE_QUOTA_EXCEEDED",
-                "知识空间数量已经达到租户配额");
-    }
-
-    @ExceptionHandler(DataSourceNotFoundException.class)
-    ResponseEntity<ApiErrorResponse> dataSourceNotFound() {
-        return error(HttpStatus.NOT_FOUND, "RESOURCE_NOT_FOUND", "目标资源不存在");
-    }
-
-    @ExceptionHandler(DataSourceNameConflictException.class)
-    ResponseEntity<ApiErrorResponse> dataSourceNameConflict() {
-        return error(
-                HttpStatus.CONFLICT,
-                "DATA_SOURCE_NAME_CONFLICT",
-                "当前知识空间已经存在同名数据源");
-    }
-
-    @ExceptionHandler(DataSourceQuotaExceededException.class)
-    ResponseEntity<ApiErrorResponse> dataSourceQuotaExceeded() {
-        return error(
-                HttpStatus.TOO_MANY_REQUESTS,
-                "DATA_SOURCE_QUOTA_EXCEEDED",
-                "数据源数量已经达到租户配额");
-    }
-
-    @ExceptionHandler(DataSourceConcurrentModificationException.class)
-    ResponseEntity<ApiErrorResponse> dataSourceVersionConflict() {
-        return error(
-                HttpStatus.CONFLICT,
-                "DATA_SOURCE_VERSION_CONFLICT",
-                "数据源版本已经变化");
-    }
-
-    @ExceptionHandler(DataSourceStateException.class)
-    ResponseEntity<ApiErrorResponse> dataSourceStateConflict() {
-        return error(
-                HttpStatus.CONFLICT,
-                "DATA_SOURCE_STATE_CONFLICT",
-                "数据源当前状态不允许该操作");
-    }
-
-    @ExceptionHandler(IndexVersionNotFoundException.class)
-    ResponseEntity<ApiErrorResponse> indexVersionNotFound() {
-        return error(HttpStatus.NOT_FOUND, "RESOURCE_NOT_FOUND", "目标资源不存在");
-    }
-
-    @ExceptionHandler(IndexVersionConcurrentModificationException.class)
-    ResponseEntity<ApiErrorResponse> indexVersionConflict() {
-        return error(
-                HttpStatus.CONFLICT,
-                "INDEX_VERSION_CONFLICT",
-                "索引版本状态或修订已经变化");
-    }
-
-    @ExceptionHandler(IndexEmbeddingDeploymentUnavailableException.class)
-    ResponseEntity<ApiErrorResponse> indexEmbeddingDeploymentUnavailable() {
-        return error(
-                HttpStatus.CONFLICT,
-                "EMBEDDING_DEPLOYMENT_UNAVAILABLE",
-                "索引只能使用当前租户已发布的嵌入部署");
-    }
-
-    @ExceptionHandler(NoPublishedSourceException.class)
-    ResponseEntity<ApiErrorResponse> noPublishedSource() {
-        return error(
-                HttpStatus.CONFLICT,
-                "NO_PUBLISHED_SOURCE",
-                "知识空间没有可构建索引的已发布内容");
-    }
-
-    @ExceptionHandler(InvalidTextContentException.class)
-    ResponseEntity<ApiErrorResponse> invalidTextContent() {
-        return error(
-                HttpStatus.BAD_REQUEST,
-                "INVALID_TEXT_CONTENT",
-                "文本内容不符合上传要求");
-    }
-
-    @ExceptionHandler(ObjectStorageUnavailableException.class)
-    ResponseEntity<ApiErrorResponse> objectStorageUnavailable() {
-        return error(
-                HttpStatus.SERVICE_UNAVAILABLE,
-                "OBJECT_STORAGE_UNAVAILABLE",
-                "对象存储当前不可用");
-    }
-
-    @ExceptionHandler(TextContentIntegrityException.class)
-    ResponseEntity<ApiErrorResponse> textContentIntegrityFailure() {
-        return error(
-                HttpStatus.BAD_GATEWAY,
-                "TEXT_CONTENT_INTEGRITY_FAILURE",
-                "文本内容完整性核验失败");
-    }
-
-    @ExceptionHandler(TextContentProcessingException.class)
-    ResponseEntity<ApiErrorResponse> textContentProcessingFailure() {
-        return error(
-                HttpStatus.SERVICE_UNAVAILABLE,
-                "TEXT_CONTENT_PROCESSING_FAILURE",
-                "文本内容处理暂时失败");
     }
 
     @ExceptionHandler({

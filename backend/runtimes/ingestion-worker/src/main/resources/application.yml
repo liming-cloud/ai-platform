@@ -7,6 +7,12 @@ spring:
     enabled: false
 
 foundation:
+  knowledge-data:
+    persistence:
+      enabled: true
+  vector-store:
+    pgvector:
+      enabled: true
   persistence:
     snowflake:
       worker-id: ${FOUNDATION_SNOWFLAKE_WORKER_ID}

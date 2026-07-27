@@ -100,6 +100,16 @@ export interface CursorPage<T> {
   nextCursor: string | null;
 }
 
+export interface PageResult<T> {
+  items: T[];
+  pageNumber: number;
+  pageSize: number;
+  totalElements: number;
+  totalPages: number;
+  hasPrevious: boolean;
+  hasNext: boolean;
+}
+
 interface ApiErrorBody {
   code: string;
   message: string;
@@ -176,9 +186,12 @@ export class ControlPlaneClient {
     );
   }
 
-  async listKnowledgeSpaces(): Promise<CursorPage<KnowledgeSpace>> {
-    return this.request<CursorPage<KnowledgeSpace>>(
-      "/knowledge-spaces?limit=20",
+  async listKnowledgeSpaces(
+    pageNumber = 1,
+    pageSize = 20,
+  ): Promise<PageResult<KnowledgeSpace>> {
+    return this.request<PageResult<KnowledgeSpace>>(
+      `/knowledge-spaces?pageNumber=${pageNumber}&pageSize=${pageSize}`,
     );
   }
 
@@ -268,9 +281,11 @@ export class ControlPlaneClient {
 
   async listIndexVersions(
     knowledgeSpaceId: string,
-  ): Promise<CursorPage<IndexVersion>> {
-    return this.request<CursorPage<IndexVersion>>(
-      `/knowledge-spaces/${encodeURIComponent(knowledgeSpaceId)}/index-versions?limit=20`,
+    pageNumber = 1,
+    pageSize = 20,
+  ): Promise<PageResult<IndexVersion>> {
+    return this.request<PageResult<IndexVersion>>(
+      `/knowledge-spaces/${encodeURIComponent(knowledgeSpaceId)}/index-versions?pageNumber=${pageNumber}&pageSize=${pageSize}`,
     );
   }
 

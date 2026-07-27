@@ -39,6 +39,9 @@ foundation:
   evaluation-operations:
     enabled: true
   knowledge-data:
+    enabled: true
+    persistence:
+      enabled: true
     object-storage:
       enabled: false
   query:

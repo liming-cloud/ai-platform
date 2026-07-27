@@ -4,10 +4,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
-import com.aiplatform.foundation.knowledgedata.api.ActiveIndexLookup;
-import com.aiplatform.foundation.knowledgedata.api.extension.IndexVector;
-import com.aiplatform.foundation.knowledgedata.api.extension.IndexVectorBatch;
-import com.aiplatform.foundation.knowledgedata.api.model.index.ActiveIndexSnapshot;
+import com.aiplatform.foundation.knowledgedata.application.indexversion.facade.ActiveIndexLookup;
+import com.aiplatform.foundation.knowledgedata.application.indexversion.port.out.vector.IndexVector;
+import com.aiplatform.foundation.knowledgedata.application.indexversion.port.out.vector.IndexVectorBatch;
+import com.aiplatform.foundation.knowledgedata.application.indexversion.dto.ActiveIndexSnapshot;
 import com.aiplatform.foundation.modelruntime.api.invocation.ChatModelPort;
 import com.aiplatform.foundation.modelruntime.api.invocation.EmbeddingModelPort;
 import com.aiplatform.foundation.modelruntime.api.invocation.ModelRuntimeResolver;

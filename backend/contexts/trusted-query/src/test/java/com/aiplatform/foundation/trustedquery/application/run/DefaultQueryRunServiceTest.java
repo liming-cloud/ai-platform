@@ -12,8 +12,8 @@ import com.aiplatform.foundation.assistantdelivery.api.model.version.PublishedAs
 import com.aiplatform.foundation.assistantdelivery.domain.CitationPolicy;
 import com.aiplatform.foundation.assistantdelivery.domain.RefusalPolicy;
 import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
-import com.aiplatform.foundation.knowledgedata.api.extension.IndexCandidate;
-import com.aiplatform.foundation.knowledgedata.api.extension.IndexCandidateQuery;
+import com.aiplatform.foundation.knowledgedata.application.indexversion.port.out.vector.IndexCandidate;
+import com.aiplatform.foundation.knowledgedata.application.indexversion.port.out.vector.IndexCandidateQuery;
 import com.aiplatform.foundation.modelruntime.api.invocation.ChatModelPort;
 import com.aiplatform.foundation.modelruntime.api.invocation.ModelRuntimeResolver;
 import com.aiplatform.foundation.modelruntime.api.model.chat.ChatChunk;

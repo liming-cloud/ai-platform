@@ -3,9 +3,9 @@ package com.aiplatform.foundation.vectorstore.pgvector;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.aiplatform.foundation.knowledgedata.api.extension.IndexCandidateQuery;
-import com.aiplatform.foundation.knowledgedata.api.extension.IndexVector;
-import com.aiplatform.foundation.knowledgedata.api.extension.IndexVectorBatch;
+import com.aiplatform.foundation.knowledgedata.application.indexversion.port.out.vector.IndexCandidateQuery;
+import com.aiplatform.foundation.knowledgedata.application.indexversion.port.out.vector.IndexVector;
+import com.aiplatform.foundation.knowledgedata.application.indexversion.port.out.vector.IndexVectorBatch;
 import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
 import java.time.Instant;
 import java.time.ZoneOffset;

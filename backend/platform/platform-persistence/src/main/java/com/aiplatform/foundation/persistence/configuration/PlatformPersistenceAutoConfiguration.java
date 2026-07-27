@@ -1,6 +1,7 @@
 package com.aiplatform.foundation.persistence.configuration;
 
 import com.aiplatform.foundation.persistence.identifier.MybatisPlusSnowflakeIdGenerator;
+import com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator;
 import com.baomidou.mybatisplus.annotation.DbType;
 import com.baomidou.mybatisplus.extension.plugins.MybatisPlusInterceptor;
 import com.baomidou.mybatisplus.extension.plugins.inner.BlockAttackInnerInterceptor;
@@ -19,7 +20,7 @@ import org.springframework.context.annotation.Bean;
 public class PlatformPersistenceAutoConfiguration {
 
     @Bean
-    @ConditionalOnMissingBean
+    @ConditionalOnMissingBean(EntityIdGenerator.class)
     MybatisPlusSnowflakeIdGenerator platformSnowflakeIdGenerator(
             PlatformPersistenceProperties properties) {
         return new MybatisPlusSnowflakeIdGenerator(

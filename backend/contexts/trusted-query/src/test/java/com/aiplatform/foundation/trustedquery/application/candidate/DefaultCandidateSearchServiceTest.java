@@ -4,10 +4,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
-import com.aiplatform.foundation.knowledgedata.api.ActiveIndexLookup;
-import com.aiplatform.foundation.knowledgedata.api.extension.IndexCandidate;
-import com.aiplatform.foundation.knowledgedata.api.extension.IndexCandidateQuery;
-import com.aiplatform.foundation.knowledgedata.api.model.index.ActiveIndexSnapshot;
+import com.aiplatform.foundation.knowledgedata.application.indexversion.facade.ActiveIndexLookup;
+import com.aiplatform.foundation.knowledgedata.application.indexversion.port.out.vector.IndexCandidate;
+import com.aiplatform.foundation.knowledgedata.application.indexversion.port.out.vector.IndexCandidateQuery;
+import com.aiplatform.foundation.knowledgedata.application.indexversion.dto.ActiveIndexSnapshot;
 import com.aiplatform.foundation.modelruntime.api.invocation.ChatModelPort;
 import com.aiplatform.foundation.modelruntime.api.invocation.EmbeddingModelPort;
 import com.aiplatform.foundation.modelruntime.api.invocation.ModelRuntimeResolver;
@@ -139,7 +139,7 @@ class DefaultCandidateSearchServiceTest {
     }
 
     private static final class RecordingRetriever
-            implements com.aiplatform.foundation.knowledgedata.api.extension.IndexCandidateRetriever {
+            implements com.aiplatform.foundation.knowledgedata.application.indexversion.port.out.vector.IndexCandidateRetriever {
 
         private IndexCandidateQuery query;
 

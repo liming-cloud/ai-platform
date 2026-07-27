@@ -1,11 +1,11 @@
 package com.aiplatform.foundation.objectstorage.minio;
 
-import com.aiplatform.foundation.knowledgedata.application.content.ObjectStorageUnavailableException;
-import com.aiplatform.foundation.knowledgedata.application.content.TextContentIntegrityException;
+import com.aiplatform.foundation.knowledgedata.application.datasource.exception.ObjectStorageUnavailableException;
+import com.aiplatform.foundation.knowledgedata.application.datasource.exception.TextContentIntegrityException;
 import com.aiplatform.foundation.knowledgedata.application.port.out.content.TextContentObjectMetadata;
 import com.aiplatform.foundation.knowledgedata.application.port.out.content.TextContentObjectStoragePort;
 import com.aiplatform.foundation.knowledgedata.application.port.out.content.TextContentStorageRequest;
-import com.aiplatform.foundation.knowledgedata.domain.model.TextContentReference;
+import com.aiplatform.foundation.knowledgedata.domain.datasource.model.TextContentReference;
 import io.minio.BucketExistsArgs;
 import io.minio.GetObjectArgs;
 import io.minio.MakeBucketArgs;

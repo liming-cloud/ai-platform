@@ -5,13 +5,13 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
-import com.aiplatform.foundation.knowledgedata.application.content.ObjectStorageUnavailableException;
-import com.aiplatform.foundation.knowledgedata.application.content.TextContentIntegrityException;
+import com.aiplatform.foundation.knowledgedata.application.datasource.exception.ObjectStorageUnavailableException;
+import com.aiplatform.foundation.knowledgedata.application.datasource.exception.TextContentIntegrityException;
 import com.aiplatform.foundation.knowledgedata.application.port.out.content.StagedTextContent;
 import com.aiplatform.foundation.knowledgedata.application.port.out.content.TextContentStorageRequest;
-import com.aiplatform.foundation.knowledgedata.domain.model.DataSourceId;
-import com.aiplatform.foundation.knowledgedata.domain.model.KnowledgeSpaceId;
-import com.aiplatform.foundation.knowledgedata.domain.model.TextContentReference;
+import com.aiplatform.foundation.knowledgedata.domain.datasource.model.DataSourceId;
+import com.aiplatform.foundation.knowledgedata.domain.knowledge.model.KnowledgeSpaceId;
+import com.aiplatform.foundation.knowledgedata.domain.datasource.model.TextContentReference;
 import io.minio.GetObjectArgs;
 import io.minio.MinioClient;
 import io.minio.PutObjectArgs;

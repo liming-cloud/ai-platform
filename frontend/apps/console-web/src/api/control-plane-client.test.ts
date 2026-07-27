@@ -137,7 +137,15 @@ describe("ControlPlaneClient", () => {
         headers: { "Content-Type": "application/json" },
       }),
       new Response(
-        JSON.stringify({ items: [indexVersion], nextCursor: null }),
+        JSON.stringify({
+          items: [indexVersion],
+          pageNumber: 1,
+          pageSize: 20,
+          totalElements: 1,
+          totalPages: 1,
+          hasPrevious: false,
+          hasNext: false,
+        }),
         { status: 200, headers: { "Content-Type": "application/json" } },
       ),
       new Response(
@@ -174,6 +182,7 @@ describe("ControlPlaneClient", () => {
     expect(requests[0]?.url).toContain(
       `/knowledge-spaces/${indexVersion.knowledgeSpaceId}/index-versions`,
     );
+    expect(requests[1]?.url).toContain("pageNumber=1&pageSize=20");
     expect(await requests[0]?.json()).toEqual({
       embeddingDeploymentId: indexVersion.embeddingDeploymentId,
     });

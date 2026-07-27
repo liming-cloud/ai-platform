@@ -1,8 +1,8 @@
 package com.aiplatform.foundation.trustedquery.application.candidate;
 
-import com.aiplatform.foundation.knowledgedata.api.ActiveIndexLookup;
-import com.aiplatform.foundation.knowledgedata.api.extension.IndexCandidateQuery;
-import com.aiplatform.foundation.knowledgedata.api.extension.IndexCandidateRetriever;
+import com.aiplatform.foundation.knowledgedata.application.indexversion.facade.ActiveIndexLookup;
+import com.aiplatform.foundation.knowledgedata.application.indexversion.port.out.vector.IndexCandidateQuery;
+import com.aiplatform.foundation.knowledgedata.application.indexversion.port.out.vector.IndexCandidateRetriever;
 import com.aiplatform.foundation.modelruntime.api.invocation.ModelRuntimeResolver;
 import com.aiplatform.foundation.modelruntime.api.model.embedding.EmbeddingDeploymentRef;
 import com.aiplatform.foundation.modelruntime.api.model.embedding.EmbeddingRequest;

@@ -1,6 +1,6 @@
 package com.aiplatform.foundation.knowledgedata.application.port.out.index;
 
-import com.aiplatform.foundation.knowledgedata.domain.indexversion.IndexVersion;
+import com.aiplatform.foundation.knowledgedata.domain.indexversion.model.IndexVersion;
 import java.util.List;
 import java.util.Objects;
 
