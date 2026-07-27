@@ -43,7 +43,11 @@ import org.springframework.transaction.PlatformTransactionManager;
         name = "foundation.knowledge-data.enabled",
         havingValue = "true",
         matchIfMissing = true)
-@MapperScan(basePackageClasses = KnowledgeSpaceMapper.class)
+@MapperScan(basePackageClasses = {
+    KnowledgeSpaceMapper.class,
+    TextDataSourceMapper.class,
+    IndexVersionMapper.class
+})
 public class KnowledgeDataConfiguration {
 
     @Bean
