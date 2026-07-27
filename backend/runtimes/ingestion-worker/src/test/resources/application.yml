@@ -1,0 +1,5 @@
+foundation:
+  persistence:
+    snowflake:
+      worker-id: 29
+      datacenter-id: 1

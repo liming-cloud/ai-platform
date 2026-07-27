@@ -1,5 +1,6 @@
 package com.aiplatform.foundation.queryruntime;
 
+import com.aiplatform.foundation.trustedquery.adapter.in.web.QueryRunController;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 

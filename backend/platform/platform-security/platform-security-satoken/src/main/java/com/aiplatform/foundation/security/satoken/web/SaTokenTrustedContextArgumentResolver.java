@@ -4,6 +4,7 @@ import com.aiplatform.foundation.kernel.identifier.EntityIdGenerator;
 import com.aiplatform.foundation.kernel.identifier.TraceIds;
 import com.aiplatform.foundation.security.identity.TrustedRequestContext;
 import com.aiplatform.foundation.security.session.AuthenticatedSessionGateway;
+import com.aiplatform.foundation.security.web.BearerTokens;
 import java.util.Objects;
 import org.springframework.core.MethodParameter;
 import org.springframework.http.HttpHeaders;

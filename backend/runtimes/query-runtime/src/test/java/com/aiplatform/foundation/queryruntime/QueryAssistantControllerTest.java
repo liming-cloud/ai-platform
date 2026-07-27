@@ -1,5 +1,6 @@
 package com.aiplatform.foundation.queryruntime;
 
+import com.aiplatform.foundation.trustedquery.adapter.in.web.QueryAssistantController;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.aiplatform.foundation.assistantdelivery.api.QueryAssistantCatalogUseCase;

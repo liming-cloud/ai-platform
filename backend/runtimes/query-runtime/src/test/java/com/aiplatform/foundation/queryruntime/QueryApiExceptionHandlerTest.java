@@ -1,5 +1,6 @@
 package com.aiplatform.foundation.queryruntime;
 
+import com.aiplatform.foundation.bootstrap.query.web.QueryApiExceptionHandler;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
