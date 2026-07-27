@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
+import com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator;
 import com.aiplatform.foundation.shared.contract.paging.PageQuery;
 import com.aiplatform.foundation.trustedquery.application.run.exception.QueryRunConcurrentModificationException;
 import com.aiplatform.foundation.trustedquery.application.run.exception.QueryRunIdempotencyConflictException;
@@ -19,6 +20,9 @@ import com.aiplatform.foundation.trustedquery.domain.query.model.QueryCitation;
 import com.aiplatform.foundation.trustedquery.domain.query.model.QueryModelUsage;
 import com.aiplatform.foundation.trustedquery.domain.query.model.QueryRequesterId;
 import com.aiplatform.foundation.trustedquery.infrastructure.persistence.query.mapper.QueryRunMapper;
+import com.aiplatform.foundation.trustedquery.infrastructure.persistence.query.mapper.QueryCitationMapper;
+import com.aiplatform.foundation.trustedquery.infrastructure.persistence.query.mapper.QueryRunEventMapper;
+import com.aiplatform.foundation.trustedquery.infrastructure.persistence.query.mapper.QueryRunRequestMapper;
 import com.aiplatform.foundation.trustedquery.domain.query.model.QueryRun;
 import com.aiplatform.foundation.trustedquery.domain.query.model.QueryRunId;
 import java.sql.Timestamp;
@@ -534,8 +538,23 @@ class PostgresQueryRunRepositoryTest {
         @Bean
         QueryRunRepository queryRunRepository(
                 QueryRunMapper mapper,
+                QueryRunRequestMapper requestMapper,
+                QueryCitationMapper citationMapper,
+                QueryRunEventMapper eventMapper,
+                EntityIdGenerator identifiers,
                 PlatformTransactionManager transactions) {
-            return new PostgresQueryRunRepository(mapper, transactions);
+            return new PostgresQueryRunRepository(
+                    mapper,
+                    requestMapper,
+                    citationMapper,
+                    eventMapper,
+                    identifiers,
+                    transactions);
+        }
+
+        @Bean
+        EntityIdGenerator entityIdGenerator() {
+            return IDENTIFIERS::incrementAndGet;
         }
 
         @Bean

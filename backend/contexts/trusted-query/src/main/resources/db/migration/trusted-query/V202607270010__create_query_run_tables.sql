@@ -15,7 +15,8 @@ CREATE TABLE trusted_query.query_run (
     version BIGINT NOT NULL,
     created_at TIMESTAMPTZ NOT NULL,
     completed_at TIMESTAMPTZ,
-    PRIMARY KEY (tenant_id, id),
+    PRIMARY KEY (id),
+    CONSTRAINT uk_query_run_tenant_id UNIQUE (tenant_id, id),
     CONSTRAINT fk_query_run_assistant_version
         FOREIGN KEY (tenant_id, assistant_version_id)
         REFERENCES assistant_delivery.assistant_version (tenant_id, id),
@@ -72,12 +73,14 @@ CREATE TABLE trusted_query.query_run (
 );
 
 CREATE TABLE trusted_query.query_run_request (
+    id BIGINT PRIMARY KEY,
     tenant_id BIGINT NOT NULL,
     idempotency_key_hash CHAR(64) NOT NULL,
     request_fingerprint CHAR(64) NOT NULL,
     query_run_id BIGINT NOT NULL,
     created_at TIMESTAMPTZ NOT NULL,
-    PRIMARY KEY (tenant_id, idempotency_key_hash),
+    CONSTRAINT uk_query_run_request_tenant_key
+        UNIQUE (tenant_id, idempotency_key_hash),
     CONSTRAINT fk_query_run_request_run
         FOREIGN KEY (tenant_id, query_run_id)
         REFERENCES trusted_query.query_run (tenant_id, id),
@@ -88,6 +91,7 @@ CREATE TABLE trusted_query.query_run_request (
 );
 
 CREATE TABLE trusted_query.query_citation (
+    id BIGINT PRIMARY KEY,
     tenant_id BIGINT NOT NULL,
     query_run_id BIGINT NOT NULL,
     sequence INTEGER NOT NULL,
@@ -97,7 +101,8 @@ CREATE TABLE trusted_query.query_citation (
     ordinal INTEGER NOT NULL,
     quote TEXT NOT NULL,
     score DOUBLE PRECISION NOT NULL,
-    PRIMARY KEY (tenant_id, query_run_id, sequence),
+    CONSTRAINT uk_query_citation_run_sequence
+        UNIQUE (tenant_id, query_run_id, sequence),
     CONSTRAINT fk_query_citation_run
         FOREIGN KEY (tenant_id, query_run_id)
         REFERENCES trusted_query.query_run (tenant_id, id),

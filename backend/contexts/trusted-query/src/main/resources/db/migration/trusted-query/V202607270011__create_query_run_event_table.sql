@@ -1,4 +1,5 @@
 CREATE TABLE trusted_query.query_run_event (
+    id BIGINT PRIMARY KEY,
     tenant_id BIGINT NOT NULL,
     query_run_id BIGINT NOT NULL,
     sequence BIGINT NOT NULL,
@@ -10,7 +11,8 @@ CREATE TABLE trusted_query.query_run_event (
     output_tokens INTEGER NOT NULL DEFAULT 0,
     total_tokens INTEGER NOT NULL DEFAULT 0,
     occurred_at TIMESTAMPTZ NOT NULL,
-    PRIMARY KEY (tenant_id, query_run_id, sequence),
+    CONSTRAINT uk_query_run_event_run_sequence
+        UNIQUE (tenant_id, query_run_id, sequence),
     CONSTRAINT fk_query_run_event_run
         FOREIGN KEY (tenant_id, query_run_id)
         REFERENCES trusted_query.query_run (tenant_id, id)
@@ -75,62 +77,3 @@ CREATE TABLE trusted_query.query_run_event (
             )
         )
 );
-
-INSERT INTO trusted_query.query_run_event (
-    tenant_id,
-    query_run_id,
-    sequence,
-    event_type,
-    status,
-    answer,
-    refusal_reason,
-    input_tokens,
-    output_tokens,
-    total_tokens,
-    occurred_at
-)
-SELECT
-    tenant_id,
-    id,
-    1,
-    'QUERY_STARTED',
-    'RUNNING',
-    NULL,
-    NULL,
-    0,
-    0,
-    0,
-    created_at
-FROM trusted_query.query_run;
-
-INSERT INTO trusted_query.query_run_event (
-    tenant_id,
-    query_run_id,
-    sequence,
-    event_type,
-    status,
-    answer,
-    refusal_reason,
-    input_tokens,
-    output_tokens,
-    total_tokens,
-    occurred_at
-)
-SELECT
-    tenant_id,
-    id,
-    2,
-    CASE status
-        WHEN 'ANSWERED' THEN 'QUERY_ANSWERED'
-        WHEN 'REFUSED' THEN 'QUERY_REFUSED'
-        ELSE 'QUERY_FAILED'
-    END,
-    status,
-    answer,
-    refusal_reason,
-    input_tokens,
-    output_tokens,
-    total_tokens,
-    completed_at
-FROM trusted_query.query_run
-WHERE status <> 'RUNNING';

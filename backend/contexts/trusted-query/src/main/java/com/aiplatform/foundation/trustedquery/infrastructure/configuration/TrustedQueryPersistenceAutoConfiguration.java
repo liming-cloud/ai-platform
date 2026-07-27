@@ -3,9 +3,13 @@ package com.aiplatform.foundation.trustedquery.infrastructure.configuration;
 import com.aiplatform.foundation.trustedquery.application.operations.facade.QueryOperationsFactSource;
 import com.aiplatform.foundation.trustedquery.domain.query.repository.QueryRunRepository;
 import com.aiplatform.foundation.trustedquery.infrastructure.persistence.query.mapper.QueryRunMapper;
+import com.aiplatform.foundation.trustedquery.infrastructure.persistence.query.mapper.QueryCitationMapper;
+import com.aiplatform.foundation.trustedquery.infrastructure.persistence.query.mapper.QueryRunEventMapper;
+import com.aiplatform.foundation.trustedquery.infrastructure.persistence.query.mapper.QueryRunRequestMapper;
 import com.aiplatform.foundation.trustedquery.infrastructure.persistence.query.repository.PostgresQueryOperationsFactSource;
 import com.aiplatform.foundation.trustedquery.infrastructure.persistence.query.repository.PostgresQueryRunRepository;
 import com.baomidou.mybatisplus.autoconfigure.MybatisPlusAutoConfiguration;
+import com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
@@ -26,8 +30,18 @@ public class TrustedQueryPersistenceAutoConfiguration {
     @ConditionalOnMissingBean
     QueryRunRepository queryRunRepository(
             QueryRunMapper mapper,
+            QueryRunRequestMapper requestMapper,
+            QueryCitationMapper citationMapper,
+            QueryRunEventMapper eventMapper,
+            EntityIdGenerator identifiers,
             PlatformTransactionManager transactions) {
-        return new PostgresQueryRunRepository(mapper, transactions);
+        return new PostgresQueryRunRepository(
+                mapper,
+                requestMapper,
+                citationMapper,
+                eventMapper,
+                identifiers,
+                transactions);
     }
 
     @Bean

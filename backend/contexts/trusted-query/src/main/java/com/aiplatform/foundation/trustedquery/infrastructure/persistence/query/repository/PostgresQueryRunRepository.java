@@ -1,9 +1,14 @@
 package com.aiplatform.foundation.trustedquery.infrastructure.persistence.query.repository;
 
 import com.aiplatform.foundation.trustedquery.infrastructure.persistence.query.mapper.QueryRunMapper;
-import com.aiplatform.foundation.trustedquery.infrastructure.persistence.query.projection.QueryCitationRow;
-import com.aiplatform.foundation.trustedquery.infrastructure.persistence.query.projection.QueryRunEventRow;
-import com.aiplatform.foundation.trustedquery.infrastructure.persistence.query.projection.QueryRunRow;
+import com.aiplatform.foundation.trustedquery.infrastructure.persistence.query.mapper.QueryCitationMapper;
+import com.aiplatform.foundation.trustedquery.infrastructure.persistence.query.mapper.QueryRunEventMapper;
+import com.aiplatform.foundation.trustedquery.infrastructure.persistence.query.mapper.QueryRunRequestMapper;
+import com.aiplatform.foundation.trustedquery.infrastructure.persistence.query.entity.QueryCitationEntity;
+import com.aiplatform.foundation.trustedquery.infrastructure.persistence.query.entity.QueryRunEntity;
+import com.aiplatform.foundation.trustedquery.infrastructure.persistence.query.entity.QueryRunEventEntity;
+import com.aiplatform.foundation.trustedquery.infrastructure.persistence.query.entity.QueryRunRequestEntity;
+import com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator;
 import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
 import com.aiplatform.foundation.trustedquery.application.quota.QueryQuotaExceededException;
 import com.aiplatform.foundation.trustedquery.application.quota.QueryQuotaLimitType;
@@ -23,6 +28,7 @@ import com.aiplatform.foundation.trustedquery.domain.query.model.QueryRunEvent;
 import com.aiplatform.foundation.trustedquery.domain.query.model.QueryRunEventType;
 import com.aiplatform.foundation.trustedquery.domain.query.model.QueryRunId;
 import com.aiplatform.foundation.trustedquery.domain.query.model.QueryRunStatus;
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -39,12 +45,30 @@ import org.springframework.transaction.support.TransactionTemplate;
 public final class PostgresQueryRunRepository implements QueryRunRepository {
 
     private final QueryRunMapper mapper;
+    private final QueryRunRequestMapper requestMapper;
+    private final QueryCitationMapper citationMapper;
+    private final QueryRunEventMapper eventMapper;
+    private final EntityIdGenerator identifiers;
     private final TransactionTemplate transactions;
 
     public PostgresQueryRunRepository(
             QueryRunMapper mapper,
+            QueryRunRequestMapper requestMapper,
+            QueryCitationMapper citationMapper,
+            QueryRunEventMapper eventMapper,
+            EntityIdGenerator identifiers,
             PlatformTransactionManager transactionManager) {
         this.mapper = Objects.requireNonNull(mapper, "查询运行映射器不能为空");
+        this.requestMapper = Objects.requireNonNull(
+                requestMapper,
+                "查询幂等请求映射器不能为空");
+        this.citationMapper = Objects.requireNonNull(
+                citationMapper,
+                "查询引用映射器不能为空");
+        this.eventMapper = Objects.requireNonNull(
+                eventMapper,
+                "查询事件映射器不能为空");
+        this.identifiers = Objects.requireNonNull(identifiers, "标识生成器不能为空");
         transactions = new TransactionTemplate(
                 Objects.requireNonNull(transactionManager, "事务管理器不能为空"));
     }
@@ -107,7 +131,7 @@ public final class PostgresQueryRunRepository implements QueryRunRepository {
     public Optional<QueryRun> find(TenantId tenantId, QueryRunId queryRunId) {
         Objects.requireNonNull(tenantId, "租户标识不能为空");
         Objects.requireNonNull(queryRunId, "查询运行标识不能为空");
-        var row = mapper.findRun(tenantId.value(), queryRunId.value());
+        var row = mapper.selectOne(runQuery(tenantId.value(), queryRunId.value()));
         return row == null ? Optional.empty() : Optional.of(toRun(row));
     }
 
@@ -122,14 +146,14 @@ public final class PostgresQueryRunRepository implements QueryRunRepository {
         if (afterSequence < 0 || limit < 1 || limit > 100) {
             throw new IllegalArgumentException("查询事件游标或数量不正确");
         }
-        var rows = mapper.findEvents(
+        var rows = eventMapper.findAfter(
                 tenantId.value(),
                 queryRunId.value(),
                 afterSequence,
                 limit);
         var citations = rows.stream()
                 .anyMatch(row -> QueryRunStatus.ANSWERED.name().equals(row.getStatus()))
-                ? mapper.findCitations(tenantId.value(), queryRunId.value())
+                ? findCitations(tenantId.value(), queryRunId.value())
                         .stream()
                         .map(PostgresQueryRunRepository::toCitation)
                         .toList()
@@ -147,14 +171,16 @@ public final class PostgresQueryRunRepository implements QueryRunRepository {
         var tenantId = queryRun.tenantId().value();
         // 同一租户的幂等判断、计数和插入必须串行，避免并发请求共同越过限额。
         mapper.lockScope("query-quota:" + tenantId);
-        var request = mapper.findRequest(tenantId, keyHash);
+        var request = requestMapper.selectOne(
+                Wrappers.<QueryRunRequestEntity>lambdaQuery()
+                        .eq(QueryRunRequestEntity::getTenantId, tenantId)
+                        .eq(QueryRunRequestEntity::getIdempotencyKeyHash, keyHash));
         if (request != null) {
             if (!requestFingerprint.equals(request.getRequestFingerprint())) {
                 throw new QueryRunIdempotencyConflictException();
             }
-            var replayed = mapper.findRun(
-                    tenantId,
-                    Long.parseLong(request.getQueryRunId()));
+            var replayed = mapper.selectOne(
+                    runQuery(tenantId, request.getQueryRunId()));
             if (replayed == null) {
                 throw new IllegalStateException("查询幂等记录引用的运行不存在");
             }
@@ -171,19 +197,28 @@ public final class PostgresQueryRunRepository implements QueryRunRepository {
                 1,
                 quota.concurrentQueryLimit(),
                 quota.runningLease());
-        var dailyCount = mapper.countAcceptedInPeriod(
-                tenantId,
-                proposedQuota.periodStart(),
-                proposedQuota.periodEnd());
+        var dailyCount = Math.toIntExact(mapper.selectCount(
+                Wrappers.<QueryRunEntity>lambdaQuery()
+                        .eq(QueryRunEntity::getTenantId, tenantId)
+                        .ge(
+                                QueryRunEntity::getCreatedAt,
+                                proposedQuota.periodStart())
+                        .lt(
+                                QueryRunEntity::getCreatedAt,
+                                proposedQuota.periodEnd())));
         if (dailyCount >= quota.dailyQueryLimit()) {
             throw new QueryQuotaExceededException(
                     QueryQuotaLimitType.DAILY,
                     quota.dailyQueryLimit(),
                     proposedQuota.periodEnd());
         }
-        var activeLeases = mapper.countActiveLeases(
-                tenantId,
-                queryRun.createdAt());
+        var activeLeases = Math.toIntExact(mapper.selectCount(
+                Wrappers.<QueryRunEntity>lambdaQuery()
+                        .eq(QueryRunEntity::getTenantId, tenantId)
+                        .eq(QueryRunEntity::getStatus, QueryRunStatus.RUNNING.name())
+                        .gt(
+                                QueryRunEntity::getRunningLeaseUntil,
+                                queryRun.createdAt())));
         if (activeLeases >= quota.concurrentQueryLimit()) {
             var retryAt = mapper.findEarliestActiveLeaseExpiry(
                     tenantId,
@@ -199,37 +234,20 @@ public final class PostgresQueryRunRepository implements QueryRunRepository {
                 dailyCount + 1,
                 quota.concurrentQueryLimit(),
                 quota.runningLease()));
-        mapper.insertRun(
-                tenantId,
-                accepted.id().value(),
-                accepted.assistantVersionId(),
-                accepted.requestedBy().value(),
-                accepted.questionDigest(),
-                accepted.quota().periodStart(),
-                accepted.quota().periodEnd(),
-                accepted.quota().dailyLimit(),
-                accepted.quota().dailyOrdinal(),
-                accepted.quota().concurrentLimit(),
-                accepted.quota().acceptedLeaseUntil(),
-                accepted.createdAt());
-        mapper.insertRequest(
-                tenantId,
-                keyHash,
-                requestFingerprint,
-                accepted.id().value(),
-                accepted.createdAt());
+        mapper.insert(toEntity(accepted));
+        requestMapper.insert(toRequestEntity(accepted, keyHash, requestFingerprint));
         insertEvent(QueryRunEvent.started(accepted));
         return new QueryRunClaim(accepted, QueryRunClaimState.CLAIMED);
     }
 
-    private QueryRun toRun(QueryRunRow row) {
-        var tenantId = TenantId.parse(row.getTenantId());
-        var queryRunId = QueryRunId.parse(row.getId());
+    private QueryRun toRun(QueryRunEntity row) {
+        var tenantId = new TenantId(row.getTenantId());
+        var queryRunId = new QueryRunId(row.getId());
         return QueryRun.reconstitute(
                 tenantId,
                 queryRunId,
-                Long.parseLong(row.getAssistantVersionId()),
-                new QueryRequesterId(Long.parseLong(row.getRequestedBy())),
+                row.getAssistantVersionId(),
+                new QueryRequesterId(row.getRequestedBy()),
                 row.getQuestionDigest(),
                 new QueryQuotaSnapshot(
                         row.getQuotaPeriodStart(),
@@ -243,7 +261,7 @@ public final class PostgresQueryRunRepository implements QueryRunRepository {
                 row.getRefusalReason() == null
                         ? null
                         : QueryRefusalReason.valueOf(row.getRefusalReason()),
-                mapper.findCitations(tenantId.value(), queryRunId.value())
+                findCitations(tenantId.value(), queryRunId.value())
                         .stream()
                         .map(PostgresQueryRunRepository::toCitation)
                         .toList(),
@@ -256,43 +274,98 @@ public final class PostgresQueryRunRepository implements QueryRunRepository {
                 row.getCompletedAt());
     }
 
+    private List<QueryCitationEntity> findCitations(
+            long tenantId,
+            long queryRunId) {
+        return citationMapper.selectList(
+                Wrappers.<QueryCitationEntity>lambdaQuery()
+                        .eq(QueryCitationEntity::getTenantId, tenantId)
+                        .eq(QueryCitationEntity::getQueryRunId, queryRunId)
+                        .orderByAsc(QueryCitationEntity::getSequence));
+    }
+
+    private static com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<
+            QueryRunEntity> runQuery(long tenantId, long queryRunId) {
+        return Wrappers.<QueryRunEntity>lambdaQuery()
+                .eq(QueryRunEntity::getTenantId, tenantId)
+                .eq(QueryRunEntity::getId, queryRunId);
+    }
+
+    private static QueryRunEntity toEntity(QueryRun run) {
+        var entity = new QueryRunEntity();
+        entity.setId(run.id().value());
+        entity.setTenantId(run.tenantId().value());
+        entity.setAssistantVersionId(run.assistantVersionId());
+        entity.setRequestedBy(run.requestedBy().value());
+        entity.setQuestionDigest(run.questionDigest());
+        entity.setQuotaPeriodStart(run.quota().periodStart());
+        entity.setQuotaPeriodEnd(run.quota().periodEnd());
+        entity.setDailyQueryLimit(run.quota().dailyLimit());
+        entity.setDailyQueryOrdinal(run.quota().dailyOrdinal());
+        entity.setConcurrentQueryLimit(run.quota().concurrentLimit());
+        entity.setAcceptedLeaseUntil(run.quota().acceptedLeaseUntil());
+        entity.setRunningLeaseUntil(run.quota().acceptedLeaseUntil());
+        entity.setStatus(run.status().name());
+        entity.setVersion(run.version());
+        entity.setCreatedAt(run.createdAt());
+        return entity;
+    }
+
+    private static QueryRunRequestEntity toRequestEntity(
+            QueryRun run,
+            String keyHash,
+            String fingerprint) {
+        var entity = new QueryRunRequestEntity();
+        entity.setId(run.id().value());
+        entity.setTenantId(run.tenantId().value());
+        entity.setIdempotencyKeyHash(keyHash);
+        entity.setRequestFingerprint(fingerprint);
+        entity.setQueryRunId(run.id().value());
+        entity.setCreatedAt(run.createdAt());
+        return entity;
+    }
+
     private void insertCitation(QueryRun queryRun, QueryCitation citation) {
-        mapper.insertCitation(
-                queryRun.tenantId().value(),
-                queryRun.id().value(),
-                citation.sequence(),
-                citation.dataSourceId(),
-                citation.contentVersion(),
-                citation.chunkId(),
-                citation.ordinal(),
-                citation.quote(),
-                citation.score());
+        var entity = new QueryCitationEntity();
+        entity.setId(identifiers.nextId());
+        entity.setTenantId(queryRun.tenantId().value());
+        entity.setQueryRunId(queryRun.id().value());
+        entity.setSequence(citation.sequence());
+        entity.setDataSourceId(citation.dataSourceId());
+        entity.setContentVersion(citation.contentVersion());
+        entity.setChunkId(citation.chunkId());
+        entity.setOrdinal(citation.ordinal());
+        entity.setQuote(citation.quote());
+        entity.setScore(citation.score());
+        citationMapper.insert(entity);
     }
 
     private void insertEvent(QueryRunEvent event) {
         var usage = event.usage();
-        mapper.insertEvent(
-                event.tenantId().value(),
-                event.queryRunId().value(),
-                event.sequence(),
-                event.type().name(),
-                event.status().name(),
-                event.answer(),
-                event.refusalReason() == null
-                        ? null
-                        : event.refusalReason().name(),
-                usage.inputTokens(),
-                usage.outputTokens(),
-                usage.totalTokens(),
-                event.occurredAt());
+        var entity = new QueryRunEventEntity();
+        entity.setId(identifiers.nextId());
+        entity.setTenantId(event.tenantId().value());
+        entity.setQueryRunId(event.queryRunId().value());
+        entity.setSequence(event.sequence());
+        entity.setEventType(event.type().name());
+        entity.setStatus(event.status().name());
+        entity.setAnswer(event.answer());
+        entity.setRefusalReason(event.refusalReason() == null
+                ? null
+                : event.refusalReason().name());
+        entity.setInputTokens(usage.inputTokens());
+        entity.setOutputTokens(usage.outputTokens());
+        entity.setTotalTokens(usage.totalTokens());
+        entity.setOccurredAt(event.occurredAt());
+        eventMapper.insert(entity);
     }
 
     private static QueryRunEvent toEvent(
-            QueryRunEventRow row,
+            QueryRunEventEntity row,
             List<QueryCitation> citations) {
         return QueryRunEvent.reconstitute(
-                TenantId.parse(row.getTenantId()),
-                QueryRunId.parse(row.getQueryRunId()),
+                new TenantId(row.getTenantId()),
+                new QueryRunId(row.getQueryRunId()),
                 row.getSequence(),
                 QueryRunEventType.valueOf(row.getEventType()),
                 QueryRunStatus.valueOf(row.getStatus()),
@@ -310,10 +383,10 @@ public final class PostgresQueryRunRepository implements QueryRunRepository {
                 row.getOccurredAt());
     }
 
-    private static QueryCitation toCitation(QueryCitationRow row) {
+    private static QueryCitation toCitation(QueryCitationEntity row) {
         return new QueryCitation(
                 row.getSequence(),
-                Long.parseLong(row.getDataSourceId()),
+                row.getDataSourceId(),
                 row.getContentVersion(),
                 row.getChunkId(),
                 row.getOrdinal(),
