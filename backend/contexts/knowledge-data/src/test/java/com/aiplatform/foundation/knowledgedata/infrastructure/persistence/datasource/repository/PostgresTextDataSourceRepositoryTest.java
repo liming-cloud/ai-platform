@@ -22,6 +22,9 @@ import com.aiplatform.foundation.knowledgedata.domain.knowledge.model.KnowledgeS
 import com.aiplatform.foundation.knowledgedata.domain.datasource.model.TextContentReference;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.model.TextDataSource;
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.mapper.TextDataSourceMapper;
+import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.mapper.TextContentMapper;
+import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.mapper.TextDataSourceRequestMapper;
+import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.knowledge.mapper.KnowledgeSpaceMapper;
 import com.aiplatform.foundation.shared.contract.paging.PageQuery;
 import com.aiplatform.foundation.knowledgedata.domain.common.model.CreatorId;
 import java.time.Instant;
@@ -431,10 +434,16 @@ class PostgresTextDataSourceRepositoryTest {
         @Bean
         TextDataSourceRepository textDataSourceRepository(
                 TextDataSourceMapper mapper,
+                TextContentMapper contentMapper,
+                TextDataSourceRequestMapper requestMapper,
+                KnowledgeSpaceMapper knowledgeSpaceMapper,
                 PlatformTransactionManager transactions,
                 EntityIdGenerator identifiers) {
             return new PostgresTextDataSourceRepository(
                     mapper,
+                    contentMapper,
+                    requestMapper,
+                    knowledgeSpaceMapper,
                     transactions,
                     identifiers);
         }

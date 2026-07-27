@@ -291,10 +291,11 @@ class PostgresIndexVersionPersistenceTest {
         jdbc.update(
                 """
                 INSERT INTO knowledge_data.text_data_source_content (
-                    tenant_id, knowledge_space_id, data_source_id, version,
+                    id, tenant_id, knowledge_space_id, data_source_id, version,
                     object_key, sha256, byte_size, media_type, created_at
-                ) VALUES (?, ?, ?, 1, ?, ?, 16, ?, ?)
+                ) VALUES (?, ?, ?, ?, 1, ?, ?, 16, ?, ?)
                 """,
+                sourceId,
                 tenant.value(),
                 SPACE.value(),
                 sourceId,

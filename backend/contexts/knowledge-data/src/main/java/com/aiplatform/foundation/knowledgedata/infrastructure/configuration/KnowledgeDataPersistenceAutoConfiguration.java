@@ -5,6 +5,8 @@ import com.aiplatform.foundation.knowledgedata.domain.datasource.repository.Text
 import com.aiplatform.foundation.knowledgedata.domain.indexversion.repository.IndexVersionRepository;
 import com.aiplatform.foundation.knowledgedata.domain.knowledge.repository.KnowledgeSpaceRepository;
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.mapper.TextDataSourceMapper;
+import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.mapper.TextContentMapper;
+import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.mapper.TextDataSourceRequestMapper;
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.repository.PostgresTextDataSourceRepository;
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.index.mapper.IndexVersionMapper;
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.index.repository.PostgresIndexVersionRepository;
@@ -52,10 +54,16 @@ public class KnowledgeDataPersistenceAutoConfiguration {
     @ConditionalOnMissingBean
     TextDataSourceRepository textDataSourceRepository(
             TextDataSourceMapper mapper,
+            TextContentMapper contentMapper,
+            TextDataSourceRequestMapper requestMapper,
+            KnowledgeSpaceMapper knowledgeSpaceMapper,
             PlatformTransactionManager transactions,
             EntityIdGenerator identifiers) {
         return new PostgresTextDataSourceRepository(
                 mapper,
+                contentMapper,
+                requestMapper,
+                knowledgeSpaceMapper,
                 transactions,
                 identifiers);
     }

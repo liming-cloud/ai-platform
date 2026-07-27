@@ -20,17 +20,21 @@ import com.aiplatform.foundation.knowledgedata.domain.knowledge.model.KnowledgeS
 import com.aiplatform.foundation.knowledgedata.domain.datasource.model.TextContentReference;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.model.TextDataSource;
 import com.aiplatform.foundation.knowledgedata.domain.common.model.CreatorId;
+import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.entity.TextContentEntity;
+import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.entity.TextDataSourceEntity;
+import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.entity.TextDataSourceRequestEntity;
+import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.mapper.TextContentMapper;
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.mapper.TextDataSourceMapper;
-import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.projection.TextContentRow;
-import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.projection.TextDataSourceRequestRow;
-import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.projection.TextDataSourceRow;
+import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.mapper.TextDataSourceRequestMapper;
+import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.knowledge.entity.KnowledgeSpaceEntity;
+import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.knowledge.mapper.KnowledgeSpaceMapper;
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
 import java.util.HexFormat;
-import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import org.springframework.dao.DuplicateKeyException;
@@ -47,14 +51,29 @@ public final class PostgresTextDataSourceRepository implements TextDataSourceRep
     private static final String PUBLISH = "PUBLISH";
 
     private final TextDataSourceMapper mapper;
+    private final TextContentMapper contentMapper;
+    private final TextDataSourceRequestMapper requestMapper;
+    private final KnowledgeSpaceMapper knowledgeSpaceMapper;
     private final TransactionTemplate transactions;
     private final EntityIdGenerator identifiers;
 
     public PostgresTextDataSourceRepository(
             TextDataSourceMapper mapper,
+            TextContentMapper contentMapper,
+            TextDataSourceRequestMapper requestMapper,
+            KnowledgeSpaceMapper knowledgeSpaceMapper,
             PlatformTransactionManager transactionManager,
             EntityIdGenerator identifiers) {
         this.mapper = Objects.requireNonNull(mapper, "文本数据源映射器不能为空");
+        this.contentMapper = Objects.requireNonNull(
+                contentMapper,
+                "文本内容映射器不能为空");
+        this.requestMapper = Objects.requireNonNull(
+                requestMapper,
+                "文本数据源幂等请求映射器不能为空");
+        this.knowledgeSpaceMapper = Objects.requireNonNull(
+                knowledgeSpaceMapper,
+                "知识空间映射器不能为空");
         this.transactions = new TransactionTemplate(
                 Objects.requireNonNull(transactionManager, "事务管理器不能为空"));
         this.identifiers = Objects.requireNonNull(identifiers, "标识生成器不能为空");
@@ -96,10 +115,11 @@ public final class PostgresTextDataSourceRepository implements TextDataSourceRep
         Objects.requireNonNull(tenantId, "租户标识不能为空");
         Objects.requireNonNull(knowledgeSpaceId, "知识空间标识不能为空");
         Objects.requireNonNull(dataSourceId, "数据源标识不能为空");
-        var row = mapper.findById(
-                tenantId.value(),
-                knowledgeSpaceId.value(),
-                dataSourceId.value());
+        var row = mapper.selectOne(
+                sourceQuery(
+                        tenantId.value(),
+                        knowledgeSpaceId.value(),
+                        dataSourceId.value()));
         if (row == null) {
             throw new DataSourceNotFoundException();
         }
@@ -138,13 +158,16 @@ public final class PostgresTextDataSourceRepository implements TextDataSourceRep
             long pageSize) {
         Objects.requireNonNull(tenantId, "租户标识不能为空");
         Objects.requireNonNull(knowledgeSpaceId, "知识空间标识不能为空");
-        var page = mapper.findPage(
-                new Page<TextDataSourceRow>(
-                        pageNumber,
-                        pageSize,
-                        true),
-                tenantId.value(),
-                knowledgeSpaceId.value());
+        var page = mapper.selectPage(
+                new Page<TextDataSourceEntity>(pageNumber, pageSize, true),
+                Wrappers.<TextDataSourceEntity>lambdaQuery()
+                        .eq(TextDataSourceEntity::getTenantId, tenantId.value())
+                        .eq(
+                                TextDataSourceEntity::getKnowledgeSpaceId,
+                                knowledgeSpaceId.value())
+                        .orderByDesc(
+                                TextDataSourceEntity::getCreatedAt,
+                                TextDataSourceEntity::getId));
         return new TextDataSourcePage(
                 page.getRecords().stream()
                         .map(PostgresTextDataSourceRepository::toSummary)
@@ -162,31 +185,27 @@ public final class PostgresTextDataSourceRepository implements TextDataSourceRep
         var keyHash = sha256(creation.idempotencyKey());
         mapper.lockTenant(Long.toString(tenantId));
 
-        var existing = mapper.findRequest(tenantId, CREATE, keyHash);
+        var existing = findRequest(tenantId, CREATE, keyHash);
         if (existing != null) {
             return replay(tenantId, existing, creation.requestFingerprint());
         }
-        if (mapper.countKnowledgeSpace(
-                tenantId,
-                source.knowledgeSpaceId().value()) != 1) {
+        if (knowledgeSpaceMapper.selectCount(
+                Wrappers.<KnowledgeSpaceEntity>lambdaQuery()
+                        .eq(KnowledgeSpaceEntity::getTenantId, tenantId)
+                        .eq(
+                                KnowledgeSpaceEntity::getId,
+                                source.knowledgeSpaceId().value())
+                        .ne(KnowledgeSpaceEntity::getStatus, "DELETED")) != 1L) {
             throw new DataSourceNotFoundException();
         }
-        if (mapper.countTenantSources(tenantId) >= tenantLimit) {
+        if (mapper.selectCount(
+                Wrappers.<TextDataSourceEntity>lambdaQuery()
+                        .eq(TextDataSourceEntity::getTenantId, tenantId)) >= tenantLimit) {
             throw new DataSourceQuotaExceededException();
         }
 
         try {
-            mapper.insertSource(
-                    tenantId,
-                    source.knowledgeSpaceId().value(),
-                    source.id().value(),
-                    source.name(),
-                    source.status().name(),
-                    source.version(),
-                    source.contentVersion(),
-                    source.publishedContentVersion(),
-                    source.createdBy().value(),
-                    source.createdAt());
+            mapper.insert(toEntity(source));
         } catch (DuplicateKeyException exception) {
             throw new DataSourceNameConflictException();
         }
@@ -204,7 +223,7 @@ public final class PostgresTextDataSourceRepository implements TextDataSourceRep
             TextContentAttachment attachment) {
         var tenantId = attachment.tenantId().value();
         var keyHash = sha256(attachment.idempotencyKey());
-        var existing = mapper.findRequest(tenantId, ATTACH_CONTENT, keyHash);
+        var existing = findRequest(tenantId, ATTACH_CONTENT, keyHash);
         if (existing != null) {
             return replay(tenantId, existing, attachment.requestFingerprint());
         }
@@ -217,7 +236,7 @@ public final class PostgresTextDataSourceRepository implements TextDataSourceRep
             throw new DataSourceNotFoundException();
         }
 
-        existing = mapper.findRequest(tenantId, ATTACH_CONTENT, keyHash);
+        existing = findRequest(tenantId, ATTACH_CONTENT, keyHash);
         if (existing != null) {
             return replay(tenantId, existing, attachment.requestFingerprint());
         }
@@ -228,16 +247,7 @@ public final class PostgresTextDataSourceRepository implements TextDataSourceRep
         var current = toCurrentDomain(currentRow);
         var changed = current.attach(attachment.content());
         var content = changed.currentContent();
-        mapper.insertContent(
-                tenantId,
-                changed.knowledgeSpaceId().value(),
-                changed.id().value(),
-                content.version(),
-                content.objectKey(),
-                content.sha256(),
-                content.byteSize(),
-                content.mediaType(),
-                content.createdAt());
+        contentMapper.insert(toContentEntity(changed, content));
         updateSource(changed, attachment.expectedVersion());
         saveRequest(
                 ATTACH_CONTENT,
@@ -256,7 +266,7 @@ public final class PostgresTextDataSourceRepository implements TextDataSourceRep
             TextDataSourcePublication publication) {
         var tenantId = publication.tenantId().value();
         var keyHash = sha256(publication.idempotencyKey());
-        var existing = mapper.findRequest(tenantId, PUBLISH, keyHash);
+        var existing = findRequest(tenantId, PUBLISH, keyHash);
         if (existing != null) {
             return replay(tenantId, existing, publication.requestFingerprint());
         }
@@ -269,7 +279,7 @@ public final class PostgresTextDataSourceRepository implements TextDataSourceRep
             throw new DataSourceNotFoundException();
         }
 
-        existing = mapper.findRequest(tenantId, PUBLISH, keyHash);
+        existing = findRequest(tenantId, PUBLISH, keyHash);
         if (existing != null) {
             return replay(tenantId, existing, publication.requestFingerprint());
         }
@@ -294,14 +304,15 @@ public final class PostgresTextDataSourceRepository implements TextDataSourceRep
 
     private TextDataSourceMutationOutcome replay(
             long tenantId,
-            TextDataSourceRequestRow request,
+            TextDataSourceRequestEntity request,
             String fingerprint) {
         if (!request.getRequestFingerprint().equals(fingerprint)) {
             throw new IdempotencyConflictException();
         }
-        var knowledgeSpaceId = Long.parseLong(request.getKnowledgeSpaceId());
-        var dataSourceId = Long.parseLong(request.getDataSourceId());
-        var identity = mapper.findById(tenantId, knowledgeSpaceId, dataSourceId);
+        var knowledgeSpaceId = request.getKnowledgeSpaceId();
+        var dataSourceId = request.getDataSourceId();
+        var identity = mapper.selectOne(
+                sourceQuery(tenantId, knowledgeSpaceId, dataSourceId));
         if (identity == null) {
             throw new IllegalStateException("幂等记录引用的数据源不存在");
         }
@@ -313,7 +324,7 @@ public final class PostgresTextDataSourceRepository implements TextDataSourceRep
                         dataSourceId,
                         request.getResultContentVersion());
         var source = TextDataSource.reconstitute(
-                TenantId.parse(identity.getTenantId()),
+                new TenantId(identity.getTenantId()),
                 new KnowledgeSpaceId(knowledgeSpaceId),
                 new DataSourceId(dataSourceId),
                 identity.getName(),
@@ -322,7 +333,7 @@ public final class PostgresTextDataSourceRepository implements TextDataSourceRep
                 request.getResultContentVersion(),
                 request.getResultPublishedContentVersion(),
                 content,
-                CreatorId.parse(identity.getCreatedBy()),
+                new CreatorId(identity.getCreatedBy()),
                 identity.getCreatedAt());
         return new TextDataSourceMutationOutcome(source, true);
     }
@@ -335,7 +346,7 @@ public final class PostgresTextDataSourceRepository implements TextDataSourceRep
         Objects.requireNonNull(tenantId, "租户标识不能为空");
         Objects.requireNonNull(idempotencyKey, "幂等键不能为空");
         Objects.requireNonNull(requestFingerprint, "请求指纹不能为空");
-        var existing = mapper.findRequest(
+        var existing = findRequest(
                 tenantId.value(),
                 operation,
                 sha256(idempotencyKey));
@@ -347,10 +358,10 @@ public final class PostgresTextDataSourceRepository implements TextDataSourceRep
                         requestFingerprint));
     }
 
-    private TextDataSource toCurrentDomain(TextDataSourceRow row) {
-        var tenantId = Long.parseLong(row.getTenantId());
-        var knowledgeSpaceId = Long.parseLong(row.getKnowledgeSpaceId());
-        var dataSourceId = Long.parseLong(row.getId());
+    private TextDataSource toCurrentDomain(TextDataSourceEntity row) {
+        var tenantId = row.getTenantId();
+        var knowledgeSpaceId = row.getKnowledgeSpaceId();
+        var dataSourceId = row.getId();
         var content = row.getContentVersion() == 0
                 ? null
                 : requireContent(
@@ -368,14 +379,14 @@ public final class PostgresTextDataSourceRepository implements TextDataSourceRep
                 row.getContentVersion(),
                 row.getPublishedContentVersion(),
                 content,
-                CreatorId.parse(row.getCreatedBy()),
+                new CreatorId(row.getCreatedBy()),
                 row.getCreatedAt());
     }
 
-    private static TextDataSourceSummary toSummary(TextDataSourceRow row) {
+    private static TextDataSourceSummary toSummary(TextDataSourceEntity row) {
         return new TextDataSourceSummary(
-                DataSourceId.parse(row.getId()),
-                KnowledgeSpaceId.parse(row.getKnowledgeSpaceId()),
+                new DataSourceId(row.getId()),
+                new KnowledgeSpaceId(row.getKnowledgeSpaceId()),
                 row.getName(),
                 DataSourceStatus.valueOf(row.getStatus()),
                 row.getVersion(),
@@ -389,11 +400,12 @@ public final class PostgresTextDataSourceRepository implements TextDataSourceRep
             long knowledgeSpaceId,
             long dataSourceId,
             int version) {
-        var row = mapper.findContent(
-                tenantId,
-                knowledgeSpaceId,
-                dataSourceId,
-                version);
+        var row = contentMapper.selectOne(
+                Wrappers.<TextContentEntity>lambdaQuery()
+                        .eq(TextContentEntity::getTenantId, tenantId)
+                        .eq(TextContentEntity::getKnowledgeSpaceId, knowledgeSpaceId)
+                        .eq(TextContentEntity::getDataSourceId, dataSourceId)
+                        .eq(TextContentEntity::getVersion, version));
         if (row == null) {
             throw new IllegalStateException("数据源引用的内容版本不存在");
         }
@@ -407,15 +419,23 @@ public final class PostgresTextDataSourceRepository implements TextDataSourceRep
     }
 
     private void updateSource(TextDataSource source, long expectedVersion) {
-        var changed = mapper.updateSource(
-                source.tenantId().value(),
-                source.knowledgeSpaceId().value(),
-                source.id().value(),
-                source.status().name(),
-                source.version(),
-                source.contentVersion(),
-                source.publishedContentVersion(),
-                expectedVersion);
+        var changed = mapper.update(
+                null,
+                Wrappers.<TextDataSourceEntity>lambdaUpdate()
+                        .eq(TextDataSourceEntity::getTenantId, source.tenantId().value())
+                        .eq(
+                                TextDataSourceEntity::getKnowledgeSpaceId,
+                                source.knowledgeSpaceId().value())
+                        .eq(TextDataSourceEntity::getId, source.id().value())
+                        .eq(TextDataSourceEntity::getVersion, expectedVersion)
+                        .set(TextDataSourceEntity::getStatus, source.status().name())
+                        .set(TextDataSourceEntity::getVersion, source.version())
+                        .set(
+                                TextDataSourceEntity::getContentVersion,
+                                source.contentVersion())
+                        .set(
+                                TextDataSourceEntity::getPublishedContentVersion,
+                                source.publishedContentVersion()));
         if (changed != 1) {
             throw new DataSourceConcurrentModificationException();
         }
@@ -427,18 +447,74 @@ public final class PostgresTextDataSourceRepository implements TextDataSourceRep
             String fingerprint,
             TextDataSource source,
             Instant createdAt) {
-        mapper.insertRequest(
-                source.tenantId().value(),
-                operation,
-                keyHash,
-                fingerprint,
-                source.knowledgeSpaceId().value(),
-                source.id().value(),
-                source.status().name(),
-                source.version(),
-                source.contentVersion(),
-                source.publishedContentVersion(),
-                createdAt);
+        var entity = new TextDataSourceRequestEntity();
+        entity.setId(identifiers.nextId());
+        entity.setTenantId(source.tenantId().value());
+        entity.setOperation(operation);
+        entity.setIdempotencyKeyHash(keyHash);
+        entity.setRequestFingerprint(fingerprint);
+        entity.setKnowledgeSpaceId(source.knowledgeSpaceId().value());
+        entity.setDataSourceId(source.id().value());
+        entity.setResultStatus(source.status().name());
+        entity.setResultVersion(source.version());
+        entity.setResultContentVersion(source.contentVersion());
+        entity.setResultPublishedContentVersion(source.publishedContentVersion());
+        entity.setCreatedAt(createdAt);
+        requestMapper.insert(entity);
+    }
+
+    private TextDataSourceRequestEntity findRequest(
+            long tenantId,
+            String operation,
+            String keyHash) {
+        return requestMapper.selectOne(
+                Wrappers.<TextDataSourceRequestEntity>lambdaQuery()
+                        .eq(TextDataSourceRequestEntity::getTenantId, tenantId)
+                        .eq(TextDataSourceRequestEntity::getOperation, operation)
+                        .eq(TextDataSourceRequestEntity::getIdempotencyKeyHash, keyHash));
+    }
+
+    private static com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<
+            TextDataSourceEntity> sourceQuery(
+                    long tenantId,
+                    long knowledgeSpaceId,
+                    long dataSourceId) {
+        return Wrappers.<TextDataSourceEntity>lambdaQuery()
+                .eq(TextDataSourceEntity::getTenantId, tenantId)
+                .eq(TextDataSourceEntity::getKnowledgeSpaceId, knowledgeSpaceId)
+                .eq(TextDataSourceEntity::getId, dataSourceId);
+    }
+
+    private static TextDataSourceEntity toEntity(TextDataSource source) {
+        var entity = new TextDataSourceEntity();
+        entity.setId(source.id().value());
+        entity.setTenantId(source.tenantId().value());
+        entity.setKnowledgeSpaceId(source.knowledgeSpaceId().value());
+        entity.setName(source.name());
+        entity.setStatus(source.status().name());
+        entity.setVersion(source.version());
+        entity.setContentVersion(source.contentVersion());
+        entity.setPublishedContentVersion(source.publishedContentVersion());
+        entity.setCreatedBy(source.createdBy().value());
+        entity.setCreatedAt(source.createdAt());
+        return entity;
+    }
+
+    private TextContentEntity toContentEntity(
+            TextDataSource source,
+            TextContentReference content) {
+        var entity = new TextContentEntity();
+        entity.setId(identifiers.nextId());
+        entity.setTenantId(source.tenantId().value());
+        entity.setKnowledgeSpaceId(source.knowledgeSpaceId().value());
+        entity.setDataSourceId(source.id().value());
+        entity.setVersion(content.version());
+        entity.setObjectKey(content.objectKey());
+        entity.setSha256(content.sha256());
+        entity.setByteSize(content.byteSize());
+        entity.setMediaType(content.mediaType());
+        entity.setCreatedAt(content.createdAt());
+        return entity;
     }
 
     private void saveEvent(

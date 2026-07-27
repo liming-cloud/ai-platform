@@ -9,8 +9,9 @@ CREATE TABLE knowledge_data.text_data_source (
     published_content_version INTEGER NOT NULL,
     created_by BIGINT NOT NULL,
     created_at TIMESTAMPTZ NOT NULL,
-    CONSTRAINT pk_text_data_source
-        PRIMARY KEY (tenant_id, knowledge_space_id, id),
+    CONSTRAINT pk_text_data_source PRIMARY KEY (id),
+    CONSTRAINT uk_text_data_source_tenant_space_id
+        UNIQUE (tenant_id, knowledge_space_id, id),
     CONSTRAINT fk_text_data_source_space
         FOREIGN KEY (tenant_id, knowledge_space_id)
         REFERENCES knowledge_data.knowledge_space (tenant_id, id),
@@ -51,6 +52,7 @@ CREATE INDEX idx_text_data_source_tenant_created
     ON knowledge_data.text_data_source (tenant_id, created_at DESC, id DESC);
 
 CREATE TABLE knowledge_data.text_data_source_content (
+    id BIGINT PRIMARY KEY,
     tenant_id BIGINT NOT NULL,
     knowledge_space_id BIGINT NOT NULL,
     data_source_id BIGINT NOT NULL,
@@ -60,8 +62,8 @@ CREATE TABLE knowledge_data.text_data_source_content (
     byte_size BIGINT NOT NULL,
     media_type VARCHAR(64) NOT NULL,
     created_at TIMESTAMPTZ NOT NULL,
-    CONSTRAINT pk_text_data_source_content
-        PRIMARY KEY (
+    CONSTRAINT uk_text_data_source_content_version
+        UNIQUE (
             tenant_id,
             knowledge_space_id,
             data_source_id,
@@ -88,6 +90,7 @@ CREATE INDEX idx_text_data_source_content_object
     ON knowledge_data.text_data_source_content (tenant_id, object_key);
 
 CREATE TABLE knowledge_data.text_data_source_request (
+    id BIGINT PRIMARY KEY,
     tenant_id BIGINT NOT NULL,
     operation VARCHAR(32) NOT NULL,
     idempotency_key_hash CHAR(64) NOT NULL,
@@ -99,8 +102,8 @@ CREATE TABLE knowledge_data.text_data_source_request (
     result_content_version INTEGER NOT NULL,
     result_published_content_version INTEGER NOT NULL,
     created_at TIMESTAMPTZ NOT NULL,
-    CONSTRAINT pk_text_data_source_request
-        PRIMARY KEY (tenant_id, operation, idempotency_key_hash),
+    CONSTRAINT uk_text_data_source_request_tenant_operation_key
+        UNIQUE (tenant_id, operation, idempotency_key_hash),
     CONSTRAINT fk_text_data_source_request_source
         FOREIGN KEY (tenant_id, knowledge_space_id, data_source_id)
         REFERENCES knowledge_data.text_data_source (
