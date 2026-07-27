@@ -12,5 +12,22 @@ export default defineConfig({
   build: {
     outDir: "dist/app",
     sourcemap: true,
+    rollupOptions: {
+      output: {
+        manualChunks(moduleId) {
+          if (moduleId.includes("/node_modules/@fluentui/")) {
+            return "fluent-ui";
+          }
+          if (
+            moduleId.includes("/node_modules/react/")
+            || moduleId.includes("/node_modules/react-dom/")
+            || moduleId.includes("/node_modules/scheduler/")
+          ) {
+            return "react-runtime";
+          }
+          return undefined;
+        },
+      },
+    },
   },
 });
