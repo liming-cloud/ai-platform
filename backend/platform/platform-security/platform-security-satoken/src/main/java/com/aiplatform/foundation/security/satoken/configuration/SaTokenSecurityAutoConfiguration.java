@@ -1,7 +1,8 @@
 package com.aiplatform.foundation.security.satoken.configuration;
 
+import cn.dev33.satoken.config.SaTokenConfig;
 import cn.dev33.satoken.dao.SaTokenDao;
-import cn.dev33.satoken.stp.StpLogic;
+import com.aiplatform.foundation.security.satoken.session.ContextBoundStpLogic;
 import com.aiplatform.foundation.security.satoken.session.SaTokenSessionGateway;
 import com.aiplatform.foundation.security.session.AuthenticatedSessionGateway;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
@@ -22,10 +23,13 @@ public class SaTokenSecurityAutoConfiguration {
     @ConditionalOnMissingBean(AuthenticatedSessionGateway.class)
     AuthenticatedSessionGateway authenticatedSessionGateway(
             SaTokenDao saTokenDao,
+            SaTokenConfig saTokenConfig,
             SaTokenSecurityProperties properties) {
         return new SaTokenSessionGateway(
-                new StpLogic(properties.personLoginType()),
-                saTokenDao,
+                new ContextBoundStpLogic(
+                        properties.personLoginType(),
+                        saTokenDao,
+                        saTokenConfig),
                 properties.sessionTimeout());
     }
 }

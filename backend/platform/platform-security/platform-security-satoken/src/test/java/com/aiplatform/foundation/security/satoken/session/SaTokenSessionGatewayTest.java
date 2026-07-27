@@ -34,15 +34,15 @@ class SaTokenSessionGatewayTest {
     @BeforeEach
     void setUp() {
         var loginType = "member-test-" + LOGIN_TYPES.incrementAndGet();
-        logic = new StpLogic(loginType).setConfig(new SaTokenConfig()
+        var config = new SaTokenConfig()
                 .setTokenName("foundation-token")
                 .setTimeout(1800)
                 .setIsConcurrent(false)
-                .setIsShare(false));
+                .setIsShare(false);
         dao = new SaTokenDaoDefaultImpl();
+        logic = new ContextBoundStpLogic(loginType, dao, config);
         gateway = new SaTokenSessionGateway(
                 logic,
-                dao,
                 Duration.ofMinutes(30));
     }
 
@@ -83,7 +83,7 @@ class SaTokenSessionGatewayTest {
     void 应拒绝登录标识与会话成员不一致的令牌() {
         var issued = gateway.issue(context());
         logic.getTokenSessionByToken(issued.tokenValue())
-                .set("membershipId", "30000000-0000-0000-0000-000000000099");
+                .set("membershipId", "非法成员标识");
 
         assertThrows(
                 InvalidAuthenticatedSessionException.class,
@@ -93,11 +93,16 @@ class SaTokenSessionGatewayTest {
     @Test
     void 多应用上下文交替访问时应恢复各自的数据访问器() {
         var first = gateway.issue(context());
-        var secondLogic = new StpLogic(
-                "member-test-" + LOGIN_TYPES.incrementAndGet());
+        var secondLogic = new ContextBoundStpLogic(
+                "member-test-" + LOGIN_TYPES.incrementAndGet(),
+                new SaTokenDaoDefaultImpl(),
+                new SaTokenConfig()
+                        .setTokenName("foundation-token")
+                        .setTimeout(1800)
+                        .setIsConcurrent(false)
+                        .setIsShare(false));
         var second = new SaTokenSessionGateway(
                 secondLogic,
-                new SaTokenDaoDefaultImpl(),
                 Duration.ofMinutes(30));
 
         second.issue(context());
