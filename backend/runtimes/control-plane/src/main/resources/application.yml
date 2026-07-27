@@ -28,6 +28,8 @@ sa-token:
   auto-renew: true
 
 foundation:
+  control-plane:
+    enabled: true
   organization-access:
     enabled: true
   persistence:

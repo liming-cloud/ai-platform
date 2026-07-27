@@ -8,9 +8,9 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.aiplatform.foundation.assistantdelivery.api.model.version.PublishedAssistantVersionSnapshot;
-import com.aiplatform.foundation.assistantdelivery.domain.CitationPolicy;
-import com.aiplatform.foundation.assistantdelivery.domain.RefusalPolicy;
+import com.aiplatform.foundation.assistantdelivery.application.assistant.dto.PublishedAssistantVersionSnapshot;
+import com.aiplatform.foundation.assistantdelivery.domain.assistant.model.CitationPolicy;
+import com.aiplatform.foundation.assistantdelivery.domain.assistant.model.RefusalPolicy;
 import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
 import com.aiplatform.foundation.knowledgedata.application.indexversion.port.out.vector.IndexCandidate;
 import com.aiplatform.foundation.knowledgedata.application.indexversion.port.out.vector.IndexCandidateQuery;

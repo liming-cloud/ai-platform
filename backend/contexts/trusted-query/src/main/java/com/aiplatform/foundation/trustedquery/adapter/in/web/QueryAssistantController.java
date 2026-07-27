@@ -1,8 +1,10 @@
 package com.aiplatform.foundation.trustedquery.adapter.in.web;
 
-import com.aiplatform.foundation.assistantdelivery.api.QueryAssistantCatalogUseCase;
-import com.aiplatform.foundation.assistantdelivery.api.model.query.ListQueryAssistantsQuery;
-import com.aiplatform.foundation.assistantdelivery.api.model.query.QueryAssistantPage;
+import com.aiplatform.foundation.assistantdelivery.application.catalog.service.QueryAssistantCatalogService;
+import com.aiplatform.foundation.assistantdelivery.application.catalog.query.ListQueryAssistantsQuery;
+import com.aiplatform.foundation.assistantdelivery.application.catalog.dto.QueryAssistantView;
+import com.aiplatform.foundation.shared.contract.paging.PageQuery;
+import com.aiplatform.foundation.shared.contract.paging.PageResult;
 import com.aiplatform.foundation.security.identity.TrustedRequestContext;
 import java.util.Objects;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -19,17 +21,19 @@ import org.springframework.web.bind.annotation.RestController;
 @ConditionalOnProperty(name = "foundation.query.enabled", havingValue = "true")
 public class QueryAssistantController {
 
-    private final QueryAssistantCatalogUseCase assistants;
+    private final QueryAssistantCatalogService assistants;
 
-    public QueryAssistantController(QueryAssistantCatalogUseCase assistants) {
+    public QueryAssistantController(QueryAssistantCatalogService assistants) {
         this.assistants = Objects.requireNonNull(assistants, "查询助手目录不能为空");
     }
 
     @GetMapping
-    public QueryAssistantPage list(
+    public PageResult<QueryAssistantView> list(
             TrustedRequestContext context,
-            @RequestParam(required = false) String cursor,
-            @RequestParam(defaultValue = "20") int limit) {
-        return assistants.list(new ListQueryAssistantsQuery(context, cursor, limit));
+            @RequestParam(defaultValue = "1") long pageNumber,
+            @RequestParam(defaultValue = "20") long pageSize) {
+        return assistants.list(new ListQueryAssistantsQuery(
+                context,
+                new PageQuery(pageNumber, pageSize)));
     }
 }

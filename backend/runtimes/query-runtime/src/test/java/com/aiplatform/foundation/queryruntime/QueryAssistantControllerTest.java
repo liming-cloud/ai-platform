@@ -2,11 +2,15 @@ package com.aiplatform.foundation.queryruntime;
 
 import com.aiplatform.foundation.trustedquery.adapter.in.web.QueryAssistantController;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
-import com.aiplatform.foundation.assistantdelivery.api.QueryAssistantCatalogUseCase;
-import com.aiplatform.foundation.assistantdelivery.api.model.query.ListQueryAssistantsQuery;
-import com.aiplatform.foundation.assistantdelivery.api.model.query.QueryAssistantPage;
-import com.aiplatform.foundation.assistantdelivery.api.model.query.QueryAssistantView;
+import com.aiplatform.foundation.assistantdelivery.application.catalog.service.QueryAssistantCatalogService;
+import com.aiplatform.foundation.assistantdelivery.application.catalog.query.ListQueryAssistantsQuery;
+import com.aiplatform.foundation.assistantdelivery.application.catalog.dto.QueryAssistantView;
+import com.aiplatform.foundation.shared.contract.paging.PageQuery;
+import com.aiplatform.foundation.shared.contract.paging.PageResult;
 import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
 import com.aiplatform.foundation.security.identity.AccessChannel;
 import com.aiplatform.foundation.security.identity.CredentialType;
@@ -17,6 +21,7 @@ import com.aiplatform.foundation.security.identity.TrustedRequestContext;
 import java.time.Instant;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Test;
 
 class QueryAssistantControllerTest {
@@ -25,14 +30,27 @@ class QueryAssistantControllerTest {
     private static final String VERSION = "420000000000000001";
 
     @Test
-    void 目录接口传递可信上下文和游标且只返回查询视图() {
-        var useCase = new RecordingCatalog();
-        var controller = new QueryAssistantController(useCase);
+    void 目录接口传递可信上下文和页码且只返回查询视图() {
+        var query = new AtomicReference<ListQueryAssistantsQuery>();
+        var service = mock(QueryAssistantCatalogService.class);
+        when(service.list(any())).thenAnswer(invocation -> {
+            query.set(invocation.getArgument(0));
+            return PageResult.of(
+                    List.of(new QueryAssistantView(
+                            ASSISTANT,
+                            "门店导购助手",
+                            VERSION,
+                            1,
+                            Instant.parse("2026-07-27T06:00:00Z"))),
+                    new PageQuery(2, 10),
+                    11);
+        });
+        var controller = new QueryAssistantController(service);
 
-        var page = controller.list(context(), "cursor-001", 10);
+        var page = controller.list(context(), 2, 10);
 
-        assertEquals("cursor-001", useCase.query.cursor());
-        assertEquals(10, useCase.query.limit());
+        assertEquals(2, query.get().page().pageNumber());
+        assertEquals(10, query.get().page().pageSize());
         assertEquals(ASSISTANT, page.items().getFirst().assistantId());
         assertEquals(VERSION, page.items().getFirst().assistantVersionId());
     }
@@ -49,24 +67,5 @@ class QueryAssistantControllerTest {
                         new PermissionCode("assistant:query"),
                         new PermissionCode("knowledge:read")),
                 "trace-query-assistant-controller");
-    }
-
-    private static final class RecordingCatalog
-            implements QueryAssistantCatalogUseCase {
-
-        private ListQueryAssistantsQuery query;
-
-        @Override
-        public QueryAssistantPage list(ListQueryAssistantsQuery value) {
-            query = value;
-            return new QueryAssistantPage(
-                    List.of(new QueryAssistantView(
-                            ASSISTANT,
-                            "门店导购助手",
-                            VERSION,
-                            1,
-                            Instant.parse("2026-07-27T06:00:00Z"))),
-                    null);
-        }
     }
 }

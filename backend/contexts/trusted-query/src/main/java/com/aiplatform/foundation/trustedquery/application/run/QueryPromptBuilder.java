@@ -1,6 +1,6 @@
 package com.aiplatform.foundation.trustedquery.application.run;
 
-import com.aiplatform.foundation.assistantdelivery.api.model.version.PublishedAssistantVersionSnapshot;
+import com.aiplatform.foundation.assistantdelivery.application.assistant.dto.PublishedAssistantVersionSnapshot;
 import com.aiplatform.foundation.knowledgedata.application.indexversion.port.out.vector.IndexCandidate;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.chat.ChatMessage;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.chat.ChatRole;

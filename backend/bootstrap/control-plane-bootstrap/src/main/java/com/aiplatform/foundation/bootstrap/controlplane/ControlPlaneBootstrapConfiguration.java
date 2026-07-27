@@ -1,8 +1,5 @@
 package com.aiplatform.foundation.bootstrap.controlplane;
 
-import com.aiplatform.foundation.assistantdelivery.adapter.in.web.AssistantController;
-import com.aiplatform.foundation.assistantdelivery.adapter.in.web.AssistantVersionController;
-import com.aiplatform.foundation.bootstrap.controlplane.configuration.AssistantDeliveryConfiguration;
 import com.aiplatform.foundation.bootstrap.controlplane.configuration.EvaluationOperationsConfiguration;
 import com.aiplatform.foundation.bootstrap.controlplane.web.GlobalApiExceptionHandler;
 import com.aiplatform.foundation.evaluationoperations.adapter.in.web.AuditRecordController;
@@ -15,10 +12,7 @@ import org.springframework.context.annotation.Import;
  */
 @Configuration(proxyBeanMethods = false)
 @Import({
-    AssistantDeliveryConfiguration.class,
     EvaluationOperationsConfiguration.class,
-    AssistantController.class,
-    AssistantVersionController.class,
     AuditRecordController.class,
     UsageController.class,
     GlobalApiExceptionHandler.class

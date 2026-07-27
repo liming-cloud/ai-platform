@@ -14,7 +14,12 @@ export interface QueryAssistant {
 
 export interface QueryAssistantPage {
   items: QueryAssistant[];
-  nextCursor: string | null;
+  pageNumber: number;
+  pageSize: number;
+  totalElements: number;
+  totalPages: number;
+  hasPrevious: boolean;
+  hasNext: boolean;
 }
 
 export interface QueryCitation {
@@ -141,7 +146,7 @@ export class QueryClient {
     signal?: AbortSignal,
   ): Promise<QueryAssistantPage> {
     return this.request<QueryAssistantPage>(
-      "/query-assistants?limit=20",
+      "/query-assistants?pageNumber=1&pageSize=20",
       { signal },
     );
   }

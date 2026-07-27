@@ -21,7 +21,12 @@ describe("QueryClient", () => {
           versionNumber: 2,
           publishedAt: "2026-07-27T06:00:00Z",
         }],
-        nextCursor: null,
+        pageNumber: 1,
+        pageSize: 20,
+        totalElements: 1,
+        totalPages: 1,
+        hasPrevious: false,
+        hasNext: false,
       }),
       jsonResponse({
         id: "430000000000000001",
@@ -48,7 +53,7 @@ describe("QueryClient", () => {
 
     expect(requests.map((request) => request.url)).toEqual([
       "http://localhost/api/v1/auth/sessions",
-      "http://localhost/api/v1/query-assistants?limit=20",
+      "http://localhost/api/v1/query-assistants?pageNumber=1&pageSize=20",
       "http://localhost/api/v1/query-runs",
     ]);
     expect(requests[1]?.headers.get("Authorization")).toBe(
@@ -141,7 +146,7 @@ describe("QueryClient", () => {
       if (requests.length === 2) {
         return oldResponse;
       }
-      return jsonResponse({ items: [], nextCursor: null });
+      return jsonResponse(emptyAssistantPage());
     }, "http://localhost/api/v1");
 
     await client.login({
@@ -193,7 +198,7 @@ describe("QueryClient", () => {
           expiresInSeconds: 1800,
         }, 201);
       }
-      return jsonResponse({ items: [], nextCursor: null });
+      return jsonResponse(emptyAssistantPage());
     }, "http://localhost/api/v1");
 
     const oldLogin = client.login({
@@ -219,6 +224,18 @@ describe("QueryClient", () => {
     );
   });
 });
+
+function emptyAssistantPage() {
+  return {
+    items: [],
+    pageNumber: 1,
+    pageSize: 20,
+    totalElements: 0,
+    totalPages: 0,
+    hasPrevious: false,
+    hasNext: false,
+  };
+}
 
 async function authenticatedClient(fetcher: typeof fetch) {
   let authenticated = false;

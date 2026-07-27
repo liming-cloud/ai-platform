@@ -1,6 +1,5 @@
 package com.aiplatform.foundation.bootstrap.query.web;
 
-import com.aiplatform.foundation.assistantdelivery.application.AssistantPermissionDeniedException;
 import com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator;
 import com.aiplatform.foundation.shared.kernel.identifier.TraceIds;
 import com.aiplatform.foundation.security.session.InvalidAuthenticatedSessionException;
@@ -45,7 +44,6 @@ public class QueryApiExceptionHandler {
     }
 
     @ExceptionHandler({
-        AssistantPermissionDeniedException.class,
         CandidateSearchPermissionDeniedException.class
     })
     ResponseEntity<QueryApiError> accessDenied() {

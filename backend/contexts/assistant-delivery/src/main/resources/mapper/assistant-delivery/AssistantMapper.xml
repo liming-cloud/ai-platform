@@ -2,15 +2,15 @@
 <!DOCTYPE mapper
         PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="com.aiplatform.foundation.assistantdelivery.adapter.out.persistence.AssistantMapper">
+<mapper namespace="com.aiplatform.foundation.assistantdelivery.infrastructure.persistence.assistant.mapper.AssistantMapper">
 
-    <resultMap id="assistantRequestRow" type="com.aiplatform.foundation.assistantdelivery.adapter.out.persistence.AssistantRequestRow">
+    <resultMap id="assistantRequestRow" type="com.aiplatform.foundation.assistantdelivery.infrastructure.persistence.assistant.projection.AssistantRequestRow">
         <result column="request_fingerprint" property="requestFingerprint"/>
         <result column="assistant_id" property="assistantId"/>
         <result column="assistant_version_id" property="assistantVersionId"/>
     </resultMap>
 
-    <resultMap id="assistantRow" type="com.aiplatform.foundation.assistantdelivery.adapter.out.persistence.AssistantRow">
+    <resultMap id="assistantRow" type="com.aiplatform.foundation.assistantdelivery.infrastructure.persistence.assistant.entity.AssistantEntity">
         <result column="tenant_id" property="tenantId"/>
         <result column="id" property="id"/>
         <result column="display_name" property="displayName"/>
@@ -20,38 +20,11 @@
         <result column="created_at" property="createdAt"/>
     </resultMap>
 
-    <resultMap id="publishedAssistantRow" type="com.aiplatform.foundation.assistantdelivery.adapter.out.persistence.PublishedAssistantRow">
+    <resultMap id="publishedAssistantRow" type="com.aiplatform.foundation.assistantdelivery.infrastructure.persistence.assistant.projection.PublishedAssistantRow">
         <result column="assistant_id" property="assistantId"/>
         <result column="display_name" property="displayName"/>
         <result column="assistant_version_id" property="assistantVersionId"/>
         <result column="version_number" property="versionNumber"/>
-        <result column="published_at" property="publishedAt"/>
-    </resultMap>
-
-    <resultMap id="assistantVersionRow" type="com.aiplatform.foundation.assistantdelivery.adapter.out.persistence.AssistantVersionRow">
-        <result column="tenant_id" property="tenantId"/>
-        <result column="id" property="id"/>
-        <result column="assistant_id" property="assistantId"/>
-        <result column="version_number" property="versionNumber"/>
-        <result column="chat_deployment_id" property="chatDeploymentId"/>
-        <result column="chat_deployment_revision" property="chatDeploymentRevision"/>
-        <result column="chat_deployment_output_limit" property="chatDeploymentOutputLimit"/>
-        <result column="knowledge_space_id" property="knowledgeSpaceId"/>
-        <result column="index_version_id" property="indexVersionId"/>
-        <result column="index_version_revision" property="indexVersionRevision"/>
-        <result column="embedding_deployment_id" property="embeddingDeploymentId"/>
-        <result column="embedding_deployment_revision" property="embeddingDeploymentRevision"/>
-        <result column="embedding_dimension" property="embeddingDimension"/>
-        <result column="system_instruction" property="systemInstruction"/>
-        <result column="max_output_tokens" property="maxOutputTokens"/>
-        <result column="retrieval_limit" property="retrievalLimit"/>
-        <result column="minimum_score" property="minimumScore"/>
-        <result column="citation_policy" property="citationPolicy"/>
-        <result column="refusal_policy" property="refusalPolicy"/>
-        <result column="status" property="status"/>
-        <result column="version" property="version"/>
-        <result column="created_by" property="createdBy"/>
-        <result column="created_at" property="createdAt"/>
         <result column="published_at" property="publishedAt"/>
     </resultMap>
 
@@ -75,36 +48,6 @@
         ]]>
     </select>
 
-    <select id="countAssistants" resultType="int">
-        <![CDATA[
-        SELECT count(*)
-        FROM assistant_delivery.assistant
-        WHERE tenant_id = #{tenantId}
-        ]]>
-    </select>
-
-    <insert id="insertAssistant">
-        <![CDATA[
-        INSERT INTO assistant_delivery.assistant (
-            tenant_id,
-            id,
-            display_name,
-            latest_version_number,
-            version,
-            created_by,
-            created_at
-        ) VALUES (
-            #{tenantId},
-            #{id},
-            #{displayName},
-            #{latestVersionNumber},
-            #{version},
-            #{createdBy},
-            #{createdAt}
-        )
-        ]]>
-    </insert>
-
     <insert id="insertRequest">
         <![CDATA[
         INSERT INTO assistant_delivery.assistant_request (
@@ -127,29 +70,14 @@
         ]]>
     </insert>
 
-    <select id="findAssistant" resultMap="assistantRow">
-        <![CDATA[
-        SELECT tenant_id::text AS tenant_id,
-               id::text AS id,
-               display_name,
-               latest_version_number,
-               version,
-               created_by::text AS created_by,
-               created_at
-        FROM assistant_delivery.assistant
-        WHERE tenant_id = #{tenantId}
-          AND id = #{assistantId}
-        ]]>
-    </select>
-
     <select id="findAssistantForUpdate" resultMap="assistantRow">
         <![CDATA[
-        SELECT tenant_id::text AS tenant_id,
-               id::text AS id,
+        SELECT tenant_id,
+               id,
                display_name,
                latest_version_number,
                version,
-               created_by::text AS created_by,
+               created_by,
                created_at
         FROM assistant_delivery.assistant
         WHERE tenant_id = #{tenantId}
@@ -158,40 +86,7 @@
         ]]>
     </select>
 
-    <select id="findFirstPage" resultMap="assistantRow">
-        <![CDATA[
-        SELECT tenant_id::text AS tenant_id,
-               id::text AS id,
-               display_name,
-               latest_version_number,
-               version,
-               created_by::text AS created_by,
-               created_at
-        FROM assistant_delivery.assistant
-        WHERE tenant_id = #{tenantId}
-        ORDER BY created_at DESC, id DESC
-        LIMIT #{limit}
-        ]]>
-    </select>
-
-    <select id="findAfter" resultMap="assistantRow">
-        <![CDATA[
-        SELECT tenant_id::text AS tenant_id,
-               id::text AS id,
-               display_name,
-               latest_version_number,
-               version,
-               created_by::text AS created_by,
-               created_at
-        FROM assistant_delivery.assistant
-        WHERE tenant_id = #{tenantId}
-          AND (created_at, id) < (#{createdAt}, #{id})
-        ORDER BY created_at DESC, id DESC
-        LIMIT #{limit}
-        ]]>
-    </select>
-
-    <select id="findFirstPublishedPage" resultMap="publishedAssistantRow">
+    <select id="findPublishedPage" resultMap="publishedAssistantRow">
         <![CDATA[
         WITH latest_published AS (
             SELECT DISTINCT ON (assistant.id)
@@ -217,160 +112,7 @@
                published_at
         FROM latest_published
         ORDER BY published_at DESC, assistant_version_id DESC
-        LIMIT #{limit}
         ]]>
     </select>
 
-    <select id="findPublishedAfter" resultMap="publishedAssistantRow">
-        <![CDATA[
-        WITH latest_published AS (
-            SELECT DISTINCT ON (assistant.id)
-                   assistant.id AS assistant_id,
-                   assistant.display_name,
-                   version.id AS assistant_version_id,
-                   version.version_number,
-                   version.published_at
-            FROM assistant_delivery.assistant AS assistant
-            JOIN assistant_delivery.assistant_version AS version
-              ON version.tenant_id = assistant.tenant_id
-             AND version.assistant_id = assistant.id
-            WHERE assistant.tenant_id = #{tenantId}
-              AND version.status = 'PUBLISHED'
-            ORDER BY assistant.id,
-                     version.version_number DESC,
-                     version.id DESC
-        )
-        SELECT assistant_id::text AS assistant_id,
-               display_name,
-               assistant_version_id::text AS assistant_version_id,
-               version_number,
-               published_at
-        FROM latest_published
-        WHERE (published_at, assistant_version_id)
-            < (#{publishedAt}, #{assistantVersionId})
-        ORDER BY published_at DESC, assistant_version_id DESC
-        LIMIT #{limit}
-        ]]>
-    </select>
-
-    <select id="countVersions" resultType="int">
-        <![CDATA[
-        SELECT count(*)
-        FROM assistant_delivery.assistant_version
-        WHERE tenant_id = #{tenantId}
-          AND assistant_id = #{assistantId}
-        ]]>
-    </select>
-
-    <update id="advanceAssistant">
-        <![CDATA[
-        UPDATE assistant_delivery.assistant
-        SET latest_version_number = #{latestVersionNumber},
-            version = #{newVersion}
-        WHERE tenant_id = #{tenantId}
-          AND id = #{assistantId}
-          AND version = #{expectedVersion}
-        ]]>
-    </update>
-
-    <insert id="insertVersion">
-        <![CDATA[
-        INSERT INTO assistant_delivery.assistant_version (
-            tenant_id,
-            id,
-            assistant_id,
-            version_number,
-            chat_deployment_id,
-            chat_deployment_revision,
-            chat_deployment_output_limit,
-            knowledge_space_id,
-            index_version_id,
-            index_version_revision,
-            embedding_deployment_id,
-            embedding_deployment_revision,
-            embedding_dimension,
-            system_instruction,
-            max_output_tokens,
-            retrieval_limit,
-            minimum_score,
-            citation_policy,
-            refusal_policy,
-            status,
-            version,
-            created_by,
-            created_at,
-            published_at
-        ) VALUES (
-            #{tenantId},
-            #{id},
-            #{assistantId},
-            #{versionNumber},
-            #{chatDeploymentId},
-            #{chatDeploymentRevision},
-            #{chatDeploymentOutputLimit},
-            #{knowledgeSpaceId},
-            #{indexVersionId},
-            #{indexVersionRevision},
-            #{embeddingDeploymentId},
-            #{embeddingDeploymentRevision},
-            #{embeddingDimension},
-            #{systemInstruction},
-            #{maxOutputTokens},
-            #{retrievalLimit},
-            #{minimumScore},
-            #{citationPolicy},
-            #{refusalPolicy},
-            #{status},
-            #{version},
-            #{createdBy},
-            #{createdAt},
-            #{publishedAt}
-        )
-        ]]>
-    </insert>
-
-    <select id="findVersion" resultMap="assistantVersionRow">
-        <![CDATA[
-        SELECT tenant_id::text AS tenant_id,
-               id::text AS id,
-               assistant_id::text AS assistant_id,
-               version_number,
-               chat_deployment_id,
-               chat_deployment_revision,
-               chat_deployment_output_limit,
-               knowledge_space_id::text AS knowledge_space_id,
-               index_version_id::text AS index_version_id,
-               index_version_revision,
-               embedding_deployment_id,
-               embedding_deployment_revision,
-               embedding_dimension,
-               system_instruction,
-               max_output_tokens,
-               retrieval_limit,
-               minimum_score,
-               citation_policy,
-               refusal_policy,
-               status,
-               version,
-               created_by::text AS created_by,
-               created_at,
-               published_at
-        FROM assistant_delivery.assistant_version
-        WHERE tenant_id = #{tenantId}
-          AND id = #{assistantVersionId}
-        ]]>
-    </select>
-
-    <update id="publishVersion">
-        <![CDATA[
-        UPDATE assistant_delivery.assistant_version
-        SET status = #{status},
-            version = #{newVersion},
-            published_at = #{publishedAt}
-        WHERE tenant_id = #{tenantId}
-          AND id = #{assistantVersionId}
-          AND status = 'DRAFT'
-          AND version = #{expectedVersion}
-        ]]>
-    </update>
 </mapper>

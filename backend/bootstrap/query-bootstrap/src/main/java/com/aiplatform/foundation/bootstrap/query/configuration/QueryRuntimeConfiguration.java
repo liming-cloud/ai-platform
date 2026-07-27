@@ -1,12 +1,6 @@
 package com.aiplatform.foundation.bootstrap.query.configuration;
 
-import com.aiplatform.foundation.assistantdelivery.adapter.out.persistence.AssistantMapper;
-import com.aiplatform.foundation.assistantdelivery.adapter.out.persistence.PostgresAssistantRepository;
-import com.aiplatform.foundation.assistantdelivery.api.PublishedAssistantVersionLookup;
-import com.aiplatform.foundation.assistantdelivery.api.QueryAssistantCatalogUseCase;
-import com.aiplatform.foundation.assistantdelivery.application.DefaultQueryAssistantCatalogService;
-import com.aiplatform.foundation.assistantdelivery.application.DefaultPublishedAssistantVersionLookup;
-import com.aiplatform.foundation.assistantdelivery.application.port.out.AssistantRepository;
+import com.aiplatform.foundation.assistantdelivery.application.assistant.facade.PublishedAssistantVersionLookup;
 import com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator;
 import com.aiplatform.foundation.knowledgedata.application.indexversion.facade.ActiveIndexLookup;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.ModelRuntimeResolver;
@@ -39,7 +33,6 @@ import org.springframework.transaction.PlatformTransactionManager;
         name = "foundation.query.enabled",
         havingValue = "true")
 @MapperScan(basePackageClasses = {
-    AssistantMapper.class,
     QueryRunMapper.class
 })
 public class QueryRuntimeConfiguration {
@@ -53,25 +46,6 @@ public class QueryRuntimeConfiguration {
                 activeIndexes,
                 models,
                 candidates);
-    }
-
-    @Bean
-    AssistantRepository queryAssistantRepository(
-            AssistantMapper mapper,
-            PlatformTransactionManager transactions) {
-        return new PostgresAssistantRepository(mapper, transactions);
-    }
-
-    @Bean
-    PublishedAssistantVersionLookup queryPublishedAssistantVersionLookup(
-            AssistantRepository repository) {
-        return new DefaultPublishedAssistantVersionLookup(repository);
-    }
-
-    @Bean
-    QueryAssistantCatalogUseCase queryAssistantCatalogUseCase(
-            AssistantRepository repository) {
-        return new DefaultQueryAssistantCatalogService(repository);
     }
 
     @Bean

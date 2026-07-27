@@ -81,6 +81,8 @@ class PostgresQueryRunRepositoryTest {
         registry.add("spring.datasource.url", POSTGRES::getJdbcUrl);
         registry.add("spring.datasource.username", POSTGRES::getUsername);
         registry.add("spring.datasource.password", POSTGRES::getPassword);
+        registry.add("foundation.persistence.snowflake.worker-id", () -> "1");
+        registry.add("foundation.persistence.snowflake.datacenter-id", () -> "1");
         registry.add(
                 "spring.flyway.locations",
                 () -> String.join(

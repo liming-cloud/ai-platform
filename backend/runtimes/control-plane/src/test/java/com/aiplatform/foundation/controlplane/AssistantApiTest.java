@@ -4,7 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.aiplatform.foundation.assistantdelivery.api.PublishedAssistantVersionLookup;
+import com.aiplatform.foundation.assistantdelivery.application.assistant.facade.PublishedAssistantVersionLookup;
 import com.redis.testcontainers.RedisContainer;
 import java.sql.Timestamp;
 import java.time.Instant;
@@ -305,7 +305,14 @@ class AssistantApiTest {
             long version) {
     }
 
-    private record AssistantPage(List<AssistantResponse> items, String nextCursor) {
+    private record AssistantPage(
+            List<AssistantResponse> items,
+            long pageNumber,
+            long pageSize,
+            long totalElements,
+            long totalPages,
+            boolean hasPrevious,
+            boolean hasNext) {
     }
 
     private record ApiError(
