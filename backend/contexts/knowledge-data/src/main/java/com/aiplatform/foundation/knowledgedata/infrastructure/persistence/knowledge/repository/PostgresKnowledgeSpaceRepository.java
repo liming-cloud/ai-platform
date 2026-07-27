@@ -13,7 +13,9 @@ import com.aiplatform.foundation.knowledgedata.domain.knowledge.model.KnowledgeS
 import com.aiplatform.foundation.knowledgedata.domain.knowledge.model.KnowledgeSpaceId;
 import com.aiplatform.foundation.knowledgedata.domain.knowledge.model.KnowledgeSpaceStatus;
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.knowledge.mapper.KnowledgeSpaceMapper;
+import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.knowledge.mapper.KnowledgeSpaceRequestMapper;
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.knowledge.entity.KnowledgeSpaceEntity;
+import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.knowledge.entity.KnowledgeSpaceRequestEntity;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import java.nio.charset.StandardCharsets;
@@ -33,12 +35,17 @@ import org.springframework.transaction.support.TransactionTemplate;
 public final class PostgresKnowledgeSpaceRepository implements KnowledgeSpaceRepository {
 
     private final KnowledgeSpaceMapper mapper;
+    private final KnowledgeSpaceRequestMapper requestMapper;
     private final TransactionTemplate transactions;
 
     public PostgresKnowledgeSpaceRepository(
             KnowledgeSpaceMapper mapper,
+            KnowledgeSpaceRequestMapper requestMapper,
             PlatformTransactionManager transactionManager) {
         this.mapper = Objects.requireNonNull(mapper, "知识空间映射器不能为空");
+        this.requestMapper = Objects.requireNonNull(
+                requestMapper,
+                "知识空间幂等请求映射器不能为空");
         this.transactions = new TransactionTemplate(
                 Objects.requireNonNull(transactionManager, "事务管理器不能为空"));
     }
@@ -86,7 +93,10 @@ public final class PostgresKnowledgeSpaceRepository implements KnowledgeSpaceRep
         var keyHash = sha256(creation.idempotencyKey());
         mapper.lockTenant(Long.toString(tenantId));
 
-        var existing = mapper.findRequest(tenantId, keyHash);
+        var existing = requestMapper.selectOne(
+                new LambdaQueryWrapper<KnowledgeSpaceRequestEntity>()
+                        .eq(KnowledgeSpaceRequestEntity::getTenantId, tenantId)
+                        .eq(KnowledgeSpaceRequestEntity::getIdempotencyKeyHash, keyHash));
         if (existing != null) {
             if (!existing.getRequestFingerprint().equals(creation.requestFingerprint())) {
                 throw new IdempotencyConflictException();
@@ -96,7 +106,7 @@ public final class PostgresKnowledgeSpaceRepository implements KnowledgeSpaceRep
                             .eq(KnowledgeSpaceEntity::getTenantId, tenantId)
                             .eq(
                                     KnowledgeSpaceEntity::getId,
-                                    Long.parseLong(existing.getKnowledgeSpaceId())));
+                                    existing.getKnowledgeSpaceId()));
             if (replayed == null) {
                 throw new IllegalStateException("幂等记录引用的知识空间不存在");
             }
@@ -112,12 +122,7 @@ public final class PostgresKnowledgeSpaceRepository implements KnowledgeSpaceRep
         }
         try {
             mapper.insert(toEntity(space));
-            mapper.insertRequest(
-                    tenantId,
-                    keyHash,
-                    creation.requestFingerprint(),
-                    space.id().value(),
-                    space.createdAt());
+            requestMapper.insert(toRequestEntity(creation, keyHash));
         } catch (DuplicateKeyException exception) {
             throw new KnowledgeSpaceNameConflictException();
         }
@@ -146,6 +151,19 @@ public final class PostgresKnowledgeSpaceRepository implements KnowledgeSpaceRep
         entity.setVersion(space.version());
         entity.setCreatedBy(space.createdBy().value());
         entity.setCreatedAt(space.createdAt());
+        return entity;
+    }
+
+    private static KnowledgeSpaceRequestEntity toRequestEntity(
+            KnowledgeSpaceCreation creation,
+            String keyHash) {
+        var entity = new KnowledgeSpaceRequestEntity();
+        entity.setId(creation.space().id().value());
+        entity.setTenantId(creation.space().tenantId().value());
+        entity.setIdempotencyKeyHash(keyHash);
+        entity.setRequestFingerprint(creation.requestFingerprint());
+        entity.setKnowledgeSpaceId(creation.space().id().value());
+        entity.setCreatedAt(creation.space().createdAt());
         return entity;
     }
 

@@ -9,6 +9,7 @@ import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.dataso
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.index.mapper.IndexVersionMapper;
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.index.repository.PostgresIndexVersionRepository;
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.knowledge.mapper.KnowledgeSpaceMapper;
+import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.knowledge.mapper.KnowledgeSpaceRequestMapper;
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.knowledge.repository.PostgresKnowledgeSpaceRepository;
 import com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator;
 import org.apache.ibatis.session.SqlSessionFactory;
@@ -39,8 +40,12 @@ public class KnowledgeDataPersistenceAutoConfiguration {
     @ConditionalOnMissingBean
     KnowledgeSpaceRepository knowledgeSpaceRepository(
             KnowledgeSpaceMapper mapper,
+            KnowledgeSpaceRequestMapper requestMapper,
             PlatformTransactionManager transactions) {
-        return new PostgresKnowledgeSpaceRepository(mapper, transactions);
+        return new PostgresKnowledgeSpaceRepository(
+                mapper,
+                requestMapper,
+                transactions);
     }
 
     @Bean

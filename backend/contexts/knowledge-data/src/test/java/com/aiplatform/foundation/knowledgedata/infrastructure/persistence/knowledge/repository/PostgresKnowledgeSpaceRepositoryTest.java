@@ -13,6 +13,7 @@ import com.aiplatform.foundation.knowledgedata.domain.knowledge.repository.Knowl
 import com.aiplatform.foundation.knowledgedata.domain.knowledge.model.KnowledgeSpace;
 import com.aiplatform.foundation.knowledgedata.domain.knowledge.model.KnowledgeSpaceId;
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.knowledge.mapper.KnowledgeSpaceMapper;
+import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.knowledge.mapper.KnowledgeSpaceRequestMapper;
 import com.aiplatform.foundation.shared.contract.paging.PageQuery;
 import com.aiplatform.foundation.knowledgedata.domain.common.model.CreatorId;
 import java.time.Instant;
@@ -218,8 +219,12 @@ class PostgresKnowledgeSpaceRepositoryTest {
         @Bean
         KnowledgeSpaceRepository knowledgeSpaceRepository(
                 KnowledgeSpaceMapper mapper,
+                KnowledgeSpaceRequestMapper requestMapper,
                 PlatformTransactionManager transactions) {
-            return new PostgresKnowledgeSpaceRepository(mapper, transactions);
+            return new PostgresKnowledgeSpaceRepository(
+                    mapper,
+                    requestMapper,
+                    transactions);
         }
     }
 }

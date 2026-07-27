@@ -15,6 +15,7 @@ import com.aiplatform.foundation.knowledgedata.domain.knowledge.repository.Knowl
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.mapper.TextDataSourceMapper;
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.index.mapper.IndexVersionMapper;
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.knowledge.mapper.KnowledgeSpaceMapper;
+import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.knowledge.mapper.KnowledgeSpaceRequestMapper;
 import com.aiplatform.foundation.knowledgedata.interfaces.web.datasource.controller.TextDataSourceController;
 import com.aiplatform.foundation.knowledgedata.interfaces.web.indexversion.controller.IndexVersionController;
 import com.aiplatform.foundation.knowledgedata.interfaces.web.knowledge.controller.KnowledgeSpaceController;
@@ -120,6 +121,9 @@ class KnowledgeDataAutoConfigurationTest {
                 .withBean(
                         KnowledgeSpaceMapper.class,
                         () -> mock(KnowledgeSpaceMapper.class))
+                .withBean(
+                        KnowledgeSpaceRequestMapper.class,
+                        () -> mock(KnowledgeSpaceRequestMapper.class))
                 .withBean(
                         TextDataSourceMapper.class,
                         () -> mock(TextDataSourceMapper.class))

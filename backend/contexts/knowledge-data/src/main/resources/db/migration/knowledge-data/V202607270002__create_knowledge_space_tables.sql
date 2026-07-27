@@ -23,13 +23,14 @@ CREATE INDEX idx_knowledge_space_tenant_created
     ON knowledge_data.knowledge_space (tenant_id, created_at DESC, id DESC);
 
 CREATE TABLE knowledge_data.knowledge_space_request (
+    id BIGINT PRIMARY KEY,
     tenant_id BIGINT NOT NULL,
     idempotency_key_hash CHAR(64) NOT NULL,
     request_fingerprint CHAR(64) NOT NULL,
     knowledge_space_id BIGINT NOT NULL,
     created_at TIMESTAMPTZ NOT NULL,
-    CONSTRAINT pk_knowledge_space_request
-        PRIMARY KEY (tenant_id, idempotency_key_hash),
+    CONSTRAINT uk_knowledge_space_request_tenant_key
+        UNIQUE (tenant_id, idempotency_key_hash),
     CONSTRAINT fk_knowledge_space_request_space
         FOREIGN KEY (tenant_id, knowledge_space_id)
         REFERENCES knowledge_data.knowledge_space (tenant_id, id)

@@ -4,37 +4,10 @@
         "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.aiplatform.foundation.knowledgedata.infrastructure.persistence.knowledge.mapper.KnowledgeSpaceMapper">
 
-    <resultMap id="findRequestResultMap" type="com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.projection.IdempotencyRow">
-        <result column="request_fingerprint" property="requestFingerprint"/>
-        <result column="knowledge_space_id" property="knowledgeSpaceId"/>
-    </resultMap>
-
     <select id="lockTenant" resultType="java.lang.String">
         <![CDATA[
         SELECT pg_advisory_xact_lock(hashtextextended(#{tenantId}, 20260727))
         ]]>
     </select>
-
-    <select id="findRequest" resultMap="findRequestResultMap">
-        <![CDATA[
-        SELECT request_fingerprint,
-               knowledge_space_id::text AS knowledge_space_id
-        FROM knowledge_data.knowledge_space_request
-        WHERE tenant_id = #{tenantId}
-          AND idempotency_key_hash = #{keyHash}
-        ]]>
-    </select>
-
-    <insert id="insertRequest">
-        <![CDATA[
-        INSERT INTO knowledge_data.knowledge_space_request (
-            tenant_id, idempotency_key_hash, request_fingerprint,
-            knowledge_space_id, created_at
-        ) VALUES (
-            #{tenantId}, #{keyHash}, #{requestFingerprint},
-            #{knowledgeSpaceId}, #{createdAt}
-        )
-        ]]>
-    </insert>
 
 </mapper>
