@@ -99,6 +99,7 @@
 | 平台持久化与雪花标识基座 | `project/evidence/WP-0008-persistence-foundation.md` | `29e9cc098cb03582ee1ad89e409160eb97fe8fd9` | 新增统一雪花标识、MyBatis-Plus 配置和债务递减门禁；216 项后端测试和 7 项门禁测试通过 |
 | MyBatis 映射文件整改 | `project/evidence/WP-0008-mybatis-xml.md` | `8104ea62c251eec102bf8fe0de5c858d42ad8448` | 96 条 SQL 迁入 8 个 Mapper XML，注解 SQL 归零，216 项后端测试通过 |
 | 主体与成员雪花标识 | `project/evidence/WP-0008-organization-identifiers.md` | `a6415c6e2761501952e9dfdfbaf22163862b8ac3` | 主体、成员、会话、审计和跨上下文成员列改为 64 位标识；218 项后端和 28 项前端测试通过 |
+| 全局租户雪花标识 | `project/evidence/WP-0008-tenant-identifier.md` | `0f375f40a436a38ab66eaeb8362bb8dcd7ac4f62` | 六个上下文、向量扩展、数据库与验收脚本统一使用 64 位租户标识；219 项后端和 28 项前端测试通过 |
 
 ## 证据规则
 

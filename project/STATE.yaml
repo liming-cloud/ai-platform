@@ -2,7 +2,7 @@ schemaVersion: 1
 productVersion: foundation-v1
 currentMilestone: M1
 currentFrontier: WP-0008
-lastVerifiedCommit: a6415c6e2761501952e9dfdfbaf22163862b8ac3
+lastVerifiedCommit: 0f375f40a436a38ab66eaeb8362bb8dcd7ac4f62
 activeWorkPackages:
   - WP-0008
 blockedWorkPackages:
@@ -67,6 +67,7 @@ latestEvidence:
   - project/evidence/WP-0008-persistence-foundation.md
   - project/evidence/WP-0008-mybatis-xml.md
   - project/evidence/WP-0008-organization-identifiers.md
+  - project/evidence/WP-0008-tenant-identifier.md
 nextReviewAt: 2026-08-02
-updatedAt: 2026-07-27T10:28:43+08:00
+updatedAt: 2026-07-27T10:44:00+08:00
 updatedBy: codex
