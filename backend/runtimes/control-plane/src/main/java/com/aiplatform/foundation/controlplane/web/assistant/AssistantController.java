@@ -7,7 +7,7 @@ import com.aiplatform.foundation.assistantdelivery.api.model.AssistantView;
 import com.aiplatform.foundation.assistantdelivery.api.model.CreateAssistantCommand;
 import com.aiplatform.foundation.assistantdelivery.api.model.CreateAssistantVersionCommand;
 import com.aiplatform.foundation.assistantdelivery.api.model.ListAssistantsQuery;
-import com.aiplatform.foundation.organizationaccess.api.model.TrustedRequestContext;
+import com.aiplatform.foundation.security.identity.TrustedRequestContext;
 import java.util.Objects;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.http.HttpStatus;

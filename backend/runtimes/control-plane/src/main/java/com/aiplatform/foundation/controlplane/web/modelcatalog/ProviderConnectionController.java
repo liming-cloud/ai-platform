@@ -7,7 +7,7 @@ import com.aiplatform.foundation.modelruntime.api.catalog.model.ProbeProviderCon
 import com.aiplatform.foundation.modelruntime.api.catalog.model.ProbeProviderConnectionResult;
 import com.aiplatform.foundation.modelruntime.api.catalog.model.ProviderConnectionPage;
 import com.aiplatform.foundation.modelruntime.api.catalog.model.ProviderConnectionView;
-import com.aiplatform.foundation.organizationaccess.api.model.TrustedRequestContext;
+import com.aiplatform.foundation.security.identity.TrustedRequestContext;
 import java.time.Duration;
 import java.util.Objects;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;

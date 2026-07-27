@@ -1,11 +1,11 @@
 package com.aiplatform.foundation.organizationaccess.application.authentication;
 
 import com.aiplatform.foundation.organizationaccess.api.PersonAuthenticationUseCase;
-import com.aiplatform.foundation.organizationaccess.api.model.CredentialType;
-import com.aiplatform.foundation.organizationaccess.api.model.IssuedSession;
+import com.aiplatform.foundation.security.identity.CredentialType;
+import com.aiplatform.foundation.security.session.IssuedSession;
 import com.aiplatform.foundation.organizationaccess.api.model.PersonLoginCommand;
-import com.aiplatform.foundation.organizationaccess.api.model.TrustedRequestContext;
-import com.aiplatform.foundation.organizationaccess.application.port.out.AuthenticatedSessionGateway;
+import com.aiplatform.foundation.security.identity.TrustedRequestContext;
+import com.aiplatform.foundation.security.session.AuthenticatedSessionGateway;
 import com.aiplatform.foundation.organizationaccess.application.port.out.PasswordVerifier;
 import com.aiplatform.foundation.organizationaccess.application.port.out.TenantMemberCredentialRepository;
 import java.util.Arrays;

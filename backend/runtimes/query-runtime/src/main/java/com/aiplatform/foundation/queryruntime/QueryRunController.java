@@ -1,6 +1,6 @@
 package com.aiplatform.foundation.queryruntime;
 
-import com.aiplatform.foundation.organizationaccess.api.model.TrustedRequestContext;
+import com.aiplatform.foundation.security.identity.TrustedRequestContext;
 import com.aiplatform.foundation.trustedquery.api.QueryRunEventUseCase;
 import com.aiplatform.foundation.trustedquery.api.QueryRunUseCase;
 import com.aiplatform.foundation.trustedquery.api.model.CreateQueryRunCommand;

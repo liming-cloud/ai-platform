@@ -14,7 +14,7 @@ import com.aiplatform.foundation.knowledgedata.domain.indexversion.IndexVersion;
 import com.aiplatform.foundation.knowledgedata.domain.indexversion.IndexVersionId;
 import com.aiplatform.foundation.knowledgedata.domain.indexversion.IndexVersionStatus;
 import com.aiplatform.foundation.knowledgedata.domain.model.KnowledgeSpaceId;
-import com.aiplatform.foundation.organizationaccess.api.model.MembershipId;
+import com.aiplatform.foundation.security.identity.MembershipId;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;

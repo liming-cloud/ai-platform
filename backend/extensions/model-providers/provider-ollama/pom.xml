@@ -21,7 +21,7 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>platform-security</artifactId>
+            <artifactId>platform-security-core</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>

@@ -13,7 +13,7 @@ import com.aiplatform.foundation.assistantdelivery.application.AssistantVersionN
 import com.aiplatform.foundation.assistantdelivery.application.AssistantVersionQuotaExceededException;
 import com.aiplatform.foundation.assistantdelivery.domain.AssistantVersionStateException;
 import com.aiplatform.foundation.evaluationoperations.application.OperationsPermissionDeniedException;
-import com.aiplatform.foundation.organizationaccess.adapter.out.session.InvalidAuthenticatedSessionException;
+import com.aiplatform.foundation.security.session.InvalidAuthenticatedSessionException;
 import com.aiplatform.foundation.knowledgedata.application.datasource.DataSourceConcurrentModificationException;
 import com.aiplatform.foundation.knowledgedata.application.datasource.DataSourceNameConflictException;
 import com.aiplatform.foundation.knowledgedata.application.datasource.DataSourceNotFoundException;

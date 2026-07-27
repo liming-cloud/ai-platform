@@ -2,7 +2,7 @@ package com.aiplatform.foundation.modelruntime.api.catalog.model;
 
 import com.aiplatform.foundation.modelruntime.api.model.ProviderKind;
 import com.aiplatform.foundation.modelruntime.domain.model.AuthenticationType;
-import com.aiplatform.foundation.organizationaccess.api.model.TrustedRequestContext;
+import com.aiplatform.foundation.security.identity.TrustedRequestContext;
 import java.net.URI;
 import java.util.Objects;
 import java.util.regex.Pattern;

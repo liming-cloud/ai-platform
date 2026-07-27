@@ -2,7 +2,7 @@ package com.aiplatform.foundation.trustedquery.adapter.out.persistence;
 
 import com.aiplatform.foundation.kernel.tenant.TenantId;
 import com.aiplatform.foundation.modelruntime.api.model.ModelUsage;
-import com.aiplatform.foundation.organizationaccess.api.model.MembershipId;
+import com.aiplatform.foundation.security.identity.MembershipId;
 import com.aiplatform.foundation.trustedquery.application.QueryQuotaExceededException;
 import com.aiplatform.foundation.trustedquery.application.QueryQuotaLimitType;
 import com.aiplatform.foundation.trustedquery.application.QueryRunConcurrentModificationException;

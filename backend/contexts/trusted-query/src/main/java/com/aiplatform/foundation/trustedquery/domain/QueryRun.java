@@ -2,7 +2,7 @@ package com.aiplatform.foundation.trustedquery.domain;
 
 import com.aiplatform.foundation.kernel.tenant.TenantId;
 import com.aiplatform.foundation.modelruntime.api.model.ModelUsage;
-import com.aiplatform.foundation.organizationaccess.api.model.MembershipId;
+import com.aiplatform.foundation.security.identity.MembershipId;
 import java.time.Instant;
 import java.util.List;
 import java.util.Objects;

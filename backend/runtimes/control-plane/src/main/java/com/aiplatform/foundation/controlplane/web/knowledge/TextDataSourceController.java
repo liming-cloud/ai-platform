@@ -9,7 +9,7 @@ import com.aiplatform.foundation.knowledgedata.api.model.TextDataSourceView;
 import com.aiplatform.foundation.knowledgedata.api.model.UploadTextContentCommand;
 import com.aiplatform.foundation.knowledgedata.application.content.TextContentProcessingException;
 import com.aiplatform.foundation.knowledgedata.domain.model.TextContentReference;
-import com.aiplatform.foundation.organizationaccess.api.model.TrustedRequestContext;
+import com.aiplatform.foundation.security.identity.TrustedRequestContext;
 import jakarta.servlet.http.HttpServletRequest;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;

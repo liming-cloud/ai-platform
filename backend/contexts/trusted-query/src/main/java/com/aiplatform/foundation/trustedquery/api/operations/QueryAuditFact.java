@@ -1,6 +1,6 @@
 package com.aiplatform.foundation.trustedquery.api.operations;
 
-import com.aiplatform.foundation.organizationaccess.api.model.MembershipId;
+import com.aiplatform.foundation.security.identity.MembershipId;
 import java.time.Instant;
 import java.util.Objects;
 import java.util.regex.Pattern;

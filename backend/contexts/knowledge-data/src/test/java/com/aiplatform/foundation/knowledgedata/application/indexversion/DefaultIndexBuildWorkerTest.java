@@ -28,7 +28,7 @@ import com.aiplatform.foundation.modelruntime.api.model.EmbeddingBatch;
 import com.aiplatform.foundation.modelruntime.api.model.EmbeddingDeploymentRef;
 import com.aiplatform.foundation.modelruntime.api.model.EmbeddingRequest;
 import com.aiplatform.foundation.modelruntime.api.model.EmbeddingVector;
-import com.aiplatform.foundation.organizationaccess.api.model.MembershipId;
+import com.aiplatform.foundation.security.identity.MembershipId;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;

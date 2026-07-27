@@ -1,7 +1,7 @@
 package com.aiplatform.foundation.assistantdelivery.domain;
 
 import com.aiplatform.foundation.kernel.tenant.TenantId;
-import com.aiplatform.foundation.organizationaccess.api.model.MembershipId;
+import com.aiplatform.foundation.security.identity.MembershipId;
 import java.time.Instant;
 import java.util.Objects;
 

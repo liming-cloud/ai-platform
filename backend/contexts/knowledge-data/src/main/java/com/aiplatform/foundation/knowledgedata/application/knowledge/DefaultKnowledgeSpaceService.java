@@ -11,8 +11,8 @@ import com.aiplatform.foundation.knowledgedata.application.port.out.KnowledgeSpa
 import com.aiplatform.foundation.knowledgedata.domain.model.KnowledgeSpace;
 import com.aiplatform.foundation.knowledgedata.domain.model.KnowledgeSpaceId;
 import com.aiplatform.foundation.kernel.identifier.EntityIdGenerator;
-import com.aiplatform.foundation.organizationaccess.api.model.PermissionCode;
-import com.aiplatform.foundation.organizationaccess.api.model.TrustedRequestContext;
+import com.aiplatform.foundation.security.identity.PermissionCode;
+import com.aiplatform.foundation.security.identity.TrustedRequestContext;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;

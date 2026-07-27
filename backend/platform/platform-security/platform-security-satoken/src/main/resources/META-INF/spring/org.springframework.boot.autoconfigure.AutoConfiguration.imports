@@ -1,0 +1,2 @@
+com.aiplatform.foundation.security.satoken.configuration.SaTokenSecurityAutoConfiguration
+com.aiplatform.foundation.security.satoken.configuration.SaTokenWebAutoConfiguration

@@ -1,8 +1,5 @@
 package com.aiplatform.foundation.queryruntime;
 
-import cn.dev33.satoken.SaManager;
-import cn.dev33.satoken.dao.SaTokenDao;
-import cn.dev33.satoken.stp.StpLogic;
 import com.aiplatform.foundation.assistantdelivery.adapter.out.persistence.AssistantMapper;
 import com.aiplatform.foundation.assistantdelivery.adapter.out.persistence.PostgresAssistantRepository;
 import com.aiplatform.foundation.assistantdelivery.api.PublishedAssistantVersionLookup;
@@ -23,8 +20,6 @@ import com.aiplatform.foundation.modelruntime.api.model.EmbeddingDeploymentRef;
 import com.aiplatform.foundation.modelruntime.application.port.out.ModelDeploymentRepository;
 import com.aiplatform.foundation.modelruntime.application.port.out.ProviderConnectionRepository;
 import com.aiplatform.foundation.modelruntime.application.runtime.DefaultModelRuntimeResolver;
-import com.aiplatform.foundation.organizationaccess.adapter.out.session.SaTokenSessionGateway;
-import com.aiplatform.foundation.organizationaccess.application.port.out.AuthenticatedSessionGateway;
 import com.aiplatform.foundation.provider.deterministic.DeterministicChatModelFactory;
 import com.aiplatform.foundation.provider.deterministic.DeterministicEmbeddingModel;
 import com.aiplatform.foundation.provider.deterministic.DeterministicEmbeddingModelFactory;
@@ -63,16 +58,6 @@ import org.springframework.transaction.PlatformTransactionManager;
     QueryRunMapper.class
 })
 public class QueryRuntimeConfiguration {
-
-    private static final String PERSON_LOGIN_TYPE = "foundation-v1-person";
-
-    @Bean
-    AuthenticatedSessionGateway authenticatedSessionGateway(
-            SaTokenDao saTokenDao,
-            @Value("${foundation.security.session-timeout:PT1H}") Duration timeout) {
-        SaManager.setSaTokenDao(saTokenDao);
-        return new SaTokenSessionGateway(new StpLogic(PERSON_LOGIN_TYPE), timeout);
-    }
 
     @Bean
     PgVectorIndexStore pgVectorIndexStore(JdbcTemplate jdbc) {

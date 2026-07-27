@@ -4,12 +4,12 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.aiplatform.foundation.kernel.tenant.TenantId;
-import com.aiplatform.foundation.organizationaccess.api.model.AccessChannel;
-import com.aiplatform.foundation.organizationaccess.api.model.CredentialType;
-import com.aiplatform.foundation.organizationaccess.api.model.MembershipId;
-import com.aiplatform.foundation.organizationaccess.api.model.PermissionCode;
-import com.aiplatform.foundation.organizationaccess.api.model.SubjectId;
-import com.aiplatform.foundation.organizationaccess.api.model.TrustedRequestContext;
+import com.aiplatform.foundation.security.identity.AccessChannel;
+import com.aiplatform.foundation.security.identity.CredentialType;
+import com.aiplatform.foundation.security.identity.MembershipId;
+import com.aiplatform.foundation.security.identity.PermissionCode;
+import com.aiplatform.foundation.security.identity.SubjectId;
+import com.aiplatform.foundation.security.identity.TrustedRequestContext;
 import com.aiplatform.foundation.trustedquery.api.model.ListQueryRunEventsQuery;
 import com.aiplatform.foundation.trustedquery.application.port.out.QueryRunClaim;
 import com.aiplatform.foundation.trustedquery.application.port.out.QueryQuotaPolicy;

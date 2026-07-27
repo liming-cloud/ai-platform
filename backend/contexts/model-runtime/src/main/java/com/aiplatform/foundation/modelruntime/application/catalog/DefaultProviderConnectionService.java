@@ -15,8 +15,8 @@ import com.aiplatform.foundation.modelruntime.application.port.out.ProviderConne
 import com.aiplatform.foundation.modelruntime.application.port.out.ProviderConnectionRepository;
 import com.aiplatform.foundation.modelruntime.domain.model.ProviderConnection;
 import com.aiplatform.foundation.modelruntime.domain.model.ProviderConnectionId;
-import com.aiplatform.foundation.organizationaccess.api.model.PermissionCode;
-import com.aiplatform.foundation.organizationaccess.api.model.TrustedRequestContext;
+import com.aiplatform.foundation.security.identity.PermissionCode;
+import com.aiplatform.foundation.security.identity.TrustedRequestContext;
 import com.aiplatform.foundation.security.secret.SecretReference;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;

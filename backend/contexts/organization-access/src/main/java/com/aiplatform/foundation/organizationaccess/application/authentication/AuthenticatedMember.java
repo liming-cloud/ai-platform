@@ -1,9 +1,9 @@
 package com.aiplatform.foundation.organizationaccess.application.authentication;
 
 import com.aiplatform.foundation.kernel.tenant.TenantId;
-import com.aiplatform.foundation.organizationaccess.api.model.MembershipId;
-import com.aiplatform.foundation.organizationaccess.api.model.PermissionCode;
-import com.aiplatform.foundation.organizationaccess.api.model.SubjectId;
+import com.aiplatform.foundation.security.identity.MembershipId;
+import com.aiplatform.foundation.security.identity.PermissionCode;
+import com.aiplatform.foundation.security.identity.SubjectId;
 import java.util.Objects;
 import java.util.Set;
 

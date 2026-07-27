@@ -2,7 +2,7 @@ package com.aiplatform.foundation.modelruntime.api.catalog.model;
 
 import com.aiplatform.foundation.modelruntime.api.model.ModelCapability;
 import com.aiplatform.foundation.modelruntime.api.model.ModelType;
-import com.aiplatform.foundation.organizationaccess.api.model.TrustedRequestContext;
+import com.aiplatform.foundation.security.identity.TrustedRequestContext;
 import java.util.Objects;
 import java.util.Set;
 import java.util.regex.Pattern;

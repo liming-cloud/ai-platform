@@ -23,6 +23,10 @@ sa-token:
   auto-renew: true
 
 foundation:
+  persistence:
+    snowflake:
+      worker-id: ${FOUNDATION_SNOWFLAKE_WORKER_ID}
+      datacenter-id: ${FOUNDATION_SNOWFLAKE_DATACENTER_ID}
   query:
     enabled: false
     quota:

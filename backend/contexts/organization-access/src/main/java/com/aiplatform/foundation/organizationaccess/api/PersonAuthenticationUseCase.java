@@ -1,6 +1,6 @@
 package com.aiplatform.foundation.organizationaccess.api;
 
-import com.aiplatform.foundation.organizationaccess.api.model.IssuedSession;
+import com.aiplatform.foundation.security.session.IssuedSession;
 import com.aiplatform.foundation.organizationaccess.api.model.PersonLoginCommand;
 
 /**

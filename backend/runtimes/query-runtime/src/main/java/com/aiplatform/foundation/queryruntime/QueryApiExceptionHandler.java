@@ -3,7 +3,7 @@ package com.aiplatform.foundation.queryruntime;
 import com.aiplatform.foundation.assistantdelivery.application.AssistantPermissionDeniedException;
 import com.aiplatform.foundation.kernel.identifier.EntityIdGenerator;
 import com.aiplatform.foundation.kernel.identifier.TraceIds;
-import com.aiplatform.foundation.organizationaccess.adapter.out.session.InvalidAuthenticatedSessionException;
+import com.aiplatform.foundation.security.session.InvalidAuthenticatedSessionException;
 import com.aiplatform.foundation.trustedquery.application.CandidateSearchPermissionDeniedException;
 import com.aiplatform.foundation.trustedquery.application.QueryQuotaExceededException;
 import com.aiplatform.foundation.trustedquery.application.QueryAssistantUnavailableException;

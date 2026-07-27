@@ -5,8 +5,8 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import com.aiplatform.foundation.organizationaccess.adapter.out.session.InvalidAuthenticatedSessionException;
-import com.aiplatform.foundation.organizationaccess.application.port.out.AuthenticatedSessionGateway;
+import com.aiplatform.foundation.security.session.InvalidAuthenticatedSessionException;
+import com.aiplatform.foundation.security.session.AuthenticatedSessionGateway;
 import com.redis.testcontainers.RedisContainer;
 import java.util.Map;
 import org.junit.jupiter.api.Test;

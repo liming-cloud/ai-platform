@@ -1,6 +1,6 @@
 package com.aiplatform.foundation.trustedquery.application;
 
-import com.aiplatform.foundation.organizationaccess.api.model.PermissionCode;
+import com.aiplatform.foundation.security.identity.PermissionCode;
 import com.aiplatform.foundation.trustedquery.api.QueryRunEventUseCase;
 import com.aiplatform.foundation.trustedquery.api.model.ListQueryRunEventsQuery;
 import com.aiplatform.foundation.trustedquery.api.model.QueryCitationView;

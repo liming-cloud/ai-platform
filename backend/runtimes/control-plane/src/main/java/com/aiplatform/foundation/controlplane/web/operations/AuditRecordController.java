@@ -3,7 +3,7 @@ package com.aiplatform.foundation.controlplane.web.operations;
 import com.aiplatform.foundation.evaluationoperations.api.OperationsQueryUseCase;
 import com.aiplatform.foundation.evaluationoperations.api.model.ListQueryAuditRecordsQuery;
 import com.aiplatform.foundation.evaluationoperations.api.model.QueryAuditRecordPage;
-import com.aiplatform.foundation.organizationaccess.api.model.TrustedRequestContext;
+import com.aiplatform.foundation.security.identity.TrustedRequestContext;
 import java.util.Objects;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.web.bind.annotation.GetMapping;

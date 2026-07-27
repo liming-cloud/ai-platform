@@ -4,7 +4,7 @@ import com.aiplatform.foundation.kernel.tenant.TenantId;
 import com.aiplatform.foundation.knowledgedata.domain.indexversion.EmbeddingConfiguration;
 import com.aiplatform.foundation.knowledgedata.domain.indexversion.IndexVersionId;
 import com.aiplatform.foundation.knowledgedata.domain.model.KnowledgeSpaceId;
-import com.aiplatform.foundation.organizationaccess.api.model.MembershipId;
+import com.aiplatform.foundation.security.identity.MembershipId;
 import java.time.Instant;
 import java.util.Objects;
 import java.util.regex.Pattern;

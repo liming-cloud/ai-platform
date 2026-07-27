@@ -1,6 +1,6 @@
 package com.aiplatform.foundation.evaluationoperations.api.model;
 
-import com.aiplatform.foundation.organizationaccess.api.model.TrustedRequestContext;
+import com.aiplatform.foundation.security.identity.TrustedRequestContext;
 import java.time.Instant;
 import java.util.Objects;
 

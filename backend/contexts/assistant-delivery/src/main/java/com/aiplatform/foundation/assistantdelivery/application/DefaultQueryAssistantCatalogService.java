@@ -6,7 +6,7 @@ import com.aiplatform.foundation.assistantdelivery.api.model.QueryAssistantPage;
 import com.aiplatform.foundation.assistantdelivery.api.model.QueryAssistantView;
 import com.aiplatform.foundation.assistantdelivery.application.port.out.AssistantRepository;
 import com.aiplatform.foundation.assistantdelivery.application.port.out.PublishedAssistantSummary;
-import com.aiplatform.foundation.organizationaccess.api.model.PermissionCode;
+import com.aiplatform.foundation.security.identity.PermissionCode;
 import java.util.Objects;
 
 /**

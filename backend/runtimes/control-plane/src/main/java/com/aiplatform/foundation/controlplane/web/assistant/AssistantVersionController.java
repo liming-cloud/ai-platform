@@ -3,7 +3,7 @@ package com.aiplatform.foundation.controlplane.web.assistant;
 import com.aiplatform.foundation.assistantdelivery.api.AssistantUseCase;
 import com.aiplatform.foundation.assistantdelivery.api.model.AssistantVersionView;
 import com.aiplatform.foundation.assistantdelivery.api.model.PublishAssistantVersionCommand;
-import com.aiplatform.foundation.organizationaccess.api.model.TrustedRequestContext;
+import com.aiplatform.foundation.security.identity.TrustedRequestContext;
 import java.util.Objects;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.http.ResponseEntity;

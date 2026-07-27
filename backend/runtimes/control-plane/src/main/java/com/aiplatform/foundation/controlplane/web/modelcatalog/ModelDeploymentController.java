@@ -8,7 +8,7 @@ import com.aiplatform.foundation.modelruntime.api.catalog.model.ModelDeploymentV
 import com.aiplatform.foundation.modelruntime.api.catalog.model.ProbeModelDeploymentCommand;
 import com.aiplatform.foundation.modelruntime.api.catalog.model.ProbeModelDeploymentResult;
 import com.aiplatform.foundation.modelruntime.api.catalog.model.PublishModelDeploymentCommand;
-import com.aiplatform.foundation.organizationaccess.api.model.TrustedRequestContext;
+import com.aiplatform.foundation.security.identity.TrustedRequestContext;
 import java.time.Duration;
 import java.util.Objects;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;

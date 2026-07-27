@@ -1,6 +1,6 @@
 package com.aiplatform.foundation.knowledgedata.api.model;
 
-import com.aiplatform.foundation.organizationaccess.api.model.TrustedRequestContext;
+import com.aiplatform.foundation.security.identity.TrustedRequestContext;
 import java.io.InputStream;
 import java.util.Objects;
 

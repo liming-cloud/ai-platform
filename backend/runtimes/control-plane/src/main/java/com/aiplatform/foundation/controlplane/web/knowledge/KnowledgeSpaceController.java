@@ -5,7 +5,7 @@ import com.aiplatform.foundation.knowledgedata.api.model.CreateKnowledgeSpaceCom
 import com.aiplatform.foundation.knowledgedata.api.model.KnowledgeSpacePage;
 import com.aiplatform.foundation.knowledgedata.api.model.KnowledgeSpaceView;
 import com.aiplatform.foundation.knowledgedata.api.model.ListKnowledgeSpacesQuery;
-import com.aiplatform.foundation.organizationaccess.api.model.TrustedRequestContext;
+import com.aiplatform.foundation.security.identity.TrustedRequestContext;
 import java.util.Objects;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.http.HttpStatus;

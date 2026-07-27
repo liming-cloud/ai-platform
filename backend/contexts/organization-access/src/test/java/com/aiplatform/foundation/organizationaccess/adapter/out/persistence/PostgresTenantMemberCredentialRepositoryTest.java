@@ -3,7 +3,7 @@ package com.aiplatform.foundation.organizationaccess.adapter.out.persistence;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.aiplatform.foundation.organizationaccess.api.model.PermissionCode;
+import com.aiplatform.foundation.security.identity.PermissionCode;
 import com.aiplatform.foundation.organizationaccess.application.port.out.TenantMemberCredentialRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

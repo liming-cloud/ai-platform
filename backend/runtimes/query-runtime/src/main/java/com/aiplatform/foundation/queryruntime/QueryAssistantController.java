@@ -3,7 +3,7 @@ package com.aiplatform.foundation.queryruntime;
 import com.aiplatform.foundation.assistantdelivery.api.QueryAssistantCatalogUseCase;
 import com.aiplatform.foundation.assistantdelivery.api.model.ListQueryAssistantsQuery;
 import com.aiplatform.foundation.assistantdelivery.api.model.QueryAssistantPage;
-import com.aiplatform.foundation.organizationaccess.api.model.TrustedRequestContext;
+import com.aiplatform.foundation.security.identity.TrustedRequestContext;
 import java.util.Objects;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.web.bind.annotation.GetMapping;

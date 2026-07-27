@@ -5,7 +5,7 @@ import com.aiplatform.foundation.knowledgedata.api.extension.IndexCandidateRetri
 import com.aiplatform.foundation.modelruntime.api.invocation.EmbeddingModelPort;
 import com.aiplatform.foundation.modelruntime.api.model.EmbeddingDeploymentRef;
 import com.aiplatform.foundation.modelruntime.api.model.EmbeddingRequest;
-import com.aiplatform.foundation.organizationaccess.api.model.PermissionCode;
+import com.aiplatform.foundation.security.identity.PermissionCode;
 import com.aiplatform.foundation.trustedquery.api.CandidateSearchUseCase;
 import com.aiplatform.foundation.trustedquery.api.model.CandidateSearchQuery;
 import com.aiplatform.foundation.trustedquery.api.model.CandidateSearchResult;

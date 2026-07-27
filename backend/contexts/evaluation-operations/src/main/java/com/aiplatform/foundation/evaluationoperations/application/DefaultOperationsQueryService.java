@@ -8,7 +8,7 @@ import com.aiplatform.foundation.evaluationoperations.api.model.QueryAuditRecord
 import com.aiplatform.foundation.evaluationoperations.api.model.QueryAuditRecordView;
 import com.aiplatform.foundation.evaluationoperations.api.model.QueryUsageQuery;
 import com.aiplatform.foundation.evaluationoperations.api.model.QueryUsageView;
-import com.aiplatform.foundation.organizationaccess.api.model.PermissionCode;
+import com.aiplatform.foundation.security.identity.PermissionCode;
 import com.aiplatform.foundation.trustedquery.api.operations.QueryAuditFact;
 import com.aiplatform.foundation.trustedquery.api.operations.QueryOperationsFactSource;
 import com.aiplatform.foundation.trustedquery.api.operations.QueryUsageFactQuery;

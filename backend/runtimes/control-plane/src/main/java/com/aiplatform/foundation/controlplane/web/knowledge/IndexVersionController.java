@@ -6,7 +6,7 @@ import com.aiplatform.foundation.knowledgedata.api.model.IndexVersionPage;
 import com.aiplatform.foundation.knowledgedata.api.model.IndexVersionView;
 import com.aiplatform.foundation.knowledgedata.api.model.ListIndexVersionsQuery;
 import com.aiplatform.foundation.knowledgedata.api.model.PublishIndexVersionCommand;
-import com.aiplatform.foundation.organizationaccess.api.model.TrustedRequestContext;
+import com.aiplatform.foundation.security.identity.TrustedRequestContext;
 import java.util.Objects;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.http.HttpStatus;

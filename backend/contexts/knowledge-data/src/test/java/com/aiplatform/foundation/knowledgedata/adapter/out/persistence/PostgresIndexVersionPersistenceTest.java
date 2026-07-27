@@ -20,7 +20,7 @@ import com.aiplatform.foundation.knowledgedata.domain.indexversion.IndexVersionI
 import com.aiplatform.foundation.knowledgedata.domain.indexversion.IndexVersionStatus;
 import com.aiplatform.foundation.knowledgedata.domain.indexversion.ParagraphWindowChunker;
 import com.aiplatform.foundation.knowledgedata.domain.model.KnowledgeSpaceId;
-import com.aiplatform.foundation.organizationaccess.api.model.MembershipId;
+import com.aiplatform.foundation.security.identity.MembershipId;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
