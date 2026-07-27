@@ -55,6 +55,7 @@ ai-platform/
 │   ├── platform/
 │   ├── contexts/
 │   ├── extensions/
+│   ├── bootstrap/
 │   ├── runtimes/
 │   ├── test-support/
 │   └── architecture-tests/
@@ -135,6 +136,8 @@ backend/
 │   ├── platform-kernel/
 │   ├── platform-web/
 │   ├── platform-security/
+│   │   ├── platform-security-core/
+│   │   └── platform-security-satoken/
 │   ├── platform-persistence/
 │   ├── platform-observability/
 │   └── platform-outbox/
@@ -154,6 +157,10 @@ backend/
 │   ├── secret-stores/
 │   ├── delivery-channels/
 │   └── tool-providers/
+├── bootstrap/
+│   ├── control-plane-bootstrap/
+│   ├── query-bootstrap/
+│   └── ingestion-bootstrap/
 ├── runtimes/
 │   ├── control-plane/
 │   ├── query-runtime/
@@ -200,19 +207,37 @@ backend/
 
 ### 6.3 `platform-security`
 
-- Sa-Token 到可信请求上下文的适配。
+```text
+platform-security/
+├── pom.xml
+├── platform-security-core/
+└── platform-security-satoken/
+```
+
+`platform-security-core`：
+
+- 可信身份、凭据类型、权限编码和会话端口。
 - 出站地址安全策略。
-- 脱敏、日志敏感字段策略。
-- 认证入口的通用机制。
+- 密钥引用、短生命周期秘密和脱敏策略。
+- 不依赖 Spring、Sa-Token、Redis 或业务上下文。
+
+`platform-security-satoken`：
+
+- Sa-Token 会话签发、恢复、撤销和 Redis 持久化。
+- Bearer 令牌解析和 Web 可信身份恢复。
+- 只向外暴露 `platform-security-core` 契约。
+- 是主代码中唯一允许依赖 `cn.dev33.satoken` 的模块。
 
 领域授权策略仍归 `organization-access`，不能放到平台安全模块。
 
 ### 6.4 `platform-persistence`
 
 - MyBatis-Plus 安全配置。
+- 基于 `IdentifierGenerator` 的 64 位雪花标识生成器。
 - 租户条件纵深防御。
-- 数据库类型转换和统一事务适配。
+- PostgreSQL 类型转换、Mapper XML 扫描和统一事务适配。
 - 游标编码与数据库分页基础能力。
+- 乐观锁、分页和危险全表更新删除阻断。
 
 禁止共享业务持久化实体、Mapper 或跨上下文查询。
 
@@ -251,30 +276,33 @@ backend/contexts/<context>/
     │   ├── java/com/aiplatform/foundation/<context>/
     │   │   ├── package-info.java
     │   │   ├── api/
-    │   │   │   ├── command/
-    │   │   │   ├── query/
-    │   │   │   ├── event/
-    │   │   │   └── model/
+    │   │   │   └── <capability>/
+    │   │   │       ├── command/
+    │   │   │       ├── query/
+    │   │   │       ├── event/
+    │   │   │       └── model/
     │   │   ├── domain/
-    │   │   │   ├── model/
-    │   │   │   ├── policy/
-    │   │   │   ├── service/
-    │   │   │   ├── event/
-    │   │   │   └── repository/
+    │   │   │   └── <aggregate>/
+    │   │   │       ├── model/
+    │   │   │       ├── policy/
+    │   │   │       ├── service/
+    │   │   │       ├── event/
+    │   │   │       └── repository/
     │   │   ├── application/
-    │   │   │   ├── command/
-    │   │   │   ├── query/
-    │   │   │   ├── service/
+    │   │   │   ├── <capability>/
+    │   │   │   │   ├── command/
+    │   │   │   │   ├── query/
+    │   │   │   │   ├── service/
+    │   │   │   │   └── result/
     │   │   │   ├── port/
     │   │   │   │   ├── in/
     │   │   │   │   └── out/
-    │   │   │   └── result/
     │   │   └── adapter/
     │   │       ├── in/
-    │   │       │   ├── web/
+    │   │       │   ├── web/<capability>/
     │   │       │   └── event/
     │   │       └── out/
-    │   │           ├── persistence/
+    │   │           ├── persistence/<aggregate>/
     │   │           ├── cache/
     │   │           └── event/
     │   └── resources/
@@ -303,6 +331,8 @@ backend/contexts/<context>/
 - `policy` 表达需要多个领域对象协作的纯规则。
 - `service` 只放无法自然属于聚合的领域行为。
 - `repository` 是领域需要的持久化抽象，不出现 MyBatis 类型。
+- 领域对象由行为和不变量定义，禁止只有字段、构造器和访问器的贫血聚合。
+- 聚合状态迁移必须由纯领域测试覆盖。
 
 ### 7.3 `application`
 
@@ -319,17 +349,26 @@ backend/contexts/<context>/
 - `out/cache` 包含 Key、TTL、失效和降级实现。
 - `out/event` 把领域事件写入发件箱或发布端口。
 
+`adapter` 的判定条件是“把一个已定义端口转换为具体协议或技术”。可复用技术机制属于
+`platform`，厂商实现属于 `extensions`，依赖组合属于 `bootstrap`。本项目不建立
+`infrastructure` 层，避免它与出站适配器、平台机制和扩展模块产生重复所有权。
+
 ### 7.5 禁止的目录
 
 - `common`
 - `utils`
 - `manager`
 - `helper`
+- `infrastructure`
+- `infra`
 - `service/impl`
 - `entity` 与领域模型混放
 - 按 Controller、Service、Mapper 横向堆叠整个上下文
 
 如果一个类无法放入模板，应先检查它是否跨越了多个职责，而不是创建新杂项目录。
+
+生产包默认最多 12 个类。超过预算时必须按业务能力、聚合、用例或适配方向拆分；
+不得按任意编号或纯技术后缀分组。
 
 ## 8. 上下文具体子域
 
@@ -520,16 +559,14 @@ runtimes/control-plane/
 └── src/
     ├── main/
     │   ├── java/.../controlplane/
-    │   │   ├── ControlPlaneApplication.java
-    │   │   ├── configuration/
-    │   │   └── health/
+    │   │   └── ControlPlaneApplication.java
     │   └── resources/
     │       ├── application.yml
     │       └── application-local.yml
     └── test/
 ```
 
-装配：
+由 `control-plane-bootstrap` 装配：
 
 - 组织与权限。
 - 知识和数据控制面。
@@ -541,7 +578,7 @@ runtimes/control-plane/
 
 ### 10.2 `query-runtime`
 
-装配：
+主代码只保留 `QueryRuntimeApplication.java`。由 `query-bootstrap` 装配：
 
 - 可信请求认证。
 - 助手发布版本读取。
@@ -555,7 +592,7 @@ runtimes/control-plane/
 
 ### 10.3 `ingestion-worker`
 
-装配：
+主代码只保留 `IngestionWorkerApplication.java`。由 `ingestion-bootstrap` 装配：
 
 - 数据源同步任务。
 - 文件解析和数据连接器。
@@ -566,11 +603,29 @@ runtimes/control-plane/
 
 不暴露终端用户查询接口。
 
-### 10.4 运行模块规则
+### 10.4 `bootstrap`
 
-- 只包含启动类、配置、健康和装配测试。
+```text
+backend/bootstrap/
+├── pom.xml
+├── control-plane-bootstrap/
+├── query-bootstrap/
+└── ingestion-bootstrap/
+```
+
+- 只负责条件装配、类型安全属性、组合根和进程级资源配置。
+- 不定义领域实体、业务接口、仓储接口或业务规则。
+- HTTP 控制器和请求映射归所属上下文的 `adapter/in/web`。
+- 调度入口归所属上下文的 `adapter/in/schedule`。
+- 一个 bootstrap 可以选择上下文、平台和扩展模块，但不能复制其实现。
+
+### 10.5 运行模块规则
+
+- 每个运行模块主代码只包含一个启动类。
+- 运行模块不得出现 Controller、Mapper、Repository、Scheduler、Configuration 或
+  业务接口模型。
+- 启动资源允许包含进程端口、配置导入和运行环境选择，不包含业务规则。
 - 不定义领域实体、仓储和业务规则。
-- 配置使用类型安全属性。
 - 每个运行模块拥有独立连接池、线程、超时和资源限制。
 - 三个运行模块可以来自同一代码版本，但生成独立镜像。
 
@@ -578,8 +633,10 @@ runtimes/control-plane/
 
 ```mermaid
 flowchart LR
-    运行入口["运行模块"] --> 扩展["扩展模块"]
-    运行入口 --> 上下文["限界上下文"]
+    运行入口["运行模块"] --> 装配["bootstrap"]
+    装配 --> 扩展["扩展模块"]
+    装配 --> 上下文["限界上下文"]
+    装配 --> 平台["平台机制"]
     扩展 --> 公开接口["上下文 api"]
     上下文 --> 平台["平台机制"]
     上下文内部["adapter"] --> 应用["application"]
@@ -1060,6 +1117,10 @@ backend/extensions/
 ├── vector-stores/vector-pgvector/
 ├── object-stores/object-minio/
 └── secret-stores/secret-local-development/
+backend/bootstrap/
+├── control-plane-bootstrap/
+├── query-bootstrap/
+└── ingestion-bootstrap/
 backend/runtimes/
 ├── control-plane/
 ├── query-runtime/
@@ -1140,6 +1201,11 @@ M1 不创建：
 - 前端应用不能导入其他应用源码。
 - 前端共享包消费者数量检查。
 - 数据库迁移所有权和重复版本检查。
+- Java 源码 SQL 注解为零，定制 Mapper 方法具有唯一 XML 映射。
+- 主代码 UUID 引用为零，数据库业务标识列只使用 `BIGINT`。
+- 生产包类数量不得超过 12。
+- Sa-Token 依赖和源码只能存在于 `platform-security-satoken`。
+- 每个运行模块主代码只能包含一个启动类。
 - Docker 镜像与运行模块一一对应检查。
 - 生成目录和密钥误提交检查。
 
