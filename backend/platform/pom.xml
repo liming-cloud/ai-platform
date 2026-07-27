@@ -17,5 +17,6 @@
     <modules>
         <module>platform-kernel</module>
         <module>platform-security</module>
+        <module>platform-persistence</module>
     </modules>
 </project>

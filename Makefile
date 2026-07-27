@@ -1,4 +1,4 @@
-.PHONY: project-status project-verify resume-context backend-test frontend-test demo-fixtures-verify recovery-operations-test recovery-demo capacity-resilience-operations-test capacity-resilience-demo delivery-operations-test delivery-demo upgrade-demo deploy-config deploy-up deploy-smoke acceptance-knowledge-space acceptance-model-provider acceptance-model-deployment acceptance-index-search acceptance-assistant acceptance-trusted-query acceptance-query-web acceptance-query-quota acceptance-query-operations evaluation-demo performance-index-search performance-query-candidate-pool deploy-down validate
+.PHONY: project-status project-verify resume-context architecture-guard backend-test frontend-test demo-fixtures-verify recovery-operations-test recovery-demo capacity-resilience-operations-test capacity-resilience-demo delivery-operations-test delivery-demo upgrade-demo deploy-config deploy-up deploy-smoke acceptance-knowledge-space acceptance-model-provider acceptance-model-deployment acceptance-index-search acceptance-assistant acceptance-trusted-query acceptance-query-web acceptance-query-quota acceptance-query-operations evaluation-demo performance-index-search performance-query-candidate-pool deploy-down validate
 
 project-status:
 	python3 scripts/project_governance.py status
@@ -9,6 +9,10 @@ project-verify:
 
 resume-context:
 	python3 scripts/project_governance.py resume
+
+architecture-guard:
+	python3 -m unittest scripts.quality.test_backend_architecture_guard
+	python3 scripts/quality/backend_architecture_guard.py verify
 
 backend-test:
 	./mvnw -q clean test
@@ -89,4 +93,4 @@ performance-query-candidate-pool:
 deploy-down:
 	docker compose --env-file deploy/compose/.env.example -f deploy/compose/compose.yml down
 
-validate: project-verify backend-test frontend-test demo-fixtures-verify recovery-operations-test capacity-resilience-operations-test delivery-operations-test
+validate: project-verify architecture-guard backend-test frontend-test demo-fixtures-verify recovery-operations-test capacity-resilience-operations-test delivery-operations-test
