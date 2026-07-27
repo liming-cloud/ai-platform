@@ -19,8 +19,9 @@ CREATE TABLE knowledge_data.index_version (
     ready_at TIMESTAMPTZ,
     activated_at TIMESTAMPTZ,
     superseded_at TIMESTAMPTZ,
-    CONSTRAINT pk_index_version
-        PRIMARY KEY (tenant_id, knowledge_space_id, id),
+    CONSTRAINT pk_index_version PRIMARY KEY (id),
+    CONSTRAINT uk_index_version_tenant_space_id
+        UNIQUE (tenant_id, knowledge_space_id, id),
     CONSTRAINT fk_index_version_space
         FOREIGN KEY (tenant_id, knowledge_space_id)
         REFERENCES knowledge_data.knowledge_space (tenant_id, id),
@@ -102,6 +103,7 @@ CREATE INDEX idx_index_version_space_created
     );
 
 CREATE TABLE knowledge_data.index_version_source (
+    id BIGINT PRIMARY KEY,
     tenant_id BIGINT NOT NULL,
     knowledge_space_id BIGINT NOT NULL,
     index_version_id BIGINT NOT NULL,
@@ -112,8 +114,8 @@ CREATE TABLE knowledge_data.index_version_source (
     byte_size BIGINT NOT NULL,
     media_type VARCHAR(64) NOT NULL,
     content_created_at TIMESTAMPTZ NOT NULL,
-    CONSTRAINT pk_index_version_source
-        PRIMARY KEY (
+    CONSTRAINT uk_index_version_source_version_data_source
+        UNIQUE (
             tenant_id,
             knowledge_space_id,
             index_version_id,
@@ -150,6 +152,7 @@ CREATE TABLE knowledge_data.index_version_source (
 );
 
 CREATE TABLE knowledge_data.index_build_job (
+    id BIGINT PRIMARY KEY,
     tenant_id BIGINT NOT NULL,
     knowledge_space_id BIGINT NOT NULL,
     index_version_id BIGINT NOT NULL,
@@ -161,8 +164,8 @@ CREATE TABLE knowledge_data.index_build_job (
     available_at TIMESTAMPTZ NOT NULL,
     created_at TIMESTAMPTZ NOT NULL,
     completed_at TIMESTAMPTZ,
-    CONSTRAINT pk_index_build_job
-        PRIMARY KEY (tenant_id, knowledge_space_id, index_version_id),
+    CONSTRAINT uk_index_build_job_version
+        UNIQUE (tenant_id, knowledge_space_id, index_version_id),
     CONSTRAINT fk_index_build_job_version
         FOREIGN KEY (tenant_id, knowledge_space_id, index_version_id)
         REFERENCES knowledge_data.index_version (
@@ -200,6 +203,7 @@ CREATE INDEX idx_index_build_job_claim
     WHERE status IN ('PENDING', 'RUNNING');
 
 CREATE TABLE knowledge_data.index_version_request (
+    id BIGINT PRIMARY KEY,
     tenant_id BIGINT NOT NULL,
     operation VARCHAR(24) NOT NULL,
     idempotency_key_hash CHAR(64) NOT NULL,
@@ -209,8 +213,8 @@ CREATE TABLE knowledge_data.index_version_request (
     result_status VARCHAR(32) NOT NULL,
     result_version BIGINT NOT NULL,
     created_at TIMESTAMPTZ NOT NULL,
-    CONSTRAINT pk_index_version_request
-        PRIMARY KEY (tenant_id, operation, idempotency_key_hash),
+    CONSTRAINT uk_index_version_request_tenant_operation_key
+        UNIQUE (tenant_id, operation, idempotency_key_hash),
     CONSTRAINT fk_index_version_request_version
         FOREIGN KEY (tenant_id, knowledge_space_id, index_version_id)
         REFERENCES knowledge_data.index_version (

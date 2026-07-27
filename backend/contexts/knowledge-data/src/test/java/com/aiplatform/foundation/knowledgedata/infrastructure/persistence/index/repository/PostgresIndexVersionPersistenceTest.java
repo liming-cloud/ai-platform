@@ -21,6 +21,9 @@ import com.aiplatform.foundation.knowledgedata.domain.indexversion.model.IndexVe
 import com.aiplatform.foundation.knowledgedata.domain.indexversion.model.ParagraphWindowChunker;
 import com.aiplatform.foundation.knowledgedata.domain.knowledge.model.KnowledgeSpaceId;
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.index.mapper.IndexVersionMapper;
+import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.index.mapper.IndexBuildJobMapper;
+import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.index.mapper.IndexSourceMapper;
+import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.index.mapper.IndexVersionRequestMapper;
 import com.aiplatform.foundation.shared.contract.paging.PageQuery;
 import com.aiplatform.foundation.knowledgedata.domain.common.model.CreatorId;
 import java.time.Duration;
@@ -318,17 +321,29 @@ class PostgresIndexVersionPersistenceTest {
         @Bean
         IndexVersionRepository indexVersionRepository(
                 IndexVersionMapper mapper,
+                IndexSourceMapper sourceMapper,
+                IndexBuildJobMapper jobMapper,
+                IndexVersionRequestMapper requestMapper,
+                EntityIdGenerator identifiers,
                 PlatformTransactionManager transactionManager) {
-            return new PostgresIndexVersionRepository(mapper, transactionManager);
+            return new PostgresIndexVersionRepository(
+                    mapper,
+                    sourceMapper,
+                    jobMapper,
+                    requestMapper,
+                    identifiers,
+                    transactionManager);
         }
 
         @Bean
         IndexBuildQueuePort indexBuildQueuePort(
                 IndexVersionMapper mapper,
+                IndexSourceMapper sourceMapper,
                 PlatformTransactionManager transactionManager,
                 EntityIdGenerator identifiers) {
             return new PostgresIndexBuildQueue(
                     mapper,
+                    sourceMapper,
                     transactionManager,
                     identifiers);
         }

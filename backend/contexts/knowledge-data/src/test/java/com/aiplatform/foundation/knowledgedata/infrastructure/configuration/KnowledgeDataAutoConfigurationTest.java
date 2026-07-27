@@ -16,6 +16,9 @@ import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.dataso
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.mapper.TextContentMapper;
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.mapper.TextDataSourceRequestMapper;
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.index.mapper.IndexVersionMapper;
+import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.index.mapper.IndexBuildJobMapper;
+import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.index.mapper.IndexSourceMapper;
+import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.index.mapper.IndexVersionRequestMapper;
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.knowledge.mapper.KnowledgeSpaceMapper;
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.knowledge.mapper.KnowledgeSpaceRequestMapper;
 import com.aiplatform.foundation.knowledgedata.interfaces.web.datasource.controller.TextDataSourceController;
@@ -138,6 +141,15 @@ class KnowledgeDataAutoConfigurationTest {
                 .withBean(
                         IndexVersionMapper.class,
                         () -> mock(IndexVersionMapper.class))
+                .withBean(
+                        IndexSourceMapper.class,
+                        () -> mock(IndexSourceMapper.class))
+                .withBean(
+                        IndexBuildJobMapper.class,
+                        () -> mock(IndexBuildJobMapper.class))
+                .withBean(
+                        IndexVersionRequestMapper.class,
+                        () -> mock(IndexVersionRequestMapper.class))
                 .withBean(
                         PlatformTransactionManager.class,
                         () -> mock(PlatformTransactionManager.class))

@@ -12,7 +12,9 @@ import com.aiplatform.foundation.knowledgedata.domain.datasource.model.DataSourc
 import com.aiplatform.foundation.knowledgedata.domain.knowledge.model.KnowledgeSpaceId;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.model.TextContentReference;
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.index.mapper.IndexVersionMapper;
-import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.index.projection.IndexSourceRow;
+import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.index.mapper.IndexSourceMapper;
+import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.index.entity.IndexSourceEntity;
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Objects;
@@ -26,14 +28,17 @@ import org.springframework.transaction.support.TransactionTemplate;
 public final class PostgresIndexBuildQueue implements IndexBuildQueuePort {
 
     private final IndexVersionMapper mapper;
+    private final IndexSourceMapper sourceMapper;
     private final TransactionTemplate transactions;
     private final EntityIdGenerator identifiers;
 
     public PostgresIndexBuildQueue(
             IndexVersionMapper mapper,
+            IndexSourceMapper sourceMapper,
             PlatformTransactionManager transactionManager,
             EntityIdGenerator identifiers) {
         this.mapper = Objects.requireNonNull(mapper, "索引版本映射器不能为空");
+        this.sourceMapper = Objects.requireNonNull(sourceMapper, "索引来源映射器不能为空");
         transactions = new TransactionTemplate(
                 Objects.requireNonNull(transactionManager, "事务管理器不能为空"));
         this.identifiers = Objects.requireNonNull(identifiers, "标识生成器不能为空");
@@ -87,17 +92,24 @@ public final class PostgresIndexBuildQueue implements IndexBuildQueuePort {
                 now.plus(leaseDuration)) != 1) {
             throw new IndexVersionConcurrentModificationException();
         }
-        var versionRow = mapper.findVersion(
-                tenantId,
-                knowledgeSpaceId,
-                indexVersionId);
+        var versionRow = mapper.selectOne(
+                PostgresIndexVersionRepository.versionQuery(
+                        tenantId,
+                        knowledgeSpaceId,
+                        indexVersionId));
         if (versionRow == null) {
             throw new IndexVersionNotFoundException();
         }
-        var sources = mapper.findSources(
-                        tenantId,
-                        knowledgeSpaceId,
-                        indexVersionId)
+        var sources = sourceMapper.selectList(
+                        Wrappers.<IndexSourceEntity>lambdaQuery()
+                                .eq(IndexSourceEntity::getTenantId, tenantId)
+                                .eq(
+                                        IndexSourceEntity::getKnowledgeSpaceId,
+                                        knowledgeSpaceId)
+                                .eq(
+                                        IndexSourceEntity::getIndexVersionId,
+                                        indexVersionId)
+                                .orderByAsc(IndexSourceEntity::getDataSourceId))
                 .stream()
                 .map(PostgresIndexBuildQueue::toSnapshot)
                 .toList();
@@ -142,9 +154,9 @@ public final class PostgresIndexBuildQueue implements IndexBuildQueuePort {
         }
     }
 
-    private static IndexSourceSnapshot toSnapshot(IndexSourceRow row) {
+    private static IndexSourceSnapshot toSnapshot(IndexSourceEntity row) {
         return new IndexSourceSnapshot(
-                DataSourceId.parse(row.getDataSourceId()),
+                new DataSourceId(row.getDataSourceId()),
                 new TextContentReference(
                         row.getContentVersion(),
                         row.getObjectKey(),

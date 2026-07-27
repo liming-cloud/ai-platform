@@ -1,6 +1,7 @@
 package com.aiplatform.foundation.knowledgedata.infrastructure.persistence.index.repository;
 
 import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
+import com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator;
 import com.aiplatform.foundation.knowledgedata.application.indexversion.exception.IndexVersionConcurrentModificationException;
 import com.aiplatform.foundation.knowledgedata.application.indexversion.exception.IndexVersionNotFoundException;
 import com.aiplatform.foundation.knowledgedata.application.indexversion.exception.NoPublishedSourceException;
@@ -16,9 +17,15 @@ import com.aiplatform.foundation.knowledgedata.domain.indexversion.model.IndexVe
 import com.aiplatform.foundation.knowledgedata.domain.knowledge.model.KnowledgeSpaceId;
 import com.aiplatform.foundation.knowledgedata.domain.common.model.CreatorId;
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.index.mapper.IndexVersionMapper;
+import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.index.mapper.IndexBuildJobMapper;
+import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.index.mapper.IndexSourceMapper;
+import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.index.mapper.IndexVersionRequestMapper;
+import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.index.entity.IndexBuildJobEntity;
+import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.index.entity.IndexSourceEntity;
+import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.index.entity.IndexVersionEntity;
+import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.index.entity.IndexVersionRequestEntity;
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.index.projection.IndexSourceRow;
-import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.index.projection.IndexVersionRequestRow;
-import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.index.projection.IndexVersionRow;
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -40,12 +47,26 @@ public final class PostgresIndexVersionRepository implements IndexVersionReposit
     private static final String ACTIVATE = "ACTIVATE";
 
     private final IndexVersionMapper mapper;
+    private final IndexSourceMapper sourceMapper;
+    private final IndexBuildJobMapper jobMapper;
+    private final IndexVersionRequestMapper requestMapper;
+    private final EntityIdGenerator identifiers;
     private final TransactionTemplate transactions;
 
     public PostgresIndexVersionRepository(
             IndexVersionMapper mapper,
+            IndexSourceMapper sourceMapper,
+            IndexBuildJobMapper jobMapper,
+            IndexVersionRequestMapper requestMapper,
+            EntityIdGenerator identifiers,
             PlatformTransactionManager transactionManager) {
         this.mapper = Objects.requireNonNull(mapper, "索引版本映射器不能为空");
+        this.sourceMapper = Objects.requireNonNull(sourceMapper, "索引来源映射器不能为空");
+        this.jobMapper = Objects.requireNonNull(jobMapper, "索引构建作业映射器不能为空");
+        this.requestMapper = Objects.requireNonNull(
+                requestMapper,
+                "索引版本幂等请求映射器不能为空");
+        this.identifiers = Objects.requireNonNull(identifiers, "标识生成器不能为空");
         transactions = new TransactionTemplate(
                 Objects.requireNonNull(transactionManager, "事务管理器不能为空"));
     }
@@ -65,13 +86,16 @@ public final class PostgresIndexVersionRepository implements IndexVersionReposit
             long pageSize) {
         Objects.requireNonNull(tenantId, "租户标识不能为空");
         Objects.requireNonNull(knowledgeSpaceId, "知识空间标识不能为空");
-        var page = mapper.findPage(
-                new Page<IndexVersionRow>(
-                        pageNumber,
-                        pageSize,
-                        true),
-                tenantId.value(),
-                knowledgeSpaceId.value());
+        var page = mapper.selectPage(
+                new Page<IndexVersionEntity>(pageNumber, pageSize, true),
+                Wrappers.<IndexVersionEntity>lambdaQuery()
+                        .eq(IndexVersionEntity::getTenantId, tenantId.value())
+                        .eq(
+                                IndexVersionEntity::getKnowledgeSpaceId,
+                                knowledgeSpaceId.value())
+                        .orderByDesc(
+                                IndexVersionEntity::getCreatedAt,
+                                IndexVersionEntity::getId));
         return new IndexVersionPage(
                 page.getRecords().stream()
                         .map(PostgresIndexVersionRepository::toDomain)
@@ -87,9 +111,13 @@ public final class PostgresIndexVersionRepository implements IndexVersionReposit
             KnowledgeSpaceId knowledgeSpaceId) {
         Objects.requireNonNull(tenantId, "租户标识不能为空");
         Objects.requireNonNull(knowledgeSpaceId, "知识空间标识不能为空");
-        return Optional.ofNullable(mapper.findActive(
-                        tenantId.value(),
-                        knowledgeSpaceId.value()))
+        return Optional.ofNullable(mapper.selectOne(
+                        Wrappers.<IndexVersionEntity>lambdaQuery()
+                                .eq(IndexVersionEntity::getTenantId, tenantId.value())
+                                .eq(
+                                        IndexVersionEntity::getKnowledgeSpaceId,
+                                        knowledgeSpaceId.value())
+                                .eq(IndexVersionEntity::getStatus, "ACTIVE")))
                 .map(PostgresIndexVersionRepository::toDomain);
     }
 
@@ -128,7 +156,7 @@ public final class PostgresIndexVersionRepository implements IndexVersionReposit
         var knowledgeSpaceId = request.knowledgeSpaceId().value();
         mapper.lockSpace(lockScope(tenantId, knowledgeSpaceId));
         var keyHash = sha256(request.idempotencyKey());
-        var replay = mapper.findRequest(tenantId, CREATE, keyHash);
+        var replay = findRequest(tenantId, CREATE, keyHash);
         if (replay != null) {
             return replay(tenantId, replay, request.requestFingerprint());
         }
@@ -139,45 +167,21 @@ public final class PostgresIndexVersionRepository implements IndexVersionReposit
         }
         var snapshotDigest = sourceSnapshotDigest(sources);
         var embedding = request.embedding();
-        mapper.insertVersion(
-                tenantId,
-                knowledgeSpaceId,
-                request.indexVersionId().value(),
-                snapshotDigest,
-                request.chunkPolicy(),
-                embedding.deploymentId(),
-                embedding.deploymentRevision(),
-                embedding.dimension(),
-                request.createdBy().value(),
-                request.createdAt());
+        mapper.insert(toEntity(request, snapshotDigest));
         for (var source : sources) {
-            mapper.insertSource(
-                    tenantId,
-                    knowledgeSpaceId,
-                    request.indexVersionId().value(),
-                    Long.parseLong(source.getDataSourceId()),
-                    source.getContentVersion(),
-                    source.getObjectKey(),
-                    source.getSha256(),
-                    source.getByteSize(),
-                    source.getMediaType(),
-                    source.getContentCreatedAt());
+            sourceMapper.insert(toSourceEntity(request, source));
         }
-        mapper.insertJob(
-                tenantId,
-                knowledgeSpaceId,
-                request.indexVersionId().value(),
-                request.createdAt());
-        mapper.insertRequest(
+        jobMapper.insert(toJobEntity(request));
+        requestMapper.insert(toRequestEntity(
                 tenantId,
                 CREATE,
                 keyHash,
                 request.requestFingerprint(),
                 knowledgeSpaceId,
                 request.indexVersionId().value(),
-                IndexVersionStatus.BUILDING.name(),
+                IndexVersionStatus.BUILDING,
                 0,
-                request.createdAt());
+                request.createdAt()));
         var version = IndexVersion.start(
                 request.tenantId(),
                 request.knowledgeSpaceId(),
@@ -202,7 +206,7 @@ public final class PostgresIndexVersionRepository implements IndexVersionReposit
         var spaceValue = knowledgeSpaceId.value();
         mapper.lockSpace(lockScope(tenantValue, spaceValue));
         var keyHash = sha256(idempotencyKey);
-        var replay = mapper.findRequest(tenantValue, ACTIVATE, keyHash);
+        var replay = findRequest(tenantValue, ACTIVATE, keyHash);
         if (replay != null) {
             return replay(tenantValue, replay, requestFingerprint);
         }
@@ -229,41 +233,41 @@ public final class PostgresIndexVersionRepository implements IndexVersionReposit
             throw new IndexVersionConcurrentModificationException();
         }
         var active = current.activate(activatedAt);
-        mapper.insertRequest(
+        requestMapper.insert(toRequestEntity(
                 tenantValue,
                 ACTIVATE,
                 keyHash,
                 requestFingerprint,
                 spaceValue,
                 id.value(),
-                active.status().name(),
+                active.status(),
                 active.version(),
-                activatedAt);
+                activatedAt));
         return new IndexVersionCreationOutcome(active, false);
     }
 
     private IndexVersionCreationOutcome replay(
             long tenantId,
-            IndexVersionRequestRow request,
+            IndexVersionRequestEntity request,
             String expectedFingerprint) {
         if (!request.getRequestFingerprint().equals(expectedFingerprint)) {
             throw new IdempotencyConflictException();
         }
-        var row = mapper.findVersion(
+        var row = mapper.selectOne(versionQuery(
                 tenantId,
-                Long.parseLong(request.getKnowledgeSpaceId()),
-                Long.parseLong(request.getIndexVersionId()));
+                request.getKnowledgeSpaceId(),
+                request.getIndexVersionId()));
         if (row == null) {
             throw new IndexVersionNotFoundException();
         }
         return new IndexVersionCreationOutcome(toDomain(row), true);
     }
 
-    static IndexVersion toDomain(IndexVersionRow row) {
+    static IndexVersion toDomain(IndexVersionEntity row) {
         return IndexVersion.reconstitute(
-                TenantId.parse(row.getTenantId()),
-                KnowledgeSpaceId.parse(row.getKnowledgeSpaceId()),
-                IndexVersionId.parse(row.getId()),
+                new TenantId(row.getTenantId()),
+                new KnowledgeSpaceId(row.getKnowledgeSpaceId()),
+                new IndexVersionId(row.getId()),
                 row.getSourceSnapshotDigest(),
                 row.getChunkPolicy(),
                 new EmbeddingConfiguration(
@@ -275,11 +279,108 @@ public final class PostgresIndexVersionRepository implements IndexVersionReposit
                 row.getBuildDigest(),
                 row.getChunkCount(),
                 row.getFailureCode(),
-                CreatorId.parse(row.getCreatedBy()),
+                new CreatorId(row.getCreatedBy()),
                 row.getCreatedAt(),
                 row.getReadyAt(),
                 row.getActivatedAt(),
                 row.getSupersededAt());
+    }
+
+    private IndexVersionRequestEntity findRequest(
+            long tenantId,
+            String operation,
+            String keyHash) {
+        return requestMapper.selectOne(
+                Wrappers.<IndexVersionRequestEntity>lambdaQuery()
+                        .eq(IndexVersionRequestEntity::getTenantId, tenantId)
+                        .eq(IndexVersionRequestEntity::getOperation, operation)
+                        .eq(IndexVersionRequestEntity::getIdempotencyKeyHash, keyHash));
+    }
+
+    static com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<
+            IndexVersionEntity> versionQuery(
+                    long tenantId,
+                    long knowledgeSpaceId,
+                    long indexVersionId) {
+        return Wrappers.<IndexVersionEntity>lambdaQuery()
+                .eq(IndexVersionEntity::getTenantId, tenantId)
+                .eq(IndexVersionEntity::getKnowledgeSpaceId, knowledgeSpaceId)
+                .eq(IndexVersionEntity::getId, indexVersionId);
+    }
+
+    private static IndexVersionEntity toEntity(
+            IndexVersionBuildRequest request,
+            String snapshotDigest) {
+        var entity = new IndexVersionEntity();
+        entity.setId(request.indexVersionId().value());
+        entity.setTenantId(request.tenantId().value());
+        entity.setKnowledgeSpaceId(request.knowledgeSpaceId().value());
+        entity.setSourceSnapshotDigest(snapshotDigest);
+        entity.setChunkPolicy(request.chunkPolicy());
+        entity.setEmbeddingDeploymentId(request.embedding().deploymentId());
+        entity.setEmbeddingDeploymentRevision(request.embedding().deploymentRevision());
+        entity.setEmbeddingDimension(request.embedding().dimension());
+        entity.setStatus(IndexVersionStatus.BUILDING.name());
+        entity.setVersion(0);
+        entity.setChunkCount(0);
+        entity.setCreatedBy(request.createdBy().value());
+        entity.setCreatedAt(request.createdAt());
+        return entity;
+    }
+
+    private IndexSourceEntity toSourceEntity(
+            IndexVersionBuildRequest request,
+            IndexSourceRow source) {
+        var entity = new IndexSourceEntity();
+        entity.setId(identifiers.nextId());
+        entity.setTenantId(request.tenantId().value());
+        entity.setKnowledgeSpaceId(request.knowledgeSpaceId().value());
+        entity.setIndexVersionId(request.indexVersionId().value());
+        entity.setDataSourceId(Long.parseLong(source.getDataSourceId()));
+        entity.setContentVersion(source.getContentVersion());
+        entity.setObjectKey(source.getObjectKey());
+        entity.setSha256(source.getSha256());
+        entity.setByteSize(source.getByteSize());
+        entity.setMediaType(source.getMediaType());
+        entity.setContentCreatedAt(source.getContentCreatedAt());
+        return entity;
+    }
+
+    private static IndexBuildJobEntity toJobEntity(IndexVersionBuildRequest request) {
+        var entity = new IndexBuildJobEntity();
+        entity.setId(request.indexVersionId().value());
+        entity.setTenantId(request.tenantId().value());
+        entity.setKnowledgeSpaceId(request.knowledgeSpaceId().value());
+        entity.setIndexVersionId(request.indexVersionId().value());
+        entity.setStatus("PENDING");
+        entity.setAttempt(0);
+        entity.setAvailableAt(request.createdAt());
+        entity.setCreatedAt(request.createdAt());
+        return entity;
+    }
+
+    private IndexVersionRequestEntity toRequestEntity(
+            long tenantId,
+            String operation,
+            String keyHash,
+            String fingerprint,
+            long knowledgeSpaceId,
+            long indexVersionId,
+            IndexVersionStatus status,
+            long version,
+            Instant createdAt) {
+        var entity = new IndexVersionRequestEntity();
+        entity.setId(identifiers.nextId());
+        entity.setTenantId(tenantId);
+        entity.setOperation(operation);
+        entity.setIdempotencyKeyHash(keyHash);
+        entity.setRequestFingerprint(fingerprint);
+        entity.setKnowledgeSpaceId(knowledgeSpaceId);
+        entity.setIndexVersionId(indexVersionId);
+        entity.setResultStatus(status.name());
+        entity.setResultVersion(version);
+        entity.setCreatedAt(createdAt);
+        return entity;
     }
 
     private static String sourceSnapshotDigest(List<IndexSourceRow> sources) {

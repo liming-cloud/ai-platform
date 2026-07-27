@@ -9,6 +9,9 @@ import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.dataso
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.mapper.TextDataSourceRequestMapper;
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.repository.PostgresTextDataSourceRepository;
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.index.mapper.IndexVersionMapper;
+import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.index.mapper.IndexBuildJobMapper;
+import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.index.mapper.IndexSourceMapper;
+import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.index.mapper.IndexVersionRequestMapper;
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.index.repository.PostgresIndexVersionRepository;
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.knowledge.mapper.KnowledgeSpaceMapper;
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.knowledge.mapper.KnowledgeSpaceRequestMapper;
@@ -72,7 +75,17 @@ public class KnowledgeDataPersistenceAutoConfiguration {
     @ConditionalOnMissingBean
     IndexVersionRepository indexVersionRepository(
             IndexVersionMapper mapper,
+            IndexSourceMapper sourceMapper,
+            IndexBuildJobMapper jobMapper,
+            IndexVersionRequestMapper requestMapper,
+            EntityIdGenerator identifiers,
             PlatformTransactionManager transactions) {
-        return new PostgresIndexVersionRepository(mapper, transactions);
+        return new PostgresIndexVersionRepository(
+                mapper,
+                sourceMapper,
+                jobMapper,
+                requestMapper,
+                identifiers,
+                transactions);
     }
 }

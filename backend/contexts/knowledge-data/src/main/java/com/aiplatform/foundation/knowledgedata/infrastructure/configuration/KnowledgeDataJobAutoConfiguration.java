@@ -7,6 +7,7 @@ import com.aiplatform.foundation.knowledgedata.application.port.out.index.IndexB
 import com.aiplatform.foundation.knowledgedata.application.port.out.index.IndexBuildQueuePort;
 import com.aiplatform.foundation.knowledgedata.domain.indexversion.model.ParagraphWindowChunker;
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.index.mapper.IndexVersionMapper;
+import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.index.mapper.IndexSourceMapper;
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.index.repository.PostgresIndexBuildCompletion;
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.index.repository.PostgresIndexBuildQueue;
 import com.aiplatform.foundation.knowledgedata.interfaces.job.indexversion.IndexBuildScheduler;
@@ -36,9 +37,14 @@ public class KnowledgeDataJobAutoConfiguration {
     @ConditionalOnMissingBean
     IndexBuildQueuePort indexBuildQueue(
             IndexVersionMapper mapper,
+            IndexSourceMapper sourceMapper,
             PlatformTransactionManager transactions,
             EntityIdGenerator identifiers) {
-        return new PostgresIndexBuildQueue(mapper, transactions, identifiers);
+        return new PostgresIndexBuildQueue(
+                mapper,
+                sourceMapper,
+                transactions,
+                identifiers);
     }
 
     @Bean
