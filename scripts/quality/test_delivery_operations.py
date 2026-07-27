@@ -20,6 +20,13 @@ REPORT_FILE = (
     / "artifacts"
     / "WP-0007-delivery-demo.json"
 )
+UPGRADE_REPORT_FILE = (
+    REPOSITORY_ROOT
+    / "project"
+    / "evidence"
+    / "artifacts"
+    / "WP-0007-upgrade-drill.json"
+)
 
 
 class DeliveryOperationsTest(unittest.TestCase):
@@ -135,6 +142,41 @@ class DeliveryOperationsTest(unittest.TestCase):
         self.assertTrue(report["deliveryResourcesRemoved"])
         self.assertFalse(report["secretsIncluded"])
         self.assertTrue(report["humanMilestoneApprovalRequired"])
+
+        for forbidden in [
+            "Demo@2026",
+            "local-demo-",
+            "tokenValue",
+            "object_key",
+            "tenant_id",
+            "secret://",
+        ]:
+            self.assertNotIn(forbidden, report_text)
+
+    def test_committed_upgrade_report_preserves_existing_facts(self) -> None:
+        report_text = UPGRADE_REPORT_FILE.read_text(encoding="utf-8")
+        report = json.loads(report_text)
+
+        self.assertEqual(1, report["schemaVersion"])
+        self.assertTrue(report["passed"])
+        self.assertEqual("既有数据卷受控重部署", report["upgradeType"])
+        self.assertTrue(report["factsMatch"])
+        self.assertEqual(
+            report["factsBeforeSha256"],
+            report["factsAfterSha256"],
+        )
+        self.assertEqual(
+            report["migrationCountBefore"],
+            report["migrationCountAfter"],
+        )
+        self.assertEqual(8, report["serviceCount"])
+        self.assertEqual(5, report["applicationEntryCount"])
+        self.assertTrue(report["evaluation"]["passed"])
+        self.assertEqual(8, len(report["images"]))
+        self.assertTrue(report["sourceEnvironmentHealthy"])
+        self.assertTrue(report["rollbackBackupCreated"])
+        self.assertTrue(report["rollbackBackupDeletedAfterSuccess"])
+        self.assertFalse(report["secretsIncluded"])
 
         for forbidden in [
             "Demo@2026",

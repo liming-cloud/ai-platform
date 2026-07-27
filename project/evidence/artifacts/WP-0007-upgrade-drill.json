@@ -1,0 +1,208 @@
+{
+  "schemaVersion": 1,
+  "passed": true,
+  "gitCommit": "d0fc7aa649bc6869205cde49e8c071abe57deef6",
+  "upgradeType": "既有数据卷受控重部署",
+  "databaseBackupSha256": "914fc4806b2efd0285ffd87292ff0fa982687c8816a3a1850c6ed1e4f7fc42cb",
+  "factsBeforeSha256": "51b3e39ffefeecc45bf0df38c38ea6c12c8762c6f46bc4b385dbd29b47a938c7",
+  "factsAfterSha256": "51b3e39ffefeecc45bf0df38c38ea6c12c8762c6f46bc4b385dbd29b47a938c7",
+  "factsMatch": true,
+  "migrationCountBefore": 18,
+  "migrationCountAfter": 18,
+  "serviceCount": 8,
+  "applicationEntryCount": 5,
+  "evaluation": {
+    "caseCount": 8,
+    "caseResults": [
+      {
+        "answerPointCount": 2,
+        "expectedRecordCount": 1,
+        "failures": [],
+        "id": "store-search-001",
+        "matchedAnswerPointCount": 2,
+        "matchedRecordCount": 1,
+        "passed": true,
+        "scenario": "store",
+        "targetHit": true
+      },
+      {
+        "answerPointCount": 2,
+        "expectedRecordCount": 3,
+        "failures": [],
+        "id": "store-search-002",
+        "matchedAnswerPointCount": 2,
+        "matchedRecordCount": 3,
+        "passed": true,
+        "scenario": "store",
+        "targetHit": true
+      },
+      {
+        "answerPointCount": 2,
+        "expectedRecordCount": 1,
+        "failures": [],
+        "id": "store-search-003",
+        "matchedAnswerPointCount": 2,
+        "matchedRecordCount": 1,
+        "passed": true,
+        "scenario": "store",
+        "targetHit": true
+      },
+      {
+        "answerPointCount": 2,
+        "expectedRecordCount": 1,
+        "failures": [],
+        "id": "store-search-004",
+        "matchedAnswerPointCount": 2,
+        "matchedRecordCount": 1,
+        "passed": true,
+        "scenario": "store",
+        "targetHit": true
+      },
+      {
+        "answerPointCount": 2,
+        "expectedRecordCount": 1,
+        "failures": [],
+        "id": "campus-search-001",
+        "matchedAnswerPointCount": 2,
+        "matchedRecordCount": 1,
+        "passed": true,
+        "scenario": "campus",
+        "targetHit": true
+      },
+      {
+        "answerPointCount": 2,
+        "expectedRecordCount": 1,
+        "failures": [],
+        "id": "campus-search-002",
+        "matchedAnswerPointCount": 2,
+        "matchedRecordCount": 1,
+        "passed": true,
+        "scenario": "campus",
+        "targetHit": true
+      },
+      {
+        "answerPointCount": 2,
+        "expectedRecordCount": 1,
+        "failures": [],
+        "id": "campus-search-003",
+        "matchedAnswerPointCount": 2,
+        "matchedRecordCount": 1,
+        "passed": true,
+        "scenario": "campus",
+        "targetHit": true
+      },
+      {
+        "answerPointCount": 2,
+        "expectedRecordCount": 1,
+        "failures": [],
+        "id": "campus-search-004",
+        "matchedAnswerPointCount": 2,
+        "matchedRecordCount": 1,
+        "passed": true,
+        "scenario": "campus",
+        "targetHit": true
+      }
+    ],
+    "crossTenantCaseCount": 2,
+    "crossTenantResults": [
+      {
+        "id": "store-asks-campus-001",
+        "leakCount": 0,
+        "leakedRecordIds": [],
+        "passed": true
+      },
+      {
+        "id": "campus-asks-store-001",
+        "leakCount": 0,
+        "leakedRecordIds": [],
+        "passed": true
+      }
+    ],
+    "datasetDigest": "5ba7666c5a1ab2a397fcca04da8eb0bd5a4dddf474ee6b3e02d2e3cb91e622ee",
+    "metrics": {
+      "answerPointCoverage": 1.0,
+      "citationCompleteness": 1.0,
+      "crossTenantLeakCount": 0,
+      "expectedRefusalRate": 1.0,
+      "targetHitRate": 1.0
+    },
+    "passed": true,
+    "refusalCaseCount": 2,
+    "refusalResults": [
+      {
+        "id": "store-refusal-001",
+        "passed": true
+      },
+      {
+        "id": "campus-refusal-001",
+        "passed": true
+      }
+    ],
+    "runtime": {
+      "providerKind": "DETERMINISTIC"
+    },
+    "schemaVersion": 1,
+    "thresholds": {
+      "answerPointCoverage": 1.0,
+      "citationCompleteness": 1.0,
+      "crossTenantLeakCount": 0,
+      "expectedRefusalRate": 1.0,
+      "targetHitRate": 1.0
+    }
+  },
+  "images": [
+    {
+      "repository": "minio/minio",
+      "tag": "",
+      "contentId": "sha256:14cea493d9a34af32f524e538b8346cf79f3321eff8e708c1e2960462bd8936e",
+      "platform": "linux/arm64"
+    },
+    {
+      "repository": "pgvector/pgvector",
+      "tag": "",
+      "contentId": "sha256:9d2e61c7352b9e9f4798df5fd9a498f043f4cda1cdacc707de3d198650f4321e",
+      "platform": "linux/arm64"
+    },
+    {
+      "repository": "redis",
+      "tag": "",
+      "contentId": "sha256:c88d347edef6249a6d2293f926f1eeb48bd40c57cbcd02c07f52e7f1fd2cb46b",
+      "platform": "linux/arm64/v8"
+    },
+    {
+      "repository": "trusted-rag/console-web",
+      "tag": "foundation-v1",
+      "contentId": "sha256:379b95d697b30ced2c21cb759a142a84cf581d3158a2f6110b0767ccade42fb7",
+      "platform": "linux/arm64"
+    },
+    {
+      "repository": "trusted-rag/control-plane",
+      "tag": "foundation-v1",
+      "contentId": "sha256:c0dee1367369b4852e9ed463a704042407d83e10a9350519770939fb7d695486",
+      "platform": "linux/arm64"
+    },
+    {
+      "repository": "trusted-rag/ingestion-worker",
+      "tag": "foundation-v1",
+      "contentId": "sha256:1a14721a669540350cfe7b86ed52a8467972f1a57a1affe256ec5427c5386603",
+      "platform": "linux/arm64"
+    },
+    {
+      "repository": "trusted-rag/query-runtime",
+      "tag": "foundation-v1",
+      "contentId": "sha256:48185eaea6306aab93d20dcb34694fd91c7ef721281624fe5e8df4cb19689090",
+      "platform": "linux/arm64"
+    },
+    {
+      "repository": "trusted-rag/query-web",
+      "tag": "foundation-v1",
+      "contentId": "sha256:9ceb1e76c6dc3ecc2a9f1a8b32b93a673fae58e0dd6b281dedcaabfc44a4134b",
+      "platform": "linux/arm64"
+    }
+  ],
+  "durationSeconds": 39,
+  "sourceEnvironmentHealthy": true,
+  "rollbackBackupCreated": true,
+  "rollbackBackupDeletedAfterSuccess": true,
+  "secretsIncluded": false
+}
