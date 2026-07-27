@@ -88,6 +88,8 @@
 | --- | --- | --- | --- |
 | 备份与隔离恢复演练 | `project/evidence/WP-0007-backup-recovery.md` | `9656d70e732b75472710a1c3e28a2a9ae0bf7fd7`、`c0f2906352e82905bae999cba7369928dc24d8c5` | PostgreSQL 与 3 个 MinIO 对象在隔离环境恢复，事实和摘要一致，Redis 空恢复，租户隔离、原环境健康和资源清理通过，恢复阶段 18 秒 |
 | 端到端容量与故障恢复 | `project/evidence/WP-0007-capacity-resilience.md` | `ea40372ae224d6898318ee1262d2b432c0f88022`、`9bb74304861db4a34d330cf3f733ccb2aff54848` | 双租户总并发 8，40 次采样零错误零重放，95 分位 50.201 毫秒、每秒 219.873 次；四个关键服务重启与重启后查询通过 |
+| 空环境交付与 M1 技术验收 | `project/evidence/WP-0007-M1-technical-acceptance.md` | `a1bc72c8749314687bfd160b8fd06949f1a97f2f`、`fb02924ad96b03b95f970b7b4dc69f0543dd90bb` | 从 0 条业务事实构建 8 个服务，双场景任务、8 题评测、配额、用量审计、注销和清理通过；产品、测试、运维人工确认待完成 |
+| 既有数据卷受控升级 | `project/evidence/artifacts/WP-0007-upgrade-drill.json` | `d0fc7aa649bc6869205cde49e8c071abe57deef6`、`d9605a59b7379a78deeb0f1b721b443e1d5a3a45` | 一致回滚备份后重建应用，升级前后事实摘要和 18 条迁移记录一致，8 题评测与五入口通过，成功后机密备份已删除 |
 
 ## 证据规则
 
