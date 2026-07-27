@@ -115,7 +115,8 @@ docker run \
       esac
       target="/backup/objects/${object_key}"
       mkdir -p "$(dirname "${target}")"
-      mc cp --quiet "source/${RECOVERY_BUCKET}/${object_key}" "${target}"
+      mc cp --quiet "source/${RECOVERY_BUCKET}/${object_key}" "${target}" \
+        >/dev/null
       actual_sha="$(sha256sum "${target}")"
       actual_sha="${actual_sha%% *}"
       actual_size="$(wc -c <"${target}" | tr -d " ")"

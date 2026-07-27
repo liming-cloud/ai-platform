@@ -91,7 +91,8 @@ docker run \
         --quiet \
         --attr "sha256=${expected_sha}" \
         "${source_file}" \
-        "target/${RECOVERY_BUCKET}/${object_key}"
+        "target/${RECOVERY_BUCKET}/${object_key}" \
+        >/dev/null
     done </backup/objects.tsv
   '
 

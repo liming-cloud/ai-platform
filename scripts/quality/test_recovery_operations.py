@@ -144,6 +144,7 @@ class RecoveryOperationsTest(unittest.TestCase):
                 re.search(r"sha256sum[^\n]*\|\s*awk", content),
                 script_name,
             )
+            self.assertNotIn("grep -F", content, script_name)
 
     def test_recovery_name_guard_rejects_source_and_uncontrolled_names(self) -> None:
         common = OPERATIONS_DIRECTORY / "recovery-common.sh"

@@ -87,11 +87,14 @@ readonly RESTORED_OBJECT_COUNT="$(
       verified=0
       while IFS="${tab}" read -r object_key expected_sha expected_size; do
         stat_json="$(mc stat --json "target/${RECOVERY_BUCKET}/${object_key}")"
-        printf "%s" "${stat_json}" |
-          grep -F "\"X-Amz-Meta-Sha256\":\"${expected_sha}\"" >/dev/null
+        case "${stat_json}" in
+          *"\"X-Amz-Meta-Sha256\":\"${expected_sha}\""*) ;;
+          *) echo "恢复对象摘要元数据不一致" >&2; exit 1 ;;
+        esac
         mc cp --quiet \
           "target/${RECOVERY_BUCKET}/${object_key}" \
-          /tmp/recovery-verification-object
+          /tmp/recovery-verification-object \
+          >/dev/null
         actual_sha="$(sha256sum /tmp/recovery-verification-object)"
         actual_sha="${actual_sha%% *}"
         actual_size="$(wc -c </tmp/recovery-verification-object | tr -d " ")"
