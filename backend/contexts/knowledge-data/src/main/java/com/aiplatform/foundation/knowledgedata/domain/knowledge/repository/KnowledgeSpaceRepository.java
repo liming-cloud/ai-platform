@@ -2,6 +2,7 @@ package com.aiplatform.foundation.knowledgedata.domain.knowledge.repository;
 
 import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
 import com.aiplatform.foundation.knowledgedata.domain.knowledge.model.KnowledgeSpace;
+import com.aiplatform.foundation.knowledgedata.domain.knowledge.model.KnowledgeSpaceId;
 
 /**
  * 知识空间持久化端口。
@@ -16,4 +17,6 @@ public interface KnowledgeSpaceRepository {
             TenantId tenantId,
             long pageNumber,
             long pageSize);
+
+    boolean exists(TenantId tenantId, KnowledgeSpaceId knowledgeSpaceId);
 }

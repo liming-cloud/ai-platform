@@ -7,6 +7,7 @@ import com.aiplatform.foundation.knowledgedata.application.datasource.service.Te
 import com.aiplatform.foundation.knowledgedata.application.indexversion.facade.ActiveIndexLookup;
 import com.aiplatform.foundation.knowledgedata.application.indexversion.service.IndexVersionService;
 import com.aiplatform.foundation.knowledgedata.application.knowledge.service.KnowledgeSpaceService;
+import com.aiplatform.foundation.knowledgedata.application.knowledge.facade.KnowledgeSpaceLookup;
 import com.aiplatform.foundation.knowledgedata.application.port.out.content.TextContentObjectStoragePort;
 import com.aiplatform.foundation.knowledgedata.application.port.out.content.TextContentStagingPort;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.repository.TextDataSourceRepository;
@@ -62,6 +63,7 @@ class KnowledgeDataAutoConfigurationTest {
                     assertThat(context).hasSingleBean(TextDataSourceService.class);
                     assertThat(context).hasSingleBean(IndexVersionService.class);
                     assertThat(context).hasSingleBean(ActiveIndexLookup.class);
+                    assertThat(context).hasSingleBean(KnowledgeSpaceLookup.class);
                     assertThat(context.getBean(KnowledgeDataProperties.class)
                             .getKnowledgeSpaceLimit()).isEqualTo(5);
                 });
@@ -166,7 +168,7 @@ class KnowledgeDataAutoConfigurationTest {
     }
 
     @Test
-    void 查询角色仅公开活动索引门面() {
+    void 查询角色仅公开知识空间和活动索引只读门面() {
         new ApplicationContextRunner()
                 .withConfiguration(AutoConfigurations.of(
                         KnowledgeDataQueryAutoConfiguration.class))
@@ -174,9 +176,13 @@ class KnowledgeDataAutoConfigurationTest {
                 .withBean(
                         IndexVersionRepository.class,
                         () -> mock(IndexVersionRepository.class))
+                .withBean(
+                        KnowledgeSpaceRepository.class,
+                        () -> mock(KnowledgeSpaceRepository.class))
                 .run(context -> {
                     assertThat(context).hasNotFailed();
                     assertThat(context).hasSingleBean(ActiveIndexLookup.class);
+                    assertThat(context).hasSingleBean(KnowledgeSpaceLookup.class);
                     assertThat(context).doesNotHaveBean(IndexVersionService.class);
                 });
     }

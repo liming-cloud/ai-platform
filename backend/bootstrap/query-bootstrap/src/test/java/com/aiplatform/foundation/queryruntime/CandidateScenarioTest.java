@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
 import com.aiplatform.foundation.knowledgedata.application.indexversion.facade.ActiveIndexLookup;
+import com.aiplatform.foundation.knowledgedata.application.knowledge.facade.KnowledgeSpaceLookup;
 import com.aiplatform.foundation.knowledgedata.application.indexversion.port.out.vector.IndexVector;
 import com.aiplatform.foundation.knowledgedata.application.indexversion.port.out.vector.IndexVectorBatch;
 import com.aiplatform.foundation.knowledgedata.application.indexversion.dto.ActiveIndexSnapshot;
@@ -248,6 +249,14 @@ class CandidateScenarioTest {
         }
 
         @Bean
+        KnowledgeSpaceLookup knowledgeSpaceLookup() {
+            return (tenantId, knowledgeSpaceId) ->
+                    SPACE == knowledgeSpaceId
+                            && (STORE_TENANT.equals(tenantId)
+                            || CAMPUS_TENANT.equals(tenantId));
+        }
+
+        @Bean
         ModelRuntimeResolver modelRuntimeResolver() {
             return new ModelRuntimeResolver() {
 
@@ -277,10 +286,12 @@ class CandidateScenarioTest {
 
         @Bean
         CandidateSearchService candidateSearchService(
+                KnowledgeSpaceLookup knowledgeSpaces,
                 ActiveIndexLookup indexes,
                 ModelRuntimeResolver models,
                 PgVectorIndexStore vectors) {
             return new CandidateSearchService(
+                    knowledgeSpaces,
                     indexes,
                     models,
                     vectors);

@@ -2,7 +2,10 @@ package com.aiplatform.foundation.knowledgedata.infrastructure.configuration;
 
 import com.aiplatform.foundation.knowledgedata.application.indexversion.facade.ActiveIndexLookup;
 import com.aiplatform.foundation.knowledgedata.application.indexversion.service.ActiveIndexLookupService;
+import com.aiplatform.foundation.knowledgedata.application.knowledge.facade.KnowledgeSpaceLookup;
+import com.aiplatform.foundation.knowledgedata.application.knowledge.service.KnowledgeSpaceLookupService;
 import com.aiplatform.foundation.knowledgedata.domain.indexversion.repository.IndexVersionRepository;
+import com.aiplatform.foundation.knowledgedata.domain.knowledge.repository.KnowledgeSpaceRepository;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -21,5 +24,11 @@ public class KnowledgeDataQueryAutoConfiguration {
     @ConditionalOnMissingBean
     ActiveIndexLookup activeIndexLookup(IndexVersionRepository repository) {
         return new ActiveIndexLookupService(repository);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    KnowledgeSpaceLookup knowledgeSpaceLookup(KnowledgeSpaceRepository repository) {
+        return new KnowledgeSpaceLookupService(repository);
     }
 }

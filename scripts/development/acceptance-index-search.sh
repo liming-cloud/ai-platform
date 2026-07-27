@@ -227,7 +227,7 @@ cross_tenant_status="$(
 )"
 [[ "${cross_tenant_status}" == "404" ]]
 jq -e \
-  '.code == "RESOURCE_NOT_FOUND"
+  '.code == "TRUSTED_QUERY.RESOURCE.0002"
     and .message == "请求的资源不存在"
     and (.details | length == 0)' \
   >/dev/null <"${CROSS_TENANT_RESPONSE}"

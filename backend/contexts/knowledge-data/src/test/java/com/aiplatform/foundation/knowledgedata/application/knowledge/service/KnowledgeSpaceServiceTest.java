@@ -14,6 +14,7 @@ import com.aiplatform.foundation.knowledgedata.domain.knowledge.repository.Knowl
 import com.aiplatform.foundation.shared.contract.paging.PageQuery;
 import com.aiplatform.foundation.knowledgedata.domain.knowledge.repository.KnowledgeSpacePage;
 import com.aiplatform.foundation.knowledgedata.domain.knowledge.model.KnowledgeSpace;
+import com.aiplatform.foundation.knowledgedata.domain.knowledge.model.KnowledgeSpaceId;
 import com.aiplatform.foundation.security.identity.AccessChannel;
 import com.aiplatform.foundation.security.identity.CredentialType;
 import com.aiplatform.foundation.security.identity.MembershipId;
@@ -115,6 +116,11 @@ class KnowledgeSpaceServiceTest {
                 long pageSize) {
             listTenant = tenantId;
             return new KnowledgeSpacePage(List.of(), pageNumber, pageSize, 0);
+        }
+
+        @Override
+        public boolean exists(TenantId tenantId, KnowledgeSpaceId knowledgeSpaceId) {
+            return false;
         }
     }
 }

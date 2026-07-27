@@ -2,6 +2,7 @@ package com.aiplatform.foundation.trustedquery.infrastructure.configuration;
 
 import com.aiplatform.foundation.assistantdelivery.application.assistant.facade.PublishedAssistantVersionLookup;
 import com.aiplatform.foundation.knowledgedata.application.indexversion.facade.ActiveIndexLookup;
+import com.aiplatform.foundation.knowledgedata.application.knowledge.facade.KnowledgeSpaceLookup;
 import com.aiplatform.foundation.knowledgedata.application.indexversion.port.out.vector.IndexCandidateRetriever;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.ModelRuntimeResolver;
 import com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator;
@@ -28,10 +29,11 @@ public class TrustedQueryCoreAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean
     CandidateSearchService candidateSearchService(
+            KnowledgeSpaceLookup knowledgeSpaces,
             ActiveIndexLookup indexes,
             ModelRuntimeResolver models,
             IndexCandidateRetriever candidates) {
-        return new CandidateSearchService(indexes, models, candidates);
+        return new CandidateSearchService(knowledgeSpaces, indexes, models, candidates);
     }
 
     @Bean

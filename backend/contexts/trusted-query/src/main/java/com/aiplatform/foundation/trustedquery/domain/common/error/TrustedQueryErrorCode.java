@@ -12,6 +12,8 @@ public enum TrustedQueryErrorCode implements ErrorCode {
             "没有执行该查询操作的权限", Set.of()),
     RUN_NOT_FOUND("TRUSTED_QUERY.RESOURCE.0001", ErrorType.RESOURCE,
             "查询运行不存在", Set.of()),
+    TARGET_NOT_FOUND("TRUSTED_QUERY.RESOURCE.0002", ErrorType.RESOURCE,
+            "请求的资源不存在", Set.of()),
     ASSISTANT_UNAVAILABLE(
             "TRUSTED_QUERY.DEPENDENCY_UNAVAILABLE.0001",
             ErrorType.DEPENDENCY_UNAVAILABLE,

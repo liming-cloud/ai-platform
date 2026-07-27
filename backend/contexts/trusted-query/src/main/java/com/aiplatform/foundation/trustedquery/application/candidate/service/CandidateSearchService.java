@@ -1,6 +1,7 @@
 package com.aiplatform.foundation.trustedquery.application.candidate.service;
 
 import com.aiplatform.foundation.knowledgedata.application.indexversion.facade.ActiveIndexLookup;
+import com.aiplatform.foundation.knowledgedata.application.knowledge.facade.KnowledgeSpaceLookup;
 import com.aiplatform.foundation.knowledgedata.application.indexversion.port.out.vector.IndexCandidateQuery;
 import com.aiplatform.foundation.knowledgedata.application.indexversion.port.out.vector.IndexCandidateRetriever;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.ModelRuntimeResolver;
@@ -9,6 +10,7 @@ import com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.emb
 import com.aiplatform.foundation.security.identity.PermissionCode;
 import com.aiplatform.foundation.trustedquery.application.candidate.exception.CandidateSearchIndexUnavailableException;
 import com.aiplatform.foundation.trustedquery.application.candidate.exception.CandidateSearchPermissionDeniedException;
+import com.aiplatform.foundation.trustedquery.application.candidate.exception.CandidateSearchTargetNotFoundException;
 import com.aiplatform.foundation.trustedquery.application.candidate.query.CandidateSearchQuery;
 import com.aiplatform.foundation.trustedquery.application.candidate.dto.CandidateSearchResult;
 import com.aiplatform.foundation.trustedquery.application.candidate.dto.CandidateView;
@@ -22,14 +24,19 @@ public final class CandidateSearchService  {
 
     private static final PermissionCode READ = new PermissionCode("knowledge:read");
 
+    private final KnowledgeSpaceLookup knowledgeSpaces;
     private final ActiveIndexLookup indexes;
     private final ModelRuntimeResolver models;
     private final IndexCandidateRetriever candidates;
 
     public CandidateSearchService(
+            KnowledgeSpaceLookup knowledgeSpaces,
             ActiveIndexLookup indexes,
             ModelRuntimeResolver models,
             IndexCandidateRetriever candidates) {
+        this.knowledgeSpaces = Objects.requireNonNull(
+                knowledgeSpaces,
+                "知识空间查询不能为空");
         this.indexes = Objects.requireNonNull(indexes, "活动索引查询不能为空");
         this.models = Objects.requireNonNull(models, "模型运行时解析器不能为空");
         this.candidates = Objects.requireNonNull(candidates, "候选检索端口不能为空");
@@ -41,6 +48,9 @@ public final class CandidateSearchService  {
             throw new CandidateSearchPermissionDeniedException();
         }
         var knowledgeSpaceId = parsePositiveIdentifier(query.knowledgeSpaceId());
+        if (!knowledgeSpaces.exists(query.context().tenantId(), knowledgeSpaceId)) {
+            throw new CandidateSearchTargetNotFoundException();
+        }
         var index = indexes
                 .find(query.context().tenantId(), knowledgeSpaceId)
                 .orElseThrow(CandidateSearchIndexUnavailableException::new);

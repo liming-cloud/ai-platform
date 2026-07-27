@@ -109,7 +109,7 @@ class PostgresKnowledgeSpaceRepositoryTest {
 
     @Test
     void 相同名称和幂等键在两个租户中保持隔离() {
-        repository.create(creation(
+        var store = repository.create(creation(
                 STORE_TENANT,
                 "request-00000002",
                 "a".repeat(64),
@@ -128,6 +128,8 @@ class PostgresKnowledgeSpaceRepositoryTest {
         assertEquals(
                 1,
                 repository.findPage(CAMPUS_TENANT, 1, 20).items().size());
+        assertTrue(repository.exists(STORE_TENANT, store.space().id()));
+        assertFalse(repository.exists(CAMPUS_TENANT, store.space().id()));
     }
 
     @Test

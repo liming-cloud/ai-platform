@@ -5,6 +5,8 @@ import com.aiplatform.foundation.knowledgedata.application.indexversion.facade.A
 import com.aiplatform.foundation.knowledgedata.application.indexversion.service.ActiveIndexLookupService;
 import com.aiplatform.foundation.knowledgedata.application.indexversion.service.IndexVersionService;
 import com.aiplatform.foundation.knowledgedata.application.knowledge.service.KnowledgeSpaceService;
+import com.aiplatform.foundation.knowledgedata.application.knowledge.facade.KnowledgeSpaceLookup;
+import com.aiplatform.foundation.knowledgedata.application.knowledge.service.KnowledgeSpaceLookupService;
 import com.aiplatform.foundation.knowledgedata.application.port.out.content.TextContentObjectStoragePort;
 import com.aiplatform.foundation.knowledgedata.application.port.out.content.TextContentStagingPort;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.repository.TextDataSourceRepository;
@@ -42,6 +44,12 @@ public class KnowledgeDataCoreAutoConfiguration {
                 Clock.systemUTC(),
                 identifiers,
                 properties.getKnowledgeSpaceLimit());
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    KnowledgeSpaceLookup knowledgeSpaceLookup(KnowledgeSpaceRepository repository) {
+        return new KnowledgeSpaceLookupService(repository);
     }
 
     @Bean

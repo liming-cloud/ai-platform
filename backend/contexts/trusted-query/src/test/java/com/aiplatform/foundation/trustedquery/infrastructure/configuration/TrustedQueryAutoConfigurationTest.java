@@ -6,6 +6,7 @@ import static org.mockito.Mockito.mock;
 import com.aiplatform.foundation.assistantdelivery.application.assistant.facade.PublishedAssistantVersionLookup;
 import com.aiplatform.foundation.assistantdelivery.application.catalog.service.QueryAssistantCatalogService;
 import com.aiplatform.foundation.knowledgedata.application.indexversion.facade.ActiveIndexLookup;
+import com.aiplatform.foundation.knowledgedata.application.knowledge.facade.KnowledgeSpaceLookup;
 import com.aiplatform.foundation.knowledgedata.application.indexversion.port.out.vector.IndexCandidateRetriever;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.ModelRuntimeResolver;
 import com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator;
@@ -29,6 +30,9 @@ class TrustedQueryAutoConfigurationTest {
                     .withBean(
                             ActiveIndexLookup.class,
                             () -> mock(ActiveIndexLookup.class))
+                    .withBean(
+                            KnowledgeSpaceLookup.class,
+                            () -> mock(KnowledgeSpaceLookup.class))
                     .withBean(
                             ModelRuntimeResolver.class,
                             () -> mock(ModelRuntimeResolver.class))

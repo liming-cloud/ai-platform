@@ -1,6 +1,7 @@
 package com.aiplatform.foundation.trustedquery.application.candidate.service;
 
 import com.aiplatform.foundation.trustedquery.application.candidate.exception.CandidateSearchPermissionDeniedException;
+import com.aiplatform.foundation.trustedquery.application.candidate.exception.CandidateSearchTargetNotFoundException;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -43,6 +44,7 @@ class CandidateSearchServiceTest {
     void 可信租户和冻结嵌入修订必须进入候选检索端口() {
         var retriever = new RecordingRetriever();
         var service = new CandidateSearchService(
+                knowledgeSpace(true),
                 activeIndex(),
                 models(request -> new EmbeddingBatch(
                                 request.deployment(),
@@ -69,6 +71,7 @@ class CandidateSearchServiceTest {
     void 缺少读取权限时不调用嵌入和检索外部依赖() {
         var retriever = new RecordingRetriever();
         var service = new CandidateSearchService(
+                knowledgeSpace(true),
                 activeIndex(),
                 models(request -> {
                     throw new AssertionError("无权限请求不能调用嵌入模型");
@@ -83,6 +86,33 @@ class CandidateSearchServiceTest {
                         "一层有什么商品",
                         5)));
         assertEquals(null, retriever.query);
+    }
+
+    @Test
+    void 当前租户不可见的知识空间必须按资源不存在处理且不调用模型() {
+        var retriever = new RecordingRetriever();
+        var service = new CandidateSearchService(
+                knowledgeSpace(false),
+                activeIndex(),
+                models(request -> {
+                    throw new AssertionError("不可见资源不能调用嵌入模型");
+                }),
+                retriever);
+
+        assertThrows(
+                CandidateSearchTargetNotFoundException.class,
+                () -> service.search(new CandidateSearchQuery(
+                        context("knowledge:read"),
+                        Long.toString(SPACE),
+                        "一层有什么商品",
+                        5)));
+        assertEquals(null, retriever.query);
+    }
+
+    private static com.aiplatform.foundation.knowledgedata.application.knowledge.facade.KnowledgeSpaceLookup
+            knowledgeSpace(boolean exists) {
+        return (tenantId, knowledgeSpaceId) ->
+                exists && TENANT.equals(tenantId) && SPACE == knowledgeSpaceId;
     }
 
     private static ActiveIndexLookup activeIndex() {

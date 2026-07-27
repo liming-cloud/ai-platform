@@ -85,6 +85,18 @@ public final class PostgresKnowledgeSpaceRepository implements KnowledgeSpaceRep
                 page.getTotal());
     }
 
+    @Override
+    public boolean exists(TenantId tenantId, KnowledgeSpaceId knowledgeSpaceId) {
+        Objects.requireNonNull(tenantId, "租户标识不能为空");
+        Objects.requireNonNull(knowledgeSpaceId, "知识空间标识不能为空");
+        return mapper.selectCount(
+                new LambdaQueryWrapper<KnowledgeSpaceEntity>()
+                        .eq(KnowledgeSpaceEntity::getTenantId, tenantId.value())
+                        .eq(KnowledgeSpaceEntity::getId, knowledgeSpaceId.value())
+                        .ne(KnowledgeSpaceEntity::getStatus, "DELETED"))
+                > 0;
+    }
+
     private KnowledgeSpaceCreationOutcome createInTransaction(
             KnowledgeSpaceCreation creation,
             int tenantLimit) {
