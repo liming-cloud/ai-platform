@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "passed": true,
+  "gitCommit": "9656d70e732b75472710a1c3e28a2a9ae0bf7fd7",
+  "databaseSha256": "dfef27f914abb4acdf77f9c8b1e96b9615c6f967520267482b70eb94ea1f8aad",
+  "factsSha256": "8c099d81e56bd8a86cd80d46fa1950bbff100600fa94f1c0d51cc1c556195880",
+  "backupDurationSeconds": 4,
+  "restoreDurationSeconds": 18,
+  "recoveryPointTargetHours": 24,
+  "recoveryTimeTargetSeconds": 3600,
+  "objectCount": 3,
+  "tenantCount": 2,
+  "redisRecoveredKeys": 0,
+  "factsMatch": true,
+  "objectIntegrity": true,
+  "tenantIsolation": true,
+  "sourceEnvironmentHealthy": true,
+  "recoveryEnvironmentHealthy": true,
+  "secretsIncluded": false
+}

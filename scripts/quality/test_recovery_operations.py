@@ -11,6 +11,13 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 COMPOSE_FILE = REPOSITORY_ROOT / "deploy" / "compose" / "compose.yml"
 ENV_FILE = REPOSITORY_ROOT / "deploy" / "compose" / ".env.example"
 OPERATIONS_DIRECTORY = REPOSITORY_ROOT / "scripts" / "operations"
+RECOVERY_REPORT = (
+    REPOSITORY_ROOT
+    / "project"
+    / "evidence"
+    / "artifacts"
+    / "WP-0007-recovery-drill.json"
+)
 
 
 class RecoveryOperationsTest(unittest.TestCase):
@@ -205,6 +212,48 @@ class RecoveryOperationsTest(unittest.TestCase):
                 text=True,
             )
             self.assertNotEqual(0, completed.returncode)
+
+    def test_recovery_report_is_sanitized_and_meets_demo_targets(self) -> None:
+        report_text = RECOVERY_REPORT.read_text(encoding="utf-8")
+        report = json.loads(report_text)
+        expected_keys = {
+            "schemaVersion",
+            "passed",
+            "gitCommit",
+            "databaseSha256",
+            "factsSha256",
+            "backupDurationSeconds",
+            "restoreDurationSeconds",
+            "recoveryPointTargetHours",
+            "recoveryTimeTargetSeconds",
+            "objectCount",
+            "tenantCount",
+            "redisRecoveredKeys",
+            "factsMatch",
+            "objectIntegrity",
+            "tenantIsolation",
+            "sourceEnvironmentHealthy",
+            "recoveryEnvironmentHealthy",
+            "secretsIncluded",
+        }
+
+        self.assertEqual(expected_keys, set(report))
+        self.assertTrue(report["passed"])
+        self.assertTrue(report["factsMatch"])
+        self.assertTrue(report["objectIntegrity"])
+        self.assertTrue(report["tenantIsolation"])
+        self.assertTrue(report["sourceEnvironmentHealthy"])
+        self.assertTrue(report["recoveryEnvironmentHealthy"])
+        self.assertFalse(report["secretsIncluded"])
+        self.assertEqual(0, report["redisRecoveredKeys"])
+        self.assertLessEqual(
+            report["restoreDurationSeconds"],
+            report["recoveryTimeTargetSeconds"],
+        )
+        self.assertNotRegex(
+            report_text,
+            r"Demo@2026|local-demo-|secret://|tokenValue|object_key|tenant_id",
+        )
 
 
 if __name__ == "__main__":
