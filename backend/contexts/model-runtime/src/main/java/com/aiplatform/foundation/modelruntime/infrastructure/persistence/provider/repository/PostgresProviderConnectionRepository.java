@@ -14,7 +14,9 @@ import com.aiplatform.foundation.modelruntime.domain.provider.model.ProviderConn
 import com.aiplatform.foundation.modelruntime.domain.provider.model.ProviderConnectionId;
 import com.aiplatform.foundation.modelruntime.domain.provider.model.ProviderConnectionStatus;
 import com.aiplatform.foundation.modelruntime.infrastructure.persistence.provider.entity.ProviderConnectionEntity;
+import com.aiplatform.foundation.modelruntime.infrastructure.persistence.provider.entity.ProviderConnectionRequestEntity;
 import com.aiplatform.foundation.modelruntime.infrastructure.persistence.provider.mapper.ProviderConnectionMapper;
+import com.aiplatform.foundation.modelruntime.infrastructure.persistence.provider.mapper.ProviderConnectionRequestMapper;
 import com.aiplatform.foundation.modelruntime.domain.provider.model.CredentialReference;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -36,12 +38,17 @@ public final class PostgresProviderConnectionRepository
         implements ProviderConnectionRepository {
 
     private final ProviderConnectionMapper mapper;
+    private final ProviderConnectionRequestMapper requestMapper;
     private final TransactionTemplate transactions;
 
     public PostgresProviderConnectionRepository(
             ProviderConnectionMapper mapper,
+            ProviderConnectionRequestMapper requestMapper,
             PlatformTransactionManager transactionManager) {
         this.mapper = Objects.requireNonNull(mapper, "供应商连接映射器不能为空");
+        this.requestMapper = Objects.requireNonNull(
+                requestMapper,
+                "供应商连接幂等请求映射器不能为空");
         this.transactions = new TransactionTemplate(
                 Objects.requireNonNull(transactionManager, "事务管理器不能为空"));
     }
@@ -129,7 +136,10 @@ public final class PostgresProviderConnectionRepository
         var keyHash = sha256(creation.idempotencyKey());
         mapper.lockTenant(Long.toString(tenantId));
 
-        var existing = mapper.findRequest(tenantId, keyHash);
+        var existing = requestMapper.selectOne(
+                Wrappers.<ProviderConnectionRequestEntity>lambdaQuery()
+                        .eq(ProviderConnectionRequestEntity::getTenantId, tenantId)
+                        .eq(ProviderConnectionRequestEntity::getIdempotencyKeyHash, keyHash));
         if (existing != null) {
             if (!existing.getRequestFingerprint().equals(creation.requestFingerprint())) {
                 throw new ProviderConnectionIdempotencyConflictException();
@@ -155,12 +165,7 @@ public final class PostgresProviderConnectionRepository
         }
         try {
             mapper.insert(toEntity(connection));
-            mapper.insertRequest(
-                    tenantId,
-                    keyHash,
-                    creation.requestFingerprint(),
-                    connection.id().value(),
-                    connection.createdAt());
+            requestMapper.insert(toRequestEntity(creation, keyHash));
         } catch (DuplicateKeyException exception) {
             throw new ProviderConnectionNameConflictException();
         }
@@ -201,6 +206,19 @@ public final class PostgresProviderConnectionRepository
         entity.setLastProbeCode(connection.lastProbeCode());
         entity.setLastProbedAt(connection.lastProbedAt());
         entity.setCreatedAt(connection.createdAt());
+        return entity;
+    }
+
+    private static ProviderConnectionRequestEntity toRequestEntity(
+            ProviderConnectionCreation creation,
+            String keyHash) {
+        var entity = new ProviderConnectionRequestEntity();
+        entity.setId(creation.connection().id().value());
+        entity.setTenantId(creation.connection().tenantId().value());
+        entity.setIdempotencyKeyHash(keyHash);
+        entity.setRequestFingerprint(creation.requestFingerprint());
+        entity.setProviderConnectionId(creation.connection().id().value());
+        entity.setCreatedAt(creation.connection().createdAt());
         return entity;
     }
 

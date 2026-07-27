@@ -47,13 +47,14 @@ CREATE INDEX idx_provider_connection_tenant_created
     ON model_runtime.provider_connection (tenant_id, created_at DESC, id DESC);
 
 CREATE TABLE model_runtime.provider_connection_request (
+    id BIGINT PRIMARY KEY,
     tenant_id BIGINT NOT NULL,
     idempotency_key_hash CHAR(64) NOT NULL,
     request_fingerprint CHAR(64) NOT NULL,
     provider_connection_id BIGINT NOT NULL,
     created_at TIMESTAMPTZ NOT NULL,
-    CONSTRAINT pk_provider_connection_request
-        PRIMARY KEY (tenant_id, idempotency_key_hash),
+    CONSTRAINT uk_provider_connection_request_tenant_key
+        UNIQUE (tenant_id, idempotency_key_hash),
     CONSTRAINT fk_provider_connection_request_connection
         FOREIGN KEY (tenant_id, provider_connection_id)
         REFERENCES model_runtime.provider_connection (tenant_id, id)

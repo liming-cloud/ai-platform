@@ -12,7 +12,9 @@ import com.aiplatform.foundation.modelruntime.application.runtime.facade.ModelRu
 import com.aiplatform.foundation.modelruntime.domain.deployment.repository.ModelDeploymentRepository;
 import com.aiplatform.foundation.modelruntime.domain.provider.repository.ProviderConnectionRepository;
 import com.aiplatform.foundation.modelruntime.infrastructure.persistence.deployment.mapper.ModelDeploymentMapper;
+import com.aiplatform.foundation.modelruntime.infrastructure.persistence.deployment.mapper.ModelDeploymentRequestMapper;
 import com.aiplatform.foundation.modelruntime.infrastructure.persistence.provider.mapper.ProviderConnectionMapper;
+import com.aiplatform.foundation.modelruntime.infrastructure.persistence.provider.mapper.ProviderConnectionRequestMapper;
 import com.aiplatform.foundation.modelruntime.interfaces.web.deployment.controller.ModelDeploymentController;
 import com.aiplatform.foundation.modelruntime.interfaces.web.provider.controller.ProviderConnectionController;
 import com.aiplatform.foundation.security.egress.OutboundEndpointPolicy;
@@ -122,8 +124,14 @@ class ModelRuntimeAutoConfigurationTest {
                         ProviderConnectionMapper.class,
                         () -> mock(ProviderConnectionMapper.class))
                 .withBean(
+                        ProviderConnectionRequestMapper.class,
+                        () -> mock(ProviderConnectionRequestMapper.class))
+                .withBean(
                         ModelDeploymentMapper.class,
                         () -> mock(ModelDeploymentMapper.class))
+                .withBean(
+                        ModelDeploymentRequestMapper.class,
+                        () -> mock(ModelDeploymentRequestMapper.class))
                 .withBean(
                         PlatformTransactionManager.class,
                         () -> mock(PlatformTransactionManager.class))

@@ -3,7 +3,6 @@ package com.aiplatform.foundation.modelruntime.infrastructure.persistence.deploy
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.aiplatform.foundation.modelruntime.infrastructure.persistence.deployment.entity.ModelDeploymentEntity;
-import com.aiplatform.foundation.modelruntime.infrastructure.persistence.deployment.projection.ModelDeploymentRequestRow;
 import com.aiplatform.foundation.modelruntime.infrastructure.persistence.deployment.projection.ModelDeploymentRow;
 import java.time.Instant;
 import org.apache.ibatis.annotations.Param;
@@ -14,10 +13,6 @@ import org.apache.ibatis.annotations.Param;
 public interface ModelDeploymentMapper extends BaseMapper<ModelDeploymentEntity> {
 
     String lockTenant(@Param("tenantId") String tenantId);
-
-    ModelDeploymentRequestRow findRequest(
-            @Param("tenantId") long tenantId,
-            @Param("keyHash") String keyHash);
 
     int insertDeployment(
             @Param("tenantId") long tenantId,
@@ -33,13 +28,6 @@ public interface ModelDeploymentMapper extends BaseMapper<ModelDeploymentEntity>
             @Param("embeddingDimension") Integer embeddingDimension,
             @Param("status") String status,
             @Param("version") long version,
-            @Param("createdAt") Instant createdAt);
-
-    int insertRequest(
-            @Param("tenantId") long tenantId,
-            @Param("keyHash") String keyHash,
-            @Param("requestFingerprint") String requestFingerprint,
-            @Param("modelDeploymentId") long modelDeploymentId,
             @Param("createdAt") Instant createdAt);
 
     ModelDeploymentRow findById(

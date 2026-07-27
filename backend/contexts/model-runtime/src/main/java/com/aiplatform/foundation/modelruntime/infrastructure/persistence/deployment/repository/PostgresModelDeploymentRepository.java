@@ -15,7 +15,9 @@ import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelDeplo
 import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelType;
 import com.aiplatform.foundation.modelruntime.domain.provider.model.ProviderConnectionId;
 import com.aiplatform.foundation.modelruntime.infrastructure.persistence.deployment.mapper.ModelDeploymentMapper;
+import com.aiplatform.foundation.modelruntime.infrastructure.persistence.deployment.mapper.ModelDeploymentRequestMapper;
 import com.aiplatform.foundation.modelruntime.infrastructure.persistence.deployment.entity.ModelDeploymentEntity;
+import com.aiplatform.foundation.modelruntime.infrastructure.persistence.deployment.entity.ModelDeploymentRequestEntity;
 import com.aiplatform.foundation.modelruntime.infrastructure.persistence.deployment.projection.ModelDeploymentRow;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -40,12 +42,17 @@ public final class PostgresModelDeploymentRepository
         implements ModelDeploymentRepository {
 
     private final ModelDeploymentMapper mapper;
+    private final ModelDeploymentRequestMapper requestMapper;
     private final TransactionTemplate transactions;
 
     public PostgresModelDeploymentRepository(
             ModelDeploymentMapper mapper,
+            ModelDeploymentRequestMapper requestMapper,
             PlatformTransactionManager transactionManager) {
         this.mapper = Objects.requireNonNull(mapper, "模型部署映射器不能为空");
+        this.requestMapper = Objects.requireNonNull(
+                requestMapper,
+                "模型部署幂等请求映射器不能为空");
         this.transactions = new TransactionTemplate(
                 Objects.requireNonNull(transactionManager, "事务管理器不能为空"));
     }
@@ -116,7 +123,10 @@ public final class PostgresModelDeploymentRepository
         var keyHash = sha256(creation.idempotencyKey());
         mapper.lockTenant(Long.toString(tenantId));
 
-        var existing = mapper.findRequest(tenantId, keyHash);
+        var existing = requestMapper.selectOne(
+                Wrappers.<ModelDeploymentRequestEntity>lambdaQuery()
+                        .eq(ModelDeploymentRequestEntity::getTenantId, tenantId)
+                        .eq(ModelDeploymentRequestEntity::getIdempotencyKeyHash, keyHash));
         if (existing != null) {
             if (!existing.getRequestFingerprint().equals(creation.requestFingerprint())) {
                 throw new ModelDeploymentIdempotencyConflictException();
@@ -150,12 +160,7 @@ public final class PostgresModelDeploymentRepository
                     deployment.status().name(),
                     deployment.version(),
                     deployment.createdAt());
-            mapper.insertRequest(
-                    tenantId,
-                    keyHash,
-                    creation.requestFingerprint(),
-                    deployment.id().value(),
-                    deployment.createdAt());
+            requestMapper.insert(toRequestEntity(creation, keyHash));
         } catch (DuplicateKeyException exception) {
             throw new ModelDeploymentNameConflictException();
         }
@@ -191,6 +196,19 @@ public final class PostgresModelDeploymentRepository
         return Arrays.stream(value.split(",", -1))
                 .map(ModelCapability::valueOf)
                 .collect(Collectors.toUnmodifiableSet());
+    }
+
+    private static ModelDeploymentRequestEntity toRequestEntity(
+            ModelDeploymentCreation creation,
+            String keyHash) {
+        var entity = new ModelDeploymentRequestEntity();
+        entity.setId(creation.deployment().id().value());
+        entity.setTenantId(creation.deployment().tenantId().value());
+        entity.setIdempotencyKeyHash(keyHash);
+        entity.setRequestFingerprint(creation.requestFingerprint());
+        entity.setModelDeploymentId(creation.deployment().id().value());
+        entity.setCreatedAt(creation.deployment().createdAt());
+        return entity;
     }
 
     private static String sha256(String value) {

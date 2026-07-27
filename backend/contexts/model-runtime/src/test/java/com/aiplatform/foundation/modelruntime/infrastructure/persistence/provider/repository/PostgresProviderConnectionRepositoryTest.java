@@ -1,6 +1,7 @@
 package com.aiplatform.foundation.modelruntime.infrastructure.persistence.provider.repository;
 
 import com.aiplatform.foundation.modelruntime.infrastructure.persistence.provider.mapper.ProviderConnectionMapper;
+import com.aiplatform.foundation.modelruntime.infrastructure.persistence.provider.mapper.ProviderConnectionRequestMapper;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -210,8 +211,12 @@ class PostgresProviderConnectionRepositoryTest {
         @Bean
         ProviderConnectionRepository providerConnectionRepository(
                 ProviderConnectionMapper mapper,
+                ProviderConnectionRequestMapper requestMapper,
                 PlatformTransactionManager transactions) {
-            return new PostgresProviderConnectionRepository(mapper, transactions);
+            return new PostgresProviderConnectionRepository(
+                    mapper,
+                    requestMapper,
+                    transactions);
         }
     }
 }

@@ -1,6 +1,7 @@
 package com.aiplatform.foundation.modelruntime.infrastructure.persistence.deployment.repository;
 
 import com.aiplatform.foundation.modelruntime.infrastructure.persistence.deployment.mapper.ModelDeploymentMapper;
+import com.aiplatform.foundation.modelruntime.infrastructure.persistence.deployment.mapper.ModelDeploymentRequestMapper;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -252,8 +253,12 @@ class PostgresModelDeploymentRepositoryTest {
         @Bean
         ModelDeploymentRepository modelDeploymentRepository(
                 ModelDeploymentMapper mapper,
+                ModelDeploymentRequestMapper requestMapper,
                 PlatformTransactionManager transactions) {
-            return new PostgresModelDeploymentRepository(mapper, transactions);
+            return new PostgresModelDeploymentRepository(
+                    mapper,
+                    requestMapper,
+                    transactions);
         }
     }
 }

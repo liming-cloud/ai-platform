@@ -61,13 +61,14 @@ CREATE INDEX idx_model_deployment_provider_revision
     );
 
 CREATE TABLE model_runtime.model_deployment_request (
+    id BIGINT PRIMARY KEY,
     tenant_id BIGINT NOT NULL,
     idempotency_key_hash CHAR(64) NOT NULL,
     request_fingerprint CHAR(64) NOT NULL,
     model_deployment_id BIGINT NOT NULL,
     created_at TIMESTAMPTZ NOT NULL,
-    CONSTRAINT pk_model_deployment_request
-        PRIMARY KEY (tenant_id, idempotency_key_hash),
+    CONSTRAINT uk_model_deployment_request_tenant_key
+        UNIQUE (tenant_id, idempotency_key_hash),
     CONSTRAINT fk_model_deployment_request_deployment
         FOREIGN KEY (tenant_id, model_deployment_id)
         REFERENCES model_runtime.model_deployment (tenant_id, id)

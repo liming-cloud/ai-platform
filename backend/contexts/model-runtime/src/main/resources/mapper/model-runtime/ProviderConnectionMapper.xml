@@ -4,37 +4,10 @@
         "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.aiplatform.foundation.modelruntime.infrastructure.persistence.provider.mapper.ProviderConnectionMapper">
 
-    <resultMap id="findRequestResultMap" type="com.aiplatform.foundation.modelruntime.infrastructure.persistence.provider.projection.ProviderConnectionRequestRow">
-        <result column="request_fingerprint" property="requestFingerprint"/>
-        <result column="provider_connection_id" property="providerConnectionId"/>
-    </resultMap>
-
     <select id="lockTenant" resultType="java.lang.String">
         <![CDATA[
         SELECT pg_advisory_xact_lock(hashtextextended(#{tenantId}, 20260728))
         ]]>
     </select>
-
-    <select id="findRequest" resultMap="findRequestResultMap">
-        <![CDATA[
-        SELECT request_fingerprint,
-               provider_connection_id
-        FROM model_runtime.provider_connection_request
-        WHERE tenant_id = #{tenantId}
-          AND idempotency_key_hash = #{keyHash}
-        ]]>
-    </select>
-
-    <insert id="insertRequest">
-        <![CDATA[
-        INSERT INTO model_runtime.provider_connection_request (
-            tenant_id, idempotency_key_hash, request_fingerprint,
-            provider_connection_id, created_at
-        ) VALUES (
-            #{tenantId}, #{keyHash}, #{requestFingerprint},
-            #{providerConnectionId}, #{createdAt}
-        )
-        ]]>
-    </insert>
 
 </mapper>

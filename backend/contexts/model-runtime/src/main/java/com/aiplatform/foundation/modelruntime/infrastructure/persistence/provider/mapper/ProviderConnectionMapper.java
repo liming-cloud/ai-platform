@@ -2,8 +2,6 @@ package com.aiplatform.foundation.modelruntime.infrastructure.persistence.provid
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.aiplatform.foundation.modelruntime.infrastructure.persistence.provider.entity.ProviderConnectionEntity;
-import com.aiplatform.foundation.modelruntime.infrastructure.persistence.provider.projection.ProviderConnectionRequestRow;
-import java.time.Instant;
 import org.apache.ibatis.annotations.Param;
 
 /**
@@ -12,16 +10,5 @@ import org.apache.ibatis.annotations.Param;
 public interface ProviderConnectionMapper extends BaseMapper<ProviderConnectionEntity> {
 
     String lockTenant(@Param("tenantId") String tenantId);
-
-    ProviderConnectionRequestRow findRequest(
-            @Param("tenantId") long tenantId,
-            @Param("keyHash") String keyHash);
-
-    int insertRequest(
-            @Param("tenantId") long tenantId,
-            @Param("keyHash") String keyHash,
-            @Param("requestFingerprint") String requestFingerprint,
-            @Param("providerConnectionId") long providerConnectionId,
-            @Param("createdAt") Instant createdAt);
 
 }

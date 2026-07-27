@@ -3,8 +3,10 @@ package com.aiplatform.foundation.modelruntime.infrastructure.configuration;
 import com.aiplatform.foundation.modelruntime.domain.deployment.repository.ModelDeploymentRepository;
 import com.aiplatform.foundation.modelruntime.domain.provider.repository.ProviderConnectionRepository;
 import com.aiplatform.foundation.modelruntime.infrastructure.persistence.deployment.mapper.ModelDeploymentMapper;
+import com.aiplatform.foundation.modelruntime.infrastructure.persistence.deployment.mapper.ModelDeploymentRequestMapper;
 import com.aiplatform.foundation.modelruntime.infrastructure.persistence.deployment.repository.PostgresModelDeploymentRepository;
 import com.aiplatform.foundation.modelruntime.infrastructure.persistence.provider.mapper.ProviderConnectionMapper;
+import com.aiplatform.foundation.modelruntime.infrastructure.persistence.provider.mapper.ProviderConnectionRequestMapper;
 import com.aiplatform.foundation.modelruntime.infrastructure.persistence.provider.repository.PostgresProviderConnectionRepository;
 import com.baomidou.mybatisplus.autoconfigure.MybatisPlusAutoConfiguration;
 import org.apache.ibatis.session.SqlSessionFactory;
@@ -34,15 +36,23 @@ public class ModelRuntimePersistenceAutoConfiguration {
     @ConditionalOnMissingBean
     ProviderConnectionRepository providerConnectionRepository(
             ProviderConnectionMapper mapper,
+            ProviderConnectionRequestMapper requestMapper,
             PlatformTransactionManager transactions) {
-        return new PostgresProviderConnectionRepository(mapper, transactions);
+        return new PostgresProviderConnectionRepository(
+                mapper,
+                requestMapper,
+                transactions);
     }
 
     @Bean
     @ConditionalOnMissingBean
     ModelDeploymentRepository modelDeploymentRepository(
             ModelDeploymentMapper mapper,
+            ModelDeploymentRequestMapper requestMapper,
             PlatformTransactionManager transactions) {
-        return new PostgresModelDeploymentRepository(mapper, transactions);
+        return new PostgresModelDeploymentRepository(
+                mapper,
+                requestMapper,
+                transactions);
     }
 }
