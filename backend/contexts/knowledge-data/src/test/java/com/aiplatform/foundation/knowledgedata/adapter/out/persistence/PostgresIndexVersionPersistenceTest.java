@@ -24,7 +24,6 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
-import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mybatis.spring.annotation.MapperScan;
@@ -55,7 +54,7 @@ class PostgresIndexVersionPersistenceTest {
             new MembershipId(3382738893456539650L);
     private static final EmbeddingConfiguration EMBEDDING =
             new EmbeddingConfiguration(
-                    UUID.fromString("40000000-0000-0000-0000-000000000001"),
+                    320000000000000001L,
                     1,
                     4);
     private static final Instant NOW = Instant.parse("2026-07-27T02:00:00Z");

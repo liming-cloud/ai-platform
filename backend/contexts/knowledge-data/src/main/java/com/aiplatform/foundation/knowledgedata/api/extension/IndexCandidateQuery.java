@@ -2,7 +2,6 @@ package com.aiplatform.foundation.knowledgedata.api.extension;
 
 import com.aiplatform.foundation.kernel.tenant.TenantId;
 import java.util.Objects;
-import java.util.UUID;
 
 /**
  * 在指定租户、知识空间和嵌入修订内执行的候选检索请求。
@@ -12,7 +11,7 @@ public final class IndexCandidateQuery {
     private final TenantId tenantId;
     private final long knowledgeSpaceId;
     private final Long indexVersionId;
-    private final UUID embeddingDeploymentId;
+    private final long embeddingDeploymentId;
     private final long embeddingRevision;
     private final float[] embedding;
     private final int limit;
@@ -20,7 +19,7 @@ public final class IndexCandidateQuery {
     public IndexCandidateQuery(
             TenantId tenantId,
             long knowledgeSpaceId,
-            UUID embeddingDeploymentId,
+            long embeddingDeploymentId,
             long embeddingRevision,
             float[] embedding,
             int limit) {
@@ -41,7 +40,7 @@ public final class IndexCandidateQuery {
             TenantId tenantId,
             long knowledgeSpaceId,
             Long indexVersionId,
-            UUID embeddingDeploymentId,
+            long embeddingDeploymentId,
             long embeddingRevision,
             float[] embedding,
             int limit) {
@@ -54,9 +53,10 @@ public final class IndexCandidateQuery {
             throw new IllegalArgumentException("索引版本标识必须是正整数");
         }
         this.indexVersionId = indexVersionId;
-        this.embeddingDeploymentId = Objects.requireNonNull(
-                embeddingDeploymentId,
-                "嵌入部署标识不能为空");
+        if (embeddingDeploymentId <= 0) {
+            throw new IllegalArgumentException("嵌入部署标识必须是正整数");
+        }
+        this.embeddingDeploymentId = embeddingDeploymentId;
         if (embeddingRevision < 1) {
             throw new IllegalArgumentException("嵌入部署修订必须大于零");
         }
@@ -89,7 +89,7 @@ public final class IndexCandidateQuery {
         return indexVersionId;
     }
 
-    public UUID embeddingDeploymentId() {
+    public long embeddingDeploymentId() {
         return embeddingDeploymentId;
     }
 

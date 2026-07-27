@@ -3,7 +3,6 @@ package com.aiplatform.foundation.modelruntime.adapter.out.persistence;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import java.time.Instant;
 import java.util.List;
-import java.util.UUID;
 import org.apache.ibatis.annotations.Param;
 
 /**
@@ -21,7 +20,7 @@ public interface ProviderConnectionMapper extends BaseMapper<ProviderConnectionE
 
     int insertConnection(
             @Param("tenantId") long tenantId,
-            @Param("id") UUID id,
+            @Param("id") long id,
             @Param("providerKind") String providerKind,
             @Param("displayName") String displayName,
             @Param("endpoint") String endpoint,
@@ -39,12 +38,12 @@ public interface ProviderConnectionMapper extends BaseMapper<ProviderConnectionE
             @Param("tenantId") long tenantId,
             @Param("keyHash") String keyHash,
             @Param("requestFingerprint") String requestFingerprint,
-            @Param("providerConnectionId") UUID providerConnectionId,
+            @Param("providerConnectionId") long providerConnectionId,
             @Param("createdAt") Instant createdAt);
 
     ProviderConnectionRow findById(
             @Param("tenantId") long tenantId,
-            @Param("id") UUID id);
+            @Param("id") long id);
 
     List<ProviderConnectionRow> findFirstPage(
             @Param("tenantId") long tenantId,
@@ -53,12 +52,12 @@ public interface ProviderConnectionMapper extends BaseMapper<ProviderConnectionE
     List<ProviderConnectionRow> findAfter(
             @Param("tenantId") long tenantId,
             @Param("createdAt") Instant createdAt,
-            @Param("id") UUID id,
+            @Param("id") long id,
             @Param("limit") int limit);
 
     int updateProbeFact(
             @Param("tenantId") long tenantId,
-            @Param("id") UUID id,
+            @Param("id") long id,
             @Param("status") String status,
             @Param("nextVersion") long nextVersion,
             @Param("lastProbeSucceeded") Boolean lastProbeSucceeded,

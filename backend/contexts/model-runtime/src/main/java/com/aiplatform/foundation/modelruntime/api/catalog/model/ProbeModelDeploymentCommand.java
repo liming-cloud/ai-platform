@@ -3,14 +3,13 @@ package com.aiplatform.foundation.modelruntime.api.catalog.model;
 import com.aiplatform.foundation.organizationaccess.api.model.TrustedRequestContext;
 import java.time.Duration;
 import java.util.Objects;
-import java.util.UUID;
 
 /**
  * 使用冻结供应商修订探测模型部署。
  */
 public record ProbeModelDeploymentCommand(
         TrustedRequestContext context,
-        UUID modelDeploymentId,
+        String modelDeploymentId,
         long expectedVersion,
         Duration timeout) {
 

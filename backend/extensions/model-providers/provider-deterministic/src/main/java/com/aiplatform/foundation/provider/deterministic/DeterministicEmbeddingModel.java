@@ -8,7 +8,6 @@ import com.aiplatform.foundation.modelruntime.api.model.EmbeddingVector;
 import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.Locale;
-import java.util.UUID;
 
 /**
  * 用于开发、合同测试和演示自检的确定性字符片段嵌入模型。
@@ -17,8 +16,7 @@ import java.util.UUID;
  */
 public final class DeterministicEmbeddingModel implements EmbeddingModelPort {
 
-    public static final UUID DEPLOYMENT_ID =
-            UUID.fromString("00000000-0000-0000-0000-000000000128");
+    public static final long DEPLOYMENT_ID = 320000000000000128L;
     public static final long DEPLOYMENT_REVISION = 1;
     public static final int DIMENSION = 128;
 

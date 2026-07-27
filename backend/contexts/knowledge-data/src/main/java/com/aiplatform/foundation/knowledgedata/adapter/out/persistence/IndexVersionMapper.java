@@ -27,7 +27,7 @@ public interface IndexVersionMapper {
             @Param("id") long id,
             @Param("sourceSnapshotDigest") String sourceSnapshotDigest,
             @Param("chunkPolicy") String chunkPolicy,
-            @Param("embeddingDeploymentId") UUID embeddingDeploymentId,
+            @Param("embeddingDeploymentId") long embeddingDeploymentId,
             @Param("embeddingDeploymentRevision") long embeddingDeploymentRevision,
             @Param("embeddingDimension") int embeddingDimension,
             @Param("createdBy") long createdBy,

@@ -4,14 +4,13 @@ import com.aiplatform.foundation.modelruntime.api.model.ModelCapability;
 import java.time.Instant;
 import java.util.Objects;
 import java.util.Set;
-import java.util.UUID;
 
 /**
  * 不包含厂商框架类型的模型部署公共视图。
  */
 public record ModelDeploymentView(
-        UUID id,
-        UUID providerConnectionId,
+        String id,
+        String providerConnectionId,
         long providerConnectionRevision,
         String modelCode,
         String displayName,

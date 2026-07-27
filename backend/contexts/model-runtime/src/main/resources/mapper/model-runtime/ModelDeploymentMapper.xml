@@ -35,7 +35,7 @@
     <select id="findRequest" resultMap="findRequestResultMap">
         <![CDATA[
         SELECT request_fingerprint,
-               model_deployment_id::text AS model_deployment_id
+               model_deployment_id
         FROM model_runtime.model_deployment_request
         WHERE tenant_id = #{tenantId}
           AND idempotency_key_hash = #{keyHash}
@@ -80,8 +80,8 @@
     <select id="findById" resultMap="modelDeploymentRow">
         <![CDATA[
         SELECT tenant_id::text AS tenant_id,
-               id::text AS id,
-               provider_connection_id::text AS provider_connection_id,
+               id,
+               provider_connection_id,
                provider_connection_revision,
                model_code,
                display_name,
@@ -102,8 +102,8 @@
     <select id="findFirstPage" resultMap="modelDeploymentRow">
         <![CDATA[
         SELECT tenant_id::text AS tenant_id,
-               id::text AS id,
-               provider_connection_id::text AS provider_connection_id,
+               id,
+               provider_connection_id,
                provider_connection_revision,
                model_code,
                display_name,
@@ -125,8 +125,8 @@
     <select id="findAfter" resultMap="modelDeploymentRow">
         <![CDATA[
         SELECT tenant_id::text AS tenant_id,
-               id::text AS id,
-               provider_connection_id::text AS provider_connection_id,
+               id,
+               provider_connection_id,
                provider_connection_revision,
                model_code,
                display_name,

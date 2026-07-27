@@ -10,7 +10,6 @@ import com.aiplatform.foundation.kernel.tenant.TenantId;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
-import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,8 +33,7 @@ class PgVectorIndexStoreTest {
     private static final TenantId OTHER_TENANT =
             new TenantId(100000000000000002L);
     private static final long SPACE = 210000000000000001L;
-    private static final UUID DEPLOYMENT =
-            UUID.fromString("30000000-0000-0000-0000-000000000001");
+    private static final long DEPLOYMENT = 320000000000000001L;
     private static final long INDEX = 230000000000000001L;
     private static final long OTHER_INDEX = 230000000000000002L;
     private static final long SOURCE = 220000000000000001L;

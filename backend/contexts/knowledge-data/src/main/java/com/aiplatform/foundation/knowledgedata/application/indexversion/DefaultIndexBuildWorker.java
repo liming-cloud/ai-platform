@@ -193,7 +193,7 @@ public final class DefaultIndexBuildWorker {
         try {
             var digest = MessageDigest.getInstance("SHA-256");
             update(digest, Long.toString(batch.indexVersionId()));
-            update(digest, batch.embeddingDeploymentId().toString());
+            update(digest, Long.toString(batch.embeddingDeploymentId()));
             update(digest, Long.toString(batch.embeddingRevision()));
             for (var vector : batch.vectors()) {
                 update(digest, vector.chunkId());

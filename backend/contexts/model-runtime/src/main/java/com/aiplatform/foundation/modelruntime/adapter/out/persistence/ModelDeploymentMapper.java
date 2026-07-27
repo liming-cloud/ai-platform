@@ -3,7 +3,6 @@ package com.aiplatform.foundation.modelruntime.adapter.out.persistence;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import java.time.Instant;
 import java.util.List;
-import java.util.UUID;
 import org.apache.ibatis.annotations.Param;
 
 /**
@@ -21,8 +20,8 @@ public interface ModelDeploymentMapper extends BaseMapper<ModelDeploymentEntity>
 
     int insertDeployment(
             @Param("tenantId") long tenantId,
-            @Param("id") UUID id,
-            @Param("providerConnectionId") UUID providerConnectionId,
+            @Param("id") long id,
+            @Param("providerConnectionId") long providerConnectionId,
             @Param("providerConnectionRevision") long providerConnectionRevision,
             @Param("modelCode") String modelCode,
             @Param("displayName") String displayName,
@@ -39,12 +38,12 @@ public interface ModelDeploymentMapper extends BaseMapper<ModelDeploymentEntity>
             @Param("tenantId") long tenantId,
             @Param("keyHash") String keyHash,
             @Param("requestFingerprint") String requestFingerprint,
-            @Param("modelDeploymentId") UUID modelDeploymentId,
+            @Param("modelDeploymentId") long modelDeploymentId,
             @Param("createdAt") Instant createdAt);
 
     ModelDeploymentRow findById(
             @Param("tenantId") long tenantId,
-            @Param("id") UUID id);
+            @Param("id") long id);
 
     List<ModelDeploymentRow> findFirstPage(
             @Param("tenantId") long tenantId,
@@ -53,12 +52,12 @@ public interface ModelDeploymentMapper extends BaseMapper<ModelDeploymentEntity>
     List<ModelDeploymentRow> findAfter(
             @Param("tenantId") long tenantId,
             @Param("createdAt") Instant createdAt,
-            @Param("id") UUID id,
+            @Param("id") long id,
             @Param("limit") int limit);
 
     int updateStatus(
             @Param("tenantId") long tenantId,
-            @Param("id") UUID id,
+            @Param("id") long id,
             @Param("status") String status,
             @Param("nextVersion") long nextVersion,
             @Param("expectedVersion") long expectedVersion);

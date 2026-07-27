@@ -4,7 +4,6 @@ import com.aiplatform.foundation.kernel.tenant.TenantId;
 import com.aiplatform.foundation.organizationaccess.api.model.MembershipId;
 import java.time.Instant;
 import java.util.Objects;
-import java.util.UUID;
 
 /**
  * 冻结模型、索引、提示和可信回答策略的助手版本。
@@ -18,13 +17,13 @@ public final class AssistantVersion {
     private final AssistantVersionId id;
     private final AssistantId assistantId;
     private final int number;
-    private final UUID chatDeploymentId;
+    private final long chatDeploymentId;
     private final long chatDeploymentRevision;
     private final int chatDeploymentOutputLimit;
     private final long knowledgeSpaceId;
     private final long indexVersionId;
     private final long indexVersionRevision;
-    private final UUID embeddingDeploymentId;
+    private final long embeddingDeploymentId;
     private final long embeddingDeploymentRevision;
     private final int embeddingDimension;
     private final String systemInstruction;
@@ -44,13 +43,13 @@ public final class AssistantVersion {
             AssistantVersionId id,
             AssistantId assistantId,
             int number,
-            UUID chatDeploymentId,
+            long chatDeploymentId,
             long chatDeploymentRevision,
             int chatDeploymentOutputLimit,
             long knowledgeSpaceId,
             long indexVersionId,
             long indexVersionRevision,
-            UUID embeddingDeploymentId,
+            long embeddingDeploymentId,
             long embeddingDeploymentRevision,
             int embeddingDimension,
             String systemInstruction,
@@ -71,9 +70,10 @@ public final class AssistantVersion {
             throw new IllegalArgumentException("助手版本号必须大于零");
         }
         this.number = number;
-        this.chatDeploymentId =
-                Objects.requireNonNull(chatDeploymentId, "对话部署标识不能为空");
-        if (chatDeploymentRevision < 1 || chatDeploymentOutputLimit < 1) {
+        this.chatDeploymentId = chatDeploymentId;
+        if (chatDeploymentId <= 0
+                || chatDeploymentRevision < 1
+                || chatDeploymentOutputLimit < 1) {
             throw new IllegalArgumentException("对话部署修订和输出上限必须大于零");
         }
         this.chatDeploymentRevision = chatDeploymentRevision;
@@ -83,9 +83,9 @@ public final class AssistantVersion {
         }
         this.knowledgeSpaceId = knowledgeSpaceId;
         this.indexVersionId = indexVersionId;
-        this.embeddingDeploymentId =
-                Objects.requireNonNull(embeddingDeploymentId, "嵌入部署标识不能为空");
-        if (indexVersionRevision < 1
+        this.embeddingDeploymentId = embeddingDeploymentId;
+        if (embeddingDeploymentId <= 0
+                || indexVersionRevision < 1
                 || embeddingDeploymentRevision < 1
                 || embeddingDimension < 1) {
             throw new IllegalArgumentException("索引、嵌入部署修订和维度必须大于零");
@@ -132,13 +132,13 @@ public final class AssistantVersion {
             AssistantVersionId id,
             AssistantId assistantId,
             int number,
-            UUID chatDeploymentId,
+            long chatDeploymentId,
             long chatDeploymentRevision,
             int chatDeploymentOutputLimit,
             long knowledgeSpaceId,
             long indexVersionId,
             long indexVersionRevision,
-            UUID embeddingDeploymentId,
+            long embeddingDeploymentId,
             long embeddingDeploymentRevision,
             int embeddingDimension,
             String systemInstruction,
@@ -181,13 +181,13 @@ public final class AssistantVersion {
             AssistantVersionId id,
             AssistantId assistantId,
             int number,
-            UUID chatDeploymentId,
+            long chatDeploymentId,
             long chatDeploymentRevision,
             int chatDeploymentOutputLimit,
             long knowledgeSpaceId,
             long indexVersionId,
             long indexVersionRevision,
-            UUID embeddingDeploymentId,
+            long embeddingDeploymentId,
             long embeddingDeploymentRevision,
             int embeddingDimension,
             String systemInstruction,
@@ -275,7 +275,7 @@ public final class AssistantVersion {
         return number;
     }
 
-    public UUID chatDeploymentId() {
+    public long chatDeploymentId() {
         return chatDeploymentId;
     }
 
@@ -299,7 +299,7 @@ public final class AssistantVersion {
         return indexVersionRevision;
     }
 
-    public UUID embeddingDeploymentId() {
+    public long embeddingDeploymentId() {
         return embeddingDeploymentId;
     }
 

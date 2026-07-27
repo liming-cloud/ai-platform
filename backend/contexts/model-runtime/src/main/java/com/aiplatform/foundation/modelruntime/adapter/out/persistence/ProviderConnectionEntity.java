@@ -4,7 +4,6 @@ import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import java.time.Instant;
-import java.util.UUID;
 
 /**
  * MyBatis-Plus 表元数据实体，领域层不依赖该类型。
@@ -13,7 +12,7 @@ import java.util.UUID;
 public class ProviderConnectionEntity {
 
     @TableId(type = IdType.INPUT)
-    private UUID id;
+    private Long id;
     private Long tenantId;
     private String providerKind;
     private String displayName;
@@ -28,11 +27,11 @@ public class ProviderConnectionEntity {
     private Instant lastProbedAt;
     private Instant createdAt;
 
-    public UUID getId() {
+    public Long getId() {
         return id;
     }
 
-    public void setId(UUID id) {
+    public void setId(Long id) {
         this.id = id;
     }
 

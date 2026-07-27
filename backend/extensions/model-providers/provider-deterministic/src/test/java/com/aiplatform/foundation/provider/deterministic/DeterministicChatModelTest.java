@@ -9,7 +9,6 @@ import com.aiplatform.foundation.modelruntime.api.model.ChatMessage;
 import com.aiplatform.foundation.modelruntime.api.model.ChatRequest;
 import com.aiplatform.foundation.modelruntime.api.model.ChatRole;
 import java.util.List;
-import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
 class DeterministicChatModelTest {
@@ -17,7 +16,7 @@ class DeterministicChatModelTest {
     @Test
     void 应从多条商品证据中直接回答销量最高项() {
         var deployment = new ChatDeploymentRef(
-                UUID.fromString("30000000-0000-0000-0000-000000000001"),
+                320000000000000001L,
                 2);
         var model = new DeterministicChatModel(deployment);
 
@@ -46,7 +45,7 @@ class DeterministicChatModelTest {
     @Test
     void 应根据问题只呈现相关字段而不回显提示词() {
         var deployment = new ChatDeploymentRef(
-                UUID.fromString("30000000-0000-0000-0000-000000000001"),
+                320000000000000001L,
                 2);
         var model = new DeterministicChatModel(deployment);
 
@@ -72,7 +71,7 @@ class DeterministicChatModelTest {
     @Test
     void 应将无法确认库存的问题路由到人工服务兜底() {
         var deployment = new ChatDeploymentRef(
-                UUID.fromString("30000000-0000-0000-0000-000000000001"),
+                320000000000000001L,
                 2);
         var model = new DeterministicChatModel(deployment);
 
@@ -99,7 +98,7 @@ class DeterministicChatModelTest {
     @Test
     void 应按证据字段原始顺序生成通用摘要() {
         var deployment = new ChatDeploymentRef(
-                UUID.fromString("30000000-0000-0000-0000-000000000001"),
+                320000000000000001L,
                 2);
         var model = new DeterministicChatModel(deployment);
 

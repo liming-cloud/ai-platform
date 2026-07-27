@@ -8,8 +8,8 @@ import java.time.Instant;
 public class ModelDeploymentRow {
 
     private String tenantId;
-    private String id;
-    private String providerConnectionId;
+    private Long id;
+    private Long providerConnectionId;
     private long providerConnectionRevision;
     private String modelCode;
     private String displayName;
@@ -30,19 +30,19 @@ public class ModelDeploymentRow {
         this.tenantId = tenantId;
     }
 
-    public String getId() {
+    public Long getId() {
         return id;
     }
 
-    public void setId(String id) {
+    public void setId(Long id) {
         this.id = id;
     }
 
-    public String getProviderConnectionId() {
+    public Long getProviderConnectionId() {
         return providerConnectionId;
     }
 
-    public void setProviderConnectionId(String providerConnectionId) {
+    public void setProviderConnectionId(Long providerConnectionId) {
         this.providerConnectionId = providerConnectionId;
     }
 

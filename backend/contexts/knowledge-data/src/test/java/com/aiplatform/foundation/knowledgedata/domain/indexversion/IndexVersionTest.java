@@ -7,7 +7,6 @@ import com.aiplatform.foundation.kernel.tenant.TenantId;
 import com.aiplatform.foundation.knowledgedata.domain.model.KnowledgeSpaceId;
 import com.aiplatform.foundation.organizationaccess.api.model.MembershipId;
 import java.time.Instant;
-import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
 class IndexVersionTest {
@@ -23,7 +22,7 @@ class IndexVersionTest {
     private static final Instant CREATED_AT = Instant.parse("2026-07-27T00:00:00Z");
     private static final EmbeddingConfiguration EMBEDDING =
             new EmbeddingConfiguration(
-                    UUID.fromString("50000000-0000-0000-0000-000000000001"),
+                    320000000000000001L,
                     1,
                     128);
 

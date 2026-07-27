@@ -5,7 +5,6 @@ import com.aiplatform.foundation.modelruntime.api.model.ModelType;
 import com.aiplatform.foundation.organizationaccess.api.model.TrustedRequestContext;
 import java.util.Objects;
 import java.util.Set;
-import java.util.UUID;
 import java.util.regex.Pattern;
 
 /**
@@ -14,7 +13,7 @@ import java.util.regex.Pattern;
 public record CreateModelDeploymentCommand(
         TrustedRequestContext context,
         String idempotencyKey,
-        UUID providerConnectionId,
+        String providerConnectionId,
         String modelCode,
         String displayName,
         ModelType modelType,

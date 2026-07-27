@@ -10,7 +10,6 @@ import com.aiplatform.foundation.modelruntime.api.catalog.model.ProviderConnecti
 import com.aiplatform.foundation.organizationaccess.api.model.TrustedRequestContext;
 import java.time.Duration;
 import java.util.Objects;
-import java.util.UUID;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -76,7 +75,7 @@ public class ProviderConnectionController {
     @PostMapping("/{providerConnectionId}/probe")
     public ProbeProviderConnectionResult probe(
             TrustedRequestContext context,
-            @PathVariable UUID providerConnectionId,
+            @PathVariable String providerConnectionId,
             @RequestBody ProviderConnectionProbeRequest request) {
         return providerConnections.probe(new ProbeProviderConnectionCommand(
                 context,

@@ -3,7 +3,6 @@ package com.aiplatform.foundation.knowledgedata.api.extension;
 import com.aiplatform.foundation.kernel.tenant.TenantId;
 import java.util.List;
 import java.util.Objects;
-import java.util.UUID;
 
 /**
  * 单个索引版本一次性提交给向量存储的完整产物。
@@ -12,7 +11,7 @@ public record IndexVectorBatch(
         TenantId tenantId,
         long knowledgeSpaceId,
         long indexVersionId,
-        UUID embeddingDeploymentId,
+        long embeddingDeploymentId,
         long embeddingRevision,
         int embeddingDimension,
         List<IndexVector> vectors) {
@@ -22,9 +21,9 @@ public record IndexVectorBatch(
         if (knowledgeSpaceId <= 0 || indexVersionId <= 0) {
             throw new IllegalArgumentException("知识空间标识和索引版本标识必须是正整数");
         }
-        Objects.requireNonNull(
-                embeddingDeploymentId,
-                "嵌入部署标识不能为空");
+        if (embeddingDeploymentId <= 0) {
+            throw new IllegalArgumentException("嵌入部署标识必须是正整数");
+        }
         if (embeddingRevision < 1) {
             throw new IllegalArgumentException("嵌入部署修订必须大于零");
         }

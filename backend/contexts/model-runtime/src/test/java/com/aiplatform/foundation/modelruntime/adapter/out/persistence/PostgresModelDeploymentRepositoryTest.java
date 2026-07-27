@@ -19,7 +19,7 @@ import com.aiplatform.foundation.modelruntime.domain.model.ProviderConnectionId;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.Set;
-import java.util.UUID;
+import java.util.concurrent.atomic.AtomicLong;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mybatis.spring.annotation.MapperScan;
@@ -46,9 +46,11 @@ class PostgresModelDeploymentRepositoryTest {
             new TenantId(100000000000000002L);
     private static final Instant CREATED_AT = Instant.parse("2026-07-27T05:00:00Z");
     private static final ProviderConnectionId STORE_PROVIDER = new ProviderConnectionId(
-            UUID.fromString("41000000-0000-0000-0000-000000000001"));
+            310000000000000001L);
     private static final ProviderConnectionId CAMPUS_PROVIDER = new ProviderConnectionId(
-            UUID.fromString("41000000-0000-0000-0000-000000000002"));
+            310000000000000002L);
+    private static final AtomicLong IDENTIFIERS =
+            new AtomicLong(320000000000000100L);
 
     @Container
     private static final PostgreSQLContainer POSTGRES =
@@ -226,7 +228,7 @@ class PostgresModelDeploymentRepositoryTest {
         return new ModelDeploymentCreation(
                 ModelDeployment.create(
                         tenantId,
-                        new ModelDeploymentId(UUID.randomUUID()),
+                        new ModelDeploymentId(IDENTIFIERS.incrementAndGet()),
                         providerId,
                         1,
                         "deterministic-chat",

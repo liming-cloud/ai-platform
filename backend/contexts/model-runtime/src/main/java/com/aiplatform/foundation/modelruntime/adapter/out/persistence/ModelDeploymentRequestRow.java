@@ -6,7 +6,7 @@ package com.aiplatform.foundation.modelruntime.adapter.out.persistence;
 public class ModelDeploymentRequestRow {
 
     private String requestFingerprint;
-    private String modelDeploymentId;
+    private Long modelDeploymentId;
 
     public String getRequestFingerprint() {
         return requestFingerprint;
@@ -16,11 +16,11 @@ public class ModelDeploymentRequestRow {
         this.requestFingerprint = requestFingerprint;
     }
 
-    public String getModelDeploymentId() {
+    public Long getModelDeploymentId() {
         return modelDeploymentId;
     }
 
-    public void setModelDeploymentId(String modelDeploymentId) {
+    public void setModelDeploymentId(Long modelDeploymentId) {
         this.modelDeploymentId = modelDeploymentId;
     }
 }

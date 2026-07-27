@@ -8,7 +8,6 @@ import com.aiplatform.foundation.modelruntime.api.model.ModelCapability;
 import com.aiplatform.foundation.modelruntime.api.model.ModelType;
 import java.time.Instant;
 import java.util.Set;
-import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
 class ModelDeploymentTest {
@@ -16,14 +15,14 @@ class ModelDeploymentTest {
     private static final TenantId TENANT_ID =
             new TenantId(100000000000000001L);
     private static final ProviderConnectionId CONNECTION_ID =
-            new ProviderConnectionId(UUID.fromString("41000000-0000-0000-0000-000000000001"));
+            new ProviderConnectionId(310000000000000001L);
     private static final Instant NOW = Instant.parse("2026-07-27T04:00:00Z");
 
     @Test
     void 已验证对话部署才能发布并冻结其供应商修订() {
         var deployment = ModelDeployment.create(
                 TENANT_ID,
-                new ModelDeploymentId(UUID.fromString("42000000-0000-0000-0000-000000000001")),
+                new ModelDeploymentId(320000000000000001L),
                 CONNECTION_ID,
                 3,
                 "gpt-compatible",
@@ -55,8 +54,7 @@ class ModelDeploymentTest {
                 IllegalArgumentException.class,
                 () -> ModelDeployment.create(
                         TENANT_ID,
-                        new ModelDeploymentId(
-                                UUID.fromString("42000000-0000-0000-0000-000000000002")),
+                        new ModelDeploymentId(320000000000000002L),
                         CONNECTION_ID,
                         1,
                         "embedding-model",
@@ -75,8 +73,7 @@ class ModelDeploymentTest {
                 IllegalArgumentException.class,
                 () -> ModelDeployment.create(
                         TENANT_ID,
-                        new ModelDeploymentId(
-                                UUID.fromString("42000000-0000-0000-0000-000000000003")),
+                        new ModelDeploymentId(320000000000000003L),
                         CONNECTION_ID,
                         1,
                         "chat-model",
@@ -92,7 +89,7 @@ class ModelDeploymentTest {
     private static ModelDeployment validEmbeddingDeployment() {
         return ModelDeployment.create(
                 TENANT_ID,
-                new ModelDeploymentId(UUID.fromString("42000000-0000-0000-0000-000000000004")),
+                new ModelDeploymentId(320000000000000004L),
                 CONNECTION_ID,
                 1,
                 "embedding-model",

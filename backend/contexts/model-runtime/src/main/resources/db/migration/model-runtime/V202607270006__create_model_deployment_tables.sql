@@ -1,7 +1,7 @@
 CREATE TABLE model_runtime.model_deployment (
     tenant_id BIGINT NOT NULL,
-    id UUID NOT NULL,
-    provider_connection_id UUID NOT NULL,
+    id BIGINT NOT NULL,
+    provider_connection_id BIGINT NOT NULL,
     provider_connection_revision BIGINT NOT NULL,
     model_code VARCHAR(320) NOT NULL,
     display_name VARCHAR(320) NOT NULL,
@@ -64,7 +64,7 @@ CREATE TABLE model_runtime.model_deployment_request (
     tenant_id BIGINT NOT NULL,
     idempotency_key_hash CHAR(64) NOT NULL,
     request_fingerprint CHAR(64) NOT NULL,
-    model_deployment_id UUID NOT NULL,
+    model_deployment_id BIGINT NOT NULL,
     created_at TIMESTAMPTZ NOT NULL,
     CONSTRAINT pk_model_deployment_request
         PRIMARY KEY (tenant_id, idempotency_key_hash),

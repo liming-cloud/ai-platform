@@ -8,7 +8,6 @@ import com.aiplatform.foundation.modelruntime.api.model.ProviderKind;
 import com.aiplatform.foundation.security.secret.SecretReference;
 import java.net.URI;
 import java.time.Instant;
-import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
 class ProviderConnectionTest {
@@ -16,7 +15,7 @@ class ProviderConnectionTest {
     private static final TenantId TENANT_ID =
             new TenantId(100000000000000001L);
     private static final ProviderConnectionId CONNECTION_ID =
-            new ProviderConnectionId(UUID.fromString("41000000-0000-0000-0000-000000000001"));
+            new ProviderConnectionId(310000000000000001L);
     private static final Instant NOW = Instant.parse("2026-07-27T04:00:00Z");
 
     @Test

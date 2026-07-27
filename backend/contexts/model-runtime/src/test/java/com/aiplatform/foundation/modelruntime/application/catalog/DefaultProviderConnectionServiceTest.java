@@ -35,14 +35,13 @@ import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
 class DefaultProviderConnectionServiceTest {
 
     private static final Instant NOW = Instant.parse("2026-07-27T04:30:00Z");
-    private static final UUID CONNECTION_ID =
-            UUID.fromString("41000000-0000-0000-0000-000000000001");
+    private static final long CONNECTION_ID = 310000000000000001L;
+    private static final String CONNECTION_ID_TEXT = Long.toString(CONNECTION_ID);
 
     @Test
     void 创建结果不得回显密钥引用() {
@@ -53,7 +52,7 @@ class DefaultProviderConnectionServiceTest {
 
         assertFalse(result.replayed());
         assertTrue(result.providerConnection().credentialConfigured());
-        assertEquals(CONNECTION_ID, result.providerConnection().id());
+        assertEquals(CONNECTION_ID_TEXT, result.providerConnection().id());
         assertEquals(ProviderConnectionStatus.DRAFT.name(), result.providerConnection().status());
         assertFalse(result.providerConnection().toString().contains("secret://demo/openai"));
     }
@@ -80,7 +79,7 @@ class DefaultProviderConnectionServiceTest {
 
         var result = service.probe(new ProbeProviderConnectionCommand(
                 context("model:write"),
-                CONNECTION_ID,
+                CONNECTION_ID_TEXT,
                 0,
                 "demo-chat",
                 Duration.ofSeconds(2)));
@@ -101,7 +100,7 @@ class DefaultProviderConnectionServiceTest {
 
         var result = service.probe(new ProbeProviderConnectionCommand(
                 context("model:write"),
-                CONNECTION_ID,
+                CONNECTION_ID_TEXT,
                 0,
                 "demo-chat",
                 Duration.ofSeconds(2)));

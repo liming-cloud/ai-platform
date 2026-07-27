@@ -18,7 +18,6 @@ import com.aiplatform.foundation.organizationaccess.api.model.TrustedRequestCont
 import com.aiplatform.foundation.trustedquery.api.model.CandidateSearchQuery;
 import java.util.List;
 import java.util.Set;
-import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
 class DefaultCandidateSearchServiceTest {
@@ -28,7 +27,7 @@ class DefaultCandidateSearchServiceTest {
     private static final long SPACE = 210000000000000001L;
     private static final EmbeddingDeploymentRef DEPLOYMENT =
             new EmbeddingDeploymentRef(
-                    UUID.fromString("30000000-0000-0000-0000-000000000001"),
+                    320000000000000001L,
                     1,
                     4);
 

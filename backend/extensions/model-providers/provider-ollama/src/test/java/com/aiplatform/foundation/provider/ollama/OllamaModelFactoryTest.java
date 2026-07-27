@@ -10,7 +10,6 @@ import com.aiplatform.foundation.modelruntime.api.model.ModelType;
 import com.aiplatform.foundation.modelruntime.api.model.ProviderKind;
 import com.aiplatform.foundation.security.secret.SecretReference;
 import java.net.URI;
-import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
 
@@ -46,12 +45,12 @@ class OllamaModelFactoryTest {
     private static ModelRuntimeSpecification specification(ModelType type) {
         return new ModelRuntimeSpecification(
                 new TenantId(100000000000000001L),
-                UUID.fromString("20000000-0000-0000-0000-000000000001"),
+                310000000000000001L,
                 2,
                 ProviderKind.OLLAMA,
                 URI.create("http://ollama.internal:11434"),
                 new SecretReference("secret://environment/OLLAMA_UNUSED"),
-                UUID.fromString("30000000-0000-0000-0000-000000000001"),
+                320000000000000001L,
                 3,
                 type == ModelType.CHAT ? "qwen-chat" : "nomic-embed",
                 type,

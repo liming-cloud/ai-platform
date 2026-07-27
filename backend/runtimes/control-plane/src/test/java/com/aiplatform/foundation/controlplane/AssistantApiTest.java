@@ -39,12 +39,10 @@ class AssistantApiTest {
     private static final long STORE =
             100000000000000001L;
     private static final long CREATOR = 3382738893456539650L;
-    private static final UUID CHAT =
-            UUID.fromString("41000000-0000-0000-0000-000000000001");
+    private static final long CHAT = 320000000000000001L;
     private static final long SPACE = 210000000000000001L;
     private static final long INDEX = 230000000000000001L;
-    private static final UUID EMBEDDING =
-            UUID.fromString("71000000-0000-0000-0000-000000000001");
+    private static final long EMBEDDING = 320000000000000002L;
     private static final Instant NOW = Instant.parse("2026-07-27T07:00:00Z");
 
     @Container
@@ -112,7 +110,7 @@ class AssistantApiTest {
                 url("/api/v1/assistants/" + created.id() + "/versions"),
                 new HttpEntity<>(
                         Map.of(
-                                "chatDeploymentId", CHAT,
+                                "chatDeploymentId", Long.toString(CHAT),
                                 "knowledgeSpaceId", Long.toString(SPACE),
                                 "systemInstruction", "只依据编号证据回答，并在结论后标注引用。",
                                 "maxOutputTokens", 512,
@@ -215,7 +213,7 @@ class AssistantApiTest {
     }
 
     private void seedReferences() {
-        var provider = UUID.randomUUID();
+        var provider = 310000000000000001L;
         jdbc.update(
                 """
                 INSERT INTO model_runtime.provider_connection (

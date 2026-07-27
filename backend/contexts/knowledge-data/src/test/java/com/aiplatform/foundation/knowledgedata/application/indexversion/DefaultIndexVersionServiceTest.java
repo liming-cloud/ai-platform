@@ -28,7 +28,6 @@ import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
 class DefaultIndexVersionServiceTest {
@@ -41,7 +40,7 @@ class DefaultIndexVersionServiceTest {
             new MembershipId(1843651857942052866L);
     private static final EmbeddingConfiguration EMBEDDING =
             new EmbeddingConfiguration(
-                    UUID.fromString("50000000-0000-0000-0000-000000000001"),
+                    320000000000000001L,
                     1,
                     128);
     private static final Clock CLOCK =
@@ -59,7 +58,7 @@ class DefaultIndexVersionServiceTest {
         var result = service.create(new CreateIndexVersionCommand(
                 context("knowledge:write"),
                 Long.toString(SPACE_ID),
-                EMBEDDING.deploymentId(),
+                Long.toString(EMBEDDING.deploymentId()),
                 "index-request-0001"));
 
         assertEquals(Long.toString(INDEX_ID), result.indexVersion().id());
@@ -85,7 +84,7 @@ class DefaultIndexVersionServiceTest {
                 () -> service.create(new CreateIndexVersionCommand(
                         context("knowledge:read"),
                         Long.toString(SPACE_ID),
-                        EMBEDDING.deploymentId(),
+                        Long.toString(EMBEDDING.deploymentId()),
                         "index-request-0001")));
         assertTrue(repository.request == null);
     }
@@ -104,7 +103,7 @@ class DefaultIndexVersionServiceTest {
                 () -> service.create(new CreateIndexVersionCommand(
                         context("knowledge:write"),
                         Long.toString(SPACE_ID),
-                        EMBEDDING.deploymentId(),
+                        Long.toString(EMBEDDING.deploymentId()),
                         "index-request-0001")));
         assertTrue(repository.request == null);
     }

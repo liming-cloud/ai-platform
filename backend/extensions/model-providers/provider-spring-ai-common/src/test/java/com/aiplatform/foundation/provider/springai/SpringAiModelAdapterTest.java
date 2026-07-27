@@ -12,7 +12,6 @@ import com.aiplatform.foundation.modelruntime.api.model.EmbeddingDeploymentRef;
 import com.aiplatform.foundation.modelruntime.api.model.EmbeddingRequest;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Flow;
 import java.util.concurrent.TimeUnit;
@@ -34,8 +33,7 @@ import reactor.core.publisher.Flux;
 
 class SpringAiModelAdapterTest {
 
-    private static final UUID DEPLOYMENT_ID =
-            UUID.fromString("40000000-0000-0000-0000-000000000001");
+    private static final long DEPLOYMENT_ID = 320000000000000001L;
 
     @Test
     void 对话适配器应映射回答结束原因和令牌用量() {

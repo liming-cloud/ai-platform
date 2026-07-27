@@ -48,10 +48,8 @@ class DefaultQueryRunServiceTest {
             new TenantId(100000000000000001L);
     private static final UUID ASSISTANT_VERSION =
             UUID.fromString("20000000-0000-0000-0000-000000000001");
-    private static final UUID CHAT =
-            UUID.fromString("30000000-0000-0000-0000-000000000001");
-    private static final UUID EMBEDDING =
-            UUID.fromString("40000000-0000-0000-0000-000000000001");
+    private static final long CHAT = 320000000000000001L;
+    private static final long EMBEDDING = 320000000000000002L;
     private static final long SPACE = 210000000000000001L;
     private static final long INDEX = 230000000000000001L;
     private static final Instant NOW = Instant.parse("2026-07-27T05:00:00Z");
@@ -231,7 +229,7 @@ class DefaultQueryRunServiceTest {
         private ChatRequest chatRequest;
 
         @Override
-        public ChatModelPort resolveChat(TenantId tenantId, UUID deploymentId) {
+        public ChatModelPort resolveChat(TenantId tenantId, long deploymentId) {
             return new ChatModelPort() {
                 @Override
                 public ChatResult chat(ChatRequest request) {
@@ -253,7 +251,7 @@ class DefaultQueryRunServiceTest {
 
         @Override
         public com.aiplatform.foundation.modelruntime.api.invocation.EmbeddingModelPort
-                resolveEmbedding(TenantId tenantId, UUID deploymentId) {
+                resolveEmbedding(TenantId tenantId, long deploymentId) {
             return request -> new EmbeddingBatch(
                     request.deployment(),
                     List.of(new EmbeddingVector(
@@ -262,11 +260,11 @@ class DefaultQueryRunServiceTest {
         }
 
         @Override
-        public void evictProvider(TenantId tenantId, UUID providerConnectionId) {
+        public void evictProvider(TenantId tenantId, long providerConnectionId) {
         }
 
         @Override
-        public void evictDeployment(TenantId tenantId, UUID deploymentId) {
+        public void evictDeployment(TenantId tenantId, long deploymentId) {
         }
     }
 

@@ -3,13 +3,12 @@ package com.aiplatform.foundation.modelruntime.api.catalog.model;
 import java.net.URI;
 import java.time.Instant;
 import java.util.Objects;
-import java.util.UUID;
 
 /**
  * 不回显密钥引用的供应商连接公共视图。
  */
 public record ProviderConnectionView(
-        UUID id,
+        String id,
         String providerKind,
         String displayName,
         URI endpoint,

@@ -1,5 +1,6 @@
 package com.aiplatform.foundation.controlplane.configuration;
 
+import com.aiplatform.foundation.kernel.identifier.EntityIdGenerator;
 import com.aiplatform.foundation.modelruntime.adapter.out.persistence.ModelDeploymentMapper;
 import com.aiplatform.foundation.modelruntime.adapter.out.persistence.PostgresModelDeploymentRepository;
 import com.aiplatform.foundation.modelruntime.adapter.out.persistence.PostgresProviderConnectionRepository;
@@ -20,7 +21,6 @@ import com.aiplatform.foundation.modelruntime.application.probe.DefaultProbeProv
 import com.aiplatform.foundation.provider.deterministic.DeterministicProviderConnectionProbe;
 import java.time.Clock;
 import java.util.List;
-import java.util.UUID;
 import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -79,12 +79,13 @@ public class ModelCatalogConfiguration {
     ProviderConnectionUseCase providerConnectionUseCase(
             ProviderConnectionRepository repository,
             ProbeProviderUseCase probes,
+            EntityIdGenerator identifiers,
             @Value("${foundation.demo.provider-connection-limit:3}") int tenantLimit) {
         return new DefaultProviderConnectionService(
                 repository,
                 probes,
                 Clock.systemUTC(),
-                UUID::randomUUID,
+                identifiers,
                 tenantLimit);
     }
 
@@ -93,13 +94,14 @@ public class ModelCatalogConfiguration {
             ModelDeploymentRepository deployments,
             ProviderConnectionRepository providers,
             ProbeProviderUseCase probes,
+            EntityIdGenerator identifiers,
             @Value("${foundation.demo.model-deployment-limit:6}") int tenantLimit) {
         return new DefaultModelDeploymentService(
                 deployments,
                 providers,
                 probes,
                 Clock.systemUTC(),
-                UUID::randomUUID,
+                identifiers,
                 tenantLimit);
     }
 }

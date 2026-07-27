@@ -18,7 +18,7 @@ import com.aiplatform.foundation.modelruntime.domain.model.ProviderConnectionId;
 import com.aiplatform.foundation.security.secret.SecretReference;
 import java.net.URI;
 import java.time.Instant;
-import java.util.UUID;
+import java.util.concurrent.atomic.AtomicLong;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mybatis.spring.annotation.MapperScan;
@@ -38,6 +38,9 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 @SpringBootTest(classes = PostgresProviderConnectionRepositoryTest.TestApplication.class)
 @Testcontainers
 class PostgresProviderConnectionRepositoryTest {
+
+    private static final AtomicLong IDENTIFIERS =
+            new AtomicLong(310000000000000100L);
 
     private static final TenantId STORE_TENANT =
             new TenantId(100000000000000001L);
@@ -186,7 +189,7 @@ class PostgresProviderConnectionRepositoryTest {
         return new ProviderConnectionCreation(
                 ProviderConnection.create(
                         tenantId,
-                        new ProviderConnectionId(UUID.randomUUID()),
+                        new ProviderConnectionId(IDENTIFIERS.incrementAndGet()),
                         ProviderKind.DETERMINISTIC,
                         displayName,
                         URI.create("memory://deterministic"),

@@ -2,7 +2,6 @@ package com.aiplatform.foundation.knowledgedata.api.model;
 
 import com.aiplatform.foundation.organizationaccess.api.model.TrustedRequestContext;
 import java.util.Objects;
-import java.util.UUID;
 import java.util.regex.Pattern;
 
 /**
@@ -11,7 +10,7 @@ import java.util.regex.Pattern;
 public record CreateIndexVersionCommand(
         TrustedRequestContext context,
         String knowledgeSpaceId,
-        UUID embeddingDeploymentId,
+        String embeddingDeploymentId,
         String idempotencyKey) {
 
     private static final Pattern IDEMPOTENCY_KEY =

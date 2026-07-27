@@ -11,13 +11,13 @@ public final class AssistantVersionRow {
     private String id;
     private String assistantId;
     private int versionNumber;
-    private String chatDeploymentId;
+    private Long chatDeploymentId;
     private long chatDeploymentRevision;
     private int chatDeploymentOutputLimit;
     private String knowledgeSpaceId;
     private String indexVersionId;
     private long indexVersionRevision;
-    private String embeddingDeploymentId;
+    private Long embeddingDeploymentId;
     private long embeddingDeploymentRevision;
     private int embeddingDimension;
     private String systemInstruction;
@@ -40,8 +40,8 @@ public final class AssistantVersionRow {
     public void setAssistantId(String value) { assistantId = value; }
     public int getVersionNumber() { return versionNumber; }
     public void setVersionNumber(int value) { versionNumber = value; }
-    public String getChatDeploymentId() { return chatDeploymentId; }
-    public void setChatDeploymentId(String value) { chatDeploymentId = value; }
+    public Long getChatDeploymentId() { return chatDeploymentId; }
+    public void setChatDeploymentId(Long value) { chatDeploymentId = value; }
     public long getChatDeploymentRevision() { return chatDeploymentRevision; }
     public void setChatDeploymentRevision(long value) { chatDeploymentRevision = value; }
     public int getChatDeploymentOutputLimit() { return chatDeploymentOutputLimit; }
@@ -52,8 +52,8 @@ public final class AssistantVersionRow {
     public void setIndexVersionId(String value) { indexVersionId = value; }
     public long getIndexVersionRevision() { return indexVersionRevision; }
     public void setIndexVersionRevision(long value) { indexVersionRevision = value; }
-    public String getEmbeddingDeploymentId() { return embeddingDeploymentId; }
-    public void setEmbeddingDeploymentId(String value) { embeddingDeploymentId = value; }
+    public Long getEmbeddingDeploymentId() { return embeddingDeploymentId; }
+    public void setEmbeddingDeploymentId(Long value) { embeddingDeploymentId = value; }
     public long getEmbeddingDeploymentRevision() { return embeddingDeploymentRevision; }
     public void setEmbeddingDeploymentRevision(long value) { embeddingDeploymentRevision = value; }
     public int getEmbeddingDimension() { return embeddingDimension; }

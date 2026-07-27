@@ -61,7 +61,9 @@ public final class DefaultIndexVersionService implements IndexVersionUseCase {
         }
         var context = command.context();
         var deployment = embeddingDeployments
-                .find(context.tenantId(), command.embeddingDeploymentId())
+                .find(
+                        context.tenantId(),
+                        parseDeploymentId(command.embeddingDeploymentId()))
                 .orElseThrow(IndexEmbeddingDeploymentUnavailableException::new);
         var embedding = new EmbeddingConfiguration(
                 deployment.deploymentId(),
@@ -130,7 +132,7 @@ public final class DefaultIndexVersionService implements IndexVersionUseCase {
             var digest = MessageDigest.getInstance("SHA-256");
             update(digest, knowledgeSpaceId.toString());
             update(digest, chunkPolicy);
-            update(digest, embedding.deploymentId().toString());
+            update(digest, Long.toString(embedding.deploymentId()));
             update(digest, Long.toString(embedding.deploymentRevision()));
             update(digest, Integer.toString(embedding.dimension()));
             return HexFormat.of().formatHex(digest.digest());
@@ -169,7 +171,7 @@ public final class DefaultIndexVersionService implements IndexVersionUseCase {
                 version.knowledgeSpaceId().toString(),
                 version.sourceSnapshotDigest(),
                 version.chunkPolicy(),
-                embedding.deploymentId(),
+                Long.toString(embedding.deploymentId()),
                 embedding.deploymentRevision(),
                 embedding.dimension(),
                 version.status().name(),
@@ -186,5 +188,17 @@ public final class DefaultIndexVersionService implements IndexVersionUseCase {
     private static void update(MessageDigest digest, String value) {
         digest.update(value.getBytes(StandardCharsets.UTF_8));
         digest.update((byte) 0);
+    }
+
+    private static long parseDeploymentId(String value) {
+        try {
+            var parsed = Long.parseLong(value);
+            if (parsed <= 0) {
+                throw new IllegalArgumentException("嵌入部署标识必须是正整数");
+            }
+            return parsed;
+        } catch (NumberFormatException exception) {
+            throw new IllegalArgumentException("嵌入部署标识格式不正确", exception);
+        }
     }
 }

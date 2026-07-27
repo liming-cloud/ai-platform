@@ -51,12 +51,10 @@ class DefaultAssistantServiceTest {
             UUID.fromString("20000000-0000-0000-0000-000000000001");
     private static final UUID VERSION_ID =
             UUID.fromString("30000000-0000-0000-0000-000000000001");
-    private static final UUID CHAT_ID =
-            UUID.fromString("40000000-0000-0000-0000-000000000001");
+    private static final long CHAT_ID = 320000000000000001L;
     private static final long SPACE_ID = 210000000000000001L;
     private static final long INDEX_ID = 230000000000000001L;
-    private static final UUID EMBEDDING_ID =
-            UUID.fromString("70000000-0000-0000-0000-000000000001");
+    private static final long EMBEDDING_ID = 320000000000000002L;
     private static final Instant NOW = Instant.parse("2026-07-27T00:00:00Z");
 
     @Test
@@ -161,7 +159,7 @@ class DefaultAssistantServiceTest {
                 context("assistant:write"),
                 "assistant-version-0001",
                 assistantId,
-                CHAT_ID,
+                Long.toString(CHAT_ID),
                 Long.toString(SPACE_ID),
                 "只依据编号证据回答，并在结论后标注引用。",
                 512,

@@ -281,7 +281,7 @@ public final class PostgresIndexVersionRepository implements IndexVersionReposit
                 row.getSourceSnapshotDigest(),
                 row.getChunkPolicy(),
                 new EmbeddingConfiguration(
-                        UUID.fromString(row.getEmbeddingDeploymentId()),
+                        row.getEmbeddingDeploymentId(),
                         row.getEmbeddingDeploymentRevision(),
                         row.getEmbeddingDimension()),
                 IndexVersionStatus.valueOf(row.getStatus()),

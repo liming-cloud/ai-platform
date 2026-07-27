@@ -13,7 +13,7 @@ public record CreateAssistantVersionCommand(
         TrustedRequestContext context,
         String idempotencyKey,
         UUID assistantId,
-        UUID chatDeploymentId,
+        String chatDeploymentId,
         String knowledgeSpaceId,
         String systemInstruction,
         int maxOutputTokens,

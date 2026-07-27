@@ -1,5 +1,6 @@
 package com.aiplatform.foundation.modelruntime.application.catalog;
 
+import com.aiplatform.foundation.kernel.identifier.EntityIdGenerator;
 import com.aiplatform.foundation.modelruntime.api.catalog.ModelDeploymentUseCase;
 import com.aiplatform.foundation.modelruntime.api.catalog.model.CreateModelDeploymentCommand;
 import com.aiplatform.foundation.modelruntime.api.catalog.model.CreateModelDeploymentResult;
@@ -28,8 +29,6 @@ import java.time.Clock;
 import java.util.Comparator;
 import java.util.HexFormat;
 import java.util.Objects;
-import java.util.UUID;
-import java.util.function.Supplier;
 
 /**
  * 在可信租户、供应商修订和乐观版本边界内编排模型部署。
@@ -43,7 +42,7 @@ public final class DefaultModelDeploymentService implements ModelDeploymentUseCa
     private final ProviderConnectionRepository providers;
     private final ProbeProviderUseCase probeProvider;
     private final Clock clock;
-    private final Supplier<UUID> identifiers;
+    private final EntityIdGenerator identifiers;
     private final int tenantLimit;
 
     public DefaultModelDeploymentService(
@@ -51,7 +50,7 @@ public final class DefaultModelDeploymentService implements ModelDeploymentUseCa
             ProviderConnectionRepository providers,
             ProbeProviderUseCase probeProvider,
             Clock clock,
-            Supplier<UUID> identifiers,
+            EntityIdGenerator identifiers,
             int tenantLimit) {
         this.deployments = Objects.requireNonNull(deployments, "模型部署仓储不能为空");
         this.providers = Objects.requireNonNull(providers, "供应商连接仓储不能为空");
@@ -71,12 +70,12 @@ public final class DefaultModelDeploymentService implements ModelDeploymentUseCa
         var provider = providers
                 .findById(
                         command.context().tenantId(),
-                        new ProviderConnectionId(command.providerConnectionId()))
+                        ProviderConnectionId.parse(command.providerConnectionId()))
                 .orElseThrow(ProviderConnectionNotFoundException::new);
         requireVerifiedProvider(provider, provider.version());
         var deployment = ModelDeployment.create(
                 command.context().tenantId(),
-                new ModelDeploymentId(identifiers.get()),
+                new ModelDeploymentId(identifiers.nextId()),
                 provider.id(),
                 provider.version(),
                 command.modelCode(),
@@ -171,9 +170,9 @@ public final class DefaultModelDeploymentService implements ModelDeploymentUseCa
 
     private ModelDeployment load(
             TrustedRequestContext context,
-            UUID deploymentId) {
+            String deploymentId) {
         return deployments
-                .findById(context.tenantId(), new ModelDeploymentId(deploymentId))
+                .findById(context.tenantId(), ModelDeploymentId.parse(deploymentId))
                 .orElseThrow(ModelDeploymentNotFoundException::new);
     }
 
@@ -220,8 +219,8 @@ public final class DefaultModelDeploymentService implements ModelDeploymentUseCa
 
     private static ModelDeploymentView toView(ModelDeployment deployment) {
         return new ModelDeploymentView(
-                deployment.id().value(),
-                deployment.providerConnectionId().value(),
+                deployment.id().toString(),
+                deployment.providerConnectionId().toString(),
                 deployment.providerConnectionRevision(),
                 deployment.modelCode(),
                 deployment.displayName(),

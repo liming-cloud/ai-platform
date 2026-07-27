@@ -4,19 +4,18 @@ import com.aiplatform.foundation.kernel.tenant.TenantId;
 import com.aiplatform.foundation.security.secret.SecretReference;
 import java.net.URI;
 import java.util.Objects;
-import java.util.UUID;
 
 /**
  * 供应商扩展构造模型对象所需的最小、框架无关配置快照。
  */
 public record ModelRuntimeSpecification(
         TenantId tenantId,
-        UUID providerConnectionId,
+        long providerConnectionId,
         long providerRevision,
         ProviderKind providerKind,
         URI endpoint,
         SecretReference credentialReference,
-        UUID deploymentId,
+        long deploymentId,
         long deploymentRevision,
         String modelCode,
         ModelType modelType,
@@ -26,14 +25,15 @@ public record ModelRuntimeSpecification(
 
     public ModelRuntimeSpecification {
         Objects.requireNonNull(tenantId, "租户标识不能为空");
-        Objects.requireNonNull(providerConnectionId, "供应商连接标识不能为空");
         Objects.requireNonNull(providerKind, "供应商类型不能为空");
         Objects.requireNonNull(endpoint, "供应商端点不能为空");
         Objects.requireNonNull(credentialReference, "密钥引用不能为空");
-        Objects.requireNonNull(deploymentId, "模型部署标识不能为空");
         Objects.requireNonNull(modelCode, "模型代码不能为空");
         Objects.requireNonNull(modelType, "模型类型不能为空");
-        if (providerRevision < 1 || deploymentRevision < 1) {
+        if (providerConnectionId <= 0
+                || deploymentId <= 0
+                || providerRevision < 1
+                || deploymentRevision < 1) {
             throw new IllegalArgumentException("供应商和模型部署修订必须大于零");
         }
         if (contextWindow < 1) {

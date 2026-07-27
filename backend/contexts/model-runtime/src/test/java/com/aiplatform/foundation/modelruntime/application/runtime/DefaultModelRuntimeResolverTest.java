@@ -37,7 +37,6 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import java.util.UUID;
 import java.util.concurrent.Flow;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
@@ -47,9 +46,9 @@ class DefaultModelRuntimeResolverTest {
     private static final TenantId TENANT =
             new TenantId(100000000000000001L);
     private static final ProviderConnectionId PROVIDER_ID =
-            new ProviderConnectionId(UUID.fromString("20000000-0000-0000-0000-000000000001"));
+            new ProviderConnectionId(310000000000000001L);
     private static final ModelDeploymentId DEPLOYMENT_ID =
-            new ModelDeploymentId(UUID.fromString("30000000-0000-0000-0000-000000000001"));
+            new ModelDeploymentId(320000000000000001L);
     private static final Instant NOW = Instant.parse("2026-07-27T00:00:00Z");
 
     @Test

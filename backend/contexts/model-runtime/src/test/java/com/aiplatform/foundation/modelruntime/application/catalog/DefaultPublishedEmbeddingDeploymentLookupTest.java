@@ -15,7 +15,6 @@ import com.aiplatform.foundation.modelruntime.domain.model.ProviderConnectionId;
 import java.time.Instant;
 import java.util.Optional;
 import java.util.Set;
-import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
 class DefaultPublishedEmbeddingDeploymentLookupTest {
@@ -23,7 +22,7 @@ class DefaultPublishedEmbeddingDeploymentLookupTest {
     private static final TenantId TENANT_ID =
             new TenantId(100000000000000001L);
     private static final ModelDeploymentId DEPLOYMENT_ID = new ModelDeploymentId(
-            UUID.fromString("20000000-0000-0000-0000-000000000001"));
+            320000000000000001L);
 
     @Test
     void 只投影已发布嵌入部署的冻结事实() {
@@ -53,8 +52,7 @@ class DefaultPublishedEmbeddingDeploymentLookupTest {
         return ModelDeployment.create(
                         TENANT_ID,
                         DEPLOYMENT_ID,
-                        new ProviderConnectionId(
-                                UUID.fromString("30000000-0000-0000-0000-000000000001")),
+                        new ProviderConnectionId(310000000000000001L),
                         1,
                         type == ModelType.CHAT
                                 ? "deterministic-chat"

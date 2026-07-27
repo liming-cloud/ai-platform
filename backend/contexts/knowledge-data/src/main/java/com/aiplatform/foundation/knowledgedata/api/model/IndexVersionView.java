@@ -1,7 +1,6 @@
 package com.aiplatform.foundation.knowledgedata.api.model;
 
 import java.time.Instant;
-import java.util.UUID;
 
 /**
  * 不暴露持久化和模型框架类型的索引版本视图。
@@ -11,7 +10,7 @@ public record IndexVersionView(
         String knowledgeSpaceId,
         String sourceSnapshotDigest,
         String chunkPolicy,
-        UUID embeddingDeploymentId,
+        String embeddingDeploymentId,
         long embeddingDeploymentRevision,
         int embeddingDimension,
         String status,

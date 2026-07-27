@@ -2,7 +2,7 @@ CREATE SCHEMA IF NOT EXISTS model_runtime;
 
 CREATE TABLE model_runtime.provider_connection (
     tenant_id BIGINT NOT NULL,
-    id UUID NOT NULL,
+    id BIGINT NOT NULL,
     provider_kind VARCHAR(48) NOT NULL,
     display_name VARCHAR(320) NOT NULL,
     endpoint VARCHAR(2048) NOT NULL,
@@ -50,7 +50,7 @@ CREATE TABLE model_runtime.provider_connection_request (
     tenant_id BIGINT NOT NULL,
     idempotency_key_hash CHAR(64) NOT NULL,
     request_fingerprint CHAR(64) NOT NULL,
-    provider_connection_id UUID NOT NULL,
+    provider_connection_id BIGINT NOT NULL,
     created_at TIMESTAMPTZ NOT NULL,
     CONSTRAINT pk_provider_connection_request
         PRIMARY KEY (tenant_id, idempotency_key_hash),

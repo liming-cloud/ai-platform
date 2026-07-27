@@ -26,7 +26,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.UUID;
 import java.util.stream.Collectors;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -103,7 +102,7 @@ public final class PostgresModelDeploymentRepository
         var nextCursor = hasNext
                 ? encodeCursor(
                         pageRows.getLast().getCreatedAt(),
-                        UUID.fromString(pageRows.getLast().getId()))
+                        pageRows.getLast().getId())
                 : null;
         return new ModelDeploymentSlice(items, nextCursor);
     }
@@ -138,7 +137,7 @@ public final class PostgresModelDeploymentRepository
             }
             var replayed = mapper.findById(
                     tenantId,
-                    UUID.fromString(existing.getModelDeploymentId()));
+                    existing.getModelDeploymentId());
             if (replayed == null) {
                 throw new IllegalStateException("幂等记录引用的模型部署不存在");
             }
@@ -178,8 +177,8 @@ public final class PostgresModelDeploymentRepository
     private static ModelDeployment toDomain(ModelDeploymentRow row) {
         return ModelDeployment.reconstitute(
                 TenantId.parse(row.getTenantId()),
-                new ModelDeploymentId(UUID.fromString(row.getId())),
-                new ProviderConnectionId(UUID.fromString(row.getProviderConnectionId())),
+                new ModelDeploymentId(row.getId()),
+                new ProviderConnectionId(row.getProviderConnectionId()),
                 row.getProviderConnectionRevision(),
                 row.getModelCode(),
                 row.getDisplayName(),
@@ -216,7 +215,7 @@ public final class PostgresModelDeploymentRepository
         }
     }
 
-    private static String encodeCursor(Instant createdAt, UUID id) {
+    private static String encodeCursor(Instant createdAt, long id) {
         var payload = createdAt + "|" + id;
         return Base64.getUrlEncoder()
                 .withoutPadding()
@@ -240,12 +239,12 @@ public final class PostgresModelDeploymentRepository
             }
             return new CursorPosition(
                     Instant.parse(payload.substring(0, separator)),
-                    UUID.fromString(payload.substring(separator + 1)));
+                    Long.parseLong(payload.substring(separator + 1)));
         } catch (IllegalArgumentException exception) {
             throw new IllegalArgumentException("游标格式不正确", exception);
         }
     }
 
-    private record CursorPosition(Instant createdAt, UUID id) {
+    private record CursorPosition(Instant createdAt, long id) {
     }
 }

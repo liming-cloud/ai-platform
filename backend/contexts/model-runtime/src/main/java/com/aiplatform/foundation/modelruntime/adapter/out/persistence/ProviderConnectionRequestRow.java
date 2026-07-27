@@ -6,7 +6,7 @@ package com.aiplatform.foundation.modelruntime.adapter.out.persistence;
 public class ProviderConnectionRequestRow {
 
     private String requestFingerprint;
-    private String providerConnectionId;
+    private Long providerConnectionId;
 
     public String getRequestFingerprint() {
         return requestFingerprint;
@@ -16,11 +16,11 @@ public class ProviderConnectionRequestRow {
         this.requestFingerprint = requestFingerprint;
     }
 
-    public String getProviderConnectionId() {
+    public Long getProviderConnectionId() {
         return providerConnectionId;
     }
 
-    public void setProviderConnectionId(String providerConnectionId) {
+    public void setProviderConnectionId(Long providerConnectionId) {
         this.providerConnectionId = providerConnectionId;
     }
 }

@@ -99,7 +99,7 @@ public final class PgVectorIndexStore
                 statement.setInt(7, vector.ordinal());
                 statement.setString(8, vector.text());
                 statement.setString(9, vector.textDigest());
-                statement.setObject(10, batch.embeddingDeploymentId());
+                statement.setLong(10, batch.embeddingDeploymentId());
                 statement.setLong(11, batch.embeddingRevision());
                 statement.setInt(12, batch.embeddingDimension());
                 statement.setString(13, literal(vector.embedding()));

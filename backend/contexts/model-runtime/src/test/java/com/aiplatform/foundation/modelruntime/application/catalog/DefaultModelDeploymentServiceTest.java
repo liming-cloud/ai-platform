@@ -42,7 +42,6 @@ import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
 class DefaultModelDeploymentServiceTest {
@@ -51,9 +50,9 @@ class DefaultModelDeploymentServiceTest {
     private static final TenantId TENANT =
             new TenantId(100000000000000001L);
     private static final ProviderConnectionId CONNECTION_ID = new ProviderConnectionId(
-            UUID.fromString("41000000-0000-0000-0000-000000000001"));
-    private static final UUID DEPLOYMENT_ID =
-            UUID.fromString("42000000-0000-0000-0000-000000000001");
+            310000000000000001L);
+    private static final long DEPLOYMENT_ID = 320000000000000001L;
+    private static final String DEPLOYMENT_ID_TEXT = Long.toString(DEPLOYMENT_ID);
 
     @Test
     void 只能从当前已验证供应商修订创建草稿部署() {
@@ -78,12 +77,12 @@ class DefaultModelDeploymentServiceTest {
 
         var probed = service.probe(new ProbeModelDeploymentCommand(
                 context("model:write"),
-                DEPLOYMENT_ID,
+                DEPLOYMENT_ID_TEXT,
                 0,
                 Duration.ofSeconds(2)));
         var published = service.publish(new PublishModelDeploymentCommand(
                 context("model:write"),
-                DEPLOYMENT_ID,
+                DEPLOYMENT_ID_TEXT,
                 1));
 
         assertTrue(probed.reachable());
@@ -101,7 +100,7 @@ class DefaultModelDeploymentServiceTest {
 
         var result = service.probe(new ProbeModelDeploymentCommand(
                 context("model:write"),
-                DEPLOYMENT_ID,
+                DEPLOYMENT_ID_TEXT,
                 0,
                 Duration.ofSeconds(2)));
 
@@ -124,7 +123,7 @@ class DefaultModelDeploymentServiceTest {
                 ModelDeploymentProviderUnavailableException.class,
                 () -> service.probe(new ProbeModelDeploymentCommand(
                         context("model:write"),
-                        DEPLOYMENT_ID,
+                        DEPLOYMENT_ID_TEXT,
                         0,
                         Duration.ofSeconds(2))));
     }
@@ -176,7 +175,7 @@ class DefaultModelDeploymentServiceTest {
         return new CreateModelDeploymentCommand(
                 context,
                 "deployment-request-0001",
-                CONNECTION_ID.value(),
+                CONNECTION_ID.toString(),
                 "deterministic-chat",
                 "演示对话模型",
                 ModelType.CHAT,

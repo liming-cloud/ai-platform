@@ -24,7 +24,6 @@ import java.util.HexFormat;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.UUID;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -100,7 +99,7 @@ public final class PostgresProviderConnectionRepository
         var nextCursor = hasNext
                 ? encodeCursor(
                         pageRows.getLast().getCreatedAt(),
-                        UUID.fromString(pageRows.getLast().getId()))
+                        pageRows.getLast().getId())
                 : null;
         return new ProviderConnectionSlice(items, nextCursor);
     }
@@ -138,7 +137,7 @@ public final class PostgresProviderConnectionRepository
             }
             var replayed = mapper.findById(
                     tenantId,
-                    UUID.fromString(existing.getProviderConnectionId()));
+                    existing.getProviderConnectionId());
             if (replayed == null) {
                 throw new IllegalStateException("幂等记录引用的供应商连接不存在");
             }
@@ -178,7 +177,7 @@ public final class PostgresProviderConnectionRepository
     private static ProviderConnection toDomain(ProviderConnectionRow row) {
         return ProviderConnection.reconstitute(
                 TenantId.parse(row.getTenantId()),
-                new ProviderConnectionId(UUID.fromString(row.getId())),
+                new ProviderConnectionId(row.getId()),
                 ProviderKind.valueOf(row.getProviderKind()),
                 row.getDisplayName(),
                 URI.create(row.getEndpoint()),
@@ -203,7 +202,7 @@ public final class PostgresProviderConnectionRepository
         }
     }
 
-    private static String encodeCursor(Instant createdAt, UUID id) {
+    private static String encodeCursor(Instant createdAt, long id) {
         var payload = createdAt + "|" + id;
         return Base64.getUrlEncoder()
                 .withoutPadding()
@@ -227,12 +226,12 @@ public final class PostgresProviderConnectionRepository
             }
             return new CursorPosition(
                     Instant.parse(payload.substring(0, separator)),
-                    UUID.fromString(payload.substring(separator + 1)));
+                    Long.parseLong(payload.substring(separator + 1)));
         } catch (IllegalArgumentException exception) {
             throw new IllegalArgumentException("游标格式不正确", exception);
         }
     }
 
-    private record CursorPosition(Instant createdAt, UUID id) {
+    private record CursorPosition(Instant createdAt, long id) {
     }
 }

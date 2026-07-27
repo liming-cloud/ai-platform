@@ -8,7 +8,7 @@ import java.time.Instant;
 public class ProviderConnectionRow {
 
     private String tenantId;
-    private String id;
+    private Long id;
     private String providerKind;
     private String displayName;
     private String endpoint;
@@ -30,11 +30,11 @@ public class ProviderConnectionRow {
         this.tenantId = tenantId;
     }
 
-    public String getId() {
+    public Long getId() {
         return id;
     }
 
-    public void setId(String id) {
+    public void setId(Long id) {
         this.id = id;
     }
 

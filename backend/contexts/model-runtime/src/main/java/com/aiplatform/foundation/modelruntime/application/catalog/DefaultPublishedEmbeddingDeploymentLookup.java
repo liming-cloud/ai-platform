@@ -9,7 +9,6 @@ import com.aiplatform.foundation.modelruntime.domain.model.ModelDeploymentId;
 import com.aiplatform.foundation.modelruntime.domain.model.ModelDeploymentStatus;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.UUID;
 
 /**
  * 从模型目录投影已发布嵌入部署的跨上下文快照。
@@ -27,9 +26,11 @@ public final class DefaultPublishedEmbeddingDeploymentLookup
     @Override
     public Optional<PublishedEmbeddingDeploymentSnapshot> find(
             TenantId tenantId,
-            UUID deploymentId) {
+            long deploymentId) {
         Objects.requireNonNull(tenantId, "租户标识不能为空");
-        Objects.requireNonNull(deploymentId, "模型部署标识不能为空");
+        if (deploymentId <= 0) {
+            throw new IllegalArgumentException("模型部署标识必须是正整数");
+        }
         return deployments
                 .findById(tenantId, new ModelDeploymentId(deploymentId))
                 .filter(deployment -> deployment.status() == ModelDeploymentStatus.PUBLISHED)

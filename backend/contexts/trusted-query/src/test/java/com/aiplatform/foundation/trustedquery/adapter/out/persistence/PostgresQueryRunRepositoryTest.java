@@ -51,12 +51,10 @@ class PostgresQueryRunRepositoryTest {
             UUID.fromString("41000000-0000-0000-0000-000000000001");
     private static final UUID ASSISTANT_VERSION =
             UUID.fromString("42000000-0000-0000-0000-000000000001");
-    private static final UUID CHAT =
-            UUID.fromString("43000000-0000-0000-0000-000000000001");
+    private static final long CHAT = 320000000000000001L;
     private static final long SPACE = 210000000000000001L;
     private static final long INDEX = 230000000000000001L;
-    private static final UUID EMBEDDING =
-            UUID.fromString("46000000-0000-0000-0000-000000000001");
+    private static final long EMBEDDING = 320000000000000002L;
     private static final Instant NOW = Instant.parse("2026-07-27T05:00:00Z");
     private static final QueryQuotaPolicy QUOTA =
             new QueryQuotaPolicy(100, 4, Duration.ofMinutes(2));
@@ -395,7 +393,7 @@ class PostgresQueryRunRepositoryTest {
     }
 
     private void seedAssistantVersion() {
-        var provider = UUID.randomUUID();
+        var provider = 310000000000000001L;
         jdbc.update(
                 """
                 INSERT INTO model_runtime.provider_connection (

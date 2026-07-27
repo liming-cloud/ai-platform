@@ -114,7 +114,9 @@ public final class DefaultAssistantService implements AssistantUseCase {
                         new AssistantId(command.assistantId()))
                 .orElseThrow(AssistantNotFoundException::new);
         var chat = chatDeployments
-                .find(command.context().tenantId(), command.chatDeploymentId())
+                .find(
+                        command.context().tenantId(),
+                        parseDeploymentId(command.chatDeploymentId()))
                 .orElseThrow(() -> new AssistantReferenceUnavailableException(
                         "只能绑定当前租户的已发布对话部署"));
         var index = activeIndexes
@@ -221,12 +223,12 @@ public final class DefaultAssistantService implements AssistantUseCase {
                 version.id().value(),
                 version.assistantId().value(),
                 version.number(),
-                version.chatDeploymentId(),
+                Long.toString(version.chatDeploymentId()),
                 version.chatDeploymentRevision(),
                 Long.toString(version.knowledgeSpaceId()),
                 Long.toString(version.indexVersionId()),
                 version.indexVersionRevision(),
-                version.embeddingDeploymentId(),
+                Long.toString(version.embeddingDeploymentId()),
                 version.embeddingDeploymentRevision(),
                 version.embeddingDimension(),
                 version.systemInstruction(),
@@ -292,5 +294,17 @@ public final class DefaultAssistantService implements AssistantUseCase {
     private static void update(MessageDigest digest, String value) {
         digest.update(value.getBytes(StandardCharsets.UTF_8));
         digest.update((byte) 0);
+    }
+
+    private static long parseDeploymentId(String value) {
+        try {
+            var parsed = Long.parseLong(value);
+            if (parsed <= 0) {
+                throw new IllegalArgumentException("模型部署标识必须是正整数");
+            }
+            return parsed;
+        } catch (NumberFormatException exception) {
+            throw new IllegalArgumentException("模型部署标识格式不正确", exception);
+        }
     }
 }

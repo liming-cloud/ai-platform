@@ -118,7 +118,7 @@ describe("ControlPlaneClient", () => {
       knowledgeSpaceId: "210000000000000001",
       sourceSnapshotDigest: "sha256:source",
       chunkPolicy: "paragraph-window-v1",
-      embeddingDeploymentId: "00000000-0000-0000-0000-000000000128",
+      embeddingDeploymentId: "320000000000000001",
       embeddingDeploymentRevision: 1,
       embeddingDimension: 128,
       status: "READY",

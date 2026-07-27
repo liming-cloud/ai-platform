@@ -11,7 +11,6 @@ import com.aiplatform.foundation.modelruntime.api.catalog.model.PublishModelDepl
 import com.aiplatform.foundation.organizationaccess.api.model.TrustedRequestContext;
 import java.time.Duration;
 import java.util.Objects;
-import java.util.UUID;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -79,7 +78,7 @@ public class ModelDeploymentController {
     @PostMapping("/{modelDeploymentId}/probe")
     public ProbeModelDeploymentResult probe(
             TrustedRequestContext context,
-            @PathVariable UUID modelDeploymentId,
+            @PathVariable String modelDeploymentId,
             @RequestBody ModelDeploymentProbeRequest request) {
         return modelDeployments.probe(new ProbeModelDeploymentCommand(
                 context,
@@ -91,7 +90,7 @@ public class ModelDeploymentController {
     @PostMapping("/{modelDeploymentId}/publish")
     public ModelDeploymentView publish(
             TrustedRequestContext context,
-            @PathVariable UUID modelDeploymentId,
+            @PathVariable String modelDeploymentId,
             @RequestBody ModelDeploymentPublishRequest request) {
         return modelDeployments.publish(new PublishModelDeploymentCommand(
                 context,

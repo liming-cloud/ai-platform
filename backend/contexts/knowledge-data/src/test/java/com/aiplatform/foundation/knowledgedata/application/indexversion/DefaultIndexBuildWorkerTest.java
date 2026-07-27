@@ -54,7 +54,7 @@ class DefaultIndexBuildWorkerTest {
             new DataSourceId(220000000000000001L);
     private static final EmbeddingConfiguration EMBEDDING =
             new EmbeddingConfiguration(
-                    UUID.fromString("40000000-0000-0000-0000-000000000001"),
+                    320000000000000001L,
                     1,
                     4);
     private static final Instant NOW = Instant.parse("2026-07-27T00:00:00Z");
@@ -252,25 +252,25 @@ class DefaultIndexBuildWorkerTest {
         }
 
         @Override
-        public ChatModelPort resolveChat(TenantId tenantId, UUID deploymentId) {
+        public ChatModelPort resolveChat(TenantId tenantId, long deploymentId) {
             throw new UnsupportedOperationException();
         }
 
         @Override
         public EmbeddingModelPort resolveEmbedding(
                 TenantId tenantId,
-                UUID deploymentId) {
+                long deploymentId) {
             assertEquals(TENANT_ID, tenantId);
             assertEquals(EMBEDDING.deploymentId(), deploymentId);
             return embedding;
         }
 
         @Override
-        public void evictProvider(TenantId tenantId, UUID providerConnectionId) {
+        public void evictProvider(TenantId tenantId, long providerConnectionId) {
         }
 
         @Override
-        public void evictDeployment(TenantId tenantId, UUID deploymentId) {
+        public void evictDeployment(TenantId tenantId, long deploymentId) {
         }
     }
 }

@@ -8,7 +8,6 @@ import com.aiplatform.foundation.modelruntime.api.invocation.ModelRuntimeResolve
 import com.redis.testcontainers.RedisContainer;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -160,7 +159,7 @@ class ModelDeploymentApiTest {
 
     private DeploymentResponse createDeployment(
             String token,
-            UUID providerId,
+            String providerId,
             String idempotencyKey) {
         var headers = authorized(token);
         headers.add("Idempotency-Key", idempotencyKey);
@@ -219,15 +218,15 @@ class ModelDeploymentApiTest {
     private record SessionResponse(String tokenValue) {
     }
 
-    private record ProviderResponse(UUID id, long version) {
+    private record ProviderResponse(String id, long version) {
     }
 
     private record ProviderProbeResponse(ProviderResponse providerConnection) {
     }
 
     private record DeploymentResponse(
-            UUID id,
-            UUID providerConnectionId,
+            String id,
+            String providerConnectionId,
             long providerConnectionRevision,
             String status,
             long version) {

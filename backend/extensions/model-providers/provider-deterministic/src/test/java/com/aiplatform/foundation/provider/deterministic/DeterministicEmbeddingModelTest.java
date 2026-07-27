@@ -7,7 +7,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import com.aiplatform.foundation.modelruntime.api.model.EmbeddingDeploymentRef;
 import com.aiplatform.foundation.modelruntime.api.model.EmbeddingRequest;
 import java.util.List;
-import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
 class DeterministicEmbeddingModelTest {
@@ -50,7 +49,7 @@ class DeterministicEmbeddingModelTest {
                 IllegalArgumentException.class,
                 () -> model.embed(new EmbeddingRequest(
                         new EmbeddingDeploymentRef(
-                                UUID.randomUUID(),
+                                320000000000000999L,
                                 DeterministicEmbeddingModel.DEPLOYMENT_REVISION,
                                 DeterministicEmbeddingModel.DIMENSION),
                         List.of("文本"))));

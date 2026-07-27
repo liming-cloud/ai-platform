@@ -2,14 +2,13 @@ package com.aiplatform.foundation.modelruntime.api.catalog.model;
 
 import com.aiplatform.foundation.organizationaccess.api.model.TrustedRequestContext;
 import java.util.Objects;
-import java.util.UUID;
 
 /**
  * 发布已经验证的模型部署。
  */
 public record PublishModelDeploymentCommand(
         TrustedRequestContext context,
-        UUID modelDeploymentId,
+        String modelDeploymentId,
         long expectedVersion) {
 
     public PublishModelDeploymentCommand {

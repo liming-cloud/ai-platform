@@ -1,5 +1,6 @@
 package com.aiplatform.foundation.modelruntime.application.catalog;
 
+import com.aiplatform.foundation.kernel.identifier.EntityIdGenerator;
 import com.aiplatform.foundation.modelruntime.api.catalog.ProviderConnectionUseCase;
 import com.aiplatform.foundation.modelruntime.api.catalog.model.CreateProviderConnectionCommand;
 import com.aiplatform.foundation.modelruntime.api.catalog.model.CreateProviderConnectionResult;
@@ -23,8 +24,6 @@ import java.security.NoSuchAlgorithmException;
 import java.time.Clock;
 import java.util.HexFormat;
 import java.util.Objects;
-import java.util.UUID;
-import java.util.function.Supplier;
 
 /**
  * 在可信租户和权限边界内编排供应商连接。
@@ -37,14 +36,14 @@ public final class DefaultProviderConnectionService implements ProviderConnectio
     private final ProviderConnectionRepository repository;
     private final ProbeProviderUseCase probeProvider;
     private final Clock clock;
-    private final Supplier<UUID> identifiers;
+    private final EntityIdGenerator identifiers;
     private final int tenantLimit;
 
     public DefaultProviderConnectionService(
             ProviderConnectionRepository repository,
             ProbeProviderUseCase probeProvider,
             Clock clock,
-            Supplier<UUID> identifiers,
+            EntityIdGenerator identifiers,
             int tenantLimit) {
         this.repository = Objects.requireNonNull(repository, "供应商连接仓储不能为空");
         this.probeProvider = Objects.requireNonNull(probeProvider, "供应商探测用例不能为空");
@@ -62,7 +61,7 @@ public final class DefaultProviderConnectionService implements ProviderConnectio
         requirePermission(command.context(), WRITE);
         var connection = ProviderConnection.create(
                 command.context().tenantId(),
-                new ProviderConnectionId(identifiers.get()),
+                new ProviderConnectionId(identifiers.nextId()),
                 command.providerKind(),
                 command.displayName(),
                 command.endpoint(),
@@ -100,7 +99,7 @@ public final class DefaultProviderConnectionService implements ProviderConnectio
     public ProbeProviderConnectionResult probe(ProbeProviderConnectionCommand command) {
         Objects.requireNonNull(command, "探测命令不能为空");
         requirePermission(command.context(), WRITE);
-        var connectionId = new ProviderConnectionId(command.providerConnectionId());
+        var connectionId = ProviderConnectionId.parse(command.providerConnectionId());
         var connection = repository
                 .findById(command.context().tenantId(), connectionId)
                 .orElseThrow(ProviderConnectionNotFoundException::new);
@@ -140,7 +139,7 @@ public final class DefaultProviderConnectionService implements ProviderConnectio
 
     private static ProviderConnectionView toView(ProviderConnection connection) {
         return new ProviderConnectionView(
-                connection.id().value(),
+                connection.id().toString(),
                 connection.providerKind().name(),
                 connection.displayName(),
                 connection.endpoint(),

@@ -22,7 +22,6 @@ import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.UUID;
 import java.util.function.Function;
 
 /**
@@ -60,7 +59,7 @@ public final class DefaultModelRuntimeResolver implements ModelRuntimeResolver {
     }
 
     @Override
-    public ChatModelPort resolveChat(TenantId tenantId, UUID deploymentId) {
+    public ChatModelPort resolveChat(TenantId tenantId, long deploymentId) {
         var resolved = resolve(tenantId, deploymentId, ModelType.CHAT);
         var factory = chatFactories.get(resolved.provider().providerKind());
         if (factory == null) {
@@ -72,7 +71,7 @@ public final class DefaultModelRuntimeResolver implements ModelRuntimeResolver {
     }
 
     @Override
-    public EmbeddingModelPort resolveEmbedding(TenantId tenantId, UUID deploymentId) {
+    public EmbeddingModelPort resolveEmbedding(TenantId tenantId, long deploymentId) {
         var resolved = resolve(tenantId, deploymentId, ModelType.EMBEDDING);
         var factory = embeddingFactories.get(resolved.provider().providerKind());
         if (factory == null) {
@@ -84,27 +83,33 @@ public final class DefaultModelRuntimeResolver implements ModelRuntimeResolver {
     }
 
     @Override
-    public void evictProvider(TenantId tenantId, UUID providerConnectionId) {
+    public void evictProvider(TenantId tenantId, long providerConnectionId) {
         Objects.requireNonNull(tenantId, "租户标识不能为空");
-        Objects.requireNonNull(providerConnectionId, "供应商连接标识不能为空");
+        if (providerConnectionId <= 0) {
+            throw new IllegalArgumentException("供应商连接标识必须是正整数");
+        }
         chatCache.evictIf(key -> key.matchesProvider(tenantId, providerConnectionId));
         embeddingCache.evictIf(key -> key.matchesProvider(tenantId, providerConnectionId));
     }
 
     @Override
-    public void evictDeployment(TenantId tenantId, UUID deploymentId) {
+    public void evictDeployment(TenantId tenantId, long deploymentId) {
         Objects.requireNonNull(tenantId, "租户标识不能为空");
-        Objects.requireNonNull(deploymentId, "模型部署标识不能为空");
+        if (deploymentId <= 0) {
+            throw new IllegalArgumentException("模型部署标识必须是正整数");
+        }
         chatCache.evictIf(key -> key.matchesDeployment(tenantId, deploymentId));
         embeddingCache.evictIf(key -> key.matchesDeployment(tenantId, deploymentId));
     }
 
     private ResolvedRuntime resolve(
             TenantId tenantId,
-            UUID deploymentId,
+            long deploymentId,
             ModelType expectedType) {
         Objects.requireNonNull(tenantId, "租户标识不能为空");
-        Objects.requireNonNull(deploymentId, "模型部署标识不能为空");
+        if (deploymentId <= 0) {
+            throw new IllegalArgumentException("模型部署标识必须是正整数");
+        }
         var deployment = deployments
                 .findById(tenantId, new ModelDeploymentId(deploymentId))
                 .orElseThrow(() -> unavailable("模型部署不存在"));
@@ -182,18 +187,18 @@ public final class DefaultModelRuntimeResolver implements ModelRuntimeResolver {
 
     private record RuntimeCacheKey(
             TenantId tenantId,
-            UUID providerConnectionId,
+            long providerConnectionId,
             long providerRevision,
-            UUID deploymentId,
+            long deploymentId,
             long deploymentRevision,
             ModelType modelType) {
 
-        private boolean matchesProvider(TenantId tenant, UUID providerId) {
-            return tenantId.equals(tenant) && providerConnectionId.equals(providerId);
+        private boolean matchesProvider(TenantId tenant, long providerId) {
+            return tenantId.equals(tenant) && providerConnectionId == providerId;
         }
 
-        private boolean matchesDeployment(TenantId tenant, UUID modelDeploymentId) {
-            return tenantId.equals(tenant) && deploymentId.equals(modelDeploymentId);
+        private boolean matchesDeployment(TenantId tenant, long modelDeploymentId) {
+            return tenantId.equals(tenant) && deploymentId == modelDeploymentId;
         }
     }
 }

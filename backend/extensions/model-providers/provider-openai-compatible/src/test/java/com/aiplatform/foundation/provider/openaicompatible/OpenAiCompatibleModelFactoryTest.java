@@ -12,7 +12,6 @@ import com.aiplatform.foundation.security.secret.SecretReference;
 import com.aiplatform.foundation.security.secret.SecretValue;
 import java.net.URI;
 import java.time.Duration;
-import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
 
@@ -51,12 +50,12 @@ class OpenAiCompatibleModelFactoryTest {
     private static ModelRuntimeSpecification chatSpecification() {
         return new ModelRuntimeSpecification(
                 new TenantId(100000000000000001L),
-                UUID.fromString("20000000-0000-0000-0000-000000000001"),
+                310000000000000001L,
                 2,
                 ProviderKind.OPENAI_COMPATIBLE,
                 URI.create("https://models.example.com/v1"),
                 SECRET_REFERENCE,
-                UUID.fromString("30000000-0000-0000-0000-000000000001"),
+                320000000000000001L,
                 3,
                 "gpt-compatible",
                 ModelType.CHAT,

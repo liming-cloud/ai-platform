@@ -12,7 +12,7 @@ public final class IndexVersionRow {
     private String id;
     private String sourceSnapshotDigest;
     private String chunkPolicy;
-    private String embeddingDeploymentId;
+    private Long embeddingDeploymentId;
     private long embeddingDeploymentRevision;
     private int embeddingDimension;
     private String status;
@@ -66,11 +66,11 @@ public final class IndexVersionRow {
         this.chunkPolicy = chunkPolicy;
     }
 
-    public String getEmbeddingDeploymentId() {
+    public Long getEmbeddingDeploymentId() {
         return embeddingDeploymentId;
     }
 
-    public void setEmbeddingDeploymentId(String embeddingDeploymentId) {
+    public void setEmbeddingDeploymentId(Long embeddingDeploymentId) {
         this.embeddingDeploymentId = embeddingDeploymentId;
     }
 

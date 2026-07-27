@@ -69,7 +69,7 @@
     <select id="findRequest" resultMap="findRequestResultMap">
         <![CDATA[
         SELECT request_fingerprint,
-               provider_connection_id::text AS provider_connection_id
+               provider_connection_id
         FROM model_runtime.provider_connection_request
         WHERE tenant_id = #{tenantId}
           AND idempotency_key_hash = #{keyHash}
@@ -114,7 +114,7 @@
     <select id="findById" resultMap="providerConnectionRow">
         <![CDATA[
         SELECT tenant_id::text AS tenant_id,
-               id::text AS id,
+               id,
                provider_kind,
                display_name,
                endpoint,
@@ -136,7 +136,7 @@
     <select id="findFirstPage" resultMap="findFirstPageResultMap">
         <![CDATA[
         SELECT tenant_id::text AS tenant_id,
-               id::text AS id,
+               id,
                provider_kind,
                display_name,
                endpoint,
@@ -159,7 +159,7 @@
     <select id="findAfter" resultMap="findAfterResultMap">
         <![CDATA[
         SELECT tenant_id::text AS tenant_id,
-               id::text AS id,
+               id,
                provider_kind,
                display_name,
                endpoint,

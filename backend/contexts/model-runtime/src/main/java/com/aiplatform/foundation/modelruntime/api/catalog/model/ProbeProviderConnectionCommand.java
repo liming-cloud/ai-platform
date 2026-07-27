@@ -3,14 +3,13 @@ package com.aiplatform.foundation.modelruntime.api.catalog.model;
 import com.aiplatform.foundation.organizationaccess.api.model.TrustedRequestContext;
 import java.time.Duration;
 import java.util.Objects;
-import java.util.UUID;
 
 /**
  * 使用连接当前修订执行最小模型探测。
  */
 public record ProbeProviderConnectionCommand(
         TrustedRequestContext context,
-        UUID providerConnectionId,
+        String providerConnectionId,
         long expectedVersion,
         String modelCode,
         Duration timeout) {

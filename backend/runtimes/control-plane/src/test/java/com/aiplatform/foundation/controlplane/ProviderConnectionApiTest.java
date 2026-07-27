@@ -9,7 +9,6 @@ import com.redis.testcontainers.RedisContainer;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -214,7 +213,7 @@ class ProviderConnectionApiTest {
     }
 
     private record ProviderResponse(
-            UUID id,
+            String id,
             String providerKind,
             String displayName,
             String endpoint,
