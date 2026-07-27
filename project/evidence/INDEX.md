@@ -90,6 +90,7 @@
 | 端到端容量与故障恢复 | `project/evidence/WP-0007-capacity-resilience.md` | `ea40372ae224d6898318ee1262d2b432c0f88022`、`9bb74304861db4a34d330cf3f733ccb2aff54848` | 双租户总并发 8，40 次采样零错误零重放，95 分位 50.201 毫秒、每秒 219.873 次；四个关键服务重启与重启后查询通过 |
 | 空环境交付与历史 M1 技术验收 | `project/evidence/WP-0007-M1-technical-acceptance.md` | `a1bc72c8749314687bfd160b8fd06949f1a97f2f`、`fb02924ad96b03b95f970b7b4dc69f0543dd90bb` | 整改前运行结果已保留，但因人工架构复核发现八项阻断问题而撤回，不得用于批准 M1 |
 | 既有数据卷受控升级 | `project/evidence/artifacts/WP-0007-upgrade-drill.json` | `d0fc7aa649bc6869205cde49e8c071abe57deef6`、`d9605a59b7379a78deeb0f1b721b443e1d5a3a45` | 一致回滚备份后重建应用，升级前后事实摘要和 18 条迁移记录一致，8 题评测与五入口通过，成功后机密备份已删除 |
+| M1 人工发布批准 | `project/evidence/M1-release-approval.md` | `d025a141e27d770cb10eee1e4e973100cf8c7a20` | 用户代表产品、测试和运维职责批准 M1 退出；历史技术验收不作为批准依据 |
 
 ## WP-0008
 
@@ -124,6 +125,12 @@
 | 全量代码与门禁验证 | `project/evidence/WP-0009-full-validation.md` | `d025a141e` | 309 项后端、28 项前端及全部治理、架构和运维脚本测试通过 |
 | 容器交付与运维演练 | `project/evidence/WP-0009-delivery-drills.md` | `d554b1fa5`、`fb4371ced` | 空环境交付、固定评测、18 秒隔离恢复、40 次容量样本、四服务恢复和既有卷升级通过 |
 | 六维代码走查 | `project/evidence/WP-0009-code-review.md` | `d025a141e` | 正确性、安全、复杂度、性能、架构和测试质量问题全部修复，无未关闭高优先级问题 |
+
+## WP-0010
+
+| 证据 | 命令或评审 | 提交 | 结果 |
+| --- | --- | --- | --- |
+| M2 工作包激活与真实模型调用授权 | `project/evidence/M1-release-approval.md` | 待产生 | 用户已批准阿里云百炼用于受控研发和测试调用；不得记录或提交 API Key |
 
 ## 证据规则
 
