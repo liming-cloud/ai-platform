@@ -46,7 +46,7 @@ import org.junit.jupiter.api.Test;
 class DefaultAssistantServiceTest {
 
     private static final TenantId TENANT =
-            new TenantId(UUID.fromString("10000000-0000-0000-0000-000000000001"));
+            new TenantId(100000000000000001L);
     private static final UUID ASSISTANT_ID =
             UUID.fromString("20000000-0000-0000-0000-000000000001");
     private static final UUID VERSION_ID =

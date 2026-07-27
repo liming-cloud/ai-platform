@@ -14,7 +14,7 @@ public class KnowledgeSpaceEntity {
 
     @TableId(type = IdType.INPUT)
     private UUID id;
-    private UUID tenantId;
+    private Long tenantId;
     private String name;
     private String description;
     private String status;
@@ -30,11 +30,11 @@ public class KnowledgeSpaceEntity {
         this.id = id;
     }
 
-    public UUID getTenantId() {
+    public Long getTenantId() {
         return tenantId;
     }
 
-    public void setTenantId(UUID tenantId) {
+    public void setTenantId(Long tenantId) {
         this.tenantId = tenantId;
     }
 

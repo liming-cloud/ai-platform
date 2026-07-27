@@ -13,16 +13,16 @@ public interface IndexVersionMapper {
     String lockSpace(@Param("scope") String scope);
 
     IndexVersionRequestRow findRequest(
-            @Param("tenantId") UUID tenantId,
+            @Param("tenantId") long tenantId,
             @Param("operation") String operation,
             @Param("keyHash") String keyHash);
 
     List<IndexSourceRow> findPublishedSources(
-            @Param("tenantId") UUID tenantId,
+            @Param("tenantId") long tenantId,
             @Param("knowledgeSpaceId") UUID knowledgeSpaceId);
 
     int insertVersion(
-            @Param("tenantId") UUID tenantId,
+            @Param("tenantId") long tenantId,
             @Param("knowledgeSpaceId") UUID knowledgeSpaceId,
             @Param("id") UUID id,
             @Param("sourceSnapshotDigest") String sourceSnapshotDigest,
@@ -34,7 +34,7 @@ public interface IndexVersionMapper {
             @Param("createdAt") Instant createdAt);
 
     int insertSource(
-            @Param("tenantId") UUID tenantId,
+            @Param("tenantId") long tenantId,
             @Param("knowledgeSpaceId") UUID knowledgeSpaceId,
             @Param("indexVersionId") UUID indexVersionId,
             @Param("dataSourceId") UUID dataSourceId,
@@ -46,13 +46,13 @@ public interface IndexVersionMapper {
             @Param("contentCreatedAt") Instant contentCreatedAt);
 
     int insertJob(
-            @Param("tenantId") UUID tenantId,
+            @Param("tenantId") long tenantId,
             @Param("knowledgeSpaceId") UUID knowledgeSpaceId,
             @Param("indexVersionId") UUID indexVersionId,
             @Param("createdAt") Instant createdAt);
 
     int insertRequest(
-            @Param("tenantId") UUID tenantId,
+            @Param("tenantId") long tenantId,
             @Param("operation") String operation,
             @Param("keyHash") String keyHash,
             @Param("requestFingerprint") String requestFingerprint,
@@ -63,26 +63,26 @@ public interface IndexVersionMapper {
             @Param("createdAt") Instant createdAt);
 
     IndexVersionRow findVersion(
-            @Param("tenantId") UUID tenantId,
+            @Param("tenantId") long tenantId,
             @Param("knowledgeSpaceId") UUID knowledgeSpaceId,
             @Param("id") UUID id);
 
     IndexVersionRow findActive(
-            @Param("tenantId") UUID tenantId,
+            @Param("tenantId") long tenantId,
             @Param("knowledgeSpaceId") UUID knowledgeSpaceId);
 
     IndexVersionRow findVersionForUpdate(
-            @Param("tenantId") UUID tenantId,
+            @Param("tenantId") long tenantId,
             @Param("knowledgeSpaceId") UUID knowledgeSpaceId,
             @Param("id") UUID id);
 
     List<IndexVersionRow> findFirstPage(
-            @Param("tenantId") UUID tenantId,
+            @Param("tenantId") long tenantId,
             @Param("knowledgeSpaceId") UUID knowledgeSpaceId,
             @Param("limit") int limit);
 
     List<IndexVersionRow> findAfter(
-            @Param("tenantId") UUID tenantId,
+            @Param("tenantId") long tenantId,
             @Param("knowledgeSpaceId") UUID knowledgeSpaceId,
             @Param("createdAt") Instant createdAt,
             @Param("id") UUID id,
@@ -91,25 +91,25 @@ public interface IndexVersionMapper {
     IndexBuildJobRow claimableJob(@Param("now") Instant now);
 
     int markClaimed(
-            @Param("tenantId") UUID tenantId,
+            @Param("tenantId") long tenantId,
             @Param("knowledgeSpaceId") UUID knowledgeSpaceId,
             @Param("indexVersionId") UUID indexVersionId,
             @Param("leaseId") UUID leaseId,
             @Param("leaseUntil") Instant leaseUntil);
 
     List<IndexSourceRow> findSources(
-            @Param("tenantId") UUID tenantId,
+            @Param("tenantId") long tenantId,
             @Param("knowledgeSpaceId") UUID knowledgeSpaceId,
             @Param("indexVersionId") UUID indexVersionId);
 
     Integer findRunningLease(
-            @Param("tenantId") UUID tenantId,
+            @Param("tenantId") long tenantId,
             @Param("knowledgeSpaceId") UUID knowledgeSpaceId,
             @Param("indexVersionId") UUID indexVersionId,
             @Param("leaseId") UUID leaseId);
 
     int markReady(
-            @Param("tenantId") UUID tenantId,
+            @Param("tenantId") long tenantId,
             @Param("knowledgeSpaceId") UUID knowledgeSpaceId,
             @Param("indexVersionId") UUID indexVersionId,
             @Param("buildDigest") String buildDigest,
@@ -117,20 +117,20 @@ public interface IndexVersionMapper {
             @Param("completedAt") Instant completedAt);
 
     int markDone(
-            @Param("tenantId") UUID tenantId,
+            @Param("tenantId") long tenantId,
             @Param("knowledgeSpaceId") UUID knowledgeSpaceId,
             @Param("indexVersionId") UUID indexVersionId,
             @Param("leaseId") UUID leaseId,
             @Param("completedAt") Instant completedAt);
 
     int markFailedVersion(
-            @Param("tenantId") UUID tenantId,
+            @Param("tenantId") long tenantId,
             @Param("knowledgeSpaceId") UUID knowledgeSpaceId,
             @Param("indexVersionId") UUID indexVersionId,
             @Param("failureCode") String failureCode);
 
     int markFailedJob(
-            @Param("tenantId") UUID tenantId,
+            @Param("tenantId") long tenantId,
             @Param("knowledgeSpaceId") UUID knowledgeSpaceId,
             @Param("indexVersionId") UUID indexVersionId,
             @Param("leaseId") UUID leaseId,
@@ -138,12 +138,12 @@ public interface IndexVersionMapper {
             @Param("failedAt") Instant failedAt);
 
     int supersedeActive(
-            @Param("tenantId") UUID tenantId,
+            @Param("tenantId") long tenantId,
             @Param("knowledgeSpaceId") UUID knowledgeSpaceId,
             @Param("supersededAt") Instant supersededAt);
 
     int activateReady(
-            @Param("tenantId") UUID tenantId,
+            @Param("tenantId") long tenantId,
             @Param("knowledgeSpaceId") UUID knowledgeSpaceId,
             @Param("indexVersionId") UUID indexVersionId,
             @Param("expectedVersion") long expectedVersion,

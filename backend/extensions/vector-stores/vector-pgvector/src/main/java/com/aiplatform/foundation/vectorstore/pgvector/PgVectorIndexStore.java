@@ -82,7 +82,7 @@ public final class PgVectorIndexStore
                   AND knowledge_space_id = ?
                   AND index_version_id = ?
                 """,
-                batch.tenantId(),
+                batch.tenantId().value(),
                 batch.knowledgeSpaceId(),
                 batch.indexVersionId());
         jdbc.batchUpdate(INSERT, new BatchPreparedStatementSetter() {
@@ -91,7 +91,7 @@ public final class PgVectorIndexStore
             public void setValues(PreparedStatement statement, int index)
                     throws SQLException {
                 var vector = batch.vectors().get(index);
-                statement.setObject(1, batch.tenantId());
+                statement.setLong(1, batch.tenantId().value());
                 statement.setObject(2, batch.knowledgeSpaceId());
                 statement.setObject(3, batch.indexVersionId());
                 statement.setObject(4, vector.dataSourceId());
@@ -127,7 +127,7 @@ public final class PgVectorIndexStore
                         result.getString("content"),
                         clamp(result.getDouble("score"))),
                 embedding,
-                query.tenantId(),
+                query.tenantId().value(),
                 query.knowledgeSpaceId(),
                 query.indexVersionId(),
                 query.indexVersionId(),

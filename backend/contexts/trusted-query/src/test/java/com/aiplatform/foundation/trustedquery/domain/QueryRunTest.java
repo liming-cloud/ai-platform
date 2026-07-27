@@ -94,7 +94,7 @@ class QueryRunTest {
 
     private static QueryRun proposed() {
         return QueryRun.start(
-                new TenantId(UUID.randomUUID()),
+                new TenantId(7100000000000000004L),
                 UUID.randomUUID(),
                 UUID.randomUUID(),
                 new MembershipId(7300000000000000005L),

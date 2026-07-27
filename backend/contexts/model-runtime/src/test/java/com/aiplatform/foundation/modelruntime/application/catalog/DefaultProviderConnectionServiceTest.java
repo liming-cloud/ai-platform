@@ -67,7 +67,7 @@ class DefaultProviderConnectionServiceTest {
                 ModelCatalogPermissionDeniedException.class,
                 () -> service.create(createCommand(context("model:read"))));
         assertTrue(repository.findById(
-                        TenantId.parse("10000000-0000-0000-0000-000000000001"),
+                        new TenantId(100000000000000001L),
                         new ProviderConnectionId(CONNECTION_ID))
                 .isEmpty());
     }
@@ -170,7 +170,7 @@ class DefaultProviderConnectionServiceTest {
 
     private static TrustedRequestContext context(String permission) {
         return new TrustedRequestContext(
-                TenantId.parse("10000000-0000-0000-0000-000000000001"),
+                new TenantId(100000000000000001L),
                 new SubjectId(1843651857942052866L),
                 new MembershipId(3382738893456539650L),
                 CredentialType.PERSON,

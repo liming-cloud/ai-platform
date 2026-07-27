@@ -48,8 +48,8 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 @Testcontainers
 class OperationsApiTest {
 
-    private static final UUID STORE =
-            UUID.fromString("10000000-0000-0000-0000-000000000001");
+    private static final long STORE =
+            100000000000000001L;
     private static final Instant FROM = Instant.parse("2026-07-27T00:00:00Z");
     private static final Instant TO = Instant.parse("2026-07-28T00:00:00Z");
     private static final UUID QUERY_RUN_ID =

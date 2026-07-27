@@ -45,8 +45,7 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 @Testcontainers
 class PostgresQueryRunRepositoryTest {
 
-    private static final TenantId TENANT = new TenantId(
-            UUID.fromString("10000000-0000-0000-0000-000000000001"));
+    private static final TenantId TENANT = new TenantId(100000000000000001L);
     private static final MembershipId MEMBER = new MembershipId(3382738893456539650L);
     private static final UUID ASSISTANT =
             UUID.fromString("41000000-0000-0000-0000-000000000001");
@@ -172,10 +171,10 @@ class PostgresQueryRunRepositoryTest {
                 .map(event -> event.sequence())
                 .toList());
         assertTrue(repository.find(
-                new TenantId(UUID.randomUUID()),
+                new TenantId(7100000000000000001L),
                 answered.id()).isEmpty());
         assertTrue(repository.findEvents(
-                new TenantId(UUID.randomUUID()),
+                new TenantId(7100000000000000002L),
                 answered.id(),
                 0,
                 10).isEmpty());
@@ -364,7 +363,7 @@ class PostgresQueryRunRepositoryTest {
                 firstPage.nextCursor(),
                 1);
         var crossTenant = operations.listAuditRecords(
-                new TenantId(UUID.randomUUID()),
+                new TenantId(7100000000000000003L),
                 null,
                 20);
 

@@ -44,8 +44,8 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 @Testcontainers
 class KnowledgeSpaceApiTest {
 
-    private static final UUID STORE_TENANT =
-            UUID.fromString("10000000-0000-0000-0000-000000000001");
+    private static final long STORE_TENANT =
+            100000000000000001L;
 
     @Container
     private static final PostgreSQLContainer POSTGRES =

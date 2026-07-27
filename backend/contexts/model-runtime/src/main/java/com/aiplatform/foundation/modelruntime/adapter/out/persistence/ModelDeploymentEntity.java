@@ -14,7 +14,7 @@ public class ModelDeploymentEntity {
 
     @TableId(type = IdType.INPUT)
     private UUID id;
-    private UUID tenantId;
+    private Long tenantId;
     private UUID providerConnectionId;
     private long providerConnectionRevision;
     private String modelCode;
@@ -36,11 +36,11 @@ public class ModelDeploymentEntity {
         this.id = id;
     }
 
-    public UUID getTenantId() {
+    public Long getTenantId() {
         return tenantId;
     }
 
-    public void setTenantId(UUID tenantId) {
+    public void setTenantId(Long tenantId) {
         this.tenantId = tenantId;
     }
 

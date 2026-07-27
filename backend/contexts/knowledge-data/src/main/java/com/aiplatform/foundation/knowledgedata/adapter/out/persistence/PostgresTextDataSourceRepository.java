@@ -170,7 +170,7 @@ public final class PostgresTextDataSourceRepository implements TextDataSourceRep
         var source = creation.source();
         var tenantId = source.tenantId().value();
         var keyHash = sha256(creation.idempotencyKey());
-        mapper.lockTenant(tenantId.toString());
+        mapper.lockTenant(Long.toString(tenantId));
 
         var existing = mapper.findRequest(tenantId, CREATE, keyHash);
         if (existing != null) {
@@ -303,7 +303,7 @@ public final class PostgresTextDataSourceRepository implements TextDataSourceRep
     }
 
     private TextDataSourceMutationOutcome replay(
-            UUID tenantId,
+            long tenantId,
             TextDataSourceRequestRow request,
             String fingerprint) {
         if (!request.getRequestFingerprint().equals(fingerprint)) {
@@ -358,7 +358,7 @@ public final class PostgresTextDataSourceRepository implements TextDataSourceRep
     }
 
     private TextDataSource toCurrentDomain(TextDataSourceRow row) {
-        var tenantId = UUID.fromString(row.getTenantId());
+        var tenantId = Long.parseLong(row.getTenantId());
         var knowledgeSpaceId = UUID.fromString(row.getKnowledgeSpaceId());
         var dataSourceId = UUID.fromString(row.getId());
         var content = row.getContentVersion() == 0
@@ -395,7 +395,7 @@ public final class PostgresTextDataSourceRepository implements TextDataSourceRep
     }
 
     private TextContentReference requireContent(
-            UUID tenantId,
+            long tenantId,
             UUID knowledgeSpaceId,
             UUID dataSourceId,
             int version) {

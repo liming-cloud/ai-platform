@@ -1,7 +1,7 @@
 CREATE SCHEMA IF NOT EXISTS organization_access;
 
 CREATE TABLE organization_access.tenant (
-    tenant_id UUID PRIMARY KEY,
+    tenant_id BIGINT PRIMARY KEY,
     tenant_code VARCHAR(63) NOT NULL,
     display_name VARCHAR(128) NOT NULL,
     status VARCHAR(16) NOT NULL,
@@ -19,7 +19,7 @@ CREATE TABLE organization_access.tenant (
 
 CREATE TABLE organization_access.membership_credential (
     membership_id BIGINT PRIMARY KEY,
-    tenant_id UUID NOT NULL,
+    tenant_id BIGINT NOT NULL,
     subject_id BIGINT NOT NULL,
     login_name VARCHAR(64) NOT NULL,
     password_hash VARCHAR(256) NOT NULL,
@@ -51,7 +51,7 @@ CREATE INDEX ix_oa_membership_tenant_subject
     ON organization_access.membership_credential (tenant_id, subject_id);
 
 CREATE TABLE organization_access.membership_permission (
-    tenant_id UUID NOT NULL,
+    tenant_id BIGINT NOT NULL,
     membership_id BIGINT NOT NULL,
     permission_code VARCHAR(96) NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,

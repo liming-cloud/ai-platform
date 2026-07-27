@@ -14,7 +14,7 @@ public class ProviderConnectionEntity {
 
     @TableId(type = IdType.INPUT)
     private UUID id;
-    private UUID tenantId;
+    private Long tenantId;
     private String providerKind;
     private String displayName;
     private String endpoint;
@@ -36,11 +36,11 @@ public class ProviderConnectionEntity {
         this.id = id;
     }
 
-    public UUID getTenantId() {
+    public Long getTenantId() {
         return tenantId;
     }
 
-    public void setTenantId(UUID tenantId) {
+    public void setTenantId(Long tenantId) {
         this.tenantId = tenantId;
     }
 

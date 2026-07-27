@@ -41,7 +41,7 @@ class QueryAssistantControllerTest {
 
     private static TrustedRequestContext context() {
         return new TrustedRequestContext(
-                TenantId.parse("30000000-0000-0000-0000-000000000001"),
+                new TenantId(300000000000000001L),
                 new SubjectId(7200000000000000005L),
                 new MembershipId(7300000000000000006L),
                 CredentialType.PERSON,

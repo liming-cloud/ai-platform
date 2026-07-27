@@ -5,17 +5,17 @@ package com.aiplatform.foundation.organizationaccess.adapter.out.persistence;
  */
 public class AuthenticationRow {
 
-    private String tenantId;
+    private Long tenantId;
     private Long subjectId;
     private Long membershipId;
     private String passwordHash;
     private Long permissionVersion;
 
-    public String getTenantId() {
+    public Long getTenantId() {
         return tenantId;
     }
 
-    public void setTenantId(String tenantId) {
+    public void setTenantId(Long tenantId) {
         this.tenantId = tenantId;
     }
 

@@ -146,7 +146,7 @@ public final class DefaultQueryRunService implements QueryRunUseCase {
             throw new IllegalStateException("查询嵌入结果不符合助手冻结部署");
         }
         var retrieved = candidates.retrieve(new IndexCandidateQuery(
-                        context.tenantId().value(),
+                        context.tenantId(),
                         assistant.knowledgeSpaceId(),
                         assistant.indexVersionId(),
                         assistant.embeddingDeploymentId(),

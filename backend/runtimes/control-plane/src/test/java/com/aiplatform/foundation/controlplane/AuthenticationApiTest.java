@@ -9,7 +9,6 @@ import com.aiplatform.foundation.organizationaccess.adapter.out.session.InvalidA
 import com.aiplatform.foundation.organizationaccess.application.port.out.AuthenticatedSessionGateway;
 import com.redis.testcontainers.RedisContainer;
 import java.util.Map;
-import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -79,7 +78,7 @@ class AuthenticationApiTest {
         var token = body.tokenValue();
         assertFalse(token.isBlank());
         assertEquals(
-                UUID.fromString("10000000-0000-0000-0000-000000000001"),
+                100000000000000001L,
                 sessions.resolve(token).tenantId().value());
 
         var headers = new HttpHeaders();

@@ -88,7 +88,7 @@ public final class PostgresKnowledgeSpaceRepository implements KnowledgeSpaceRep
         var space = creation.space();
         var tenantId = space.tenantId().value();
         var keyHash = sha256(creation.idempotencyKey());
-        mapper.lockTenant(tenantId.toString());
+        mapper.lockTenant(Long.toString(tenantId));
 
         var existing = mapper.findRequest(tenantId, keyHash);
         if (existing != null) {

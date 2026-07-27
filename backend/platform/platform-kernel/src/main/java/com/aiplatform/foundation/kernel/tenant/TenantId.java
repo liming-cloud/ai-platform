@@ -1,26 +1,28 @@
 package com.aiplatform.foundation.kernel.tenant;
 
-import java.util.Objects;
-import java.util.UUID;
-
 /**
  * 平台范围内不可变的租户标识。
  *
  * <p>租户标识必须由可信认证上下文提供，业务调用方不得使用空值表示平台级访问。</p>
  */
-public record TenantId(UUID value) {
+public record TenantId(long value) {
 
     public TenantId {
-        Objects.requireNonNull(value, "租户标识不能为空");
+        if (value <= 0) {
+            throw new IllegalArgumentException("租户标识必须为正数");
+        }
     }
 
     public static TenantId parse(String value) {
-        Objects.requireNonNull(value, "租户标识文本不能为空");
-        return new TenantId(UUID.fromString(value));
+        try {
+            return new TenantId(Long.parseLong(value));
+        } catch (NumberFormatException exception) {
+            throw new IllegalArgumentException("租户标识必须是十进制正整数", exception);
+        }
     }
 
     @Override
     public String toString() {
-        return value.toString();
+        return Long.toString(value);
     }
 }

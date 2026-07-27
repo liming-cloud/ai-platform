@@ -1,7 +1,7 @@
 CREATE SCHEMA IF NOT EXISTS knowledge_data;
 
 CREATE TABLE knowledge_data.knowledge_space (
-    tenant_id UUID NOT NULL,
+    tenant_id BIGINT NOT NULL,
     id UUID NOT NULL,
     name VARCHAR(320) NOT NULL,
     description VARCHAR(2000),
@@ -23,7 +23,7 @@ CREATE INDEX idx_knowledge_space_tenant_created
     ON knowledge_data.knowledge_space (tenant_id, created_at DESC, id DESC);
 
 CREATE TABLE knowledge_data.knowledge_space_request (
-    tenant_id UUID NOT NULL,
+    tenant_id BIGINT NOT NULL,
     idempotency_key_hash CHAR(64) NOT NULL,
     request_fingerprint CHAR(64) NOT NULL,
     knowledge_space_id UUID NOT NULL,

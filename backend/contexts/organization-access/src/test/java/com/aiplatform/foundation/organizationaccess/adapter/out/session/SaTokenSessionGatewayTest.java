@@ -82,7 +82,7 @@ class SaTokenSessionGatewayTest {
 
     private static TrustedRequestContext context() {
         return new TrustedRequestContext(
-                new TenantId(UUID.fromString("10000000-0000-0000-0000-000000000001")),
+                new TenantId(100000000000000001L),
                 new SubjectId(4921825928971026434L),
                 MEMBERSHIP_ID,
                 CredentialType.PERSON,

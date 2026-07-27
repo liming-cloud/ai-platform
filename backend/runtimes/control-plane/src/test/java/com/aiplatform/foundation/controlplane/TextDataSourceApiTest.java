@@ -56,8 +56,8 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 @Import(TextDataSourceApiTest.StorageConfiguration.class)
 class TextDataSourceApiTest {
 
-    private static final UUID STORE_TENANT =
-            UUID.fromString("10000000-0000-0000-0000-000000000001");
+    private static final long STORE_TENANT =
+            100000000000000001L;
     @Container
     private static final PostgreSQLContainer POSTGRES =
             new PostgreSQLContainer("pgvector/pgvector:0.8.5-pg18-trixie")

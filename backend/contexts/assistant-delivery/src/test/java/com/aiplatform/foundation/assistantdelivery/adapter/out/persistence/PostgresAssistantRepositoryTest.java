@@ -44,9 +44,9 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 class PostgresAssistantRepositoryTest {
 
     private static final TenantId STORE =
-            TenantId.parse("10000000-0000-0000-0000-000000000001");
+            new TenantId(100000000000000001L);
     private static final TenantId CAMPUS =
-            TenantId.parse("10000000-0000-0000-0000-000000000002");
+            new TenantId(100000000000000002L);
     private static final MembershipId CREATOR = new MembershipId(3382738893456539650L);
     private static final UUID CHAT =
             UUID.fromString("40000000-0000-0000-0000-000000000001");

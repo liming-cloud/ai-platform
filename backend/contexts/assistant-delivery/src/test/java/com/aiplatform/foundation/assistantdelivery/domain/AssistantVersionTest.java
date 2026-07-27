@@ -12,7 +12,7 @@ import org.junit.jupiter.api.Test;
 class AssistantVersionTest {
 
     private static final TenantId TENANT =
-            new TenantId(UUID.fromString("10000000-0000-0000-0000-000000000001"));
+            new TenantId(100000000000000001L);
     private static final AssistantId ASSISTANT_ID =
             new AssistantId(UUID.fromString("20000000-0000-0000-0000-000000000001"));
     private static final AssistantVersionId VERSION_ID =

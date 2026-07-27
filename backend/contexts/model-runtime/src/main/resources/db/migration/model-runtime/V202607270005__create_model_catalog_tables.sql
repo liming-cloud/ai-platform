@@ -1,7 +1,7 @@
 CREATE SCHEMA IF NOT EXISTS model_runtime;
 
 CREATE TABLE model_runtime.provider_connection (
-    tenant_id UUID NOT NULL,
+    tenant_id BIGINT NOT NULL,
     id UUID NOT NULL,
     provider_kind VARCHAR(48) NOT NULL,
     display_name VARCHAR(320) NOT NULL,
@@ -47,7 +47,7 @@ CREATE INDEX idx_provider_connection_tenant_created
     ON model_runtime.provider_connection (tenant_id, created_at DESC, id DESC);
 
 CREATE TABLE model_runtime.provider_connection_request (
-    tenant_id UUID NOT NULL,
+    tenant_id BIGINT NOT NULL,
     idempotency_key_hash CHAR(64) NOT NULL,
     request_fingerprint CHAR(64) NOT NULL,
     provider_connection_id UUID NOT NULL,

@@ -14,7 +14,7 @@ import org.junit.jupiter.api.Test;
 class ProviderConnectionTest {
 
     private static final TenantId TENANT_ID =
-            TenantId.parse("10000000-0000-0000-0000-000000000001");
+            new TenantId(100000000000000001L);
     private static final ProviderConnectionId CONNECTION_ID =
             new ProviderConnectionId(UUID.fromString("41000000-0000-0000-0000-000000000001"));
     private static final Instant NOW = Instant.parse("2026-07-27T04:00:00Z");

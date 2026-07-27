@@ -49,7 +49,7 @@ class DefaultModelDeploymentServiceTest {
 
     private static final Instant NOW = Instant.parse("2026-07-27T05:00:00Z");
     private static final TenantId TENANT =
-            TenantId.parse("10000000-0000-0000-0000-000000000001");
+            new TenantId(100000000000000001L);
     private static final ProviderConnectionId CONNECTION_ID = new ProviderConnectionId(
             UUID.fromString("41000000-0000-0000-0000-000000000001"));
     private static final UUID DEPLOYMENT_ID =

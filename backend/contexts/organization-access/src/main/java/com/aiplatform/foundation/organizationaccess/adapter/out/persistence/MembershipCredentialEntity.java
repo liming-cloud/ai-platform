@@ -3,7 +3,6 @@ package com.aiplatform.foundation.organizationaccess.adapter.out.persistence;
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
-import java.util.UUID;
 
 /**
  * MyBatis-Plus 使用的成员凭据持久化实体。
@@ -14,7 +13,7 @@ public class MembershipCredentialEntity {
     @TableId(type = IdType.ASSIGN_ID)
     private Long membershipId;
 
-    private UUID tenantId;
+    private Long tenantId;
     private Long subjectId;
     private String loginName;
     private String passwordHash;
@@ -30,11 +29,11 @@ public class MembershipCredentialEntity {
         this.membershipId = membershipId;
     }
 
-    public UUID getTenantId() {
+    public Long getTenantId() {
         return tenantId;
     }
 
-    public void setTenantId(UUID tenantId) {
+    public void setTenantId(Long tenantId) {
         this.tenantId = tenantId;
     }
 

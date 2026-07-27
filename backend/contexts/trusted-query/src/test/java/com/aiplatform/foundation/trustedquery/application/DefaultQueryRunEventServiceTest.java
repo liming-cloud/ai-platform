@@ -29,7 +29,7 @@ import org.junit.jupiter.api.Test;
 class DefaultQueryRunEventServiceTest {
 
     private static final TenantId TENANT =
-            TenantId.parse("10000000-0000-0000-0000-000000000001");
+            new TenantId(100000000000000001L);
     private static final UUID RUN =
             UUID.fromString("20000000-0000-0000-0000-000000000001");
     private static final Instant NOW = Instant.parse("2026-07-27T06:00:00Z");

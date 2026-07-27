@@ -18,7 +18,6 @@ import com.aiplatform.foundation.organizationaccess.application.port.out.Passwor
 import com.aiplatform.foundation.organizationaccess.application.port.out.TenantMemberCredentialRepository;
 import java.util.Optional;
 import java.util.Set;
-import java.util.UUID;
 import java.time.Duration;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Test;
@@ -26,7 +25,7 @@ import org.junit.jupiter.api.Test;
 class DefaultPersonAuthenticationServiceTest {
 
     private static final TenantId TENANT_ID =
-            new TenantId(UUID.fromString("10000000-0000-0000-0000-000000000001"));
+            new TenantId(100000000000000001L);
     private static final SubjectId SUBJECT_ID =
             new SubjectId(4921825928971026434L);
     private static final MembershipId MEMBERSHIP_ID =

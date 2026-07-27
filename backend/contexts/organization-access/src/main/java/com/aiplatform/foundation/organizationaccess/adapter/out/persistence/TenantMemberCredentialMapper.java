@@ -2,7 +2,6 @@ package com.aiplatform.foundation.organizationaccess.adapter.out.persistence;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import java.util.List;
-import java.util.UUID;
 import org.apache.ibatis.annotations.Param;
 
 /**
@@ -15,6 +14,6 @@ public interface TenantMemberCredentialMapper extends BaseMapper<MembershipCrede
             @Param("loginName") String loginName);
 
     List<String> findPermissionCodes(
-            @Param("tenantId") UUID tenantId,
+            @Param("tenantId") long tenantId,
             @Param("membershipId") long membershipId);
 }

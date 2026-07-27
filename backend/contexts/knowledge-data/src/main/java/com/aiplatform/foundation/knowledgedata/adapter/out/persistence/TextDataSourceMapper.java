@@ -13,13 +13,13 @@ public interface TextDataSourceMapper {
     String lockTenant(@Param("tenantId") String tenantId);
 
     int countKnowledgeSpace(
-            @Param("tenantId") UUID tenantId,
+            @Param("tenantId") long tenantId,
             @Param("knowledgeSpaceId") UUID knowledgeSpaceId);
 
-    int countTenantSources(@Param("tenantId") UUID tenantId);
+    int countTenantSources(@Param("tenantId") long tenantId);
 
     int insertSource(
-            @Param("tenantId") UUID tenantId,
+            @Param("tenantId") long tenantId,
             @Param("knowledgeSpaceId") UUID knowledgeSpaceId,
             @Param("id") UUID id,
             @Param("name") String name,
@@ -31,40 +31,40 @@ public interface TextDataSourceMapper {
             @Param("createdAt") Instant createdAt);
 
     TextDataSourceRow findByIdForUpdate(
-            @Param("tenantId") UUID tenantId,
+            @Param("tenantId") long tenantId,
             @Param("knowledgeSpaceId") UUID knowledgeSpaceId,
             @Param("id") UUID id);
 
     TextDataSourceRow findById(
-            @Param("tenantId") UUID tenantId,
+            @Param("tenantId") long tenantId,
             @Param("knowledgeSpaceId") UUID knowledgeSpaceId,
             @Param("id") UUID id);
 
     List<TextDataSourceRow> findFirstPage(
-            @Param("tenantId") UUID tenantId,
+            @Param("tenantId") long tenantId,
             @Param("knowledgeSpaceId") UUID knowledgeSpaceId,
             @Param("limit") int limit);
 
     List<TextDataSourceRow> findAfter(
-            @Param("tenantId") UUID tenantId,
+            @Param("tenantId") long tenantId,
             @Param("knowledgeSpaceId") UUID knowledgeSpaceId,
             @Param("createdAt") Instant createdAt,
             @Param("id") UUID id,
             @Param("limit") int limit);
 
     TextDataSourceRequestRow findRequest(
-            @Param("tenantId") UUID tenantId,
+            @Param("tenantId") long tenantId,
             @Param("operation") String operation,
             @Param("keyHash") String keyHash);
 
     TextContentRow findContent(
-            @Param("tenantId") UUID tenantId,
+            @Param("tenantId") long tenantId,
             @Param("knowledgeSpaceId") UUID knowledgeSpaceId,
             @Param("dataSourceId") UUID dataSourceId,
             @Param("version") int version);
 
     int insertContent(
-            @Param("tenantId") UUID tenantId,
+            @Param("tenantId") long tenantId,
             @Param("knowledgeSpaceId") UUID knowledgeSpaceId,
             @Param("dataSourceId") UUID dataSourceId,
             @Param("version") int version,
@@ -75,7 +75,7 @@ public interface TextDataSourceMapper {
             @Param("createdAt") Instant createdAt);
 
     int updateSource(
-            @Param("tenantId") UUID tenantId,
+            @Param("tenantId") long tenantId,
             @Param("knowledgeSpaceId") UUID knowledgeSpaceId,
             @Param("id") UUID id,
             @Param("status") String status,
@@ -85,7 +85,7 @@ public interface TextDataSourceMapper {
             @Param("expectedVersion") long expectedVersion);
 
     int insertRequest(
-            @Param("tenantId") UUID tenantId,
+            @Param("tenantId") long tenantId,
             @Param("operation") String operation,
             @Param("keyHash") String keyHash,
             @Param("requestFingerprint") String requestFingerprint,
@@ -98,7 +98,7 @@ public interface TextDataSourceMapper {
             @Param("createdAt") Instant createdAt);
 
     int insertOutboxEvent(
-            @Param("tenantId") UUID tenantId,
+            @Param("tenantId") long tenantId,
             @Param("eventId") UUID eventId,
             @Param("aggregateId") UUID aggregateId,
             @Param("eventType") String eventType,

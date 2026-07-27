@@ -19,7 +19,6 @@ import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Set;
-import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -132,7 +131,7 @@ class OpenAiCompatibleConnectionProbeTest {
             String modelCode,
             Set<ModelCapability> capabilities) {
         return new ProviderProbeRequest(
-                new TenantId(UUID.fromString("10000000-0000-0000-0000-000000000001")),
+                new TenantId(100000000000000001L),
                 ProviderKind.OPENAI_COMPATIBLE,
                 URI.create("http://127.0.0.1:" + server.getAddress().getPort() + "/v1"),
                 new SecretReference("secret://test/openai"),

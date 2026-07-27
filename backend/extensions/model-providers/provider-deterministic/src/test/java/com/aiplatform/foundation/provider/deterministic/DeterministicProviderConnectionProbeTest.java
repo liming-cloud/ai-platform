@@ -9,7 +9,6 @@ import com.aiplatform.foundation.modelruntime.api.model.ProviderProbeRequest;
 import com.aiplatform.foundation.security.secret.SecretReference;
 import java.net.URI;
 import java.time.Duration;
-import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
 class DeterministicProviderConnectionProbeTest {
@@ -29,7 +28,7 @@ class DeterministicProviderConnectionProbeTest {
 
     private static ProviderProbeRequest request(String endpoint) {
         return new ProviderProbeRequest(
-                new TenantId(UUID.fromString("10000000-0000-0000-0000-000000000001")),
+                new TenantId(100000000000000001L),
                 ProviderKind.DETERMINISTIC,
                 URI.create(endpoint),
                 new SecretReference("secret://local/demo"),

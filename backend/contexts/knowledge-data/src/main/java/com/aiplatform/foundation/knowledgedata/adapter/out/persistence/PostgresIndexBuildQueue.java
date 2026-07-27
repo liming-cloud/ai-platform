@@ -70,7 +70,7 @@ public final class PostgresIndexBuildQueue implements IndexBuildQueuePort {
         if (job == null) {
             return Optional.empty();
         }
-        var tenantId = UUID.fromString(job.getTenantId());
+        var tenantId = Long.parseLong(job.getTenantId());
         var knowledgeSpaceId = UUID.fromString(job.getKnowledgeSpaceId());
         var indexVersionId = UUID.fromString(job.getIndexVersionId());
         var leaseId = UUID.randomUUID();

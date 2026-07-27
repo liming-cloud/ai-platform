@@ -1,7 +1,7 @@
 CREATE SCHEMA IF NOT EXISTS trusted_query;
 
 CREATE TABLE trusted_query.query_run (
-    tenant_id UUID NOT NULL,
+    tenant_id BIGINT NOT NULL,
     id UUID NOT NULL,
     assistant_version_id UUID NOT NULL,
     requested_by BIGINT NOT NULL,
@@ -72,7 +72,7 @@ CREATE TABLE trusted_query.query_run (
 );
 
 CREATE TABLE trusted_query.query_run_request (
-    tenant_id UUID NOT NULL,
+    tenant_id BIGINT NOT NULL,
     idempotency_key_hash CHAR(64) NOT NULL,
     request_fingerprint CHAR(64) NOT NULL,
     query_run_id UUID NOT NULL,
@@ -88,7 +88,7 @@ CREATE TABLE trusted_query.query_run_request (
 );
 
 CREATE TABLE trusted_query.query_citation (
-    tenant_id UUID NOT NULL,
+    tenant_id BIGINT NOT NULL,
     query_run_id UUID NOT NULL,
     sequence INTEGER NOT NULL,
     data_source_id UUID NOT NULL,

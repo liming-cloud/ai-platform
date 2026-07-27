@@ -13,24 +13,24 @@ public interface QueryRunMapper {
     String lockScope(@Param("scope") String scope);
 
     QueryRunRequestRow findRequest(
-            @Param("tenantId") UUID tenantId,
+            @Param("tenantId") long tenantId,
             @Param("keyHash") String keyHash);
 
     int countAcceptedInPeriod(
-            @Param("tenantId") UUID tenantId,
+            @Param("tenantId") long tenantId,
             @Param("periodStart") Instant periodStart,
             @Param("periodEnd") Instant periodEnd);
 
     int countActiveLeases(
-            @Param("tenantId") UUID tenantId,
+            @Param("tenantId") long tenantId,
             @Param("acceptedAt") Instant acceptedAt);
 
     Instant findEarliestActiveLeaseExpiry(
-            @Param("tenantId") UUID tenantId,
+            @Param("tenantId") long tenantId,
             @Param("acceptedAt") Instant acceptedAt);
 
     QueryUsageRow summarizeUsage(
-            @Param("tenantId") UUID tenantId,
+            @Param("tenantId") long tenantId,
             @Param("from") Instant from,
             @Param("to") Instant to,
             @Param("currentPeriodStart") Instant currentPeriodStart,
@@ -38,17 +38,17 @@ public interface QueryRunMapper {
             @Param("observedAt") Instant observedAt);
 
     List<QueryAuditFactRow> findFirstAuditPage(
-            @Param("tenantId") UUID tenantId,
+            @Param("tenantId") long tenantId,
             @Param("limit") int limit);
 
     List<QueryAuditFactRow> findAuditAfter(
-            @Param("tenantId") UUID tenantId,
+            @Param("tenantId") long tenantId,
             @Param("createdAt") Instant createdAt,
             @Param("id") UUID id,
             @Param("limit") int limit);
 
     int insertRun(
-            @Param("tenantId") UUID tenantId,
+            @Param("tenantId") long tenantId,
             @Param("id") UUID id,
             @Param("assistantVersionId") UUID assistantVersionId,
             @Param("requestedBy") long requestedBy,
@@ -62,22 +62,22 @@ public interface QueryRunMapper {
             @Param("createdAt") Instant createdAt);
 
     int insertRequest(
-            @Param("tenantId") UUID tenantId,
+            @Param("tenantId") long tenantId,
             @Param("keyHash") String keyHash,
             @Param("requestFingerprint") String requestFingerprint,
             @Param("queryRunId") UUID queryRunId,
             @Param("createdAt") Instant createdAt);
 
     QueryRunRow findRun(
-            @Param("tenantId") UUID tenantId,
+            @Param("tenantId") long tenantId,
             @Param("queryRunId") UUID queryRunId);
 
     List<QueryCitationRow> findCitations(
-            @Param("tenantId") UUID tenantId,
+            @Param("tenantId") long tenantId,
             @Param("queryRunId") UUID queryRunId);
 
     int completeRun(
-            @Param("tenantId") UUID tenantId,
+            @Param("tenantId") long tenantId,
             @Param("queryRunId") UUID queryRunId,
             @Param("status") String status,
             @Param("answer") String answer,
@@ -90,7 +90,7 @@ public interface QueryRunMapper {
             @Param("expectedVersion") long expectedVersion);
 
     int insertCitation(
-            @Param("tenantId") UUID tenantId,
+            @Param("tenantId") long tenantId,
             @Param("queryRunId") UUID queryRunId,
             @Param("sequence") int sequence,
             @Param("dataSourceId") UUID dataSourceId,
@@ -101,7 +101,7 @@ public interface QueryRunMapper {
             @Param("score") double score);
 
     int insertEvent(
-            @Param("tenantId") UUID tenantId,
+            @Param("tenantId") long tenantId,
             @Param("queryRunId") UUID queryRunId,
             @Param("sequence") long sequence,
             @Param("eventType") String eventType,
@@ -114,7 +114,7 @@ public interface QueryRunMapper {
             @Param("occurredAt") Instant occurredAt);
 
     List<QueryRunEventRow> findEvents(
-            @Param("tenantId") UUID tenantId,
+            @Param("tenantId") long tenantId,
             @Param("queryRunId") UUID queryRunId,
             @Param("afterSequence") long afterSequence,
             @Param("limit") int limit);

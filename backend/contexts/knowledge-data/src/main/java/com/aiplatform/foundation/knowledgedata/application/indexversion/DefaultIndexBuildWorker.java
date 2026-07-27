@@ -137,7 +137,7 @@ public final class DefaultIndexBuildWorker {
             }
         }
         return new IndexVectorBatch(
-                indexVersion.tenantId().value(),
+                indexVersion.tenantId(),
                 indexVersion.knowledgeSpaceId().value(),
                 indexVersion.id().value(),
                 embedding.deploymentId(),

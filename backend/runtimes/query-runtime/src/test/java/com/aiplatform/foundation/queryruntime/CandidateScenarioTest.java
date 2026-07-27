@@ -43,9 +43,9 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 class CandidateScenarioTest {
 
     private static final TenantId STORE_TENANT =
-            new TenantId(UUID.fromString("10000000-0000-0000-0000-000000000001"));
+            new TenantId(100000000000000001L);
     private static final TenantId CAMPUS_TENANT =
-            new TenantId(UUID.fromString("10000000-0000-0000-0000-000000000002"));
+            new TenantId(100000000000000002L);
     private static final UUID SPACE =
             UUID.fromString("20000000-0000-0000-0000-000000000001");
     private static final UUID STORE_INDEX =
@@ -152,7 +152,7 @@ class CandidateScenarioTest {
                 .getFirst()
                 .values();
         return new IndexVectorBatch(
-                tenant.value(),
+                tenant,
                 SPACE,
                 indexId,
                 DEPLOYMENT.deploymentId(),

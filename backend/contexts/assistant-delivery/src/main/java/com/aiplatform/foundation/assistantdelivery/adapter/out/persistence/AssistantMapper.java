@@ -13,14 +13,14 @@ public interface AssistantMapper {
     String lockScope(@Param("scope") String scope);
 
     AssistantRequestRow findRequest(
-            @Param("tenantId") UUID tenantId,
+            @Param("tenantId") long tenantId,
             @Param("operation") String operation,
             @Param("keyHash") String keyHash);
 
-    int countAssistants(@Param("tenantId") UUID tenantId);
+    int countAssistants(@Param("tenantId") long tenantId);
 
     int insertAssistant(
-            @Param("tenantId") UUID tenantId,
+            @Param("tenantId") long tenantId,
             @Param("id") UUID id,
             @Param("displayName") String displayName,
             @Param("latestVersionNumber") int latestVersionNumber,
@@ -29,7 +29,7 @@ public interface AssistantMapper {
             @Param("createdAt") Instant createdAt);
 
     int insertRequest(
-            @Param("tenantId") UUID tenantId,
+            @Param("tenantId") long tenantId,
             @Param("operation") String operation,
             @Param("keyHash") String keyHash,
             @Param("requestFingerprint") String requestFingerprint,
@@ -38,46 +38,46 @@ public interface AssistantMapper {
             @Param("createdAt") Instant createdAt);
 
     AssistantRow findAssistant(
-            @Param("tenantId") UUID tenantId,
+            @Param("tenantId") long tenantId,
             @Param("assistantId") UUID assistantId);
 
     AssistantRow findAssistantForUpdate(
-            @Param("tenantId") UUID tenantId,
+            @Param("tenantId") long tenantId,
             @Param("assistantId") UUID assistantId);
 
     List<AssistantRow> findFirstPage(
-            @Param("tenantId") UUID tenantId,
+            @Param("tenantId") long tenantId,
             @Param("limit") int limit);
 
     List<AssistantRow> findAfter(
-            @Param("tenantId") UUID tenantId,
+            @Param("tenantId") long tenantId,
             @Param("createdAt") Instant createdAt,
             @Param("id") UUID id,
             @Param("limit") int limit);
 
     List<PublishedAssistantRow> findFirstPublishedPage(
-            @Param("tenantId") UUID tenantId,
+            @Param("tenantId") long tenantId,
             @Param("limit") int limit);
 
     List<PublishedAssistantRow> findPublishedAfter(
-            @Param("tenantId") UUID tenantId,
+            @Param("tenantId") long tenantId,
             @Param("publishedAt") Instant publishedAt,
             @Param("assistantVersionId") UUID assistantVersionId,
             @Param("limit") int limit);
 
     int countVersions(
-            @Param("tenantId") UUID tenantId,
+            @Param("tenantId") long tenantId,
             @Param("assistantId") UUID assistantId);
 
     int advanceAssistant(
-            @Param("tenantId") UUID tenantId,
+            @Param("tenantId") long tenantId,
             @Param("assistantId") UUID assistantId,
             @Param("latestVersionNumber") int latestVersionNumber,
             @Param("newVersion") long newVersion,
             @Param("expectedVersion") long expectedVersion);
 
     int insertVersion(
-            @Param("tenantId") UUID tenantId,
+            @Param("tenantId") long tenantId,
             @Param("id") UUID id,
             @Param("assistantId") UUID assistantId,
             @Param("versionNumber") int versionNumber,
@@ -103,11 +103,11 @@ public interface AssistantMapper {
             @Param("publishedAt") Instant publishedAt);
 
     AssistantVersionRow findVersion(
-            @Param("tenantId") UUID tenantId,
+            @Param("tenantId") long tenantId,
             @Param("assistantVersionId") UUID assistantVersionId);
 
     int publishVersion(
-            @Param("tenantId") UUID tenantId,
+            @Param("tenantId") long tenantId,
             @Param("assistantVersionId") UUID assistantVersionId,
             @Param("status") String status,
             @Param("newVersion") long newVersion,

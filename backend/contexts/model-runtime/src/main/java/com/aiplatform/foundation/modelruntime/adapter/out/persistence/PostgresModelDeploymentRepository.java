@@ -129,7 +129,7 @@ public final class PostgresModelDeploymentRepository
         var deployment = creation.deployment();
         var tenantId = deployment.tenantId().value();
         var keyHash = sha256(creation.idempotencyKey());
-        mapper.lockTenant(tenantId.toString());
+        mapper.lockTenant(Long.toString(tenantId));
 
         var existing = mapper.findRequest(tenantId, keyHash);
         if (existing != null) {

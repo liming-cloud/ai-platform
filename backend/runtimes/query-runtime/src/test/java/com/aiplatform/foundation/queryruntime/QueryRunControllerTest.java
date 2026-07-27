@@ -67,7 +67,7 @@ class QueryRunControllerTest {
 
     private static TrustedRequestContext context() {
         return new TrustedRequestContext(
-                new TenantId(UUID.randomUUID()),
+                new TenantId(7100000000000000005L),
                 new SubjectId(7200000000000000006L),
                 new MembershipId(7300000000000000007L),
                 CredentialType.PERSON,

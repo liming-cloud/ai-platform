@@ -14,13 +14,13 @@ public interface KnowledgeSpaceMapper extends BaseMapper<KnowledgeSpaceEntity> {
     String lockTenant(@Param("tenantId") String tenantId);
 
     IdempotencyRow findRequest(
-            @Param("tenantId") UUID tenantId,
+            @Param("tenantId") long tenantId,
             @Param("keyHash") String keyHash);
 
-    int countActive(@Param("tenantId") UUID tenantId);
+    int countActive(@Param("tenantId") long tenantId);
 
     int insertSpace(
-            @Param("tenantId") UUID tenantId,
+            @Param("tenantId") long tenantId,
             @Param("id") UUID id,
             @Param("name") String name,
             @Param("description") String description,
@@ -30,22 +30,22 @@ public interface KnowledgeSpaceMapper extends BaseMapper<KnowledgeSpaceEntity> {
             @Param("createdAt") Instant createdAt);
 
     int insertRequest(
-            @Param("tenantId") UUID tenantId,
+            @Param("tenantId") long tenantId,
             @Param("keyHash") String keyHash,
             @Param("requestFingerprint") String requestFingerprint,
             @Param("knowledgeSpaceId") UUID knowledgeSpaceId,
             @Param("createdAt") Instant createdAt);
 
     KnowledgeSpaceRow findById(
-            @Param("tenantId") UUID tenantId,
+            @Param("tenantId") long tenantId,
             @Param("id") UUID id);
 
     List<KnowledgeSpaceRow> findFirstPage(
-            @Param("tenantId") UUID tenantId,
+            @Param("tenantId") long tenantId,
             @Param("limit") int limit);
 
     List<KnowledgeSpaceRow> findAfter(
-            @Param("tenantId") UUID tenantId,
+            @Param("tenantId") long tenantId,
             @Param("createdAt") Instant createdAt,
             @Param("id") UUID id,
             @Param("limit") int limit);

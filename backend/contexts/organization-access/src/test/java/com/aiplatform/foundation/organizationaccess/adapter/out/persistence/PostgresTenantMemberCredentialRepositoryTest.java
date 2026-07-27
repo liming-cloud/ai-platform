@@ -25,10 +25,8 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 @Testcontainers
 class PostgresTenantMemberCredentialRepositoryTest {
 
-    private static final UUID STORE_TENANT =
-            UUID.fromString("10000000-0000-0000-0000-000000000001");
-    private static final UUID CAMPUS_TENANT =
-            UUID.fromString("10000000-0000-0000-0000-000000000002");
+    private static final long STORE_TENANT = 100000000000000001L;
+    private static final long CAMPUS_TENANT = 100000000000000002L;
     private static final long STORE_MEMBERSHIP = 3382738893456539650L;
     private static final long CAMPUS_MEMBERSHIP = 3382738893456539651L;
 
@@ -113,7 +111,7 @@ class PostgresTenantMemberCredentialRepositoryTest {
         assertTrue(repository.findEnabled("demo-store", "missing").isEmpty());
     }
 
-    private void insertTenant(UUID tenantId, String code, String name) {
+    private void insertTenant(long tenantId, String code, String name) {
         jdbc.update(
                 "INSERT INTO organization_access.tenant "
                         + "(tenant_id, tenant_code, display_name, status, version) "
@@ -124,7 +122,7 @@ class PostgresTenantMemberCredentialRepositoryTest {
     }
 
     private void insertMembership(
-            UUID tenantId,
+            long tenantId,
             long subjectId,
             long membershipId,
             String loginName,
@@ -143,7 +141,7 @@ class PostgresTenantMemberCredentialRepositoryTest {
                 status);
     }
 
-    private void insertPermission(UUID tenantId, long membershipId, String permissionCode) {
+    private void insertPermission(long tenantId, long membershipId, String permissionCode) {
         jdbc.update(
                 "INSERT INTO organization_access.membership_permission "
                         + "(tenant_id, membership_id, permission_code) VALUES (?, ?, ?)",

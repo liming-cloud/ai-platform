@@ -21,7 +21,7 @@ import org.junit.jupiter.api.Test;
 class DefaultPublishedEmbeddingDeploymentLookupTest {
 
     private static final TenantId TENANT_ID =
-            TenantId.parse("10000000-0000-0000-0000-000000000001");
+            new TenantId(100000000000000001L);
     private static final ModelDeploymentId DEPLOYMENT_ID = new ModelDeploymentId(
             UUID.fromString("20000000-0000-0000-0000-000000000001"));
 

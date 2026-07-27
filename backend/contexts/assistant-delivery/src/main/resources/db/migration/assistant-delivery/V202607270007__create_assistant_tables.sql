@@ -1,7 +1,7 @@
 CREATE SCHEMA IF NOT EXISTS assistant_delivery;
 
 CREATE TABLE assistant_delivery.assistant (
-    tenant_id UUID NOT NULL,
+    tenant_id BIGINT NOT NULL,
     id UUID NOT NULL,
     display_name VARCHAR(320) NOT NULL,
     latest_version_number INTEGER NOT NULL,
@@ -20,7 +20,7 @@ CREATE INDEX idx_assistant_tenant_created
     ON assistant_delivery.assistant (tenant_id, created_at DESC, id DESC);
 
 CREATE TABLE assistant_delivery.assistant_version (
-    tenant_id UUID NOT NULL,
+    tenant_id BIGINT NOT NULL,
     id UUID NOT NULL,
     assistant_id UUID NOT NULL,
     version_number INTEGER NOT NULL,
@@ -96,7 +96,7 @@ CREATE INDEX idx_assistant_version_assistant_created
     );
 
 CREATE TABLE assistant_delivery.assistant_request (
-    tenant_id UUID NOT NULL,
+    tenant_id BIGINT NOT NULL,
     operation VARCHAR(32) NOT NULL,
     idempotency_key_hash CHAR(64) NOT NULL,
     request_fingerprint CHAR(64) NOT NULL,

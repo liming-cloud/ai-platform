@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import com.aiplatform.foundation.knowledgedata.api.extension.IndexCandidateQuery;
 import com.aiplatform.foundation.knowledgedata.api.extension.IndexVector;
 import com.aiplatform.foundation.knowledgedata.api.extension.IndexVectorBatch;
+import com.aiplatform.foundation.kernel.tenant.TenantId;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
@@ -28,10 +29,10 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 @Testcontainers
 class PgVectorIndexStoreTest {
 
-    private static final UUID TENANT =
-            UUID.fromString("10000000-0000-0000-0000-000000000001");
-    private static final UUID OTHER_TENANT =
-            UUID.fromString("10000000-0000-0000-0000-000000000002");
+    private static final TenantId TENANT =
+            new TenantId(100000000000000001L);
+    private static final TenantId OTHER_TENANT =
+            new TenantId(100000000000000002L);
     private static final UUID SPACE =
             UUID.fromString("20000000-0000-0000-0000-000000000001");
     private static final UUID DEPLOYMENT =
@@ -162,7 +163,7 @@ class PgVectorIndexStoreTest {
                   AND id = ?
                 """,
                 NOW.plusSeconds(60).atOffset(ZoneOffset.UTC),
-                TENANT,
+                TENANT.value(),
                 INDEX);
 
         var result = store.retrieve(new IndexCandidateQuery(
@@ -179,7 +180,7 @@ class PgVectorIndexStoreTest {
     }
 
     private static IndexVectorBatch batch(
-            UUID tenantId,
+            TenantId tenantId,
             UUID indexVersionId,
             List<IndexVector> vectors) {
         return new IndexVectorBatch(
@@ -207,7 +208,7 @@ class PgVectorIndexStoreTest {
                 embedding);
     }
 
-    private void insertActiveIndex(UUID tenantId, UUID indexVersionId) {
+    private void insertActiveIndex(TenantId tenantId, UUID indexVersionId) {
         var time = NOW.atOffset(ZoneOffset.UTC);
         jdbc.update(
                 """
@@ -215,7 +216,7 @@ class PgVectorIndexStoreTest {
                     tenant_id, id, name, status, version, created_by, created_at
                 ) VALUES (?, ?, ?, 'DRAFT', 0, ?, ?)
                 """,
-                tenantId,
+                tenantId.value(),
                 SPACE,
                 "空间-" + tenantId,
                 730000000000000010L,
@@ -233,7 +234,7 @@ class PgVectorIndexStoreTest {
                     'ACTIVE', 2, ?, 1, NULL, ?, ?, ?, ?, NULL
                 )
                 """,
-                tenantId,
+                tenantId.value(),
                 SPACE,
                 indexVersionId,
                 "b".repeat(64),

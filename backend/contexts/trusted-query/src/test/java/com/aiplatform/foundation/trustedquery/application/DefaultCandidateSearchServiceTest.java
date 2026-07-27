@@ -24,7 +24,7 @@ import org.junit.jupiter.api.Test;
 class DefaultCandidateSearchServiceTest {
 
     private static final TenantId TENANT =
-            new TenantId(UUID.fromString("10000000-0000-0000-0000-000000000001"));
+            new TenantId(100000000000000001L);
     private static final UUID SPACE =
             UUID.fromString("20000000-0000-0000-0000-000000000001");
     private static final EmbeddingDeploymentRef DEPLOYMENT =
@@ -52,7 +52,7 @@ class DefaultCandidateSearchServiceTest {
                 5));
 
         assertEquals(1, result.candidates().size());
-        assertEquals(TENANT.value(), retriever.query.tenantId());
+        assertEquals(TENANT, retriever.query.tenantId());
         assertEquals(SPACE, retriever.query.knowledgeSpaceId());
         assertEquals(DEPLOYMENT.deploymentId(), retriever.query.embeddingDeploymentId());
         assertEquals(DEPLOYMENT.revision(), retriever.query.embeddingRevision());

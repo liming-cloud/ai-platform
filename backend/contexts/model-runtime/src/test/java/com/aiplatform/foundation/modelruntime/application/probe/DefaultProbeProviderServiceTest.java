@@ -18,7 +18,6 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Set;
-import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
 class DefaultProbeProviderServiceTest {
@@ -67,7 +66,7 @@ class DefaultProbeProviderServiceTest {
 
     private static ProviderProbeRequest request(ProviderKind providerKind) {
         return new ProviderProbeRequest(
-                new TenantId(UUID.fromString("10000000-0000-0000-0000-000000000001")),
+                new TenantId(100000000000000001L),
                 providerKind,
                 URI.create("memory://deterministic"),
                 new SecretReference("secret://local/demo"),

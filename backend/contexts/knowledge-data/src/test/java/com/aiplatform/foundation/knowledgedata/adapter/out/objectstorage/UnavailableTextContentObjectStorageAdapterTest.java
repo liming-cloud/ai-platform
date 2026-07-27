@@ -45,7 +45,7 @@ class UnavailableTextContentObjectStorageAdapterTest {
 
     private static TextContentStorageRequest storageRequest() {
         return new TextContentStorageRequest(
-                new TenantId(UUID.fromString("10000000-0000-0000-0000-000000000001")),
+                new TenantId(100000000000000001L),
                 new KnowledgeSpaceId(UUID.fromString("20000000-0000-0000-0000-000000000001")),
                 new DataSourceId(UUID.fromString("30000000-0000-0000-0000-000000000001")),
                 1,

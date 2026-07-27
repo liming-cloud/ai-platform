@@ -50,7 +50,7 @@ class OpenAiCompatibleModelFactoryTest {
 
     private static ModelRuntimeSpecification chatSpecification() {
         return new ModelRuntimeSpecification(
-                new TenantId(UUID.fromString("10000000-0000-0000-0000-000000000001")),
+                new TenantId(100000000000000001L),
                 UUID.fromString("20000000-0000-0000-0000-000000000001"),
                 2,
                 ProviderKind.OPENAI_COMPATIBLE,

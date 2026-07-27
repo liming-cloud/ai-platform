@@ -1,5 +1,6 @@
 package com.aiplatform.foundation.knowledgedata.api.extension;
 
+import com.aiplatform.foundation.kernel.tenant.TenantId;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
@@ -8,7 +9,7 @@ import java.util.UUID;
  * 单个索引版本一次性提交给向量存储的完整产物。
  */
 public record IndexVectorBatch(
-        UUID tenantId,
+        TenantId tenantId,
         UUID knowledgeSpaceId,
         UUID indexVersionId,
         UUID embeddingDeploymentId,

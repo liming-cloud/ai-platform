@@ -30,8 +30,7 @@ import org.junit.jupiter.api.Test;
 class DefaultOperationsQueryServiceTest {
 
     private static final Instant NOW = Instant.parse("2026-07-27T06:00:00Z");
-    private static final TenantId TENANT = new TenantId(
-            UUID.fromString("10000000-0000-0000-0000-000000000001"));
+    private static final TenantId TENANT = new TenantId(100000000000000001L);
     private static final QueryQuotaPolicy QUOTA =
             new QueryQuotaPolicy(100, 4, Duration.ofMinutes(2));
 

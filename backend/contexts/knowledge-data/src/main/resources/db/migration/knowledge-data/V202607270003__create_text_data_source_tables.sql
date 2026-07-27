@@ -1,5 +1,5 @@
 CREATE TABLE knowledge_data.text_data_source (
-    tenant_id UUID NOT NULL,
+    tenant_id BIGINT NOT NULL,
     knowledge_space_id UUID NOT NULL,
     id UUID NOT NULL,
     name VARCHAR(320) NOT NULL,
@@ -51,7 +51,7 @@ CREATE INDEX idx_text_data_source_tenant_created
     ON knowledge_data.text_data_source (tenant_id, created_at DESC, id DESC);
 
 CREATE TABLE knowledge_data.text_data_source_content (
-    tenant_id UUID NOT NULL,
+    tenant_id BIGINT NOT NULL,
     knowledge_space_id UUID NOT NULL,
     data_source_id UUID NOT NULL,
     version INTEGER NOT NULL,
@@ -88,7 +88,7 @@ CREATE INDEX idx_text_data_source_content_object
     ON knowledge_data.text_data_source_content (tenant_id, object_key);
 
 CREATE TABLE knowledge_data.text_data_source_request (
-    tenant_id UUID NOT NULL,
+    tenant_id BIGINT NOT NULL,
     operation VARCHAR(32) NOT NULL,
     idempotency_key_hash CHAR(64) NOT NULL,
     request_fingerprint CHAR(64) NOT NULL,
@@ -122,7 +122,7 @@ CREATE TABLE knowledge_data.text_data_source_request (
 );
 
 CREATE TABLE knowledge_data.outbox_event (
-    tenant_id UUID NOT NULL,
+    tenant_id BIGINT NOT NULL,
     event_id UUID NOT NULL,
     aggregate_type VARCHAR(80) NOT NULL,
     aggregate_id UUID NOT NULL,

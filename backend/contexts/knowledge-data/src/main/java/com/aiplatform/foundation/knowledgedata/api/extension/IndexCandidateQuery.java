@@ -1,5 +1,6 @@
 package com.aiplatform.foundation.knowledgedata.api.extension;
 
+import com.aiplatform.foundation.kernel.tenant.TenantId;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -8,7 +9,7 @@ import java.util.UUID;
  */
 public final class IndexCandidateQuery {
 
-    private final UUID tenantId;
+    private final TenantId tenantId;
     private final UUID knowledgeSpaceId;
     private final UUID indexVersionId;
     private final UUID embeddingDeploymentId;
@@ -17,7 +18,7 @@ public final class IndexCandidateQuery {
     private final int limit;
 
     public IndexCandidateQuery(
-            UUID tenantId,
+            TenantId tenantId,
             UUID knowledgeSpaceId,
             UUID embeddingDeploymentId,
             long embeddingRevision,
@@ -37,7 +38,7 @@ public final class IndexCandidateQuery {
      * 创建绑定不可变索引版本的候选查询。
      */
     public IndexCandidateQuery(
-            UUID tenantId,
+            TenantId tenantId,
             UUID knowledgeSpaceId,
             UUID indexVersionId,
             UUID embeddingDeploymentId,
@@ -72,7 +73,7 @@ public final class IndexCandidateQuery {
         this.limit = limit;
     }
 
-    public UUID tenantId() {
+    public TenantId tenantId() {
         return tenantId;
     }
 

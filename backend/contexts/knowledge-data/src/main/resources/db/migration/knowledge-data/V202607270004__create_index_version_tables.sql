@@ -1,7 +1,7 @@
 CREATE EXTENSION IF NOT EXISTS vector;
 
 CREATE TABLE knowledge_data.index_version (
-    tenant_id UUID NOT NULL,
+    tenant_id BIGINT NOT NULL,
     knowledge_space_id UUID NOT NULL,
     id UUID NOT NULL,
     source_snapshot_digest CHAR(64) NOT NULL,
@@ -102,7 +102,7 @@ CREATE INDEX idx_index_version_space_created
     );
 
 CREATE TABLE knowledge_data.index_version_source (
-    tenant_id UUID NOT NULL,
+    tenant_id BIGINT NOT NULL,
     knowledge_space_id UUID NOT NULL,
     index_version_id UUID NOT NULL,
     data_source_id UUID NOT NULL,
@@ -150,7 +150,7 @@ CREATE TABLE knowledge_data.index_version_source (
 );
 
 CREATE TABLE knowledge_data.index_build_job (
-    tenant_id UUID NOT NULL,
+    tenant_id BIGINT NOT NULL,
     knowledge_space_id UUID NOT NULL,
     index_version_id UUID NOT NULL,
     status VARCHAR(24) NOT NULL,
@@ -200,7 +200,7 @@ CREATE INDEX idx_index_build_job_claim
     WHERE status IN ('PENDING', 'RUNNING');
 
 CREATE TABLE knowledge_data.index_version_request (
-    tenant_id UUID NOT NULL,
+    tenant_id BIGINT NOT NULL,
     operation VARCHAR(24) NOT NULL,
     idempotency_key_hash CHAR(64) NOT NULL,
     request_fingerprint CHAR(64) NOT NULL,
@@ -230,7 +230,7 @@ CREATE TABLE knowledge_data.index_version_request (
 );
 
 CREATE TABLE knowledge_data.index_chunk (
-    tenant_id UUID NOT NULL,
+    tenant_id BIGINT NOT NULL,
     knowledge_space_id UUID NOT NULL,
     index_version_id UUID NOT NULL,
     data_source_id UUID NOT NULL,

@@ -7,7 +7,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import com.aiplatform.foundation.kernel.tenant.TenantId;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
 class TrustedRequestContextTest {
@@ -74,7 +73,7 @@ class TrustedRequestContextTest {
     }
 
     private static TenantId tenantId() {
-        return new TenantId(UUID.fromString("10000000-0000-0000-0000-000000000001"));
+        return new TenantId(100000000000000001L);
     }
 
     private static SubjectId subjectId() {

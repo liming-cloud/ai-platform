@@ -14,13 +14,13 @@ public interface ProviderConnectionMapper extends BaseMapper<ProviderConnectionE
     String lockTenant(@Param("tenantId") String tenantId);
 
     ProviderConnectionRequestRow findRequest(
-            @Param("tenantId") UUID tenantId,
+            @Param("tenantId") long tenantId,
             @Param("keyHash") String keyHash);
 
-    int countActive(@Param("tenantId") UUID tenantId);
+    int countActive(@Param("tenantId") long tenantId);
 
     int insertConnection(
-            @Param("tenantId") UUID tenantId,
+            @Param("tenantId") long tenantId,
             @Param("id") UUID id,
             @Param("providerKind") String providerKind,
             @Param("displayName") String displayName,
@@ -36,28 +36,28 @@ public interface ProviderConnectionMapper extends BaseMapper<ProviderConnectionE
             @Param("createdAt") Instant createdAt);
 
     int insertRequest(
-            @Param("tenantId") UUID tenantId,
+            @Param("tenantId") long tenantId,
             @Param("keyHash") String keyHash,
             @Param("requestFingerprint") String requestFingerprint,
             @Param("providerConnectionId") UUID providerConnectionId,
             @Param("createdAt") Instant createdAt);
 
     ProviderConnectionRow findById(
-            @Param("tenantId") UUID tenantId,
+            @Param("tenantId") long tenantId,
             @Param("id") UUID id);
 
     List<ProviderConnectionRow> findFirstPage(
-            @Param("tenantId") UUID tenantId,
+            @Param("tenantId") long tenantId,
             @Param("limit") int limit);
 
     List<ProviderConnectionRow> findAfter(
-            @Param("tenantId") UUID tenantId,
+            @Param("tenantId") long tenantId,
             @Param("createdAt") Instant createdAt,
             @Param("id") UUID id,
             @Param("limit") int limit);
 
     int updateProbeFact(
-            @Param("tenantId") UUID tenantId,
+            @Param("tenantId") long tenantId,
             @Param("id") UUID id,
             @Param("status") String status,
             @Param("nextVersion") long nextVersion,

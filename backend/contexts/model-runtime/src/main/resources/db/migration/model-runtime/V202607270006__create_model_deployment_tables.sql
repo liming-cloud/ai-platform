@@ -1,5 +1,5 @@
 CREATE TABLE model_runtime.model_deployment (
-    tenant_id UUID NOT NULL,
+    tenant_id BIGINT NOT NULL,
     id UUID NOT NULL,
     provider_connection_id UUID NOT NULL,
     provider_connection_revision BIGINT NOT NULL,
@@ -61,7 +61,7 @@ CREATE INDEX idx_model_deployment_provider_revision
     );
 
 CREATE TABLE model_runtime.model_deployment_request (
-    tenant_id UUID NOT NULL,
+    tenant_id BIGINT NOT NULL,
     idempotency_key_hash CHAR(64) NOT NULL,
     request_fingerprint CHAR(64) NOT NULL,
     model_deployment_id UUID NOT NULL,

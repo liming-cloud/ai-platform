@@ -48,7 +48,7 @@ public final class DefaultCandidateSearchService implements CandidateSearchUseCa
             throw new IllegalStateException("查询嵌入结果不符合冻结部署");
         }
         var found = candidates.retrieve(new IndexCandidateQuery(
-                query.context().tenantId().value(),
+                query.context().tenantId(),
                 query.knowledgeSpaceId(),
                 deployment.deploymentId(),
                 deployment.revision(),

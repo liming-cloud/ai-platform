@@ -70,7 +70,7 @@ class QueryRunEventTest {
 
     private static QueryRun running() {
         return QueryRun.start(
-                TenantId.parse("10000000-0000-0000-0000-000000000001"),
+                new TenantId(100000000000000001L),
                 UUID.fromString("20000000-0000-0000-0000-000000000001"),
                 UUID.fromString("30000000-0000-0000-0000-000000000001"),
                 new MembershipId(1843651857942052866L),

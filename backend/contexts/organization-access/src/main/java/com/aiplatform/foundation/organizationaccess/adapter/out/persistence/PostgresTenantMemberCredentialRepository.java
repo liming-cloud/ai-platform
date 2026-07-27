@@ -8,7 +8,6 @@ import com.aiplatform.foundation.organizationaccess.application.authentication.A
 import com.aiplatform.foundation.organizationaccess.application.port.out.TenantMemberCredentialRepository;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
@@ -31,7 +30,7 @@ public final class PostgresTenantMemberCredentialRepository
         if (row == null) {
             return Optional.empty();
         }
-        var tenantId = UUID.fromString(row.getTenantId());
+        var tenantId = row.getTenantId();
         var membershipId = row.getMembershipId();
         var permissions = mapper
                 .findPermissionCodes(tenantId, membershipId)

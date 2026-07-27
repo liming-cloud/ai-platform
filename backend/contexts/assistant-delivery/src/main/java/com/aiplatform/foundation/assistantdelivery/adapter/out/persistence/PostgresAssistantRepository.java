@@ -227,7 +227,7 @@ public final class PostgresAssistantRepository implements AssistantRepository {
             int tenantLimit) {
         var assistant = creation.assistant();
         var tenantId = assistant.tenantId().value();
-        mapper.lockScope(tenantId.toString());
+        mapper.lockScope(Long.toString(tenantId));
         var keyHash = sha256(creation.idempotencyKey());
         var existing = mapper.findRequest(tenantId, CREATE_ASSISTANT, keyHash);
         if (existing != null) {

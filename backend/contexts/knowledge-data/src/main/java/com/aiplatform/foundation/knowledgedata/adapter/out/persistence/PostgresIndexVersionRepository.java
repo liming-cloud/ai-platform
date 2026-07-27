@@ -257,7 +257,7 @@ public final class PostgresIndexVersionRepository implements IndexVersionReposit
     }
 
     private IndexVersionCreationOutcome replay(
-            UUID tenantId,
+            long tenantId,
             IndexVersionRequestRow request,
             String expectedFingerprint) {
         if (!request.getRequestFingerprint().equals(expectedFingerprint)) {
@@ -275,7 +275,7 @@ public final class PostgresIndexVersionRepository implements IndexVersionReposit
 
     static IndexVersion toDomain(IndexVersionRow row) {
         return IndexVersion.reconstitute(
-                new TenantId(UUID.fromString(row.getTenantId())),
+                TenantId.parse(row.getTenantId()),
                 new KnowledgeSpaceId(UUID.fromString(row.getKnowledgeSpaceId())),
                 new IndexVersionId(UUID.fromString(row.getId())),
                 row.getSourceSnapshotDigest(),
@@ -326,7 +326,7 @@ public final class PostgresIndexVersionRepository implements IndexVersionReposit
         digest.update((byte) 0);
     }
 
-    private static String lockScope(UUID tenantId, UUID knowledgeSpaceId) {
+    private static String lockScope(long tenantId, UUID knowledgeSpaceId) {
         return tenantId + ":" + knowledgeSpaceId;
     }
 
