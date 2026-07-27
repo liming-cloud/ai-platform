@@ -18,6 +18,10 @@ class KnowledgeDataDependencyRulesTest {
                         "..api..",
                         "..application..",
                         "..domain..")
+                // package-info 仅使用 Spring Modulith 声明跨上下文命名接口，
+                // 不参与业务执行，也不构成应用服务对技术框架的运行时依赖。
+                .and()
+                .doNotHaveSimpleName("package-info")
                 .should()
                 .dependOnClassesThat()
                 .resideInAnyPackage(
