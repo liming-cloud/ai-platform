@@ -1,0 +1,64 @@
+package com.aiplatform.foundation.organizationaccess.infrastructure.configuration;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
+
+import com.aiplatform.foundation.organizationaccess.application.authentication.service.PersonAuthenticationService;
+import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.authentication.mapper.TenantMemberCredentialMapper;
+import com.aiplatform.foundation.organizationaccess.interfaces.web.authentication.controller.AuthenticationController;
+import com.aiplatform.foundation.security.session.AuthenticatedSessionGateway;
+import com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator;
+import org.junit.jupiter.api.Test;
+import org.springframework.boot.autoconfigure.AutoConfigurations;
+import org.springframework.boot.test.context.runner.ApplicationContextRunner;
+
+class OrganizationAccessAutoConfigurationTest {
+
+    private final ApplicationContextRunner runner = new ApplicationContextRunner()
+            .withConfiguration(AutoConfigurations.of(
+                    OrganizationAccessPersistenceAutoConfiguration.class,
+                    OrganizationAccessCoreAutoConfiguration.class,
+                    OrganizationAccessWebAutoConfiguration.class))
+            .withPropertyValues("foundation.organization-access.enabled=true")
+            .withBean(
+                    TenantMemberCredentialMapper.class,
+                    () -> mock(TenantMemberCredentialMapper.class))
+            .withBean(
+                    AuthenticatedSessionGateway.class,
+                    () -> mock(AuthenticatedSessionGateway.class))
+            .withBean(EntityIdGenerator.class, () -> () -> 1001L);
+
+    @Test
+    void 启用时由上下文自行装配持久化应用服务和控制器() {
+        runner.run(context -> {
+            assertThat(context).hasNotFailed();
+            assertThat(context).hasSingleBean(PersonAuthenticationService.class);
+            assertThat(context).hasSingleBean(AuthenticationController.class);
+        });
+    }
+
+    @Test
+    void 关闭上下文时不装配任何入口和应用服务() {
+        runner.withPropertyValues("foundation.organization-access.enabled=false")
+                .run(context -> {
+                    assertThat(context).hasNotFailed();
+                    assertThat(context).doesNotHaveBean(
+                            PersonAuthenticationService.class);
+                    assertThat(context).doesNotHaveBean(
+                            AuthenticationController.class);
+                });
+    }
+
+    @Test
+    void 缺少会话端口时启动失败() {
+        new ApplicationContextRunner()
+                .withConfiguration(AutoConfigurations.of(
+                        OrganizationAccessPersistenceAutoConfiguration.class,
+                        OrganizationAccessCoreAutoConfiguration.class))
+                .withPropertyValues("foundation.organization-access.enabled=true")
+                .withBean(
+                        TenantMemberCredentialMapper.class,
+                        () -> mock(TenantMemberCredentialMapper.class))
+                .run(context -> assertThat(context).hasFailed());
+    }
+}

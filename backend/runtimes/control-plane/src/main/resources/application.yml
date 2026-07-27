@@ -28,6 +28,8 @@ sa-token:
   auto-renew: true
 
 foundation:
+  organization-access:
+    enabled: true
   persistence:
     snowflake:
       worker-id: ${FOUNDATION_SNOWFLAKE_WORKER_ID}

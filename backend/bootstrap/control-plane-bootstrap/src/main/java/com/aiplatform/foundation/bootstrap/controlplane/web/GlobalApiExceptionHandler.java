@@ -44,7 +44,7 @@ import com.aiplatform.foundation.modelruntime.application.catalog.provider.Provi
 import com.aiplatform.foundation.modelruntime.application.catalog.provider.ProviderConnectionNameConflictException;
 import com.aiplatform.foundation.modelruntime.application.catalog.provider.ProviderConnectionQuotaExceededException;
 import com.aiplatform.foundation.modelruntime.domain.model.ModelDeploymentStateException;
-import com.aiplatform.foundation.organizationaccess.application.authentication.InvalidCredentialsException;
+import com.aiplatform.foundation.organizationaccess.application.authentication.exception.InvalidCredentialsException;
 import java.util.Map;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

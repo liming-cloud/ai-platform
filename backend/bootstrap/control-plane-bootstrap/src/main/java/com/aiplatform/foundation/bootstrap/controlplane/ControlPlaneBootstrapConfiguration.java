@@ -7,7 +7,6 @@ import com.aiplatform.foundation.bootstrap.controlplane.configuration.Evaluation
 import com.aiplatform.foundation.bootstrap.controlplane.configuration.KnowledgeDataConfiguration;
 import com.aiplatform.foundation.bootstrap.controlplane.configuration.ModelCatalogConfiguration;
 import com.aiplatform.foundation.bootstrap.controlplane.configuration.ModelRuntimeConfiguration;
-import com.aiplatform.foundation.bootstrap.controlplane.configuration.OrganizationAccessConfiguration;
 import com.aiplatform.foundation.bootstrap.controlplane.web.GlobalApiExceptionHandler;
 import com.aiplatform.foundation.evaluationoperations.adapter.in.web.AuditRecordController;
 import com.aiplatform.foundation.evaluationoperations.adapter.in.web.UsageController;
@@ -16,7 +15,6 @@ import com.aiplatform.foundation.knowledgedata.adapter.in.web.KnowledgeSpaceCont
 import com.aiplatform.foundation.knowledgedata.adapter.in.web.TextDataSourceController;
 import com.aiplatform.foundation.modelruntime.adapter.in.web.ModelDeploymentController;
 import com.aiplatform.foundation.modelruntime.adapter.in.web.ProviderConnectionController;
-import com.aiplatform.foundation.organizationaccess.adapter.in.web.AuthenticationController;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 
@@ -25,13 +23,11 @@ import org.springframework.context.annotation.Import;
  */
 @Configuration(proxyBeanMethods = false)
 @Import({
-    OrganizationAccessConfiguration.class,
     KnowledgeDataConfiguration.class,
     ModelCatalogConfiguration.class,
     ModelRuntimeConfiguration.class,
     AssistantDeliveryConfiguration.class,
     EvaluationOperationsConfiguration.class,
-    AuthenticationController.class,
     KnowledgeSpaceController.class,
     TextDataSourceController.class,
     IndexVersionController.class,
