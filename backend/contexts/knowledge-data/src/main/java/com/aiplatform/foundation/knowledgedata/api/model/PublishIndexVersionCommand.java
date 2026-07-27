@@ -2,7 +2,6 @@ package com.aiplatform.foundation.knowledgedata.api.model;
 
 import com.aiplatform.foundation.organizationaccess.api.model.TrustedRequestContext;
 import java.util.Objects;
-import java.util.UUID;
 import java.util.regex.Pattern;
 
 /**
@@ -10,8 +9,8 @@ import java.util.regex.Pattern;
  */
 public record PublishIndexVersionCommand(
         TrustedRequestContext context,
-        UUID knowledgeSpaceId,
-        UUID indexVersionId,
+        String knowledgeSpaceId,
+        String indexVersionId,
         long expectedVersion,
         String idempotencyKey) {
 

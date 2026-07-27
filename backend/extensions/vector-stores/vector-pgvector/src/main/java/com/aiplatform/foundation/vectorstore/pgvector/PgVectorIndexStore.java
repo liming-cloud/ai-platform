@@ -10,7 +10,6 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.UUID;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
 
@@ -55,8 +54,8 @@ public final class PgVectorIndexStore
             WHERE chunk.tenant_id = ?
               AND chunk.knowledge_space_id = ?
               AND (
-                    (CAST(? AS uuid) IS NULL AND version.status = 'ACTIVE')
-                    OR chunk.index_version_id = CAST(? AS uuid)
+                    (CAST(? AS bigint) IS NULL AND version.status = 'ACTIVE')
+                    OR chunk.index_version_id = CAST(? AS bigint)
               )
               AND chunk.embedding_deployment_id = ?
               AND chunk.embedding_deployment_revision = ?
@@ -92,9 +91,9 @@ public final class PgVectorIndexStore
                     throws SQLException {
                 var vector = batch.vectors().get(index);
                 statement.setLong(1, batch.tenantId().value());
-                statement.setObject(2, batch.knowledgeSpaceId());
-                statement.setObject(3, batch.indexVersionId());
-                statement.setObject(4, vector.dataSourceId());
+                statement.setLong(2, batch.knowledgeSpaceId());
+                statement.setLong(3, batch.indexVersionId());
+                statement.setLong(4, vector.dataSourceId());
                 statement.setInt(5, vector.contentVersion());
                 statement.setString(6, vector.chunkId());
                 statement.setInt(7, vector.ordinal());
@@ -120,7 +119,7 @@ public final class PgVectorIndexStore
         return List.copyOf(jdbc.query(
                 RETRIEVE,
                 (result, rowNumber) -> new IndexCandidate(
-                        result.getObject("data_source_id", UUID.class),
+                        result.getLong("data_source_id"),
                         result.getInt("content_version"),
                         result.getString("chunk_id"),
                         result.getInt("ordinal"),

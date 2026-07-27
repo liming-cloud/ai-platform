@@ -192,7 +192,7 @@ public final class DefaultIndexBuildWorker {
     private static String buildDigest(IndexVectorBatch batch) {
         try {
             var digest = MessageDigest.getInstance("SHA-256");
-            update(digest, batch.indexVersionId().toString());
+            update(digest, Long.toString(batch.indexVersionId()));
             update(digest, batch.embeddingDeploymentId().toString());
             update(digest, Long.toString(batch.embeddingRevision()));
             for (var vector : batch.vectors()) {
@@ -232,7 +232,7 @@ public final class DefaultIndexBuildWorker {
     }
 
     private record ChunkSource(
-            java.util.UUID dataSourceId,
+            long dataSourceId,
             int contentVersion,
             TextChunk chunk) {
     }

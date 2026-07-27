@@ -22,12 +22,12 @@ import com.aiplatform.foundation.knowledgedata.application.port.out.TextContentO
 import com.aiplatform.foundation.knowledgedata.application.port.out.TextContentStagingPort;
 import com.aiplatform.foundation.knowledgedata.application.port.out.TextDataSourceRepository;
 import com.aiplatform.foundation.knowledgedata.domain.model.TextContentReference;
+import com.aiplatform.foundation.kernel.identifier.EntityIdGenerator;
 import com.aiplatform.foundation.objectstorage.minio.MinioTextContentObjectStorageAdapter;
 import com.aiplatform.foundation.modelruntime.api.catalog.PublishedEmbeddingDeploymentLookup;
 import io.minio.MinioClient;
 import java.nio.file.Path;
 import java.time.Clock;
-import java.util.UUID;
 import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -56,11 +56,12 @@ public class KnowledgeDataConfiguration {
     @Bean
     KnowledgeSpaceUseCase knowledgeSpaceUseCase(
             KnowledgeSpaceRepository repository,
+            EntityIdGenerator identifiers,
             @Value("${foundation.demo.knowledge-space-limit:3}") int tenantLimit) {
         return new DefaultKnowledgeSpaceService(
                 repository,
                 Clock.systemUTC(),
-                UUID::randomUUID,
+                identifiers,
                 tenantLimit);
     }
 
@@ -86,12 +87,13 @@ public class KnowledgeDataConfiguration {
     @Bean
     IndexVersionUseCase indexVersionUseCase(
             IndexVersionRepository repository,
-            PublishedEmbeddingDeploymentLookup embeddingDeployments) {
+            PublishedEmbeddingDeploymentLookup embeddingDeployments,
+            EntityIdGenerator identifiers) {
         return new DefaultIndexVersionService(
                 repository,
                 embeddingDeployments,
                 Clock.systemUTC(),
-                UUID::randomUUID);
+                identifiers);
     }
 
     @Bean
@@ -169,13 +171,14 @@ public class KnowledgeDataConfiguration {
             TextDataSourceRepository repository,
             TextContentStagingPort staging,
             TextContentObjectStoragePort objectStorage,
+            EntityIdGenerator identifiers,
             @Value("${foundation.demo.data-source-limit:20}") int tenantLimit) {
         return new DefaultTextDataSourceService(
                 repository,
                 staging,
                 objectStorage,
                 Clock.systemUTC(),
-                UUID::randomUUID,
+                identifiers,
                 tenantLimit);
     }
 }

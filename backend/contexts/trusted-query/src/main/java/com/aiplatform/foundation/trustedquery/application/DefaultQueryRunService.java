@@ -239,7 +239,7 @@ public final class DefaultQueryRunService implements QueryRunUseCase {
                 queryRun.citations().stream()
                         .map(value -> new QueryCitationView(
                                 value.sequence(),
-                                value.dataSourceId(),
+                                Long.toString(value.dataSourceId()),
                                 value.contentVersion(),
                                 value.chunkId(),
                                 value.ordinal(),

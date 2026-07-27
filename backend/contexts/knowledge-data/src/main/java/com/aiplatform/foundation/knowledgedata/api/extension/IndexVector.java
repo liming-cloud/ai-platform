@@ -2,7 +2,6 @@ package com.aiplatform.foundation.knowledgedata.api.extension;
 
 import java.util.Arrays;
 import java.util.Objects;
-import java.util.UUID;
 import java.util.regex.Pattern;
 
 /**
@@ -12,7 +11,7 @@ public final class IndexVector {
 
     private static final Pattern SHA256 = Pattern.compile("[0-9a-f]{64}");
 
-    private final UUID dataSourceId;
+    private final long dataSourceId;
     private final int contentVersion;
     private final String chunkId;
     private final int ordinal;
@@ -21,16 +20,17 @@ public final class IndexVector {
     private final float[] embedding;
 
     public IndexVector(
-            UUID dataSourceId,
+            long dataSourceId,
             int contentVersion,
             String chunkId,
             int ordinal,
             String text,
             String textDigest,
             float[] embedding) {
-        this.dataSourceId = Objects.requireNonNull(
-                dataSourceId,
-                "数据源标识不能为空");
+        if (dataSourceId <= 0) {
+            throw new IllegalArgumentException("数据源标识必须是正整数");
+        }
+        this.dataSourceId = dataSourceId;
         if (contentVersion < 1) {
             throw new IllegalArgumentException("内容版本必须大于零");
         }
@@ -57,7 +57,7 @@ public final class IndexVector {
         this.embedding = embedding.clone();
     }
 
-    public UUID dataSourceId() {
+    public long dataSourceId() {
         return dataSourceId;
     }
 
@@ -95,7 +95,7 @@ public final class IndexVector {
                 || candidate instanceof IndexVector other
                 && contentVersion == other.contentVersion
                 && ordinal == other.ordinal
-                && dataSourceId.equals(other.dataSourceId)
+                && dataSourceId == other.dataSourceId
                 && chunkId.equals(other.chunkId)
                 && text.equals(other.text)
                 && textDigest.equals(other.textDigest)

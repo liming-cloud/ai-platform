@@ -23,7 +23,6 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Set;
-import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
 class DefaultKnowledgeSpaceServiceTest {
@@ -32,8 +31,7 @@ class DefaultKnowledgeSpaceServiceTest {
             new TenantId(100000000000000001L);
     private static final MembershipId MEMBERSHIP_ID =
             new MembershipId(4921825928971026434L);
-    private static final UUID SPACE_ID =
-            UUID.fromString("30000000-0000-0000-0000-000000000001");
+    private static final long SPACE_ID = 210000000000000001L;
     private static final Clock CLOCK =
             Clock.fixed(Instant.parse("2026-07-27T00:00:00Z"), ZoneOffset.UTC);
 
@@ -48,7 +46,7 @@ class DefaultKnowledgeSpaceServiceTest {
                 "门店商品知识",
                 "供门店机器人使用"));
 
-        assertEquals(SPACE_ID, result.knowledgeSpace().id());
+        assertEquals(Long.toString(SPACE_ID), result.knowledgeSpace().id());
         assertEquals(TENANT_ID, repository.creation.space().tenantId());
         assertEquals(MEMBERSHIP_ID, repository.creation.space().createdBy());
         assertEquals(3, repository.tenantLimit);

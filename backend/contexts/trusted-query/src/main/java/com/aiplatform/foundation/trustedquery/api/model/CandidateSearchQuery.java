@@ -2,14 +2,13 @@ package com.aiplatform.foundation.trustedquery.api.model;
 
 import com.aiplatform.foundation.organizationaccess.api.model.TrustedRequestContext;
 import java.util.Objects;
-import java.util.UUID;
 
 /**
  * 受信上下文中的自然语言候选检索请求。
  */
 public record CandidateSearchQuery(
         TrustedRequestContext context,
-        UUID knowledgeSpaceId,
+        String knowledgeSpaceId,
         String text,
         int limit) {
 

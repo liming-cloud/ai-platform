@@ -71,8 +71,8 @@ public final class PostgresIndexBuildQueue implements IndexBuildQueuePort {
             return Optional.empty();
         }
         var tenantId = Long.parseLong(job.getTenantId());
-        var knowledgeSpaceId = UUID.fromString(job.getKnowledgeSpaceId());
-        var indexVersionId = UUID.fromString(job.getIndexVersionId());
+        var knowledgeSpaceId = Long.parseLong(job.getKnowledgeSpaceId());
+        var indexVersionId = Long.parseLong(job.getIndexVersionId());
         var leaseId = UUID.randomUUID();
         if (mapper.markClaimed(
                 tenantId,
@@ -139,7 +139,7 @@ public final class PostgresIndexBuildQueue implements IndexBuildQueuePort {
 
     private static IndexSourceSnapshot toSnapshot(IndexSourceRow row) {
         return new IndexSourceSnapshot(
-                new DataSourceId(UUID.fromString(row.getDataSourceId())),
+                DataSourceId.parse(row.getDataSourceId()),
                 new TextContentReference(
                         row.getContentVersion(),
                         row.getObjectKey(),

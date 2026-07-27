@@ -14,7 +14,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Objects;
-import java.util.UUID;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpHeaders;
@@ -68,7 +67,7 @@ public class TextDataSourceController {
     @GetMapping
     public TextDataSourcePage list(
             TrustedRequestContext context,
-            @RequestParam UUID knowledgeSpaceId,
+            @RequestParam String knowledgeSpaceId,
             @RequestParam(required = false) String cursor,
             @RequestParam(defaultValue = "20") int limit) {
         return dataSources.list(new ListTextDataSourcesQuery(
@@ -83,8 +82,8 @@ public class TextDataSourceController {
             consumes = MediaType.TEXT_PLAIN_VALUE)
     public ResponseEntity<TextDataSourceView> upload(
             TrustedRequestContext context,
-            @PathVariable UUID dataSourceId,
-            @RequestParam UUID knowledgeSpaceId,
+            @PathVariable String dataSourceId,
+            @RequestParam String knowledgeSpaceId,
             @RequestParam long expectedVersion,
             @RequestHeader(name = IDEMPOTENCY_KEY, required = false) String idempotencyKey,
             @RequestHeader(name = HttpHeaders.CONTENT_TYPE, required = false) String mediaType,
@@ -110,7 +109,7 @@ public class TextDataSourceController {
     @PostMapping("/{dataSourceId}/publish")
     public ResponseEntity<TextDataSourceView> publish(
             TrustedRequestContext context,
-            @PathVariable UUID dataSourceId,
+            @PathVariable String dataSourceId,
             @RequestHeader(name = IDEMPOTENCY_KEY, required = false) String idempotencyKey,
             @RequestBody PublishTextDataSourceRequest request) {
         requireRequest(request);
@@ -135,8 +134,8 @@ public class TextDataSourceController {
         }
     }
 
-    private static UUID requireIdentifier(UUID value) {
-        if (value == null) {
+    private static String requireIdentifier(String value) {
+        if (value == null || value.isBlank()) {
             throw new IllegalArgumentException("必须提供知识空间标识");
         }
         return value;

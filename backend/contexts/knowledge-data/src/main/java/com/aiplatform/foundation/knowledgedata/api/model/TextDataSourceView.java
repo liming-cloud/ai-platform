@@ -2,14 +2,13 @@ package com.aiplatform.foundation.knowledgedata.api.model;
 
 import java.time.Instant;
 import java.util.Objects;
-import java.util.UUID;
 
 /**
  * 面向公共接口的文本数据源视图。
  */
 public record TextDataSourceView(
-        UUID id,
-        UUID knowledgeSpaceId,
+        String id,
+        String knowledgeSpaceId,
         String name,
         String status,
         long version,

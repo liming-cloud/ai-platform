@@ -2,14 +2,13 @@ package com.aiplatform.foundation.knowledgedata.api.model;
 
 import com.aiplatform.foundation.organizationaccess.api.model.TrustedRequestContext;
 import java.util.Objects;
-import java.util.UUID;
 
 /**
  * 在可信租户内按知识空间列出索引版本的查询。
  */
 public record ListIndexVersionsQuery(
         TrustedRequestContext context,
-        UUID knowledgeSpaceId,
+        String knowledgeSpaceId,
         String cursor,
         int limit) {
 

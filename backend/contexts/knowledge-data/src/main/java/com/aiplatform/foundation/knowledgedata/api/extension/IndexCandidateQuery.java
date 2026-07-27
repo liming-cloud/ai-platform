@@ -10,8 +10,8 @@ import java.util.UUID;
 public final class IndexCandidateQuery {
 
     private final TenantId tenantId;
-    private final UUID knowledgeSpaceId;
-    private final UUID indexVersionId;
+    private final long knowledgeSpaceId;
+    private final Long indexVersionId;
     private final UUID embeddingDeploymentId;
     private final long embeddingRevision;
     private final float[] embedding;
@@ -19,7 +19,7 @@ public final class IndexCandidateQuery {
 
     public IndexCandidateQuery(
             TenantId tenantId,
-            UUID knowledgeSpaceId,
+            long knowledgeSpaceId,
             UUID embeddingDeploymentId,
             long embeddingRevision,
             float[] embedding,
@@ -39,16 +39,20 @@ public final class IndexCandidateQuery {
      */
     public IndexCandidateQuery(
             TenantId tenantId,
-            UUID knowledgeSpaceId,
-            UUID indexVersionId,
+            long knowledgeSpaceId,
+            Long indexVersionId,
             UUID embeddingDeploymentId,
             long embeddingRevision,
             float[] embedding,
             int limit) {
         this.tenantId = Objects.requireNonNull(tenantId, "租户标识不能为空");
-        this.knowledgeSpaceId = Objects.requireNonNull(
-                knowledgeSpaceId,
-                "知识空间标识不能为空");
+        if (knowledgeSpaceId <= 0) {
+            throw new IllegalArgumentException("知识空间标识必须是正整数");
+        }
+        this.knowledgeSpaceId = knowledgeSpaceId;
+        if (indexVersionId != null && indexVersionId <= 0) {
+            throw new IllegalArgumentException("索引版本标识必须是正整数");
+        }
         this.indexVersionId = indexVersionId;
         this.embeddingDeploymentId = Objects.requireNonNull(
                 embeddingDeploymentId,
@@ -77,11 +81,11 @@ public final class IndexCandidateQuery {
         return tenantId;
     }
 
-    public UUID knowledgeSpaceId() {
+    public long knowledgeSpaceId() {
         return knowledgeSpaceId;
     }
 
-    public UUID indexVersionId() {
+    public Long indexVersionId() {
         return indexVersionId;
     }
 

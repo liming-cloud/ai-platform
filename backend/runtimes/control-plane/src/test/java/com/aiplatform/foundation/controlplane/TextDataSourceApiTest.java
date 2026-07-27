@@ -24,7 +24,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -297,7 +296,7 @@ class TextDataSourceApiTest {
                                 + "WHERE tenant_id = ? AND id = ?",
                         String.class,
                         STORE_TENANT,
-                        source.id()));
+                        Long.parseLong(source.id())));
         assertEquals(
                 0,
                 jdbc.queryForObject(
@@ -320,7 +319,7 @@ class TextDataSourceApiTest {
 
     private SourceResponse createSource(
             String token,
-            UUID knowledgeSpaceId,
+            String knowledgeSpaceId,
             String key,
             String name) {
         var headers = authorized(token);
@@ -340,8 +339,8 @@ class TextDataSourceApiTest {
 
     private SourceResponse uploadContent(
             String token,
-            UUID knowledgeSpaceId,
-            UUID dataSourceId,
+            String knowledgeSpaceId,
+            String dataSourceId,
             String key,
             String content) {
         var headers = authorized(token);
@@ -361,7 +360,7 @@ class TextDataSourceApiTest {
         return response.getBody();
     }
 
-    private SourcePage list(String token, UUID knowledgeSpaceId) {
+    private SourcePage list(String token, String knowledgeSpaceId) {
         var response = http.exchange(
                 url("/api/v1/data-sources?knowledgeSpaceId=" + knowledgeSpaceId),
                 HttpMethod.GET,
@@ -398,12 +397,12 @@ class TextDataSourceApiTest {
     private record SessionResponse(String tokenValue) {
     }
 
-    private record SpaceResponse(UUID id) {
+    private record SpaceResponse(String id) {
     }
 
     private record SourceResponse(
-            UUID id,
-            UUID knowledgeSpaceId,
+            String id,
+            String knowledgeSpaceId,
             String name,
             String status,
             long version,

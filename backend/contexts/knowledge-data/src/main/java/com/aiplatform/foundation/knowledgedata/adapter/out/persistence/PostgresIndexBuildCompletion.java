@@ -88,8 +88,8 @@ public final class PostgresIndexBuildCompletion
         var index = lease.indexVersion();
         var embedding = index.embedding();
         if (!batch.tenantId().equals(index.tenantId())
-                || !batch.knowledgeSpaceId().equals(index.knowledgeSpaceId().value())
-                || !batch.indexVersionId().equals(index.id().value())
+                || batch.knowledgeSpaceId() != index.knowledgeSpaceId().value()
+                || batch.indexVersionId() != index.id().value()
                 || !batch.embeddingDeploymentId().equals(embedding.deploymentId())
                 || batch.embeddingRevision() != embedding.deploymentRevision()
                 || batch.embeddingDimension() != embedding.dimension()) {

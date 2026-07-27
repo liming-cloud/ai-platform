@@ -28,6 +28,7 @@ import com.aiplatform.foundation.knowledgedata.domain.model.DataSourceStateExcep
 import com.aiplatform.foundation.knowledgedata.domain.model.KnowledgeSpaceId;
 import com.aiplatform.foundation.knowledgedata.domain.model.TextContentReference;
 import com.aiplatform.foundation.knowledgedata.domain.model.TextDataSource;
+import com.aiplatform.foundation.kernel.identifier.EntityIdGenerator;
 import com.aiplatform.foundation.organizationaccess.api.model.PermissionCode;
 import com.aiplatform.foundation.organizationaccess.api.model.TrustedRequestContext;
 import java.nio.charset.StandardCharsets;
@@ -37,8 +38,6 @@ import java.security.NoSuchAlgorithmException;
 import java.time.Clock;
 import java.util.HexFormat;
 import java.util.Objects;
-import java.util.UUID;
-import java.util.function.Supplier;
 
 /**
  * 在可信租户和权限边界内编排文本数据源。
@@ -52,7 +51,7 @@ public final class DefaultTextDataSourceService implements TextDataSourceUseCase
     private final TextContentStagingPort staging;
     private final TextContentObjectStoragePort objectStorage;
     private final Clock clock;
-    private final Supplier<UUID> identifiers;
+    private final EntityIdGenerator identifiers;
     private final int tenantLimit;
 
     public DefaultTextDataSourceService(
@@ -60,7 +59,7 @@ public final class DefaultTextDataSourceService implements TextDataSourceUseCase
             TextContentStagingPort staging,
             TextContentObjectStoragePort objectStorage,
             Clock clock,
-            Supplier<UUID> identifiers,
+            EntityIdGenerator identifiers,
             int tenantLimit) {
         this.repository = Objects.requireNonNull(repository, "文本数据源仓储不能为空");
         this.staging = Objects.requireNonNull(staging, "文本内容暂存端口不能为空");
@@ -80,11 +79,11 @@ public final class DefaultTextDataSourceService implements TextDataSourceUseCase
         Objects.requireNonNull(command, "创建数据源命令不能为空");
         requirePermission(command.context(), WRITE);
         var context = command.context();
-        var knowledgeSpaceId = new KnowledgeSpaceId(command.knowledgeSpaceId());
+        var knowledgeSpaceId = KnowledgeSpaceId.parse(command.knowledgeSpaceId());
         var source = TextDataSource.create(
                 context.tenantId(),
                 knowledgeSpaceId,
-                new DataSourceId(identifiers.get()),
+                new DataSourceId(identifiers.nextId()),
                 command.name(),
                 context.membershipId(),
                 clock.instant());
@@ -94,7 +93,7 @@ public final class DefaultTextDataSourceService implements TextDataSourceUseCase
                         command.idempotencyKey(),
                         fingerprint(
                                 "CREATE",
-                                knowledgeSpaceId.value().toString(),
+                                Long.toString(knowledgeSpaceId.value()),
                                 source.name())),
                 tenantLimit);
         return new CreateTextDataSourceResult(
@@ -108,7 +107,7 @@ public final class DefaultTextDataSourceService implements TextDataSourceUseCase
         requirePermission(query.context(), READ);
         var slice = repository.findPage(
                 query.context().tenantId(),
-                new KnowledgeSpaceId(query.knowledgeSpaceId()),
+                KnowledgeSpaceId.parse(query.knowledgeSpaceId()),
                 query.cursor(),
                 query.limit());
         return new TextDataSourcePage(
@@ -126,13 +125,13 @@ public final class DefaultTextDataSourceService implements TextDataSourceUseCase
             throw new InvalidTextContentException("只支持 UTF-8 纯文本");
         }
         var context = command.context();
-        var knowledgeSpaceId = new KnowledgeSpaceId(command.knowledgeSpaceId());
-        var dataSourceId = new DataSourceId(command.dataSourceId());
+        var knowledgeSpaceId = KnowledgeSpaceId.parse(command.knowledgeSpaceId());
+        var dataSourceId = DataSourceId.parse(command.dataSourceId());
         try (var staged = staging.stage(command.content())) {
             var requestFingerprint = fingerprint(
                     "ATTACH_CONTENT",
-                    knowledgeSpaceId.value().toString(),
-                    dataSourceId.value().toString(),
+                    Long.toString(knowledgeSpaceId.value()),
+                    Long.toString(dataSourceId.value()),
                     Long.toString(command.expectedVersion()),
                     staged.sha256());
             var replay = repository.findAttachmentReplay(
@@ -185,12 +184,12 @@ public final class DefaultTextDataSourceService implements TextDataSourceUseCase
         Objects.requireNonNull(command, "数据源发布命令不能为空");
         requirePermission(command.context(), WRITE);
         var context = command.context();
-        var knowledgeSpaceId = new KnowledgeSpaceId(command.knowledgeSpaceId());
-        var dataSourceId = new DataSourceId(command.dataSourceId());
+        var knowledgeSpaceId = KnowledgeSpaceId.parse(command.knowledgeSpaceId());
+        var dataSourceId = DataSourceId.parse(command.dataSourceId());
         var requestFingerprint = fingerprint(
                 "PUBLISH",
-                knowledgeSpaceId.value().toString(),
-                dataSourceId.value().toString(),
+                Long.toString(knowledgeSpaceId.value()),
+                Long.toString(dataSourceId.value()),
                 Long.toString(command.expectedVersion()));
         var replay = repository.findPublicationReplay(
                 context.tenantId(),
@@ -258,8 +257,8 @@ public final class DefaultTextDataSourceService implements TextDataSourceUseCase
 
     private static TextDataSourceView toView(TextDataSource source) {
         return new TextDataSourceView(
-                source.id().value(),
-                source.knowledgeSpaceId().value(),
+                source.id().toString(),
+                source.knowledgeSpaceId().toString(),
                 source.name(),
                 source.status().name(),
                 source.version(),
@@ -270,8 +269,8 @@ public final class DefaultTextDataSourceService implements TextDataSourceUseCase
 
     private static TextDataSourceView toView(TextDataSourceSummary source) {
         return new TextDataSourceView(
-                source.id().value(),
-                source.knowledgeSpaceId().value(),
+                source.id().toString(),
+                source.knowledgeSpaceId().toString(),
                 source.name(),
                 source.status().name(),
                 source.version(),

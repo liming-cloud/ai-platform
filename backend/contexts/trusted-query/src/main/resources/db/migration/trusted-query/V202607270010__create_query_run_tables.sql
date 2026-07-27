@@ -91,7 +91,7 @@ CREATE TABLE trusted_query.query_citation (
     tenant_id BIGINT NOT NULL,
     query_run_id UUID NOT NULL,
     sequence INTEGER NOT NULL,
-    data_source_id UUID NOT NULL,
+    data_source_id BIGINT NOT NULL,
     content_version INTEGER NOT NULL,
     chunk_id CHAR(64) NOT NULL,
     ordinal INTEGER NOT NULL,

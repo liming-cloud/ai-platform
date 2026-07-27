@@ -24,7 +24,6 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.time.Instant;
 import java.util.HexFormat;
-import java.util.UUID;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -46,9 +45,9 @@ class MinioTextContentObjectStorageAdapterTest {
     private static final TenantId TENANT_ID =
             new TenantId(100000000000000001L);
     private static final KnowledgeSpaceId SPACE_ID =
-            new KnowledgeSpaceId(UUID.fromString("20000000-0000-0000-0000-000000000001"));
+            new KnowledgeSpaceId(210000000000000001L);
     private static final DataSourceId SOURCE_ID =
-            new DataSourceId(UUID.fromString("30000000-0000-0000-0000-000000000001"));
+            new DataSourceId(220000000000000001L);
     private static final Instant CREATED_AT = Instant.parse("2026-07-27T00:00:00Z");
 
     @Container

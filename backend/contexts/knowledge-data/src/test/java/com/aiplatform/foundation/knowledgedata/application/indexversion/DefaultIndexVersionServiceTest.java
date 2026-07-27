@@ -35,10 +35,8 @@ class DefaultIndexVersionServiceTest {
 
     private static final TenantId TENANT_ID =
             new TenantId(100000000000000001L);
-    private static final UUID SPACE_ID =
-            UUID.fromString("20000000-0000-0000-0000-000000000001");
-    private static final UUID INDEX_ID =
-            UUID.fromString("30000000-0000-0000-0000-000000000001");
+    private static final long SPACE_ID = 210000000000000001L;
+    private static final long INDEX_ID = 230000000000000001L;
     private static final MembershipId MEMBER_ID =
             new MembershipId(1843651857942052866L);
     private static final EmbeddingConfiguration EMBEDDING =
@@ -60,11 +58,11 @@ class DefaultIndexVersionServiceTest {
 
         var result = service.create(new CreateIndexVersionCommand(
                 context("knowledge:write"),
-                SPACE_ID,
+                Long.toString(SPACE_ID),
                 EMBEDDING.deploymentId(),
                 "index-request-0001"));
 
-        assertEquals(INDEX_ID, result.indexVersion().id());
+        assertEquals(Long.toString(INDEX_ID), result.indexVersion().id());
         assertEquals(TENANT_ID, repository.request.tenantId());
         assertEquals(new KnowledgeSpaceId(SPACE_ID), repository.request.knowledgeSpaceId());
         assertEquals(EMBEDDING, repository.request.embedding());
@@ -86,7 +84,7 @@ class DefaultIndexVersionServiceTest {
                 KnowledgePermissionDeniedException.class,
                 () -> service.create(new CreateIndexVersionCommand(
                         context("knowledge:read"),
-                        SPACE_ID,
+                        Long.toString(SPACE_ID),
                         EMBEDDING.deploymentId(),
                         "index-request-0001")));
         assertTrue(repository.request == null);
@@ -105,7 +103,7 @@ class DefaultIndexVersionServiceTest {
                 IndexEmbeddingDeploymentUnavailableException.class,
                 () -> service.create(new CreateIndexVersionCommand(
                         context("knowledge:write"),
-                        SPACE_ID,
+                        Long.toString(SPACE_ID),
                         EMBEDDING.deploymentId(),
                         "index-request-0001")));
         assertTrue(repository.request == null);

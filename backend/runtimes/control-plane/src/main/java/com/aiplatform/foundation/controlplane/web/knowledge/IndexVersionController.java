@@ -43,7 +43,7 @@ public class IndexVersionController {
     @PostMapping
     public ResponseEntity<IndexVersionView> create(
             TrustedRequestContext context,
-            @PathVariable UUID knowledgeSpaceId,
+            @PathVariable String knowledgeSpaceId,
             @RequestHeader(name = IDEMPOTENCY_KEY, required = false)
             String idempotencyKey,
             @RequestBody CreateIndexVersionRequest request) {
@@ -64,7 +64,7 @@ public class IndexVersionController {
     @GetMapping
     public IndexVersionPage list(
             TrustedRequestContext context,
-            @PathVariable UUID knowledgeSpaceId,
+            @PathVariable String knowledgeSpaceId,
             @RequestParam(required = false) String cursor,
             @RequestParam(defaultValue = "20") int limit) {
         return indexVersions.list(new ListIndexVersionsQuery(
@@ -77,8 +77,8 @@ public class IndexVersionController {
     @PostMapping("/{indexVersionId}/publish")
     public ResponseEntity<IndexVersionView> publish(
             TrustedRequestContext context,
-            @PathVariable UUID knowledgeSpaceId,
-            @PathVariable UUID indexVersionId,
+            @PathVariable String knowledgeSpaceId,
+            @PathVariable String indexVersionId,
             @RequestHeader(name = IDEMPOTENCY_KEY, required = false)
             String idempotencyKey,
             @RequestBody PublishIndexVersionRequest request) {

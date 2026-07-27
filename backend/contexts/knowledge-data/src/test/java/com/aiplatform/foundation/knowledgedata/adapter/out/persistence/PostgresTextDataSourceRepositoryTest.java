@@ -22,7 +22,7 @@ import com.aiplatform.foundation.knowledgedata.domain.model.TextDataSource;
 import com.aiplatform.foundation.organizationaccess.api.model.MembershipId;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.UUID;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executors;
 import org.junit.jupiter.api.BeforeEach;
@@ -50,7 +50,9 @@ class PostgresTextDataSourceRepositoryTest {
     private static final TenantId CAMPUS_TENANT =
             new TenantId(100000000000000002L);
     private static final KnowledgeSpaceId STORE_SPACE =
-            new KnowledgeSpaceId(UUID.fromString("30000000-0000-0000-0000-000000000001"));
+            new KnowledgeSpaceId(210000000000000001L);
+    private static final AtomicLong SOURCE_IDS =
+            new AtomicLong(220000000000000000L);
     private static final MembershipId CREATOR =
             new MembershipId(4921825928971026434L);
     private static final Instant CREATED_AT = Instant.parse("2026-07-27T01:00:00Z");
@@ -92,7 +94,7 @@ class PostgresTextDataSourceRepositoryTest {
 
     @Test
     void 创建数据源支持历史结果重放并隔离租户() {
-        var sourceId = new DataSourceId(UUID.randomUUID());
+        var sourceId = nextSourceId();
         var first = repository.create(creation(
                 STORE_TENANT,
                 STORE_SPACE,
@@ -103,7 +105,7 @@ class PostgresTextDataSourceRepositoryTest {
         var replay = repository.create(creation(
                 STORE_TENANT,
                 STORE_SPACE,
-                new DataSourceId(UUID.randomUUID()),
+                nextSourceId(),
                 "门店商品文本",
                 "create-source-0001",
                 "a".repeat(64)), 20);
@@ -118,7 +120,7 @@ class PostgresTextDataSourceRepositoryTest {
         repository.create(creation(
                 CAMPUS_TENANT,
                 STORE_SPACE,
-                new DataSourceId(UUID.randomUUID()),
+                nextSourceId(),
                 "门店商品文本",
                 "create-source-0001",
                 "a".repeat(64)), 20);
@@ -127,7 +129,7 @@ class PostgresTextDataSourceRepositoryTest {
         assertThrows(IdempotencyConflictException.class, () -> repository.create(creation(
                 STORE_TENANT,
                 STORE_SPACE,
-                new DataSourceId(UUID.randomUUID()),
+                nextSourceId(),
                 "其他文本",
                 "create-source-0001",
                 "b".repeat(64)), 20));
@@ -143,7 +145,7 @@ class PostgresTextDataSourceRepositoryTest {
                     repository.create(creation(
                             STORE_TENANT,
                             STORE_SPACE,
-                            new DataSourceId(UUID.randomUUID()),
+                            nextSourceId(),
                             "配额文本" + sequence,
                             "quota-source-000" + sequence,
                             Integer.toHexString(sequence).repeat(64)), 2);
@@ -173,7 +175,7 @@ class PostgresTextDataSourceRepositoryTest {
         var source = repository.create(creation(
                 STORE_TENANT,
                 STORE_SPACE,
-                new DataSourceId(UUID.randomUUID()),
+                nextSourceId(),
                 "校园信息文本",
                 "create-source-0002",
                 "a".repeat(64)), 20).source();
@@ -220,7 +222,7 @@ class PostgresTextDataSourceRepositoryTest {
         var source = repository.create(creation(
                 STORE_TENANT,
                 STORE_SPACE,
-                new DataSourceId(UUID.randomUUID()),
+                nextSourceId(),
                 "并发文本",
                 "create-source-0003",
                 "a".repeat(64)), 20).source();
@@ -268,7 +270,7 @@ class PostgresTextDataSourceRepositoryTest {
         var source = repository.create(creation(
                 STORE_TENANT,
                 STORE_SPACE,
-                new DataSourceId(UUID.randomUUID()),
+                nextSourceId(),
                 "隔离文本",
                 "create-source-0004",
                 "a".repeat(64)), 20).source();
@@ -303,7 +305,7 @@ class PostgresTextDataSourceRepositoryTest {
             repository.create(creation(
                     STORE_TENANT,
                     STORE_SPACE,
-                    new DataSourceId(UUID.randomUUID()),
+                    nextSourceId(),
                     "分页文本" + index,
                     "page-source-000" + index,
                     Integer.toHexString(index).repeat(64)), 20);
@@ -350,6 +352,10 @@ class PostgresTextDataSourceRepositoryTest {
                         CREATED_AT),
                 idempotencyKey,
                 fingerprint);
+    }
+
+    private static DataSourceId nextSourceId() {
+        return new DataSourceId(SOURCE_IDS.incrementAndGet());
     }
 
     private static TextContentReference content(

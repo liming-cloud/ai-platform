@@ -18,7 +18,7 @@ describe("ControlPlaneClient", () => {
       ),
       new Response(
         JSON.stringify({
-          id: "20000000-0000-0000-0000-000000000001",
+          id: "210000000000000001",
           name: "门店商品知识",
           description: "演示数据",
           status: "DRAFT",
@@ -62,8 +62,8 @@ describe("ControlPlaneClient", () => {
       request = new Request(input, init);
       return new Response(
         JSON.stringify({
-          id: "30000000-0000-0000-0000-000000000001",
-          knowledgeSpaceId: "20000000-0000-0000-0000-000000000001",
+          id: "220000000000000001",
+          knowledgeSpaceId: "210000000000000001",
           name: "商品说明",
           status: "CONTENT_READY",
           version: 1,
@@ -76,8 +76,8 @@ describe("ControlPlaneClient", () => {
     });
 
     await client.uploadTextContent(
-      "20000000-0000-0000-0000-000000000001",
-      "30000000-0000-0000-0000-000000000001",
+      "210000000000000001",
+      "220000000000000001",
       0,
       "货品位于一层。",
     );
@@ -114,8 +114,8 @@ describe("ControlPlaneClient", () => {
   it("按知识空间创建、查询并发布索引版本", async () => {
     const requests: Request[] = [];
     const indexVersion = {
-      id: "40000000-0000-0000-0000-000000000001",
-      knowledgeSpaceId: "20000000-0000-0000-0000-000000000001",
+      id: "230000000000000001",
+      knowledgeSpaceId: "210000000000000001",
       sourceSnapshotDigest: "sha256:source",
       chunkPolicy: "paragraph-window-v1",
       embeddingDeploymentId: "00000000-0000-0000-0000-000000000128",

@@ -50,10 +50,8 @@ class PostgresAssistantRepositoryTest {
     private static final MembershipId CREATOR = new MembershipId(3382738893456539650L);
     private static final UUID CHAT =
             UUID.fromString("40000000-0000-0000-0000-000000000001");
-    private static final UUID SPACE =
-            UUID.fromString("50000000-0000-0000-0000-000000000001");
-    private static final UUID INDEX =
-            UUID.fromString("60000000-0000-0000-0000-000000000001");
+    private static final long SPACE = 210000000000000001L;
+    private static final long INDEX = 230000000000000001L;
     private static final UUID EMBEDDING =
             UUID.fromString("70000000-0000-0000-0000-000000000001");
     private static final Instant NOW = Instant.parse("2026-07-27T06:00:00Z");

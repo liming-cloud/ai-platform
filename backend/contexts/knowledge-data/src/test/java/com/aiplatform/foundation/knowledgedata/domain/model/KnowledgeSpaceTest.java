@@ -6,7 +6,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import com.aiplatform.foundation.kernel.tenant.TenantId;
 import com.aiplatform.foundation.organizationaccess.api.model.MembershipId;
 import java.time.Instant;
-import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
 class KnowledgeSpaceTest {
@@ -21,7 +20,7 @@ class KnowledgeSpaceTest {
     void 创建草稿知识空间并保留明确租户边界() {
         var space = KnowledgeSpace.create(
                 TENANT_ID,
-                new KnowledgeSpaceId(UUID.fromString("30000000-0000-0000-0000-000000000001")),
+                new KnowledgeSpaceId(210000000000000001L),
                 "门店商品知识",
                 "供门店机器人回答商品问题",
                 CREATOR_ID,
@@ -39,14 +38,14 @@ class KnowledgeSpaceTest {
     void 拒绝首尾空白和控制字符名称() {
         assertThrows(IllegalArgumentException.class, () -> KnowledgeSpace.create(
                 TENANT_ID,
-                new KnowledgeSpaceId(UUID.randomUUID()),
+                new KnowledgeSpaceId(210000000000000002L),
                 " 门店商品知识",
                 null,
                 CREATOR_ID,
                 CREATED_AT));
         assertThrows(IllegalArgumentException.class, () -> KnowledgeSpace.create(
                 TENANT_ID,
-                new KnowledgeSpaceId(UUID.randomUUID()),
+                new KnowledgeSpaceId(210000000000000003L),
                 "门店\n商品知识",
                 null,
                 CREATOR_ID,
@@ -57,14 +56,14 @@ class KnowledgeSpaceTest {
     void 拒绝超过页面预算的名称和说明() {
         assertThrows(IllegalArgumentException.class, () -> KnowledgeSpace.create(
                 TENANT_ID,
-                new KnowledgeSpaceId(UUID.randomUUID()),
+                new KnowledgeSpaceId(210000000000000004L),
                 "知".repeat(81),
                 null,
                 CREATOR_ID,
                 CREATED_AT));
         assertThrows(IllegalArgumentException.class, () -> KnowledgeSpace.create(
                 TENANT_ID,
-                new KnowledgeSpaceId(UUID.randomUUID()),
+                new KnowledgeSpaceId(210000000000000005L),
                 "校园知识",
                 "说".repeat(501),
                 CREATOR_ID,

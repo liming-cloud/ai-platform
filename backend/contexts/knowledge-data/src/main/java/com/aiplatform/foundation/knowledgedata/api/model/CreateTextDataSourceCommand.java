@@ -2,14 +2,13 @@ package com.aiplatform.foundation.knowledgedata.api.model;
 
 import com.aiplatform.foundation.organizationaccess.api.model.TrustedRequestContext;
 import java.util.Objects;
-import java.util.UUID;
 
 /**
  * 在知识空间中登记文本数据源的命令。
  */
 public record CreateTextDataSourceCommand(
         TrustedRequestContext context,
-        UUID knowledgeSpaceId,
+        String knowledgeSpaceId,
         String idempotencyKey,
         String name) {
 

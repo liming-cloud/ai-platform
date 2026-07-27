@@ -1,14 +1,26 @@
 package com.aiplatform.foundation.knowledgedata.domain.model;
 
-import java.util.Objects;
-import java.util.UUID;
-
 /**
  * 知识空间的稳定标识。
  */
-public record KnowledgeSpaceId(UUID value) {
+public record KnowledgeSpaceId(long value) {
 
     public KnowledgeSpaceId {
-        Objects.requireNonNull(value, "知识空间标识不能为空");
+        if (value <= 0) {
+            throw new IllegalArgumentException("知识空间标识必须是正整数");
+        }
+    }
+
+    public static KnowledgeSpaceId parse(String value) {
+        try {
+            return new KnowledgeSpaceId(Long.parseLong(value));
+        } catch (NumberFormatException exception) {
+            throw new IllegalArgumentException("知识空间标识必须是十进制正整数", exception);
+        }
+    }
+
+    @Override
+    public String toString() {
+        return Long.toString(value);
     }
 }

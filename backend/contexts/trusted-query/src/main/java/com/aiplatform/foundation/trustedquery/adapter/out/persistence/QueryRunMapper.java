@@ -93,7 +93,7 @@ public interface QueryRunMapper {
             @Param("tenantId") long tenantId,
             @Param("queryRunId") UUID queryRunId,
             @Param("sequence") int sequence,
-            @Param("dataSourceId") UUID dataSourceId,
+            @Param("dataSourceId") long dataSourceId,
             @Param("contentVersion") int contentVersion,
             @Param("chunkId") String chunkId,
             @Param("ordinal") int ordinal,

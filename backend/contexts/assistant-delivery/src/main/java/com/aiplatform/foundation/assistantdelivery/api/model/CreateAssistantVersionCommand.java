@@ -14,7 +14,7 @@ public record CreateAssistantVersionCommand(
         String idempotencyKey,
         UUID assistantId,
         UUID chatDeploymentId,
-        UUID knowledgeSpaceId,
+        String knowledgeSpaceId,
         String systemInstruction,
         int maxOutputTokens,
         int retrievalLimit,

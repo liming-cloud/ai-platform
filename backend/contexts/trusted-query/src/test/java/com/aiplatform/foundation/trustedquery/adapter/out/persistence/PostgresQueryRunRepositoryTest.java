@@ -53,10 +53,8 @@ class PostgresQueryRunRepositoryTest {
             UUID.fromString("42000000-0000-0000-0000-000000000001");
     private static final UUID CHAT =
             UUID.fromString("43000000-0000-0000-0000-000000000001");
-    private static final UUID SPACE =
-            UUID.fromString("44000000-0000-0000-0000-000000000001");
-    private static final UUID INDEX =
-            UUID.fromString("45000000-0000-0000-0000-000000000001");
+    private static final long SPACE = 210000000000000001L;
+    private static final long INDEX = 230000000000000001L;
     private static final UUID EMBEDDING =
             UUID.fromString("46000000-0000-0000-0000-000000000001");
     private static final Instant NOW = Instant.parse("2026-07-27T05:00:00Z");
@@ -136,7 +134,7 @@ class PostgresQueryRunRepositoryTest {
                 "牛奶位于一层。\n\n引用：[1]",
                 List.of(new QueryCitation(
                         1,
-                        UUID.randomUUID(),
+                        220000000000000001L,
                         1,
                         "c".repeat(64),
                         0,
@@ -329,7 +327,7 @@ class PostgresQueryRunRepositoryTest {
                         "牛奶位于一层。\n\n引用：[1]",
                         List.of(new QueryCitation(
                                 1,
-                                UUID.randomUUID(),
+                                220000000000000002L,
                                 1,
                                 "7".repeat(64),
                                 0,

@@ -21,8 +21,8 @@ public final class AssistantVersion {
     private final UUID chatDeploymentId;
     private final long chatDeploymentRevision;
     private final int chatDeploymentOutputLimit;
-    private final UUID knowledgeSpaceId;
-    private final UUID indexVersionId;
+    private final long knowledgeSpaceId;
+    private final long indexVersionId;
     private final long indexVersionRevision;
     private final UUID embeddingDeploymentId;
     private final long embeddingDeploymentRevision;
@@ -47,8 +47,8 @@ public final class AssistantVersion {
             UUID chatDeploymentId,
             long chatDeploymentRevision,
             int chatDeploymentOutputLimit,
-            UUID knowledgeSpaceId,
-            UUID indexVersionId,
+            long knowledgeSpaceId,
+            long indexVersionId,
             long indexVersionRevision,
             UUID embeddingDeploymentId,
             long embeddingDeploymentRevision,
@@ -78,10 +78,11 @@ public final class AssistantVersion {
         }
         this.chatDeploymentRevision = chatDeploymentRevision;
         this.chatDeploymentOutputLimit = chatDeploymentOutputLimit;
-        this.knowledgeSpaceId =
-                Objects.requireNonNull(knowledgeSpaceId, "知识空间标识不能为空");
-        this.indexVersionId =
-                Objects.requireNonNull(indexVersionId, "索引版本标识不能为空");
+        if (knowledgeSpaceId <= 0 || indexVersionId <= 0) {
+            throw new IllegalArgumentException("知识空间标识和索引版本标识必须是正整数");
+        }
+        this.knowledgeSpaceId = knowledgeSpaceId;
+        this.indexVersionId = indexVersionId;
         this.embeddingDeploymentId =
                 Objects.requireNonNull(embeddingDeploymentId, "嵌入部署标识不能为空");
         if (indexVersionRevision < 1
@@ -134,8 +135,8 @@ public final class AssistantVersion {
             UUID chatDeploymentId,
             long chatDeploymentRevision,
             int chatDeploymentOutputLimit,
-            UUID knowledgeSpaceId,
-            UUID indexVersionId,
+            long knowledgeSpaceId,
+            long indexVersionId,
             long indexVersionRevision,
             UUID embeddingDeploymentId,
             long embeddingDeploymentRevision,
@@ -183,8 +184,8 @@ public final class AssistantVersion {
             UUID chatDeploymentId,
             long chatDeploymentRevision,
             int chatDeploymentOutputLimit,
-            UUID knowledgeSpaceId,
-            UUID indexVersionId,
+            long knowledgeSpaceId,
+            long indexVersionId,
             long indexVersionRevision,
             UUID embeddingDeploymentId,
             long embeddingDeploymentRevision,
@@ -286,11 +287,11 @@ public final class AssistantVersion {
         return chatDeploymentOutputLimit;
     }
 
-    public UUID knowledgeSpaceId() {
+    public long knowledgeSpaceId() {
         return knowledgeSpaceId;
     }
 
-    public UUID indexVersionId() {
+    public long indexVersionId() {
         return indexVersionId;
     }
 

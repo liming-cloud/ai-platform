@@ -52,10 +52,8 @@ class DefaultQueryRunServiceTest {
             UUID.fromString("30000000-0000-0000-0000-000000000001");
     private static final UUID EMBEDDING =
             UUID.fromString("40000000-0000-0000-0000-000000000001");
-    private static final UUID SPACE =
-            UUID.fromString("50000000-0000-0000-0000-000000000001");
-    private static final UUID INDEX =
-            UUID.fromString("60000000-0000-0000-0000-000000000001");
+    private static final long SPACE = 210000000000000001L;
+    private static final long INDEX = 230000000000000001L;
     private static final Instant NOW = Instant.parse("2026-07-27T05:00:00Z");
 
     @Test
@@ -190,7 +188,7 @@ class DefaultQueryRunServiceTest {
 
     private static IndexCandidate candidate(double score) {
         return new IndexCandidate(
-                UUID.fromString("80000000-0000-0000-0000-000000000001"),
+                220000000000000001L,
                 1,
                 "a".repeat(64),
                 0,

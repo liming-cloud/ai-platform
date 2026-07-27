@@ -1,14 +1,26 @@
 package com.aiplatform.foundation.knowledgedata.domain.model;
 
-import java.util.Objects;
-import java.util.UUID;
-
 /**
  * 数据源的稳定标识。
  */
-public record DataSourceId(UUID value) {
+public record DataSourceId(long value) {
 
     public DataSourceId {
-        Objects.requireNonNull(value, "数据源标识不能为空");
+        if (value <= 0) {
+            throw new IllegalArgumentException("数据源标识必须是正整数");
+        }
+    }
+
+    public static DataSourceId parse(String value) {
+        try {
+            return new DataSourceId(Long.parseLong(value));
+        } catch (NumberFormatException exception) {
+            throw new IllegalArgumentException("数据源标识必须是十进制正整数", exception);
+        }
+    }
+
+    @Override
+    public String toString() {
+        return Long.toString(value);
     }
 }

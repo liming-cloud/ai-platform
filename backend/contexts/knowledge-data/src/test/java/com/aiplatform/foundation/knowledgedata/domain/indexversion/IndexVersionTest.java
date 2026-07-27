@@ -15,9 +15,9 @@ class IndexVersionTest {
     private static final TenantId TENANT_ID =
             new TenantId(100000000000000001L);
     private static final KnowledgeSpaceId SPACE_ID =
-            new KnowledgeSpaceId(UUID.fromString("20000000-0000-0000-0000-000000000001"));
+            new KnowledgeSpaceId(210000000000000001L);
     private static final IndexVersionId INDEX_ID =
-            new IndexVersionId(UUID.fromString("30000000-0000-0000-0000-000000000001"));
+            new IndexVersionId(230000000000000001L);
     private static final MembershipId MEMBER_ID =
             new MembershipId(1843651857942052866L);
     private static final Instant CREATED_AT = Instant.parse("2026-07-27T00:00:00Z");

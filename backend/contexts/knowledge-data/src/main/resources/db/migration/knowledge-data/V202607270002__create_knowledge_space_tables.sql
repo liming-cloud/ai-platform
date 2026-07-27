@@ -2,7 +2,7 @@ CREATE SCHEMA IF NOT EXISTS knowledge_data;
 
 CREATE TABLE knowledge_data.knowledge_space (
     tenant_id BIGINT NOT NULL,
-    id UUID NOT NULL,
+    id BIGINT NOT NULL,
     name VARCHAR(320) NOT NULL,
     description VARCHAR(2000),
     status VARCHAR(32) NOT NULL,
@@ -26,7 +26,7 @@ CREATE TABLE knowledge_data.knowledge_space_request (
     tenant_id BIGINT NOT NULL,
     idempotency_key_hash CHAR(64) NOT NULL,
     request_fingerprint CHAR(64) NOT NULL,
-    knowledge_space_id UUID NOT NULL,
+    knowledge_space_id BIGINT NOT NULL,
     created_at TIMESTAMPTZ NOT NULL,
     CONSTRAINT pk_knowledge_space_request
         PRIMARY KEY (tenant_id, idempotency_key_hash),

@@ -20,7 +20,6 @@ import java.util.Base64;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Objects;
-import java.util.UUID;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -77,7 +76,7 @@ public final class PostgresKnowledgeSpaceRepository implements KnowledgeSpaceRep
         var pageRows = hasNext ? rows.subList(0, limit) : rows;
         var items = pageRows.stream().map(PostgresKnowledgeSpaceRepository::toDomain).toList();
         var nextCursor = hasNext
-                ? encodeCursor(pageRows.getLast().getCreatedAt(), UUID.fromString(pageRows.getLast().getId()))
+                ? encodeCursor(pageRows.getLast().getCreatedAt(), Long.parseLong(pageRows.getLast().getId()))
                 : null;
         return new KnowledgeSpaceSlice(items, nextCursor);
     }
@@ -97,7 +96,7 @@ public final class PostgresKnowledgeSpaceRepository implements KnowledgeSpaceRep
             }
             var replayed = mapper.findById(
                     tenantId,
-                    UUID.fromString(existing.getKnowledgeSpaceId()));
+                    Long.parseLong(existing.getKnowledgeSpaceId()));
             if (replayed == null) {
                 throw new IllegalStateException("幂等记录引用的知识空间不存在");
             }
@@ -132,7 +131,7 @@ public final class PostgresKnowledgeSpaceRepository implements KnowledgeSpaceRep
     private static KnowledgeSpace toDomain(KnowledgeSpaceRow row) {
         return KnowledgeSpace.reconstitute(
                 TenantId.parse(row.getTenantId()),
-                new KnowledgeSpaceId(UUID.fromString(row.getId())),
+                KnowledgeSpaceId.parse(row.getId()),
                 row.getName(),
                 row.getDescription(),
                 KnowledgeSpaceStatus.valueOf(row.getStatus()),
@@ -151,7 +150,7 @@ public final class PostgresKnowledgeSpaceRepository implements KnowledgeSpaceRep
         }
     }
 
-    private static String encodeCursor(Instant createdAt, UUID id) {
+    private static String encodeCursor(Instant createdAt, long id) {
         var payload = createdAt + "|" + id;
         return Base64.getUrlEncoder()
                 .withoutPadding()
@@ -175,12 +174,12 @@ public final class PostgresKnowledgeSpaceRepository implements KnowledgeSpaceRep
             }
             return new CursorPosition(
                     Instant.parse(payload.substring(0, separator)),
-                    UUID.fromString(payload.substring(separator + 1)));
+                    Long.parseLong(payload.substring(separator + 1)));
         } catch (IllegalArgumentException exception) {
             throw new IllegalArgumentException("游标格式不正确", exception);
         }
     }
 
-    private record CursorPosition(Instant createdAt, UUID id) {
+    private record CursorPosition(Instant createdAt, long id) {
     }
 }

@@ -3,7 +3,6 @@ package com.aiplatform.foundation.knowledgedata.adapter.out.persistence;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import java.time.Instant;
 import java.util.List;
-import java.util.UUID;
 import org.apache.ibatis.annotations.Param;
 
 /**
@@ -21,7 +20,7 @@ public interface KnowledgeSpaceMapper extends BaseMapper<KnowledgeSpaceEntity> {
 
     int insertSpace(
             @Param("tenantId") long tenantId,
-            @Param("id") UUID id,
+            @Param("id") long id,
             @Param("name") String name,
             @Param("description") String description,
             @Param("status") String status,
@@ -33,12 +32,12 @@ public interface KnowledgeSpaceMapper extends BaseMapper<KnowledgeSpaceEntity> {
             @Param("tenantId") long tenantId,
             @Param("keyHash") String keyHash,
             @Param("requestFingerprint") String requestFingerprint,
-            @Param("knowledgeSpaceId") UUID knowledgeSpaceId,
+            @Param("knowledgeSpaceId") long knowledgeSpaceId,
             @Param("createdAt") Instant createdAt);
 
     KnowledgeSpaceRow findById(
             @Param("tenantId") long tenantId,
-            @Param("id") UUID id);
+            @Param("id") long id);
 
     List<KnowledgeSpaceRow> findFirstPage(
             @Param("tenantId") long tenantId,
@@ -47,6 +46,6 @@ public interface KnowledgeSpaceMapper extends BaseMapper<KnowledgeSpaceEntity> {
     List<KnowledgeSpaceRow> findAfter(
             @Param("tenantId") long tenantId,
             @Param("createdAt") Instant createdAt,
-            @Param("id") UUID id,
+            @Param("id") long id,
             @Param("limit") int limit);
 }

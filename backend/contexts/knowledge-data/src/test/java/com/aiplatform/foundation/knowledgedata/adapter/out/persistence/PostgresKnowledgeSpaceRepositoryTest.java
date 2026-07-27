@@ -15,7 +15,7 @@ import com.aiplatform.foundation.knowledgedata.domain.model.KnowledgeSpaceId;
 import com.aiplatform.foundation.organizationaccess.api.model.MembershipId;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.UUID;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executors;
 import org.junit.jupiter.api.BeforeEach;
@@ -37,6 +37,9 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 @SpringBootTest(classes = PostgresKnowledgeSpaceRepositoryTest.TestApplication.class)
 @Testcontainers
 class PostgresKnowledgeSpaceRepositoryTest {
+
+    private static final AtomicLong SPACE_IDS =
+            new AtomicLong(210000000000000000L);
 
     private static final TenantId STORE_TENANT =
             new TenantId(100000000000000001L);
@@ -190,7 +193,7 @@ class PostgresKnowledgeSpaceRepositoryTest {
         return new KnowledgeSpaceCreation(
                 KnowledgeSpace.create(
                         tenantId,
-                        new KnowledgeSpaceId(UUID.randomUUID()),
+                        new KnowledgeSpaceId(SPACE_IDS.incrementAndGet()),
                         name,
                         null,
                         CREATOR,

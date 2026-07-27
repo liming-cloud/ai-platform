@@ -41,10 +41,8 @@ class AssistantApiTest {
     private static final long CREATOR = 3382738893456539650L;
     private static final UUID CHAT =
             UUID.fromString("41000000-0000-0000-0000-000000000001");
-    private static final UUID SPACE =
-            UUID.fromString("51000000-0000-0000-0000-000000000001");
-    private static final UUID INDEX =
-            UUID.fromString("61000000-0000-0000-0000-000000000001");
+    private static final long SPACE = 210000000000000001L;
+    private static final long INDEX = 230000000000000001L;
     private static final UUID EMBEDDING =
             UUID.fromString("71000000-0000-0000-0000-000000000001");
     private static final Instant NOW = Instant.parse("2026-07-27T07:00:00Z");
@@ -115,7 +113,7 @@ class AssistantApiTest {
                 new HttpEntity<>(
                         Map.of(
                                 "chatDeploymentId", CHAT,
-                                "knowledgeSpaceId", SPACE,
+                                "knowledgeSpaceId", Long.toString(SPACE),
                                 "systemInstruction", "只依据编号证据回答，并在结论后标注引用。",
                                 "maxOutputTokens", 512,
                                 "retrievalLimit", 5,

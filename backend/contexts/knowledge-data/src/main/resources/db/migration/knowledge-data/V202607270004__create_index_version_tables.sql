@@ -2,8 +2,8 @@ CREATE EXTENSION IF NOT EXISTS vector;
 
 CREATE TABLE knowledge_data.index_version (
     tenant_id BIGINT NOT NULL,
-    knowledge_space_id UUID NOT NULL,
-    id UUID NOT NULL,
+    knowledge_space_id BIGINT NOT NULL,
+    id BIGINT NOT NULL,
     source_snapshot_digest CHAR(64) NOT NULL,
     chunk_policy VARCHAR(64) NOT NULL,
     embedding_deployment_id UUID NOT NULL,
@@ -103,9 +103,9 @@ CREATE INDEX idx_index_version_space_created
 
 CREATE TABLE knowledge_data.index_version_source (
     tenant_id BIGINT NOT NULL,
-    knowledge_space_id UUID NOT NULL,
-    index_version_id UUID NOT NULL,
-    data_source_id UUID NOT NULL,
+    knowledge_space_id BIGINT NOT NULL,
+    index_version_id BIGINT NOT NULL,
+    data_source_id BIGINT NOT NULL,
     content_version INTEGER NOT NULL,
     object_key VARCHAR(1024) NOT NULL,
     sha256 CHAR(64) NOT NULL,
@@ -151,8 +151,8 @@ CREATE TABLE knowledge_data.index_version_source (
 
 CREATE TABLE knowledge_data.index_build_job (
     tenant_id BIGINT NOT NULL,
-    knowledge_space_id UUID NOT NULL,
-    index_version_id UUID NOT NULL,
+    knowledge_space_id BIGINT NOT NULL,
+    index_version_id BIGINT NOT NULL,
     status VARCHAR(24) NOT NULL,
     attempt INTEGER NOT NULL,
     lease_id UUID,
@@ -204,8 +204,8 @@ CREATE TABLE knowledge_data.index_version_request (
     operation VARCHAR(24) NOT NULL,
     idempotency_key_hash CHAR(64) NOT NULL,
     request_fingerprint CHAR(64) NOT NULL,
-    knowledge_space_id UUID NOT NULL,
-    index_version_id UUID NOT NULL,
+    knowledge_space_id BIGINT NOT NULL,
+    index_version_id BIGINT NOT NULL,
     result_status VARCHAR(32) NOT NULL,
     result_version BIGINT NOT NULL,
     created_at TIMESTAMPTZ NOT NULL,
@@ -231,9 +231,9 @@ CREATE TABLE knowledge_data.index_version_request (
 
 CREATE TABLE knowledge_data.index_chunk (
     tenant_id BIGINT NOT NULL,
-    knowledge_space_id UUID NOT NULL,
-    index_version_id UUID NOT NULL,
-    data_source_id UUID NOT NULL,
+    knowledge_space_id BIGINT NOT NULL,
+    index_version_id BIGINT NOT NULL,
+    data_source_id BIGINT NOT NULL,
     content_version INTEGER NOT NULL,
     chunk_id CHAR(64) NOT NULL,
     ordinal INTEGER NOT NULL,

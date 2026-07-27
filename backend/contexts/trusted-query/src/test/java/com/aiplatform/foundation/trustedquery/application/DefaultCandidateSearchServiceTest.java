@@ -25,8 +25,7 @@ class DefaultCandidateSearchServiceTest {
 
     private static final TenantId TENANT =
             new TenantId(100000000000000001L);
-    private static final UUID SPACE =
-            UUID.fromString("20000000-0000-0000-0000-000000000001");
+    private static final long SPACE = 210000000000000001L;
     private static final EmbeddingDeploymentRef DEPLOYMENT =
             new EmbeddingDeploymentRef(
                     UUID.fromString("30000000-0000-0000-0000-000000000001"),
@@ -47,7 +46,7 @@ class DefaultCandidateSearchServiceTest {
 
         var result = service.search(new CandidateSearchQuery(
                 context("knowledge:read"),
-                SPACE,
+                Long.toString(SPACE),
                 "一层有什么商品",
                 5));
 
@@ -72,7 +71,7 @@ class DefaultCandidateSearchServiceTest {
                 CandidateSearchPermissionDeniedException.class,
                 () -> service.search(new CandidateSearchQuery(
                         context("knowledge:write"),
-                        SPACE,
+                        Long.toString(SPACE),
                         "一层有什么商品",
                         5)));
         assertEquals(null, retriever.query);
@@ -99,7 +98,7 @@ class DefaultCandidateSearchServiceTest {
         public List<IndexCandidate> retrieve(IndexCandidateQuery value) {
             query = value;
             return List.of(new IndexCandidate(
-                    UUID.fromString("60000000-0000-0000-0000-000000000001"),
+                    220000000000000001L,
                     1,
                     "a".repeat(64),
                     0,

@@ -11,7 +11,6 @@ import com.aiplatform.foundation.knowledgedata.domain.model.KnowledgeSpaceId;
 import com.aiplatform.foundation.knowledgedata.domain.model.TextContentReference;
 import java.io.ByteArrayInputStream;
 import java.time.Instant;
-import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
 class UnavailableTextContentObjectStorageAdapterTest {
@@ -46,8 +45,8 @@ class UnavailableTextContentObjectStorageAdapterTest {
     private static TextContentStorageRequest storageRequest() {
         return new TextContentStorageRequest(
                 new TenantId(100000000000000001L),
-                new KnowledgeSpaceId(UUID.fromString("20000000-0000-0000-0000-000000000001")),
-                new DataSourceId(UUID.fromString("30000000-0000-0000-0000-000000000001")),
+                new KnowledgeSpaceId(210000000000000001L),
+                new DataSourceId(220000000000000001L),
                 1,
                 new StagedTextContent() {
                     @Override

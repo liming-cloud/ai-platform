@@ -159,7 +159,7 @@ public final class PostgresTextDataSourceRepository implements TextDataSourceRep
         var nextCursor = hasNext
                 ? encodeCursor(
                         pageRows.getLast().getCreatedAt(),
-                        UUID.fromString(pageRows.getLast().getId()))
+                        Long.parseLong(pageRows.getLast().getId()))
                 : null;
         return new TextDataSourceSlice(items, nextCursor);
     }
@@ -309,8 +309,8 @@ public final class PostgresTextDataSourceRepository implements TextDataSourceRep
         if (!request.getRequestFingerprint().equals(fingerprint)) {
             throw new IdempotencyConflictException();
         }
-        var knowledgeSpaceId = UUID.fromString(request.getKnowledgeSpaceId());
-        var dataSourceId = UUID.fromString(request.getDataSourceId());
+        var knowledgeSpaceId = Long.parseLong(request.getKnowledgeSpaceId());
+        var dataSourceId = Long.parseLong(request.getDataSourceId());
         var identity = mapper.findById(tenantId, knowledgeSpaceId, dataSourceId);
         if (identity == null) {
             throw new IllegalStateException("幂等记录引用的数据源不存在");
@@ -359,8 +359,8 @@ public final class PostgresTextDataSourceRepository implements TextDataSourceRep
 
     private TextDataSource toCurrentDomain(TextDataSourceRow row) {
         var tenantId = Long.parseLong(row.getTenantId());
-        var knowledgeSpaceId = UUID.fromString(row.getKnowledgeSpaceId());
-        var dataSourceId = UUID.fromString(row.getId());
+        var knowledgeSpaceId = Long.parseLong(row.getKnowledgeSpaceId());
+        var dataSourceId = Long.parseLong(row.getId());
         var content = row.getContentVersion() == 0
                 ? null
                 : requireContent(
@@ -384,8 +384,8 @@ public final class PostgresTextDataSourceRepository implements TextDataSourceRep
 
     private static TextDataSourceSummary toSummary(TextDataSourceRow row) {
         return new TextDataSourceSummary(
-                new DataSourceId(UUID.fromString(row.getId())),
-                new KnowledgeSpaceId(UUID.fromString(row.getKnowledgeSpaceId())),
+                DataSourceId.parse(row.getId()),
+                KnowledgeSpaceId.parse(row.getKnowledgeSpaceId()),
                 row.getName(),
                 DataSourceStatus.valueOf(row.getStatus()),
                 row.getVersion(),
@@ -396,8 +396,8 @@ public final class PostgresTextDataSourceRepository implements TextDataSourceRep
 
     private TextContentReference requireContent(
             long tenantId,
-            UUID knowledgeSpaceId,
-            UUID dataSourceId,
+            long knowledgeSpaceId,
+            long dataSourceId,
             int version) {
         var row = mapper.findContent(
                 tenantId,
@@ -480,7 +480,7 @@ public final class PostgresTextDataSourceRepository implements TextDataSourceRep
         }
     }
 
-    private static String encodeCursor(Instant createdAt, UUID id) {
+    private static String encodeCursor(Instant createdAt, long id) {
         var payload = createdAt + "|" + id;
         return Base64.getUrlEncoder()
                 .withoutPadding()
@@ -504,12 +504,12 @@ public final class PostgresTextDataSourceRepository implements TextDataSourceRep
             }
             return new CursorPosition(
                     Instant.parse(payload.substring(0, separator)),
-                    UUID.fromString(payload.substring(separator + 1)));
+                    Long.parseLong(payload.substring(separator + 1)));
         } catch (IllegalArgumentException exception) {
             throw new IllegalArgumentException("游标格式不正确", exception);
         }
     }
 
-    private record CursorPosition(Instant createdAt, UUID id) {
+    private record CursorPosition(Instant createdAt, long id) {
     }
 }

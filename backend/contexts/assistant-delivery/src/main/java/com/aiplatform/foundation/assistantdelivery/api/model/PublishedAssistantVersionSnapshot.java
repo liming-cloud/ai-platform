@@ -14,8 +14,8 @@ public record PublishedAssistantVersionSnapshot(
         int number,
         UUID chatDeploymentId,
         long chatDeploymentRevision,
-        UUID knowledgeSpaceId,
-        UUID indexVersionId,
+        long knowledgeSpaceId,
+        long indexVersionId,
         long indexVersionRevision,
         UUID embeddingDeploymentId,
         long embeddingDeploymentRevision,
@@ -31,8 +31,9 @@ public record PublishedAssistantVersionSnapshot(
         Objects.requireNonNull(assistantVersionId, "助手版本标识不能为空");
         Objects.requireNonNull(assistantId, "助手标识不能为空");
         Objects.requireNonNull(chatDeploymentId, "对话部署标识不能为空");
-        Objects.requireNonNull(knowledgeSpaceId, "知识空间标识不能为空");
-        Objects.requireNonNull(indexVersionId, "索引版本标识不能为空");
+        if (knowledgeSpaceId <= 0 || indexVersionId <= 0) {
+            throw new IllegalArgumentException("知识空间标识和索引版本标识必须是正整数");
+        }
         Objects.requireNonNull(embeddingDeploymentId, "嵌入部署标识不能为空");
         Objects.requireNonNull(systemInstruction, "系统指令不能为空");
         Objects.requireNonNull(citationPolicy, "引用策略不能为空");

@@ -10,8 +10,8 @@ import java.util.UUID;
  */
 public record IndexVectorBatch(
         TenantId tenantId,
-        UUID knowledgeSpaceId,
-        UUID indexVersionId,
+        long knowledgeSpaceId,
+        long indexVersionId,
         UUID embeddingDeploymentId,
         long embeddingRevision,
         int embeddingDimension,
@@ -19,8 +19,9 @@ public record IndexVectorBatch(
 
     public IndexVectorBatch {
         Objects.requireNonNull(tenantId, "租户标识不能为空");
-        Objects.requireNonNull(knowledgeSpaceId, "知识空间标识不能为空");
-        Objects.requireNonNull(indexVersionId, "索引版本标识不能为空");
+        if (knowledgeSpaceId <= 0 || indexVersionId <= 0) {
+            throw new IllegalArgumentException("知识空间标识和索引版本标识必须是正整数");
+        }
         Objects.requireNonNull(
                 embeddingDeploymentId,
                 "嵌入部署标识不能为空");

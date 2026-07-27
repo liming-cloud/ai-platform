@@ -5,7 +5,6 @@ import com.aiplatform.foundation.trustedquery.api.CandidateSearchUseCase;
 import com.aiplatform.foundation.trustedquery.api.model.CandidateSearchQuery;
 import com.aiplatform.foundation.trustedquery.api.model.CandidateSearchResult;
 import java.util.Objects;
-import java.util.UUID;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -46,7 +45,7 @@ public class CandidateSearchController {
      * 查询正文只包含知识空间、文本和结果上限，不包含租户。
      */
     public record CandidateSearchRequest(
-            UUID knowledgeSpaceId,
+            String knowledgeSpaceId,
             String text,
             Integer limit) {
     }

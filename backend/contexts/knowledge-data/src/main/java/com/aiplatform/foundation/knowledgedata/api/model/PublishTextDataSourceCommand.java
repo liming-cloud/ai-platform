@@ -2,15 +2,14 @@ package com.aiplatform.foundation.knowledgedata.api.model;
 
 import com.aiplatform.foundation.organizationaccess.api.model.TrustedRequestContext;
 import java.util.Objects;
-import java.util.UUID;
 
 /**
  * 发布当前文本内容版本的命令。
  */
 public record PublishTextDataSourceCommand(
         TrustedRequestContext context,
-        UUID knowledgeSpaceId,
-        UUID dataSourceId,
+        String knowledgeSpaceId,
+        String dataSourceId,
         long expectedVersion,
         String idempotencyKey) {
 

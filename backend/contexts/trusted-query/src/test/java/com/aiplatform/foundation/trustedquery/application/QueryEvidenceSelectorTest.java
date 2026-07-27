@@ -5,7 +5,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.aiplatform.foundation.knowledgedata.api.extension.IndexCandidate;
 import java.util.List;
-import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
 class QueryEvidenceSelectorTest {
@@ -61,7 +60,7 @@ class QueryEvidenceSelectorTest {
             double score,
             String content) {
         return new IndexCandidate(
-                UUID.fromString("80000000-0000-0000-0000-%012d".formatted(suffix)),
+                220000000000000000L + suffix,
                 1,
                 Integer.toHexString(suffix).repeat(64),
                 suffix,

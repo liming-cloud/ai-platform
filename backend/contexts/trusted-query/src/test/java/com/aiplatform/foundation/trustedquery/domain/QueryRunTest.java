@@ -20,7 +20,7 @@ class QueryRunTest {
         var running = running();
         var citation = new QueryCitation(
                 1,
-                UUID.randomUUID(),
+                220000000000000001L,
                 1,
                 "a".repeat(64),
                 0,

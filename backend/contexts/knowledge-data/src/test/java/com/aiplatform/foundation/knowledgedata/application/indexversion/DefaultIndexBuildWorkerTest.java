@@ -49,9 +49,9 @@ class DefaultIndexBuildWorkerTest {
     private static final TenantId TENANT_ID =
             new TenantId(100000000000000001L);
     private static final KnowledgeSpaceId SPACE_ID =
-            new KnowledgeSpaceId(UUID.fromString("20000000-0000-0000-0000-000000000001"));
+            new KnowledgeSpaceId(210000000000000001L);
     private static final DataSourceId SOURCE_ID =
-            new DataSourceId(UUID.fromString("30000000-0000-0000-0000-000000000001"));
+            new DataSourceId(220000000000000001L);
     private static final EmbeddingConfiguration EMBEDDING =
             new EmbeddingConfiguration(
                     UUID.fromString("40000000-0000-0000-0000-000000000001"),
@@ -142,8 +142,7 @@ class DefaultIndexBuildWorkerTest {
         var index = IndexVersion.start(
                 TENANT_ID,
                 SPACE_ID,
-                new IndexVersionId(
-                        UUID.fromString("50000000-0000-0000-0000-000000000001")),
+                new IndexVersionId(230000000000000001L),
                 digest,
                 ParagraphWindowChunker.POLICY,
                 EMBEDDING,

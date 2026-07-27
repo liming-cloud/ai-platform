@@ -25,7 +25,7 @@ class QueryRunEventTest {
                 "商品位于一层。\n\n引用：[1]",
                 List.of(new QueryCitation(
                         1,
-                        UUID.randomUUID(),
+                        220000000000000001L,
                         1,
                         "b".repeat(64),
                         0,
@@ -54,7 +54,7 @@ class QueryRunEventTest {
                 "商品位于一层。\n\n引用：[1]",
                 List.of(new QueryCitation(
                         1,
-                        UUID.randomUUID(),
+                        220000000000000002L,
                         1,
                         "b".repeat(64),
                         0,

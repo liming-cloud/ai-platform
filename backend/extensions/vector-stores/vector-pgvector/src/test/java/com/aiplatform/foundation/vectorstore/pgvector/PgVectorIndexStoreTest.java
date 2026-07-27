@@ -33,16 +33,12 @@ class PgVectorIndexStoreTest {
             new TenantId(100000000000000001L);
     private static final TenantId OTHER_TENANT =
             new TenantId(100000000000000002L);
-    private static final UUID SPACE =
-            UUID.fromString("20000000-0000-0000-0000-000000000001");
+    private static final long SPACE = 210000000000000001L;
     private static final UUID DEPLOYMENT =
             UUID.fromString("30000000-0000-0000-0000-000000000001");
-    private static final UUID INDEX =
-            UUID.fromString("40000000-0000-0000-0000-000000000001");
-    private static final UUID OTHER_INDEX =
-            UUID.fromString("40000000-0000-0000-0000-000000000002");
-    private static final UUID SOURCE =
-            UUID.fromString("50000000-0000-0000-0000-000000000001");
+    private static final long INDEX = 230000000000000001L;
+    private static final long OTHER_INDEX = 230000000000000002L;
+    private static final long SOURCE = 220000000000000001L;
     private static final Instant NOW = Instant.parse("2026-07-27T03:00:00Z");
 
     @Container
@@ -181,7 +177,7 @@ class PgVectorIndexStoreTest {
 
     private static IndexVectorBatch batch(
             TenantId tenantId,
-            UUID indexVersionId,
+            long indexVersionId,
             List<IndexVector> vectors) {
         return new IndexVectorBatch(
                 tenantId,
@@ -208,7 +204,7 @@ class PgVectorIndexStoreTest {
                 embedding);
     }
 
-    private void insertActiveIndex(TenantId tenantId, UUID indexVersionId) {
+    private void insertActiveIndex(TenantId tenantId, long indexVersionId) {
         var time = NOW.atOffset(ZoneOffset.UTC);
         jdbc.update(
                 """

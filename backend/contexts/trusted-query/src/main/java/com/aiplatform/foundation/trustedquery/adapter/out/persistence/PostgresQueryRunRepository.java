@@ -309,7 +309,7 @@ public final class PostgresQueryRunRepository implements QueryRunRepository {
     private static QueryCitation toCitation(QueryCitationRow row) {
         return new QueryCitation(
                 row.getSequence(),
-                UUID.fromString(row.getDataSourceId()),
+                Long.parseLong(row.getDataSourceId()),
                 row.getContentVersion(),
                 row.getChunkId(),
                 row.getOrdinal(),

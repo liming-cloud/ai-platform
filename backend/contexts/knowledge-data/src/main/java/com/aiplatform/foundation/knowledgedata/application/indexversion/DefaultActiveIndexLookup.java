@@ -7,7 +7,6 @@ import com.aiplatform.foundation.knowledgedata.application.port.out.IndexVersion
 import com.aiplatform.foundation.knowledgedata.domain.model.KnowledgeSpaceId;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.UUID;
 
 /**
  * 从索引生命周期投影知识空间当前活动索引快照。
@@ -23,9 +22,8 @@ public final class DefaultActiveIndexLookup implements ActiveIndexLookup {
     @Override
     public Optional<ActiveIndexSnapshot> find(
             TenantId tenantId,
-            UUID knowledgeSpaceId) {
+            long knowledgeSpaceId) {
         Objects.requireNonNull(tenantId, "租户标识不能为空");
-        Objects.requireNonNull(knowledgeSpaceId, "知识空间标识不能为空");
         return indexes
                 .findActive(tenantId, new KnowledgeSpaceId(knowledgeSpaceId))
                 .map(index -> new ActiveIndexSnapshot(

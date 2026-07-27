@@ -71,7 +71,7 @@ public final class DefaultQueryRunEventService implements QueryRunEventUseCase {
     private static QueryCitationView toView(QueryCitation citation) {
         return new QueryCitationView(
                 citation.sequence(),
-                citation.dataSourceId(),
+                Long.toString(citation.dataSourceId()),
                 citation.contentVersion(),
                 citation.chunkId(),
                 citation.ordinal(),

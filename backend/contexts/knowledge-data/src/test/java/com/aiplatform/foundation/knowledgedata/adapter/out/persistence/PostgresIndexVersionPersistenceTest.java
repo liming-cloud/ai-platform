@@ -50,7 +50,7 @@ class PostgresIndexVersionPersistenceTest {
     private static final TenantId OTHER_TENANT =
             new TenantId(100000000000000002L);
     private static final KnowledgeSpaceId SPACE =
-            new KnowledgeSpaceId(UUID.fromString("20000000-0000-0000-0000-000000000001"));
+            new KnowledgeSpaceId(210000000000000001L);
     private static final MembershipId CREATOR =
             new MembershipId(3382738893456539650L);
     private static final EmbeddingConfiguration EMBEDDING =
@@ -104,19 +104,18 @@ class PostgresIndexVersionPersistenceTest {
         jdbc.update("DELETE FROM knowledge_data.text_data_source");
         jdbc.update("DELETE FROM knowledge_data.knowledge_space_request");
         jdbc.update("DELETE FROM knowledge_data.knowledge_space");
-        insertPublishedSource(TENANT, "50000000-0000-0000-0000-000000000001", "a".repeat(64));
-        insertPublishedSource(TENANT, "50000000-0000-0000-0000-000000000002", "b".repeat(64));
+        insertPublishedSource(TENANT, 220000000000000001L, "a".repeat(64));
+        insertPublishedSource(TENANT, 220000000000000002L, "b".repeat(64));
         insertPublishedSource(
                 OTHER_TENANT,
-                "50000000-0000-0000-0000-000000000003",
+                220000000000000003L,
                 "c".repeat(64));
         vectorWriter.clear();
     }
 
     @Test
     void 创建冻结当前已发布来源并支持租户内幂等重放() {
-        var id = new IndexVersionId(
-                UUID.fromString("60000000-0000-0000-0000-000000000001"));
+        var id = new IndexVersionId(230000000000000001L);
         var first = repository.create(request(
                 TENANT,
                 id,
@@ -124,7 +123,7 @@ class PostgresIndexVersionPersistenceTest {
                 "d".repeat(64)));
         var replay = repository.create(request(
                 TENANT,
-                new IndexVersionId(UUID.randomUUID()),
+                new IndexVersionId(230000000000000002L),
                 "create-index-0001",
                 "d".repeat(64)));
 
@@ -146,15 +145,14 @@ class PostgresIndexVersionPersistenceTest {
 
         assertThrows(IdempotencyConflictException.class, () -> repository.create(request(
                 TENANT,
-                new IndexVersionId(UUID.randomUUID()),
+                new IndexVersionId(230000000000000003L),
                 "create-index-0001",
                 "e".repeat(64))));
     }
 
     @Test
     void 构建租约只认领一次且产物与就绪状态同事务提交() {
-        var id = new IndexVersionId(
-                UUID.fromString("60000000-0000-0000-0000-000000000002"));
+        var id = new IndexVersionId(230000000000000004L);
         repository.create(request(TENANT, id, "create-index-0002", "d".repeat(64)));
 
         var claimed = queue.claim(NOW.plusSeconds(1), Duration.ofMinutes(1));
@@ -180,10 +178,8 @@ class PostgresIndexVersionPersistenceTest {
 
     @Test
     void 新版本激活时旧活动版本在同一事务中降级() {
-        var firstId = new IndexVersionId(
-                UUID.fromString("60000000-0000-0000-0000-000000000003"));
-        var secondId = new IndexVersionId(
-                UUID.fromString("60000000-0000-0000-0000-000000000004"));
+        var firstId = new IndexVersionId(230000000000000005L);
+        var secondId = new IndexVersionId(230000000000000006L);
         makeReady(firstId, "create-index-0003");
         var firstActive = repository.activate(
                 TENANT,
@@ -247,7 +243,7 @@ class PostgresIndexVersionPersistenceTest {
                 EMBEDDING.deploymentRevision(),
                 EMBEDDING.dimension(),
                 List.of(new IndexVector(
-                        UUID.fromString("50000000-0000-0000-0000-000000000001"),
+                        220000000000000001L,
                         1,
                         "3".repeat(64),
                         0,
@@ -258,7 +254,7 @@ class PostgresIndexVersionPersistenceTest {
 
     private void insertPublishedSource(
             TenantId tenant,
-            String sourceId,
+            long sourceId,
             String contentDigest) {
         jdbc.update(
                 """
@@ -277,7 +273,7 @@ class PostgresIndexVersionPersistenceTest {
                 INSERT INTO knowledge_data.text_data_source (
                     tenant_id, knowledge_space_id, id, name, status, version,
                     content_version, published_content_version, created_by, created_at
-                ) VALUES (?, ?, ?::uuid, ?, 'PUBLISHED', 2, 1, 1, ?, ?)
+                ) VALUES (?, ?, ?, ?, 'PUBLISHED', 2, 1, 1, ?, ?)
                 """,
                 tenant.value(),
                 SPACE.value(),
@@ -290,7 +286,7 @@ class PostgresIndexVersionPersistenceTest {
                 INSERT INTO knowledge_data.text_data_source_content (
                     tenant_id, knowledge_space_id, data_source_id, version,
                     object_key, sha256, byte_size, media_type, created_at
-                ) VALUES (?, ?, ?::uuid, 1, ?, ?, 16, ?, ?)
+                ) VALUES (?, ?, ?, 1, ?, ?, 16, ?, ?)
                 """,
                 tenant.value(),
                 SPACE.value(),

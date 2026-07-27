@@ -118,7 +118,11 @@ public final class DefaultAssistantService implements AssistantUseCase {
                 .orElseThrow(() -> new AssistantReferenceUnavailableException(
                         "只能绑定当前租户的已发布对话部署"));
         var index = activeIndexes
-                .find(command.context().tenantId(), command.knowledgeSpaceId())
+                .find(
+                        command.context().tenantId(),
+                        parsePositiveIdentifier(
+                                command.knowledgeSpaceId(),
+                                "知识空间标识"))
                 .orElseThrow(() -> new AssistantReferenceUnavailableException(
                         "只能绑定当前租户知识空间的活动索引"));
         var advanced = assistant.advanceVersion();
@@ -219,8 +223,8 @@ public final class DefaultAssistantService implements AssistantUseCase {
                 version.number(),
                 version.chatDeploymentId(),
                 version.chatDeploymentRevision(),
-                version.knowledgeSpaceId(),
-                version.indexVersionId(),
+                Long.toString(version.knowledgeSpaceId()),
+                Long.toString(version.indexVersionId()),
                 version.indexVersionRevision(),
                 version.embeddingDeploymentId(),
                 version.embeddingDeploymentRevision(),
@@ -241,7 +245,7 @@ public final class DefaultAssistantService implements AssistantUseCase {
         var digest = digest();
         update(digest, command.assistantId().toString());
         update(digest, command.chatDeploymentId().toString());
-        update(digest, command.knowledgeSpaceId().toString());
+        update(digest, command.knowledgeSpaceId());
         update(digest, command.systemInstruction());
         update(digest, Integer.toString(command.maxOutputTokens()));
         update(digest, Integer.toString(command.retrievalLimit()));
@@ -255,6 +259,19 @@ public final class DefaultAssistantService implements AssistantUseCase {
         var digest = digest();
         update(digest, value);
         return HexFormat.of().formatHex(digest.digest());
+    }
+
+    private static long parsePositiveIdentifier(String value, String field) {
+        Objects.requireNonNull(value, field + "不能为空");
+        try {
+            var identifier = Long.parseLong(value);
+            if (identifier <= 0) {
+                throw new IllegalArgumentException(field + "必须是正整数");
+            }
+            return identifier;
+        } catch (NumberFormatException exception) {
+            throw new IllegalArgumentException(field + "格式不正确", exception);
+        }
     }
 
     private static String fingerprint(UUID assistantVersionId, long expectedVersion) {

@@ -2,14 +2,13 @@ package com.aiplatform.foundation.knowledgedata.api.model;
 
 import com.aiplatform.foundation.organizationaccess.api.model.TrustedRequestContext;
 import java.util.Objects;
-import java.util.UUID;
 
 /**
  * 查询知识空间内文本数据源的条件。
  */
 public record ListTextDataSourcesQuery(
         TrustedRequestContext context,
-        UUID knowledgeSpaceId,
+        String knowledgeSpaceId,
         String cursor,
         int limit) {
 

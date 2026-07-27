@@ -90,7 +90,7 @@ public final class PostgresIndexVersionRepository implements IndexVersionReposit
         var nextCursor = hasNext
                 ? encodeCursor(
                         pageRows.getLast().getCreatedAt(),
-                        UUID.fromString(pageRows.getLast().getId()))
+                        Long.parseLong(pageRows.getLast().getId()))
                 : null;
         return new IndexVersionSlice(items, nextCursor);
     }
@@ -169,7 +169,7 @@ public final class PostgresIndexVersionRepository implements IndexVersionReposit
                     tenantId,
                     knowledgeSpaceId,
                     request.indexVersionId().value(),
-                    UUID.fromString(source.getDataSourceId()),
+                    Long.parseLong(source.getDataSourceId()),
                     source.getContentVersion(),
                     source.getObjectKey(),
                     source.getSha256(),
@@ -265,8 +265,8 @@ public final class PostgresIndexVersionRepository implements IndexVersionReposit
         }
         var row = mapper.findVersion(
                 tenantId,
-                UUID.fromString(request.getKnowledgeSpaceId()),
-                UUID.fromString(request.getIndexVersionId()));
+                Long.parseLong(request.getKnowledgeSpaceId()),
+                Long.parseLong(request.getIndexVersionId()));
         if (row == null) {
             throw new IndexVersionNotFoundException();
         }
@@ -276,8 +276,8 @@ public final class PostgresIndexVersionRepository implements IndexVersionReposit
     static IndexVersion toDomain(IndexVersionRow row) {
         return IndexVersion.reconstitute(
                 TenantId.parse(row.getTenantId()),
-                new KnowledgeSpaceId(UUID.fromString(row.getKnowledgeSpaceId())),
-                new IndexVersionId(UUID.fromString(row.getId())),
+                KnowledgeSpaceId.parse(row.getKnowledgeSpaceId()),
+                IndexVersionId.parse(row.getId()),
                 row.getSourceSnapshotDigest(),
                 row.getChunkPolicy(),
                 new EmbeddingConfiguration(
@@ -326,11 +326,11 @@ public final class PostgresIndexVersionRepository implements IndexVersionReposit
         digest.update((byte) 0);
     }
 
-    private static String lockScope(long tenantId, UUID knowledgeSpaceId) {
+    private static String lockScope(long tenantId, long knowledgeSpaceId) {
         return tenantId + ":" + knowledgeSpaceId;
     }
 
-    private static String encodeCursor(Instant createdAt, UUID id) {
+    private static String encodeCursor(Instant createdAt, long id) {
         var raw = createdAt + "|" + id;
         return Base64.getUrlEncoder()
                 .withoutPadding()
@@ -352,12 +352,12 @@ public final class PostgresIndexVersionRepository implements IndexVersionReposit
             }
             return new CursorPosition(
                     Instant.parse(raw.substring(0, separator)),
-                    UUID.fromString(raw.substring(separator + 1)));
+                    Long.parseLong(raw.substring(separator + 1)));
         } catch (RuntimeException exception) {
             throw new IllegalArgumentException("分页游标格式不正确", exception);
         }
     }
 
-    private record CursorPosition(Instant createdAt, UUID id) {
+    private record CursorPosition(Instant createdAt, long id) {
     }
 }

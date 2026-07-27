@@ -7,8 +7,8 @@ import java.util.UUID;
  * 不暴露持久化和模型框架类型的索引版本视图。
  */
 public record IndexVersionView(
-        UUID id,
-        UUID knowledgeSpaceId,
+        String id,
+        String knowledgeSpaceId,
         String sourceSnapshotDigest,
         String chunkPolicy,
         UUID embeddingDeploymentId,

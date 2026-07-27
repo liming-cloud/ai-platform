@@ -7,3 +7,9 @@ spring:
       - classpath:db/migration/assistant-delivery
       - classpath:db/migration/trusted-query
       - classpath:db/demo/organization-access
+
+foundation:
+  persistence:
+    snowflake:
+      worker-id: ${FOUNDATION_SNOWFLAKE_WORKER_ID:1}
+      datacenter-id: ${FOUNDATION_SNOWFLAKE_DATACENTER_ID:1}

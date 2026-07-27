@@ -9,7 +9,7 @@ import java.util.UUID;
  */
 public record AssistantVersionRequest(
         UUID chatDeploymentId,
-        UUID knowledgeSpaceId,
+        String knowledgeSpaceId,
         String systemInstruction,
         int maxOutputTokens,
         int retrievalLimit,

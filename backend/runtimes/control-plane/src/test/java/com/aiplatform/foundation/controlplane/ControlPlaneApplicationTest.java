@@ -14,6 +14,8 @@ class ControlPlaneApplicationTest {
                 .web(WebApplicationType.NONE)
                 .run(
                         "--spring.main.banner-mode=off",
+                        "--foundation.persistence.snowflake.worker-id=1",
+                        "--foundation.persistence.snowflake.datacenter-id=1",
                         "--foundation.organization-access.enabled=false",
                         "--foundation.knowledge-data.enabled=false",
                         "--foundation.model-catalog.enabled=false",

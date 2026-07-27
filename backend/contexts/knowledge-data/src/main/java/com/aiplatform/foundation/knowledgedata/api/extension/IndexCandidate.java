@@ -1,14 +1,13 @@
 package com.aiplatform.foundation.knowledgedata.api.extension;
 
 import java.util.Objects;
-import java.util.UUID;
 import java.util.regex.Pattern;
 
 /**
  * 严格授权范围内的单个检索候选。
  */
 public record IndexCandidate(
-        UUID dataSourceId,
+        long dataSourceId,
         int contentVersion,
         String chunkId,
         int ordinal,
@@ -18,7 +17,9 @@ public record IndexCandidate(
     private static final Pattern SHA256 = Pattern.compile("[0-9a-f]{64}");
 
     public IndexCandidate {
-        Objects.requireNonNull(dataSourceId, "数据源标识不能为空");
+        if (dataSourceId <= 0) {
+            throw new IllegalArgumentException("数据源标识必须是正整数");
+        }
         if (contentVersion < 1) {
             throw new IllegalArgumentException("内容版本必须大于零");
         }

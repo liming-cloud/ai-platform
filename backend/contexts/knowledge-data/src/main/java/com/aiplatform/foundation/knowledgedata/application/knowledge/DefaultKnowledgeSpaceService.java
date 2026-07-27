@@ -10,6 +10,7 @@ import com.aiplatform.foundation.knowledgedata.application.port.out.KnowledgeSpa
 import com.aiplatform.foundation.knowledgedata.application.port.out.KnowledgeSpaceRepository;
 import com.aiplatform.foundation.knowledgedata.domain.model.KnowledgeSpace;
 import com.aiplatform.foundation.knowledgedata.domain.model.KnowledgeSpaceId;
+import com.aiplatform.foundation.kernel.identifier.EntityIdGenerator;
 import com.aiplatform.foundation.organizationaccess.api.model.PermissionCode;
 import com.aiplatform.foundation.organizationaccess.api.model.TrustedRequestContext;
 import java.nio.charset.StandardCharsets;
@@ -18,8 +19,6 @@ import java.security.NoSuchAlgorithmException;
 import java.time.Clock;
 import java.util.HexFormat;
 import java.util.Objects;
-import java.util.UUID;
-import java.util.function.Supplier;
 
 /**
  * 在可信租户和权限边界内编排知识空间。
@@ -31,13 +30,13 @@ public final class DefaultKnowledgeSpaceService implements KnowledgeSpaceUseCase
 
     private final KnowledgeSpaceRepository repository;
     private final Clock clock;
-    private final Supplier<UUID> identifiers;
+    private final EntityIdGenerator identifiers;
     private final int tenantLimit;
 
     public DefaultKnowledgeSpaceService(
             KnowledgeSpaceRepository repository,
             Clock clock,
-            Supplier<UUID> identifiers,
+            EntityIdGenerator identifiers,
             int tenantLimit) {
         this.repository = Objects.requireNonNull(repository, "知识空间仓储不能为空");
         this.clock = Objects.requireNonNull(clock, "时钟不能为空");
@@ -55,7 +54,7 @@ public final class DefaultKnowledgeSpaceService implements KnowledgeSpaceUseCase
         var context = command.context();
         var space = KnowledgeSpace.create(
                 context.tenantId(),
-                new KnowledgeSpaceId(identifiers.get()),
+                new KnowledgeSpaceId(identifiers.nextId()),
                 command.name(),
                 command.description(),
                 context.membershipId(),
@@ -92,7 +91,7 @@ public final class DefaultKnowledgeSpaceService implements KnowledgeSpaceUseCase
 
     private static KnowledgeSpaceView toView(KnowledgeSpace space) {
         return new KnowledgeSpaceView(
-                space.id().value(),
+                space.id().toString(),
                 space.name(),
                 space.description(),
                 space.status().name(),

@@ -3,15 +3,14 @@ package com.aiplatform.foundation.knowledgedata.api.model;
 import com.aiplatform.foundation.organizationaccess.api.model.TrustedRequestContext;
 import java.io.InputStream;
 import java.util.Objects;
-import java.util.UUID;
 
 /**
  * 流式上传文本数据源内容的命令。
  */
 public record UploadTextContentCommand(
         TrustedRequestContext context,
-        UUID knowledgeSpaceId,
-        UUID dataSourceId,
+        String knowledgeSpaceId,
+        String dataSourceId,
         long expectedVersion,
         String idempotencyKey,
         String mediaType,

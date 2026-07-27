@@ -16,6 +16,7 @@ import com.aiplatform.foundation.knowledgedata.domain.indexversion.IndexVersion;
 import com.aiplatform.foundation.knowledgedata.domain.indexversion.IndexVersionId;
 import com.aiplatform.foundation.knowledgedata.domain.indexversion.ParagraphWindowChunker;
 import com.aiplatform.foundation.knowledgedata.domain.model.KnowledgeSpaceId;
+import com.aiplatform.foundation.kernel.identifier.EntityIdGenerator;
 import com.aiplatform.foundation.modelruntime.api.catalog.PublishedEmbeddingDeploymentLookup;
 import com.aiplatform.foundation.organizationaccess.api.model.PermissionCode;
 import com.aiplatform.foundation.organizationaccess.api.model.TrustedRequestContext;
@@ -25,8 +26,6 @@ import java.security.NoSuchAlgorithmException;
 import java.time.Clock;
 import java.util.HexFormat;
 import java.util.Objects;
-import java.util.UUID;
-import java.util.function.Supplier;
 
 /**
  * 在可信租户边界内创建固定策略的索引版本。
@@ -39,13 +38,13 @@ public final class DefaultIndexVersionService implements IndexVersionUseCase {
     private final IndexVersionRepository repository;
     private final PublishedEmbeddingDeploymentLookup embeddingDeployments;
     private final Clock clock;
-    private final Supplier<UUID> identifiers;
+    private final EntityIdGenerator identifiers;
 
     public DefaultIndexVersionService(
             IndexVersionRepository repository,
             PublishedEmbeddingDeploymentLookup embeddingDeployments,
             Clock clock,
-            Supplier<UUID> identifiers) {
+            EntityIdGenerator identifiers) {
         this.repository = Objects.requireNonNull(repository, "索引版本仓储不能为空");
         this.embeddingDeployments = Objects.requireNonNull(
                 embeddingDeployments,
@@ -70,8 +69,8 @@ public final class DefaultIndexVersionService implements IndexVersionUseCase {
                 deployment.dimension());
         var request = new IndexVersionBuildRequest(
                 context.tenantId(),
-                new KnowledgeSpaceId(command.knowledgeSpaceId()),
-                new IndexVersionId(identifiers.get()),
+                KnowledgeSpaceId.parse(command.knowledgeSpaceId()),
+                new IndexVersionId(identifiers.nextId()),
                 embedding,
                 ParagraphWindowChunker.POLICY,
                 context.membershipId(),
@@ -93,7 +92,7 @@ public final class DefaultIndexVersionService implements IndexVersionUseCase {
         requirePermission(query.context(), READ);
         var slice = repository.findPage(
                 query.context().tenantId(),
-                new KnowledgeSpaceId(query.knowledgeSpaceId()),
+                KnowledgeSpaceId.parse(query.knowledgeSpaceId()),
                 query.cursor(),
                 query.limit());
         return new IndexVersionPage(
@@ -109,8 +108,8 @@ public final class DefaultIndexVersionService implements IndexVersionUseCase {
         requirePermission(command.context(), WRITE);
         var outcome = repository.activate(
                 command.context().tenantId(),
-                new KnowledgeSpaceId(command.knowledgeSpaceId()),
-                new IndexVersionId(command.indexVersionId()),
+                KnowledgeSpaceId.parse(command.knowledgeSpaceId()),
+                IndexVersionId.parse(command.indexVersionId()),
                 command.expectedVersion(),
                 command.idempotencyKey(),
                 fingerprint(
@@ -124,7 +123,7 @@ public final class DefaultIndexVersionService implements IndexVersionUseCase {
     }
 
     private static String fingerprint(
-            UUID knowledgeSpaceId,
+            String knowledgeSpaceId,
             EmbeddingConfiguration embedding,
             String chunkPolicy) {
         try {
@@ -141,8 +140,8 @@ public final class DefaultIndexVersionService implements IndexVersionUseCase {
     }
 
     private static String fingerprint(
-            UUID knowledgeSpaceId,
-            UUID indexVersionId,
+            String knowledgeSpaceId,
+            String indexVersionId,
             long expectedVersion) {
         try {
             var digest = MessageDigest.getInstance("SHA-256");
@@ -166,8 +165,8 @@ public final class DefaultIndexVersionService implements IndexVersionUseCase {
     private static IndexVersionView toView(IndexVersion version) {
         var embedding = version.embedding();
         return new IndexVersionView(
-                version.id().value(),
-                version.knowledgeSpaceId().value(),
+                version.id().toString(),
+                version.knowledgeSpaceId().toString(),
                 version.sourceSnapshotDigest(),
                 version.chunkPolicy(),
                 embedding.deploymentId(),

@@ -10,7 +10,7 @@ import java.util.regex.Pattern;
  */
 public record CreateIndexVersionCommand(
         TrustedRequestContext context,
-        UUID knowledgeSpaceId,
+        String knowledgeSpaceId,
         UUID embeddingDeploymentId,
         String idempotencyKey) {
 

@@ -23,7 +23,6 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Set;
-import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -46,14 +45,10 @@ class CandidateScenarioTest {
             new TenantId(100000000000000001L);
     private static final TenantId CAMPUS_TENANT =
             new TenantId(100000000000000002L);
-    private static final UUID SPACE =
-            UUID.fromString("20000000-0000-0000-0000-000000000001");
-    private static final UUID STORE_INDEX =
-            UUID.fromString("30000000-0000-0000-0000-000000000001");
-    private static final UUID CAMPUS_INDEX =
-            UUID.fromString("30000000-0000-0000-0000-000000000002");
-    private static final UUID SOURCE =
-            UUID.fromString("40000000-0000-0000-0000-000000000001");
+    private static final long SPACE = 210000000000000001L;
+    private static final long STORE_INDEX = 230000000000000001L;
+    private static final long CAMPUS_INDEX = 230000000000000002L;
+    private static final long SOURCE = 220000000000000001L;
     private static final EmbeddingDeploymentRef DEPLOYMENT =
             new EmbeddingDeploymentRef(
                     DeterministicEmbeddingModel.DEPLOYMENT_ID,
@@ -120,12 +115,12 @@ class CandidateScenarioTest {
     void 门店与校园固定查询命中各自候选且不交叉泄漏() {
         var store = searches.search(new CandidateSearchQuery(
                 context(STORE_TENANT),
-                SPACE,
+                Long.toString(SPACE),
                 "门店一层饮料区的可乐价格",
                 5));
         var campus = searches.search(new CandidateSearchQuery(
                 context(CAMPUS_TENANT),
-                SPACE,
+                Long.toString(SPACE),
                 "图书馆工作日几点开放",
                 5));
 
@@ -141,7 +136,7 @@ class CandidateScenarioTest {
 
     private static IndexVectorBatch batch(
             TenantId tenant,
-            UUID indexId,
+            long indexId,
             String text,
             String chunkId) {
         var model = new DeterministicEmbeddingModel();
@@ -180,7 +175,7 @@ class CandidateScenarioTest {
                 "trace-scenario-001");
     }
 
-    private void insertActiveIndex(TenantId tenant, UUID indexId) {
+    private void insertActiveIndex(TenantId tenant, long indexId) {
         var time = NOW.atOffset(ZoneOffset.UTC);
         jdbc.update(
                 """

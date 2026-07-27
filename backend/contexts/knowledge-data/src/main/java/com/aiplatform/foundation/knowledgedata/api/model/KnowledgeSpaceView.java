@@ -2,13 +2,12 @@ package com.aiplatform.foundation.knowledgedata.api.model;
 
 import java.time.Instant;
 import java.util.Objects;
-import java.util.UUID;
 
 /**
  * 不暴露持久化和框架类型的知识空间公共视图。
  */
 public record KnowledgeSpaceView(
-        UUID id,
+        String id,
         String name,
         String description,
         String status,

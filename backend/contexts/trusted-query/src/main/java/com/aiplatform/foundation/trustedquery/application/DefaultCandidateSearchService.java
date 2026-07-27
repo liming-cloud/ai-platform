@@ -49,19 +49,31 @@ public final class DefaultCandidateSearchService implements CandidateSearchUseCa
         }
         var found = candidates.retrieve(new IndexCandidateQuery(
                 query.context().tenantId(),
-                query.knowledgeSpaceId(),
+                parsePositiveIdentifier(query.knowledgeSpaceId()),
                 deployment.deploymentId(),
                 deployment.revision(),
                 embedded.vectors().getFirst().values(),
                 query.limit()));
         return new CandidateSearchResult(found.stream()
                 .map(value -> new CandidateView(
-                        value.dataSourceId(),
+                        Long.toString(value.dataSourceId()),
                         value.contentVersion(),
                         value.chunkId(),
                         value.ordinal(),
                         value.content(),
                         value.score()))
                 .toList());
+    }
+
+    private static long parsePositiveIdentifier(String value) {
+        try {
+            var identifier = Long.parseLong(value);
+            if (identifier <= 0) {
+                throw new IllegalArgumentException("知识空间标识必须是正整数");
+            }
+            return identifier;
+        } catch (NumberFormatException exception) {
+            throw new IllegalArgumentException("知识空间标识格式不正确", exception);
+        }
     }
 }

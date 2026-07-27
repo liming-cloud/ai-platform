@@ -4,7 +4,6 @@ import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.baomidou.mybatisplus.annotation.IdType;
 import java.time.Instant;
-import java.util.UUID;
 
 /**
  * MyBatis-Plus 表元数据实体，领域层不依赖该类型。
@@ -12,21 +11,21 @@ import java.util.UUID;
 @TableName("knowledge_data.knowledge_space")
 public class KnowledgeSpaceEntity {
 
-    @TableId(type = IdType.INPUT)
-    private UUID id;
+    @TableId(type = IdType.ASSIGN_ID)
+    private Long id;
     private Long tenantId;
     private String name;
     private String description;
     private String status;
     private long version;
-    private UUID createdBy;
+    private Long createdBy;
     private Instant createdAt;
 
-    public UUID getId() {
+    public Long getId() {
         return id;
     }
 
-    public void setId(UUID id) {
+    public void setId(Long id) {
         this.id = id;
     }
 
@@ -70,11 +69,11 @@ public class KnowledgeSpaceEntity {
         this.version = version;
     }
 
-    public UUID getCreatedBy() {
+    public Long getCreatedBy() {
         return createdBy;
     }
 
-    public void setCreatedBy(UUID createdBy) {
+    public void setCreatedBy(Long createdBy) {
         this.createdBy = createdBy;
     }
 

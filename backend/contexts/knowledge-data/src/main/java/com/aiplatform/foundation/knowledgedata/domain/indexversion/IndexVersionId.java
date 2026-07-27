@@ -1,14 +1,26 @@
 package com.aiplatform.foundation.knowledgedata.domain.indexversion;
 
-import java.util.Objects;
-import java.util.UUID;
-
 /**
  * 索引版本标识。
  */
-public record IndexVersionId(UUID value) {
+public record IndexVersionId(long value) {
 
     public IndexVersionId {
-        Objects.requireNonNull(value, "索引版本标识不能为空");
+        if (value <= 0) {
+            throw new IllegalArgumentException("索引版本标识必须是正整数");
+        }
+    }
+
+    public static IndexVersionId parse(String value) {
+        try {
+            return new IndexVersionId(Long.parseLong(value));
+        } catch (NumberFormatException exception) {
+            throw new IllegalArgumentException("索引版本标识必须是十进制正整数", exception);
+        }
+    }
+
+    @Override
+    public String toString() {
+        return Long.toString(value);
     }
 }
