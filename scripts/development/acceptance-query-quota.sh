@@ -158,7 +158,7 @@ status="$(
 [[ "${status}" == "429" ]]
 jq -e \
   --argjson limit "${DAILY_LIMIT}" \
-  '.code == "QUERY_QUOTA_EXCEEDED"
+  '.code == "TRUSTED_QUERY.QUOTA.0001"
     and .details.limitType == "DAILY"
     and .details.limit == $limit
     and (.details.retryAt | type == "string")' \

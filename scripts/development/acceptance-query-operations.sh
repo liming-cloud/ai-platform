@@ -147,8 +147,12 @@ campus_usage="$(authorized_get "${campus_token}" "usage")"
 assert_usage_matches_database "${STORE_TENANT}" "${store_usage}"
 assert_usage_matches_database "${CAMPUS_TENANT}" "${campus_usage}"
 
-store_audit="$(authorized_get "${store_token}" "audit-records?limit=100")"
-campus_audit="$(authorized_get "${campus_token}" "audit-records?limit=100")"
+store_audit="$(
+  authorized_get "${store_token}" "audit-records?pageNumber=1&pageSize=100"
+)"
+campus_audit="$(
+  authorized_get "${campus_token}" "audit-records?pageNumber=1&pageSize=100"
+)"
 
 jq -e \
   'all(
@@ -194,16 +198,32 @@ jq -e \
   'all(.items[]; .queryRunId != $store_run_id)' \
   >/dev/null <<<"${campus_audit}"
 
-first_page="$(authorized_get "${store_token}" "audit-records?limit=1")"
-if [[ "$(jq -r '.nextCursor // empty' <<<"${first_page}")" != "" ]]; then
-  next_cursor="$(jq -er '.nextCursor | @uri' <<<"${first_page}")"
-  second_page="$(
-    authorized_get "${store_token}" "audit-records?limit=1&cursor=${next_cursor}"
-  )"
-  jq -e \
-    --arg first_id "$(jq -er '.items[0].queryRunId' <<<"${first_page}")" \
-    '.items | length == 1 and .[0].queryRunId != $first_id' \
-    >/dev/null <<<"${second_page}"
-fi
+first_page="$(
+  authorized_get "${store_token}" "audit-records?pageNumber=1&pageSize=1"
+)"
+second_page="$(
+  authorized_get "${store_token}" "audit-records?pageNumber=2&pageSize=1"
+)"
+jq -e \
+  '.items | length == 1' \
+  >/dev/null <<<"${first_page}"
+jq -e \
+  '.pageNumber == 1
+    and .pageSize == 1
+    and .totalElements >= 2
+    and .totalPages >= 2
+    and .hasPrevious == false
+    and .hasNext == true
+    and (has("nextCursor") | not)' \
+  >/dev/null <<<"${first_page}"
+jq -e \
+  --arg first_id "$(jq -er '.items[0].queryRunId' <<<"${first_page}")" \
+  '(.items | length) == 1
+    and .items[0].queryRunId != $first_id
+    and .pageNumber == 2
+    and .pageSize == 1
+    and .hasPrevious == true
+    and (has("nextCursor") | not)' \
+  >/dev/null <<<"${second_page}"
 
-echo "查询运营验收通过：权限、用量实数、脱敏审计、游标分页和租户隔离均通过"
+echo "查询运营验收通过：权限、用量实数、脱敏审计、页码分页和租户隔离均通过"
