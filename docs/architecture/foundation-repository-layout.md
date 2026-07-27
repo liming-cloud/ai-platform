@@ -37,7 +37,7 @@
 ```text
 限界上下文 = 默认一个 Maven 模块
 高变化外部能力 = 一个独立扩展模块
-可部署进程 = 一个独立运行模块
+可部署进程 = 一个可执行 bootstrap 模块
 跨语言公共契约 = 根 contracts/
 跨运行时验证 = 根 verification/
 ```
@@ -61,7 +61,6 @@ ai-platform/
 │   ├── contexts/
 │   ├── extensions/
 │   ├── bootstrap/
-│   ├── runtimes/
 │   ├── test-support/
 │   └── architecture-tests/
 ├── frontend/
@@ -186,29 +185,31 @@ backend/
 
 ## 6. 平台机制模块
 
-### 6.1 `platform-kernel`
+### 6.1 `shared-kernel` 与 `shared-contract`
 
-只依赖 JDK，允许包含：
+`shared-kernel` 只依赖 JDK，允许包含：
 
-- 不透明标识基础类型。
-- 时钟、版本和结果等无业务语义基础契约。
-- 领域事件信封的最小接口。
-- 幂等键、追踪标识等稳定值对象。
+- 聚合根、实体和值对象的泛型标记接口。
+- 雪花标识生成端口和跨上下文一致的租户标识。
+- 框架无关异常基础类型、错误类别和错误码契约。
 
 禁止包含：
 
-- 租户权限规则。
+- HTTP、分页响应和数据库类型。
 - 模型、知识、助手或查询概念。
 - `StringUtils`、`BeanUtils` 等工具集合。
 - Spring、Hutool、MyBatis-Plus 或 Sa-Token 类型。
 
+`shared-contract` 保存页码分页和统一错误响应等框架无关公共契约，不得被领域层依赖。
+
 ### 6.2 `platform-web`
 
 - HTTP 错误信封。
-- 游标分页协议。
+- 页码分页输入输出校验。
 - 幂等请求过滤与接口适配。
 - SSE 连接、事件序号和恢复协议。
 - 输入大小、媒体类型和统一安全响应。
+- 三个可执行应用的角色互斥校验。
 
 ### 6.3 `platform-security`
 
@@ -241,7 +242,7 @@ platform-security/
 - 基于 `IdentifierGenerator` 的 64 位雪花标识生成器。
 - 租户条件纵深防御。
 - PostgreSQL 类型转换、Mapper XML 扫描和统一事务适配。
-- 游标编码与数据库分页基础能力。
+- MyBatis-Plus 分页插件、PostgreSQL 方言、最大页大小和偏移量限制。
 - 乐观锁、分页和危险全表更新删除阻断。
 
 禁止共享业务持久化实体、Mapper 或跨上下文查询。
@@ -554,12 +555,12 @@ backend/extensions/
 - 新增扩展必须通过统一契约测试。
 - 运行模块通过显式 Maven 依赖选择允许装配的扩展。
 
-## 10. 三个运行模块
+## 10. 三个可执行启动模块
 
-### 10.1 `control-plane`
+### 10.1 `control-plane-bootstrap`
 
 ```text
-runtimes/control-plane/
+bootstrap/control-plane-bootstrap/
 ├── pom.xml
 └── src/
     ├── main/
@@ -571,7 +572,7 @@ runtimes/control-plane/
     └── test/
 ```
 
-由 `control-plane-bootstrap` 装配：
+通过依赖模块的 Spring Boot 自动配置装配：
 
 - 组织与权限。
 - 知识和数据控制面。
@@ -581,9 +582,9 @@ runtimes/control-plane/
 
 不装配在线生成入口和重型摄取执行器。
 
-### 10.2 `query-runtime`
+### 10.2 `query-bootstrap`
 
-主代码只保留 `QueryRuntimeApplication.java`。由 `query-bootstrap` 装配：
+主代码只保留 `QueryRuntimeApplication.java`，通过依赖模块的自动配置装配：
 
 - 可信请求认证。
 - 助手发布版本读取。
@@ -595,9 +596,9 @@ runtimes/control-plane/
 
 不装配管理写接口和摄取调度。
 
-### 10.3 `ingestion-worker`
+### 10.3 `ingestion-bootstrap`
 
-主代码只保留 `IngestionWorkerApplication.java`。由 `ingestion-bootstrap` 装配：
+主代码只保留 `IngestionWorkerApplication.java`，通过依赖模块的自动配置装配：
 
 - 数据源同步任务。
 - 文件解析和数据连接器。
@@ -608,7 +609,7 @@ runtimes/control-plane/
 
 不暴露终端用户查询接口。
 
-### 10.4 `bootstrap`
+### 10.4 启动模块规则
 
 ```text
 backend/bootstrap/
@@ -618,21 +619,14 @@ backend/bootstrap/
 └── ingestion-bootstrap/
 ```
 
-- 只负责条件装配、类型安全属性、组合根和进程级资源配置。
-- 不定义领域实体、业务接口、仓储接口或业务规则。
-- HTTP 控制器和请求映射归所属上下文的 `adapter/in/web`。
-- 调度入口归所属上下文的 `adapter/in/schedule`。
-- 一个 bootstrap 可以选择上下文、平台和扩展模块，但不能复制其实现。
-
-### 10.5 运行模块规则
-
-- 每个运行模块主代码只包含一个启动类。
-- 运行模块不得出现 Controller、Mapper、Repository、Scheduler、Configuration 或
+- 每个 bootstrap 主代码只包含一个启动类。
+- bootstrap 不得出现 Controller、Mapper、Repository、业务 Scheduler、Configuration 或
   业务接口模型。
 - 启动资源允许包含进程端口、配置导入和运行环境选择，不包含业务规则。
 - 不定义领域实体、仓储和业务规则。
-- 每个运行模块拥有独立连接池、线程、超时和资源限制。
-- 三个运行模块可以来自同一代码版本，但生成独立镜像。
+- 必须启用应用角色互斥校验，控制面、查询和摄取角色只能启用一个。
+- 每个 bootstrap 拥有独立连接池、线程、超时和资源限制。
+- 三个 bootstrap 可以来自同一代码版本，但生成独立镜像，并保留既有服务名。
 
 ## 11. 后端依赖方向
 
@@ -774,7 +768,7 @@ M7 前不创建该应用。硬件厂商协议属于后端渠道扩展，设备�
 ### 13.2 `api-client`
 
 - 由 `contracts/http` 可重复生成的类型和调用客户端。
-- 统一错误、游标、幂等和 traceId 处理。
+- 统一错误、页码分页、幂等和 traceId 处理。
 - 生成目录不手工修改。
 
 ### 13.3 `auth`
@@ -1126,10 +1120,6 @@ backend/bootstrap/
 ├── control-plane-bootstrap/
 ├── query-bootstrap/
 └── ingestion-bootstrap/
-backend/runtimes/
-├── control-plane/
-├── query-runtime/
-└── ingestion-worker/
 frontend/apps/
 ├── console-web/
 └── query-web/

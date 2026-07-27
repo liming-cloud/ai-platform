@@ -145,13 +145,18 @@ platform/platform-web/
     │   ├── error/
     │   │   ├── FoundationExceptionHandler.java
     │   │   └── HttpErrorTypeMapping.java
+    │   ├── role/
+    │   │   ├── ApplicationRoleProperties.java
+    │   │   ├── ApplicationRoleValidator.java
+    │   │   └── ApplicationRoleAutoConfiguration.java
     │   ├── trace/
     │   └── package-info.java
     └── resources/META-INF/spring/
         └── org.springframework.boot.autoconfigure.AutoConfiguration.imports
 ```
 
-只处理通用 Web 机制，不识别具体上下文异常类。上下文错误码通过 `ErrorCode` 自描述。
+只处理通用 Web 机制和可执行应用角色校验，不识别具体上下文异常类。上下文错误码通过
+`ErrorCode` 自描述。三个启动模块必须启用角色校验，且控制面、查询、摄取只能启用一个。
 
 ### 6.2 platform-persistence
 

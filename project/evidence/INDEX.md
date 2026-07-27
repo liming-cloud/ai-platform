@@ -120,6 +120,7 @@
 | 助手交付上下文迁移 | `project/evidence/WP-0009-assistant-delivery-context.md` | `6965430af` | 经典四层、助手及发布目录页码分页、统一异常、发布版本门面和分角色自动配置通过纵向回归 |
 | 可信查询上下文迁移 | `project/evidence/WP-0009-trusted-query-context.md` | `3d3090cdf` | 经典四层、审计真实页码分页、统一异常、脱敏运营门面和查询自动配置通过纵向回归 |
 | 评测运维上下文迁移 | `project/evidence/WP-0009-evaluation-operations-context.md` | `49868ba71` | 最后一个上下文完成经典四层、统一异常和自主装配，六上下文旧目录文件归零 |
+| 持久化与启动模块收口 | `project/evidence/WP-0009-persistence-and-bootstrap.md` | `eb2fb1f49` 至 `bec76c94b` | 普通单表操作迁入 MyBatis-Plus、31 条复杂 SQL 全量登记、三个 bootstrap 独立可执行、runtimes 文件归零 |
 
 ## 证据规则
 

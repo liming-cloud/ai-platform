@@ -9,12 +9,15 @@
 
 第一阶段采用模块化单体和独立运行进程组合，优先保证领域边界、事务清晰、部署简单和可观测性。模块边界稳定且存在独立扩缩容证据后，才允许拆分服务。
 
-后端采用“平台机制、限界上下文、编译期扩展、运行入口、测试支持、架构测试”六类模块：
+后端采用“共享内核、平台机制、限界上下文、编译期扩展、可执行启动模块、测试支持、
+架构测试”七类模块：
 
 ```text
 backend/
+├── shared/
+│   ├── shared-kernel/
+│   └── shared-contract/
 ├── platform/
-│   ├── platform-kernel/
 │   ├── platform-web/
 │   ├── platform-security/
 │   ├── platform-persistence/
@@ -26,8 +29,7 @@ backend/
 │   ├── model-runtime/
 │   ├── assistant-delivery/
 │   ├── trusted-query/
-│   ├── evaluation-operations/
-│   └── profile-consent/
+│   └── evaluation-operations/
 ├── extensions/
 │   ├── model-providers/
 │   ├── data-connectors/
@@ -36,15 +38,19 @@ backend/
 │   ├── secret-stores/
 │   ├── delivery-channels/
 │   └── tool-providers/
-├── runtimes/
-│   ├── control-plane/
-│   ├── query-runtime/
-│   └── ingestion-worker/
+├── bootstrap/
+│   ├── control-plane-bootstrap/
+│   ├── query-bootstrap/
+│   └── ingestion-bootstrap/
 ├── test-support/
 └── architecture-tests/
 ```
 
-每个限界上下文默认是一个 Maven 模块，内部按 `api`、`domain`、`application`、`adapter` 分包。厂商、连接器、存储和渠道等高变化能力使用独立扩展模块。完整仓库树、模块模板、依赖矩阵、存储所有权和 M1 最小落地范围见 `docs/architecture/foundation-repository-layout.md`。
+每个限界上下文默认是一个 Maven 模块，内部按 `interfaces`、`application`、`domain`、
+`infrastructure` 分包。厂商、连接器、存储和渠道等高变化能力使用独立扩展模块。
+三个 bootstrap 自身就是可执行应用，主代码只保留启动类，不再存在第二层 runtime 壳。
+完整仓库树、模块模板、依赖矩阵、存储所有权和 M1 最小落地范围见
+`docs/architecture/foundation-repository-layout.md`。
 
 三个可部署进程：
 
@@ -59,18 +65,20 @@ backend/
 ## 2. 依赖方向
 
 ```text
-启动模块
-  -> 入站与出站适配器
+可执行 bootstrap
+  -> interfaces 与 infrastructure
     -> 应用层
       -> 领域层
 
-公开契约 <- 上下文适配器
+公开门面或扩展端口 <- 其他上下文或扩展
 ```
 
 - 领域层只依赖 JDK。
 - 应用层依赖领域和端口，不依赖控制器、持久化实现或 Spring AI。
-- 适配器实现端口并完成框架类型转换。
-- 启动模块只负责装配、配置和进程入口。
+- interfaces 承担 Controller、消息消费者和调度入口。
+- infrastructure 实现持久化、外部客户端、缓存、消息和框架类型转换。
+- 非启动模块通过 Spring Boot 自动配置注册自身能力。
+- bootstrap 主代码只保留启动类和进程资源配置。
 - 上下文内部包默认不可见，只有公开契约包可被其他上下文依赖。
 - 厂商和连接器扩展只依赖对应上下文的公开扩展接口。
 - 平台机制不得依赖任何业务上下文。
@@ -205,14 +213,16 @@ Spring AI 运行时对象由工厂创建并缓存，缓存键至少包含：
 
 ## 6. MyBatis-Plus 持久化规范
 
-- 持久化对象只存在于适配器，不能作为领域实体或接口返回值。
+- 持久化对象只存在于 infrastructure，不能作为领域实体或接口返回值。
 - 仓储负责领域对象与持久化对象映射。
 - 每张租户数据表包含 `tenant_id`，唯一键和查询索引包含租户边界。
 - 租户插件只能作为纵深防御，应用查询仍必须显式携带租户条件。
 - 使用乐观锁版本列保护聚合并发更新。
 - 使用逻辑删除前必须证明不会破坏唯一约束、审计、保留和清除语义。
 - 禁止使用忽略租户、全表更新和无条件删除的便捷能力。
-- 分页接口使用稳定排序和游标，禁止深页偏移扫描。
+- 对外列表分页统一使用从 1 开始的页码、页大小和总数，固定稳定排序。
+- 单页最多 100 条，默认最大偏移量 100000；超过边界必须拒绝而不是继续深页扫描。
+- MyBatis-Plus 的 Page、IPage 和 Wrapper 只能存在于 infrastructure。
 - 批量操作限制大小，记录失败项并保证幂等。
 - SQL 日志不得输出明文凭据、个人信息、提示词和文档正文。
 - 数据库迁移由版本化迁移工具管理，禁止运行时自动修改生产结构。
