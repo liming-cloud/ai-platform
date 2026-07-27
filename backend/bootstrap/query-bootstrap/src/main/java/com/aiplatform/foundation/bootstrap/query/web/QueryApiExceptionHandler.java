@@ -4,6 +4,7 @@ import com.aiplatform.foundation.assistantdelivery.application.AssistantPermissi
 import com.aiplatform.foundation.kernel.identifier.EntityIdGenerator;
 import com.aiplatform.foundation.kernel.identifier.TraceIds;
 import com.aiplatform.foundation.security.session.InvalidAuthenticatedSessionException;
+import com.aiplatform.foundation.trustedquery.application.candidate.CandidateSearchIndexUnavailableException;
 import com.aiplatform.foundation.trustedquery.application.candidate.CandidateSearchPermissionDeniedException;
 import com.aiplatform.foundation.trustedquery.application.quota.QueryQuotaExceededException;
 import com.aiplatform.foundation.trustedquery.application.run.QueryAssistantUnavailableException;
@@ -55,6 +56,7 @@ public class QueryApiExceptionHandler {
     }
 
     @ExceptionHandler({
+        CandidateSearchIndexUnavailableException.class,
         QueryAssistantUnavailableException.class,
         QueryRunNotFoundException.class
     })

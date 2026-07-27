@@ -4,8 +4,13 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.aiplatform.foundation.kernel.tenant.TenantId;
+import com.aiplatform.foundation.knowledgedata.api.ActiveIndexLookup;
 import com.aiplatform.foundation.knowledgedata.api.extension.IndexVector;
 import com.aiplatform.foundation.knowledgedata.api.extension.IndexVectorBatch;
+import com.aiplatform.foundation.knowledgedata.api.model.index.ActiveIndexSnapshot;
+import com.aiplatform.foundation.modelruntime.api.invocation.ChatModelPort;
+import com.aiplatform.foundation.modelruntime.api.invocation.EmbeddingModelPort;
+import com.aiplatform.foundation.modelruntime.api.invocation.ModelRuntimeResolver;
 import com.aiplatform.foundation.modelruntime.api.model.embedding.EmbeddingDeploymentRef;
 import com.aiplatform.foundation.modelruntime.api.model.embedding.EmbeddingRequest;
 import com.aiplatform.foundation.security.identity.AccessChannel;
@@ -225,10 +230,60 @@ class CandidateScenarioTest {
         }
 
         @Bean
-        CandidateSearchUseCase candidateSearchUseCase(PgVectorIndexStore vectors) {
+        ActiveIndexLookup activeIndexLookup() {
+            return (tenantId, knowledgeSpaceId) -> {
+                if (SPACE != knowledgeSpaceId) {
+                    return java.util.Optional.empty();
+                }
+                var indexId = STORE_TENANT.equals(tenantId)
+                        ? STORE_INDEX
+                        : CAMPUS_INDEX;
+                return java.util.Optional.of(new ActiveIndexSnapshot(
+                        SPACE,
+                        indexId,
+                        2,
+                        DEPLOYMENT.deploymentId(),
+                        DEPLOYMENT.revision(),
+                        DEPLOYMENT.dimension()));
+            };
+        }
+
+        @Bean
+        ModelRuntimeResolver modelRuntimeResolver() {
+            return new ModelRuntimeResolver() {
+
+                @Override
+                public ChatModelPort resolveChat(TenantId tenantId, long deploymentId) {
+                    throw new UnsupportedOperationException();
+                }
+
+                @Override
+                public EmbeddingModelPort resolveEmbedding(
+                        TenantId tenantId,
+                        long deploymentId) {
+                    return new DeterministicEmbeddingModel(DEPLOYMENT);
+                }
+
+                @Override
+                public void evictProvider(TenantId tenantId, long providerConnectionId) {
+                    throw new UnsupportedOperationException();
+                }
+
+                @Override
+                public void evictDeployment(TenantId tenantId, long deploymentId) {
+                    throw new UnsupportedOperationException();
+                }
+            };
+        }
+
+        @Bean
+        CandidateSearchUseCase candidateSearchUseCase(
+                ActiveIndexLookup indexes,
+                ModelRuntimeResolver models,
+                PgVectorIndexStore vectors) {
             return new DefaultCandidateSearchService(
-                    new DeterministicEmbeddingModel(),
-                    DEPLOYMENT,
+                    indexes,
+                    models,
                     vectors);
         }
     }

@@ -32,9 +32,9 @@ CREATE TEMP TABLE query_candidate_pool_duration (
 DO $performance$
 DECLARE
     task_tenant BIGINT := 100000000000000001;
-    task_space UUID;
-    task_index UUID;
-    task_deployment UUID;
+    task_space BIGINT;
+    task_index BIGINT;
+    task_deployment BIGINT;
     task_revision BIGINT;
     task_dimension INTEGER;
     task_embedding vector;

@@ -3,12 +3,28 @@ set -euo pipefail
 
 readonly CONTROL_API_ROOT="http://127.0.0.1:13000/api/v1"
 readonly QUERY_API_ROOT="http://127.0.0.1:18081/api/v1"
+readonly QUERY_HEALTH_ROOT="http://127.0.0.1:18081"
 readonly SAMPLE_COUNT=100
 readonly WARMUP_COUNT=20
 readonly P95_LIMIT_SECONDS="${FOUNDATION_SEARCH_P95_SECONDS:-0.200}"
 readonly DURATIONS_FILE="$(mktemp)"
 readonly RESPONSE_FILE="$(mktemp)"
 trap 'rm -f "${DURATIONS_FILE}" "${RESPONSE_FILE}"' EXIT
+
+wait_for_query_runtime() {
+  local attempt
+  for attempt in $(seq 1 30); do
+    if curl --fail --silent \
+      "${QUERY_HEALTH_ROOT}/actuator/health" >/dev/null 2>&1; then
+      return
+    fi
+    sleep 1
+  done
+  echo "查询运行时未在预期时间内恢复健康" >&2
+  return 1
+}
+
+wait_for_query_runtime
 
 token="$(
   jq -n \

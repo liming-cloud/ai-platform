@@ -5,7 +5,6 @@ import math
 import os
 import sys
 import time
-import uuid
 from collections import Counter
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
@@ -227,7 +226,7 @@ def build_report(arguments: argparse.Namespace) -> dict:
         scenario.code: Semaphore(arguments.concurrency_per_tenant)
         for scenario in SCENARIOS
     }
-    run_id = uuid.uuid4().hex
+    run_id = f"{time.time_ns()}-{os.getpid()}"
 
     warmup_results, _ = execute_phase(
         query_base=arguments.query_base,

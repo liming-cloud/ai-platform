@@ -25,6 +25,7 @@ restore_runtime() {
   rm -f "${RESPONSE_FILE}"
   FOUNDATION_QUERY_QUOTA_DAILY_LIMIT=100 \
     compose up --detach --force-recreate query-runtime >/dev/null
+  wait_for_query_runtime
 }
 trap restore_runtime EXIT
 

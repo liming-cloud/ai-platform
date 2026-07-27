@@ -10,6 +10,8 @@ readonly ENV_FILE="${REPOSITORY_ROOT}/deploy/compose/.env.example"
 readonly CONTROL_API_ROOT="${FOUNDATION_ACCEPTANCE_CONTROL_API_ROOT:-http://127.0.0.1:13000/api/v1}"
 readonly QUERY_API_ROOT="${FOUNDATION_ACCEPTANCE_QUERY_API_ROOT:-http://127.0.0.1:18081/api/v1}"
 readonly DEMO_PASSWORD="${FOUNDATION_ACCEPTANCE_DEMO_PASSWORD:-Demo@2026!}"
+readonly CROSS_TENANT_RESPONSE="$(mktemp)"
+trap 'rm -f "${CROSS_TENANT_RESPONSE}"' EXIT
 
 compose() {
   docker compose \
@@ -210,13 +212,25 @@ campus="$(
 IFS='|' read -r store_token store_space_id <<<"${store}"
 IFS='|' read -r campus_token campus_space_id <<<"${campus}"
 
-cross_tenant="$(
-  search_candidates \
-    "${campus_token}" \
-    "${store_space_id}" \
-    "青柚气泡水在哪里"
+cross_tenant_status="$(
+  jq -n \
+    --arg knowledgeSpaceId "${store_space_id}" \
+    --arg text "青柚气泡水在哪里" \
+    '{knowledgeSpaceId: $knowledgeSpaceId, text: $text, limit: 3}' |
+    curl --silent --show-error \
+      --output "${CROSS_TENANT_RESPONSE}" \
+      --write-out "%{http_code}" \
+      -H "Authorization: Bearer ${campus_token}" \
+      -H "Content-Type: application/json" \
+      --data-binary @- \
+      "${QUERY_API_ROOT}/query-candidates"
 )"
-jq -e '.candidates | length == 0' >/dev/null <<<"${cross_tenant}"
+[[ "${cross_tenant_status}" == "404" ]]
+jq -e \
+  '.code == "RESOURCE_NOT_FOUND"
+    and .message == "请求的资源不存在"
+    and (.details | length == 0)' \
+  >/dev/null <"${CROSS_TENANT_RESPONSE}"
 
 readonly ACTIVE_COUNT="$(
   compose exec -T postgres \

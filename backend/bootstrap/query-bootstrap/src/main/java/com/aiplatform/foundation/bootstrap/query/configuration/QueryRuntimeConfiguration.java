@@ -8,20 +8,22 @@ import com.aiplatform.foundation.assistantdelivery.application.DefaultQueryAssis
 import com.aiplatform.foundation.assistantdelivery.application.DefaultPublishedAssistantVersionLookup;
 import com.aiplatform.foundation.assistantdelivery.application.port.out.AssistantRepository;
 import com.aiplatform.foundation.kernel.identifier.EntityIdGenerator;
+import com.aiplatform.foundation.knowledgedata.adapter.out.persistence.index.IndexVersionMapper;
+import com.aiplatform.foundation.knowledgedata.adapter.out.persistence.index.PostgresIndexVersionRepository;
+import com.aiplatform.foundation.knowledgedata.api.ActiveIndexLookup;
+import com.aiplatform.foundation.knowledgedata.application.indexversion.DefaultActiveIndexLookup;
+import com.aiplatform.foundation.knowledgedata.application.port.out.index.IndexVersionRepository;
 import com.aiplatform.foundation.modelruntime.adapter.out.persistence.ModelDeploymentMapper;
 import com.aiplatform.foundation.modelruntime.adapter.out.persistence.PostgresModelDeploymentRepository;
 import com.aiplatform.foundation.modelruntime.adapter.out.persistence.PostgresProviderConnectionRepository;
 import com.aiplatform.foundation.modelruntime.adapter.out.persistence.ProviderConnectionMapper;
 import com.aiplatform.foundation.modelruntime.api.extension.ChatModelFactory;
 import com.aiplatform.foundation.modelruntime.api.extension.EmbeddingModelFactory;
-import com.aiplatform.foundation.modelruntime.api.invocation.EmbeddingModelPort;
 import com.aiplatform.foundation.modelruntime.api.invocation.ModelRuntimeResolver;
-import com.aiplatform.foundation.modelruntime.api.model.embedding.EmbeddingDeploymentRef;
 import com.aiplatform.foundation.modelruntime.application.port.out.ModelDeploymentRepository;
 import com.aiplatform.foundation.modelruntime.application.port.out.ProviderConnectionRepository;
 import com.aiplatform.foundation.modelruntime.application.runtime.DefaultModelRuntimeResolver;
 import com.aiplatform.foundation.provider.deterministic.DeterministicChatModelFactory;
-import com.aiplatform.foundation.provider.deterministic.DeterministicEmbeddingModel;
 import com.aiplatform.foundation.provider.deterministic.DeterministicEmbeddingModelFactory;
 import com.aiplatform.foundation.trustedquery.adapter.out.persistence.PostgresQueryRunRepository;
 import com.aiplatform.foundation.trustedquery.adapter.out.persistence.QueryRunMapper;
@@ -54,6 +56,7 @@ import org.springframework.transaction.PlatformTransactionManager;
         havingValue = "true")
 @MapperScan(basePackageClasses = {
     AssistantMapper.class,
+    IndexVersionMapper.class,
     ProviderConnectionMapper.class,
     QueryRunMapper.class
 })
@@ -65,21 +68,26 @@ public class QueryRuntimeConfiguration {
     }
 
     @Bean
-    EmbeddingModelPort embeddingModel() {
-        return new DeterministicEmbeddingModel();
+    CandidateSearchUseCase candidateSearchUseCase(
+            ActiveIndexLookup activeIndexes,
+            ModelRuntimeResolver models,
+            PgVectorIndexStore candidates) {
+        return new DefaultCandidateSearchService(
+                activeIndexes,
+                models,
+                candidates);
     }
 
     @Bean
-    CandidateSearchUseCase candidateSearchUseCase(
-            EmbeddingModelPort embeddingModel,
-            PgVectorIndexStore candidates) {
-        return new DefaultCandidateSearchService(
-                embeddingModel,
-                new EmbeddingDeploymentRef(
-                        DeterministicEmbeddingModel.DEPLOYMENT_ID,
-                        DeterministicEmbeddingModel.DEPLOYMENT_REVISION,
-                        DeterministicEmbeddingModel.DIMENSION),
-                candidates);
+    IndexVersionRepository queryIndexVersionRepository(
+            IndexVersionMapper mapper,
+            PlatformTransactionManager transactions) {
+        return new PostgresIndexVersionRepository(mapper, transactions);
+    }
+
+    @Bean
+    ActiveIndexLookup queryActiveIndexLookup(IndexVersionRepository repository) {
+        return new DefaultActiveIndexLookup(repository);
     }
 
     @Bean

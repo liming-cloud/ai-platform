@@ -1,8 +1,9 @@
 package com.aiplatform.foundation.trustedquery.application.candidate;
 
+import com.aiplatform.foundation.knowledgedata.api.ActiveIndexLookup;
 import com.aiplatform.foundation.knowledgedata.api.extension.IndexCandidateQuery;
 import com.aiplatform.foundation.knowledgedata.api.extension.IndexCandidateRetriever;
-import com.aiplatform.foundation.modelruntime.api.invocation.EmbeddingModelPort;
+import com.aiplatform.foundation.modelruntime.api.invocation.ModelRuntimeResolver;
 import com.aiplatform.foundation.modelruntime.api.model.embedding.EmbeddingDeploymentRef;
 import com.aiplatform.foundation.modelruntime.api.model.embedding.EmbeddingRequest;
 import com.aiplatform.foundation.security.identity.PermissionCode;
@@ -20,16 +21,16 @@ public final class DefaultCandidateSearchService implements CandidateSearchUseCa
 
     private static final PermissionCode READ = new PermissionCode("knowledge:read");
 
-    private final EmbeddingModelPort embeddingModel;
-    private final EmbeddingDeploymentRef deployment;
+    private final ActiveIndexLookup indexes;
+    private final ModelRuntimeResolver models;
     private final IndexCandidateRetriever candidates;
 
     public DefaultCandidateSearchService(
-            EmbeddingModelPort embeddingModel,
-            EmbeddingDeploymentRef deployment,
+            ActiveIndexLookup indexes,
+            ModelRuntimeResolver models,
             IndexCandidateRetriever candidates) {
-        this.embeddingModel = Objects.requireNonNull(embeddingModel, "嵌入模型不能为空");
-        this.deployment = Objects.requireNonNull(deployment, "嵌入部署不能为空");
+        this.indexes = Objects.requireNonNull(indexes, "活动索引查询不能为空");
+        this.models = Objects.requireNonNull(models, "模型运行时解析器不能为空");
         this.candidates = Objects.requireNonNull(candidates, "候选检索端口不能为空");
     }
 
@@ -39,6 +40,17 @@ public final class DefaultCandidateSearchService implements CandidateSearchUseCa
         if (!query.context().hasPermission(READ)) {
             throw new CandidateSearchPermissionDeniedException();
         }
+        var knowledgeSpaceId = parsePositiveIdentifier(query.knowledgeSpaceId());
+        var index = indexes
+                .find(query.context().tenantId(), knowledgeSpaceId)
+                .orElseThrow(CandidateSearchIndexUnavailableException::new);
+        var deployment = new EmbeddingDeploymentRef(
+                index.embeddingDeploymentId(),
+                index.embeddingDeploymentRevision(),
+                index.embeddingDimension());
+        var embeddingModel = models.resolveEmbedding(
+                query.context().tenantId(),
+                index.embeddingDeploymentId());
         var embedded = embeddingModel.embed(new EmbeddingRequest(
                 deployment,
                 List.of(query.text())));
@@ -49,7 +61,8 @@ public final class DefaultCandidateSearchService implements CandidateSearchUseCa
         }
         var found = candidates.retrieve(new IndexCandidateQuery(
                 query.context().tenantId(),
-                parsePositiveIdentifier(query.knowledgeSpaceId()),
+                knowledgeSpaceId,
+                index.indexVersionId(),
                 deployment.deploymentId(),
                 deployment.revision(),
                 embedded.vectors().getFirst().values(),

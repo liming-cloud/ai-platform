@@ -137,7 +137,7 @@ publish_source() {
 verify_persisted_content() {
   local source_id="$1"
   local fixture="$2"
-  if [[ ! "${source_id}" =~ ^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$ ]]; then
+  if [[ ! "${source_id}" =~ ^[1-9][0-9]{0,18}$ ]]; then
     echo "数据源标识格式不正确" >&2
     return 1
   fi
@@ -163,7 +163,7 @@ verify_persisted_content() {
           AND content.knowledge_space_id = source.knowledge_space_id
           AND content.data_source_id = source.id
           AND content.version = source.content_version
-        WHERE source.id = '${source_id}'::uuid;
+        WHERE source.id = ${source_id};
       "
   )"
 
