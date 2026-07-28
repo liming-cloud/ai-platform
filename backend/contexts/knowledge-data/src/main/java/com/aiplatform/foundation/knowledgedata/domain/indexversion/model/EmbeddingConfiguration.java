@@ -14,7 +14,8 @@ public record EmbeddingConfiguration(
         Long catalogEntryRevision,
         int dimension) implements ValueObject {
 
-    public static final int MAX_VECTOR_DIMENSION = 2000;
+    // 当前索引使用 pgvector 精确检索，允许 `vector` 存储类型支持的最大 16000 维输出。
+    public static final int MAX_VECTOR_DIMENSION = 16000;
 
     public EmbeddingConfiguration(long deploymentId, long deploymentRevision, int dimension) {
         this(deploymentId, deploymentRevision, null, null, null, null, dimension);

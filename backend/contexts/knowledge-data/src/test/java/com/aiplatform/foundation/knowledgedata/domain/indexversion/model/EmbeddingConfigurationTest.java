@@ -17,4 +17,11 @@ class EmbeddingConfigurationTest {
         assertTrue(binding.catalogEntryId() == 3001L);
         assertTrue(binding.dimension() == 1024);
     }
+
+    @Test
+    void 应接受火山方舟2048维受控嵌入绑定() {
+        var binding = EmbeddingConfiguration.governed(4001L, 3L, 3001L, 2L, 2048);
+
+        assertTrue(binding.dimension() == 2048);
+    }
 }

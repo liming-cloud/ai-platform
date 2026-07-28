@@ -1,5 +1,6 @@
 package com.aiplatform.foundation.knowledgedata.application.indexversion.port.out.vector;
 
+import com.aiplatform.foundation.knowledgedata.domain.indexversion.model.EmbeddingConfiguration;
 import java.util.Arrays;
 import java.util.Objects;
 import java.util.regex.Pattern;
@@ -46,7 +47,8 @@ public final class IndexVector {
         }
         this.textDigest = requireDigest(textDigest, "分块摘要");
         Objects.requireNonNull(embedding, "嵌入向量不能为空");
-        if (embedding.length < 1 || embedding.length > 2000) {
+        if (embedding.length < 1
+                || embedding.length > EmbeddingConfiguration.MAX_VECTOR_DIMENSION) {
             throw new IllegalArgumentException("嵌入向量维度超出平台范围");
         }
         for (var value : embedding) {

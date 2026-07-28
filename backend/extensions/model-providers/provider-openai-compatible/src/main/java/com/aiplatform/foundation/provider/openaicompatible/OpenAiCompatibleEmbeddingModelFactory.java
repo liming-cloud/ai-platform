@@ -20,6 +20,9 @@ import org.springframework.ai.openai.OpenAiEmbeddingOptions;
  */
 public final class OpenAiCompatibleEmbeddingModelFactory implements EmbeddingModelFactory {
 
+    private static final String ARK_MULTIMODAL_EMBEDDING_MODEL =
+            "doubao-embedding-vision-251215";
+
     private final SecretResolver secrets;
     private final OutboundEndpointPolicy endpointPolicy;
     private final Duration timeout;
@@ -56,6 +59,18 @@ public final class OpenAiCompatibleEmbeddingModelFactory implements EmbeddingMod
         requireSpecification(specification);
         endpointPolicy.verify(specification.endpoint());
         return credential.use(chars -> {
+            var deployment = new EmbeddingDeploymentRef(
+                    specification.deploymentId(),
+                    specification.deploymentRevision(),
+                    specification.embeddingDimension());
+            if (ARK_MULTIMODAL_EMBEDDING_MODEL.equals(specification.modelCode())) {
+                return new ArkMultimodalEmbeddingModel(
+                        specification.endpoint(),
+                        new String(chars),
+                        specification.modelCode(),
+                        timeout,
+                        deployment);
+            }
             var options = OpenAiEmbeddingOptions.builder()
                     .baseUrl(specification.endpoint().toString())
                     .apiKey(new String(chars))
@@ -69,10 +84,7 @@ public final class OpenAiCompatibleEmbeddingModelFactory implements EmbeddingMod
                     .build();
             return new SpringAiEmbeddingModelAdapter(
                     model,
-                    new EmbeddingDeploymentRef(
-                            specification.deploymentId(),
-                            specification.deploymentRevision(),
-                            specification.embeddingDimension()));
+                    deployment);
         });
     }
 

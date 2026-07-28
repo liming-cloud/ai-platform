@@ -3,7 +3,7 @@
 此覆盖层只用于研发验收，不能作为生产部署或默认演示配置。
 
 1. 在受控终端设置 `FOUNDATION_SECRET_ENCRYPTION_KEY_M2_V1`。覆盖层固定使用 `M2_V1` 作为本地研发主密钥版本；该值必须是 Base64 编码的 32 字节本地研发主密钥。
-2. 设置 `MODEL_ALLOWED_ENDPOINTS=https://ark.cn-beijing.volces.com/api/v3`。该值必须与平台受控目录中的方舟 OpenAI 兼容端点完全一致。
+2. 设置 `MODEL_ALLOWED_ENDPOINTS=https://ark.cn-beijing.volces.com/api/v3`。该值必须与平台受控目录中的方舟标准推理端点完全一致。
 3. 启动时组合基础文件与覆盖层：
 
    ```bash
@@ -22,16 +22,11 @@ API Key 必须预先写入一个仅本地可读的临时文件，文件权限必
 
 ```bash
 FOUNDATION_M2_API_KEY_FILE=/Users/lingou/Desktop/huoshan.txt \
-FOUNDATION_M2_CHAT_MODEL_CODE=<已授权的方舟对话推理接入点ID> \
-FOUNDATION_M2_EMBEDDING_MODEL_CODE=<已授权的方舟嵌入推理接入点ID> \
-FOUNDATION_M2_CHAT_CONTEXT_WINDOW=<平台确认的上下文窗口> \
-FOUNDATION_M2_CHAT_OUTPUT_LIMIT=<平台确认的输出上限> \
-FOUNDATION_M2_EMBEDDING_DIMENSION=<平台确认的嵌入维度> \
 scripts/development/acceptance-real-model.sh
 ```
 
-脚本默认使用方舟 OpenAI 兼容端点；Chat、Embedding 推理接入点和能力参数均必须显式提供。接入点 ID 由方舟控制台创建和授权，不能用模型名称猜测或复用其他账户的值。所选端点必须与 compose 的 `MODEL_ALLOWED_ENDPOINTS` 一致。
+脚本默认使用已验证的标准推理目录：`doubao-seed-2-1-turbo-260628`（262144 上下文窗口、262144 最大输出）和 `doubao-embedding-vision-251215`（131072 上下文窗口、2048 维）。嵌入模型使用方舟多模态嵌入协议；如需覆盖，只允许平台管理员使用新的已批准目录事实。所选端点必须与 compose 的 `MODEL_ALLOWED_ENDPOINTS` 一致。
 
 API Key 不得放入 `.env`、镜像、容器环境变量、命令历史、日志、证据或版本控制。覆盖层只向控制面与查询进程传递本地研发主密钥和出站端点，查询时从数据库密文短生命周期解密配置凭据。
 
-方舟官方文档定义 OpenAI 兼容基础地址与 API Key 鉴权；模型调用需要账户已授权的推理接入点。[火山方舟 Responses API](https://www.volcengine.com/docs/82379/1958524)
+真实验收使用方舟标准 `/api/v3` 推理端点和平台受控模型编码；不得把模型编码或 API Key 写入镜像、环境文件或版本控制。

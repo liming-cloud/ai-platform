@@ -13,13 +13,6 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 SCRIPT = REPOSITORY_ROOT / "scripts/development/acceptance-real-model.sh"
 TEST_API_KEY = "m2-test-api-key-not-for-production"
 TEST_ANSWER = "仅用于验证脱敏摘要的合成回答"
-TEST_MODEL_ENVIRONMENT = {
-    "FOUNDATION_M2_CHAT_MODEL_CODE": "ep-test-chat",
-    "FOUNDATION_M2_EMBEDDING_MODEL_CODE": "ep-test-embedding",
-    "FOUNDATION_M2_CHAT_CONTEXT_WINDOW": "32768",
-    "FOUNDATION_M2_CHAT_OUTPUT_LIMIT": "4096",
-    "FOUNDATION_M2_EMBEDDING_DIMENSION": "1024",
-}
 
 
 class AcceptanceServer(BaseHTTPRequestHandler):
@@ -216,7 +209,6 @@ class RealModelAcceptanceTest(unittest.TestCase):
                 "FOUNDATION_ACCEPTANCE_QUERY_API_ROOT": api_root,
                 "FOUNDATION_M2_HTTP_TIMEOUT_SECONDS": "3",
                 "FOUNDATION_M2_INDEX_TIMEOUT_SECONDS": "3",
-                **TEST_MODEL_ENVIRONMENT,
             }
             completed = subprocess.run(
                 [str(SCRIPT)],
@@ -266,7 +258,7 @@ class RealModelAcceptanceTest(unittest.TestCase):
                 "id": "9001",
                 "providerKind": "OPENAI_COMPATIBLE",
                 "endpoint": "https://ark.cn-beijing.volces.com/api/v3",
-                "modelCode": "ep-test-chat",
+                "modelCode": "doubao-seed-2-1-turbo-260628",
                 "modelType": "CHAT",
                 "status": "PUBLISHED",
             },
@@ -274,7 +266,7 @@ class RealModelAcceptanceTest(unittest.TestCase):
                 "id": "9002",
                 "providerKind": "OPENAI_COMPATIBLE",
                 "endpoint": "https://ark.cn-beijing.volces.com/api/v3",
-                "modelCode": "ep-test-embedding",
+                "modelCode": "doubao-embedding-vision-251215",
                 "modelType": "EMBEDDING",
                 "status": "PUBLISHED",
             },
@@ -313,7 +305,6 @@ class RealModelAcceptanceTest(unittest.TestCase):
                     "FOUNDATION_ACCEPTANCE_QUERY_API_ROOT": api_root,
                     "FOUNDATION_M2_HTTP_TIMEOUT_SECONDS": "3",
                     "FOUNDATION_M2_INDEX_TIMEOUT_SECONDS": "3",
-                    **TEST_MODEL_ENVIRONMENT,
                 },
                 check=True,
                 capture_output=True,
@@ -376,10 +367,10 @@ class RealModelAcceptanceTest(unittest.TestCase):
         self.assertIn("API Key 文件权限过宽", completed.stderr)
         self.assertEqual([], AcceptanceServer.requests)
 
-    def test_missing_ark_model_capability_fails_before_any_http_request(self):
+    def test_labeled_key_file_only_submits_the_key_value(self):
         with tempfile.TemporaryDirectory() as directory:
             key_file = Path(directory) / "api-key"
-            key_file.write_text(TEST_API_KEY, encoding="utf-8")
+            key_file.write_text(f"火山方舟 API Key：{TEST_API_KEY}", encoding="utf-8")
             key_file.chmod(0o600)
             api_root = f"http://127.0.0.1:{self.server.server_port}/api/v1"
             completed = subprocess.run(
@@ -395,10 +386,15 @@ class RealModelAcceptanceTest(unittest.TestCase):
                 text=True,
             )
 
-        self.assertNotEqual(0, completed.returncode)
-        self.assertEqual("", completed.stdout)
-        self.assertIn("必须指定 FOUNDATION_M2_CHAT_MODEL_CODE", completed.stderr)
-        self.assertEqual([], AcceptanceServer.requests)
+        self.assertEqual("PASSED", json.loads(completed.stdout)["status"])
+        configuration_requests = [
+            body
+            for method, path, body in AcceptanceServer.requests
+            if method == "POST" and path == "/api/v1/model-configurations"
+        ]
+        self.assertTrue(
+            all(body["apiKey"] == TEST_API_KEY for body in configuration_requests)
+        )
 
 
 if __name__ == "__main__":

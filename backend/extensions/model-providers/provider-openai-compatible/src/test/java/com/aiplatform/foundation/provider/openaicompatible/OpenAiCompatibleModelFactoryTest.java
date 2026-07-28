@@ -47,6 +47,22 @@ class OpenAiCompatibleModelFactoryTest {
                 () -> factory.create(chatSpecification()));
     }
 
+    @Test
+    void 受控对话工厂应使用调用期凭据而不重新解析引用() {
+        var policyCalls = new AtomicInteger();
+        var factory = new OpenAiCompatibleChatModelFactory(
+                reference -> {
+                    throw new AssertionError("受控调用不应重新解析凭据引用");
+                },
+                endpoint -> policyCalls.incrementAndGet(),
+                Duration.ofSeconds(10));
+
+        assertDoesNotThrow(() -> factory.create(
+                chatSpecification(),
+                SecretValue.copyOf("test-secret".toCharArray())));
+        assertEquals(1, policyCalls.get());
+    }
+
     private static ModelRuntimeSpecification chatSpecification() {
         return new ModelRuntimeSpecification(
                 new TenantId(100000000000000001L),

@@ -76,7 +76,8 @@ public final class IndexCandidateQuery {
         this.embeddingConfiguration = Objects.requireNonNull(
                 embeddingConfiguration, "嵌入配置不能为空");
         Objects.requireNonNull(embedding, "查询向量不能为空");
-        if (embedding.length < 1 || embedding.length > 2000) {
+        if (embedding.length < 1
+                || embedding.length > EmbeddingConfiguration.MAX_VECTOR_DIMENSION) {
             throw new IllegalArgumentException("查询向量维度超出平台范围");
         }
         for (var value : embedding) {

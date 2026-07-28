@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -euo pipefail
+set -Eeuo pipefail
 
 # WP-0010：M2 真实模型验收只使用合成知识，输出不得包含 API Key、正文、回答或令牌。
 readonly CONTROL_API_ROOT="${FOUNDATION_ACCEPTANCE_CONTROL_API_ROOT:-http://127.0.0.1:13000/api/v1}"
@@ -11,11 +11,11 @@ readonly TENANT_CODE="${FOUNDATION_ACCEPTANCE_TENANT_CODE:-demo-store}"
 readonly TENANT_LOGIN_NAME="${FOUNDATION_ACCEPTANCE_TENANT_LOGIN_NAME:-admin}"
 readonly API_KEY_FILE="${FOUNDATION_M2_API_KEY_FILE:?必须指定仅本地可读的 FOUNDATION_M2_API_KEY_FILE}"
 readonly MODEL_ENDPOINT="${FOUNDATION_M2_MODEL_ENDPOINT:-https://ark.cn-beijing.volces.com/api/v3}"
-readonly CHAT_MODEL_CODE="${FOUNDATION_M2_CHAT_MODEL_CODE:-}"
-readonly EMBEDDING_MODEL_CODE="${FOUNDATION_M2_EMBEDDING_MODEL_CODE:-}"
-readonly CHAT_CONTEXT_WINDOW="${FOUNDATION_M2_CHAT_CONTEXT_WINDOW:-}"
-readonly CHAT_OUTPUT_LIMIT="${FOUNDATION_M2_CHAT_OUTPUT_LIMIT:-}"
-readonly EMBEDDING_DIMENSION="${FOUNDATION_M2_EMBEDDING_DIMENSION:-}"
+readonly CHAT_MODEL_CODE="${FOUNDATION_M2_CHAT_MODEL_CODE:-doubao-seed-2-1-turbo-260628}"
+readonly EMBEDDING_MODEL_CODE="${FOUNDATION_M2_EMBEDDING_MODEL_CODE:-doubao-embedding-vision-251215}"
+readonly CHAT_CONTEXT_WINDOW="${FOUNDATION_M2_CHAT_CONTEXT_WINDOW:-262144}"
+readonly CHAT_OUTPUT_LIMIT="${FOUNDATION_M2_CHAT_OUTPUT_LIMIT:-262144}"
+readonly EMBEDDING_DIMENSION="${FOUNDATION_M2_EMBEDDING_DIMENSION:-2048}"
 readonly HTTP_TIMEOUT_SECONDS="${FOUNDATION_M2_HTTP_TIMEOUT_SECONDS:-30}"
 readonly INDEX_TIMEOUT_SECONDS="${FOUNDATION_M2_INDEX_TIMEOUT_SECONDS:-180}"
 readonly RUN_ID="m2-$(date -u +%Y%m%d%H%M%S)"
@@ -260,6 +260,7 @@ require_command curl
 require_command jq
 require_command shasum
 require_command stat
+require_command grep
 [[ -f "${API_KEY_FILE}" && -r "${API_KEY_FILE}" ]] || {
   echo "API Key 文件不可读：${API_KEY_FILE}" >&2
   exit 1
@@ -269,8 +270,16 @@ if (( (8#${api_key_file_mode} & 8#077) != 0 )); then
   echo "API Key 文件权限过宽，禁止组或其他用户读取：${API_KEY_FILE}" >&2
   exit 1
 fi
-api_key="$(tr -d '\r\n' <"${API_KEY_FILE}")"
-[[ -n "${api_key}" ]] || { echo "API Key 文件为空" >&2; exit 1; }
+api_key_candidates=()
+while IFS= read -r candidate; do
+  api_key_candidates+=("${candidate}")
+done < <(LC_ALL=C grep -Eo '[[:alnum:]][[:alnum:]._-]{19,}' "${API_KEY_FILE}" || true)
+if (( ${#api_key_candidates[@]} != 1 )); then
+  echo "API Key 文件必须且只能包含一个长格式密钥值" >&2
+  exit 1
+fi
+api_key="${api_key_candidates[0]}"
+unset api_key_candidates
 require_nonempty_value FOUNDATION_M2_CHAT_MODEL_CODE "${CHAT_MODEL_CODE}"
 require_nonempty_value FOUNDATION_M2_EMBEDDING_MODEL_CODE "${EMBEDDING_MODEL_CODE}"
 require_positive_integer FOUNDATION_M2_CHAT_CONTEXT_WINDOW "${CHAT_CONTEXT_WINDOW}"

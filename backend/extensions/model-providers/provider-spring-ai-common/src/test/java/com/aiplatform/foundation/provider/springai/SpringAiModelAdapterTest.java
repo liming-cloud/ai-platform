@@ -24,6 +24,7 @@ import org.springframework.ai.chat.metadata.Usage;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.model.Generation;
+import org.springframework.ai.chat.prompt.ChatOptions;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.embedding.Embedding;
@@ -92,6 +93,27 @@ class SpringAiModelAdapterTest {
                 .filter(item -> item.completed())
                 .count());
         assertEquals(6, subscriber.items.getLast().usage().totalTokens());
+    }
+
+    @Test
+    void 对话适配器应保留供应商提供的选项工厂() {
+        var capturedPrompt = new AtomicReference<Prompt>();
+        ChatModel model = prompt -> {
+            capturedPrompt.set(prompt);
+            return response("可信回答", "STOP", 1, 1);
+        };
+        var deployment = new ChatDeploymentRef(DEPLOYMENT_ID, 2);
+        var adapter = new SpringAiChatModelAdapter(
+                model,
+                deployment,
+                maxTokens -> ChatOptions.builder().maxTokens(maxTokens + 1).build());
+
+        adapter.chat(new ChatRequest(
+                deployment,
+                List.of(new ChatMessage(ChatRole.USER, "问题")),
+                128));
+
+        assertEquals(129, capturedPrompt.get().getOptions().getMaxTokens());
     }
 
     @Test

@@ -12,6 +12,7 @@ import java.util.Objects;
 import java.util.concurrent.Flow;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.IntFunction;
 import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.messages.SystemMessage;
@@ -32,10 +33,22 @@ public final class SpringAiChatModelAdapter implements ChatModelPort {
 
     private final ChatModel model;
     private final ChatDeploymentRef deployment;
+    private final IntFunction<ChatOptions> optionsFactory;
 
     public SpringAiChatModelAdapter(ChatModel model, ChatDeploymentRef deployment) {
+        this(model, deployment, maxTokens -> ChatOptions.builder().maxTokens(maxTokens).build());
+    }
+
+    /**
+     * 允许供应商保留其专用 `ChatOptions` 类型，避免 Spring AI 在调用期丢失协议选项。
+     */
+    public SpringAiChatModelAdapter(
+            ChatModel model,
+            ChatDeploymentRef deployment,
+            IntFunction<ChatOptions> optionsFactory) {
         this.model = Objects.requireNonNull(model, "Spring AI 对话模型不能为空");
         this.deployment = Objects.requireNonNull(deployment, "对话部署不能为空");
+        this.optionsFactory = Objects.requireNonNull(optionsFactory, "对话选项工厂不能为空");
     }
 
     @Override
@@ -80,18 +93,11 @@ public final class SpringAiChatModelAdapter implements ChatModelPort {
         }
     }
 
-    private static Prompt toPrompt(ChatRequest request) {
+    private Prompt toPrompt(ChatRequest request) {
         var messages = request.messages().stream()
                 .map(SpringAiChatModelAdapter::toSpringMessage)
                 .toList();
-        if (request.maxOutputTokens() == 0) {
-            return new Prompt(messages);
-        }
-        return new Prompt(
-                messages,
-                ChatOptions.builder()
-                        .maxTokens(request.maxOutputTokens())
-                        .build());
+        return new Prompt(messages, optionsFactory.apply(request.maxOutputTokens()));
     }
 
     private static Message toSpringMessage(ChatMessage message) {

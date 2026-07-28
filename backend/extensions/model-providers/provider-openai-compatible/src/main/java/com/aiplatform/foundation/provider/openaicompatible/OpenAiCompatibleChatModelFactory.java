@@ -44,26 +44,48 @@ public final class OpenAiCompatibleChatModelFactory implements ChatModelFactory 
         endpointPolicy.verify(specification.endpoint());
         try (var secret = secrets.resolve(new SecretReference(
                 specification.credentialReference().value()))) {
-            return secret.use(chars -> {
-                var options = OpenAiChatOptions.builder()
-                        .baseUrl(specification.endpoint().toString())
-                        .apiKey(new String(chars))
-                        .model(specification.modelCode())
-                        .timeout(timeout)
-                        .maxRetries(0)
-                        .maxTokens(specification.outputLimit())
-                        .parallelToolCalls(false)
-                        .build();
-                var model = OpenAiChatModel.builder()
-                        .options(options)
-                        .build();
-                return new SpringAiChatModelAdapter(
-                        model,
-                        new ChatDeploymentRef(
-                                specification.deploymentId(),
-                                specification.deploymentRevision()));
-            });
+            return createResolved(specification, secret);
         }
+    }
+
+    /**
+     * 受控模型配置调用直接消费当前回调内的凭据，避免按持久化引用再次解析。
+     */
+    @Override
+    public ChatModelPort create(
+            ModelRuntimeSpecification specification,
+            com.aiplatform.foundation.security.secret.SecretValue credential) {
+        requireSpecification(specification, ModelType.CHAT);
+        endpointPolicy.verify(specification.endpoint());
+        return createResolved(specification, credential);
+    }
+
+    private ChatModelPort createResolved(
+            ModelRuntimeSpecification specification,
+            com.aiplatform.foundation.security.secret.SecretValue credential) {
+        return credential.use(chars -> {
+            var options = OpenAiChatOptions.builder()
+                    .baseUrl(specification.endpoint().toString())
+                    .apiKey(new String(chars))
+                    .model(specification.modelCode())
+                    .timeout(timeout)
+                    .maxRetries(0)
+                    .maxTokens(specification.outputLimit())
+                    .parallelToolCalls(false)
+                    .build();
+            var model = OpenAiChatModel.builder()
+                    .options(options)
+                    .build();
+            return new SpringAiChatModelAdapter(
+                    model,
+                    new ChatDeploymentRef(
+                            specification.deploymentId(),
+                            specification.deploymentRevision()),
+                    maxTokens -> OpenAiChatOptions.builder()
+                            .model(specification.modelCode())
+                            .maxTokens(maxTokens)
+                            .build());
+        });
     }
 
     private void requireSpecification(

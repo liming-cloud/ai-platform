@@ -8,6 +8,9 @@ import java.util.Objects;
  */
 public final class EmbeddingVector {
 
+    // 当前 pgvector 采用精确检索，`vector` 存储类型允许的最大维度为 16000；近似索引另有更低上限。
+    private static final int MAX_DIMENSION = 16000;
+
     private final int index;
     private final float[] values;
 
@@ -16,7 +19,7 @@ public final class EmbeddingVector {
             throw new IllegalArgumentException("嵌入结果顺序不能为负数");
         }
         Objects.requireNonNull(values, "嵌入向量不能为空");
-        if (values.length < 1 || values.length > 2000) {
+        if (values.length < 1 || values.length > MAX_DIMENSION) {
             throw new IllegalArgumentException("嵌入向量维度超出平台范围");
         }
         for (var value : values) {
