@@ -101,6 +101,18 @@ public final class ModelConfiguration implements AggregateRoot<ModelConfiguratio
                 ModelConfigurationStatus.ACTIVE, version + 1, createdAt);
     }
 
+    /**
+     * 停用后配置不得再进入运行时；重复停用不产生新的修订。
+     */
+    public ModelConfiguration disable() {
+        if (status == ModelConfigurationStatus.DISABLED) {
+            return this;
+        }
+        return new ModelConfiguration(
+                id, scope, tenantId, ownerMembershipId, displayName, catalogEntryId,
+                ModelConfigurationStatus.DISABLED, version + 1, createdAt);
+    }
+
     @Override
     public ModelConfigurationId id() {
         return id;

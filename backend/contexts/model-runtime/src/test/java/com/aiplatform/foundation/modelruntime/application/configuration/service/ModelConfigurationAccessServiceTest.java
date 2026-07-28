@@ -66,6 +66,24 @@ class ModelConfigurationAccessServiceTest {
                         new TenantId(2002L), null));
     }
 
+    @Test
+    void 已停用的平台模型即使保留活动授权也立即不可使用() {
+        var configurations = new ConfigurationRepository();
+        configurations.configuration = ModelConfiguration.create(
+                        new ModelConfigurationId(4001L), ModelConfigurationScope.PLATFORM,
+                        null, null, "平台模型", new ControlledModelCatalogEntryId(3001L),
+                        Instant.parse("2026-07-28T00:00:00Z"))
+                .activate()
+                .disable();
+        var grants = new AccessRepository();
+        var service = new ModelConfigurationAccessService(
+                configurations, grants, () -> 5001L, Clock.systemUTC());
+        var targetTenant = new TenantId(2001L);
+        service.grant(platformAdmin(), new ModelConfigurationId(4001L), targetTenant, null);
+
+        assertFalse(service.mayUse(member(targetTenant, 6001L), configurations.configuration));
+    }
+
     private static TrustedRequestContext platformAdmin() {
         return context(new TenantId(1001L), 9001L, "model-platform:write");
     }

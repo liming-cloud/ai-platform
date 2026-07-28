@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * 显式启用已完成密钥配置的模型配置，禁止草稿直接进入运行时。
+ * 显式启用或停用模型配置，禁止草稿或已停用配置进入运行时。
  */
 @RestController
 @RequestMapping("/api/v1/model-configurations")
@@ -27,6 +27,13 @@ public class ModelConfigurationLifecycleController {
     public ModelConfigurationView activate(
             TrustedRequestContext context, @PathVariable long modelConfigurationId) {
         return ModelConfigurationView.created(configurations.activate(
+                context, new ModelConfigurationId(modelConfigurationId)));
+    }
+
+    @PostMapping("/{modelConfigurationId}/disable")
+    public ModelConfigurationView disable(
+            TrustedRequestContext context, @PathVariable long modelConfigurationId) {
+        return ModelConfigurationView.created(configurations.disable(
                 context, new ModelConfigurationId(modelConfigurationId)));
     }
 }

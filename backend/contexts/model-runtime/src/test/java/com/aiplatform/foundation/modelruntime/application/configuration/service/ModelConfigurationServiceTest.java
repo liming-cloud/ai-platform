@@ -121,6 +121,23 @@ class ModelConfigurationServiceTest {
         assertEquals(active, repository.configuration);
     }
 
+    @Test
+    void 管理者停用活动模型配置后状态立即不可用于运行时() {
+        var repository = new InMemoryRepository();
+        repository.configuration = ModelConfiguration.create(
+                        new ModelConfigurationId(4001L), ModelConfigurationScope.PLATFORM,
+                        null, null, "平台模型", new ControlledModelCatalogEntryId(3001L),
+                        Instant.parse("2026-07-28T00:00:00Z"))
+                .activate();
+
+        var disabled = service(repository).disable(
+                context("model-platform:write"), new ModelConfigurationId(4001L));
+
+        assertEquals("DISABLED", disabled.status().name());
+        assertEquals(2L, disabled.version());
+        assertEquals(disabled, repository.configuration);
+    }
+
     private static ModelConfigurationService service(InMemoryRepository repository) {
         return new ModelConfigurationService(
                 repository,

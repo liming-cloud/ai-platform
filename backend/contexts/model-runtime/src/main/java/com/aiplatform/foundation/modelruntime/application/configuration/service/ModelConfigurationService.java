@@ -79,6 +79,19 @@ public final class ModelConfigurationService {
     }
 
     /**
+     * 以与轮换相同的管理权限停用配置，确保既有授权不再允许使用。
+     */
+    public ModelConfiguration disable(
+            TrustedRequestContext context, ModelConfigurationId configurationId) {
+        var configuration = loadForCredentialRotation(context, configurationId);
+        var disabled = configuration.disable();
+        if (disabled != configuration) {
+            repository.updateConfiguration(disabled);
+        }
+        return disabled;
+    }
+
+    /**
      * 判断可信主体能否维护配置；此判断不授予凭据读取能力。
      */
     public boolean mayManage(TrustedRequestContext context, ModelConfiguration configuration) {
