@@ -10,6 +10,10 @@
 
 追加实现提交：`fa1a2b392`（`feat: 装配本地研发模型密钥提供者`）。
 
+追加实现提交：`b38e8b22c`（`feat: 新增安全模型配置创建接口`）。
+
+追加实现提交：`2997db59d`（`feat: 支持模型配置凭据受控轮换`）。
+
 ## 范围与结果
 
 新增受控模型目录、平台/租户/个人模型配置和加密凭据三张 PostgreSQL 事实表。凭据表只保存 AES-GCM 信封材料、主密钥版本、不可逆指纹与轮换时间，不包含 `api_key` 字段。
@@ -64,6 +68,16 @@ git diff --check
 
 本地研发如需启用加密写入，必须同时显式设置 `foundation.model-credentials.local-development-key-version` 和对应版本的环境变量；生产环境必须提供覆盖该接口的 KMS 或 Vault 实现。本证据不记录任何环境变量内容。
 
+## 脱敏写入与轮换接口
+
+`ModelConfigurationControllerTest` 与 `ModelConfigurationServiceTest` 验证：
+
+- `POST /api/v1/model-configurations` 仅在可用密钥提供者和事务写入器装配后开放；
+- 入站 `apiKey` 转为 `SecretValue` 后传给应用服务并在请求结束时关闭，响应不含密钥材料；
+- `POST /api/v1/model-configurations/{id}/credential` 轮换前从 PostgreSQL 重建配置，平台、租户和个人配置分别按照可信上下文的权限、租户与成员归属验证；
+- 跨成员个人配置统一返回“模型配置不存在”，不暴露资源是否真实存在；
+- 数据库读取路径恢复所有权、状态和修订，但不读取或映射任何凭据材料。
+
 ## 未完成项
 
-迁移、仓储与原子写入尚不是完整产品接口：受控密钥提供者装配、脱敏读取 API、凭据轮换、授权撤销和真实模型调用仍待实现。
+迁移、仓储、创建与轮换尚不是完整产品接口：脱敏读取 API、平台/租户授权撤销和真实模型调用仍待实现。
