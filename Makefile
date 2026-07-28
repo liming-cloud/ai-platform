@@ -1,4 +1,4 @@
-.PHONY: project-status project-verify resume-context architecture-guard backend-test frontend-test demo-fixtures-verify recovery-operations-test recovery-demo capacity-resilience-operations-test capacity-resilience-demo delivery-operations-test delivery-demo upgrade-demo deploy-config deploy-up deploy-smoke acceptance-knowledge-space acceptance-model-provider acceptance-model-deployment acceptance-index-search acceptance-assistant acceptance-trusted-query acceptance-query-web acceptance-query-quota acceptance-query-operations evaluation-demo performance-index-search performance-query-candidate-pool deploy-down validate
+.PHONY: project-status project-verify resume-context architecture-guard backend-test frontend-test demo-fixtures-verify real-model-acceptance-test recovery-operations-test recovery-demo capacity-resilience-operations-test capacity-resilience-demo delivery-operations-test delivery-demo upgrade-demo deploy-config deploy-up deploy-smoke acceptance-knowledge-space acceptance-model-provider acceptance-model-deployment acceptance-index-search acceptance-assistant acceptance-trusted-query acceptance-query-web acceptance-query-quota acceptance-query-operations evaluation-demo performance-index-search performance-query-candidate-pool deploy-down validate
 
 project-status:
 	python3 scripts/project_governance.py status
@@ -23,6 +23,9 @@ frontend-test:
 demo-fixtures-verify:
 	python3 -m unittest scripts.quality.test_demo_fixtures scripts.quality.test_demo_evaluation
 	python3 scripts/quality/demo_fixtures.py
+
+real-model-acceptance-test:
+	python3 -m unittest scripts.quality.test_real_model_acceptance
 
 recovery-operations-test:
 	python3 -m unittest scripts.quality.test_recovery_operations
@@ -93,4 +96,4 @@ performance-query-candidate-pool:
 deploy-down:
 	docker compose --env-file deploy/compose/.env.example -f deploy/compose/compose.yml down
 
-validate: project-verify architecture-guard backend-test frontend-test demo-fixtures-verify recovery-operations-test capacity-resilience-operations-test delivery-operations-test
+validate: project-verify architecture-guard backend-test frontend-test demo-fixtures-verify real-model-acceptance-test recovery-operations-test capacity-resilience-operations-test delivery-operations-test

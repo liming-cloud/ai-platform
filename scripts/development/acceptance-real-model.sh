@@ -84,7 +84,8 @@ create_catalog_entry() {
   entry="$(request POST "/controlled-model-catalog" "${token}" "" "${payload}")"
   published="$(request POST "/controlled-model-catalog/$(jq -er '.id' <<<"${entry}")/publish" "${token}")"
   jq -er --arg model_type "${model_type}" \
-    '.status == "PUBLISHED" and .modelType == $model_type and .id' <<<"${published}"
+    'select(.status == "PUBLISHED" and .modelType == $model_type) | .id' \
+    <<<"${published}"
 }
 
 create_active_personal_configuration() {
@@ -100,7 +101,7 @@ create_active_personal_configuration() {
   unset payload
   activated="$(request POST "/model-configurations/$(jq -er '.id' <<<"${created}")/activate" "${token}")"
   jq -er --arg model_type "${model_type}" \
-    '.status == "ACTIVE" and .credentialConfigured == true and .modelType == $model_type and .id' \
+    'select(.status == "ACTIVE" and .credentialConfigured == true and .modelType == $model_type) | .id' \
     <<<"${activated}"
 }
 
@@ -162,7 +163,7 @@ create_active_index() {
     jq -er --arg index_id "${index_id}" '.items[] | select(.id == $index_id)')"
   published="$(request POST "/knowledge-spaces/${knowledge_space_id}/index-versions/${index_id}/publish" "${token}" "${RUN_ID}-index-publish" \
     "$(jq -n --argjson expectedVersion "$(jq -er '.version' <<<"${current}")" '{expectedVersion: $expectedVersion}')")"
-  jq -er '.status == "ACTIVE" and .id' <<<"${published}"
+  jq -er 'select(.status == "ACTIVE") | .id' <<<"${published}"
 }
 
 create_published_assistant_version() {
@@ -185,7 +186,7 @@ create_published_assistant_version() {
         citationPolicy: "REQUIRED", refusalPolicy: "INSUFFICIENT_EVIDENCE"}')")"
   published="$(request POST "/assistant-versions/$(jq -er '.id' <<<"${version}")/publish" "${token}" "${RUN_ID}-assistant-publish" \
     "$(jq -n --argjson expectedVersion "$(jq -er '.version' <<<"${version}")" '{expectedVersion: $expectedVersion}')")"
-  jq -er '.status == "PUBLISHED" and .id' <<<"${published}"
+  jq -er 'select(.status == "PUBLISHED") | .id' <<<"${published}"
 }
 
 query_real_model() {
