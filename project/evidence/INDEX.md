@@ -138,6 +138,7 @@
 | 可用模型配置安全查询门面 | `project/evidence/WP-0010-usable-model-configuration-lookup.md` | `c120cd256` | 已启用、已授权、已配置凭据且目录已发布的模型配置才投影为无秘密快照；跨成员、无凭据、未发布目录与类型不匹配均失败关闭 |
 | 受控嵌入短生命周期运行时 | `project/evidence/WP-0010-governed-embedding-runtime.md` | `ed5f41c5f` | 单次调用重验配置、目录和请求快照；受控配置不走长期凭据引用或模型缓存 |
 | 受控模型配置选择与索引创建契约 | `project/evidence/WP-0010-controlled-model-configuration-selection.md` | `1d720a692` | 当前成员仅能分页读取个人、租户和已授权平台配置；控制台仅选择已启用、已配置凭据的嵌入配置创建新索引 |
+| 助手受控模型配置绑定与同源发布 | `project/evidence/WP-0010-assistant-governed-model-bindings.md` | `b7ce49410` | 新助手版本显式冻结 Chat/Embedding 配置；创建和发布均拒绝失效配置、旧索引与任何嵌入快照差异 |
 
 ## 证据规则
 

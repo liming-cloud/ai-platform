@@ -96,6 +96,7 @@ latestEvidence:
   - project/evidence/WP-0010-usable-model-configuration-lookup.md
   - project/evidence/WP-0010-governed-embedding-runtime.md
   - project/evidence/WP-0010-controlled-model-configuration-selection.md
+  - project/evidence/WP-0010-assistant-governed-model-bindings.md
 nextReviewAt: 2026-08-03
-updatedAt: 2026-07-28T11:00:00+08:00
+updatedAt: 2026-07-28T11:12:00+08:00
 updatedBy: codex
