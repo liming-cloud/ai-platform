@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aiplatform.foundation.modelruntime.infrastructure.persistence.configuration.ModelConfigurationMapper">
+    <select id="findCatalogEntry" resultType="com.aiplatform.foundation.modelruntime.infrastructure.persistence.configuration.ModelConfigurationMapper$CatalogRow">
+        SELECT id, provider_kind AS providerKind, endpoint, model_code AS modelCode,
+               model_type AS modelType, status, version, created_at AS createdAt
+        FROM model_runtime.controlled_model_catalog_entry
+        WHERE id = #{id}
+    </select>
+    <insert id="insertConfiguration">
+        INSERT INTO model_runtime.model_configuration (
+            id, scope, tenant_id, owner_membership_id, display_name,
+            catalog_entry_id, status, version, created_at
+        ) VALUES (
+            #{id}, #{scope}, #{tenantId}, #{ownerMembershipId}, #{displayName},
+            #{catalogEntryId}, #{status}, #{version}, #{createdAt}
+        )
+    </insert>
+</mapper>

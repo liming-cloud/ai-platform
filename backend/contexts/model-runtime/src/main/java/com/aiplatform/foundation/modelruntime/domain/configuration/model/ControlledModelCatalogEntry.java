@@ -64,6 +64,19 @@ public final class ControlledModelCatalogEntry
                 createdAt);
     }
 
+    public static ControlledModelCatalogEntry reconstitute(
+            ControlledModelCatalogEntryId id,
+            ProviderKind providerKind,
+            URI endpoint,
+            String modelCode,
+            ModelType modelType,
+            ControlledModelCatalogEntryStatus status,
+            long version,
+            Instant createdAt) {
+        return new ControlledModelCatalogEntry(
+                id, providerKind, endpoint, modelCode, modelType, status, version, createdAt);
+    }
+
     public ControlledModelCatalogEntry publish() {
         if (status != ControlledModelCatalogEntryStatus.DRAFT) {
             throw new IllegalStateException("只有草稿受控模型目录条目可以发布");

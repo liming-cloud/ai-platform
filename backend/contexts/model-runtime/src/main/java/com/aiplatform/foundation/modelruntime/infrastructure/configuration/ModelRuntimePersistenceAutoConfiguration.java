@@ -1,10 +1,13 @@
 package com.aiplatform.foundation.modelruntime.infrastructure.configuration;
 
 import com.aiplatform.foundation.modelruntime.domain.deployment.repository.ModelDeploymentRepository;
+import com.aiplatform.foundation.modelruntime.domain.configuration.repository.ModelConfigurationRepository;
 import com.aiplatform.foundation.modelruntime.domain.provider.repository.ProviderConnectionRepository;
 import com.aiplatform.foundation.modelruntime.infrastructure.persistence.deployment.mapper.ModelDeploymentMapper;
 import com.aiplatform.foundation.modelruntime.infrastructure.persistence.deployment.mapper.ModelDeploymentRequestMapper;
 import com.aiplatform.foundation.modelruntime.infrastructure.persistence.deployment.repository.PostgresModelDeploymentRepository;
+import com.aiplatform.foundation.modelruntime.infrastructure.persistence.configuration.ModelConfigurationMapper;
+import com.aiplatform.foundation.modelruntime.infrastructure.persistence.configuration.PostgresModelConfigurationRepository;
 import com.aiplatform.foundation.modelruntime.infrastructure.persistence.provider.mapper.ProviderConnectionMapper;
 import com.aiplatform.foundation.modelruntime.infrastructure.persistence.provider.mapper.ProviderConnectionRequestMapper;
 import com.aiplatform.foundation.modelruntime.infrastructure.persistence.provider.repository.PostgresProviderConnectionRepository;
@@ -28,7 +31,8 @@ import org.springframework.transaction.PlatformTransactionManager;
 @ConditionalOnBean(SqlSessionFactory.class)
 @MapperScan(basePackageClasses = {
     ProviderConnectionMapper.class,
-    ModelDeploymentMapper.class
+    ModelDeploymentMapper.class,
+    ModelConfigurationMapper.class
 })
 public class ModelRuntimePersistenceAutoConfiguration {
 
@@ -54,5 +58,12 @@ public class ModelRuntimePersistenceAutoConfiguration {
                 mapper,
                 requestMapper,
                 transactions);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    ModelConfigurationRepository modelConfigurationRepository(
+            ModelConfigurationMapper mapper) {
+        return new PostgresModelConfigurationRepository(mapper);
     }
 }

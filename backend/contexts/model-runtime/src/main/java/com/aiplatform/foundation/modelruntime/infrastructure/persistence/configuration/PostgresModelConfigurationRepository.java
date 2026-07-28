@@ -1,0 +1,54 @@
+package com.aiplatform.foundation.modelruntime.infrastructure.persistence.configuration;
+
+import com.aiplatform.foundation.modelruntime.domain.configuration.model.ControlledModelCatalogEntry;
+import com.aiplatform.foundation.modelruntime.domain.configuration.model.ControlledModelCatalogEntryId;
+import com.aiplatform.foundation.modelruntime.domain.configuration.model.ControlledModelCatalogEntryStatus;
+import com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelConfiguration;
+import com.aiplatform.foundation.modelruntime.domain.configuration.repository.ModelConfigurationRepository;
+import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelType;
+import com.aiplatform.foundation.modelruntime.domain.provider.model.ProviderKind;
+import java.net.URI;
+import java.util.Objects;
+import java.util.Optional;
+
+/**
+ * PostgreSQL 受控目录与模型配置仓储，所有配置所有权由领域对象验证。
+ */
+public final class PostgresModelConfigurationRepository implements ModelConfigurationRepository {
+
+    private final ModelConfigurationMapper mapper;
+
+    public PostgresModelConfigurationRepository(ModelConfigurationMapper mapper) {
+        this.mapper = Objects.requireNonNull(mapper, "模型配置映射器不能为空");
+    }
+
+    @Override
+    public Optional<ControlledModelCatalogEntry> findCatalogEntry(ControlledModelCatalogEntryId id) {
+        Objects.requireNonNull(id, "受控模型目录条目标识不能为空");
+        return Optional.ofNullable(mapper.findCatalogEntry(id.value())).map(row ->
+                ControlledModelCatalogEntry.reconstitute(
+                        new ControlledModelCatalogEntryId(row.id()),
+                        ProviderKind.valueOf(row.providerKind()),
+                        URI.create(row.endpoint()),
+                        row.modelCode(),
+                        ModelType.valueOf(row.modelType()),
+                        ControlledModelCatalogEntryStatus.valueOf(row.status()),
+                        row.version(),
+                        row.createdAt()));
+    }
+
+    @Override
+    public void save(ModelConfiguration configuration) {
+        Objects.requireNonNull(configuration, "模型配置不能为空");
+        mapper.insertConfiguration(
+                configuration.id().value(),
+                configuration.scope().name(),
+                configuration.tenantId() == null ? null : configuration.tenantId().value(),
+                configuration.ownerMembershipId() == null ? null : configuration.ownerMembershipId().value(),
+                configuration.displayName(),
+                configuration.catalogEntryId().value(),
+                configuration.status().name(),
+                configuration.version(),
+                configuration.createdAt());
+    }
+}
