@@ -3,6 +3,7 @@ package com.aiplatform.foundation.modelruntime.domain.configuration.repository;
 import com.aiplatform.foundation.modelruntime.domain.configuration.model.ControlledModelCatalogEntry;
 import com.aiplatform.foundation.modelruntime.domain.configuration.model.ControlledModelCatalogEntryId;
 import com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelConfiguration;
+import com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelConfigurationId;
 import java.util.Optional;
 
 /**
@@ -11,6 +12,8 @@ import java.util.Optional;
 public interface ModelConfigurationRepository {
 
     Optional<ControlledModelCatalogEntry> findCatalogEntry(ControlledModelCatalogEntryId id);
+
+    Optional<ModelConfiguration> findConfiguration(ModelConfigurationId id);
 
     void save(ModelConfiguration configuration);
 }

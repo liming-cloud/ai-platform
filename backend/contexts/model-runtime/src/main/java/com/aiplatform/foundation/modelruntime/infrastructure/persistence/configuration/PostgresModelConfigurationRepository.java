@@ -4,12 +4,17 @@ import com.aiplatform.foundation.modelruntime.domain.configuration.model.Control
 import com.aiplatform.foundation.modelruntime.domain.configuration.model.ControlledModelCatalogEntryId;
 import com.aiplatform.foundation.modelruntime.domain.configuration.model.ControlledModelCatalogEntryStatus;
 import com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelConfiguration;
+import com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelConfigurationId;
+import com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelConfigurationOwnerId;
+import com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelConfigurationScope;
+import com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelConfigurationStatus;
 import com.aiplatform.foundation.modelruntime.domain.configuration.repository.ModelConfigurationRepository;
 import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelType;
 import com.aiplatform.foundation.modelruntime.domain.provider.model.ProviderKind;
 import java.net.URI;
 import java.util.Objects;
 import java.util.Optional;
+import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
 
 /**
  * PostgreSQL 受控目录与模型配置仓储，所有配置所有权由领域对象验证。
@@ -33,6 +38,23 @@ public final class PostgresModelConfigurationRepository implements ModelConfigur
                         row.modelCode(),
                         ModelType.valueOf(row.modelType()),
                         ControlledModelCatalogEntryStatus.valueOf(row.status()),
+                        row.version(),
+                        row.createdAt()));
+    }
+
+    @Override
+    public Optional<ModelConfiguration> findConfiguration(ModelConfigurationId id) {
+        Objects.requireNonNull(id, "模型配置标识不能为空");
+        return Optional.ofNullable(mapper.findConfiguration(id.value())).map(row ->
+                ModelConfiguration.reconstitute(
+                        new ModelConfigurationId(row.id()),
+                        ModelConfigurationScope.valueOf(row.scope()),
+                        row.tenantId() == null ? null : new TenantId(row.tenantId()),
+                        row.ownerMembershipId() == null ? null
+                                : new ModelConfigurationOwnerId(row.ownerMembershipId()),
+                        row.displayName(),
+                        new ControlledModelCatalogEntryId(row.catalogEntryId()),
+                        ModelConfigurationStatus.valueOf(row.status()),
                         row.version(),
                         row.createdAt()));
     }

@@ -14,6 +14,8 @@ public enum ModelRuntimeErrorCode implements ErrorCode {
             "供应商连接不存在"),
     DEPLOYMENT_NOT_FOUND("MODEL_RUNTIME.RESOURCE.0002", ErrorType.RESOURCE,
             "模型部署不存在"),
+    MODEL_CONFIGURATION_NOT_FOUND("MODEL_RUNTIME.RESOURCE.0003", ErrorType.RESOURCE,
+            "模型配置不存在"),
     PROVIDER_CONCURRENT("MODEL_RUNTIME.CONFLICT.0001", ErrorType.CONFLICT,
             "供应商连接版本已经变化"),
     PROVIDER_IDEMPOTENCY("MODEL_RUNTIME.CONFLICT.0002", ErrorType.CONFLICT,

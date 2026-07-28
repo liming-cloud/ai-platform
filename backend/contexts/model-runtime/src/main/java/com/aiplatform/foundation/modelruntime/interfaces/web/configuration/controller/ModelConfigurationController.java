@@ -2,7 +2,9 @@ package com.aiplatform.foundation.modelruntime.interfaces.web.configuration.cont
 
 import com.aiplatform.foundation.modelruntime.application.configuration.service.ModelConfigurationCredentialService;
 import com.aiplatform.foundation.modelruntime.domain.configuration.model.ControlledModelCatalogEntryId;
+import com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelConfigurationId;
 import com.aiplatform.foundation.modelruntime.interfaces.web.configuration.request.ModelConfigurationCreateRequest;
+import com.aiplatform.foundation.modelruntime.interfaces.web.configuration.request.ModelConfigurationCredentialRotateRequest;
 import com.aiplatform.foundation.modelruntime.interfaces.web.configuration.view.ModelConfigurationView;
 import com.aiplatform.foundation.security.identity.TrustedRequestContext;
 import com.aiplatform.foundation.security.secret.SecretValue;
@@ -12,6 +14,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -44,6 +47,24 @@ public class ModelConfigurationController {
                     apiKey);
             return ResponseEntity.status(HttpStatus.CREATED)
                     .body(ModelConfigurationView.created(configuration));
+        } finally {
+            Arrays.fill(input, '\0');
+        }
+    }
+
+    @PostMapping("/{modelConfigurationId}/credential")
+    public ModelConfigurationView rotateCredential(
+            TrustedRequestContext context,
+            @PathVariable long modelConfigurationId,
+            @RequestBody ModelConfigurationCredentialRotateRequest request) {
+        return withApiKey(request.apiKey(), apiKey -> ModelConfigurationView.created(
+                configurations.rotate(context, new ModelConfigurationId(modelConfigurationId), apiKey)));
+    }
+
+    private static <T> T withApiKey(String value, java.util.function.Function<SecretValue, T> action) {
+        var input = Objects.requireNonNull(value, "API Key不能为空").toCharArray();
+        try (var apiKey = SecretValue.copyOf(input)) {
+            return action.apply(apiKey);
         } finally {
             Arrays.fill(input, '\0');
         }

@@ -10,6 +10,8 @@ public interface ModelConfigurationMapper {
 
     CatalogRow findCatalogEntry(@Param("id") long id);
 
+    ConfigurationRow findConfiguration(@Param("id") long id);
+
     void insertConfiguration(
             @Param("id") long id,
             @Param("scope") String scope,
@@ -24,5 +26,10 @@ public interface ModelConfigurationMapper {
     record CatalogRow(
             long id, String providerKind, String endpoint, String modelCode, String modelType,
             String status, long version, Instant createdAt) {
+    }
+
+    record ConfigurationRow(
+            long id, String scope, Long tenantId, Long ownerMembershipId, String displayName,
+            long catalogEntryId, String status, long version, Instant createdAt) {
     }
 }

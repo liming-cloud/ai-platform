@@ -6,6 +6,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import com.aiplatform.foundation.modelruntime.domain.configuration.model.ControlledModelCatalogEntry;
 import com.aiplatform.foundation.modelruntime.domain.configuration.model.ControlledModelCatalogEntryId;
 import com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelConfiguration;
+import com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelConfigurationId;
+import com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelConfigurationOwnerId;
 import com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelConfigurationScope;
 import com.aiplatform.foundation.modelruntime.domain.configuration.repository.ModelConfigurationRepository;
 import com.aiplatform.foundation.modelruntime.application.configuration.port.out.ModelConfigurationCredentialWriter;
@@ -75,6 +77,34 @@ class ModelConfigurationServiceTest {
         assertEquals(ModelConfigurationScope.TENANT, created.scope());
     }
 
+    @Test
+    void 个人模型配置只能由同一成员轮换凭据() {
+        var repository = new InMemoryRepository();
+        repository.catalog = publishedCatalog();
+        repository.configuration = ModelConfiguration.create(
+                new ModelConfigurationId(4001L),
+                ModelConfigurationScope.PERSONAL,
+                new TenantId(100000000000000001L),
+                new ModelConfigurationOwnerId(3382738893456539650L),
+                "我的模型",
+                new ControlledModelCatalogEntryId(3001L),
+                Instant.parse("2026-07-28T00:00:00Z"));
+        var credentials = new CapturingCredentialWriter();
+        var service = new ModelConfigurationCredentialService(
+                service(repository), credentials, new ImmediateTransaction());
+
+        try (var secret = SecretValue.copyOf("test-api-key".toCharArray())) {
+            assertThrows(
+                    com.aiplatform.foundation.modelruntime.application.configuration.exception.ModelConfigurationNotFoundException.class,
+                    () -> service.rotate(
+                            context("model-personal:write", 3382738893456539651L),
+                            new ModelConfigurationId(4001L),
+                            secret));
+        }
+
+        assertEquals(null, credentials.configurationId);
+    }
+
     private static ModelConfigurationService service(InMemoryRepository repository) {
         return new ModelConfigurationService(
                 repository,
@@ -93,10 +123,14 @@ class ModelConfigurationServiceTest {
     }
 
     private static TrustedRequestContext context(String permission) {
+        return context(permission, 3382738893456539650L);
+    }
+
+    private static TrustedRequestContext context(String permission, long membershipId) {
         return new TrustedRequestContext(
                 new TenantId(100000000000000001L),
                 new SubjectId(1843651857942052866L),
-                new MembershipId(3382738893456539650L),
+                new MembershipId(membershipId),
                 CredentialType.PERSON,
                 AccessChannel.CONSOLE,
                 1,
@@ -111,6 +145,13 @@ class ModelConfigurationServiceTest {
         @Override
         public Optional<ControlledModelCatalogEntry> findCatalogEntry(ControlledModelCatalogEntryId id) {
             return catalog != null && catalog.id().equals(id) ? Optional.of(catalog) : Optional.empty();
+        }
+
+        @Override
+        public Optional<ModelConfiguration> findConfiguration(ModelConfigurationId id) {
+            return configuration != null && configuration.id().equals(id)
+                    ? Optional.of(configuration)
+                    : Optional.empty();
         }
 
         @Override

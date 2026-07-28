@@ -4,6 +4,7 @@ import com.aiplatform.foundation.modelruntime.application.configuration.port.out
 import com.aiplatform.foundation.modelruntime.application.configuration.port.out.ModelConfigurationTransaction;
 import com.aiplatform.foundation.modelruntime.domain.configuration.model.ControlledModelCatalogEntryId;
 import com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelConfiguration;
+import com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelConfigurationId;
 import com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelConfigurationScope;
 import com.aiplatform.foundation.security.identity.TrustedRequestContext;
 import com.aiplatform.foundation.security.secret.SecretValue;
@@ -40,6 +41,18 @@ public final class ModelConfigurationCredentialService {
                     scope,
                     displayName,
                     catalogEntryId);
+            credentials.rotate(configuration.id(), apiKey);
+            return configuration;
+        });
+    }
+
+    public ModelConfiguration rotate(
+            TrustedRequestContext context,
+            ModelConfigurationId configurationId,
+            SecretValue apiKey) {
+        Objects.requireNonNull(apiKey, "API Key不能为空");
+        return transactions.execute(() -> {
+            var configuration = configurations.loadForCredentialRotation(context, configurationId);
             credentials.rotate(configuration.id(), apiKey);
             return configuration;
         });

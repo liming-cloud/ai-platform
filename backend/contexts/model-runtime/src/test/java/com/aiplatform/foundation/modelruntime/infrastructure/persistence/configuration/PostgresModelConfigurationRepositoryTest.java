@@ -65,6 +65,9 @@ class PostgresModelConfigurationRepositoryTest {
                 new TenantId(2001L), null, "租户模型", catalog.id(),
                 Instant.parse("2026-07-28T00:00:00Z")));
         assertEquals(1, jdbc.queryForObject("SELECT count(*) FROM model_runtime.model_configuration", Integer.class));
+        var configuration = repository.findConfiguration(new ModelConfigurationId(4001L)).orElseThrow();
+        assertEquals(ModelConfigurationScope.TENANT, configuration.scope());
+        assertEquals(2001L, configuration.tenantId().value());
     }
 
     @SpringBootConfiguration @EnableAutoConfiguration

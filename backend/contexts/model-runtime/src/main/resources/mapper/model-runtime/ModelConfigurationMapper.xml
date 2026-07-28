@@ -7,6 +7,13 @@
         FROM model_runtime.controlled_model_catalog_entry
         WHERE id = #{id}
     </select>
+    <select id="findConfiguration" resultType="com.aiplatform.foundation.modelruntime.infrastructure.persistence.configuration.ModelConfigurationMapper$ConfigurationRow">
+        SELECT id, scope, tenant_id AS tenantId, owner_membership_id AS ownerMembershipId,
+               display_name AS displayName, catalog_entry_id AS catalogEntryId,
+               status, version, created_at AS createdAt
+        FROM model_runtime.model_configuration
+        WHERE id = #{id}
+    </select>
     <insert id="insertConfiguration">
         INSERT INTO model_runtime.model_configuration (
             id, scope, tenant_id, owner_membership_id, display_name,

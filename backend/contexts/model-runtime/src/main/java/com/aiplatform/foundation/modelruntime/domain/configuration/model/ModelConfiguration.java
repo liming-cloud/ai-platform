@@ -67,6 +67,28 @@ public final class ModelConfiguration implements AggregateRoot<ModelConfiguratio
                 createdAt);
     }
 
+    public static ModelConfiguration reconstitute(
+            ModelConfigurationId id,
+            ModelConfigurationScope scope,
+            TenantId tenantId,
+            ModelConfigurationOwnerId ownerMembershipId,
+            String displayName,
+            ControlledModelCatalogEntryId catalogEntryId,
+            ModelConfigurationStatus status,
+            long version,
+            Instant createdAt) {
+        return new ModelConfiguration(
+                id,
+                scope,
+                tenantId,
+                ownerMembershipId,
+                displayName,
+                catalogEntryId,
+                status,
+                version,
+                createdAt);
+    }
+
     @Override
     public ModelConfigurationId id() {
         return id;

@@ -7,6 +7,7 @@ import com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelCo
 import com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelConfigurationOwnerId;
 import com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelConfigurationScope;
 import com.aiplatform.foundation.modelruntime.domain.configuration.repository.ModelConfigurationRepository;
+import com.aiplatform.foundation.modelruntime.application.configuration.exception.ModelConfigurationNotFoundException;
 import com.aiplatform.foundation.security.identity.PermissionCode;
 import com.aiplatform.foundation.security.identity.TrustedRequestContext;
 import com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator;
@@ -52,6 +53,21 @@ public final class ModelConfigurationService {
             case TENANT -> createTenant(context, displayName, catalogEntryId);
             case PERSONAL -> createPersonal(context, displayName, catalogEntryId);
         };
+    }
+
+    /**
+     * 在轮换前以可信身份验证配置的管理范围，跨范围资源统一按不存在处理。
+     */
+    public ModelConfiguration loadForCredentialRotation(
+            TrustedRequestContext context, ModelConfigurationId configurationId) {
+        Objects.requireNonNull(context, "可信请求上下文不能为空");
+        var configuration = repository.findConfiguration(
+                        Objects.requireNonNull(configurationId, "模型配置标识不能为空"))
+                .orElseThrow(ModelConfigurationNotFoundException::new);
+        if (!canManage(context, configuration)) {
+            throw new ModelConfigurationNotFoundException();
+        }
+        return configuration;
     }
 
     private ModelConfiguration createPlatform(
@@ -108,5 +124,17 @@ public final class ModelConfigurationService {
         if (!context.hasPermission(permission)) {
             throw new IllegalStateException("当前成员没有模型配置写入权限");
         }
+    }
+
+    private static boolean canManage(
+            TrustedRequestContext context, ModelConfiguration configuration) {
+        return switch (configuration.scope()) {
+            case PLATFORM -> context.hasPermission(PLATFORM_WRITE);
+            case TENANT -> context.hasPermission(TENANT_WRITE)
+                    && configuration.tenantId().equals(context.tenantId());
+            case PERSONAL -> context.hasPermission(PERSONAL_WRITE)
+                    && configuration.tenantId().equals(context.tenantId())
+                    && configuration.ownerMembershipId().value() == context.membershipId().value();
+        };
     }
 }
