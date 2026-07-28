@@ -143,7 +143,7 @@
 | 受控模型查询运行时 | `project/evidence/WP-0010-governed-query-runtime.md` | `e65024300` | 受控助手与活动索引在配额后重验配置快照；查询不回退历史部署，pgvector 按完整配置冻结检索 |
 | 受控真实模型验收装配 | `project/evidence/WP-0010-real-model-runtime-assembly.md` | `0cb172350` | 查询进程装配受控运行时，独立 compose 覆盖层传递主密钥、端点和超时，不传递 API Key |
 | 受控模型配置控制台 | `project/evidence/WP-0010-model-configuration-console.md` | `e587fb823` | 已发布目录分页、受控创建、启用与凭据轮换在控制台闭环；API Key 不回显、不保留在页面状态 |
-| 真实模型受控验收编排 | `project/evidence/WP-0010-real-model-acceptance-orchestration.md` | `f014be163` | 目录、加密配置、索引、助手和查询的真实模型脚本已具备；仅完成无密钥预检，外部调用待受控终端执行 |
+| 真实模型受控验收编排 | `project/evidence/WP-0010-real-model-acceptance-orchestration.md` | `f014be163`、`2ac742be1` | 目录、加密配置、索引、助手和查询的真实模型脚本已具备；Mock 闭环和无密钥失败关闭通过，外部调用待受控终端执行 |
 
 ## 证据规则
 
