@@ -16,8 +16,12 @@ import com.aiplatform.foundation.knowledgedata.domain.indexversion.repository.In
 import com.aiplatform.foundation.knowledgedata.domain.indexversion.model.EmbeddingConfiguration;
 import com.aiplatform.foundation.knowledgedata.domain.indexversion.model.IndexVersion;
 import com.aiplatform.foundation.knowledgedata.domain.knowledge.model.KnowledgeSpaceId;
-import com.aiplatform.foundation.modelruntime.application.deployment.facade.PublishedEmbeddingDeploymentLookup;
-import com.aiplatform.foundation.modelruntime.application.deployment.dto.PublishedEmbeddingDeploymentSnapshot;
+import com.aiplatform.foundation.modelruntime.application.configuration.facade.UsableModelConfigurationLookup;
+import com.aiplatform.foundation.modelruntime.application.configuration.dto.UsableModelConfigurationSnapshot;
+import com.aiplatform.foundation.modelruntime.domain.configuration.model.ControlledModelCatalogEntryId;
+import com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelConfigurationId;
+import com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelRuntimeCapabilities;
+import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelType;
 import com.aiplatform.foundation.security.identity.AccessChannel;
 import com.aiplatform.foundation.security.identity.CredentialType;
 import com.aiplatform.foundation.security.identity.MembershipId;
@@ -41,9 +45,11 @@ class IndexVersionServiceTest {
     private static final MembershipId MEMBER_ID =
             new MembershipId(1843651857942052866L);
     private static final EmbeddingConfiguration EMBEDDING =
-            new EmbeddingConfiguration(
+            EmbeddingConfiguration.governed(
                     320000000000000001L,
                     1,
+                    330000000000000001L,
+                    2,
                     128);
     private static final Clock CLOCK =
             Clock.fixed(Instant.parse("2026-07-27T00:00:00Z"), ZoneOffset.UTC);
@@ -60,7 +66,7 @@ class IndexVersionServiceTest {
         var result = service.create(new CreateIndexVersionCommand(
                 context("knowledge:write"),
                 Long.toString(SPACE_ID),
-                Long.toString(EMBEDDING.deploymentId()),
+                Long.toString(EMBEDDING.configurationId()),
                 "index-request-0001"));
 
         assertEquals(Long.toString(INDEX_ID), result.indexVersion().id());
@@ -86,7 +92,7 @@ class IndexVersionServiceTest {
                 () -> service.create(new CreateIndexVersionCommand(
                         context("knowledge:read"),
                         Long.toString(SPACE_ID),
-                        Long.toString(EMBEDDING.deploymentId()),
+                        Long.toString(EMBEDDING.configurationId()),
                         "index-request-0001")));
         assertTrue(repository.request == null);
     }
@@ -96,7 +102,7 @@ class IndexVersionServiceTest {
         var repository = new RecordingRepository();
         var service = new IndexVersionService(
                 repository,
-                (tenantId, deploymentId) -> Optional.empty(),
+                (context, configurationId, requiredType) -> Optional.empty(),
                 CLOCK,
                 () -> INDEX_ID);
 
@@ -105,17 +111,20 @@ class IndexVersionServiceTest {
                 () -> service.create(new CreateIndexVersionCommand(
                         context("knowledge:write"),
                         Long.toString(SPACE_ID),
-                        Long.toString(EMBEDDING.deploymentId()),
+                        Long.toString(EMBEDDING.configurationId()),
                         "index-request-0001")));
         assertTrue(repository.request == null);
     }
 
-    private static PublishedEmbeddingDeploymentLookup publishedEmbedding() {
-        return (tenantId, deploymentId) -> Optional.of(
-                new PublishedEmbeddingDeploymentSnapshot(
-                        deploymentId,
-                        EMBEDDING.deploymentRevision(),
-                        EMBEDDING.dimension()));
+    private static UsableModelConfigurationLookup publishedEmbedding() {
+        return (context, configurationId, requiredType) -> Optional.of(
+                new UsableModelConfigurationSnapshot(
+                        configurationId,
+                        EMBEDDING.configurationRevision(),
+                        new ControlledModelCatalogEntryId(EMBEDDING.catalogEntryId()),
+                        EMBEDDING.catalogEntryRevision(),
+                        ModelType.EMBEDDING,
+                        new ModelRuntimeCapabilities(8192, null, EMBEDDING.dimension())));
     }
 
     private static TrustedRequestContext context(String permission) {

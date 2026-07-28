@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import com.aiplatform.foundation.knowledgedata.application.indexversion.port.out.vector.IndexCandidateQuery;
 import com.aiplatform.foundation.knowledgedata.application.indexversion.port.out.vector.IndexVector;
 import com.aiplatform.foundation.knowledgedata.application.indexversion.port.out.vector.IndexVectorBatch;
+import com.aiplatform.foundation.knowledgedata.domain.indexversion.model.EmbeddingConfiguration;
 import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
 import java.time.Instant;
 import java.time.ZoneOffset;
@@ -171,6 +172,43 @@ class PgVectorIndexStoreTest {
 
         assertEquals(1, result.size());
         assertEquals("冻结版本证据", result.getFirst().content());
+    }
+
+    @Test
+    void 受控嵌入配置向量只写入配置与目录冻结事实() {
+        var governed = EmbeddingConfiguration.governed(
+                320000000000000002L,
+                2,
+                330000000000000001L,
+                3,
+                4);
+
+        store.replace(new IndexVectorBatch(
+                TENANT,
+                SPACE,
+                INDEX,
+                governed,
+                List.of(vector(
+                        "4".repeat(64),
+                        0,
+                        "受控配置向量",
+                        new float[] {1, 0, 0, 0}))));
+
+        var row = jdbc.queryForMap(
+                """
+                SELECT embedding_deployment_id, embedding_configuration_id,
+                       embedding_configuration_revision, embedding_catalog_entry_id,
+                       embedding_catalog_entry_revision
+                FROM knowledge_data.index_chunk
+                WHERE tenant_id = ? AND index_version_id = ?
+                """,
+                TENANT.value(),
+                INDEX);
+        assertTrue(row.get("embedding_deployment_id") == null);
+        assertEquals(governed.configurationId(), ((Number) row.get("embedding_configuration_id")).longValue());
+        assertEquals(governed.configurationRevision(), ((Number) row.get("embedding_configuration_revision")).longValue());
+        assertEquals(governed.catalogEntryId(), ((Number) row.get("embedding_catalog_entry_id")).longValue());
+        assertEquals(governed.catalogEntryRevision(), ((Number) row.get("embedding_catalog_entry_revision")).longValue());
     }
 
     private static IndexVectorBatch batch(

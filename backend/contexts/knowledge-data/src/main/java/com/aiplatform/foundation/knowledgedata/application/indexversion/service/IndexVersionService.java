@@ -18,7 +18,9 @@ import com.aiplatform.foundation.knowledgedata.domain.knowledge.model.KnowledgeS
 import com.aiplatform.foundation.knowledgedata.domain.common.model.CreatorId;
 import com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator;
 import com.aiplatform.foundation.shared.contract.paging.PageResult;
-import com.aiplatform.foundation.modelruntime.application.deployment.facade.PublishedEmbeddingDeploymentLookup;
+import com.aiplatform.foundation.modelruntime.application.configuration.facade.UsableModelConfigurationLookup;
+import com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelConfigurationId;
+import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelType;
 import com.aiplatform.foundation.security.identity.PermissionCode;
 import com.aiplatform.foundation.security.identity.TrustedRequestContext;
 import java.nio.charset.StandardCharsets;
@@ -37,19 +39,19 @@ public final class IndexVersionService {
     private static final PermissionCode WRITE = new PermissionCode("knowledge:write");
 
     private final IndexVersionRepository repository;
-    private final PublishedEmbeddingDeploymentLookup embeddingDeployments;
+    private final UsableModelConfigurationLookup embeddingConfigurations;
     private final Clock clock;
     private final EntityIdGenerator identifiers;
 
     public IndexVersionService(
             IndexVersionRepository repository,
-            PublishedEmbeddingDeploymentLookup embeddingDeployments,
+            UsableModelConfigurationLookup embeddingConfigurations,
             Clock clock,
             EntityIdGenerator identifiers) {
         this.repository = Objects.requireNonNull(repository, "索引版本仓储不能为空");
-        this.embeddingDeployments = Objects.requireNonNull(
-                embeddingDeployments,
-                "已发布嵌入部署查询不能为空");
+        this.embeddingConfigurations = Objects.requireNonNull(
+                embeddingConfigurations,
+                "可用嵌入模型配置查询不能为空");
         this.clock = Objects.requireNonNull(clock, "时钟不能为空");
         this.identifiers = Objects.requireNonNull(identifiers, "标识生成器不能为空");
     }
@@ -60,15 +62,18 @@ public final class IndexVersionService {
             throw new KnowledgePermissionDeniedException();
         }
         var context = command.context();
-        var deployment = embeddingDeployments
+        var configuration = embeddingConfigurations
                 .find(
-                        context.tenantId(),
-                        parseDeploymentId(command.embeddingDeploymentId()))
+                        context,
+                        parseConfigurationId(command.embeddingModelConfigurationId()),
+                        ModelType.EMBEDDING)
                 .orElseThrow(IndexEmbeddingDeploymentUnavailableException::new);
-        var embedding = new EmbeddingConfiguration(
-                deployment.deploymentId(),
-                deployment.deploymentRevision(),
-                deployment.dimension());
+        var embedding = EmbeddingConfiguration.governed(
+                configuration.configurationId().value(),
+                configuration.configurationRevision(),
+                configuration.catalogEntryId().value(),
+                configuration.catalogEntryRevision(),
+                configuration.capabilities().embeddingDimension());
         var request = new IndexVersionBuildRequest(
                 context.tenantId(),
                 KnowledgeSpaceId.parse(command.knowledgeSpaceId()),
@@ -131,8 +136,17 @@ public final class IndexVersionService {
             var digest = MessageDigest.getInstance("SHA-256");
             update(digest, knowledgeSpaceId.toString());
             update(digest, chunkPolicy);
-            update(digest, Long.toString(embedding.deploymentId()));
-            update(digest, Long.toString(embedding.deploymentRevision()));
+            if (embedding.isLegacyDeployment()) {
+                update(digest, "legacy-deployment");
+                update(digest, Long.toString(embedding.deploymentId()));
+                update(digest, Long.toString(embedding.deploymentRevision()));
+            } else {
+                update(digest, "governed-configuration");
+                update(digest, Long.toString(embedding.configurationId()));
+                update(digest, Long.toString(embedding.configurationRevision()));
+                update(digest, Long.toString(embedding.catalogEntryId()));
+                update(digest, Long.toString(embedding.catalogEntryRevision()));
+            }
             update(digest, Integer.toString(embedding.dimension()));
             return HexFormat.of().formatHex(digest.digest());
         } catch (NoSuchAlgorithmException exception) {
@@ -170,8 +184,11 @@ public final class IndexVersionService {
                 version.knowledgeSpaceId().toString(),
                 version.sourceSnapshotDigest(),
                 version.chunkPolicy(),
-                Long.toString(embedding.deploymentId()),
-                embedding.deploymentRevision(),
+                embedding.isGoverned() ? "GOVERNED_CONFIGURATION" : "LEGACY_DEPLOYMENT",
+                embedding.isGoverned() ? Long.toString(embedding.configurationId()) : null,
+                embedding.isGoverned() ? embedding.configurationRevision() : null,
+                embedding.isGoverned() ? Long.toString(embedding.catalogEntryId()) : null,
+                embedding.isGoverned() ? embedding.catalogEntryRevision() : null,
                 embedding.dimension(),
                 version.status().name(),
                 version.version(),
@@ -189,15 +206,15 @@ public final class IndexVersionService {
         digest.update((byte) 0);
     }
 
-    private static long parseDeploymentId(String value) {
+    private static ModelConfigurationId parseConfigurationId(String value) {
         try {
             var parsed = Long.parseLong(value);
             if (parsed <= 0) {
-                throw new IllegalArgumentException("嵌入部署标识必须是正整数");
+                throw new IllegalArgumentException("嵌入模型配置标识必须是正整数");
             }
-            return parsed;
+            return new ModelConfigurationId(parsed);
         } catch (NumberFormatException exception) {
-            throw new IllegalArgumentException("嵌入部署标识格式不正确", exception);
+            throw new IllegalArgumentException("嵌入模型配置标识格式不正确", exception);
         }
     }
 }

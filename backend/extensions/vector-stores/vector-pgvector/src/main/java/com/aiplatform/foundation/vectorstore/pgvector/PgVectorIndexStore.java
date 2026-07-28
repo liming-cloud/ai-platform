@@ -32,10 +32,14 @@ public final class PgVectorIndexStore
                 content_sha256,
                 embedding_deployment_id,
                 embedding_deployment_revision,
+                embedding_configuration_id,
+                embedding_configuration_revision,
+                embedding_catalog_entry_id,
+                embedding_catalog_entry_revision,
                 embedding_dimension,
                 embedding
             ) VALUES (
-                ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CAST(? AS vector)
+                ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CAST(? AS vector)
             )
             """;
 
@@ -99,10 +103,24 @@ public final class PgVectorIndexStore
                 statement.setInt(7, vector.ordinal());
                 statement.setString(8, vector.text());
                 statement.setString(9, vector.textDigest());
-                statement.setLong(10, batch.embeddingDeploymentId());
-                statement.setLong(11, batch.embeddingRevision());
-                statement.setInt(12, batch.embeddingDimension());
-                statement.setString(13, literal(vector.embedding()));
+                var embedding = batch.embedding();
+                if (embedding.isLegacyDeployment()) {
+                    statement.setLong(10, embedding.deploymentId());
+                    statement.setLong(11, embedding.deploymentRevision());
+                    statement.setNull(12, java.sql.Types.BIGINT);
+                    statement.setNull(13, java.sql.Types.BIGINT);
+                    statement.setNull(14, java.sql.Types.BIGINT);
+                    statement.setNull(15, java.sql.Types.BIGINT);
+                } else {
+                    statement.setNull(10, java.sql.Types.BIGINT);
+                    statement.setNull(11, java.sql.Types.BIGINT);
+                    statement.setLong(12, embedding.configurationId());
+                    statement.setLong(13, embedding.configurationRevision());
+                    statement.setLong(14, embedding.catalogEntryId());
+                    statement.setLong(15, embedding.catalogEntryRevision());
+                }
+                statement.setInt(16, embedding.dimension());
+                statement.setString(17, literal(vector.embedding()));
             }
 
             @Override

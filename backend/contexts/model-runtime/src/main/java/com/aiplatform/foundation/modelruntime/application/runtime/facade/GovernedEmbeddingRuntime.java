@@ -1,6 +1,7 @@
 package com.aiplatform.foundation.modelruntime.application.runtime.facade;
 
 import com.aiplatform.foundation.modelruntime.application.configuration.dto.UsableModelConfigurationSnapshot;
+import com.aiplatform.foundation.modelruntime.application.configuration.dto.ModelConfigurationUsageContext;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.embedding.EmbeddingBatch;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.embedding.EmbeddingRequest;
 import com.aiplatform.foundation.security.identity.TrustedRequestContext;
@@ -15,6 +16,14 @@ public interface GovernedEmbeddingRuntime {
      */
     EmbeddingBatch embed(
             TrustedRequestContext context,
+            UsableModelConfigurationSnapshot expected,
+            EmbeddingRequest request);
+
+    /**
+     * 供异步构建作业按持久化创建成员重新验证并调用；不得接收外部请求中的身份字段。
+     */
+    EmbeddingBatch embed(
+            ModelConfigurationUsageContext context,
             UsableModelConfigurationSnapshot expected,
             EmbeddingRequest request);
 }

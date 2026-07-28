@@ -12,6 +12,8 @@ import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.index.
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.index.repository.PostgresIndexBuildQueue;
 import com.aiplatform.foundation.knowledgedata.interfaces.job.indexversion.IndexBuildScheduler;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.ModelRuntimeResolver;
+import com.aiplatform.foundation.modelruntime.application.runtime.facade.GovernedEmbeddingRuntime;
+import com.aiplatform.foundation.modelruntime.application.configuration.facade.UsableModelConfigurationLookup;
 import com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator;
 import java.time.Clock;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
@@ -63,12 +65,16 @@ public class KnowledgeDataJobAutoConfiguration {
             IndexBuildCompletionPort completion,
             TextContentObjectStoragePort objectStorage,
             ModelRuntimeResolver models,
+            UsableModelConfigurationLookup governedConfigurations,
+            GovernedEmbeddingRuntime governedModels,
             KnowledgeDataProperties properties) {
         return new IndexBuildWorker(
                 queue,
                 completion,
                 objectStorage,
                 models,
+                governedConfigurations,
+                governedModels,
                 new ParagraphWindowChunker(),
                 Clock.systemUTC(),
                 properties.getIndexBuildLeaseDuration());

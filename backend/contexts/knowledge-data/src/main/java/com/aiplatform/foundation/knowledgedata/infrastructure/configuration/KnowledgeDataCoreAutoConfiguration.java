@@ -14,7 +14,7 @@ import com.aiplatform.foundation.knowledgedata.domain.indexversion.repository.In
 import com.aiplatform.foundation.knowledgedata.domain.knowledge.repository.KnowledgeSpaceRepository;
 import com.aiplatform.foundation.knowledgedata.infrastructure.objectstorage.UnavailableTextContentObjectStorageAdapter;
 import com.aiplatform.foundation.knowledgedata.infrastructure.staging.LocalTextContentStagingAdapter;
-import com.aiplatform.foundation.modelruntime.application.deployment.facade.PublishedEmbeddingDeploymentLookup;
+import com.aiplatform.foundation.modelruntime.application.configuration.facade.UsableModelConfigurationLookup;
 import com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator;
 import java.time.Clock;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
@@ -92,11 +92,11 @@ public class KnowledgeDataCoreAutoConfiguration {
     @ConditionalOnMissingBean
     IndexVersionService indexVersionService(
             IndexVersionRepository repository,
-            PublishedEmbeddingDeploymentLookup embeddingDeployments,
+            UsableModelConfigurationLookup embeddingConfigurations,
             EntityIdGenerator identifiers) {
         return new IndexVersionService(
                 repository,
-                embeddingDeployments,
+                embeddingConfigurations,
                 Clock.systemUTC(),
                 identifiers);
     }

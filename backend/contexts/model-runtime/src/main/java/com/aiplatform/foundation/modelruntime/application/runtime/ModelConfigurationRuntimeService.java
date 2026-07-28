@@ -1,6 +1,7 @@
 package com.aiplatform.foundation.modelruntime.application.runtime;
 
 import com.aiplatform.foundation.modelruntime.application.configuration.dto.UsableModelConfigurationSnapshot;
+import com.aiplatform.foundation.modelruntime.application.configuration.dto.ModelConfigurationUsageContext;
 import com.aiplatform.foundation.modelruntime.application.configuration.facade.UsableModelConfigurationLookup;
 import com.aiplatform.foundation.modelruntime.application.configuration.port.out.ModelConfigurationCredentialUser;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.common.ModelRuntimeSpecification;
@@ -14,6 +15,7 @@ import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelType;
 import com.aiplatform.foundation.modelruntime.domain.provider.model.CredentialReference;
 import com.aiplatform.foundation.modelruntime.domain.provider.model.ProviderKind;
 import com.aiplatform.foundation.security.identity.TrustedRequestContext;
+import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
@@ -60,6 +62,31 @@ public final class ModelConfigurationRuntimeService
                         ModelType.EMBEDDING)
                 .filter(expected::equals)
                 .orElseThrow(() -> unavailable("模型配置不可用或冻结快照已变化"));
+        return invoke(context.tenantId(), current, request);
+    }
+
+    @Override
+    public EmbeddingBatch embed(
+            ModelConfigurationUsageContext context,
+            UsableModelConfigurationSnapshot expected,
+            EmbeddingRequest request) {
+        Objects.requireNonNull(context, "模型配置使用上下文不能为空");
+        Objects.requireNonNull(expected, "模型配置快照不能为空");
+        Objects.requireNonNull(request, "嵌入请求不能为空");
+        requireEmbeddingRequest(expected, request);
+        var current = configurations.find(
+                        context,
+                        expected.configurationId(),
+                        ModelType.EMBEDDING)
+                .filter(expected::equals)
+                .orElseThrow(() -> unavailable("模型配置不可用或冻结快照已变化"));
+        return invoke(context.tenantId(), current, request);
+    }
+
+    private EmbeddingBatch invoke(
+            TenantId tenantId,
+            UsableModelConfigurationSnapshot current,
+            EmbeddingRequest request) {
         var entry = catalog.findCatalogEntry(current.catalogEntryId())
                 .filter(value -> value.status() == ControlledModelCatalogEntryStatus.PUBLISHED)
                 .filter(value -> value.version() == current.catalogEntryRevision())
@@ -70,7 +97,7 @@ public final class ModelConfigurationRuntimeService
             throw unavailable("当前供应商没有嵌入模型扩展");
         }
         var specification = new ModelRuntimeSpecification(
-                context.tenantId(),
+                tenantId,
                 current.catalogEntryId().value(),
                 current.catalogEntryRevision(),
                 entry.providerKind(),

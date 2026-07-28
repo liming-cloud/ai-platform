@@ -1,6 +1,7 @@
 package com.aiplatform.foundation.modelruntime.application.configuration.service;
 
 import com.aiplatform.foundation.modelruntime.application.configuration.dto.UsableModelConfigurationSnapshot;
+import com.aiplatform.foundation.modelruntime.application.configuration.dto.ModelConfigurationUsageContext;
 import com.aiplatform.foundation.modelruntime.application.configuration.facade.UsableModelConfigurationLookup;
 import com.aiplatform.foundation.modelruntime.application.configuration.port.out.ModelConfigurationCredentialInspector;
 import com.aiplatform.foundation.modelruntime.domain.configuration.model.ControlledModelCatalogEntryStatus;
@@ -41,11 +42,26 @@ public final class UsableModelConfigurationLookupService
             ModelConfigurationId configurationId,
             ModelType requiredType) {
         Objects.requireNonNull(context, "可信请求上下文不能为空");
+        return find(
+                new ModelConfigurationUsageContext(
+                        context.tenantId(),
+                        new com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelConfigurationOwnerId(
+                                context.membershipId().value())),
+                configurationId,
+                requiredType);
+    }
+
+    @Override
+    public Optional<UsableModelConfigurationSnapshot> find(
+            ModelConfigurationUsageContext context,
+            ModelConfigurationId configurationId,
+            ModelType requiredType) {
+        Objects.requireNonNull(context, "模型配置使用上下文不能为空");
         Objects.requireNonNull(configurationId, "模型配置标识不能为空");
         Objects.requireNonNull(requiredType, "所需模型类型不能为空");
         var configuration = configurations.findConfiguration(configurationId);
         if (configuration.isEmpty()
-                || !access.mayUse(context, configuration.get())
+                || !access.mayUse(context.tenantId(), context.membershipId(), configuration.get())
                 || !credentials.isConfigured(configurationId)) {
             return Optional.empty();
         }

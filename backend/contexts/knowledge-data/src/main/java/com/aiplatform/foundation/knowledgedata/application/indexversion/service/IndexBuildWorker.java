@@ -7,9 +7,16 @@ import com.aiplatform.foundation.knowledgedata.application.port.out.index.IndexB
 import com.aiplatform.foundation.knowledgedata.application.port.out.index.IndexBuildQueuePort;
 import com.aiplatform.foundation.knowledgedata.application.port.out.content.TextContentObjectStoragePort;
 import com.aiplatform.foundation.knowledgedata.domain.indexversion.model.ParagraphWindowChunker;
+import com.aiplatform.foundation.knowledgedata.domain.indexversion.model.EmbeddingConfiguration;
 import com.aiplatform.foundation.knowledgedata.domain.indexversion.model.TextChunk;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.model.TextContentReference;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.ModelRuntimeResolver;
+import com.aiplatform.foundation.modelruntime.application.runtime.facade.GovernedEmbeddingRuntime;
+import com.aiplatform.foundation.modelruntime.application.configuration.facade.UsableModelConfigurationLookup;
+import com.aiplatform.foundation.modelruntime.application.configuration.dto.ModelConfigurationUsageContext;
+import com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelConfigurationId;
+import com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelConfigurationOwnerId;
+import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelType;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.embedding.EmbeddingDeploymentRef;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.embedding.EmbeddingRequest;
 import java.io.IOException;
@@ -41,6 +48,8 @@ public final class IndexBuildWorker {
     private final IndexBuildCompletionPort completion;
     private final TextContentObjectStoragePort objectStorage;
     private final ModelRuntimeResolver models;
+    private final UsableModelConfigurationLookup governedConfigurations;
+    private final GovernedEmbeddingRuntime governedModels;
     private final ParagraphWindowChunker chunker;
     private final Clock clock;
     private final Duration leaseDuration;
@@ -57,6 +66,32 @@ public final class IndexBuildWorker {
         this.completion = Objects.requireNonNull(completion, "构建完成端口不能为空");
         this.objectStorage = Objects.requireNonNull(objectStorage, "对象存储不能为空");
         this.models = Objects.requireNonNull(models, "模型运行时解析器不能为空");
+        governedConfigurations = null;
+        governedModels = null;
+        this.chunker = Objects.requireNonNull(chunker, "分块器不能为空");
+        this.clock = Objects.requireNonNull(clock, "时钟不能为空");
+        this.leaseDuration = requirePositive(leaseDuration);
+    }
+
+    /**
+     * 新受控索引构建在每批调用前按原创建成员重新确认配置和目录快照。
+     */
+    public IndexBuildWorker(
+            IndexBuildQueuePort queue,
+            IndexBuildCompletionPort completion,
+            TextContentObjectStoragePort objectStorage,
+            ModelRuntimeResolver models,
+            UsableModelConfigurationLookup governedConfigurations,
+            GovernedEmbeddingRuntime governedModels,
+            ParagraphWindowChunker chunker,
+            Clock clock,
+            Duration leaseDuration) {
+        this.queue = Objects.requireNonNull(queue, "索引构建队列不能为空");
+        this.completion = Objects.requireNonNull(completion, "构建完成端口不能为空");
+        this.objectStorage = Objects.requireNonNull(objectStorage, "对象存储不能为空");
+        this.models = Objects.requireNonNull(models, "模型运行时解析器不能为空");
+        this.governedConfigurations = Objects.requireNonNull(governedConfigurations, "受控模型配置查询不能为空");
+        this.governedModels = Objects.requireNonNull(governedModels, "受控嵌入运行时不能为空");
         this.chunker = Objects.requireNonNull(chunker, "分块器不能为空");
         this.clock = Objects.requireNonNull(clock, "时钟不能为空");
         this.leaseDuration = requirePositive(leaseDuration);
@@ -105,20 +140,26 @@ public final class IndexBuildWorker {
         }
 
         var embedding = indexVersion.embedding();
-        var deployment = new EmbeddingDeploymentRef(
-                embedding.deploymentId(),
-                embedding.deploymentRevision(),
-                embedding.dimension());
-        var embeddingModel = models.resolveEmbedding(
+        var deployment = embeddingReference(embedding);
+        var usage = new ModelConfigurationUsageContext(
                 indexVersion.tenantId(),
-                embedding.deploymentId());
+                new ModelConfigurationOwnerId(indexVersion.createdBy().value()));
+        var governedSnapshot = embedding.isGoverned()
+                ? governedSnapshot(usage, embedding)
+                : null;
+        var embeddingModel = embedding.isLegacyDeployment()
+                ? models.resolveEmbedding(indexVersion.tenantId(), embedding.deploymentId())
+                : null;
         var vectors = new ArrayList<IndexVector>(chunks.size());
         for (var start = 0; start < chunks.size(); start += EmbeddingRequest.MAX_BATCH_SIZE) {
             var end = Math.min(start + EmbeddingRequest.MAX_BATCH_SIZE, chunks.size());
             var window = chunks.subList(start, end);
-            var result = embeddingModel.embed(new EmbeddingRequest(
+            var request = new EmbeddingRequest(
                     deployment,
-                    window.stream().map(value -> value.chunk().text()).toList()));
+                    window.stream().map(value -> value.chunk().text()).toList());
+            var result = embedding.isLegacyDeployment()
+                    ? embeddingModel.embed(request)
+                    : governedModels.embed(usage, governedSnapshot, request);
             validateResult(deployment, window.size(), result.deployment(), result.vectors().size());
             for (var offset = 0; offset < window.size(); offset++) {
                 var source = window.get(offset);
@@ -140,10 +181,38 @@ public final class IndexBuildWorker {
                 indexVersion.tenantId(),
                 indexVersion.knowledgeSpaceId().value(),
                 indexVersion.id().value(),
-                embedding.deploymentId(),
-                embedding.deploymentRevision(),
-                embedding.dimension(),
+                embedding,
                 vectors);
+    }
+
+    private EmbeddingDeploymentRef embeddingReference(EmbeddingConfiguration embedding) {
+        if (embedding.isLegacyDeployment()) {
+            return new EmbeddingDeploymentRef(
+                    embedding.deploymentId(),
+                    embedding.deploymentRevision(),
+                    embedding.dimension());
+        }
+        return new EmbeddingDeploymentRef(
+                embedding.configurationId(),
+                embedding.configurationRevision(),
+                embedding.dimension());
+    }
+
+    private com.aiplatform.foundation.modelruntime.application.configuration.dto.UsableModelConfigurationSnapshot governedSnapshot(
+            ModelConfigurationUsageContext usage,
+            EmbeddingConfiguration embedding) {
+        if (governedConfigurations == null || governedModels == null) {
+            throw new EmbeddingResultFailure();
+        }
+        return governedConfigurations.find(
+                        usage,
+                        new ModelConfigurationId(embedding.configurationId()),
+                        ModelType.EMBEDDING)
+                .filter(value -> value.configurationRevision() == embedding.configurationRevision()
+                        && value.catalogEntryId().value() == embedding.catalogEntryId()
+                        && value.catalogEntryRevision() == embedding.catalogEntryRevision()
+                        && value.capabilities().embeddingDimension() == embedding.dimension())
+                .orElseThrow(EmbeddingResultFailure::new);
     }
 
     private String readVerified(TextContentReference reference) {
@@ -193,8 +262,14 @@ public final class IndexBuildWorker {
         try {
             var digest = MessageDigest.getInstance("SHA-256");
             update(digest, Long.toString(batch.indexVersionId()));
-            update(digest, Long.toString(batch.embeddingDeploymentId()));
-            update(digest, Long.toString(batch.embeddingRevision()));
+            var embedding = batch.embedding();
+            update(digest, embedding.isLegacyDeployment() ? "legacy-deployment" : "governed-configuration");
+            update(digest, Long.toString(embedding.isLegacyDeployment()
+                    ? embedding.deploymentId()
+                    : embedding.configurationId()));
+            update(digest, Long.toString(embedding.isLegacyDeployment()
+                    ? embedding.deploymentRevision()
+                    : embedding.configurationRevision()));
             for (var vector : batch.vectors()) {
                 update(digest, vector.chunkId());
                 for (var value : vector.embedding()) {

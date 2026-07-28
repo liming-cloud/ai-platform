@@ -76,16 +76,31 @@ public final class ModelConfigurationAccessService {
 
     public boolean mayUse(TrustedRequestContext context, ModelConfiguration configuration) {
         Objects.requireNonNull(context, "可信请求上下文不能为空");
+        return mayUse(
+                context.tenantId(),
+                new ModelConfigurationOwnerId(context.membershipId().value()),
+                configuration);
+    }
+
+    /**
+     * 异步任务使用持久化的创建成员重新检查模型配置授权，不接受调用方提交的身份字段。
+     */
+    public boolean mayUse(
+            TenantId tenantId,
+            ModelConfigurationOwnerId membershipId,
+            ModelConfiguration configuration) {
+        Objects.requireNonNull(tenantId, "租户标识不能为空");
+        Objects.requireNonNull(membershipId, "成员标识不能为空");
+        Objects.requireNonNull(configuration, "模型配置不能为空");
         if (configuration.status() != ModelConfigurationStatus.ACTIVE) {
             return false;
         }
         return switch (configuration.scope()) {
-            case PERSONAL -> configuration.tenantId().equals(context.tenantId())
-                    && configuration.ownerMembershipId().value() == context.membershipId().value();
-            case TENANT -> configuration.tenantId().equals(context.tenantId());
+            case PERSONAL -> configuration.tenantId().equals(tenantId)
+                    && configuration.ownerMembershipId().equals(membershipId);
+            case TENANT -> configuration.tenantId().equals(tenantId);
             case PLATFORM -> grants.hasActiveGrant(
-                    configuration.id(), context.tenantId(),
-                    new ModelConfigurationOwnerId(context.membershipId().value()));
+                    configuration.id(), tenantId, membershipId);
         };
     }
 

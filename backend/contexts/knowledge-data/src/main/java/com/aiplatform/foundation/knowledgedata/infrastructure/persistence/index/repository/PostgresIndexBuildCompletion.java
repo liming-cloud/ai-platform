@@ -91,9 +91,7 @@ public final class PostgresIndexBuildCompletion
         if (!batch.tenantId().equals(index.tenantId())
                 || batch.knowledgeSpaceId() != index.knowledgeSpaceId().value()
                 || batch.indexVersionId() != index.id().value()
-                || batch.embeddingDeploymentId() != embedding.deploymentId()
-                || batch.embeddingRevision() != embedding.deploymentRevision()
-                || batch.embeddingDimension() != embedding.dimension()) {
+                || !batch.embedding().equals(embedding)) {
             throw new IllegalArgumentException("索引向量批次与构建租约不一致");
         }
     }

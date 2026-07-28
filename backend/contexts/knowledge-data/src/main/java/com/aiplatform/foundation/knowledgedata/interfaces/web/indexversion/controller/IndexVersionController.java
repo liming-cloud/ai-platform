@@ -47,13 +47,13 @@ public class IndexVersionController {
             @RequestHeader(name = IDEMPOTENCY_KEY, required = false)
             String idempotencyKey,
             @RequestBody CreateIndexVersionRequest request) {
-        if (request == null || request.embeddingDeploymentId() == null) {
-            throw new IllegalArgumentException("必须选择嵌入部署");
+        if (request == null || request.embeddingModelConfigurationId() == null) {
+            throw new IllegalArgumentException("必须选择嵌入模型配置");
         }
         var result = indexVersions.create(new CreateIndexVersionCommand(
                 context,
                 knowledgeSpaceId,
-                request.embeddingDeploymentId(),
+                request.embeddingModelConfigurationId(),
                 requireIdempotencyKey(idempotencyKey)));
         return ResponseEntity
                 .status(HttpStatus.ACCEPTED)

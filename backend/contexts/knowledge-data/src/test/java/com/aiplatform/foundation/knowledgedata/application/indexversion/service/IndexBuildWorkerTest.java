@@ -25,6 +25,13 @@ import com.aiplatform.foundation.knowledgedata.domain.common.model.CreatorId;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.EmbeddingModelPort;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.ChatModelPort;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.ModelRuntimeResolver;
+import com.aiplatform.foundation.modelruntime.application.runtime.facade.GovernedEmbeddingRuntime;
+import com.aiplatform.foundation.modelruntime.application.configuration.facade.UsableModelConfigurationLookup;
+import com.aiplatform.foundation.modelruntime.application.configuration.dto.ModelConfigurationUsageContext;
+import com.aiplatform.foundation.modelruntime.application.configuration.dto.UsableModelConfigurationSnapshot;
+import com.aiplatform.foundation.modelruntime.domain.configuration.model.ControlledModelCatalogEntryId;
+import com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelRuntimeCapabilities;
+import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelType;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.embedding.EmbeddingBatch;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.embedding.EmbeddingDeploymentRef;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.embedding.EmbeddingRequest;
@@ -55,6 +62,13 @@ class IndexBuildWorkerTest {
             new EmbeddingConfiguration(
                     320000000000000001L,
                     1,
+                    4);
+    private static final EmbeddingConfiguration GOVERNED_EMBEDDING =
+            EmbeddingConfiguration.governed(
+                    320000000000000002L,
+                    2,
+                    330000000000000001L,
+                    3,
                     4);
     private static final Instant NOW = Instant.parse("2026-07-27T00:00:00Z");
     private static final Clock CLOCK = Clock.fixed(NOW, ZoneOffset.UTC);
@@ -127,7 +141,38 @@ class IndexBuildWorkerTest {
         assertFalse(worker.processNext());
     }
 
+    @Test
+    void 受控配置索引按创建成员重新校验后才调用短生命周期运行时() throws Exception {
+        var content = "只有一条记录";
+        var lease = lease(content, GOVERNED_EMBEDDING);
+        var completion = new RecordingCompletion();
+        var runtime = new RecordingGovernedRuntime();
+        var worker = new IndexBuildWorker(
+                new RecordingQueue(lease),
+                completion,
+                new ContentStore(content),
+                new FixedModelRuntimeResolver(new FourDimensionEmbedding()),
+                governedLookup(),
+                runtime,
+                new ParagraphWindowChunker(),
+                CLOCK,
+                Duration.ofMinutes(1));
+
+        assertTrue(worker.processNext());
+
+        assertNotNull(completion.batch);
+        assertEquals(GOVERNED_EMBEDDING, completion.batch.embedding());
+        assertEquals(6765477786913079298L, runtime.context.membershipId().value());
+        assertEquals(GOVERNED_EMBEDDING.configurationId(), runtime.snapshot.configurationId().value());
+    }
+
     private static IndexBuildLease lease(String content) throws Exception {
+        return lease(content, EMBEDDING);
+    }
+
+    private static IndexBuildLease lease(
+            String content,
+            EmbeddingConfiguration embedding) throws Exception {
         var bytes = content.getBytes(StandardCharsets.UTF_8);
         var digest = HexFormat.of().formatHex(
                 MessageDigest.getInstance("SHA-256").digest(bytes));
@@ -144,7 +189,7 @@ class IndexBuildWorkerTest {
                 new IndexVersionId(230000000000000001L),
                 digest,
                 ParagraphWindowChunker.POLICY,
-                EMBEDDING,
+                embedding,
                 new CreatorId(6765477786913079298L),
                 NOW);
         return new IndexBuildLease(
@@ -152,6 +197,37 @@ class IndexBuildWorkerTest {
                 index,
                 List.of(new IndexSourceSnapshot(SOURCE_ID, reference)),
                 1);
+    }
+
+    private static UsableModelConfigurationLookup governedLookup() {
+        return new UsableModelConfigurationLookup() {
+            @Override
+            public Optional<UsableModelConfigurationSnapshot> find(
+                    com.aiplatform.foundation.security.identity.TrustedRequestContext context,
+                    com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelConfigurationId configurationId,
+                    ModelType requiredType) {
+                return snapshot(configurationId);
+            }
+
+            @Override
+            public Optional<UsableModelConfigurationSnapshot> find(
+                    ModelConfigurationUsageContext context,
+                    com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelConfigurationId configurationId,
+                    ModelType requiredType) {
+                return snapshot(configurationId);
+            }
+
+            private Optional<UsableModelConfigurationSnapshot> snapshot(
+                    com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelConfigurationId configurationId) {
+                return Optional.of(new UsableModelConfigurationSnapshot(
+                        configurationId,
+                        GOVERNED_EMBEDDING.configurationRevision(),
+                        new ControlledModelCatalogEntryId(GOVERNED_EMBEDDING.catalogEntryId()),
+                        GOVERNED_EMBEDDING.catalogEntryRevision(),
+                        ModelType.EMBEDDING,
+                        new ModelRuntimeCapabilities(8192, null, GOVERNED_EMBEDDING.dimension())));
+            }
+        };
     }
 
     private static final class RecordingQueue implements IndexBuildQueuePort {
@@ -270,6 +346,31 @@ class IndexBuildWorkerTest {
 
         @Override
         public void evictDeployment(TenantId tenantId, long deploymentId) {
+        }
+    }
+
+    private static final class RecordingGovernedRuntime
+            implements GovernedEmbeddingRuntime {
+
+        private ModelConfigurationUsageContext context;
+        private UsableModelConfigurationSnapshot snapshot;
+
+        @Override
+        public EmbeddingBatch embed(
+                com.aiplatform.foundation.security.identity.TrustedRequestContext context,
+                UsableModelConfigurationSnapshot expected,
+                EmbeddingRequest request) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public EmbeddingBatch embed(
+                ModelConfigurationUsageContext context,
+                UsableModelConfigurationSnapshot expected,
+                EmbeddingRequest request) {
+            this.context = context;
+            snapshot = expected;
+            return new FourDimensionEmbedding().embed(request);
         }
     }
 }
