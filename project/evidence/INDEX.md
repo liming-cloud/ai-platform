@@ -147,7 +147,7 @@
 | 火山方舟真实模型验证切换 | `project/evidence/WP-0010-volcengine-ark-provider-transition.md` | `adf0a1a34` | 标准 `/api/v3` Chat 与多模态 Embedding 协议、2048 维存储上限、真实索引和带引用回答通过；全量门禁通过，等待 M2 人工评审 |
 | M2 自动验收人工评审请求 | `project/evidence/M2-automatic-acceptance-review.md` | `c8e66787d` | 自动验收、产品经理浏览器验收、范围与复核要点已登记；后续人工结论已通过 |
 | M2 产品经理浏览器验收与蓝图复核 | `project/evidence/WP-0010-product-manager-browser-review.md` | `c8e66787d` | 受控模型配置、可信问答和脱敏治理已实际操作；密钥不回显和创建状态缺陷已修复，M3 至 M8 产品覆盖计划已校准 |
-| M2 人工评审通过 | `project/evidence/M2-release-approval.md` | 待本次控制面提交登记 | 用户批准 M2 退出并进入 M3；三前端应用、SDK/API 渠道与平台/租户双范围产品边界已确认 |
+| M2 人工评审通过 | `project/evidence/M2-release-approval.md` | `99f16bc87` | 用户批准 M2 退出并进入 M3；三前端应用、SDK/API 渠道与平台/租户双范围产品边界已确认 |
 
 ## 证据规则
 

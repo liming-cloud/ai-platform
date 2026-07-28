@@ -2,7 +2,7 @@ schemaVersion: 1
 productVersion: foundation-v1
 currentMilestone: M3
 currentFrontier: WP-0011
-lastVerifiedCommit: c8e66787d
+lastVerifiedCommit: 99f16bc87379649cdc92b09e08a09c74f20938a6
 activeWorkPackages:
   - WP-0011
 blockedWorkPackages: []
@@ -111,5 +111,5 @@ latestEvidence:
   - project/evidence/WP-0010-product-manager-browser-review.md
   - project/evidence/M2-release-approval.md
 nextReviewAt: 2026-08-03
-updatedAt: 2026-07-28T22:00:00+08:00
+updatedAt: 2026-07-28T22:10:00+08:00
 updatedBy: codex
