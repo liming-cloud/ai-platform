@@ -6,6 +6,10 @@
 
 追加实现提交：`71e484790`（`feat: 接入模型配置PostgreSQL仓储`）。
 
+追加实现提交：`6b64ccf71`（`feat: 原子写入模型配置凭据`）。
+
+追加实现提交：`fa1a2b392`（`feat: 装配本地研发模型密钥提供者`）。
+
 ## 范围与结果
 
 新增受控模型目录、平台/租户/个人模型配置和加密凭据三张 PostgreSQL 事实表。凭据表只保存 AES-GCM 信封材料、主密钥版本、不可逆指纹与轮换时间，不包含 `api_key` 字段。
@@ -49,6 +53,17 @@ git diff --check
 - 配置保存通过 MyBatis XML 写入，租户与个人所有者字段由领域对象决定；
 - 持久化自动配置显式提供 `ModelConfigurationRepository`，不改变 M1 的 `ProviderConnection` 装配。
 
+## 原子凭据写入
+
+`ModelConfigurationCredentialService` 通过应用层端口将配置创建和凭据轮换置于同一事务中：
+
+- API Key 只作为 `SecretValue` 传入写入器，不进入聚合、日志或返回对象；
+- 任一写入失败时由 `SpringModelConfigurationTransaction` 回滚配置与密文；
+- `PostgresEncryptedModelCredentialStore` 是凭据写入端口的唯一 PostgreSQL 实现；
+- 未提供 `SecretEncryptionKeyProvider` 时不注册凭据写入服务，避免降级为明文或不可加密写入。
+
+本地研发如需启用加密写入，必须同时显式设置 `foundation.model-credentials.local-development-key-version` 和对应版本的环境变量；生产环境必须提供覆盖该接口的 KMS 或 Vault 实现。本证据不记录任何环境变量内容。
+
 ## 未完成项
 
-迁移、仓储与权限应用服务尚不是完整产品接口：脱敏读取 API、凭据轮换、授权撤销和真实模型调用仍待实现。
+迁移、仓储与原子写入尚不是完整产品接口：受控密钥提供者装配、脱敏读取 API、凭据轮换、授权撤销和真实模型调用仍待实现。
