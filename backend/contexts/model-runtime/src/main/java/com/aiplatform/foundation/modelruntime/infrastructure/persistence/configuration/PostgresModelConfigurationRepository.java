@@ -10,6 +10,7 @@ import com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelCo
 import com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelConfigurationStatus;
 import com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelRuntimeCapabilities;
 import com.aiplatform.foundation.modelruntime.domain.configuration.repository.ModelConfigurationRepository;
+import com.aiplatform.foundation.modelruntime.domain.configuration.repository.ModelConfigurationPage;
 import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelType;
 import com.aiplatform.foundation.modelruntime.domain.provider.model.ProviderKind;
 import com.aiplatform.foundation.modelruntime.infrastructure.persistence.configuration.entity.ControlledModelCatalogEntryEntity;
@@ -87,6 +88,30 @@ public final class PostgresModelConfigurationRepository implements ModelConfigur
     }
 
     @Override
+    public ModelConfigurationPage findVisiblePage(
+            TenantId tenantId,
+            ModelConfigurationOwnerId membershipId,
+            long pageNumber,
+            long pageSize) {
+        Objects.requireNonNull(tenantId, "租户标识不能为空");
+        Objects.requireNonNull(membershipId, "成员标识不能为空");
+        if (pageNumber < 1 || pageSize < 1) {
+            throw new IllegalArgumentException("模型配置分页参数必须为正整数");
+        }
+        var offset = Math.multiplyExact(pageNumber - 1, pageSize);
+        var items = configurationMapper.selectVisiblePage(
+                        tenantId.value(), membershipId.value(), pageSize, offset)
+                .stream()
+                .map(PostgresModelConfigurationRepository::toDomain)
+                .toList();
+        return new ModelConfigurationPage(
+                items,
+                pageNumber,
+                pageSize,
+                configurationMapper.countVisible(tenantId.value(), membershipId.value()));
+    }
+
+    @Override
     public void updateConfiguration(ModelConfiguration configuration) {
         Objects.requireNonNull(configuration, "模型配置不能为空");
         if (configurationMapper.update(null, Wrappers.<ModelConfigurationEntity>lambdaUpdate()
@@ -111,6 +136,20 @@ public final class PostgresModelConfigurationRepository implements ModelConfigur
         }
         return new ModelRuntimeCapabilities(
                 row.getContextWindow(), row.getOutputLimit(), row.getEmbeddingDimension());
+    }
+
+    private static ModelConfiguration toDomain(ModelConfigurationEntity row) {
+        return ModelConfiguration.reconstitute(
+                new ModelConfigurationId(row.getId()),
+                ModelConfigurationScope.valueOf(row.getScope()),
+                row.getTenantId() == null ? null : new TenantId(row.getTenantId()),
+                row.getOwnerMembershipId() == null ? null
+                        : new ModelConfigurationOwnerId(row.getOwnerMembershipId()),
+                row.getDisplayName(),
+                new ControlledModelCatalogEntryId(row.getCatalogEntryId()),
+                ModelConfigurationStatus.valueOf(row.getStatus()),
+                row.getVersion(),
+                row.getCreatedAt());
     }
 
     private static ControlledModelCatalogEntryEntity toEntity(ControlledModelCatalogEntry entry) {

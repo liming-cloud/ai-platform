@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aiplatform.foundation.modelruntime.infrastructure.persistence.configuration.ModelConfigurationMapper">
+
+    <resultMap id="modelConfigurationEntity" type="com.aiplatform.foundation.modelruntime.infrastructure.persistence.configuration.entity.ModelConfigurationEntity">
+        <id column="id" property="id"/>
+        <result column="scope" property="scope"/>
+        <result column="tenant_id" property="tenantId"/>
+        <result column="owner_membership_id" property="ownerMembershipId"/>
+        <result column="display_name" property="displayName"/>
+        <result column="catalog_entry_id" property="catalogEntryId"/>
+        <result column="status" property="status"/>
+        <result column="version" property="version"/>
+        <result column="created_at" property="createdAt"/>
+    </resultMap>
+
+    <sql id="visibleModelConfigurationPredicate">
+        <![CDATA[
+        (
+            configuration.scope = 'PERSONAL'
+            AND configuration.tenant_id = #{tenantId}
+            AND configuration.owner_membership_id = #{membershipId}
+        )
+        OR (
+            configuration.scope = 'TENANT'
+            AND configuration.tenant_id = #{tenantId}
+        )
+        OR (
+            configuration.scope = 'PLATFORM'
+            AND EXISTS (
+                SELECT 1
+                FROM model_runtime.model_configuration_access_grant access_grant
+                WHERE access_grant.model_configuration_id = configuration.id
+                  AND access_grant.grantee_tenant_id = #{tenantId}
+                  AND access_grant.status = 'ACTIVE'
+                  AND (access_grant.grantee_membership_id IS NULL
+                       OR access_grant.grantee_membership_id = #{membershipId})
+            )
+        )
+        ]]>
+    </sql>
+
+    <select id="selectVisiblePage" resultMap="modelConfigurationEntity">
+        <![CDATA[
+        SELECT configuration.*
+        FROM model_runtime.model_configuration configuration
+        WHERE
+        ]]>
+        <include refid="visibleModelConfigurationPredicate"/>
+        <![CDATA[
+        ORDER BY configuration.created_at DESC, configuration.id DESC
+        LIMIT #{limit} OFFSET #{offset}
+        ]]>
+    </select>
+
+    <select id="countVisible" resultType="long">
+        <![CDATA[
+        SELECT COUNT(*)
+        FROM model_runtime.model_configuration configuration
+        WHERE
+        ]]>
+        <include refid="visibleModelConfigurationPredicate"/>
+    </select>
+</mapper>

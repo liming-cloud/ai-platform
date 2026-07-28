@@ -118,8 +118,11 @@ describe("ControlPlaneClient", () => {
       knowledgeSpaceId: "210000000000000001",
       sourceSnapshotDigest: "sha256:source",
       chunkPolicy: "paragraph-window-v1",
-      embeddingDeploymentId: "320000000000000001",
-      embeddingDeploymentRevision: 1,
+      embeddingBindingType: "GOVERNED_CONFIGURATION",
+      embeddingModelConfigurationId: "320000000000000001",
+      embeddingModelConfigurationRevision: 1,
+      embeddingCatalogEntryId: "330000000000000001",
+      embeddingCatalogEntryRevision: 1,
       embeddingDimension: 128,
       status: "READY",
       version: 1,
@@ -165,7 +168,7 @@ describe("ControlPlaneClient", () => {
 
     await client.createIndexVersion(
       indexVersion.knowledgeSpaceId,
-      indexVersion.embeddingDeploymentId,
+      indexVersion.embeddingModelConfigurationId,
     );
     await client.listIndexVersions(indexVersion.knowledgeSpaceId);
     await client.publishIndexVersion(
@@ -184,11 +187,43 @@ describe("ControlPlaneClient", () => {
     );
     expect(requests[1]?.url).toContain("pageNumber=1&pageSize=20");
     expect(await requests[0]?.json()).toEqual({
-      embeddingDeploymentId: indexVersion.embeddingDeploymentId,
+      embeddingModelConfigurationId: indexVersion.embeddingModelConfigurationId,
     });
     expect(await requests[2]?.json()).toEqual({ expectedVersion: 1 });
     expect(requests[2]?.headers.get("Idempotency-Key")).toBe(
       "request-key-002",
+    );
+  });
+
+  it("分页读取可用模型配置时不请求或接收密钥材料", async () => {
+    const client = authenticatedClient(async () => new Response(
+      JSON.stringify({
+        items: [{
+          id: "320000000000000001",
+          scope: "TENANT",
+          displayName: "租户嵌入模型",
+          catalogEntryId: "330000000000000001",
+          modelType: "EMBEDDING",
+          status: "ACTIVE",
+          version: 1,
+          credentialConfigured: true,
+          createdAt: "2026-07-28T00:00:00Z",
+        }],
+        pageNumber: 1,
+        pageSize: 20,
+        totalElements: 1,
+        totalPages: 1,
+        hasPrevious: false,
+        hasNext: false,
+      }),
+      { status: 200, headers: { "Content-Type": "application/json" } },
+    ));
+
+    const page = await client.listModelConfigurations();
+
+    expect(page.items).toHaveLength(1);
+    expect(JSON.stringify(page.items[0])).not.toMatch(
+      /api.?key|ciphertext|nonce|fingerprint/i,
     );
   });
 

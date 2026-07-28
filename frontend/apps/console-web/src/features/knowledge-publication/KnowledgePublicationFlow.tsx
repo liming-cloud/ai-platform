@@ -213,14 +213,15 @@ export function KnowledgePublicationFlow({
     const revision = sessionRevision.current;
     dispatch({ type: "submitting" });
     try {
-      const deployments = await client.listModelDeployments();
-      const embedding = deployments.items.find(
-        (deployment) =>
-          deployment.modelType === "EMBEDDING"
-          && deployment.status === "PUBLISHED",
+      const configurations = await client.listModelConfigurations();
+      const embedding = configurations.items.find(
+        (configuration) =>
+          configuration.modelType === "EMBEDDING"
+          && configuration.status === "ACTIVE"
+          && configuration.credentialConfigured,
       );
       if (embedding === undefined) {
-        throw new Error("请先在治理中发布一个嵌入模型部署");
+        throw new Error("请先在模型配置中启用一个可用的嵌入模型");
       }
       const created = await client.createIndexVersion(
         workflow.space.id,
@@ -228,7 +229,7 @@ export function KnowledgePublicationFlow({
         stableRequestKey(requestKeys.current, "create-index", {
           knowledgeSpaceId: workflow.space.id,
           sourceVersion: workflow.source?.version,
-          embeddingDeploymentId: embedding.id,
+          embeddingModelConfigurationId: embedding.id,
         }),
       );
       requestKeys.current.delete("create-index");

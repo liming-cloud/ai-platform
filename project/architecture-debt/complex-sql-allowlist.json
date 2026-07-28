@@ -152,6 +152,18 @@
       "reason": "分页读取 PostgreSQL 数组字段并由分页插件追加分页和总数查询。"
     },
     {
+      "path": "backend/contexts/model-runtime/src/main/resources/mapper/model-runtime/ModelConfigurationMapper.xml",
+      "statementId": "selectVisiblePage",
+      "category": "SECURITY_PROJECTION",
+      "reason": "在数据库层按个人、租户和活动平台授权过滤当前成员可见的模型配置。"
+    },
+    {
+      "path": "backend/contexts/model-runtime/src/main/resources/mapper/model-runtime/ModelConfigurationMapper.xml",
+      "statementId": "countVisible",
+      "category": "SECURITY_PROJECTION",
+      "reason": "使用与可见配置列表完全一致的授权谓词计算分页总数，避免跨范围数量泄露。"
+    },
+    {
       "path": "backend/contexts/model-runtime/src/main/resources/mapper/model-runtime/ProviderConnectionMapper.xml",
       "statementId": "lockTenant",
       "category": "POSTGRES_ADVISORY_LOCK",

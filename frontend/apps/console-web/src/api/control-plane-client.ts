@@ -35,8 +35,11 @@ export interface IndexVersion {
   knowledgeSpaceId: string;
   sourceSnapshotDigest: string;
   chunkPolicy: string;
-  embeddingDeploymentId: string;
-  embeddingDeploymentRevision: number;
+  embeddingBindingType: "GOVERNED_CONFIGURATION" | "LEGACY_DEPLOYMENT";
+  embeddingModelConfigurationId: string | null;
+  embeddingModelConfigurationRevision: number | null;
+  embeddingCatalogEntryId: string | null;
+  embeddingCatalogEntryRevision: number | null;
   embeddingDimension: number;
   status: "BUILDING" | "READY" | "ACTIVE" | "SUPERSEDED" | "FAILED";
   version: number;
@@ -56,6 +59,18 @@ export interface ModelDeployment {
   status: string;
   version: number;
   embeddingDimension: number | null;
+}
+
+export interface ModelConfiguration {
+  id: string;
+  scope: "PLATFORM" | "TENANT" | "PERSONAL";
+  displayName: string;
+  catalogEntryId: string;
+  modelType: "CHAT" | "EMBEDDING";
+  status: "DRAFT" | "ACTIVE" | "DISABLED";
+  version: number;
+  credentialConfigured: boolean;
+  createdAt: string;
 }
 
 export interface QueryUsage {
@@ -251,7 +266,7 @@ export class ControlPlaneClient {
 
   async createIndexVersion(
     knowledgeSpaceId: string,
-    embeddingDeploymentId: string,
+    embeddingModelConfigurationId: string,
     idempotencyKey?: string,
   ): Promise<IndexVersion> {
     return this.request<IndexVersion>(
@@ -259,7 +274,7 @@ export class ControlPlaneClient {
       {
         method: "POST",
         headers: this.writeHeaders("application/json", idempotencyKey),
-        body: JSON.stringify({ embeddingDeploymentId }),
+        body: JSON.stringify({ embeddingModelConfigurationId }),
       },
     );
   }
@@ -270,6 +285,15 @@ export class ControlPlaneClient {
   ): Promise<PageResult<ModelDeployment>> {
     return this.request<PageResult<ModelDeployment>>(
       `/model-deployments?pageNumber=${pageNumber}&pageSize=${pageSize}`,
+    );
+  }
+
+  async listModelConfigurations(
+    pageNumber = 1,
+    pageSize = 20,
+  ): Promise<PageResult<ModelConfiguration>> {
+    return this.request<PageResult<ModelConfiguration>>(
+      `/model-configurations?pageNumber=${pageNumber}&pageSize=${pageSize}`,
     );
   }
 

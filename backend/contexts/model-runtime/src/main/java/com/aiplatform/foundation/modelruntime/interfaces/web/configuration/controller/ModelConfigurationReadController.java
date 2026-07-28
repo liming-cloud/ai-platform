@@ -4,10 +4,14 @@ import com.aiplatform.foundation.modelruntime.application.configuration.service.
 import com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelConfigurationId;
 import com.aiplatform.foundation.modelruntime.interfaces.web.configuration.view.ModelConfigurationView;
 import com.aiplatform.foundation.security.identity.TrustedRequestContext;
+import com.aiplatform.foundation.modelruntime.application.configuration.dto.ModelConfigurationListItem;
+import com.aiplatform.foundation.shared.contract.paging.PageQuery;
+import com.aiplatform.foundation.shared.contract.paging.PageResult;
 import java.util.Objects;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -30,5 +34,13 @@ public class ModelConfigurationReadController {
             TrustedRequestContext context, @PathVariable long modelConfigurationId) {
         return ModelConfigurationView.from(configurations.get(
                 context, new ModelConfigurationId(modelConfigurationId)));
+    }
+
+    @GetMapping
+    public PageResult<ModelConfigurationListItem> list(
+            TrustedRequestContext context,
+            @RequestParam(defaultValue = "1") long pageNumber,
+            @RequestParam(defaultValue = "20") long pageSize) {
+        return configurations.list(context, new PageQuery(pageNumber, pageSize));
     }
 }

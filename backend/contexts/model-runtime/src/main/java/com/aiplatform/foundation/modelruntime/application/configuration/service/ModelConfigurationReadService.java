@@ -2,9 +2,14 @@ package com.aiplatform.foundation.modelruntime.application.configuration.service
 
 import com.aiplatform.foundation.modelruntime.application.configuration.exception.ModelConfigurationNotFoundException;
 import com.aiplatform.foundation.modelruntime.application.configuration.port.out.ModelConfigurationCredentialInspector;
+import com.aiplatform.foundation.modelruntime.application.configuration.dto.ModelConfigurationListItem;
 import com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelConfigurationId;
 import com.aiplatform.foundation.modelruntime.domain.configuration.repository.ModelConfigurationRepository;
+import com.aiplatform.foundation.modelruntime.domain.configuration.repository.ModelConfigurationPage;
 import com.aiplatform.foundation.security.identity.TrustedRequestContext;
+import com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelConfigurationOwnerId;
+import com.aiplatform.foundation.shared.contract.paging.PageQuery;
+import com.aiplatform.foundation.shared.contract.paging.PageResult;
 import java.util.Objects;
 
 /**
@@ -39,5 +44,30 @@ public final class ModelConfigurationReadService {
         }
         return new ModelConfigurationReadResult(
                 configuration, credentials.isConfigured(configuration.id()));
+    }
+
+    /**
+     * 按当前主体的配置使用范围分页列出安全摘要，禁用、草稿与未配置凭据状态均明确投影。
+     */
+    public PageResult<ModelConfigurationListItem> list(
+            TrustedRequestContext context, PageQuery page) {
+        Objects.requireNonNull(context, "可信请求上下文不能为空");
+        Objects.requireNonNull(page, "分页参数不能为空");
+        ModelConfigurationPage result = configurations.findVisiblePage(
+                context.tenantId(),
+                new ModelConfigurationOwnerId(context.membershipId().value()),
+                page.pageNumber(),
+                page.pageSize());
+        return PageResult.of(
+                result.items().stream()
+                        .map(configuration -> configurations.findCatalogEntry(configuration.catalogEntryId())
+                                .map(entry -> ModelConfigurationListItem.from(
+                                        configuration,
+                                        entry.modelType(),
+                                        credentials.isConfigured(configuration.id())))
+                                .orElseThrow(() -> new IllegalStateException("模型配置引用的目录条目不存在")))
+                        .toList(),
+                page,
+                result.totalElements());
     }
 }

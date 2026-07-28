@@ -134,6 +134,41 @@ class PostgresModelConfigurationRepositoryTest {
                 new com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelConfigurationOwnerId(6001L)));
     }
 
+    @Test
+    void 分页只返回当前成员的个人和租户配置以及已授权的平台配置() {
+        var tenant = new TenantId(2001L);
+        var member = new com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelConfigurationOwnerId(6001L);
+        var catalog = new ControlledModelCatalogEntryId(3001L);
+        var createdAt = Instant.parse("2026-07-28T00:00:00Z");
+        repository.save(ModelConfiguration.create(
+                new ModelConfigurationId(4001L), ModelConfigurationScope.PERSONAL,
+                tenant, member, "我的模型", catalog, createdAt));
+        repository.save(ModelConfiguration.create(
+                new ModelConfigurationId(4002L), ModelConfigurationScope.PERSONAL,
+                tenant,
+                new com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelConfigurationOwnerId(6002L),
+                "他人模型", catalog, createdAt));
+        repository.save(ModelConfiguration.create(
+                new ModelConfigurationId(4003L), ModelConfigurationScope.TENANT,
+                tenant, null, "租户模型", catalog, createdAt));
+        repository.save(ModelConfiguration.create(
+                new ModelConfigurationId(4004L), ModelConfigurationScope.PLATFORM,
+                null, null, "已授权平台模型", catalog, createdAt));
+        repository.save(ModelConfiguration.create(
+                new ModelConfigurationId(4005L), ModelConfigurationScope.PLATFORM,
+                null, null, "未授权平台模型", catalog, createdAt));
+        accessRepository.save(ModelConfigurationAccessGrant.grant(
+                new ModelConfigurationAccessGrantId(5001L), new ModelConfigurationId(4004L),
+                tenant, null, createdAt));
+
+        var page = repository.findVisiblePage(tenant, member, 1, 20);
+
+        assertEquals(3, page.totalElements());
+        assertEquals(
+                java.util.Set.of(4001L, 4003L, 4004L),
+                page.items().stream().map(value -> value.id().value()).collect(java.util.stream.Collectors.toSet()));
+    }
+
     @SpringBootConfiguration @EnableAutoConfiguration
     @MapperScan("com.aiplatform.foundation.modelruntime.infrastructure.persistence.configuration")
     static class TestApplication {
