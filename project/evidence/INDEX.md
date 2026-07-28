@@ -142,6 +142,7 @@
 | 受控对话短生命周期运行时 | `project/evidence/WP-0010-governed-chat-runtime.md` | `9608d15fa` | Chat 配置在每次调用内重验、短生命周期解密和建模；配置修订变化在工厂调用前失败关闭 |
 | 受控模型查询运行时 | `project/evidence/WP-0010-governed-query-runtime.md` | `e65024300` | 受控助手与活动索引在配额后重验配置快照；查询不回退历史部署，pgvector 按完整配置冻结检索 |
 | 受控真实模型验收装配 | `project/evidence/WP-0010-real-model-runtime-assembly.md` | `0cb172350` | 查询进程装配受控运行时，独立 compose 覆盖层传递主密钥、端点和超时，不传递 API Key |
+| 受控模型配置控制台 | `project/evidence/WP-0010-model-configuration-console.md` | `e587fb823` | 已发布目录分页、受控创建、启用与凭据轮换在控制台闭环；API Key 不回显、不保留在页面状态 |
 
 ## 证据规则
 

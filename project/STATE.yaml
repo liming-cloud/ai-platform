@@ -100,6 +100,7 @@ latestEvidence:
   - project/evidence/WP-0010-governed-chat-runtime.md
   - project/evidence/WP-0010-governed-query-runtime.md
   - project/evidence/WP-0010-real-model-runtime-assembly.md
+  - project/evidence/WP-0010-model-configuration-console.md
 nextReviewAt: 2026-08-03
-updatedAt: 2026-07-28T11:35:00+08:00
+updatedAt: 2026-07-28T11:47:00+08:00
 updatedBy: codex
