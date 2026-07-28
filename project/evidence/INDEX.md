@@ -140,6 +140,7 @@
 | 受控模型配置选择与索引创建契约 | `project/evidence/WP-0010-controlled-model-configuration-selection.md` | `1d720a692` | 当前成员仅能分页读取个人、租户和已授权平台配置；控制台仅选择已启用、已配置凭据的嵌入配置创建新索引 |
 | 助手受控模型配置绑定与同源发布 | `project/evidence/WP-0010-assistant-governed-model-bindings.md` | `b7ce49410` | 新助手版本显式冻结 Chat/Embedding 配置；创建和发布均拒绝失效配置、旧索引与任何嵌入快照差异 |
 | 受控对话短生命周期运行时 | `project/evidence/WP-0010-governed-chat-runtime.md` | `9608d15fa` | Chat 配置在每次调用内重验、短生命周期解密和建模；配置修订变化在工厂调用前失败关闭 |
+| 受控模型查询运行时 | `project/evidence/WP-0010-governed-query-runtime.md` | `e65024300` | 受控助手与活动索引在配额后重验配置快照；查询不回退历史部署，pgvector 按完整配置冻结检索 |
 
 ## 证据规则
 
