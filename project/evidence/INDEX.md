@@ -131,6 +131,7 @@
 | 证据 | 命令或评审 | 提交 | 结果 |
 | --- | --- | --- | --- |
 | M2 工作包激活与真实模型调用授权 | `project/evidence/M1-release-approval.md` | 待产生 | 用户已批准阿里云百炼用于受控研发和测试调用；不得记录或提交 API Key |
+| 加密模型凭据安全基座 | `project/evidence/WP-0010-encrypted-credential-foundation.md` | `2bba83074` | 信封加密、版本化本地研发主密钥与篡改失败关闭测试通过；尚未完成持久化、权限或真实调用 |
 
 ## 证据规则
 
