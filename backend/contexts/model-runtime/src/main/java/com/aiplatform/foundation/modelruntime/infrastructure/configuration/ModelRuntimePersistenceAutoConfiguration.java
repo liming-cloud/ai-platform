@@ -1,6 +1,8 @@
 package com.aiplatform.foundation.modelruntime.infrastructure.configuration;
 
 import com.aiplatform.foundation.modelruntime.domain.deployment.repository.ModelDeploymentRepository;
+import com.aiplatform.foundation.modelruntime.application.configuration.port.out.ModelConfigurationCredentialWriter;
+import com.aiplatform.foundation.modelruntime.application.configuration.port.out.ModelConfigurationTransaction;
 import com.aiplatform.foundation.modelruntime.domain.configuration.repository.ModelConfigurationRepository;
 import com.aiplatform.foundation.modelruntime.domain.provider.repository.ProviderConnectionRepository;
 import com.aiplatform.foundation.modelruntime.infrastructure.persistence.deployment.mapper.ModelDeploymentMapper;
@@ -8,6 +10,9 @@ import com.aiplatform.foundation.modelruntime.infrastructure.persistence.deploym
 import com.aiplatform.foundation.modelruntime.infrastructure.persistence.deployment.repository.PostgresModelDeploymentRepository;
 import com.aiplatform.foundation.modelruntime.infrastructure.persistence.configuration.ModelConfigurationMapper;
 import com.aiplatform.foundation.modelruntime.infrastructure.persistence.configuration.PostgresModelConfigurationRepository;
+import com.aiplatform.foundation.modelruntime.infrastructure.persistence.configuration.PostgresEncryptedModelCredentialStore;
+import com.aiplatform.foundation.modelruntime.infrastructure.persistence.configuration.ModelConfigurationCredentialMapper;
+import com.aiplatform.foundation.modelruntime.infrastructure.persistence.configuration.SpringModelConfigurationTransaction;
 import com.aiplatform.foundation.modelruntime.infrastructure.persistence.provider.mapper.ProviderConnectionMapper;
 import com.aiplatform.foundation.modelruntime.infrastructure.persistence.provider.mapper.ProviderConnectionRequestMapper;
 import com.aiplatform.foundation.modelruntime.infrastructure.persistence.provider.repository.PostgresProviderConnectionRepository;
@@ -20,6 +25,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.transaction.PlatformTransactionManager;
+import com.aiplatform.foundation.security.secret.SecretEncryptionKeyProvider;
 
 /**
  * 注册模型目录 Mapper 和聚合仓储实现。
@@ -65,5 +71,21 @@ public class ModelRuntimePersistenceAutoConfiguration {
     ModelConfigurationRepository modelConfigurationRepository(
             ModelConfigurationMapper mapper) {
         return new PostgresModelConfigurationRepository(mapper);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    ModelConfigurationTransaction modelConfigurationTransaction(
+            PlatformTransactionManager transactions) {
+        return new SpringModelConfigurationTransaction(transactions);
+    }
+
+    @Bean
+    @ConditionalOnBean(SecretEncryptionKeyProvider.class)
+    @ConditionalOnMissingBean
+    ModelConfigurationCredentialWriter modelConfigurationCredentialWriter(
+            ModelConfigurationCredentialMapper mapper,
+            SecretEncryptionKeyProvider keyProvider) {
+        return new PostgresEncryptedModelCredentialStore(mapper, keyProvider);
     }
 }

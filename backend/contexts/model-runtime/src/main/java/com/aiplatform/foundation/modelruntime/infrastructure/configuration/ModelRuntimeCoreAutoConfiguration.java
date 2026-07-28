@@ -3,6 +3,9 @@ package com.aiplatform.foundation.modelruntime.infrastructure.configuration;
 import com.aiplatform.foundation.modelruntime.application.deployment.facade.PublishedChatDeploymentLookup;
 import com.aiplatform.foundation.modelruntime.application.deployment.facade.PublishedEmbeddingDeploymentLookup;
 import com.aiplatform.foundation.modelruntime.application.configuration.service.ModelConfigurationService;
+import com.aiplatform.foundation.modelruntime.application.configuration.service.ModelConfigurationCredentialService;
+import com.aiplatform.foundation.modelruntime.application.configuration.port.out.ModelConfigurationCredentialWriter;
+import com.aiplatform.foundation.modelruntime.application.configuration.port.out.ModelConfigurationTransaction;
 import com.aiplatform.foundation.modelruntime.application.deployment.service.ModelDeploymentService;
 import com.aiplatform.foundation.modelruntime.application.deployment.service.PublishedChatDeploymentLookupService;
 import com.aiplatform.foundation.modelruntime.application.deployment.service.PublishedEmbeddingDeploymentLookupService;
@@ -16,6 +19,7 @@ import com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator;
 import java.time.Clock;
 import java.util.List;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -79,6 +83,16 @@ public class ModelRuntimeCoreAutoConfiguration {
                 repository,
                 Clock.systemUTC(),
                 identifiers);
+    }
+
+    @Bean
+    @ConditionalOnBean({ModelConfigurationCredentialWriter.class, ModelConfigurationTransaction.class})
+    @ConditionalOnMissingBean
+    ModelConfigurationCredentialService modelConfigurationCredentialService(
+            ModelConfigurationService configurations,
+            ModelConfigurationCredentialWriter credentials,
+            ModelConfigurationTransaction transactions) {
+        return new ModelConfigurationCredentialService(configurations, credentials, transactions);
     }
 
     @Bean

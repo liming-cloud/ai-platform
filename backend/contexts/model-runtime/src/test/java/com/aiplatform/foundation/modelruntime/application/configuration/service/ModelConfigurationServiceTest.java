@@ -8,12 +8,15 @@ import com.aiplatform.foundation.modelruntime.domain.configuration.model.Control
 import com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelConfiguration;
 import com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelConfigurationScope;
 import com.aiplatform.foundation.modelruntime.domain.configuration.repository.ModelConfigurationRepository;
+import com.aiplatform.foundation.modelruntime.application.configuration.port.out.ModelConfigurationCredentialWriter;
+import com.aiplatform.foundation.modelruntime.application.configuration.port.out.ModelConfigurationTransaction;
 import com.aiplatform.foundation.security.identity.AccessChannel;
 import com.aiplatform.foundation.security.identity.CredentialType;
 import com.aiplatform.foundation.security.identity.MembershipId;
 import com.aiplatform.foundation.security.identity.PermissionCode;
 import com.aiplatform.foundation.security.identity.SubjectId;
 import com.aiplatform.foundation.security.identity.TrustedRequestContext;
+import com.aiplatform.foundation.security.secret.SecretValue;
 import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
 import java.net.URI;
 import java.time.Clock;
@@ -45,6 +48,31 @@ class ModelConfigurationServiceTest {
 
         assertEquals(3382738893456539650L, created.ownerMembershipId().value());
         assertEquals(100000000000000001L, created.tenantId().value());
+    }
+
+    @Test
+    void 创建模型配置时在同一事务写入加密凭据且不把秘密带入返回聚合() {
+        var repository = new InMemoryRepository();
+        repository.catalog = publishedCatalog();
+        var credentials = new CapturingCredentialWriter();
+        var service = new ModelConfigurationCredentialService(
+                service(repository),
+                credentials,
+                new ImmediateTransaction());
+
+        ModelConfiguration created;
+        try (var secret = SecretValue.copyOf("test-api-key".toCharArray())) {
+            created = service.create(
+                    context("model-tenant:write"),
+                    ModelConfigurationScope.TENANT,
+                    "租户模型",
+                    new ControlledModelCatalogEntryId(3001L),
+                    secret);
+        }
+
+        assertEquals(created.id(), credentials.configurationId);
+        assertEquals("test-api-key", credentials.value);
+        assertEquals(ModelConfigurationScope.TENANT, created.scope());
     }
 
     private static ModelConfigurationService service(InMemoryRepository repository) {
@@ -88,6 +116,26 @@ class ModelConfigurationServiceTest {
         @Override
         public void save(ModelConfiguration value) {
             configuration = value;
+        }
+    }
+
+    private static final class CapturingCredentialWriter implements ModelConfigurationCredentialWriter {
+        private com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelConfigurationId configurationId;
+        private String value;
+
+        @Override
+        public void rotate(
+                com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelConfigurationId configurationId,
+                SecretValue apiKey) {
+            this.configurationId = configurationId;
+            this.value = apiKey.use(String::new);
+        }
+    }
+
+    private static final class ImmediateTransaction implements ModelConfigurationTransaction {
+        @Override
+        public <T> T execute(java.util.function.Supplier<T> action) {
+            return action.get();
         }
     }
 }

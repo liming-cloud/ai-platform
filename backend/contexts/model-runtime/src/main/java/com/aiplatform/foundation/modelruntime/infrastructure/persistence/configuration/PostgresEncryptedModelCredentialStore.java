@@ -1,5 +1,6 @@
 package com.aiplatform.foundation.modelruntime.infrastructure.persistence.configuration;
 
+import com.aiplatform.foundation.modelruntime.application.configuration.port.out.ModelConfigurationCredentialWriter;
 import com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelConfigurationId;
 import com.aiplatform.foundation.security.secret.AesGcmSecretCipher;
 import com.aiplatform.foundation.security.secret.SecretEncryptionKeyProvider;
@@ -16,7 +17,7 @@ import java.util.function.Function;
 /**
  * 将模型 API Key 作为信封密文保存，并仅以短生命周期秘密回调形式读取。
  */
-public final class PostgresEncryptedModelCredentialStore {
+public final class PostgresEncryptedModelCredentialStore implements ModelConfigurationCredentialWriter {
 
     private final ModelConfigurationCredentialMapper mapper;
     private final SecretEncryptionKeyProvider keyProvider;
@@ -40,6 +41,7 @@ public final class PostgresEncryptedModelCredentialStore {
         this.clock = Objects.requireNonNull(clock, "时钟不能为空");
     }
 
+    @Override
     public void rotate(ModelConfigurationId configurationId, SecretValue apiKey) {
         Objects.requireNonNull(configurationId, "模型配置标识不能为空");
         Objects.requireNonNull(apiKey, "API Key不能为空");
