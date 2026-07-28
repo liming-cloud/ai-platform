@@ -43,6 +43,29 @@ public final class PostgresModelConfigurationRepository implements ModelConfigur
     }
 
     @Override
+    public void saveCatalogEntry(ControlledModelCatalogEntry entry) {
+        Objects.requireNonNull(entry, "受控模型目录条目不能为空");
+        mapper.insertCatalogEntry(
+                entry.id().value(),
+                entry.providerKind().name(),
+                entry.endpoint().toString(),
+                entry.modelCode(),
+                entry.modelType().name(),
+                entry.status().name(),
+                entry.version(),
+                entry.createdAt());
+    }
+
+    @Override
+    public void updateCatalogEntry(ControlledModelCatalogEntry entry) {
+        Objects.requireNonNull(entry, "受控模型目录条目不能为空");
+        if (!mapper.updateCatalogEntry(
+                entry.id().value(), entry.status().name(), entry.version(), entry.version() - 1)) {
+            throw new IllegalStateException("受控模型目录条目版本已经变化");
+        }
+    }
+
+    @Override
     public Optional<ModelConfiguration> findConfiguration(ModelConfigurationId id) {
         Objects.requireNonNull(id, "模型配置标识不能为空");
         return Optional.ofNullable(mapper.findConfiguration(id.value())).map(row ->

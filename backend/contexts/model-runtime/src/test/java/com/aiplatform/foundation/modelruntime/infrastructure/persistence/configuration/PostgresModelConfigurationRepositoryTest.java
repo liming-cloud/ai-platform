@@ -3,6 +3,7 @@ package com.aiplatform.foundation.modelruntime.infrastructure.persistence.config
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.aiplatform.foundation.modelruntime.domain.configuration.model.ControlledModelCatalogEntryId;
+import com.aiplatform.foundation.modelruntime.domain.configuration.model.ControlledModelCatalogEntry;
 import com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelConfiguration;
 import com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelConfigurationId;
 import com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelConfigurationScope;
@@ -68,6 +69,22 @@ class PostgresModelConfigurationRepositoryTest {
         var configuration = repository.findConfiguration(new ModelConfigurationId(4001L)).orElseThrow();
         assertEquals(ModelConfigurationScope.TENANT, configuration.scope());
         assertEquals(2001L, configuration.tenantId().value());
+    }
+
+    @Test
+    void 保存并发布受控目录条目时使用乐观版本更新() {
+        var draft = ControlledModelCatalogEntry.create(
+                new ControlledModelCatalogEntryId(3002L),
+                com.aiplatform.foundation.modelruntime.domain.provider.model.ProviderKind.OPENAI_COMPATIBLE,
+                java.net.URI.create("https://example.com/v1"),
+                "qwen-embedding", com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelType.EMBEDDING,
+                Instant.parse("2026-07-28T00:00:00Z"));
+        repository.saveCatalogEntry(draft);
+        repository.updateCatalogEntry(draft.publish());
+
+        var published = repository.findCatalogEntry(new ControlledModelCatalogEntryId(3002L)).orElseThrow();
+        assertEquals("PUBLISHED", published.status().name());
+        assertEquals(1L, published.version());
     }
 
     @SpringBootConfiguration @EnableAutoConfiguration

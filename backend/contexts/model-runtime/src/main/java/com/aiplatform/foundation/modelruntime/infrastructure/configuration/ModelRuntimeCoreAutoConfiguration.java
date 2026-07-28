@@ -3,6 +3,7 @@ package com.aiplatform.foundation.modelruntime.infrastructure.configuration;
 import com.aiplatform.foundation.modelruntime.application.deployment.facade.PublishedChatDeploymentLookup;
 import com.aiplatform.foundation.modelruntime.application.deployment.facade.PublishedEmbeddingDeploymentLookup;
 import com.aiplatform.foundation.modelruntime.application.configuration.service.ModelConfigurationService;
+import com.aiplatform.foundation.modelruntime.application.configuration.service.ControlledModelCatalogService;
 import com.aiplatform.foundation.modelruntime.application.configuration.service.ModelConfigurationCredentialService;
 import com.aiplatform.foundation.modelruntime.application.configuration.port.out.ModelConfigurationCredentialWriter;
 import com.aiplatform.foundation.modelruntime.application.configuration.port.out.ModelConfigurationTransaction;
@@ -83,6 +84,14 @@ public class ModelRuntimeCoreAutoConfiguration {
                 repository,
                 Clock.systemUTC(),
                 identifiers);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    ControlledModelCatalogService controlledModelCatalogService(
+            ModelConfigurationRepository repository,
+            EntityIdGenerator identifiers) {
+        return new ControlledModelCatalogService(repository, identifiers, Clock.systemUTC());
     }
 
     @Bean

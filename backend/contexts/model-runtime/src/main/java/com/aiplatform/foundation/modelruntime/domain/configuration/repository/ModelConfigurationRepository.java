@@ -13,6 +13,10 @@ public interface ModelConfigurationRepository {
 
     Optional<ControlledModelCatalogEntry> findCatalogEntry(ControlledModelCatalogEntryId id);
 
+    void saveCatalogEntry(ControlledModelCatalogEntry entry);
+
+    void updateCatalogEntry(ControlledModelCatalogEntry entry);
+
     Optional<ModelConfiguration> findConfiguration(ModelConfigurationId id);
 
     void save(ModelConfiguration configuration);

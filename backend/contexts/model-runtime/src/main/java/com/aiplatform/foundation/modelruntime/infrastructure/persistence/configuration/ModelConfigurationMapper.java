@@ -10,6 +10,22 @@ public interface ModelConfigurationMapper {
 
     CatalogRow findCatalogEntry(@Param("id") long id);
 
+    void insertCatalogEntry(
+            @Param("id") long id,
+            @Param("providerKind") String providerKind,
+            @Param("endpoint") String endpoint,
+            @Param("modelCode") String modelCode,
+            @Param("modelType") String modelType,
+            @Param("status") String status,
+            @Param("version") long version,
+            @Param("createdAt") Instant createdAt);
+
+    boolean updateCatalogEntry(
+            @Param("id") long id,
+            @Param("status") String status,
+            @Param("version") long version,
+            @Param("expectedVersion") long expectedVersion);
+
     ConfigurationRow findConfiguration(@Param("id") long id);
 
     void insertConfiguration(

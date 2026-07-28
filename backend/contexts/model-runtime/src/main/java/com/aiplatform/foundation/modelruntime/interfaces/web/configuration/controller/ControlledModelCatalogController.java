@@ -1,0 +1,44 @@
+package com.aiplatform.foundation.modelruntime.interfaces.web.configuration.controller;
+
+import com.aiplatform.foundation.modelruntime.application.configuration.service.ControlledModelCatalogService;
+import com.aiplatform.foundation.modelruntime.domain.configuration.model.ControlledModelCatalogEntryId;
+import com.aiplatform.foundation.modelruntime.interfaces.web.configuration.request.ControlledModelCatalogEntryCreateRequest;
+import com.aiplatform.foundation.modelruntime.interfaces.web.configuration.view.ControlledModelCatalogEntryView;
+import com.aiplatform.foundation.security.identity.TrustedRequestContext;
+import java.util.Objects;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+/**
+ * 平台管理员维护受控模型目录的 HTTP 入口。
+ */
+@RestController
+@RequestMapping("/api/v1/controlled-model-catalog")
+public class ControlledModelCatalogController {
+
+    private final ControlledModelCatalogService catalog;
+
+    public ControlledModelCatalogController(ControlledModelCatalogService catalog) {
+        this.catalog = Objects.requireNonNull(catalog, "受控模型目录用例不能为空");
+    }
+
+    @PostMapping
+    public ResponseEntity<ControlledModelCatalogEntryView> create(
+            TrustedRequestContext context,
+            @RequestBody ControlledModelCatalogEntryCreateRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(ControlledModelCatalogEntryView.from(catalog.create(
+                context, request.providerKind(), request.endpoint(), request.modelCode(), request.modelType())));
+    }
+
+    @PostMapping("/{entryId}/publish")
+    public ControlledModelCatalogEntryView publish(
+            TrustedRequestContext context, @PathVariable long entryId) {
+        return ControlledModelCatalogEntryView.from(catalog.publish(
+                context, new ControlledModelCatalogEntryId(entryId)));
+    }
+}

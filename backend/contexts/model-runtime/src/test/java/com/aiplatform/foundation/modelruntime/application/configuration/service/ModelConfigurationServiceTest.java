@@ -148,6 +148,16 @@ class ModelConfigurationServiceTest {
         }
 
         @Override
+        public void saveCatalogEntry(ControlledModelCatalogEntry entry) {
+            catalog = entry;
+        }
+
+        @Override
+        public void updateCatalogEntry(ControlledModelCatalogEntry entry) {
+            catalog = entry;
+        }
+
+        @Override
         public Optional<ModelConfiguration> findConfiguration(ModelConfigurationId id) {
             return configuration != null && configuration.id().equals(id)
                     ? Optional.of(configuration)

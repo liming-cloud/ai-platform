@@ -7,6 +7,18 @@
         FROM model_runtime.controlled_model_catalog_entry
         WHERE id = #{id}
     </select>
+    <insert id="insertCatalogEntry">
+        INSERT INTO model_runtime.controlled_model_catalog_entry (
+            id, provider_kind, endpoint, model_code, model_type, status, version, created_at
+        ) VALUES (
+            #{id}, #{providerKind}, #{endpoint}, #{modelCode}, #{modelType}, #{status}, #{version}, #{createdAt}
+        )
+    </insert>
+    <update id="updateCatalogEntry">
+        UPDATE model_runtime.controlled_model_catalog_entry
+        SET status = #{status}, version = #{version}
+        WHERE id = #{id} AND version = #{expectedVersion}
+    </update>
     <select id="findConfiguration" resultType="com.aiplatform.foundation.modelruntime.infrastructure.persistence.configuration.ModelConfigurationMapper$ConfigurationRow">
         SELECT id, scope, tenant_id AS tenantId, owner_membership_id AS ownerMembershipId,
                display_name AS displayName, catalog_entry_id AS catalogEntryId,
