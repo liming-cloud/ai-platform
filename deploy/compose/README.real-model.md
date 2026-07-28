@@ -18,7 +18,7 @@
 
 服务启动后，可使用 `scripts/development/acceptance-real-model.sh` 执行一次独立的研发验收。脚本会创建平台受控目录、个人模型配置、合成知识空间、真实 Embedding 索引和受控助手版本，再发起一次带引用的真实查询；最终只输出模型名、耗时、引用数和不可逆摘要。
 
-API Key 必须预先写入一个仅本地可读的临时文件，文件路径通过 `FOUNDATION_M2_API_KEY_FILE` 传给脚本。不要把 API Key 作为环境变量、命令参数、标准输入重定向内容或日志文本。
+API Key 必须预先写入一个仅本地可读的临时文件，文件权限必须禁止组和其他用户读取，例如 `0600`。文件路径通过 `FOUNDATION_M2_API_KEY_FILE` 传给脚本；权限过宽时脚本会在任何 HTTP 请求前拒绝执行。不要把 API Key 作为环境变量、命令参数、标准输入重定向内容或日志文本。
 
 ```bash
 FOUNDATION_M2_API_KEY_FILE=/受控临时目录/百炼-api-key \

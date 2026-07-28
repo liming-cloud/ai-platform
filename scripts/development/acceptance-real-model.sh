@@ -207,10 +207,16 @@ query_real_model() {
 require_command curl
 require_command jq
 require_command shasum
+require_command stat
 [[ -f "${API_KEY_FILE}" && -r "${API_KEY_FILE}" ]] || {
   echo "API Key 文件不可读：${API_KEY_FILE}" >&2
   exit 1
 }
+api_key_file_mode="$(stat -f '%Lp' "${API_KEY_FILE}" 2>/dev/null || stat -c '%a' "${API_KEY_FILE}")"
+if (( (8#${api_key_file_mode} & 8#077) != 0 )); then
+  echo "API Key 文件权限过宽，禁止组或其他用户读取：${API_KEY_FILE}" >&2
+  exit 1
+fi
 api_key="$(tr -d '\r\n' <"${API_KEY_FILE}")"
 [[ -n "${api_key}" ]] || { echo "API Key 文件为空" >&2; exit 1; }
 

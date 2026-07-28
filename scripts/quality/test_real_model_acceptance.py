@@ -223,6 +223,31 @@ class RealModelAcceptanceTest(unittest.TestCase):
         self.assertIn("API Key 文件不可读", completed.stderr)
         self.assertEqual([], AcceptanceServer.requests)
 
+    def test_key_file_with_group_or_other_read_permission_fails_before_request(self):
+        with tempfile.TemporaryDirectory() as directory:
+            key_file = Path(directory) / "api-key"
+            key_file.write_text(TEST_API_KEY, encoding="utf-8")
+            key_file.chmod(0o644)
+            api_root = f"http://127.0.0.1:{self.server.server_port}/api/v1"
+            environment = {
+                **os.environ,
+                "FOUNDATION_M2_API_KEY_FILE": str(key_file),
+                "FOUNDATION_ACCEPTANCE_CONTROL_API_ROOT": api_root,
+                "FOUNDATION_ACCEPTANCE_QUERY_API_ROOT": api_root,
+            }
+            completed = subprocess.run(
+                [str(SCRIPT)],
+                cwd=REPOSITORY_ROOT,
+                env=environment,
+                capture_output=True,
+                text=True,
+            )
+
+        self.assertNotEqual(0, completed.returncode)
+        self.assertEqual("", completed.stdout)
+        self.assertIn("API Key 文件权限过宽", completed.stderr)
+        self.assertEqual([], AcceptanceServer.requests)
+
 
 if __name__ == "__main__":
     unittest.main()
