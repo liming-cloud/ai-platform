@@ -122,6 +122,18 @@
       "reason": "使用 PostgreSQL 事务级咨询锁串行化租户内模型部署名称约束。"
     },
     {
+      "path": "backend/contexts/model-runtime/src/main/resources/mapper/model-runtime/ModelConfigurationCredentialMapper.xml",
+      "statementId": "upsert",
+      "category": "ATOMIC_STATE_TRANSITION",
+      "reason": "通过 PostgreSQL ON CONFLICT 原子替换同一模型配置的完整密文凭据材料。"
+    },
+    {
+      "path": "backend/contexts/model-runtime/src/main/resources/mapper/model-runtime/ModelConfigurationCredentialMapper.xml",
+      "statementId": "existsByConfigurationId",
+      "category": "SECURITY_PROJECTION",
+      "reason": "凭据状态读取只能返回存在性，避免详情接口或授权判断加载密文材料。"
+    },
+    {
       "path": "backend/contexts/model-runtime/src/main/resources/mapper/model-runtime/ModelDeploymentMapper.xml",
       "statementId": "insertDeployment",
       "category": "POSTGRES_TYPE",

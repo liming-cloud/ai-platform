@@ -137,8 +137,10 @@ class PostgresModelConfigurationRepositoryTest {
     @SpringBootConfiguration @EnableAutoConfiguration
     @MapperScan("com.aiplatform.foundation.modelruntime.infrastructure.persistence.configuration")
     static class TestApplication {
-        @Bean ModelConfigurationRepository repository(ModelConfigurationMapper mapper) {
-            return new PostgresModelConfigurationRepository(mapper);
+        @Bean ModelConfigurationRepository repository(
+                ControlledModelCatalogEntryMapper catalogMapper,
+                ModelConfigurationMapper mapper) {
+            return new PostgresModelConfigurationRepository(catalogMapper, mapper);
         }
         @Bean ModelConfigurationAccessRepository accessRepository(ModelConfigurationAccessMapper mapper) {
             return new PostgresModelConfigurationAccessRepository(mapper);

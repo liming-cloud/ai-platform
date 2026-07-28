@@ -23,6 +23,7 @@ import com.aiplatform.foundation.modelruntime.domain.provider.repository.Provide
 import com.aiplatform.foundation.modelruntime.infrastructure.persistence.deployment.mapper.ModelDeploymentMapper;
 import com.aiplatform.foundation.modelruntime.infrastructure.persistence.deployment.mapper.ModelDeploymentRequestMapper;
 import com.aiplatform.foundation.modelruntime.infrastructure.persistence.configuration.ModelConfigurationMapper;
+import com.aiplatform.foundation.modelruntime.infrastructure.persistence.configuration.ControlledModelCatalogEntryMapper;
 import com.aiplatform.foundation.modelruntime.infrastructure.persistence.configuration.ModelConfigurationCredentialMapper;
 import com.aiplatform.foundation.modelruntime.infrastructure.persistence.configuration.ModelConfigurationAccessMapper;
 import com.aiplatform.foundation.modelruntime.infrastructure.persistence.provider.mapper.ProviderConnectionMapper;
@@ -181,6 +182,9 @@ class ModelRuntimeAutoConfigurationTest {
                 .withBean(
                         ModelConfigurationMapper.class,
                         () -> mock(ModelConfigurationMapper.class))
+                .withBean(
+                        ControlledModelCatalogEntryMapper.class,
+                        () -> mock(ControlledModelCatalogEntryMapper.class))
                 .withBean(
                         ModelConfigurationCredentialMapper.class,
                         () -> mock(ModelConfigurationCredentialMapper.class))

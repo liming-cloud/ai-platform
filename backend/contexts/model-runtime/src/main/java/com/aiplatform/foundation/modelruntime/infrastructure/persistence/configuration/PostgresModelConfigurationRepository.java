@@ -12,6 +12,9 @@ import com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelRu
 import com.aiplatform.foundation.modelruntime.domain.configuration.repository.ModelConfigurationRepository;
 import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelType;
 import com.aiplatform.foundation.modelruntime.domain.provider.model.ProviderKind;
+import com.aiplatform.foundation.modelruntime.infrastructure.persistence.configuration.entity.ControlledModelCatalogEntryEntity;
+import com.aiplatform.foundation.modelruntime.infrastructure.persistence.configuration.entity.ModelConfigurationEntity;
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import java.net.URI;
 import java.util.Objects;
 import java.util.Optional;
@@ -22,50 +25,46 @@ import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
  */
 public final class PostgresModelConfigurationRepository implements ModelConfigurationRepository {
 
-    private final ModelConfigurationMapper mapper;
+    private final ControlledModelCatalogEntryMapper catalogMapper;
+    private final ModelConfigurationMapper configurationMapper;
 
-    public PostgresModelConfigurationRepository(ModelConfigurationMapper mapper) {
-        this.mapper = Objects.requireNonNull(mapper, "模型配置映射器不能为空");
+    public PostgresModelConfigurationRepository(
+            ControlledModelCatalogEntryMapper catalogMapper,
+            ModelConfigurationMapper configurationMapper) {
+        this.catalogMapper = Objects.requireNonNull(catalogMapper, "受控模型目录映射器不能为空");
+        this.configurationMapper = Objects.requireNonNull(configurationMapper, "模型配置映射器不能为空");
     }
 
     @Override
     public Optional<ControlledModelCatalogEntry> findCatalogEntry(ControlledModelCatalogEntryId id) {
         Objects.requireNonNull(id, "受控模型目录条目标识不能为空");
-        return Optional.ofNullable(mapper.findCatalogEntry(id.value())).map(row ->
+        return Optional.ofNullable(catalogMapper.selectById(id.value())).map(row ->
                 ControlledModelCatalogEntry.reconstitute(
-                        new ControlledModelCatalogEntryId(row.id()),
-                        ProviderKind.valueOf(row.providerKind()),
-                        URI.create(row.endpoint()),
-                        row.modelCode(),
-                        ModelType.valueOf(row.modelType()),
+                        new ControlledModelCatalogEntryId(row.getId()),
+                        ProviderKind.valueOf(row.getProviderKind()),
+                        URI.create(row.getEndpoint()),
+                        row.getModelCode(),
+                        ModelType.valueOf(row.getModelType()),
                         requireCapabilities(row),
-                        ControlledModelCatalogEntryStatus.valueOf(row.status()),
-                        row.version(),
-                        row.createdAt()));
+                        ControlledModelCatalogEntryStatus.valueOf(row.getStatus()),
+                        row.getVersion(),
+                        row.getCreatedAt()));
     }
 
     @Override
     public void saveCatalogEntry(ControlledModelCatalogEntry entry) {
         Objects.requireNonNull(entry, "受控模型目录条目不能为空");
-        mapper.insertCatalogEntry(
-                entry.id().value(),
-                entry.providerKind().name(),
-                entry.endpoint().toString(),
-                entry.modelCode(),
-                entry.modelType().name(),
-                entry.capabilities().contextWindow(),
-                entry.capabilities().outputLimit(),
-                entry.capabilities().embeddingDimension(),
-                entry.status().name(),
-                entry.version(),
-                entry.createdAt());
+        catalogMapper.insert(toEntity(entry));
     }
 
     @Override
     public void updateCatalogEntry(ControlledModelCatalogEntry entry) {
         Objects.requireNonNull(entry, "受控模型目录条目不能为空");
-        if (!mapper.updateCatalogEntry(
-                entry.id().value(), entry.status().name(), entry.version(), entry.version() - 1)) {
+        if (catalogMapper.update(null, Wrappers.<ControlledModelCatalogEntryEntity>lambdaUpdate()
+                .eq(ControlledModelCatalogEntryEntity::getId, entry.id().value())
+                .eq(ControlledModelCatalogEntryEntity::getVersion, entry.version() - 1)
+                .set(ControlledModelCatalogEntryEntity::getStatus, entry.status().name())
+                .set(ControlledModelCatalogEntryEntity::getVersion, entry.version())) != 1) {
             throw new IllegalStateException("受控模型目录条目版本已经变化");
         }
     }
@@ -73,26 +72,28 @@ public final class PostgresModelConfigurationRepository implements ModelConfigur
     @Override
     public Optional<ModelConfiguration> findConfiguration(ModelConfigurationId id) {
         Objects.requireNonNull(id, "模型配置标识不能为空");
-        return Optional.ofNullable(mapper.findConfiguration(id.value())).map(row ->
+        return Optional.ofNullable(configurationMapper.selectById(id.value())).map(row ->
                 ModelConfiguration.reconstitute(
-                        new ModelConfigurationId(row.id()),
-                        ModelConfigurationScope.valueOf(row.scope()),
-                        row.tenantId() == null ? null : new TenantId(row.tenantId()),
-                        row.ownerMembershipId() == null ? null
-                                : new ModelConfigurationOwnerId(row.ownerMembershipId()),
-                        row.displayName(),
-                        new ControlledModelCatalogEntryId(row.catalogEntryId()),
-                        ModelConfigurationStatus.valueOf(row.status()),
-                        row.version(),
-                        row.createdAt()));
+                        new ModelConfigurationId(row.getId()),
+                        ModelConfigurationScope.valueOf(row.getScope()),
+                        row.getTenantId() == null ? null : new TenantId(row.getTenantId()),
+                        row.getOwnerMembershipId() == null ? null
+                                : new ModelConfigurationOwnerId(row.getOwnerMembershipId()),
+                        row.getDisplayName(),
+                        new ControlledModelCatalogEntryId(row.getCatalogEntryId()),
+                        ModelConfigurationStatus.valueOf(row.getStatus()),
+                        row.getVersion(),
+                        row.getCreatedAt()));
     }
 
     @Override
     public void updateConfiguration(ModelConfiguration configuration) {
         Objects.requireNonNull(configuration, "模型配置不能为空");
-        if (!mapper.updateConfiguration(
-                configuration.id().value(), configuration.status().name(),
-                configuration.version(), configuration.version() - 1)) {
+        if (configurationMapper.update(null, Wrappers.<ModelConfigurationEntity>lambdaUpdate()
+                .eq(ModelConfigurationEntity::getId, configuration.id().value())
+                .eq(ModelConfigurationEntity::getVersion, configuration.version() - 1)
+                .set(ModelConfigurationEntity::getStatus, configuration.status().name())
+                .set(ModelConfigurationEntity::getVersion, configuration.version())) != 1) {
             throw new IllegalStateException("模型配置版本已经变化");
         }
     }
@@ -100,24 +101,46 @@ public final class PostgresModelConfigurationRepository implements ModelConfigur
     @Override
     public void save(ModelConfiguration configuration) {
         Objects.requireNonNull(configuration, "模型配置不能为空");
-        mapper.insertConfiguration(
-                configuration.id().value(),
-                configuration.scope().name(),
-                configuration.tenantId() == null ? null : configuration.tenantId().value(),
-                configuration.ownerMembershipId() == null ? null : configuration.ownerMembershipId().value(),
-                configuration.displayName(),
-                configuration.catalogEntryId().value(),
-                configuration.status().name(),
-                configuration.version(),
-                configuration.createdAt());
+        configurationMapper.insert(toEntity(configuration));
     }
 
-    private static ModelRuntimeCapabilities requireCapabilities(ModelConfigurationMapper.CatalogRow row) {
-        if (row.contextWindow() == null
-                || (row.outputLimit() == null && row.embeddingDimension() == null)) {
+    private static ModelRuntimeCapabilities requireCapabilities(ControlledModelCatalogEntryEntity row) {
+        if (row.getContextWindow() == null
+                || (row.getOutputLimit() == null && row.getEmbeddingDimension() == null)) {
             throw new IllegalStateException("受控模型目录条目缺少运行时能力快照，必须由平台重新发布");
         }
         return new ModelRuntimeCapabilities(
-                row.contextWindow(), row.outputLimit(), row.embeddingDimension());
+                row.getContextWindow(), row.getOutputLimit(), row.getEmbeddingDimension());
+    }
+
+    private static ControlledModelCatalogEntryEntity toEntity(ControlledModelCatalogEntry entry) {
+        var entity = new ControlledModelCatalogEntryEntity();
+        entity.setId(entry.id().value());
+        entity.setProviderKind(entry.providerKind().name());
+        entity.setEndpoint(entry.endpoint().toString());
+        entity.setModelCode(entry.modelCode());
+        entity.setModelType(entry.modelType().name());
+        entity.setContextWindow(entry.capabilities().contextWindow());
+        entity.setOutputLimit(entry.capabilities().outputLimit());
+        entity.setEmbeddingDimension(entry.capabilities().embeddingDimension());
+        entity.setStatus(entry.status().name());
+        entity.setVersion(entry.version());
+        entity.setCreatedAt(entry.createdAt());
+        return entity;
+    }
+
+    private static ModelConfigurationEntity toEntity(ModelConfiguration configuration) {
+        var entity = new ModelConfigurationEntity();
+        entity.setId(configuration.id().value());
+        entity.setScope(configuration.scope().name());
+        entity.setTenantId(configuration.tenantId() == null ? null : configuration.tenantId().value());
+        entity.setOwnerMembershipId(configuration.ownerMembershipId() == null
+                ? null : configuration.ownerMembershipId().value());
+        entity.setDisplayName(configuration.displayName());
+        entity.setCatalogEntryId(configuration.catalogEntryId().value());
+        entity.setStatus(configuration.status().name());
+        entity.setVersion(configuration.version());
+        entity.setCreatedAt(configuration.createdAt());
+        return entity;
     }
 }

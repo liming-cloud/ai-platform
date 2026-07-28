@@ -1,12 +1,15 @@
 package com.aiplatform.foundation.modelruntime.infrastructure.persistence.configuration;
 
+import com.aiplatform.foundation.modelruntime.infrastructure.persistence.configuration.entity.ModelConfigurationCredentialEntity;
+import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import java.time.Instant;
 import org.apache.ibatis.annotations.Param;
 
 /**
  * 加密模型凭据的 MyBatis 映射器，密文材料不离开持久化适配器。
  */
-public interface ModelConfigurationCredentialMapper {
+public interface ModelConfigurationCredentialMapper
+        extends BaseMapper<ModelConfigurationCredentialEntity> {
 
     void upsert(
             @Param("modelConfigurationId") long modelConfigurationId,
@@ -19,16 +22,6 @@ public interface ModelConfigurationCredentialMapper {
             @Param("fingerprint") String fingerprint,
             @Param("rotatedAt") Instant rotatedAt);
 
-    CredentialRow findByConfigurationId(@Param("modelConfigurationId") long modelConfigurationId);
-
     boolean existsByConfigurationId(@Param("modelConfigurationId") long modelConfigurationId);
 
-    record CredentialRow(
-            String algorithm,
-            String masterKeyVersion,
-            byte[] dataKeyNonce,
-            byte[] encryptedDataKey,
-            byte[] ciphertextNonce,
-            byte[] ciphertext) {
-    }
 }

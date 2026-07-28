@@ -3,6 +3,7 @@ package com.aiplatform.foundation.modelruntime.infrastructure.persistence.config
 import com.aiplatform.foundation.modelruntime.application.configuration.port.out.ModelConfigurationCredentialWriter;
 import com.aiplatform.foundation.modelruntime.application.configuration.port.out.ModelConfigurationCredentialInspector;
 import com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelConfigurationId;
+import com.aiplatform.foundation.modelruntime.infrastructure.persistence.configuration.entity.ModelConfigurationCredentialEntity;
 import com.aiplatform.foundation.security.secret.AesGcmSecretCipher;
 import com.aiplatform.foundation.security.secret.SecretEncryptionKeyProvider;
 import com.aiplatform.foundation.security.secret.SecretValue;
@@ -68,17 +69,17 @@ public final class PostgresEncryptedModelCredentialStore
             Function<SecretValue, T> action) {
         Objects.requireNonNull(configurationId, "模型配置标识不能为空");
         Objects.requireNonNull(action, "凭据使用动作不能为空");
-        var row = mapper.findByConfigurationId(configurationId.value());
+        var row = mapper.selectById(configurationId.value());
         if (row == null) {
             throw new IllegalStateException("模型配置未设置凭据");
         }
         var encrypted = new AesGcmSecretCipher.EncryptedSecret(
-                row.algorithm(),
-                row.masterKeyVersion(),
-                row.dataKeyNonce(),
-                row.encryptedDataKey(),
-                row.ciphertextNonce(),
-                row.ciphertext());
+                row.getAlgorithm(),
+                row.getMasterKeyVersion(),
+                row.getDataKeyNonce(),
+                row.getEncryptedDataKey(),
+                row.getCiphertextNonce(),
+                row.getCiphertext());
         try (var secret = cipher.decrypt(encrypted, keyProvider)) {
             return action.apply(secret);
         }

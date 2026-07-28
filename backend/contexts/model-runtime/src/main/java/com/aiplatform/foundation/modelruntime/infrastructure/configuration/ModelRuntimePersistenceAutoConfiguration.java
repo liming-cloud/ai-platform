@@ -10,6 +10,7 @@ import com.aiplatform.foundation.modelruntime.infrastructure.persistence.deploym
 import com.aiplatform.foundation.modelruntime.infrastructure.persistence.deployment.mapper.ModelDeploymentRequestMapper;
 import com.aiplatform.foundation.modelruntime.infrastructure.persistence.deployment.repository.PostgresModelDeploymentRepository;
 import com.aiplatform.foundation.modelruntime.infrastructure.persistence.configuration.ModelConfigurationMapper;
+import com.aiplatform.foundation.modelruntime.infrastructure.persistence.configuration.ControlledModelCatalogEntryMapper;
 import com.aiplatform.foundation.modelruntime.infrastructure.persistence.configuration.PostgresModelConfigurationAccessRepository;
 import com.aiplatform.foundation.modelruntime.infrastructure.persistence.configuration.ModelConfigurationAccessMapper;
 import com.aiplatform.foundation.modelruntime.infrastructure.persistence.configuration.PostgresModelConfigurationRepository;
@@ -72,8 +73,9 @@ public class ModelRuntimePersistenceAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean
     ModelConfigurationRepository modelConfigurationRepository(
-            ModelConfigurationMapper mapper) {
-        return new PostgresModelConfigurationRepository(mapper);
+            ControlledModelCatalogEntryMapper catalogMapper,
+            ModelConfigurationMapper configurationMapper) {
+        return new PostgresModelConfigurationRepository(catalogMapper, configurationMapper);
     }
 
     @Bean
