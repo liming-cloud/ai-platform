@@ -136,6 +136,7 @@
 | 模型配置与加密凭据数据库基线 | `project/evidence/WP-0010-model-configuration-persistence.md` | `928e568d2`、`b68cfb6f1`、`71e484790`、`6b64ccf71`、`fa1a2b392`、`b38e8b22c`、`2997db59d`、`a21a80a9b`、`376ccb533`、`3951a5dd0`、`0f97bba52` | 真实 PostgreSQL 验证三层所有权、端点约束、无 API Key 明文字段、密文写入/短生命周期解密、受控配置仓储、原子写入、显式本地研发密钥装配、脱敏创建/轮换、授权撤销、显式启用、停用与脱敏读取；尚未完成真实调用 |
 | 受控模型目录能力快照 | `project/evidence/WP-0010-controlled-model-catalog-capabilities.md` | `e3b89585d` | 平台确认的上下文、输出上限或嵌入维度随目录条目冻结；真实 PostgreSQL 验证写回、发布保留和旧条目缺快照失效关闭 |
 | 可用模型配置安全查询门面 | `project/evidence/WP-0010-usable-model-configuration-lookup.md` | `c120cd256` | 已启用、已授权、已配置凭据且目录已发布的模型配置才投影为无秘密快照；跨成员、无凭据、未发布目录与类型不匹配均失败关闭 |
+| 受控嵌入短生命周期运行时 | `project/evidence/WP-0010-governed-embedding-runtime.md` | `ed5f41c5f` | 单次调用重验配置、目录和请求快照；受控配置不走长期凭据引用或模型缓存 |
 
 ## 证据规则
 
