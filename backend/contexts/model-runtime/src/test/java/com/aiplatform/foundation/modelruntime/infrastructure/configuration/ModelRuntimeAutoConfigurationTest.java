@@ -7,6 +7,7 @@ import com.aiplatform.foundation.modelruntime.application.deployment.facade.Publ
 import com.aiplatform.foundation.modelruntime.application.deployment.facade.PublishedEmbeddingDeploymentLookup;
 import com.aiplatform.foundation.modelruntime.application.deployment.service.ModelDeploymentService;
 import com.aiplatform.foundation.modelruntime.application.configuration.service.ModelConfigurationService;
+import com.aiplatform.foundation.modelruntime.application.configuration.service.ModelConfigurationCredentialService;
 import com.aiplatform.foundation.modelruntime.application.probe.service.ProbeProviderService;
 import com.aiplatform.foundation.modelruntime.application.provider.service.ProviderConnectionService;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.ModelRuntimeResolver;
@@ -20,6 +21,7 @@ import com.aiplatform.foundation.modelruntime.infrastructure.persistence.configu
 import com.aiplatform.foundation.modelruntime.infrastructure.persistence.provider.mapper.ProviderConnectionMapper;
 import com.aiplatform.foundation.modelruntime.infrastructure.persistence.provider.mapper.ProviderConnectionRequestMapper;
 import com.aiplatform.foundation.modelruntime.interfaces.web.deployment.controller.ModelDeploymentController;
+import com.aiplatform.foundation.modelruntime.interfaces.web.configuration.controller.ModelConfigurationController;
 import com.aiplatform.foundation.modelruntime.interfaces.web.provider.controller.ProviderConnectionController;
 import com.aiplatform.foundation.security.egress.OutboundEndpointPolicy;
 import com.aiplatform.foundation.security.secret.SecretResolver;
@@ -90,10 +92,14 @@ class ModelRuntimeAutoConfigurationTest {
                 .withBean(
                         ModelDeploymentService.class,
                         () -> mock(ModelDeploymentService.class))
+                .withBean(
+                        ModelConfigurationCredentialService.class,
+                        () -> mock(ModelConfigurationCredentialService.class))
                 .run(context -> {
                     assertThat(context).hasNotFailed();
                     assertThat(context).hasSingleBean(ProviderConnectionController.class);
                     assertThat(context).hasSingleBean(ModelDeploymentController.class);
+                    assertThat(context).hasSingleBean(ModelConfigurationController.class);
                 });
     }
 
