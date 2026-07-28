@@ -12,6 +12,9 @@ public record ControlledModelCatalogEntryView(
         String endpoint,
         String modelCode,
         String modelType,
+        int contextWindow,
+        Integer outputLimit,
+        Integer embeddingDimension,
         String status,
         long version,
         Instant createdAt) {
@@ -19,6 +22,8 @@ public record ControlledModelCatalogEntryView(
     public static ControlledModelCatalogEntryView from(ControlledModelCatalogEntry entry) {
         return new ControlledModelCatalogEntryView(
                 entry.id().toString(), entry.providerKind().name(), entry.endpoint().toString(),
-                entry.modelCode(), entry.modelType().name(), entry.status().name(), entry.version(), entry.createdAt());
+                entry.modelCode(), entry.modelType().name(), entry.capabilities().contextWindow(),
+                entry.capabilities().outputLimit(), entry.capabilities().embeddingDimension(),
+                entry.status().name(), entry.version(), entry.createdAt());
     }
 }

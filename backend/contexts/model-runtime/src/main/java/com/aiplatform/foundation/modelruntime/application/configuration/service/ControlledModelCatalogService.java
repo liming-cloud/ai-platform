@@ -4,6 +4,7 @@ import com.aiplatform.foundation.modelruntime.application.configuration.exceptio
 import com.aiplatform.foundation.modelruntime.application.provider.exception.ModelCatalogPermissionDeniedException;
 import com.aiplatform.foundation.modelruntime.domain.configuration.model.ControlledModelCatalogEntry;
 import com.aiplatform.foundation.modelruntime.domain.configuration.model.ControlledModelCatalogEntryId;
+import com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelRuntimeCapabilities;
 import com.aiplatform.foundation.modelruntime.domain.configuration.repository.ModelConfigurationRepository;
 import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelType;
 import com.aiplatform.foundation.modelruntime.domain.provider.model.ProviderKind;
@@ -39,7 +40,8 @@ public final class ControlledModelCatalogService {
             ProviderKind providerKind,
             URI endpoint,
             String modelCode,
-            ModelType modelType) {
+            ModelType modelType,
+            ModelRuntimeCapabilities capabilities) {
         requirePlatformWrite(context);
         var entry = ControlledModelCatalogEntry.create(
                 new ControlledModelCatalogEntryId(identifiers.nextId()),
@@ -47,6 +49,7 @@ public final class ControlledModelCatalogService {
                 endpoint,
                 modelCode,
                 modelType,
+                capabilities,
                 clock.instant());
         repository.saveCatalogEntry(entry);
         return entry;

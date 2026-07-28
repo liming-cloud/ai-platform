@@ -16,6 +16,9 @@ public interface ModelConfigurationMapper {
             @Param("endpoint") String endpoint,
             @Param("modelCode") String modelCode,
             @Param("modelType") String modelType,
+            @Param("contextWindow") int contextWindow,
+            @Param("outputLimit") Integer outputLimit,
+            @Param("embeddingDimension") Integer embeddingDimension,
             @Param("status") String status,
             @Param("version") long version,
             @Param("createdAt") Instant createdAt);
@@ -47,6 +50,7 @@ public interface ModelConfigurationMapper {
 
     record CatalogRow(
             long id, String providerKind, String endpoint, String modelCode, String modelType,
+            Integer contextWindow, Integer outputLimit, Integer embeddingDimension,
             String status, long version, Instant createdAt) {
     }
 

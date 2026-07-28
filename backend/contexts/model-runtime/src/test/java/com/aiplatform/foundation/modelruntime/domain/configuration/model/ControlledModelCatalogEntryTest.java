@@ -19,10 +19,13 @@ class ControlledModelCatalogEntryTest {
                 URI.create("https://dashscope.aliyuncs.com/compatible-mode/v1"),
                 "qwen-plus",
                 ModelType.CHAT,
+                ModelRuntimeCapabilities.chat(32_768, 4_096),
                 Instant.parse("2026-07-28T00:00:00Z"));
 
         assertEquals(ControlledModelCatalogEntryStatus.DRAFT, entry.status());
         assertEquals(ControlledModelCatalogEntryStatus.PUBLISHED, entry.publish().status());
+        assertEquals(32_768, entry.publish().capabilities().contextWindow());
+        assertEquals(4_096, entry.publish().capabilities().outputLimit());
     }
 
     @Test
@@ -33,6 +36,7 @@ class ControlledModelCatalogEntryTest {
                 URI.create("https://user@example.com/path?token=forbidden"),
                 "qwen-plus",
                 ModelType.CHAT,
+                ModelRuntimeCapabilities.chat(32_768, 4_096),
                 Instant.parse("2026-07-28T00:00:00Z")));
     }
 
@@ -44,6 +48,19 @@ class ControlledModelCatalogEntryTest {
                 URI.create("http://example.com/compatible-mode/v1"),
                 "qwen-plus",
                 ModelType.CHAT,
+                ModelRuntimeCapabilities.chat(32_768, 4_096),
+                Instant.parse("2026-07-28T00:00:00Z")));
+    }
+
+    @Test
+    void 目录能力快照必须与模型类型一致() {
+        assertThrows(IllegalArgumentException.class, () -> ControlledModelCatalogEntry.create(
+                new ControlledModelCatalogEntryId(3001L),
+                ProviderKind.OPENAI_COMPATIBLE,
+                URI.create("https://example.com/compatible-mode/v1"),
+                "text-embedding-v4",
+                ModelType.EMBEDDING,
+                ModelRuntimeCapabilities.chat(32_768, 4_096),
                 Instant.parse("2026-07-28T00:00:00Z")));
     }
 }

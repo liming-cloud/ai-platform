@@ -20,6 +20,7 @@ public final class ControlledModelCatalogEntry
     private final URI endpoint;
     private final String modelCode;
     private final ModelType modelType;
+    private final ModelRuntimeCapabilities capabilities;
     private final ControlledModelCatalogEntryStatus status;
     private final long version;
     private final Instant createdAt;
@@ -30,6 +31,7 @@ public final class ControlledModelCatalogEntry
             URI endpoint,
             String modelCode,
             ModelType modelType,
+            ModelRuntimeCapabilities capabilities,
             ControlledModelCatalogEntryStatus status,
             long version,
             Instant createdAt) {
@@ -38,6 +40,8 @@ public final class ControlledModelCatalogEntry
         this.endpoint = requireEndpoint(endpoint);
         this.modelCode = requireModelCode(modelCode);
         this.modelType = Objects.requireNonNull(modelType, "模型类型不能为空");
+        this.capabilities = Objects.requireNonNull(capabilities, "模型运行时能力不能为空");
+        this.capabilities.requireFor(modelType);
         this.status = Objects.requireNonNull(status, "受控模型目录条目状态不能为空");
         if (version < 0) {
             throw new IllegalArgumentException("受控模型目录条目版本不能为负数");
@@ -52,6 +56,7 @@ public final class ControlledModelCatalogEntry
             URI endpoint,
             String modelCode,
             ModelType modelType,
+            ModelRuntimeCapabilities capabilities,
             Instant createdAt) {
         return new ControlledModelCatalogEntry(
                 id,
@@ -59,6 +64,7 @@ public final class ControlledModelCatalogEntry
                 endpoint,
                 modelCode,
                 modelType,
+                capabilities,
                 ControlledModelCatalogEntryStatus.DRAFT,
                 0,
                 createdAt);
@@ -70,11 +76,12 @@ public final class ControlledModelCatalogEntry
             URI endpoint,
             String modelCode,
             ModelType modelType,
+            ModelRuntimeCapabilities capabilities,
             ControlledModelCatalogEntryStatus status,
             long version,
             Instant createdAt) {
         return new ControlledModelCatalogEntry(
-                id, providerKind, endpoint, modelCode, modelType, status, version, createdAt);
+                id, providerKind, endpoint, modelCode, modelType, capabilities, status, version, createdAt);
     }
 
     public ControlledModelCatalogEntry publish() {
@@ -87,6 +94,7 @@ public final class ControlledModelCatalogEntry
                 endpoint,
                 modelCode,
                 modelType,
+                capabilities,
                 ControlledModelCatalogEntryStatus.PUBLISHED,
                 version + 1,
                 createdAt);
@@ -111,6 +119,13 @@ public final class ControlledModelCatalogEntry
 
     public ModelType modelType() {
         return modelType;
+    }
+
+    /**
+     * 返回由平台确认并随目录条目冻结的运行时能力。
+     */
+    public ModelRuntimeCapabilities capabilities() {
+        return capabilities;
     }
 
     public ControlledModelCatalogEntryStatus status() {

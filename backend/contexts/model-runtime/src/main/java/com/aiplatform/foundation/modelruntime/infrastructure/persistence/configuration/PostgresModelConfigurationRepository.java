@@ -8,6 +8,7 @@ import com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelCo
 import com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelConfigurationOwnerId;
 import com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelConfigurationScope;
 import com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelConfigurationStatus;
+import com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelRuntimeCapabilities;
 import com.aiplatform.foundation.modelruntime.domain.configuration.repository.ModelConfigurationRepository;
 import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelType;
 import com.aiplatform.foundation.modelruntime.domain.provider.model.ProviderKind;
@@ -37,6 +38,7 @@ public final class PostgresModelConfigurationRepository implements ModelConfigur
                         URI.create(row.endpoint()),
                         row.modelCode(),
                         ModelType.valueOf(row.modelType()),
+                        requireCapabilities(row),
                         ControlledModelCatalogEntryStatus.valueOf(row.status()),
                         row.version(),
                         row.createdAt()));
@@ -51,6 +53,9 @@ public final class PostgresModelConfigurationRepository implements ModelConfigur
                 entry.endpoint().toString(),
                 entry.modelCode(),
                 entry.modelType().name(),
+                entry.capabilities().contextWindow(),
+                entry.capabilities().outputLimit(),
+                entry.capabilities().embeddingDimension(),
                 entry.status().name(),
                 entry.version(),
                 entry.createdAt());
@@ -105,5 +110,14 @@ public final class PostgresModelConfigurationRepository implements ModelConfigur
                 configuration.status().name(),
                 configuration.version(),
                 configuration.createdAt());
+    }
+
+    private static ModelRuntimeCapabilities requireCapabilities(ModelConfigurationMapper.CatalogRow row) {
+        if (row.contextWindow() == null
+                || (row.outputLimit() == null && row.embeddingDimension() == null)) {
+            throw new IllegalStateException("受控模型目录条目缺少运行时能力快照，必须由平台重新发布");
+        }
+        return new ModelRuntimeCapabilities(
+                row.contextWindow(), row.outputLimit(), row.embeddingDimension());
     }
 }

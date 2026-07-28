@@ -9,6 +9,7 @@ import com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelCo
 import com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelConfigurationId;
 import com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelConfigurationOwnerId;
 import com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelConfigurationScope;
+import com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelRuntimeCapabilities;
 import com.aiplatform.foundation.modelruntime.domain.configuration.repository.ModelConfigurationRepository;
 import com.aiplatform.foundation.modelruntime.application.configuration.port.out.ModelConfigurationCredentialWriter;
 import com.aiplatform.foundation.modelruntime.application.configuration.port.out.ModelConfigurationTransaction;
@@ -152,6 +153,7 @@ class ModelConfigurationServiceTest {
                 URI.create("https://example.com/v1"),
                 "qwen-plus",
                 com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelType.CHAT,
+                ModelRuntimeCapabilities.chat(32_768, 4_096),
                 Instant.parse("2026-07-28T00:00:00Z")).publish();
     }
 

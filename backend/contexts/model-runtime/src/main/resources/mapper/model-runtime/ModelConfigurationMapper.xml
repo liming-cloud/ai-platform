@@ -3,15 +3,19 @@
 <mapper namespace="com.aiplatform.foundation.modelruntime.infrastructure.persistence.configuration.ModelConfigurationMapper">
     <select id="findCatalogEntry" resultType="com.aiplatform.foundation.modelruntime.infrastructure.persistence.configuration.ModelConfigurationMapper$CatalogRow">
         SELECT id, provider_kind AS providerKind, endpoint, model_code AS modelCode,
-               model_type AS modelType, status, version, created_at AS createdAt
+               model_type AS modelType, context_window AS contextWindow,
+               output_limit AS outputLimit, embedding_dimension AS embeddingDimension,
+               status, version, created_at AS createdAt
         FROM model_runtime.controlled_model_catalog_entry
         WHERE id = #{id}
     </select>
     <insert id="insertCatalogEntry">
         INSERT INTO model_runtime.controlled_model_catalog_entry (
-            id, provider_kind, endpoint, model_code, model_type, status, version, created_at
+            id, provider_kind, endpoint, model_code, model_type, context_window,
+            output_limit, embedding_dimension, status, version, created_at
         ) VALUES (
-            #{id}, #{providerKind}, #{endpoint}, #{modelCode}, #{modelType}, #{status}, #{version}, #{createdAt}
+            #{id}, #{providerKind}, #{endpoint}, #{modelCode}, #{modelType}, #{contextWindow},
+            #{outputLimit}, #{embeddingDimension}, #{status}, #{version}, #{createdAt}
         )
     </insert>
     <update id="updateCatalogEntry">

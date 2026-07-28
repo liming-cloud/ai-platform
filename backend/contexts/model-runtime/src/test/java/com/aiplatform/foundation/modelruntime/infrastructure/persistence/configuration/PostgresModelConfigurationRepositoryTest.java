@@ -1,6 +1,7 @@
 package com.aiplatform.foundation.modelruntime.infrastructure.persistence.configuration;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.aiplatform.foundation.modelruntime.domain.configuration.model.ControlledModelCatalogEntryId;
 import com.aiplatform.foundation.modelruntime.domain.configuration.model.ControlledModelCatalogEntry;
@@ -9,6 +10,7 @@ import com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelCo
 import com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelConfigurationAccessGrantId;
 import com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelConfigurationId;
 import com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelConfigurationScope;
+import com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelRuntimeCapabilities;
 import com.aiplatform.foundation.modelruntime.domain.configuration.repository.ModelConfigurationRepository;
 import com.aiplatform.foundation.modelruntime.domain.configuration.repository.ModelConfigurationAccessRepository;
 import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
@@ -57,8 +59,10 @@ class PostgresModelConfigurationRepositoryTest {
         jdbc.update("DELETE FROM model_runtime.controlled_model_catalog_entry");
         jdbc.update("""
                 INSERT INTO model_runtime.controlled_model_catalog_entry
-                (id, provider_kind, endpoint, model_code, model_type, status, version, created_at)
-                VALUES (3001, 'OPENAI_COMPATIBLE', 'https://example.com/v1', 'qwen-plus', 'CHAT', 'PUBLISHED', 1, ?)
+                (id, provider_kind, endpoint, model_code, model_type, context_window, output_limit,
+                 embedding_dimension, status, version, created_at)
+                VALUES (3001, 'OPENAI_COMPATIBLE', 'https://example.com/v1', 'qwen-plus', 'CHAT', 32768, 4096,
+                        NULL, 'PUBLISHED', 1, ?)
                 """, Timestamp.from(Instant.parse("2026-07-28T00:00:00Z")));
     }
 
@@ -66,6 +70,7 @@ class PostgresModelConfigurationRepositoryTest {
     void 保存租户配置并读取已发布目录() {
         var catalog = repository.findCatalogEntry(new ControlledModelCatalogEntryId(3001L)).orElseThrow();
         assertEquals("qwen-plus", catalog.modelCode());
+        assertEquals(4_096, catalog.capabilities().outputLimit());
         repository.save(ModelConfiguration.create(
                 new ModelConfigurationId(4001L), ModelConfigurationScope.TENANT,
                 new TenantId(2001L), null, "租户模型", catalog.id(),
@@ -86,6 +91,7 @@ class PostgresModelConfigurationRepositoryTest {
                 com.aiplatform.foundation.modelruntime.domain.provider.model.ProviderKind.OPENAI_COMPATIBLE,
                 java.net.URI.create("https://example.com/v1"),
                 "qwen-embedding", com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelType.EMBEDDING,
+                ModelRuntimeCapabilities.embedding(8_192, 1_024),
                 Instant.parse("2026-07-28T00:00:00Z"));
         repository.saveCatalogEntry(draft);
         repository.updateCatalogEntry(draft.publish());
@@ -93,6 +99,19 @@ class PostgresModelConfigurationRepositoryTest {
         var published = repository.findCatalogEntry(new ControlledModelCatalogEntryId(3002L)).orElseThrow();
         assertEquals("PUBLISHED", published.status().name());
         assertEquals(1L, published.version());
+        assertEquals(1_024, published.capabilities().embeddingDimension());
+    }
+
+    @Test
+    void 缺少能力快照的历史目录条目必须失效关闭() {
+        jdbc.update("""
+                INSERT INTO model_runtime.controlled_model_catalog_entry
+                (id, provider_kind, endpoint, model_code, model_type, status, version, created_at)
+                VALUES (3003, 'OPENAI_COMPATIBLE', 'https://example.com/v1', 'legacy-chat', 'CHAT', 'PUBLISHED', 1, ?)
+                """, Timestamp.from(Instant.parse("2026-07-28T00:00:00Z")));
+
+        assertThrows(IllegalStateException.class, () ->
+                repository.findCatalogEntry(new ControlledModelCatalogEntryId(3003L)));
     }
 
     @Test

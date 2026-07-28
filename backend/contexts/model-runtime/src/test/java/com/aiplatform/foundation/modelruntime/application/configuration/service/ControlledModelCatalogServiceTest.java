@@ -7,6 +7,7 @@ import com.aiplatform.foundation.modelruntime.domain.configuration.model.Control
 import com.aiplatform.foundation.modelruntime.domain.configuration.model.ControlledModelCatalogEntryId;
 import com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelConfiguration;
 import com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelConfigurationId;
+import com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelRuntimeCapabilities;
 import com.aiplatform.foundation.modelruntime.domain.configuration.repository.ModelConfigurationRepository;
 import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelType;
 import com.aiplatform.foundation.modelruntime.domain.provider.model.ProviderKind;
@@ -37,16 +38,19 @@ class ControlledModelCatalogServiceTest {
 
         assertThrows(com.aiplatform.foundation.modelruntime.application.provider.exception.ModelCatalogPermissionDeniedException.class, () -> service.create(
                 context("model-tenant:write"), ProviderKind.OPENAI_COMPATIBLE,
-                URI.create("https://example.com/v1"), "qwen-plus", ModelType.CHAT));
+                URI.create("https://example.com/v1"), "qwen-plus", ModelType.CHAT,
+                ModelRuntimeCapabilities.chat(32_768, 4_096)));
 
         var draft = service.create(
                 context("model-platform:write"), ProviderKind.OPENAI_COMPATIBLE,
-                URI.create("https://example.com/v1"), "qwen-plus", ModelType.CHAT);
+                URI.create("https://example.com/v1"), "qwen-plus", ModelType.CHAT,
+                ModelRuntimeCapabilities.chat(32_768, 4_096));
         var published = service.publish(context("model-platform:write"), draft.id());
 
         assertEquals("DRAFT", draft.status().name());
         assertEquals("PUBLISHED", published.status().name());
         assertEquals(1L, published.version());
+        assertEquals(4_096, published.capabilities().outputLimit());
     }
 
     private static TrustedRequestContext context(String permission) {

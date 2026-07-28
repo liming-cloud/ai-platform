@@ -2,6 +2,7 @@ package com.aiplatform.foundation.modelruntime.interfaces.web.configuration.cont
 
 import com.aiplatform.foundation.modelruntime.application.configuration.service.ControlledModelCatalogService;
 import com.aiplatform.foundation.modelruntime.domain.configuration.model.ControlledModelCatalogEntryId;
+import com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelRuntimeCapabilities;
 import com.aiplatform.foundation.modelruntime.interfaces.web.configuration.request.ControlledModelCatalogEntryCreateRequest;
 import com.aiplatform.foundation.modelruntime.interfaces.web.configuration.view.ControlledModelCatalogEntryView;
 import com.aiplatform.foundation.security.identity.TrustedRequestContext;
@@ -32,7 +33,13 @@ public class ControlledModelCatalogController {
             TrustedRequestContext context,
             @RequestBody ControlledModelCatalogEntryCreateRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(ControlledModelCatalogEntryView.from(catalog.create(
-                context, request.providerKind(), request.endpoint(), request.modelCode(), request.modelType())));
+                context,
+                request.providerKind(),
+                request.endpoint(),
+                request.modelCode(),
+                request.modelType(),
+                new ModelRuntimeCapabilities(
+                        request.contextWindow(), request.outputLimit(), request.embeddingDimension()))));
     }
 
     @PostMapping("/{entryId}/publish")
