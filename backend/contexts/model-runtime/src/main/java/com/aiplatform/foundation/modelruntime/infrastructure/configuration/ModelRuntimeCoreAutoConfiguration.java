@@ -7,6 +7,8 @@ import com.aiplatform.foundation.modelruntime.application.configuration.service.
 import com.aiplatform.foundation.modelruntime.application.configuration.service.ModelConfigurationCredentialService;
 import com.aiplatform.foundation.modelruntime.application.configuration.service.ModelConfigurationAccessService;
 import com.aiplatform.foundation.modelruntime.application.configuration.service.ModelConfigurationReadService;
+import com.aiplatform.foundation.modelruntime.application.configuration.service.UsableModelConfigurationLookupService;
+import com.aiplatform.foundation.modelruntime.application.configuration.facade.UsableModelConfigurationLookup;
 import com.aiplatform.foundation.modelruntime.application.configuration.port.out.ModelConfigurationCredentialInspector;
 import com.aiplatform.foundation.modelruntime.application.configuration.port.out.ModelConfigurationCredentialWriter;
 import com.aiplatform.foundation.modelruntime.application.configuration.port.out.ModelConfigurationTransaction;
@@ -126,6 +128,16 @@ public class ModelRuntimeCoreAutoConfiguration {
             ModelConfigurationAccessService access,
             ModelConfigurationCredentialInspector credentials) {
         return new ModelConfigurationReadService(configurations, management, access, credentials);
+    }
+
+    @Bean
+    @ConditionalOnBean(ModelConfigurationCredentialInspector.class)
+    @ConditionalOnMissingBean
+    UsableModelConfigurationLookup usableModelConfigurationLookup(
+            ModelConfigurationRepository configurations,
+            ModelConfigurationAccessService access,
+            ModelConfigurationCredentialInspector credentials) {
+        return new UsableModelConfigurationLookupService(configurations, access, credentials);
     }
 
     @Bean

@@ -11,6 +11,7 @@ import com.aiplatform.foundation.modelruntime.application.configuration.service.
 import com.aiplatform.foundation.modelruntime.application.configuration.service.ControlledModelCatalogService;
 import com.aiplatform.foundation.modelruntime.application.configuration.service.ModelConfigurationAccessService;
 import com.aiplatform.foundation.modelruntime.application.configuration.service.ModelConfigurationReadService;
+import com.aiplatform.foundation.modelruntime.application.configuration.facade.UsableModelConfigurationLookup;
 import com.aiplatform.foundation.modelruntime.application.configuration.port.out.ModelConfigurationCredentialInspector;
 import com.aiplatform.foundation.modelruntime.application.configuration.port.out.ModelConfigurationCredentialWriter;
 import com.aiplatform.foundation.modelruntime.application.probe.service.ProbeProviderService;
@@ -68,6 +69,9 @@ class ModelRuntimeAutoConfigurationTest {
                 .withBean(
                         ModelConfigurationAccessRepository.class,
                         () -> mock(ModelConfigurationAccessRepository.class))
+                .withBean(
+                        ModelConfigurationCredentialInspector.class,
+                        () -> mock(ModelConfigurationCredentialInspector.class))
                 .withBean(EntityIdGenerator.class, () -> () -> 1001L)
                 .run(context -> {
                     assertThat(context).hasNotFailed();
@@ -76,6 +80,7 @@ class ModelRuntimeAutoConfigurationTest {
                     assertThat(context).hasSingleBean(ModelDeploymentService.class);
                     assertThat(context).hasSingleBean(ModelConfigurationService.class);
                     assertThat(context).hasSingleBean(ModelConfigurationAccessService.class);
+                    assertThat(context).hasSingleBean(UsableModelConfigurationLookup.class);
                     assertThat(context).hasSingleBean(PublishedChatDeploymentLookup.class);
                     assertThat(context).hasSingleBean(PublishedEmbeddingDeploymentLookup.class);
                 });
