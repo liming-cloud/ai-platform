@@ -137,6 +137,7 @@
 | 受控模型目录能力快照 | `project/evidence/WP-0010-controlled-model-catalog-capabilities.md` | `e3b89585d` | 平台确认的上下文、输出上限或嵌入维度随目录条目冻结；真实 PostgreSQL 验证写回、发布保留和旧条目缺快照失效关闭 |
 | 可用模型配置安全查询门面 | `project/evidence/WP-0010-usable-model-configuration-lookup.md` | `c120cd256` | 已启用、已授权、已配置凭据且目录已发布的模型配置才投影为无秘密快照；跨成员、无凭据、未发布目录与类型不匹配均失败关闭 |
 | 受控嵌入短生命周期运行时 | `project/evidence/WP-0010-governed-embedding-runtime.md` | `ed5f41c5f` | 单次调用重验配置、目录和请求快照；受控配置不走长期凭据引用或模型缓存 |
+| 受控模型配置选择与索引创建契约 | `project/evidence/WP-0010-controlled-model-configuration-selection.md` | `1d720a692` | 当前成员仅能分页读取个人、租户和已授权平台配置；控制台仅选择已启用、已配置凭据的嵌入配置创建新索引 |
 
 ## 证据规则
 

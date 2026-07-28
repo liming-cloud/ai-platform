@@ -95,6 +95,7 @@ latestEvidence:
   - project/evidence/WP-0010-controlled-model-catalog-capabilities.md
   - project/evidence/WP-0010-usable-model-configuration-lookup.md
   - project/evidence/WP-0010-governed-embedding-runtime.md
+  - project/evidence/WP-0010-controlled-model-configuration-selection.md
 nextReviewAt: 2026-08-03
-updatedAt: 2026-07-28T10:37:00+08:00
+updatedAt: 2026-07-28T11:00:00+08:00
 updatedBy: codex
