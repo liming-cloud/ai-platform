@@ -145,7 +145,8 @@
 | 受控模型配置控制台 | `project/evidence/WP-0010-model-configuration-console.md` | `e587fb823` | 已发布目录分页、受控创建、启用与凭据轮换在控制台闭环；API Key 不回显、不保留在页面状态 |
 | 真实模型受控验收编排 | `project/evidence/WP-0010-real-model-acceptance-orchestration.md` | `f014be163`、`2ac742be1`、`4ee13980b` | 目录、加密配置、索引、助手和查询的真实模型脚本已具备；Mock 闭环、无密钥和过宽文件权限失败关闭通过，外部调用待受控终端执行 |
 | 火山方舟真实模型验证切换 | `project/evidence/WP-0010-volcengine-ark-provider-transition.md` | `adf0a1a34` | 标准 `/api/v3` Chat 与多模态 Embedding 协议、2048 维存储上限、真实索引和带引用回答通过；全量门禁通过，等待 M2 人工评审 |
-| M2 自动验收人工评审请求 | `project/evidence/M2-automatic-acceptance-review.md` | `adf0a1a34` | 自动验收范围、提交、证据和人工复核要点已登记；尚未批准进入 M3 |
+| M2 自动验收人工评审请求 | `project/evidence/M2-automatic-acceptance-review.md` | `c8e66787d` | 自动验收、产品经理浏览器验收、范围、提交和人工复核要点已登记；尚未批准进入 M3 |
+| M2 产品经理浏览器验收与蓝图复核 | `project/evidence/WP-0010-product-manager-browser-review.md` | `c8e66787d` | 受控模型配置、可信问答和脱敏治理已实际操作；密钥不回显和创建状态缺陷已修复，M3 至 M8 产品覆盖计划已校准，等待人工评审 |
 
 ## 证据规则
 

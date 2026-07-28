@@ -2,7 +2,7 @@ schemaVersion: 1
 productVersion: foundation-v1
 currentMilestone: M2
 currentFrontier: WP-0010
-lastVerifiedCommit: adf0a1a34
+lastVerifiedCommit: c8e66787d
 activeWorkPackages:
   - WP-0010
 blockedWorkPackages: []
@@ -107,6 +107,7 @@ latestEvidence:
   - project/evidence/WP-0010-real-model-acceptance-orchestration.md
   - project/evidence/WP-0010-volcengine-ark-provider-transition.md
   - project/evidence/M2-automatic-acceptance-review.md
+  - project/evidence/WP-0010-product-manager-browser-review.md
 nextReviewAt: 2026-08-03
-updatedAt: 2026-07-28T20:20:00+08:00
+updatedAt: 2026-07-28T21:18:00+08:00
 updatedBy: codex
