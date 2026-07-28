@@ -29,7 +29,7 @@ interface Failure {
 type ViewState = "unauthenticated" | "loading" | "ready" | "error";
 
 /**
- * 模型配置控制台只展示目录和配置状态；API Key 只通过未受控表单进入一次写请求，页面不回显也不保留。
+ * 模型配置控制台只展示目录和配置状态；API Key 只在一次受控写请求中使用，随后立即从页面状态清除。
  */
 export function ModelConfigurationWorkspace({
   client,
@@ -50,6 +50,9 @@ export function ModelConfigurationWorkspace({
   const [failure, setFailure] = useState<Failure>();
   const [loggingIn, setLoggingIn] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [creationDisplayName, setCreationDisplayName] = useState("");
+  const [creationApiKey, setCreationApiKey] = useState("");
+  const [rotationApiKeys, setRotationApiKeys] = useState<Record<string, string>>({});
   const [loadingMore, setLoadingMore] = useState(false);
 
   const load = useCallback(async () => {
@@ -118,11 +121,14 @@ export function ModelConfigurationWorkspace({
     event.preventDefault();
     const form = event.currentTarget;
     const formData = new FormData(form);
-    const apiKey = String(formData.get("apiKey") ?? "");
-    const displayName = String(formData.get("displayName") ?? "");
+    const apiKey = creationApiKey;
+    const displayName = creationDisplayName;
     const scope = String(formData.get("scope") ?? "PERSONAL") as ModelConfiguration["scope"];
     const catalogEntryId = String(formData.get("catalogEntryId") ?? "");
+    const modelType = catalog.find((entry) => entry.id === catalogEntryId)?.modelType;
     form.reset();
+    setCreationDisplayName("");
+    setCreationApiKey("");
     if (
       apiKey.trim().length === 0 || displayName.trim().length === 0
       || catalogEntryId.length === 0
@@ -139,10 +145,12 @@ export function ModelConfigurationWorkspace({
         catalogEntryId,
         apiKey,
       });
-      setConfigurations((current) => [created, ...current]);
+      setConfigurations((current) => [{ ...created, modelType: modelType ?? created.modelType }, ...current]);
     } catch (error) {
       setFailure(toFailure(error));
     } finally {
+      setCreationDisplayName("");
+      setCreationApiKey("");
       setSubmitting(false);
     }
   }
@@ -166,8 +174,9 @@ export function ModelConfigurationWorkspace({
   ) {
     event.preventDefault();
     const form = event.currentTarget;
-    const apiKey = String(new FormData(form).get("apiKey") ?? "");
+    const apiKey = rotationApiKeys[modelConfigurationId] ?? "";
     form.reset();
+    setRotationApiKeys((current) => ({ ...current, [modelConfigurationId]: "" }));
     if (apiKey.trim().length === 0) {
       setFailure({ message: "请输入新的 API Key。", traceId: "" });
       return;
@@ -183,6 +192,7 @@ export function ModelConfigurationWorkspace({
     } catch (error) {
       setFailure(toFailure(error));
     } finally {
+      setRotationApiKeys((current) => ({ ...current, [modelConfigurationId]: "" }));
       setSubmitting(false);
     }
   }
@@ -284,7 +294,13 @@ export function ModelConfigurationWorkspace({
             </Select>
           </Field>
           <Field label="配置名称" required>
-            <Input name="displayName" autoComplete="off" disabled={submitting} />
+            <Input
+              name="displayName"
+              autoComplete="off"
+              value={creationDisplayName}
+              onChange={(_, data) => setCreationDisplayName(data.value)}
+              disabled={submitting}
+            />
           </Field>
           <Field label="平台模型目录" required>
             <Select name="catalogEntryId" disabled={submitting || catalog.length === 0}>
@@ -301,6 +317,8 @@ export function ModelConfigurationWorkspace({
               name="apiKey"
               type="password"
               autoComplete="new-password"
+              value={creationApiKey}
+              onChange={(_, data) => setCreationApiKey(data.value)}
               disabled={submitting}
             />
           </Field>
@@ -351,6 +369,11 @@ export function ModelConfigurationWorkspace({
                     autoComplete="new-password"
                     aria-label={`${configuration.displayName} 的新 API Key`}
                     placeholder="输入新 API Key"
+                    value={rotationApiKeys[configuration.id] ?? ""}
+                    onChange={(_, data) => setRotationApiKeys((current) => ({
+                      ...current,
+                      [configuration.id]: data.value,
+                    }))}
                     disabled={submitting}
                   />
                   <Button type="submit" disabled={submitting}>
@@ -378,6 +401,10 @@ function replaceConfiguration(
   setConfigurations((current) => current.map((item) => item.id === updated.id ? updated : item));
 }
 
+/**
+ * Fluent UI 的非受控 `Input` 不保证随原生 `form.reset()` 清空。
+ * API Key 即使请求已经发出也不得继续留在浏览器 DOM 中。
+ */
 function statusColor(status: ModelConfiguration["status"]): "success" | "warning" | "danger" {
   if (status === "ACTIVE") {
     return "success";
