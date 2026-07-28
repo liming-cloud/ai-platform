@@ -40,30 +40,40 @@ public final class OpenAiCompatibleEmbeddingModelFactory implements EmbeddingMod
 
     @Override
     public EmbeddingModelPort create(ModelRuntimeSpecification specification) {
-        requireSpecification(specification);
-        endpointPolicy.verify(specification.endpoint());
         try (var secret = secrets.resolve(new SecretReference(
                 specification.credentialReference().value()))) {
-            return secret.use(chars -> {
-                var options = OpenAiEmbeddingOptions.builder()
-                        .baseUrl(specification.endpoint().toString())
-                        .apiKey(new String(chars))
-                        .model(specification.modelCode())
-                        .timeout(timeout)
-                        .maxRetries(0)
-                        .dimensions(specification.embeddingDimension())
-                        .build();
-                var model = OpenAiEmbeddingModel.builder()
-                        .options(options)
-                        .build();
-                return new SpringAiEmbeddingModelAdapter(
-                        model,
-                        new EmbeddingDeploymentRef(
-                                specification.deploymentId(),
-                                specification.deploymentRevision(),
-                                specification.embeddingDimension()));
-            });
+            return create(specification, secret);
         }
+    }
+
+    /**
+     * 受控模型配置调用直接消费当前回调内的凭据，避免通过长期密钥引用再次解析。
+     */
+    @Override
+    public EmbeddingModelPort create(
+            ModelRuntimeSpecification specification,
+            com.aiplatform.foundation.security.secret.SecretValue credential) {
+        requireSpecification(specification);
+        endpointPolicy.verify(specification.endpoint());
+        return credential.use(chars -> {
+            var options = OpenAiEmbeddingOptions.builder()
+                    .baseUrl(specification.endpoint().toString())
+                    .apiKey(new String(chars))
+                    .model(specification.modelCode())
+                    .timeout(timeout)
+                    .maxRetries(0)
+                    .dimensions(specification.embeddingDimension())
+                    .build();
+            var model = OpenAiEmbeddingModel.builder()
+                    .options(options)
+                    .build();
+            return new SpringAiEmbeddingModelAdapter(
+                    model,
+                    new EmbeddingDeploymentRef(
+                            specification.deploymentId(),
+                            specification.deploymentRevision(),
+                            specification.embeddingDimension()));
+        });
     }
 
     private void requireSpecification(ModelRuntimeSpecification specification) {

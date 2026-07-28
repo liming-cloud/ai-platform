@@ -2,6 +2,7 @@ package com.aiplatform.foundation.modelruntime.infrastructure.persistence.config
 
 import com.aiplatform.foundation.modelruntime.application.configuration.port.out.ModelConfigurationCredentialWriter;
 import com.aiplatform.foundation.modelruntime.application.configuration.port.out.ModelConfigurationCredentialInspector;
+import com.aiplatform.foundation.modelruntime.application.configuration.port.out.ModelConfigurationCredentialUser;
 import com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelConfigurationId;
 import com.aiplatform.foundation.modelruntime.infrastructure.persistence.configuration.entity.ModelConfigurationCredentialEntity;
 import com.aiplatform.foundation.security.secret.AesGcmSecretCipher;
@@ -20,7 +21,9 @@ import java.util.function.Function;
  * 将模型 API Key 作为信封密文保存，并仅以短生命周期秘密回调形式读取。
  */
 public final class PostgresEncryptedModelCredentialStore
-        implements ModelConfigurationCredentialWriter, ModelConfigurationCredentialInspector {
+        implements ModelConfigurationCredentialWriter,
+        ModelConfigurationCredentialInspector,
+        ModelConfigurationCredentialUser {
 
     private final ModelConfigurationCredentialMapper mapper;
     private final SecretEncryptionKeyProvider keyProvider;
@@ -64,6 +67,7 @@ public final class PostgresEncryptedModelCredentialStore
     /**
      * 调用方必须先完成模型配置归属、授权、配额和预算检查。
      */
+    @Override
     public <T> T useCredential(
             ModelConfigurationId configurationId,
             Function<SecretValue, T> action) {

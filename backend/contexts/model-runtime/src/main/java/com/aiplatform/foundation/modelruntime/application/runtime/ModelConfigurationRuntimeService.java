@@ -1,0 +1,119 @@
+package com.aiplatform.foundation.modelruntime.application.runtime;
+
+import com.aiplatform.foundation.modelruntime.application.configuration.dto.UsableModelConfigurationSnapshot;
+import com.aiplatform.foundation.modelruntime.application.configuration.facade.UsableModelConfigurationLookup;
+import com.aiplatform.foundation.modelruntime.application.configuration.port.out.ModelConfigurationCredentialUser;
+import com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.common.ModelRuntimeSpecification;
+import com.aiplatform.foundation.modelruntime.application.runtime.facade.GovernedEmbeddingRuntime;
+import com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.embedding.EmbeddingBatch;
+import com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.embedding.EmbeddingRequest;
+import com.aiplatform.foundation.modelruntime.application.runtime.port.out.EmbeddingModelFactory;
+import com.aiplatform.foundation.modelruntime.domain.configuration.model.ControlledModelCatalogEntryStatus;
+import com.aiplatform.foundation.modelruntime.domain.configuration.repository.ModelConfigurationRepository;
+import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelType;
+import com.aiplatform.foundation.modelruntime.domain.provider.model.CredentialReference;
+import com.aiplatform.foundation.modelruntime.domain.provider.model.ProviderKind;
+import com.aiplatform.foundation.security.identity.TrustedRequestContext;
+import java.util.EnumMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.function.Function;
+
+/**
+ * 以单次调用生命周期执行受控模型配置，避免含 API Key 的模型对象进入运行时缓存。
+ */
+public final class ModelConfigurationRuntimeService
+        implements GovernedEmbeddingRuntime {
+
+    private final UsableModelConfigurationLookup configurations;
+    private final ModelConfigurationRepository catalog;
+    private final ModelConfigurationCredentialUser credentials;
+    private final Map<ProviderKind, EmbeddingModelFactory> embeddingFactories;
+
+    public ModelConfigurationRuntimeService(
+            UsableModelConfigurationLookup configurations,
+            ModelConfigurationRepository catalog,
+            ModelConfigurationCredentialUser credentials,
+            List<EmbeddingModelFactory> embeddingFactories) {
+        this.configurations = Objects.requireNonNull(configurations, "可用模型配置查询不能为空");
+        this.catalog = Objects.requireNonNull(catalog, "受控模型目录仓储不能为空");
+        this.credentials = Objects.requireNonNull(credentials, "模型凭据使用端口不能为空");
+        this.embeddingFactories = indexFactories(embeddingFactories);
+    }
+
+    /**
+     * 在本次嵌入调用内复核配置快照、解密凭据、构造模型并立即执行请求。
+     */
+    @Override
+    public EmbeddingBatch embed(
+            TrustedRequestContext context,
+            UsableModelConfigurationSnapshot expected,
+            EmbeddingRequest request) {
+        Objects.requireNonNull(context, "可信请求上下文不能为空");
+        Objects.requireNonNull(expected, "模型配置快照不能为空");
+        Objects.requireNonNull(request, "嵌入请求不能为空");
+        requireEmbeddingRequest(expected, request);
+        var current = configurations.find(
+                        context,
+                        expected.configurationId(),
+                        ModelType.EMBEDDING)
+                .filter(expected::equals)
+                .orElseThrow(() -> unavailable("模型配置不可用或冻结快照已变化"));
+        var entry = catalog.findCatalogEntry(current.catalogEntryId())
+                .filter(value -> value.status() == ControlledModelCatalogEntryStatus.PUBLISHED)
+                .filter(value -> value.version() == current.catalogEntryRevision())
+                .filter(value -> value.modelType() == ModelType.EMBEDDING)
+                .orElseThrow(() -> unavailable("受控模型目录已变化或不可用"));
+        var factory = embeddingFactories.get(entry.providerKind());
+        if (factory == null) {
+            throw unavailable("当前供应商没有嵌入模型扩展");
+        }
+        var specification = new ModelRuntimeSpecification(
+                context.tenantId(),
+                current.catalogEntryId().value(),
+                current.catalogEntryRevision(),
+                entry.providerKind(),
+                entry.endpoint(),
+                new CredentialReference("governed-model-configuration:" + current.configurationId().value()),
+                current.configurationId().value(),
+                current.configurationRevision(),
+                entry.modelCode(),
+                ModelType.EMBEDDING,
+                current.capabilities().contextWindow(),
+                null,
+                current.capabilities().embeddingDimension());
+        return credentials.useCredential(
+                current.configurationId(),
+                secret -> factory.create(specification, secret).embed(request));
+    }
+
+    private static void requireEmbeddingRequest(
+            UsableModelConfigurationSnapshot expected,
+            EmbeddingRequest request) {
+        if (expected.modelType() != ModelType.EMBEDDING
+                || request.deployment().deploymentId() != expected.configurationId().value()
+                || request.deployment().revision() != expected.configurationRevision()
+                || request.deployment().dimension()
+                        != expected.capabilities().embeddingDimension()) {
+            throw unavailable("嵌入请求与冻结模型配置不一致");
+        }
+    }
+
+    private static Map<ProviderKind, EmbeddingModelFactory> indexFactories(
+            List<EmbeddingModelFactory> factories) {
+        Objects.requireNonNull(factories, "嵌入模型工厂列表不能为空");
+        var indexed = new EnumMap<ProviderKind, EmbeddingModelFactory>(ProviderKind.class);
+        for (var factory : factories) {
+            Objects.requireNonNull(factory, "嵌入模型工厂列表不能包含空值");
+            if (indexed.put(factory.providerKind(), factory) != null) {
+                throw new IllegalArgumentException("同一供应商不能注册多个嵌入模型工厂");
+            }
+        }
+        return Map.copyOf(indexed);
+    }
+
+    private static ModelRuntimeUnavailableException unavailable(String message) {
+        return new ModelRuntimeUnavailableException(message);
+    }
+}

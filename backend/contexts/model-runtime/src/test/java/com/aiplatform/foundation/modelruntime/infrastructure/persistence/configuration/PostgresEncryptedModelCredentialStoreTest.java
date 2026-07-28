@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 
 import com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelConfigurationId;
+import com.aiplatform.foundation.modelruntime.application.configuration.port.out.ModelConfigurationCredentialUser;
 import com.aiplatform.foundation.security.secret.SecretEncryptionKeyProvider;
 import com.aiplatform.foundation.security.secret.SecretValue;
 import java.sql.Timestamp;
@@ -81,7 +82,8 @@ class PostgresEncryptedModelCredentialStoreTest {
                 "SELECT ciphertext FROM model_runtime.model_configuration_credential WHERE model_configuration_id = 4001",
                 byte[].class);
         assertFalse(Arrays.equals("model-api-key".getBytes(), ciphertext));
-        assertEquals("model-api-key", credentials.useCredential(
+        ModelConfigurationCredentialUser credentialUser = credentials;
+        assertEquals("model-api-key", credentialUser.useCredential(
                 new ModelConfigurationId(4001L), value -> value.use(String::new)));
     }
 

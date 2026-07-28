@@ -13,6 +13,8 @@ import com.aiplatform.foundation.modelruntime.application.configuration.service.
 import com.aiplatform.foundation.modelruntime.application.configuration.service.ModelConfigurationReadService;
 import com.aiplatform.foundation.modelruntime.application.configuration.facade.UsableModelConfigurationLookup;
 import com.aiplatform.foundation.modelruntime.application.configuration.port.out.ModelConfigurationCredentialInspector;
+import com.aiplatform.foundation.modelruntime.application.configuration.port.out.ModelConfigurationCredentialUser;
+import com.aiplatform.foundation.modelruntime.application.runtime.facade.GovernedEmbeddingRuntime;
 import com.aiplatform.foundation.modelruntime.application.configuration.port.out.ModelConfigurationCredentialWriter;
 import com.aiplatform.foundation.modelruntime.application.probe.service.ProbeProviderService;
 import com.aiplatform.foundation.modelruntime.application.provider.service.ProviderConnectionService;
@@ -72,6 +74,9 @@ class ModelRuntimeAutoConfigurationTest {
                 .withBean(
                         ModelConfigurationCredentialInspector.class,
                         () -> mock(ModelConfigurationCredentialInspector.class))
+                .withBean(
+                        ModelConfigurationCredentialUser.class,
+                        () -> mock(ModelConfigurationCredentialUser.class))
                 .withBean(EntityIdGenerator.class, () -> () -> 1001L)
                 .run(context -> {
                     assertThat(context).hasNotFailed();
@@ -81,6 +86,7 @@ class ModelRuntimeAutoConfigurationTest {
                     assertThat(context).hasSingleBean(ModelConfigurationService.class);
                     assertThat(context).hasSingleBean(ModelConfigurationAccessService.class);
                     assertThat(context).hasSingleBean(UsableModelConfigurationLookup.class);
+                    assertThat(context).hasSingleBean(GovernedEmbeddingRuntime.class);
                     assertThat(context).hasSingleBean(PublishedChatDeploymentLookup.class);
                     assertThat(context).hasSingleBean(PublishedEmbeddingDeploymentLookup.class);
                 });

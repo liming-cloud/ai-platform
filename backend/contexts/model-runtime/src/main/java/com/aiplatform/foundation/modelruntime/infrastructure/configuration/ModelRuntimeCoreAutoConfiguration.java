@@ -9,12 +9,16 @@ import com.aiplatform.foundation.modelruntime.application.configuration.service.
 import com.aiplatform.foundation.modelruntime.application.configuration.service.ModelConfigurationReadService;
 import com.aiplatform.foundation.modelruntime.application.configuration.service.UsableModelConfigurationLookupService;
 import com.aiplatform.foundation.modelruntime.application.configuration.facade.UsableModelConfigurationLookup;
+import com.aiplatform.foundation.modelruntime.application.configuration.port.out.ModelConfigurationCredentialUser;
 import com.aiplatform.foundation.modelruntime.application.configuration.port.out.ModelConfigurationCredentialInspector;
 import com.aiplatform.foundation.modelruntime.application.configuration.port.out.ModelConfigurationCredentialWriter;
 import com.aiplatform.foundation.modelruntime.application.configuration.port.out.ModelConfigurationTransaction;
 import com.aiplatform.foundation.modelruntime.application.deployment.service.ModelDeploymentService;
 import com.aiplatform.foundation.modelruntime.application.deployment.service.PublishedChatDeploymentLookupService;
 import com.aiplatform.foundation.modelruntime.application.deployment.service.PublishedEmbeddingDeploymentLookupService;
+import com.aiplatform.foundation.modelruntime.application.runtime.ModelConfigurationRuntimeService;
+import com.aiplatform.foundation.modelruntime.application.runtime.facade.GovernedEmbeddingRuntime;
+import com.aiplatform.foundation.modelruntime.application.runtime.port.out.EmbeddingModelFactory;
 import com.aiplatform.foundation.modelruntime.application.probe.port.out.ProviderConnectionProbe;
 import com.aiplatform.foundation.modelruntime.application.probe.service.ProbeProviderService;
 import com.aiplatform.foundation.modelruntime.application.provider.service.ProviderConnectionService;
@@ -138,6 +142,21 @@ public class ModelRuntimeCoreAutoConfiguration {
             ModelConfigurationAccessService access,
             ModelConfigurationCredentialInspector credentials) {
         return new UsableModelConfigurationLookupService(configurations, access, credentials);
+    }
+
+    @Bean
+    @ConditionalOnBean({
+        ModelConfigurationCredentialUser.class,
+        UsableModelConfigurationLookup.class
+    })
+    @ConditionalOnMissingBean
+    GovernedEmbeddingRuntime governedEmbeddingRuntime(
+            UsableModelConfigurationLookup configurations,
+            ModelConfigurationRepository catalog,
+            ModelConfigurationCredentialUser credentials,
+            List<EmbeddingModelFactory> embeddingFactories) {
+        return new ModelConfigurationRuntimeService(
+                configurations, catalog, credentials, embeddingFactories);
     }
 
     @Bean
