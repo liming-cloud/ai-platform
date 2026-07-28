@@ -130,7 +130,7 @@
 
 | 证据 | 命令或评审 | 提交 | 结果 |
 | --- | --- | --- | --- |
-| M2 工作包激活与真实模型调用授权 | `project/evidence/M1-release-approval.md` | 待产生 | 用户已批准阿里云百炼用于受控研发和测试调用；不得记录或提交 API Key |
+| M2 工作包激活与真实模型调用授权 | `project/evidence/M1-release-approval.md` | 待产生 | 用户已批准火山方舟用于受控研发和测试调用；不得记录或提交 API Key |
 | 加密模型凭据安全基座 | `project/evidence/WP-0010-encrypted-credential-foundation.md` | `2bba83074` | 信封加密、版本化本地研发主密钥与篡改失败关闭测试通过；尚未完成持久化、权限或真实调用 |
 | 受控模型目录与分层配置领域基线 | `project/evidence/WP-0010-model-configuration-domain.md` | `d8c3b6cb3`、`2666dfafe`、`9c9972448` | 平台、租户、个人所有权、受控目录不变量、平台目录管理和受控自动装配通过模块回归；尚未完成授权撤销或真实调用 |
 | 模型配置与加密凭据数据库基线 | `project/evidence/WP-0010-model-configuration-persistence.md` | `928e568d2`、`b68cfb6f1`、`71e484790`、`6b64ccf71`、`fa1a2b392`、`b38e8b22c`、`2997db59d`、`a21a80a9b`、`376ccb533`、`3951a5dd0`、`0f97bba52` | 真实 PostgreSQL 验证三层所有权、端点约束、无 API Key 明文字段、密文写入/短生命周期解密、受控配置仓储、原子写入、显式本地研发密钥装配、脱敏创建/轮换、授权撤销、显式启用、停用与脱敏读取；尚未完成真实调用 |
@@ -144,6 +144,7 @@
 | 受控真实模型验收装配 | `project/evidence/WP-0010-real-model-runtime-assembly.md` | `0cb172350` | 查询进程装配受控运行时，独立 compose 覆盖层传递主密钥、端点和超时，不传递 API Key |
 | 受控模型配置控制台 | `project/evidence/WP-0010-model-configuration-console.md` | `e587fb823` | 已发布目录分页、受控创建、启用与凭据轮换在控制台闭环；API Key 不回显、不保留在页面状态 |
 | 真实模型受控验收编排 | `project/evidence/WP-0010-real-model-acceptance-orchestration.md` | `f014be163`、`2ac742be1`、`4ee13980b` | 目录、加密配置、索引、助手和查询的真实模型脚本已具备；Mock 闭环、无密钥和过宽文件权限失败关闭通过，外部调用待受控终端执行 |
+| 火山方舟真实模型验证切换 | `project/evidence/WP-0010-volcengine-ark-provider-transition.md` | 待提交 | 方舟端点迁移、显式接入点和能力参数、密钥文件权限、Mock 与模型配置回归通过；真实调用等待已授权的接入点与能力值 |
 
 ## 证据规则
 

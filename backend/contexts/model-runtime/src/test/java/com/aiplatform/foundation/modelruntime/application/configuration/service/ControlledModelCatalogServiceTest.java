@@ -39,7 +39,7 @@ class ControlledModelCatalogServiceTest {
                 Clock.fixed(Instant.parse("2026-07-28T00:00:00Z"), ZoneOffset.UTC));
         var draft = service.create(
                 context("model-platform:write"), ProviderKind.OPENAI_COMPATIBLE,
-                URI.create("https://example.com/v1"), "qwen-plus", ModelType.CHAT,
+                URI.create("https://example.com/v1"), "test-chat-model", ModelType.CHAT,
                 ModelRuntimeCapabilities.chat(32_768, 4_096));
         service.publish(context("model-platform:write"), draft.id());
 
@@ -61,12 +61,12 @@ class ControlledModelCatalogServiceTest {
 
         assertThrows(com.aiplatform.foundation.modelruntime.application.provider.exception.ModelCatalogPermissionDeniedException.class, () -> service.create(
                 context("model-tenant:write"), ProviderKind.OPENAI_COMPATIBLE,
-                URI.create("https://example.com/v1"), "qwen-plus", ModelType.CHAT,
+                URI.create("https://example.com/v1"), "test-chat-model", ModelType.CHAT,
                 ModelRuntimeCapabilities.chat(32_768, 4_096)));
 
         var draft = service.create(
                 context("model-platform:write"), ProviderKind.OPENAI_COMPATIBLE,
-                URI.create("https://example.com/v1"), "qwen-plus", ModelType.CHAT,
+                URI.create("https://example.com/v1"), "test-chat-model", ModelType.CHAT,
                 ModelRuntimeCapabilities.chat(32_768, 4_096));
         var published = service.publish(context("model-platform:write"), draft.id());
 

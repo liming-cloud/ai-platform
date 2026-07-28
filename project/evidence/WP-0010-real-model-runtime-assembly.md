@@ -14,12 +14,12 @@
 
 | 命令 | 结果 |
 | --- | --- |
-| `FOUNDATION_SECRET_ENCRYPTION_KEY_M2_V1=<测试主密钥> MODEL_ALLOWED_ENDPOINTS=https://dashscope.aliyuncs.com/compatible-mode/v1 docker compose --env-file deploy/compose/.env.example -f deploy/compose/compose.yml -f deploy/compose/compose.real-model.yml config --quiet` | 通过。仅使用固定测试主密钥验证 compose 合并与变量约束，不连接外部模型。 |
+| `FOUNDATION_SECRET_ENCRYPTION_KEY_M2_V1=<测试主密钥> MODEL_ALLOWED_ENDPOINTS=https://ark.cn-beijing.volces.com/api/v3 docker compose --env-file deploy/compose/.env.example -f deploy/compose/compose.yml -f deploy/compose/compose.real-model.yml config --quiet` | 通过。仅使用固定测试主密钥验证 compose 合并与变量约束，不连接外部模型。 |
 | `./mvnw -q -pl backend/bootstrap/query-bootstrap -am test -Dtest=QueryRuntimeApplicationTest -Dsurefire.failIfNoSpecifiedTests=false` | 通过。查询启动基线保持可用。 |
 | `make project-verify` | 通过。当前前沿仍为 `WP-0010`。 |
 
 ## 当前前沿
 
-真实调用尚未开始。工作区未设置 `BAILIAN_API_KEY`、`DASHSCOPE_API_KEY` 或 M2 本地研发主密钥，因此没有把用户提供的 API Key 复制到命令、环境文件或日志。
+真实调用尚未开始。工作区未设置 M2 本地研发主密钥，因此没有把用户提供的 API Key 复制到命令、环境文件或日志。
 
 下一次受控验收需要人工在本地受控终端提供 `FOUNDATION_SECRET_ENCRYPTION_KEY_M2_V1`，并通过平台创建接口将 API Key 写入数据库密文。随后执行最小 Chat 与 Embedding 调用，记录脱敏错误码、耗时与用量摘要；M2 自动证据完成后仍必须登记人工评审通过，才能进入 M3。

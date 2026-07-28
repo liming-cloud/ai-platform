@@ -13,18 +13,49 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 SCRIPT = REPOSITORY_ROOT / "scripts/development/acceptance-real-model.sh"
 TEST_API_KEY = "m2-test-api-key-not-for-production"
 TEST_ANSWER = "仅用于验证脱敏摘要的合成回答"
+TEST_MODEL_ENVIRONMENT = {
+    "FOUNDATION_M2_CHAT_MODEL_CODE": "ep-test-chat",
+    "FOUNDATION_M2_EMBEDDING_MODEL_CODE": "ep-test-embedding",
+    "FOUNDATION_M2_CHAT_CONTEXT_WINDOW": "32768",
+    "FOUNDATION_M2_CHAT_OUTPUT_LIMIT": "4096",
+    "FOUNDATION_M2_EMBEDDING_DIMENSION": "1024",
+}
 
 
 class AcceptanceServer(BaseHTTPRequestHandler):
     requests: list[tuple[str, str, dict | str]] = []
     catalog_types: dict[str, str] = {}
+    catalog_entries: dict[str, dict] = {}
     configuration_types: dict[str, str] = {}
+    configuration_entries: dict[str, dict] = {}
     next_identifier = 1000
 
     def log_message(self, format, *args):
         return
 
     def do_GET(self):
+        if self.path.split("?", 1)[0] == "/api/v1/controlled-model-catalog":
+            self.reply({
+                "items": list(self.catalog_entries.values()),
+                "pageNumber": 1,
+                "pageSize": 100,
+                "totalElements": len(self.catalog_entries),
+                "totalPages": 1,
+                "hasPrevious": False,
+                "hasNext": False,
+            })
+            return
+        if self.path.split("?", 1)[0] == "/api/v1/model-configurations":
+            self.reply({
+                "items": list(self.configuration_entries.values()),
+                "pageNumber": 1,
+                "pageSize": 100,
+                "totalElements": len(self.configuration_entries),
+                "totalPages": 1,
+                "hasPrevious": False,
+                "hasNext": False,
+            })
+            return
         if self.path.endswith("/index-versions"):
             self.reply({
                 "items": [{"id": "1006", "status": "READY", "version": 1}],
@@ -47,35 +78,47 @@ class AcceptanceServer(BaseHTTPRequestHandler):
         if self.path == "/api/v1/controlled-model-catalog":
             identifier = self.next_id()
             self.catalog_types[identifier] = body["modelType"]
-            self.reply({"id": identifier, "status": "DRAFT"})
+            self.catalog_entries[identifier] = {
+                "id": identifier,
+                "providerKind": body["providerKind"],
+                "endpoint": body["endpoint"],
+                "modelCode": body["modelCode"],
+                "modelType": body["modelType"],
+                "status": "DRAFT",
+            }
+            self.reply(self.catalog_entries[identifier])
             return
         if self.path.startswith("/api/v1/controlled-model-catalog/"):
             identifier = self.path.split("/")[4]
-            self.reply({
-                "id": identifier,
-                "status": "PUBLISHED",
-                "modelType": self.catalog_types[identifier],
-            })
+            self.catalog_entries[identifier]["status"] = "PUBLISHED"
+            self.reply(self.catalog_entries[identifier])
             return
         if self.path == "/api/v1/model-configurations":
             identifier = self.next_id()
             self.configuration_types[identifier] = self.catalog_types[
                 body["catalogEntryId"]
             ]
-            self.reply({
+            self.configuration_entries[identifier] = {
                 "id": identifier,
+                "scope": body["scope"],
+                "catalogEntryId": body["catalogEntryId"],
                 "status": "DRAFT",
                 "modelType": self.configuration_types[identifier],
                 "credentialConfigured": True,
+            }
+            self.reply({
+                key: value
+                for key, value in self.configuration_entries[identifier].items()
+                if key != "modelType"
             })
             return
         if self.path.startswith("/api/v1/model-configurations/"):
             identifier = self.path.split("/")[4]
+            self.configuration_entries[identifier]["status"] = "ACTIVE"
             self.reply({
-                "id": identifier,
-                "status": "ACTIVE",
-                "modelType": self.configuration_types[identifier],
-                "credentialConfigured": True,
+                key: value
+                for key, value in self.configuration_entries[identifier].items()
+                if key != "modelType"
             })
             return
         if self.path == "/api/v1/knowledge-spaces":
@@ -146,7 +189,9 @@ class RealModelAcceptanceTest(unittest.TestCase):
     def setUp(self):
         AcceptanceServer.requests = []
         AcceptanceServer.catalog_types = {}
+        AcceptanceServer.catalog_entries = {}
         AcceptanceServer.configuration_types = {}
+        AcceptanceServer.configuration_entries = {}
         AcceptanceServer.next_identifier = 1000
         self.server = ThreadingHTTPServer(("127.0.0.1", 0), AcceptanceServer)
         self.thread = threading.Thread(target=self.server.serve_forever)
@@ -171,6 +216,7 @@ class RealModelAcceptanceTest(unittest.TestCase):
                 "FOUNDATION_ACCEPTANCE_QUERY_API_ROOT": api_root,
                 "FOUNDATION_M2_HTTP_TIMEOUT_SECONDS": "3",
                 "FOUNDATION_M2_INDEX_TIMEOUT_SECONDS": "3",
+                **TEST_MODEL_ENVIRONMENT,
             }
             completed = subprocess.run(
                 [str(SCRIPT)],
@@ -185,6 +231,7 @@ class RealModelAcceptanceTest(unittest.TestCase):
         self.assertEqual("PASSED", summary["status"])
         self.assertEqual(1, summary["citationCount"])
         self.assertNotIn(TEST_API_KEY, completed.stdout)
+        self.assertNotIn(TEST_API_KEY, completed.stderr)
         self.assertNotIn(TEST_ANSWER, completed.stdout)
         self.assertNotIn("m2-test-token", completed.stdout)
 
@@ -197,8 +244,89 @@ class RealModelAcceptanceTest(unittest.TestCase):
         self.assertTrue(
             all(body["apiKey"] == TEST_API_KEY for body in configuration_requests)
         )
+        login_requests = [
+            body
+            for method, path, body in AcceptanceServer.requests
+            if method == "POST" and path == "/api/v1/auth/sessions"
+        ]
+        self.assertEqual(
+            ["platform-admin", "admin"],
+            [body["loginName"] for body in login_requests],
+        )
         self.assertTrue(any(
             path == "/api/v1/query-runs"
+            for _, path, _ in AcceptanceServer.requests
+        ))
+
+    def test_script_reuses_published_catalog_entries(self):
+        AcceptanceServer.catalog_types = {"9001": "CHAT", "9002": "EMBEDDING"}
+        AcceptanceServer.next_identifier = 1003
+        AcceptanceServer.catalog_entries = {
+            "9001": {
+                "id": "9001",
+                "providerKind": "OPENAI_COMPATIBLE",
+                "endpoint": "https://ark.cn-beijing.volces.com/api/v3",
+                "modelCode": "ep-test-chat",
+                "modelType": "CHAT",
+                "status": "PUBLISHED",
+            },
+            "9002": {
+                "id": "9002",
+                "providerKind": "OPENAI_COMPATIBLE",
+                "endpoint": "https://ark.cn-beijing.volces.com/api/v3",
+                "modelCode": "ep-test-embedding",
+                "modelType": "EMBEDDING",
+                "status": "PUBLISHED",
+            },
+        }
+        AcceptanceServer.configuration_types = {"9003": "CHAT", "9004": "EMBEDDING"}
+        AcceptanceServer.configuration_entries = {
+            "9003": {
+                "id": "9003",
+                "scope": "PERSONAL",
+                "catalogEntryId": "9001",
+                "modelType": "CHAT",
+                "status": "ACTIVE",
+                "credentialConfigured": True,
+            },
+            "9004": {
+                "id": "9004",
+                "scope": "PERSONAL",
+                "catalogEntryId": "9002",
+                "modelType": "EMBEDDING",
+                "status": "ACTIVE",
+                "credentialConfigured": True,
+            },
+        }
+        with tempfile.TemporaryDirectory() as directory:
+            key_file = Path(directory) / "api-key"
+            key_file.write_text(TEST_API_KEY, encoding="utf-8")
+            key_file.chmod(0o600)
+            api_root = f"http://127.0.0.1:{self.server.server_port}/api/v1"
+            completed = subprocess.run(
+                [str(SCRIPT)],
+                cwd=REPOSITORY_ROOT,
+                env={
+                    **os.environ,
+                    "FOUNDATION_M2_API_KEY_FILE": str(key_file),
+                    "FOUNDATION_ACCEPTANCE_CONTROL_API_ROOT": api_root,
+                    "FOUNDATION_ACCEPTANCE_QUERY_API_ROOT": api_root,
+                    "FOUNDATION_M2_HTTP_TIMEOUT_SECONDS": "3",
+                    "FOUNDATION_M2_INDEX_TIMEOUT_SECONDS": "3",
+                    **TEST_MODEL_ENVIRONMENT,
+                },
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+
+        self.assertEqual("PASSED", json.loads(completed.stdout)["status"])
+        self.assertFalse(any(
+            path == "/api/v1/controlled-model-catalog"
+            for _, path, _ in AcceptanceServer.requests
+        ))
+        self.assertFalse(any(
+            path == "/api/v1/model-configurations"
             for _, path, _ in AcceptanceServer.requests
         ))
 
@@ -246,6 +374,30 @@ class RealModelAcceptanceTest(unittest.TestCase):
         self.assertNotEqual(0, completed.returncode)
         self.assertEqual("", completed.stdout)
         self.assertIn("API Key 文件权限过宽", completed.stderr)
+        self.assertEqual([], AcceptanceServer.requests)
+
+    def test_missing_ark_model_capability_fails_before_any_http_request(self):
+        with tempfile.TemporaryDirectory() as directory:
+            key_file = Path(directory) / "api-key"
+            key_file.write_text(TEST_API_KEY, encoding="utf-8")
+            key_file.chmod(0o600)
+            api_root = f"http://127.0.0.1:{self.server.server_port}/api/v1"
+            completed = subprocess.run(
+                [str(SCRIPT)],
+                cwd=REPOSITORY_ROOT,
+                env={
+                    **os.environ,
+                    "FOUNDATION_M2_API_KEY_FILE": str(key_file),
+                    "FOUNDATION_ACCEPTANCE_CONTROL_API_ROOT": api_root,
+                    "FOUNDATION_ACCEPTANCE_QUERY_API_ROOT": api_root,
+                },
+                capture_output=True,
+                text=True,
+            )
+
+        self.assertNotEqual(0, completed.returncode)
+        self.assertEqual("", completed.stdout)
+        self.assertIn("必须指定 FOUNDATION_M2_CHAT_MODEL_CODE", completed.stderr)
         self.assertEqual([], AcceptanceServer.requests)
 
 

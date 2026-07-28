@@ -30,6 +30,7 @@ confirmedDecisions:
   - ADR-0021
   - ADR-0022
   - ADR-0023
+  - ADR-0024
 openDecisions: []
 latestEvidence:
   - docs/research/WP-0003-framework-baseline.md
@@ -102,6 +103,7 @@ latestEvidence:
   - project/evidence/WP-0010-real-model-runtime-assembly.md
   - project/evidence/WP-0010-model-configuration-console.md
   - project/evidence/WP-0010-real-model-acceptance-orchestration.md
+  - project/evidence/WP-0010-volcengine-ark-provider-transition.md
 nextReviewAt: 2026-08-03
-updatedAt: 2026-07-28T12:01:00+08:00
+updatedAt: 2026-07-28T15:12:58+08:00
 updatedBy: codex

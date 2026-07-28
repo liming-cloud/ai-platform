@@ -38,6 +38,16 @@ INSERT INTO organization_access.membership_credential (
         'ENABLED',
         1,
         0
+    ),
+    (
+        3382738893456539652,
+        100000000000000001,
+        4921825928971026436,
+        'platform-admin',
+        'pbkdf2-sha256$v1$600000$xCeuZmvRbROcHBGNFfKU2A$OWzHrRHZCZ38xi3NaEHw1qEzE_-3X7F6vM37aNz--bk',
+        'ENABLED',
+        1,
+        0
     )
 ON CONFLICT DO NOTHING;
 
@@ -69,6 +79,16 @@ INSERT INTO organization_access.membership_permission (
     (
         100000000000000001,
         3382738893456539650,
+        'model-tenant:write'
+    ),
+    (
+        100000000000000001,
+        3382738893456539650,
+        'model-personal:write'
+    ),
+    (
+        100000000000000001,
+        3382738893456539650,
         'assistant:read'
     ),
     (
@@ -114,6 +134,16 @@ INSERT INTO organization_access.membership_permission (
     (
         100000000000000002,
         3382738893456539651,
+        'model-tenant:write'
+    ),
+    (
+        100000000000000002,
+        3382738893456539651,
+        'model-personal:write'
+    ),
+    (
+        100000000000000002,
+        3382738893456539651,
         'assistant:read'
     ),
     (
@@ -135,6 +165,11 @@ INSERT INTO organization_access.membership_permission (
         100000000000000002,
         3382738893456539651,
         'audit:read'
+    ),
+    (
+        100000000000000001,
+        3382738893456539652,
+        'model-platform:write'
     )
 ON CONFLICT DO NOTHING;
 
@@ -144,5 +179,5 @@ WHERE tenant_id IN (
           100000000000000001,
           100000000000000002
       )
-  AND login_name = 'admin'
+  AND login_name IN ('admin', 'platform-admin')
   AND permission_version < 2;

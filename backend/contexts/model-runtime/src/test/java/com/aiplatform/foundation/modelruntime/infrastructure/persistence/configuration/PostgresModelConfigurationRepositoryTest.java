@@ -61,7 +61,7 @@ class PostgresModelConfigurationRepositoryTest {
                 INSERT INTO model_runtime.controlled_model_catalog_entry
                 (id, provider_kind, endpoint, model_code, model_type, context_window, output_limit,
                  embedding_dimension, status, version, created_at)
-                VALUES (3001, 'OPENAI_COMPATIBLE', 'https://example.com/v1', 'qwen-plus', 'CHAT', 32768, 4096,
+                VALUES (3001, 'OPENAI_COMPATIBLE', 'https://example.com/v1', 'test-chat-model', 'CHAT', 32768, 4096,
                         NULL, 'PUBLISHED', 1, ?)
                 """, Timestamp.from(Instant.parse("2026-07-28T00:00:00Z")));
     }
@@ -69,7 +69,7 @@ class PostgresModelConfigurationRepositoryTest {
     @Test
     void 保存租户配置并读取已发布目录() {
         var catalog = repository.findCatalogEntry(new ControlledModelCatalogEntryId(3001L)).orElseThrow();
-        assertEquals("qwen-plus", catalog.modelCode());
+        assertEquals("test-chat-model", catalog.modelCode());
         assertEquals(4_096, catalog.capabilities().outputLimit());
         repository.save(ModelConfiguration.create(
                 new ModelConfigurationId(4001L), ModelConfigurationScope.TENANT,

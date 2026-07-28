@@ -235,7 +235,7 @@ describe("ControlPlaneClient", () => {
           id: "330000000000000001",
           providerKind: "OPENAI_COMPATIBLE",
           endpoint: "https://example.com/v1",
-          modelCode: "qwen-plus",
+          modelCode: "test-chat-model",
           modelType: "CHAT",
           contextWindow: 32768,
           outputLimit: 4096,

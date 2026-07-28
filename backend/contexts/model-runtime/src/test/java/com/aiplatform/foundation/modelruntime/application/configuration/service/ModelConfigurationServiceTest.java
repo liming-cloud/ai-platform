@@ -151,7 +151,7 @@ class ModelConfigurationServiceTest {
                 new ControlledModelCatalogEntryId(3001L),
                 com.aiplatform.foundation.modelruntime.domain.provider.model.ProviderKind.OPENAI_COMPATIBLE,
                 URI.create("https://example.com/v1"),
-                "qwen-plus",
+                "test-chat-model",
                 com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelType.CHAT,
                 ModelRuntimeCapabilities.chat(32_768, 4_096),
                 Instant.parse("2026-07-28T00:00:00Z")).publish();

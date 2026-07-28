@@ -60,7 +60,7 @@ class PostgresEncryptedModelCredentialStoreTest {
                 """
                 INSERT INTO model_runtime.controlled_model_catalog_entry
                     (id, provider_kind, endpoint, model_code, model_type, status, version, created_at)
-                VALUES (3001, 'OPENAI_COMPATIBLE', 'https://example.com/v1', 'qwen-plus', 'CHAT', 'PUBLISHED', 1, ?)
+                VALUES (3001, 'OPENAI_COMPATIBLE', 'https://example.com/v1', 'test-chat-model', 'CHAT', 'PUBLISHED', 1, ?)
                 """,
                 createdAt);
         jdbc.update(

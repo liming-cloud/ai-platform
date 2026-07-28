@@ -56,6 +56,11 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
+            <artifactId>provider-openai-compatible</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
             <artifactId>vector-pgvector</artifactId>
             <version>${project.version}</version>
         </dependency>

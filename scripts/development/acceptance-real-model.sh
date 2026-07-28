@@ -5,10 +5,17 @@ set -euo pipefail
 readonly CONTROL_API_ROOT="${FOUNDATION_ACCEPTANCE_CONTROL_API_ROOT:-http://127.0.0.1:13000/api/v1}"
 readonly QUERY_API_ROOT="${FOUNDATION_ACCEPTANCE_QUERY_API_ROOT:-http://127.0.0.1:18081/api/v1}"
 readonly DEMO_PASSWORD="${FOUNDATION_ACCEPTANCE_DEMO_PASSWORD:-Demo@2026!}"
+readonly PLATFORM_TENANT_CODE="${FOUNDATION_ACCEPTANCE_PLATFORM_TENANT_CODE:-demo-store}"
+readonly PLATFORM_LOGIN_NAME="${FOUNDATION_ACCEPTANCE_PLATFORM_LOGIN_NAME:-platform-admin}"
+readonly TENANT_CODE="${FOUNDATION_ACCEPTANCE_TENANT_CODE:-demo-store}"
+readonly TENANT_LOGIN_NAME="${FOUNDATION_ACCEPTANCE_TENANT_LOGIN_NAME:-admin}"
 readonly API_KEY_FILE="${FOUNDATION_M2_API_KEY_FILE:?必须指定仅本地可读的 FOUNDATION_M2_API_KEY_FILE}"
-readonly MODEL_ENDPOINT="${FOUNDATION_M2_MODEL_ENDPOINT:-https://dashscope.aliyuncs.com/compatible-mode/v1}"
-readonly CHAT_MODEL_CODE="${FOUNDATION_M2_CHAT_MODEL_CODE:-qwen-plus}"
-readonly EMBEDDING_MODEL_CODE="${FOUNDATION_M2_EMBEDDING_MODEL_CODE:-text-embedding-v4}"
+readonly MODEL_ENDPOINT="${FOUNDATION_M2_MODEL_ENDPOINT:-https://ark.cn-beijing.volces.com/api/v3}"
+readonly CHAT_MODEL_CODE="${FOUNDATION_M2_CHAT_MODEL_CODE:-}"
+readonly EMBEDDING_MODEL_CODE="${FOUNDATION_M2_EMBEDDING_MODEL_CODE:-}"
+readonly CHAT_CONTEXT_WINDOW="${FOUNDATION_M2_CHAT_CONTEXT_WINDOW:-}"
+readonly CHAT_OUTPUT_LIMIT="${FOUNDATION_M2_CHAT_OUTPUT_LIMIT:-}"
+readonly EMBEDDING_DIMENSION="${FOUNDATION_M2_EMBEDDING_DIMENSION:-}"
 readonly HTTP_TIMEOUT_SECONDS="${FOUNDATION_M2_HTTP_TIMEOUT_SECONDS:-30}"
 readonly INDEX_TIMEOUT_SECONDS="${FOUNDATION_M2_INDEX_TIMEOUT_SECONDS:-180}"
 readonly RUN_ID="m2-$(date -u +%Y%m%d%H%M%S)"
@@ -17,16 +24,43 @@ readonly ACCEPTANCE_QUESTION="星河研发园一号楼的咖啡吧工作日服�
 
 api_key=""
 token=""
+platform_token=""
 query_response=""
+stage="初始化"
 
 cleanup() {
-  unset api_key token query_response
+  unset api_key token platform_token query_response
 }
 trap cleanup EXIT
+
+report_failure() {
+  local status=$?
+  echo "真实模型验收失败阶段：${stage}" >&2
+  exit "${status}"
+}
+trap report_failure ERR
 
 require_command() {
   command -v "$1" >/dev/null 2>&1 || {
     echo "缺少必要命令：$1" >&2
+    exit 1
+  }
+}
+
+require_nonempty_value() {
+  local name="$1"
+  local value="$2"
+  [[ -n "${value}" ]] || {
+    echo "必须指定 ${name}" >&2
+    exit 1
+  }
+}
+
+require_positive_integer() {
+  local name="$1"
+  local value="$2"
+  [[ "${value}" =~ ^[1-9][0-9]*$ ]] || {
+    echo "${name} 必须是正整数" >&2
     exit 1
   }
 }
@@ -58,9 +92,11 @@ request() {
 }
 
 login() {
+  local tenant_code="$1"
+  local login_name="$2"
   local payload
-  payload="$(jq -n --arg password "${DEMO_PASSWORD}" \
-    '{tenantCode: "demo-store", loginName: "admin", password: $password}')"
+  payload="$(jq -n --arg tenantCode "${tenant_code}" --arg loginName "${login_name}" --arg password "${DEMO_PASSWORD}" \
+    '{tenantCode: $tenantCode, loginName: $loginName, password: $password}')"
   request POST "/auth/sessions" "" "" "${payload}" | jq -er '.tokenValue'
 }
 
@@ -70,7 +106,15 @@ create_catalog_entry() {
   local context_window="$3"
   local output_limit="$4"
   local embedding_dimension="$5"
-  local payload entry published
+  local payload entry published existing
+  existing="$(request GET "/controlled-model-catalog?pageNumber=1&pageSize=100" "${platform_token}" | \
+    jq -er --arg endpoint "${MODEL_ENDPOINT}" --arg model_code "${model_code}" --arg model_type "${model_type}" \
+      'first(.items[] | select(.providerKind == "OPENAI_COMPATIBLE" and .endpoint == $endpoint
+        and .modelCode == $model_code and .modelType == $model_type and .status == "PUBLISHED")) | .id' || true)"
+  if [[ -n "${existing}" ]]; then
+    printf '%s\n' "${existing}"
+    return 0
+  fi
   payload="$(jq -n \
     --arg endpoint "${MODEL_ENDPOINT}" \
     --arg modelCode "${model_code}" \
@@ -81,8 +125,8 @@ create_catalog_entry() {
     '{providerKind: "OPENAI_COMPATIBLE", endpoint: $endpoint, modelCode: $modelCode,
       modelType: $modelType, contextWindow: $contextWindow, outputLimit: $outputLimit,
       embeddingDimension: $embeddingDimension}')"
-  entry="$(request POST "/controlled-model-catalog" "${token}" "" "${payload}")"
-  published="$(request POST "/controlled-model-catalog/$(jq -er '.id' <<<"${entry}")/publish" "${token}")"
+  entry="$(request POST "/controlled-model-catalog" "${platform_token}" "" "${payload}")"
+  published="$(request POST "/controlled-model-catalog/$(jq -er '.id' <<<"${entry}")/publish" "${platform_token}")"
   jq -er --arg model_type "${model_type}" \
     'select(.status == "PUBLISHED" and .modelType == $model_type) | .id' \
     <<<"${published}"
@@ -91,7 +135,15 @@ create_catalog_entry() {
 create_active_personal_configuration() {
   local catalog_entry_id="$1"
   local model_type="$2"
-  local payload created activated
+  local payload created activated existing
+  existing="$(request GET "/model-configurations?pageNumber=1&pageSize=100" "${token}" | \
+    jq -er --arg catalog_entry_id "${catalog_entry_id}" --arg model_type "${model_type}" \
+      'first(.items[] | select(.scope == "PERSONAL" and .catalogEntryId == $catalog_entry_id
+        and .modelType == $model_type and .status == "ACTIVE" and .credentialConfigured == true)) | .id' || true)"
+  if [[ -n "${existing}" ]]; then
+    printf '%s\n' "${existing}"
+    return 0
+  fi
   payload="$(jq -n \
     --arg displayName "M2 ${model_type} 真实验收 ${RUN_ID}" \
     --arg catalogEntryId "${catalog_entry_id}" \
@@ -100,8 +152,8 @@ create_active_personal_configuration() {
   created="$(request POST "/model-configurations" "${token}" "" "${payload}")"
   unset payload
   activated="$(request POST "/model-configurations/$(jq -er '.id' <<<"${created}")/activate" "${token}")"
-  jq -er --arg model_type "${model_type}" \
-    'select(.status == "ACTIVE" and .credentialConfigured == true and .modelType == $model_type) | .id' \
+  jq -er \
+    'select(.status == "ACTIVE" and .credentialConfigured == true) | .id' \
     <<<"${activated}"
 }
 
@@ -219,17 +271,34 @@ if (( (8#${api_key_file_mode} & 8#077) != 0 )); then
 fi
 api_key="$(tr -d '\r\n' <"${API_KEY_FILE}")"
 [[ -n "${api_key}" ]] || { echo "API Key 文件为空" >&2; exit 1; }
+require_nonempty_value FOUNDATION_M2_CHAT_MODEL_CODE "${CHAT_MODEL_CODE}"
+require_nonempty_value FOUNDATION_M2_EMBEDDING_MODEL_CODE "${EMBEDDING_MODEL_CODE}"
+require_positive_integer FOUNDATION_M2_CHAT_CONTEXT_WINDOW "${CHAT_CONTEXT_WINDOW}"
+require_positive_integer FOUNDATION_M2_CHAT_OUTPUT_LIMIT "${CHAT_OUTPUT_LIMIT}"
+require_positive_integer FOUNDATION_M2_EMBEDDING_DIMENSION "${EMBEDDING_DIMENSION}"
 
-token="$(login)"
-chat_catalog_id="$(create_catalog_entry CHAT "${CHAT_MODEL_CODE}" 1000000 32768 null)"
-embedding_catalog_id="$(create_catalog_entry EMBEDDING "${EMBEDDING_MODEL_CODE}" 8192 null 1024)"
+stage="登录平台管理员"
+platform_token="$(login "${PLATFORM_TENANT_CODE}" "${PLATFORM_LOGIN_NAME}")"
+stage="登录租户管理员"
+token="$(login "${TENANT_CODE}" "${TENANT_LOGIN_NAME}")"
+stage="发布或复用对话模型目录"
+chat_catalog_id="$(create_catalog_entry CHAT "${CHAT_MODEL_CODE}" "${CHAT_CONTEXT_WINDOW}" "${CHAT_OUTPUT_LIMIT}" null)"
+stage="发布或复用嵌入模型目录"
+embedding_catalog_id="$(create_catalog_entry EMBEDDING "${EMBEDDING_MODEL_CODE}" 8192 null "${EMBEDDING_DIMENSION}")"
+stage="创建并启用对话模型配置"
 chat_configuration_id="$(create_active_personal_configuration "${chat_catalog_id}" CHAT)"
+stage="创建并启用嵌入模型配置"
 embedding_configuration_id="$(create_active_personal_configuration "${embedding_catalog_id}" EMBEDDING)"
+stage="创建合成知识空间"
 knowledge_space_id="$(create_knowledge_space)"
+stage="发布合成知识"
 publish_synthetic_source "${knowledge_space_id}"
+stage="构建真实嵌入索引"
 index_version_id="$(create_active_index "${knowledge_space_id}" "${embedding_configuration_id}")"
+stage="发布受控助手版本"
 assistant_version_id="$(create_published_assistant_version \
   "${knowledge_space_id}" "${chat_configuration_id}" "${embedding_configuration_id}")"
+stage="执行带引用查询"
 query_real_model "${assistant_version_id}"
 
 jq -n \

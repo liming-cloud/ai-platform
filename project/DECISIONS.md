@@ -29,4 +29,4 @@
 ## 已确认人工决策
 
 - `HITL-0001-M0-DESIGN-APPROVAL`：产品负责人已批准 M0 设计，批准基线与范围见 `project/evidence/M0-design-approval.md`。
-- `HITL-0002-M1-RELEASE-APPROVAL`：用户代表产品、测试和运维职责批准 M1 退出，并授权后续研发在既有安全边界内受控使用阿里云百炼，范围见 `project/evidence/M1-release-approval.md`。
+- `HITL-0002-M1-RELEASE-APPROVAL`：用户代表产品、测试和运维职责批准 M1 退出，并授权后续研发在既有安全边界内受控使用火山方舟，范围见 `project/evidence/M1-release-approval.md`。

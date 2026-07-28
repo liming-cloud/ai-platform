@@ -29,7 +29,7 @@ class ControlledModelCatalogControllerTest {
                 new ControlledModelCatalogEntryId(3001L),
                 ProviderKind.OPENAI_COMPATIBLE,
                 URI.create("https://example.com/v1"),
-                "qwen-plus",
+                "test-chat-model",
                 ModelType.CHAT,
                 ModelRuntimeCapabilities.chat(32_768, 4_096),
                 com.aiplatform.foundation.modelruntime.domain.configuration.model

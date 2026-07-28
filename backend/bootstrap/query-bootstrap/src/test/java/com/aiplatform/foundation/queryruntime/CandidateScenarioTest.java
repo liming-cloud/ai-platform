@@ -9,6 +9,7 @@ import com.aiplatform.foundation.knowledgedata.application.knowledge.facade.Know
 import com.aiplatform.foundation.knowledgedata.application.indexversion.port.out.vector.IndexVector;
 import com.aiplatform.foundation.knowledgedata.application.indexversion.port.out.vector.IndexVectorBatch;
 import com.aiplatform.foundation.knowledgedata.application.indexversion.dto.ActiveIndexSnapshot;
+import com.aiplatform.foundation.knowledgedata.domain.indexversion.model.EmbeddingConfiguration;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.ChatModelPort;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.EmbeddingModelPort;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.ModelRuntimeResolver;
@@ -242,9 +243,10 @@ class CandidateScenarioTest {
                         SPACE,
                         indexId,
                         2,
-                        DEPLOYMENT.deploymentId(),
-                        DEPLOYMENT.revision(),
-                        DEPLOYMENT.dimension()));
+                        new EmbeddingConfiguration(
+                                DEPLOYMENT.deploymentId(),
+                                DEPLOYMENT.revision(),
+                                DEPLOYMENT.dimension())));
             };
         }
 

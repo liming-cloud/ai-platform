@@ -16,8 +16,8 @@ class ControlledModelCatalogEntryTest {
         var entry = ControlledModelCatalogEntry.create(
                 new ControlledModelCatalogEntryId(3001L),
                 ProviderKind.OPENAI_COMPATIBLE,
-                URI.create("https://dashscope.aliyuncs.com/compatible-mode/v1"),
-                "qwen-plus",
+                URI.create("https://ark.cn-beijing.volces.com/api/v3"),
+                "test-chat-model",
                 ModelType.CHAT,
                 ModelRuntimeCapabilities.chat(32_768, 4_096),
                 Instant.parse("2026-07-28T00:00:00Z"));
@@ -34,7 +34,7 @@ class ControlledModelCatalogEntryTest {
                 new ControlledModelCatalogEntryId(3001L),
                 ProviderKind.OPENAI_COMPATIBLE,
                 URI.create("https://user@example.com/path?token=forbidden"),
-                "qwen-plus",
+                "test-chat-model",
                 ModelType.CHAT,
                 ModelRuntimeCapabilities.chat(32_768, 4_096),
                 Instant.parse("2026-07-28T00:00:00Z")));
@@ -46,7 +46,7 @@ class ControlledModelCatalogEntryTest {
                 new ControlledModelCatalogEntryId(3001L),
                 ProviderKind.OPENAI_COMPATIBLE,
                 URI.create("http://example.com/compatible-mode/v1"),
-                "qwen-plus",
+                "test-chat-model",
                 ModelType.CHAT,
                 ModelRuntimeCapabilities.chat(32_768, 4_096),
                 Instant.parse("2026-07-28T00:00:00Z")));
@@ -58,7 +58,7 @@ class ControlledModelCatalogEntryTest {
                 new ControlledModelCatalogEntryId(3001L),
                 ProviderKind.OPENAI_COMPATIBLE,
                 URI.create("https://example.com/compatible-mode/v1"),
-                "text-embedding-v4",
+                "test-embedding-model",
                 ModelType.EMBEDDING,
                 ModelRuntimeCapabilities.chat(32_768, 4_096),
                 Instant.parse("2026-07-28T00:00:00Z")));
