@@ -144,7 +144,7 @@
 | 受控真实模型验收装配 | `project/evidence/WP-0010-real-model-runtime-assembly.md` | `0cb172350` | 查询进程装配受控运行时，独立 compose 覆盖层传递主密钥、端点和超时，不传递 API Key |
 | 受控模型配置控制台 | `project/evidence/WP-0010-model-configuration-console.md` | `e587fb823` | 已发布目录分页、受控创建、启用与凭据轮换在控制台闭环；API Key 不回显、不保留在页面状态 |
 | 真实模型受控验收编排 | `project/evidence/WP-0010-real-model-acceptance-orchestration.md` | `f014be163`、`2ac742be1`、`4ee13980b` | 目录、加密配置、索引、助手和查询的真实模型脚本已具备；Mock 闭环、无密钥和过宽文件权限失败关闭通过，外部调用待受控终端执行 |
-| 火山方舟真实模型验证切换 | `project/evidence/WP-0010-volcengine-ark-provider-transition.md` | 待提交 | 方舟端点迁移、显式接入点和能力参数、密钥文件权限、Mock 与模型配置回归通过；真实调用等待已授权的接入点与能力值 |
+| 火山方舟真实模型验证切换 | `project/evidence/WP-0010-volcengine-ark-provider-transition.md` | `bbdbeba18` | 方舟端点迁移、显式接入点和能力参数、密钥文件权限、Mock 与模型配置回归通过；真实调用等待已授权的接入点与能力值 |
 
 ## 证据规则
 
