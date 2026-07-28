@@ -92,6 +92,7 @@ latestEvidence:
   - project/evidence/WP-0010-encrypted-credential-foundation.md
   - project/evidence/WP-0010-model-configuration-domain.md
   - project/evidence/WP-0010-model-configuration-persistence.md
+  - project/evidence/WP-0010-controlled-model-catalog-capabilities.md
 nextReviewAt: 2026-08-03
-updatedAt: 2026-07-28T10:01:00+08:00
+updatedAt: 2026-07-28T10:17:00+08:00
 updatedBy: codex
