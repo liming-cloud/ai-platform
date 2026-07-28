@@ -9,21 +9,25 @@ import com.aiplatform.foundation.modelruntime.application.deployment.service.Mod
 import com.aiplatform.foundation.modelruntime.application.configuration.service.ModelConfigurationService;
 import com.aiplatform.foundation.modelruntime.application.configuration.service.ModelConfigurationCredentialService;
 import com.aiplatform.foundation.modelruntime.application.configuration.service.ControlledModelCatalogService;
+import com.aiplatform.foundation.modelruntime.application.configuration.service.ModelConfigurationAccessService;
 import com.aiplatform.foundation.modelruntime.application.probe.service.ProbeProviderService;
 import com.aiplatform.foundation.modelruntime.application.provider.service.ProviderConnectionService;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.ModelRuntimeResolver;
 import com.aiplatform.foundation.modelruntime.domain.deployment.repository.ModelDeploymentRepository;
 import com.aiplatform.foundation.modelruntime.domain.configuration.repository.ModelConfigurationRepository;
+import com.aiplatform.foundation.modelruntime.domain.configuration.repository.ModelConfigurationAccessRepository;
 import com.aiplatform.foundation.modelruntime.domain.provider.repository.ProviderConnectionRepository;
 import com.aiplatform.foundation.modelruntime.infrastructure.persistence.deployment.mapper.ModelDeploymentMapper;
 import com.aiplatform.foundation.modelruntime.infrastructure.persistence.deployment.mapper.ModelDeploymentRequestMapper;
 import com.aiplatform.foundation.modelruntime.infrastructure.persistence.configuration.ModelConfigurationMapper;
 import com.aiplatform.foundation.modelruntime.infrastructure.persistence.configuration.ModelConfigurationCredentialMapper;
+import com.aiplatform.foundation.modelruntime.infrastructure.persistence.configuration.ModelConfigurationAccessMapper;
 import com.aiplatform.foundation.modelruntime.infrastructure.persistence.provider.mapper.ProviderConnectionMapper;
 import com.aiplatform.foundation.modelruntime.infrastructure.persistence.provider.mapper.ProviderConnectionRequestMapper;
 import com.aiplatform.foundation.modelruntime.interfaces.web.deployment.controller.ModelDeploymentController;
 import com.aiplatform.foundation.modelruntime.interfaces.web.configuration.controller.ModelConfigurationController;
 import com.aiplatform.foundation.modelruntime.interfaces.web.configuration.controller.ControlledModelCatalogController;
+import com.aiplatform.foundation.modelruntime.interfaces.web.configuration.controller.ModelConfigurationAccessController;
 import com.aiplatform.foundation.modelruntime.interfaces.web.provider.controller.ProviderConnectionController;
 import com.aiplatform.foundation.security.egress.OutboundEndpointPolicy;
 import com.aiplatform.foundation.security.secret.SecretResolver;
@@ -55,6 +59,9 @@ class ModelRuntimeAutoConfigurationTest {
                 .withBean(
                         ModelConfigurationRepository.class,
                         () -> mock(ModelConfigurationRepository.class))
+                .withBean(
+                        ModelConfigurationAccessRepository.class,
+                        () -> mock(ModelConfigurationAccessRepository.class))
                 .withBean(EntityIdGenerator.class, () -> () -> 1001L)
                 .run(context -> {
                     assertThat(context).hasNotFailed();
@@ -62,6 +69,7 @@ class ModelRuntimeAutoConfigurationTest {
                     assertThat(context).hasSingleBean(ProviderConnectionService.class);
                     assertThat(context).hasSingleBean(ModelDeploymentService.class);
                     assertThat(context).hasSingleBean(ModelConfigurationService.class);
+                    assertThat(context).hasSingleBean(ModelConfigurationAccessService.class);
                     assertThat(context).hasSingleBean(PublishedChatDeploymentLookup.class);
                     assertThat(context).hasSingleBean(PublishedEmbeddingDeploymentLookup.class);
                 });
@@ -100,12 +108,16 @@ class ModelRuntimeAutoConfigurationTest {
                 .withBean(
                         ControlledModelCatalogService.class,
                         () -> mock(ControlledModelCatalogService.class))
+                .withBean(
+                        ModelConfigurationAccessService.class,
+                        () -> mock(ModelConfigurationAccessService.class))
                 .run(context -> {
                     assertThat(context).hasNotFailed();
                     assertThat(context).hasSingleBean(ProviderConnectionController.class);
                     assertThat(context).hasSingleBean(ModelDeploymentController.class);
                     assertThat(context).hasSingleBean(ModelConfigurationController.class);
                     assertThat(context).hasSingleBean(ControlledModelCatalogController.class);
+                    assertThat(context).hasSingleBean(ModelConfigurationAccessController.class);
                 });
     }
 
@@ -160,6 +172,9 @@ class ModelRuntimeAutoConfigurationTest {
                         ModelConfigurationCredentialMapper.class,
                         () -> mock(ModelConfigurationCredentialMapper.class))
                 .withBean(
+                        ModelConfigurationAccessMapper.class,
+                        () -> mock(ModelConfigurationAccessMapper.class))
+                .withBean(
                         PlatformTransactionManager.class,
                         () -> mock(PlatformTransactionManager.class))
                 .withBean(
@@ -170,6 +185,7 @@ class ModelRuntimeAutoConfigurationTest {
                     assertThat(context).hasSingleBean(ProviderConnectionRepository.class);
                     assertThat(context).hasSingleBean(ModelDeploymentRepository.class);
                     assertThat(context).hasSingleBean(ModelConfigurationRepository.class);
+                    assertThat(context).hasSingleBean(ModelConfigurationAccessRepository.class);
                 });
     }
 

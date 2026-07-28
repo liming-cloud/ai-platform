@@ -4,11 +4,14 @@ import com.aiplatform.foundation.modelruntime.domain.deployment.repository.Model
 import com.aiplatform.foundation.modelruntime.application.configuration.port.out.ModelConfigurationCredentialWriter;
 import com.aiplatform.foundation.modelruntime.application.configuration.port.out.ModelConfigurationTransaction;
 import com.aiplatform.foundation.modelruntime.domain.configuration.repository.ModelConfigurationRepository;
+import com.aiplatform.foundation.modelruntime.domain.configuration.repository.ModelConfigurationAccessRepository;
 import com.aiplatform.foundation.modelruntime.domain.provider.repository.ProviderConnectionRepository;
 import com.aiplatform.foundation.modelruntime.infrastructure.persistence.deployment.mapper.ModelDeploymentMapper;
 import com.aiplatform.foundation.modelruntime.infrastructure.persistence.deployment.mapper.ModelDeploymentRequestMapper;
 import com.aiplatform.foundation.modelruntime.infrastructure.persistence.deployment.repository.PostgresModelDeploymentRepository;
 import com.aiplatform.foundation.modelruntime.infrastructure.persistence.configuration.ModelConfigurationMapper;
+import com.aiplatform.foundation.modelruntime.infrastructure.persistence.configuration.PostgresModelConfigurationAccessRepository;
+import com.aiplatform.foundation.modelruntime.infrastructure.persistence.configuration.ModelConfigurationAccessMapper;
 import com.aiplatform.foundation.modelruntime.infrastructure.persistence.configuration.PostgresModelConfigurationRepository;
 import com.aiplatform.foundation.modelruntime.infrastructure.persistence.configuration.PostgresEncryptedModelCredentialStore;
 import com.aiplatform.foundation.modelruntime.infrastructure.persistence.configuration.ModelConfigurationCredentialMapper;
@@ -71,6 +74,13 @@ public class ModelRuntimePersistenceAutoConfiguration {
     ModelConfigurationRepository modelConfigurationRepository(
             ModelConfigurationMapper mapper) {
         return new PostgresModelConfigurationRepository(mapper);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    ModelConfigurationAccessRepository modelConfigurationAccessRepository(
+            ModelConfigurationAccessMapper mapper) {
+        return new PostgresModelConfigurationAccessRepository(mapper);
     }
 
     @Bean

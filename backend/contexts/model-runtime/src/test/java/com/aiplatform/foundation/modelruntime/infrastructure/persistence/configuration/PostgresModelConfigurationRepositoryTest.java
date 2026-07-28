@@ -5,9 +5,12 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import com.aiplatform.foundation.modelruntime.domain.configuration.model.ControlledModelCatalogEntryId;
 import com.aiplatform.foundation.modelruntime.domain.configuration.model.ControlledModelCatalogEntry;
 import com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelConfiguration;
+import com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelConfigurationAccessGrant;
+import com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelConfigurationAccessGrantId;
 import com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelConfigurationId;
 import com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelConfigurationScope;
 import com.aiplatform.foundation.modelruntime.domain.configuration.repository.ModelConfigurationRepository;
+import com.aiplatform.foundation.modelruntime.domain.configuration.repository.ModelConfigurationAccessRepository;
 import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
 import java.sql.Timestamp;
 import java.time.Instant;
@@ -35,6 +38,7 @@ class PostgresModelConfigurationRepositoryTest {
             .withDatabaseName("foundation_test").withUsername("foundation").withPassword("foundation_test_only");
 
     @Autowired private ModelConfigurationRepository repository;
+    @Autowired private ModelConfigurationAccessRepository accessRepository;
     @Autowired private JdbcTemplate jdbc;
 
     @DynamicPropertySource
@@ -47,6 +51,7 @@ class PostgresModelConfigurationRepositoryTest {
 
     @BeforeEach
     void prepareCatalog() {
+        jdbc.update("DELETE FROM model_runtime.model_configuration_access_grant");
         jdbc.update("DELETE FROM model_runtime.model_configuration_credential");
         jdbc.update("DELETE FROM model_runtime.model_configuration");
         jdbc.update("DELETE FROM model_runtime.controlled_model_catalog_entry");
@@ -87,11 +92,34 @@ class PostgresModelConfigurationRepositoryTest {
         assertEquals(1L, published.version());
     }
 
+    @Test
+    void 活动授权撤销后不再被授权查询命中() {
+        repository.save(ModelConfiguration.create(
+                new ModelConfigurationId(4001L), ModelConfigurationScope.PLATFORM,
+                null, null, "平台模型", new ControlledModelCatalogEntryId(3001L),
+                Instant.parse("2026-07-28T00:00:00Z")));
+        var active = ModelConfigurationAccessGrant.grant(
+                new ModelConfigurationAccessGrantId(5001L), new ModelConfigurationId(4001L),
+                new TenantId(2001L), null, Instant.parse("2026-07-28T00:00:00Z"));
+        accessRepository.save(active);
+        assertEquals(true, accessRepository.hasActiveGrant(
+                new ModelConfigurationId(4001L), new TenantId(2001L),
+                new com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelConfigurationOwnerId(6001L)));
+
+        accessRepository.update(active.revoke(Instant.parse("2026-07-28T00:01:00Z")));
+        assertEquals(false, accessRepository.hasActiveGrant(
+                new ModelConfigurationId(4001L), new TenantId(2001L),
+                new com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelConfigurationOwnerId(6001L)));
+    }
+
     @SpringBootConfiguration @EnableAutoConfiguration
     @MapperScan("com.aiplatform.foundation.modelruntime.infrastructure.persistence.configuration")
     static class TestApplication {
         @Bean ModelConfigurationRepository repository(ModelConfigurationMapper mapper) {
             return new PostgresModelConfigurationRepository(mapper);
+        }
+        @Bean ModelConfigurationAccessRepository accessRepository(ModelConfigurationAccessMapper mapper) {
+            return new PostgresModelConfigurationAccessRepository(mapper);
         }
     }
 }

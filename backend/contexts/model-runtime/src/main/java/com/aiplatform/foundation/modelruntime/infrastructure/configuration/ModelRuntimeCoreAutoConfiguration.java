@@ -5,6 +5,7 @@ import com.aiplatform.foundation.modelruntime.application.deployment.facade.Publ
 import com.aiplatform.foundation.modelruntime.application.configuration.service.ModelConfigurationService;
 import com.aiplatform.foundation.modelruntime.application.configuration.service.ControlledModelCatalogService;
 import com.aiplatform.foundation.modelruntime.application.configuration.service.ModelConfigurationCredentialService;
+import com.aiplatform.foundation.modelruntime.application.configuration.service.ModelConfigurationAccessService;
 import com.aiplatform.foundation.modelruntime.application.configuration.port.out.ModelConfigurationCredentialWriter;
 import com.aiplatform.foundation.modelruntime.application.configuration.port.out.ModelConfigurationTransaction;
 import com.aiplatform.foundation.modelruntime.application.deployment.service.ModelDeploymentService;
@@ -15,6 +16,7 @@ import com.aiplatform.foundation.modelruntime.application.probe.service.ProbePro
 import com.aiplatform.foundation.modelruntime.application.provider.service.ProviderConnectionService;
 import com.aiplatform.foundation.modelruntime.domain.deployment.repository.ModelDeploymentRepository;
 import com.aiplatform.foundation.modelruntime.domain.configuration.repository.ModelConfigurationRepository;
+import com.aiplatform.foundation.modelruntime.domain.configuration.repository.ModelConfigurationAccessRepository;
 import com.aiplatform.foundation.modelruntime.domain.provider.repository.ProviderConnectionRepository;
 import com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator;
 import java.time.Clock;
@@ -92,6 +94,15 @@ public class ModelRuntimeCoreAutoConfiguration {
             ModelConfigurationRepository repository,
             EntityIdGenerator identifiers) {
         return new ControlledModelCatalogService(repository, identifiers, Clock.systemUTC());
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    ModelConfigurationAccessService modelConfigurationAccessService(
+            ModelConfigurationRepository configurations,
+            ModelConfigurationAccessRepository grants,
+            EntityIdGenerator identifiers) {
+        return new ModelConfigurationAccessService(configurations, grants, identifiers, Clock.systemUTC());
     }
 
     @Bean
