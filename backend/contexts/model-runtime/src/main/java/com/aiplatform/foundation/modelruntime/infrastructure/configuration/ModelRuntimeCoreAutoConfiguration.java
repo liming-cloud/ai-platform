@@ -17,7 +17,7 @@ import com.aiplatform.foundation.modelruntime.application.deployment.service.Mod
 import com.aiplatform.foundation.modelruntime.application.deployment.service.PublishedChatDeploymentLookupService;
 import com.aiplatform.foundation.modelruntime.application.deployment.service.PublishedEmbeddingDeploymentLookupService;
 import com.aiplatform.foundation.modelruntime.application.runtime.ModelConfigurationRuntimeService;
-import com.aiplatform.foundation.modelruntime.application.runtime.facade.GovernedEmbeddingRuntime;
+import com.aiplatform.foundation.modelruntime.application.runtime.port.out.ChatModelFactory;
 import com.aiplatform.foundation.modelruntime.application.runtime.port.out.EmbeddingModelFactory;
 import com.aiplatform.foundation.modelruntime.application.probe.port.out.ProviderConnectionProbe;
 import com.aiplatform.foundation.modelruntime.application.probe.service.ProbeProviderService;
@@ -150,13 +150,14 @@ public class ModelRuntimeCoreAutoConfiguration {
         UsableModelConfigurationLookup.class
     })
     @ConditionalOnMissingBean
-    GovernedEmbeddingRuntime governedEmbeddingRuntime(
+    ModelConfigurationRuntimeService modelConfigurationRuntimeService(
             UsableModelConfigurationLookup configurations,
             ModelConfigurationRepository catalog,
             ModelConfigurationCredentialUser credentials,
-            List<EmbeddingModelFactory> embeddingFactories) {
+            List<EmbeddingModelFactory> embeddingFactories,
+            List<ChatModelFactory> chatFactories) {
         return new ModelConfigurationRuntimeService(
-                configurations, catalog, credentials, embeddingFactories);
+                configurations, catalog, credentials, embeddingFactories, chatFactories);
     }
 
     @Bean
