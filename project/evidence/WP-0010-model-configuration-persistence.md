@@ -20,6 +20,8 @@
 
 追加实现提交：`3951a5dd0`（`feat: 支持脱敏读取模型配置`）。
 
+追加实现提交：`0f97bba52`（`feat: 支持模型配置停用`）。
+
 ## 范围与结果
 
 新增受控模型目录、平台/租户/个人模型配置和加密凭据三张 PostgreSQL 事实表。凭据表只保存 AES-GCM 信封材料、主密钥版本、不可逆指纹与轮换时间，不包含 `api_key` 字段。
@@ -120,6 +122,10 @@ git diff --check
 
 结果：通过。
 
+## 停用撤销门禁
+
+管理者可调用 `POST /api/v1/model-configurations/{modelConfigurationId}/disable` 停用草稿或活动配置。首次停用递增乐观版本，重复停用保持幂等；`ModelConfigurationAccessService.mayUse` 只允许 `ACTIVE`，因此即使活动授权记录仍在，停用后也立即不可使用。`ModelConfigurationServiceTest` 与 `ModelConfigurationAccessServiceTest` 覆盖状态持久化和保留授权的拒绝反例。
+
 ## 未完成项
 
-迁移、仓储、创建、轮换、授权撤销、配置启用和脱敏读取尚不是完整产品接口：授权后的真实模型调用仍待实现。
+迁移、仓储、创建、轮换、授权撤销、配置启用、停用和脱敏读取尚不是完整产品接口：授权后的真实模型调用仍待实现。
