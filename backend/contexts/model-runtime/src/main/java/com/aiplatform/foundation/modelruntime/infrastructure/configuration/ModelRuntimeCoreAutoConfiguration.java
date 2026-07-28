@@ -2,6 +2,7 @@ package com.aiplatform.foundation.modelruntime.infrastructure.configuration;
 
 import com.aiplatform.foundation.modelruntime.application.deployment.facade.PublishedChatDeploymentLookup;
 import com.aiplatform.foundation.modelruntime.application.deployment.facade.PublishedEmbeddingDeploymentLookup;
+import com.aiplatform.foundation.modelruntime.application.configuration.service.ModelConfigurationService;
 import com.aiplatform.foundation.modelruntime.application.deployment.service.ModelDeploymentService;
 import com.aiplatform.foundation.modelruntime.application.deployment.service.PublishedChatDeploymentLookupService;
 import com.aiplatform.foundation.modelruntime.application.deployment.service.PublishedEmbeddingDeploymentLookupService;
@@ -9,6 +10,7 @@ import com.aiplatform.foundation.modelruntime.application.probe.port.out.Provide
 import com.aiplatform.foundation.modelruntime.application.probe.service.ProbeProviderService;
 import com.aiplatform.foundation.modelruntime.application.provider.service.ProviderConnectionService;
 import com.aiplatform.foundation.modelruntime.domain.deployment.repository.ModelDeploymentRepository;
+import com.aiplatform.foundation.modelruntime.domain.configuration.repository.ModelConfigurationRepository;
 import com.aiplatform.foundation.modelruntime.domain.provider.repository.ProviderConnectionRepository;
 import com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator;
 import java.time.Clock;
@@ -66,6 +68,17 @@ public class ModelRuntimeCoreAutoConfiguration {
                 Clock.systemUTC(),
                 identifiers,
                 properties.getModelDeploymentLimit());
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    ModelConfigurationService modelConfigurationService(
+            ModelConfigurationRepository repository,
+            EntityIdGenerator identifiers) {
+        return new ModelConfigurationService(
+                repository,
+                Clock.systemUTC(),
+                identifiers);
     }
 
     @Bean

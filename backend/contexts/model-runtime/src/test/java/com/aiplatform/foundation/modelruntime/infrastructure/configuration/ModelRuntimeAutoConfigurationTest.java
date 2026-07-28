@@ -6,13 +6,17 @@ import static org.mockito.Mockito.mock;
 import com.aiplatform.foundation.modelruntime.application.deployment.facade.PublishedChatDeploymentLookup;
 import com.aiplatform.foundation.modelruntime.application.deployment.facade.PublishedEmbeddingDeploymentLookup;
 import com.aiplatform.foundation.modelruntime.application.deployment.service.ModelDeploymentService;
+import com.aiplatform.foundation.modelruntime.application.configuration.service.ModelConfigurationService;
 import com.aiplatform.foundation.modelruntime.application.probe.service.ProbeProviderService;
 import com.aiplatform.foundation.modelruntime.application.provider.service.ProviderConnectionService;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.ModelRuntimeResolver;
 import com.aiplatform.foundation.modelruntime.domain.deployment.repository.ModelDeploymentRepository;
+import com.aiplatform.foundation.modelruntime.domain.configuration.repository.ModelConfigurationRepository;
 import com.aiplatform.foundation.modelruntime.domain.provider.repository.ProviderConnectionRepository;
 import com.aiplatform.foundation.modelruntime.infrastructure.persistence.deployment.mapper.ModelDeploymentMapper;
 import com.aiplatform.foundation.modelruntime.infrastructure.persistence.deployment.mapper.ModelDeploymentRequestMapper;
+import com.aiplatform.foundation.modelruntime.infrastructure.persistence.configuration.ModelConfigurationMapper;
+import com.aiplatform.foundation.modelruntime.infrastructure.persistence.configuration.ModelConfigurationCredentialMapper;
 import com.aiplatform.foundation.modelruntime.infrastructure.persistence.provider.mapper.ProviderConnectionMapper;
 import com.aiplatform.foundation.modelruntime.infrastructure.persistence.provider.mapper.ProviderConnectionRequestMapper;
 import com.aiplatform.foundation.modelruntime.interfaces.web.deployment.controller.ModelDeploymentController;
@@ -43,12 +47,16 @@ class ModelRuntimeAutoConfigurationTest {
                 .withBean(
                         ModelDeploymentRepository.class,
                         () -> mock(ModelDeploymentRepository.class))
+                .withBean(
+                        ModelConfigurationRepository.class,
+                        () -> mock(ModelConfigurationRepository.class))
                 .withBean(EntityIdGenerator.class, () -> () -> 1001L)
                 .run(context -> {
                     assertThat(context).hasNotFailed();
                     assertThat(context).hasSingleBean(ProbeProviderService.class);
                     assertThat(context).hasSingleBean(ProviderConnectionService.class);
                     assertThat(context).hasSingleBean(ModelDeploymentService.class);
+                    assertThat(context).hasSingleBean(ModelConfigurationService.class);
                     assertThat(context).hasSingleBean(PublishedChatDeploymentLookup.class);
                     assertThat(context).hasSingleBean(PublishedEmbeddingDeploymentLookup.class);
                 });
@@ -133,6 +141,12 @@ class ModelRuntimeAutoConfigurationTest {
                         ModelDeploymentRequestMapper.class,
                         () -> mock(ModelDeploymentRequestMapper.class))
                 .withBean(
+                        ModelConfigurationMapper.class,
+                        () -> mock(ModelConfigurationMapper.class))
+                .withBean(
+                        ModelConfigurationCredentialMapper.class,
+                        () -> mock(ModelConfigurationCredentialMapper.class))
+                .withBean(
                         PlatformTransactionManager.class,
                         () -> mock(PlatformTransactionManager.class))
                 .withBean(
@@ -142,6 +156,7 @@ class ModelRuntimeAutoConfigurationTest {
                     assertThat(context).hasNotFailed();
                     assertThat(context).hasSingleBean(ProviderConnectionRepository.class);
                     assertThat(context).hasSingleBean(ModelDeploymentRepository.class);
+                    assertThat(context).hasSingleBean(ModelConfigurationRepository.class);
                 });
     }
 }
