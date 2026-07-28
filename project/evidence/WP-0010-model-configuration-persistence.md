@@ -18,6 +18,8 @@
 
 追加实现提交：`376ccb533`（`feat: 支持模型配置显式启用`）。
 
+追加实现提交：`3951a5dd0`（`feat: 支持脱敏读取模型配置`）。
+
 ## 范围与结果
 
 新增受控模型目录、平台/租户/个人模型配置和加密凭据三张 PostgreSQL 事实表。凭据表只保存 AES-GCM 信封材料、主密钥版本、不可逆指纹与轮换时间，不包含 `api_key` 字段。
@@ -96,6 +98,28 @@ git diff --check
 
 模型配置创建后保持 `DRAFT`。只有归属范围内的管理者可以调用启用接口使其变为 `ACTIVE`；`ModelConfigurationAccessService.mayUse` 对非活动配置一律返回否。真实 PostgreSQL 测试验证状态与修订通过乐观版本更新保存。
 
+## 脱敏读取
+
+新增 `GET /api/v1/model-configurations/{modelConfigurationId}`。响应只包含配置标识、范围、名称、受控目录标识、状态、修订、创建时间和 `credentialConfigured`；不包含 API Key、密文、nonce、指纹或密钥引用。
+
+- 读取请求只有具备配置管理权或当前使用权时才可通过；其他请求统一返回“模型配置不存在”；
+- 未通过授权判断时不会查询凭据状态，避免形成凭据是否存在的侧信道；
+- PostgreSQL 凭据状态查询使用 `EXISTS`，不读取任何密文列；
+- `ModelConfigurationReadServiceTest`、`ModelConfigurationReadControllerTest` 与 `PostgresEncryptedModelCredentialStoreTest` 分别覆盖授权、响应脱敏和真实数据库状态查询。
+
+本切片的红灯命令因读取服务、凭据状态端口和控制器尚不存在而在测试编译阶段失败；实现后执行：
+
+```bash
+./mvnw -q -pl backend/contexts/model-runtime -am \
+  -Dtest='ModelConfigurationReadServiceTest,ModelConfigurationReadControllerTest,PostgresEncryptedModelCredentialStoreTest,ModelRuntimeAutoConfigurationTest' \
+  -Dsurefire.failIfNoSpecifiedTests=false test
+./mvnw -q -pl backend/contexts/model-runtime -am test
+make project-verify
+git diff --check
+```
+
+结果：通过。
+
 ## 未完成项
 
-迁移、仓储、创建、轮换、授权撤销与配置启用尚不是完整产品接口：脱敏读取及授权后的真实模型调用仍待实现。
+迁移、仓储、创建、轮换、授权撤销、配置启用和脱敏读取尚不是完整产品接口：授权后的真实模型调用仍待实现。
