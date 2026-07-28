@@ -32,23 +32,39 @@ public final class PublishedAssistantVersionLookupService
         return assistants
                 .findVersion(tenantId, new AssistantVersionId(assistantVersionId))
                 .filter(version -> version.status() == AssistantVersionStatus.PUBLISHED)
-                .map(version -> new PublishedAssistantVersionSnapshot(
-                        version.id().value(),
-                        version.assistantId().value(),
-                        version.number(),
-                        version.chatDeploymentId(),
-                        version.chatDeploymentRevision(),
-                        version.knowledgeSpaceId(),
-                        version.indexVersionId(),
-                        version.indexVersionRevision(),
-                        version.embeddingDeploymentId(),
-                        version.embeddingDeploymentRevision(),
-                        version.embeddingDimension(),
-                        version.systemInstruction(),
-                        version.maxOutputTokens(),
-                        version.retrievalLimit(),
-                        version.minimumScore(),
-                        version.citationPolicy(),
-                        version.refusalPolicy()));
+                .map(version -> version.usesGovernedModelConfigurations()
+                        ? PublishedAssistantVersionSnapshot.governed(
+                                version.id().value(),
+                                version.assistantId().value(),
+                                version.number(),
+                                version.knowledgeSpaceId(),
+                                version.indexVersionId(),
+                                version.indexVersionRevision(),
+                                version.governedChat(),
+                                version.governedEmbedding(),
+                                version.systemInstruction(),
+                                version.maxOutputTokens(),
+                                version.retrievalLimit(),
+                                version.minimumScore(),
+                                version.citationPolicy(),
+                                version.refusalPolicy())
+                        : new PublishedAssistantVersionSnapshot(
+                                version.id().value(),
+                                version.assistantId().value(),
+                                version.number(),
+                                version.chatDeploymentId(),
+                                version.chatDeploymentRevision(),
+                                version.knowledgeSpaceId(),
+                                version.indexVersionId(),
+                                version.indexVersionRevision(),
+                                version.embeddingDeploymentId(),
+                                version.embeddingDeploymentRevision(),
+                                version.embeddingDimension(),
+                                version.systemInstruction(),
+                                version.maxOutputTokens(),
+                                version.retrievalLimit(),
+                                version.minimumScore(),
+                                version.citationPolicy(),
+                                version.refusalPolicy()));
     }
 }

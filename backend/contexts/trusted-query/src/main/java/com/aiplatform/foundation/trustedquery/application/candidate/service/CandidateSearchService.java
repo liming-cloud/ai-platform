@@ -4,9 +4,15 @@ import com.aiplatform.foundation.knowledgedata.application.indexversion.facade.A
 import com.aiplatform.foundation.knowledgedata.application.knowledge.facade.KnowledgeSpaceLookup;
 import com.aiplatform.foundation.knowledgedata.application.indexversion.port.out.vector.IndexCandidateQuery;
 import com.aiplatform.foundation.knowledgedata.application.indexversion.port.out.vector.IndexCandidateRetriever;
+import com.aiplatform.foundation.knowledgedata.domain.indexversion.model.EmbeddingConfiguration;
+import com.aiplatform.foundation.modelruntime.application.configuration.dto.UsableModelConfigurationSnapshot;
+import com.aiplatform.foundation.modelruntime.application.configuration.facade.UsableModelConfigurationLookup;
+import com.aiplatform.foundation.modelruntime.application.runtime.facade.GovernedEmbeddingRuntime;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.ModelRuntimeResolver;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.embedding.EmbeddingDeploymentRef;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.embedding.EmbeddingRequest;
+import com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelConfigurationId;
+import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelType;
 import com.aiplatform.foundation.security.identity.PermissionCode;
 import com.aiplatform.foundation.trustedquery.application.candidate.exception.CandidateSearchIndexUnavailableException;
 import com.aiplatform.foundation.trustedquery.application.candidate.exception.CandidateSearchPermissionDeniedException;
@@ -27,6 +33,8 @@ public final class CandidateSearchService  {
     private final KnowledgeSpaceLookup knowledgeSpaces;
     private final ActiveIndexLookup indexes;
     private final ModelRuntimeResolver models;
+    private final UsableModelConfigurationLookup modelConfigurations;
+    private final GovernedEmbeddingRuntime governedEmbeddings;
     private final IndexCandidateRetriever candidates;
 
     public CandidateSearchService(
@@ -34,11 +42,23 @@ public final class CandidateSearchService  {
             ActiveIndexLookup indexes,
             ModelRuntimeResolver models,
             IndexCandidateRetriever candidates) {
+        this(knowledgeSpaces, indexes, models, null, null, candidates);
+    }
+
+    public CandidateSearchService(
+            KnowledgeSpaceLookup knowledgeSpaces,
+            ActiveIndexLookup indexes,
+            ModelRuntimeResolver models,
+            UsableModelConfigurationLookup modelConfigurations,
+            GovernedEmbeddingRuntime governedEmbeddings,
+            IndexCandidateRetriever candidates) {
         this.knowledgeSpaces = Objects.requireNonNull(
                 knowledgeSpaces,
                 "知识空间查询不能为空");
         this.indexes = Objects.requireNonNull(indexes, "活动索引查询不能为空");
         this.models = Objects.requireNonNull(models, "模型运行时解析器不能为空");
+        this.modelConfigurations = modelConfigurations;
+        this.governedEmbeddings = governedEmbeddings;
         this.candidates = Objects.requireNonNull(candidates, "候选检索端口不能为空");
     }
 
@@ -54,13 +74,16 @@ public final class CandidateSearchService  {
         var index = indexes
                 .find(query.context().tenantId(), knowledgeSpaceId)
                 .orElseThrow(CandidateSearchIndexUnavailableException::new);
+        if (index.embedding().isGoverned()) {
+            return searchGoverned(query, knowledgeSpaceId, index);
+        }
         var deployment = new EmbeddingDeploymentRef(
-                index.embeddingDeploymentId(),
-                index.embeddingDeploymentRevision(),
-                index.embeddingDimension());
+                index.embedding().deploymentId(),
+                index.embedding().deploymentRevision(),
+                index.embedding().dimension());
         var embeddingModel = models.resolveEmbedding(
                 query.context().tenantId(),
-                index.embeddingDeploymentId());
+                index.embedding().deploymentId());
         var embedded = embeddingModel.embed(new EmbeddingRequest(
                 deployment,
                 List.of(query.text())));
@@ -86,6 +109,69 @@ public final class CandidateSearchService  {
                         value.content(),
                         value.score()))
                 .toList());
+    }
+
+    private CandidateSearchResult searchGoverned(
+            CandidateSearchQuery query,
+            long knowledgeSpaceId,
+            com.aiplatform.foundation.knowledgedata.application.indexversion.dto.ActiveIndexSnapshot index) {
+        var configuration = requireEmbeddingConfiguration(query.context(), index.embedding());
+        var deployment = new EmbeddingDeploymentRef(
+                configuration.configurationId().value(),
+                configuration.configurationRevision(),
+                configuration.capabilities().embeddingDimension());
+        var embedded = requireGovernedEmbeddings().embed(
+                query.context(),
+                configuration,
+                new EmbeddingRequest(deployment, List.of(query.text())));
+        if (!deployment.equals(embedded.deployment())
+                || embedded.vectors().size() != 1
+                || embedded.vectors().getFirst().index() != 0) {
+            throw new IllegalStateException("查询嵌入结果不符合冻结配置");
+        }
+        var found = candidates.retrieve(new IndexCandidateQuery(
+                query.context().tenantId(),
+                knowledgeSpaceId,
+                index.indexVersionId(),
+                index.embedding(),
+                embedded.vectors().getFirst().values(),
+                query.limit()));
+        return new CandidateSearchResult(found.stream()
+                .map(value -> new CandidateView(
+                        Long.toString(value.dataSourceId()),
+                        value.contentVersion(),
+                        value.chunkId(),
+                        value.ordinal(),
+                        value.content(),
+                        value.score()))
+                .toList());
+    }
+
+    private UsableModelConfigurationSnapshot requireEmbeddingConfiguration(
+            com.aiplatform.foundation.security.identity.TrustedRequestContext context,
+            EmbeddingConfiguration expected) {
+        if (modelConfigurations == null || governedEmbeddings == null) {
+            throw new CandidateSearchIndexUnavailableException();
+        }
+        return modelConfigurations.find(
+                        context,
+                        new ModelConfigurationId(expected.configurationId()),
+                        ModelType.EMBEDDING)
+                .filter(snapshot -> snapshot.configurationRevision()
+                                == expected.configurationRevision()
+                        && snapshot.catalogEntryId().value() == expected.catalogEntryId()
+                        && snapshot.catalogEntryRevision()
+                                == expected.catalogEntryRevision()
+                        && snapshot.capabilities().embeddingDimension()
+                                == expected.dimension())
+                .orElseThrow(CandidateSearchIndexUnavailableException::new);
+    }
+
+    private GovernedEmbeddingRuntime requireGovernedEmbeddings() {
+        if (governedEmbeddings == null) {
+            throw new CandidateSearchIndexUnavailableException();
+        }
+        return governedEmbeddings;
     }
 
     private static long parsePositiveIdentifier(String value) {

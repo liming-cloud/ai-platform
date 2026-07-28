@@ -61,8 +61,23 @@ public final class PgVectorIndexStore
                     (CAST(? AS bigint) IS NULL AND version.status = 'ACTIVE')
                     OR chunk.index_version_id = CAST(? AS bigint)
               )
-              AND chunk.embedding_deployment_id = ?
-              AND chunk.embedding_deployment_revision = ?
+              AND (
+                    (
+                        CAST(? AS bigint) IS NOT NULL
+                        AND chunk.embedding_deployment_id = CAST(? AS bigint)
+                        AND chunk.embedding_deployment_revision = CAST(? AS bigint)
+                        AND chunk.embedding_configuration_id IS NULL
+                    )
+                    OR
+                    (
+                        CAST(? AS bigint) IS NOT NULL
+                        AND chunk.embedding_configuration_id = CAST(? AS bigint)
+                        AND chunk.embedding_configuration_revision = CAST(? AS bigint)
+                        AND chunk.embedding_catalog_entry_id = CAST(? AS bigint)
+                        AND chunk.embedding_catalog_entry_revision = CAST(? AS bigint)
+                        AND chunk.embedding_deployment_id IS NULL
+                    )
+              )
               AND chunk.embedding_dimension = ?
             ORDER BY chunk.embedding <=> CAST(? AS vector),
                      chunk.chunk_id
@@ -134,6 +149,19 @@ public final class PgVectorIndexStore
     public List<IndexCandidate> retrieve(IndexCandidateQuery query) {
         Objects.requireNonNull(query, "索引候选查询不能为空");
         var embedding = literal(query.embedding());
+        var configuration = query.embeddingConfiguration();
+        var legacyId = configuration.isLegacyDeployment()
+                ? configuration.deploymentId() : null;
+        var legacyRevision = configuration.isLegacyDeployment()
+                ? configuration.deploymentRevision() : null;
+        var governedId = configuration.isGoverned()
+                ? configuration.configurationId() : null;
+        var governedRevision = configuration.isGoverned()
+                ? configuration.configurationRevision() : null;
+        var catalogId = configuration.isGoverned()
+                ? configuration.catalogEntryId() : null;
+        var catalogRevision = configuration.isGoverned()
+                ? configuration.catalogEntryRevision() : null;
         return List.copyOf(jdbc.query(
                 RETRIEVE,
                 (result, rowNumber) -> new IndexCandidate(
@@ -148,8 +176,14 @@ public final class PgVectorIndexStore
                 query.knowledgeSpaceId(),
                 query.indexVersionId(),
                 query.indexVersionId(),
-                query.embeddingDeploymentId(),
-                query.embeddingRevision(),
+                legacyId,
+                legacyId,
+                legacyRevision,
+                governedId,
+                governedId,
+                governedRevision,
+                catalogId,
+                catalogRevision,
                 query.embeddingDimension(),
                 embedding,
                 query.limit()));

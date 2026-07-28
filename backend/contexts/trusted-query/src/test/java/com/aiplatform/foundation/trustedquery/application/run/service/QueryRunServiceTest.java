@@ -10,11 +10,15 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.aiplatform.foundation.assistantdelivery.application.assistant.dto.PublishedAssistantVersionSnapshot;
 import com.aiplatform.foundation.assistantdelivery.domain.assistant.model.CitationPolicy;
+import com.aiplatform.foundation.assistantdelivery.domain.assistant.model.GovernedChatModelBinding;
+import com.aiplatform.foundation.assistantdelivery.domain.assistant.model.GovernedEmbeddingModelBinding;
 import com.aiplatform.foundation.assistantdelivery.domain.assistant.model.RefusalPolicy;
 import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
 import com.aiplatform.foundation.knowledgedata.application.indexversion.port.out.vector.IndexCandidate;
 import com.aiplatform.foundation.knowledgedata.application.indexversion.port.out.vector.IndexCandidateQuery;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.ChatModelPort;
+import com.aiplatform.foundation.modelruntime.application.runtime.facade.GovernedChatRuntime;
+import com.aiplatform.foundation.modelruntime.application.runtime.facade.GovernedEmbeddingRuntime;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.ModelRuntimeResolver;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.chat.ChatChunk;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.chat.ChatRequest;
@@ -22,6 +26,12 @@ import com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.cha
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.embedding.EmbeddingBatch;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.embedding.EmbeddingVector;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.common.ModelUsage;
+import com.aiplatform.foundation.modelruntime.application.configuration.dto.UsableModelConfigurationSnapshot;
+import com.aiplatform.foundation.modelruntime.application.configuration.facade.UsableModelConfigurationLookup;
+import com.aiplatform.foundation.modelruntime.domain.configuration.model.ControlledModelCatalogEntryId;
+import com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelConfigurationId;
+import com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelRuntimeCapabilities;
+import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelType;
 import com.aiplatform.foundation.security.identity.AccessChannel;
 import com.aiplatform.foundation.security.identity.CredentialType;
 import com.aiplatform.foundation.security.identity.MembershipId;
@@ -146,6 +156,39 @@ class QueryRunServiceTest {
         assertEquals(0, models.chatCalls);
     }
 
+    @Test
+    void 受控助手必须在配额占用后重验双配置且不回退到旧部署() {
+        var repository = new MemoryRepository();
+        var legacy = new RecordingModels();
+        var retrieval = new RecordingRetrieval(List.of(candidate(0.9)));
+        var embeddings = new RecordingGovernedEmbeddings(repository);
+        var chats = new RecordingGovernedChats(repository);
+        var service = new QueryRunService(
+                (tenantId, assistantVersionId) -> Optional.of(governedSnapshot()),
+                legacy,
+                configurations(),
+                embeddings,
+                chats,
+                retrieval::retrieve,
+                repository,
+                new QueryQuotaPolicy(100, 4, Duration.ofMinutes(2)),
+                Clock.fixed(NOW, ZoneOffset.UTC),
+                () -> 430000000000000001L);
+
+        var result = service.create(new CreateQueryRunCommand(
+                context("assistant:query", "knowledge:read"),
+                "query-key-governed",
+                Long.toString(ASSISTANT_VERSION),
+                "牛奶在哪里"));
+
+        assertEquals("ANSWERED", result.queryRun().status());
+        assertEquals(1, embeddings.calls);
+        assertEquals(1, chats.calls);
+        assertEquals(0, legacy.chatCalls);
+        assertTrue(retrieval.query.embeddingConfiguration().isGoverned());
+        assertEquals(EMBEDDING, retrieval.query.embeddingConfiguration().configurationId());
+    }
+
     private static QueryRunService service(
             QueryRunRepository repository,
             RecordingModels models,
@@ -183,6 +226,41 @@ class QueryRunServiceTest {
                 0.5,
                 CitationPolicy.REQUIRED,
                 RefusalPolicy.INSUFFICIENT_EVIDENCE);
+    }
+
+    private static PublishedAssistantVersionSnapshot governedSnapshot() {
+        return PublishedAssistantVersionSnapshot.governed(
+                ASSISTANT_VERSION,
+                410000000000000001L,
+                1,
+                SPACE,
+                INDEX,
+                5,
+                new GovernedChatModelBinding(CHAT, 7, 310000000000000001L, 6, 256),
+                new GovernedEmbeddingModelBinding(
+                        EMBEDDING, 3, 310000000000000002L, 4, 4),
+                "只依据授权证据回答。",
+                256,
+                5,
+                0.5,
+                CitationPolicy.REQUIRED,
+                RefusalPolicy.INSUFFICIENT_EVIDENCE);
+    }
+
+    private static UsableModelConfigurationLookup configurations() {
+        return (context, id, type) -> {
+            if (type == ModelType.CHAT && id.value() == CHAT) {
+                return Optional.of(new UsableModelConfigurationSnapshot(
+                        id, 7, new ControlledModelCatalogEntryId(310000000000000001L), 6,
+                        type, ModelRuntimeCapabilities.chat(8192, 256)));
+            }
+            if (type == ModelType.EMBEDDING && id.value() == EMBEDDING) {
+                return Optional.of(new UsableModelConfigurationSnapshot(
+                        id, 3, new ControlledModelCatalogEntryId(310000000000000002L), 4,
+                        type, ModelRuntimeCapabilities.embedding(8192, 4)));
+            }
+            return Optional.empty();
+        };
     }
 
     private static IndexCandidate candidate(double score) {
@@ -266,6 +344,55 @@ class QueryRunServiceTest {
 
         @Override
         public void evictDeployment(TenantId tenantId, long deploymentId) {
+        }
+    }
+
+    private static final class RecordingGovernedEmbeddings implements GovernedEmbeddingRuntime {
+        private final MemoryRepository repository;
+        private int calls;
+
+        private RecordingGovernedEmbeddings(MemoryRepository repository) {
+            this.repository = repository;
+        }
+
+        @Override
+        public EmbeddingBatch embed(
+                TrustedRequestContext context,
+                UsableModelConfigurationSnapshot expected,
+                com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.embedding.EmbeddingRequest request) {
+            assertNotNull(repository.current);
+            calls++;
+            return new EmbeddingBatch(
+                    request.deployment(), List.of(new EmbeddingVector(0, new float[] {1, 0, 0, 0})));
+        }
+
+        @Override
+        public EmbeddingBatch embed(
+                com.aiplatform.foundation.modelruntime.application.configuration.dto.ModelConfigurationUsageContext context,
+                UsableModelConfigurationSnapshot expected,
+                com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.embedding.EmbeddingRequest request) {
+            throw new UnsupportedOperationException();
+        }
+    }
+
+    private static final class RecordingGovernedChats implements GovernedChatRuntime {
+        private final MemoryRepository repository;
+        private int calls;
+
+        private RecordingGovernedChats(MemoryRepository repository) {
+            this.repository = repository;
+        }
+
+        @Override
+        public ChatResult chat(
+                TrustedRequestContext context,
+                UsableModelConfigurationSnapshot expected,
+                ChatRequest request) {
+            assertNotNull(repository.current);
+            calls++;
+            return new ChatResult(
+                    request.deployment(), "牛奶位于一层冷藏区。", "STOP",
+                    new ModelUsage(10, 5, 15));
         }
     }
 

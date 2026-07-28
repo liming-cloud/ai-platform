@@ -65,8 +65,7 @@ public final class AssistantService {
             int tenantLimit,
             int versionLimit) {
         this.repository = Objects.requireNonNull(repository, "助手仓储不能为空");
-        this.modelConfigurations = Objects.requireNonNull(
-                modelConfigurations, "可用模型配置查询不能为空");
+        this.modelConfigurations = modelConfigurations;
         this.activeIndexes = Objects.requireNonNull(activeIndexes, "活动索引查询不能为空");
         this.clock = Objects.requireNonNull(clock, "时钟不能为空");
         this.identifiers = Objects.requireNonNull(identifiers, "标识生成器不能为空");
@@ -119,14 +118,14 @@ public final class AssistantService {
                         command.context().tenantId(),
                         AssistantId.parse(command.assistantId()))
                 .orElseThrow(AssistantNotFoundException::new);
-        var chat = modelConfigurations
+        var chat = requireModelConfigurations()
                 .find(
                         command.context(),
                         new ModelConfigurationId(parsePositiveIdentifier(
                                 command.chatModelConfigurationId(), "对话模型配置标识")),
                         ModelType.CHAT)
                 .orElseThrow(AssistantReferenceUnavailableException::new);
-        var embedding = modelConfigurations
+        var embedding = requireModelConfigurations()
                 .find(
                         command.context(),
                         new ModelConfigurationId(parsePositiveIdentifier(
@@ -337,11 +336,11 @@ public final class AssistantService {
         if (!version.usesGovernedModelConfigurations()) {
             return;
         }
-        var chat = modelConfigurations.find(
+        var chat = requireModelConfigurations().find(
                 context,
                 new ModelConfigurationId(version.governedChat().configurationId()),
                 ModelType.CHAT).orElseThrow(AssistantReferenceUnavailableException::new);
-        var embedding = modelConfigurations.find(
+        var embedding = requireModelConfigurations().find(
                 context,
                 new ModelConfigurationId(version.governedEmbedding().configurationId()),
                 ModelType.EMBEDDING).orElseThrow(AssistantReferenceUnavailableException::new);
@@ -364,6 +363,13 @@ public final class AssistantService {
                 snapshot.configurationId().value(), snapshot.configurationRevision(),
                 snapshot.catalogEntryId().value(), snapshot.catalogEntryRevision(),
                 snapshot.capabilities().outputLimit());
+    }
+
+    private UsableModelConfigurationLookup requireModelConfigurations() {
+        if (modelConfigurations == null) {
+            throw new AssistantReferenceUnavailableException();
+        }
+        return modelConfigurations;
     }
 
     private static GovernedEmbeddingModelBinding governedEmbedding(

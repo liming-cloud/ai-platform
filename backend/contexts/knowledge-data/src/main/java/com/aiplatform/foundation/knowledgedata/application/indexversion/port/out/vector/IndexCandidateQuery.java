@@ -1,5 +1,6 @@
 package com.aiplatform.foundation.knowledgedata.application.indexversion.port.out.vector;
 
+import com.aiplatform.foundation.knowledgedata.domain.indexversion.model.EmbeddingConfiguration;
 import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
 import java.util.Objects;
 
@@ -11,8 +12,7 @@ public final class IndexCandidateQuery {
     private final TenantId tenantId;
     private final long knowledgeSpaceId;
     private final Long indexVersionId;
-    private final long embeddingDeploymentId;
-    private final long embeddingRevision;
+    private final EmbeddingConfiguration embeddingConfiguration;
     private final float[] embedding;
     private final int limit;
 
@@ -27,8 +27,8 @@ public final class IndexCandidateQuery {
                 tenantId,
                 knowledgeSpaceId,
                 null,
-                embeddingDeploymentId,
-                embeddingRevision,
+                new EmbeddingConfiguration(
+                        embeddingDeploymentId, embeddingRevision, embedding.length),
                 embedding,
                 limit);
     }
@@ -44,6 +44,26 @@ public final class IndexCandidateQuery {
             long embeddingRevision,
             float[] embedding,
             int limit) {
+        this(
+                tenantId,
+                knowledgeSpaceId,
+                indexVersionId,
+                new EmbeddingConfiguration(
+                        embeddingDeploymentId, embeddingRevision, embedding.length),
+                embedding,
+                limit);
+    }
+
+    /**
+     * 创建可匹配受控嵌入配置快照的候选查询。
+     */
+    public IndexCandidateQuery(
+            TenantId tenantId,
+            long knowledgeSpaceId,
+            Long indexVersionId,
+            EmbeddingConfiguration embeddingConfiguration,
+            float[] embedding,
+            int limit) {
         this.tenantId = Objects.requireNonNull(tenantId, "租户标识不能为空");
         if (knowledgeSpaceId <= 0) {
             throw new IllegalArgumentException("知识空间标识必须是正整数");
@@ -53,14 +73,8 @@ public final class IndexCandidateQuery {
             throw new IllegalArgumentException("索引版本标识必须是正整数");
         }
         this.indexVersionId = indexVersionId;
-        if (embeddingDeploymentId <= 0) {
-            throw new IllegalArgumentException("嵌入部署标识必须是正整数");
-        }
-        this.embeddingDeploymentId = embeddingDeploymentId;
-        if (embeddingRevision < 1) {
-            throw new IllegalArgumentException("嵌入部署修订必须大于零");
-        }
-        this.embeddingRevision = embeddingRevision;
+        this.embeddingConfiguration = Objects.requireNonNull(
+                embeddingConfiguration, "嵌入配置不能为空");
         Objects.requireNonNull(embedding, "查询向量不能为空");
         if (embedding.length < 1 || embedding.length > 2000) {
             throw new IllegalArgumentException("查询向量维度超出平台范围");
@@ -71,6 +85,9 @@ public final class IndexCandidateQuery {
             }
         }
         this.embedding = embedding.clone();
+        if (this.embedding.length != embeddingConfiguration.dimension()) {
+            throw new IllegalArgumentException("查询向量维度必须与嵌入配置一致");
+        }
         if (limit < 1 || limit > 100) {
             throw new IllegalArgumentException("候选数量必须在 1 到 100 之间");
         }
@@ -90,11 +107,21 @@ public final class IndexCandidateQuery {
     }
 
     public long embeddingDeploymentId() {
-        return embeddingDeploymentId;
+        if (!embeddingConfiguration.isLegacyDeployment()) {
+            throw new IllegalStateException("受控嵌入配置没有历史部署标识");
+        }
+        return embeddingConfiguration.deploymentId();
     }
 
     public long embeddingRevision() {
-        return embeddingRevision;
+        if (!embeddingConfiguration.isLegacyDeployment()) {
+            throw new IllegalStateException("受控嵌入配置没有历史部署修订");
+        }
+        return embeddingConfiguration.deploymentRevision();
+    }
+
+    public EmbeddingConfiguration embeddingConfiguration() {
+        return embeddingConfiguration;
     }
 
     public int embeddingDimension() {

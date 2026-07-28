@@ -7,11 +7,18 @@ import com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator;
 import com.aiplatform.foundation.knowledgedata.application.indexversion.port.out.vector.IndexCandidate;
 import com.aiplatform.foundation.knowledgedata.application.indexversion.port.out.vector.IndexCandidateQuery;
 import com.aiplatform.foundation.knowledgedata.application.indexversion.port.out.vector.IndexCandidateRetriever;
+import com.aiplatform.foundation.knowledgedata.domain.indexversion.model.EmbeddingConfiguration;
+import com.aiplatform.foundation.modelruntime.application.configuration.dto.UsableModelConfigurationSnapshot;
+import com.aiplatform.foundation.modelruntime.application.configuration.facade.UsableModelConfigurationLookup;
+import com.aiplatform.foundation.modelruntime.application.runtime.facade.GovernedChatRuntime;
+import com.aiplatform.foundation.modelruntime.application.runtime.facade.GovernedEmbeddingRuntime;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.ModelRuntimeResolver;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.chat.ChatDeploymentRef;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.chat.ChatRequest;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.embedding.EmbeddingDeploymentRef;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.embedding.EmbeddingRequest;
+import com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelConfigurationId;
+import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelType;
 import com.aiplatform.foundation.security.identity.PermissionCode;
 import com.aiplatform.foundation.security.identity.TrustedRequestContext;
 import com.aiplatform.foundation.trustedquery.application.run.command.CreateQueryRunCommand;
@@ -51,6 +58,9 @@ public final class QueryRunService  {
 
     private final PublishedAssistantVersionLookup assistants;
     private final ModelRuntimeResolver models;
+    private final UsableModelConfigurationLookup modelConfigurations;
+    private final GovernedEmbeddingRuntime governedEmbeddings;
+    private final GovernedChatRuntime governedChats;
     private final IndexCandidateRetriever candidates;
     private final QueryRunRepository repository;
     private final QueryQuotaPolicy quota;
@@ -65,10 +75,29 @@ public final class QueryRunService  {
             QueryQuotaPolicy quota,
             Clock clock,
             EntityIdGenerator identifiers) {
+        this(
+                assistants, models, null, null, null, candidates, repository,
+                quota, clock, identifiers);
+    }
+
+    public QueryRunService(
+            PublishedAssistantVersionLookup assistants,
+            ModelRuntimeResolver models,
+            UsableModelConfigurationLookup modelConfigurations,
+            GovernedEmbeddingRuntime governedEmbeddings,
+            GovernedChatRuntime governedChats,
+            IndexCandidateRetriever candidates,
+            QueryRunRepository repository,
+            QueryQuotaPolicy quota,
+            Clock clock,
+            EntityIdGenerator identifiers) {
         this.assistants = Objects.requireNonNull(
                 assistants,
                 "已发布助手版本查询不能为空");
         this.models = Objects.requireNonNull(models, "模型运行时解析器不能为空");
+        this.modelConfigurations = modelConfigurations;
+        this.governedEmbeddings = governedEmbeddings;
+        this.governedChats = governedChats;
         this.candidates = Objects.requireNonNull(candidates, "候选检索器不能为空");
         this.repository = Objects.requireNonNull(repository, "查询运行仓储不能为空");
         this.quota = Objects.requireNonNull(quota, "查询配额策略不能为空");
@@ -137,6 +166,9 @@ public final class QueryRunService  {
             String question,
             PublishedAssistantVersionSnapshot assistant,
             QueryRun started) {
+        if (assistant.usesGovernedModelConfigurations()) {
+            return executeGoverned(context, question, assistant, started);
+        }
         var embeddingReference = new EmbeddingDeploymentRef(
                 assistant.embeddingDeploymentId(),
                 assistant.embeddingDeploymentRevision(),
@@ -172,6 +204,44 @@ public final class QueryRunService  {
                     clock.instant());
         }
         return generate(context, question, assistant, started, authorized);
+    }
+
+    private QueryRun executeGoverned(
+            TrustedRequestContext context,
+            String question,
+            PublishedAssistantVersionSnapshot assistant,
+            QueryRun started) {
+        var embedding = requireEmbeddingConfiguration(context, assistant);
+        var embeddingReference = new EmbeddingDeploymentRef(
+                embedding.configurationId().value(),
+                embedding.configurationRevision(),
+                embedding.capabilities().embeddingDimension());
+        var embedded = requireGovernedEmbeddings().embed(
+                context,
+                embedding,
+                new EmbeddingRequest(embeddingReference, List.of(question)));
+        if (!embeddingReference.equals(embedded.deployment())
+                || embedded.vectors().size() != 1
+                || embedded.vectors().getFirst().index() != 0) {
+            throw new IllegalStateException("查询嵌入结果不符合助手冻结配置");
+        }
+        var binding = assistant.governedEmbedding();
+        var retrieved = candidates.retrieve(new IndexCandidateQuery(
+                context.tenantId(),
+                assistant.knowledgeSpaceId(),
+                assistant.indexVersionId(),
+                EmbeddingConfiguration.governed(
+                        binding.configurationId(), binding.configurationRevision(),
+                        binding.catalogEntryId(), binding.catalogEntryRevision(),
+                        binding.dimension()),
+                embedded.vectors().getFirst().values(),
+                QueryEvidenceSelector.candidateLimit(assistant.retrievalLimit())));
+        var authorized = QueryEvidenceSelector.select(
+                question, retrieved, assistant.retrievalLimit(), assistant.minimumScore());
+        if (authorized.isEmpty()) {
+            return started.refuse(QueryRefusalReason.INSUFFICIENT_EVIDENCE, clock.instant());
+        }
+        return generateGoverned(context, question, assistant, started, authorized);
     }
 
     private QueryRun generate(
@@ -210,6 +280,95 @@ public final class QueryRunService  {
                         result.usage().outputTokens(),
                         result.usage().totalTokens()),
                 clock.instant());
+    }
+
+    private QueryRun generateGoverned(
+            TrustedRequestContext context,
+            String question,
+            PublishedAssistantVersionSnapshot assistant,
+            QueryRun started,
+            List<IndexCandidate> evidence) {
+        var chatSnapshot = requireChatConfiguration(context, assistant);
+        var deployment = new ChatDeploymentRef(
+                chatSnapshot.configurationId().value(), chatSnapshot.configurationRevision());
+        var result = requireGovernedChats().chat(
+                context,
+                chatSnapshot,
+                new ChatRequest(
+                        deployment,
+                        QueryPromptBuilder.build(assistant, question, evidence),
+                        assistant.maxOutputTokens()));
+        if (!deployment.equals(result.deployment())) {
+            throw new IllegalStateException("对话结果不符合助手冻结配置");
+        }
+        var citations = IntStream.range(0, evidence.size())
+                .mapToObj(index -> citation(index + 1, evidence.get(index)))
+                .toList();
+        var answer = requireGeneratedAnswer(result.content())
+                + "\n\n引用："
+                + IntStream.rangeClosed(1, citations.size())
+                        .mapToObj(index -> "[" + index + "]")
+                        .reduce((left, right) -> left + " " + right)
+                        .orElseThrow();
+        return started.answer(
+                answer,
+                citations,
+                new QueryModelUsage(
+                        result.usage().inputTokens(),
+                        result.usage().outputTokens(),
+                        result.usage().totalTokens()),
+                clock.instant());
+    }
+
+    private UsableModelConfigurationSnapshot requireEmbeddingConfiguration(
+            TrustedRequestContext context,
+            PublishedAssistantVersionSnapshot assistant) {
+        var binding = assistant.governedEmbedding();
+        return requireModelConfigurations().find(
+                        context,
+                        new ModelConfigurationId(binding.configurationId()),
+                        ModelType.EMBEDDING)
+                .filter(snapshot -> snapshot.configurationRevision() == binding.configurationRevision()
+                        && snapshot.catalogEntryId().value() == binding.catalogEntryId()
+                        && snapshot.catalogEntryRevision() == binding.catalogEntryRevision()
+                        && snapshot.capabilities().embeddingDimension() == binding.dimension())
+                .orElseThrow(QueryAssistantUnavailableException::new);
+    }
+
+    private UsableModelConfigurationSnapshot requireChatConfiguration(
+            TrustedRequestContext context,
+            PublishedAssistantVersionSnapshot assistant) {
+        var binding = assistant.governedChat();
+        return requireModelConfigurations().find(
+                        context,
+                        new ModelConfigurationId(binding.configurationId()),
+                        ModelType.CHAT)
+                .filter(snapshot -> snapshot.configurationRevision() == binding.configurationRevision()
+                        && snapshot.catalogEntryId().value() == binding.catalogEntryId()
+                        && snapshot.catalogEntryRevision() == binding.catalogEntryRevision()
+                        && snapshot.capabilities().outputLimit() == binding.outputLimit())
+                .orElseThrow(QueryAssistantUnavailableException::new);
+    }
+
+    private UsableModelConfigurationLookup requireModelConfigurations() {
+        if (modelConfigurations == null) {
+            throw new QueryAssistantUnavailableException();
+        }
+        return modelConfigurations;
+    }
+
+    private GovernedEmbeddingRuntime requireGovernedEmbeddings() {
+        if (governedEmbeddings == null) {
+            throw new QueryAssistantUnavailableException();
+        }
+        return governedEmbeddings;
+    }
+
+    private GovernedChatRuntime requireGovernedChats() {
+        if (governedChats == null) {
+            throw new QueryAssistantUnavailableException();
+        }
+        return governedChats;
     }
 
     private static QueryCitation citation(int sequence, IndexCandidate candidate) {

@@ -209,6 +209,15 @@ class PgVectorIndexStoreTest {
         assertEquals(governed.configurationRevision(), ((Number) row.get("embedding_configuration_revision")).longValue());
         assertEquals(governed.catalogEntryId(), ((Number) row.get("embedding_catalog_entry_id")).longValue());
         assertEquals(governed.catalogEntryRevision(), ((Number) row.get("embedding_catalog_entry_revision")).longValue());
+        var result = store.retrieve(new IndexCandidateQuery(
+                TENANT,
+                SPACE,
+                INDEX,
+                governed,
+                new float[] {1, 0, 0, 0},
+                10));
+        assertEquals(1, result.size());
+        assertEquals("受控配置向量", result.getFirst().content());
     }
 
     private static IndexVectorBatch batch(

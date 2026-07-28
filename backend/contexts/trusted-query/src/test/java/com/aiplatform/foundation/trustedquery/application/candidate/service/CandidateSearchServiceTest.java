@@ -10,9 +10,16 @@ import com.aiplatform.foundation.knowledgedata.application.indexversion.facade.A
 import com.aiplatform.foundation.knowledgedata.application.indexversion.port.out.vector.IndexCandidate;
 import com.aiplatform.foundation.knowledgedata.application.indexversion.port.out.vector.IndexCandidateQuery;
 import com.aiplatform.foundation.knowledgedata.application.indexversion.dto.ActiveIndexSnapshot;
+import com.aiplatform.foundation.knowledgedata.domain.indexversion.model.EmbeddingConfiguration;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.ChatModelPort;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.EmbeddingModelPort;
+import com.aiplatform.foundation.modelruntime.application.runtime.facade.GovernedEmbeddingRuntime;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.ModelRuntimeResolver;
+import com.aiplatform.foundation.modelruntime.application.configuration.dto.UsableModelConfigurationSnapshot;
+import com.aiplatform.foundation.modelruntime.application.configuration.facade.UsableModelConfigurationLookup;
+import com.aiplatform.foundation.modelruntime.domain.configuration.model.ControlledModelCatalogEntryId;
+import com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelRuntimeCapabilities;
+import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelType;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.embedding.EmbeddingBatch;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.embedding.EmbeddingDeploymentRef;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.embedding.EmbeddingVector;
@@ -89,6 +96,49 @@ class CandidateSearchServiceTest {
     }
 
     @Test
+    void 受控活动索引必须重验嵌入配置且按配置快照检索() {
+        var retriever = new RecordingRetriever();
+        var configurationId = 320000000000000002L;
+        var index = (ActiveIndexLookup) (tenantId, knowledgeSpaceId) -> Optional.of(
+                new ActiveIndexSnapshot(
+                        SPACE, INDEX, 2,
+                        EmbeddingConfiguration.governed(
+                                configurationId, 3, 310000000000000001L, 4, 4)));
+        UsableModelConfigurationLookup configurations = (context, id, type) -> Optional.of(
+                new UsableModelConfigurationSnapshot(
+                        id, 3, new ControlledModelCatalogEntryId(310000000000000001L), 4,
+                        ModelType.EMBEDDING, ModelRuntimeCapabilities.embedding(8192, 4)));
+        GovernedEmbeddingRuntime embeddings = new GovernedEmbeddingRuntime() {
+            @Override
+            public EmbeddingBatch embed(
+                    TrustedRequestContext context,
+                    UsableModelConfigurationSnapshot expected,
+                    com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.embedding.EmbeddingRequest request) {
+                return new EmbeddingBatch(request.deployment(),
+                        List.of(new EmbeddingVector(0, new float[] {1, 0, 0, 0})));
+            }
+
+            @Override
+            public EmbeddingBatch embed(
+                    com.aiplatform.foundation.modelruntime.application.configuration.dto.ModelConfigurationUsageContext context,
+                    UsableModelConfigurationSnapshot expected,
+                    com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.embedding.EmbeddingRequest request) {
+                throw new UnsupportedOperationException();
+            }
+        };
+        var service = new CandidateSearchService(
+                knowledgeSpace(true), index, models(request -> {
+                    throw new AssertionError("受控索引不得回退到旧部署运行时");
+                }), configurations, embeddings, retriever);
+
+        service.search(new CandidateSearchQuery(
+                context("knowledge:read"), Long.toString(SPACE), "一层有什么商品", 5));
+
+        assertEquals(configurationId, retriever.query.embeddingConfiguration().configurationId());
+        assertEquals(3, retriever.query.embeddingConfiguration().configurationRevision());
+    }
+
+    @Test
     void 当前租户不可见的知识空间必须按资源不存在处理且不调用模型() {
         var retriever = new RecordingRetriever();
         var service = new CandidateSearchService(
@@ -122,9 +172,10 @@ class CandidateSearchServiceTest {
                                 SPACE,
                                 INDEX,
                                 2,
-                                DEPLOYMENT.deploymentId(),
-                                DEPLOYMENT.revision(),
-                                DEPLOYMENT.dimension()))
+                                new EmbeddingConfiguration(
+                                        DEPLOYMENT.deploymentId(),
+                                        DEPLOYMENT.revision(),
+                                        DEPLOYMENT.dimension())))
                         : Optional.empty();
     }
 

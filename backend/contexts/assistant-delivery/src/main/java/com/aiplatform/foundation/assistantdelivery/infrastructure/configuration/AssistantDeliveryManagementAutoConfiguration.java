@@ -11,6 +11,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
+import org.springframework.beans.factory.ObjectProvider;
 
 /**
  * 仅为控制面注册助手管理应用服务。
@@ -32,13 +33,13 @@ public class AssistantDeliveryManagementAutoConfiguration {
     @ConditionalOnMissingBean
     AssistantService assistantService(
             AssistantRepository repository,
-            UsableModelConfigurationLookup modelConfigurations,
+            ObjectProvider<UsableModelConfigurationLookup> modelConfigurations,
             ActiveIndexLookup activeIndexes,
             EntityIdGenerator identifiers,
             AssistantDeliveryProperties properties) {
         return new AssistantService(
                 repository,
-                modelConfigurations,
+                modelConfigurations.getIfAvailable(),
                 activeIndexes,
                 Clock.systemUTC(),
                 identifiers,
