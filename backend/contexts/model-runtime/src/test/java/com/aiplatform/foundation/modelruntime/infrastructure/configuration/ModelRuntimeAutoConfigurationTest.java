@@ -23,6 +23,7 @@ import com.aiplatform.foundation.modelruntime.interfaces.web.deployment.controll
 import com.aiplatform.foundation.modelruntime.interfaces.web.provider.controller.ProviderConnectionController;
 import com.aiplatform.foundation.security.egress.OutboundEndpointPolicy;
 import com.aiplatform.foundation.security.secret.SecretResolver;
+import com.aiplatform.foundation.security.secret.SecretEncryptionKeyProvider;
 import com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.junit.jupiter.api.Test;
@@ -157,6 +158,25 @@ class ModelRuntimeAutoConfigurationTest {
                     assertThat(context).hasSingleBean(ProviderConnectionRepository.class);
                     assertThat(context).hasSingleBean(ModelDeploymentRepository.class);
                     assertThat(context).hasSingleBean(ModelConfigurationRepository.class);
+                });
+    }
+
+    @Test
+    void 本地研发密钥提供者必须显式选择版本才装配() {
+        new ApplicationContextRunner()
+                .withConfiguration(AutoConfigurations.of(
+                        ModelRuntimeCredentialAutoConfiguration.class))
+                .run(context -> assertThat(context)
+                        .doesNotHaveBean(SecretEncryptionKeyProvider.class));
+
+        new ApplicationContextRunner()
+                .withConfiguration(AutoConfigurations.of(
+                        ModelRuntimeCredentialAutoConfiguration.class))
+                .withPropertyValues(
+                        "foundation.model-credentials.local-development-key-version=DEV_V1")
+                .run(context -> {
+                    assertThat(context).hasNotFailed();
+                    assertThat(context).hasSingleBean(SecretEncryptionKeyProvider.class);
                 });
     }
 }
