@@ -9,6 +9,7 @@ import com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelCo
 import com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelConfigurationId;
 import com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelRuntimeCapabilities;
 import com.aiplatform.foundation.modelruntime.domain.configuration.repository.ModelConfigurationRepository;
+import com.aiplatform.foundation.modelruntime.domain.configuration.repository.ControlledModelCatalogPage;
 import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelType;
 import com.aiplatform.foundation.modelruntime.domain.provider.model.ProviderKind;
 import com.aiplatform.foundation.security.identity.AccessChannel;
@@ -18,6 +19,7 @@ import com.aiplatform.foundation.security.identity.PermissionCode;
 import com.aiplatform.foundation.security.identity.SubjectId;
 import com.aiplatform.foundation.security.identity.TrustedRequestContext;
 import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
+import com.aiplatform.foundation.shared.contract.paging.PageQuery;
 import java.net.URI;
 import java.time.Clock;
 import java.time.Instant;
@@ -27,6 +29,27 @@ import java.util.Set;
 import org.junit.jupiter.api.Test;
 
 class ControlledModelCatalogServiceTest {
+
+    @Test
+    void 已发布目录可供有模型配置权限的成员分页选择且不返回草稿() {
+        var repository = new InMemoryRepository();
+        var service = new ControlledModelCatalogService(
+                repository,
+                () -> 3001L,
+                Clock.fixed(Instant.parse("2026-07-28T00:00:00Z"), ZoneOffset.UTC));
+        var draft = service.create(
+                context("model-platform:write"), ProviderKind.OPENAI_COMPATIBLE,
+                URI.create("https://example.com/v1"), "qwen-plus", ModelType.CHAT,
+                ModelRuntimeCapabilities.chat(32_768, 4_096));
+        service.publish(context("model-platform:write"), draft.id());
+
+        var page = service.listPublished(
+                context("model-personal:write"), new PageQuery(1, 20));
+
+        assertEquals(1, page.items().size());
+        assertEquals("PUBLISHED", page.items().getFirst().status().name());
+        assertEquals(draft.id(), page.items().getFirst().id());
+    }
 
     @Test
     void 只有平台权限可创建并发布受控目录条目() {
@@ -68,6 +91,15 @@ class ControlledModelCatalogServiceTest {
         @Override
         public Optional<ControlledModelCatalogEntry> findCatalogEntry(ControlledModelCatalogEntryId id) {
             return entry != null && entry.id().equals(id) ? Optional.of(entry) : Optional.empty();
+        }
+
+        @Override
+        public ControlledModelCatalogPage findPublishedCatalogPage(
+                long pageNumber, long pageSize) {
+            var entries = entry != null && entry.status().name().equals("PUBLISHED")
+                    ? java.util.List.of(entry) : java.util.List.<ControlledModelCatalogEntry>of();
+            return new ControlledModelCatalogPage(
+                    entries, pageNumber, pageSize, entries.size());
         }
 
         @Override

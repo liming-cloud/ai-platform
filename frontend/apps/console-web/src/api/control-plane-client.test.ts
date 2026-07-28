@@ -227,6 +227,69 @@ describe("ControlPlaneClient", () => {
     );
   });
 
+  it("从已发布目录创建模型配置时仅在写入请求中提交凭据", async () => {
+    const requests: Request[] = [];
+    const responses = [
+      new Response(JSON.stringify({
+        items: [{
+          id: "330000000000000001",
+          providerKind: "OPENAI_COMPATIBLE",
+          endpoint: "https://example.com/v1",
+          modelCode: "qwen-plus",
+          modelType: "CHAT",
+          contextWindow: 32768,
+          outputLimit: 4096,
+          embeddingDimension: null,
+          status: "PUBLISHED",
+          version: 1,
+          createdAt: "2026-07-28T00:00:00Z",
+        }],
+        pageNumber: 1,
+        pageSize: 20,
+        totalElements: 1,
+        totalPages: 1,
+        hasPrevious: false,
+        hasNext: false,
+      }), { status: 200, headers: { "Content-Type": "application/json" } }),
+      new Response(JSON.stringify({
+        id: "320000000000000001",
+        scope: "PERSONAL",
+        displayName: "我的对话模型",
+        catalogEntryId: "330000000000000001",
+        modelType: "CHAT",
+        status: "DRAFT",
+        version: 0,
+        credentialConfigured: true,
+        createdAt: "2026-07-28T00:00:00Z",
+      }), { status: 201, headers: { "Content-Type": "application/json" } }),
+    ];
+    const client = authenticatedClient(async (input, init) => {
+      requests.push(new Request(input, init));
+      return responses.shift() ?? new Response(null, { status: 500 });
+    });
+
+    const catalog = await client.listControlledModelCatalog();
+    const created = await client.createModelConfiguration({
+      scope: "PERSONAL",
+      displayName: "我的对话模型",
+      catalogEntryId: catalog.items[0]!.id,
+      apiKey: "test-api-key",
+    });
+
+    expect(requests[0]?.method).toBe("GET");
+    expect(requests[0]?.url).toContain("/controlled-model-catalog?pageNumber=1&pageSize=20");
+    expect(requests[1]?.method).toBe("POST");
+    expect(await requests[1]?.json()).toEqual({
+      scope: "PERSONAL",
+      displayName: "我的对话模型",
+      catalogEntryId: "330000000000000001",
+      apiKey: "test-api-key",
+    });
+    expect(JSON.stringify(created)).not.toMatch(
+      /api.?key|ciphertext|nonce|fingerprint/i,
+    );
+  });
+
   it("按租户会话读取用量和脱敏审计分页", async () => {
     const requests: Request[] = [];
     const responses = [

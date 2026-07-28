@@ -6,13 +6,17 @@ import com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelRu
 import com.aiplatform.foundation.modelruntime.interfaces.web.configuration.request.ControlledModelCatalogEntryCreateRequest;
 import com.aiplatform.foundation.modelruntime.interfaces.web.configuration.view.ControlledModelCatalogEntryView;
 import com.aiplatform.foundation.security.identity.TrustedRequestContext;
+import com.aiplatform.foundation.shared.contract.paging.PageQuery;
+import com.aiplatform.foundation.shared.contract.paging.PageResult;
 import java.util.Objects;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
@@ -47,5 +51,23 @@ public class ControlledModelCatalogController {
             TrustedRequestContext context, @PathVariable long entryId) {
         return ControlledModelCatalogEntryView.from(catalog.publish(
                 context, new ControlledModelCatalogEntryId(entryId)));
+    }
+
+    /**
+     * 返回配置者可选择的已发布目录，不返回草稿、凭据或配置所有权信息。
+     */
+    @GetMapping
+    public PageResult<ControlledModelCatalogEntryView> list(
+            TrustedRequestContext context,
+            @RequestParam(defaultValue = "1") long pageNumber,
+            @RequestParam(defaultValue = "20") long pageSize) {
+        var query = new PageQuery(pageNumber, pageSize);
+        var page = catalog.listPublished(context, query);
+        return PageResult.of(
+                page.items().stream()
+                        .map(ControlledModelCatalogEntryView::from)
+                        .toList(),
+                query,
+                page.totalElements());
     }
 }

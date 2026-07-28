@@ -85,6 +85,24 @@ class PostgresModelConfigurationRepositoryTest {
     }
 
     @Test
+    void 分页选择目录只返回已发布条目() {
+        jdbc.update("""
+                INSERT INTO model_runtime.controlled_model_catalog_entry
+                (id, provider_kind, endpoint, model_code, model_type, context_window, output_limit,
+                 embedding_dimension, status, version, created_at)
+                VALUES (3004, 'OPENAI_COMPATIBLE', 'https://example.com/v1', 'draft-chat', 'CHAT', 32768, 4096,
+                        NULL, 'DRAFT', 0, ?)
+                """, Timestamp.from(Instant.parse("2026-07-28T00:00:01Z")));
+
+        var page = repository.findPublishedCatalogPage(1, 20);
+
+        assertEquals(1, page.totalElements());
+        assertEquals(java.util.List.of(3001L), page.items().stream()
+                .map(value -> value.id().value())
+                .toList());
+    }
+
+    @Test
     void 保存并发布受控目录条目时使用乐观版本更新() {
         var draft = ControlledModelCatalogEntry.create(
                 new ControlledModelCatalogEntryId(3002L),

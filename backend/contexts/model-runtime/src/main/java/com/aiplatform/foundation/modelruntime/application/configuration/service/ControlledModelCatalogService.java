@@ -6,6 +6,8 @@ import com.aiplatform.foundation.modelruntime.domain.configuration.model.Control
 import com.aiplatform.foundation.modelruntime.domain.configuration.model.ControlledModelCatalogEntryId;
 import com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelRuntimeCapabilities;
 import com.aiplatform.foundation.modelruntime.domain.configuration.repository.ModelConfigurationRepository;
+import com.aiplatform.foundation.shared.contract.paging.PageQuery;
+import com.aiplatform.foundation.shared.contract.paging.PageResult;
 import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelType;
 import com.aiplatform.foundation.modelruntime.domain.provider.model.ProviderKind;
 import com.aiplatform.foundation.security.identity.PermissionCode;
@@ -63,6 +65,18 @@ public final class ControlledModelCatalogService {
                 .publish();
         repository.updateCatalogEntry(published);
         return published;
+    }
+
+    /**
+     * 向已认证成员提供可选的已发布目录分页，不暴露草稿条目或任何凭据材料。
+     */
+    public PageResult<ControlledModelCatalogEntry> listPublished(
+            TrustedRequestContext context, PageQuery page) {
+        Objects.requireNonNull(context, "可信请求上下文不能为空");
+        Objects.requireNonNull(page, "分页请求不能为空");
+        var result = repository.findPublishedCatalogPage(
+                page.pageNumber(), page.pageSize());
+        return PageResult.of(result.items(), page, result.totalElements());
     }
 
     private static void requirePlatformWrite(TrustedRequestContext context) {

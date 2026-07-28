@@ -73,6 +73,21 @@ export interface ModelConfiguration {
   createdAt: string;
 }
 
+/** 平台发布后可由成员选择的模型目录事实，不包含凭据或配置所有权。 */
+export interface ControlledModelCatalogEntry {
+  id: string;
+  providerKind: string;
+  endpoint: string;
+  modelCode: string;
+  modelType: "CHAT" | "EMBEDDING";
+  contextWindow: number;
+  outputLimit: number | null;
+  embeddingDimension: number | null;
+  status: "PUBLISHED";
+  version: number;
+  createdAt: string;
+}
+
 export interface QueryUsage {
   from: string;
   to: string;
@@ -294,6 +309,57 @@ export class ControlPlaneClient {
   ): Promise<PageResult<ModelConfiguration>> {
     return this.request<PageResult<ModelConfiguration>>(
       `/model-configurations?pageNumber=${pageNumber}&pageSize=${pageSize}`,
+    );
+  }
+
+  async listControlledModelCatalog(
+    pageNumber = 1,
+    pageSize = 20,
+  ): Promise<PageResult<ControlledModelCatalogEntry>> {
+    return this.request<PageResult<ControlledModelCatalogEntry>>(
+      `/controlled-model-catalog?pageNumber=${pageNumber}&pageSize=${pageSize}`,
+    );
+  }
+
+  /**
+   * API Key 只存在于本次写请求；响应契约只返回安全配置状态。
+   */
+  async createModelConfiguration(input: {
+    scope: ModelConfiguration["scope"];
+    displayName: string;
+    catalogEntryId: string;
+    apiKey: string;
+  }, idempotencyKey?: string): Promise<ModelConfiguration> {
+    return this.request<ModelConfiguration>("/model-configurations", {
+      method: "POST",
+      headers: this.writeHeaders("application/json", idempotencyKey),
+      body: JSON.stringify(input),
+    });
+  }
+
+  async activateModelConfiguration(
+    modelConfigurationId: string,
+  ): Promise<ModelConfiguration> {
+    return this.request<ModelConfiguration>(
+      `/model-configurations/${encodeURIComponent(modelConfigurationId)}/activate`,
+      { method: "POST" },
+    );
+  }
+
+  /**
+   * 轮换请求不读取既有 API Key，调用完成后页面必须清空输入值。
+   */
+  async rotateModelConfigurationCredential(
+    modelConfigurationId: string,
+    apiKey: string,
+  ): Promise<ModelConfiguration> {
+    return this.request<ModelConfiguration>(
+      `/model-configurations/${encodeURIComponent(modelConfigurationId)}/credential`,
+      {
+        method: "POST",
+        headers: this.writeHeaders("application/json"),
+        body: JSON.stringify({ apiKey }),
+      },
     );
   }
 

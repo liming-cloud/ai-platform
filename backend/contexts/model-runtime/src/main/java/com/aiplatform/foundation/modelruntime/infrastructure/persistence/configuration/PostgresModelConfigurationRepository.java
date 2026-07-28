@@ -9,6 +9,7 @@ import com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelCo
 import com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelConfigurationScope;
 import com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelConfigurationStatus;
 import com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelRuntimeCapabilities;
+import com.aiplatform.foundation.modelruntime.domain.configuration.repository.ControlledModelCatalogPage;
 import com.aiplatform.foundation.modelruntime.domain.configuration.repository.ModelConfigurationRepository;
 import com.aiplatform.foundation.modelruntime.domain.configuration.repository.ModelConfigurationPage;
 import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelType;
@@ -39,17 +40,31 @@ public final class PostgresModelConfigurationRepository implements ModelConfigur
     @Override
     public Optional<ControlledModelCatalogEntry> findCatalogEntry(ControlledModelCatalogEntryId id) {
         Objects.requireNonNull(id, "受控模型目录条目标识不能为空");
-        return Optional.ofNullable(catalogMapper.selectById(id.value())).map(row ->
-                ControlledModelCatalogEntry.reconstitute(
-                        new ControlledModelCatalogEntryId(row.getId()),
-                        ProviderKind.valueOf(row.getProviderKind()),
-                        URI.create(row.getEndpoint()),
-                        row.getModelCode(),
-                        ModelType.valueOf(row.getModelType()),
-                        requireCapabilities(row),
-                        ControlledModelCatalogEntryStatus.valueOf(row.getStatus()),
-                        row.getVersion(),
-                        row.getCreatedAt()));
+        return Optional.ofNullable(catalogMapper.selectById(id.value()))
+                .map(PostgresModelConfigurationRepository::toCatalogDomain);
+    }
+
+    @Override
+    public ControlledModelCatalogPage findPublishedCatalogPage(
+            long pageNumber, long pageSize) {
+        if (pageNumber < 1 || pageSize < 1) {
+            throw new IllegalArgumentException("受控模型目录分页参数必须为正整数");
+        }
+        var offset = Math.multiplyExact(pageNumber - 1, pageSize);
+        var query = Wrappers.<ControlledModelCatalogEntryEntity>lambdaQuery()
+                .eq(ControlledModelCatalogEntryEntity::getStatus,
+                        ControlledModelCatalogEntryStatus.PUBLISHED.name())
+                .orderByDesc(ControlledModelCatalogEntryEntity::getCreatedAt)
+                .orderByDesc(ControlledModelCatalogEntryEntity::getId)
+                .last("LIMIT " + pageSize + " OFFSET " + offset);
+        var items = catalogMapper.selectList(query).stream()
+                .map(PostgresModelConfigurationRepository::toCatalogDomain)
+                .toList();
+        var total = catalogMapper.selectCount(Wrappers
+                .<ControlledModelCatalogEntryEntity>lambdaQuery()
+                .eq(ControlledModelCatalogEntryEntity::getStatus,
+                        ControlledModelCatalogEntryStatus.PUBLISHED.name()));
+        return new ControlledModelCatalogPage(items, pageNumber, pageSize, total);
     }
 
     @Override
@@ -136,6 +151,20 @@ public final class PostgresModelConfigurationRepository implements ModelConfigur
         }
         return new ModelRuntimeCapabilities(
                 row.getContextWindow(), row.getOutputLimit(), row.getEmbeddingDimension());
+    }
+
+    private static ControlledModelCatalogEntry toCatalogDomain(
+            ControlledModelCatalogEntryEntity row) {
+        return ControlledModelCatalogEntry.reconstitute(
+                new ControlledModelCatalogEntryId(row.getId()),
+                ProviderKind.valueOf(row.getProviderKind()),
+                URI.create(row.getEndpoint()),
+                row.getModelCode(),
+                ModelType.valueOf(row.getModelType()),
+                requireCapabilities(row),
+                ControlledModelCatalogEntryStatus.valueOf(row.getStatus()),
+                row.getVersion(),
+                row.getCreatedAt());
     }
 
     private static ModelConfiguration toDomain(ModelConfigurationEntity row) {

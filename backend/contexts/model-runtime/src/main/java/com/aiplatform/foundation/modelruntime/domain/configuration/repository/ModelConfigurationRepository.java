@@ -15,6 +15,14 @@ public interface ModelConfigurationRepository {
 
     Optional<ControlledModelCatalogEntry> findCatalogEntry(ControlledModelCatalogEntryId id);
 
+    /**
+     * 返回可由配置者选择的已发布目录条目，草稿和其他非发布状态不得暴露。
+     */
+    default ControlledModelCatalogPage findPublishedCatalogPage(
+            long pageNumber, long pageSize) {
+        throw new UnsupportedOperationException("当前模型配置仓储不支持已发布目录分页读取");
+    }
+
     void saveCatalogEntry(ControlledModelCatalogEntry entry);
 
     void updateCatalogEntry(ControlledModelCatalogEntry entry);

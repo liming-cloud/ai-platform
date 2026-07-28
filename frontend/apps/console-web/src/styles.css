@@ -271,6 +271,62 @@
   border-top: 1px solid var(--colorNeutralStroke2);
 }
 
+.model-configuration-workspace,
+.model-configuration-section,
+.model-configuration-list,
+.model-configuration-card,
+.credential-rotation-form {
+  display: grid;
+}
+
+.model-configuration-workspace {
+  gap: 2rem;
+}
+
+.model-configuration-section {
+  gap: 1.25rem;
+  padding-top: 1.75rem;
+  border-top: 1px solid var(--colorNeutralStroke1);
+}
+
+.model-configuration-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  max-width: 48rem;
+}
+
+.model-configuration-form > button {
+  justify-self: start;
+}
+
+.model-configuration-list {
+  gap: 0.75rem;
+}
+
+.model-configuration-card {
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 1rem;
+  align-items: center;
+  padding: 1rem 0;
+  border-bottom: 1px solid var(--colorNeutralStroke2);
+}
+
+.model-configuration-card > div:first-child,
+.model-configuration-status {
+  display: grid;
+  gap: 0.375rem;
+}
+
+.model-configuration-card > div:last-child {
+  grid-column: 1 / -1;
+}
+
+.credential-rotation-form {
+  grid-template-columns: minmax(12rem, 1fr) auto;
+  gap: 0.5rem;
+}
+
 @media (max-width: 800px) {
   .publication-layout {
     grid-template-columns: minmax(0, 1fr);
@@ -304,6 +360,19 @@
   }
 
   .quota-list {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .model-configuration-form,
+  .model-configuration-card {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .model-configuration-card > div:last-child {
+    grid-column: auto;
+  }
+
+  .credential-rotation-form {
     grid-template-columns: minmax(0, 1fr);
   }
 }
