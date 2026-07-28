@@ -99,6 +99,7 @@ latestEvidence:
   - project/evidence/WP-0010-assistant-governed-model-bindings.md
   - project/evidence/WP-0010-governed-chat-runtime.md
   - project/evidence/WP-0010-governed-query-runtime.md
+  - project/evidence/WP-0010-real-model-runtime-assembly.md
 nextReviewAt: 2026-08-03
-updatedAt: 2026-07-28T11:30:00+08:00
+updatedAt: 2026-07-28T11:35:00+08:00
 updatedBy: codex
