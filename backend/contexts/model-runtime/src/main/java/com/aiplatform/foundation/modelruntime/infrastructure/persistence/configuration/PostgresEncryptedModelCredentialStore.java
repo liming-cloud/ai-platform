@@ -1,6 +1,7 @@
 package com.aiplatform.foundation.modelruntime.infrastructure.persistence.configuration;
 
 import com.aiplatform.foundation.modelruntime.application.configuration.port.out.ModelConfigurationCredentialWriter;
+import com.aiplatform.foundation.modelruntime.application.configuration.port.out.ModelConfigurationCredentialInspector;
 import com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelConfigurationId;
 import com.aiplatform.foundation.security.secret.AesGcmSecretCipher;
 import com.aiplatform.foundation.security.secret.SecretEncryptionKeyProvider;
@@ -17,7 +18,8 @@ import java.util.function.Function;
 /**
  * 将模型 API Key 作为信封密文保存，并仅以短生命周期秘密回调形式读取。
  */
-public final class PostgresEncryptedModelCredentialStore implements ModelConfigurationCredentialWriter {
+public final class PostgresEncryptedModelCredentialStore
+        implements ModelConfigurationCredentialWriter, ModelConfigurationCredentialInspector {
 
     private final ModelConfigurationCredentialMapper mapper;
     private final SecretEncryptionKeyProvider keyProvider;
@@ -80,6 +82,12 @@ public final class PostgresEncryptedModelCredentialStore implements ModelConfigu
         try (var secret = cipher.decrypt(encrypted, keyProvider)) {
             return action.apply(secret);
         }
+    }
+
+    @Override
+    public boolean isConfigured(ModelConfigurationId configurationId) {
+        return mapper.existsByConfigurationId(
+                Objects.requireNonNull(configurationId, "模型配置标识不能为空").value());
     }
 
     private static String fingerprint(SecretValue value) {

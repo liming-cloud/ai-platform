@@ -85,6 +85,17 @@ class PostgresEncryptedModelCredentialStoreTest {
                 new ModelConfigurationId(4001L), value -> value.use(String::new)));
     }
 
+    @Test
+    void 凭据状态查询不读取或返回密文材料() {
+        var configurationId = new ModelConfigurationId(4001L);
+        try (var secret = SecretValue.copyOf("model-api-key".toCharArray())) {
+            credentials.rotate(configurationId, secret);
+        }
+
+        assertEquals(true, credentials.isConfigured(configurationId));
+        assertEquals(false, credentials.isConfigured(new ModelConfigurationId(4002L)));
+    }
+
     @SpringBootConfiguration
     @EnableAutoConfiguration
     @MapperScan("com.aiplatform.foundation.modelruntime.infrastructure.persistence.configuration")

@@ -21,6 +21,8 @@ public interface ModelConfigurationCredentialMapper {
 
     CredentialRow findByConfigurationId(@Param("modelConfigurationId") long modelConfigurationId);
 
+    boolean existsByConfigurationId(@Param("modelConfigurationId") long modelConfigurationId);
+
     record CredentialRow(
             String algorithm,
             String masterKeyVersion,

@@ -78,6 +78,15 @@ public final class ModelConfigurationService {
         return active;
     }
 
+    /**
+     * 判断可信主体能否维护配置；此判断不授予凭据读取能力。
+     */
+    public boolean mayManage(TrustedRequestContext context, ModelConfiguration configuration) {
+        Objects.requireNonNull(context, "可信请求上下文不能为空");
+        Objects.requireNonNull(configuration, "模型配置不能为空");
+        return canManage(context, configuration);
+    }
+
     private ModelConfiguration createPlatform(
             TrustedRequestContext context,
             String displayName,

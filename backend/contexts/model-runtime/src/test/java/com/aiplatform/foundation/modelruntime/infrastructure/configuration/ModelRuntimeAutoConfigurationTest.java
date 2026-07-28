@@ -10,6 +10,9 @@ import com.aiplatform.foundation.modelruntime.application.configuration.service.
 import com.aiplatform.foundation.modelruntime.application.configuration.service.ModelConfigurationCredentialService;
 import com.aiplatform.foundation.modelruntime.application.configuration.service.ControlledModelCatalogService;
 import com.aiplatform.foundation.modelruntime.application.configuration.service.ModelConfigurationAccessService;
+import com.aiplatform.foundation.modelruntime.application.configuration.service.ModelConfigurationReadService;
+import com.aiplatform.foundation.modelruntime.application.configuration.port.out.ModelConfigurationCredentialInspector;
+import com.aiplatform.foundation.modelruntime.application.configuration.port.out.ModelConfigurationCredentialWriter;
 import com.aiplatform.foundation.modelruntime.application.probe.service.ProbeProviderService;
 import com.aiplatform.foundation.modelruntime.application.provider.service.ProviderConnectionService;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.ModelRuntimeResolver;
@@ -29,6 +32,7 @@ import com.aiplatform.foundation.modelruntime.interfaces.web.configuration.contr
 import com.aiplatform.foundation.modelruntime.interfaces.web.configuration.controller.ControlledModelCatalogController;
 import com.aiplatform.foundation.modelruntime.interfaces.web.configuration.controller.ModelConfigurationAccessController;
 import com.aiplatform.foundation.modelruntime.interfaces.web.configuration.controller.ModelConfigurationLifecycleController;
+import com.aiplatform.foundation.modelruntime.interfaces.web.configuration.controller.ModelConfigurationReadController;
 import com.aiplatform.foundation.modelruntime.interfaces.web.provider.controller.ProviderConnectionController;
 import com.aiplatform.foundation.security.egress.OutboundEndpointPolicy;
 import com.aiplatform.foundation.security.secret.SecretResolver;
@@ -115,6 +119,9 @@ class ModelRuntimeAutoConfigurationTest {
                 .withBean(
                         ModelConfigurationAccessService.class,
                         () -> mock(ModelConfigurationAccessService.class))
+                .withBean(
+                        ModelConfigurationReadService.class,
+                        () -> mock(ModelConfigurationReadService.class))
                 .run(context -> {
                     assertThat(context).hasNotFailed();
                     assertThat(context).hasSingleBean(ProviderConnectionController.class);
@@ -123,6 +130,7 @@ class ModelRuntimeAutoConfigurationTest {
                     assertThat(context).hasSingleBean(ControlledModelCatalogController.class);
                     assertThat(context).hasSingleBean(ModelConfigurationAccessController.class);
                     assertThat(context).hasSingleBean(ModelConfigurationLifecycleController.class);
+                    assertThat(context).hasSingleBean(ModelConfigurationReadController.class);
                 });
     }
 
@@ -180,6 +188,9 @@ class ModelRuntimeAutoConfigurationTest {
                         ModelConfigurationAccessMapper.class,
                         () -> mock(ModelConfigurationAccessMapper.class))
                 .withBean(
+                        SecretEncryptionKeyProvider.class,
+                        () -> mock(SecretEncryptionKeyProvider.class))
+                .withBean(
                         PlatformTransactionManager.class,
                         () -> mock(PlatformTransactionManager.class))
                 .withBean(
@@ -191,6 +202,8 @@ class ModelRuntimeAutoConfigurationTest {
                     assertThat(context).hasSingleBean(ModelDeploymentRepository.class);
                     assertThat(context).hasSingleBean(ModelConfigurationRepository.class);
                     assertThat(context).hasSingleBean(ModelConfigurationAccessRepository.class);
+                    assertThat(context).hasSingleBean(ModelConfigurationCredentialWriter.class);
+                    assertThat(context).hasSingleBean(ModelConfigurationCredentialInspector.class);
                 });
     }
 

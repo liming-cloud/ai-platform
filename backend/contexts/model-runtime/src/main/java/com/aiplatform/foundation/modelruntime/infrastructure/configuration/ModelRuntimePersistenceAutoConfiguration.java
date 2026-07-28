@@ -92,8 +92,8 @@ public class ModelRuntimePersistenceAutoConfiguration {
 
     @Bean
     @ConditionalOnBean(SecretEncryptionKeyProvider.class)
-    @ConditionalOnMissingBean
-    ModelConfigurationCredentialWriter modelConfigurationCredentialWriter(
+    @ConditionalOnMissingBean(ModelConfigurationCredentialWriter.class)
+    PostgresEncryptedModelCredentialStore modelConfigurationCredentialWriter(
             ModelConfigurationCredentialMapper mapper,
             SecretEncryptionKeyProvider keyProvider) {
         return new PostgresEncryptedModelCredentialStore(mapper, keyProvider);

@@ -1,6 +1,7 @@
 package com.aiplatform.foundation.modelruntime.interfaces.web.configuration.view;
 
 import com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelConfiguration;
+import com.aiplatform.foundation.modelruntime.application.configuration.service.ModelConfigurationReadResult;
 import java.time.Instant;
 
 /**
@@ -17,6 +18,11 @@ public record ModelConfigurationView(
         Instant createdAt) {
 
     public static ModelConfigurationView created(ModelConfiguration configuration) {
+        return from(new ModelConfigurationReadResult(configuration, true));
+    }
+
+    public static ModelConfigurationView from(ModelConfigurationReadResult result) {
+        var configuration = result.configuration();
         return new ModelConfigurationView(
                 configuration.id().toString(),
                 configuration.scope().name(),
@@ -24,7 +30,7 @@ public record ModelConfigurationView(
                 configuration.catalogEntryId().toString(),
                 configuration.status().name(),
                 configuration.version(),
-                true,
+                result.credentialConfigured(),
                 configuration.createdAt());
     }
 }
