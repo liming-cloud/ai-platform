@@ -26,7 +26,15 @@ public class IndexVersionEntity {
     @TableField("embedding_deployment_id")
     private Long embeddingDeploymentId;
     @TableField("embedding_deployment_revision")
-    private long embeddingDeploymentRevision;
+    private Long embeddingDeploymentRevision;
+    @TableField("embedding_configuration_id")
+    private Long embeddingConfigurationId;
+    @TableField("embedding_configuration_revision")
+    private Long embeddingConfigurationRevision;
+    @TableField("embedding_catalog_entry_id")
+    private Long embeddingCatalogEntryId;
+    @TableField("embedding_catalog_entry_revision")
+    private Long embeddingCatalogEntryRevision;
     @TableField("embedding_dimension")
     private int embeddingDimension;
     @TableField("status")
@@ -63,8 +71,16 @@ public class IndexVersionEntity {
     public void setChunkPolicy(String chunkPolicy) { this.chunkPolicy = chunkPolicy; }
     public Long getEmbeddingDeploymentId() { return embeddingDeploymentId; }
     public void setEmbeddingDeploymentId(Long value) { embeddingDeploymentId = value; }
-    public long getEmbeddingDeploymentRevision() { return embeddingDeploymentRevision; }
-    public void setEmbeddingDeploymentRevision(long value) { embeddingDeploymentRevision = value; }
+    public Long getEmbeddingDeploymentRevision() { return embeddingDeploymentRevision; }
+    public void setEmbeddingDeploymentRevision(Long value) { embeddingDeploymentRevision = value; }
+    public Long getEmbeddingConfigurationId() { return embeddingConfigurationId; }
+    public void setEmbeddingConfigurationId(Long value) { embeddingConfigurationId = value; }
+    public Long getEmbeddingConfigurationRevision() { return embeddingConfigurationRevision; }
+    public void setEmbeddingConfigurationRevision(Long value) { embeddingConfigurationRevision = value; }
+    public Long getEmbeddingCatalogEntryId() { return embeddingCatalogEntryId; }
+    public void setEmbeddingCatalogEntryId(Long value) { embeddingCatalogEntryId = value; }
+    public Long getEmbeddingCatalogEntryRevision() { return embeddingCatalogEntryRevision; }
+    public void setEmbeddingCatalogEntryRevision(Long value) { embeddingCatalogEntryRevision = value; }
     public int getEmbeddingDimension() { return embeddingDimension; }
     public void setEmbeddingDimension(int value) { embeddingDimension = value; }
     public String getStatus() { return status; }

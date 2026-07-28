@@ -270,10 +270,7 @@ public final class PostgresIndexVersionRepository implements IndexVersionReposit
                 new IndexVersionId(row.getId()),
                 row.getSourceSnapshotDigest(),
                 row.getChunkPolicy(),
-                new EmbeddingConfiguration(
-                        row.getEmbeddingDeploymentId(),
-                        row.getEmbeddingDeploymentRevision(),
-                        row.getEmbeddingDimension()),
+                embedding(row),
                 IndexVersionStatus.valueOf(row.getStatus()),
                 row.getVersion(),
                 row.getBuildDigest(),
@@ -319,6 +316,10 @@ public final class PostgresIndexVersionRepository implements IndexVersionReposit
         entity.setChunkPolicy(request.chunkPolicy());
         entity.setEmbeddingDeploymentId(request.embedding().deploymentId());
         entity.setEmbeddingDeploymentRevision(request.embedding().deploymentRevision());
+        entity.setEmbeddingConfigurationId(request.embedding().configurationId());
+        entity.setEmbeddingConfigurationRevision(request.embedding().configurationRevision());
+        entity.setEmbeddingCatalogEntryId(request.embedding().catalogEntryId());
+        entity.setEmbeddingCatalogEntryRevision(request.embedding().catalogEntryRevision());
         entity.setEmbeddingDimension(request.embedding().dimension());
         entity.setStatus(IndexVersionStatus.BUILDING.name());
         entity.setVersion(0);
@@ -326,6 +327,21 @@ public final class PostgresIndexVersionRepository implements IndexVersionReposit
         entity.setCreatedBy(request.createdBy().value());
         entity.setCreatedAt(request.createdAt());
         return entity;
+    }
+
+    private static EmbeddingConfiguration embedding(IndexVersionEntity row) {
+        if (row.getEmbeddingConfigurationId() != null) {
+            return EmbeddingConfiguration.governed(
+                    row.getEmbeddingConfigurationId(),
+                    row.getEmbeddingConfigurationRevision(),
+                    row.getEmbeddingCatalogEntryId(),
+                    row.getEmbeddingCatalogEntryRevision(),
+                    row.getEmbeddingDimension());
+        }
+        return new EmbeddingConfiguration(
+                row.getEmbeddingDeploymentId(),
+                row.getEmbeddingDeploymentRevision(),
+                row.getEmbeddingDimension());
     }
 
     private IndexSourceEntity toSourceEntity(
