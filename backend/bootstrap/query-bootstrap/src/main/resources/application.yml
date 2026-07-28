@@ -35,8 +35,13 @@ foundation:
     enabled: true
     persistence:
       enabled: true
+    allowed-endpoints: ${MODEL_ALLOWED_ENDPOINTS:}
+    call-timeout: ${MODEL_CALL_TIMEOUT:PT30S}
     cache-maximum-size: ${MODEL_RUNTIME_CACHE_MAXIMUM_SIZE:64}
     cache-idle-timeout: ${MODEL_RUNTIME_CACHE_IDLE_TIMEOUT:PT30M}
+  # 查询进程必须装配受控配置查询和短生命周期运行时；无凭据时受控助手仍失败关闭。
+  model-catalog:
+    enabled: true
   persistence:
     snowflake:
       worker-id: ${FOUNDATION_SNOWFLAKE_WORKER_ID}
