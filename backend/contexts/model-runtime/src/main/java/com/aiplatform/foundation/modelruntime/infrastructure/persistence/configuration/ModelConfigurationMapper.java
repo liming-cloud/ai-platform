@@ -28,6 +28,12 @@ public interface ModelConfigurationMapper {
 
     ConfigurationRow findConfiguration(@Param("id") long id);
 
+    boolean updateConfiguration(
+            @Param("id") long id,
+            @Param("status") String status,
+            @Param("version") long version,
+            @Param("expectedVersion") long expectedVersion);
+
     void insertConfiguration(
             @Param("id") long id,
             @Param("scope") String scope,

@@ -70,6 +70,14 @@ public final class ModelConfigurationService {
         return configuration;
     }
 
+    public ModelConfiguration activate(
+            TrustedRequestContext context, ModelConfigurationId configurationId) {
+        var configuration = loadForCredentialRotation(context, configurationId);
+        var active = configuration.activate();
+        repository.updateConfiguration(active);
+        return active;
+    }
+
     private ModelConfiguration createPlatform(
             TrustedRequestContext context,
             String displayName,

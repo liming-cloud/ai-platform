@@ -74,6 +74,9 @@ class PostgresModelConfigurationRepositoryTest {
         var configuration = repository.findConfiguration(new ModelConfigurationId(4001L)).orElseThrow();
         assertEquals(ModelConfigurationScope.TENANT, configuration.scope());
         assertEquals(2001L, configuration.tenantId().value());
+        repository.updateConfiguration(configuration.activate());
+        assertEquals("ACTIVE", repository.findConfiguration(new ModelConfigurationId(4001L))
+                .orElseThrow().status().name());
     }
 
     @Test

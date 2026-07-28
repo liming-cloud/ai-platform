@@ -26,6 +26,11 @@
         FROM model_runtime.model_configuration
         WHERE id = #{id}
     </select>
+    <update id="updateConfiguration">
+        UPDATE model_runtime.model_configuration
+        SET status = #{status}, version = #{version}
+        WHERE id = #{id} AND version = #{expectedVersion}
+    </update>
     <insert id="insertConfiguration">
         INSERT INTO model_runtime.model_configuration (
             id, scope, tenant_id, owner_membership_id, display_name,

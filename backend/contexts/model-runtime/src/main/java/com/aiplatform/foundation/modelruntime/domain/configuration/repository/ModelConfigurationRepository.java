@@ -19,5 +19,7 @@ public interface ModelConfigurationRepository {
 
     Optional<ModelConfiguration> findConfiguration(ModelConfigurationId id);
 
+    void updateConfiguration(ModelConfiguration configuration);
+
     void save(ModelConfiguration configuration);
 }

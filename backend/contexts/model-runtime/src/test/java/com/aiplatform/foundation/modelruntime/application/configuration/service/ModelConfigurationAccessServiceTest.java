@@ -36,7 +36,7 @@ class ModelConfigurationAccessServiceTest {
         configurations.configuration = ModelConfiguration.create(
                 new ModelConfigurationId(4001L), ModelConfigurationScope.PLATFORM,
                 null, null, "平台模型", new ControlledModelCatalogEntryId(3001L),
-                Instant.parse("2026-07-28T00:00:00Z"));
+                Instant.parse("2026-07-28T00:00:00Z")).activate();
         var grants = new AccessRepository();
         var service = new ModelConfigurationAccessService(
                 configurations, grants, () -> 5001L,
@@ -92,6 +92,7 @@ class ModelConfigurationAccessServiceTest {
         @Override public Optional<ModelConfiguration> findConfiguration(ModelConfigurationId id) {
             return configuration != null && configuration.id().equals(id) ? Optional.of(configuration) : Optional.empty();
         }
+        @Override public void updateConfiguration(ModelConfiguration value) { configuration = value; }
         @Override public void save(ModelConfiguration value) { configuration = value; }
     }
 

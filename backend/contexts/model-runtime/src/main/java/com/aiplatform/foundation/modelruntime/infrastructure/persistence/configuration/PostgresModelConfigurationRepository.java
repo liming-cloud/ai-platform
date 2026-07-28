@@ -83,6 +83,16 @@ public final class PostgresModelConfigurationRepository implements ModelConfigur
     }
 
     @Override
+    public void updateConfiguration(ModelConfiguration configuration) {
+        Objects.requireNonNull(configuration, "模型配置不能为空");
+        if (!mapper.updateConfiguration(
+                configuration.id().value(), configuration.status().name(),
+                configuration.version(), configuration.version() - 1)) {
+            throw new IllegalStateException("模型配置版本已经变化");
+        }
+    }
+
+    @Override
     public void save(ModelConfiguration configuration) {
         Objects.requireNonNull(configuration, "模型配置不能为空");
         mapper.insertConfiguration(

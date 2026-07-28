@@ -82,6 +82,10 @@ class ControlledModelCatalogServiceTest {
         }
 
         @Override
+        public void updateConfiguration(ModelConfiguration configuration) {
+        }
+
+        @Override
         public void save(ModelConfiguration configuration) {
         }
     }

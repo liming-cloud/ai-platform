@@ -28,6 +28,7 @@ import com.aiplatform.foundation.modelruntime.interfaces.web.deployment.controll
 import com.aiplatform.foundation.modelruntime.interfaces.web.configuration.controller.ModelConfigurationController;
 import com.aiplatform.foundation.modelruntime.interfaces.web.configuration.controller.ControlledModelCatalogController;
 import com.aiplatform.foundation.modelruntime.interfaces.web.configuration.controller.ModelConfigurationAccessController;
+import com.aiplatform.foundation.modelruntime.interfaces.web.configuration.controller.ModelConfigurationLifecycleController;
 import com.aiplatform.foundation.modelruntime.interfaces.web.provider.controller.ProviderConnectionController;
 import com.aiplatform.foundation.security.egress.OutboundEndpointPolicy;
 import com.aiplatform.foundation.security.secret.SecretResolver;
@@ -106,6 +107,9 @@ class ModelRuntimeAutoConfigurationTest {
                         ModelConfigurationCredentialService.class,
                         () -> mock(ModelConfigurationCredentialService.class))
                 .withBean(
+                        ModelConfigurationService.class,
+                        () -> mock(ModelConfigurationService.class))
+                .withBean(
                         ControlledModelCatalogService.class,
                         () -> mock(ControlledModelCatalogService.class))
                 .withBean(
@@ -118,6 +122,7 @@ class ModelRuntimeAutoConfigurationTest {
                     assertThat(context).hasSingleBean(ModelConfigurationController.class);
                     assertThat(context).hasSingleBean(ControlledModelCatalogController.class);
                     assertThat(context).hasSingleBean(ModelConfigurationAccessController.class);
+                    assertThat(context).hasSingleBean(ModelConfigurationLifecycleController.class);
                 });
     }
 

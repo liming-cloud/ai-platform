@@ -7,6 +7,7 @@ import com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelCo
 import com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelConfigurationId;
 import com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelConfigurationOwnerId;
 import com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelConfigurationScope;
+import com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelConfigurationStatus;
 import com.aiplatform.foundation.modelruntime.domain.configuration.repository.ModelConfigurationAccessRepository;
 import com.aiplatform.foundation.modelruntime.domain.configuration.repository.ModelConfigurationRepository;
 import com.aiplatform.foundation.security.identity.PermissionCode;
@@ -75,6 +76,9 @@ public final class ModelConfigurationAccessService {
 
     public boolean mayUse(TrustedRequestContext context, ModelConfiguration configuration) {
         Objects.requireNonNull(context, "可信请求上下文不能为空");
+        if (configuration.status() != ModelConfigurationStatus.ACTIVE) {
+            return false;
+        }
         return switch (configuration.scope()) {
             case PERSONAL -> configuration.tenantId().equals(context.tenantId())
                     && configuration.ownerMembershipId().value() == context.membershipId().value();

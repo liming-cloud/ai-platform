@@ -89,6 +89,18 @@ public final class ModelConfiguration implements AggregateRoot<ModelConfiguratio
                 createdAt);
     }
 
+    /**
+     * 只有完成凭据配置并经管理者确认的草稿配置才能进入可使用状态。
+     */
+    public ModelConfiguration activate() {
+        if (status != ModelConfigurationStatus.DRAFT) {
+            throw new IllegalStateException("只有草稿模型配置可以启用");
+        }
+        return new ModelConfiguration(
+                id, scope, tenantId, ownerMembershipId, displayName, catalogEntryId,
+                ModelConfigurationStatus.ACTIVE, version + 1, createdAt);
+    }
+
     @Override
     public ModelConfigurationId id() {
         return id;

@@ -4,6 +4,7 @@ import com.aiplatform.foundation.modelruntime.interfaces.web.deployment.controll
 import com.aiplatform.foundation.modelruntime.interfaces.web.configuration.controller.ModelConfigurationController;
 import com.aiplatform.foundation.modelruntime.interfaces.web.configuration.controller.ControlledModelCatalogController;
 import com.aiplatform.foundation.modelruntime.interfaces.web.configuration.controller.ModelConfigurationAccessController;
+import com.aiplatform.foundation.modelruntime.interfaces.web.configuration.controller.ModelConfigurationLifecycleController;
 import com.aiplatform.foundation.modelruntime.interfaces.web.provider.controller.ProviderConnectionController;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -21,7 +22,8 @@ import org.springframework.context.annotation.Import;
     ModelDeploymentController.class,
     ModelConfigurationController.class,
     ControlledModelCatalogController.class,
-    ModelConfigurationAccessController.class
+    ModelConfigurationAccessController.class,
+    ModelConfigurationLifecycleController.class
 })
 public class ModelRuntimeWebAutoConfiguration {
 }

@@ -105,6 +105,22 @@ class ModelConfigurationServiceTest {
         assertEquals(null, credentials.configurationId);
     }
 
+    @Test
+    void 管理者必须显式启用草稿模型配置后才可供运行时使用() {
+        var repository = new InMemoryRepository();
+        repository.configuration = ModelConfiguration.create(
+                new ModelConfigurationId(4001L), ModelConfigurationScope.PLATFORM,
+                null, null, "平台模型", new ControlledModelCatalogEntryId(3001L),
+                Instant.parse("2026-07-28T00:00:00Z"));
+
+        var active = service(repository).activate(
+                context("model-platform:write"), new ModelConfigurationId(4001L));
+
+        assertEquals("ACTIVE", active.status().name());
+        assertEquals(1L, active.version());
+        assertEquals(active, repository.configuration);
+    }
+
     private static ModelConfigurationService service(InMemoryRepository repository) {
         return new ModelConfigurationService(
                 repository,
@@ -162,6 +178,11 @@ class ModelConfigurationServiceTest {
             return configuration != null && configuration.id().equals(id)
                     ? Optional.of(configuration)
                     : Optional.empty();
+        }
+
+        @Override
+        public void updateConfiguration(ModelConfiguration value) {
+            configuration = value;
         }
 
         @Override
