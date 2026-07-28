@@ -23,9 +23,13 @@ import com.aiplatform.foundation.assistantdelivery.domain.assistant.model.Assist
 import com.aiplatform.foundation.assistantdelivery.domain.assistant.model.AssistantVersion;
 import com.aiplatform.foundation.assistantdelivery.domain.assistant.model.AssistantVersionId;
 import com.aiplatform.foundation.assistantdelivery.domain.assistant.model.CreatorId;
+import com.aiplatform.foundation.assistantdelivery.domain.assistant.model.GovernedChatModelBinding;
+import com.aiplatform.foundation.assistantdelivery.domain.assistant.model.GovernedEmbeddingModelBinding;
 import com.aiplatform.foundation.knowledgedata.application.indexversion.facade.ActiveIndexLookup;
 import com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator;
-import com.aiplatform.foundation.modelruntime.application.deployment.facade.PublishedChatDeploymentLookup;
+import com.aiplatform.foundation.modelruntime.application.configuration.facade.UsableModelConfigurationLookup;
+import com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelConfigurationId;
+import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelType;
 import com.aiplatform.foundation.security.identity.PermissionCode;
 import com.aiplatform.foundation.security.identity.TrustedRequestContext;
 import com.aiplatform.foundation.shared.contract.paging.PageResult;
@@ -45,7 +49,7 @@ public final class AssistantService {
     private static final PermissionCode WRITE = new PermissionCode("assistant:write");
 
     private final AssistantRepository repository;
-    private final PublishedChatDeploymentLookup chatDeployments;
+    private final UsableModelConfigurationLookup modelConfigurations;
     private final ActiveIndexLookup activeIndexes;
     private final Clock clock;
     private final EntityIdGenerator identifiers;
@@ -54,15 +58,15 @@ public final class AssistantService {
 
     public AssistantService(
             AssistantRepository repository,
-            PublishedChatDeploymentLookup chatDeployments,
+            UsableModelConfigurationLookup modelConfigurations,
             ActiveIndexLookup activeIndexes,
             Clock clock,
             EntityIdGenerator identifiers,
             int tenantLimit,
             int versionLimit) {
         this.repository = Objects.requireNonNull(repository, "助手仓储不能为空");
-        this.chatDeployments =
-                Objects.requireNonNull(chatDeployments, "已发布对话部署查询不能为空");
+        this.modelConfigurations = Objects.requireNonNull(
+                modelConfigurations, "可用模型配置查询不能为空");
         this.activeIndexes = Objects.requireNonNull(activeIndexes, "活动索引查询不能为空");
         this.clock = Objects.requireNonNull(clock, "时钟不能为空");
         this.identifiers = Objects.requireNonNull(identifiers, "标识生成器不能为空");
@@ -115,10 +119,19 @@ public final class AssistantService {
                         command.context().tenantId(),
                         AssistantId.parse(command.assistantId()))
                 .orElseThrow(AssistantNotFoundException::new);
-        var chat = chatDeployments
+        var chat = modelConfigurations
                 .find(
-                        command.context().tenantId(),
-                        parseDeploymentId(command.chatDeploymentId()))
+                        command.context(),
+                        new ModelConfigurationId(parsePositiveIdentifier(
+                                command.chatModelConfigurationId(), "对话模型配置标识")),
+                        ModelType.CHAT)
+                .orElseThrow(AssistantReferenceUnavailableException::new);
+        var embedding = modelConfigurations
+                .find(
+                        command.context(),
+                        new ModelConfigurationId(parsePositiveIdentifier(
+                                command.embeddingModelConfigurationId(), "嵌入模型配置标识")),
+                        ModelType.EMBEDDING)
                 .orElseThrow(AssistantReferenceUnavailableException::new);
         var index = activeIndexes
                 .find(
@@ -127,21 +140,22 @@ public final class AssistantService {
                                 command.knowledgeSpaceId(),
                                 "知识空间标识"))
                 .orElseThrow(AssistantReferenceUnavailableException::new);
+        var governedEmbedding = governedEmbedding(embedding);
+        if (!index.embedding().isGoverned()
+                || !matches(index.embedding(), governedEmbedding)) {
+            throw new AssistantReferenceUnavailableException();
+        }
         var advanced = assistant.advanceVersion();
-        var version = AssistantVersion.draft(
+        var version = AssistantVersion.governedDraft(
                 command.context().tenantId(),
                 new AssistantVersionId(identifiers.nextId()),
                 assistant.id(),
                 advanced.latestVersionNumber(),
-                chat.deploymentId(),
-                chat.deploymentRevision(),
-                chat.outputLimit(),
+                governedChat(chat),
                 index.knowledgeSpaceId(),
                 index.indexVersionId(),
                 index.indexVersionRevision(),
-                index.embeddingDeploymentId(),
-                index.embeddingDeploymentRevision(),
-                index.embeddingDimension(),
+                governedEmbedding,
                 command.systemInstruction(),
                 command.maxOutputTokens(),
                 command.retrievalLimit(),
@@ -189,6 +203,7 @@ public final class AssistantService {
         if (current.version() != command.expectedVersion()) {
             throw new AssistantConcurrentModificationException();
         }
+        requirePublishableBindings(command.context(), current);
         var published = current.publish(clock.instant());
         var outcome = repository.publishVersion(new AssistantVersionPublication(
                 published,
@@ -222,13 +237,33 @@ public final class AssistantService {
                 version.id().toString(),
                 version.assistantId().toString(),
                 version.number(),
-                Long.toString(version.chatDeploymentId()),
-                version.chatDeploymentRevision(),
+                version.usesGovernedModelConfigurations()
+                        ? null : Long.toString(version.chatDeploymentId()),
+                version.usesGovernedModelConfigurations()
+                        ? 0 : version.chatDeploymentRevision(),
+                nullableId(version.governedChat() == null
+                        ? null : version.governedChat().configurationId()),
+                nullableRevision(version.governedChat() == null
+                        ? null : version.governedChat().configurationRevision()),
+                nullableId(version.governedChat() == null
+                        ? null : version.governedChat().catalogEntryId()),
+                nullableRevision(version.governedChat() == null
+                        ? null : version.governedChat().catalogEntryRevision()),
                 Long.toString(version.knowledgeSpaceId()),
                 Long.toString(version.indexVersionId()),
                 version.indexVersionRevision(),
-                Long.toString(version.embeddingDeploymentId()),
-                version.embeddingDeploymentRevision(),
+                version.usesGovernedModelConfigurations()
+                        ? null : Long.toString(version.embeddingDeploymentId()),
+                version.usesGovernedModelConfigurations()
+                        ? 0 : version.embeddingDeploymentRevision(),
+                nullableId(version.governedEmbedding() == null
+                        ? null : version.governedEmbedding().configurationId()),
+                nullableRevision(version.governedEmbedding() == null
+                        ? null : version.governedEmbedding().configurationRevision()),
+                nullableId(version.governedEmbedding() == null
+                        ? null : version.governedEmbedding().catalogEntryId()),
+                nullableRevision(version.governedEmbedding() == null
+                        ? null : version.governedEmbedding().catalogEntryRevision()),
                 version.embeddingDimension(),
                 version.systemInstruction(),
                 version.maxOutputTokens(),
@@ -245,7 +280,8 @@ public final class AssistantService {
     private static String fingerprint(CreateAssistantVersionCommand command) {
         var digest = digest();
         update(digest, command.assistantId().toString());
-        update(digest, command.chatDeploymentId().toString());
+        update(digest, command.chatModelConfigurationId());
+        update(digest, command.embeddingModelConfigurationId());
         update(digest, command.knowledgeSpaceId());
         update(digest, command.systemInstruction());
         update(digest, Integer.toString(command.maxOutputTokens()));
@@ -295,15 +331,65 @@ public final class AssistantService {
         digest.update((byte) 0);
     }
 
-    private static long parseDeploymentId(String value) {
-        try {
-            var parsed = Long.parseLong(value);
-            if (parsed <= 0) {
-                throw new IllegalArgumentException("模型部署标识必须是正整数");
-            }
-            return parsed;
-        } catch (NumberFormatException exception) {
-            throw new IllegalArgumentException("模型部署标识格式不正确", exception);
+    private void requirePublishableBindings(
+            TrustedRequestContext context,
+            AssistantVersion version) {
+        if (!version.usesGovernedModelConfigurations()) {
+            return;
         }
+        var chat = modelConfigurations.find(
+                context,
+                new ModelConfigurationId(version.governedChat().configurationId()),
+                ModelType.CHAT).orElseThrow(AssistantReferenceUnavailableException::new);
+        var embedding = modelConfigurations.find(
+                context,
+                new ModelConfigurationId(version.governedEmbedding().configurationId()),
+                ModelType.EMBEDDING).orElseThrow(AssistantReferenceUnavailableException::new);
+        var index = activeIndexes.find(context.tenantId(), version.knowledgeSpaceId())
+                .orElseThrow(AssistantReferenceUnavailableException::new);
+        if (!governedChat(chat).equals(version.governedChat())
+                || !governedEmbedding(embedding).equals(version.governedEmbedding())
+                || index.indexVersionId() != version.indexVersionId()
+                || index.indexVersionRevision() != version.indexVersionRevision()
+                || !index.embedding().isGoverned()
+                || !matches(index.embedding(), version.governedEmbedding())) {
+            throw new AssistantReferenceUnavailableException();
+        }
+    }
+
+    private static GovernedChatModelBinding governedChat(
+            com.aiplatform.foundation.modelruntime.application.configuration.dto.UsableModelConfigurationSnapshot snapshot) {
+        snapshot.capabilities().requireFor(ModelType.CHAT);
+        return new GovernedChatModelBinding(
+                snapshot.configurationId().value(), snapshot.configurationRevision(),
+                snapshot.catalogEntryId().value(), snapshot.catalogEntryRevision(),
+                snapshot.capabilities().outputLimit());
+    }
+
+    private static GovernedEmbeddingModelBinding governedEmbedding(
+            com.aiplatform.foundation.modelruntime.application.configuration.dto.UsableModelConfigurationSnapshot snapshot) {
+        snapshot.capabilities().requireFor(ModelType.EMBEDDING);
+        return new GovernedEmbeddingModelBinding(
+                snapshot.configurationId().value(), snapshot.configurationRevision(),
+                snapshot.catalogEntryId().value(), snapshot.catalogEntryRevision(),
+                snapshot.capabilities().embeddingDimension());
+    }
+
+    private static boolean matches(
+            com.aiplatform.foundation.knowledgedata.domain.indexversion.model.EmbeddingConfiguration index,
+            GovernedEmbeddingModelBinding embedding) {
+        return index.configurationId() == embedding.configurationId()
+                && index.configurationRevision() == embedding.configurationRevision()
+                && index.catalogEntryId() == embedding.catalogEntryId()
+                && index.catalogEntryRevision() == embedding.catalogEntryRevision()
+                && index.dimension() == embedding.dimension();
+    }
+
+    private static String nullableId(Long value) {
+        return value == null ? null : Long.toString(value);
+    }
+
+    private static long nullableRevision(Long value) {
+        return value == null ? 0 : value;
     }
 }

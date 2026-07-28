@@ -23,6 +23,8 @@ import com.aiplatform.foundation.assistantdelivery.domain.assistant.model.Assist
 import com.aiplatform.foundation.assistantdelivery.domain.assistant.model.AssistantVersionStatus;
 import com.aiplatform.foundation.assistantdelivery.domain.assistant.model.CitationPolicy;
 import com.aiplatform.foundation.assistantdelivery.domain.assistant.model.CreatorId;
+import com.aiplatform.foundation.assistantdelivery.domain.assistant.model.GovernedChatModelBinding;
+import com.aiplatform.foundation.assistantdelivery.domain.assistant.model.GovernedEmbeddingModelBinding;
 import com.aiplatform.foundation.assistantdelivery.domain.assistant.model.RefusalPolicy;
 import com.aiplatform.foundation.assistantdelivery.infrastructure.persistence.assistant.entity.AssistantEntity;
 import com.aiplatform.foundation.assistantdelivery.infrastructure.persistence.assistant.entity.AssistantRequestEntity;
@@ -386,15 +388,29 @@ public final class PostgresAssistantRepository implements AssistantRepository {
         entity.setId(version.id().value());
         entity.setAssistantId(version.assistantId().value());
         entity.setVersionNumber(version.number());
-        entity.setChatDeploymentId(version.chatDeploymentId());
-        entity.setChatDeploymentRevision(version.chatDeploymentRevision());
+        entity.setChatDeploymentId(version.usesGovernedModelConfigurations()
+                ? null : version.chatDeploymentId());
+        entity.setChatDeploymentRevision(version.usesGovernedModelConfigurations()
+                ? null : version.chatDeploymentRevision());
         entity.setChatDeploymentOutputLimit(version.chatDeploymentOutputLimit());
         entity.setKnowledgeSpaceId(version.knowledgeSpaceId());
         entity.setIndexVersionId(version.indexVersionId());
         entity.setIndexVersionRevision(version.indexVersionRevision());
-        entity.setEmbeddingDeploymentId(version.embeddingDeploymentId());
-        entity.setEmbeddingDeploymentRevision(version.embeddingDeploymentRevision());
+        entity.setEmbeddingDeploymentId(version.usesGovernedModelConfigurations()
+                ? null : version.embeddingDeploymentId());
+        entity.setEmbeddingDeploymentRevision(version.usesGovernedModelConfigurations()
+                ? null : version.embeddingDeploymentRevision());
         entity.setEmbeddingDimension(version.embeddingDimension());
+        if (version.usesGovernedModelConfigurations()) {
+            entity.setChatModelConfigurationId(version.governedChat().configurationId());
+            entity.setChatModelConfigurationRevision(version.governedChat().configurationRevision());
+            entity.setChatCatalogEntryId(version.governedChat().catalogEntryId());
+            entity.setChatCatalogEntryRevision(version.governedChat().catalogEntryRevision());
+            entity.setEmbeddingModelConfigurationId(version.governedEmbedding().configurationId());
+            entity.setEmbeddingModelConfigurationRevision(version.governedEmbedding().configurationRevision());
+            entity.setEmbeddingCatalogEntryId(version.governedEmbedding().catalogEntryId());
+            entity.setEmbeddingCatalogEntryRevision(version.governedEmbedding().catalogEntryRevision());
+        }
         entity.setSystemInstruction(version.systemInstruction());
         entity.setMaxOutputTokens(version.maxOutputTokens());
         entity.setRetrievalLimit(version.retrievalLimit());
@@ -423,15 +439,17 @@ public final class PostgresAssistantRepository implements AssistantRepository {
                 new AssistantVersionId(row.getId()),
                 new AssistantId(row.getAssistantId()),
                 row.getVersionNumber(),
-                row.getChatDeploymentId(),
-                row.getChatDeploymentRevision(),
+                zeroIfNull(row.getChatDeploymentId()),
+                zeroIfNull(row.getChatDeploymentRevision()),
                 row.getChatDeploymentOutputLimit(),
                 row.getKnowledgeSpaceId(),
                 row.getIndexVersionId(),
                 row.getIndexVersionRevision(),
-                row.getEmbeddingDeploymentId(),
-                row.getEmbeddingDeploymentRevision(),
+                zeroIfNull(row.getEmbeddingDeploymentId()),
+                zeroIfNull(row.getEmbeddingDeploymentRevision()),
                 row.getEmbeddingDimension(),
+                governedChat(row),
+                governedEmbedding(row),
                 row.getSystemInstruction(),
                 row.getMaxOutputTokens(),
                 row.getRetrievalLimit(),
@@ -443,6 +461,34 @@ public final class PostgresAssistantRepository implements AssistantRepository {
                 new CreatorId(row.getCreatedBy()),
                 row.getCreatedAt(),
                 row.getPublishedAt());
+    }
+
+    private static GovernedChatModelBinding governedChat(AssistantVersionEntity row) {
+        if (row.getChatModelConfigurationId() == null) {
+            return null;
+        }
+        return new GovernedChatModelBinding(
+                row.getChatModelConfigurationId(),
+                row.getChatModelConfigurationRevision(),
+                row.getChatCatalogEntryId(),
+                row.getChatCatalogEntryRevision(),
+                row.getChatDeploymentOutputLimit());
+    }
+
+    private static GovernedEmbeddingModelBinding governedEmbedding(AssistantVersionEntity row) {
+        if (row.getEmbeddingModelConfigurationId() == null) {
+            return null;
+        }
+        return new GovernedEmbeddingModelBinding(
+                row.getEmbeddingModelConfigurationId(),
+                row.getEmbeddingModelConfigurationRevision(),
+                row.getEmbeddingCatalogEntryId(),
+                row.getEmbeddingCatalogEntryRevision(),
+                row.getEmbeddingDimension());
+    }
+
+    private static long zeroIfNull(Long value) {
+        return value == null ? 0 : value;
     }
 
     private static PublishedAssistantSummary toPublishedSummary(

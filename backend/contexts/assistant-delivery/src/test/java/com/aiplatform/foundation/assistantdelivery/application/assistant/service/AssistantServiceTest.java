@@ -27,8 +27,13 @@ import com.aiplatform.foundation.assistantdelivery.domain.assistant.model.Refusa
 import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
 import com.aiplatform.foundation.knowledgedata.application.indexversion.facade.ActiveIndexLookup;
 import com.aiplatform.foundation.knowledgedata.application.indexversion.dto.ActiveIndexSnapshot;
-import com.aiplatform.foundation.modelruntime.application.deployment.facade.PublishedChatDeploymentLookup;
-import com.aiplatform.foundation.modelruntime.application.deployment.dto.PublishedChatDeploymentSnapshot;
+import com.aiplatform.foundation.modelruntime.application.configuration.dto.UsableModelConfigurationSnapshot;
+import com.aiplatform.foundation.modelruntime.application.configuration.facade.UsableModelConfigurationLookup;
+import com.aiplatform.foundation.modelruntime.domain.configuration.model.ControlledModelCatalogEntryId;
+import com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelConfigurationId;
+import com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelRuntimeCapabilities;
+import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelType;
+import com.aiplatform.foundation.knowledgedata.domain.indexversion.model.EmbeddingConfiguration;
 import com.aiplatform.foundation.security.identity.AccessChannel;
 import com.aiplatform.foundation.security.identity.CredentialType;
 import com.aiplatform.foundation.security.identity.MembershipId;
@@ -42,6 +47,7 @@ import java.util.ArrayDeque;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.junit.jupiter.api.Test;
 
 class AssistantServiceTest {
@@ -54,6 +60,8 @@ class AssistantServiceTest {
     private static final long SPACE_ID = 210000000000000001L;
     private static final long INDEX_ID = 230000000000000001L;
     private static final long EMBEDDING_ID = 320000000000000002L;
+    private static final long CHAT_CATALOG_ID = 310000000000000001L;
+    private static final long EMBEDDING_CATALOG_ID = 310000000000000002L;
     private static final Instant NOW = Instant.parse("2026-07-27T00:00:00Z");
 
     @Test
@@ -74,9 +82,11 @@ class AssistantServiceTest {
 
         assertEquals(Long.toString(ASSISTANT_ID), assistant.assistant().id());
         assertEquals(Long.toString(VERSION_ID), created.assistantVersion().id());
-        assertEquals(9, created.assistantVersion().chatDeploymentRevision());
+        assertEquals(Long.toString(CHAT_ID), created.assistantVersion().chatModelConfigurationId());
+        assertEquals(9, created.assistantVersion().chatModelConfigurationRevision());
         assertEquals(4, created.assistantVersion().indexVersionRevision());
-        assertEquals(3, created.assistantVersion().embeddingDeploymentRevision());
+        assertEquals(Long.toString(EMBEDDING_ID), created.assistantVersion().embeddingModelConfigurationId());
+        assertEquals(3, created.assistantVersion().embeddingModelConfigurationRevision());
         assertEquals("PUBLISHED", published.assistantVersion().status());
         assertEquals(1, published.assistantVersion().version());
         assertTrue(repository.findVersion(
@@ -107,6 +117,39 @@ class AssistantServiceTest {
     }
 
     @Test
+    void 嵌入配置快照与活动索引不一致或发布前被撤销时必须拒绝() {
+        var repository = new MemoryRepository();
+        var modelsAvailable = new AtomicBoolean(true);
+        UsableModelConfigurationLookup models = (context, configurationId, type) ->
+                modelsAvailable.get()
+                        ? Optional.of(snapshot(configurationId, type))
+                        : Optional.empty();
+        ActiveIndexLookup mismatchedIndex = (tenantId, knowledgeSpaceId) -> Optional.of(
+                new ActiveIndexSnapshot(SPACE_ID, INDEX_ID, 4,
+                        EmbeddingConfiguration.governed(
+                                EMBEDDING_ID, 4, EMBEDDING_CATALOG_ID, 7, 8)));
+        var identifiers = new ArrayDeque<>(List.of(ASSISTANT_ID, VERSION_ID));
+        var service = new AssistantService(repository, models, mismatchedIndex,
+                Clock.fixed(NOW, ZoneOffset.UTC), identifiers::removeFirst, 5, 20);
+        var assistant = service.create(new CreateAssistantCommand(
+                context("assistant:write"), "assistant-create-0004", "模型校验助手"));
+
+        assertThrows(AssistantReferenceUnavailableException.class,
+                () -> service.createVersion(versionCommand(assistant.assistant().id())));
+
+        var valid = service(repository, true, true);
+        var validAssistant = valid.create(new CreateAssistantCommand(
+                context("assistant:write"), "assistant-create-0005", "发布校验助手"));
+        var draft = valid.createVersion(versionCommand(validAssistant.assistant().id()));
+        var revoked = new AssistantService(repository, (context, id, type) -> Optional.empty(),
+                indexes(), Clock.fixed(NOW, ZoneOffset.UTC), () -> VERSION_ID + 1, 5, 20);
+        assertThrows(AssistantReferenceUnavailableException.class,
+                () -> revoked.publishVersion(new PublishAssistantVersionCommand(
+                        context("assistant:write"), "assistant-publish-0002",
+                        draft.assistantVersion().id(), 0)));
+    }
+
+    @Test
     void 缺少助手写权限时不得产生任何事实() {
         var repository = new MemoryRepository();
         var service = service(repository, true, true);
@@ -124,33 +167,27 @@ class AssistantServiceTest {
             MemoryRepository repository,
             boolean modelAvailable,
             boolean indexAvailable) {
-        PublishedChatDeploymentLookup chats = (tenantId, deploymentId) ->
+        UsableModelConfigurationLookup models = (context, configurationId, type) ->
                 modelAvailable
-                        ? Optional.of(new PublishedChatDeploymentSnapshot(
-                                CHAT_ID,
-                                9,
-                                8192,
-                                1024))
+                        ? Optional.of(snapshot(configurationId, type))
                         : Optional.empty();
-        ActiveIndexLookup indexes = (tenantId, knowledgeSpaceId) ->
-                indexAvailable
-                        ? Optional.of(new ActiveIndexSnapshot(
-                                SPACE_ID,
-                                INDEX_ID,
-                                4,
-                                EMBEDDING_ID,
-                                3,
-                                8))
-                        : Optional.empty();
+        ActiveIndexLookup indexes = indexAvailable ? indexes() : (tenantId, knowledgeSpaceId) -> Optional.empty();
         var identifiers = new ArrayDeque<>(List.of(ASSISTANT_ID, VERSION_ID));
         return new AssistantService(
                 repository,
-                chats,
+                models,
                 indexes,
                 Clock.fixed(NOW, ZoneOffset.UTC),
                 identifiers::removeFirst,
                 5,
                 20);
+    }
+
+    private static ActiveIndexLookup indexes() {
+        return (tenantId, knowledgeSpaceId) -> Optional.of(new ActiveIndexSnapshot(
+                SPACE_ID, INDEX_ID, 4,
+                EmbeddingConfiguration.governed(
+                        EMBEDDING_ID, 3, EMBEDDING_CATALOG_ID, 7, 8)));
     }
 
     private static CreateAssistantVersionCommand versionCommand(String assistantId) {
@@ -159,6 +196,7 @@ class AssistantServiceTest {
                 "assistant-version-0001",
                 assistantId,
                 Long.toString(CHAT_ID),
+                Long.toString(EMBEDDING_ID),
                 Long.toString(SPACE_ID),
                 "只依据编号证据回答，并在结论后标注引用。",
                 512,
@@ -166,6 +204,21 @@ class AssistantServiceTest {
                 0.2,
                 CitationPolicy.REQUIRED,
                 RefusalPolicy.INSUFFICIENT_EVIDENCE);
+    }
+
+    private static UsableModelConfigurationSnapshot snapshot(
+            ModelConfigurationId configurationId,
+            ModelType type) {
+        if (type == ModelType.CHAT) {
+            return new UsableModelConfigurationSnapshot(
+                    configurationId, 9,
+                    new ControlledModelCatalogEntryId(CHAT_CATALOG_ID), 6,
+                    type, ModelRuntimeCapabilities.chat(8192, 1024));
+        }
+        return new UsableModelConfigurationSnapshot(
+                configurationId, 3,
+                new ControlledModelCatalogEntryId(EMBEDDING_CATALOG_ID), 7,
+                type, ModelRuntimeCapabilities.embedding(8192, 8));
     }
 
     private static TrustedRequestContext context(String permission) {

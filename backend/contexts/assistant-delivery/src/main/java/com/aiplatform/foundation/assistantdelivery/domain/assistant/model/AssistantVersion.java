@@ -26,6 +26,8 @@ public final class AssistantVersion implements Entity<AssistantVersionId> {
     private final long embeddingDeploymentId;
     private final long embeddingDeploymentRevision;
     private final int embeddingDimension;
+    private final GovernedChatModelBinding governedChat;
+    private final GovernedEmbeddingModelBinding governedEmbedding;
     private final String systemInstruction;
     private final int maxOutputTokens;
     private final int retrievalLimit;
@@ -52,6 +54,8 @@ public final class AssistantVersion implements Entity<AssistantVersionId> {
             long embeddingDeploymentId,
             long embeddingDeploymentRevision,
             int embeddingDimension,
+            GovernedChatModelBinding governedChat,
+            GovernedEmbeddingModelBinding governedEmbedding,
             String systemInstruction,
             int maxOutputTokens,
             int retrievalLimit,
@@ -70,32 +74,44 @@ public final class AssistantVersion implements Entity<AssistantVersionId> {
             throw new IllegalArgumentException("助手版本号必须大于零");
         }
         this.number = number;
-        this.chatDeploymentId = chatDeploymentId;
-        if (chatDeploymentId <= 0
-                || chatDeploymentRevision < 1
-                || chatDeploymentOutputLimit < 1) {
-            throw new IllegalArgumentException("对话部署修订和输出上限必须大于零");
-        }
-        this.chatDeploymentRevision = chatDeploymentRevision;
-        this.chatDeploymentOutputLimit = chatDeploymentOutputLimit;
         if (knowledgeSpaceId <= 0 || indexVersionId <= 0) {
             throw new IllegalArgumentException("知识空间标识和索引版本标识必须是正整数");
         }
         this.knowledgeSpaceId = knowledgeSpaceId;
         this.indexVersionId = indexVersionId;
-        this.embeddingDeploymentId = embeddingDeploymentId;
-        if (embeddingDeploymentId <= 0
-                || indexVersionRevision < 1
-                || embeddingDeploymentRevision < 1
-                || embeddingDimension < 1) {
-            throw new IllegalArgumentException("索引、嵌入部署修订和维度必须大于零");
-        }
         this.indexVersionRevision = indexVersionRevision;
+        if (indexVersionRevision < 1 || embeddingDimension < 1) {
+            throw new IllegalArgumentException("索引修订和嵌入维度必须大于零");
+        }
+        var legacy = governedChat == null && governedEmbedding == null;
+        if (legacy) {
+            if (chatDeploymentId <= 0
+                    || chatDeploymentRevision < 1
+                    || chatDeploymentOutputLimit < 1
+                    || embeddingDeploymentId <= 0
+                    || embeddingDeploymentRevision < 1) {
+                throw new IllegalArgumentException("历史模型部署快照不完整");
+            }
+        } else if (governedChat == null || governedEmbedding == null
+                || chatDeploymentId != 0
+                || chatDeploymentRevision != 0
+                || embeddingDeploymentId != 0
+                || embeddingDeploymentRevision != 0) {
+            throw new IllegalArgumentException("助手版本必须完整且唯一地使用历史部署或受控模型配置");
+        }
+        this.chatDeploymentId = chatDeploymentId;
+        this.chatDeploymentRevision = chatDeploymentRevision;
+        this.chatDeploymentOutputLimit = legacy
+                ? chatDeploymentOutputLimit
+                : governedChat.outputLimit();
+        this.embeddingDeploymentId = embeddingDeploymentId;
         this.embeddingDeploymentRevision = embeddingDeploymentRevision;
         this.embeddingDimension = embeddingDimension;
+        this.governedChat = governedChat;
+        this.governedEmbedding = governedEmbedding;
         this.systemInstruction = requireInstruction(systemInstruction);
-        if (maxOutputTokens < 1 || maxOutputTokens > chatDeploymentOutputLimit) {
-            throw new IllegalArgumentException("回答上限必须在模型部署允许范围内");
+        if (maxOutputTokens < 1 || maxOutputTokens > this.chatDeploymentOutputLimit) {
+            throw new IllegalArgumentException("回答上限必须在模型允许范围内");
         }
         if (retrievalLimit < 1 || retrievalLimit > MAX_RETRIEVAL_LIMIT) {
             throw new IllegalArgumentException("检索条数必须在 1 到 20 之间");
@@ -163,6 +179,8 @@ public final class AssistantVersion implements Entity<AssistantVersionId> {
                 embeddingDeploymentId,
                 embeddingDeploymentRevision,
                 embeddingDimension,
+                null,
+                null,
                 systemInstruction,
                 maxOutputTokens,
                 retrievalLimit,
@@ -174,6 +192,38 @@ public final class AssistantVersion implements Entity<AssistantVersionId> {
                 createdBy,
                 createdAt,
                 null);
+    }
+
+    /**
+     * 创建仅可由受控模型配置驱动的助手草稿；嵌入配置必须已与活动索引同源。
+     */
+    public static AssistantVersion governedDraft(
+            TenantId tenantId,
+            AssistantVersionId id,
+            AssistantId assistantId,
+            int number,
+            GovernedChatModelBinding chat,
+            long knowledgeSpaceId,
+            long indexVersionId,
+            long indexVersionRevision,
+            GovernedEmbeddingModelBinding embedding,
+            String systemInstruction,
+            int maxOutputTokens,
+            int retrievalLimit,
+            double minimumScore,
+            CitationPolicy citationPolicy,
+            RefusalPolicy refusalPolicy,
+            CreatorId createdBy,
+            Instant createdAt) {
+        return new AssistantVersion(
+                tenantId, id, assistantId, number,
+                0, 0, 0,
+                knowledgeSpaceId, indexVersionId, indexVersionRevision,
+                0, 0, embedding.dimension(),
+                chat, embedding,
+                systemInstruction, maxOutputTokens, retrievalLimit, minimumScore,
+                citationPolicy, refusalPolicy, AssistantVersionStatus.DRAFT, 0,
+                createdBy, createdAt, null);
     }
 
     public static AssistantVersion reconstitute(
@@ -190,6 +240,8 @@ public final class AssistantVersion implements Entity<AssistantVersionId> {
             long embeddingDeploymentId,
             long embeddingDeploymentRevision,
             int embeddingDimension,
+            GovernedChatModelBinding governedChat,
+            GovernedEmbeddingModelBinding governedEmbedding,
             String systemInstruction,
             int maxOutputTokens,
             int retrievalLimit,
@@ -215,6 +267,8 @@ public final class AssistantVersion implements Entity<AssistantVersionId> {
                 embeddingDeploymentId,
                 embeddingDeploymentRevision,
                 embeddingDimension,
+                governedChat,
+                governedEmbedding,
                 systemInstruction,
                 maxOutputTokens,
                 retrievalLimit,
@@ -246,6 +300,8 @@ public final class AssistantVersion implements Entity<AssistantVersionId> {
                 embeddingDeploymentId,
                 embeddingDeploymentRevision,
                 embeddingDimension,
+                governedChat,
+                governedEmbedding,
                 systemInstruction,
                 maxOutputTokens,
                 retrievalLimit,
@@ -309,6 +365,18 @@ public final class AssistantVersion implements Entity<AssistantVersionId> {
 
     public int embeddingDimension() {
         return embeddingDimension;
+    }
+
+    public boolean usesGovernedModelConfigurations() {
+        return governedChat != null;
+    }
+
+    public GovernedChatModelBinding governedChat() {
+        return governedChat;
+    }
+
+    public GovernedEmbeddingModelBinding governedEmbedding() {
+        return governedEmbedding;
     }
 
     public String systemInstruction() {

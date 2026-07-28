@@ -30,8 +30,6 @@ public final class ActiveIndexLookupService implements ActiveIndexLookup {
                         index.knowledgeSpaceId().value(),
                         index.id().value(),
                         index.version(),
-                        index.embedding().deploymentId(),
-                        index.embedding().deploymentRevision(),
-                        index.embedding().dimension()));
+                        index.embedding()));
     }
 }

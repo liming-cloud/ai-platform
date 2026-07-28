@@ -18,6 +18,8 @@ import com.aiplatform.foundation.assistantdelivery.domain.assistant.model.Assist
 import com.aiplatform.foundation.assistantdelivery.domain.assistant.model.AssistantVersionId;
 import com.aiplatform.foundation.assistantdelivery.domain.assistant.model.CitationPolicy;
 import com.aiplatform.foundation.assistantdelivery.domain.assistant.model.CreatorId;
+import com.aiplatform.foundation.assistantdelivery.domain.assistant.model.GovernedChatModelBinding;
+import com.aiplatform.foundation.assistantdelivery.domain.assistant.model.GovernedEmbeddingModelBinding;
 import com.aiplatform.foundation.assistantdelivery.domain.assistant.model.RefusalPolicy;
 import com.aiplatform.foundation.assistantdelivery.infrastructure.persistence.assistant.mapper.AssistantMapper;
 import com.aiplatform.foundation.assistantdelivery.infrastructure.persistence.assistant.mapper.AssistantRequestMapper;
@@ -144,6 +146,41 @@ class PostgresAssistantRepositoryTest {
         assertTrue(versionReplay.replayed());
         assertEquals(1, created.assistantVersion().number());
         assertTrue(repository.findVersion(CAMPUS, version.id()).isEmpty());
+    }
+
+    @Test
+    void 受控模型配置绑定必须与历史部署字段互斥持久化() {
+        var assistant = assistant(STORE, "受控模型助手");
+        repository.create(new AssistantCreation(
+                assistant, "governed-assistant-key", "g".repeat(64)), 5);
+        var advanced = assistant.advanceVersion();
+        var draft = AssistantVersion.governedDraft(
+                STORE,
+                new AssistantVersionId(IDENTIFIERS.incrementAndGet()),
+                advanced.id(),
+                advanced.latestVersionNumber(),
+                new GovernedChatModelBinding(CHAT, 9, 310000000000000001L, 6, 1024),
+                SPACE, INDEX, 4,
+                new GovernedEmbeddingModelBinding(
+                        EMBEDDING, 3, 310000000000000002L, 7, 8),
+                "只依据编号证据回答，并在结论后标注引用。",
+                512, 5, 0.2,
+                CitationPolicy.REQUIRED,
+                RefusalPolicy.INSUFFICIENT_EVIDENCE,
+                CREATOR, NOW);
+
+        repository.createVersion(new AssistantVersionCreation(
+                assistant, advanced, draft, "governed-version-key", "h".repeat(64)), 20);
+
+        var restored = repository.findVersion(STORE, draft.id()).orElseThrow();
+        assertTrue(restored.usesGovernedModelConfigurations());
+        assertEquals(CHAT, restored.governedChat().configurationId());
+        assertEquals(EMBEDDING, restored.governedEmbedding().configurationId());
+        assertEquals(0, restored.chatDeploymentId());
+        assertEquals(0, restored.embeddingDeploymentId());
+        assertNull(jdbc.queryForObject(
+                "SELECT chat_deployment_id FROM assistant_delivery.assistant_version WHERE tenant_id = ? AND id = ?",
+                Long.class, STORE.value(), draft.id().value()));
     }
 
     @Test

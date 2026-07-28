@@ -3,7 +3,7 @@ package com.aiplatform.foundation.assistantdelivery.infrastructure.configuration
 import com.aiplatform.foundation.assistantdelivery.application.assistant.service.AssistantService;
 import com.aiplatform.foundation.assistantdelivery.domain.assistant.repository.AssistantRepository;
 import com.aiplatform.foundation.knowledgedata.application.indexversion.facade.ActiveIndexLookup;
-import com.aiplatform.foundation.modelruntime.application.deployment.facade.PublishedChatDeploymentLookup;
+import com.aiplatform.foundation.modelruntime.application.configuration.facade.UsableModelConfigurationLookup;
 import com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator;
 import java.time.Clock;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
@@ -32,13 +32,13 @@ public class AssistantDeliveryManagementAutoConfiguration {
     @ConditionalOnMissingBean
     AssistantService assistantService(
             AssistantRepository repository,
-            PublishedChatDeploymentLookup chatDeployments,
+            UsableModelConfigurationLookup modelConfigurations,
             ActiveIndexLookup activeIndexes,
             EntityIdGenerator identifiers,
             AssistantDeliveryProperties properties) {
         return new AssistantService(
                 repository,
-                chatDeployments,
+                modelConfigurations,
                 activeIndexes,
                 Clock.systemUTC(),
                 identifiers,

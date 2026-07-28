@@ -6,13 +6,14 @@ import com.aiplatform.foundation.security.identity.TrustedRequestContext;
 import java.util.Objects;
 
 /**
- * 以当前已发布模型和活动索引创建助手版本草稿。
+ * 以当前可用受控模型配置和活动索引创建助手版本草稿。
  */
 public record CreateAssistantVersionCommand(
         TrustedRequestContext context,
         String idempotencyKey,
         String assistantId,
-        String chatDeploymentId,
+        String chatModelConfigurationId,
+        String embeddingModelConfigurationId,
         String knowledgeSpaceId,
         String systemInstruction,
         int maxOutputTokens,
@@ -25,7 +26,8 @@ public record CreateAssistantVersionCommand(
         Objects.requireNonNull(context, "可信请求上下文不能为空");
         Objects.requireNonNull(idempotencyKey, "幂等键不能为空");
         Objects.requireNonNull(assistantId, "助手标识不能为空");
-        Objects.requireNonNull(chatDeploymentId, "对话部署标识不能为空");
+        Objects.requireNonNull(chatModelConfigurationId, "对话模型配置标识不能为空");
+        Objects.requireNonNull(embeddingModelConfigurationId, "嵌入模型配置标识不能为空");
         Objects.requireNonNull(knowledgeSpaceId, "知识空间标识不能为空");
         Objects.requireNonNull(systemInstruction, "系统指令不能为空");
         Objects.requireNonNull(citationPolicy, "引用策略不能为空");

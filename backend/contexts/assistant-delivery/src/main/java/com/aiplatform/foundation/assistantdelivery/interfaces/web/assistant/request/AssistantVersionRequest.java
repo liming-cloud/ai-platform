@@ -6,7 +6,8 @@ import com.aiplatform.foundation.assistantdelivery.domain.assistant.model.Refusa
  * 创建助手不可变版本草稿的公共请求。
  */
 public record AssistantVersionRequest(
-        String chatDeploymentId,
+        String chatModelConfigurationId,
+        String embeddingModelConfigurationId,
         String knowledgeSpaceId,
         String systemInstruction,
         int maxOutputTokens,
