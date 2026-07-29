@@ -2,7 +2,7 @@ schemaVersion: 1
 productVersion: foundation-v1
 currentMilestone: M3
 currentFrontier: WP-0011
-lastVerifiedCommit: 6d84f6a38b97c7cb327ecdf2ef3f2a2c790e0cee
+lastVerifiedCommit: c7b8b60ca63ac8f8d2001641eeae648db19da33e
 activeWorkPackages:
   - WP-0011
 blockedWorkPackages: []
@@ -113,5 +113,5 @@ latestEvidence:
   - project/evidence/M2-release-approval.md
   - project/evidence/WP-0011-data-lifecycle-design.md
 nextReviewAt: 2026-08-03
-updatedAt: 2026-07-29T09:20:00+08:00
+updatedAt: 2026-07-29T09:50:00+08:00
 updatedBy: codex

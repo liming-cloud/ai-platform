@@ -149,7 +149,7 @@
 | M2 产品经理浏览器验收与蓝图复核 | `project/evidence/WP-0010-product-manager-browser-review.md` | `c8e66787d` | 受控模型配置、可信问答和脱敏治理已实际操作；密钥不回显和创建状态缺陷已修复，M3 至 M8 产品覆盖计划已校准 |
 | M2 人工评审通过 | `project/evidence/M2-release-approval.md` | `99f16bc87` | 用户批准 M2 退出并进入 M3；三前端应用、SDK/API 渠道与平台/租户双范围产品边界已确认 |
 | M3 数据生命周期设计 | `project/evidence/WP-0011-data-lifecycle-design.md` | `6d84f6a38` | 当前文本数据源与索引事实已核实；ADR-0028 固定受治理来源、同步产物、质量和类型化连接器边界 |
-| M3 文件来源生命周期领域切片 | `project/evidence/WP-0011-data-lifecycle-design.md` | 待本次实现提交登记 | 文件来源的草稿、探测、同步、退役和乐观修订状态机先红后绿；知识数据依赖上下文回归通过 |
+| M3 文件来源生命周期领域切片 | `project/evidence/WP-0011-data-lifecycle-design.md` | `c7b8b60ca` | 文件来源的草稿、探测、同步、退役和乐观修订状态机先红后绿；知识数据依赖上下文回归通过 |
 
 ## 证据规则
 
