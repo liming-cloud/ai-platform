@@ -399,3 +399,26 @@ ADR-0028 定义 `GovernedDataSource`、`SourceRevision`、`SyncArtifact`、`Qual
 - 退役 FILE 的发布审计行保留，但选择 SQL 明确排除 `RETIRED` 来源；真实 PostgreSQL 测试证明新索引只保留历史文本候选。
 
 本切片仍未完成索引重建入口、真实 HTTP／对象存储 FILE 构建容器验收和知识管理员浏览器任务；M3 继续进行，不能申请人工评审或进入 M4。
+
+## FILE 控制台全生命周期与工作器启动恢复（2026-07-29）
+
+### 实现与自动化验证
+
+- 提交 `96637b173` 为生命周期返回投影增加失败操作、同步产物标识和质量结论；控制台只据此展示下一可执行动作，不回显对象位置、正文、摘要或凭据。它补齐 FILE 的同步、质量处置、显式发布、索引创建／发布和退役入口。
+- 提交 `10ac2d6aa` 修复默认无本地研发主密钥时 `ingestion-worker` 因缺少受控模型运行时 Bean 无法启动的问题。工作器在缺少受控运行时时仍能启动以处理历史部署索引；受控配置索引在执行阶段保持失败关闭，绝不回退为旧部署。
+- 在提交 `10ac2d6aa` 上运行：
+  `JAVA_HOME=/Users/lingou/Library/Java/JavaVirtualMachines/openjdk-26.0.2/Contents/Home ./mvnw -Dmaven.repo.local=/tmp/ai-mesh-m2 -q -pl backend/contexts/knowledge-data -am -Dtest=FileDataSourceSynchronizationServiceTest,FileDataSourceProbeServiceTest,FileSyncArtifactPublicationServiceTest,GovernedFileDataSourceControllerTest,PostgresIndexVersionPersistenceTest,IndexBuildWorkerTest,KnowledgeDataAutoConfigurationTest -Dsurefire.failIfNoSpecifiedTests=false test`，通过；真实 PostgreSQL 容器应用至 `V202607290020`。
+- 前端在 `frontend/` 工作区运行
+  `npm test -- --run apps/console-web/src/api/control-plane-client.test.ts && npm run typecheck && npm run lint -- --quiet`，9 项客户端测试、类型检查和静态检查均通过。
+- 本地 Compose 的 `control-plane`、`ingestion-worker` 与 `console-web` 均为 `healthy`；工作器已不再重启。
+
+### 浏览器验收
+
+- 知识管理员在企业控制台创建合成 FILE 来源“`M3 文件闭环浏览器验收`”，实际经历 `DRAFT → READY → 同步完成(PASS) → 显式发布 → RETIRED`。全过程只展示数据源编号、状态、质量结论和下一步动作，未展示文件正文、对象位置、摘要或密钥。
+- 同步成功后页面显示“同步产物已生成，质量结论：PASS”，且仅在该状态显示“发布同步产物”；发布成功后才出现“创建索引版本”，证明同步不会隐式变为可索引发布。
+- 对同一合成来源执行退役后页面显示 `RETIRED`，不再提供同步、发布或索引创建动作。真实 PostgreSQL 回归另已证明退役来源的历史发布事实保留、但不会进入新索引选择。
+- 在默认 Compose（未启用 `compose.real-model.yml`）上点击“创建索引版本”时，控制面因未装配 `model-configurations` 读取端点返回受控错误，浏览器仅显示追踪标识 `trc_2082419561583345666`，未泄露内部异常。该环境没有本地研发主密钥，不能作为 M2 受控模型验收环境；必须在已提供的本地研发主密钥下启用真实模型覆盖层后，重新完成 FILE 的真实 Embedding 构建、索引发布和重建验收。
+
+### 当前结论
+
+此切片补齐并验证了 FILE 的控制台登记、探测、同步、质量、显式发布和退役，以及无密钥工作器安全启动。真实受控 Embedding 索引构建仍缺少本地研发主密钥这一运行前置条件；OBJECT_STORAGE、STRUCTURED_DATASET、Schema／敏感级别、质量规则配置、浏览器未授权／过期路径及 M3 全量门禁尚未完成。因此 WP-0011 继续进行，不能申请 M3 人工评审或进入 M4。

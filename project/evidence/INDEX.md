@@ -161,6 +161,7 @@
 | M3 已发布同步产物持久化 | `project/evidence/WP-0011-data-lifecycle-design.md` | `73cd917e3` | 数据库质量复核、`BLOCK` 反绕过、来源版本原子递增、发布事实冻结、租户隔离和自动配置回归通过；M3 尚未完成 |
 | M3 FILE 同步产物受控发布入口 | `project/evidence/WP-0011-data-lifecycle-design.md` | `92f9440f7` | 知识写权限前置、来源—产物归属、受控 HTTP 委派、发布质量复核与自动配置回归通过；M3 尚未完成 |
 | M3 类型化索引来源快照 | `project/evidence/WP-0011-data-lifecycle-design.md` | `a43e6e93f`、`658e12d13`、`62a4812f7` | 历史文本兼容、已发布 FILE 产物选择、质量和产物冻结、混合来源租约、实际构建器与退役拒绝回归通过；M3 尚未完成 |
+| M3 FILE 控制台全生命周期与工作器恢复 | `project/evidence/WP-0011-data-lifecycle-design.md` | `96637b173`、`10ac2d6aa` | 知识管理员浏览器完成 FILE 的探测、同步、质量、显式发布和退役；受控模型运行时缺失时工作器安全启动；真实 Embedding 索引构建仍受本地研发主密钥前置条件限制，M3 尚未完成 |
 
 ## 证据规则
 
