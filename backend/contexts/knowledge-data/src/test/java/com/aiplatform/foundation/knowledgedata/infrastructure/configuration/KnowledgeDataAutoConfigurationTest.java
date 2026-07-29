@@ -7,6 +7,7 @@ import com.aiplatform.foundation.knowledgedata.application.datasource.service.Te
 import com.aiplatform.foundation.knowledgedata.application.datasource.service.GovernedDataSourceLifecycleService;
 import com.aiplatform.foundation.knowledgedata.application.datasource.service.FileDataSourceProbeService;
 import com.aiplatform.foundation.knowledgedata.application.datasource.service.FileDataSourceSynchronizationService;
+import com.aiplatform.foundation.knowledgedata.application.datasource.service.FileSyncArtifactPublicationService;
 import com.aiplatform.foundation.knowledgedata.application.datasource.service.GovernedDataSourceLifecycleService;
 import com.aiplatform.foundation.knowledgedata.application.datasource.service.GovernedFileDataSourceRegistrationService;
 import com.aiplatform.foundation.knowledgedata.application.indexversion.facade.ActiveIndexLookup;
@@ -279,6 +280,9 @@ class KnowledgeDataAutoConfigurationTest {
                 .withBean(
                         FileDataSourceSynchronizationService.class,
                         () -> mock(FileDataSourceSynchronizationService.class))
+                .withBean(
+                        FileSyncArtifactPublicationService.class,
+                        () -> mock(FileSyncArtifactPublicationService.class))
                 .withBean(
                         GovernedDataSourceLifecycleService.class,
                         () -> mock(GovernedDataSourceLifecycleService.class))

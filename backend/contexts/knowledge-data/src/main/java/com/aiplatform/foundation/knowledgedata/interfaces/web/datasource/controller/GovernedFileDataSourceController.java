@@ -2,12 +2,14 @@ package com.aiplatform.foundation.knowledgedata.interfaces.web.datasource.contro
 
 import com.aiplatform.foundation.knowledgedata.application.datasource.command.RegisterFileDataSourceCommand;
 import com.aiplatform.foundation.knowledgedata.application.datasource.command.ProbeFileDataSourceCommand;
+import com.aiplatform.foundation.knowledgedata.application.datasource.command.PublishFileSyncArtifactCommand;
 import com.aiplatform.foundation.knowledgedata.application.datasource.command.SynchronizeFileDataSourceCommand;
 import com.aiplatform.foundation.knowledgedata.application.datasource.command.GovernedDataSourceLifecycleAction;
 import com.aiplatform.foundation.knowledgedata.application.datasource.command.GovernedDataSourceLifecycleCommand;
 import com.aiplatform.foundation.knowledgedata.application.datasource.dto.GovernedDataSourceLifecycleResult;
 import com.aiplatform.foundation.knowledgedata.application.datasource.service.FileDataSourceProbeService;
 import com.aiplatform.foundation.knowledgedata.application.datasource.service.FileDataSourceSynchronizationService;
+import com.aiplatform.foundation.knowledgedata.application.datasource.service.FileSyncArtifactPublicationService;
 import com.aiplatform.foundation.knowledgedata.application.datasource.service.GovernedDataSourceLifecycleService;
 import com.aiplatform.foundation.knowledgedata.application.datasource.service.GovernedFileDataSourceRegistrationService;
 import com.aiplatform.foundation.knowledgedata.application.datasource.exception.TextContentProcessingException;
@@ -34,6 +36,7 @@ import org.springframework.web.bind.annotation.RestController;
     GovernedFileDataSourceRegistrationService.class,
     FileDataSourceProbeService.class,
     FileDataSourceSynchronizationService.class,
+    FileSyncArtifactPublicationService.class,
     GovernedDataSourceLifecycleService.class
 })
 @RequestMapping("/api/v1/governed-data-sources")
@@ -41,16 +44,19 @@ public class GovernedFileDataSourceController {
     private final GovernedFileDataSourceRegistrationService registration;
     private final FileDataSourceProbeService probes;
     private final FileDataSourceSynchronizationService synchronizations;
+    private final FileSyncArtifactPublicationService publications;
     private final GovernedDataSourceLifecycleService lifecycle;
 
     public GovernedFileDataSourceController(
             GovernedFileDataSourceRegistrationService registration,
             FileDataSourceProbeService probes,
             FileDataSourceSynchronizationService synchronizations,
+            FileSyncArtifactPublicationService publications,
             GovernedDataSourceLifecycleService lifecycle) {
         this.registration = Objects.requireNonNull(registration, "文件来源登记用例不能为空");
         this.probes = Objects.requireNonNull(probes, "文件来源探测用例不能为空");
         this.synchronizations = Objects.requireNonNull(synchronizations, "文件来源同步用例不能为空");
+        this.publications = Objects.requireNonNull(publications, "同步产物发布用例不能为空");
         this.lifecycle = Objects.requireNonNull(lifecycle, "来源生命周期用例不能为空");
     }
 
@@ -76,6 +82,18 @@ public class GovernedFileDataSourceController {
             @RequestParam long expectedVersion) {
         return synchronizations.synchronize(new SynchronizeFileDataSourceCommand(
                 context, knowledgeSpaceId, dataSourceId, expectedVersion));
+    }
+
+    /** 发布仅选择已同步产物；质量结论和对象事实只能由受控服务重新读取。 */
+    @PostMapping("/files/{dataSourceId}/artifacts/{artifactId}/publish")
+    public GovernedDataSourceLifecycleResult publish(
+            TrustedRequestContext context,
+            @RequestParam String knowledgeSpaceId,
+            @PathVariable String dataSourceId,
+            @PathVariable String artifactId,
+            @RequestParam long expectedVersion) {
+        return publications.publish(new PublishFileSyncArtifactCommand(
+                context, knowledgeSpaceId, dataSourceId, artifactId, expectedVersion));
     }
 
     /** 退役只改变受治理来源身份，不删除冻结对象、同步产物或质量审计事实。 */

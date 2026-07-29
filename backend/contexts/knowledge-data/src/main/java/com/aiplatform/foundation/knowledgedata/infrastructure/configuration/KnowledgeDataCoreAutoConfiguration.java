@@ -4,6 +4,7 @@ import com.aiplatform.foundation.knowledgedata.application.datasource.service.Te
 import com.aiplatform.foundation.knowledgedata.application.datasource.service.GovernedDataSourceLifecycleService;
 import com.aiplatform.foundation.knowledgedata.application.datasource.service.FileDataSourceProbeService;
 import com.aiplatform.foundation.knowledgedata.application.datasource.service.FileDataSourceSynchronizationService;
+import com.aiplatform.foundation.knowledgedata.application.datasource.service.FileSyncArtifactPublicationService;
 import com.aiplatform.foundation.knowledgedata.application.datasource.service.GovernedFileDataSourceRegistrationService;
 import com.aiplatform.foundation.knowledgedata.application.datasource.port.out.FileSourceObjectProbe;
 import com.aiplatform.foundation.knowledgedata.application.indexversion.facade.ActiveIndexLookup;
@@ -125,6 +126,13 @@ public class KnowledgeDataCoreAutoConfiguration {
             EntityIdGenerator identifiers) {
         return new FileDataSourceSynchronizationService(
                 repository, storage, Clock.systemUTC(), identifiers);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    FileSyncArtifactPublicationService fileSyncArtifactPublicationService(
+            GovernedDataSourceRepository repository) {
+        return new FileSyncArtifactPublicationService(repository, Clock.systemUTC());
     }
 
     @Bean
