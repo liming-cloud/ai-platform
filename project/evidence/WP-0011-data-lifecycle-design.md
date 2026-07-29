@@ -135,3 +135,30 @@ ADR-0028 定义 `GovernedDataSource`、`SourceRevision`、`SyncArtifact`、`Qual
 - 性能：服务只做内存校验与一次读取、一次条件更新；耗时同步仍通过原子完成契约在事务外执行后登记。
 - 架构：代码图谱对照既有 `TextDataSourceService` 的可信上下文与权限边界；新增服务依赖领域仓储而非 MyBatis 或 HTTP 类型，并由核心自动配置装配。
 - 测试质量：红灯来自缺失应用 seam；绿灯覆盖有权限成功、无权限读取前拒绝和乐观更新失败不返回成功状态。尚未开放 Web 控制器，避免在实际 FILE 探测器接入前由浏览器伪造成功结果。
+
+## 受治理文件修订对象事实切片
+
+- 红灯：先增加 `SourceRevisionTest`，并扩展真实 PostgreSQL
+  `PostgresGovernedDataSourceRepositoryTest`，运行
+  `JAVA_HOME=/Users/lingou/Library/Java/JavaVirtualMachines/openjdk-26.0.2/Contents/Home ./mvnw -Dmaven.repo.local=/tmp/ai-mesh-m2 -q -pl backend/contexts/knowledge-data -am -Dtest=SourceRevisionTest,PostgresGovernedDataSourceRepositoryTest -Dsurefire.failIfNoSpecifiedTests=false test`。
+  测试按预期因缺少 `FileSourceObjectReference`、`currentRevision()` 和 `fileObject()` 编译失败。
+- 绿灯：在提交 `5eb5759429de4174748851f9041ac4c7c8615d0c` 上，同一命令通过；随后运行
+  `JAVA_HOME=/Users/lingou/Library/Java/JavaVirtualMachines/openjdk-26.0.2/Contents/Home ./mvnw -Dmaven.repo.local=/tmp/ai-mesh-m2 -q -pl backend/contexts/knowledge-data -am test` 通过。
+  综合 `make validate` 初次发现新增 SQL 注解与超规模平铺包；在提交
+  `a55f6a406e3c76e6dedb0a9d404f7ae696ec169c` 中迁移为 Mapper XML、登记复杂 SQL、并按修订/质量职责拆包后，`make validate` 与 `git diff --check` 通过。
+
+### 已验证事实
+
+- ADR-0028 明确首个 `FILE` 仅接受已由 ADR-0014 验证的严格 UTF-8 纯文本；PDF、Office 等格式没有被虚假宣称为已支持。
+- `FileSourceObjectReference` 冻结平台对象键、SHA-256、字节数和媒体类型，并由四项事实共同生成来源定义摘要；对象键不携带桶名、访问凭据或正文。
+- `GovernedDataSource` 在登记时固定当前修订 `1`，`SourceRevision.file` 只接受 `FILE` 类型，且修订定义摘要必须与文件对象事实一致。
+- Flyway `V202607290017` 在真实 PostgreSQL 中持久化当前修订与文件对象事实，并用检查约束拒绝文件字段缺失、非文件类型伪带文件字段和非 UTF-8 媒体类型。
+
+### 六维检查
+
+- 正确性：领域测试证明首个修订与文件对象定义绑定；真实 PostgreSQL 测试证明来源当前修订和文件对象字段可读取且保持租户隔离。
+- 安全：调用方不能提交桶名或对象键；持久化只保存受控对象定位、摘要、长度和类型，不保存正文、连接地址或凭据。真实 adapter 测试覆盖提交后的读取事实，满足持久化 seam 的事务可见性要求。
+- 复杂度：仅增加一个文件对象值对象与四个必要字段；未抽象尚无调用方的通用文件连接器，也未改造 M1 `TextDataSource`。
+- 性能：对象摘要基于短元数据计算，不重新读取文件；数据库迁移与登记只保存元数据，外部文件上传、探测和同步仍在事务外。
+- 架构：代码图谱分析 `TextDataSourceService`、`MinioTextContentObjectStorageAdapter`、`GovernedDataSourceRepository` 与其影响范围后，M3 只在新受治理来源边界建立对象事实，旧文本路径保持独立；影响分析限定为来源修订、仓储、Mapper 和真实 PostgreSQL 测试。综合门禁发现并修复 SQL 注解与平铺包超限，最终超预算包和 SQL 注解数均为零。
+- 测试质量：同一红绿命令先因缺少契约失败，后以领域与真实 PostgreSQL 测试转绿；完整知识数据依赖上下文回归已通过。
