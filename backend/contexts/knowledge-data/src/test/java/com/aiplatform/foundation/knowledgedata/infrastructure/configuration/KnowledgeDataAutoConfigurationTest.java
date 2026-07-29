@@ -6,6 +6,7 @@ import static org.mockito.Mockito.mock;
 import com.aiplatform.foundation.knowledgedata.application.datasource.service.TextDataSourceService;
 import com.aiplatform.foundation.knowledgedata.application.datasource.service.GovernedDataSourceLifecycleService;
 import com.aiplatform.foundation.knowledgedata.application.datasource.service.FileDataSourceProbeService;
+import com.aiplatform.foundation.knowledgedata.application.datasource.service.FileDataSourceSynchronizationService;
 import com.aiplatform.foundation.knowledgedata.application.datasource.service.GovernedFileDataSourceRegistrationService;
 import com.aiplatform.foundation.knowledgedata.application.indexversion.facade.ActiveIndexLookup;
 import com.aiplatform.foundation.knowledgedata.application.indexversion.service.IndexVersionService;
@@ -270,6 +271,9 @@ class KnowledgeDataAutoConfigurationTest {
                 .withBean(
                         FileDataSourceProbeService.class,
                         () -> mock(FileDataSourceProbeService.class))
+                .withBean(
+                        FileDataSourceSynchronizationService.class,
+                        () -> mock(FileDataSourceSynchronizationService.class))
                 .withBean(
                         IndexVersionService.class,
                         () -> mock(IndexVersionService.class))

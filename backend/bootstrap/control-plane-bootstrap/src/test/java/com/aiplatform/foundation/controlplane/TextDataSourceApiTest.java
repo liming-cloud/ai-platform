@@ -94,6 +94,10 @@ class TextDataSourceApiTest {
     @BeforeEach
     void clearKnowledgeData() {
         testStorage.clear();
+        jdbc.update("DELETE FROM knowledge_data.quality_report");
+        jdbc.update("DELETE FROM knowledge_data.sync_artifact");
+        jdbc.update("DELETE FROM knowledge_data.source_revision");
+        jdbc.update("DELETE FROM knowledge_data.governed_data_source");
         jdbc.update("DELETE FROM knowledge_data.outbox_event");
         jdbc.update("DELETE FROM knowledge_data.text_data_source_request");
         jdbc.update("DELETE FROM knowledge_data.text_data_source_content");
@@ -302,7 +306,51 @@ class TextDataSourceApiTest {
                 jdbc.queryForObject(
                         "SELECT count(*) FROM knowledge_data.outbox_event "
                                 + "WHERE event_type = 'TEXT_DATA_SOURCE_PUBLISHED'",
-                        Integer.class));
+                Integer.class));
+    }
+
+    @Test
+    void 文件来源经探测后同步会原子保存产物和质量结论() {
+        var token = login("demo-store");
+        var space = createSpace(token, "space-governed-file-001", "受治理文件知识");
+        var headers = authorized(token);
+        headers.setContentType(new MediaType("text", "plain", java.nio.charset.StandardCharsets.UTF_8));
+        var registered = http.postForEntity(
+                url("/api/v1/governed-data-sources/files?knowledgeSpaceId=" + space.id()
+                        + "&name=受治理文件"),
+                new HttpEntity<>("可信文件内容", headers),
+                GovernedSourceResponse.class);
+
+        assertEquals(HttpStatus.CREATED, registered.getStatusCode());
+        assertNotNull(registered.getBody());
+        var source = registered.getBody();
+        assertEquals("DRAFT", source.status());
+
+        var probed = http.postForEntity(
+                url("/api/v1/governed-data-sources/files/" + source.id()
+                        + "/probe?knowledgeSpaceId=" + space.id() + "&expectedVersion=0"),
+                new HttpEntity<>(authorized(token)),
+                GovernedSourceResponse.class);
+        assertEquals(HttpStatus.OK, probed.getStatusCode());
+        assertNotNull(probed.getBody());
+        assertEquals("READY", probed.getBody().status());
+        assertEquals(2, probed.getBody().version());
+
+        var synchronizedResponse = http.postForEntity(
+                url("/api/v1/governed-data-sources/files/" + source.id()
+                        + "/synchronization?knowledgeSpaceId=" + space.id() + "&expectedVersion=2"),
+                new HttpEntity<>(authorized(token)),
+                GovernedSourceResponse.class);
+        assertEquals(HttpStatus.OK, synchronizedResponse.getStatusCode());
+        assertNotNull(synchronizedResponse.getBody());
+        assertEquals("READY", synchronizedResponse.getBody().status());
+        assertEquals(4, synchronizedResponse.getBody().version());
+        assertEquals(1, jdbc.queryForObject(
+                "SELECT count(*) FROM knowledge_data.sync_artifact WHERE tenant_id = ? AND data_source_id = ?",
+                Integer.class, STORE_TENANT, Long.parseLong(source.id())));
+        assertEquals("PASS", jdbc.queryForObject(
+                "SELECT status FROM knowledge_data.quality_report WHERE tenant_id = ?",
+                String.class, STORE_TENANT));
     }
 
     private SpaceResponse createSpace(String token, String key, String name) {
@@ -410,6 +458,17 @@ class TextDataSourceApiTest {
             int contentVersion,
             int publishedContentVersion,
             Instant createdAt) {
+    }
+
+    private record GovernedSourceResponse(
+            String dataSourceId,
+            String knowledgeSpaceId,
+            String status,
+            long version) {
+
+        private String id() {
+            return dataSourceId;
+        }
     }
 
     private record SourcePage(

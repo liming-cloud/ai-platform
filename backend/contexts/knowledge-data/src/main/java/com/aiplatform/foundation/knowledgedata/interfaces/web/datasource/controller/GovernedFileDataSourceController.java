@@ -2,8 +2,10 @@ package com.aiplatform.foundation.knowledgedata.interfaces.web.datasource.contro
 
 import com.aiplatform.foundation.knowledgedata.application.datasource.command.RegisterFileDataSourceCommand;
 import com.aiplatform.foundation.knowledgedata.application.datasource.command.ProbeFileDataSourceCommand;
+import com.aiplatform.foundation.knowledgedata.application.datasource.command.SynchronizeFileDataSourceCommand;
 import com.aiplatform.foundation.knowledgedata.application.datasource.dto.GovernedDataSourceLifecycleResult;
 import com.aiplatform.foundation.knowledgedata.application.datasource.service.FileDataSourceProbeService;
+import com.aiplatform.foundation.knowledgedata.application.datasource.service.FileDataSourceSynchronizationService;
 import com.aiplatform.foundation.knowledgedata.application.datasource.service.GovernedFileDataSourceRegistrationService;
 import com.aiplatform.foundation.knowledgedata.application.datasource.exception.TextContentProcessingException;
 import com.aiplatform.foundation.security.identity.TrustedRequestContext;
@@ -27,18 +29,22 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @ConditionalOnBean({
     GovernedFileDataSourceRegistrationService.class,
-    FileDataSourceProbeService.class
+    FileDataSourceProbeService.class,
+    FileDataSourceSynchronizationService.class
 })
 @RequestMapping("/api/v1/governed-data-sources")
 public class GovernedFileDataSourceController {
     private final GovernedFileDataSourceRegistrationService registration;
     private final FileDataSourceProbeService probes;
+    private final FileDataSourceSynchronizationService synchronizations;
 
     public GovernedFileDataSourceController(
             GovernedFileDataSourceRegistrationService registration,
-            FileDataSourceProbeService probes) {
+            FileDataSourceProbeService probes,
+            FileDataSourceSynchronizationService synchronizations) {
         this.registration = Objects.requireNonNull(registration, "文件来源登记用例不能为空");
         this.probes = Objects.requireNonNull(probes, "文件来源探测用例不能为空");
+        this.synchronizations = Objects.requireNonNull(synchronizations, "文件来源同步用例不能为空");
     }
 
     /**
@@ -51,6 +57,17 @@ public class GovernedFileDataSourceController {
             @PathVariable String dataSourceId,
             @RequestParam long expectedVersion) {
         return probes.probe(new ProbeFileDataSourceCommand(
+                context, knowledgeSpaceId, dataSourceId, expectedVersion));
+    }
+
+    /** 同步仅使用已冻结的文件对象事实，不接受调用方提供的对象地址或内容。 */
+    @PostMapping("/files/{dataSourceId}/synchronization")
+    public GovernedDataSourceLifecycleResult synchronize(
+            TrustedRequestContext context,
+            @RequestParam String knowledgeSpaceId,
+            @PathVariable String dataSourceId,
+            @RequestParam long expectedVersion) {
+        return synchronizations.synchronize(new SynchronizeFileDataSourceCommand(
                 context, knowledgeSpaceId, dataSourceId, expectedVersion));
     }
     @PostMapping(value = "/files", consumes = MediaType.TEXT_PLAIN_VALUE)

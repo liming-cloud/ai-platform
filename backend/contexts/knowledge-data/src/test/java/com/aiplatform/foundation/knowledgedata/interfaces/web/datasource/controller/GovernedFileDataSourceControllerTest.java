@@ -8,6 +8,7 @@ import static org.mockito.Mockito.when;
 
 import com.aiplatform.foundation.knowledgedata.application.datasource.dto.GovernedDataSourceLifecycleResult;
 import com.aiplatform.foundation.knowledgedata.application.datasource.service.FileDataSourceProbeService;
+import com.aiplatform.foundation.knowledgedata.application.datasource.service.FileDataSourceSynchronizationService;
 import com.aiplatform.foundation.knowledgedata.application.datasource.service.GovernedFileDataSourceRegistrationService;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.model.GovernedDataSourceStatus;
 import com.aiplatform.foundation.security.identity.TrustedRequestContext;
@@ -20,7 +21,8 @@ class GovernedFileDataSourceControllerTest {
     void 探测必须委派给受控文件探测用例并返回新的生命周期事实() {
         var registration = mock(GovernedFileDataSourceRegistrationService.class);
         var probes = mock(FileDataSourceProbeService.class);
-        var controller = new GovernedFileDataSourceController(registration, probes);
+        var synchronizations = mock(FileDataSourceSynchronizationService.class);
+        var controller = new GovernedFileDataSourceController(registration, probes, synchronizations);
         var context = mock(TrustedRequestContext.class);
         var expected = new GovernedDataSourceLifecycleResult(
                 "3001", "2001", GovernedDataSourceStatus.READY, 2);
@@ -35,6 +37,29 @@ class GovernedFileDataSourceControllerTest {
         assertThat(command.getValue().knowledgeSpaceId()).isEqualTo("2001");
         assertThat(command.getValue().dataSourceId()).isEqualTo("3001");
         assertThat(command.getValue().expectedVersion()).isEqualTo(1);
+        assertThat(result).isSameAs(expected);
+    }
+
+    @Test
+    void 同步必须委派给受控文件同步用例并返回新的生命周期事实() {
+        var registration = mock(GovernedFileDataSourceRegistrationService.class);
+        var probes = mock(FileDataSourceProbeService.class);
+        var synchronizations = mock(FileDataSourceSynchronizationService.class);
+        var controller = new GovernedFileDataSourceController(registration, probes, synchronizations);
+        var context = mock(TrustedRequestContext.class);
+        var expected = new GovernedDataSourceLifecycleResult(
+                "3001", "2001", GovernedDataSourceStatus.READY, 4);
+        when(synchronizations.synchronize(any())).thenReturn(expected);
+
+        var result = controller.synchronize(context, "2001", "3001", 3);
+
+        var command = ArgumentCaptor.forClass(
+                com.aiplatform.foundation.knowledgedata.application.datasource.command.SynchronizeFileDataSourceCommand.class);
+        verify(synchronizations).synchronize(command.capture());
+        assertThat(command.getValue().context()).isSameAs(context);
+        assertThat(command.getValue().knowledgeSpaceId()).isEqualTo("2001");
+        assertThat(command.getValue().dataSourceId()).isEqualTo("3001");
+        assertThat(command.getValue().expectedVersion()).isEqualTo(3);
         assertThat(result).isSameAs(expected);
     }
 }
