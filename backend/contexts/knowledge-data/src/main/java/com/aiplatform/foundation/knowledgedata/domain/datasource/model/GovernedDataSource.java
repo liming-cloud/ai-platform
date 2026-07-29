@@ -132,6 +132,15 @@ public final class GovernedDataSource implements AggregateRoot<DataSourceId> {
     }
 
     /**
+     * 登记一次显式产物发布的来源修订。
+     *
+     * @throws DataSourceStateException 来源尚未就绪或修订过期时抛出。
+     */
+    public GovernedDataSource publishArtifact(long expectedVersion) {
+        return transition(expectedVersion, GovernedDataSourceStatus.READY, GovernedDataSourceStatus.READY);
+    }
+
+    /**
      * 登记同步失败，供后续按同步语义恢复。
      *
      * @throws DataSourceStateException 当前状态或修订不允许登记同步失败时抛出。

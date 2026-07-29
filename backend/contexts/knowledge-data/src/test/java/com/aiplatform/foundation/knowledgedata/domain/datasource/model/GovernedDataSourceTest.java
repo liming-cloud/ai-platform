@@ -59,6 +59,17 @@ class GovernedDataSourceTest {
     }
 
     @Test
+    void 只有就绪来源可以登记显式产物发布且保留就绪状态() {
+        var ready = fileSource().startProbe(0).completeProbe(1);
+
+        var published = ready.publishArtifact(2);
+
+        assertEquals(GovernedDataSourceStatus.READY, published.status());
+        assertEquals(3, published.version());
+        assertThrows(DataSourceStateException.class, () -> fileSource().publishArtifact(0));
+    }
+
+    @Test
     void 探测或同步失败只可按原失败操作恢复() {
         var source = fileSource();
 
