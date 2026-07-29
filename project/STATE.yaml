@@ -36,7 +36,8 @@ confirmedDecisions:
   - ADR-0027
   - ADR-0028
   - ADR-0029
-openDecisions: []
+openDecisions:
+  - ADR-0030
 latestEvidence:
   - docs/research/WP-0003-framework-baseline.md
   - project/evidence/WP-0003-trusted-context.md
@@ -114,5 +115,5 @@ latestEvidence:
   - project/evidence/M2-release-approval.md
   - project/evidence/WP-0011-data-lifecycle-design.md
 nextReviewAt: 2026-08-03
-updatedAt: 2026-07-29T10:00:00+08:00
+updatedAt: 2026-07-29T19:20:00+08:00
 updatedBy: codex
