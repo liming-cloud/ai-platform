@@ -7,6 +7,7 @@ import com.aiplatform.foundation.knowledgedata.application.indexversion.exceptio
 import com.aiplatform.foundation.knowledgedata.application.port.out.index.IndexBuildLease;
 import com.aiplatform.foundation.knowledgedata.application.port.out.index.IndexBuildQueuePort;
 import com.aiplatform.foundation.knowledgedata.application.port.out.index.IndexSourceSnapshot;
+import com.aiplatform.foundation.knowledgedata.application.port.out.index.IndexSourceKind;
 import com.aiplatform.foundation.knowledgedata.domain.indexversion.model.IndexVersionId;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.model.DataSourceId;
 import com.aiplatform.foundation.knowledgedata.domain.knowledge.model.KnowledgeSpaceId;
@@ -155,14 +156,27 @@ public final class PostgresIndexBuildQueue implements IndexBuildQueuePort {
     }
 
     private static IndexSourceSnapshot toSnapshot(IndexSourceEntity row) {
+        var kind = IndexSourceKind.valueOf(row.getSourceType());
         return new IndexSourceSnapshot(
+                kind,
                 new DataSourceId(row.getDataSourceId()),
+                row.getSourceRevision(),
+                row.getSyncArtifactId(),
+                row.getQualityStatus(),
+                row.getQualityRuleSetVersion(),
                 new TextContentReference(
-                        row.getContentVersion(),
+                        Math.toIntExact(row.getSourceRevision()),
                         row.getObjectKey(),
                         row.getSha256(),
                         row.getByteSize(),
-                        row.getMediaType(),
+                        contentMediaType(kind, row.getMediaType()),
                         row.getContentCreatedAt()));
+    }
+
+    /** 构建器沿用 M1 文本读取端口；FILE 的小写媒体事实已在类型化快照表冻结，此处仅适配端口常量。 */
+    private static String contentMediaType(IndexSourceKind kind, String mediaType) {
+        return kind == IndexSourceKind.GOVERNED_SYNC_ARTIFACT
+                ? TextContentReference.UTF8_TEXT
+                : mediaType;
     }
 }

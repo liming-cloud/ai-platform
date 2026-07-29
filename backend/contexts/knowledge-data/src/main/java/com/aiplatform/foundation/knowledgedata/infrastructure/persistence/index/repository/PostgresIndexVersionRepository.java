@@ -354,8 +354,12 @@ public final class PostgresIndexVersionRepository implements IndexVersionReposit
         entity.setIndexVersionId(request.indexVersionId().value());
         entity.setDataSourceId(Long.parseLong(source.getDataSourceId()));
         entity.setContentVersion(source.getContentVersion());
-        entity.setSourceType("LEGACY_TEXT_CONTENT");
-        entity.setSourceRevision(source.getContentVersion());
+        entity.setSourceType(source.getSourceType());
+        entity.setSourceRevision(source.getSourceRevision());
+        entity.setSyncArtifactId(source.getSyncArtifactId());
+        entity.setQualityStatus(source.getQualityStatus());
+        entity.setQualityRuleSetVersion(source.getQualityRuleSetVersion());
+        entity.setPublishedAt(source.getPublishedAt());
         entity.setObjectKey(source.getObjectKey());
         entity.setSha256(source.getSha256());
         entity.setByteSize(source.getByteSize());
@@ -405,8 +409,12 @@ public final class PostgresIndexVersionRepository implements IndexVersionReposit
         try {
             var digest = MessageDigest.getInstance("SHA-256");
             for (var source : sources) {
+                update(digest, source.getSourceType());
                 update(digest, source.getDataSourceId());
-                update(digest, Integer.toString(source.getContentVersion()));
+                update(digest, Long.toString(source.getSourceRevision()));
+                update(digest, Objects.toString(source.getSyncArtifactId(), ""));
+                update(digest, Objects.toString(source.getQualityStatus(), ""));
+                update(digest, Objects.toString(source.getQualityRuleSetVersion(), ""));
                 update(digest, source.getSha256());
                 update(digest, Long.toString(source.getByteSize()));
             }

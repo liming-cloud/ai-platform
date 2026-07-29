@@ -13,6 +13,7 @@ import com.aiplatform.foundation.knowledgedata.application.indexversion.port.out
 import com.aiplatform.foundation.knowledgedata.application.knowledge.exception.IdempotencyConflictException;
 import com.aiplatform.foundation.knowledgedata.application.port.out.index.IndexBuildCompletionPort;
 import com.aiplatform.foundation.knowledgedata.application.port.out.index.IndexBuildQueuePort;
+import com.aiplatform.foundation.knowledgedata.application.port.out.index.IndexSourceKind;
 import com.aiplatform.foundation.knowledgedata.domain.indexversion.repository.IndexVersionBuildRequest;
 import com.aiplatform.foundation.knowledgedata.domain.indexversion.repository.IndexVersionRepository;
 import com.aiplatform.foundation.knowledgedata.domain.indexversion.model.EmbeddingConfiguration;
@@ -20,6 +21,7 @@ import com.aiplatform.foundation.knowledgedata.domain.indexversion.model.IndexVe
 import com.aiplatform.foundation.knowledgedata.domain.indexversion.model.IndexVersionStatus;
 import com.aiplatform.foundation.knowledgedata.domain.indexversion.model.ParagraphWindowChunker;
 import com.aiplatform.foundation.knowledgedata.domain.knowledge.model.KnowledgeSpaceId;
+import com.aiplatform.foundation.knowledgedata.domain.datasource.revision.FileSourceObjectReference;
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.index.mapper.IndexVersionMapper;
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.index.mapper.IndexBuildJobMapper;
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.index.mapper.IndexSourceMapper;
@@ -106,6 +108,11 @@ class PostgresIndexVersionPersistenceTest {
         jdbc.update("DELETE FROM knowledge_data.index_build_job");
         jdbc.update("DELETE FROM knowledge_data.index_version_source");
         jdbc.update("DELETE FROM knowledge_data.index_version");
+        jdbc.update("DELETE FROM knowledge_data.published_sync_artifact");
+        jdbc.update("DELETE FROM knowledge_data.quality_report");
+        jdbc.update("DELETE FROM knowledge_data.sync_artifact");
+        jdbc.update("DELETE FROM knowledge_data.source_revision");
+        jdbc.update("DELETE FROM knowledge_data.governed_data_source");
         jdbc.update("DELETE FROM knowledge_data.outbox_event");
         jdbc.update("DELETE FROM knowledge_data.text_data_source_request");
         jdbc.update("DELETE FROM knowledge_data.text_data_source_content");
@@ -157,6 +164,28 @@ class PostgresIndexVersionPersistenceTest {
                 new IndexVersionId(230000000000000003L),
                 "create-index-0001",
                 "e".repeat(64))));
+    }
+
+    @Test
+    void 创建会与历史文本一起冻结最新的已发布文件产物() {
+        var id = new IndexVersionId(230000000000000007L);
+        insertPublishedFileSource(TENANT, 230000000000000101L, 240000000000000101L);
+
+        repository.create(request(TENANT, id, "create-index-file-0001", "d".repeat(64)));
+
+        assertEquals(3, jdbc.queryForObject(
+                "SELECT count(*) FROM knowledge_data.index_version_source WHERE tenant_id = ? AND index_version_id = ?",
+                Integer.class, TENANT.value(), id.value()));
+        assertEquals(1, jdbc.queryForObject(
+                "SELECT count(*) FROM knowledge_data.index_version_source WHERE tenant_id = ? AND index_version_id = ? AND source_type = 'GOVERNED_SYNC_ARTIFACT' AND sync_artifact_id = ? AND quality_status = 'WARN'",
+                Integer.class, TENANT.value(), id.value(), 240000000000000101L));
+        var lease = queue.claim(NOW.plusSeconds(1), Duration.ofMinutes(1)).orElseThrow();
+        assertEquals(3, lease.sources().size());
+        assertTrue(lease.sources().stream().anyMatch(source ->
+                source.kind() == IndexSourceKind.GOVERNED_SYNC_ARTIFACT
+                        && source.sourceRevision() == 1
+                        && source.syncArtifactId().equals(240000000000000101L)
+                        && source.qualityStatus().equals("WARN")));
     }
 
     @Test
@@ -306,6 +335,40 @@ class PostgresIndexVersionPersistenceTest {
                 contentDigest,
                 "text/plain; charset=UTF-8",
                 NOW.atOffset(ZoneOffset.UTC));
+    }
+
+    private void insertPublishedFileSource(TenantId tenant, long sourceId, long artifactId) {
+        var objectKey = "foundation-v1/" + tenant.value() + "/files/" + sourceId + ".txt";
+        var contentDigest = "e".repeat(64);
+        var file = new FileSourceObjectReference(objectKey, contentDigest, 16, FileSourceObjectReference.UTF8_TEXT);
+        jdbc.update("""
+                INSERT INTO knowledge_data.governed_data_source (
+                    tenant_id, knowledge_space_id, id, source_type, name, status, version, current_revision, created_by, created_at
+                ) VALUES (?, ?, ?, 'FILE', '已发布文件', 'READY', 5, 1, ?, ?)
+                """, tenant.value(), SPACE.value(), sourceId, CREATOR.value(), NOW.atOffset(ZoneOffset.UTC));
+        jdbc.update("""
+                INSERT INTO knowledge_data.source_revision (
+                    tenant_id, knowledge_space_id, data_source_id, revision, source_type, definition_digest,
+                    object_key, content_digest, byte_size, media_type, created_by, created_at
+                ) VALUES (?, ?, ?, 1, 'FILE', ?, ?, ?, 16, 'text/plain; charset=utf-8', ?, ?)
+                """, tenant.value(), SPACE.value(), sourceId, file.definitionDigest(), objectKey, contentDigest,
+                CREATOR.value(), NOW.atOffset(ZoneOffset.UTC));
+        jdbc.update("""
+                INSERT INTO knowledge_data.sync_artifact (
+                    id, tenant_id, knowledge_space_id, data_source_id, source_revision, content_digest, record_count, synchronized_at
+                ) VALUES (?, ?, ?, ?, 1, ?, 1, ?)
+                """, artifactId, tenant.value(), SPACE.value(), sourceId, contentDigest, NOW.atOffset(ZoneOffset.UTC));
+        jdbc.update("""
+                INSERT INTO knowledge_data.quality_report (
+                    artifact_id, tenant_id, knowledge_space_id, rule_set_version, status, warning_count, blocking_count
+                ) VALUES (?, ?, ?, 'file-quality-v1', 'WARN', 1, 0)
+                """, artifactId, tenant.value(), SPACE.value());
+        jdbc.update("""
+                INSERT INTO knowledge_data.published_sync_artifact (
+                    tenant_id, knowledge_space_id, data_source_id, source_version, artifact_id,
+                    quality_status, rule_set_version, published_at
+                ) VALUES (?, ?, ?, 5, ?, 'WARN', 'file-quality-v1', ?)
+                """, tenant.value(), SPACE.value(), sourceId, artifactId, NOW.atOffset(ZoneOffset.UTC));
     }
 
     @SpringBootConfiguration

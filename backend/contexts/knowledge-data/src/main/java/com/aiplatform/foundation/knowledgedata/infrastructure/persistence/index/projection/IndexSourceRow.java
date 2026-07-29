@@ -8,7 +8,13 @@ import java.time.Instant;
 public final class IndexSourceRow {
 
     private String dataSourceId;
-    private int contentVersion;
+    private Integer contentVersion;
+    private String sourceType;
+    private long sourceRevision;
+    private Long syncArtifactId;
+    private String qualityStatus;
+    private String qualityRuleSetVersion;
+    private Instant publishedAt;
     private String objectKey;
     private String sha256;
     private long byteSize;
@@ -23,13 +29,25 @@ public final class IndexSourceRow {
         this.dataSourceId = dataSourceId;
     }
 
-    public int getContentVersion() {
+    public Integer getContentVersion() {
         return contentVersion;
     }
 
-    public void setContentVersion(int contentVersion) {
+    public void setContentVersion(Integer contentVersion) {
         this.contentVersion = contentVersion;
     }
+    public String getSourceType() { return sourceType; }
+    public void setSourceType(String value) { sourceType = value; }
+    public long getSourceRevision() { return sourceRevision; }
+    public void setSourceRevision(long value) { sourceRevision = value; }
+    public Long getSyncArtifactId() { return syncArtifactId; }
+    public void setSyncArtifactId(Long value) { syncArtifactId = value; }
+    public String getQualityStatus() { return qualityStatus; }
+    public void setQualityStatus(String value) { qualityStatus = value; }
+    public String getQualityRuleSetVersion() { return qualityRuleSetVersion; }
+    public void setQualityRuleSetVersion(String value) { qualityRuleSetVersion = value; }
+    public Instant getPublishedAt() { return publishedAt; }
+    public void setPublishedAt(Instant value) { publishedAt = value; }
 
     public String getObjectKey() {
         return objectKey;

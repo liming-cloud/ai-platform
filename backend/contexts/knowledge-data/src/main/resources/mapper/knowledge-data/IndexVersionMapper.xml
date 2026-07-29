@@ -7,6 +7,12 @@
     <resultMap id="indexSourceRow" type="com.aiplatform.foundation.knowledgedata.infrastructure.persistence.index.projection.IndexSourceRow">
         <result column="data_source_id" property="dataSourceId"/>
         <result column="content_version" property="contentVersion"/>
+        <result column="source_type" property="sourceType"/>
+        <result column="source_revision" property="sourceRevision"/>
+        <result column="sync_artifact_id" property="syncArtifactId"/>
+        <result column="quality_status" property="qualityStatus"/>
+        <result column="quality_rule_set_version" property="qualityRuleSetVersion"/>
+        <result column="published_at" property="publishedAt"/>
         <result column="object_key" property="objectKey"/>
         <result column="sha256" property="sha256"/>
         <result column="byte_size" property="byteSize"/>
@@ -56,8 +62,14 @@
 
     <select id="findPublishedSources" resultMap="indexSourceRow">
         <![CDATA[
-        SELECT source.id::text AS data_source_id,
+        SELECT 'LEGACY_TEXT_CONTENT' AS source_type,
+               source.id::text AS data_source_id,
                content.version AS content_version,
+               content.version::bigint AS source_revision,
+               NULL::bigint AS sync_artifact_id,
+               NULL::varchar AS quality_status,
+               NULL::varchar AS quality_rule_set_version,
+               NULL::timestamptz AS published_at,
                content.object_key,
                content.sha256,
                content.byte_size,
@@ -72,8 +84,45 @@
         WHERE source.tenant_id = #{tenantId}
           AND source.knowledge_space_id = #{knowledgeSpaceId}
           AND source.status = 'PUBLISHED'
-        ORDER BY source.id
-        FOR SHARE OF source, content
+        UNION ALL
+        SELECT 'GOVERNED_SYNC_ARTIFACT' AS source_type,
+               source.id::text AS data_source_id,
+               NULL::integer AS content_version,
+               artifact.source_revision,
+               artifact.id AS sync_artifact_id,
+               publication.quality_status,
+               publication.rule_set_version AS quality_rule_set_version,
+               publication.published_at,
+               revision.object_key,
+               artifact.content_digest AS sha256,
+               revision.byte_size,
+               revision.media_type,
+               artifact.synchronized_at AS content_created_at
+        FROM knowledge_data.published_sync_artifact publication
+        JOIN knowledge_data.governed_data_source source
+          ON source.tenant_id = publication.tenant_id
+         AND source.knowledge_space_id = publication.knowledge_space_id
+         AND source.id = publication.data_source_id
+        JOIN knowledge_data.sync_artifact artifact
+          ON artifact.tenant_id = publication.tenant_id
+         AND artifact.knowledge_space_id = publication.knowledge_space_id
+         AND artifact.id = publication.artifact_id
+        JOIN knowledge_data.source_revision revision
+          ON revision.tenant_id = artifact.tenant_id
+         AND revision.knowledge_space_id = artifact.knowledge_space_id
+         AND revision.data_source_id = artifact.data_source_id
+         AND revision.revision = artifact.source_revision
+        WHERE publication.tenant_id = #{tenantId}
+          AND publication.knowledge_space_id = #{knowledgeSpaceId}
+          AND source.status <> 'RETIRED'
+          AND publication.source_version = (
+              SELECT MAX(current_publication.source_version)
+              FROM knowledge_data.published_sync_artifact current_publication
+              WHERE current_publication.tenant_id = publication.tenant_id
+                AND current_publication.knowledge_space_id = publication.knowledge_space_id
+                AND current_publication.data_source_id = publication.data_source_id
+          )
+        ORDER BY source_type, data_source_id, source_revision
         ]]>
     </select>
 
