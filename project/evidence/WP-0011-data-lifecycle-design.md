@@ -331,3 +331,35 @@ ADR-0028 定义 `GovernedDataSource`、`SourceRevision`、`SyncArtifact`、`Qual
 - 测试质量：先以缺失仓储覆盖形成编译红灯，再以真实 PostgreSQL 验证正向冻结、跨租户不可见和数据库 `BLOCK` 反绕过；自动配置回归额外捕获并修复新增 Mapper 未替身的装配缺口。
 
 本切片只建立“同步产物已发布”的持久化事实，尚未开放知识管理员发布入口、来源选择列表或索引构建对该事实的消费；M3 仍不得进入人工评审或 M4。
+
+## FILE 同步产物受控发布入口切片（2026-07-29）
+
+### 红绿记录
+
+- 红灯：新增 `FileSyncArtifactPublicationServiceTest`，运行
+  `JAVA_HOME=/Users/lingou/Library/Java/JavaVirtualMachines/openjdk-26.0.2/Contents/Home ./mvnw -Dmaven.repo.local=/tmp/ai-mesh-m2 -q -pl backend/contexts/knowledge-data -am -Dtest=FileSyncArtifactPublicationServiceTest -Dsurefire.failIfNoSpecifiedTests=false test`。
+  测试按预期因缺少发布命令和应用服务而编译失败。
+- 控制器红灯：扩展 `GovernedFileDataSourceControllerTest` 后运行
+  `JAVA_HOME=/Users/lingou/Library/Java/JavaVirtualMachines/openjdk-26.0.2/Contents/Home ./mvnw -Dmaven.repo.local=/tmp/ai-mesh-m2 -q -pl backend/contexts/knowledge-data -am -Dtest=GovernedFileDataSourceControllerTest -Dsurefire.failIfNoSpecifiedTests=false test`。
+  测试按预期因控制器尚未接收发布用例而编译失败。
+- 绿灯：在提交 `92f9440f7` 上运行
+  `JAVA_HOME=/Users/lingou/Library/Java/JavaVirtualMachines/openjdk-26.0.2/Contents/Home ./mvnw -Dmaven.repo.local=/tmp/ai-mesh-m2 -q -pl backend/contexts/knowledge-data -am -Dtest=FileSyncArtifactPublicationServiceTest,GovernedFileDataSourceControllerTest,KnowledgeDataAutoConfigurationTest,PostgresGovernedDataSourceRepositoryTest -Dsurefire.failIfNoSpecifiedTests=false test` 与
+  `git diff --check`，均通过。
+
+### 已验证事实
+
+- 新增 `POST /api/v1/governed-data-sources/files/{dataSourceId}/artifacts/{artifactId}/publish`；请求只携带知识空间、来源、产物和预期版本。
+- 发布应用服务在任何来源、产物或质量读取前检查 `knowledge:write`，并将产物不属于目标来源的情况按不存在处理。
+- 服务从仓储重取质量报告来创建发布事实，最终仍由已验证的原子仓储动作复核持久化质量；HTTP 入口无法传入质量、对象位置或正文。
+- 核心自动配置只在受治理数据源仓储存在时提供发布用例；Web 控制器也只有在所有 FILE 生命周期用例完整时装配。
+
+### 六维检查
+
+- 正确性：正向测试断言 `WARN` 产物发布后返回同一来源的新 `READY` 版本；控制器完整转发可信上下文、来源、产物和预期版本。
+- 安全：无权限时不触碰仓储；跨来源产物不继续读取质量报告或发起发布；数据库层保留 `BLOCK` 反绕过和租户隔离复核。
+- 复杂度：只增加一个命令、一个应用服务与一个受控 HTTP 动作，复用既有生命周期返回 DTO，未新增通用任务或发布框架。
+- 性能：发布路径只读取来源、产物和质量结论，再进入短事务；没有对象 I/O、模型调用或轮询。
+- 架构：代码图谱检查 FILE 同步服务、Web 控制器和核心自动配置，发布服务仅依赖领域仓储与时钟，HTTP 层不接触持久化或对象存储。
+- 测试质量：应用用例、控制器委派、自动配置与真实 PostgreSQL 仓储回归共同通过；两个公共 seam 均先观察到缺失实现的红灯。
+
+本切片尚未提供可选择的已发布产物列表，也未让索引创建冻结 `GOVERNED_SYNC_ARTIFACT` 快照；这些仍是 M3 后续工作，不能申请人工评审或进入 M4。
