@@ -116,6 +116,36 @@
       "reason": "使用 PostgreSQL JSONB 转换原子写入事务发件箱事件。"
     },
     {
+      "path": "backend/contexts/knowledge-data/src/main/resources/mapper/knowledge-data/GovernedDataSourceMapper.xml",
+      "statementId": "findByScopeForUpdate",
+      "category": "ROW_LOCK",
+      "reason": "登记同步终态前锁定来源并保护来源状态与修订一致性。"
+    },
+    {
+      "path": "backend/contexts/knowledge-data/src/main/resources/mapper/knowledge-data/GovernedDataSourceMapper.xml",
+      "statementId": "updateLifecycle",
+      "category": "ATOMIC_STATE_TRANSITION",
+      "reason": "以来源范围和预期修订执行原子生命周期状态迁移。"
+    },
+    {
+      "path": "backend/contexts/knowledge-data/src/main/resources/mapper/knowledge-data/SourceRevisionMapper.xml",
+      "statementId": "insert",
+      "category": "ATOMIC_STATE_TRANSITION",
+      "reason": "在来源登记事务内写入不可变修订，禁止来源身份与首个修订分离提交。"
+    },
+    {
+      "path": "backend/contexts/knowledge-data/src/main/resources/mapper/knowledge-data/SourceRevisionMapper.xml",
+      "statementId": "findByScope",
+      "category": "SECURITY_PROJECTION",
+      "reason": "按租户、知识空间和来源修订读取受控对象事实，避免跨范围投影。"
+    },
+    {
+      "path": "backend/contexts/knowledge-data/src/main/resources/mapper/knowledge-data/SourceRevisionMapper.xml",
+      "statementId": "countByScope",
+      "category": "AGGREGATE",
+      "reason": "完成同步前聚合校验冻结来源修订是否存在。"
+    },
+    {
       "path": "backend/contexts/model-runtime/src/main/resources/mapper/model-runtime/ModelDeploymentMapper.xml",
       "statementId": "lockTenant",
       "category": "POSTGRES_ADVISORY_LOCK",

@@ -1,4 +1,4 @@
-package com.aiplatform.foundation.knowledgedata.domain.datasource.model;
+package com.aiplatform.foundation.knowledgedata.domain.datasource.revision;
 
 import com.aiplatform.foundation.shared.kernel.domain.ValueObject;
 import java.nio.charset.StandardCharsets;

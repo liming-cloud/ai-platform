@@ -1,5 +1,7 @@
-package com.aiplatform.foundation.knowledgedata.domain.datasource.model;
+package com.aiplatform.foundation.knowledgedata.domain.datasource.quality;
 
+import com.aiplatform.foundation.knowledgedata.domain.datasource.model.DataSourceStateException;
+import com.aiplatform.foundation.knowledgedata.domain.datasource.model.SyncArtifact;
 import java.util.Objects;
 
 /**
@@ -15,12 +17,7 @@ public final class QualityReport {
     private final long warningCount;
     private final long blockingCount;
 
-    private QualityReport(
-            SyncArtifact artifact,
-            String ruleSetVersion,
-            QualityStatus status,
-            long warningCount,
-            long blockingCount) {
+    private QualityReport(SyncArtifact artifact, String ruleSetVersion, QualityStatus status, long warningCount, long blockingCount) {
         this.artifact = Objects.requireNonNull(artifact, "同步产物不能为空");
         this.ruleSetVersion = requireRuleSetVersion(ruleSetVersion);
         this.status = Objects.requireNonNull(status, "质量结论不能为空");
@@ -36,61 +33,27 @@ public final class QualityReport {
         this.blockingCount = blockingCount;
     }
 
-    /**
-     * 创建无告警的通过结论。
-     */
+    /** 创建无告警的通过结论。 */
     public static QualityReport passed(SyncArtifact artifact, String ruleSetVersion) {
         return new QualityReport(artifact, ruleSetVersion, QualityStatus.PASS, 0, 0);
     }
 
-    /**
-     * 创建可继续发布判断的告警结论。
-     */
-    public static QualityReport warned(
-            SyncArtifact artifact,
-            String ruleSetVersion,
-            long warningCount) {
+    /** 创建可继续发布判断的告警结论。 */
+    public static QualityReport warned(SyncArtifact artifact, String ruleSetVersion, long warningCount) {
         return new QualityReport(artifact, ruleSetVersion, QualityStatus.WARN, warningCount, 0);
     }
 
-    /**
-     * 创建阻止发布的质量结论。
-     */
-    public static QualityReport blocked(
-            SyncArtifact artifact,
-            String ruleSetVersion,
-            long warningCount,
-            long blockingCount) {
-        return new QualityReport(
-                artifact,
-                ruleSetVersion,
-                QualityStatus.BLOCK,
-                warningCount,
-                blockingCount);
+    /** 创建阻止发布的质量结论。 */
+    public static QualityReport blocked(SyncArtifact artifact, String ruleSetVersion, long warningCount, long blockingCount) {
+        return new QualityReport(artifact, ruleSetVersion, QualityStatus.BLOCK, warningCount, blockingCount);
     }
 
-    /**
-     * 返回质量规则的汇总结论。
-     */
-    public QualityStatus status() {
-        return status;
-    }
-
-    public SyncArtifact artifact() {
-        return artifact;
-    }
-
-    public String ruleSetVersion() {
-        return ruleSetVersion;
-    }
-
-    public long warningCount() {
-        return warningCount;
-    }
-
-    public long blockingCount() {
-        return blockingCount;
-    }
+    /** 返回质量规则的汇总结论。 */
+    public QualityStatus status() { return status; }
+    public SyncArtifact artifact() { return artifact; }
+    public String ruleSetVersion() { return ruleSetVersion; }
+    public long warningCount() { return warningCount; }
+    public long blockingCount() { return blockingCount; }
 
     /**
      * 返回允许进入显式发布判断的同步产物。

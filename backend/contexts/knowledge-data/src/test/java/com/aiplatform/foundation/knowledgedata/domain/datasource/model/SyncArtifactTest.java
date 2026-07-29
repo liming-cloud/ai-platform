@@ -3,6 +3,8 @@ package com.aiplatform.foundation.knowledgedata.domain.datasource.model;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import com.aiplatform.foundation.knowledgedata.domain.datasource.quality.QualityReport;
+import com.aiplatform.foundation.knowledgedata.domain.datasource.quality.QualityStatus;
 import com.aiplatform.foundation.knowledgedata.domain.knowledge.model.KnowledgeSpaceId;
 import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
 import java.time.Instant;

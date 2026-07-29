@@ -2,8 +2,8 @@ package com.aiplatform.foundation.knowledgedata.domain.datasource.repository;
 
 import com.aiplatform.foundation.knowledgedata.domain.datasource.model.DataSourceId;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.model.GovernedDataSource;
-import com.aiplatform.foundation.knowledgedata.domain.datasource.model.QualityReport;
-import com.aiplatform.foundation.knowledgedata.domain.datasource.model.SourceRevision;
+import com.aiplatform.foundation.knowledgedata.domain.datasource.quality.QualityReport;
+import com.aiplatform.foundation.knowledgedata.domain.datasource.revision.SourceRevision;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.model.SyncArtifact;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.model.SyncArtifactId;
 import com.aiplatform.foundation.knowledgedata.domain.knowledge.model.KnowledgeSpaceId;

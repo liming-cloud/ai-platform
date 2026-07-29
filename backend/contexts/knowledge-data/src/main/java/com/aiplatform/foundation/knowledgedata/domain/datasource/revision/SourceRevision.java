@@ -1,6 +1,9 @@
-package com.aiplatform.foundation.knowledgedata.domain.datasource.model;
+package com.aiplatform.foundation.knowledgedata.domain.datasource.revision;
 
 import com.aiplatform.foundation.knowledgedata.domain.common.model.CreatorId;
+import com.aiplatform.foundation.knowledgedata.domain.datasource.model.DataSourceId;
+import com.aiplatform.foundation.knowledgedata.domain.datasource.model.GovernedDataSource;
+import com.aiplatform.foundation.knowledgedata.domain.datasource.model.GovernedDataSourceType;
 import com.aiplatform.foundation.knowledgedata.domain.knowledge.model.KnowledgeSpaceId;
 import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
 import java.time.Instant;
@@ -106,44 +109,20 @@ public final class SourceRevision {
                 createdAt);
     }
 
-    public TenantId tenantId() {
-        return tenantId;
-    }
-
-    public KnowledgeSpaceId knowledgeSpaceId() {
-        return knowledgeSpaceId;
-    }
-
-    public DataSourceId dataSourceId() {
-        return dataSourceId;
-    }
-
-    public long revision() {
-        return revision;
-    }
-
-    public GovernedDataSourceType sourceType() {
-        return sourceType;
-    }
-
-    public String definitionDigest() {
-        return definitionDigest;
-    }
+    public TenantId tenantId() { return tenantId; }
+    public KnowledgeSpaceId knowledgeSpaceId() { return knowledgeSpaceId; }
+    public DataSourceId dataSourceId() { return dataSourceId; }
+    public long revision() { return revision; }
+    public GovernedDataSourceType sourceType() { return sourceType; }
+    public String definitionDigest() { return definitionDigest; }
 
     /**
      * 返回文件来源冻结的对象事实；非文件来源返回 `null`。
      */
-    public FileSourceObjectReference fileObject() {
-        return fileObject;
-    }
+    public FileSourceObjectReference fileObject() { return fileObject; }
 
-    public CreatorId createdBy() {
-        return createdBy;
-    }
-
-    public Instant createdAt() {
-        return createdAt;
-    }
+    public CreatorId createdBy() { return createdBy; }
+    public Instant createdAt() { return createdAt; }
 
     private static String requireDigest(String value) {
         if (value == null || value.length() != 64

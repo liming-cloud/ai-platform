@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.mapper.GovernedDataSourceMapper">
+
+    <select id="findByScopeForUpdate" resultType="com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.entity.GovernedDataSourceEntity">
+        <![CDATA[
+        SELECT id, tenant_id, knowledge_space_id, source_type, name, status,
+               failed_operation, current_revision, version, created_by, created_at
+        FROM knowledge_data.governed_data_source
+        WHERE tenant_id = #{tenantId}
+          AND knowledge_space_id = #{knowledgeSpaceId}
+          AND id = #{id}
+        FOR UPDATE
+        ]]>
+    </select>
+
+    <update id="updateLifecycle">
+        <![CDATA[
+        UPDATE knowledge_data.governed_data_source
+        SET status = #{status}, failed_operation = #{failedOperation}, version = #{nextVersion}
+        WHERE tenant_id = #{tenantId}
+          AND knowledge_space_id = #{knowledgeSpaceId}
+          AND id = #{id}
+          AND version = #{expectedVersion}
+        ]]>
+    </update>
+</mapper>

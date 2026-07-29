@@ -4,6 +4,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.aiplatform.foundation.knowledgedata.domain.common.model.CreatorId;
+import com.aiplatform.foundation.knowledgedata.domain.datasource.revision.FileSourceObjectReference;
+import com.aiplatform.foundation.knowledgedata.domain.datasource.revision.SourceRevision;
 import com.aiplatform.foundation.knowledgedata.domain.knowledge.model.KnowledgeSpaceId;
 import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
 import java.time.Instant;
