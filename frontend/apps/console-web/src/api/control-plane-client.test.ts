@@ -193,6 +193,48 @@ describe("ControlPlaneClient", () => {
     );
   });
 
+  it("当前会话收到畸形 401 后清除令牌", async () => {
+    const client = authenticatedClient(async () => new Response("malformed", {
+      status: 401,
+      headers: { "Content-Type": "text/plain" },
+    }));
+
+    await expect(client.listKnowledgeSpaces()).rejects.toBeInstanceOf(ApiRequestError);
+
+    expect(client.hasSession()).toBe(false);
+  });
+
+  it("旧会话请求在新登录后返回 401 时保留新令牌", async () => {
+    let resolveOldRequest: ((response: Response) => void) | undefined;
+    const oldRequest = new Promise<Response>((resolve) => {
+      resolveOldRequest = resolve;
+    });
+    const client = authenticatedClient(async (input) => {
+      if (String(input).endsWith("/auth/sessions")) {
+        return new Response(JSON.stringify({
+          tokenName: "Authorization",
+          tokenValue: "new-token",
+          expiresInSeconds: 1800,
+        }), {
+          status: 201,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+      return oldRequest;
+    });
+
+    const request = client.listKnowledgeSpaces();
+    await client.login({
+      tenantCode: "demo-store",
+      loginName: "store-admin",
+      password: "demo-password",
+    });
+    resolveOldRequest?.(new Response("expired", { status: 401 }));
+
+    await expect(request).rejects.toBeInstanceOf(ApiRequestError);
+    expect(client.hasSession()).toBe(true);
+  });
+
   it("按知识空间创建、查询并发布索引版本", async () => {
     const requests: Request[] = [];
     const indexVersion = {

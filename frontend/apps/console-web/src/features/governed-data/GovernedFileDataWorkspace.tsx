@@ -53,14 +53,31 @@ export function GovernedFileDataWorkspace({
   const [loggingIn, setLoggingIn] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
+  const resetProtectedTaskState = useCallback(() => {
+    setSpaces([]);
+    setKnowledgeSpaceId("");
+    setSourceName("");
+    setContent("");
+    setSource(undefined);
+    setPublishedArtifactId(undefined);
+    setIndexVersion(undefined);
+  }, []);
+
+  const restartExpiredSession = useCallback((error: unknown): boolean => {
+    if (!requiresSessionRestart(error, client.hasSession())) {
+      return false;
+    }
+    resetProtectedTaskState();
+    setFailure(toFailure(error));
+    setViewState("unauthenticated");
+    onSessionChanged();
+    return true;
+  }, [client, onSessionChanged, resetProtectedTaskState]);
+
   const load = useCallback(async () => {
     if (!client.hasSession()) {
       setViewState("unauthenticated");
-      setSpaces([]);
-      setKnowledgeSpaceId("");
-      setSource(undefined);
-      setPublishedArtifactId(undefined);
-      setIndexVersion(undefined);
+      resetProtectedTaskState();
       return;
     }
     setViewState("loading");
@@ -71,10 +88,13 @@ export function GovernedFileDataWorkspace({
       setKnowledgeSpaceId((current) => current || page.items[0]?.id || "");
       setViewState("ready");
     } catch (error) {
+      if (restartExpiredSession(error)) {
+        return;
+      }
       setFailure(toFailure(error));
       setViewState("error");
     }
-  }, [client]);
+  }, [client, resetProtectedTaskState, restartExpiredSession]);
 
   useEffect(() => {
     const timeout = window.setTimeout(() => void load(), 0);
@@ -93,7 +113,9 @@ export function GovernedFileDataWorkspace({
       onSessionChanged();
       await load();
     } catch (error) {
-      setFailure(toFailure(error));
+      if (!restartExpiredSession(error)) {
+        setFailure(toFailure(error));
+      }
       setViewState("unauthenticated");
     } finally {
       setLoggingIn(false);
@@ -119,7 +141,9 @@ export function GovernedFileDataWorkspace({
       setPublishedArtifactId(undefined);
       setIndexVersion(undefined);
     } catch (error) {
-      setFailure(toFailure(error));
+      if (!restartExpiredSession(error)) {
+        setFailure(toFailure(error));
+      }
     } finally {
       setSubmitting(false);
     }
@@ -138,7 +162,9 @@ export function GovernedFileDataWorkspace({
         source.version,
       ));
     } catch (error) {
-      setFailure(toFailure(error));
+      if (!restartExpiredSession(error)) {
+        setFailure(toFailure(error));
+      }
     } finally {
       setSubmitting(false);
     }
@@ -159,7 +185,9 @@ export function GovernedFileDataWorkspace({
       setPublishedArtifactId(undefined);
       setIndexVersion(undefined);
     } catch (error) {
-      setFailure(toFailure(error));
+      if (!restartExpiredSession(error)) {
+        setFailure(toFailure(error));
+      }
     } finally {
       setSubmitting(false);
     }
@@ -207,7 +235,9 @@ export function GovernedFileDataWorkspace({
       setIndexVersion(created);
       await waitForIndex(source.knowledgeSpaceId, created.id);
     } catch (error) {
-      setFailure(modelRuntimeFailure(error) ?? toFailure(error));
+      if (!restartExpiredSession(error)) {
+        setFailure(modelRuntimeFailure(error) ?? toFailure(error));
+      }
     } finally {
       setSubmitting(false);
     }
@@ -242,7 +272,9 @@ export function GovernedFileDataWorkspace({
         indexVersion.version,
       ));
     } catch (error) {
-      setFailure(toFailure(error));
+      if (!restartExpiredSession(error)) {
+        setFailure(toFailure(error));
+      }
     } finally {
       setSubmitting(false);
     }
@@ -261,7 +293,9 @@ export function GovernedFileDataWorkspace({
         source.version,
       ));
     } catch (error) {
-      setFailure(toFailure(error));
+      if (!restartExpiredSession(error)) {
+        setFailure(toFailure(error));
+      }
     } finally {
       setSubmitting(false);
     }
@@ -272,11 +306,7 @@ export function GovernedFileDataWorkspace({
       await client.logout();
     } finally {
       onSessionChanged();
-      setSpaces([]);
-      setKnowledgeSpaceId("");
-      setSource(undefined);
-      setPublishedArtifactId(undefined);
-      setIndexVersion(undefined);
+      resetProtectedTaskState();
       setViewState("unauthenticated");
     }
   }
@@ -448,6 +478,13 @@ export function modelRuntimeFailure(error: unknown): Failure | undefined {
     };
   }
   return undefined;
+}
+
+/**
+ * 只有当前请求已使同一客户端失去会话时才重启登录，防止旧请求的 401 覆盖已建立的新身份。
+ */
+export function requiresSessionRestart(error: unknown, hasSession: boolean): boolean {
+  return error instanceof ApiRequestError && error.status === 401 && !hasSession;
 }
 
 function failureDescription(failure?: Failure) {

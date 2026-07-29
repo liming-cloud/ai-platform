@@ -493,8 +493,9 @@ export class ControlPlaneClient {
   ): Promise<T> {
     const headers = new Headers(init.headers);
     headers.set("Accept", "application/json");
+    const requestToken = this.tokenValue;
     if (authenticated) {
-      if (this.tokenValue === undefined) {
+      if (requestToken === undefined) {
         throw new ApiRequestError(
           401,
           "PLATFORM_SECURITY.AUTHENTICATION.0001",
@@ -502,14 +503,18 @@ export class ControlPlaneClient {
           "",
         );
       }
-      headers.set("Authorization", `Bearer ${this.tokenValue}`);
+      headers.set("Authorization", `Bearer ${requestToken}`);
     }
     const response = await this.fetcher(`${this.baseUrl}${path}`, {
       ...init,
       headers,
     });
     if (!response.ok) {
-      throw await toApiRequestError(response);
+      const error = await toApiRequestError(response);
+      if (authenticated && error.status === 401 && this.tokenValue === requestToken) {
+        this.tokenValue = undefined;
+      }
+      throw error;
     }
     if (response.status === 204) {
       return undefined as T;
