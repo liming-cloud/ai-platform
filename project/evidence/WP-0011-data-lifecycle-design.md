@@ -102,3 +102,20 @@ ADR-0028 定义 `GovernedDataSource`、`SourceRevision`、`SyncArtifact`、`Qual
 - 性能：更新为单条带修订条件的 SQL；外部探测、文件读取和嵌入仍不进入事务。
 - 架构：代码图谱检查 `GovernedDataSource`、`PostgresGovernedDataSourceRepository` 与既有文本数据源用例后，保持领域状态机、仓储端口和 MyBatis adapter 的分层；ADR-0028 增加明确的失败恢复规则。
 - 测试质量：红灯来自缺少契约，绿灯使用同一领域和真实 PostgreSQL 测试；并发测试通过两个相同预期修订的更新证明只有一个数据库提交成功，失败方不能覆盖最终事实。
+
+## 同步产物、质量与来源状态原子完成切片
+
+- 红灯：将原 `record` 契约替换为 `completeSynchronization`，先运行
+  `JAVA_HOME=/Users/lingou/Library/Java/JavaVirtualMachines/openjdk-26.0.2/Contents/Home ./mvnw -Dmaven.repo.local=/tmp/ai-mesh-m2 -q -pl backend/contexts/knowledge-data -am -Dtest=PostgresGovernedDataSourceRepositoryTest -Dsurefire.failIfNoSpecifiedTests=false test`。
+  测试因原仓储没有原子完成同步契约而编译失败。
+- 绿灯：在提交 `00bb64625ece656f59721d94193ed15105d70c7e` 上，同一真实 PostgreSQL 测试通过；完整知识数据及其依赖上下文回归命令
+  `JAVA_HOME=/Users/lingou/Library/Java/JavaVirtualMachines/openjdk-26.0.2/Contents/Home ./mvnw -Dmaven.repo.local=/tmp/ai-mesh-m2 -q -pl backend/contexts/knowledge-data -am test` 通过。
+
+### 六维检查
+
+- 正确性：仓储先锁定来源，再由领域状态机验证 `SYNCING` 与预期修订；产物、质量结论和来源 `READY` 状态在同一事务提交。
+- 安全：产物所属的租户、知识空间、来源和修订均由锁定来源与外键复核；无效质量归属回滚产物，并保持来源为 `SYNCING`。
+- 复杂度：移除可绕过状态机的通用 `record` 方法，以一个语义明确的完成方法替代，没有引入额外服务层。
+- 性能：`SELECT ... FOR UPDATE` 只包围短元数据登记；外部同步 I/O 必须在调用该事务前完成。
+- 架构：影响分析表明仅受治理仓储、Mapper 与其真实适配器测试受影响，旧文本数据源和索引路径保持不变。
+- 测试质量：新增同步成功、质量归属失败回滚和两个竞争完成请求的真实 PostgreSQL 反例；并发失败方既不插入重复产物，也不覆盖最终来源状态。
