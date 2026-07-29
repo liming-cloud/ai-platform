@@ -26,4 +26,21 @@ ADR-0028 定义 `GovernedDataSource`、`SourceRevision`、`SyncArtifact`、`Qual
 
 ## 下一步
 
-在编码前为首个 `FILE` 切片制定红绿测试与迁移边界，并以真实 PostgreSQL 验证租户隔离、幂等、失败关闭和产物不可变性。
+继续为 `FILE` 来源补齐登记、探测、不可变同步产物和质量事实的持久化与应用闭环，并以真实 PostgreSQL 验证租户隔离、幂等、失败关闭和产物不可变性。
+
+## 首个领域红绿切片
+
+- 红灯：使用 JDK 26.0.2 和 Maven Wrapper 3.9.16 运行
+  `JAVA_HOME=/Users/lingou/Library/Java/JavaVirtualMachines/openjdk-26.0.2/Contents/Home ./mvnw -Dmaven.repo.local=/tmp/ai-mesh-m2 -pl backend/contexts/knowledge-data -am -Dtest=GovernedDataSourceTest -Dsurefire.failIfNoSpecifiedTests=false test`。
+  `GovernedDataSourceTest` 因缺少 `GovernedDataSource`、`GovernedDataSourceType` 和 `GovernedDataSourceStatus` 编译失败，证明测试先于实现存在。
+- 绿灯：同一命令在最小领域实现后通过；随后运行
+  `JAVA_HOME=/Users/lingou/Library/Java/JavaVirtualMachines/openjdk-26.0.2/Contents/Home ./mvnw -Dmaven.repo.local=/tmp/ai-mesh-m2 -q -pl backend/contexts/knowledge-data -am test`，知识数据及其依赖上下文回归通过。
+
+### 六维检查
+
+- 正确性：测试覆盖文件来源的探测、同步、退役与乐观修订拒绝；状态机不处理尚未实现的产物发布。
+- 安全：领域对象不接收连接字符串、密钥、对象正文或租户请求参数；租户和知识空间归属保持必填。
+- 复杂度：状态迁移集中于一个不可变聚合，未增加服务或连接器层。
+- 性能：仅执行常量时间的值校验与对象复制，不进行 I/O、数据库或外部调用。
+- 架构：实现位于 `knowledge-data` 领域层，仅依赖共享内核和本上下文值对象；未引入框架类型。
+- 测试质量：先获得缺类编译红灯，再以相同命令转绿；完整知识数据上下文回归通过。
