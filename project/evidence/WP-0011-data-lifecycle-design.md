@@ -300,3 +300,34 @@ ADR-0028 定义 `GovernedDataSource`、`SourceRevision`、`SyncArtifact`、`Qual
 - 测试质量：红灯为缺少公共 seam 的实际编译失败，绿灯包含 Mockito 行为反例、真实 PostgreSQL 原子仓储契约和完整控制面 HTTP 测试。固定变更集按 `tdd`、`code-review` 复核，无未关闭可执行问题。
 
 本切片仅完成首个 FILE 的完整性同步与 `PASS` 质量事实；尚未实现可配置质量规则、对象存储与结构化数据集连接器、来源发布／退役和索引重建，因此 M3 继续进行，不能进入人工评审或 M4。
+
+## 已发布同步产物的原子持久化切片（2026-07-29）
+
+### 红绿记录
+
+- 红灯：先为 `GovernedDataSourceRepository` 增加 `publishArtifact` 契约，并在
+  `PostgresGovernedDataSourceRepositoryTest` 增加“数据库为 `BLOCK` 而调用方伪造
+  `WARN`”的反绕过用例。运行
+  `JAVA_HOME=/Users/lingou/Library/Java/JavaVirtualMachines/openjdk-26.0.2/Contents/Home ./mvnw -Dmaven.repo.local=/tmp/ai-mesh-m2 -q -pl backend/contexts/knowledge-data -am -Dtest=PostgresGovernedDataSourceRepositoryTest -Dsurefire.failIfNoSpecifiedTests=false test`。
+  编译按预期失败：PostgreSQL 仓储尚未覆盖新发布契约。
+- 绿灯：在提交 `73cd917e3` 上运行
+  `JAVA_HOME=/Users/lingou/Library/Java/JavaVirtualMachines/openjdk-26.0.2/Contents/Home ./mvnw -Dmaven.repo.local=/tmp/ai-mesh-m2 -q -pl backend/contexts/knowledge-data -am -Dtest=PostgresGovernedDataSourceRepositoryTest,KnowledgeDataAutoConfigurationTest -Dsurefire.failIfNoSpecifiedTests=false test` 与
+  `git diff --check`，均通过。测试容器实际应用 `V202607290018`，且自动配置测试验证新增 Mapper 的显式替身与仓储装配。
+
+### 已验证事实
+
+- 发布操作先锁定来源，再从数据库按租户、知识空间和产物标识重取不可变同步产物及质量报告；不信任调用方传入的质量状态。
+- 数据库存储为 `BLOCK` 时，即使调用方构造同一产物的 `WARN` 发布对象，事务会拒绝且来源版本和发布表均不变化。
+- `PASS` 与 `WARN` 发布会在同一事务内将来源保持为 `READY`、版本加一，并冻结产物、质量状态、规则版本和发布时间至 `published_sync_artifact`。
+- Mapper XML 避免复合主键实体进入 MyBatis-Plus 通用 `BaseMapper`；真实 PostgreSQL 回归验证 XML 映射、Flyway、租户隔离和自动配置共同可用。
+
+### 六维检查
+
+- 正确性：发布以数据库实际质量重新构建结论，来源乐观修订写入成功后才插入同一事务的发布事实；任一步失败均回滚。
+- 安全：发布不接收正文、对象键、租户或质量明细作为可被信任的持久化依据；跨租户查找返回空，伪造非阻断质量不能绕过阻断事实。
+- 复杂度：复用既有来源锁、同步产物和质量 Mapper，仅增加一个显式仓储动作和专用 XML Mapper，没有引入通用发布框架或新队列。
+- 性能：发布仅执行来源行锁与两次受限索引查询，再完成一次条件更新和一次插入；不读取对象正文，不调用模型或外部服务。
+- 架构：代码图谱聚焦 `GovernedDataSourceRepository`、`PostgresGovernedDataSourceRepository`、`QualityReport` 与自动配置影响范围；领域只声明发布契约，基础设施完成 MyBatis 与事务细节，依赖方向保持 `interfaces → application → domain` 和 `infrastructure → application/domain`。
+- 测试质量：先以缺失仓储覆盖形成编译红灯，再以真实 PostgreSQL 验证正向冻结、跨租户不可见和数据库 `BLOCK` 反绕过；自动配置回归额外捕获并修复新增 Mapper 未替身的装配缺口。
+
+本切片只建立“同步产物已发布”的持久化事实，尚未开放知识管理员发布入口、来源选择列表或索引构建对该事实的消费；M3 仍不得进入人工评审或 M4。

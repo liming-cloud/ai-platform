@@ -158,6 +158,7 @@
 | M3 受治理文件修订对象事实 | `project/evidence/WP-0011-data-lifecycle-design.md` | `5eb5759429de4174748851f9041ac4c7c8615d0c`、`a55f6a406e3c76e6dedb0a9d404f7ae696ec169c` | 首个 UTF-8 FILE 修订冻结平台对象键、摘要、长度和类型；真实 PostgreSQL 验证当前修订与对象事实持久化，架构门禁收口 |
 | M3 FILE 来源真实对象探测 | `project/evidence/WP-0011-data-lifecycle-design.md` | `1e19f63ed` | 可信上下文、权限前置、持久化开始探测、事务外对象元数据核验、失败恢复与自动装配通过；全量门禁通过 |
 | M3 FILE 同步与质量事实闭环 | `project/evidence/WP-0011-data-lifecycle-design.md` | `ddf23caf5ce23c29528163d041af2e7b605270ec` | 流式摘要核验、同步失败恢复、原子产物与 PASS 质量事实，以及真实控制面 HTTP／PostgreSQL 闭环通过；M3 尚未完成 |
+| M3 已发布同步产物持久化 | `project/evidence/WP-0011-data-lifecycle-design.md` | `73cd917e3` | 数据库质量复核、`BLOCK` 反绕过、来源版本原子递增、发布事实冻结、租户隔离和自动配置回归通过；M3 尚未完成 |
 
 ## 证据规则
 
