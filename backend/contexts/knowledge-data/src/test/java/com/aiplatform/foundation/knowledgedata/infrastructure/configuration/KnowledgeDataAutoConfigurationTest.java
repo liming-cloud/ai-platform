@@ -11,11 +11,16 @@ import com.aiplatform.foundation.knowledgedata.application.knowledge.facade.Know
 import com.aiplatform.foundation.knowledgedata.application.port.out.content.TextContentObjectStoragePort;
 import com.aiplatform.foundation.knowledgedata.application.port.out.content.TextContentStagingPort;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.repository.TextDataSourceRepository;
+import com.aiplatform.foundation.knowledgedata.domain.datasource.repository.GovernedDataSourceRepository;
 import com.aiplatform.foundation.knowledgedata.domain.indexversion.repository.IndexVersionRepository;
 import com.aiplatform.foundation.knowledgedata.domain.knowledge.repository.KnowledgeSpaceRepository;
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.mapper.TextDataSourceMapper;
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.mapper.TextContentMapper;
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.mapper.TextDataSourceRequestMapper;
+import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.mapper.GovernedDataSourceMapper;
+import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.mapper.QualityReportMapper;
+import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.mapper.SourceRevisionMapper;
+import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.mapper.SyncArtifactMapper;
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.index.mapper.IndexVersionMapper;
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.index.mapper.IndexBuildJobMapper;
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.index.mapper.IndexSourceMapper;
@@ -26,6 +31,7 @@ import com.aiplatform.foundation.knowledgedata.interfaces.web.datasource.control
 import com.aiplatform.foundation.knowledgedata.interfaces.web.indexversion.controller.IndexVersionController;
 import com.aiplatform.foundation.knowledgedata.interfaces.web.knowledge.controller.KnowledgeSpaceController;
 import com.aiplatform.foundation.modelruntime.application.deployment.facade.PublishedEmbeddingDeploymentLookup;
+import com.aiplatform.foundation.modelruntime.application.configuration.facade.UsableModelConfigurationLookup;
 import com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.junit.jupiter.api.Test;
@@ -56,6 +62,9 @@ class KnowledgeDataAutoConfigurationTest {
                 .withBean(
                         PublishedEmbeddingDeploymentLookup.class,
                         () -> mock(PublishedEmbeddingDeploymentLookup.class))
+                .withBean(
+                        UsableModelConfigurationLookup.class,
+                        () -> mock(UsableModelConfigurationLookup.class))
                 .withBean(EntityIdGenerator.class, () -> () -> 1001L)
                 .run(context -> {
                     assertThat(context).hasNotFailed();
@@ -108,6 +117,9 @@ class KnowledgeDataAutoConfigurationTest {
                 .withBean(
                         PublishedEmbeddingDeploymentLookup.class,
                         () -> mock(PublishedEmbeddingDeploymentLookup.class))
+                .withBean(
+                        UsableModelConfigurationLookup.class,
+                        () -> mock(UsableModelConfigurationLookup.class))
                 .withBean(EntityIdGenerator.class, () -> () -> 1001L)
                 .withBean(TextContentObjectStoragePort.class, () -> custom)
                 .withBean(
@@ -119,7 +131,7 @@ class KnowledgeDataAutoConfigurationTest {
     }
 
     @Test
-    void 持久化能力支持显式启停并注册三个聚合仓储() {
+    void 持久化能力支持显式启停并注册四个聚合仓储() {
         new ApplicationContextRunner()
                 .withConfiguration(AutoConfigurations.of(
                         KnowledgeDataPersistenceAutoConfiguration.class))
@@ -140,6 +152,18 @@ class KnowledgeDataAutoConfigurationTest {
                 .withBean(
                         TextDataSourceRequestMapper.class,
                         () -> mock(TextDataSourceRequestMapper.class))
+                .withBean(
+                        GovernedDataSourceMapper.class,
+                        () -> mock(GovernedDataSourceMapper.class))
+                .withBean(
+                        SourceRevisionMapper.class,
+                        () -> mock(SourceRevisionMapper.class))
+                .withBean(
+                        SyncArtifactMapper.class,
+                        () -> mock(SyncArtifactMapper.class))
+                .withBean(
+                        QualityReportMapper.class,
+                        () -> mock(QualityReportMapper.class))
                 .withBean(
                         IndexVersionMapper.class,
                         () -> mock(IndexVersionMapper.class))
@@ -163,6 +187,7 @@ class KnowledgeDataAutoConfigurationTest {
                     assertThat(context).hasNotFailed();
                     assertThat(context).hasSingleBean(KnowledgeSpaceRepository.class);
                     assertThat(context).hasSingleBean(TextDataSourceRepository.class);
+                    assertThat(context).hasSingleBean(GovernedDataSourceRepository.class);
                     assertThat(context).hasSingleBean(IndexVersionRepository.class);
                 });
     }

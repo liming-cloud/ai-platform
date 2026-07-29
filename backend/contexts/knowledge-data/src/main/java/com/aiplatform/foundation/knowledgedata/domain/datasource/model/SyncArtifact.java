@@ -85,6 +85,18 @@ public final class SyncArtifact implements Entity<SyncArtifactId> {
         return sourceRevision;
     }
 
+    public TenantId tenantId() {
+        return tenantId;
+    }
+
+    public KnowledgeSpaceId knowledgeSpaceId() {
+        return knowledgeSpaceId;
+    }
+
+    public DataSourceId dataSourceId() {
+        return dataSourceId;
+    }
+
     /**
      * 返回冻结内容的 SHA-256 摘要。
      */

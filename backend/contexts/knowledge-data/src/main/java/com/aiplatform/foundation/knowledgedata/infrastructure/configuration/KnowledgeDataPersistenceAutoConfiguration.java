@@ -2,11 +2,17 @@ package com.aiplatform.foundation.knowledgedata.infrastructure.configuration;
 
 import com.baomidou.mybatisplus.autoconfigure.MybatisPlusAutoConfiguration;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.repository.TextDataSourceRepository;
+import com.aiplatform.foundation.knowledgedata.domain.datasource.repository.GovernedDataSourceRepository;
 import com.aiplatform.foundation.knowledgedata.domain.indexversion.repository.IndexVersionRepository;
 import com.aiplatform.foundation.knowledgedata.domain.knowledge.repository.KnowledgeSpaceRepository;
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.mapper.TextDataSourceMapper;
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.mapper.TextContentMapper;
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.mapper.TextDataSourceRequestMapper;
+import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.mapper.GovernedDataSourceMapper;
+import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.mapper.QualityReportMapper;
+import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.mapper.SourceRevisionMapper;
+import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.mapper.SyncArtifactMapper;
+import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.repository.PostgresGovernedDataSourceRepository;
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.repository.PostgresTextDataSourceRepository;
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.index.mapper.IndexVersionMapper;
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.index.mapper.IndexBuildJobMapper;
@@ -69,6 +75,22 @@ public class KnowledgeDataPersistenceAutoConfiguration {
                 knowledgeSpaceMapper,
                 transactions,
                 identifiers);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    GovernedDataSourceRepository governedDataSourceRepository(
+            GovernedDataSourceMapper sourceMapper,
+            SourceRevisionMapper revisionMapper,
+            SyncArtifactMapper artifactMapper,
+            QualityReportMapper qualityMapper,
+            PlatformTransactionManager transactions) {
+        return new PostgresGovernedDataSourceRepository(
+                sourceMapper,
+                revisionMapper,
+                artifactMapper,
+                qualityMapper,
+                transactions);
     }
 
     @Bean

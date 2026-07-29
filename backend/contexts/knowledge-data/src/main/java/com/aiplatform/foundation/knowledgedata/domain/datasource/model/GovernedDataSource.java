@@ -125,6 +125,55 @@ public final class GovernedDataSource implements AggregateRoot<DataSourceId> {
     }
 
     /**
+     * 从已验证的持久化事实重建受治理数据源。
+     */
+    public static GovernedDataSource restore(
+            TenantId tenantId,
+            KnowledgeSpaceId knowledgeSpaceId,
+            DataSourceId id,
+            GovernedDataSourceType type,
+            String name,
+            CreatorId createdBy,
+            Instant createdAt,
+            GovernedDataSourceStatus status,
+            long version) {
+        return new GovernedDataSource(
+                tenantId,
+                knowledgeSpaceId,
+                id,
+                type,
+                name,
+                createdBy,
+                createdAt,
+                status,
+                version);
+    }
+
+    public TenantId tenantId() {
+        return tenantId;
+    }
+
+    public KnowledgeSpaceId knowledgeSpaceId() {
+        return knowledgeSpaceId;
+    }
+
+    public GovernedDataSourceType type() {
+        return type;
+    }
+
+    public String name() {
+        return name;
+    }
+
+    public CreatorId createdBy() {
+        return createdBy;
+    }
+
+    public Instant createdAt() {
+        return createdAt;
+    }
+
+    /**
      * 返回受治理数据源的稳定标识。
      */
     @Override

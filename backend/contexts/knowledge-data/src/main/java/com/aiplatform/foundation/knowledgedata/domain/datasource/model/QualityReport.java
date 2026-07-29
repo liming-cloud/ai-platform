@@ -76,6 +76,22 @@ public final class QualityReport {
         return status;
     }
 
+    public SyncArtifact artifact() {
+        return artifact;
+    }
+
+    public String ruleSetVersion() {
+        return ruleSetVersion;
+    }
+
+    public long warningCount() {
+        return warningCount;
+    }
+
+    public long blockingCount() {
+        return blockingCount;
+    }
+
     /**
      * 返回允许进入显式发布判断的同步产物。
      *
