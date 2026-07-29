@@ -154,6 +154,7 @@
 | M3 受治理来源真实持久化切片 | `project/evidence/WP-0011-data-lifecycle-design.md` | `e214637192ec7919c2cffb7a3a4d25c8c5bb3a9e` | 独立 Flyway 事实表、真实 PostgreSQL 租户隔离、来源修订外键和质量失败事务回滚通过 |
 | M3 来源失败恢复与并发状态更新 | `project/evidence/WP-0011-data-lifecycle-design.md` | `64b95dfec0be21437b8f1f72e5c97a5784842324` | 失败操作最小审计、按操作恢复、修订乐观锁和真实 PostgreSQL 并发失败方无覆盖通过 |
 | M3 同步原子完成 | `project/evidence/WP-0011-data-lifecycle-design.md` | `00bb64625ece656f59721d94193ed15105d70c7e` | 来源锁定、同步产物、质量结论和来源就绪状态同一事务提交；质量与并发失败均不残留半成品 |
+| M3 可信来源生命周期应用用例 | `project/evidence/WP-0011-data-lifecycle-design.md` | `6a6829edb5e7281e58ebd14c206414a4d134988a` | 可信上下文、知识写权限、租户边界和乐观修订被应用服务统一执行；外部 I/O 未进入事务 |
 
 ## 证据规则
 

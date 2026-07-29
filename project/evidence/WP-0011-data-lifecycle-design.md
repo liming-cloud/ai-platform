@@ -119,3 +119,19 @@ ADR-0028 定义 `GovernedDataSource`、`SourceRevision`、`SyncArtifact`、`Qual
 - 性能：`SELECT ... FOR UPDATE` 只包围短元数据登记；外部同步 I/O 必须在调用该事务前完成。
 - 架构：影响分析表明仅受治理仓储、Mapper 与其真实适配器测试受影响，旧文本数据源和索引路径保持不变。
 - 测试质量：新增同步成功、质量归属失败回滚和两个竞争完成请求的真实 PostgreSQL 反例；并发失败方既不插入重复产物，也不覆盖最终来源状态。
+
+## 可信生命周期应用用例切片
+
+- 红灯：先增加 `GovernedDataSourceLifecycleServiceTest`，运行
+  `JAVA_HOME=/Users/lingou/Library/Java/JavaVirtualMachines/openjdk-26.0.2/Contents/Home ./mvnw -Dmaven.repo.local=/tmp/ai-mesh-m2 -q -pl backend/contexts/knowledge-data -am -Dtest=GovernedDataSourceLifecycleServiceTest -Dsurefire.failIfNoSpecifiedTests=false test`。
+  测试因生命周期命令、动作枚举、应用服务和自动装配均不存在而编译失败。
+- 绿灯：在提交 `6a6829edb5e7281e58ebd14c206414a4d134988a` 上，同一命令与 `KnowledgeDataAutoConfigurationTest` 通过；知识数据及其依赖上下文完整回归通过。
+
+### 六维检查
+
+- 正确性：服务从当前租户与知识空间加载来源，先核对预期修订、再调用领域状态机，并把 PostgreSQL 乐观更新失败转换为稳定并发错误。
+- 安全：只接受 `TrustedRequestContext`，缺少 `knowledge:write` 时在读取资源前拒绝；命令没有租户字段，跨租户来源按不存在处理。
+- 复杂度：一个生命周期命令、一个动作枚举和一个服务覆盖短状态动作；没有将外部探测、对象读取或嵌入 I/O 混入数据库事务。
+- 性能：服务只做内存校验与一次读取、一次条件更新；耗时同步仍通过原子完成契约在事务外执行后登记。
+- 架构：代码图谱对照既有 `TextDataSourceService` 的可信上下文与权限边界；新增服务依赖领域仓储而非 MyBatis 或 HTTP 类型，并由核心自动配置装配。
+- 测试质量：红灯来自缺失应用 seam；绿灯覆盖有权限成功、无权限读取前拒绝和乐观更新失败不返回成功状态。尚未开放 Web 控制器，避免在实际 FILE 探测器接入前由浏览器伪造成功结果。
