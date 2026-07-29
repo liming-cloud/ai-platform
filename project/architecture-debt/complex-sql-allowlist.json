@@ -146,6 +146,18 @@
       "reason": "完成同步前聚合校验冻结来源修订是否存在。"
     },
     {
+      "path": "backend/contexts/knowledge-data/src/main/resources/mapper/knowledge-data/PublishedSyncArtifactMapper.xml",
+      "statementId": "insert",
+      "category": "ATOMIC_STATE_TRANSITION",
+      "reason": "在来源修订成功递增的同一事务内冻结可用于新索引的同步产物发布事实。"
+    },
+    {
+      "path": "backend/contexts/knowledge-data/src/main/resources/mapper/knowledge-data/PublishedSyncArtifactMapper.xml",
+      "statementId": "findByArtifact",
+      "category": "SECURITY_PROJECTION",
+      "reason": "按租户、知识空间和产物标识读取发布事实，避免跨范围产物被作为当前来源使用。"
+    },
+    {
       "path": "backend/contexts/model-runtime/src/main/resources/mapper/model-runtime/ModelDeploymentMapper.xml",
       "statementId": "lockTenant",
       "category": "POSTGRES_ADVISORY_LOCK",
