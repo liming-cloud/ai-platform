@@ -60,3 +60,28 @@ ADR-0028 定义 `GovernedDataSource`、`SourceRevision`、`SyncArtifact`、`Qual
 - 性能：构造与发布判断为常量时间内存操作；摘要只验证格式，不重复读取内容或计算哈希。
 - 架构：类型位于 `knowledge-data` 领域层，只有 JDK、共享内核与本上下文值对象依赖；持久化和审计仍留在后续 adapter 切片。
 - 测试质量：先以缺类编译红灯证明 seam，再用相同测试命令转绿；下一持久化切片须补充真实 PostgreSQL 提交、回滚、隔离与并发反例。
+
+## 受治理来源真实 PostgreSQL 持久化切片
+
+- 红灯：先新增 `PostgresGovernedDataSourceRepositoryTest`，运行
+  `JAVA_HOME=/Users/lingou/Library/Java/JavaVirtualMachines/openjdk-26.0.2/Contents/Home ./mvnw -Dmaven.repo.local=/tmp/ai-mesh-m2 -q -pl backend/contexts/knowledge-data -am -Dtest=PostgresGovernedDataSourceRepositoryTest -Dsurefire.failIfNoSpecifiedTests=false test`。
+  测试因 `SourceRevision`、受治理数据源仓储、四个持久化 Mapper 与 PostgreSQL 适配器均不存在而编译失败；测试辅助标识遗漏已在实现前修正，未改变待验证行为。
+- 绿灯：在提交 `e214637192ec7919c2cffb7a3a4d25c8c5bb3a9e` 上，同一真实 PostgreSQL 测试与
+  `KnowledgeDataAutoConfigurationTest` 通过。随后运行
+  `JAVA_HOME=/Users/lingou/Library/Java/JavaVirtualMachines/openjdk-26.0.2/Contents/Home ./mvnw -Dmaven.repo.local=/tmp/ai-mesh-m2 -q -pl backend/contexts/knowledge-data -am test` 通过，`git diff --check` 通过。
+
+### 已验证事实
+
+- 新迁移 `V202607290015__create_governed_data_source_tables.sql` 只新增 `governed_data_source`、`source_revision`、`sync_artifact` 和 `quality_report`；M1 `text_data_source` 表和路径没有修改。
+- `SourceRevision` 固定来源类型、定义 SHA-256 摘要、创建者和时间；`SyncArtifact` 通过外键只能引用已登记修订；质量报告以同步产物为唯一归属。
+- 所有读取显式带 `tenant_id` 和 `knowledge_space_id`。真实容器测试证明跨租户不可见；质量报告与待写入产物不一致时，已插入的产物和质量事实都由同一数据库事务回滚。
+- 自动配置新增受治理来源仓储；同时修复装配测试，显式提供 M2 `UsableModelConfigurationLookup`，避免旧部署查询 mock 掩盖当前受控嵌入依赖。
+
+### 六维检查
+
+- 正确性：Flyway 外键和检查约束保证修订、产物和质量状态的关系；真实 PostgreSQL 测试覆盖登记、读取、质量告警、跨租户不可见和失败回滚。
+- 安全：表和领域对象只保存摘要、计数、规则版本与状态，不保存文件正文、连接地址或凭据；查询不接受调用方传入的任意租户边界。
+- 复杂度：以一个小仓储端口和四张事实表完成首个持久化 seam，未改造 M1 文本聚合，也未提前引入连接器、任务队列或索引发布流程。
+- 性能：事务只登记短小元数据；外部文件读取、连接探测和嵌入调用仍不在该事务内。来源修订使用显式复合键 SQL，避免为 ORM 方便增加无业务含义的代理标识。
+- 架构：代码图谱聚焦 `PostgresTextDataSourceRepository` 和 `KnowledgeDataPersistenceAutoConfiguration`，结论是旧文本路径保持隔离；新增端口在领域层、MyBatis 与 PostgreSQL 实现在 infrastructure，依赖方向符合 ADR-0022。
+- 测试质量：先记录缺少公共 seam 的编译红灯，再以同一容器测试转绿；自动装配回归与知识数据依赖上下文全量测试均通过。

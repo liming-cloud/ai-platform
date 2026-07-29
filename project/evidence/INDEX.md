@@ -151,6 +151,7 @@
 | M3 数据生命周期设计 | `project/evidence/WP-0011-data-lifecycle-design.md` | `6d84f6a38` | 当前文本数据源与索引事实已核实；ADR-0028 固定受治理来源、同步产物、质量和类型化连接器边界 |
 | M3 文件来源生命周期领域切片 | `project/evidence/WP-0011-data-lifecycle-design.md` | `c7b8b60ca` | 文件来源的草稿、探测、同步、退役和乐观修订状态机先红后绿；知识数据依赖上下文回归通过 |
 | M3 同步产物与质量领域切片 | `project/evidence/WP-0011-data-lifecycle-design.md` | `aa07527cc` | 不可变同步产物冻结来源修订和摘要；质量阻断拒绝发布判断，知识数据依赖上下文回归通过 |
+| M3 受治理来源真实持久化切片 | `project/evidence/WP-0011-data-lifecycle-design.md` | `e214637192ec7919c2cffb7a3a4d25c8c5bb3a9e` | 独立 Flyway 事实表、真实 PostgreSQL 租户隔离、来源修订外键和质量失败事务回滚通过 |
 
 ## 证据规则
 
