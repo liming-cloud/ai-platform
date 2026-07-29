@@ -2,6 +2,8 @@ package com.aiplatform.foundation.knowledgedata.infrastructure.configuration;
 
 import com.aiplatform.foundation.knowledgedata.application.datasource.service.TextDataSourceService;
 import com.aiplatform.foundation.knowledgedata.application.datasource.service.GovernedDataSourceLifecycleService;
+import com.aiplatform.foundation.knowledgedata.application.datasource.service.FileDataSourceProbeService;
+import com.aiplatform.foundation.knowledgedata.application.datasource.port.out.FileSourceObjectProbe;
 import com.aiplatform.foundation.knowledgedata.application.indexversion.facade.ActiveIndexLookup;
 import com.aiplatform.foundation.knowledgedata.application.indexversion.service.ActiveIndexLookupService;
 import com.aiplatform.foundation.knowledgedata.application.indexversion.service.IndexVersionService;
@@ -15,6 +17,7 @@ import com.aiplatform.foundation.knowledgedata.domain.datasource.repository.Gove
 import com.aiplatform.foundation.knowledgedata.domain.indexversion.repository.IndexVersionRepository;
 import com.aiplatform.foundation.knowledgedata.domain.knowledge.repository.KnowledgeSpaceRepository;
 import com.aiplatform.foundation.knowledgedata.infrastructure.objectstorage.UnavailableTextContentObjectStorageAdapter;
+import com.aiplatform.foundation.knowledgedata.infrastructure.objectstorage.TextContentFileSourceObjectProbe;
 import com.aiplatform.foundation.knowledgedata.infrastructure.staging.LocalTextContentStagingAdapter;
 import com.aiplatform.foundation.modelruntime.application.configuration.facade.UsableModelConfigurationLookup;
 import com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator;
@@ -95,6 +98,20 @@ public class KnowledgeDataCoreAutoConfiguration {
     GovernedDataSourceLifecycleService governedDataSourceLifecycleService(
             GovernedDataSourceRepository repository) {
         return new GovernedDataSourceLifecycleService(repository);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    FileSourceObjectProbe fileSourceObjectProbe(TextContentObjectStoragePort storage) {
+        return new TextContentFileSourceObjectProbe(storage);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    FileDataSourceProbeService fileDataSourceProbeService(
+            GovernedDataSourceRepository repository,
+            FileSourceObjectProbe probe) {
+        return new FileDataSourceProbeService(repository, probe);
     }
 
     @Bean
