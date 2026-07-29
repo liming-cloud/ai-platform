@@ -11,6 +11,7 @@ import com.aiplatform.foundation.security.identity.TrustedRequestContext;
 import com.aiplatform.foundation.shared.contract.paging.PageQuery;
 import com.aiplatform.foundation.shared.contract.paging.PageResult;
 import java.util.Objects;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -26,6 +27,7 @@ import org.springframework.web.bind.annotation.RestController;
  * 知识空间索引版本的异步创建、查看和发布入口。
  */
 @RestController
+@ConditionalOnBean(IndexVersionService.class)
 @RequestMapping("/api/v1/knowledge-spaces/{knowledgeSpaceId}/index-versions")
 public class IndexVersionController {
 

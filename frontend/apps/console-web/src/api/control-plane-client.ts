@@ -286,6 +286,21 @@ export class ControlPlaneClient {
     );
   }
 
+  async probeFileDataSource(
+    knowledgeSpaceId: string,
+    dataSourceId: string,
+    expectedVersion: number,
+  ): Promise<GovernedDataSourceLifecycleResult> {
+    const query = new URLSearchParams({
+      knowledgeSpaceId,
+      expectedVersion: String(expectedVersion),
+    });
+    return this.request<GovernedDataSourceLifecycleResult>(
+      `/governed-data-sources/files/${encodeURIComponent(dataSourceId)}/probe?${query}`,
+      { method: "POST" },
+    );
+  }
+
   async publishTextDataSource(
     knowledgeSpaceId: string,
     dataSourceId: string,

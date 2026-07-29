@@ -188,3 +188,43 @@ ADR-0028 定义 `GovernedDataSource`、`SourceRevision`、`SyncArtifact`、`Qual
 - 性能：外部 `metadata` 调用在 `PROBING` 已持久化之后执行，应用服务不包围数据库事务；数据库路径保持两次条件更新和一次修订读取。
 - 架构：代码图谱聚焦 `GovernedDataSourceLifecycleService`、`GovernedDataSourceRepository`、`SourceRevision`、`TextContentObjectStoragePort` 及其调用边界，确认新应用服务仅依赖领域仓储和出站端口，基础设施适配器不接触旧文本聚合。
 - 测试质量：先以缺少公共 seam 的编译失败形成红灯；绿灯覆盖有权限成功、无权限读取前拒绝、对象失败关闭、开始状态并发失败不访问对象、元数据摘要不一致以及真实 PostgreSQL 状态持久化回归。
+
+## FILE 登记、探测 HTTP 与企业控制台切片
+
+### 已实现边界
+
+- `POST /api/v1/governed-data-sources/files` 继续只接收受控 UTF-8 纯文本；调用方不能提交桶名、对象键、租户或凭据。
+- 新增 `POST /api/v1/governed-data-sources/files/{dataSourceId}/probe`，请求只携带知识空间和预期版本；应用服务仍从 `TrustedRequestContext` 提取租户与主体，并在读取对象前检查 `knowledge:write`。
+- 企业控制台的“数据”区域增加独立的“文件来源登记”任务，和 M1 的“首份文本发布”并列切换但不会复用或改写后者的状态机。任务只展示数据源标识与生命周期状态；正文、对象位置、摘要和凭据不反显。
+- 没有可用 `UsableModelConfigurationLookup`（例如本地未配置模型主密钥）时，索引服务与 HTTP 入口条件化关闭，知识空间和 FILE 任务仍可启动；模型配置完整时索引服务和入口保持装配。
+
+### 红绿记录
+
+- HTTP 红灯：新增 `GovernedFileDataSourceControllerTest` 后运行
+  `JAVA_HOME=/Users/lingou/Library/Java/JavaVirtualMachines/openjdk-26.0.2/Contents/Home ./mvnw -Dmaven.repo.local=/tmp/ai-mesh-m2 -q -pl backend/contexts/knowledge-data -am -Dtest=GovernedFileDataSourceControllerTest -Dsurefire.failIfNoSpecifiedTests=false test`。
+  测试按预期因控制器尚未接收探测服务且不存在 `probe` 方法编译失败。
+- 客户端红灯：运行
+  `npm --prefix frontend run test -- --run apps/console-web/src/api/control-plane-client.test.ts`。
+  新用例按预期报出 `client.probeFileDataSource is not a function`。
+- 装配红灯：新增“无受控模型查询仍可启动”和“无索引用例不注册索引入口”测试后运行
+  `JAVA_HOME=/Users/lingou/Library/Java/JavaVirtualMachines/openjdk-26.0.2/Contents/Home ./mvnw -Dmaven.repo.local=/tmp/ai-mesh-m2 -q -pl backend/contexts/knowledge-data -am -Dtest=KnowledgeDataAutoConfigurationTest -Dsurefire.failIfNoSpecifiedTests=false test`。
+  测试按预期暴露索引用例与 HTTP 控制器对缺失模型查询的强耦合。
+- 绿灯：运行
+  `JAVA_HOME=/Users/lingou/Library/Java/JavaVirtualMachines/openjdk-26.0.2/Contents/Home ./mvnw -Dmaven.repo.local=/tmp/ai-mesh-m2 -q -pl backend/contexts/knowledge-data -am -Dtest=GovernedFileDataSourceRegistrationServiceTest,GovernedFileDataSourceControllerTest,FileDataSourceProbeServiceTest,TextContentFileSourceObjectProbeTest,KnowledgeDataAutoConfigurationTest -Dsurefire.failIfNoSpecifiedTests=false test`、
+  `make project-verify`、`make architecture-guard`、
+  `npm --prefix frontend run test -- --run apps/console-web/src/api/control-plane-client.test.ts`、
+  `npm --prefix frontend run typecheck`、`npm --prefix frontend run lint` 与
+  `npm --prefix frontend run build`，均通过；`git diff --check` 通过。
+
+### 六维检查
+
+- 正确性：控制器测试验证探测命令中的可信上下文、知识空间、来源标识和乐观版本保持完整；客户端测试验证真实 HTTP 路径、会话头与预期版本。
+- 安全：控制器不接收对象定位、正文以外的文件事实或租户字段；权限判断、跨租户不可见与失败脱敏继续保留在应用服务。控制台不回显正文、对象键或凭据。
+- 复杂度：新增一个端点、一个客户端方法和一个独立控制台任务；未把 M3 生命周期并入 M1 文本发布状态机。
+- 性能：探测仍由已持久化 `PROBING` 状态后的事务外对象核验完成；前端不轮询也不传输对象元数据。
+- 架构：代码图谱检查 `FileDataSourceProbeService`、`GovernedFileDataSourceController`、`ConsoleApp`、`ControlPlaneClient` 与 `IndexVersionService` 的影响范围；索引入口只在其跨上下文依赖实际存在时装配。
+- 测试质量：三个新行为均先观察到实际红灯，再以相同 seam 转绿；完整浏览器验收尚未执行，不能以这些自动化结果代替。
+
+### 浏览器状态
+
+本地控制台与控制面正在重建时 Docker Desktop 守护进程返回“unable to start”，截至本记录尚不能形成浏览器成功、失败、无权限和恢复证据。该环境故障不改变上述自动化结论；Docker 恢复后必须重新构建并执行真实浏览器操作，再补充本节并推进后续 M3 切片。

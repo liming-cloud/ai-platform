@@ -1,6 +1,7 @@
 package com.aiplatform.foundation.knowledgedata.infrastructure.configuration;
 
 import com.aiplatform.foundation.knowledgedata.interfaces.web.datasource.controller.TextDataSourceController;
+import com.aiplatform.foundation.knowledgedata.interfaces.web.datasource.controller.GovernedFileDataSourceController;
 import com.aiplatform.foundation.knowledgedata.interfaces.web.indexversion.controller.IndexVersionController;
 import com.aiplatform.foundation.knowledgedata.interfaces.web.knowledge.controller.KnowledgeSpaceController;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
@@ -17,6 +18,7 @@ import org.springframework.context.annotation.Import;
 @Import({
     KnowledgeSpaceController.class,
     TextDataSourceController.class,
+    GovernedFileDataSourceController.class,
     IndexVersionController.class
 })
 public class KnowledgeDataWebAutoConfiguration {

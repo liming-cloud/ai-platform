@@ -89,6 +89,36 @@ describe("ControlPlaneClient", () => {
     expect(await request?.text()).toBe("货品位于一层。");
   });
 
+  it("探测受治理文件来源时携带知识空间和乐观版本", async () => {
+    let request: Request | undefined;
+    const client = authenticatedClient(async (input, init) => {
+      request = new Request(input, init);
+      return new Response(
+        JSON.stringify({
+          dataSourceId: "220000000000000001",
+          knowledgeSpaceId: "210000000000000001",
+          status: "READY",
+          version: 2,
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      );
+    });
+
+    await client.probeFileDataSource(
+      "210000000000000001",
+      "220000000000000001",
+      1,
+    );
+
+    expect(request?.method).toBe("POST");
+    expect(request?.url).toContain(
+      "/governed-data-sources/files/220000000000000001/probe",
+    );
+    expect(request?.url).toContain("knowledgeSpaceId=210000000000000001");
+    expect(request?.url).toContain("expectedVersion=1");
+    expect(request?.headers.get("Authorization")).toBe("Bearer demo-token");
+  });
+
   it("把统一错误转换为不泄漏响应体的前端错误", async () => {
     const client = new ControlPlaneClient(async () => new Response(
       JSON.stringify({

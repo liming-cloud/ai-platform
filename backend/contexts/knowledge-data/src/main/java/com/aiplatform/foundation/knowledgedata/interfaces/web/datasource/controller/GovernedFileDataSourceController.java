@@ -1,7 +1,9 @@
 package com.aiplatform.foundation.knowledgedata.interfaces.web.datasource.controller;
 
 import com.aiplatform.foundation.knowledgedata.application.datasource.command.RegisterFileDataSourceCommand;
+import com.aiplatform.foundation.knowledgedata.application.datasource.command.ProbeFileDataSourceCommand;
 import com.aiplatform.foundation.knowledgedata.application.datasource.dto.GovernedDataSourceLifecycleResult;
+import com.aiplatform.foundation.knowledgedata.application.datasource.service.FileDataSourceProbeService;
 import com.aiplatform.foundation.knowledgedata.application.datasource.service.GovernedFileDataSourceRegistrationService;
 import com.aiplatform.foundation.knowledgedata.application.datasource.exception.TextContentProcessingException;
 import com.aiplatform.foundation.security.identity.TrustedRequestContext;
@@ -9,11 +11,13 @@ import jakarta.servlet.http.HttpServletRequest;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Objects;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -21,11 +25,33 @@ import org.springframework.web.bind.annotation.RestController;
 
 /** FILE 受治理来源登记入口；对象位置只由平台生成。 */
 @RestController
+@ConditionalOnBean({
+    GovernedFileDataSourceRegistrationService.class,
+    FileDataSourceProbeService.class
+})
 @RequestMapping("/api/v1/governed-data-sources")
 public class GovernedFileDataSourceController {
     private final GovernedFileDataSourceRegistrationService registration;
-    public GovernedFileDataSourceController(GovernedFileDataSourceRegistrationService registration) {
+    private final FileDataSourceProbeService probes;
+
+    public GovernedFileDataSourceController(
+            GovernedFileDataSourceRegistrationService registration,
+            FileDataSourceProbeService probes) {
         this.registration = Objects.requireNonNull(registration, "文件来源登记用例不能为空");
+        this.probes = Objects.requireNonNull(probes, "文件来源探测用例不能为空");
+    }
+
+    /**
+     * 只接受客户端提供的乐观版本；租户、权限和对象位置均由应用服务从可信上下文与已冻结修订取得。
+     */
+    @PostMapping("/files/{dataSourceId}/probe")
+    public GovernedDataSourceLifecycleResult probe(
+            TrustedRequestContext context,
+            @RequestParam String knowledgeSpaceId,
+            @PathVariable String dataSourceId,
+            @RequestParam long expectedVersion) {
+        return probes.probe(new ProbeFileDataSourceCommand(
+                context, knowledgeSpaceId, dataSourceId, expectedVersion));
     }
     @PostMapping(value = "/files", consumes = MediaType.TEXT_PLAIN_VALUE)
     public ResponseEntity<GovernedDataSourceLifecycleResult> register(

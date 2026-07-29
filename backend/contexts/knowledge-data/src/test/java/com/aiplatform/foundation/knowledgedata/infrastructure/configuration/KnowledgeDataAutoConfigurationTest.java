@@ -5,6 +5,8 @@ import static org.mockito.Mockito.mock;
 
 import com.aiplatform.foundation.knowledgedata.application.datasource.service.TextDataSourceService;
 import com.aiplatform.foundation.knowledgedata.application.datasource.service.GovernedDataSourceLifecycleService;
+import com.aiplatform.foundation.knowledgedata.application.datasource.service.FileDataSourceProbeService;
+import com.aiplatform.foundation.knowledgedata.application.datasource.service.GovernedFileDataSourceRegistrationService;
 import com.aiplatform.foundation.knowledgedata.application.indexversion.facade.ActiveIndexLookup;
 import com.aiplatform.foundation.knowledgedata.application.indexversion.service.IndexVersionService;
 import com.aiplatform.foundation.knowledgedata.application.knowledge.service.KnowledgeSpaceService;
@@ -29,6 +31,7 @@ import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.index.
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.knowledge.mapper.KnowledgeSpaceMapper;
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.knowledge.mapper.KnowledgeSpaceRequestMapper;
 import com.aiplatform.foundation.knowledgedata.interfaces.web.datasource.controller.TextDataSourceController;
+import com.aiplatform.foundation.knowledgedata.interfaces.web.datasource.controller.GovernedFileDataSourceController;
 import com.aiplatform.foundation.knowledgedata.interfaces.web.indexversion.controller.IndexVersionController;
 import com.aiplatform.foundation.knowledgedata.interfaces.web.knowledge.controller.KnowledgeSpaceController;
 import com.aiplatform.foundation.modelruntime.application.deployment.facade.PublishedEmbeddingDeploymentLookup;
@@ -101,6 +104,35 @@ class KnowledgeDataAutoConfigurationTest {
                         KnowledgeDataCoreAutoConfiguration.class))
                 .withPropertyValues("foundation.knowledge-data.enabled=true")
                 .run(context -> assertThat(context).hasFailed());
+    }
+
+    @Test
+    void 未配置受控模型查询时仍可启动数据核心但不注册索引用例() {
+        new ApplicationContextRunner()
+                .withConfiguration(AutoConfigurations.of(
+                        KnowledgeDataCoreAutoConfiguration.class))
+                .withPropertyValues("foundation.knowledge-data.enabled=true")
+                .withBean(
+                        KnowledgeSpaceRepository.class,
+                        () -> mock(KnowledgeSpaceRepository.class))
+                .withBean(
+                        TextDataSourceRepository.class,
+                        () -> mock(TextDataSourceRepository.class))
+                .withBean(
+                        GovernedDataSourceRepository.class,
+                        () -> mock(GovernedDataSourceRepository.class))
+                .withBean(
+                        IndexVersionRepository.class,
+                        () -> mock(IndexVersionRepository.class))
+                .withBean(
+                        PublishedEmbeddingDeploymentLookup.class,
+                        () -> mock(PublishedEmbeddingDeploymentLookup.class))
+                .withBean(EntityIdGenerator.class, () -> () -> 1001L)
+                .run(context -> {
+                    assertThat(context).hasNotFailed();
+                    assertThat(context).hasSingleBean(KnowledgeSpaceService.class);
+                    assertThat(context).doesNotHaveBean(IndexVersionService.class);
+                });
     }
 
     @Test
@@ -233,13 +265,40 @@ class KnowledgeDataAutoConfigurationTest {
                         TextDataSourceService.class,
                         () -> mock(TextDataSourceService.class))
                 .withBean(
+                        GovernedFileDataSourceRegistrationService.class,
+                        () -> mock(GovernedFileDataSourceRegistrationService.class))
+                .withBean(
+                        FileDataSourceProbeService.class,
+                        () -> mock(FileDataSourceProbeService.class))
+                .withBean(
                         IndexVersionService.class,
                         () -> mock(IndexVersionService.class))
                 .run(context -> {
                     assertThat(context).hasNotFailed();
                     assertThat(context).hasSingleBean(KnowledgeSpaceController.class);
                     assertThat(context).hasSingleBean(TextDataSourceController.class);
+                    assertThat(context).hasSingleBean(GovernedFileDataSourceController.class);
                     assertThat(context).hasSingleBean(IndexVersionController.class);
+                });
+    }
+
+    @Test
+    void 未配置索引用例时Web层不注册索引入口() {
+        new ApplicationContextRunner()
+                .withConfiguration(AutoConfigurations.of(
+                        KnowledgeDataWebAutoConfiguration.class))
+                .withPropertyValues("foundation.knowledge-data.enabled=true")
+                .withBean(
+                        KnowledgeSpaceService.class,
+                        () -> mock(KnowledgeSpaceService.class))
+                .withBean(
+                        TextDataSourceService.class,
+                        () -> mock(TextDataSourceService.class))
+                .run(context -> {
+                    assertThat(context).hasNotFailed();
+                    assertThat(context).hasSingleBean(KnowledgeSpaceController.class);
+                    assertThat(context).hasSingleBean(TextDataSourceController.class);
+                    assertThat(context).doesNotHaveBean(IndexVersionController.class);
                 });
     }
 }

@@ -1,4 +1,5 @@
 import {
+  Button,
   MessageBar,
   MessageBarBody,
   MessageBarTitle,
@@ -7,6 +8,11 @@ import { ProductShell, StatePanel } from "@foundation/design-system";
 import { lazy, Suspense, useMemo, useState } from "react";
 import { ControlPlaneClient } from "./api/control-plane-client";
 import { KnowledgePublicationFlow } from "./features/knowledge-publication/KnowledgePublicationFlow";
+
+const GovernedFileDataWorkspace = lazy(async () => {
+  const module = await import("./features/governed-data/GovernedFileDataWorkspace");
+  return { default: module.GovernedFileDataWorkspace };
+});
 
 const QueryGovernanceWorkspace = lazy(async () => {
   const module = await import(
@@ -34,6 +40,7 @@ export function ConsoleApp() {
     typeof NAVIGATION[number]["id"]
   >("data");
   const [sessionRevision, setSessionRevision] = useState(0);
+  const [dataTask, setDataTask] = useState<"governed-file" | "first-publication">("governed-file");
   const governanceActive = activeNavigationId === "governance";
   const modelsActive = activeNavigationId === "models";
 
@@ -54,13 +61,15 @@ export function ConsoleApp() {
     <ProductShell
       productName="可信知识平台"
       pageTitle={
-        governanceActive ? "查询用量与审计" : modelsActive ? "受控模型配置" : "发布首份知识数据"
+        governanceActive ? "查询用量与审计" : modelsActive ? "受控模型配置" : dataTask === "governed-file" ? "受治理文件来源" : "发布首份知识数据"
       }
       pageSummary={
         governanceActive
           ? "核对当前租户的查询配额、计量结果和脱敏运行记录。"
           : modelsActive
           ? "从平台发布目录创建、轮换和启用模型配置；API Key 不会再次显示。"
+          : dataTask === "governed-file"
+          ? "在租户知识空间中登记并探测受控 UTF-8 文件，不展示对象位置或正文。"
           : "用一个受控任务完成租户验证、知识空间创建、文本上传和发布核验。"
       }
       navigation={NAVIGATION}
@@ -76,11 +85,35 @@ export function ConsoleApp() {
       </MessageBar>
 
       <section hidden={governanceActive || modelsActive}>
-        <KnowledgePublicationFlow
-          client={client}
-          sessionRevision={sessionRevision}
-          onSessionChanged={sessionChanged}
-        />
+        <div className="data-task-switcher" aria-label="数据任务切换">
+          <Button
+            appearance={dataTask === "governed-file" ? "primary" : "subtle"}
+            onClick={() => setDataTask("governed-file")}
+          >
+            文件来源登记
+          </Button>
+          <Button
+            appearance={dataTask === "first-publication" ? "primary" : "subtle"}
+            onClick={() => setDataTask("first-publication")}
+          >
+            首份文本发布
+          </Button>
+        </div>
+        {dataTask === "governed-file" ? (
+          <Suspense fallback={<StatePanel kind="loading" title="正在加载数据任务" description="正在准备受治理文件来源流程。" />}>
+            <GovernedFileDataWorkspace
+              client={client}
+              sessionRevision={sessionRevision}
+              onSessionChanged={sessionChanged}
+            />
+          </Suspense>
+        ) : (
+          <KnowledgePublicationFlow
+            client={client}
+            sessionRevision={sessionRevision}
+            onSessionChanged={sessionChanged}
+          />
+        )}
       </section>
       <section hidden={!modelsActive}>
         {modelsActive ? (
