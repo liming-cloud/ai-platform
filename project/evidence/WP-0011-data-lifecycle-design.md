@@ -363,3 +363,32 @@ ADR-0028 定义 `GovernedDataSource`、`SourceRevision`、`SyncArtifact`、`Qual
 - 测试质量：应用用例、控制器委派、自动配置与真实 PostgreSQL 仓储回归共同通过；两个公共 seam 均先观察到缺失实现的红灯。
 
 本切片尚未提供可选择的已发布产物列表，也未让索引创建冻结 `GOVERNED_SYNC_ARTIFACT` 快照；这些仍是 M3 后续工作，不能申请人工评审或进入 M4。
+
+## 类型化索引来源快照切片（2026-07-29）
+
+### 红绿记录
+
+- 红灯：新增类型化来源迁移后运行
+  `JAVA_HOME=/Users/lingou/Library/Java/JavaVirtualMachines/openjdk-26.0.2/Contents/Home ./mvnw -Dmaven.repo.local=/tmp/ai-mesh-m2 -q -pl backend/contexts/knowledge-data -am -Dtest=PostgresIndexVersionPersistenceTest -Dsurefire.failIfNoSpecifiedTests=false test`。
+  真实 PostgreSQL 按预期拒绝旧创建路径未写入的 `source_revision`；补齐旧文本实体写入后转绿。
+- 第二个红灯：新增 FILE 来源夹具后，数据库先拒绝不匹配的文件定义摘要；修正为领域对象计算的摘要后，构建队列又暴露 M1 文本读取端口与 FILE 小写媒体类型的不兼容。
+- 绿灯：在提交 `658e12d13` 上运行
+  `JAVA_HOME=/Users/lingou/Library/Java/JavaVirtualMachines/openjdk-26.0.2/Contents/Home ./mvnw -Dmaven.repo.local=/tmp/ai-mesh-m2 -q -pl backend/contexts/knowledge-data -am -Dtest=PostgresIndexVersionPersistenceTest,IndexBuildWorkerTest -Dsurefire.failIfNoSpecifiedTests=false test` 与 `git diff --check`，均通过。真实容器按顺序应用 V202607290019、V202607290020。
+
+### 已验证事实
+
+- `index_version_source` 以 `LEGACY_TEXT_CONTENT` 和 `GOVERNED_SYNC_ARTIFACT` 区分来源；后者冻结来源修订、同步产物、质量状态、规则版本、发布时间和对象事实。
+- 单条索引选择 SQL 在同一读取快照中合并 M1 已发布文本与每个非退役 FILE 来源的最新发布产物；`BLOCK` 无法通过发布表约束进入候选。
+- 构建租约保留 FILE 来源类型、长整型修订、产物标识和质量事实。构建器仅把 FILE 已冻结的小写媒体事实适配到既有 M1 文本读取端口常量，不修改数据库快照。
+- 真实测试证明索引版本可冻结两条历史文本和一条 `WARN` FILE 产物，且租约能读取该类型化来源。
+
+### 六维检查
+
+- 正确性：迁移和实体同时维护旧文本 `source_revision`，新来源由类型化校验约束其不可变事实；快照摘要纳入类型、修订、产物和质量规则。
+- 安全：选择查询限定租户、知识空间、非退役来源与最新发布事实；构建不重新读取可变来源配置或质量结果。
+- 复杂度：仅演进一个快照表、一个查询投影和构建端口 DTO，保留历史两参数快照构造，未复制 M1 文本聚合。
+- 性能：来源合并在一个受限 SQL 内完成；构建仍只读取冻结行，无额外模型或对象元数据查询。
+- 架构：代码图谱影响分析覆盖 `IndexSourceEntity`、创建仓储与构建队列；领域快照表达类型化事实，MyBatis、SQL 与媒体适配保留在基础设施层。
+- 测试质量：两次真实数据库红灯分别覆盖迁移完整性和文件对象不变量，最终验证历史索引兼容、混合来源冻结和租约映射。
+
+本切片未完成 FILE 实际对象构建、索引重建入口、退役后重建拒绝和知识管理员浏览器任务；M3 继续进行，不能申请人工评审或进入 M4。

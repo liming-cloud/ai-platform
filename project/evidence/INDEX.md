@@ -160,6 +160,7 @@
 | M3 FILE 同步与质量事实闭环 | `project/evidence/WP-0011-data-lifecycle-design.md` | `ddf23caf5ce23c29528163d041af2e7b605270ec` | 流式摘要核验、同步失败恢复、原子产物与 PASS 质量事实，以及真实控制面 HTTP／PostgreSQL 闭环通过；M3 尚未完成 |
 | M3 已发布同步产物持久化 | `project/evidence/WP-0011-data-lifecycle-design.md` | `73cd917e3` | 数据库质量复核、`BLOCK` 反绕过、来源版本原子递增、发布事实冻结、租户隔离和自动配置回归通过；M3 尚未完成 |
 | M3 FILE 同步产物受控发布入口 | `project/evidence/WP-0011-data-lifecycle-design.md` | `92f9440f7` | 知识写权限前置、来源—产物归属、受控 HTTP 委派、发布质量复核与自动配置回归通过；M3 尚未完成 |
+| M3 类型化索引来源快照 | `project/evidence/WP-0011-data-lifecycle-design.md` | `a43e6e93f`、`658e12d13` | 历史文本兼容、已发布 FILE 产物选择、质量和产物冻结、混合来源租约以及真实 PostgreSQL 回归通过；M3 尚未完成 |
 
 ## 证据规则
 
