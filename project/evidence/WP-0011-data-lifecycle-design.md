@@ -410,6 +410,8 @@ ADR-0028 定义 `GovernedDataSource`、`SourceRevision`、`SyncArtifact`、`Qual
   `JAVA_HOME=/Users/lingou/Library/Java/JavaVirtualMachines/openjdk-26.0.2/Contents/Home ./mvnw -Dmaven.repo.local=/tmp/ai-mesh-m2 -q -pl backend/contexts/knowledge-data -am -Dtest=FileDataSourceSynchronizationServiceTest,FileDataSourceProbeServiceTest,FileSyncArtifactPublicationServiceTest,GovernedFileDataSourceControllerTest,PostgresIndexVersionPersistenceTest,IndexBuildWorkerTest,KnowledgeDataAutoConfigurationTest -Dsurefire.failIfNoSpecifiedTests=false test`，通过；真实 PostgreSQL 容器应用至 `V202607290020`。
 - 前端在 `frontend/` 工作区运行
   `npm test -- --run apps/console-web/src/api/control-plane-client.test.ts && npm run typecheck && npm run lint -- --quiet`，9 项客户端测试、类型检查和静态检查均通过。
+- 提交 `8d7f19996` 将默认安全部署中模型配置读取入口未装配的 `404` 转为“联系平台运维完成模型运行时配置后重试”的可恢复提示，不暴露路由或装配细节；运行
+  `npm test -- --run apps/console-web/src/features/governed-data/GovernedFileDataWorkspace.test.ts && npm run typecheck && npm run lint -- --quiet`，1 项定向测试、类型检查和静态检查均通过。该映射只适用于创建索引任务，其他请求错误仍保留原失败语义。
 - 本地 Compose 的 `control-plane`、`ingestion-worker` 与 `console-web` 均为 `healthy`；工作器已不再重启。
 
 ### 浏览器验收
