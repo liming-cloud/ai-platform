@@ -466,3 +466,36 @@ ADR-0028 定义 `GovernedDataSource`、`SourceRevision`、`SyncArtifact`、`Qual
 - 测试质量：先观察到当前会话 `401` 的红灯，再以同一测试转绿；同时固定畸形信封与新旧会话竞态这两个身份状态反例。
 
 本项补齐 FILE 的过期会话恢复证据，不改变未授权 `403`、模型运行时 `404` 或任何数据源公共契约。OBJECT_STORAGE、STRUCTURED_DATASET 和真实模型索引验收仍未完成，M3 不得进入人工评审或 M4。
+
+## FILE 已发布产物读取与刷新后重建（2026-07-29）
+
+### 问题与最小闭环
+
+- 索引创建已能在服务端选择当前知识空间中有效的已发布来源，但控制台只在内存保存刚完成操作的产物标识；刷新页面后，知识管理员无法重新选择该来源并创建新的索引版本。
+- 依据 ADR-0028 的不可变产物语义与 ADR-0029 的索引选择约束，本切片新增只读的 FILE 来源摘要列表。它只返回来源标识、展示名、生命周期状态、修订、失败操作和最新已发布产物的标识、质量状态与时间；不返回对象位置、文件正文、摘要、质量明细或凭据。
+- 控制台刷新后可从“已登记文件来源”选择来源；只有 `READY` 且存在已发布产物的来源才显示“可重建”并允许创建新的索引版本。退役来源可被审计性地选择查看，但不会显示可重建，也不会发起索引创建。
+
+### 红绿与自动化验证
+
+- 红灯：先新增 `GovernedFileDataSourceQueryServiceTest`，其公共查询、读取端口和应用服务尚不存在，知识数据模块按预期无法编译。
+- 绿灯：在提交 `cc72f3564` 上运行：
+  `JAVA_HOME=/Users/lingou/Library/Java/JavaVirtualMachines/openjdk-26.0.2/Contents/Home ./mvnw -Dmaven.repo.local=/tmp/ai-mesh-m2 -q -pl backend/contexts/knowledge-data -am -Dtest=GovernedFileDataSourceQueryServiceTest,GovernedFileDataSourceControllerTest,PostgresGovernedDataSourceRepositoryTest,KnowledgeDataAutoConfigurationTest -Dsurefire.failIfNoSpecifiedTests=false test`，通过。真实 PostgreSQL 容器验证最新发布产物投影与跨租户不可见。
+- 前端运行 `npm test -- --run && npm run typecheck && npm run lint -- --quiet && npm run build`，8 个测试文件、38 项测试、类型检查、静态检查和两个生产构建均通过。
+- 全量运行 `JAVA_HOME=/Users/lingou/Library/Java/JavaVirtualMachines/openjdk-26.0.2/Contents/Home make validate`，项目治理、架构门禁、后端全反应堆测试、前端、演示、真实模型验收编排和交付脚本检查均通过；`git diff --check` 通过。
+
+### 真实浏览器验收
+
+- 使用本地 Compose 启动企业控制台，知识管理员登录后实际看到“已登记文件来源”选择器，并可读取先前创建的 FILE 来源。
+- 浏览器验收发现一个表示层矛盾：退役来源虽然有历史发布产物，却被错误标为“可重建”，而按钮实际已经禁用。已修正标签与创建动作的共同 `READY` 前提，再次构建控制台并复核：退役来源不再显示“可重建”。
+- 浏览器会话已在验收后结束；该浏览器证据只验证用户任务与受控展示，不替代真实 PostgreSQL、权限与完整门禁证据。
+
+### 六维检查
+
+- 正确性：列表只投影每个 FILE 来源最新发布事实；刷新后重新选择会恢复已发布产物，创建操作仍生成新的索引版本，不覆盖既有索引活动事实。
+- 安全：查询先执行 `knowledge:read`，再使用可信租户和知识空间边界；SQL 和前端 DTO 均不含对象定位、正文、摘要或密钥。退役来源不满足构建前置条件，前端显示和动作两层均关闭失败。
+- 复杂度：仅新增一个页码化只读端口、应用查询服务、XML 投影与控制台选择状态；未把可变来源详情加入索引 API，也未新增通用连接器。
+- 性能：列表以单页 SQL 和受限 `LATERAL` 最新产物投影完成，不读取对象或调用模型；计数查询同样保持租户、知识空间和 FILE 类型过滤。
+- 架构：代码图谱探索 `IndexVersionService.create`、`GovernedDataSourceRepository`、`GovernedFileDataWorkspace` 与控制面调用边界，确认索引创建既有来源选择可复用，缺口仅为安全摘要读取和刷新恢复。新增依赖保持 `interfaces → application → domain` 与 `infrastructure → application/domain`。
+- 测试质量：查询服务权限前置、控制器委派、真实 PostgreSQL 最新投影／租户隔离、前端安全投影与退役标签均有回归；全量门禁在最终代码上通过。
+
+本切片完成 FILE 已发布产物的刷新后可见与受控重建入口。OBJECT_STORAGE、STRUCTURED_DATASET 的契约和实现、真实受控 Embedding 索引验收，以及 M3 其余异常路径仍未完成；WP-0011 保持进行中，不得申请 M3 人工评审或进入 M4。

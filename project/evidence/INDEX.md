@@ -165,6 +165,7 @@
 | M3 已发布同步产物 SQL 门禁回归 | `project/evidence/WP-0011-data-lifecycle-design.md` | `2eb465404` | 补齐发布事实写入与租户限定读取的 XML SQL 架构登记；`make validate` 通过，M3 尚未完成 |
 | M3 助手受控模型 API 全量门禁恢复 | `project/evidence/WP-0011-data-lifecycle-design.md` | `f9e94b4c4` | 将 API 集成夹具迁移至 M2 受控 Chat／Embedding 配置与同源索引绑定；定向回归、`make project-verify` 与 `make validate` 均通过，M3 尚未完成 |
 | M3 FILE 控制台会话过期恢复 | `project/evidence/WP-0011-data-lifecycle-design.md` | `300458ed8` | 当前 401 清除会话、旧请求 401 不覆盖新会话，FILE 工作区清除受保护状态并回到登录入口；36 项前端测试与生产构建通过，M3 尚未完成 |
+| M3 FILE 刷新后受控重建 | `project/evidence/WP-0011-data-lifecycle-design.md` | `cc72f3564` | 已发布 FILE 来源的无敏感摘要分页读取、刷新后选择与仅 `READY` 来源重建通过；真实 PostgreSQL、浏览器验收与最终全量门禁通过，M3 尚未完成 |
 
 ## 证据规则
 
