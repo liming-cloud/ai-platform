@@ -162,3 +162,29 @@ ADR-0028 定义 `GovernedDataSource`、`SourceRevision`、`SyncArtifact`、`Qual
 - 性能：对象摘要基于短元数据计算，不重新读取文件；数据库迁移与登记只保存元数据，外部文件上传、探测和同步仍在事务外。
 - 架构：代码图谱分析 `TextDataSourceService`、`MinioTextContentObjectStorageAdapter`、`GovernedDataSourceRepository` 与其影响范围后，M3 只在新受治理来源边界建立对象事实，旧文本路径保持独立；影响分析限定为来源修订、仓储、Mapper 和真实 PostgreSQL 测试。综合门禁发现并修复 SQL 注解与平铺包超限，最终超预算包和 SQL 注解数均为零。
 - 测试质量：同一红绿命令先因缺少契约失败，后以领域与真实 PostgreSQL 测试转绿；完整知识数据依赖上下文回归已通过。
+
+## FILE 来源真实对象探测切片
+
+- 红灯：先新增 `FileDataSourceProbeServiceTest` 与
+  `TextContentFileSourceObjectProbeTest`，运行
+  `JAVA_HOME=/Users/lingou/Library/Java/JavaVirtualMachines/openjdk-26.0.2/Contents/Home ./mvnw -Dmaven.repo.local=/tmp/ai-mesh-m2 -q -pl backend/contexts/knowledge-data -am -Dtest=FileDataSourceProbeServiceTest,TextContentFileSourceObjectProbeTest -Dsurefire.failIfNoSpecifiedTests=false test`。
+  测试因 `ProbeFileDataSourceCommand`、`FileSourceObjectProbe`、探测应用服务和对象存储适配器均不存在而编译失败。
+- 绿灯：在提交 `1e19f63ed` 上，同一命令通过；随后运行
+  `JAVA_HOME=/Users/lingou/Library/Java/JavaVirtualMachines/openjdk-26.0.2/Contents/Home ./mvnw -Dmaven.repo.local=/tmp/ai-mesh-m2 -q -pl backend/contexts/knowledge-data -am -Dtest=FileDataSourceProbeServiceTest,TextContentFileSourceObjectProbeTest,PostgresGovernedDataSourceRepositoryTest,KnowledgeDataAutoConfigurationTest -Dsurefire.failIfNoSpecifiedTests=false test`、
+  `JAVA_HOME=/Users/lingou/Library/Java/JavaVirtualMachines/openjdk-26.0.2/Contents/Home make validate` 和 `git diff --check`，均通过。
+
+### 已验证事实
+
+- 仅拥有 `knowledge:write` 的可信上下文可触发探测；命令不接收租户、对象键、桶名、正文或凭据。无权限请求在来源读取和对象访问前被拒绝。
+- 服务先以乐观修订持久化 `PROBING`，再读取冻结的当前修订并执行对象元数据核验；开始状态写入失败时不访问对象。对象读取或元数据不一致时，只登记 `FAILED(PROBE)`，不返回原始异常。
+- 首个适配器复用既有私有对象存储端口，仅比对冻结对象键、SHA-256、字节数与 UTF-8 媒体类型；未复用 M1 `TextDataSource` 的状态或发布路径。
+- 既有真实 PostgreSQL 测试持续验证 `PROBING`、`FAILED(PROBE)`、重试和 `READY` 的持久化、隔离与乐观更新；本切片应用测试验证对象 I/O 位于两次短元数据更新之间。
+
+### 六维检查
+
+- 正确性：成功探测按 `DRAFT → PROBING → READY` 返回版本 `2`；对象失败按 `DRAFT → PROBING → FAILED(PROBE)` 保留既有恢复语义。应用测试断言开始持久化、修订读取、对象核验、最终持久化的顺序。
+- 安全：租户边界只来自 `TrustedRequestContext`，无权限调用不触碰仓储或对象；失败响应不携带对象异常、正文或凭据。跨租户不可见和状态持久化由真实 PostgreSQL 契约测试覆盖。
+- 复杂度：增加一个命令、一个小端口、一个编排服务与一个复用现有存储端口的适配器；没有增加连接器注册表、任务队列或通用文件抽象。
+- 性能：外部 `metadata` 调用在 `PROBING` 已持久化之后执行，应用服务不包围数据库事务；数据库路径保持两次条件更新和一次修订读取。
+- 架构：代码图谱聚焦 `GovernedDataSourceLifecycleService`、`GovernedDataSourceRepository`、`SourceRevision`、`TextContentObjectStoragePort` 及其调用边界，确认新应用服务仅依赖领域仓储和出站端口，基础设施适配器不接触旧文本聚合。
+- 测试质量：先以缺少公共 seam 的编译失败形成红灯；绿灯覆盖有权限成功、无权限读取前拒绝、对象失败关闭、开始状态并发失败不访问对象、元数据摘要不一致以及真实 PostgreSQL 状态持久化回归。

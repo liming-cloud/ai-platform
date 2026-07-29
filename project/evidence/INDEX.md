@@ -156,6 +156,7 @@
 | M3 同步原子完成 | `project/evidence/WP-0011-data-lifecycle-design.md` | `00bb64625ece656f59721d94193ed15105d70c7e` | 来源锁定、同步产物、质量结论和来源就绪状态同一事务提交；质量与并发失败均不残留半成品 |
 | M3 可信来源生命周期应用用例 | `project/evidence/WP-0011-data-lifecycle-design.md` | `6a6829edb5e7281e58ebd14c206414a4d134988a` | 可信上下文、知识写权限、租户边界和乐观修订被应用服务统一执行；外部 I/O 未进入事务 |
 | M3 受治理文件修订对象事实 | `project/evidence/WP-0011-data-lifecycle-design.md` | `5eb5759429de4174748851f9041ac4c7c8615d0c`、`a55f6a406e3c76e6dedb0a9d404f7ae696ec169c` | 首个 UTF-8 FILE 修订冻结平台对象键、摘要、长度和类型；真实 PostgreSQL 验证当前修订与对象事实持久化，架构门禁收口 |
+| M3 FILE 来源真实对象探测 | `project/evidence/WP-0011-data-lifecycle-design.md` | `1e19f63ed` | 可信上下文、权限前置、持久化开始探测、事务外对象元数据核验、失败恢复与自动装配通过；全量门禁通过 |
 
 ## 证据规则
 
