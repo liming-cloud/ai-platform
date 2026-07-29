@@ -23,7 +23,19 @@ public class IndexSourceEntity {
     @TableField("data_source_id")
     private Long dataSourceId;
     @TableField("content_version")
-    private int contentVersion;
+    private Integer contentVersion;
+    @TableField("source_type")
+    private String sourceType;
+    @TableField("source_revision")
+    private long sourceRevision;
+    @TableField("sync_artifact_id")
+    private Long syncArtifactId;
+    @TableField("quality_status")
+    private String qualityStatus;
+    @TableField("quality_rule_set_version")
+    private String qualityRuleSetVersion;
+    @TableField("published_at")
+    private Instant publishedAt;
     @TableField("object_key")
     private String objectKey;
     @TableField("sha256")
@@ -45,8 +57,20 @@ public class IndexSourceEntity {
     public void setIndexVersionId(Long value) { indexVersionId = value; }
     public Long getDataSourceId() { return dataSourceId; }
     public void setDataSourceId(Long dataSourceId) { this.dataSourceId = dataSourceId; }
-    public int getContentVersion() { return contentVersion; }
-    public void setContentVersion(int version) { contentVersion = version; }
+    public Integer getContentVersion() { return contentVersion; }
+    public void setContentVersion(Integer version) { contentVersion = version; }
+    public String getSourceType() { return sourceType; }
+    public void setSourceType(String value) { sourceType = value; }
+    public long getSourceRevision() { return sourceRevision; }
+    public void setSourceRevision(long value) { sourceRevision = value; }
+    public Long getSyncArtifactId() { return syncArtifactId; }
+    public void setSyncArtifactId(Long value) { syncArtifactId = value; }
+    public String getQualityStatus() { return qualityStatus; }
+    public void setQualityStatus(String value) { qualityStatus = value; }
+    public String getQualityRuleSetVersion() { return qualityRuleSetVersion; }
+    public void setQualityRuleSetVersion(String value) { qualityRuleSetVersion = value; }
+    public Instant getPublishedAt() { return publishedAt; }
+    public void setPublishedAt(Instant value) { publishedAt = value; }
     public String getObjectKey() { return objectKey; }
     public void setObjectKey(String objectKey) { this.objectKey = objectKey; }
     public String getSha256() { return sha256; }

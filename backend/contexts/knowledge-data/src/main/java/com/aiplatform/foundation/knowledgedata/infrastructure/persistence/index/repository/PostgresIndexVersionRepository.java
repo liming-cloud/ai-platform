@@ -354,6 +354,8 @@ public final class PostgresIndexVersionRepository implements IndexVersionReposit
         entity.setIndexVersionId(request.indexVersionId().value());
         entity.setDataSourceId(Long.parseLong(source.getDataSourceId()));
         entity.setContentVersion(source.getContentVersion());
+        entity.setSourceType("LEGACY_TEXT_CONTENT");
+        entity.setSourceRevision(source.getContentVersion());
         entity.setObjectKey(source.getObjectKey());
         entity.setSha256(source.getSha256());
         entity.setByteSize(source.getByteSize());
