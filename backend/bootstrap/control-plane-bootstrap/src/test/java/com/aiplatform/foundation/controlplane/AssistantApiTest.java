@@ -5,6 +5,8 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.aiplatform.foundation.assistantdelivery.application.assistant.facade.PublishedAssistantVersionLookup;
+import com.aiplatform.foundation.security.secret.SecretEncryptionKeyProvider;
+import com.aiplatform.foundation.security.secret.SecretValue;
 import com.redis.testcontainers.RedisContainer;
 import java.sql.Timestamp;
 import java.time.Instant;
@@ -17,6 +19,9 @@ import org.springframework.boot.resttestclient.TestRestTemplate;
 import org.springframework.boot.resttestclient.autoconfigure.AutoConfigureTestRestTemplate;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -29,10 +34,13 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@SpringBootTest(
+        webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
+        properties = "foundation.model-credentials.local-development-key-version=M2_V1")
 @AutoConfigureTestRestTemplate
 @ActiveProfiles("demo")
 @Testcontainers
+@Import(AssistantApiTest.TestSecrets.class)
 class AssistantApiTest {
 
     private static final long STORE =
@@ -42,6 +50,10 @@ class AssistantApiTest {
     private static final long SPACE = 210000000000000001L;
     private static final long INDEX = 230000000000000001L;
     private static final long EMBEDDING = 320000000000000002L;
+    private static final long CHAT_CATALOG = 330000000000000001L;
+    private static final long EMBEDDING_CATALOG = 330000000000000002L;
+    private static final long CHAT_CONFIGURATION = 340000000000000001L;
+    private static final long EMBEDDING_CONFIGURATION = 340000000000000002L;
     private static final Instant NOW = Instant.parse("2026-07-27T07:00:00Z");
 
     @Container
@@ -90,6 +102,9 @@ class AssistantApiTest {
         jdbc.update("DELETE FROM knowledge_data.index_version");
         jdbc.update("DELETE FROM knowledge_data.knowledge_space_request");
         jdbc.update("DELETE FROM knowledge_data.knowledge_space");
+        jdbc.update("DELETE FROM model_runtime.model_configuration_credential");
+        jdbc.update("DELETE FROM model_runtime.model_configuration");
+        jdbc.update("DELETE FROM model_runtime.controlled_model_catalog_entry");
         seedReferences();
     }
 
@@ -105,25 +120,29 @@ class AssistantApiTest {
 
         var versionHeaders = authorized(storeToken);
         versionHeaders.add("Idempotency-Key", "assistant-version-http-0001");
+        var versionRequest = new HttpEntity<>(
+                Map.of(
+                        "chatModelConfigurationId", Long.toString(CHAT_CONFIGURATION),
+                        "embeddingModelConfigurationId", Long.toString(EMBEDDING_CONFIGURATION),
+                        "knowledgeSpaceId", Long.toString(SPACE),
+                        "systemInstruction", "只依据编号证据回答，并在结论后标注引用。",
+                        "maxOutputTokens", 512,
+                        "retrievalLimit", 5,
+                        "minimumScore", 0.2,
+                        "citationPolicy", "REQUIRED",
+                        "refusalPolicy", "INSUFFICIENT_EVIDENCE"),
+                versionHeaders);
         var version = http.postForEntity(
                 url("/api/v1/assistants/" + created.id() + "/versions"),
-                new HttpEntity<>(
-                        Map.of(
-                                "chatDeploymentId", Long.toString(CHAT),
-                                "knowledgeSpaceId", Long.toString(SPACE),
-                                "systemInstruction", "只依据编号证据回答，并在结论后标注引用。",
-                                "maxOutputTokens", 512,
-                                "retrievalLimit", 5,
-                                "minimumScore", 0.2,
-                                "citationPolicy", "REQUIRED",
-                                "refusalPolicy", "INSUFFICIENT_EVIDENCE"),
-                        versionHeaders),
+                versionRequest,
                 AssistantVersionResponse.class);
         assertEquals(HttpStatus.CREATED, version.getStatusCode());
         assertNotNull(version.getBody());
-        assertEquals(9, version.getBody().chatDeploymentRevision());
+        assertEquals(Long.toString(CHAT_CONFIGURATION), version.getBody().chatModelConfigurationId());
+        assertEquals(1, version.getBody().chatModelConfigurationRevision());
         assertEquals(4, version.getBody().indexVersionRevision());
-        assertEquals(3, version.getBody().embeddingDeploymentRevision());
+        assertEquals(Long.toString(EMBEDDING_CONFIGURATION), version.getBody().embeddingModelConfigurationId());
+        assertEquals(1, version.getBody().embeddingModelConfigurationRevision());
         assertEquals("DRAFT", version.getBody().status());
 
         var published = http.postForEntity(
@@ -243,6 +262,58 @@ class AssistantApiTest {
                 Timestamp.from(NOW.minusSeconds(30)));
         jdbc.update(
                 """
+                INSERT INTO model_runtime.controlled_model_catalog_entry (
+                    id, provider_kind, endpoint, model_code, model_type, status, version,
+                    created_at, context_window, output_limit, embedding_dimension
+                ) VALUES (?, 'OPENAI_COMPATIBLE', 'https://models.example.test/v1',
+                    'assistant-test-chat', 'CHAT', 'PUBLISHED', 1, ?, 8192, 1024, NULL),
+                   (?, 'OPENAI_COMPATIBLE', 'https://models.example.test/v1',
+                    'assistant-test-embedding', 'EMBEDDING', 'PUBLISHED', 1, ?, 8192, NULL, 8)
+                """,
+                CHAT_CATALOG,
+                Timestamp.from(NOW.minusSeconds(30)),
+                EMBEDDING_CATALOG,
+                Timestamp.from(NOW.minusSeconds(30)));
+        jdbc.update(
+                """
+                INSERT INTO model_runtime.model_configuration (
+                    id, scope, tenant_id, owner_membership_id, display_name, catalog_entry_id,
+                    status, version, created_at
+                ) VALUES (?, 'TENANT', ?, NULL, '助手测试对话模型', ?, 'ACTIVE', 1, ?),
+                   (?, 'TENANT', ?, NULL, '助手测试嵌入模型', ?, 'ACTIVE', 1, ?)
+                """,
+                CHAT_CONFIGURATION,
+                STORE,
+                CHAT_CATALOG,
+                Timestamp.from(NOW.minusSeconds(30)),
+                EMBEDDING_CONFIGURATION,
+                STORE,
+                EMBEDDING_CATALOG,
+                Timestamp.from(NOW.minusSeconds(30)));
+        jdbc.update(
+                """
+                INSERT INTO model_runtime.model_configuration_credential (
+                    model_configuration_id, algorithm, master_key_version, data_key_nonce,
+                    encrypted_data_key, ciphertext_nonce, ciphertext, fingerprint, rotated_at
+                ) VALUES (?, 'AES-256-GCM', 'M2_V1', ?, ?, ?, ?, ?, ?),
+                   (?, 'AES-256-GCM', 'M2_V1', ?, ?, ?, ?, ?, ?)
+                """,
+                CHAT_CONFIGURATION,
+                new byte[12],
+                new byte[] {1},
+                new byte[12],
+                new byte[] {1},
+                "a".repeat(64),
+                Timestamp.from(NOW.minusSeconds(30)),
+                EMBEDDING_CONFIGURATION,
+                new byte[12],
+                new byte[] {2},
+                new byte[12],
+                new byte[] {2},
+                "b".repeat(64),
+                Timestamp.from(NOW.minusSeconds(30)));
+        jdbc.update(
+                """
                 INSERT INTO knowledge_data.knowledge_space (
                     tenant_id, id, name, description, status, version, created_by, created_at
                 ) VALUES (?, ?, '助手测试知识空间', NULL, 'DRAFT', 0, ?, ?)
@@ -256,17 +327,20 @@ class AssistantApiTest {
                 INSERT INTO knowledge_data.index_version (
                     tenant_id, knowledge_space_id, id, source_snapshot_digest, chunk_policy,
                     embedding_deployment_id, embedding_deployment_revision,
+                    embedding_configuration_id, embedding_configuration_revision,
+                    embedding_catalog_entry_id, embedding_catalog_entry_revision,
                     embedding_dimension, status, version, build_digest, chunk_count,
                     failure_code, created_by, created_at, ready_at, activated_at,
                     superseded_at
-                ) VALUES (?, ?, ?, ?, 'fixed-800-120', ?, 3, 8, 'ACTIVE', 4, ?,
+                ) VALUES (?, ?, ?, ?, 'fixed-800-120', NULL, NULL, ?, 1, ?, 1, 8, 'ACTIVE', 4, ?,
                     2, NULL, ?, ?, ?, ?, NULL)
                 """,
                 STORE,
                 SPACE,
                 INDEX,
                 "a".repeat(64),
-                EMBEDDING,
+                EMBEDDING_CONFIGURATION,
+                EMBEDDING_CATALOG,
                 "b".repeat(64),
                 CREATOR,
                 Timestamp.from(NOW.minusSeconds(90)),
@@ -298,9 +372,11 @@ class AssistantApiTest {
 
     private record AssistantVersionResponse(
             String id,
-            long chatDeploymentRevision,
+            String chatModelConfigurationId,
+            long chatModelConfigurationRevision,
             long indexVersionRevision,
-            long embeddingDeploymentRevision,
+            String embeddingModelConfigurationId,
+            long embeddingModelConfigurationRevision,
             String status,
             long version) {
     }
@@ -320,5 +396,36 @@ class AssistantApiTest {
             String message,
             String traceId,
             Map<String, Object> details) {
+    }
+
+    /**
+     * 仅为隔离集成测试提供固定的 Base64 主密钥，不能用于本地或生产运行。
+     */
+    @TestConfiguration(proxyBeanMethods = false)
+    static class TestSecrets {
+
+        private static final String TEST_KEY = "MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=";
+
+        @Bean
+        SecretEncryptionKeyProvider secretEncryptionKeyProvider() {
+            return new SecretEncryptionKeyProvider() {
+                @Override
+                public ActiveKey activeKey() {
+                    return new ActiveKey("M2_V1", secret());
+                }
+
+                @Override
+                public SecretValue resolve(String version) {
+                    if (!"M2_V1".equals(version)) {
+                        throw new IllegalArgumentException("测试主密钥版本不可用");
+                    }
+                    return secret();
+                }
+
+                private SecretValue secret() {
+                    return SecretValue.copyOf(TEST_KEY.toCharArray());
+                }
+            };
+        }
     }
 }
