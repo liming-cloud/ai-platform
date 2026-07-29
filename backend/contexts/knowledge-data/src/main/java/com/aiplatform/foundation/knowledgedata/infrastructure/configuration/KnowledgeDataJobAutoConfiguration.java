@@ -21,6 +21,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.transaction.PlatformTransactionManager;
 
@@ -65,16 +66,29 @@ public class KnowledgeDataJobAutoConfiguration {
             IndexBuildCompletionPort completion,
             TextContentObjectStoragePort objectStorage,
             ModelRuntimeResolver models,
-            UsableModelConfigurationLookup governedConfigurations,
-            GovernedEmbeddingRuntime governedModels,
+            ObjectProvider<UsableModelConfigurationLookup> governedConfigurations,
+            ObjectProvider<GovernedEmbeddingRuntime> governedModels,
             KnowledgeDataProperties properties) {
+        var configurations = governedConfigurations.getIfAvailable();
+        var runtime = governedModels.getIfAvailable();
+        if (configurations == null || runtime == null) {
+            // 未配置本地密钥时仍可处理历史部署索引；受控配置索引会在执行阶段关闭失败。
+            return new IndexBuildWorker(
+                    queue,
+                    completion,
+                    objectStorage,
+                    models,
+                    new ParagraphWindowChunker(),
+                    Clock.systemUTC(),
+                    properties.getIndexBuildLeaseDuration());
+        }
         return new IndexBuildWorker(
                 queue,
                 completion,
                 objectStorage,
                 models,
-                governedConfigurations,
-                governedModels,
+                configurations,
+                runtime,
                 new ParagraphWindowChunker(),
                 Clock.systemUTC(),
                 properties.getIndexBuildLeaseDuration());

@@ -12,10 +12,13 @@ import com.aiplatform.foundation.knowledgedata.application.datasource.service.Go
 import com.aiplatform.foundation.knowledgedata.application.datasource.service.GovernedFileDataSourceRegistrationService;
 import com.aiplatform.foundation.knowledgedata.application.indexversion.facade.ActiveIndexLookup;
 import com.aiplatform.foundation.knowledgedata.application.indexversion.service.IndexVersionService;
+import com.aiplatform.foundation.knowledgedata.application.indexversion.service.IndexBuildWorker;
 import com.aiplatform.foundation.knowledgedata.application.knowledge.service.KnowledgeSpaceService;
 import com.aiplatform.foundation.knowledgedata.application.knowledge.facade.KnowledgeSpaceLookup;
 import com.aiplatform.foundation.knowledgedata.application.port.out.content.TextContentObjectStoragePort;
 import com.aiplatform.foundation.knowledgedata.application.port.out.content.TextContentStagingPort;
+import com.aiplatform.foundation.knowledgedata.application.port.out.index.IndexBuildCompletionPort;
+import com.aiplatform.foundation.knowledgedata.application.port.out.index.IndexBuildQueuePort;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.repository.TextDataSourceRepository;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.repository.GovernedDataSourceRepository;
 import com.aiplatform.foundation.knowledgedata.domain.indexversion.repository.IndexVersionRepository;
@@ -40,6 +43,7 @@ import com.aiplatform.foundation.knowledgedata.interfaces.web.indexversion.contr
 import com.aiplatform.foundation.knowledgedata.interfaces.web.knowledge.controller.KnowledgeSpaceController;
 import com.aiplatform.foundation.modelruntime.application.deployment.facade.PublishedEmbeddingDeploymentLookup;
 import com.aiplatform.foundation.modelruntime.application.configuration.facade.UsableModelConfigurationLookup;
+import com.aiplatform.foundation.modelruntime.application.runtime.facade.ModelRuntimeResolver;
 import com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.junit.jupiter.api.Test;
@@ -136,6 +140,22 @@ class KnowledgeDataAutoConfigurationTest {
                     assertThat(context).hasNotFailed();
                     assertThat(context).hasSingleBean(KnowledgeSpaceService.class);
                     assertThat(context).doesNotHaveBean(IndexVersionService.class);
+                });
+    }
+
+    @Test
+    void 未配置受控模型运行时仍注册工作器并使受控索引在执行阶段失败关闭() {
+        new ApplicationContextRunner()
+                .withConfiguration(AutoConfigurations.of(
+                        KnowledgeDataJobAutoConfiguration.class))
+                .withPropertyValues("foundation.ingestion.enabled=true")
+                .withBean(IndexBuildQueuePort.class, () -> mock(IndexBuildQueuePort.class))
+                .withBean(IndexBuildCompletionPort.class, () -> mock(IndexBuildCompletionPort.class))
+                .withBean(TextContentObjectStoragePort.class, () -> mock(TextContentObjectStoragePort.class))
+                .withBean(ModelRuntimeResolver.class, () -> mock(ModelRuntimeResolver.class))
+                .run(context -> {
+                    assertThat(context).hasNotFailed();
+                    assertThat(context).hasSingleBean(IndexBuildWorker.class);
                 });
     }
 
