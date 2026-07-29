@@ -430,3 +430,12 @@ ADR-0028 定义 `GovernedDataSource`、`SourceRevision`、`SyncArtifact`、`Qual
 - 全量 `make validate` 首先拒绝了 `PublishedSyncArtifactMapper.xml` 中尚未登记的 `insert` 与 `findByArtifact`。两条 SQL 分别承担发布事实的原子写入和租户、知识空间限定的安全投影，不能通过降低门禁要求绕过。
 - 已在 `project/architecture-debt/complex-sql-allowlist.json` 为两条语句登记对应的事务与安全原因；重新运行 `make validate` 通过：项目治理 9 项、架构门禁 17 项、债务递减门禁以及全量 Maven 测试均通过。
 - 本项只修复既有 M3 发布切片遗漏的架构登记，不改变发布、质量、租户隔离或索引行为；M3 仍须完成待决的两类来源契约、真实模型索引和其余验收路径。
+
+## 助手受控模型 API 全量门禁恢复（2026-07-29）
+
+- 红灯：`AssistantApiTest` 仍以已移除的 `chatDeploymentId` 提交版本创建请求，服务按 M2 的失败关闭语义拒绝缺少 `chatModelConfigurationId` 的请求，测试再将错误响应反序列化为成功响应而失败。这证明问题在测试夹具，不是可恢复旧部署字段的理由。
+- 提交 `f9e94b4c4` 将夹具改为创建已发布目录、已启用且具凭据的 Chat／Embedding 模型配置，并冻结与嵌入配置同源的活动索引。隔离测试上下文仅提供固定测试主密钥以装配凭据解密能力；不写入、读取或替换本地与生产主密钥，也不包含真实 API Key。
+- 在提交 `f9e94b4c4` 上运行：
+  `JAVA_HOME=/Users/lingou/Library/Java/JavaVirtualMachines/openjdk-26.0.2/Contents/Home ./mvnw -Dmaven.repo.local=/tmp/ai-mesh-m2 -q -pl backend/bootstrap/control-plane-bootstrap -am -Dtest=AssistantApiTest -Dsurefire.failIfNoSpecifiedTests=false test` 与 `git diff --check`，均通过。
+- 随后运行 `make project-verify` 与 `make validate`，均通过。后者覆盖项目治理、17 项架构门禁、债务递减、后端全反应堆测试、前端 33 项测试及生产构建、演示、真实模型验收编排和运维脚本测试。
+- 本项只恢复既有 M2 受控模型契约的全量回归，不改变 M3 数据来源边界；M3 仍不得申请人工评审或进入 M4。

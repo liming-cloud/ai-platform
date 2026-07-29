@@ -163,6 +163,7 @@
 | M3 类型化索引来源快照 | `project/evidence/WP-0011-data-lifecycle-design.md` | `a43e6e93f`、`658e12d13`、`62a4812f7` | 历史文本兼容、已发布 FILE 产物选择、质量和产物冻结、混合来源租约、实际构建器与退役拒绝回归通过；M3 尚未完成 |
 | M3 FILE 控制台全生命周期与工作器恢复 | `project/evidence/WP-0011-data-lifecycle-design.md` | `96637b173`、`10ac2d6aa`、`8d7f19996` | 知识管理员浏览器完成 FILE 的探测、同步、质量、显式发布和退役；受控模型运行时缺失时工作器安全启动且索引入口给出可恢复提示；真实 Embedding 索引构建仍受本地研发主密钥前置条件限制，M3 尚未完成 |
 | M3 已发布同步产物 SQL 门禁回归 | `project/evidence/WP-0011-data-lifecycle-design.md` | `2eb465404` | 补齐发布事实写入与租户限定读取的 XML SQL 架构登记；`make validate` 通过，M3 尚未完成 |
+| M3 助手受控模型 API 全量门禁恢复 | `project/evidence/WP-0011-data-lifecycle-design.md` | `f9e94b4c4` | 将 API 集成夹具迁移至 M2 受控 Chat／Embedding 配置与同源索引绑定；定向回归、`make project-verify` 与 `make validate` 均通过，M3 尚未完成 |
 
 ## 证据规则
 
