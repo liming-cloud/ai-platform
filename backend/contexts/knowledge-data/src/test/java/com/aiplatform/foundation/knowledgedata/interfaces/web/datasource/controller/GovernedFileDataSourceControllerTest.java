@@ -9,6 +9,7 @@ import static org.mockito.Mockito.when;
 import com.aiplatform.foundation.knowledgedata.application.datasource.dto.GovernedDataSourceLifecycleResult;
 import com.aiplatform.foundation.knowledgedata.application.datasource.service.FileDataSourceProbeService;
 import com.aiplatform.foundation.knowledgedata.application.datasource.service.FileDataSourceSynchronizationService;
+import com.aiplatform.foundation.knowledgedata.application.datasource.service.GovernedDataSourceLifecycleService;
 import com.aiplatform.foundation.knowledgedata.application.datasource.service.GovernedFileDataSourceRegistrationService;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.model.GovernedDataSourceStatus;
 import com.aiplatform.foundation.security.identity.TrustedRequestContext;
@@ -22,7 +23,8 @@ class GovernedFileDataSourceControllerTest {
         var registration = mock(GovernedFileDataSourceRegistrationService.class);
         var probes = mock(FileDataSourceProbeService.class);
         var synchronizations = mock(FileDataSourceSynchronizationService.class);
-        var controller = new GovernedFileDataSourceController(registration, probes, synchronizations);
+        var lifecycle = mock(GovernedDataSourceLifecycleService.class);
+        var controller = new GovernedFileDataSourceController(registration, probes, synchronizations, lifecycle);
         var context = mock(TrustedRequestContext.class);
         var expected = new GovernedDataSourceLifecycleResult(
                 "3001", "2001", GovernedDataSourceStatus.READY, 2);
@@ -45,7 +47,8 @@ class GovernedFileDataSourceControllerTest {
         var registration = mock(GovernedFileDataSourceRegistrationService.class);
         var probes = mock(FileDataSourceProbeService.class);
         var synchronizations = mock(FileDataSourceSynchronizationService.class);
-        var controller = new GovernedFileDataSourceController(registration, probes, synchronizations);
+        var lifecycle = mock(GovernedDataSourceLifecycleService.class);
+        var controller = new GovernedFileDataSourceController(registration, probes, synchronizations, lifecycle);
         var context = mock(TrustedRequestContext.class);
         var expected = new GovernedDataSourceLifecycleResult(
                 "3001", "2001", GovernedDataSourceStatus.READY, 4);
@@ -60,6 +63,31 @@ class GovernedFileDataSourceControllerTest {
         assertThat(command.getValue().knowledgeSpaceId()).isEqualTo("2001");
         assertThat(command.getValue().dataSourceId()).isEqualTo("3001");
         assertThat(command.getValue().expectedVersion()).isEqualTo(3);
+        assertThat(result).isSameAs(expected);
+    }
+
+    @Test
+    void 退役必须委派给受控生命周期用例并返回新的生命周期事实() {
+        var registration = mock(GovernedFileDataSourceRegistrationService.class);
+        var probes = mock(FileDataSourceProbeService.class);
+        var synchronizations = mock(FileDataSourceSynchronizationService.class);
+        var lifecycle = mock(GovernedDataSourceLifecycleService.class);
+        var controller = new GovernedFileDataSourceController(registration, probes, synchronizations, lifecycle);
+        var context = mock(TrustedRequestContext.class);
+        var expected = new GovernedDataSourceLifecycleResult(
+                "3001", "2001", GovernedDataSourceStatus.RETIRED, 5);
+        when(lifecycle.transition(any())).thenReturn(expected);
+
+        var result = controller.retire(context, "2001", "3001", 4);
+
+        var command = ArgumentCaptor.forClass(
+                com.aiplatform.foundation.knowledgedata.application.datasource.command.GovernedDataSourceLifecycleCommand.class);
+        verify(lifecycle).transition(command.capture());
+        assertThat(command.getValue().context()).isSameAs(context);
+        assertThat(command.getValue().knowledgeSpaceId()).isEqualTo("2001");
+        assertThat(command.getValue().dataSourceId()).isEqualTo("3001");
+        assertThat(command.getValue().expectedVersion()).isEqualTo(4);
+        assertThat(command.getValue().action().name()).isEqualTo("RETIRE");
         assertThat(result).isSameAs(expected);
     }
 }
