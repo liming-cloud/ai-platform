@@ -6,6 +6,7 @@ import com.aiplatform.foundation.knowledgedata.domain.datasource.quality.Quality
 import com.aiplatform.foundation.knowledgedata.domain.datasource.revision.SourceRevision;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.model.SyncArtifact;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.model.SyncArtifactId;
+import com.aiplatform.foundation.knowledgedata.domain.datasource.model.PublishedSyncArtifact;
 import com.aiplatform.foundation.knowledgedata.domain.knowledge.model.KnowledgeSpaceId;
 import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
 import java.util.Optional;
@@ -29,6 +30,11 @@ public interface GovernedDataSourceRepository {
             SyncArtifact artifact,
             QualityReport report,
             long expectedVersion);
+
+    /**
+     * 原子登记质量非阻断的发布产物，并递增来源修订。
+     */
+    GovernedDataSource publishArtifact(PublishedSyncArtifact publication, long expectedVersion);
 
     /**
      * 以来源修订执行一次乐观状态更新。

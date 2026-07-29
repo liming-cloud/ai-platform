@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.mapper.PublishedSyncArtifactMapper">
+    <insert id="insert">
+        INSERT INTO knowledge_data.published_sync_artifact (
+            tenant_id, knowledge_space_id, data_source_id, source_version, artifact_id,
+            quality_status, rule_set_version, published_at
+        ) VALUES (
+            #{tenantId}, #{knowledgeSpaceId}, #{dataSourceId}, #{sourceVersion}, #{artifactId},
+            #{qualityStatus}, #{ruleSetVersion}, #{publishedAt}
+        )
+    </insert>
+    <select id="findByArtifact" resultType="com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.entity.PublishedSyncArtifactEntity">
+        SELECT tenant_id, knowledge_space_id, data_source_id, source_version, artifact_id,
+               quality_status, rule_set_version, published_at
+        FROM knowledge_data.published_sync_artifact
+        WHERE tenant_id = #{tenantId} AND knowledge_space_id = #{knowledgeSpaceId}
+          AND artifact_id = #{artifactId}
+    </select>
+</mapper>

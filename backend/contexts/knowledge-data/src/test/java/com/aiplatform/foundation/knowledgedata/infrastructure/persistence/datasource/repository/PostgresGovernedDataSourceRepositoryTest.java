@@ -12,6 +12,7 @@ import com.aiplatform.foundation.knowledgedata.domain.datasource.model.DataSourc
 import com.aiplatform.foundation.knowledgedata.domain.datasource.model.GovernedDataSource;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.model.GovernedDataSourceStatus;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.model.GovernedDataSourceType;
+import com.aiplatform.foundation.knowledgedata.domain.datasource.model.PublishedSyncArtifact;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.quality.QualityReport;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.revision.FileSourceObjectReference;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.revision.SourceRevision;
@@ -20,6 +21,7 @@ import com.aiplatform.foundation.knowledgedata.domain.datasource.model.SyncArtif
 import com.aiplatform.foundation.knowledgedata.domain.datasource.repository.GovernedDataSourceRepository;
 import com.aiplatform.foundation.knowledgedata.domain.knowledge.model.KnowledgeSpaceId;
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.mapper.GovernedDataSourceMapper;
+import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.mapper.PublishedSyncArtifactMapper;
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.mapper.QualityReportMapper;
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.mapper.SourceRevisionMapper;
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.mapper.SyncArtifactMapper;
@@ -73,6 +75,9 @@ class PostgresGovernedDataSourceRepositoryTest {
     @Autowired
     private JdbcTemplate jdbc;
 
+    @Autowired
+    private PublishedSyncArtifactMapper publicationMapper;
+
     @DynamicPropertySource
     static void databaseProperties(DynamicPropertyRegistry registry) {
         registry.add("spring.datasource.url", POSTGRES::getJdbcUrl);
@@ -83,6 +88,7 @@ class PostgresGovernedDataSourceRepositoryTest {
 
     @BeforeEach
     void prepareFacts() {
+        jdbc.update("DELETE FROM knowledge_data.published_sync_artifact");
         jdbc.update("DELETE FROM knowledge_data.quality_report");
         jdbc.update("DELETE FROM knowledge_data.sync_artifact");
         jdbc.update("DELETE FROM knowledge_data.source_revision");
@@ -143,6 +149,62 @@ class PostgresGovernedDataSourceRepositoryTest {
         assertFalse(repository.findArtifact(CAMPUS_TENANT, SPACE, artifact.id()).isPresent());
         assertEquals(1, count("sync_artifact", STORE_TENANT));
         assertEquals(1, count("quality_report", STORE_TENANT));
+    }
+
+    @Test
+    void 发布必须复核已持久化的质量结论且整体回滚() {
+        var source = source(STORE_TENANT, nextSourceId(), "发布质量复核文件");
+        repository.register(source, revision(source, "a".repeat(64)));
+        var syncing = startSynchronization(source);
+        var artifact = artifact(source, "b".repeat(64));
+        var completed = repository.completeSynchronization(
+                artifact,
+                QualityReport.blocked(artifact, "file-quality-v1", 1, 1),
+                syncing.version());
+        var forgedPublication = PublishedSyncArtifact.create(
+                artifact,
+                QualityReport.warned(artifact, "file-quality-v1", 1),
+                CREATED_AT.plusSeconds(120));
+
+        assertThrows(
+                DataSourceStateException.class,
+                () -> repository.publishArtifact(forgedPublication, completed.version()));
+
+        var stored = repository.findSource(STORE_TENANT, SPACE, source.id()).orElseThrow();
+        assertEquals(GovernedDataSourceStatus.READY, stored.status());
+        assertEquals(completed.version(), stored.version());
+        assertEquals(0, count("published_sync_artifact", STORE_TENANT));
+    }
+
+    @Test
+    void 发布会冻结同步产物质量事实并递增来源修订() {
+        var source = source(STORE_TENANT, nextSourceId(), "发布快照文件");
+        repository.register(source, revision(source, "a".repeat(64)));
+        var syncing = startSynchronization(source);
+        var artifact = artifact(source, "b".repeat(64));
+        var report = QualityReport.warned(artifact, "file-quality-v1", 2);
+        var completed = repository.completeSynchronization(artifact, report, syncing.version());
+        var publication = PublishedSyncArtifact.create(
+                artifact,
+                report,
+                CREATED_AT.plusSeconds(120));
+
+        var published = repository.publishArtifact(publication, completed.version());
+
+        assertEquals(GovernedDataSourceStatus.READY, published.status());
+        assertEquals(completed.version() + 1, published.version());
+        var stored = publicationMapper.findByArtifact(
+                STORE_TENANT.value(), SPACE.value(), artifact.id().value());
+        assertEquals(source.id().value(), stored.getDataSourceId());
+        assertEquals(published.version(), stored.getSourceVersion());
+        assertEquals(report.status().name(), stored.getQualityStatus());
+        assertEquals(report.ruleSetVersion(), stored.getRuleSetVersion());
+        assertEquals(publication.publishedAt(), stored.getPublishedAt());
+        assertEquals(
+                null,
+                publicationMapper.findByArtifact(
+                        CAMPUS_TENANT.value(), SPACE.value(), artifact.id().value()));
+        assertEquals(1, count("published_sync_artifact", STORE_TENANT));
     }
 
     @Test
@@ -332,12 +394,14 @@ class PostgresGovernedDataSourceRepositoryTest {
                 SourceRevisionMapper revisionMapper,
                 SyncArtifactMapper artifactMapper,
                 QualityReportMapper qualityMapper,
+                PublishedSyncArtifactMapper publicationMapper,
                 PlatformTransactionManager transactions) {
             return new PostgresGovernedDataSourceRepository(
                     sourceMapper,
                     revisionMapper,
                     artifactMapper,
                     qualityMapper,
+                    publicationMapper,
                     transactions);
         }
     }

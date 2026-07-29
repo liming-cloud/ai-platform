@@ -7,6 +7,7 @@ import com.aiplatform.foundation.knowledgedata.domain.datasource.model.DataSourc
 import com.aiplatform.foundation.knowledgedata.domain.datasource.model.GovernedDataSource;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.model.GovernedDataSourceStatus;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.model.GovernedDataSourceType;
+import com.aiplatform.foundation.knowledgedata.domain.datasource.model.PublishedSyncArtifact;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.quality.QualityReport;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.quality.QualityStatus;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.revision.FileSourceObjectReference;
@@ -16,10 +17,12 @@ import com.aiplatform.foundation.knowledgedata.domain.datasource.model.SyncArtif
 import com.aiplatform.foundation.knowledgedata.domain.datasource.repository.GovernedDataSourceRepository;
 import com.aiplatform.foundation.knowledgedata.domain.knowledge.model.KnowledgeSpaceId;
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.entity.GovernedDataSourceEntity;
+import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.entity.PublishedSyncArtifactEntity;
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.entity.QualityReportEntity;
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.entity.SourceRevisionEntity;
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.entity.SyncArtifactEntity;
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.mapper.GovernedDataSourceMapper;
+import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.mapper.PublishedSyncArtifactMapper;
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.mapper.QualityReportMapper;
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.mapper.SourceRevisionMapper;
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.mapper.SyncArtifactMapper;
@@ -42,6 +45,7 @@ public final class PostgresGovernedDataSourceRepository implements GovernedDataS
     private final SourceRevisionMapper revisionMapper;
     private final SyncArtifactMapper artifactMapper;
     private final QualityReportMapper qualityMapper;
+    private final PublishedSyncArtifactMapper publicationMapper;
     private final TransactionTemplate transactions;
 
     public PostgresGovernedDataSourceRepository(
@@ -49,11 +53,13 @@ public final class PostgresGovernedDataSourceRepository implements GovernedDataS
             SourceRevisionMapper revisionMapper,
             SyncArtifactMapper artifactMapper,
             QualityReportMapper qualityMapper,
+            PublishedSyncArtifactMapper publicationMapper,
             PlatformTransactionManager transactionManager) {
         this.sourceMapper = Objects.requireNonNull(sourceMapper, "受治理数据源映射器不能为空");
         this.revisionMapper = Objects.requireNonNull(revisionMapper, "来源修订映射器不能为空");
         this.artifactMapper = Objects.requireNonNull(artifactMapper, "同步产物映射器不能为空");
         this.qualityMapper = Objects.requireNonNull(qualityMapper, "质量结论映射器不能为空");
+        this.publicationMapper = Objects.requireNonNull(publicationMapper, "发布产物映射器不能为空");
         this.transactions = new TransactionTemplate(
                 Objects.requireNonNull(transactionManager, "事务管理器不能为空"));
     }
@@ -114,6 +120,49 @@ public final class PostgresGovernedDataSourceRepository implements GovernedDataS
             return completed;
         });
         return Objects.requireNonNull(result, "同步完成事务没有返回数据源");
+    }
+
+    @Override
+    public GovernedDataSource publishArtifact(PublishedSyncArtifact publication, long expectedVersion) {
+        Objects.requireNonNull(publication, "发布产物不能为空");
+        if (expectedVersion < 0) {
+            throw new IllegalArgumentException("预期来源修订不能为负数");
+        }
+        var result = transactions.execute(status -> {
+            var requestedArtifact = publication.artifact();
+            var row = sourceMapper.findByScopeForUpdate(
+                    requestedArtifact.tenantId().value(),
+                    requestedArtifact.knowledgeSpaceId().value(),
+                    requestedArtifact.dataSourceId().value());
+            if (row == null) {
+                throw new DataSourceStateException("待发布产物所属数据源不存在或不可访问");
+            }
+            var current = toDomain(row);
+            var storedArtifact = findStoredArtifact(requestedArtifact);
+            if (!storedArtifact.dataSourceId().equals(current.id())) {
+                throw new DataSourceStateException("待发布产物不属于当前数据源");
+            }
+            var storedReport = findStoredQualityReport(storedArtifact);
+            storedReport.requirePublishable();
+            if (storedReport.status() != publication.qualityStatus()
+                    || !storedReport.ruleSetVersion().equals(publication.ruleSetVersion())) {
+                throw new DataSourceStateException("待发布产物的质量结论已变化");
+            }
+            var published = current.publishArtifact(expectedVersion);
+            if (sourceMapper.updateLifecycle(
+                    published.tenantId().value(),
+                    published.knowledgeSpaceId().value(),
+                    published.id().value(),
+                    expectedVersion,
+                    published.version(),
+                    published.status().name(),
+                    null) != 1) {
+                throw new DataSourceStateException("发布产物时数据源修订已变化");
+            }
+            publicationMapper.insert(toEntity(publication, published.version()));
+            return published;
+        });
+        return Objects.requireNonNull(result, "发布同步产物事务没有返回数据源");
     }
 
     @Override
@@ -181,6 +230,28 @@ public final class PostgresGovernedDataSourceRepository implements GovernedDataS
                 .eq(QualityReportEntity::getKnowledgeSpaceId, knowledgeSpaceId.value())
                 .eq(QualityReportEntity::getArtifactId, artifactId.value()));
         return Optional.ofNullable(row).map(value -> toDomain(value, artifact.orElseThrow()));
+    }
+
+    private SyncArtifact findStoredArtifact(SyncArtifact requestedArtifact) {
+        var row = artifactMapper.selectOne(artifactQuery(
+                requestedArtifact.tenantId(),
+                requestedArtifact.knowledgeSpaceId(),
+                requestedArtifact.id()));
+        if (row == null) {
+            throw new DataSourceStateException("待发布同步产物不存在或不可访问");
+        }
+        return toDomain(row);
+    }
+
+    private QualityReport findStoredQualityReport(SyncArtifact artifact) {
+        var row = qualityMapper.selectOne(Wrappers.<QualityReportEntity>lambdaQuery()
+                .eq(QualityReportEntity::getTenantId, artifact.tenantId().value())
+                .eq(QualityReportEntity::getKnowledgeSpaceId, artifact.knowledgeSpaceId().value())
+                .eq(QualityReportEntity::getArtifactId, artifact.id().value()));
+        if (row == null) {
+            throw new DataSourceStateException("待发布同步产物缺少质量结论");
+        }
+        return toDomain(row, artifact);
     }
 
     private static void requireSameSource(GovernedDataSource source, SourceRevision revision) {
@@ -267,6 +338,21 @@ public final class PostgresGovernedDataSourceRepository implements GovernedDataS
         entity.setStatus(value.status().name());
         entity.setWarningCount(value.warningCount());
         entity.setBlockingCount(value.blockingCount());
+        return entity;
+    }
+
+    private static PublishedSyncArtifactEntity toEntity(
+            PublishedSyncArtifact value, long sourceVersion) {
+        var artifact = value.artifact();
+        var entity = new PublishedSyncArtifactEntity();
+        entity.setTenantId(artifact.tenantId().value());
+        entity.setKnowledgeSpaceId(artifact.knowledgeSpaceId().value());
+        entity.setDataSourceId(artifact.dataSourceId().value());
+        entity.setSourceVersion(sourceVersion);
+        entity.setArtifactId(artifact.id().value());
+        entity.setQualityStatus(value.qualityStatus().name());
+        entity.setRuleSetVersion(value.ruleSetVersion());
+        entity.setPublishedAt(value.publishedAt());
         return entity;
     }
 
