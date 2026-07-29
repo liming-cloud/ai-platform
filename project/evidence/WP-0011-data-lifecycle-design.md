@@ -391,4 +391,11 @@ ADR-0028 定义 `GovernedDataSource`、`SourceRevision`、`SyncArtifact`、`Qual
 - 架构：代码图谱影响分析覆盖 `IndexSourceEntity`、创建仓储与构建队列；领域快照表达类型化事实，MyBatis、SQL 与媒体适配保留在基础设施层。
 - 测试质量：两次真实数据库红灯分别覆盖迁移完整性和文件对象不变量，最终验证历史索引兼容、混合来源冻结和租约映射。
 
-本切片未完成 FILE 实际对象构建、索引重建入口、退役后重建拒绝和知识管理员浏览器任务；M3 继续进行，不能申请人工评审或进入 M4。
+### 后续构建与退役回归
+
+- 在提交后的补强测试中运行
+  `JAVA_HOME=/Users/lingou/Library/Java/JavaVirtualMachines/openjdk-26.0.2/Contents/Home ./mvnw -Dmaven.repo.local=/tmp/ai-mesh-m2 -q -pl backend/contexts/knowledge-data -am -Dtest=IndexBuildWorkerTest,PostgresIndexVersionPersistenceTest -Dsurefire.failIfNoSpecifiedTests=false test` 与 `git diff --check`，均通过。
+- FILE 类型化快照已由 `IndexBuildWorker` 实际完成对象核验、分块、嵌入和批次提交；测试断言构建器只消费冻结对象引用及产物质量事实。
+- 退役 FILE 的发布审计行保留，但选择 SQL 明确排除 `RETIRED` 来源；真实 PostgreSQL 测试证明新索引只保留历史文本候选。
+
+本切片仍未完成索引重建入口、真实 HTTP／对象存储 FILE 构建容器验收和知识管理员浏览器任务；M3 继续进行，不能申请人工评审或进入 M4。
