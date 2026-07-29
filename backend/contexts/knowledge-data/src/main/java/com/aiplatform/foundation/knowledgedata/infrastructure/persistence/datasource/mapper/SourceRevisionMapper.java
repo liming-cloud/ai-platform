@@ -13,17 +13,20 @@ public interface SourceRevisionMapper {
     @Insert("""
             INSERT INTO knowledge_data.source_revision (
                 tenant_id, knowledge_space_id, data_source_id, revision,
-                source_type, definition_digest, created_by, created_at
+                source_type, definition_digest, object_key, content_digest, byte_size, media_type,
+                created_by, created_at
             ) VALUES (
                 #{entity.tenantId}, #{entity.knowledgeSpaceId}, #{entity.dataSourceId}, #{entity.revision},
-                #{entity.sourceType}, #{entity.definitionDigest}, #{entity.createdBy}, #{entity.createdAt}
+                #{entity.sourceType}, #{entity.definitionDigest}, #{entity.objectKey}, #{entity.contentDigest},
+                #{entity.byteSize}, #{entity.mediaType}, #{entity.createdBy}, #{entity.createdAt}
             )
             """)
     int insert(@Param("entity") SourceRevisionEntity entity);
 
     @Select("""
             SELECT tenant_id, knowledge_space_id, data_source_id, revision,
-                   source_type, definition_digest, created_by, created_at
+                   source_type, definition_digest, object_key, content_digest, byte_size, media_type,
+                   created_by, created_at
             FROM knowledge_data.source_revision
             WHERE tenant_id = #{tenantId}
               AND knowledge_space_id = #{knowledgeSpaceId}

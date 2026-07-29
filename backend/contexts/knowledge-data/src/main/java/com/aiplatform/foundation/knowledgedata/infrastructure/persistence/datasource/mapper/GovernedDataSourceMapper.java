@@ -13,7 +13,7 @@ public interface GovernedDataSourceMapper extends BaseMapper<GovernedDataSourceE
 
     @Select("""
             SELECT id, tenant_id, knowledge_space_id, source_type, name, status,
-                   failed_operation, version, created_by, created_at
+                   failed_operation, current_revision, version, created_by, created_at
             FROM knowledge_data.governed_data_source
             WHERE tenant_id = #{tenantId}
               AND knowledge_space_id = #{knowledgeSpaceId}

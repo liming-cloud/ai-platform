@@ -20,6 +20,7 @@ public final class SourceRevision {
     private final long revision;
     private final GovernedDataSourceType sourceType;
     private final String definitionDigest;
+    private final FileSourceObjectReference fileObject;
     private final CreatorId createdBy;
     private final Instant createdAt;
 
@@ -30,6 +31,7 @@ public final class SourceRevision {
             long revision,
             GovernedDataSourceType sourceType,
             String definitionDigest,
+            FileSourceObjectReference fileObject,
             CreatorId createdBy,
             Instant createdAt) {
         this.tenantId = Objects.requireNonNull(tenantId, "租户标识不能为空");
@@ -41,6 +43,16 @@ public final class SourceRevision {
         this.revision = revision;
         this.sourceType = Objects.requireNonNull(sourceType, "数据源类型不能为空");
         this.definitionDigest = requireDigest(definitionDigest);
+        if (sourceType == GovernedDataSourceType.FILE && fileObject == null) {
+            throw new IllegalArgumentException("文件来源修订必须冻结文件对象");
+        }
+        if (sourceType != GovernedDataSourceType.FILE && fileObject != null) {
+            throw new IllegalArgumentException("非文件来源不能冻结文件对象");
+        }
+        if (fileObject != null && !this.definitionDigest.equals(fileObject.definitionDigest())) {
+            throw new IllegalArgumentException("文件来源定义摘要与对象事实不一致");
+        }
+        this.fileObject = fileObject;
         this.createdBy = Objects.requireNonNull(createdBy, "创建成员不能为空");
         this.createdAt = Objects.requireNonNull(createdAt, "创建时间不能为空");
     }
@@ -48,20 +60,23 @@ public final class SourceRevision {
     /**
      * 为受治理数据源创建新的不可变定义修订。
      */
-    public static SourceRevision create(
+    public static SourceRevision file(
             GovernedDataSource source,
-            long revision,
-            String definitionDigest,
+            FileSourceObjectReference fileObject,
             CreatorId createdBy,
             Instant createdAt) {
         Objects.requireNonNull(source, "受治理数据源不能为空");
+        if (source.type() != GovernedDataSourceType.FILE) {
+            throw new IllegalArgumentException("文件对象只能登记到文件来源");
+        }
         return new SourceRevision(
                 source.tenantId(),
                 source.knowledgeSpaceId(),
                 source.id(),
-                revision,
+                source.currentRevision(),
                 source.type(),
-                definitionDigest,
+                Objects.requireNonNull(fileObject, "文件对象不能为空").definitionDigest(),
+                fileObject,
                 createdBy,
                 createdAt);
     }
@@ -76,6 +91,7 @@ public final class SourceRevision {
             long revision,
             GovernedDataSourceType sourceType,
             String definitionDigest,
+            FileSourceObjectReference fileObject,
             CreatorId createdBy,
             Instant createdAt) {
         return new SourceRevision(
@@ -85,6 +101,7 @@ public final class SourceRevision {
                 revision,
                 sourceType,
                 definitionDigest,
+                fileObject,
                 createdBy,
                 createdAt);
     }
@@ -111,6 +128,13 @@ public final class SourceRevision {
 
     public String definitionDigest() {
         return definitionDigest;
+    }
+
+    /**
+     * 返回文件来源冻结的对象事实；非文件来源返回 `null`。
+     */
+    public FileSourceObjectReference fileObject() {
+        return fileObject;
     }
 
     public CreatorId createdBy() {

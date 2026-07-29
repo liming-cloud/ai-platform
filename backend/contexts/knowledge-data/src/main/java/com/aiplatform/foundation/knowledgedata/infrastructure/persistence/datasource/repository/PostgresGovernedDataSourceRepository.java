@@ -4,6 +4,7 @@ import com.aiplatform.foundation.knowledgedata.domain.common.model.CreatorId;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.model.DataSourceId;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.model.DataSourceOperation;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.model.DataSourceStateException;
+import com.aiplatform.foundation.knowledgedata.domain.datasource.model.FileSourceObjectReference;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.model.GovernedDataSource;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.model.GovernedDataSourceStatus;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.model.GovernedDataSourceType;
@@ -186,7 +187,8 @@ public final class PostgresGovernedDataSourceRepository implements GovernedDataS
         if (!source.tenantId().equals(revision.tenantId())
                 || !source.knowledgeSpaceId().equals(revision.knowledgeSpaceId())
                 || !source.id().equals(revision.dataSourceId())
-                || source.type() != revision.sourceType()) {
+                || source.type() != revision.sourceType()
+                || source.currentRevision() != revision.revision()) {
             throw new IllegalArgumentException("来源修订必须属于同一受治理数据源");
         }
     }
@@ -217,6 +219,7 @@ public final class PostgresGovernedDataSourceRepository implements GovernedDataS
         entity.setStatus(value.status().name());
         entity.setFailedOperation(
                 value.failedOperation() == null ? null : value.failedOperation().name());
+        entity.setCurrentRevision(value.currentRevision());
         entity.setVersion(value.version());
         entity.setCreatedBy(value.createdBy().value());
         entity.setCreatedAt(value.createdAt());
@@ -231,6 +234,11 @@ public final class PostgresGovernedDataSourceRepository implements GovernedDataS
         entity.setRevision(value.revision());
         entity.setSourceType(value.sourceType().name());
         entity.setDefinitionDigest(value.definitionDigest());
+        var file = value.fileObject();
+        entity.setObjectKey(file == null ? null : file.objectKey());
+        entity.setContentDigest(file == null ? null : file.contentDigest());
+        entity.setByteSize(file == null ? null : file.byteSize());
+        entity.setMediaType(file == null ? null : file.mediaType());
         entity.setCreatedBy(value.createdBy().value());
         entity.setCreatedAt(value.createdAt());
         return entity;
@@ -275,6 +283,7 @@ public final class PostgresGovernedDataSourceRepository implements GovernedDataS
                 value.getFailedOperation() == null
                         ? null
                         : DataSourceOperation.valueOf(value.getFailedOperation()),
+                value.getCurrentRevision(),
                 value.getVersion());
     }
 
@@ -286,8 +295,20 @@ public final class PostgresGovernedDataSourceRepository implements GovernedDataS
                 value.getRevision(),
                 GovernedDataSourceType.valueOf(value.getSourceType()),
                 value.getDefinitionDigest(),
+                fileObject(value),
                 new CreatorId(value.getCreatedBy()),
                 value.getCreatedAt());
+    }
+
+    private static FileSourceObjectReference fileObject(SourceRevisionEntity value) {
+        if (GovernedDataSourceType.valueOf(value.getSourceType()) != GovernedDataSourceType.FILE) {
+            return null;
+        }
+        return new FileSourceObjectReference(
+                value.getObjectKey(),
+                value.getContentDigest(),
+                value.getByteSize(),
+                value.getMediaType());
     }
 
     private static SyncArtifact toDomain(SyncArtifactEntity value) {

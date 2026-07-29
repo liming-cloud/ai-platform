@@ -24,6 +24,7 @@ public final class GovernedDataSource implements AggregateRoot<DataSourceId> {
     private final Instant createdAt;
     private final GovernedDataSourceStatus status;
     private final DataSourceOperation failedOperation;
+    private final long currentRevision;
     private final long version;
 
     private GovernedDataSource(
@@ -36,6 +37,7 @@ public final class GovernedDataSource implements AggregateRoot<DataSourceId> {
             Instant createdAt,
             GovernedDataSourceStatus status,
             DataSourceOperation failedOperation,
+            long currentRevision,
             long version) {
         this.tenantId = Objects.requireNonNull(tenantId, "租户标识不能为空");
         this.knowledgeSpaceId = Objects.requireNonNull(knowledgeSpaceId, "知识空间标识不能为空");
@@ -49,6 +51,10 @@ public final class GovernedDataSource implements AggregateRoot<DataSourceId> {
             throw new IllegalArgumentException("失败状态与失败操作不一致");
         }
         this.failedOperation = failedOperation;
+        if (currentRevision < 1) {
+            throw new IllegalArgumentException("当前来源修订必须为正数");
+        }
+        this.currentRevision = currentRevision;
         if (version < 0) {
             throw new IllegalArgumentException("数据源修订不能为负数");
         }
@@ -76,6 +82,7 @@ public final class GovernedDataSource implements AggregateRoot<DataSourceId> {
                 createdAt,
                 GovernedDataSourceStatus.DRAFT,
                 null,
+                1,
                 0);
     }
 
@@ -188,6 +195,7 @@ public final class GovernedDataSource implements AggregateRoot<DataSourceId> {
             Instant createdAt,
             GovernedDataSourceStatus status,
             DataSourceOperation failedOperation,
+            long currentRevision,
             long version) {
         return new GovernedDataSource(
                 tenantId,
@@ -199,6 +207,7 @@ public final class GovernedDataSource implements AggregateRoot<DataSourceId> {
                 createdAt,
                 status,
                 failedOperation,
+                currentRevision,
                 version);
     }
 
@@ -238,6 +247,13 @@ public final class GovernedDataSource implements AggregateRoot<DataSourceId> {
         return version;
     }
 
+    /**
+     * 返回当前可被同步操作消费的不可变来源修订。
+     */
+    public long currentRevision() {
+        return currentRevision;
+    }
+
     private GovernedDataSource transition(
             long expectedVersion,
             GovernedDataSourceStatus expectedStatus,
@@ -271,6 +287,7 @@ public final class GovernedDataSource implements AggregateRoot<DataSourceId> {
                 createdAt,
                 targetStatus,
                 targetFailedOperation,
+                currentRevision,
                 version + 1);
     }
 

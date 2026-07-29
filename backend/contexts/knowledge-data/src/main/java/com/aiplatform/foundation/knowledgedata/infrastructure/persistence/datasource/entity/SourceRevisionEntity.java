@@ -16,6 +16,10 @@ public class SourceRevisionEntity {
     private long revision;
     @TableField("source_type") private String sourceType;
     @TableField("definition_digest") private String definitionDigest;
+    @TableField("object_key") private String objectKey;
+    @TableField("content_digest") private String contentDigest;
+    @TableField("byte_size") private Long byteSize;
+    @TableField("media_type") private String mediaType;
     @TableField("created_by") private Long createdBy;
     @TableField("created_at") private Instant createdAt;
 
@@ -31,6 +35,14 @@ public class SourceRevisionEntity {
     public void setSourceType(String sourceType) { this.sourceType = sourceType; }
     public String getDefinitionDigest() { return definitionDigest; }
     public void setDefinitionDigest(String definitionDigest) { this.definitionDigest = definitionDigest; }
+    public String getObjectKey() { return objectKey; }
+    public void setObjectKey(String objectKey) { this.objectKey = objectKey; }
+    public String getContentDigest() { return contentDigest; }
+    public void setContentDigest(String contentDigest) { this.contentDigest = contentDigest; }
+    public Long getByteSize() { return byteSize; }
+    public void setByteSize(Long byteSize) { this.byteSize = byteSize; }
+    public String getMediaType() { return mediaType; }
+    public void setMediaType(String mediaType) { this.mediaType = mediaType; }
     public Long getCreatedBy() { return createdBy; }
     public void setCreatedBy(Long createdBy) { this.createdBy = createdBy; }
     public Instant getCreatedAt() { return createdAt; }

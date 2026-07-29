@@ -9,6 +9,7 @@ import com.aiplatform.foundation.knowledgedata.domain.common.model.CreatorId;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.model.DataSourceId;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.model.DataSourceOperation;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.model.DataSourceStateException;
+import com.aiplatform.foundation.knowledgedata.domain.datasource.model.FileSourceObjectReference;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.model.GovernedDataSource;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.model.GovernedDataSourceStatus;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.model.GovernedDataSourceType;
@@ -101,11 +102,17 @@ class PostgresGovernedDataSourceRepositoryTest {
         var stored = repository.findSource(STORE_TENANT, SPACE, source.id());
         assertTrue(stored.isPresent());
         assertEquals(GovernedDataSourceStatus.DRAFT, stored.orElseThrow().status());
+        assertEquals(1, stored.orElseThrow().currentRevision());
         assertEquals(
                 revision.definitionDigest(),
                 repository.findRevision(STORE_TENANT, SPACE, source.id(), 1)
                         .orElseThrow()
                         .definitionDigest());
+        assertEquals(
+                revision.fileObject(),
+                repository.findRevision(STORE_TENANT, SPACE, source.id(), 1)
+                        .orElseThrow()
+                        .fileObject());
         assertFalse(repository.findSource(CAMPUS_TENANT, SPACE, source.id()).isPresent());
         assertEquals(1, count("governed_data_source", STORE_TENANT));
         assertEquals(1, count("source_revision", STORE_TENANT));
@@ -255,10 +262,14 @@ class PostgresGovernedDataSourceRepositoryTest {
     }
 
     private static SourceRevision revision(GovernedDataSource source, String digest) {
-        return SourceRevision.create(
+        return SourceRevision.file(
                 source,
-                1,
-                digest,
+                new FileSourceObjectReference(
+                        "foundation-v1/tenants/%d/knowledge-data/files/%d/1/content.txt".formatted(
+                                source.tenantId().value(), source.id().value()),
+                        digest,
+                        12,
+                        "text/plain; charset=utf-8"),
                 CREATOR,
                 CREATED_AT);
     }
