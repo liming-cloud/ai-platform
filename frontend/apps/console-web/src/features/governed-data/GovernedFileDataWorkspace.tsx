@@ -207,7 +207,7 @@ export function GovernedFileDataWorkspace({
       setIndexVersion(created);
       await waitForIndex(source.knowledgeSpaceId, created.id);
     } catch (error) {
-      setFailure(toFailure(error));
+      setFailure(modelRuntimeFailure(error) ?? toFailure(error));
     } finally {
       setSubmitting(false);
     }
@@ -434,6 +434,20 @@ function toFailure(error: unknown): Failure {
     return { message: error.message, traceId: error.traceId };
   }
   return { message: "无法连接控制平面，请检查网络后重试", traceId: "" };
+}
+
+/**
+ * 默认安全部署不会装配需要本地研发主密钥的模型配置读取入口。
+ * 仅在创建索引任务中将该受控不可用状态转为可恢复提示，避免向知识管理员暴露路由或装配细节。
+ */
+export function modelRuntimeFailure(error: unknown): Failure | undefined {
+  if (error instanceof ApiRequestError && error.status === 404) {
+    return {
+      message: "当前环境尚未启用受控嵌入模型。请联系平台运维完成模型运行时配置后重试。",
+      traceId: error.traceId,
+    };
+  }
+  return undefined;
 }
 
 function failureDescription(failure?: Failure) {
