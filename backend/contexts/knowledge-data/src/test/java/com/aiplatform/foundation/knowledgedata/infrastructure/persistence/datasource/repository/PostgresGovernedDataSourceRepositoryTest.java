@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import com.aiplatform.foundation.knowledgedata.domain.common.model.CreatorId;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.model.DataSourceId;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.model.DataSourceOperation;
+import com.aiplatform.foundation.knowledgedata.domain.datasource.model.DataSourceStateException;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.model.GovernedDataSource;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.model.GovernedDataSourceStatus;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.model.GovernedDataSourceType;
@@ -114,11 +115,14 @@ class PostgresGovernedDataSourceRepositoryTest {
     void 同步产物和质量结论在同一事务提交且跨租户不可见() {
         var source = source(STORE_TENANT, nextSourceId(), "校园文件");
         repository.register(source, revision(source, "a".repeat(64)));
+        var syncing = startSynchronization(source);
         var artifact = artifact(source, "b".repeat(64));
         var report = QualityReport.warned(artifact, "file-quality-v1", 2);
 
-        repository.record(artifact, report);
+        var completed = repository.completeSynchronization(artifact, report, syncing.version());
 
+        assertEquals(GovernedDataSourceStatus.READY, completed.status());
+        assertEquals(4, completed.version());
         assertEquals(
                 artifact.contentDigest(),
                 repository.findArtifact(STORE_TENANT, SPACE, artifact.id())
@@ -138,15 +142,20 @@ class PostgresGovernedDataSourceRepositoryTest {
     void 质量结论不属于待登记产物时整体回滚() {
         var source = source(STORE_TENANT, nextSourceId(), "回滚文件");
         repository.register(source, revision(source, "a".repeat(64)));
+        var syncing = startSynchronization(source);
         var artifact = artifact(source, "b".repeat(64));
         var unrelated = artifact(source, "c".repeat(64));
 
-        assertThrows(IllegalArgumentException.class, () -> repository.record(
+        assertThrows(IllegalArgumentException.class, () -> repository.completeSynchronization(
                 artifact,
-                QualityReport.passed(unrelated, "file-quality-v1")));
+                QualityReport.passed(unrelated, "file-quality-v1"),
+                syncing.version()));
 
         assertFalse(repository.findArtifact(STORE_TENANT, SPACE, artifact.id()).isPresent());
         assertFalse(repository.findQualityReport(STORE_TENANT, SPACE, artifact.id()).isPresent());
+        var stored = repository.findSource(STORE_TENANT, SPACE, source.id()).orElseThrow();
+        assertEquals(GovernedDataSourceStatus.SYNCING, stored.status());
+        assertEquals(syncing.version(), stored.version());
         assertEquals(0, count("sync_artifact", STORE_TENANT));
         assertEquals(0, count("quality_report", STORE_TENANT));
     }
@@ -169,6 +178,43 @@ class PostgresGovernedDataSourceRepositoryTest {
         var storedRetry = repository.findSource(STORE_TENANT, SPACE, source.id()).orElseThrow();
         assertEquals(GovernedDataSourceStatus.PROBING, storedRetry.status());
         assertEquals(null, storedRetry.failedOperation());
+    }
+
+    @Test
+    void 并发完成同步只有一个提交且失败方不留下重复产物() throws Exception {
+        var source = source(STORE_TENANT, nextSourceId(), "并发同步文件");
+        repository.register(source, revision(source, "a".repeat(64)));
+        var syncing = startSynchronization(source);
+        var artifact = artifact(source, "b".repeat(64));
+        var report = QualityReport.passed(artifact, "file-quality-v1");
+        var tasks = new ArrayList<Callable<Boolean>>();
+        for (var index = 0; index < 2; index++) {
+            tasks.add(() -> {
+                try {
+                    repository.completeSynchronization(artifact, report, syncing.version());
+                    return true;
+                } catch (DataSourceStateException exception) {
+                    return false;
+                }
+            });
+        }
+
+        try (var executor = Executors.newFixedThreadPool(2)) {
+            var results = executor.invokeAll(tasks);
+            assertEquals(1, results.stream().filter(result -> {
+                try {
+                    return result.get();
+                } catch (Exception exception) {
+                    throw new AssertionError(exception);
+                }
+            }).count());
+        }
+
+        var stored = repository.findSource(STORE_TENANT, SPACE, source.id()).orElseThrow();
+        assertEquals(GovernedDataSourceStatus.READY, stored.status());
+        assertEquals(4, stored.version());
+        assertEquals(1, count("sync_artifact", STORE_TENANT));
+        assertEquals(1, count("quality_report", STORE_TENANT));
     }
 
     @Test
@@ -215,6 +261,16 @@ class PostgresGovernedDataSourceRepositoryTest {
                 digest,
                 CREATOR,
                 CREATED_AT);
+    }
+
+    private GovernedDataSource startSynchronization(GovernedDataSource source) {
+        var probing = source.startProbe(0);
+        assertTrue(repository.update(probing, 0));
+        var ready = probing.completeProbe(1);
+        assertTrue(repository.update(ready, 1));
+        var syncing = ready.startSynchronization(2);
+        assertTrue(repository.update(syncing, 2));
+        return syncing;
     }
 
     private static DataSourceId nextSourceId() {

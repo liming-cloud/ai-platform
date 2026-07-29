@@ -3,6 +3,7 @@ package com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datas
 import com.aiplatform.foundation.knowledgedata.domain.common.model.CreatorId;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.model.DataSourceId;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.model.DataSourceOperation;
+import com.aiplatform.foundation.knowledgedata.domain.datasource.model.DataSourceStateException;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.model.GovernedDataSource;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.model.GovernedDataSourceStatus;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.model.GovernedDataSourceType;
@@ -68,10 +69,25 @@ public final class PostgresGovernedDataSourceRepository implements GovernedDataS
     }
 
     @Override
-    public void record(SyncArtifact artifact, QualityReport report) {
+    public GovernedDataSource completeSynchronization(
+            SyncArtifact artifact,
+            QualityReport report,
+            long expectedVersion) {
         Objects.requireNonNull(artifact, "同步产物不能为空");
         Objects.requireNonNull(report, "质量结论不能为空");
-        transactions.executeWithoutResult(status -> {
+        if (expectedVersion < 0) {
+            throw new IllegalArgumentException("预期来源修订不能为负数");
+        }
+        var result = transactions.execute(status -> {
+            var row = sourceMapper.findByScopeForUpdate(
+                    artifact.tenantId().value(),
+                    artifact.knowledgeSpaceId().value(),
+                    artifact.dataSourceId().value());
+            if (row == null) {
+                throw new DataSourceStateException("同步产物所属数据源不存在或不可访问");
+            }
+            var current = toDomain(row);
+            var completed = current.completeSynchronization(expectedVersion);
             if (revisionMapper.countByScope(
                     artifact.tenantId().value(),
                     artifact.knowledgeSpaceId().value(),
@@ -84,7 +100,19 @@ public final class PostgresGovernedDataSourceRepository implements GovernedDataS
                 throw new IllegalArgumentException("质量结论必须归属于待登记的同步产物");
             }
             qualityMapper.insert(toEntity(report));
+            if (sourceMapper.updateLifecycle(
+                    completed.tenantId().value(),
+                    completed.knowledgeSpaceId().value(),
+                    completed.id().value(),
+                    expectedVersion,
+                    completed.version(),
+                    completed.status().name(),
+                    null) != 1) {
+                throw new DataSourceStateException("同步完成时数据源修订已变化");
+            }
+            return completed;
         });
+        return Objects.requireNonNull(result, "同步完成事务没有返回数据源");
     }
 
     @Override

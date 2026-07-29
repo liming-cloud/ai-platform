@@ -19,7 +19,16 @@ public interface GovernedDataSourceRepository {
 
     void register(GovernedDataSource source, SourceRevision revision);
 
-    void record(SyncArtifact artifact, QualityReport report);
+    /**
+     * 在来源仍处于同步状态时，原子登记产物、质量结论并完成同步。
+     *
+     * @throws com.aiplatform.foundation.knowledgedata.domain.datasource.model.DataSourceStateException
+     * 当前来源状态或修订不允许完成同步时抛出。
+     */
+    GovernedDataSource completeSynchronization(
+            SyncArtifact artifact,
+            QualityReport report,
+            long expectedVersion);
 
     /**
      * 以来源修订执行一次乐观状态更新。
