@@ -424,3 +424,9 @@ ADR-0028 定义 `GovernedDataSource`、`SourceRevision`、`SyncArtifact`、`Qual
 ### 当前结论
 
 此切片补齐并验证了 FILE 的控制台登记、探测、同步、质量、显式发布和退役，以及无密钥工作器安全启动。真实受控 Embedding 索引构建仍缺少本地研发主密钥这一运行前置条件；OBJECT_STORAGE、STRUCTURED_DATASET、Schema／敏感级别、质量规则配置、浏览器未授权／过期路径及 M3 全量门禁尚未完成。因此 WP-0011 继续进行，不能申请 M3 人工评审或进入 M4。
+
+## 发布同步产物 SQL 门禁回归（2026-07-29）
+
+- 全量 `make validate` 首先拒绝了 `PublishedSyncArtifactMapper.xml` 中尚未登记的 `insert` 与 `findByArtifact`。两条 SQL 分别承担发布事实的原子写入和租户、知识空间限定的安全投影，不能通过降低门禁要求绕过。
+- 已在 `project/architecture-debt/complex-sql-allowlist.json` 为两条语句登记对应的事务与安全原因；重新运行 `make validate` 通过：项目治理 9 项、架构门禁 17 项、债务递减门禁以及全量 Maven 测试均通过。
+- 本项只修复既有 M3 发布切片遗漏的架构登记，不改变发布、质量、租户隔离或索引行为；M3 仍须完成待决的两类来源契约、真实模型索引和其余验收路径。
