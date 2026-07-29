@@ -171,6 +171,40 @@ describe("ControlPlaneClient", () => {
     expect(requests[2]?.url).toContain("expectedVersion=4");
   });
 
+  it("分页读取FILE来源时只接收任务恢复所需的非敏感摘要", async () => {
+    let request: Request | undefined;
+    const client = authenticatedClient(async (input, init) => {
+      request = new Request(input, init);
+      return new Response(JSON.stringify({
+        items: [{
+          dataSourceId: "220000000000000001",
+          knowledgeSpaceId: "210000000000000001",
+          displayName: "商品说明",
+          status: "READY",
+          version: 5,
+          failedOperation: null,
+          publishedArtifactId: "230000000000000001",
+          publishedQualityStatus: "PASS",
+          publishedAt: "2026-07-29T02:05:00Z",
+        }],
+        pageNumber: 1,
+        pageSize: 20,
+        totalElements: 1,
+        totalPages: 1,
+        hasPrevious: false,
+        hasNext: false,
+      }), { status: 200, headers: { "Content-Type": "application/json" } });
+    });
+
+    const page = await client.listGovernedFileDataSources("210000000000000001");
+
+    expect(request?.url).toContain("/governed-data-sources/files?knowledgeSpaceId=210000000000000001");
+    expect(page.items[0]?.publishedArtifactId).toBe("230000000000000001");
+    expect(JSON.stringify(page.items[0])).not.toMatch(
+      /object.?key|content|digest|api.?key|credential/i,
+    );
+  });
+
   it("把统一错误转换为不泄漏响应体的前端错误", async () => {
     const client = new ControlPlaneClient(async () => new Response(
       JSON.stringify({

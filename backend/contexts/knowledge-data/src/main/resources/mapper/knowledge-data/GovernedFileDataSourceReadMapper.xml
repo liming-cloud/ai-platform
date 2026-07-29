@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.mapper.GovernedFileDataSourceReadMapper">
+
+    <select id="selectPage" resultType="com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.entity.GovernedFileDataSourceSummaryRow">
+        <![CDATA[
+        SELECT source.id AS data_source_id,
+               source.knowledge_space_id,
+               source.name AS display_name,
+               source.status,
+               source.version,
+               source.failed_operation,
+               publication.artifact_id AS published_artifact_id,
+               publication.quality_status AS published_quality_status,
+               publication.published_at
+        FROM knowledge_data.governed_data_source source
+        LEFT JOIN LATERAL (
+            SELECT current_publication.artifact_id,
+                   current_publication.quality_status,
+                   current_publication.published_at
+            FROM knowledge_data.published_sync_artifact current_publication
+            WHERE current_publication.tenant_id = source.tenant_id
+              AND current_publication.knowledge_space_id = source.knowledge_space_id
+              AND current_publication.data_source_id = source.id
+            ORDER BY current_publication.source_version DESC
+            LIMIT 1
+        ) publication ON TRUE
+        WHERE source.tenant_id = #{tenantId}
+          AND source.knowledge_space_id = #{knowledgeSpaceId}
+          AND source.source_type = 'FILE'
+        ORDER BY source.created_at DESC, source.id DESC
+        LIMIT #{limit} OFFSET #{offset}
+        ]]>
+    </select>
+
+    <select id="count" resultType="long">
+        SELECT COUNT(*)
+        FROM knowledge_data.governed_data_source source
+        WHERE source.tenant_id = #{tenantId}
+          AND source.knowledge_space_id = #{knowledgeSpaceId}
+          AND source.source_type = 'FILE'
+    </select>
+</mapper>

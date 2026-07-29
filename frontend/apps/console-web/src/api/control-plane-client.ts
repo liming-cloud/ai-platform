@@ -40,6 +40,19 @@ export interface GovernedDataSourceLifecycleResult {
   qualityStatus: "PASS" | "WARN" | "BLOCK" | null;
 }
 
+/** FILE 来源任务恢复所需的非敏感摘要，不包含对象位置、正文、摘要或凭据。 */
+export interface GovernedFileDataSourceSummary {
+  dataSourceId: string;
+  knowledgeSpaceId: string;
+  displayName: string;
+  status: string;
+  version: number;
+  failedOperation: "PROBE" | "SYNCHRONIZATION" | null;
+  publishedArtifactId: string | null;
+  publishedQualityStatus: "PASS" | "WARN" | null;
+  publishedAt: string | null;
+}
+
 export interface IndexVersion {
   id: string;
   knowledgeSpaceId: string;
@@ -286,6 +299,21 @@ export class ControlPlaneClient {
         headers: this.writeHeaders("text/plain; charset=UTF-8"),
         body: content,
       },
+    );
+  }
+
+  async listGovernedFileDataSources(
+    knowledgeSpaceId: string,
+    pageNumber = 1,
+    pageSize = 20,
+  ): Promise<PageResult<GovernedFileDataSourceSummary>> {
+    const query = new URLSearchParams({
+      knowledgeSpaceId,
+      pageNumber: String(pageNumber),
+      pageSize: String(pageSize),
+    });
+    return this.request<PageResult<GovernedFileDataSourceSummary>>(
+      `/governed-data-sources/files?${query}`,
     );
   }
 

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { ApiRequestError } from "../../api/control-plane-client";
 import {
+  fileSourceOptionLabel,
   modelRuntimeFailure,
   requiresSessionRestart,
 } from "./GovernedFileDataWorkspace";
@@ -27,5 +28,32 @@ describe("受治理文件会话过期恢复", () => {
       new ApiRequestError(403, "AUTHORIZATION_FAILED", "没有权限", "trc-004"),
       false,
     )).toBe(false);
+  });
+});
+
+describe("受治理文件来源恢复标签", () => {
+  it("只将仍可用于新索引版本的已发布来源标记为可重建", () => {
+    expect(fileSourceOptionLabel({
+      dataSourceId: "source-ready",
+      knowledgeSpaceId: "space-001",
+      displayName: "可用来源",
+      status: "READY",
+      version: 3,
+      failedOperation: null,
+      publishedArtifactId: "artifact-001",
+      publishedQualityStatus: "PASS",
+      publishedAt: "2026-07-29T11:00:00Z",
+    })).toBe("可用来源（可重建）");
+    expect(fileSourceOptionLabel({
+      dataSourceId: "source-retired",
+      knowledgeSpaceId: "space-001",
+      displayName: "已退役来源",
+      status: "RETIRED",
+      version: 4,
+      failedOperation: null,
+      publishedArtifactId: "artifact-002",
+      publishedQualityStatus: "PASS",
+      publishedAt: "2026-07-29T11:00:00Z",
+    })).toBe("已退役来源");
   });
 });

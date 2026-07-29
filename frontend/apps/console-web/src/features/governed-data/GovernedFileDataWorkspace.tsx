@@ -17,6 +17,7 @@ import {
   ApiRequestError,
   type ControlPlaneClient,
   type GovernedDataSourceLifecycleResult,
+  type GovernedFileDataSourceSummary,
   type IndexVersion,
   type KnowledgeSpace,
 } from "../../api/control-plane-client";
@@ -47,6 +48,7 @@ export function GovernedFileDataWorkspace({
   const [sourceName, setSourceName] = useState("");
   const [content, setContent] = useState("");
   const [source, setSource] = useState<GovernedDataSourceLifecycleResult>();
+  const [fileSources, setFileSources] = useState<GovernedFileDataSourceSummary[]>([]);
   const [publishedArtifactId, setPublishedArtifactId] = useState<string>();
   const [indexVersion, setIndexVersion] = useState<IndexVersion>();
   const [failure, setFailure] = useState<Failure>();
@@ -59,6 +61,7 @@ export function GovernedFileDataWorkspace({
     setSourceName("");
     setContent("");
     setSource(undefined);
+    setFileSources([]);
     setPublishedArtifactId(undefined);
     setIndexVersion(undefined);
   }, []);
@@ -84,8 +87,15 @@ export function GovernedFileDataWorkspace({
     setFailure(undefined);
     try {
       const page = await client.listKnowledgeSpaces();
+      const selectedKnowledgeSpaceId = knowledgeSpaceId || page.items[0]?.id;
       setSpaces(page.items);
-      setKnowledgeSpaceId((current) => current || page.items[0]?.id || "");
+      setKnowledgeSpaceId(selectedKnowledgeSpaceId || "");
+      if (selectedKnowledgeSpaceId !== undefined) {
+        const sources = await client.listGovernedFileDataSources(selectedKnowledgeSpaceId);
+        setFileSources(sources.items);
+      } else {
+        setFileSources([]);
+      }
       setViewState("ready");
     } catch (error) {
       if (restartExpiredSession(error)) {
@@ -94,7 +104,7 @@ export function GovernedFileDataWorkspace({
       setFailure(toFailure(error));
       setViewState("error");
     }
-  }, [client, resetProtectedTaskState, restartExpiredSession]);
+  }, [client, knowledgeSpaceId, resetProtectedTaskState, restartExpiredSession]);
 
   useEffect(() => {
     const timeout = window.setTimeout(() => void load(), 0);
@@ -137,6 +147,17 @@ export function GovernedFileDataWorkspace({
         content,
       );
       setSource(registered);
+      setFileSources((current) => [{
+        dataSourceId: registered.dataSourceId,
+        knowledgeSpaceId: registered.knowledgeSpaceId,
+        displayName: sourceName.trim(),
+        status: registered.status,
+        version: registered.version,
+        failedOperation: registered.failedOperation,
+        publishedArtifactId: null,
+        publishedQualityStatus: null,
+        publishedAt: null,
+      }, ...current]);
       setContent("");
       setPublishedArtifactId(undefined);
       setIndexVersion(undefined);
@@ -182,7 +203,6 @@ export function GovernedFileDataWorkspace({
         source.dataSourceId,
         source.version,
       ));
-      setPublishedArtifactId(undefined);
       setIndexVersion(undefined);
     } catch (error) {
       if (!restartExpiredSession(error)) {
@@ -209,14 +229,16 @@ export function GovernedFileDataWorkspace({
       setSource(published);
       setPublishedArtifactId(source.syncArtifactId);
     } catch (error) {
-      setFailure(toFailure(error));
+      if (!restartExpiredSession(error)) {
+        setFailure(toFailure(error));
+      }
     } finally {
       setSubmitting(false);
     }
   }
 
   async function buildIndex() {
-    if (source === undefined || publishedArtifactId !== source.syncArtifactId) {
+    if (source === undefined || source.status !== "READY" || publishedArtifactId === undefined) {
       return;
     }
     setSubmitting(true);
@@ -311,6 +333,29 @@ export function GovernedFileDataWorkspace({
     }
   }
 
+  function selectSource(summary: GovernedFileDataSourceSummary | undefined) {
+    setIndexVersion(undefined);
+    if (summary === undefined) {
+      setSource(undefined);
+      setSourceName("");
+      setContent("");
+      setPublishedArtifactId(undefined);
+      return;
+    }
+    setSource({
+      dataSourceId: summary.dataSourceId,
+      knowledgeSpaceId: summary.knowledgeSpaceId,
+      status: summary.status,
+      version: summary.version,
+      failedOperation: summary.failedOperation,
+      syncArtifactId: null,
+      qualityStatus: null,
+    });
+    setSourceName(summary.displayName);
+    setContent("");
+    setPublishedArtifactId(summary.publishedArtifactId ?? undefined);
+  }
+
   if (viewState === "unauthenticated") {
     return (
       <section className="governance-login">
@@ -364,11 +409,30 @@ export function GovernedFileDataWorkspace({
             <Title3>登记、同步并发布文件来源</Title3>
             <Text>当前仅支持 UTF-8 纯文本。对象键、桶名、摘要和正文均由平台处理，不会在控制台展示。</Text>
           </header>
+          <Field label="已登记文件来源">
+            <Select
+              value={source?.dataSourceId ?? ""}
+              disabled={submitting}
+              onChange={(_, data) => selectSource(
+                fileSources.find((candidate) => candidate.dataSourceId === data.value),
+              )}
+            >
+              <option value="">登记新文件来源</option>
+              {fileSources.map((candidate) => (
+                <option key={candidate.dataSourceId} value={candidate.dataSourceId}>
+                  {fileSourceOptionLabel(candidate)}
+                </option>
+              ))}
+            </Select>
+          </Field>
           <form className="governed-file-form" onSubmit={register}>
             <Field label="知识空间" required>
               <Select
                 value={knowledgeSpaceId}
-                onChange={(_, data) => setKnowledgeSpaceId(data.value)}
+                onChange={(_, data) => {
+                  setKnowledgeSpaceId(data.value);
+                  selectSource(undefined);
+                }}
                 disabled={submitting || source !== undefined}
               >
                 {spaces.map((space) => <option key={space.id} value={space.id}>{space.name}</option>)}
@@ -487,6 +551,13 @@ export function requiresSessionRestart(error: unknown, hasSession: boolean): boo
   return error instanceof ApiRequestError && error.status === 401 && !hasSession;
 }
 
+/** 只有仍处于 READY 的来源才能使用已发布产物创建新的索引版本。 */
+export function fileSourceOptionLabel(source: GovernedFileDataSourceSummary): string {
+  return source.publishedArtifactId !== null && source.status === "READY"
+    ? `${source.displayName}（可重建）`
+    : source.displayName;
+}
+
 function failureDescription(failure?: Failure) {
   if (failure === undefined) {
     return "请稍后重试；如果问题持续存在，请联系平台运维人员。";
@@ -519,9 +590,7 @@ function canBuildIndex(
   publishedArtifactId?: string,
 ): boolean {
   return source.status === "READY"
-    && hasSyncArtifact(source)
-    && source.qualityStatus !== "BLOCK"
-    && publishedArtifactId === source.syncArtifactId;
+    && publishedArtifactId !== undefined;
 }
 
 function hasSyncArtifact(source: GovernedDataSourceLifecycleResult): boolean {

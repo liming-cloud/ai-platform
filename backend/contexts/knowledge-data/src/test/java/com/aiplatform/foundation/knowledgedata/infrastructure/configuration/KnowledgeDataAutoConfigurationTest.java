@@ -10,6 +10,8 @@ import com.aiplatform.foundation.knowledgedata.application.datasource.service.Fi
 import com.aiplatform.foundation.knowledgedata.application.datasource.service.FileSyncArtifactPublicationService;
 import com.aiplatform.foundation.knowledgedata.application.datasource.service.GovernedDataSourceLifecycleService;
 import com.aiplatform.foundation.knowledgedata.application.datasource.service.GovernedFileDataSourceRegistrationService;
+import com.aiplatform.foundation.knowledgedata.application.datasource.service.GovernedFileDataSourceQueryService;
+import com.aiplatform.foundation.knowledgedata.application.datasource.port.out.GovernedFileDataSourceReadPort;
 import com.aiplatform.foundation.knowledgedata.application.indexversion.facade.ActiveIndexLookup;
 import com.aiplatform.foundation.knowledgedata.application.indexversion.service.IndexVersionService;
 import com.aiplatform.foundation.knowledgedata.application.indexversion.service.IndexBuildWorker;
@@ -27,6 +29,7 @@ import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.dataso
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.mapper.TextContentMapper;
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.mapper.TextDataSourceRequestMapper;
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.mapper.GovernedDataSourceMapper;
+import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.mapper.GovernedFileDataSourceReadMapper;
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.mapper.PublishedSyncArtifactMapper;
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.mapper.QualityReportMapper;
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.mapper.SourceRevisionMapper;
@@ -220,6 +223,9 @@ class KnowledgeDataAutoConfigurationTest {
                         GovernedDataSourceMapper.class,
                         () -> mock(GovernedDataSourceMapper.class))
                 .withBean(
+                        GovernedFileDataSourceReadMapper.class,
+                        () -> mock(GovernedFileDataSourceReadMapper.class))
+                .withBean(
                         SourceRevisionMapper.class,
                         () -> mock(SourceRevisionMapper.class))
                 .withBean(
@@ -255,6 +261,7 @@ class KnowledgeDataAutoConfigurationTest {
                     assertThat(context).hasSingleBean(KnowledgeSpaceRepository.class);
                     assertThat(context).hasSingleBean(TextDataSourceRepository.class);
                     assertThat(context).hasSingleBean(GovernedDataSourceRepository.class);
+                    assertThat(context).hasSingleBean(GovernedFileDataSourceReadPort.class);
                     assertThat(context).hasSingleBean(IndexVersionRepository.class);
                 });
     }
@@ -306,6 +313,9 @@ class KnowledgeDataAutoConfigurationTest {
                 .withBean(
                         GovernedDataSourceLifecycleService.class,
                         () -> mock(GovernedDataSourceLifecycleService.class))
+                .withBean(
+                        GovernedFileDataSourceQueryService.class,
+                        () -> mock(GovernedFileDataSourceQueryService.class))
                 .withBean(
                         IndexVersionService.class,
                         () -> mock(IndexVersionService.class))

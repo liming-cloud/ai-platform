@@ -7,6 +7,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.aiplatform.foundation.knowledgedata.application.datasource.dto.GovernedDataSourceLifecycleResult;
+import com.aiplatform.foundation.knowledgedata.application.datasource.dto.GovernedFileDataSourceSummary;
+import com.aiplatform.foundation.knowledgedata.application.datasource.service.GovernedFileDataSourceQueryService;
 import com.aiplatform.foundation.knowledgedata.application.datasource.service.FileDataSourceProbeService;
 import com.aiplatform.foundation.knowledgedata.application.datasource.service.FileDataSourceSynchronizationService;
 import com.aiplatform.foundation.knowledgedata.application.datasource.service.FileSyncArtifactPublicationService;
@@ -14,10 +16,41 @@ import com.aiplatform.foundation.knowledgedata.application.datasource.service.Go
 import com.aiplatform.foundation.knowledgedata.application.datasource.service.GovernedFileDataSourceRegistrationService;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.model.GovernedDataSourceStatus;
 import com.aiplatform.foundation.security.identity.TrustedRequestContext;
+import com.aiplatform.foundation.shared.contract.paging.PageQuery;
+import com.aiplatform.foundation.shared.contract.paging.PageResult;
+import java.time.Instant;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
 class GovernedFileDataSourceControllerTest {
+
+    @Test
+    void 列表必须委派给受控FILE读取用例并转发页码参数() {
+        var registration = mock(GovernedFileDataSourceRegistrationService.class);
+        var probes = mock(FileDataSourceProbeService.class);
+        var synchronizations = mock(FileDataSourceSynchronizationService.class);
+        var publications = mock(FileSyncArtifactPublicationService.class);
+        var lifecycle = mock(GovernedDataSourceLifecycleService.class);
+        var queries = mock(GovernedFileDataSourceQueryService.class);
+        var controller = new GovernedFileDataSourceController(
+                registration, probes, synchronizations, publications, lifecycle, queries);
+        var context = mock(TrustedRequestContext.class);
+        var expected = PageResult.of(List.of(new GovernedFileDataSourceSummary(
+                "3001", "2001", "门店文件", "READY", 5, null,
+                "4001", "PASS", Instant.parse("2026-07-29T02:05:00Z"))), new PageQuery(2, 10), 11);
+        when(queries.list(any())).thenReturn(expected);
+
+        var result = controller.list(context, "2001", 2, 10);
+
+        var query = ArgumentCaptor.forClass(
+                com.aiplatform.foundation.knowledgedata.application.datasource.query.ListGovernedFileDataSourcesQuery.class);
+        verify(queries).list(query.capture());
+        assertThat(query.getValue().context()).isSameAs(context);
+        assertThat(query.getValue().knowledgeSpaceId()).isEqualTo("2001");
+        assertThat(query.getValue().page()).isEqualTo(new PageQuery(2, 10));
+        assertThat(result).isSameAs(expected);
+    }
 
     @Test
     void 探测必须委派给受控文件探测用例并返回新的生命周期事实() {
@@ -26,8 +59,9 @@ class GovernedFileDataSourceControllerTest {
         var synchronizations = mock(FileDataSourceSynchronizationService.class);
         var publications = mock(FileSyncArtifactPublicationService.class);
         var lifecycle = mock(GovernedDataSourceLifecycleService.class);
+        var queries = mock(GovernedFileDataSourceQueryService.class);
         var controller = new GovernedFileDataSourceController(
-                registration, probes, synchronizations, publications, lifecycle);
+                registration, probes, synchronizations, publications, lifecycle, queries);
         var context = mock(TrustedRequestContext.class);
         var expected = new GovernedDataSourceLifecycleResult(
                 "3001", "2001", GovernedDataSourceStatus.READY, 2);
@@ -52,8 +86,9 @@ class GovernedFileDataSourceControllerTest {
         var synchronizations = mock(FileDataSourceSynchronizationService.class);
         var publications = mock(FileSyncArtifactPublicationService.class);
         var lifecycle = mock(GovernedDataSourceLifecycleService.class);
+        var queries = mock(GovernedFileDataSourceQueryService.class);
         var controller = new GovernedFileDataSourceController(
-                registration, probes, synchronizations, publications, lifecycle);
+                registration, probes, synchronizations, publications, lifecycle, queries);
         var context = mock(TrustedRequestContext.class);
         var expected = new GovernedDataSourceLifecycleResult(
                 "3001", "2001", GovernedDataSourceStatus.READY, 4);
@@ -78,8 +113,9 @@ class GovernedFileDataSourceControllerTest {
         var synchronizations = mock(FileDataSourceSynchronizationService.class);
         var publications = mock(FileSyncArtifactPublicationService.class);
         var lifecycle = mock(GovernedDataSourceLifecycleService.class);
+        var queries = mock(GovernedFileDataSourceQueryService.class);
         var controller = new GovernedFileDataSourceController(
-                registration, probes, synchronizations, publications, lifecycle);
+                registration, probes, synchronizations, publications, lifecycle, queries);
         var context = mock(TrustedRequestContext.class);
         var expected = new GovernedDataSourceLifecycleResult(
                 "3001", "2001", GovernedDataSourceStatus.RETIRED, 5);
@@ -105,8 +141,9 @@ class GovernedFileDataSourceControllerTest {
         var synchronizations = mock(FileDataSourceSynchronizationService.class);
         var publications = mock(FileSyncArtifactPublicationService.class);
         var lifecycle = mock(GovernedDataSourceLifecycleService.class);
+        var queries = mock(GovernedFileDataSourceQueryService.class);
         var controller = new GovernedFileDataSourceController(
-                registration, probes, synchronizations, publications, lifecycle);
+                registration, probes, synchronizations, publications, lifecycle, queries);
         var context = mock(TrustedRequestContext.class);
         var expected = new GovernedDataSourceLifecycleResult(
                 "3001", "2001", GovernedDataSourceStatus.READY, 5);

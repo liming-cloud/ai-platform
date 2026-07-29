@@ -158,6 +158,18 @@
       "reason": "按租户、知识空间和产物标识读取发布事实，避免跨范围产物被作为当前来源使用。"
     },
     {
+      "path": "backend/contexts/knowledge-data/src/main/resources/mapper/knowledge-data/GovernedFileDataSourceReadMapper.xml",
+      "statementId": "selectPage",
+      "category": "SECURITY_PROJECTION",
+      "reason": "按租户、知识空间和 FILE 类型读取来源摘要，并只投影每个来源当前的已发布产物。"
+    },
+    {
+      "path": "backend/contexts/knowledge-data/src/main/resources/mapper/knowledge-data/GovernedFileDataSourceReadMapper.xml",
+      "statementId": "count",
+      "category": "SECURITY_PROJECTION",
+      "reason": "使用与 FILE 来源列表完全一致的租户、知识空间和类型范围计算总数，避免跨范围数量泄露。"
+    },
+    {
       "path": "backend/contexts/model-runtime/src/main/resources/mapper/model-runtime/ModelDeploymentMapper.xml",
       "statementId": "lockTenant",
       "category": "POSTGRES_ADVISORY_LOCK",

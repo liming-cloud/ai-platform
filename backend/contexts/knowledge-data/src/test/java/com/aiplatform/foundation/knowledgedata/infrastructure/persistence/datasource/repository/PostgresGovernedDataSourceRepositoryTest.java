@@ -19,6 +19,8 @@ import com.aiplatform.foundation.knowledgedata.domain.datasource.revision.Source
 import com.aiplatform.foundation.knowledgedata.domain.datasource.model.SyncArtifact;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.model.SyncArtifactId;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.repository.GovernedDataSourceRepository;
+import com.aiplatform.foundation.knowledgedata.application.datasource.port.out.GovernedFileDataSourceReadPort;
+import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.mapper.GovernedFileDataSourceReadMapper;
 import com.aiplatform.foundation.knowledgedata.domain.knowledge.model.KnowledgeSpaceId;
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.mapper.GovernedDataSourceMapper;
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.mapper.PublishedSyncArtifactMapper;
@@ -77,6 +79,9 @@ class PostgresGovernedDataSourceRepositoryTest {
 
     @Autowired
     private PublishedSyncArtifactMapper publicationMapper;
+
+    @Autowired
+    private GovernedFileDataSourceReadPort reads;
 
     @DynamicPropertySource
     static void databaseProperties(DynamicPropertyRegistry registry) {
@@ -205,6 +210,44 @@ class PostgresGovernedDataSourceRepositoryTest {
                 publicationMapper.findByArtifact(
                         CAMPUS_TENANT.value(), SPACE.value(), artifact.id().value()));
         assertEquals(1, count("published_sync_artifact", STORE_TENANT));
+    }
+
+    @Test
+    void FILE列表只返回当前租户的最新发布产物摘要() {
+        var source = source(STORE_TENANT, nextSourceId(), "可重建文件");
+        repository.register(source, revision(source, "a".repeat(64)));
+        var firstSync = startSynchronization(source);
+        var firstArtifact = artifact(source, "b".repeat(64));
+        var firstReady = repository.completeSynchronization(
+                firstArtifact,
+                QualityReport.passed(firstArtifact, "file-quality-v1"),
+                firstSync.version());
+        var firstPublished = repository.publishArtifact(PublishedSyncArtifact.create(
+                firstArtifact,
+                QualityReport.passed(firstArtifact, "file-quality-v1"),
+                CREATED_AT.plusSeconds(120)), firstReady.version());
+        var secondSync = firstPublished.startSynchronization(firstPublished.version());
+        assertTrue(repository.update(secondSync, firstPublished.version()));
+        var secondArtifact = artifact(source, "c".repeat(64));
+        var secondReady = repository.completeSynchronization(
+                secondArtifact,
+                QualityReport.warned(secondArtifact, "file-quality-v2", 1),
+                secondSync.version());
+        repository.publishArtifact(PublishedSyncArtifact.create(
+                secondArtifact,
+                QualityReport.warned(secondArtifact, "file-quality-v2", 1),
+                CREATED_AT.plusSeconds(240)), secondReady.version());
+
+        var page = reads.list(STORE_TENANT, SPACE, new com.aiplatform.foundation.shared.contract.paging.PageQuery(1, 20));
+
+        assertEquals(1, page.totalElements());
+        var item = page.items().getFirst();
+        assertEquals(source.id().toString(), item.dataSourceId());
+        assertEquals(secondArtifact.id().toString(), item.publishedArtifactId());
+        assertEquals("WARN", item.publishedQualityStatus());
+        assertEquals("可重建文件", item.displayName());
+        assertEquals(0, reads.list(CAMPUS_TENANT, SPACE,
+                new com.aiplatform.foundation.shared.contract.paging.PageQuery(1, 20)).totalElements());
     }
 
     @Test
@@ -403,6 +446,12 @@ class PostgresGovernedDataSourceRepositoryTest {
                     qualityMapper,
                     publicationMapper,
                     transactions);
+        }
+
+        @Bean
+        GovernedFileDataSourceReadPort governedFileDataSourceReadPort(
+                GovernedFileDataSourceReadMapper mapper) {
+            return new PostgresGovernedFileDataSourceReadAdapter(mapper);
         }
     }
 }

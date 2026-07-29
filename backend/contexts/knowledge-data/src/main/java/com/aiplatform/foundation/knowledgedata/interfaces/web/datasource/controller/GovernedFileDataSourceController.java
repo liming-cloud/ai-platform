@@ -7,13 +7,18 @@ import com.aiplatform.foundation.knowledgedata.application.datasource.command.Sy
 import com.aiplatform.foundation.knowledgedata.application.datasource.command.GovernedDataSourceLifecycleAction;
 import com.aiplatform.foundation.knowledgedata.application.datasource.command.GovernedDataSourceLifecycleCommand;
 import com.aiplatform.foundation.knowledgedata.application.datasource.dto.GovernedDataSourceLifecycleResult;
+import com.aiplatform.foundation.knowledgedata.application.datasource.dto.GovernedFileDataSourceSummary;
+import com.aiplatform.foundation.knowledgedata.application.datasource.query.ListGovernedFileDataSourcesQuery;
 import com.aiplatform.foundation.knowledgedata.application.datasource.service.FileDataSourceProbeService;
 import com.aiplatform.foundation.knowledgedata.application.datasource.service.FileDataSourceSynchronizationService;
 import com.aiplatform.foundation.knowledgedata.application.datasource.service.FileSyncArtifactPublicationService;
 import com.aiplatform.foundation.knowledgedata.application.datasource.service.GovernedDataSourceLifecycleService;
 import com.aiplatform.foundation.knowledgedata.application.datasource.service.GovernedFileDataSourceRegistrationService;
+import com.aiplatform.foundation.knowledgedata.application.datasource.service.GovernedFileDataSourceQueryService;
 import com.aiplatform.foundation.knowledgedata.application.datasource.exception.TextContentProcessingException;
 import com.aiplatform.foundation.security.identity.TrustedRequestContext;
+import com.aiplatform.foundation.shared.contract.paging.PageQuery;
+import com.aiplatform.foundation.shared.contract.paging.PageResult;
 import jakarta.servlet.http.HttpServletRequest;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -24,6 +29,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -37,7 +43,8 @@ import org.springframework.web.bind.annotation.RestController;
     FileDataSourceProbeService.class,
     FileDataSourceSynchronizationService.class,
     FileSyncArtifactPublicationService.class,
-    GovernedDataSourceLifecycleService.class
+    GovernedDataSourceLifecycleService.class,
+    GovernedFileDataSourceQueryService.class
 })
 @RequestMapping("/api/v1/governed-data-sources")
 public class GovernedFileDataSourceController {
@@ -46,18 +53,36 @@ public class GovernedFileDataSourceController {
     private final FileDataSourceSynchronizationService synchronizations;
     private final FileSyncArtifactPublicationService publications;
     private final GovernedDataSourceLifecycleService lifecycle;
+    private final GovernedFileDataSourceQueryService queries;
 
     public GovernedFileDataSourceController(
             GovernedFileDataSourceRegistrationService registration,
             FileDataSourceProbeService probes,
             FileDataSourceSynchronizationService synchronizations,
             FileSyncArtifactPublicationService publications,
-            GovernedDataSourceLifecycleService lifecycle) {
+            GovernedDataSourceLifecycleService lifecycle,
+            GovernedFileDataSourceQueryService queries) {
         this.registration = Objects.requireNonNull(registration, "文件来源登记用例不能为空");
         this.probes = Objects.requireNonNull(probes, "文件来源探测用例不能为空");
         this.synchronizations = Objects.requireNonNull(synchronizations, "文件来源同步用例不能为空");
         this.publications = Objects.requireNonNull(publications, "同步产物发布用例不能为空");
         this.lifecycle = Objects.requireNonNull(lifecycle, "来源生命周期用例不能为空");
+        this.queries = Objects.requireNonNull(queries, "FILE 来源查询用例不能为空");
+    }
+
+    /**
+     * 只返回当前租户知识空间内的 FILE 来源与当前已发布产物摘要。
+     *
+     * <p>该入口不接收对象位置、连接参数或来源正文；权限与租户范围由可信请求上下文在应用服务中复核。</p>
+     */
+    @GetMapping("/files")
+    public PageResult<GovernedFileDataSourceSummary> list(
+            TrustedRequestContext context,
+            @RequestParam String knowledgeSpaceId,
+            @RequestParam(defaultValue = "1") long pageNumber,
+            @RequestParam(defaultValue = "20") long pageSize) {
+        return queries.list(new ListGovernedFileDataSourcesQuery(
+                context, knowledgeSpaceId, new PageQuery(pageNumber, pageSize)));
     }
 
     /**
