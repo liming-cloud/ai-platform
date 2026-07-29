@@ -7,7 +7,10 @@ import com.aiplatform.foundation.knowledgedata.application.datasource.exception.
 import com.aiplatform.foundation.knowledgedata.application.datasource.port.out.FileSourceObjectProbe;
 import com.aiplatform.foundation.knowledgedata.application.knowledge.exception.KnowledgePermissionDeniedException;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.model.DataSourceId;
+import com.aiplatform.foundation.knowledgedata.domain.datasource.model.DataSourceOperation;
+import com.aiplatform.foundation.knowledgedata.domain.datasource.model.DataSourceStateException;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.model.GovernedDataSource;
+import com.aiplatform.foundation.knowledgedata.domain.datasource.model.GovernedDataSourceStatus;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.model.GovernedDataSourceType;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.repository.GovernedDataSourceRepository;
 import com.aiplatform.foundation.knowledgedata.domain.knowledge.model.KnowledgeSpaceId;
@@ -49,7 +52,7 @@ public final class FileDataSourceProbeService {
         if (source.version() != command.expectedVersion()) {
             throw new DataSourceConcurrentModificationException();
         }
-        var probing = source.startProbe(command.expectedVersion());
+        var probing = startOrResumeProbe(source, command.expectedVersion());
         if (!repository.update(probing, command.expectedVersion())) {
             throw new DataSourceConcurrentModificationException();
         }
@@ -72,6 +75,20 @@ public final class FileDataSourceProbeService {
         if (!repository.update(source, expectedVersion)) {
             throw new DataSourceConcurrentModificationException();
         }
+    }
+
+    /**
+     * 仅允许失败于探测的来源恢复为探测中，避免把同步失败误作为文件探测重试。
+     */
+    private static GovernedDataSource startOrResumeProbe(
+            GovernedDataSource source, long expectedVersion) {
+        if (source.status() != GovernedDataSourceStatus.FAILED) {
+            return source.startProbe(expectedVersion);
+        }
+        if (source.failedOperation() != DataSourceOperation.PROBE) {
+            throw new DataSourceStateException("当前失败操作不允许重新探测");
+        }
+        return source.retry(expectedVersion);
     }
 
     private static GovernedDataSourceLifecycleResult result(GovernedDataSource source) {

@@ -14,6 +14,7 @@ import com.aiplatform.foundation.knowledgedata.application.datasource.port.out.F
 import com.aiplatform.foundation.knowledgedata.application.knowledge.exception.KnowledgePermissionDeniedException;
 import com.aiplatform.foundation.knowledgedata.domain.common.model.CreatorId;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.model.DataSourceId;
+import com.aiplatform.foundation.knowledgedata.domain.datasource.model.DataSourceStateException;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.model.GovernedDataSource;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.model.GovernedDataSourceStatus;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.model.GovernedDataSourceType;
@@ -95,6 +96,54 @@ class FileDataSourceProbeServiceTest {
 
         assertEquals(GovernedDataSourceStatus.FAILED, result.status());
         assertEquals(2, result.version());
+    }
+
+    @Test
+    void 探测失败后重新探测先恢复探测状态再核验冻结对象() {
+        var repository = mock(GovernedDataSourceRepository.class);
+        var probe = mock(FileSourceObjectProbe.class);
+        var failed = source().startProbe(0).failProbe(1);
+        var revision = revision(failed);
+        when(repository.findSource(TENANT, SPACE, SOURCE_ID)).thenReturn(Optional.of(failed));
+        when(repository.findRevision(TENANT, SPACE, SOURCE_ID, 1)).thenReturn(Optional.of(revision));
+        when(repository.update(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.anyLong()))
+                .thenReturn(true);
+        var service = new FileDataSourceProbeService(repository, probe);
+
+        var result = service.probe(command(true, 2));
+
+        assertEquals(GovernedDataSourceStatus.READY, result.status());
+        assertEquals(4, result.version());
+        var order = inOrder(repository, probe);
+        order.verify(repository).update(org.mockito.ArgumentMatchers.argThat(
+                candidate -> candidate.status() == GovernedDataSourceStatus.PROBING),
+                org.mockito.ArgumentMatchers.eq(2L));
+        order.verify(repository).findRevision(TENANT, SPACE, SOURCE_ID, 1);
+        order.verify(probe).verify(revision);
+        order.verify(repository).update(org.mockito.ArgumentMatchers.argThat(
+                candidate -> candidate.status() == GovernedDataSourceStatus.READY),
+                org.mockito.ArgumentMatchers.eq(3L));
+    }
+
+    @Test
+    void 同步失败不能被文件探测入口恢复且不访问对象() {
+        var repository = mock(GovernedDataSourceRepository.class);
+        var probe = mock(FileSourceObjectProbe.class);
+        var synchronizationFailure = source().startProbe(0)
+                .completeProbe(1)
+                .startSynchronization(2)
+                .failSynchronization(3);
+        when(repository.findSource(TENANT, SPACE, SOURCE_ID))
+                .thenReturn(Optional.of(synchronizationFailure));
+        var service = new FileDataSourceProbeService(repository, probe);
+
+        assertThrows(DataSourceStateException.class, () -> service.probe(command(true, 4)));
+
+        verifyNoInteractions(probe);
+        verify(repository, org.mockito.Mockito.never())
+                .update(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.anyLong());
+        verify(repository, org.mockito.Mockito.never())
+                .findRevision(TENANT, SPACE, SOURCE_ID, 1);
     }
 
     @Test

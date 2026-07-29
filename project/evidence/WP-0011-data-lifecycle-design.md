@@ -237,3 +237,35 @@ ADR-0028 定义 `GovernedDataSource`、`SourceRevision`、`SyncArtifact`、`Qual
 - 运行差异：初次打开的浏览器标签命中旧的静态资源缓存，未出现 M3 入口。以查询参数重新打开本地控制台后加载当前构建，入口与上述验收路径正常可用；本次以当前构建完成验收。
 
 本记录只覆盖 FILE 来源的正向“登记 → 探测”浏览器闭环。M3 的失败、未授权、恢复及更完整生命周期验收仍未完成，因此不得据此进入 M4 或申请 M3 人工评审。
+
+## FILE 探测失败后的浏览器恢复切片（2026-07-29）
+
+### 红绿记录
+
+- 红灯：先在 `FileDataSourceProbeServiceTest` 增加“探测失败后重新探测”用例，运行
+  `JAVA_HOME=/Users/lingou/Library/Java/JavaVirtualMachines/openjdk-26.0.2/Contents/Home ./mvnw -Dmaven.repo.local=/tmp/ai-mesh-m2 -q -pl backend/contexts/knowledge-data -am -Dtest=FileDataSourceProbeServiceTest -Dsurefire.failIfNoSpecifiedTests=false test`。
+  用例按预期抛出 `DataSourceStateException`：原实现只能从 `DRAFT` 开始探测，不能恢复 `FAILED(PROBE)`。
+- 绿灯：仅在 `FileDataSourceProbeService` 中将 `FAILED(PROBE)` 映射为领域对象的 `retry`，并明确拒绝 `FAILED(SYNCHRONIZATION)`。运行
+  `JAVA_HOME=/Users/lingou/Library/Java/JavaVirtualMachines/openjdk-26.0.2/Contents/Home ./mvnw -Dmaven.repo.local=/tmp/ai-mesh-m2 -q -pl backend/contexts/knowledge-data -am -Dtest=FileDataSourceProbeServiceTest,GovernedFileDataSourceControllerTest,PostgresGovernedDataSourceRepositoryTest -Dsurefire.failIfNoSpecifiedTests=false test` 与 `git diff --check`，均通过。真实 PostgreSQL 容器已完成迁移并通过状态持久化回归。
+
+### 浏览器失败与恢复验收
+
+- 以本地演示租户知识管理员在企业控制台创建新的合成 UTF-8 文件来源。
+- 仅执行可恢复的本地 `docker compose stop minio`，不删除对象或数据卷；在同一页面点击“开始探测”后，来源状态变为 `FAILED`，操作按钮变为“重新探测”。
+- 执行 `docker compose start minio`，确认服务恢复 `healthy`；在同一来源点击“重新探测”后，状态变为 `READY`，页面显示“探测已通过”。
+- 这是浏览器经由 HTTP 和真实对象存储完成的恢复路径，不是直接调用应用服务或伪造前端状态。
+
+### 六维检查
+
+- 正确性：`FAILED(PROBE) → PROBING → READY` 使用两次乐观状态更新；测试校验恢复后先写入 `PROBING`、再读取冻结修订和访问对象，最后写入 `READY`。浏览器验收复现同一闭环。
+- 安全：只允许此前失败于 `PROBE` 的来源重试；同步失败明确拒绝且不读取对象。浏览器页面仍只显示状态与数据源编号，不回显正文、对象位置、摘要或凭据。
+- 复杂度：复用既有领域 `retry` 规则，只增加一个私有状态选择方法和两个针对性测试，没有引入新端点、队列或重试框架。
+- 性能：恢复探测保持原有两次短条件更新和一次对象核验；对象 I/O 不进入数据库事务，失败不会重试循环。
+- 架构：代码图谱探索 `FileDataSourceProbeService`、`GovernedDataSource`、`GovernedFileDataSourceController` 与企业控制台任务；影响分析限于 FILE 探测服务、控制器、自动装配和对应测试，未波及旧文本发布路径。
+- 测试质量：先获得“失败来源不能重新探测”的实际红灯，再以同一测试转绿；另有同步失败反例保证错误恢复范围不扩张，并以真实浏览器和本地对象存储完成失败—恢复验证。
+
+### 全量门禁状态
+
+本切片的针对性测试、真实 PostgreSQL 回归和 `git diff --check` 均通过。2026-07-29 两次执行 `make project-verify`／`make validate` 均在本切片之外的 `AssistantApiTest.租户管理员可创建助手冻结引用发布并隔离列表` 停止：助手版本响应的 `chatDeploymentRevision` 为 `null`，而测试契约要求 `long`。本切片没有修改助手、模型部署或控制面响应代码，因此该全量门禁失败已登记为独立风险，不能被解释为 FILE 恢复切片通过，也不能据此标记 WP-0011 完成。
+
+本切片补齐 FILE 探测的失败恢复，不覆盖 M3 尚未交付的同步、质量、退役、索引等能力；M3 仍不得进入人工评审或 M4。
