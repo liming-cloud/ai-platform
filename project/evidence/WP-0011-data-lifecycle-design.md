@@ -44,3 +44,19 @@ ADR-0028 定义 `GovernedDataSource`、`SourceRevision`、`SyncArtifact`、`Qual
 - 性能：仅执行常量时间的值校验与对象复制，不进行 I/O、数据库或外部调用。
 - 架构：实现位于 `knowledge-data` 领域层，仅依赖共享内核和本上下文值对象；未引入框架类型。
 - 测试质量：先获得缺类编译红灯，再以相同命令转绿；完整知识数据上下文回归通过。
+
+## 同步产物与质量事实红绿切片
+
+- 红灯：运行
+  `JAVA_HOME=/Users/lingou/Library/Java/JavaVirtualMachines/openjdk-26.0.2/Contents/Home ./mvnw -Dmaven.repo.local=/tmp/ai-mesh-m2 -q -pl backend/contexts/knowledge-data -am -Dtest=SyncArtifactTest -Dsurefire.failIfNoSpecifiedTests=false test`。
+  测试因 `SyncArtifact`、`SyncArtifactId`、`QualityReport` 和 `QualityStatus` 缺失而编译失败。
+- 绿灯：同一命令在领域实现后通过，并额外执行 `git diff --check` 通过。
+
+### 六维检查
+
+- 正确性：`SyncArtifactTest` 验证来源修订、SHA-256 摘要、记录数和同步时间冻结；`BLOCK` 质量结论拒绝发布判断，`PASS` 与 `WARN` 可继续。
+- 安全：产物仅保存摘要和计数，不保存正文、对象存储认证材料或连接配置；质量报告不包含问题正文。
+- 复杂度：四个值对象/实体类型只承担不可变事实与发布判断，没有新增服务、仓储或通用规则引擎。
+- 性能：构造与发布判断为常量时间内存操作；摘要只验证格式，不重复读取内容或计算哈希。
+- 架构：类型位于 `knowledge-data` 领域层，只有 JDK、共享内核与本上下文值对象依赖；持久化和审计仍留在后续 adapter 切片。
+- 测试质量：先以缺类编译红灯证明 seam，再用相同测试命令转绿；下一持久化切片须补充真实 PostgreSQL 提交、回滚、隔离与并发反例。
