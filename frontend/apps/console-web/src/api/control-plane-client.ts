@@ -30,6 +30,13 @@ export interface TextDataSource {
   createdAt: string;
 }
 
+export interface GovernedDataSourceLifecycleResult {
+  dataSourceId: string;
+  knowledgeSpaceId: string;
+  status: string;
+  version: number;
+}
+
 export interface IndexVersion {
   id: string;
   knowledgeSpaceId: string;
@@ -258,6 +265,22 @@ export class ControlPlaneClient {
           "text/plain; charset=UTF-8",
           idempotencyKey,
         ),
+        body: content,
+      },
+    );
+  }
+
+  async registerFileDataSource(
+    knowledgeSpaceId: string,
+    name: string,
+    content: string,
+  ): Promise<GovernedDataSourceLifecycleResult> {
+    const query = new URLSearchParams({ knowledgeSpaceId, name });
+    return this.request<GovernedDataSourceLifecycleResult>(
+      `/governed-data-sources/files?${query}`,
+      {
+        method: "POST",
+        headers: this.writeHeaders("text/plain; charset=UTF-8"),
         body: content,
       },
     );
