@@ -269,3 +269,34 @@ ADR-0028 定义 `GovernedDataSource`、`SourceRevision`、`SyncArtifact`、`Qual
 本切片的针对性测试、真实 PostgreSQL 回归和 `git diff --check` 均通过。2026-07-29 两次执行 `make project-verify`／`make validate` 均在本切片之外的 `AssistantApiTest.租户管理员可创建助手冻结引用发布并隔离列表` 停止：助手版本响应的 `chatDeploymentRevision` 为 `null`，而测试契约要求 `long`。本切片没有修改助手、模型部署或控制面响应代码，因此该全量门禁失败已登记为独立风险，不能被解释为 FILE 恢复切片通过，也不能据此标记 WP-0011 完成。
 
 本切片补齐 FILE 探测的失败恢复，不覆盖 M3 尚未交付的同步、质量、退役、索引等能力；M3 仍不得进入人工评审或 M4。
+
+## FILE 同步、质量事实与 HTTP 闭环切片（2026-07-29）
+
+### 红绿记录
+
+- 红灯：先新增 `FileDataSourceSynchronizationServiceTest`，运行
+  `JAVA_HOME=/Users/lingou/Library/Java/JavaVirtualMachines/openjdk-26.0.2/Contents/Home ./mvnw -Dmaven.repo.local=/tmp/ai-mesh-m2 -q -pl backend/contexts/knowledge-data -am -Dtest=FileDataSourceSynchronizationServiceTest -Dsurefire.failIfNoSpecifiedTests=false test`。
+  测试按预期因 `SynchronizeFileDataSourceCommand` 与 `FileDataSourceSynchronizationService` 尚不存在而编译失败。
+- 绿灯：代码提交 `ddf23caf5ce23c29528163d041af2e7b605270ec` 后运行
+  `JAVA_HOME=/Users/lingou/Library/Java/JavaVirtualMachines/openjdk-26.0.2/Contents/Home ./mvnw -Dmaven.repo.local=/tmp/ai-mesh-m2 -q -pl backend/contexts/knowledge-data -am -Dtest=FileDataSourceSynchronizationServiceTest,FileDataSourceProbeServiceTest,GovernedFileDataSourceRegistrationServiceTest,GovernedFileDataSourceControllerTest,TextContentFileSourceObjectProbeTest,PostgresGovernedDataSourceRepositoryTest,KnowledgeDataAutoConfigurationTest -Dsurefire.failIfNoSpecifiedTests=false test` 与 `git diff --check`，均通过。
+- 真实控制面绿灯：运行
+  `JAVA_HOME=/Users/lingou/Library/Java/JavaVirtualMachines/openjdk-26.0.2/Contents/Home ./mvnw -Dmaven.repo.local=/tmp/ai-mesh-m2 -q -pl backend/bootstrap/control-plane-bootstrap -am -Dtest=TextDataSourceApiTest -Dsurefire.failIfNoSpecifiedTests=false test`。
+  Testcontainers PostgreSQL、Redis 与完整 HTTP 链路通过：FILE 登记、探测、同步后真实数据库各有一个 `sync_artifact` 与 `PASS` 质量报告。
+
+### 已验证事实
+
+- `POST /api/v1/governed-data-sources/files/{dataSourceId}/synchronization` 只接受知识空间和预期修订；租户、权限、对象键与对象正文不由调用方提交。
+- 同步先以乐观修订持久化 `SYNCING`，随后在事务外流式读取当前冻结文件对象，重算 SHA-256 与字节数。任何读取或完整性失败只登记 `FAILED(SYNCHRONIZATION)`，不保存产物或质量半成品。
+- 成功同步创建不可变 `SyncArtifact`，首个规则集 `file-integrity-v1` 只确认冻结对象完整性并生成 `PASS`；产物、质量结论与来源回到 `READY` 仍复用仓储的同一事务完成契约。
+- 仅 `FAILED(SYNCHRONIZATION)` 可以从同步入口恢复到 `SYNCING`；探测失败不会被误作同步重试。无 `knowledge:write` 权限时在来源与对象读取前拒绝。
+
+### 六维检查与评审
+
+- 正确性：单元测试覆盖成功、摘要不一致失败、同步恢复和权限前置；真实 HTTP 测试覆盖 `DRAFT → READY → SYNCING → READY` 及产物、质量事实提交。
+- 安全：对象位置和正文不反显，失败路径不返回存储异常；所有查询仍使用可信租户与知识空间边界。
+- 复杂度：新增一个命令、一个应用服务和一个端点，复用既有对象存储端口与原子仓储契约，未引入连接器注册表或后台任务。
+- 性能：按 8 KiB 缓冲流式计算摘要；外部对象 I/O 位于短数据库状态更新之外。
+- 架构：代码图谱探索 `TextContentObjectStoragePort`、`GovernedDataSourceRepository`、`GovernedDataSource` 与 `FileDataSourceProbeService`，影响分析确认同步服务仅依赖领域仓储与出站对象端口；`interfaces → application → domain` 方向保持不变。
+- 测试质量：红灯为缺少公共 seam 的实际编译失败，绿灯包含 Mockito 行为反例、真实 PostgreSQL 原子仓储契约和完整控制面 HTTP 测试。固定变更集按 `tdd`、`code-review` 复核，无未关闭可执行问题。
+
+本切片仅完成首个 FILE 的完整性同步与 `PASS` 质量事实；尚未实现可配置质量规则、对象存储与结构化数据集连接器、来源发布／退役和索引重建，因此 M3 继续进行，不能进入人工评审或 M4。
