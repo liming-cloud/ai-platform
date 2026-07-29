@@ -1,7 +1,7 @@
 package com.aiplatform.foundation.knowledgedata.domain.datasource.model;
 
 import com.aiplatform.foundation.knowledgedata.domain.knowledge.model.KnowledgeSpaceId;
-import com.aiplatform.foundation.shared.kernel.domain.Entity;
+import com.aiplatform.foundation.shared.kernel.domain.AggregateRoot;
 import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
 import java.time.Instant;
 import java.util.Objects;
@@ -11,7 +11,7 @@ import java.util.Objects;
  *
  * <p>产物冻结来源修订、内容摘要和记录数量，后续质量与索引只能引用该事实，不能读取可变连接配置。</p>
  */
-public final class SyncArtifact implements Entity<SyncArtifactId> {
+public final class SyncArtifact implements AggregateRoot<SyncArtifactId> {
 
     private final SyncArtifactId id;
     private final TenantId tenantId;

@@ -2,6 +2,7 @@ package com.aiplatform.foundation.assistantdelivery.infrastructure.configuration
 
 import com.aiplatform.foundation.assistantdelivery.application.assistant.service.AssistantService;
 import com.aiplatform.foundation.assistantdelivery.domain.assistant.repository.AssistantRepository;
+import com.aiplatform.foundation.assistantdelivery.domain.assistant.service.AssistantVersioning;
 import com.aiplatform.foundation.knowledgedata.application.indexversion.facade.ActiveIndexLookup;
 import com.aiplatform.foundation.modelruntime.application.configuration.facade.UsableModelConfigurationLookup;
 import com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator;
@@ -43,6 +44,7 @@ public class AssistantDeliveryManagementAutoConfiguration {
                 activeIndexes,
                 Clock.systemUTC(),
                 identifiers,
+                new AssistantVersioning(),
                 properties.getAssistantLimit(),
                 properties.getVersionLimit());
     }

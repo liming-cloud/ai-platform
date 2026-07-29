@@ -62,7 +62,7 @@ public final class PersonAuthenticationService {
         return sessions.issue(new TrustedRequestContext(
                 authenticated.tenantId(),
                 new SubjectId(authenticated.subjectId().value()),
-                new MembershipId(authenticated.id().value()),
+                new MembershipId(authenticated.membershipId().value()),
                 CredentialType.PERSON,
                 command.channel(),
                 authenticated.permissionVersion(),

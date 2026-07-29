@@ -23,7 +23,7 @@ class MemberAuthenticationProfileTest {
 
         assertEquals(new TenantId(101L), profile.tenantId());
         assertEquals(new SubjectId(102L), profile.subjectId());
-        assertEquals(new MemberId(103L), profile.id());
+        assertEquals(new MemberId(103L), profile.membershipId());
         assertEquals(7, profile.permissionVersion());
         assertEquals(Set.of(permission), profile.permissions());
         assertEquals("[已脱敏]", profile.encodedPassword().toString());

@@ -12,6 +12,8 @@ import com.aiplatform.foundation.knowledgedata.domain.datasource.quality.Quality
 import com.aiplatform.foundation.knowledgedata.domain.datasource.quality.QualityStatus;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.revision.FileSourceObjectReference;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.revision.SourceRevision;
+import com.aiplatform.foundation.knowledgedata.domain.datasource.service.FileSynchronizationCompletion;
+import com.aiplatform.foundation.knowledgedata.domain.datasource.service.FileSyncArtifactPublication;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.model.SyncArtifact;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.model.SyncArtifactId;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.repository.GovernedDataSourceRepository;
@@ -34,10 +36,10 @@ import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
 /**
- * 使用 PostgreSQL 原子登记受治理来源、来源修订和同步质量事实。
+ * 使用 PostgreSQL 原子提交受治理数据源领域操作结果。
  *
- * <p>先写入同步产物再校验质量归属，是为了让同一真实事务证明：任何后续事实校验失败都会回滚前序产物，
- * 不会向索引流程留下半成品。</p>
+ * <p>领域服务已完成来源归属、质量和状态机校验；本实现只执行映射、来源锁定、乐观更新和同一事务提交，
+ * 任何技术失败都会回滚前序写入，不向索引流程留下半成品。</p>
  */
 public final class PostgresGovernedDataSourceRepository implements GovernedDataSourceRepository {
 
@@ -68,7 +70,6 @@ public final class PostgresGovernedDataSourceRepository implements GovernedDataS
     public void register(GovernedDataSource source, SourceRevision revision) {
         Objects.requireNonNull(source, "受治理数据源不能为空");
         Objects.requireNonNull(revision, "来源修订不能为空");
-        requireSameSource(source, revision);
         transactions.executeWithoutResult(status -> {
             sourceMapper.insert(toEntity(source));
             revisionMapper.insert(toEntity(revision));
@@ -76,101 +77,49 @@ public final class PostgresGovernedDataSourceRepository implements GovernedDataS
     }
 
     @Override
-    public GovernedDataSource completeSynchronization(
-            SyncArtifact artifact,
-            QualityReport report,
-            long expectedVersion) {
-        Objects.requireNonNull(artifact, "同步产物不能为空");
-        Objects.requireNonNull(report, "质量结论不能为空");
-        if (expectedVersion < 0) {
-            throw new IllegalArgumentException("预期来源修订不能为负数");
-        }
-        var result = transactions.execute(status -> {
-            var row = sourceMapper.findByScopeForUpdate(
-                    artifact.tenantId().value(),
-                    artifact.knowledgeSpaceId().value(),
-                    artifact.dataSourceId().value());
-            if (row == null) {
-                throw new DataSourceStateException("同步产物所属数据源不存在或不可访问");
-            }
-            var current = toDomain(row);
-            var completed = current.completeSynchronization(expectedVersion);
-            if (revisionMapper.countByScope(
-                    artifact.tenantId().value(),
-                    artifact.knowledgeSpaceId().value(),
-                    artifact.dataSourceId().value(),
-                    artifact.sourceRevision()) != 1L) {
-                throw new IllegalArgumentException("同步产物引用的来源修订不存在");
-            }
-            artifactMapper.insert(toEntity(artifact));
-            if (!report.artifact().id().equals(artifact.id())) {
-                throw new IllegalArgumentException("质量结论必须归属于待登记的同步产物");
-            }
-            qualityMapper.insert(toEntity(report));
+    public void completeSynchronization(FileSynchronizationCompletion completion) {
+        var result = Objects.requireNonNull(completion, "文件同步完成结果不能为空");
+        transactions.executeWithoutResult(status -> {
+            var completed = result.completedSource();
+            lockSource(completed);
             if (sourceMapper.updateLifecycle(
                     completed.tenantId().value(),
                     completed.knowledgeSpaceId().value(),
                     completed.id().value(),
-                    expectedVersion,
+                    result.expectedSourceVersion(),
                     completed.version(),
                     completed.status().name(),
                     null) != 1) {
                 throw new DataSourceStateException("同步完成时数据源修订已变化");
             }
-            return completed;
+            artifactMapper.insert(toEntity(result.artifact()));
+            qualityMapper.insert(toEntity(result.qualityReport()));
         });
-        return Objects.requireNonNull(result, "同步完成事务没有返回数据源");
     }
 
     @Override
-    public GovernedDataSource publishArtifact(PublishedSyncArtifact publication, long expectedVersion) {
-        Objects.requireNonNull(publication, "发布产物不能为空");
-        if (expectedVersion < 0) {
-            throw new IllegalArgumentException("预期来源修订不能为负数");
-        }
-        var result = transactions.execute(status -> {
-            var requestedArtifact = publication.artifact();
-            var row = sourceMapper.findByScopeForUpdate(
-                    requestedArtifact.tenantId().value(),
-                    requestedArtifact.knowledgeSpaceId().value(),
-                    requestedArtifact.dataSourceId().value());
-            if (row == null) {
-                throw new DataSourceStateException("待发布产物所属数据源不存在或不可访问");
-            }
-            var current = toDomain(row);
-            var storedArtifact = findStoredArtifact(requestedArtifact);
-            if (!storedArtifact.dataSourceId().equals(current.id())) {
-                throw new DataSourceStateException("待发布产物不属于当前数据源");
-            }
-            var storedReport = findStoredQualityReport(storedArtifact);
-            storedReport.requirePublishable();
-            if (storedReport.status() != publication.qualityStatus()
-                    || !storedReport.ruleSetVersion().equals(publication.ruleSetVersion())) {
-                throw new DataSourceStateException("待发布产物的质量结论已变化");
-            }
-            var published = current.publishArtifact(expectedVersion);
+    public void publishArtifact(FileSyncArtifactPublication publication) {
+        var result = Objects.requireNonNull(publication, "文件同步产物发布结果不能为空");
+        transactions.executeWithoutResult(status -> {
+            var published = result.publishedSource();
+            lockSource(published);
             if (sourceMapper.updateLifecycle(
                     published.tenantId().value(),
                     published.knowledgeSpaceId().value(),
                     published.id().value(),
-                    expectedVersion,
+                    result.expectedSourceVersion(),
                     published.version(),
                     published.status().name(),
                     null) != 1) {
                 throw new DataSourceStateException("发布产物时数据源修订已变化");
             }
-            publicationMapper.insert(toEntity(publication, published.version()));
-            return published;
+            publicationMapper.insert(toEntity(result.publication(), published.version()));
         });
-        return Objects.requireNonNull(result, "发布同步产物事务没有返回数据源");
     }
 
     @Override
     public boolean update(GovernedDataSource source, long expectedVersion) {
         Objects.requireNonNull(source, "受治理数据源不能为空");
-        if (expectedVersion < 0 || source.version() != expectedVersion + 1) {
-            throw new IllegalArgumentException("数据源状态更新修订不一致");
-        }
         return sourceMapper.updateLifecycle(
                 source.tenantId().value(),
                 source.knowledgeSpaceId().value(),
@@ -232,35 +181,11 @@ public final class PostgresGovernedDataSourceRepository implements GovernedDataS
         return Optional.ofNullable(row).map(value -> toDomain(value, artifact.orElseThrow()));
     }
 
-    private SyncArtifact findStoredArtifact(SyncArtifact requestedArtifact) {
-        var row = artifactMapper.selectOne(artifactQuery(
-                requestedArtifact.tenantId(),
-                requestedArtifact.knowledgeSpaceId(),
-                requestedArtifact.id()));
+    private void lockSource(GovernedDataSource source) {
+        var row = sourceMapper.findByScopeForUpdate(
+                source.tenantId().value(), source.knowledgeSpaceId().value(), source.id().value());
         if (row == null) {
-            throw new DataSourceStateException("待发布同步产物不存在或不可访问");
-        }
-        return toDomain(row);
-    }
-
-    private QualityReport findStoredQualityReport(SyncArtifact artifact) {
-        var row = qualityMapper.selectOne(Wrappers.<QualityReportEntity>lambdaQuery()
-                .eq(QualityReportEntity::getTenantId, artifact.tenantId().value())
-                .eq(QualityReportEntity::getKnowledgeSpaceId, artifact.knowledgeSpaceId().value())
-                .eq(QualityReportEntity::getArtifactId, artifact.id().value()));
-        if (row == null) {
-            throw new DataSourceStateException("待发布同步产物缺少质量结论");
-        }
-        return toDomain(row, artifact);
-    }
-
-    private static void requireSameSource(GovernedDataSource source, SourceRevision revision) {
-        if (!source.tenantId().equals(revision.tenantId())
-                || !source.knowledgeSpaceId().equals(revision.knowledgeSpaceId())
-                || !source.id().equals(revision.dataSourceId())
-                || source.type() != revision.sourceType()
-                || source.currentRevision() != revision.revision()) {
-            throw new IllegalArgumentException("来源修订必须属于同一受治理数据源");
+            throw new DataSourceStateException("受治理数据源不存在或不可访问");
         }
     }
 

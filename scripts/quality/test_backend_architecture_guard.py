@@ -270,6 +270,32 @@ class BackendArchitectureGuardTest(unittest.TestCase):
 
         self.assertEqual([], MODULE.compare(MODULE.scan(self.root), baseline))
 
+    def test_non_aggregate_entity_is_rejected(self):
+        baseline = MODULE.scan(self.root)
+        self.write_java(
+            "backend/contexts/demo/src/main/java/demo/domain/DemoEntity.java",
+            "final class DemoEntity implements Entity<DemoId> {}\n",
+        )
+
+        errors = MODULE.compare(MODULE.scan(self.root), baseline)
+
+        self.assertTrue(any("非聚合根实体" in error for error in errors))
+
+    def test_application_service_constructor_cannot_depend_on_value_object(self):
+        baseline = MODULE.scan(self.root)
+        self.write_java(
+            "backend/contexts/demo/src/main/java/demo/domain/DemoRule.java",
+            "record DemoRule() implements ValueObject {}\n",
+        )
+        self.write_java(
+            "backend/contexts/demo/src/main/java/demo/application/DemoService.java",
+            "final class DemoService { DemoService(DemoRule rule) {} }\n",
+        )
+
+        errors = MODULE.compare(MODULE.scan(self.root), baseline)
+
+        self.assertTrue(any("应用服务构造器领域状态依赖" in error for error in errors))
+
 
 if __name__ == "__main__":
     unittest.main()

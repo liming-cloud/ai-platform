@@ -19,6 +19,8 @@ import com.aiplatform.foundation.knowledgedata.application.port.out.content.Text
 import com.aiplatform.foundation.knowledgedata.application.port.out.content.TextContentStagingPort;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.repository.TextDataSourceRepository;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.repository.GovernedDataSourceRepository;
+import com.aiplatform.foundation.knowledgedata.domain.datasource.service.FileDataSourceSynchronization;
+import com.aiplatform.foundation.knowledgedata.domain.datasource.service.FileSyncArtifactPublishing;
 import com.aiplatform.foundation.knowledgedata.domain.indexversion.repository.IndexVersionRepository;
 import com.aiplatform.foundation.knowledgedata.domain.knowledge.repository.KnowledgeSpaceRepository;
 import com.aiplatform.foundation.knowledgedata.infrastructure.objectstorage.UnavailableTextContentObjectStorageAdapter;
@@ -130,19 +132,32 @@ public class KnowledgeDataCoreAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
+    FileDataSourceSynchronization fileDataSourceSynchronization() {
+        return new FileDataSourceSynchronization();
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    FileSyncArtifactPublishing fileSyncArtifactPublishing() {
+        return new FileSyncArtifactPublishing();
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
     FileDataSourceSynchronizationService fileDataSourceSynchronizationService(
             GovernedDataSourceRepository repository,
             TextContentObjectStoragePort storage,
-            EntityIdGenerator identifiers) {
+            EntityIdGenerator identifiers,
+            FileDataSourceSynchronization synchronization) {
         return new FileDataSourceSynchronizationService(
-                repository, storage, Clock.systemUTC(), identifiers);
+                repository, storage, Clock.systemUTC(), identifiers, synchronization);
     }
 
     @Bean
     @ConditionalOnMissingBean
     FileSyncArtifactPublicationService fileSyncArtifactPublicationService(
-            GovernedDataSourceRepository repository) {
-        return new FileSyncArtifactPublicationService(repository, Clock.systemUTC());
+            GovernedDataSourceRepository repository, FileSyncArtifactPublishing publishing) {
+        return new FileSyncArtifactPublicationService(repository, Clock.systemUTC(), publishing);
     }
 
     @Bean

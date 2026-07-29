@@ -23,6 +23,8 @@ import com.aiplatform.foundation.knowledgedata.application.port.out.index.IndexB
 import com.aiplatform.foundation.knowledgedata.application.port.out.index.IndexBuildQueuePort;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.repository.TextDataSourceRepository;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.repository.GovernedDataSourceRepository;
+import com.aiplatform.foundation.knowledgedata.domain.datasource.service.FileDataSourceSynchronization;
+import com.aiplatform.foundation.knowledgedata.domain.datasource.service.FileSyncArtifactPublishing;
 import com.aiplatform.foundation.knowledgedata.domain.indexversion.repository.IndexVersionRepository;
 import com.aiplatform.foundation.knowledgedata.domain.knowledge.repository.KnowledgeSpaceRepository;
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.mapper.TextDataSourceMapper;
@@ -89,6 +91,10 @@ class KnowledgeDataAutoConfigurationTest {
                     assertThat(context).hasSingleBean(KnowledgeSpaceService.class);
                     assertThat(context).hasSingleBean(TextDataSourceService.class);
                     assertThat(context).hasSingleBean(GovernedDataSourceLifecycleService.class);
+                    assertThat(context).hasSingleBean(FileDataSourceSynchronization.class);
+                    assertThat(context).hasSingleBean(FileSyncArtifactPublishing.class);
+                    assertThat(context).hasSingleBean(FileDataSourceSynchronizationService.class);
+                    assertThat(context).hasSingleBean(FileSyncArtifactPublicationService.class);
                     assertThat(context).hasSingleBean(IndexVersionService.class);
                     assertThat(context).hasSingleBean(ActiveIndexLookup.class);
                     assertThat(context).hasSingleBean(KnowledgeSpaceLookup.class);

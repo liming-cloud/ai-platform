@@ -24,6 +24,7 @@ import com.aiplatform.foundation.assistantdelivery.domain.assistant.model.Assist
 import com.aiplatform.foundation.assistantdelivery.domain.assistant.model.AssistantVersionId;
 import com.aiplatform.foundation.assistantdelivery.domain.assistant.model.CitationPolicy;
 import com.aiplatform.foundation.assistantdelivery.domain.assistant.model.RefusalPolicy;
+import com.aiplatform.foundation.assistantdelivery.domain.assistant.service.AssistantVersioning;
 import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
 import com.aiplatform.foundation.knowledgedata.application.indexversion.facade.ActiveIndexLookup;
 import com.aiplatform.foundation.knowledgedata.application.indexversion.dto.ActiveIndexSnapshot;
@@ -130,7 +131,8 @@ class AssistantServiceTest {
                                 EMBEDDING_ID, 4, EMBEDDING_CATALOG_ID, 7, 8)));
         var identifiers = new ArrayDeque<>(List.of(ASSISTANT_ID, VERSION_ID));
         var service = new AssistantService(repository, models, mismatchedIndex,
-                Clock.fixed(NOW, ZoneOffset.UTC), identifiers::removeFirst, 5, 20);
+                Clock.fixed(NOW, ZoneOffset.UTC), identifiers::removeFirst,
+                new AssistantVersioning(), 5, 20);
         var assistant = service.create(new CreateAssistantCommand(
                 context("assistant:write"), "assistant-create-0004", "模型校验助手"));
 
@@ -142,7 +144,8 @@ class AssistantServiceTest {
                 context("assistant:write"), "assistant-create-0005", "发布校验助手"));
         var draft = valid.createVersion(versionCommand(validAssistant.assistant().id()));
         var revoked = new AssistantService(repository, (context, id, type) -> Optional.empty(),
-                indexes(), Clock.fixed(NOW, ZoneOffset.UTC), () -> VERSION_ID + 1, 5, 20);
+                indexes(), Clock.fixed(NOW, ZoneOffset.UTC), () -> VERSION_ID + 1,
+                new AssistantVersioning(), 5, 20);
         assertThrows(AssistantReferenceUnavailableException.class,
                 () -> revoked.publishVersion(new PublishAssistantVersionCommand(
                         context("assistant:write"), "assistant-publish-0002",
@@ -179,6 +182,7 @@ class AssistantServiceTest {
                 indexes,
                 Clock.fixed(NOW, ZoneOffset.UTC),
                 identifiers::removeFirst,
+                new AssistantVersioning(),
                 5,
                 20);
     }

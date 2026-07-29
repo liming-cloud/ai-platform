@@ -22,6 +22,7 @@ import com.aiplatform.foundation.assistantdelivery.domain.assistant.model.Assist
 import com.aiplatform.foundation.assistantdelivery.domain.assistant.model.AssistantId;
 import com.aiplatform.foundation.assistantdelivery.domain.assistant.model.AssistantVersion;
 import com.aiplatform.foundation.assistantdelivery.domain.assistant.model.AssistantVersionId;
+import com.aiplatform.foundation.assistantdelivery.domain.assistant.service.AssistantVersioning;
 import com.aiplatform.foundation.assistantdelivery.domain.assistant.model.CreatorId;
 import com.aiplatform.foundation.assistantdelivery.domain.assistant.model.GovernedChatModelBinding;
 import com.aiplatform.foundation.assistantdelivery.domain.assistant.model.GovernedEmbeddingModelBinding;
@@ -53,6 +54,7 @@ public final class AssistantService {
     private final ActiveIndexLookup activeIndexes;
     private final Clock clock;
     private final EntityIdGenerator identifiers;
+    private final AssistantVersioning versioning;
     private final int tenantLimit;
     private final int versionLimit;
 
@@ -62,6 +64,7 @@ public final class AssistantService {
             ActiveIndexLookup activeIndexes,
             Clock clock,
             EntityIdGenerator identifiers,
+            AssistantVersioning versioning,
             int tenantLimit,
             int versionLimit) {
         this.repository = Objects.requireNonNull(repository, "助手仓储不能为空");
@@ -69,6 +72,7 @@ public final class AssistantService {
         this.activeIndexes = Objects.requireNonNull(activeIndexes, "活动索引查询不能为空");
         this.clock = Objects.requireNonNull(clock, "时钟不能为空");
         this.identifiers = Objects.requireNonNull(identifiers, "标识生成器不能为空");
+        this.versioning = Objects.requireNonNull(versioning, "助手版本领域服务不能为空");
         if (tenantLimit < 1 || versionLimit < 1) {
             throw new IllegalArgumentException("助手和版本配额必须大于零");
         }
@@ -144,12 +148,9 @@ public final class AssistantService {
                 || !matches(index.embedding(), governedEmbedding)) {
             throw new AssistantReferenceUnavailableException();
         }
-        var advanced = assistant.advanceVersion();
-        var version = AssistantVersion.governedDraft(
-                command.context().tenantId(),
+        var allocation = versioning.allocateGovernedDraft(
+                assistant,
                 new AssistantVersionId(identifiers.nextId()),
-                assistant.id(),
-                advanced.latestVersionNumber(),
                 governedChat(chat),
                 index.knowledgeSpaceId(),
                 index.indexVersionId(),
@@ -165,9 +166,9 @@ public final class AssistantService {
                 clock.instant());
         var outcome = repository.createVersion(
                 new AssistantVersionCreation(
-                        assistant,
-                        advanced,
-                        version,
+                        allocation.expectedAssistant(),
+                        allocation.advancedAssistant(),
+                        allocation.assistantVersion(),
                         command.idempotencyKey(),
                         fingerprint(command)),
                 versionLimit);

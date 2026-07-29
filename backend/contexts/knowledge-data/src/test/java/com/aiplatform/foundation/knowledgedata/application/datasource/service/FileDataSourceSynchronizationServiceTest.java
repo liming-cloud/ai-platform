@@ -23,6 +23,7 @@ import com.aiplatform.foundation.knowledgedata.domain.datasource.model.GovernedD
 import com.aiplatform.foundation.knowledgedata.domain.datasource.repository.GovernedDataSourceRepository;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.revision.FileSourceObjectReference;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.revision.SourceRevision;
+import com.aiplatform.foundation.knowledgedata.domain.datasource.service.FileDataSourceSynchronization;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.quality.QualityStatus;
 import com.aiplatform.foundation.knowledgedata.domain.knowledge.model.KnowledgeSpaceId;
 import com.aiplatform.foundation.security.identity.AccessChannel;
@@ -64,7 +65,6 @@ class FileDataSourceSynchronizationServiceTest {
         when(repository.findRevision(TENANT, SPACE, SOURCE_ID, 1)).thenReturn(Optional.of(revision));
         when(repository.update(any(), anyLong())).thenReturn(true);
         when(storage.read(any())).thenReturn(new ByteArrayInputStream(content));
-        when(repository.completeSynchronization(any(), any(), eq(syncing.version()))).thenReturn(completed);
         var service = service(repository, storage);
 
         var result = service.synchronize(command(true, source.version()));
@@ -77,12 +77,12 @@ class FileDataSourceSynchronizationServiceTest {
         order.verify(repository).update(any(), eq(source.version()));
         order.verify(repository).findRevision(TENANT, SPACE, SOURCE_ID, 1);
         order.verify(storage).read(any());
-        order.verify(repository).completeSynchronization(
-                org.mockito.ArgumentMatchers.argThat(artifact -> artifact.contentDigest().equals(sha256(content))
-                        && artifact.recordCount() == 1),
-                org.mockito.ArgumentMatchers.argThat(report -> report.status().name().equals("PASS")
-                        && report.ruleSetVersion().equals("file-integrity-v1")),
-                eq(syncing.version()));
+        order.verify(repository).completeSynchronization(org.mockito.ArgumentMatchers.argThat(completion ->
+                completion.artifact().contentDigest().equals(sha256(content))
+                        && completion.artifact().recordCount() == 1
+                        && completion.qualityReport().status().name().equals("PASS")
+                        && completion.qualityReport().ruleSetVersion().equals("file-integrity-v1")
+                        && completion.expectedSourceVersion() == syncing.version()));
     }
 
     @Test
@@ -107,7 +107,7 @@ class FileDataSourceSynchronizationServiceTest {
                 candidate -> candidate.status() == GovernedDataSourceStatus.FAILED
                         && candidate.failedOperation() == DataSourceOperation.SYNCHRONIZATION),
                 eq(syncing.version()));
-        verify(repository, org.mockito.Mockito.never()).completeSynchronization(any(), any(), anyLong());
+        verify(repository, org.mockito.Mockito.never()).completeSynchronization(any());
     }
 
     @Test
@@ -123,7 +123,6 @@ class FileDataSourceSynchronizationServiceTest {
         when(repository.findRevision(TENANT, SPACE, SOURCE_ID, 1)).thenReturn(Optional.of(revision));
         when(repository.update(any(), anyLong())).thenReturn(true);
         when(storage.read(any())).thenReturn(new ByteArrayInputStream(content));
-        when(repository.completeSynchronization(any(), any(), eq(syncing.version()))).thenReturn(completed);
         var service = service(repository, storage);
 
         var result = service.synchronize(command(true, source.version()));
@@ -151,7 +150,8 @@ class FileDataSourceSynchronizationServiceTest {
                 repository,
                 storage,
                 Clock.fixed(NOW, ZoneOffset.UTC),
-                () -> 240000000000000001L);
+                () -> 240000000000000001L,
+                new FileDataSourceSynchronization());
     }
 
     private static SynchronizeFileDataSourceCommand command(boolean writable, long version) {

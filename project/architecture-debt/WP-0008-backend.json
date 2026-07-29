@@ -4,6 +4,8 @@
   "uuidMainFiles": [],
   "runtimeNonEntryFiles": [],
   "saTokenOutsidePlatformFiles": [],
+  "nonAggregateEntityFiles": [],
+  "applicationServiceDomainStateDependencies": [],
   "flatPackages": {},
   "legacyContextApiCount": 124,
   "legacyContextAdapterCount": 79,

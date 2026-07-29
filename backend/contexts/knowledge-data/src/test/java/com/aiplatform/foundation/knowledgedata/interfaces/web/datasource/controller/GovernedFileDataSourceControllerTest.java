@@ -15,6 +15,7 @@ import com.aiplatform.foundation.knowledgedata.application.datasource.service.Fi
 import com.aiplatform.foundation.knowledgedata.application.datasource.service.GovernedDataSourceLifecycleService;
 import com.aiplatform.foundation.knowledgedata.application.datasource.service.GovernedFileDataSourceRegistrationService;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.model.GovernedDataSourceStatus;
+import com.aiplatform.foundation.knowledgedata.domain.datasource.quality.QualityStatus;
 import com.aiplatform.foundation.security.identity.TrustedRequestContext;
 import com.aiplatform.foundation.shared.contract.paging.PageQuery;
 import com.aiplatform.foundation.shared.contract.paging.PageResult;
@@ -91,7 +92,7 @@ class GovernedFileDataSourceControllerTest {
                 registration, probes, synchronizations, publications, lifecycle, queries);
         var context = mock(TrustedRequestContext.class);
         var expected = new GovernedDataSourceLifecycleResult(
-                "3001", "2001", GovernedDataSourceStatus.READY, 4);
+                "3001", "2001", GovernedDataSourceStatus.READY, 4, null, "4001", QualityStatus.PASS);
         when(synchronizations.synchronize(any())).thenReturn(expected);
 
         var result = controller.synchronize(context, "2001", "3001", 3);
@@ -146,7 +147,7 @@ class GovernedFileDataSourceControllerTest {
                 registration, probes, synchronizations, publications, lifecycle, queries);
         var context = mock(TrustedRequestContext.class);
         var expected = new GovernedDataSourceLifecycleResult(
-                "3001", "2001", GovernedDataSourceStatus.READY, 5);
+                "3001", "2001", GovernedDataSourceStatus.READY, 5, null, "4001", QualityStatus.PASS);
         when(publications.publish(any())).thenReturn(expected);
 
         var result = controller.publish(context, "2001", "3001", "4001", 4);

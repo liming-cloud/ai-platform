@@ -1,7 +1,7 @@
 package com.aiplatform.foundation.organizationaccess.domain.member.model;
 
 import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
-import com.aiplatform.foundation.shared.kernel.domain.Entity;
+import com.aiplatform.foundation.shared.kernel.domain.ValueObject;
 import com.aiplatform.foundation.organizationaccess.domain.authorization.model.PermissionCode;
 import com.aiplatform.foundation.organizationaccess.domain.authorization.model.PermissionGrantSet;
 import java.util.Objects;
@@ -10,7 +10,7 @@ import java.util.Set;
 /**
  * 可认证租户成员的领域画像，统一维护身份、凭据与授权版本的一致性。
  */
-public final class MemberAuthenticationProfile implements Entity<MemberId> {
+public final class MemberAuthenticationProfile implements ValueObject {
 
     private final TenantId tenantId;
     private final SubjectId subjectId;
@@ -41,11 +41,6 @@ public final class MemberAuthenticationProfile implements Entity<MemberId> {
 
     public SubjectId subjectId() {
         return subjectId;
-    }
-
-    @Override
-    public MemberId id() {
-        return membershipId;
     }
 
     public MemberId membershipId() {

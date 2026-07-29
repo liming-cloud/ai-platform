@@ -2,11 +2,12 @@ package com.aiplatform.foundation.knowledgedata.domain.datasource.repository;
 
 import com.aiplatform.foundation.knowledgedata.domain.datasource.model.DataSourceId;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.model.GovernedDataSource;
-import com.aiplatform.foundation.knowledgedata.domain.datasource.quality.QualityReport;
-import com.aiplatform.foundation.knowledgedata.domain.datasource.revision.SourceRevision;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.model.SyncArtifact;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.model.SyncArtifactId;
-import com.aiplatform.foundation.knowledgedata.domain.datasource.model.PublishedSyncArtifact;
+import com.aiplatform.foundation.knowledgedata.domain.datasource.quality.QualityReport;
+import com.aiplatform.foundation.knowledgedata.domain.datasource.revision.SourceRevision;
+import com.aiplatform.foundation.knowledgedata.domain.datasource.service.FileSynchronizationCompletion;
+import com.aiplatform.foundation.knowledgedata.domain.datasource.service.FileSyncArtifactPublication;
 import com.aiplatform.foundation.knowledgedata.domain.knowledge.model.KnowledgeSpaceId;
 import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
 import java.util.Optional;
@@ -21,20 +22,17 @@ public interface GovernedDataSourceRepository {
     void register(GovernedDataSource source, SourceRevision revision);
 
     /**
-     * 在来源仍处于同步状态时，原子登记产物、质量结论并完成同步。
+     * 原子提交已由领域服务验证的 FILE 同步完成结果。
      *
      * @throws com.aiplatform.foundation.knowledgedata.domain.datasource.model.DataSourceStateException
-     * 当前来源状态或修订不允许完成同步时抛出。
+     * 数据库中的来源修订已变化时抛出。
      */
-    GovernedDataSource completeSynchronization(
-            SyncArtifact artifact,
-            QualityReport report,
-            long expectedVersion);
+    void completeSynchronization(FileSynchronizationCompletion completion);
 
     /**
-     * 原子登记质量非阻断的发布产物，并递增来源修订。
+     * 原子提交已由领域服务验证的 FILE 同步产物发布结果。
      */
-    GovernedDataSource publishArtifact(PublishedSyncArtifact publication, long expectedVersion);
+    void publishArtifact(FileSyncArtifactPublication publication);
 
     /**
      * 以来源修订执行一次乐观状态更新。

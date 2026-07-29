@@ -3,7 +3,6 @@ package com.aiplatform.foundation.knowledgedata.application.datasource.service;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -21,6 +20,7 @@ import com.aiplatform.foundation.knowledgedata.domain.datasource.model.SyncArtif
 import com.aiplatform.foundation.knowledgedata.domain.datasource.model.SyncArtifactId;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.quality.QualityReport;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.repository.GovernedDataSourceRepository;
+import com.aiplatform.foundation.knowledgedata.domain.datasource.service.FileSyncArtifactPublishing;
 import com.aiplatform.foundation.knowledgedata.domain.knowledge.model.KnowledgeSpaceId;
 import com.aiplatform.foundation.security.identity.AccessChannel;
 import com.aiplatform.foundation.security.identity.CredentialType;
@@ -53,17 +53,16 @@ class FileSyncArtifactPublicationServiceTest {
         when(repository.findArtifact(TENANT, SPACE, artifact.id())).thenReturn(Optional.of(artifact));
         when(repository.findQualityReport(TENANT, SPACE, artifact.id()))
                 .thenReturn(Optional.of(QualityReport.warned(artifact, "file-quality-v1", 1)));
-        when(repository.publishArtifact(any(), eq(source.version()))).thenReturn(published);
-
         var result = service(repository).publish(command(true, SOURCE_ID, artifact.id(), source.version()));
 
         assertEquals(GovernedDataSourceStatus.READY, result.status());
         assertEquals(published.version(), result.version());
         verify(repository).publishArtifact(org.mockito.ArgumentMatchers.argThat(value ->
-                value.artifact().equals(artifact)
-                        && value.qualityStatus().name().equals("WARN")
-                        && value.ruleSetVersion().equals("file-quality-v1")
-                        && value.publishedAt().equals(NOW)), eq(source.version()));
+                value.publication().artifact().equals(artifact)
+                        && value.publication().qualityStatus().name().equals("WARN")
+                        && value.publication().ruleSetVersion().equals("file-quality-v1")
+                        && value.publication().publishedAt().equals(NOW)
+                        && value.expectedSourceVersion() == source.version()));
     }
 
     @Test
@@ -91,11 +90,12 @@ class FileSyncArtifactPublicationServiceTest {
         verify(repository).findSource(TENANT, SPACE, SOURCE_ID);
         verify(repository).findArtifact(TENANT, SPACE, artifact.id());
         verify(repository, org.mockito.Mockito.never()).findQualityReport(any(), any(), any());
-        verify(repository, org.mockito.Mockito.never()).publishArtifact(any(), org.mockito.ArgumentMatchers.anyLong());
+        verify(repository, org.mockito.Mockito.never()).publishArtifact(any());
     }
 
     private static FileSyncArtifactPublicationService service(GovernedDataSourceRepository repository) {
-        return new FileSyncArtifactPublicationService(repository, Clock.fixed(NOW, ZoneOffset.UTC));
+        return new FileSyncArtifactPublicationService(
+                repository, Clock.fixed(NOW, ZoneOffset.UTC), new FileSyncArtifactPublishing());
     }
 
     private static PublishFileSyncArtifactCommand command(

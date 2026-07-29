@@ -12,13 +12,15 @@ import com.aiplatform.foundation.knowledgedata.domain.datasource.model.DataSourc
 import com.aiplatform.foundation.knowledgedata.domain.datasource.model.GovernedDataSource;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.model.GovernedDataSourceStatus;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.model.GovernedDataSourceType;
-import com.aiplatform.foundation.knowledgedata.domain.datasource.model.PublishedSyncArtifact;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.quality.QualityReport;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.revision.FileSourceObjectReference;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.revision.SourceRevision;
-import com.aiplatform.foundation.knowledgedata.domain.datasource.model.SyncArtifact;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.model.SyncArtifactId;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.repository.GovernedDataSourceRepository;
+import com.aiplatform.foundation.knowledgedata.domain.datasource.service.FileDataSourceSynchronization;
+import com.aiplatform.foundation.knowledgedata.domain.datasource.service.FileSynchronizationCompletion;
+import com.aiplatform.foundation.knowledgedata.domain.datasource.service.FileSyncArtifactPublication;
+import com.aiplatform.foundation.knowledgedata.domain.datasource.service.FileSyncArtifactPublishing;
 import com.aiplatform.foundation.knowledgedata.application.datasource.port.out.GovernedFileDataSourceReadPort;
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.mapper.GovernedFileDataSourceReadMapper;
 import com.aiplatform.foundation.knowledgedata.domain.knowledge.model.KnowledgeSpaceId;
@@ -63,6 +65,8 @@ class PostgresGovernedDataSourceRepositoryTest {
     private static final Instant CREATED_AT = Instant.parse("2026-07-29T02:00:00Z");
     private static final AtomicLong SOURCE_IDS = new AtomicLong(230000000000000000L);
     private static final AtomicLong ARTIFACT_IDS = new AtomicLong(240000000000000000L);
+    private static final FileDataSourceSynchronization SYNCHRONIZATION = new FileDataSourceSynchronization();
+    private static final FileSyncArtifactPublishing PUBLISHING = new FileSyncArtifactPublishing();
 
     @Container
     private static final PostgreSQLContainer POSTGRES =
@@ -132,13 +136,16 @@ class PostgresGovernedDataSourceRepositoryTest {
     @Test
     void 同步产物和质量结论在同一事务提交且跨租户不可见() {
         var source = source(STORE_TENANT, nextSourceId(), "校园文件");
-        repository.register(source, revision(source, "a".repeat(64)));
+        var sourceRevision = revision(source, "a".repeat(64));
+        repository.register(source, sourceRevision);
         var syncing = startSynchronization(source);
-        var artifact = artifact(source, "b".repeat(64));
-        var report = QualityReport.warned(artifact, "file-quality-v1", 2);
+        var completion = complete(syncing, sourceRevision, "b".repeat(64));
 
-        var completed = repository.completeSynchronization(artifact, report, syncing.version());
+        repository.completeSynchronization(completion);
 
+        var completed = completion.completedSource();
+        var artifact = completion.artifact();
+        var report = completion.qualityReport();
         assertEquals(GovernedDataSourceStatus.READY, completed.status());
         assertEquals(4, completed.version());
         assertEquals(
@@ -157,54 +164,52 @@ class PostgresGovernedDataSourceRepositoryTest {
     }
 
     @Test
-    void 发布必须复核已持久化的质量结论且整体回滚() {
+    void 阻断质量结论不能形成发布操作结果且数据库不写入发布事实() {
         var source = source(STORE_TENANT, nextSourceId(), "发布质量复核文件");
-        repository.register(source, revision(source, "a".repeat(64)));
+        var sourceRevision = revision(source, "a".repeat(64));
+        repository.register(source, sourceRevision);
         var syncing = startSynchronization(source);
-        var artifact = artifact(source, "b".repeat(64));
-        var completed = repository.completeSynchronization(
-                artifact,
-                QualityReport.blocked(artifact, "file-quality-v1", 1, 1),
-                syncing.version());
-        var forgedPublication = PublishedSyncArtifact.create(
-                artifact,
-                QualityReport.warned(artifact, "file-quality-v1", 1),
-                CREATED_AT.plusSeconds(120));
+        var completion = complete(syncing, sourceRevision, "b".repeat(64));
+        repository.completeSynchronization(completion);
 
         assertThrows(
                 DataSourceStateException.class,
-                () -> repository.publishArtifact(forgedPublication, completed.version()));
+                () -> PUBLISHING.publish(
+                        completion.completedSource(),
+                        completion.artifact(),
+                        QualityReport.blocked(completion.artifact(), "file-integrity-v1", 0, 1),
+                        CREATED_AT.plusSeconds(120)));
 
         var stored = repository.findSource(STORE_TENANT, SPACE, source.id()).orElseThrow();
         assertEquals(GovernedDataSourceStatus.READY, stored.status());
-        assertEquals(completed.version(), stored.version());
+        assertEquals(completion.completedSource().version(), stored.version());
         assertEquals(0, count("published_sync_artifact", STORE_TENANT));
     }
 
     @Test
     void 发布会冻结同步产物质量事实并递增来源修订() {
         var source = source(STORE_TENANT, nextSourceId(), "发布快照文件");
-        repository.register(source, revision(source, "a".repeat(64)));
+        var sourceRevision = revision(source, "a".repeat(64));
+        repository.register(source, sourceRevision);
         var syncing = startSynchronization(source);
-        var artifact = artifact(source, "b".repeat(64));
-        var report = QualityReport.warned(artifact, "file-quality-v1", 2);
-        var completed = repository.completeSynchronization(artifact, report, syncing.version());
-        var publication = PublishedSyncArtifact.create(
-                artifact,
-                report,
-                CREATED_AT.plusSeconds(120));
+        var completion = complete(syncing, sourceRevision, "b".repeat(64));
+        repository.completeSynchronization(completion);
+        var publication = publish(completion, CREATED_AT.plusSeconds(120));
 
-        var published = repository.publishArtifact(publication, completed.version());
+        repository.publishArtifact(publication);
 
+        var published = publication.publishedSource();
+        var artifact = completion.artifact();
+        var report = completion.qualityReport();
         assertEquals(GovernedDataSourceStatus.READY, published.status());
-        assertEquals(completed.version() + 1, published.version());
+        assertEquals(completion.completedSource().version() + 1, published.version());
         var stored = publicationMapper.findByArtifact(
                 STORE_TENANT.value(), SPACE.value(), artifact.id().value());
         assertEquals(source.id().value(), stored.getDataSourceId());
         assertEquals(published.version(), stored.getSourceVersion());
         assertEquals(report.status().name(), stored.getQualityStatus());
         assertEquals(report.ruleSetVersion(), stored.getRuleSetVersion());
-        assertEquals(publication.publishedAt(), stored.getPublishedAt());
+        assertEquals(publication.publication().publishedAt(), stored.getPublishedAt());
         assertEquals(
                 null,
                 publicationMapper.findByArtifact(
@@ -215,28 +220,21 @@ class PostgresGovernedDataSourceRepositoryTest {
     @Test
     void FILE列表只返回当前租户的最新发布产物摘要() {
         var source = source(STORE_TENANT, nextSourceId(), "可重建文件");
-        repository.register(source, revision(source, "a".repeat(64)));
+        var sourceRevision = revision(source, "a".repeat(64));
+        repository.register(source, sourceRevision);
         var firstSync = startSynchronization(source);
-        var firstArtifact = artifact(source, "b".repeat(64));
-        var firstReady = repository.completeSynchronization(
-                firstArtifact,
-                QualityReport.passed(firstArtifact, "file-quality-v1"),
-                firstSync.version());
-        var firstPublished = repository.publishArtifact(PublishedSyncArtifact.create(
-                firstArtifact,
-                QualityReport.passed(firstArtifact, "file-quality-v1"),
-                CREATED_AT.plusSeconds(120)), firstReady.version());
+        var firstCompletion = complete(firstSync, sourceRevision, "b".repeat(64));
+        repository.completeSynchronization(firstCompletion);
+        var firstPublication = publish(firstCompletion, CREATED_AT.plusSeconds(120));
+        repository.publishArtifact(firstPublication);
+        var firstPublished = firstPublication.publishedSource();
         var secondSync = firstPublished.startSynchronization(firstPublished.version());
         assertTrue(repository.update(secondSync, firstPublished.version()));
-        var secondArtifact = artifact(source, "c".repeat(64));
-        var secondReady = repository.completeSynchronization(
-                secondArtifact,
-                QualityReport.warned(secondArtifact, "file-quality-v2", 1),
-                secondSync.version());
-        repository.publishArtifact(PublishedSyncArtifact.create(
-                secondArtifact,
-                QualityReport.warned(secondArtifact, "file-quality-v2", 1),
-                CREATED_AT.plusSeconds(240)), secondReady.version());
+        var secondCompletion = complete(secondSync, sourceRevision, "c".repeat(64));
+        repository.completeSynchronization(secondCompletion);
+        var secondPublication = publish(secondCompletion, CREATED_AT.plusSeconds(240));
+        repository.publishArtifact(secondPublication);
+        var secondArtifact = secondCompletion.artifact();
 
         var page = reads.list(STORE_TENANT, SPACE, new com.aiplatform.foundation.shared.contract.paging.PageQuery(1, 20));
 
@@ -244,32 +242,33 @@ class PostgresGovernedDataSourceRepositoryTest {
         var item = page.items().getFirst();
         assertEquals(source.id().toString(), item.dataSourceId());
         assertEquals(secondArtifact.id().toString(), item.publishedArtifactId());
-        assertEquals("WARN", item.publishedQualityStatus());
+        assertEquals("PASS", item.publishedQualityStatus());
         assertEquals("可重建文件", item.displayName());
         assertEquals(0, reads.list(CAMPUS_TENANT, SPACE,
                 new com.aiplatform.foundation.shared.contract.paging.PageQuery(1, 20)).totalElements());
     }
 
     @Test
-    void 质量结论不属于待登记产物时整体回滚() {
+    void 不属于来源的修订不能形成同步完成结果且数据库保持同步中状态() {
         var source = source(STORE_TENANT, nextSourceId(), "回滚文件");
-        repository.register(source, revision(source, "a".repeat(64)));
+        var sourceRevision = revision(source, "a".repeat(64));
+        repository.register(source, sourceRevision);
         var syncing = startSynchronization(source);
-        var artifact = artifact(source, "b".repeat(64));
-        var unrelated = artifact(source, "c".repeat(64));
+        var another = source(STORE_TENANT, nextSourceId(), "其他文件");
 
-        assertThrows(IllegalArgumentException.class, () -> repository.completeSynchronization(
-                artifact,
-                QualityReport.passed(unrelated, "file-quality-v1"),
-                syncing.version()));
+        assertThrows(DataSourceStateException.class, () -> SYNCHRONIZATION.complete(
+                syncing,
+                revision(another, "c".repeat(64)),
+                new SyncArtifactId(ARTIFACT_IDS.incrementAndGet()),
+                "b".repeat(64),
+                3,
+                CREATED_AT.plusSeconds(60)));
 
-        assertFalse(repository.findArtifact(STORE_TENANT, SPACE, artifact.id()).isPresent());
-        assertFalse(repository.findQualityReport(STORE_TENANT, SPACE, artifact.id()).isPresent());
+        assertEquals(0, count("sync_artifact", STORE_TENANT));
+        assertEquals(0, count("quality_report", STORE_TENANT));
         var stored = repository.findSource(STORE_TENANT, SPACE, source.id()).orElseThrow();
         assertEquals(GovernedDataSourceStatus.SYNCING, stored.status());
         assertEquals(syncing.version(), stored.version());
-        assertEquals(0, count("sync_artifact", STORE_TENANT));
-        assertEquals(0, count("quality_report", STORE_TENANT));
     }
 
     @Test
@@ -295,15 +294,15 @@ class PostgresGovernedDataSourceRepositoryTest {
     @Test
     void 并发完成同步只有一个提交且失败方不留下重复产物() throws Exception {
         var source = source(STORE_TENANT, nextSourceId(), "并发同步文件");
-        repository.register(source, revision(source, "a".repeat(64)));
+        var sourceRevision = revision(source, "a".repeat(64));
+        repository.register(source, sourceRevision);
         var syncing = startSynchronization(source);
-        var artifact = artifact(source, "b".repeat(64));
-        var report = QualityReport.passed(artifact, "file-quality-v1");
+        var completion = complete(syncing, sourceRevision, "b".repeat(64));
         var tasks = new ArrayList<Callable<Boolean>>();
         for (var index = 0; index < 2; index++) {
             tasks.add(() -> {
                 try {
-                    repository.completeSynchronization(artifact, report, syncing.version());
+                    repository.completeSynchronization(completion);
                     return true;
                 } catch (DataSourceStateException exception) {
                     return false;
@@ -393,16 +392,24 @@ class PostgresGovernedDataSourceRepositoryTest {
         return new DataSourceId(SOURCE_IDS.incrementAndGet());
     }
 
-    private static SyncArtifact artifact(GovernedDataSource source, String digest) {
-        return SyncArtifact.create(
+    private static FileSynchronizationCompletion complete(
+            GovernedDataSource syncing, SourceRevision revision, String digest) {
+        return SYNCHRONIZATION.complete(
+                syncing,
+                revision,
                 new SyncArtifactId(ARTIFACT_IDS.incrementAndGet()),
-                STORE_TENANT,
-                SPACE,
-                source.id(),
-                1,
                 digest,
                 3,
                 CREATED_AT.plusSeconds(60));
+    }
+
+    private static FileSyncArtifactPublication publish(
+            FileSynchronizationCompletion completion, Instant publishedAt) {
+        return PUBLISHING.publish(
+                completion.completedSource(),
+                completion.artifact(),
+                completion.qualityReport(),
+                publishedAt);
     }
 
     private void insertSpace(TenantId tenantId) {

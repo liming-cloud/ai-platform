@@ -1,6 +1,6 @@
 package com.aiplatform.foundation.trustedquery.domain.query.policy;
 
-import com.aiplatform.foundation.shared.kernel.domain.ValueObject;
+import com.aiplatform.foundation.shared.kernel.domain.DomainPolicy;
 import java.time.Duration;
 import java.util.Objects;
 
@@ -14,7 +14,7 @@ import java.util.Objects;
 public record QueryQuotaPolicy(
         int dailyQueryLimit,
         int concurrentQueryLimit,
-        Duration runningLease) implements ValueObject {
+        Duration runningLease) implements DomainPolicy {
 
     public QueryQuotaPolicy {
         if (dailyQueryLimit < 1) {

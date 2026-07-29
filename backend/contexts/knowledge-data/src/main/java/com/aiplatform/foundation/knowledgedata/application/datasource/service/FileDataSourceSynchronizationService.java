@@ -8,17 +8,12 @@ import com.aiplatform.foundation.knowledgedata.application.datasource.exception.
 import com.aiplatform.foundation.knowledgedata.application.knowledge.exception.KnowledgePermissionDeniedException;
 import com.aiplatform.foundation.knowledgedata.application.port.out.content.TextContentObjectStoragePort;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.model.DataSourceId;
-import com.aiplatform.foundation.knowledgedata.domain.datasource.model.DataSourceOperation;
-import com.aiplatform.foundation.knowledgedata.domain.datasource.model.DataSourceStateException;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.model.GovernedDataSource;
-import com.aiplatform.foundation.knowledgedata.domain.datasource.model.GovernedDataSourceStatus;
-import com.aiplatform.foundation.knowledgedata.domain.datasource.model.GovernedDataSourceType;
-import com.aiplatform.foundation.knowledgedata.domain.datasource.model.SyncArtifact;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.model.SyncArtifactId;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.model.TextContentReference;
-import com.aiplatform.foundation.knowledgedata.domain.datasource.quality.QualityReport;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.repository.GovernedDataSourceRepository;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.revision.SourceRevision;
+import com.aiplatform.foundation.knowledgedata.domain.datasource.service.FileDataSourceSynchronization;
 import com.aiplatform.foundation.knowledgedata.domain.knowledge.model.KnowledgeSpaceId;
 import com.aiplatform.foundation.security.identity.PermissionCode;
 import com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator;
@@ -30,31 +25,33 @@ import java.util.HexFormat;
 import java.util.Objects;
 
 /**
- * 编排 FILE 来源的事务外内容核验、不可变产物和质量结论登记。
+ * 编排 FILE 来源的事务外内容核验与领域同步操作提交。
  *
  * <p>对象流读取必须在来源已持久化为 `SYNCING` 后发生。读取或完整性核验失败只登记
- * `FAILED(SYNCHRONIZATION)`，不保存半成品；产物和质量结论由仓储在同一事务中提交。</p>
+ * `FAILED(SYNCHRONIZATION)`，不保存半成品；产物和质量结论由领域服务创建，再由仓储在同一事务中提交。</p>
  */
 public final class FileDataSourceSynchronizationService {
 
     private static final PermissionCode WRITE = new PermissionCode("knowledge:write");
-    private static final String QUALITY_RULE_SET_VERSION = "file-integrity-v1";
     private static final int BUFFER_SIZE = 8192;
 
     private final GovernedDataSourceRepository repository;
     private final TextContentObjectStoragePort storage;
     private final Clock clock;
     private final EntityIdGenerator identifiers;
+    private final FileDataSourceSynchronization synchronization;
 
     public FileDataSourceSynchronizationService(
             GovernedDataSourceRepository repository,
             TextContentObjectStoragePort storage,
             Clock clock,
-            EntityIdGenerator identifiers) {
+            EntityIdGenerator identifiers,
+            FileDataSourceSynchronization synchronization) {
         this.repository = Objects.requireNonNull(repository, "受治理数据源仓储不能为空");
         this.storage = Objects.requireNonNull(storage, "文本对象存储端口不能为空");
         this.clock = Objects.requireNonNull(clock, "时钟不能为空");
         this.identifiers = Objects.requireNonNull(identifiers, "标识生成器不能为空");
+        this.synchronization = Objects.requireNonNull(synchronization, "文件同步领域服务不能为空");
     }
 
     /**
@@ -69,33 +66,37 @@ public final class FileDataSourceSynchronizationService {
         var sourceId = DataSourceId.parse(command.dataSourceId());
         var source = repository.findSource(command.context().tenantId(), spaceId, sourceId)
                 .orElseThrow(DataSourceNotFoundException::new);
-        if (source.type() != GovernedDataSourceType.FILE) {
-            throw new DataSourceNotFoundException();
-        }
         if (source.version() != command.expectedVersion()) {
             throw new DataSourceConcurrentModificationException();
         }
-        var syncing = startOrResumeSynchronization(source, command.expectedVersion());
+        var syncing = synchronization.begin(source, command.expectedVersion());
         updateOrThrow(syncing, command.expectedVersion());
 
-        SyncArtifact artifact;
+        var revision = repository.findRevision(
+                        command.context().tenantId(), spaceId, sourceId, source.currentRevision())
+                .orElseThrow(DataSourceNotFoundException::new);
+        FileContentSnapshot content;
         try {
-            var revision = repository.findRevision(
-                    command.context().tenantId(), spaceId, sourceId, source.currentRevision())
-                    .orElseThrow(DataSourceNotFoundException::new);
-            artifact = synchronize(source, revision);
+            content = synchronize(revision);
         } catch (IOException | RuntimeException exception) {
             var failed = syncing.failSynchronization(syncing.version());
             updateOrThrow(failed, syncing.version());
             return result(failed);
         }
 
-        var report = QualityReport.passed(artifact, QUALITY_RULE_SET_VERSION);
-        var completed = repository.completeSynchronization(artifact, report, syncing.version());
-        return GovernedDataSourceLifecycleResult.from(completed, artifact, report);
+        var completion = synchronization.complete(
+                syncing,
+                revision,
+                new SyncArtifactId(identifiers.nextId()),
+                content.digest(),
+                content.recordCount(),
+                clock.instant());
+        repository.completeSynchronization(completion);
+        return GovernedDataSourceLifecycleResult.from(
+                completion.completedSource(), completion.artifact(), completion.qualityReport());
     }
 
-    private SyncArtifact synchronize(GovernedDataSource source, SourceRevision revision) throws IOException {
+    private FileContentSnapshot synchronize(SourceRevision revision) throws IOException {
         var file = Objects.requireNonNull(revision.fileObject(), "文件来源修订必须包含对象事实");
         // 文件修订已限定唯一 UTF-8 语义；对象存储端口仍使用既有文本引用的协议格式。
         var reference = new TextContentReference(
@@ -120,35 +121,13 @@ public final class FileDataSourceSynchronizationService {
         if (byteSize != file.byteSize() || !contentDigest.equals(file.contentDigest())) {
             throw new TextContentIntegrityException();
         }
-        return SyncArtifact.create(
-                new SyncArtifactId(identifiers.nextId()),
-                source.tenantId(),
-                source.knowledgeSpaceId(),
-                source.id(),
-                revision.revision(),
-                contentDigest,
-                1,
-                clock.instant());
+        return new FileContentSnapshot(contentDigest, 1);
     }
 
     private void updateOrThrow(GovernedDataSource source, long expectedVersion) {
         if (!repository.update(source, expectedVersion)) {
             throw new DataSourceConcurrentModificationException();
         }
-    }
-
-    /**
-     * 只恢复失败于同步的来源，避免把探测失败误当作同步重试。
-     */
-    private static GovernedDataSource startOrResumeSynchronization(
-            GovernedDataSource source, long expectedVersion) {
-        if (source.status() != GovernedDataSourceStatus.FAILED) {
-            return source.startSynchronization(expectedVersion);
-        }
-        if (source.failedOperation() != DataSourceOperation.SYNCHRONIZATION) {
-            throw new DataSourceStateException("当前失败操作不允许重新同步");
-        }
-        return source.retry(expectedVersion);
     }
 
     private static MessageDigest sha256() {
@@ -162,4 +141,6 @@ public final class FileDataSourceSynchronizationService {
     private static GovernedDataSourceLifecycleResult result(GovernedDataSource source) {
         return GovernedDataSourceLifecycleResult.from(source);
     }
+
+    private record FileContentSnapshot(String digest, long recordCount) {}
 }

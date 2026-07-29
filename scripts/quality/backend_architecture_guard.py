@@ -27,6 +27,15 @@ MAPPER_STATEMENT = re.compile(
 ERROR_CODE_LITERAL = re.compile(
     r'"([A-Z][A-Z_]*\.[A-Z_]+\.[^"]+)"'
 )
+DOMAIN_TYPE_DECLARATION = re.compile(
+    r"\b(?:class|record|enum)\s+(?P<name>[A-Za-z][A-Za-z0-9_]*)"
+    r"[^{};]*?\bimplements\s+(?P<interfaces>[^\{]+)\{",
+    flags=re.DOTALL,
+)
+APPLICATION_SERVICE_CONSTRUCTOR = re.compile(
+    r"\b(?P<name>[A-Za-z][A-Za-z0-9_]*Service)\s*\((?P<parameters>[^)]*)\)",
+    flags=re.DOTALL,
+)
 VALID_ERROR_CODE = re.compile(
     r"^[A-Z][A-Z_]*\."
     r"(?:REQUEST|AUTHENTICATION|AUTHORIZATION|RESOURCE|CONFLICT|QUOTA|"
@@ -55,6 +64,8 @@ LIST_CATEGORIES = {
     "uuidMainFiles": "UUID",
     "runtimeNonEntryFiles": "运行模块业务类",
     "saTokenOutsidePlatformFiles": "Sa-Token 越界",
+    "nonAggregateEntityFiles": "非聚合根实体",
+    "applicationServiceDomainStateDependencies": "应用服务构造器领域状态依赖",
 }
 COUNT_CATEGORIES = {
     "legacyContextApiCount": "上下文 api 目录",
@@ -116,6 +127,56 @@ def read_complex_sql_allowlist(root):
     if not path.is_file():
         return {"schemaVersion": 1, "statements": []}
     return json.loads(path.read_text(encoding="utf-8"))
+
+
+def declared_domain_types(text):
+    return {
+        match.group("name"): match.group("interfaces")
+        for match in DOMAIN_TYPE_DECLARATION.finditer(text)
+    }
+
+
+def non_aggregate_entity_files(root, texts):
+    return [
+        relative(root, path)
+        for path, text in texts.items()
+        if "domain" in path.parts
+        and any(
+            "Entity" in interfaces and "AggregateRoot" not in interfaces
+            for interfaces in declared_domain_types(text).values()
+        )
+    ]
+
+
+def application_service_domain_state_dependencies(root, texts):
+    domain_types = {
+        name
+        for path, text in texts.items()
+        if "domain" in path.parts
+        for name, interfaces in declared_domain_types(text).items()
+        if (
+            ("Entity" in interfaces
+             or "AggregateRoot" in interfaces
+             or "ValueObject" in interfaces)
+            and "DomainPolicy" not in interfaces
+        )
+    }
+    violations = []
+    for path, text in texts.items():
+        if "application" not in path.parts:
+            continue
+        for match in APPLICATION_SERVICE_CONSTRUCTOR.finditer(text):
+            dependencies = sorted(
+                domain_type
+                for domain_type in domain_types
+                if re.search(rf"\b{re.escape(domain_type)}\b", match.group("parameters"))
+            )
+            if dependencies:
+                violations.append(
+                    f"{relative(root, path)}#{match.group('name')}"
+                    f"({', '.join(dependencies)})"
+                )
+    return violations
 
 
 def validate_complex_sql_allowlist(root, statements):
@@ -223,6 +284,10 @@ def scan(root):
                 "platform-security-satoken/"
             )
         ],
+        "nonAggregateEntityFiles": non_aggregate_entity_files(root, texts),
+        "applicationServiceDomainStateDependencies": (
+            application_service_domain_state_dependencies(root, texts)
+        ),
         "flatPackages": {
             package: count
             for package, count in sorted(package_counts.items())

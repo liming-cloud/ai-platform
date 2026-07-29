@@ -1,14 +1,14 @@
 package com.aiplatform.foundation.assistantdelivery.domain.assistant.model;
 
 import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
-import com.aiplatform.foundation.shared.kernel.domain.Entity;
+import com.aiplatform.foundation.shared.kernel.domain.AggregateRoot;
 import java.time.Instant;
 import java.util.Objects;
 
 /**
  * 冻结模型、索引、提示和可信回答策略的助手版本。
  */
-public final class AssistantVersion implements Entity<AssistantVersionId> {
+public final class AssistantVersion implements AggregateRoot<AssistantVersionId> {
 
     private static final int MAX_INSTRUCTION_CODE_POINTS = 8000;
     private static final int MAX_RETRIEVAL_LIMIT = 20;
