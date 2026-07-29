@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
 import com.aiplatform.foundation.knowledgedata.application.datasource.service.TextDataSourceService;
+import com.aiplatform.foundation.knowledgedata.application.datasource.service.GovernedDataSourceLifecycleService;
 import com.aiplatform.foundation.knowledgedata.application.indexversion.facade.ActiveIndexLookup;
 import com.aiplatform.foundation.knowledgedata.application.indexversion.service.IndexVersionService;
 import com.aiplatform.foundation.knowledgedata.application.knowledge.service.KnowledgeSpaceService;
@@ -57,6 +58,9 @@ class KnowledgeDataAutoConfigurationTest {
                         TextDataSourceRepository.class,
                         () -> mock(TextDataSourceRepository.class))
                 .withBean(
+                        GovernedDataSourceRepository.class,
+                        () -> mock(GovernedDataSourceRepository.class))
+                .withBean(
                         IndexVersionRepository.class,
                         () -> mock(IndexVersionRepository.class))
                 .withBean(
@@ -70,6 +74,7 @@ class KnowledgeDataAutoConfigurationTest {
                     assertThat(context).hasNotFailed();
                     assertThat(context).hasSingleBean(KnowledgeSpaceService.class);
                     assertThat(context).hasSingleBean(TextDataSourceService.class);
+                    assertThat(context).hasSingleBean(GovernedDataSourceLifecycleService.class);
                     assertThat(context).hasSingleBean(IndexVersionService.class);
                     assertThat(context).hasSingleBean(ActiveIndexLookup.class);
                     assertThat(context).hasSingleBean(KnowledgeSpaceLookup.class);
@@ -111,6 +116,9 @@ class KnowledgeDataAutoConfigurationTest {
                 .withBean(
                         TextDataSourceRepository.class,
                         () -> mock(TextDataSourceRepository.class))
+                .withBean(
+                        GovernedDataSourceRepository.class,
+                        () -> mock(GovernedDataSourceRepository.class))
                 .withBean(
                         IndexVersionRepository.class,
                         () -> mock(IndexVersionRepository.class))

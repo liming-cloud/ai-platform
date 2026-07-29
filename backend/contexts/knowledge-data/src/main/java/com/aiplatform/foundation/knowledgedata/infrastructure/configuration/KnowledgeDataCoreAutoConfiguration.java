@@ -1,6 +1,7 @@
 package com.aiplatform.foundation.knowledgedata.infrastructure.configuration;
 
 import com.aiplatform.foundation.knowledgedata.application.datasource.service.TextDataSourceService;
+import com.aiplatform.foundation.knowledgedata.application.datasource.service.GovernedDataSourceLifecycleService;
 import com.aiplatform.foundation.knowledgedata.application.indexversion.facade.ActiveIndexLookup;
 import com.aiplatform.foundation.knowledgedata.application.indexversion.service.ActiveIndexLookupService;
 import com.aiplatform.foundation.knowledgedata.application.indexversion.service.IndexVersionService;
@@ -10,6 +11,7 @@ import com.aiplatform.foundation.knowledgedata.application.knowledge.service.Kno
 import com.aiplatform.foundation.knowledgedata.application.port.out.content.TextContentObjectStoragePort;
 import com.aiplatform.foundation.knowledgedata.application.port.out.content.TextContentStagingPort;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.repository.TextDataSourceRepository;
+import com.aiplatform.foundation.knowledgedata.domain.datasource.repository.GovernedDataSourceRepository;
 import com.aiplatform.foundation.knowledgedata.domain.indexversion.repository.IndexVersionRepository;
 import com.aiplatform.foundation.knowledgedata.domain.knowledge.repository.KnowledgeSpaceRepository;
 import com.aiplatform.foundation.knowledgedata.infrastructure.objectstorage.UnavailableTextContentObjectStorageAdapter;
@@ -86,6 +88,13 @@ public class KnowledgeDataCoreAutoConfiguration {
                 Clock.systemUTC(),
                 identifiers,
                 properties.getDataSourceLimit());
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    GovernedDataSourceLifecycleService governedDataSourceLifecycleService(
+            GovernedDataSourceRepository repository) {
+        return new GovernedDataSourceLifecycleService(repository);
     }
 
     @Bean
