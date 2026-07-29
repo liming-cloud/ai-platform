@@ -11,6 +11,7 @@ import com.aiplatform.foundation.knowledgedata.application.port.out.index.IndexB
 import com.aiplatform.foundation.knowledgedata.application.port.out.index.IndexBuildLease;
 import com.aiplatform.foundation.knowledgedata.application.port.out.index.IndexBuildQueuePort;
 import com.aiplatform.foundation.knowledgedata.application.port.out.index.IndexSourceSnapshot;
+import com.aiplatform.foundation.knowledgedata.application.port.out.index.IndexSourceKind;
 import com.aiplatform.foundation.knowledgedata.application.port.out.content.TextContentObjectStoragePort;
 import com.aiplatform.foundation.knowledgedata.application.port.out.content.TextContentStorageRequest;
 import com.aiplatform.foundation.knowledgedata.application.port.out.content.TextContentObjectMetadata;
@@ -164,6 +165,38 @@ class IndexBuildWorkerTest {
         assertEquals(GOVERNED_EMBEDDING, completion.batch.embedding());
         assertEquals(6765477786913079298L, runtime.context.membershipId().value());
         assertEquals(GOVERNED_EMBEDDING.configurationId(), runtime.snapshot.configurationId().value());
+    }
+
+    @Test
+    void 受治理文件快照只读取冻结对象并保留产物质量事实() throws Exception {
+        var content = "文件来源内容";
+        var legacy = lease(content);
+        var reference = legacy.sources().getFirst().content();
+        var governed = new IndexSourceSnapshot(
+                IndexSourceKind.GOVERNED_SYNC_ARTIFACT,
+                SOURCE_ID,
+                1,
+                240000000000000001L,
+                "WARN",
+                "file-quality-v1",
+                reference);
+        var governedLease = new IndexBuildLease(
+                legacy.leaseId(), legacy.indexVersion(), List.of(governed), legacy.attempt());
+        var completion = new RecordingCompletion();
+        var worker = new IndexBuildWorker(
+                new RecordingQueue(governedLease),
+                completion,
+                new ContentStore(content),
+                new FixedModelRuntimeResolver(new FourDimensionEmbedding()),
+                new ParagraphWindowChunker(),
+                CLOCK,
+                Duration.ofMinutes(1));
+
+        assertTrue(worker.processNext());
+
+        assertNotNull(completion.batch);
+        assertEquals(1, completion.batch.vectors().size());
+        assertEquals(1, completion.batch.vectors().getFirst().contentVersion());
     }
 
     private static IndexBuildLease lease(String content) throws Exception {

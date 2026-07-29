@@ -189,6 +189,25 @@ class PostgresIndexVersionPersistenceTest {
     }
 
     @Test
+    void 退役文件保留发布审计事实但不会进入新索引选择() {
+        var id = new IndexVersionId(230000000000000008L);
+        var sourceId = 230000000000000102L;
+        insertPublishedFileSource(TENANT, sourceId, 240000000000000102L);
+        jdbc.update(
+                "UPDATE knowledge_data.governed_data_source SET status = 'RETIRED', version = 6 WHERE tenant_id = ? AND id = ?",
+                TENANT.value(), sourceId);
+
+        repository.create(request(TENANT, id, "create-index-file-retired-0001", "d".repeat(64)));
+
+        assertEquals(2, jdbc.queryForObject(
+                "SELECT count(*) FROM knowledge_data.index_version_source WHERE tenant_id = ? AND index_version_id = ?",
+                Integer.class, TENANT.value(), id.value()));
+        assertEquals(0, jdbc.queryForObject(
+                "SELECT count(*) FROM knowledge_data.index_version_source WHERE tenant_id = ? AND index_version_id = ? AND source_type = 'GOVERNED_SYNC_ARTIFACT'",
+                Integer.class, TENANT.value(), id.value()));
+    }
+
+    @Test
     void 构建租约只认领一次且产物与就绪状态同事务提交() {
         var id = new IndexVersionId(230000000000000004L);
         repository.create(request(TENANT, id, "create-index-0002", "d".repeat(64)));
