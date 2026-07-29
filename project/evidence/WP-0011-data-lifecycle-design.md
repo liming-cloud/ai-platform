@@ -439,3 +439,30 @@ ADR-0028 定义 `GovernedDataSource`、`SourceRevision`、`SyncArtifact`、`Qual
   `JAVA_HOME=/Users/lingou/Library/Java/JavaVirtualMachines/openjdk-26.0.2/Contents/Home ./mvnw -Dmaven.repo.local=/tmp/ai-mesh-m2 -q -pl backend/bootstrap/control-plane-bootstrap -am -Dtest=AssistantApiTest -Dsurefire.failIfNoSpecifiedTests=false test` 与 `git diff --check`，均通过。
 - 随后运行 `make project-verify` 与 `make validate`，均通过。后者覆盖项目治理、17 项架构门禁、债务递减、后端全反应堆测试、前端 33 项测试及生产构建、演示、真实模型验收编排和运维脚本测试。
 - 本项只恢复既有 M2 受控模型契约的全量回归，不改变 M3 数据来源边界；M3 仍不得申请人工评审或进入 M4。
+
+## FILE 控制台会话过期恢复（2026-07-29）
+
+### 红绿记录
+
+- 红灯：在 `frontend/` 运行
+  `npm test -- --run apps/console-web/src/api/control-plane-client.test.ts`。新增回归证明当前会话收到畸形 `401` 后，`ControlPlaneClient.hasSession()` 仍错误返回 `true`。
+- 绿灯：提交 `300458ed8` 使客户端请求在发出时冻结令牌快照；只有返回 `401` 且该快照仍是当前令牌时才清除会话。FILE 工作区仅在客户端已失去会话时清除来源、输入、索引和知识空间状态并切换登录入口。
+- 在提交前运行
+  `npm test -- --run apps/console-web/src/api/control-plane-client.test.ts apps/console-web/src/features/governed-data/GovernedFileDataWorkspace.test.ts && npm run typecheck && npm run lint -- --quiet`，13 项定向测试、类型检查和静态检查均通过；随后运行 `npm test && npm run build && git diff --check`，前端 8 个测试文件、36 项测试和两个前端生产构建均通过。
+
+### 已验证事实
+
+- 畸形错误信封的当前 `401` 也会清除令牌，后续任务读取不会继续以过期身份发送受保护请求。
+- 已登录新会话后才返回的旧请求 `401` 不会清除新令牌，避免异步旧结果覆盖新身份。
+- FILE 工作区收到前述当前会话过期信号时立即清除来源编号、已发布产物、索引状态、知识空间选择和待提交文本，保留仅含追踪标识的失败提示并回到登录入口；`403` 仍按原语义显示受控权限失败。
+
+### 六维检查
+
+- 正确性：两条客户端回归分别覆盖当前会话失效和旧请求竞态；FILE 纯函数回归覆盖仅在客户端确已失去会话时重启登录。
+- 安全：不读取或记录响应原文；过期后清除内存中的受保护任务状态；令牌快照比较防止旧 `401` 破坏新身份。
+- 复杂度：只在既有客户端请求 seam 与 FILE 工作区增加最小状态收口，未引入全局会话框架或新的持久化状态。
+- 性能：每个受认证请求仅保存并比较一个字符串引用，不增加网络请求、轮询或持久化操作。
+- 架构：代码图谱影响分析确认改动位于共享 `ControlPlaneClient` 及其 FILE 调用方；HTTP 错误契约继续由客户端统一解析，页面不接触令牌值。
+- 测试质量：先观察到当前会话 `401` 的红灯，再以同一测试转绿；同时固定畸形信封与新旧会话竞态这两个身份状态反例。
+
+本项补齐 FILE 的过期会话恢复证据，不改变未授权 `403`、模型运行时 `404` 或任何数据源公共契约。OBJECT_STORAGE、STRUCTURED_DATASET 和真实模型索引验收仍未完成，M3 不得进入人工评审或 M4。
