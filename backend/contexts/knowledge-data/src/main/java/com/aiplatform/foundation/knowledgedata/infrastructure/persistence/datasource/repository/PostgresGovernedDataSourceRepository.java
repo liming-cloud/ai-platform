@@ -2,6 +2,7 @@ package com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datas
 
 import com.aiplatform.foundation.knowledgedata.domain.common.model.CreatorId;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.model.DataSourceId;
+import com.aiplatform.foundation.knowledgedata.domain.datasource.model.DataSourceOperation;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.model.GovernedDataSource;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.model.GovernedDataSourceStatus;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.model.GovernedDataSourceType;
@@ -84,6 +85,22 @@ public final class PostgresGovernedDataSourceRepository implements GovernedDataS
             }
             qualityMapper.insert(toEntity(report));
         });
+    }
+
+    @Override
+    public boolean update(GovernedDataSource source, long expectedVersion) {
+        Objects.requireNonNull(source, "受治理数据源不能为空");
+        if (expectedVersion < 0 || source.version() != expectedVersion + 1) {
+            throw new IllegalArgumentException("数据源状态更新修订不一致");
+        }
+        return sourceMapper.updateLifecycle(
+                source.tenantId().value(),
+                source.knowledgeSpaceId().value(),
+                source.id().value(),
+                expectedVersion,
+                source.version(),
+                source.status().name(),
+                source.failedOperation() == null ? null : source.failedOperation().name()) == 1;
     }
 
     @Override
@@ -170,6 +187,8 @@ public final class PostgresGovernedDataSourceRepository implements GovernedDataS
         entity.setSourceType(value.type().name());
         entity.setName(value.name());
         entity.setStatus(value.status().name());
+        entity.setFailedOperation(
+                value.failedOperation() == null ? null : value.failedOperation().name());
         entity.setVersion(value.version());
         entity.setCreatedBy(value.createdBy().value());
         entity.setCreatedAt(value.createdAt());
@@ -225,6 +244,9 @@ public final class PostgresGovernedDataSourceRepository implements GovernedDataS
                 new CreatorId(value.getCreatedBy()),
                 value.getCreatedAt(),
                 GovernedDataSourceStatus.valueOf(value.getStatus()),
+                value.getFailedOperation() == null
+                        ? null
+                        : DataSourceOperation.valueOf(value.getFailedOperation()),
                 value.getVersion());
     }
 

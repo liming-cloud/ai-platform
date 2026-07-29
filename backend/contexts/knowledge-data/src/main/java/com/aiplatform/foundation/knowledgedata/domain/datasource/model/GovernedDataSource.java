@@ -23,6 +23,7 @@ public final class GovernedDataSource implements AggregateRoot<DataSourceId> {
     private final CreatorId createdBy;
     private final Instant createdAt;
     private final GovernedDataSourceStatus status;
+    private final DataSourceOperation failedOperation;
     private final long version;
 
     private GovernedDataSource(
@@ -34,6 +35,7 @@ public final class GovernedDataSource implements AggregateRoot<DataSourceId> {
             CreatorId createdBy,
             Instant createdAt,
             GovernedDataSourceStatus status,
+            DataSourceOperation failedOperation,
             long version) {
         this.tenantId = Objects.requireNonNull(tenantId, "租户标识不能为空");
         this.knowledgeSpaceId = Objects.requireNonNull(knowledgeSpaceId, "知识空间标识不能为空");
@@ -43,6 +45,10 @@ public final class GovernedDataSource implements AggregateRoot<DataSourceId> {
         this.createdBy = Objects.requireNonNull(createdBy, "创建成员不能为空");
         this.createdAt = Objects.requireNonNull(createdAt, "创建时间不能为空");
         this.status = Objects.requireNonNull(status, "数据源状态不能为空");
+        if ((status == GovernedDataSourceStatus.FAILED) != (failedOperation != null)) {
+            throw new IllegalArgumentException("失败状态与失败操作不一致");
+        }
+        this.failedOperation = failedOperation;
         if (version < 0) {
             throw new IllegalArgumentException("数据源修订不能为负数");
         }
@@ -69,6 +75,7 @@ public final class GovernedDataSource implements AggregateRoot<DataSourceId> {
                 createdBy,
                 createdAt,
                 GovernedDataSourceStatus.DRAFT,
+                null,
                 0);
     }
 
@@ -91,6 +98,15 @@ public final class GovernedDataSource implements AggregateRoot<DataSourceId> {
     }
 
     /**
+     * 登记探测失败，供后续按探测语义恢复。
+     *
+     * @throws DataSourceStateException 当前状态或修订不允许登记探测失败时抛出。
+     */
+    public GovernedDataSource failProbe(long expectedVersion) {
+        return fail(expectedVersion, GovernedDataSourceStatus.PROBING, DataSourceOperation.PROBE);
+    }
+
+    /**
      * 开始一次产生不可变同步产物的同步。
      *
      * @throws DataSourceStateException 当前状态或修订不允许同步时抛出。
@@ -109,6 +125,34 @@ public final class GovernedDataSource implements AggregateRoot<DataSourceId> {
     }
 
     /**
+     * 登记同步失败，供后续按同步语义恢复。
+     *
+     * @throws DataSourceStateException 当前状态或修订不允许登记同步失败时抛出。
+     */
+    public GovernedDataSource failSynchronization(long expectedVersion) {
+        return fail(
+                expectedVersion,
+                GovernedDataSourceStatus.SYNCING,
+                DataSourceOperation.SYNCHRONIZATION);
+    }
+
+    /**
+     * 按最后失败操作恢复运行状态，禁止把探测失败误当作同步重试。
+     *
+     * @throws DataSourceStateException 当前状态或修订不允许重试时抛出。
+     */
+    public GovernedDataSource retry(long expectedVersion) {
+        if (expectedVersion != version || status != GovernedDataSourceStatus.FAILED) {
+            throw new DataSourceStateException("数据源当前修订不允许重试");
+        }
+        return copy(
+                failedOperation == DataSourceOperation.PROBE
+                        ? GovernedDataSourceStatus.PROBING
+                        : GovernedDataSourceStatus.SYNCING,
+                null);
+    }
+
+    /**
      * 退役来源，禁止后续探测和同步。
      *
      * @throws DataSourceStateException 当前状态或修订不允许退役时抛出。
@@ -117,11 +161,18 @@ public final class GovernedDataSource implements AggregateRoot<DataSourceId> {
         if (status == GovernedDataSourceStatus.RETIRED || expectedVersion != version) {
             throw new DataSourceStateException("数据源当前修订不允许退役");
         }
-        return copy(GovernedDataSourceStatus.RETIRED);
+        return copy(GovernedDataSourceStatus.RETIRED, null);
     }
 
     public GovernedDataSourceStatus status() {
         return status;
+    }
+
+    /**
+     * 返回导致当前失败状态的运行操作；非失败状态始终为 `null`。
+     */
+    public DataSourceOperation failedOperation() {
+        return failedOperation;
     }
 
     /**
@@ -136,6 +187,7 @@ public final class GovernedDataSource implements AggregateRoot<DataSourceId> {
             CreatorId createdBy,
             Instant createdAt,
             GovernedDataSourceStatus status,
+            DataSourceOperation failedOperation,
             long version) {
         return new GovernedDataSource(
                 tenantId,
@@ -146,6 +198,7 @@ public final class GovernedDataSource implements AggregateRoot<DataSourceId> {
                 createdBy,
                 createdAt,
                 status,
+                failedOperation,
                 version);
     }
 
@@ -192,10 +245,22 @@ public final class GovernedDataSource implements AggregateRoot<DataSourceId> {
         if (expectedVersion != version || status != expectedStatus) {
             throw new DataSourceStateException("数据源当前修订不允许状态迁移");
         }
-        return copy(targetStatus);
+        return copy(targetStatus, null);
     }
 
-    private GovernedDataSource copy(GovernedDataSourceStatus targetStatus) {
+    private GovernedDataSource fail(
+            long expectedVersion,
+            GovernedDataSourceStatus expectedStatus,
+            DataSourceOperation operation) {
+        if (expectedVersion != version || status != expectedStatus) {
+            throw new DataSourceStateException("数据源当前修订不允许登记失败");
+        }
+        return copy(GovernedDataSourceStatus.FAILED, operation);
+    }
+
+    private GovernedDataSource copy(
+            GovernedDataSourceStatus targetStatus,
+            DataSourceOperation targetFailedOperation) {
         return new GovernedDataSource(
                 tenantId,
                 knowledgeSpaceId,
@@ -205,6 +270,7 @@ public final class GovernedDataSource implements AggregateRoot<DataSourceId> {
                 createdBy,
                 createdAt,
                 targetStatus,
+                targetFailedOperation,
                 version + 1);
     }
 

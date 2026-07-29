@@ -21,6 +21,13 @@ public interface GovernedDataSourceRepository {
 
     void record(SyncArtifact artifact, QualityReport report);
 
+    /**
+     * 以来源修订执行一次乐观状态更新。
+     *
+     * @return 仅当数据库中的租户、知识空间、标识与预期修订同时匹配时返回 `true`。
+     */
+    boolean update(GovernedDataSource source, long expectedVersion);
+
     Optional<GovernedDataSource> findSource(
             TenantId tenantId,
             KnowledgeSpaceId knowledgeSpaceId,

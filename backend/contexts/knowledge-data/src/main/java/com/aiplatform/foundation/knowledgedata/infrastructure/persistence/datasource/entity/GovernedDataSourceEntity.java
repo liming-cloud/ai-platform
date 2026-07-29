@@ -22,6 +22,8 @@ public class GovernedDataSourceEntity {
     private String sourceType;
     private String name;
     private String status;
+    @TableField("failed_operation")
+    private String failedOperation;
     private long version;
     @TableField("created_by")
     private Long createdBy;
@@ -40,6 +42,8 @@ public class GovernedDataSourceEntity {
     public void setName(String name) { this.name = name; }
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
+    public String getFailedOperation() { return failedOperation; }
+    public void setFailedOperation(String failedOperation) { this.failedOperation = failedOperation; }
     public long getVersion() { return version; }
     public void setVersion(long version) { this.version = version; }
     public Long getCreatedBy() { return createdBy; }

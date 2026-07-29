@@ -58,6 +58,27 @@ class GovernedDataSourceTest {
         assertThrows(DataSourceStateException.class, () -> retired.startSynchronization(1));
     }
 
+    @Test
+    void 探测或同步失败只可按原失败操作恢复() {
+        var source = fileSource();
+
+        var probeFailed = source.startProbe(0).failProbe(1);
+        var retriedProbe = probeFailed.retry(2);
+        var synchronizationFailed = source.startProbe(0)
+                .completeProbe(1)
+                .startSynchronization(2)
+                .failSynchronization(3);
+        var retriedSynchronization = synchronizationFailed.retry(4);
+
+        assertEquals(GovernedDataSourceStatus.FAILED, probeFailed.status());
+        assertEquals(DataSourceOperation.PROBE, probeFailed.failedOperation());
+        assertEquals(GovernedDataSourceStatus.PROBING, retriedProbe.status());
+        assertEquals(GovernedDataSourceStatus.FAILED, synchronizationFailed.status());
+        assertEquals(DataSourceOperation.SYNCHRONIZATION, synchronizationFailed.failedOperation());
+        assertEquals(GovernedDataSourceStatus.SYNCING, retriedSynchronization.status());
+        assertThrows(DataSourceStateException.class, () -> retriedProbe.retry(3));
+    }
+
     private static GovernedDataSource fileSource() {
         return GovernedDataSource.create(
                 TENANT_ID,

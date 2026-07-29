@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.aiplatform.foundation.knowledgedata.domain.common.model.CreatorId;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.model.DataSourceId;
+import com.aiplatform.foundation.knowledgedata.domain.datasource.model.DataSourceOperation;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.model.GovernedDataSource;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.model.GovernedDataSourceStatus;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.model.GovernedDataSourceType;
@@ -23,6 +24,9 @@ import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.dataso
 import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
 import java.time.Instant;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.Callable;
+import java.util.ArrayList;
+import java.util.concurrent.Executors;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mybatis.spring.annotation.MapperScan;
@@ -145,6 +149,52 @@ class PostgresGovernedDataSourceRepositoryTest {
         assertFalse(repository.findQualityReport(STORE_TENANT, SPACE, artifact.id()).isPresent());
         assertEquals(0, count("sync_artifact", STORE_TENANT));
         assertEquals(0, count("quality_report", STORE_TENANT));
+    }
+
+    @Test
+    void 失败操作被持久化且重试只能恢复对应运行状态() {
+        var source = source(STORE_TENANT, nextSourceId(), "恢复文件");
+        repository.register(source, revision(source, "a".repeat(64)));
+        var probing = source.startProbe(0);
+        var failed = probing.failProbe(1);
+
+        assertTrue(repository.update(probing, 0));
+        assertTrue(repository.update(failed, 1));
+        var storedFailure = repository.findSource(STORE_TENANT, SPACE, source.id()).orElseThrow();
+        assertEquals(GovernedDataSourceStatus.FAILED, storedFailure.status());
+        assertEquals(DataSourceOperation.PROBE, storedFailure.failedOperation());
+
+        var retried = storedFailure.retry(2);
+        assertTrue(repository.update(retried, 2));
+        var storedRetry = repository.findSource(STORE_TENANT, SPACE, source.id()).orElseThrow();
+        assertEquals(GovernedDataSourceStatus.PROBING, storedRetry.status());
+        assertEquals(null, storedRetry.failedOperation());
+    }
+
+    @Test
+    void 并发状态更新只有一个提交且失败方不覆盖最终事实() throws Exception {
+        var source = source(STORE_TENANT, nextSourceId(), "并发恢复文件");
+        repository.register(source, revision(source, "a".repeat(64)));
+        var probing = source.startProbe(0);
+        var tasks = new ArrayList<Callable<Boolean>>();
+        for (var index = 0; index < 2; index++) {
+            tasks.add(() -> repository.update(probing, 0));
+        }
+
+        try (var executor = Executors.newFixedThreadPool(2)) {
+            var results = executor.invokeAll(tasks);
+            assertEquals(1, results.stream().filter(result -> {
+                try {
+                    return result.get();
+                } catch (Exception exception) {
+                    throw new AssertionError(exception);
+                }
+            }).count());
+        }
+
+        var stored = repository.findSource(STORE_TENANT, SPACE, source.id()).orElseThrow();
+        assertEquals(GovernedDataSourceStatus.PROBING, stored.status());
+        assertEquals(1, stored.version());
     }
 
     private static GovernedDataSource source(TenantId tenantId, DataSourceId id, String name) {
