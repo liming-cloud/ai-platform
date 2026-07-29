@@ -152,6 +152,7 @@
 | M3 文件来源生命周期领域切片 | `project/evidence/WP-0011-data-lifecycle-design.md` | `c7b8b60ca` | 文件来源的草稿、探测、同步、退役和乐观修订状态机先红后绿；知识数据依赖上下文回归通过 |
 | M3 同步产物与质量领域切片 | `project/evidence/WP-0011-data-lifecycle-design.md` | `aa07527cc` | 不可变同步产物冻结来源修订和摘要；质量阻断拒绝发布判断，知识数据依赖上下文回归通过 |
 | M3 受治理来源真实持久化切片 | `project/evidence/WP-0011-data-lifecycle-design.md` | `e214637192ec7919c2cffb7a3a4d25c8c5bb3a9e` | 独立 Flyway 事实表、真实 PostgreSQL 租户隔离、来源修订外键和质量失败事务回滚通过 |
+| M3 来源失败恢复与并发状态更新 | `project/evidence/WP-0011-data-lifecycle-design.md` | `64b95dfec0be21437b8f1f72e5c97a5784842324` | 失败操作最小审计、按操作恢复、修订乐观锁和真实 PostgreSQL 并发失败方无覆盖通过 |
 
 ## 证据规则
 

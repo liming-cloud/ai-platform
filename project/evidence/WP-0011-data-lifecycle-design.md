@@ -85,3 +85,20 @@ ADR-0028 定义 `GovernedDataSource`、`SourceRevision`、`SyncArtifact`、`Qual
 - 性能：事务只登记短小元数据；外部文件读取、连接探测和嵌入调用仍不在该事务内。来源修订使用显式复合键 SQL，避免为 ORM 方便增加无业务含义的代理标识。
 - 架构：代码图谱聚焦 `PostgresTextDataSourceRepository` 和 `KnowledgeDataPersistenceAutoConfiguration`，结论是旧文本路径保持隔离；新增端口在领域层、MyBatis 与 PostgreSQL 实现在 infrastructure，依赖方向符合 ADR-0022。
 - 测试质量：先记录缺少公共 seam 的编译红灯，再以同一容器测试转绿；自动装配回归与知识数据依赖上下文全量测试均通过。
+
+## 来源失败恢复与乐观状态更新切片
+
+- 红灯：先扩展 `GovernedDataSourceTest` 和 `PostgresGovernedDataSourceRepositoryTest`，运行
+  `JAVA_HOME=/Users/lingou/Library/Java/JavaVirtualMachines/openjdk-26.0.2/Contents/Home ./mvnw -Dmaven.repo.local=/tmp/ai-mesh-m2 -q -pl backend/contexts/knowledge-data -am -Dtest=GovernedDataSourceTest,PostgresGovernedDataSourceRepositoryTest -Dsurefire.failIfNoSpecifiedTests=false test`。
+  测试因缺少 `DataSourceOperation`、失败迁移、按失败操作重试和乐观 `update` 仓储契约而编译失败。
+- 绿灯：在提交 `64b95dfec0be21437b8f1f72e5c97a5784842324` 上，同一命令通过；随后知识数据及其依赖上下文完整回归命令
+  `JAVA_HOME=/Users/lingou/Library/Java/JavaVirtualMachines/openjdk-26.0.2/Contents/Home ./mvnw -Dmaven.repo.local=/tmp/ai-mesh-m2 -q -pl backend/contexts/knowledge-data -am test` 通过，`git diff --check` 通过。
+
+### 六维检查
+
+- 正确性：领域模型只允许 `PROBING`／`SYNCING` 进入 `FAILED`，并依最后失败操作重试；真实 PostgreSQL 测试验证失败标识持久化、重试清除失败标识和最终状态一致。
+- 安全：失败记录只有固定操作标识，不保存外部异常、文件正文、对象位置、连接参数或凭据；更新条件包含租户、知识空间、来源标识和预期修订。
+- 复杂度：以一个二值枚举、一个可空持久化列和一个乐观更新方法补齐恢复语义，没有提前引入任务表、错误详情表或连接器抽象。
+- 性能：更新为单条带修订条件的 SQL；外部探测、文件读取和嵌入仍不进入事务。
+- 架构：代码图谱检查 `GovernedDataSource`、`PostgresGovernedDataSourceRepository` 与既有文本数据源用例后，保持领域状态机、仓储端口和 MyBatis adapter 的分层；ADR-0028 增加明确的失败恢复规则。
+- 测试质量：红灯来自缺少契约，绿灯使用同一领域和真实 PostgreSQL 测试；并发测试通过两个相同预期修订的更新证明只有一个数据库提交成功，失败方不能覆盖最终事实。

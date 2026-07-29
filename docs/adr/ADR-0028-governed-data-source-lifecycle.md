@@ -41,6 +41,8 @@ M3 产品范围已由产品负责人批准；后端负责人据此固定数据�
 `DRAFT -> PROBING -> READY -> SYNCING -> READY`，或由 `PROBING`、`SYNCING` 进入 `FAILED`；
 `READY -> RETIRED`。同步成功只产生新的 `SyncArtifact` 和 `QualityReport`，不自动发布；发布和退役均为带预期修订的显式操作。
 
+- `FAILED` 必须保存最后失败操作（`PROBE` 或 `SYNCHRONIZATION`），但不得保存外部错误正文、连接地址或凭据。重试只能回到该操作对应的运行状态，不能把探测失败伪装成同步重试；状态更新以来源修订乐观并发控制。
+
 ### 3. Schema、敏感级别、质量与索引
 
 - Schema、字段类型、字段语义、查询资格和敏感级别以 `SchemaVersion` 冻结；结构化来源的行和字段策略在同步、质量检查和检索候选产生前执行。
