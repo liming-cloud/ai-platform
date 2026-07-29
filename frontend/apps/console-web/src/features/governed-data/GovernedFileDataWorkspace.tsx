@@ -17,6 +17,7 @@ import {
   ApiRequestError,
   type ControlPlaneClient,
   type GovernedDataSourceLifecycleResult,
+  type IndexVersion,
   type KnowledgeSpace,
 } from "../../api/control-plane-client";
 import { LoginForm } from "../knowledge-publication/PublicationViews";
@@ -46,6 +47,8 @@ export function GovernedFileDataWorkspace({
   const [sourceName, setSourceName] = useState("");
   const [content, setContent] = useState("");
   const [source, setSource] = useState<GovernedDataSourceLifecycleResult>();
+  const [publishedArtifactId, setPublishedArtifactId] = useState<string>();
+  const [indexVersion, setIndexVersion] = useState<IndexVersion>();
   const [failure, setFailure] = useState<Failure>();
   const [loggingIn, setLoggingIn] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -56,6 +59,8 @@ export function GovernedFileDataWorkspace({
       setSpaces([]);
       setKnowledgeSpaceId("");
       setSource(undefined);
+      setPublishedArtifactId(undefined);
+      setIndexVersion(undefined);
       return;
     }
     setViewState("loading");
@@ -111,6 +116,8 @@ export function GovernedFileDataWorkspace({
       );
       setSource(registered);
       setContent("");
+      setPublishedArtifactId(undefined);
+      setIndexVersion(undefined);
     } catch (error) {
       setFailure(toFailure(error));
     } finally {
@@ -137,6 +144,129 @@ export function GovernedFileDataWorkspace({
     }
   }
 
+  async function synchronize() {
+    if (source === undefined) {
+      return;
+    }
+    setSubmitting(true);
+    setFailure(undefined);
+    try {
+      setSource(await client.synchronizeFileDataSource(
+        source.knowledgeSpaceId,
+        source.dataSourceId,
+        source.version,
+      ));
+      setPublishedArtifactId(undefined);
+      setIndexVersion(undefined);
+    } catch (error) {
+      setFailure(toFailure(error));
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function publishArtifact() {
+    if (source?.syncArtifactId === null || source?.syncArtifactId === undefined) {
+      return;
+    }
+    setSubmitting(true);
+    setFailure(undefined);
+    try {
+      const published = await client.publishFileSyncArtifact(
+        source.knowledgeSpaceId,
+        source.dataSourceId,
+        source.syncArtifactId,
+        source.version,
+      );
+      setSource(published);
+      setPublishedArtifactId(source.syncArtifactId);
+    } catch (error) {
+      setFailure(toFailure(error));
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function buildIndex() {
+    if (source === undefined || publishedArtifactId !== source.syncArtifactId) {
+      return;
+    }
+    setSubmitting(true);
+    setFailure(undefined);
+    try {
+      const configurations = await client.listModelConfigurations();
+      const embedding = configurations.items.find(
+        (configuration) => configuration.modelType === "EMBEDDING"
+          && configuration.status === "ACTIVE"
+          && configuration.credentialConfigured,
+      );
+      if (embedding === undefined) {
+        throw new Error("请先在模型配置中启用一个可用的嵌入模型");
+      }
+      const created = await client.createIndexVersion(source.knowledgeSpaceId, embedding.id);
+      setIndexVersion(created);
+      await waitForIndex(source.knowledgeSpaceId, created.id);
+    } catch (error) {
+      setFailure(toFailure(error));
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function waitForIndex(knowledgeSpaceId: string, indexVersionId: string) {
+    for (let attempt = 0; attempt < 90; attempt += 1) {
+      const page = await client.listIndexVersions(knowledgeSpaceId);
+      const current = page.items.find((candidate) => candidate.id === indexVersionId);
+      if (current === undefined) {
+        throw new Error("服务端未返回刚创建的索引版本");
+      }
+      setIndexVersion(current);
+      if (current.status === "READY" || current.status === "FAILED") {
+        return;
+      }
+      await delay(1000);
+    }
+    throw new Error("索引构建仍在进行，请稍后刷新数据任务查看");
+  }
+
+  async function publishIndex() {
+    if (source === undefined || indexVersion?.status !== "READY") {
+      return;
+    }
+    setSubmitting(true);
+    setFailure(undefined);
+    try {
+      setIndexVersion(await client.publishIndexVersion(
+        source.knowledgeSpaceId,
+        indexVersion.id,
+        indexVersion.version,
+      ));
+    } catch (error) {
+      setFailure(toFailure(error));
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function retire() {
+    if (source === undefined) {
+      return;
+    }
+    setSubmitting(true);
+    setFailure(undefined);
+    try {
+      setSource(await client.retireFileDataSource(
+        source.knowledgeSpaceId,
+        source.dataSourceId,
+        source.version,
+      ));
+    } catch (error) {
+      setFailure(toFailure(error));
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
   async function logout() {
     try {
       await client.logout();
@@ -145,6 +275,8 @@ export function GovernedFileDataWorkspace({
       setSpaces([]);
       setKnowledgeSpaceId("");
       setSource(undefined);
+      setPublishedArtifactId(undefined);
+      setIndexVersion(undefined);
       setViewState("unauthenticated");
     }
   }
@@ -177,7 +309,7 @@ export function GovernedFileDataWorkspace({
   return (
     <div className="governed-file-workspace">
       <div className="governance-toolbar">
-        <Text>登记文件后由平台冻结对象事实，再以独立探测操作验证可读性；不会自动发布或建立索引。</Text>
+        <Text>文件必须依次完成探测、同步和质量检查，再显式发布、建立并发布索引；每一步均使用最新修订。</Text>
         <div className="task-actions">
           <Button appearance="subtle" icon={<ArrowClockwise20Regular />} onClick={() => void load()}>
             刷新
@@ -199,7 +331,7 @@ export function GovernedFileDataWorkspace({
       ) : (
         <section className="governed-file-section">
           <header className="task-heading">
-            <Title3>登记并探测文件来源</Title3>
+            <Title3>登记、同步并发布文件来源</Title3>
             <Text>当前仅支持 UTF-8 纯文本。对象键、桶名、摘要和正文均由平台处理，不会在控制台展示。</Text>
           </header>
           <form className="governed-file-form" onSubmit={register}>
@@ -246,10 +378,48 @@ export function GovernedFileDataWorkspace({
                 {source.status}
               </Badge>
               <div className="task-actions">
-                <Button appearance="primary" disabled={submitting || source.status === "READY"} onClick={() => void probe()}>
-                  {source.status === "FAILED" ? "重新探测" : "开始探测"}
-                </Button>
-                {source.status === "READY" ? <Text>探测已通过，后续同步、质量和索引工作将在 M3 后续切片交付。</Text> : null}
+                {canProbe(source) ? (
+                  <Button appearance="primary" disabled={submitting} onClick={() => void probe()}>
+                    {source.status === "FAILED" ? "重新探测" : "开始探测"}
+                  </Button>
+                ) : null}
+                {canSynchronize(source) ? (
+                  <Button appearance="primary" disabled={submitting} onClick={() => void synchronize()}>
+                    {source.status === "FAILED" ? "重新同步" : "开始同步和质量检查"}
+                  </Button>
+                ) : null}
+                {source.syncArtifactId ? (
+                  <Text>同步产物已生成，质量结论：{source.qualityStatus ?? "未返回"}。</Text>
+                ) : null}
+                {canPublish(source, publishedArtifactId) ? (
+                  <Button appearance="primary" disabled={submitting} onClick={() => void publishArtifact()}>
+                    发布同步产物
+                  </Button>
+                ) : null}
+                {source.qualityStatus === "BLOCK" ? (
+                  <Text>质量检查已阻断，不能发布或建立索引。</Text>
+                ) : null}
+                {publishedArtifactId === source.syncArtifactId && source.syncArtifactId ? (
+                  <Text>同步产物已发布，可建立新的索引版本。</Text>
+                ) : null}
+                {canBuildIndex(source, publishedArtifactId) ? (
+                  <Button appearance="primary" disabled={submitting} onClick={() => void buildIndex()}>
+                    创建索引版本
+                  </Button>
+                ) : null}
+                {indexVersion ? (
+                  <Text>索引版本：{indexVersion.status}{indexVersion.failureCode ? `（${indexVersion.failureCode}）` : ""}</Text>
+                ) : null}
+                {indexVersion?.status === "READY" ? (
+                  <Button appearance="primary" disabled={submitting} onClick={() => void publishIndex()}>
+                    发布索引版本
+                  </Button>
+                ) : null}
+                {source.status !== "RETIRED" ? (
+                  <Button appearance="subtle" disabled={submitting} onClick={() => void retire()}>
+                    退役来源
+                  </Button>
+                ) : null}
               </div>
             </article>
           ) : null}
@@ -271,6 +441,46 @@ function failureDescription(failure?: Failure) {
     return "请稍后重试；如果问题持续存在，请联系平台运维人员。";
   }
   return failure.traceId.length === 0 ? failure.message : `${failure.message}，追踪标识：${failure.traceId}`;
+}
+
+function canProbe(source: GovernedDataSourceLifecycleResult): boolean {
+  return source.status === "DRAFT"
+    || (source.status === "FAILED" && source.failedOperation === "PROBE");
+}
+
+function canSynchronize(source: GovernedDataSourceLifecycleResult): boolean {
+  return (source.status === "READY" && hasSyncArtifact(source) === false)
+    || (source.status === "FAILED" && source.failedOperation === "SYNCHRONIZATION");
+}
+
+function canPublish(
+  source: GovernedDataSourceLifecycleResult,
+  publishedArtifactId?: string,
+): boolean {
+  return source.status === "READY"
+    && hasSyncArtifact(source)
+    && source.qualityStatus !== "BLOCK"
+    && publishedArtifactId !== source.syncArtifactId;
+}
+
+function canBuildIndex(
+  source: GovernedDataSourceLifecycleResult,
+  publishedArtifactId?: string,
+): boolean {
+  return source.status === "READY"
+    && hasSyncArtifact(source)
+    && source.qualityStatus !== "BLOCK"
+    && publishedArtifactId === source.syncArtifactId;
+}
+
+function hasSyncArtifact(source: GovernedDataSourceLifecycleResult): boolean {
+  return typeof source.syncArtifactId === "string" && source.syncArtifactId.length > 0;
+}
+
+function delay(milliseconds: number) {
+  return new Promise<void>((resolve) => {
+    window.setTimeout(resolve, milliseconds);
+  });
 }
 
 function FailureMessage({ failure }: { failure: Failure }) {

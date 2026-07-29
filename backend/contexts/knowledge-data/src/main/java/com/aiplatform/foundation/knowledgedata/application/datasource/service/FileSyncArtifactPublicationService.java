@@ -57,10 +57,6 @@ public final class FileSyncArtifactPublicationService {
                 .orElseThrow(DataSourceNotFoundException::new);
         var publication = PublishedSyncArtifact.create(artifact, report, clock.instant());
         var published = repository.publishArtifact(publication, command.expectedVersion());
-        return new GovernedDataSourceLifecycleResult(
-                published.id().toString(),
-                published.knowledgeSpaceId().toString(),
-                published.status(),
-                published.version());
+        return GovernedDataSourceLifecycleResult.from(published, artifact, report);
     }
 }

@@ -119,6 +119,58 @@ describe("ControlPlaneClient", () => {
     expect(request?.headers.get("Authorization")).toBe("Bearer demo-token");
   });
 
+  it("同步、发布和退役受治理文件时只提交资源标识和乐观版本", async () => {
+    const requests: Request[] = [];
+    const lifecycle = {
+      dataSourceId: "220000000000000001",
+      knowledgeSpaceId: "210000000000000001",
+      status: "READY",
+      version: 3,
+      failedOperation: null,
+      syncArtifactId: "230000000000000001",
+      qualityStatus: "PASS",
+    };
+    const client = authenticatedClient(async (input, init) => {
+      requests.push(new Request(input, init));
+      return new Response(JSON.stringify(lifecycle), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    });
+
+    await client.synchronizeFileDataSource(
+      lifecycle.knowledgeSpaceId,
+      lifecycle.dataSourceId,
+      2,
+    );
+    await client.publishFileSyncArtifact(
+      lifecycle.knowledgeSpaceId,
+      lifecycle.dataSourceId,
+      lifecycle.syncArtifactId,
+      3,
+    );
+    await client.retireFileDataSource(
+      lifecycle.knowledgeSpaceId,
+      lifecycle.dataSourceId,
+      4,
+    );
+
+    expect(requests.map((request) => request.method)).toEqual(["POST", "POST", "POST"]);
+    expect(requests[0]?.url).toContain(
+      "/governed-data-sources/files/220000000000000001/synchronization",
+    );
+    expect(requests[1]?.url).toContain(
+      "/files/220000000000000001/artifacts/230000000000000001/publish",
+    );
+    expect(requests[2]?.url).toContain(
+      "/governed-data-sources/files/220000000000000001/retire",
+    );
+    expect(requests.every((request) => request.url.includes("knowledgeSpaceId=210000000000000001"))).toBe(true);
+    expect(requests[0]?.url).toContain("expectedVersion=2");
+    expect(requests[1]?.url).toContain("expectedVersion=3");
+    expect(requests[2]?.url).toContain("expectedVersion=4");
+  });
+
   it("把统一错误转换为不泄漏响应体的前端错误", async () => {
     const client = new ControlPlaneClient(async () => new Response(
       JSON.stringify({

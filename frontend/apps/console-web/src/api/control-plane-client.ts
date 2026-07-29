@@ -35,6 +35,9 @@ export interface GovernedDataSourceLifecycleResult {
   knowledgeSpaceId: string;
   status: string;
   version: number;
+  failedOperation: "PROBE" | "SYNCHRONIZATION" | null;
+  syncArtifactId: string | null;
+  qualityStatus: "PASS" | "WARN" | "BLOCK" | null;
 }
 
 export interface IndexVersion {
@@ -297,6 +300,52 @@ export class ControlPlaneClient {
     });
     return this.request<GovernedDataSourceLifecycleResult>(
       `/governed-data-sources/files/${encodeURIComponent(dataSourceId)}/probe?${query}`,
+      { method: "POST" },
+    );
+  }
+
+  async synchronizeFileDataSource(
+    knowledgeSpaceId: string,
+    dataSourceId: string,
+    expectedVersion: number,
+  ): Promise<GovernedDataSourceLifecycleResult> {
+    const query = new URLSearchParams({
+      knowledgeSpaceId,
+      expectedVersion: String(expectedVersion),
+    });
+    return this.request<GovernedDataSourceLifecycleResult>(
+      `/governed-data-sources/files/${encodeURIComponent(dataSourceId)}/synchronization?${query}`,
+      { method: "POST" },
+    );
+  }
+
+  async publishFileSyncArtifact(
+    knowledgeSpaceId: string,
+    dataSourceId: string,
+    artifactId: string,
+    expectedVersion: number,
+  ): Promise<GovernedDataSourceLifecycleResult> {
+    const query = new URLSearchParams({
+      knowledgeSpaceId,
+      expectedVersion: String(expectedVersion),
+    });
+    return this.request<GovernedDataSourceLifecycleResult>(
+      `/governed-data-sources/files/${encodeURIComponent(dataSourceId)}/artifacts/${encodeURIComponent(artifactId)}/publish?${query}`,
+      { method: "POST" },
+    );
+  }
+
+  async retireFileDataSource(
+    knowledgeSpaceId: string,
+    dataSourceId: string,
+    expectedVersion: number,
+  ): Promise<GovernedDataSourceLifecycleResult> {
+    const query = new URLSearchParams({
+      knowledgeSpaceId,
+      expectedVersion: String(expectedVersion),
+    });
+    return this.request<GovernedDataSourceLifecycleResult>(
+      `/governed-data-sources/files/${encodeURIComponent(dataSourceId)}/retire?${query}`,
       { method: "POST" },
     );
   }

@@ -92,7 +92,6 @@ public final class FileDataSourceProbeService {
     }
 
     private static GovernedDataSourceLifecycleResult result(GovernedDataSource source) {
-        return new GovernedDataSourceLifecycleResult(source.id().toString(),
-                source.knowledgeSpaceId().toString(), source.status(), source.version());
+        return GovernedDataSourceLifecycleResult.from(source);
     }
 }

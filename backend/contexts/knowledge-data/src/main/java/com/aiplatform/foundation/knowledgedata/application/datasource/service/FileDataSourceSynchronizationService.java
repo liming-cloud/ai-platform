@@ -90,11 +90,9 @@ public final class FileDataSourceSynchronizationService {
             return result(failed);
         }
 
-        var completed = repository.completeSynchronization(
-                artifact,
-                QualityReport.passed(artifact, QUALITY_RULE_SET_VERSION),
-                syncing.version());
-        return result(completed);
+        var report = QualityReport.passed(artifact, QUALITY_RULE_SET_VERSION);
+        var completed = repository.completeSynchronization(artifact, report, syncing.version());
+        return GovernedDataSourceLifecycleResult.from(completed, artifact, report);
     }
 
     private SyncArtifact synchronize(GovernedDataSource source, SourceRevision revision) throws IOException {
@@ -162,10 +160,6 @@ public final class FileDataSourceSynchronizationService {
     }
 
     private static GovernedDataSourceLifecycleResult result(GovernedDataSource source) {
-        return new GovernedDataSourceLifecycleResult(
-                source.id().toString(),
-                source.knowledgeSpaceId().toString(),
-                source.status(),
-                source.version());
+        return GovernedDataSourceLifecycleResult.from(source);
     }
 }

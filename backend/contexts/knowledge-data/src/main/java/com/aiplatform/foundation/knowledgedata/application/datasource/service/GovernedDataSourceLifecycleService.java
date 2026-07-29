@@ -55,11 +55,7 @@ public final class GovernedDataSourceLifecycleService {
         if (!repository.update(changed, command.expectedVersion())) {
             throw new DataSourceConcurrentModificationException();
         }
-        return new GovernedDataSourceLifecycleResult(
-                changed.id().toString(),
-                changed.knowledgeSpaceId().toString(),
-                changed.status(),
-                changed.version());
+        return GovernedDataSourceLifecycleResult.from(changed);
     }
 
     private static GovernedDataSource apply(

@@ -23,6 +23,7 @@ import com.aiplatform.foundation.knowledgedata.domain.datasource.model.GovernedD
 import com.aiplatform.foundation.knowledgedata.domain.datasource.repository.GovernedDataSourceRepository;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.revision.FileSourceObjectReference;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.revision.SourceRevision;
+import com.aiplatform.foundation.knowledgedata.domain.datasource.quality.QualityStatus;
 import com.aiplatform.foundation.knowledgedata.domain.knowledge.model.KnowledgeSpaceId;
 import com.aiplatform.foundation.security.identity.AccessChannel;
 import com.aiplatform.foundation.security.identity.CredentialType;
@@ -70,6 +71,8 @@ class FileDataSourceSynchronizationServiceTest {
 
         assertEquals(GovernedDataSourceStatus.READY, result.status());
         assertEquals(completed.version(), result.version());
+        assertEquals("240000000000000001", result.syncArtifactId());
+        assertEquals(QualityStatus.PASS, result.qualityStatus());
         var order = inOrder(repository, storage);
         order.verify(repository).update(any(), eq(source.version()));
         order.verify(repository).findRevision(TENANT, SPACE, SOURCE_ID, 1);
@@ -99,6 +102,7 @@ class FileDataSourceSynchronizationServiceTest {
 
         assertEquals(GovernedDataSourceStatus.FAILED, result.status());
         assertEquals(syncing.failSynchronization(syncing.version()).version(), result.version());
+        assertEquals(DataSourceOperation.SYNCHRONIZATION, result.failedOperation());
         verify(repository).update(org.mockito.ArgumentMatchers.argThat(
                 candidate -> candidate.status() == GovernedDataSourceStatus.FAILED
                         && candidate.failedOperation() == DataSourceOperation.SYNCHRONIZATION),

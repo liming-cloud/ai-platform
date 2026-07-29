@@ -51,6 +51,6 @@ public final class GovernedFileDataSourceRegistrationService {
             try { repository.register(source, SourceRevision.file(source, file, source.createdBy(), now)); }
             catch (RuntimeException exception) { storage.delete(stored); throw exception; }
         } catch (IOException exception) { throw new IllegalStateException("文件暂存失败", exception); }
-        return new GovernedDataSourceLifecycleResult(source.id().toString(), space.toString(), source.status(), source.version());
+        return GovernedDataSourceLifecycleResult.from(source);
     }
 }
