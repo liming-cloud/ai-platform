@@ -381,6 +381,49 @@ class KnowledgeDataAutoConfigurationTest {
     }
 
     @Test
+    void 未配置对象正文读取能力时Web层不注册对象存储入口() {
+        new ApplicationContextRunner()
+                .withConfiguration(AutoConfigurations.of(
+                        KnowledgeDataWebAutoConfiguration.class))
+                .withPropertyValues("foundation.knowledge-data.enabled=true")
+                .withBean(
+                        GovernedObjectStorageDataSourceRegistrationService.class,
+                        () -> mock(GovernedObjectStorageDataSourceRegistrationService.class))
+                .withBean(KnowledgeSpaceService.class, () -> mock(KnowledgeSpaceService.class))
+                .withBean(TextDataSourceService.class, () -> mock(TextDataSourceService.class))
+                .withBean(
+                        GovernedFileDataSourceRegistrationService.class,
+                        () -> mock(GovernedFileDataSourceRegistrationService.class))
+                .withBean(
+                        GovernedStructuredDatasetRegistrationService.class,
+                        () -> mock(GovernedStructuredDatasetRegistrationService.class))
+                .withBean(
+                        StructuredDatasetCsvSynchronizationService.class,
+                        () -> mock(StructuredDatasetCsvSynchronizationService.class))
+                .withBean(
+                        StructuredDatasetSyncArtifactPublicationService.class,
+                        () -> mock(StructuredDatasetSyncArtifactPublicationService.class))
+                .withBean(FileDataSourceProbeService.class, () -> mock(FileDataSourceProbeService.class))
+                .withBean(
+                        FileDataSourceSynchronizationService.class,
+                        () -> mock(FileDataSourceSynchronizationService.class))
+                .withBean(
+                        FileSyncArtifactPublicationService.class,
+                        () -> mock(FileSyncArtifactPublicationService.class))
+                .withBean(
+                        GovernedDataSourceLifecycleService.class,
+                        () -> mock(GovernedDataSourceLifecycleService.class))
+                .withBean(
+                        GovernedFileDataSourceQueryService.class,
+                        () -> mock(GovernedFileDataSourceQueryService.class))
+                .withBean(IndexVersionService.class, () -> mock(IndexVersionService.class))
+                .run(context -> {
+                    assertThat(context).hasNotFailed();
+                    assertThat(context).doesNotHaveBean(GovernedObjectStorageDataSourceController.class);
+                });
+    }
+
+    @Test
     void 未配置索引用例时Web层不注册索引入口() {
         new ApplicationContextRunner()
                 .withConfiguration(AutoConfigurations.of(

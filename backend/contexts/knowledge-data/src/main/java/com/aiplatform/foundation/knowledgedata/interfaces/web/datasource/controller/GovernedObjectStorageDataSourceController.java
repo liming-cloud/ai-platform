@@ -19,7 +19,11 @@ import org.springframework.web.bind.annotation.RestController;
 
 /** OBJECT_STORAGE 受治理来源登记入口；只接收平台签发的范围选择。 */
 @RestController
-@ConditionalOnBean(GovernedObjectStorageDataSourceRegistrationService.class)
+@ConditionalOnBean({
+        GovernedObjectStorageDataSourceRegistrationService.class,
+        ObjectStorageSynchronizationService.class,
+        ObjectStorageSyncArtifactPublicationService.class
+})
 @RequestMapping("/api/v1/governed-data-sources/object-storage")
 public class GovernedObjectStorageDataSourceController {
     private final GovernedObjectStorageDataSourceRegistrationService registration;
