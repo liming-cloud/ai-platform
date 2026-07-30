@@ -21,6 +21,13 @@ const StructuredDatasetRegistrationWorkspace = lazy(async () => {
   return { default: module.StructuredDatasetRegistrationWorkspace };
 });
 
+const ObjectStorageDataWorkspace = lazy(async () => {
+  const module = await import(
+    "./features/governed-data/ObjectStorageDataWorkspace"
+  );
+  return { default: module.ObjectStorageDataWorkspace };
+});
+
 const QueryGovernanceWorkspace = lazy(async () => {
   const module = await import(
     "./features/query-governance/QueryGovernanceWorkspace"
@@ -48,7 +55,7 @@ export function ConsoleApp() {
   >("data");
   const [sessionRevision, setSessionRevision] = useState(0);
   const [dataTask, setDataTask] = useState<
-    "governed-file" | "structured-dataset" | "first-publication"
+    "governed-file" | "structured-dataset" | "object-storage" | "first-publication"
   >("governed-file");
   const governanceActive = activeNavigationId === "governance";
   const modelsActive = activeNavigationId === "models";
@@ -61,6 +68,11 @@ export function ConsoleApp() {
     ? {
       title: "结构化数据集登记",
       summary: "登记平台私有 UTF-8 CSV 与冻结字段映射，不展示对象位置、正文或敏感字段。",
+    }
+    : dataTask === "object-storage"
+    ? {
+      title: "对象存储范围登记",
+      summary: "使用平台签发范围标识与选择修订登记受治理对象存储来源，不展示内部对象位置。",
     }
     : {
       title: "发布首份知识数据",
@@ -120,6 +132,12 @@ export function ConsoleApp() {
             结构化数据集登记
           </Button>
           <Button
+            appearance={dataTask === "object-storage" ? "primary" : "subtle"}
+            onClick={() => setDataTask("object-storage")}
+          >
+            对象存储范围登记
+          </Button>
+          <Button
             appearance={dataTask === "first-publication" ? "primary" : "subtle"}
             onClick={() => setDataTask("first-publication")}
           >
@@ -137,6 +155,14 @@ export function ConsoleApp() {
         ) : dataTask === "structured-dataset" ? (
           <Suspense fallback={<StatePanel kind="loading" title="正在加载数据集登记任务" description="正在准备私有 CSV 登记流程。" />}>
             <StructuredDatasetRegistrationWorkspace
+              client={client}
+              sessionRevision={sessionRevision}
+              onSessionChanged={sessionChanged}
+            />
+          </Suspense>
+        ) : dataTask === "object-storage" ? (
+          <Suspense fallback={<StatePanel kind="loading" title="正在加载对象存储任务" description="正在准备平台签发范围登记流程。" />}>
+            <ObjectStorageDataWorkspace
               client={client}
               sessionRevision={sessionRevision}
               onSessionChanged={sessionChanged}

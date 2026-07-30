@@ -346,6 +346,25 @@ export class ControlPlaneClient {
     );
   }
 
+  /** 登记部署已签发的对象存储范围，不传递内部位置、对象正文或凭据。 */
+  async registerObjectStorageDataSource(
+    knowledgeSpaceId: string,
+    name: string,
+    rangeId: string,
+    selectionRevision: number,
+  ): Promise<GovernedDataSourceLifecycleResult> {
+    const query = new URLSearchParams({
+      knowledgeSpaceId,
+      name,
+      rangeId,
+      selectionRevision: String(selectionRevision),
+    });
+    return this.request<GovernedDataSourceLifecycleResult>(
+      `/governed-data-sources/object-storage?${query}`,
+      { method: "POST" },
+    );
+  }
+
   async listGovernedFileDataSources(
     knowledgeSpaceId: string,
     pageNumber = 1,
@@ -405,6 +424,39 @@ export class ControlPlaneClient {
     });
     return this.request<GovernedDataSourceLifecycleResult>(
       `/governed-data-sources/structured-datasets/${encodeURIComponent(dataSourceId)}/artifacts/${encodeURIComponent(artifactId)}/publish?${query}`,
+      { method: "POST" },
+    );
+  }
+
+  /** 同步登记时冻结的平台对象集合，不提交对象位置、正文或质量结论。 */
+  async synchronizeObjectStorageDataSource(
+    knowledgeSpaceId: string,
+    dataSourceId: string,
+    expectedVersion: number,
+  ): Promise<GovernedDataSourceLifecycleResult> {
+    const query = new URLSearchParams({
+      knowledgeSpaceId,
+      expectedVersion: String(expectedVersion),
+    });
+    return this.request<GovernedDataSourceLifecycleResult>(
+      `/governed-data-sources/object-storage/${encodeURIComponent(dataSourceId)}/synchronization?${query}`,
+      { method: "POST" },
+    );
+  }
+
+  /** 发布指定对象存储同步产物，质量和归属仍由服务端重新核验。 */
+  async publishObjectStorageSyncArtifact(
+    knowledgeSpaceId: string,
+    dataSourceId: string,
+    artifactId: string,
+    expectedVersion: number,
+  ): Promise<GovernedDataSourceLifecycleResult> {
+    const query = new URLSearchParams({
+      knowledgeSpaceId,
+      expectedVersion: String(expectedVersion),
+    });
+    return this.request<GovernedDataSourceLifecycleResult>(
+      `/governed-data-sources/object-storage/${encodeURIComponent(dataSourceId)}/artifacts/${encodeURIComponent(artifactId)}/publish?${query}`,
       { method: "POST" },
     );
   }
