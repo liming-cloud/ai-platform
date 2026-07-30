@@ -140,6 +140,7 @@ latestEvidence:
   - project/evidence/WP-0012-assistant-test-run-persistence.md
   - project/evidence/WP-0012-query-feedback-domain.md
   - project/evidence/WP-0012-query-feedback-persistence-api.md
+  - project/evidence/WP-0012-query-feedback-browser-entry.md
 nextReviewAt: 2026-08-03
-updatedAt: 2026-07-30T23:38:00+08:00
+updatedAt: 2026-07-30T23:44:00+08:00
 updatedBy: codex

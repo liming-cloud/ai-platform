@@ -194,6 +194,7 @@
 | M4 独立草稿测试运行持久化 | `project/evidence/WP-0012-assistant-test-run-persistence.md` | `be8a16daa` | 真实 PostgreSQL 证明独立表、租户原子日／并发配额、终态乐观提交、最小引用恢复和题目／回答正文列归零；可信执行编排尚未实施 |
 | M4 查询反馈领域基础 | `project/evidence/WP-0012-query-feedback-domain.md` | `32c3a87e1` | 独立不可变反馈根、受控正负原因与正文存储归零已红绿验证；完成态、唯一持久化、保留边界和接口尚未实施 |
 | M4 查询反馈持久化与受控接口 | `project/evidence/WP-0012-query-feedback-persistence-api.md` | `7cb00b563` | 真实 PostgreSQL 原子去重、请求成员三列外键、查询删除级联、自动配置和令牌派生 HTTP 入口回归通过；草稿可信执行仍等待 ADR-0037 |
+| M4 查询反馈前端入口 | `project/evidence/WP-0012-query-feedback-browser-entry.md` | `894324933` | 固定枚举反馈、仅内存令牌、重复反馈稳定显示和前端 12 项回归及生产构建通过；真实角色浏览器验收仍待完整 M4 环境 |
 
 ## 证据规则
 
