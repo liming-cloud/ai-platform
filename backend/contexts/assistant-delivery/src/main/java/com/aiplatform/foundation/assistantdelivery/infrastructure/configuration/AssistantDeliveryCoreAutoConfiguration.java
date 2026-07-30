@@ -1,6 +1,8 @@
 package com.aiplatform.foundation.assistantdelivery.infrastructure.configuration;
 
 import com.aiplatform.foundation.assistantdelivery.application.assistant.facade.PublishedAssistantVersionLookup;
+import com.aiplatform.foundation.assistantdelivery.application.assistant.facade.DraftAssistantVersionLookup;
+import com.aiplatform.foundation.assistantdelivery.application.assistant.service.DraftAssistantVersionLookupService;
 import com.aiplatform.foundation.assistantdelivery.application.assistant.service.PublishedAssistantVersionLookupService;
 import com.aiplatform.foundation.assistantdelivery.application.catalog.service.QueryAssistantCatalogService;
 import com.aiplatform.foundation.assistantdelivery.domain.assistant.repository.AssistantRepository;
@@ -24,6 +26,13 @@ public class AssistantDeliveryCoreAutoConfiguration {
     PublishedAssistantVersionLookup publishedAssistantVersionLookup(
             AssistantRepository repository) {
         return new PublishedAssistantVersionLookupService(repository);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    DraftAssistantVersionLookup draftAssistantVersionLookup(
+            AssistantRepository repository) {
+        return new DraftAssistantVersionLookupService(repository);
     }
 
     @Bean

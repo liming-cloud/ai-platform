@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
 import com.aiplatform.foundation.assistantdelivery.application.assistant.facade.PublishedAssistantVersionLookup;
+import com.aiplatform.foundation.assistantdelivery.application.assistant.facade.DraftAssistantVersionLookup;
 import com.aiplatform.foundation.assistantdelivery.application.assistant.service.AssistantService;
 import com.aiplatform.foundation.assistantdelivery.application.catalog.service.QueryAssistantCatalogService;
 import com.aiplatform.foundation.assistantdelivery.domain.assistant.repository.AssistantRepository;
@@ -38,6 +39,7 @@ class AssistantDeliveryAutoConfigurationTest {
                 .run(context -> {
                     assertThat(context).hasSingleBean(AssistantService.class);
                     assertThat(context).hasSingleBean(PublishedAssistantVersionLookup.class);
+                    assertThat(context).hasSingleBean(DraftAssistantVersionLookup.class);
                     assertThat(context).hasSingleBean(QueryAssistantCatalogService.class);
                     assertThat(context).hasSingleBean(AssistantController.class);
                     assertThat(context).hasSingleBean(AssistantVersionController.class);
@@ -53,6 +55,8 @@ class AssistantDeliveryAutoConfigurationTest {
                     assertThat(context).doesNotHaveBean(AssistantService.class);
                     assertThat(context)
                             .doesNotHaveBean(PublishedAssistantVersionLookup.class);
+                    assertThat(context)
+                            .doesNotHaveBean(DraftAssistantVersionLookup.class);
                     assertThat(context)
                             .doesNotHaveBean(QueryAssistantCatalogService.class);
                     assertThat(context).doesNotHaveBean(AssistantController.class);

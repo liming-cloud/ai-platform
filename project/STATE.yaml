@@ -133,6 +133,7 @@ latestEvidence:
   - project/evidence/WP-0012-m4-impact-analysis.md
   - project/evidence/WP-0012-m4-tdd-test-route.md
   - project/evidence/ADR-0036-approval.md
+  - project/evidence/WP-0012-draft-assistant-lookup.md
 nextReviewAt: 2026-08-03
-updatedAt: 2026-07-30T22:42:35+08:00
+updatedAt: 2026-07-30T22:47:00+08:00
 updatedBy: codex
