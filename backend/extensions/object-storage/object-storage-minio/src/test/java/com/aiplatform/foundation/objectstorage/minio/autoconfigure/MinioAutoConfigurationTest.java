@@ -6,6 +6,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.aiplatform.foundation.knowledgedata.application.port.out.content.TextContentObjectStoragePort;
+import com.aiplatform.foundation.knowledgedata.application.datasource.port.out.PlatformObjectContentReaderPort;
 import com.aiplatform.foundation.knowledgedata.application.datasource.port.out.dataset.StructuredDatasetCsvStoragePort;
 import io.minio.MinioClient;
 import org.junit.jupiter.api.Test;
@@ -35,6 +36,8 @@ class MinioAutoConfigurationTest {
                             TextContentObjectStoragePort.class);
                     assertThat(context).hasSingleBean(
                             StructuredDatasetCsvStoragePort.class);
+                    assertThat(context).hasSingleBean(
+                            PlatformObjectContentReaderPort.class);
                     assertThat(context.getBean(KnowledgeDataMinioProperties.class)
                             .getBucket()).isEqualTo("knowledge-private");
                 });
@@ -52,6 +55,8 @@ class MinioAutoConfigurationTest {
                             TextContentObjectStoragePort.class);
                     assertThat(context).doesNotHaveBean(
                             StructuredDatasetCsvStoragePort.class);
+                    assertThat(context).doesNotHaveBean(
+                            PlatformObjectContentReaderPort.class);
                 });
     }
 
@@ -59,6 +64,7 @@ class MinioAutoConfigurationTest {
     void 应用提供的对象存储端口不会被扩展覆盖() {
         var custom = mock(TextContentObjectStoragePort.class);
         var customCsv = mock(StructuredDatasetCsvStoragePort.class);
+        var customReader = mock(PlatformObjectContentReaderPort.class);
         new ApplicationContextRunner()
                 .withConfiguration(AutoConfigurations.of(
                         MinioKnowledgeDataAutoConfiguration.class))
@@ -70,11 +76,14 @@ class MinioAutoConfigurationTest {
                         "foundation.knowledge-data.object-storage.bucket=knowledge-private")
                 .withBean(TextContentObjectStoragePort.class, () -> custom)
                 .withBean(StructuredDatasetCsvStoragePort.class, () -> customCsv)
+                .withBean(PlatformObjectContentReaderPort.class, () -> customReader)
                 .run(context -> {
                     assertThat(context.getBean(TextContentObjectStoragePort.class))
                             .isSameAs(custom);
                     assertThat(context.getBean(StructuredDatasetCsvStoragePort.class))
                             .isSameAs(customCsv);
+                    assertThat(context.getBean(PlatformObjectContentReaderPort.class))
+                            .isSameAs(customReader);
                 });
     }
 }
