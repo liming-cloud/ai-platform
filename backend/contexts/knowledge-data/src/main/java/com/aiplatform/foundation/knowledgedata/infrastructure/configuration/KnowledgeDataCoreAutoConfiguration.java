@@ -7,11 +7,13 @@ import com.aiplatform.foundation.knowledgedata.application.datasource.service.Fi
 import com.aiplatform.foundation.knowledgedata.application.datasource.service.FileSyncArtifactPublicationService;
 import com.aiplatform.foundation.knowledgedata.application.datasource.service.GovernedFileDataSourceRegistrationService;
 import com.aiplatform.foundation.knowledgedata.application.datasource.service.GovernedObjectStorageDataSourceRegistrationService;
+import com.aiplatform.foundation.knowledgedata.application.datasource.service.GovernedStructuredDatasetRegistrationService;
 import com.aiplatform.foundation.knowledgedata.application.datasource.service.ObjectStorageDataSourceProbeService;
 import com.aiplatform.foundation.knowledgedata.application.datasource.service.GovernedFileDataSourceQueryService;
 import com.aiplatform.foundation.knowledgedata.application.datasource.port.out.FileSourceObjectProbe;
 import com.aiplatform.foundation.knowledgedata.application.datasource.port.out.GovernedFileDataSourceReadPort;
 import com.aiplatform.foundation.knowledgedata.application.datasource.port.out.PlatformObjectRangeSelectionPort;
+import com.aiplatform.foundation.knowledgedata.application.datasource.port.out.dataset.StructuredDatasetCsvStoragePort;
 import com.aiplatform.foundation.knowledgedata.application.indexversion.facade.ActiveIndexLookup;
 import com.aiplatform.foundation.knowledgedata.application.indexversion.service.ActiveIndexLookupService;
 import com.aiplatform.foundation.knowledgedata.application.indexversion.service.IndexVersionService;
@@ -27,6 +29,7 @@ import com.aiplatform.foundation.knowledgedata.domain.datasource.service.FileSyn
 import com.aiplatform.foundation.knowledgedata.domain.indexversion.repository.IndexVersionRepository;
 import com.aiplatform.foundation.knowledgedata.domain.knowledge.repository.KnowledgeSpaceRepository;
 import com.aiplatform.foundation.knowledgedata.infrastructure.objectstorage.UnavailableTextContentObjectStorageAdapter;
+import com.aiplatform.foundation.knowledgedata.infrastructure.objectstorage.UnavailableStructuredDatasetCsvStorageAdapter;
 import com.aiplatform.foundation.knowledgedata.infrastructure.objectstorage.TextContentFileSourceObjectProbe;
 import com.aiplatform.foundation.knowledgedata.infrastructure.objectstorage.ConfiguredPlatformObjectRangeSelectionAdapter;
 import com.aiplatform.foundation.knowledgedata.infrastructure.staging.LocalTextContentStagingAdapter;
@@ -86,6 +89,16 @@ public class KnowledgeDataCoreAutoConfiguration {
             matchIfMissing = true)
     TextContentObjectStoragePort unavailableTextContentObjectStorage() {
         return new UnavailableTextContentObjectStorageAdapter();
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    @ConditionalOnProperty(
+            name = "foundation.knowledge-data.object-storage.enabled",
+            havingValue = "false",
+            matchIfMissing = true)
+    StructuredDatasetCsvStoragePort unavailableStructuredDatasetCsvStorage() {
+        return new UnavailableStructuredDatasetCsvStorageAdapter();
     }
 
     @Bean
@@ -178,6 +191,17 @@ public class KnowledgeDataCoreAutoConfiguration {
             TextContentObjectStoragePort storage,
             EntityIdGenerator identifiers) {
         return new GovernedFileDataSourceRegistrationService(
+                repository, staging, storage, identifiers, Clock.systemUTC());
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    GovernedStructuredDatasetRegistrationService governedStructuredDatasetRegistrationService(
+            GovernedDataSourceRepository repository,
+            TextContentStagingPort staging,
+            StructuredDatasetCsvStoragePort storage,
+            EntityIdGenerator identifiers) {
+        return new GovernedStructuredDatasetRegistrationService(
                 repository, staging, storage, identifiers, Clock.systemUTC());
     }
 

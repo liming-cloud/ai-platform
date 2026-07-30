@@ -1,6 +1,8 @@
 package com.aiplatform.foundation.objectstorage.minio.autoconfigure;
 
 import com.aiplatform.foundation.knowledgedata.application.port.out.content.TextContentObjectStoragePort;
+import com.aiplatform.foundation.knowledgedata.application.datasource.port.out.dataset.StructuredDatasetCsvStoragePort;
+import com.aiplatform.foundation.objectstorage.minio.MinioStructuredDatasetCsvStorageAdapter;
 import com.aiplatform.foundation.objectstorage.minio.MinioTextContentObjectStorageAdapter;
 import io.minio.MinioClient;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
@@ -35,6 +37,16 @@ public class MinioKnowledgeDataAutoConfiguration {
         var adapter = new MinioTextContentObjectStorageAdapter(
                 client,
                 properties.getBucket());
+        adapter.ensureBucket(properties.isCreateBucketIfMissing());
+        return adapter;
+    }
+
+    @Bean
+    @ConditionalOnMissingBean(StructuredDatasetCsvStoragePort.class)
+    StructuredDatasetCsvStoragePort knowledgeDataStructuredDatasetCsvStorage(
+            MinioClient client,
+            KnowledgeDataMinioProperties properties) {
+        var adapter = new MinioStructuredDatasetCsvStorageAdapter(client, properties.getBucket());
         adapter.ensureBucket(properties.isCreateBucketIfMissing());
         return adapter;
     }

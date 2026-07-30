@@ -10,6 +10,7 @@ import com.aiplatform.foundation.knowledgedata.application.datasource.service.Fi
 import com.aiplatform.foundation.knowledgedata.application.datasource.service.FileSyncArtifactPublicationService;
 import com.aiplatform.foundation.knowledgedata.application.datasource.service.GovernedDataSourceLifecycleService;
 import com.aiplatform.foundation.knowledgedata.application.datasource.service.GovernedFileDataSourceRegistrationService;
+import com.aiplatform.foundation.knowledgedata.application.datasource.service.GovernedStructuredDatasetRegistrationService;
 import com.aiplatform.foundation.knowledgedata.application.datasource.service.GovernedFileDataSourceQueryService;
 import com.aiplatform.foundation.knowledgedata.application.datasource.port.out.GovernedFileDataSourceReadPort;
 import com.aiplatform.foundation.knowledgedata.application.indexversion.facade.ActiveIndexLookup;
@@ -46,6 +47,7 @@ import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.knowle
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.knowledge.mapper.KnowledgeSpaceRequestMapper;
 import com.aiplatform.foundation.knowledgedata.interfaces.web.datasource.controller.TextDataSourceController;
 import com.aiplatform.foundation.knowledgedata.interfaces.web.datasource.controller.GovernedFileDataSourceController;
+import com.aiplatform.foundation.knowledgedata.interfaces.web.datasource.controller.GovernedStructuredDatasetController;
 import com.aiplatform.foundation.knowledgedata.interfaces.web.indexversion.controller.IndexVersionController;
 import com.aiplatform.foundation.knowledgedata.interfaces.web.knowledge.controller.KnowledgeSpaceController;
 import com.aiplatform.foundation.modelruntime.application.deployment.facade.PublishedEmbeddingDeploymentLookup;
@@ -97,6 +99,7 @@ class KnowledgeDataAutoConfigurationTest {
                     assertThat(context).hasSingleBean(FileSyncArtifactPublishing.class);
                     assertThat(context).hasSingleBean(FileDataSourceSynchronizationService.class);
                     assertThat(context).hasSingleBean(FileSyncArtifactPublicationService.class);
+                    assertThat(context).hasSingleBean(GovernedStructuredDatasetRegistrationService.class);
                     assertThat(context).hasSingleBean(IndexVersionService.class);
                     assertThat(context).hasSingleBean(ActiveIndexLookup.class);
                     assertThat(context).hasSingleBean(KnowledgeSpaceLookup.class);
@@ -316,6 +319,9 @@ class KnowledgeDataAutoConfigurationTest {
                         GovernedFileDataSourceRegistrationService.class,
                         () -> mock(GovernedFileDataSourceRegistrationService.class))
                 .withBean(
+                        GovernedStructuredDatasetRegistrationService.class,
+                        () -> mock(GovernedStructuredDatasetRegistrationService.class))
+                .withBean(
                         FileDataSourceProbeService.class,
                         () -> mock(FileDataSourceProbeService.class))
                 .withBean(
@@ -338,6 +344,7 @@ class KnowledgeDataAutoConfigurationTest {
                     assertThat(context).hasSingleBean(KnowledgeSpaceController.class);
                     assertThat(context).hasSingleBean(TextDataSourceController.class);
                     assertThat(context).hasSingleBean(GovernedFileDataSourceController.class);
+                    assertThat(context).hasSingleBean(GovernedStructuredDatasetController.class);
                     assertThat(context).hasSingleBean(IndexVersionController.class);
                 });
     }

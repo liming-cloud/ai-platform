@@ -9,12 +9,15 @@ import com.aiplatform.foundation.knowledgedata.application.datasource.exception.
 import com.aiplatform.foundation.knowledgedata.application.datasource.exception.TextContentIntegrityException;
 import com.aiplatform.foundation.knowledgedata.application.port.out.content.StagedTextContent;
 import com.aiplatform.foundation.knowledgedata.application.port.out.content.TextContentStorageRequest;
+import com.aiplatform.foundation.knowledgedata.application.datasource.port.out.dataset.StructuredDatasetCsvStorageRequest;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.model.DataSourceId;
 import com.aiplatform.foundation.knowledgedata.domain.knowledge.model.KnowledgeSpaceId;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.model.TextContentReference;
+import com.aiplatform.foundation.knowledgedata.domain.datasource.revision.StructuredDatasetCsvReference;
 import io.minio.GetObjectArgs;
 import io.minio.MinioClient;
 import io.minio.PutObjectArgs;
+import io.minio.StatObjectArgs;
 import java.io.ByteArrayInputStream;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -61,6 +64,7 @@ class MinioTextContentObjectStorageAdapterTest {
 
     private static MinioClient client;
     private static MinioTextContentObjectStorageAdapter adapter;
+    private static MinioStructuredDatasetCsvStorageAdapter structuredDatasetAdapter;
 
     @BeforeAll
     static void 建立真实私有对象存储() {
@@ -69,6 +73,7 @@ class MinioTextContentObjectStorageAdapterTest {
                 .credentials(ACCESS_KEY, SECRET_KEY)
                 .build();
         adapter = new MinioTextContentObjectStorageAdapter(client, BUCKET);
+        structuredDatasetAdapter = new MinioStructuredDatasetCsvStorageAdapter(client, BUCKET);
         adapter.ensureBucket(true);
     }
 
@@ -167,6 +172,44 @@ class MinioTextContentObjectStorageAdapterTest {
         }
     }
 
+    @Test
+    void 结构化数据集CSV使用私有内容寻址路径写入读取和删除() throws Exception {
+        var bytes = "content,title\n测试内容,测试标题\n".getBytes(StandardCharsets.UTF_8);
+        var request = structuredDatasetRequest(bytes, sha256(bytes));
+
+        var reference = structuredDatasetAdapter.put(request);
+
+        assertEquals(
+                "foundation-v1/tenants/" + TENANT_ID.value()
+                        + "/knowledge-data/knowledge-spaces/" + SPACE_ID.value()
+                        + "/structured-datasets/" + SOURCE_ID.value()
+                        + "/revisions/1/" + request.content().sha256() + "/data.csv",
+                reference.objectKey());
+        var stat = client.statObject(StatObjectArgs.builder()
+                .bucket(BUCKET)
+                .object(reference.objectKey())
+                .build());
+        assertEquals(StructuredDatasetCsvReference.UTF8_CSV, stat.contentType());
+        assertEquals(request.content().sha256(), stat.userMetadata().get("sha256"));
+        try (var stored = structuredDatasetAdapter.read(reference)) {
+            assertArrayEquals(bytes, stored.readAllBytes());
+        }
+
+        var anonymousResponse = HttpClient.newHttpClient().send(
+                HttpRequest.newBuilder(URI.create(
+                                endpoint() + "/" + BUCKET + "/" + reference.objectKey()))
+                        .GET()
+                        .build(),
+                HttpResponse.BodyHandlers.discarding());
+        assertEquals(403, anonymousResponse.statusCode());
+
+        structuredDatasetAdapter.delete(reference);
+        assertThrows(Exception.class, () -> client.getObject(GetObjectArgs.builder()
+                .bucket(BUCKET)
+                .object(reference.objectKey())
+                .build()));
+    }
+
     private static TextContentStorageRequest request(byte[] bytes, String sha256) {
         return new TextContentStorageRequest(
                 TENANT_ID,
@@ -195,6 +238,40 @@ class MinioTextContentObjectStorageAdapterTest {
                     }
                 },
                 CREATED_AT);
+    }
+
+    private static StructuredDatasetCsvStorageRequest structuredDatasetRequest(byte[] bytes, String sha256) {
+        return new StructuredDatasetCsvStorageRequest(
+                TENANT_ID,
+                SPACE_ID,
+                SOURCE_ID,
+                1,
+                stagedContent(bytes, sha256),
+                CREATED_AT);
+    }
+
+    private static StagedTextContent stagedContent(byte[] bytes, String sha256) {
+        return new StagedTextContent() {
+            @Override
+            public long byteSize() {
+                return bytes.length;
+            }
+
+            @Override
+            public String sha256() {
+                return sha256;
+            }
+
+            @Override
+            public ByteArrayInputStream openStream() {
+                return new ByteArrayInputStream(bytes);
+            }
+
+            @Override
+            public void close() {
+                // 测试内容只存在于内存，不持有外部资源。
+            }
+        };
     }
 
     private static String endpoint() {

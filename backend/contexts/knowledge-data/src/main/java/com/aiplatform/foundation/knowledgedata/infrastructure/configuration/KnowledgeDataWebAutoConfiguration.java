@@ -3,6 +3,7 @@ package com.aiplatform.foundation.knowledgedata.infrastructure.configuration;
 import com.aiplatform.foundation.knowledgedata.interfaces.web.datasource.controller.TextDataSourceController;
 import com.aiplatform.foundation.knowledgedata.interfaces.web.datasource.controller.GovernedFileDataSourceController;
 import com.aiplatform.foundation.knowledgedata.interfaces.web.datasource.controller.GovernedObjectStorageDataSourceController;
+import com.aiplatform.foundation.knowledgedata.interfaces.web.datasource.controller.GovernedStructuredDatasetController;
 import com.aiplatform.foundation.knowledgedata.interfaces.web.indexversion.controller.IndexVersionController;
 import com.aiplatform.foundation.knowledgedata.interfaces.web.knowledge.controller.KnowledgeSpaceController;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
@@ -21,6 +22,7 @@ import org.springframework.context.annotation.Import;
     TextDataSourceController.class,
     GovernedFileDataSourceController.class,
     GovernedObjectStorageDataSourceController.class,
+    GovernedStructuredDatasetController.class,
     IndexVersionController.class
 })
 public class KnowledgeDataWebAutoConfiguration {
