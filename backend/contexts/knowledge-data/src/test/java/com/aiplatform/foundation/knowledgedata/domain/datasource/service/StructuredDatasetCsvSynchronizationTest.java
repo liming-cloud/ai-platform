@@ -76,6 +76,18 @@ class StructuredDatasetCsvSynchronizationTest {
     }
 
     @Test
+    void 通过或告警质量结论的当前数据集产物可被显式发布() {
+        var ready = readySource(StructuredDatasetRowFilter.NON_BLANK_CONTENT);
+        var syncing = synchronization.begin(ready, ready.version());
+        var completion = synchronization.complete(syncing, revision(ready, StructuredDatasetRowFilter.NON_BLANK_CONTENT),
+                new SyncArtifactId(240000000000000005L), normalizedContent("e"), 1, 1, NOW);
+        var publication = new StructuredDatasetSyncArtifactPublishing().publish(
+                completion.completedSource(), completion.artifact(), completion.qualityReport(), NOW);
+        assertEquals(GovernedDataSourceStatus.READY, publication.publishedSource().status());
+        assertEquals(QualityStatus.WARN, publication.publication().qualityStatus());
+    }
+
+    @Test
     void 所有行策略不得跳过空内容行() {
         var ready = readySource(StructuredDatasetRowFilter.ALL_ROWS);
         var syncing = synchronization.begin(ready, ready.version());
