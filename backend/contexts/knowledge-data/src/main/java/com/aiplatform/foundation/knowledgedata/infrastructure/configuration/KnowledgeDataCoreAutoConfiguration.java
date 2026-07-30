@@ -27,6 +27,7 @@ import com.aiplatform.foundation.knowledgedata.domain.indexversion.repository.In
 import com.aiplatform.foundation.knowledgedata.domain.knowledge.repository.KnowledgeSpaceRepository;
 import com.aiplatform.foundation.knowledgedata.infrastructure.objectstorage.UnavailableTextContentObjectStorageAdapter;
 import com.aiplatform.foundation.knowledgedata.infrastructure.objectstorage.TextContentFileSourceObjectProbe;
+import com.aiplatform.foundation.knowledgedata.infrastructure.objectstorage.ConfiguredPlatformObjectRangeSelectionAdapter;
 import com.aiplatform.foundation.knowledgedata.infrastructure.staging.LocalTextContentStagingAdapter;
 import com.aiplatform.foundation.modelruntime.application.configuration.facade.UsableModelConfigurationLookup;
 import com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator;
@@ -84,6 +85,12 @@ public class KnowledgeDataCoreAutoConfiguration {
             matchIfMissing = true)
     TextContentObjectStoragePort unavailableTextContentObjectStorage() {
         return new UnavailableTextContentObjectStorageAdapter();
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    PlatformObjectRangeSelectionPort platformObjectRangeSelectionPort(KnowledgeDataProperties properties) {
+        return new ConfiguredPlatformObjectRangeSelectionAdapter(properties);
     }
 
     @Bean
