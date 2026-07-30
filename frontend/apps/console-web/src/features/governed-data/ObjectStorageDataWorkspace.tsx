@@ -55,6 +55,7 @@ export function ObjectStorageDataWorkspace({
   const [failure, setFailure] = useState<Failure>();
   const [loggingIn, setLoggingIn] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [probing, setProbing] = useState(false);
   const [synchronizing, setSynchronizing] = useState(false);
   const [publishing, setPublishing] = useState(false);
   const [buildingIndex, setBuildingIndex] = useState(false);
@@ -176,6 +177,27 @@ export function ObjectStorageDataWorkspace({
       }
     } finally {
       setSynchronizing(false);
+    }
+  }
+
+  async function probe() {
+    if (source === undefined || !canProbeObjectStorage(source)) {
+      return;
+    }
+    setProbing(true);
+    setFailure(undefined);
+    try {
+      setSource(await client.probeObjectStorageDataSource(
+        source.knowledgeSpaceId,
+        source.dataSourceId,
+        source.version,
+      ));
+    } catch (error) {
+      if (!restartExpiredSession(error)) {
+        setFailure(toFailure(error));
+      }
+    } finally {
+      setProbing(false);
     }
   }
 
@@ -308,12 +330,13 @@ export function ObjectStorageDataWorkspace({
             <Badge appearance="tint" color="warning">{source.status}</Badge>
             <Text>{source.syncArtifactId === null ? "登记完成，可同步冻结对象集合。" : `同步完成，质量状态：${source.qualityStatus}。`}</Text>
             <div className="task-actions">
-              {canSynchronizeObjectStorage(source) ? <Button appearance="primary" disabled={synchronizing || publishing} onClick={() => void synchronize()}>{synchronizing ? "正在同步" : "同步冻结对象集合"}</Button> : null}
-              {canPublishObjectStorageArtifact(source, publishedArtifactId) && source.syncArtifactId !== null ? <Button appearance="primary" disabled={synchronizing || publishing} onClick={() => void publish()}>{publishing ? "正在发布" : "发布同步产物"}</Button> : null}
+              {canProbeObjectStorage(source) ? <Button appearance="primary" disabled={probing || synchronizing || publishing} onClick={() => void probe()}>{probing ? "正在探测" : "探测冻结范围"}</Button> : null}
+              {canSynchronizeObjectStorage(source) ? <Button appearance="primary" disabled={probing || synchronizing || publishing} onClick={() => void synchronize()}>{synchronizing ? "正在同步" : "同步冻结对象集合"}</Button> : null}
+              {canPublishObjectStorageArtifact(source, publishedArtifactId) && source.syncArtifactId !== null ? <Button appearance="primary" disabled={probing || synchronizing || publishing} onClick={() => void publish()}>{publishing ? "正在发布" : "发布同步产物"}</Button> : null}
               {publishedArtifactId === source.syncArtifactId ? <Text>同步产物已发布。</Text> : null}
-              {canBuildObjectStorageIndex(source, publishedArtifactId) ? <Button appearance="primary" disabled={synchronizing || publishing || buildingIndex} onClick={() => void buildIndex()}>{buildingIndex ? "正在建立索引" : "创建索引版本"}</Button> : null}
+              {canBuildObjectStorageIndex(source, publishedArtifactId) ? <Button appearance="primary" disabled={probing || synchronizing || publishing || buildingIndex} onClick={() => void buildIndex()}>{buildingIndex ? "正在建立索引" : "创建索引版本"}</Button> : null}
               {indexVersion ? <Text>索引版本：{indexVersion.status}{indexVersion.failureCode ? `（${indexVersion.failureCode}）` : ""}</Text> : null}
-              {indexVersion?.status === "READY" ? <Button appearance="primary" disabled={synchronizing || publishing || buildingIndex} onClick={() => void publishIndex()}>发布索引版本</Button> : null}
+              {indexVersion?.status === "READY" ? <Button appearance="primary" disabled={probing || synchronizing || publishing || buildingIndex} onClick={() => void publishIndex()}>发布索引版本</Button> : null}
             </div>
           </article> : null}
         </section>
@@ -323,6 +346,12 @@ export function ObjectStorageDataWorkspace({
 }
 
 /** 只有未生成当前产物或可恢复同步失败的来源可再次同步。 */
+export function canProbeObjectStorage(source: GovernedDataSourceLifecycleResult): boolean {
+  return source.status === "DRAFT"
+    || (source.status === "FAILED" && source.failedOperation === "PROBE");
+}
+
+/** 只有探测通过或可恢复同步失败的来源可继续同步。 */
 export function canSynchronizeObjectStorage(source: GovernedDataSourceLifecycleResult): boolean {
   return (source.status === "READY" && source.syncArtifactId === null)
     || (source.status === "FAILED" && source.failedOperation === "SYNCHRONIZATION");

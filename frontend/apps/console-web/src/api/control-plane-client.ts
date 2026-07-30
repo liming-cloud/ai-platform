@@ -380,6 +380,22 @@ export class ControlPlaneClient {
     );
   }
 
+  /** 探测登记时冻结的平台对象范围，不提交对象位置、正文或质量结论。 */
+  async probeObjectStorageDataSource(
+    knowledgeSpaceId: string,
+    dataSourceId: string,
+    expectedVersion: number,
+  ): Promise<GovernedDataSourceLifecycleResult> {
+    const query = new URLSearchParams({
+      knowledgeSpaceId,
+      expectedVersion: String(expectedVersion),
+    });
+    return this.request<GovernedDataSourceLifecycleResult>(
+      `/governed-data-sources/object-storage/${encodeURIComponent(dataSourceId)}/probe?${query}`,
+      { method: "POST" },
+    );
+  }
+
   async probeFileDataSource(
     knowledgeSpaceId: string,
     dataSourceId: string,

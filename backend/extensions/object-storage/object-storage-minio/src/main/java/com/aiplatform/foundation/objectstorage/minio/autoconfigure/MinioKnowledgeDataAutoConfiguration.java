@@ -16,7 +16,8 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 /**
  * 为控制面注册 MinIO 文本对象存储实现。
  */
-@AutoConfiguration
+@AutoConfiguration(beforeName =
+        "com.aiplatform.foundation.knowledgedata.infrastructure.configuration.KnowledgeDataCoreAutoConfiguration")
 @ConditionalOnProperty(
         name = "foundation.knowledge-data.object-storage.enabled",
         havingValue = "true")

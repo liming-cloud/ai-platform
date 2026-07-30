@@ -7,10 +7,12 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.aiplatform.foundation.knowledgedata.application.datasource.command.RegisterObjectStorageDataSourceCommand;
+import com.aiplatform.foundation.knowledgedata.application.datasource.command.ProbeObjectStorageDataSourceCommand;
 import com.aiplatform.foundation.knowledgedata.application.datasource.command.synchronization.SynchronizeObjectStorageDataSourceCommand;
 import com.aiplatform.foundation.knowledgedata.application.datasource.command.publication.PublishObjectStorageSyncArtifactCommand;
 import com.aiplatform.foundation.knowledgedata.application.datasource.dto.GovernedDataSourceLifecycleResult;
 import com.aiplatform.foundation.knowledgedata.application.datasource.service.GovernedObjectStorageDataSourceRegistrationService;
+import com.aiplatform.foundation.knowledgedata.application.datasource.service.ObjectStorageDataSourceProbeService;
 import com.aiplatform.foundation.knowledgedata.application.datasource.service.ObjectStorageSynchronizationService;
 import com.aiplatform.foundation.knowledgedata.application.datasource.service.publication.ObjectStorageSyncArtifactPublicationService;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.model.GovernedDataSourceStatus;
@@ -43,10 +45,11 @@ class GovernedObjectStorageDataSourceControllerTest {
     @Test
     void 同步和发布入口只转发标识与乐观锁版本() {
         var registration = mock(GovernedObjectStorageDataSourceRegistrationService.class);
+        var probes = mock(ObjectStorageDataSourceProbeService.class);
         var synchronizations = mock(ObjectStorageSynchronizationService.class);
         var publications = mock(ObjectStorageSyncArtifactPublicationService.class);
         var controller = new GovernedObjectStorageDataSourceController(
-                registration, synchronizations, publications);
+                registration, probes, synchronizations, publications);
         var context = mock(TrustedRequestContext.class);
         var expected = new GovernedDataSourceLifecycleResult("3001", "2001", GovernedDataSourceStatus.READY, 5);
         when(synchronizations.synchronize(any())).thenReturn(expected);
@@ -64,10 +67,34 @@ class GovernedObjectStorageDataSourceControllerTest {
         assertThat(publication.getValue().expectedVersion()).isEqualTo(5);
     }
 
+    @Test
+    void 探测入口只转发标识与乐观锁版本() {
+        var registration = mock(GovernedObjectStorageDataSourceRegistrationService.class);
+        var probes = mock(ObjectStorageDataSourceProbeService.class);
+        var controller = new GovernedObjectStorageDataSourceController(
+                registration,
+                probes,
+                mock(ObjectStorageSynchronizationService.class),
+                mock(ObjectStorageSyncArtifactPublicationService.class));
+        var context = mock(TrustedRequestContext.class);
+        var expected = new GovernedDataSourceLifecycleResult("3001", "2001", GovernedDataSourceStatus.READY, 2);
+        when(probes.probe(any())).thenReturn(expected);
+
+        assertThat(controller.probe(context, "2001", "3001", 1)).isSameAs(expected);
+
+        var command = ArgumentCaptor.forClass(ProbeObjectStorageDataSourceCommand.class);
+        verify(probes).probe(command.capture());
+        assertThat(command.getValue().context()).isSameAs(context);
+        assertThat(command.getValue().knowledgeSpaceId()).isEqualTo("2001");
+        assertThat(command.getValue().dataSourceId()).isEqualTo("3001");
+        assertThat(command.getValue().expectedVersion()).isEqualTo(1);
+    }
+
     private static GovernedObjectStorageDataSourceController controller(
             GovernedObjectStorageDataSourceRegistrationService registration) {
         return new GovernedObjectStorageDataSourceController(
                 registration,
+                mock(ObjectStorageDataSourceProbeService.class),
                 mock(ObjectStorageSynchronizationService.class),
                 mock(ObjectStorageSyncArtifactPublicationService.class));
     }

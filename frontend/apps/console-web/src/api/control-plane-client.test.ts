@@ -260,7 +260,7 @@ describe("ControlPlaneClient", () => {
     expect(requests[1]?.url).toContain("expectedVersion=1");
   });
 
-  it("登记、同步并发布对象存储来源时只提交平台签发范围与资源标识", async () => {
+  it("登记、探测、同步并发布对象存储来源时只提交平台签发范围与资源标识", async () => {
     const requests: Request[] = [];
     const lifecycle = {
       dataSourceId: "220000000000000001",
@@ -285,6 +285,11 @@ describe("ControlPlaneClient", () => {
       "range-store-notices",
       7,
     );
+    await client.probeObjectStorageDataSource(
+      lifecycle.knowledgeSpaceId,
+      lifecycle.dataSourceId,
+      0,
+    );
     await client.synchronizeObjectStorageDataSource(
       lifecycle.knowledgeSpaceId,
       lifecycle.dataSourceId,
@@ -297,12 +302,13 @@ describe("ControlPlaneClient", () => {
       1,
     );
 
-    expect(requests.map((request) => request.method)).toEqual(["POST", "POST", "POST"]);
+    expect(requests.map((request) => request.method)).toEqual(["POST", "POST", "POST", "POST"]);
     expect(requests[0]?.url).toContain("/governed-data-sources/object-storage");
     expect(requests[0]?.url).toContain("rangeId=range-store-notices");
     expect(requests[0]?.url).toContain("selectionRevision=7");
-    expect(requests[1]?.url).toContain("/object-storage/220000000000000001/synchronization");
-    expect(requests[2]?.url).toContain("/object-storage/220000000000000001/artifacts/230000000000000001/publish");
+    expect(requests[1]?.url).toContain("/object-storage/220000000000000001/probe");
+    expect(requests[2]?.url).toContain("/object-storage/220000000000000001/synchronization");
+    expect(requests[3]?.url).toContain("/object-storage/220000000000000001/artifacts/230000000000000001/publish");
     expect(requests.every((request) => request.headers.get("Authorization") === "Bearer demo-token")).toBe(true);
   });
 

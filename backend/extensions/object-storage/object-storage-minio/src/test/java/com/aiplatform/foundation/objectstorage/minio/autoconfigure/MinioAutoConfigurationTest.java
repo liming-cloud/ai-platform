@@ -5,15 +5,65 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import com.aiplatform.foundation.knowledgedata.application.datasource.service.GovernedObjectStorageDataSourceRegistrationService;
+import com.aiplatform.foundation.knowledgedata.application.datasource.service.ObjectStorageSynchronizationService;
+import com.aiplatform.foundation.knowledgedata.application.datasource.service.publication.ObjectStorageSyncArtifactPublicationService;
 import com.aiplatform.foundation.knowledgedata.application.port.out.content.TextContentObjectStoragePort;
 import com.aiplatform.foundation.knowledgedata.application.datasource.port.out.PlatformObjectContentReaderPort;
 import com.aiplatform.foundation.knowledgedata.application.datasource.port.out.dataset.StructuredDatasetCsvStoragePort;
+import com.aiplatform.foundation.objectstorage.minio.MinioTextContentObjectStorageAdapter;
+import com.aiplatform.foundation.knowledgedata.domain.datasource.repository.GovernedDataSourceRepository;
+import com.aiplatform.foundation.knowledgedata.domain.datasource.repository.TextDataSourceRepository;
+import com.aiplatform.foundation.knowledgedata.domain.indexversion.repository.IndexVersionRepository;
+import com.aiplatform.foundation.knowledgedata.domain.knowledge.repository.KnowledgeSpaceRepository;
+import com.aiplatform.foundation.knowledgedata.infrastructure.configuration.KnowledgeDataCoreAutoConfiguration;
+import com.aiplatform.foundation.modelruntime.application.configuration.facade.UsableModelConfigurationLookup;
+import com.aiplatform.foundation.modelruntime.application.deployment.facade.PublishedEmbeddingDeploymentLookup;
+import com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator;
 import io.minio.MinioClient;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 
 class MinioAutoConfigurationTest {
+
+    @Test
+    void 启用MinIO时对象存储控制器必须在知识数据核心之后装配() throws Exception {
+        var client = mock(MinioClient.class);
+        when(client.bucketExists(any())).thenReturn(true);
+
+        new ApplicationContextRunner()
+                .withConfiguration(AutoConfigurations.of(
+                        KnowledgeDataCoreAutoConfiguration.class,
+                        MinioKnowledgeDataAutoConfiguration.class))
+                .withPropertyValues(
+                        "foundation.knowledge-data.enabled=true",
+                        "foundation.knowledge-data.object-storage.enabled=true",
+                        "foundation.knowledge-data.object-storage.endpoint=http://127.0.0.1:9000",
+                        "foundation.knowledge-data.object-storage.access-key=test-access",
+                        "foundation.knowledge-data.object-storage.secret-key=test-secret",
+                        "foundation.knowledge-data.object-storage.bucket=knowledge-private")
+                .withBean(KnowledgeSpaceRepository.class, () -> mock(KnowledgeSpaceRepository.class))
+                .withBean(TextDataSourceRepository.class, () -> mock(TextDataSourceRepository.class))
+                .withBean(GovernedDataSourceRepository.class, () -> mock(GovernedDataSourceRepository.class))
+                .withBean(IndexVersionRepository.class, () -> mock(IndexVersionRepository.class))
+                .withBean(PublishedEmbeddingDeploymentLookup.class,
+                        () -> mock(PublishedEmbeddingDeploymentLookup.class))
+                .withBean(UsableModelConfigurationLookup.class,
+                        () -> mock(UsableModelConfigurationLookup.class))
+                .withBean(EntityIdGenerator.class, () -> () -> 1001L)
+                .withBean(MinioClient.class, () -> client)
+                .run(context -> {
+                    assertThat(context).hasNotFailed();
+                    assertThat(context).hasSingleBean(PlatformObjectContentReaderPort.class);
+                    assertThat(context.getBean(TextContentObjectStoragePort.class))
+                            .isInstanceOf(MinioTextContentObjectStorageAdapter.class);
+                    assertThat(context).hasSingleBean(ObjectStorageSynchronizationService.class);
+                    assertThat(context).hasSingleBean(
+                            GovernedObjectStorageDataSourceRegistrationService.class);
+                    assertThat(context).hasSingleBean(ObjectStorageSyncArtifactPublicationService.class);
+                });
+    }
 
     @Test
     void 控制面启用后以类型安全配置注册对象存储端口() throws Exception {

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { GovernedDataSourceLifecycleResult } from "../../api/control-plane-client";
-import { canBuildObjectStorageIndex, canPublishObjectStorageArtifact, canSynchronizeObjectStorage } from "./ObjectStorageDataWorkspace";
+import { canBuildObjectStorageIndex, canProbeObjectStorage, canPublishObjectStorageArtifact, canSynchronizeObjectStorage } from "./ObjectStorageDataWorkspace";
 
 describe("对象存储来源控制台状态门禁", () => {
   const source: GovernedDataSourceLifecycleResult = {
@@ -14,6 +14,9 @@ describe("对象存储来源控制台状态门禁", () => {
   };
 
   it("只使用当前同步产物继续发布和建立索引", () => {
+    expect(canProbeObjectStorage({ ...source, status: "DRAFT", syncArtifactId: null })).toBe(true);
+    expect(canProbeObjectStorage({ ...source, status: "FAILED", failedOperation: "PROBE", syncArtifactId: null })).toBe(true);
+    expect(canProbeObjectStorage({ ...source, status: "FAILED", failedOperation: "SYNCHRONIZATION", syncArtifactId: null })).toBe(false);
     expect(canSynchronizeObjectStorage({ ...source, syncArtifactId: null })).toBe(true);
     expect(canSynchronizeObjectStorage(source)).toBe(false);
     expect(canPublishObjectStorageArtifact(source, undefined)).toBe(true);

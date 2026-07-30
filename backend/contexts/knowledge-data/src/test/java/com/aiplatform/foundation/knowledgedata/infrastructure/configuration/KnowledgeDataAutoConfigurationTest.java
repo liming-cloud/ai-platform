@@ -13,6 +13,7 @@ import com.aiplatform.foundation.knowledgedata.application.datasource.service.Go
 import com.aiplatform.foundation.knowledgedata.application.datasource.service.GovernedStructuredDatasetRegistrationService;
 import com.aiplatform.foundation.knowledgedata.application.datasource.service.StructuredDatasetCsvSynchronizationService;
 import com.aiplatform.foundation.knowledgedata.application.datasource.service.ObjectStorageSynchronizationService;
+import com.aiplatform.foundation.knowledgedata.application.datasource.service.ObjectStorageDataSourceProbeService;
 import com.aiplatform.foundation.knowledgedata.application.datasource.service.GovernedObjectStorageDataSourceRegistrationService;
 import com.aiplatform.foundation.knowledgedata.application.datasource.service.publication.StructuredDatasetSyncArtifactPublicationService;
 import com.aiplatform.foundation.knowledgedata.application.datasource.service.publication.ObjectStorageSyncArtifactPublicationService;
@@ -348,6 +349,9 @@ class KnowledgeDataAutoConfigurationTest {
                 .withBean(
                         ObjectStorageSynchronizationService.class,
                         () -> mock(ObjectStorageSynchronizationService.class))
+                .withBean(
+                        ObjectStorageDataSourceProbeService.class,
+                        () -> mock(ObjectStorageDataSourceProbeService.class))
                 .withBean(
                         ObjectStorageSyncArtifactPublicationService.class,
                         () -> mock(ObjectStorageSyncArtifactPublicationService.class))

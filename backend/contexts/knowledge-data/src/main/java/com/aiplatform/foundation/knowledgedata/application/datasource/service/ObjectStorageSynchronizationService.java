@@ -29,12 +29,15 @@ import java.time.Clock;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Objects;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /** 编排 OBJECT_STORAGE 冻结集合的事务外读取、私有文本写入与领域同步结果提交。 */
 public final class ObjectStorageSynchronizationService {
 
     private static final PermissionCode WRITE = new PermissionCode("knowledge:write");
     private static final byte[] SEPARATOR = "\n\n".getBytes(StandardCharsets.UTF_8);
+    private static final Logger log = LoggerFactory.getLogger(ObjectStorageSynchronizationService.class);
 
     private final GovernedDataSourceRepository repository;
     private final PlatformObjectContentReaderPort reader;
@@ -81,6 +84,8 @@ public final class ObjectStorageSynchronizationService {
         try {
             return synchronizeFrozenCollection(syncing, revision, space, sourceId);
         } catch (IOException | RuntimeException exception) {
+            // 运维仅需区分失败类别；异常消息可能包含对象位置，不能写入日志或返回控制台。
+            log.warn("对象存储来源同步失败，失败类型={}", exception.getClass().getSimpleName());
             var failed = syncing.failSynchronization(syncing.version());
             updateOrThrow(failed, syncing.version());
             return GovernedDataSourceLifecycleResult.from(failed);
