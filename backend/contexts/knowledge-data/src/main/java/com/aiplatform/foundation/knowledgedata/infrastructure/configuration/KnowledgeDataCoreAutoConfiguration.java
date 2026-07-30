@@ -11,10 +11,12 @@ import com.aiplatform.foundation.knowledgedata.application.datasource.service.Go
 import com.aiplatform.foundation.knowledgedata.application.datasource.service.StructuredDatasetCsvSynchronizationService;
 import com.aiplatform.foundation.knowledgedata.application.datasource.service.publication.StructuredDatasetSyncArtifactPublicationService;
 import com.aiplatform.foundation.knowledgedata.application.datasource.service.ObjectStorageDataSourceProbeService;
+import com.aiplatform.foundation.knowledgedata.application.datasource.service.ObjectStorageSynchronizationService;
 import com.aiplatform.foundation.knowledgedata.application.datasource.service.GovernedFileDataSourceQueryService;
 import com.aiplatform.foundation.knowledgedata.application.datasource.port.out.FileSourceObjectProbe;
 import com.aiplatform.foundation.knowledgedata.application.datasource.port.out.GovernedFileDataSourceReadPort;
 import com.aiplatform.foundation.knowledgedata.application.datasource.port.out.PlatformObjectRangeSelectionPort;
+import com.aiplatform.foundation.knowledgedata.application.datasource.port.out.PlatformObjectContentReaderPort;
 import com.aiplatform.foundation.knowledgedata.application.datasource.port.out.dataset.StructuredDatasetCsvStoragePort;
 import com.aiplatform.foundation.knowledgedata.application.datasource.port.out.dataset.StructuredDatasetCsvProjectionPort;
 import com.aiplatform.foundation.knowledgedata.application.indexversion.facade.ActiveIndexLookup;
@@ -31,12 +33,14 @@ import com.aiplatform.foundation.knowledgedata.domain.datasource.service.FileDat
 import com.aiplatform.foundation.knowledgedata.domain.datasource.service.FileSyncArtifactPublishing;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.service.StructuredDatasetSyncArtifactPublishing;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.service.StructuredDatasetCsvSynchronization;
+import com.aiplatform.foundation.knowledgedata.domain.datasource.service.ObjectStorageSynchronization;
 import com.aiplatform.foundation.knowledgedata.domain.indexversion.repository.IndexVersionRepository;
 import com.aiplatform.foundation.knowledgedata.domain.knowledge.repository.KnowledgeSpaceRepository;
 import com.aiplatform.foundation.knowledgedata.infrastructure.objectstorage.UnavailableTextContentObjectStorageAdapter;
 import com.aiplatform.foundation.knowledgedata.infrastructure.objectstorage.UnavailableStructuredDatasetCsvStorageAdapter;
 import com.aiplatform.foundation.knowledgedata.infrastructure.objectstorage.TextContentFileSourceObjectProbe;
 import com.aiplatform.foundation.knowledgedata.infrastructure.objectstorage.ConfiguredPlatformObjectRangeSelectionAdapter;
+import com.aiplatform.foundation.knowledgedata.infrastructure.objectstorage.UnavailablePlatformObjectContentReaderAdapter;
 import com.aiplatform.foundation.knowledgedata.infrastructure.datasource.Rfc4180StructuredDatasetCsvProjectionAdapter;
 import com.aiplatform.foundation.knowledgedata.infrastructure.staging.LocalTextContentStagingAdapter;
 import com.aiplatform.foundation.modelruntime.application.configuration.facade.UsableModelConfigurationLookup;
@@ -105,6 +109,16 @@ public class KnowledgeDataCoreAutoConfiguration {
             matchIfMissing = true)
     StructuredDatasetCsvStoragePort unavailableStructuredDatasetCsvStorage() {
         return new UnavailableStructuredDatasetCsvStorageAdapter();
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    @ConditionalOnProperty(
+            name = "foundation.knowledge-data.object-storage.enabled",
+            havingValue = "false",
+            matchIfMissing = true)
+    PlatformObjectContentReaderPort unavailablePlatformObjectContentReader() {
+        return new UnavailablePlatformObjectContentReaderAdapter();
     }
 
     @Bean
@@ -271,6 +285,26 @@ public class KnowledgeDataCoreAutoConfiguration {
     ObjectStorageDataSourceProbeService objectStorageDataSourceProbeService(
             GovernedDataSourceRepository repository, PlatformObjectRangeSelectionPort selections) {
         return new ObjectStorageDataSourceProbeService(repository, selections);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    ObjectStorageSynchronization objectStorageSynchronization() {
+        return new ObjectStorageSynchronization();
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    @ConditionalOnBean(PlatformObjectContentReaderPort.class)
+    ObjectStorageSynchronizationService objectStorageSynchronizationService(
+            GovernedDataSourceRepository repository,
+            PlatformObjectContentReaderPort reader,
+            TextContentStagingPort staging,
+            TextContentObjectStoragePort storage,
+            EntityIdGenerator identifiers,
+            ObjectStorageSynchronization synchronization) {
+        return new ObjectStorageSynchronizationService(
+                repository, reader, staging, storage, Clock.systemUTC(), identifiers, synchronization);
     }
 
     @Bean

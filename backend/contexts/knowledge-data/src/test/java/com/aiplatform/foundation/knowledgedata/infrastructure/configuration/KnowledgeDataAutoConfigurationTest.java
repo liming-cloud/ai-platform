@@ -12,6 +12,7 @@ import com.aiplatform.foundation.knowledgedata.application.datasource.service.Go
 import com.aiplatform.foundation.knowledgedata.application.datasource.service.GovernedFileDataSourceRegistrationService;
 import com.aiplatform.foundation.knowledgedata.application.datasource.service.GovernedStructuredDatasetRegistrationService;
 import com.aiplatform.foundation.knowledgedata.application.datasource.service.StructuredDatasetCsvSynchronizationService;
+import com.aiplatform.foundation.knowledgedata.application.datasource.service.ObjectStorageSynchronizationService;
 import com.aiplatform.foundation.knowledgedata.application.datasource.service.publication.StructuredDatasetSyncArtifactPublicationService;
 import com.aiplatform.foundation.knowledgedata.application.datasource.service.GovernedFileDataSourceQueryService;
 import com.aiplatform.foundation.knowledgedata.application.datasource.port.out.GovernedFileDataSourceReadPort;
@@ -29,6 +30,7 @@ import com.aiplatform.foundation.knowledgedata.domain.datasource.repository.Gove
 import com.aiplatform.foundation.knowledgedata.domain.datasource.service.FileDataSourceSynchronization;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.service.FileSyncArtifactPublishing;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.service.StructuredDatasetSyncArtifactPublishing;
+import com.aiplatform.foundation.knowledgedata.domain.datasource.service.ObjectStorageSynchronization;
 import com.aiplatform.foundation.knowledgedata.domain.indexversion.repository.IndexVersionRepository;
 import com.aiplatform.foundation.knowledgedata.domain.knowledge.repository.KnowledgeSpaceRepository;
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.mapper.TextDataSourceMapper;
@@ -105,6 +107,8 @@ class KnowledgeDataAutoConfigurationTest {
                     assertThat(context).hasSingleBean(GovernedStructuredDatasetRegistrationService.class);
                     assertThat(context).hasSingleBean(StructuredDatasetSyncArtifactPublishing.class);
                     assertThat(context).hasSingleBean(StructuredDatasetSyncArtifactPublicationService.class);
+                    assertThat(context).hasSingleBean(ObjectStorageSynchronization.class);
+                    assertThat(context).hasSingleBean(ObjectStorageSynchronizationService.class);
                     assertThat(context).hasSingleBean(IndexVersionService.class);
                     assertThat(context).hasSingleBean(ActiveIndexLookup.class);
                     assertThat(context).hasSingleBean(KnowledgeSpaceLookup.class);
