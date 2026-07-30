@@ -7,6 +7,7 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
 
 import com.aiplatform.foundation.knowledgedata.application.datasource.command.SynchronizeStructuredDatasetCommand;
@@ -70,6 +71,17 @@ class StructuredDatasetCsvSynchronizationServiceTest {
         var repository = mock(GovernedDataSourceRepository.class); var projection = mock(StructuredDatasetCsvProjectionPort.class); var staging = mock(TextContentStagingPort.class); var storage = mock(TextContentObjectStoragePort.class);
         assertThrows(KnowledgePermissionDeniedException.class, () -> service(repository, projection, staging, storage).synchronize(command(false, 0)));
         verifyNoInteractions(repository, projection, staging, storage);
+    }
+
+    @Test void 提交失败时应删除未提交文本并登记同步失败() throws Exception {
+        var repository = mock(GovernedDataSourceRepository.class); var projection = mock(StructuredDatasetCsvProjectionPort.class);
+        var staging = mock(TextContentStagingPort.class); var storage = mock(TextContentObjectStoragePort.class); var staged = mock(StagedTextContent.class);
+        var source = source(); var revision = revision(source);
+        when(repository.findSource(TENANT, SPACE, SOURCE)).thenReturn(Optional.of(source)); when(repository.findRevision(TENANT, SPACE, SOURCE, 1)).thenReturn(Optional.of(revision)); when(repository.update(any(), anyLong())).thenReturn(true);
+        when(projection.project(revision.structuredDataset())).thenReturn(new StructuredDatasetCsvProjection("标题\n正文", 1, 0)); when(staging.stage(any())).thenReturn(staged); when(staged.sha256()).thenReturn("a".repeat(64)); when(staged.byteSize()).thenReturn(13L);
+        var stored = new TextContentReference(1, "private/artifact.txt", "a".repeat(64), 13, TextContentReference.UTF8_TEXT, NOW); when(storage.put(any())).thenReturn(stored); doThrow(new IllegalStateException("提交失败")).when(repository).completeSynchronization(any());
+        var result = service(repository, projection, staging, storage).synchronize(command(true, source.version()));
+        assertEquals(GovernedDataSourceStatus.FAILED, result.status()); verify(storage).delete(stored); verify(repository).update(org.mockito.ArgumentMatchers.argThat(value -> value.status() == GovernedDataSourceStatus.FAILED), anyLong());
     }
 
     private static StructuredDatasetCsvSynchronizationService service(GovernedDataSourceRepository repository, StructuredDatasetCsvProjectionPort projection, TextContentStagingPort staging, TextContentObjectStoragePort storage) { return new StructuredDatasetCsvSynchronizationService(repository, projection, staging, storage, Clock.fixed(NOW, ZoneOffset.UTC), () -> 240000000000000001L, new StructuredDatasetCsvSynchronization()); }
