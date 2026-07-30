@@ -38,6 +38,7 @@ confirmedDecisions:
   - ADR-0029
   - ADR-0030
   - ADR-0031
+  - ADR-0033
 openDecisions:
   - ADR-0032
 latestEvidence:
@@ -118,5 +119,5 @@ latestEvidence:
   - project/evidence/WP-0011-data-lifecycle-design.md
   - project/evidence/WP-0011-domain-aggregate-operation-boundary.md
 nextReviewAt: 2026-08-03
-updatedAt: 2026-07-30T09:09:00+08:00
+updatedAt: 2026-07-30T09:38:00+08:00
 updatedBy: codex
