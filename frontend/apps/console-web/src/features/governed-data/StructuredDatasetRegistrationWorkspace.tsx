@@ -16,11 +16,12 @@ import {
   ApiRequestError,
   type ControlPlaneClient,
   type GovernedDataSourceLifecycleResult,
+  type IndexVersion,
   type KnowledgeSpace,
   type StructuredDatasetFieldInput,
 } from "../../api/control-plane-client";
 import { LoginForm } from "../knowledge-publication/PublicationViews";
-import { requiresSessionRestart } from "./GovernedFileDataWorkspace";
+import { modelRuntimeFailure, requiresSessionRestart } from "./GovernedFileDataWorkspace";
 
 interface Failure {
   message: string;
@@ -72,6 +73,8 @@ export function StructuredDatasetRegistrationWorkspace({
   const [synchronizing, setSynchronizing] = useState(false);
   const [publishing, setPublishing] = useState(false);
   const [publishedArtifactId, setPublishedArtifactId] = useState<string>();
+  const [indexVersion, setIndexVersion] = useState<IndexVersion>();
+  const [buildingIndex, setBuildingIndex] = useState(false);
 
   const resetProtectedTaskState = useCallback(() => {
     setSpaces([]);
@@ -86,6 +89,7 @@ export function StructuredDatasetRegistrationWorkspace({
     setFileInputKey((current) => current + 1);
     setSource(undefined);
     setPublishedArtifactId(undefined);
+    setIndexVersion(undefined);
   }, []);
 
   const restartExpiredSession = useCallback((error: unknown): boolean => {
@@ -169,6 +173,7 @@ export function StructuredDatasetRegistrationWorkspace({
       setCsv(undefined);
       setFileInputKey((current) => current + 1);
       setPublishedArtifactId(undefined);
+      setIndexVersion(undefined);
     } catch (error) {
       if (!restartExpiredSession(error)) {
         setFailure(toFailure(error));
@@ -192,6 +197,7 @@ export function StructuredDatasetRegistrationWorkspace({
       );
       setSource(synchronized);
       setPublishedArtifactId(undefined);
+      setIndexVersion(undefined);
     } catch (error) {
       if (!restartExpiredSession(error)) {
         setFailure(toFailure(error));
@@ -227,6 +233,71 @@ export function StructuredDatasetRegistrationWorkspace({
       }
     } finally {
       setPublishing(false);
+    }
+  }
+
+  async function buildIndex() {
+    if (source === undefined || !canBuildStructuredDatasetIndex(source, publishedArtifactId)) {
+      return;
+    }
+    setBuildingIndex(true);
+    setFailure(undefined);
+    try {
+      const configurations = await client.listModelConfigurations();
+      const embedding = configurations.items.find(
+        (configuration) => configuration.modelType === "EMBEDDING"
+          && configuration.status === "ACTIVE"
+          && configuration.credentialConfigured,
+      );
+      if (embedding === undefined) {
+        throw new Error("请先在模型配置中启用一个可用的嵌入模型");
+      }
+      const created = await client.createIndexVersion(source.knowledgeSpaceId, embedding.id);
+      setIndexVersion(created);
+      await waitForIndex(source.knowledgeSpaceId, created.id);
+    } catch (error) {
+      if (!restartExpiredSession(error)) {
+        setFailure(modelRuntimeFailure(error) ?? toFailure(error));
+      }
+    } finally {
+      setBuildingIndex(false);
+    }
+  }
+
+  async function waitForIndex(knowledgeSpaceId: string, indexVersionId: string) {
+    for (let attempt = 0; attempt < 90; attempt += 1) {
+      const page = await client.listIndexVersions(knowledgeSpaceId);
+      const current = page.items.find((candidate) => candidate.id === indexVersionId);
+      if (current === undefined) {
+        throw new Error("服务端未返回刚创建的索引版本");
+      }
+      setIndexVersion(current);
+      if (current.status === "READY" || current.status === "FAILED") {
+        return;
+      }
+      await delay(1000);
+    }
+    throw new Error("索引构建仍在进行，请稍后刷新数据任务查看");
+  }
+
+  async function publishIndex() {
+    if (source === undefined || indexVersion?.status !== "READY") {
+      return;
+    }
+    setBuildingIndex(true);
+    setFailure(undefined);
+    try {
+      setIndexVersion(await client.publishIndexVersion(
+        source.knowledgeSpaceId,
+        indexVersion.id,
+        indexVersion.version,
+      ));
+    } catch (error) {
+      if (!restartExpiredSession(error)) {
+        setFailure(toFailure(error));
+      }
+    } finally {
+      setBuildingIndex(false);
     }
   }
 
@@ -379,6 +450,17 @@ export function StructuredDatasetRegistrationWorkspace({
                   </Button>
                 ) : null}
                 {publishedArtifactId === source.syncArtifactId ? <Text>同步产物已发布。</Text> : null}
+                {canBuildStructuredDatasetIndex(source, publishedArtifactId) ? (
+                  <Button appearance="primary" disabled={synchronizing || publishing || buildingIndex} onClick={() => void buildIndex()}>
+                    {buildingIndex ? "正在建立索引" : "创建索引版本"}
+                  </Button>
+                ) : null}
+                {indexVersion ? <Text>索引版本：{indexVersion.status}{indexVersion.failureCode ? `（${indexVersion.failureCode}）` : ""}</Text> : null}
+                {indexVersion?.status === "READY" ? (
+                  <Button appearance="primary" disabled={synchronizing || publishing || buildingIndex} onClick={() => void publishIndex()}>
+                    发布索引版本
+                  </Button>
+                ) : null}
               </div>
             </article>
           ) : null}
@@ -386,6 +468,22 @@ export function StructuredDatasetRegistrationWorkspace({
       )}
     </div>
   );
+}
+
+/** 只有当前 READY 的结构化数据集可使用已发布同步产物创建新的索引版本。 */
+export function canBuildStructuredDatasetIndex(
+  source: GovernedDataSourceLifecycleResult | undefined,
+  publishedArtifactId?: string,
+): boolean {
+  return source?.status === "READY"
+    && publishedArtifactId !== undefined
+    && publishedArtifactId === source.syncArtifactId;
+}
+
+function delay(milliseconds: number) {
+  return new Promise<void>((resolve) => {
+    window.setTimeout(resolve, milliseconds);
+  });
 }
 
 function toFailure(error: unknown): Failure {
