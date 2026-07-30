@@ -2,7 +2,7 @@ schemaVersion: 1
 productVersion: foundation-v1
 currentMilestone: M3
 currentFrontier: WP-0011
-lastVerifiedCommit: c509413ad
+lastVerifiedCommit: 60dc61c63
 activeWorkPackages:
   - WP-0011
 blockedWorkPackages: []
@@ -121,8 +121,9 @@ latestEvidence:
   - project/evidence/WP-0011-domain-aggregate-operation-boundary.md
   - project/evidence/WP-0011-token-derived-authentication-context.md
   - project/evidence/WP-0011-object-storage-synchronization.md
+  - project/evidence/WP-0011-object-storage-console.md
   - project/evidence/WP-0011-structured-dataset-synchronization.md
   - project/evidence/WP-0011-structured-dataset-index-console.md
 nextReviewAt: 2026-08-03
-updatedAt: 2026-07-30T12:12:00+08:00
+updatedAt: 2026-07-30T12:19:00+08:00
 updatedBy: codex
