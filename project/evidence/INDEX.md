@@ -182,6 +182,12 @@
 | M3 自动验收与人工评审请求 | `project/evidence/M3-automatic-acceptance-review.md` | `dcec78e19` | ADR-0035 来源快照分块身份、真实 PostgreSQL、真实模型 OBJECT_STORAGE 索引发布／重建、全量门禁均通过；当前仅待人工评审，不得进入 M4 |
 | M3 人工评审通过 | `project/evidence/M3-release-approval.md` | `918ee7d91` | 用户批准 M3 退出并进入 M4 设计；M5 至 M8 仍只保留路线图，不提前激活或实现 |
 
+## WP-0012
+
+| 证据 | 命令或评审 | 提交 | 结果 |
+| --- | --- | --- |
+| M4 草稿测试与查询反馈影响分析 | `project/evidence/WP-0012-m4-impact-analysis.md` | 待产生 | 代码图谱确认普通查询的已发布版本边界、草稿读取 seam、查询事件／运营投影影响和三个待决策项；ADR-0036 接受前不实施 |
+
 ## 证据规则
 
 - 命令证据记录完整命令、提交、环境和结果。
