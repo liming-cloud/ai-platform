@@ -11,6 +11,7 @@ import com.aiplatform.foundation.knowledgedata.application.datasource.service.Fi
 import com.aiplatform.foundation.knowledgedata.application.datasource.service.GovernedDataSourceLifecycleService;
 import com.aiplatform.foundation.knowledgedata.application.datasource.service.GovernedFileDataSourceRegistrationService;
 import com.aiplatform.foundation.knowledgedata.application.datasource.service.GovernedStructuredDatasetRegistrationService;
+import com.aiplatform.foundation.knowledgedata.application.datasource.service.StructuredDatasetCsvSynchronizationService;
 import com.aiplatform.foundation.knowledgedata.application.datasource.service.GovernedFileDataSourceQueryService;
 import com.aiplatform.foundation.knowledgedata.application.datasource.port.out.GovernedFileDataSourceReadPort;
 import com.aiplatform.foundation.knowledgedata.application.indexversion.facade.ActiveIndexLookup;
@@ -321,6 +322,9 @@ class KnowledgeDataAutoConfigurationTest {
                 .withBean(
                         GovernedStructuredDatasetRegistrationService.class,
                         () -> mock(GovernedStructuredDatasetRegistrationService.class))
+                .withBean(
+                        StructuredDatasetCsvSynchronizationService.class,
+                        () -> mock(StructuredDatasetCsvSynchronizationService.class))
                 .withBean(
                         FileDataSourceProbeService.class,
                         () -> mock(FileDataSourceProbeService.class))

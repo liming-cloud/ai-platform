@@ -1,8 +1,10 @@
 package com.aiplatform.foundation.knowledgedata.interfaces.web.datasource.controller;
 
 import com.aiplatform.foundation.knowledgedata.application.datasource.command.RegisterStructuredDatasetCommand;
+import com.aiplatform.foundation.knowledgedata.application.datasource.command.SynchronizeStructuredDatasetCommand;
 import com.aiplatform.foundation.knowledgedata.application.datasource.dto.GovernedDataSourceLifecycleResult;
 import com.aiplatform.foundation.knowledgedata.application.datasource.service.GovernedStructuredDatasetRegistrationService;
+import com.aiplatform.foundation.knowledgedata.application.datasource.service.StructuredDatasetCsvSynchronizationService;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.revision.StructuredDatasetFieldMapping;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.revision.StructuredDatasetLogicalType;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.revision.StructuredDatasetRowFilter;
@@ -21,19 +23,36 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestPart;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 /** STRUCTURED_DATASET 私有 CSV 登记入口；不接收对象位置或外部连接参数。 */
 @RestController
-@ConditionalOnBean(GovernedStructuredDatasetRegistrationService.class)
+@ConditionalOnBean({GovernedStructuredDatasetRegistrationService.class, StructuredDatasetCsvSynchronizationService.class})
 @RequestMapping("/api/v1/governed-data-sources/structured-datasets")
 public class GovernedStructuredDatasetController {
 
     private final GovernedStructuredDatasetRegistrationService registration;
+    private final StructuredDatasetCsvSynchronizationService synchronizations;
 
-    public GovernedStructuredDatasetController(GovernedStructuredDatasetRegistrationService registration) {
+    public GovernedStructuredDatasetController(
+            GovernedStructuredDatasetRegistrationService registration,
+            StructuredDatasetCsvSynchronizationService synchronizations) {
         this.registration = Objects.requireNonNull(registration, "结构化数据集登记用例不能为空");
+        this.synchronizations = Objects.requireNonNull(synchronizations, "结构化数据集同步用例不能为空");
+    }
+
+    /** 同步只读取已冻结的私有 CSV 与字段映射，不接受调用方提供的正文或对象位置。 */
+    @PostMapping("/{dataSourceId}/synchronization")
+    public GovernedDataSourceLifecycleResult synchronize(
+            TrustedRequestContext context,
+            @RequestParam String knowledgeSpaceId,
+            @PathVariable String dataSourceId,
+            @RequestParam long expectedVersion) {
+        return synchronizations.synchronize(new SynchronizeStructuredDatasetCommand(
+                context, knowledgeSpaceId, dataSourceId, expectedVersion));
     }
 
     /** 只接收私有 UTF-8 CSV 流和冻结字段映射，不接受桶、对象键、端点或凭据。 */

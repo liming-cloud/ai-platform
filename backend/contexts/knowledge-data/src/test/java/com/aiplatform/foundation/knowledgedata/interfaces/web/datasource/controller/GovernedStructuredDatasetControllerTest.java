@@ -7,6 +7,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
 import com.aiplatform.foundation.knowledgedata.application.datasource.service.GovernedStructuredDatasetRegistrationService;
+import com.aiplatform.foundation.knowledgedata.application.datasource.service.StructuredDatasetCsvSynchronizationService;
 import com.aiplatform.foundation.knowledgedata.interfaces.web.datasource.request.StructuredDatasetFieldRequest;
 import com.aiplatform.foundation.knowledgedata.interfaces.web.datasource.request.StructuredDatasetRegistrationRequest;
 import com.aiplatform.foundation.security.identity.TrustedRequestContext;
@@ -25,7 +26,7 @@ class GovernedStructuredDatasetControllerTest {
         var csv = mock(MultipartFile.class);
         org.mockito.Mockito.when(csv.getContentType()).thenReturn("text/csv;charset=UTF-8");
         org.mockito.Mockito.when(csv.getInputStream()).thenReturn(new ByteArrayInputStream("content\n测试".getBytes()));
-        var controller = new GovernedStructuredDatasetController(registration);
+        var controller = new GovernedStructuredDatasetController(registration, mock(StructuredDatasetCsvSynchronizationService.class));
 
         var response = controller.register(context(), new StructuredDatasetRegistrationRequest(
                 "202", "客服知识库", "csv-mapping-v1", "content", null,
@@ -41,10 +42,25 @@ class GovernedStructuredDatasetControllerTest {
         var registration = mock(GovernedStructuredDatasetRegistrationService.class);
         var csv = mock(MultipartFile.class);
         org.mockito.Mockito.when(csv.getContentType()).thenReturn("text/plain; charset=utf-8");
-        var controller = new GovernedStructuredDatasetController(registration);
+        var controller = new GovernedStructuredDatasetController(registration, mock(StructuredDatasetCsvSynchronizationService.class));
 
         assertThrows(IllegalArgumentException.class, () -> controller.register(
                 context(), definition(), csv));
+    }
+
+    @Test
+    void 同步端点只转发可信上下文来源标识和预期版本() {
+        var registration = mock(GovernedStructuredDatasetRegistrationService.class);
+        var synchronization = mock(StructuredDatasetCsvSynchronizationService.class);
+        var controller = new GovernedStructuredDatasetController(registration, synchronization);
+
+        controller.synchronize(context(), "202", "303", 4);
+
+        verify(synchronization).synchronize(org.mockito.ArgumentMatchers.argThat(command ->
+                command.context().equals(context())
+                        && command.knowledgeSpaceId().equals("202")
+                        && command.dataSourceId().equals("303")
+                        && command.expectedVersion() == 4));
     }
 
     private static StructuredDatasetRegistrationRequest definition() {
