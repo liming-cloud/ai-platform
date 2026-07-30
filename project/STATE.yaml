@@ -38,7 +38,8 @@ confirmedDecisions:
   - ADR-0029
   - ADR-0030
   - ADR-0031
-openDecisions: []
+openDecisions:
+  - ADR-0032
 latestEvidence:
   - docs/research/WP-0003-framework-baseline.md
   - project/evidence/WP-0003-trusted-context.md
@@ -117,5 +118,5 @@ latestEvidence:
   - project/evidence/WP-0011-data-lifecycle-design.md
   - project/evidence/WP-0011-domain-aggregate-operation-boundary.md
 nextReviewAt: 2026-08-03
-updatedAt: 2026-07-30T08:57:22+08:00
+updatedAt: 2026-07-30T09:05:00+08:00
 updatedBy: codex
