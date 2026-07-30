@@ -110,6 +110,7 @@
         WHERE publication.tenant_id = #{tenantId}
           AND publication.knowledge_space_id = #{knowledgeSpaceId}
           AND source.status <> 'RETIRED'
+          AND artifact.content_version IS NOT NULL
           AND publication.source_version = (
               SELECT MAX(current_publication.source_version)
               FROM knowledge_data.published_sync_artifact current_publication
