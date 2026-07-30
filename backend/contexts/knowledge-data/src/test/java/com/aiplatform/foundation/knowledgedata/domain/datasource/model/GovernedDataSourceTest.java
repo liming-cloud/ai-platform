@@ -42,6 +42,24 @@ class GovernedDataSourceTest {
     }
 
     @Test
+    void 平台已保存私有CSV的结构化数据集登记后直接就绪并可同步() {
+        var source = GovernedDataSource.createReadyStructuredDataset(
+                TENANT_ID,
+                SPACE_ID,
+                SOURCE_ID,
+                "客服知识库",
+                CREATOR_ID,
+                CREATED_AT);
+
+        var syncing = source.startSynchronization(0);
+
+        assertEquals(GovernedDataSourceType.STRUCTURED_DATASET, source.type());
+        assertEquals(GovernedDataSourceStatus.READY, source.status());
+        assertEquals(0, source.version());
+        assertEquals(GovernedDataSourceStatus.SYNCING, syncing.status());
+    }
+
+    @Test
     void 过期修订和未探测数据源不能开始同步() {
         var source = fileSource();
 

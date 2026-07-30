@@ -96,7 +96,7 @@ describe("ControlPlaneClient", () => {
       return new Response(JSON.stringify({
         dataSourceId: "220000000000000001",
         knowledgeSpaceId: "210000000000000001",
-        status: "DRAFT",
+        status: "READY",
         version: 0,
         failedOperation: null,
         syncArtifactId: null,
@@ -215,6 +215,49 @@ describe("ControlPlaneClient", () => {
     expect(requests[0]?.url).toContain("expectedVersion=2");
     expect(requests[1]?.url).toContain("expectedVersion=3");
     expect(requests[2]?.url).toContain("expectedVersion=4");
+  });
+
+  it("同步并发布结构化数据集时只提交资源标识和乐观版本", async () => {
+    const requests: Request[] = [];
+    const lifecycle = {
+      dataSourceId: "220000000000000001",
+      knowledgeSpaceId: "210000000000000001",
+      status: "READY",
+      version: 2,
+      failedOperation: null,
+      syncArtifactId: "230000000000000001",
+      qualityStatus: "PASS",
+    };
+    const client = authenticatedClient(async (input, init) => {
+      requests.push(new Request(input, init));
+      return new Response(JSON.stringify(lifecycle), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    });
+
+    await client.synchronizeStructuredDataset(
+      lifecycle.knowledgeSpaceId,
+      lifecycle.dataSourceId,
+      0,
+    );
+    await client.publishStructuredDatasetSyncArtifact(
+      lifecycle.knowledgeSpaceId,
+      lifecycle.dataSourceId,
+      lifecycle.syncArtifactId,
+      1,
+    );
+
+    expect(requests.map((request) => request.method)).toEqual(["POST", "POST"]);
+    expect(requests[0]?.url).toContain(
+      "/governed-data-sources/structured-datasets/220000000000000001/synchronization",
+    );
+    expect(requests[1]?.url).toContain(
+      "/structured-datasets/220000000000000001/artifacts/230000000000000001/publish",
+    );
+    expect(requests.every((request) => request.url.includes("knowledgeSpaceId=210000000000000001"))).toBe(true);
+    expect(requests[0]?.url).toContain("expectedVersion=0");
+    expect(requests[1]?.url).toContain("expectedVersion=1");
   });
 
   it("分页读取FILE来源时只接收任务恢复所需的非敏感摘要", async () => {

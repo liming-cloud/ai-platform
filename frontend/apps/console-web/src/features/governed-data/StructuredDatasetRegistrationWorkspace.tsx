@@ -43,7 +43,7 @@ function defaultFields(): StructuredDatasetFieldInput[] {
 /**
  * 知识管理员的 STRUCTURED_DATASET 登记任务。
  *
- * <p>页面只提交冻结映射和私有 CSV；不会读取对象位置、正文、连接参数或任何敏感字段值。同步、质量与索引必须等待 ADR-0032 接受后另行开放。</p>
+ * <p>页面只提交冻结映射和私有 CSV；不会读取对象位置、正文、连接参数或任何敏感字段值。同步和发布只选择既有资源及其修订，质量结论始终由受控领域服务生成。</p>
  */
 export function StructuredDatasetRegistrationWorkspace({
   client,
@@ -69,6 +69,9 @@ export function StructuredDatasetRegistrationWorkspace({
   const [failure, setFailure] = useState<Failure>();
   const [loggingIn, setLoggingIn] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [synchronizing, setSynchronizing] = useState(false);
+  const [publishing, setPublishing] = useState(false);
+  const [publishedArtifactId, setPublishedArtifactId] = useState<string>();
 
   const resetProtectedTaskState = useCallback(() => {
     setSpaces([]);
@@ -82,6 +85,7 @@ export function StructuredDatasetRegistrationWorkspace({
     setCsv(undefined);
     setFileInputKey((current) => current + 1);
     setSource(undefined);
+    setPublishedArtifactId(undefined);
   }, []);
 
   const restartExpiredSession = useCallback((error: unknown): boolean => {
@@ -164,12 +168,65 @@ export function StructuredDatasetRegistrationWorkspace({
       setSource(registered);
       setCsv(undefined);
       setFileInputKey((current) => current + 1);
+      setPublishedArtifactId(undefined);
     } catch (error) {
       if (!restartExpiredSession(error)) {
         setFailure(toFailure(error));
       }
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  async function synchronize() {
+    if (source === undefined) {
+      return;
+    }
+    setSynchronizing(true);
+    setFailure(undefined);
+    try {
+      const synchronized = await client.synchronizeStructuredDataset(
+        source.knowledgeSpaceId,
+        source.dataSourceId,
+        source.version,
+      );
+      setSource(synchronized);
+      setPublishedArtifactId(undefined);
+    } catch (error) {
+      if (!restartExpiredSession(error)) {
+        setFailure(toFailure(error));
+      }
+    } finally {
+      setSynchronizing(false);
+    }
+  }
+
+  async function publish() {
+    if (source?.syncArtifactId === null || source?.syncArtifactId === undefined) {
+      return;
+    }
+    const artifactId = source.syncArtifactId;
+    setPublishing(true);
+    setFailure(undefined);
+    try {
+      const published = await client.publishStructuredDatasetSyncArtifact(
+        source.knowledgeSpaceId,
+        source.dataSourceId,
+        artifactId,
+        source.version,
+      );
+      setSource({
+        ...published,
+        syncArtifactId: artifactId,
+        qualityStatus: source.qualityStatus,
+      });
+      setPublishedArtifactId(artifactId);
+    } catch (error) {
+      if (!restartExpiredSession(error)) {
+        setFailure(toFailure(error));
+      }
+    } finally {
+      setPublishing(false);
     }
   }
 
@@ -232,7 +289,7 @@ export function StructuredDatasetRegistrationWorkspace({
   return (
     <div className="governed-file-workspace">
       <div className="governance-toolbar">
-        <Text>仅登记平台私有 UTF-8 CSV 与冻结字段映射。同步、质量、发布和索引尚未开放。</Text>
+        <Text>仅登记平台私有 UTF-8 CSV 与冻结字段映射；同步只读取冻结版本，质量由领域规则生成，发布仅选择 PASS 或 WARN 产物。</Text>
         <div className="task-actions">
           <Button appearance="subtle" icon={<ArrowClockwise20Regular />} onClick={() => void load()}>刷新</Button>
           <Button appearance="subtle" onClick={() => void logout()}>退出登录</Button>
@@ -305,7 +362,24 @@ export function StructuredDatasetRegistrationWorkspace({
                 <Text>数据源编号：{source.dataSourceId}</Text>
               </div>
               <Badge appearance="tint" color="warning">{source.status}</Badge>
-              <Text>登记完成。CSV 内容、对象位置、摘要和敏感字段不会展示；同步、质量、发布和索引将在规则接受后开放。</Text>
+              {source.syncArtifactId === null ? (
+                <Text>登记完成。CSV 内容、对象位置、摘要和敏感字段不会展示；可开始同步冻结版本。</Text>
+              ) : (
+                <Text>同步完成，质量状态：{source.qualityStatus}。CSV 内容、对象位置、摘要和敏感字段不会展示。</Text>
+              )}
+              <div className="task-actions">
+                {(source.status === "READY" || (source.status === "FAILED" && source.failedOperation === "SYNCHRONIZATION")) && (source.syncArtifactId === null || publishedArtifactId === source.syncArtifactId) ? (
+                  <Button appearance="primary" disabled={synchronizing || publishing} onClick={() => void synchronize()}>
+                    {synchronizing ? "正在同步" : "同步冻结 CSV"}
+                  </Button>
+                ) : null}
+                {source.status === "READY" && source.syncArtifactId !== null && source.qualityStatus !== "BLOCK" && publishedArtifactId !== source.syncArtifactId ? (
+                  <Button appearance="primary" disabled={synchronizing || publishing} onClick={() => void publish()}>
+                    {publishing ? "正在发布" : "发布同步产物"}
+                  </Button>
+                ) : null}
+                {publishedArtifactId === source.syncArtifactId ? <Text>同步产物已发布。</Text> : null}
+              </div>
             </article>
           ) : null}
         </section>

@@ -87,6 +87,32 @@ public final class GovernedDataSource implements AggregateRoot<DataSourceId> {
     }
 
     /**
+     * 创建已由平台保存私有 CSV 并验证可用性的结构化数据集。
+     *
+     * <p>该来源没有外部端点或连接凭据需要探测；上传内容与冻结映射原子登记成功即满足开始同步的条件。</p>
+     */
+    public static GovernedDataSource createReadyStructuredDataset(
+            TenantId tenantId,
+            KnowledgeSpaceId knowledgeSpaceId,
+            DataSourceId id,
+            String name,
+            CreatorId createdBy,
+            Instant createdAt) {
+        return new GovernedDataSource(
+                tenantId,
+                knowledgeSpaceId,
+                id,
+                GovernedDataSourceType.STRUCTURED_DATASET,
+                name,
+                createdBy,
+                createdAt,
+                GovernedDataSourceStatus.READY,
+                null,
+                1,
+                0);
+    }
+
+    /**
      * 开始连接或文件可用性探测。
      *
      * @throws DataSourceStateException 当前状态或修订不允许探测时抛出。

@@ -376,6 +376,39 @@ export class ControlPlaneClient {
     );
   }
 
+  /** 同步只使用已冻结的私有 CSV、字段映射和当前来源修订。 */
+  async synchronizeStructuredDataset(
+    knowledgeSpaceId: string,
+    dataSourceId: string,
+    expectedVersion: number,
+  ): Promise<GovernedDataSourceLifecycleResult> {
+    const query = new URLSearchParams({
+      knowledgeSpaceId,
+      expectedVersion: String(expectedVersion),
+    });
+    return this.request<GovernedDataSourceLifecycleResult>(
+      `/governed-data-sources/structured-datasets/${encodeURIComponent(dataSourceId)}/synchronization?${query}`,
+      { method: "POST" },
+    );
+  }
+
+  /** 发布只选择已有同步产物，浏览器不能提交质量结论或正文。 */
+  async publishStructuredDatasetSyncArtifact(
+    knowledgeSpaceId: string,
+    dataSourceId: string,
+    artifactId: string,
+    expectedVersion: number,
+  ): Promise<GovernedDataSourceLifecycleResult> {
+    const query = new URLSearchParams({
+      knowledgeSpaceId,
+      expectedVersion: String(expectedVersion),
+    });
+    return this.request<GovernedDataSourceLifecycleResult>(
+      `/governed-data-sources/structured-datasets/${encodeURIComponent(dataSourceId)}/artifacts/${encodeURIComponent(artifactId)}/publish?${query}`,
+      { method: "POST" },
+    );
+  }
+
   async synchronizeFileDataSource(
     knowledgeSpaceId: string,
     dataSourceId: string,

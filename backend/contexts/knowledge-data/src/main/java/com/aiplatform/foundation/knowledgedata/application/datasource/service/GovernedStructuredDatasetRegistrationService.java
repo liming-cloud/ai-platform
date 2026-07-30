@@ -9,7 +9,6 @@ import com.aiplatform.foundation.knowledgedata.application.port.out.content.Text
 import com.aiplatform.foundation.knowledgedata.domain.common.model.CreatorId;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.model.DataSourceId;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.model.GovernedDataSource;
-import com.aiplatform.foundation.knowledgedata.domain.datasource.model.GovernedDataSourceType;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.repository.GovernedDataSourceRepository;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.revision.SourceRevision;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.revision.StructuredDatasetCsvDefinition;
@@ -55,11 +54,10 @@ public final class GovernedStructuredDatasetRegistrationService {
         }
         var space = KnowledgeSpaceId.parse(command.knowledgeSpaceId());
         var now = clock.instant();
-        var source = GovernedDataSource.create(
+        var source = GovernedDataSource.createReadyStructuredDataset(
                 command.context().tenantId(),
                 space,
                 new DataSourceId(identifiers.nextId()),
-                GovernedDataSourceType.STRUCTURED_DATASET,
                 command.name(),
                 new CreatorId(command.context().membershipId().value()),
                 now);

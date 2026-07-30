@@ -43,7 +43,7 @@ class GovernedStructuredDatasetRegistrationServiceTest {
 
         var result = service.register(command(context(true)));
 
-        assertEquals("DRAFT", result.status().name());
+        assertEquals("READY", result.status().name());
         verify(storage).put(any(StructuredDatasetCsvStorageRequest.class));
         verify(repository).register(any(), any());
     }
