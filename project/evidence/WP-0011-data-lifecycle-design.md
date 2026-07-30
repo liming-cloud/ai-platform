@@ -545,3 +545,20 @@ ADR-0028 定义 `GovernedDataSource`、`SourceRevision`、`SyncArtifact`、`Qual
 - 在最后代码提交上运行 `./mvnw -q -pl backend/contexts/knowledge-data -am test`、`make project-verify`、`python3 scripts/quality/backend_architecture_guard.py verify` 与 `git diff --check`，均通过；日志仅含既有 Spring/Testcontainers 警告。
 
 当前缺口是平台内部按不透明对象标识读取冻结正文的部署适配器，以及基于该端口的流式摘要核验、同步产物、质量、显式发布和浏览器验收。该缺口不允许以知识管理员上传正文、对象键或外部连接参数绕过；WP-0011 与 M3 继续进行。
+
+## STRUCTURED_DATASET 私有 CSV 与字段映射修订（2026-07-30）
+
+### 红绿与持久化验证
+
+- 红灯：先新增 `StructuredDatasetSourceRevisionTest`。执行 `./mvnw -q -pl backend/contexts/knowledge-data -Dtest=StructuredDatasetSourceRevisionTest test` 时，测试编译按预期报告私有 CSV、字段映射、逻辑类型、敏感级别、行过滤及 `SourceRevision.structuredDataset` 均不存在；该直跑同时暴露既有 Maven 依赖模块未构建，因此后续使用 `-am` 作为可复现命令。
+- 绿灯：提交 `de84e6280` 新增私有 UTF-8 CSV、字段映射、逻辑类型、敏感级别和受控行过滤值对象。主内容字段和可选标题字段必须引用允许检索的文本字段；重复字段、非文本内容字段、受限检索字段和来源类型混用均在领域层关闭失败。定义摘要覆盖对象位置、内容摘要、长度、媒体类型、映射版本、字段顺序、逻辑类型、敏感级别和行过滤。
+- 真实 PostgreSQL：执行 `./mvnw -q -pl backend/contexts/knowledge-data -am -Dtest=PostgresGovernedDataSourceRepositoryTest -Dsurefire.failIfNoSpecifiedTests=false test`。初次红灯准确发现 `SourceRevisionMapper.xml` 遗漏四个映射列；补齐后 Flyway 空库成功执行至 `V202607300022`，测试验证私有 CSV 与有序字段映射写后读、摘要一致及跨租户不可见。
+- 自动装配与回归：执行 `./mvnw -q -pl backend/contexts/knowledge-data -am -Dtest=KnowledgeDataAutoConfigurationTest -Dsurefire.failIfNoSpecifiedTests=false test`、`./mvnw -q -pl backend/contexts/knowledge-data -am test`、`python3 scripts/quality/backend_architecture_guard.py verify`、`make project-verify` 与 `git diff --check`，均通过；日志仅含既有 Spring/Testcontainers 警告。
+
+### 已验证边界
+
+- `source_revision` 只保存私有 CSV 对象事实及映射入口；`source_revision_dataset_field` 以来源修订复合外键按序保存字段名、逻辑类型和敏感级别。仓储在同一事务写入来源、修订和全部字段映射，读取时只重建领域值对象并复核摘要。
+- M3 行过滤只接受 `ALL_ROWS` 和 `NON_BLANK_CONTENT`，不允许 SQL、任意表达式或原始字段值进入修订。后续扩展筛选语义必须有 ADR、领域枚举与失败关闭回归。
+- 本切片不提供外部数据库、S3、OSS、COS、任意 HTTP 连接器或公共对象键输入；也未把敏感字段正文带入同步产物、读取投影、事件或错误。
+
+本切片仅完成 ADR-0030 要求的 STRUCTURED_DATASET 不可变 CSV Schema／字段映射修订基础。私有上传登记、CSV 抽样解析、字段策略、质量、发布、索引和浏览器任务尚未实现；WP-0011 与 M3 继续进行，不能申请人工评审或进入 M4。
