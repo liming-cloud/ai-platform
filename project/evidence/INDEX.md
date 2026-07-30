@@ -180,6 +180,7 @@
 | M3 历史同步产物升级与对象存储条件装配 | `project/evidence/WP-0011-legacy-sync-artifact-upgrade.md` | `efe6f5cd3`、`7454d58c3` | 历史产物不伪造冻结内容且不可进入索引候选；默认无对象正文映射部署安全启动、控制台无凭据入口回归通过，M3 仍进行中 |
 | M3 浏览器验收续证与运行前置条件 | `project/evidence/WP-0011-browser-runtime-acceptance.md` | `3f116ba34`、`469ceb8b9` | FILE 完成登记至显式发布、STRUCTURED_DATASET 浏览器 `text/csv` 登记通过；OBJECT_STORAGE 完成登记、探测、同步、PASS 与显式发布；没有可授权的 `PLATFORM`／`TENANT` `EMBEDDING` 配置，索引失败关闭，WP-0011 受阻 |
 | M3 自动验收与人工评审请求 | `project/evidence/M3-automatic-acceptance-review.md` | `dcec78e19` | ADR-0035 来源快照分块身份、真实 PostgreSQL、真实模型 OBJECT_STORAGE 索引发布／重建、全量门禁均通过；当前仅待人工评审，不得进入 M4 |
+| M3 人工评审通过 | `project/evidence/M3-release-approval.md` | `918ee7d91` | 用户批准 M3 退出并进入 M4 设计；M5 至 M8 仍只保留路线图，不提前激活或实现 |
 
 ## 证据规则
 
