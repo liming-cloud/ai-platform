@@ -2,10 +2,10 @@ schemaVersion: 1
 productVersion: foundation-v1
 currentMilestone: M3
 currentFrontier: WP-0011
-lastVerifiedCommit: 469ceb8b9
-activeWorkPackages: []
-blockedWorkPackages:
+lastVerifiedCommit: dcec78e19
+activeWorkPackages:
   - WP-0011
+blockedWorkPackages: []
 confirmedDecisions:
   - ADR-0001
   - ADR-0002
@@ -127,6 +127,7 @@ latestEvidence:
   - project/evidence/WP-0011-structured-dataset-index-console.md
   - project/evidence/WP-0011-legacy-sync-artifact-upgrade.md
   - project/evidence/WP-0011-browser-runtime-acceptance.md
+  - project/evidence/M3-automatic-acceptance-review.md
 nextReviewAt: 2026-08-03
-updatedAt: 2026-07-30T16:20:00+08:00
+updatedAt: 2026-07-30T20:24:00+08:00
 updatedBy: codex

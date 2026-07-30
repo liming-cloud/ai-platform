@@ -179,6 +179,7 @@
 | M3 令牌派生登录态边界 | `project/evidence/WP-0011-token-derived-authentication-context.md` | `fc13521f7`、`15e0ce021` | ADR-0033 固定租户、主体、成员、凭据、渠道与权限仅从令牌会话恢复；解析器与真实 HTTP 回归证明伪造参数和 Header 不改变归属，M3 仍进行中 |
 | M3 历史同步产物升级与对象存储条件装配 | `project/evidence/WP-0011-legacy-sync-artifact-upgrade.md` | `efe6f5cd3`、`7454d58c3` | 历史产物不伪造冻结内容且不可进入索引候选；默认无对象正文映射部署安全启动、控制台无凭据入口回归通过，M3 仍进行中 |
 | M3 浏览器验收续证与运行前置条件 | `project/evidence/WP-0011-browser-runtime-acceptance.md` | `3f116ba34`、`469ceb8b9` | FILE 完成登记至显式发布、STRUCTURED_DATASET 浏览器 `text/csv` 登记通过；OBJECT_STORAGE 完成登记、探测、同步、PASS 与显式发布；没有可授权的 `PLATFORM`／`TENANT` `EMBEDDING` 配置，索引失败关闭，WP-0011 受阻 |
+| M3 自动验收与人工评审请求 | `project/evidence/M3-automatic-acceptance-review.md` | `dcec78e19` | ADR-0035 来源快照分块身份、真实 PostgreSQL、真实模型 OBJECT_STORAGE 索引发布／重建、全量门禁均通过；当前仅待人工评审，不得进入 M4 |
 
 ## 证据规则
 
