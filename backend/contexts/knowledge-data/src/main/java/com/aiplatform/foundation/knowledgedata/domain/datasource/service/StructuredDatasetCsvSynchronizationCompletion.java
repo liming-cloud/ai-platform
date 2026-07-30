@@ -11,7 +11,7 @@ import java.util.Objects;
  *
  * <p>结果固定目标来源版本、产物与质量结论，持久化层不得重新推导 CSV 行过滤或来源状态机。</p>
  */
-public final class StructuredDatasetCsvSynchronizationCompletion {
+public final class StructuredDatasetCsvSynchronizationCompletion implements DataSourceSynchronizationCompletion {
 
     private final long expectedSourceVersion;
     private final GovernedDataSource completedSource;
@@ -42,21 +42,25 @@ public final class StructuredDatasetCsvSynchronizationCompletion {
     }
 
     /** 返回提交前必须匹配的来源乐观版本。 */
+    @Override
     public long expectedSourceVersion() {
         return expectedSourceVersion;
     }
 
     /** 返回原子提交后的已就绪来源。 */
+    @Override
     public GovernedDataSource completedSource() {
         return completedSource;
     }
 
     /** 返回本次同步生成的不可变产物。 */
+    @Override
     public SyncArtifact artifact() {
         return artifact;
     }
 
     /** 返回与产物绑定的不可变质量结论。 */
+    @Override
     public QualityReport qualityReport() {
         return qualityReport;
     }

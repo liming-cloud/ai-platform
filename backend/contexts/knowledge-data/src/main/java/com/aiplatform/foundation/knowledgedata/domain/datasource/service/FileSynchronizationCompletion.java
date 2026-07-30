@@ -11,7 +11,7 @@ import java.util.Objects;
  *
  * <p>结果同时冻结来源的目标版本、同步产物和质量结论，使持久化层无需重演来源归属、修订或状态机判断。</p>
  */
-public final class FileSynchronizationCompletion {
+public final class FileSynchronizationCompletion implements DataSourceSynchronizationCompletion {
 
     private final long expectedSourceVersion;
     private final GovernedDataSource completedSource;
@@ -41,18 +41,22 @@ public final class FileSynchronizationCompletion {
         }
     }
 
+    @Override
     public long expectedSourceVersion() {
         return expectedSourceVersion;
     }
 
+    @Override
     public GovernedDataSource completedSource() {
         return completedSource;
     }
 
+    @Override
     public SyncArtifact artifact() {
         return artifact;
     }
 
+    @Override
     public QualityReport qualityReport() {
         return qualityReport;
     }

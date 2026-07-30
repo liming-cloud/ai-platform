@@ -6,7 +6,7 @@ import com.aiplatform.foundation.knowledgedata.domain.datasource.model.SyncArtif
 import com.aiplatform.foundation.knowledgedata.domain.datasource.model.SyncArtifactId;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.quality.QualityReport;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.revision.SourceRevision;
-import com.aiplatform.foundation.knowledgedata.domain.datasource.service.FileSynchronizationCompletion;
+import com.aiplatform.foundation.knowledgedata.domain.datasource.service.DataSourceSynchronizationCompletion;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.service.FileSyncArtifactPublication;
 import com.aiplatform.foundation.knowledgedata.domain.knowledge.model.KnowledgeSpaceId;
 import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
@@ -22,12 +22,12 @@ public interface GovernedDataSourceRepository {
     void register(GovernedDataSource source, SourceRevision revision);
 
     /**
-     * 原子提交已由领域服务验证的 FILE 同步完成结果。
+     * 原子提交已由领域服务验证的同步完成结果。
      *
      * @throws com.aiplatform.foundation.knowledgedata.domain.datasource.model.DataSourceStateException
      * 数据库中的来源修订已变化时抛出。
      */
-    void completeSynchronization(FileSynchronizationCompletion completion);
+    void completeSynchronization(DataSourceSynchronizationCompletion completion);
 
     /**
      * 原子提交已由领域服务验证的 FILE 同步产物发布结果。
