@@ -562,3 +562,21 @@ ADR-0028 定义 `GovernedDataSource`、`SourceRevision`、`SyncArtifact`、`Qual
 - 本切片不提供外部数据库、S3、OSS、COS、任意 HTTP 连接器或公共对象键输入；也未把敏感字段正文带入同步产物、读取投影、事件或错误。
 
 本切片仅完成 ADR-0030 要求的 STRUCTURED_DATASET 不可变 CSV Schema／字段映射修订基础。私有上传登记、CSV 抽样解析、字段策略、质量、发布、索引和浏览器任务尚未实现；WP-0011 与 M3 继续进行，不能申请人工评审或进入 M4。
+
+## STRUCTURED_DATASET 受控私有 CSV 登记（2026-07-30）
+
+### 红绿与回归验证
+
+- 红灯：先新增 `GovernedStructuredDatasetRegistrationServiceTest`，执行 `./mvnw -q -pl backend/contexts/knowledge-data -am -Dtest=GovernedStructuredDatasetRegistrationServiceTest -Dsurefire.failIfNoSpecifiedTests=false test`。当登记命令、专用 CSV 端口和应用服务尚不存在时，测试按预期因缺少公共 seam 编译失败。
+- 绿灯：提交 `6d45f59a9` 建立登记服务、HTTP 入口、缺省失败关闭适配器与 MinIO 实现；同一测试及 `GovernedStructuredDatasetControllerTest`、`KnowledgeDataAutoConfigurationTest`、`MinioAutoConfigurationTest` 定向回归通过。
+- 真实 MinIO：`MinioTextContentObjectStorageAdapterTest` 使用 Testcontainers 验证 CSV 对象由服务端范围生成私有内容寻址路径，写入 `text/csv; charset=utf-8` 与 SHA-256 元数据，可读回原始字节，匿名 HTTP 读取返回 `403`，删除后对象不可再取得。
+- 全量回归：运行 `./mvnw -q -pl backend/contexts/knowledge-data -am test`、`./mvnw -q -pl backend/extensions/object-storage/object-storage-minio -am test`、`python3 scripts/quality/backend_architecture_guard.py verify` 与 `git diff --check`，均通过；日志只含既有 Spring、Testcontainers 与自动配置警告。
+
+### 已验证边界
+
+- 公开请求只包含知识空间、显示名、冻结映射和 multipart CSV；控制器拒绝非 UTF-8 CSV，绝不接收桶名、对象键、端点、凭据或外部连接参数。
+- 应用服务先校验 `knowledge:write`，无权限时不暂存、不写对象也不登记。严格 UTF-8 暂存成功后，专用端口才生成平台私有对象事实；任何登记失败都会删除本次刚写入的对象。
+- `TextContentStagingPort` 只复用严格 UTF-8 暂存能力，不能复用固定 `text/plain` 的旧文本对象端口；CSV 使用独立端口和固定媒体类型，避免类型化修订被旧文本语义污染。
+- 自动配置在对象存储关闭时提供失败关闭 CSV 端口；启用 MinIO 时仅注册私有 CSV 端口，并允许应用显式替换。HTTP 回归覆盖 UTF-8 参数大小写、请求转发和非 CSV 拒绝。
+
+本切片只完成 STRUCTURED_DATASET 的受控登记及私有对象存储边界；CSV 抽样／解析、字段策略、质量、发布、索引和浏览器任务仍未实现。WP-0011 与 M3 继续进行，不能申请人工评审或进入 M4。
