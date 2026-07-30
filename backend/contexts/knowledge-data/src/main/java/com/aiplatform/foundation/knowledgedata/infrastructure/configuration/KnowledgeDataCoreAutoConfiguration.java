@@ -8,12 +8,14 @@ import com.aiplatform.foundation.knowledgedata.application.datasource.service.Fi
 import com.aiplatform.foundation.knowledgedata.application.datasource.service.GovernedFileDataSourceRegistrationService;
 import com.aiplatform.foundation.knowledgedata.application.datasource.service.GovernedObjectStorageDataSourceRegistrationService;
 import com.aiplatform.foundation.knowledgedata.application.datasource.service.GovernedStructuredDatasetRegistrationService;
+import com.aiplatform.foundation.knowledgedata.application.datasource.service.StructuredDatasetCsvSynchronizationService;
 import com.aiplatform.foundation.knowledgedata.application.datasource.service.ObjectStorageDataSourceProbeService;
 import com.aiplatform.foundation.knowledgedata.application.datasource.service.GovernedFileDataSourceQueryService;
 import com.aiplatform.foundation.knowledgedata.application.datasource.port.out.FileSourceObjectProbe;
 import com.aiplatform.foundation.knowledgedata.application.datasource.port.out.GovernedFileDataSourceReadPort;
 import com.aiplatform.foundation.knowledgedata.application.datasource.port.out.PlatformObjectRangeSelectionPort;
 import com.aiplatform.foundation.knowledgedata.application.datasource.port.out.dataset.StructuredDatasetCsvStoragePort;
+import com.aiplatform.foundation.knowledgedata.application.datasource.port.out.dataset.StructuredDatasetCsvProjectionPort;
 import com.aiplatform.foundation.knowledgedata.application.indexversion.facade.ActiveIndexLookup;
 import com.aiplatform.foundation.knowledgedata.application.indexversion.service.ActiveIndexLookupService;
 import com.aiplatform.foundation.knowledgedata.application.indexversion.service.IndexVersionService;
@@ -26,12 +28,14 @@ import com.aiplatform.foundation.knowledgedata.domain.datasource.repository.Text
 import com.aiplatform.foundation.knowledgedata.domain.datasource.repository.GovernedDataSourceRepository;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.service.FileDataSourceSynchronization;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.service.FileSyncArtifactPublishing;
+import com.aiplatform.foundation.knowledgedata.domain.datasource.service.StructuredDatasetCsvSynchronization;
 import com.aiplatform.foundation.knowledgedata.domain.indexversion.repository.IndexVersionRepository;
 import com.aiplatform.foundation.knowledgedata.domain.knowledge.repository.KnowledgeSpaceRepository;
 import com.aiplatform.foundation.knowledgedata.infrastructure.objectstorage.UnavailableTextContentObjectStorageAdapter;
 import com.aiplatform.foundation.knowledgedata.infrastructure.objectstorage.UnavailableStructuredDatasetCsvStorageAdapter;
 import com.aiplatform.foundation.knowledgedata.infrastructure.objectstorage.TextContentFileSourceObjectProbe;
 import com.aiplatform.foundation.knowledgedata.infrastructure.objectstorage.ConfiguredPlatformObjectRangeSelectionAdapter;
+import com.aiplatform.foundation.knowledgedata.infrastructure.datasource.Rfc4180StructuredDatasetCsvProjectionAdapter;
 import com.aiplatform.foundation.knowledgedata.infrastructure.staging.LocalTextContentStagingAdapter;
 import com.aiplatform.foundation.modelruntime.application.configuration.facade.UsableModelConfigurationLookup;
 import com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator;
@@ -203,6 +207,37 @@ public class KnowledgeDataCoreAutoConfiguration {
             EntityIdGenerator identifiers) {
         return new GovernedStructuredDatasetRegistrationService(
                 repository, staging, storage, identifiers, Clock.systemUTC());
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    StructuredDatasetCsvProjectionPort structuredDatasetCsvProjectionPort(
+            StructuredDatasetCsvStoragePort storage, KnowledgeDataProperties properties) {
+        return new Rfc4180StructuredDatasetCsvProjectionAdapter(
+                storage,
+                properties.getMaximumTextBytes(),
+                properties.getMaximumStructuredDatasetCsvRows(),
+                properties.getMaximumStructuredDatasetCsvLineBytes(),
+                properties.getMaximumStructuredDatasetCsvFieldCharacters());
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    StructuredDatasetCsvSynchronization structuredDatasetCsvSynchronization() {
+        return new StructuredDatasetCsvSynchronization();
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    StructuredDatasetCsvSynchronizationService structuredDatasetCsvSynchronizationService(
+            GovernedDataSourceRepository repository,
+            StructuredDatasetCsvProjectionPort projection,
+            TextContentStagingPort staging,
+            TextContentObjectStoragePort storage,
+            EntityIdGenerator identifiers,
+            StructuredDatasetCsvSynchronization synchronization) {
+        return new StructuredDatasetCsvSynchronizationService(
+                repository, projection, staging, storage, Clock.systemUTC(), identifiers, synchronization);
     }
 
     @Bean

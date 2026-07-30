@@ -16,6 +16,9 @@ public class KnowledgeDataProperties {
     private int dataSourceLimit = 20;
     private Path stagingDirectory = Path.of("/tmp/foundation-text-staging");
     private long maximumTextBytes = TextContentReference.MAX_BYTE_SIZE;
+    private long maximumStructuredDatasetCsvRows = 100_000;
+    private long maximumStructuredDatasetCsvLineBytes = 256 * 1024;
+    private int maximumStructuredDatasetCsvFieldCharacters = 65_536;
     private Duration indexBuildLeaseDuration = Duration.ofMinutes(1);
     private List<ObjectStorageRange> objectStorageRanges = List.of();
 
@@ -61,6 +64,22 @@ public class KnowledgeDataProperties {
             throw new IllegalArgumentException("文本暂存上限超出平台安全范围");
         }
         maximumTextBytes = value;
+    }
+
+    public long getMaximumStructuredDatasetCsvRows() { return maximumStructuredDatasetCsvRows; }
+    public void setMaximumStructuredDatasetCsvRows(long value) {
+        if (value < 1) throw new IllegalArgumentException("结构化数据集 CSV 行数上限必须大于零");
+        maximumStructuredDatasetCsvRows = value;
+    }
+    public long getMaximumStructuredDatasetCsvLineBytes() { return maximumStructuredDatasetCsvLineBytes; }
+    public void setMaximumStructuredDatasetCsvLineBytes(long value) {
+        if (value < 1 || value > maximumTextBytes) throw new IllegalArgumentException("结构化数据集 CSV 单行上限超出文本安全范围");
+        maximumStructuredDatasetCsvLineBytes = value;
+    }
+    public int getMaximumStructuredDatasetCsvFieldCharacters() { return maximumStructuredDatasetCsvFieldCharacters; }
+    public void setMaximumStructuredDatasetCsvFieldCharacters(int value) {
+        if (value < 1) throw new IllegalArgumentException("结构化数据集 CSV 字段字符上限必须大于零");
+        maximumStructuredDatasetCsvFieldCharacters = value;
     }
 
     public Duration getIndexBuildLeaseDuration() {
