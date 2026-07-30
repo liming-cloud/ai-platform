@@ -89,6 +89,52 @@ describe("ControlPlaneClient", () => {
     expect(await request?.text()).toBe("货品位于一层。");
   });
 
+  it("登记结构化数据集时只提交冻结定义和私有 UTF-8 CSV", async () => {
+    let request: Request | undefined;
+    const client = authenticatedClient(async (input, init) => {
+      request = new Request(input, init);
+      return new Response(JSON.stringify({
+        dataSourceId: "220000000000000001",
+        knowledgeSpaceId: "210000000000000001",
+        status: "DRAFT",
+        version: 0,
+        failedOperation: null,
+        syncArtifactId: null,
+        qualityStatus: null,
+      }), { status: 201, headers: { "Content-Type": "application/json" } });
+    });
+
+    await client.registerStructuredDataset({
+      knowledgeSpaceId: "210000000000000001",
+      name: "门店商品数据集",
+      mappingVersion: "dataset-v1",
+      contentField: "content",
+      titleField: "title",
+      fields: [
+        { fieldName: "content", logicalType: "TEXT", sensitivityLevel: "PUBLIC" },
+        { fieldName: "title", logicalType: "TEXT", sensitivityLevel: "PUBLIC" },
+      ],
+      rowFilter: "NON_BLANK_CONTENT",
+    }, new File(["content,title\\n气泡水,青柚气泡水\\n"], "products.csv", {
+      type: "text/csv; charset=utf-8",
+    }));
+
+    expect(request?.method).toBe("POST");
+    expect(request?.url).toContain("/governed-data-sources/structured-datasets");
+    expect(request?.headers.get("Authorization")).toBe("Bearer demo-token");
+    expect(request?.headers.get("Content-Type")).toContain("multipart/form-data;");
+    const form = await request?.formData();
+    expect(JSON.parse(await (form?.get("definition") as File).text())).toMatchObject({
+      knowledgeSpaceId: "210000000000000001",
+      contentField: "content",
+      rowFilter: "NON_BLANK_CONTENT",
+    });
+    const csv = form?.get("csv") as File;
+    expect(csv.name).toBe("products.csv");
+    expect(csv.type).toBe("text/csv; charset=utf-8");
+    expect(await csv.text()).toContain("气泡水");
+  });
+
   it("探测受治理文件来源时携带知识空间和乐观版本", async () => {
     let request: Request | undefined;
     const client = authenticatedClient(async (input, init) => {

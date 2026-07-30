@@ -14,6 +14,13 @@ const GovernedFileDataWorkspace = lazy(async () => {
   return { default: module.GovernedFileDataWorkspace };
 });
 
+const StructuredDatasetRegistrationWorkspace = lazy(async () => {
+  const module = await import(
+    "./features/governed-data/StructuredDatasetRegistrationWorkspace"
+  );
+  return { default: module.StructuredDatasetRegistrationWorkspace };
+});
+
 const QueryGovernanceWorkspace = lazy(async () => {
   const module = await import(
     "./features/query-governance/QueryGovernanceWorkspace"
@@ -40,9 +47,25 @@ export function ConsoleApp() {
     typeof NAVIGATION[number]["id"]
   >("data");
   const [sessionRevision, setSessionRevision] = useState(0);
-  const [dataTask, setDataTask] = useState<"governed-file" | "first-publication">("governed-file");
+  const [dataTask, setDataTask] = useState<
+    "governed-file" | "structured-dataset" | "first-publication"
+  >("governed-file");
   const governanceActive = activeNavigationId === "governance";
   const modelsActive = activeNavigationId === "models";
+  const dataPage = dataTask === "governed-file"
+    ? {
+      title: "受治理文件来源",
+      summary: "在租户知识空间中登记并探测受控 UTF-8 文件，不展示对象位置或正文。",
+    }
+    : dataTask === "structured-dataset"
+    ? {
+      title: "结构化数据集登记",
+      summary: "登记平台私有 UTF-8 CSV 与冻结字段映射，不展示对象位置、正文或敏感字段。",
+    }
+    : {
+      title: "发布首份知识数据",
+      summary: "用一个受控任务完成租户验证、知识空间创建、文本上传和发布核验。",
+    };
 
   function selectNavigation(navigationId: string) {
     if (
@@ -61,16 +84,14 @@ export function ConsoleApp() {
     <ProductShell
       productName="可信知识平台"
       pageTitle={
-        governanceActive ? "查询用量与审计" : modelsActive ? "受控模型配置" : dataTask === "governed-file" ? "受治理文件来源" : "发布首份知识数据"
+        governanceActive ? "查询用量与审计" : modelsActive ? "受控模型配置" : dataPage.title
       }
       pageSummary={
         governanceActive
           ? "核对当前租户的查询配额、计量结果和脱敏运行记录。"
           : modelsActive
           ? "从平台发布目录创建、轮换和启用模型配置；API Key 不会再次显示。"
-          : dataTask === "governed-file"
-          ? "在租户知识空间中登记并探测受控 UTF-8 文件，不展示对象位置或正文。"
-          : "用一个受控任务完成租户验证、知识空间创建、文本上传和发布核验。"
+          : dataPage.summary
       }
       navigation={NAVIGATION}
       activeNavigationId={activeNavigationId}
@@ -93,6 +114,12 @@ export function ConsoleApp() {
             文件来源登记
           </Button>
           <Button
+            appearance={dataTask === "structured-dataset" ? "primary" : "subtle"}
+            onClick={() => setDataTask("structured-dataset")}
+          >
+            结构化数据集登记
+          </Button>
+          <Button
             appearance={dataTask === "first-publication" ? "primary" : "subtle"}
             onClick={() => setDataTask("first-publication")}
           >
@@ -102,6 +129,14 @@ export function ConsoleApp() {
         {dataTask === "governed-file" ? (
           <Suspense fallback={<StatePanel kind="loading" title="正在加载数据任务" description="正在准备受治理文件来源流程。" />}>
             <GovernedFileDataWorkspace
+              client={client}
+              sessionRevision={sessionRevision}
+              onSessionChanged={sessionChanged}
+            />
+          </Suspense>
+        ) : dataTask === "structured-dataset" ? (
+          <Suspense fallback={<StatePanel kind="loading" title="正在加载数据集登记任务" description="正在准备私有 CSV 登记流程。" />}>
+            <StructuredDatasetRegistrationWorkspace
               client={client}
               sessionRevision={sessionRevision}
               onSessionChanged={sessionChanged}

@@ -40,6 +40,24 @@ export interface GovernedDataSourceLifecycleResult {
   qualityStatus: "PASS" | "WARN" | "BLOCK" | null;
 }
 
+/** 结构化数据集登记时冻结的字段映射；对象位置始终不属于浏览器契约。 */
+export interface StructuredDatasetFieldInput {
+  fieldName: string;
+  logicalType: "TEXT" | "NUMBER" | "BOOLEAN" | "DATE" | "DATETIME";
+  sensitivityLevel: "PUBLIC" | "INTERNAL" | "CONFIDENTIAL" | "RESTRICTED";
+}
+
+/** 结构化数据集私有 CSV 登记请求；同步与质量规则不由本契约决定。 */
+export interface StructuredDatasetRegistrationInput {
+  knowledgeSpaceId: string;
+  name: string;
+  mappingVersion: string;
+  contentField: string;
+  titleField: string | null;
+  fields: StructuredDatasetFieldInput[];
+  rowFilter: "ALL_ROWS" | "NON_BLANK_CONTENT";
+}
+
 /** FILE 来源任务恢复所需的非敏感摘要，不包含对象位置、正文、摘要或凭据。 */
 export interface GovernedFileDataSourceSummary {
   dataSourceId: string;
@@ -302,6 +320,32 @@ export class ControlPlaneClient {
     );
   }
 
+  /**
+   * 上传平台私有 UTF-8 CSV 及其冻结映射；浏览器不提交对象位置或外部连接参数。
+   */
+  async registerStructuredDataset(
+    input: StructuredDatasetRegistrationInput,
+    csv: File,
+    idempotencyKey?: string,
+  ): Promise<GovernedDataSourceLifecycleResult> {
+    const form = new FormData();
+    form.append(
+      "definition",
+      new Blob([JSON.stringify(input)], { type: "application/json" }),
+      "definition.json",
+    );
+    form.append("csv", csv, csv.name);
+    return this.request<GovernedDataSourceLifecycleResult>(
+      "/governed-data-sources/structured-datasets",
+      {
+        method: "POST",
+        // 浏览器负责生成 multipart boundary；手动固定 Content-Type 会导致服务端无法读取分段。
+        headers: this.writeIdempotencyHeaders(idempotencyKey),
+        body: form,
+      },
+    );
+  }
+
   async listGovernedFileDataSources(
     knowledgeSpaceId: string,
     pageNumber = 1,
@@ -510,8 +554,12 @@ export class ControlPlaneClient {
   ): HeadersInit {
     return {
       "Content-Type": contentType,
-      "Idempotency-Key": idempotencyKey ?? this.identifierFactory(),
+      ...this.writeIdempotencyHeaders(idempotencyKey),
     };
+  }
+
+  private writeIdempotencyHeaders(idempotencyKey?: string): HeadersInit {
+    return { "Idempotency-Key": idempotencyKey ?? this.identifierFactory() };
   }
 
   private async request<T>(

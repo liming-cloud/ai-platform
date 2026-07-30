@@ -1,0 +1,340 @@
+import {
+  Badge,
+  Button,
+  Field,
+  MessageBar,
+  MessageBarBody,
+  MessageBarTitle,
+  Select,
+  Text,
+  Title3,
+} from "@fluentui/react-components";
+import { ArrowClockwise20Regular } from "@fluentui/react-icons";
+import { StatePanel } from "@foundation/design-system";
+import { type FormEvent, useCallback, useEffect, useState } from "react";
+import {
+  ApiRequestError,
+  type ControlPlaneClient,
+  type GovernedDataSourceLifecycleResult,
+  type KnowledgeSpace,
+  type StructuredDatasetFieldInput,
+} from "../../api/control-plane-client";
+import { LoginForm } from "../knowledge-publication/PublicationViews";
+import { requiresSessionRestart } from "./GovernedFileDataWorkspace";
+
+interface Failure {
+  message: string;
+  traceId: string;
+}
+
+type ViewState = "unauthenticated" | "loading" | "ready" | "error";
+
+const LOGICAL_TYPES = ["TEXT", "NUMBER", "BOOLEAN", "DATE", "DATETIME"] as const;
+const SENSITIVITY_LEVELS = ["PUBLIC", "INTERNAL", "CONFIDENTIAL", "RESTRICTED"] as const;
+
+/** 初始映射只提供可检索的主内容与可选标题，管理员可在登记前按冻结契约增删字段。 */
+function defaultFields(): StructuredDatasetFieldInput[] {
+  return [
+    { fieldName: "content", logicalType: "TEXT", sensitivityLevel: "PUBLIC" },
+    { fieldName: "title", logicalType: "TEXT", sensitivityLevel: "PUBLIC" },
+  ];
+}
+
+/**
+ * 知识管理员的 STRUCTURED_DATASET 登记任务。
+ *
+ * <p>页面只提交冻结映射和私有 CSV；不会读取对象位置、正文、连接参数或任何敏感字段值。同步、质量与索引必须等待 ADR-0032 接受后另行开放。</p>
+ */
+export function StructuredDatasetRegistrationWorkspace({
+  client,
+  sessionRevision,
+  onSessionChanged,
+}: {
+  client: ControlPlaneClient;
+  sessionRevision: number;
+  onSessionChanged: () => void;
+}) {
+  const [viewState, setViewState] = useState<ViewState>("unauthenticated");
+  const [spaces, setSpaces] = useState<KnowledgeSpace[]>([]);
+  const [knowledgeSpaceId, setKnowledgeSpaceId] = useState("");
+  const [name, setName] = useState("");
+  const [mappingVersion, setMappingVersion] = useState("dataset-v1");
+  const [fields, setFields] = useState<StructuredDatasetFieldInput[]>(defaultFields);
+  const [contentField, setContentField] = useState("content");
+  const [titleField, setTitleField] = useState("title");
+  const [rowFilter, setRowFilter] = useState<"ALL_ROWS" | "NON_BLANK_CONTENT">("NON_BLANK_CONTENT");
+  const [csv, setCsv] = useState<File>();
+  const [fileInputKey, setFileInputKey] = useState(0);
+  const [source, setSource] = useState<GovernedDataSourceLifecycleResult>();
+  const [failure, setFailure] = useState<Failure>();
+  const [loggingIn, setLoggingIn] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+
+  const resetProtectedTaskState = useCallback(() => {
+    setSpaces([]);
+    setKnowledgeSpaceId("");
+    setName("");
+    setMappingVersion("dataset-v1");
+    setFields(defaultFields());
+    setContentField("content");
+    setTitleField("title");
+    setRowFilter("NON_BLANK_CONTENT");
+    setCsv(undefined);
+    setFileInputKey((current) => current + 1);
+    setSource(undefined);
+  }, []);
+
+  const restartExpiredSession = useCallback((error: unknown): boolean => {
+    if (!requiresSessionRestart(error, client.hasSession())) {
+      return false;
+    }
+    resetProtectedTaskState();
+    setFailure(toFailure(error));
+    setViewState("unauthenticated");
+    onSessionChanged();
+    return true;
+  }, [client, onSessionChanged, resetProtectedTaskState]);
+
+  const load = useCallback(async () => {
+    if (!client.hasSession()) {
+      setViewState("unauthenticated");
+      resetProtectedTaskState();
+      return;
+    }
+    setViewState("loading");
+    setFailure(undefined);
+    try {
+      const page = await client.listKnowledgeSpaces();
+      setSpaces(page.items);
+      setKnowledgeSpaceId((current) => current || page.items[0]?.id || "");
+      setViewState("ready");
+    } catch (error) {
+      if (restartExpiredSession(error)) {
+        return;
+      }
+      setFailure(toFailure(error));
+      setViewState("error");
+    }
+  }, [client, resetProtectedTaskState, restartExpiredSession]);
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => void load(), 0);
+    return () => window.clearTimeout(timeout);
+  }, [load, sessionRevision]);
+
+  async function login(credentials: {
+    tenantCode: string;
+    loginName: string;
+    password: string;
+  }) {
+    setLoggingIn(true);
+    setFailure(undefined);
+    try {
+      await client.login(credentials);
+      onSessionChanged();
+      await load();
+    } catch (error) {
+      if (!restartExpiredSession(error)) {
+        setFailure(toFailure(error));
+      }
+      setViewState("unauthenticated");
+    } finally {
+      setLoggingIn(false);
+    }
+  }
+
+  async function register(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (knowledgeSpaceId.length === 0 || name.trim().length === 0 || mappingVersion.trim().length === 0 || csv === undefined) {
+      setFailure({ message: "请选择知识空间，填写数据集名称和映射版本，并选择 UTF-8 CSV。", traceId: "" });
+      return;
+    }
+    setSubmitting(true);
+    setFailure(undefined);
+    try {
+      const registered = await client.registerStructuredDataset({
+        knowledgeSpaceId,
+        name: name.trim(),
+        mappingVersion: mappingVersion.trim(),
+        contentField,
+        titleField: titleField || null,
+        fields,
+        rowFilter,
+      }, csv);
+      setSource(registered);
+      setCsv(undefined);
+      setFileInputKey((current) => current + 1);
+    } catch (error) {
+      if (!restartExpiredSession(error)) {
+        setFailure(toFailure(error));
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  function updateField(index: number, update: Partial<StructuredDatasetFieldInput>) {
+    setFields((current) => current.map((field, fieldIndex) => (
+      fieldIndex === index ? { ...field, ...update } : field
+    )));
+  }
+
+  function addField() {
+    setFields((current) => [...current, {
+      fieldName: "",
+      logicalType: "TEXT",
+      sensitivityLevel: "PUBLIC",
+    }]);
+  }
+
+  function removeField(index: number) {
+    const removed = fields[index];
+    if (removed === undefined || fields.length === 1) {
+      return;
+    }
+    const next = fields.filter((_, fieldIndex) => fieldIndex !== index);
+    setFields(next);
+    if (contentField === removed.fieldName) {
+      setContentField(next[0]?.fieldName ?? "");
+    }
+    if (titleField === removed.fieldName) {
+      setTitleField("");
+    }
+  }
+
+  async function logout() {
+    try {
+      await client.logout();
+    } finally {
+      onSessionChanged();
+      resetProtectedTaskState();
+      setViewState("unauthenticated");
+    }
+  }
+
+  if (viewState === "unauthenticated") {
+    return (
+      <section className="governance-login">
+        {failure ? <FailureMessage failure={failure} /> : null}
+        <LoginForm busy={loggingIn} onSubmit={login} />
+      </section>
+    );
+  }
+
+  if (viewState === "loading") {
+    return <StatePanel kind="loading" title="正在加载数据集登记任务" description="正在读取当前租户可用知识空间。" />;
+  }
+
+  if (viewState === "error") {
+    return <StatePanel kind="error" title="数据集登记暂时不可用" description={failureDescription(failure)} actionLabel="重新加载" onAction={() => void load()} />;
+  }
+
+  return (
+    <div className="governed-file-workspace">
+      <div className="governance-toolbar">
+        <Text>仅登记平台私有 UTF-8 CSV 与冻结字段映射。同步、质量、发布和索引尚未开放。</Text>
+        <div className="task-actions">
+          <Button appearance="subtle" icon={<ArrowClockwise20Regular />} onClick={() => void load()}>刷新</Button>
+          <Button appearance="subtle" onClick={() => void logout()}>退出登录</Button>
+        </div>
+      </div>
+      {failure ? <FailureMessage failure={failure} /> : null}
+      {spaces.length === 0 ? (
+        <StatePanel kind="empty" title="尚无可用知识空间" description="先在“首份文本发布”任务创建知识空间，再返回此处登记结构化数据集。" />
+      ) : (
+        <section className="governed-file-section">
+          <header className="task-heading">
+            <Title3>登记私有 CSV 结构化数据集</Title3>
+            <Text>对象键、桶名、摘要、CSV 正文及敏感字段均不会在控制台展示或回显。</Text>
+          </header>
+          <form className="governed-file-form" onSubmit={register}>
+            <Field label="知识空间" required>
+              <Select value={knowledgeSpaceId} disabled={submitting || source !== undefined} onChange={(_, data) => setKnowledgeSpaceId(data.value)}>
+                {spaces.map((space) => <option key={space.id} value={space.id}>{space.name}</option>)}
+              </Select>
+            </Field>
+            <Field label="数据集名称" required>
+              <input className="governed-file-name" value={name} disabled={submitting || source !== undefined} onChange={(event) => setName(event.target.value)} />
+            </Field>
+            <Field label="映射版本" required>
+              <input className="governed-file-name" value={mappingVersion} disabled={submitting || source !== undefined} onChange={(event) => setMappingVersion(event.target.value)} />
+            </Field>
+            <Field label="字段映射" required>
+              <div className="task-actions">
+                {fields.map((field, index) => (
+                  <div key={`${index}-${field.fieldName}`} className="task-actions">
+                    <input aria-label={`字段名称 ${index + 1}`} className="governed-file-name" value={field.fieldName} disabled={submitting || source !== undefined} onChange={(event) => updateField(index, { fieldName: event.target.value })} />
+                    <Select aria-label={`字段逻辑类型 ${index + 1}`} value={field.logicalType} disabled={submitting || source !== undefined} onChange={(_, data) => updateField(index, { logicalType: data.value as StructuredDatasetFieldInput["logicalType"] })}>
+                      {LOGICAL_TYPES.map((type) => <option key={type} value={type}>{type}</option>)}
+                    </Select>
+                    <Select aria-label={`字段敏感级别 ${index + 1}`} value={field.sensitivityLevel} disabled={submitting || source !== undefined} onChange={(_, data) => updateField(index, { sensitivityLevel: data.value as StructuredDatasetFieldInput["sensitivityLevel"] })}>
+                      {SENSITIVITY_LEVELS.map((level) => <option key={level} value={level}>{level}</option>)}
+                    </Select>
+                    <Button appearance="subtle" type="button" disabled={submitting || source !== undefined || fields.length === 1} onClick={() => removeField(index)}>删除字段</Button>
+                  </div>
+                ))}
+                <Button appearance="subtle" type="button" disabled={submitting || source !== undefined} onClick={addField}>新增字段</Button>
+              </div>
+            </Field>
+            <Field label="主内容字段" required>
+              <Select value={contentField} disabled={submitting || source !== undefined} onChange={(_, data) => setContentField(data.value)}>
+                {fields.map((field, index) => <option key={`${index}-${field.fieldName}`} value={field.fieldName}>{field.fieldName || "未命名字段"}</option>)}
+              </Select>
+            </Field>
+            <Field label="标题字段">
+              <Select value={titleField} disabled={submitting || source !== undefined} onChange={(_, data) => setTitleField(data.value)}>
+                <option value="">不设置标题字段</option>
+                {fields.map((field, index) => <option key={`${index}-${field.fieldName}`} value={field.fieldName}>{field.fieldName || "未命名字段"}</option>)}
+              </Select>
+            </Field>
+            <Field label="行过滤" required>
+              <Select value={rowFilter} disabled={submitting || source !== undefined} onChange={(_, data) => setRowFilter(data.value as "ALL_ROWS" | "NON_BLANK_CONTENT")}>
+                <option value="NON_BLANK_CONTENT">跳过空主内容行</option>
+                <option value="ALL_ROWS">保留全部数据行</option>
+              </Select>
+            </Field>
+            <Field label="UTF-8 CSV" required>
+              <input key={fileInputKey} type="file" accept=".csv,text/csv" disabled={submitting || source !== undefined} onChange={(event) => setCsv(event.currentTarget.files?.[0])} />
+            </Field>
+            {source === undefined ? <Button appearance="primary" type="submit" disabled={submitting}>{submitting ? "正在登记" : "登记私有 CSV 数据集"}</Button> : null}
+          </form>
+          {source ? (
+            <article className="governed-file-result">
+              <div>
+                <Title3>{name || "结构化数据集"}</Title3>
+                <Text>数据源编号：{source.dataSourceId}</Text>
+              </div>
+              <Badge appearance="tint" color="warning">{source.status}</Badge>
+              <Text>登记完成。CSV 内容、对象位置、摘要和敏感字段不会展示；同步、质量、发布和索引将在规则接受后开放。</Text>
+            </article>
+          ) : null}
+        </section>
+      )}
+    </div>
+  );
+}
+
+function toFailure(error: unknown): Failure {
+  if (error instanceof ApiRequestError) {
+    return { message: error.message, traceId: error.traceId };
+  }
+  return { message: "无法连接控制平面，请检查网络后重试", traceId: "" };
+}
+
+function failureDescription(failure?: Failure) {
+  if (failure === undefined) {
+    return "请稍后重试；如果问题持续存在，请联系平台运维人员。";
+  }
+  return failure.traceId.length === 0 ? failure.message : `${failure.message}，追踪标识：${failure.traceId}`;
+}
+
+function FailureMessage({ failure }: { failure: Failure }) {
+  return (
+    <MessageBar intent="error">
+      <MessageBarBody>
+        <MessageBarTitle>操作未完成</MessageBarTitle>
+        {failureDescription(failure)}
+      </MessageBarBody>
+    </MessageBar>
+  );
+}
