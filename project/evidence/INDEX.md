@@ -173,6 +173,7 @@
 | M3 STRUCTURED_DATASET 私有 CSV 修订 | `project/evidence/WP-0011-data-lifecycle-design.md` | `de84e6280` | 私有 UTF-8 CSV、冻结字段映射、受控行过滤、真实 PostgreSQL 有序写后读／租户隔离和自动配置回归通过；登记、解析、质量、发布、索引和浏览器闭环尚未完成 |
 | M3 STRUCTURED_DATASET 受控私有 CSV 登记 | `project/evidence/WP-0011-data-lifecycle-design.md` | `6d45f59a9` | 权限前置、严格 UTF-8 暂存、私有内容寻址 MinIO 写入、失败补偿、HTTP 与自动配置回归通过；解析、质量、发布、索引和浏览器闭环尚未完成 |
 | M3 STRUCTURED_DATASET 控制台登记入口 | `project/evidence/WP-0011-data-lifecycle-design.md` | `48d68d243` | 冻结映射和私有 CSV multipart 客户端、登录／会话恢复、受控展示与前端 39 项回归、生产构建通过；同步、质量、发布与索引仍待 ADR-0032 接受 |
+| M3 STRUCTURED_DATASET 登记即绪、同步与发布 | `project/evidence/WP-0011-structured-dataset-synchronization.md` | `36a185124` | 私有 CSV 原子登记后直接就绪，领域同步／质量与显式发布、真实 PostgreSQL、HTTP、自动配置及前端 40 项回归通过；真实浏览器操作仍等待可写演示会话，M3 尚未完成 |
 | M3 令牌派生登录态边界 | `project/evidence/WP-0011-token-derived-authentication-context.md` | `fc13521f7`、`15e0ce021` | ADR-0033 固定租户、主体、成员、凭据、渠道与权限仅从令牌会话恢复；解析器与真实 HTTP 回归证明伪造参数和 Header 不改变归属，M3 仍进行中 |
 
 ## 证据规则
