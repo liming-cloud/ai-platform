@@ -6,9 +6,11 @@ import com.aiplatform.foundation.knowledgedata.application.datasource.service.Fi
 import com.aiplatform.foundation.knowledgedata.application.datasource.service.FileDataSourceSynchronizationService;
 import com.aiplatform.foundation.knowledgedata.application.datasource.service.FileSyncArtifactPublicationService;
 import com.aiplatform.foundation.knowledgedata.application.datasource.service.GovernedFileDataSourceRegistrationService;
+import com.aiplatform.foundation.knowledgedata.application.datasource.service.GovernedObjectStorageDataSourceRegistrationService;
 import com.aiplatform.foundation.knowledgedata.application.datasource.service.GovernedFileDataSourceQueryService;
 import com.aiplatform.foundation.knowledgedata.application.datasource.port.out.FileSourceObjectProbe;
 import com.aiplatform.foundation.knowledgedata.application.datasource.port.out.GovernedFileDataSourceReadPort;
+import com.aiplatform.foundation.knowledgedata.application.datasource.port.out.PlatformObjectRangeSelectionPort;
 import com.aiplatform.foundation.knowledgedata.application.indexversion.facade.ActiveIndexLookup;
 import com.aiplatform.foundation.knowledgedata.application.indexversion.service.ActiveIndexLookupService;
 import com.aiplatform.foundation.knowledgedata.application.indexversion.service.IndexVersionService;
@@ -169,6 +171,17 @@ public class KnowledgeDataCoreAutoConfiguration {
             EntityIdGenerator identifiers) {
         return new GovernedFileDataSourceRegistrationService(
                 repository, staging, storage, identifiers, Clock.systemUTC());
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    @ConditionalOnBean(PlatformObjectRangeSelectionPort.class)
+    GovernedObjectStorageDataSourceRegistrationService governedObjectStorageDataSourceRegistrationService(
+            GovernedDataSourceRepository repository,
+            PlatformObjectRangeSelectionPort selections,
+            EntityIdGenerator identifiers) {
+        return new GovernedObjectStorageDataSourceRegistrationService(
+                repository, selections, identifiers, Clock.systemUTC());
     }
 
     @Bean

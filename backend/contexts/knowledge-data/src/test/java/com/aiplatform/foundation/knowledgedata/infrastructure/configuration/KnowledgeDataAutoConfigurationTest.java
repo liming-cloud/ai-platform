@@ -32,6 +32,7 @@ import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.dataso
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.mapper.TextDataSourceRequestMapper;
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.mapper.GovernedDataSourceMapper;
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.mapper.GovernedFileDataSourceReadMapper;
+import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.mapper.ObjectStorageObjectMapper;
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.mapper.PublishedSyncArtifactMapper;
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.mapper.QualityReportMapper;
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.mapper.SourceRevisionMapper;
@@ -234,6 +235,9 @@ class KnowledgeDataAutoConfigurationTest {
                 .withBean(
                         SourceRevisionMapper.class,
                         () -> mock(SourceRevisionMapper.class))
+                .withBean(
+                        ObjectStorageObjectMapper.class,
+                        () -> mock(ObjectStorageObjectMapper.class))
                 .withBean(
                         SyncArtifactMapper.class,
                         () -> mock(SyncArtifactMapper.class))
