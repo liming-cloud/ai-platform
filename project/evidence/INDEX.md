@@ -191,6 +191,7 @@
 | ADR-0036 人工接受 | `project/evidence/ADR-0036-approval.md` | `d97ba580b` | 用户接受草稿测试、独立测试配额、最小反馈和受权诊断边界；M4 可开始实现 |
 | M4 草稿助手版本受限读取门面 | `project/evidence/WP-0012-draft-assistant-lookup.md` | `f9465dc45` | 草稿只在同租户且 `assistant:write` 时投影为测试快照；普通查询保持只读 `PUBLISHED` 版本 |
 | M4 独立草稿测试运行领域基础 | `project/evidence/WP-0012-assistant-test-run-domain.md` | `74d2da026` | 独立根、冻结依赖、题目摘要、独立测试配额和不含正文的终态事实已红绿验证；持久化与执行编排尚未实施 |
+| M4 独立草稿测试运行持久化 | `project/evidence/WP-0012-assistant-test-run-persistence.md` | `be8a16daa` | 真实 PostgreSQL 证明独立表、租户原子日／并发配额、终态乐观提交、最小引用恢复和题目／回答正文列归零；可信执行编排尚未实施 |
 
 ## 证据规则
 
