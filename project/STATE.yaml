@@ -41,6 +41,7 @@ confirmedDecisions:
   - ADR-0033
 openDecisions:
   - ADR-0032
+  - ADR-0034
 latestEvidence:
   - docs/research/WP-0003-framework-baseline.md
   - project/evidence/WP-0003-trusted-context.md
@@ -120,5 +121,5 @@ latestEvidence:
   - project/evidence/WP-0011-domain-aggregate-operation-boundary.md
   - project/evidence/WP-0011-token-derived-authentication-context.md
 nextReviewAt: 2026-08-03
-updatedAt: 2026-07-30T09:56:00+08:00
+updatedAt: 2026-07-30T10:12:00+08:00
 updatedBy: codex
