@@ -45,6 +45,7 @@ confirmedDecisions:
   - ADR-0036
 openDecisions:
   - ADR-0037
+  - ADR-0038
 latestEvidence:
   - docs/research/WP-0003-framework-baseline.md
   - project/evidence/WP-0003-trusted-context.md
@@ -140,5 +141,5 @@ latestEvidence:
   - project/evidence/WP-0012-query-feedback-domain.md
   - project/evidence/WP-0012-query-feedback-persistence-api.md
 nextReviewAt: 2026-08-03
-updatedAt: 2026-07-30T23:36:00+08:00
+updatedAt: 2026-07-30T23:38:00+08:00
 updatedBy: codex
