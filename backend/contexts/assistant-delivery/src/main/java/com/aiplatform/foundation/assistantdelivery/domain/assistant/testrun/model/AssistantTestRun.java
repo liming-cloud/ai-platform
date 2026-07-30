@@ -93,6 +93,41 @@ public final class AssistantTestRun implements AggregateRoot<AssistantTestRunId>
     }
 
     /**
+     * 从已原子占用配额的持久化事实恢复测试运行。
+     *
+     * @throws NullPointerException 已持久化运行缺少配额快照
+     */
+    public static AssistantTestRun reconstitute(
+            TenantId tenantId,
+            AssistantTestRunId id,
+            AssistantTestRequesterId requestedBy,
+            AssistantTestTarget target,
+            String questionDigest,
+            AssistantTestQuotaSnapshot quota,
+            AssistantTestRunStatus status,
+            AssistantTestRefusalReason refusalReason,
+            List<AssistantTestCitation> citations,
+            AssistantTestUsage usage,
+            long version,
+            Instant createdAt,
+            Instant completedAt) {
+        return new AssistantTestRun(
+                tenantId,
+                id,
+                requestedBy,
+                target,
+                questionDigest,
+                Objects.requireNonNull(quota, "已持久化助手测试的配额快照不能为空"),
+                status,
+                refusalReason,
+                citations,
+                usage,
+                version,
+                createdAt,
+                completedAt);
+    }
+
+    /**
      * 绑定仓储原子占用得到的独立草稿测试配额事实。
      *
      * @throws IllegalStateException 运行已占用配额或已进入终态

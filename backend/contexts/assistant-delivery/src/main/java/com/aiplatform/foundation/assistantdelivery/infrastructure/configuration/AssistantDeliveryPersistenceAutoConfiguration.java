@@ -1,10 +1,14 @@
 package com.aiplatform.foundation.assistantdelivery.infrastructure.configuration;
 
 import com.aiplatform.foundation.assistantdelivery.domain.assistant.repository.AssistantRepository;
+import com.aiplatform.foundation.assistantdelivery.domain.assistant.testrun.repository.AssistantTestRunRepository;
+import com.aiplatform.foundation.assistantdelivery.infrastructure.persistence.assistant.mapper.AssistantTestCitationMapper;
+import com.aiplatform.foundation.assistantdelivery.infrastructure.persistence.assistant.mapper.AssistantTestRunMapper;
 import com.aiplatform.foundation.assistantdelivery.infrastructure.persistence.assistant.mapper.AssistantMapper;
 import com.aiplatform.foundation.assistantdelivery.infrastructure.persistence.assistant.mapper.AssistantRequestMapper;
 import com.aiplatform.foundation.assistantdelivery.infrastructure.persistence.assistant.mapper.AssistantVersionMapper;
 import com.aiplatform.foundation.assistantdelivery.infrastructure.persistence.assistant.repository.PostgresAssistantRepository;
+import com.aiplatform.foundation.assistantdelivery.infrastructure.persistence.assistant.repository.PostgresAssistantTestRunRepository;
 import com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator;
 import com.baomidou.mybatisplus.autoconfigure.MybatisPlusAutoConfiguration;
 import org.apache.ibatis.session.SqlSessionFactory;
@@ -40,6 +44,20 @@ public class AssistantDeliveryPersistenceAutoConfiguration {
                 mapper,
                 requestMapper,
                 versionMapper,
+                identifiers,
+                transactions);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    AssistantTestRunRepository assistantTestRunRepository(
+            AssistantTestRunMapper mapper,
+            AssistantTestCitationMapper citationMapper,
+            EntityIdGenerator identifiers,
+            PlatformTransactionManager transactions) {
+        return new PostgresAssistantTestRunRepository(
+                mapper,
+                citationMapper,
                 identifiers,
                 transactions);
     }
