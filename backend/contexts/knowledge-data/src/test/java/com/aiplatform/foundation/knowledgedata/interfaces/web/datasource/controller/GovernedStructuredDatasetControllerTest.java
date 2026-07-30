@@ -8,6 +8,7 @@ import static org.mockito.Mockito.verify;
 
 import com.aiplatform.foundation.knowledgedata.application.datasource.service.GovernedStructuredDatasetRegistrationService;
 import com.aiplatform.foundation.knowledgedata.application.datasource.service.StructuredDatasetCsvSynchronizationService;
+import com.aiplatform.foundation.knowledgedata.application.datasource.service.publication.StructuredDatasetSyncArtifactPublicationService;
 import com.aiplatform.foundation.knowledgedata.interfaces.web.datasource.request.StructuredDatasetFieldRequest;
 import com.aiplatform.foundation.knowledgedata.interfaces.web.datasource.request.StructuredDatasetRegistrationRequest;
 import com.aiplatform.foundation.security.identity.TrustedRequestContext;
@@ -26,7 +27,10 @@ class GovernedStructuredDatasetControllerTest {
         var csv = mock(MultipartFile.class);
         org.mockito.Mockito.when(csv.getContentType()).thenReturn("text/csv;charset=UTF-8");
         org.mockito.Mockito.when(csv.getInputStream()).thenReturn(new ByteArrayInputStream("content\n测试".getBytes()));
-        var controller = new GovernedStructuredDatasetController(registration, mock(StructuredDatasetCsvSynchronizationService.class));
+        var controller = new GovernedStructuredDatasetController(
+                registration,
+                mock(StructuredDatasetCsvSynchronizationService.class),
+                mock(StructuredDatasetSyncArtifactPublicationService.class));
 
         var response = controller.register(context(), new StructuredDatasetRegistrationRequest(
                 "202", "客服知识库", "csv-mapping-v1", "content", null,
@@ -42,7 +46,10 @@ class GovernedStructuredDatasetControllerTest {
         var registration = mock(GovernedStructuredDatasetRegistrationService.class);
         var csv = mock(MultipartFile.class);
         org.mockito.Mockito.when(csv.getContentType()).thenReturn("text/plain; charset=utf-8");
-        var controller = new GovernedStructuredDatasetController(registration, mock(StructuredDatasetCsvSynchronizationService.class));
+        var controller = new GovernedStructuredDatasetController(
+                registration,
+                mock(StructuredDatasetCsvSynchronizationService.class),
+                mock(StructuredDatasetSyncArtifactPublicationService.class));
 
         assertThrows(IllegalArgumentException.class, () -> controller.register(
                 context(), definition(), csv));
@@ -52,7 +59,8 @@ class GovernedStructuredDatasetControllerTest {
     void 同步端点只转发可信上下文来源标识和预期版本() {
         var registration = mock(GovernedStructuredDatasetRegistrationService.class);
         var synchronization = mock(StructuredDatasetCsvSynchronizationService.class);
-        var controller = new GovernedStructuredDatasetController(registration, synchronization);
+        var controller = new GovernedStructuredDatasetController(
+                registration, synchronization, mock(StructuredDatasetSyncArtifactPublicationService.class));
 
         controller.synchronize(context(), "202", "303", 4);
 
@@ -61,6 +69,23 @@ class GovernedStructuredDatasetControllerTest {
                         && command.knowledgeSpaceId().equals("202")
                         && command.dataSourceId().equals("303")
                         && command.expectedVersion() == 4));
+    }
+
+    @Test
+    void 发布端点只转发可信上下文来源产物标识和预期版本() {
+        var registration = mock(GovernedStructuredDatasetRegistrationService.class);
+        var publication = mock(StructuredDatasetSyncArtifactPublicationService.class);
+        var controller = new GovernedStructuredDatasetController(
+                registration, mock(StructuredDatasetCsvSynchronizationService.class), publication);
+
+        controller.publish(context(), "202", "303", "404", 5);
+
+        verify(publication).publish(org.mockito.ArgumentMatchers.argThat(command ->
+                command.context().equals(context())
+                        && command.knowledgeSpaceId().equals("202")
+                        && command.dataSourceId().equals("303")
+                        && command.artifactId().equals("404")
+                        && command.expectedVersion() == 5));
     }
 
     private static StructuredDatasetRegistrationRequest definition() {

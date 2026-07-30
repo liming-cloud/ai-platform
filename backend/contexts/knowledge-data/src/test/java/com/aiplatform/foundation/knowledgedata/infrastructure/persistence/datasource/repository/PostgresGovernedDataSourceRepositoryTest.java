@@ -30,6 +30,8 @@ import com.aiplatform.foundation.knowledgedata.domain.datasource.service.FileDat
 import com.aiplatform.foundation.knowledgedata.domain.datasource.service.FileSynchronizationCompletion;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.service.FileSyncArtifactPublication;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.service.FileSyncArtifactPublishing;
+import com.aiplatform.foundation.knowledgedata.domain.datasource.service.StructuredDatasetCsvSynchronization;
+import com.aiplatform.foundation.knowledgedata.domain.datasource.service.StructuredDatasetSyncArtifactPublishing;
 import com.aiplatform.foundation.knowledgedata.application.datasource.port.out.GovernedFileDataSourceReadPort;
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.mapper.GovernedFileDataSourceReadMapper;
 import com.aiplatform.foundation.knowledgedata.domain.knowledge.model.KnowledgeSpaceId;
@@ -78,6 +80,10 @@ class PostgresGovernedDataSourceRepositoryTest {
     private static final AtomicLong ARTIFACT_IDS = new AtomicLong(240000000000000000L);
     private static final FileDataSourceSynchronization SYNCHRONIZATION = new FileDataSourceSynchronization();
     private static final FileSyncArtifactPublishing PUBLISHING = new FileSyncArtifactPublishing();
+    private static final StructuredDatasetCsvSynchronization DATASET_SYNCHRONIZATION =
+            new StructuredDatasetCsvSynchronization();
+    private static final StructuredDatasetSyncArtifactPublishing DATASET_PUBLISHING =
+            new StructuredDatasetSyncArtifactPublishing();
 
     @Container
     private static final PostgreSQLContainer POSTGRES =
@@ -299,6 +305,41 @@ class PostgresGovernedDataSourceRepositoryTest {
     }
 
     @Test
+    void 结构化数据集发布会在同一事务冻结质量事实并递增来源修订() {
+        var source = structuredDatasetSource(STORE_TENANT, nextSourceId(), "发布快照数据集");
+        var sourceRevision = structuredDatasetRevision(source, StructuredDatasetRowFilter.NON_BLANK_CONTENT);
+        repository.register(source, sourceRevision);
+        var syncing = startSynchronization(source);
+        var completion = DATASET_SYNCHRONIZATION.complete(
+                syncing,
+                sourceRevision,
+                new SyncArtifactId(ARTIFACT_IDS.incrementAndGet()),
+                new com.aiplatform.foundation.knowledgedata.domain.datasource.model.TextContentReference(
+                        1,
+                        "foundation-v1/tenants/1/knowledge-data/artifacts/dataset.txt",
+                        "b".repeat(64),
+                        1,
+                        com.aiplatform.foundation.knowledgedata.domain.datasource.model.TextContentReference.UTF8_TEXT,
+                        CREATED_AT.plusSeconds(60)),
+                1,
+                1,
+                CREATED_AT.plusSeconds(60));
+        repository.completeSynchronization(completion);
+        var publication = DATASET_PUBLISHING.publish(
+                completion.completedSource(), completion.artifact(), completion.qualityReport(), CREATED_AT.plusSeconds(120));
+
+        repository.publishArtifact(publication);
+
+        var stored = publicationMapper.findByArtifact(
+                STORE_TENANT.value(), SPACE.value(), completion.artifact().id().value());
+        assertEquals(source.id().value(), stored.getDataSourceId());
+        assertEquals(publication.publishedSource().version(), stored.getSourceVersion());
+        assertEquals("WARN", stored.getQualityStatus());
+        assertEquals("dataset-csv-v1", stored.getRuleSetVersion());
+        assertEquals(1, count("published_sync_artifact", STORE_TENANT));
+    }
+
+    @Test
     void FILE列表只返回当前租户的最新发布产物摘要() {
         var source = source(STORE_TENANT, nextSourceId(), "可重建文件");
         var sourceRevision = revision(source, "a".repeat(64));
@@ -477,6 +518,31 @@ class PostgresGovernedDataSourceRepositoryTest {
                         digest,
                         12,
                         "text/plain; charset=utf-8"),
+                CREATOR,
+                CREATED_AT);
+    }
+
+    private static SourceRevision structuredDatasetRevision(
+            GovernedDataSource source, StructuredDatasetRowFilter filter) {
+        return SourceRevision.structuredDataset(
+                source,
+                new StructuredDatasetCsvDefinition(
+                        new StructuredDatasetCsvReference(
+                                "foundation-v1/tenants/%d/knowledge-data/datasets/%d/1/data.csv".formatted(
+                                        source.tenantId().value(), source.id().value()),
+                                "a".repeat(64),
+                                32),
+                        "csv-mapping-v1",
+                        "content",
+                        "title",
+                        java.util.List.of(
+                                new StructuredDatasetFieldMapping(
+                                        "content", StructuredDatasetLogicalType.TEXT,
+                                        StructuredDatasetSensitivityLevel.PUBLIC),
+                                new StructuredDatasetFieldMapping(
+                                        "title", StructuredDatasetLogicalType.TEXT,
+                                        StructuredDatasetSensitivityLevel.PUBLIC)),
+                        filter),
                 CREATOR,
                 CREATED_AT);
     }

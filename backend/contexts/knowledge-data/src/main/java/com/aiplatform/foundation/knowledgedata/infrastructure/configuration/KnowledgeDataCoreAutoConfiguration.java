@@ -9,6 +9,7 @@ import com.aiplatform.foundation.knowledgedata.application.datasource.service.Go
 import com.aiplatform.foundation.knowledgedata.application.datasource.service.GovernedObjectStorageDataSourceRegistrationService;
 import com.aiplatform.foundation.knowledgedata.application.datasource.service.GovernedStructuredDatasetRegistrationService;
 import com.aiplatform.foundation.knowledgedata.application.datasource.service.StructuredDatasetCsvSynchronizationService;
+import com.aiplatform.foundation.knowledgedata.application.datasource.service.publication.StructuredDatasetSyncArtifactPublicationService;
 import com.aiplatform.foundation.knowledgedata.application.datasource.service.ObjectStorageDataSourceProbeService;
 import com.aiplatform.foundation.knowledgedata.application.datasource.service.GovernedFileDataSourceQueryService;
 import com.aiplatform.foundation.knowledgedata.application.datasource.port.out.FileSourceObjectProbe;
@@ -28,6 +29,7 @@ import com.aiplatform.foundation.knowledgedata.domain.datasource.repository.Text
 import com.aiplatform.foundation.knowledgedata.domain.datasource.repository.GovernedDataSourceRepository;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.service.FileDataSourceSynchronization;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.service.FileSyncArtifactPublishing;
+import com.aiplatform.foundation.knowledgedata.domain.datasource.service.StructuredDatasetSyncArtifactPublishing;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.service.StructuredDatasetCsvSynchronization;
 import com.aiplatform.foundation.knowledgedata.domain.indexversion.repository.IndexVersionRepository;
 import com.aiplatform.foundation.knowledgedata.domain.knowledge.repository.KnowledgeSpaceRepository;
@@ -238,6 +240,19 @@ public class KnowledgeDataCoreAutoConfiguration {
             StructuredDatasetCsvSynchronization synchronization) {
         return new StructuredDatasetCsvSynchronizationService(
                 repository, projection, staging, storage, Clock.systemUTC(), identifiers, synchronization);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    StructuredDatasetSyncArtifactPublishing structuredDatasetSyncArtifactPublishing() {
+        return new StructuredDatasetSyncArtifactPublishing();
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    StructuredDatasetSyncArtifactPublicationService structuredDatasetSyncArtifactPublicationService(
+            GovernedDataSourceRepository repository, StructuredDatasetSyncArtifactPublishing publishing) {
+        return new StructuredDatasetSyncArtifactPublicationService(repository, Clock.systemUTC(), publishing);
     }
 
     @Bean

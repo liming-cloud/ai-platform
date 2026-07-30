@@ -12,6 +12,7 @@ import com.aiplatform.foundation.knowledgedata.domain.datasource.model.GovernedD
 import com.aiplatform.foundation.knowledgedata.domain.datasource.model.SyncArtifactId;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.model.TextContentReference;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.quality.QualityStatus;
+import com.aiplatform.foundation.knowledgedata.domain.datasource.quality.QualityReport;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.revision.SourceRevision;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.revision.StructuredDatasetCsvDefinition;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.revision.StructuredDatasetCsvReference;
@@ -85,6 +86,26 @@ class StructuredDatasetCsvSynchronizationTest {
                 completion.completedSource(), completion.artifact(), completion.qualityReport(), NOW);
         assertEquals(GovernedDataSourceStatus.READY, publication.publishedSource().status());
         assertEquals(QualityStatus.WARN, publication.publication().qualityStatus());
+    }
+
+    @Test
+    void 阻断质量结论不得形成结构化数据集发布事实() {
+        var ready = readySource(StructuredDatasetRowFilter.ALL_ROWS);
+        var syncing = synchronization.begin(ready, ready.version());
+        var completion = synchronization.complete(
+                syncing,
+                revision(ready, StructuredDatasetRowFilter.ALL_ROWS),
+                new SyncArtifactId(240000000000000006L),
+                normalizedContent("f"),
+                1,
+                0,
+                NOW);
+
+        assertThrows(DataSourceStateException.class, () -> new StructuredDatasetSyncArtifactPublishing().publish(
+                completion.completedSource(),
+                completion.artifact(),
+                QualityReport.blocked(completion.artifact(), "dataset-csv-v1", 0, 1),
+                NOW));
     }
 
     @Test
