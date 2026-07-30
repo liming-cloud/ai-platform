@@ -172,6 +172,35 @@ class KnowledgeSpaceApiTest {
         assertTrue(campus.items().stream().noneMatch(item -> item.name().equals("门店知识")));
     }
 
+    @Test
+    void 伪造登录状态参数和Header不得改变令牌租户范围() {
+        var storeToken = login("demo-store");
+        var campusToken = login("demo-campus");
+        var headers = authorized(storeToken);
+        headers.add("Idempotency-Key", "request-http-token-context");
+        headers.add("X-Tenant-Id", "100000000000000002");
+        headers.add("X-Subject-Id", "100000000000000098");
+        headers.add("X-Membership-Id", "100000000000000097");
+        headers.add("X-Permissions", "platform:admin");
+        var request = new HttpEntity<>(
+                Map.of("name", "令牌范围知识", "description", "只能归属当前令牌租户"),
+                headers);
+
+        var created = http.postForEntity(
+                url("/api/v1/knowledge-spaces?tenantId=100000000000000002"
+                        + "&subjectId=100000000000000098"
+                        + "&membershipId=100000000000000097"
+                        + "&permissionVersion=999&channel=PLATFORM"),
+                request,
+                SpaceResponse.class);
+
+        assertEquals(HttpStatus.CREATED, created.getStatusCode());
+        assertTrue(list(storeToken).items().stream()
+                .anyMatch(item -> item.name().equals("令牌范围知识")));
+        assertTrue(list(campusToken).items().stream()
+                .noneMatch(item -> item.name().equals("令牌范围知识")));
+    }
+
     private void create(String token, String idempotencyKey, String name) {
         var headers = authorized(token);
         headers.add("Idempotency-Key", idempotencyKey);
