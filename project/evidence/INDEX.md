@@ -187,7 +187,7 @@
 | 证据 | 命令或评审 | 提交 | 结果 |
 | --- | --- | --- |
 | M4 草稿测试与查询反馈影响分析 | `project/evidence/WP-0012-m4-impact-analysis.md` | `fadab27d9` | 代码图谱确认普通查询的已发布版本边界、草稿读取 seam、查询事件／运营投影影响和三个待决策项；ADR-0036 接受前不实施 |
-| M4 草稿测试 TDD 路线 | `project/evidence/WP-0012-m4-tdd-test-route.md` | 待产生 | 首个红绿切片、真实 PostgreSQL、自动配置、HTTP、浏览器与最终验证层级已固定；等待 ADR-0036 接受 |
+| M4 草稿测试 TDD 路线 | `project/evidence/WP-0012-m4-tdd-test-route.md` | `25663a013` | 首个红绿切片、真实 PostgreSQL、自动配置、HTTP、浏览器与最终验证层级已固定；等待 ADR-0036 接受 |
 
 ## 证据规则
 
