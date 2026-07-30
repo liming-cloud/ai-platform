@@ -7,6 +7,7 @@ import com.aiplatform.foundation.knowledgedata.application.datasource.service.Fi
 import com.aiplatform.foundation.knowledgedata.application.datasource.service.FileSyncArtifactPublicationService;
 import com.aiplatform.foundation.knowledgedata.application.datasource.service.GovernedFileDataSourceRegistrationService;
 import com.aiplatform.foundation.knowledgedata.application.datasource.service.GovernedObjectStorageDataSourceRegistrationService;
+import com.aiplatform.foundation.knowledgedata.application.datasource.service.ObjectStorageDataSourceProbeService;
 import com.aiplatform.foundation.knowledgedata.application.datasource.service.GovernedFileDataSourceQueryService;
 import com.aiplatform.foundation.knowledgedata.application.datasource.port.out.FileSourceObjectProbe;
 import com.aiplatform.foundation.knowledgedata.application.datasource.port.out.GovernedFileDataSourceReadPort;
@@ -189,6 +190,13 @@ public class KnowledgeDataCoreAutoConfiguration {
             EntityIdGenerator identifiers) {
         return new GovernedObjectStorageDataSourceRegistrationService(
                 repository, selections, identifiers, Clock.systemUTC());
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    ObjectStorageDataSourceProbeService objectStorageDataSourceProbeService(
+            GovernedDataSourceRepository repository, PlatformObjectRangeSelectionPort selections) {
+        return new ObjectStorageDataSourceProbeService(repository, selections);
     }
 
     @Bean
