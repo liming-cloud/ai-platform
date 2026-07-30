@@ -111,6 +111,7 @@ class PostgresIndexVersionPersistenceTest {
         jdbc.update("DELETE FROM knowledge_data.published_sync_artifact");
         jdbc.update("DELETE FROM knowledge_data.quality_report");
         jdbc.update("DELETE FROM knowledge_data.sync_artifact");
+        jdbc.update("DELETE FROM knowledge_data.source_revision_dataset_field");
         jdbc.update("DELETE FROM knowledge_data.source_revision");
         jdbc.update("DELETE FROM knowledge_data.governed_data_source");
         jdbc.update("DELETE FROM knowledge_data.outbox_event");
@@ -186,6 +187,26 @@ class PostgresIndexVersionPersistenceTest {
                         && source.sourceRevision() == 1
                         && source.syncArtifactId().equals(240000000000000101L)
                         && source.qualityStatus().equals("WARN")));
+    }
+
+    @Test
+    void 结构化数据集索引快照必须冻结同步产物自身的规范化文本引用() {
+        var id = new IndexVersionId(230000000000000009L);
+        var sourceId = 230000000000000103L;
+        var artifactId = 240000000000000103L;
+        var artifactKey = "foundation-v1/" + TENANT.value() + "/artifacts/" + artifactId + ".txt";
+        insertPublishedStructuredDatasetSource(TENANT, sourceId, artifactId, artifactKey, "f".repeat(64), 42);
+
+        repository.create(request(TENANT, id, "create-index-dataset-0001", "d".repeat(64)));
+
+        var lease = queue.claim(NOW.plusSeconds(1), Duration.ofMinutes(1)).orElseThrow();
+        assertTrue(lease.sources().stream().anyMatch(source ->
+                source.kind() == IndexSourceKind.GOVERNED_SYNC_ARTIFACT
+                        && source.syncArtifactId().equals(artifactId)
+                        && source.content().objectKey().equals(artifactKey)
+                        && source.content().sha256().equals("f".repeat(64))
+                        && source.content().byteSize() == 42
+                        && source.content().mediaType().equals("text/plain; charset=UTF-8")));
     }
 
     @Test
@@ -358,6 +379,7 @@ class PostgresIndexVersionPersistenceTest {
 
     private void insertPublishedFileSource(TenantId tenant, long sourceId, long artifactId) {
         var objectKey = "foundation-v1/" + tenant.value() + "/files/" + sourceId + ".txt";
+        var artifactKey = "foundation-v1/" + tenant.value() + "/artifacts/" + artifactId + ".txt";
         var contentDigest = "e".repeat(64);
         var file = new FileSourceObjectReference(objectKey, contentDigest, 16, FileSourceObjectReference.UTF8_TEXT);
         jdbc.update("""
@@ -374,9 +396,12 @@ class PostgresIndexVersionPersistenceTest {
                 CREATOR.value(), NOW.atOffset(ZoneOffset.UTC));
         jdbc.update("""
                 INSERT INTO knowledge_data.sync_artifact (
-                    id, tenant_id, knowledge_space_id, data_source_id, source_revision, content_digest, record_count, synchronized_at
-                ) VALUES (?, ?, ?, ?, 1, ?, 1, ?)
-                """, artifactId, tenant.value(), SPACE.value(), sourceId, contentDigest, NOW.atOffset(ZoneOffset.UTC));
+                    id, tenant_id, knowledge_space_id, data_source_id, source_revision,
+                    content_digest, content_version, content_object_key, content_byte_size, content_media_type,
+                    content_created_at, record_count, synchronized_at
+                ) VALUES (?, ?, ?, ?, 1, ?, 1, ?, 16, 'text/plain; charset=UTF-8', ?, 1, ?)
+                """, artifactId, tenant.value(), SPACE.value(), sourceId, contentDigest, artifactKey,
+                NOW.atOffset(ZoneOffset.UTC), NOW.atOffset(ZoneOffset.UTC));
         jdbc.update("""
                 INSERT INTO knowledge_data.quality_report (
                     artifact_id, tenant_id, knowledge_space_id, rule_set_version, status, warning_count, blocking_count
@@ -387,6 +412,49 @@ class PostgresIndexVersionPersistenceTest {
                     tenant_id, knowledge_space_id, data_source_id, source_version, artifact_id,
                     quality_status, rule_set_version, published_at
                 ) VALUES (?, ?, ?, 5, ?, 'WARN', 'file-quality-v1', ?)
+                """, tenant.value(), SPACE.value(), sourceId, artifactId, NOW.atOffset(ZoneOffset.UTC));
+    }
+
+    private void insertPublishedStructuredDatasetSource(
+            TenantId tenant, long sourceId, long artifactId, String artifactKey, String artifactDigest, long artifactSize) {
+        var datasetKey = "foundation-v1/" + tenant.value() + "/datasets/" + sourceId + ".csv";
+        jdbc.update("""
+                INSERT INTO knowledge_data.governed_data_source (
+                    tenant_id, knowledge_space_id, id, source_type, name, status, version, current_revision, created_by, created_at
+                ) VALUES (?, ?, ?, 'STRUCTURED_DATASET', '已发布结构化数据集', 'READY', 5, 1, ?, ?)
+                """, tenant.value(), SPACE.value(), sourceId, CREATOR.value(), NOW.atOffset(ZoneOffset.UTC));
+        jdbc.update("""
+                INSERT INTO knowledge_data.source_revision (
+                    tenant_id, knowledge_space_id, data_source_id, revision, source_type, definition_digest,
+                    object_key, content_digest, byte_size, media_type, dataset_mapping_version, dataset_content_field,
+                    dataset_title_field, dataset_row_filter, created_by, created_at
+                ) VALUES (?, ?, ?, 1, 'STRUCTURED_DATASET', ?, ?, ?, 32, 'text/csv; charset=utf-8',
+                    'csv-mapping-v1', 'content', 'title', 'NON_BLANK_CONTENT', ?, ?)
+                """, tenant.value(), SPACE.value(), sourceId, "c".repeat(64), datasetKey, "d".repeat(64),
+                CREATOR.value(), NOW.atOffset(ZoneOffset.UTC));
+        jdbc.update("""
+                INSERT INTO knowledge_data.source_revision_dataset_field (
+                    tenant_id, knowledge_space_id, data_source_id, revision, field_ordinal, field_name, logical_type, sensitivity_level
+                ) VALUES (?, ?, ?, 1, 0, 'content', 'TEXT', 'PUBLIC'), (?, ?, ?, 1, 1, 'title', 'TEXT', 'PUBLIC')
+                """, tenant.value(), SPACE.value(), sourceId, tenant.value(), SPACE.value(), sourceId);
+        jdbc.update("""
+                INSERT INTO knowledge_data.sync_artifact (
+                    id, tenant_id, knowledge_space_id, data_source_id, source_revision,
+                    content_digest, content_version, content_object_key, content_byte_size, content_media_type,
+                    content_created_at, record_count, synchronized_at
+                ) VALUES (?, ?, ?, ?, 1, ?, 1, ?, ?, 'text/plain; charset=UTF-8', ?, 1, ?)
+                """, artifactId, tenant.value(), SPACE.value(), sourceId, artifactDigest, artifactKey, artifactSize,
+                NOW.atOffset(ZoneOffset.UTC), NOW.atOffset(ZoneOffset.UTC));
+        jdbc.update("""
+                INSERT INTO knowledge_data.quality_report (
+                    artifact_id, tenant_id, knowledge_space_id, rule_set_version, status, warning_count, blocking_count
+                ) VALUES (?, ?, ?, 'dataset-csv-v1', 'PASS', 0, 0)
+                """, artifactId, tenant.value(), SPACE.value());
+        jdbc.update("""
+                INSERT INTO knowledge_data.published_sync_artifact (
+                    tenant_id, knowledge_space_id, data_source_id, source_version, artifact_id,
+                    quality_status, rule_set_version, published_at
+                ) VALUES (?, ?, ?, 5, ?, 'PASS', 'dataset-csv-v1', ?)
                 """, tenant.value(), SPACE.value(), sourceId, artifactId, NOW.atOffset(ZoneOffset.UTC));
     }
 

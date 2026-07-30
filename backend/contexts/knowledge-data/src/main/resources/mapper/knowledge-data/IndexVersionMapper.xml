@@ -93,11 +93,11 @@
                publication.quality_status,
                publication.rule_set_version AS quality_rule_set_version,
                publication.published_at,
-               revision.object_key,
+               artifact.content_object_key AS object_key,
                artifact.content_digest AS sha256,
-               revision.byte_size,
-               revision.media_type,
-               artifact.synchronized_at AS content_created_at
+               artifact.content_byte_size AS byte_size,
+               artifact.content_media_type AS media_type,
+               artifact.content_created_at
         FROM knowledge_data.published_sync_artifact publication
         JOIN knowledge_data.governed_data_source source
           ON source.tenant_id = publication.tenant_id
@@ -107,11 +107,6 @@
           ON artifact.tenant_id = publication.tenant_id
          AND artifact.knowledge_space_id = publication.knowledge_space_id
          AND artifact.id = publication.artifact_id
-        JOIN knowledge_data.source_revision revision
-          ON revision.tenant_id = artifact.tenant_id
-         AND revision.knowledge_space_id = artifact.knowledge_space_id
-         AND revision.data_source_id = artifact.data_source_id
-         AND revision.revision = artifact.source_revision
         WHERE publication.tenant_id = #{tenantId}
           AND publication.knowledge_space_id = #{knowledgeSpaceId}
           AND source.status <> 'RETIRED'
