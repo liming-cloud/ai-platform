@@ -14,6 +14,7 @@ import com.aiplatform.foundation.knowledgedata.interfaces.job.indexversion.Index
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.ModelRuntimeResolver;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.GovernedEmbeddingRuntime;
 import com.aiplatform.foundation.modelruntime.application.configuration.facade.UsableModelConfigurationLookup;
+import com.aiplatform.foundation.modelruntime.infrastructure.configuration.ModelRuntimeCoreAutoConfiguration;
 import com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator;
 import java.time.Clock;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
@@ -28,7 +29,10 @@ import org.springframework.transaction.PlatformTransactionManager;
 /**
  * 为摄取进程注册索引构建队列、完成端口、工作进程和调度入口。
  */
-@AutoConfiguration(after = KnowledgeDataPersistenceAutoConfiguration.class)
+@AutoConfiguration(after = {
+        KnowledgeDataPersistenceAutoConfiguration.class,
+        ModelRuntimeCoreAutoConfiguration.class
+})
 @ConditionalOnProperty(
         name = "foundation.ingestion.enabled",
         havingValue = "true")

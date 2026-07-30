@@ -1,6 +1,7 @@
 package com.aiplatform.foundation.vectorstore.pgvector;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.aiplatform.foundation.knowledgedata.application.indexversion.port.out.vector.IndexCandidateQuery;
@@ -220,6 +221,30 @@ class PgVectorIndexStoreTest {
         assertEquals("受控配置向量", result.getFirst().content());
     }
 
+    @Test
+    void 相同正文的不同来源分块可共同写入同一冻结索引() {
+        store.replace(batch(
+                TENANT,
+                INDEX,
+                List.of(
+                        vector(SOURCE, "5".repeat(64), 0, "共享正文", new float[] {1, 0, 0, 0}),
+                        vector(220000000000000002L, "6".repeat(64), 0, "共享正文", new float[] {1, 0, 0, 0}))));
+
+        var rows = jdbc.queryForList(
+                """
+                SELECT data_source_id, chunk_id
+                FROM knowledge_data.index_chunk
+                WHERE tenant_id = ? AND index_version_id = ?
+                ORDER BY data_source_id
+                """,
+                TENANT.value(), INDEX);
+
+        assertEquals(2, rows.size());
+        assertEquals(SOURCE, ((Number) rows.getFirst().get("data_source_id")).longValue());
+        assertEquals(220000000000000002L, ((Number) rows.get(1).get("data_source_id")).longValue());
+        assertNotEquals(rows.getFirst().get("chunk_id"), rows.get(1).get("chunk_id"));
+    }
+
     private static IndexVectorBatch batch(
             TenantId tenantId,
             long indexVersionId,
@@ -239,8 +264,17 @@ class PgVectorIndexStoreTest {
             int ordinal,
             String content,
             float[] embedding) {
+        return vector(SOURCE, chunkId, ordinal, content, embedding);
+    }
+
+    private static IndexVector vector(
+            long dataSourceId,
+            String chunkId,
+            int ordinal,
+            String content,
+            float[] embedding) {
         return new IndexVector(
-                SOURCE,
+                dataSourceId,
                 1,
                 chunkId,
                 ordinal,

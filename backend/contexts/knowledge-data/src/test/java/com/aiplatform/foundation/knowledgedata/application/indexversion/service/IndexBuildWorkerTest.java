@@ -3,6 +3,7 @@ package com.aiplatform.foundation.knowledgedata.application.indexversion.service
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
@@ -197,6 +198,47 @@ class IndexBuildWorkerTest {
         assertNotNull(completion.batch);
         assertEquals(1, completion.batch.vectors().size());
         assertEquals(1, completion.batch.vectors().getFirst().contentVersion());
+    }
+
+    @Test
+    void 相同内容的不同来源生成不同分块标识() throws Exception {
+        var content = "不同来源保留各自引用";
+        var legacy = lease(content);
+        var reference = legacy.sources().getFirst().content();
+        var secondSource = new IndexSourceSnapshot(
+                IndexSourceKind.GOVERNED_SYNC_ARTIFACT,
+                new DataSourceId(220000000000000002L),
+                1,
+                240000000000000002L,
+                "PASS",
+                "file-quality-v1",
+                reference);
+        var leaseWithDuplicateContent = new IndexBuildLease(
+                legacy.leaseId(), legacy.indexVersion(),
+                List.of(legacy.sources().getFirst(), secondSource), legacy.attempt());
+        var queue = new RecordingQueue(leaseWithDuplicateContent);
+        var completion = new RecordingCompletion();
+        var worker = new IndexBuildWorker(
+                queue,
+                completion,
+                new ContentStore(content),
+                new FixedModelRuntimeResolver(new FourDimensionEmbedding()),
+                new ParagraphWindowChunker(),
+                CLOCK,
+                Duration.ofMinutes(1));
+
+        assertTrue(worker.processNext());
+
+        assertNotNull(completion.batch);
+        assertEquals(2, completion.batch.vectors().size());
+        assertNotEquals(
+                completion.batch.vectors().get(0).chunkId(),
+                completion.batch.vectors().get(1).chunkId());
+        assertTrue(completion.batch.vectors().stream()
+                .map(value -> value.dataSourceId())
+                .distinct()
+                .count() == 2);
+        assertTrue(queue.failureCode == null);
     }
 
     private static IndexBuildLease lease(String content) throws Exception {

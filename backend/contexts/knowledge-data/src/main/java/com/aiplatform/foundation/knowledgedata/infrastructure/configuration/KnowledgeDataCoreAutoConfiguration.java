@@ -46,6 +46,7 @@ import com.aiplatform.foundation.knowledgedata.infrastructure.objectstorage.Unav
 import com.aiplatform.foundation.knowledgedata.infrastructure.datasource.Rfc4180StructuredDatasetCsvProjectionAdapter;
 import com.aiplatform.foundation.knowledgedata.infrastructure.staging.LocalTextContentStagingAdapter;
 import com.aiplatform.foundation.modelruntime.application.configuration.facade.UsableModelConfigurationLookup;
+import com.aiplatform.foundation.modelruntime.infrastructure.configuration.ModelRuntimeCoreAutoConfiguration;
 import com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator;
 import java.time.Clock;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
@@ -58,7 +59,10 @@ import org.springframework.context.annotation.Bean;
 /**
  * 注册知识空间、文本数据源和索引版本应用能力。
  */
-@AutoConfiguration(after = KnowledgeDataPersistenceAutoConfiguration.class)
+@AutoConfiguration(after = {
+    KnowledgeDataPersistenceAutoConfiguration.class,
+    ModelRuntimeCoreAutoConfiguration.class
+})
 @ConditionalOnProperty(
         name = "foundation.knowledge-data.enabled",
         havingValue = "true")

@@ -32,12 +32,15 @@ import java.util.ArrayList;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Objects;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * 认领一个构建作业，在事务外读取内容和调用嵌入模型，再原子提交产物。
  */
 public final class IndexBuildWorker {
 
+    private static final Logger log = LoggerFactory.getLogger(IndexBuildWorker.class);
     private static final String CONTENT_INTEGRITY_FAILED =
             "CONTENT_INTEGRITY_FAILED";
     private static final String EMBEDDING_RESULT_INVALID =
@@ -118,6 +121,8 @@ public final class IndexBuildWorker {
         } catch (EmbeddingResultFailure | IllegalArgumentException exception) {
             queue.recordFailure(lease, EMBEDDING_RESULT_INVALID, clock.instant());
         } catch (RuntimeException exception) {
+            log.warn("索引构建失败，索引版本={}，失败类型={}",
+                    lease.indexVersion().id().value(), exception.getClass().getSimpleName());
             queue.recordFailure(lease, INDEX_BUILD_FAILED, clock.instant());
         }
         return true;
@@ -128,7 +133,7 @@ public final class IndexBuildWorker {
         var chunks = new ArrayList<ChunkSource>();
         for (var source : lease.sources()) {
             var text = readVerified(source.content());
-            for (var chunk : chunker.chunk(source.content().sha256(), text)) {
+            for (var chunk : chunker.chunk(source.sourceIdentityDigest(), text)) {
                 chunks.add(new ChunkSource(
                         source.dataSourceId().value(),
                         source.content().version(),
