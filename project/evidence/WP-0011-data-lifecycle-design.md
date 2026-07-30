@@ -506,3 +506,31 @@ ADR-0028 定义 `GovernedDataSource`、`SourceRevision`、`SyncArtifact`、`Qual
 - 因此，`OBJECT_STORAGE` 只接受平台签发、按租户和知识空间授权的范围标识与选择修订；`STRUCTURED_DATASET` 只接受平台私有对象存储中的 UTF-8 CSV 和冻结字段映射。
 - 外部对象存储、数据库和任意 HTTP 连接器，以及由知识管理员提交端点、桶名、对象键或凭据，仍属于 M6 平台连接管理范围，不能提前实现。
 - 本记录只确认产品边界，尚未作为两类来源已实现或已验收的证据；M3 仍须按 ADR-0030 补齐领域、持久化、权限、浏览器和运行验证。
+
+## OBJECT_STORAGE 范围与不可变对象集合修订（2026-07-30）
+
+### 红绿与持久化验证
+
+- 红灯：先新增 `ObjectStorageSourceRevisionTest`，在对象范围、平台对象引用与集合值对象尚不存在时，执行
+  `./mvnw -q -pl backend/contexts/knowledge-data -am -Dtest=ObjectStorageSourceRevisionTest -Dsurefire.failIfNoSpecifiedTests=false test`；编译按预期报告三个领域类型及 `SourceRevision.objectStorage` 均不存在。
+- 绿灯：提交 `d3a960ce7` 新增平台不透明范围标识、对象引用和不可变集合值对象。集合拒绝空值、空集合、重复对象标识、非法摘要和不合法范围／对象标识；定义摘要稳定覆盖范围、选择修订及按序对象元数据。`SourceRevision` 强制 FILE 与 OBJECT_STORAGE 只能携带各自的类型专属事实，拒绝混用。
+- 真实 PostgreSQL：同一提交上运行
+  `./mvnw -q -pl backend/contexts/knowledge-data -am -Dtest=ObjectStorageSourceRevisionTest,PostgresGovernedDataSourceRepositoryTest -Dsurefire.failIfNoSpecifiedTests=false test`，通过。空库 Flyway 成功执行至 `V202607300021`；测试证明范围标识、选择修订和两项按序冻结对象可写后读，跨租户读取关闭失败。
+- 回归：运行 `./mvnw -q -pl backend/contexts/knowledge-data -am test`、`python3 -m unittest scripts.quality.test_backend_architecture_guard` 和 `python3 scripts/quality/backend_architecture_guard.py verify`，均通过；前者日志仅包含既有自动配置和 Testcontainers 警告。
+
+### 已验证边界
+
+- `source_revision` 仅保存不透明范围标识、选择修订与集合摘要；`source_revision_object` 通过来源修订复合外键保存冻结对象标识、摘要、长度、媒体类型和新鲜度。数据库约束拒绝 FILE 与 OBJECT_STORAGE 事实混存、重复对象标识和无效摘要。
+- 仓储在同一注册事务中写入来源、修订和对象集合，读取时按序重建领域值对象并复核集合摘要；不扫描前缀、不推导对象位置，也不接触外部端点、桶名、对象键或凭据。
+- 本切片不提供平台范围创建／管理，也尚未提供知识管理员登记、探测、同步、发布、索引或浏览器入口。后续只能通过部署受控的范围解析端口提交已核验集合，不能扩大为 M6 平台管理能力。
+
+### 六维检查
+
+- 正确性：范围、选择修订、对象顺序和每项元数据均参与摘要；FILE／OBJECT_STORAGE 事实由 `SourceRevision` 互斥约束。
+- 安全：公开领域值不保存端点、桶名、原始对象键或凭据；持久化与读取均以租户、知识空间、数据源、修订四元范围绑定。
+- 复杂度：仅增加三个值对象、一张修订子表和一个专用 Mapper，不引入通用连接器、可变前缀扫描或平台管理模块。
+- 性能：注册只做批量对象事实的同一事务插入；读取按主键范围和序号排序，不产生对象 I/O 或远程调用。
+- 架构：代码图谱探索 `SourceRevision`、`GovernedDataSourceRepository`、`PostgresGovernedDataSourceRepository`、`SourceRevisionMapper` 和自动配置；影响分析显示修订事实穿透 PostgreSQL、装配和真实容器测试，因此实现同步覆盖这些边界。
+- 测试质量：先以缺失公共领域 seam 的编译红灯固定需求，再以纯领域反例和真实 PostgreSQL 写后读／租户隔离转绿。
+
+本切片只完成 ADR-0030 所需的对象范围与不可变集合修订基础，不构成 OBJECT_STORAGE 来源闭环，更不构成 WP-0011、M3 完成或进入 M4 的批准。

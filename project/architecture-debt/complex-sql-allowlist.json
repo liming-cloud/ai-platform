@@ -146,6 +146,18 @@
       "reason": "完成同步前聚合校验冻结来源修订是否存在。"
     },
     {
+      "path": "backend/contexts/knowledge-data/src/main/resources/mapper/knowledge-data/ObjectStorageObjectMapper.xml",
+      "statementId": "insert",
+      "category": "ATOMIC_STATE_TRANSITION",
+      "reason": "在来源登记事务内写入对象存储修订冻结的对象集合，禁止修订与对象事实分离提交。"
+    },
+    {
+      "path": "backend/contexts/knowledge-data/src/main/resources/mapper/knowledge-data/ObjectStorageObjectMapper.xml",
+      "statementId": "findByScope",
+      "category": "SECURITY_PROJECTION",
+      "reason": "按租户、知识空间、来源和修订读取冻结对象集合，避免跨范围对象事实投影。"
+    },
+    {
       "path": "backend/contexts/knowledge-data/src/main/resources/mapper/knowledge-data/PublishedSyncArtifactMapper.xml",
       "statementId": "insert",
       "category": "ATOMIC_STATE_TRANSITION",

@@ -167,6 +167,7 @@
 | M3 FILE 控制台会话过期恢复 | `project/evidence/WP-0011-data-lifecycle-design.md` | `300458ed8` | 当前 401 清除会话、旧请求 401 不覆盖新会话，FILE 工作区清除受保护状态并回到登录入口；36 项前端测试与生产构建通过，M3 尚未完成 |
 | M3 FILE 刷新后受控重建 | `project/evidence/WP-0011-data-lifecycle-design.md` | `cc72f3564` | 已发布 FILE 来源的无敏感摘要分页读取、刷新后选择与仅 `READY` 来源重建通过；真实 PostgreSQL、浏览器验收与最终全量门禁通过，M3 尚未完成 |
 | M3 ADR-0031 领域聚合操作边界整改 | `project/evidence/WP-0011-domain-aggregate-operation-boundary.md` | `cfccfe3f5` | 全平台领域设计规约和两项硬门禁生效；FILE 同步／发布不变量收回领域，领域、应用、真实 PostgreSQL、HTTP 与全仓门禁通过；M3 尚未完成 |
+| M3 OBJECT_STORAGE 范围与不可变对象集合修订 | `project/evidence/WP-0011-data-lifecycle-design.md` | `d3a960ce7` | ADR-0030 的不透明范围、选择修订和冻结对象集合完成领域、真实 PostgreSQL 与架构门禁验证；登记、探测、同步、发布和浏览器闭环尚未完成，M3 仍进行中 |
 
 ## 证据规则
 
