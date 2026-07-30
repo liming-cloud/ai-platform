@@ -1,8 +1,12 @@
 package com.aiplatform.foundation.knowledgedata.interfaces.web.datasource.controller;
 
 import com.aiplatform.foundation.knowledgedata.application.datasource.command.RegisterObjectStorageDataSourceCommand;
+import com.aiplatform.foundation.knowledgedata.application.datasource.command.synchronization.SynchronizeObjectStorageDataSourceCommand;
+import com.aiplatform.foundation.knowledgedata.application.datasource.command.publication.PublishObjectStorageSyncArtifactCommand;
 import com.aiplatform.foundation.knowledgedata.application.datasource.dto.GovernedDataSourceLifecycleResult;
 import com.aiplatform.foundation.knowledgedata.application.datasource.service.GovernedObjectStorageDataSourceRegistrationService;
+import com.aiplatform.foundation.knowledgedata.application.datasource.service.ObjectStorageSynchronizationService;
+import com.aiplatform.foundation.knowledgedata.application.datasource.service.publication.ObjectStorageSyncArtifactPublicationService;
 import com.aiplatform.foundation.security.identity.TrustedRequestContext;
 import java.util.Objects;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
@@ -19,9 +23,16 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/v1/governed-data-sources/object-storage")
 public class GovernedObjectStorageDataSourceController {
     private final GovernedObjectStorageDataSourceRegistrationService registration;
+    private final ObjectStorageSynchronizationService synchronizations;
+    private final ObjectStorageSyncArtifactPublicationService publications;
 
-    public GovernedObjectStorageDataSourceController(GovernedObjectStorageDataSourceRegistrationService registration) {
+    public GovernedObjectStorageDataSourceController(
+            GovernedObjectStorageDataSourceRegistrationService registration,
+            ObjectStorageSynchronizationService synchronizations,
+            ObjectStorageSyncArtifactPublicationService publications) {
         this.registration = Objects.requireNonNull(registration, "对象存储来源登记用例不能为空");
+        this.synchronizations = Objects.requireNonNull(synchronizations, "对象存储同步用例不能为空");
+        this.publications = Objects.requireNonNull(publications, "对象存储同步产物发布用例不能为空");
     }
 
     /**
@@ -37,5 +48,28 @@ public class GovernedObjectStorageDataSourceController {
         return ResponseEntity.status(HttpStatus.CREATED).body(registration.register(
                 new RegisterObjectStorageDataSourceCommand(
                         context, knowledgeSpaceId, name, rangeId, selectionRevision)));
+    }
+
+    /** 同步登记时冻结的对象集合，不接收对象位置、正文或质量结论。 */
+    @PostMapping("/{dataSourceId}/synchronization")
+    public GovernedDataSourceLifecycleResult synchronize(
+            TrustedRequestContext context,
+            @RequestParam String knowledgeSpaceId,
+            @org.springframework.web.bind.annotation.PathVariable String dataSourceId,
+            @RequestParam long expectedVersion) {
+        return synchronizations.synchronize(new SynchronizeObjectStorageDataSourceCommand(
+                context, knowledgeSpaceId, dataSourceId, expectedVersion));
+    }
+
+    /** 发布指定对象存储同步产物；质量和归属事实由受控服务重新加载。 */
+    @PostMapping("/{dataSourceId}/artifacts/{artifactId}/publish")
+    public GovernedDataSourceLifecycleResult publish(
+            TrustedRequestContext context,
+            @RequestParam String knowledgeSpaceId,
+            @org.springframework.web.bind.annotation.PathVariable String dataSourceId,
+            @org.springframework.web.bind.annotation.PathVariable String artifactId,
+            @RequestParam long expectedVersion) {
+        return publications.publish(new PublishObjectStorageSyncArtifactCommand(
+                context, knowledgeSpaceId, dataSourceId, artifactId, expectedVersion));
     }
 }

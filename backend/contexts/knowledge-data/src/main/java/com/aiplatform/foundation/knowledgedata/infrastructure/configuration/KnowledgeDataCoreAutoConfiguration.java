@@ -10,6 +10,7 @@ import com.aiplatform.foundation.knowledgedata.application.datasource.service.Go
 import com.aiplatform.foundation.knowledgedata.application.datasource.service.GovernedStructuredDatasetRegistrationService;
 import com.aiplatform.foundation.knowledgedata.application.datasource.service.StructuredDatasetCsvSynchronizationService;
 import com.aiplatform.foundation.knowledgedata.application.datasource.service.publication.StructuredDatasetSyncArtifactPublicationService;
+import com.aiplatform.foundation.knowledgedata.application.datasource.service.publication.ObjectStorageSyncArtifactPublicationService;
 import com.aiplatform.foundation.knowledgedata.application.datasource.service.ObjectStorageDataSourceProbeService;
 import com.aiplatform.foundation.knowledgedata.application.datasource.service.ObjectStorageSynchronizationService;
 import com.aiplatform.foundation.knowledgedata.application.datasource.service.GovernedFileDataSourceQueryService;
@@ -34,6 +35,7 @@ import com.aiplatform.foundation.knowledgedata.domain.datasource.service.FileSyn
 import com.aiplatform.foundation.knowledgedata.domain.datasource.service.StructuredDatasetSyncArtifactPublishing;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.service.StructuredDatasetCsvSynchronization;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.service.ObjectStorageSynchronization;
+import com.aiplatform.foundation.knowledgedata.domain.datasource.service.ObjectStorageSynchronization.ArtifactPublishing;
 import com.aiplatform.foundation.knowledgedata.domain.indexversion.repository.IndexVersionRepository;
 import com.aiplatform.foundation.knowledgedata.domain.knowledge.repository.KnowledgeSpaceRepository;
 import com.aiplatform.foundation.knowledgedata.infrastructure.objectstorage.UnavailableTextContentObjectStorageAdapter;
@@ -267,6 +269,20 @@ public class KnowledgeDataCoreAutoConfiguration {
     StructuredDatasetSyncArtifactPublicationService structuredDatasetSyncArtifactPublicationService(
             GovernedDataSourceRepository repository, StructuredDatasetSyncArtifactPublishing publishing) {
         return new StructuredDatasetSyncArtifactPublicationService(repository, Clock.systemUTC(), publishing);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    ArtifactPublishing objectStorageSyncArtifactPublishing() {
+        return new ArtifactPublishing();
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    ObjectStorageSyncArtifactPublicationService objectStorageSyncArtifactPublicationService(
+            GovernedDataSourceRepository repository,
+            ArtifactPublishing publishing) {
+        return new ObjectStorageSyncArtifactPublicationService(repository, Clock.systemUTC(), publishing);
     }
 
     @Bean

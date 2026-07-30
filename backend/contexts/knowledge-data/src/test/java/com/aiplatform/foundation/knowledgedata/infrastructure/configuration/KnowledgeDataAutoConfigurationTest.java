@@ -13,7 +13,9 @@ import com.aiplatform.foundation.knowledgedata.application.datasource.service.Go
 import com.aiplatform.foundation.knowledgedata.application.datasource.service.GovernedStructuredDatasetRegistrationService;
 import com.aiplatform.foundation.knowledgedata.application.datasource.service.StructuredDatasetCsvSynchronizationService;
 import com.aiplatform.foundation.knowledgedata.application.datasource.service.ObjectStorageSynchronizationService;
+import com.aiplatform.foundation.knowledgedata.application.datasource.service.GovernedObjectStorageDataSourceRegistrationService;
 import com.aiplatform.foundation.knowledgedata.application.datasource.service.publication.StructuredDatasetSyncArtifactPublicationService;
+import com.aiplatform.foundation.knowledgedata.application.datasource.service.publication.ObjectStorageSyncArtifactPublicationService;
 import com.aiplatform.foundation.knowledgedata.application.datasource.service.GovernedFileDataSourceQueryService;
 import com.aiplatform.foundation.knowledgedata.application.datasource.port.out.GovernedFileDataSourceReadPort;
 import com.aiplatform.foundation.knowledgedata.application.indexversion.facade.ActiveIndexLookup;
@@ -31,6 +33,7 @@ import com.aiplatform.foundation.knowledgedata.domain.datasource.service.FileDat
 import com.aiplatform.foundation.knowledgedata.domain.datasource.service.FileSyncArtifactPublishing;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.service.StructuredDatasetSyncArtifactPublishing;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.service.ObjectStorageSynchronization;
+import com.aiplatform.foundation.knowledgedata.domain.datasource.service.ObjectStorageSynchronization.ArtifactPublishing;
 import com.aiplatform.foundation.knowledgedata.domain.indexversion.repository.IndexVersionRepository;
 import com.aiplatform.foundation.knowledgedata.domain.knowledge.repository.KnowledgeSpaceRepository;
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.mapper.TextDataSourceMapper;
@@ -53,6 +56,7 @@ import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.knowle
 import com.aiplatform.foundation.knowledgedata.interfaces.web.datasource.controller.TextDataSourceController;
 import com.aiplatform.foundation.knowledgedata.interfaces.web.datasource.controller.GovernedFileDataSourceController;
 import com.aiplatform.foundation.knowledgedata.interfaces.web.datasource.controller.GovernedStructuredDatasetController;
+import com.aiplatform.foundation.knowledgedata.interfaces.web.datasource.controller.GovernedObjectStorageDataSourceController;
 import com.aiplatform.foundation.knowledgedata.interfaces.web.indexversion.controller.IndexVersionController;
 import com.aiplatform.foundation.knowledgedata.interfaces.web.knowledge.controller.KnowledgeSpaceController;
 import com.aiplatform.foundation.modelruntime.application.deployment.facade.PublishedEmbeddingDeploymentLookup;
@@ -108,6 +112,8 @@ class KnowledgeDataAutoConfigurationTest {
                     assertThat(context).hasSingleBean(StructuredDatasetSyncArtifactPublishing.class);
                     assertThat(context).hasSingleBean(StructuredDatasetSyncArtifactPublicationService.class);
                     assertThat(context).hasSingleBean(ObjectStorageSynchronization.class);
+                    assertThat(context).hasSingleBean(ArtifactPublishing.class);
+                    assertThat(context).hasSingleBean(ObjectStorageSyncArtifactPublicationService.class);
                     assertThat(context).hasSingleBean(ObjectStorageSynchronizationService.class);
                     assertThat(context).hasSingleBean(IndexVersionService.class);
                     assertThat(context).hasSingleBean(ActiveIndexLookup.class);
@@ -331,11 +337,20 @@ class KnowledgeDataAutoConfigurationTest {
                         GovernedStructuredDatasetRegistrationService.class,
                         () -> mock(GovernedStructuredDatasetRegistrationService.class))
                 .withBean(
+                        GovernedObjectStorageDataSourceRegistrationService.class,
+                        () -> mock(GovernedObjectStorageDataSourceRegistrationService.class))
+                .withBean(
                         StructuredDatasetCsvSynchronizationService.class,
                         () -> mock(StructuredDatasetCsvSynchronizationService.class))
                 .withBean(
                         StructuredDatasetSyncArtifactPublicationService.class,
                         () -> mock(StructuredDatasetSyncArtifactPublicationService.class))
+                .withBean(
+                        ObjectStorageSynchronizationService.class,
+                        () -> mock(ObjectStorageSynchronizationService.class))
+                .withBean(
+                        ObjectStorageSyncArtifactPublicationService.class,
+                        () -> mock(ObjectStorageSyncArtifactPublicationService.class))
                 .withBean(
                         FileDataSourceProbeService.class,
                         () -> mock(FileDataSourceProbeService.class))
@@ -359,6 +374,7 @@ class KnowledgeDataAutoConfigurationTest {
                     assertThat(context).hasSingleBean(KnowledgeSpaceController.class);
                     assertThat(context).hasSingleBean(TextDataSourceController.class);
                     assertThat(context).hasSingleBean(GovernedFileDataSourceController.class);
+                    assertThat(context).hasSingleBean(GovernedObjectStorageDataSourceController.class);
                     assertThat(context).hasSingleBean(GovernedStructuredDatasetController.class);
                     assertThat(context).hasSingleBean(IndexVersionController.class);
                 });

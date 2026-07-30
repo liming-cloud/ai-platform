@@ -28,7 +28,13 @@ class MinioAutoConfigurationTest {
                         "foundation.knowledge-data.object-storage.endpoint=http://127.0.0.1:9000",
                         "foundation.knowledge-data.object-storage.access-key=test-access",
                         "foundation.knowledge-data.object-storage.secret-key=test-secret",
-                        "foundation.knowledge-data.object-storage.bucket=knowledge-private")
+                        "foundation.knowledge-data.object-storage.bucket=knowledge-private",
+                        "foundation.knowledge-data.object-storage.platform-object-locations[0].tenant-id=100000000000000001",
+                        "foundation.knowledge-data.object-storage.platform-object-locations[0].knowledge-space-id=210000000000000001",
+                        "foundation.knowledge-data.object-storage.platform-object-locations[0].range-id=rng_ObjectStorage001",
+                        "foundation.knowledge-data.object-storage.platform-object-locations[0].selection-revision=1",
+                        "foundation.knowledge-data.object-storage.platform-object-locations[0].object-id=obj_ObjectStorage001",
+                        "foundation.knowledge-data.object-storage.platform-object-locations[0].object-key=platform-internal/object-storage/content-001.txt")
                 .withBean(MinioClient.class, () -> client)
                 .run(context -> {
                     assertThat(context).hasNotFailed();
@@ -40,6 +46,10 @@ class MinioAutoConfigurationTest {
                             PlatformObjectContentReaderPort.class);
                     assertThat(context.getBean(KnowledgeDataMinioProperties.class)
                             .getBucket()).isEqualTo("knowledge-private");
+                    assertThat(context.getBean(KnowledgeDataMinioProperties.class)
+                            .getPlatformObjectLocations()).singleElement().satisfies(location ->
+                                    assertThat(location.objectKey()).isEqualTo(
+                                            "platform-internal/object-storage/content-001.txt"));
                 });
     }
 

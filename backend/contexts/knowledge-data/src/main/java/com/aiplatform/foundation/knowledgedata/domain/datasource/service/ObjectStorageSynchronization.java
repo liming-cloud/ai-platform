@@ -5,10 +5,12 @@ import com.aiplatform.foundation.knowledgedata.domain.datasource.model.DataSourc
 import com.aiplatform.foundation.knowledgedata.domain.datasource.model.GovernedDataSource;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.model.GovernedDataSourceStatus;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.model.GovernedDataSourceType;
+import com.aiplatform.foundation.knowledgedata.domain.datasource.model.PublishedSyncArtifact;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.model.SyncArtifact;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.model.SyncArtifactId;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.model.TextContentReference;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.quality.QualityReport;
+import com.aiplatform.foundation.knowledgedata.domain.datasource.quality.QualityStatus;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.revision.SourceRevision;
 import java.time.Instant;
 import java.util.Objects;
@@ -70,6 +72,41 @@ public final class ObjectStorageSynchronization {
                 completedSource,
                 artifact,
                 QualityReport.passed(artifact, QUALITY_RULE_SET_VERSION));
+    }
+
+    /** 收敛对象存储同步产物发布与来源版本推进的不变量。 */
+    public static final class ArtifactPublishing {
+
+        /**
+         * 发布当前对象存储来源修订的通过质量产物。
+         *
+         * @throws DataSourceStateException 来源、产物或质量结论不属于当前对象存储修订时抛出。
+         */
+        public DataSourceSyncArtifactPublication publish(
+                GovernedDataSource source,
+                SyncArtifact artifact,
+                QualityReport report,
+                Instant publishedAt) {
+            var objectStorage = requireObjectStorage(source);
+            var value = Objects.requireNonNull(artifact, "同步产物不能为空");
+            var quality = Objects.requireNonNull(report, "质量结论不能为空");
+            if (!objectStorage.tenantId().equals(value.tenantId())
+                    || !objectStorage.knowledgeSpaceId().equals(value.knowledgeSpaceId())
+                    || !objectStorage.id().equals(value.dataSourceId())
+                    || objectStorage.currentRevision() != value.sourceRevision()
+                    || !value.id().equals(quality.artifact().id())) {
+                throw new DataSourceStateException("对象存储产物或质量结论不属于当前来源修订");
+            }
+            if (quality.status() != QualityStatus.PASS) {
+                throw new DataSourceStateException("对象存储同步产物必须通过质量校验才能发布");
+            }
+            var publication = PublishedSyncArtifact.create(
+                    value, quality, Objects.requireNonNull(publishedAt, "发布时间不能为空"));
+            return DataSourceSyncArtifactPublication.of(
+                    objectStorage.version(),
+                    objectStorage.publishArtifact(objectStorage.version()),
+                    publication);
+        }
     }
 
     private static GovernedDataSource requireObjectStorage(GovernedDataSource source) {

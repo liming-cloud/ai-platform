@@ -36,6 +36,7 @@ import com.aiplatform.foundation.security.identity.SubjectId;
 import com.aiplatform.foundation.security.identity.TrustedRequestContext;
 import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
 import java.io.ByteArrayInputStream;
+import java.nio.charset.StandardCharsets;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
@@ -57,7 +58,11 @@ class ObjectStorageSynchronizationServiceTest {
         var source = source(); var revision = revision(source); var first = revision.objectStorageObjects().objects().getFirst(); var second = revision.objectStorageObjects().objects().get(1);
         when(repository.findSource(TENANT, SPACE, SOURCE)).thenReturn(Optional.of(source)); when(repository.findRevision(TENANT, SPACE, SOURCE, 1)).thenReturn(Optional.of(revision)); when(repository.update(any(), anyLong())).thenReturn(true);
         when(reader.open(revision, first)).thenReturn(new ByteArrayInputStream("甲".getBytes())); when(reader.open(revision, second)).thenReturn(new ByteArrayInputStream("乙".getBytes()));
-        when(staging.stage(any())).thenReturn(staged); when(staged.sha256()).thenReturn("c".repeat(64)); when(staged.byteSize()).thenReturn(8L);
+        when(staging.stage(any())).thenAnswer(invocation -> {
+            var input = invocation.getArgument(0, java.io.InputStream.class);
+            assertEquals("甲\n\n乙", new String(input.readAllBytes(), StandardCharsets.UTF_8));
+            return staged;
+        }); when(staged.sha256()).thenReturn("c".repeat(64)); when(staged.byteSize()).thenReturn(8L);
         var stored = new TextContentReference(1, "private/artifact.txt", "c".repeat(64), 8, TextContentReference.UTF8_TEXT, NOW); when(storage.put(any())).thenReturn(stored);
 
         var result = service(repository, reader, staging, storage).synchronize(command(true, source.version()));

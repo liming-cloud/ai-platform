@@ -32,6 +32,8 @@ import com.aiplatform.foundation.knowledgedata.domain.datasource.service.FileSyn
 import com.aiplatform.foundation.knowledgedata.domain.datasource.service.FileSyncArtifactPublishing;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.service.StructuredDatasetCsvSynchronization;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.service.StructuredDatasetSyncArtifactPublishing;
+import com.aiplatform.foundation.knowledgedata.domain.datasource.service.ObjectStorageSynchronization;
+import com.aiplatform.foundation.knowledgedata.domain.datasource.service.ObjectStorageSynchronization.ArtifactPublishing;
 import com.aiplatform.foundation.knowledgedata.application.datasource.port.out.GovernedFileDataSourceReadPort;
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.mapper.GovernedFileDataSourceReadMapper;
 import com.aiplatform.foundation.knowledgedata.domain.knowledge.model.KnowledgeSpaceId;
@@ -84,6 +86,10 @@ class PostgresGovernedDataSourceRepositoryTest {
             new StructuredDatasetCsvSynchronization();
     private static final StructuredDatasetSyncArtifactPublishing DATASET_PUBLISHING =
             new StructuredDatasetSyncArtifactPublishing();
+    private static final ObjectStorageSynchronization OBJECT_STORAGE_SYNCHRONIZATION =
+            new ObjectStorageSynchronization();
+    private static final ArtifactPublishing OBJECT_STORAGE_PUBLISHING =
+            new ArtifactPublishing();
 
     @Container
     private static final PostgreSQLContainer POSTGRES =
@@ -183,6 +189,41 @@ class PostgresGovernedDataSourceRepositoryTest {
         assertEquals(revision.objectStorageObjects(), stored.objectStorageObjects());
         assertFalse(repository.findRevision(CAMPUS_TENANT, SPACE, source.id(), 1).isPresent());
         assertEquals(2, count("source_revision_object", STORE_TENANT));
+    }
+
+    @Test
+    void 对象存储同步完成与通过质量发布在真实PostgreSQL中原子提交() {
+        var source = objectStorageSource(STORE_TENANT, nextSourceId(), "可发布平台对象");
+        var revision = objectStorageRevision(source);
+        repository.register(source, revision);
+        var syncing = startSynchronization(source);
+        var completion = OBJECT_STORAGE_SYNCHRONIZATION.complete(
+                syncing,
+                revision,
+                new SyncArtifactId(ARTIFACT_IDS.incrementAndGet()),
+                new com.aiplatform.foundation.knowledgedata.domain.datasource.model.TextContentReference(
+                        1,
+                        "foundation-v1/tenants/100000000000000001/knowledge-data/artifacts/object-storage.txt",
+                        "c".repeat(64),
+                        12,
+                        com.aiplatform.foundation.knowledgedata.domain.datasource.model.TextContentReference.UTF8_TEXT,
+                        CREATED_AT.plusSeconds(60)),
+                CREATED_AT.plusSeconds(60));
+
+        repository.completeSynchronization(completion);
+        var publication = OBJECT_STORAGE_PUBLISHING.publish(
+                completion.completedSource(),
+                completion.artifact(),
+                completion.qualityReport(),
+                CREATED_AT.plusSeconds(90));
+        repository.publishArtifact(publication);
+
+        var stored = repository.findSource(STORE_TENANT, SPACE, source.id()).orElseThrow();
+        assertEquals(GovernedDataSourceStatus.READY, stored.status());
+        assertEquals(5, stored.version());
+        assertEquals(1, count("sync_artifact", STORE_TENANT));
+        assertEquals(1, count("quality_report", STORE_TENANT));
+        assertEquals(1, count("published_sync_artifact", STORE_TENANT));
     }
 
     @Test
@@ -543,6 +584,22 @@ class PostgresGovernedDataSourceRepositoryTest {
                                         "title", StructuredDatasetLogicalType.TEXT,
                                         StructuredDatasetSensitivityLevel.PUBLIC)),
                         filter),
+                CREATOR,
+                CREATED_AT);
+    }
+
+    private static SourceRevision objectStorageRevision(GovernedDataSource source) {
+        return SourceRevision.objectStorage(
+                source,
+                new ObjectStorageObjectCollection(
+                        new PlatformObjectRangeId("rng_ObjectStorage001"),
+                        1,
+                        java.util.List.of(new PlatformObjectReference(
+                                "obj_ObjectStorage001",
+                                "c".repeat(64),
+                                12,
+                                com.aiplatform.foundation.knowledgedata.domain.datasource.model.TextContentReference.UTF8_TEXT,
+                                CREATED_AT))),
                 CREATOR,
                 CREATED_AT);
     }
