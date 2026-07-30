@@ -534,3 +534,14 @@ ADR-0028 定义 `GovernedDataSource`、`SourceRevision`、`SyncArtifact`、`Qual
 - 测试质量：先以缺失公共领域 seam 的编译红灯固定需求，再以纯领域反例和真实 PostgreSQL 写后读／租户隔离转绿。
 
 本切片只完成 ADR-0030 所需的对象范围与不可变集合修订基础，不构成 OBJECT_STORAGE 来源闭环，更不构成 WP-0011、M3 完成或进入 M4 的批准。
+
+## OBJECT_STORAGE 受控登记与范围探测（2026-07-30）
+
+- 提交 `0535afb6a` 新增只接收知识空间、名称、平台范围标识和选择修订的登记用例；应用层先验证 `knowledge:write`，再由 `PlatformObjectRangeSelectionPort` 解析所属租户和知识空间的冻结集合，随后以 `SourceRevision.objectStorage` 原子登记。无权限时不解析范围也不写入。
+- 提交 `2117d9ba2` 将范围解析实现为部署静态配置适配器。配置只包含租户、知识空间、范围标识、选择修订和不透明对象元数据，不含端点、桶名、对象键或凭据；范围、租户或修订不一致均关闭失败。
+- 提交 `f29ed5a92` 提供 `POST /api/v1/governed-data-sources/object-storage`。HTTP 契约只转发上述四项非敏感输入，控制器不接触对象集合或连接细节；定向控制器回归确认返回 `201`。
+- 提交 `f436c504a` 将探测固定为“开始持久化状态 → 事务外重解析已冻结范围 → 比较完整集合 → 就绪或 `FAILED(PROBE)`”。探测不扫描前缀、不执行对象 I/O；范围撤销、解析失败或集合漂移都会保留可恢复失败状态。
+- 提交 `777c0dbf4` 定义 `PlatformObjectContentReaderPort` 与失败关闭默认适配器，为后续同步保留唯一正文 I/O seam；当前无平台内部正文读取适配器时拒绝操作，不回退至对象键、前缀、端点或调用方正文。
+- 在最后代码提交上运行 `./mvnw -q -pl backend/contexts/knowledge-data -am test`、`make project-verify`、`python3 scripts/quality/backend_architecture_guard.py verify` 与 `git diff --check`，均通过；日志仅含既有 Spring/Testcontainers 警告。
+
+当前缺口是平台内部按不透明对象标识读取冻结正文的部署适配器，以及基于该端口的流式摘要核验、同步产物、质量、显式发布和浏览器验收。该缺口不允许以知识管理员上传正文、对象键或外部连接参数绕过；WP-0011 与 M3 继续进行。
