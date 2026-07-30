@@ -20,6 +20,24 @@
       "reason": "使用连接、公共表表达式和 DISTINCT ON 选择每个助手的最新发布版本。"
     },
     {
+      "path": "backend/contexts/assistant-delivery/src/main/resources/mapper/assistant-delivery/AssistantTestRunMapper.xml",
+      "statementId": "lockScope",
+      "category": "POSTGRES_ADVISORY_LOCK",
+      "reason": "使用 PostgreSQL 事务级咨询锁串行化同一租户的独立草稿测试配额占用。"
+    },
+    {
+      "path": "backend/contexts/assistant-delivery/src/main/resources/mapper/assistant-delivery/AssistantTestRunMapper.xml",
+      "statementId": "findEarliestActiveLeaseExpiry",
+      "category": "AGGREGATE",
+      "reason": "聚合当前租户未过期运行租约，给出并发测试配额的最早可重试时间。"
+    },
+    {
+      "path": "backend/contexts/assistant-delivery/src/main/resources/mapper/assistant-delivery/AssistantTestRunMapper.xml",
+      "statementId": "completeRun",
+      "category": "ATOMIC_STATE_TRANSITION",
+      "reason": "以租户、运行中状态和乐观版本原子提交草稿测试终态。"
+    },
+    {
       "path": "backend/contexts/knowledge-data/src/main/resources/mapper/knowledge-data/IndexVersionMapper.xml",
       "statementId": "lockSpace",
       "category": "POSTGRES_ADVISORY_LOCK",
