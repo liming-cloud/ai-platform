@@ -169,6 +169,7 @@
 | M3 ADR-0031 领域聚合操作边界整改 | `project/evidence/WP-0011-domain-aggregate-operation-boundary.md` | `cfccfe3f5` | 全平台领域设计规约和两项硬门禁生效；FILE 同步／发布不变量收回领域，领域、应用、真实 PostgreSQL、HTTP 与全仓门禁通过；M3 尚未完成 |
 | M3 OBJECT_STORAGE 范围与不可变对象集合修订 | `project/evidence/WP-0011-data-lifecycle-design.md` | `d3a960ce7` | ADR-0030 的不透明范围、选择修订和冻结对象集合完成领域、真实 PostgreSQL 与架构门禁验证；登记、探测、同步、发布和浏览器闭环尚未完成，M3 仍进行中 |
 | M3 OBJECT_STORAGE 受控登记与范围探测 | `project/evidence/WP-0011-data-lifecycle-design.md` | `0535afb6a` 至 `777c0dbf4` | 部署静态范围解析、权限登记、HTTP 入口、范围一致性探测和失败关闭正文读取端口通过模块、治理与架构门禁；同步、质量、发布和浏览器闭环尚未完成 |
+| M3 OBJECT_STORAGE 私有正文同步与发布 | `project/evidence/WP-0011-object-storage-synchronization.md` | `5094c7323`、`932b84c65` | 真实 MinIO 映射与流式摘要核验、固定 `\n\n` 分隔、PASS 质量发布、HTTP 委派、真实 PostgreSQL 原子提交及自动配置回归通过；M3 仍进行中 |
 | M3 STRUCTURED_DATASET 私有 CSV 修订 | `project/evidence/WP-0011-data-lifecycle-design.md` | `de84e6280` | 私有 UTF-8 CSV、冻结字段映射、受控行过滤、真实 PostgreSQL 有序写后读／租户隔离和自动配置回归通过；登记、解析、质量、发布、索引和浏览器闭环尚未完成 |
 | M3 STRUCTURED_DATASET 受控私有 CSV 登记 | `project/evidence/WP-0011-data-lifecycle-design.md` | `6d45f59a9` | 权限前置、严格 UTF-8 暂存、私有内容寻址 MinIO 写入、失败补偿、HTTP 与自动配置回归通过；解析、质量、发布、索引和浏览器闭环尚未完成 |
 | M3 STRUCTURED_DATASET 控制台登记入口 | `project/evidence/WP-0011-data-lifecycle-design.md` | `48d68d243` | 冻结映射和私有 CSV multipart 客户端、登录／会话恢复、受控展示与前端 39 项回归、生产构建通过；同步、质量、发布与索引仍待 ADR-0032 接受 |
