@@ -10,10 +10,12 @@ import com.aiplatform.foundation.modelruntime.application.runtime.facade.Governe
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.GovernedEmbeddingRuntime;
 import com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator;
 import com.aiplatform.foundation.trustedquery.application.candidate.service.CandidateSearchService;
+import com.aiplatform.foundation.trustedquery.application.feedback.service.QueryFeedbackService;
 import com.aiplatform.foundation.trustedquery.application.run.service.QueryRunEventService;
 import com.aiplatform.foundation.trustedquery.application.run.service.QueryRunService;
 import com.aiplatform.foundation.trustedquery.domain.query.policy.QueryQuotaPolicy;
 import com.aiplatform.foundation.trustedquery.domain.query.repository.QueryRunRepository;
+import com.aiplatform.foundation.trustedquery.domain.query.feedback.repository.QueryFeedbackRepository;
 import java.time.Clock;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -77,5 +79,18 @@ public class TrustedQueryCoreAutoConfiguration {
     @ConditionalOnMissingBean
     QueryRunEventService queryRunEventService(QueryRunRepository repository) {
         return new QueryRunEventService(repository);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    QueryFeedbackService queryFeedbackService(
+            QueryRunRepository runs,
+            QueryFeedbackRepository feedback,
+            EntityIdGenerator identifiers) {
+        return new QueryFeedbackService(
+                runs,
+                feedback,
+                Clock.systemUTC(),
+                identifiers);
     }
 }

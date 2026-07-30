@@ -30,6 +30,8 @@ public enum TrustedQueryErrorCode implements ErrorCode {
             "查询运行已经发生变化", Set.of()),
     IN_PROGRESS("TRUSTED_QUERY.CONFLICT.0003", ErrorType.CONFLICT,
             "相同查询仍在处理中", Set.of()),
+    FEEDBACK_EXISTS("TRUSTED_QUERY.CONFLICT.0004", ErrorType.CONFLICT,
+            "当前成员已经提交过该查询反馈", Set.of()),
     QUOTA("TRUSTED_QUERY.QUOTA.0001", ErrorType.QUOTA,
             "查询配额已经用尽", Set.of("limitType", "limit", "retryAt"));
 

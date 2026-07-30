@@ -4,5 +4,8 @@ import com.aiplatform.foundation.trustedquery.domain.common.error.TrustedQueryEr
 /** 同一查询运行与请求成员已存在反馈。 */
 public final class QueryFeedbackDuplicateException extends ApplicationException {
     private static final long serialVersionUID = 1L;
-    public QueryFeedbackDuplicateException() { super(TrustedQueryErrorCode.IDEMPOTENCY); }
+
+    public QueryFeedbackDuplicateException() {
+        super(TrustedQueryErrorCode.FEEDBACK_EXISTS);
+    }
 }

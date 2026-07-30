@@ -3,6 +3,7 @@ package com.aiplatform.foundation.trustedquery.infrastructure.configuration;
 import com.aiplatform.foundation.trustedquery.interfaces.web.query.controller.CandidateSearchController;
 import com.aiplatform.foundation.trustedquery.interfaces.web.query.controller.QueryAssistantController;
 import com.aiplatform.foundation.trustedquery.interfaces.web.query.controller.QueryRunController;
+import com.aiplatform.foundation.trustedquery.interfaces.web.query.controller.QueryFeedbackController;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Import;
@@ -15,7 +16,8 @@ import org.springframework.context.annotation.Import;
 @Import({
     CandidateSearchController.class,
     QueryAssistantController.class,
-    QueryRunController.class
+    QueryRunController.class,
+    QueryFeedbackController.class
 })
 public class TrustedQueryWebAutoConfiguration {
 }

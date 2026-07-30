@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aiplatform.foundation.trustedquery.infrastructure.persistence.query.mapper.QueryFeedbackMapper">
+
+    <insert id="insertIfAbsent">
+        INSERT INTO trusted_query.query_feedback (
+            id, tenant_id, query_run_id, requested_by, outcome, reason, created_at
+        ) VALUES (
+            #{feedback.id}, #{feedback.tenantId}, #{feedback.queryRunId},
+            #{feedback.requestedBy}, #{feedback.outcome}, #{feedback.reason},
+            #{feedback.createdAt}
+        ) ON CONFLICT (tenant_id, query_run_id, requested_by) DO NOTHING
+    </insert>
+
+</mapper>

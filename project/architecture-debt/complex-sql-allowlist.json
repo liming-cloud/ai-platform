@@ -302,6 +302,12 @@
       "reason": "按活动状态原子完成查询、写入终态指标并清除租约。"
     },
     {
+      "path": "backend/contexts/trusted-query/src/main/resources/mapper/trusted-query/QueryFeedbackMapper.xml",
+      "statementId": "insertIfAbsent",
+      "category": "ATOMIC_STATE_TRANSITION",
+      "reason": "按查询运行和请求成员唯一约束原子写入反馈，冲突时保持既有不可变事实。"
+    },
+    {
       "path": "backend/contexts/trusted-query/src/main/resources/mapper/trusted-query/QueryRunEventMapper.xml",
       "statementId": "findAfter",
       "category": "EVENT_REPLAY",

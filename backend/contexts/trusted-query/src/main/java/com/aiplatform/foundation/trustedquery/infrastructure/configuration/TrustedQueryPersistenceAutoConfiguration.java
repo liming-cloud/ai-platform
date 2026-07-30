@@ -2,12 +2,15 @@ package com.aiplatform.foundation.trustedquery.infrastructure.configuration;
 
 import com.aiplatform.foundation.trustedquery.application.operations.facade.QueryOperationsFactSource;
 import com.aiplatform.foundation.trustedquery.domain.query.repository.QueryRunRepository;
+import com.aiplatform.foundation.trustedquery.domain.query.feedback.repository.QueryFeedbackRepository;
+import com.aiplatform.foundation.trustedquery.infrastructure.persistence.query.mapper.QueryFeedbackMapper;
 import com.aiplatform.foundation.trustedquery.infrastructure.persistence.query.mapper.QueryRunMapper;
 import com.aiplatform.foundation.trustedquery.infrastructure.persistence.query.mapper.QueryCitationMapper;
 import com.aiplatform.foundation.trustedquery.infrastructure.persistence.query.mapper.QueryRunEventMapper;
 import com.aiplatform.foundation.trustedquery.infrastructure.persistence.query.mapper.QueryRunRequestMapper;
 import com.aiplatform.foundation.trustedquery.infrastructure.persistence.query.repository.PostgresQueryOperationsFactSource;
 import com.aiplatform.foundation.trustedquery.infrastructure.persistence.query.repository.PostgresQueryRunRepository;
+import com.aiplatform.foundation.trustedquery.infrastructure.persistence.query.repository.PostgresQueryFeedbackRepository;
 import com.baomidou.mybatisplus.autoconfigure.MybatisPlusAutoConfiguration;
 import com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator;
 import org.apache.ibatis.session.SqlSessionFactory;
@@ -48,5 +51,11 @@ public class TrustedQueryPersistenceAutoConfiguration {
     @ConditionalOnMissingBean
     QueryOperationsFactSource queryOperationsFactSource(QueryRunMapper mapper) {
         return new PostgresQueryOperationsFactSource(mapper);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    QueryFeedbackRepository queryFeedbackRepository(QueryFeedbackMapper mapper) {
+        return new PostgresQueryFeedbackRepository(mapper);
     }
 }

@@ -13,6 +13,12 @@ import com.aiplatform.foundation.trustedquery.application.quota.QueryQuotaExceed
 import com.aiplatform.foundation.trustedquery.application.quota.QueryQuotaLimitType;
 import com.aiplatform.foundation.trustedquery.domain.query.policy.QueryRunClaimState;
 import com.aiplatform.foundation.trustedquery.domain.query.policy.QueryQuotaPolicy;
+import com.aiplatform.foundation.trustedquery.domain.query.feedback.model.QueryFeedback;
+import com.aiplatform.foundation.trustedquery.domain.query.feedback.model.QueryFeedbackId;
+import com.aiplatform.foundation.trustedquery.domain.query.feedback.model.QueryFeedbackOutcome;
+import com.aiplatform.foundation.trustedquery.domain.query.feedback.model.QueryFeedbackReason;
+import com.aiplatform.foundation.trustedquery.domain.query.feedback.model.QueryFeedbackRequesterId;
+import com.aiplatform.foundation.trustedquery.domain.query.feedback.repository.QueryFeedbackRepository;
 import com.aiplatform.foundation.trustedquery.domain.query.repository.QueryRunRepository;
 import com.aiplatform.foundation.trustedquery.application.operations.facade.QueryOperationsFactSource;
 import com.aiplatform.foundation.trustedquery.application.operations.query.QueryUsageFactQuery;
@@ -79,6 +85,9 @@ class PostgresQueryRunRepositoryTest {
 
     @Autowired
     private QueryOperationsFactSource operations;
+
+    @Autowired
+    private QueryFeedbackRepository feedbacks;
 
     @Autowired
     private JdbcTemplate jdbc;
@@ -415,6 +424,53 @@ class PostgresQueryRunRepositoryTest {
         assertTrue(crossTenant.items().isEmpty());
     }
 
+    @Test
+    void 反馈原子去重且随所属查询运行删除() {
+        var claimed = repository.claim(
+                runningAt(NOW),
+                "feedback-key-001",
+                "a".repeat(64),
+                QUOTA);
+        var completed = claimed.queryRun().refuse(
+                com.aiplatform.foundation.trustedquery.domain.query.model
+                        .QueryRefusalReason.INSUFFICIENT_EVIDENCE,
+                NOW.plusSeconds(1));
+        repository.complete(completed, 0);
+        var feedback = QueryFeedback.record(
+                TENANT,
+                new QueryFeedbackId(IDENTIFIERS.incrementAndGet()),
+                completed.id(),
+                new QueryFeedbackRequesterId(MEMBER.value()),
+                QueryFeedbackOutcome.NEGATIVE,
+                QueryFeedbackReason.INSUFFICIENT,
+                NOW.plusSeconds(2));
+
+        var recorded = feedbacks.record(feedback);
+        var duplicate = feedbacks.record(feedback);
+
+        assertTrue(recorded.inserted());
+        assertTrue(!duplicate.inserted());
+        assertEquals(
+                "NEGATIVE",
+                jdbc.queryForObject(
+                        "SELECT outcome FROM trusted_query.query_feedback WHERE id = ?",
+                        String.class,
+                        feedback.id().value()));
+        jdbc.update("DELETE FROM trusted_query.query_run_event");
+        jdbc.update("DELETE FROM trusted_query.query_run_request");
+        jdbc.update(
+                "DELETE FROM trusted_query.query_run WHERE tenant_id = ? AND id = ?",
+                TENANT.value(),
+                completed.id().value());
+
+        assertEquals(
+                0,
+                jdbc.queryForObject(
+                        "SELECT count(*) FROM trusted_query.query_feedback WHERE id = ?",
+                        Integer.class,
+                        feedback.id().value()));
+    }
+
     private static QueryRun running() {
         return runningAt(NOW);
     }
@@ -561,6 +617,13 @@ class PostgresQueryRunRepositoryTest {
         QueryOperationsFactSource queryOperationsFactSource(
                 QueryRunMapper mapper) {
             return new PostgresQueryOperationsFactSource(mapper);
+        }
+
+        @Bean
+        QueryFeedbackRepository queryFeedbackRepository(
+                com.aiplatform.foundation.trustedquery.infrastructure.persistence.query.mapper
+                        .QueryFeedbackMapper mapper) {
+            return new PostgresQueryFeedbackRepository(mapper);
         }
     }
 }
