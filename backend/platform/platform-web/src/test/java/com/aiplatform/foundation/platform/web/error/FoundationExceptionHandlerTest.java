@@ -9,6 +9,8 @@ import java.util.Map;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpMethod;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 class FoundationExceptionHandlerTest {
 
@@ -37,6 +39,20 @@ class FoundationExceptionHandlerTest {
         assertThat(response.getBody()).isNotNull();
         assertThat(response.getBody().code()).isEqualTo("COMMON.SYSTEM.0001");
         assertThat(response.getBody().message()).isEqualTo("系统暂时无法处理请求");
+        assertThat(response.getBody().details()).isEmpty();
+    }
+
+    @Test
+    void 未匹配路由应返回不泄漏内部实现的资源不存在响应() {
+        var response = handler.unrecognized(new NoResourceFoundException(
+                HttpMethod.GET,
+                "api/v1/model-configurations",
+                ""));
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().code()).isEqualTo("COMMON.RESOURCE.0001");
+        assertThat(response.getBody().message()).isEqualTo("请求的资源不存在");
         assertThat(response.getBody().details()).isEmpty();
     }
 

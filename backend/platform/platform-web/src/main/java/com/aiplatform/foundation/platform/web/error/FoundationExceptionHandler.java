@@ -16,6 +16,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 /**
  * 将平台异常映射为统一错误响应，并阻止内部实现信息泄漏。
@@ -66,6 +67,15 @@ public class FoundationExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiErrorResponse> unrecognized(Exception exception) {
+        if (exception instanceof NoResourceFoundException) {
+            var code = CommonErrorCode.RESOURCE_NOT_FOUND;
+            return ResponseEntity.status(HttpErrorTypeMapping.status(code.type()))
+                    .body(response(
+                            code.code(),
+                            code.defaultMessage(),
+                            Map.of(),
+                            TraceIds.next(identifiers)));
+        }
         var traceId = TraceIds.next(identifiers);
         LOGGER.error("未识别异常，追踪标识：{}", traceId, exception);
         var code = CommonErrorCode.SYSTEM_FAILURE;

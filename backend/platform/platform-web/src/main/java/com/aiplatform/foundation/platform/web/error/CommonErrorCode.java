@@ -12,6 +12,10 @@ enum CommonErrorCode implements ErrorCode {
             "COMMON.REQUEST.0001",
             ErrorType.REQUEST,
             "请求格式不正确"),
+    RESOURCE_NOT_FOUND(
+            "COMMON.RESOURCE.0001",
+            ErrorType.RESOURCE,
+            "请求的资源不存在"),
     SYSTEM_FAILURE(
             "COMMON.SYSTEM.0001",
             ErrorType.SYSTEM,

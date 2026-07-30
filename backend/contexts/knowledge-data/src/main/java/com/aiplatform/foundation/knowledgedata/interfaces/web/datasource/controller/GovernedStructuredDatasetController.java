@@ -112,11 +112,15 @@ public class GovernedStructuredDatasetController {
     }
 
     private static void requireUtf8Csv(String contentType) {
+        if (contentType == null) {
+            throw new IllegalArgumentException("只支持 UTF-8 CSV");
+        }
         var mediaType = MediaType.parseMediaType(contentType);
+        // 浏览器 multipart 常省略 charset；实际字节仍由 RFC4180 投影器以严格 UTF-8 decoder 校验。
         if (!"text".equals(mediaType.getType())
                 || !"csv".equals(mediaType.getSubtype())
-                || !StandardCharsets.UTF_8.equals(mediaType.getCharset())
-                || mediaType.getParameters().size() != 1) {
+                || (mediaType.getCharset() != null
+                        && !StandardCharsets.UTF_8.equals(mediaType.getCharset()))) {
             throw new IllegalArgumentException("只支持 UTF-8 CSV");
         }
     }
