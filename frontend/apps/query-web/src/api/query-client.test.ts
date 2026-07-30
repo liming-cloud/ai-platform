@@ -102,6 +102,30 @@ describe("QueryClient", () => {
     expect(events[0]?.answer).toBe("牛奶位于一层。");
   });
 
+  it("查询反馈只提交受控枚举并沿用内存令牌", async () => {
+    let request: Request | undefined;
+    const client = await authenticatedClient(async (input, init) => {
+      request = new Request(input, init);
+      return new Response(null, { status: 204 });
+    });
+
+    await client.recordQueryFeedback(
+      "430000000000000001",
+      "NEGATIVE",
+      "INSUFFICIENT",
+    );
+
+    expect(request?.url).toBe(
+      "http://localhost/api/v1/query-runs/430000000000000001/feedback",
+    );
+    expect(request?.method).toBe("POST");
+    expect(request?.headers.get("Authorization")).toBe("Bearer query-token");
+    expect(await request?.json()).toEqual({
+      outcome: "NEGATIVE",
+      reason: "INSUFFICIENT",
+    });
+  });
+
   it("统一错误只保留安全字段且会话失效后清除令牌", async () => {
     const client = await authenticatedClient(async () => jsonResponse({
       code: "PLATFORM_SECURITY.AUTHENTICATION.0001",

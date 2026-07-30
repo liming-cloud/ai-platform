@@ -56,6 +56,16 @@ export interface QueryRun {
   status: string;
 }
 
+/** 用户可提交的受控查询反馈结果。 */
+export type QueryFeedbackOutcome = "POSITIVE" | "NEGATIVE";
+
+/** 用户可提交的受控查询反馈原因。 */
+export type QueryFeedbackReason =
+  | "HELPFUL"
+  | "INCORRECT"
+  | "INSUFFICIENT"
+  | "IRRELEVANT";
+
 interface Session {
   tokenName: string;
   tokenValue: string;
@@ -198,6 +208,23 @@ export class QueryClient {
       );
     }
     return readEventStream(response);
+  }
+
+  async recordQueryFeedback(
+    queryRunId: string,
+    outcome: QueryFeedbackOutcome,
+    reason: QueryFeedbackReason,
+    signal?: AbortSignal,
+  ): Promise<void> {
+    return this.request<void>(
+      `/query-runs/${encodeURIComponent(queryRunId)}/feedback`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ outcome, reason }),
+        signal,
+      },
+    );
   }
 
   private async request<T>(

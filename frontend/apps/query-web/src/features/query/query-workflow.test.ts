@@ -191,4 +191,30 @@ describe("查询站点状态机", () => {
     expect(retry).toBe(first);
     expect(changed).not.toBe(first);
   });
+
+  it("反馈状态只绑定当前终态查询并在下一次查询时清除", () => {
+    const terminal = reduceQueryWorkflow(
+      {
+        ...initialQueryWorkflow,
+        stage: "answered",
+        queryRunId: "430000000000000001",
+      },
+      {
+        type: "feedback-submitting",
+        outcome: "NEGATIVE",
+        reason: "INSUFFICIENT",
+      },
+    );
+    const recorded = reduceQueryWorkflow(terminal, {
+      type: "feedback-recorded",
+    });
+    const nextQuery = reduceQueryWorkflow(recorded, {
+      type: "querying",
+      question: "下一题",
+    });
+
+    expect(terminal.feedbackSubmission?.status).toBe("submitting");
+    expect(recorded.feedbackSubmission?.status).toBe("recorded");
+    expect(nextQuery.feedbackSubmission).toBeUndefined();
+  });
 });

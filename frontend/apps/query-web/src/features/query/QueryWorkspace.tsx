@@ -32,6 +32,8 @@ import {
 } from "react";
 import {
   type LoginCredentials,
+  type QueryFeedbackOutcome,
+  type QueryFeedbackReason,
   QueryApiError,
   QueryClient,
 } from "../../api/query-client";
@@ -193,6 +195,54 @@ export function QueryWorkspace() {
       await client.logout();
     } catch {
       client.discardSession();
+    }
+  }
+
+  async function submitFeedback(
+    outcome: QueryFeedbackOutcome,
+    reason: QueryFeedbackReason,
+  ) {
+    if (workflow.queryRunId === undefined) {
+      return;
+    }
+    const owner = requests.replace();
+    dispatch({ type: "feedback-submitting", outcome, reason });
+    try {
+      await client.recordQueryFeedback(
+        workflow.queryRunId,
+        outcome,
+        reason,
+        owner.signal,
+      );
+      if (requests.isCurrent(owner)) {
+        dispatch({ type: "feedback-recorded" });
+      }
+    } catch (error) {
+      if (!requests.isCurrent(owner)) {
+        return;
+      }
+      if (error instanceof QueryApiError && error.status === 401) {
+        client.discardSession();
+        dispatch({
+          type: "failed",
+          code: error.code,
+          message: error.message,
+          traceId: error.traceId,
+        });
+        return;
+      }
+      if (
+        error instanceof QueryApiError
+        && error.code === "TRUSTED_QUERY.CONFLICT.0004"
+      ) {
+        dispatch({ type: "feedback-already-recorded" });
+        return;
+      }
+      dispatch({
+        type: "feedback-failed",
+        message: "反馈暂时未提交，请稍后重试。",
+        traceId: error instanceof QueryApiError ? error.traceId : "",
+      });
     }
   }
 
@@ -399,6 +449,7 @@ export function QueryWorkspace() {
             workflow={workflow}
             onRetry={workflow.queryRunId === undefined ? ask : resume}
             onReloadCatalog={reloadCatalog}
+            onSubmitFeedback={submitFeedback}
           />
         </div>
       </div>
@@ -504,10 +555,15 @@ function QueryResult({
   workflow,
   onRetry,
   onReloadCatalog,
+  onSubmitFeedback,
 }: {
   workflow: ReturnType<typeof reduceQueryWorkflow>;
   onRetry: () => Promise<void>;
   onReloadCatalog: () => Promise<void>;
+  onSubmitFeedback: (
+    outcome: QueryFeedbackOutcome,
+    reason: QueryFeedbackReason,
+  ) => Promise<void>;
 }) {
   if (workflow.stage === "querying") {
     return (
@@ -529,6 +585,10 @@ function QueryResult({
         </div>
         <p className="answer-body">{workflow.answer}</p>
         <CitationList citations={workflow.citations} />
+        <QueryFeedbackPanel
+          feedback={workflow.feedbackSubmission}
+          onSubmit={onSubmitFeedback}
+        />
       </article>
     );
   }
@@ -542,6 +602,10 @@ function QueryResult({
           没有找到能够回答该问题的已授权且有效的信息。可以换一种问法，
           或联系知识管理员补充资料。
         </Text>
+        <QueryFeedbackPanel
+          feedback={workflow.feedbackSubmission}
+          onSubmit={onSubmitFeedback}
+        />
       </section>
     );
   }
@@ -576,6 +640,77 @@ function QueryResult({
   }
 
   return null;
+}
+
+function QueryFeedbackPanel({
+  feedback,
+  onSubmit,
+}: {
+  feedback: ReturnType<typeof reduceQueryWorkflow>["feedbackSubmission"];
+  onSubmit: (
+    outcome: QueryFeedbackOutcome,
+    reason: QueryFeedbackReason,
+  ) => Promise<void>;
+}) {
+  if (feedback?.status === "recorded") {
+    return (
+      <MessageBar intent="success">
+        <MessageBarBody>
+          <MessageBarTitle>反馈已记录</MessageBarTitle>
+          {feedback.message}
+        </MessageBarBody>
+      </MessageBar>
+    );
+  }
+  const submitting = feedback?.status === "submitting";
+  return (
+    <section className="query-feedback" aria-label="查询反馈">
+      <div>
+        <Title3>这次查询是否有帮助？</Title3>
+        <Text>请选择最符合结果的一项；不会提交问题、回答或自由文本。</Text>
+      </div>
+      {feedback?.status === "failed" ? (
+        <MessageBar intent="error">
+          <MessageBarBody>
+            <MessageBarTitle>反馈未提交</MessageBarTitle>
+            {feedback.traceId && feedback.traceId.length > 0
+              ? `${feedback.message}，追踪编号：${feedback.traceId}`
+              : feedback.message}
+          </MessageBarBody>
+        </MessageBar>
+      ) : null}
+      <div className="query-feedback-actions">
+        <Button
+          appearance="primary"
+          disabled={submitting}
+          onClick={() => void onSubmit("POSITIVE", "HELPFUL")}
+        >
+          有帮助
+        </Button>
+        <Button
+          appearance="secondary"
+          disabled={submitting}
+          onClick={() => void onSubmit("NEGATIVE", "INCORRECT")}
+        >
+          不正确
+        </Button>
+        <Button
+          appearance="secondary"
+          disabled={submitting}
+          onClick={() => void onSubmit("NEGATIVE", "INSUFFICIENT")}
+        >
+          证据不足
+        </Button>
+        <Button
+          appearance="secondary"
+          disabled={submitting}
+          onClick={() => void onSubmit("NEGATIVE", "IRRELEVANT")}
+        >
+          不相关
+        </Button>
+      </div>
+    </section>
+  );
 }
 
 function CitationList({

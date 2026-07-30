@@ -3,6 +3,8 @@ import type {
   QueryAssistant,
   QueryCitation,
   QueryEvent,
+  QueryFeedbackOutcome,
+  QueryFeedbackReason,
 } from "../../api/query-client";
 
 export type QueryStage =
@@ -35,6 +37,13 @@ export interface QueryWorkflow {
     message: string;
     traceId: string;
   };
+  feedbackSubmission?: {
+    status: "submitting" | "recorded" | "failed";
+    outcome?: QueryFeedbackOutcome;
+    reason?: QueryFeedbackReason;
+    message?: string;
+    traceId?: string;
+  };
 }
 
 export type QueryWorkflowEvent =
@@ -46,6 +55,14 @@ export type QueryWorkflowEvent =
   | { type: "resuming" }
   | { type: "run-created"; queryRunId: string }
   | { type: "terminal-event"; event: QueryEvent }
+  | {
+      type: "feedback-submitting";
+      outcome: QueryFeedbackOutcome;
+      reason: QueryFeedbackReason;
+    }
+  | { type: "feedback-recorded" }
+  | { type: "feedback-already-recorded" }
+  | { type: "feedback-failed"; message: string; traceId: string }
   | { type: "failed"; code: string; message: string; traceId: string }
   | { type: "retry" }
   | { type: "signed-out" };
@@ -113,6 +130,7 @@ export function reduceQueryWorkflow(
         usage: undefined,
         lastEventSequence: 0,
         feedback: undefined,
+        feedbackSubmission: undefined,
       };
     case "resuming":
       return state.queryRunId === undefined
@@ -128,6 +146,49 @@ export function reduceQueryWorkflow(
         : state;
     case "terminal-event":
       return applyQueryEvent(state, event.event);
+    case "feedback-submitting":
+      return isFeedbackEligible(state)
+        ? {
+            ...state,
+            feedbackSubmission: {
+              status: "submitting",
+              outcome: event.outcome,
+              reason: event.reason,
+            },
+          }
+        : state;
+    case "feedback-recorded":
+      return state.feedbackSubmission?.status === "submitting"
+        ? {
+            ...state,
+            feedbackSubmission: {
+              ...state.feedbackSubmission,
+              status: "recorded",
+              message: "感谢反馈，已记录本次判断。",
+            },
+          }
+        : state;
+    case "feedback-already-recorded":
+      return isFeedbackEligible(state)
+        ? {
+            ...state,
+            feedbackSubmission: {
+              status: "recorded",
+              message: "本次查询已经提交过反馈。",
+            },
+          }
+        : state;
+    case "feedback-failed":
+      return isFeedbackEligible(state)
+        ? {
+            ...state,
+            feedbackSubmission: {
+              status: "failed",
+              message: event.message,
+              traceId: event.traceId,
+            },
+          }
+        : state;
     case "failed":
       return {
         ...state,
@@ -290,4 +351,9 @@ function failedStage(code: string): QueryStage {
     return "session-expired";
   }
   return "failed";
+}
+
+function isFeedbackEligible(state: QueryWorkflow): boolean {
+  return state.queryRunId !== undefined
+    && (state.stage === "answered" || state.stage === "refused");
 }
