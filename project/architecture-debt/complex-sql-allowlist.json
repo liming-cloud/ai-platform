@@ -158,6 +158,18 @@
       "reason": "按租户、知识空间、来源和修订读取冻结对象集合，避免跨范围对象事实投影。"
     },
     {
+      "path": "backend/contexts/knowledge-data/src/main/resources/mapper/knowledge-data/StructuredDatasetFieldMapper.xml",
+      "statementId": "insert",
+      "category": "ATOMIC_STATE_TRANSITION",
+      "reason": "在来源登记事务内写入结构化数据集修订冻结的字段映射，禁止修订与字段事实分离提交。"
+    },
+    {
+      "path": "backend/contexts/knowledge-data/src/main/resources/mapper/knowledge-data/StructuredDatasetFieldMapper.xml",
+      "statementId": "findByScope",
+      "category": "SECURITY_PROJECTION",
+      "reason": "按租户、知识空间、来源和修订读取有序字段映射，避免跨范围 Schema 投影。"
+    },
+    {
       "path": "backend/contexts/knowledge-data/src/main/resources/mapper/knowledge-data/PublishedSyncArtifactMapper.xml",
       "statementId": "insert",
       "category": "ATOMIC_STATE_TRANSITION",

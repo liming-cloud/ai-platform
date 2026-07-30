@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.mapper.StructuredDatasetFieldMapper">
+
+    <insert id="insert">
+        <![CDATA[
+        INSERT INTO knowledge_data.source_revision_dataset_field (
+            tenant_id, knowledge_space_id, data_source_id, revision, field_ordinal,
+            field_name, logical_type, sensitivity_level
+        ) VALUES (
+            #{entity.tenantId}, #{entity.knowledgeSpaceId}, #{entity.dataSourceId}, #{entity.revision}, #{entity.fieldOrdinal},
+            #{entity.fieldName}, #{entity.logicalType}, #{entity.sensitivityLevel}
+        )
+        ]]>
+    </insert>
+
+    <select id="findByScope" resultType="com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.entity.StructuredDatasetFieldEntity">
+        <![CDATA[
+        SELECT tenant_id, knowledge_space_id, data_source_id, revision, field_ordinal,
+               field_name, logical_type, sensitivity_level
+        FROM knowledge_data.source_revision_dataset_field
+        WHERE tenant_id = #{tenantId}
+          AND knowledge_space_id = #{knowledgeSpaceId}
+          AND data_source_id = #{dataSourceId}
+          AND revision = #{revision}
+        ORDER BY field_ordinal ASC
+        ]]>
+    </select>
+</mapper>

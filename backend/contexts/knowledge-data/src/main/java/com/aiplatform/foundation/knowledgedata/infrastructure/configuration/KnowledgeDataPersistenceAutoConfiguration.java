@@ -16,6 +16,7 @@ import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.dataso
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.mapper.QualityReportMapper;
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.mapper.SourceRevisionMapper;
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.mapper.SyncArtifactMapper;
+import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.mapper.StructuredDatasetFieldMapper;
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.repository.PostgresGovernedDataSourceRepository;
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.repository.PostgresGovernedFileDataSourceReadAdapter;
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.repository.PostgresTextDataSourceRepository;
@@ -88,6 +89,7 @@ public class KnowledgeDataPersistenceAutoConfiguration {
             GovernedDataSourceMapper sourceMapper,
             SourceRevisionMapper revisionMapper,
             ObjectStorageObjectMapper objectStorageObjectMapper,
+            StructuredDatasetFieldMapper structuredDatasetFieldMapper,
             SyncArtifactMapper artifactMapper,
             QualityReportMapper qualityMapper,
             PublishedSyncArtifactMapper publicationMapper,
@@ -96,6 +98,7 @@ public class KnowledgeDataPersistenceAutoConfiguration {
                 sourceMapper,
                 revisionMapper,
                 objectStorageObjectMapper,
+                structuredDatasetFieldMapper,
                 artifactMapper,
                 qualityMapper,
                 publicationMapper,

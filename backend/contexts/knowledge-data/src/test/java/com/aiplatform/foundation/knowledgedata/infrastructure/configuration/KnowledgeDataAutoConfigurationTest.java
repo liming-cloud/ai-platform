@@ -37,6 +37,7 @@ import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.dataso
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.mapper.QualityReportMapper;
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.mapper.SourceRevisionMapper;
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.mapper.SyncArtifactMapper;
+import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.mapper.StructuredDatasetFieldMapper;
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.index.mapper.IndexVersionMapper;
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.index.mapper.IndexBuildJobMapper;
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.index.mapper.IndexSourceMapper;
@@ -238,6 +239,9 @@ class KnowledgeDataAutoConfigurationTest {
                 .withBean(
                         ObjectStorageObjectMapper.class,
                         () -> mock(ObjectStorageObjectMapper.class))
+                .withBean(
+                        StructuredDatasetFieldMapper.class,
+                        () -> mock(StructuredDatasetFieldMapper.class))
                 .withBean(
                         SyncArtifactMapper.class,
                         () -> mock(SyncArtifactMapper.class))

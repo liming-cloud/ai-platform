@@ -18,6 +18,12 @@ import com.aiplatform.foundation.knowledgedata.domain.datasource.revision.Object
 import com.aiplatform.foundation.knowledgedata.domain.datasource.revision.PlatformObjectRangeId;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.revision.PlatformObjectReference;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.revision.SourceRevision;
+import com.aiplatform.foundation.knowledgedata.domain.datasource.revision.StructuredDatasetCsvDefinition;
+import com.aiplatform.foundation.knowledgedata.domain.datasource.revision.StructuredDatasetCsvReference;
+import com.aiplatform.foundation.knowledgedata.domain.datasource.revision.StructuredDatasetFieldMapping;
+import com.aiplatform.foundation.knowledgedata.domain.datasource.revision.StructuredDatasetLogicalType;
+import com.aiplatform.foundation.knowledgedata.domain.datasource.revision.StructuredDatasetRowFilter;
+import com.aiplatform.foundation.knowledgedata.domain.datasource.revision.StructuredDatasetSensitivityLevel;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.model.SyncArtifactId;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.repository.GovernedDataSourceRepository;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.service.FileDataSourceSynchronization;
@@ -33,6 +39,7 @@ import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.dataso
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.mapper.QualityReportMapper;
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.mapper.SourceRevisionMapper;
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.mapper.SyncArtifactMapper;
+import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.mapper.StructuredDatasetFieldMapper;
 import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
 import java.time.Instant;
 import java.util.concurrent.atomic.AtomicLong;
@@ -105,6 +112,7 @@ class PostgresGovernedDataSourceRepositoryTest {
         jdbc.update("DELETE FROM knowledge_data.quality_report");
         jdbc.update("DELETE FROM knowledge_data.sync_artifact");
         jdbc.update("DELETE FROM knowledge_data.source_revision_object");
+        jdbc.update("DELETE FROM knowledge_data.source_revision_dataset_field");
         jdbc.update("DELETE FROM knowledge_data.source_revision");
         jdbc.update("DELETE FROM knowledge_data.governed_data_source");
         jdbc.update("DELETE FROM knowledge_data.knowledge_space");
@@ -169,6 +177,36 @@ class PostgresGovernedDataSourceRepositoryTest {
         assertEquals(revision.objectStorageObjects(), stored.objectStorageObjects());
         assertFalse(repository.findRevision(CAMPUS_TENANT, SPACE, source.id(), 1).isPresent());
         assertEquals(2, count("source_revision_object", STORE_TENANT));
+    }
+
+    @Test
+    void 结构化数据集私有CSV与字段映射按原顺序持久化() {
+        var source = structuredDatasetSource(STORE_TENANT, nextSourceId(), "客服知识库");
+        var definition = new StructuredDatasetCsvDefinition(
+                new StructuredDatasetCsvReference(
+                        "foundation-v1/tenants/100000000000000001/knowledge-data/datasets/1/1/data.csv",
+                        "a".repeat(64),
+                        128),
+                "csv-mapping-v1",
+                "content",
+                "title",
+                java.util.List.of(
+                        new StructuredDatasetFieldMapping(
+                                "content", StructuredDatasetLogicalType.TEXT,
+                                StructuredDatasetSensitivityLevel.PUBLIC),
+                        new StructuredDatasetFieldMapping(
+                                "title", StructuredDatasetLogicalType.TEXT,
+                                StructuredDatasetSensitivityLevel.INTERNAL)),
+                StructuredDatasetRowFilter.NON_BLANK_CONTENT);
+        var revision = SourceRevision.structuredDataset(source, definition, CREATOR, CREATED_AT);
+
+        repository.register(source, revision);
+
+        var stored = repository.findRevision(STORE_TENANT, SPACE, source.id(), 1).orElseThrow();
+        assertEquals(revision.definitionDigest(), stored.definitionDigest());
+        assertEquals(definition, stored.structuredDataset());
+        assertFalse(repository.findRevision(CAMPUS_TENANT, SPACE, source.id(), 1).isPresent());
+        assertEquals(2, count("source_revision_dataset_field", STORE_TENANT));
     }
 
     @Test
@@ -414,6 +452,17 @@ class PostgresGovernedDataSourceRepositoryTest {
                 CREATED_AT);
     }
 
+    private static GovernedDataSource structuredDatasetSource(TenantId tenantId, DataSourceId id, String name) {
+        return GovernedDataSource.create(
+                tenantId,
+                SPACE,
+                id,
+                GovernedDataSourceType.STRUCTURED_DATASET,
+                name,
+                CREATOR,
+                CREATED_AT);
+    }
+
     private static SourceRevision revision(GovernedDataSource source, String digest) {
         return SourceRevision.file(
                 source,
@@ -492,6 +541,7 @@ class PostgresGovernedDataSourceRepositoryTest {
                 GovernedDataSourceMapper sourceMapper,
                 SourceRevisionMapper revisionMapper,
                 ObjectStorageObjectMapper objectStorageObjectMapper,
+                StructuredDatasetFieldMapper structuredDatasetFieldMapper,
                 SyncArtifactMapper artifactMapper,
                 QualityReportMapper qualityMapper,
                 PublishedSyncArtifactMapper publicationMapper,
@@ -500,6 +550,7 @@ class PostgresGovernedDataSourceRepositoryTest {
                     sourceMapper,
                     revisionMapper,
                     objectStorageObjectMapper,
+                    structuredDatasetFieldMapper,
                     artifactMapper,
                     qualityMapper,
                     publicationMapper,

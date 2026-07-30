@@ -15,6 +15,12 @@ import com.aiplatform.foundation.knowledgedata.domain.datasource.revision.Object
 import com.aiplatform.foundation.knowledgedata.domain.datasource.revision.PlatformObjectRangeId;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.revision.PlatformObjectReference;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.revision.SourceRevision;
+import com.aiplatform.foundation.knowledgedata.domain.datasource.revision.StructuredDatasetCsvDefinition;
+import com.aiplatform.foundation.knowledgedata.domain.datasource.revision.StructuredDatasetCsvReference;
+import com.aiplatform.foundation.knowledgedata.domain.datasource.revision.StructuredDatasetFieldMapping;
+import com.aiplatform.foundation.knowledgedata.domain.datasource.revision.StructuredDatasetLogicalType;
+import com.aiplatform.foundation.knowledgedata.domain.datasource.revision.StructuredDatasetRowFilter;
+import com.aiplatform.foundation.knowledgedata.domain.datasource.revision.StructuredDatasetSensitivityLevel;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.service.FileSynchronizationCompletion;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.service.FileSyncArtifactPublication;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.model.SyncArtifact;
@@ -26,6 +32,7 @@ import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.dataso
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.entity.PublishedSyncArtifactEntity;
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.entity.QualityReportEntity;
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.entity.SourceRevisionEntity;
+import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.entity.StructuredDatasetFieldEntity;
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.entity.SyncArtifactEntity;
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.mapper.GovernedDataSourceMapper;
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.mapper.ObjectStorageObjectMapper;
@@ -33,6 +40,7 @@ import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.dataso
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.mapper.QualityReportMapper;
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.mapper.SourceRevisionMapper;
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.mapper.SyncArtifactMapper;
+import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.mapper.StructuredDatasetFieldMapper;
 import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import java.util.Objects;
@@ -51,6 +59,7 @@ public final class PostgresGovernedDataSourceRepository implements GovernedDataS
     private final GovernedDataSourceMapper sourceMapper;
     private final SourceRevisionMapper revisionMapper;
     private final ObjectStorageObjectMapper objectStorageObjectMapper;
+    private final StructuredDatasetFieldMapper structuredDatasetFieldMapper;
     private final SyncArtifactMapper artifactMapper;
     private final QualityReportMapper qualityMapper;
     private final PublishedSyncArtifactMapper publicationMapper;
@@ -60,6 +69,7 @@ public final class PostgresGovernedDataSourceRepository implements GovernedDataS
             GovernedDataSourceMapper sourceMapper,
             SourceRevisionMapper revisionMapper,
             ObjectStorageObjectMapper objectStorageObjectMapper,
+            StructuredDatasetFieldMapper structuredDatasetFieldMapper,
             SyncArtifactMapper artifactMapper,
             QualityReportMapper qualityMapper,
             PublishedSyncArtifactMapper publicationMapper,
@@ -68,6 +78,8 @@ public final class PostgresGovernedDataSourceRepository implements GovernedDataS
         this.revisionMapper = Objects.requireNonNull(revisionMapper, "来源修订映射器不能为空");
         this.objectStorageObjectMapper = Objects.requireNonNull(
                 objectStorageObjectMapper, "对象存储来源对象映射器不能为空");
+        this.structuredDatasetFieldMapper = Objects.requireNonNull(
+                structuredDatasetFieldMapper, "结构化数据集字段映射器不能为空");
         this.artifactMapper = Objects.requireNonNull(artifactMapper, "同步产物映射器不能为空");
         this.qualityMapper = Objects.requireNonNull(qualityMapper, "质量结论映射器不能为空");
         this.publicationMapper = Objects.requireNonNull(publicationMapper, "发布产物映射器不能为空");
@@ -83,6 +95,7 @@ public final class PostgresGovernedDataSourceRepository implements GovernedDataS
             sourceMapper.insert(toEntity(source));
             revisionMapper.insert(toEntity(revision));
             insertObjectStorageObjects(revision);
+            insertStructuredDatasetFields(revision);
         });
     }
 
@@ -166,6 +179,8 @@ public final class PostgresGovernedDataSourceRepository implements GovernedDataS
         return Optional.ofNullable(row).map(value -> toDomain(
                 value,
                 objectStorageObjectMapper.findByScope(
+                        tenantId.value(), knowledgeSpaceId.value(), dataSourceId.value(), revision),
+                structuredDatasetFieldMapper.findByScope(
                         tenantId.value(), knowledgeSpaceId.value(), dataSourceId.value(), revision)));
     }
 
@@ -245,13 +260,24 @@ public final class PostgresGovernedDataSourceRepository implements GovernedDataS
         entity.setDefinitionDigest(value.definitionDigest());
         var file = value.fileObject();
         var objects = value.objectStorageObjects();
+        var dataset = value.structuredDataset();
         entity.setObjectKey(file == null ? null : file.objectKey());
         entity.setContentDigest(file == null ? null : file.contentDigest());
         entity.setByteSize(file == null ? null : file.byteSize());
         entity.setMediaType(file == null ? null : file.mediaType());
+        if (dataset != null) {
+            entity.setObjectKey(dataset.csv().objectKey());
+            entity.setContentDigest(dataset.csv().contentDigest());
+            entity.setByteSize(dataset.csv().byteSize());
+            entity.setMediaType(StructuredDatasetCsvReference.UTF8_CSV);
+        }
         entity.setObjectRangeId(objects == null ? null : objects.rangeId().value());
         entity.setObjectSelectionRevision(objects == null ? null : objects.selectionRevision());
         entity.setObjectCollectionDigest(objects == null ? null : objects.definitionDigest());
+        entity.setDatasetMappingVersion(dataset == null ? null : dataset.mappingVersion());
+        entity.setDatasetContentField(dataset == null ? null : dataset.contentField());
+        entity.setDatasetTitleField(dataset == null ? null : dataset.titleField());
+        entity.setDatasetRowFilter(dataset == null ? null : dataset.rowFilter().name());
         entity.setCreatedBy(value.createdBy().value());
         entity.setCreatedAt(value.createdAt());
         return entity;
@@ -316,8 +342,11 @@ public final class PostgresGovernedDataSourceRepository implements GovernedDataS
     }
 
     private static SourceRevision toDomain(
-            SourceRevisionEntity value, java.util.List<ObjectStorageObjectEntity> objectRows) {
+            SourceRevisionEntity value,
+            java.util.List<ObjectStorageObjectEntity> objectRows,
+            java.util.List<StructuredDatasetFieldEntity> datasetFieldRows) {
         var objects = objectStorageObjects(value, objectRows);
+        var dataset = structuredDataset(value, datasetFieldRows);
         return SourceRevision.restore(
                 new TenantId(value.getTenantId()),
                 new KnowledgeSpaceId(value.getKnowledgeSpaceId()),
@@ -327,6 +356,7 @@ public final class PostgresGovernedDataSourceRepository implements GovernedDataS
                 value.getDefinitionDigest(),
                 fileObject(value),
                 objects,
+                dataset,
                 new CreatorId(value.getCreatedBy()),
                 value.getCreatedAt());
     }
@@ -367,6 +397,30 @@ public final class PostgresGovernedDataSourceRepository implements GovernedDataS
         return collection;
     }
 
+    private static StructuredDatasetCsvDefinition structuredDataset(
+            SourceRevisionEntity value,
+            java.util.List<StructuredDatasetFieldEntity> fieldRows) {
+        if (GovernedDataSourceType.valueOf(value.getSourceType()) != GovernedDataSourceType.STRUCTURED_DATASET) {
+            if (!fieldRows.isEmpty()) {
+                throw new IllegalStateException("非结构化数据集来源修订不能包含冻结字段映射");
+            }
+            return null;
+        }
+        return new StructuredDatasetCsvDefinition(
+                new StructuredDatasetCsvReference(
+                        value.getObjectKey(), value.getContentDigest(), value.getByteSize()),
+                value.getDatasetMappingVersion(),
+                value.getDatasetContentField(),
+                value.getDatasetTitleField(),
+                fieldRows.stream()
+                        .map(row -> new StructuredDatasetFieldMapping(
+                                row.getFieldName(),
+                                StructuredDatasetLogicalType.valueOf(row.getLogicalType()),
+                                StructuredDatasetSensitivityLevel.valueOf(row.getSensitivityLevel())))
+                        .toList(),
+                StructuredDatasetRowFilter.valueOf(value.getDatasetRowFilter()));
+    }
+
     private void insertObjectStorageObjects(SourceRevision revision) {
         var collection = revision.objectStorageObjects();
         if (collection == null) {
@@ -386,6 +440,26 @@ public final class PostgresGovernedDataSourceRepository implements GovernedDataS
             entity.setMediaType(object.mediaType());
             entity.setFreshAt(object.freshAt());
             objectStorageObjectMapper.insert(entity);
+        }
+    }
+
+    private void insertStructuredDatasetFields(SourceRevision revision) {
+        var dataset = revision.structuredDataset();
+        if (dataset == null) {
+            return;
+        }
+        for (var ordinal = 0; ordinal < dataset.fields().size(); ordinal++) {
+            var field = dataset.fields().get(ordinal);
+            var entity = new StructuredDatasetFieldEntity();
+            entity.setTenantId(revision.tenantId().value());
+            entity.setKnowledgeSpaceId(revision.knowledgeSpaceId().value());
+            entity.setDataSourceId(revision.dataSourceId().value());
+            entity.setRevision(revision.revision());
+            entity.setFieldOrdinal(ordinal);
+            entity.setFieldName(field.fieldName());
+            entity.setLogicalType(field.logicalType().name());
+            entity.setSensitivityLevel(field.sensitivityLevel().name());
+            structuredDatasetFieldMapper.insert(entity);
         }
     }
 

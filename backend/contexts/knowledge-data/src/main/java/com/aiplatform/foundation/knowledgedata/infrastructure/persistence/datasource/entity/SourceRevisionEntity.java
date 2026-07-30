@@ -23,6 +23,10 @@ public class SourceRevisionEntity {
     @TableField("object_range_id") private String objectRangeId;
     @TableField("object_selection_revision") private Long objectSelectionRevision;
     @TableField("object_collection_digest") private String objectCollectionDigest;
+    @TableField("dataset_mapping_version") private String datasetMappingVersion;
+    @TableField("dataset_content_field") private String datasetContentField;
+    @TableField("dataset_title_field") private String datasetTitleField;
+    @TableField("dataset_row_filter") private String datasetRowFilter;
     @TableField("created_by") private Long createdBy;
     @TableField("created_at") private Instant createdAt;
 
@@ -55,6 +59,22 @@ public class SourceRevisionEntity {
     public String getObjectCollectionDigest() { return objectCollectionDigest; }
     public void setObjectCollectionDigest(String objectCollectionDigest) {
         this.objectCollectionDigest = objectCollectionDigest;
+    }
+    public String getDatasetMappingVersion() { return datasetMappingVersion; }
+    public void setDatasetMappingVersion(String datasetMappingVersion) {
+        this.datasetMappingVersion = datasetMappingVersion;
+    }
+    public String getDatasetContentField() { return datasetContentField; }
+    public void setDatasetContentField(String datasetContentField) {
+        this.datasetContentField = datasetContentField;
+    }
+    public String getDatasetTitleField() { return datasetTitleField; }
+    public void setDatasetTitleField(String datasetTitleField) {
+        this.datasetTitleField = datasetTitleField;
+    }
+    public String getDatasetRowFilter() { return datasetRowFilter; }
+    public void setDatasetRowFilter(String datasetRowFilter) {
+        this.datasetRowFilter = datasetRowFilter;
     }
     public Long getCreatedBy() { return createdBy; }
     public void setCreatedBy(Long createdBy) { this.createdBy = createdBy; }

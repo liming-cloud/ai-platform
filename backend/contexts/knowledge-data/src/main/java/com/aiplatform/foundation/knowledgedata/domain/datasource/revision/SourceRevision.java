@@ -25,6 +25,7 @@ public final class SourceRevision {
     private final String definitionDigest;
     private final FileSourceObjectReference fileObject;
     private final ObjectStorageObjectCollection objectStorageObjects;
+    private final StructuredDatasetCsvDefinition structuredDataset;
     private final CreatorId createdBy;
     private final Instant createdAt;
 
@@ -37,6 +38,7 @@ public final class SourceRevision {
             String definitionDigest,
             FileSourceObjectReference fileObject,
             ObjectStorageObjectCollection objectStorageObjects,
+            StructuredDatasetCsvDefinition structuredDataset,
             CreatorId createdBy,
             Instant createdAt) {
         this.tenantId = Objects.requireNonNull(tenantId, "租户标识不能为空");
@@ -60,14 +62,24 @@ public final class SourceRevision {
         if (sourceType != GovernedDataSourceType.OBJECT_STORAGE && objectStorageObjects != null) {
             throw new IllegalArgumentException("非对象存储来源不能冻结对象集合");
         }
+        if (sourceType == GovernedDataSourceType.STRUCTURED_DATASET && structuredDataset == null) {
+            throw new IllegalArgumentException("结构化数据集来源修订必须冻结 CSV 字段映射");
+        }
+        if (sourceType != GovernedDataSourceType.STRUCTURED_DATASET && structuredDataset != null) {
+            throw new IllegalArgumentException("非结构化数据集来源不能冻结 CSV 字段映射");
+        }
         if (fileObject != null && !this.definitionDigest.equals(fileObject.definitionDigest())) {
             throw new IllegalArgumentException("文件来源定义摘要与对象事实不一致");
         }
         if (objectStorageObjects != null && !this.definitionDigest.equals(objectStorageObjects.definitionDigest())) {
             throw new IllegalArgumentException("对象存储来源定义摘要与对象集合不一致");
         }
+        if (structuredDataset != null && !this.definitionDigest.equals(structuredDataset.definitionDigest())) {
+            throw new IllegalArgumentException("结构化数据集来源定义摘要与 CSV 字段映射不一致");
+        }
         this.fileObject = fileObject;
         this.objectStorageObjects = objectStorageObjects;
+        this.structuredDataset = structuredDataset;
         this.createdBy = Objects.requireNonNull(createdBy, "创建成员不能为空");
         this.createdAt = Objects.requireNonNull(createdAt, "创建时间不能为空");
     }
@@ -92,6 +104,7 @@ public final class SourceRevision {
                 source.type(),
                 Objects.requireNonNull(fileObject, "文件对象不能为空").definitionDigest(),
                 fileObject,
+                null,
                 null,
                 createdBy,
                 createdAt);
@@ -118,6 +131,33 @@ public final class SourceRevision {
                 Objects.requireNonNull(objectStorageObjects, "对象集合不能为空").definitionDigest(),
                 null,
                 objectStorageObjects,
+                null,
+                createdBy,
+                createdAt);
+    }
+
+    /**
+     * 为结构化数据集来源创建新的私有 CSV 与字段映射修订。
+     */
+    public static SourceRevision structuredDataset(
+            GovernedDataSource source,
+            StructuredDatasetCsvDefinition structuredDataset,
+            CreatorId createdBy,
+            Instant createdAt) {
+        Objects.requireNonNull(source, "受治理数据源不能为空");
+        if (source.type() != GovernedDataSourceType.STRUCTURED_DATASET) {
+            throw new IllegalArgumentException("CSV 字段映射只能登记到结构化数据集来源");
+        }
+        return new SourceRevision(
+                source.tenantId(),
+                source.knowledgeSpaceId(),
+                source.id(),
+                source.currentRevision(),
+                source.type(),
+                Objects.requireNonNull(structuredDataset, "CSV 字段映射不能为空").definitionDigest(),
+                null,
+                null,
+                structuredDataset,
                 createdBy,
                 createdAt);
     }
@@ -134,6 +174,7 @@ public final class SourceRevision {
             String definitionDigest,
             FileSourceObjectReference fileObject,
             ObjectStorageObjectCollection objectStorageObjects,
+            StructuredDatasetCsvDefinition structuredDataset,
             CreatorId createdBy,
             Instant createdAt) {
         return new SourceRevision(
@@ -145,6 +186,7 @@ public final class SourceRevision {
                 definitionDigest,
                 fileObject,
                 objectStorageObjects,
+                structuredDataset,
                 createdBy,
                 createdAt);
     }
@@ -165,6 +207,11 @@ public final class SourceRevision {
      * 返回对象存储来源冻结的范围选择及对象集合；非对象存储来源返回 `null`。
      */
     public ObjectStorageObjectCollection objectStorageObjects() { return objectStorageObjects; }
+
+    /**
+     * 返回结构化数据集冻结的私有 CSV 与字段映射；非结构化数据集来源返回 `null`。
+     */
+    public StructuredDatasetCsvDefinition structuredDataset() { return structuredDataset; }
 
     public CreatorId createdBy() { return createdBy; }
     public Instant createdAt() { return createdAt; }
