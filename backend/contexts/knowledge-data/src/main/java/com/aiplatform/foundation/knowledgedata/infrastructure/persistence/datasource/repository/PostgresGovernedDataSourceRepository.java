@@ -25,6 +25,7 @@ import com.aiplatform.foundation.knowledgedata.domain.datasource.service.DataSou
 import com.aiplatform.foundation.knowledgedata.domain.datasource.service.FileSyncArtifactPublication;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.model.SyncArtifact;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.model.SyncArtifactId;
+import com.aiplatform.foundation.knowledgedata.domain.datasource.model.TextContentReference;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.repository.GovernedDataSourceRepository;
 import com.aiplatform.foundation.knowledgedata.domain.knowledge.model.KnowledgeSpaceId;
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.entity.GovernedDataSourceEntity;
@@ -291,6 +292,11 @@ public final class PostgresGovernedDataSourceRepository implements GovernedDataS
         entity.setDataSourceId(value.dataSourceId().value());
         entity.setSourceRevision(value.sourceRevision());
         entity.setContentDigest(value.contentDigest());
+        entity.setContentVersion(value.content().version());
+        entity.setContentObjectKey(value.content().objectKey());
+        entity.setContentByteSize(value.content().byteSize());
+        entity.setContentMediaType(value.content().mediaType());
+        entity.setContentCreatedAt(value.content().createdAt());
         entity.setRecordCount(value.recordCount());
         entity.setSynchronizedAt(value.synchronizedAt());
         return entity;
@@ -470,7 +476,13 @@ public final class PostgresGovernedDataSourceRepository implements GovernedDataS
                 new KnowledgeSpaceId(value.getKnowledgeSpaceId()),
                 new DataSourceId(value.getDataSourceId()),
                 value.getSourceRevision(),
-                value.getContentDigest(),
+                new TextContentReference(
+                        value.getContentVersion(),
+                        value.getContentObjectKey(),
+                        value.getContentDigest(),
+                        value.getContentByteSize(),
+                        value.getContentMediaType(),
+                        value.getContentCreatedAt()),
                 value.getRecordCount(),
                 value.getSynchronizedAt());
     }

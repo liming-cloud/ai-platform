@@ -88,7 +88,7 @@ public final class FileDataSourceSynchronizationService {
                 syncing,
                 revision,
                 new SyncArtifactId(identifiers.nextId()),
-                content.digest(),
+                content.content(),
                 content.recordCount(),
                 clock.instant());
         repository.completeSynchronization(completion);
@@ -121,7 +121,15 @@ public final class FileDataSourceSynchronizationService {
         if (byteSize != file.byteSize() || !contentDigest.equals(file.contentDigest())) {
             throw new TextContentIntegrityException();
         }
-        return new FileContentSnapshot(contentDigest, 1);
+        return new FileContentSnapshot(
+                new TextContentReference(
+                        Math.toIntExact(revision.revision()),
+                        file.objectKey(),
+                        contentDigest,
+                        byteSize,
+                        TextContentReference.UTF8_TEXT,
+                        revision.createdAt()),
+                1);
     }
 
     private void updateOrThrow(GovernedDataSource source, long expectedVersion) {
@@ -142,5 +150,5 @@ public final class FileDataSourceSynchronizationService {
         return GovernedDataSourceLifecycleResult.from(source);
     }
 
-    private record FileContentSnapshot(String digest, long recordCount) {}
+    private record FileContentSnapshot(TextContentReference content, long recordCount) {}
 }

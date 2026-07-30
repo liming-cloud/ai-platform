@@ -28,7 +28,13 @@ class PublishedSyncArtifactTest {
     private static SyncArtifact artifact() {
         return SyncArtifact.create(new SyncArtifactId(240000000000000001L),
                 new TenantId(100000000000000001L), new KnowledgeSpaceId(210000000000000001L),
-                new DataSourceId(230000000000000001L), 1, "a".repeat(64), 1,
+                new DataSourceId(230000000000000001L), 1, new TextContentReference(
+                        1,
+                        "foundation-v1/tenants/1/knowledge-data/artifacts/240000000000000001.txt",
+                        "a".repeat(64),
+                        1,
+                        TextContentReference.UTF8_TEXT,
+                        Instant.parse("2026-07-29T07:00:00Z")), 1,
                 Instant.parse("2026-07-29T07:00:00Z"));
     }
 }

@@ -25,12 +25,13 @@ class SyncArtifactTest {
                 SPACE_ID,
                 SOURCE_ID,
                 3,
-                "b".repeat(64),
+                content(),
                 42,
                 SYNCHRONIZED_AT);
 
         assertEquals(3, artifact.sourceRevision());
         assertEquals("b".repeat(64), artifact.contentDigest());
+        assertEquals(content(), artifact.content());
         assertEquals(42, artifact.recordCount());
         assertEquals(SYNCHRONIZED_AT, artifact.synchronizedAt());
     }
@@ -60,16 +61,16 @@ class SyncArtifactTest {
                 SPACE_ID,
                 SOURCE_ID,
                 0,
-                "b".repeat(64),
+                content(),
                 42,
                 SYNCHRONIZED_AT));
-        assertThrows(IllegalArgumentException.class, () -> SyncArtifact.create(
+        assertThrows(NullPointerException.class, () -> SyncArtifact.create(
                 new SyncArtifactId(230000000000000001L),
                 TENANT_ID,
                 SPACE_ID,
                 SOURCE_ID,
                 3,
-                "invalid",
+                null,
                 -1,
                 SYNCHRONIZED_AT));
     }
@@ -81,8 +82,18 @@ class SyncArtifactTest {
                 SPACE_ID,
                 SOURCE_ID,
                 3,
+                content(),
+                42,
+                SYNCHRONIZED_AT);
+    }
+
+    private static TextContentReference content() {
+        return new TextContentReference(
+                3,
+                "foundation-v1/tenants/100000000000000001/knowledge-data/artifacts/230000000000000001.txt",
                 "b".repeat(64),
                 42,
+                TextContentReference.UTF8_TEXT,
                 SYNCHRONIZED_AT);
     }
 }

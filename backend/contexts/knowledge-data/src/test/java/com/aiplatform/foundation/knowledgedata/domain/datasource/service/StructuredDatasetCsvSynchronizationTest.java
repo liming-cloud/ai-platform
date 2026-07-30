@@ -10,6 +10,7 @@ import com.aiplatform.foundation.knowledgedata.domain.datasource.model.GovernedD
 import com.aiplatform.foundation.knowledgedata.domain.datasource.model.GovernedDataSourceStatus;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.model.GovernedDataSourceType;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.model.SyncArtifactId;
+import com.aiplatform.foundation.knowledgedata.domain.datasource.model.TextContentReference;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.quality.QualityStatus;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.revision.SourceRevision;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.revision.StructuredDatasetCsvDefinition;
@@ -44,7 +45,7 @@ class StructuredDatasetCsvSynchronizationTest {
                 syncing,
                 revision(ready, StructuredDatasetRowFilter.ALL_ROWS),
                 new SyncArtifactId(240000000000000001L),
-                "a".repeat(64),
+                normalizedContent("a"),
                 2,
                 0,
                 NOW);
@@ -65,7 +66,7 @@ class StructuredDatasetCsvSynchronizationTest {
                 syncing,
                 revision(ready, StructuredDatasetRowFilter.NON_BLANK_CONTENT),
                 new SyncArtifactId(240000000000000002L),
-                "b".repeat(64),
+                normalizedContent("b"),
                 1,
                 3,
                 NOW);
@@ -83,7 +84,7 @@ class StructuredDatasetCsvSynchronizationTest {
                 syncing,
                 revision(ready, StructuredDatasetRowFilter.ALL_ROWS),
                 new SyncArtifactId(240000000000000003L),
-                "c".repeat(64),
+                normalizedContent("c"),
                 1,
                 1,
                 NOW));
@@ -102,7 +103,7 @@ class StructuredDatasetCsvSynchronizationTest {
                 syncing,
                 revision(other, StructuredDatasetRowFilter.ALL_ROWS),
                 new SyncArtifactId(240000000000000004L),
-                "d".repeat(64),
+                normalizedContent("d"),
                 1,
                 0,
                 NOW));
@@ -148,6 +149,16 @@ class StructuredDatasetCsvSynchronizationTest {
                                         StructuredDatasetSensitivityLevel.PUBLIC)),
                         filter),
                 CREATOR,
+                NOW);
+    }
+
+    private static TextContentReference normalizedContent(String character) {
+        return new TextContentReference(
+                1,
+                "foundation-v1/tenants/1/knowledge-data/artifacts/" + character + ".txt",
+                character.repeat(64),
+                1,
+                TextContentReference.UTF8_TEXT,
                 NOW);
     }
 }

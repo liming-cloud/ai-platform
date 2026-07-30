@@ -215,7 +215,7 @@ class PostgresGovernedDataSourceRepositoryTest {
         var sourceRevision = revision(source, "a".repeat(64));
         repository.register(source, sourceRevision);
         var syncing = startSynchronization(source);
-        var completion = complete(syncing, sourceRevision, "b".repeat(64));
+        var completion = complete(syncing, sourceRevision);
 
         repository.completeSynchronization(completion);
 
@@ -229,6 +229,11 @@ class PostgresGovernedDataSourceRepositoryTest {
                 repository.findArtifact(STORE_TENANT, SPACE, artifact.id())
                         .orElseThrow()
                         .contentDigest());
+        assertEquals(
+                artifact.content(),
+                repository.findArtifact(STORE_TENANT, SPACE, artifact.id())
+                        .orElseThrow()
+                        .content());
         assertEquals(
                 report.status(),
                 repository.findQualityReport(STORE_TENANT, SPACE, artifact.id())
@@ -245,7 +250,7 @@ class PostgresGovernedDataSourceRepositoryTest {
         var sourceRevision = revision(source, "a".repeat(64));
         repository.register(source, sourceRevision);
         var syncing = startSynchronization(source);
-        var completion = complete(syncing, sourceRevision, "b".repeat(64));
+        var completion = complete(syncing, sourceRevision);
         repository.completeSynchronization(completion);
 
         assertThrows(
@@ -268,7 +273,7 @@ class PostgresGovernedDataSourceRepositoryTest {
         var sourceRevision = revision(source, "a".repeat(64));
         repository.register(source, sourceRevision);
         var syncing = startSynchronization(source);
-        var completion = complete(syncing, sourceRevision, "b".repeat(64));
+        var completion = complete(syncing, sourceRevision);
         repository.completeSynchronization(completion);
         var publication = publish(completion, CREATED_AT.plusSeconds(120));
 
@@ -299,14 +304,14 @@ class PostgresGovernedDataSourceRepositoryTest {
         var sourceRevision = revision(source, "a".repeat(64));
         repository.register(source, sourceRevision);
         var firstSync = startSynchronization(source);
-        var firstCompletion = complete(firstSync, sourceRevision, "b".repeat(64));
+        var firstCompletion = complete(firstSync, sourceRevision);
         repository.completeSynchronization(firstCompletion);
         var firstPublication = publish(firstCompletion, CREATED_AT.plusSeconds(120));
         repository.publishArtifact(firstPublication);
         var firstPublished = firstPublication.publishedSource();
         var secondSync = firstPublished.startSynchronization(firstPublished.version());
         assertTrue(repository.update(secondSync, firstPublished.version()));
-        var secondCompletion = complete(secondSync, sourceRevision, "c".repeat(64));
+        var secondCompletion = complete(secondSync, sourceRevision);
         repository.completeSynchronization(secondCompletion);
         var secondPublication = publish(secondCompletion, CREATED_AT.plusSeconds(240));
         repository.publishArtifact(secondPublication);
@@ -336,7 +341,7 @@ class PostgresGovernedDataSourceRepositoryTest {
                 syncing,
                 revision(another, "c".repeat(64)),
                 new SyncArtifactId(ARTIFACT_IDS.incrementAndGet()),
-                "b".repeat(64),
+                content(revision(another, "c".repeat(64))),
                 3,
                 CREATED_AT.plusSeconds(60)));
 
@@ -373,7 +378,7 @@ class PostgresGovernedDataSourceRepositoryTest {
         var sourceRevision = revision(source, "a".repeat(64));
         repository.register(source, sourceRevision);
         var syncing = startSynchronization(source);
-        var completion = complete(syncing, sourceRevision, "b".repeat(64));
+        var completion = complete(syncing, sourceRevision);
         var tasks = new ArrayList<Callable<Boolean>>();
         for (var index = 0; index < 2; index++) {
             tasks.add(() -> {
@@ -491,14 +496,26 @@ class PostgresGovernedDataSourceRepositoryTest {
     }
 
     private static FileSynchronizationCompletion complete(
-            GovernedDataSource syncing, SourceRevision revision, String digest) {
+            GovernedDataSource syncing, SourceRevision revision) {
         return SYNCHRONIZATION.complete(
                 syncing,
                 revision,
                 new SyncArtifactId(ARTIFACT_IDS.incrementAndGet()),
-                digest,
+                content(revision),
                 3,
                 CREATED_AT.plusSeconds(60));
+    }
+
+    private static com.aiplatform.foundation.knowledgedata.domain.datasource.model.TextContentReference content(
+            SourceRevision revision) {
+        var file = revision.fileObject();
+        return new com.aiplatform.foundation.knowledgedata.domain.datasource.model.TextContentReference(
+                Math.toIntExact(revision.revision()),
+                file.objectKey(),
+                file.contentDigest(),
+                file.byteSize(),
+                com.aiplatform.foundation.knowledgedata.domain.datasource.model.TextContentReference.UTF8_TEXT,
+                revision.createdAt());
     }
 
     private static FileSyncArtifactPublication publish(

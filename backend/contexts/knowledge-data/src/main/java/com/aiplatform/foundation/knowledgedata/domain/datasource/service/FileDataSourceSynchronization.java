@@ -7,6 +7,7 @@ import com.aiplatform.foundation.knowledgedata.domain.datasource.model.GovernedD
 import com.aiplatform.foundation.knowledgedata.domain.datasource.model.GovernedDataSourceType;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.model.SyncArtifact;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.model.SyncArtifactId;
+import com.aiplatform.foundation.knowledgedata.domain.datasource.model.TextContentReference;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.quality.QualityReport;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.revision.SourceRevision;
 import java.time.Instant;
@@ -47,18 +48,19 @@ public final class FileDataSourceSynchronization {
             GovernedDataSource source,
             SourceRevision revision,
             SyncArtifactId artifactId,
-            String contentDigest,
+            TextContentReference content,
             long recordCount,
             Instant synchronizedAt) {
         var syncingSource = requireFileSource(source);
         var currentRevision = requireCurrentRevision(syncingSource, revision);
+        requireFrozenContent(currentRevision, content);
         var artifact = SyncArtifact.create(
                 Objects.requireNonNull(artifactId, "同步产物标识不能为空"),
                 syncingSource.tenantId(),
                 syncingSource.knowledgeSpaceId(),
                 syncingSource.id(),
                 currentRevision.revision(),
-                contentDigest,
+                content,
                 recordCount,
                 Objects.requireNonNull(synchronizedAt, "同步时间不能为空"));
         var report = QualityReport.passed(artifact, QUALITY_RULE_SET_VERSION);
@@ -84,5 +86,16 @@ public final class FileDataSourceSynchronization {
             throw new DataSourceStateException("来源当前修订不允许完成文件同步");
         }
         return value;
+    }
+
+    private static void requireFrozenContent(SourceRevision revision, TextContentReference content) {
+        var value = Objects.requireNonNull(content, "同步产物内容引用不能为空");
+        var file = revision.fileObject();
+        if (value.version() != Math.toIntExact(revision.revision())
+                || !value.objectKey().equals(file.objectKey())
+                || !value.sha256().equals(file.contentDigest())
+                || value.byteSize() != file.byteSize()) {
+            throw new DataSourceStateException("文件同步产物内容不属于当前来源修订");
+        }
     }
 }

@@ -18,6 +18,7 @@ import com.aiplatform.foundation.knowledgedata.domain.datasource.model.GovernedD
 import com.aiplatform.foundation.knowledgedata.domain.datasource.model.GovernedDataSourceType;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.model.SyncArtifact;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.model.SyncArtifactId;
+import com.aiplatform.foundation.knowledgedata.domain.datasource.model.TextContentReference;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.quality.QualityReport;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.repository.GovernedDataSourceRepository;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.service.FileSyncArtifactPublishing;
@@ -130,8 +131,18 @@ class FileSyncArtifactPublicationServiceTest {
                 SPACE,
                 source.id(),
                 1,
+                content(source),
+                1,
+                NOW);
+    }
+
+    private static TextContentReference content(GovernedDataSource source) {
+        return new TextContentReference(
+                1,
+                "foundation-v1/tenants/1/knowledge-data/artifacts/" + source.id() + ".txt",
                 "a".repeat(64),
                 1,
+                TextContentReference.UTF8_TEXT,
                 NOW);
     }
 

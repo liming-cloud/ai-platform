@@ -7,6 +7,7 @@ import com.aiplatform.foundation.knowledgedata.domain.datasource.model.GovernedD
 import com.aiplatform.foundation.knowledgedata.domain.datasource.model.GovernedDataSourceType;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.model.SyncArtifact;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.model.SyncArtifactId;
+import com.aiplatform.foundation.knowledgedata.domain.datasource.model.TextContentReference;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.quality.QualityReport;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.revision.SourceRevision;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.revision.StructuredDatasetRowFilter;
@@ -47,7 +48,7 @@ public final class StructuredDatasetCsvSynchronization {
             GovernedDataSource source,
             SourceRevision revision,
             SyncArtifactId artifactId,
-            String contentDigest,
+            TextContentReference content,
             long recordCount,
             long skippedBlankRowCount,
             Instant synchronizedAt) {
@@ -63,13 +64,14 @@ public final class StructuredDatasetCsvSynchronization {
                 && skippedBlankRowCount != 0) {
             throw new DataSourceStateException("当前行过滤策略不允许跳过空内容行");
         }
+        requireNormalizedContent(currentRevision, content);
         var artifact = SyncArtifact.create(
                 Objects.requireNonNull(artifactId, "同步产物标识不能为空"),
                 syncingSource.tenantId(),
                 syncingSource.knowledgeSpaceId(),
                 syncingSource.id(),
                 currentRevision.revision(),
-                contentDigest,
+                content,
                 recordCount,
                 Objects.requireNonNull(synchronizedAt, "同步时间不能为空"));
         var report = skippedBlankRowCount == 0
@@ -99,5 +101,12 @@ public final class StructuredDatasetCsvSynchronization {
             throw new DataSourceStateException("来源当前修订不允许完成结构化数据集同步");
         }
         return value;
+    }
+
+    private static void requireNormalizedContent(SourceRevision revision, TextContentReference content) {
+        var value = Objects.requireNonNull(content, "同步产物内容引用不能为空");
+        if (value.version() != Math.toIntExact(revision.revision())) {
+            throw new DataSourceStateException("结构化数据集同步产物内容不属于当前来源修订");
+        }
     }
 }

@@ -11,6 +11,7 @@ import com.aiplatform.foundation.knowledgedata.domain.datasource.model.GovernedD
 import com.aiplatform.foundation.knowledgedata.domain.datasource.model.GovernedDataSourceType;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.model.SyncArtifact;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.model.SyncArtifactId;
+import com.aiplatform.foundation.knowledgedata.domain.datasource.model.TextContentReference;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.quality.QualityReport;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.revision.FileSourceObjectReference;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.revision.SourceRevision;
@@ -37,7 +38,7 @@ class FileDataSourceOperationsTest {
                 source,
                 fileRevision(source),
                 new SyncArtifactId(240000000000000001L),
-                "a".repeat(64),
+                fileContent(source),
                 1,
                 NOW);
 
@@ -56,7 +57,7 @@ class FileDataSourceOperationsTest {
                 source,
                 fileRevision(otherSource),
                 new SyncArtifactId(240000000000000002L),
-                "a".repeat(64),
+                fileContent(otherSource),
                 1,
                 NOW));
     }
@@ -69,7 +70,7 @@ class FileDataSourceOperationsTest {
                 source,
                 fileRevision(source),
                 new SyncArtifactId(240000000000000003L),
-                "a".repeat(64),
+                fileContent(source),
                 1,
                 NOW));
     }
@@ -142,8 +143,18 @@ class FileDataSourceOperationsTest {
                 source.knowledgeSpaceId(),
                 source.id(),
                 source.currentRevision(),
+                fileContent(source),
+                1,
+                NOW);
+    }
+
+    private static TextContentReference fileContent(GovernedDataSource source) {
+        return new TextContentReference(
+                Math.toIntExact(source.currentRevision()),
+                "foundation-v1/tenants/1/knowledge-data/files/2/1/content.txt",
                 "a".repeat(64),
                 1,
+                TextContentReference.UTF8_TEXT,
                 NOW);
     }
 }

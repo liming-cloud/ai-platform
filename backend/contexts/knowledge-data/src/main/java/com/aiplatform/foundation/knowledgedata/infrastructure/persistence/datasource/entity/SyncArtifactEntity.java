@@ -18,6 +18,11 @@ public class SyncArtifactEntity {
     @TableField("data_source_id") private Long dataSourceId;
     @TableField("source_revision") private long sourceRevision;
     @TableField("content_digest") private String contentDigest;
+    @TableField("content_version") private int contentVersion;
+    @TableField("content_object_key") private String contentObjectKey;
+    @TableField("content_byte_size") private long contentByteSize;
+    @TableField("content_media_type") private String contentMediaType;
+    @TableField("content_created_at") private Instant contentCreatedAt;
     @TableField("record_count") private long recordCount;
     @TableField("synchronized_at") private Instant synchronizedAt;
 
@@ -33,6 +38,16 @@ public class SyncArtifactEntity {
     public void setSourceRevision(long sourceRevision) { this.sourceRevision = sourceRevision; }
     public String getContentDigest() { return contentDigest; }
     public void setContentDigest(String contentDigest) { this.contentDigest = contentDigest; }
+    public int getContentVersion() { return contentVersion; }
+    public void setContentVersion(int contentVersion) { this.contentVersion = contentVersion; }
+    public String getContentObjectKey() { return contentObjectKey; }
+    public void setContentObjectKey(String contentObjectKey) { this.contentObjectKey = contentObjectKey; }
+    public long getContentByteSize() { return contentByteSize; }
+    public void setContentByteSize(long contentByteSize) { this.contentByteSize = contentByteSize; }
+    public String getContentMediaType() { return contentMediaType; }
+    public void setContentMediaType(String contentMediaType) { this.contentMediaType = contentMediaType; }
+    public Instant getContentCreatedAt() { return contentCreatedAt; }
+    public void setContentCreatedAt(Instant contentCreatedAt) { this.contentCreatedAt = contentCreatedAt; }
     public long getRecordCount() { return recordCount; }
     public void setRecordCount(long recordCount) { this.recordCount = recordCount; }
     public Instant getSynchronizedAt() { return synchronizedAt; }
