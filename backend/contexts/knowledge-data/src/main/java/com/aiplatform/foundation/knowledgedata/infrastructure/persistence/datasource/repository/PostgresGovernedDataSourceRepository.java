@@ -11,6 +11,9 @@ import com.aiplatform.foundation.knowledgedata.domain.datasource.model.Published
 import com.aiplatform.foundation.knowledgedata.domain.datasource.quality.QualityReport;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.quality.QualityStatus;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.revision.FileSourceObjectReference;
+import com.aiplatform.foundation.knowledgedata.domain.datasource.revision.ObjectStorageObjectCollection;
+import com.aiplatform.foundation.knowledgedata.domain.datasource.revision.PlatformObjectRangeId;
+import com.aiplatform.foundation.knowledgedata.domain.datasource.revision.PlatformObjectReference;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.revision.SourceRevision;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.service.FileSynchronizationCompletion;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.service.FileSyncArtifactPublication;
@@ -19,11 +22,13 @@ import com.aiplatform.foundation.knowledgedata.domain.datasource.model.SyncArtif
 import com.aiplatform.foundation.knowledgedata.domain.datasource.repository.GovernedDataSourceRepository;
 import com.aiplatform.foundation.knowledgedata.domain.knowledge.model.KnowledgeSpaceId;
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.entity.GovernedDataSourceEntity;
+import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.entity.ObjectStorageObjectEntity;
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.entity.PublishedSyncArtifactEntity;
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.entity.QualityReportEntity;
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.entity.SourceRevisionEntity;
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.entity.SyncArtifactEntity;
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.mapper.GovernedDataSourceMapper;
+import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.mapper.ObjectStorageObjectMapper;
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.mapper.PublishedSyncArtifactMapper;
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.mapper.QualityReportMapper;
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.mapper.SourceRevisionMapper;
@@ -45,6 +50,7 @@ public final class PostgresGovernedDataSourceRepository implements GovernedDataS
 
     private final GovernedDataSourceMapper sourceMapper;
     private final SourceRevisionMapper revisionMapper;
+    private final ObjectStorageObjectMapper objectStorageObjectMapper;
     private final SyncArtifactMapper artifactMapper;
     private final QualityReportMapper qualityMapper;
     private final PublishedSyncArtifactMapper publicationMapper;
@@ -53,12 +59,15 @@ public final class PostgresGovernedDataSourceRepository implements GovernedDataS
     public PostgresGovernedDataSourceRepository(
             GovernedDataSourceMapper sourceMapper,
             SourceRevisionMapper revisionMapper,
+            ObjectStorageObjectMapper objectStorageObjectMapper,
             SyncArtifactMapper artifactMapper,
             QualityReportMapper qualityMapper,
             PublishedSyncArtifactMapper publicationMapper,
             PlatformTransactionManager transactionManager) {
         this.sourceMapper = Objects.requireNonNull(sourceMapper, "受治理数据源映射器不能为空");
         this.revisionMapper = Objects.requireNonNull(revisionMapper, "来源修订映射器不能为空");
+        this.objectStorageObjectMapper = Objects.requireNonNull(
+                objectStorageObjectMapper, "对象存储来源对象映射器不能为空");
         this.artifactMapper = Objects.requireNonNull(artifactMapper, "同步产物映射器不能为空");
         this.qualityMapper = Objects.requireNonNull(qualityMapper, "质量结论映射器不能为空");
         this.publicationMapper = Objects.requireNonNull(publicationMapper, "发布产物映射器不能为空");
@@ -73,6 +82,7 @@ public final class PostgresGovernedDataSourceRepository implements GovernedDataS
         transactions.executeWithoutResult(status -> {
             sourceMapper.insert(toEntity(source));
             revisionMapper.insert(toEntity(revision));
+            insertObjectStorageObjects(revision);
         });
     }
 
@@ -153,7 +163,10 @@ public final class PostgresGovernedDataSourceRepository implements GovernedDataS
                 knowledgeSpaceId.value(),
                 dataSourceId.value(),
                 revision);
-        return Optional.ofNullable(row).map(PostgresGovernedDataSourceRepository::toDomain);
+        return Optional.ofNullable(row).map(value -> toDomain(
+                value,
+                objectStorageObjectMapper.findByScope(
+                        tenantId.value(), knowledgeSpaceId.value(), dataSourceId.value(), revision)));
     }
 
     @Override
@@ -231,10 +244,14 @@ public final class PostgresGovernedDataSourceRepository implements GovernedDataS
         entity.setSourceType(value.sourceType().name());
         entity.setDefinitionDigest(value.definitionDigest());
         var file = value.fileObject();
+        var objects = value.objectStorageObjects();
         entity.setObjectKey(file == null ? null : file.objectKey());
         entity.setContentDigest(file == null ? null : file.contentDigest());
         entity.setByteSize(file == null ? null : file.byteSize());
         entity.setMediaType(file == null ? null : file.mediaType());
+        entity.setObjectRangeId(objects == null ? null : objects.rangeId().value());
+        entity.setObjectSelectionRevision(objects == null ? null : objects.selectionRevision());
+        entity.setObjectCollectionDigest(objects == null ? null : objects.definitionDigest());
         entity.setCreatedBy(value.createdBy().value());
         entity.setCreatedAt(value.createdAt());
         return entity;
@@ -298,7 +315,9 @@ public final class PostgresGovernedDataSourceRepository implements GovernedDataS
                 value.getVersion());
     }
 
-    private static SourceRevision toDomain(SourceRevisionEntity value) {
+    private static SourceRevision toDomain(
+            SourceRevisionEntity value, java.util.List<ObjectStorageObjectEntity> objectRows) {
+        var objects = objectStorageObjects(value, objectRows);
         return SourceRevision.restore(
                 new TenantId(value.getTenantId()),
                 new KnowledgeSpaceId(value.getKnowledgeSpaceId()),
@@ -307,6 +326,7 @@ public final class PostgresGovernedDataSourceRepository implements GovernedDataS
                 GovernedDataSourceType.valueOf(value.getSourceType()),
                 value.getDefinitionDigest(),
                 fileObject(value),
+                objects,
                 new CreatorId(value.getCreatedBy()),
                 value.getCreatedAt());
     }
@@ -320,6 +340,53 @@ public final class PostgresGovernedDataSourceRepository implements GovernedDataS
                 value.getContentDigest(),
                 value.getByteSize(),
                 value.getMediaType());
+    }
+
+    private static ObjectStorageObjectCollection objectStorageObjects(
+            SourceRevisionEntity value, java.util.List<ObjectStorageObjectEntity> objectRows) {
+        if (GovernedDataSourceType.valueOf(value.getSourceType()) != GovernedDataSourceType.OBJECT_STORAGE) {
+            if (!objectRows.isEmpty()) {
+                throw new IllegalStateException("非对象存储来源修订不能包含冻结对象");
+            }
+            return null;
+        }
+        var collection = new ObjectStorageObjectCollection(
+                new PlatformObjectRangeId(value.getObjectRangeId()),
+                Objects.requireNonNull(value.getObjectSelectionRevision(), "对象范围选择修订不能为空"),
+                objectRows.stream()
+                        .map(row -> new PlatformObjectReference(
+                                row.getPlatformObjectId(),
+                                row.getContentDigest(),
+                                row.getByteSize(),
+                                row.getMediaType(),
+                                row.getFreshAt()))
+                        .toList());
+        if (!collection.definitionDigest().equals(value.getObjectCollectionDigest())) {
+            throw new IllegalStateException("对象存储来源对象集合摘要不一致");
+        }
+        return collection;
+    }
+
+    private void insertObjectStorageObjects(SourceRevision revision) {
+        var collection = revision.objectStorageObjects();
+        if (collection == null) {
+            return;
+        }
+        for (var ordinal = 0; ordinal < collection.objects().size(); ordinal++) {
+            var object = collection.objects().get(ordinal);
+            var entity = new ObjectStorageObjectEntity();
+            entity.setTenantId(revision.tenantId().value());
+            entity.setKnowledgeSpaceId(revision.knowledgeSpaceId().value());
+            entity.setDataSourceId(revision.dataSourceId().value());
+            entity.setRevision(revision.revision());
+            entity.setObjectOrdinal(ordinal);
+            entity.setPlatformObjectId(object.objectId());
+            entity.setContentDigest(object.contentDigest());
+            entity.setByteSize(object.byteSize());
+            entity.setMediaType(object.mediaType());
+            entity.setFreshAt(object.freshAt());
+            objectStorageObjectMapper.insert(entity);
+        }
     }
 
     private static SyncArtifact toDomain(SyncArtifactEntity value) {

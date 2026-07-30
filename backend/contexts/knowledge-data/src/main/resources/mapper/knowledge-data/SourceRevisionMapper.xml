@@ -9,11 +9,13 @@
         INSERT INTO knowledge_data.source_revision (
             tenant_id, knowledge_space_id, data_source_id, revision,
             source_type, definition_digest, object_key, content_digest, byte_size, media_type,
+            object_range_id, object_selection_revision, object_collection_digest,
             created_by, created_at
         ) VALUES (
             #{entity.tenantId}, #{entity.knowledgeSpaceId}, #{entity.dataSourceId}, #{entity.revision},
             #{entity.sourceType}, #{entity.definitionDigest}, #{entity.objectKey}, #{entity.contentDigest},
-            #{entity.byteSize}, #{entity.mediaType}, #{entity.createdBy}, #{entity.createdAt}
+            #{entity.byteSize}, #{entity.mediaType}, #{entity.objectRangeId}, #{entity.objectSelectionRevision},
+            #{entity.objectCollectionDigest}, #{entity.createdBy}, #{entity.createdAt}
         )
         ]]>
     </insert>
@@ -22,6 +24,7 @@
         <![CDATA[
         SELECT tenant_id, knowledge_space_id, data_source_id, revision,
                source_type, definition_digest, object_key, content_digest, byte_size, media_type,
+               object_range_id, object_selection_revision, object_collection_digest,
                created_by, created_at
         FROM knowledge_data.source_revision
         WHERE tenant_id = #{tenantId}

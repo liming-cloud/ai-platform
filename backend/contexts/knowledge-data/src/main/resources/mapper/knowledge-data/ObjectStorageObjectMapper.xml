@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.mapper.ObjectStorageObjectMapper">
+
+    <insert id="insert">
+        <![CDATA[
+        INSERT INTO knowledge_data.source_revision_object (
+            tenant_id, knowledge_space_id, data_source_id, revision, object_ordinal,
+            platform_object_id, content_digest, byte_size, media_type, fresh_at
+        ) VALUES (
+            #{entity.tenantId}, #{entity.knowledgeSpaceId}, #{entity.dataSourceId}, #{entity.revision},
+            #{entity.objectOrdinal}, #{entity.platformObjectId}, #{entity.contentDigest}, #{entity.byteSize},
+            #{entity.mediaType}, #{entity.freshAt}
+        )
+        ]]>
+    </insert>
+
+    <select id="findByScope" resultType="com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.entity.ObjectStorageObjectEntity">
+        <![CDATA[
+        SELECT tenant_id, knowledge_space_id, data_source_id, revision, object_ordinal,
+               platform_object_id, content_digest, byte_size, media_type, fresh_at
+        FROM knowledge_data.source_revision_object
+        WHERE tenant_id = #{tenantId}
+          AND knowledge_space_id = #{knowledgeSpaceId}
+          AND data_source_id = #{dataSourceId}
+          AND revision = #{revision}
+        ORDER BY object_ordinal
+        ]]>
+    </select>
+</mapper>

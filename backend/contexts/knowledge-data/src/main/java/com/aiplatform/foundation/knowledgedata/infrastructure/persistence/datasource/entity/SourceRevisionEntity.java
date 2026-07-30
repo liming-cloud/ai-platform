@@ -20,6 +20,9 @@ public class SourceRevisionEntity {
     @TableField("content_digest") private String contentDigest;
     @TableField("byte_size") private Long byteSize;
     @TableField("media_type") private String mediaType;
+    @TableField("object_range_id") private String objectRangeId;
+    @TableField("object_selection_revision") private Long objectSelectionRevision;
+    @TableField("object_collection_digest") private String objectCollectionDigest;
     @TableField("created_by") private Long createdBy;
     @TableField("created_at") private Instant createdAt;
 
@@ -43,6 +46,16 @@ public class SourceRevisionEntity {
     public void setByteSize(Long byteSize) { this.byteSize = byteSize; }
     public String getMediaType() { return mediaType; }
     public void setMediaType(String mediaType) { this.mediaType = mediaType; }
+    public String getObjectRangeId() { return objectRangeId; }
+    public void setObjectRangeId(String objectRangeId) { this.objectRangeId = objectRangeId; }
+    public Long getObjectSelectionRevision() { return objectSelectionRevision; }
+    public void setObjectSelectionRevision(Long objectSelectionRevision) {
+        this.objectSelectionRevision = objectSelectionRevision;
+    }
+    public String getObjectCollectionDigest() { return objectCollectionDigest; }
+    public void setObjectCollectionDigest(String objectCollectionDigest) {
+        this.objectCollectionDigest = objectCollectionDigest;
+    }
     public Long getCreatedBy() { return createdBy; }
     public void setCreatedBy(Long createdBy) { this.createdBy = createdBy; }
     public Instant getCreatedAt() { return createdAt; }

@@ -24,6 +24,7 @@ public final class SourceRevision {
     private final GovernedDataSourceType sourceType;
     private final String definitionDigest;
     private final FileSourceObjectReference fileObject;
+    private final ObjectStorageObjectCollection objectStorageObjects;
     private final CreatorId createdBy;
     private final Instant createdAt;
 
@@ -35,6 +36,7 @@ public final class SourceRevision {
             GovernedDataSourceType sourceType,
             String definitionDigest,
             FileSourceObjectReference fileObject,
+            ObjectStorageObjectCollection objectStorageObjects,
             CreatorId createdBy,
             Instant createdAt) {
         this.tenantId = Objects.requireNonNull(tenantId, "租户标识不能为空");
@@ -52,10 +54,20 @@ public final class SourceRevision {
         if (sourceType != GovernedDataSourceType.FILE && fileObject != null) {
             throw new IllegalArgumentException("非文件来源不能冻结文件对象");
         }
+        if (sourceType == GovernedDataSourceType.OBJECT_STORAGE && objectStorageObjects == null) {
+            throw new IllegalArgumentException("对象存储来源修订必须冻结对象集合");
+        }
+        if (sourceType != GovernedDataSourceType.OBJECT_STORAGE && objectStorageObjects != null) {
+            throw new IllegalArgumentException("非对象存储来源不能冻结对象集合");
+        }
         if (fileObject != null && !this.definitionDigest.equals(fileObject.definitionDigest())) {
             throw new IllegalArgumentException("文件来源定义摘要与对象事实不一致");
         }
+        if (objectStorageObjects != null && !this.definitionDigest.equals(objectStorageObjects.definitionDigest())) {
+            throw new IllegalArgumentException("对象存储来源定义摘要与对象集合不一致");
+        }
         this.fileObject = fileObject;
+        this.objectStorageObjects = objectStorageObjects;
         this.createdBy = Objects.requireNonNull(createdBy, "创建成员不能为空");
         this.createdAt = Objects.requireNonNull(createdAt, "创建时间不能为空");
     }
@@ -80,6 +92,32 @@ public final class SourceRevision {
                 source.type(),
                 Objects.requireNonNull(fileObject, "文件对象不能为空").definitionDigest(),
                 fileObject,
+                null,
+                createdBy,
+                createdAt);
+    }
+
+    /**
+     * 为对象存储来源创建新的不可变定义修订。
+     */
+    public static SourceRevision objectStorage(
+            GovernedDataSource source,
+            ObjectStorageObjectCollection objectStorageObjects,
+            CreatorId createdBy,
+            Instant createdAt) {
+        Objects.requireNonNull(source, "受治理数据源不能为空");
+        if (source.type() != GovernedDataSourceType.OBJECT_STORAGE) {
+            throw new IllegalArgumentException("对象集合只能登记到对象存储来源");
+        }
+        return new SourceRevision(
+                source.tenantId(),
+                source.knowledgeSpaceId(),
+                source.id(),
+                source.currentRevision(),
+                source.type(),
+                Objects.requireNonNull(objectStorageObjects, "对象集合不能为空").definitionDigest(),
+                null,
+                objectStorageObjects,
                 createdBy,
                 createdAt);
     }
@@ -95,6 +133,7 @@ public final class SourceRevision {
             GovernedDataSourceType sourceType,
             String definitionDigest,
             FileSourceObjectReference fileObject,
+            ObjectStorageObjectCollection objectStorageObjects,
             CreatorId createdBy,
             Instant createdAt) {
         return new SourceRevision(
@@ -105,6 +144,7 @@ public final class SourceRevision {
                 sourceType,
                 definitionDigest,
                 fileObject,
+                objectStorageObjects,
                 createdBy,
                 createdAt);
     }
@@ -120,6 +160,11 @@ public final class SourceRevision {
      * 返回文件来源冻结的对象事实；非文件来源返回 `null`。
      */
     public FileSourceObjectReference fileObject() { return fileObject; }
+
+    /**
+     * 返回对象存储来源冻结的范围选择及对象集合；非对象存储来源返回 `null`。
+     */
+    public ObjectStorageObjectCollection objectStorageObjects() { return objectStorageObjects; }
 
     public CreatorId createdBy() { return createdBy; }
     public Instant createdAt() { return createdAt; }

@@ -14,6 +14,9 @@ import com.aiplatform.foundation.knowledgedata.domain.datasource.model.GovernedD
 import com.aiplatform.foundation.knowledgedata.domain.datasource.model.GovernedDataSourceType;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.quality.QualityReport;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.revision.FileSourceObjectReference;
+import com.aiplatform.foundation.knowledgedata.domain.datasource.revision.ObjectStorageObjectCollection;
+import com.aiplatform.foundation.knowledgedata.domain.datasource.revision.PlatformObjectRangeId;
+import com.aiplatform.foundation.knowledgedata.domain.datasource.revision.PlatformObjectReference;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.revision.SourceRevision;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.model.SyncArtifactId;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.repository.GovernedDataSourceRepository;
@@ -25,6 +28,7 @@ import com.aiplatform.foundation.knowledgedata.application.datasource.port.out.G
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.mapper.GovernedFileDataSourceReadMapper;
 import com.aiplatform.foundation.knowledgedata.domain.knowledge.model.KnowledgeSpaceId;
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.mapper.GovernedDataSourceMapper;
+import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.mapper.ObjectStorageObjectMapper;
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.mapper.PublishedSyncArtifactMapper;
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.mapper.QualityReportMapper;
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.mapper.SourceRevisionMapper;
@@ -100,6 +104,7 @@ class PostgresGovernedDataSourceRepositoryTest {
         jdbc.update("DELETE FROM knowledge_data.published_sync_artifact");
         jdbc.update("DELETE FROM knowledge_data.quality_report");
         jdbc.update("DELETE FROM knowledge_data.sync_artifact");
+        jdbc.update("DELETE FROM knowledge_data.source_revision_object");
         jdbc.update("DELETE FROM knowledge_data.source_revision");
         jdbc.update("DELETE FROM knowledge_data.governed_data_source");
         jdbc.update("DELETE FROM knowledge_data.knowledge_space");
@@ -131,6 +136,39 @@ class PostgresGovernedDataSourceRepositoryTest {
         assertFalse(repository.findSource(CAMPUS_TENANT, SPACE, source.id()).isPresent());
         assertEquals(1, count("governed_data_source", STORE_TENANT));
         assertEquals(1, count("source_revision", STORE_TENANT));
+    }
+
+    @Test
+    void 对象存储来源范围选择和冻结对象集合按原顺序持久化() {
+        var source = objectStorageSource(STORE_TENANT, nextSourceId(), "平台对象集合");
+        var revision = SourceRevision.objectStorage(
+                source,
+                new ObjectStorageObjectCollection(
+                        new PlatformObjectRangeId("rng_7c90d7a8716e4a79"),
+                        7,
+                        java.util.List.of(
+                                new PlatformObjectReference(
+                                        "obj_26d372bcbd4245b7",
+                                        "a".repeat(64),
+                                        128,
+                                        "text/plain; charset=utf-8",
+                                        CREATED_AT),
+                                new PlatformObjectReference(
+                                        "obj_6a6256645ef6487f",
+                                        "b".repeat(64),
+                                        256,
+                                        "text/markdown",
+                                        CREATED_AT.plusSeconds(30)))),
+                CREATOR,
+                CREATED_AT);
+
+        repository.register(source, revision);
+
+        var stored = repository.findRevision(STORE_TENANT, SPACE, source.id(), 1).orElseThrow();
+        assertEquals(revision.definitionDigest(), stored.definitionDigest());
+        assertEquals(revision.objectStorageObjects(), stored.objectStorageObjects());
+        assertFalse(repository.findRevision(CAMPUS_TENANT, SPACE, source.id(), 1).isPresent());
+        assertEquals(2, count("source_revision_object", STORE_TENANT));
     }
 
     @Test
@@ -365,6 +403,17 @@ class PostgresGovernedDataSourceRepositoryTest {
                 CREATED_AT);
     }
 
+    private static GovernedDataSource objectStorageSource(TenantId tenantId, DataSourceId id, String name) {
+        return GovernedDataSource.create(
+                tenantId,
+                SPACE,
+                id,
+                GovernedDataSourceType.OBJECT_STORAGE,
+                name,
+                CREATOR,
+                CREATED_AT);
+    }
+
     private static SourceRevision revision(GovernedDataSource source, String digest) {
         return SourceRevision.file(
                 source,
@@ -442,6 +491,7 @@ class PostgresGovernedDataSourceRepositoryTest {
         GovernedDataSourceRepository governedDataSourceRepository(
                 GovernedDataSourceMapper sourceMapper,
                 SourceRevisionMapper revisionMapper,
+                ObjectStorageObjectMapper objectStorageObjectMapper,
                 SyncArtifactMapper artifactMapper,
                 QualityReportMapper qualityMapper,
                 PublishedSyncArtifactMapper publicationMapper,
@@ -449,6 +499,7 @@ class PostgresGovernedDataSourceRepositoryTest {
             return new PostgresGovernedDataSourceRepository(
                     sourceMapper,
                     revisionMapper,
+                    objectStorageObjectMapper,
                     artifactMapper,
                     qualityMapper,
                     publicationMapper,
