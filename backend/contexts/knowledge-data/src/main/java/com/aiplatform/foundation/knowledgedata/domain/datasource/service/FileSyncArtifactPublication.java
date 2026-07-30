@@ -11,7 +11,7 @@ import java.util.Objects;
  *
  * <p>结果冻结来源目标版本、发布事实与同一质量结论，持久化层只需在同一事务中更新来源并写入发布记录。</p>
  */
-public final class FileSyncArtifactPublication {
+public final class FileSyncArtifactPublication implements DataSourceSyncArtifactPublication {
 
     private final long expectedSourceVersion;
     private final GovernedDataSource publishedSource;
@@ -44,14 +44,17 @@ public final class FileSyncArtifactPublication {
         }
     }
 
+    @Override
     public long expectedSourceVersion() {
         return expectedSourceVersion;
     }
 
+    @Override
     public GovernedDataSource publishedSource() {
         return publishedSource;
     }
 
+    @Override
     public PublishedSyncArtifact publication() {
         return publication;
     }

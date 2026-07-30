@@ -22,7 +22,7 @@ import com.aiplatform.foundation.knowledgedata.domain.datasource.revision.Struct
 import com.aiplatform.foundation.knowledgedata.domain.datasource.revision.StructuredDatasetRowFilter;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.revision.StructuredDatasetSensitivityLevel;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.service.DataSourceSynchronizationCompletion;
-import com.aiplatform.foundation.knowledgedata.domain.datasource.service.FileSyncArtifactPublication;
+import com.aiplatform.foundation.knowledgedata.domain.datasource.service.DataSourceSyncArtifactPublication;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.model.SyncArtifact;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.model.SyncArtifactId;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.model.TextContentReference;
@@ -122,7 +122,7 @@ public final class PostgresGovernedDataSourceRepository implements GovernedDataS
     }
 
     @Override
-    public void publishArtifact(FileSyncArtifactPublication publication) {
+    public void publishArtifact(DataSourceSyncArtifactPublication publication) {
         var result = Objects.requireNonNull(publication, "文件同步产物发布结果不能为空");
         transactions.executeWithoutResult(status -> {
             var published = result.publishedSource();

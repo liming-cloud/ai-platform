@@ -7,7 +7,7 @@ import com.aiplatform.foundation.knowledgedata.domain.datasource.model.SyncArtif
 import com.aiplatform.foundation.knowledgedata.domain.datasource.quality.QualityReport;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.revision.SourceRevision;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.service.DataSourceSynchronizationCompletion;
-import com.aiplatform.foundation.knowledgedata.domain.datasource.service.FileSyncArtifactPublication;
+import com.aiplatform.foundation.knowledgedata.domain.datasource.service.DataSourceSyncArtifactPublication;
 import com.aiplatform.foundation.knowledgedata.domain.knowledge.model.KnowledgeSpaceId;
 import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
 import java.util.Optional;
@@ -30,9 +30,9 @@ public interface GovernedDataSourceRepository {
     void completeSynchronization(DataSourceSynchronizationCompletion completion);
 
     /**
-     * 原子提交已由领域服务验证的 FILE 同步产物发布结果。
+     * 原子提交已由领域服务验证的同步产物发布结果。
      */
-    void publishArtifact(FileSyncArtifactPublication publication);
+    void publishArtifact(DataSourceSyncArtifactPublication publication);
 
     /**
      * 以来源修订执行一次乐观状态更新。
