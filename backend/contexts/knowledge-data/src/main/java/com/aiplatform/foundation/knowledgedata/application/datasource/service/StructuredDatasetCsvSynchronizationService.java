@@ -1,6 +1,6 @@
 package com.aiplatform.foundation.knowledgedata.application.datasource.service;
 
-import com.aiplatform.foundation.knowledgedata.application.datasource.command.SynchronizeStructuredDatasetCommand;
+import com.aiplatform.foundation.knowledgedata.application.datasource.command.synchronization.SynchronizeStructuredDatasetCommand;
 import com.aiplatform.foundation.knowledgedata.application.datasource.dto.GovernedDataSourceLifecycleResult;
 import com.aiplatform.foundation.knowledgedata.application.datasource.exception.DataSourceConcurrentModificationException;
 import com.aiplatform.foundation.knowledgedata.application.datasource.exception.DataSourceNotFoundException;

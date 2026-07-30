@@ -1,4 +1,4 @@
-package com.aiplatform.foundation.knowledgedata.application.datasource.command;
+package com.aiplatform.foundation.knowledgedata.application.datasource.command.synchronization;
 
 import com.aiplatform.foundation.security.identity.TrustedRequestContext;
 import java.util.Objects;

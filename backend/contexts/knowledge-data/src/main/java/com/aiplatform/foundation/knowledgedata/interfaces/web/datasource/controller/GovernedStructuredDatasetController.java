@@ -1,7 +1,7 @@
 package com.aiplatform.foundation.knowledgedata.interfaces.web.datasource.controller;
 
 import com.aiplatform.foundation.knowledgedata.application.datasource.command.RegisterStructuredDatasetCommand;
-import com.aiplatform.foundation.knowledgedata.application.datasource.command.SynchronizeStructuredDatasetCommand;
+import com.aiplatform.foundation.knowledgedata.application.datasource.command.synchronization.SynchronizeStructuredDatasetCommand;
 import com.aiplatform.foundation.knowledgedata.application.datasource.dto.GovernedDataSourceLifecycleResult;
 import com.aiplatform.foundation.knowledgedata.application.datasource.service.GovernedStructuredDatasetRegistrationService;
 import com.aiplatform.foundation.knowledgedata.application.datasource.service.StructuredDatasetCsvSynchronizationService;
