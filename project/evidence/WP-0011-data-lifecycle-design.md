@@ -580,3 +580,19 @@ ADR-0028 定义 `GovernedDataSource`、`SourceRevision`、`SyncArtifact`、`Qual
 - 自动配置在对象存储关闭时提供失败关闭 CSV 端口；启用 MinIO 时仅注册私有 CSV 端口，并允许应用显式替换。HTTP 回归覆盖 UTF-8 参数大小写、请求转发和非 CSV 拒绝。
 
 本切片只完成 STRUCTURED_DATASET 的受控登记及私有对象存储边界；CSV 抽样／解析、字段策略、质量、发布、索引和浏览器任务仍未实现。WP-0011 与 M3 继续进行，不能申请人工评审或进入 M4。
+
+## STRUCTURED_DATASET 控制台登记入口（2026-07-30）
+
+### 红绿与自动化验证
+
+- 红灯：在 `frontend/` 运行 `npm test -- --run apps/console-web/src/api/control-plane-client.test.ts`。新增 multipart 契约测试按预期因 `ControlPlaneClient.registerStructuredDataset` 不存在而失败，证明浏览器调用 seam 先于实现存在。
+- 绿灯：提交 `48d68d243` 后，同一测试通过。它验证浏览器只向 `/governed-data-sources/structured-datasets` 发送授权的 multipart 请求，`definition` 只包含知识空间、名称、映射、行过滤和字段策略，`csv` 只保留 UTF-8 CSV 文件；对象位置、外部端点和凭据不进入请求。
+- 全量前端验证：运行 `npm test && npm run typecheck && npm run lint -- --quiet && npm run build`，8 个测试文件、39 项测试、类型检查、静态检查和两个生产构建均通过；`git diff --check` 通过。
+
+### 已验证边界
+
+- 企业控制台“数据”区域新增“结构化数据集登记”任务。管理员可选择知识空间、填写映射版本、增删字段映射、选择主内容／可选标题字段、配置既有行过滤并上传 CSV；前端不读取或回显 CSV 正文、对象键、桶名、摘要、凭据或敏感字段值。
+- multipart 边界由浏览器生成，客户端只传递幂等键和授权头，避免错误固定 `Content-Type` 而破坏分段；后端仍是 UTF-8 媒体类型与领域不变量的唯一裁决者。
+- 成功后只展示数据源编号和草稿状态。同步、质量、显式发布和索引没有在页面伪造入口，必须等待 ADR-0032 被接受并完成相应后端闭环。
+
+本切片提供可操作的受控登记浏览器入口，但不构成 STRUCTURED_DATASET 生命周期闭环、WP-0011 或 M3 完成；M3 仍不能进入人工评审或 M4。

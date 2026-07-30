@@ -2,7 +2,7 @@ schemaVersion: 1
 productVersion: foundation-v1
 currentMilestone: M3
 currentFrontier: WP-0011
-lastVerifiedCommit: 6d45f59a9
+lastVerifiedCommit: 48d68d243
 activeWorkPackages:
   - WP-0011
 blockedWorkPackages: []
@@ -118,5 +118,5 @@ latestEvidence:
   - project/evidence/WP-0011-data-lifecycle-design.md
   - project/evidence/WP-0011-domain-aggregate-operation-boundary.md
 nextReviewAt: 2026-08-03
-updatedAt: 2026-07-30T09:05:00+08:00
+updatedAt: 2026-07-30T09:09:00+08:00
 updatedBy: codex
