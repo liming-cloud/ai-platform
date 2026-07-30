@@ -3,9 +3,9 @@ productVersion: foundation-v1
 currentMilestone: M3
 currentFrontier: WP-0011
 lastVerifiedCommit: 469ceb8b9
-activeWorkPackages:
+activeWorkPackages: []
+blockedWorkPackages:
   - WP-0011
-blockedWorkPackages: []
 confirmedDecisions:
   - ADR-0001
   - ADR-0002
@@ -127,5 +127,5 @@ latestEvidence:
   - project/evidence/WP-0011-legacy-sync-artifact-upgrade.md
   - project/evidence/WP-0011-browser-runtime-acceptance.md
 nextReviewAt: 2026-08-03
-updatedAt: 2026-07-30T16:00:00+08:00
+updatedAt: 2026-07-30T16:20:00+08:00
 updatedBy: codex
