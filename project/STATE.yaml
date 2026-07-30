@@ -2,7 +2,7 @@ schemaVersion: 1
 productVersion: foundation-v1
 currentMilestone: M3
 currentFrontier: WP-0011
-lastVerifiedCommit: 60dc61c63
+lastVerifiedCommit: 7454d58c3
 activeWorkPackages:
   - WP-0011
 blockedWorkPackages: []
@@ -124,6 +124,7 @@ latestEvidence:
   - project/evidence/WP-0011-object-storage-console.md
   - project/evidence/WP-0011-structured-dataset-synchronization.md
   - project/evidence/WP-0011-structured-dataset-index-console.md
+  - project/evidence/WP-0011-legacy-sync-artifact-upgrade.md
 nextReviewAt: 2026-08-03
-updatedAt: 2026-07-30T12:19:00+08:00
+updatedAt: 2026-07-30T12:40:20+08:00
 updatedBy: codex

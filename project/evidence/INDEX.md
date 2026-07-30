@@ -177,6 +177,7 @@
 | M3 STRUCTURED_DATASET 登记即绪、同步与发布 | `project/evidence/WP-0011-structured-dataset-synchronization.md` | `36a185124` | 私有 CSV 原子登记后直接就绪，领域同步／质量与显式发布、真实 PostgreSQL、HTTP、自动配置及前端 40 项回归通过；真实浏览器操作仍等待可写演示会话，M3 尚未完成 |
 | M3 STRUCTURED_DATASET 索引控制台 | `project/evidence/WP-0011-structured-dataset-index-console.md` | `c509413ad` | 仅当前已发布同步产物可创建索引，复用受控 Embedding、索引构建轮询与显式发布；前端反例和全量验证通过，真实浏览器操作仍等待可写会话，M3 尚未完成 |
 | M3 令牌派生登录态边界 | `project/evidence/WP-0011-token-derived-authentication-context.md` | `fc13521f7`、`15e0ce021` | ADR-0033 固定租户、主体、成员、凭据、渠道与权限仅从令牌会话恢复；解析器与真实 HTTP 回归证明伪造参数和 Header 不改变归属，M3 仍进行中 |
+| M3 历史同步产物升级与对象存储条件装配 | `project/evidence/WP-0011-legacy-sync-artifact-upgrade.md` | `efe6f5cd3`、`7454d58c3` | 历史产物不伪造冻结内容且不可进入索引候选；默认无对象正文映射部署安全启动、控制台无凭据入口回归通过，M3 仍进行中 |
 
 ## 证据规则
 
