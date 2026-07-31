@@ -6,6 +6,8 @@ import static org.mockito.Mockito.mock;
 import com.aiplatform.foundation.assistantdelivery.application.assistant.facade.PublishedAssistantVersionLookup;
 import com.aiplatform.foundation.assistantdelivery.application.assistant.facade.DraftAssistantVersionLookup;
 import com.aiplatform.foundation.assistantdelivery.application.assistant.service.AssistantService;
+import com.aiplatform.foundation.assistantdelivery.application.answer.service.AssistantTrustedAnswerExecutor;
+import com.aiplatform.foundation.assistantdelivery.application.assistant.testrun.service.AssistantTestRunService;
 import com.aiplatform.foundation.assistantdelivery.application.catalog.service.QueryAssistantCatalogService;
 import com.aiplatform.foundation.assistantdelivery.domain.assistant.repository.AssistantRepository;
 import com.aiplatform.foundation.assistantdelivery.domain.assistant.testrun.repository.AssistantTestRunRepository;
@@ -15,9 +17,15 @@ import com.aiplatform.foundation.assistantdelivery.infrastructure.persistence.as
 import com.aiplatform.foundation.assistantdelivery.infrastructure.persistence.assistant.mapper.AssistantRequestMapper;
 import com.aiplatform.foundation.assistantdelivery.infrastructure.persistence.assistant.mapper.AssistantVersionMapper;
 import com.aiplatform.foundation.assistantdelivery.interfaces.web.assistant.controller.AssistantController;
+import com.aiplatform.foundation.assistantdelivery.interfaces.web.assistant.controller.AssistantTestRunController;
 import com.aiplatform.foundation.assistantdelivery.interfaces.web.assistant.controller.AssistantVersionController;
 import com.aiplatform.foundation.knowledgedata.application.indexversion.facade.ActiveIndexLookup;
+import com.aiplatform.foundation.knowledgedata.application.indexversion.port.out.vector.IndexCandidateRetriever;
+import com.aiplatform.foundation.modelruntime.application.configuration.facade.UsableModelConfigurationLookup;
 import com.aiplatform.foundation.modelruntime.application.deployment.facade.PublishedChatDeploymentLookup;
+import com.aiplatform.foundation.modelruntime.application.runtime.facade.GovernedChatRuntime;
+import com.aiplatform.foundation.modelruntime.application.runtime.facade.GovernedEmbeddingRuntime;
+import com.aiplatform.foundation.modelruntime.application.runtime.facade.ModelRuntimeResolver;
 import com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
@@ -98,5 +106,23 @@ class AssistantDeliveryAutoConfigurationTest {
         persistenceRunner.withPropertyValues("foundation.assistant-delivery.enabled=true")
                 .run(context -> assertThat(context)
                         .hasSingleBean(AssistantTestRunRepository.class));
+    }
+
+    @Test
+    void 可信执行依赖齐备时应装配草稿测试服务和HTTP入口() {
+        runner.withPropertyValues(
+                        "foundation.assistant-delivery.enabled=true",
+                        "foundation.control-plane.enabled=true")
+                .withBean(AssistantTestRunRepository.class, () -> mock(AssistantTestRunRepository.class))
+                .withBean(ModelRuntimeResolver.class, () -> mock(ModelRuntimeResolver.class))
+                .withBean(UsableModelConfigurationLookup.class, () -> mock(UsableModelConfigurationLookup.class))
+                .withBean(GovernedEmbeddingRuntime.class, () -> mock(GovernedEmbeddingRuntime.class))
+                .withBean(GovernedChatRuntime.class, () -> mock(GovernedChatRuntime.class))
+                .withBean(IndexCandidateRetriever.class, () -> mock(IndexCandidateRetriever.class))
+                .run(context -> {
+                    assertThat(context).hasSingleBean(AssistantTrustedAnswerExecutor.class);
+                    assertThat(context).hasSingleBean(AssistantTestRunService.class);
+                    assertThat(context).hasSingleBean(AssistantTestRunController.class);
+                });
     }
 }

@@ -1,6 +1,6 @@
-package com.aiplatform.foundation.trustedquery.application.run.service;
+package com.aiplatform.foundation.assistantdelivery.application.answer.service;
 
-import com.aiplatform.foundation.assistantdelivery.application.assistant.dto.PublishedAssistantVersionSnapshot;
+import com.aiplatform.foundation.assistantdelivery.application.answer.dto.AssistantTrustedAnswerTarget;
 import com.aiplatform.foundation.knowledgedata.application.indexversion.port.out.vector.IndexCandidate;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.chat.ChatMessage;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.chat.ChatRole;
@@ -9,41 +9,30 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * 以固定顺序和大小预算组装仅包含已授权证据的对话消息。
+ * 以固定顺序和大小预算组装只包含已授权证据的对话消息。
  */
-final class QueryPromptBuilder {
+final class TrustedAnswerPromptBuilder {
 
     private static final int MAX_EVIDENCE_CODE_POINTS = 24_000;
     private static final int MAX_CHUNK_CODE_POINTS = 2_000;
 
-    private QueryPromptBuilder() {
+    private TrustedAnswerPromptBuilder() {
     }
 
     static List<ChatMessage> build(
-            PublishedAssistantVersionSnapshot assistant,
-            String question,
-            List<IndexCandidate> evidence) {
-        Objects.requireNonNull(assistant, "助手版本不能为空");
+            AssistantTrustedAnswerTarget target, String question, List<IndexCandidate> evidence) {
+        Objects.requireNonNull(target, "可信回答目标不能为空");
         Objects.requireNonNull(question, "问题不能为空");
         if (evidence == null || evidence.isEmpty()) {
             throw new IllegalArgumentException("生成回答前必须存在授权证据");
         }
-        var system = assistant.systemInstruction()
-                + "\n只允许依据用户消息中的编号证据回答。"
+        var system = target.systemInstruction() + "\n只允许依据用户消息中的编号证据回答。"
                 + "每个事实必须对应证据编号；证据没有包含的信息不得推测。";
-        var user = new StringBuilder()
-                .append("问题：")
-                .append(question)
-                .append("\n\n授权证据：");
+        var user = new StringBuilder("问题：").append(question).append("\n\n授权证据：");
         var remaining = MAX_EVIDENCE_CODE_POINTS;
         for (var index = 0; index < evidence.size() && remaining > 0; index++) {
-            var content = truncate(
-                    evidence.get(index).content(),
-                    Math.min(MAX_CHUNK_CODE_POINTS, remaining));
-            user.append("\n[证据")
-                    .append(index + 1)
-                    .append("] ")
-                    .append(content);
+            var content = truncate(evidence.get(index).content(), Math.min(MAX_CHUNK_CODE_POINTS, remaining));
+            user.append("\n[证据").append(index + 1).append("] ").append(content);
             remaining -= content.codePointCount(0, content.length());
         }
         var messages = new ArrayList<ChatMessage>(2);
@@ -64,7 +53,6 @@ final class QueryPromptBuilder {
         if (value.codePointCount(0, value.length()) <= maximumCodePoints) {
             return value;
         }
-        var end = value.offsetByCodePoints(0, maximumCodePoints);
-        return value.substring(0, end);
+        return value.substring(0, value.offsetByCodePoints(0, maximumCodePoints));
     }
 }

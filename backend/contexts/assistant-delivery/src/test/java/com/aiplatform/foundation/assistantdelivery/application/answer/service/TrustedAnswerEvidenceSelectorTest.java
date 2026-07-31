@@ -1,4 +1,4 @@
-package com.aiplatform.foundation.trustedquery.application.run.service;
+package com.aiplatform.foundation.assistantdelivery.application.answer.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -7,10 +7,10 @@ import com.aiplatform.foundation.knowledgedata.application.indexversion.port.out
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
-class QueryEvidenceSelectorTest {
+class TrustedAnswerEvidenceSelectorTest {
 
     @Test
-    void 扩大候选池并把字段型比较所需记录排入最终证据() {
+    void 应扩大候选池并把字段型比较所需记录排入最终证据() {
         var candidates = List.of(
                 candidate(1, 0.22, "销量口径：最近 30 个自然日已完成订单件数"),
                 candidate(2, 0.09, "浏览器验收商品，最近 30 日销量：88 件"),
@@ -19,13 +19,10 @@ class QueryEvidenceSelectorTest {
                 candidate(5, -0.01, "青柚气泡水，最近 30 日销量：428 瓶"),
                 candidate(6, -0.02, "便携保温杯，最近 30 日销量：64 个"));
 
-        var selected = QueryEvidenceSelector.select(
-                "最近 30 天卖得最多的是哪件商品？",
-                candidates,
-                5,
-                0);
+        var selected = TrustedAnswerEvidenceSelector.select(
+                "最近 30 天卖得最多的是哪件商品？", candidates, 5, 0);
 
-        assertEquals(20, QueryEvidenceSelector.candidateLimit(5));
+        assertEquals(20, TrustedAnswerEvidenceSelector.candidateLimit(5));
         assertEquals(5, selected.size());
         assertTrue(selected.stream().anyMatch(value -> value.content().contains("青柚气泡水")));
         assertTrue(selected.stream().anyMatch(value -> value.content().contains("原味燕麦脆片")));
@@ -38,27 +35,16 @@ class QueryEvidenceSelectorTest {
         var relevant = candidate(1, 0.1, "青柚气泡水位于一层 A 区");
         var unrelated = candidate(2, 0.9, "中心图书馆周末开放时间");
 
-        var selected = QueryEvidenceSelector.select(
-                "青柚气泡水位于哪里",
-                List.of(unrelated, relevant),
-                1,
-                0.5);
+        var selected = TrustedAnswerEvidenceSelector.select(
+                "青柚气泡水位于哪里", List.of(unrelated, relevant), 1, 0.5);
 
-        assertEquals(List.of(relevant.content()), selected.stream()
-                .map(IndexCandidate::content)
-                .toList());
-        assertTrue(QueryEvidenceSelector.select(
-                "青柚气泡水位于哪里",
-                List.of(unrelated, relevant),
-                1,
-                1.0).isEmpty());
-        assertEquals(100, QueryEvidenceSelector.candidateLimit(30));
+        assertEquals(List.of(relevant.content()), selected.stream().map(IndexCandidate::content).toList());
+        assertTrue(TrustedAnswerEvidenceSelector.select(
+                "青柚气泡水位于哪里", List.of(unrelated, relevant), 1, 1.0).isEmpty());
+        assertEquals(100, TrustedAnswerEvidenceSelector.candidateLimit(30));
     }
 
-    private static IndexCandidate candidate(
-            int suffix,
-            double score,
-            String content) {
+    private static IndexCandidate candidate(int suffix, double score, String content) {
         return new IndexCandidate(
                 220000000000000000L + suffix,
                 1,

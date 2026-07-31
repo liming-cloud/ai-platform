@@ -2,6 +2,7 @@ package com.aiplatform.foundation.assistantdelivery.infrastructure.configuration
 
 import com.aiplatform.foundation.assistantdelivery.interfaces.web.assistant.controller.AssistantController;
 import com.aiplatform.foundation.assistantdelivery.interfaces.web.assistant.controller.AssistantVersionController;
+import com.aiplatform.foundation.assistantdelivery.interfaces.web.assistant.controller.AssistantTestRunController;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Import;
@@ -15,7 +16,8 @@ import org.springframework.context.annotation.Import;
         havingValue = "true")
 @Import({
     AssistantController.class,
-    AssistantVersionController.class
+    AssistantVersionController.class,
+    AssistantTestRunController.class
 })
 public class AssistantDeliveryWebAutoConfiguration {
 }
