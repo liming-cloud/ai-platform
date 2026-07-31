@@ -197,6 +197,7 @@
 | M4 查询反馈领域基础 | `project/evidence/WP-0012-query-feedback-domain.md` | `32c3a87e1` | 独立不可变反馈根、受控正负原因与正文存储归零已红绿验证；完成态、唯一持久化、保留边界和接口尚未实施 |
 | M4 查询反馈持久化与受控接口 | `project/evidence/WP-0012-query-feedback-persistence-api.md` | `7cb00b563` | 真实 PostgreSQL 原子去重、请求成员三列外键、查询删除级联、自动配置和令牌派生 HTTP 入口回归通过；草稿可信执行仍等待 ADR-0037 |
 | M4 查询反馈前端入口 | `project/evidence/WP-0012-query-feedback-browser-entry.md` | `894324933` | 固定枚举反馈、仅内存令牌、重复反馈稳定显示和前端 12 项回归及生产构建通过；真实角色浏览器验收仍待完整 M4 环境 |
+| M4 统一草稿助手可信回答执行 | `project/evidence/WP-0012-assistant-trusted-answer-execution.md` | `d22c3e65a` | 普通查询和草稿测试共享唯一可信执行门面；独立配额／根、真实 PostgreSQL、自动配置、Bearer HTTP 回归和全反应堆验证通过；ADR-0038 诊断投影尚未实施 |
 
 ## 证据规则
 
