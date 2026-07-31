@@ -189,6 +189,8 @@
 | M4 草稿测试与查询反馈影响分析 | `project/evidence/WP-0012-m4-impact-analysis.md` | `fadab27d9` | 代码图谱确认普通查询的已发布版本边界、草稿读取 seam、查询事件／运营投影影响和三个待决策项；ADR-0036 接受前不实施 |
 | M4 草稿测试 TDD 路线 | `project/evidence/WP-0012-m4-tdd-test-route.md` | `25663a013` | 首个红绿切片、真实 PostgreSQL、自动配置、HTTP、浏览器与最终验证层级已固定；等待 ADR-0036 接受 |
 | ADR-0036 人工接受 | `project/evidence/ADR-0036-approval.md` | `d97ba580b` | 用户接受草稿测试、独立测试配额、最小反馈和受权诊断边界；M4 可开始实现 |
+| ADR-0037 人工接受 | `project/evidence/ADR-0037-approval.md` | 本次控制面提交 | 用户接受草稿与普通查询共用可信回答执行门面；M4 可开始共享执行红绿切片 |
+| ADR-0038 人工接受 | `project/evidence/ADR-0038-approval.md` | 本次控制面提交 | 用户接受查询诊断最小事实投影与 `audit:read` 受权读取；M4 可开始诊断红绿切片 |
 | M4 草稿助手版本受限读取门面 | `project/evidence/WP-0012-draft-assistant-lookup.md` | `f9465dc45` | 草稿只在同租户且 `assistant:write` 时投影为测试快照；普通查询保持只读 `PUBLISHED` 版本 |
 | M4 独立草稿测试运行领域基础 | `project/evidence/WP-0012-assistant-test-run-domain.md` | `74d2da026` | 独立根、冻结依赖、题目摘要、独立测试配额和不含正文的终态事实已红绿验证；持久化与执行编排尚未实施 |
 | M4 独立草稿测试运行持久化 | `project/evidence/WP-0012-assistant-test-run-persistence.md` | `be8a16daa` | 真实 PostgreSQL 证明独立表、租户原子日／并发配额、终态乐观提交、最小引用恢复和题目／回答正文列归零；可信执行编排尚未实施 |
