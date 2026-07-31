@@ -45,7 +45,8 @@ confirmedDecisions:
   - ADR-0036
   - ADR-0037
   - ADR-0038
-openDecisions: []
+openDecisions:
+  - ADR-0039
 latestEvidence:
   - docs/research/WP-0003-framework-baseline.md
   - project/evidence/WP-0003-trusted-context.md
@@ -145,5 +146,5 @@ latestEvidence:
   - project/evidence/ADR-0037-approval.md
   - project/evidence/ADR-0038-approval.md
 nextReviewAt: 2026-08-03
-updatedAt: 2026-07-31T08:57:00+08:00
+updatedAt: 2026-07-31T09:02:00+08:00
 updatedBy: codex
