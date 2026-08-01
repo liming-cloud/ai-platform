@@ -4,8 +4,8 @@ currentMilestone: M4
 currentFrontier: WP-0012
 lastVerifiedCommit: dcec78e19
 activeWorkPackages:
-blockedWorkPackages:
   - WP-0012
+blockedWorkPackages:
 confirmedDecisions:
   - ADR-0001
   - ADR-0002
@@ -45,8 +45,8 @@ confirmedDecisions:
   - ADR-0036
   - ADR-0037
   - ADR-0038
-openDecisions:
   - ADR-0039
+openDecisions: []
 latestEvidence:
   - docs/research/WP-0003-framework-baseline.md
   - project/evidence/WP-0003-trusted-context.md
@@ -145,6 +145,7 @@ latestEvidence:
   - project/evidence/WP-0012-query-feedback-browser-entry.md
   - project/evidence/ADR-0037-approval.md
   - project/evidence/ADR-0038-approval.md
+  - project/evidence/ADR-0039-approval.md
 nextReviewAt: 2026-08-03
-updatedAt: 2026-07-31T09:05:00+08:00
+updatedAt: 2026-08-01T09:10:00+08:00
 updatedBy: codex
