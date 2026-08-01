@@ -10,7 +10,7 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * 查询运行的幂等占位、终态提交和租户隔离读取端口。
+ * 查询运行的幂等占位和租户隔离读取端口。
  */
 public interface QueryRunRepository {
 
@@ -19,8 +19,6 @@ public interface QueryRunRepository {
             String idempotencyKey,
             String requestFingerprint,
             QueryQuotaPolicy quota);
-
-    void complete(QueryRun queryRun, long expectedVersion);
 
     Optional<QueryRun> find(TenantId tenantId, QueryRunId queryRunId);
 

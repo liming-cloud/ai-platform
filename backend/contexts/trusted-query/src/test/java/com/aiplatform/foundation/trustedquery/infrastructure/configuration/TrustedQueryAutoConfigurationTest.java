@@ -11,6 +11,9 @@ import com.aiplatform.foundation.knowledgedata.application.indexversion.port.out
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.ModelRuntimeResolver;
 import com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator;
 import com.aiplatform.foundation.trustedquery.application.candidate.service.CandidateSearchService;
+import com.aiplatform.foundation.trustedquery.application.diagnostic.port.out.QueryRunTerminalCommitter;
+import com.aiplatform.foundation.trustedquery.application.diagnostic.port.out.QueryDiagnosticFactLookup;
+import com.aiplatform.foundation.trustedquery.application.diagnostic.service.QueryDiagnosticService;
 import com.aiplatform.foundation.trustedquery.application.run.service.QueryRunEventService;
 import com.aiplatform.foundation.trustedquery.application.run.service.QueryRunService;
 import com.aiplatform.foundation.trustedquery.application.feedback.service.QueryFeedbackService;
@@ -20,6 +23,7 @@ import com.aiplatform.foundation.trustedquery.interfaces.web.query.controller.Ca
 import com.aiplatform.foundation.trustedquery.interfaces.web.query.controller.QueryAssistantController;
 import com.aiplatform.foundation.trustedquery.interfaces.web.query.controller.QueryRunController;
 import com.aiplatform.foundation.trustedquery.interfaces.web.query.controller.QueryFeedbackController;
+import com.aiplatform.foundation.trustedquery.interfaces.web.query.controller.QueryDiagnosticController;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
@@ -49,6 +53,12 @@ class TrustedQueryAutoConfigurationTest {
                             QueryRunRepository.class,
                             () -> mock(QueryRunRepository.class))
                     .withBean(
+                            QueryRunTerminalCommitter.class,
+                            () -> mock(QueryRunTerminalCommitter.class))
+                    .withBean(
+                            QueryDiagnosticFactLookup.class,
+                            () -> mock(QueryDiagnosticFactLookup.class))
+                    .withBean(
                             QueryFeedbackRepository.class,
                             () -> mock(QueryFeedbackRepository.class))
                     .withBean(EntityIdGenerator.class, () -> () -> 1L);
@@ -62,6 +72,7 @@ class TrustedQueryAutoConfigurationTest {
                     assertThat(context).hasSingleBean(QueryRunService.class);
                     assertThat(context).hasSingleBean(QueryRunEventService.class);
                     assertThat(context).hasSingleBean(QueryFeedbackService.class);
+                    assertThat(context).hasSingleBean(QueryDiagnosticService.class);
                 });
     }
 
@@ -74,6 +85,7 @@ class TrustedQueryAutoConfigurationTest {
                     assertThat(context).doesNotHaveBean(QueryRunService.class);
                     assertThat(context).doesNotHaveBean(QueryRunEventService.class);
                     assertThat(context).doesNotHaveBean(QueryFeedbackService.class);
+                    assertThat(context).doesNotHaveBean(QueryDiagnosticService.class);
                 });
     }
 
@@ -106,6 +118,9 @@ class TrustedQueryAutoConfigurationTest {
                         QueryFeedbackService.class,
                         () -> mock(QueryFeedbackService.class))
                 .withBean(
+                        QueryDiagnosticService.class,
+                        () -> mock(QueryDiagnosticService.class))
+                .withBean(
                         QueryAssistantCatalogService.class,
                         () -> mock(QueryAssistantCatalogService.class))
                 .withPropertyValues("foundation.query.enabled=true")
@@ -114,6 +129,7 @@ class TrustedQueryAutoConfigurationTest {
                     assertThat(context).hasSingleBean(QueryAssistantController.class);
                     assertThat(context).hasSingleBean(QueryRunController.class);
                     assertThat(context).hasSingleBean(QueryFeedbackController.class);
+                    assertThat(context).hasSingleBean(QueryDiagnosticController.class);
                 });
     }
 

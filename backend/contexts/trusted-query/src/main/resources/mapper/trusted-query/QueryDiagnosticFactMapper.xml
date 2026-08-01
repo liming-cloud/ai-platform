@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aiplatform.foundation.trustedquery.infrastructure.persistence.query.mapper.QueryDiagnosticFactMapper">
+    <select id="find"
+            resultType="com.aiplatform.foundation.trustedquery.infrastructure.persistence.query.entity.QueryDiagnosticFactEntity">
+        SELECT candidate_collection AS candidateCollection,
+               candidate_count AS candidateCount,
+               retrieval_authorization AS retrievalAuthorization,
+               chat_model_revision AS chatModelRevision,
+               embedding_model_revision AS embeddingModelRevision,
+               citation_validation AS citationValidation
+        FROM trusted_query.query_diagnostic_fact
+        WHERE tenant_id = #{tenantId}
+          AND query_run_id = #{queryRunId}
+    </select>
+    <insert id="insert">
+        INSERT INTO trusted_query.query_diagnostic_fact (
+            tenant_id, query_run_id, candidate_collection, candidate_count,
+            retrieval_authorization, chat_model_revision, embedding_model_revision,
+            citation_validation, created_at
+        ) VALUES (
+            #{tenantId}, #{queryRunId}, #{candidateCollection}, #{candidateCount},
+            #{retrievalAuthorization}, #{chatModelRevision}, #{embeddingModelRevision},
+            #{citationValidation}, #{createdAt}
+        )
+    </insert>
+</mapper>

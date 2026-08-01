@@ -1,9 +1,16 @@
 package com.aiplatform.foundation.trustedquery.application.run.service;
 
 import com.aiplatform.foundation.trustedquery.application.candidate.exception.CandidateSearchPermissionDeniedException;
+import com.aiplatform.foundation.trustedquery.application.diagnostic.dto.CandidateCollection;
+import com.aiplatform.foundation.trustedquery.application.diagnostic.dto.CitationValidation;
+import com.aiplatform.foundation.trustedquery.application.diagnostic.dto.QueryDiagnosticFact;
+import com.aiplatform.foundation.trustedquery.application.diagnostic.dto.QueryRunTerminalCommit;
+import com.aiplatform.foundation.trustedquery.application.diagnostic.port.out.QueryRunTerminalCommitter;
 import com.aiplatform.foundation.assistantdelivery.application.answer.dto.AssistantTrustedAnswerCitation;
+import com.aiplatform.foundation.assistantdelivery.application.answer.dto.AssistantTrustedAnswerExecutionObservation;
 import com.aiplatform.foundation.assistantdelivery.application.answer.dto.AssistantTrustedAnswerResult;
 import com.aiplatform.foundation.assistantdelivery.application.answer.dto.AssistantTrustedAnswerTarget;
+import com.aiplatform.foundation.assistantdelivery.application.answer.service.AssistantTrustedAnswerExecutionException;
 import com.aiplatform.foundation.assistantdelivery.application.answer.service.AssistantTrustedAnswerExecutor;
 import com.aiplatform.foundation.assistantdelivery.application.assistant.facade.PublishedAssistantVersionLookup;
 import com.aiplatform.foundation.assistantdelivery.application.assistant.dto.PublishedAssistantVersionSnapshot;
@@ -63,6 +70,7 @@ public final class QueryRunService  {
     private final PublishedAssistantVersionLookup assistants;
     private final AssistantTrustedAnswerExecutor executor;
     private final QueryRunRepository repository;
+    private final QueryRunTerminalCommitter terminalCommitter;
     private final QueryQuotaPolicy quota;
     private final Clock clock;
     private final EntityIdGenerator identifiers;
@@ -72,11 +80,12 @@ public final class QueryRunService  {
             ModelRuntimeResolver models,
             IndexCandidateRetriever candidates,
             QueryRunRepository repository,
+            QueryRunTerminalCommitter terminalCommitter,
             QueryQuotaPolicy quota,
             Clock clock,
             EntityIdGenerator identifiers) {
         this(
-                assistants, models, null, null, null, candidates, repository,
+                assistants, models, null, null, null, candidates, repository, terminalCommitter,
                 quota, clock, identifiers);
     }
 
@@ -88,6 +97,7 @@ public final class QueryRunService  {
             GovernedChatRuntime governedChats,
             IndexCandidateRetriever candidates,
             QueryRunRepository repository,
+            QueryRunTerminalCommitter terminalCommitter,
             QueryQuotaPolicy quota,
             Clock clock,
             EntityIdGenerator identifiers) {
@@ -99,6 +109,7 @@ public final class QueryRunService  {
                 modelConfigurations, governedEmbeddings, governedChats,
                 Objects.requireNonNull(candidates, "候选检索器不能为空"));
         this.repository = Objects.requireNonNull(repository, "查询运行仓储不能为空");
+        this.terminalCommitter = Objects.requireNonNull(terminalCommitter, "查询终态提交器不能为空");
         this.quota = Objects.requireNonNull(quota, "查询配额策略不能为空");
         this.clock = Objects.requireNonNull(clock, "时钟不能为空");
         this.identifiers = Objects.requireNonNull(identifiers, "标识生成器不能为空");
@@ -132,21 +143,30 @@ public final class QueryRunService  {
         if (claim.state() == QueryRunClaimState.IN_PROGRESS) {
             throw new QueryRunInProgressException();
         }
-        final QueryRun completed;
+        var target = AssistantTrustedAnswerTarget.from(assistant);
+        final QueryRunTerminalCommit completed;
         try {
             completed = execute(
                     command.context(),
                     command.question(),
-                    assistant,
+                    target,
                     claim.queryRun());
+        } catch (AssistantTrustedAnswerExecutionException exception) {
+            terminalCommitter.commit(failed(
+                    claim.queryRun(),
+                    exception.observation(),
+                    claim.queryRun().version()));
+            throw exception;
         } catch (RuntimeException exception) {
-            repository.complete(
-                    claim.queryRun().fail(clock.instant()),
-                    claim.queryRun().version());
+            terminalCommitter.commit(failed(
+                    claim.queryRun(),
+                    new AssistantTrustedAnswerExecutionObservation(
+                            null, chatRevision(target), embeddingRevision(target)),
+                    claim.queryRun().version()));
             throw exception;
         }
-        repository.complete(completed, claim.queryRun().version());
-        return new CreateQueryRunResult(toView(completed), false);
+        terminalCommitter.commit(completed);
+        return new CreateQueryRunResult(toView(completed.queryRun()), false);
     }
 
     public QueryRunView get(GetQueryRunQuery query) {
@@ -160,25 +180,62 @@ public final class QueryRunService  {
                 .orElseThrow(QueryRunNotFoundException::new);
     }
 
-    private QueryRun execute(
+    private QueryRunTerminalCommit execute(
             TrustedRequestContext context,
             String question,
-            PublishedAssistantVersionSnapshot assistant,
+            AssistantTrustedAnswerTarget target,
             QueryRun started) {
-        var result = executor.execute(
-                context, AssistantTrustedAnswerTarget.from(assistant), question);
-        if (result.outcome() == AssistantTrustedAnswerResult.Outcome.REFUSED_INSUFFICIENT_EVIDENCE) {
-            return started.refuse(
-                    QueryRefusalReason.INSUFFICIENT_EVIDENCE,
+        var result = executor.execute(context, target, question);
+        try {
+            if (result.outcome() == AssistantTrustedAnswerResult.Outcome.REFUSED_INSUFFICIENT_EVIDENCE) {
+                var refused = started.refuse(QueryRefusalReason.INSUFFICIENT_EVIDENCE, clock.instant());
+                return new QueryRunTerminalCommit(refused, started.version(), QueryDiagnosticFact.forTerminal(
+                        refused.status(), CandidateCollection.COLLECTED, result.candidateCount(),
+                        result.chatModelRevision(), result.embeddingModelRevision(), CitationValidation.NOT_APPLICABLE));
+            }
+            var answered = started.answer(
+                    result.answer(), result.citations().stream().map(QueryRunService::citation).toList(),
+                    new QueryModelUsage(
+                            Math.toIntExact(result.usage().inputTokens()),
+                            Math.toIntExact(result.usage().outputTokens()),
+                            Math.toIntExact(result.usage().totalTokens())),
                     clock.instant());
+            return new QueryRunTerminalCommit(answered, started.version(), QueryDiagnosticFact.forTerminal(
+                    answered.status(), CandidateCollection.COLLECTED, result.candidateCount(),
+                    result.chatModelRevision(), result.embeddingModelRevision(), CitationValidation.VALIDATED));
+        } catch (RuntimeException exception) {
+            throw new AssistantTrustedAnswerExecutionException(
+                    new AssistantTrustedAnswerExecutionObservation(
+                            result.candidateCount(),
+                            result.chatModelRevision(),
+                            result.embeddingModelRevision()),
+                    exception);
         }
-        return started.answer(
-                result.answer(), result.citations().stream().map(QueryRunService::citation).toList(),
-                new QueryModelUsage(
-                        Math.toIntExact(result.usage().inputTokens()),
-                        Math.toIntExact(result.usage().outputTokens()),
-                        Math.toIntExact(result.usage().totalTokens())),
-                clock.instant());
+    }
+
+    private QueryRunTerminalCommit failed(
+            QueryRun started,
+            AssistantTrustedAnswerExecutionObservation observation,
+            long expectedVersion) {
+        var failed = started.fail(clock.instant());
+        return new QueryRunTerminalCommit(failed, expectedVersion, QueryDiagnosticFact.forTerminal(
+                failed.status(), observation.candidateCount() == null
+                        ? CandidateCollection.NOT_COLLECTED
+                        : CandidateCollection.COLLECTED,
+                observation.candidateCount(), observation.chatModelRevision(), observation.embeddingModelRevision(),
+                CitationValidation.NOT_APPLICABLE));
+    }
+
+    private static long chatRevision(AssistantTrustedAnswerTarget target) {
+        return target.usesGovernedModelConfigurations()
+                ? target.governedChat().configurationRevision()
+                : target.chatDeploymentRevision();
+    }
+
+    private static long embeddingRevision(AssistantTrustedAnswerTarget target) {
+        return target.usesGovernedModelConfigurations()
+                ? target.governedEmbedding().configurationRevision()
+                : target.embeddingDeploymentRevision();
     }
 
     private static QueryCitation citation(AssistantTrustedAnswerCitation candidate) {

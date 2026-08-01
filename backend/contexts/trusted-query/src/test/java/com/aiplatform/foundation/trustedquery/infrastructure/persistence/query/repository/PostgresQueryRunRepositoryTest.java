@@ -84,6 +84,14 @@ class PostgresQueryRunRepositoryTest {
     private QueryRunRepository repository;
 
     @Autowired
+    private com.aiplatform.foundation.trustedquery.application.diagnostic.port.out.QueryRunTerminalCommitter
+            terminalCommitter;
+
+    @Autowired
+    private com.aiplatform.foundation.trustedquery.application.diagnostic.port.out.QueryDiagnosticFactLookup
+            diagnostics;
+
+    @Autowired
     private QueryOperationsFactSource operations;
 
     @Autowired
@@ -113,6 +121,7 @@ class PostgresQueryRunRepositoryTest {
 
     @BeforeEach
     void prepareFacts() {
+        jdbc.update("DELETE FROM trusted_query.query_diagnostic_fact");
         jdbc.update("DELETE FROM trusted_query.query_run_event");
         jdbc.update("DELETE FROM trusted_query.query_citation");
         jdbc.update("DELETE FROM trusted_query.query_run_request");
@@ -159,7 +168,15 @@ class PostgresQueryRunRepositoryTest {
                         0.9)),
                 new QueryModelUsage(10, 5, 15),
                 NOW.plusSeconds(1));
-        repository.complete(answered, claimed.queryRun().version());
+        terminalCommitter.commit(new com.aiplatform.foundation.trustedquery.application.diagnostic.dto
+                .QueryRunTerminalCommit(answered, claimed.queryRun().version(),
+                com.aiplatform.foundation.trustedquery.application.diagnostic.dto.QueryDiagnosticFact.forTerminal(
+                        answered.status(),
+                        com.aiplatform.foundation.trustedquery.application.diagnostic.dto.CandidateCollection.COLLECTED,
+                        4,
+                        7,
+                        3,
+                        com.aiplatform.foundation.trustedquery.application.diagnostic.dto.CitationValidation.VALIDATED)));
         var replayed = repository.claim(
                 running(),
                 "query-key-001",
@@ -193,6 +210,47 @@ class PostgresQueryRunRepositoryTest {
                 answered.id(),
                 0,
                 10).isEmpty());
+        assertEquals(1, jdbc.queryForObject(
+                "SELECT count(*) FROM trusted_query.query_diagnostic_fact", Integer.class));
+        assertEquals(4, jdbc.queryForObject(
+                "SELECT candidate_count FROM trusted_query.query_diagnostic_fact", Integer.class));
+        assertEquals(4, diagnostics.find(TENANT, answered.id()).orElseThrow().candidateCount());
+    }
+
+    @Test
+    void 诊断事实写入失败时终态引用和事件必须整体回滚() {
+        var claimed = repository.claim(
+                running(),
+                "diagnostic-rollback-001",
+                "e".repeat(64),
+                QUOTA);
+        jdbc.update(
+                """
+                INSERT INTO trusted_query.query_diagnostic_fact (
+                    tenant_id, query_run_id, candidate_collection, candidate_count,
+                    retrieval_authorization, chat_model_revision, embedding_model_revision,
+                    citation_validation, created_at
+                ) VALUES (?, ?, 'COLLECTED', 0, 'AUTHORIZED', 1, 1, 'NOT_APPLICABLE', ?)
+                """,
+                TENANT.value(),
+                claimed.queryRun().id().value(),
+                Timestamp.from(NOW));
+        var refused = claimed.queryRun().refuse(
+                com.aiplatform.foundation.trustedquery.domain.query.model.QueryRefusalReason
+                        .INSUFFICIENT_EVIDENCE,
+                NOW.plusSeconds(1));
+
+        assertThrows(RuntimeException.class, () -> commit(refused, claimed.queryRun().version()));
+
+        assertEquals(
+                com.aiplatform.foundation.trustedquery.domain.query.model.QueryRunStatus.RUNNING,
+                repository.find(TENANT, claimed.queryRun().id()).orElseThrow().status());
+        assertEquals(0, jdbc.queryForObject(
+                "SELECT count(*) FROM trusted_query.query_citation", Integer.class));
+        assertEquals(1, jdbc.queryForObject(
+                "SELECT count(*) FROM trusted_query.query_run_event", Integer.class));
+        assertEquals(1, jdbc.queryForObject(
+                "SELECT count(*) FROM trusted_query.query_diagnostic_fact", Integer.class));
     }
 
     @Test
@@ -207,7 +265,7 @@ class PostgresQueryRunRepositoryTest {
                 com.aiplatform.foundation.trustedquery.domain.query.model.QueryRefusalReason
                         .INSUFFICIENT_EVIDENCE,
                 NOW.plusSeconds(1));
-        repository.complete(refused, 0);
+        commit(refused, 0);
 
         assertThrows(
                 QueryRunIdempotencyConflictException.class,
@@ -218,7 +276,7 @@ class PostgresQueryRunRepositoryTest {
                         QUOTA));
         assertThrows(
                 QueryRunConcurrentModificationException.class,
-                () -> repository.complete(refused, 0));
+                () -> commit(refused, 0));
     }
 
     @Test
@@ -230,7 +288,7 @@ class PostgresQueryRunRepositoryTest {
                 "daily-key-001",
                 "1".repeat(64),
                 policy);
-        repository.complete(
+        commit(
                 claimed.queryRun().refuse(
                         com.aiplatform.foundation.trustedquery.domain.query.model
                                 .QueryRefusalReason.INSUFFICIENT_EVIDENCE,
@@ -339,7 +397,7 @@ class PostgresQueryRunRepositoryTest {
                 "operations-key-001",
                 "6".repeat(64),
                 QUOTA);
-        repository.complete(
+        commit(
                 answeredClaim.queryRun().answer(
                         "牛奶位于一层。\n\n引用：[1]",
                         List.of(new QueryCitation(
@@ -358,7 +416,7 @@ class PostgresQueryRunRepositoryTest {
                 "operations-key-002",
                 "8".repeat(64),
                 QUOTA);
-        repository.complete(
+        commit(
                 refusedClaim.queryRun().refuse(
                         com.aiplatform.foundation.trustedquery.domain.query.model
                                 .QueryRefusalReason.INSUFFICIENT_EVIDENCE,
@@ -369,7 +427,7 @@ class PostgresQueryRunRepositoryTest {
                 "operations-key-003",
                 "9".repeat(64),
                 QUOTA);
-        repository.complete(
+        commit(
                 failedClaim.queryRun().fail(NOW.plusSeconds(5)),
                 0);
 
@@ -435,7 +493,7 @@ class PostgresQueryRunRepositoryTest {
                 com.aiplatform.foundation.trustedquery.domain.query.model
                         .QueryRefusalReason.INSUFFICIENT_EVIDENCE,
                 NOW.plusSeconds(1));
-        repository.complete(completed, 0);
+        commit(completed, 0);
         var feedback = QueryFeedback.record(
                 TENANT,
                 new QueryFeedbackId(IDENTIFIERS.incrementAndGet()),
@@ -469,6 +527,8 @@ class PostgresQueryRunRepositoryTest {
                         "SELECT count(*) FROM trusted_query.query_feedback WHERE id = ?",
                         Integer.class,
                         feedback.id().value()));
+        assertEquals(0, jdbc.queryForObject(
+                "SELECT count(*) FROM trusted_query.query_diagnostic_fact", Integer.class));
     }
 
     private static QueryRun running() {
@@ -483,6 +543,24 @@ class PostgresQueryRunRepositoryTest {
                 MEMBER,
                 "a".repeat(64),
                 time);
+    }
+
+    private void commit(QueryRun queryRun, long expectedVersion) {
+        var collection = queryRun.status()
+                == com.aiplatform.foundation.trustedquery.domain.query.model.QueryRunStatus.FAILED
+                ? com.aiplatform.foundation.trustedquery.application.diagnostic.dto.CandidateCollection.NOT_COLLECTED
+                : com.aiplatform.foundation.trustedquery.application.diagnostic.dto.CandidateCollection.COLLECTED;
+        var citationValidation = queryRun.status()
+                == com.aiplatform.foundation.trustedquery.domain.query.model.QueryRunStatus.ANSWERED
+                ? com.aiplatform.foundation.trustedquery.application.diagnostic.dto.CitationValidation.VALIDATED
+                : com.aiplatform.foundation.trustedquery.application.diagnostic.dto.CitationValidation.NOT_APPLICABLE;
+        terminalCommitter.commit(new com.aiplatform.foundation.trustedquery.application.diagnostic.dto
+                .QueryRunTerminalCommit(queryRun, expectedVersion,
+                com.aiplatform.foundation.trustedquery.application.diagnostic.dto.QueryDiagnosticFact.forTerminal(
+                        queryRun.status(), collection,
+                        collection == com.aiplatform.foundation.trustedquery.application.diagnostic.dto
+                                .CandidateCollection.COLLECTED ? 0 : null,
+                        1, 1, citationValidation)));
     }
 
     private void seedAssistantVersion() {
@@ -592,8 +670,10 @@ class PostgresQueryRunRepositoryTest {
     static class TestApplication {
 
         @Bean
-        QueryRunRepository queryRunRepository(
+        PostgresQueryRunRepository queryRunRepository(
                 QueryRunMapper mapper,
+                com.aiplatform.foundation.trustedquery.infrastructure.persistence.query.mapper
+                        .QueryDiagnosticFactMapper diagnosticMapper,
                 QueryRunRequestMapper requestMapper,
                 QueryCitationMapper citationMapper,
                 QueryRunEventMapper eventMapper,
@@ -601,6 +681,7 @@ class PostgresQueryRunRepositoryTest {
                 PlatformTransactionManager transactions) {
             return new PostgresQueryRunRepository(
                     mapper,
+                    diagnosticMapper,
                     requestMapper,
                     citationMapper,
                     eventMapper,

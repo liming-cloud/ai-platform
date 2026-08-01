@@ -39,6 +39,7 @@ import com.aiplatform.foundation.security.identity.PermissionCode;
 import com.aiplatform.foundation.security.identity.SubjectId;
 import com.aiplatform.foundation.security.identity.TrustedRequestContext;
 import com.aiplatform.foundation.trustedquery.application.run.command.CreateQueryRunCommand;
+import com.aiplatform.foundation.assistantdelivery.application.answer.service.AssistantTrustedAnswerExecutionException;
 import com.aiplatform.foundation.trustedquery.domain.query.policy.QueryRunClaim;
 import com.aiplatform.foundation.trustedquery.domain.query.policy.QueryRunClaimState;
 import com.aiplatform.foundation.trustedquery.domain.query.policy.QueryQuotaPolicy;
@@ -171,6 +172,7 @@ class QueryRunServiceTest {
                 chats,
                 retrieval::retrieve,
                 repository,
+                committer(repository),
                 new QueryQuotaPolicy(100, 4, Duration.ofMinutes(2)),
                 Clock.fixed(NOW, ZoneOffset.UTC),
                 () -> 430000000000000001L);
@@ -189,6 +191,28 @@ class QueryRunServiceTest {
         assertEquals(EMBEDDING, retrieval.query.embeddingConfiguration().configurationId());
     }
 
+    @Test
+    void 候选已经收集后终态映射失败仍要固化已收集失败事实() {
+        var repository = new MemoryRepository();
+        var models = new RecordingModels();
+        models.answer = "a".repeat(40_000);
+        var service = service(repository, models, new RecordingRetrieval(List.of(candidate(0.9))));
+
+        assertThrows(
+                AssistantTrustedAnswerExecutionException.class,
+                () -> service.create(new CreateQueryRunCommand(
+                        context("assistant:query", "knowledge:read"),
+                        "query-key-terminal-failure",
+                        Long.toString(ASSISTANT_VERSION),
+                        "牛奶在哪里")));
+
+        assertEquals("FAILED", repository.current.status().name());
+        assertEquals(
+                com.aiplatform.foundation.trustedquery.application.diagnostic.dto.CandidateCollection.COLLECTED,
+                repository.terminal.diagnostic().candidateCollection());
+        assertEquals(1, repository.terminal.diagnostic().candidateCount());
+    }
+
     private static QueryRunService service(
             QueryRunRepository repository,
             RecordingModels models,
@@ -202,9 +226,20 @@ class QueryRunServiceTest {
                 models,
                 retrieval::retrieve,
                 repository,
+                committer((MemoryRepository) repository),
                 new QueryQuotaPolicy(100, 4, Duration.ofMinutes(2)),
                 Clock.fixed(NOW, ZoneOffset.UTC),
                 () -> 430000000000000001L);
+    }
+
+    private static com.aiplatform.foundation.trustedquery.application.diagnostic.port.out
+            .QueryRunTerminalCommitter committer(MemoryRepository repository) {
+        return terminal -> {
+            assertNotNull(repository.current);
+            assertEquals(repository.current.version(), terminal.expectedVersion());
+            repository.current = terminal.queryRun();
+            repository.terminal = terminal;
+        };
     }
 
     private static PublishedAssistantVersionSnapshot snapshot() {
@@ -306,6 +341,7 @@ class QueryRunServiceTest {
 
         private int chatCalls;
         private ChatRequest chatRequest;
+        private String answer = "牛奶位于一层冷藏区。";
 
         @Override
         public ChatModelPort resolveChat(TenantId tenantId, long deploymentId) {
@@ -316,7 +352,7 @@ class QueryRunServiceTest {
                     chatRequest = request;
                     return new ChatResult(
                             request.deployment(),
-                            "牛奶位于一层冷藏区。",
+                            answer,
                             "STOP",
                             new ModelUsage(10, 5, 15));
                 }
@@ -399,6 +435,7 @@ class QueryRunServiceTest {
     private static final class MemoryRepository implements QueryRunRepository {
 
         private QueryRun current;
+        private com.aiplatform.foundation.trustedquery.application.diagnostic.dto.QueryRunTerminalCommit terminal;
         private String key;
         private String fingerprint;
         private boolean rejectQuota;
@@ -437,13 +474,6 @@ class QueryRunServiceTest {
                                             .QueryRunStatus.RUNNING
                             ? QueryRunClaimState.IN_PROGRESS
                             : QueryRunClaimState.REPLAYED);
-        }
-
-        @Override
-        public void complete(QueryRun queryRun, long expectedVersion) {
-            assertNotNull(current);
-            assertEquals(current.version(), expectedVersion);
-            current = queryRun;
         }
 
         @Override

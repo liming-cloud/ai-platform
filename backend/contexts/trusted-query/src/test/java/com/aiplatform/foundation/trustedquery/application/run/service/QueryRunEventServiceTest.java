@@ -101,11 +101,6 @@ class QueryRunEventServiceTest {
         }
 
         @Override
-        public void complete(QueryRun queryRun, long expectedVersion) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
         public Optional<QueryRun> find(TenantId tenantId, QueryRunId queryRunId) {
             return TENANT.equals(tenantId) && RUN.equals(queryRunId)
                     ? Optional.of(completed)

@@ -312,6 +312,18 @@
       "statementId": "findAfter",
       "category": "EVENT_REPLAY",
       "reason": "按单调事件序号和固定上限回放服务端事件流，不属于列表分页。"
+    },
+    {
+      "path": "backend/contexts/trusted-query/src/main/resources/mapper/trusted-query/QueryDiagnosticFactMapper.xml",
+      "statementId": "find",
+      "category": "SECURITY_PROJECTION",
+      "reason": "按可信租户和查询运行标识读取最小诊断事实，避免跨租户诊断可见性泄露。"
+    },
+    {
+      "path": "backend/contexts/trusted-query/src/main/resources/mapper/trusted-query/QueryDiagnosticFactMapper.xml",
+      "statementId": "insert",
+      "category": "ATOMIC_STATE_TRANSITION",
+      "reason": "作为查询终态同一事务的一部分固化候选、授权、模型修订和引用校验事实。"
     }
   ]
 }

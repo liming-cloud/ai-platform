@@ -1,15 +1,17 @@
 package com.aiplatform.foundation.trustedquery.infrastructure.configuration;
 
 import com.aiplatform.foundation.trustedquery.application.operations.facade.QueryOperationsFactSource;
-import com.aiplatform.foundation.trustedquery.domain.query.repository.QueryRunRepository;
+import com.aiplatform.foundation.trustedquery.application.diagnostic.port.out.QueryDiagnosticFactLookup;
 import com.aiplatform.foundation.trustedquery.domain.query.feedback.repository.QueryFeedbackRepository;
 import com.aiplatform.foundation.trustedquery.infrastructure.persistence.query.mapper.QueryFeedbackMapper;
+import com.aiplatform.foundation.trustedquery.infrastructure.persistence.query.mapper.QueryDiagnosticFactMapper;
 import com.aiplatform.foundation.trustedquery.infrastructure.persistence.query.mapper.QueryRunMapper;
 import com.aiplatform.foundation.trustedquery.infrastructure.persistence.query.mapper.QueryCitationMapper;
 import com.aiplatform.foundation.trustedquery.infrastructure.persistence.query.mapper.QueryRunEventMapper;
 import com.aiplatform.foundation.trustedquery.infrastructure.persistence.query.mapper.QueryRunRequestMapper;
 import com.aiplatform.foundation.trustedquery.infrastructure.persistence.query.repository.PostgresQueryOperationsFactSource;
 import com.aiplatform.foundation.trustedquery.infrastructure.persistence.query.repository.PostgresQueryRunRepository;
+import com.aiplatform.foundation.trustedquery.infrastructure.persistence.query.repository.PostgresQueryDiagnosticFactLookup;
 import com.aiplatform.foundation.trustedquery.infrastructure.persistence.query.repository.PostgresQueryFeedbackRepository;
 import com.baomidou.mybatisplus.autoconfigure.MybatisPlusAutoConfiguration;
 import com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator;
@@ -31,8 +33,9 @@ public class TrustedQueryPersistenceAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    QueryRunRepository queryRunRepository(
+    PostgresQueryRunRepository postgresQueryRunRepository(
             QueryRunMapper mapper,
+            QueryDiagnosticFactMapper diagnosticMapper,
             QueryRunRequestMapper requestMapper,
             QueryCitationMapper citationMapper,
             QueryRunEventMapper eventMapper,
@@ -40,11 +43,18 @@ public class TrustedQueryPersistenceAutoConfiguration {
             PlatformTransactionManager transactions) {
         return new PostgresQueryRunRepository(
                 mapper,
+                diagnosticMapper,
                 requestMapper,
                 citationMapper,
                 eventMapper,
                 identifiers,
                 transactions);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    QueryDiagnosticFactLookup queryDiagnosticFactLookup(QueryDiagnosticFactMapper mapper) {
+        return new PostgresQueryDiagnosticFactLookup(mapper);
     }
 
     @Bean

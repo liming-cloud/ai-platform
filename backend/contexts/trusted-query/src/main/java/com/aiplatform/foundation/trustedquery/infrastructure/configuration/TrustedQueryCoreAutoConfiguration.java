@@ -10,6 +10,9 @@ import com.aiplatform.foundation.modelruntime.application.runtime.facade.Governe
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.GovernedEmbeddingRuntime;
 import com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator;
 import com.aiplatform.foundation.trustedquery.application.candidate.service.CandidateSearchService;
+import com.aiplatform.foundation.trustedquery.application.diagnostic.port.out.QueryRunTerminalCommitter;
+import com.aiplatform.foundation.trustedquery.application.diagnostic.port.out.QueryDiagnosticFactLookup;
+import com.aiplatform.foundation.trustedquery.application.diagnostic.service.QueryDiagnosticService;
 import com.aiplatform.foundation.trustedquery.application.feedback.service.QueryFeedbackService;
 import com.aiplatform.foundation.trustedquery.application.run.service.QueryRunEventService;
 import com.aiplatform.foundation.trustedquery.application.run.service.QueryRunService;
@@ -20,6 +23,7 @@ import java.time.Clock;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.beans.factory.ObjectProvider;
@@ -57,6 +61,7 @@ public class TrustedQueryCoreAutoConfiguration {
             ObjectProvider<GovernedChatRuntime> governedChats,
             IndexCandidateRetriever candidates,
             QueryRunRepository repository,
+            QueryRunTerminalCommitter terminalCommitter,
             EntityIdGenerator identifiers,
             TrustedQueryProperties properties) {
         return new QueryRunService(
@@ -67,6 +72,7 @@ public class TrustedQueryCoreAutoConfiguration {
                 governedChats.getIfAvailable(),
                 candidates,
                 repository,
+                terminalCommitter,
                 new QueryQuotaPolicy(
                         properties.dailyLimit(),
                         properties.concurrentLimit(),
@@ -79,6 +85,15 @@ public class TrustedQueryCoreAutoConfiguration {
     @ConditionalOnMissingBean
     QueryRunEventService queryRunEventService(QueryRunRepository repository) {
         return new QueryRunEventService(repository);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    @ConditionalOnBean(QueryDiagnosticFactLookup.class)
+    QueryDiagnosticService queryDiagnosticService(
+            QueryRunRepository repository,
+            QueryDiagnosticFactLookup facts) {
+        return new QueryDiagnosticService(repository, facts);
     }
 
     @Bean

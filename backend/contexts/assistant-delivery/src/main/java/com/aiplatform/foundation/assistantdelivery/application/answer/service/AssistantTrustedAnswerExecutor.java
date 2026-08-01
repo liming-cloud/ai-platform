@@ -74,33 +74,45 @@ public final class AssistantTrustedAnswerExecutor {
         if (question == null || question.isBlank()) {
             throw new IllegalArgumentException("问题不能为空白");
         }
-        var embedding = embed(context, target, question);
-        var retrieved = candidates.retrieve(new IndexCandidateQuery(
-                context.tenantId(), target.knowledgeSpaceId(), target.indexVersionId(),
-                target.usesGovernedModelConfigurations()
-                        ? EmbeddingConfiguration.governed(
-                                target.governedEmbedding().configurationId(),
-                                target.governedEmbedding().configurationRevision(),
-                                target.governedEmbedding().catalogEntryId(),
-                                target.governedEmbedding().catalogEntryRevision(),
-                                target.embeddingDimension())
-                        : new EmbeddingConfiguration(
-                                target.embeddingDeploymentId(), target.embeddingDeploymentRevision(),
-                                target.embeddingDimension()),
-                embedding, TrustedAnswerEvidenceSelector.candidateLimit(target.retrievalLimit())));
-        var evidence = TrustedAnswerEvidenceSelector.select(
-                question, retrieved, target.retrievalLimit(), target.minimumScore());
         var chatRevision = target.usesGovernedModelConfigurations()
                 ? target.governedChat().configurationRevision()
                 : target.chatDeploymentRevision();
         var embeddingRevision = target.usesGovernedModelConfigurations()
                 ? target.governedEmbedding().configurationRevision()
                 : target.embeddingDeploymentRevision();
-        if (evidence.isEmpty()) {
-            return AssistantTrustedAnswerResult.refused(
-                    retrieved.size(), chatRevision, embeddingRevision);
+        Integer candidateCount = null;
+        try {
+            var embedding = embed(context, target, question);
+            var retrieved = candidates.retrieve(new IndexCandidateQuery(
+                    context.tenantId(), target.knowledgeSpaceId(), target.indexVersionId(),
+                    target.usesGovernedModelConfigurations()
+                            ? EmbeddingConfiguration.governed(
+                                    target.governedEmbedding().configurationId(),
+                                    target.governedEmbedding().configurationRevision(),
+                                    target.governedEmbedding().catalogEntryId(),
+                                    target.governedEmbedding().catalogEntryRevision(),
+                                    target.embeddingDimension())
+                            : new EmbeddingConfiguration(
+                                    target.embeddingDeploymentId(), target.embeddingDeploymentRevision(),
+                                    target.embeddingDimension()),
+                    embedding, TrustedAnswerEvidenceSelector.candidateLimit(target.retrievalLimit())));
+            candidateCount = retrieved.size();
+            var evidence = TrustedAnswerEvidenceSelector.select(
+                    question, retrieved, target.retrievalLimit(), target.minimumScore());
+            if (evidence.isEmpty()) {
+                return AssistantTrustedAnswerResult.refused(
+                        candidateCount, chatRevision, embeddingRevision);
+            }
+            return answer(context, target, question, evidence, candidateCount, chatRevision, embeddingRevision);
+        } catch (AssistantTrustedAnswerExecutionException exception) {
+            throw exception;
+        } catch (RuntimeException exception) {
+            throw new AssistantTrustedAnswerExecutionException(
+                    new com.aiplatform.foundation.assistantdelivery.application.answer.dto
+                            .AssistantTrustedAnswerExecutionObservation(
+                                    candidateCount, chatRevision, embeddingRevision),
+                    exception);
         }
-        return answer(context, target, question, evidence, retrieved.size(), chatRevision, embeddingRevision);
     }
 
     private float[] embed(

@@ -1,6 +1,7 @@
 package com.aiplatform.foundation.trustedquery.infrastructure.persistence.query.repository;
 
 import com.aiplatform.foundation.trustedquery.infrastructure.persistence.query.mapper.QueryRunMapper;
+import com.aiplatform.foundation.trustedquery.infrastructure.persistence.query.mapper.QueryDiagnosticFactMapper;
 import com.aiplatform.foundation.trustedquery.infrastructure.persistence.query.mapper.QueryCitationMapper;
 import com.aiplatform.foundation.trustedquery.infrastructure.persistence.query.mapper.QueryRunEventMapper;
 import com.aiplatform.foundation.trustedquery.infrastructure.persistence.query.mapper.QueryRunRequestMapper;
@@ -11,6 +12,8 @@ import com.aiplatform.foundation.trustedquery.infrastructure.persistence.query.e
 import com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator;
 import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
 import com.aiplatform.foundation.trustedquery.application.quota.QueryQuotaExceededException;
+import com.aiplatform.foundation.trustedquery.application.diagnostic.dto.QueryRunTerminalCommit;
+import com.aiplatform.foundation.trustedquery.application.diagnostic.port.out.QueryRunTerminalCommitter;
 import com.aiplatform.foundation.trustedquery.application.quota.QueryQuotaLimitType;
 import com.aiplatform.foundation.trustedquery.application.run.exception.QueryRunConcurrentModificationException;
 import com.aiplatform.foundation.trustedquery.application.run.exception.QueryRunIdempotencyConflictException;
@@ -42,9 +45,10 @@ import org.springframework.transaction.support.TransactionTemplate;
 /**
  * 使用短事务占位避免相同幂等请求重复调用外部模型。
  */
-public final class PostgresQueryRunRepository implements QueryRunRepository {
+public final class PostgresQueryRunRepository implements QueryRunRepository, QueryRunTerminalCommitter {
 
     private final QueryRunMapper mapper;
+    private final QueryDiagnosticFactMapper diagnosticMapper;
     private final QueryRunRequestMapper requestMapper;
     private final QueryCitationMapper citationMapper;
     private final QueryRunEventMapper eventMapper;
@@ -53,12 +57,14 @@ public final class PostgresQueryRunRepository implements QueryRunRepository {
 
     public PostgresQueryRunRepository(
             QueryRunMapper mapper,
+            QueryDiagnosticFactMapper diagnosticMapper,
             QueryRunRequestMapper requestMapper,
             QueryCitationMapper citationMapper,
             QueryRunEventMapper eventMapper,
             EntityIdGenerator identifiers,
             PlatformTransactionManager transactionManager) {
         this.mapper = Objects.requireNonNull(mapper, "查询运行映射器不能为空");
+        this.diagnosticMapper = Objects.requireNonNull(diagnosticMapper, "查询诊断映射器不能为空");
         this.requestMapper = Objects.requireNonNull(
                 requestMapper,
                 "查询幂等请求映射器不能为空");
@@ -94,37 +100,40 @@ public final class PostgresQueryRunRepository implements QueryRunRepository {
     }
 
     @Override
-    public void complete(QueryRun queryRun, long expectedVersion) {
-        Objects.requireNonNull(queryRun, "查询运行不能为空");
+    public void commit(QueryRunTerminalCommit terminal) {
+        Objects.requireNonNull(terminal, "查询终态提交不能为空");
+        var result = transactions.execute(status -> {
+            completeInTransaction(terminal.queryRun(), terminal.expectedVersion());
+            var fact = terminal.diagnostic();
+            if (diagnosticMapper.insert(
+                    terminal.queryRun().tenantId().value(), terminal.queryRun().id().value(),
+                    fact.candidateCollection().name(), fact.candidateCount(),
+                    fact.retrievalAuthorization().name(), fact.chatModelRevision(),
+                    fact.embeddingModelRevision(), fact.citationValidation().name(),
+                    terminal.queryRun().completedAt()) != 1) {
+                throw new IllegalStateException("查询诊断事实写入失败");
+            }
+            return Boolean.TRUE;
+        });
+        Objects.requireNonNull(result, "查询终态诊断提交事务没有返回结果");
+    }
+
+    private void completeInTransaction(QueryRun queryRun, long expectedVersion) {
         if (queryRun.status() == QueryRunStatus.RUNNING) {
             throw new IllegalArgumentException("不能把运行中状态作为终态提交");
         }
-        var result = transactions.execute(status -> {
-            var usage = queryRun.usage();
-            var updated = mapper.completeRun(
-                    queryRun.tenantId().value(),
-                    queryRun.id().value(),
-                    queryRun.status().name(),
-                    queryRun.answer(),
-                    queryRun.refusalReason() == null
-                            ? null
-                            : queryRun.refusalReason().name(),
-                    usage.inputTokens(),
-                    usage.outputTokens(),
-                    usage.totalTokens(),
-                    queryRun.version(),
-                    queryRun.completedAt(),
-                    expectedVersion);
-            if (updated != 1) {
-                throw new QueryRunConcurrentModificationException();
-            }
-            for (var citation : queryRun.citations()) {
-                insertCitation(queryRun, citation);
-            }
-            insertEvent(QueryRunEvent.completed(queryRun, 2));
-            return Boolean.TRUE;
-        });
-        Objects.requireNonNull(result, "查询完成事务没有返回结果");
+        var usage = queryRun.usage();
+        var updated = mapper.completeRun(queryRun.tenantId().value(), queryRun.id().value(), queryRun.status().name(),
+                queryRun.answer(), queryRun.refusalReason() == null ? null : queryRun.refusalReason().name(),
+                usage.inputTokens(), usage.outputTokens(), usage.totalTokens(), queryRun.version(),
+                queryRun.completedAt(), expectedVersion);
+        if (updated != 1) {
+            throw new QueryRunConcurrentModificationException();
+        }
+        for (var citation : queryRun.citations()) {
+            insertCitation(queryRun, citation);
+        }
+        insertEvent(QueryRunEvent.completed(queryRun, 2));
     }
 
     @Override
