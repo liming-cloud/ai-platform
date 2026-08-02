@@ -1,10 +1,10 @@
 schemaVersion: 1
 productVersion: foundation-v1
-currentMilestone: M5
-currentFrontier: WP-0013
+currentMilestone: M6
+currentFrontier: WP-0014
 lastVerifiedCommit: b38ec7387
 activeWorkPackages:
-  - WP-0013
+  - WP-0014
 blockedWorkPackages:
 confirmedDecisions:
   - ADR-0001
@@ -157,6 +157,7 @@ latestEvidence:
   - project/evidence/WP-0013-m5-browser-runtime-acceptance.md
   - project/evidence/M5-automatic-acceptance-review.md
   - project/evidence/ADR-0040-approval.md
+  - project/evidence/M5-release-approval.md
 nextReviewAt: 2026-08-05
 updatedAt: 2026-08-02T20:48:00+08:00
 updatedBy: codex
