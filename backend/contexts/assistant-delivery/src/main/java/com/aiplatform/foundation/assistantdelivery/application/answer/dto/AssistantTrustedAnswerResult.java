@@ -13,7 +13,21 @@ public record AssistantTrustedAnswerResult(
         AssistantTrustedAnswerUsage usage,
         int candidateCount,
         long chatModelRevision,
-        long embeddingModelRevision) {
+        long embeddingModelRevision,
+        ModelInvocationTrace modelInvocationTrace) {
+
+    public AssistantTrustedAnswerResult(
+            Outcome outcome,
+            String answer,
+            List<AssistantTrustedAnswerCitation> citations,
+            AssistantTrustedAnswerUsage usage,
+            int candidateCount,
+            long chatModelRevision,
+            long embeddingModelRevision) {
+        this(
+                outcome, answer, citations, usage, candidateCount, chatModelRevision,
+                embeddingModelRevision, null);
+    }
 
     /**
      * 不同运行根可以映射的可信执行结论。
@@ -42,6 +56,6 @@ public record AssistantTrustedAnswerResult(
             int candidateCount, long chatModelRevision, long embeddingModelRevision) {
         return new AssistantTrustedAnswerResult(
                 Outcome.REFUSED_INSUFFICIENT_EVIDENCE, null, List.of(), null,
-                candidateCount, chatModelRevision, embeddingModelRevision);
+                candidateCount, chatModelRevision, embeddingModelRevision, null);
     }
 }

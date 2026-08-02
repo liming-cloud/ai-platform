@@ -164,6 +164,7 @@ public final class AssistantTrustedAnswerExecutor {
                 ? new ChatDeploymentRef(target.governedChat().configurationId(), target.governedChat().configurationRevision())
                 : new ChatDeploymentRef(target.chatDeploymentId(), target.chatDeploymentRevision());
         final com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.chat.ChatResult result;
+        com.aiplatform.foundation.assistantdelivery.application.answer.dto.ModelInvocationTrace trace = null;
         if (target.usesGovernedModelConfigurations()) {
             var route = requireChatRoutes().execute(
                     context, chatCandidates(context, target), prompt, target.maxOutputTokens());
@@ -172,6 +173,8 @@ public final class AssistantTrustedAnswerExecutor {
                     route.selected().configuration().configurationId().value(),
                     route.selected().configuration().configurationRevision());
             chatRevision = deployment.revision();
+            trace = new com.aiplatform.foundation.assistantdelivery.application.answer.dto.ModelInvocationTrace(
+                    route.attempts(), deployment.deploymentId(), deployment.revision());
         } else {
             result = models.resolveChat(context.tenantId(), target.chatDeploymentId())
                     .chat(new ChatRequest(deployment, prompt, target.maxOutputTokens()));
@@ -192,7 +195,7 @@ public final class AssistantTrustedAnswerExecutor {
                 AssistantTrustedAnswerResult.Outcome.ANSWERED, answer, citations,
                 new AssistantTrustedAnswerUsage(
                         result.usage().inputTokens(), result.usage().outputTokens(), result.usage().totalTokens()),
-                candidateCount, chatRevision, embeddingRevision);
+                candidateCount, chatRevision, embeddingRevision, trace);
     }
 
     private UsableModelConfigurationSnapshot requireEmbeddingConfiguration(
