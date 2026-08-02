@@ -202,6 +202,12 @@
 | M4 自动验收与人工评审请求 | `project/evidence/M4-automatic-acceptance-review.md` | 本次控制面提交 | 固定比较点技术评审、领域与架构门禁、真实 PostgreSQL／Bearer HTTP 与全量工程门禁均通过；当前仅待人工评审，不得进入 M5 |
 | M4 人工评审通过 | `project/evidence/M4-release-approval.md` | `c2f681e62` | 用户批准 M4 退出并进入 M5 设计；M6 至 M8 仍只保留路线图，不提前激活或实现 |
 
+## WP-0013
+
+| 证据 | 命令或评审 | 提交 | 结果 |
+| --- | --- | --- |
+| M5 模型扩展影响分析 | `project/evidence/WP-0013-m5-impact-analysis.md` | 本次控制面提交 | 代码图谱确认模型运行时影响面、可信回答唯一 seam 与查询终态原子边界；ADR-0040 提议在用户接受前不实施 |
+
 ## 证据规则
 
 - 命令证据记录完整命令、提交、环境和结果。

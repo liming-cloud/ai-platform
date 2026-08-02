@@ -46,7 +46,8 @@ confirmedDecisions:
   - ADR-0037
   - ADR-0038
   - ADR-0039
-openDecisions: []
+openDecisions:
+  - ADR-0040
 latestEvidence:
   - docs/research/WP-0003-framework-baseline.md
   - project/evidence/WP-0003-trusted-context.md
@@ -149,6 +150,8 @@ latestEvidence:
   - project/evidence/WP-0012-query-diagnostic-projection.md
   - project/evidence/M4-automatic-acceptance-review.md
   - project/evidence/M4-release-approval.md
+  - docs/architecture/foundation-m5-model-extension-design.md
+  - project/evidence/WP-0013-m5-impact-analysis.md
 nextReviewAt: 2026-08-05
-updatedAt: 2026-08-02T09:15:00+08:00
+updatedAt: 2026-08-02T10:00:00+08:00
 updatedBy: codex
