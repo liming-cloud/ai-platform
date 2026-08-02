@@ -321,6 +321,40 @@ class RealModelAcceptanceTest(unittest.TestCase):
             for _, path, _ in AcceptanceServer.requests
         ))
 
+        AcceptanceServer.requests = []
+        with tempfile.TemporaryDirectory() as directory:
+            key_file = Path(directory) / "api-key"
+            key_file.write_text(TEST_API_KEY, encoding="utf-8")
+            key_file.chmod(0o600)
+            completed = subprocess.run(
+                [str(SCRIPT)],
+                cwd=REPOSITORY_ROOT,
+                env={
+                    **os.environ,
+                    "FOUNDATION_M2_API_KEY_FILE": str(key_file),
+                    "FOUNDATION_ACCEPTANCE_CONTROL_API_ROOT": api_root,
+                    "FOUNDATION_ACCEPTANCE_QUERY_API_ROOT": api_root,
+                    "FOUNDATION_M2_HTTP_TIMEOUT_SECONDS": "3",
+                    "FOUNDATION_M2_INDEX_TIMEOUT_SECONDS": "3",
+                    "FOUNDATION_M2_FORCE_NEW_PERSONAL_CONFIGURATIONS": "true",
+                },
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+
+        self.assertEqual("PASSED", json.loads(completed.stdout)["status"])
+        self.assertFalse(any(
+            path == "/api/v1/controlled-model-catalog"
+            for _, path, _ in AcceptanceServer.requests
+        ))
+        created_configurations = [
+            body
+            for method, path, body in AcceptanceServer.requests
+            if method == "POST" and path == "/api/v1/model-configurations"
+        ]
+        self.assertEqual(2, len(created_configurations))
+
     def test_missing_key_file_fails_before_any_http_request(self):
         api_root = f"http://127.0.0.1:{self.server.server_port}/api/v1"
         environment = {

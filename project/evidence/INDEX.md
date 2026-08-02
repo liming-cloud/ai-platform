@@ -210,6 +210,7 @@
 | M5 冻结聊天路由 TDD 路线 | `project/evidence/WP-0013-m5-tdd-test-route.md` | 本次控制面提交 | 首条切片的红绿顺序、失败分类、真实 PostgreSQL、HTTP、浏览器和全量证据合同已固定；ADR-0040 接受前不创建测试或实现 |
 | ADR-0040 人工接受 | `project/evidence/ADR-0040-approval.md` | 本次控制面提交 | 用户接受冻结聊天模型路由、有限回退和内部调用轨迹边界；M5 可按红绿路线开始首条切片 |
 | M5 调用轨迹 ADR 对齐 | `project/evidence/WP-0013-m5-model-invocation-trace.md` | 本次提交 | 每次候选保留冻结配置与目录修订、标准化结果、令牌用量和时延；查询与草稿测试均在终态事务原子写入，真实 PostgreSQL、HTTP、全量模块测试和架构门禁通过；M5 仍进行中 |
+| M5 真实运行与浏览器验收续证 | `project/evidence/WP-0013-m5-browser-runtime-acceptance.md` | 本次提交 | 真实模型覆盖层、密文恢复开关、真实索引与带引用查询、最终用户浏览器最小披露均通过；M5 仍待自动验收汇总和人工评审 |
 
 ## 证据规则
 

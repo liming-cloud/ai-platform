@@ -25,6 +25,8 @@ FOUNDATION_M2_API_KEY_FILE=/Users/lingou/Desktop/huoshan.txt \
 scripts/development/acceptance-real-model.sh
 ```
 
+如果本地研发主密钥已丢失或更换，历史个人配置的密文不能被重新解密。此时不得覆盖旧配置或把 API Key 写入环境变量；在新的 `M2_V1` 主密钥覆盖层已启动后，显式设置 `FOUNDATION_M2_FORCE_NEW_PERSONAL_CONFIGURATIONS=true` 运行验收脚本。脚本仍复用已发布目录，但会创建新的个人 Chat 与 Embedding 配置并写入新密文。该开关默认是 `false`。
+
 脚本默认使用已验证的标准推理目录：`doubao-seed-2-1-turbo-260628`（262144 上下文窗口、262144 最大输出）和 `doubao-embedding-vision-251215`（131072 上下文窗口、2048 维）。嵌入模型使用方舟多模态嵌入协议；如需覆盖，只允许平台管理员使用新的已批准目录事实。所选端点必须与 compose 的 `MODEL_ALLOWED_ENDPOINTS` 一致。
 
 API Key 不得放入 `.env`、镜像、容器环境变量、命令历史、日志、证据或版本控制。覆盖层只向控制面与查询进程传递本地研发主密钥和出站端点，查询时从数据库密文短生命周期解密配置凭据。

@@ -18,6 +18,7 @@ readonly CHAT_OUTPUT_LIMIT="${FOUNDATION_M2_CHAT_OUTPUT_LIMIT:-262144}"
 readonly EMBEDDING_DIMENSION="${FOUNDATION_M2_EMBEDDING_DIMENSION:-2048}"
 readonly HTTP_TIMEOUT_SECONDS="${FOUNDATION_M2_HTTP_TIMEOUT_SECONDS:-30}"
 readonly INDEX_TIMEOUT_SECONDS="${FOUNDATION_M2_INDEX_TIMEOUT_SECONDS:-180}"
+readonly FORCE_NEW_PERSONAL_CONFIGURATIONS="${FOUNDATION_M2_FORCE_NEW_PERSONAL_CONFIGURATIONS:-false}"
 readonly RUN_ID="m2-$(date -u +%Y%m%d%H%M%S)"
 readonly KNOWLEDGE_TEXT="M2 合成验收知识：星河研发园一号楼访客中心的咖啡吧在工作日 09:00 至 18:00 提供服务。"
 readonly ACCEPTANCE_QUESTION="星河研发园一号楼的咖啡吧工作日服务到几点？"
@@ -140,7 +141,7 @@ create_active_personal_configuration() {
     jq -er --arg catalog_entry_id "${catalog_entry_id}" --arg model_type "${model_type}" \
       'first(.items[] | select(.scope == "PERSONAL" and .catalogEntryId == $catalog_entry_id
         and .modelType == $model_type and .status == "ACTIVE" and .credentialConfigured == true)) | .id' || true)"
-  if [[ -n "${existing}" ]]; then
+  if [[ -n "${existing}" && "${FORCE_NEW_PERSONAL_CONFIGURATIONS}" != "true" ]]; then
     printf '%s\n' "${existing}"
     return 0
   fi
@@ -285,6 +286,13 @@ require_nonempty_value FOUNDATION_M2_EMBEDDING_MODEL_CODE "${EMBEDDING_MODEL_COD
 require_positive_integer FOUNDATION_M2_CHAT_CONTEXT_WINDOW "${CHAT_CONTEXT_WINDOW}"
 require_positive_integer FOUNDATION_M2_CHAT_OUTPUT_LIMIT "${CHAT_OUTPUT_LIMIT}"
 require_positive_integer FOUNDATION_M2_EMBEDDING_DIMENSION "${EMBEDDING_DIMENSION}"
+case "${FORCE_NEW_PERSONAL_CONFIGURATIONS}" in
+  true|false) ;;
+  *)
+    echo "FOUNDATION_M2_FORCE_NEW_PERSONAL_CONFIGURATIONS 只能是 true 或 false" >&2
+    exit 1
+    ;;
+esac
 
 stage="登录平台管理员"
 platform_token="$(login "${PLATFORM_TENANT_CODE}" "${PLATFORM_LOGIN_NAME}")"
