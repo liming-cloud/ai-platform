@@ -37,7 +37,7 @@ M5 不新建全局“模型平台”上下文。模型连接、配置、能力�
 | 聊天路由 | assistant-delivery | 一个助手版本冻结的有序聊天模型候选集合。 | 可在运行时随意改写的全局策略。 | `ChatRoute` | 正：主候选和有限后备均有配置修订；反：只按当前供应商健康度临时选择。 | ADR-0016、ADR-0023、WP-0013。 |
 | 路由候选 | model-runtime | 已验证受控聊天配置的稳定标识、配置修订与目录事实。 | 厂商端点、密钥或任意模型参数。 | 候选绑定 | 正：发布前已冻结的配置修订；反：请求携带的 deployment URL。 | ADR-0023。 |
 | 可回退失败 | model-runtime | 在尚未向调用方交付模型正文时，可由标准化分类确认的瞬态调用失败。 | 引用校验失败、权限拒绝或任意业务错误。 | 瞬态失败 | 正：受控超时、暂时不可用；反：缺少 `knowledge:read`。 | WP-0013。 |
-| 调用轨迹 | model-runtime | 内部、不可变的候选尝试顺序及最小结果事实。 | 终端用户事件、供应商原始错误或回答正文。 | `ModelInvocationTrace` | 正：尝试序号、候选修订、标准化结果、用量和延迟；反：请求、响应、URL。 | ADR-0038、WP-0013。 |
+| 调用轨迹 | model-runtime | 内部、不可变的候选尝试顺序及最小结果事实。 | 终端用户事件、供应商原始错误或回答正文。 | `ModelInvocationTrace` | 正：尝试序号、候选配置修订、标准化结果；反：请求、响应、URL、用量或时延。 | ADR-0040、WP-0013。 |
 | 胜出候选 | model-runtime | 本次聊天调用实际生成已验证候选回答的路由候选。 | 一定等同于路由主候选。 | 最终候选 | 正：主候选超时后后备候选成功；反：失败主候选被记录为结果模型。 | WP-0013。 |
 | 嵌入绑定 | assistant-delivery／knowledge-data | 与索引维度和构建事实兼容的单一冻结嵌入配置。 | 可按聊天故障回退的聊天路由成员。 | 嵌入模型 | 正：维度匹配已发布索引；反：查询时切换到不同维度。 | ADR-0016、ADR-0023。 |
 | 工具调用 | 后续 M5 子能力 | 受限模型能力请求外部或内部受治理动作的独立业务能力。 | 聊天回退或自由网络访问。 | Tool | 正：独立受权、输入输出最小化；反：提示词内任意 HTTP。 | M5 路线图。 |
@@ -77,13 +77,13 @@ M5 不新建全局“模型平台”上下文。模型连接、配置、能力�
 | --- | --- | --- | --- | --- | --- | --- |
 | 既有受控模型配置 | 既有能力、目录与凭据引用。 | 既有模型配置标识。 | M5 不改变配置生命周期或密钥边界。 | 既有配置事务。 | 公开只读快照。 | 供助手版本复核、供执行门面调用。 |
 
-首条切片不创建路由聚合。`ChatRouteExecutor` 是无状态应用服务，负责顺序尝试与失败分类；`ModelInvocationTrace` 是内部不可变操作结果／持久化投影，不是领域实体、公开事件或配置聚合。它的持久化由拥有运行终态的上下文在原子提交时附带完成。
+首条切片不创建路由聚合。`ChatRouteExecutor` 是无状态应用服务，负责顺序尝试与失败分类：成功返回 `ChatRouteExecution`，候选耗尽返回携带同一尝试列表的 `ChatRouteExhaustedException`。`ModelInvocationTrace` 是内部不可变操作结果／持久化投影，不是领域实体、公开事件或配置聚合。它只记录尝试序号、冻结配置标识与修订、`SUCCEEDED` 或 `TRANSIENT_FAILURE`；其持久化由拥有运行终态的上下文在原子提交时附带完成。
 
 ### trusted-query 与测试运行
 
 | 聚合根或投影 | 受保护不变量 | 处理方式 |
 | --- | --- | --- |
-| `QueryRun`／`AssistantTestRun` | 终态、引用、用量与各自事件不能因路由而混写。 | 调用轨迹必须与所属运行终态在同一事务提交，失败时整体回滚。 |
+| `QueryRun`／`AssistantTestRun` | 终态、引用、用量与各自事件不能因路由而混写。 | 调用轨迹按“每次候选一行”与所属运行终态在同一事务提交，失败时整体回滚。 |
 | `QueryDiagnosticFact` | M4 对外诊断字段和最小披露不可扩张。 | 不增加模型标识或调用错误字段；需要的内部轨迹不经该投影对外暴露。 |
 
 | 当前状态 | 命令 | 前置条件／守卫 | 不变量 | 下一状态 | 事件 | 非法原因 |
@@ -97,15 +97,15 @@ M5 不新建全局“模型平台”上下文。模型连接、配置、能力�
 
 | 领域概念 | 代码／API／数据／文档指针 | 状态 | 差异与处理 |
 | --- | --- | --- | --- |
-| 受控聊天与嵌入运行时 | `model-runtime` 的 `GovernedChatRuntime`、`GovernedEmbeddingRuntime`、`ModelRuntimeResolver` | 已有 | 当前只执行单一冻结目标，缺少路由、回退分类和轨迹。 |
-| 可信回答执行 | `AssistantTrustedAnswerExecutor` | 已有 | 统一执行顺序已固定；M5 只能替换其聊天调用 seam，不得复制检索、证据和引用逻辑。 |
-| 助手冻结模型绑定 | `AssistantVersion` 与 `AssistantTrustedAnswerTarget` | 已有 | 当前包含单一聊天绑定；候选路由需经 ADR-0040 后才扩展。 |
-| 查询终态与诊断 | `QueryRunService`、`QueryRunTerminalCommitter`、`QueryDiagnosticFact` | 已有 | 现有诊断不暴露模型标识；内部调用轨迹不得改变该 API。 |
-| 草稿测试终态 | `AssistantTestRunService`、`AssistantTestRun` | 已有 | 需要与普通查询共享相同聊天路由执行门面，但保持独立根与配额。 |
+| 受控聊天与嵌入运行时 | `ChatRouteExecutor`、`ChatRouteExecution`、`ChatRouteExhaustedException` | 已实施 | 路由循环和瞬态失败分类只在 model-runtime；不改变嵌入调用。 |
+| 可信回答执行 | `AssistantTrustedAnswerExecutor` | 已实施 | 统一执行顺序已固定；只映射执行器返回的尝试事实，不得复制检索、证据和引用逻辑。 |
+| 助手冻结模型绑定 | `AssistantVersion` 与 `AssistantTrustedAnswerTarget` | 已实施 | 已冻结有序候选路由；历史单绑定保持单候选路由。 |
+| 查询终态与诊断 | `QueryRunTerminalCommitter`、`query_model_invocation_trace`、`QueryDiagnosticFact` | 已实施 | 轨迹与终态、引用、事件、诊断同一事务；诊断 API 不增加字段。 |
+| 草稿测试终态 | `AssistantTestRunTerminalCommitter`、`assistant_test_run_model_invocation_trace` | 已实施 | 草稿测试使用独立事务表与配额，不复用查询轨迹。 |
 
 ## 决策与未知项
 
-- ADR-0040 已选择“助手版本冻结有序聊天路由，model-runtime 执行有限回退，所属运行原子持久化内部调用轨迹”。实现仍须完成查询和草稿测试的原子轨迹提交及全量验证。
+- ADR-0040 已选择“助手版本冻结有序聊天路由，model-runtime 执行有限回退，所属运行原子持久化内部调用轨迹”。当前切片已完成查询和草稿测试的原子轨迹提交；M5 的其余能力与人工评审仍未完成。
 - 路由上限、标准化可回退失败类别和轨迹保留期属于 ADR-0040 的审查项；不得由页面、请求或供应商原始错误临时决定。
 - 工具、MCP、多模态和音频的权限、输入输出、网络和数据保留边界尚未建模；它们需要独立设计与 ADR，不能由聊天路由顺带开启。
 - M6 的预算、发布审批和审计导出可以受控消费调用轨迹，但本工作包不建立这些读取投影或反写 M4 运行。

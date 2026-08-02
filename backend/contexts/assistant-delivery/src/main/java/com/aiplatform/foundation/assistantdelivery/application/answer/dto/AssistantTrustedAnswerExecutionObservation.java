@@ -8,7 +8,15 @@ package com.aiplatform.foundation.assistantdelivery.application.answer.dto;
 public record AssistantTrustedAnswerExecutionObservation(
         Integer candidateCount,
         long chatModelRevision,
-        long embeddingModelRevision) {
+        long embeddingModelRevision,
+        ModelInvocationTrace modelInvocationTrace) {
+
+    public AssistantTrustedAnswerExecutionObservation(
+            Integer candidateCount,
+            long chatModelRevision,
+            long embeddingModelRevision) {
+        this(candidateCount, chatModelRevision, embeddingModelRevision, null);
+    }
 
     public AssistantTrustedAnswerExecutionObservation {
         if (candidateCount != null && candidateCount < 0

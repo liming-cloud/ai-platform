@@ -4,6 +4,7 @@ import com.aiplatform.foundation.assistantdelivery.domain.assistant.repository.A
 import com.aiplatform.foundation.assistantdelivery.domain.assistant.testrun.repository.AssistantTestRunRepository;
 import com.aiplatform.foundation.assistantdelivery.infrastructure.persistence.assistant.mapper.AssistantTestCitationMapper;
 import com.aiplatform.foundation.assistantdelivery.infrastructure.persistence.assistant.mapper.AssistantTestRunMapper;
+import com.aiplatform.foundation.assistantdelivery.infrastructure.persistence.assistant.mapper.AssistantTestRunModelInvocationTraceMapper;
 import com.aiplatform.foundation.assistantdelivery.infrastructure.persistence.assistant.mapper.AssistantMapper;
 import com.aiplatform.foundation.assistantdelivery.infrastructure.persistence.assistant.mapper.AssistantRequestMapper;
 import com.aiplatform.foundation.assistantdelivery.infrastructure.persistence.assistant.mapper.AssistantVersionMapper;
@@ -52,15 +53,17 @@ public class AssistantDeliveryPersistenceAutoConfiguration {
     }
 
     @Bean
-    @ConditionalOnMissingBean
-    AssistantTestRunRepository assistantTestRunRepository(
+    @ConditionalOnMissingBean(AssistantTestRunRepository.class)
+    PostgresAssistantTestRunRepository assistantTestRunRepository(
             AssistantTestRunMapper mapper,
             AssistantTestCitationMapper citationMapper,
+            AssistantTestRunModelInvocationTraceMapper traceMapper,
             EntityIdGenerator identifiers,
             PlatformTransactionManager transactions) {
         return new PostgresAssistantTestRunRepository(
                 mapper,
                 citationMapper,
+                traceMapper,
                 identifiers,
                 transactions);
     }

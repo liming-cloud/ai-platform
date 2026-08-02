@@ -4,12 +4,20 @@
 
 | 项目 | 内容 |
 | --- | --- |
-| 状态 | 设计路线，尚未执行红灯或实现。 |
-| 前置条件 | ADR-0040 获用户明确接受。 |
+| 状态 | ADR-0040 已接受；首条路由与调用轨迹切片已执行红绿，M5 仍进行中。 |
+| 前置条件 | ADR-0040 获用户明确接受，已满足。 |
 | 公共 seam | `AssistantTrustedAnswerExecutor` 的单一聊天调用点，以及 `QueryRun`／`AssistantTestRun` 各自的终态原子提交。 |
 | 不允许修改 | 已发布索引的嵌入绑定、M4 的 `QueryDiagnostic` 响应、普通查询 `PUBLISHED` 边界、令牌派生身份语义。 |
 
-ADR-0040 未接受前，本记录只约束未来测试顺序，不创建测试或生产代码，因而不存在可报告的实际红灯或绿灯。
+已实际执行的红灯：
+
+```bash
+./mvnw -q -pl backend/contexts/model-runtime,backend/contexts/assistant-delivery -am test \
+  -Dtest=DefaultChatRouteExecutorTest,ModelInvocationTraceTest \
+  -Dsurefire.failIfNoSpecifiedTests=false
+```
+
+红灯原因是 `ChatRouteExhaustedException`、逐次 `ChatRouteAttempt` 及列表型 `ModelInvocationTrace` 尚未存在，旧执行结果只保留整数次数。绿灯见 `WP-0013-m5-model-invocation-trace.md`；M5 其余范围仍按本路线继续执行。
 
 ## 红绿切片顺序
 

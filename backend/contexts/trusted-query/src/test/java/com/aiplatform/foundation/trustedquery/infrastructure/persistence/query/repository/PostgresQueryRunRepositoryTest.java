@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.aiplatform.foundation.assistantdelivery.application.answer.dto.ModelInvocationTrace;
 import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
 import com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator;
 import com.aiplatform.foundation.shared.contract.paging.PageQuery;
@@ -29,6 +30,7 @@ import com.aiplatform.foundation.trustedquery.infrastructure.persistence.query.m
 import com.aiplatform.foundation.trustedquery.infrastructure.persistence.query.mapper.QueryCitationMapper;
 import com.aiplatform.foundation.trustedquery.infrastructure.persistence.query.mapper.QueryRunEventMapper;
 import com.aiplatform.foundation.trustedquery.infrastructure.persistence.query.mapper.QueryRunRequestMapper;
+import com.aiplatform.foundation.trustedquery.infrastructure.persistence.query.mapper.QueryModelInvocationTraceMapper;
 import com.aiplatform.foundation.trustedquery.domain.query.model.QueryRun;
 import com.aiplatform.foundation.trustedquery.domain.query.model.QueryRunId;
 import java.sql.Timestamp;
@@ -122,6 +124,7 @@ class PostgresQueryRunRepositoryTest {
     @BeforeEach
     void prepareFacts() {
         jdbc.update("DELETE FROM trusted_query.query_diagnostic_fact");
+        jdbc.update("DELETE FROM trusted_query.query_model_invocation_trace");
         jdbc.update("DELETE FROM trusted_query.query_run_event");
         jdbc.update("DELETE FROM trusted_query.query_citation");
         jdbc.update("DELETE FROM trusted_query.query_run_request");
@@ -176,7 +179,12 @@ class PostgresQueryRunRepositoryTest {
                         4,
                         7,
                         3,
-                        com.aiplatform.foundation.trustedquery.application.diagnostic.dto.CitationValidation.VALIDATED)));
+                        com.aiplatform.foundation.trustedquery.application.diagnostic.dto.CitationValidation.VALIDATED),
+                new ModelInvocationTrace(List.of(
+                        new ModelInvocationTrace.Attempt(
+                                1, 320000000000000001L, 7, ModelInvocationTrace.Outcome.TRANSIENT_FAILURE),
+                        new ModelInvocationTrace.Attempt(
+                                2, 320000000000000002L, 8, ModelInvocationTrace.Outcome.SUCCEEDED)))));
         var replayed = repository.claim(
                 running(),
                 "query-key-001",
@@ -215,6 +223,16 @@ class PostgresQueryRunRepositoryTest {
         assertEquals(4, jdbc.queryForObject(
                 "SELECT candidate_count FROM trusted_query.query_diagnostic_fact", Integer.class));
         assertEquals(4, diagnostics.find(TENANT, answered.id()).orElseThrow().candidateCount());
+        var traces = jdbc.queryForList("""
+                SELECT attempt_sequence, configuration_id, configuration_revision, outcome
+                FROM trusted_query.query_model_invocation_trace
+                WHERE tenant_id = ? AND query_run_id = ?
+                ORDER BY attempt_sequence
+                """, TENANT.value(), answered.id().value());
+        assertEquals(2, traces.size());
+        assertEquals("TRANSIENT_FAILURE", traces.getFirst().get("outcome"));
+        assertEquals(320000000000000002L, traces.getLast().get("configuration_id"));
+        assertEquals("SUCCEEDED", traces.getLast().get("outcome"));
     }
 
     @Test
@@ -251,6 +269,59 @@ class PostgresQueryRunRepositoryTest {
                 "SELECT count(*) FROM trusted_query.query_run_event", Integer.class));
         assertEquals(1, jdbc.queryForObject(
                 "SELECT count(*) FROM trusted_query.query_diagnostic_fact", Integer.class));
+    }
+
+    @Test
+    void 调用轨迹写入失败时查询终态和诊断必须整体回滚() {
+        var claimed = repository.claim(
+                running(),
+                "trace-rollback-001",
+                "f".repeat(64),
+                QUOTA);
+        jdbc.update("""
+                INSERT INTO trusted_query.query_model_invocation_trace (
+                    id, tenant_id, query_run_id, attempt_sequence,
+                    configuration_id, configuration_revision, outcome, created_at
+                ) VALUES (?, ?, ?, 1, ?, 1, 'TRANSIENT_FAILURE', ?)
+                """,
+                990000000000000001L,
+                TENANT.value(),
+                claimed.queryRun().id().value(),
+                320000000000000001L,
+                Timestamp.from(NOW));
+        var refused = claimed.queryRun().refuse(
+                com.aiplatform.foundation.trustedquery.domain.query.model.QueryRefusalReason
+                        .INSUFFICIENT_EVIDENCE,
+                NOW.plusSeconds(1));
+
+        assertThrows(RuntimeException.class, () -> terminalCommitter.commit(new com.aiplatform.foundation
+                .trustedquery.application.diagnostic.dto.QueryRunTerminalCommit(
+                        refused,
+                        claimed.queryRun().version(),
+                        com.aiplatform.foundation.trustedquery.application.diagnostic.dto.QueryDiagnosticFact
+                                .forTerminal(
+                                        refused.status(),
+                                        com.aiplatform.foundation.trustedquery.application.diagnostic.dto
+                                                .CandidateCollection.COLLECTED,
+                                        0,
+                                        7,
+                                        3,
+                                        com.aiplatform.foundation.trustedquery.application.diagnostic.dto
+                                                .CitationValidation.NOT_APPLICABLE),
+                        new ModelInvocationTrace(List.of(
+                                new ModelInvocationTrace.Attempt(
+                                        1,
+                                        320000000000000001L,
+                                        1,
+                                        ModelInvocationTrace.Outcome.TRANSIENT_FAILURE))))));
+
+        assertEquals(
+                com.aiplatform.foundation.trustedquery.domain.query.model.QueryRunStatus.RUNNING,
+                repository.find(TENANT, claimed.queryRun().id()).orElseThrow().status());
+        assertEquals(0, jdbc.queryForObject(
+                "SELECT count(*) FROM trusted_query.query_diagnostic_fact", Integer.class));
+        assertEquals(1, jdbc.queryForObject(
+                "SELECT count(*) FROM trusted_query.query_model_invocation_trace", Integer.class));
     }
 
     @Test
@@ -677,6 +748,7 @@ class PostgresQueryRunRepositoryTest {
                 QueryRunRequestMapper requestMapper,
                 QueryCitationMapper citationMapper,
                 QueryRunEventMapper eventMapper,
+                QueryModelInvocationTraceMapper traceMapper,
                 EntityIdGenerator identifiers,
                 PlatformTransactionManager transactions) {
             return new PostgresQueryRunRepository(
@@ -685,6 +757,7 @@ class PostgresQueryRunRepositoryTest {
                     requestMapper,
                     citationMapper,
                     eventMapper,
+                    traceMapper,
                     identifiers,
                     transactions);
         }

@@ -1,7 +1,10 @@
 package com.aiplatform.foundation.assistantdelivery.application.assistant.testrun.service;
 
 import com.aiplatform.foundation.assistantdelivery.application.answer.dto.AssistantTrustedAnswerTarget;
+import com.aiplatform.foundation.assistantdelivery.application.answer.service.AssistantTrustedAnswerExecutionException;
 import com.aiplatform.foundation.assistantdelivery.application.answer.service.AssistantTrustedAnswerExecutor;
+import com.aiplatform.foundation.assistantdelivery.application.assistant.testrun.dto.AssistantTestRunTerminalCommit;
+import com.aiplatform.foundation.assistantdelivery.application.assistant.testrun.port.out.AssistantTestRunTerminalCommitter;
 import com.aiplatform.foundation.assistantdelivery.application.assistant.facade.DraftAssistantVersionLookup;
 import com.aiplatform.foundation.assistantdelivery.application.assistant.testrun.command.RunAssistantDraftTestCommand;
 import com.aiplatform.foundation.assistantdelivery.application.assistant.testrun.dto.AssistantTestCitationResult;
@@ -34,6 +37,7 @@ public final class AssistantTestRunService {
 
     private final DraftAssistantVersionLookup drafts;
     private final AssistantTestRunRepository repository;
+    private final AssistantTestRunTerminalCommitter terminalCommitter;
     private final AssistantTestQuotaPolicy quota;
     private final AssistantTrustedAnswerExecutor executor;
     private final Clock clock;
@@ -42,12 +46,14 @@ public final class AssistantTestRunService {
     public AssistantTestRunService(
             DraftAssistantVersionLookup drafts,
             AssistantTestRunRepository repository,
+            AssistantTestRunTerminalCommitter terminalCommitter,
             AssistantTestQuotaPolicy quota,
             AssistantTrustedAnswerExecutor executor,
             Clock clock,
             EntityIdGenerator identifiers) {
         this.drafts = Objects.requireNonNull(drafts, "草稿助手版本查询不能为空");
         this.repository = Objects.requireNonNull(repository, "助手测试运行仓储不能为空");
+        this.terminalCommitter = Objects.requireNonNull(terminalCommitter, "助手测试终态提交器不能为空");
         this.quota = Objects.requireNonNull(quota, "助手测试配额策略不能为空");
         this.executor = Objects.requireNonNull(executor, "可信回答执行门面不能为空");
         this.clock = Objects.requireNonNull(clock, "时钟不能为空");
@@ -73,14 +79,17 @@ public final class AssistantTestRunService {
         try {
             answer = executor.execute(
                     command.context(), AssistantTrustedAnswerTarget.from(draft), command.question());
+        } catch (AssistantTrustedAnswerExecutionException exception) {
+            commit(claimed.fail(clock.instant()), claimed.version(), exception.observation().modelInvocationTrace());
+            throw exception;
         } catch (RuntimeException exception) {
-            repository.complete(claimed.fail(clock.instant()), claimed.version());
+            commit(claimed.fail(clock.instant()), claimed.version(), null);
             throw exception;
         }
         if (answer.outcome() == com.aiplatform.foundation.assistantdelivery.application.answer.dto
                 .AssistantTrustedAnswerResult.Outcome.REFUSED_INSUFFICIENT_EVIDENCE) {
             var refused = claimed.refuse(AssistantTestRefusalReason.INSUFFICIENT_EVIDENCE, clock.instant());
-            repository.complete(refused, claimed.version());
+            commit(refused, claimed.version(), null);
             return new AssistantTestRunResult(Long.toString(refused.id().value()), refused.status(), null, java.util.List.of());
         }
         var completed = claimed.answer(
@@ -91,12 +100,19 @@ public final class AssistantTestRunService {
                         value.sequence(), value.dataSourceId(), value.contentVersion(),
                         value.chunkId(), value.ordinal())).toList(),
                 clock.instant());
-        repository.complete(completed, claimed.version());
+        commit(completed, claimed.version(), answer.modelInvocationTrace());
         return new AssistantTestRunResult(
                 Long.toString(completed.id().value()), completed.status(), answer.answer(),
                 answer.citations().stream().map(value -> new AssistantTestCitationResult(
                         value.sequence(), Long.toString(value.dataSourceId()), value.contentVersion(),
                         value.chunkId(), value.ordinal(), value.quote(), value.score())).toList());
+    }
+
+    private void commit(
+            AssistantTestRun run,
+            long expectedVersion,
+            com.aiplatform.foundation.assistantdelivery.application.answer.dto.ModelInvocationTrace trace) {
+        terminalCommitter.commit(new AssistantTestRunTerminalCommit(run, expectedVersion, trace));
     }
 
     private static AssistantTestTarget toTarget(

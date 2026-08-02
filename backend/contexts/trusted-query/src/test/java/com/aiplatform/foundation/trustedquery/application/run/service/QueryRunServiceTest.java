@@ -17,6 +17,7 @@ import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
 import com.aiplatform.foundation.knowledgedata.application.indexversion.port.out.vector.IndexCandidate;
 import com.aiplatform.foundation.knowledgedata.application.indexversion.port.out.vector.IndexCandidateQuery;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.ChatModelPort;
+import com.aiplatform.foundation.modelruntime.application.runtime.facade.ChatInvocationTransientException;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.GovernedChatRuntime;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.GovernedEmbeddingRuntime;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.ModelRuntimeResolver;
@@ -189,6 +190,38 @@ class QueryRunServiceTest {
         assertEquals(0, legacy.chatCalls);
         assertTrue(retrieval.query.embeddingConfiguration().isGoverned());
         assertEquals(EMBEDDING, retrieval.query.embeddingConfiguration().configurationId());
+    }
+
+    @Test
+    void 全部受控聊天候选瞬态失败时应将尝试轨迹写入失败终态() {
+        var repository = new MemoryRepository();
+        var chats = new RecordingGovernedChats(repository);
+        chats.transientFailure = true;
+        var service = new QueryRunService(
+                (tenantId, assistantVersionId) -> Optional.of(governedSnapshot()),
+                new RecordingModels(),
+                configurations(),
+                new RecordingGovernedEmbeddings(repository),
+                chats,
+                new RecordingRetrieval(List.of(candidate(0.9)))::retrieve,
+                repository,
+                committer(repository),
+                new QueryQuotaPolicy(100, 4, Duration.ofMinutes(2)),
+                Clock.fixed(NOW, ZoneOffset.UTC),
+                () -> 430000000000000001L);
+
+        assertThrows(AssistantTrustedAnswerExecutionException.class, () -> service.create(new CreateQueryRunCommand(
+                context("assistant:query", "knowledge:read"),
+                "query-key-governed-transient-failure",
+                Long.toString(ASSISTANT_VERSION),
+                "牛奶在哪里")));
+
+        assertEquals("FAILED", repository.current.status().name());
+        assertEquals(1, repository.terminal.modelInvocationTrace().attempts().size());
+        assertEquals(
+                com.aiplatform.foundation.assistantdelivery.application.answer.dto.ModelInvocationTrace.Outcome
+                        .TRANSIENT_FAILURE,
+                repository.terminal.modelInvocationTrace().attempts().getFirst().outcome());
     }
 
     @Test
@@ -414,6 +447,7 @@ class QueryRunServiceTest {
     private static final class RecordingGovernedChats implements GovernedChatRuntime {
         private final MemoryRepository repository;
         private int calls;
+        private boolean transientFailure;
 
         private RecordingGovernedChats(MemoryRepository repository) {
             this.repository = repository;
@@ -426,6 +460,9 @@ class QueryRunServiceTest {
                 ChatRequest request) {
             assertNotNull(repository.current);
             calls++;
+            if (transientFailure) {
+                throw ChatInvocationTransientException.beforeOutput(new IllegalStateException("模型暂时不可用"));
+            }
             return new ChatResult(
                     request.deployment(), "牛奶位于一层冷藏区。", "STOP",
                     new ModelUsage(10, 5, 15));

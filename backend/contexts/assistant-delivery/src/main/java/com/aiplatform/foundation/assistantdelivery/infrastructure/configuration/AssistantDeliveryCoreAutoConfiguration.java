@@ -6,6 +6,7 @@ import com.aiplatform.foundation.assistantdelivery.application.assistant.facade.
 import com.aiplatform.foundation.assistantdelivery.application.assistant.service.DraftAssistantVersionLookupService;
 import com.aiplatform.foundation.assistantdelivery.application.assistant.service.PublishedAssistantVersionLookupService;
 import com.aiplatform.foundation.assistantdelivery.application.assistant.testrun.service.AssistantTestRunService;
+import com.aiplatform.foundation.assistantdelivery.application.assistant.testrun.port.out.AssistantTestRunTerminalCommitter;
 import com.aiplatform.foundation.assistantdelivery.application.catalog.service.QueryAssistantCatalogService;
 import com.aiplatform.foundation.assistantdelivery.domain.assistant.repository.AssistantRepository;
 import com.aiplatform.foundation.assistantdelivery.domain.assistant.testrun.policy.AssistantTestQuotaPolicy;
@@ -80,15 +81,20 @@ public class AssistantDeliveryCoreAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    @ConditionalOnBean({AssistantTestRunRepository.class, AssistantTrustedAnswerExecutor.class})
+    @ConditionalOnBean({
+        AssistantTestRunRepository.class,
+        AssistantTestRunTerminalCommitter.class,
+        AssistantTrustedAnswerExecutor.class
+    })
     AssistantTestRunService assistantTestRunService(
             DraftAssistantVersionLookup drafts,
             AssistantTestRunRepository repository,
+            AssistantTestRunTerminalCommitter terminalCommitter,
             AssistantTrustedAnswerExecutor executor,
             EntityIdGenerator identifiers,
             AssistantTestRunProperties properties) {
         return new AssistantTestRunService(
-                drafts, repository,
+                drafts, repository, terminalCommitter,
                 new AssistantTestQuotaPolicy(
                         properties.dailyLimit(), properties.concurrentLimit(), properties.runningLease()),
                 executor, Clock.systemUTC(), identifiers);

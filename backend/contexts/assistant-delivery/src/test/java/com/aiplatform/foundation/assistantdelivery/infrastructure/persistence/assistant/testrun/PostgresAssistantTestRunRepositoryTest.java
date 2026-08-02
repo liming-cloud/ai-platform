@@ -6,6 +6,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.aiplatform.foundation.assistantdelivery.application.assistant.testrun.AssistantTestQuotaExceededException;
 import com.aiplatform.foundation.assistantdelivery.application.assistant.testrun.AssistantTestQuotaLimitType;
+import com.aiplatform.foundation.assistantdelivery.application.assistant.testrun.dto.AssistantTestRunTerminalCommit;
+import com.aiplatform.foundation.assistantdelivery.application.assistant.testrun.port.out.AssistantTestRunTerminalCommitter;
+import com.aiplatform.foundation.assistantdelivery.application.answer.dto.ModelInvocationTrace;
 import com.aiplatform.foundation.assistantdelivery.domain.assistant.model.CitationPolicy;
 import com.aiplatform.foundation.assistantdelivery.domain.assistant.model.GovernedChatModelBinding;
 import com.aiplatform.foundation.assistantdelivery.domain.assistant.model.GovernedEmbeddingModelBinding;
@@ -20,6 +23,7 @@ import com.aiplatform.foundation.assistantdelivery.domain.assistant.testrun.mode
 import com.aiplatform.foundation.assistantdelivery.domain.assistant.testrun.policy.AssistantTestQuotaPolicy;
 import com.aiplatform.foundation.assistantdelivery.domain.assistant.testrun.repository.AssistantTestRunRepository;
 import com.aiplatform.foundation.assistantdelivery.infrastructure.persistence.assistant.mapper.AssistantTestCitationMapper;
+import com.aiplatform.foundation.assistantdelivery.infrastructure.persistence.assistant.mapper.AssistantTestRunModelInvocationTraceMapper;
 import com.aiplatform.foundation.assistantdelivery.infrastructure.persistence.assistant.mapper.AssistantTestRunMapper;
 import com.aiplatform.foundation.assistantdelivery.infrastructure.persistence.assistant.repository.PostgresAssistantTestRunRepository;
 import com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator;
@@ -63,6 +67,9 @@ class PostgresAssistantTestRunRepositoryTest {
     @Autowired
     private JdbcTemplate jdbc;
 
+    @Autowired
+    private AssistantTestRunTerminalCommitter terminalCommitter;
+
     @DynamicPropertySource
     static void databaseProperties(DynamicPropertyRegistry registry) {
         registry.add("spring.datasource.url", POSTGRES::getJdbcUrl);
@@ -81,6 +88,7 @@ class PostgresAssistantTestRunRepositoryTest {
 
     @BeforeEach
     void clearRuns() {
+        jdbc.update("DELETE FROM assistant_delivery.assistant_test_run_model_invocation_trace");
         jdbc.update("DELETE FROM assistant_delivery.assistant_test_run_citation");
         jdbc.update("DELETE FROM assistant_delivery.assistant_test_run");
     }
@@ -100,7 +108,12 @@ class PostgresAssistantTestRunRepositoryTest {
                 java.util.List.of(new AssistantTestCitation(
                         1, 200000000000000001L, 3, "chunk-001", 0)),
                 NOW.plusSeconds(3));
-        repository.complete(answered, accepted.version());
+        terminalCommitter.commit(new AssistantTestRunTerminalCommit(
+                answered,
+                accepted.version(),
+                new ModelInvocationTrace(java.util.List.of(
+                        new ModelInvocationTrace.Attempt(
+                                1, 500000000000000001L, 7, ModelInvocationTrace.Outcome.SUCCEEDED)))));
 
         var restored = repository.find(STORE, accepted.id()).orElseThrow();
         assertEquals(AssistantTestRunStatus.ANSWERED, restored.status());
@@ -108,6 +121,15 @@ class PostgresAssistantTestRunRepositoryTest {
         assertEquals("chunk-001", restored.citations().getFirst().chunkId());
         assertEquals(1, jdbc.queryForObject(
                 "SELECT count(*) FROM assistant_delivery.assistant_test_run_citation", Integer.class));
+        var trace = jdbc.queryForMap("""
+                SELECT attempt_sequence, configuration_id, configuration_revision, outcome
+                FROM assistant_delivery.assistant_test_run_model_invocation_trace
+                WHERE tenant_id = ? AND assistant_test_run_id = ?
+                """, STORE.value(), accepted.id().value());
+        assertEquals(1, trace.get("attempt_sequence"));
+        assertEquals(500000000000000001L, trace.get("configuration_id"));
+        assertEquals(7L, trace.get("configuration_revision"));
+        assertEquals("SUCCEEDED", trace.get("outcome"));
         assertEquals(0, jdbc.queryForObject(
                 """
                 SELECT count(*)
@@ -141,6 +163,46 @@ class PostgresAssistantTestRunRepositoryTest {
         assertEquals(AssistantTestQuotaLimitType.DAILY, daily.limitType());
     }
 
+    @Test
+    void 调用轨迹写入失败时草稿测试终态和引用必须整体回滚() {
+        var accepted = repository.claim(running(STORE, 1L, NOW),
+                new AssistantTestQuotaPolicy(2, 2, Duration.ofMinutes(5)));
+        jdbc.update("""
+                INSERT INTO assistant_delivery.assistant_test_run_model_invocation_trace (
+                    id, tenant_id, assistant_test_run_id, attempt_sequence,
+                    configuration_id, configuration_revision, outcome, created_at
+                ) VALUES (?, ?, ?, 1, ?, 7, 'TRANSIENT_FAILURE', ?)
+                """,
+                990000000000000001L,
+                STORE.value(),
+                accepted.id().value(),
+                500000000000000001L,
+                java.sql.Timestamp.from(NOW));
+        var answered = accepted.answer(
+                new AssistantTestUsage(10, 20),
+                java.util.List.of(new AssistantTestCitation(
+                        1, 200000000000000001L, 3, "chunk-001", 0)),
+                NOW.plusSeconds(3));
+
+        assertThrows(RuntimeException.class, () -> terminalCommitter.commit(new AssistantTestRunTerminalCommit(
+                answered,
+                accepted.version(),
+                new ModelInvocationTrace(java.util.List.of(
+                        new ModelInvocationTrace.Attempt(
+                                1,
+                                500000000000000001L,
+                                7,
+                                ModelInvocationTrace.Outcome.TRANSIENT_FAILURE))))));
+
+        assertEquals(
+                AssistantTestRunStatus.RUNNING,
+                repository.find(STORE, accepted.id()).orElseThrow().status());
+        assertEquals(0, jdbc.queryForObject(
+                "SELECT count(*) FROM assistant_delivery.assistant_test_run_citation", Integer.class));
+        assertEquals(1, jdbc.queryForObject(
+                "SELECT count(*) FROM assistant_delivery.assistant_test_run_model_invocation_trace", Integer.class));
+    }
+
     private static AssistantTestRun running(TenantId tenantId, long id, Instant time) {
         return AssistantTestRun.start(
                 tenantId,
@@ -169,12 +231,13 @@ class PostgresAssistantTestRunRepositoryTest {
     static class TestApplication {
 
         @Bean
-        AssistantTestRunRepository assistantTestRunRepository(
+        PostgresAssistantTestRunRepository assistantTestRunRepository(
                 AssistantTestRunMapper mapper,
                 AssistantTestCitationMapper citationMapper,
+                AssistantTestRunModelInvocationTraceMapper traceMapper,
                 EntityIdGenerator identifiers,
                 PlatformTransactionManager transactions) {
-            return new PostgresAssistantTestRunRepository(mapper, citationMapper, identifiers, transactions);
+            return new PostgresAssistantTestRunRepository(mapper, citationMapper, traceMapper, identifiers, transactions);
         }
     }
 }

@@ -5,9 +5,11 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.aiplatform.foundation.modelruntime.application.configuration.dto.UsableModelConfigurationSnapshot;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.ChatInvocationTransientException;
+import com.aiplatform.foundation.modelruntime.application.runtime.facade.ChatRouteExhaustedException;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.GovernedChatRuntime;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.chat.ChatDeploymentRef;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.chat.ChatMessage;
+import com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.chat.ChatRouteAttempt;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.chat.ChatResult;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.chat.ChatRole;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.common.ModelUsage;
@@ -45,7 +47,9 @@ class DefaultChatRouteExecutorTest {
                 List.of(new ChatMessage(ChatRole.USER, "问题")), 128);
 
         assertEquals(2, attempts.get());
-        assertEquals(2, execution.attempts());
+        assertEquals(2, execution.attempts().size());
+        assertEquals(ChatRouteAttempt.Outcome.TRANSIENT_FAILURE, execution.attempts().getFirst().outcome());
+        assertEquals(ChatRouteAttempt.Outcome.SUCCEEDED, execution.attempts().getLast().outcome());
         assertEquals(42, execution.selected().configuration().configurationId().value());
         assertEquals("后备回答", execution.result().content());
     }
@@ -65,6 +69,25 @@ class DefaultChatRouteExecutorTest {
                         context(), List.of(candidate(41), candidate(42)),
                         List.of(new ChatMessage(ChatRole.USER, "问题")), 128));
         assertEquals(1, attempts.get());
+    }
+
+    @Test
+    void 全部调用前瞬态失败应返回完整候选尝试轨迹() {
+        GovernedChatRuntime chats = (context, configuration, request) -> {
+            throw ChatInvocationTransientException.beforeOutput(new IllegalStateException());
+        };
+        var executor = new DefaultChatRouteExecutor(chats);
+
+        var failure = assertThrows(
+                ChatRouteExhaustedException.class,
+                () -> executor.execute(
+                        context(), List.of(candidate(41), candidate(42)),
+                        List.of(new ChatMessage(ChatRole.USER, "问题")), 128));
+
+        assertEquals(2, failure.attempts().size());
+        assertEquals(41, failure.attempts().getFirst().candidate().configuration().configurationId().value());
+        assertEquals(42, failure.attempts().getLast().candidate().configuration().configurationId().value());
+        assertEquals(ChatRouteAttempt.Outcome.TRANSIENT_FAILURE, failure.attempts().getLast().outcome());
     }
 
     private static com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.chat.GovernedChatRouteCandidate candidate(long id) {

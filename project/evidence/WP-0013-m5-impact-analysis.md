@@ -20,7 +20,8 @@
 | 查询终态与诊断 | `QueryRunTerminalCommitter`、`QueryDiagnosticFact` | 终态、引用、事件和诊断事实已原子提交，诊断最小字段不含模型标识。 | 调用轨迹必须是内部事实并纳入同一终态事务，不能扩张诊断 API。 |
 | 查询轨迹提交 seam | `PostgresQueryRunRepository.commit` | 既有单事务已提交 `QueryRun` 终态、引用、事件及 `QueryDiagnosticFact`。 | `ModelInvocationTrace` 应作为同一提交契约的内部附属事实；不得由独立异步写入替代。 |
 | 草稿测试轨迹提交 seam | `PostgresAssistantTestRunRepository.complete`、`AssistantTestRunService` | 草稿运行已通过独立仓储提交终态和最小引用，不与 `QueryRun` 共用表或配额。 | 为保持根与配额独立，轨迹须由草稿测试仓储在同一终态事务提交，不能复用查询表。 |
-| 路由执行边界 | `ChatRouteExecutor`、`AssistantTrustedAnswerExecutor` | model-runtime 已集中候选循环和瞬态失败分类；assistant-delivery 仅映射冻结候选及配置快照。 | 轨迹的胜出候选与尝试数应来自执行结果，调用方不得重新推断或自行重试。 |
+| 路由执行边界 | `ChatRouteExecutor`、`ChatRouteExecution`、`ChatRouteExhaustedException`、`AssistantTrustedAnswerExecutor` | model-runtime 集中候选循环和瞬态失败分类；assistant-delivery 仅映射冻结候选及配置快照。 | 成功和候选耗尽均返回有序尝试事实；调用方不得重新推断或自行重试。 |
+| 草稿测试终态提交 | `AssistantTestRunTerminalCommitter`、`PostgresAssistantTestRunRepository.commit` | 草稿测试的轨迹、终态和引用使用同一事务提交。 | 不能把应用 DTO 放入领域仓储；应用 port 负责携带内部轨迹，基础设施实现原子写入。 |
 
 ## 反例矩阵
 
@@ -30,8 +31,8 @@
 | 权限、检索或引用失败触发回退 | 可能绕过可信失败关闭。 | 纯领域／应用反例证明仅标准化瞬态调用失败可回退。 |
 | 嵌入回退 | 索引维度与候选空间改变。 | 路由目标只包含聊天候选，嵌入绑定仍为单值。 |
 | 轨迹扩大敏感留存 | 泄漏正文、端点或密钥。 | 映射、SQL、HTTP 和事件反例检查禁止字段。 |
-| 轨迹与终态分离写入 | 留下不可审计半成品。 | 真实 PostgreSQL 注入失败验证整体回滚。 |
+| 轨迹与终态分离写入 | 留下不可审计半成品。 | 真实 PostgreSQL 验证查询与草稿测试均将终态和逐次轨迹同一事务提交。 |
 
 ## 待用户决定
 
-ADR-0040 已接受“助手版本冻结、最多两次后备、仅聊天、有限瞬态回退、内部调用轨迹”为首条 M5 切片。调用轨迹的查询与草稿测试原子持久化仍在实施，完成前不标记 WP-0013 或 M5 完成。
+ADR-0040 已接受“助手版本冻结、最多两次后备、仅聊天、有限瞬态回退、内部调用轨迹”为首条 M5 切片。查询与草稿测试的逐次轨迹已原子持久化；`WP-0013` 与 M5 仍须完成其余验收及人工评审，不能提前标记完成。

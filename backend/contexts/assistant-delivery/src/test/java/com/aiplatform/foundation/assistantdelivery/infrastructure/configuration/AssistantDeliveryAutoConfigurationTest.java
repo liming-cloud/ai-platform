@@ -8,11 +8,13 @@ import com.aiplatform.foundation.assistantdelivery.application.assistant.facade.
 import com.aiplatform.foundation.assistantdelivery.application.assistant.service.AssistantService;
 import com.aiplatform.foundation.assistantdelivery.application.answer.service.AssistantTrustedAnswerExecutor;
 import com.aiplatform.foundation.assistantdelivery.application.assistant.testrun.service.AssistantTestRunService;
+import com.aiplatform.foundation.assistantdelivery.application.assistant.testrun.port.out.AssistantTestRunTerminalCommitter;
 import com.aiplatform.foundation.assistantdelivery.application.catalog.service.QueryAssistantCatalogService;
 import com.aiplatform.foundation.assistantdelivery.domain.assistant.repository.AssistantRepository;
 import com.aiplatform.foundation.assistantdelivery.domain.assistant.testrun.repository.AssistantTestRunRepository;
 import com.aiplatform.foundation.assistantdelivery.infrastructure.persistence.assistant.mapper.AssistantTestCitationMapper;
 import com.aiplatform.foundation.assistantdelivery.infrastructure.persistence.assistant.mapper.AssistantTestRunMapper;
+import com.aiplatform.foundation.assistantdelivery.infrastructure.persistence.assistant.mapper.AssistantTestRunModelInvocationTraceMapper;
 import com.aiplatform.foundation.assistantdelivery.infrastructure.persistence.assistant.mapper.AssistantMapper;
 import com.aiplatform.foundation.assistantdelivery.infrastructure.persistence.assistant.mapper.AssistantRequestMapper;
 import com.aiplatform.foundation.assistantdelivery.infrastructure.persistence.assistant.mapper.AssistantVersionMapper;
@@ -60,6 +62,9 @@ class AssistantDeliveryAutoConfigurationTest {
                     AssistantVersionChatRouteCandidateMapper.class,
                     () -> mock(AssistantVersionChatRouteCandidateMapper.class))
             .withBean(AssistantTestRunMapper.class, () -> mock(AssistantTestRunMapper.class))
+            .withBean(
+                    AssistantTestRunModelInvocationTraceMapper.class,
+                    () -> mock(AssistantTestRunModelInvocationTraceMapper.class))
             .withBean(AssistantTestCitationMapper.class, () -> mock(AssistantTestCitationMapper.class))
             .withBean(EntityIdGenerator.class, () -> () -> 1L)
             .withBean(PlatformTransactionManager.class, () -> mock(PlatformTransactionManager.class));
@@ -109,8 +114,10 @@ class AssistantDeliveryAutoConfigurationTest {
     @Test
     void 持久化开启时应注册独立草稿测试运行仓储() {
         persistenceRunner.withPropertyValues("foundation.assistant-delivery.enabled=true")
-                .run(context -> assertThat(context)
-                        .hasSingleBean(AssistantTestRunRepository.class));
+                .run(context -> {
+                    assertThat(context).hasSingleBean(AssistantTestRunRepository.class);
+                    assertThat(context).hasSingleBean(AssistantTestRunTerminalCommitter.class);
+                });
     }
 
     @Test
@@ -119,6 +126,9 @@ class AssistantDeliveryAutoConfigurationTest {
                         "foundation.assistant-delivery.enabled=true",
                         "foundation.control-plane.enabled=true")
                 .withBean(AssistantTestRunRepository.class, () -> mock(AssistantTestRunRepository.class))
+                .withBean(
+                        AssistantTestRunTerminalCommitter.class,
+                        () -> mock(AssistantTestRunTerminalCommitter.class))
                 .withBean(ModelRuntimeResolver.class, () -> mock(ModelRuntimeResolver.class))
                 .withBean(UsableModelConfigurationLookup.class, () -> mock(UsableModelConfigurationLookup.class))
                 .withBean(GovernedEmbeddingRuntime.class, () -> mock(GovernedEmbeddingRuntime.class))

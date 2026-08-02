@@ -9,6 +9,7 @@ import com.aiplatform.foundation.trustedquery.infrastructure.persistence.query.m
 import com.aiplatform.foundation.trustedquery.infrastructure.persistence.query.mapper.QueryCitationMapper;
 import com.aiplatform.foundation.trustedquery.infrastructure.persistence.query.mapper.QueryRunEventMapper;
 import com.aiplatform.foundation.trustedquery.infrastructure.persistence.query.mapper.QueryRunRequestMapper;
+import com.aiplatform.foundation.trustedquery.infrastructure.persistence.query.mapper.QueryModelInvocationTraceMapper;
 import com.aiplatform.foundation.trustedquery.infrastructure.persistence.query.repository.PostgresQueryOperationsFactSource;
 import com.aiplatform.foundation.trustedquery.infrastructure.persistence.query.repository.PostgresQueryRunRepository;
 import com.aiplatform.foundation.trustedquery.infrastructure.persistence.query.repository.PostgresQueryDiagnosticFactLookup;
@@ -39,6 +40,7 @@ public class TrustedQueryPersistenceAutoConfiguration {
             QueryRunRequestMapper requestMapper,
             QueryCitationMapper citationMapper,
             QueryRunEventMapper eventMapper,
+            QueryModelInvocationTraceMapper traceMapper,
             EntityIdGenerator identifiers,
             PlatformTransactionManager transactions) {
         return new PostgresQueryRunRepository(
@@ -47,6 +49,7 @@ public class TrustedQueryPersistenceAutoConfiguration {
                 requestMapper,
                 citationMapper,
                 eventMapper,
+                traceMapper,
                 identifiers,
                 transactions);
     }

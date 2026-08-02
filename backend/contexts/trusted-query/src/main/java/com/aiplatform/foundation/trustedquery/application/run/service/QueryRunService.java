@@ -232,7 +232,8 @@ public final class QueryRunService  {
                     new AssistantTrustedAnswerExecutionObservation(
                             result.candidateCount(),
                             result.chatModelRevision(),
-                            result.embeddingModelRevision()),
+                            result.embeddingModelRevision(),
+                            result.modelInvocationTrace()),
                     exception);
         }
     }
@@ -247,7 +248,7 @@ public final class QueryRunService  {
                         ? CandidateCollection.NOT_COLLECTED
                         : CandidateCollection.COLLECTED,
                 observation.candidateCount(), observation.chatModelRevision(), observation.embeddingModelRevision(),
-                CitationValidation.NOT_APPLICABLE));
+                CitationValidation.NOT_APPLICABLE), observation.modelInvocationTrace());
     }
 
     private static long chatRevision(AssistantTrustedAnswerTarget target) {

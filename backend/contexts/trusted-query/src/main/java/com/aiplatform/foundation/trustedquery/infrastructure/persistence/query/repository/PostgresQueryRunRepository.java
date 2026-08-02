@@ -5,10 +5,12 @@ import com.aiplatform.foundation.trustedquery.infrastructure.persistence.query.m
 import com.aiplatform.foundation.trustedquery.infrastructure.persistence.query.mapper.QueryCitationMapper;
 import com.aiplatform.foundation.trustedquery.infrastructure.persistence.query.mapper.QueryRunEventMapper;
 import com.aiplatform.foundation.trustedquery.infrastructure.persistence.query.mapper.QueryRunRequestMapper;
+import com.aiplatform.foundation.trustedquery.infrastructure.persistence.query.mapper.QueryModelInvocationTraceMapper;
 import com.aiplatform.foundation.trustedquery.infrastructure.persistence.query.entity.QueryCitationEntity;
 import com.aiplatform.foundation.trustedquery.infrastructure.persistence.query.entity.QueryRunEntity;
 import com.aiplatform.foundation.trustedquery.infrastructure.persistence.query.entity.QueryRunEventEntity;
 import com.aiplatform.foundation.trustedquery.infrastructure.persistence.query.entity.QueryRunRequestEntity;
+import com.aiplatform.foundation.trustedquery.infrastructure.persistence.query.entity.QueryModelInvocationTraceEntity;
 import com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator;
 import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
 import com.aiplatform.foundation.trustedquery.application.quota.QueryQuotaExceededException;
@@ -52,6 +54,7 @@ public final class PostgresQueryRunRepository implements QueryRunRepository, Que
     private final QueryRunRequestMapper requestMapper;
     private final QueryCitationMapper citationMapper;
     private final QueryRunEventMapper eventMapper;
+    private final QueryModelInvocationTraceMapper traceMapper;
     private final EntityIdGenerator identifiers;
     private final TransactionTemplate transactions;
 
@@ -61,6 +64,7 @@ public final class PostgresQueryRunRepository implements QueryRunRepository, Que
             QueryRunRequestMapper requestMapper,
             QueryCitationMapper citationMapper,
             QueryRunEventMapper eventMapper,
+            QueryModelInvocationTraceMapper traceMapper,
             EntityIdGenerator identifiers,
             PlatformTransactionManager transactionManager) {
         this.mapper = Objects.requireNonNull(mapper, "查询运行映射器不能为空");
@@ -74,6 +78,7 @@ public final class PostgresQueryRunRepository implements QueryRunRepository, Que
         this.eventMapper = Objects.requireNonNull(
                 eventMapper,
                 "查询事件映射器不能为空");
+        this.traceMapper = Objects.requireNonNull(traceMapper, "查询调用轨迹映射器不能为空");
         this.identifiers = Objects.requireNonNull(identifiers, "标识生成器不能为空");
         transactions = new TransactionTemplate(
                 Objects.requireNonNull(transactionManager, "事务管理器不能为空"));
@@ -113,6 +118,7 @@ public final class PostgresQueryRunRepository implements QueryRunRepository, Que
                     terminal.queryRun().completedAt()) != 1) {
                 throw new IllegalStateException("查询诊断事实写入失败");
             }
+            insertTrace(terminal);
             return Boolean.TRUE;
         });
         Objects.requireNonNull(result, "查询终态诊断提交事务没有返回结果");
@@ -367,6 +373,28 @@ public final class PostgresQueryRunRepository implements QueryRunRepository, Que
         entity.setTotalTokens(usage.totalTokens());
         entity.setOccurredAt(event.occurredAt());
         eventMapper.insert(entity);
+    }
+
+    private void insertTrace(QueryRunTerminalCommit terminal) {
+        var trace = terminal.modelInvocationTrace();
+        if (trace == null) {
+            return;
+        }
+        var run = terminal.queryRun();
+        for (var attempt : trace.attempts()) {
+            var entity = new QueryModelInvocationTraceEntity();
+            entity.setId(identifiers.nextId());
+            entity.setTenantId(run.tenantId().value());
+            entity.setQueryRunId(run.id().value());
+            entity.setAttemptSequence(attempt.sequence());
+            entity.setConfigurationId(attempt.configurationId());
+            entity.setConfigurationRevision(attempt.configurationRevision());
+            entity.setOutcome(attempt.outcome().name());
+            entity.setCreatedAt(run.completedAt());
+            if (traceMapper.insert(entity) != 1) {
+                throw new IllegalStateException("查询调用轨迹写入失败");
+            }
+        }
     }
 
     private static QueryRunEvent toEvent(

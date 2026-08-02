@@ -1,14 +1,17 @@
 package com.aiplatform.foundation.modelruntime.application.runtime;
 
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.ChatInvocationTransientException;
+import com.aiplatform.foundation.modelruntime.application.runtime.facade.ChatRouteExhaustedException;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.ChatRouteExecutor;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.GovernedChatRuntime;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.chat.ChatDeploymentRef;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.chat.ChatMessage;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.chat.ChatRouteExecution;
+import com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.chat.ChatRouteAttempt;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.chat.GovernedChatRouteCandidate;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.chat.ChatRequest;
 import com.aiplatform.foundation.security.identity.TrustedRequestContext;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
@@ -44,6 +47,7 @@ public final class DefaultChatRouteExecutor implements ChatRouteExecutor {
                 throw new IllegalArgumentException("回答上限超过聊天候选能力");
             }
         }
+        var attempts = new ArrayList<ChatRouteAttempt>();
         ChatInvocationTransientException lastFailure = null;
         for (var index = 0; index < candidates.size(); index++) {
             var candidate = candidates.get(index);
@@ -55,11 +59,15 @@ public final class DefaultChatRouteExecutor implements ChatRouteExecutor {
                 if (!deployment.equals(result.deployment())) {
                     throw new IllegalStateException("对话结果不符合冻结聊天候选");
                 }
-                return new ChatRouteExecution(candidate, result, index + 1);
+                attempts.add(new ChatRouteAttempt(candidate, ChatRouteAttempt.Outcome.SUCCEEDED));
+                return new ChatRouteExecution(candidate, result, attempts);
             } catch (ChatInvocationTransientException exception) {
+                attempts.add(new ChatRouteAttempt(candidate, ChatRouteAttempt.Outcome.TRANSIENT_FAILURE));
                 lastFailure = exception;
             }
         }
-        throw Objects.requireNonNull(lastFailure, "聊天路由未产生失败原因");
+        throw new ChatRouteExhaustedException(
+                attempts,
+                Objects.requireNonNull(lastFailure, "聊天路由未产生失败原因"));
     }
 }

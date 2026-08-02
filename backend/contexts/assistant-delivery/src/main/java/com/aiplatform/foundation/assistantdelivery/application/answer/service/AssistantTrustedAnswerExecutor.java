@@ -1,9 +1,11 @@
 package com.aiplatform.foundation.assistantdelivery.application.answer.service;
 
 import com.aiplatform.foundation.assistantdelivery.application.answer.dto.AssistantTrustedAnswerCitation;
+import com.aiplatform.foundation.assistantdelivery.application.answer.dto.AssistantTrustedAnswerExecutionObservation;
 import com.aiplatform.foundation.assistantdelivery.application.answer.dto.AssistantTrustedAnswerResult;
 import com.aiplatform.foundation.assistantdelivery.application.answer.dto.AssistantTrustedAnswerTarget;
 import com.aiplatform.foundation.assistantdelivery.application.answer.dto.AssistantTrustedAnswerUsage;
+import com.aiplatform.foundation.assistantdelivery.application.answer.dto.ModelInvocationTrace;
 import com.aiplatform.foundation.assistantdelivery.domain.assistant.model.GovernedEmbeddingModelBinding;
 import com.aiplatform.foundation.knowledgedata.application.indexversion.port.out.vector.IndexCandidate;
 import com.aiplatform.foundation.knowledgedata.application.indexversion.port.out.vector.IndexCandidateQuery;
@@ -12,7 +14,9 @@ import com.aiplatform.foundation.knowledgedata.domain.indexversion.model.Embeddi
 import com.aiplatform.foundation.modelruntime.application.configuration.dto.UsableModelConfigurationSnapshot;
 import com.aiplatform.foundation.modelruntime.application.configuration.facade.UsableModelConfigurationLookup;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.GovernedChatRuntime;
+import com.aiplatform.foundation.modelruntime.application.runtime.facade.ChatRouteExhaustedException;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.ChatRouteExecutor;
+import com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.chat.ChatRouteAttempt;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.chat.GovernedChatRouteCandidate;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.GovernedEmbeddingRuntime;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.ModelRuntimeResolver;
@@ -122,9 +126,7 @@ public final class AssistantTrustedAnswerExecutor {
             throw exception;
         } catch (RuntimeException exception) {
             throw new AssistantTrustedAnswerExecutionException(
-                    new com.aiplatform.foundation.assistantdelivery.application.answer.dto
-                            .AssistantTrustedAnswerExecutionObservation(
-                                    candidateCount, chatRevision, embeddingRevision),
+                    new AssistantTrustedAnswerExecutionObservation(candidateCount, chatRevision, embeddingRevision),
                     exception);
         }
     }
@@ -164,38 +166,52 @@ public final class AssistantTrustedAnswerExecutor {
                 ? new ChatDeploymentRef(target.governedChat().configurationId(), target.governedChat().configurationRevision())
                 : new ChatDeploymentRef(target.chatDeploymentId(), target.chatDeploymentRevision());
         final com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.chat.ChatResult result;
-        com.aiplatform.foundation.assistantdelivery.application.answer.dto.ModelInvocationTrace trace = null;
+        ModelInvocationTrace trace = null;
         if (target.usesGovernedModelConfigurations()) {
-            var route = requireChatRoutes().execute(
-                    context, chatCandidates(context, target), prompt, target.maxOutputTokens());
+            final com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.chat.ChatRouteExecution route;
+            try {
+                route = requireChatRoutes().execute(
+                        context, chatCandidates(context, target), prompt, target.maxOutputTokens());
+            } catch (ChatRouteExhaustedException exception) {
+                throw new AssistantTrustedAnswerExecutionException(
+                        new AssistantTrustedAnswerExecutionObservation(
+                                candidateCount, chatRevision, embeddingRevision, toTrace(exception.attempts())),
+                        exception);
+            }
             result = route.result();
             deployment = new ChatDeploymentRef(
                     route.selected().configuration().configurationId().value(),
                     route.selected().configuration().configurationRevision());
             chatRevision = deployment.revision();
-            trace = new com.aiplatform.foundation.assistantdelivery.application.answer.dto.ModelInvocationTrace(
-                    route.attempts(), deployment.deploymentId(), deployment.revision());
+            trace = toTrace(route.attempts());
         } else {
             result = models.resolveChat(context.tenantId(), target.chatDeploymentId())
                     .chat(new ChatRequest(deployment, prompt, target.maxOutputTokens()));
         }
-        if (!deployment.equals(result.deployment())) {
-            throw new IllegalStateException("对话结果不符合助手冻结模型");
+        try {
+            if (!deployment.equals(result.deployment())) {
+                throw new IllegalStateException("对话结果不符合助手冻结模型");
+            }
+            var citations = IntStream.range(0, evidence.size())
+                    .mapToObj(index -> citation(index + 1, evidence.get(index)))
+                    .toList();
+            var answer = requireGeneratedAnswer(result.content())
+                    + "\n\n引用："
+                    + IntStream.rangeClosed(1, citations.size())
+                            .mapToObj(index -> "[" + index + "]")
+                            .reduce((left, right) -> left + " " + right)
+                            .orElseThrow();
+            return new AssistantTrustedAnswerResult(
+                    AssistantTrustedAnswerResult.Outcome.ANSWERED, answer, citations,
+                    new AssistantTrustedAnswerUsage(
+                            result.usage().inputTokens(), result.usage().outputTokens(), result.usage().totalTokens()),
+                    candidateCount, chatRevision, embeddingRevision, trace);
+        } catch (RuntimeException exception) {
+            throw new AssistantTrustedAnswerExecutionException(
+                    new AssistantTrustedAnswerExecutionObservation(
+                            candidateCount, chatRevision, embeddingRevision, trace),
+                    exception);
         }
-        var citations = IntStream.range(0, evidence.size())
-                .mapToObj(index -> citation(index + 1, evidence.get(index)))
-                .toList();
-        var answer = requireGeneratedAnswer(result.content())
-                + "\n\n引用："
-                + IntStream.rangeClosed(1, citations.size())
-                        .mapToObj(index -> "[" + index + "]")
-                        .reduce((left, right) -> left + " " + right)
-                        .orElseThrow();
-        return new AssistantTrustedAnswerResult(
-                AssistantTrustedAnswerResult.Outcome.ANSWERED, answer, citations,
-                new AssistantTrustedAnswerUsage(
-                        result.usage().inputTokens(), result.usage().outputTokens(), result.usage().totalTokens()),
-                candidateCount, chatRevision, embeddingRevision, trace);
     }
 
     private UsableModelConfigurationSnapshot requireEmbeddingConfiguration(
@@ -260,6 +276,21 @@ public final class AssistantTrustedAnswerExecutor {
             throw new IllegalStateException("受控聊天路由执行器不可用");
         }
         return chatRoutes;
+    }
+
+    private static ModelInvocationTrace toTrace(List<ChatRouteAttempt> attempts) {
+        return new ModelInvocationTrace(IntStream.range(0, attempts.size())
+                .mapToObj(index -> {
+                    var attempt = attempts.get(index);
+                    return new ModelInvocationTrace.Attempt(
+                            index + 1,
+                            attempt.candidate().configuration().configurationId().value(),
+                            attempt.candidate().configuration().configurationRevision(),
+                            attempt.outcome() == ChatRouteAttempt.Outcome.SUCCEEDED
+                                    ? ModelInvocationTrace.Outcome.SUCCEEDED
+                                    : ModelInvocationTrace.Outcome.TRANSIENT_FAILURE);
+                })
+                .toList());
     }
 
     private static AssistantTrustedAnswerCitation citation(int sequence, IndexCandidate candidate) {

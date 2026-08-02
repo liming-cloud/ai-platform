@@ -3,6 +3,8 @@ package com.aiplatform.foundation.assistantdelivery.infrastructure.persistence.a
 import com.aiplatform.foundation.assistantdelivery.application.assistant.testrun.AssistantTestQuotaExceededException;
 import com.aiplatform.foundation.assistantdelivery.application.assistant.testrun.AssistantTestQuotaLimitType;
 import com.aiplatform.foundation.assistantdelivery.application.assistant.testrun.AssistantTestRunConcurrentModificationException;
+import com.aiplatform.foundation.assistantdelivery.application.assistant.testrun.dto.AssistantTestRunTerminalCommit;
+import com.aiplatform.foundation.assistantdelivery.application.assistant.testrun.port.out.AssistantTestRunTerminalCommitter;
 import com.aiplatform.foundation.assistantdelivery.domain.assistant.model.CitationPolicy;
 import com.aiplatform.foundation.assistantdelivery.domain.assistant.model.GovernedChatModelBinding;
 import com.aiplatform.foundation.assistantdelivery.domain.assistant.model.GovernedEmbeddingModelBinding;
@@ -20,8 +22,10 @@ import com.aiplatform.foundation.assistantdelivery.domain.assistant.testrun.poli
 import com.aiplatform.foundation.assistantdelivery.domain.assistant.testrun.repository.AssistantTestRunRepository;
 import com.aiplatform.foundation.assistantdelivery.infrastructure.persistence.assistant.entity.AssistantTestCitationEntity;
 import com.aiplatform.foundation.assistantdelivery.infrastructure.persistence.assistant.entity.AssistantTestRunEntity;
+import com.aiplatform.foundation.assistantdelivery.infrastructure.persistence.assistant.entity.AssistantTestRunModelInvocationTraceEntity;
 import com.aiplatform.foundation.assistantdelivery.infrastructure.persistence.assistant.mapper.AssistantTestCitationMapper;
 import com.aiplatform.foundation.assistantdelivery.infrastructure.persistence.assistant.mapper.AssistantTestRunMapper;
+import com.aiplatform.foundation.assistantdelivery.infrastructure.persistence.assistant.mapper.AssistantTestRunModelInvocationTraceMapper;
 import com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator;
 import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
@@ -35,20 +39,24 @@ import org.springframework.transaction.support.TransactionTemplate;
 /**
  * 以短事务串行占用独立草稿测试配额，并只保存最小运行事实。
  */
-public final class PostgresAssistantTestRunRepository implements AssistantTestRunRepository {
+public final class PostgresAssistantTestRunRepository
+        implements AssistantTestRunRepository, AssistantTestRunTerminalCommitter {
 
     private final AssistantTestRunMapper mapper;
     private final AssistantTestCitationMapper citationMapper;
+    private final AssistantTestRunModelInvocationTraceMapper traceMapper;
     private final EntityIdGenerator identifiers;
     private final TransactionTemplate transactions;
 
     public PostgresAssistantTestRunRepository(
             AssistantTestRunMapper mapper,
             AssistantTestCitationMapper citationMapper,
+            AssistantTestRunModelInvocationTraceMapper traceMapper,
             EntityIdGenerator identifiers,
             PlatformTransactionManager transactionManager) {
         this.mapper = Objects.requireNonNull(mapper, "助手测试运行映射器不能为空");
         this.citationMapper = Objects.requireNonNull(citationMapper, "助手测试引用映射器不能为空");
+        this.traceMapper = Objects.requireNonNull(traceMapper, "助手测试调用轨迹映射器不能为空");
         this.identifiers = Objects.requireNonNull(identifiers, "标识生成器不能为空");
         transactions = new TransactionTemplate(
                 Objects.requireNonNull(transactionManager, "事务管理器不能为空"));
@@ -67,7 +75,13 @@ public final class PostgresAssistantTestRunRepository implements AssistantTestRu
 
     @Override
     public void complete(AssistantTestRun run, long expectedVersion) {
-        Objects.requireNonNull(run, "助手测试运行不能为空");
+        commit(new AssistantTestRunTerminalCommit(run, expectedVersion, null));
+    }
+
+    @Override
+    public void commit(AssistantTestRunTerminalCommit terminal) {
+        Objects.requireNonNull(terminal, "助手测试终态提交不能为空");
+        var run = terminal.run();
         if (run.status() == AssistantTestRunStatus.RUNNING) {
             throw new IllegalArgumentException("不能把运行中助手测试作为终态提交");
         }
@@ -83,16 +97,38 @@ public final class PostgresAssistantTestRunRepository implements AssistantTestRu
                     usage.totalTokens(),
                     run.version(),
                     run.completedAt(),
-                    expectedVersion);
+                    terminal.expectedVersion());
             if (updated != 1) {
                 throw new AssistantTestRunConcurrentModificationException();
             }
             for (var citation : run.citations()) {
                 citationMapper.insert(toCitationEntity(run, citation));
             }
+            insertTrace(run, terminal);
             return Boolean.TRUE;
         });
         Objects.requireNonNull(result, "助手测试终态提交事务没有返回结果");
+    }
+
+    private void insertTrace(AssistantTestRun run, AssistantTestRunTerminalCommit terminal) {
+        var trace = terminal.modelInvocationTrace();
+        if (trace == null) {
+            return;
+        }
+        for (var attempt : trace.attempts()) {
+            var entity = new AssistantTestRunModelInvocationTraceEntity();
+            entity.setId(identifiers.nextId());
+            entity.setTenantId(run.tenantId().value());
+            entity.setAssistantTestRunId(run.id().value());
+            entity.setAttemptSequence(attempt.sequence());
+            entity.setConfigurationId(attempt.configurationId());
+            entity.setConfigurationRevision(attempt.configurationRevision());
+            entity.setOutcome(attempt.outcome().name());
+            entity.setCreatedAt(run.completedAt());
+            if (traceMapper.insert(entity) != 1) {
+                throw new IllegalStateException("助手测试调用轨迹写入失败");
+            }
+        }
     }
 
     @Override
