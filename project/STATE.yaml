@@ -47,7 +47,8 @@ confirmedDecisions:
   - ADR-0038
   - ADR-0039
   - ADR-0040
-openDecisions: []
+openDecisions:
+  - ADR-0041
 latestEvidence:
   - docs/research/WP-0003-framework-baseline.md
   - project/evidence/WP-0003-trusted-context.md
@@ -158,6 +159,8 @@ latestEvidence:
   - project/evidence/M5-automatic-acceptance-review.md
   - project/evidence/ADR-0040-approval.md
   - project/evidence/M5-release-approval.md
+  - project/evidence/WP-0014-m6-impact-analysis.md
+  - docs/architecture/foundation-m6-enterprise-governance-design.md
 nextReviewAt: 2026-08-05
-updatedAt: 2026-08-02T20:48:00+08:00
+updatedAt: 2026-08-02T21:15:00+08:00
 updatedBy: codex

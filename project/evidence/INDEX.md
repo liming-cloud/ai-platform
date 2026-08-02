@@ -214,6 +214,14 @@
 | M5 自动验收与人工评审请求 | `project/evidence/M5-automatic-acceptance-review.md` | `b38ec7387` | 自动验收、真实模型运行、最终用户浏览器最小披露、领域和架构门禁均通过；当前仅待人工评审，不得进入 M6 |
 | M5 人工评审通过 | `project/evidence/M5-release-approval.md` | 本次控制面提交 | 用户批准 M5 退出并进入 M6 设计；M6 首条切片仍须先完成设计和 ADR，M7 至 M8 不激活 |
 
+## WP-0014
+
+| 证据 | 命令或评审 | 提交 | 结果 |
+| --- | --- | --- | --- |
+| M6 企业治理影响分析 | `project/evidence/WP-0014-m6-impact-analysis.md` | 本次控制面提交 | 代码图谱确认令牌派生租户上下文、同租户运营读取、助手发布和最小运行事实的边界；选定独立平台上下文方案。 |
+| M6 企业治理与发布制度领域设计 | `docs/architecture/foundation-m6-enterprise-governance-design.md` | 本次控制面提交 | 统一语言、上下文地图、场景、聚合、状态机、后续评测／发布 seam 和首条切片证据合同已登记；等待 ADR-0041 人工接受。 |
+| ADR-0041 平台请求上下文与租户生命周期 | `docs/adr/ADR-0041-platform-request-context-and-tenant-lifecycle.md` | 本次控制面提交 | 提议独立且令牌派生的平台上下文、可恢复租户生命周期和跨根操作结果；未接受前不实施。 |
+
 ## 证据规则
 
 - 命令证据记录完整命令、提交、环境和结果。
