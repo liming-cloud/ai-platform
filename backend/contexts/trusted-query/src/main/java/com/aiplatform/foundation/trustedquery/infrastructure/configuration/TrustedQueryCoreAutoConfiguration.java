@@ -7,6 +7,7 @@ import com.aiplatform.foundation.knowledgedata.application.indexversion.port.out
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.ModelRuntimeResolver;
 import com.aiplatform.foundation.modelruntime.application.configuration.facade.UsableModelConfigurationLookup;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.GovernedChatRuntime;
+import com.aiplatform.foundation.modelruntime.application.runtime.facade.ChatRouteExecutor;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.GovernedEmbeddingRuntime;
 import com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator;
 import com.aiplatform.foundation.trustedquery.application.candidate.service.CandidateSearchService;
@@ -59,6 +60,7 @@ public class TrustedQueryCoreAutoConfiguration {
             ObjectProvider<UsableModelConfigurationLookup> modelConfigurations,
             ObjectProvider<GovernedEmbeddingRuntime> governedEmbeddings,
             ObjectProvider<GovernedChatRuntime> governedChats,
+            ObjectProvider<ChatRouteExecutor> chatRoutes,
             IndexCandidateRetriever candidates,
             QueryRunRepository repository,
             QueryRunTerminalCommitter terminalCommitter,
@@ -70,6 +72,7 @@ public class TrustedQueryCoreAutoConfiguration {
                 modelConfigurations.getIfAvailable(),
                 governedEmbeddings.getIfAvailable(),
                 governedChats.getIfAvailable(),
+                chatRoutes.getIfAvailable(),
                 candidates,
                 repository,
                 terminalCommitter,

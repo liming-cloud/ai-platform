@@ -22,6 +22,8 @@ import com.aiplatform.foundation.knowledgedata.domain.indexversion.model.Embeddi
 import com.aiplatform.foundation.modelruntime.application.configuration.dto.UsableModelConfigurationSnapshot;
 import com.aiplatform.foundation.modelruntime.application.configuration.facade.UsableModelConfigurationLookup;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.GovernedChatRuntime;
+import com.aiplatform.foundation.modelruntime.application.runtime.facade.ChatRouteExecutor;
+import com.aiplatform.foundation.modelruntime.application.runtime.DefaultChatRouteExecutor;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.GovernedEmbeddingRuntime;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.ModelRuntimeResolver;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.chat.ChatDeploymentRef;
@@ -85,7 +87,7 @@ public final class QueryRunService  {
             Clock clock,
             EntityIdGenerator identifiers) {
         this(
-                assistants, models, null, null, null, candidates, repository, terminalCommitter,
+                assistants, models, null, null, null, null, candidates, repository, terminalCommitter,
                 quota, clock, identifiers);
     }
 
@@ -101,12 +103,33 @@ public final class QueryRunService  {
             QueryQuotaPolicy quota,
             Clock clock,
             EntityIdGenerator identifiers) {
+        this(
+                assistants, models, modelConfigurations, governedEmbeddings, governedChats, null,
+                candidates, repository, terminalCommitter, quota, clock, identifiers);
+    }
+
+    public QueryRunService(
+            PublishedAssistantVersionLookup assistants,
+            ModelRuntimeResolver models,
+            UsableModelConfigurationLookup modelConfigurations,
+            GovernedEmbeddingRuntime governedEmbeddings,
+            GovernedChatRuntime governedChats,
+            ChatRouteExecutor chatRoutes,
+            IndexCandidateRetriever candidates,
+            QueryRunRepository repository,
+            QueryRunTerminalCommitter terminalCommitter,
+            QueryQuotaPolicy quota,
+            Clock clock,
+            EntityIdGenerator identifiers) {
         this.assistants = Objects.requireNonNull(
                 assistants,
                 "已发布助手版本查询不能为空");
         this.executor = new AssistantTrustedAnswerExecutor(
                 Objects.requireNonNull(models, "模型运行时解析器不能为空"),
                 modelConfigurations, governedEmbeddings, governedChats,
+                chatRoutes == null && governedChats != null
+                        ? new DefaultChatRouteExecutor(governedChats)
+                        : chatRoutes,
                 Objects.requireNonNull(candidates, "候选检索器不能为空"));
         this.repository = Objects.requireNonNull(repository, "查询运行仓储不能为空");
         this.terminalCommitter = Objects.requireNonNull(terminalCommitter, "查询终态提交器不能为空");
