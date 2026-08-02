@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.chat.ChatDeploymentRef;
+import com.aiplatform.foundation.modelruntime.application.runtime.facade.ChatInvocationTransientException;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.chat.ChatMessage;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.chat.ChatRequest;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.chat.ChatRole;
@@ -114,6 +115,24 @@ class SpringAiModelAdapterTest {
                 128));
 
         assertEquals(129, capturedPrompt.get().getOptions().getMaxTokens());
+    }
+
+    @Test
+    void 对话调用在产生输出前失败时应标准化为瞬态失败() {
+        ChatModel model = prompt -> {
+            throw new IllegalStateException("供应商暂时不可用");
+        };
+        var deployment = new ChatDeploymentRef(DEPLOYMENT_ID, 2);
+        var adapter = new SpringAiChatModelAdapter(model, deployment);
+
+        var failure = assertThrows(
+                ChatInvocationTransientException.class,
+                () -> adapter.chat(new ChatRequest(
+                        deployment,
+                        List.of(new ChatMessage(ChatRole.USER, "问题")),
+                        128)));
+
+        assertTrue(failure.beforeOutput());
     }
 
     @Test

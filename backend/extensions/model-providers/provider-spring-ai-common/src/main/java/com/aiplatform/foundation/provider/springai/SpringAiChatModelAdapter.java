@@ -1,6 +1,7 @@
 package com.aiplatform.foundation.provider.springai;
 
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.ChatModelPort;
+import com.aiplatform.foundation.modelruntime.application.runtime.facade.ChatInvocationTransientException;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.chat.ChatChunk;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.chat.ChatDeploymentRef;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.chat.ChatMessage;
@@ -54,7 +55,12 @@ public final class SpringAiChatModelAdapter implements ChatModelPort {
     @Override
     public ChatResult chat(ChatRequest request) {
         requireDeployment(request);
-        var response = model.call(toPrompt(request));
+        final ChatResponse response;
+        try {
+            response = model.call(toPrompt(request));
+        } catch (RuntimeException exception) {
+            throw ChatInvocationTransientException.beforeOutput(exception);
+        }
         return new ChatResult(
                 deployment,
                 content(response),
