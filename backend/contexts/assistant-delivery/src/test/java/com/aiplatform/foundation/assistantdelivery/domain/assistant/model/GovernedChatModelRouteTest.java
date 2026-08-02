@@ -2,7 +2,9 @@ package com.aiplatform.foundation.assistantdelivery.domain.assistant.model;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.aiplatform.foundation.shared.kernel.domain.ValueObject;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
@@ -18,6 +20,11 @@ class GovernedChatModelRouteTest {
 
         assertEquals(PRIMARY, route.primary());
         assertEquals(List.of(PRIMARY, FALLBACK_ONE, FALLBACK_TWO), route.candidates());
+    }
+
+    @Test
+    void 应显式标记为不可变值对象() {
+        assertTrue(ValueObject.class.isAssignableFrom(GovernedChatModelRoute.class));
     }
 
     @Test

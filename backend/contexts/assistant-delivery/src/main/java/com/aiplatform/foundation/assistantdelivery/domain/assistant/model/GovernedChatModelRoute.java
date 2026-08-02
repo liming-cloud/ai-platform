@@ -1,5 +1,6 @@
 package com.aiplatform.foundation.assistantdelivery.domain.assistant.model;
 
+import com.aiplatform.foundation.shared.kernel.domain.ValueObject;
 import java.util.List;
 
 /**
@@ -7,7 +8,7 @@ import java.util.List;
  *
  * @throws IllegalArgumentException 候选为空、含空值、重复或超过受控数量时拒绝。
  */
-public record GovernedChatModelRoute(List<GovernedChatModelBinding> candidates) {
+public record GovernedChatModelRoute(List<GovernedChatModelBinding> candidates) implements ValueObject {
 
     public GovernedChatModelRoute {
         if (candidates == null
