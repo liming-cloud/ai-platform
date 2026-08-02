@@ -45,6 +45,7 @@ class DefaultChatRouteExecutorTest {
                 List.of(new ChatMessage(ChatRole.USER, "问题")), 128);
 
         assertEquals(2, attempts.get());
+        assertEquals(2, execution.attempts());
         assertEquals(42, execution.selected().configuration().configurationId().value());
         assertEquals("后备回答", execution.result().content());
     }

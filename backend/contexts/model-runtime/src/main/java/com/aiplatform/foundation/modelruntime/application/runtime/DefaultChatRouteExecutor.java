@@ -37,14 +37,16 @@ public final class DefaultChatRouteExecutor implements ChatRouteExecutor {
         if (candidates.isEmpty() || candidates.size() > MAX_CANDIDATES || maxOutputTokens < 1) {
             throw new IllegalArgumentException("聊天路由请求不完整");
         }
-        for (var candidate : candidates) {
+        for (var index = 0; index < candidates.size(); index++) {
+            var candidate = candidates.get(index);
             Objects.requireNonNull(candidate, "聊天候选不能为空");
             if (maxOutputTokens > candidate.configuration().capabilities().outputLimit()) {
                 throw new IllegalArgumentException("回答上限超过聊天候选能力");
             }
         }
         ChatInvocationTransientException lastFailure = null;
-        for (var candidate : candidates) {
+        for (var index = 0; index < candidates.size(); index++) {
+            var candidate = candidates.get(index);
             var configuration = candidate.configuration();
             var deployment = new ChatDeploymentRef(
                     configuration.configurationId().value(), configuration.configurationRevision());
@@ -53,7 +55,7 @@ public final class DefaultChatRouteExecutor implements ChatRouteExecutor {
                 if (!deployment.equals(result.deployment())) {
                     throw new IllegalStateException("对话结果不符合冻结聊天候选");
                 }
-                return new ChatRouteExecution(candidate, result);
+                return new ChatRouteExecution(candidate, result, index + 1);
             } catch (ChatInvocationTransientException exception) {
                 lastFailure = exception;
             }
