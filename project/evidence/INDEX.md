@@ -200,7 +200,7 @@
 | M4 统一草稿助手可信回答执行 | `project/evidence/WP-0012-assistant-trusted-answer-execution.md` | `d22c3e65a` | 普通查询和草稿测试共享唯一可信执行门面；独立配额／根、真实 PostgreSQL、自动配置、Bearer HTTP 回归和全反应堆验证通过；ADR-0038 诊断投影尚未实施 |
 | M4 查询诊断事实原子投影 | `project/evidence/WP-0012-query-diagnostic-projection.md` | `8fcd66e61` | ADR-0038／ADR-0039 的候选可得性、原子终态提交、真实 PostgreSQL 回滚与级联、`audit:read` 租户投影、Bearer HTTP 回归和 `make validate` 均通过；M4 仍待人工评审 |
 | M4 自动验收与人工评审请求 | `project/evidence/M4-automatic-acceptance-review.md` | 本次控制面提交 | 固定比较点技术评审、领域与架构门禁、真实 PostgreSQL／Bearer HTTP 与全量工程门禁均通过；当前仅待人工评审，不得进入 M5 |
-| M4 人工评审通过 | `project/evidence/M4-release-approval.md` | 本次控制面提交 | 用户批准 M4 退出并进入 M5 设计；M6 至 M8 仍只保留路线图，不提前激活或实现 |
+| M4 人工评审通过 | `project/evidence/M4-release-approval.md` | `c2f681e62` | 用户批准 M4 退出并进入 M5 设计；M6 至 M8 仍只保留路线图，不提前激活或实现 |
 
 ## 证据规则
 
