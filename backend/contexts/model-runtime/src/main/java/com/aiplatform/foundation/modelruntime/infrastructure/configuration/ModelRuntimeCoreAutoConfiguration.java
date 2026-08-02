@@ -17,6 +17,9 @@ import com.aiplatform.foundation.modelruntime.application.deployment.service.Mod
 import com.aiplatform.foundation.modelruntime.application.deployment.service.PublishedChatDeploymentLookupService;
 import com.aiplatform.foundation.modelruntime.application.deployment.service.PublishedEmbeddingDeploymentLookupService;
 import com.aiplatform.foundation.modelruntime.application.runtime.ModelConfigurationRuntimeService;
+import com.aiplatform.foundation.modelruntime.application.runtime.DefaultChatRouteExecutor;
+import com.aiplatform.foundation.modelruntime.application.runtime.facade.ChatRouteExecutor;
+import com.aiplatform.foundation.modelruntime.application.runtime.facade.GovernedChatRuntime;
 import com.aiplatform.foundation.modelruntime.application.runtime.port.out.ChatModelFactory;
 import com.aiplatform.foundation.modelruntime.application.runtime.port.out.EmbeddingModelFactory;
 import com.aiplatform.foundation.modelruntime.application.probe.port.out.ProviderConnectionProbe;
@@ -158,6 +161,13 @@ public class ModelRuntimeCoreAutoConfiguration {
             List<ChatModelFactory> chatFactories) {
         return new ModelConfigurationRuntimeService(
                 configurations, catalog, credentials, embeddingFactories, chatFactories);
+    }
+
+    @Bean
+    @ConditionalOnBean(GovernedChatRuntime.class)
+    @ConditionalOnMissingBean
+    ChatRouteExecutor chatRouteExecutor(GovernedChatRuntime chats) {
+        return new DefaultChatRouteExecutor(chats);
     }
 
     @Bean
