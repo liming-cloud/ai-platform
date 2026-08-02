@@ -12,6 +12,8 @@ import com.aiplatform.foundation.knowledgedata.domain.indexversion.model.Embeddi
 import com.aiplatform.foundation.modelruntime.application.configuration.dto.UsableModelConfigurationSnapshot;
 import com.aiplatform.foundation.modelruntime.application.configuration.facade.UsableModelConfigurationLookup;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.GovernedChatRuntime;
+import com.aiplatform.foundation.modelruntime.application.runtime.facade.ChatRouteExecutor;
+import com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.chat.GovernedChatRouteCandidate;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.GovernedEmbeddingRuntime;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.ModelRuntimeResolver;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.chat.ChatDeploymentRef;
@@ -36,6 +38,7 @@ public final class AssistantTrustedAnswerExecutor {
     private final UsableModelConfigurationLookup modelConfigurations;
     private final GovernedEmbeddingRuntime governedEmbeddings;
     private final GovernedChatRuntime governedChats;
+    private final ChatRouteExecutor chatRoutes;
     private final IndexCandidateRetriever candidates;
 
     /**
@@ -53,10 +56,21 @@ public final class AssistantTrustedAnswerExecutor {
             GovernedEmbeddingRuntime governedEmbeddings,
             GovernedChatRuntime governedChats,
             IndexCandidateRetriever candidates) {
+        this(models, modelConfigurations, governedEmbeddings, governedChats, null, candidates);
+    }
+
+    public AssistantTrustedAnswerExecutor(
+            ModelRuntimeResolver models,
+            UsableModelConfigurationLookup modelConfigurations,
+            GovernedEmbeddingRuntime governedEmbeddings,
+            GovernedChatRuntime governedChats,
+            ChatRouteExecutor chatRoutes,
+            IndexCandidateRetriever candidates) {
         this.models = Objects.requireNonNull(models, "模型运行时解析器不能为空");
         this.modelConfigurations = modelConfigurations;
         this.governedEmbeddings = governedEmbeddings;
         this.governedChats = governedChats;
+        this.chatRoutes = chatRoutes;
         this.candidates = Objects.requireNonNull(candidates, "候选检索器不能为空");
     }
 
@@ -145,14 +159,23 @@ public final class AssistantTrustedAnswerExecutor {
             int candidateCount,
             long chatRevision,
             long embeddingRevision) {
+        var prompt = TrustedAnswerPromptBuilder.build(target, question, evidence);
         var deployment = target.usesGovernedModelConfigurations()
                 ? new ChatDeploymentRef(target.governedChat().configurationId(), target.governedChat().configurationRevision())
                 : new ChatDeploymentRef(target.chatDeploymentId(), target.chatDeploymentRevision());
-        var request = new ChatRequest(
-                deployment, TrustedAnswerPromptBuilder.build(target, question, evidence), target.maxOutputTokens());
-        var result = target.usesGovernedModelConfigurations()
-                ? requireGovernedChats().chat(context, requireChatConfiguration(context, target), request)
-                : models.resolveChat(context.tenantId(), target.chatDeploymentId()).chat(request);
+        final com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.chat.ChatResult result;
+        if (target.usesGovernedModelConfigurations()) {
+            var route = requireChatRoutes().execute(
+                    context, chatCandidates(context, target), prompt, target.maxOutputTokens());
+            result = route.result();
+            deployment = new ChatDeploymentRef(
+                    route.selected().configuration().configurationId().value(),
+                    route.selected().configuration().configurationRevision());
+            chatRevision = deployment.revision();
+        } else {
+            result = models.resolveChat(context.tenantId(), target.chatDeploymentId())
+                    .chat(new ChatRequest(deployment, prompt, target.maxOutputTokens()));
+        }
         if (!deployment.equals(result.deployment())) {
             throw new IllegalStateException("对话结果不符合助手冻结模型");
         }
@@ -178,14 +201,23 @@ public final class AssistantTrustedAnswerExecutor {
         return requireConfiguration(context, binding, ModelType.EMBEDDING);
     }
 
-    private UsableModelConfigurationSnapshot requireChatConfiguration(
+    private List<GovernedChatRouteCandidate> chatCandidates(
             TrustedRequestContext context, AssistantTrustedAnswerTarget target) {
-        var binding = target.governedChat();
+        return target.governedChatRoute().candidates().stream()
+                .map(binding -> new GovernedChatRouteCandidate(
+                        requireChatConfiguration(context, binding, target.maxOutputTokens())))
+                .toList();
+    }
+
+    private UsableModelConfigurationSnapshot requireChatConfiguration(
+            TrustedRequestContext context,
+            com.aiplatform.foundation.assistantdelivery.domain.assistant.model.GovernedChatModelBinding binding,
+            int maxOutputTokens) {
         return requireModelConfigurations().find(context, new ModelConfigurationId(binding.configurationId()), ModelType.CHAT)
                 .filter(value -> value.configurationRevision() == binding.configurationRevision()
                         && value.catalogEntryId().value() == binding.catalogEntryId()
                         && value.catalogEntryRevision() == binding.catalogEntryRevision()
-                        && value.capabilities().outputLimit() >= target.maxOutputTokens())
+                        && value.capabilities().outputLimit() >= maxOutputTokens)
                 .orElseThrow(() -> new IllegalStateException("助手冻结的受控对话模型配置不可用"));
     }
 
@@ -218,6 +250,13 @@ public final class AssistantTrustedAnswerExecutor {
             throw new IllegalStateException("受控对话运行时不可用");
         }
         return governedChats;
+    }
+
+    private ChatRouteExecutor requireChatRoutes() {
+        if (chatRoutes == null) {
+            throw new IllegalStateException("受控聊天路由执行器不可用");
+        }
+        return chatRoutes;
     }
 
     private static AssistantTrustedAnswerCitation citation(int sequence, IndexCandidate candidate) {

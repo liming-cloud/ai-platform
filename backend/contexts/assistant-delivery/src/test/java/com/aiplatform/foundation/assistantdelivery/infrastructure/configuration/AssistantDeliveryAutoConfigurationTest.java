@@ -25,6 +25,7 @@ import com.aiplatform.foundation.knowledgedata.application.indexversion.port.out
 import com.aiplatform.foundation.modelruntime.application.configuration.facade.UsableModelConfigurationLookup;
 import com.aiplatform.foundation.modelruntime.application.deployment.facade.PublishedChatDeploymentLookup;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.GovernedChatRuntime;
+import com.aiplatform.foundation.modelruntime.application.runtime.facade.ChatRouteExecutor;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.GovernedEmbeddingRuntime;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.ModelRuntimeResolver;
 import com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator;
@@ -122,6 +123,7 @@ class AssistantDeliveryAutoConfigurationTest {
                 .withBean(UsableModelConfigurationLookup.class, () -> mock(UsableModelConfigurationLookup.class))
                 .withBean(GovernedEmbeddingRuntime.class, () -> mock(GovernedEmbeddingRuntime.class))
                 .withBean(GovernedChatRuntime.class, () -> mock(GovernedChatRuntime.class))
+                .withBean(ChatRouteExecutor.class, () -> mock(ChatRouteExecutor.class))
                 .withBean(IndexCandidateRetriever.class, () -> mock(IndexCandidateRetriever.class))
                 .run(context -> {
                     assertThat(context).hasSingleBean(AssistantTrustedAnswerExecutor.class);

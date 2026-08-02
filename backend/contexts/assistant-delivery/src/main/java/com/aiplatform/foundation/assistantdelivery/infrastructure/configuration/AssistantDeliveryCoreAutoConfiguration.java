@@ -13,6 +13,7 @@ import com.aiplatform.foundation.assistantdelivery.domain.assistant.testrun.repo
 import com.aiplatform.foundation.knowledgedata.application.indexversion.port.out.vector.IndexCandidateRetriever;
 import com.aiplatform.foundation.modelruntime.application.configuration.facade.UsableModelConfigurationLookup;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.GovernedChatRuntime;
+import com.aiplatform.foundation.modelruntime.application.runtime.facade.ChatRouteExecutor;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.GovernedEmbeddingRuntime;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.ModelRuntimeResolver;
 import com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator;
@@ -63,15 +64,18 @@ public class AssistantDeliveryCoreAutoConfiguration {
         UsableModelConfigurationLookup.class,
         GovernedEmbeddingRuntime.class,
         GovernedChatRuntime.class,
+        ChatRouteExecutor.class,
         IndexCandidateRetriever.class
     })
     AssistantTrustedAnswerExecutor assistantTrustedAnswerExecutor(
             ModelRuntimeResolver models,
-            UsableModelConfigurationLookup configurations,
-            GovernedEmbeddingRuntime embeddings,
-            GovernedChatRuntime chats,
-            IndexCandidateRetriever candidates) {
-        return new AssistantTrustedAnswerExecutor(models, configurations, embeddings, chats, candidates);
+        UsableModelConfigurationLookup configurations,
+        GovernedEmbeddingRuntime embeddings,
+        GovernedChatRuntime chats,
+        ChatRouteExecutor chatRoutes,
+        IndexCandidateRetriever candidates) {
+        return new AssistantTrustedAnswerExecutor(
+                models, configurations, embeddings, chats, chatRoutes, candidates);
     }
 
     @Bean
