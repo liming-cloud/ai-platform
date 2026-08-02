@@ -40,7 +40,7 @@ public final class PublishedAssistantVersionLookupService
                                 version.knowledgeSpaceId(),
                                 version.indexVersionId(),
                                 version.indexVersionRevision(),
-                                version.governedChat(),
+                                version.governedChatRoute(),
                                 version.governedEmbedding(),
                                 version.systemInstruction(),
                                 version.maxOutputTokens(),

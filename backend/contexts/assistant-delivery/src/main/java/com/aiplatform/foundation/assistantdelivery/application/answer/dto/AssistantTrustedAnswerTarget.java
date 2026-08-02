@@ -4,6 +4,7 @@ import com.aiplatform.foundation.assistantdelivery.application.assistant.dto.Dra
 import com.aiplatform.foundation.assistantdelivery.application.assistant.dto.PublishedAssistantVersionSnapshot;
 import com.aiplatform.foundation.assistantdelivery.domain.assistant.model.CitationPolicy;
 import com.aiplatform.foundation.assistantdelivery.domain.assistant.model.GovernedChatModelBinding;
+import com.aiplatform.foundation.assistantdelivery.domain.assistant.model.GovernedChatModelRoute;
 import com.aiplatform.foundation.assistantdelivery.domain.assistant.model.GovernedEmbeddingModelBinding;
 import com.aiplatform.foundation.assistantdelivery.domain.assistant.model.RefusalPolicy;
 import java.util.Objects;
@@ -24,6 +25,7 @@ public record AssistantTrustedAnswerTarget(
         long embeddingDeploymentRevision,
         int embeddingDimension,
         GovernedChatModelBinding governedChat,
+        GovernedChatModelRoute governedChatRoute,
         GovernedEmbeddingModelBinding governedEmbedding,
         String systemInstruction,
         int maxOutputTokens,
@@ -48,12 +50,14 @@ public record AssistantTrustedAnswerTarget(
         systemInstruction = Objects.requireNonNull(systemInstruction, "系统指令不能为空");
         citationPolicy = Objects.requireNonNull(citationPolicy, "引用策略不能为空");
         refusalPolicy = Objects.requireNonNull(refusalPolicy, "拒答策略不能为空");
-        var legacy = governedChat == null && governedEmbedding == null;
+        var legacy = governedChat == null && governedChatRoute == null && governedEmbedding == null;
         if ((legacy && (chatDeploymentId <= 0
                 || chatDeploymentRevision < 1
                 || embeddingDeploymentId <= 0
                 || embeddingDeploymentRevision < 1))
                 || (!legacy && (governedChat == null
+                || governedChatRoute == null
+                || !governedChat.equals(governedChatRoute.primary())
                 || governedEmbedding == null
                 || chatDeploymentId != 0
                 || chatDeploymentRevision != 0
@@ -75,7 +79,7 @@ public record AssistantTrustedAnswerTarget(
                 value.assistantVersionId(), value.chatDeploymentId(), value.chatDeploymentRevision(),
                 value.knowledgeSpaceId(), value.indexVersionId(), value.indexVersionRevision(),
                 value.embeddingDeploymentId(), value.embeddingDeploymentRevision(), value.embeddingDimension(),
-                value.governedChat(), value.governedEmbedding(),
+                value.governedChat(), value.governedChatRoute(), value.governedEmbedding(),
                 value.systemInstruction(), value.maxOutputTokens(), value.retrievalLimit(),
                 value.minimumScore(), value.citationPolicy(), value.refusalPolicy());
     }
@@ -89,7 +93,7 @@ public record AssistantTrustedAnswerTarget(
                 value.assistantVersionId(), 0, 0,
                 value.knowledgeSpaceId(), value.indexVersionId(), value.indexVersionRevision(),
                 0, 0, value.governedEmbedding().dimension(),
-                value.governedChat(), value.governedEmbedding(),
+                value.governedChat(), new GovernedChatModelRoute(java.util.List.of(value.governedChat())), value.governedEmbedding(),
                 value.systemInstruction(), value.maxOutputTokens(), value.retrievalLimit(),
                 value.minimumScore(), value.citationPolicy(), value.refusalPolicy());
     }
