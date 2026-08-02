@@ -321,6 +321,65 @@ public final class AssistantVersion implements AggregateRoot<AssistantVersionId>
                 publishedAt);
     }
 
+    /**
+     * 从持久化快照重建冻结有序聊天候选的受控助手版本。
+     */
+    public static AssistantVersion reconstitute(
+            TenantId tenantId,
+            AssistantVersionId id,
+            AssistantId assistantId,
+            int number,
+            long chatDeploymentId,
+            long chatDeploymentRevision,
+            int chatDeploymentOutputLimit,
+            long knowledgeSpaceId,
+            long indexVersionId,
+            long indexVersionRevision,
+            long embeddingDeploymentId,
+            long embeddingDeploymentRevision,
+            int embeddingDimension,
+            GovernedChatModelRoute governedChatRoute,
+            GovernedEmbeddingModelBinding governedEmbedding,
+            String systemInstruction,
+            int maxOutputTokens,
+            int retrievalLimit,
+            double minimumScore,
+            CitationPolicy citationPolicy,
+            RefusalPolicy refusalPolicy,
+            AssistantVersionStatus status,
+            long version,
+            CreatorId createdBy,
+            Instant createdAt,
+            Instant publishedAt) {
+        return new AssistantVersion(
+                tenantId,
+                id,
+                assistantId,
+                number,
+                chatDeploymentId,
+                chatDeploymentRevision,
+                chatDeploymentOutputLimit,
+                knowledgeSpaceId,
+                indexVersionId,
+                indexVersionRevision,
+                embeddingDeploymentId,
+                embeddingDeploymentRevision,
+                embeddingDimension,
+                governedChatRoute,
+                governedEmbedding,
+                systemInstruction,
+                maxOutputTokens,
+                retrievalLimit,
+                minimumScore,
+                citationPolicy,
+                refusalPolicy,
+                status,
+                version,
+                createdBy,
+                createdAt,
+                publishedAt);
+    }
+
     public AssistantVersion publish(Instant time) {
         if (status != AssistantVersionStatus.DRAFT) {
             throw new AssistantVersionStateException("只有草稿助手版本可以发布");

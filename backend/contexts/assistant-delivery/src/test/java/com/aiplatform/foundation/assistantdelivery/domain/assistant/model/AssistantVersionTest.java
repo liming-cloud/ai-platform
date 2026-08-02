@@ -143,6 +143,45 @@ class AssistantVersionTest {
                         NOW));
     }
 
+    @Test
+    void 重建受控版本时应保留完整聊天路由() {
+        var route = new GovernedChatModelRoute(List.of(
+                new GovernedChatModelBinding(310000000000000001L, 3, 11, 2, 1024),
+                new GovernedChatModelBinding(310000000000000002L, 5, 12, 4, 768)));
+        var embedding = new GovernedEmbeddingModelBinding(
+                320000000000000001L, 2, 21, 3, 8);
+
+        var version = AssistantVersion.reconstitute(
+                TENANT,
+                VERSION_ID,
+                ASSISTANT_ID,
+                1,
+                0,
+                0,
+                0,
+                210000000000000001L,
+                230000000000000001L,
+                5,
+                0,
+                0,
+                8,
+                route,
+                embedding,
+                "只依据编号证据回答，并在结论后标注引用。",
+                512,
+                5,
+                0.2,
+                CitationPolicy.REQUIRED,
+                RefusalPolicy.INSUFFICIENT_EVIDENCE,
+                AssistantVersionStatus.PUBLISHED,
+                1,
+                CREATOR,
+                NOW,
+                NOW.plusSeconds(30));
+
+        assertEquals(route, version.governedChatRoute());
+    }
+
     private static AssistantVersion draft(int maxOutputTokens) {
         return AssistantVersion.draft(
                 TENANT,
