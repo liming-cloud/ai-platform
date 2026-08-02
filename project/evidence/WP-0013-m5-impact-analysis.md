@@ -6,7 +6,7 @@
 | --- | --- |
 | 工作包 | `WP-0013` |
 | 比较点 | `a20867c89` |
-| 结论状态 | 设计证据；未授权实现 |
+| 结论状态 | ADR-0040 已接受；M5 实现进行中。 |
 | 方法 | 代码图谱探索与影响分析；不读取或输出任何凭据。 |
 
 ## 代码图谱事实
@@ -18,6 +18,9 @@
 | 可信回答调用方 | `AssistantTrustedAnswerExecutor` | 直接影响面收敛到 `QueryRunService` 及其执行路径。 | 普通查询与草稿测试必须继续共享同一执行门面。 |
 | 模型冻结复核 | `GovernedChatRuntime`、`GovernedEmbeddingRuntime`、`UsableModelConfigurationLookup` | 当前每次执行复核配置、目录修订与能力。 | 回退候选必须冻结并逐项复核，不能按当前目录替换。 |
 | 查询终态与诊断 | `QueryRunTerminalCommitter`、`QueryDiagnosticFact` | 终态、引用、事件和诊断事实已原子提交，诊断最小字段不含模型标识。 | 调用轨迹必须是内部事实并纳入同一终态事务，不能扩张诊断 API。 |
+| 查询轨迹提交 seam | `PostgresQueryRunRepository.commit` | 既有单事务已提交 `QueryRun` 终态、引用、事件及 `QueryDiagnosticFact`。 | `ModelInvocationTrace` 应作为同一提交契约的内部附属事实；不得由独立异步写入替代。 |
+| 草稿测试轨迹提交 seam | `PostgresAssistantTestRunRepository.complete`、`AssistantTestRunService` | 草稿运行已通过独立仓储提交终态和最小引用，不与 `QueryRun` 共用表或配额。 | 为保持根与配额独立，轨迹须由草稿测试仓储在同一终态事务提交，不能复用查询表。 |
+| 路由执行边界 | `ChatRouteExecutor`、`AssistantTrustedAnswerExecutor` | model-runtime 已集中候选循环和瞬态失败分类；assistant-delivery 仅映射冻结候选及配置快照。 | 轨迹的胜出候选与尝试数应来自执行结果，调用方不得重新推断或自行重试。 |
 
 ## 反例矩阵
 
@@ -31,4 +34,4 @@
 
 ## 待用户决定
 
-ADR-0040 提议以“助手版本冻结、最多两次后备、仅聊天、有限瞬态回退、内部调用轨迹”为首条 M5 切片。接受前不创建生产实现、迁移、接口或浏览器功能。
+ADR-0040 已接受“助手版本冻结、最多两次后备、仅聊天、有限瞬态回退、内部调用轨迹”为首条 M5 切片。调用轨迹的查询与草稿测试原子持久化仍在实施，完成前不标记 WP-0013 或 M5 完成。
