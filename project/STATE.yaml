@@ -148,6 +148,7 @@ latestEvidence:
   - project/evidence/ADR-0039-approval.md
   - project/evidence/WP-0012-query-diagnostic-projection.md
   - project/evidence/M4-automatic-acceptance-review.md
-nextReviewAt: 2026-08-03
-updatedAt: 2026-08-01T10:30:00+08:00
+  - project/evidence/M4-release-approval.md
+nextReviewAt: 2026-08-02
+updatedAt: 2026-08-02T09:00:00+08:00
 updatedBy: codex
