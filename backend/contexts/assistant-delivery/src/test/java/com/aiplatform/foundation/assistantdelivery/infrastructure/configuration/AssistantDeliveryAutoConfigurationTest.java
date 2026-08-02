@@ -16,6 +16,7 @@ import com.aiplatform.foundation.assistantdelivery.infrastructure.persistence.as
 import com.aiplatform.foundation.assistantdelivery.infrastructure.persistence.assistant.mapper.AssistantMapper;
 import com.aiplatform.foundation.assistantdelivery.infrastructure.persistence.assistant.mapper.AssistantRequestMapper;
 import com.aiplatform.foundation.assistantdelivery.infrastructure.persistence.assistant.mapper.AssistantVersionMapper;
+import com.aiplatform.foundation.assistantdelivery.infrastructure.persistence.assistant.mapper.AssistantVersionChatRouteCandidateMapper;
 import com.aiplatform.foundation.assistantdelivery.interfaces.web.assistant.controller.AssistantController;
 import com.aiplatform.foundation.assistantdelivery.interfaces.web.assistant.controller.AssistantTestRunController;
 import com.aiplatform.foundation.assistantdelivery.interfaces.web.assistant.controller.AssistantVersionController;
@@ -54,6 +55,9 @@ class AssistantDeliveryAutoConfigurationTest {
             .withBean(AssistantMapper.class, () -> mock(AssistantMapper.class))
             .withBean(AssistantRequestMapper.class, () -> mock(AssistantRequestMapper.class))
             .withBean(AssistantVersionMapper.class, () -> mock(AssistantVersionMapper.class))
+            .withBean(
+                    AssistantVersionChatRouteCandidateMapper.class,
+                    () -> mock(AssistantVersionChatRouteCandidateMapper.class))
             .withBean(AssistantTestRunMapper.class, () -> mock(AssistantTestRunMapper.class))
             .withBean(AssistantTestCitationMapper.class, () -> mock(AssistantTestCitationMapper.class))
             .withBean(EntityIdGenerator.class, () -> () -> 1L)

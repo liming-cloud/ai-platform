@@ -7,6 +7,7 @@ import com.aiplatform.foundation.assistantdelivery.infrastructure.persistence.as
 import com.aiplatform.foundation.assistantdelivery.infrastructure.persistence.assistant.mapper.AssistantMapper;
 import com.aiplatform.foundation.assistantdelivery.infrastructure.persistence.assistant.mapper.AssistantRequestMapper;
 import com.aiplatform.foundation.assistantdelivery.infrastructure.persistence.assistant.mapper.AssistantVersionMapper;
+import com.aiplatform.foundation.assistantdelivery.infrastructure.persistence.assistant.mapper.AssistantVersionChatRouteCandidateMapper;
 import com.aiplatform.foundation.assistantdelivery.infrastructure.persistence.assistant.repository.PostgresAssistantRepository;
 import com.aiplatform.foundation.assistantdelivery.infrastructure.persistence.assistant.repository.PostgresAssistantTestRunRepository;
 import com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator;
@@ -38,12 +39,14 @@ public class AssistantDeliveryPersistenceAutoConfiguration {
             AssistantMapper mapper,
             AssistantRequestMapper requestMapper,
             AssistantVersionMapper versionMapper,
+            AssistantVersionChatRouteCandidateMapper routeCandidateMapper,
             EntityIdGenerator identifiers,
             PlatformTransactionManager transactions) {
         return new PostgresAssistantRepository(
                 mapper,
                 requestMapper,
                 versionMapper,
+                routeCandidateMapper,
                 identifiers,
                 transactions);
     }

@@ -24,14 +24,17 @@ import com.aiplatform.foundation.assistantdelivery.domain.assistant.model.Assist
 import com.aiplatform.foundation.assistantdelivery.domain.assistant.model.CitationPolicy;
 import com.aiplatform.foundation.assistantdelivery.domain.assistant.model.CreatorId;
 import com.aiplatform.foundation.assistantdelivery.domain.assistant.model.GovernedChatModelBinding;
+import com.aiplatform.foundation.assistantdelivery.domain.assistant.model.GovernedChatModelRoute;
 import com.aiplatform.foundation.assistantdelivery.domain.assistant.model.GovernedEmbeddingModelBinding;
 import com.aiplatform.foundation.assistantdelivery.domain.assistant.model.RefusalPolicy;
 import com.aiplatform.foundation.assistantdelivery.infrastructure.persistence.assistant.entity.AssistantEntity;
 import com.aiplatform.foundation.assistantdelivery.infrastructure.persistence.assistant.entity.AssistantRequestEntity;
 import com.aiplatform.foundation.assistantdelivery.infrastructure.persistence.assistant.entity.AssistantVersionEntity;
+import com.aiplatform.foundation.assistantdelivery.infrastructure.persistence.assistant.entity.AssistantVersionChatRouteCandidateEntity;
 import com.aiplatform.foundation.assistantdelivery.infrastructure.persistence.assistant.mapper.AssistantMapper;
 import com.aiplatform.foundation.assistantdelivery.infrastructure.persistence.assistant.mapper.AssistantRequestMapper;
 import com.aiplatform.foundation.assistantdelivery.infrastructure.persistence.assistant.mapper.AssistantVersionMapper;
+import com.aiplatform.foundation.assistantdelivery.infrastructure.persistence.assistant.mapper.AssistantVersionChatRouteCandidateMapper;
 import com.aiplatform.foundation.assistantdelivery.infrastructure.persistence.assistant.projection.PublishedAssistantRow;
 import com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator;
 import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
@@ -42,6 +45,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import org.springframework.dao.DuplicateKeyException;
@@ -60,6 +64,7 @@ public final class PostgresAssistantRepository implements AssistantRepository {
     private final AssistantMapper mapper;
     private final AssistantRequestMapper requestMapper;
     private final AssistantVersionMapper versionMapper;
+    private final AssistantVersionChatRouteCandidateMapper routeCandidateMapper;
     private final EntityIdGenerator identifiers;
     private final TransactionTemplate transactions;
 
@@ -67,6 +72,7 @@ public final class PostgresAssistantRepository implements AssistantRepository {
             AssistantMapper mapper,
             AssistantRequestMapper requestMapper,
             AssistantVersionMapper versionMapper,
+            AssistantVersionChatRouteCandidateMapper routeCandidateMapper,
             EntityIdGenerator identifiers,
             PlatformTransactionManager transactionManager) {
         this.mapper = Objects.requireNonNull(mapper, "助手映射器不能为空");
@@ -76,6 +82,9 @@ public final class PostgresAssistantRepository implements AssistantRepository {
         this.versionMapper = Objects.requireNonNull(
                 versionMapper,
                 "助手版本映射器不能为空");
+        this.routeCandidateMapper = Objects.requireNonNull(
+                routeCandidateMapper,
+                "助手版本聊天候选映射器不能为空");
         this.identifiers = Objects.requireNonNull(
                 identifiers,
                 "标识生成器不能为空");
@@ -168,7 +177,7 @@ public final class PostgresAssistantRepository implements AssistantRepository {
         Objects.requireNonNull(assistantVersionId, "助手版本标识不能为空");
         return Optional.ofNullable(versionMapper.selectOne(
                         versionQuery(tenantId.value(), assistantVersionId.value())))
-                .map(PostgresAssistantRepository::toVersion);
+                .map(this::toVersion);
     }
 
     @Override
@@ -302,6 +311,7 @@ public final class PostgresAssistantRepository implements AssistantRepository {
                 throw new AssistantConcurrentModificationException();
             }
             versionMapper.insert(toVersionEntity(version));
+            insertRouteCandidates(version);
             requestMapper.insert(requestEntity(
                     tenantId,
                     CREATE_VERSION,
@@ -433,7 +443,8 @@ public final class PostgresAssistantRepository implements AssistantRepository {
                 .eq(AssistantVersionEntity::getId, versionId);
     }
 
-    private static AssistantVersion toVersion(AssistantVersionEntity row) {
+    private AssistantVersion toVersion(AssistantVersionEntity row) {
+        var route = governedChatRoute(row);
         return AssistantVersion.reconstitute(
                 new TenantId(row.getTenantId()),
                 new AssistantVersionId(row.getId()),
@@ -448,7 +459,7 @@ public final class PostgresAssistantRepository implements AssistantRepository {
                 zeroIfNull(row.getEmbeddingDeploymentId()),
                 zeroIfNull(row.getEmbeddingDeploymentRevision()),
                 row.getEmbeddingDimension(),
-                governedChat(row),
+                route,
                 governedEmbedding(row),
                 row.getSystemInstruction(),
                 row.getMaxOutputTokens(),
@@ -461,6 +472,52 @@ public final class PostgresAssistantRepository implements AssistantRepository {
                 new CreatorId(row.getCreatedBy()),
                 row.getCreatedAt(),
                 row.getPublishedAt());
+    }
+
+    private void insertRouteCandidates(AssistantVersion version) {
+        if (!version.usesGovernedModelConfigurations()) {
+            return;
+        }
+        var candidates = version.governedChatRoute().candidates();
+        for (var index = 0; index < candidates.size(); index++) {
+            var candidate = candidates.get(index);
+            var entity = new AssistantVersionChatRouteCandidateEntity();
+            entity.setId(identifiers.nextId());
+            entity.setTenantId(version.tenantId().value());
+            entity.setAssistantVersionId(version.id().value());
+            entity.setOrdinal(index + 1);
+            entity.setConfigurationId(candidate.configurationId());
+            entity.setConfigurationRevision(candidate.configurationRevision());
+            entity.setCatalogEntryId(candidate.catalogEntryId());
+            entity.setCatalogEntryRevision(candidate.catalogEntryRevision());
+            entity.setOutputLimit(candidate.outputLimit());
+            routeCandidateMapper.insert(entity);
+        }
+    }
+
+    private GovernedChatModelRoute governedChatRoute(AssistantVersionEntity row) {
+        var candidates = routeCandidateMapper.selectList(
+                new LambdaQueryWrapper<AssistantVersionChatRouteCandidateEntity>()
+                        .eq(AssistantVersionChatRouteCandidateEntity::getTenantId, row.getTenantId())
+                        .eq(AssistantVersionChatRouteCandidateEntity::getAssistantVersionId, row.getId())
+                        .orderByAsc(AssistantVersionChatRouteCandidateEntity::getOrdinal));
+        if (!candidates.isEmpty()) {
+            return new GovernedChatModelRoute(candidates.stream()
+                    .map(PostgresAssistantRepository::toGovernedChat)
+                    .toList());
+        }
+        var primary = governedChat(row);
+        return primary == null ? null : new GovernedChatModelRoute(List.of(primary));
+    }
+
+    private static GovernedChatModelBinding toGovernedChat(
+            AssistantVersionChatRouteCandidateEntity row) {
+        return new GovernedChatModelBinding(
+                row.getConfigurationId(),
+                row.getConfigurationRevision(),
+                row.getCatalogEntryId(),
+                row.getCatalogEntryRevision(),
+                row.getOutputLimit());
     }
 
     private static GovernedChatModelBinding governedChat(AssistantVersionEntity row) {

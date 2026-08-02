@@ -19,15 +19,18 @@ import com.aiplatform.foundation.assistantdelivery.domain.assistant.model.Assist
 import com.aiplatform.foundation.assistantdelivery.domain.assistant.model.CitationPolicy;
 import com.aiplatform.foundation.assistantdelivery.domain.assistant.model.CreatorId;
 import com.aiplatform.foundation.assistantdelivery.domain.assistant.model.GovernedChatModelBinding;
+import com.aiplatform.foundation.assistantdelivery.domain.assistant.model.GovernedChatModelRoute;
 import com.aiplatform.foundation.assistantdelivery.domain.assistant.model.GovernedEmbeddingModelBinding;
 import com.aiplatform.foundation.assistantdelivery.domain.assistant.model.RefusalPolicy;
 import com.aiplatform.foundation.assistantdelivery.infrastructure.persistence.assistant.mapper.AssistantMapper;
 import com.aiplatform.foundation.assistantdelivery.infrastructure.persistence.assistant.mapper.AssistantRequestMapper;
 import com.aiplatform.foundation.assistantdelivery.infrastructure.persistence.assistant.mapper.AssistantVersionMapper;
+import com.aiplatform.foundation.assistantdelivery.infrastructure.persistence.assistant.mapper.AssistantVersionChatRouteCandidateMapper;
 import com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator;
 import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -93,6 +96,7 @@ class PostgresAssistantRepositoryTest {
 
     @BeforeEach
     void clearAndSeedReferences() {
+        jdbc.update("DELETE FROM assistant_delivery.assistant_version_chat_route_candidate");
         jdbc.update("DELETE FROM assistant_delivery.assistant_request");
         jdbc.update("DELETE FROM assistant_delivery.assistant_version");
         jdbc.update("DELETE FROM assistant_delivery.assistant");
@@ -181,6 +185,79 @@ class PostgresAssistantRepositoryTest {
         assertNull(jdbc.queryForObject(
                 "SELECT chat_deployment_id FROM assistant_delivery.assistant_version WHERE tenant_id = ? AND id = ?",
                 Long.class, STORE.value(), draft.id().value()));
+    }
+
+    @Test
+    void 受控聊天路由应按顺序持久化并完整恢复() {
+        var assistant = assistant(STORE, "后备模型助手");
+        repository.create(new AssistantCreation(
+                assistant, "route-assistant-key", "r".repeat(64)), 5);
+        var advanced = assistant.advanceVersion();
+        var route = new GovernedChatModelRoute(List.of(
+                new GovernedChatModelBinding(CHAT, 9, 310000000000000001L, 6, 1024),
+                new GovernedChatModelBinding(
+                        320000000000000003L, 2, 310000000000000003L, 4, 768)));
+        var draft = AssistantVersion.governedDraft(
+                STORE,
+                new AssistantVersionId(IDENTIFIERS.incrementAndGet()),
+                advanced.id(),
+                advanced.latestVersionNumber(),
+                route,
+                SPACE, INDEX, 4,
+                new GovernedEmbeddingModelBinding(
+                        EMBEDDING, 3, 310000000000000002L, 7, 8),
+                "只依据编号证据回答，并在结论后标注引用。",
+                512, 5, 0.2,
+                CitationPolicy.REQUIRED,
+                RefusalPolicy.INSUFFICIENT_EVIDENCE,
+                CREATOR, NOW);
+
+        repository.createVersion(new AssistantVersionCreation(
+                assistant, advanced, draft, "route-version-key", "s".repeat(64)), 20);
+
+        var restored = repository.findVersion(STORE, draft.id()).orElseThrow();
+        assertEquals(route, restored.governedChatRoute());
+        assertEquals(2, jdbc.queryForObject(
+                """
+                SELECT count(*)
+                FROM assistant_delivery.assistant_version_chat_route_candidate
+                WHERE tenant_id = ? AND assistant_version_id = ?
+                """,
+                Integer.class,
+                STORE.value(),
+                draft.id().value()));
+    }
+
+    @Test
+    void 历史受控版本缺少路由子表快照时回退为原主候选() {
+        var assistant = assistant(STORE, "历史受控模型助手");
+        repository.create(new AssistantCreation(
+                assistant, "legacy-route-assistant-key", "t".repeat(64)), 5);
+        var advanced = assistant.advanceVersion();
+        var draft = AssistantVersion.governedDraft(
+                STORE,
+                new AssistantVersionId(IDENTIFIERS.incrementAndGet()),
+                advanced.id(),
+                advanced.latestVersionNumber(),
+                new GovernedChatModelBinding(CHAT, 9, 310000000000000001L, 6, 1024),
+                SPACE, INDEX, 4,
+                new GovernedEmbeddingModelBinding(
+                        EMBEDDING, 3, 310000000000000002L, 7, 8),
+                "只依据编号证据回答，并在结论后标注引用。",
+                512, 5, 0.2,
+                CitationPolicy.REQUIRED,
+                RefusalPolicy.INSUFFICIENT_EVIDENCE,
+                CREATOR, NOW);
+        repository.createVersion(new AssistantVersionCreation(
+                assistant, advanced, draft, "legacy-route-version-key", "u".repeat(64)), 20);
+        jdbc.update(
+                "DELETE FROM assistant_delivery.assistant_version_chat_route_candidate WHERE tenant_id = ? AND assistant_version_id = ?",
+                STORE.value(),
+                draft.id().value());
+
+        var restored = repository.findVersion(STORE, draft.id()).orElseThrow();
+
+        assertEquals(List.of(draft.governedChat()), restored.governedChatRoute().candidates());
     }
 
     @Test
@@ -464,12 +541,14 @@ class PostgresAssistantRepositoryTest {
                 AssistantMapper mapper,
                 AssistantRequestMapper requestMapper,
                 AssistantVersionMapper versionMapper,
+                AssistantVersionChatRouteCandidateMapper routeCandidateMapper,
                 EntityIdGenerator identifiers,
                 PlatformTransactionManager transactions) {
             return new PostgresAssistantRepository(
                     mapper,
                     requestMapper,
                     versionMapper,
+                    routeCandidateMapper,
                     identifiers,
                     transactions);
         }
