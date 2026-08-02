@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
 import java.time.Instant;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 
 class AssistantVersionTest {
@@ -78,6 +79,38 @@ class AssistantVersionTest {
                 () -> draftWithPolicies(
                         CitationPolicy.REQUIRED,
                         RefusalPolicy.MODEL_DISCRETION));
+    }
+
+    @Test
+    void 受控草稿应冻结聊天路由并在发布后保持不变() {
+        var route = new GovernedChatModelRoute(List.of(
+                new GovernedChatModelBinding(310000000000000001L, 3, 11, 2, 1024),
+                new GovernedChatModelBinding(310000000000000002L, 5, 12, 4, 1024)));
+        var embedding = new GovernedEmbeddingModelBinding(
+                320000000000000001L, 2, 21, 3, 8);
+
+        var draft = AssistantVersion.governedDraft(
+                TENANT,
+                VERSION_ID,
+                ASSISTANT_ID,
+                1,
+                route,
+                210000000000000001L,
+                230000000000000001L,
+                5,
+                embedding,
+                "只依据编号证据回答，并在结论后标注引用。",
+                512,
+                5,
+                0.2,
+                CitationPolicy.REQUIRED,
+                RefusalPolicy.INSUFFICIENT_EVIDENCE,
+                CREATOR,
+                NOW);
+
+        assertEquals(route, draft.governedChatRoute());
+        assertEquals(route.primary(), draft.governedChat());
+        assertEquals(route, draft.publish(NOW.plusSeconds(30)).governedChatRoute());
     }
 
     private static AssistantVersion draft(int maxOutputTokens) {

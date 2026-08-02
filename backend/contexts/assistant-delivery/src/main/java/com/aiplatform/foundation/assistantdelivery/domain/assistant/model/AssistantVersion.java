@@ -3,6 +3,7 @@ package com.aiplatform.foundation.assistantdelivery.domain.assistant.model;
 import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
 import com.aiplatform.foundation.shared.kernel.domain.AggregateRoot;
 import java.time.Instant;
+import java.util.List;
 import java.util.Objects;
 
 /**
@@ -27,6 +28,7 @@ public final class AssistantVersion implements AggregateRoot<AssistantVersionId>
     private final long embeddingDeploymentRevision;
     private final int embeddingDimension;
     private final GovernedChatModelBinding governedChat;
+    private final GovernedChatModelRoute governedChatRoute;
     private final GovernedEmbeddingModelBinding governedEmbedding;
     private final String systemInstruction;
     private final int maxOutputTokens;
@@ -54,7 +56,7 @@ public final class AssistantVersion implements AggregateRoot<AssistantVersionId>
             long embeddingDeploymentId,
             long embeddingDeploymentRevision,
             int embeddingDimension,
-            GovernedChatModelBinding governedChat,
+            GovernedChatModelRoute governedChatRoute,
             GovernedEmbeddingModelBinding governedEmbedding,
             String systemInstruction,
             int maxOutputTokens,
@@ -83,7 +85,8 @@ public final class AssistantVersion implements AggregateRoot<AssistantVersionId>
         if (indexVersionRevision < 1 || embeddingDimension < 1) {
             throw new IllegalArgumentException("索引修订和嵌入维度必须大于零");
         }
-        var legacy = governedChat == null && governedEmbedding == null;
+        var governedChat = governedChatRoute == null ? null : governedChatRoute.primary();
+        var legacy = governedChatRoute == null && governedEmbedding == null;
         if (legacy) {
             if (chatDeploymentId <= 0
                     || chatDeploymentRevision < 1
@@ -92,7 +95,7 @@ public final class AssistantVersion implements AggregateRoot<AssistantVersionId>
                     || embeddingDeploymentRevision < 1) {
                 throw new IllegalArgumentException("历史模型部署快照不完整");
             }
-        } else if (governedChat == null || governedEmbedding == null
+        } else if (governedChatRoute == null || governedEmbedding == null
                 || chatDeploymentId != 0
                 || chatDeploymentRevision != 0
                 || embeddingDeploymentId != 0
@@ -108,6 +111,7 @@ public final class AssistantVersion implements AggregateRoot<AssistantVersionId>
         this.embeddingDeploymentRevision = embeddingDeploymentRevision;
         this.embeddingDimension = embeddingDimension;
         this.governedChat = governedChat;
+        this.governedChatRoute = governedChatRoute;
         this.governedEmbedding = governedEmbedding;
         this.systemInstruction = requireInstruction(systemInstruction);
         if (maxOutputTokens < 1 || maxOutputTokens > this.chatDeploymentOutputLimit) {
@@ -220,7 +224,39 @@ public final class AssistantVersion implements AggregateRoot<AssistantVersionId>
                 0, 0, 0,
                 knowledgeSpaceId, indexVersionId, indexVersionRevision,
                 0, 0, embedding.dimension(),
-                chat, embedding,
+                new GovernedChatModelRoute(List.of(chat)), embedding,
+                systemInstruction, maxOutputTokens, retrievalLimit, minimumScore,
+                citationPolicy, refusalPolicy, AssistantVersionStatus.DRAFT, 0,
+                createdBy, createdAt, null);
+    }
+
+    /**
+     * 创建冻结有序聊天候选的受控助手草稿；嵌入配置仍保持与活动索引同源的单一绑定。
+     */
+    public static AssistantVersion governedDraft(
+            TenantId tenantId,
+            AssistantVersionId id,
+            AssistantId assistantId,
+            int number,
+            GovernedChatModelRoute chatRoute,
+            long knowledgeSpaceId,
+            long indexVersionId,
+            long indexVersionRevision,
+            GovernedEmbeddingModelBinding embedding,
+            String systemInstruction,
+            int maxOutputTokens,
+            int retrievalLimit,
+            double minimumScore,
+            CitationPolicy citationPolicy,
+            RefusalPolicy refusalPolicy,
+            CreatorId createdBy,
+            Instant createdAt) {
+        return new AssistantVersion(
+                tenantId, id, assistantId, number,
+                0, 0, 0,
+                knowledgeSpaceId, indexVersionId, indexVersionRevision,
+                0, 0, embedding.dimension(),
+                chatRoute, embedding,
                 systemInstruction, maxOutputTokens, retrievalLimit, minimumScore,
                 citationPolicy, refusalPolicy, AssistantVersionStatus.DRAFT, 0,
                 createdBy, createdAt, null);
@@ -267,7 +303,7 @@ public final class AssistantVersion implements AggregateRoot<AssistantVersionId>
                 embeddingDeploymentId,
                 embeddingDeploymentRevision,
                 embeddingDimension,
-                governedChat,
+                governedChat == null ? null : new GovernedChatModelRoute(List.of(governedChat)),
                 governedEmbedding,
                 systemInstruction,
                 maxOutputTokens,
@@ -300,7 +336,7 @@ public final class AssistantVersion implements AggregateRoot<AssistantVersionId>
                 embeddingDeploymentId,
                 embeddingDeploymentRevision,
                 embeddingDimension,
-                governedChat,
+                governedChatRoute,
                 governedEmbedding,
                 systemInstruction,
                 maxOutputTokens,
@@ -373,6 +409,13 @@ public final class AssistantVersion implements AggregateRoot<AssistantVersionId>
 
     public GovernedChatModelBinding governedChat() {
         return governedChat;
+    }
+
+    /**
+     * 返回发布后不可修改的聊天候选顺序；历史部署版本没有受控路由。
+     */
+    public GovernedChatModelRoute governedChatRoute() {
+        return governedChatRoute;
     }
 
     public GovernedEmbeddingModelBinding governedEmbedding() {
