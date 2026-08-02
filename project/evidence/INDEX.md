@@ -207,6 +207,7 @@
 | 证据 | 命令或评审 | 提交 | 结果 |
 | --- | --- | --- |
 | M5 模型扩展影响分析 | `project/evidence/WP-0013-m5-impact-analysis.md` | 本次控制面提交 | 代码图谱确认模型运行时影响面、可信回答唯一 seam 与查询终态原子边界；ADR-0040 提议在用户接受前不实施 |
+| M5 冻结聊天路由 TDD 路线 | `project/evidence/WP-0013-m5-tdd-test-route.md` | 本次控制面提交 | 首条切片的红绿顺序、失败分类、真实 PostgreSQL、HTTP、浏览器和全量证据合同已固定；ADR-0040 接受前不创建测试或实现 |
 
 ## 证据规则
 

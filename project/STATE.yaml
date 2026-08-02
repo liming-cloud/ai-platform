@@ -152,6 +152,7 @@ latestEvidence:
   - project/evidence/M4-release-approval.md
   - docs/architecture/foundation-m5-model-extension-design.md
   - project/evidence/WP-0013-m5-impact-analysis.md
+  - project/evidence/WP-0013-m5-tdd-test-route.md
 nextReviewAt: 2026-08-05
-updatedAt: 2026-08-02T10:00:00+08:00
+updatedAt: 2026-08-02T10:15:00+08:00
 updatedBy: codex
