@@ -93,7 +93,7 @@ public record AssistantTrustedAnswerTarget(
                 value.assistantVersionId(), 0, 0,
                 value.knowledgeSpaceId(), value.indexVersionId(), value.indexVersionRevision(),
                 0, 0, value.governedEmbedding().dimension(),
-                value.governedChat(), new GovernedChatModelRoute(java.util.List.of(value.governedChat())), value.governedEmbedding(),
+                value.governedChat(), value.governedChatRoute(), value.governedEmbedding(),
                 value.systemInstruction(), value.maxOutputTokens(), value.retrievalLimit(),
                 value.minimumScore(), value.citationPolicy(), value.refusalPolicy());
     }

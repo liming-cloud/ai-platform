@@ -48,6 +48,7 @@ public final class DraftAssistantVersionLookupService
                         version.indexVersionId(),
                         version.indexVersionRevision(),
                         version.governedChat(),
+                        version.governedChatRoute(),
                         version.governedEmbedding(),
                         version.systemInstruction(),
                         version.maxOutputTokens(),

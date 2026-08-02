@@ -55,6 +55,19 @@ class AssistantTrustedAnswerTargetTest {
     }
 
     @Test
+    void 应将草稿冻结聊天路由完整传播至可信执行目标() {
+        var route = new GovernedChatModelRoute(List.of(
+                chatBinding(),
+                new GovernedChatModelBinding(43, 8, 53, 9, 256)));
+        var draft = new DraftAssistantVersionSnapshot(
+                12, 7, 4, 21, 32, 3,
+                route, embeddingBinding(), "仅根据证据回答", 256, 4, 0.2,
+                CitationPolicy.REQUIRED, RefusalPolicy.INSUFFICIENT_EVIDENCE);
+
+        assertEquals(route, AssistantTrustedAnswerTarget.from(draft).governedChatRoute());
+    }
+
+    @Test
     void preservesPublishedLegacyDeploymentFactsForCompatibilityExecution() {
         var published = new PublishedAssistantVersionSnapshot(
                 13, 7, 5, 61, 2, 21, 33, 4, 62, 3, 4,
