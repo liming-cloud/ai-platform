@@ -225,7 +225,8 @@ public final class QueryRunService  {
                     clock.instant());
             return new QueryRunTerminalCommit(answered, started.version(), QueryDiagnosticFact.forTerminal(
                     answered.status(), CandidateCollection.COLLECTED, result.candidateCount(),
-                    result.chatModelRevision(), result.embeddingModelRevision(), CitationValidation.VALIDATED));
+                    result.chatModelRevision(), result.embeddingModelRevision(), CitationValidation.VALIDATED),
+                    result.modelInvocationTrace());
         } catch (RuntimeException exception) {
             throw new AssistantTrustedAnswerExecutionException(
                     new AssistantTrustedAnswerExecutionObservation(

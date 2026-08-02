@@ -1,5 +1,6 @@
 package com.aiplatform.foundation.trustedquery.application.diagnostic.dto;
 
+import com.aiplatform.foundation.assistantdelivery.application.answer.dto.ModelInvocationTrace;
 import com.aiplatform.foundation.trustedquery.domain.query.model.QueryRun;
 import java.util.Objects;
 
@@ -9,7 +10,15 @@ import java.util.Objects;
 public record QueryRunTerminalCommit(
         QueryRun queryRun,
         long expectedVersion,
-        QueryDiagnosticFact diagnostic) {
+        QueryDiagnosticFact diagnostic,
+        ModelInvocationTrace modelInvocationTrace) {
+
+    public QueryRunTerminalCommit(
+            QueryRun queryRun,
+            long expectedVersion,
+            QueryDiagnosticFact diagnostic) {
+        this(queryRun, expectedVersion, diagnostic, null);
+    }
 
     public QueryRunTerminalCommit {
         queryRun = Objects.requireNonNull(queryRun, "查询终态不能为空");
