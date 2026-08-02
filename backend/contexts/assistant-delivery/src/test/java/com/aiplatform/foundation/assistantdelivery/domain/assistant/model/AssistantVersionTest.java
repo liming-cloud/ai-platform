@@ -113,6 +113,36 @@ class AssistantVersionTest {
         assertEquals(route, draft.publish(NOW.plusSeconds(30)).governedChatRoute());
     }
 
+    @Test
+    void 受控路由的每个候选都必须满足回答上限() {
+        var route = new GovernedChatModelRoute(List.of(
+                new GovernedChatModelBinding(310000000000000001L, 3, 11, 2, 1024),
+                new GovernedChatModelBinding(310000000000000002L, 5, 12, 4, 256)));
+        var embedding = new GovernedEmbeddingModelBinding(
+                320000000000000001L, 2, 21, 3, 8);
+
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> AssistantVersion.governedDraft(
+                        TENANT,
+                        VERSION_ID,
+                        ASSISTANT_ID,
+                        1,
+                        route,
+                        210000000000000001L,
+                        230000000000000001L,
+                        5,
+                        embedding,
+                        "只依据编号证据回答，并在结论后标注引用。",
+                        512,
+                        5,
+                        0.2,
+                        CitationPolicy.REQUIRED,
+                        RefusalPolicy.INSUFFICIENT_EVIDENCE,
+                        CREATOR,
+                        NOW));
+    }
+
     private static AssistantVersion draft(int maxOutputTokens) {
         return AssistantVersion.draft(
                 TENANT,

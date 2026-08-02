@@ -114,7 +114,10 @@ public final class AssistantVersion implements AggregateRoot<AssistantVersionId>
         this.governedChatRoute = governedChatRoute;
         this.governedEmbedding = governedEmbedding;
         this.systemInstruction = requireInstruction(systemInstruction);
-        if (maxOutputTokens < 1 || maxOutputTokens > this.chatDeploymentOutputLimit) {
+        if (maxOutputTokens < 1
+                || maxOutputTokens > this.chatDeploymentOutputLimit
+                || (governedChatRoute != null && governedChatRoute.candidates().stream()
+                .anyMatch(candidate -> maxOutputTokens > candidate.outputLimit()))) {
             throw new IllegalArgumentException("回答上限必须在模型允许范围内");
         }
         if (retrievalLimit < 1 || retrievalLimit > MAX_RETRIEVAL_LIMIT) {
