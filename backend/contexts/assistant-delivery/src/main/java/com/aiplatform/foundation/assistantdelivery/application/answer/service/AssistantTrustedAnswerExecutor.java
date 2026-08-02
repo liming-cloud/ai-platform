@@ -286,9 +286,15 @@ public final class AssistantTrustedAnswerExecutor {
                             index + 1,
                             attempt.candidate().configuration().configurationId().value(),
                             attempt.candidate().configuration().configurationRevision(),
+                            attempt.candidate().configuration().catalogEntryId().value(),
+                            attempt.candidate().configuration().catalogEntryRevision(),
                             attempt.outcome() == ChatRouteAttempt.Outcome.SUCCEEDED
                                     ? ModelInvocationTrace.Outcome.SUCCEEDED
-                                    : ModelInvocationTrace.Outcome.TRANSIENT_FAILURE);
+                                    : ModelInvocationTrace.Outcome.TRANSIENT_FAILURE,
+                            attempt.usage().inputTokens(),
+                            attempt.usage().outputTokens(),
+                            attempt.usage().totalTokens(),
+                            attempt.latencyMillis());
                 })
                 .toList());
     }

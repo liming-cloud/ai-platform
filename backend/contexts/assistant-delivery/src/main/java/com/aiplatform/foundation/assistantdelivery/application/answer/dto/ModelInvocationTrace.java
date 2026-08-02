@@ -28,10 +28,29 @@ public record ModelInvocationTrace(List<Attempt> attempts) {
     /**
      * 一次冻结候选调用的最小事实。
      */
-    public record Attempt(int sequence, long configurationId, long configurationRevision, Outcome outcome) {
+    public record Attempt(
+            int sequence,
+            long configurationId,
+            long configurationRevision,
+            long catalogEntryId,
+            long catalogEntryRevision,
+            Outcome outcome,
+            int inputTokens,
+            int outputTokens,
+            int totalTokens,
+            long latencyMillis) {
 
         public Attempt {
-            if (sequence < 1 || configurationId < 1 || configurationRevision < 1) {
+            if (sequence < 1
+                    || configurationId < 1
+                    || configurationRevision < 1
+                    || catalogEntryId < 1
+                    || catalogEntryRevision < 1
+                    || inputTokens < 0
+                    || outputTokens < 0
+                    || totalTokens < 0
+                    || latencyMillis < 0
+                    || totalTokens > 0 && totalTokens < inputTokens + outputTokens) {
                 throw new IllegalArgumentException("模型调用候选不完整");
             }
             outcome = Objects.requireNonNull(outcome, "模型调用结果不能为空");

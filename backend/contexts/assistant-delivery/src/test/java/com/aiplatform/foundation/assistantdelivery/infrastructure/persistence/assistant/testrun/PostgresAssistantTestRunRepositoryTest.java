@@ -113,7 +113,16 @@ class PostgresAssistantTestRunRepositoryTest {
                 accepted.version(),
                 new ModelInvocationTrace(java.util.List.of(
                         new ModelInvocationTrace.Attempt(
-                                1, 500000000000000001L, 7, ModelInvocationTrace.Outcome.SUCCEEDED)))));
+                                1,
+                                500000000000000001L,
+                                7,
+                                6,
+                                2,
+                                ModelInvocationTrace.Outcome.SUCCEEDED,
+                                10,
+                                20,
+                                30,
+                                8)))));
 
         var restored = repository.find(STORE, accepted.id()).orElseThrow();
         assertEquals(AssistantTestRunStatus.ANSWERED, restored.status());
@@ -122,14 +131,20 @@ class PostgresAssistantTestRunRepositoryTest {
         assertEquals(1, jdbc.queryForObject(
                 "SELECT count(*) FROM assistant_delivery.assistant_test_run_citation", Integer.class));
         var trace = jdbc.queryForMap("""
-                SELECT attempt_sequence, configuration_id, configuration_revision, outcome
+                SELECT attempt_sequence, configuration_id, configuration_revision,
+                    catalog_entry_id, catalog_entry_revision, outcome,
+                    input_tokens, output_tokens, total_tokens, latency_millis
                 FROM assistant_delivery.assistant_test_run_model_invocation_trace
                 WHERE tenant_id = ? AND assistant_test_run_id = ?
                 """, STORE.value(), accepted.id().value());
         assertEquals(1, trace.get("attempt_sequence"));
         assertEquals(500000000000000001L, trace.get("configuration_id"));
         assertEquals(7L, trace.get("configuration_revision"));
+        assertEquals(6L, trace.get("catalog_entry_id"));
+        assertEquals(2L, trace.get("catalog_entry_revision"));
         assertEquals("SUCCEEDED", trace.get("outcome"));
+        assertEquals(30, trace.get("total_tokens"));
+        assertEquals(8L, trace.get("latency_millis"));
         assertEquals(0, jdbc.queryForObject(
                 """
                 SELECT count(*)
@@ -170,8 +185,9 @@ class PostgresAssistantTestRunRepositoryTest {
         jdbc.update("""
                 INSERT INTO assistant_delivery.assistant_test_run_model_invocation_trace (
                     id, tenant_id, assistant_test_run_id, attempt_sequence,
-                    configuration_id, configuration_revision, outcome, created_at
-                ) VALUES (?, ?, ?, 1, ?, 7, 'TRANSIENT_FAILURE', ?)
+                    configuration_id, configuration_revision, catalog_entry_id, catalog_entry_revision,
+                    outcome, input_tokens, output_tokens, total_tokens, latency_millis, created_at
+                ) VALUES (?, ?, ?, 1, ?, 7, 6, 2, 'TRANSIENT_FAILURE', 0, 0, 0, 1, ?)
                 """,
                 990000000000000001L,
                 STORE.value(),
@@ -192,7 +208,13 @@ class PostgresAssistantTestRunRepositoryTest {
                                 1,
                                 500000000000000001L,
                                 7,
-                                ModelInvocationTrace.Outcome.TRANSIENT_FAILURE))))));
+                                6,
+                                2,
+                                ModelInvocationTrace.Outcome.TRANSIENT_FAILURE,
+                                0,
+                                0,
+                                0,
+                                1))))));
 
         assertEquals(
                 AssistantTestRunStatus.RUNNING,

@@ -153,7 +153,8 @@ latestEvidence:
   - docs/architecture/foundation-m5-model-extension-design.md
   - project/evidence/WP-0013-m5-impact-analysis.md
   - project/evidence/WP-0013-m5-tdd-test-route.md
+  - project/evidence/WP-0013-m5-model-invocation-trace.md
   - project/evidence/ADR-0040-approval.md
 nextReviewAt: 2026-08-05
-updatedAt: 2026-08-02T10:30:00+08:00
+updatedAt: 2026-08-02T20:48:00+08:00
 updatedBy: codex

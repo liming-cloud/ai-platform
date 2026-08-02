@@ -117,7 +117,7 @@ class AssistantTestRunServiceTest {
         var fixture = fixture();
         var trace = new ModelInvocationTrace(List.of(
                 new ModelInvocationTrace.Attempt(
-                        1, 41, 5, ModelInvocationTrace.Outcome.TRANSIENT_FAILURE)));
+                        1, 41, 5, 51, 6, ModelInvocationTrace.Outcome.TRANSIENT_FAILURE, 0, 0, 0, 1)));
         when(fixture.executor.execute(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(),
                 org.mockito.ArgumentMatchers.any())).thenThrow(new AssistantTrustedAnswerExecutionException(
                         new AssistantTrustedAnswerExecutionObservation(1, 5, 7, trace),

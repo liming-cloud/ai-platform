@@ -123,7 +123,13 @@ public final class PostgresAssistantTestRunRepository
             entity.setAttemptSequence(attempt.sequence());
             entity.setConfigurationId(attempt.configurationId());
             entity.setConfigurationRevision(attempt.configurationRevision());
+            entity.setCatalogEntryId(attempt.catalogEntryId());
+            entity.setCatalogEntryRevision(attempt.catalogEntryRevision());
             entity.setOutcome(attempt.outcome().name());
+            entity.setInputTokens(attempt.inputTokens());
+            entity.setOutputTokens(attempt.outputTokens());
+            entity.setTotalTokens(attempt.totalTokens());
+            entity.setLatencyMillis(attempt.latencyMillis());
             entity.setCreatedAt(run.completedAt());
             if (traceMapper.insert(entity) != 1) {
                 throw new IllegalStateException("助手测试调用轨迹写入失败");

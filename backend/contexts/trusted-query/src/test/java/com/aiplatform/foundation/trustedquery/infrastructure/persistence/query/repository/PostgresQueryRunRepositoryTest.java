@@ -182,9 +182,27 @@ class PostgresQueryRunRepositoryTest {
                         com.aiplatform.foundation.trustedquery.application.diagnostic.dto.CitationValidation.VALIDATED),
                 new ModelInvocationTrace(List.of(
                         new ModelInvocationTrace.Attempt(
-                                1, 320000000000000001L, 7, ModelInvocationTrace.Outcome.TRANSIENT_FAILURE),
+                                1,
+                                320000000000000001L,
+                                7,
+                                310000000000000001L,
+                                6,
+                                ModelInvocationTrace.Outcome.TRANSIENT_FAILURE,
+                                0,
+                                0,
+                                0,
+                                11),
                         new ModelInvocationTrace.Attempt(
-                                2, 320000000000000002L, 8, ModelInvocationTrace.Outcome.SUCCEEDED)))));
+                                2,
+                                320000000000000002L,
+                                8,
+                                310000000000000002L,
+                                6,
+                                ModelInvocationTrace.Outcome.SUCCEEDED,
+                                10,
+                                5,
+                                15,
+                                42)))));
         var replayed = repository.claim(
                 running(),
                 "query-key-001",
@@ -224,7 +242,9 @@ class PostgresQueryRunRepositoryTest {
                 "SELECT candidate_count FROM trusted_query.query_diagnostic_fact", Integer.class));
         assertEquals(4, diagnostics.find(TENANT, answered.id()).orElseThrow().candidateCount());
         var traces = jdbc.queryForList("""
-                SELECT attempt_sequence, configuration_id, configuration_revision, outcome
+                SELECT attempt_sequence, configuration_id, configuration_revision,
+                    catalog_entry_id, catalog_entry_revision, outcome,
+                    input_tokens, output_tokens, total_tokens, latency_millis
                 FROM trusted_query.query_model_invocation_trace
                 WHERE tenant_id = ? AND query_run_id = ?
                 ORDER BY attempt_sequence
@@ -232,7 +252,10 @@ class PostgresQueryRunRepositoryTest {
         assertEquals(2, traces.size());
         assertEquals("TRANSIENT_FAILURE", traces.getFirst().get("outcome"));
         assertEquals(320000000000000002L, traces.getLast().get("configuration_id"));
+        assertEquals(310000000000000002L, traces.getLast().get("catalog_entry_id"));
         assertEquals("SUCCEEDED", traces.getLast().get("outcome"));
+        assertEquals(15, traces.getLast().get("total_tokens"));
+        assertEquals(42L, traces.getLast().get("latency_millis"));
     }
 
     @Test
@@ -281,8 +304,10 @@ class PostgresQueryRunRepositoryTest {
         jdbc.update("""
                 INSERT INTO trusted_query.query_model_invocation_trace (
                     id, tenant_id, query_run_id, attempt_sequence,
-                    configuration_id, configuration_revision, outcome, created_at
-                ) VALUES (?, ?, ?, 1, ?, 1, 'TRANSIENT_FAILURE', ?)
+                    configuration_id, configuration_revision, catalog_entry_id, catalog_entry_revision,
+                    outcome, input_tokens, output_tokens, total_tokens, latency_millis, created_at
+                ) VALUES (?, ?, ?, 1, ?, 1, 310000000000000001, 6,
+                    'TRANSIENT_FAILURE', 0, 0, 0, 1, ?)
                 """,
                 990000000000000001L,
                 TENANT.value(),
@@ -313,7 +338,13 @@ class PostgresQueryRunRepositoryTest {
                                         1,
                                         320000000000000001L,
                                         1,
-                                        ModelInvocationTrace.Outcome.TRANSIENT_FAILURE))))));
+                                        310000000000000001L,
+                                        6,
+                                        ModelInvocationTrace.Outcome.TRANSIENT_FAILURE,
+                                        0,
+                                        0,
+                                        0,
+                                        1))))));
 
         assertEquals(
                 com.aiplatform.foundation.trustedquery.domain.query.model.QueryRunStatus.RUNNING,

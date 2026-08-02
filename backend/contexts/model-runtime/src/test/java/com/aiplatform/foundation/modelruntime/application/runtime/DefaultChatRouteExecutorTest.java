@@ -38,7 +38,7 @@ class DefaultChatRouteExecutorTest {
             if (attempts.incrementAndGet() == 1) {
                 throw ChatInvocationTransientException.beforeOutput(new IllegalStateException());
             }
-            return new ChatResult(request.deployment(), "后备回答", "STOP", ModelUsage.UNKNOWN);
+            return new ChatResult(request.deployment(), "后备回答", "STOP", new ModelUsage(10, 5, 15));
         };
         var executor = new DefaultChatRouteExecutor(chats);
 
@@ -50,6 +50,11 @@ class DefaultChatRouteExecutorTest {
         assertEquals(2, execution.attempts().size());
         assertEquals(ChatRouteAttempt.Outcome.TRANSIENT_FAILURE, execution.attempts().getFirst().outcome());
         assertEquals(ChatRouteAttempt.Outcome.SUCCEEDED, execution.attempts().getLast().outcome());
+        assertEquals(0, execution.attempts().getFirst().usage().totalTokens());
+        assertEquals(15, execution.attempts().getLast().usage().totalTokens());
+        assertEquals(142, execution.attempts().getLast().candidate().configuration().catalogEntryId().value());
+        assertEquals(1, execution.attempts().getLast().candidate().configuration().catalogEntryRevision());
+        assertEquals(true, execution.attempts().getLast().latencyMillis() >= 0);
         assertEquals(42, execution.selected().configuration().configurationId().value());
         assertEquals("后备回答", execution.result().content());
     }
@@ -88,6 +93,8 @@ class DefaultChatRouteExecutorTest {
         assertEquals(41, failure.attempts().getFirst().candidate().configuration().configurationId().value());
         assertEquals(42, failure.attempts().getLast().candidate().configuration().configurationId().value());
         assertEquals(ChatRouteAttempt.Outcome.TRANSIENT_FAILURE, failure.attempts().getLast().outcome());
+        assertEquals(0, failure.attempts().getLast().usage().totalTokens());
+        assertEquals(true, failure.attempts().getLast().latencyMillis() >= 0);
     }
 
     private static com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.chat.GovernedChatRouteCandidate candidate(long id) {

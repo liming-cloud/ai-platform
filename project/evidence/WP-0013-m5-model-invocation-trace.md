@@ -8,7 +8,7 @@ ADR-0040 首条切片为冻结聊天路由的实际候选尝试建立内部、�
 
 - `ChatRouteExecutor` 以冻结顺序记录每次候选的 `SUCCEEDED` 或 `TRANSIENT_FAILURE`；只有 `ChatInvocationTransientException` 才继续后备候选。
 - `ChatRouteExecution` 在成功时携带有序尝试列表；全部候选耗尽时 `ChatRouteExhaustedException` 携带同一最小事实。
-- `ModelInvocationTrace` 仅保存尝试序号、冻结配置标识与修订、标准化结果，不保存问题、提示词、候选正文、回答、供应商、端点、错误文本、令牌或密钥。
+- `ModelInvocationTrace` 保存尝试序号、冻结配置标识与修订、目录条目标识与修订、标准化结果、标准化令牌用量和非负时延；不保存问题、提示词、候选正文、回答、供应商、端点、错误文本或密钥。
 - `trusted_query.query_model_invocation_trace` 与 `assistant_delivery.assistant_test_run_model_invocation_trace` 均按每次候选一行写入，分别与所属运行终态、引用和既有事实在同一 PostgreSQL 事务完成。
 - `QueryDiagnostic`、查询事件、草稿测试 HTTP 结果和查询 HTTP 结果未增加轨迹字段。
 
@@ -41,6 +41,8 @@ git diff --check
 ```
 
 以上命令均在 2026-08-02 本地通过。两个 PostgreSQL 回归还预插入重复的候选序号以触发轨迹唯一约束；查询或草稿测试的终态、诊断和引用均回滚，仅保留故障注入行。Testcontainers 运行日志包含既有 Mapper 扫描与 Spring 测试告警；无测试失败。
+
+ADR-0040 对齐补充先以新增字段断言运行目标测试，得到 `ChatRouteAttempt` 缺少 `usage()` 与 `latencyMillis()` 的编译红灯；随后补齐路由结果、内部轨迹、两张轨迹表和真实 PostgreSQL 断言。补齐测试构造参数时曾出现两处括号不完整的编译红灯，修正后同一目标命令再次通过。
 
 ## 六维评估
 
