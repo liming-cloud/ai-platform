@@ -28,6 +28,15 @@
 6. **自动配置与 HTTP**：独立平台 Bearer 才能调用生命周期路由；租户 Bearer、伪造 Header、请求体中的操作者字段和无 `tenant-governance:write` 均失败关闭。
 7. **浏览器角色任务**：平台管理员完成新租户建立与状态变更；租户管理员不出现平台入口，也不能以地址或令牌访问。该步骤只在 HTTP 合约被 ADR-0044 接受后的实现中执行。
 
+## 已完成首个红绿
+
+| 阶段 | 命令 | 结果 |
+| --- | --- | --- |
+| 红灯 | `./mvnw -q -pl backend/contexts/organization-access -am test -Dtest=TenantLifecycleBackfillTest -Dsurefire.failIfNoSpecifiedTests=false` | 缺少 `TenantLifecycleBackfill`，测试编译失败。 |
+| 绿灯 | 同一命令 | 通过；缺失映射拒绝，明确主体映射仅生成 `PROVISIONING` 生命周期根。 |
+
+该切片只固定领域转换，不读取数据库、不改变成员资格、不写事件，也不代替后续真实 PostgreSQL 回填合同。
+
 ## 真实 PostgreSQL 合同
 
 - 回填输入只在受控部署事务中使用，不写入版本库、日志、会话、HTTP 请求或普通应用配置。
