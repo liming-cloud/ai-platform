@@ -381,6 +381,19 @@ describe("ControlPlaneClient", () => {
     expect(changes).toEqual([false]);
   });
 
+  it("收到其他同源页签的失效事实后只清除本页会话状态", () => {
+    const client = authenticatedClient(async () => new Response(null, {
+      status: 204,
+    }));
+    const changes: boolean[] = [];
+    client.subscribeSessionChange((active) => changes.push(active));
+
+    client.discardSession();
+
+    expect(client.hasSession()).toBe(false);
+    expect(changes).toEqual([false]);
+  });
+
   it("旧会话请求在新登录后返回 401 时保留新令牌", async () => {
     let resolveOldRequest: ((response: Response) => void) | undefined;
     const oldRequest = new Promise<Response>((resolve) => {

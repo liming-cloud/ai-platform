@@ -4,8 +4,11 @@ import {
   MessageBarTitle,
 } from "@fluentui/react-components";
 import { StatePanel, ProductShell } from "@foundation/design-system";
-import type { BrowserSessionCapability } from "@foundation/browser-session";
-import { useEffect, useMemo, useState } from "react";
+import {
+  BrowserSessionInvalidationChannel,
+  type BrowserSessionCapability,
+} from "@foundation/browser-session";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { QueryClient } from "./api/query-client";
 import { QueryWorkspace } from "./features/query/QueryWorkspace";
 
@@ -15,6 +18,11 @@ const NAVIGATION = [
 
 export function QueryApp() {
   const client = useMemo(() => new QueryClient(), []);
+  const invalidationChannel = useMemo(
+    () => new BrowserSessionInvalidationChannel(),
+    [],
+  );
+  const receivingInvalidation = useRef(false);
   const [state, setState] = useState<"restoring" | "ready" | "returning" | "failed">("restoring");
   const [capability, setCapability] = useState<BrowserSessionCapability>();
 
@@ -22,9 +30,17 @@ export function QueryApp() {
     let current = true;
     const unsubscribe = client.subscribeSessionChange((active) => {
       if (current && !active) {
+        if (!receivingInvalidation.current) {
+          invalidationChannel.publishInvalidation();
+        }
         setCapability(undefined);
         setState("returning");
       }
+    });
+    const unsubscribeInvalidation = invalidationChannel.subscribe(() => {
+      receivingInvalidation.current = true;
+      client.discardSession();
+      receivingInvalidation.current = false;
     });
     void client.restoreSession().then(
       (restored) => {
@@ -48,8 +64,10 @@ export function QueryApp() {
     return () => {
       current = false;
       unsubscribe();
+      unsubscribeInvalidation();
+      invalidationChannel.close();
     };
-  }, [client]);
+  }, [client, invalidationChannel]);
 
   useEffect(() => {
     if (state === "returning") {

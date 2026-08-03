@@ -38,6 +38,13 @@ class BrowserSessionRootUiTest(unittest.TestCase):
         self.assertIn("/?next=%2Fquery%2F", root)
         self.assertNotIn("LoginView", workspace)
 
+    def test_both_roots_subscribe_to_token_free_invalidation_channel(self):
+        console_gate = (CONSOLE / "session/BrowserSessionGate.tsx").read_text()
+        query_root = (QUERY / "QueryApp.tsx").read_text()
+
+        self.assertIn("BrowserSessionInvalidationChannel", console_gate)
+        self.assertIn("BrowserSessionInvalidationChannel", query_root)
+
 
 if __name__ == "__main__":
     unittest.main()

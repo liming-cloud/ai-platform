@@ -4,7 +4,7 @@
 
 | 项目 | 内容 |
 | --- | --- |
-| 状态 | ADR-0048 已接受；范围 cookie、统一认证编排、受限 HTTP／CSRF、无 token 能力清单、同源入口及控制台／query 根级登录切片已完成红绿；跨页签与真实浏览器任务仍未实施。 |
+| 状态 | ADR-0048 已接受；范围 cookie、统一认证编排、受限 HTTP／CSRF、无 token 能力清单、同源入口、统一根登录及跨页签失效切片已完成红绿；真实浏览器角色任务仍未实施。 |
 | 工作包 | WP-0014，M6。 |
 | 前提 | 产品、架构和安全负责人接受 ADR-0048 方案 B，并将其移入 `confirmedDecisions`。 |
 | 目标 | 一个同源登录入口跨页签恢复角色允许的工作区，同时保持平台与租户会话不可互用。 |
@@ -220,6 +220,31 @@ git diff --check
 3 项根入口门禁、7 项查询客户端测试和 11 个测试文件的 48 项前端回归均通过；类型、lint 与生产构建均通过。
 代码级重定向证明不替代真实浏览器的 Cookie、跨页签失效和角色访问验收。
 
+## 切片十：跨页签失效传播红绿记录
+
+先新增共享通道测试与根组件门禁。实现缺失时，Vitest 实际报出无法导入
+`./browser-session-invalidation`，根入口门禁同时显示两个根组件均未引用 `BrowserSessionInvalidationChannel`。
+这证明原有客户端即使能在本页收到 `401`，其他同源页签仍可能保留旧导航和受保护界面。
+
+最小绿灯在 `@foundation/browser-session` 提供 `BrowserSessionInvalidationChannel`：固定唯一消息
+`{ type: "session-invalidated" }`，对包含 token、角色、身份或其他字段的消息一律忽略。控制台和查询根组件
+仅在本页注销或当前请求 `401` 后发布该事实；收到远端消息时只调用客户端的本页失效操作、撤下受保护工作区。
+以接收中标志阻止远端消息回弹，因而不会形成页签之间的广播循环或再次调用服务端注销。
+
+实际执行：
+
+```bash
+python3 -m unittest scripts.quality.test_browser_session_root_ui
+cd frontend && npm test -- --run packages/browser-session/src/browser-session-invalidation.test.ts
+cd frontend && npm test -- --run apps/console-web/src/api/control-plane-client.test.ts
+cd frontend && npm test && npm run typecheck && npm run lint && npm run build
+git diff --check
+```
+
+4 项根入口门禁、1 项共享通道测试、16 项控制台客户端测试及 12 个测试文件的 50 项前端回归均通过；类型、
+lint 与生产构建均通过。此证据仍不等于两个真实浏览器页签的 Cookie、注销和过期验收，后者必须在运行环境中
+单独记录。
+
 ## 先红后绿的纵向切片
 
 | 顺序 | 实际红灯 | 最小绿灯实现 | 回归范围 |
@@ -233,7 +258,7 @@ git diff --check
 | 7 | 已完成：query 仍公开单独端口、缺少 `/query/` 静态代理或查询 API 落入控制面代理。 | 复用 `console-web` Nginx 为唯一公开入口；query 仅内网运行，按 `/query/` 构建。 | 3 项部署反例、Compose 解析、Nginx 语法和前端生产构建。 |
 | 8 | 已完成：控制台没有根级会话入口，7 处工作区仍可渲染局部 `LoginForm`，当前 401 无法通知根组件。 | `BrowserSessionGate` 独占控制台凭据输入和会话状态；子工作区只消费已恢复客户端，导航只在 `TENANT` 能力下装载。 | 2 项根入口门禁、15 项控制台客户端测试、47 项前端回归、类型、lint 和生产构建。 |
 | 9 | 已完成：`query-web` 保有 `LoginView`，直达 `/query/` 无法恢复统一会话，当前 401 不能通知查询根组件。 | query 根组件恢复 `TENANT` 能力；无会话或无该能力时替换至控制台根入口，工作区仅接收已恢复客户端。 | 3 项根入口门禁、7 项查询客户端测试、48 项前端回归、类型、lint 和生产构建。 |
-| 10 | 待实现：同源新页签无法取得既有会话；注销、过期或 401 后其他页签仍显示受权任务。 | 两个应用以 `BroadcastChannel` 传播失效信号；不保存或广播 token。 | 浏览器两页签、注销、过期和直达无权路由任务。 |
+| 10 | 已完成：同源页签失效不会传播，或消息可能携带 token／身份并形成转发循环。 | 固定唯一失效事实的共享通道；两个根组件只清除本页状态并禁止远端消息回弹。 | 4 项根入口门禁、共享通道反例、控制台客户端失效回归、50 项前端回归、类型、lint 和生产构建。 |
 | 11 | 待实现：平台管理员无法完成建立、激活、挂起和恢复租户，或租户管理员／平台运营能看到不属于自己的页面。 | 最小平台租户生命周期工作区调用已存在的受限 HTTP；统一导航按能力清单显示。 | Bootstrap HTTP、真实浏览器和全文本披露检查。 |
 
 每一行都必须先保留实际失败命令及失败原因，再实施相同行为的最小绿灯。不得用 mock 替代

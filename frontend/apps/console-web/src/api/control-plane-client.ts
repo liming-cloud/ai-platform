@@ -232,6 +232,12 @@ export class ControlPlaneClient {
     }
   }
 
+  /** 接收同源页签失效信号后只清除本页受保护状态，不重新发送注销请求。 */
+  discardSession(): void {
+    this.sessionRevision += 1;
+    this.updateSessionActive(false);
+  }
+
   /** 根级工作区据此在会话失效时立即撤下受保护页面。 */
   subscribeSessionChange(listener: (active: boolean) => void): () => void {
     this.sessionListeners.add(listener);

@@ -7,10 +7,18 @@ import {
   MessageBarTitle,
 } from "@fluentui/react-components";
 import {
+  BrowserSessionInvalidationChannel,
   type BrowserSessionCapability,
 } from "@foundation/browser-session";
 import { StatePanel } from "@foundation/design-system";
-import { type FormEvent, type ReactNode, useEffect, useState } from "react";
+import {
+  type FormEvent,
+  type ReactNode,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import type { ControlPlaneClient } from "../api/control-plane-client";
 
 interface AuthenticatedBrowserSession {
@@ -30,6 +38,11 @@ export function BrowserSessionGate({
   onAuthenticated?: (capability: BrowserSessionCapability) => void;
   children: (session: AuthenticatedBrowserSession) => ReactNode;
 }) {
+  const invalidationChannel = useMemo(
+    () => new BrowserSessionInvalidationChannel(),
+    [],
+  );
+  const receivingInvalidation = useRef(false);
   const [capability, setCapability] = useState<BrowserSessionCapability>();
   const [state, setState] = useState<"restoring" | "anonymous" | "authenticating" | "failed">("restoring");
   const [tenantCode, setTenantCode] = useState("demo-store");
@@ -40,9 +53,17 @@ export function BrowserSessionGate({
     let current = true;
     const unsubscribe = client.subscribeSessionChange((active) => {
       if (current && !active) {
+        if (!receivingInvalidation.current) {
+          invalidationChannel.publishInvalidation();
+        }
         setCapability(undefined);
         setState("anonymous");
       }
+    });
+    const unsubscribeInvalidation = invalidationChannel.subscribe(() => {
+      receivingInvalidation.current = true;
+      client.discardSession();
+      receivingInvalidation.current = false;
     });
     void client.restoreSession().then(
       (restored) => {
@@ -67,8 +88,10 @@ export function BrowserSessionGate({
     return () => {
       current = false;
       unsubscribe();
+      unsubscribeInvalidation();
+      invalidationChannel.close();
     };
-  }, [client]);
+  }, [client, invalidationChannel]);
 
   async function login(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
