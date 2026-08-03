@@ -187,6 +187,7 @@ type IdentifierFactory = () => string;
 export class ControlPlaneClient {
   private sessionActive = false;
   private sessionRevision = 0;
+  private readonly sessionListeners = new Set<(active: boolean) => void>();
   private readonly browserSession: BrowserSessionGateway;
 
   constructor(
@@ -205,10 +206,10 @@ export class ControlPlaneClient {
 
   async login(credentials: LoginCredentials): Promise<BrowserSessionCapability> {
     const revision = ++this.sessionRevision;
-    this.sessionActive = false;
+    this.updateSessionActive(false);
     const capability = await this.browserSession.login(credentials);
     if (revision === this.sessionRevision) {
-      this.sessionActive = true;
+      this.updateSessionActive(true);
     }
     return capability;
   }
@@ -217,7 +218,7 @@ export class ControlPlaneClient {
     const revision = ++this.sessionRevision;
     const capability = await this.browserSession.restore();
     if (revision === this.sessionRevision) {
-      this.sessionActive = capability !== null;
+      this.updateSessionActive(capability !== null);
     }
     return capability;
   }
@@ -227,8 +228,14 @@ export class ControlPlaneClient {
     try {
       await this.browserSession.logout();
     } finally {
-      this.sessionActive = false;
+      this.updateSessionActive(false);
     }
+  }
+
+  /** 根级工作区据此在会话失效时立即撤下受保护页面。 */
+  subscribeSessionChange(listener: (active: boolean) => void): () => void {
+    this.sessionListeners.add(listener);
+    return () => this.sessionListeners.delete(listener);
   }
 
   hasSession(): boolean {
@@ -700,7 +707,7 @@ export class ControlPlaneClient {
         && requestRevision === this.sessionRevision
       ) {
         this.sessionRevision += 1;
-        this.sessionActive = false;
+        this.updateSessionActive(false);
       }
       throw error;
     }
@@ -708,6 +715,16 @@ export class ControlPlaneClient {
       return undefined as T;
     }
     return response.json() as Promise<T>;
+  }
+
+  private updateSessionActive(active: boolean): void {
+    if (this.sessionActive === active) {
+      return;
+    }
+    this.sessionActive = active;
+    for (const listener of this.sessionListeners) {
+      listener(active);
+    }
   }
 }
 

@@ -1,9 +1,6 @@
 import {
   Badge,
   Button,
-  MessageBar,
-  MessageBarBody,
-  MessageBarTitle,
   ProgressBar,
   Skeleton,
   SkeletonItem,
@@ -23,7 +20,6 @@ import {
   type QueryAuditRecord,
   type QueryUsage,
 } from "../../api/control-plane-client";
-import { LoginForm } from "../knowledge-publication/PublicationViews";
 import {
   isOperationsStale,
   resolveOperationsViewState,
@@ -52,7 +48,6 @@ export function QueryGovernanceWorkspace({
   const [auditPageNumber, setAuditPageNumber] = useState(1);
   const [hasNextAuditPage, setHasNextAuditPage] = useState(false);
   const [failure, setFailure] = useState<Failure>();
-  const [loggingIn, setLoggingIn] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [loadedAt, setLoadedAt] = useState(0);
 
@@ -107,25 +102,6 @@ export function QueryGovernanceWorkspace({
     return () => window.clearTimeout(timeout);
   }, [load, sessionRevision]);
 
-  async function login(credentials: {
-    tenantCode: string;
-    loginName: string;
-    password: string;
-  }) {
-    setLoggingIn(true);
-    setFailure(undefined);
-    try {
-      await client.login(credentials);
-      onSessionChanged();
-      await load();
-    } catch (error) {
-      setFailure(toFailure(error));
-      setViewState("unauthenticated");
-    } finally {
-      setLoggingIn(false);
-    }
-  }
-
   async function logout() {
     try {
       await client.logout();
@@ -162,17 +138,13 @@ export function QueryGovernanceWorkspace({
 
   if (viewState === "unauthenticated") {
     return (
-      <section className="governance-login">
-        {failure ? (
-          <MessageBar intent="error">
-            <MessageBarBody>
-              <MessageBarTitle>登录失败</MessageBarTitle>
-              {failure.message}
-            </MessageBarBody>
-          </MessageBar>
-        ) : null}
-        <LoginForm busy={loggingIn} onSubmit={login} />
-      </section>
+      <StatePanel
+        kind="stale"
+        title="浏览器会话已经失效"
+        description="受保护的治理任务已清除，请返回统一登录入口。"
+        actionLabel="返回登录入口"
+        onAction={() => window.location.assign("/")}
+      />
     );
   }
 

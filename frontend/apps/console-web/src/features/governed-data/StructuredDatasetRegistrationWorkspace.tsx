@@ -20,7 +20,6 @@ import {
   type KnowledgeSpace,
   type StructuredDatasetFieldInput,
 } from "../../api/control-plane-client";
-import { LoginForm } from "../knowledge-publication/PublicationViews";
 import { modelRuntimeFailure, requiresSessionRestart } from "./GovernedFileDataWorkspace";
 
 interface Failure {
@@ -68,7 +67,6 @@ export function StructuredDatasetRegistrationWorkspace({
   const [fileInputKey, setFileInputKey] = useState(0);
   const [source, setSource] = useState<GovernedDataSourceLifecycleResult>();
   const [failure, setFailure] = useState<Failure>();
-  const [loggingIn, setLoggingIn] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [synchronizing, setSynchronizing] = useState(false);
   const [publishing, setPublishing] = useState(false);
@@ -129,27 +127,6 @@ export function StructuredDatasetRegistrationWorkspace({
     const timeout = window.setTimeout(() => void load(), 0);
     return () => window.clearTimeout(timeout);
   }, [load, sessionRevision]);
-
-  async function login(credentials: {
-    tenantCode: string;
-    loginName: string;
-    password: string;
-  }) {
-    setLoggingIn(true);
-    setFailure(undefined);
-    try {
-      await client.login(credentials);
-      onSessionChanged();
-      await load();
-    } catch (error) {
-      if (!restartExpiredSession(error)) {
-        setFailure(toFailure(error));
-      }
-      setViewState("unauthenticated");
-    } finally {
-      setLoggingIn(false);
-    }
-  }
 
   async function register(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -342,10 +319,13 @@ export function StructuredDatasetRegistrationWorkspace({
 
   if (viewState === "unauthenticated") {
     return (
-      <section className="governance-login">
-        {failure ? <FailureMessage failure={failure} /> : null}
-        <LoginForm busy={loggingIn} onSubmit={login} />
-      </section>
+      <StatePanel
+        kind="stale"
+        title="浏览器会话已经失效"
+        description="受保护的数据集任务已清除，请返回统一登录入口。"
+        actionLabel="返回登录入口"
+        onAction={() => window.location.assign("/")}
+      />
     );
   }
 

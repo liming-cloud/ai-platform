@@ -19,7 +19,6 @@ import {
   type IndexVersion,
   type KnowledgeSpace,
 } from "../../api/control-plane-client";
-import { LoginForm } from "../knowledge-publication/PublicationViews";
 import { modelRuntimeFailure, requiresSessionRestart } from "./GovernedFileDataWorkspace";
 
 interface Failure {
@@ -53,7 +52,6 @@ export function ObjectStorageDataWorkspace({
   const [publishedArtifactId, setPublishedArtifactId] = useState<string>();
   const [indexVersion, setIndexVersion] = useState<IndexVersion>();
   const [failure, setFailure] = useState<Failure>();
-  const [loggingIn, setLoggingIn] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [probing, setProbing] = useState(false);
   const [synchronizing, setSynchronizing] = useState(false);
@@ -107,27 +105,6 @@ export function ObjectStorageDataWorkspace({
     const timeout = window.setTimeout(() => void load(), 0);
     return () => window.clearTimeout(timeout);
   }, [load, sessionRevision]);
-
-  async function login(credentials: {
-    tenantCode: string;
-    loginName: string;
-    password: string;
-  }) {
-    setLoggingIn(true);
-    setFailure(undefined);
-    try {
-      await client.login(credentials);
-      onSessionChanged();
-      await load();
-    } catch (error) {
-      if (!restartExpiredSession(error)) {
-        setFailure(toFailure(error));
-        setViewState("unauthenticated");
-      }
-    } finally {
-      setLoggingIn(false);
-    }
-  }
 
   async function register(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -299,7 +276,7 @@ export function ObjectStorageDataWorkspace({
   }
 
   if (viewState === "unauthenticated") {
-    return <section className="governance-login">{failure ? <FailureMessage failure={failure} /> : null}<LoginForm busy={loggingIn} onSubmit={login} /></section>;
+    return <StatePanel kind="stale" title="浏览器会话已经失效" description="受保护的对象存储任务已清除，请返回统一登录入口。" actionLabel="返回登录入口" onAction={() => window.location.assign("/")} />;
   }
   if (viewState === "loading") {
     return <StatePanel kind="loading" title="正在加载对象存储任务" description="正在读取当前租户可用知识空间。" />;

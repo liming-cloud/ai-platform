@@ -4,7 +4,7 @@
 
 | 项目 | 内容 |
 | --- | --- |
-| 状态 | ADR-0048 已接受；范围 cookie、统一认证编排、受限 HTTP／CSRF 和无 token 能力清单切片已完成红绿，前端与真实浏览器任务仍未实施。 |
+| 状态 | ADR-0048 已接受；范围 cookie、统一认证编排、受限 HTTP／CSRF、无 token 能力清单、同源入口和控制台根级登录切片已完成红绿；query 根级恢复与真实浏览器任务仍未实施。 |
 | 工作包 | WP-0014，M6。 |
 | 前提 | 产品、架构和安全负责人接受 ADR-0048 方案 B，并将其移入 `confirmedDecisions`。 |
 | 目标 | 一个同源登录入口跨页签恢复角色允许的工作区，同时保持平台与租户会话不可互用。 |
@@ -172,6 +172,31 @@ cd frontend && npm run build
 三项部署反例、Compose 拓扑、Nginx 语法和两个前端生产构建均为绿灯。此切片不包含根级会话状态、
 页面局部登录移除或真实浏览器页签证明。
 
+## 切片八：控制台根级登录入口红绿记录
+
+先新增 `scripts/quality/test_browser_session_root_ui.py` 与 `ControlPlaneClient` 的当前 `401` 通知反例。
+前者实际因 `BrowserSessionGate.tsx` 不存在而报错，并列出 7 处仍引用 `LoginForm` 的控制台源码；后者实际
+报出 `subscribeSessionChange is not a function`。这证明旧控制台会让各工作区自行输入凭据，且根组件无法在
+当前会话失效时撤下受保护内容。
+
+最小绿灯在 `ConsoleApp` 外层建立唯一 `BrowserSessionGate`：它独占会话恢复、登录、注销与失败摘要；
+`ControlPlaneClient` 只在登录、恢复、注销或当前请求 `401` 改变会话时通知根入口。数据、模型、治理和首份
+发布工作区删除局部凭据表单；会话意外失效仅显示返回入口的失败关闭状态。根组件只在能力清单含 `TENANT`
+时装载租户导航，未含该类别时不展示租户任务或正文入口。凭据输入清空密码字段，能力清单和导航均不保存或
+显示 token。
+
+实际执行：
+
+```bash
+python3 -m unittest scripts.quality.test_browser_session_root_ui
+cd frontend && npm test -- --run apps/console-web/src/api/control-plane-client.test.ts
+cd frontend && npm test && npm run typecheck && npm run lint && npm run build
+git diff --check
+```
+
+自动门禁、15 项控制台客户端测试和 11 个测试文件的 47 项前端回归均通过；类型、lint 与两个前端生产构建
+均通过。本切片没有让 `query-web` 直接渲染控制台表单，也没有把代码级门禁当作真实浏览器跨页签证据。
+
 ## 先红后绿的纵向切片
 
 | 顺序 | 实际红灯 | 最小绿灯实现 | 回归范围 |
@@ -183,9 +208,10 @@ cd frontend && npm run build
 | 5 | 已完成：浏览器注销只清本地状态，或未清除另一范围 cookie。 | `browser-session` 注销通过范围会话端口撤销，并清除整个 cookie 会话族。 | 真实 PostgreSQL／Redis HTTP 的撤销、cookie 清除和自动配置回归。 |
 | 6 | 已完成：业务客户端自行保存或拼接 Bearer token，或遗漏浏览器写入 CSRF。 | 两个应用共用 cookie 会话 seam，不保存 token；非安全请求统一读取 CSRF cookie。 | 47 项前端测试、类型检查、lint 与生产构建。 |
 | 7 | 已完成：query 仍公开单独端口、缺少 `/query/` 静态代理或查询 API 落入控制面代理。 | 复用 `console-web` Nginx 为唯一公开入口；query 仅内网运行，按 `/query/` 构建。 | 3 项部署反例、Compose 解析、Nginx 语法和前端生产构建。 |
-| 8 | 待实现：各页面仍渲染局部登录视图，或能力之外的工作区仍显示。 | 统一根登录入口、根级会话状态和能力驱动导航。 | 控制台／查询 UI 反例与直达路由任务。 |
-| 9 | 待实现：同源新页签无法取得既有会话；注销、过期或 401 后其他页签仍显示受权任务。 | 两个应用以 `BroadcastChannel` 传播失效信号；不保存或广播 token。 | 浏览器两页签、注销、过期和直达无权路由任务。 |
-| 10 | 待实现：平台管理员无法完成建立、激活、挂起和恢复租户，或租户管理员／平台运营能看到不属于自己的页面。 | 最小平台租户生命周期工作区调用已存在的受限 HTTP；统一导航按能力清单显示。 | Bootstrap HTTP、真实浏览器和全文本披露检查。 |
+| 8 | 已完成：控制台没有根级会话入口，7 处工作区仍可渲染局部 `LoginForm`，当前 401 无法通知根组件。 | `BrowserSessionGate` 独占控制台凭据输入和会话状态；子工作区只消费已恢复客户端，导航只在 `TENANT` 能力下装载。 | 2 项根入口门禁、15 项控制台客户端测试、47 项前端回归、类型、lint 和生产构建。 |
+| 9 | 待实现：`query-web` 仍保有 `LoginView`，直达 `/query/` 无法回到唯一根入口恢复会话。 | query 根级恢复租户能力；无会话或无租户能力时只重定向至控制台入口。 | 查询 UI 反例、客户端恢复与直达路由任务。 |
+| 10 | 待实现：同源新页签无法取得既有会话；注销、过期或 401 后其他页签仍显示受权任务。 | 两个应用以 `BroadcastChannel` 传播失效信号；不保存或广播 token。 | 浏览器两页签、注销、过期和直达无权路由任务。 |
+| 11 | 待实现：平台管理员无法完成建立、激活、挂起和恢复租户，或租户管理员／平台运营能看到不属于自己的页面。 | 最小平台租户生命周期工作区调用已存在的受限 HTTP；统一导航按能力清单显示。 | Bootstrap HTTP、真实浏览器和全文本披露检查。 |
 
 每一行都必须先保留实际失败命令及失败原因，再实施相同行为的最小绿灯。不得用 mock 替代
 Sa-Token、Redis、PostgreSQL、cookie 属性或浏览器页签事实。

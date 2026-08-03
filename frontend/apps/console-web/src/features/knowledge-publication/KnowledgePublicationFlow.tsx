@@ -6,6 +6,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { StatePanel } from "@foundation/design-system";
 import {
   ApiRequestError,
   ControlPlaneClient,
@@ -22,7 +23,6 @@ import {
   Completion,
   ContentForm,
   IndexBuildReview,
-  LoginForm,
   PublishReview,
   SpaceForm,
   SpacePicker,
@@ -85,21 +85,6 @@ export function KnowledgePublicationFlow({
     }, 0);
     return () => window.clearTimeout(timeout);
   }, [client, loadSpaces, sharedSessionRevision, workflow.stage]);
-
-  async function login(credentials: {
-    tenantCode: string;
-    loginName: string;
-    password: string;
-  }) {
-    dispatch({ type: "submitting" });
-    try {
-      await client.login(credentials);
-      await loadSpaces();
-      onSessionChanged?.();
-    } catch (error) {
-      dispatchFailure(dispatch, error);
-    }
-  }
 
   async function createSpace(input: {
     name: string;
@@ -329,7 +314,13 @@ export function KnowledgePublicationFlow({
         ) : null}
 
         {workflow.stage === "login" ? (
-          <LoginForm busy={workflow.busy} onSubmit={login} />
+          <StatePanel
+            kind="stale"
+            title="浏览器会话已经失效"
+            description="受保护任务已被清除，请返回统一登录入口。"
+            actionLabel="返回登录入口"
+            onAction={() => window.location.assign("/")}
+          />
         ) : null}
 
         {workflow.stage === "space" ? (

@@ -19,7 +19,6 @@ import {
   type ControlPlaneClient,
   type ModelConfiguration,
 } from "../../api/control-plane-client";
-import { LoginForm } from "../knowledge-publication/PublicationViews";
 
 interface Failure {
   message: string;
@@ -48,7 +47,6 @@ export function ModelConfigurationWorkspace({
   const [configurationPageNumber, setConfigurationPageNumber] = useState(1);
   const [catalogPageNumber, setCatalogPageNumber] = useState(1);
   const [failure, setFailure] = useState<Failure>();
-  const [loggingIn, setLoggingIn] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [creationDisplayName, setCreationDisplayName] = useState("");
   const [creationApiKey, setCreationApiKey] = useState("");
@@ -86,25 +84,6 @@ export function ModelConfigurationWorkspace({
     const timeout = window.setTimeout(() => void load(), 0);
     return () => window.clearTimeout(timeout);
   }, [load, sessionRevision]);
-
-  async function login(credentials: {
-    tenantCode: string;
-    loginName: string;
-    password: string;
-  }) {
-    setLoggingIn(true);
-    setFailure(undefined);
-    try {
-      await client.login(credentials);
-      onSessionChanged();
-      await load();
-    } catch (error) {
-      setFailure(toFailure(error));
-      setViewState("unauthenticated");
-    } finally {
-      setLoggingIn(false);
-    }
-  }
 
   async function logout() {
     try {
@@ -233,10 +212,13 @@ export function ModelConfigurationWorkspace({
 
   if (viewState === "unauthenticated") {
     return (
-      <section className="governance-login">
-        {failure ? <FailureMessage failure={failure} /> : null}
-        <LoginForm busy={loggingIn} onSubmit={login} />
-      </section>
+      <StatePanel
+        kind="stale"
+        title="浏览器会话已经失效"
+        description="受保护的模型任务已清除，请返回统一登录入口。"
+        actionLabel="返回登录入口"
+        onAction={() => window.location.assign("/")}
+      />
     );
   }
 

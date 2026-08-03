@@ -372,10 +372,13 @@ describe("ControlPlaneClient", () => {
       status: 401,
       headers: { "Content-Type": "text/plain" },
     }));
+    const changes: boolean[] = [];
+    client.subscribeSessionChange((active) => changes.push(active));
 
     await expect(client.listKnowledgeSpaces()).rejects.toBeInstanceOf(ApiRequestError);
 
     expect(client.hasSession()).toBe(false);
+    expect(changes).toEqual([false]);
   });
 
   it("旧会话请求在新登录后返回 401 时保留新令牌", async () => {

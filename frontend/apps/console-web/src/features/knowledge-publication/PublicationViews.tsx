@@ -18,69 +18,6 @@ import { type FormEvent, type ReactNode, useState } from "react";
 import type { KnowledgeSpace } from "../../api/control-plane-client";
 import type { PublicationWorkflow } from "./publication-workflow";
 
-export function LoginForm({
-  busy,
-  onSubmit,
-}: {
-  busy: boolean;
-  onSubmit: (input: {
-    tenantCode: string;
-    loginName: string;
-    password: string;
-  }) => Promise<void>;
-}) {
-  const [tenantCode, setTenantCode] = useState("demo-store");
-  const [loginName, setLoginName] = useState("admin");
-  const [password, setPassword] = useState("");
-
-  function submit(event: FormEvent) {
-    event.preventDefault();
-    void onSubmit({ tenantCode, loginName, password });
-  }
-
-  return (
-    <TaskSection
-      title="登录演示租户"
-      description="凭据只用于建立短生命周期会话，不会写入浏览器存储。"
-    >
-      <form className="task-form" onSubmit={submit}>
-        <Field label="租户编码" required>
-          <Input
-            value={tenantCode}
-            autoComplete="organization"
-            disabled={busy}
-            onChange={(_, data) => setTenantCode(data.value)}
-          />
-        </Field>
-        <Field label="登录名" required>
-          <Input
-            value={loginName}
-            autoComplete="username"
-            disabled={busy}
-            onChange={(_, data) => setLoginName(data.value)}
-          />
-        </Field>
-        <Field label="密码" required>
-          <Input
-            value={password}
-            type="password"
-            autoComplete="current-password"
-            disabled={busy}
-            onChange={(_, data) => setPassword(data.value)}
-          />
-        </Field>
-        <Button
-          appearance="primary"
-          type="submit"
-          disabled={busy || password.length === 0}
-        >
-          {busy ? "正在验证" : "登录并继续"}
-        </Button>
-      </form>
-    </TaskSection>
-  );
-}
-
 export function SpacePicker({
   spaces,
   selectedId,
