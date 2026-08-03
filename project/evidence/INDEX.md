@@ -231,6 +231,7 @@
 | ADR-0043 人工接受 | `project/evidence/ADR-0043-approval.md` | 本次提交 | 用户接受独立平台授权事实与 `tenant-governance:write`；平台会话可按红绿路线实施。 |
 | M6 平台治理授权与独立会话 | `project/evidence/WP-0014-platform-governance-session.md` | 本次提交 | 平台授权读取投影、独立 Sa-Token 会话、自动配置、真实 PostgreSQL 与 Redis HTTP 回归通过；租户令牌无法作为平台令牌解析。 |
 | ADR-0044 历史初始管理员回填边界 | `docs/adr/ADR-0044-historical-tenant-initial-administrator-backfill.md` | 待产生 | 提议由人工运营方提供显式 `tenantId → SubjectId` 映射，拒绝以成员顺序、角色或权限猜测历史初始管理员。 |
+| M6 租户生命周期持久化 TDD 路线 | `project/evidence/WP-0014-tenant-lifecycle-tdd-route.md` | 本次提交 | 固定领域、真实 PostgreSQL、原子提交、平台 Bearer 与浏览器角色的红绿顺序；等待 ADR-0044 接受。 |
 
 ## 证据规则
 
