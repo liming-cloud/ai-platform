@@ -187,6 +187,7 @@ latestEvidence:
   - docs/adr/ADR-0047-initial-tenant-administrator-selection-contract.md
   - project/evidence/ADR-0047-approval.md
   - docs/adr/ADR-0048-unified-browser-login-and-role-workspace.md
+  - project/evidence/WP-0014-browser-session-tdd-route.md
 nextReviewAt: 2026-08-05
 updatedAt: 2026-08-03T12:20:00+08:00
 updatedBy: codex
