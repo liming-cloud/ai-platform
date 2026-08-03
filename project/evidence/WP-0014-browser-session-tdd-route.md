@@ -37,6 +37,30 @@ git diff --check
 
 三项均通过。该切片尚未签发 cookie、改变登录响应或引入 CSRF；这些仍由后续红绿切片负责。
 
+## 切片二：统一浏览器认证编排红绿记录
+
+先添加 `BrowserAuthenticationServiceTest`，要求一次口令验证后按已验证成员资格与平台授权分别签发
+租户／平台会话。以下命令实际因 `BrowserLoginCommand` 与 `BrowserAuthenticationService` 不存在而在
+测试编译阶段失败：
+
+```bash
+./mvnw -q -pl backend/contexts/organization-access -am test \
+  -Dtest=BrowserAuthenticationServiceTest \
+  -Dsurefire.failIfNoSpecifiedTests=false
+```
+
+最小绿灯创建私有口令命令、脱敏不可变会话签发结果和应用服务。服务只做一次等价口令验证，显式提供
+但无效的租户编码失败关闭；租户与平台会话分别由既有端口签发，平台签发失败时撤销已签发租户会话。
+相同定向命令转绿，随后实际执行：
+
+```bash
+./mvnw -q -pl backend/contexts/organization-access -am test
+python3 scripts/quality/backend_architecture_guard.py verify
+git diff --check
+```
+
+三项均通过。此切片只建立应用编排，不注册 Bean、不写 HTTP cookie，也不向浏览器返回任何 token。
+
 ## 先红后绿的纵向切片
 
 | 顺序 | 实际红灯 | 最小绿灯实现 | 回归范围 |
