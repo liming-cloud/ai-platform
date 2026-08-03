@@ -34,6 +34,8 @@ class TenantProvisioningTest {
         assertEquals(
                 TenantMembershipRole.TENANT_ADMINISTRATOR,
                 result.initialAdministrator().role());
+        assertEquals(TENANT_ID, result.lifecycleChange().tenantId());
+        assertEquals(0L, result.lifecycleChange().version());
         assertEquals(OCCURRED_AT, result.occurredAt());
     }
 

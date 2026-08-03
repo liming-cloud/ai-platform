@@ -59,6 +59,32 @@
 切换事实不含租户、主体、成员或凭据详情，且没有 HTTP、令牌、配置或浏览器写入口。`tenant.status`
 在切换后仅是迁移兼容列，认证不再读取它。
 
+## 已完成新租户原子建立红绿
+
+| 阶段 | 命令 | 结果 |
+| --- | --- | --- |
+| 红灯 | `./mvnw -q -pl backend/contexts/organization-access -am test -Dtest=TenantProvisioningServiceTest -Dsurefire.failIfNoSpecifiedTests=false` | 缺少建立命令、原子存储端口和应用服务，测试编译失败。 |
+| 绿灯 | 同一命令 | 通过；令牌派生的平台上下文只作授权前提，目标主体不可用时不提交任何结果。 |
+| 红灯 | `./mvnw -q -pl backend/contexts/organization-access -am test -Dtest=PostgresTenantProvisioningStoreTest -Dsurefire.failIfNoSpecifiedTests=false` | 缺少 PostgreSQL 建立 Mapper 和原子存储实现，测试编译失败。 |
+| 绿灯 | 同一命令 | 通过；真实 PostgreSQL 同一事务写入固定 `DISABLED` 的兼容租户行、`PROVISIONING` 生命周期、初始管理员成员资格和最小状态事实；发件箱失败无残留。 |
+| 红灯 | `./mvnw -q -pl backend/contexts/organization-access -am test -Dtest=OrganizationAccessAutoConfigurationTest -Dsurefire.failIfNoSpecifiedTests=false` | 自动配置未注册租户建立服务，启用上下文时缺少 Bean。 |
+| 绿灯 | 同一命令 | 通过；Mapper、原子存储与建立用例由 organization-access 自动配置装配。 |
+
+`initialAdministratorSubjectId` 只是 ADR-0047 定义的业务资源目标；平台操作者、权限、渠道、令牌和
+追踪标识继续只从 `PlatformRequestContext` 恢复。兼容列固定为 `DISABLED`，从不用于认证或生命周期
+状态迁移；`PROVISIONING` 租户不能签发租户会话。
+
+### 六维评估
+
+| 维度 | 结论 | 依据 |
+| --- | --- | --- |
+| 正确性 | 通过 | 纯领域、应用服务和真实 PostgreSQL 分别验证同一操作结果、目标主体失败关闭与四类最小事实。 |
+| 安全性 | 通过 | 当前操作者只接受 `PlatformRequestContext`；目标主体受锁读取且不可用时不提交，未复制凭据。 |
+| 复杂度 | 可接受 | 仅新增建立命令、一个原子端口和一个 PostgreSQL 适配器；不复用历史回填的人工映射路径。 |
+| 冗余 | 可接受 | 兼容租户行与生命周期根分别服务遗留外键和唯一认证状态源，未形成双重认证判断。 |
+| 性能 | 可接受 | 单主体受锁读取与固定数量写入，未扫描主体、成员或租户正文。 |
+| 测试质量 | 通过 | 保存了实际编译红灯、应用反例、真实 PostgreSQL 回滚、自动配置和架构门禁绿灯。 |
+
 ## 真实 PostgreSQL 合同
 
 - 回填输入只在受控部署事务中使用，不写入版本库、日志、会话、HTTP 请求或普通应用配置。

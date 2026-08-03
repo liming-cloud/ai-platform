@@ -4,6 +4,7 @@ import com.aiplatform.foundation.organizationaccess.domain.identity.repository.S
 import com.aiplatform.foundation.organizationaccess.domain.authorization.repository.PlatformAccessGrantRepository;
 import com.aiplatform.foundation.organizationaccess.domain.member.repository.TenantMembershipRepository;
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.port.out.TenantLifecycleBackfillStore;
+import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.port.out.TenantProvisioningStore;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.authorization.mapper.PlatformAccessGrantMapper;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.authorization.repository.PostgresPlatformAccessGrantRepository;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.identity.mapper.SubjectIdentityMapper;
@@ -11,7 +12,9 @@ import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.i
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.membership.mapper.TenantMembershipMapper;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.membership.repository.PostgresTenantMembershipRepository;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.mapper.TenantLifecycleBackfillMapper;
+import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.mapper.TenantProvisioningMapper;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.repository.PostgresTenantLifecycleBackfillStore;
+import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.repository.PostgresTenantProvisioningStore;
 import com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator;
 import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
@@ -59,5 +62,13 @@ public class OrganizationAccessPersistenceAutoConfiguration {
             TenantLifecycleBackfillMapper mapper,
             EntityIdGenerator identifiers) {
         return new PostgresTenantLifecycleBackfillStore(mapper, identifiers);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    TenantProvisioningStore tenantProvisioningStore(
+            TenantProvisioningMapper mapper,
+            EntityIdGenerator identifiers) {
+        return new PostgresTenantProvisioningStore(mapper, identifiers);
     }
 }

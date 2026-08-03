@@ -326,6 +326,36 @@
       "reason": "仅在历史生命周期根、初始管理员角色和最小状态事实已同一事务写入后激活认证唯一状态源。"
     },
     {
+      "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/TenantProvisioningMapper.xml",
+      "statementId": "lockActiveInitialAdministrator",
+      "category": "ROW_LOCK",
+      "reason": "在建立租户事务中锁定已启用初始管理员主体，避免状态读取后发生禁用或凭据事实漂移。"
+    },
+    {
+      "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/TenantProvisioningMapper.xml",
+      "statementId": "insertTenant",
+      "category": "ATOMIC_STATE_TRANSITION",
+      "reason": "以固定不可认证兼容状态建立遗留租户行；认证状态不从该列读取。"
+    },
+    {
+      "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/TenantProvisioningMapper.xml",
+      "statementId": "insertLifecycle",
+      "category": "ATOMIC_STATE_TRANSITION",
+      "reason": "只按租户建立领域结果写入准备中生命周期根。"
+    },
+    {
+      "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/TenantProvisioningMapper.xml",
+      "statementId": "insertInitialAdministrator",
+      "category": "ATOMIC_STATE_TRANSITION",
+      "reason": "只按领域结果创建初始管理员成员资格，绝不复制主体凭据。"
+    },
+    {
+      "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/TenantProvisioningMapper.xml",
+      "statementId": "insertOutbox",
+      "category": "OUTBOX",
+      "reason": "与兼容租户行、生命周期根和初始管理员成员资格同一事务写入最小状态事实。"
+    },
+    {
       "path": "backend/contexts/trusted-query/src/main/resources/mapper/trusted-query/QueryRunMapper.xml",
       "statementId": "lockScope",
       "category": "POSTGRES_ADVISORY_LOCK",

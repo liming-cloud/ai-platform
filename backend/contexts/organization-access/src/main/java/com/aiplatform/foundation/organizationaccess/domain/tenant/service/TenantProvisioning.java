@@ -4,6 +4,7 @@ import com.aiplatform.foundation.organizationaccess.domain.identity.model.Subjec
 import com.aiplatform.foundation.organizationaccess.domain.member.model.MemberId;
 import com.aiplatform.foundation.organizationaccess.domain.member.model.TenantMembership;
 import com.aiplatform.foundation.organizationaccess.domain.tenant.model.TenantLifecycle;
+import com.aiplatform.foundation.organizationaccess.domain.tenant.operation.TenantLifecycleChange;
 import com.aiplatform.foundation.organizationaccess.domain.tenant.operation.TenantProvisioningResult;
 import java.time.Instant;
 import java.util.Objects;
@@ -39,6 +40,11 @@ public final class TenantProvisioning {
         }
         var membership = TenantMembership.establishInitialAdministrator(
                 membershipId, lifecycle.id(), administrator.id(), occurredAt);
-        return new TenantProvisioningResult(lifecycle, membership, occurredAt);
+        return new TenantProvisioningResult(
+                lifecycle,
+                membership,
+                new TenantLifecycleChange(
+                        lifecycle.id(), lifecycle.status(), lifecycle.version(), occurredAt),
+                occurredAt);
     }
 }
