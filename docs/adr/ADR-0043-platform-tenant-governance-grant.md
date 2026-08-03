@@ -2,13 +2,13 @@
 
 ## 状态
 
-提议
+已接受
 
 ## 日期
 
 2026-08-03
 
-## 待决策负责人
+## 决策负责人
 
 用户，代表产品、架构与安全负责人。
 
@@ -24,7 +24,7 @@ ADR-0041 已要求 `PlatformRequestContext` 仅由已验证的平台 Bearer 会�
 
 ## 决策内容
 
-提议接受方案 A：organization-access 保存独立的全局 `PlatformAccessGrant` 最小授权事实；只有
+接受方案 A：organization-access 保存独立的全局 `PlatformAccessGrant` 最小授权事实；只有
 同时满足“已启用 `SubjectIdentity`”和“当前有效 `tenant-governance:write` 授权”的主体才能完成
 平台登录并由 platform-security 签发 `PlatformRequestContext`。该上下文只含主体、凭据类型、渠道、
 权限修订、权限集合和服务端追踪标识，不含租户、成员、目标资源或调用方追踪标识。
@@ -40,7 +40,7 @@ ADR-0041 已要求 `PlatformRequestContext` 仅由已验证的平台 Bearer 会�
 
 ### 方案 A：独立 `PlatformAccessGrant` 与 `tenant-governance:write`
 
-提议接受。授权事实、全局主体凭据和租户成员资格分属明确模型；平台会话的签发条件和租户治理权限
+接受。授权事实、全局主体凭据和租户成员资格分属明确模型；平台会话的签发条件和租户治理权限
 可单独撤销、修订与审计。平台上下文不会伪装为可空租户上下文。
 
 ### 方案 B：复用 `model-platform:write`

@@ -49,8 +49,8 @@ confirmedDecisions:
   - ADR-0040
   - ADR-0041
   - ADR-0042
-openDecisions:
   - ADR-0043
+openDecisions: []
 latestEvidence:
   - docs/research/WP-0003-framework-baseline.md
   - project/evidence/WP-0003-trusted-context.md
@@ -170,6 +170,7 @@ latestEvidence:
   - project/evidence/WP-0014-global-identity-migration.md
   - project/evidence/WP-0014-tenant-provisioning-domain.md
   - docs/adr/ADR-0043-platform-tenant-governance-grant.md
+  - project/evidence/ADR-0043-approval.md
 nextReviewAt: 2026-08-05
-updatedAt: 2026-08-03T08:35:00+08:00
+updatedAt: 2026-08-03T08:40:00+08:00
 updatedBy: codex
