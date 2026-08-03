@@ -1,6 +1,7 @@
 package com.aiplatform.foundation.organizationaccess.infrastructure.configuration;
 
 import com.aiplatform.foundation.organizationaccess.interfaces.web.authentication.controller.AuthenticationController;
+import com.aiplatform.foundation.organizationaccess.interfaces.web.authentication.controller.PlatformAuthenticationController;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Import;
@@ -12,6 +13,6 @@ import org.springframework.context.annotation.Import;
 @ConditionalOnProperty(
         name = "foundation.organization-access.enabled",
         havingValue = "true")
-@Import(AuthenticationController.class)
+@Import({AuthenticationController.class, PlatformAuthenticationController.class})
 public class OrganizationAccessWebAutoConfiguration {
 }

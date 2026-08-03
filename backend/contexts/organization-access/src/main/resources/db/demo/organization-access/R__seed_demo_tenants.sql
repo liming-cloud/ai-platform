@@ -32,6 +32,28 @@ INSERT INTO organization_access.subject_identity (
     )
 ON CONFLICT DO NOTHING;
 
+INSERT INTO organization_access.platform_access_grant (
+    subject_id,
+    status,
+    permission_version,
+    version
+) VALUES (
+    4921825928971026436,
+    'ENABLED',
+    1,
+    0
+)
+ON CONFLICT DO NOTHING;
+
+INSERT INTO organization_access.platform_access_permission (
+    subject_id,
+    permission_code
+) VALUES (
+    4921825928971026436,
+    'tenant-governance:write'
+)
+ON CONFLICT DO NOTHING;
+
 INSERT INTO organization_access.tenant_membership (
     membership_id,
     tenant_id,

@@ -1,7 +1,10 @@
 package com.aiplatform.foundation.organizationaccess.infrastructure.configuration;
 
 import com.aiplatform.foundation.organizationaccess.domain.identity.repository.SubjectIdentityRepository;
+import com.aiplatform.foundation.organizationaccess.domain.authorization.repository.PlatformAccessGrantRepository;
 import com.aiplatform.foundation.organizationaccess.domain.member.repository.TenantMembershipRepository;
+import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.authorization.mapper.PlatformAccessGrantMapper;
+import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.authorization.repository.PostgresPlatformAccessGrantRepository;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.identity.mapper.SubjectIdentityMapper;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.identity.repository.PostgresSubjectIdentityRepository;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.membership.mapper.TenantMembershipMapper;
@@ -19,13 +22,24 @@ import org.springframework.context.annotation.Bean;
 @ConditionalOnProperty(
         name = "foundation.organization-access.enabled",
         havingValue = "true")
-@MapperScan(basePackageClasses = {SubjectIdentityMapper.class, TenantMembershipMapper.class})
+@MapperScan(basePackageClasses = {
+    PlatformAccessGrantMapper.class,
+    SubjectIdentityMapper.class,
+    TenantMembershipMapper.class
+})
 public class OrganizationAccessPersistenceAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
     SubjectIdentityRepository subjectIdentityRepository(SubjectIdentityMapper mapper) {
         return new PostgresSubjectIdentityRepository(mapper);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    PlatformAccessGrantRepository platformAccessGrantRepository(
+            PlatformAccessGrantMapper mapper) {
+        return new PostgresPlatformAccessGrantRepository(mapper);
     }
 
     @Bean

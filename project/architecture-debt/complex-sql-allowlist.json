@@ -272,6 +272,12 @@
       "reason": "只读取启用的全局主体凭据，避免成员资格表保留或泄露密码摘要。"
     },
     {
+      "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/PlatformAccessGrantMapper.xml",
+      "statementId": "findActiveBySubject",
+      "category": "SECURITY_PROJECTION",
+      "reason": "同一安全投影连接主体、平台授权与权限集合，确保签发会话不跨读取快照。"
+    },
+    {
       "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/TenantMembershipMapper.xml",
       "statementId": "findEnabled",
       "category": "SECURITY_PROJECTION",

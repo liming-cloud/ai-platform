@@ -2,10 +2,13 @@ package com.aiplatform.foundation.organizationaccess.infrastructure.configuratio
 
 import com.aiplatform.foundation.organizationaccess.application.authentication.port.out.PasswordVerifier;
 import com.aiplatform.foundation.organizationaccess.application.authentication.service.PersonAuthenticationService;
+import com.aiplatform.foundation.organizationaccess.application.authentication.service.PlatformAuthenticationService;
+import com.aiplatform.foundation.organizationaccess.domain.authorization.repository.PlatformAccessGrantRepository;
 import com.aiplatform.foundation.organizationaccess.domain.identity.repository.SubjectIdentityRepository;
 import com.aiplatform.foundation.organizationaccess.domain.member.repository.TenantMembershipRepository;
 import com.aiplatform.foundation.organizationaccess.infrastructure.password.Pbkdf2PasswordAdapter;
 import com.aiplatform.foundation.security.session.AuthenticatedSessionGateway;
+import com.aiplatform.foundation.security.session.PlatformSessionGateway;
 import java.security.SecureRandom;
 import java.util.Arrays;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
@@ -40,6 +43,26 @@ public class OrganizationAccessCoreAutoConfiguration {
             return new PersonAuthenticationService(
                     identities,
                     memberships,
+                    passwords,
+                    sessions,
+                    passwords.encode(dummyPassword));
+        } finally {
+            Arrays.fill(dummyPassword, '\0');
+        }
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    PlatformAuthenticationService platformAuthenticationService(
+            SubjectIdentityRepository identities,
+            PlatformAccessGrantRepository grants,
+            PlatformSessionGateway sessions,
+            Pbkdf2PasswordAdapter passwords) {
+        var dummyPassword = "不存在主体的等价验证口令".toCharArray();
+        try {
+            return new PlatformAuthenticationService(
+                    identities,
+                    grants,
                     passwords,
                     sessions,
                     passwords.encode(dummyPassword));

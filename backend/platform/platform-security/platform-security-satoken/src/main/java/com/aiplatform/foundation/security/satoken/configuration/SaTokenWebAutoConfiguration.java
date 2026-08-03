@@ -1,8 +1,10 @@
 package com.aiplatform.foundation.security.satoken.configuration;
 
 import com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator;
+import com.aiplatform.foundation.security.satoken.web.SaTokenPlatformContextArgumentResolver;
 import com.aiplatform.foundation.security.satoken.web.SaTokenTrustedContextArgumentResolver;
 import com.aiplatform.foundation.security.session.AuthenticatedSessionGateway;
+import com.aiplatform.foundation.security.session.PlatformSessionGateway;
 import java.util.List;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
@@ -16,13 +18,11 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
  */
 @AutoConfiguration(after = SaTokenSecurityAutoConfiguration.class)
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
-@ConditionalOnBean({
-    AuthenticatedSessionGateway.class,
-    EntityIdGenerator.class
-})
+@ConditionalOnBean(EntityIdGenerator.class)
 public class SaTokenWebAutoConfiguration {
 
     @Bean
+    @ConditionalOnBean(AuthenticatedSessionGateway.class)
     SaTokenTrustedContextArgumentResolver saTokenTrustedContextArgumentResolver(
             AuthenticatedSessionGateway sessions,
             EntityIdGenerator identifiers) {
@@ -30,8 +30,30 @@ public class SaTokenWebAutoConfiguration {
     }
 
     @Bean
+    @ConditionalOnBean(AuthenticatedSessionGateway.class)
     WebMvcConfigurer saTokenTrustedContextWebConfigurer(
             SaTokenTrustedContextArgumentResolver resolver) {
+        return new WebMvcConfigurer() {
+            @Override
+            public void addArgumentResolvers(
+                    List<HandlerMethodArgumentResolver> resolvers) {
+                resolvers.add(resolver);
+            }
+        };
+    }
+
+    @Bean
+    @ConditionalOnBean(PlatformSessionGateway.class)
+    SaTokenPlatformContextArgumentResolver saTokenPlatformContextArgumentResolver(
+            PlatformSessionGateway sessions,
+            EntityIdGenerator identifiers) {
+        return new SaTokenPlatformContextArgumentResolver(sessions, identifiers);
+    }
+
+    @Bean
+    @ConditionalOnBean(PlatformSessionGateway.class)
+    WebMvcConfigurer saTokenPlatformContextWebConfigurer(
+            SaTokenPlatformContextArgumentResolver resolver) {
         return new WebMvcConfigurer() {
             @Override
             public void addArgumentResolvers(

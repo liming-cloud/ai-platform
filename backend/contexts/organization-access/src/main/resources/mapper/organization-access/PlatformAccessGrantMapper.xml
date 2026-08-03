@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aiplatform.foundation.organizationaccess.infrastructure.persistence.authorization.mapper.PlatformAccessGrantMapper">
+
+    <resultMap id="platformAccessGrant"
+        type="com.aiplatform.foundation.organizationaccess.infrastructure.persistence.authorization.projection.PlatformAccessGrantRow">
+        <result column="subject_id" property="subjectId"/>
+        <result column="permission_version" property="permissionVersion"/>
+        <result column="permission_code" property="permissionCode"/>
+    </resultMap>
+
+    <select id="findActiveBySubject" resultMap="platformAccessGrant">
+        SELECT access_grant.subject_id, access_grant.permission_version, permission.permission_code
+        FROM organization_access.platform_access_grant access_grant
+        INNER JOIN organization_access.subject_identity subject
+            ON subject.subject_id = access_grant.subject_id
+        INNER JOIN organization_access.platform_access_permission permission
+            ON permission.subject_id = access_grant.subject_id
+        WHERE access_grant.subject_id = #{subjectId}
+          AND access_grant.status = 'ENABLED'
+          AND subject.status = 'ACTIVE'
+    </select>
+
+</mapper>

@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.aiplatform.foundation.security.session.InvalidAuthenticatedSessionException;
 import com.aiplatform.foundation.security.session.AuthenticatedSessionGateway;
+import com.aiplatform.foundation.security.session.PlatformSessionGateway;
 import com.redis.testcontainers.RedisContainer;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -52,6 +53,9 @@ class AuthenticationApiTest {
 
     @Autowired
     private AuthenticatedSessionGateway sessions;
+
+    @Autowired
+    private PlatformSessionGateway platformSessions;
 
     @DynamicPropertySource
     static void infrastructureProperties(DynamicPropertyRegistry registry) {
@@ -106,6 +110,34 @@ class AuthenticationApiTest {
         assertEquals("ORGANIZATION_ACCESS.AUTHENTICATION.0001", unknownMember.getBody().code());
         assertFalse(wrongPassword.getBody().message().contains("密码"));
         assertFalse(unknownMember.getBody().message().contains("账号"));
+    }
+
+    @Test
+    void 平台管理员应通过独立入口取得不含租户的治理会话() {
+        var response = http.postForEntity(
+                url("/api/v1/platform/auth/sessions"),
+                Map.of(
+                        "loginName", "platform-admin",
+                        "password", new String(DEMO_PASSWORD)),
+                SessionResponse.class);
+
+        assertEquals(HttpStatus.CREATED, response.getStatusCode());
+        var body = response.getBody();
+        assertNotNull(body);
+        var context = platformSessions.resolve(body.tokenValue());
+        assertEquals(4921825928971026436L, context.subjectId().value());
+        assertFalse(context.permissions().isEmpty());
+
+        var tenantSession = http.postForEntity(
+                url("/api/v1/auth/sessions"),
+                Map.of(
+                        "tenantCode", "demo-store",
+                        "loginName", "admin",
+                        "password", new String(DEMO_PASSWORD)),
+                SessionResponse.class);
+        assertNotNull(tenantSession.getBody());
+        assertThrows(InvalidAuthenticatedSessionException.class,
+                () -> platformSessions.resolve(tenantSession.getBody().tokenValue()));
     }
 
     private org.springframework.http.ResponseEntity<ApiError> loginFailure(

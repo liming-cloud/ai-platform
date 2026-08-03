@@ -4,10 +4,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
 import com.aiplatform.foundation.organizationaccess.application.authentication.service.PersonAuthenticationService;
+import com.aiplatform.foundation.organizationaccess.application.authentication.service.PlatformAuthenticationService;
+import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.authorization.mapper.PlatformAccessGrantMapper;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.identity.mapper.SubjectIdentityMapper;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.membership.mapper.TenantMembershipMapper;
 import com.aiplatform.foundation.organizationaccess.interfaces.web.authentication.controller.AuthenticationController;
+import com.aiplatform.foundation.organizationaccess.interfaces.web.authentication.controller.PlatformAuthenticationController;
 import com.aiplatform.foundation.security.session.AuthenticatedSessionGateway;
+import com.aiplatform.foundation.security.session.PlatformSessionGateway;
 import com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
@@ -28,8 +32,14 @@ class OrganizationAccessAutoConfigurationTest {
                     TenantMembershipMapper.class,
                     () -> mock(TenantMembershipMapper.class))
             .withBean(
+                    PlatformAccessGrantMapper.class,
+                    () -> mock(PlatformAccessGrantMapper.class))
+            .withBean(
                     AuthenticatedSessionGateway.class,
                     () -> mock(AuthenticatedSessionGateway.class))
+            .withBean(
+                    PlatformSessionGateway.class,
+                    () -> mock(PlatformSessionGateway.class))
             .withBean(EntityIdGenerator.class, () -> () -> 1001L);
 
     @Test
@@ -37,7 +47,9 @@ class OrganizationAccessAutoConfigurationTest {
         runner.run(context -> {
             assertThat(context).hasNotFailed();
             assertThat(context).hasSingleBean(PersonAuthenticationService.class);
+            assertThat(context).hasSingleBean(PlatformAuthenticationService.class);
             assertThat(context).hasSingleBean(AuthenticationController.class);
+            assertThat(context).hasSingleBean(PlatformAuthenticationController.class);
         });
     }
 
@@ -50,6 +62,8 @@ class OrganizationAccessAutoConfigurationTest {
                             PersonAuthenticationService.class);
                     assertThat(context).doesNotHaveBean(
                             AuthenticationController.class);
+                    assertThat(context).doesNotHaveBean(
+                            PlatformAuthenticationController.class);
                 });
     }
 

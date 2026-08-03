@@ -11,11 +11,13 @@ import org.springframework.boot.context.properties.bind.DefaultValue;
 @ConfigurationProperties("foundation.security")
 public record SaTokenSecurityProperties(
         @DefaultValue("PT1H") Duration sessionTimeout,
-        @DefaultValue("foundation-v1-person") String personLoginType) {
+        @DefaultValue("foundation-v1-person") String personLoginType,
+        @DefaultValue("foundation-v1-platform") String platformLoginType) {
 
     public SaTokenSecurityProperties {
         Objects.requireNonNull(sessionTimeout, "会话有效期不能为空");
         Objects.requireNonNull(personLoginType, "人员登录类型不能为空");
+        Objects.requireNonNull(platformLoginType, "平台登录类型不能为空");
         if (sessionTimeout.isZero()
                 || sessionTimeout.isNegative()
                 || sessionTimeout.getNano() != 0) {
@@ -25,6 +27,12 @@ public record SaTokenSecurityProperties(
                 || personLoginType.length() > 64
                 || !personLoginType.equals(personLoginType.trim())) {
             throw new IllegalArgumentException("人员登录类型格式不正确");
+        }
+        if (platformLoginType.isBlank()
+                || platformLoginType.length() > 64
+                || !platformLoginType.equals(platformLoginType.trim())
+                || platformLoginType.equals(personLoginType)) {
+            throw new IllegalArgumentException("平台登录类型格式不正确");
         }
     }
 }
