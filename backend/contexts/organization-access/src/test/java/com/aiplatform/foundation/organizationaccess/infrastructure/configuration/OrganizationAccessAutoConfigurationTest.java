@@ -7,6 +7,7 @@ import com.aiplatform.foundation.organizationaccess.application.authentication.s
 import com.aiplatform.foundation.organizationaccess.application.authentication.service.PlatformAuthenticationService;
 import com.aiplatform.foundation.organizationaccess.application.authentication.service.BrowserAuthenticationService;
 import com.aiplatform.foundation.organizationaccess.application.authentication.service.BrowserSessionCapabilityService;
+import com.aiplatform.foundation.organizationaccess.application.authentication.service.BrowserSessionTerminationService;
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.service.TenantLifecycleBackfillService;
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.service.TenantLifecycleTransitionService;
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.service.TenantProvisioningService;
@@ -69,6 +70,7 @@ class OrganizationAccessAutoConfigurationTest {
             assertThat(context).hasSingleBean(PlatformAuthenticationService.class);
             assertThat(context).hasSingleBean(BrowserAuthenticationService.class);
             assertThat(context).hasSingleBean(BrowserSessionCapabilityService.class);
+            assertThat(context).hasSingleBean(BrowserSessionTerminationService.class);
             assertThat(context).hasSingleBean(TenantLifecycleBackfillService.class);
             assertThat(context).hasSingleBean(TenantLifecycleTransitionService.class);
             assertThat(context).hasSingleBean(TenantProvisioningService.class);
@@ -90,6 +92,8 @@ class OrganizationAccessAutoConfigurationTest {
                             BrowserAuthenticationService.class);
                     assertThat(context).doesNotHaveBean(
                             BrowserSessionCapabilityService.class);
+                    assertThat(context).doesNotHaveBean(
+                            BrowserSessionTerminationService.class);
                     assertThat(context).doesNotHaveBean(
                             TenantLifecycleBackfillService.class);
                     assertThat(context).doesNotHaveBean(

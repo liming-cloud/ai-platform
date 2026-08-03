@@ -5,6 +5,7 @@ import com.aiplatform.foundation.organizationaccess.application.authentication.s
 import com.aiplatform.foundation.organizationaccess.application.authentication.service.PlatformAuthenticationService;
 import com.aiplatform.foundation.organizationaccess.application.authentication.service.BrowserAuthenticationService;
 import com.aiplatform.foundation.organizationaccess.application.authentication.service.BrowserSessionCapabilityService;
+import com.aiplatform.foundation.organizationaccess.application.authentication.service.BrowserSessionTerminationService;
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.port.out.TenantLifecycleBackfillStore;
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.port.out.TenantLifecycleTransitionStore;
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.port.out.TenantProvisioningStore;
@@ -115,6 +116,14 @@ public class OrganizationAccessCoreAutoConfiguration {
             @Value("${foundation.security.session-timeout:PT1H}") String sessionTimeout) {
         return new BrowserSessionCapabilityService(
                 tenantSessions, platformSessions, Duration.parse(sessionTimeout));
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    BrowserSessionTerminationService browserSessionTerminationService(
+            AuthenticatedSessionGateway tenantSessions,
+            PlatformSessionGateway platformSessions) {
+        return new BrowserSessionTerminationService(tenantSessions, platformSessions);
     }
 
     @Bean

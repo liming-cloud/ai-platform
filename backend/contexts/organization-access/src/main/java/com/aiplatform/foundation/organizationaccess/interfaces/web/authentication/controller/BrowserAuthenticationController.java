@@ -5,6 +5,7 @@ import com.aiplatform.foundation.organizationaccess.application.authentication.d
 import com.aiplatform.foundation.organizationaccess.application.authentication.dto.BrowserSessionIssue;
 import com.aiplatform.foundation.organizationaccess.application.authentication.service.BrowserAuthenticationService;
 import com.aiplatform.foundation.organizationaccess.application.authentication.service.BrowserSessionCapabilityService;
+import com.aiplatform.foundation.organizationaccess.application.authentication.service.BrowserSessionTerminationService;
 import com.aiplatform.foundation.organizationaccess.interfaces.web.authentication.request.BrowserLoginRequest;
 import com.aiplatform.foundation.security.identity.AccessChannel;
 import com.aiplatform.foundation.security.session.IssuedSession;
@@ -20,6 +21,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CookieValue;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -37,14 +39,17 @@ public class BrowserAuthenticationController {
 
     private final BrowserAuthenticationService authentication;
     private final BrowserSessionCapabilityService capabilities;
+    private final BrowserSessionTerminationService termination;
     private final EntityIdGenerator identifiers;
 
     public BrowserAuthenticationController(
             BrowserAuthenticationService authentication,
             BrowserSessionCapabilityService capabilities,
+            BrowserSessionTerminationService termination,
             EntityIdGenerator identifiers) {
         this.authentication = authentication;
         this.capabilities = capabilities;
+        this.termination = termination;
         this.identifiers = identifiers;
     }
 
@@ -76,6 +81,19 @@ public class BrowserAuthenticationController {
         var response = ResponseEntity.ok();
         clearInvalidSessions(response, result);
         return response.body(result.capability().orElseThrow());
+    }
+
+    /**
+     * 撤销当前浏览器登录族并清除两个范围 cookie 与 CSRF 防护值。
+     */
+    @DeleteMapping("/browser-session")
+    public ResponseEntity<Void> logout(
+            @CookieValue(name = BrowserSessionCookieNames.TENANT_SESSION, required = false)
+            String tenantSessionToken,
+            @CookieValue(name = BrowserSessionCookieNames.PLATFORM_SESSION, required = false)
+            String platformSessionToken) {
+        termination.terminate(tenantSessionToken, platformSessionToken);
+        return clearedBrowserSessionFamily(ResponseEntity.noContent()).build();
     }
 
     /**
@@ -135,6 +153,14 @@ public class BrowserAuthenticationController {
         if (result.clearTenantSession() && result.clearPlatformSession()) {
             response.header(HttpHeaders.SET_COOKIE, csrfCookie("", Duration.ZERO).toString());
         }
+    }
+
+    private static ResponseEntity.HeadersBuilder<?> clearedBrowserSessionFamily(
+            ResponseEntity.HeadersBuilder<?> response) {
+        return response
+                .header(HttpHeaders.SET_COOKIE, clearedSessionCookie(BrowserSessionCookieNames.TENANT_SESSION).toString())
+                .header(HttpHeaders.SET_COOKIE, clearedSessionCookie(BrowserSessionCookieNames.PLATFORM_SESSION).toString())
+                .header(HttpHeaders.SET_COOKIE, csrfCookie("", Duration.ZERO).toString());
     }
 
     private static ResponseCookie clearedSessionCookie(String name) {

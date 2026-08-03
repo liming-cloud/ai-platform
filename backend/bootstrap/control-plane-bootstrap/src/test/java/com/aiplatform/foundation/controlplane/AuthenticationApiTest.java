@@ -305,6 +305,53 @@ class AuthenticationApiTest {
     }
 
     @Test
+    void 浏览器注销应撤销当前范围会话并清除整个会话族Cookie() {
+        var csrf = browserCsrf();
+        var login = http.exchange(
+                url("/api/v1/auth/browser-sessions"),
+                HttpMethod.POST,
+                new HttpEntity<>(
+                        Map.of(
+                                "tenantCode", "demo-store",
+                                "loginName", "admin",
+                                "password", new String(DEMO_PASSWORD)),
+                        csrf.headers()),
+                String.class);
+        assertEquals(HttpStatus.NO_CONTENT, login.getStatusCode());
+        var tenantCookie = cookiePair(login.getHeaders(), "__Host-foundation-tenant-session=");
+        var csrfCookie = cookiePair(login.getHeaders(), "__Host-foundation-csrf=");
+        var headers = sameOriginHeaders();
+        headers.set(HttpHeaders.COOKIE, tenantCookie + "; " + csrfCookie);
+        headers.set("X-CSRF-Token", csrfCookie.substring(csrfCookie.indexOf('=') + 1));
+
+        var logout = http.exchange(
+                url("/api/v1/auth/browser-session"),
+                HttpMethod.DELETE,
+                new HttpEntity<>(headers),
+                String.class);
+
+        assertEquals(HttpStatus.NO_CONTENT, logout.getStatusCode());
+        assertTrue(logout.getHeaders().getOrEmpty(HttpHeaders.SET_COOKIE).stream()
+                .anyMatch(cookie -> cookie.startsWith("__Host-foundation-tenant-session=")
+                        && cookie.contains("Max-Age=0") && cookie.contains("HttpOnly")));
+        assertTrue(logout.getHeaders().getOrEmpty(HttpHeaders.SET_COOKIE).stream()
+                .anyMatch(cookie -> cookie.startsWith("__Host-foundation-platform-session=")
+                        && cookie.contains("Max-Age=0") && cookie.contains("HttpOnly")));
+        assertTrue(logout.getHeaders().getOrEmpty(HttpHeaders.SET_COOKIE).stream()
+                .anyMatch(cookie -> cookie.startsWith("__Host-foundation-csrf=")
+                        && cookie.contains("Max-Age=0") && !cookie.contains("HttpOnly")));
+
+        var expired = new HttpHeaders();
+        expired.set(HttpHeaders.COOKIE, tenantCookie);
+        var capability = http.exchange(
+                url("/api/v1/auth/browser-session"),
+                HttpMethod.GET,
+                new HttpEntity<>(expired),
+                String.class);
+        assertEquals(HttpStatus.UNAUTHORIZED, capability.getStatusCode());
+    }
+
+    @Test
     void 平台会话应建立并激活租户且新租户随后可取得租户会话() {
         var platformToken = platformLogin();
         var tenantCode = "api-tenant-" + System.nanoTime();
@@ -495,6 +542,14 @@ class AuthenticationApiTest {
         assertEquals(HttpStatus.NO_CONTENT, response.getStatusCode());
         return response.getHeaders().getOrEmpty(HttpHeaders.SET_COOKIE).stream()
                 .filter(value -> value.startsWith("__Host-foundation-platform-session="))
+                .findFirst()
+                .map(value -> value.substring(0, value.indexOf(';')))
+                .orElseThrow();
+    }
+
+    private static String cookiePair(HttpHeaders headers, String cookiePrefix) {
+        return headers.getOrEmpty(HttpHeaders.SET_COOKIE).stream()
+                .filter(value -> value.startsWith(cookiePrefix))
                 .findFirst()
                 .map(value -> value.substring(0, value.indexOf(';')))
                 .orElseThrow();

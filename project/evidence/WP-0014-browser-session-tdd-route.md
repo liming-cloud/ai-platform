@@ -122,6 +122,17 @@ git diff --check
 
 四项均通过。前端尚未消费该投影，不能把该 HTTP 回归当作跨页签或注销传播的浏览器证据。
 
+## 切片五：浏览器会话族注销红绿记录
+
+`AuthenticationApiTest` 先新增当前范围注销反例；`DELETE /api/v1/auth/browser-session` 缺失时，预期
+`204` 实际为 `500`。最小绿灯由 `BrowserSessionTerminationService` 只使用两个既有范围会话端口撤销
+当前 cookie 中的对应 token，控制器在 CSRF 过滤器通过后清除两枚范围 cookie 和 CSRF cookie。真实
+PostgreSQL／Redis 回归证明注销后原租户 cookie 不能再恢复能力清单；自动配置同样验证该服务随上下文
+启用和关闭。完整 `AuthenticationApiTest` 实际 12 项通过。
+
+这只完成服务端注销语义。前端尚未发出统一注销请求或通过 `BroadcastChannel` 通知其他页签，因此不能
+把它当作跨页签注销完成证据。
+
 ## 先红后绿的纵向切片
 
 | 顺序 | 实际红灯 | 最小绿灯实现 | 回归范围 |
@@ -130,9 +141,10 @@ git diff --check
 | 2 | 已完成：一次浏览器登录的独立会话编排实际红绿。 | organization-access 以已验证 `SubjectIdentity` 和可选租户业务选择建立会话族。 | 认证应用、失败补偿与自动配置。 |
 | 3 | 已完成：新入口缺失导致的 HTTP 红灯、cookie 空体与跨站／缺失 CSRF 拒绝绿灯。 | 只用 HttpOnly 范围 cookie 交付 token；同源与 CSRF 过滤器只约束浏览器会话写入。 | 真实 PostgreSQL／Redis、cookie HTTP 契约与机器 Bearer 回归。 |
 | 4 | 已完成：浏览器无法安全恢复导航，或伪造查询参数改变服务端授权。 | 只读 `browser-session` 固定能力投影；权限仍由请求解析器再次验证。 | 真实 PostgreSQL／Redis HTTP 的租户／平台、无泄露、定向清除与越权反例。 |
-| 5 | 待实现：各前端仍自行保存 Bearer token，不能按能力清单恢复统一导航。 | 两个应用只消费 cookie 会话和能力投影，不保存或广播 token。 | 控制台单元测试、类型检查和租户／平台越权反例。 |
-| 6 | 待实现：同源新页签无法取得既有会话；注销、过期或 401 后其他页签仍显示受权任务。 | 两个应用以 `BroadcastChannel` 传播失效信号；不保存或广播 token。 | 浏览器两页签、注销、过期和直达无权路由任务。 |
-| 7 | 待实现：平台管理员无法完成建立、激活、挂起和恢复租户，或租户管理员／平台运营能看到不属于自己的页面。 | 最小平台租户生命周期工作区调用已存在的受限 HTTP；统一导航按能力清单显示。 | Bootstrap HTTP、真实浏览器和全文本披露检查。 |
+| 5 | 已完成：浏览器注销只清本地状态，或未清除另一范围 cookie。 | `browser-session` 注销通过范围会话端口撤销，并清除整个 cookie 会话族。 | 真实 PostgreSQL／Redis HTTP 的撤销、cookie 清除和自动配置回归。 |
+| 6 | 待实现：各前端仍自行保存 Bearer token，不能按能力清单恢复统一导航。 | 两个应用只消费 cookie 会话和能力投影，不保存或广播 token。 | 控制台单元测试、类型检查和租户／平台越权反例。 |
+| 7 | 待实现：同源新页签无法取得既有会话；注销、过期或 401 后其他页签仍显示受权任务。 | 两个应用以 `BroadcastChannel` 传播失效信号；不保存或广播 token。 | 浏览器两页签、注销、过期和直达无权路由任务。 |
+| 8 | 待实现：平台管理员无法完成建立、激活、挂起和恢复租户，或租户管理员／平台运营能看到不属于自己的页面。 | 最小平台租户生命周期工作区调用已存在的受限 HTTP；统一导航按能力清单显示。 | Bootstrap HTTP、真实浏览器和全文本披露检查。 |
 
 每一行都必须先保留实际失败命令及失败原因，再实施相同行为的最小绿灯。不得用 mock 替代
 Sa-Token、Redis、PostgreSQL、cookie 属性或浏览器页签事实。
