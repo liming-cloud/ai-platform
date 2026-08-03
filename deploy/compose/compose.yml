@@ -206,6 +206,8 @@ services:
     depends_on:
       control-plane:
         condition: service_healthy
+      query-web:
+        condition: service_healthy
     ports:
       - "127.0.0.1:${FOUNDATION_CONSOLE_WEB_PORT:-13000}:8080"
     networks:
@@ -232,8 +234,6 @@ services:
         condition: service_healthy
       query-runtime:
         condition: service_healthy
-    ports:
-      - "127.0.0.1:${FOUNDATION_QUERY_WEB_PORT:-13001}:8080"
     networks:
       - foundation-internal
     read_only: true

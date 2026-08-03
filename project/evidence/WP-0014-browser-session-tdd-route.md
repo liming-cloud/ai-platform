@@ -142,8 +142,35 @@ PostgreSQL／Redis 回归证明注销后原租户 cookie 不能再恢复能力�
 `401` 不会清除新会话的本地状态。
 
 实际执行 `npm test && npm run typecheck && npm run lint && npm run build`，11 个测试文件、47 项测试均通过。
-这只证明浏览器客户端契约和两个 API 客户端迁移；各页面仍有局部登录视图，部署也仍需收敛为单一公开
-origin，故不能将本切片视为“一次登录跨工作区”完成证据。
+这只证明浏览器客户端契约和两个 API 客户端迁移；各页面仍有局部登录视图，故不能将本切片视为
+“一次登录跨工作区”完成证据。
+
+## 切片七：同源公开入口红绿记录
+
+先新增 `scripts/quality/test_browser_session_deployment.py`，以三个反例固定部署边界：`query-web` 仍声明
+公开端口、`console-web` 未代理 `/query/` 与查询运行时 API、以及 query 前端未以 `/query/` 构建。实施前实际
+失败，分别提示 query 服务仍存在 `ports`、缺少 `location ^~ /query/`，以及 Vite 未设置 `base`。
+
+最小绿灯复用既有 `console-web` Nginx，不增加新的外部网关服务：查询静态资源只经 `/query/` 提供，
+`/api/v1/query-assistants` 与 `/api/v1/query-runs` 精确代理到 `query-runtime`，其余 `/api/` 仍由控制面处理；
+`query-web` 仅保留 Compose 内部网络，Vite 以 `/query/` 为资源基路径。该边界使控制台、查询与认证 cookie
+共享同一浏览器 origin，且不把查询运行时的其他路径扩大为公开契约。
+
+实际执行如下命令均通过；Compose 解析只使用无业务含义的校验占位环境变量，未读取或输出本地密钥：
+
+```bash
+python3 -m unittest scripts.quality.test_browser_session_deployment
+FOUNDATION_POSTGRES_DATABASE=validation_db FOUNDATION_POSTGRES_USER=validation_user \
+  FOUNDATION_POSTGRES_PASSWORD=validation_password FOUNDATION_REDIS_PASSWORD=validation_redis_password \
+  FOUNDATION_MINIO_USER=validation_minio_user FOUNDATION_MINIO_PASSWORD=validation_minio_password \
+  docker compose -f deploy/compose/compose.yml config >/dev/null
+docker run --rm -v "$PWD/deploy/config/nginx-console.conf:/etc/nginx/conf.d/default.conf:ro" \
+  nginxinc/nginx-unprivileged:1.29.8-alpine3.23 nginx -t
+cd frontend && npm run build
+```
+
+三项部署反例、Compose 拓扑、Nginx 语法和两个前端生产构建均为绿灯。此切片不包含根级会话状态、
+页面局部登录移除或真实浏览器页签证明。
 
 ## 先红后绿的纵向切片
 
@@ -155,9 +182,10 @@ origin，故不能将本切片视为“一次登录跨工作区”完成证据�
 | 4 | 已完成：浏览器无法安全恢复导航，或伪造查询参数改变服务端授权。 | 只读 `browser-session` 固定能力投影；权限仍由请求解析器再次验证。 | 真实 PostgreSQL／Redis HTTP 的租户／平台、无泄露、定向清除与越权反例。 |
 | 5 | 已完成：浏览器注销只清本地状态，或未清除另一范围 cookie。 | `browser-session` 注销通过范围会话端口撤销，并清除整个 cookie 会话族。 | 真实 PostgreSQL／Redis HTTP 的撤销、cookie 清除和自动配置回归。 |
 | 6 | 已完成：业务客户端自行保存或拼接 Bearer token，或遗漏浏览器写入 CSRF。 | 两个应用共用 cookie 会话 seam，不保存 token；非安全请求统一读取 CSRF cookie。 | 47 项前端测试、类型检查、lint 与生产构建。 |
-| 7 | 待实现：各页面仍渲染局部登录视图，且公开部署尚非同一 origin。 | 统一根登录入口、能力驱动导航和 `/query/` 同源发布。 | 控制台 UI 反例、Nginx／Compose 配置和直达路由任务。 |
-| 8 | 待实现：同源新页签无法取得既有会话；注销、过期或 401 后其他页签仍显示受权任务。 | 两个应用以 `BroadcastChannel` 传播失效信号；不保存或广播 token。 | 浏览器两页签、注销、过期和直达无权路由任务。 |
-| 9 | 待实现：平台管理员无法完成建立、激活、挂起和恢复租户，或租户管理员／平台运营能看到不属于自己的页面。 | 最小平台租户生命周期工作区调用已存在的受限 HTTP；统一导航按能力清单显示。 | Bootstrap HTTP、真实浏览器和全文本披露检查。 |
+| 7 | 已完成：query 仍公开单独端口、缺少 `/query/` 静态代理或查询 API 落入控制面代理。 | 复用 `console-web` Nginx 为唯一公开入口；query 仅内网运行，按 `/query/` 构建。 | 3 项部署反例、Compose 解析、Nginx 语法和前端生产构建。 |
+| 8 | 待实现：各页面仍渲染局部登录视图，或能力之外的工作区仍显示。 | 统一根登录入口、根级会话状态和能力驱动导航。 | 控制台／查询 UI 反例与直达路由任务。 |
+| 9 | 待实现：同源新页签无法取得既有会话；注销、过期或 401 后其他页签仍显示受权任务。 | 两个应用以 `BroadcastChannel` 传播失效信号；不保存或广播 token。 | 浏览器两页签、注销、过期和直达无权路由任务。 |
+| 10 | 待实现：平台管理员无法完成建立、激活、挂起和恢复租户，或租户管理员／平台运营能看到不属于自己的页面。 | 最小平台租户生命周期工作区调用已存在的受限 HTTP；统一导航按能力清单显示。 | Bootstrap HTTP、真实浏览器和全文本披露检查。 |
 
 每一行都必须先保留实际失败命令及失败原因，再实施相同行为的最小绿灯。不得用 mock 替代
 Sa-Token、Redis、PostgreSQL、cookie 属性或浏览器页签事实。
