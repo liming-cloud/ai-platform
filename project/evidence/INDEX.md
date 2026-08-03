@@ -232,7 +232,9 @@
 | M6 平台治理授权与独立会话 | `project/evidence/WP-0014-platform-governance-session.md` | 本次提交 | 平台授权读取投影、独立 Sa-Token 会话、自动配置、真实 PostgreSQL 与 Redis HTTP 回归通过；租户令牌无法作为平台令牌解析。 |
 | ADR-0044 历史初始管理员回填边界 | `docs/adr/ADR-0044-historical-tenant-initial-administrator-backfill.md` | 本次控制面提交 | 用户接受由人工运营方提供显式 `tenantId → SubjectId` 映射，拒绝以成员顺序、角色或权限猜测历史初始管理员。 |
 | ADR-0044 人工接受 | `project/evidence/ADR-0044-approval.md` | 本次控制面提交 | 用户授权历史回填、新租户原子建立、最小事件和受限平台治理路由实现。 |
-| M6 租户生命周期持久化 TDD 路线 | `project/evidence/WP-0014-tenant-lifecycle-tdd-route.md` | 本次提交 | 固定领域、真实 PostgreSQL、原子提交、平台 Bearer 与浏览器角色的红绿顺序；等待 ADR-0044 接受。 |
+| ADR-0045 历史状态合法回填 | `docs/adr/ADR-0045-historical-tenant-lifecycle-state-reconciliation.md` | `b657f0227` | 用户接受严格方案 A：历史状态只决定目标，必须经合法生命周期迁移达到最终状态。 |
+| M6 租户生命周期持久化 TDD 路线 | `project/evidence/WP-0014-tenant-lifecycle-tdd-route.md` | 本次提交 | 固定领域、真实 PostgreSQL、原子提交、平台 Bearer 与浏览器角色的红绿顺序；ADR-0044、ADR-0045 已接受。 |
+| M6 历史租户状态回填领域红绿 | `project/evidence/WP-0014-tenant-lifecycle-tdd-route.md` | 本次提交 | 实际编译红灯后，`ENABLED` 只经建立与激活到 `ACTIVE`，`DISABLED` 只经建立、激活与挂起到 `SUSPENDED`；主体、成员归属和启用状态均失败关闭。 |
 
 ## 证据规则
 

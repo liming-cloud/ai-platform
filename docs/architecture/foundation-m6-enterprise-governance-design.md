@@ -4,7 +4,7 @@
 
 | 项目 | 内容 |
 | --- | --- |
-| 状态 | ADR-0041、ADR-0042 已接受；首条切片实施中，其他 M6 切片仍为评审中。 |
+| 状态 | ADR-0041 至 ADR-0045 已接受；首条切片实施中，其他 M6 切片仍为评审中。 |
 | 日期 | 2026-08-02 |
 | 业务负责人 | 产品、架构、安全、平台与租户运营负责人。 |
 | 建模目的 | 在不削弱令牌派生身份、租户隔离、冻结回答事实和最小披露的前提下，明确 M6 平台治理、租户治理、评测、预算、发布审批与审计导出的所有权。 |
@@ -44,6 +44,7 @@
 | 租户请求上下文 | platform-security | 当前令牌会话恢复的租户、主体、成员、凭据、渠道和权限事实。 | 平台管理会话或可切换的空租户上下文。 | `TrustedRequestContext` | 正：同租户知识读取；反：平台管理员带租户参数。 | ADR-0033。 |
 | 租户生命周期 | organization-access | 平台建立、激活、挂起和恢复一个租户治理主体的状态机。 | 租户数据的立即删除、跨租户内容访问或平台运维任务。 | `TenantLifecycle` | 正：`ACTIVE` 租户被挂起；反：删除所有知识正文。 | ADR-0027、ADR-0041 提案。 |
 | 初始租户管理员 | organization-access | 创建租户时被显式指定、获得该租户管理职责的既有主体。 | 登录态字段、平台管理员自身的默认复制或未验证邮箱。 | 初始管理员 | 正：由平台管理员在平台范围选定的既有主体；反：HTTP 传入 `membershipId` 伪造当前身份。 | ADR-0027、ADR-0033。 |
+| 历史状态目标 | organization-access | 由基础设施将已验证的历史 `tenant.status` 翻译为 `ACTIVE` 或 `SUSPENDED` 的回填目标。 | 可直接写入生命周期根的当前状态，或第二套生命周期状态机。 | 历史状态映射 | 正：`ENABLED` 目标为 `ACTIVE`；反：直接构造 `SUSPENDED` 根。 | ADR-0045。 |
 | 评测数据集 | evaluation-operations | 版本化的评测问题、期望证据、允许答案、拒答期望和权限场景集合。 | 草稿测试请求或普通查询日志的聚合副本。 | 数据集 | 正：固定版本的批准集；反：从历史正文临时抓取。 | 基础领域设计第 9 节。 |
 | 评测任务 | evaluation-operations | 固定助手版本、数据集版本、策略版本、模型路由和指标实现版本的一次可复核运行。 | 当前模型或当前配置的即时演示。 | `EvaluationRun` | 正：被冻结的版本组合；反：只保留一个平均分。 | 基础领域设计第 9 节。 |
 | 发布门禁 | evaluation-operations | 对冻结评测结论、预算和安全条件作出通过／拒绝／例外结论的规则。 | `AssistantVersion.publish` 内的页面布尔值。 | 发布策略 | 正：指标失败即拒绝；反：缺少数据时默认通过。 | 基础领域设计第 9 节。 |
@@ -58,6 +59,7 @@
 | 平台管理员建立租户 | 创建一个尚未可用的治理主体并指定初始管理员。 | platform-security、organization-access | 建立租户／`TenantProvisioned` | 平台上下文具有租户建立权限；目标租户标识和初始管理员完整。 | 成功进入 `PROVISIONING`；重复标识、缺失管理员、租户令牌或伪造范围拒绝。 | `TenantLifecycle` 与跨根 `TenantProvisioning`。 | 生命周期根、初始管理员值事实、操作结果。 | 会话恢复、组织成员仓储、发件箱。 | ADR-0041 接受后红绿证据。 |
 | 激活租户 | 仅在安全基线与初始管理员已完成时使租户可承接租户会话。 | organization-access | 激活租户／`TenantActivated` | `PROVISIONING`、初始化完成、并发版本匹配。 | 成功为 `ACTIVE`；重复激活或未完成初始化拒绝。 | `TenantLifecycle`。 | 生命周期状态、并发版本。 | 最小租户状态事件。 | ADR-0041 接受后红绿证据。 |
 | 挂起与恢复租户 | 阻断或恢复新的租户业务操作，不删除数据。 | organization-access | 挂起／恢复租户 | 平台管理员；当前状态分别为 `ACTIVE`／`SUSPENDED`。 | 成功变更并写最小审计；非法迁移失败关闭。 | `TenantLifecycle`。 | 状态机、恢复关联。 | 最小状态事件、会话／授权消费方。 | ADR-0041 接受后红绿证据。 |
+| 回填历史租户 | 在不改变既有会话语义的前提下，使历史租户取得可证明的生命周期和初始管理员。 | organization-access | 回填历史租户／最小状态事实 | 完整人工映射、主体与成员均可用、历史状态可识别。 | `ENABLED` 经建立与激活到 `ACTIVE`；`DISABLED` 经建立、激活与挂起到 `SUSPENDED`；任一映射或写入失败整批回滚。 | `TenantLifecycleBackfill`。 | 生命周期根、既有成员根、不可变回填结果。 | 原子持久化与发件箱。 | ADR-0044、ADR-0045。 |
 | 租户管理员访问平台入口 | 不获得平台范围或其他租户信息。 | platform-security | 解析平台上下文 | 令牌只有租户角色。 | 失败关闭，无平台上下文、无回退 Header。 | platform-security。 | `PlatformRequestContext`。 | 会话网关。 | 解析器和 HTTP 反例。 |
 | 平台运营查看问题正文 | 不因运行权限获得内容读取。 | platform-security、trusted-query、knowledge-data | 内容读取请求 | 只有平台运营权限。 | 失败关闭；平台影响摘要不包含正文。 | 目标资源上下文。 | 最小影响摘要。 | 后续 M8。 | ADR-0027 人工／浏览器验收。 |
 | 评测固定版本 | 产生不可由后续配置覆盖的评测结论。 | evaluation-operations | 运行评测／`EvaluationCompleted` | 助手、数据集、策略、路由和指标版本均冻结。 | 成功固化结论；任一缺失或计算失败拒绝通过。 | `EvaluationRun`。 | 数据集、任务、指标结果。 | assistant-delivery、trusted-query、model-runtime 公共门面。 | 后续 M6 ADR。 |
@@ -82,6 +84,7 @@
 | --- | --- | --- | --- | --- | --- |
 | `TenantLifecycle` | `TenantLifecycleStatus`、初始管理员引用、版本、创建与变更审计事实。 | `TenantId`。 | 同一租户仅一个生命周期根；只允许 `PROVISIONING → ACTIVE → SUSPENDED → ACTIVE`；挂起不等于删除。 | 单一租户生命周期事务与发件箱。 | 只发布最小状态事件；其他上下文只以租户标识和状态消费。 |
 | `TenantProvisioning` | 已加载的 `TenantLifecycle`、`InitialTenantAdministrator`、操作时间。 | 无身份、无状态。 | 建立和初始化管理员的跨根业务规则不能由应用层拼接。 | 返回不可变 `TenantProvisioningResult`，由应用层在一个事务中提交。 | 不依赖 Spring、数据库、HTTP 或会话。 |
+| `TenantLifecycleBackfill` | 已验证历史租户事实、主体、既有成员资格、目标状态和回填时间。 | 无身份、无状态。 | 历史状态只决定目标；必须由 `PROVISIONING` 经合法迁移达到目标，且成员归属、主体和成员启用状态均可证明。 | 返回不可变 `TenantLifecycleBackfillResult`，由应用层在一个事务中提交根、成员资格与最小状态事实。 | 不依赖 Spring、数据库、HTTP、会话或原始历史状态字符串。 |
 | `PlatformRequestContext` | 主体、凭据、渠道、权限版本、权限集合、追踪标识。 | 不作为聚合。 | 仅能由已验证平台会话恢复；不能携带租户、成员、目标资源或调用方追踪标识。 | 单次 HTTP 请求。 | 仅由平台安全适配器创建，Controller 注入后传给应用层。 |
 
 `TenantLifecycle` 不持有知识、助手、模型配置、成员对象图、正文或无限历史。初始管理员只能保留稳定主体／成员标识；成员写入通过 `TenantProvisioning` 的操作结果协调。未定义租户销毁状态，直到保留与删除 ADR 接受。
@@ -110,7 +113,7 @@
 | seam | 选定接口 | 数据流与失败流 | 迁移切片 |
 | --- | --- | --- | --- |
 | 平台认证 | 平台路由专用的 `PlatformRequestContext` 参数解析器。 | Bearer 令牌 → 已验证平台会话 → 平台上下文；缺令牌、租户会话、权限不足和伪造字段均在资源读取前失败。 | ADR-0041 首条切片。 |
-| 租户治理 | `TenantLifecycleRepository` 与 `TenantProvisioning`。 | 平台应用服务加载根与初始管理员引用 → 领域服务返回操作结果 → 基础设施原子保存根、成员结果和发件箱。 | ADR-0041 首条切片。 |
+| 租户治理 | `TenantLifecycleRepository`、`TenantProvisioning` 与 `TenantLifecycleBackfill`。 | 平台应用服务或受控部署加载根与初始管理员引用 → 领域服务返回操作结果 → 基础设施原子保存根、成员结果和发件箱。 | ADR-0041、ADR-0044、ADR-0045 首条切片。 |
 | 评测输入 | evaluation-operations 的受控只读事实门面。 | 冻结版本与最小运行事实 → 评测任务；读取失败或版本不完整即拒绝启动。 | 后续 ADR。 |
 | 发布复核 | `ReleaseAuthorization`。 | 已加载版本＋已验证决定＋时间 → 不可变授权结果；任一不匹配／过期／拒绝不调用发布状态迁移。 | 后续 ADR。 |
 | 平台运营摘要 | 独立最小影响摘要门面。 | 已脱敏运行状态 → 摘要；内容字段请求直接拒绝。 | M8，不在 M6 首条切片。 |
@@ -123,15 +126,16 @@
 | --- | --- | --- | --- |
 | 租户请求上下文 | `TrustedRequestContext`、`SaTokenTrustedContextArgumentResolver` | 已实施 | 仅服务租户范围，禁止扩展为双范围可空对象。 |
 | 平台请求上下文 | 无 | 提议 | ADR-0041 接受后先按 TDD 建立安全适配和平台路由专用契约。 |
-| 租户生命周期根 | 无明确根 | 提议 | 由 organization-access 拥有，状态机与初始化管理员在领域服务中收回。 |
+| 租户生命周期根与历史回填结果 | `TenantLifecycle`、`TenantLifecycleBackfill`、`TenantLifecycleBackfillResult` | 部分实施 | 纯领域已禁止直接状态注入；真实 PostgreSQL 原子提交、发件箱和平台路由待后续红绿实现。 |
 | 同租户运营读取 | `OperationsQueryService` | 已实施 | 保持租户汇总与审计投影读取，不增加平台正文权限。 |
 | 草稿测试、反馈与轨迹 | `AssistantTestRun`、`QueryFeedback`、`ModelInvocationTrace` | 已实施 | 只提供后续治理的最小受控读取输入。 |
 | 评测、发布决定、预算、导出 | 无 | 未设计为可实施切片 | 需要独立 ADR 确定指标、阈值、作用域、保留和例外授权。 |
 
 ## 决策与未知项
 
-- ADR-0041 提议选择独立 `PlatformRequestContext`，并把可恢复租户生命周期作为首条纵向切片；它不授权租户正文读取、评测门禁或平台运营工作台。
+- ADR-0041 已接受独立 `PlatformRequestContext`，并把可恢复租户生命周期作为首条纵向切片；它不授权租户正文读取、评测门禁或平台运营工作台。
 - ADR-0042 已选择全局主体与凭据聚合：当前 `subject_id` 迁移为可独立验证的 `SubjectIdentity`，成员资格只引用主体。不得复制密码哈希或暗自引入邀请／密码重置流程。
+- ADR-0044 要求历史初始管理员只来自人工确认的 `tenantId → SubjectId` 映射；ADR-0045 要求历史状态只经合法生命周期迁移达到最终目标，绝不直接写入根状态。
 - 评测指标、最低阈值、模型／数据集允许组合、预算计量单位、例外批准角色与期限、审计导出的字段白名单和保留期限均是会改变产品结果的未决策项；须先以独立 ADR 接受。
 - 平台管理员对租户生命周期的目标 `TenantId` 是业务资源目标，不是登录状态；它只能在已验证平台上下文内加载和授权，不能由其取得该租户正文、成员详情或普通查询结果。
 - 每个后续切片都必须先补领域设计卡、反例、受权 HTTP 和实际角色浏览器任务；M6 自动与人工评审通过前不得激活 M7。

@@ -81,6 +81,29 @@ public final class TenantMembership implements AggregateRoot<MemberId> {
                 id, tenantId, subjectId, role, status, permissionVersion, version, createdAt);
     }
 
+    /**
+     * 将已启用的既有成员资格确认成租户初始管理员。
+     *
+     * <p>该操作不创建第二条成员资格，也不改变主体、租户或权限修订；历史回填只能在
+     * `TenantLifecycleBackfill` 已验证主体与租户归属后调用。</p>
+     *
+     * @throws IllegalStateException 当成员资格未启用时拒绝。
+     */
+    public TenantMembership confirmInitialAdministrator() {
+        if (status != TenantMembershipStatus.ENABLED) {
+            throw new IllegalStateException("未启用成员资格不能确认为初始管理员");
+        }
+        return new TenantMembership(
+                id,
+                tenantId,
+                subjectId,
+                TenantMembershipRole.TENANT_ADMINISTRATOR,
+                status,
+                permissionVersion,
+                version + 1L,
+                createdAt);
+    }
+
     @Override
     public MemberId id() {
         return id;
