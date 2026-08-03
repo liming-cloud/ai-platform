@@ -1,8 +1,10 @@
 package com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.service;
 
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.command.TenantProvisioningCommand;
+import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.dto.TenantLifecycleView;
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.port.out.TenantProvisioningStore;
 import com.aiplatform.foundation.organizationaccess.domain.member.model.MemberId;
+import com.aiplatform.foundation.organizationaccess.domain.member.model.SubjectId;
 import com.aiplatform.foundation.organizationaccess.domain.tenant.model.TenantLifecycle;
 import com.aiplatform.foundation.organizationaccess.domain.tenant.operation.TenantProvisioningResult;
 import com.aiplatform.foundation.organizationaccess.domain.tenant.service.TenantProvisioning;
@@ -66,5 +68,22 @@ public class TenantProvisioningService {
                 occurredAt);
         store.commit(result);
         return result;
+    }
+
+    /**
+     * 为 HTTP 等接口层建立租户，并只返回应用读取视图。
+     */
+    public TenantLifecycleView provision(
+            PlatformRequestContext platform,
+            String tenantCode,
+            String displayName,
+            long initialAdministratorSubjectId) {
+        var result = provision(
+                platform,
+                new TenantProvisioningCommand(
+                        tenantCode,
+                        displayName,
+                        new SubjectId(initialAdministratorSubjectId)));
+        return TenantLifecycleView.from(result.lifecycle());
     }
 }

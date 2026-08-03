@@ -4,6 +4,7 @@ import com.aiplatform.foundation.organizationaccess.domain.identity.repository.S
 import com.aiplatform.foundation.organizationaccess.domain.authorization.repository.PlatformAccessGrantRepository;
 import com.aiplatform.foundation.organizationaccess.domain.member.repository.TenantMembershipRepository;
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.port.out.TenantLifecycleBackfillStore;
+import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.port.out.TenantLifecycleTransitionStore;
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.port.out.TenantProvisioningStore;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.authorization.mapper.PlatformAccessGrantMapper;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.authorization.repository.PostgresPlatformAccessGrantRepository;
@@ -12,8 +13,10 @@ import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.i
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.membership.mapper.TenantMembershipMapper;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.membership.repository.PostgresTenantMembershipRepository;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.mapper.TenantLifecycleBackfillMapper;
+import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.mapper.TenantLifecycleTransitionMapper;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.mapper.TenantProvisioningMapper;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.repository.PostgresTenantLifecycleBackfillStore;
+import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.repository.PostgresTenantLifecycleTransitionStore;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.repository.PostgresTenantProvisioningStore;
 import com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator;
 import org.mybatis.spring.annotation.MapperScan;
@@ -33,7 +36,8 @@ import org.springframework.context.annotation.Bean;
     PlatformAccessGrantMapper.class,
     SubjectIdentityMapper.class,
     TenantMembershipMapper.class,
-    TenantLifecycleBackfillMapper.class
+    TenantLifecycleBackfillMapper.class,
+    TenantLifecycleTransitionMapper.class
 })
 public class OrganizationAccessPersistenceAutoConfiguration {
 
@@ -62,6 +66,14 @@ public class OrganizationAccessPersistenceAutoConfiguration {
             TenantLifecycleBackfillMapper mapper,
             EntityIdGenerator identifiers) {
         return new PostgresTenantLifecycleBackfillStore(mapper, identifiers);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    TenantLifecycleTransitionStore tenantLifecycleTransitionStore(
+            TenantLifecycleTransitionMapper mapper,
+            EntityIdGenerator identifiers) {
+        return new PostgresTenantLifecycleTransitionStore(mapper, identifiers);
     }
 
     @Bean

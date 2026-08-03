@@ -127,8 +127,8 @@
 | 领域概念 | 代码／API／数据／文档指针 | 状态 | 差异与处理 |
 | --- | --- | --- | --- |
 | 租户请求上下文 | `TrustedRequestContext`、`SaTokenTrustedContextArgumentResolver` | 已实施 | 仅服务租户范围，禁止扩展为双范围可空对象。 |
-| 平台请求上下文 | 无 | 提议 | ADR-0041 接受后先按 TDD 建立安全适配和平台路由专用契约。 |
-| 租户生命周期根与建立结果 | `TenantLifecycle`、`TenantLifecycleBackfill`、`TenantLifecycleBackfillResult`、`TenantProvisioning`、`TenantProvisioningResult` | 部分实施 | 历史回填、认证切换、新租户原子建立、最小发件箱和自动配置已完成；状态迁移及平台路由待后续红绿实现。 |
+| 平台请求上下文 | `PlatformRequestContext`、`SaTokenPlatformContextArgumentResolver` | 已实施 | 只由独立平台 Bearer 会话恢复；不含租户、成员或目标资源。 |
+| 租户生命周期根与建立结果 | `TenantLifecycle`、`TenantLifecycleBackfill`、`TenantLifecycleBackfillResult`、`TenantProvisioning`、`TenantProvisioningResult`、`TenantLifecycleTransition`、平台 HTTP 路由 | 部分实施 | 历史回填、认证切换、新租户原子建立、状态迁移、最小发件箱、自动配置和受限 Bearer HTTP 已完成；控制台治理页面及浏览器角色任务仍待实现。 |
 | 同租户运营读取 | `OperationsQueryService` | 已实施 | 保持租户汇总与审计投影读取，不增加平台正文权限。 |
 | 草稿测试、反馈与轨迹 | `AssistantTestRun`、`QueryFeedback`、`ModelInvocationTrace` | 已实施 | 只提供后续治理的最小受控读取输入。 |
 | 评测、发布决定、预算、导出 | 无 | 未设计为可实施切片 | 需要独立 ADR 确定指标、阈值、作用域、保留和例外授权。 |

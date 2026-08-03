@@ -140,6 +140,88 @@ class AuthenticationApiTest {
                 () -> platformSessions.resolve(tenantSession.getBody().tokenValue()));
     }
 
+    @Test
+    void 平台会话应建立并激活租户且新租户随后可取得租户会话() {
+        var platformToken = platformLogin();
+        var tenantCode = "api-tenant-" + System.nanoTime();
+        var created = http.exchange(
+                url("/api/v1/platform/tenants"),
+                HttpMethod.POST,
+                new HttpEntity<>(
+                        Map.of(
+                                "tenantCode", tenantCode,
+                                "displayName", "接口创建租户",
+                                "initialAdministratorSubjectId", "4921825928971026436"),
+                        bearer(platformToken)),
+                TenantLifecycleResponse.class);
+
+        assertEquals(HttpStatus.CREATED, created.getStatusCode());
+        assertNotNull(created.getBody());
+        assertEquals("PROVISIONING", created.getBody().status());
+        assertEquals(HttpStatus.UNAUTHORIZED, tenantLogin(tenantCode).getStatusCode());
+
+        var activated = http.exchange(
+                url("/api/v1/platform/tenants/" + created.getBody().tenantId() + "/lifecycle/activate"),
+                HttpMethod.POST,
+                new HttpEntity<>(bearer(platformToken)),
+                TenantLifecycleResponse.class);
+        assertEquals(HttpStatus.OK, activated.getStatusCode());
+        assertNotNull(activated.getBody());
+        assertEquals("ACTIVE", activated.getBody().status());
+
+        assertEquals(HttpStatus.CREATED, tenantLogin(tenantCode).getStatusCode());
+
+        var suspended = http.exchange(
+                url("/api/v1/platform/tenants/" + created.getBody().tenantId() + "/lifecycle/suspend"),
+                HttpMethod.POST,
+                new HttpEntity<>(bearer(platformToken)),
+                TenantLifecycleResponse.class);
+        assertEquals(HttpStatus.OK, suspended.getStatusCode());
+        assertNotNull(suspended.getBody());
+        assertEquals("SUSPENDED", suspended.getBody().status());
+        assertEquals(HttpStatus.UNAUTHORIZED, tenantLogin(tenantCode).getStatusCode());
+
+        var restored = http.exchange(
+                url("/api/v1/platform/tenants/" + created.getBody().tenantId() + "/lifecycle/restore"),
+                HttpMethod.POST,
+                new HttpEntity<>(bearer(platformToken)),
+                TenantLifecycleResponse.class);
+        assertEquals(HttpStatus.OK, restored.getStatusCode());
+        assertNotNull(restored.getBody());
+        assertEquals("ACTIVE", restored.getBody().status());
+        assertEquals(HttpStatus.CREATED, tenantLogin(tenantCode).getStatusCode());
+    }
+
+    @Test
+    void 租户会话与伪造当前主体字段不得取得平台租户治理入口() {
+        var tenantToken = tenantLogin();
+        var denied = http.exchange(
+                url("/api/v1/platform/tenants"),
+                HttpMethod.POST,
+                new HttpEntity<>(
+                        Map.of(
+                                "tenantCode", "forged-tenant",
+                                "displayName", "伪造租户",
+                                "initialAdministratorSubjectId", "4921825928971026436",
+                                "subjectId", "4921825928971026436"),
+                        bearer(tenantToken)),
+                ApiError.class);
+        assertEquals(HttpStatus.UNAUTHORIZED, denied.getStatusCode());
+
+        var rejected = http.exchange(
+                url("/api/v1/platform/tenants"),
+                HttpMethod.POST,
+                new HttpEntity<>(
+                        Map.of(
+                                "tenantCode", "forged-tenant",
+                                "displayName", "伪造租户",
+                                "initialAdministratorSubjectId", "4921825928971026436",
+                                "subjectId", "4921825928971026436"),
+                        bearer(platformLogin())),
+                ApiError.class);
+        assertEquals(HttpStatus.BAD_REQUEST, rejected.getStatusCode());
+    }
+
     private org.springframework.http.ResponseEntity<ApiError> loginFailure(
             String loginName,
             String password) {
@@ -150,6 +232,47 @@ class AuthenticationApiTest {
                         "loginName", loginName,
                         "password", password),
                 ApiError.class);
+    }
+
+    private String platformLogin() {
+        var response = http.postForEntity(
+                url("/api/v1/platform/auth/sessions"),
+                Map.of(
+                        "loginName", "platform-admin",
+                        "password", new String(DEMO_PASSWORD)),
+                SessionResponse.class);
+        assertEquals(HttpStatus.CREATED, response.getStatusCode());
+        assertNotNull(response.getBody());
+        return response.getBody().tokenValue();
+    }
+
+    private String tenantLogin() {
+        var response = http.postForEntity(
+                url("/api/v1/auth/sessions"),
+                Map.of(
+                        "tenantCode", "demo-store",
+                        "loginName", "admin",
+                        "password", new String(DEMO_PASSWORD)),
+                SessionResponse.class);
+        assertEquals(HttpStatus.CREATED, response.getStatusCode());
+        assertNotNull(response.getBody());
+        return response.getBody().tokenValue();
+    }
+
+    private org.springframework.http.ResponseEntity<String> tenantLogin(String tenantCode) {
+        return http.postForEntity(
+                url("/api/v1/auth/sessions"),
+                Map.of(
+                        "tenantCode", tenantCode,
+                        "loginName", "platform-admin",
+                        "password", new String(DEMO_PASSWORD)),
+                String.class);
+    }
+
+    private static HttpHeaders bearer(String token) {
+        var headers = new HttpHeaders();
+        headers.setBearerAuth(token);
+        return headers;
     }
 
     private String url(String path) {
@@ -167,5 +290,14 @@ class AuthenticationApiTest {
             String message,
             String traceId,
             Map<String, Object> details) {
+    }
+
+    private record TenantLifecycleResponse(
+            String tenantId,
+            String tenantCode,
+            String displayName,
+            String initialAdministratorSubjectId,
+            String status,
+            long version) {
     }
 }

@@ -241,6 +241,7 @@
 | ADR-0047 初始管理员选择契约 | `docs/adr/ADR-0047-initial-tenant-administrator-selection-contract.md` | 本次控制面提交 | 提议仅将既有 `SubjectId` 作为创建租户的业务资源目标；当前操作者、权限与令牌仍只由 `PlatformRequestContext` 恢复。未接受前不实施。 |
 | ADR-0047 人工接受 | `project/evidence/ADR-0047-approval.md` | 本次控制面提交 | 用户接受以既有 `SubjectId` 作为初始管理员业务资源目标；新租户建立可按红绿路线实施。 |
 | M6 新租户原子建立 | `project/evidence/WP-0014-tenant-lifecycle-tdd-route.md` | 本次提交 | 平台上下文授权前提、不可用初始管理员失败关闭、固定不可认证兼容行、准备中生命周期、初始管理员成员资格与发件箱真实 PostgreSQL 原子提交及自动配置回归通过。 |
+| M6 租户生命周期状态迁移与受限 HTTP | `project/evidence/WP-0014-tenant-lifecycle-tdd-route.md` | 本次提交 | 合法激活／挂起／恢复、根锁与修订原子提交、发件箱回滚、应用层 DTO、严格业务目标请求、演示认证切换与平台／租户 Bearer HTTP 闭环通过；控制台浏览器任务仍待完成。 |
 
 ## 证据规则
 

@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.mapper.TenantLifecycleTransitionMapper">
+
+    <select id="lock"
+            resultType="com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.projection.TenantLifecycleRow">
+        SELECT tenant_id,
+               tenant_code,
+               display_name,
+               initial_administrator_subject_id,
+               status,
+               version,
+               created_at
+        FROM organization_access.tenant_lifecycle
+        WHERE tenant_id = #{tenantId}
+        FOR UPDATE
+    </select>
+
+    <update id="updateLifecycle">
+        UPDATE organization_access.tenant_lifecycle
+        SET status = #{status},
+            version = #{nextVersion}
+        WHERE tenant_id = #{tenantId}
+          AND version = #{expectedVersion}
+    </update>
+
+    <insert id="insertOutbox">
+        INSERT INTO organization_access.tenant_lifecycle_outbox
+            (event_id, tenant_id, event_type, lifecycle_status, lifecycle_version, occurred_at)
+        VALUES
+            (#{eventId}, #{tenantId}, 'TENANT_LIFECYCLE_CHANGED', #{status}, #{version}, #{occurredAt})
+    </insert>
+</mapper>

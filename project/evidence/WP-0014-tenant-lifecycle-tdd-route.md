@@ -74,16 +74,41 @@
 追踪标识继续只从 `PlatformRequestContext` 恢复。兼容列固定为 `DISABLED`，从不用于认证或生命周期
 状态迁移；`PROVISIONING` 租户不能签发租户会话。
 
+## 已完成生命周期状态迁移与受限 HTTP 红绿
+
+| 阶段 | 命令 | 结果 |
+| --- | --- | --- |
+| 领域／应用红灯 | `./mvnw -q -pl backend/contexts/organization-access -am test -Dtest=TenantLifecycleTransitionServiceTest -Dsurefire.failIfNoSpecifiedTests=false` | 缺少迁移命令、存储端口、不可变结果和领域服务，测试无法编译。 |
+| PostgreSQL 红灯 | `./mvnw -q -pl backend/contexts/organization-access -am test -Dtest=PostgresTenantLifecycleTransitionStoreTest -Dsurefire.failIfNoSpecifiedTests=false` | 缺少生命周期迁移 Mapper 与 PostgreSQL Store，测试无法编译。 |
+| 自动配置红灯 | `./mvnw -q -pl backend/contexts/organization-access -am test -Dtest=OrganizationAccessAutoConfigurationTest -Dsurefire.failIfNoSpecifiedTests=false` | 新增迁移 Store 后，夹具没有 Mapper mock，启用上下文无法启动。 |
+| HTTP 红灯 | `./mvnw -q -pl backend/bootstrap/control-plane-bootstrap -am test -Dtest=AuthenticationApiTest -Dsurefire.failIfNoSpecifiedTests=false` | 平台租户路由尚未注册，平台建立和租户会话隔离断言得到 `404`。 |
+| 分层红灯 | `./mvnw -q -pl backend/contexts/organization-access -am test -Dtest=OrganizationAccessDependencyRulesTest -Dsurefire.failIfNoSpecifiedTests=false` | 初版 Controller 直接依赖领域动作、标识和聚合，ArchUnit 拒绝接口层越过 application。 |
+| 绿灯 | 上述定向命令及 `./mvnw -q -pl backend/contexts/organization-access -am test` | 命名领域服务只调用聚合合法迁移；PostgreSQL 使用根锁与修订比较，在同一事务写最小发件箱；自动配置、应用视图与 HTTP 入口均通过分层门禁。 |
+| Bootstrap HTTP 绿灯 | 同一 `AuthenticationApiTest` 命令 | 平台 Bearer 可建立、激活、挂起和恢复租户；`PROVISIONING`／`SUSPENDED` 均不能取得新租户会话，恢复为 `ACTIVE` 后恢复；租户 Bearer 与请求中的伪造 `subjectId` 分别得到 `401` 与 `400`。 |
+
+`TenantLifecycleTransition` 返回根与最小状态事实一致的不可变结果。应用层负责授权、事务、路径标识
+翻译和应用视图；PostgreSQL Store 只重建根、执行锁与版本比较、提交结果，不解释动作、不重写遗留
+`tenant.status`。接口层只依赖 application DTO，避免 HTTP 直接拥有领域模型。
+
+演示种子现在明确表示两条历史演示租户已完成 `PROVISIONING → ACTIVE` 的合法事件链、管理员确认和
+认证切换；它仅是可重建的演示基线，不替代 ADR-0044 规定的生产人工映射与原子回填。
+
 ### 六维评估
 
 | 维度 | 结论 | 依据 |
 | --- | --- | --- |
-| 正确性 | 通过 | 纯领域、应用服务和真实 PostgreSQL 分别验证同一操作结果、目标主体失败关闭与四类最小事实。 |
-| 安全性 | 通过 | 当前操作者只接受 `PlatformRequestContext`；目标主体受锁读取且不可用时不提交，未复制凭据。 |
-| 复杂度 | 可接受 | 仅新增建立命令、一个原子端口和一个 PostgreSQL 适配器；不复用历史回填的人工映射路径。 |
-| 冗余 | 可接受 | 兼容租户行与生命周期根分别服务遗留外键和唯一认证状态源，未形成双重认证判断。 |
-| 性能 | 可接受 | 单主体受锁读取与固定数量写入，未扫描主体、成员或租户正文。 |
-| 测试质量 | 通过 | 保存了实际编译红灯、应用反例、真实 PostgreSQL 回滚、自动配置和架构门禁绿灯。 |
+| 正确性 | 通过 | 纯领域反例、应用授权、真实 PostgreSQL 发件箱回滚及 Bootstrap 状态机回归覆盖同一状态事实。 |
+| 安全性 | 通过 | `PlatformRequestContext` 只由 Bearer 恢复；租户令牌无法使用平台路由，严格请求白名单拒绝伪造当前主体字段。 |
+| 复杂度 | 可接受 | 只增加一个迁移端口、一个应用视图和四个明确路由；未引入通用状态机或租户切换框架。 |
+| 冗余 | 可接受 | 兼容列保留但不参与迁移和切换后认证；领域根、应用视图和 HTTP 响应各自仅服务一个边界。 |
+| 性能 | 可接受 | 单根 `FOR UPDATE`、固定次数版本更新与发件箱写入；没有扫描主体、成员或正文。 |
+| 测试质量 | 通过 | 保存实际缺符号、缺 Bean、缺路由、分层违规四类红灯，以及真实 PostgreSQL、Bearer HTTP 和模块回归绿灯。 |
+
+## 仍未完成的浏览器角色任务
+
+当前首条切片已具备真实 Bearer HTTP 闭环，但控制台尚无租户生命周期治理页面，因而无法把平台管理员
+创建／状态迁移及租户管理员不可见性作为浏览器任务复核。该页面和浏览器证据仍是 WP-0014 的未完成
+范围；在补齐前不得申请 M6 自动或人工评审，也不得激活 M7。
 
 ## 真实 PostgreSQL 合同
 
@@ -106,5 +131,6 @@ make project-verify
 
 ## 未决边界
 
-在 ADR-0044 接受前，不得创建历史回填迁移或平台生命周期 HTTP 接口。映射来源的真实租户与主体值
-由部署责任人于执行窗口提供；本仓库只保存机制、验证和不含敏感数据的审计摘要要求。
+ADR-0044 至 ADR-0047 已接受并已完成相应后端切片。生产历史映射的真实租户与主体值仍仅由部署
+责任人于执行窗口提供；本仓库只保存机制、验证和不含敏感数据的审计摘要要求。平台生命周期控制台、
+实际浏览器角色任务和其余 M6 评测／预算／发布审批／审计导出切片仍未完成。

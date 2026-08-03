@@ -4,8 +4,10 @@ import com.aiplatform.foundation.organizationaccess.application.authentication.p
 import com.aiplatform.foundation.organizationaccess.application.authentication.service.PersonAuthenticationService;
 import com.aiplatform.foundation.organizationaccess.application.authentication.service.PlatformAuthenticationService;
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.port.out.TenantLifecycleBackfillStore;
+import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.port.out.TenantLifecycleTransitionStore;
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.port.out.TenantProvisioningStore;
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.service.TenantLifecycleBackfillService;
+import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.service.TenantLifecycleTransitionService;
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.service.TenantProvisioningService;
 import com.aiplatform.foundation.organizationaccess.domain.authorization.repository.PlatformAccessGrantRepository;
 import com.aiplatform.foundation.organizationaccess.domain.identity.repository.SubjectIdentityRepository;
@@ -82,6 +84,13 @@ public class OrganizationAccessCoreAutoConfiguration {
     TenantLifecycleBackfillService tenantLifecycleBackfillService(
             TenantLifecycleBackfillStore store) {
         return new TenantLifecycleBackfillService(store);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    TenantLifecycleTransitionService tenantLifecycleTransitionService(
+            TenantLifecycleTransitionStore store) {
+        return new TenantLifecycleTransitionService(store, Clock.systemUTC());
     }
 
     @Bean

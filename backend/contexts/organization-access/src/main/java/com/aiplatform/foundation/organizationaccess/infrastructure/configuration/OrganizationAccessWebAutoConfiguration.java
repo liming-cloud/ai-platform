@@ -2,6 +2,7 @@ package com.aiplatform.foundation.organizationaccess.infrastructure.configuratio
 
 import com.aiplatform.foundation.organizationaccess.interfaces.web.authentication.controller.AuthenticationController;
 import com.aiplatform.foundation.organizationaccess.interfaces.web.authentication.controller.PlatformAuthenticationController;
+import com.aiplatform.foundation.organizationaccess.interfaces.web.tenantlifecycle.controller.TenantLifecycleController;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Import;
@@ -13,6 +14,10 @@ import org.springframework.context.annotation.Import;
 @ConditionalOnProperty(
         name = "foundation.organization-access.enabled",
         havingValue = "true")
-@Import({AuthenticationController.class, PlatformAuthenticationController.class})
+@Import({
+    AuthenticationController.class,
+    PlatformAuthenticationController.class,
+    TenantLifecycleController.class
+})
 public class OrganizationAccessWebAutoConfiguration {
 }
