@@ -48,7 +48,8 @@ confirmedDecisions:
   - ADR-0039
   - ADR-0040
   - ADR-0041
-openDecisions: []
+openDecisions:
+  - ADR-0042
 latestEvidence:
   - docs/research/WP-0003-framework-baseline.md
   - project/evidence/WP-0003-trusted-context.md
@@ -162,6 +163,7 @@ latestEvidence:
   - project/evidence/WP-0014-m6-impact-analysis.md
   - docs/architecture/foundation-m6-enterprise-governance-design.md
   - project/evidence/ADR-0041-approval.md
+  - docs/adr/ADR-0042-initial-tenant-administrator-identity.md
 nextReviewAt: 2026-08-05
-updatedAt: 2026-08-03T00:00:00+08:00
+updatedAt: 2026-08-03T00:20:00+08:00
 updatedBy: codex
