@@ -221,6 +221,7 @@
 | M6 企业治理影响分析 | `project/evidence/WP-0014-m6-impact-analysis.md` | 本次控制面提交 | 代码图谱确认令牌派生租户上下文、同租户运营读取、助手发布和最小运行事实的边界；选定独立平台上下文方案。 |
 | M6 企业治理与发布制度领域设计 | `docs/architecture/foundation-m6-enterprise-governance-design.md` | 本次控制面提交 | 统一语言、上下文地图、场景、聚合、状态机、后续评测／发布 seam 和首条切片证据合同已登记；等待 ADR-0041 人工接受。 |
 | ADR-0041 平台请求上下文与租户生命周期 | `docs/adr/ADR-0041-platform-request-context-and-tenant-lifecycle.md` | 本次控制面提交 | 提议独立且令牌派生的平台上下文、可恢复租户生命周期和跨根操作结果；未接受前不实施。 |
+| ADR-0041 人工接受 | `project/evidence/ADR-0041-approval.md` | 本次控制面提交 | 用户接受平台请求上下文与租户生命周期边界；仅首条切片获实施授权。 |
 
 ## 证据规则
 
