@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.mapper.TenantLifecycleBackfillMapper">
+
+    <select id="lockHistoricalTenants"
+            resultType="com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.projection.HistoricalTenantLifecycleRow">
+        SELECT tenant.tenant_id, tenant.tenant_code, tenant.display_name, tenant.status, tenant.created_at
+        FROM organization_access.tenant tenant
+        LEFT JOIN organization_access.tenant_lifecycle lifecycle
+          ON lifecycle.tenant_id = tenant.tenant_id
+        WHERE lifecycle.tenant_id IS NULL
+        ORDER BY tenant.tenant_id
+        FOR UPDATE OF tenant
+    </select>
+
+    <select id="lockInitialAdministrator"
+            resultType="com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.projection.HistoricalTenantMembershipRow">
+        SELECT subject.subject_id,
+               subject.login_name,
+               subject.password_hash,
+               subject.status AS subject_status,
+               subject.version AS subject_version,
+               subject.created_at AS subject_created_at,
+               membership.membership_id,
+               membership.membership_role,
+               membership.status AS membership_status,
+               membership.permission_version,
+               membership.version AS membership_version,
+               membership.created_at AS membership_created_at
+        FROM organization_access.subject_identity subject
+        INNER JOIN organization_access.tenant_membership membership
+          ON membership.subject_id = subject.subject_id
+        WHERE membership.tenant_id = #{tenantId}
+          AND subject.subject_id = #{subjectId}
+        FOR UPDATE OF subject, membership
+    </select>
+
+    <insert id="insertLifecycle">
+        INSERT INTO organization_access.tenant_lifecycle
+            (tenant_id, tenant_code, display_name, initial_administrator_subject_id, status, version, created_at)
+        VALUES
+            (#{tenantId}, #{tenantCode}, #{displayName}, #{initialAdministratorId}, #{status}, #{version}, #{createdAt})
+    </insert>
+
+    <update id="confirmInitialAdministrator">
+        UPDATE organization_access.tenant_membership
+        SET membership_role = 'TENANT_ADMINISTRATOR',
+            version = #{nextVersion},
+            updated_at = CURRENT_TIMESTAMP
+        WHERE membership_id = #{membershipId}
+          AND tenant_id = #{tenantId}
+          AND subject_id = #{subjectId}
+          AND status = 'ENABLED'
+          AND version = #{expectedVersion}
+    </update>
+
+    <insert id="insertOutbox">
+        INSERT INTO organization_access.tenant_lifecycle_outbox
+            (event_id, tenant_id, event_type, lifecycle_status, lifecycle_version, occurred_at)
+        VALUES
+            (#{eventId}, #{tenantId}, 'TENANT_LIFECYCLE_CHANGED', #{status}, #{version}, #{occurredAt})
+    </insert>
+</mapper>

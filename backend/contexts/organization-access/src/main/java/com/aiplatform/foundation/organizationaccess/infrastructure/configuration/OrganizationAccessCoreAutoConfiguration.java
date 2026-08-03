@@ -3,6 +3,8 @@ package com.aiplatform.foundation.organizationaccess.infrastructure.configuratio
 import com.aiplatform.foundation.organizationaccess.application.authentication.port.out.PasswordVerifier;
 import com.aiplatform.foundation.organizationaccess.application.authentication.service.PersonAuthenticationService;
 import com.aiplatform.foundation.organizationaccess.application.authentication.service.PlatformAuthenticationService;
+import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.port.out.TenantLifecycleBackfillStore;
+import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.service.TenantLifecycleBackfillService;
 import com.aiplatform.foundation.organizationaccess.domain.authorization.repository.PlatformAccessGrantRepository;
 import com.aiplatform.foundation.organizationaccess.domain.identity.repository.SubjectIdentityRepository;
 import com.aiplatform.foundation.organizationaccess.domain.member.repository.TenantMembershipRepository;
@@ -69,5 +71,12 @@ public class OrganizationAccessCoreAutoConfiguration {
         } finally {
             Arrays.fill(dummyPassword, '\0');
         }
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    TenantLifecycleBackfillService tenantLifecycleBackfillService(
+            TenantLifecycleBackfillStore store) {
+        return new TenantLifecycleBackfillService(store);
     }
 }

@@ -126,7 +126,7 @@
 | --- | --- | --- | --- |
 | 租户请求上下文 | `TrustedRequestContext`、`SaTokenTrustedContextArgumentResolver` | 已实施 | 仅服务租户范围，禁止扩展为双范围可空对象。 |
 | 平台请求上下文 | 无 | 提议 | ADR-0041 接受后先按 TDD 建立安全适配和平台路由专用契约。 |
-| 租户生命周期根与历史回填结果 | `TenantLifecycle`、`TenantLifecycleBackfill`、`TenantLifecycleBackfillResult` | 部分实施 | 纯领域已禁止直接状态注入；真实 PostgreSQL 原子提交、发件箱和平台路由待后续红绿实现。 |
+| 租户生命周期根与历史回填结果 | `TenantLifecycle`、`TenantLifecycleBackfill`、`TenantLifecycleBackfillResult`、`TenantLifecycleBackfillService` | 部分实施 | 纯领域、真实 PostgreSQL 原子提交、最小发件箱和自动配置已完成；新租户建立、状态迁移和平台路由待后续红绿实现。 |
 | 同租户运营读取 | `OperationsQueryService` | 已实施 | 保持租户汇总与审计投影读取，不增加平台正文权限。 |
 | 草稿测试、反馈与轨迹 | `AssistantTestRun`、`QueryFeedback`、`ModelInvocationTrace` | 已实施 | 只提供后续治理的最小受控读取输入。 |
 | 评测、发布决定、预算、导出 | 无 | 未设计为可实施切片 | 需要独立 ADR 确定指标、阈值、作用域、保留和例外授权。 |

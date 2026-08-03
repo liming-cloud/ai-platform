@@ -3,12 +3,16 @@ package com.aiplatform.foundation.organizationaccess.infrastructure.configuratio
 import com.aiplatform.foundation.organizationaccess.domain.identity.repository.SubjectIdentityRepository;
 import com.aiplatform.foundation.organizationaccess.domain.authorization.repository.PlatformAccessGrantRepository;
 import com.aiplatform.foundation.organizationaccess.domain.member.repository.TenantMembershipRepository;
+import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.port.out.TenantLifecycleBackfillStore;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.authorization.mapper.PlatformAccessGrantMapper;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.authorization.repository.PostgresPlatformAccessGrantRepository;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.identity.mapper.SubjectIdentityMapper;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.identity.repository.PostgresSubjectIdentityRepository;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.membership.mapper.TenantMembershipMapper;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.membership.repository.PostgresTenantMembershipRepository;
+import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.mapper.TenantLifecycleBackfillMapper;
+import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.repository.PostgresTenantLifecycleBackfillStore;
+import com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator;
 import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -25,7 +29,8 @@ import org.springframework.context.annotation.Bean;
 @MapperScan(basePackageClasses = {
     PlatformAccessGrantMapper.class,
     SubjectIdentityMapper.class,
-    TenantMembershipMapper.class
+    TenantMembershipMapper.class,
+    TenantLifecycleBackfillMapper.class
 })
 public class OrganizationAccessPersistenceAutoConfiguration {
 
@@ -46,5 +51,13 @@ public class OrganizationAccessPersistenceAutoConfiguration {
     @ConditionalOnMissingBean
     TenantMembershipRepository tenantMembershipRepository(TenantMembershipMapper mapper) {
         return new PostgresTenantMembershipRepository(mapper);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    TenantLifecycleBackfillStore tenantLifecycleBackfillStore(
+            TenantLifecycleBackfillMapper mapper,
+            EntityIdGenerator identifiers) {
+        return new PostgresTenantLifecycleBackfillStore(mapper, identifiers);
     }
 }

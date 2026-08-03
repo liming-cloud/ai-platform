@@ -37,6 +37,18 @@
 
 该切片只固定领域转换与不可变操作结果，不读取数据库、不提交成员角色或发件箱，也不代替后续真实 PostgreSQL 回填合同。
 
+## 已完成真实 PostgreSQL 回填红绿
+
+| 阶段 | 命令 | 结果 |
+| --- | --- | --- |
+| 红灯 | `./mvnw -q -pl backend/contexts/organization-access -am test -Dtest=PostgresTenantLifecycleBackfillStoreTest -Dsurefire.failIfNoSpecifiedTests=false` | 缺少回填应用服务、映射值对象、PostgreSQL Store、Mapper 与迁移表，测试编译失败。 |
+| 绿灯 | 同一命令 | 通过；完整映射在单一真实 PostgreSQL 事务中写入两个生命周期根、两个管理员成员资格和五条最小状态事实。缺失、重复、跨租户、禁用与非成员映射均零残留；发件箱故障回滚已写入的根和成员角色。 |
+| 自动配置红绿 | `./mvnw -q -pl backend/contexts/organization-access -am test -Dtest=OrganizationAccessAutoConfigurationTest -Dsurefire.failIfNoSpecifiedTests=false` | 先因缺少 `TenantLifecycleBackfillService` Bean 失败；补齐 Store 与服务装配后通过。 |
+
+本实现不创建 HTTP、配置、令牌或日志映射入口。人工映射只作为受控部署调用 `TenantLifecycleBackfillService`
+的短暂内存输入；当前下一切片仍是新租户建立、生命周期状态迁移和平台 HTTP 受权，不得把映射改造成
+公共参数。
+
 ## 真实 PostgreSQL 合同
 
 - 回填输入只在受控部署事务中使用，不写入版本库、日志、会话、HTTP 请求或普通应用配置。

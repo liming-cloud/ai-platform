@@ -290,6 +290,36 @@
       "reason": "读取指定成员资格的权限集合，供服务端签发受限租户会话。"
     },
     {
+      "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/TenantLifecycleBackfillMapper.xml",
+      "statementId": "lockHistoricalTenants",
+      "category": "ROW_LOCK",
+      "reason": "受控回填前锁定尚无生命周期根的全部历史租户，防止并发回填覆盖同一根。"
+    },
+    {
+      "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/TenantLifecycleBackfillMapper.xml",
+      "statementId": "lockInitialAdministrator",
+      "category": "ROW_LOCK",
+      "reason": "在受控回填事务中锁定被人工映射的主体与成员资格，保证归属和启用状态读取后不漂移。"
+    },
+    {
+      "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/TenantLifecycleBackfillMapper.xml",
+      "statementId": "insertLifecycle",
+      "category": "ATOMIC_STATE_TRANSITION",
+      "reason": "只按领域回填结果写入一个租户生命周期根，禁止直接用历史状态构造根。"
+    },
+    {
+      "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/TenantLifecycleBackfillMapper.xml",
+      "statementId": "confirmInitialAdministrator",
+      "category": "ATOMIC_STATE_TRANSITION",
+      "reason": "以锁定成员资格的原修订原子确认初始管理员角色，冲突时使整批回填回滚。"
+    },
+    {
+      "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/TenantLifecycleBackfillMapper.xml",
+      "statementId": "insertOutbox",
+      "category": "OUTBOX",
+      "reason": "与生命周期根和初始管理员成员资格同一事务写入最小状态事实。"
+    },
+    {
       "path": "backend/contexts/trusted-query/src/main/resources/mapper/trusted-query/QueryRunMapper.xml",
       "statementId": "lockScope",
       "category": "POSTGRES_ADVISORY_LOCK",
