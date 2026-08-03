@@ -273,6 +273,10 @@ PostgreSQL／平台 HTTP 的既有后端证据仍见 `WP-0014-tenant-lifecycle-t
 `FOUNDATION_REDIS_PASSWORD` 被失败关闭；为遵守密钥边界，未读取现有容器环境或本地密钥。该结果登记为
 运行前置条件，不得当作新界面的浏览器通过证据。
 
+在当前提交上实际执行 `make project-verify` 与 `make validate`：项目治理、19 项 DDD 架构门禁、完整
+Maven 测试和既有真实 PostgreSQL 回归均通过。Spring、Testcontainers 与 MyBatis 的初始化警告未导致命令
+失败；自动门禁仍不能证明旧容器尚未加载的新浏览器界面。
+
 ## 先红后绿的纵向切片
 
 | 顺序 | 实际红灯 | 最小绿灯实现 | 回归范围 |
