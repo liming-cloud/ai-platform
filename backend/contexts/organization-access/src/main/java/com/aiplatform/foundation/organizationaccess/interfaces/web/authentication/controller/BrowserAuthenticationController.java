@@ -1,8 +1,10 @@
 package com.aiplatform.foundation.organizationaccess.interfaces.web.authentication.controller;
 
 import com.aiplatform.foundation.organizationaccess.application.authentication.command.BrowserLoginCommand;
+import com.aiplatform.foundation.organizationaccess.application.authentication.dto.BrowserSessionCapabilityResult;
 import com.aiplatform.foundation.organizationaccess.application.authentication.dto.BrowserSessionIssue;
 import com.aiplatform.foundation.organizationaccess.application.authentication.service.BrowserAuthenticationService;
+import com.aiplatform.foundation.organizationaccess.application.authentication.service.BrowserSessionCapabilityService;
 import com.aiplatform.foundation.organizationaccess.interfaces.web.authentication.request.BrowserLoginRequest;
 import com.aiplatform.foundation.security.identity.AccessChannel;
 import com.aiplatform.foundation.security.session.IssuedSession;
@@ -14,8 +16,10 @@ import java.time.Duration;
 import java.util.Arrays;
 import java.util.Base64;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -32,12 +36,15 @@ public class BrowserAuthenticationController {
     private static final SecureRandom CSRF_RANDOM = new SecureRandom();
 
     private final BrowserAuthenticationService authentication;
+    private final BrowserSessionCapabilityService capabilities;
     private final EntityIdGenerator identifiers;
 
     public BrowserAuthenticationController(
             BrowserAuthenticationService authentication,
+            BrowserSessionCapabilityService capabilities,
             EntityIdGenerator identifiers) {
         this.authentication = authentication;
+        this.capabilities = capabilities;
         this.identifiers = identifiers;
     }
 
@@ -49,6 +56,26 @@ public class BrowserAuthenticationController {
         return ResponseEntity.noContent()
                 .header(HttpHeaders.SET_COOKIE, csrfCookie(newCsrfToken(), Duration.ofHours(1)).toString())
                 .build();
+    }
+
+    /**
+     * 返回当前浏览器已验证范围的最小导航能力清单。
+     */
+    @GetMapping("/browser-session")
+    public ResponseEntity<?> session(
+            @CookieValue(name = BrowserSessionCookieNames.TENANT_SESSION, required = false)
+            String tenantSessionToken,
+            @CookieValue(name = BrowserSessionCookieNames.PLATFORM_SESSION, required = false)
+            String platformSessionToken) {
+        var result = capabilities.inspect(tenantSessionToken, platformSessionToken);
+        if (result.capability().isEmpty()) {
+            var response = ResponseEntity.status(HttpStatus.UNAUTHORIZED);
+            clearInvalidSessions(response, result);
+            return response.build();
+        }
+        var response = ResponseEntity.ok();
+        clearInvalidSessions(response, result);
+        return response.body(result.capability().orElseThrow());
     }
 
     /**
@@ -93,6 +120,30 @@ public class BrowserAuthenticationController {
                 .httpOnly(true)
                 .sameSite("Lax")
                 .maxAge(session.expiresIn())
+                .build();
+    }
+
+    private static void clearInvalidSessions(
+            ResponseEntity.HeadersBuilder<?> response,
+            BrowserSessionCapabilityResult result) {
+        if (result.clearTenantSession()) {
+            response.header(HttpHeaders.SET_COOKIE, clearedSessionCookie(BrowserSessionCookieNames.TENANT_SESSION).toString());
+        }
+        if (result.clearPlatformSession()) {
+            response.header(HttpHeaders.SET_COOKIE, clearedSessionCookie(BrowserSessionCookieNames.PLATFORM_SESSION).toString());
+        }
+        if (result.clearTenantSession() && result.clearPlatformSession()) {
+            response.header(HttpHeaders.SET_COOKIE, csrfCookie("", Duration.ZERO).toString());
+        }
+    }
+
+    private static ResponseCookie clearedSessionCookie(String name) {
+        return ResponseCookie.from(name, "")
+                .path("/")
+                .secure(true)
+                .httpOnly(true)
+                .sameSite("Lax")
+                .maxAge(Duration.ZERO)
                 .build();
     }
 

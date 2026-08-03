@@ -4,6 +4,7 @@ import com.aiplatform.foundation.organizationaccess.application.authentication.p
 import com.aiplatform.foundation.organizationaccess.application.authentication.service.PersonAuthenticationService;
 import com.aiplatform.foundation.organizationaccess.application.authentication.service.PlatformAuthenticationService;
 import com.aiplatform.foundation.organizationaccess.application.authentication.service.BrowserAuthenticationService;
+import com.aiplatform.foundation.organizationaccess.application.authentication.service.BrowserSessionCapabilityService;
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.port.out.TenantLifecycleBackfillStore;
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.port.out.TenantLifecycleTransitionStore;
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.port.out.TenantProvisioningStore;
@@ -18,12 +19,14 @@ import com.aiplatform.foundation.security.session.AuthenticatedSessionGateway;
 import com.aiplatform.foundation.security.session.PlatformSessionGateway;
 import com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator;
 import java.time.Clock;
+import java.time.Duration;
 import java.security.SecureRandom;
 import java.util.Arrays;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
+import org.springframework.beans.factory.annotation.Value;
 
 /**
  * 注册认证用例及其密码验证实现。
@@ -102,6 +105,16 @@ public class OrganizationAccessCoreAutoConfiguration {
         } finally {
             Arrays.fill(dummyPassword, '\0');
         }
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    BrowserSessionCapabilityService browserSessionCapabilityService(
+            AuthenticatedSessionGateway tenantSessions,
+            PlatformSessionGateway platformSessions,
+            @Value("${foundation.security.session-timeout:PT1H}") String sessionTimeout) {
+        return new BrowserSessionCapabilityService(
+                tenantSessions, platformSessions, Duration.parse(sessionTimeout));
     }
 
     @Bean

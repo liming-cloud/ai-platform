@@ -6,6 +6,7 @@ import static org.mockito.Mockito.mock;
 import com.aiplatform.foundation.organizationaccess.application.authentication.service.PersonAuthenticationService;
 import com.aiplatform.foundation.organizationaccess.application.authentication.service.PlatformAuthenticationService;
 import com.aiplatform.foundation.organizationaccess.application.authentication.service.BrowserAuthenticationService;
+import com.aiplatform.foundation.organizationaccess.application.authentication.service.BrowserSessionCapabilityService;
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.service.TenantLifecycleBackfillService;
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.service.TenantLifecycleTransitionService;
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.service.TenantProvisioningService;
@@ -67,6 +68,7 @@ class OrganizationAccessAutoConfigurationTest {
             assertThat(context).hasSingleBean(PersonAuthenticationService.class);
             assertThat(context).hasSingleBean(PlatformAuthenticationService.class);
             assertThat(context).hasSingleBean(BrowserAuthenticationService.class);
+            assertThat(context).hasSingleBean(BrowserSessionCapabilityService.class);
             assertThat(context).hasSingleBean(TenantLifecycleBackfillService.class);
             assertThat(context).hasSingleBean(TenantLifecycleTransitionService.class);
             assertThat(context).hasSingleBean(TenantProvisioningService.class);
@@ -86,6 +88,8 @@ class OrganizationAccessAutoConfigurationTest {
                             PersonAuthenticationService.class);
                     assertThat(context).doesNotHaveBean(
                             BrowserAuthenticationService.class);
+                    assertThat(context).doesNotHaveBean(
+                            BrowserSessionCapabilityService.class);
                     assertThat(context).doesNotHaveBean(
                             TenantLifecycleBackfillService.class);
                     assertThat(context).doesNotHaveBean(

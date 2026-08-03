@@ -234,6 +234,77 @@ class AuthenticationApiTest {
     }
 
     @Test
+    void 浏览器会话能力清单应只投影已验证租户范围且不泄露身份或令牌() {
+        var browserLogin = browserLogin("demo-store", "admin");
+        var headers = new HttpHeaders();
+        headers.set(HttpHeaders.COOKIE, browserLogin.sessionCookie());
+
+        var response = http.exchange(
+                url("/api/v1/auth/browser-session?workspaceCategory=PLATFORM_TENANT_GOVERNANCE"),
+                HttpMethod.GET,
+                new HttpEntity<>(headers),
+                Map.class);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertEquals(java.util.List.of("TENANT"), response.getBody().get("workspaceCategories"));
+        assertEquals(java.util.List.of("TENANT_MEMBER"), response.getBody().get("displayRoles"));
+        assertEquals(3600, response.getBody().get("maximumSessionAgeSeconds"));
+        assertFalse(response.getBody().containsKey("token"));
+        assertFalse(response.getBody().containsKey("subjectId"));
+        assertFalse(response.getBody().containsKey("membershipId"));
+        assertFalse(response.getBody().containsKey("tenantId"));
+        assertFalse(response.getBody().containsKey("permissions"));
+    }
+
+    @Test
+    void 浏览器会话能力清单应投影平台治理范围且隔离失效的另一范围会话() {
+        var platformSessionCookie = browserPlatformLogin("platform-admin");
+        var headers = new HttpHeaders();
+        headers.set(
+                HttpHeaders.COOKIE,
+                "__Host-foundation-tenant-session=invalid-session; " + platformSessionCookie);
+
+        var response = http.exchange(
+                url("/api/v1/auth/browser-session"),
+                HttpMethod.GET,
+                new HttpEntity<>(headers),
+                Map.class);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertEquals(
+                java.util.List.of("PLATFORM_TENANT_GOVERNANCE"),
+                response.getBody().get("workspaceCategories"));
+        assertEquals(
+                java.util.List.of("PLATFORM_TENANT_GOVERNOR"), response.getBody().get("displayRoles"));
+        assertTrue(response.getHeaders().getOrEmpty(HttpHeaders.SET_COOKIE).stream()
+                .anyMatch(cookie -> cookie.startsWith("__Host-foundation-tenant-session=")
+                        && cookie.contains("Max-Age=0")));
+        assertFalse(response.getHeaders().getOrEmpty(HttpHeaders.SET_COOKIE).stream()
+                .anyMatch(cookie -> cookie.startsWith("__Host-foundation-platform-session=")
+                        && cookie.contains("Max-Age=0")));
+    }
+
+    @Test
+    void 失效浏览器范围会话应被拒绝并定向清除Cookie() {
+        var headers = new HttpHeaders();
+        headers.set(HttpHeaders.COOKIE, "__Host-foundation-tenant-session=invalid-session");
+
+        var response = http.exchange(
+                url("/api/v1/auth/browser-session"),
+                HttpMethod.GET,
+                new HttpEntity<>(headers),
+                String.class);
+
+        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
+        assertTrue(response.getHeaders().getOrEmpty(HttpHeaders.SET_COOKIE).stream()
+                .anyMatch(cookie -> cookie.startsWith("__Host-foundation-tenant-session=")
+                        && cookie.contains("Max-Age=0")
+                        && cookie.contains("HttpOnly")));
+    }
+
+    @Test
     void 平台会话应建立并激活租户且新租户随后可取得租户会话() {
         var platformToken = platformLogin();
         var tenantCode = "api-tenant-" + System.nanoTime();
@@ -389,6 +460,46 @@ class AuthenticationApiTest {
         return new BrowserCsrf(headers);
     }
 
+    private BrowserLogin browserLogin(String tenantCode, String loginName) {
+        var csrf = browserCsrf();
+        var response = http.exchange(
+                url("/api/v1/auth/browser-sessions"),
+                HttpMethod.POST,
+                new HttpEntity<>(
+                        Map.of(
+                                "tenantCode", tenantCode,
+                                "loginName", loginName,
+                                "password", new String(DEMO_PASSWORD)),
+                        csrf.headers()),
+                String.class);
+        assertEquals(HttpStatus.NO_CONTENT, response.getStatusCode());
+        var sessionCookie = response.getHeaders().getOrEmpty(HttpHeaders.SET_COOKIE).stream()
+                .filter(value -> value.startsWith("__Host-foundation-tenant-session="))
+                .findFirst()
+                .map(value -> value.substring(0, value.indexOf(';')))
+                .orElseThrow();
+        return new BrowserLogin(sessionCookie);
+    }
+
+    private String browserPlatformLogin(String loginName) {
+        var csrf = browserCsrf();
+        var response = http.exchange(
+                url("/api/v1/auth/browser-sessions"),
+                HttpMethod.POST,
+                new HttpEntity<>(
+                        Map.of(
+                                "loginName", loginName,
+                                "password", new String(DEMO_PASSWORD)),
+                        csrf.headers()),
+                String.class);
+        assertEquals(HttpStatus.NO_CONTENT, response.getStatusCode());
+        return response.getHeaders().getOrEmpty(HttpHeaders.SET_COOKIE).stream()
+                .filter(value -> value.startsWith("__Host-foundation-platform-session="))
+                .findFirst()
+                .map(value -> value.substring(0, value.indexOf(';')))
+                .orElseThrow();
+    }
+
     private String url(String path) {
         return "http://127.0.0.1:" + port + path;
     }
@@ -400,6 +511,9 @@ class AuthenticationApiTest {
     }
 
     private record BrowserCsrf(HttpHeaders headers) {
+    }
+
+    private record BrowserLogin(String sessionCookie) {
     }
 
     private record ApiError(
