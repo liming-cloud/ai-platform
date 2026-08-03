@@ -226,6 +226,8 @@
 | ADR-0042 人工接受 | `project/evidence/ADR-0042-approval.md` | 本次控制面提交 | 用户接受全局主体与凭据聚合；首条切片可按红绿路线实施。 |
 | M6 全局主体与生命周期领域红绿 | `project/evidence/WP-0014-global-identity-domain.md` | 本次提交 | `SubjectIdentity` 与 `TenantLifecycle` 的实际编译红灯和组织访问模块绿灯已登记；持久化、会话和接口仍未实施。 |
 | M6 全局主体与成员资格迁移 | `project/evidence/WP-0014-global-identity-migration.md` | 本次提交 | 历史成员凭据拆分为唯一全局主体与 `tenant_membership`，真实 PostgreSQL 歧义失败关闭、主体禁用、双租户隔离和 Bearer 登录回归通过；平台会话与生命周期编排仍未实施。 |
+| M6 租户建立领域服务 | `project/evidence/WP-0014-tenant-provisioning-domain.md` | 本次提交 | 初始管理员成员资格根和不可变建立结果的红绿测试通过；持久化、平台会话和 HTTP 入口仍未实施。 |
+| ADR-0043 平台租户治理授权 | `docs/adr/ADR-0043-platform-tenant-governance-grant.md` | 本次提交 | 提议独立平台授权事实与 `tenant-governance:write`，等待用户接受后才实施平台会话与治理路由。 |
 
 ## 证据规则
 
