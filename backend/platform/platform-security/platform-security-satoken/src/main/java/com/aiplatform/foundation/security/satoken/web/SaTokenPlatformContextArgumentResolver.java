@@ -4,7 +4,7 @@ import com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator;
 import com.aiplatform.foundation.shared.kernel.identifier.TraceIds;
 import com.aiplatform.foundation.security.identity.PlatformRequestContext;
 import com.aiplatform.foundation.security.session.PlatformSessionGateway;
-import com.aiplatform.foundation.security.web.BearerTokens;
+import com.aiplatform.foundation.security.web.BrowserSessionCookieNames;
 import java.util.Objects;
 import org.springframework.core.MethodParameter;
 import org.springframework.http.HttpHeaders;
@@ -40,8 +40,8 @@ public final class SaTokenPlatformContextArgumentResolver
             ModelAndViewContainer container,
             NativeWebRequest request,
             WebDataBinderFactory binderFactory) {
-        var session = sessions.resolve(BearerTokens.require(
-                request.getHeader(HttpHeaders.AUTHORIZATION)));
+        var session = sessions.resolve(BrowserSessionTokenResolver.require(
+                request, BrowserSessionCookieNames.PLATFORM_SESSION));
         return new PlatformRequestContext(
                 session.subjectId(),
                 session.credentialType(),

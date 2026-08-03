@@ -16,7 +16,9 @@ import com.aiplatform.foundation.security.identity.SubjectId;
 import com.aiplatform.foundation.security.identity.TrustedRequestContext;
 import com.aiplatform.foundation.security.session.AuthenticatedSessionGateway;
 import com.aiplatform.foundation.security.session.InvalidAuthenticatedSessionException;
+import com.aiplatform.foundation.security.web.BrowserSessionCookieNames;
 import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
+import jakarta.servlet.http.Cookie;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpHeaders;
@@ -73,6 +75,37 @@ class SaTokenTrustedContextArgumentResolverTest {
                 () -> resolver.resolveArgument(null, null, new ServletWebRequest(request), null));
 
         verifyNoInteractions(sessions);
+    }
+
+    @Test
+    void 应从租户浏览器会话Cookie恢复可信登录状态且拒绝平台Cookie() {
+        var sessions = mock(AuthenticatedSessionGateway.class);
+        var tokenContext = tokenContext();
+        when(sessions.resolve("tenant-browser-token")).thenReturn(tokenContext);
+        var resolver = new SaTokenTrustedContextArgumentResolver(sessions, () -> 123L);
+        var request = new MockHttpServletRequest();
+        request.setCookies(new Cookie(BrowserSessionCookieNames.TENANT_SESSION, "tenant-browser-token"));
+
+        var actual = resolver.resolveArgument(null, null, new ServletWebRequest(request), null);
+
+        assertEquals(new TrustedRequestContext(
+                tokenContext.tenantId(),
+                tokenContext.subjectId(),
+                tokenContext.membershipId(),
+                tokenContext.credentialType(),
+                tokenContext.channel(),
+                tokenContext.permissionVersion(),
+                tokenContext.permissions(),
+                "trc_123"), actual);
+        verify(sessions).resolve("tenant-browser-token");
+        verifyNoMoreInteractions(sessions);
+
+        var platformCookieRequest = new MockHttpServletRequest();
+        platformCookieRequest.setCookies(new Cookie(BrowserSessionCookieNames.PLATFORM_SESSION, "platform-browser-token"));
+        assertThrows(
+                InvalidAuthenticatedSessionException.class,
+                () -> resolver.resolveArgument(null, null, new ServletWebRequest(platformCookieRequest), null));
+        verifyNoMoreInteractions(sessions);
     }
 
     private static TrustedRequestContext tokenContext() {

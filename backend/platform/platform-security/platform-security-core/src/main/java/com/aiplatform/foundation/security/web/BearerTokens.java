@@ -19,7 +19,15 @@ public final class BearerTokens {
                 || authorization.length() <= PREFIX.length()) {
             throw new InvalidAuthenticatedSessionException();
         }
-        var token = authorization.substring(PREFIX.length());
+        return requireTokenValue(authorization.substring(PREFIX.length()));
+    }
+
+    /**
+     * 校验已由受限协议位置取得的会话 token 值。
+     *
+     * @throws InvalidAuthenticatedSessionException 当 token 缺失、包含空白或超过长度上限时拒绝。
+     */
+    public static String requireTokenValue(String token) {
         if (token.isBlank()
                 || token.length() > MAX_TOKEN_LENGTH
                 || !token.equals(token.trim())

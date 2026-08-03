@@ -13,6 +13,30 @@
 当前 `ControlPlaneClient` 的影响分析覆盖 42 个符号；`query-web` 与 `console-web` 分别保存内存
 Bearer token。迁移必须从平台安全会话入口开始，不能先让页面存储 token 或创建平台登录表单。
 
+## 切片一：范围 cookie 解析器红绿记录
+
+先在 `SaTokenTrustedContextArgumentResolverTest` 与
+`SaTokenPlatformContextArgumentResolverTest` 新增“正确范围 cookie 恢复、另一范围 cookie 拒绝”反例。
+以下命令在尚未实现 cookie 提取时实际失败，两个失败都停在 `BearerTokens.require`，因为当前解析器只
+读取 `Authorization`：
+
+```bash
+./mvnw -q -pl backend/platform/platform-security/platform-security-satoken -am test \
+  -Dtest=SaTokenTrustedContextArgumentResolverTest,SaTokenPlatformContextArgumentResolverTest \
+  -Dsurefire.failIfNoSpecifiedTests=false
+```
+
+最小绿灯新增固定的租户／平台 cookie 名称和受限 token 提取器；Bearer 仍优先用于机器调用，缺少
+Bearer 时解析器只读取各自 cookie 名称。相同定向命令转绿；随后实际执行：
+
+```bash
+./mvnw -q -pl backend/platform/platform-security/platform-security-satoken -am test
+python3 scripts/quality/backend_architecture_guard.py verify
+git diff --check
+```
+
+三项均通过。该切片尚未签发 cookie、改变登录响应或引入 CSRF；这些仍由后续红绿切片负责。
+
 ## 先红后绿的纵向切片
 
 | 顺序 | 实际红灯 | 最小绿灯实现 | 回归范围 |
