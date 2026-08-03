@@ -664,6 +664,47 @@ describe("ControlPlaneClient", () => {
     expect(requests[1]?.url).toContain("pageSize=5");
     expect(requests.every((request) => request.headers.get("Authorization") === null)).toBe(true);
   });
+
+  it("平台租户生命周期只提交受管业务目标并使用固定状态迁移路径", async () => {
+    const requests: Request[] = [];
+    const lifecycle = {
+      tenantId: "610000000000000001",
+      tenantCode: "demo-campus",
+      displayName: "演示校园",
+      initialAdministratorSubjectId: "510000000000000001",
+      status: "PROVISIONING",
+      version: 0,
+    };
+    const client = authenticatedClient(async (input, init) => {
+      requests.push(new Request(input, init));
+      return new Response(JSON.stringify(lifecycle), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    });
+
+    await client.provisionTenant({
+      tenantCode: lifecycle.tenantCode,
+      displayName: lifecycle.displayName,
+      initialAdministratorSubjectId: lifecycle.initialAdministratorSubjectId,
+    });
+    await client.activateTenant(lifecycle.tenantId);
+    await client.suspendTenant(lifecycle.tenantId);
+    await client.restoreTenant(lifecycle.tenantId);
+
+    expect(requests.map((request) => request.url)).toEqual([
+      "http://localhost/api/v1/platform/tenants",
+      "http://localhost/api/v1/platform/tenants/610000000000000001/lifecycle/activate",
+      "http://localhost/api/v1/platform/tenants/610000000000000001/lifecycle/suspend",
+      "http://localhost/api/v1/platform/tenants/610000000000000001/lifecycle/restore",
+    ]);
+    expect(requests.map((request) => request.method)).toEqual(["POST", "POST", "POST", "POST"]);
+    expect(await requests[0]?.json()).toEqual({
+      tenantCode: lifecycle.tenantCode,
+      displayName: lifecycle.displayName,
+      initialAdministratorSubjectId: lifecycle.initialAdministratorSubjectId,
+    });
+  });
 });
 
 function authenticatedClient(fetcher: typeof fetch) {

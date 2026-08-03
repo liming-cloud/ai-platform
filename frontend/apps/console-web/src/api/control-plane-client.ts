@@ -7,6 +7,23 @@ import {
 
 export type LoginCredentials = BrowserLoginCredentials;
 
+/** 平台租户生命周期的最小投影，不包含成员详情、正文或当前操作者。 */
+export interface TenantLifecycle {
+  tenantId: string;
+  tenantCode: string;
+  displayName: string;
+  initialAdministratorSubjectId: string;
+  status: "PROVISIONING" | "ACTIVE" | "SUSPENDED";
+  version: number;
+}
+
+/** 平台建立租户只接受已存在主体这一业务资源目标。 */
+export interface TenantProvisioningInput {
+  tenantCode: string;
+  displayName: string;
+  initialAdministratorSubjectId: string;
+}
+
 export interface KnowledgeSpace {
   id: string;
   name: string;
@@ -246,6 +263,26 @@ export class ControlPlaneClient {
 
   hasSession(): boolean {
     return this.sessionActive;
+  }
+
+  async provisionTenant(input: TenantProvisioningInput): Promise<TenantLifecycle> {
+    return this.request<TenantLifecycle>("/platform/tenants", {
+      method: "POST",
+      headers: this.writeHeaders("application/json"),
+      body: JSON.stringify(input),
+    });
+  }
+
+  async activateTenant(tenantId: string): Promise<TenantLifecycle> {
+    return this.transitionTenant(tenantId, "activate");
+  }
+
+  async suspendTenant(tenantId: string): Promise<TenantLifecycle> {
+    return this.transitionTenant(tenantId, "suspend");
+  }
+
+  async restoreTenant(tenantId: string): Promise<TenantLifecycle> {
+    return this.transitionTenant(tenantId, "restore");
   }
 
   async getQueryUsage(from?: string, to?: string): Promise<QueryUsage> {
@@ -678,6 +715,16 @@ export class ControlPlaneClient {
       "Content-Type": contentType,
       ...this.writeIdempotencyHeaders(idempotencyKey),
     };
+  }
+
+  private async transitionTenant(
+    tenantId: string,
+    action: "activate" | "suspend" | "restore",
+  ): Promise<TenantLifecycle> {
+    return this.request<TenantLifecycle>(
+      `/platform/tenants/${encodeURIComponent(tenantId)}/lifecycle/${action}`,
+      { method: "POST" },
+    );
   }
 
   private writeIdempotencyHeaders(idempotencyKey?: string): HeadersInit {

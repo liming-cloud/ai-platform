@@ -43,11 +43,17 @@ const ModelConfigurationWorkspace = lazy(async () => {
   return { default: module.ModelConfigurationWorkspace };
 });
 
+const PlatformTenantLifecycleWorkspace = lazy(async () => {
+  const module = await import("./features/platform-governance/PlatformTenantLifecycleWorkspace");
+  return { default: module.PlatformTenantLifecycleWorkspace };
+});
+
 const NAVIGATION = [
   { id: "data", label: "数据" },
   { id: "models", label: "模型" },
   { id: "governance", label: "治理" },
   { id: "query", label: "问答" },
+  { id: "platform", label: "平台租户" },
 ] as const;
 
 export function ConsoleApp() {
@@ -59,6 +65,7 @@ export function ConsoleApp() {
         <AuthenticatedConsoleApp
           client={client}
           canUseTenantWorkspace={session.capability.workspaceCategories.includes("TENANT")}
+          canUsePlatformGovernance={session.capability.workspaceCategories.includes("PLATFORM_TENANT_GOVERNANCE")}
           onLogout={session.logout}
         />
       )}
@@ -69,21 +76,24 @@ export function ConsoleApp() {
 function AuthenticatedConsoleApp({
   client,
   canUseTenantWorkspace,
+  canUsePlatformGovernance,
   onLogout,
 }: {
   client: ControlPlaneClient;
   canUseTenantWorkspace: boolean;
+  canUsePlatformGovernance: boolean;
   onLogout: () => Promise<void>;
 }) {
   const [activeNavigationId, setActiveNavigationId] = useState<
     typeof NAVIGATION[number]["id"]
-  >("data");
+  >(canUseTenantWorkspace ? "data" : "platform");
   const [sessionRevision, setSessionRevision] = useState(0);
   const [dataTask, setDataTask] = useState<
     "governed-file" | "structured-dataset" | "object-storage" | "first-publication"
   >("governed-file");
   const governanceActive = activeNavigationId === "governance";
   const modelsActive = activeNavigationId === "models";
+  const platformActive = activeNavigationId === "platform";
   const dataPage = dataTask === "governed-file"
     ? {
       title: "受治理文件来源",
@@ -111,7 +121,7 @@ function AuthenticatedConsoleApp({
     }
     if (
       navigationId === "data" || navigationId === "models"
-      || navigationId === "governance"
+      || navigationId === "governance" || navigationId === "platform"
     ) {
       setActiveNavigationId(navigationId);
     }
@@ -121,7 +131,7 @@ function AuthenticatedConsoleApp({
     setSessionRevision((current) => current + 1);
   }
 
-  if (!canUseTenantWorkspace) {
+  if (!canUseTenantWorkspace && !canUsePlatformGovernance) {
     return (
       <ProductShell
         productName="可信知识平台"
@@ -146,16 +156,20 @@ function AuthenticatedConsoleApp({
     <ProductShell
       productName="可信知识平台"
       pageTitle={
-        governanceActive ? "查询用量与审计" : modelsActive ? "受控模型配置" : dataPage.title
+        platformActive ? "平台租户生命周期" : governanceActive ? "查询用量与审计" : modelsActive ? "受控模型配置" : dataPage.title
       }
       pageSummary={
-        governanceActive
+        platformActive
+          ? "建立与迁移租户状态，不展示租户正文、成员详情或平台操作者信息。"
+          : governanceActive
           ? "核对当前租户的查询配额、计量结果和脱敏运行记录。"
           : modelsActive
           ? "从平台发布目录创建、轮换和启用模型配置；API Key 不会再次显示。"
           : dataPage.summary
       }
-      navigation={NAVIGATION}
+      navigation={NAVIGATION.filter((item) =>
+        item.id === "platform" ? canUsePlatformGovernance : canUseTenantWorkspace,
+      )}
       activeNavigationId={activeNavigationId}
       onNavigationChange={selectNavigation}
       accountLabel="已验证浏览器会话"
@@ -170,7 +184,7 @@ function AuthenticatedConsoleApp({
         退出登录
       </Button>
 
-      <section hidden={governanceActive || modelsActive}>
+      <section hidden={governanceActive || modelsActive || platformActive}>
         <div className="data-task-switcher" aria-label="数据任务切换">
           <Button
             appearance={dataTask === "governed-file" ? "primary" : "subtle"}
@@ -264,6 +278,13 @@ function AuthenticatedConsoleApp({
               sessionRevision={sessionRevision}
               onSessionChanged={sessionChanged}
             />
+          </Suspense>
+        ) : null}
+      </section>
+      <section hidden={!platformActive}>
+        {platformActive ? (
+          <Suspense fallback={<StatePanel kind="loading" title="正在加载平台租户工作区" description="正在准备受限生命周期任务。" />}>
+            <PlatformTenantLifecycleWorkspace client={client} />
           </Suspense>
         ) : null}
       </section>
