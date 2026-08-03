@@ -223,6 +223,7 @@
 | ADR-0041 平台请求上下文与租户生命周期 | `docs/adr/ADR-0041-platform-request-context-and-tenant-lifecycle.md` | 本次控制面提交 | 提议独立且令牌派生的平台上下文、可恢复租户生命周期和跨根操作结果；未接受前不实施。 |
 | ADR-0041 人工接受 | `project/evidence/ADR-0041-approval.md` | 本次控制面提交 | 用户接受平台请求上下文与租户生命周期边界；仅首条切片获实施授权。 |
 | ADR-0042 初始管理员身份提案 | `docs/adr/ADR-0042-initial-tenant-administrator-identity.md` | 本次控制面提交 | 现有租户成员凭据没有全局主体／凭据边界；提议全局身份聚合，未接受前不复制密码哈希或实施生命周期链路。 |
+| ADR-0042 人工接受 | `project/evidence/ADR-0042-approval.md` | 本次控制面提交 | 用户接受全局主体与凭据聚合；首条切片可按红绿路线实施。 |
 
 ## 证据规则
 
