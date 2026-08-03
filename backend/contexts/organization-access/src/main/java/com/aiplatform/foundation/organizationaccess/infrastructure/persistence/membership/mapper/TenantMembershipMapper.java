@@ -1,19 +1,19 @@
-package com.aiplatform.foundation.organizationaccess.infrastructure.persistence.authentication.mapper;
+package com.aiplatform.foundation.organizationaccess.infrastructure.persistence.membership.mapper;
 
-import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.authentication.entity.MembershipCredentialEntity;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.authentication.projection.AuthenticationRow;
+import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.membership.entity.TenantMembershipEntity;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import java.util.List;
 import org.apache.ibatis.annotations.Param;
 
 /**
- * 可认证成员事实的 MyBatis-Plus 映射器。
+ * 租户成员资格及其权限事实的 MyBatis-Plus 映射器。
  */
-public interface TenantMemberCredentialMapper extends BaseMapper<MembershipCredentialEntity> {
+public interface TenantMembershipMapper extends BaseMapper<TenantMembershipEntity> {
 
     AuthenticationRow findEnabled(
             @Param("tenantCode") String tenantCode,
-            @Param("loginName") String loginName);
+            @Param("subjectId") long subjectId);
 
     List<String> findPermissionCodes(
             @Param("tenantId") long tenantId,

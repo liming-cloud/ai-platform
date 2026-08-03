@@ -12,13 +12,12 @@ import org.junit.jupiter.api.Test;
 class MemberAuthenticationProfileTest {
 
     @Test
-    void 应保存同一成员的身份凭据和授权事实() {
+    void 应保存同一成员的主体引用和授权事实而不复制凭据() {
         var permission = new PermissionCode("knowledge:read");
         var profile = new MemberAuthenticationProfile(
                 new TenantId(101L),
                 new SubjectId(102L),
                 new MemberId(103L),
-                new EncodedPassword("encoded"),
                 new PermissionGrantSet(7, Set.of(permission)));
 
         assertEquals(new TenantId(101L), profile.tenantId());
@@ -26,7 +25,6 @@ class MemberAuthenticationProfileTest {
         assertEquals(new MemberId(103L), profile.membershipId());
         assertEquals(7, profile.permissionVersion());
         assertEquals(Set.of(permission), profile.permissions());
-        assertEquals("[已脱敏]", profile.encodedPassword().toString());
     }
 
     @Test

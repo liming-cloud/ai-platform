@@ -8,7 +8,6 @@ public class AuthenticationRow {
     private Long tenantId;
     private Long subjectId;
     private Long membershipId;
-    private String passwordHash;
     private Long permissionVersion;
 
     public Long getTenantId() {
@@ -33,14 +32,6 @@ public class AuthenticationRow {
 
     public void setMembershipId(Long membershipId) {
         this.membershipId = membershipId;
-    }
-
-    public String getPasswordHash() {
-        return passwordHash;
-    }
-
-    public void setPasswordHash(String passwordHash) {
-        this.passwordHash = passwordHash;
     }
 
     public Long getPermissionVersion() {

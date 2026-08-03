@@ -1,8 +1,11 @@
 package com.aiplatform.foundation.organizationaccess.infrastructure.configuration;
 
-import com.aiplatform.foundation.organizationaccess.domain.member.repository.TenantMemberCredentialRepository;
-import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.authentication.mapper.TenantMemberCredentialMapper;
-import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.authentication.repository.PostgresTenantMemberCredentialRepository;
+import com.aiplatform.foundation.organizationaccess.domain.identity.repository.SubjectIdentityRepository;
+import com.aiplatform.foundation.organizationaccess.domain.member.repository.TenantMembershipRepository;
+import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.identity.mapper.SubjectIdentityMapper;
+import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.identity.repository.PostgresSubjectIdentityRepository;
+import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.membership.mapper.TenantMembershipMapper;
+import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.membership.repository.PostgresTenantMembershipRepository;
 import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -16,13 +19,18 @@ import org.springframework.context.annotation.Bean;
 @ConditionalOnProperty(
         name = "foundation.organization-access.enabled",
         havingValue = "true")
-@MapperScan(basePackageClasses = TenantMemberCredentialMapper.class)
+@MapperScan(basePackageClasses = {SubjectIdentityMapper.class, TenantMembershipMapper.class})
 public class OrganizationAccessPersistenceAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    TenantMemberCredentialRepository tenantMemberCredentialRepository(
-            TenantMemberCredentialMapper mapper) {
-        return new PostgresTenantMemberCredentialRepository(mapper);
+    SubjectIdentityRepository subjectIdentityRepository(SubjectIdentityMapper mapper) {
+        return new PostgresSubjectIdentityRepository(mapper);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    TenantMembershipRepository tenantMembershipRepository(TenantMembershipMapper mapper) {
+        return new PostgresTenantMembershipRepository(mapper);
     }
 }

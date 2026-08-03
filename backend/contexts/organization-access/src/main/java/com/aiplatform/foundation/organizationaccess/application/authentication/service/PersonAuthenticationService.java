@@ -5,7 +5,8 @@ import com.aiplatform.foundation.organizationaccess.application.authentication.c
 import com.aiplatform.foundation.organizationaccess.application.authentication.exception.InvalidCredentialsException;
 import com.aiplatform.foundation.organizationaccess.application.authentication.port.out.PasswordVerifier;
 import com.aiplatform.foundation.organizationaccess.domain.member.model.MemberAuthenticationProfile;
-import com.aiplatform.foundation.organizationaccess.domain.member.repository.TenantMemberCredentialRepository;
+import com.aiplatform.foundation.organizationaccess.domain.identity.repository.SubjectIdentityRepository;
+import com.aiplatform.foundation.organizationaccess.domain.member.repository.TenantMembershipRepository;
 import com.aiplatform.foundation.security.identity.CredentialType;
 import com.aiplatform.foundation.security.identity.MembershipId;
 import com.aiplatform.foundation.security.identity.PermissionCode;
@@ -17,21 +18,24 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
- * 使用持久化成员事实完成认证并签发可信会话。
+ * 先验证全局主体凭据，再恢复租户成员资格并签发可信会话。
  */
 public final class PersonAuthenticationService {
 
-    private final TenantMemberCredentialRepository members;
+    private final SubjectIdentityRepository identities;
+    private final TenantMembershipRepository memberships;
     private final PasswordVerifier passwords;
     private final AuthenticatedSessionGateway sessions;
     private final String dummyEncodedPassword;
 
     public PersonAuthenticationService(
-            TenantMemberCredentialRepository members,
+            SubjectIdentityRepository identities,
+            TenantMembershipRepository memberships,
             PasswordVerifier passwords,
             AuthenticatedSessionGateway sessions,
             String dummyEncodedPassword) {
-        this.members = Objects.requireNonNull(members, "成员仓储不能为空");
+        this.identities = Objects.requireNonNull(identities, "主体仓储不能为空");
+        this.memberships = Objects.requireNonNull(memberships, "成员资格仓储不能为空");
         this.passwords = Objects.requireNonNull(passwords, "密码验证器不能为空");
         this.sessions = Objects.requireNonNull(sessions, "会话网关不能为空");
         this.dummyEncodedPassword = requireDummyPassword(dummyEncodedPassword);
@@ -39,9 +43,9 @@ public final class PersonAuthenticationService {
 
     public IssuedSession authenticate(PersonLoginCommand command) {
         Objects.requireNonNull(command, "登录命令不能为空");
-        var member = members.findEnabled(command.tenantCode(), command.loginName());
-        var encodedPassword = member
-                .map(MemberAuthenticationProfile::encodedPassword)
+        var identity = identities.findActiveByLogin(command.loginName());
+        var encodedPassword = identity
+                .map(subject -> subject.encodedPassword())
                 .map(password -> password.verificationValue())
                 .orElse(dummyEncodedPassword);
         var candidate = command.copyPassword();
@@ -51,7 +55,12 @@ public final class PersonAuthenticationService {
         } finally {
             Arrays.fill(candidate, '\0');
         }
-        if (member.isEmpty() || !matched) {
+        if (identity.isEmpty() || !matched) {
+            throw new InvalidCredentialsException();
+        }
+
+        var member = memberships.findEnabled(command.tenantCode(), identity.orElseThrow().id());
+        if (member.isEmpty()) {
             throw new InvalidCredentialsException();
         }
 

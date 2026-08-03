@@ -2,7 +2,8 @@ package com.aiplatform.foundation.organizationaccess.infrastructure.configuratio
 
 import com.aiplatform.foundation.organizationaccess.application.authentication.port.out.PasswordVerifier;
 import com.aiplatform.foundation.organizationaccess.application.authentication.service.PersonAuthenticationService;
-import com.aiplatform.foundation.organizationaccess.domain.member.repository.TenantMemberCredentialRepository;
+import com.aiplatform.foundation.organizationaccess.domain.identity.repository.SubjectIdentityRepository;
+import com.aiplatform.foundation.organizationaccess.domain.member.repository.TenantMembershipRepository;
 import com.aiplatform.foundation.organizationaccess.infrastructure.password.Pbkdf2PasswordAdapter;
 import com.aiplatform.foundation.security.session.AuthenticatedSessionGateway;
 import java.security.SecureRandom;
@@ -30,13 +31,15 @@ public class OrganizationAccessCoreAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean
     PersonAuthenticationService personAuthenticationService(
-            TenantMemberCredentialRepository members,
+            SubjectIdentityRepository identities,
+            TenantMembershipRepository memberships,
             AuthenticatedSessionGateway sessions,
             Pbkdf2PasswordAdapter passwords) {
         var dummyPassword = "不存在成员的等价验证口令".toCharArray();
         try {
             return new PersonAuthenticationService(
-                    members,
+                    identities,
+                    memberships,
                     passwords,
                     sessions,
                     passwords.encode(dummyPassword));

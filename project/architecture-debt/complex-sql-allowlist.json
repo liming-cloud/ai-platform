@@ -266,16 +266,22 @@
       "reason": "使用 PostgreSQL 事务级咨询锁串行化租户内供应商连接名称约束。"
     },
     {
-      "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/TenantMemberCredentialMapper.xml",
-      "statementId": "findEnabled",
+      "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/SubjectIdentityMapper.xml",
+      "statementId": "findActiveByLogin",
       "category": "SECURITY_PROJECTION",
-      "reason": "连接租户、成员和凭据表构造认证所需的最小安全投影。"
+      "reason": "只读取启用的全局主体凭据，避免成员资格表保留或泄露密码摘要。"
     },
     {
-      "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/TenantMemberCredentialMapper.xml",
+      "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/TenantMembershipMapper.xml",
+      "statementId": "findEnabled",
+      "category": "SECURITY_PROJECTION",
+      "reason": "连接租户与成员资格表，只按已验证主体恢复最小租户授权投影。"
+    },
+    {
+      "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/TenantMembershipMapper.xml",
       "statementId": "findPermissionCodes",
       "category": "SECURITY_PROJECTION",
-      "reason": "连接成员角色、角色权限表读取服务端授权判定所需权限集合。"
+      "reason": "读取指定成员资格的权限集合，供服务端签发受限租户会话。"
     },
     {
       "path": "backend/contexts/trusted-query/src/main/resources/mapper/trusted-query/QueryRunMapper.xml",

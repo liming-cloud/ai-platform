@@ -4,7 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
 import com.aiplatform.foundation.organizationaccess.application.authentication.service.PersonAuthenticationService;
-import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.authentication.mapper.TenantMemberCredentialMapper;
+import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.identity.mapper.SubjectIdentityMapper;
+import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.membership.mapper.TenantMembershipMapper;
 import com.aiplatform.foundation.organizationaccess.interfaces.web.authentication.controller.AuthenticationController;
 import com.aiplatform.foundation.security.session.AuthenticatedSessionGateway;
 import com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator;
@@ -21,8 +22,11 @@ class OrganizationAccessAutoConfigurationTest {
                     OrganizationAccessWebAutoConfiguration.class))
             .withPropertyValues("foundation.organization-access.enabled=true")
             .withBean(
-                    TenantMemberCredentialMapper.class,
-                    () -> mock(TenantMemberCredentialMapper.class))
+                    SubjectIdentityMapper.class,
+                    () -> mock(SubjectIdentityMapper.class))
+            .withBean(
+                    TenantMembershipMapper.class,
+                    () -> mock(TenantMembershipMapper.class))
             .withBean(
                     AuthenticatedSessionGateway.class,
                     () -> mock(AuthenticatedSessionGateway.class))
@@ -57,8 +61,11 @@ class OrganizationAccessAutoConfigurationTest {
                         OrganizationAccessCoreAutoConfiguration.class))
                 .withPropertyValues("foundation.organization-access.enabled=true")
                 .withBean(
-                        TenantMemberCredentialMapper.class,
-                        () -> mock(TenantMemberCredentialMapper.class))
+                        SubjectIdentityMapper.class,
+                        () -> mock(SubjectIdentityMapper.class))
+                .withBean(
+                        TenantMembershipMapper.class,
+                        () -> mock(TenantMembershipMapper.class))
                 .run(context -> assertThat(context).hasFailed());
     }
 }

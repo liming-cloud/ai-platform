@@ -1,11 +1,15 @@
-package com.aiplatform.foundation.organizationaccess.infrastructure.persistence.authentication.repository;
+package com.aiplatform.foundation.organizationaccess.infrastructure.persistence.identity.repository;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.aiplatform.foundation.organizationaccess.domain.authorization.model.PermissionCode;
-import com.aiplatform.foundation.organizationaccess.domain.member.repository.TenantMemberCredentialRepository;
-import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.authentication.mapper.TenantMemberCredentialMapper;
+import com.aiplatform.foundation.organizationaccess.domain.identity.repository.SubjectIdentityRepository;
+import com.aiplatform.foundation.organizationaccess.domain.member.model.SubjectId;
+import com.aiplatform.foundation.organizationaccess.domain.member.repository.TenantMembershipRepository;
+import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.identity.mapper.SubjectIdentityMapper;
+import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.membership.mapper.TenantMembershipMapper;
+import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.membership.repository.PostgresTenantMembershipRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mybatis.spring.annotation.MapperScan;
@@ -21,14 +25,18 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
+/**
+ * 证明 PostgreSQL 只在全局主体表保存凭据，并按主体恢复租户成员资格。
+ */
 @SpringBootTest(
-        classes = PostgresTenantMemberCredentialRepositoryTest.TestApplication.class,
+        classes = PostgresSubjectAuthenticationRepositoryTest.TestApplication.class,
         properties = "foundation.organization-access.enabled=false")
 @Testcontainers
-class PostgresTenantMemberCredentialRepositoryTest {
+class PostgresSubjectAuthenticationRepositoryTest {
 
     private static final long STORE_TENANT = 100000000000000001L;
     private static final long CAMPUS_TENANT = 100000000000000002L;
+    private static final long ADMIN_SUBJECT = 4921825928971026434L;
     private static final long STORE_MEMBERSHIP = 3382738893456539650L;
     private static final long CAMPUS_MEMBERSHIP = 3382738893456539651L;
 
@@ -40,7 +48,10 @@ class PostgresTenantMemberCredentialRepositoryTest {
                     .withPassword("foundation_test_only");
 
     @Autowired
-    private TenantMemberCredentialRepository repository;
+    private SubjectIdentityRepository identities;
+
+    @Autowired
+    private TenantMembershipRepository memberships;
 
     @Autowired
     private JdbcTemplate jdbc;
@@ -58,59 +69,45 @@ class PostgresTenantMemberCredentialRepositoryTest {
     @BeforeEach
     void seedFacts() {
         jdbc.update("DELETE FROM organization_access.membership_permission");
-        jdbc.update("DELETE FROM organization_access.membership_credential");
+        jdbc.update("DELETE FROM organization_access.tenant_membership");
+        jdbc.update("DELETE FROM organization_access.subject_identity");
         jdbc.update("DELETE FROM organization_access.tenant");
 
         insertTenant(STORE_TENANT, "demo-store", "门店演示租户");
         insertTenant(CAMPUS_TENANT, "demo-campus", "校园演示租户");
-        insertMembership(
-                STORE_TENANT,
-                4921825928971026434L,
-                STORE_MEMBERSHIP,
-                "admin",
-                "store-hash",
-                "ENABLED");
-        insertMembership(
-                CAMPUS_TENANT,
-                4921825928971026435L,
-                CAMPUS_MEMBERSHIP,
-                "admin",
-                "campus-hash",
-                "ENABLED");
+        insertSubject(ADMIN_SUBJECT, "admin", "shared-hash", "ACTIVE");
+        insertMembership(STORE_TENANT, STORE_MEMBERSHIP, ADMIN_SUBJECT, "ENABLED");
+        insertMembership(CAMPUS_TENANT, CAMPUS_MEMBERSHIP, ADMIN_SUBJECT, "ENABLED");
         insertPermission(STORE_TENANT, STORE_MEMBERSHIP, "knowledge:read");
         insertPermission(CAMPUS_TENANT, CAMPUS_MEMBERSHIP, "knowledge:write");
     }
 
     @Test
-    void 应按租户编码隔离同名成员和权限() {
-        var store = repository.findEnabled("demo-store", "admin").orElseThrow();
-        var campus = repository.findEnabled("demo-campus", "admin").orElseThrow();
+    void 应以唯一全局主体凭据恢复隔离的租户成员资格() {
+        var subject = identities.findActiveByLogin("admin").orElseThrow();
+        var store = memberships.findEnabled("demo-store", subject.id()).orElseThrow();
+        var campus = memberships.findEnabled("demo-campus", subject.id()).orElseThrow();
 
-        assertEquals(STORE_TENANT, store.tenantId().value());
-        assertEquals("store-hash", store.encodedPassword().verificationValue());
+        assertEquals(new SubjectId(ADMIN_SUBJECT), subject.id());
+        assertEquals("shared-hash", subject.encodedPassword().verificationValue());
         assertEquals(STORE_MEMBERSHIP, store.membershipId().value());
+        assertEquals(CAMPUS_MEMBERSHIP, campus.membershipId().value());
         assertEquals(
                 java.util.Set.of(new PermissionCode("knowledge:read")),
                 store.permissions());
-
-        assertEquals(CAMPUS_TENANT, campus.tenantId().value());
-        assertEquals("campus-hash", campus.encodedPassword().verificationValue());
-        assertEquals(CAMPUS_MEMBERSHIP, campus.membershipId().value());
         assertEquals(
                 java.util.Set.of(new PermissionCode("knowledge:write")),
                 campus.permissions());
     }
 
     @Test
-    void 应拒绝停用成员和不存在租户且不回退到其他租户() {
+    void 应拒绝已停用主体且不回退到成员资格中的凭据() {
         jdbc.update(
-                "UPDATE organization_access.membership_credential "
-                        + "SET status = 'DISABLED' WHERE tenant_id = ?",
-                STORE_TENANT);
+                "UPDATE organization_access.subject_identity SET status = 'DISABLED' WHERE subject_id = ?",
+                ADMIN_SUBJECT);
 
-        assertTrue(repository.findEnabled("demo-store", "admin").isEmpty());
-        assertTrue(repository.findEnabled("unknown-tenant", "admin").isEmpty());
-        assertTrue(repository.findEnabled("demo-store", "missing").isEmpty());
+        assertTrue(identities.findActiveByLogin("admin").isEmpty());
+        assertTrue(memberships.findEnabled("demo-store", new SubjectId(999L)).isEmpty());
     }
 
     private void insertTenant(long tenantId, String code, String name) {
@@ -123,23 +120,30 @@ class PostgresTenantMemberCredentialRepositoryTest {
                 name);
     }
 
+    private void insertSubject(long subjectId, String loginName, String passwordHash, String status) {
+        jdbc.update(
+                "INSERT INTO organization_access.subject_identity "
+                        + "(subject_id, login_name, password_hash, status, version) "
+                        + "VALUES (?, ?, ?, ?, 0)",
+                subjectId,
+                loginName,
+                passwordHash,
+                status);
+    }
+
     private void insertMembership(
             long tenantId,
-            long subjectId,
             long membershipId,
-            String loginName,
-            String encodedPassword,
+            long subjectId,
             String status) {
         jdbc.update(
-                "INSERT INTO organization_access.membership_credential "
-                        + "(membership_id, tenant_id, subject_id, login_name, "
-                        + "password_hash, status, permission_version, version) "
-                        + "VALUES (?, ?, ?, ?, ?, ?, 1, 0)",
+                "INSERT INTO organization_access.tenant_membership "
+                        + "(membership_id, tenant_id, subject_id, membership_role, "
+                        + "status, permission_version, version) "
+                        + "VALUES (?, ?, ?, 'MEMBER', ?, 1, 0)",
                 membershipId,
                 tenantId,
                 subjectId,
-                loginName,
-                encodedPassword,
                 status);
     }
 
@@ -154,8 +158,8 @@ class PostgresTenantMemberCredentialRepositoryTest {
 
     @SpringBootConfiguration
     @EnableAutoConfiguration
-    @MapperScan(basePackageClasses = TenantMemberCredentialMapper.class)
-    @Import(PostgresTenantMemberCredentialRepository.class)
+    @MapperScan(basePackageClasses = {SubjectIdentityMapper.class, TenantMembershipMapper.class})
+    @Import({PostgresSubjectIdentityRepository.class, PostgresTenantMembershipRepository.class})
     static class TestApplication {
     }
 }

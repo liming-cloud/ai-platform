@@ -9,12 +9,34 @@ INSERT INTO organization_access.tenant (
     (100000000000000002, 'demo-campus', '校园演示租户', 'ENABLED', 0)
 ON CONFLICT DO NOTHING;
 
-INSERT INTO organization_access.membership_credential (
-    membership_id,
-    tenant_id,
+INSERT INTO organization_access.subject_identity (
     subject_id,
     login_name,
     password_hash,
+    status,
+    version
+) VALUES
+    (
+        4921825928971026434,
+        'admin',
+        'pbkdf2-sha256$v1$600000$xCeuZmvRbROcHBGNFfKU2A$OWzHrRHZCZ38xi3NaEHw1qEzE_-3X7F6vM37aNz--bk',
+        'ACTIVE',
+        0
+    ),
+    (
+        4921825928971026436,
+        'platform-admin',
+        'pbkdf2-sha256$v1$600000$xCeuZmvRbROcHBGNFfKU2A$OWzHrRHZCZ38xi3NaEHw1qEzE_-3X7F6vM37aNz--bk',
+        'ACTIVE',
+        0
+    )
+ON CONFLICT DO NOTHING;
+
+INSERT INTO organization_access.tenant_membership (
+    membership_id,
+    tenant_id,
+    subject_id,
+    membership_role,
     status,
     permission_version,
     version
@@ -23,8 +45,7 @@ INSERT INTO organization_access.membership_credential (
         3382738893456539650,
         100000000000000001,
         4921825928971026434,
-        'admin',
-        'pbkdf2-sha256$v1$600000$xCeuZmvRbROcHBGNFfKU2A$OWzHrRHZCZ38xi3NaEHw1qEzE_-3X7F6vM37aNz--bk',
+        'MEMBER',
         'ENABLED',
         1,
         0
@@ -32,9 +53,8 @@ INSERT INTO organization_access.membership_credential (
     (
         3382738893456539651,
         100000000000000002,
-        4921825928971026435,
-        'admin',
-        'pbkdf2-sha256$v1$600000$GAa1p3JpTYWan32T2ZpTMQ$CiQUoyizrJQJ4FgJmi_Xx21uNiChpNcRFwCchLmukb4',
+        4921825928971026434,
+        'MEMBER',
         'ENABLED',
         1,
         0
@@ -43,8 +63,7 @@ INSERT INTO organization_access.membership_credential (
         3382738893456539652,
         100000000000000001,
         4921825928971026436,
-        'platform-admin',
-        'pbkdf2-sha256$v1$600000$xCeuZmvRbROcHBGNFfKU2A$OWzHrRHZCZ38xi3NaEHw1qEzE_-3X7F6vM37aNz--bk',
+        'MEMBER',
         'ENABLED',
         1,
         0
@@ -173,11 +192,11 @@ INSERT INTO organization_access.membership_permission (
     )
 ON CONFLICT DO NOTHING;
 
-UPDATE organization_access.membership_credential
+UPDATE organization_access.tenant_membership
 SET permission_version = 2
 WHERE tenant_id IN (
           100000000000000001,
           100000000000000002
       )
-  AND login_name IN ('admin', 'platform-admin')
+  AND subject_id IN (4921825928971026434, 4921825928971026436)
   AND permission_version < 2;

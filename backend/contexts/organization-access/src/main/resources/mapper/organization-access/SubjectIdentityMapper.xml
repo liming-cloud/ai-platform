@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aiplatform.foundation.organizationaccess.infrastructure.persistence.identity.mapper.SubjectIdentityMapper">
+
+    <resultMap id="subjectIdentity"
+        type="com.aiplatform.foundation.organizationaccess.infrastructure.persistence.identity.entity.SubjectIdentityEntity">
+        <result column="subject_id" property="subjectId"/>
+        <result column="login_name" property="loginName"/>
+        <result column="password_hash" property="passwordHash"/>
+        <result column="status" property="status"/>
+        <result column="version" property="version"/>
+        <result column="created_at" property="createdAt"/>
+    </resultMap>
+
+    <select id="findActiveByLogin" resultMap="subjectIdentity">
+        SELECT subject_id, login_name, password_hash, status, version, created_at
+        FROM organization_access.subject_identity
+        WHERE login_name = #{loginName}
+          AND status = 'ACTIVE'
+    </select>
+</mapper>

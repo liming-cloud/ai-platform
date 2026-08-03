@@ -2,14 +2,13 @@
 <!DOCTYPE mapper
         PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="com.aiplatform.foundation.organizationaccess.infrastructure.persistence.authentication.mapper.TenantMemberCredentialMapper">
+<mapper namespace="com.aiplatform.foundation.organizationaccess.infrastructure.persistence.membership.mapper.TenantMembershipMapper">
 
     <resultMap id="authenticationRow"
         type="com.aiplatform.foundation.organizationaccess.infrastructure.persistence.authentication.projection.AuthenticationRow">
         <result column="tenant_id" property="tenantId"/>
         <result column="subject_id" property="subjectId"/>
         <result column="membership_id" property="membershipId"/>
-        <result column="password_hash" property="passwordHash"/>
         <result column="permission_version" property="permissionVersion"/>
     </resultMap>
 
@@ -18,14 +17,13 @@
             membership.tenant_id,
             membership.subject_id,
             membership.membership_id,
-            membership.password_hash,
             membership.permission_version
         FROM organization_access.tenant tenant
-        INNER JOIN organization_access.membership_credential membership
+        INNER JOIN organization_access.tenant_membership membership
             ON membership.tenant_id = tenant.tenant_id
         WHERE tenant.tenant_code = #{tenantCode}
           AND tenant.status = 'ENABLED'
-          AND membership.login_name = #{loginName}
+          AND membership.subject_id = #{subjectId}
           AND membership.status = 'ENABLED'
     </select>
 

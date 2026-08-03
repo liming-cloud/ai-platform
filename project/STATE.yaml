@@ -166,6 +166,7 @@ latestEvidence:
   - docs/adr/ADR-0042-initial-tenant-administrator-identity.md
   - project/evidence/ADR-0042-approval.md
   - project/evidence/WP-0014-global-identity-domain.md
+  - project/evidence/WP-0014-global-identity-migration.md
 nextReviewAt: 2026-08-05
-updatedAt: 2026-08-03T08:25:00+08:00
+updatedAt: 2026-08-03T08:32:00+08:00
 updatedBy: codex

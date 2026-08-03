@@ -1,22 +1,21 @@
-package com.aiplatform.foundation.organizationaccess.infrastructure.persistence.authentication.entity;
+package com.aiplatform.foundation.organizationaccess.infrastructure.persistence.membership.entity;
 
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 
 /**
- * MyBatis-Plus 使用的成员凭据持久化实体。
+ * MyBatis-Plus 使用的租户成员资格持久化实体。
  */
-@TableName("organization_access.membership_credential")
-public class MembershipCredentialEntity {
+@TableName("organization_access.tenant_membership")
+public class TenantMembershipEntity {
 
     @TableId(type = IdType.INPUT)
     private Long membershipId;
 
     private Long tenantId;
     private Long subjectId;
-    private String loginName;
-    private String passwordHash;
+    private String membershipRole;
     private String status;
     private Long permissionVersion;
     private Long version;
@@ -45,20 +44,12 @@ public class MembershipCredentialEntity {
         this.subjectId = subjectId;
     }
 
-    public String getLoginName() {
-        return loginName;
+    public String getMembershipRole() {
+        return membershipRole;
     }
 
-    public void setLoginName(String loginName) {
-        this.loginName = loginName;
-    }
-
-    public String getPasswordHash() {
-        return passwordHash;
-    }
-
-    public void setPasswordHash(String passwordHash) {
-        this.passwordHash = passwordHash;
+    public void setMembershipRole(String membershipRole) {
+        this.membershipRole = membershipRole;
     }
 
     public String getStatus() {

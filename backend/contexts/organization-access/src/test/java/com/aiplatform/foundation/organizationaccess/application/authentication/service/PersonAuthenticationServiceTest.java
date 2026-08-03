@@ -6,6 +6,7 @@ import com.aiplatform.foundation.organizationaccess.domain.member.model.EncodedP
 import com.aiplatform.foundation.organizationaccess.domain.member.model.MemberAuthenticationProfile;
 import com.aiplatform.foundation.organizationaccess.domain.member.model.MemberId;
 import com.aiplatform.foundation.organizationaccess.domain.member.model.SubjectId;
+import com.aiplatform.foundation.organizationaccess.domain.identity.model.SubjectIdentity;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -18,10 +19,12 @@ import com.aiplatform.foundation.organizationaccess.application.authentication.c
 import com.aiplatform.foundation.security.identity.TrustedRequestContext;
 import com.aiplatform.foundation.security.session.AuthenticatedSessionGateway;
 import com.aiplatform.foundation.organizationaccess.application.authentication.port.out.PasswordVerifier;
-import com.aiplatform.foundation.organizationaccess.domain.member.repository.TenantMemberCredentialRepository;
+import com.aiplatform.foundation.organizationaccess.domain.identity.repository.SubjectIdentityRepository;
+import com.aiplatform.foundation.organizationaccess.domain.member.repository.TenantMembershipRepository;
 import java.util.Optional;
 import java.util.Set;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Test;
 
@@ -40,6 +43,7 @@ class PersonAuthenticationServiceTest {
     void 应使用仓储事实签发可信租户会话() {
         var captured = new AtomicReference<TrustedRequestContext>();
         PersonAuthenticationService service = service(
+                Optional.of(subject()),
                 Optional.of(member()),
                 (password, encoded) -> encoded.equals("valid") && new String(password).equals("secret"),
                 context -> {
@@ -65,6 +69,7 @@ class PersonAuthenticationServiceTest {
         var verifiedHash = new AtomicReference<String>();
         PersonAuthenticationService service = service(
                 Optional.empty(),
+                Optional.empty(),
                 (password, encoded) -> {
                     verifiedHash.set(encoded);
                     return false;
@@ -83,6 +88,7 @@ class PersonAuthenticationServiceTest {
     @Test
     void 错误密码不得泄漏账号是否存在() {
         PersonAuthenticationService service = service(
+                Optional.of(subject()),
                 Optional.of(member()),
                 (password, encoded) -> false,
                 context -> {
@@ -96,11 +102,13 @@ class PersonAuthenticationServiceTest {
     }
 
     private static PersonAuthenticationService service(
+            Optional<SubjectIdentity> subject,
             Optional<MemberAuthenticationProfile> member,
             PasswordVerifier passwordVerifier,
             SessionIssuer sessionIssuer) {
-        TenantMemberCredentialRepository repository =
-                (tenantCode, loginName) -> member;
+        SubjectIdentityRepository identities = loginName -> subject;
+        TenantMembershipRepository memberships =
+                (tenantCode, subjectId) -> member;
         AuthenticatedSessionGateway sessions = new AuthenticatedSessionGateway() {
             @Override
             public IssuedSession issue(TrustedRequestContext context) {
@@ -118,7 +126,8 @@ class PersonAuthenticationServiceTest {
             }
         };
         return new PersonAuthenticationService(
-                repository,
+                identities,
+                memberships,
                 passwordVerifier,
                 sessions,
                 "dummy");
@@ -129,8 +138,15 @@ class PersonAuthenticationServiceTest {
                 TENANT_ID,
                 SUBJECT_ID,
                 MEMBERSHIP_ID,
-                new EncodedPassword("valid"),
                 new PermissionGrantSet(2, Set.of(KNOWLEDGE_WRITE)));
+    }
+
+    private static SubjectIdentity subject() {
+        return SubjectIdentity.register(
+                SUBJECT_ID,
+                "admin",
+                new EncodedPassword("valid"),
+                Instant.parse("2026-08-03T00:00:00Z"));
     }
 
     private static PersonLoginCommand command(String password) {

@@ -1,6 +1,6 @@
 /**
- * 拥有租户成员身份、认证凭据和成员仓储边界。
+ * 拥有租户成员资格及其授权读取边界。
  *
- * <p>成员事实是认证事务的领域输入，不负责创建平台安全会话。</p>
+ * <p>成员资格只引用全局主体，凭据由 `identity` 包拥有；本包不负责创建平台安全会话。</p>
  */
 package com.aiplatform.foundation.organizationaccess.domain.member;

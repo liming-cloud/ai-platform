@@ -225,6 +225,7 @@
 | ADR-0042 初始管理员身份提案 | `docs/adr/ADR-0042-initial-tenant-administrator-identity.md` | 本次控制面提交 | 现有租户成员凭据没有全局主体／凭据边界；提议全局身份聚合，未接受前不复制密码哈希或实施生命周期链路。 |
 | ADR-0042 人工接受 | `project/evidence/ADR-0042-approval.md` | 本次控制面提交 | 用户接受全局主体与凭据聚合；首条切片可按红绿路线实施。 |
 | M6 全局主体与生命周期领域红绿 | `project/evidence/WP-0014-global-identity-domain.md` | 本次提交 | `SubjectIdentity` 与 `TenantLifecycle` 的实际编译红灯和组织访问模块绿灯已登记；持久化、会话和接口仍未实施。 |
+| M6 全局主体与成员资格迁移 | `project/evidence/WP-0014-global-identity-migration.md` | 本次提交 | 历史成员凭据拆分为唯一全局主体与 `tenant_membership`，真实 PostgreSQL 歧义失败关闭、主体禁用、双租户隔离和 Bearer 登录回归通过；平台会话与生命周期编排仍未实施。 |
 
 ## 证据规则
 
