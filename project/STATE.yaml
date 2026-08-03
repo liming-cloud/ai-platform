@@ -53,7 +53,8 @@ confirmedDecisions:
   - ADR-0044
   - ADR-0045
   - ADR-0046
-openDecisions: []
+openDecisions:
+  - ADR-0047
 latestEvidence:
   - docs/research/WP-0003-framework-baseline.md
   - project/evidence/WP-0003-trusted-context.md
@@ -182,6 +183,7 @@ latestEvidence:
   - project/evidence/ADR-0045-approval.md
   - docs/adr/ADR-0046-tenant-lifecycle-authentication-cutover.md
   - project/evidence/ADR-0046-approval.md
+  - docs/adr/ADR-0047-initial-tenant-administrator-selection-contract.md
 nextReviewAt: 2026-08-05
-updatedAt: 2026-08-03T11:05:00+08:00
+updatedAt: 2026-08-03T11:35:00+08:00
 updatedBy: codex

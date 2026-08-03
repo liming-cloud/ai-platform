@@ -238,6 +238,7 @@
 | M6 历史租户生命周期真实 PostgreSQL 回填 | `project/evidence/WP-0014-tenant-lifecycle-tdd-route.md` | 本次提交 | 实际编译红灯后，真实 PostgreSQL 原子提交根、管理员角色和最小状态事实；缺失、重复、跨租户、禁用、非成员及发件箱失败均无残留，自动配置回归通过。 |
 | ADR-0046 人工接受 | `project/evidence/ADR-0046-approval.md` | 本次控制面提交 | 用户接受回填原子认证切换：切换后只以 `TenantLifecycle.status = ACTIVE` 签发租户会话。 |
 | M6 租户生命周期认证切换 | `project/evidence/WP-0014-tenant-lifecycle-tdd-route.md` | 本次提交 | 真实 PostgreSQL 回填成功才原子激活无敏感切换事实；失败无残留，切换后认证只接受 `ACTIVE` 生命周期根。 |
+| ADR-0047 初始管理员选择契约 | `docs/adr/ADR-0047-initial-tenant-administrator-selection-contract.md` | 本次控制面提交 | 提议仅将既有 `SubjectId` 作为创建租户的业务资源目标；当前操作者、权限与令牌仍只由 `PlatformRequestContext` 恢复。未接受前不实施。 |
 
 ## 证据规则
 
