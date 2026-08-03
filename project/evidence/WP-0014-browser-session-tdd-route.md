@@ -4,7 +4,7 @@
 
 | 项目 | 内容 |
 | --- | --- |
-| 状态 | ADR-0048 已接受；范围 cookie、统一认证编排、受限 HTTP／CSRF、无 token 能力清单、同源入口和控制台根级登录切片已完成红绿；query 根级恢复与真实浏览器任务仍未实施。 |
+| 状态 | ADR-0048 已接受；范围 cookie、统一认证编排、受限 HTTP／CSRF、无 token 能力清单、同源入口及控制台／query 根级登录切片已完成红绿；跨页签与真实浏览器任务仍未实施。 |
 | 工作包 | WP-0014，M6。 |
 | 前提 | 产品、架构和安全负责人接受 ADR-0048 方案 B，并将其移入 `confirmedDecisions`。 |
 | 目标 | 一个同源登录入口跨页签恢复角色允许的工作区，同时保持平台与租户会话不可互用。 |
@@ -197,6 +197,29 @@ git diff --check
 自动门禁、15 项控制台客户端测试和 11 个测试文件的 47 项前端回归均通过；类型、lint 与两个前端生产构建
 均通过。本切片没有让 `query-web` 直接渲染控制台表单，也没有把代码级门禁当作真实浏览器跨页签证据。
 
+## 切片九：查询根级恢复与直达回退红绿记录
+
+扩展根入口门禁后，实际失败显示 `QueryApp` 没有 `restoreSession`，`QueryWorkspace` 仍含 `LoginView`；查询
+客户端的当前 `401` 通知反例同时报出 `subscribeSessionChange is not a function`。这证明即使部署已经同源，
+直达 `/query/` 仍会打开第二个登录入口，查询失效也不能回收其受保护界面。
+
+最小绿灯使 `QueryApp` 独占会话恢复：只有能力清单包含 `TENANT` 才装载查询工作区；无会话、失效或无租户
+能力时，页面自动替换至 `/?next=%2Fquery%2F` 的控制台根入口。`QueryWorkspace` 仅接收已恢复的 `QueryClient`，
+初始加载已发布助手目录，不再输入凭据；当前 `401` 仅通知根组件并撤下工作区。查询页文案同步改为凭据由
+`HttpOnly` cookie 承载、页面不保存 token。
+
+实际执行：
+
+```bash
+python3 -m unittest scripts.quality.test_browser_session_root_ui
+cd frontend && npm test -- --run apps/query-web/src/api/query-client.test.ts
+cd frontend && npm test && npm run typecheck && npm run lint && npm run build
+git diff --check
+```
+
+3 项根入口门禁、7 项查询客户端测试和 11 个测试文件的 48 项前端回归均通过；类型、lint 与生产构建均通过。
+代码级重定向证明不替代真实浏览器的 Cookie、跨页签失效和角色访问验收。
+
 ## 先红后绿的纵向切片
 
 | 顺序 | 实际红灯 | 最小绿灯实现 | 回归范围 |
@@ -209,7 +232,7 @@ git diff --check
 | 6 | 已完成：业务客户端自行保存或拼接 Bearer token，或遗漏浏览器写入 CSRF。 | 两个应用共用 cookie 会话 seam，不保存 token；非安全请求统一读取 CSRF cookie。 | 47 项前端测试、类型检查、lint 与生产构建。 |
 | 7 | 已完成：query 仍公开单独端口、缺少 `/query/` 静态代理或查询 API 落入控制面代理。 | 复用 `console-web` Nginx 为唯一公开入口；query 仅内网运行，按 `/query/` 构建。 | 3 项部署反例、Compose 解析、Nginx 语法和前端生产构建。 |
 | 8 | 已完成：控制台没有根级会话入口，7 处工作区仍可渲染局部 `LoginForm`，当前 401 无法通知根组件。 | `BrowserSessionGate` 独占控制台凭据输入和会话状态；子工作区只消费已恢复客户端，导航只在 `TENANT` 能力下装载。 | 2 项根入口门禁、15 项控制台客户端测试、47 项前端回归、类型、lint 和生产构建。 |
-| 9 | 待实现：`query-web` 仍保有 `LoginView`，直达 `/query/` 无法回到唯一根入口恢复会话。 | query 根级恢复租户能力；无会话或无租户能力时只重定向至控制台入口。 | 查询 UI 反例、客户端恢复与直达路由任务。 |
+| 9 | 已完成：`query-web` 保有 `LoginView`，直达 `/query/` 无法恢复统一会话，当前 401 不能通知查询根组件。 | query 根组件恢复 `TENANT` 能力；无会话或无该能力时替换至控制台根入口，工作区仅接收已恢复客户端。 | 3 项根入口门禁、7 项查询客户端测试、48 项前端回归、类型、lint 和生产构建。 |
 | 10 | 待实现：同源新页签无法取得既有会话；注销、过期或 401 后其他页签仍显示受权任务。 | 两个应用以 `BroadcastChannel` 传播失效信号；不保存或广播 token。 | 浏览器两页签、注销、过期和直达无权路由任务。 |
 | 11 | 待实现：平台管理员无法完成建立、激活、挂起和恢复租户，或租户管理员／平台运营能看到不属于自己的页面。 | 最小平台租户生命周期工作区调用已存在的受限 HTTP；统一导航按能力清单显示。 | Bootstrap HTTP、真实浏览器和全文本披露检查。 |
 

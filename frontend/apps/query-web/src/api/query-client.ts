@@ -1,4 +1,5 @@
 import {
+  type BrowserSessionCapability,
   BrowserSessionClient,
   type BrowserLoginCredentials,
   type BrowserSessionGateway,
@@ -80,6 +81,7 @@ interface ApiErrorBody {
 export class QueryClient {
   private sessionActive = false;
   private sessionRevision = 0;
+  private readonly sessionListeners = new Set<(active: boolean) => void>();
   private readonly browserSession: BrowserSessionGateway;
 
   constructor(
@@ -96,7 +98,7 @@ export class QueryClient {
     signal?: AbortSignal,
   ): Promise<void> {
     const revision = ++this.sessionRevision;
-    this.sessionActive = false;
+    this.updateSessionActive(false);
     if (signal?.aborted) {
       return;
     }
@@ -104,7 +106,16 @@ export class QueryClient {
     if (revision !== this.sessionRevision) {
       return;
     }
-    this.sessionActive = true;
+    this.updateSessionActive(true);
+  }
+
+  async restoreSession(): Promise<BrowserSessionCapability | null> {
+    const revision = ++this.sessionRevision;
+    const capability = await this.browserSession.restore();
+    if (revision === this.sessionRevision) {
+      this.updateSessionActive(capability !== null);
+    }
+    return capability;
   }
 
   async logout(): Promise<void> {
@@ -112,13 +123,23 @@ export class QueryClient {
     try {
       await this.browserSession.logout();
     } finally {
-      this.sessionActive = false;
+      this.updateSessionActive(false);
     }
   }
 
   discardSession(): void {
     this.sessionRevision += 1;
-    this.sessionActive = false;
+    this.updateSessionActive(false);
+  }
+
+  /** 查询根组件据此在会话失效时撤下受保护工作区。 */
+  subscribeSessionChange(listener: (active: boolean) => void): () => void {
+    this.sessionListeners.add(listener);
+    return () => this.sessionListeners.delete(listener);
+  }
+
+  hasSession(): boolean {
+    return this.sessionActive;
   }
 
   async listAssistants(
@@ -261,7 +282,7 @@ export class QueryClient {
       && requestRevision === this.sessionRevision
     ) {
       this.sessionRevision += 1;
-      this.sessionActive = false;
+      this.updateSessionActive(false);
     }
     return new QueryApiError(
       response.status,
@@ -269,6 +290,16 @@ export class QueryClient {
       body?.message ?? "请求未完成，请稍后重试",
       body?.traceId ?? "",
     );
+  }
+
+  private updateSessionActive(active: boolean): void {
+    if (this.sessionActive === active) {
+      return;
+    }
+    this.sessionActive = active;
+    for (const listener of this.sessionListeners) {
+      listener(active);
+    }
   }
 }
 

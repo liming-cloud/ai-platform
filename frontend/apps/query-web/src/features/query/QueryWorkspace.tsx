@@ -3,7 +3,6 @@ import {
   Button,
   Dropdown,
   Field,
-  Input,
   MessageBar,
   MessageBarBody,
   MessageBarTitle,
@@ -22,8 +21,8 @@ import {
 } from "@fluentui/react-icons";
 import { StatePanel } from "@foundation/design-system";
 import {
-  type FormEvent,
   type Dispatch,
+  useCallback,
   useEffect,
   useMemo,
   useReducer,
@@ -31,12 +30,11 @@ import {
   useState,
 } from "react";
 import {
-  type LoginCredentials,
   type QueryFeedbackOutcome,
   type QueryFeedbackReason,
   QueryApiError,
-  QueryClient,
 } from "../../api/query-client";
+import type { QueryClient } from "../../api/query-client";
 import {
   QueryRequestScope,
   initialQueryWorkflow,
@@ -45,41 +43,20 @@ import {
   stableQueryRequestKey,
 } from "./query-workflow";
 
-export function QueryWorkspace() {
-  const client = useMemo(() => new QueryClient(), []);
+export function QueryWorkspace({ client }: { client: QueryClient }) {
   const requests = useMemo(() => new QueryRequestScope(), []);
   const requestKeys = useRef(
     new Map<string, { fingerprint: string; key: string }>(),
   );
   const [workflow, dispatch] = useReducer(
     reduceQueryWorkflow,
-    initialQueryWorkflow,
+    { ...initialQueryWorkflow, stage: "loading-catalog" },
   );
   const [question, setQuestion] = useState("");
 
   useEffect(() => () => requests.cancel(), [requests]);
 
-  async function login(credentials: LoginCredentials) {
-    const owner = requests.replace();
-    dispatch({ type: "authenticating" });
-    try {
-      await client.login(credentials, owner.signal);
-      if (!requests.isCurrent(owner)) {
-        return;
-      }
-      dispatch({ type: "loading-catalog" });
-      const page = await client.listAssistants(owner.signal);
-      if (requests.isCurrent(owner)) {
-        dispatch({ type: "catalog-loaded", assistants: page.items });
-      }
-    } catch (error) {
-      if (requests.isCurrent(owner)) {
-        dispatchFailure(dispatch, error, client);
-      }
-    }
-  }
-
-  async function reloadCatalog() {
+  const reloadCatalog = useCallback(async () => {
     const owner = requests.replace();
     dispatch({ type: "loading-catalog" });
     try {
@@ -92,7 +69,11 @@ export function QueryWorkspace() {
         dispatchFailure(dispatch, error, client);
       }
     }
-  }
+  }, [client, requests]);
+
+  useEffect(() => {
+    void reloadCatalog();
+  }, [reloadCatalog]);
 
   async function ask() {
     const assistantVersionId = workflow.selectedAssistantVersionId;
@@ -246,23 +227,6 @@ export function QueryWorkspace() {
     }
   }
 
-  if (
-    workflow.stage === "login"
-    || workflow.stage === "authenticating"
-    || (
-      workflow.stage === "failed"
-      && workflow.failureContext === "login"
-    )
-  ) {
-    return (
-      <LoginView
-        busy={workflow.stage === "authenticating"}
-        feedback={workflow.feedback}
-        onSubmit={login}
-      />
-    );
-  }
-
   if (workflow.stage === "loading-catalog") {
     return <CatalogSkeleton />;
   }
@@ -296,9 +260,9 @@ export function QueryWorkspace() {
       <StatePanel
         kind="stale"
         title="登录会话已经失效"
-        description="当前页面已清除会话和助手数据，请重新登录后继续。"
-        actionLabel="返回登录"
-        onAction={() => dispatch({ type: "signed-out" })}
+        description="当前页面已清除会话和助手数据，请返回统一登录入口。"
+        actionLabel="返回登录入口"
+        onAction={() => window.location.assign("/")}
         icon={<LockClosed24Regular aria-hidden />}
       />
     );
@@ -344,7 +308,7 @@ export function QueryWorkspace() {
         <div>
           <Text weight="semibold">查询会话已受保护</Text>
           <Text size={200}>
-            凭据和令牌只保存在当前页面内存
+            凭据仅由 HttpOnly cookie 承载，当前页面不保存 token
           </Text>
         </div>
         <Button appearance="subtle" onClick={() => void signOut()}>
@@ -453,84 +417,6 @@ export function QueryWorkspace() {
           />
         </div>
       </div>
-    </section>
-  );
-}
-
-function LoginView({
-  busy,
-  feedback,
-  onSubmit,
-}: {
-  busy: boolean;
-  feedback?: QueryWorkflowFeedback;
-  onSubmit: (credentials: LoginCredentials) => Promise<void>;
-}) {
-  const [tenantCode, setTenantCode] = useState("demo-store");
-  const [loginName, setLoginName] = useState("admin");
-  const [password, setPassword] = useState("");
-
-  function submit(event: FormEvent) {
-    event.preventDefault();
-    void onSubmit({ tenantCode, loginName, password });
-  }
-
-  return (
-    <section className="query-login">
-      <div className="query-task-heading">
-        <LockClosed24Regular aria-hidden />
-        <Title3>登录受限演示租户</Title3>
-        <Text>
-          账户决定可用助手和知识范围。凭据不会写入浏览器存储。
-        </Text>
-      </div>
-      {feedback ? (
-        <MessageBar intent="error">
-          <MessageBarBody>
-            <MessageBarTitle>登录未成功</MessageBarTitle>
-            {formatFeedback(feedback, "请检查租户、登录名和密码。")}
-          </MessageBarBody>
-        </MessageBar>
-      ) : null}
-      <form className="query-form" onSubmit={submit}>
-        <Field label="租户编码" required>
-          <Input
-            value={tenantCode}
-            autoComplete="organization"
-            disabled={busy}
-            onChange={(_, data) => setTenantCode(data.value)}
-          />
-        </Field>
-        <Field label="登录名" required>
-          <Input
-            value={loginName}
-            autoComplete="username"
-            disabled={busy}
-            onChange={(_, data) => setLoginName(data.value)}
-          />
-        </Field>
-        <Field label="密码" required>
-          <Input
-            value={password}
-            type="password"
-            autoComplete="current-password"
-            disabled={busy}
-            onChange={(_, data) => setPassword(data.value)}
-          />
-        </Field>
-        <Button
-          appearance="primary"
-          type="submit"
-          disabled={
-            busy
-            || tenantCode.trim().length === 0
-            || loginName.trim().length === 0
-            || password.length === 0
-          }
-        >
-          {busy ? "正在验证身份" : "登录并查看助手"}
-        </Button>
-      </form>
     </section>
   );
 }

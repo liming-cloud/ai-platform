@@ -6,6 +6,7 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
 CONSOLE = ROOT / "frontend/apps/console-web/src"
+QUERY = ROOT / "frontend/apps/query-web/src"
 
 
 class BrowserSessionRootUiTest(unittest.TestCase):
@@ -28,6 +29,14 @@ class BrowserSessionRootUiTest(unittest.TestCase):
                 violations.append(source.relative_to(CONSOLE).as_posix())
 
         self.assertEqual(violations, [])
+
+    def test_query_workspace_restores_or_returns_to_console_root(self):
+        root = (QUERY / "QueryApp.tsx").read_text()
+        workspace = (QUERY / "features/query/QueryWorkspace.tsx").read_text()
+
+        self.assertIn("restoreSession", root)
+        self.assertIn("/?next=%2Fquery%2F", root)
+        self.assertNotIn("LoginView", workspace)
 
 
 if __name__ == "__main__":

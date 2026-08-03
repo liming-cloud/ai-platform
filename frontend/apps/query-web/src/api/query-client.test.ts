@@ -6,6 +6,20 @@ import {
 } from "./query-client";
 
 describe("QueryClient", () => {
+  it("当前会话收到 401 时通知根级入口撤下查询工作区", async () => {
+    const client = await authenticatedClient(async () => new Response(null, {
+      status: 401,
+      headers: { "Content-Type": "application/json" },
+    }));
+    const changes: boolean[] = [];
+    client.subscribeSessionChange((active) => changes.push(active));
+
+    await expect(client.listAssistants()).rejects.toBeInstanceOf(QueryApiError);
+
+    expect(client.hasSession()).toBe(false);
+    expect(changes).toEqual([false]);
+  });
+
   it("登录后只使用同源浏览器会话读取已发布助手并创建查询", async () => {
     const requests: Request[] = [];
     const responses = [
