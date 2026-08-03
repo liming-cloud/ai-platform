@@ -5,6 +5,7 @@ import static org.mockito.Mockito.mock;
 
 import com.aiplatform.foundation.organizationaccess.application.authentication.service.PersonAuthenticationService;
 import com.aiplatform.foundation.organizationaccess.application.authentication.service.PlatformAuthenticationService;
+import com.aiplatform.foundation.organizationaccess.application.authentication.service.BrowserAuthenticationService;
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.service.TenantLifecycleBackfillService;
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.service.TenantLifecycleTransitionService;
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.service.TenantProvisioningService;
@@ -15,6 +16,7 @@ import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.t
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.mapper.TenantLifecycleTransitionMapper;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.mapper.TenantProvisioningMapper;
 import com.aiplatform.foundation.organizationaccess.interfaces.web.authentication.controller.AuthenticationController;
+import com.aiplatform.foundation.organizationaccess.interfaces.web.authentication.controller.BrowserAuthenticationController;
 import com.aiplatform.foundation.organizationaccess.interfaces.web.authentication.controller.PlatformAuthenticationController;
 import com.aiplatform.foundation.organizationaccess.interfaces.web.tenantlifecycle.controller.TenantLifecycleController;
 import com.aiplatform.foundation.security.session.AuthenticatedSessionGateway;
@@ -64,10 +66,12 @@ class OrganizationAccessAutoConfigurationTest {
             assertThat(context).hasNotFailed();
             assertThat(context).hasSingleBean(PersonAuthenticationService.class);
             assertThat(context).hasSingleBean(PlatformAuthenticationService.class);
+            assertThat(context).hasSingleBean(BrowserAuthenticationService.class);
             assertThat(context).hasSingleBean(TenantLifecycleBackfillService.class);
             assertThat(context).hasSingleBean(TenantLifecycleTransitionService.class);
             assertThat(context).hasSingleBean(TenantProvisioningService.class);
             assertThat(context).hasSingleBean(AuthenticationController.class);
+            assertThat(context).hasSingleBean(BrowserAuthenticationController.class);
             assertThat(context).hasSingleBean(PlatformAuthenticationController.class);
             assertThat(context).hasSingleBean(TenantLifecycleController.class);
         });
@@ -81,6 +85,8 @@ class OrganizationAccessAutoConfigurationTest {
                     assertThat(context).doesNotHaveBean(
                             PersonAuthenticationService.class);
                     assertThat(context).doesNotHaveBean(
+                            BrowserAuthenticationService.class);
+                    assertThat(context).doesNotHaveBean(
                             TenantLifecycleBackfillService.class);
                     assertThat(context).doesNotHaveBean(
                             TenantLifecycleTransitionService.class);
@@ -88,6 +94,8 @@ class OrganizationAccessAutoConfigurationTest {
                             TenantProvisioningService.class);
                     assertThat(context).doesNotHaveBean(
                             AuthenticationController.class);
+                    assertThat(context).doesNotHaveBean(
+                            BrowserAuthenticationController.class);
                     assertThat(context).doesNotHaveBean(
                             PlatformAuthenticationController.class);
                     assertThat(context).doesNotHaveBean(

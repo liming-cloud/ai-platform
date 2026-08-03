@@ -4,7 +4,7 @@
 
 | 项目 | 内容 |
 | --- | --- |
-| 状态 | ADR-0048 提议中；本文件只固定后续红绿路线，尚未创建或运行测试。 |
+| 状态 | ADR-0048 已接受；范围 cookie、统一认证编排和受限 HTTP／CSRF 切片已完成红绿，能力清单与浏览器任务仍未实施。 |
 | 工作包 | WP-0014，M6。 |
 | 前提 | 产品、架构和安全负责人接受 ADR-0048 方案 B，并将其移入 `confirmedDecisions`。 |
 | 目标 | 一个同源登录入口跨页签恢复角色允许的工作区，同时保持平台与租户会话不可互用。 |
@@ -61,15 +61,46 @@ git diff --check
 
 三项均通过。此切片只建立应用编排，不注册 Bean、不写 HTTP cookie，也不向浏览器返回任何 token。
 
+## 切片三：受限 HTTP cookie 与 CSRF 红绿记录
+
+先在真实 PostgreSQL／Redis 的 `AuthenticationApiTest` 增加统一浏览器登录、跨站拒绝反例。以下命令实际
+失败：新入口尚不存在，正常登录预期 `204` 实际为 `404`，跨站写入预期 `403` 实际也为 `404`：
+
+```bash
+./mvnw -q -pl backend/bootstrap/control-plane-bootstrap -am test \
+  -Dtest=AuthenticationApiTest \
+  -Dsurefire.failIfNoSpecifiedTests=false
+```
+
+最小绿灯在 organization-access 注册独立浏览器入口，只以 `Set-Cookie` 写入租户／平台范围会话和
+非身份 CSRF 值；浏览器登录响应为 `204` 空体。platform-security 在携带范围 cookie 的非安全请求上
+同时校验精确同源 `Origin`、`Sec-Fetch-Site` 与匹配的 `X-CSRF-Token`；旧 Bearer 请求没有范围 cookie，
+保持既有机器契约。首次登录先通过只读 `GET /api/v1/auth/browser-csrf` 获得不可作身份使用的防护值，
+因此登录本身也不允许缺失 CSRF 的跨站写入。
+
+相同定向命令转绿，实际 8 项通过；其中验证：
+
+- 会话 cookie 具有根路径、`Secure`、`HttpOnly`、`SameSite=Lax`，CSRF cookie 没有 `HttpOnly`；响应体为空；
+- 跨站浏览器登录与持有平台会话但缺少 CSRF 请求头的租户建立均为 `403`；
+- 既有租户和平台 Bearer 登录、生命周期 HTTP 回归仍通过。
+
+`HttpHeaders.getValuesAsList` 会拆分 `Set-Cookie` 属性，测试改用原始多值头读取，避免把 `Secure`、
+`HttpOnly` 或 `SameSite` 误判为不存在。随后实际执行平台安全、组织访问完整模块、上述 Bootstrap HTTP
+测试、`python3 scripts/quality/backend_architecture_guard.py verify` 和 `git diff --check`，均通过。
+
+当前只签发生产属性的 `Secure` cookie；HTTPS 部署和隔离测试 HTTP 的浏览器行为仍须在后续浏览器任务中
+分别记录，不能把 TestRestTemplate 手工 Cookie 视为真实浏览器证据。
+
 ## 先红后绿的纵向切片
 
 | 顺序 | 实际红灯 | 最小绿灯实现 | 回归范围 |
 | --- | --- | --- | --- |
-| 1 | 租户 cookie 不能解析 `PlatformRequestContext`，平台 cookie 不能解析 `TrustedRequestContext`；缺失、篡改、跨站写入和错误 CSRF 全部为 401／403。 | 在 platform-security 增加浏览器 cookie 提取与 CSRF 防护；仍委托既有两类 Sa-Token login type。 | 解析器、会话网关、自动配置与既有 Bearer 回归。 |
-| 2 | 一次浏览器登录无法只在服务端生成独立的租户／平台会话；登录响应不应含 token。 | organization-access 以已验证 `SubjectIdentity` 和可选租户业务选择建立会话族，并以两个 HttpOnly cookie 写回。 | 认证应用、真实 PostgreSQL／Redis、cookie HTTP 契约与失败关闭。 |
-| 3 | 客户端不能通过安全能力清单恢复导航；伪造清单也不能改变服务端授权。 | 只读 `browser-session` 能力投影和统一会话前端状态；权限仍由请求解析器再次验证。 | HTTP、控制台单元测试、类型检查和租户／平台越权反例。 |
-| 4 | 同源新页签无法取得既有会话；注销、过期或 401 后其他页签仍显示受权任务。 | 两个应用只消费 cookie 会话和 `BroadcastChannel` 的失效信号；不保存或广播 token。 | 浏览器两页签、注销、过期和直达无权路由任务。 |
-| 5 | 平台管理员无法完成建立、激活、挂起和恢复租户，或租户管理员／平台运营能看到不属于自己的页面。 | 最小平台租户生命周期工作区调用已存在的受限 HTTP；统一导航按能力清单显示。 | Bootstrap HTTP、真实浏览器和全文本披露检查。 |
+| 1 | 已完成：正确范围 cookie 恢复、另一范围 cookie 拒绝的实际红绿。 | platform-security 仅读取对应范围 cookie，Bearer 继续优先。 | 解析器、会话网关、自动配置与既有 Bearer 回归。 |
+| 2 | 已完成：一次浏览器登录的独立会话编排实际红绿。 | organization-access 以已验证 `SubjectIdentity` 和可选租户业务选择建立会话族。 | 认证应用、失败补偿与自动配置。 |
+| 3 | 已完成：新入口缺失导致的 HTTP 红灯、cookie 空体与跨站／缺失 CSRF 拒绝绿灯。 | 只用 HttpOnly 范围 cookie 交付 token；同源与 CSRF 过滤器只约束浏览器会话写入。 | 真实 PostgreSQL／Redis、cookie HTTP 契约与机器 Bearer 回归。 |
+| 4 | 待实现：客户端不能通过安全能力清单恢复导航；伪造清单也不能改变服务端授权。 | 只读 `browser-session` 能力投影和统一会话前端状态；权限仍由请求解析器再次验证。 | HTTP、控制台单元测试、类型检查和租户／平台越权反例。 |
+| 5 | 待实现：同源新页签无法取得既有会话；注销、过期或 401 后其他页签仍显示受权任务。 | 两个应用只消费 cookie 会话和 `BroadcastChannel` 的失效信号；不保存或广播 token。 | 浏览器两页签、注销、过期和直达无权路由任务。 |
+| 6 | 待实现：平台管理员无法完成建立、激活、挂起和恢复租户，或租户管理员／平台运营能看到不属于自己的页面。 | 最小平台租户生命周期工作区调用已存在的受限 HTTP；统一导航按能力清单显示。 | Bootstrap HTTP、真实浏览器和全文本披露检查。 |
 
 每一行都必须先保留实际失败命令及失败原因，再实施相同行为的最小绿灯。不得用 mock 替代
 Sa-Token、Redis、PostgreSQL、cookie 属性或浏览器页签事实。
@@ -97,16 +128,16 @@ make project-verify
 git diff --check
 ```
 
-真实浏览器任务还必须在 HTTPS cookie 配置与隔离测试 HTTP 配置中各自记录可复现结果。当前没有
-任何红灯或绿灯结果；接受 ADR-0048 前禁止将本路线视为实现或自动验收证据。
+真实浏览器任务还必须在 HTTPS cookie 配置与隔离测试 HTTP 配置中各自记录可复现结果。前三个切片的
+红绿结果不能替代能力清单、前端迁移、注销传播和两页签浏览器验收；M6 仍未完成。
 
 ## 六维预检
 
 | 维度 | 当前判断 | 依据／后续门槛 |
 | --- | --- | --- |
-| 正确性 | 待实现 | 上述 cookie 范围隔离、401／403、注销和过期反例。 |
-| 复杂度 | 可控 | 只增加会话族、能力投影和共享前端状态；不创建通用双范围上下文。 |
-| 冗余 | 待清理 | 绿灯后移除各工作区独立登录表单，保留机器 Bearer 契约直到专门迁移。 |
-| 性能 | 待测量 | 能力投影只能读取最小会话事实；不得在导航时加载正文或全量成员。 |
-| 架构 | 已固定待验证 | 以两类既有 login type 保持 ADR-0041／0043 边界，需经架构门禁回归。 |
-| 测试质量 | 待实现 | 每条反例必须先出现实际红灯，真实 Redis／PostgreSQL／浏览器不能被 mock 替代。 |
+| 正确性 | 已部分验证 | 实际 `404` 红灯后，真实 PostgreSQL／Redis HTTP 验证空体 cookie、跨站与缺失 CSRF 的 `403`，既有 Bearer 回归通过；注销与过期待验证。 |
+| 复杂度 | 可控 | 仅增加一个浏览器入口、一个防护过滤器和一个非身份 CSRF bootstrap；不创建通用双范围上下文。 |
+| 冗余 | 已识别待清理 | 旧两类 Bearer 登录仍是机器兼容契约；工作区独立登录表单待统一前端状态后移除。 |
+| 性能 | 已局部验证 | 登录只进行一次口令验证；CSRF 只比较固定长度 cookie／header，不读取正文或成员列表。 |
+| 架构 | 已验证 | 两类既有 login type 和限定 cookie 名称仍独立，application 服务只依赖端口，架构门禁通过。 |
+| 测试质量 | 已部分验证 | 已有实际红绿、真实 PostgreSQL／Redis、自动配置和 HTTP 反例；HTTPS 浏览器、跨页签和注销仍待实际任务。 |

@@ -3,6 +3,7 @@ package com.aiplatform.foundation.security.satoken.configuration;
 import com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator;
 import com.aiplatform.foundation.security.satoken.web.SaTokenPlatformContextArgumentResolver;
 import com.aiplatform.foundation.security.satoken.web.SaTokenTrustedContextArgumentResolver;
+import com.aiplatform.foundation.security.satoken.web.BrowserSessionCsrfFilter;
 import com.aiplatform.foundation.security.session.AuthenticatedSessionGateway;
 import com.aiplatform.foundation.security.session.PlatformSessionGateway;
 import java.util.List;
@@ -10,6 +11,8 @@ import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.context.annotation.Bean;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
+import org.springframework.core.Ordered;
 import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
@@ -20,6 +23,13 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
 @ConditionalOnBean(EntityIdGenerator.class)
 public class SaTokenWebAutoConfiguration {
+
+    @Bean
+    FilterRegistrationBean<BrowserSessionCsrfFilter> browserSessionCsrfFilter() {
+        var registration = new FilterRegistrationBean<>(new BrowserSessionCsrfFilter());
+        registration.setOrder(Ordered.HIGHEST_PRECEDENCE);
+        return registration;
+    }
 
     @Bean
     @ConditionalOnBean(AuthenticatedSessionGateway.class)

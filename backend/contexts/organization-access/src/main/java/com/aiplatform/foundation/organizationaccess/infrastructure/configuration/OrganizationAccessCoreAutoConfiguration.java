@@ -3,6 +3,7 @@ package com.aiplatform.foundation.organizationaccess.infrastructure.configuratio
 import com.aiplatform.foundation.organizationaccess.application.authentication.port.out.PasswordVerifier;
 import com.aiplatform.foundation.organizationaccess.application.authentication.service.PersonAuthenticationService;
 import com.aiplatform.foundation.organizationaccess.application.authentication.service.PlatformAuthenticationService;
+import com.aiplatform.foundation.organizationaccess.application.authentication.service.BrowserAuthenticationService;
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.port.out.TenantLifecycleBackfillStore;
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.port.out.TenantLifecycleTransitionStore;
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.port.out.TenantProvisioningStore;
@@ -73,6 +74,30 @@ public class OrganizationAccessCoreAutoConfiguration {
                     grants,
                     passwords,
                     sessions,
+                    passwords.encode(dummyPassword));
+        } finally {
+            Arrays.fill(dummyPassword, '\0');
+        }
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    BrowserAuthenticationService browserAuthenticationService(
+            SubjectIdentityRepository identities,
+            TenantMembershipRepository memberships,
+            PlatformAccessGrantRepository grants,
+            AuthenticatedSessionGateway tenantSessions,
+            PlatformSessionGateway platformSessions,
+            Pbkdf2PasswordAdapter passwords) {
+        var dummyPassword = "不存在主体的等价验证口令".toCharArray();
+        try {
+            return new BrowserAuthenticationService(
+                    identities,
+                    memberships,
+                    grants,
+                    passwords,
+                    tenantSessions,
+                    platformSessions,
                     passwords.encode(dummyPassword));
         } finally {
             Arrays.fill(dummyPassword, '\0');

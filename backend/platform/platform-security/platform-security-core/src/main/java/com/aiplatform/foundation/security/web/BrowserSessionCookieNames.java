@@ -10,6 +10,14 @@ public final class BrowserSessionCookieNames {
 
     public static final String TENANT_SESSION = "__Host-foundation-tenant-session";
     public static final String PLATFORM_SESSION = "__Host-foundation-platform-session";
+    public static final String CSRF = "__Host-foundation-csrf";
+
+    /**
+     * 判断 cookie 是否承载可恢复身份的浏览器会话。
+     */
+    public static boolean isSessionCookie(String name) {
+        return TENANT_SESSION.equals(name) || PLATFORM_SESSION.equals(name);
+    }
 
     private BrowserSessionCookieNames() {
     }

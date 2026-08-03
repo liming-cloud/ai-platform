@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.aiplatform.foundation.security.session.InvalidAuthenticatedSessionException;
 import com.aiplatform.foundation.security.session.AuthenticatedSessionGateway;
@@ -141,6 +142,98 @@ class AuthenticationApiTest {
     }
 
     @Test
+    void 统一浏览器登录应只写同源安全Cookie而不在响应体返回令牌() {
+        var csrf = browserCsrf();
+        var response = http.exchange(
+                url("/api/v1/auth/browser-sessions"),
+                HttpMethod.POST,
+                new HttpEntity<>(
+                        Map.of(
+                                "tenantCode", "demo-store",
+                                "loginName", "admin",
+                                "password", new String(DEMO_PASSWORD)),
+                        csrf.headers()),
+                String.class);
+
+        assertEquals(HttpStatus.NO_CONTENT, response.getStatusCode());
+        assertTrue(response.getBody() == null || response.getBody().isEmpty());
+        var cookies = response.getHeaders().getOrEmpty(HttpHeaders.SET_COOKIE);
+        var tenantCookie = cookies.stream()
+                .filter(cookie -> cookie.startsWith("__Host-foundation-tenant-session="))
+                .findFirst()
+                .orElseThrow();
+        assertTrue(tenantCookie.contains("Path=/")
+                && tenantCookie.contains("Secure")
+                && tenantCookie.contains("HttpOnly")
+                && tenantCookie.contains("SameSite=Lax"));
+        assertTrue(cookies.stream().anyMatch(cookie -> cookie.startsWith("__Host-foundation-csrf=")
+                && cookie.contains("Path=/")
+                && cookie.contains("Secure")
+                && cookie.contains("SameSite=Lax")
+                && !cookie.contains("HttpOnly")));
+    }
+
+    @Test
+    void 统一浏览器登录应拒绝跨站写入() {
+        var headers = new HttpHeaders();
+        headers.setOrigin("https://untrusted.example");
+        headers.set("Sec-Fetch-Site", "cross-site");
+
+        var response = http.exchange(
+                url("/api/v1/auth/browser-sessions"),
+                HttpMethod.POST,
+                new HttpEntity<>(
+                        Map.of(
+                                "tenantCode", "demo-store",
+                                "loginName", "admin",
+                                "password", new String(DEMO_PASSWORD)),
+                        headers),
+                String.class);
+
+        assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
+    }
+
+    @Test
+    void 持有浏览器会话的写入缺少CSRF防护值应失败关闭() {
+        var csrf = browserCsrf();
+        var login = http.exchange(
+                url("/api/v1/auth/browser-sessions"),
+                HttpMethod.POST,
+                new HttpEntity<>(
+                        Map.of(
+                                "loginName", "platform-admin",
+                                "password", new String(DEMO_PASSWORD)),
+                        csrf.headers()),
+                String.class);
+        assertEquals(HttpStatus.NO_CONTENT, login.getStatusCode());
+        var platformCookie = login.getHeaders().getOrEmpty(HttpHeaders.SET_COOKIE).stream()
+                .filter(value -> value.startsWith("__Host-foundation-platform-session="))
+                .findFirst()
+                .map(value -> value.substring(0, value.indexOf(';')))
+                .orElseThrow();
+        var csrfCookie = login.getHeaders().getOrEmpty(HttpHeaders.SET_COOKIE).stream()
+                .filter(value -> value.startsWith("__Host-foundation-csrf="))
+                .findFirst()
+                .map(value -> value.substring(0, value.indexOf(';')))
+                .orElseThrow();
+        var headers = sameOriginHeaders();
+        headers.set(HttpHeaders.COOKIE, platformCookie + "; " + csrfCookie);
+
+        var response = http.exchange(
+                url("/api/v1/platform/tenants"),
+                HttpMethod.POST,
+                new HttpEntity<>(
+                        Map.of(
+                                "tenantCode", "csrf-tenant-" + System.nanoTime(),
+                                "displayName", "CSRF 防护租户",
+                                "initialAdministratorSubjectId", "4921825928971026436"),
+                        headers),
+                String.class);
+
+        assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
+    }
+
+    @Test
     void 平台会话应建立并激活租户且新租户随后可取得租户会话() {
         var platformToken = platformLogin();
         var tenantCode = "api-tenant-" + System.nanoTime();
@@ -275,6 +368,27 @@ class AuthenticationApiTest {
         return headers;
     }
 
+    private HttpHeaders sameOriginHeaders() {
+        var headers = new HttpHeaders();
+        headers.setOrigin("http://127.0.0.1:" + port);
+        headers.set("Sec-Fetch-Site", "same-origin");
+        return headers;
+    }
+
+    private BrowserCsrf browserCsrf() {
+        var response = http.getForEntity(url("/api/v1/auth/browser-csrf"), String.class);
+        assertEquals(HttpStatus.NO_CONTENT, response.getStatusCode());
+        var cookie = response.getHeaders().getOrEmpty(HttpHeaders.SET_COOKIE).stream()
+                .filter(value -> value.startsWith("__Host-foundation-csrf="))
+                .findFirst()
+                .orElseThrow();
+        var pair = cookie.substring(0, cookie.indexOf(';'));
+        var headers = sameOriginHeaders();
+        headers.set(HttpHeaders.COOKIE, pair);
+        headers.set("X-CSRF-Token", pair.substring(pair.indexOf('=') + 1));
+        return new BrowserCsrf(headers);
+    }
+
     private String url(String path) {
         return "http://127.0.0.1:" + port + path;
     }
@@ -283,6 +397,9 @@ class AuthenticationApiTest {
             String tokenName,
             String tokenValue,
             long expiresInSeconds) {
+    }
+
+    private record BrowserCsrf(HttpHeaders headers) {
     }
 
     private record ApiError(

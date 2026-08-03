@@ -1,6 +1,7 @@
 package com.aiplatform.foundation.organizationaccess.infrastructure.configuration;
 
 import com.aiplatform.foundation.organizationaccess.interfaces.web.authentication.controller.AuthenticationController;
+import com.aiplatform.foundation.organizationaccess.interfaces.web.authentication.controller.BrowserAuthenticationController;
 import com.aiplatform.foundation.organizationaccess.interfaces.web.authentication.controller.PlatformAuthenticationController;
 import com.aiplatform.foundation.organizationaccess.interfaces.web.tenantlifecycle.controller.TenantLifecycleController;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
@@ -16,6 +17,7 @@ import org.springframework.context.annotation.Import;
         havingValue = "true")
 @Import({
     AuthenticationController.class,
+    BrowserAuthenticationController.class,
     PlatformAuthenticationController.class,
     TenantLifecycleController.class
 })
