@@ -268,6 +268,11 @@ git diff --check
 PostgreSQL／平台 HTTP 的既有后端证据仍见 `WP-0014-tenant-lifecycle-tdd-route.md`；本切片不以客户端
 单测代替平台管理员、租户管理员和平台运营的真实浏览器验收。
 
+浏览器续证于 `http://localhost:13000/` 实际观察到 18 小时前的 `console-web` 镜像仍渲染旧的局部登录
+表单，证明运行容器尚未加载本切片。仅重建 `console-web` 与 `query-web` 的 Compose 命令因当前终端缺少
+`FOUNDATION_REDIS_PASSWORD` 被失败关闭；为遵守密钥边界，未读取现有容器环境或本地密钥。该结果登记为
+运行前置条件，不得当作新界面的浏览器通过证据。
+
 ## 先红后绿的纵向切片
 
 | 顺序 | 实际红灯 | 最小绿灯实现 | 回归范围 |
