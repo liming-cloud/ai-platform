@@ -1,21 +1,14 @@
 import { describe, expect, it } from "vitest";
+import type { BrowserSessionGateway } from "@foundation/browser-session";
 import {
   ApiRequestError,
   ControlPlaneClient,
 } from "./control-plane-client";
 
 describe("ControlPlaneClient", () => {
-  it("登录后为写请求携带会话和幂等键", async () => {
+  it("登录后为写请求使用浏览器会话和幂等键", async () => {
     const requests: Request[] = [];
     const responses = [
-      new Response(
-        JSON.stringify({
-          tokenName: "Authorization",
-          tokenValue: "demo-token",
-          expiresInSeconds: 1800,
-        }),
-        { status: 201, headers: { "Content-Type": "application/json" } },
-      ),
       new Response(
         JSON.stringify({
           id: "210000000000000001",
@@ -29,12 +22,13 @@ describe("ControlPlaneClient", () => {
       ),
     ];
     const client = new ControlPlaneClient(
-      async (input, init) => {
-        requests.push(new Request(input, init));
-        return responses.shift() ?? new Response(null, { status: 500 });
-      },
+      async () => new Response(null, { status: 500 }),
       () => "request-key-001",
       "http://localhost/api/v1",
+      fakeBrowserSession(async (input, init) => {
+        requests.push(new Request(input, init));
+        return responses.shift() ?? new Response(null, { status: 500 });
+      }),
     );
 
     await client.login({
@@ -47,11 +41,9 @@ describe("ControlPlaneClient", () => {
       description: "演示数据",
     });
 
-    expect(requests).toHaveLength(2);
-    expect(requests[1]?.headers.get("Authorization")).toBe(
-      "Bearer demo-token",
-    );
-    expect(requests[1]?.headers.get("Idempotency-Key")).toBe(
+    expect(requests).toHaveLength(1);
+    expect(requests[0]?.headers.get("Authorization")).toBeNull();
+    expect(requests[0]?.headers.get("Idempotency-Key")).toBe(
       "request-key-001",
     );
   });
@@ -121,7 +113,7 @@ describe("ControlPlaneClient", () => {
 
     expect(request?.method).toBe("POST");
     expect(request?.url).toContain("/governed-data-sources/structured-datasets");
-    expect(request?.headers.get("Authorization")).toBe("Bearer demo-token");
+    expect(request?.headers.get("Authorization")).toBeNull();
     expect(request?.headers.get("Content-Type")).toContain("multipart/form-data;");
     const form = await request?.formData();
     expect(JSON.parse(await (form?.get("definition") as File).text())).toMatchObject({
@@ -162,7 +154,7 @@ describe("ControlPlaneClient", () => {
     );
     expect(request?.url).toContain("knowledgeSpaceId=210000000000000001");
     expect(request?.url).toContain("expectedVersion=1");
-    expect(request?.headers.get("Authorization")).toBe("Bearer demo-token");
+    expect(request?.headers.get("Authorization")).toBeNull();
   });
 
   it("同步、发布和退役受治理文件时只提交资源标识和乐观版本", async () => {
@@ -309,7 +301,7 @@ describe("ControlPlaneClient", () => {
     expect(requests[1]?.url).toContain("/object-storage/220000000000000001/probe");
     expect(requests[2]?.url).toContain("/object-storage/220000000000000001/synchronization");
     expect(requests[3]?.url).toContain("/object-storage/220000000000000001/artifacts/230000000000000001/publish");
-    expect(requests.every((request) => request.headers.get("Authorization") === "Bearer demo-token")).toBe(true);
+    expect(requests.every((request) => request.headers.get("Authorization") === null)).toBe(true);
   });
 
   it("分页读取FILE来源时只接收任务恢复所需的非敏感摘要", async () => {
@@ -355,8 +347,15 @@ describe("ControlPlaneClient", () => {
         details: {},
       }),
       { status: 403, headers: { "Content-Type": "application/json" } },
-    ), undefined, "http://localhost/api/v1");
-    client.restoreSession("demo-token");
+    ), undefined, "http://localhost/api/v1", fakeBrowserSession(async () => new Response(
+      JSON.stringify({
+        code: "KNOWLEDGE_DATA.AUTHORIZATION.0001",
+        message: "没有执行该操作的权限",
+        traceId: "trace-001",
+        details: {},
+      }),
+      { status: 403, headers: { "Content-Type": "application/json" } },
+    )));
 
     await expect(client.listKnowledgeSpaces()).rejects.toEqual(
       new ApiRequestError(
@@ -647,9 +646,7 @@ describe("ControlPlaneClient", () => {
     );
     expect(requests[1]?.url).toContain("pageNumber=2");
     expect(requests[1]?.url).toContain("pageSize=5");
-    expect(requests.every((request) =>
-      request.headers.get("Authorization") === "Bearer demo-token"
-    )).toBe(true);
+    expect(requests.every((request) => request.headers.get("Authorization") === null)).toBe(true);
   });
 });
 
@@ -658,7 +655,21 @@ function authenticatedClient(fetcher: typeof fetch) {
     fetcher,
     () => "request-key-002",
     "http://localhost/api/v1",
+    fakeBrowserSession(fetcher),
   );
-  client.restoreSession("demo-token");
   return client;
+}
+
+function fakeBrowserSession(fetcher: typeof fetch): BrowserSessionGateway {
+  const capability = {
+    workspaceCategories: ["TENANT"],
+    displayRoles: ["TENANT_MEMBER"],
+    maximumSessionAgeSeconds: 3600,
+  };
+  return {
+    login: async () => capability,
+    restore: async () => capability,
+    logout: async () => undefined,
+    request: async (path, init) => fetcher(`http://localhost/api/v1${path}`, init),
+  };
 }

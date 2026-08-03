@@ -244,7 +244,7 @@
 | M6 租户生命周期状态迁移与受限 HTTP | `project/evidence/WP-0014-tenant-lifecycle-tdd-route.md` | 本次提交 | 合法激活／挂起／恢复、根锁与修订原子提交、发件箱回滚、应用层 DTO、严格业务目标请求、演示认证切换与平台／租户 Bearer HTTP 闭环通过；控制台浏览器任务仍待完成。 |
 | ADR-0048 统一浏览器登录与角色工作区 | `docs/adr/ADR-0048-unified-browser-login-and-role-workspace.md` | 本次控制面提交 | 代码图谱确认现有多工作区独立内存会话；提议同源 HttpOnly 双范围会话和只读能力清单，等待人工接受前不实施。 |
 | ADR-0048 人工接受 | `project/evidence/ADR-0048-approval.md` | 本次控制面提交 | 用户接受同源 HttpOnly 双范围浏览器会话与最小能力清单；可按红绿路线实施，不扩大到 M7／M8。 |
-| M6 统一浏览器会话 TDD 路线 | `project/evidence/WP-0014-browser-session-tdd-route.md` | 本次提交 | 范围 cookie、统一认证编排、`HttpOnly` 空体登录、CSRF 失败关闭、能力清单和服务端会话族注销的真实 PostgreSQL／Redis 红绿已完成；前端统一状态与跨页签浏览器任务仍待实现。 |
+| M6 统一浏览器会话 TDD 路线 | `project/evidence/WP-0014-browser-session-tdd-route.md` | 本次提交 | 范围 cookie、统一认证编排、`HttpOnly` 空体登录、CSRF、能力清单、会话族注销及无 Bearer 的两套前端 API 客户端红绿已完成；统一页面入口、同源发布与跨页签浏览器任务仍待实现。 |
 
 ## 证据规则
 

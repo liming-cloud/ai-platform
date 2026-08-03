@@ -133,6 +133,18 @@ PostgreSQL／Redis 回归证明注销后原租户 cookie 不能再恢复能力�
 这只完成服务端注销语义。前端尚未发出统一注销请求或通过 `BroadcastChannel` 通知其他页签，因此不能
 把它当作跨页签注销完成证据。
 
+## 切片六：前端会话客户端红绿记录
+
+先在新建的 `@foundation/browser-session` 公共 seam 写入不存在模块的红灯；Vitest 实际报出
+`Cannot find module './browser-session-client'`。最小绿灯只实现同源 CSRF bootstrap、空体浏览器登录、
+能力恢复、会话族注销以及非安全请求的 `X-CSRF-Token` 注入；它不暴露或缓存 token。`console-web` 和
+`query-web` 的业务客户端均依赖该 seam，删除 `Authorization: Bearer` 拼接；请求序号确保旧请求的迟到
+`401` 不会清除新会话的本地状态。
+
+实际执行 `npm test && npm run typecheck && npm run lint && npm run build`，11 个测试文件、47 项测试均通过。
+这只证明浏览器客户端契约和两个 API 客户端迁移；各页面仍有局部登录视图，部署也仍需收敛为单一公开
+origin，故不能将本切片视为“一次登录跨工作区”完成证据。
+
 ## 先红后绿的纵向切片
 
 | 顺序 | 实际红灯 | 最小绿灯实现 | 回归范围 |
@@ -142,9 +154,10 @@ PostgreSQL／Redis 回归证明注销后原租户 cookie 不能再恢复能力�
 | 3 | 已完成：新入口缺失导致的 HTTP 红灯、cookie 空体与跨站／缺失 CSRF 拒绝绿灯。 | 只用 HttpOnly 范围 cookie 交付 token；同源与 CSRF 过滤器只约束浏览器会话写入。 | 真实 PostgreSQL／Redis、cookie HTTP 契约与机器 Bearer 回归。 |
 | 4 | 已完成：浏览器无法安全恢复导航，或伪造查询参数改变服务端授权。 | 只读 `browser-session` 固定能力投影；权限仍由请求解析器再次验证。 | 真实 PostgreSQL／Redis HTTP 的租户／平台、无泄露、定向清除与越权反例。 |
 | 5 | 已完成：浏览器注销只清本地状态，或未清除另一范围 cookie。 | `browser-session` 注销通过范围会话端口撤销，并清除整个 cookie 会话族。 | 真实 PostgreSQL／Redis HTTP 的撤销、cookie 清除和自动配置回归。 |
-| 6 | 待实现：各前端仍自行保存 Bearer token，不能按能力清单恢复统一导航。 | 两个应用只消费 cookie 会话和能力投影，不保存或广播 token。 | 控制台单元测试、类型检查和租户／平台越权反例。 |
-| 7 | 待实现：同源新页签无法取得既有会话；注销、过期或 401 后其他页签仍显示受权任务。 | 两个应用以 `BroadcastChannel` 传播失效信号；不保存或广播 token。 | 浏览器两页签、注销、过期和直达无权路由任务。 |
-| 8 | 待实现：平台管理员无法完成建立、激活、挂起和恢复租户，或租户管理员／平台运营能看到不属于自己的页面。 | 最小平台租户生命周期工作区调用已存在的受限 HTTP；统一导航按能力清单显示。 | Bootstrap HTTP、真实浏览器和全文本披露检查。 |
+| 6 | 已完成：业务客户端自行保存或拼接 Bearer token，或遗漏浏览器写入 CSRF。 | 两个应用共用 cookie 会话 seam，不保存 token；非安全请求统一读取 CSRF cookie。 | 47 项前端测试、类型检查、lint 与生产构建。 |
+| 7 | 待实现：各页面仍渲染局部登录视图，且公开部署尚非同一 origin。 | 统一根登录入口、能力驱动导航和 `/query/` 同源发布。 | 控制台 UI 反例、Nginx／Compose 配置和直达路由任务。 |
+| 8 | 待实现：同源新页签无法取得既有会话；注销、过期或 401 后其他页签仍显示受权任务。 | 两个应用以 `BroadcastChannel` 传播失效信号；不保存或广播 token。 | 浏览器两页签、注销、过期和直达无权路由任务。 |
+| 9 | 待实现：平台管理员无法完成建立、激活、挂起和恢复租户，或租户管理员／平台运营能看到不属于自己的页面。 | 最小平台租户生命周期工作区调用已存在的受限 HTTP；统一导航按能力清单显示。 | Bootstrap HTTP、真实浏览器和全文本披露检查。 |
 
 每一行都必须先保留实际失败命令及失败原因，再实施相同行为的最小绿灯。不得用 mock 替代
 Sa-Token、Redis、PostgreSQL、cookie 属性或浏览器页签事实。

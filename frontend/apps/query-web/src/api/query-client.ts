@@ -1,8 +1,10 @@
-export interface LoginCredentials {
-  tenantCode: string;
-  loginName: string;
-  password: string;
-}
+import {
+  BrowserSessionClient,
+  type BrowserLoginCredentials,
+  type BrowserSessionGateway,
+} from "@foundation/browser-session";
+
+export type LoginCredentials = BrowserLoginCredentials;
 
 export interface QueryAssistant {
   assistantId: string;
@@ -66,12 +68,6 @@ export type QueryFeedbackReason =
   | "INSUFFICIENT"
   | "IRRELEVANT";
 
-interface Session {
-  tokenName: string;
-  tokenValue: string;
-  expiresInSeconds: number;
-}
-
 interface ApiErrorBody {
   code: string;
   message: string;
@@ -79,77 +75,50 @@ interface ApiErrorBody {
 }
 
 /**
- * 查询站点同源客户端。会话令牌只存在于当前实例内存。
+ * 查询站点同源客户端。会话凭据只由 HttpOnly cookie 承载。
  */
 export class QueryClient {
-  private tokenValue: string | undefined;
+  private sessionActive = false;
   private sessionRevision = 0;
+  private readonly browserSession: BrowserSessionGateway;
 
   constructor(
     private readonly fetcher: typeof fetch = (...args) => fetch(...args),
     private readonly baseUrl = "/api/v1",
-  ) {}
+    browserSession?: BrowserSessionGateway,
+  ) {
+    this.browserSession = browserSession ?? new BrowserSessionClient(fetcher, baseUrl);
+    this.sessionActive = browserSession !== undefined;
+  }
 
   async login(
     credentials: LoginCredentials,
     signal?: AbortSignal,
   ): Promise<void> {
     const revision = ++this.sessionRevision;
-    this.tokenValue = undefined;
-    const session = await this.request<Session>(
-      "/auth/sessions",
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(credentials),
-        signal,
-      },
-      false,
-    );
+    this.sessionActive = false;
+    if (signal?.aborted) {
+      return;
+    }
+    await this.browserSession.login(credentials);
     if (revision !== this.sessionRevision) {
       return;
     }
-    if (session.tokenValue.trim().length === 0) {
-      throw new QueryApiError(
-        502,
-        "INVALID_SESSION_RESPONSE",
-        "登录服务返回了无效会话",
-        "",
-      );
-    }
-    this.tokenValue = session.tokenValue;
+    this.sessionActive = true;
   }
 
   async logout(): Promise<void> {
-    const token = this.tokenValue;
     this.sessionRevision += 1;
-    if (token === undefined) {
-      return;
-    }
     try {
-      const response = await this.fetcher(
-        `${this.baseUrl}/auth/sessions/current`,
-        {
-          method: "DELETE",
-          headers: {
-            Accept: "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-        },
-      );
-      if (!response.ok) {
-        throw await this.toRequestError(response, token);
-      }
+      await this.browserSession.logout();
     } finally {
-      if (this.tokenValue === token) {
-        this.tokenValue = undefined;
-      }
+      this.sessionActive = false;
     }
   }
 
   discardSession(): void {
     this.sessionRevision += 1;
-    this.tokenValue = undefined;
+    this.sessionActive = false;
   }
 
   async listAssistants(
@@ -196,7 +165,7 @@ export class QueryClient {
     );
     const response = authenticated.response;
     if (!response.ok) {
-      throw await this.toRequestError(response, authenticated.token);
+      throw await this.toRequestError(response, authenticated.revision);
     }
     const contentType = response.headers.get("Content-Type") ?? "";
     if (!contentType.toLowerCase().startsWith("text/event-stream")) {
@@ -235,11 +204,11 @@ export class QueryClient {
     const headers = new Headers(init.headers);
     headers.set("Accept", "application/json");
     let response: Response;
-    let requestToken: string | undefined;
+    let requestRevision: number | undefined;
     if (authenticated) {
       const result = await this.authenticatedFetch(path, { ...init, headers });
       response = result.response;
-      requestToken = result.token;
+      requestRevision = result.revision;
     } else {
       response = await this.fetcher(
         `${this.baseUrl}${path}`,
@@ -247,7 +216,7 @@ export class QueryClient {
       );
     }
     if (!response.ok) {
-      throw await this.toRequestError(response, requestToken);
+      throw await this.toRequestError(response, requestRevision);
     }
     if (response.status === 204) {
       return undefined as T;
@@ -267,9 +236,8 @@ export class QueryClient {
   private async authenticatedFetch(
     path: string,
     init: RequestInit,
-  ): Promise<{ response: Response; token: string }> {
-    const token = this.tokenValue;
-    if (token === undefined) {
+  ): Promise<{ response: Response; revision: number }> {
+    if (!this.sessionActive) {
       throw new QueryApiError(
         401,
         "PLATFORM_SECURITY.AUTHENTICATION.0001",
@@ -277,27 +245,23 @@ export class QueryClient {
         "",
       );
     }
-    const headers = new Headers(init.headers);
-    headers.set("Authorization", `Bearer ${token}`);
-    const response = await this.fetcher(
-      `${this.baseUrl}${path}`,
-      { ...init, headers },
-    );
-    return { response, token };
+    const revision = this.sessionRevision;
+    const response = await this.browserSession.request(path, init);
+    return { response, revision };
   }
 
   private async toRequestError(
     response: Response,
-    requestToken?: string,
+    requestRevision?: number,
   ): Promise<QueryApiError> {
     const body = await safeErrorBody(response);
     if (
       response.status === 401
-      && requestToken !== undefined
-      && this.tokenValue === requestToken
+      && requestRevision !== undefined
+      && requestRevision === this.sessionRevision
     ) {
       this.sessionRevision += 1;
-      this.tokenValue = undefined;
+      this.sessionActive = false;
     }
     return new QueryApiError(
       response.status,

@@ -7,5 +7,8 @@
     "types": ["vite/client"]
   },
   "include": ["src"],
-  "references": [{ "path": "../../packages/design-system" }]
+  "references": [
+    { "path": "../../packages/design-system" },
+    { "path": "../../packages/browser-session" }
+  ]
 }

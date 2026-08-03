@@ -1,18 +1,14 @@
 import { describe, expect, it } from "vitest";
+import type { BrowserSessionGateway } from "@foundation/browser-session";
 import {
   QueryApiError,
   QueryClient,
 } from "./query-client";
 
 describe("QueryClient", () => {
-  it("登录后只在内存中使用令牌读取已发布助手并创建查询", async () => {
+  it("登录后只使用同源浏览器会话读取已发布助手并创建查询", async () => {
     const requests: Request[] = [];
     const responses = [
-      jsonResponse({
-        tokenName: "Authorization",
-        tokenValue: "query-token",
-        expiresInSeconds: 1800,
-      }, 201),
       jsonResponse({
         items: [{
           assistantId: "410000000000000001",
@@ -37,7 +33,11 @@ describe("QueryClient", () => {
     const client = new QueryClient(async (input, init) => {
       requests.push(new Request(input, init));
       return responses.shift() ?? new Response(null, { status: 500 });
-    }, "http://localhost/api/v1");
+    }, "http://localhost/api/v1", fakeBrowserSession(async (input, init) => {
+      const request = new Request(input, init);
+      requests.push(request);
+      return responses.shift() ?? new Response(null, { status: 500 });
+    }));
 
     await client.login({
       tenantCode: "demo-store",
@@ -52,23 +52,20 @@ describe("QueryClient", () => {
     );
 
     expect(requests.map((request) => request.url)).toEqual([
-      "http://localhost/api/v1/auth/sessions",
       "http://localhost/api/v1/query-assistants?pageNumber=1&pageSize=20",
       "http://localhost/api/v1/query-runs",
     ]);
-    expect(requests[1]?.headers.get("Authorization")).toBe(
-      "Bearer query-token",
-    );
-    expect(requests[2]?.headers.get("Idempotency-Key")).toBe(
+    expect(requests[0]?.headers.get("Authorization")).toBeNull();
+    expect(requests[1]?.headers.get("Idempotency-Key")).toBe(
       "query-key-001",
     );
-    expect(await requests[2]?.json()).toEqual({
+    expect(await requests[1]?.json()).toEqual({
       assistantVersionId: assistants.items[0]!.assistantVersionId,
       question: "牛奶在哪里？",
     });
   });
 
-  it("按最后事件编号携带认证头并解析分块事件流", async () => {
+  it("按最后事件编号使用浏览器会话并解析分块事件流", async () => {
     let request: Request | undefined;
     const encoder = new TextEncoder();
     const stream = new ReadableStream<Uint8Array>({
@@ -95,14 +92,14 @@ describe("QueryClient", () => {
       1,
     );
 
-    expect(request?.headers.get("Authorization")).toBe("Bearer query-token");
+    expect(request?.headers.get("Authorization")).toBeNull();
     expect(request?.headers.get("Last-Event-ID")).toBe("1");
     expect(events).toHaveLength(1);
     expect(events[0]?.sequence).toBe(2);
     expect(events[0]?.answer).toBe("牛奶位于一层。");
   });
 
-  it("查询反馈只提交受控枚举并沿用内存令牌", async () => {
+  it("查询反馈只提交受控枚举并沿用浏览器会话", async () => {
     let request: Request | undefined;
     const client = await authenticatedClient(async (input, init) => {
       request = new Request(input, init);
@@ -119,14 +116,14 @@ describe("QueryClient", () => {
       "http://localhost/api/v1/query-runs/430000000000000001/feedback",
     );
     expect(request?.method).toBe("POST");
-    expect(request?.headers.get("Authorization")).toBe("Bearer query-token");
+    expect(request?.headers.get("Authorization")).toBeNull();
     expect(await request?.json()).toEqual({
       outcome: "NEGATIVE",
       reason: "INSUFFICIENT",
     });
   });
 
-  it("统一错误只保留安全字段且会话失效后清除令牌", async () => {
+  it("统一错误只保留安全字段且会话失效后清除本地状态", async () => {
     const client = await authenticatedClient(async () => jsonResponse({
       code: "PLATFORM_SECURITY.AUTHENTICATION.0001",
       message: "会话已失效",
@@ -147,7 +144,7 @@ describe("QueryClient", () => {
     });
   });
 
-  it("旧身份迟到的未认证响应不能清除新身份令牌", async () => {
+  it("旧会话迟到的未认证响应不能清除新会话状态", async () => {
     const requests: Request[] = [];
     let completeOldRequest:
       | ((response: Response) => void)
@@ -155,23 +152,21 @@ describe("QueryClient", () => {
     const oldResponse = new Promise<Response>((resolve) => {
       completeOldRequest = resolve;
     });
-    let loginCount = 0;
     const client = new QueryClient(async (input, init) => {
       const request = new Request(input, init);
       requests.push(request);
-      if (request.url.endsWith("/auth/sessions")) {
-        loginCount += 1;
-        return jsonResponse({
-          tokenName: "Authorization",
-          tokenValue: loginCount === 1 ? "old-token" : "new-token",
-          expiresInSeconds: 1800,
-        }, 201);
-      }
-      if (requests.length === 2) {
+      if (requests.length === 1) {
         return oldResponse;
       }
       return jsonResponse(emptyAssistantPage());
-    }, "http://localhost/api/v1");
+    }, "http://localhost/api/v1", fakeBrowserSession(async (input, init) => {
+      const request = new Request(input, init);
+      requests.push(request);
+      if (requests.length === 1) {
+        return oldResponse;
+      }
+      return jsonResponse(emptyAssistantPage());
+    }));
 
     await client.login({
       tenantCode: "demo-store",
@@ -194,36 +189,36 @@ describe("QueryClient", () => {
     });
 
     await client.listAssistants();
-    expect(requests.at(-1)?.headers.get("Authorization")).toBe(
-      "Bearer new-token",
-    );
+    expect(requests.at(-1)?.headers.get("Authorization")).toBeNull();
   });
 
-  it("旧登录迟到的成功响应不能覆盖新身份令牌", async () => {
+  it("旧登录迟到的成功结果不能覆盖新会话状态", async () => {
     const requests: Request[] = [];
     let completeOldLogin:
-      | ((response: Response) => void)
+      | (() => void)
       | undefined;
-    const oldLoginResponse = new Promise<Response>((resolve) => {
+    const oldLoginResponse = new Promise<void>((resolve) => {
       completeOldLogin = resolve;
     });
     let loginCount = 0;
-    const client = new QueryClient(async (input, init) => {
+    const execute = async (input: RequestInfo | URL, init?: RequestInit) => {
       const request = new Request(input, init);
       requests.push(request);
-      if (request.url.endsWith("/auth/sessions")) {
+      return jsonResponse(emptyAssistantPage());
+    };
+    const session: BrowserSessionGateway = {
+      login: async () => {
         loginCount += 1;
         if (loginCount === 1) {
-          return oldLoginResponse;
+          await oldLoginResponse;
         }
-        return jsonResponse({
-          tokenName: "Authorization",
-          tokenValue: "new-token",
-          expiresInSeconds: 1800,
-        }, 201);
-      }
-      return jsonResponse(emptyAssistantPage());
-    }, "http://localhost/api/v1");
+        return tenantCapability();
+      },
+      restore: async () => tenantCapability(),
+      logout: async () => undefined,
+      request: async (path, init) => execute(`http://localhost/api/v1${path}`, init),
+    };
+    const client = new QueryClient(execute, "http://localhost/api/v1", session);
 
     const oldLogin = client.login({
       tenantCode: "demo-store",
@@ -235,17 +230,11 @@ describe("QueryClient", () => {
       loginName: "admin",
       password: "new-password",
     });
-    completeOldLogin?.(jsonResponse({
-      tokenName: "Authorization",
-      tokenValue: "old-token",
-      expiresInSeconds: 1800,
-    }, 201));
+    completeOldLogin?.();
     await oldLogin;
 
     await client.listAssistants();
-    expect(requests.at(-1)?.headers.get("Authorization")).toBe(
-      "Bearer new-token",
-    );
+    expect(requests.at(-1)?.headers.get("Authorization")).toBeNull();
   });
 });
 
@@ -262,20 +251,10 @@ function emptyAssistantPage() {
 }
 
 async function authenticatedClient(fetcher: typeof fetch) {
-  let authenticated = false;
   const client = new QueryClient(
-    async (input, init) => {
-      if (!authenticated) {
-        authenticated = true;
-        return jsonResponse({
-          tokenName: "Authorization",
-          tokenValue: "query-token",
-          expiresInSeconds: 1800,
-        }, 201);
-      }
-      return fetcher(input, init);
-    },
+    fetcher,
     "http://localhost/api/v1",
+    fakeBrowserSession(fetcher),
   );
   await client.login({
     tenantCode: "demo-store",
@@ -283,6 +262,23 @@ async function authenticatedClient(fetcher: typeof fetch) {
     password: "demo-password",
   });
   return client;
+}
+
+function fakeBrowserSession(fetcher: typeof fetch): BrowserSessionGateway {
+  return {
+    login: async () => tenantCapability(),
+    restore: async () => tenantCapability(),
+    logout: async () => undefined,
+    request: async (path, init) => fetcher(`http://localhost/api/v1${path}`, init),
+  };
+}
+
+function tenantCapability() {
+  return {
+    workspaceCategories: ["TENANT"],
+    displayRoles: ["TENANT_MEMBER"],
+    maximumSessionAgeSeconds: 3600,
+  };
 }
 
 function jsonResponse(body: unknown, status = 200) {

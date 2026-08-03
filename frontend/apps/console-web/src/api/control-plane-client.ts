@@ -1,14 +1,11 @@
-export interface LoginCredentials {
-  tenantCode: string;
-  loginName: string;
-  password: string;
-}
+import {
+  BrowserSessionClient,
+  type BrowserLoginCredentials,
+  type BrowserSessionCapability,
+  type BrowserSessionGateway,
+} from "@foundation/browser-session";
 
-export interface Session {
-  tokenName: string;
-  tokenValue: string;
-  expiresInSeconds: number;
-}
+export type LoginCredentials = BrowserLoginCredentials;
 
 export interface KnowledgeSpace {
   id: string;
@@ -188,43 +185,54 @@ type IdentifierFactory = () => string;
  * 控制平面的最小浏览器客户端，只暴露当前知识发布任务所需接口。
  */
 export class ControlPlaneClient {
-  private tokenValue: string | undefined;
+  private sessionActive = false;
+  private sessionRevision = 0;
+  private readonly browserSession: BrowserSessionGateway;
 
   constructor(
     private readonly fetcher: typeof fetch = (...args) => fetch(...args),
     private readonly identifierFactory: IdentifierFactory = () =>
       crypto.randomUUID(),
     private readonly baseUrl = "/api/v1",
-  ) {}
-
-  async login(credentials: LoginCredentials): Promise<Session> {
-    const session = await this.request<Session>(
-      "/auth/sessions",
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(credentials),
-      },
-      false,
+    browserSession?: BrowserSessionGateway,
+  ) {
+    this.browserSession = browserSession ?? new BrowserSessionClient(
+      fetcher,
+      baseUrl,
     );
-    this.tokenValue = session.tokenValue;
-    return session;
+    this.sessionActive = browserSession !== undefined;
   }
 
-  restoreSession(tokenValue: string): void {
-    if (tokenValue.trim().length === 0) {
-      throw new Error("会话令牌不能为空");
+  async login(credentials: LoginCredentials): Promise<BrowserSessionCapability> {
+    const revision = ++this.sessionRevision;
+    this.sessionActive = false;
+    const capability = await this.browserSession.login(credentials);
+    if (revision === this.sessionRevision) {
+      this.sessionActive = true;
     }
-    this.tokenValue = tokenValue;
+    return capability;
+  }
+
+  async restoreSession(): Promise<BrowserSessionCapability | null> {
+    const revision = ++this.sessionRevision;
+    const capability = await this.browserSession.restore();
+    if (revision === this.sessionRevision) {
+      this.sessionActive = capability !== null;
+    }
+    return capability;
   }
 
   async logout(): Promise<void> {
-    await this.request<void>("/auth/sessions/current", { method: "DELETE" });
-    this.tokenValue = undefined;
+    this.sessionRevision += 1;
+    try {
+      await this.browserSession.logout();
+    } finally {
+      this.sessionActive = false;
+    }
   }
 
   hasSession(): boolean {
-    return this.tokenValue !== undefined;
+    return this.sessionActive;
   }
 
   async getQueryUsage(from?: string, to?: string): Promise<QueryUsage> {
@@ -670,9 +678,9 @@ export class ControlPlaneClient {
   ): Promise<T> {
     const headers = new Headers(init.headers);
     headers.set("Accept", "application/json");
-    const requestToken = this.tokenValue;
+    const requestRevision = this.sessionRevision;
     if (authenticated) {
-      if (requestToken === undefined) {
+      if (!this.sessionActive) {
         throw new ApiRequestError(
           401,
           "PLATFORM_SECURITY.AUTHENTICATION.0001",
@@ -680,16 +688,19 @@ export class ControlPlaneClient {
           "",
         );
       }
-      headers.set("Authorization", `Bearer ${requestToken}`);
     }
-    const response = await this.fetcher(`${this.baseUrl}${path}`, {
-      ...init,
-      headers,
-    });
+    const response = authenticated
+      ? await this.browserSession.request(path, { ...init, headers })
+      : await this.fetcher(`${this.baseUrl}${path}`, { ...init, headers });
     if (!response.ok) {
       const error = await toApiRequestError(response);
-      if (authenticated && error.status === 401 && this.tokenValue === requestToken) {
-        this.tokenValue = undefined;
+      if (
+        authenticated
+        && error.status === 401
+        && requestRevision === this.sessionRevision
+      ) {
+        this.sessionRevision += 1;
+        this.sessionActive = false;
       }
       throw error;
     }
