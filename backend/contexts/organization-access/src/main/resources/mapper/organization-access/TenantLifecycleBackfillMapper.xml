@@ -62,4 +62,11 @@
         VALUES
             (#{eventId}, #{tenantId}, 'TENANT_LIFECYCLE_CHANGED', #{status}, #{version}, #{occurredAt})
     </insert>
+
+    <insert id="activateAuthenticationCutover">
+        INSERT INTO organization_access.tenant_lifecycle_authentication_cutover
+            (singleton_key, activated_at)
+        VALUES
+            (TRUE, #{activatedAt})
+    </insert>
 </mapper>

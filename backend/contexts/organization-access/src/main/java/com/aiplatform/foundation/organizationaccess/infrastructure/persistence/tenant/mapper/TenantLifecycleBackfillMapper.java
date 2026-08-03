@@ -37,4 +37,6 @@ public interface TenantLifecycleBackfillMapper {
             @Param("status") String status,
             @Param("version") long version,
             @Param("occurredAt") Instant occurredAt);
+
+    int activateAuthenticationCutover(@Param("activatedAt") Instant activatedAt);
 }

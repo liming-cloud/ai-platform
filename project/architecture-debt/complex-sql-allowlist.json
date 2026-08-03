@@ -281,7 +281,7 @@
       "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/TenantMembershipMapper.xml",
       "statementId": "findEnabled",
       "category": "SECURITY_PROJECTION",
-      "reason": "连接租户与成员资格表，只按已验证主体恢复最小租户授权投影。"
+      "reason": "按已验证主体恢复最小租户授权投影；认证切换前仅读取旧状态，切换后只以活跃生命周期根判定会话资格。"
     },
     {
       "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/TenantMembershipMapper.xml",
@@ -318,6 +318,12 @@
       "statementId": "insertOutbox",
       "category": "OUTBOX",
       "reason": "与生命周期根和初始管理员成员资格同一事务写入最小状态事实。"
+    },
+    {
+      "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/TenantLifecycleBackfillMapper.xml",
+      "statementId": "activateAuthenticationCutover",
+      "category": "ATOMIC_STATE_TRANSITION",
+      "reason": "仅在历史生命周期根、初始管理员角色和最小状态事实已同一事务写入后激活认证唯一状态源。"
     },
     {
       "path": "backend/contexts/trusted-query/src/main/resources/mapper/trusted-query/QueryRunMapper.xml",

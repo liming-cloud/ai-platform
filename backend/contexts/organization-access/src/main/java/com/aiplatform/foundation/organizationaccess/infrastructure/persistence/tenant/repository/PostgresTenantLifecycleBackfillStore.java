@@ -78,6 +78,9 @@ public final class PostgresTenantLifecycleBackfillStore implements TenantLifecyc
                         change.occurredAt()), "租户生命周期发件箱写入失败");
             }
         }
+        requireSingleWrite(mapper.activateAuthenticationCutover(
+                results.getFirst().lifecycleChanges().getFirst().occurredAt()),
+                "生命周期认证切换事实写入失败");
     }
 
     private HistoricalTenantLifecycleBackfillFacts toFacts(

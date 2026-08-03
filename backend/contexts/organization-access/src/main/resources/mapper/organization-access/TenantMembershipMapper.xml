@@ -21,10 +21,17 @@
         FROM organization_access.tenant tenant
         INNER JOIN organization_access.tenant_membership membership
             ON membership.tenant_id = tenant.tenant_id
+        LEFT JOIN organization_access.tenant_lifecycle_authentication_cutover cutover
+            ON cutover.singleton_key IS TRUE
+        LEFT JOIN organization_access.tenant_lifecycle lifecycle
+            ON lifecycle.tenant_id = tenant.tenant_id
         WHERE tenant.tenant_code = #{tenantCode}
-          AND tenant.status = 'ENABLED'
           AND membership.subject_id = #{subjectId}
           AND membership.status = 'ENABLED'
+          AND (
+              (cutover.singleton_key IS NULL AND tenant.status = 'ENABLED')
+              OR (cutover.singleton_key IS TRUE AND lifecycle.status = 'ACTIVE')
+          )
     </select>
 
     <select id="findPermissionCodes" resultType="java.lang.String">

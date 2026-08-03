@@ -68,6 +68,9 @@ class PostgresSubjectAuthenticationRepositoryTest {
 
     @BeforeEach
     void seedFacts() {
+        jdbc.update("DELETE FROM organization_access.tenant_lifecycle_authentication_cutover");
+        jdbc.update("DELETE FROM organization_access.tenant_lifecycle_outbox");
+        jdbc.update("DELETE FROM organization_access.tenant_lifecycle");
         jdbc.update("DELETE FROM organization_access.membership_permission");
         jdbc.update("DELETE FROM organization_access.tenant_membership");
         jdbc.update("DELETE FROM organization_access.subject_identity");
@@ -108,6 +111,28 @@ class PostgresSubjectAuthenticationRepositoryTest {
 
         assertTrue(identities.findActiveByLogin("admin").isEmpty());
         assertTrue(memberships.findEnabled("demo-store", new SubjectId(999L)).isEmpty());
+    }
+
+    @Test
+    void 认证切换后必须只以活跃生命周期签发租户会话资格() {
+        jdbc.update("""
+                INSERT INTO organization_access.tenant_lifecycle
+                    (tenant_id, tenant_code, display_name, initial_administrator_subject_id, status, version, created_at)
+                VALUES (?, 'demo-store', '门店演示租户', ?, 'ACTIVE', 1, TIMESTAMPTZ '2026-07-01T00:00:00Z')
+                """, STORE_TENANT, ADMIN_SUBJECT);
+        jdbc.update("""
+                INSERT INTO organization_access.tenant_lifecycle
+                    (tenant_id, tenant_code, display_name, initial_administrator_subject_id, status, version, created_at)
+                VALUES (?, 'demo-campus', '校园演示租户', ?, 'SUSPENDED', 2, TIMESTAMPTZ '2026-07-01T00:00:00Z')
+                """, CAMPUS_TENANT, ADMIN_SUBJECT);
+        jdbc.update("""
+                INSERT INTO organization_access.tenant_lifecycle_authentication_cutover
+                    (singleton_key, activated_at)
+                VALUES (TRUE, TIMESTAMPTZ '2026-08-03T03:00:00Z')
+                """);
+
+        assertTrue(memberships.findEnabled("demo-store", new SubjectId(ADMIN_SUBJECT)).isPresent());
+        assertTrue(memberships.findEnabled("demo-campus", new SubjectId(ADMIN_SUBJECT)).isEmpty());
     }
 
     private void insertTenant(long tenantId, String code, String name) {

@@ -49,6 +49,16 @@
 的短暂内存输入；当前下一切片仍是新租户建立、生命周期状态迁移和平台 HTTP 受权，不得把映射改造成
 公共参数。
 
+## 已完成生命周期认证切换红绿
+
+| 阶段 | 命令 | 结果 |
+| --- | --- | --- |
+| 红灯 | `./mvnw -q -pl backend/contexts/organization-access -am test -Dtest=PostgresTenantLifecycleBackfillStoreTest,PostgresSubjectAuthenticationRepositoryTest -Dsurefire.failIfNoSpecifiedTests=false` | 缺少 `tenant_lifecycle_authentication_cutover` 表，真实 PostgreSQL 夹具无法清理或插入切换事实。 |
+| 绿灯 | 同一命令 | 通过；完整回填与单行切换事实同一事务提交，映射／发件箱失败无切换残留；切换前保留旧 `tenant.status`，切换后只允许 `TenantLifecycle.ACTIVE` 签发租户会话。 |
+
+切换事实不含租户、主体、成员或凭据详情，且没有 HTTP、令牌、配置或浏览器写入口。`tenant.status`
+在切换后仅是迁移兼容列，认证不再读取它。
+
 ## 真实 PostgreSQL 合同
 
 - 回填输入只在受控部署事务中使用，不写入版本库、日志、会话、HTTP 请求或普通应用配置。

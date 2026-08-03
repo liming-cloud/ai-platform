@@ -237,6 +237,7 @@
 | M6 历史租户状态回填领域红绿 | `project/evidence/WP-0014-tenant-lifecycle-tdd-route.md` | 本次提交 | 实际编译红灯后，`ENABLED` 只经建立与激活到 `ACTIVE`，`DISABLED` 只经建立、激活与挂起到 `SUSPENDED`；主体、成员归属和启用状态均失败关闭。 |
 | M6 历史租户生命周期真实 PostgreSQL 回填 | `project/evidence/WP-0014-tenant-lifecycle-tdd-route.md` | 本次提交 | 实际编译红灯后，真实 PostgreSQL 原子提交根、管理员角色和最小状态事实；缺失、重复、跨租户、禁用、非成员及发件箱失败均无残留，自动配置回归通过。 |
 | ADR-0046 人工接受 | `project/evidence/ADR-0046-approval.md` | 本次控制面提交 | 用户接受回填原子认证切换：切换后只以 `TenantLifecycle.status = ACTIVE` 签发租户会话。 |
+| M6 租户生命周期认证切换 | `project/evidence/WP-0014-tenant-lifecycle-tdd-route.md` | 本次提交 | 真实 PostgreSQL 回填成功才原子激活无敏感切换事实；失败无残留，切换后认证只接受 `ACTIVE` 生命周期根。 |
 
 ## 证据规则
 

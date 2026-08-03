@@ -70,6 +70,7 @@ class PostgresTenantLifecycleBackfillStoreTest {
     void seedFacts() {
         jdbc.execute("DROP TRIGGER IF EXISTS fail_tenant_lifecycle_outbox ON organization_access.tenant_lifecycle_outbox");
         jdbc.execute("DROP FUNCTION IF EXISTS organization_access.fail_tenant_lifecycle_outbox()");
+        jdbc.update("DELETE FROM organization_access.tenant_lifecycle_authentication_cutover");
         jdbc.update("DELETE FROM organization_access.tenant_lifecycle_outbox");
         jdbc.update("DELETE FROM organization_access.tenant_lifecycle");
         jdbc.update("DELETE FROM organization_access.membership_permission");
@@ -117,6 +118,7 @@ class PostgresTenantLifecycleBackfillStoreTest {
                         FROM organization_access.tenant_lifecycle_outbox
                         ORDER BY tenant_id, lifecycle_version
                         """, String.class));
+        assertEquals(1L, count("organization_access.tenant_lifecycle_authentication_cutover"));
     }
 
     @Test
@@ -126,6 +128,7 @@ class PostgresTenantLifecycleBackfillStoreTest {
 
         assertEquals(0L, count("organization_access.tenant_lifecycle"));
         assertEquals(0L, count("organization_access.tenant_lifecycle_outbox"));
+        assertEquals(0L, count("organization_access.tenant_lifecycle_authentication_cutover"));
         assertEquals(List.of("MEMBER", "MEMBER"), jdbc.queryForList("""
                 SELECT membership_role
                 FROM organization_access.tenant_membership
@@ -214,6 +217,7 @@ class PostgresTenantLifecycleBackfillStoreTest {
     private void assertNoBackfillResidue() {
         assertEquals(0L, count("organization_access.tenant_lifecycle"));
         assertEquals(0L, count("organization_access.tenant_lifecycle_outbox"));
+        assertEquals(0L, count("organization_access.tenant_lifecycle_authentication_cutover"));
         assertEquals(List.of("MEMBER", "MEMBER"), jdbc.queryForList("""
                 SELECT membership_role
                 FROM organization_access.tenant_membership
