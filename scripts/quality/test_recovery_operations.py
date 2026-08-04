@@ -45,7 +45,7 @@ class RecoveryOperationsTest(unittest.TestCase):
         )
         return json.loads(completed.stdout)
 
-    def test_default_compose_resource_names_and_ports_remain_stable(self) -> None:
+    def test_default_compose_resource_names_and_single_public_browser_entry_remain_stable(self) -> None:
         configuration = self.compose_config()
 
         self.assertEqual("trusted-rag-foundation-v1", configuration["name"])
@@ -61,10 +61,7 @@ class RecoveryOperationsTest(unittest.TestCase):
             "18080",
             str(configuration["services"]["control-plane"]["ports"][0]["published"]),
         )
-        self.assertEqual(
-            "13001",
-            str(configuration["services"]["query-web"]["ports"][0]["published"]),
-        )
+        self.assertNotIn("ports", configuration["services"]["query-web"])
 
     def test_compose_supports_a_fully_isolated_recovery_environment(self) -> None:
         recovery_name = "trusted-rag-foundation-v1-recovery-test"
@@ -104,10 +101,7 @@ class RecoveryOperationsTest(unittest.TestCase):
             "28080",
             str(configuration["services"]["control-plane"]["ports"][0]["published"]),
         )
-        self.assertEqual(
-            "23001",
-            str(configuration["services"]["query-web"]["ports"][0]["published"]),
-        )
+        self.assertNotIn("ports", configuration["services"]["query-web"])
 
     def test_recovery_scripts_have_valid_shell_syntax(self) -> None:
         expected_scripts = [

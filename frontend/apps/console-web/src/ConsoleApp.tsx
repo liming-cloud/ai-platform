@@ -9,6 +9,7 @@ import { lazy, Suspense, useMemo, useState } from "react";
 import { ControlPlaneClient } from "./api/control-plane-client";
 import { KnowledgePublicationFlow } from "./features/knowledge-publication/KnowledgePublicationFlow";
 import { BrowserSessionGate } from "./session/BrowserSessionGate";
+import { resolvePostAuthenticationDestination } from "./session/post-authentication-navigation";
 
 const GovernedFileDataWorkspace = lazy(async () => {
   const module = await import("./features/governed-data/GovernedFileDataWorkspace");
@@ -60,7 +61,18 @@ export function ConsoleApp() {
   const client = useMemo(() => new ControlPlaneClient(), []);
 
   return (
-    <BrowserSessionGate client={client}>
+    <BrowserSessionGate
+      client={client}
+      onAuthenticated={(capability) => {
+        const destination = resolvePostAuthenticationDestination(
+          window.location.search,
+          capability.workspaceCategories.includes("TENANT"),
+        );
+        if (destination !== undefined) {
+          window.location.replace(destination);
+        }
+      }}
+    >
       {(session) => (
         <AuthenticatedConsoleApp
           client={client}

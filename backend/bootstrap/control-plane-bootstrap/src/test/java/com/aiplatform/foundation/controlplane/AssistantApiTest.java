@@ -90,6 +90,7 @@ class AssistantApiTest {
     @BeforeEach
     void clearAndSeedReferences() {
         jdbc.update("DELETE FROM assistant_delivery.assistant_request");
+        jdbc.update("DELETE FROM assistant_delivery.assistant_version_chat_route_candidate");
         jdbc.update("DELETE FROM assistant_delivery.assistant_version");
         jdbc.update("DELETE FROM assistant_delivery.assistant");
         jdbc.update("DELETE FROM model_runtime.model_deployment_request");

@@ -277,6 +277,52 @@ PostgreSQL／平台 HTTP 的既有后端证据仍见 `WP-0014-tenant-lifecycle-t
 Maven 测试和既有真实 PostgreSQL 回归均通过。Spring、Testcontainers 与 MyBatis 的初始化警告未导致命令
 失败；自动门禁仍不能证明旧容器尚未加载的新浏览器界面。
 
+## 切片十二：本地部署迁移、同源 CSRF 与登录后回跳红绿记录
+
+真实部署先以 `deploy/compose/.env.example` 和保持 `0600` 的 `deploy/.env` 合并解析；只传入覆盖层时
+Compose 正确失败关闭，提示缺少 `FOUNDATION_REDIS_PASSWORD`。两层环境文件合并后配置通过，且不输出任何
+密码或主密钥。全量重建首次被 `V202608030001` 拦截：历史库仅有一组重复登录名，涉及两个主体和两条成员
+资格，两个旧密码摘要不同。该迁移原本按 ADR-0042 拒绝猜测合并。经业务负责人明确确认“合并为同一全局
+主体并设置新的本地密码”后，受控维护事务只在 `organization_access.membership_credential` 中将该单一冲突组
+收敛到确定的主体标识，并以新 PBKDF2 摘要替换两条旧摘要；前后只验证冲突组数、成员资格数、摘要／状态
+一致性，未读取或记录登录名、主体标识、密码或摘要。迁移随后完成，所有服务健康。
+
+随后真实浏览器暴露三条可证伪反例：控制面代理使用 `$host` 丢失公开端口，浏览器 CSRF 登录失败关闭；
+成功登录后控制台没有消费固定的 `next=/query/`；镜像替换后已缓存入口脚本会请求旧哈希分包。先新增部署
+门禁与 `resolvePostAuthenticationDestination` 测试：前者实际找不到公开 Host 保留和 HTML 入口重新校验，
+后者实际无法导入实现。最小绿灯为控制面 API 保留 `$http_host`，两个前端的 `/` 与 `/index.html` 都强制
+重新校验，控制台只在能力含 `TENANT` 时接受唯一同源回跳 `/query/`；外部地址、其他路径和无租户能力一律
+忽略。旧缓存不能被服务器追溯失效，故以一次性查询参数取得新入口完成回归；后续新入口均受缓存策略保护。
+
+实际执行：
+
+```bash
+docker compose --env-file .env.example --env-file ../.env \
+  -f compose.yml -f compose.real-model.yml config --quiet
+docker compose --env-file .env.example --env-file ../.env \
+  -f compose.yml -f compose.real-model.yml up --detach --build
+python3 -m unittest scripts.quality.test_browser_session_deployment \
+  scripts.quality.test_browser_session_root_ui
+cd frontend && npm run typecheck && npm run lint && npm run test && npm run build
+make validate
+make project-verify
+git diff --check
+```
+
+部署门禁 5 项、根入口门禁 4 项、前端 13 个测试文件 53 项均通过；类型、lint、生产构建与项目治理通过。
+真实公开 HTTP 观察为 CSRF `204`、浏览器登录 `204`、未登录会话恢复 `401`。真实浏览器从
+`http://localhost:13000/query/` 未登录进入唯一根表单，使用本地 `0600` 环境文件中的新密码登录后到达
+`http://localhost:13000/query/`，只显示已验证会话和查询任务，未显示 token、第二个凭据表单或浏览器错误。
+这完成租户管理员的登录与查询回跳最小任务；平台管理员、平台运营、跨页签注销／过期和 HTTPS Cookie
+环境仍须按下方合同继续验收，M6 不因此完成。
+
+全量门禁曾在 `AssistantApiTest` 夹具中暴露清理顺序缺陷：`assistant_version_chat_route_candidate`
+仍引用 `assistant_version` 时删除父表会违反外键。先将该定向集成测试跑成绿灯，再按引用方向先删候选、后删
+版本。恢复演练测试同时删除了已经收敛的 `query-web` 公开端口旧断言，改为在默认与隔离恢复环境都断言它
+没有 `ports`；这是 ADR-0048 的单一公开浏览器入口约束，不改变 Compose 配置。随后 `make validate` 全绿：
+项目治理、19 项架构门禁、完整 Maven 测试、前端 13 个文件 53 项、真实模型验收、恢复／容量／交付演练
+均通过。
+
 ## 先红后绿的纵向切片
 
 | 顺序 | 实际红灯 | 最小绿灯实现 | 回归范围 |
@@ -292,6 +338,7 @@ Maven 测试和既有真实 PostgreSQL 回归均通过。Spring、Testcontainers
 | 9 | 已完成：`query-web` 保有 `LoginView`，直达 `/query/` 无法恢复统一会话，当前 401 不能通知查询根组件。 | query 根组件恢复 `TENANT` 能力；无会话或无该能力时替换至控制台根入口，工作区仅接收已恢复客户端。 | 3 项根入口门禁、7 项查询客户端测试、48 项前端回归、类型、lint 和生产构建。 |
 | 10 | 已完成：同源页签失效不会传播，或消息可能携带 token／身份并形成转发循环。 | 固定唯一失效事实的共享通道；两个根组件只清除本页状态并禁止远端消息回弹。 | 4 项根入口门禁、共享通道反例、控制台客户端失效回归、50 项前端回归、类型、lint 和生产构建。 |
 | 11 | 已完成：平台用户没有产品入口，或客户端提交操作者、凭据、成员详情等越界字段。 | 能力受限的生命周期工作区只调用固定平台 HTTP，并只展示最小生命周期投影。 | 17 项控制台客户端测试、51 项前端回归、类型、lint 与生产构建；真实浏览器仍待执行。 |
+| 12 | 已完成：历史重复主体迁移失败关闭、控制面代理丢失公开端口导致 CSRF `403`、登录后不消费固定回跳，且旧入口可能请求已替换分包。 | 经人工确认的本地维护事务合并唯一冲突组并设置新本地密码；API 保留 `$http_host`，入口重新校验，控制台仅对白名单 `/query/` 执行有能力约束的回跳。 | 5 项部署门禁、2 项回跳单测、53 项前端回归、真实 HTTP `204/204/401` 与租户浏览器登录回跳。 |
 
 每一行都必须先保留实际失败命令及失败原因，再实施相同行为的最小绿灯。不得用 mock 替代
 Sa-Token、Redis、PostgreSQL、cookie 属性或浏览器页签事实。
@@ -326,9 +373,9 @@ git diff --check
 
 | 维度 | 当前判断 | 依据／后续门槛 |
 | --- | --- | --- |
-| 正确性 | 已部分验证 | 实际 `404` 红灯后，真实 PostgreSQL／Redis HTTP 验证空体 cookie、CSRF、固定能力投影、范围隔离与定向清除；注销与过期待验证。 |
+| 正确性 | 已部分验证 | 真实本地库的受控身份合并、完整 Flyway、CSRF `204`、登录 `204`、未登录恢复 `401` 与租户浏览器回跳已验证；平台角色、跨页签注销与过期待验证。 |
 | 复杂度 | 可控 | 仅增加一个浏览器入口、一个只读能力投影、一个防护过滤器和一个非身份 CSRF bootstrap；不创建通用双范围上下文。 |
 | 冗余 | 已识别待清理 | 旧两类 Bearer 登录仍是机器兼容契约；工作区独立登录表单和内存 token 待统一前端状态后移除。 |
 | 性能 | 已局部验证 | 登录只进行一次口令验证；能力读取最多恢复两个固定范围会话，不读取成员列表或正文。 |
 | 架构 | 已验证 | 两类既有 login type 和限定 cookie 名称仍独立，能力服务只依赖会话端口，架构门禁通过。 |
-| 测试质量 | 已部分验证 | 已有实际红绿、真实 PostgreSQL／Redis、自动配置和 HTTP 反例；HTTPS 浏览器、跨页签和注销仍待实际任务。 |
+| 测试质量 | 已部分验证 | 已有实际红绿、真实 PostgreSQL／Redis、自动配置、HTTP、部署缓存与租户浏览器反例；HTTPS 浏览器、跨页签和注销仍待实际任务。 |

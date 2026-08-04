@@ -29,9 +29,33 @@ class BrowserSessionDeploymentTest(unittest.TestCase):
         self.assertIn("location ^~ /api/v1/query-runs", nginx)
         self.assertIn("http://query-runtime:8081", nginx)
 
+    def test_console_gateway_preserves_public_host_for_csrf_origin_validation(self) -> None:
+        nginx = (ROOT / "deploy/config/nginx-console.conf").read_text(encoding="utf-8")
+        control_plane = re.search(
+            r"    location /api/ \{(?P<body>.*?)^    \}",
+            nginx,
+            re.MULTILINE | re.DOTALL,
+        )
+        self.assertIsNotNone(control_plane)
+        self.assertIn("proxy_set_header Host $http_host;", control_plane.group("body"))
+
     def test_query_web_builds_for_gateway_subpath(self) -> None:
         vite = (ROOT / "frontend/apps/query-web/vite.config.ts").read_text(encoding="utf-8")
         self.assertIn('base: "/query/"', vite)
+
+    def test_frontend_html_entries_must_revalidate_after_image_replacement(self) -> None:
+        for name in ("nginx-console.conf", "nginx.conf"):
+            nginx = (ROOT / "deploy/config" / name).read_text(encoding="utf-8")
+            self.assertRegex(
+                nginx,
+                r'location = /index\.html \{(?s:.*?)Cache-Control "no-cache, no-store, must-revalidate"',
+                msg=f"{name} 必须避免旧入口脚本引用已替换的哈希资源",
+            )
+            self.assertRegex(
+                nginx,
+                r'location = / \{(?s:.*?)Cache-Control "no-cache, no-store, must-revalidate"',
+                msg=f"{name} 的根路径必须避免由目录索引返回旧入口脚本",
+            )
 
 
 if __name__ == "__main__":
