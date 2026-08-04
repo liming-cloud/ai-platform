@@ -404,6 +404,47 @@ class AuthenticationApiTest {
     }
 
     @Test
+    void 平台治理会话应分页读取不含受限字段的生命周期投影() {
+        var platformToken = platformLogin();
+        var tenantCode = "projection-tenant-" + System.nanoTime();
+        var created = http.exchange(
+                url("/api/v1/platform/tenants"),
+                HttpMethod.POST,
+                new HttpEntity<>(
+                        Map.of(
+                                "tenantCode", tenantCode,
+                                "displayName", "读取投影租户",
+                                "initialAdministratorSubjectId", "4921825928971026436"),
+                        bearer(platformToken)),
+                TenantLifecycleResponse.class);
+        assertEquals(HttpStatus.CREATED, created.getStatusCode());
+
+        var response = http.exchange(
+                url("/api/v1/platform/tenants?pageNumber=1&pageSize=100"),
+                HttpMethod.GET,
+                new HttpEntity<>(bearer(platformToken)),
+                Map.class);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertEquals(1, response.getBody().get("pageNumber"));
+        assertEquals(100, response.getBody().get("pageSize"));
+        var summary = ((java.util.List<?>) response.getBody().get("items")).stream()
+                .filter(Map.class::isInstance)
+                .map(Map.class::cast)
+                .filter(item -> tenantCode.equals(item.get("tenantCode")))
+                .findFirst()
+                .orElseThrow();
+        assertEquals("读取投影租户", summary.get("displayName"));
+        assertEquals("PROVISIONING", summary.get("status"));
+        assertEquals(0, summary.get("version"));
+        assertNotNull(summary.get("createdAt"));
+        assertNotNull(summary.get("lastChangedAt"));
+        assertFalse(summary.containsKey("initialAdministratorSubjectId"));
+        assertFalse(summary.containsKey("permissions"));
+    }
+
+    @Test
     void 租户会话与伪造当前主体字段不得取得平台租户治理入口() {
         var tenantToken = tenantLogin();
         var denied = http.exchange(
@@ -433,6 +474,54 @@ class AuthenticationApiTest {
         assertEquals(HttpStatus.BAD_REQUEST, rejected.getStatusCode());
     }
 
+    @Test
+    void 无治理写权限的平台运营主体不得读取或写入生命周期() {
+        var platformToken = platformLogin("platform-operator");
+        var denied = http.exchange(
+                url("/api/v1/platform/tenants?pageNumber=1&pageSize=20"),
+                HttpMethod.GET,
+                new HttpEntity<>(bearer(platformToken)),
+                ApiError.class);
+
+        assertEquals(HttpStatus.BAD_REQUEST, denied.getStatusCode());
+        assertNotNull(denied.getBody());
+        assertFalse(denied.getBody().message().contains("tenant"));
+        assertFalse(denied.getBody().details().containsKey("tenantId"));
+
+        var writeDenied = http.exchange(
+                url("/api/v1/platform/tenants"),
+                HttpMethod.POST,
+                new HttpEntity<>(
+                        Map.of(
+                                "tenantCode", "operator-denied-" + System.nanoTime(),
+                                "displayName", "无权限租户",
+                                "initialAdministratorSubjectId", "4921825928971026436"),
+                        bearer(platformToken)),
+                ApiError.class);
+
+        assertEquals(HttpStatus.BAD_REQUEST, writeDenied.getStatusCode());
+        assertNotNull(writeDenied.getBody());
+        assertFalse(writeDenied.getBody().message().contains("tenant"));
+        assertFalse(writeDenied.getBody().details().containsKey("tenantId"));
+    }
+
+    @Test
+    void 无治理写权限的平台运营主体登录后不得得到生命周期工作区() {
+        var headers = new HttpHeaders();
+        headers.set(HttpHeaders.COOKIE, browserPlatformLogin("platform-operator"));
+
+        var capability = http.exchange(
+                url("/api/v1/auth/browser-session"),
+                HttpMethod.GET,
+                new HttpEntity<>(headers),
+                Map.class);
+
+        assertEquals(HttpStatus.OK, capability.getStatusCode());
+        assertNotNull(capability.getBody());
+        assertEquals(java.util.List.of(), capability.getBody().get("workspaceCategories"));
+        assertEquals(java.util.List.of(), capability.getBody().get("displayRoles"));
+    }
+
     private org.springframework.http.ResponseEntity<ApiError> loginFailure(
             String loginName,
             String password) {
@@ -446,10 +535,14 @@ class AuthenticationApiTest {
     }
 
     private String platformLogin() {
+        return platformLogin("platform-admin");
+    }
+
+    private String platformLogin(String loginName) {
         var response = http.postForEntity(
                 url("/api/v1/platform/auth/sessions"),
                 Map.of(
-                        "loginName", "platform-admin",
+                        "loginName", loginName,
                         "password", new String(DEMO_PASSWORD)),
                 SessionResponse.class);
         assertEquals(HttpStatus.CREATED, response.getStatusCode());

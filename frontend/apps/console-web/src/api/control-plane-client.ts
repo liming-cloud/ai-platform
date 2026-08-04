@@ -7,7 +7,7 @@ import {
 
 export type LoginCredentials = BrowserLoginCredentials;
 
-/** 平台租户生命周期的最小投影，不包含成员详情、正文或当前操作者。 */
+/** 平台租户生命周期命令的最小结果，初始管理员只作为已建立资源的回显。 */
 export interface TenantLifecycle {
   tenantId: string;
   tenantCode: string;
@@ -15,6 +15,17 @@ export interface TenantLifecycle {
   initialAdministratorSubjectId: string;
   status: "PROVISIONING" | "ACTIVE" | "SUSPENDED";
   version: number;
+}
+
+/** 平台工作区的服务端权威读取投影，不包含初始管理员、成员、权限或正文。 */
+export interface TenantLifecycleSummary {
+  tenantId: string;
+  tenantCode: string;
+  displayName: string;
+  status: "PROVISIONING" | "ACTIVE" | "SUSPENDED";
+  version: number;
+  createdAt: string;
+  lastChangedAt: string;
 }
 
 /** 平台建立租户只接受已存在主体这一业务资源目标。 */
@@ -271,6 +282,15 @@ export class ControlPlaneClient {
       headers: this.writeHeaders("application/json"),
       body: JSON.stringify(input),
     });
+  }
+
+  async listTenantLifecycles(
+    pageNumber = 1,
+    pageSize = 20,
+  ): Promise<PageResult<TenantLifecycleSummary>> {
+    return this.request<PageResult<TenantLifecycleSummary>>(
+      `/platform/tenants?pageNumber=${pageNumber}&pageSize=${pageSize}`,
+    );
   }
 
   async activateTenant(tenantId: string): Promise<TenantLifecycle> {

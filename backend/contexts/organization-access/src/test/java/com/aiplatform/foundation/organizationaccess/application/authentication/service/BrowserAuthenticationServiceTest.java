@@ -126,6 +126,8 @@ class BrowserAuthenticationServiceTest {
         return new PlatformAccessGrant(
                 SUBJECT_ID,
                 2L,
-                Set.of(new PermissionCode("tenant-governance:write")));
+                Set.of(
+                        new PermissionCode("platform-session:access"),
+                        new PermissionCode("tenant-governance:write")));
     }
 }

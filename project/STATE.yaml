@@ -191,6 +191,7 @@ latestEvidence:
   - project/evidence/WP-0014-browser-session-tdd-route.md
   - project/evidence/ADR-0048-approval.md
   - project/evidence/ADR-0049-approval.md
+  - project/evidence/WP-0014-platform-lifecycle-read-projection.md
 nextReviewAt: 2026-08-05
-updatedAt: 2026-08-03T12:20:00+08:00
+updatedAt: 2026-08-04T13:49:08+08:00
 updatedBy: codex

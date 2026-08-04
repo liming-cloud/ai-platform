@@ -153,7 +153,7 @@ class PostgresTenantLifecycleTransitionStoreTest {
                 CredentialType.PERSON,
                 AccessChannel.CONSOLE,
                 1L,
-                Set.of(PlatformPermissions.TENANT_GOVERNANCE_WRITE),
+                Set.of(PlatformPermissions.SESSION_ACCESS, PlatformPermissions.TENANT_GOVERNANCE_WRITE),
                 "trc_tenant_transition_store");
     }
 

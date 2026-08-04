@@ -67,8 +67,8 @@ class PostgresPlatformAccessGrantRepositoryTest {
                 SUBJECT_ID);
         jdbc.update(
                 "INSERT INTO organization_access.platform_access_permission "
-                        + "(subject_id, permission_code) VALUES (?, 'tenant-governance:write')",
-                SUBJECT_ID);
+                        + "(subject_id, permission_code) VALUES (?, 'platform-session:access'), (?, 'tenant-governance:write')",
+                SUBJECT_ID, SUBJECT_ID);
     }
 
     @Test
@@ -77,7 +77,9 @@ class PostgresPlatformAccessGrantRepositoryTest {
 
         assertEquals(4L, grant.permissionVersion());
         assertEquals(
-                java.util.Set.of(new PermissionCode("tenant-governance:write")),
+                java.util.Set.of(
+                        new PermissionCode("platform-session:access"),
+                        new PermissionCode("tenant-governance:write")),
                 grant.permissions());
     }
 

@@ -6,8 +6,8 @@ import java.util.Set;
 /**
  * 仅由已验证平台会话恢复的不可变平台请求上下文。
  *
- * <p>本对象刻意不含租户、成员、目标资源或调用方追踪标识。平台路由中的租户标识只能是
- * 受权生命周期操作的业务目标，不能借此变成登录状态或正文读取范围。</p>
+ * <p>本对象刻意不含租户、成员或目标资源。平台路由中的租户标识只能是受权生命周期操作的业务目标，
+ * 不能借此变成登录状态或正文读取范围；会话准入权限也不等同于任何具体工作区权限。</p>
  */
 public record PlatformRequestContext(
         SubjectId subjectId,
@@ -28,8 +28,8 @@ public record PlatformRequestContext(
         if (permissionVersion < 0L) {
             throw new IllegalArgumentException("权限版本不能为负数");
         }
-        if (!permissions.contains(PlatformPermissions.TENANT_GOVERNANCE_WRITE)) {
-            throw new IllegalArgumentException("平台上下文缺少租户治理权限");
+        if (!permissions.contains(PlatformPermissions.SESSION_ACCESS)) {
+            throw new IllegalArgumentException("平台上下文缺少会话准入权限");
         }
         if (traceId.isBlank()
                 || traceId.length() > MAX_TRACE_ID_LENGTH

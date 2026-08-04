@@ -9,12 +9,14 @@ import com.aiplatform.foundation.organizationaccess.application.authentication.s
 import com.aiplatform.foundation.organizationaccess.application.authentication.service.BrowserSessionCapabilityService;
 import com.aiplatform.foundation.organizationaccess.application.authentication.service.BrowserSessionTerminationService;
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.service.TenantLifecycleBackfillService;
+import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.service.TenantLifecycleQueryService;
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.service.TenantLifecycleTransitionService;
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.service.TenantProvisioningService;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.authorization.mapper.PlatformAccessGrantMapper;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.identity.mapper.SubjectIdentityMapper;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.membership.mapper.TenantMembershipMapper;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.mapper.TenantLifecycleBackfillMapper;
+import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.mapper.TenantLifecycleReadMapper;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.mapper.TenantLifecycleTransitionMapper;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.mapper.TenantProvisioningMapper;
 import com.aiplatform.foundation.organizationaccess.interfaces.web.authentication.controller.AuthenticationController;
@@ -49,6 +51,9 @@ class OrganizationAccessAutoConfigurationTest {
                     TenantLifecycleBackfillMapper.class,
                     () -> mock(TenantLifecycleBackfillMapper.class))
             .withBean(
+                    TenantLifecycleReadMapper.class,
+                    () -> mock(TenantLifecycleReadMapper.class))
+            .withBean(
                     TenantLifecycleTransitionMapper.class,
                     () -> mock(TenantLifecycleTransitionMapper.class))
             .withBean(
@@ -72,6 +77,7 @@ class OrganizationAccessAutoConfigurationTest {
             assertThat(context).hasSingleBean(BrowserSessionCapabilityService.class);
             assertThat(context).hasSingleBean(BrowserSessionTerminationService.class);
             assertThat(context).hasSingleBean(TenantLifecycleBackfillService.class);
+            assertThat(context).hasSingleBean(TenantLifecycleQueryService.class);
             assertThat(context).hasSingleBean(TenantLifecycleTransitionService.class);
             assertThat(context).hasSingleBean(TenantProvisioningService.class);
             assertThat(context).hasSingleBean(AuthenticationController.class);
@@ -96,6 +102,8 @@ class OrganizationAccessAutoConfigurationTest {
                             BrowserSessionTerminationService.class);
                     assertThat(context).doesNotHaveBean(
                             TenantLifecycleBackfillService.class);
+                    assertThat(context).doesNotHaveBean(
+                            TenantLifecycleQueryService.class);
                     assertThat(context).doesNotHaveBean(
                             TenantLifecycleTransitionService.class);
                     assertThat(context).doesNotHaveBean(

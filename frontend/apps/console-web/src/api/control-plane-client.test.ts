@@ -705,6 +705,37 @@ describe("ControlPlaneClient", () => {
       initialAdministratorSubjectId: lifecycle.initialAdministratorSubjectId,
     });
   });
+
+  it("平台生命周期工作区从服务端分页投影读取而不依赖最近一次写入响应", async () => {
+    let request: Request | undefined;
+    const client = authenticatedClient(async (input, init) => {
+      request = new Request(input, init);
+      return new Response(JSON.stringify({
+        items: [{
+          tenantId: "610000000000000001",
+          tenantCode: "demo-campus",
+          displayName: "演示校园",
+          status: "ACTIVE",
+          version: 2,
+          createdAt: "2026-08-03T03:00:00Z",
+          lastChangedAt: "2026-08-03T04:00:00Z",
+        }],
+        pageNumber: 2,
+        pageSize: 5,
+        totalElements: 6,
+        totalPages: 2,
+        hasPrevious: true,
+        hasNext: false,
+      }), { status: 200, headers: { "Content-Type": "application/json" } });
+    });
+
+    const page = await client.listTenantLifecycles(2, 5);
+
+    expect(request?.url).toBe("http://localhost/api/v1/platform/tenants?pageNumber=2&pageSize=5");
+    expect(request?.method).toBe("GET");
+    expect(page.items[0]).not.toHaveProperty("initialAdministratorSubjectId");
+    expect(page.items[0]?.lastChangedAt).toBe("2026-08-03T04:00:00Z");
+  });
 });
 
 function authenticatedClient(fetcher: typeof fetch) {

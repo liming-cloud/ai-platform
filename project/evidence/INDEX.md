@@ -247,6 +247,7 @@
 | M6 统一浏览器会话 TDD 路线 | `project/evidence/WP-0014-browser-session-tdd-route.md` | 本次提交 | 范围 cookie、统一认证编排、`HttpOnly` 空体登录、CSRF、能力清单、会话族注销、无 Bearer 的两套前端 API 客户端、同源公开入口、控制台／query 唯一根登录入口、无 token 跨页签失效传播及平台生命周期工作区红绿已完成；夹具外键清理与恢复演练单一公开入口断言已对齐，`make validate` 全绿；租户角色与平台管理员单页签生命周期、两类会话跨页签注销已验收。平台跨页签生命周期读取和无写权限运营主体不存在，须先由新 ADR 定义边界；会话自然过期与 HTTPS Cookie 仍待实现。 |
 | ADR-0049 平台生命周期读取投影与角色夹具 | `docs/adr/ADR-0049-platform-lifecycle-read-projection.md` | 本次控制面提交 | 提议服务器权威、分页、最小生命周期投影和无写权限运营夹具；未接受前不新增接口、迁移、前端路由或演示主体。 |
 | ADR-0049 人工接受 | `project/evidence/ADR-0049-approval.md` | 本次控制面提交 | 用户接受方案 B；可按红绿路线实施受限读取投影与运营拒绝夹具，不扩大到成员、正文或后续 M6／M7 能力。 |
+| M6 平台生命周期受限读取投影 | `project/evidence/WP-0014-platform-lifecycle-read-projection.md` | 本次提交 | 服务器权威分页投影、写后重读、无写权限平台运营会话与读取／写入失败关闭，应用、真实 PostgreSQL、自动配置、HTTP 与前端回归通过；真实浏览器两页签、HTTPS Cookie 与自然过期仍待完成。 |
 
 ## 证据规则
 

@@ -10,13 +10,13 @@ import org.junit.jupiter.api.Test;
 class PlatformRequestContextTest {
 
     @Test
-    void 应只保存令牌派生的平台身份字段并要求租户治理权限() {
+    void 应只保存令牌派生的平台身份字段并要求会话准入权限() {
         var context = new PlatformRequestContext(
                 new SubjectId(4921825928971026434L),
                 CredentialType.PERSON,
                 AccessChannel.CONSOLE,
                 3L,
-                Set.of(PlatformPermissions.TENANT_GOVERNANCE_WRITE),
+                Set.of(PlatformPermissions.SESSION_ACCESS, PlatformPermissions.TENANT_GOVERNANCE_WRITE),
                 "trc_platform");
 
         assertEquals(
@@ -28,7 +28,7 @@ class PlatformRequestContextTest {
     }
 
     @Test
-    void 缺少平台租户治理权限不得构造平台上下文() {
+    void 缺少平台会话准入权限不得构造平台上下文() {
         assertThrows(
                 IllegalArgumentException.class,
                 () -> new PlatformRequestContext(
@@ -36,7 +36,7 @@ class PlatformRequestContextTest {
                         CredentialType.PERSON,
                         AccessChannel.CONSOLE,
                         3L,
-                        Set.of(new PermissionCode("model-platform:write")),
+                        Set.of(PlatformPermissions.TENANT_GOVERNANCE_WRITE),
                         "trc_platform"));
     }
 }

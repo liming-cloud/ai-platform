@@ -33,6 +33,13 @@ INSERT INTO organization_access.subject_identity (
         'pbkdf2-sha256$v1$600000$xCeuZmvRbROcHBGNFfKU2A$OWzHrRHZCZ38xi3NaEHw1qEzE_-3X7F6vM37aNz--bk',
         'ACTIVE',
         0
+    ),
+    (
+        4921825928971026437,
+        'platform-operator',
+        'pbkdf2-sha256$v1$600000$xCeuZmvRbROcHBGNFfKU2A$OWzHrRHZCZ38xi3NaEHw1qEzE_-3X7F6vM37aNz--bk',
+        'ACTIVE',
+        0
     )
 ON CONFLICT DO NOTHING;
 
@@ -49,13 +56,27 @@ INSERT INTO organization_access.platform_access_grant (
 )
 ON CONFLICT DO NOTHING;
 
+-- 隔离演示与失败关闭回归使用的已登录平台运营主体；它不拥有任何租户生命周期写权限。
+INSERT INTO organization_access.platform_access_grant (
+    subject_id,
+    status,
+    permission_version,
+    version
+) VALUES (
+    4921825928971026437,
+    'ENABLED',
+    0,
+    0
+)
+ON CONFLICT DO NOTHING;
+
 INSERT INTO organization_access.platform_access_permission (
     subject_id,
     permission_code
-) VALUES (
-    4921825928971026436,
-    'tenant-governance:write'
-)
+) VALUES
+    (4921825928971026436, 'platform-session:access'),
+    (4921825928971026436, 'tenant-governance:write'),
+    (4921825928971026437, 'platform-session:access')
 ON CONFLICT DO NOTHING;
 
 INSERT INTO organization_access.tenant_membership (

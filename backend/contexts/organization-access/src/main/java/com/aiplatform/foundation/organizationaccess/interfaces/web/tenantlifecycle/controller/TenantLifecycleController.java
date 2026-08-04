@@ -1,19 +1,25 @@
 package com.aiplatform.foundation.organizationaccess.interfaces.web.tenantlifecycle.controller;
 
+import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.dto.TenantLifecycleView;
+import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.service.TenantLifecycleQueryService;
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.service.TenantLifecycleTransitionService;
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.service.TenantProvisioningService;
-import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.dto.TenantLifecycleView;
 import com.aiplatform.foundation.organizationaccess.interfaces.web.tenantlifecycle.request.TenantProvisioningRequest;
 import com.aiplatform.foundation.organizationaccess.interfaces.web.tenantlifecycle.response.TenantLifecycleResponse;
+import com.aiplatform.foundation.organizationaccess.interfaces.web.tenantlifecycle.response.TenantLifecycleSummaryResponse;
 import com.aiplatform.foundation.security.identity.PlatformRequestContext;
+import com.aiplatform.foundation.shared.contract.paging.PageQuery;
+import com.aiplatform.foundation.shared.contract.paging.PageResult;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Supplier;
 import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -29,12 +35,34 @@ public final class TenantLifecycleController {
 
     private final TenantProvisioningService provisioning;
     private final TenantLifecycleTransitionService transitions;
+    private final TenantLifecycleQueryService lifecycleQueries;
 
     public TenantLifecycleController(
             TenantProvisioningService provisioning,
-            TenantLifecycleTransitionService transitions) {
+            TenantLifecycleTransitionService transitions,
+            TenantLifecycleQueryService lifecycleQueries) {
         this.provisioning = Objects.requireNonNull(provisioning, "租户建立服务不能为空");
         this.transitions = Objects.requireNonNull(transitions, "生命周期迁移服务不能为空");
+        this.lifecycleQueries = Objects.requireNonNull(lifecycleQueries, "生命周期读取服务不能为空");
+    }
+
+    /**
+     * 分页读取已受权平台会话可见的最小生命周期投影。
+     */
+    @GetMapping
+    public PageResult<TenantLifecycleSummaryResponse> list(
+            PlatformRequestContext platform,
+            @RequestParam(defaultValue = "1") long pageNumber,
+            @RequestParam(defaultValue = "20") long pageSize) {
+        var page = lifecycleQueries.list(platform, new PageQuery(pageNumber, pageSize));
+        return new PageResult<>(
+                page.items().stream().map(TenantLifecycleSummaryResponse::from).toList(),
+                page.pageNumber(),
+                page.pageSize(),
+                page.totalElements(),
+                page.totalPages(),
+                page.hasPrevious(),
+                page.hasNext());
     }
 
     /**

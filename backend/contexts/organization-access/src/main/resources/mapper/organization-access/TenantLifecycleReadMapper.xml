@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.mapper.TenantLifecycleReadMapper">
+
+    <select id="selectPage"
+            resultType="com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.projection.TenantLifecycleSummaryRow">
+        SELECT lifecycle.tenant_id,
+               lifecycle.tenant_code,
+               lifecycle.display_name,
+               lifecycle.status,
+               lifecycle.version,
+               lifecycle.created_at,
+               COALESCE(MAX(outbox.occurred_at), lifecycle.created_at) AS last_changed_at
+        FROM organization_access.tenant_lifecycle lifecycle
+        LEFT JOIN organization_access.tenant_lifecycle_outbox outbox
+            ON outbox.tenant_id = lifecycle.tenant_id
+        GROUP BY lifecycle.tenant_id,
+                 lifecycle.tenant_code,
+                 lifecycle.display_name,
+                 lifecycle.status,
+                 lifecycle.version,
+                 lifecycle.created_at
+        ORDER BY last_changed_at DESC, lifecycle.tenant_id DESC
+        LIMIT #{pageSize}
+        OFFSET #{offset}
+    </select>
+
+    <select id="count" resultType="long">
+        SELECT COUNT(*)
+        FROM organization_access.tenant_lifecycle
+    </select>
+</mapper>

@@ -7,9 +7,11 @@ import com.aiplatform.foundation.organizationaccess.application.authentication.s
 import com.aiplatform.foundation.organizationaccess.application.authentication.service.BrowserSessionCapabilityService;
 import com.aiplatform.foundation.organizationaccess.application.authentication.service.BrowserSessionTerminationService;
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.port.out.TenantLifecycleBackfillStore;
+import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.port.out.TenantLifecycleReadPort;
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.port.out.TenantLifecycleTransitionStore;
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.port.out.TenantProvisioningStore;
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.service.TenantLifecycleBackfillService;
+import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.service.TenantLifecycleQueryService;
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.service.TenantLifecycleTransitionService;
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.service.TenantProvisioningService;
 import com.aiplatform.foundation.organizationaccess.domain.authorization.repository.PlatformAccessGrantRepository;
@@ -131,6 +133,12 @@ public class OrganizationAccessCoreAutoConfiguration {
     TenantLifecycleBackfillService tenantLifecycleBackfillService(
             TenantLifecycleBackfillStore store) {
         return new TenantLifecycleBackfillService(store);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    TenantLifecycleQueryService tenantLifecycleQueryService(TenantLifecycleReadPort readPort) {
+        return new TenantLifecycleQueryService(readPort);
     }
 
     @Bean

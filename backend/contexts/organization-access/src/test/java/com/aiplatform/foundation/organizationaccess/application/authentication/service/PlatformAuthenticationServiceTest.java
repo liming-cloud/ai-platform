@@ -104,7 +104,9 @@ class PlatformAuthenticationServiceTest {
     }
 
     private static PlatformAccessGrant grant() {
-        return new PlatformAccessGrant(SUBJECT_ID, 2L, Set.of(new PermissionCode("tenant-governance:write")));
+        return new PlatformAccessGrant(SUBJECT_ID, 2L, Set.of(
+                new PermissionCode("platform-session:access"),
+                new PermissionCode("tenant-governance:write")));
     }
 
     private static PlatformLoginCommand command(String password) {

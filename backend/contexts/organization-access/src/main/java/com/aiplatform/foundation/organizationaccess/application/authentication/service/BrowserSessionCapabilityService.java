@@ -4,6 +4,8 @@ import com.aiplatform.foundation.organizationaccess.application.authentication.d
 import com.aiplatform.foundation.organizationaccess.application.authentication.dto.BrowserSessionCapability.DisplayRole;
 import com.aiplatform.foundation.organizationaccess.application.authentication.dto.BrowserSessionCapability.WorkspaceCategory;
 import com.aiplatform.foundation.organizationaccess.application.authentication.dto.BrowserSessionCapabilityResult;
+import com.aiplatform.foundation.security.identity.PlatformPermissions;
+import com.aiplatform.foundation.security.identity.PlatformRequestContext;
 import com.aiplatform.foundation.security.session.AuthenticatedSessionGateway;
 import com.aiplatform.foundation.security.session.InvalidAuthenticatedSessionException;
 import com.aiplatform.foundation.security.session.PlatformSessionGateway;
@@ -47,7 +49,7 @@ public final class BrowserSessionCapabilityService {
             workspaces.add(WorkspaceCategory.TENANT);
             roles.add(DisplayRole.TENANT_MEMBER);
         }
-        if (platform.isValid()) {
+        if (platform.hasTenantGovernanceWorkspace()) {
             workspaces.add(WorkspaceCategory.PLATFORM_TENANT_GOVERNANCE);
             roles.add(DisplayRole.PLATFORM_TENANT_GOVERNOR);
         }
@@ -69,15 +71,14 @@ public final class BrowserSessionCapabilityService {
         }
     }
 
-    private ResolvedSession resolvePlatform(String tokenValue) {
+    private ResolvedPlatformSession resolvePlatform(String tokenValue) {
         if (tokenValue == null) {
-            return ResolvedSession.absent();
+            return ResolvedPlatformSession.absent();
         }
         try {
-            platformSessions.resolve(tokenValue);
-            return ResolvedSession.valid();
+            return ResolvedPlatformSession.valid(platformSessions.resolve(tokenValue));
         } catch (InvalidAuthenticatedSessionException exception) {
-            return ResolvedSession.invalidSession();
+            return ResolvedPlatformSession.invalidSession();
         }
     }
 
@@ -101,6 +102,31 @@ public final class BrowserSessionCapabilityService {
 
         static ResolvedSession invalidSession() {
             return new ResolvedSession(false, true);
+        }
+    }
+
+    private record ResolvedPlatformSession(
+            boolean isValid,
+            boolean isInvalid,
+            PlatformRequestContext context) {
+
+        static ResolvedPlatformSession absent() {
+            return new ResolvedPlatformSession(false, false, null);
+        }
+
+        static ResolvedPlatformSession valid(PlatformRequestContext context) {
+            return new ResolvedPlatformSession(
+                    true,
+                    false,
+                    java.util.Objects.requireNonNull(context, "平台请求上下文不能为空"));
+        }
+
+        static ResolvedPlatformSession invalidSession() {
+            return new ResolvedPlatformSession(false, true, null);
+        }
+
+        boolean hasTenantGovernanceWorkspace() {
+            return isValid && context.hasPermission(PlatformPermissions.TENANT_GOVERNANCE_WRITE);
         }
     }
 }

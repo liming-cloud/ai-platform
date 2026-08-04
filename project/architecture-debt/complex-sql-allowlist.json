@@ -374,6 +374,18 @@
       "reason": "与生命周期迁移同一事务写入最小版本化状态事实。"
     },
     {
+      "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/TenantLifecycleReadMapper.xml",
+      "statementId": "selectPage",
+      "category": "AGGREGATE",
+      "reason": "以最小字段聚合每个生命周期的最后变更时间，并在数据库内完成受限分页。"
+    },
+    {
+      "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/TenantLifecycleReadMapper.xml",
+      "statementId": "count",
+      "category": "AGGREGATE",
+      "reason": "统计生命周期总数以返回受限分页投影的总页数，不读取成员或正文事实。"
+    },
+    {
       "path": "backend/contexts/trusted-query/src/main/resources/mapper/trusted-query/QueryRunMapper.xml",
       "statementId": "lockScope",
       "category": "POSTGRES_ADVISORY_LOCK",

@@ -9,10 +9,10 @@ import org.junit.jupiter.api.Test;
 class PlatformAccessGrantTest {
 
     @Test
-    void 仅模型平台权限不能构成租户治理授权() {
+    void 缺少平台会话准入权限不能构成平台授权() {
         assertThrows(IllegalArgumentException.class, () -> new PlatformAccessGrant(
                 new SubjectId(4921825928971026434L),
                 1,
-                Set.of(new PermissionCode("model-platform:write"))));
+                Set.of(new PermissionCode("tenant-governance:write"))));
     }
 }

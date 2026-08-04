@@ -83,7 +83,7 @@ class SaTokenPlatformContextArgumentResolverTest {
                 CredentialType.PERSON,
                 AccessChannel.CONSOLE,
                 3L,
-                Set.of(PlatformPermissions.TENANT_GOVERNANCE_WRITE),
+                Set.of(PlatformPermissions.SESSION_ACCESS, PlatformPermissions.TENANT_GOVERNANCE_WRITE),
                 "trc_session");
     }
 }
