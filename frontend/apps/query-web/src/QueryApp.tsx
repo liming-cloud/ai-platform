@@ -5,6 +5,7 @@ import {
 } from "@fluentui/react-components";
 import { StatePanel, ProductShell } from "@foundation/design-system";
 import {
+  BrowserSessionExpirationMonitor,
   BrowserSessionInvalidationChannel,
   type BrowserSessionCapability,
 } from "@foundation/browser-session";
@@ -20,6 +21,10 @@ export function QueryApp() {
   const client = useMemo(() => new QueryClient(), []);
   const invalidationChannel = useMemo(
     () => new BrowserSessionInvalidationChannel(),
+    [],
+  );
+  const expirationMonitor = useMemo(
+    () => new BrowserSessionExpirationMonitor(),
     [],
   );
   const receivingInvalidation = useRef(false);
@@ -68,6 +73,40 @@ export function QueryApp() {
       invalidationChannel.close();
     };
   }, [client, invalidationChannel]);
+
+  useEffect(() => {
+    if (capability === undefined || !client.hasSession()) {
+      return undefined;
+    }
+    let current = true;
+    expirationMonitor.schedule(capability.maximumSessionAgeSeconds, () => {
+      void client.restoreSession().then(
+        (restored) => {
+          if (!current) {
+            return;
+          }
+          if (restored === null || !restored.workspaceCategories.includes("TENANT")) {
+            setCapability(undefined);
+            setState("returning");
+            return;
+          }
+          if (client.hasSession()) {
+            setCapability(restored);
+          }
+        },
+        () => {
+          if (current) {
+            setCapability(undefined);
+            setState("failed");
+          }
+        },
+      );
+    });
+    return () => {
+      current = false;
+      expirationMonitor.close();
+    };
+  }, [capability, client, expirationMonitor]);
 
   useEffect(() => {
     if (state === "returning") {

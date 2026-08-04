@@ -7,6 +7,7 @@ import {
   MessageBarTitle,
 } from "@fluentui/react-components";
 import {
+  BrowserSessionExpirationMonitor,
   BrowserSessionInvalidationChannel,
   type BrowserSessionCapability,
 } from "@foundation/browser-session";
@@ -40,6 +41,10 @@ export function BrowserSessionGate({
 }) {
   const invalidationChannel = useMemo(
     () => new BrowserSessionInvalidationChannel(),
+    [],
+  );
+  const expirationMonitor = useMemo(
+    () => new BrowserSessionExpirationMonitor(),
     [],
   );
   const receivingInvalidation = useRef(false);
@@ -92,6 +97,32 @@ export function BrowserSessionGate({
       invalidationChannel.close();
     };
   }, [client, invalidationChannel]);
+
+  useEffect(() => {
+    if (capability === undefined || !client.hasSession()) {
+      return undefined;
+    }
+    let current = true;
+    expirationMonitor.schedule(capability.maximumSessionAgeSeconds, () => {
+      void client.restoreSession().then(
+        (restored) => {
+          if (current && restored !== null && client.hasSession()) {
+            setCapability(restored);
+          }
+        },
+        () => {
+          if (current) {
+            setCapability(undefined);
+            setState("failed");
+          }
+        },
+      );
+    });
+    return () => {
+      current = false;
+      expirationMonitor.close();
+    };
+  }, [capability, client, expirationMonitor]);
 
   async function login(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();

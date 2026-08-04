@@ -9,6 +9,7 @@
 .env.*
 !.env.example
 !**/.env.example
+deploy/.local/
 
 # Build outputs
 target/
