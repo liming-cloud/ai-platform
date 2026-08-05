@@ -77,6 +77,25 @@ public final class EvaluationDataset implements AggregateRoot<EvaluationDatasetI
     }
 
     /**
+     * 从已验证的持久化清单恢复数据集根；私有正文仍不进入聚合。
+     */
+    public static EvaluationDataset restore(
+            TenantId tenantId,
+            EvaluationDatasetId id,
+            String privateContentReference,
+            String contentDigest,
+            int entryCount,
+            EvaluationDatasetContentClassification classification,
+            String retentionPolicyId,
+            EvaluationDatasetStatus status,
+            long version,
+            Instant createdAt) {
+        return new EvaluationDataset(
+                tenantId, id, privateContentReference, contentDigest, entryCount, classification,
+                retentionPolicyId, status, version, createdAt);
+    }
+
+    /**
      * 发布不可变清单，使其可以被同租户评测运行冻结。
      *
      * @throws IllegalStateException 当数据集已发布时拒绝重复发布。

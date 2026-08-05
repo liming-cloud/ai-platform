@@ -2,11 +2,21 @@ package com.aiplatform.foundation.evaluationoperations.infrastructure.persistenc
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.aiplatform.foundation.evaluationoperations.application.evaluation.port.out.EvaluationDatasetRegistrationStore;
 import com.aiplatform.foundation.evaluationoperations.domain.evaluation.model.EvaluationDataset;
 import com.aiplatform.foundation.evaluationoperations.domain.evaluation.model.EvaluationDatasetContentClassification;
 import com.aiplatform.foundation.evaluationoperations.domain.evaluation.model.EvaluationDatasetId;
+import com.aiplatform.foundation.evaluationoperations.domain.evaluation.model.EvaluationDatasetSnapshot;
+import com.aiplatform.foundation.evaluationoperations.domain.evaluation.model.EvaluationRun;
+import com.aiplatform.foundation.evaluationoperations.domain.evaluation.model.EvaluationRunId;
+import com.aiplatform.foundation.evaluationoperations.domain.evaluation.model.EvaluationTarget;
+import com.aiplatform.foundation.evaluationoperations.domain.evaluation.observation.EvaluationObservation;
+import com.aiplatform.foundation.evaluationoperations.domain.evaluation.policy.QualityGatePolicy;
+import com.aiplatform.foundation.evaluationoperations.domain.evaluation.repository.EvaluationDatasetRepository;
+import com.aiplatform.foundation.evaluationoperations.domain.evaluation.repository.EvaluationRunRepository;
+import com.aiplatform.foundation.evaluationoperations.domain.evaluation.service.EvaluationExecution;
 import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
 import java.time.Instant;
 import java.util.Set;
@@ -57,6 +67,12 @@ class PostgresEvaluationDatasetRegistrationStoreTest {
     private EvaluationDatasetRegistrationStore store;
 
     @Autowired
+    private EvaluationDatasetRepository datasets;
+
+    @Autowired
+    private EvaluationRunRepository runs;
+
+    @Autowired
     private JdbcTemplate jdbc;
 
     @DynamicPropertySource
@@ -69,6 +85,7 @@ class PostgresEvaluationDatasetRegistrationStoreTest {
 
     @BeforeEach
     void clearDatasets() {
+        jdbc.update("DELETE FROM evaluation_operations.evaluation_run");
         jdbc.update("DELETE FROM evaluation_operations.evaluation_dataset");
     }
 
@@ -92,6 +109,48 @@ class PostgresEvaluationDatasetRegistrationStoreTest {
                 column.contains("content") && !column.equals("content_digest") && !column.equals("private_content_reference")));
         assertFalse(columns.stream().anyMatch(column ->
                 column.contains("question") || column.contains("answer") || column.contains("body")));
+    }
+
+    @Test
+    void 应按租户恢复数据集并保存无正文的运行计数和指标() {
+        var dataset = dataset(STORE_TENANT);
+        store.commit(dataset);
+
+        assertEquals(dataset.id(), datasets.findById(STORE_TENANT, dataset.id()).orElseThrow().id());
+        assertFalse(datasets.findById(CAMPUS_TENANT, dataset.id()).isPresent());
+
+        runs.save(completedRun(dataset));
+
+        assertEquals(1L, jdbc.queryForObject("""
+                SELECT count(*) FROM evaluation_operations.evaluation_run WHERE tenant_id = ?
+                """, Long.class, STORE_TENANT.value()));
+        var columns = Set.copyOf(jdbc.queryForList("""
+                SELECT column_name
+                FROM information_schema.columns
+                WHERE table_schema = 'evaluation_operations' AND table_name = 'evaluation_run'
+                """, String.class));
+        assertTrue(columns.containsAll(Set.of(
+                "expected_evidence_count", "recall_at_10", "model_route_fingerprint", "completed_at")));
+        assertFalse(columns.stream().anyMatch(column ->
+                column.contains("input") || column.contains("question") || column.contains("answer")
+                        || column.contains("prompt") || column.contains("content") && !column.equals("dataset_content_digest")));
+    }
+
+    private static EvaluationRun completedRun(EvaluationDataset dataset) {
+        var running = EvaluationRun.start(
+                STORE_TENANT,
+                new EvaluationRunId(510000000000000010L),
+                new EvaluationTarget(510000000000000020L, 7L),
+                EvaluationDatasetSnapshot.from(dataset),
+                QualityGatePolicy.qualityGateV1().snapshot(),
+                "b".repeat(64),
+                "evaluation-metrics-v1",
+                CREATED_AT);
+        return EvaluationExecution.complete(
+                running,
+                dataset,
+                new EvaluationObservation(STORE_TENANT, 1, 1, 1, 1, 1, 1, 1, 0, false),
+                CREATED_AT.plusSeconds(1)).run();
     }
 
     private static EvaluationDataset dataset(TenantId tenantId) {

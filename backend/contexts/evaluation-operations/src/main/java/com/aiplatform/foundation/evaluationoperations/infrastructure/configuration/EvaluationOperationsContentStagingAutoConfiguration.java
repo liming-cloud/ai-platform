@@ -1,6 +1,8 @@
 package com.aiplatform.foundation.evaluationoperations.infrastructure.configuration;
 
 import com.aiplatform.foundation.evaluationoperations.application.evaluation.port.out.EvaluationDatasetContentStagingPort;
+import com.aiplatform.foundation.evaluationoperations.application.evaluation.port.out.EvaluationDatasetEntryReader;
+import com.aiplatform.foundation.evaluationoperations.infrastructure.staging.JsonLinesEvaluationDatasetEntryReader;
 import com.aiplatform.foundation.evaluationoperations.infrastructure.staging.LocalEvaluationDatasetContentStagingAdapter;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -17,6 +19,12 @@ import org.springframework.context.annotation.Bean;
         havingValue = "true")
 @EnableConfigurationProperties(EvaluationOperationsRegistrationProperties.class)
 public class EvaluationOperationsContentStagingAutoConfiguration {
+
+    @Bean
+    @ConditionalOnMissingBean(EvaluationDatasetEntryReader.class)
+    EvaluationDatasetEntryReader evaluationDatasetEntryReader() {
+        return new JsonLinesEvaluationDatasetEntryReader();
+    }
 
     @Bean
     @ConditionalOnMissingBean(EvaluationDatasetContentStagingPort.class)

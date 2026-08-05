@@ -4,6 +4,7 @@ import com.aiplatform.foundation.evaluationoperations.application.evaluation.por
 import com.aiplatform.foundation.evaluationoperations.application.evaluation.request.EvaluationDatasetRegistrationContent;
 import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
 import io.minio.BucketExistsArgs;
+import io.minio.GetObjectArgs;
 import io.minio.MakeBucketArgs;
 import io.minio.MinioClient;
 import io.minio.PutObjectArgs;
@@ -92,6 +93,19 @@ public final class MinioEvaluationDatasetPrivateContentStore
             throw exception;
         } catch (Exception exception) {
             removeQuietly(objectKey);
+            throw unavailable(exception);
+        }
+    }
+
+    @Override
+    public java.io.InputStream open(String privateContentReference) {
+        var objectKey = objectKey(privateContentReference);
+        try {
+            return client.getObject(GetObjectArgs.builder()
+                    .bucket(bucket)
+                    .object(objectKey)
+                    .build());
+        } catch (Exception exception) {
             throw unavailable(exception);
         }
     }

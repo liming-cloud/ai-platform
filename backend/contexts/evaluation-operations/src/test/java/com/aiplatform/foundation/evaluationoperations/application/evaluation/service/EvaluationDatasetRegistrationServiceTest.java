@@ -145,6 +145,11 @@ class EvaluationDatasetRegistrationServiceTest {
         }
 
         @Override
+        public java.io.InputStream open(String privateContentReference) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
         public void delete(String privateContentReference) {
             deleted.set(privateContentReference);
         }

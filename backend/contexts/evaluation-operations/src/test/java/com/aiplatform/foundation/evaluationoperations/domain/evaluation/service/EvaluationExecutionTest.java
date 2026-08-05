@@ -36,6 +36,9 @@ class EvaluationExecutionTest {
         assertEquals(0.85D, completed.run().metrics().recallAt10());
         assertEquals(0.95D, completed.run().metrics().citationCorrectness());
         assertEquals(0.98D, completed.run().metrics().correctRefusalRate());
+        assertEquals(
+                observation(TENANT_ID, 20, 17, 20, 19, 100, 98, 10, 0),
+                completed.run().observation());
     }
 
     @Test

@@ -81,6 +81,9 @@ class MinioEvaluationDatasetPrivateContentStoreTest {
                 .build())) {
             assertArrayEquals(bytes, stored.readAllBytes());
         }
+        try (var opened = store.open(reference)) {
+            assertArrayEquals(bytes, opened.readAllBytes());
+        }
         var response = HttpClient.newHttpClient().send(
                 HttpRequest.newBuilder(URI.create(endpoint() + "/" + BUCKET + "/"
                                 + reference.substring("private://evaluation/".length())))

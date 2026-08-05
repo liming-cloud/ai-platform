@@ -5,9 +5,14 @@ import static org.mockito.Mockito.mock;
 
 import com.aiplatform.foundation.evaluationoperations.application.evaluation.port.out.EvaluationDatasetPrivateContentStore;
 import com.aiplatform.foundation.evaluationoperations.application.evaluation.port.out.EvaluationDatasetContentStagingPort;
+import com.aiplatform.foundation.evaluationoperations.application.evaluation.port.out.EvaluationDatasetEntryReader;
 import com.aiplatform.foundation.evaluationoperations.application.evaluation.port.out.EvaluationDatasetRegistrationStore;
 import com.aiplatform.foundation.evaluationoperations.application.evaluation.request.EvaluationDatasetRegistrationContent;
 import com.aiplatform.foundation.evaluationoperations.application.evaluation.service.EvaluationDatasetRegistrationService;
+import com.aiplatform.foundation.evaluationoperations.application.evaluation.service.EvaluationRunExecutionService;
+import com.aiplatform.foundation.evaluationoperations.domain.evaluation.repository.EvaluationDatasetRepository;
+import com.aiplatform.foundation.evaluationoperations.domain.evaluation.repository.EvaluationRunRepository;
+import com.aiplatform.foundation.assistantdelivery.application.evaluation.facade.EvaluationAssistantExecution;
 import com.aiplatform.foundation.evaluationoperations.application.operations.service.OperationsQueryService;
 import com.aiplatform.foundation.evaluationoperations.interfaces.web.operations.controller.AuditRecordController;
 import com.aiplatform.foundation.evaluationoperations.interfaces.web.operations.controller.UsageController;
@@ -108,6 +113,21 @@ class EvaluationOperationsAutoConfigurationTest {
     }
 
     @Test
+    void 仅在全部受限运行依赖可用时才注册评测执行服务() {
+        runner.withPropertyValues(
+                        "foundation.control-plane.enabled=true",
+                        "foundation.evaluation-operations.enabled=true")
+                .withBean(EvaluationDatasetRepository.class, () -> (tenantId, id) -> java.util.Optional.empty())
+                .withBean(EvaluationRunRepository.class, () -> run -> { })
+                .withBean(EvaluationDatasetPrivateContentStore.class,
+                        EvaluationOperationsAutoConfigurationTest::privateContents)
+                .withBean(EvaluationDatasetEntryReader.class, () -> (content, consumer) -> 0)
+                .withBean(EvaluationAssistantExecution.class, () -> mock(EvaluationAssistantExecution.class))
+                .withBean(EntityIdGenerator.class, () -> () -> 1L)
+                .run(context -> assertThat(context).hasSingleBean(EvaluationRunExecutionService.class));
+    }
+
+    @Test
     void 未显式启用时不得连接或注册评测私有对象存储() {
         new ApplicationContextRunner()
                 .withConfiguration(AutoConfigurations.of(
@@ -126,7 +146,8 @@ class EvaluationOperationsAutoConfigurationTest {
                         "foundation.evaluation-operations.registration.staging-directory=target/evaluation-staging-test",
                         "foundation.evaluation-operations.registration.maximum-content-bytes=1024")
                 .run(context -> assertThat(context)
-                        .hasSingleBean(EvaluationDatasetContentStagingPort.class));
+                        .hasSingleBean(EvaluationDatasetContentStagingPort.class)
+                        .hasSingleBean(EvaluationDatasetEntryReader.class));
     }
 
     @Test
@@ -149,6 +170,11 @@ class EvaluationOperationsAutoConfigurationTest {
                     TenantId tenantId,
                     long datasetId,
                     EvaluationDatasetRegistrationContent content) {
+                throw new UnsupportedOperationException();
+            }
+
+            @Override
+            public java.io.InputStream open(String privateContentReference) {
                 throw new UnsupportedOperationException();
             }
 

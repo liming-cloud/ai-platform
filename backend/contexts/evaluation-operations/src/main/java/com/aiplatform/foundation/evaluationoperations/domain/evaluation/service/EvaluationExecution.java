@@ -41,7 +41,7 @@ public final class EvaluationExecution {
                 && metrics.recallAt10() >= run.gate().minimumRecallAt10()
                 && metrics.citationCorrectness() >= run.gate().minimumCitationCorrectness()
                 && metrics.correctRefusalRate() >= run.gate().minimumCorrectRefusalRate();
-        return new EvaluationCompletion(run.complete(metrics, passed, completedAt));
+        return new EvaluationCompletion(run.complete(observation, metrics, passed, completedAt));
     }
 
     private static boolean matchesFrozenDataset(EvaluationRun run, EvaluationDataset dataset) {

@@ -1,9 +1,16 @@
 package com.aiplatform.foundation.evaluationoperations.infrastructure.configuration;
 
 import com.aiplatform.foundation.evaluationoperations.application.evaluation.port.out.EvaluationDatasetContentStagingPort;
+import com.aiplatform.foundation.evaluationoperations.application.evaluation.port.out.EvaluationDatasetEntryReader;
 import com.aiplatform.foundation.evaluationoperations.application.evaluation.port.out.EvaluationDatasetPrivateContentStore;
 import com.aiplatform.foundation.evaluationoperations.application.evaluation.port.out.EvaluationDatasetRegistrationStore;
 import com.aiplatform.foundation.evaluationoperations.application.evaluation.service.EvaluationDatasetRegistrationService;
+import com.aiplatform.foundation.evaluationoperations.application.evaluation.service.EvaluationRunExecutionService;
+import com.aiplatform.foundation.evaluationoperations.domain.evaluation.policy.QualityGatePolicy;
+import com.aiplatform.foundation.evaluationoperations.domain.evaluation.repository.EvaluationDatasetRepository;
+import com.aiplatform.foundation.evaluationoperations.domain.evaluation.repository.EvaluationRunRepository;
+import com.aiplatform.foundation.assistantdelivery.application.evaluation.facade.EvaluationAssistantExecution;
+import com.aiplatform.foundation.assistantdelivery.infrastructure.configuration.AssistantDeliveryCoreAutoConfiguration;
 import com.aiplatform.foundation.evaluationoperations.application.operations.service.OperationsQueryService;
 import com.aiplatform.foundation.evaluationoperations.domain.operations.model.OperationsQuotaPolicy;
 import com.aiplatform.foundation.trustedquery.application.operations.facade.QueryOperationsFactSource;
@@ -20,6 +27,7 @@ import org.springframework.context.annotation.Bean;
  * 注册评测运维应用服务，事实源缺失时拒绝创建不完整能力。
  */
 @AutoConfiguration(after = {
+    AssistantDeliveryCoreAutoConfiguration.class,
     EvaluationOperationsPersistenceAutoConfiguration.class,
     EvaluationOperationsObjectStorageAutoConfiguration.class,
     EvaluationOperationsContentStagingAutoConfiguration.class
@@ -51,6 +59,34 @@ public class EvaluationOperationsCoreAutoConfiguration {
                 datasets,
                 contents,
                 staging,
+                identifiers,
+                Clock.systemUTC());
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    @ConditionalOnBean({
+        EvaluationDatasetRepository.class,
+        EvaluationRunRepository.class,
+        EvaluationDatasetPrivateContentStore.class,
+        EvaluationDatasetEntryReader.class,
+        EvaluationAssistantExecution.class,
+        EntityIdGenerator.class
+    })
+    EvaluationRunExecutionService evaluationRunExecutionService(
+            EvaluationDatasetRepository datasets,
+            EvaluationRunRepository runs,
+            EvaluationDatasetPrivateContentStore contents,
+            EvaluationAssistantExecution assistant,
+            EvaluationDatasetEntryReader entries,
+            EntityIdGenerator identifiers) {
+        return new EvaluationRunExecutionService(
+                datasets,
+                runs,
+                contents,
+                assistant,
+                entries,
+                QualityGatePolicy.qualityGateV1(),
                 identifiers,
                 Clock.systemUTC());
     }
