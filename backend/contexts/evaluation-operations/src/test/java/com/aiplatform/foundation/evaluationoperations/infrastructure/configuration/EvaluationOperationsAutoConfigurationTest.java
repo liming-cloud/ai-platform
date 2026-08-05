@@ -17,6 +17,7 @@ import com.aiplatform.foundation.evaluationoperations.application.operations.ser
 import com.aiplatform.foundation.evaluationoperations.interfaces.web.operations.controller.AuditRecordController;
 import com.aiplatform.foundation.evaluationoperations.interfaces.web.operations.controller.UsageController;
 import com.aiplatform.foundation.evaluationoperations.interfaces.web.evaluation.controller.EvaluationDatasetController;
+import com.aiplatform.foundation.evaluationoperations.interfaces.web.evaluation.controller.EvaluationRunController;
 import com.aiplatform.foundation.trustedquery.application.operations.facade.QueryOperationsFactSource;
 import com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator;
 import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
@@ -124,7 +125,9 @@ class EvaluationOperationsAutoConfigurationTest {
                 .withBean(EvaluationDatasetEntryReader.class, () -> (content, consumer) -> 0)
                 .withBean(EvaluationAssistantExecution.class, () -> mock(EvaluationAssistantExecution.class))
                 .withBean(EntityIdGenerator.class, () -> () -> 1L)
-                .run(context -> assertThat(context).hasSingleBean(EvaluationRunExecutionService.class));
+                .run(context -> assertThat(context)
+                        .hasSingleBean(EvaluationRunExecutionService.class)
+                        .hasSingleBean(EvaluationRunController.class));
     }
 
     @Test

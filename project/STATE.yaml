@@ -202,6 +202,7 @@ latestEvidence:
   - project/evidence/ADR-0050-approval.md
   - project/evidence/ADR-0051-approval.md
   - project/evidence/ADR-0052-approval.md
+  - project/evidence/WP-0014-evaluation-run-http-browser.md
 nextReviewAt: 2026-08-05
-updatedAt: 2026-08-05T00:00:00+08:00
+updatedAt: 2026-08-05T17:32:00+08:00
 updatedBy: codex

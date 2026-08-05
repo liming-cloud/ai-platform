@@ -37,6 +37,11 @@ const QueryGovernanceWorkspace = lazy(async () => {
   return { default: module.QueryGovernanceWorkspace };
 });
 
+const EvaluationRunWorkspace = lazy(async () => {
+  const module = await import("./features/evaluation/EvaluationRunWorkspace");
+  return { default: module.EvaluationRunWorkspace };
+});
+
 const ModelConfigurationWorkspace = lazy(async () => {
   const module = await import(
     "./features/model-configuration/ModelConfigurationWorkspace"
@@ -103,6 +108,7 @@ function AuthenticatedConsoleApp({
   const [dataTask, setDataTask] = useState<
     "governed-file" | "structured-dataset" | "object-storage" | "first-publication"
   >("governed-file");
+  const [governanceTask, setGovernanceTask] = useState<"query" | "evaluation">("query");
   const governanceActive = activeNavigationId === "governance";
   const modelsActive = activeNavigationId === "models";
   const platformActive = activeNavigationId === "platform";
@@ -168,13 +174,15 @@ function AuthenticatedConsoleApp({
     <ProductShell
       productName="可信知识平台"
       pageTitle={
-        platformActive ? "平台租户生命周期" : governanceActive ? "查询用量与审计" : modelsActive ? "受控模型配置" : dataPage.title
+        platformActive ? "平台租户生命周期" : governanceActive ? governanceTask === "query" ? "查询用量与审计" : "受限评测运行" : modelsActive ? "受控模型配置" : dataPage.title
       }
       pageSummary={
         platformActive
           ? "建立与迁移租户状态，不展示租户正文、成员详情或平台操作者信息。"
-          : governanceActive
+          : governanceActive && governanceTask === "query"
           ? "核对当前租户的查询配额、计量结果和脱敏运行记录。"
+          : governanceActive
+          ? "选择已有数据集和助手版本运行服务端评测，只展示指标和质量门结论。"
           : modelsActive
           ? "从平台发布目录创建、轮换和启用模型配置；API Key 不会再次显示。"
           : dataPage.summary
@@ -276,21 +284,25 @@ function AuthenticatedConsoleApp({
       </section>
       <section hidden={!governanceActive}>
         {governanceActive ? (
-          <Suspense
-            fallback={(
-              <StatePanel
-                kind="loading"
-                title="正在加载治理工作区"
-                description="正在准备查询用量和脱敏审计视图。"
-              />
+          <>
+            <div className="data-task-switcher" aria-label="治理任务切换">
+              <Button appearance={governanceTask === "query" ? "primary" : "subtle"} onClick={() => setGovernanceTask("query")}>
+                查询用量与审计
+              </Button>
+              <Button appearance={governanceTask === "evaluation" ? "primary" : "subtle"} onClick={() => setGovernanceTask("evaluation")}>
+                受限评测运行
+              </Button>
+            </div>
+            {governanceTask === "query" ? (
+              <Suspense fallback={<StatePanel kind="loading" title="正在加载治理工作区" description="正在准备查询用量和脱敏审计视图。" />}>
+                <QueryGovernanceWorkspace client={client} sessionRevision={sessionRevision} onSessionChanged={sessionChanged} />
+              </Suspense>
+            ) : (
+              <Suspense fallback={<StatePanel kind="loading" title="正在加载评测任务" description="正在准备受限评测运行入口。" />}>
+                <EvaluationRunWorkspace client={client} sessionRevision={sessionRevision} onSessionChanged={sessionChanged} />
+              </Suspense>
             )}
-          >
-            <QueryGovernanceWorkspace
-              client={client}
-              sessionRevision={sessionRevision}
-              onSessionChanged={sessionChanged}
-            />
-          </Suspense>
+          </>
         ) : null}
       </section>
       <section hidden={!platformActive}>

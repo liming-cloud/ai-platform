@@ -191,6 +191,36 @@ export interface QueryAuditRecord {
   completedAt: string | null;
 }
 
+/**
+ * 已完成评测运行的受限读取投影；不包含数据集引用、输入输出、证据明细或模型路由信息。
+ */
+export interface EvaluationRun {
+  id: string;
+  assistantVersionId: string;
+  assistantVersionRevision: number;
+  datasetId: string;
+  datasetVersion: number;
+  gatePolicyVersion: string;
+  metricsImplementationVersion: string;
+  status: "PASSED" | "FAILED";
+  expectedEvidenceCount: number;
+  retrievedExpectedEvidenceCount: number;
+  citationCount: number;
+  correctCitationCount: number;
+  expectedRefusalCount: number;
+  correctRefusalCount: number;
+  maximumRetrievedCandidateCount: number;
+  failedEntryCount: number;
+  unauthorizedEvidence: boolean;
+  metricsComputable: boolean;
+  recallAt10: number;
+  citationCorrectness: number;
+  correctRefusalRate: number;
+  version: number;
+  createdAt: string;
+  completedAt: string;
+}
+
 export interface PageResult<T> {
   items: T[];
   pageNumber: number;
@@ -324,6 +354,20 @@ export class ControlPlaneClient {
     return this.request<PageResult<QueryAuditRecord>>(
       `/audit-records?pageNumber=${pageNumber}&pageSize=${pageSize}`,
     );
+  }
+
+  /**
+   * 发起服务端评测运行；浏览器只提交已登记数据集和已发布助手版本的标识。
+   */
+  async executeEvaluationRun(
+    datasetId: string,
+    assistantVersionId: string,
+  ): Promise<EvaluationRun> {
+    return this.request<EvaluationRun>("/evaluation-runs", {
+      method: "POST",
+      headers: this.writeHeaders("application/json"),
+      body: JSON.stringify({ datasetId, assistantVersionId }),
+    });
   }
 
   async listKnowledgeSpaces(

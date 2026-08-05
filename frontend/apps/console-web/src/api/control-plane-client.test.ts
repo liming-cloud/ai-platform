@@ -6,6 +6,53 @@ import {
 } from "./control-plane-client";
 
 describe("ControlPlaneClient", () => {
+  it("触发评测运行时只发送数据集和助手版本标识", async () => {
+    let request: Request | undefined;
+    const client = authenticatedClient(async (input, init) => {
+      request = new Request(input, init);
+      return new Response(JSON.stringify({
+        id: "9201",
+        assistantVersionId: "9101",
+        assistantVersionRevision: 7,
+        datasetId: "9001",
+        datasetVersion: 1,
+        gatePolicyVersion: "quality-gate-v1",
+        metricsImplementationVersion: "evaluation-metrics-v1",
+        status: "PASSED",
+        expectedEvidenceCount: 1,
+        retrievedExpectedEvidenceCount: 1,
+        citationCount: 1,
+        correctCitationCount: 1,
+        expectedRefusalCount: 1,
+        correctRefusalCount: 1,
+        maximumRetrievedCandidateCount: 1,
+        failedEntryCount: 0,
+        unauthorizedEvidence: false,
+        metricsComputable: true,
+        recallAt10: 1,
+        citationCorrectness: 1,
+        correctRefusalRate: 1,
+        version: 1,
+        createdAt: "2026-08-05T08:01:00Z",
+        completedAt: "2026-08-05T08:02:00Z",
+      }), { status: 201, headers: { "Content-Type": "application/json" } });
+    });
+
+    const run = await client.executeEvaluationRun("9001", "9101");
+
+    expect(run.id).toBe("9201");
+    expect(request?.method).toBe("POST");
+    expect(request?.url).toContain("/evaluation-runs");
+    expect(request?.headers.get("Authorization")).toBeNull();
+    expect(await request?.json()).toEqual({
+      datasetId: "9001",
+      assistantVersionId: "9101",
+    });
+    expect(JSON.stringify(run)).not.toMatch(
+      /privateContentReference|input|answer|modelRouteFingerprint/i,
+    );
+  });
+
   it("登录后为写请求使用浏览器会话和幂等键", async () => {
     const requests: Request[] = [];
     const responses = [

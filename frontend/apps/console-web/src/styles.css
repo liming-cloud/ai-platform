@@ -280,8 +280,10 @@
 
 .model-configuration-workspace,
 .governed-file-workspace,
+.evaluation-run-workspace,
 .model-configuration-section,
 .governed-file-section,
+.evaluation-run-section,
 .model-configuration-list,
 .model-configuration-card,
 .credential-rotation-form,
@@ -298,6 +300,11 @@
   gap: 2rem;
 }
 
+.evaluation-run-workspace {
+  display: grid;
+  gap: 2rem;
+}
+
 .model-configuration-section {
   gap: 1.25rem;
   padding-top: 1.75rem;
@@ -310,9 +317,55 @@
   border-top: 1px solid var(--colorNeutralStroke1);
 }
 
+.evaluation-run-section {
+  display: grid;
+  gap: 1.25rem;
+  padding-top: 1.75rem;
+  border-top: 1px solid var(--colorNeutralStroke1);
+}
+
 .governed-file-form {
   gap: 1rem;
   max-width: 44rem;
+}
+
+.evaluation-run-form {
+  display: grid;
+  gap: 1rem;
+  max-width: 34rem;
+}
+
+.evaluation-run-form > button {
+  justify-self: start;
+}
+
+.evaluation-run-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 0;
+  border-block: 1px solid var(--colorNeutralStroke2);
+}
+
+.evaluation-run-metrics > div {
+  display: grid;
+  gap: 0.375rem;
+  padding: 1rem;
+  border-right: 1px solid var(--colorNeutralStroke2);
+}
+
+.evaluation-run-metrics > div:nth-child(3n) {
+  border-right: 0;
+}
+
+.evaluation-run-metrics dt {
+  color: var(--colorNeutralForeground3);
+  font-size: 0.75rem;
+}
+
+.evaluation-run-metrics dd {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
 }
 
 .governed-file-name {
@@ -429,5 +482,17 @@
 
   .credential-rotation-form {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .evaluation-run-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .evaluation-run-metrics > div:nth-child(3n) {
+    border-right: 1px solid var(--colorNeutralStroke2);
+  }
+
+  .evaluation-run-metrics > div:nth-child(2n) {
+    border-right: 0;
   }
 }
