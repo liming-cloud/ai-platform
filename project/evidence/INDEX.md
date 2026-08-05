@@ -252,6 +252,7 @@
 | ADR-0050 人工接受 | `project/evidence/ADR-0050-approval.md` | 本次控制面提交 | 用户接受冻结评测运行、发布决定与授权结果边界；指标、预算、例外和导出规则仍待独立 ADR。 |
 | ADR-0051 人工接受 | `project/evidence/ADR-0051-approval.md` | 本次控制面提交 | 用户接受私有合成评测数据集与冻结质量门禁；可按红绿路线实现最小评测与发布决定闭环。 |
 | M6 私有评测与发布门禁设计／TDD 路线 | `project/evidence/WP-0014-evaluation-release-design.md` | 本次设计提交 | 代码图谱确认发布授权 seam、影响面与私有正文边界；红绿顺序已固定，尚未开始生产实现。 |
+| M6 私有评测与发布门禁领域基础 | `project/evidence/WP-0014-evaluation-release-domain.md` | 本次提交 | 两条纯领域红绿、失败关闭和发布授权匹配回归通过；包预算违规已通过结构拆分整改，持久化与应用层仍未开始。 |
 
 ## 证据规则
 
