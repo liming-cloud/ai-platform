@@ -59,7 +59,8 @@ confirmedDecisions:
   - ADR-0050
   - ADR-0051
   - ADR-0052
-openDecisions: []
+openDecisions:
+  - ADR-0053
 latestEvidence:
   - docs/research/WP-0003-framework-baseline.md
   - project/evidence/WP-0003-trusted-context.md
