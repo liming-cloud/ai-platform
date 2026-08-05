@@ -23,7 +23,7 @@ class LocalEvaluationDatasetContentStagingAdapterTest {
     @Test
     void 有效JSONLines应保留私有字节并计算摘要和条目数() throws Exception {
         var bytes = ("""
-                {"input":"门店营业时间？","expectedEvidenceStableIds":["evidence-001"],"expectedOutcome":"ANSWER","allowedAnswers":["九点至十八点"]}
+                {"input":"门店营业时间？","expectedEvidenceStableIds":["aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"],"expectedOutcome":"ANSWER","allowedAnswers":["九点至十八点"]}
                 {"input":"没有证据时怎么办？","expectedEvidenceStableIds":[],"expectedOutcome":"REFUSE"}
                 """).getBytes(StandardCharsets.UTF_8);
         var adapter = new LocalEvaluationDatasetContentStagingAdapter(directory, 1_024L);
@@ -42,18 +42,21 @@ class LocalEvaluationDatasetContentStagingAdapterTest {
         var adapter = new LocalEvaluationDatasetContentStagingAdapter(directory, 1_024L);
 
         assertThrows(IllegalArgumentException.class, () -> adapter.stage(content("""
-                {"input":"问题","expectedEvidenceStableIds":["evidence-001"],"expectedOutcome":"ANSWER"}
+                {"input":"问题","expectedEvidenceStableIds":["aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"],"expectedOutcome":"ANSWER"}
 
                 {"input":"问题","expectedEvidenceStableIds":[],"expectedOutcome":"REFUSE"}
                 """)));
         assertThrows(IllegalArgumentException.class, () -> adapter.stage(content("""
-                {"input":"问题","expectedEvidenceStableIds":["evidence-001"],"expectedOutcome":"ANSWER","extra":"禁止"}
+                {"input":"问题","expectedEvidenceStableIds":["aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"],"expectedOutcome":"ANSWER","extra":"禁止"}
                 """)));
         assertThrows(IllegalArgumentException.class, () -> adapter.stage(content("""
                 {"input":"问题","expectedEvidenceStableIds":[],"expectedOutcome":"ANSWER"}
                 """)));
         assertThrows(IllegalArgumentException.class, () -> adapter.stage(content("""
                 {"input":"问题","expectedEvidenceStableIds":[],"expectedOutcome":"REFUSE","allowedAnswers":["回答"]}
+                """)));
+        assertThrows(IllegalArgumentException.class, () -> adapter.stage(content("""
+                {"input":"问题","expectedEvidenceStableIds":["evidence-001"],"expectedOutcome":"ANSWER"}
                 """)));
     }
 

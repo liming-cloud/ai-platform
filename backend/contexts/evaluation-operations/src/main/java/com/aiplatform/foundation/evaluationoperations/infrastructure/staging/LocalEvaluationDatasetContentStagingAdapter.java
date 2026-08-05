@@ -21,6 +21,7 @@ import java.util.HexFormat;
 import java.util.LinkedHashSet;
 import java.util.Objects;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 /**
  * 在受限目录暂存 UTF-8 JSON Lines，并在任何私有对象写入前验证条目不变量。
@@ -28,6 +29,7 @@ import java.util.Set;
 public final class LocalEvaluationDatasetContentStagingAdapter
         implements EvaluationDatasetContentStagingPort {
 
+    private static final Pattern CHUNK_ID = Pattern.compile("[0-9a-f]{64}");
     private static final int BUFFER_SIZE = 8 * 1024;
     private static final JsonFactory JSON = JsonFactory.builder()
             .enable(StreamReadFeature.STRICT_DUPLICATE_DETECTION)
@@ -149,6 +151,9 @@ public final class LocalEvaluationDatasetContentStagingAdapter
             }
             if (input == null || expectedEvidence == null || expectedOutcome == null) {
                 throw new IllegalArgumentException("评测条目缺少必填字段");
+            }
+            if (expectedEvidence.stream().anyMatch(value -> !CHUNK_ID.matcher(value).matches())) {
+                throw new IllegalArgumentException("期望证据稳定标识必须是分块标识");
             }
             if ("ANSWER".equals(expectedOutcome)) {
                 if (expectedEvidence.isEmpty()) {
