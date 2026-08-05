@@ -255,6 +255,7 @@
 | M6 私有评测与发布门禁设计／TDD 路线 | `project/evidence/WP-0014-evaluation-release-design.md` | 本次设计提交 | 代码图谱确认发布授权 seam、影响面与私有正文边界；红绿顺序已固定，尚未开始生产实现。 |
 | M6 私有评测与发布门禁领域基础 | `project/evidence/WP-0014-evaluation-release-domain.md` | 本次提交 | 两条纯领域红绿、失败关闭和发布授权匹配回归通过；包预算违规已通过结构拆分整改，持久化与应用层仍未开始。 |
 | M6 私有评测数据集登记应用边界 | `project/evidence/WP-0014-evaluation-registration-application.md` | 本次提交 | 令牌派生 `assistant:write`、私有内容端口、失败补偿和无正文元数据提交红绿回归通过；真实存储与 PostgreSQL 尚未实施。 |
+| M6 私有评测数据集真实存储与装配 | `project/evidence/WP-0014-evaluation-dataset-private-storage.md` | 本次提交 | 真实 PostgreSQL 只保存清单元数据，独占私有 MinIO 流式校验摘要且匿名读取被拒绝；自动配置仅在完整端口存在时注册登记服务。条目编码与 HTTP 尚未获 ADR 授权。 |
 
 ## 证据规则
 

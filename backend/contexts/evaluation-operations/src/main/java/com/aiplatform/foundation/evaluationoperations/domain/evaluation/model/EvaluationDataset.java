@@ -103,12 +103,47 @@ public final class EvaluationDataset implements AggregateRoot<EvaluationDatasetI
         return contentDigest;
     }
 
+    /**
+     * 返回仅供受控基础设施定位私有对象的不透明引用；接口层不得投影该值。
+     */
+    public String privateContentReference() {
+        return privateContentReference;
+    }
+
+    /**
+     * 返回由后续受控解析器核验的条目总数。
+     */
+    public int entryCount() {
+        return entryCount;
+    }
+
+    /**
+     * 返回冻结的内容分类，首批只允许 `SYNTHETIC`。
+     */
+    public EvaluationDatasetContentClassification classification() {
+        return classification;
+    }
+
+    /**
+     * 返回决定私有正文保留与清理边界的策略标识。
+     */
+    public String retentionPolicyId() {
+        return retentionPolicyId;
+    }
+
     public EvaluationDatasetStatus status() {
         return status;
     }
 
     public long version() {
         return version;
+    }
+
+    /**
+     * 返回清单首次创建时间，不随发布变更。
+     */
+    public Instant createdAt() {
+        return createdAt;
     }
 
     private static String requirePrivateReference(String value) {
