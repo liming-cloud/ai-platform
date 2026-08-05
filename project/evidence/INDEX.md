@@ -258,6 +258,7 @@
 | M6 私有评测数据集真实存储与装配 | `project/evidence/WP-0014-evaluation-dataset-private-storage.md` | 本次提交 | 真实 PostgreSQL 只保存清单元数据，独占私有 MinIO 流式校验摘要且匿名读取被拒绝；自动配置仅在完整端口存在时注册登记服务。条目编码与 HTTP 尚未获 ADR 授权。 |
 | ADR-0053 私有评测数据集条目编码 | `docs/adr/ADR-0053-private-evaluation-dataset-entry-encoding.md` | 本次控制面提交 | 严格 JSON Lines、服务端摘要与条目计数已冻结；受控上传与评测运行可按红绿路线实施。 |
 | ADR-0053 人工接受 | `project/evidence/ADR-0053-approval.md` | 本次控制面提交 | 用户接受严格 JSON Lines、服务端摘要与计数；可实施受控校验、私有存储补偿和 multipart HTTP，仍不开放正文读取或 M7／M8。 |
+| ADR-0054 人工接受 | `project/evidence/ADR-0054-approval.md` | 本次控制面提交 | 用户接受由 assistant-delivery 提供确定性受控模型路由摘要；可用于冻结评测运行，不含端点、密钥或正文。 |
 | M6 私有评测 JSON Lines 受控登记 | `project/evidence/WP-0014-evaluation-dataset-json-lines-registration.md` | 本次提交 | 严格 UTF-8 JSON Lines、服务端摘要与条目计数、私有暂存清理、multipart HTTP、控制面迁移与对象存储部署接线均通过；不开放正文读取或评测执行。 |
 
 ## 证据规则

@@ -60,6 +60,7 @@ confirmedDecisions:
   - ADR-0051
   - ADR-0052
   - ADR-0053
+  - ADR-0054
 openDecisions: []
 latestEvidence:
   - docs/research/WP-0003-framework-baseline.md
