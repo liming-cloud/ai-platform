@@ -3,6 +3,8 @@ package com.aiplatform.foundation.assistantdelivery.infrastructure.configuration
 import com.aiplatform.foundation.assistantdelivery.application.answer.service.AssistantTrustedAnswerExecutor;
 import com.aiplatform.foundation.assistantdelivery.application.assistant.facade.PublishedAssistantVersionLookup;
 import com.aiplatform.foundation.assistantdelivery.application.assistant.facade.DraftAssistantVersionLookup;
+import com.aiplatform.foundation.assistantdelivery.application.evaluation.facade.EvaluationAssistantExecution;
+import com.aiplatform.foundation.assistantdelivery.application.evaluation.service.EvaluationAssistantExecutionService;
 import com.aiplatform.foundation.assistantdelivery.application.assistant.service.DraftAssistantVersionLookupService;
 import com.aiplatform.foundation.assistantdelivery.application.assistant.service.PublishedAssistantVersionLookupService;
 import com.aiplatform.foundation.assistantdelivery.application.assistant.testrun.service.AssistantTestRunService;
@@ -77,6 +79,15 @@ public class AssistantDeliveryCoreAutoConfiguration {
         IndexCandidateRetriever candidates) {
         return new AssistantTrustedAnswerExecutor(
                 models, configurations, embeddings, chats, chatRoutes, candidates);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    @ConditionalOnBean(AssistantTrustedAnswerExecutor.class)
+    EvaluationAssistantExecution evaluationAssistantExecution(
+            AssistantRepository repository,
+            AssistantTrustedAnswerExecutor executor) {
+        return new EvaluationAssistantExecutionService(repository, executor);
     }
 
     @Bean

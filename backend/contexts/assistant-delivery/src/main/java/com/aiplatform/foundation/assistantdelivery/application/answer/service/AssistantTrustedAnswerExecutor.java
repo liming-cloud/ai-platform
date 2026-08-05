@@ -3,6 +3,7 @@ package com.aiplatform.foundation.assistantdelivery.application.answer.service;
 import com.aiplatform.foundation.assistantdelivery.application.answer.dto.AssistantTrustedAnswerCitation;
 import com.aiplatform.foundation.assistantdelivery.application.answer.dto.AssistantTrustedAnswerExecutionObservation;
 import com.aiplatform.foundation.assistantdelivery.application.answer.dto.AssistantTrustedAnswerResult;
+import com.aiplatform.foundation.assistantdelivery.application.answer.dto.AssistantTrustedEvaluationResult;
 import com.aiplatform.foundation.assistantdelivery.application.answer.dto.AssistantTrustedAnswerTarget;
 import com.aiplatform.foundation.assistantdelivery.application.answer.dto.AssistantTrustedAnswerUsage;
 import com.aiplatform.foundation.assistantdelivery.application.answer.dto.ModelInvocationTrace;
@@ -122,6 +123,64 @@ public final class AssistantTrustedAnswerExecutor {
                         candidateCount, chatRevision, embeddingRevision);
             }
             return answer(context, target, question, evidence, candidateCount, chatRevision, embeddingRevision);
+        } catch (AssistantTrustedAnswerExecutionException exception) {
+            throw exception;
+        } catch (RuntimeException exception) {
+            throw new AssistantTrustedAnswerExecutionException(
+                    new AssistantTrustedAnswerExecutionObservation(candidateCount, chatRevision, embeddingRevision),
+                    exception);
+        }
+    }
+
+    /**
+     * 执行私有评测所需的可信回答，并在返回边界移除回答与证据正文。
+     */
+    public AssistantTrustedEvaluationResult executeForEvaluation(
+            TrustedRequestContext context,
+            AssistantTrustedAnswerTarget target,
+            String question) {
+        Objects.requireNonNull(context, "可信请求上下文不能为空");
+        Objects.requireNonNull(target, "可信回答目标不能为空");
+        if (question == null || question.isBlank()) {
+            throw new IllegalArgumentException("问题不能为空白");
+        }
+        var chatRevision = target.usesGovernedModelConfigurations()
+                ? target.governedChat().configurationRevision()
+                : target.chatDeploymentRevision();
+        var embeddingRevision = target.usesGovernedModelConfigurations()
+                ? target.governedEmbedding().configurationRevision()
+                : target.embeddingDeploymentRevision();
+        Integer candidateCount = null;
+        try {
+            var embedding = embed(context, target, question);
+            var retrieved = candidates.retrieve(new IndexCandidateQuery(
+                    context.tenantId(), target.knowledgeSpaceId(), target.indexVersionId(),
+                    target.usesGovernedModelConfigurations()
+                            ? EmbeddingConfiguration.governed(
+                                    target.governedEmbedding().configurationId(),
+                                    target.governedEmbedding().configurationRevision(),
+                                    target.governedEmbedding().catalogEntryId(),
+                                    target.governedEmbedding().catalogEntryRevision(),
+                                    target.embeddingDimension())
+                            : new EmbeddingConfiguration(
+                                    target.embeddingDeploymentId(), target.embeddingDeploymentRevision(),
+                                    target.embeddingDimension()),
+                    embedding, TrustedAnswerEvidenceSelector.candidateLimit(target.retrievalLimit())));
+            candidateCount = retrieved.size();
+            var retrievedIds = retrieved.stream().map(IndexCandidate::chunkId).toList();
+            var evidence = TrustedAnswerEvidenceSelector.select(
+                    question, retrieved, target.retrievalLimit(), target.minimumScore());
+            if (evidence.isEmpty()) {
+                return new AssistantTrustedEvaluationResult(
+                        AssistantTrustedEvaluationResult.Outcome.REFUSED_INSUFFICIENT_EVIDENCE,
+                        retrievedIds, java.util.List.of(), candidateCount);
+            }
+            var answered = answer(context, target, question, evidence, candidateCount, chatRevision, embeddingRevision);
+            return new AssistantTrustedEvaluationResult(
+                    AssistantTrustedEvaluationResult.Outcome.ANSWERED,
+                    retrievedIds,
+                    answered.citations().stream().map(value -> value.chunkId()).toList(),
+                    candidateCount);
         } catch (AssistantTrustedAnswerExecutionException exception) {
             throw exception;
         } catch (RuntimeException exception) {

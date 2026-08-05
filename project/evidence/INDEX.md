@@ -262,6 +262,7 @@
 | ADR-0055 人工接受 | `project/evidence/ADR-0055-approval.md` | 本次控制面提交 | 用户接受仅内存、逐条且不持久化正文的受限评测执行门面；执行结果只可缩减为无正文事实。 |
 | ADR-0056 人工接受 | `project/evidence/ADR-0056-approval.md` | 本次控制面提交 | 用户接受 `chunkId` 作为评测期望证据与受限执行结果的唯一稳定标识。 |
 | M6 评测证据稳定标识红绿 | `project/evidence/WP-0014-evaluation-evidence-stable-identifier.md` | 本次提交 | 私有 JSON Lines 在写入对象前拒绝任意字符串，只接受 64 位小写 SHA-256 `chunkId`；定向和全模块回归通过。 |
+| M6 受限评测助手执行门面 | `project/evidence/WP-0014-evaluation-assistant-execution.md` | 本次提交 | 仅内存逐条输入、草稿修订与路由摘要复核、无正文 `chunkId` 结果和失败缩减通过；评测运行应用层尚未连接。 |
 | M6 私有评测 JSON Lines 受控登记 | `project/evidence/WP-0014-evaluation-dataset-json-lines-registration.md` | 本次提交 | 严格 UTF-8 JSON Lines、服务端摘要与条目计数、私有暂存清理、multipart HTTP、控制面迁移与对象存储部署接线均通过；不开放正文读取或评测执行。 |
 
 ## 证据规则
