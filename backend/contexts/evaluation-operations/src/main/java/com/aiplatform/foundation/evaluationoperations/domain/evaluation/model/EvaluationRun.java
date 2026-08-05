@@ -5,17 +5,21 @@ import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
 import com.aiplatform.foundation.evaluationoperations.domain.evaluation.observation.EvaluationMetrics;
 import java.time.Instant;
 import java.util.Objects;
+import java.util.regex.Pattern;
 
 /**
  * 一次冻结目标、数据集、门禁和指标实现版本的评测运行根。
  */
 public final class EvaluationRun implements AggregateRoot<EvaluationRunId> {
 
+    private static final Pattern SHA256 = Pattern.compile("[0-9a-f]{64}");
+
     private final TenantId tenantId;
     private final EvaluationRunId id;
     private final EvaluationTarget target;
     private final EvaluationDatasetSnapshot dataset;
     private final QualityGateSnapshot gate;
+    private final String modelRouteFingerprint;
     private final String metricsImplementationVersion;
     private final EvaluationRunStatus status;
     private final EvaluationMetrics metrics;
@@ -29,6 +33,7 @@ public final class EvaluationRun implements AggregateRoot<EvaluationRunId> {
             EvaluationTarget target,
             EvaluationDatasetSnapshot dataset,
             QualityGateSnapshot gate,
+            String modelRouteFingerprint,
             String metricsImplementationVersion,
             EvaluationRunStatus status,
             EvaluationMetrics metrics,
@@ -40,6 +45,10 @@ public final class EvaluationRun implements AggregateRoot<EvaluationRunId> {
         this.target = Objects.requireNonNull(target, "评测目标不能为空");
         this.dataset = Objects.requireNonNull(dataset, "评测数据集快照不能为空");
         this.gate = Objects.requireNonNull(gate, "质量门禁快照不能为空");
+        if (modelRouteFingerprint == null || !SHA256.matcher(modelRouteFingerprint).matches()) {
+            throw new IllegalArgumentException("评测模型路由摘要格式不正确");
+        }
+        this.modelRouteFingerprint = modelRouteFingerprint;
         if (metricsImplementationVersion == null || metricsImplementationVersion.isBlank()
                 || !metricsImplementationVersion.equals(metricsImplementationVersion.trim())) {
             throw new IllegalArgumentException("评测指标实现版本不正确");
@@ -67,10 +76,11 @@ public final class EvaluationRun implements AggregateRoot<EvaluationRunId> {
             EvaluationTarget target,
             EvaluationDatasetSnapshot dataset,
             QualityGateSnapshot gate,
+            String modelRouteFingerprint,
             String metricsImplementationVersion,
             Instant createdAt) {
         return new EvaluationRun(
-                tenantId, id, target, dataset, gate, metricsImplementationVersion,
+                tenantId, id, target, dataset, gate, modelRouteFingerprint, metricsImplementationVersion,
                 EvaluationRunStatus.RUNNING, null, 0L, createdAt, null);
     }
 
@@ -84,7 +94,7 @@ public final class EvaluationRun implements AggregateRoot<EvaluationRunId> {
             throw new IllegalStateException("评测运行已经进入终态");
         }
         return new EvaluationRun(
-                tenantId, id, target, dataset, gate, metricsImplementationVersion,
+                tenantId, id, target, dataset, gate, modelRouteFingerprint, metricsImplementationVersion,
                 passed ? EvaluationRunStatus.PASSED : EvaluationRunStatus.FAILED,
                 Objects.requireNonNull(finalMetrics, "评测指标不能为空"), version + 1L,
                 createdAt, Objects.requireNonNull(completedAt, "评测完成时间不能为空"));
@@ -109,6 +119,11 @@ public final class EvaluationRun implements AggregateRoot<EvaluationRunId> {
 
     public QualityGateSnapshot gate() {
         return gate;
+    }
+
+    /** 返回由 assistant-delivery 提供且随运行冻结的受控模型路由摘要。 */
+    public String modelRouteFingerprint() {
+        return modelRouteFingerprint;
     }
 
     public EvaluationRunStatus status() {

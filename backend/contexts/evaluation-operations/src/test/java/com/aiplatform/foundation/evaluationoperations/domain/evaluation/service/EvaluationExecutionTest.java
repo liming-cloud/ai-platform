@@ -122,6 +122,7 @@ class EvaluationExecutionTest {
                 new EvaluationTarget(100000000000000030L, 7L),
                 dataset,
                 QualityGatePolicy.qualityGateV1().snapshot(),
+                "a".repeat(64),
                 "evaluation-metrics-v1",
                 CREATED_AT);
     }
