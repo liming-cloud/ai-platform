@@ -4,12 +4,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
 import com.aiplatform.foundation.evaluationoperations.application.evaluation.port.out.EvaluationDatasetPrivateContentStore;
+import com.aiplatform.foundation.evaluationoperations.application.evaluation.port.out.EvaluationDatasetContentStagingPort;
 import com.aiplatform.foundation.evaluationoperations.application.evaluation.port.out.EvaluationDatasetRegistrationStore;
 import com.aiplatform.foundation.evaluationoperations.application.evaluation.request.EvaluationDatasetRegistrationContent;
 import com.aiplatform.foundation.evaluationoperations.application.evaluation.service.EvaluationDatasetRegistrationService;
 import com.aiplatform.foundation.evaluationoperations.application.operations.service.OperationsQueryService;
 import com.aiplatform.foundation.evaluationoperations.interfaces.web.operations.controller.AuditRecordController;
 import com.aiplatform.foundation.evaluationoperations.interfaces.web.operations.controller.UsageController;
+import com.aiplatform.foundation.evaluationoperations.interfaces.web.evaluation.controller.EvaluationDatasetController;
 import com.aiplatform.foundation.trustedquery.application.operations.facade.QueryOperationsFactSource;
 import com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator;
 import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
@@ -84,9 +86,12 @@ class EvaluationOperationsAutoConfigurationTest {
                         () -> dataset -> { })
                 .withBean(EvaluationDatasetPrivateContentStore.class,
                         EvaluationOperationsAutoConfigurationTest::privateContents)
+                .withBean(EvaluationDatasetContentStagingPort.class,
+                        () -> input -> { throw new UnsupportedOperationException(); })
                 .withBean(EntityIdGenerator.class, () -> () -> 1L)
                 .run(context -> assertThat(context)
-                        .hasSingleBean(EvaluationDatasetRegistrationService.class));
+                        .hasSingleBean(EvaluationDatasetRegistrationService.class)
+                        .hasSingleBean(EvaluationDatasetController.class));
     }
 
     @Test
@@ -98,7 +103,8 @@ class EvaluationOperationsAutoConfigurationTest {
                         () -> dataset -> { })
                 .withBean(EntityIdGenerator.class, () -> () -> 1L)
                 .run(context -> assertThat(context)
-                        .doesNotHaveBean(EvaluationDatasetRegistrationService.class));
+                        .doesNotHaveBean(EvaluationDatasetRegistrationService.class)
+                        .doesNotHaveBean(EvaluationDatasetController.class));
     }
 
     @Test
@@ -108,6 +114,19 @@ class EvaluationOperationsAutoConfigurationTest {
                         EvaluationOperationsObjectStorageAutoConfiguration.class))
                 .run(context -> assertThat(context)
                         .doesNotHaveBean(EvaluationDatasetPrivateContentStore.class));
+    }
+
+    @Test
+    void 启用私有对象存储时应注册受限内容暂存端口() {
+        new ApplicationContextRunner()
+                .withConfiguration(AutoConfigurations.of(
+                        EvaluationOperationsContentStagingAutoConfiguration.class))
+                .withPropertyValues(
+                        "foundation.evaluation-operations.object-storage.enabled=true",
+                        "foundation.evaluation-operations.registration.staging-directory=target/evaluation-staging-test",
+                        "foundation.evaluation-operations.registration.maximum-content-bytes=1024")
+                .run(context -> assertThat(context)
+                        .hasSingleBean(EvaluationDatasetContentStagingPort.class));
     }
 
     @Test

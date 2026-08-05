@@ -1,14 +1,17 @@
 package com.aiplatform.foundation.evaluationoperations.application.evaluation.service;
 
+import com.aiplatform.foundation.evaluationoperations.application.evaluation.port.out.EvaluationDatasetContentStagingPort;
 import com.aiplatform.foundation.evaluationoperations.application.evaluation.port.out.EvaluationDatasetPrivateContentStore;
 import com.aiplatform.foundation.evaluationoperations.application.evaluation.port.out.EvaluationDatasetRegistrationStore;
 import com.aiplatform.foundation.evaluationoperations.application.evaluation.request.EvaluationDatasetRegistrationContent;
+import com.aiplatform.foundation.evaluationoperations.application.evaluation.request.EvaluationDatasetRegistrationRequest;
 import com.aiplatform.foundation.evaluationoperations.domain.evaluation.model.EvaluationDataset;
 import com.aiplatform.foundation.evaluationoperations.domain.evaluation.model.EvaluationDatasetContentClassification;
 import com.aiplatform.foundation.evaluationoperations.domain.evaluation.model.EvaluationDatasetId;
 import com.aiplatform.foundation.security.identity.PermissionCode;
 import com.aiplatform.foundation.security.identity.TrustedRequestContext;
 import com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator;
+import java.io.IOException;
 import java.time.Clock;
 import java.util.Objects;
 
@@ -21,16 +24,19 @@ public final class EvaluationDatasetRegistrationService {
 
     private final EvaluationDatasetRegistrationStore datasets;
     private final EvaluationDatasetPrivateContentStore contents;
+    private final EvaluationDatasetContentStagingPort staging;
     private final EntityIdGenerator identifiers;
     private final Clock clock;
 
     public EvaluationDatasetRegistrationService(
             EvaluationDatasetRegistrationStore datasets,
             EvaluationDatasetPrivateContentStore contents,
+            EvaluationDatasetContentStagingPort staging,
             EntityIdGenerator identifiers,
             Clock clock) {
         this.datasets = Objects.requireNonNull(datasets, "评测数据集存储不能为空");
         this.contents = Objects.requireNonNull(contents, "评测私有内容存储不能为空");
+        this.staging = Objects.requireNonNull(staging, "评测内容暂存不能为空");
         this.identifiers = Objects.requireNonNull(identifiers, "标识生成器不能为空");
         this.clock = Objects.requireNonNull(clock, "时钟不能为空");
     }
@@ -42,12 +48,29 @@ public final class EvaluationDatasetRegistrationService {
      */
     public EvaluationDataset register(
             TrustedRequestContext context,
-            EvaluationDatasetRegistrationContent content) {
+            EvaluationDatasetRegistrationRequest request) {
         context = Objects.requireNonNull(context, "可信请求上下文不能为空");
-        content = Objects.requireNonNull(content, "评测数据集内容不能为空");
+        request = Objects.requireNonNull(request, "评测数据集登记请求不能为空");
         if (!context.hasPermission(ASSISTANT_WRITE)) {
             throw new IllegalArgumentException("当前主体缺少助手写权限");
         }
+        try (var staged = staging.stage(request.content());
+                var input = staged.openStream()) {
+            return registerStaged(
+                    context,
+                    new EvaluationDatasetRegistrationContent(
+                            input,
+                            staged.contentDigest(),
+                            staged.entryCount(),
+                            request.retentionPolicyId()));
+        } catch (IOException exception) {
+            throw new IllegalStateException("评测私有内容处理失败", exception);
+        }
+    }
+
+    private EvaluationDataset registerStaged(
+            TrustedRequestContext context,
+            EvaluationDatasetRegistrationContent content) {
         var id = new EvaluationDatasetId(identifiers.nextId());
         var reference = contents.put(context.tenantId(), id.value(), content);
         try {

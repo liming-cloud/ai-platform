@@ -1,5 +1,6 @@
 package com.aiplatform.foundation.evaluationoperations.infrastructure.configuration;
 
+import com.aiplatform.foundation.evaluationoperations.application.evaluation.port.out.EvaluationDatasetContentStagingPort;
 import com.aiplatform.foundation.evaluationoperations.application.evaluation.port.out.EvaluationDatasetPrivateContentStore;
 import com.aiplatform.foundation.evaluationoperations.application.evaluation.port.out.EvaluationDatasetRegistrationStore;
 import com.aiplatform.foundation.evaluationoperations.application.evaluation.service.EvaluationDatasetRegistrationService;
@@ -20,7 +21,8 @@ import org.springframework.context.annotation.Bean;
  */
 @AutoConfiguration(after = {
     EvaluationOperationsPersistenceAutoConfiguration.class,
-    EvaluationOperationsObjectStorageAutoConfiguration.class
+    EvaluationOperationsObjectStorageAutoConfiguration.class,
+    EvaluationOperationsContentStagingAutoConfiguration.class
 })
 @ConditionalOnProperty(
         name = "foundation.evaluation-operations.enabled",
@@ -37,15 +39,18 @@ public class EvaluationOperationsCoreAutoConfiguration {
     @ConditionalOnBean({
         EvaluationDatasetRegistrationStore.class,
         EvaluationDatasetPrivateContentStore.class,
+        EvaluationDatasetContentStagingPort.class,
         EntityIdGenerator.class
     })
     EvaluationDatasetRegistrationService evaluationDatasetRegistrationService(
             EvaluationDatasetRegistrationStore datasets,
             EvaluationDatasetPrivateContentStore contents,
+            EvaluationDatasetContentStagingPort staging,
             EntityIdGenerator identifiers) {
         return new EvaluationDatasetRegistrationService(
                 datasets,
                 contents,
+                staging,
                 identifiers,
                 Clock.systemUTC());
     }

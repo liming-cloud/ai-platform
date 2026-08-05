@@ -10,6 +10,7 @@ spring:
       - classpath:db/migration/model-runtime
       - classpath:db/migration/assistant-delivery
       - classpath:db/migration/trusted-query
+      - classpath:db/migration/evaluation-operations
   data:
     redis:
       repositories:
@@ -42,6 +43,11 @@ foundation:
     enabled: true
   evaluation-operations:
     enabled: true
+    persistence:
+      enabled: true
+    # 本地最小启动不连接对象存储；部署覆盖层显式开启，避免没有私有存储时伪成功。
+    object-storage:
+      enabled: false
   knowledge-data:
     enabled: true
     persistence:

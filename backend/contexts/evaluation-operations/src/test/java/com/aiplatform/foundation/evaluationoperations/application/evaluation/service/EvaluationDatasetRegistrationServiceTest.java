@@ -5,8 +5,11 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.aiplatform.foundation.evaluationoperations.application.evaluation.port.out.EvaluationDatasetPrivateContentStore;
+import com.aiplatform.foundation.evaluationoperations.application.evaluation.port.out.EvaluationDatasetContentStagingPort;
 import com.aiplatform.foundation.evaluationoperations.application.evaluation.port.out.EvaluationDatasetRegistrationStore;
+import com.aiplatform.foundation.evaluationoperations.application.evaluation.port.out.StagedEvaluationDatasetContent;
 import com.aiplatform.foundation.evaluationoperations.application.evaluation.request.EvaluationDatasetRegistrationContent;
+import com.aiplatform.foundation.evaluationoperations.application.evaluation.request.EvaluationDatasetRegistrationRequest;
 import com.aiplatform.foundation.evaluationoperations.domain.evaluation.model.EvaluationDataset;
 import com.aiplatform.foundation.security.identity.AccessChannel;
 import com.aiplatform.foundation.security.identity.CredentialType;
@@ -34,7 +37,7 @@ class EvaluationDatasetRegistrationServiceTest {
         var committed = new AtomicReference<EvaluationDataset>();
         var service = service(storage, committed, false);
 
-        assertThrows(IllegalArgumentException.class, () -> service.register(context("assistant:query"), content()));
+        assertThrows(IllegalArgumentException.class, () -> service.register(context("assistant:query"), request()));
 
         assertTrue(storage.reference.get() == null);
         assertTrue(committed.get() == null);
@@ -46,11 +49,13 @@ class EvaluationDatasetRegistrationServiceTest {
         var committed = new AtomicReference<EvaluationDataset>();
         var service = service(storage, committed, false);
 
-        var dataset = service.register(context("assistant:write"), content());
+        var dataset = service.register(context("assistant:write"), request());
 
         assertEquals(dataset, committed.get());
         assertEquals(TENANT_ID, dataset.tenantId());
         assertEquals("private://evaluation/dataset-100000000000000010", storage.reference.get());
+        assertEquals("b".repeat(64), storage.contentDigest.get());
+        assertEquals(2, storage.entryCount.get());
     }
 
     @Test
@@ -58,7 +63,7 @@ class EvaluationDatasetRegistrationServiceTest {
         var storage = new RecordingStorage();
         var service = service(storage, new AtomicReference<>(), true);
 
-        assertThrows(IllegalStateException.class, () -> service.register(context("assistant:write"), content()));
+        assertThrows(IllegalStateException.class, () -> service.register(context("assistant:write"), request()));
 
         assertEquals(storage.reference.get(), storage.deleted.get());
     }
@@ -75,13 +80,40 @@ class EvaluationDatasetRegistrationServiceTest {
         };
         EntityIdGenerator identifiers = () -> 100000000000000010L;
         return new EvaluationDatasetRegistrationService(
-                datasets, storage, identifiers, Clock.fixed(NOW, ZoneOffset.UTC));
+                datasets,
+                storage,
+                stagedContents(),
+                identifiers,
+                Clock.fixed(NOW, ZoneOffset.UTC));
     }
 
-    private static EvaluationDatasetRegistrationContent content() {
-        return new EvaluationDatasetRegistrationContent(
+    private static EvaluationDatasetRegistrationRequest request() {
+        return new EvaluationDatasetRegistrationRequest(
                 new ByteArrayInputStream(new byte[] {1}),
-                "a".repeat(64), 130, "evaluation-retention-v1");
+                "evaluation-retention-v1");
+    }
+
+    private static EvaluationDatasetContentStagingPort stagedContents() {
+        return input -> new StagedEvaluationDatasetContent() {
+            @Override
+            public ByteArrayInputStream openStream() {
+                return new ByteArrayInputStream(new byte[] {1});
+            }
+
+            @Override
+            public String contentDigest() {
+                return "b".repeat(64);
+            }
+
+            @Override
+            public int entryCount() {
+                return 2;
+            }
+
+            @Override
+            public void close() {
+            }
+        };
     }
 
     private static TrustedRequestContext context(String permission) {
@@ -100,11 +132,15 @@ class EvaluationDatasetRegistrationServiceTest {
 
         private final AtomicReference<String> reference = new AtomicReference<>();
         private final AtomicReference<String> deleted = new AtomicReference<>();
+        private final AtomicReference<String> contentDigest = new AtomicReference<>();
+        private final AtomicReference<Integer> entryCount = new AtomicReference<>();
 
         @Override
         public String put(TenantId tenantId, long datasetId, EvaluationDatasetRegistrationContent content) {
             var value = "private://evaluation/dataset-" + datasetId;
             reference.set(value);
+            contentDigest.set(content.contentDigest());
+            entryCount.set(content.entryCount());
             return value;
         }
 

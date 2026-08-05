@@ -2,6 +2,7 @@ package com.aiplatform.foundation.evaluationoperations.infrastructure.configurat
 
 import com.aiplatform.foundation.evaluationoperations.interfaces.web.operations.controller.AuditRecordController;
 import com.aiplatform.foundation.evaluationoperations.interfaces.web.operations.controller.UsageController;
+import com.aiplatform.foundation.evaluationoperations.interfaces.web.evaluation.controller.EvaluationDatasetController;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Import;
@@ -19,7 +20,8 @@ import org.springframework.context.annotation.Import;
         havingValue = "true")
 @Import({
     AuditRecordController.class,
-    UsageController.class
+    UsageController.class,
+    EvaluationDatasetController.class
 })
 public class EvaluationOperationsWebAutoConfiguration {
 }
