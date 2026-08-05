@@ -260,6 +260,7 @@
 | ADR-0053 人工接受 | `project/evidence/ADR-0053-approval.md` | 本次控制面提交 | 用户接受严格 JSON Lines、服务端摘要与计数；可实施受控校验、私有存储补偿和 multipart HTTP，仍不开放正文读取或 M7／M8。 |
 | ADR-0054 人工接受 | `project/evidence/ADR-0054-approval.md` | 本次控制面提交 | 用户接受由 assistant-delivery 提供确定性受控模型路由摘要；可用于冻结评测运行，不含端点、密钥或正文。 |
 | ADR-0055 人工接受 | `project/evidence/ADR-0055-approval.md` | 本次控制面提交 | 用户接受仅内存、逐条且不持久化正文的受限评测执行门面；执行结果只可缩减为无正文事实。 |
+| ADR-0056 人工接受 | `project/evidence/ADR-0056-approval.md` | 本次控制面提交 | 用户接受 `chunkId` 作为评测期望证据与受限执行结果的唯一稳定标识。 |
 | M6 私有评测 JSON Lines 受控登记 | `project/evidence/WP-0014-evaluation-dataset-json-lines-registration.md` | 本次提交 | 严格 UTF-8 JSON Lines、服务端摘要与条目计数、私有暂存清理、multipart HTTP、控制面迁移与对象存储部署接线均通过；不开放正文读取或评测执行。 |
 
 ## 证据规则
