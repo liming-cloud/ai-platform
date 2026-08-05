@@ -250,6 +250,7 @@
 | ADR-0049 人工接受 | `project/evidence/ADR-0049-approval.md` | 本次控制面提交 | 用户接受方案 B；可按红绿路线实施受限读取投影与运营拒绝夹具，不扩大到成员、正文或后续 M6／M7 能力。 |
 | M6 平台生命周期受限读取投影 | `project/evidence/WP-0014-platform-lifecycle-read-projection.md` | 本次提交 | 服务器权威分页投影、写后重读、无写权限平台运营会话与读取／写入失败关闭，应用、真实 PostgreSQL、自动配置、HTTP 与前端回归通过；真实浏览器两页签、HTTPS Cookie 与自然过期仍待完成。 |
 | ADR-0050 人工接受 | `project/evidence/ADR-0050-approval.md` | 本次控制面提交 | 用户接受冻结评测运行、发布决定与授权结果边界；指标、预算、例外和导出规则仍待独立 ADR。 |
+| ADR-0051 人工接受 | `project/evidence/ADR-0051-approval.md` | 本次控制面提交 | 用户接受私有合成评测数据集与冻结质量门禁；可按红绿路线实现最小评测与发布决定闭环。 |
 
 ## 证据规则
 

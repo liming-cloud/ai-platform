@@ -57,8 +57,8 @@ confirmedDecisions:
   - ADR-0048
   - ADR-0049
   - ADR-0050
-openDecisions:
   - ADR-0051
+openDecisions: []
 latestEvidence:
   - docs/research/WP-0003-framework-baseline.md
   - project/evidence/WP-0003-trusted-context.md
@@ -195,6 +195,7 @@ latestEvidence:
   - project/evidence/ADR-0049-approval.md
   - project/evidence/WP-0014-platform-lifecycle-read-projection.md
   - project/evidence/ADR-0050-approval.md
+  - project/evidence/ADR-0051-approval.md
 nextReviewAt: 2026-08-05
 updatedAt: 2026-08-05T00:00:00+08:00
 updatedBy: codex
