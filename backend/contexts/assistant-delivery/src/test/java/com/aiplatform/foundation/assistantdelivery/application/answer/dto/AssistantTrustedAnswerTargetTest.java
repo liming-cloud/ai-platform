@@ -68,6 +68,25 @@ class AssistantTrustedAnswerTargetTest {
     }
 
     @Test
+    void 草稿路由摘要应只随受控配置与目录修订变化() {
+        var route = new GovernedChatModelRoute(List.of(
+                chatBinding(),
+                new GovernedChatModelBinding(43, 8, 53, 9, 256)));
+        var original = new DraftAssistantVersionSnapshot(
+                12, 7, 4, 21, 32, 3,
+                route, embeddingBinding(), "仅根据证据回答", 256, 4, 0.2,
+                CitationPolicy.REQUIRED, RefusalPolicy.INSUFFICIENT_EVIDENCE);
+        var changed = new DraftAssistantVersionSnapshot(
+                12, 7, 4, 21, 32, 3,
+                route, new GovernedEmbeddingModelBinding(42, 8, 52, 8, 4),
+                "另一段不应进入摘要的提示词", 512, 8, 0.3,
+                CitationPolicy.REQUIRED, RefusalPolicy.INSUFFICIENT_EVIDENCE);
+
+        assertTrue(original.modelRouteFingerprint().matches("[0-9a-f]{64}"));
+        assertTrue(!original.modelRouteFingerprint().equals(changed.modelRouteFingerprint()));
+    }
+
+    @Test
     void preservesPublishedLegacyDeploymentFactsForCompatibilityExecution() {
         var published = new PublishedAssistantVersionSnapshot(
                 13, 7, 5, 61, 2, 21, 33, 4, 62, 3, 4,

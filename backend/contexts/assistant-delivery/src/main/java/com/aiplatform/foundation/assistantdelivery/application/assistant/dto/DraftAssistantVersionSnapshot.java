@@ -7,6 +7,10 @@ import com.aiplatform.foundation.assistantdelivery.domain.assistant.model.Govern
 import com.aiplatform.foundation.assistantdelivery.domain.assistant.model.RefusalPolicy;
 import java.util.Objects;
 import java.util.List;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.HexFormat;
 
 /**
  * 助手负责人测试草稿时冻结使用的不可变版本事实。
@@ -113,5 +117,28 @@ public record DraftAssistantVersionSnapshot(
      */
     public boolean usesGovernedModelConfigurations() {
         return true;
+    }
+
+    /**
+     * 返回供跨上下文评测冻结的确定性路由摘要；不包含提示词、端点、凭据或正文。
+     */
+    public String modelRouteFingerprint() {
+        var canonical = new StringBuilder();
+        for (var candidate : governedChatRoute.candidates()) {
+            canonical.append("chat.configurationId=").append(candidate.configurationId()).append('\n')
+                    .append("chat.configurationRevision=").append(candidate.configurationRevision()).append('\n')
+                    .append("chat.catalogEntryId=").append(candidate.catalogEntryId()).append('\n')
+                    .append("chat.catalogEntryRevision=").append(candidate.catalogEntryRevision()).append('\n');
+        }
+        canonical.append("embedding.configurationId=").append(governedEmbedding.configurationId()).append('\n')
+                .append("embedding.configurationRevision=").append(governedEmbedding.configurationRevision()).append('\n')
+                .append("embedding.catalogEntryId=").append(governedEmbedding.catalogEntryId()).append('\n')
+                .append("embedding.catalogEntryRevision=").append(governedEmbedding.catalogEntryRevision()).append('\n');
+        try {
+            return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256")
+                    .digest(canonical.toString().getBytes(StandardCharsets.UTF_8)));
+        } catch (NoSuchAlgorithmException exception) {
+            throw new IllegalStateException("当前 JDK 不支持 SHA-256", exception);
+        }
     }
 }
