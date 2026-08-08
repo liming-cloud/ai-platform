@@ -6,10 +6,15 @@ import com.aiplatform.foundation.evaluationoperations.application.evaluation.por
 import com.aiplatform.foundation.evaluationoperations.application.evaluation.port.out.EvaluationDatasetRegistrationStore;
 import com.aiplatform.foundation.evaluationoperations.application.evaluation.service.EvaluationDatasetRegistrationService;
 import com.aiplatform.foundation.evaluationoperations.application.evaluation.service.EvaluationRunExecutionService;
+import com.aiplatform.foundation.evaluationoperations.application.release.service.EvaluationReleasePublicationAuthorization;
+import com.aiplatform.foundation.evaluationoperations.application.release.service.ReleaseDecisionService;
 import com.aiplatform.foundation.evaluationoperations.domain.evaluation.policy.QualityGatePolicy;
 import com.aiplatform.foundation.evaluationoperations.domain.evaluation.repository.EvaluationDatasetRepository;
 import com.aiplatform.foundation.evaluationoperations.domain.evaluation.repository.EvaluationRunRepository;
+import com.aiplatform.foundation.evaluationoperations.domain.evaluation.repository.EvaluationRunReleaseFactLookup;
+import com.aiplatform.foundation.evaluationoperations.domain.release.repository.ReleaseDecisionRepository;
 import com.aiplatform.foundation.assistantdelivery.application.evaluation.facade.EvaluationAssistantExecution;
+import com.aiplatform.foundation.assistantdelivery.application.release.facade.ReleasePublicationAuthorization;
 import com.aiplatform.foundation.assistantdelivery.infrastructure.configuration.AssistantDeliveryCoreAutoConfiguration;
 import com.aiplatform.foundation.evaluationoperations.application.operations.service.OperationsQueryService;
 import com.aiplatform.foundation.evaluationoperations.domain.operations.model.OperationsQuotaPolicy;
@@ -89,6 +94,28 @@ public class EvaluationOperationsCoreAutoConfiguration {
                 QualityGatePolicy.qualityGateV1(),
                 identifiers,
                 Clock.systemUTC());
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    @ConditionalOnBean({
+        EvaluationRunReleaseFactLookup.class,
+        ReleaseDecisionRepository.class,
+        EntityIdGenerator.class
+    })
+    ReleaseDecisionService releaseDecisionService(
+            EvaluationRunReleaseFactLookup runs,
+            ReleaseDecisionRepository decisions,
+            EntityIdGenerator identifiers) {
+        return new ReleaseDecisionService(runs, decisions, identifiers, Clock.systemUTC());
+    }
+
+    @Bean
+    @ConditionalOnMissingBean(ReleasePublicationAuthorization.class)
+    @ConditionalOnBean({EvaluationRunReleaseFactLookup.class, ReleaseDecisionRepository.class})
+    ReleasePublicationAuthorization releasePublicationAuthorization(
+            EvaluationRunReleaseFactLookup runs, ReleaseDecisionRepository decisions) {
+        return new EvaluationReleasePublicationAuthorization(runs, decisions);
     }
 
     @Bean

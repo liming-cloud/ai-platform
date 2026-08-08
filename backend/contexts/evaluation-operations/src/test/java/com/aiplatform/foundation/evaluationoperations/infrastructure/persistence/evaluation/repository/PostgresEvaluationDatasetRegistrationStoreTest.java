@@ -15,7 +15,11 @@ import com.aiplatform.foundation.evaluationoperations.domain.evaluation.model.Ev
 import com.aiplatform.foundation.evaluationoperations.domain.evaluation.observation.EvaluationObservation;
 import com.aiplatform.foundation.evaluationoperations.domain.evaluation.policy.QualityGatePolicy;
 import com.aiplatform.foundation.evaluationoperations.domain.evaluation.repository.EvaluationDatasetRepository;
+import com.aiplatform.foundation.evaluationoperations.domain.evaluation.repository.EvaluationRunReleaseFactLookup;
 import com.aiplatform.foundation.evaluationoperations.domain.evaluation.repository.EvaluationRunRepository;
+import com.aiplatform.foundation.evaluationoperations.domain.release.model.ReleaseDecision;
+import com.aiplatform.foundation.evaluationoperations.domain.release.model.ReleaseDecisionId;
+import com.aiplatform.foundation.evaluationoperations.domain.release.repository.ReleaseDecisionRepository;
 import com.aiplatform.foundation.evaluationoperations.domain.evaluation.service.EvaluationExecution;
 import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
 import java.time.Instant;
@@ -73,6 +77,12 @@ class PostgresEvaluationDatasetRegistrationStoreTest {
     private EvaluationRunRepository runs;
 
     @Autowired
+    private EvaluationRunReleaseFactLookup releaseFacts;
+
+    @Autowired
+    private ReleaseDecisionRepository decisions;
+
+    @Autowired
     private JdbcTemplate jdbc;
 
     @DynamicPropertySource
@@ -85,6 +95,7 @@ class PostgresEvaluationDatasetRegistrationStoreTest {
 
     @BeforeEach
     void clearDatasets() {
+        jdbc.update("DELETE FROM evaluation_operations.release_decision");
         jdbc.update("DELETE FROM evaluation_operations.evaluation_run");
         jdbc.update("DELETE FROM evaluation_operations.evaluation_dataset");
     }
@@ -134,6 +145,33 @@ class PostgresEvaluationDatasetRegistrationStoreTest {
         assertFalse(columns.stream().anyMatch(column ->
                 column.contains("input") || column.contains("question") || column.contains("answer")
                         || column.contains("prompt") || column.contains("content") && !column.equals("dataset_content_digest")));
+    }
+
+    @Test
+    void 应持久化发布决定的策略版本和固定原因码且拒绝跨租户读取() {
+        var dataset = dataset(STORE_TENANT);
+        store.commit(dataset);
+        var run = completedRun(dataset);
+        runs.save(run);
+        var decision = ReleaseDecision.decide(
+                new ReleaseDecisionId(510000000000000030L),
+                releaseFacts.findById(STORE_TENANT, run.id()).orElseThrow(),
+                CREATED_AT.plusSeconds(2));
+
+        decisions.save(decision);
+
+        var restored = decisions.findById(STORE_TENANT, decision.id()).orElseThrow();
+        assertEquals("quality-gate-v1", restored.policyVersion());
+        assertEquals("QUALITY_GATE_PASSED", restored.reasonCode().name());
+        assertFalse(decisions.findById(CAMPUS_TENANT, decision.id()).isPresent());
+        var columns = Set.copyOf(jdbc.queryForList("""
+                SELECT column_name
+                FROM information_schema.columns
+                WHERE table_schema = 'evaluation_operations' AND table_name = 'release_decision'
+                """, String.class));
+        assertTrue(columns.containsAll(Set.of("policy_version", "reason_code", "decided_at")));
+        assertFalse(columns.stream().anyMatch(column ->
+                column.contains("input") || column.contains("answer") || column.contains("content")));
     }
 
     private static EvaluationRun completedRun(EvaluationDataset dataset) {

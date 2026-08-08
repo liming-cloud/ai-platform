@@ -4,6 +4,7 @@ import com.aiplatform.foundation.evaluationoperations.interfaces.web.operations.
 import com.aiplatform.foundation.evaluationoperations.interfaces.web.operations.controller.UsageController;
 import com.aiplatform.foundation.evaluationoperations.interfaces.web.evaluation.controller.EvaluationDatasetController;
 import com.aiplatform.foundation.evaluationoperations.interfaces.web.evaluation.controller.EvaluationRunController;
+import com.aiplatform.foundation.evaluationoperations.interfaces.web.release.controller.ReleaseDecisionController;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Import;
@@ -23,7 +24,8 @@ import org.springframework.context.annotation.Import;
     AuditRecordController.class,
     UsageController.class,
     EvaluationDatasetController.class,
-    EvaluationRunController.class
+    EvaluationRunController.class,
+    ReleaseDecisionController.class
 })
 public class EvaluationOperationsWebAutoConfiguration {
 }

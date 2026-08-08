@@ -198,6 +198,6 @@ public final class EvaluationRun implements AggregateRoot<EvaluationRunId> {
         if (status == EvaluationRunStatus.RUNNING) {
             throw new IllegalStateException("运行中的评测不能形成发布事实");
         }
-        return new EvaluationRunReleaseFact(tenantId, id, target, status);
+        return new EvaluationRunReleaseFact(tenantId, id, target, gate.policyVersion(), status);
     }
 }

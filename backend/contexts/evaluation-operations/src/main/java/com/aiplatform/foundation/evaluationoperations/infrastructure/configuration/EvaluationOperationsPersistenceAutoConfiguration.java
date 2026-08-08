@@ -2,12 +2,17 @@ package com.aiplatform.foundation.evaluationoperations.infrastructure.configurat
 
 import com.aiplatform.foundation.evaluationoperations.application.evaluation.port.out.EvaluationDatasetRegistrationStore;
 import com.aiplatform.foundation.evaluationoperations.domain.evaluation.repository.EvaluationDatasetRepository;
+import com.aiplatform.foundation.evaluationoperations.domain.evaluation.repository.EvaluationRunReleaseFactLookup;
 import com.aiplatform.foundation.evaluationoperations.domain.evaluation.repository.EvaluationRunRepository;
+import com.aiplatform.foundation.evaluationoperations.domain.release.repository.ReleaseDecisionRepository;
 import com.aiplatform.foundation.evaluationoperations.infrastructure.persistence.evaluation.mapper.EvaluationDatasetMapper;
 import com.aiplatform.foundation.evaluationoperations.infrastructure.persistence.evaluation.mapper.EvaluationRunMapper;
+import com.aiplatform.foundation.evaluationoperations.infrastructure.persistence.evaluation.mapper.ReleaseDecisionMapper;
 import com.aiplatform.foundation.evaluationoperations.infrastructure.persistence.evaluation.repository.PostgresEvaluationDatasetRepository;
 import com.aiplatform.foundation.evaluationoperations.infrastructure.persistence.evaluation.repository.PostgresEvaluationDatasetRegistrationStore;
 import com.aiplatform.foundation.evaluationoperations.infrastructure.persistence.evaluation.repository.PostgresEvaluationRunRepository;
+import com.aiplatform.foundation.evaluationoperations.infrastructure.persistence.evaluation.repository.PostgresEvaluationRunReleaseFactLookup;
+import com.aiplatform.foundation.evaluationoperations.infrastructure.persistence.evaluation.repository.PostgresReleaseDecisionRepository;
 import com.baomidou.mybatisplus.autoconfigure.MybatisPlusAutoConfiguration;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.mybatis.spring.annotation.MapperScan;
@@ -44,5 +49,17 @@ public class EvaluationOperationsPersistenceAutoConfiguration {
     @ConditionalOnMissingBean
     EvaluationRunRepository evaluationRunRepository(EvaluationRunMapper mapper) {
         return new PostgresEvaluationRunRepository(mapper);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    EvaluationRunReleaseFactLookup evaluationRunReleaseFactLookup(EvaluationRunMapper mapper) {
+        return new PostgresEvaluationRunReleaseFactLookup(mapper);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    ReleaseDecisionRepository releaseDecisionRepository(ReleaseDecisionMapper mapper) {
+        return new PostgresReleaseDecisionRepository(mapper);
     }
 }

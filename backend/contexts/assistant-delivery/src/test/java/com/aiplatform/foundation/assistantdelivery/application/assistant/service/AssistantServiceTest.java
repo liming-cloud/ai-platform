@@ -8,7 +8,10 @@ import com.aiplatform.foundation.assistantdelivery.application.assistant.command
 import com.aiplatform.foundation.assistantdelivery.application.assistant.command.CreateAssistantVersionCommand;
 import com.aiplatform.foundation.assistantdelivery.application.assistant.command.PublishAssistantVersionCommand;
 import com.aiplatform.foundation.assistantdelivery.application.assistant.exception.AssistantPermissionDeniedException;
+import com.aiplatform.foundation.assistantdelivery.application.assistant.exception.AssistantPublicationDeniedException;
 import com.aiplatform.foundation.assistantdelivery.application.assistant.exception.AssistantReferenceUnavailableException;
+import com.aiplatform.foundation.assistantdelivery.application.release.facade.ReleasePublicationAuthorization;
+import com.aiplatform.foundation.assistantdelivery.application.release.facade.ReleasePublicationAuthorizationResult;
 import com.aiplatform.foundation.assistantdelivery.domain.assistant.repository.AssistantCreation;
 import com.aiplatform.foundation.assistantdelivery.domain.assistant.repository.AssistantCreationOutcome;
 import com.aiplatform.foundation.assistantdelivery.domain.assistant.repository.AssistantRepository;
@@ -79,7 +82,8 @@ class AssistantServiceTest {
                 context("assistant:write"),
                 "assistant-publish-0001",
                 created.assistantVersion().id(),
-                0));
+                0,
+                430000000000000001L));
 
         assertEquals(Long.toString(ASSISTANT_ID), assistant.assistant().id());
         assertEquals(Long.toString(VERSION_ID), created.assistantVersion().id());
@@ -132,7 +136,7 @@ class AssistantServiceTest {
         var identifiers = new ArrayDeque<>(List.of(ASSISTANT_ID, VERSION_ID));
         var service = new AssistantService(repository, models, mismatchedIndex,
                 Clock.fixed(NOW, ZoneOffset.UTC), identifiers::removeFirst,
-                new AssistantVersioning(), 5, 20);
+                new AssistantVersioning(), request -> new ReleasePublicationAuthorizationResult(true), 5, 20);
         var assistant = service.create(new CreateAssistantCommand(
                 context("assistant:write"), "assistant-create-0004", "模型校验助手"));
 
@@ -145,11 +149,11 @@ class AssistantServiceTest {
         var draft = valid.createVersion(versionCommand(validAssistant.assistant().id()));
         var revoked = new AssistantService(repository, (context, id, type) -> Optional.empty(),
                 indexes(), Clock.fixed(NOW, ZoneOffset.UTC), () -> VERSION_ID + 1,
-                new AssistantVersioning(), 5, 20);
+                new AssistantVersioning(), request -> new ReleasePublicationAuthorizationResult(true), 5, 20);
         assertThrows(AssistantReferenceUnavailableException.class,
                 () -> revoked.publishVersion(new PublishAssistantVersionCommand(
                         context("assistant:write"), "assistant-publish-0002",
-                        draft.assistantVersion().id(), 0)));
+                        draft.assistantVersion().id(), 0, 430000000000000001L)));
     }
 
     @Test
@@ -166,10 +170,37 @@ class AssistantServiceTest {
         assertTrue(repository.assistant == null);
     }
 
+    @Test
+    void 冻结发布授权拒绝时不得改变助手版本状态() {
+        var repository = new MemoryRepository();
+        var denying = (ReleasePublicationAuthorization) request ->
+                new ReleasePublicationAuthorizationResult(false);
+        var service = service(repository, true, true, denying);
+        var assistant = service.create(new CreateAssistantCommand(
+                context("assistant:write"), "assistant-create-0006", "发布授权助手"));
+        var draft = service.createVersion(versionCommand(assistant.assistant().id()));
+
+        assertThrows(
+                AssistantPublicationDeniedException.class,
+                () -> service.publishVersion(new PublishAssistantVersionCommand(
+                        context("assistant:write"), "assistant-publish-0003",
+                        draft.assistantVersion().id(), 0, 430000000000000001L)));
+        assertEquals("DRAFT", repository.assistantVersion.status().name());
+    }
+
     private static AssistantService service(
             MemoryRepository repository,
             boolean modelAvailable,
             boolean indexAvailable) {
+        return service(repository, modelAvailable, indexAvailable,
+                request -> new ReleasePublicationAuthorizationResult(true));
+    }
+
+    private static AssistantService service(
+            MemoryRepository repository,
+            boolean modelAvailable,
+            boolean indexAvailable,
+            ReleasePublicationAuthorization releaseAuthorization) {
         UsableModelConfigurationLookup models = (context, configurationId, type) ->
                 modelAvailable
                         ? Optional.of(snapshot(configurationId, type))
@@ -183,6 +214,7 @@ class AssistantServiceTest {
                 Clock.fixed(NOW, ZoneOffset.UTC),
                 identifiers::removeFirst,
                 new AssistantVersioning(),
+                releaseAuthorization,
                 5,
                 20);
     }

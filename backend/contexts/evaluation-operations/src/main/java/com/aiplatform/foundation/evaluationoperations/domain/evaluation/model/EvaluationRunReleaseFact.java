@@ -11,12 +11,16 @@ public record EvaluationRunReleaseFact(
         TenantId tenantId,
         EvaluationRunId evaluationRunId,
         EvaluationTarget target,
+        String policyVersion,
         EvaluationRunStatus status) implements ValueObject {
 
     public EvaluationRunReleaseFact {
         tenantId = Objects.requireNonNull(tenantId, "评测运行租户不能为空");
         evaluationRunId = Objects.requireNonNull(evaluationRunId, "评测运行标识不能为空");
         target = Objects.requireNonNull(target, "评测运行目标不能为空");
+        if (policyVersion == null || policyVersion.isBlank() || !policyVersion.equals(policyVersion.trim())) {
+            throw new IllegalArgumentException("评测运行门禁策略版本不正确");
+        }
         status = Objects.requireNonNull(status, "评测运行状态不能为空");
     }
 }

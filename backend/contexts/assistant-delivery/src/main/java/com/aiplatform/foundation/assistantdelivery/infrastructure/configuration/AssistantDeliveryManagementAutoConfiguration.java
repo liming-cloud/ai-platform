@@ -1,6 +1,8 @@
 package com.aiplatform.foundation.assistantdelivery.infrastructure.configuration;
 
 import com.aiplatform.foundation.assistantdelivery.application.assistant.service.AssistantService;
+import com.aiplatform.foundation.assistantdelivery.application.release.facade.ReleasePublicationAuthorization;
+import com.aiplatform.foundation.assistantdelivery.application.release.facade.ReleasePublicationAuthorizationResult;
 import com.aiplatform.foundation.assistantdelivery.domain.assistant.repository.AssistantRepository;
 import com.aiplatform.foundation.assistantdelivery.domain.assistant.service.AssistantVersioning;
 import com.aiplatform.foundation.knowledgedata.application.indexversion.facade.ActiveIndexLookup;
@@ -37,6 +39,7 @@ public class AssistantDeliveryManagementAutoConfiguration {
             ObjectProvider<UsableModelConfigurationLookup> modelConfigurations,
             ActiveIndexLookup activeIndexes,
             EntityIdGenerator identifiers,
+            ObjectProvider<ReleasePublicationAuthorization> releaseAuthorization,
             AssistantDeliveryProperties properties) {
         return new AssistantService(
                 repository,
@@ -45,6 +48,8 @@ public class AssistantDeliveryManagementAutoConfiguration {
                 Clock.systemUTC(),
                 identifiers,
                 new AssistantVersioning(),
+                releaseAuthorization.getIfAvailable(
+                        () -> request -> new ReleasePublicationAuthorizationResult(false)),
                 properties.getAssistantLimit(),
                 properties.getVersionLimit());
     }

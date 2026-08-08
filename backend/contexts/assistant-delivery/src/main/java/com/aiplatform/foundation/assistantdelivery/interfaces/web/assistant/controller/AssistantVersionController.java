@@ -43,7 +43,8 @@ public class AssistantVersionController {
                 context,
                 idempotencyKey,
                 assistantVersionId,
-                request.expectedVersion()));
+                request.expectedVersion(),
+                request.releaseDecisionId()));
         return ResponseEntity
                 .ok()
                 .header("Idempotency-Replayed", Boolean.toString(result.replayed()))

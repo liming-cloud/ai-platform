@@ -12,8 +12,11 @@ import com.aiplatform.foundation.assistantdelivery.application.assistant.dto.Pub
 import com.aiplatform.foundation.assistantdelivery.application.assistant.exception.AssistantConcurrentModificationException;
 import com.aiplatform.foundation.assistantdelivery.application.assistant.exception.AssistantNotFoundException;
 import com.aiplatform.foundation.assistantdelivery.application.assistant.exception.AssistantPermissionDeniedException;
+import com.aiplatform.foundation.assistantdelivery.application.assistant.exception.AssistantPublicationDeniedException;
 import com.aiplatform.foundation.assistantdelivery.application.assistant.exception.AssistantReferenceUnavailableException;
 import com.aiplatform.foundation.assistantdelivery.application.assistant.exception.AssistantVersionNotFoundException;
+import com.aiplatform.foundation.assistantdelivery.application.release.facade.ReleasePublicationAuthorization;
+import com.aiplatform.foundation.assistantdelivery.application.release.facade.ReleasePublicationRequest;
 import com.aiplatform.foundation.assistantdelivery.domain.assistant.repository.AssistantCreation;
 import com.aiplatform.foundation.assistantdelivery.domain.assistant.repository.AssistantRepository;
 import com.aiplatform.foundation.assistantdelivery.domain.assistant.repository.AssistantVersionCreation;
@@ -55,6 +58,7 @@ public final class AssistantService {
     private final Clock clock;
     private final EntityIdGenerator identifiers;
     private final AssistantVersioning versioning;
+    private final ReleasePublicationAuthorization releaseAuthorization;
     private final int tenantLimit;
     private final int versionLimit;
 
@@ -65,6 +69,7 @@ public final class AssistantService {
             Clock clock,
             EntityIdGenerator identifiers,
             AssistantVersioning versioning,
+            ReleasePublicationAuthorization releaseAuthorization,
             int tenantLimit,
             int versionLimit) {
         this.repository = Objects.requireNonNull(repository, "助手仓储不能为空");
@@ -73,6 +78,7 @@ public final class AssistantService {
         this.clock = Objects.requireNonNull(clock, "时钟不能为空");
         this.identifiers = Objects.requireNonNull(identifiers, "标识生成器不能为空");
         this.versioning = Objects.requireNonNull(versioning, "助手版本领域服务不能为空");
+        this.releaseAuthorization = Objects.requireNonNull(releaseAuthorization, "发布授权查询不能为空");
         if (tenantLimit < 1 || versionLimit < 1) {
             throw new IllegalArgumentException("助手和版本配额必须大于零");
         }
@@ -202,6 +208,13 @@ public final class AssistantService {
                 .orElseThrow(AssistantVersionNotFoundException::new);
         if (current.version() != command.expectedVersion()) {
             throw new AssistantConcurrentModificationException();
+        }
+        if (!releaseAuthorization.authorize(new ReleasePublicationRequest(
+                current.tenantId(),
+                current.id().value(),
+                current.version(),
+                command.releaseDecisionId())).allowed()) {
+            throw new AssistantPublicationDeniedException();
         }
         requirePublishableBindings(command.context(), current);
         var published = current.publish(clock.instant());

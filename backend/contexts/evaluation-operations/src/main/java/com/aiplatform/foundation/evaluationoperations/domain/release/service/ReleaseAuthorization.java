@@ -35,7 +35,8 @@ public final class ReleaseAuthorization {
                 && tenantId.equals(run.tenantId())
                 && target.equals(decision.target())
                 && target.equals(run.target())
-                && decision.evaluationRunId().equals(run.evaluationRunId());
+                && decision.evaluationRunId().equals(run.evaluationRunId())
+                && decision.policyVersion().equals(run.policyVersion());
         return new ReleaseAuthorizationResult(allowed);
     }
 }
