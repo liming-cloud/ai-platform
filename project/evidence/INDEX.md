@@ -267,6 +267,10 @@
 | M6 受限评测运行应用与持久化 | `project/evidence/WP-0014-evaluation-run-execution.md` | 本次提交 | 同租户逐条内存执行、失败关闭、冻结观察/指标、真实 PostgreSQL、MinIO 读取和条件自动配置回归通过；HTTP、浏览器与发布授权仍未实施。 |
 | M6 受限评测运行 HTTP 与控制台入口 | `project/evidence/WP-0014-evaluation-run-http-browser.md` | 本次提交 | 令牌派生上下文、只含两个业务标识的 HTTP 请求、无正文终态投影、自动配置和统一登录控制台任务回归通过；正式 HTTPS 浏览器证据仍按 ADR-0048 延后。 |
 | M6 发布决定与助手发布授权 | `project/evidence/WP-0014-release-decision-authorization.md` | 本次提交 | 冻结 `policyVersion`、固定枚举 `reasonCode`、真实 PostgreSQL、无请求体 HTTP 投影和助手草稿发布失败关闭回归通过。 |
+| ADR-0057 人工接受 | `project/evidence/ADR-0057-approval.md` | 本次控制面提交 | 用户接受企业账户、角色权限和菜单能力投影；菜单不成为独立授权事实。 |
+| ADR-0058 人工接受 | `project/evidence/ADR-0058-approval.md` | 本次控制面提交 | 用户接受厂商连接、模型发现、真实能力探测、发布与健康供应链。 |
+| ADR-0059 人工接受 | `project/evidence/ADR-0059-approval.md` | 本次控制面提交 | 用户接受统一人员企业 SPA，并新增服务端分页、弹层任务边界和注意力保护硬规范。 |
+| M6 企业产品基础重定标影响 | `project/evidence/WP-0014-enterprise-product-foundation-impact.md` | 本次控制面提交 | 代码图谱登记账户权限、模型供应链、分页和统一产品壳的当前差距及非局部影响；本切片不修改生产代码。 |
 
 ## 证据规则
 

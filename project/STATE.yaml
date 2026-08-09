@@ -63,6 +63,9 @@ confirmedDecisions:
   - ADR-0054
   - ADR-0055
   - ADR-0056
+  - ADR-0057
+  - ADR-0058
+  - ADR-0059
 openDecisions: []
 latestEvidence:
   - docs/research/WP-0003-framework-baseline.md
@@ -204,6 +207,10 @@ latestEvidence:
   - project/evidence/ADR-0052-approval.md
   - project/evidence/WP-0014-evaluation-run-http-browser.md
   - project/evidence/WP-0014-release-decision-authorization.md
-nextReviewAt: 2026-08-05
-updatedAt: 2026-08-08T22:55:00+08:00
+  - project/evidence/ADR-0057-approval.md
+  - project/evidence/ADR-0058-approval.md
+  - project/evidence/ADR-0059-approval.md
+  - project/evidence/WP-0014-enterprise-product-foundation-impact.md
+nextReviewAt: 2026-08-10
+updatedAt: 2026-08-09T23:19:48+08:00
 updatedBy: codex

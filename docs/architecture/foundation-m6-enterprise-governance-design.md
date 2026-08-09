@@ -4,7 +4,7 @@
 
 | 项目 | 内容 |
 | --- | --- |
-| 状态 | ADR-0041 至 ADR-0051 已接受；租户治理与统一浏览器会话已实施，评测与发布制度切片实施中。 |
+| 状态 | ADR-0041 至 ADR-0059 已接受；租户治理、统一浏览器会话、评测与发布切片已有实现，企业访问控制、模型供应链与统一控制台进入设计重定标。 |
 | 日期 | 2026-08-02 |
 | 业务负责人 | 产品、架构、安全、平台与租户运营负责人。 |
 | 建模目的 | 在不削弱令牌派生身份、租户隔离、冻结回答事实和最小披露的前提下，明确 M6 平台治理、租户治理、评测、预算、发布审批与审计导出的所有权。 |
@@ -21,6 +21,7 @@
 | 已接受决策 | ADR-0016、ADR-0023、ADR-0027、ADR-0031、ADR-0033、ADR-0036、ADR-0038、ADR-0040 | 可用 | 可信会话、平台范围、领域边界、冻结模型、最小运行事实。 |
 | 影响分析 | `project/evidence/WP-0014-m6-impact-analysis.md` | 可用 | 现有调用方、受保护 seam、两种接口方案与验证合同。 |
 | 源码与测试 | organization-access、evaluation-operations、assistant-delivery、trusted-query、platform-security | 可用 | 当前聚合、受认证入口、运营查询和发布状态机事实。 |
+| 企业产品基础影响 | `project/evidence/WP-0014-enterprise-product-foundation-impact.md` | 可用 | 账户角色、导航能力、厂商模型供应链、统一 SPA、分页与注意力保护的当前差距和非局部影响。 |
 | 外部法规、驻留规则、预算阈值 | 未选择 | 不适用 | 不在本轮猜测法定保留、地区或质量阈值。 |
 
 ## 上下文地图
@@ -33,6 +34,8 @@
 | trusted-query | evaluation-operations | `open host service` | trusted-query 提供受控的汇总、反馈、诊断可用性和调用轨迹最小事实；evaluation-operations 不读取 `QueryRun` 持久化实体。 | 普通查询的配额、事件、诊断和正文读取权限不改变。 |
 | model-runtime | evaluation-operations | `published language` | model-runtime 后续提供受控成本与能力修订事实；evaluation-operations 只消费冻结标识与数值。 | 不传递凭据、端点、供应商原始错误或可调用模型对象。 |
 | evaluation-operations | assistant-delivery | `open host service` | 后续发布决定以版本化、最小 `ReleaseDecision` 公开；assistant-delivery 通过命名领域服务复核。 | 不能从当前运行、当前阈值或页面状态补算历史决定。 |
+| organization-access | 统一企业控制台 | `open host service` | organization-access 与 platform-security 提供有效能力和允许工作区的最小投影；前端只翻译为路由、菜单和操作可见性。 | 菜单不能成为授权事实，直接 URL 和 API 继续由服务端失败关闭。 |
+| model-runtime | 统一企业控制台 | `open host service` | model-runtime 提供厂商连接、模型探测、部署与配置的分页任务投影；前端只显示无秘密状态与下一动作。 | 不向浏览器返回密钥、原始供应商错误或可调用客户端。 |
 
 平台运营是 M8 的拥有能力，不是 M6 读取权限。它未来只能消费脱敏平台影响摘要，不能以运营角色穿透 trusted-query、knowledge-data 或对象存储的正文读取边界。
 
