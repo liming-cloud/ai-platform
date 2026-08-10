@@ -222,6 +222,7 @@ latestEvidence:
   - project/evidence/WP-0014-tenant-custom-role-lifecycle-and-directory.md
   - project/evidence/WP-0014-browser-tls-preflight.md
   - project/evidence/WP-0014-console-pagination-and-attention-guard.md
+  - project/evidence/WP-0014-platform-tenant-pagination-dialog.md
 nextReviewAt: 2026-08-10
-updatedAt: 2026-08-10T20:34:00+08:00
+updatedAt: 2026-08-10T20:39:00+08:00
 updatedBy: codex

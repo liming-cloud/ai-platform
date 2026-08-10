@@ -421,7 +421,7 @@ function AuthenticatedConsoleApp({
       <section hidden={!platformActive}>
         {platformActive ? (
           <Suspense fallback={<StatePanel kind="loading" title="正在加载平台租户工作区" description="正在准备受限生命周期任务。" />}>
-            <PlatformTenantLifecycleWorkspace client={client} />
+            <PlatformTenantLifecycleWorkspace client={client} route={route} onRouteChange={navigate} />
           </Suspense>
         ) : null}
       </section>

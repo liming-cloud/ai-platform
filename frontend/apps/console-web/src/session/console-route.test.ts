@@ -121,7 +121,23 @@ describe("统一控制台路由", () => {
       route: {
         navigationId: "platform",
         task: "tenants",
+        page: 1,
       },
     });
+  });
+
+  it("平台租户目录把服务器页码保留在深链接中", () => {
+    expect(defaultConsoleRoute("platform")).toEqual({
+      navigationId: "platform",
+      task: "tenants",
+      page: 1,
+    });
+    expect(parseConsoleRoute("/platform/tenants", "?page=2")).toEqual({
+      navigationId: "platform",
+      task: "tenants",
+      page: 2,
+    });
+    expect(formatConsoleRoute({ navigationId: "platform", task: "tenants", page: 2 }))
+      .toBe("/platform/tenants?page=2");
   });
 });

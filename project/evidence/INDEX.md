@@ -282,6 +282,7 @@
 | M6 自定义角色生命周期、目录与导航预览 | `project/evidence/WP-0014-tenant-custom-role-lifecycle-and-directory.md` | 本次提交 | 修改／停用／解绑、最后管理员保护、权限修订和旧会话撤销，真实 PostgreSQL、HTTP、自动配置、服务端分页和模态控制台均通过；ADR-0061 的全局账户治理仍未接受。 |
 | M6 浏览器 TLS 前置条件复核 | `project/evidence/WP-0014-browser-tls-preflight.md` | 本次提交 | 浏览器在标准 TLS 校验下拒绝本地未受信任证书；不安装 CA、不绕过 HTTPS，正式浏览器角色证据待受信任部署环境续证。 |
 | M6 控制台分页与注意力保护门禁 | `project/evidence/WP-0014-console-pagination-and-attention-guard.md` | 本次提交 | 模型配置／目录和查询审计改为 URL 可恢复的替换式服务端分页；模型配置写操作收敛为单一 Dialog，24 项架构门禁及 76 项前端回归通过；正式 TLS 浏览器证据待续证。 |
+| M6 平台租户分页与受控操作 | `project/evidence/WP-0014-platform-tenant-pagination-dialog.md` | 本次提交 | 平台租户目录采用 URL 页码、服务端替换式摘要与建立／状态迁移确认 Dialog；77 项前端回归通过，正式 TLS 浏览器证据待续证。 |
 
 ## 证据规则
 
