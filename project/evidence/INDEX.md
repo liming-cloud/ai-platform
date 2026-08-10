@@ -286,6 +286,7 @@
 | M6 受治理文件资源选择器分页 | `project/evidence/WP-0014-governed-file-resource-picker-pagination.md` | 本次提交 | 知识空间与文件来源选择器改为 URL 恢复的服务端分页，跨页来源状态失败关闭、写后重读；78 项前端回归通过。 |
 | M6 结构化数据集资源选择器分页 | `project/evidence/WP-0014-structured-dataset-resource-picker-pagination.md` | 本次提交 | 知识空间选择器改为 URL 恢复的服务端分页，跨页任务状态失败关闭；24 项架构门禁和 79 项前端回归通过。 |
 | M6 对象存储资源选择器分页 | `project/evidence/WP-0014-object-storage-resource-picker-pagination.md` | 本次提交 | 知识空间选择器改为 URL 恢复的服务端分页，跨页冻结范围状态失败关闭；24 项架构门禁和 80 项前端回归通过。 |
+| M6 索引模型显式选择 | `project/evidence/WP-0014-index-model-explicit-selection.md` | 本次提交 | 三类数据任务不再隐式选择第一个嵌入模型，模型页码与选择标识进入 URL；24 项架构门禁和 80 项前端回归通过。 |
 
 ## 证据规则
 

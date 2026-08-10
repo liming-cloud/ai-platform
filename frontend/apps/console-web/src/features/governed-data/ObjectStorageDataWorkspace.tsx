@@ -21,6 +21,7 @@ import {
 } from "../../api/control-plane-client";
 import type { ConsoleRoute } from "../../session/console-route";
 import { modelRuntimeFailure, requiresSessionRestart } from "./GovernedFileDataWorkspace";
+import { EmbeddingModelConfigurationPicker } from "../shared/EmbeddingModelConfigurationPicker";
 import { PagedResourceNavigation } from "../shared/PagedResourceNavigation";
 
 interface Failure {
@@ -223,19 +224,20 @@ export function ObjectStorageDataWorkspace({
   }
 
   async function buildIndex() {
-    if (source === undefined || !canBuildObjectStorageIndex(source, publishedArtifactId)) {
+    if (source === undefined || !canBuildObjectStorageIndex(source, publishedArtifactId)
+      || route.embeddingModelConfigurationId === undefined) {
+      if (route.embeddingModelConfigurationId === undefined) {
+        setFailure({ message: "请选择可用嵌入模型后再创建索引版本。", traceId: "" });
+      }
       return;
     }
     setBuildingIndex(true);
     setFailure(undefined);
     try {
-      const configurations = await client.listModelConfigurations();
-      const embedding = configurations.items.find((configuration) => configuration.modelType === "EMBEDDING"
-        && configuration.status === "ACTIVE" && configuration.credentialConfigured);
-      if (embedding === undefined) {
-        throw new Error("请先在模型配置中启用一个可用的嵌入模型");
-      }
-      const created = await client.createIndexVersion(source.knowledgeSpaceId, embedding.id);
+      const created = await client.createIndexVersion(
+        source.knowledgeSpaceId,
+        route.embeddingModelConfigurationId,
+      );
       setIndexVersion(created);
       await waitForIndex(source.knowledgeSpaceId, created.id);
     } catch (error) {
@@ -349,6 +351,18 @@ export function ObjectStorageDataWorkspace({
           {source ? <article className="governed-file-result">
             <div><Title3>{name || "对象存储来源"}</Title3><Text>数据源编号：{source.dataSourceId}</Text></div>
             <Badge appearance="tint" color="warning">{source.status}</Badge>
+            {canBuildObjectStorageIndex(source, publishedArtifactId) ? <EmbeddingModelConfigurationPicker
+              client={client}
+              page={route.embeddingModelConfigurationPage}
+              selectedId={route.embeddingModelConfigurationId}
+              disabled={probing || synchronizing || publishing || buildingIndex}
+              onChange={(embeddingModelConfigurationPage, embeddingModelConfigurationId) => onRouteChange({
+                ...route,
+                embeddingModelConfigurationPage,
+                embeddingModelConfigurationId,
+              })}
+              onFailure={restartExpiredSession}
+            /> : null}
             <Text>{source.syncArtifactId === null ? "登记完成，可同步冻结对象集合。" : `同步完成，质量状态：${source.qualityStatus}。`}</Text>
             <div className="task-actions">
               {canProbeObjectStorage(source) ? <Button appearance="primary" disabled={probing || synchronizing || publishing} onClick={() => void probe()}>{probing ? "正在探测" : "探测冻结范围"}</Button> : null}

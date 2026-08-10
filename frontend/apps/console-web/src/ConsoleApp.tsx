@@ -278,19 +278,19 @@ function AuthenticatedConsoleApp({
         <div className="data-task-switcher" aria-label="数据任务切换">
           <Button
             appearance={route.navigationId === "data" && route.task === "governed-file" ? "primary" : "subtle"}
-            onClick={() => navigate({ navigationId: "data", task: "governed-file", knowledgeSpacePage: 1, sourcePage: 1 })}
+            onClick={() => navigate({ navigationId: "data", task: "governed-file", knowledgeSpacePage: 1, sourcePage: 1, embeddingModelConfigurationPage: 1 })}
           >
             文件来源登记
           </Button>
           <Button
             appearance={route.navigationId === "data" && route.task === "structured-dataset" ? "primary" : "subtle"}
-            onClick={() => navigate({ navigationId: "data", task: "structured-dataset", knowledgeSpacePage: 1 })}
+            onClick={() => navigate({ navigationId: "data", task: "structured-dataset", knowledgeSpacePage: 1, embeddingModelConfigurationPage: 1 })}
           >
             结构化数据集登记
           </Button>
           <Button
             appearance={route.navigationId === "data" && route.task === "object-storage" ? "primary" : "subtle"}
-            onClick={() => navigate({ navigationId: "data", task: "object-storage", knowledgeSpacePage: 1 })}
+            onClick={() => navigate({ navigationId: "data", task: "object-storage", knowledgeSpacePage: 1, embeddingModelConfigurationPage: 1 })}
           >
             对象存储范围登记
           </Button>

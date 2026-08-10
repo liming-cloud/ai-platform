@@ -22,6 +22,7 @@ import {
   type KnowledgeSpace,
 } from "../../api/control-plane-client";
 import type { ConsoleRoute } from "../../session/console-route";
+import { EmbeddingModelConfigurationPicker } from "../shared/EmbeddingModelConfigurationPicker";
 import { PagedResourceNavigation } from "../shared/PagedResourceNavigation";
 
 interface Failure {
@@ -239,22 +240,20 @@ export function GovernedFileDataWorkspace({
   }
 
   async function buildIndex() {
-    if (source === undefined || source.status !== "READY" || publishedArtifactId === undefined) {
+    if (source === undefined || source.status !== "READY" || publishedArtifactId === undefined
+      || route.embeddingModelConfigurationId === undefined) {
+      if (route.embeddingModelConfigurationId === undefined) {
+        setFailure({ message: "请选择可用嵌入模型后再创建索引版本。", traceId: "" });
+      }
       return;
     }
     setSubmitting(true);
     setFailure(undefined);
     try {
-      const configurations = await client.listModelConfigurations();
-      const embedding = configurations.items.find(
-        (configuration) => configuration.modelType === "EMBEDDING"
-          && configuration.status === "ACTIVE"
-          && configuration.credentialConfigured,
+      const created = await client.createIndexVersion(
+        source.knowledgeSpaceId,
+        route.embeddingModelConfigurationId,
       );
-      if (embedding === undefined) {
-        throw new Error("请先在模型配置中启用一个可用的嵌入模型");
-      }
-      const created = await client.createIndexVersion(source.knowledgeSpaceId, embedding.id);
       setIndexVersion(created);
       await waitForIndex(source.knowledgeSpaceId, created.id);
     } catch (error) {
@@ -512,6 +511,20 @@ export function GovernedFileDataWorkspace({
               <Badge appearance="tint" color={source.status === "READY" ? "success" : source.status === "FAILED" ? "danger" : "warning"}>
                 {source.status}
               </Badge>
+              {canBuildIndex(source, publishedArtifactId) ? (
+                <EmbeddingModelConfigurationPicker
+                  client={client}
+                  page={route.embeddingModelConfigurationPage}
+                  selectedId={route.embeddingModelConfigurationId}
+                  disabled={submitting}
+                  onChange={(embeddingModelConfigurationPage, embeddingModelConfigurationId) => onRouteChange({
+                    ...route,
+                    embeddingModelConfigurationPage,
+                    embeddingModelConfigurationId,
+                  })}
+                  onFailure={restartExpiredSession}
+                />
+              ) : null}
               <div className="task-actions">
                 {canProbe(source) ? (
                   <Button appearance="primary" disabled={submitting} onClick={() => void probe()}>

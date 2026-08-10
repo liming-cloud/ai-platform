@@ -13,18 +13,24 @@ export type ConsoleRoute =
     knowledgeSpacePage: number;
     knowledgeSpaceId?: string;
     sourcePage: number;
+    embeddingModelConfigurationPage: number;
+    embeddingModelConfigurationId?: string;
   }
   | {
     navigationId: "data";
     task: "structured-dataset";
     knowledgeSpacePage: number;
     knowledgeSpaceId?: string;
+    embeddingModelConfigurationPage: number;
+    embeddingModelConfigurationId?: string;
   }
   | {
     navigationId: "data";
     task: "object-storage";
     knowledgeSpacePage: number;
     knowledgeSpaceId?: string;
+    embeddingModelConfigurationPage: number;
+    embeddingModelConfigurationId?: string;
   }
   | {
     navigationId: "data";
@@ -72,6 +78,7 @@ export function defaultConsoleRoute(navigationId: ConsoleNavigationId): ConsoleR
         task: "governed-file",
         knowledgeSpacePage: 1,
         sourcePage: 1,
+        embeddingModelConfigurationPage: 1,
       };
     case "models":
       return { navigationId, task: "configuration", configurationPage: 1, catalogPage: 1 };
@@ -97,6 +104,8 @@ export function parseConsoleRoute(pathname: string, search: string): ConsoleRout
       knowledgeSpacePage: positivePage(parameters.get("knowledgeSpacePage")),
       knowledgeSpaceId: nonBlankParameter(parameters.get("knowledgeSpaceId")),
       sourcePage: positivePage(parameters.get("sourcePage")),
+      embeddingModelConfigurationPage: positivePage(parameters.get("embeddingModelConfigurationPage")),
+      embeddingModelConfigurationId: nonBlankParameter(parameters.get("embeddingModelConfigurationId")),
     };
   }
   if (routePath === "/access/members") {
@@ -114,6 +123,8 @@ export function parseConsoleRoute(pathname: string, search: string): ConsoleRout
       task: "structured-dataset",
       knowledgeSpacePage: positivePage(parameters.get("knowledgeSpacePage")),
       knowledgeSpaceId: nonBlankParameter(parameters.get("knowledgeSpaceId")),
+      embeddingModelConfigurationPage: positivePage(parameters.get("embeddingModelConfigurationPage")),
+      embeddingModelConfigurationId: nonBlankParameter(parameters.get("embeddingModelConfigurationId")),
     };
   }
   if (routePath === "/data/object-storage") {
@@ -123,6 +134,8 @@ export function parseConsoleRoute(pathname: string, search: string): ConsoleRout
       task: "object-storage",
       knowledgeSpacePage: positivePage(parameters.get("knowledgeSpacePage")),
       knowledgeSpaceId: nonBlankParameter(parameters.get("knowledgeSpaceId")),
+      embeddingModelConfigurationPage: positivePage(parameters.get("embeddingModelConfigurationPage")),
+      embeddingModelConfigurationId: nonBlankParameter(parameters.get("embeddingModelConfigurationId")),
     };
   }
   if (routePath === "/data/publication") {
@@ -267,6 +280,7 @@ function formatGovernedFileRoute(route: Extract<ConsoleRoute, { task: "governed-
     parameters.set("knowledgeSpaceId", route.knowledgeSpaceId);
   }
   parameters.set("sourcePage", String(route.sourcePage));
+  appendEmbeddingModelConfigurationSelection(parameters, route);
   return `/data/files?${parameters}`;
 }
 
@@ -276,6 +290,7 @@ function formatStructuredDatasetRoute(route: Extract<ConsoleRoute, { task: "stru
   if (route.knowledgeSpaceId !== undefined) {
     parameters.set("knowledgeSpaceId", route.knowledgeSpaceId);
   }
+  appendEmbeddingModelConfigurationSelection(parameters, route);
   return `/data/datasets?${parameters}`;
 }
 
@@ -285,7 +300,18 @@ function formatObjectStorageRoute(route: Extract<ConsoleRoute, { task: "object-s
   if (route.knowledgeSpaceId !== undefined) {
     parameters.set("knowledgeSpaceId", route.knowledgeSpaceId);
   }
+  appendEmbeddingModelConfigurationSelection(parameters, route);
   return `/data/object-storage?${parameters}`;
+}
+
+function appendEmbeddingModelConfigurationSelection(
+  parameters: URLSearchParams,
+  route: Extract<ConsoleRoute, { task: "governed-file" | "structured-dataset" | "object-storage" }>,
+): void {
+  parameters.set("embeddingModelConfigurationPage", String(route.embeddingModelConfigurationPage));
+  if (route.embeddingModelConfigurationId !== undefined) {
+    parameters.set("embeddingModelConfigurationId", route.embeddingModelConfigurationId);
+  }
 }
 
 function formatDeploymentRoute(route: Extract<ConsoleRoute, { task: "deployments" }>): string {

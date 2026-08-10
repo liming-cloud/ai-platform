@@ -22,6 +22,7 @@ import {
 } from "../../api/control-plane-client";
 import type { ConsoleRoute } from "../../session/console-route";
 import { modelRuntimeFailure, requiresSessionRestart } from "./GovernedFileDataWorkspace";
+import { EmbeddingModelConfigurationPicker } from "../shared/EmbeddingModelConfigurationPicker";
 import { PagedResourceNavigation } from "../shared/PagedResourceNavigation";
 
 interface Failure {
@@ -233,22 +234,20 @@ export function StructuredDatasetRegistrationWorkspace({
   }
 
   async function buildIndex() {
-    if (source === undefined || !canBuildStructuredDatasetIndex(source, publishedArtifactId)) {
+    if (source === undefined || !canBuildStructuredDatasetIndex(source, publishedArtifactId)
+      || route.embeddingModelConfigurationId === undefined) {
+      if (route.embeddingModelConfigurationId === undefined) {
+        setFailure({ message: "请选择可用嵌入模型后再创建索引版本。", traceId: "" });
+      }
       return;
     }
     setBuildingIndex(true);
     setFailure(undefined);
     try {
-      const configurations = await client.listModelConfigurations();
-      const embedding = configurations.items.find(
-        (configuration) => configuration.modelType === "EMBEDDING"
-          && configuration.status === "ACTIVE"
-          && configuration.credentialConfigured,
+      const created = await client.createIndexVersion(
+        source.knowledgeSpaceId,
+        route.embeddingModelConfigurationId,
       );
-      if (embedding === undefined) {
-        throw new Error("请先在模型配置中启用一个可用的嵌入模型");
-      }
-      const created = await client.createIndexVersion(source.knowledgeSpaceId, embedding.id);
       setIndexVersion(created);
       await waitForIndex(source.knowledgeSpaceId, created.id);
     } catch (error) {
@@ -461,6 +460,20 @@ export function StructuredDatasetRegistrationWorkspace({
                 <Text>数据源编号：{source.dataSourceId}</Text>
               </div>
               <Badge appearance="tint" color="warning">{source.status}</Badge>
+              {canBuildStructuredDatasetIndex(source, publishedArtifactId) ? (
+                <EmbeddingModelConfigurationPicker
+                  client={client}
+                  page={route.embeddingModelConfigurationPage}
+                  selectedId={route.embeddingModelConfigurationId}
+                  disabled={submitting || synchronizing || publishing || buildingIndex}
+                  onChange={(embeddingModelConfigurationPage, embeddingModelConfigurationId) => onRouteChange({
+                    ...route,
+                    embeddingModelConfigurationPage,
+                    embeddingModelConfigurationId,
+                  })}
+                  onFailure={restartExpiredSession}
+                />
+              ) : null}
               {source.syncArtifactId === null ? (
                 <Text>登记完成。CSV 内容、对象位置、摘要和敏感字段不会展示；可开始同步冻结版本。</Text>
               ) : (

@@ -144,13 +144,15 @@ describe("统一控制台路由", () => {
   it("受治理文件任务从 URL 恢复资源选择器的服务端页码", () => {
     expect(parseConsoleRoute(
       "/data/files",
-      "?knowledgeSpacePage=2&knowledgeSpaceId=410000000000000001&sourcePage=3",
+      "?knowledgeSpacePage=2&knowledgeSpaceId=410000000000000001&sourcePage=3&embeddingModelConfigurationPage=4&embeddingModelConfigurationId=510000000000000001",
     )).toEqual({
       navigationId: "data",
       task: "governed-file",
       knowledgeSpacePage: 2,
       knowledgeSpaceId: "410000000000000001",
       sourcePage: 3,
+      embeddingModelConfigurationPage: 4,
+      embeddingModelConfigurationId: "510000000000000001",
     });
     expect(formatConsoleRoute({
       navigationId: "data",
@@ -158,42 +160,52 @@ describe("统一控制台路由", () => {
       knowledgeSpacePage: 2,
       knowledgeSpaceId: "410000000000000001",
       sourcePage: 3,
-    })).toBe("/data/files?knowledgeSpacePage=2&knowledgeSpaceId=410000000000000001&sourcePage=3");
+      embeddingModelConfigurationPage: 4,
+      embeddingModelConfigurationId: "510000000000000001",
+    })).toBe("/data/files?knowledgeSpacePage=2&knowledgeSpaceId=410000000000000001&sourcePage=3&embeddingModelConfigurationPage=4&embeddingModelConfigurationId=510000000000000001");
   });
 
   it("结构化数据集任务从 URL 恢复知识空间选择器页码", () => {
     expect(parseConsoleRoute(
       "/data/datasets",
-      "?knowledgeSpacePage=3&knowledgeSpaceId=410000000000000002",
+      "?knowledgeSpacePage=3&knowledgeSpaceId=410000000000000002&embeddingModelConfigurationPage=2&embeddingModelConfigurationId=510000000000000002",
     )).toEqual({
       navigationId: "data",
       task: "structured-dataset",
       knowledgeSpacePage: 3,
       knowledgeSpaceId: "410000000000000002",
+      embeddingModelConfigurationPage: 2,
+      embeddingModelConfigurationId: "510000000000000002",
     });
     expect(formatConsoleRoute({
       navigationId: "data",
       task: "structured-dataset",
       knowledgeSpacePage: 3,
       knowledgeSpaceId: "410000000000000002",
-    })).toBe("/data/datasets?knowledgeSpacePage=3&knowledgeSpaceId=410000000000000002");
+      embeddingModelConfigurationPage: 2,
+      embeddingModelConfigurationId: "510000000000000002",
+    })).toBe("/data/datasets?knowledgeSpacePage=3&knowledgeSpaceId=410000000000000002&embeddingModelConfigurationPage=2&embeddingModelConfigurationId=510000000000000002");
   });
 
   it("对象存储任务从 URL 恢复知识空间选择器页码", () => {
     expect(parseConsoleRoute(
       "/data/object-storage",
-      "?knowledgeSpacePage=4&knowledgeSpaceId=410000000000000003",
+      "?knowledgeSpacePage=4&knowledgeSpaceId=410000000000000003&embeddingModelConfigurationPage=5&embeddingModelConfigurationId=510000000000000003",
     )).toEqual({
       navigationId: "data",
       task: "object-storage",
       knowledgeSpacePage: 4,
       knowledgeSpaceId: "410000000000000003",
+      embeddingModelConfigurationPage: 5,
+      embeddingModelConfigurationId: "510000000000000003",
     });
     expect(formatConsoleRoute({
       navigationId: "data",
       task: "object-storage",
       knowledgeSpacePage: 4,
       knowledgeSpaceId: "410000000000000003",
-    })).toBe("/data/object-storage?knowledgeSpacePage=4&knowledgeSpaceId=410000000000000003");
+      embeddingModelConfigurationPage: 5,
+      embeddingModelConfigurationId: "510000000000000003",
+    })).toBe("/data/object-storage?knowledgeSpacePage=4&knowledgeSpaceId=410000000000000003&embeddingModelConfigurationPage=5&embeddingModelConfigurationId=510000000000000003");
   });
 });
