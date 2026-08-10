@@ -154,6 +154,47 @@ export interface ControlledModelCatalogEntry {
   createdAt: string;
 }
 
+/**
+ * 模型发现历史的最小安全摘要。候选明细、Endpoint、凭据引用和厂商原始响应不属于列表契约。
+ */
+export interface ProviderModelDiscoveryHistory {
+  discoveryId: string;
+  providerConnectionRevision: number;
+  succeeded: boolean;
+  candidateCount: number;
+  resultCode: string;
+  elapsed: string;
+  discoveredAt: string;
+  expiresAt: string;
+  nextStep: "DISCOVER_MODELS" | "CREATE_DEPLOYMENT";
+}
+
+/** 供应商连接的安全读取摘要；浏览器不能获得 Endpoint 或凭据引用。 */
+export interface ProviderConnectionSummary {
+  id: string;
+  providerKind: string;
+  displayName: string;
+  region: string;
+  authenticationType: string;
+  credentialConfigured: boolean;
+  status: string;
+  version: number;
+  lastProbeSucceeded: boolean | null;
+  lastProbeCode: string | null;
+  lastProbedAt: string | null;
+  createdAt: string;
+}
+
+/** 发现命令只向浏览器返回完成状态，候选模型明细留在受控后端流程中。 */
+export interface ProviderModelDiscoveryResult {
+  discoveryId: string;
+  succeeded: boolean;
+  resultCode: string;
+  elapsed: string;
+  discoveredAt: string;
+  expiresAt: string;
+}
+
 export interface QueryUsage {
   from: string;
   to: string;
@@ -701,6 +742,48 @@ export class ControlPlaneClient {
     return this.request<PageResult<ControlledModelCatalogEntry>>(
       `/controlled-model-catalog?pageNumber=${pageNumber}&pageSize=${pageSize}`,
     );
+  }
+
+  async listProviderModelDiscoveries(
+    providerConnectionId: string,
+    pageNumber = 1,
+    pageSize = 20,
+  ): Promise<PageResult<ProviderModelDiscoveryHistory>> {
+    return this.request<PageResult<ProviderModelDiscoveryHistory>>(
+      `/model-providers/${encodeURIComponent(providerConnectionId)}/model-discoveries?pageNumber=${pageNumber}&pageSize=${pageSize}`,
+    );
+  }
+
+  async listProviderConnections(
+    pageNumber = 1,
+    pageSize = 20,
+  ): Promise<PageResult<ProviderConnectionSummary>> {
+    return this.request<PageResult<ProviderConnectionSummary>>(
+      `/model-providers?pageNumber=${pageNumber}&pageSize=${pageSize}`,
+    );
+  }
+
+  async discoverProviderModels(
+    providerConnectionId: string,
+    expectedVersion: number,
+    timeoutMillis: number,
+  ): Promise<ProviderModelDiscoveryResult> {
+    const result = await this.request<ProviderModelDiscoveryResult>(
+      `/model-providers/${encodeURIComponent(providerConnectionId)}/model-discovery`,
+      {
+        method: "POST",
+        headers: this.writeHeaders("application/json"),
+        body: JSON.stringify({ expectedVersion, timeoutMillis }),
+      },
+    );
+    return {
+      discoveryId: result.discoveryId,
+      succeeded: result.succeeded,
+      resultCode: result.resultCode,
+      elapsed: result.elapsed,
+      discoveredAt: result.discoveredAt,
+      expiresAt: result.expiresAt,
+    };
   }
 
   /**

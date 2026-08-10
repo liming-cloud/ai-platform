@@ -783,6 +783,103 @@ describe("ControlPlaneClient", () => {
     expect(page.items[0]).not.toHaveProperty("initialAdministratorSubjectId");
     expect(page.items[0]?.lastChangedAt).toBe("2026-08-03T04:00:00Z");
   });
+
+  it("模型供应链只读取安全发现摘要，并把服务端分页位置传递给接口", async () => {
+    const requests: Request[] = [];
+    const client = authenticatedClient(async (input, init) => {
+      requests.push(new Request(input, init));
+      return new Response(JSON.stringify({
+        items: [{
+          discoveryId: "710000000000000001",
+          providerConnectionRevision: 4,
+          succeeded: true,
+          candidateCount: 2,
+          resultCode: "DISCOVERY_SUCCEEDED",
+          elapsed: "PT0.12S",
+          discoveredAt: "2026-08-10T01:00:00Z",
+          expiresAt: "2026-08-11T01:00:00Z",
+          nextStep: "CREATE_DEPLOYMENT",
+        }],
+        pageNumber: 2,
+        pageSize: 20,
+        totalElements: 21,
+        totalPages: 2,
+        hasPrevious: true,
+        hasNext: false,
+      }), { status: 200, headers: { "Content-Type": "application/json" } });
+    });
+
+    const page = await client.listProviderModelDiscoveries("610000000000000001", 2, 20);
+
+    expect(requests).toHaveLength(1);
+    expect(requests[0]?.url).toBe(
+      "http://localhost/api/v1/model-providers/610000000000000001/model-discoveries?pageNumber=2&pageSize=20",
+    );
+    expect(requests[0]?.headers.get("Authorization")).toBeNull();
+    expect(page.items[0]).not.toHaveProperty("endpoint");
+    expect(page.items[0]).not.toHaveProperty("credentialReference");
+    expect(page.items[0]?.nextStep).toBe("CREATE_DEPLOYMENT");
+  });
+
+  it("供应商连接列表只读取配置状态与最近探测摘要", async () => {
+    let request: Request | undefined;
+    const client = authenticatedClient(async (input, init) => {
+      request = new Request(input, init);
+      return new Response(JSON.stringify({
+        items: [{
+          id: "610000000000000001",
+          providerKind: "ARK",
+          displayName: "火山方舟生产连接",
+          region: "cn-beijing",
+          authenticationType: "API_KEY",
+          credentialConfigured: true,
+          status: "VERIFIED",
+          version: 4,
+          lastProbeSucceeded: true,
+          lastProbeCode: "PROBE_SUCCEEDED",
+          lastProbedAt: "2026-08-10T01:00:00Z",
+          createdAt: "2026-08-09T01:00:00Z",
+        }],
+        pageNumber: 1,
+        pageSize: 20,
+        totalElements: 1,
+        totalPages: 1,
+        hasPrevious: false,
+        hasNext: false,
+      }), { status: 200, headers: { "Content-Type": "application/json" } });
+    });
+
+    const page = await client.listProviderConnections();
+
+    expect(request?.url).toBe("http://localhost/api/v1/model-providers?pageNumber=1&pageSize=20");
+    expect(page.items[0]).not.toHaveProperty("endpoint");
+    expect(page.items[0]).not.toHaveProperty("credentialReference");
+    expect(page.items[0]?.lastProbeCode).toBe("PROBE_SUCCEEDED");
+  });
+
+  it("发起模型发现时只提交连接版本与受控超时，并丢弃候选明细", async () => {
+    let request: Request | undefined;
+    const client = authenticatedClient(async (input, init) => {
+      request = new Request(input, init);
+      return new Response(JSON.stringify({
+        discoveryId: "710000000000000001",
+        succeeded: true,
+        models: [{ modelCode: "doubao-pro", modelType: "CHAT" }],
+        resultCode: "DISCOVERY_SUCCEEDED",
+        elapsed: "PT0.12S",
+        discoveredAt: "2026-08-10T01:00:00Z",
+        expiresAt: "2026-08-11T01:00:00Z",
+      }), { status: 200, headers: { "Content-Type": "application/json" } });
+    });
+
+    const result = await client.discoverProviderModels("610000000000000001", 4, 10_000);
+
+    expect(request?.url).toBe("http://localhost/api/v1/model-providers/610000000000000001/model-discovery");
+    expect(request?.method).toBe("POST");
+    expect(await request?.json()).toEqual({ expectedVersion: 4, timeoutMillis: 10_000 });
+    expect(result).not.toHaveProperty("models");
+    expect(result.succeeded).toBe(true);
+  });
 });
 
 function authenticatedClient(fetcher: typeof fetch) {

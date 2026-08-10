@@ -10,7 +10,13 @@ export type ConsoleRoute =
     task: "governed-file" | "structured-dataset" | "object-storage" | "first-publication";
   }
   | { navigationId: "models"; task: "configuration" }
-  | { navigationId: "models"; task: "providers"; discoveryPage: number }
+  | {
+    navigationId: "models";
+    task: "providers";
+    providerPage: number;
+    connectionId?: string;
+    discoveryPage: number;
+  }
   | { navigationId: "governance"; task: "query" | "evaluation" }
   | { navigationId: "query"; task: "ask" }
   | { navigationId: "platform"; task: "tenants" };
@@ -58,10 +64,13 @@ export function parseConsoleRoute(pathname: string, search: string): ConsoleRout
     return { navigationId: "models", task: "configuration" };
   }
   if (routePath === "/models/providers") {
+    const parameters = new URLSearchParams(search);
     return {
       navigationId: "models",
       task: "providers",
-      discoveryPage: positivePage(new URLSearchParams(search).get("discoveryPage")),
+      providerPage: positivePage(parameters.get("providerPage")),
+      connectionId: nonBlankParameter(parameters.get("connectionId")),
+      discoveryPage: positivePage(parameters.get("discoveryPage")),
     };
   }
   if (routePath === "/governance/query") {
@@ -93,7 +102,7 @@ export function formatConsoleRoute(route: ConsoleRoute): string {
   if (route.navigationId === "models") {
     return route.task === "configuration"
       ? "/models/configurations"
-      : `/models/providers?discoveryPage=${route.discoveryPage}`;
+      : formatProviderRoute(route);
   }
   if (route.navigationId === "governance") {
     return route.task === "query" ? "/governance/query" : "/governance/evaluation";
@@ -129,4 +138,18 @@ function positivePage(value: string | null): number {
     return 1;
   }
   return Number(value);
+}
+
+function nonBlankParameter(value: string | null): string | undefined {
+  return value === null || value.trim().length === 0 ? undefined : value;
+}
+
+function formatProviderRoute(route: Extract<ConsoleRoute, { task: "providers" }>): string {
+  const parameters = new URLSearchParams();
+  parameters.set("providerPage", String(route.providerPage));
+  if (route.connectionId !== undefined) {
+    parameters.set("connectionId", route.connectionId);
+  }
+  parameters.set("discoveryPage", String(route.discoveryPage));
+  return `/models/providers?${parameters}`;
 }

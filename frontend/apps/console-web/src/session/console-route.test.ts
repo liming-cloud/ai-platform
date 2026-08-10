@@ -15,9 +15,14 @@ describe("统一控制台路由", () => {
   });
 
   it("从深链接恢复模型供应链发现记录的服务端页码", () => {
-    expect(parseConsoleRoute("/models/providers", "?discoveryPage=2")).toEqual({
+    expect(parseConsoleRoute(
+      "/models/providers",
+      "?providerPage=3&connectionId=610000000000000001&discoveryPage=2",
+    )).toEqual({
       navigationId: "models",
       task: "providers",
+      providerPage: 3,
+      connectionId: "610000000000000001",
       discoveryPage: 2,
     });
   });
@@ -26,8 +31,10 @@ describe("统一控制台路由", () => {
     expect(formatConsoleRoute({
       navigationId: "models",
       task: "providers",
+      providerPage: 3,
+      connectionId: "610000000000000001",
       discoveryPage: 2,
-    })).toBe("/models/providers?discoveryPage=2");
+    })).toBe("/models/providers?providerPage=3&connectionId=610000000000000001&discoveryPage=2");
   });
 
   it("不以其他可见入口替代无权访问的平台治理深链接", () => {

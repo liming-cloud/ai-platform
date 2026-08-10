@@ -57,6 +57,13 @@ const ModelConfigurationWorkspace = lazy(async () => {
   return { default: module.ModelConfigurationWorkspace };
 });
 
+const ModelProviderWorkspace = lazy(async () => {
+  const module = await import(
+    "./features/model-configuration/ModelProviderWorkspace"
+  );
+  return { default: module.ModelProviderWorkspace };
+});
+
 const PlatformTenantLifecycleWorkspace = lazy(async () => {
   const module = await import("./features/platform-governance/PlatformTenantLifecycleWorkspace");
   return { default: module.PlatformTenantLifecycleWorkspace };
@@ -211,7 +218,7 @@ function AuthenticatedConsoleApp({
     <ProductShell
       productName="可信知识平台"
       pageTitle={
-        platformActive ? "平台租户生命周期" : governanceActive ? route.task === "query" ? "查询用量与审计" : "受限评测运行" : modelsActive ? "受控模型配置" : dataPage?.title ?? "可信知识平台"
+        platformActive ? "平台租户生命周期" : governanceActive ? route.task === "query" ? "查询用量与审计" : "受限评测运行" : modelsActive ? route.task === "configuration" ? "受控模型配置" : "供应商连接与模型发现" : dataPage?.title ?? "可信知识平台"
       }
       pageSummary={
         platformActive
@@ -220,8 +227,10 @@ function AuthenticatedConsoleApp({
           ? "核对当前租户的查询配额、计量结果和脱敏运行记录。"
           : governanceActive
           ? "选择已有数据集和助手版本运行服务端评测，只展示指标和质量门结论。"
-          : modelsActive
+          : modelsActive && route.task === "configuration"
           ? "从平台发布目录创建、轮换和启用模型配置；API Key 不会再次显示。"
+          : modelsActive
+          ? "核对供应商连接状态和可用的模型发现事实；Endpoint、凭据和原始响应用于后端执行，不会进入浏览器。"
           : dataPage?.summary ?? ""
       }
       navigation={navigation}
@@ -309,11 +318,20 @@ function AuthenticatedConsoleApp({
               />
             )}
           >
-            <ModelConfigurationWorkspace
-              client={client}
-              sessionRevision={sessionRevision}
-              onSessionChanged={sessionChanged}
-            />
+            {route.navigationId === "models" && route.task === "configuration" ? (
+              <ModelConfigurationWorkspace
+                client={client}
+                sessionRevision={sessionRevision}
+                onSessionChanged={sessionChanged}
+              />
+            ) : route.navigationId === "models" && route.task === "providers" ? (
+              <ModelProviderWorkspace
+                client={client}
+                route={route}
+                sessionRevision={sessionRevision}
+                onRouteChange={navigate}
+              />
+            ) : null}
           </Suspense>
         ) : null}
       </section>
