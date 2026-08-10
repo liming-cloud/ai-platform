@@ -28,8 +28,10 @@ import com.aiplatform.foundation.modelruntime.application.probe.port.out.Provide
 import com.aiplatform.foundation.modelruntime.application.probe.service.ProbeProviderService;
 import com.aiplatform.foundation.modelruntime.application.provider.service.ProviderConnectionService;
 import com.aiplatform.foundation.modelruntime.application.provider.service.ProviderModelDiscoveryService;
+import com.aiplatform.foundation.modelruntime.application.provider.service.ProviderModelDiscoveryReadService;
 import com.aiplatform.foundation.modelruntime.application.provider.port.out.ProviderModelDiscoverer;
 import com.aiplatform.foundation.modelruntime.application.provider.port.out.ProviderModelDiscoveryStore;
+import com.aiplatform.foundation.modelruntime.application.provider.port.out.ProviderModelDiscoveryHistoryReader;
 import com.aiplatform.foundation.modelruntime.domain.deployment.repository.ModelDeploymentRepository;
 import com.aiplatform.foundation.modelruntime.domain.configuration.repository.ModelConfigurationRepository;
 import com.aiplatform.foundation.modelruntime.domain.configuration.repository.ModelConfigurationAccessRepository;
@@ -79,6 +81,13 @@ public class ModelRuntimeCoreAutoConfiguration {
     @Bean @ConditionalOnMissingBean
     ProviderModelDiscoveryService providerModelDiscoveryService(ProviderConnectionRepository connections, List<ProviderModelDiscoverer> discoverers, ProviderModelDiscoveryStore store, EntityIdGenerator identifiers, ModelCatalogProperties properties) {
         return new ProviderModelDiscoveryService(connections, discoverers, store, Clock.systemUTC(), identifiers, properties.getCapabilityVerificationValidity());
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    ProviderModelDiscoveryReadService providerModelDiscoveryReadService(
+            ProviderModelDiscoveryHistoryReader reader) {
+        return new ProviderModelDiscoveryReadService(reader, Clock.systemUTC());
     }
 
     @Bean

@@ -21,8 +21,10 @@ import com.aiplatform.foundation.modelruntime.application.runtime.facade.ChatRou
 import com.aiplatform.foundation.modelruntime.application.configuration.port.out.ModelConfigurationCredentialWriter;
 import com.aiplatform.foundation.modelruntime.application.probe.service.ProbeProviderService;
 import com.aiplatform.foundation.modelruntime.application.provider.port.out.ProviderModelDiscoveryStore;
+import com.aiplatform.foundation.modelruntime.application.provider.port.out.ProviderModelDiscoveryHistoryReader;
 import com.aiplatform.foundation.modelruntime.application.provider.service.ProviderConnectionService;
 import com.aiplatform.foundation.modelruntime.application.provider.service.ProviderModelDiscoveryService;
+import com.aiplatform.foundation.modelruntime.application.provider.service.ProviderModelDiscoveryReadService;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.ModelRuntimeResolver;
 import com.aiplatform.foundation.modelruntime.domain.deployment.repository.ModelDeploymentRepository;
 import com.aiplatform.foundation.modelruntime.domain.configuration.repository.ModelConfigurationRepository;
@@ -79,6 +81,9 @@ class ModelRuntimeAutoConfigurationTest {
                         ProviderModelDiscoveryStore.class,
                         () -> mock(ProviderModelDiscoveryStore.class))
                 .withBean(
+                        ProviderModelDiscoveryHistoryReader.class,
+                        () -> mock(ProviderModelDiscoveryHistoryReader.class))
+                .withBean(
                         ProviderModelDiscoveryLookup.class,
                         () -> mock(ProviderModelDiscoveryLookup.class))
                 .withBean(
@@ -99,6 +104,7 @@ class ModelRuntimeAutoConfigurationTest {
                     assertThat(context).hasSingleBean(ProbeProviderService.class);
                     assertThat(context).hasSingleBean(ProviderConnectionService.class);
                     assertThat(context).hasSingleBean(ProviderModelDiscoveryService.class);
+                    assertThat(context).hasSingleBean(ProviderModelDiscoveryReadService.class);
                     assertThat(context).hasSingleBean(ModelDeploymentService.class);
                     assertThat(context).hasSingleBean(ModelConfigurationService.class);
                     assertThat(context).hasSingleBean(ModelConfigurationAccessService.class);
@@ -137,6 +143,9 @@ class ModelRuntimeAutoConfigurationTest {
                 .withBean(
                         ProviderModelDiscoveryService.class,
                         () -> mock(ProviderModelDiscoveryService.class))
+                .withBean(
+                        ProviderModelDiscoveryReadService.class,
+                        () -> mock(ProviderModelDiscoveryReadService.class))
                 .withBean(
                         ModelDeploymentService.class,
                         () -> mock(ModelDeploymentService.class))
@@ -242,6 +251,7 @@ class ModelRuntimeAutoConfigurationTest {
                     assertThat(context).hasSingleBean(ModelDeploymentRepository.class);
                     assertThat(context).hasSingleBean(ModelDeploymentVerificationStore.class);
                     assertThat(context).hasSingleBean(ProviderModelDiscoveryStore.class);
+                    assertThat(context).hasSingleBean(ProviderModelDiscoveryHistoryReader.class);
                     assertThat(context).hasSingleBean(ProviderModelDiscoveryLookup.class);
                     assertThat(context).hasSingleBean(ModelConfigurationRepository.class);
                     assertThat(context).hasSingleBean(ModelConfigurationAccessRepository.class);

@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.aiplatform.foundation.modelruntime.application.provider.port.out.ProviderModelDiscoveryStore;
+import com.aiplatform.foundation.modelruntime.application.provider.port.out.ProviderModelDiscoveryHistoryReader;
 import com.aiplatform.foundation.modelruntime.application.deployment.port.out.ProviderModelDiscoveryLookup;
 import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelCapability;
 import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelType;
@@ -54,6 +55,9 @@ class PostgresProviderModelDiscoveryStoreTest {
 
     @Autowired
     private ProviderModelDiscoveryLookup lookup;
+
+    @Autowired
+    private ProviderModelDiscoveryHistoryReader history;
 
     @Autowired
     private JdbcTemplate jdbc;
@@ -145,6 +149,31 @@ class PostgresProviderModelDiscoveryStoreTest {
                                 DISCOVERED_AT.plus(Duration.ofHours(25)))
                         .stream()
                         .count());
+    }
+
+    @Test
+    void 发现历史应按服务端页码倒序返回安全摘要和总数() {
+        store.record(discovery(340000000000000004L, Set.of(
+                new DiscoveredModel(
+                        "older-chat", ModelType.CHAT, Set.of(ModelCapability.CHAT)))));
+        store.record(discovery(340000000000000005L, Set.of(
+                new DiscoveredModel(
+                        "newer-chat", ModelType.CHAT, Set.of(ModelCapability.CHAT)))));
+
+        var page = history.findPage(TENANT, CONNECTION, 2, 1);
+
+        assertEquals(2, page.totalElements());
+        assertEquals(1, page.items().size());
+        assertEquals("340000000000000004", page.items().getFirst().discoveryId());
+        assertEquals(1, page.items().getFirst().candidateCount());
+        assertEquals(
+                0,
+                history.findPage(
+                                new TenantId(100000000000000002L),
+                                CONNECTION,
+                                1,
+                                20)
+                        .totalElements());
     }
 
     private static ProviderModelDiscovery discovery(long id, Set<DiscoveredModel> models) {

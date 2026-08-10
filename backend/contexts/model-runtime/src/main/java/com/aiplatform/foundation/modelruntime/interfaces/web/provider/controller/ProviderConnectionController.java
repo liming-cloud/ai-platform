@@ -2,6 +2,7 @@ package com.aiplatform.foundation.modelruntime.interfaces.web.provider.controlle
 
 import com.aiplatform.foundation.modelruntime.application.provider.service.ProviderConnectionService;
 import com.aiplatform.foundation.modelruntime.application.provider.service.ProviderModelDiscoveryService;
+import com.aiplatform.foundation.modelruntime.application.provider.service.ProviderModelDiscoveryReadService;
 import com.aiplatform.foundation.modelruntime.application.provider.command.CreateProviderConnectionCommand;
 import com.aiplatform.foundation.modelruntime.application.provider.command.DiscoverProviderModelsCommand;
 import com.aiplatform.foundation.modelruntime.application.provider.query.ListProviderConnectionsQuery;
@@ -9,6 +10,8 @@ import com.aiplatform.foundation.modelruntime.application.provider.command.Probe
 import com.aiplatform.foundation.modelruntime.application.provider.dto.ProbeProviderConnectionResult;
 import com.aiplatform.foundation.modelruntime.application.provider.dto.ProviderConnectionView;
 import com.aiplatform.foundation.modelruntime.application.provider.dto.DiscoverProviderModelsResult;
+import com.aiplatform.foundation.modelruntime.application.provider.dto.ProviderModelDiscoveryView;
+import com.aiplatform.foundation.modelruntime.application.provider.query.ListProviderModelDiscoveriesQuery;
 import com.aiplatform.foundation.modelruntime.interfaces.web.provider.request.ProviderConnectionProbeRequest;
 import com.aiplatform.foundation.modelruntime.interfaces.web.provider.request.ProviderConnectionRequest;
 import com.aiplatform.foundation.modelruntime.interfaces.web.provider.request.ProviderModelDiscoveryRequest;
@@ -40,16 +43,21 @@ public class ProviderConnectionController {
 
     private final ProviderConnectionService providerConnections;
     private final ProviderModelDiscoveryService modelDiscoveries;
+    private final ProviderModelDiscoveryReadService discoveryHistory;
 
     public ProviderConnectionController(
             ProviderConnectionService providerConnections,
-            ProviderModelDiscoveryService modelDiscoveries) {
+            ProviderModelDiscoveryService modelDiscoveries,
+            ProviderModelDiscoveryReadService discoveryHistory) {
         this.providerConnections = Objects.requireNonNull(
                 providerConnections,
                 "供应商连接用例不能为空");
         this.modelDiscoveries = Objects.requireNonNull(
                 modelDiscoveries,
                 "模型发现用例不能为空");
+        this.discoveryHistory = Objects.requireNonNull(
+                discoveryHistory,
+                "模型发现历史读取用例不能为空");
     }
 
     @PostMapping
@@ -105,6 +113,18 @@ public class ProviderConnectionController {
                 providerConnectionId,
                 request.expectedVersion(),
                 Duration.ofMillis(request.timeoutMillis())));
+    }
+
+    @GetMapping("/{providerConnectionId}/model-discoveries")
+    public PageResult<ProviderModelDiscoveryView> listDiscoveries(
+            TrustedRequestContext context,
+            @PathVariable String providerConnectionId,
+            @RequestParam(defaultValue = "1") long pageNumber,
+            @RequestParam(defaultValue = "20") long pageSize) {
+        return discoveryHistory.list(new ListProviderModelDiscoveriesQuery(
+                context,
+                providerConnectionId,
+                new PageQuery(pageNumber, pageSize)));
     }
 
     private static String requireIdempotencyKey(String value) {
