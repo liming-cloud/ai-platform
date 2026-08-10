@@ -37,11 +37,14 @@ public final class PostgresTenantMembershipRepository implements TenantMembershi
         }
         var tenantId = row.getTenantId();
         var membershipId = row.getMembershipId();
-        var permissions = Stream.concat(
+        var permissions = Stream.of(
                         mapper.findPermissionCodes(tenantId, membershipId).stream().map(PermissionCode::new),
                         mapper.findBuiltInRoleCodes(tenantId, membershipId).stream()
                                 .map(TenantBuiltInRole::valueOf)
-                                .flatMap(role -> role.permissions().stream()))
+                                .flatMap(role -> role.permissions().stream()),
+                        mapper.findCustomRolePermissionCodes(tenantId, membershipId).stream()
+                                .map(PermissionCode::new))
+                .flatMap(stream -> stream)
                 .collect(Collectors.toUnmodifiableSet());
         return Optional.of(new MemberAuthenticationProfile(
                 new TenantId(tenantId),

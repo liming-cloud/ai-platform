@@ -6,7 +6,7 @@
 读取角色绑定事实后再展开权限，不再在 SQL 中硬编码管理员角色。租户访问管理员可通过 token 派生上下文
 建立包含已发布权限的自定义角色，角色与权限集合在真实 PostgreSQL 中原子保存。
 
-成员停用、角色修改／停用、自定义角色绑定、角色影响成员的会话撤销、服务端分页角色目录和管理控制台仍未
+成员停用、角色修改／停用与解绑、角色影响范围内成员的批量会话撤销、服务端分页角色目录和管理控制台仍未
 实施，不能将本切片视为完整的账户权限产品闭环。
 
 ## 代码图谱与影响
@@ -82,6 +82,38 @@ TenantCustomRoleApplicationServiceTest,PostgresTenantCustomRoleStoreTest \
 
    纯领域、应用授权、真实 PostgreSQL、Redis／控制面 HTTP 和 20 项架构门禁单元测试均通过。
 
+8. 红：
+
+   ```bash
+   ./mvnw -q -pl backend/contexts/organization-access -am \
+     -Dtest=TenantCustomRoleBindingServiceTest \
+     -Dsurefire.failIfNoSpecifiedTests=false test
+   ./mvnw -q -pl backend/contexts/organization-access -am \
+     -Dtest=TenantCustomRoleBindingApplicationServiceTest \
+     -Dsurefire.failIfNoSpecifiedTests=false test
+   ./mvnw -q -pl backend/contexts/organization-access -am \
+     -Dtest=PostgresTenantCustomRoleBindingStoreTest \
+     -Dsurefire.failIfNoSpecifiedTests=false test
+   ```
+
+   依次暴露缺少领域服务、应用端口和 PostgreSQL Mapper／存储实现；随后控制面 HTTP 反例返回
+   `404 NOT_FOUND`，证明入口尚未注册。
+
+9. 绿：
+
+   ```bash
+   ./mvnw -q -pl backend/contexts/organization-access -am test
+   ./mvnw -q -pl backend/bootstrap/control-plane-bootstrap -am \
+     -Dtest=AuthenticationApiTest#租户访问管理员绑定自定义角色后应撤销旧会话并投影角色权限 \
+     -Dsurefire.failIfNoSpecifiedTests=false test
+   python3 -m unittest scripts.quality.test_backend_architecture_guard
+   python3 scripts/quality/backend_architecture_guard.py verify
+   git diff --check
+   ```
+
+   自定义角色领域反例、应用授权、真实 PostgreSQL 原子提交、自动配置与 token 派生 HTTP 回归均通过；
+   认证仅投影活动角色绑定的权限，旧会话被撤销后重新登录才取得新权限。
+
 ## 安全与一致性反例矩阵
 
 | 反例 | 证据 |
@@ -90,14 +122,17 @@ TenantCustomRoleApplicationServiceTest,PostgresTenantCustomRoleStoreTest \
 | 未发布或平台级权限进入自定义角色 | `TenantCustomRole` 只接受 `TenantPublishedPermission` 目录，领域反例拒绝。 |
 | 空权限、重复 HTTP 权限或伪造租户／主体／会话 | 严格请求只接受名称和去重权限数组；上下文完全来自 `TrustedRequestContext`。 |
 | 同租户活动角色重名 | 应用层预检配合 PostgreSQL 部分唯一索引，持久化并发约束不依赖前端。 |
+| 跨租户成员或角色伪造绑定 | 应用端口以 token 租户锁定成员与角色；绑定表用两个复合外键闭合租户归属。 |
+| 角色已停用仍取得会话权限 | 认证投影只连接 `ACTIVE` 自定义角色；绑定操作也只锁定活动角色。 |
+| 绑定后继续使用旧权限会话 | 提交成员 `permissionVersion` 后撤销该成员的全部租户会话；HTTP 回归验证旧 token 失效。 |
 | 迁移版本跨上下文重复 | 全局 Flyway 版本门禁和已恢复的 control-plane 启动回归共同证明失败关闭。 |
 
 ## 六维审查
 
 | 维度 | 结论 |
 | --- | --- |
-| 正确性 | 内置角色、认证权限投影、自定义角色创建与权限集合保存均有真实数据库及 HTTP 回归。 |
-| 复杂度 | 保留既有内置绑定表；自定义角色只实现已授权的建立，不提前引入未验收的绑定状态机。 |
+| 正确性 | 内置角色、认证权限投影、自定义角色创建／绑定、权限版本推进和旧会话撤销均有真实数据库及 HTTP 回归。 |
+| 复杂度 | 保留既有内置绑定表；自定义角色使用不可变绑定事实和既有成员权限版本，不提前引入未验收的解绑状态机。 |
 | 冗余 | `TenantPublishedPermission` 是目录约束而非第二套 ACL；业务服务仍各自验证真实权限码。 |
 | 性能 | 认证按成员读取有界角色码；活动名称由部分唯一索引约束，不做全表扫描。 |
 | 架构 | 接口、应用、领域和基础设施分层；应用构造器不注入领域实体或值对象，门禁通过。 |

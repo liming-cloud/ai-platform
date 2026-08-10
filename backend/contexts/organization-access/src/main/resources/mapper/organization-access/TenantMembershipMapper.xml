@@ -49,4 +49,18 @@
           AND membership_id = #{membershipId}
         ORDER BY role_code
     </select>
+
+    <select id="findCustomRolePermissionCodes" resultType="java.lang.String">
+        SELECT permission.permission_code
+        FROM organization_access.tenant_custom_role_binding binding
+        INNER JOIN organization_access.tenant_custom_role role
+            ON role.tenant_id = binding.tenant_id
+           AND role.custom_role_id = binding.custom_role_id
+        INNER JOIN organization_access.tenant_custom_role_permission permission
+            ON permission.custom_role_id = role.custom_role_id
+        WHERE binding.tenant_id = #{tenantId}
+          AND binding.membership_id = #{membershipId}
+          AND role.status = 'ACTIVE'
+        ORDER BY permission.permission_code
+    </select>
 </mapper>

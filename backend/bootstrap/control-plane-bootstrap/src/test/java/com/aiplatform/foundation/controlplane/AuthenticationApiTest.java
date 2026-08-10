@@ -322,6 +322,58 @@ class AuthenticationApiTest {
     }
 
     @Test
+    void 租户访问管理员绑定自定义角色后应撤销旧会话并投影角色权限() {
+        var created = http.exchange(
+                url("/api/v1/tenant/custom-roles"),
+                HttpMethod.POST,
+                new HttpEntity<>(
+                        Map.of(
+                                "name", "自定义模型观察员",
+                                "permissions", java.util.List.of("model:read")),
+                        bearer(tenantLogin())),
+                Map.class);
+        assertEquals(HttpStatus.CREATED, created.getStatusCode());
+        assertNotNull(created.getBody());
+
+        var targetSession = http.postForEntity(
+                url("/api/v1/auth/sessions"),
+                Map.of(
+                        "tenantCode", "demo-store",
+                        "loginName", "platform-admin",
+                        "password", new String(DEMO_PASSWORD)),
+                SessionResponse.class);
+        assertEquals(HttpStatus.CREATED, targetSession.getStatusCode());
+        assertNotNull(targetSession.getBody());
+
+        var response = http.exchange(
+                url("/api/v1/tenant/members/3382738893456539652/custom-role-bindings"),
+                HttpMethod.POST,
+                new HttpEntity<>(
+                        Map.of("customRoleId", Long.parseLong((String) created.getBody().get("id"))),
+                        bearer(tenantLogin())),
+                Map.class);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertEquals(created.getBody().get("id"), response.getBody().get("customRoleId"));
+        assertEquals("3382738893456539652", response.getBody().get("membershipId"));
+        assertThrows(InvalidAuthenticatedSessionException.class,
+                () -> sessions.resolve(targetSession.getBody().tokenValue()));
+
+        var renewedSession = http.postForEntity(
+                url("/api/v1/auth/sessions"),
+                Map.of(
+                        "tenantCode", "demo-store",
+                        "loginName", "platform-admin",
+                        "password", new String(DEMO_PASSWORD)),
+                SessionResponse.class);
+        assertEquals(HttpStatus.CREATED, renewedSession.getStatusCode());
+        assertNotNull(renewedSession.getBody());
+        assertTrue(sessions.resolve(renewedSession.getBody().tokenValue())
+                .hasPermission(new com.aiplatform.foundation.security.identity.PermissionCode("model:read")));
+    }
+
+    @Test
     void 浏览器会话能力清单应投影平台治理范围且隔离失效的另一范围会话() {
         var platformSessionCookie = browserPlatformLogin("platform-admin");
         var headers = new HttpHeaders();

@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aiplatform.foundation.organizationaccess.infrastructure.persistence.authorization.mapper.TenantCustomRoleBindingMapper">
+
+    <resultMap id="customRole" type="com.aiplatform.foundation.organizationaccess.infrastructure.persistence.authorization.projection.TenantCustomRoleRow">
+        <id column="custom_role_id" property="customRoleId"/>
+        <result column="tenant_id" property="tenantId"/>
+        <result column="role_name" property="roleName"/>
+        <result column="status" property="status"/>
+        <result column="version" property="version"/>
+        <result column="created_at" property="createdAt"/>
+        <result column="disabled_at" property="disabledAt"/>
+    </resultMap>
+
+    <select id="lockActiveRole" resultMap="customRole">
+        SELECT custom_role_id, tenant_id, role_name, status, version, created_at, disabled_at
+        FROM organization_access.tenant_custom_role
+        WHERE tenant_id = #{tenantId}
+          AND custom_role_id = #{customRoleId}
+          AND status = 'ACTIVE'
+        FOR UPDATE
+    </select>
+
+    <select id="findPermissionCodes" resultType="java.lang.String">
+        SELECT permission_code
+        FROM organization_access.tenant_custom_role_permission
+        WHERE custom_role_id = #{customRoleId}
+        ORDER BY permission_code
+    </select>
+
+    <select id="countBindings" resultType="int">
+        SELECT count(*)
+        FROM organization_access.tenant_custom_role_binding
+        WHERE tenant_id = #{tenantId}
+          AND membership_id = #{membershipId}
+          AND custom_role_id = #{customRoleId}
+    </select>
+
+    <insert id="insertBinding">
+        INSERT INTO organization_access.tenant_custom_role_binding
+            (tenant_id, membership_id, custom_role_id, bound_at)
+        VALUES
+            (#{tenantId}, #{membershipId}, #{customRoleId}, #{boundAt})
+    </insert>
+</mapper>

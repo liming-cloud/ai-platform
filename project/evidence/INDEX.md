@@ -274,6 +274,7 @@
 | M6 浏览器导航能力投影 | `project/evidence/WP-0014-browser-navigation-capability-projection.md` | 本次提交 | 已验证双范围会话的实际权限码经 `browser-session` 投影为导航能力；控制台只显示交集入口，服务端授权不变；角色绑定与账户管理仍未实施。 |
 | M6 租户角色绑定与旧会话撤销 | `project/evidence/WP-0014-tenant-role-binding-session-revocation.md` | 本次提交 | 内置访问管理角色绑定、权限版本推进、Sa-Token 按成员撤销、真实 PostgreSQL 回滚与 token 派生 HTTP 闭环通过；账户、角色撤销和自定义角色仍未实施。 |
 | M6 租户角色目录与自定义角色建立 | `project/evidence/WP-0014-tenant-role-directory-and-custom-role.md` | 本次提交 | 六个内置角色由领域目录投影，认证 SQL 不再硬编码角色权限；自定义角色建立、真实 PostgreSQL、受限 HTTP 与跨上下文 Flyway 版本门禁通过；成员治理和角色绑定仍待实施。 |
+| M6 自定义角色绑定与权限会话投影 | `project/evidence/WP-0014-tenant-role-directory-and-custom-role.md` | 本次提交 | 同租户活动自定义角色以不可变绑定事实原子写入，成员权限版本推进并撤销旧租户会话；认证只投影活动角色权限，纯领域、应用、PostgreSQL、自动配置和 HTTP 回归通过。 |
 
 ## 证据规则
 

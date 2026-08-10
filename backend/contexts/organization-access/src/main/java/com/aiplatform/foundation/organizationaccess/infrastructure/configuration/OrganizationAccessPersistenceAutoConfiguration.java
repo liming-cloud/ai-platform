@@ -9,12 +9,15 @@ import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.port.out.TenantProvisioningStore;
 import com.aiplatform.foundation.organizationaccess.application.authorization.port.out.TenantRoleBindingStore;
 import com.aiplatform.foundation.organizationaccess.application.authorization.port.out.TenantCustomRoleStore;
+import com.aiplatform.foundation.organizationaccess.application.authorization.port.out.TenantCustomRoleBindingStore;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.authorization.mapper.PlatformAccessGrantMapper;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.authorization.repository.PostgresPlatformAccessGrantRepository;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.authorization.mapper.TenantRoleBindingMapper;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.authorization.repository.PostgresTenantRoleBindingStore;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.authorization.mapper.TenantCustomRoleMapper;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.authorization.repository.PostgresTenantCustomRoleStore;
+import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.authorization.mapper.TenantCustomRoleBindingMapper;
+import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.authorization.repository.PostgresTenantCustomRoleBindingStore;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.identity.mapper.SubjectIdentityMapper;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.identity.repository.PostgresSubjectIdentityRepository;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.membership.mapper.TenantMembershipMapper;
@@ -44,6 +47,7 @@ import org.springframework.context.annotation.Bean;
 @MapperScan(basePackageClasses = {
     PlatformAccessGrantMapper.class,
     TenantCustomRoleMapper.class,
+    TenantCustomRoleBindingMapper.class,
     TenantRoleBindingMapper.class,
     SubjectIdentityMapper.class,
     TenantMembershipMapper.class,
@@ -82,6 +86,14 @@ public class OrganizationAccessPersistenceAutoConfiguration {
     @ConditionalOnMissingBean
     TenantCustomRoleStore tenantCustomRoleStore(TenantCustomRoleMapper mapper) {
         return new PostgresTenantCustomRoleStore(mapper);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    TenantCustomRoleBindingStore tenantCustomRoleBindingStore(
+            TenantRoleBindingMapper membershipMapper,
+            TenantCustomRoleBindingMapper mapper) {
+        return new PostgresTenantCustomRoleBindingStore(membershipMapper, mapper);
     }
 
     @Bean

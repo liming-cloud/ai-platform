@@ -314,6 +314,12 @@
       "reason": "读取指定成员资格的已发布内置角色代码，由领域目录展开为有效权限，避免认证 SQL 固化角色权限。"
     },
     {
+      "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/TenantMembershipMapper.xml",
+      "statementId": "findCustomRolePermissionCodes",
+      "category": "SECURITY_PROJECTION",
+      "reason": "仅从当前租户内活动自定义角色绑定投影有效权限，使认证会话不采纳停用角色。"
+    },
+    {
       "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/TenantCustomRoleMapper.xml",
       "statementId": "countActiveName",
       "category": "AGGREGATE",
@@ -426,6 +432,30 @@
       "statementId": "revisePermissionVersion",
       "category": "ATOMIC_STATE_TRANSITION",
       "reason": "在角色绑定成功后原子推进成员权限版本，使旧会话必须撤销并失效。"
+    },
+    {
+      "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/TenantCustomRoleBindingMapper.xml",
+      "statementId": "lockActiveRole",
+      "category": "ROW_LOCK",
+      "reason": "绑定前锁定当前租户的活动自定义角色，防止角色状态或权限集合并发漂移。"
+    },
+    {
+      "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/TenantCustomRoleBindingMapper.xml",
+      "statementId": "findPermissionCodes",
+      "category": "AGGREGATE",
+      "reason": "读取受锁自定义角色聚合根拥有的已发布权限集合，用于领域重建与不变量校验。"
+    },
+    {
+      "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/TenantCustomRoleBindingMapper.xml",
+      "statementId": "countBindings",
+      "category": "SECURITY_PROJECTION",
+      "reason": "在同一受锁事务中确认成员尚未拥有该自定义角色，禁止重复授权成功。"
+    },
+    {
+      "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/TenantCustomRoleBindingMapper.xml",
+      "statementId": "insertBinding",
+      "category": "ATOMIC_STATE_TRANSITION",
+      "reason": "只按领域操作结果写入成员自定义角色绑定，并与权限版本修订同一事务提交。"
     },
     {
       "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/TenantLifecycleTransitionMapper.xml",

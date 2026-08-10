@@ -11,6 +11,8 @@ import com.aiplatform.foundation.organizationaccess.application.authorization.po
 import com.aiplatform.foundation.organizationaccess.application.authorization.service.TenantRoleBindingApplicationService;
 import com.aiplatform.foundation.organizationaccess.application.authorization.port.out.TenantCustomRoleStore;
 import com.aiplatform.foundation.organizationaccess.application.authorization.service.TenantCustomRoleApplicationService;
+import com.aiplatform.foundation.organizationaccess.application.authorization.port.out.TenantCustomRoleBindingStore;
+import com.aiplatform.foundation.organizationaccess.application.authorization.service.TenantCustomRoleBindingApplicationService;
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.port.out.TenantLifecycleBackfillStore;
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.port.out.TenantLifecycleReadPort;
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.port.out.TenantLifecycleTransitionStore;
@@ -154,6 +156,14 @@ public class OrganizationAccessCoreAutoConfiguration {
             TenantCustomRoleStore store,
             EntityIdGenerator identifiers) {
         return new TenantCustomRoleApplicationService(store, identifiers, Clock.systemUTC());
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    TenantCustomRoleBindingApplicationService tenantCustomRoleBindingApplicationService(
+            TenantCustomRoleBindingStore store,
+            TenantMemberSessionRevoker sessions) {
+        return new TenantCustomRoleBindingApplicationService(store, sessions, Clock.systemUTC());
     }
 
     @Bean
