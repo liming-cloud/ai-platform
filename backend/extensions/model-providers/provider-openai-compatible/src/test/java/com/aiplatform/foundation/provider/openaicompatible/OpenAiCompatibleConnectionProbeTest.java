@@ -57,7 +57,7 @@ class OpenAiCompatibleConnectionProbeTest {
         assertTrue(observation.reachable());
         assertEquals("OPENAI_COMPATIBLE_OK", observation.detailCode());
         assertEquals(
-                java.util.Set.of(ModelCapability.CHAT, ModelCapability.STREAMING_CHAT),
+                java.util.Set.of(ModelCapability.CHAT),
                 observation.capabilities());
     }
 

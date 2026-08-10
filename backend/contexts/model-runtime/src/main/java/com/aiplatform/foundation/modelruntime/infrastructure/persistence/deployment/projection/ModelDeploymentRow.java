@@ -18,6 +18,8 @@ public class ModelDeploymentRow {
     private int contextWindow;
     private Integer outputLimit;
     private Integer embeddingDimension;
+    private Long lastVerificationId;
+    private Instant verificationExpiresAt;
     private String status;
     private long version;
     private Instant createdAt;
@@ -104,6 +106,22 @@ public class ModelDeploymentRow {
 
     public Integer getEmbeddingDimension() {
         return embeddingDimension;
+    }
+
+    public Long getLastVerificationId() {
+        return lastVerificationId;
+    }
+
+    public void setLastVerificationId(Long lastVerificationId) {
+        this.lastVerificationId = lastVerificationId;
+    }
+
+    public Instant getVerificationExpiresAt() {
+        return verificationExpiresAt;
+    }
+
+    public void setVerificationExpiresAt(Instant verificationExpiresAt) {
+        this.verificationExpiresAt = verificationExpiresAt;
     }
 
     public void setEmbeddingDimension(Integer embeddingDimension) {

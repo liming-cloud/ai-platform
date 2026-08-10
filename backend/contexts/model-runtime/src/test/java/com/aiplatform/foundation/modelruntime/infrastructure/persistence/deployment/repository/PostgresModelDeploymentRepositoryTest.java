@@ -2,6 +2,7 @@ package com.aiplatform.foundation.modelruntime.infrastructure.persistence.deploy
 
 import com.aiplatform.foundation.modelruntime.infrastructure.persistence.deployment.mapper.ModelDeploymentMapper;
 import com.aiplatform.foundation.modelruntime.infrastructure.persistence.deployment.mapper.ModelDeploymentRequestMapper;
+import com.aiplatform.foundation.modelruntime.infrastructure.persistence.deployment.mapper.ModelCapabilityVerificationMapper;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -15,11 +16,17 @@ import com.aiplatform.foundation.modelruntime.application.deployment.exception.M
 import com.aiplatform.foundation.modelruntime.domain.deployment.repository.ModelDeploymentCreation;
 import com.aiplatform.foundation.modelruntime.domain.deployment.repository.ModelDeploymentRepository;
 import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelDeployment;
+import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelCapabilityVerificationId;
+import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelCapabilityObservation;
 import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelDeploymentId;
+import com.aiplatform.foundation.modelruntime.domain.deployment.operation.ModelDeploymentVerificationResult;
+import com.aiplatform.foundation.modelruntime.domain.deployment.service.ModelDeploymentVerification;
+import com.aiplatform.foundation.modelruntime.application.deployment.port.out.ModelDeploymentVerificationStore;
 import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelType;
 import com.aiplatform.foundation.modelruntime.domain.provider.model.ProviderConnectionId;
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.time.Duration;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 import org.junit.jupiter.api.BeforeEach;
@@ -67,6 +74,9 @@ class PostgresModelDeploymentRepositoryTest {
     @Autowired
     private JdbcTemplate jdbc;
 
+    @Autowired
+    private ModelDeploymentVerificationStore verificationStore;
+
     @DynamicPropertySource
     static void databaseProperties(DynamicPropertyRegistry registry) {
         registry.add("spring.datasource.url", POSTGRES::getJdbcUrl);
@@ -79,8 +89,11 @@ class PostgresModelDeploymentRepositoryTest {
 
     @BeforeEach
     void clearAndSeedProviders() {
-        jdbc.update("DELETE FROM model_runtime.model_deployment_request");
-        jdbc.update("DELETE FROM model_runtime.model_deployment");
+        jdbc.execute("""
+                TRUNCATE TABLE model_runtime.model_deployment_request,
+                    model_runtime.model_capability_verification,
+                    model_runtime.model_deployment
+                """);
         jdbc.update("DELETE FROM model_runtime.provider_connection_request");
         jdbc.update("DELETE FROM model_runtime.provider_connection");
         seedProvider(STORE_TENANT, STORE_PROVIDER);
@@ -147,7 +160,7 @@ class PostgresModelDeploymentRepositoryTest {
     }
 
     @Test
-    void 状态迁移使用乐观锁且供应商修订保持冻结() {
+    void 验证事实与状态迁移原子提交且供应商修订保持冻结() {
         var created = repository.create(
                         creation(
                                 STORE_TENANT,
@@ -157,14 +170,27 @@ class PostgresModelDeploymentRepositoryTest {
                                 "发布模型"),
                         6)
                 .deployment();
-        var verified = created.verify();
+        ModelDeploymentVerificationResult verified = ModelDeploymentVerification.verify(
+                created,
+                new ModelCapabilityVerificationId(330000000000000001L),
+                new ModelCapabilityObservation(
+                        true,
+                        Set.of(ModelCapability.CHAT),
+                        "DETERMINISTIC_OK",
+                        Duration.ofMillis(10),
+                        CREATED_AT),
+                CREATED_AT.plusSeconds(86_400));
 
-        assertTrue(repository.update(verified, 0));
-        assertFalse(repository.update(verified, 0));
+        verificationStore.commit(verified, 0);
+        assertThrows(IllegalStateException.class, () -> verificationStore.commit(verified, 0));
         var restored = repository.findById(STORE_TENANT, created.id()).orElseThrow();
         assertEquals(1, restored.providerConnectionRevision());
         assertEquals(Set.of(ModelCapability.CHAT), restored.capabilities());
+        assertEquals(verified.verification().id(), restored.lastVerificationId());
         assertEquals(1, restored.version());
+        assertEquals(1, jdbc.queryForObject(
+                "SELECT COUNT(*) FROM model_runtime.model_capability_verification",
+                Integer.class));
     }
 
     @Test
@@ -259,6 +285,15 @@ class PostgresModelDeploymentRepositoryTest {
                     mapper,
                     requestMapper,
                     transactions);
+        }
+
+        @Bean
+        ModelDeploymentVerificationStore modelDeploymentVerificationStore(
+                ModelDeploymentMapper deployments,
+                ModelCapabilityVerificationMapper verifications,
+                PlatformTransactionManager transactions) {
+            return new PostgresModelDeploymentVerificationStore(
+                    deployments, verifications, transactions);
         }
     }
 }

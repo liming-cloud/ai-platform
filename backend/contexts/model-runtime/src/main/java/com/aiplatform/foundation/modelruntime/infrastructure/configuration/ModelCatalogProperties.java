@@ -1,5 +1,6 @@
 package com.aiplatform.foundation.modelruntime.infrastructure.configuration;
 
+import java.time.Duration;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /**
@@ -10,6 +11,7 @@ public class ModelCatalogProperties {
 
     private int providerConnectionLimit = 3;
     private int modelDeploymentLimit = 6;
+    private Duration capabilityVerificationValidity = Duration.ofHours(24);
 
     public int getProviderConnectionLimit() {
         return providerConnectionLimit;
@@ -31,5 +33,18 @@ public class ModelCatalogProperties {
             throw new IllegalArgumentException("模型部署上限必须大于零");
         }
         this.modelDeploymentLimit = modelDeploymentLimit;
+    }
+
+    public Duration getCapabilityVerificationValidity() {
+        return capabilityVerificationValidity;
+    }
+
+    public void setCapabilityVerificationValidity(Duration capabilityVerificationValidity) {
+        if (capabilityVerificationValidity == null
+                || capabilityVerificationValidity.isZero()
+                || capabilityVerificationValidity.isNegative()) {
+            throw new IllegalArgumentException("模型能力验证有效期必须大于零");
+        }
+        this.capabilityVerificationValidity = capabilityVerificationValidity;
     }
 }

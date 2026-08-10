@@ -218,6 +218,24 @@
       "reason": "使用 PostgreSQL 事务级咨询锁串行化租户内模型部署名称约束。"
     },
     {
+      "path": "backend/contexts/model-runtime/src/main/resources/mapper/model-runtime/ModelDeploymentMapper.xml",
+      "statementId": "lockById",
+      "category": "ROW_LOCK",
+      "reason": "提交模型能力验证事实前锁定目标部署，确保探测结果不能覆盖已变化的修订。"
+    },
+    {
+      "path": "backend/contexts/model-runtime/src/main/resources/mapper/model-runtime/ModelDeploymentMapper.xml",
+      "statementId": "markVerified",
+      "category": "ATOMIC_STATE_TRANSITION",
+      "reason": "在同一事务内以预期版本写入部署当前验证事实与 VERIFIED 状态。"
+    },
+    {
+      "path": "backend/contexts/model-runtime/src/main/resources/mapper/model-runtime/ModelCapabilityVerificationMapper.xml",
+      "statementId": "insert",
+      "category": "POSTGRES_TYPE",
+      "reason": "写入不可变验证事实的声明和实测能力时需要显式转换 PostgreSQL 数组字段。"
+    },
+    {
       "path": "backend/contexts/model-runtime/src/main/resources/mapper/model-runtime/ModelConfigurationCredentialMapper.xml",
       "statementId": "upsert",
       "category": "ATOMIC_STATE_TRANSITION",

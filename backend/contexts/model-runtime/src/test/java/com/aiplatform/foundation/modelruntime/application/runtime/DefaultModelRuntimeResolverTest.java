@@ -119,6 +119,9 @@ class DefaultModelRuntimeResolverTest {
                 8192,
                 1024,
                 null,
+                new com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelCapabilityVerificationId(
+                        330000000000000001L),
+                NOW.plusSeconds(86_400),
                 ModelDeploymentStatus.VERIFIED,
                 2,
                 NOW);
@@ -160,6 +163,9 @@ class DefaultModelRuntimeResolverTest {
                 8192,
                 1024,
                 null,
+                new com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelCapabilityVerificationId(
+                        330000000000000001L),
+                NOW.plusSeconds(86_400),
                 ModelDeploymentStatus.PUBLISHED,
                 revision,
                 NOW);

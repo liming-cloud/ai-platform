@@ -1,6 +1,7 @@
 package com.aiplatform.foundation.modelruntime.infrastructure.configuration;
 
 import com.aiplatform.foundation.modelruntime.domain.deployment.repository.ModelDeploymentRepository;
+import com.aiplatform.foundation.modelruntime.application.deployment.port.out.ModelDeploymentVerificationStore;
 import com.aiplatform.foundation.modelruntime.application.configuration.port.out.ModelConfigurationCredentialWriter;
 import com.aiplatform.foundation.modelruntime.application.configuration.port.out.ModelConfigurationTransaction;
 import com.aiplatform.foundation.modelruntime.domain.configuration.repository.ModelConfigurationRepository;
@@ -8,7 +9,9 @@ import com.aiplatform.foundation.modelruntime.domain.configuration.repository.Mo
 import com.aiplatform.foundation.modelruntime.domain.provider.repository.ProviderConnectionRepository;
 import com.aiplatform.foundation.modelruntime.infrastructure.persistence.deployment.mapper.ModelDeploymentMapper;
 import com.aiplatform.foundation.modelruntime.infrastructure.persistence.deployment.mapper.ModelDeploymentRequestMapper;
+import com.aiplatform.foundation.modelruntime.infrastructure.persistence.deployment.mapper.ModelCapabilityVerificationMapper;
 import com.aiplatform.foundation.modelruntime.infrastructure.persistence.deployment.repository.PostgresModelDeploymentRepository;
+import com.aiplatform.foundation.modelruntime.infrastructure.persistence.deployment.repository.PostgresModelDeploymentVerificationStore;
 import com.aiplatform.foundation.modelruntime.infrastructure.persistence.configuration.ModelConfigurationMapper;
 import com.aiplatform.foundation.modelruntime.infrastructure.persistence.configuration.ControlledModelCatalogEntryMapper;
 import com.aiplatform.foundation.modelruntime.infrastructure.persistence.configuration.PostgresModelConfigurationAccessRepository;
@@ -68,6 +71,16 @@ public class ModelRuntimePersistenceAutoConfiguration {
                 mapper,
                 requestMapper,
                 transactions);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    ModelDeploymentVerificationStore modelDeploymentVerificationStore(
+            ModelDeploymentMapper deployments,
+            ModelCapabilityVerificationMapper verifications,
+            PlatformTransactionManager transactions) {
+        return new PostgresModelDeploymentVerificationStore(
+                deployments, verifications, transactions);
     }
 
     @Bean

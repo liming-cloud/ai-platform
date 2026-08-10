@@ -4,6 +4,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.aiplatform.foundation.modelruntime.domain.common.error.ModelRuntimeErrorCode;
 import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelCapability;
+import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelCapabilityObservation;
+import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelCapabilityVerification;
+import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelCapabilityVerificationId;
 import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelDeployment;
 import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelDeploymentId;
 import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelDeploymentStatus;
@@ -31,9 +34,12 @@ class ModelRuntimeDomainTypeTest {
     void 聚合与值对象应声明明确领域类型() {
         assertThat(AggregateRoot.class).isAssignableFrom(ProviderConnection.class);
         assertThat(AggregateRoot.class).isAssignableFrom(ModelDeployment.class);
+        assertThat(AggregateRoot.class).isAssignableFrom(ModelCapabilityVerification.class);
 
         assertThat(ValueObject.class).isAssignableFrom(ProviderConnectionId.class);
         assertThat(ValueObject.class).isAssignableFrom(ModelDeploymentId.class);
+        assertThat(ValueObject.class).isAssignableFrom(ModelCapabilityVerificationId.class);
+        assertThat(ValueObject.class).isAssignableFrom(ModelCapabilityObservation.class);
         assertThat(ValueObject.class).isAssignableFrom(ProviderKind.class);
         assertThat(ValueObject.class).isAssignableFrom(AuthenticationType.class);
         assertThat(ValueObject.class).isAssignableFrom(CredentialReference.class);

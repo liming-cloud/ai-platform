@@ -11,6 +11,7 @@ import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
 import com.aiplatform.foundation.modelruntime.application.deployment.command.CreateModelDeploymentCommand;
 import com.aiplatform.foundation.modelruntime.application.deployment.command.ProbeModelDeploymentCommand;
 import com.aiplatform.foundation.modelruntime.application.deployment.command.PublishModelDeploymentCommand;
+import com.aiplatform.foundation.modelruntime.application.deployment.port.out.ModelDeploymentVerificationStore;
 import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelCapability;
 import com.aiplatform.foundation.modelruntime.domain.provider.model.ProviderKind;
 import com.aiplatform.foundation.modelruntime.application.probe.dto.ProviderProbeResult;
@@ -173,9 +174,21 @@ class ModelDeploymentServiceTest {
                             }
                         }),
                         clock),
+                verificationStore(deployments),
                 clock,
                 () -> DEPLOYMENT_ID,
-                6);
+                6,
+                Duration.ofHours(24));
+    }
+
+    private static ModelDeploymentVerificationStore verificationStore(
+            InMemoryDeploymentRepository deployments) {
+        return (result, expectedVersion) -> {
+            if (result.verified()
+                    && !deployments.update(result.revisedDeployment(), expectedVersion)) {
+                throw new IllegalStateException("模型部署版本已改变");
+            }
+        };
     }
 
     private static ProviderProbeResult successfulProbe() {

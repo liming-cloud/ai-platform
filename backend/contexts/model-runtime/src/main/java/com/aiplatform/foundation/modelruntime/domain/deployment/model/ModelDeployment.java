@@ -26,6 +26,8 @@ public final class ModelDeployment implements AggregateRoot<ModelDeploymentId> {
     private final int contextWindow;
     private final Integer outputLimit;
     private final Integer embeddingDimension;
+    private final ModelCapabilityVerificationId lastVerificationId;
+    private final Instant verificationExpiresAt;
     private final ModelDeploymentStatus status;
     private final long version;
     private final Instant createdAt;
@@ -42,6 +44,8 @@ public final class ModelDeployment implements AggregateRoot<ModelDeploymentId> {
             int contextWindow,
             Integer outputLimit,
             Integer embeddingDimension,
+            ModelCapabilityVerificationId lastVerificationId,
+            Instant verificationExpiresAt,
             ModelDeploymentStatus status,
             long version,
             Instant createdAt) {
@@ -64,6 +68,16 @@ public final class ModelDeployment implements AggregateRoot<ModelDeploymentId> {
         this.contextWindow = contextWindow;
         this.outputLimit = outputLimit;
         this.embeddingDimension = embeddingDimension;
+        if (status == ModelDeploymentStatus.DRAFT
+                && (lastVerificationId != null || verificationExpiresAt != null)) {
+            throw new IllegalArgumentException("草稿模型部署不得携带成功验证事实");
+        }
+        if (status != ModelDeploymentStatus.DRAFT
+                && (lastVerificationId == null || verificationExpiresAt == null)) {
+            throw new IllegalArgumentException("已验证或已发布模型部署必须携带成功验证事实");
+        }
+        this.lastVerificationId = lastVerificationId;
+        this.verificationExpiresAt = verificationExpiresAt;
         this.status = Objects.requireNonNull(status, "模型部署状态不能为空");
         if (version < 0) {
             throw new IllegalArgumentException("模型部署版本不能为负数");
@@ -97,6 +111,8 @@ public final class ModelDeployment implements AggregateRoot<ModelDeploymentId> {
                 contextWindow,
                 outputLimit,
                 embeddingDimension,
+                null,
+                null,
                 ModelDeploymentStatus.DRAFT,
                 0,
                 createdAt);
@@ -117,6 +133,29 @@ public final class ModelDeployment implements AggregateRoot<ModelDeploymentId> {
             ModelDeploymentStatus status,
             long version,
             Instant createdAt) {
+        return reconstitute(
+                tenantId, id, providerConnectionId, providerConnectionRevision, modelCode, displayName,
+                modelType, capabilities, contextWindow, outputLimit, embeddingDimension, null, null,
+                status, version, createdAt);
+    }
+
+    public static ModelDeployment reconstitute(
+            TenantId tenantId,
+            ModelDeploymentId id,
+            ProviderConnectionId providerConnectionId,
+            long providerConnectionRevision,
+            String modelCode,
+            String displayName,
+            ModelType modelType,
+            Set<ModelCapability> capabilities,
+            int contextWindow,
+            Integer outputLimit,
+            Integer embeddingDimension,
+            ModelCapabilityVerificationId lastVerificationId,
+            Instant verificationExpiresAt,
+            ModelDeploymentStatus status,
+            long version,
+            Instant createdAt) {
         return new ModelDeployment(
                 tenantId,
                 id,
@@ -129,23 +168,34 @@ public final class ModelDeployment implements AggregateRoot<ModelDeploymentId> {
                 contextWindow,
                 outputLimit,
                 embeddingDimension,
+                lastVerificationId,
+                verificationExpiresAt,
                 status,
                 version,
                 createdAt);
     }
 
-    public ModelDeployment verify() {
+    public ModelDeployment verify(
+            ModelCapabilityVerificationId verificationId,
+            Instant verificationExpiresAt) {
         if (status != ModelDeploymentStatus.DRAFT) {
             throw new ModelDeploymentStateException("只有草稿模型部署可以验证");
         }
-        return transitionTo(ModelDeploymentStatus.VERIFIED);
+        return transitionTo(
+                ModelDeploymentStatus.VERIFIED,
+                Objects.requireNonNull(verificationId, "模型能力验证标识不能为空"),
+                Objects.requireNonNull(verificationExpiresAt, "验证失效时间不能为空"));
     }
 
-    public ModelDeployment publish() {
+    public ModelDeployment publish(Instant now) {
         if (status != ModelDeploymentStatus.VERIFIED) {
             throw new ModelDeploymentStateException("只有已验证模型部署可以发布");
         }
-        return transitionTo(ModelDeploymentStatus.PUBLISHED);
+        now = Objects.requireNonNull(now, "当前时间不能为空");
+        if (!verificationExpiresAt.isAfter(now)) {
+            throw new ModelDeploymentStateException("过期验证不能发布模型部署");
+        }
+        return transitionTo(ModelDeploymentStatus.PUBLISHED, lastVerificationId, verificationExpiresAt);
     }
 
     public TenantId tenantId() {
@@ -192,6 +242,14 @@ public final class ModelDeployment implements AggregateRoot<ModelDeploymentId> {
         return embeddingDimension;
     }
 
+    public ModelCapabilityVerificationId lastVerificationId() {
+        return lastVerificationId;
+    }
+
+    public Instant verificationExpiresAt() {
+        return verificationExpiresAt;
+    }
+
     public ModelDeploymentStatus status() {
         return status;
     }
@@ -204,7 +262,10 @@ public final class ModelDeployment implements AggregateRoot<ModelDeploymentId> {
         return createdAt;
     }
 
-    private ModelDeployment transitionTo(ModelDeploymentStatus nextStatus) {
+    private ModelDeployment transitionTo(
+            ModelDeploymentStatus nextStatus,
+            ModelCapabilityVerificationId verificationId,
+            Instant expiresAt) {
         return new ModelDeployment(
                 tenantId,
                 id,
@@ -217,6 +278,8 @@ public final class ModelDeployment implements AggregateRoot<ModelDeploymentId> {
                 contextWindow,
                 outputLimit,
                 embeddingDimension,
+                verificationId,
+                expiresAt,
                 nextStatus,
                 version + 1,
                 createdAt);

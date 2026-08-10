@@ -11,6 +11,7 @@ import com.aiplatform.foundation.modelruntime.domain.deployment.repository.Model
 import com.aiplatform.foundation.modelruntime.domain.deployment.repository.ModelDeploymentRepository;
 import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelDeployment;
 import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelDeploymentId;
+import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelCapabilityVerificationId;
 import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelDeploymentStatus;
 import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelType;
 import com.aiplatform.foundation.modelruntime.domain.provider.model.ProviderConnectionId;
@@ -180,6 +181,10 @@ public final class PostgresModelDeploymentRepository
                 row.getContextWindow(),
                 row.getOutputLimit(),
                 row.getEmbeddingDimension(),
+                row.getLastVerificationId() == null
+                        ? null
+                        : new ModelCapabilityVerificationId(row.getLastVerificationId()),
+                row.getVerificationExpiresAt(),
                 ModelDeploymentStatus.valueOf(row.getStatus()),
                 row.getVersion(),
                 row.getCreatedAt());

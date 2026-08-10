@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aiplatform.foundation.modelruntime.infrastructure.persistence.deployment.mapper.ModelCapabilityVerificationMapper">
+
+    <insert id="insert">
+        <![CDATA[
+        INSERT INTO model_runtime.model_capability_verification (
+            id, tenant_id, model_deployment_id, model_deployment_version,
+            provider_connection_id, provider_connection_revision, model_code,
+            declared_capabilities, observed_capabilities, succeeded, result_code,
+            elapsed_millis, probed_at, expires_at
+        ) VALUES (
+            #{id}, #{tenantId}, #{deploymentId}, #{deploymentVersion},
+            #{providerConnectionId}, #{providerConnectionRevision}, #{modelCode},
+            string_to_array(#{declaredCapabilities}, ','), string_to_array(#{observedCapabilities}, ','),
+            #{succeeded}, #{resultCode}, #{elapsedMillis}, #{probedAt}, #{expiresAt}
+        )
+        ]]>
+    </insert>
+
+</mapper>

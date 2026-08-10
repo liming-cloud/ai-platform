@@ -22,8 +22,9 @@ import org.springframework.ai.ollama.api.OllamaEmbeddingOptions;
 public final class OllamaConnectionProbe implements ProviderConnectionProbe {
 
     private static final String PROBE_PROMPT = "只回复 OK。";
+    // 当前探测只执行非流式最小调用；未执行流式协议就不得声明 `STREAMING_CHAT`。
     private static final Set<ModelCapability> CHAT_CAPABILITIES =
-            Set.of(ModelCapability.CHAT, ModelCapability.STREAMING_CHAT);
+            Set.of(ModelCapability.CHAT);
     private static final Set<ModelCapability> EMBEDDING_CAPABILITIES =
             Set.of(ModelCapability.EMBEDDING);
 

@@ -66,7 +66,10 @@ class PublishedEmbeddingDeploymentLookupServiceTest {
                         type == ModelType.CHAT ? 1024 : null,
                         type == ModelType.EMBEDDING ? 128 : null,
                         Instant.parse("2026-07-27T00:00:00Z"))
-                .verify()
-                .publish();
+                .verify(
+                        new com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelCapabilityVerificationId(
+                                330000000000000001L),
+                        Instant.parse("2026-07-28T00:00:00Z"))
+                .publish(Instant.parse("2026-07-27T00:00:01Z"));
     }
 }

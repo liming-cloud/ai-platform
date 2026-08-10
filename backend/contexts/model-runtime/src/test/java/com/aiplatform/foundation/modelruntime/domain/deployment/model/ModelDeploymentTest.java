@@ -35,7 +35,9 @@ class ModelDeploymentTest {
                 null,
                 NOW);
 
-        var published = deployment.verify().publish();
+        var published = deployment
+                .verify(new ModelCapabilityVerificationId(330000000000000001L), NOW.plusSeconds(86_400))
+                .publish(NOW.plusSeconds(1));
 
         assertEquals(ModelDeploymentStatus.PUBLISHED, published.status());
         assertEquals(2, published.version());
@@ -46,7 +48,7 @@ class ModelDeploymentTest {
     void 草稿部署不得直接发布() {
         var deployment = validEmbeddingDeployment();
 
-        assertThrows(ModelDeploymentStateException.class, deployment::publish);
+        assertThrows(ModelDeploymentStateException.class, () -> deployment.publish(NOW));
     }
 
     @Test

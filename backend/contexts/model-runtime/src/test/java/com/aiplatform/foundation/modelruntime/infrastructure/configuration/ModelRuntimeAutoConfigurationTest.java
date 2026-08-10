@@ -6,6 +6,7 @@ import static org.mockito.Mockito.mock;
 import com.aiplatform.foundation.modelruntime.application.deployment.facade.PublishedChatDeploymentLookup;
 import com.aiplatform.foundation.modelruntime.application.deployment.facade.PublishedEmbeddingDeploymentLookup;
 import com.aiplatform.foundation.modelruntime.application.deployment.service.ModelDeploymentService;
+import com.aiplatform.foundation.modelruntime.application.deployment.port.out.ModelDeploymentVerificationStore;
 import com.aiplatform.foundation.modelruntime.application.configuration.service.ModelConfigurationService;
 import com.aiplatform.foundation.modelruntime.application.configuration.service.ModelConfigurationCredentialService;
 import com.aiplatform.foundation.modelruntime.application.configuration.service.ControlledModelCatalogService;
@@ -26,6 +27,7 @@ import com.aiplatform.foundation.modelruntime.domain.configuration.repository.Mo
 import com.aiplatform.foundation.modelruntime.domain.provider.repository.ProviderConnectionRepository;
 import com.aiplatform.foundation.modelruntime.infrastructure.persistence.deployment.mapper.ModelDeploymentMapper;
 import com.aiplatform.foundation.modelruntime.infrastructure.persistence.deployment.mapper.ModelDeploymentRequestMapper;
+import com.aiplatform.foundation.modelruntime.infrastructure.persistence.deployment.mapper.ModelCapabilityVerificationMapper;
 import com.aiplatform.foundation.modelruntime.infrastructure.persistence.configuration.ModelConfigurationMapper;
 import com.aiplatform.foundation.modelruntime.infrastructure.persistence.configuration.ControlledModelCatalogEntryMapper;
 import com.aiplatform.foundation.modelruntime.infrastructure.persistence.configuration.ModelConfigurationCredentialMapper;
@@ -66,6 +68,9 @@ class ModelRuntimeAutoConfigurationTest {
                 .withBean(
                         ModelDeploymentRepository.class,
                         () -> mock(ModelDeploymentRepository.class))
+                .withBean(
+                        ModelDeploymentVerificationStore.class,
+                        () -> mock(ModelDeploymentVerificationStore.class))
                 .withBean(
                         ModelConfigurationRepository.class,
                         () -> mock(ModelConfigurationRepository.class))
@@ -174,7 +179,7 @@ class ModelRuntimeAutoConfigurationTest {
     }
 
     @Test
-    void 持久化能力显式启用时注册两个聚合仓储() {
+    void 持久化能力显式启用时注册聚合仓储和验证事实存储() {
         new ApplicationContextRunner()
                 .withConfiguration(AutoConfigurations.of(
                         ModelRuntimePersistenceAutoConfiguration.class))
@@ -192,6 +197,9 @@ class ModelRuntimeAutoConfigurationTest {
                 .withBean(
                         ModelDeploymentRequestMapper.class,
                         () -> mock(ModelDeploymentRequestMapper.class))
+                .withBean(
+                        ModelCapabilityVerificationMapper.class,
+                        () -> mock(ModelCapabilityVerificationMapper.class))
                 .withBean(
                         ModelConfigurationMapper.class,
                         () -> mock(ModelConfigurationMapper.class))
@@ -217,6 +225,7 @@ class ModelRuntimeAutoConfigurationTest {
                     assertThat(context).hasNotFailed();
                     assertThat(context).hasSingleBean(ProviderConnectionRepository.class);
                     assertThat(context).hasSingleBean(ModelDeploymentRepository.class);
+                    assertThat(context).hasSingleBean(ModelDeploymentVerificationStore.class);
                     assertThat(context).hasSingleBean(ModelConfigurationRepository.class);
                     assertThat(context).hasSingleBean(ModelConfigurationAccessRepository.class);
                     assertThat(context).hasSingleBean(ModelConfigurationCredentialWriter.class);

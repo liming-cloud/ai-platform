@@ -13,12 +13,16 @@ import com.aiplatform.foundation.modelruntime.application.deployment.dto.ModelDe
 import com.aiplatform.foundation.modelruntime.application.deployment.command.ProbeModelDeploymentCommand;
 import com.aiplatform.foundation.modelruntime.application.deployment.dto.ProbeModelDeploymentResult;
 import com.aiplatform.foundation.modelruntime.application.deployment.command.PublishModelDeploymentCommand;
+import com.aiplatform.foundation.modelruntime.application.deployment.port.out.ModelDeploymentVerificationStore;
 import com.aiplatform.foundation.modelruntime.application.probe.dto.ProviderProbeRequest;
 import com.aiplatform.foundation.modelruntime.application.probe.service.ProbeProviderService;
 import com.aiplatform.foundation.modelruntime.domain.deployment.repository.ModelDeploymentCreation;
 import com.aiplatform.foundation.modelruntime.domain.deployment.repository.ModelDeploymentRepository;
 import com.aiplatform.foundation.modelruntime.domain.provider.repository.ProviderConnectionRepository;
 import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelDeployment;
+import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelCapabilityVerificationId;
+import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelCapabilityObservation;
+import com.aiplatform.foundation.modelruntime.domain.deployment.service.ModelDeploymentVerification;
 import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelDeploymentId;
 import com.aiplatform.foundation.modelruntime.domain.provider.model.ProviderConnection;
 import com.aiplatform.foundation.modelruntime.domain.provider.model.ProviderConnectionId;
@@ -30,6 +34,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Clock;
+import java.time.Duration;
 import java.util.Comparator;
 import java.util.HexFormat;
 import java.util.Objects;
@@ -45,26 +50,33 @@ public final class ModelDeploymentService {
     private final ModelDeploymentRepository deployments;
     private final ProviderConnectionRepository providers;
     private final ProbeProviderService probeProvider;
+    private final ModelDeploymentVerificationStore verificationStore;
     private final Clock clock;
     private final EntityIdGenerator identifiers;
     private final int tenantLimit;
+    private final Duration verificationValidity;
 
     public ModelDeploymentService(
             ModelDeploymentRepository deployments,
             ProviderConnectionRepository providers,
             ProbeProviderService probeProvider,
+            ModelDeploymentVerificationStore verificationStore,
             Clock clock,
             EntityIdGenerator identifiers,
-            int tenantLimit) {
+            int tenantLimit,
+            Duration verificationValidity) {
         this.deployments = Objects.requireNonNull(deployments, "模型部署仓储不能为空");
         this.providers = Objects.requireNonNull(providers, "供应商连接仓储不能为空");
         this.probeProvider = Objects.requireNonNull(probeProvider, "供应商探测用例不能为空");
+        this.verificationStore = Objects.requireNonNull(verificationStore, "模型能力验证存储不能为空");
         this.clock = Objects.requireNonNull(clock, "时钟不能为空");
         this.identifiers = Objects.requireNonNull(identifiers, "标识生成器不能为空");
         if (tenantLimit < 1) {
             throw new IllegalArgumentException("租户模型部署配额必须大于零");
         }
         this.tenantLimit = tenantLimit;
+        this.verificationValidity = requirePositive(
+                verificationValidity, "模型能力验证有效期");
     }
 
     public CreateModelDeploymentResult create(CreateModelDeploymentCommand command) {
@@ -129,32 +141,23 @@ public final class ModelDeploymentService {
                 deployment.modelCode(),
                 deployment.capabilities(),
                 command.timeout()));
-        if (!result.reachable()) {
-            return new ProbeModelDeploymentResult(
-                    toView(deployment),
-                    false,
-                    result.capabilities(),
-                    result.elapsed(),
-                    result.detailCode(),
-                    result.probedAt());
-        }
-        if (!result.capabilities().containsAll(deployment.capabilities())) {
-            return new ProbeModelDeploymentResult(
-                    toView(deployment),
-                    false,
-                    result.capabilities(),
-                    result.elapsed(),
-                    "MODEL_CAPABILITY_MISMATCH",
-                    result.probedAt());
-        }
-        var verified = deployment.verify();
-        update(verified, command.expectedVersion());
+        var verification = ModelDeploymentVerification.verify(
+                deployment,
+                new ModelCapabilityVerificationId(identifiers.nextId()),
+                new ModelCapabilityObservation(
+                        result.reachable(),
+                        result.capabilities(),
+                        result.detailCode(),
+                        result.elapsed(),
+                        result.probedAt()),
+                result.probedAt().plus(verificationValidity));
+        verificationStore.commit(verification, command.expectedVersion());
         return new ProbeModelDeploymentResult(
-                toView(verified),
-                true,
+                toView(verification.revisedDeployment()),
+                verification.verified(),
                 result.capabilities(),
                 result.elapsed(),
-                result.detailCode(),
+                verification.verification().resultCode(),
                 result.probedAt());
     }
 
@@ -164,7 +167,7 @@ public final class ModelDeploymentService {
         var deployment = load(command.context(), command.modelDeploymentId());
         requireExpectedVersion(deployment, command.expectedVersion());
         loadFrozenProvider(command.context(), deployment);
-        var published = deployment.publish();
+        var published = deployment.publish(clock.instant());
         update(published, command.expectedVersion());
         return toView(published);
     }
@@ -216,6 +219,14 @@ public final class ModelDeploymentService {
         if (!context.hasPermission(permission)) {
             throw new ModelCatalogPermissionDeniedException();
         }
+    }
+
+    private static Duration requirePositive(Duration value, String field) {
+        value = Objects.requireNonNull(value, field + "不能为空");
+        if (value.isNegative() || value.isZero()) {
+            throw new IllegalArgumentException(field + "必须大于零");
+        }
+        return value;
     }
 
     private static ModelDeploymentView toView(ModelDeployment deployment) {

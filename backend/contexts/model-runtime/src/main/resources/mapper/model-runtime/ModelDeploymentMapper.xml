@@ -16,6 +16,8 @@
         <result column="context_window" property="contextWindow"/>
         <result column="output_limit" property="outputLimit"/>
         <result column="embedding_dimension" property="embeddingDimension"/>
+        <result column="last_verification_id" property="lastVerificationId"/>
+        <result column="verification_expires_at" property="verificationExpiresAt"/>
         <result column="status" property="status"/>
         <result column="version" property="version"/>
         <result column="created_at" property="createdAt"/>
@@ -55,6 +57,8 @@
                context_window,
                output_limit,
                embedding_dimension,
+               last_verification_id,
+               verification_expires_at,
                status,
                version,
                created_at
@@ -77,6 +81,8 @@
                context_window,
                output_limit,
                embedding_dimension,
+               last_verification_id,
+               verification_expires_at,
                status,
                version,
                created_at
@@ -85,5 +91,43 @@
         ORDER BY created_at DESC, id DESC
         ]]>
     </select>
+
+    <select id="lockById" resultMap="modelDeploymentRow">
+        <![CDATA[
+        SELECT tenant_id::text AS tenant_id,
+               id,
+               provider_connection_id,
+               provider_connection_revision,
+               model_code,
+               display_name,
+               model_type,
+               array_to_string(capabilities, ',') AS capabilities,
+               context_window,
+               output_limit,
+               embedding_dimension,
+               last_verification_id,
+               verification_expires_at,
+               status,
+               version,
+               created_at
+        FROM model_runtime.model_deployment
+        WHERE tenant_id = #{tenantId}
+          AND id = #{id}
+        FOR UPDATE
+        ]]>
+    </select>
+
+    <update id="markVerified">
+        <![CDATA[
+        UPDATE model_runtime.model_deployment
+        SET status = 'VERIFIED',
+            last_verification_id = #{verificationId},
+            verification_expires_at = #{verificationExpiresAt},
+            version = #{version}
+        WHERE tenant_id = #{tenantId}
+          AND id = #{id}
+          AND version = #{expectedVersion}
+        ]]>
+    </update>
 
 </mapper>

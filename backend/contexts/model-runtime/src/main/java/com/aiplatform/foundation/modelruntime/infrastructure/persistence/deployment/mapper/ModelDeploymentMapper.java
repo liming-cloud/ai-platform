@@ -34,6 +34,18 @@ public interface ModelDeploymentMapper extends BaseMapper<ModelDeploymentEntity>
             @Param("tenantId") long tenantId,
             @Param("id") long id);
 
+    ModelDeploymentRow lockById(
+            @Param("tenantId") long tenantId,
+            @Param("id") long id);
+
+    int markVerified(
+            @Param("tenantId") long tenantId,
+            @Param("id") long id,
+            @Param("verificationId") long verificationId,
+            @Param("verificationExpiresAt") Instant verificationExpiresAt,
+            @Param("version") long version,
+            @Param("expectedVersion") long expectedVersion);
+
     IPage<ModelDeploymentRow> findPage(
             IPage<?> page,
             @Param("tenantId") long tenantId);
