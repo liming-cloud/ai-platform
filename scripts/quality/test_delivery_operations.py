@@ -62,9 +62,6 @@ class DeliveryOperationsTest(unittest.TestCase):
                 "FOUNDATION_ACCEPTANCE_CONTROL_API_ROOT",
                 "FOUNDATION_ACCEPTANCE_QUERY_API_ROOT",
             ],
-            "acceptance-query-web.sh": [
-                "FOUNDATION_ACCEPTANCE_QUERY_WEB_ROOT",
-            ],
             "acceptance-query-quota.sh": [
                 "FOUNDATION_ACCEPTANCE_CONTROL_API_ROOT",
                 "FOUNDATION_ACCEPTANCE_QUERY_API_ROOT",

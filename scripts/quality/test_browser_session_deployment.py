@@ -11,20 +11,23 @@ ROOT = Path(__file__).resolve().parents[2]
 class BrowserSessionDeploymentTest(unittest.TestCase):
     """公开入口必须使两个前端应用共享一个浏览器 origin。"""
 
-    def test_query_web_only_through_console_gateway_is_public(self) -> None:
+    def test_console_is_the_only_personnel_browser_spa_gateway(self) -> None:
         compose = (ROOT / "deploy/compose/compose.yml").read_text(encoding="utf-8")
-        query_service = re.search(
-            r"^  query-web:\n(?P<body>.*?)(?=^  [a-z0-9-]+:|\Z)",
+        self.assertNotIn("  query-web:\n", compose)
+        console_service = re.search(
+            r"^  console-web:\n(?P<body>.*?)(?=^  [a-z0-9-]+:|\Z)",
             compose,
             re.MULTILINE | re.DOTALL,
         )
-        self.assertIsNotNone(query_service)
-        self.assertNotIn("    ports:\n", query_service.group("body"))
+        self.assertIsNotNone(console_service)
+        self.assertNotIn("query-web", console_service.group("body"))
 
-    def test_console_gateway_routes_query_app_and_query_runtime(self) -> None:
+    def test_console_gateway_only_proxies_query_runtime_api(self) -> None:
         nginx = (ROOT / "deploy/config/nginx-console.conf").read_text(encoding="utf-8")
-        self.assertIn("location ^~ /query/", nginx)
-        self.assertIn("http://query-web:8080", nginx)
+        https_nginx = (ROOT / "deploy/config/nginx-console-https.conf").read_text(encoding="utf-8")
+        for configuration in (nginx, https_nginx):
+            self.assertNotIn("location ^~ /query/", configuration)
+            self.assertNotIn("query-web", configuration)
         self.assertIn("location ^~ /api/v1/query-assistants", nginx)
         self.assertIn("location ^~ /api/v1/query-runs", nginx)
         self.assertIn("http://query-runtime:8081", nginx)
@@ -39,12 +42,11 @@ class BrowserSessionDeploymentTest(unittest.TestCase):
         self.assertIsNotNone(control_plane)
         self.assertIn("proxy_set_header Host $http_host;", control_plane.group("body"))
 
-    def test_query_web_builds_for_gateway_subpath(self) -> None:
-        vite = (ROOT / "frontend/apps/query-web/vite.config.ts").read_text(encoding="utf-8")
-        self.assertIn('base: "/query/"', vite)
+    def test_query_web_source_is_retired(self) -> None:
+        self.assertFalse((ROOT / "frontend/apps/query-web/package.json").exists())
 
     def test_frontend_html_entries_must_revalidate_after_image_replacement(self) -> None:
-        for name in ("nginx-console.conf", "nginx.conf"):
+        for name in ("nginx-console.conf", "nginx-console-https.conf"):
             nginx = (ROOT / "deploy/config" / name).read_text(encoding="utf-8")
             self.assertRegex(
                 nginx,

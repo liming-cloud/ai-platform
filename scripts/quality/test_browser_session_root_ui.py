@@ -6,7 +6,7 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
 CONSOLE = ROOT / "frontend/apps/console-web/src"
-QUERY = ROOT / "frontend/apps/query-web/src"
+QUERY_WORKSPACE = CONSOLE / "features/trusted-query/ConsoleQueryWorkspace.tsx"
 
 
 class BrowserSessionRootUiTest(unittest.TestCase):
@@ -30,20 +30,17 @@ class BrowserSessionRootUiTest(unittest.TestCase):
 
         self.assertEqual(violations, [])
 
-    def test_query_workspace_restores_or_returns_to_console_root(self):
-        root = (QUERY / "QueryApp.tsx").read_text()
-        workspace = (QUERY / "features/query/QueryWorkspace.tsx").read_text()
+    def test_query_workspace_is_hosted_by_the_console_root(self):
+        workspace = QUERY_WORKSPACE.read_text()
 
-        self.assertIn("restoreSession", root)
-        self.assertIn("/?next=%2Fquery%2F", root)
+        self.assertIn("restoreSession", workspace)
+        self.assertIn("<QueryWorkspace", workspace)
         self.assertNotIn("LoginView", workspace)
 
-    def test_both_roots_subscribe_to_token_free_invalidation_channel(self):
+    def test_console_root_owns_the_token_free_invalidation_channel(self):
         console_gate = (CONSOLE / "session/BrowserSessionGate.tsx").read_text()
-        query_root = (QUERY / "QueryApp.tsx").read_text()
 
         self.assertIn("BrowserSessionInvalidationChannel", console_gate)
-        self.assertIn("BrowserSessionInvalidationChannel", query_root)
 
 
 if __name__ == "__main__":

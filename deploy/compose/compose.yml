@@ -214,34 +214,10 @@ services:
     depends_on:
       control-plane:
         condition: service_healthy
-      query-web:
+      query-runtime:
         condition: service_healthy
     ports:
       - "127.0.0.1:${FOUNDATION_CONSOLE_WEB_PORT:-13000}:8080"
-    networks:
-      - foundation-internal
-    read_only: true
-    tmpfs:
-      - /tmp
-      - /var/cache/nginx
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    restart: unless-stopped
-
-  query-web:
-    build:
-      context: ../..
-      dockerfile: deploy/images/frontend.Dockerfile
-      args:
-        APP: query-web
-    image: trusted-rag/query-web:foundation-v1
-    depends_on:
-      control-plane:
-        condition: service_healthy
-      query-runtime:
-        condition: service_healthy
     networks:
       - foundation-internal
     read_only: true

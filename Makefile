@@ -1,4 +1,4 @@
-.PHONY: project-status project-verify resume-context architecture-guard backend-test frontend-test demo-fixtures-verify real-model-acceptance-test recovery-operations-test recovery-demo capacity-resilience-operations-test capacity-resilience-demo delivery-operations-test delivery-demo upgrade-demo deploy-config deploy-up deploy-smoke acceptance-knowledge-space acceptance-model-provider acceptance-model-deployment acceptance-index-search acceptance-assistant acceptance-trusted-query acceptance-query-web acceptance-query-quota acceptance-query-operations evaluation-demo performance-index-search performance-query-candidate-pool deploy-down validate
+.PHONY: project-status project-verify resume-context architecture-guard backend-test frontend-test demo-fixtures-verify real-model-acceptance-test recovery-operations-test recovery-demo capacity-resilience-operations-test capacity-resilience-demo delivery-operations-test delivery-demo upgrade-demo deploy-config deploy-up deploy-smoke acceptance-knowledge-space acceptance-model-provider acceptance-model-deployment acceptance-index-search acceptance-assistant acceptance-trusted-query acceptance-query-quota acceptance-query-operations evaluation-demo performance-index-search performance-query-candidate-pool deploy-down validate
 
 project-status:
 	python3 scripts/project_governance.py status
@@ -75,9 +75,6 @@ acceptance-assistant: acceptance-model-deployment acceptance-index-search
 
 acceptance-trusted-query: acceptance-assistant
 	bash scripts/development/acceptance-trusted-query.sh
-
-acceptance-query-web: acceptance-trusted-query
-	bash scripts/development/acceptance-query-web.sh
 
 acceptance-query-quota: acceptance-trusted-query
 	bash scripts/development/acceptance-query-quota.sh

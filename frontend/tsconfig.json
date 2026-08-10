@@ -3,7 +3,6 @@
   "references": [
     { "path": "./packages/design-system" },
     { "path": "./packages/browser-session" },
-    { "path": "./apps/console-web" },
-    { "path": "./apps/query-web" }
+    { "path": "./apps/console-web" }
   ]
 }

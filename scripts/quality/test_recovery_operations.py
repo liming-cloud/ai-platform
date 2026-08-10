@@ -61,7 +61,7 @@ class RecoveryOperationsTest(unittest.TestCase):
             "18080",
             str(configuration["services"]["control-plane"]["ports"][0]["published"]),
         )
-        self.assertNotIn("ports", configuration["services"]["query-web"])
+        self.assertNotIn("query-web", configuration["services"])
 
     def test_compose_supports_a_fully_isolated_recovery_environment(self) -> None:
         recovery_name = "trusted-rag-foundation-v1-recovery-test"
@@ -76,7 +76,6 @@ class RecoveryOperationsTest(unittest.TestCase):
                 "FOUNDATION_QUERY_RUNTIME_PORT": "28081",
                 "FOUNDATION_INGESTION_WORKER_PORT": "28082",
                 "FOUNDATION_CONSOLE_WEB_PORT": "23000",
-                "FOUNDATION_QUERY_WEB_PORT": "23001",
             }
         )
 
@@ -101,7 +100,7 @@ class RecoveryOperationsTest(unittest.TestCase):
             "28080",
             str(configuration["services"]["control-plane"]["ports"][0]["published"]),
         )
-        self.assertNotIn("ports", configuration["services"]["query-web"])
+        self.assertNotIn("query-web", configuration["services"])
 
     def test_recovery_scripts_have_valid_shell_syntax(self) -> None:
         expected_scripts = [
