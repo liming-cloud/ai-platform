@@ -132,11 +132,19 @@ export interface IndexVersion {
 
 export interface ModelDeployment {
   id: string;
+  providerConnectionId: string;
+  providerConnectionRevision: number;
+  modelCode: string;
   modelType: "CHAT" | "EMBEDDING";
   displayName: string;
+  capabilities: string[];
+  contextWindow: number;
+  outputLimit: number | null;
+  verificationExpiresAt: string | null;
   status: string;
   version: number;
   embeddingDimension: number | null;
+  createdAt: string;
 }
 
 export interface ModelConfiguration {
@@ -225,6 +233,35 @@ export interface ProviderModelDiscoveryResult {
   elapsed: string;
   discoveredAt: string;
   expiresAt: string;
+}
+
+/** 当前连接修订且尚未过期的模型候选；候选不属于发现历史列表。 */
+export interface ProviderModelCandidate {
+  modelCode: string;
+  modelType: "CHAT" | "EMBEDDING";
+  capabilities: string[];
+}
+
+/** 创建草稿部署只允许选择已发现候选及其受控参数。 */
+export interface ModelDeploymentCreateInput {
+  providerConnectionId: string;
+  modelCode: string;
+  displayName: string;
+  modelType: "CHAT" | "EMBEDDING";
+  capabilities: string[];
+  contextWindow: number;
+  outputLimit: number | null;
+  embeddingDimension: number | null;
+}
+
+/** 最小真实能力探测的安全结果，不携带供应商原始响应。 */
+export interface ModelDeploymentProbeResult {
+  modelDeployment: ModelDeployment;
+  reachable: boolean;
+  capabilities: string[];
+  elapsed: string;
+  detailCode: string;
+  probedAt: string;
 }
 
 export interface QueryUsage {
@@ -758,6 +795,46 @@ export class ControlPlaneClient {
     );
   }
 
+  async createModelDeployment(
+    input: ModelDeploymentCreateInput,
+    idempotencyKey?: string,
+  ): Promise<ModelDeployment> {
+    return this.request<ModelDeployment>("/model-deployments", {
+      method: "POST",
+      headers: this.writeHeaders("application/json", idempotencyKey),
+      body: JSON.stringify(input),
+    });
+  }
+
+  async probeModelDeployment(
+    modelDeploymentId: string,
+    expectedVersion: number,
+    timeoutMillis: number,
+  ): Promise<ModelDeploymentProbeResult> {
+    return this.request<ModelDeploymentProbeResult>(
+      `/model-deployments/${encodeURIComponent(modelDeploymentId)}/probe`,
+      {
+        method: "POST",
+        headers: this.writeHeaders("application/json"),
+        body: JSON.stringify({ expectedVersion, timeoutMillis }),
+      },
+    );
+  }
+
+  async publishModelDeployment(
+    modelDeploymentId: string,
+    expectedVersion: number,
+  ): Promise<ModelDeployment> {
+    return this.request<ModelDeployment>(
+      `/model-deployments/${encodeURIComponent(modelDeploymentId)}/publish`,
+      {
+        method: "POST",
+        headers: this.writeHeaders("application/json"),
+        body: JSON.stringify({ expectedVersion }),
+      },
+    );
+  }
+
   async listTenantMembers(
     pageNumber = 1,
     pageSize = 20,
@@ -848,6 +925,16 @@ export class ControlPlaneClient {
   ): Promise<PageResult<ProviderModelDiscoveryHistory>> {
     return this.request<PageResult<ProviderModelDiscoveryHistory>>(
       `/model-providers/${encodeURIComponent(providerConnectionId)}/model-discoveries?pageNumber=${pageNumber}&pageSize=${pageSize}`,
+    );
+  }
+
+  async listCurrentProviderModelCandidates(
+    providerConnectionId: string,
+    pageNumber = 1,
+    pageSize = 20,
+  ): Promise<PageResult<ProviderModelCandidate>> {
+    return this.request<PageResult<ProviderModelCandidate>>(
+      `/model-providers/${encodeURIComponent(providerConnectionId)}/current-model-candidates?pageNumber=${pageNumber}&pageSize=${pageSize}`,
     );
   }
 

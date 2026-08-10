@@ -1,7 +1,7 @@
 package com.aiplatform.foundation.assistantdelivery.application.assistant.exception;
 
 /** 冻结评测决定不能授权当前助手草稿修订时抛出。 */
-public final class AssistantPublicationDeniedException extends RuntimeException {
+public final class AssistantPublicationDeniedException extends IllegalArgumentException {
 
     private static final long serialVersionUID = 1L;
 

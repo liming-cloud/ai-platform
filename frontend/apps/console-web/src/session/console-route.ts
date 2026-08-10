@@ -18,6 +18,13 @@ export type ConsoleRoute =
     connectionId?: string;
     discoveryPage: number;
   }
+  | {
+    navigationId: "models";
+    task: "deployments";
+    connectionId?: string;
+    candidatePage: number;
+    deploymentPage: number;
+  }
   | { navigationId: "governance"; task: "query" | "evaluation" }
   | { navigationId: "query"; task: "ask" }
   | { navigationId: "platform"; task: "tenants" };
@@ -80,6 +87,16 @@ export function parseConsoleRoute(pathname: string, search: string): ConsoleRout
       discoveryPage: positivePage(parameters.get("discoveryPage")),
     };
   }
+  if (routePath === "/models/deployments") {
+    const parameters = new URLSearchParams(search);
+    return {
+      navigationId: "models",
+      task: "deployments",
+      connectionId: nonBlankParameter(parameters.get("connectionId")),
+      candidatePage: positivePage(parameters.get("candidatePage")),
+      deploymentPage: positivePage(parameters.get("deploymentPage")),
+    };
+  }
   if (routePath === "/governance/query") {
     return { navigationId: "governance", task: "query" };
   }
@@ -112,7 +129,9 @@ export function formatConsoleRoute(route: ConsoleRoute): string {
   if (route.navigationId === "models") {
     return route.task === "configuration"
       ? "/models/configurations"
-      : formatProviderRoute(route);
+      : route.task === "providers"
+        ? formatProviderRoute(route)
+        : formatDeploymentRoute(route);
   }
   if (route.navigationId === "governance") {
     return route.task === "query" ? "/governance/query" : "/governance/evaluation";
@@ -162,4 +181,14 @@ function formatProviderRoute(route: Extract<ConsoleRoute, { task: "providers" }>
   }
   parameters.set("discoveryPage", String(route.discoveryPage));
   return `/models/providers?${parameters}`;
+}
+
+function formatDeploymentRoute(route: Extract<ConsoleRoute, { task: "deployments" }>): string {
+  const parameters = new URLSearchParams();
+  if (route.connectionId !== undefined) {
+    parameters.set("connectionId", route.connectionId);
+  }
+  parameters.set("candidatePage", String(route.candidatePage));
+  parameters.set("deploymentPage", String(route.deploymentPage));
+  return `/models/deployments?${parameters}`;
 }

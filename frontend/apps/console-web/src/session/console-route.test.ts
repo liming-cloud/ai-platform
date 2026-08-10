@@ -50,6 +50,26 @@ describe("统一控制台路由", () => {
     })).toBe("/models/providers?providerPage=3&connectionId=610000000000000001&discoveryPage=2");
   });
 
+  it("模型能力探测使用独立的可恢复部署任务路由", () => {
+    expect(parseConsoleRoute(
+      "/models/deployments",
+      "?connectionId=610000000000000001&candidatePage=2&deploymentPage=3",
+    )).toEqual({
+      navigationId: "models",
+      task: "deployments",
+      connectionId: "610000000000000001",
+      candidatePage: 2,
+      deploymentPage: 3,
+    });
+    expect(formatConsoleRoute({
+      navigationId: "models",
+      task: "deployments",
+      connectionId: "610000000000000001",
+      candidatePage: 2,
+      deploymentPage: 3,
+    })).toBe("/models/deployments?connectionId=610000000000000001&candidatePage=2&deploymentPage=3");
+  });
+
   it("不以其他可见入口替代无权访问的平台治理深链接", () => {
     const route = parseConsoleRoute("/platform/tenants", "");
 

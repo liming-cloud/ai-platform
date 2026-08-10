@@ -2,6 +2,8 @@ package com.aiplatform.foundation.modelruntime.infrastructure.persistence.provid
 
 import com.aiplatform.foundation.modelruntime.application.provider.port.out.ProviderModelDiscoveryStore;
 import com.aiplatform.foundation.modelruntime.application.provider.port.out.ProviderModelDiscoveryHistoryReader;
+import com.aiplatform.foundation.modelruntime.application.provider.port.out.ProviderModelDiscoveryCandidateReader;
+import com.aiplatform.foundation.modelruntime.application.provider.dto.ProviderModelDiscoveryCandidatePage;
 import com.aiplatform.foundation.modelruntime.application.provider.dto.ProviderModelDiscoveryHistoryItem;
 import com.aiplatform.foundation.modelruntime.application.provider.dto.ProviderModelDiscoveryHistoryPage;
 import com.aiplatform.foundation.modelruntime.application.deployment.port.out.ProviderModelDiscoveryLookup;
@@ -24,7 +26,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 /** PostgreSQL 在一个事务内写入发现根和候选明细。 */
 public final class PostgresProviderModelDiscoveryStore
         implements ProviderModelDiscoveryStore, ProviderModelDiscoveryLookup,
-        ProviderModelDiscoveryHistoryReader {
+        ProviderModelDiscoveryHistoryReader, ProviderModelDiscoveryCandidateReader {
 
     private final JdbcTemplate jdbc;
     private final TransactionTemplate transactions;
@@ -139,6 +141,60 @@ public final class PostgresProviderModelDiscoveryStore
                 tenantId.value(),
                 providerConnectionId.value());
         return new ProviderModelDiscoveryHistoryPage(items, Objects.requireNonNull(total));
+    }
+
+    @Override
+    public ProviderModelDiscoveryCandidatePage findCurrentCandidates(
+            TenantId tenantId,
+            ProviderConnectionId providerConnectionId,
+            long providerConnectionRevision,
+            long pageNumber,
+            long pageSize,
+            Instant now) {
+        Objects.requireNonNull(tenantId, "租户标识不能为空");
+        Objects.requireNonNull(providerConnectionId, "供应商连接标识不能为空");
+        Objects.requireNonNull(now, "当前时间不能为空");
+        if (providerConnectionRevision < 0 || pageNumber < 1 || pageSize < 1) {
+            throw new IllegalArgumentException("连接修订和候选分页参数必须为正数");
+        }
+        var items = jdbc.query(
+                "SELECT DISTINCT model.model_code, model.model_type, model.capabilities "
+                        + "FROM model_runtime.provider_model_discovery discovery "
+                        + "JOIN model_runtime.provider_discovered_model model "
+                        + "ON model.discovery_id = discovery.id "
+                        + "WHERE discovery.tenant_id = ? "
+                        + "AND discovery.provider_connection_id = ? "
+                        + "AND discovery.provider_connection_revision = ? "
+                        + "AND discovery.succeeded = TRUE AND discovery.expires_at > ? "
+                        + "ORDER BY model.model_code, model.model_type LIMIT ? OFFSET ?",
+                (resultSet, rowNumber) -> new DiscoveredModel(
+                        resultSet.getString("model_code"),
+                        ModelType.valueOf(resultSet.getString("model_type")),
+                        Arrays.stream((Object[]) resultSet.getArray("capabilities").getArray())
+                                .map(Object::toString)
+                                .map(ModelCapability::valueOf)
+                                .collect(java.util.stream.Collectors.toUnmodifiableSet())),
+                tenantId.value(),
+                providerConnectionId.value(),
+                providerConnectionRevision,
+                Timestamp.from(now),
+                pageSize,
+                Math.multiplyExact(pageNumber - 1, pageSize));
+        var total = jdbc.queryForObject(
+                "SELECT COUNT(*) FROM (SELECT DISTINCT model.model_code, model.model_type "
+                        + "FROM model_runtime.provider_model_discovery discovery "
+                        + "JOIN model_runtime.provider_discovered_model model "
+                        + "ON model.discovery_id = discovery.id "
+                        + "WHERE discovery.tenant_id = ? "
+                        + "AND discovery.provider_connection_id = ? "
+                        + "AND discovery.provider_connection_revision = ? "
+                        + "AND discovery.succeeded = TRUE AND discovery.expires_at > ?) candidates",
+                Long.class,
+                tenantId.value(),
+                providerConnectionId.value(),
+                providerConnectionRevision,
+                Timestamp.from(now));
+        return new ProviderModelDiscoveryCandidatePage(items, Objects.requireNonNull(total));
     }
 
     private void recordInTransaction(ProviderModelDiscovery discovery) {

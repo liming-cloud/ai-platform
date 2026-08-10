@@ -45,7 +45,9 @@ class ModelDeploymentControllerTest {
                         .content("{" + "\"expectedVersion\":0,\"timeoutMillis\":2000}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.reachable").value(true))
-                .andExpect(jsonPath("$.modelDeployment.status").value("VERIFIED"));
+                .andExpect(jsonPath("$.modelDeployment.status").value("VERIFIED"))
+                .andExpect(jsonPath("$.modelDeployment.verificationExpiresAt")
+                        .value("2026-08-11T02:00:00Z"));
 
         var command = ArgumentCaptor.forClass(ProbeModelDeploymentCommand.class);
         verify(deployments).probe(command.capture());
@@ -86,6 +88,7 @@ class ModelDeploymentControllerTest {
                 8192,
                 1024,
                 null,
+                Instant.parse("2026-08-11T02:00:00Z"),
                 "VERIFIED",
                 1,
                 Instant.parse("2026-08-10T02:00:00Z"));

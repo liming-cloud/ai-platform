@@ -15,6 +15,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.resttestclient.TestRestTemplate;
 import org.springframework.boot.resttestclient.autoconfigure.AutoConfigureTestRestTemplate;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -28,10 +29,13 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@SpringBootTest(
+        webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
+        properties = "foundation.model-credentials.local-development-key-version=M2_V1")
 @AutoConfigureTestRestTemplate
 @ActiveProfiles("demo")
 @Testcontainers
+@Import(AssistantApiTest.TestSecrets.class)
 class ModelDeploymentApiTest {
 
     @Container
@@ -68,7 +72,15 @@ class ModelDeploymentApiTest {
     @BeforeEach
     void clearModelCatalog() {
         jdbc.update("DELETE FROM model_runtime.model_deployment_request");
+        jdbc.update("""
+                UPDATE model_runtime.model_deployment
+                SET status = 'DRAFT', last_verification_id = NULL, verification_expires_at = NULL
+                WHERE last_verification_id IS NOT NULL
+                """);
+        jdbc.update("DELETE FROM model_runtime.model_capability_verification");
         jdbc.update("DELETE FROM model_runtime.model_deployment");
+        jdbc.update("DELETE FROM model_runtime.provider_discovered_model");
+        jdbc.update("DELETE FROM model_runtime.provider_model_discovery");
         jdbc.update("DELETE FROM model_runtime.provider_connection_request");
         jdbc.update("DELETE FROM model_runtime.provider_connection");
     }
@@ -144,7 +156,7 @@ class ModelDeploymentApiTest {
                                 "endpoint", "memory://deterministic",
                                 "region", "本地",
                                 "authenticationType", "API_KEY",
-                                "credentialReference", "secret://demo/provider"),
+                                "apiKey", "provider-test-api-key"),
                         headers),
                 ProviderResponse.class);
         assertEquals(HttpStatus.CREATED, created.getStatusCode());
@@ -160,6 +172,16 @@ class ModelDeploymentApiTest {
                 ProviderProbeResponse.class);
         assertEquals(HttpStatus.OK, probe.getStatusCode());
         assertNotNull(probe.getBody());
+        var discovery = http.postForEntity(
+                url("/api/v1/model-providers/" + created.getBody().id() + "/model-discovery"),
+                new HttpEntity<>(
+                        Map.of(
+                                "expectedVersion", probe.getBody().providerConnection().version(),
+                                "timeoutMillis", 2000),
+                        authorized(token)),
+                String.class);
+        assertEquals(HttpStatus.OK, discovery.getStatusCode());
+        assertNotNull(discovery.getBody());
         return probe.getBody().providerConnection();
     }
 

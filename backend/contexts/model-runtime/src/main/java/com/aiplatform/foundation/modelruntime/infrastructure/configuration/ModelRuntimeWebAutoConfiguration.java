@@ -7,6 +7,7 @@ import com.aiplatform.foundation.modelruntime.interfaces.web.configuration.contr
 import com.aiplatform.foundation.modelruntime.interfaces.web.configuration.controller.ModelConfigurationLifecycleController;
 import com.aiplatform.foundation.modelruntime.interfaces.web.configuration.controller.ModelConfigurationReadController;
 import com.aiplatform.foundation.modelruntime.interfaces.web.provider.controller.ProviderConnectionController;
+import com.aiplatform.foundation.modelruntime.interfaces.web.provider.controller.ProviderModelCandidateController;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Import;
@@ -20,6 +21,7 @@ import org.springframework.context.annotation.Import;
         havingValue = "true")
 @Import({
     ProviderConnectionController.class,
+    ProviderModelCandidateController.class,
     ModelDeploymentController.class,
     ModelConfigurationController.class,
     ControlledModelCatalogController.class,

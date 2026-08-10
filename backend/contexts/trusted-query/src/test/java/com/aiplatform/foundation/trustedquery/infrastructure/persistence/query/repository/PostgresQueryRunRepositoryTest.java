@@ -66,6 +66,7 @@ class PostgresQueryRunRepositoryTest {
     private static final long ASSISTANT = 410000000000000001L;
     private static final long ASSISTANT_VERSION = 420000000000000001L;
     private static final long CHAT = 320000000000000001L;
+    private static final long CHAT_VERIFICATION = 330000000000000001L;
     private static final long SPACE = 210000000000000001L;
     private static final long INDEX = 230000000000000001L;
     private static final long EMBEDDING = 320000000000000002L;
@@ -139,6 +140,12 @@ class PostgresQueryRunRepositoryTest {
         jdbc.update("DELETE FROM knowledge_data.index_version");
         jdbc.update("DELETE FROM knowledge_data.knowledge_space");
         jdbc.update("DELETE FROM model_runtime.model_deployment_request");
+        jdbc.update("""
+                UPDATE model_runtime.model_deployment
+                SET status = 'DRAFT', last_verification_id = NULL, verification_expires_at = NULL
+                WHERE last_verification_id IS NOT NULL
+                """);
+        jdbc.update("DELETE FROM model_runtime.model_capability_verification");
         jdbc.update("DELETE FROM model_runtime.model_deployment");
         jdbc.update("DELETE FROM model_runtime.provider_connection_request");
         jdbc.update("DELETE FROM model_runtime.provider_connection");
@@ -689,12 +696,39 @@ class PostgresQueryRunRepositoryTest {
                     model_code, display_name, model_type, capabilities, context_window,
                     output_limit, embedding_dimension, status, version, created_at
                 ) VALUES (?, ?, ?, 1, 'deterministic-chat', '查询测试对话部署',
-                    'CHAT', ARRAY['CHAT'], 8192, 1024, NULL, 'PUBLISHED', 1, ?)
+                    'CHAT', ARRAY['CHAT'], 8192, 1024, NULL, 'DRAFT', 1, ?)
                 """,
                 TENANT.value(),
                 CHAT,
                 provider,
                 Timestamp.from(NOW.minusSeconds(60)));
+        jdbc.update(
+                """
+                INSERT INTO model_runtime.model_capability_verification (
+                    id, tenant_id, model_deployment_id, model_deployment_version,
+                    provider_connection_id, provider_connection_revision, model_code,
+                    declared_capabilities, observed_capabilities, succeeded, result_code,
+                    elapsed_millis, probed_at, expires_at
+                ) VALUES (?, ?, ?, 1, ?, 1, 'deterministic-chat',
+                    ARRAY['CHAT'], ARRAY['CHAT'], TRUE, 'DETERMINISTIC_OK',
+                    1, ?, ?)
+                """,
+                CHAT_VERIFICATION,
+                TENANT.value(),
+                CHAT,
+                provider,
+                Timestamp.from(NOW.minusSeconds(50)),
+                Timestamp.from(NOW.plusSeconds(3600)));
+        jdbc.update(
+                """
+                UPDATE model_runtime.model_deployment
+                SET status = 'PUBLISHED', last_verification_id = ?, verification_expires_at = ?
+                WHERE tenant_id = ? AND id = ?
+                """,
+                CHAT_VERIFICATION,
+                Timestamp.from(NOW.plusSeconds(3600)),
+                TENANT.value(),
+                CHAT);
         jdbc.update(
                 """
                 INSERT INTO knowledge_data.knowledge_space (

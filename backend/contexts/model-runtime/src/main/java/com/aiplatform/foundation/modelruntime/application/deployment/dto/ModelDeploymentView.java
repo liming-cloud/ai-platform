@@ -19,6 +19,7 @@ public record ModelDeploymentView(
         int contextWindow,
         Integer outputLimit,
         Integer embeddingDimension,
+        Instant verificationExpiresAt,
         String status,
         long version,
         Instant createdAt) {

@@ -16,6 +16,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.resttestclient.TestRestTemplate;
 import org.springframework.boot.resttestclient.autoconfigure.AutoConfigureTestRestTemplate;
 import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -28,10 +29,13 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@SpringBootTest(
+        webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
+        properties = "foundation.model-credentials.local-development-key-version=M2_V1")
 @AutoConfigureTestRestTemplate
 @ActiveProfiles("demo")
 @Testcontainers
+@Import(AssistantApiTest.TestSecrets.class)
 class ProviderConnectionApiTest {
 
     @Container
@@ -80,7 +84,7 @@ class ProviderConnectionApiTest {
                         "endpoint", "memory://deterministic",
                         "region", "本地",
                         "authenticationType", "API_KEY",
-                        "credentialReference", "secret://demo/provider"),
+                        "apiKey", "provider-test-api-key"),
                 headers);
 
         var created = http.postForEntity(
@@ -107,7 +111,7 @@ class ProviderConnectionApiTest {
                         "endpoint", "memory://deterministic",
                         "region", "本地",
                         "authenticationType", "API_KEY",
-                        "credentialReference", "secret://demo/provider"),
+                        "apiKey", "provider-test-api-key"),
                 headers);
         var conflict = http.postForEntity(
                 url("/api/v1/model-providers"),
@@ -126,7 +130,7 @@ class ProviderConnectionApiTest {
                 String.class);
         assertEquals(HttpStatus.OK, rawList.getStatusCode());
         assertNotNull(rawList.getBody());
-        assertFalse(rawList.getBody().contains("secret://demo/provider"));
+        assertFalse(rawList.getBody().contains("provider-test-api-key"));
         assertFalse(rawList.getBody().contains("credentialReference"));
 
         var probe = http.postForEntity(
@@ -192,7 +196,7 @@ class ProviderConnectionApiTest {
                                 "endpoint", "memory://deterministic",
                                 "region", "本地",
                                 "authenticationType", "API_KEY",
-                                "credentialReference", "secret://demo/provider"),
+                                "apiKey", "provider-test-api-key"),
                         headers),
                 ProviderResponse.class);
         assertEquals(HttpStatus.CREATED, response.getStatusCode());

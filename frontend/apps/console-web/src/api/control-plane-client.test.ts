@@ -958,6 +958,65 @@ describe("ControlPlaneClient", () => {
     expect(result).not.toHaveProperty("models");
     expect(result.succeeded).toBe(true);
   });
+
+  it("模型部署供应链按需分页读取候选，并以受控版本完成创建、能力探测和发布", async () => {
+    const requests: Request[] = [];
+    const deployment = {
+      id: "720000000000000001",
+      providerConnectionId: "610000000000000001",
+      providerConnectionRevision: 4,
+      modelCode: "deterministic-chat",
+      displayName: "客服对话模型",
+      modelType: "CHAT",
+      capabilities: ["CHAT"],
+      contextWindow: 8192,
+      outputLimit: 1024,
+      embeddingDimension: null,
+      status: "DRAFT",
+      version: 0,
+      createdAt: "2026-08-10T02:00:00Z",
+    };
+    const client = authenticatedClient(async (input, init) => {
+      requests.push(new Request(input, init));
+      const payload = requests.length === 1
+        ? { items: [{ modelCode: "deterministic-chat", modelType: "CHAT", capabilities: ["CHAT"] }], pageNumber: 2, pageSize: 20, totalElements: 21, totalPages: 2, hasPrevious: true, hasNext: false }
+        : requests.length === 3
+          ? { modelDeployment: { ...deployment, status: "VERIFIED", version: 1 }, reachable: true, capabilities: ["CHAT"], elapsed: "PT0.1S", detailCode: "PROBE_SUCCEEDED", probedAt: "2026-08-10T02:01:00Z" }
+          : requests.length === 4
+            ? { ...deployment, status: "PUBLISHED", version: 2 }
+            : deployment;
+      return new Response(JSON.stringify(payload), {
+        status: requests.length === 2 ? 201 : 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    });
+
+    const candidates = await client.listCurrentProviderModelCandidates("610000000000000001", 2, 20);
+    const created = await client.createModelDeployment({
+      providerConnectionId: "610000000000000001",
+      modelCode: "deterministic-chat",
+      displayName: "客服对话模型",
+      modelType: "CHAT",
+      capabilities: ["CHAT"],
+      contextWindow: 8192,
+      outputLimit: 1024,
+      embeddingDimension: null,
+    });
+    const probed = await client.probeModelDeployment(created.id, created.version, 10_000);
+    const published = await client.publishModelDeployment(probed.modelDeployment.id, probed.modelDeployment.version);
+
+    expect(candidates.items[0]?.modelCode).toBe("deterministic-chat");
+    expect(requests[0]?.url).toBe("http://localhost/api/v1/model-providers/610000000000000001/current-model-candidates?pageNumber=2&pageSize=20");
+    expect(requests[1]?.headers.get("Idempotency-Key")).not.toBeNull();
+    expect(await requests[1]?.json()).toEqual({
+      providerConnectionId: "610000000000000001", modelCode: "deterministic-chat", displayName: "客服对话模型",
+      modelType: "CHAT", capabilities: ["CHAT"], contextWindow: 8192, outputLimit: 1024, embeddingDimension: null,
+    });
+    expect(await requests[2]?.json()).toEqual({ expectedVersion: 0, timeoutMillis: 10_000 });
+    expect(await requests[3]?.json()).toEqual({ expectedVersion: 1 });
+    expect(published.status).toBe("PUBLISHED");
+    expect(requests.every((request) => request.headers.get("Authorization") === null)).toBe(true);
+  });
 });
 
 function authenticatedClient(fetcher: typeof fetch) {

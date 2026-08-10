@@ -49,7 +49,7 @@ export function ModelProviderWorkspace({
   client: ControlPlaneClient;
   route: ProviderRoute;
   sessionRevision: number;
-  onRouteChange: (route: ProviderRoute) => void;
+  onRouteChange: (route: ConsoleRoute) => void;
 }) {
   const [viewState, setViewState] = useState<ViewState>("unauthenticated");
   const [connections, setConnections] = useState<ProviderConnectionSummary[]>([]);
@@ -297,6 +297,7 @@ export function ModelProviderWorkspace({
                   <Button appearance="secondary" disabled={submitting} onClick={() => setRotationTarget(connection)}>轮换 API Key</Button>
                   <Button appearance="primary" disabled={connection.status !== "VERIFIED" || !connection.credentialConfigured || discoveringConnectionId !== undefined} onClick={() => void discoverModels(connection)}>{discoveringConnectionId === connection.id ? "正在发现模型" : "发现可用模型"}</Button>
                   <Button appearance="secondary" onClick={() => onRouteChange({ ...route, connectionId: connection.id, discoveryPage: 1 })}>查看发现记录</Button>
+                  <Button appearance="secondary" disabled={connection.status !== "VERIFIED"} onClick={() => onRouteChange({ navigationId: "models", task: "deployments", connectionId: connection.id, candidatePage: 1, deploymentPage: 1 })}>管理部署</Button>
                 </div></td>
               </tr>
             ))}</tbody>

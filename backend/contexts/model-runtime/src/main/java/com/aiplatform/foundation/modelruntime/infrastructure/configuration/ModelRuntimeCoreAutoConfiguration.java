@@ -29,9 +29,11 @@ import com.aiplatform.foundation.modelruntime.application.probe.service.ProbePro
 import com.aiplatform.foundation.modelruntime.application.provider.service.ProviderConnectionService;
 import com.aiplatform.foundation.modelruntime.application.provider.service.ProviderModelDiscoveryService;
 import com.aiplatform.foundation.modelruntime.application.provider.service.ProviderModelDiscoveryReadService;
+import com.aiplatform.foundation.modelruntime.application.provider.service.ProviderModelDiscoveryCandidateReadService;
 import com.aiplatform.foundation.modelruntime.application.provider.port.out.ProviderModelDiscoverer;
 import com.aiplatform.foundation.modelruntime.application.provider.port.out.ProviderModelDiscoveryStore;
 import com.aiplatform.foundation.modelruntime.application.provider.port.out.ProviderModelDiscoveryHistoryReader;
+import com.aiplatform.foundation.modelruntime.application.provider.port.out.ProviderModelDiscoveryCandidateReader;
 import com.aiplatform.foundation.modelruntime.application.provider.port.out.ProviderConnectionCredentialTransaction;
 import com.aiplatform.foundation.modelruntime.application.provider.port.out.ProviderConnectionCredentialWriter;
 import com.aiplatform.foundation.modelruntime.domain.deployment.repository.ModelDeploymentRepository;
@@ -95,6 +97,15 @@ public class ModelRuntimeCoreAutoConfiguration {
     ProviderModelDiscoveryReadService providerModelDiscoveryReadService(
             ProviderModelDiscoveryHistoryReader reader) {
         return new ProviderModelDiscoveryReadService(reader, Clock.systemUTC());
+    }
+
+    @Bean
+    @ConditionalOnBean({ProviderConnectionRepository.class, ProviderModelDiscoveryCandidateReader.class})
+    @ConditionalOnMissingBean
+    ProviderModelDiscoveryCandidateReadService providerModelDiscoveryCandidateReadService(
+            ProviderConnectionRepository connections,
+            ProviderModelDiscoveryCandidateReader candidates) {
+        return new ProviderModelDiscoveryCandidateReadService(connections, candidates, Clock.systemUTC());
     }
 
     @Bean

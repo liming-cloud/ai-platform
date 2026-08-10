@@ -17,6 +17,7 @@ import com.aiplatform.foundation.modelruntime.application.provider.dto.RotatePro
 import com.aiplatform.foundation.modelruntime.application.provider.dto.ProviderConnectionView;
 import com.aiplatform.foundation.modelruntime.application.provider.dto.DiscoverProviderModelsResult;
 import com.aiplatform.foundation.modelruntime.application.provider.dto.ProviderModelDiscoveryView;
+import com.aiplatform.foundation.modelruntime.application.provider.dto.ProviderModelCandidateView;
 import com.aiplatform.foundation.modelruntime.application.provider.service.ProviderConnectionService;
 import com.aiplatform.foundation.modelruntime.application.provider.service.ProviderModelDiscoveryReadService;
 import com.aiplatform.foundation.modelruntime.application.provider.service.ProviderModelDiscoveryService;
@@ -175,6 +176,37 @@ class ProviderConnectionControllerTest {
                 "310000000000000001", query.getValue().providerConnectionId());
         org.junit.jupiter.api.Assertions.assertEquals(2, query.getValue().page().pageNumber());
         org.junit.jupiter.api.Assertions.assertEquals(20, query.getValue().page().pageSize());
+    }
+
+    @Test
+    void 当前候选HTTP入口仅返回当前修订的分页候选且身份来自可信上下文() throws Exception {
+        var candidates = mock(com.aiplatform.foundation.modelruntime.application.provider.service.ProviderModelDiscoveryCandidateReadService.class);
+        var context = mock(TrustedRequestContext.class);
+        var controller = new ProviderModelCandidateController(candidates);
+        var mvc = MockMvcBuilders.standaloneSetup(controller)
+                .setCustomArgumentResolvers(trustedContext(context))
+                .build();
+        when(candidates.listCurrentCandidates(any(), any(), any())).thenReturn(PageResult.of(
+                java.util.List.of(new ProviderModelCandidateView(
+                        "deterministic-chat", ModelType.CHAT, Set.of(ModelCapability.CHAT))),
+                new PageQuery(2, 20), 21));
+
+        mvc.perform(get("/api/v1/model-providers/310000000000000001/current-model-candidates")
+                        .param("tenantId", "100000000000000099")
+                        .param("pageNumber", "2")
+                        .param("pageSize", "20"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items[0].modelCode").value("deterministic-chat"))
+                .andExpect(jsonPath("$.items[0].modelType").value("CHAT"))
+                .andExpect(jsonPath("$.totalElements").value(21))
+                .andExpect(jsonPath("$.endpoint").doesNotExist())
+                .andExpect(jsonPath("$.credentialReference").doesNotExist());
+
+        var query = ArgumentCaptor.forClass(PageQuery.class);
+        verify(candidates).listCurrentCandidates(org.mockito.ArgumentMatchers.same(context),
+                org.mockito.ArgumentMatchers.eq("310000000000000001"), query.capture());
+        org.junit.jupiter.api.Assertions.assertEquals(2, query.getValue().pageNumber());
+        org.junit.jupiter.api.Assertions.assertEquals(20, query.getValue().pageSize());
     }
 
     private static HandlerMethodArgumentResolver trustedContext(TrustedRequestContext context) {

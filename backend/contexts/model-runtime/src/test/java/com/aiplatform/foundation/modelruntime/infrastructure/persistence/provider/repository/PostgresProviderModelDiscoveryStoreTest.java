@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.aiplatform.foundation.modelruntime.application.provider.port.out.ProviderModelDiscoveryStore;
 import com.aiplatform.foundation.modelruntime.application.provider.port.out.ProviderModelDiscoveryHistoryReader;
+import com.aiplatform.foundation.modelruntime.application.provider.port.out.ProviderModelDiscoveryCandidateReader;
 import com.aiplatform.foundation.modelruntime.application.deployment.port.out.ProviderModelDiscoveryLookup;
 import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelCapability;
 import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelType;
@@ -58,6 +59,9 @@ class PostgresProviderModelDiscoveryStoreTest {
 
     @Autowired
     private ProviderModelDiscoveryHistoryReader history;
+
+    @Autowired
+    private ProviderModelDiscoveryCandidateReader candidates;
 
     @Autowired
     private JdbcTemplate jdbc;
@@ -173,6 +177,28 @@ class PostgresProviderModelDiscoveryStoreTest {
                                 CONNECTION,
                                 1,
                                 20)
+                        .totalElements());
+    }
+
+    @Test
+    void 当前候选必须按连接修订和有效期服务端分页读取() {
+        store.record(discovery(340000000000000006L, Set.of(
+                new DiscoveredModel(
+                        "deterministic-chat", ModelType.CHAT, Set.of(ModelCapability.CHAT)),
+                new DiscoveredModel(
+                        "deterministic-embedding", ModelType.EMBEDDING, Set.of(ModelCapability.EMBEDDING)))));
+
+        var page = candidates.findCurrentCandidates(
+                TENANT, CONNECTION, 1, 2, 1, DISCOVERED_AT.plusSeconds(1));
+
+        assertEquals(2, page.totalElements());
+        assertEquals(1, page.items().size());
+        assertEquals("deterministic-embedding", page.items().getFirst().modelCode());
+        assertEquals(
+                0,
+                candidates.findCurrentCandidates(
+                                TENANT, CONNECTION, 1, 1, 20,
+                                DISCOVERED_AT.plus(Duration.ofHours(25)))
                         .totalElements());
     }
 

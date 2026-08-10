@@ -6,6 +6,7 @@ spring:
       - classpath:db/migration/model-runtime
       - classpath:db/migration/assistant-delivery
       - classpath:db/migration/trusted-query
+      - classpath:db/migration/evaluation-operations
       - classpath:db/demo/organization-access
 
 foundation:

@@ -64,6 +64,13 @@ const ModelProviderWorkspace = lazy(async () => {
   return { default: module.ModelProviderWorkspace };
 });
 
+const ModelDeploymentWorkspace = lazy(async () => {
+  const module = await import(
+    "./features/model-configuration/ModelDeploymentWorkspace"
+  );
+  return { default: module.ModelDeploymentWorkspace };
+});
+
 const ConsoleQueryWorkspace = lazy(async () => {
   const module = await import("./features/trusted-query/ConsoleQueryWorkspace");
   return { default: module.ConsoleQueryWorkspace };
@@ -226,7 +233,7 @@ function AuthenticatedConsoleApp({
     <ProductShell
       productName="可信知识平台"
       pageTitle={
-        accessActive ? "成员与权限" : platformActive ? "平台租户生命周期" : queryActive ? "从已授权资料中获得答案" : governanceActive ? route.task === "query" ? "查询用量与审计" : "受限评测运行" : modelsActive ? route.task === "configuration" ? "受控模型配置" : "供应商连接与模型发现" : dataPage?.title ?? "可信知识平台"
+        accessActive ? "成员与权限" : platformActive ? "平台租户生命周期" : queryActive ? "从已授权资料中获得答案" : governanceActive ? route.task === "query" ? "查询用量与审计" : "受限评测运行" : modelsActive ? route.task === "configuration" ? "受控模型配置" : route.task === "providers" ? "供应商连接与模型发现" : "模型部署与能力验证" : dataPage?.title ?? "可信知识平台"
       }
       pageSummary={
         queryActive
@@ -241,8 +248,10 @@ function AuthenticatedConsoleApp({
           ? "选择已有数据集和助手版本运行服务端评测，只展示指标和质量门结论。"
           : modelsActive && route.task === "configuration"
           ? "从平台发布目录创建、轮换和启用模型配置；API Key 不会再次显示。"
-          : modelsActive
+          : modelsActive && route.task === "providers"
           ? "核对供应商连接状态和可用的模型发现事实；Endpoint、凭据和原始响应用于后端执行，不会进入浏览器。"
+          : modelsActive
+          ? "选择当前有效发现候选建立草稿部署，在独立任务中执行真实能力探测和高风险发布确认。"
           : dataPage?.summary ?? ""
       }
       navigation={navigation}
@@ -341,6 +350,13 @@ function AuthenticatedConsoleApp({
               />
             ) : route.navigationId === "models" && route.task === "providers" ? (
               <ModelProviderWorkspace
+                client={client}
+                route={route}
+                sessionRevision={sessionRevision}
+                onRouteChange={navigate}
+              />
+            ) : route.navigationId === "models" && route.task === "deployments" ? (
+              <ModelDeploymentWorkspace
                 client={client}
                 route={route}
                 sessionRevision={sessionRevision}

@@ -257,6 +257,7 @@ public final class ModelDeploymentService {
                 deployment.contextWindow(),
                 deployment.outputLimit(),
                 deployment.embeddingDimension(),
+                deployment.verificationExpiresAt(),
                 deployment.status().name(),
                 deployment.version(),
                 deployment.createdAt());

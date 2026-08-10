@@ -23,6 +23,7 @@ import com.aiplatform.foundation.shared.contract.paging.PageQuery;
 import com.aiplatform.foundation.shared.contract.paging.PageResult;
 import java.time.Duration;
 import java.util.Objects;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -39,6 +40,11 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @RestController
 @RequestMapping("/api/v1/model-providers")
+@ConditionalOnBean({
+    ProviderConnectionService.class,
+    ProviderModelDiscoveryService.class,
+    ProviderModelDiscoveryReadService.class
+})
 public class ProviderConnectionController {
 
     private static final String IDEMPOTENCY_KEY = "Idempotency-Key";

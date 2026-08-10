@@ -47,6 +47,7 @@ class AssistantApiTest {
             100000000000000001L;
     private static final long CREATOR = 3382738893456539650L;
     private static final long CHAT = 320000000000000001L;
+    private static final long CHAT_VERIFICATION = 330000000000000001L;
     private static final long SPACE = 210000000000000001L;
     private static final long INDEX = 230000000000000001L;
     private static final long EMBEDDING = 320000000000000002L;
@@ -94,6 +95,12 @@ class AssistantApiTest {
         jdbc.update("DELETE FROM assistant_delivery.assistant_version");
         jdbc.update("DELETE FROM assistant_delivery.assistant");
         jdbc.update("DELETE FROM model_runtime.model_deployment_request");
+        jdbc.update("""
+                UPDATE model_runtime.model_deployment
+                SET status = 'DRAFT', last_verification_id = NULL, verification_expires_at = NULL
+                WHERE last_verification_id IS NOT NULL
+                """);
+        jdbc.update("DELETE FROM model_runtime.model_capability_verification");
         jdbc.update("DELETE FROM model_runtime.model_deployment");
         jdbc.update("DELETE FROM model_runtime.provider_connection_request");
         jdbc.update("DELETE FROM model_runtime.provider_connection");
@@ -140,43 +147,28 @@ class AssistantApiTest {
         assertEquals(HttpStatus.CREATED, version.getStatusCode());
         assertNotNull(version.getBody());
         assertEquals(Long.toString(CHAT_CONFIGURATION), version.getBody().chatModelConfigurationId());
-        assertEquals(1, version.getBody().chatModelConfigurationRevision());
+        assertEquals(1L, version.getBody().chatModelConfigurationRevision());
         assertEquals(4, version.getBody().indexVersionRevision());
         assertEquals(Long.toString(EMBEDDING_CONFIGURATION), version.getBody().embeddingModelConfigurationId());
-        assertEquals(1, version.getBody().embeddingModelConfigurationRevision());
+        assertEquals(1L, version.getBody().embeddingModelConfigurationRevision());
         assertEquals("DRAFT", version.getBody().status());
-
         var published = http.postForEntity(
                 url("/api/v1/assistant-versions/" + version.getBody().id() + "/publish"),
                 new HttpEntity<>(
-                        Map.of("expectedVersion", 0),
+                        Map.of(
+                                "expectedVersion", version.getBody().version(),
+                                "releaseDecisionId", 360000000000000001L),
                         withIdempotency(
                                 storeToken,
                                 "assistant-publish-http-0001")),
-                AssistantVersionResponse.class);
-        assertEquals(HttpStatus.OK, published.getStatusCode());
+                ApiError.class);
+        assertEquals(HttpStatus.BAD_REQUEST, published.getStatusCode());
         assertNotNull(published.getBody());
-        assertEquals("PUBLISHED", published.getBody().status());
-        assertEquals(1, published.getBody().version());
-        var publishReplay = http.postForEntity(
-                url("/api/v1/assistant-versions/" + version.getBody().id() + "/publish"),
-                new HttpEntity<>(
-                        Map.of("expectedVersion", 0),
-                        withIdempotency(
-                                storeToken,
-                                "assistant-publish-http-0001")),
-                AssistantVersionResponse.class);
-        assertEquals(HttpStatus.OK, publishReplay.getStatusCode());
-        assertEquals(
-                "true",
-                publishReplay.getHeaders().getFirst("Idempotency-Replayed"));
-        assertNotNull(publishReplay.getBody());
-        assertEquals(published.getBody().id(), publishReplay.getBody().id());
+        assertEquals("COMMON.REQUEST.0001", published.getBody().code());
         assertTrue(publishedVersions.find(
-                        com.aiplatform.foundation.shared.kernel.tenant.TenantId.parse(
-                                Long.toString(STORE)),
-                        Long.parseLong(published.getBody().id()))
-                .isPresent());
+                        com.aiplatform.foundation.shared.kernel.tenant.TenantId.parse(Long.toString(STORE)),
+                        Long.parseLong(version.getBody().id()))
+                .isEmpty());
 
         assertEquals(List.of(created.id()), list(storeToken).items().stream()
                 .map(AssistantResponse::id)
@@ -255,12 +247,39 @@ class AssistantApiTest {
                     model_code, display_name, model_type, capabilities, context_window,
                     output_limit, embedding_dimension, status, version, created_at
                 ) VALUES (?, ?, ?, 1, 'deterministic-chat', '助手测试对话部署',
-                    'CHAT', ARRAY['CHAT'], 8192, 1024, NULL, 'PUBLISHED', 9, ?)
+                    'CHAT', ARRAY['CHAT'], 8192, 1024, NULL, 'DRAFT', 9, ?)
                 """,
                 STORE,
                 CHAT,
                 provider,
                 Timestamp.from(NOW.minusSeconds(30)));
+        jdbc.update(
+                """
+                INSERT INTO model_runtime.model_capability_verification (
+                    id, tenant_id, model_deployment_id, model_deployment_version,
+                    provider_connection_id, provider_connection_revision, model_code,
+                    declared_capabilities, observed_capabilities, succeeded, result_code,
+                    elapsed_millis, probed_at, expires_at
+                ) VALUES (?, ?, ?, 9, ?, 1, 'deterministic-chat',
+                    ARRAY['CHAT'], ARRAY['CHAT'], TRUE, 'DETERMINISTIC_OK',
+                    1, ?, ?)
+                """,
+                CHAT_VERIFICATION,
+                STORE,
+                CHAT,
+                provider,
+                Timestamp.from(NOW.minusSeconds(20)),
+                Timestamp.from(NOW.plusSeconds(3600)));
+        jdbc.update(
+                """
+                UPDATE model_runtime.model_deployment
+                SET status = 'PUBLISHED', last_verification_id = ?, verification_expires_at = ?
+                WHERE tenant_id = ? AND id = ?
+                """,
+                CHAT_VERIFICATION,
+                Timestamp.from(NOW.plusSeconds(3600)),
+                STORE,
+                CHAT);
         jdbc.update(
                 """
                 INSERT INTO model_runtime.controlled_model_catalog_entry (
@@ -374,10 +393,10 @@ class AssistantApiTest {
     private record AssistantVersionResponse(
             String id,
             String chatModelConfigurationId,
-            long chatModelConfigurationRevision,
+            Long chatModelConfigurationRevision,
             long indexVersionRevision,
             String embeddingModelConfigurationId,
-            long embeddingModelConfigurationRevision,
+            Long embeddingModelConfigurationRevision,
             String status,
             long version) {
     }
