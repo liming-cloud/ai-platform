@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aiplatform.foundation.organizationaccess.infrastructure.persistence.authorization.mapper.TenantRoleBindingMapper">
+
+    <resultMap id="membership" type="com.aiplatform.foundation.organizationaccess.infrastructure.persistence.membership.entity.TenantMembershipEntity">
+        <id column="membership_id" property="membershipId"/>
+        <result column="tenant_id" property="tenantId"/>
+        <result column="subject_id" property="subjectId"/>
+        <result column="membership_role" property="membershipRole"/>
+        <result column="status" property="status"/>
+        <result column="permission_version" property="permissionVersion"/>
+        <result column="version" property="version"/>
+        <result column="created_at" property="createdAt"/>
+    </resultMap>
+
+    <select id="lockEnabled" resultMap="membership">
+        SELECT membership_id, tenant_id, subject_id, membership_role, status,
+               permission_version, version, created_at
+        FROM organization_access.tenant_membership
+        WHERE tenant_id = #{tenantId}
+          AND membership_id = #{membershipId}
+          AND status = 'ENABLED'
+        FOR UPDATE
+    </select>
+
+    <select id="countBindings" resultType="int">
+        SELECT count(*)
+        FROM organization_access.tenant_membership_role_binding
+        WHERE tenant_id = #{tenantId}
+          AND membership_id = #{membershipId}
+          AND role_code = #{roleCode}
+    </select>
+
+    <insert id="insertBinding">
+        INSERT INTO organization_access.tenant_membership_role_binding
+            (tenant_id, membership_id, role_code, bound_at)
+        VALUES
+            (#{tenantId}, #{membershipId}, #{roleCode}, #{boundAt})
+    </insert>
+
+    <update id="revisePermissionVersion">
+        UPDATE organization_access.tenant_membership
+        SET permission_version = #{permissionVersion},
+            version = #{version},
+            updated_at = CURRENT_TIMESTAMP
+        WHERE tenant_id = #{tenantId}
+          AND membership_id = #{membershipId}
+    </update>
+</mapper>

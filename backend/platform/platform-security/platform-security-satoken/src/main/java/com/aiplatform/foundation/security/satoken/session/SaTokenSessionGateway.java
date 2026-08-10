@@ -121,6 +121,16 @@ public final class SaTokenSessionGateway implements AuthenticatedSessionGateway 
         }
     }
 
+    @Override
+    public void revokeMembershipSessions(MembershipId membershipId) {
+        membershipId = Objects.requireNonNull(membershipId, "成员标识不能为空");
+        try {
+            stpLogic.logout(Long.toString(membershipId.value()));
+        } catch (RuntimeException exception) {
+            throw new AuthenticatedSessionUnavailableException(exception);
+        }
+    }
+
     private void revokeAfterFailedIssue(
             String tokenValue,
             RuntimeException original) {

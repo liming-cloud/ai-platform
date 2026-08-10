@@ -8,11 +8,13 @@ import com.aiplatform.foundation.organizationaccess.application.authentication.s
 import com.aiplatform.foundation.organizationaccess.application.authentication.service.BrowserAuthenticationService;
 import com.aiplatform.foundation.organizationaccess.application.authentication.service.BrowserSessionCapabilityService;
 import com.aiplatform.foundation.organizationaccess.application.authentication.service.BrowserSessionTerminationService;
+import com.aiplatform.foundation.organizationaccess.application.authorization.service.TenantRoleBindingApplicationService;
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.service.TenantLifecycleBackfillService;
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.service.TenantLifecycleQueryService;
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.service.TenantLifecycleTransitionService;
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.service.TenantProvisioningService;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.authorization.mapper.PlatformAccessGrantMapper;
+import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.authorization.mapper.TenantRoleBindingMapper;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.identity.mapper.SubjectIdentityMapper;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.membership.mapper.TenantMembershipMapper;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.mapper.TenantLifecycleBackfillMapper;
@@ -23,6 +25,7 @@ import com.aiplatform.foundation.organizationaccess.interfaces.web.authenticatio
 import com.aiplatform.foundation.organizationaccess.interfaces.web.authentication.controller.BrowserAuthenticationController;
 import com.aiplatform.foundation.organizationaccess.interfaces.web.authentication.controller.PlatformAuthenticationController;
 import com.aiplatform.foundation.organizationaccess.interfaces.web.tenantlifecycle.controller.TenantLifecycleController;
+import com.aiplatform.foundation.organizationaccess.interfaces.web.authorization.controller.TenantRoleBindingController;
 import com.aiplatform.foundation.security.session.AuthenticatedSessionGateway;
 import com.aiplatform.foundation.security.session.PlatformSessionGateway;
 import com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator;
@@ -47,6 +50,9 @@ class OrganizationAccessAutoConfigurationTest {
             .withBean(
                     PlatformAccessGrantMapper.class,
                     () -> mock(PlatformAccessGrantMapper.class))
+            .withBean(
+                    TenantRoleBindingMapper.class,
+                    () -> mock(TenantRoleBindingMapper.class))
             .withBean(
                     TenantLifecycleBackfillMapper.class,
                     () -> mock(TenantLifecycleBackfillMapper.class))
@@ -76,6 +82,7 @@ class OrganizationAccessAutoConfigurationTest {
             assertThat(context).hasSingleBean(BrowserAuthenticationService.class);
             assertThat(context).hasSingleBean(BrowserSessionCapabilityService.class);
             assertThat(context).hasSingleBean(BrowserSessionTerminationService.class);
+            assertThat(context).hasSingleBean(TenantRoleBindingApplicationService.class);
             assertThat(context).hasSingleBean(TenantLifecycleBackfillService.class);
             assertThat(context).hasSingleBean(TenantLifecycleQueryService.class);
             assertThat(context).hasSingleBean(TenantLifecycleTransitionService.class);
@@ -84,6 +91,7 @@ class OrganizationAccessAutoConfigurationTest {
             assertThat(context).hasSingleBean(BrowserAuthenticationController.class);
             assertThat(context).hasSingleBean(PlatformAuthenticationController.class);
             assertThat(context).hasSingleBean(TenantLifecycleController.class);
+            assertThat(context).hasSingleBean(TenantRoleBindingController.class);
         });
     }
 
@@ -101,6 +109,8 @@ class OrganizationAccessAutoConfigurationTest {
                     assertThat(context).doesNotHaveBean(
                             BrowserSessionTerminationService.class);
                     assertThat(context).doesNotHaveBean(
+                            TenantRoleBindingApplicationService.class);
+                    assertThat(context).doesNotHaveBean(
                             TenantLifecycleBackfillService.class);
                     assertThat(context).doesNotHaveBean(
                             TenantLifecycleQueryService.class);
@@ -116,6 +126,8 @@ class OrganizationAccessAutoConfigurationTest {
                             PlatformAuthenticationController.class);
                     assertThat(context).doesNotHaveBean(
                             TenantLifecycleController.class);
+                    assertThat(context).doesNotHaveBean(
+                            TenantRoleBindingController.class);
                 });
     }
 

@@ -7,8 +7,11 @@ import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.port.out.TenantLifecycleReadPort;
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.port.out.TenantLifecycleTransitionStore;
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.port.out.TenantProvisioningStore;
+import com.aiplatform.foundation.organizationaccess.application.authorization.port.out.TenantRoleBindingStore;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.authorization.mapper.PlatformAccessGrantMapper;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.authorization.repository.PostgresPlatformAccessGrantRepository;
+import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.authorization.mapper.TenantRoleBindingMapper;
+import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.authorization.repository.PostgresTenantRoleBindingStore;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.identity.mapper.SubjectIdentityMapper;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.identity.repository.PostgresSubjectIdentityRepository;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.membership.mapper.TenantMembershipMapper;
@@ -37,6 +40,7 @@ import org.springframework.context.annotation.Bean;
         havingValue = "true")
 @MapperScan(basePackageClasses = {
     PlatformAccessGrantMapper.class,
+    TenantRoleBindingMapper.class,
     SubjectIdentityMapper.class,
     TenantMembershipMapper.class,
     TenantLifecycleBackfillMapper.class,
@@ -62,6 +66,12 @@ public class OrganizationAccessPersistenceAutoConfiguration {
     @ConditionalOnMissingBean
     TenantMembershipRepository tenantMembershipRepository(TenantMembershipMapper mapper) {
         return new PostgresTenantMembershipRepository(mapper);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    TenantRoleBindingStore tenantRoleBindingStore(TenantRoleBindingMapper mapper) {
+        return new PostgresTenantRoleBindingStore(mapper);
     }
 
     @Bean

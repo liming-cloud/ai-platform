@@ -260,6 +260,35 @@ class AuthenticationApiTest {
     }
 
     @Test
+    void 租户访问管理员绑定角色后应撤销目标成员的旧会话() {
+        var targetSession = http.postForEntity(
+                url("/api/v1/auth/sessions"),
+                Map.of(
+                        "tenantCode", "demo-store",
+                        "loginName", "platform-admin",
+                        "password", new String(DEMO_PASSWORD)),
+                SessionResponse.class);
+        assertEquals(HttpStatus.CREATED, targetSession.getStatusCode());
+        assertNotNull(targetSession.getBody());
+        var managerToken = tenantLogin();
+
+        var response = http.exchange(
+                url("/api/v1/tenant/members/3382738893456539652/role-bindings"),
+                HttpMethod.POST,
+                new HttpEntity<>(
+                        Map.of("role", "TENANT_ACCESS_ADMINISTRATOR"),
+                        bearer(managerToken)),
+                Map.class);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertEquals("TENANT_ACCESS_ADMINISTRATOR", response.getBody().get("role"));
+        assertEquals("3382738893456539652", response.getBody().get("membershipId"));
+        assertThrows(InvalidAuthenticatedSessionException.class,
+                () -> sessions.resolve(targetSession.getBody().tokenValue()));
+    }
+
+    @Test
     void 浏览器会话能力清单应投影平台治理范围且隔离失效的另一范围会话() {
         var platformSessionCookie = browserPlatformLogin("platform-admin");
         var headers = new HttpHeaders();

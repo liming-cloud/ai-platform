@@ -36,6 +36,12 @@ public interface TenantProvisioningMapper {
             @Param("version") long version,
             @Param("createdAt") Instant createdAt);
 
+    int insertInitialAdministratorRoleBinding(
+            @Param("tenantId") long tenantId,
+            @Param("membershipId") long membershipId,
+            @Param("roleCode") String roleCode,
+            @Param("boundAt") Instant boundAt);
+
     int insertOutbox(
             @Param("eventId") long eventId,
             @Param("tenantId") long tenantId,

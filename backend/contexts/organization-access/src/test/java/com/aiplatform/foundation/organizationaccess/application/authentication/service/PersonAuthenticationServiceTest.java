@@ -124,6 +124,12 @@ class PersonAuthenticationServiceTest {
             public void revoke(String tokenValue) {
                 throw new UnsupportedOperationException();
             }
+
+            @Override
+            public void revokeMembershipSessions(
+                    com.aiplatform.foundation.security.identity.MembershipId membershipId) {
+                throw new UnsupportedOperationException();
+            }
         };
         return new PersonAuthenticationService(
                 identities,

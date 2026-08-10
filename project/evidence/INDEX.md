@@ -272,6 +272,7 @@
 | ADR-0059 人工接受 | `project/evidence/ADR-0059-approval.md` | 本次控制面提交 | 用户接受统一人员企业 SPA，并新增服务端分页、弹层任务边界和注意力保护硬规范。 |
 | M6 企业产品基础重定标影响 | `project/evidence/WP-0014-enterprise-product-foundation-impact.md` | 本次控制面提交 | 代码图谱登记账户权限、模型供应链、分页和统一产品壳的当前差距及非局部影响；本切片不修改生产代码。 |
 | M6 浏览器导航能力投影 | `project/evidence/WP-0014-browser-navigation-capability-projection.md` | 本次提交 | 已验证双范围会话的实际权限码经 `browser-session` 投影为导航能力；控制台只显示交集入口，服务端授权不变；角色绑定与账户管理仍未实施。 |
+| M6 租户角色绑定与旧会话撤销 | `project/evidence/WP-0014-tenant-role-binding-session-revocation.md` | 本次提交 | 内置访问管理角色绑定、权限版本推进、Sa-Token 按成员撤销、真实 PostgreSQL 回滚与 token 派生 HTTP 闭环通过；账户、角色撤销和自定义角色仍未实施。 |
 
 ## 证据规则
 

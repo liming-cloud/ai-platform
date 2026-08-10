@@ -3,6 +3,7 @@ package com.aiplatform.foundation.organizationaccess.infrastructure.persistence.
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
+import java.time.Instant;
 
 /**
  * MyBatis-Plus 使用的租户成员资格持久化实体。
@@ -19,6 +20,7 @@ public class TenantMembershipEntity {
     private String status;
     private Long permissionVersion;
     private Long version;
+    private Instant createdAt;
 
     public Long getMembershipId() {
         return membershipId;
@@ -74,5 +76,13 @@ public class TenantMembershipEntity {
 
     public void setVersion(Long version) {
         this.version = version;
+    }
+
+    public Instant getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(Instant createdAt) {
+        this.createdAt = createdAt;
     }
 }

@@ -212,6 +212,7 @@ latestEvidence:
   - project/evidence/ADR-0059-approval.md
   - project/evidence/WP-0014-enterprise-product-foundation-impact.md
   - project/evidence/WP-0014-browser-navigation-capability-projection.md
+  - project/evidence/WP-0014-tenant-role-binding-session-revocation.md
 nextReviewAt: 2026-08-10
-updatedAt: 2026-08-10T08:30:00+08:00
+updatedAt: 2026-08-10T09:05:00+08:00
 updatedBy: codex

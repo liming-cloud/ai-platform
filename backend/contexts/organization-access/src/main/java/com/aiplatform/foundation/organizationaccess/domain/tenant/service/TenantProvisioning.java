@@ -1,6 +1,8 @@
 package com.aiplatform.foundation.organizationaccess.domain.tenant.service;
 
 import com.aiplatform.foundation.organizationaccess.domain.identity.model.SubjectIdentity;
+import com.aiplatform.foundation.organizationaccess.domain.authorization.model.TenantBuiltInRole;
+import com.aiplatform.foundation.organizationaccess.domain.authorization.model.TenantRoleBinding;
 import com.aiplatform.foundation.organizationaccess.domain.member.model.MemberId;
 import com.aiplatform.foundation.organizationaccess.domain.member.model.TenantMembership;
 import com.aiplatform.foundation.organizationaccess.domain.tenant.model.TenantLifecycle;
@@ -43,6 +45,11 @@ public final class TenantProvisioning {
         return new TenantProvisioningResult(
                 lifecycle,
                 membership,
+                new TenantRoleBinding(
+                        lifecycle.id(),
+                        membership.id(),
+                        TenantBuiltInRole.TENANT_ACCESS_ADMINISTRATOR,
+                        occurredAt),
                 new TenantLifecycleChange(
                         lifecycle.id(), lifecycle.status(), lifecycle.version(), occurredAt),
                 occurredAt);

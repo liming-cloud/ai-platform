@@ -43,6 +43,13 @@
             (#{membershipId}, #{tenantId}, #{subjectId}, #{role}, #{status}, #{permissionVersion}, #{version}, #{createdAt}, #{createdAt})
     </insert>
 
+    <insert id="insertInitialAdministratorRoleBinding">
+        INSERT INTO organization_access.tenant_membership_role_binding
+            (tenant_id, membership_id, role_code, bound_at)
+        VALUES
+            (#{tenantId}, #{membershipId}, #{roleCode}, #{boundAt})
+    </insert>
+
     <insert id="insertOutbox">
         INSERT INTO organization_access.tenant_lifecycle_outbox
             (event_id, tenant_id, event_type, lifecycle_status, lifecycle_version, occurred_at)

@@ -83,6 +83,12 @@ class BrowserAuthenticationServiceTest {
             public void revoke(String tokenValue) {
                 throw new UnsupportedOperationException();
             }
+
+            @Override
+            public void revokeMembershipSessions(
+                    com.aiplatform.foundation.security.identity.MembershipId membershipId) {
+                throw new UnsupportedOperationException();
+            }
         };
     }
 

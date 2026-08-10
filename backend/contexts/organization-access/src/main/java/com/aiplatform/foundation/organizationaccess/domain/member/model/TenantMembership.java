@@ -104,6 +104,26 @@ public final class TenantMembership implements AggregateRoot<MemberId> {
                 createdAt);
     }
 
+    /**
+     * 在角色绑定或撤销成功后生成新的权限版本。
+     *
+     * @throws IllegalStateException 当成员资格未启用时拒绝修改权限事实。
+     */
+    public TenantMembership revisePermissions() {
+        if (status != TenantMembershipStatus.ENABLED) {
+            throw new IllegalStateException("未启用成员不能修改权限");
+        }
+        return new TenantMembership(
+                id,
+                tenantId,
+                subjectId,
+                role,
+                status,
+                permissionVersion + 1L,
+                version + 1L,
+                createdAt);
+    }
+
     @Override
     public MemberId id() {
         return id;

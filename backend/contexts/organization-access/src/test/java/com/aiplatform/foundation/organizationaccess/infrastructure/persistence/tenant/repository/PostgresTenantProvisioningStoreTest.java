@@ -70,6 +70,7 @@ class PostgresTenantProvisioningStoreTest {
     void seedFacts() {
         jdbc.execute("DROP TRIGGER IF EXISTS fail_tenant_lifecycle_outbox ON organization_access.tenant_lifecycle_outbox");
         jdbc.execute("DROP FUNCTION IF EXISTS organization_access.fail_tenant_lifecycle_outbox()");
+        jdbc.update("DELETE FROM organization_access.tenant_membership_role_binding");
         jdbc.update("DELETE FROM organization_access.tenant_lifecycle_authentication_cutover");
         jdbc.update("DELETE FROM organization_access.tenant_lifecycle_outbox");
         jdbc.update("DELETE FROM organization_access.tenant_lifecycle");
@@ -100,6 +101,9 @@ class PostgresTenantProvisioningStoreTest {
                 """, String.class, result.lifecycle().id().value()));
         assertEquals("TENANT_ADMINISTRATOR", jdbc.queryForObject("""
                 SELECT membership_role FROM organization_access.tenant_membership WHERE membership_id = ?
+                """, String.class, result.initialAdministrator().id().value()));
+        assertEquals("TENANT_ACCESS_ADMINISTRATOR", jdbc.queryForObject("""
+                SELECT role_code FROM organization_access.tenant_membership_role_binding WHERE membership_id = ?
                 """, String.class, result.initialAdministrator().id().value()));
         assertEquals("PROVISIONING", jdbc.queryForObject("""
                 SELECT lifecycle_status FROM organization_access.tenant_lifecycle_outbox WHERE tenant_id = ?
@@ -133,6 +137,7 @@ class PostgresTenantProvisioningStoreTest {
         assertEquals(0L, count("organization_access.tenant"));
         assertEquals(0L, count("organization_access.tenant_lifecycle"));
         assertEquals(0L, count("organization_access.tenant_lifecycle_outbox"));
+        assertEquals(0L, count("organization_access.tenant_membership_role_binding"));
         assertEquals(0L, count("organization_access.tenant_membership"));
     }
 

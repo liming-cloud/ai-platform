@@ -6,6 +6,9 @@ import com.aiplatform.foundation.organizationaccess.application.authentication.s
 import com.aiplatform.foundation.organizationaccess.application.authentication.service.BrowserAuthenticationService;
 import com.aiplatform.foundation.organizationaccess.application.authentication.service.BrowserSessionCapabilityService;
 import com.aiplatform.foundation.organizationaccess.application.authentication.service.BrowserSessionTerminationService;
+import com.aiplatform.foundation.organizationaccess.application.authorization.port.out.TenantMemberSessionRevoker;
+import com.aiplatform.foundation.organizationaccess.application.authorization.port.out.TenantRoleBindingStore;
+import com.aiplatform.foundation.organizationaccess.application.authorization.service.TenantRoleBindingApplicationService;
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.port.out.TenantLifecycleBackfillStore;
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.port.out.TenantLifecycleReadPort;
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.port.out.TenantLifecycleTransitionStore;
@@ -126,6 +129,21 @@ public class OrganizationAccessCoreAutoConfiguration {
             AuthenticatedSessionGateway tenantSessions,
             PlatformSessionGateway platformSessions) {
         return new BrowserSessionTerminationService(tenantSessions, platformSessions);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    TenantMemberSessionRevoker tenantMemberSessionRevoker(AuthenticatedSessionGateway sessions) {
+        return membershipId -> sessions.revokeMembershipSessions(
+                new com.aiplatform.foundation.security.identity.MembershipId(membershipId.value()));
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    TenantRoleBindingApplicationService tenantRoleBindingApplicationService(
+            TenantRoleBindingStore store,
+            TenantMemberSessionRevoker sessions) {
+        return new TenantRoleBindingApplicationService(store, sessions, Clock.systemUTC());
     }
 
     @Bean

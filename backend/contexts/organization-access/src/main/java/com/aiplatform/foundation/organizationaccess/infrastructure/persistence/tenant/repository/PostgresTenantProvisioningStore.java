@@ -72,6 +72,12 @@ public final class PostgresTenantProvisioningStore implements TenantProvisioning
                 administrator.permissionVersion(),
                 administrator.version(),
                 administrator.createdAt()), "初始管理员成员资格写入失败");
+        var roleBinding = result.initialAdministratorRoleBinding();
+        requireSingleWrite(mapper.insertInitialAdministratorRoleBinding(
+                roleBinding.tenantId().value(),
+                roleBinding.membershipId().value(),
+                roleBinding.role().name(),
+                roleBinding.boundAt()), "初始管理员角色绑定写入失败");
         var change = result.lifecycleChange();
         requireSingleWrite(mapper.insertOutbox(
                 identifiers.nextId(),

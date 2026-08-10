@@ -351,9 +351,39 @@
     },
     {
       "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/TenantProvisioningMapper.xml",
+      "statementId": "insertInitialAdministratorRoleBinding",
+      "category": "ATOMIC_STATE_TRANSITION",
+      "reason": "与新租户初始管理员成员资格同一事务写入其唯一内置访问管理角色。"
+    },
+    {
+      "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/TenantProvisioningMapper.xml",
       "statementId": "insertOutbox",
       "category": "OUTBOX",
       "reason": "与兼容租户行、生命周期根和初始管理员成员资格同一事务写入最小状态事实。"
+    },
+    {
+      "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/TenantRoleBindingMapper.xml",
+      "statementId": "lockEnabled",
+      "category": "ROW_LOCK",
+      "reason": "绑定内置角色前锁定当前租户内已启用成员，避免成员状态或权限修订并发漂移。"
+    },
+    {
+      "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/TenantRoleBindingMapper.xml",
+      "statementId": "countBindings",
+      "category": "SECURITY_PROJECTION",
+      "reason": "在同一受锁事务中确认目标成员尚未持有请求角色，禁止重复授权成功。"
+    },
+    {
+      "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/TenantRoleBindingMapper.xml",
+      "statementId": "insertBinding",
+      "category": "ATOMIC_STATE_TRANSITION",
+      "reason": "只按领域操作结果写入成员角色绑定，并与权限版本修订同一事务提交。"
+    },
+    {
+      "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/TenantRoleBindingMapper.xml",
+      "statementId": "revisePermissionVersion",
+      "category": "ATOMIC_STATE_TRANSITION",
+      "reason": "在角色绑定成功后原子推进成员权限版本，使旧会话必须撤销并失效。"
     },
     {
       "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/TenantLifecycleTransitionMapper.xml",

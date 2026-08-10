@@ -73,6 +73,11 @@ class BrowserSessionCapabilityServiceTest {
             public void revoke(String tokenValue) {
                 throw new UnsupportedOperationException();
             }
+
+            @Override
+            public void revokeMembershipSessions(MembershipId membershipId) {
+                throw new UnsupportedOperationException();
+            }
         };
     }
 

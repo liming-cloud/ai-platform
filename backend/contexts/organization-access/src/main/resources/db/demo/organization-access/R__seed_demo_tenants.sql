@@ -259,6 +259,22 @@ WHERE tenant_id IN (
   AND subject_id = 4921825928971026434
   AND membership_role = 'MEMBER';
 
+-- 演示初始管理员的权限来自角色绑定，避免在历史直授权限表中伪造新的治理授权。
+INSERT INTO organization_access.tenant_membership_role_binding (
+    tenant_id,
+    membership_id,
+    role_code,
+    bound_at
+)
+SELECT
+    tenant_id,
+    membership_id,
+    'TENANT_ACCESS_ADMINISTRATOR',
+    CURRENT_TIMESTAMP
+FROM organization_access.tenant_membership
+WHERE membership_role = 'TENANT_ADMINISTRATOR'
+ON CONFLICT DO NOTHING;
+
 INSERT INTO organization_access.tenant_lifecycle (
     tenant_id,
     tenant_code,
