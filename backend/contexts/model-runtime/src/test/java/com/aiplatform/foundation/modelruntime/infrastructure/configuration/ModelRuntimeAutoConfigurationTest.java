@@ -22,6 +22,8 @@ import com.aiplatform.foundation.modelruntime.application.configuration.port.out
 import com.aiplatform.foundation.modelruntime.application.probe.service.ProbeProviderService;
 import com.aiplatform.foundation.modelruntime.application.provider.port.out.ProviderModelDiscoveryStore;
 import com.aiplatform.foundation.modelruntime.application.provider.port.out.ProviderModelDiscoveryHistoryReader;
+import com.aiplatform.foundation.modelruntime.application.provider.port.out.ProviderConnectionCredentialTransaction;
+import com.aiplatform.foundation.modelruntime.application.provider.port.out.ProviderConnectionCredentialWriter;
 import com.aiplatform.foundation.modelruntime.application.provider.service.ProviderConnectionService;
 import com.aiplatform.foundation.modelruntime.application.provider.service.ProviderModelDiscoveryService;
 import com.aiplatform.foundation.modelruntime.application.provider.service.ProviderModelDiscoveryReadService;
@@ -38,6 +40,7 @@ import com.aiplatform.foundation.modelruntime.infrastructure.persistence.configu
 import com.aiplatform.foundation.modelruntime.infrastructure.persistence.configuration.ModelConfigurationCredentialMapper;
 import com.aiplatform.foundation.modelruntime.infrastructure.persistence.configuration.ModelConfigurationAccessMapper;
 import com.aiplatform.foundation.modelruntime.infrastructure.persistence.provider.mapper.ProviderConnectionMapper;
+import com.aiplatform.foundation.modelruntime.infrastructure.persistence.provider.mapper.ProviderConnectionCredentialMapper;
 import com.aiplatform.foundation.modelruntime.infrastructure.persistence.provider.mapper.ProviderConnectionRequestMapper;
 import com.aiplatform.foundation.modelruntime.interfaces.web.deployment.controller.ModelDeploymentController;
 import com.aiplatform.foundation.modelruntime.interfaces.web.configuration.controller.ModelConfigurationController;
@@ -86,6 +89,12 @@ class ModelRuntimeAutoConfigurationTest {
                 .withBean(
                         ProviderModelDiscoveryLookup.class,
                         () -> mock(ProviderModelDiscoveryLookup.class))
+                .withBean(
+                        ProviderConnectionCredentialWriter.class,
+                        () -> mock(ProviderConnectionCredentialWriter.class))
+                .withBean(
+                        ProviderConnectionCredentialTransaction.class,
+                        () -> mock(ProviderConnectionCredentialTransaction.class))
                 .withBean(
                         ModelConfigurationRepository.class,
                         () -> mock(ModelConfigurationRepository.class))
@@ -215,6 +224,9 @@ class ModelRuntimeAutoConfigurationTest {
                         ProviderConnectionRequestMapper.class,
                         () -> mock(ProviderConnectionRequestMapper.class))
                 .withBean(
+                        ProviderConnectionCredentialMapper.class,
+                        () -> mock(ProviderConnectionCredentialMapper.class))
+                .withBean(
                         ModelDeploymentMapper.class,
                         () -> mock(ModelDeploymentMapper.class))
                 .withBean(
@@ -255,6 +267,8 @@ class ModelRuntimeAutoConfigurationTest {
                     assertThat(context).hasSingleBean(ProviderModelDiscoveryLookup.class);
                     assertThat(context).hasSingleBean(ModelConfigurationRepository.class);
                     assertThat(context).hasSingleBean(ModelConfigurationAccessRepository.class);
+                    assertThat(context).hasSingleBean(ProviderConnectionCredentialWriter.class);
+                    assertThat(context).hasSingleBean(ProviderConnectionCredentialTransaction.class);
                     assertThat(context).hasSingleBean(ModelConfigurationCredentialWriter.class);
                     assertThat(context).hasSingleBean(ModelConfigurationCredentialInspector.class);
                 });

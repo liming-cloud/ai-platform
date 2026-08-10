@@ -183,6 +183,34 @@ public final class ProviderConnection implements AggregateRoot<ProviderConnectio
                 createdAt);
     }
 
+    /**
+     * 轮换后的秘密不能沿用旧连接修订的探测结论。
+     *
+     * @param replacement 私有的新凭据引用。
+     * @return 清除探测事实后的下一连接修订。
+     * @throws ProviderConnectionStateException 连接已停用。
+     */
+    public ProviderConnection rotateCredential(CredentialReference replacement) {
+        if (status == ProviderConnectionStatus.DISABLED) {
+            throw new ProviderConnectionStateException("已停用的供应商连接不能轮换凭据");
+        }
+        return new ProviderConnection(
+                tenantId,
+                id,
+                providerKind,
+                displayName,
+                endpoint,
+                region,
+                authenticationType,
+                Objects.requireNonNull(replacement, "新密钥引用不能为空"),
+                ProviderConnectionStatus.DRAFT,
+                version + 1,
+                null,
+                null,
+                null,
+                createdAt);
+    }
+
     public ProviderConnection disable() {
         if (status == ProviderConnectionStatus.DISABLED) {
             return this;

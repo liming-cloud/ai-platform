@@ -438,7 +438,7 @@ ADR-0057 的后续单一写入切片实现，不能以本投影替代。
 | `ProviderConnection` | model-runtime 聚合根 | 持有私有凭据引用；只有已配置凭据的连接可探测；轮换使状态回到 `DRAFT`，递增修订并清除成功探测摘要。 | 连接自身状态与修订。 |
 | `ProviderConnectionCredentialProvisioning` | 无状态领域服务与不可变操作结果 | 将新连接和仅由内部写入器分配的私有引用组合；不鉴权、不加密、不做 I/O。 | 连接与凭据记录须原子提交。 |
 | `ProviderConnectionCredentialRotation` | 无状态领域服务与不可变操作结果 | 拒绝停用连接；将轮换后的私有引用和失效后的连接共同产出。 | 连接更新与新凭据记录须原子提交。 |
-| `ProviderConnectionCredentialWriter` | application 写入端口 | 接收短生命周期 `SecretValue`，产生私有引用与无秘密状态；不向调用方返回秘密材料。 | 基础设施 AES-GCM 加密与事务接线。 |
+| `ProviderConnectionCredentialWriter` | application 写入端口 | 将短生命周期 `SecretValue` 写入已由领域操作分配的私有引用；不向调用方返回秘密材料。 | 基础设施 AES-GCM 加密与事务接线。 |
 | `ProviderConnectionCredentialTransaction` | application 事务端口 | 在单事务中提交领域操作结果与加密凭据；写入器、连接更新或审计失败则回滚。 | PostgreSQL 原子提交。 |
 
 应用层仅执行权限、`SecretValue` 生命周期、幂等、锁定加载与端口编排；领域服务维护失效不变量；

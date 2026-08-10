@@ -13,5 +13,5 @@ public record ProviderConnectionRequest(
         URI endpoint,
         String region,
         AuthenticationType authenticationType,
-        String credentialReference) {
+        String apiKey) {
 }

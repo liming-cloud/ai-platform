@@ -3,6 +3,7 @@ package com.aiplatform.foundation.modelruntime.application.provider.command;
 import com.aiplatform.foundation.modelruntime.domain.provider.model.ProviderKind;
 import com.aiplatform.foundation.modelruntime.domain.provider.model.AuthenticationType;
 import com.aiplatform.foundation.security.identity.TrustedRequestContext;
+import com.aiplatform.foundation.security.secret.SecretValue;
 import java.net.URI;
 import java.util.Objects;
 import java.util.regex.Pattern;
@@ -18,7 +19,7 @@ public record CreateProviderConnectionCommand(
         URI endpoint,
         String region,
         AuthenticationType authenticationType,
-        String credentialReference) {
+        SecretValue apiKey) {
 
     private static final Pattern IDEMPOTENCY_KEY =
             Pattern.compile("[A-Za-z0-9][A-Za-z0-9._:-]{7,127}");
@@ -32,6 +33,6 @@ public record CreateProviderConnectionCommand(
         Objects.requireNonNull(providerKind, "供应商类型不能为空");
         Objects.requireNonNull(endpoint, "供应商端点不能为空");
         Objects.requireNonNull(authenticationType, "认证方式不能为空");
-        Objects.requireNonNull(credentialReference, "密钥引用不能为空");
+        Objects.requireNonNull(apiKey, "API Key不能为空");
     }
 }

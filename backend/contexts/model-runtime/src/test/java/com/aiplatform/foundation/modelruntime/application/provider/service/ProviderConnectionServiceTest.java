@@ -10,6 +10,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
 import com.aiplatform.foundation.modelruntime.application.provider.command.CreateProviderConnectionCommand;
 import com.aiplatform.foundation.modelruntime.application.provider.command.ProbeProviderConnectionCommand;
+import com.aiplatform.foundation.modelruntime.application.provider.command.RotateProviderConnectionCredentialCommand;
+import com.aiplatform.foundation.modelruntime.application.provider.port.out.ProviderConnectionCredentialTransaction;
+import com.aiplatform.foundation.modelruntime.application.provider.port.out.ProviderConnectionCredentialWriter;
 import com.aiplatform.foundation.modelruntime.application.probe.port.out.ProviderConnectionProbe;
 import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelCapability;
 import com.aiplatform.foundation.modelruntime.domain.provider.model.ProviderKind;
@@ -29,6 +32,7 @@ import com.aiplatform.foundation.security.identity.MembershipId;
 import com.aiplatform.foundation.security.identity.PermissionCode;
 import com.aiplatform.foundation.security.identity.SubjectId;
 import com.aiplatform.foundation.security.identity.TrustedRequestContext;
+import com.aiplatform.foundation.security.secret.SecretValue;
 import java.net.URI;
 import java.time.Clock;
 import java.time.Duration;
@@ -114,13 +118,46 @@ class ProviderConnectionServiceTest {
         assertEquals("DETERMINISTIC_FAILED", result.detailCode());
     }
 
+    @Test
+    void 轮换凭据应原子更新私有引用并使探测事实失效() {
+        var repository = new InMemoryRepository();
+        var writer = new TrackingCredentialWriter();
+        var service = service(repository, successfulProbe(), writer);
+        service.create(createCommand(context("model:write")));
+        service.probe(new ProbeProviderConnectionCommand(
+                context("model:write"), CONNECTION_ID_TEXT, 0, "demo-chat", Duration.ofSeconds(2)));
+
+        var result = service.rotateCredential(new RotateProviderConnectionCredentialCommand(
+                context("model:write"),
+                CONNECTION_ID_TEXT,
+                1,
+                SecretValue.copyOf("rotated-api-key".toCharArray())));
+
+        assertEquals(2, result.providerConnection().version());
+        assertEquals(ProviderConnectionStatus.DRAFT.name(), result.providerConnection().status());
+        assertEquals(null, result.providerConnection().lastProbeSucceeded());
+        assertEquals(2, writer.references.size());
+        assertEquals(
+                "secret://provider-connection/310000000000000001",
+                writer.references.get(1).value());
+    }
+
     private static ProviderConnectionService service(
             InMemoryRepository repository,
             ProviderConnectionProbe probe) {
+        return service(repository, probe, new TrackingCredentialWriter());
+    }
+
+    private static ProviderConnectionService service(
+            InMemoryRepository repository,
+            ProviderConnectionProbe probe,
+            ProviderConnectionCredentialWriter credentials) {
         var clock = Clock.fixed(NOW, ZoneOffset.UTC);
         return new ProviderConnectionService(
                 repository,
                 new ProbeProviderService(List.of(probe), clock),
+                credentials,
+                new PassThroughTransaction(),
                 clock,
                 () -> CONNECTION_ID,
                 3);
@@ -167,7 +204,7 @@ class ProviderConnectionServiceTest {
                 URI.create("memory://deterministic"),
                 "本地",
                 AuthenticationType.API_KEY,
-                "secret://demo/openai");
+                SecretValue.copyOf("initial-api-key".toCharArray()));
     }
 
     private static TrustedRequestContext context(String permission) {
@@ -224,6 +261,30 @@ class ProviderConnectionServiceTest {
             }
             connection = updated;
             return true;
+        }
+    }
+
+    private static final class TrackingCredentialWriter
+            implements ProviderConnectionCredentialWriter {
+
+        private final List<com.aiplatform.foundation.modelruntime.domain.provider.model.CredentialReference>
+                references = new java.util.ArrayList<>();
+
+        @Override
+        public void write(
+                TenantId tenantId,
+                com.aiplatform.foundation.modelruntime.domain.provider.model.CredentialReference reference,
+                SecretValue apiKey) {
+            references.add(reference);
+        }
+    }
+
+    private static final class PassThroughTransaction
+            implements ProviderConnectionCredentialTransaction {
+
+        @Override
+        public <T> T execute(java.util.function.Supplier<T> action) {
+            return action.get();
         }
     }
 }

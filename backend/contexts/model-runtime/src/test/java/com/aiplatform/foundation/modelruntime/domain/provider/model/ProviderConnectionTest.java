@@ -60,6 +60,23 @@ class ProviderConnectionTest {
     }
 
     @Test
+    void 轮换凭据必须使已验证连接回到草稿并清除探测事实() {
+        var rotated = createConnection()
+                .recordSuccessfulProbe("OPENAI_COMPATIBLE_OK", NOW)
+                .rotateCredential(
+                        new CredentialReference("secret://provider-connection/310000000000000001"));
+
+        assertEquals(ProviderConnectionStatus.DRAFT, rotated.status());
+        assertEquals(2, rotated.version());
+        assertEquals(null, rotated.lastProbeSucceeded());
+        assertEquals(null, rotated.lastProbeCode());
+        assertEquals(null, rotated.lastProbedAt());
+        assertEquals(
+                "secret://provider-connection/310000000000000001",
+                rotated.credentialReference().value());
+    }
+
+    @Test
     void 连接名称不得包含换行或控制字符() {
         assertThrows(
                 IllegalArgumentException.class,

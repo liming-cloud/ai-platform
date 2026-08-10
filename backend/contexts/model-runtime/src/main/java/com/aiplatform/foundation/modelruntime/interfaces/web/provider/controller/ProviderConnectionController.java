@@ -7,6 +7,7 @@ import com.aiplatform.foundation.modelruntime.application.provider.command.Creat
 import com.aiplatform.foundation.modelruntime.application.provider.command.DiscoverProviderModelsCommand;
 import com.aiplatform.foundation.modelruntime.application.provider.query.ListProviderConnectionsQuery;
 import com.aiplatform.foundation.modelruntime.application.provider.command.ProbeProviderConnectionCommand;
+import com.aiplatform.foundation.modelruntime.application.provider.command.RotateProviderConnectionCredentialCommand;
 import com.aiplatform.foundation.modelruntime.application.provider.dto.ProbeProviderConnectionResult;
 import com.aiplatform.foundation.modelruntime.application.provider.dto.ProviderConnectionView;
 import com.aiplatform.foundation.modelruntime.application.provider.dto.DiscoverProviderModelsResult;
@@ -14,8 +15,10 @@ import com.aiplatform.foundation.modelruntime.application.provider.dto.ProviderM
 import com.aiplatform.foundation.modelruntime.application.provider.query.ListProviderModelDiscoveriesQuery;
 import com.aiplatform.foundation.modelruntime.interfaces.web.provider.request.ProviderConnectionProbeRequest;
 import com.aiplatform.foundation.modelruntime.interfaces.web.provider.request.ProviderConnectionRequest;
+import com.aiplatform.foundation.modelruntime.interfaces.web.provider.request.ProviderConnectionCredentialRotateRequest;
 import com.aiplatform.foundation.modelruntime.interfaces.web.provider.request.ProviderModelDiscoveryRequest;
 import com.aiplatform.foundation.security.identity.TrustedRequestContext;
+import com.aiplatform.foundation.security.secret.SecretValue;
 import com.aiplatform.foundation.shared.contract.paging.PageQuery;
 import com.aiplatform.foundation.shared.contract.paging.PageResult;
 import java.time.Duration;
@@ -65,19 +68,31 @@ public class ProviderConnectionController {
             TrustedRequestContext context,
             @RequestHeader(name = IDEMPOTENCY_KEY, required = false) String idempotencyKey,
             @RequestBody ProviderConnectionRequest request) {
-        var result = providerConnections.create(new CreateProviderConnectionCommand(
-                context,
-                requireIdempotencyKey(idempotencyKey),
-                request.providerKind(),
-                request.displayName(),
-                request.endpoint(),
-                request.region(),
-                request.authenticationType(),
-                request.credentialReference()));
+        var result = withApiKey(request.apiKey(), apiKey -> providerConnections.create(
+                new CreateProviderConnectionCommand(
+                        context,
+                        requireIdempotencyKey(idempotencyKey),
+                        request.providerKind(),
+                        request.displayName(),
+                        request.endpoint(),
+                        request.region(),
+                        request.authenticationType(),
+                        apiKey)));
         return ResponseEntity
                 .status(HttpStatus.CREATED)
                 .header(IDEMPOTENCY_REPLAYED, Boolean.toString(result.replayed()))
                 .body(result.providerConnection());
+    }
+
+    @PostMapping("/{providerConnectionId}/credential-rotation")
+    public ProviderConnectionView rotateCredential(
+            TrustedRequestContext context,
+            @PathVariable String providerConnectionId,
+            @RequestBody ProviderConnectionCredentialRotateRequest request) {
+        return withApiKey(request.apiKey(), apiKey -> providerConnections.rotateCredential(
+                new RotateProviderConnectionCredentialCommand(
+                        context, providerConnectionId, request.expectedVersion(), apiKey))
+                .providerConnection());
     }
 
     @GetMapping
@@ -132,5 +147,14 @@ public class ProviderConnectionController {
             throw new IllegalArgumentException("必须提供幂等键");
         }
         return value;
+    }
+
+    private static <T> T withApiKey(
+            String value,
+            java.util.function.Function<SecretValue, T> action) {
+        Objects.requireNonNull(value, "API Key不能为空");
+        try (var apiKey = SecretValue.copyOf(value.toCharArray())) {
+            return action.apply(apiKey);
+        }
     }
 }

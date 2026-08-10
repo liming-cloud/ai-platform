@@ -12,6 +12,10 @@ import com.aiplatform.foundation.modelruntime.application.provider.dto.ProbeProv
 import com.aiplatform.foundation.modelruntime.application.provider.dto.ProviderConnectionView;
 import com.aiplatform.foundation.modelruntime.application.probe.dto.ProviderProbeRequest;
 import com.aiplatform.foundation.modelruntime.application.probe.service.ProbeProviderService;
+import com.aiplatform.foundation.modelruntime.application.provider.command.RotateProviderConnectionCredentialCommand;
+import com.aiplatform.foundation.modelruntime.application.provider.dto.RotateProviderConnectionCredentialResult;
+import com.aiplatform.foundation.modelruntime.application.provider.port.out.ProviderConnectionCredentialTransaction;
+import com.aiplatform.foundation.modelruntime.application.provider.port.out.ProviderConnectionCredentialWriter;
 import com.aiplatform.foundation.modelruntime.domain.provider.repository.ProviderConnectionCreation;
 import com.aiplatform.foundation.modelruntime.domain.provider.repository.ProviderConnectionRepository;
 import com.aiplatform.foundation.shared.contract.paging.PageResult;
@@ -20,6 +24,8 @@ import com.aiplatform.foundation.modelruntime.domain.provider.model.ProviderConn
 import com.aiplatform.foundation.security.identity.PermissionCode;
 import com.aiplatform.foundation.security.identity.TrustedRequestContext;
 import com.aiplatform.foundation.modelruntime.domain.provider.model.CredentialReference;
+import com.aiplatform.foundation.modelruntime.domain.provider.service.ProviderConnectionCredentialProvisioning;
+import com.aiplatform.foundation.modelruntime.domain.provider.service.ProviderConnectionCredentialRotation;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -37,6 +43,8 @@ public final class ProviderConnectionService {
 
     private final ProviderConnectionRepository repository;
     private final ProbeProviderService probeProvider;
+    private final ProviderConnectionCredentialWriter credentials;
+    private final ProviderConnectionCredentialTransaction transactions;
     private final Clock clock;
     private final EntityIdGenerator identifiers;
     private final int tenantLimit;
@@ -44,11 +52,15 @@ public final class ProviderConnectionService {
     public ProviderConnectionService(
             ProviderConnectionRepository repository,
             ProbeProviderService probeProvider,
+            ProviderConnectionCredentialWriter credentials,
+            ProviderConnectionCredentialTransaction transactions,
             Clock clock,
             EntityIdGenerator identifiers,
             int tenantLimit) {
         this.repository = Objects.requireNonNull(repository, "供应商连接仓储不能为空");
         this.probeProvider = Objects.requireNonNull(probeProvider, "供应商探测用例不能为空");
+        this.credentials = Objects.requireNonNull(credentials, "供应商连接凭据写入器不能为空");
+        this.transactions = Objects.requireNonNull(transactions, "供应商连接凭据事务不能为空");
         this.clock = Objects.requireNonNull(clock, "时钟不能为空");
         this.identifiers = Objects.requireNonNull(identifiers, "标识生成器不能为空");
         if (tenantLimit < 1) {
@@ -60,22 +72,30 @@ public final class ProviderConnectionService {
     public CreateProviderConnectionResult create(CreateProviderConnectionCommand command) {
         Objects.requireNonNull(command, "创建命令不能为空");
         requirePermission(command.context(), WRITE);
-        var connection = ProviderConnection.create(
+        var connectionId = new ProviderConnectionId(identifiers.nextId());
+        var credentialReference = credentialReference(connectionId);
+        var operation = new ProviderConnectionCredentialProvisioning().provision(
                 command.context().tenantId(),
-                new ProviderConnectionId(identifiers.nextId()),
+                connectionId,
                 command.providerKind(),
                 command.displayName(),
                 command.endpoint(),
                 command.region(),
                 command.authenticationType(),
-                new CredentialReference(command.credentialReference()),
+                credentialReference,
                 clock.instant());
-        var outcome = repository.create(
-                new ProviderConnectionCreation(
-                        connection,
-                        command.idempotencyKey(),
-                        fingerprint(command)),
-                tenantLimit);
+        var outcome = transactions.execute(() -> {
+            var created = repository.create(
+                    new ProviderConnectionCreation(
+                            operation.connection(),
+                            command.idempotencyKey(),
+                            fingerprint(command)),
+                    tenantLimit);
+            if (!created.replayed()) {
+                credentials.write(command.context().tenantId(), credentialReference, command.apiKey());
+            }
+            return created;
+        });
         return new CreateProviderConnectionResult(
                 toView(outcome.connection()),
                 outcome.replayed());
@@ -129,6 +149,33 @@ public final class ProviderConnectionService {
                 result.probedAt());
     }
 
+    /**
+     * 轮换秘密会使当前连接修订的全部成功探测失效。
+     */
+    public RotateProviderConnectionCredentialResult rotateCredential(
+            RotateProviderConnectionCredentialCommand command) {
+        Objects.requireNonNull(command, "轮换命令不能为空");
+        requirePermission(command.context(), WRITE);
+        var connectionId = ProviderConnectionId.parse(command.providerConnectionId());
+        return transactions.execute(() -> {
+            var connection = repository.findById(command.context().tenantId(), connectionId)
+                    .orElseThrow(ProviderConnectionNotFoundException::new);
+            if (connection.version() != command.expectedVersion()) {
+                throw new ProviderConnectionConcurrentModificationException();
+            }
+            var operation = new ProviderConnectionCredentialRotation().rotate(
+                    connection, credentialReference(connectionId));
+            if (!repository.update(operation.connection(), command.expectedVersion())) {
+                throw new ProviderConnectionConcurrentModificationException();
+            }
+            credentials.write(
+                    command.context().tenantId(),
+                    operation.connection().credentialReference(),
+                    command.apiKey());
+            return new RotateProviderConnectionCredentialResult(toView(operation.connection()));
+        });
+    }
+
     private static void requirePermission(
             TrustedRequestContext context,
             PermissionCode permission) {
@@ -161,7 +208,6 @@ public final class ProviderConnectionService {
             update(digest, command.endpoint().toString());
             update(digest, command.region());
             update(digest, command.authenticationType().name());
-            update(digest, command.credentialReference());
             return HexFormat.of().formatHex(digest.digest());
         } catch (NoSuchAlgorithmException exception) {
             throw new IllegalStateException("当前 JDK 不支持 SHA-256", exception);
@@ -171,5 +217,9 @@ public final class ProviderConnectionService {
     private static void update(MessageDigest digest, String value) {
         digest.update(value.getBytes(StandardCharsets.UTF_8));
         digest.update((byte) 0);
+    }
+
+    private static CredentialReference credentialReference(ProviderConnectionId connectionId) {
+        return new CredentialReference("secret://provider-connection/" + connectionId.value());
     }
 }

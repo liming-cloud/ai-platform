@@ -32,6 +32,8 @@ import com.aiplatform.foundation.modelruntime.application.provider.service.Provi
 import com.aiplatform.foundation.modelruntime.application.provider.port.out.ProviderModelDiscoverer;
 import com.aiplatform.foundation.modelruntime.application.provider.port.out.ProviderModelDiscoveryStore;
 import com.aiplatform.foundation.modelruntime.application.provider.port.out.ProviderModelDiscoveryHistoryReader;
+import com.aiplatform.foundation.modelruntime.application.provider.port.out.ProviderConnectionCredentialTransaction;
+import com.aiplatform.foundation.modelruntime.application.provider.port.out.ProviderConnectionCredentialWriter;
 import com.aiplatform.foundation.modelruntime.domain.deployment.repository.ModelDeploymentRepository;
 import com.aiplatform.foundation.modelruntime.domain.configuration.repository.ModelConfigurationRepository;
 import com.aiplatform.foundation.modelruntime.domain.configuration.repository.ModelConfigurationAccessRepository;
@@ -64,15 +66,20 @@ public class ModelRuntimeCoreAutoConfiguration {
     }
 
     @Bean
+    @ConditionalOnBean({ProviderConnectionCredentialWriter.class, ProviderConnectionCredentialTransaction.class})
     @ConditionalOnMissingBean
     ProviderConnectionService providerConnectionService(
             ProviderConnectionRepository repository,
             ProbeProviderService probes,
+            ProviderConnectionCredentialWriter credentials,
+            ProviderConnectionCredentialTransaction transactions,
             EntityIdGenerator identifiers,
             ModelCatalogProperties properties) {
         return new ProviderConnectionService(
                 repository,
                 probes,
+                credentials,
+                transactions,
                 Clock.systemUTC(),
                 identifiers,
                 properties.getProviderConnectionLimit());

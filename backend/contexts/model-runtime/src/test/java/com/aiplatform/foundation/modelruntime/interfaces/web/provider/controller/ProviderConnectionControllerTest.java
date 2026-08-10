@@ -10,6 +10,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.aiplatform.foundation.modelruntime.application.provider.command.DiscoverProviderModelsCommand;
+import com.aiplatform.foundation.modelruntime.application.provider.command.CreateProviderConnectionCommand;
+import com.aiplatform.foundation.modelruntime.application.provider.command.RotateProviderConnectionCredentialCommand;
+import com.aiplatform.foundation.modelruntime.application.provider.dto.CreateProviderConnectionResult;
+import com.aiplatform.foundation.modelruntime.application.provider.dto.RotateProviderConnectionCredentialResult;
+import com.aiplatform.foundation.modelruntime.application.provider.dto.ProviderConnectionView;
 import com.aiplatform.foundation.modelruntime.application.provider.dto.DiscoverProviderModelsResult;
 import com.aiplatform.foundation.modelruntime.application.provider.dto.ProviderModelDiscoveryView;
 import com.aiplatform.foundation.modelruntime.application.provider.service.ProviderConnectionService;
@@ -34,6 +39,73 @@ import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 import org.springframework.web.method.support.ModelAndViewContainer;
 
 class ProviderConnectionControllerTest {
+
+    @Test
+    void 创建连接HTTP只写入APIKey且不回显密钥引用() throws Exception {
+        var connections = mock(ProviderConnectionService.class);
+        var discoveries = mock(ProviderModelDiscoveryService.class);
+        var history = mock(ProviderModelDiscoveryReadService.class);
+        var context = mock(TrustedRequestContext.class);
+        var controller = new ProviderConnectionController(connections, discoveries, history);
+        var mvc = MockMvcBuilders.standaloneSetup(controller)
+                .setCustomArgumentResolvers(trustedContext(context))
+                .build();
+        when(connections.create(any())).thenReturn(new CreateProviderConnectionResult(
+                new ProviderConnectionView(
+                        "310000000000000001", "DETERMINISTIC", "本地模型", "本地", "API_KEY",
+                        true, "DRAFT", 0, null, null, null, Instant.parse("2026-08-10T04:00:00Z")),
+                false));
+
+        mvc.perform(post("/api/v1/model-providers")
+                        .header("Idempotency-Key", "provider-request-0001")
+                        .contentType("application/json")
+                        .content("{" +
+                                "\"providerKind\":\"DETERMINISTIC\",\"displayName\":\"本地模型\","
+                                + "\"endpoint\":\"memory://deterministic\",\"region\":\"本地\","
+                                + "\"authenticationType\":\"API_KEY\",\"apiKey\":\"test-api-key\"}"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.credentialConfigured").value(true))
+                .andExpect(jsonPath("$.credentialReference").doesNotExist())
+                .andExpect(jsonPath("$.apiKey").doesNotExist());
+
+        var command = ArgumentCaptor.forClass(CreateProviderConnectionCommand.class);
+        verify(connections).create(command.capture());
+        org.junit.jupiter.api.Assertions.assertSame(context, command.getValue().context());
+        org.junit.jupiter.api.Assertions.assertEquals("[已脱敏]", command.getValue().apiKey().toString());
+    }
+
+    @Test
+    void 轮换凭据HTTP只接收一次性APIKey并使连接回到待验证状态() throws Exception {
+        var connections = mock(ProviderConnectionService.class);
+        var discoveries = mock(ProviderModelDiscoveryService.class);
+        var history = mock(ProviderModelDiscoveryReadService.class);
+        var context = mock(TrustedRequestContext.class);
+        var controller = new ProviderConnectionController(connections, discoveries, history);
+        var mvc = MockMvcBuilders.standaloneSetup(controller)
+                .setCustomArgumentResolvers(trustedContext(context))
+                .build();
+        when(connections.rotateCredential(any())).thenReturn(new RotateProviderConnectionCredentialResult(
+                new ProviderConnectionView(
+                        "310000000000000001", "DETERMINISTIC", "本地模型", "本地", "API_KEY",
+                        true, "DRAFT", 2, null, null, null, Instant.parse("2026-08-10T04:10:00Z"))));
+
+        mvc.perform(post("/api/v1/model-providers/310000000000000001/credential-rotation")
+                        .param("tenantId", "100000000000000099")
+                        .contentType("application/json")
+                        .content("{\"expectedVersion\":1,\"apiKey\":\"next-api-key\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("DRAFT"))
+                .andExpect(jsonPath("$.version").value(2))
+                .andExpect(jsonPath("$.credentialReference").doesNotExist())
+                .andExpect(jsonPath("$.apiKey").doesNotExist());
+
+        var command = ArgumentCaptor.forClass(RotateProviderConnectionCredentialCommand.class);
+        verify(connections).rotateCredential(command.capture());
+        org.junit.jupiter.api.Assertions.assertSame(context, command.getValue().context());
+        org.junit.jupiter.api.Assertions.assertEquals("310000000000000001", command.getValue().providerConnectionId());
+        org.junit.jupiter.api.Assertions.assertEquals(1, command.getValue().expectedVersion());
+        org.junit.jupiter.api.Assertions.assertEquals("[已脱敏]", command.getValue().apiKey().toString());
+    }
 
     @Test
     void 模型发现HTTP入口只从可信上下文取身份且不回显连接地址() throws Exception {

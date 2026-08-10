@@ -248,6 +248,18 @@
       "reason": "凭据状态读取只能返回存在性，避免详情接口或授权判断加载密文材料。"
     },
     {
+      "path": "backend/contexts/model-runtime/src/main/resources/mapper/model-runtime/ProviderConnectionCredentialMapper.xml",
+      "statementId": "upsert",
+      "category": "ATOMIC_STATE_TRANSITION",
+      "reason": "通过 PostgreSQL ON CONFLICT 原子替换同一厂商连接的完整密文凭据材料。"
+    },
+    {
+      "path": "backend/contexts/model-runtime/src/main/resources/mapper/model-runtime/ProviderConnectionCredentialMapper.xml",
+      "statementId": "selectByConnectionId",
+      "category": "SECURITY_PROJECTION",
+      "reason": "运行时仅能按私有连接引用读取密文材料，浏览器和普通读取投影不经过此查询。"
+    },
+    {
       "path": "backend/contexts/model-runtime/src/main/resources/mapper/model-runtime/ModelDeploymentMapper.xml",
       "statementId": "insertDeployment",
       "category": "POSTGRES_TYPE",

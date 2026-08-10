@@ -197,6 +197,26 @@ export interface ProviderConnectionSummary {
   createdAt: string;
 }
 
+/** 创建供应商连接时浏览器唯一允许提交的业务字段与一次性 API Key。 */
+export interface ProviderConnectionCreateInput {
+  providerKind: "DETERMINISTIC" | "OPENAI_COMPATIBLE" | "OLLAMA";
+  displayName: string;
+  endpoint: string;
+  region: string;
+  authenticationType: "API_KEY";
+  apiKey: string;
+}
+
+/** 连接探测只返回安全摘要与受控能力，不回传端点、凭据或厂商原始响应。 */
+export interface ProviderConnectionProbeResult {
+  providerConnection: ProviderConnectionSummary;
+  reachable: boolean;
+  capabilities: string[];
+  elapsed: string;
+  detailCode: string;
+  probedAt: string;
+}
+
 /** 发现命令只向浏览器返回完成状态，候选模型明细留在受控后端流程中。 */
 export interface ProviderModelDiscoveryResult {
   discoveryId: string;
@@ -837,6 +857,48 @@ export class ControlPlaneClient {
   ): Promise<PageResult<ProviderConnectionSummary>> {
     return this.request<PageResult<ProviderConnectionSummary>>(
       `/model-providers?pageNumber=${pageNumber}&pageSize=${pageSize}`,
+    );
+  }
+
+  async createProviderConnection(
+    input: ProviderConnectionCreateInput,
+    idempotencyKey?: string,
+  ): Promise<ProviderConnectionSummary> {
+    return this.request<ProviderConnectionSummary>("/model-providers", {
+      method: "POST",
+      headers: this.writeHeaders("application/json", idempotencyKey),
+      body: JSON.stringify(input),
+    });
+  }
+
+  async rotateProviderConnectionCredential(
+    providerConnectionId: string,
+    expectedVersion: number,
+    apiKey: string,
+  ): Promise<ProviderConnectionSummary> {
+    return this.request<ProviderConnectionSummary>(
+      `/model-providers/${encodeURIComponent(providerConnectionId)}/credential-rotation`,
+      {
+        method: "POST",
+        headers: this.writeHeaders("application/json"),
+        body: JSON.stringify({ expectedVersion, apiKey }),
+      },
+    );
+  }
+
+  async probeProviderConnection(
+    providerConnectionId: string,
+    expectedVersion: number,
+    modelCode: string,
+    timeoutMillis: number,
+  ): Promise<ProviderConnectionProbeResult> {
+    return this.request<ProviderConnectionProbeResult>(
+      `/model-providers/${encodeURIComponent(providerConnectionId)}/probe`,
+      {
+        method: "POST",
+        headers: this.writeHeaders("application/json"),
+        body: JSON.stringify({ expectedVersion, modelCode, timeoutMillis }),
+      },
     );
   }
 

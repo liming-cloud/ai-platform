@@ -3,6 +3,8 @@ package com.aiplatform.foundation.modelruntime.infrastructure.configuration;
 import com.aiplatform.foundation.modelruntime.domain.deployment.repository.ModelDeploymentRepository;
 import com.aiplatform.foundation.modelruntime.application.deployment.port.out.ModelDeploymentVerificationStore;
 import com.aiplatform.foundation.modelruntime.application.provider.port.out.ProviderModelDiscoveryStore;
+import com.aiplatform.foundation.modelruntime.application.provider.port.out.ProviderConnectionCredentialTransaction;
+import com.aiplatform.foundation.modelruntime.application.provider.port.out.ProviderConnectionCredentialWriter;
 import com.aiplatform.foundation.modelruntime.infrastructure.persistence.provider.repository.PostgresProviderModelDiscoveryStore;
 import com.aiplatform.foundation.modelruntime.application.configuration.port.out.ModelConfigurationCredentialWriter;
 import com.aiplatform.foundation.modelruntime.application.configuration.port.out.ModelConfigurationTransaction;
@@ -25,6 +27,9 @@ import com.aiplatform.foundation.modelruntime.infrastructure.persistence.configu
 import com.aiplatform.foundation.modelruntime.infrastructure.persistence.provider.mapper.ProviderConnectionMapper;
 import com.aiplatform.foundation.modelruntime.infrastructure.persistence.provider.mapper.ProviderConnectionRequestMapper;
 import com.aiplatform.foundation.modelruntime.infrastructure.persistence.provider.repository.PostgresProviderConnectionRepository;
+import com.aiplatform.foundation.modelruntime.infrastructure.persistence.provider.PostgresEncryptedProviderConnectionCredentialStore;
+import com.aiplatform.foundation.modelruntime.infrastructure.persistence.provider.SpringProviderConnectionCredentialTransaction;
+import com.aiplatform.foundation.modelruntime.infrastructure.persistence.provider.mapper.ProviderConnectionCredentialMapper;
 import com.baomidou.mybatisplus.autoconfigure.MybatisPlusAutoConfiguration;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.mybatis.spring.annotation.MapperScan;
@@ -114,6 +119,22 @@ public class ModelRuntimePersistenceAutoConfiguration {
     ModelConfigurationTransaction modelConfigurationTransaction(
             PlatformTransactionManager transactions) {
         return new SpringModelConfigurationTransaction(transactions);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    ProviderConnectionCredentialTransaction providerConnectionCredentialTransaction(
+            PlatformTransactionManager transactions) {
+        return new SpringProviderConnectionCredentialTransaction(transactions);
+    }
+
+    @Bean
+    @ConditionalOnBean(SecretEncryptionKeyProvider.class)
+    @ConditionalOnMissingBean(ProviderConnectionCredentialWriter.class)
+    PostgresEncryptedProviderConnectionCredentialStore providerConnectionCredentialWriter(
+            ProviderConnectionCredentialMapper mapper,
+            SecretEncryptionKeyProvider keyProvider) {
+        return new PostgresEncryptedProviderConnectionCredentialStore(mapper, keyProvider);
     }
 
     @Bean

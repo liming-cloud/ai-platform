@@ -6,6 +6,65 @@ import {
 } from "./control-plane-client";
 
 describe("ControlPlaneClient", () => {
+  it("创建和轮换供应商连接时只写入受控业务字段与一次性 API Key", async () => {
+    const requests: Request[] = [];
+    const connection = {
+      id: "9301",
+      providerKind: "OPENAI_COMPATIBLE",
+      displayName: "企业推理服务",
+      region: "cn-beijing",
+      authenticationType: "API_KEY",
+      credentialConfigured: true,
+      status: "DRAFT",
+      version: 1,
+      lastProbeSucceeded: null,
+      lastProbeCode: null,
+      lastProbedAt: null,
+      createdAt: "2026-08-10T08:00:00Z",
+    };
+    const client = authenticatedClient(async (input, init) => {
+      requests.push(new Request(input, init));
+      return new Response(JSON.stringify(connection), {
+        status: requests.length === 1 ? 201 : 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    });
+
+    await client.createProviderConnection({
+      providerKind: "OPENAI_COMPATIBLE",
+      displayName: "企业推理服务",
+      endpoint: "https://example.invalid/v1",
+      region: "cn-beijing",
+      authenticationType: "API_KEY",
+      apiKey: "provider-api-key",
+    });
+    await client.rotateProviderConnectionCredential("9301", 1, "next-api-key");
+    await client.probeProviderConnection("9301", 2, "gpt-4o-mini", 10_000);
+
+    expect(requests).toHaveLength(3);
+    expect(requests[0]?.url).toContain("/model-providers");
+    expect(requests[0]?.headers.get("Idempotency-Key")).not.toBeNull();
+    expect(await requests[0]?.json()).toEqual({
+      providerKind: "OPENAI_COMPATIBLE",
+      displayName: "企业推理服务",
+      endpoint: "https://example.invalid/v1",
+      region: "cn-beijing",
+      authenticationType: "API_KEY",
+      apiKey: "provider-api-key",
+    });
+    expect(requests[1]?.url).toContain("/model-providers/9301/credential-rotation");
+    expect(await requests[1]?.json()).toEqual({
+      expectedVersion: 1,
+      apiKey: "next-api-key",
+    });
+    expect(requests[2]?.url).toContain("/model-providers/9301/probe");
+    expect(await requests[2]?.json()).toEqual({
+      expectedVersion: 2,
+      modelCode: "gpt-4o-mini",
+      timeoutMillis: 10_000,
+    });
+  });
+
   it("触发评测运行时只发送数据集和助手版本标识", async () => {
     let request: Request | undefined;
     const client = authenticatedClient(async (input, init) => {
