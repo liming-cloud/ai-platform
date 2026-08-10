@@ -2,6 +2,7 @@ package com.aiplatform.foundation.organizationaccess.infrastructure.persistence.
 
 import com.aiplatform.foundation.organizationaccess.domain.authorization.model.PermissionCode;
 import com.aiplatform.foundation.organizationaccess.domain.authorization.model.PermissionGrantSet;
+import com.aiplatform.foundation.organizationaccess.domain.authorization.model.TenantBuiltInRole;
 import com.aiplatform.foundation.organizationaccess.domain.member.model.MemberAuthenticationProfile;
 import com.aiplatform.foundation.organizationaccess.domain.member.model.MemberId;
 import com.aiplatform.foundation.organizationaccess.domain.member.model.SubjectId;
@@ -11,6 +12,7 @@ import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * 使用显式租户与主体条件读取 PostgreSQL 成员资格事实。
@@ -35,10 +37,11 @@ public final class PostgresTenantMembershipRepository implements TenantMembershi
         }
         var tenantId = row.getTenantId();
         var membershipId = row.getMembershipId();
-        var permissions = mapper
-                .findPermissionCodes(tenantId, membershipId)
-                .stream()
-                .map(PermissionCode::new)
+        var permissions = Stream.concat(
+                        mapper.findPermissionCodes(tenantId, membershipId).stream().map(PermissionCode::new),
+                        mapper.findBuiltInRoleCodes(tenantId, membershipId).stream()
+                                .map(TenantBuiltInRole::valueOf)
+                                .flatMap(role -> role.permissions().stream()))
                 .collect(Collectors.toUnmodifiableSet());
         return Optional.of(new MemberAuthenticationProfile(
                 new TenantId(tenantId),

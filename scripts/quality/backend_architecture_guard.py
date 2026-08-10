@@ -24,6 +24,7 @@ MAPPER_STATEMENT = re.compile(
     r"[^>]*\bid=\"(?P<id>[^\"]+)\"[^>]*>",
     flags=re.IGNORECASE,
 )
+FLYWAY_MIGRATION_FILE = re.compile(r"^V(?P<version>[0-9]+)__.+\.sql$")
 ERROR_CODE_LITERAL = re.compile(
     r'"([A-Z][A-Z_]*\.[A-Z_]+\.[^"]+)"'
 )
@@ -103,6 +104,21 @@ def mapper_xml_files(root):
         )
         if path.is_file()
     )
+
+
+def duplicate_flyway_migration_versions(root):
+    versions = {}
+    for path in sorted((root / "backend" / "contexts").glob(
+        "*/src/main/resources/db/migration/**/*.sql"
+    )):
+        match = FLYWAY_MIGRATION_FILE.fullmatch(path.name)
+        if match:
+            versions.setdefault(match.group("version"), []).append(relative(root, path))
+    return [
+        f"{version}：{', '.join(paths)}"
+        for version, paths in sorted(versions.items())
+        if len(paths) > 1
+    ]
 
 
 def relative(root, path):
@@ -314,6 +330,7 @@ def scan(root):
             ).get("category") != "EVENT_REPLAY"
         ),
         "complexSqlAllowlistErrors": allowlist_errors,
+        "duplicateFlywayMigrationVersions": duplicate_flyway_migration_versions(root),
         "invalidErrorCodes": sorted(
             code for code in error_codes if not VALID_ERROR_CODE.fullmatch(code)
         ),
@@ -338,6 +355,11 @@ def compare(actual, baseline):
             + ", ".join(actual["duplicateErrorCodes"])
         )
     errors.extend(actual.get("complexSqlAllowlistErrors", []))
+    if actual.get("duplicateFlywayMigrationVersions"):
+        errors.append(
+            "Flyway 迁移版本重复："
+            + "；".join(actual["duplicateFlywayMigrationVersions"])
+        )
     for category, label in LIST_CATEGORIES.items():
         new_items = sorted(
             set(actual.get(category, []))

@@ -308,6 +308,30 @@
       "reason": "读取指定成员资格的权限集合，供服务端签发受限租户会话。"
     },
     {
+      "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/TenantMembershipMapper.xml",
+      "statementId": "findBuiltInRoleCodes",
+      "category": "SECURITY_PROJECTION",
+      "reason": "读取指定成员资格的已发布内置角色代码，由领域目录展开为有效权限，避免认证 SQL 固化角色权限。"
+    },
+    {
+      "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/TenantCustomRoleMapper.xml",
+      "statementId": "countActiveName",
+      "category": "AGGREGATE",
+      "reason": "在同一租户角色目录中检查活动名称，配合数据库部分唯一索引保持名称不变量。"
+    },
+    {
+      "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/TenantCustomRoleMapper.xml",
+      "statementId": "insertRole",
+      "category": "AGGREGATE",
+      "reason": "写入已通过领域规则校验的租户自定义角色聚合根。"
+    },
+    {
+      "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/TenantCustomRoleMapper.xml",
+      "statementId": "insertPermission",
+      "category": "AGGREGATE",
+      "reason": "写入角色聚合根拥有的已发布权限集合，不在成员表展开权限。"
+    },
+    {
       "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/TenantLifecycleBackfillMapper.xml",
       "statementId": "lockHistoricalTenants",
       "category": "ROW_LOCK",

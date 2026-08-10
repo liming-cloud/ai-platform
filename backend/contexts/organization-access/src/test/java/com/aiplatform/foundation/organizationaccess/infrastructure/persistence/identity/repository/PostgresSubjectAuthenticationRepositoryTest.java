@@ -68,6 +68,7 @@ class PostgresSubjectAuthenticationRepositoryTest {
 
     @BeforeEach
     void seedFacts() {
+        jdbc.update("DELETE FROM organization_access.tenant_membership_role_binding");
         jdbc.update("DELETE FROM organization_access.tenant_lifecycle_authentication_cutover");
         jdbc.update("DELETE FROM organization_access.tenant_lifecycle_outbox");
         jdbc.update("DELETE FROM organization_access.tenant_lifecycle");
@@ -135,6 +136,20 @@ class PostgresSubjectAuthenticationRepositoryTest {
         assertTrue(memberships.findEnabled("demo-campus", new SubjectId(ADMIN_SUBJECT)).isEmpty());
     }
 
+    @Test
+    void 应从成员已绑定的内置角色恢复权限而非在查询中硬编码角色名称() {
+        insertRoleBinding(STORE_TENANT, STORE_MEMBERSHIP, "TENANT_MODEL_MANAGER");
+
+        var profile = memberships.findEnabled("demo-store", new SubjectId(ADMIN_SUBJECT)).orElseThrow();
+
+        assertEquals(
+                java.util.Set.of(
+                        new PermissionCode("knowledge:read"),
+                        new PermissionCode("model:read"),
+                        new PermissionCode("model:write")),
+                profile.permissions());
+    }
+
     private void insertTenant(long tenantId, String code, String name) {
         jdbc.update(
                 "INSERT INTO organization_access.tenant "
@@ -179,6 +194,16 @@ class PostgresSubjectAuthenticationRepositoryTest {
                 tenantId,
                 membershipId,
                 permissionCode);
+    }
+
+    private void insertRoleBinding(long tenantId, long membershipId, String roleCode) {
+        jdbc.update(
+                "INSERT INTO organization_access.tenant_membership_role_binding "
+                        + "(tenant_id, membership_id, role_code, bound_at) "
+                        + "VALUES (?, ?, ?, TIMESTAMPTZ '2026-08-10T00:00:00Z')",
+                tenantId,
+                membershipId,
+                roleCode);
     }
 
     @SpringBootConfiguration

@@ -18,4 +18,8 @@ public interface TenantMembershipMapper extends BaseMapper<TenantMembershipEntit
     List<String> findPermissionCodes(
             @Param("tenantId") long tenantId,
             @Param("membershipId") long membershipId);
+
+    List<String> findBuiltInRoleCodes(
+            @Param("tenantId") long tenantId,
+            @Param("membershipId") long membershipId);
 }

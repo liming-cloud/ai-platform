@@ -41,6 +41,12 @@ class BackendArchitectureGuardTest(unittest.TestCase):
             encoding="utf-8",
         )
 
+    def write_migration(self, relative):
+        path = self.root / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("SELECT 1;\n", encoding="utf-8")
+        return path
+
     def test_new_sql_annotation_is_rejected(self):
         baseline = MODULE.scan(self.root)
         self.write_java(
@@ -204,6 +210,20 @@ class BackendArchitectureGuardTest(unittest.TestCase):
         errors = MODULE.compare(MODULE.scan(self.root), MODULE.scan(Path("/不存在")))
 
         self.assertTrue(any("复杂 SQL 失效登记" in error for error in errors))
+
+    def test_duplicate_flyway_migration_version_is_rejected_across_contexts(self):
+        self.write_migration(
+            "backend/contexts/organization-access/src/main/resources/"
+            "db/migration/organization-access/V202608100004__organization.sql"
+        )
+        self.write_migration(
+            "backend/contexts/model-runtime/src/main/resources/"
+            "db/migration/model-runtime/V202608100004__model.sql"
+        )
+
+        errors = MODULE.compare(MODULE.scan(self.root), MODULE.scan(Path("/不存在")))
+
+        self.assertTrue(any("Flyway 迁移版本重复" in error for error in errors))
 
     def test_event_replay_limit_is_not_treated_as_page_pagination(self):
         mapper_path = (

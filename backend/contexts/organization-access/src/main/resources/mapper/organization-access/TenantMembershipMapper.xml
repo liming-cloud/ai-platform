@@ -39,12 +39,14 @@
         FROM organization_access.membership_permission
         WHERE tenant_id = #{tenantId}
           AND membership_id = #{membershipId}
-        UNION
-        SELECT 'access:manage'
+        ORDER BY permission_code
+    </select>
+
+    <select id="findBuiltInRoleCodes" resultType="java.lang.String">
+        SELECT role_code
         FROM organization_access.tenant_membership_role_binding
         WHERE tenant_id = #{tenantId}
           AND membership_id = #{membershipId}
-          AND role_code = 'TENANT_ACCESS_ADMINISTRATOR'
-        ORDER BY permission_code
+        ORDER BY role_code
     </select>
 </mapper>

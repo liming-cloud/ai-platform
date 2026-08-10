@@ -260,7 +260,7 @@ class AuthenticationApiTest {
     }
 
     @Test
-    void 租户访问管理员绑定角色后应撤销目标成员的旧会话() {
+    void 租户访问管理员绑定已发布模型角色后应撤销目标成员的旧会话并更新权限投影() {
         var targetSession = http.postForEntity(
                 url("/api/v1/auth/sessions"),
                 Map.of(
@@ -276,16 +276,49 @@ class AuthenticationApiTest {
                 url("/api/v1/tenant/members/3382738893456539652/role-bindings"),
                 HttpMethod.POST,
                 new HttpEntity<>(
-                        Map.of("role", "TENANT_ACCESS_ADMINISTRATOR"),
+                        Map.of("role", "TENANT_MODEL_MANAGER"),
                         bearer(managerToken)),
                 Map.class);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
-        assertEquals("TENANT_ACCESS_ADMINISTRATOR", response.getBody().get("role"));
+        assertEquals("TENANT_MODEL_MANAGER", response.getBody().get("role"));
         assertEquals("3382738893456539652", response.getBody().get("membershipId"));
         assertThrows(InvalidAuthenticatedSessionException.class,
                 () -> sessions.resolve(targetSession.getBody().tokenValue()));
+
+        var renewedSession = http.postForEntity(
+                url("/api/v1/auth/sessions"),
+                Map.of(
+                        "tenantCode", "demo-store",
+                        "loginName", "platform-admin",
+                        "password", new String(DEMO_PASSWORD)),
+                SessionResponse.class);
+        assertEquals(HttpStatus.CREATED, renewedSession.getStatusCode());
+        assertNotNull(renewedSession.getBody());
+        assertTrue(sessions.resolve(renewedSession.getBody().tokenValue())
+                .hasPermission(new com.aiplatform.foundation.security.identity.PermissionCode("model:read")));
+        assertTrue(sessions.resolve(renewedSession.getBody().tokenValue())
+                .hasPermission(new com.aiplatform.foundation.security.identity.PermissionCode("model:write")));
+    }
+
+    @Test
+    void 租户访问管理员可经受限接口创建自定义角色() {
+        var response = http.exchange(
+                url("/api/v1/tenant/custom-roles"),
+                HttpMethod.POST,
+                new HttpEntity<>(
+                        Map.of(
+                                "name", "模型观察员",
+                                "permissions", java.util.List.of("model:read")),
+                        bearer(tenantLogin())),
+                Map.class);
+
+        assertEquals(HttpStatus.CREATED, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertEquals("模型观察员", response.getBody().get("name"));
+        assertEquals(java.util.List.of("model:read"), response.getBody().get("permissionCodes"));
+        assertEquals("ACTIVE", response.getBody().get("status"));
     }
 
     @Test

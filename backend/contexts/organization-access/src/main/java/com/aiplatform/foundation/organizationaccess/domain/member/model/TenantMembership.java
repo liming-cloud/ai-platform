@@ -124,6 +124,44 @@ public final class TenantMembership implements AggregateRoot<MemberId> {
                 createdAt);
     }
 
+    /**
+     * 停用当前租户成员资格，并推进会话必须校验的权限修订。
+     *
+     * <p>是否为最后一个访问管理员是跨成员不变量，由受锁成员目录上的领域服务在调用前保护。</p>
+     */
+    public TenantMembership disable() {
+        if (status == TenantMembershipStatus.DISABLED) {
+            return this;
+        }
+        return new TenantMembership(
+                id,
+                tenantId,
+                subjectId,
+                role,
+                TenantMembershipStatus.DISABLED,
+                permissionVersion + 1L,
+                version + 1L,
+                createdAt);
+    }
+
+    /**
+     * 重新启用当前租户成员资格，并推进权限修订；不会恢复任何既已撤销的会话。
+     */
+    public TenantMembership enable() {
+        if (status == TenantMembershipStatus.ENABLED) {
+            return this;
+        }
+        return new TenantMembership(
+                id,
+                tenantId,
+                subjectId,
+                role,
+                TenantMembershipStatus.ENABLED,
+                permissionVersion + 1L,
+                version + 1L,
+                createdAt);
+    }
+
     @Override
     public MemberId id() {
         return id;
