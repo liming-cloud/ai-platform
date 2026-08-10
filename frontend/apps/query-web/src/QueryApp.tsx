@@ -10,8 +10,7 @@ import {
   type BrowserSessionCapability,
 } from "@foundation/browser-session";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { QueryClient } from "./api/query-client";
-import { QueryWorkspace } from "./features/query/QueryWorkspace";
+import { QueryClient, QueryWorkspace } from "@foundation/query-workspace";
 
 const NAVIGATION = [
   { id: "ask", label: "可信问答" },
@@ -110,7 +109,7 @@ export function QueryApp() {
 
   useEffect(() => {
     if (state === "returning") {
-      window.location.replace("/?next=%2Fquery%2F");
+      window.location.replace("/?next=%2Fask");
     }
   }, [state]);
 

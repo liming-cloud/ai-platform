@@ -10,7 +10,7 @@ import {
   Title3,
 } from "@fluentui/react-components";
 import { StatePanel } from "@foundation/design-system";
-import { type FormEvent, useEffect, useState } from "react";
+import { type FormEvent, useState } from "react";
 import {
   ApiRequestError,
   type ControlPlaneClient,
@@ -34,17 +34,40 @@ export function EvaluationRunWorkspace({
   sessionRevision: number;
   onSessionChanged: () => void;
 }) {
+  if (!client.hasSession()) {
+    return (
+      <StatePanel
+        kind="stale"
+        title="浏览器会话已经失效"
+        description="受保护的评测任务已清除，请返回统一登录入口。"
+        actionLabel="返回登录入口"
+        onAction={() => window.location.assign("/")}
+      />
+    );
+  }
+
+  return (
+    <EvaluationRunForm
+      key={sessionRevision}
+      client={client}
+      onSessionChanged={onSessionChanged}
+    />
+  );
+}
+
+/** 会话修订变化时以 React `key` 重建局部输入和运行结果，避免在 Effect 中同步级联重置。 */
+function EvaluationRunForm({
+  client,
+  onSessionChanged,
+}: {
+  client: ControlPlaneClient;
+  onSessionChanged: () => void;
+}) {
   const [datasetId, setDatasetId] = useState("");
   const [assistantVersionId, setAssistantVersionId] = useState("");
   const [run, setRun] = useState<EvaluationRun>();
   const [failure, setFailure] = useState<Failure>();
   const [submitting, setSubmitting] = useState(false);
-
-  useEffect(() => {
-    setRun(undefined);
-    setFailure(undefined);
-    setSubmitting(false);
-  }, [sessionRevision]);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -65,18 +88,6 @@ export function EvaluationRunWorkspace({
     } finally {
       setSubmitting(false);
     }
-  }
-
-  if (!client.hasSession()) {
-    return (
-      <StatePanel
-        kind="stale"
-        title="浏览器会话已经失效"
-        description="受保护的评测任务已清除，请返回统一登录入口。"
-        actionLabel="返回登录入口"
-        onAction={() => window.location.assign("/")}
-      />
-    );
   }
 
   return (

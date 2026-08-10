@@ -7,7 +7,9 @@ WORKDIR /workspace
 COPY frontend/package.json frontend/package-lock.json ./
 COPY frontend/apps/console-web/package.json apps/console-web/package.json
 COPY frontend/apps/query-web/package.json apps/query-web/package.json
+COPY frontend/packages/browser-session/package.json packages/browser-session/package.json
 COPY frontend/packages/design-system/package.json packages/design-system/package.json
+COPY frontend/packages/query-workspace/package.json packages/query-workspace/package.json
 COPY deploy/config/nginx.conf deploy/config/nginx-console.conf /workspace/runtime-config/
 RUN npm ci
 

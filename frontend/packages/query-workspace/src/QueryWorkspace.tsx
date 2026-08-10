@@ -33,8 +33,8 @@ import {
   type QueryFeedbackOutcome,
   type QueryFeedbackReason,
   QueryApiError,
-} from "../../api/query-client";
-import type { QueryClient } from "../../api/query-client";
+} from "./query-client";
+import type { QueryClient } from "./query-client";
 import {
   QueryRequestScope,
   initialQueryWorkflow,
@@ -42,6 +42,7 @@ import {
   reduceQueryWorkflow,
   stableQueryRequestKey,
 } from "./query-workflow";
+import "./styles.css";
 
 export function QueryWorkspace({ client }: { client: QueryClient }) {
   const requests = useMemo(() => new QueryRequestScope(), []);

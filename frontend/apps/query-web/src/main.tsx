@@ -2,7 +2,6 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { FoundationProvider } from "@foundation/design-system";
 import { QueryApp } from "./QueryApp";
-import "./styles.css";
 
 const root = document.getElementById("root");
 if (!root) {

@@ -5,7 +5,7 @@ import type {
   QueryEvent,
   QueryFeedbackOutcome,
   QueryFeedbackReason,
-} from "../../api/query-client";
+} from "./query-client";
 
 export type QueryStage =
   | "login"

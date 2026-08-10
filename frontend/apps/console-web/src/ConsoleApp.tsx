@@ -64,6 +64,11 @@ const ModelProviderWorkspace = lazy(async () => {
   return { default: module.ModelProviderWorkspace };
 });
 
+const ConsoleQueryWorkspace = lazy(async () => {
+  const module = await import("./features/trusted-query/ConsoleQueryWorkspace");
+  return { default: module.ConsoleQueryWorkspace };
+});
+
 const PlatformTenantLifecycleWorkspace = lazy(async () => {
   const module = await import("./features/platform-governance/PlatformTenantLifecycleWorkspace");
   return { default: module.PlatformTenantLifecycleWorkspace };
@@ -150,10 +155,6 @@ function AuthenticatedConsoleApp({
     if (item === undefined) {
       return;
     }
-    if (navigationId === "query") {
-      window.location.assign("/query/");
-      return;
-    }
     navigate(defaultConsoleRoute(item.id));
   }
 
@@ -211,6 +212,7 @@ function AuthenticatedConsoleApp({
   const dataActive = route.navigationId === "data";
   const modelsActive = route.navigationId === "models";
   const governanceActive = route.navigationId === "governance";
+  const queryActive = route.navigationId === "query";
   const platformActive = route.navigationId === "platform";
   const dataPage = dataActive ? dataPageContent(route) : undefined;
 
@@ -218,10 +220,12 @@ function AuthenticatedConsoleApp({
     <ProductShell
       productName="可信知识平台"
       pageTitle={
-        platformActive ? "平台租户生命周期" : governanceActive ? route.task === "query" ? "查询用量与审计" : "受限评测运行" : modelsActive ? route.task === "configuration" ? "受控模型配置" : "供应商连接与模型发现" : dataPage?.title ?? "可信知识平台"
+        platformActive ? "平台租户生命周期" : queryActive ? "从已授权资料中获得答案" : governanceActive ? route.task === "query" ? "查询用量与审计" : "受限评测运行" : modelsActive ? route.task === "configuration" ? "受控模型配置" : "供应商连接与模型发现" : dataPage?.title ?? "可信知识平台"
       }
       pageSummary={
-        platformActive
+        queryActive
+          ? "答案必须附带可核验来源。没有足够证据或没有访问权限时，系统会明确拒绝回答。"
+          : platformActive
           ? "建立与迁移租户状态，不展示租户正文、成员详情或平台操作者信息。"
           : governanceActive && route.task === "query"
           ? "核对当前租户的查询配额、计量结果和脱敏运行记录。"
@@ -332,6 +336,13 @@ function AuthenticatedConsoleApp({
                 onRouteChange={navigate}
               />
             ) : null}
+          </Suspense>
+        ) : null}
+      </section>
+      <section hidden={!queryActive}>
+        {queryActive ? (
+          <Suspense fallback={<StatePanel kind="loading" title="正在加载问答工作区" description="正在准备可信问答流程。" />}>
+            <ConsoleQueryWorkspace onSessionExpired={() => void onLogout()} />
           </Suspense>
         ) : null}
       </section>
