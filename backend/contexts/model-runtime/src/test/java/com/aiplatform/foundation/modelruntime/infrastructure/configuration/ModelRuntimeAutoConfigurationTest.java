@@ -19,7 +19,9 @@ import com.aiplatform.foundation.modelruntime.application.runtime.facade.Governe
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.ChatRouteExecutor;
 import com.aiplatform.foundation.modelruntime.application.configuration.port.out.ModelConfigurationCredentialWriter;
 import com.aiplatform.foundation.modelruntime.application.probe.service.ProbeProviderService;
+import com.aiplatform.foundation.modelruntime.application.provider.port.out.ProviderModelDiscoveryStore;
 import com.aiplatform.foundation.modelruntime.application.provider.service.ProviderConnectionService;
+import com.aiplatform.foundation.modelruntime.application.provider.service.ProviderModelDiscoveryService;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.ModelRuntimeResolver;
 import com.aiplatform.foundation.modelruntime.domain.deployment.repository.ModelDeploymentRepository;
 import com.aiplatform.foundation.modelruntime.domain.configuration.repository.ModelConfigurationRepository;
@@ -50,6 +52,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 class ModelRuntimeAutoConfigurationTest {
 
@@ -72,6 +75,9 @@ class ModelRuntimeAutoConfigurationTest {
                         ModelDeploymentVerificationStore.class,
                         () -> mock(ModelDeploymentVerificationStore.class))
                 .withBean(
+                        ProviderModelDiscoveryStore.class,
+                        () -> mock(ProviderModelDiscoveryStore.class))
+                .withBean(
                         ModelConfigurationRepository.class,
                         () -> mock(ModelConfigurationRepository.class))
                 .withBean(
@@ -88,6 +94,7 @@ class ModelRuntimeAutoConfigurationTest {
                     assertThat(context).hasNotFailed();
                     assertThat(context).hasSingleBean(ProbeProviderService.class);
                     assertThat(context).hasSingleBean(ProviderConnectionService.class);
+                    assertThat(context).hasSingleBean(ProviderModelDiscoveryService.class);
                     assertThat(context).hasSingleBean(ModelDeploymentService.class);
                     assertThat(context).hasSingleBean(ModelConfigurationService.class);
                     assertThat(context).hasSingleBean(ModelConfigurationAccessService.class);
@@ -123,6 +130,9 @@ class ModelRuntimeAutoConfigurationTest {
                 .withBean(
                         ProviderConnectionService.class,
                         () -> mock(ProviderConnectionService.class))
+                .withBean(
+                        ProviderModelDiscoveryService.class,
+                        () -> mock(ProviderModelDiscoveryService.class))
                 .withBean(
                         ModelDeploymentService.class,
                         () -> mock(ModelDeploymentService.class))
@@ -218,6 +228,7 @@ class ModelRuntimeAutoConfigurationTest {
                 .withBean(
                         PlatformTransactionManager.class,
                         () -> mock(PlatformTransactionManager.class))
+                .withBean(JdbcTemplate.class, () -> mock(JdbcTemplate.class))
                 .withBean(
                         SqlSessionFactory.class,
                         () -> mock(SqlSessionFactory.class))
@@ -226,6 +237,7 @@ class ModelRuntimeAutoConfigurationTest {
                     assertThat(context).hasSingleBean(ProviderConnectionRepository.class);
                     assertThat(context).hasSingleBean(ModelDeploymentRepository.class);
                     assertThat(context).hasSingleBean(ModelDeploymentVerificationStore.class);
+                    assertThat(context).hasSingleBean(ProviderModelDiscoveryStore.class);
                     assertThat(context).hasSingleBean(ModelConfigurationRepository.class);
                     assertThat(context).hasSingleBean(ModelConfigurationAccessRepository.class);
                     assertThat(context).hasSingleBean(ModelConfigurationCredentialWriter.class);

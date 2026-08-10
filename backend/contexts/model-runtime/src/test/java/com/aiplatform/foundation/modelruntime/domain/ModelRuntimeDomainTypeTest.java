@@ -15,6 +15,10 @@ import com.aiplatform.foundation.modelruntime.domain.provider.model.Authenticati
 import com.aiplatform.foundation.modelruntime.domain.provider.model.CredentialReference;
 import com.aiplatform.foundation.modelruntime.domain.provider.model.ProviderConnection;
 import com.aiplatform.foundation.modelruntime.domain.provider.model.ProviderConnectionId;
+import com.aiplatform.foundation.modelruntime.domain.provider.model.ProviderModelDiscovery;
+import com.aiplatform.foundation.modelruntime.domain.provider.model.ProviderModelDiscoveryId;
+import com.aiplatform.foundation.modelruntime.domain.provider.model.ProviderModelDiscoveryObservation;
+import com.aiplatform.foundation.modelruntime.domain.provider.model.DiscoveredModel;
 import com.aiplatform.foundation.modelruntime.domain.provider.model.ProviderConnectionStatus;
 import com.aiplatform.foundation.modelruntime.domain.provider.model.ProviderKind;
 import com.aiplatform.foundation.shared.kernel.domain.AggregateRoot;
@@ -35,11 +39,15 @@ class ModelRuntimeDomainTypeTest {
         assertThat(AggregateRoot.class).isAssignableFrom(ProviderConnection.class);
         assertThat(AggregateRoot.class).isAssignableFrom(ModelDeployment.class);
         assertThat(AggregateRoot.class).isAssignableFrom(ModelCapabilityVerification.class);
+        assertThat(AggregateRoot.class).isAssignableFrom(ProviderModelDiscovery.class);
 
         assertThat(ValueObject.class).isAssignableFrom(ProviderConnectionId.class);
         assertThat(ValueObject.class).isAssignableFrom(ModelDeploymentId.class);
         assertThat(ValueObject.class).isAssignableFrom(ModelCapabilityVerificationId.class);
         assertThat(ValueObject.class).isAssignableFrom(ModelCapabilityObservation.class);
+        assertThat(ValueObject.class).isAssignableFrom(ProviderModelDiscoveryId.class);
+        assertThat(ValueObject.class).isAssignableFrom(ProviderModelDiscoveryObservation.class);
+        assertThat(ValueObject.class).isAssignableFrom(DiscoveredModel.class);
         assertThat(ValueObject.class).isAssignableFrom(ProviderKind.class);
         assertThat(ValueObject.class).isAssignableFrom(AuthenticationType.class);
         assertThat(ValueObject.class).isAssignableFrom(CredentialReference.class);

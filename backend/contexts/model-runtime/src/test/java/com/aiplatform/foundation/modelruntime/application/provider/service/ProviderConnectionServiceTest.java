@@ -57,6 +57,7 @@ class ProviderConnectionServiceTest {
         assertEquals(CONNECTION_ID_TEXT, result.providerConnection().id());
         assertEquals(ProviderConnectionStatus.DRAFT.name(), result.providerConnection().status());
         assertFalse(result.providerConnection().toString().contains("secret://demo/openai"));
+        assertFalse(result.providerConnection().toString().contains("memory://deterministic"));
     }
 
     @Test

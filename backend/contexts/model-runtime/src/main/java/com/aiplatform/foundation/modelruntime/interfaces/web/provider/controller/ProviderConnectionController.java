@@ -1,13 +1,17 @@
 package com.aiplatform.foundation.modelruntime.interfaces.web.provider.controller;
 
 import com.aiplatform.foundation.modelruntime.application.provider.service.ProviderConnectionService;
+import com.aiplatform.foundation.modelruntime.application.provider.service.ProviderModelDiscoveryService;
 import com.aiplatform.foundation.modelruntime.application.provider.command.CreateProviderConnectionCommand;
+import com.aiplatform.foundation.modelruntime.application.provider.command.DiscoverProviderModelsCommand;
 import com.aiplatform.foundation.modelruntime.application.provider.query.ListProviderConnectionsQuery;
 import com.aiplatform.foundation.modelruntime.application.provider.command.ProbeProviderConnectionCommand;
 import com.aiplatform.foundation.modelruntime.application.provider.dto.ProbeProviderConnectionResult;
 import com.aiplatform.foundation.modelruntime.application.provider.dto.ProviderConnectionView;
+import com.aiplatform.foundation.modelruntime.application.provider.dto.DiscoverProviderModelsResult;
 import com.aiplatform.foundation.modelruntime.interfaces.web.provider.request.ProviderConnectionProbeRequest;
 import com.aiplatform.foundation.modelruntime.interfaces.web.provider.request.ProviderConnectionRequest;
+import com.aiplatform.foundation.modelruntime.interfaces.web.provider.request.ProviderModelDiscoveryRequest;
 import com.aiplatform.foundation.security.identity.TrustedRequestContext;
 import com.aiplatform.foundation.shared.contract.paging.PageQuery;
 import com.aiplatform.foundation.shared.contract.paging.PageResult;
@@ -25,7 +29,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * 供应商连接创建、列表和探测入口。
+ * 供应商连接创建、列表、探测和受控模型发现入口。
  */
 @RestController
 @RequestMapping("/api/v1/model-providers")
@@ -35,11 +39,17 @@ public class ProviderConnectionController {
     private static final String IDEMPOTENCY_REPLAYED = "Idempotency-Replayed";
 
     private final ProviderConnectionService providerConnections;
+    private final ProviderModelDiscoveryService modelDiscoveries;
 
-    public ProviderConnectionController(ProviderConnectionService providerConnections) {
+    public ProviderConnectionController(
+            ProviderConnectionService providerConnections,
+            ProviderModelDiscoveryService modelDiscoveries) {
         this.providerConnections = Objects.requireNonNull(
                 providerConnections,
                 "供应商连接用例不能为空");
+        this.modelDiscoveries = Objects.requireNonNull(
+                modelDiscoveries,
+                "模型发现用例不能为空");
     }
 
     @PostMapping
@@ -82,6 +92,18 @@ public class ProviderConnectionController {
                 providerConnectionId,
                 request.expectedVersion(),
                 request.modelCode(),
+                Duration.ofMillis(request.timeoutMillis())));
+    }
+
+    @PostMapping("/{providerConnectionId}/model-discovery")
+    public DiscoverProviderModelsResult discoverModels(
+            TrustedRequestContext context,
+            @PathVariable String providerConnectionId,
+            @RequestBody ProviderModelDiscoveryRequest request) {
+        return modelDiscoveries.discover(new DiscoverProviderModelsCommand(
+                context,
+                providerConnectionId,
+                request.expectedVersion(),
                 Duration.ofMillis(request.timeoutMillis())));
     }
 

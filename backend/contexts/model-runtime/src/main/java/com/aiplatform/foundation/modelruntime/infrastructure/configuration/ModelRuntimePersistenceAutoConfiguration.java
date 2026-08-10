@@ -2,6 +2,8 @@ package com.aiplatform.foundation.modelruntime.infrastructure.configuration;
 
 import com.aiplatform.foundation.modelruntime.domain.deployment.repository.ModelDeploymentRepository;
 import com.aiplatform.foundation.modelruntime.application.deployment.port.out.ModelDeploymentVerificationStore;
+import com.aiplatform.foundation.modelruntime.application.provider.port.out.ProviderModelDiscoveryStore;
+import com.aiplatform.foundation.modelruntime.infrastructure.persistence.provider.repository.PostgresProviderModelDiscoveryStore;
 import com.aiplatform.foundation.modelruntime.application.configuration.port.out.ModelConfigurationCredentialWriter;
 import com.aiplatform.foundation.modelruntime.application.configuration.port.out.ModelConfigurationTransaction;
 import com.aiplatform.foundation.modelruntime.domain.configuration.repository.ModelConfigurationRepository;
@@ -32,6 +34,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.jdbc.core.JdbcTemplate;
 import com.aiplatform.foundation.security.secret.SecretEncryptionKeyProvider;
 
 /**
@@ -48,6 +51,14 @@ import com.aiplatform.foundation.security.secret.SecretEncryptionKeyProvider;
     ModelConfigurationMapper.class
 })
 public class ModelRuntimePersistenceAutoConfiguration {
+
+    @Bean
+    @ConditionalOnMissingBean
+    ProviderModelDiscoveryStore providerModelDiscoveryStore(
+            JdbcTemplate jdbc,
+            PlatformTransactionManager transactions) {
+        return new PostgresProviderModelDiscoveryStore(jdbc, transactions);
+    }
 
     @Bean
     @ConditionalOnMissingBean

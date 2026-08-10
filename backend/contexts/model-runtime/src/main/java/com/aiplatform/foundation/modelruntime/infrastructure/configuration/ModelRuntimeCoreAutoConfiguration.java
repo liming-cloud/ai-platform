@@ -26,6 +26,9 @@ import com.aiplatform.foundation.modelruntime.application.runtime.port.out.Embed
 import com.aiplatform.foundation.modelruntime.application.probe.port.out.ProviderConnectionProbe;
 import com.aiplatform.foundation.modelruntime.application.probe.service.ProbeProviderService;
 import com.aiplatform.foundation.modelruntime.application.provider.service.ProviderConnectionService;
+import com.aiplatform.foundation.modelruntime.application.provider.service.ProviderModelDiscoveryService;
+import com.aiplatform.foundation.modelruntime.application.provider.port.out.ProviderModelDiscoverer;
+import com.aiplatform.foundation.modelruntime.application.provider.port.out.ProviderModelDiscoveryStore;
 import com.aiplatform.foundation.modelruntime.domain.deployment.repository.ModelDeploymentRepository;
 import com.aiplatform.foundation.modelruntime.domain.configuration.repository.ModelConfigurationRepository;
 import com.aiplatform.foundation.modelruntime.domain.configuration.repository.ModelConfigurationAccessRepository;
@@ -70,6 +73,11 @@ public class ModelRuntimeCoreAutoConfiguration {
                 Clock.systemUTC(),
                 identifiers,
                 properties.getProviderConnectionLimit());
+    }
+
+    @Bean @ConditionalOnMissingBean
+    ProviderModelDiscoveryService providerModelDiscoveryService(ProviderConnectionRepository connections, List<ProviderModelDiscoverer> discoverers, ProviderModelDiscoveryStore store, EntityIdGenerator identifiers, ModelCatalogProperties properties) {
+        return new ProviderModelDiscoveryService(connections, discoverers, store, Clock.systemUTC(), identifiers, properties.getCapabilityVerificationValidity());
     }
 
     @Bean

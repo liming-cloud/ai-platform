@@ -142,7 +142,6 @@ public final class ProviderConnectionService {
                 connection.id().toString(),
                 connection.providerKind().name(),
                 connection.displayName(),
-                connection.endpoint(),
                 connection.region(),
                 connection.authenticationType().name(),
                 true,
