@@ -291,6 +291,7 @@ function tenantCapability() {
   return {
     workspaceCategories: ["TENANT"],
     displayRoles: ["TENANT_MEMBER"],
+    capabilityCodes: ["assistant:query"],
     maximumSessionAgeSeconds: 3600,
   };
 }

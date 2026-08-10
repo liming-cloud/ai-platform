@@ -9,7 +9,10 @@ import { lazy, Suspense, useMemo, useState } from "react";
 import { ControlPlaneClient } from "./api/control-plane-client";
 import { KnowledgePublicationFlow } from "./features/knowledge-publication/KnowledgePublicationFlow";
 import { BrowserSessionGate } from "./session/BrowserSessionGate";
+import { visibleNavigation } from "./session/navigation-capability";
 import { resolvePostAuthenticationDestination } from "./session/post-authentication-navigation";
+
+type NavigationId = ReturnType<typeof visibleNavigation>[number]["id"];
 
 const GovernedFileDataWorkspace = lazy(async () => {
   const module = await import("./features/governed-data/GovernedFileDataWorkspace");
@@ -54,14 +57,6 @@ const PlatformTenantLifecycleWorkspace = lazy(async () => {
   return { default: module.PlatformTenantLifecycleWorkspace };
 });
 
-const NAVIGATION = [
-  { id: "data", label: "数据" },
-  { id: "models", label: "模型" },
-  { id: "governance", label: "治理" },
-  { id: "query", label: "问答" },
-  { id: "platform", label: "平台租户" },
-] as const;
-
 export function ConsoleApp() {
   const client = useMemo(() => new ControlPlaneClient(), []);
 
@@ -83,6 +78,7 @@ export function ConsoleApp() {
           client={client}
           canUseTenantWorkspace={session.capability.workspaceCategories.includes("TENANT")}
           canUsePlatformGovernance={session.capability.workspaceCategories.includes("PLATFORM_TENANT_GOVERNANCE")}
+          capabilityCodes={session.capability.capabilityCodes}
           onLogout={session.logout}
         />
       )}
@@ -94,16 +90,23 @@ function AuthenticatedConsoleApp({
   client,
   canUseTenantWorkspace,
   canUsePlatformGovernance,
+  capabilityCodes,
   onLogout,
 }: {
   client: ControlPlaneClient;
   canUseTenantWorkspace: boolean;
   canUsePlatformGovernance: boolean;
+  capabilityCodes: string[];
   onLogout: () => Promise<void>;
 }) {
+  const navigation = visibleNavigation({
+    canUseTenantWorkspace,
+    canUsePlatformGovernance,
+    capabilityCodes,
+  });
   const [activeNavigationId, setActiveNavigationId] = useState<
-    typeof NAVIGATION[number]["id"]
-  >(canUseTenantWorkspace ? "data" : "platform");
+    NavigationId
+  >(navigation[0]?.id ?? "data");
   const [sessionRevision, setSessionRevision] = useState(0);
   const [dataTask, setDataTask] = useState<
     "governed-file" | "structured-dataset" | "object-storage" | "first-publication"
@@ -133,6 +136,9 @@ function AuthenticatedConsoleApp({
     };
 
   function selectNavigation(navigationId: string) {
+    if (!navigation.some((item) => item.id === navigationId)) {
+      return;
+    }
     if (navigationId === "query") {
       window.location.assign("/query/");
       return;
@@ -149,20 +155,20 @@ function AuthenticatedConsoleApp({
     setSessionRevision((current) => current + 1);
   }
 
-  if (!canUseTenantWorkspace && !canUsePlatformGovernance) {
+  if (navigation.length === 0) {
     return (
       <ProductShell
         productName="可信知识平台"
-        pageTitle="当前没有租户工作区"
-        pageSummary="平台授权与租户任务彼此独立；系统不会因此展示任何租户正文或管理入口。"
+        pageTitle="当前没有可用工作区"
+        pageSummary="系统只显示与当前会话能力相符的入口，不会因此展示租户正文或管理入口。"
         navigation={[]}
         activeNavigationId=""
         accountLabel="已验证浏览器会话"
       >
         <StatePanel
           kind="denied"
-          title="当前会话未获得租户工作区"
-          description="请使用拥有租户成员资格的登录信息，或等待平台租户治理工作区在后续已接受切片中提供。"
+          title="当前会话没有可用工作区"
+          description="请联系管理员分配与实际业务任务对应的角色和权限。"
           actionLabel="退出登录"
           onAction={() => void onLogout()}
         />
@@ -187,9 +193,7 @@ function AuthenticatedConsoleApp({
           ? "从平台发布目录创建、轮换和启用模型配置；API Key 不会再次显示。"
           : dataPage.summary
       }
-      navigation={NAVIGATION.filter((item) =>
-        item.id === "platform" ? canUsePlatformGovernance : canUseTenantWorkspace,
-      )}
+      navigation={navigation}
       activeNavigationId={activeNavigationId}
       onNavigationChange={selectNavigation}
       accountLabel="已验证浏览器会话"

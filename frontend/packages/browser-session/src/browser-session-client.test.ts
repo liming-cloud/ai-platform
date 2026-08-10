@@ -10,6 +10,7 @@ describe("BrowserSessionClient", () => {
       new Response(JSON.stringify({
         workspaceCategories: ["TENANT"],
         displayRoles: ["TENANT_MEMBER"],
+        capabilityCodes: ["knowledge:read"],
         maximumSessionAgeSeconds: 3600,
       }), { status: 200, headers: { "Content-Type": "application/json" } }),
       new Response(null, { status: 204 }),
@@ -31,6 +32,7 @@ describe("BrowserSessionClient", () => {
     await client.request("/query-runs", { method: "POST", body: "{}" });
 
     expect(capability.workspaceCategories).toEqual(["TENANT"]);
+    expect(capability.capabilityCodes).toEqual(["knowledge:read"]);
     expect(requests.map((request) => request.url)).toEqual([
       "http://localhost/api/v1/auth/browser-csrf",
       "http://localhost/api/v1/auth/browser-sessions",

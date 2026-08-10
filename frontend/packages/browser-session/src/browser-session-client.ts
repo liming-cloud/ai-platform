@@ -7,6 +7,7 @@ export interface BrowserLoginCredentials {
 export interface BrowserSessionCapability {
   workspaceCategories: string[];
   displayRoles: string[];
+  capabilityCodes: string[];
   maximumSessionAgeSeconds: number;
 }
 
@@ -129,6 +130,8 @@ async function parseCapability(response: Response): Promise<BrowserSessionCapabi
     || !candidate.workspaceCategories.every((value) => typeof value === "string")
     || !Array.isArray(candidate.displayRoles)
     || !candidate.displayRoles.every((value) => typeof value === "string")
+    || !Array.isArray(candidate.capabilityCodes)
+    || !candidate.capabilityCodes.every((value) => typeof value === "string" && value.length > 0)
     || !Number.isSafeInteger(maximumSessionAgeSeconds)
     || maximumSessionAgeSeconds === undefined
     || maximumSessionAgeSeconds <= 0
@@ -138,6 +141,7 @@ async function parseCapability(response: Response): Promise<BrowserSessionCapabi
   return {
     workspaceCategories: candidate.workspaceCategories,
     displayRoles: candidate.displayRoles,
+    capabilityCodes: candidate.capabilityCodes,
     maximumSessionAgeSeconds,
   };
 }

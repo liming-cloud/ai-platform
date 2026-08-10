@@ -799,6 +799,7 @@ function fakeBrowserSession(fetcher: typeof fetch): BrowserSessionGateway {
   const capability = {
     workspaceCategories: ["TENANT"],
     displayRoles: ["TENANT_MEMBER"],
+    capabilityCodes: ["knowledge:read"],
     maximumSessionAgeSeconds: 3600,
   };
   return {

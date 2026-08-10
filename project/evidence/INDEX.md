@@ -271,6 +271,7 @@
 | ADR-0058 人工接受 | `project/evidence/ADR-0058-approval.md` | 本次控制面提交 | 用户接受厂商连接、模型发现、真实能力探测、发布与健康供应链。 |
 | ADR-0059 人工接受 | `project/evidence/ADR-0059-approval.md` | 本次控制面提交 | 用户接受统一人员企业 SPA，并新增服务端分页、弹层任务边界和注意力保护硬规范。 |
 | M6 企业产品基础重定标影响 | `project/evidence/WP-0014-enterprise-product-foundation-impact.md` | 本次控制面提交 | 代码图谱登记账户权限、模型供应链、分页和统一产品壳的当前差距及非局部影响；本切片不修改生产代码。 |
+| M6 浏览器导航能力投影 | `project/evidence/WP-0014-browser-navigation-capability-projection.md` | 本次提交 | 已验证双范围会话的实际权限码经 `browser-session` 投影为导航能力；控制台只显示交集入口，服务端授权不变；角色绑定与账户管理仍未实施。 |
 
 ## 证据规则
 

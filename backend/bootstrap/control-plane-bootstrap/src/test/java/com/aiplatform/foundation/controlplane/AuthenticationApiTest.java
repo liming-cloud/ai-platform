@@ -249,6 +249,8 @@ class AuthenticationApiTest {
         assertNotNull(response.getBody());
         assertEquals(java.util.List.of("TENANT"), response.getBody().get("workspaceCategories"));
         assertEquals(java.util.List.of("TENANT_MEMBER"), response.getBody().get("displayRoles"));
+        assertTrue(((java.util.List<?>) response.getBody().get("capabilityCodes"))
+                .containsAll(java.util.List.of("knowledge:read", "assistant:query")));
         assertEquals(3600, response.getBody().get("maximumSessionAgeSeconds"));
         assertFalse(response.getBody().containsKey("token"));
         assertFalse(response.getBody().containsKey("subjectId"));

@@ -12,6 +12,8 @@ import com.aiplatform.foundation.security.session.PlatformSessionGateway;
 import java.time.Duration;
 import java.util.EnumSet;
 import java.util.Optional;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * 把已验证的浏览器范围会话投影为导航能力，不把上下文事实暴露给浏览器。
@@ -54,7 +56,12 @@ public final class BrowserSessionCapabilityService {
             roles.add(DisplayRole.PLATFORM_TENANT_GOVERNOR);
         }
         return new BrowserSessionCapabilityResult(
-                Optional.of(new BrowserSessionCapability(workspaces, roles, maximumSessionAge.toSeconds())),
+                Optional.of(new BrowserSessionCapability(
+                        workspaces,
+                        roles,
+                        Stream.concat(tenant.permissionCodes(), platform.permissionCodes())
+                                .collect(Collectors.toUnmodifiableSet()),
+                        maximumSessionAge.toSeconds())),
                 tenant.isInvalid(),
                 platform.isInvalid());
     }
@@ -64,8 +71,7 @@ public final class BrowserSessionCapabilityService {
             return ResolvedSession.absent();
         }
         try {
-            tenantSessions.resolve(tokenValue);
-            return ResolvedSession.valid();
+            return ResolvedSession.valid(tenantSessions.resolve(tokenValue));
         } catch (InvalidAuthenticatedSessionException exception) {
             return ResolvedSession.invalidSession();
         }
@@ -90,18 +96,29 @@ public final class BrowserSessionCapabilityService {
         return value;
     }
 
-    private record ResolvedSession(boolean isValid, boolean isInvalid) {
+    private record ResolvedSession(
+            boolean isValid,
+            boolean isInvalid,
+            com.aiplatform.foundation.security.identity.TrustedRequestContext context) {
 
         static ResolvedSession absent() {
-            return new ResolvedSession(false, false);
+            return new ResolvedSession(false, false, null);
         }
 
-        static ResolvedSession valid() {
-            return new ResolvedSession(true, false);
+        static ResolvedSession valid(
+                com.aiplatform.foundation.security.identity.TrustedRequestContext context) {
+            return new ResolvedSession(
+                    true,
+                    false,
+                    java.util.Objects.requireNonNull(context, "租户请求上下文不能为空"));
         }
 
         static ResolvedSession invalidSession() {
-            return new ResolvedSession(false, true);
+            return new ResolvedSession(false, true, null);
+        }
+
+        Stream<String> permissionCodes() {
+            return isValid ? context.permissions().stream().map(permission -> permission.value()) : Stream.empty();
         }
     }
 
@@ -127,6 +144,10 @@ public final class BrowserSessionCapabilityService {
 
         boolean hasTenantGovernanceWorkspace() {
             return isValid && context.hasPermission(PlatformPermissions.TENANT_GOVERNANCE_WRITE);
+        }
+
+        Stream<String> permissionCodes() {
+            return isValid ? context.permissions().stream().map(permission -> permission.value()) : Stream.empty();
         }
     }
 }

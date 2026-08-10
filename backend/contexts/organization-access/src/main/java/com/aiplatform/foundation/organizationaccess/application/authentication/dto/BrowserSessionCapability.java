@@ -4,19 +4,24 @@ import java.util.Objects;
 import java.util.Set;
 
 /**
- * 浏览器可用工作区的最小只读投影，不包含任何身份、权限、成员或 token 事实。
+ * 浏览器可用工作区与导航能力的最小只读投影，不包含身份、成员、凭据、token 或完整策略事实。
  * 已验证但未获分配工作区的平台主体以两个空集合表示，不代表会话失效。
  */
 public record BrowserSessionCapability(
         Set<WorkspaceCategory> workspaceCategories,
         Set<DisplayRole> displayRoles,
+        Set<String> capabilityCodes,
         long maximumSessionAgeSeconds) {
 
     public BrowserSessionCapability {
         workspaceCategories = Set.copyOf(Objects.requireNonNull(workspaceCategories, "工作区类别不能为空"));
         displayRoles = Set.copyOf(Objects.requireNonNull(displayRoles, "显示角色不能为空"));
+        capabilityCodes = Set.copyOf(Objects.requireNonNull(capabilityCodes, "导航能力码不能为空"));
         if (workspaceCategories.isEmpty() != displayRoles.isEmpty()) {
             throw new IllegalArgumentException("浏览器工作区与显示角色必须同时为空或同时存在");
+        }
+        if (capabilityCodes.stream().anyMatch(code -> code == null || code.isBlank())) {
+            throw new IllegalArgumentException("导航能力码不能为空白");
         }
         if (maximumSessionAgeSeconds <= 0) {
             throw new IllegalArgumentException("最大会话年龄必须大于零");
