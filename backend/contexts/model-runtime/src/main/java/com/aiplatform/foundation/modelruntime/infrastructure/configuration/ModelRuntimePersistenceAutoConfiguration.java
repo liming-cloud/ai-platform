@@ -53,8 +53,8 @@ import com.aiplatform.foundation.security.secret.SecretEncryptionKeyProvider;
 public class ModelRuntimePersistenceAutoConfiguration {
 
     @Bean
-    @ConditionalOnMissingBean
-    ProviderModelDiscoveryStore providerModelDiscoveryStore(
+    @ConditionalOnMissingBean(ProviderModelDiscoveryStore.class)
+    PostgresProviderModelDiscoveryStore postgresProviderModelDiscoveryStore(
             JdbcTemplate jdbc,
             PlatformTransactionManager transactions) {
         return new PostgresProviderModelDiscoveryStore(jdbc, transactions);

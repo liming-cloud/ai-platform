@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.aiplatform.foundation.modelruntime.application.provider.port.out.ProviderModelDiscoveryStore;
+import com.aiplatform.foundation.modelruntime.application.deployment.port.out.ProviderModelDiscoveryLookup;
 import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelCapability;
 import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelType;
 import com.aiplatform.foundation.modelruntime.domain.provider.model.DiscoveredModel;
@@ -50,6 +51,9 @@ class PostgresProviderModelDiscoveryStoreTest {
 
     @Autowired
     private ProviderModelDiscoveryStore store;
+
+    @Autowired
+    private ProviderModelDiscoveryLookup lookup;
 
     @Autowired
     private JdbcTemplate jdbc;
@@ -113,6 +117,36 @@ class PostgresProviderModelDiscoveryStoreTest {
         assertEquals(0, count("model_runtime.provider_discovered_model"));
     }
 
+    @Test
+    void 只返回当前连接修订未过期的精确候选模型() {
+        store.record(discovery(340000000000000003L, Set.of(
+                new DiscoveredModel(
+                        "deterministic-chat", ModelType.CHAT, Set.of(ModelCapability.CHAT)))));
+
+        assertEquals(
+                "deterministic-chat",
+                lookup.findCurrentCandidate(
+                                TENANT,
+                                CONNECTION,
+                                1,
+                                "deterministic-chat",
+                                ModelType.CHAT,
+                                DISCOVERED_AT.plusSeconds(1))
+                        .orElseThrow()
+                        .modelCode());
+        assertEquals(
+                0,
+                lookup.findCurrentCandidate(
+                                TENANT,
+                                CONNECTION,
+                                1,
+                                "deterministic-chat",
+                                ModelType.CHAT,
+                                DISCOVERED_AT.plus(Duration.ofHours(25)))
+                        .stream()
+                        .count());
+    }
+
     private static ProviderModelDiscovery discovery(long id, Set<DiscoveredModel> models) {
         return ProviderModelDiscovery.capture(
                 new ProviderModelDiscoveryId(id),
@@ -137,7 +171,7 @@ class PostgresProviderModelDiscoveryStoreTest {
     static class TestApplication {
 
         @Bean
-        ProviderModelDiscoveryStore providerModelDiscoveryStore(
+        PostgresProviderModelDiscoveryStore providerModelDiscoveryStore(
                 JdbcTemplate jdbc,
                 PlatformTransactionManager transactions) {
             return new PostgresProviderModelDiscoveryStore(jdbc, transactions);

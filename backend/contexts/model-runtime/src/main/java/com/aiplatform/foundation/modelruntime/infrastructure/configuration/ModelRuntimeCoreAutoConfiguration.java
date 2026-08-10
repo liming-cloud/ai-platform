@@ -15,6 +15,7 @@ import com.aiplatform.foundation.modelruntime.application.configuration.port.out
 import com.aiplatform.foundation.modelruntime.application.configuration.port.out.ModelConfigurationTransaction;
 import com.aiplatform.foundation.modelruntime.application.deployment.service.ModelDeploymentService;
 import com.aiplatform.foundation.modelruntime.application.deployment.port.out.ModelDeploymentVerificationStore;
+import com.aiplatform.foundation.modelruntime.application.deployment.port.out.ProviderModelDiscoveryLookup;
 import com.aiplatform.foundation.modelruntime.application.deployment.service.PublishedChatDeploymentLookupService;
 import com.aiplatform.foundation.modelruntime.application.deployment.service.PublishedEmbeddingDeploymentLookupService;
 import com.aiplatform.foundation.modelruntime.application.runtime.ModelConfigurationRuntimeService;
@@ -85,6 +86,7 @@ public class ModelRuntimeCoreAutoConfiguration {
     ModelDeploymentService modelDeploymentService(
             ModelDeploymentRepository deployments,
             ProviderConnectionRepository providers,
+            ProviderModelDiscoveryLookup discoveries,
             ProbeProviderService probes,
             ModelDeploymentVerificationStore verificationStore,
             EntityIdGenerator identifiers,
@@ -92,6 +94,7 @@ public class ModelRuntimeCoreAutoConfiguration {
         return new ModelDeploymentService(
                 deployments,
                 providers,
+                discoveries,
                 probes,
                 verificationStore,
                 Clock.systemUTC(),

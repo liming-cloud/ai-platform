@@ -14,6 +14,8 @@ import com.aiplatform.foundation.modelruntime.application.deployment.command.Pro
 import com.aiplatform.foundation.modelruntime.application.deployment.dto.ProbeModelDeploymentResult;
 import com.aiplatform.foundation.modelruntime.application.deployment.command.PublishModelDeploymentCommand;
 import com.aiplatform.foundation.modelruntime.application.deployment.port.out.ModelDeploymentVerificationStore;
+import com.aiplatform.foundation.modelruntime.application.deployment.port.out.ProviderModelDiscoveryLookup;
+import com.aiplatform.foundation.modelruntime.application.deployment.exception.ModelDeploymentDiscoveryUnavailableException;
 import com.aiplatform.foundation.modelruntime.application.probe.dto.ProviderProbeRequest;
 import com.aiplatform.foundation.modelruntime.application.probe.service.ProbeProviderService;
 import com.aiplatform.foundation.modelruntime.domain.deployment.repository.ModelDeploymentCreation;
@@ -49,6 +51,7 @@ public final class ModelDeploymentService {
 
     private final ModelDeploymentRepository deployments;
     private final ProviderConnectionRepository providers;
+    private final ProviderModelDiscoveryLookup discoveries;
     private final ProbeProviderService probeProvider;
     private final ModelDeploymentVerificationStore verificationStore;
     private final Clock clock;
@@ -59,6 +62,7 @@ public final class ModelDeploymentService {
     public ModelDeploymentService(
             ModelDeploymentRepository deployments,
             ProviderConnectionRepository providers,
+            ProviderModelDiscoveryLookup discoveries,
             ProbeProviderService probeProvider,
             ModelDeploymentVerificationStore verificationStore,
             Clock clock,
@@ -67,6 +71,7 @@ public final class ModelDeploymentService {
             Duration verificationValidity) {
         this.deployments = Objects.requireNonNull(deployments, "模型部署仓储不能为空");
         this.providers = Objects.requireNonNull(providers, "供应商连接仓储不能为空");
+        this.discoveries = Objects.requireNonNull(discoveries, "模型发现读取端口不能为空");
         this.probeProvider = Objects.requireNonNull(probeProvider, "供应商探测用例不能为空");
         this.verificationStore = Objects.requireNonNull(verificationStore, "模型能力验证存储不能为空");
         this.clock = Objects.requireNonNull(clock, "时钟不能为空");
@@ -88,6 +93,17 @@ public final class ModelDeploymentService {
                         ProviderConnectionId.parse(command.providerConnectionId()))
                 .orElseThrow(ProviderConnectionNotFoundException::new);
         requireVerifiedProvider(provider, provider.version());
+        var discovered = discoveries.findCurrentCandidate(
+                        command.context().tenantId(),
+                        provider.id(),
+                        provider.version(),
+                        command.modelCode(),
+                        command.modelType(),
+                        clock.instant())
+                .orElseThrow(ModelDeploymentDiscoveryUnavailableException::new);
+        if (!discovered.capabilities().containsAll(command.capabilities())) {
+            throw new ModelDeploymentDiscoveryUnavailableException();
+        }
         var deployment = ModelDeployment.create(
                 command.context().tenantId(),
                 new ModelDeploymentId(identifiers.nextId()),

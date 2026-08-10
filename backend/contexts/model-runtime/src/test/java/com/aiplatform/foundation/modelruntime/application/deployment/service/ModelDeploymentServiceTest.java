@@ -12,6 +12,8 @@ import com.aiplatform.foundation.modelruntime.application.deployment.command.Cre
 import com.aiplatform.foundation.modelruntime.application.deployment.command.ProbeModelDeploymentCommand;
 import com.aiplatform.foundation.modelruntime.application.deployment.command.PublishModelDeploymentCommand;
 import com.aiplatform.foundation.modelruntime.application.deployment.port.out.ModelDeploymentVerificationStore;
+import com.aiplatform.foundation.modelruntime.application.deployment.port.out.ProviderModelDiscoveryLookup;
+import com.aiplatform.foundation.modelruntime.application.deployment.exception.ModelDeploymentDiscoveryUnavailableException;
 import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelCapability;
 import com.aiplatform.foundation.modelruntime.domain.provider.model.ProviderKind;
 import com.aiplatform.foundation.modelruntime.application.probe.dto.ProviderProbeResult;
@@ -40,6 +42,7 @@ import com.aiplatform.foundation.security.identity.PermissionCode;
 import com.aiplatform.foundation.security.identity.SubjectId;
 import com.aiplatform.foundation.security.identity.TrustedRequestContext;
 import com.aiplatform.foundation.modelruntime.domain.provider.model.CredentialReference;
+import com.aiplatform.foundation.modelruntime.domain.provider.model.DiscoveredModel;
 import java.net.URI;
 import java.time.Clock;
 import java.time.Duration;
@@ -148,14 +151,42 @@ class ModelDeploymentServiceTest {
         assertTrue(deployments.findById(TENANT, new ModelDeploymentId(DEPLOYMENT_ID)).isEmpty());
     }
 
+    @Test
+    void 当前连接修订不存在有效发现候选时不得创建部署() {
+        var deployments = new InMemoryDeploymentRepository();
+        var providers = new InMemoryProviderRepository(verifiedProvider());
+        var service = service(deployments, providers, successfulProbe(),
+                (tenantId, providerId, revision, modelCode, modelType, now) -> Optional.empty());
+
+        assertThrows(
+                ModelDeploymentDiscoveryUnavailableException.class,
+                () -> service.create(createCommand(context("model:write"))));
+        assertTrue(deployments.findById(TENANT, new ModelDeploymentId(DEPLOYMENT_ID)).isEmpty());
+    }
+
     private static ModelDeploymentService service(
             InMemoryDeploymentRepository deployments,
             InMemoryProviderRepository providers,
             ProviderProbeResult probeResult) {
+        return service(
+                deployments,
+                providers,
+                probeResult,
+                (tenantId, providerId, revision, modelCode, modelType, now) -> Optional.of(
+                        new DiscoveredModel(
+                                modelCode, modelType, Set.of(ModelCapability.CHAT))));
+    }
+
+    private static ModelDeploymentService service(
+            InMemoryDeploymentRepository deployments,
+            InMemoryProviderRepository providers,
+            ProviderProbeResult probeResult,
+            ProviderModelDiscoveryLookup discoveries) {
         var clock = Clock.fixed(NOW, ZoneOffset.UTC);
         return new ModelDeploymentService(
                 deployments,
                 providers,
+                discoveries,
                 new ProbeProviderService(
                         List.of(new ProviderConnectionProbe() {
                             @Override

@@ -7,6 +7,7 @@ import com.aiplatform.foundation.modelruntime.application.deployment.facade.Publ
 import com.aiplatform.foundation.modelruntime.application.deployment.facade.PublishedEmbeddingDeploymentLookup;
 import com.aiplatform.foundation.modelruntime.application.deployment.service.ModelDeploymentService;
 import com.aiplatform.foundation.modelruntime.application.deployment.port.out.ModelDeploymentVerificationStore;
+import com.aiplatform.foundation.modelruntime.application.deployment.port.out.ProviderModelDiscoveryLookup;
 import com.aiplatform.foundation.modelruntime.application.configuration.service.ModelConfigurationService;
 import com.aiplatform.foundation.modelruntime.application.configuration.service.ModelConfigurationCredentialService;
 import com.aiplatform.foundation.modelruntime.application.configuration.service.ControlledModelCatalogService;
@@ -77,6 +78,9 @@ class ModelRuntimeAutoConfigurationTest {
                 .withBean(
                         ProviderModelDiscoveryStore.class,
                         () -> mock(ProviderModelDiscoveryStore.class))
+                .withBean(
+                        ProviderModelDiscoveryLookup.class,
+                        () -> mock(ProviderModelDiscoveryLookup.class))
                 .withBean(
                         ModelConfigurationRepository.class,
                         () -> mock(ModelConfigurationRepository.class))
@@ -238,6 +242,7 @@ class ModelRuntimeAutoConfigurationTest {
                     assertThat(context).hasSingleBean(ModelDeploymentRepository.class);
                     assertThat(context).hasSingleBean(ModelDeploymentVerificationStore.class);
                     assertThat(context).hasSingleBean(ProviderModelDiscoveryStore.class);
+                    assertThat(context).hasSingleBean(ProviderModelDiscoveryLookup.class);
                     assertThat(context).hasSingleBean(ModelConfigurationRepository.class);
                     assertThat(context).hasSingleBean(ModelConfigurationAccessRepository.class);
                     assertThat(context).hasSingleBean(ModelConfigurationCredentialWriter.class);

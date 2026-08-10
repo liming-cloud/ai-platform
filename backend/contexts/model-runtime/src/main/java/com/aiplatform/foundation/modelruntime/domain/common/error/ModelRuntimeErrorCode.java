@@ -44,6 +44,10 @@ public enum ModelRuntimeErrorCode implements ErrorCode {
             "MODEL_RUNTIME.DEPENDENCY_UNAVAILABLE.0002",
             ErrorType.DEPENDENCY_UNAVAILABLE,
             "模型运行时当前不可用"),
+    DEPLOYMENT_DISCOVERY_UNAVAILABLE(
+            "MODEL_RUNTIME.CONFLICT.0009",
+            ErrorType.CONFLICT,
+            "当前供应商连接修订不存在有效模型发现候选"),
     UNSUPPORTED_PROVIDER("MODEL_RUNTIME.REQUEST.0001", ErrorType.REQUEST,
             "当前运行进程未装配请求的供应商协议");
 
