@@ -784,6 +784,25 @@ describe("ControlPlaneClient", () => {
     expect(page.items[0]?.lastChangedAt).toBe("2026-08-03T04:00:00Z");
   });
 
+  it("建立租户成员时只提交目标主体标识", async () => {
+    let request: Request | undefined;
+    const client = authenticatedClient(async (input, init) => {
+      request = new Request(input, init);
+      return new Response(JSON.stringify({
+        membershipId: "3382738893456539659",
+        status: "ENABLED",
+        permissionVersion: 0,
+      }), { status: 201, headers: { "Content-Type": "application/json" } });
+    });
+
+    await client.establishTenantMember("4921825928971026438");
+
+    expect(request?.url).toBe("http://localhost/api/v1/tenant/members");
+    expect(request?.method).toBe("POST");
+    expect(request?.headers.get("Authorization")).toBeNull();
+    expect(await request?.json()).toEqual({ subjectId: "4921825928971026438" });
+  });
+
   it("模型供应链只读取安全发现摘要，并把服务端分页位置传递给接口", async () => {
     const requests: Request[] = [];
     const client = authenticatedClient(async (input, init) => {

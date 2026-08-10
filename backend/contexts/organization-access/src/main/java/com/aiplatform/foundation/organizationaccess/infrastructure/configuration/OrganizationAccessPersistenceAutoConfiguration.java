@@ -10,6 +10,9 @@ import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.
 import com.aiplatform.foundation.organizationaccess.application.authorization.port.out.TenantRoleBindingStore;
 import com.aiplatform.foundation.organizationaccess.application.authorization.port.out.TenantCustomRoleStore;
 import com.aiplatform.foundation.organizationaccess.application.authorization.port.out.TenantCustomRoleBindingStore;
+import com.aiplatform.foundation.organizationaccess.application.member.port.out.TenantMemberStatusStore;
+import com.aiplatform.foundation.organizationaccess.application.member.port.out.TenantMemberDirectory;
+import com.aiplatform.foundation.organizationaccess.application.member.port.out.TenantMemberEstablishmentStore;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.authorization.mapper.PlatformAccessGrantMapper;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.authorization.repository.PostgresPlatformAccessGrantRepository;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.authorization.mapper.TenantRoleBindingMapper;
@@ -22,6 +25,12 @@ import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.i
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.identity.repository.PostgresSubjectIdentityRepository;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.membership.mapper.TenantMembershipMapper;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.membership.repository.PostgresTenantMembershipRepository;
+import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.member.mapper.TenantMemberStatusMapper;
+import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.member.repository.PostgresTenantMemberStatusStore;
+import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.member.mapper.TenantMemberDirectoryMapper;
+import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.member.repository.PostgresTenantMemberDirectory;
+import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.member.mapper.TenantMemberEstablishmentMapper;
+import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.member.repository.PostgresTenantMemberEstablishmentStore;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.mapper.TenantLifecycleBackfillMapper;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.mapper.TenantLifecycleReadMapper;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.mapper.TenantLifecycleTransitionMapper;
@@ -51,6 +60,9 @@ import org.springframework.context.annotation.Bean;
     TenantRoleBindingMapper.class,
     SubjectIdentityMapper.class,
     TenantMembershipMapper.class,
+    TenantMemberStatusMapper.class,
+    TenantMemberDirectoryMapper.class,
+    TenantMemberEstablishmentMapper.class,
     TenantLifecycleBackfillMapper.class,
     TenantLifecycleReadMapper.class,
     TenantLifecycleTransitionMapper.class
@@ -74,6 +86,24 @@ public class OrganizationAccessPersistenceAutoConfiguration {
     @ConditionalOnMissingBean
     TenantMembershipRepository tenantMembershipRepository(TenantMembershipMapper mapper) {
         return new PostgresTenantMembershipRepository(mapper);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    TenantMemberStatusStore tenantMemberStatusStore(TenantMemberStatusMapper mapper) {
+        return new PostgresTenantMemberStatusStore(mapper);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    TenantMemberDirectory tenantMemberDirectory(TenantMemberDirectoryMapper mapper) {
+        return new PostgresTenantMemberDirectory(mapper);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    TenantMemberEstablishmentStore tenantMemberEstablishmentStore(TenantMemberEstablishmentMapper mapper) {
+        return new PostgresTenantMemberEstablishmentStore(mapper);
     }
 
     @Bean

@@ -534,6 +534,60 @@
       "statementId": "insert",
       "category": "ATOMIC_STATE_TRANSITION",
       "reason": "作为查询终态同一事务的一部分固化候选、授权、模型修订和引用校验事实。"
+    },
+    {
+      "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/TenantMemberStatusMapper.xml",
+      "statementId": "lock",
+      "category": "ROW_LOCK",
+      "reason": "在成员停用事务中锁定当前租户目标成员，防止状态、权限修订和最后管理员判断并发分叉。"
+    },
+    {
+      "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/TenantMemberStatusMapper.xml",
+      "statementId": "countAccessManage",
+      "category": "SECURITY_PROJECTION",
+      "reason": "合并遗留直授权限、内置角色和活动自定义角色，仅投影成员是否实际拥有访问管理能力。"
+    },
+    {
+      "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/TenantMemberStatusMapper.xml",
+      "statementId": "countOtherEnabledAccessManagers",
+      "category": "SECURITY_PROJECTION",
+      "reason": "在同一租户范围内统计其他启用成员的有效访问管理能力，保护最后管理员不变量。"
+    },
+    {
+      "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/TenantMemberStatusMapper.xml",
+      "statementId": "update",
+      "category": "ATOMIC_STATE_TRANSITION",
+      "reason": "按预期乐观版本原子写入成员停用状态和权限修订，冲突时由事务整体回滚。"
+    },
+    {
+      "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/TenantMemberDirectoryMapper.xml",
+      "statementId": "selectPage",
+      "category": "SECURITY_PROJECTION",
+      "reason": "按当前可信租户连接成员资格和全局主体，仅返回无凭据、无会话的最小成员目录分页投影。"
+    },
+    {
+      "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/TenantMemberDirectoryMapper.xml",
+      "statementId": "count",
+      "category": "SECURITY_PROJECTION",
+      "reason": "使用与成员目录相同的租户范围计算总数，避免通过分页元数据泄露其他租户成员数量。"
+    },
+    {
+      "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/TenantMemberEstablishmentMapper.xml",
+      "statementId": "lockActiveSubject",
+      "category": "ROW_LOCK",
+      "reason": "建立成员前锁定启用的全局主体，避免主体状态与成员资格写入并发分叉。"
+    },
+    {
+      "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/TenantMemberEstablishmentMapper.xml",
+      "statementId": "countMembership",
+      "category": "SECURITY_PROJECTION",
+      "reason": "按当前租户和目标主体检查既有成员资格，禁止跨租户或重复建立。"
+    },
+    {
+      "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/TenantMemberEstablishmentMapper.xml",
+      "statementId": "insert",
+      "category": "ATOMIC_STATE_TRANSITION",
+      "reason": "在成员建立事务内写入无隐式权限的普通成员资格。"
     }
   ]
 }

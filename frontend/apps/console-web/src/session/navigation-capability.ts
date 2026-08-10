@@ -1,4 +1,5 @@
 export const NAVIGATION = [
+  { id: "access", label: "成员与权限", requiredCapability: "access:manage", workspace: "TENANT" },
   { id: "data", label: "数据", requiredCapability: "knowledge:read", workspace: "TENANT" },
   { id: "models", label: "模型", requiredCapability: "model:read", workspace: "TENANT" },
   { id: "governance", label: "治理", requiredCapability: "usage:read", workspace: "TENANT" },

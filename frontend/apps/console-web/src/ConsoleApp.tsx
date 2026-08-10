@@ -74,6 +74,11 @@ const PlatformTenantLifecycleWorkspace = lazy(async () => {
   return { default: module.PlatformTenantLifecycleWorkspace };
 });
 
+const TenantMemberWorkspace = lazy(async () => {
+  const module = await import("./features/access/TenantMemberWorkspace");
+  return { default: module.TenantMemberWorkspace };
+});
+
 export function ConsoleApp() {
   const client = useMemo(() => new ControlPlaneClient(), []);
 
@@ -210,6 +215,7 @@ function AuthenticatedConsoleApp({
 
   const route = resolvedRoute.route;
   const dataActive = route.navigationId === "data";
+  const accessActive = route.navigationId === "access";
   const modelsActive = route.navigationId === "models";
   const governanceActive = route.navigationId === "governance";
   const queryActive = route.navigationId === "query";
@@ -220,11 +226,13 @@ function AuthenticatedConsoleApp({
     <ProductShell
       productName="可信知识平台"
       pageTitle={
-        platformActive ? "平台租户生命周期" : queryActive ? "从已授权资料中获得答案" : governanceActive ? route.task === "query" ? "查询用量与审计" : "受限评测运行" : modelsActive ? route.task === "configuration" ? "受控模型配置" : "供应商连接与模型发现" : dataPage?.title ?? "可信知识平台"
+        accessActive ? "成员与权限" : platformActive ? "平台租户生命周期" : queryActive ? "从已授权资料中获得答案" : governanceActive ? route.task === "query" ? "查询用量与审计" : "受限评测运行" : modelsActive ? route.task === "configuration" ? "受控模型配置" : "供应商连接与模型发现" : dataPage?.title ?? "可信知识平台"
       }
       pageSummary={
         queryActive
           ? "答案必须附带可核验来源。没有足够证据或没有访问权限时，系统会明确拒绝回答。"
+          : accessActive
+          ? "成员操作由当前浏览器会话恢复租户范围；目录使用服务端分页，停用必须二次确认。"
           : platformActive
           ? "建立与迁移租户状态，不展示租户正文、成员详情或平台操作者信息。"
           : governanceActive && route.task === "query"
@@ -310,6 +318,9 @@ function AuthenticatedConsoleApp({
             onSessionChanged={sessionChanged}
           />
         )}
+      </section>
+      <section hidden={!accessActive}>
+        {accessActive ? <Suspense fallback={<StatePanel kind="loading" title="正在加载成员目录" description="正在准备受限成员治理入口。" />}><TenantMemberWorkspace client={client} route={route} sessionRevision={sessionRevision} onRouteChange={navigate} /></Suspense> : null}
       </section>
       <section hidden={!modelsActive}>
         {modelsActive ? (

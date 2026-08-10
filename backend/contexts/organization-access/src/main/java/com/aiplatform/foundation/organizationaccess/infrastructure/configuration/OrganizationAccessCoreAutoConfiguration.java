@@ -13,6 +13,12 @@ import com.aiplatform.foundation.organizationaccess.application.authorization.po
 import com.aiplatform.foundation.organizationaccess.application.authorization.service.TenantCustomRoleApplicationService;
 import com.aiplatform.foundation.organizationaccess.application.authorization.port.out.TenantCustomRoleBindingStore;
 import com.aiplatform.foundation.organizationaccess.application.authorization.service.TenantCustomRoleBindingApplicationService;
+import com.aiplatform.foundation.organizationaccess.application.member.port.out.TenantMemberStatusStore;
+import com.aiplatform.foundation.organizationaccess.application.member.service.TenantMemberStatusApplicationService;
+import com.aiplatform.foundation.organizationaccess.application.member.port.out.TenantMemberDirectory;
+import com.aiplatform.foundation.organizationaccess.application.member.service.TenantMemberDirectoryApplicationService;
+import com.aiplatform.foundation.organizationaccess.application.member.port.out.TenantMemberEstablishmentStore;
+import com.aiplatform.foundation.organizationaccess.application.member.service.TenantMemberEstablishmentApplicationService;
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.port.out.TenantLifecycleBackfillStore;
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.port.out.TenantLifecycleReadPort;
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.port.out.TenantLifecycleTransitionStore;
@@ -164,6 +170,28 @@ public class OrganizationAccessCoreAutoConfiguration {
             TenantCustomRoleBindingStore store,
             TenantMemberSessionRevoker sessions) {
         return new TenantCustomRoleBindingApplicationService(store, sessions, Clock.systemUTC());
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    TenantMemberStatusApplicationService tenantMemberStatusApplicationService(
+            TenantMemberStatusStore store,
+            TenantMemberSessionRevoker sessions) {
+        return new TenantMemberStatusApplicationService(store, sessions);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    TenantMemberDirectoryApplicationService tenantMemberDirectoryApplicationService(
+            TenantMemberDirectory directory) {
+        return new TenantMemberDirectoryApplicationService(directory);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    TenantMemberEstablishmentApplicationService tenantMemberEstablishmentApplicationService(
+            TenantMemberEstablishmentStore store, EntityIdGenerator identifiers) {
+        return new TenantMemberEstablishmentApplicationService(store, identifiers);
     }
 
     @Bean

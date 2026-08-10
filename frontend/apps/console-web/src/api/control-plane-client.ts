@@ -28,6 +28,16 @@ export interface TenantLifecycleSummary {
   lastChangedAt: string;
 }
 
+/** 当前租户成员目录的最小安全投影，不包含凭据、会话或完整权限集合。 */
+export interface TenantMemberSummary {
+  membershipId: string;
+  loginName: string;
+  membershipRole: string;
+  status: "ENABLED" | "DISABLED";
+  permissionVersion: number;
+  createdAt: string;
+}
+
 /** 平台建立租户只接受已存在主体这一业务资源目标。 */
 export interface TenantProvisioningInput {
   tenantCode: string;
@@ -723,6 +733,45 @@ export class ControlPlaneClient {
   ): Promise<PageResult<ModelDeployment>> {
     return this.request<PageResult<ModelDeployment>>(
       `/model-deployments?pageNumber=${pageNumber}&pageSize=${pageSize}`,
+    );
+  }
+
+  async listTenantMembers(
+    pageNumber = 1,
+    pageSize = 20,
+  ): Promise<PageResult<TenantMemberSummary>> {
+    return this.request<PageResult<TenantMemberSummary>>(
+      `/tenant/members?pageNumber=${pageNumber}&pageSize=${pageSize}`,
+    );
+  }
+
+  /** 建立成员只指定既有全局主体；租户与操作者始终由浏览器会话恢复。 */
+  async establishTenantMember(
+    subjectId: string,
+  ): Promise<Pick<TenantMemberSummary, "membershipId" | "status" | "permissionVersion">> {
+    return this.request(
+      "/tenant/members",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ subjectId }),
+      },
+    );
+  }
+
+  /** 停用前由页面展示确认弹窗；主体和租户始终由浏览器会话恢复。 */
+  async disableTenantMember(membershipId: string): Promise<Pick<TenantMemberSummary, "membershipId" | "status" | "permissionVersion">> {
+    return this.request(
+      `/tenant/members/${encodeURIComponent(membershipId)}/disable`,
+      { method: "POST" },
+    );
+  }
+
+  /** 启用不会恢复旧会话；后续认证会按当前活动角色重新计算权限。 */
+  async enableTenantMember(membershipId: string): Promise<Pick<TenantMemberSummary, "membershipId" | "status" | "permissionVersion">> {
+    return this.request(
+      `/tenant/members/${encodeURIComponent(membershipId)}/enable`,
+      { method: "POST" },
     );
   }
 

@@ -17,4 +17,17 @@ describe("visibleNavigation", () => {
       capabilityCodes: ["platform-session:access"],
     })).toEqual([]);
   });
+
+  it("访问管理员应看到成员与权限入口，普通成员不得看到", () => {
+    expect(visibleNavigation({
+      canUseTenantWorkspace: true,
+      canUsePlatformGovernance: false,
+      capabilityCodes: ["access:manage"],
+    }).map((item) => item.id)).toEqual(["access"]);
+    expect(visibleNavigation({
+      canUseTenantWorkspace: true,
+      canUsePlatformGovernance: false,
+      capabilityCodes: ["knowledge:read"],
+    }).map((item) => item.id)).not.toContain("access");
+  });
 });

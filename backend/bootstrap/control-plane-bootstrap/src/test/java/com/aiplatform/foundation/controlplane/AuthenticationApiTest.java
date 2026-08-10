@@ -21,6 +21,7 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -57,6 +58,9 @@ class AuthenticationApiTest {
 
     @Autowired
     private PlatformSessionGateway platformSessions;
+
+    @Autowired
+    private JdbcTemplate jdbc;
 
     @DynamicPropertySource
     static void infrastructureProperties(DynamicPropertyRegistry registry) {
@@ -374,6 +378,79 @@ class AuthenticationApiTest {
     }
 
     @Test
+    void 租户访问管理员停用成员时应由令牌确定范围并撤销目标会话() {
+        var targetMembershipId = 3382738893456539660L;
+        jdbc.update("""
+                INSERT INTO organization_access.tenant_membership
+                    (membership_id, tenant_id, subject_id, membership_role, status, permission_version, version)
+                VALUES (?, 100000000000000001, 4921825928971026437, 'MEMBER', 'ENABLED', 0, 0)
+                ON CONFLICT (tenant_id, membership_id) DO UPDATE
+                    SET status = 'ENABLED', permission_version = 0, version = 0
+                """, targetMembershipId);
+        var targetSession = tenantLoginWithName("platform-operator");
+        var managerToken = tenantLogin();
+        var directory = http.exchange(
+                url("/api/v1/tenant/members?pageNumber=1&pageSize=100"),
+                HttpMethod.GET,
+                new HttpEntity<>(bearer(managerToken)),
+                Map.class);
+        assertEquals(HttpStatus.OK, directory.getStatusCode());
+        assertNotNull(directory.getBody());
+        assertEquals(1, directory.getBody().get("pageNumber"));
+        assertEquals(100, directory.getBody().get("pageSize"));
+        assertTrue(((java.util.List<?>) directory.getBody().get("items")).stream()
+                .filter(Map.class::isInstance)
+                .map(Map.class::cast)
+                .anyMatch(item -> Long.toString(targetMembershipId).equals(item.get("membershipId"))
+                        && "platform-operator".equals(item.get("loginName"))));
+
+        var response = http.exchange(
+                url("/api/v1/tenant/members/" + targetMembershipId + "/disable"),
+                HttpMethod.POST,
+                new HttpEntity<>(bearer(managerToken)),
+                Map.class);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertEquals(Long.toString(targetMembershipId), response.getBody().get("membershipId"));
+        assertEquals("DISABLED", response.getBody().get("status"));
+        assertEquals(1, response.getBody().get("permissionVersion"));
+        assertThrows(InvalidAuthenticatedSessionException.class,
+                () -> sessions.resolve(targetSession));
+        assertEquals(HttpStatus.UNAUTHORIZED,
+                tenantLoginWithNameResponse("platform-operator").getStatusCode());
+    }
+
+    @Test
+    void 租户访问管理员建立成员时应只接受主体标识且写入普通成员资格() {
+        var subjectId = 4921825928971026438L;
+        jdbc.update("DELETE FROM organization_access.tenant_membership WHERE subject_id = ?", subjectId);
+        jdbc.update("""
+                INSERT INTO organization_access.subject_identity
+                    (subject_id, login_name, password_hash, status, version)
+                VALUES (?, 'member-establishment-http', 'valid-hash', 'ACTIVE', 0)
+                ON CONFLICT (subject_id) DO UPDATE
+                    SET login_name = EXCLUDED.login_name, status = 'ACTIVE'
+                """, subjectId);
+        var managerToken = tenantLogin();
+
+        var response = http.exchange(
+                url("/api/v1/tenant/members"),
+                HttpMethod.POST,
+                new HttpEntity<>(Map.of("subjectId", Long.toString(subjectId)), bearer(managerToken)),
+                Map.class);
+
+        assertEquals(HttpStatus.CREATED, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertEquals("ENABLED", response.getBody().get("status"));
+        assertEquals(0, response.getBody().get("permissionVersion"));
+        assertEquals("MEMBER", jdbc.queryForObject("""
+                SELECT membership_role FROM organization_access.tenant_membership
+                WHERE tenant_id = 100000000000000001 AND subject_id = ?
+                """, String.class, subjectId));
+    }
+
+    @Test
     void 浏览器会话能力清单应投影平台治理范围且隔离失效的另一范围会话() {
         var platformSessionCookie = browserPlatformLogin("platform-admin");
         var headers = new HttpHeaders();
@@ -667,16 +744,31 @@ class AuthenticationApiTest {
     }
 
     private String tenantLogin() {
+        return tenantLoginWithName("admin");
+    }
+
+    private String tenantLoginWithName(String loginName) {
         var response = http.postForEntity(
                 url("/api/v1/auth/sessions"),
                 Map.of(
                         "tenantCode", "demo-store",
-                        "loginName", "admin",
+                        "loginName", loginName,
                         "password", new String(DEMO_PASSWORD)),
                 SessionResponse.class);
         assertEquals(HttpStatus.CREATED, response.getStatusCode());
         assertNotNull(response.getBody());
         return response.getBody().tokenValue();
+    }
+
+    private org.springframework.http.ResponseEntity<String> tenantLoginWithNameResponse(
+            String loginName) {
+        return http.postForEntity(
+                url("/api/v1/auth/sessions"),
+                Map.of(
+                        "tenantCode", "demo-store",
+                        "loginName", loginName,
+                        "password", new String(DEMO_PASSWORD)),
+                String.class);
     }
 
     private org.springframework.http.ResponseEntity<String> tenantLogin(String tenantCode) {

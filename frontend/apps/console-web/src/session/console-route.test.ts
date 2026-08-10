@@ -14,6 +14,19 @@ describe("统一控制台路由", () => {
     });
   });
 
+  it("成员与权限目录把服务端页码稳定恢复到 URL", () => {
+    expect(parseConsoleRoute("/access/members", "?page=3")).toEqual({
+      navigationId: "access",
+      task: "members",
+      page: 3,
+    });
+    expect(formatConsoleRoute({
+      navigationId: "access",
+      task: "members",
+      page: 3,
+    })).toBe("/access/members?page=3");
+  });
+
   it("从深链接恢复模型供应链发现记录的服务端页码", () => {
     expect(parseConsoleRoute(
       "/models/providers",

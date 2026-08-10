@@ -213,6 +213,7 @@ latestEvidence:
   - project/evidence/WP-0014-enterprise-product-foundation-impact.md
   - project/evidence/WP-0014-browser-navigation-capability-projection.md
   - project/evidence/WP-0014-tenant-role-binding-session-revocation.md
+  - project/evidence/WP-0014-tenant-member-directory-lifecycle.md
 nextReviewAt: 2026-08-10
-updatedAt: 2026-08-10T09:05:00+08:00
+updatedAt: 2026-08-10T13:45:00+08:00
 updatedBy: codex

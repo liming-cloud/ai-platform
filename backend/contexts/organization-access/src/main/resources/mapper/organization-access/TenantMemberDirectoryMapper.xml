@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aiplatform.foundation.organizationaccess.infrastructure.persistence.member.mapper.TenantMemberDirectoryMapper">
+
+    <select id="selectPage"
+            resultType="com.aiplatform.foundation.organizationaccess.infrastructure.persistence.member.projection.TenantMemberSummaryRow">
+        SELECT membership.membership_id,
+               subject.login_name,
+               membership.membership_role,
+               membership.status,
+               membership.permission_version,
+               membership.created_at
+        FROM organization_access.tenant_membership membership
+        INNER JOIN organization_access.subject_identity subject
+            ON subject.subject_id = membership.subject_id
+        WHERE membership.tenant_id = #{tenantId}
+        ORDER BY subject.login_name ASC, membership.membership_id ASC
+        LIMIT #{pageSize}
+        OFFSET #{offset}
+    </select>
+
+    <select id="count" resultType="long">
+        SELECT COUNT(*)
+        FROM organization_access.tenant_membership
+        WHERE tenant_id = #{tenantId}
+    </select>
+</mapper>

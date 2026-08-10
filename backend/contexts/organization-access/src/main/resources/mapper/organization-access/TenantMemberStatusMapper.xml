@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aiplatform.foundation.organizationaccess.infrastructure.persistence.member.mapper.TenantMemberStatusMapper">
+
+    <resultMap id="membership" type="com.aiplatform.foundation.organizationaccess.infrastructure.persistence.membership.entity.TenantMembershipEntity">
+        <id column="membership_id" property="membershipId"/>
+        <result column="tenant_id" property="tenantId"/>
+        <result column="subject_id" property="subjectId"/>
+        <result column="membership_role" property="membershipRole"/>
+        <result column="status" property="status"/>
+        <result column="permission_version" property="permissionVersion"/>
+        <result column="version" property="version"/>
+        <result column="created_at" property="createdAt"/>
+    </resultMap>
+
+    <select id="lock" resultMap="membership">
+        SELECT membership_id, tenant_id, subject_id, membership_role, status,
+               permission_version, version, created_at
+        FROM organization_access.tenant_membership
+        WHERE tenant_id = #{tenantId}
+          AND membership_id = #{membershipId}
+        FOR UPDATE
+    </select>
+
+    <select id="countAccessManage" resultType="int">
+        SELECT count(*)
+        FROM organization_access.tenant_membership membership
+        WHERE membership.tenant_id = #{tenantId}
+          AND membership.membership_id = #{membershipId}
+          AND EXISTS (
+              SELECT 1 FROM organization_access.membership_permission direct_permission
+              WHERE direct_permission.tenant_id = membership.tenant_id
+                AND direct_permission.membership_id = membership.membership_id
+                AND direct_permission.permission_code = 'access:manage'
+              UNION ALL
+              SELECT 1 FROM organization_access.tenant_membership_role_binding built_in_binding
+              WHERE built_in_binding.tenant_id = membership.tenant_id
+                AND built_in_binding.membership_id = membership.membership_id
+                AND built_in_binding.role_code = 'TENANT_ACCESS_ADMINISTRATOR'
+              UNION ALL
+              SELECT 1 FROM organization_access.tenant_custom_role_binding custom_binding
+              INNER JOIN organization_access.tenant_custom_role custom_role
+                  ON custom_role.tenant_id = custom_binding.tenant_id
+                 AND custom_role.custom_role_id = custom_binding.custom_role_id
+                 AND custom_role.status = 'ACTIVE'
+              INNER JOIN organization_access.tenant_custom_role_permission custom_permission
+                  ON custom_permission.custom_role_id = custom_role.custom_role_id
+                 AND custom_permission.permission_code = 'access:manage'
+              WHERE custom_binding.tenant_id = membership.tenant_id
+                AND custom_binding.membership_id = membership.membership_id
+          )
+    </select>
+
+    <select id="countOtherEnabledAccessManagers" resultType="long">
+        SELECT count(*)
+        FROM organization_access.tenant_membership membership
+        WHERE membership.tenant_id = #{tenantId}
+          AND membership.membership_id &lt;&gt; #{membershipId}
+          AND membership.status = 'ENABLED'
+          AND EXISTS (
+              SELECT 1 FROM organization_access.membership_permission direct_permission
+              WHERE direct_permission.tenant_id = membership.tenant_id
+                AND direct_permission.membership_id = membership.membership_id
+                AND direct_permission.permission_code = 'access:manage'
+              UNION ALL
+              SELECT 1 FROM organization_access.tenant_membership_role_binding built_in_binding
+              WHERE built_in_binding.tenant_id = membership.tenant_id
+                AND built_in_binding.membership_id = membership.membership_id
+                AND built_in_binding.role_code = 'TENANT_ACCESS_ADMINISTRATOR'
+              UNION ALL
+              SELECT 1 FROM organization_access.tenant_custom_role_binding custom_binding
+              INNER JOIN organization_access.tenant_custom_role custom_role
+                  ON custom_role.tenant_id = custom_binding.tenant_id
+                 AND custom_role.custom_role_id = custom_binding.custom_role_id
+                 AND custom_role.status = 'ACTIVE'
+              INNER JOIN organization_access.tenant_custom_role_permission custom_permission
+                  ON custom_permission.custom_role_id = custom_role.custom_role_id
+                 AND custom_permission.permission_code = 'access:manage'
+              WHERE custom_binding.tenant_id = membership.tenant_id
+                AND custom_binding.membership_id = membership.membership_id
+          )
+    </select>
+
+    <update id="update">
+        UPDATE organization_access.tenant_membership
+        SET status = #{status},
+            permission_version = #{permissionVersion},
+            version = #{version},
+            updated_at = CURRENT_TIMESTAMP
+        WHERE tenant_id = #{tenantId}
+          AND membership_id = #{membershipId}
+          AND version = #{expectedVersion}
+    </update>
+</mapper>
