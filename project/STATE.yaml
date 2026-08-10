@@ -66,7 +66,8 @@ confirmedDecisions:
   - ADR-0057
   - ADR-0058
   - ADR-0059
-openDecisions: []
+openDecisions:
+  - ADR-0060
 latestEvidence:
   - docs/research/WP-0003-framework-baseline.md
   - project/evidence/WP-0003-trusted-context.md
@@ -216,5 +217,5 @@ latestEvidence:
   - project/evidence/WP-0014-tenant-member-directory-lifecycle.md
   - project/evidence/WP-0014-tenant-role-revocation.md
 nextReviewAt: 2026-08-10
-updatedAt: 2026-08-10T14:20:00+08:00
+updatedAt: 2026-08-10T15:10:00+08:00
 updatedBy: codex
