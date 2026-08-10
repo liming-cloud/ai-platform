@@ -391,7 +391,11 @@ function AuthenticatedConsoleApp({
       <section hidden={!queryActive}>
         {queryActive ? (
           <Suspense fallback={<StatePanel kind="loading" title="正在加载问答工作区" description="正在准备可信问答流程。" />}>
-            <ConsoleQueryWorkspace onSessionExpired={() => void onLogout()} />
+            <ConsoleQueryWorkspace
+              assistantPage={route.assistantPage}
+              onAssistantPageChange={(assistantPage) => navigate({ ...route, assistantPage })}
+              onSessionExpired={() => void onLogout()}
+            />
           </Suspense>
         ) : null}
       </section>

@@ -288,6 +288,7 @@
 | M6 对象存储资源选择器分页 | `project/evidence/WP-0014-object-storage-resource-picker-pagination.md` | 本次提交 | 知识空间选择器改为 URL 恢复的服务端分页，跨页冻结范围状态失败关闭；24 项架构门禁和 80 项前端回归通过。 |
 | M6 索引模型显式选择 | `project/evidence/WP-0014-index-model-explicit-selection.md` | 本次提交 | 三类数据任务不再隐式选择第一个嵌入模型，模型页码与选择标识进入 URL；24 项架构门禁和 80 项前端回归通过。 |
 | M6 统一控制台查询入口退役 | `project/evidence/WP-0014-unified-console-query-retirement.md` | 本次提交 | `query-web` 独立入口、服务、代理和构建分支已退役；控制台 `/ask` 与查询运行时 API 代理保持，6 项部署门禁和唯一控制台镜像构建通过。 |
+| M6 统一问答助手目录分页 | `project/evidence/WP-0014-query-assistant-catalog-pagination.md` | 本次提交 | `/ask` 的助手目录使用 URL 可恢复的服务器分页；第三页请求、类型、lint、81 项前端回归、唯一控制台构建与全量门禁通过。 |
 
 ## 证据规则
 

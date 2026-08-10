@@ -44,7 +44,15 @@ import {
 } from "./query-workflow";
 import "./styles.css";
 
-export function QueryWorkspace({ client }: { client: QueryClient }) {
+export function QueryWorkspace({
+  client,
+  assistantPage = 1,
+  onAssistantPageChange,
+}: {
+  client: QueryClient;
+  assistantPage?: number;
+  onAssistantPageChange?: (page: number) => void;
+}) {
   const requests = useMemo(() => new QueryRequestScope(), []);
   const requestKeys = useRef(
     new Map<string, { fingerprint: string; key: string }>(),
@@ -61,16 +69,22 @@ export function QueryWorkspace({ client }: { client: QueryClient }) {
     const owner = requests.replace();
     dispatch({ type: "loading-catalog" });
     try {
-      const page = await client.listAssistants(owner.signal);
+      const page = await client.listAssistants(assistantPage, owner.signal);
       if (requests.isCurrent(owner)) {
-        dispatch({ type: "catalog-loaded", assistants: page.items });
+        dispatch({
+          type: "catalog-loaded",
+          assistants: page.items,
+          total: page.totalElements,
+          hasPrevious: page.hasPrevious,
+          hasNext: page.hasNext,
+        });
       }
     } catch (error) {
       if (requests.isCurrent(owner)) {
         dispatchFailure(dispatch, error, client);
       }
     }
-  }, [client, requests]);
+  }, [assistantPage, client, requests]);
 
   useEffect(() => {
     void reloadCatalog();
@@ -365,6 +379,25 @@ export function QueryWorkspace({ client }: { client: QueryClient }) {
                 ))}
               </Dropdown>
             </Field>
+            <div className="query-assistant-pagination" aria-label="已发布助手分页">
+              <Text size={200}>已发布助手共 {workflow.assistantTotal} 个，当前第 {assistantPage} 页。</Text>
+              <div>
+                <Button
+                  appearance="secondary"
+                  disabled={workflow.stage === "querying" || !workflow.assistantHasPrevious}
+                  onClick={() => onAssistantPageChange?.(assistantPage - 1)}
+                >
+                  上一页
+                </Button>
+                <Button
+                  appearance="secondary"
+                  disabled={workflow.stage === "querying" || !workflow.assistantHasNext}
+                  onClick={() => onAssistantPageChange?.(assistantPage + 1)}
+                >
+                  下一页
+                </Button>
+              </div>
+            </div>
 
             <Field
               label="问题"

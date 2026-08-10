@@ -7,7 +7,15 @@ type ViewState = "restoring" | "ready" | "stale" | "failed";
 /**
  * 复用控制台已经签发的浏览器会话加载问答工作区，不在问答页建立第二个登录入口。
  */
-export function ConsoleQueryWorkspace({ onSessionExpired }: { onSessionExpired: () => void }) {
+export function ConsoleQueryWorkspace({
+  assistantPage,
+  onAssistantPageChange,
+  onSessionExpired,
+}: {
+  assistantPage: number;
+  onAssistantPageChange: (page: number) => void;
+  onSessionExpired: () => void;
+}) {
   const client = useMemo(() => new QueryClient(), []);
   const [viewState, setViewState] = useState<ViewState>("restoring");
 
@@ -72,5 +80,11 @@ export function ConsoleQueryWorkspace({ onSessionExpired }: { onSessionExpired: 
     );
   }
 
-  return <QueryWorkspace client={client} />;
+  return (
+    <QueryWorkspace
+      client={client}
+      assistantPage={assistantPage}
+      onAssistantPageChange={onAssistantPageChange}
+    />
+  );
 }

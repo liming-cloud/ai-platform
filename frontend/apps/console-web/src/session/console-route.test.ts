@@ -113,6 +113,24 @@ describe("统一控制台路由", () => {
     })).toBe("/governance/query?auditPage=4");
   });
 
+  it("问答助手目录把服务端页码稳定恢复到统一控制台 URL", () => {
+    expect(defaultConsoleRoute("query")).toEqual({
+      navigationId: "query",
+      task: "ask",
+      assistantPage: 1,
+    });
+    expect(parseConsoleRoute("/ask", "?assistantPage=3")).toEqual({
+      navigationId: "query",
+      task: "ask",
+      assistantPage: 3,
+    });
+    expect(formatConsoleRoute({
+      navigationId: "query",
+      task: "ask",
+      assistantPage: 3,
+    })).toBe("/ask?assistantPage=3");
+  });
+
   it("不以其他可见入口替代无权访问的平台治理深链接", () => {
     const route = parseConsoleRoute("/platform/tenants", "");
 

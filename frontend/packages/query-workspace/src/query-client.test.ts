@@ -58,7 +58,7 @@ describe("QueryClient", () => {
       loginName: "store-admin",
       password: "demo-password",
     });
-    const assistants = await client.listAssistants();
+    const assistants = await client.listAssistants(3);
     await client.createQuery(
       assistants.items[0]!.assistantVersionId,
       "牛奶在哪里？",
@@ -66,7 +66,7 @@ describe("QueryClient", () => {
     );
 
     expect(requests.map((request) => request.url)).toEqual([
-      "http://localhost/api/v1/query-assistants?pageNumber=1&pageSize=20",
+      "http://localhost/api/v1/query-assistants?pageNumber=3&pageSize=20",
       "http://localhost/api/v1/query-runs",
     ]);
     expect(requests[0]?.headers.get("Authorization")).toBeNull();

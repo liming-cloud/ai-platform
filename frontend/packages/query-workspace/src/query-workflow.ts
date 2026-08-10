@@ -24,6 +24,9 @@ export interface QueryWorkflow {
   stage: QueryStage;
   failureContext?: "login" | "catalog" | "query";
   assistants: QueryAssistant[];
+  assistantTotal: number;
+  assistantHasPrevious: boolean;
+  assistantHasNext: boolean;
   selectedAssistantVersionId?: string;
   question?: string;
   queryRunId?: string;
@@ -49,7 +52,13 @@ export interface QueryWorkflow {
 export type QueryWorkflowEvent =
   | { type: "authenticating" }
   | { type: "loading-catalog" }
-  | { type: "catalog-loaded"; assistants: QueryAssistant[] }
+  | {
+    type: "catalog-loaded";
+    assistants: QueryAssistant[];
+    total: number;
+    hasPrevious: boolean;
+    hasNext: boolean;
+  }
   | { type: "assistant-selected"; assistantVersionId: string }
   | { type: "querying"; question: string; queryRunId?: string }
   | { type: "resuming" }
@@ -70,6 +79,9 @@ export type QueryWorkflowEvent =
 export const initialQueryWorkflow: QueryWorkflow = {
   stage: "login",
   assistants: [],
+  assistantTotal: 0,
+  assistantHasPrevious: false,
+  assistantHasNext: false,
   citations: [],
   lastEventSequence: 0,
 };
@@ -104,6 +116,9 @@ export function reduceQueryWorkflow(
         ...initialQueryWorkflow,
         stage: assistants.length === 0 ? "empty" : "ready",
         assistants,
+        assistantTotal: event.total,
+        assistantHasPrevious: event.hasPrevious,
+        assistantHasNext: event.hasNext,
         selectedAssistantVersionId:
           assistants[0]?.assistantVersionId,
       };

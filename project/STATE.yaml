@@ -228,6 +228,7 @@ latestEvidence:
   - project/evidence/WP-0014-object-storage-resource-picker-pagination.md
   - project/evidence/WP-0014-index-model-explicit-selection.md
   - project/evidence/WP-0014-unified-console-query-retirement.md
+  - project/evidence/WP-0014-query-assistant-catalog-pagination.md
 nextReviewAt: 2026-08-10
-updatedAt: 2026-08-10T21:15:00+08:00
+updatedAt: 2026-08-10T21:25:00+08:00
 updatedBy: codex

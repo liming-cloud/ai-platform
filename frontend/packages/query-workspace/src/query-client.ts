@@ -143,10 +143,14 @@ export class QueryClient {
   }
 
   async listAssistants(
+    pageNumber = 1,
     signal?: AbortSignal,
   ): Promise<QueryAssistantPage> {
+    if (!Number.isSafeInteger(pageNumber) || pageNumber < 1) {
+      throw new Error("助手目录页码不正确");
+    }
     return this.request<QueryAssistantPage>(
-      "/query-assistants?pageNumber=1&pageSize=20",
+      `/query-assistants?pageNumber=${pageNumber}&pageSize=20`,
       { signal },
     );
   }
