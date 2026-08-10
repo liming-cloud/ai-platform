@@ -81,4 +81,4 @@ OrganizationAccessDependencyRulesTest -Dsurefire.failIfNoSpecifiedTests=false te
 
 ## 提交与状态
 
-本证据在本次中文提交后填入提交标识。WP-0014 和 M6 保持进行中，不进入 M7。
+实现提交：`30554551c feat: 完成租户角色绑定与会话撤销闭环`。WP-0014 和 M6 保持进行中，不进入 M7。
