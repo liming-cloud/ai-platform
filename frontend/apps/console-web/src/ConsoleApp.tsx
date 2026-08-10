@@ -278,7 +278,7 @@ function AuthenticatedConsoleApp({
         <div className="data-task-switcher" aria-label="数据任务切换">
           <Button
             appearance={route.navigationId === "data" && route.task === "governed-file" ? "primary" : "subtle"}
-            onClick={() => navigate({ navigationId: "data", task: "governed-file" })}
+            onClick={() => navigate({ navigationId: "data", task: "governed-file", knowledgeSpacePage: 1, sourcePage: 1 })}
           >
             文件来源登记
           </Button>
@@ -305,8 +305,10 @@ function AuthenticatedConsoleApp({
           <Suspense fallback={<StatePanel kind="loading" title="正在加载数据任务" description="正在准备受治理文件来源流程。" />}>
             <GovernedFileDataWorkspace
               client={client}
+              route={route}
               sessionRevision={sessionRevision}
               onSessionChanged={sessionChanged}
+              onRouteChange={navigate}
             />
           </Suspense>
         ) : route.navigationId === "data" && route.task === "structured-dataset" ? (

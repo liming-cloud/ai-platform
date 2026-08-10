@@ -223,6 +223,7 @@ latestEvidence:
   - project/evidence/WP-0014-browser-tls-preflight.md
   - project/evidence/WP-0014-console-pagination-and-attention-guard.md
   - project/evidence/WP-0014-platform-tenant-pagination-dialog.md
+  - project/evidence/WP-0014-governed-file-resource-picker-pagination.md
 nextReviewAt: 2026-08-10
-updatedAt: 2026-08-10T20:39:00+08:00
+updatedAt: 2026-08-10T20:45:00+08:00
 updatedBy: codex

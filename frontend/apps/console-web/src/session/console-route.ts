@@ -9,7 +9,14 @@ export type ConsoleRoute =
   | { navigationId: "access"; task: "roles"; page: number }
   | {
     navigationId: "data";
-    task: "governed-file" | "structured-dataset" | "object-storage" | "first-publication";
+    task: "governed-file";
+    knowledgeSpacePage: number;
+    knowledgeSpaceId?: string;
+    sourcePage: number;
+  }
+  | {
+    navigationId: "data";
+    task: "structured-dataset" | "object-storage" | "first-publication";
   }
   | {
     navigationId: "models";
@@ -48,7 +55,12 @@ export function defaultConsoleRoute(navigationId: ConsoleNavigationId): ConsoleR
     case "access":
       return { navigationId, task: "members", page: 1 };
     case "data":
-      return { navigationId, task: "governed-file" };
+      return {
+        navigationId,
+        task: "governed-file",
+        knowledgeSpacePage: 1,
+        sourcePage: 1,
+      };
     case "models":
       return { navigationId, task: "configuration", configurationPage: 1, catalogPage: 1 };
     case "governance":
@@ -66,7 +78,14 @@ export function defaultConsoleRoute(navigationId: ConsoleNavigationId): ConsoleR
 export function parseConsoleRoute(pathname: string, search: string): ConsoleRoute | undefined {
   const routePath = normalizedPath(pathname);
   if (routePath === "/data/files") {
-    return { navigationId: "data", task: "governed-file" };
+    const parameters = new URLSearchParams(search);
+    return {
+      navigationId: "data",
+      task: "governed-file",
+      knowledgeSpacePage: positivePage(parameters.get("knowledgeSpacePage")),
+      knowledgeSpaceId: nonBlankParameter(parameters.get("knowledgeSpaceId")),
+      sourcePage: positivePage(parameters.get("sourcePage")),
+    };
   }
   if (routePath === "/access/members") {
     const parameters = new URLSearchParams(search);
@@ -144,7 +163,7 @@ export function formatConsoleRoute(route: ConsoleRoute): string {
   }
   if (route.navigationId === "data") {
     return route.task === "governed-file"
-      ? "/data/files"
+      ? formatGovernedFileRoute(route)
       : route.task === "structured-dataset"
         ? "/data/datasets"
         : route.task === "object-storage"
@@ -215,6 +234,16 @@ function formatConfigurationRoute(route: Extract<ConsoleRoute, { task: "configur
   parameters.set("configurationPage", String(route.configurationPage));
   parameters.set("catalogPage", String(route.catalogPage));
   return `/models/configurations?${parameters}`;
+}
+
+function formatGovernedFileRoute(route: Extract<ConsoleRoute, { task: "governed-file" }>): string {
+  const parameters = new URLSearchParams();
+  parameters.set("knowledgeSpacePage", String(route.knowledgeSpacePage));
+  if (route.knowledgeSpaceId !== undefined) {
+    parameters.set("knowledgeSpaceId", route.knowledgeSpaceId);
+  }
+  parameters.set("sourcePage", String(route.sourcePage));
+  return `/data/files?${parameters}`;
 }
 
 function formatDeploymentRoute(route: Extract<ConsoleRoute, { task: "deployments" }>): string {

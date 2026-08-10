@@ -21,6 +21,7 @@ import {
   type IndexVersion,
   type KnowledgeSpace,
 } from "../../api/control-plane-client";
+import type { ConsoleRoute } from "../../session/console-route";
 
 interface Failure {
   message: string;
@@ -34,32 +35,47 @@ type ViewState = "unauthenticated" | "loading" | "ready" | "error";
  */
 export function GovernedFileDataWorkspace({
   client,
+  route,
   sessionRevision,
   onSessionChanged,
+  onRouteChange,
 }: {
   client: ControlPlaneClient;
+  route: Extract<ConsoleRoute, { task: "governed-file" }>;
   sessionRevision: number;
   onSessionChanged: () => void;
+  onRouteChange: (route: ConsoleRoute) => void;
 }) {
   const [viewState, setViewState] = useState<ViewState>("unauthenticated");
   const [spaces, setSpaces] = useState<KnowledgeSpace[]>([]);
-  const [knowledgeSpaceId, setKnowledgeSpaceId] = useState("");
   const [sourceName, setSourceName] = useState("");
   const [content, setContent] = useState("");
   const [source, setSource] = useState<GovernedDataSourceLifecycleResult>();
   const [fileSources, setFileSources] = useState<GovernedFileDataSourceSummary[]>([]);
+  const [spaceHasPrevious, setSpaceHasPrevious] = useState(false);
+  const [spaceHasNext, setSpaceHasNext] = useState(false);
+  const [spaceTotal, setSpaceTotal] = useState(0);
+  const [sourceHasPrevious, setSourceHasPrevious] = useState(false);
+  const [sourceHasNext, setSourceHasNext] = useState(false);
+  const [sourceTotal, setSourceTotal] = useState(0);
   const [publishedArtifactId, setPublishedArtifactId] = useState<string>();
   const [indexVersion, setIndexVersion] = useState<IndexVersion>();
   const [failure, setFailure] = useState<Failure>();
   const [submitting, setSubmitting] = useState(false);
+  const knowledgeSpaceId = route.knowledgeSpaceId ?? "";
 
   const resetProtectedTaskState = useCallback(() => {
-    setSpaces([]);
-    setKnowledgeSpaceId("");
-    setSourceName("");
+      setSpaces([]);
+      setSourceName("");
     setContent("");
     setSource(undefined);
-    setFileSources([]);
+      setFileSources([]);
+      setSpaceHasPrevious(false);
+      setSpaceHasNext(false);
+      setSpaceTotal(0);
+      setSourceHasPrevious(false);
+      setSourceHasNext(false);
+      setSourceTotal(0);
     setPublishedArtifactId(undefined);
     setIndexVersion(undefined);
   }, []);
@@ -84,15 +100,28 @@ export function GovernedFileDataWorkspace({
     setViewState("loading");
     setFailure(undefined);
     try {
-      const page = await client.listKnowledgeSpaces();
-      const selectedKnowledgeSpaceId = knowledgeSpaceId || page.items[0]?.id;
+      const page = await client.listKnowledgeSpaces(route.knowledgeSpacePage);
+      const selectedKnowledgeSpaceId = page.items.some((space) => space.id === knowledgeSpaceId)
+        ? knowledgeSpaceId
+        : page.items[0]?.id;
       setSpaces(page.items);
-      setKnowledgeSpaceId(selectedKnowledgeSpaceId || "");
+      setSpaceHasPrevious(page.hasPrevious);
+      setSpaceHasNext(page.hasNext);
+      setSpaceTotal(page.totalElements);
+      if (selectedKnowledgeSpaceId !== undefined && selectedKnowledgeSpaceId !== knowledgeSpaceId) {
+        onRouteChange({ ...route, knowledgeSpaceId: selectedKnowledgeSpaceId, sourcePage: 1 });
+      }
       if (selectedKnowledgeSpaceId !== undefined) {
-        const sources = await client.listGovernedFileDataSources(selectedKnowledgeSpaceId);
+        const sources = await client.listGovernedFileDataSources(selectedKnowledgeSpaceId, route.sourcePage);
         setFileSources(sources.items);
+        setSourceHasPrevious(sources.hasPrevious);
+        setSourceHasNext(sources.hasNext);
+        setSourceTotal(sources.totalElements);
       } else {
         setFileSources([]);
+        setSourceHasPrevious(false);
+        setSourceHasNext(false);
+        setSourceTotal(0);
       }
       setViewState("ready");
     } catch (error) {
@@ -102,7 +131,7 @@ export function GovernedFileDataWorkspace({
       setFailure(toFailure(error));
       setViewState("error");
     }
-  }, [client, knowledgeSpaceId, resetProtectedTaskState, restartExpiredSession]);
+  }, [client, knowledgeSpaceId, onRouteChange, resetProtectedTaskState, restartExpiredSession, route]);
 
   useEffect(() => {
     const timeout = window.setTimeout(() => void load(), 0);
@@ -124,20 +153,14 @@ export function GovernedFileDataWorkspace({
         content,
       );
       setSource(registered);
-      setFileSources((current) => [{
-        dataSourceId: registered.dataSourceId,
-        knowledgeSpaceId: registered.knowledgeSpaceId,
-        displayName: sourceName.trim(),
-        status: registered.status,
-        version: registered.version,
-        failedOperation: registered.failedOperation,
-        publishedArtifactId: null,
-        publishedQualityStatus: null,
-        publishedAt: null,
-      }, ...current]);
       setContent("");
       setPublishedArtifactId(undefined);
       setIndexVersion(undefined);
+      if (route.sourcePage === 1) {
+        await load();
+      } else {
+        onRouteChange({ ...route, sourcePage: 1 });
+      }
     } catch (error) {
       if (!restartExpiredSession(error)) {
         setFailure(toFailure(error));
@@ -410,7 +433,11 @@ export function GovernedFileDataWorkspace({
               <Select
                 value={knowledgeSpaceId}
                 onChange={(_, data) => {
-                  setKnowledgeSpaceId(data.value);
+                  onRouteChange({
+                    ...route,
+                    knowledgeSpaceId: data.value || undefined,
+                    sourcePage: 1,
+                  });
                   selectSource(undefined);
                 }}
                 disabled={submitting || source !== undefined}
@@ -418,6 +445,22 @@ export function GovernedFileDataWorkspace({
                 {spaces.map((space) => <option key={space.id} value={space.id}>{space.name}</option>)}
               </Select>
             </Field>
+            <PageNavigation
+              label="知识空间"
+              page={route.knowledgeSpacePage}
+              total={spaceTotal}
+              hasPrevious={spaceHasPrevious}
+              hasNext={spaceHasNext}
+              disabled={submitting || source !== undefined}
+              onPrevious={() => {
+                selectSource(undefined);
+                onRouteChange({ ...route, knowledgeSpacePage: route.knowledgeSpacePage - 1, knowledgeSpaceId: undefined, sourcePage: 1 });
+              }}
+              onNext={() => {
+                selectSource(undefined);
+                onRouteChange({ ...route, knowledgeSpacePage: route.knowledgeSpacePage + 1, knowledgeSpaceId: undefined, sourcePage: 1 });
+              }}
+            />
             <Field label="来源名称" required>
               <input
                 className="governed-file-name"
@@ -441,6 +484,23 @@ export function GovernedFileDataWorkspace({
               </Button>
             ) : null}
           </form>
+
+          <PageNavigation
+            label="文件来源"
+            page={route.sourcePage}
+            total={sourceTotal}
+            hasPrevious={sourceHasPrevious}
+            hasNext={sourceHasNext}
+            disabled={submitting}
+            onPrevious={() => {
+              selectSource(undefined);
+              onRouteChange({ ...route, sourcePage: route.sourcePage - 1 });
+            }}
+            onNext={() => {
+              selectSource(undefined);
+              onRouteChange({ ...route, sourcePage: route.sourcePage + 1 });
+            }}
+          />
 
           {source ? (
             <article className="governed-file-result">
@@ -581,6 +641,34 @@ function delay(milliseconds: number) {
   return new Promise<void>((resolve) => {
     window.setTimeout(resolve, milliseconds);
   });
+}
+
+function PageNavigation({
+  label,
+  page,
+  total,
+  hasPrevious,
+  hasNext,
+  disabled,
+  onPrevious,
+  onNext,
+}: {
+  label: string;
+  page: number;
+  total: number;
+  hasPrevious: boolean;
+  hasNext: boolean;
+  disabled: boolean;
+  onPrevious: () => void;
+  onNext: () => void;
+}) {
+  return (
+    <div className="task-actions" aria-label={`${label}分页`}>
+      <Text size={200}>{label}：第 {page} 页，共 {total} 条</Text>
+      <Button appearance="subtle" disabled={disabled || !hasPrevious} onClick={onPrevious}>上一页</Button>
+      <Button appearance="subtle" disabled={disabled || !hasNext} onClick={onNext}>下一页</Button>
+    </div>
+  );
 }
 
 function FailureMessage({ failure }: { failure: Failure }) {

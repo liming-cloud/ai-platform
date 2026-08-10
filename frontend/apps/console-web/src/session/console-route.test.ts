@@ -140,4 +140,24 @@ describe("统一控制台路由", () => {
     expect(formatConsoleRoute({ navigationId: "platform", task: "tenants", page: 2 }))
       .toBe("/platform/tenants?page=2");
   });
+
+  it("受治理文件任务从 URL 恢复资源选择器的服务端页码", () => {
+    expect(parseConsoleRoute(
+      "/data/files",
+      "?knowledgeSpacePage=2&knowledgeSpaceId=410000000000000001&sourcePage=3",
+    )).toEqual({
+      navigationId: "data",
+      task: "governed-file",
+      knowledgeSpacePage: 2,
+      knowledgeSpaceId: "410000000000000001",
+      sourcePage: 3,
+    });
+    expect(formatConsoleRoute({
+      navigationId: "data",
+      task: "governed-file",
+      knowledgeSpacePage: 2,
+      knowledgeSpaceId: "410000000000000001",
+      sourcePage: 3,
+    })).toBe("/data/files?knowledgeSpacePage=2&knowledgeSpaceId=410000000000000001&sourcePage=3");
+  });
 });
