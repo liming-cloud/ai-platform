@@ -22,6 +22,7 @@ import {
   type KnowledgeSpace,
 } from "../../api/control-plane-client";
 import type { ConsoleRoute } from "../../session/console-route";
+import { PagedResourceNavigation } from "../shared/PagedResourceNavigation";
 
 interface Failure {
   message: string;
@@ -445,7 +446,7 @@ export function GovernedFileDataWorkspace({
                 {spaces.map((space) => <option key={space.id} value={space.id}>{space.name}</option>)}
               </Select>
             </Field>
-            <PageNavigation
+            <PagedResourceNavigation
               label="知识空间"
               page={route.knowledgeSpacePage}
               total={spaceTotal}
@@ -485,7 +486,7 @@ export function GovernedFileDataWorkspace({
             ) : null}
           </form>
 
-          <PageNavigation
+          <PagedResourceNavigation
             label="文件来源"
             page={route.sourcePage}
             total={sourceTotal}
@@ -641,34 +642,6 @@ function delay(milliseconds: number) {
   return new Promise<void>((resolve) => {
     window.setTimeout(resolve, milliseconds);
   });
-}
-
-function PageNavigation({
-  label,
-  page,
-  total,
-  hasPrevious,
-  hasNext,
-  disabled,
-  onPrevious,
-  onNext,
-}: {
-  label: string;
-  page: number;
-  total: number;
-  hasPrevious: boolean;
-  hasNext: boolean;
-  disabled: boolean;
-  onPrevious: () => void;
-  onNext: () => void;
-}) {
-  return (
-    <div className="task-actions" aria-label={`${label}分页`}>
-      <Text size={200}>{label}：第 {page} 页，共 {total} 条</Text>
-      <Button appearance="subtle" disabled={disabled || !hasPrevious} onClick={onPrevious}>上一页</Button>
-      <Button appearance="subtle" disabled={disabled || !hasNext} onClick={onNext}>下一页</Button>
-    </div>
-  );
 }
 
 function FailureMessage({ failure }: { failure: Failure }) {

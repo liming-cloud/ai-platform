@@ -16,7 +16,13 @@ export type ConsoleRoute =
   }
   | {
     navigationId: "data";
-    task: "structured-dataset" | "object-storage" | "first-publication";
+    task: "structured-dataset";
+    knowledgeSpacePage: number;
+    knowledgeSpaceId?: string;
+  }
+  | {
+    navigationId: "data";
+    task: "object-storage" | "first-publication";
   }
   | {
     navigationId: "models";
@@ -96,7 +102,13 @@ export function parseConsoleRoute(pathname: string, search: string): ConsoleRout
     return { navigationId: "access", task: "roles", page: positivePage(parameters.get("page")) };
   }
   if (routePath === "/data/datasets") {
-    return { navigationId: "data", task: "structured-dataset" };
+    const parameters = new URLSearchParams(search);
+    return {
+      navigationId: "data",
+      task: "structured-dataset",
+      knowledgeSpacePage: positivePage(parameters.get("knowledgeSpacePage")),
+      knowledgeSpaceId: nonBlankParameter(parameters.get("knowledgeSpaceId")),
+    };
   }
   if (routePath === "/data/object-storage") {
     return { navigationId: "data", task: "object-storage" };
@@ -165,7 +177,7 @@ export function formatConsoleRoute(route: ConsoleRoute): string {
     return route.task === "governed-file"
       ? formatGovernedFileRoute(route)
       : route.task === "structured-dataset"
-        ? "/data/datasets"
+        ? formatStructuredDatasetRoute(route)
         : route.task === "object-storage"
           ? "/data/object-storage"
           : "/data/publication";
@@ -244,6 +256,15 @@ function formatGovernedFileRoute(route: Extract<ConsoleRoute, { task: "governed-
   }
   parameters.set("sourcePage", String(route.sourcePage));
   return `/data/files?${parameters}`;
+}
+
+function formatStructuredDatasetRoute(route: Extract<ConsoleRoute, { task: "structured-dataset" }>): string {
+  const parameters = new URLSearchParams();
+  parameters.set("knowledgeSpacePage", String(route.knowledgeSpacePage));
+  if (route.knowledgeSpaceId !== undefined) {
+    parameters.set("knowledgeSpaceId", route.knowledgeSpaceId);
+  }
+  return `/data/datasets?${parameters}`;
 }
 
 function formatDeploymentRoute(route: Extract<ConsoleRoute, { task: "deployments" }>): string {

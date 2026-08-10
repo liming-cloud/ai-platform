@@ -160,4 +160,22 @@ describe("统一控制台路由", () => {
       sourcePage: 3,
     })).toBe("/data/files?knowledgeSpacePage=2&knowledgeSpaceId=410000000000000001&sourcePage=3");
   });
+
+  it("结构化数据集任务从 URL 恢复知识空间选择器页码", () => {
+    expect(parseConsoleRoute(
+      "/data/datasets",
+      "?knowledgeSpacePage=3&knowledgeSpaceId=410000000000000002",
+    )).toEqual({
+      navigationId: "data",
+      task: "structured-dataset",
+      knowledgeSpacePage: 3,
+      knowledgeSpaceId: "410000000000000002",
+    });
+    expect(formatConsoleRoute({
+      navigationId: "data",
+      task: "structured-dataset",
+      knowledgeSpacePage: 3,
+      knowledgeSpaceId: "410000000000000002",
+    })).toBe("/data/datasets?knowledgeSpacePage=3&knowledgeSpaceId=410000000000000002");
+  });
 });

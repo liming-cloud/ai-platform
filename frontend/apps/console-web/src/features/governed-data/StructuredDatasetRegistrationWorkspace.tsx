@@ -20,7 +20,9 @@ import {
   type KnowledgeSpace,
   type StructuredDatasetFieldInput,
 } from "../../api/control-plane-client";
+import type { ConsoleRoute } from "../../session/console-route";
 import { modelRuntimeFailure, requiresSessionRestart } from "./GovernedFileDataWorkspace";
+import { PagedResourceNavigation } from "../shared/PagedResourceNavigation";
 
 interface Failure {
   message: string;
@@ -47,16 +49,22 @@ function defaultFields(): StructuredDatasetFieldInput[] {
  */
 export function StructuredDatasetRegistrationWorkspace({
   client,
+  route,
   sessionRevision,
   onSessionChanged,
+  onRouteChange,
 }: {
   client: ControlPlaneClient;
+  route: Extract<ConsoleRoute, { task: "structured-dataset" }>;
   sessionRevision: number;
   onSessionChanged: () => void;
+  onRouteChange: (route: ConsoleRoute) => void;
 }) {
   const [viewState, setViewState] = useState<ViewState>("unauthenticated");
   const [spaces, setSpaces] = useState<KnowledgeSpace[]>([]);
-  const [knowledgeSpaceId, setKnowledgeSpaceId] = useState("");
+  const [spaceHasPrevious, setSpaceHasPrevious] = useState(false);
+  const [spaceHasNext, setSpaceHasNext] = useState(false);
+  const [spaceTotal, setSpaceTotal] = useState(0);
   const [name, setName] = useState("");
   const [mappingVersion, setMappingVersion] = useState("dataset-v1");
   const [fields, setFields] = useState<StructuredDatasetFieldInput[]>(defaultFields);
@@ -73,10 +81,13 @@ export function StructuredDatasetRegistrationWorkspace({
   const [publishedArtifactId, setPublishedArtifactId] = useState<string>();
   const [indexVersion, setIndexVersion] = useState<IndexVersion>();
   const [buildingIndex, setBuildingIndex] = useState(false);
+  const knowledgeSpaceId = route.knowledgeSpaceId ?? "";
 
   const resetProtectedTaskState = useCallback(() => {
     setSpaces([]);
-    setKnowledgeSpaceId("");
+    setSpaceHasPrevious(false);
+    setSpaceHasNext(false);
+    setSpaceTotal(0);
     setName("");
     setMappingVersion("dataset-v1");
     setFields(defaultFields());
@@ -110,9 +121,17 @@ export function StructuredDatasetRegistrationWorkspace({
     setViewState("loading");
     setFailure(undefined);
     try {
-      const page = await client.listKnowledgeSpaces();
+      const page = await client.listKnowledgeSpaces(route.knowledgeSpacePage);
+      const selectedKnowledgeSpaceId = page.items.some((space) => space.id === knowledgeSpaceId)
+        ? knowledgeSpaceId
+        : page.items[0]?.id;
       setSpaces(page.items);
-      setKnowledgeSpaceId((current) => current || page.items[0]?.id || "");
+      setSpaceHasPrevious(page.hasPrevious);
+      setSpaceHasNext(page.hasNext);
+      setSpaceTotal(page.totalElements);
+      if (selectedKnowledgeSpaceId !== undefined && selectedKnowledgeSpaceId !== knowledgeSpaceId) {
+        onRouteChange({ ...route, knowledgeSpaceId: selectedKnowledgeSpaceId });
+      }
       setViewState("ready");
     } catch (error) {
       if (restartExpiredSession(error)) {
@@ -121,7 +140,7 @@ export function StructuredDatasetRegistrationWorkspace({
       setFailure(toFailure(error));
       setViewState("error");
     }
-  }, [client, resetProtectedTaskState, restartExpiredSession]);
+  }, [client, knowledgeSpaceId, onRouteChange, resetProtectedTaskState, restartExpiredSession, route]);
 
   useEffect(() => {
     const timeout = window.setTimeout(() => void load(), 0);
@@ -357,10 +376,39 @@ export function StructuredDatasetRegistrationWorkspace({
           </header>
           <form className="governed-file-form" onSubmit={register}>
             <Field label="知识空间" required>
-              <Select value={knowledgeSpaceId} disabled={submitting || source !== undefined} onChange={(_, data) => setKnowledgeSpaceId(data.value)}>
+              <Select
+                value={knowledgeSpaceId}
+                disabled={submitting || source !== undefined}
+                onChange={(_, data) => {
+                  setSource(undefined);
+                  setPublishedArtifactId(undefined);
+                  setIndexVersion(undefined);
+                  onRouteChange({ ...route, knowledgeSpaceId: data.value || undefined });
+                }}
+              >
                 {spaces.map((space) => <option key={space.id} value={space.id}>{space.name}</option>)}
               </Select>
             </Field>
+            <PagedResourceNavigation
+              label="知识空间"
+              page={route.knowledgeSpacePage}
+              total={spaceTotal}
+              hasPrevious={spaceHasPrevious}
+              hasNext={spaceHasNext}
+              disabled={submitting || source !== undefined}
+              onPrevious={() => {
+                setSource(undefined);
+                setPublishedArtifactId(undefined);
+                setIndexVersion(undefined);
+                onRouteChange({ ...route, knowledgeSpacePage: route.knowledgeSpacePage - 1, knowledgeSpaceId: undefined });
+              }}
+              onNext={() => {
+                setSource(undefined);
+                setPublishedArtifactId(undefined);
+                setIndexVersion(undefined);
+                onRouteChange({ ...route, knowledgeSpacePage: route.knowledgeSpacePage + 1, knowledgeSpaceId: undefined });
+              }}
+            />
             <Field label="数据集名称" required>
               <input className="governed-file-name" value={name} disabled={submitting || source !== undefined} onChange={(event) => setName(event.target.value)} />
             </Field>

@@ -284,7 +284,7 @@ function AuthenticatedConsoleApp({
           </Button>
           <Button
             appearance={route.navigationId === "data" && route.task === "structured-dataset" ? "primary" : "subtle"}
-            onClick={() => navigate({ navigationId: "data", task: "structured-dataset" })}
+            onClick={() => navigate({ navigationId: "data", task: "structured-dataset", knowledgeSpacePage: 1 })}
           >
             结构化数据集登记
           </Button>
@@ -315,8 +315,10 @@ function AuthenticatedConsoleApp({
           <Suspense fallback={<StatePanel kind="loading" title="正在加载数据集登记任务" description="正在准备私有 CSV 登记流程。" />}>
             <StructuredDatasetRegistrationWorkspace
               client={client}
+              route={route}
               sessionRevision={sessionRevision}
               onSessionChanged={sessionChanged}
+              onRouteChange={navigate}
             />
           </Suspense>
         ) : route.navigationId === "data" && route.task === "object-storage" ? (
