@@ -31,7 +31,7 @@ class TenantMemberDirectoryApplicationServiceTest {
                 assertEquals(new PageQuery(2L, 20L), page);
                 return PageResult.of(List.of(new TenantMemberSummary(
                         "3382738893456539650", "admin", "TENANT_ADMINISTRATOR",
-                        "ENABLED", 2L, Instant.parse("2026-08-10T08:00:00Z"))), page, 21L);
+                        "ENABLED", 2L, List.of(), Instant.parse("2026-08-10T08:00:00Z"))), page, 21L);
             }
         });
 

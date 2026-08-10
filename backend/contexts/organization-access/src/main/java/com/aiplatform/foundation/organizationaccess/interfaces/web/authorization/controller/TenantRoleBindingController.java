@@ -1,13 +1,17 @@
 package com.aiplatform.foundation.organizationaccess.interfaces.web.authorization.controller;
 
 import com.aiplatform.foundation.organizationaccess.application.authorization.command.TenantRoleBindingCommand;
+import com.aiplatform.foundation.organizationaccess.application.authorization.command.TenantRoleRevocationCommand;
 import com.aiplatform.foundation.organizationaccess.application.authorization.service.TenantRoleBindingApplicationService;
+import com.aiplatform.foundation.organizationaccess.application.authorization.service.TenantRoleRevocationApplicationService;
 import com.aiplatform.foundation.organizationaccess.interfaces.web.authorization.request.TenantRoleBindingRequest;
 import com.aiplatform.foundation.organizationaccess.interfaces.web.authorization.response.TenantRoleBindingResponse;
+import com.aiplatform.foundation.organizationaccess.interfaces.web.authorization.response.TenantRoleRevocationResponse;
 import com.aiplatform.foundation.security.identity.TrustedRequestContext;
 import java.util.Map;
 import java.util.Objects;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -23,9 +27,13 @@ import org.springframework.web.bind.annotation.RestController;
 public final class TenantRoleBindingController {
 
     private final TenantRoleBindingApplicationService bindings;
+    private final TenantRoleRevocationApplicationService revocations;
 
-    public TenantRoleBindingController(TenantRoleBindingApplicationService bindings) {
+    public TenantRoleBindingController(
+            TenantRoleBindingApplicationService bindings,
+            TenantRoleRevocationApplicationService revocations) {
         this.bindings = Objects.requireNonNull(bindings, "角色绑定服务不能为空");
+        this.revocations = Objects.requireNonNull(revocations, "角色撤销服务不能为空");
     }
 
     /**
@@ -46,5 +54,22 @@ public final class TenantRoleBindingController {
         return TenantRoleBindingResponse.from(bindings.bind(
                 context,
                 new TenantRoleBindingCommand(memberId, request.roleCode())));
+    }
+
+    /** 撤销当前成员的一项内置角色绑定，并使其旧租户会话失效。 */
+    @DeleteMapping("/{membershipId}/role-bindings/{roleCode}")
+    public TenantRoleRevocationResponse revoke(
+            TrustedRequestContext context,
+            @PathVariable String membershipId,
+            @PathVariable String roleCode) {
+        final long memberId;
+        try {
+            memberId = Long.parseLong(membershipId);
+        } catch (NumberFormatException exception) {
+            throw new IllegalArgumentException("成员标识必须是十进制正整数", exception);
+        }
+        return TenantRoleRevocationResponse.from(revocations.revoke(
+                context,
+                new TenantRoleRevocationCommand(memberId, roleCode)));
     }
 }

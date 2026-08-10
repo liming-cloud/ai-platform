@@ -307,6 +307,53 @@ class AuthenticationApiTest {
     }
 
     @Test
+    void 租户访问管理员撤销成员内置角色后应使旧会话失效并移除权限投影() {
+        var bind = http.exchange(
+                url("/api/v1/tenant/members/3382738893456539652/role-bindings"),
+                HttpMethod.POST,
+                new HttpEntity<>(
+                        Map.of("role", "TENANT_ASSISTANT_OWNER"),
+                        bearer(tenantLogin())),
+                Map.class);
+        assertEquals(HttpStatus.OK, bind.getStatusCode());
+
+        var targetSession = http.postForEntity(
+                url("/api/v1/auth/sessions"),
+                Map.of(
+                        "tenantCode", "demo-store",
+                        "loginName", "platform-admin",
+                        "password", new String(DEMO_PASSWORD)),
+                SessionResponse.class);
+        assertEquals(HttpStatus.CREATED, targetSession.getStatusCode());
+        assertNotNull(targetSession.getBody());
+
+        var response = http.exchange(
+                url("/api/v1/tenant/members/3382738893456539652/role-bindings/TENANT_ASSISTANT_OWNER"),
+                HttpMethod.DELETE,
+                new HttpEntity<>(bearer(tenantLogin())),
+                Map.class);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertEquals("TENANT_ASSISTANT_OWNER", response.getBody().get("role"));
+        assertEquals("3382738893456539652", response.getBody().get("membershipId"));
+        assertThrows(InvalidAuthenticatedSessionException.class,
+                () -> sessions.resolve(targetSession.getBody().tokenValue()));
+
+        var renewedSession = http.postForEntity(
+                url("/api/v1/auth/sessions"),
+                Map.of(
+                        "tenantCode", "demo-store",
+                        "loginName", "platform-admin",
+                        "password", new String(DEMO_PASSWORD)),
+                SessionResponse.class);
+        assertEquals(HttpStatus.CREATED, renewedSession.getStatusCode());
+        assertNotNull(renewedSession.getBody());
+        assertFalse(sessions.resolve(renewedSession.getBody().tokenValue())
+                .hasPermission(new com.aiplatform.foundation.security.identity.PermissionCode("assistant:read")));
+    }
+
+    @Test
     void 租户访问管理员可经受限接口创建自定义角色() {
         var response = http.exchange(
                 url("/api/v1/tenant/custom-roles"),

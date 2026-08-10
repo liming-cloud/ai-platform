@@ -429,6 +429,24 @@
     },
     {
       "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/TenantRoleBindingMapper.xml",
+      "statementId": "deleteBinding",
+      "category": "ATOMIC_STATE_TRANSITION",
+      "reason": "只按角色撤销领域操作结果删除既有绑定，并与权限版本修订同一事务提交。"
+    },
+    {
+      "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/TenantRoleBindingMapper.xml",
+      "statementId": "countAccessManageAfterRevocation",
+      "category": "SECURITY_PROJECTION",
+      "reason": "在删除候选内置角色前确认目标成员是否仍通过其他有效来源拥有访问管理权限。"
+    },
+    {
+      "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/TenantRoleBindingMapper.xml",
+      "statementId": "countOtherEnabledAccessManagers",
+      "category": "SECURITY_PROJECTION",
+      "reason": "在同一租户内统计其他启用访问管理员，防止撤销最后一个成员治理主体。"
+    },
+    {
+      "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/TenantRoleBindingMapper.xml",
       "statementId": "revisePermissionVersion",
       "category": "ATOMIC_STATE_TRANSITION",
       "reason": "在角色绑定成功后原子推进成员权限版本，使旧会话必须撤销并失效。"

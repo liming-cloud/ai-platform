@@ -9,6 +9,7 @@ import com.aiplatform.foundation.organizationaccess.application.authentication.s
 import com.aiplatform.foundation.organizationaccess.application.authentication.service.BrowserSessionCapabilityService;
 import com.aiplatform.foundation.organizationaccess.application.authentication.service.BrowserSessionTerminationService;
 import com.aiplatform.foundation.organizationaccess.application.authorization.service.TenantRoleBindingApplicationService;
+import com.aiplatform.foundation.organizationaccess.application.authorization.service.TenantRoleRevocationApplicationService;
 import com.aiplatform.foundation.organizationaccess.application.authorization.service.TenantCustomRoleApplicationService;
 import com.aiplatform.foundation.organizationaccess.application.authorization.service.TenantCustomRoleBindingApplicationService;
 import com.aiplatform.foundation.organizationaccess.application.member.service.TenantMemberStatusApplicationService;
@@ -115,6 +116,7 @@ class OrganizationAccessAutoConfigurationTest {
             assertThat(context).hasSingleBean(BrowserSessionCapabilityService.class);
             assertThat(context).hasSingleBean(BrowserSessionTerminationService.class);
             assertThat(context).hasSingleBean(TenantRoleBindingApplicationService.class);
+            assertThat(context).hasSingleBean(TenantRoleRevocationApplicationService.class);
             assertThat(context).hasSingleBean(TenantCustomRoleApplicationService.class);
             assertThat(context).hasSingleBean(TenantCustomRoleBindingApplicationService.class);
             assertThat(context).hasSingleBean(TenantMemberStatusApplicationService.class);
@@ -150,6 +152,8 @@ class OrganizationAccessAutoConfigurationTest {
                             BrowserSessionTerminationService.class);
                     assertThat(context).doesNotHaveBean(
                             TenantRoleBindingApplicationService.class);
+                    assertThat(context).doesNotHaveBean(
+                            TenantRoleRevocationApplicationService.class);
                     assertThat(context).doesNotHaveBean(
                             TenantCustomRoleApplicationService.class);
                     assertThat(context).doesNotHaveBean(

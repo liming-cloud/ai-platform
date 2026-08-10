@@ -40,6 +40,73 @@
             (#{tenantId}, #{membershipId}, #{roleCode}, #{boundAt})
     </insert>
 
+    <delete id="deleteBinding">
+        DELETE FROM organization_access.tenant_membership_role_binding
+        WHERE tenant_id = #{tenantId}
+          AND membership_id = #{membershipId}
+          AND role_code = #{roleCode}
+    </delete>
+
+    <select id="countAccessManageAfterRevocation" resultType="int">
+        SELECT count(*)
+        FROM organization_access.tenant_membership membership
+        WHERE membership.tenant_id = #{tenantId}
+          AND membership.membership_id = #{membershipId}
+          AND EXISTS (
+              SELECT 1 FROM organization_access.membership_permission direct_permission
+              WHERE direct_permission.tenant_id = membership.tenant_id
+                AND direct_permission.membership_id = membership.membership_id
+                AND direct_permission.permission_code = 'access:manage'
+              UNION ALL
+              SELECT 1 FROM organization_access.tenant_membership_role_binding built_in_binding
+              WHERE built_in_binding.tenant_id = membership.tenant_id
+                AND built_in_binding.membership_id = membership.membership_id
+                AND built_in_binding.role_code = 'TENANT_ACCESS_ADMINISTRATOR'
+                AND built_in_binding.role_code &lt;&gt; #{revokedRoleCode}
+              UNION ALL
+              SELECT 1 FROM organization_access.tenant_custom_role_binding custom_binding
+              INNER JOIN organization_access.tenant_custom_role custom_role
+                  ON custom_role.tenant_id = custom_binding.tenant_id
+                 AND custom_role.custom_role_id = custom_binding.custom_role_id
+                 AND custom_role.status = 'ACTIVE'
+              INNER JOIN organization_access.tenant_custom_role_permission custom_permission
+                  ON custom_permission.custom_role_id = custom_role.custom_role_id
+                 AND custom_permission.permission_code = 'access:manage'
+              WHERE custom_binding.tenant_id = membership.tenant_id
+                AND custom_binding.membership_id = membership.membership_id
+          )
+    </select>
+
+    <select id="countOtherEnabledAccessManagers" resultType="long">
+        SELECT count(*)
+        FROM organization_access.tenant_membership membership
+        WHERE membership.tenant_id = #{tenantId}
+          AND membership.membership_id &lt;&gt; #{membershipId}
+          AND membership.status = 'ENABLED'
+          AND EXISTS (
+              SELECT 1 FROM organization_access.membership_permission direct_permission
+              WHERE direct_permission.tenant_id = membership.tenant_id
+                AND direct_permission.membership_id = membership.membership_id
+                AND direct_permission.permission_code = 'access:manage'
+              UNION ALL
+              SELECT 1 FROM organization_access.tenant_membership_role_binding built_in_binding
+              WHERE built_in_binding.tenant_id = membership.tenant_id
+                AND built_in_binding.membership_id = membership.membership_id
+                AND built_in_binding.role_code = 'TENANT_ACCESS_ADMINISTRATOR'
+              UNION ALL
+              SELECT 1 FROM organization_access.tenant_custom_role_binding custom_binding
+              INNER JOIN organization_access.tenant_custom_role custom_role
+                  ON custom_role.tenant_id = custom_binding.tenant_id
+                 AND custom_role.custom_role_id = custom_binding.custom_role_id
+                 AND custom_role.status = 'ACTIVE'
+              INNER JOIN organization_access.tenant_custom_role_permission custom_permission
+                  ON custom_permission.custom_role_id = custom_role.custom_role_id
+                 AND custom_permission.permission_code = 'access:manage'
+              WHERE custom_binding.tenant_id = membership.tenant_id
+                AND custom_binding.membership_id = membership.membership_id
+          )
+    </select>
+
     <update id="revisePermissionVersion">
         UPDATE organization_access.tenant_membership
         SET permission_version = #{permissionVersion},

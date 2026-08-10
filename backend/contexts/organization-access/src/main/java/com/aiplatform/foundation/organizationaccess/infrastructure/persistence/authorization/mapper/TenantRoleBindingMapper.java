@@ -23,6 +23,20 @@ public interface TenantRoleBindingMapper {
             @Param("roleCode") String roleCode,
             @Param("boundAt") java.time.Instant boundAt);
 
+    int deleteBinding(
+            @Param("tenantId") long tenantId,
+            @Param("membershipId") long membershipId,
+            @Param("roleCode") String roleCode);
+
+    int countAccessManageAfterRevocation(
+            @Param("tenantId") long tenantId,
+            @Param("membershipId") long membershipId,
+            @Param("revokedRoleCode") String revokedRoleCode);
+
+    long countOtherEnabledAccessManagers(
+            @Param("tenantId") long tenantId,
+            @Param("membershipId") long membershipId);
+
     int revisePermissionVersion(
             @Param("tenantId") long tenantId,
             @Param("membershipId") long membershipId,

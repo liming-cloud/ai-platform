@@ -64,6 +64,40 @@ class TenantRoleBindingServiceTest {
                         member, STORE, TenantBuiltInRole.TENANT_ACCESS_ADMINISTRATOR, OCCURRED_AT));
     }
 
+    @Test
+    void 撤销内置角色应推进成员权限修订并保留最小撤销事实() {
+        var member = member(STORE, 4L);
+
+        var result = TenantRoleBindingService.revoke(
+                member,
+                STORE,
+                TenantBuiltInRole.TENANT_MODEL_MANAGER,
+                true,
+                0L,
+                OCCURRED_AT);
+
+        assertEquals(5L, result.revisedMembership().permissionVersion());
+        assertEquals(STORE, result.tenantId());
+        assertEquals(member.id(), result.membershipId());
+        assertEquals(TenantBuiltInRole.TENANT_MODEL_MANAGER, result.role());
+        assertEquals(OCCURRED_AT, result.revokedAt());
+    }
+
+    @Test
+    void 撤销最后一个访问管理员角色必须失败关闭() {
+        var member = member(STORE, 4L);
+
+        assertThrows(
+                IllegalStateException.class,
+                () -> TenantRoleBindingService.revoke(
+                        member,
+                        STORE,
+                        TenantBuiltInRole.TENANT_ACCESS_ADMINISTRATOR,
+                        false,
+                        0L,
+                        OCCURRED_AT));
+    }
+
     private static TenantMembership member(TenantId tenantId, long permissionVersion) {
         return TenantMembership.reconstitute(
                 new MemberId(3382738893456539650L),

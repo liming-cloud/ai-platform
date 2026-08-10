@@ -214,6 +214,7 @@ latestEvidence:
   - project/evidence/WP-0014-browser-navigation-capability-projection.md
   - project/evidence/WP-0014-tenant-role-binding-session-revocation.md
   - project/evidence/WP-0014-tenant-member-directory-lifecycle.md
+  - project/evidence/WP-0014-tenant-role-revocation.md
 nextReviewAt: 2026-08-10
-updatedAt: 2026-08-10T13:45:00+08:00
+updatedAt: 2026-08-10T14:20:00+08:00
 updatedBy: codex

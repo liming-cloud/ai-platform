@@ -10,6 +10,7 @@ public final class TenantMemberSummaryRow {
     private String membershipRole;
     private String status;
     private long permissionVersion;
+    private String builtInRoleCodes;
     private Instant createdAt;
 
     public long getMembershipId() { return membershipId; }
@@ -22,6 +23,8 @@ public final class TenantMemberSummaryRow {
     public void setStatus(String value) { status = value; }
     public long getPermissionVersion() { return permissionVersion; }
     public void setPermissionVersion(long value) { permissionVersion = value; }
+    public String getBuiltInRoleCodes() { return builtInRoleCodes; }
+    public void setBuiltInRoleCodes(String value) { builtInRoleCodes = value; }
     public Instant getCreatedAt() { return createdAt; }
     public void setCreatedAt(Instant value) { createdAt = value; }
 }

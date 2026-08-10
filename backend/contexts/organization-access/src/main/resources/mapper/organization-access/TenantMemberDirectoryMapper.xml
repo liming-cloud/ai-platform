@@ -11,6 +11,12 @@
                membership.membership_role,
                membership.status,
                membership.permission_version,
+               COALESCE((
+                   SELECT string_agg(binding.role_code, ',' ORDER BY binding.role_code)
+                   FROM organization_access.tenant_membership_role_binding binding
+                   WHERE binding.tenant_id = membership.tenant_id
+                     AND binding.membership_id = membership.membership_id
+               ), '') AS built_in_role_codes,
                membership.created_at
         FROM organization_access.tenant_membership membership
         INNER JOIN organization_access.subject_identity subject

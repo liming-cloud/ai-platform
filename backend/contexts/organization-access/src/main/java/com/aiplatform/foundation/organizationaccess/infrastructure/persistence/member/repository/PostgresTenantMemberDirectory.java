@@ -6,6 +6,8 @@ import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.m
 import com.aiplatform.foundation.shared.contract.paging.PageQuery;
 import com.aiplatform.foundation.shared.contract.paging.PageResult;
 import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Objects;
 
 /** PostgreSQL 成员目录读取适配器，只映射当前租户最小投影和分页元数据。 */
@@ -29,8 +31,18 @@ public final class PostgresTenantMemberDirectory implements TenantMemberDirector
                         row.getMembershipRole(),
                         row.getStatus(),
                         row.getPermissionVersion(),
+                        roles(row.getBuiltInRoleCodes()),
                         row.getCreatedAt()))
                 .toList();
         return PageResult.of(items, page, mapper.count(tenantId.value()));
+    }
+
+    private static List<String> roles(String encodedRoles) {
+        if (encodedRoles == null || encodedRoles.isBlank()) {
+            return List.of();
+        }
+        return Arrays.stream(encodedRoles.split(","))
+                .filter(role -> !role.isBlank())
+                .toList();
     }
 }

@@ -35,6 +35,8 @@ export interface TenantMemberSummary {
   membershipRole: string;
   status: "ENABLED" | "DISABLED";
   permissionVersion: number;
+  /** 已绑定的内置角色最多为当前发布目录大小，不属于无界数据平铺。 */
+  builtInRoles: string[];
   createdAt: string;
 }
 
@@ -772,6 +774,32 @@ export class ControlPlaneClient {
     return this.request(
       `/tenant/members/${encodeURIComponent(membershipId)}/enable`,
       { method: "POST" },
+    );
+  }
+
+  /** 角色变更目标由路径指定，租户、操作者和会话均由浏览器会话恢复。 */
+  async bindTenantMemberRole(
+    membershipId: string,
+    role: string,
+  ): Promise<{ membershipId: string; role: string; permissionVersion: number }> {
+    return this.request(
+      `/tenant/members/${encodeURIComponent(membershipId)}/role-bindings`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ role }),
+      },
+    );
+  }
+
+  /** 撤销会使目标成员旧租户会话失效，页面必须先取得明确确认。 */
+  async revokeTenantMemberRole(
+    membershipId: string,
+    role: string,
+  ): Promise<{ membershipId: string; role: string; permissionVersion: number; revokedAt: string }> {
+    return this.request(
+      `/tenant/members/${encodeURIComponent(membershipId)}/role-bindings/${encodeURIComponent(role)}`,
+      { method: "DELETE" },
     );
   }
 

@@ -9,6 +9,8 @@ import com.aiplatform.foundation.organizationaccess.application.authentication.s
 import com.aiplatform.foundation.organizationaccess.application.authorization.port.out.TenantMemberSessionRevoker;
 import com.aiplatform.foundation.organizationaccess.application.authorization.port.out.TenantRoleBindingStore;
 import com.aiplatform.foundation.organizationaccess.application.authorization.service.TenantRoleBindingApplicationService;
+import com.aiplatform.foundation.organizationaccess.application.authorization.port.out.TenantRoleRevocationStore;
+import com.aiplatform.foundation.organizationaccess.application.authorization.service.TenantRoleRevocationApplicationService;
 import com.aiplatform.foundation.organizationaccess.application.authorization.port.out.TenantCustomRoleStore;
 import com.aiplatform.foundation.organizationaccess.application.authorization.service.TenantCustomRoleApplicationService;
 import com.aiplatform.foundation.organizationaccess.application.authorization.port.out.TenantCustomRoleBindingStore;
@@ -154,6 +156,14 @@ public class OrganizationAccessCoreAutoConfiguration {
             TenantRoleBindingStore store,
             TenantMemberSessionRevoker sessions) {
         return new TenantRoleBindingApplicationService(store, sessions, Clock.systemUTC());
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    TenantRoleRevocationApplicationService tenantRoleRevocationApplicationService(
+            TenantRoleRevocationStore store,
+            TenantMemberSessionRevoker sessions) {
+        return new TenantRoleRevocationApplicationService(store, sessions, Clock.systemUTC());
     }
 
     @Bean
