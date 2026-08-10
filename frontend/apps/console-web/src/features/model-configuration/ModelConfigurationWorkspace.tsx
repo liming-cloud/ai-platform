@@ -1,6 +1,12 @@
 import {
   Badge,
   Button,
+  Dialog,
+  DialogActions,
+  DialogBody,
+  DialogContent,
+  DialogSurface,
+  DialogTitle,
   Field,
   Input,
   MessageBar,
@@ -19,6 +25,7 @@ import {
   type ControlPlaneClient,
   type ModelConfiguration,
 } from "../../api/control-plane-client";
+import type { ConsoleRoute } from "../../session/console-route";
 
 interface Failure {
   message: string;
@@ -26,32 +33,45 @@ interface Failure {
 }
 
 type ViewState = "unauthenticated" | "loading" | "ready" | "error";
+type ModelConfigurationRoute = Extract<ConsoleRoute, { task: "configuration" }>;
+type DialogTarget =
+  | { kind: "create" }
+  | { kind: "activate"; configuration: ModelConfiguration }
+  | { kind: "rotate"; configuration: ModelConfiguration };
 
 /**
- * 模型配置控制台只展示目录和配置状态；API Key 只在一次受控写请求中使用，随后立即从页面状态清除。
+ * 模型配置控制台只展示当前分页的目录和配置摘要。API Key 只在单次受控 Dialog 写请求中存在，
+ * 成功或关闭后立即清除；浏览器不累加未查看页面，也不把本地对象作为写后的最终事实。
  */
 export function ModelConfigurationWorkspace({
   client,
+  route,
   sessionRevision,
   onSessionChanged,
+  onRouteChange,
 }: {
   client: ControlPlaneClient;
+  route: ModelConfigurationRoute;
   sessionRevision: number;
   onSessionChanged: () => void;
+  onRouteChange: (route: ConsoleRoute) => void;
 }) {
   const [viewState, setViewState] = useState<ViewState>("unauthenticated");
   const [configurations, setConfigurations] = useState<ModelConfiguration[]>([]);
   const [catalog, setCatalog] = useState<ControlledModelCatalogEntry[]>([]);
-  const [hasNextConfigurationPage, setHasNextConfigurationPage] = useState(false);
-  const [hasNextCatalogPage, setHasNextCatalogPage] = useState(false);
-  const [configurationPageNumber, setConfigurationPageNumber] = useState(1);
-  const [catalogPageNumber, setCatalogPageNumber] = useState(1);
+  const [configurationHasPrevious, setConfigurationHasPrevious] = useState(false);
+  const [configurationHasNext, setConfigurationHasNext] = useState(false);
+  const [configurationTotal, setConfigurationTotal] = useState(0);
+  const [catalogHasPrevious, setCatalogHasPrevious] = useState(false);
+  const [catalogHasNext, setCatalogHasNext] = useState(false);
+  const [catalogTotal, setCatalogTotal] = useState(0);
   const [failure, setFailure] = useState<Failure>();
   const [submitting, setSubmitting] = useState(false);
+  const [dialog, setDialog] = useState<DialogTarget>();
   const [creationDisplayName, setCreationDisplayName] = useState("");
   const [creationApiKey, setCreationApiKey] = useState("");
-  const [rotationApiKeys, setRotationApiKeys] = useState<Record<string, string>>({});
-  const [loadingMore, setLoadingMore] = useState(false);
+  const [creationCatalogEntryId, setCreationCatalogEntryId] = useState("");
+  const [rotationApiKey, setRotationApiKey] = useState("");
 
   const load = useCallback(async () => {
     if (!client.hasSession()) {
@@ -64,21 +84,23 @@ export function ModelConfigurationWorkspace({
     setFailure(undefined);
     try {
       const [configurationPage, catalogPage] = await Promise.all([
-        client.listModelConfigurations(),
-        client.listControlledModelCatalog(),
+        client.listModelConfigurations(route.configurationPage),
+        client.listControlledModelCatalog(route.catalogPage),
       ]);
       setConfigurations(configurationPage.items);
-      setConfigurationPageNumber(configurationPage.pageNumber);
-      setHasNextConfigurationPage(configurationPage.hasNext);
+      setConfigurationHasPrevious(configurationPage.hasPrevious);
+      setConfigurationHasNext(configurationPage.hasNext);
+      setConfigurationTotal(configurationPage.totalElements);
       setCatalog(catalogPage.items);
-      setCatalogPageNumber(catalogPage.pageNumber);
-      setHasNextCatalogPage(catalogPage.hasNext);
+      setCatalogHasPrevious(catalogPage.hasPrevious);
+      setCatalogHasNext(catalogPage.hasNext);
+      setCatalogTotal(catalogPage.totalElements);
       setViewState("ready");
     } catch (error) {
       setFailure(toFailure(error));
       setViewState("error");
     }
-  }, [client]);
+  }, [client, route.catalogPage, route.configurationPage]);
 
   useEffect(() => {
     const timeout = window.setTimeout(() => void load(), 0);
@@ -96,18 +118,29 @@ export function ModelConfigurationWorkspace({
     }
   }
 
+  function openCreation(catalogEntryId?: string) {
+    setCreationCatalogEntryId(catalogEntryId ?? catalog[0]?.id ?? "");
+    setDialog({ kind: "create" });
+  }
+
+  function closeDialog() {
+    if (submitting) {
+      return;
+    }
+    setDialog(undefined);
+    setCreationDisplayName("");
+    setCreationApiKey("");
+    setCreationCatalogEntryId("");
+    setRotationApiKey("");
+  }
+
   async function createConfiguration(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const form = event.currentTarget;
-    const formData = new FormData(form);
+    const formData = new FormData(event.currentTarget);
     const apiKey = creationApiKey;
     const displayName = creationDisplayName;
     const scope = String(formData.get("scope") ?? "PERSONAL") as ModelConfiguration["scope"];
-    const catalogEntryId = String(formData.get("catalogEntryId") ?? "");
-    const modelType = catalog.find((entry) => entry.id === catalogEntryId)?.modelType;
-    form.reset();
-    setCreationDisplayName("");
-    setCreationApiKey("");
+    const catalogEntryId = creationCatalogEntryId;
     if (
       apiKey.trim().length === 0 || displayName.trim().length === 0
       || catalogEntryId.length === 0
@@ -118,28 +151,24 @@ export function ModelConfigurationWorkspace({
     setSubmitting(true);
     setFailure(undefined);
     try {
-      const created = await client.createModelConfiguration({
-        scope,
-        displayName,
-        catalogEntryId,
-        apiKey,
-      });
-      setConfigurations((current) => [{ ...created, modelType: modelType ?? created.modelType }, ...current]);
+      await client.createModelConfiguration({ scope, displayName, catalogEntryId, apiKey });
+      closeDialogAfterSuccess();
+      await load();
     } catch (error) {
       setFailure(toFailure(error));
     } finally {
-      setCreationDisplayName("");
       setCreationApiKey("");
       setSubmitting(false);
     }
   }
 
-  async function activate(modelConfigurationId: string) {
+  async function activate(configuration: ModelConfiguration) {
     setSubmitting(true);
     setFailure(undefined);
     try {
-      const updated = await client.activateModelConfiguration(modelConfigurationId);
-      replaceConfiguration(updated, setConfigurations);
+      await client.activateModelConfiguration(configuration.id);
+      closeDialogAfterSuccess();
+      await load();
     } catch (error) {
       setFailure(toFailure(error));
     } finally {
@@ -147,15 +176,9 @@ export function ModelConfigurationWorkspace({
     }
   }
 
-  async function rotateCredential(
-    event: FormEvent<HTMLFormElement>,
-    modelConfigurationId: string,
-  ) {
+  async function rotateCredential(event: FormEvent<HTMLFormElement>, configuration: ModelConfiguration) {
     event.preventDefault();
-    const form = event.currentTarget;
-    const apiKey = rotationApiKeys[modelConfigurationId] ?? "";
-    form.reset();
-    setRotationApiKeys((current) => ({ ...current, [modelConfigurationId]: "" }));
+    const apiKey = rotationApiKey;
     if (apiKey.trim().length === 0) {
       setFailure({ message: "请输入新的 API Key。", traceId: "" });
       return;
@@ -163,51 +186,31 @@ export function ModelConfigurationWorkspace({
     setSubmitting(true);
     setFailure(undefined);
     try {
-      const updated = await client.rotateModelConfigurationCredential(
-        modelConfigurationId,
-        apiKey,
-      );
-      replaceConfiguration(updated, setConfigurations);
+      await client.rotateModelConfigurationCredential(configuration.id, apiKey);
+      closeDialogAfterSuccess();
+      await load();
     } catch (error) {
       setFailure(toFailure(error));
     } finally {
-      setRotationApiKeys((current) => ({ ...current, [modelConfigurationId]: "" }));
+      setRotationApiKey("");
       setSubmitting(false);
     }
   }
 
-  async function loadMoreConfigurations() {
-    if (!hasNextConfigurationPage || loadingMore) {
-      return;
-    }
-    setLoadingMore(true);
-    try {
-      const page = await client.listModelConfigurations(configurationPageNumber + 1);
-      setConfigurations((current) => [...current, ...page.items]);
-      setConfigurationPageNumber(page.pageNumber);
-      setHasNextConfigurationPage(page.hasNext);
-    } catch (error) {
-      setFailure(toFailure(error));
-    } finally {
-      setLoadingMore(false);
-    }
+  function closeDialogAfterSuccess() {
+    setDialog(undefined);
+    setCreationDisplayName("");
+    setCreationApiKey("");
+    setCreationCatalogEntryId("");
+    setRotationApiKey("");
   }
 
-  async function loadMoreCatalog() {
-    if (!hasNextCatalogPage || loadingMore) {
-      return;
-    }
-    setLoadingMore(true);
-    try {
-      const page = await client.listControlledModelCatalog(catalogPageNumber + 1);
-      setCatalog((current) => [...current, ...page.items]);
-      setCatalogPageNumber(page.pageNumber);
-      setHasNextCatalogPage(page.hasNext);
-    } catch (error) {
-      setFailure(toFailure(error));
-    } finally {
-      setLoadingMore(false);
-    }
+  function changeConfigurationPage(page: number) {
+    onRouteChange({ ...route, configurationPage: page });
+  }
+
+  function changeCatalogPage(page: number) {
+    onRouteChange({ ...route, catalogPage: page });
   }
 
   if (viewState === "unauthenticated") {
@@ -227,7 +230,7 @@ export function ModelConfigurationWorkspace({
       <StatePanel
         kind="loading"
         title="正在加载模型配置"
-        description="正在读取可选模型目录和当前可用配置。"
+        description="正在读取当前页的可选模型目录和配置状态。"
       />
     );
   }
@@ -247,9 +250,7 @@ export function ModelConfigurationWorkspace({
   return (
     <div className="model-configuration-workspace">
       <div className="governance-toolbar">
-        <Text>
-          选择平台发布的模型目录创建个人、租户或平台配置。API Key 只在创建和轮换时写入，之后不可查看。
-        </Text>
+        <Text>配置只引用平台发布目录；API Key 只在创建和轮换时写入，随后不可查看。</Text>
         <div className="task-actions">
           <Button appearance="subtle" icon={<ArrowClockwise20Regular />} onClick={() => void load()}>
             刷新
@@ -264,65 +265,17 @@ export function ModelConfigurationWorkspace({
 
       <section className="model-configuration-section">
         <header className="task-heading">
-          <Title3>创建模型配置</Title3>
-          <Text>模型厂家和能力由平台目录控制；提交后仅显示凭据已配置状态。</Text>
-        </header>
-        <form className="model-configuration-form" onSubmit={createConfiguration}>
-          <Field label="使用范围" required>
-            <Select name="scope" defaultValue="PERSONAL" disabled={submitting}>
-              <option value="PERSONAL">个人</option>
-              <option value="TENANT">租户</option>
-              <option value="PLATFORM">平台</option>
-            </Select>
-          </Field>
-          <Field label="配置名称" required>
-            <Input
-              name="displayName"
-              autoComplete="off"
-              value={creationDisplayName}
-              onChange={(_, data) => setCreationDisplayName(data.value)}
-              disabled={submitting}
-            />
-          </Field>
-          <Field label="平台模型目录" required>
-            <Select name="catalogEntryId" disabled={submitting || catalog.length === 0}>
-              <option value="">请选择已发布模型</option>
-              {catalog.map((entry) => (
-                <option key={entry.id} value={entry.id}>
-                  {entry.modelCode} · {entry.modelType}
-                </option>
-              ))}
-            </Select>
-          </Field>
-          <Field label="API Key" required>
-            <Input
-              name="apiKey"
-              type="password"
-              autoComplete="new-password"
-              value={creationApiKey}
-              onChange={(_, data) => setCreationApiKey(data.value)}
-              disabled={submitting}
-            />
-          </Field>
-          <Button appearance="primary" type="submit" disabled={submitting || catalog.length === 0}>
-            {submitting ? "正在保存" : "保存为草稿"}
+          <div>
+            <Title3>当前模型配置</Title3>
+            <Text>仅展示当前成员在所属租户内可使用的配置及安全状态。</Text>
+          </div>
+          <Button appearance="primary" onClick={() => openCreation()} disabled={catalog.length === 0}>
+            新建模型配置
           </Button>
-        </form>
-        {hasNextCatalogPage ? (
-          <Button appearance="subtle" disabled={loadingMore} onClick={() => void loadMoreCatalog()}>
-            {loadingMore ? "正在加载" : "加载更多可选模型"}
-          </Button>
-        ) : null}
-      </section>
-
-      <section className="model-configuration-section">
-        <header className="task-heading">
-          <Title3>当前模型配置</Title3>
-          <Text>仅展示当前成员在所属租户内可使用的配置及安全状态。</Text>
         </header>
         <div className="model-configuration-list">
           {configurations.length === 0 ? (
-            <Text>尚无可用模型配置。</Text>
+            <Text>本页没有可用模型配置。</Text>
           ) : configurations.map((configuration) => (
             <article className="model-configuration-card" key={configuration.id}>
               <div>
@@ -330,63 +283,163 @@ export function ModelConfigurationWorkspace({
                 <Text>{configuration.scope} · {configuration.modelType}</Text>
               </div>
               <div className="model-configuration-status">
-                <Badge appearance="tint" color={statusColor(configuration.status)}>
-                  {configuration.status}
-                </Badge>
+                <Badge appearance="tint" color={statusColor(configuration.status)}>{configuration.status}</Badge>
                 <Text>{configuration.credentialConfigured ? "凭据已配置" : "未配置凭据"}</Text>
               </div>
               <div className="task-actions">
                 {configuration.status === "DRAFT" && configuration.credentialConfigured ? (
-                  <Button appearance="primary" disabled={submitting} onClick={() => void activate(configuration.id)}>
+                  <Button appearance="primary" disabled={submitting} onClick={() => setDialog({ kind: "activate", configuration })}>
                     启用
                   </Button>
                 ) : null}
-                <form
-                  className="credential-rotation-form"
-                  onSubmit={(event) => void rotateCredential(event, configuration.id)}
-                >
-                  <Input
-                    name="apiKey"
-                    type="password"
-                    autoComplete="new-password"
-                    aria-label={`${configuration.displayName} 的新 API Key`}
-                    placeholder="输入新 API Key"
-                    value={rotationApiKeys[configuration.id] ?? ""}
-                    onChange={(_, data) => setRotationApiKeys((current) => ({
-                      ...current,
-                      [configuration.id]: data.value,
-                    }))}
-                    disabled={submitting}
-                  />
-                  <Button type="submit" disabled={submitting}>
-                    轮换凭据
-                  </Button>
-                </form>
+                <Button disabled={submitting} onClick={() => setDialog({ kind: "rotate", configuration })}>
+                  轮换凭据
+                </Button>
               </div>
             </article>
           ))}
         </div>
-        {hasNextConfigurationPage ? (
-          <Button appearance="subtle" disabled={loadingMore} onClick={() => void loadMoreConfigurations()}>
-            {loadingMore ? "正在加载" : "加载更多配置"}
-          </Button>
-        ) : null}
+        <PageNavigation
+          label="模型配置"
+          page={route.configurationPage}
+          total={configurationTotal}
+          hasPrevious={configurationHasPrevious}
+          hasNext={configurationHasNext}
+          onPrevious={() => changeConfigurationPage(route.configurationPage - 1)}
+          onNext={() => changeConfigurationPage(route.configurationPage + 1)}
+        />
       </section>
+
+      <section className="model-configuration-section">
+        <header className="task-heading">
+          <div>
+            <Title3>平台模型目录</Title3>
+            <Text>目录由平台发布；选择模型后在受控弹窗中建立配置。</Text>
+          </div>
+        </header>
+        <div className="model-configuration-list">
+          {catalog.length === 0 ? (
+            <Text>本页没有可选模型。</Text>
+          ) : catalog.map((entry) => (
+            <article className="model-configuration-card" key={entry.id}>
+              <div>
+                <Title3>{entry.modelCode}</Title3>
+                <Text>{entry.modelType} · {entry.providerKind}</Text>
+              </div>
+              <Button onClick={() => openCreation(entry.id)}>使用此模型</Button>
+            </article>
+          ))}
+        </div>
+        <PageNavigation
+          label="平台模型目录"
+          page={route.catalogPage}
+          total={catalogTotal}
+          hasPrevious={catalogHasPrevious}
+          hasNext={catalogHasNext}
+          onPrevious={() => changeCatalogPage(route.catalogPage - 1)}
+          onNext={() => changeCatalogPage(route.catalogPage + 1)}
+        />
+      </section>
+
+      <Dialog open={dialog?.kind === "create"} onOpenChange={(_, data) => { if (!data.open) closeDialog(); }}>
+        <DialogSurface>
+          <DialogBody>
+            <DialogTitle>新建模型配置</DialogTitle>
+            <form onSubmit={(event) => void createConfiguration(event)}>
+              <DialogContent>
+                <Text>模型和能力来自当前页平台目录；API Key 仅用于本次写入，不会回显。</Text>
+                <Field label="使用范围" required>
+                  <Select name="scope" defaultValue="PERSONAL" disabled={submitting}>
+                    <option value="PERSONAL">个人</option>
+                    <option value="TENANT">租户</option>
+                    <option value="PLATFORM">平台</option>
+                  </Select>
+                </Field>
+                <Field label="配置名称" required>
+                  <Input autoFocus autoComplete="off" value={creationDisplayName} onChange={(_, data) => setCreationDisplayName(data.value)} disabled={submitting} />
+                </Field>
+                <Field label="平台模型目录" required>
+                  <Select value={creationCatalogEntryId} onChange={(_, data) => setCreationCatalogEntryId(data.value)} disabled={submitting || catalog.length === 0}>
+                    <option value="">请选择已发布模型</option>
+                    {catalog.map((entry) => <option key={entry.id} value={entry.id}>{entry.modelCode} · {entry.modelType}</option>)}
+                  </Select>
+                </Field>
+                <Field label="API Key" required>
+                  <Input type="password" autoComplete="new-password" value={creationApiKey} onChange={(_, data) => setCreationApiKey(data.value)} disabled={submitting} />
+                </Field>
+              </DialogContent>
+              <DialogActions>
+                <Button appearance="secondary" type="button" disabled={submitting} onClick={closeDialog}>取消</Button>
+                <Button appearance="primary" type="submit" disabled={submitting || catalog.length === 0}>{submitting ? "正在保存" : "保存为草稿"}</Button>
+              </DialogActions>
+            </form>
+          </DialogBody>
+        </DialogSurface>
+      </Dialog>
+
+      <Dialog open={dialog?.kind === "activate"} onOpenChange={(_, data) => { if (!data.open) closeDialog(); }}>
+        <DialogSurface>
+          <DialogBody>
+            <DialogTitle>确认启用模型配置</DialogTitle>
+            <DialogContent>启用 {dialog?.kind === "activate" ? dialog.configuration.displayName : "该配置"} 后，后续受权调用将使用其当前受控模型能力。</DialogContent>
+            <DialogActions>
+              <Button appearance="secondary" disabled={submitting} onClick={closeDialog}>取消</Button>
+              <Button appearance="primary" disabled={submitting} onClick={() => dialog?.kind === "activate" && void activate(dialog.configuration)}>{submitting ? "正在启用" : "确认启用"}</Button>
+            </DialogActions>
+          </DialogBody>
+        </DialogSurface>
+      </Dialog>
+
+      <Dialog open={dialog?.kind === "rotate"} onOpenChange={(_, data) => { if (!data.open) closeDialog(); }}>
+        <DialogSurface>
+          <DialogBody>
+            <DialogTitle>轮换模型配置凭据</DialogTitle>
+            <form onSubmit={(event) => dialog?.kind === "rotate" && void rotateCredential(event, dialog.configuration)}>
+              <DialogContent>
+                <Text>轮换 {dialog?.kind === "rotate" ? dialog.configuration.displayName : "该配置"} 的凭据会使旧凭据立即失效；新 API Key 不会回显。</Text>
+                <Field label="新的 API Key" required>
+                  <Input autoFocus type="password" autoComplete="new-password" value={rotationApiKey} onChange={(_, data) => setRotationApiKey(data.value)} disabled={submitting} />
+                </Field>
+              </DialogContent>
+              <DialogActions>
+                <Button appearance="secondary" type="button" disabled={submitting} onClick={closeDialog}>取消</Button>
+                <Button appearance="primary" type="submit" disabled={submitting}>{submitting ? "正在轮换" : "确认轮换"}</Button>
+              </DialogActions>
+            </form>
+          </DialogBody>
+        </DialogSurface>
+      </Dialog>
     </div>
   );
 }
 
-function replaceConfiguration(
-  updated: ModelConfiguration,
-  setConfigurations: React.Dispatch<React.SetStateAction<ModelConfiguration[]>>,
-) {
-  setConfigurations((current) => current.map((item) => item.id === updated.id ? updated : item));
+function PageNavigation({
+  label,
+  page,
+  total,
+  hasPrevious,
+  hasNext,
+  onPrevious,
+  onNext,
+}: {
+  label: string;
+  page: number;
+  total: number;
+  hasPrevious: boolean;
+  hasNext: boolean;
+  onPrevious: () => void;
+  onNext: () => void;
+}) {
+  return (
+    <div className="task-actions" aria-label={`${label}分页`}>
+      <Text>{label}：第 {page} 页，共 {total} 条</Text>
+      <Button appearance="subtle" disabled={!hasPrevious} onClick={onPrevious}>上一页</Button>
+      <Button appearance="subtle" disabled={!hasNext} onClick={onNext}>下一页</Button>
+    </div>
+  );
 }
 
-/**
- * Fluent UI 的非受控 `Input` 不保证随原生 `form.reset()` 清空。
- * API Key 即使请求已经发出也不得继续留在浏览器 DOM 中。
- */
+/** Fluent UI 的密码输入在成功、失败与关闭时均被清空，避免秘密留在浏览器状态。 */
 function statusColor(status: ModelConfiguration["status"]): "success" | "warning" | "danger" {
   if (status === "ACTIVE") {
     return "success";

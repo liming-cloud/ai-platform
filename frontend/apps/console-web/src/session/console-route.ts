@@ -11,7 +11,12 @@ export type ConsoleRoute =
     navigationId: "data";
     task: "governed-file" | "structured-dataset" | "object-storage" | "first-publication";
   }
-  | { navigationId: "models"; task: "configuration" }
+  | {
+    navigationId: "models";
+    task: "configuration";
+    configurationPage: number;
+    catalogPage: number;
+  }
   | {
     navigationId: "models";
     task: "providers";
@@ -26,7 +31,8 @@ export type ConsoleRoute =
     candidatePage: number;
     deploymentPage: number;
   }
-  | { navigationId: "governance"; task: "query" | "evaluation" }
+  | { navigationId: "governance"; task: "query"; auditPage: number }
+  | { navigationId: "governance"; task: "evaluation" }
   | { navigationId: "query"; task: "ask" }
   | { navigationId: "platform"; task: "tenants" };
 
@@ -44,9 +50,9 @@ export function defaultConsoleRoute(navigationId: ConsoleNavigationId): ConsoleR
     case "data":
       return { navigationId, task: "governed-file" };
     case "models":
-      return { navigationId, task: "configuration" };
+      return { navigationId, task: "configuration", configurationPage: 1, catalogPage: 1 };
     case "governance":
-      return { navigationId, task: "query" };
+      return { navigationId, task: "query", auditPage: 1 };
     case "query":
       return { navigationId, task: "ask" };
     case "platform":
@@ -80,7 +86,13 @@ export function parseConsoleRoute(pathname: string, search: string): ConsoleRout
     return { navigationId: "data", task: "first-publication" };
   }
   if (routePath === "/models/configurations") {
-    return { navigationId: "models", task: "configuration" };
+    const parameters = new URLSearchParams(search);
+    return {
+      navigationId: "models",
+      task: "configuration",
+      configurationPage: positivePage(parameters.get("configurationPage")),
+      catalogPage: positivePage(parameters.get("catalogPage")),
+    };
   }
   if (routePath === "/models/providers") {
     const parameters = new URLSearchParams(search);
@@ -103,7 +115,11 @@ export function parseConsoleRoute(pathname: string, search: string): ConsoleRout
     };
   }
   if (routePath === "/governance/query") {
-    return { navigationId: "governance", task: "query" };
+    return {
+      navigationId: "governance",
+      task: "query",
+      auditPage: positivePage(new URLSearchParams(search).get("auditPage")),
+    };
   }
   if (routePath === "/governance/evaluation") {
     return { navigationId: "governance", task: "evaluation" };
@@ -133,13 +149,15 @@ export function formatConsoleRoute(route: ConsoleRoute): string {
   }
   if (route.navigationId === "models") {
     return route.task === "configuration"
-      ? "/models/configurations"
+      ? formatConfigurationRoute(route)
       : route.task === "providers"
         ? formatProviderRoute(route)
         : formatDeploymentRoute(route);
   }
   if (route.navigationId === "governance") {
-    return route.task === "query" ? "/governance/query" : "/governance/evaluation";
+    return route.task === "query"
+      ? `/governance/query?auditPage=${route.auditPage}`
+      : "/governance/evaluation";
   }
   if (route.navigationId === "query") {
     return "/ask";
@@ -186,6 +204,13 @@ function formatProviderRoute(route: Extract<ConsoleRoute, { task: "providers" }>
   }
   parameters.set("discoveryPage", String(route.discoveryPage));
   return `/models/providers?${parameters}`;
+}
+
+function formatConfigurationRoute(route: Extract<ConsoleRoute, { task: "configuration" }>): string {
+  const parameters = new URLSearchParams();
+  parameters.set("configurationPage", String(route.configurationPage));
+  parameters.set("catalogPage", String(route.catalogPage));
+  return `/models/configurations?${parameters}`;
 }
 
 function formatDeploymentRoute(route: Extract<ConsoleRoute, { task: "deployments" }>): string {

@@ -11,8 +11,9 @@ resume-context:
 	python3 scripts/project_governance.py resume
 
 architecture-guard:
-	python3 -m unittest scripts.quality.test_backend_architecture_guard
+	python3 -m unittest scripts.quality.test_backend_architecture_guard scripts.quality.test_frontend_product_guard
 	python3 scripts/quality/backend_architecture_guard.py verify
+	python3 scripts/quality/frontend_product_guard.py verify
 
 backend-test:
 	./mvnw -q clean test

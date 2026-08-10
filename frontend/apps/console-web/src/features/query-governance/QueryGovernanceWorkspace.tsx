@@ -20,6 +20,7 @@ import {
   type QueryAuditRecord,
   type QueryUsage,
 } from "../../api/control-plane-client";
+import type { ConsoleRoute } from "../../session/console-route";
 import {
   isOperationsStale,
   resolveOperationsViewState,
@@ -34,21 +35,25 @@ interface Failure {
 
 export function QueryGovernanceWorkspace({
   client,
+  route,
   sessionRevision,
   onSessionChanged,
+  onRouteChange,
 }: {
   client: ControlPlaneClient;
+  route: Extract<ConsoleRoute, { task: "query" }>;
   sessionRevision: number;
   onSessionChanged: () => void;
+  onRouteChange: (route: ConsoleRoute) => void;
 }) {
   const [viewState, setViewState] =
     useState<OperationsViewState>("unauthenticated");
   const [usage, setUsage] = useState<QueryUsage>();
   const [records, setRecords] = useState<QueryAuditRecord[]>([]);
-  const [auditPageNumber, setAuditPageNumber] = useState(1);
+  const [hasPreviousAuditPage, setHasPreviousAuditPage] = useState(false);
   const [hasNextAuditPage, setHasNextAuditPage] = useState(false);
+  const [auditTotal, setAuditTotal] = useState(0);
   const [failure, setFailure] = useState<Failure>();
-  const [loadingMore, setLoadingMore] = useState(false);
   const [loadedAt, setLoadedAt] = useState(0);
 
   const load = useCallback(async () => {
@@ -56,15 +61,16 @@ export function QueryGovernanceWorkspace({
       setViewState("unauthenticated");
       setUsage(undefined);
       setRecords([]);
-      setAuditPageNumber(1);
+      setHasPreviousAuditPage(false);
       setHasNextAuditPage(false);
+      setAuditTotal(0);
       return;
     }
     setViewState("loading");
     setFailure(undefined);
     const [usageResult, auditResult] = await Promise.allSettled([
       client.getQueryUsage(),
-      client.listQueryAuditRecords(1, 20),
+      client.listQueryAuditRecords(route.auditPage, 20),
     ]);
     setLoadedAt(Date.now());
     if (usageResult.status === "fulfilled") {
@@ -74,12 +80,14 @@ export function QueryGovernanceWorkspace({
     }
     if (auditResult.status === "fulfilled") {
       setRecords(auditResult.value.items);
-      setAuditPageNumber(auditResult.value.pageNumber);
+      setHasPreviousAuditPage(auditResult.value.hasPrevious);
       setHasNextAuditPage(auditResult.value.hasNext);
+      setAuditTotal(auditResult.value.totalElements);
     } else {
       setRecords([]);
-      setAuditPageNumber(1);
+      setHasPreviousAuditPage(false);
       setHasNextAuditPage(false);
+      setAuditTotal(0);
     }
     const failures = [usageResult, auditResult]
       .filter((result) => result.status === "rejected")
@@ -95,7 +103,7 @@ export function QueryGovernanceWorkspace({
       auditResult.status === "fulfilled",
       failures.map((item) => item.code),
     ));
-  }, [client]);
+  }, [client, route.auditPage]);
 
   useEffect(() => {
     const timeout = window.setTimeout(() => void load(), 0);
@@ -110,29 +118,9 @@ export function QueryGovernanceWorkspace({
       setViewState("unauthenticated");
       setUsage(undefined);
       setRecords([]);
-      setAuditPageNumber(1);
+      setHasPreviousAuditPage(false);
       setHasNextAuditPage(false);
-    }
-  }
-
-  async function loadMore() {
-    if (!hasNextAuditPage || loadingMore) {
-      return;
-    }
-    setLoadingMore(true);
-    try {
-      const page = await client.listQueryAuditRecords(
-        auditPageNumber + 1,
-        20,
-      );
-      setRecords((current) => [...current, ...page.items]);
-      setAuditPageNumber(page.pageNumber);
-      setHasNextAuditPage(page.hasNext);
-    } catch (error) {
-      setFailure(toFailure(error));
-      setViewState("partial");
-    } finally {
-      setLoadingMore(false);
+      setAuditTotal(0);
     }
   }
 
@@ -221,9 +209,12 @@ export function QueryGovernanceWorkspace({
       {usage ? <UsageSummary usage={usage} /> : null}
       <AuditRecords
         records={records}
-        hasMore={hasNextAuditPage}
-        loadingMore={loadingMore}
-        onLoadMore={loadMore}
+        page={route.auditPage}
+        total={auditTotal}
+        hasPrevious={hasPreviousAuditPage}
+        hasNext={hasNextAuditPage}
+        onPrevious={() => onRouteChange({ ...route, auditPage: route.auditPage - 1 })}
+        onNext={() => onRouteChange({ ...route, auditPage: route.auditPage + 1 })}
       />
     </div>
   );
@@ -302,14 +293,20 @@ function QuotaLine({
 
 function AuditRecords({
   records,
-  hasMore,
-  loadingMore,
-  onLoadMore,
+  page,
+  total,
+  hasPrevious,
+  hasNext,
+  onPrevious,
+  onNext,
 }: {
   records: QueryAuditRecord[];
-  hasMore: boolean;
-  loadingMore: boolean;
-  onLoadMore: () => void;
+  page: number;
+  total: number;
+  hasPrevious: boolean;
+  hasNext: boolean;
+  onPrevious: () => void;
+  onNext: () => void;
 }) {
   return (
     <section className="operations-section" aria-labelledby="audit-heading">
@@ -359,17 +356,11 @@ function AuditRecords({
               </tbody>
             </table>
           </div>
-          {hasMore ? (
-            <Button
-              appearance="secondary"
-              disabled={loadingMore}
-              onClick={onLoadMore}
-            >
-              {loadingMore ? "正在加载" : "加载更多"}
-            </Button>
-          ) : (
-            <Text size={200}>已显示全部审计记录</Text>
-          )}
+          <div className="task-actions" aria-label="脱敏查询审计分页">
+            <Text size={200}>第 {page} 页，共 {total} 条审计记录</Text>
+            <Button appearance="secondary" disabled={!hasPrevious} onClick={onPrevious}>上一页</Button>
+            <Button appearance="secondary" disabled={!hasNext} onClick={onNext}>下一页</Button>
+          </div>
         </>
       )}
     </section>

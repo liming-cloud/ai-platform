@@ -11,7 +11,27 @@ describe("统一控制台路由", () => {
     expect(defaultConsoleRoute("models")).toEqual({
       navigationId: "models",
       task: "configuration",
+      configurationPage: 1,
+      catalogPage: 1,
     });
+  });
+
+  it("模型配置和受控目录分别从 URL 恢复服务端页码", () => {
+    expect(parseConsoleRoute(
+      "/models/configurations",
+      "?configurationPage=3&catalogPage=2",
+    )).toEqual({
+      navigationId: "models",
+      task: "configuration",
+      configurationPage: 3,
+      catalogPage: 2,
+    });
+    expect(formatConsoleRoute({
+      navigationId: "models",
+      task: "configuration",
+      configurationPage: 3,
+      catalogPage: 2,
+    })).toBe("/models/configurations?configurationPage=3&catalogPage=2");
   });
 
   it("成员与权限目录把服务端页码稳定恢复到 URL", () => {
@@ -78,6 +98,19 @@ describe("统一控制台路由", () => {
       candidatePage: 2,
       deploymentPage: 3,
     })).toBe("/models/deployments?connectionId=610000000000000001&candidatePage=2&deploymentPage=3");
+  });
+
+  it("查询审计目录从深链接恢复页码，而不是累加到浏览器内存", () => {
+    expect(parseConsoleRoute("/governance/query", "?auditPage=4")).toEqual({
+      navigationId: "governance",
+      task: "query",
+      auditPage: 4,
+    });
+    expect(formatConsoleRoute({
+      navigationId: "governance",
+      task: "query",
+      auditPage: 4,
+    })).toBe("/governance/query?auditPage=4");
   });
 
   it("不以其他可见入口替代无权访问的平台治理深链接", () => {

@@ -359,8 +359,10 @@ function AuthenticatedConsoleApp({
             {route.navigationId === "models" && route.task === "configuration" ? (
               <ModelConfigurationWorkspace
                 client={client}
+                route={route}
                 sessionRevision={sessionRevision}
                 onSessionChanged={sessionChanged}
+                onRouteChange={navigate}
               />
             ) : route.navigationId === "models" && route.task === "providers" ? (
               <ModelProviderWorkspace
@@ -391,7 +393,7 @@ function AuthenticatedConsoleApp({
         {governanceActive ? (
           <>
             <div className="data-task-switcher" aria-label="治理任务切换">
-              <Button appearance={route.navigationId === "governance" && route.task === "query" ? "primary" : "subtle"} onClick={() => navigate({ navigationId: "governance", task: "query" })}>
+              <Button appearance={route.navigationId === "governance" && route.task === "query" ? "primary" : "subtle"} onClick={() => navigate({ navigationId: "governance", task: "query", auditPage: 1 })}>
                 查询用量与审计
               </Button>
               <Button appearance={route.navigationId === "governance" && route.task === "evaluation" ? "primary" : "subtle"} onClick={() => navigate({ navigationId: "governance", task: "evaluation" })}>
@@ -400,7 +402,13 @@ function AuthenticatedConsoleApp({
             </div>
             {route.navigationId === "governance" && route.task === "query" ? (
               <Suspense fallback={<StatePanel kind="loading" title="正在加载治理工作区" description="正在准备查询用量和脱敏审计视图。" />}>
-                <QueryGovernanceWorkspace client={client} sessionRevision={sessionRevision} onSessionChanged={sessionChanged} />
+                <QueryGovernanceWorkspace
+                  client={client}
+                  route={route}
+                  sessionRevision={sessionRevision}
+                  onSessionChanged={sessionChanged}
+                  onRouteChange={navigate}
+                />
               </Suspense>
             ) : (
               <Suspense fallback={<StatePanel kind="loading" title="正在加载评测任务" description="正在准备受限评测运行入口。" />}>
