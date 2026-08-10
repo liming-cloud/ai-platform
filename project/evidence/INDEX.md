@@ -280,6 +280,7 @@
 | M6 租户厂商连接凭据生命周期 | `project/evidence/WP-0014-provider-connection-credential-lifecycle.md` | 本次提交 | API Key 仅写入、连接自有密文、轮换失效、真实 PostgreSQL 回滚、无秘密 HTTP、自动配置和服务端分页弹窗控制台通过；本机 HTTPS 入口健康，人工浏览器操作仍待可调用连接器，M6 仍进行中。 |
 | M6 模型发现、部署与能力验证供应链 | `project/evidence/WP-0014-provider-model-deployment-supply-chain.md` | 本次提交 | 当前修订、未过期候选服务端分页，草稿、探测、`PT24H` 有效期和发布控制台闭环通过；容器 HTTPS 健康与未认证失败关闭已复核，真实浏览器角色任务仍待人工验收，M6 仍进行中。 |
 | M6 自定义角色生命周期、目录与导航预览 | `project/evidence/WP-0014-tenant-custom-role-lifecycle-and-directory.md` | 本次提交 | 修改／停用／解绑、最后管理员保护、权限修订和旧会话撤销，真实 PostgreSQL、HTTP、自动配置、服务端分页和模态控制台均通过；ADR-0061 的全局账户治理仍未接受。 |
+| M6 浏览器 TLS 前置条件复核 | `project/evidence/WP-0014-browser-tls-preflight.md` | 本次提交 | 浏览器在标准 TLS 校验下拒绝本地未受信任证书；不安装 CA、不绕过 HTTPS，正式浏览器角色证据待受信任部署环境续证。 |
 
 ## 证据规则
 
