@@ -290,7 +290,7 @@ function AuthenticatedConsoleApp({
           </Button>
           <Button
             appearance={route.navigationId === "data" && route.task === "object-storage" ? "primary" : "subtle"}
-            onClick={() => navigate({ navigationId: "data", task: "object-storage" })}
+            onClick={() => navigate({ navigationId: "data", task: "object-storage", knowledgeSpacePage: 1 })}
           >
             对象存储范围登记
           </Button>
@@ -325,8 +325,10 @@ function AuthenticatedConsoleApp({
           <Suspense fallback={<StatePanel kind="loading" title="正在加载对象存储任务" description="正在准备平台签发范围登记流程。" />}>
             <ObjectStorageDataWorkspace
               client={client}
+              route={route}
               sessionRevision={sessionRevision}
               onSessionChanged={sessionChanged}
+              onRouteChange={navigate}
             />
           </Suspense>
         ) : (

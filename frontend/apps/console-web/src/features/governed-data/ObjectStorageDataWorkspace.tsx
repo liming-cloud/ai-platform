@@ -19,7 +19,9 @@ import {
   type IndexVersion,
   type KnowledgeSpace,
 } from "../../api/control-plane-client";
+import type { ConsoleRoute } from "../../session/console-route";
 import { modelRuntimeFailure, requiresSessionRestart } from "./GovernedFileDataWorkspace";
+import { PagedResourceNavigation } from "../shared/PagedResourceNavigation";
 
 interface Failure {
   message: string;
@@ -35,16 +37,22 @@ type ViewState = "unauthenticated" | "loading" | "ready" | "error";
  */
 export function ObjectStorageDataWorkspace({
   client,
+  route,
   sessionRevision,
   onSessionChanged,
+  onRouteChange,
 }: {
   client: ControlPlaneClient;
+  route: Extract<ConsoleRoute, { task: "object-storage" }>;
   sessionRevision: number;
   onSessionChanged: () => void;
+  onRouteChange: (route: ConsoleRoute) => void;
 }) {
   const [viewState, setViewState] = useState<ViewState>("unauthenticated");
   const [spaces, setSpaces] = useState<KnowledgeSpace[]>([]);
-  const [knowledgeSpaceId, setKnowledgeSpaceId] = useState("");
+  const [spaceHasPrevious, setSpaceHasPrevious] = useState(false);
+  const [spaceHasNext, setSpaceHasNext] = useState(false);
+  const [spaceTotal, setSpaceTotal] = useState(0);
   const [name, setName] = useState("");
   const [rangeId, setRangeId] = useState("");
   const [selectionRevision, setSelectionRevision] = useState("");
@@ -57,10 +65,13 @@ export function ObjectStorageDataWorkspace({
   const [synchronizing, setSynchronizing] = useState(false);
   const [publishing, setPublishing] = useState(false);
   const [buildingIndex, setBuildingIndex] = useState(false);
+  const knowledgeSpaceId = route.knowledgeSpaceId ?? "";
 
   const resetProtectedTaskState = useCallback(() => {
     setSpaces([]);
-    setKnowledgeSpaceId("");
+    setSpaceHasPrevious(false);
+    setSpaceHasNext(false);
+    setSpaceTotal(0);
     setName("");
     setRangeId("");
     setSelectionRevision("");
@@ -89,9 +100,17 @@ export function ObjectStorageDataWorkspace({
     setViewState("loading");
     setFailure(undefined);
     try {
-      const page = await client.listKnowledgeSpaces();
+      const page = await client.listKnowledgeSpaces(route.knowledgeSpacePage);
+      const selectedKnowledgeSpaceId = page.items.some((space) => space.id === knowledgeSpaceId)
+        ? knowledgeSpaceId
+        : page.items[0]?.id;
       setSpaces(page.items);
-      setKnowledgeSpaceId((current) => current || page.items[0]?.id || "");
+      setSpaceHasPrevious(page.hasPrevious);
+      setSpaceHasNext(page.hasNext);
+      setSpaceTotal(page.totalElements);
+      if (selectedKnowledgeSpaceId !== undefined && selectedKnowledgeSpaceId !== knowledgeSpaceId) {
+        onRouteChange({ ...route, knowledgeSpaceId: selectedKnowledgeSpaceId });
+      }
       setViewState("ready");
     } catch (error) {
       if (!restartExpiredSession(error)) {
@@ -99,7 +118,7 @@ export function ObjectStorageDataWorkspace({
         setViewState("error");
       }
     }
-  }, [client, resetProtectedTaskState, restartExpiredSession]);
+  }, [client, knowledgeSpaceId, onRouteChange, resetProtectedTaskState, restartExpiredSession, route]);
 
   useEffect(() => {
     const timeout = window.setTimeout(() => void load(), 0);
@@ -296,7 +315,32 @@ export function ObjectStorageDataWorkspace({
         <section className="governed-file-section">
           <header className="task-heading"><Title3>登记平台对象存储范围</Title3><Text>范围标识由部署签发；控制台不会枚举平台范围或读取其内部位置。</Text></header>
           <form className="governed-file-form" onSubmit={register}>
-            <Field label="知识空间" required><Select value={knowledgeSpaceId} disabled={submitting || source !== undefined} onChange={(_, data) => setKnowledgeSpaceId(data.value)}>{spaces.map((space) => <option key={space.id} value={space.id}>{space.name}</option>)}</Select></Field>
+            <Field label="知识空间" required><Select value={knowledgeSpaceId} disabled={submitting || source !== undefined} onChange={(_, data) => {
+              setSource(undefined);
+              setPublishedArtifactId(undefined);
+              setIndexVersion(undefined);
+              onRouteChange({ ...route, knowledgeSpaceId: data.value || undefined });
+            }}>{spaces.map((space) => <option key={space.id} value={space.id}>{space.name}</option>)}</Select></Field>
+            <PagedResourceNavigation
+              label="知识空间"
+              page={route.knowledgeSpacePage}
+              total={spaceTotal}
+              hasPrevious={spaceHasPrevious}
+              hasNext={spaceHasNext}
+              disabled={submitting || source !== undefined}
+              onPrevious={() => {
+                setSource(undefined);
+                setPublishedArtifactId(undefined);
+                setIndexVersion(undefined);
+                onRouteChange({ ...route, knowledgeSpacePage: route.knowledgeSpacePage - 1, knowledgeSpaceId: undefined });
+              }}
+              onNext={() => {
+                setSource(undefined);
+                setPublishedArtifactId(undefined);
+                setIndexVersion(undefined);
+                onRouteChange({ ...route, knowledgeSpacePage: route.knowledgeSpacePage + 1, knowledgeSpaceId: undefined });
+              }}
+            />
             <Field label="来源名称" required><input className="governed-file-name" value={name} disabled={submitting || source !== undefined} onChange={(event) => setName(event.target.value)} /></Field>
             <Field label="平台签发范围标识" required><input className="governed-file-name" value={rangeId} disabled={submitting || source !== undefined} onChange={(event) => setRangeId(event.target.value)} /></Field>
             <Field label="范围选择修订" required><input className="governed-file-name" inputMode="numeric" value={selectionRevision} disabled={submitting || source !== undefined} onChange={(event) => setSelectionRevision(event.target.value)} /></Field>

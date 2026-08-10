@@ -22,7 +22,13 @@ export type ConsoleRoute =
   }
   | {
     navigationId: "data";
-    task: "object-storage" | "first-publication";
+    task: "object-storage";
+    knowledgeSpacePage: number;
+    knowledgeSpaceId?: string;
+  }
+  | {
+    navigationId: "data";
+    task: "first-publication";
   }
   | {
     navigationId: "models";
@@ -111,7 +117,13 @@ export function parseConsoleRoute(pathname: string, search: string): ConsoleRout
     };
   }
   if (routePath === "/data/object-storage") {
-    return { navigationId: "data", task: "object-storage" };
+    const parameters = new URLSearchParams(search);
+    return {
+      navigationId: "data",
+      task: "object-storage",
+      knowledgeSpacePage: positivePage(parameters.get("knowledgeSpacePage")),
+      knowledgeSpaceId: nonBlankParameter(parameters.get("knowledgeSpaceId")),
+    };
   }
   if (routePath === "/data/publication") {
     return { navigationId: "data", task: "first-publication" };
@@ -179,7 +191,7 @@ export function formatConsoleRoute(route: ConsoleRoute): string {
       : route.task === "structured-dataset"
         ? formatStructuredDatasetRoute(route)
         : route.task === "object-storage"
-          ? "/data/object-storage"
+          ? formatObjectStorageRoute(route)
           : "/data/publication";
   }
   if (route.navigationId === "models") {
@@ -265,6 +277,15 @@ function formatStructuredDatasetRoute(route: Extract<ConsoleRoute, { task: "stru
     parameters.set("knowledgeSpaceId", route.knowledgeSpaceId);
   }
   return `/data/datasets?${parameters}`;
+}
+
+function formatObjectStorageRoute(route: Extract<ConsoleRoute, { task: "object-storage" }>): string {
+  const parameters = new URLSearchParams();
+  parameters.set("knowledgeSpacePage", String(route.knowledgeSpacePage));
+  if (route.knowledgeSpaceId !== undefined) {
+    parameters.set("knowledgeSpaceId", route.knowledgeSpaceId);
+  }
+  return `/data/object-storage?${parameters}`;
 }
 
 function formatDeploymentRoute(route: Extract<ConsoleRoute, { task: "deployments" }>): string {
