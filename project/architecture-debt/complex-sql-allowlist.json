@@ -618,6 +618,84 @@
       "statementId": "insert",
       "category": "ATOMIC_STATE_TRANSITION",
       "reason": "在成员建立事务内写入无隐式权限的普通成员资格。"
+    },
+    {
+      "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/TenantCustomRoleBindingMapper.xml",
+      "statementId": "deleteBinding",
+      "category": "ATOMIC_STATE_TRANSITION",
+      "reason": "按可信租户、成员和角色原子解除绑定，避免跨租户删除。"
+    },
+    {
+      "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/TenantCustomRoleBindingMapper.xml",
+      "statementId": "countAccessManageAfterRevocation",
+      "category": "SECURITY_PROJECTION",
+      "reason": "投影解除指定自定义角色后目标成员是否仍具访问管理能力。"
+    },
+    {
+      "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/TenantCustomRoleBindingMapper.xml",
+      "statementId": "countOtherEnabledAccessManagers",
+      "category": "SECURITY_PROJECTION",
+      "reason": "统计同租户其他启用访问管理员，保护最后管理员不变量。"
+    },
+    {
+      "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/TenantCustomRoleLifecycleMapper.xml",
+      "statementId": "lockActiveRole",
+      "category": "ROW_LOCK",
+      "reason": "变更或停用前锁定当前租户活动角色，保证生命周期一致性。"
+    },
+    {
+      "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/TenantCustomRoleLifecycleMapper.xml",
+      "statementId": "findPermissionCodes",
+      "category": "SECURITY_PROJECTION",
+      "reason": "读取锁定角色的已发布权限集合，用于重建不可变角色快照。"
+    },
+    {
+      "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/TenantCustomRoleLifecycleMapper.xml",
+      "statementId": "lockEnabledBoundMembers",
+      "category": "ROW_LOCK",
+      "reason": "锁定受影响启用成员，保证权限修订与角色变化同一事务提交。"
+    },
+    {
+      "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/TenantCustomRoleLifecycleMapper.xml",
+      "statementId": "countEnabledAccessManagersAfterChange",
+      "category": "SECURITY_PROJECTION",
+      "reason": "按候选权限集合投影有效访问管理员数量，拒绝移除最后管理员。"
+    },
+    {
+      "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/TenantCustomRoleLifecycleMapper.xml",
+      "statementId": "updateRole",
+      "category": "ATOMIC_STATE_TRANSITION",
+      "reason": "在锁定事务内原子写入角色状态与版本，禁止半成品生命周期变化。"
+    },
+    {
+      "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/TenantCustomRoleLifecycleMapper.xml",
+      "statementId": "deletePermissions",
+      "category": "ATOMIC_STATE_TRANSITION",
+      "reason": "作为角色权限快照替换的一部分删除旧权限，依赖事务回滚保护。"
+    },
+    {
+      "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/TenantCustomRoleLifecycleMapper.xml",
+      "statementId": "insertPermission",
+      "category": "ATOMIC_STATE_TRANSITION",
+      "reason": "作为角色权限快照替换的一部分写入新权限，禁止脱离角色提交。"
+    },
+    {
+      "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/TenantCustomRoleLifecycleMapper.xml",
+      "statementId": "revisePermissionVersion",
+      "category": "ATOMIC_STATE_TRANSITION",
+      "reason": "原子提升受影响成员权限修订，使旧租户会话立即失效。"
+    },
+    {
+      "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/TenantCustomRoleDirectoryMapper.xml",
+      "statementId": "selectPage",
+      "category": "SECURITY_PROJECTION",
+      "reason": "按可信租户分页投影角色、固定权限集合和绑定计数，不读取成员身份。"
+    },
+    {
+      "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/TenantCustomRoleDirectoryMapper.xml",
+      "statementId": "count",
+      "category": "SECURITY_PROJECTION",
+      "reason": "使用与角色目录相同的租户范围计算总数，避免分页元数据跨租户泄露。"
     }
   ]
 }

@@ -28,4 +28,21 @@ public interface TenantCustomRoleBindingMapper {
             @Param("membershipId") long membershipId,
             @Param("customRoleId") long customRoleId,
             @Param("boundAt") Instant boundAt);
+
+    /** 删除当前租户成员的一项自定义角色绑定。 */
+    int deleteBinding(
+            @Param("tenantId") long tenantId,
+            @Param("membershipId") long membershipId,
+            @Param("customRoleId") long customRoleId);
+
+    /** 返回删除指定绑定后目标成员是否仍拥有有效 `access:manage`。 */
+    int countAccessManageAfterRevocation(
+            @Param("tenantId") long tenantId,
+            @Param("membershipId") long membershipId,
+            @Param("revokedCustomRoleId") long revokedCustomRoleId);
+
+    /** 返回同租户内除目标外当前拥有有效 `access:manage` 的启用成员数量。 */
+    long countOtherEnabledAccessManagers(
+            @Param("tenantId") long tenantId,
+            @Param("membershipId") long membershipId);
 }

@@ -11,6 +11,9 @@ import com.aiplatform.foundation.organizationaccess.application.authorization.po
 import com.aiplatform.foundation.organizationaccess.application.authorization.port.out.TenantRoleRevocationStore;
 import com.aiplatform.foundation.organizationaccess.application.authorization.port.out.TenantCustomRoleStore;
 import com.aiplatform.foundation.organizationaccess.application.authorization.port.out.TenantCustomRoleBindingStore;
+import com.aiplatform.foundation.organizationaccess.application.authorization.port.out.TenantCustomRoleBindingRevocationStore;
+import com.aiplatform.foundation.organizationaccess.application.authorization.port.out.TenantCustomRoleLifecycleStore;
+import com.aiplatform.foundation.organizationaccess.application.authorization.port.out.TenantCustomRoleDirectory;
 import com.aiplatform.foundation.organizationaccess.application.member.port.out.TenantMemberStatusStore;
 import com.aiplatform.foundation.organizationaccess.application.member.port.out.TenantMemberDirectory;
 import com.aiplatform.foundation.organizationaccess.application.member.port.out.TenantMemberEstablishmentStore;
@@ -22,7 +25,12 @@ import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.a
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.authorization.mapper.TenantCustomRoleMapper;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.authorization.repository.PostgresTenantCustomRoleStore;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.authorization.mapper.TenantCustomRoleBindingMapper;
+import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.authorization.mapper.TenantCustomRoleLifecycleMapper;
+import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.authorization.mapper.TenantCustomRoleDirectoryMapper;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.authorization.repository.PostgresTenantCustomRoleBindingStore;
+import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.authorization.repository.PostgresTenantCustomRoleBindingRevocationStore;
+import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.authorization.repository.PostgresTenantCustomRoleLifecycleStore;
+import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.authorization.repository.PostgresTenantCustomRoleDirectory;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.identity.mapper.SubjectIdentityMapper;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.identity.repository.PostgresSubjectIdentityRepository;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.membership.mapper.TenantMembershipMapper;
@@ -59,6 +67,8 @@ import org.springframework.context.annotation.Bean;
     PlatformAccessGrantMapper.class,
     TenantCustomRoleMapper.class,
     TenantCustomRoleBindingMapper.class,
+    TenantCustomRoleLifecycleMapper.class,
+    TenantCustomRoleDirectoryMapper.class,
     TenantRoleBindingMapper.class,
     SubjectIdentityMapper.class,
     TenantMembershipMapper.class,
@@ -128,10 +138,30 @@ public class OrganizationAccessPersistenceAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
+    TenantCustomRoleDirectory tenantCustomRoleDirectory(TenantCustomRoleDirectoryMapper mapper) {
+        return new PostgresTenantCustomRoleDirectory(mapper);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
     TenantCustomRoleBindingStore tenantCustomRoleBindingStore(
             TenantRoleBindingMapper membershipMapper,
             TenantCustomRoleBindingMapper mapper) {
         return new PostgresTenantCustomRoleBindingStore(membershipMapper, mapper);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    TenantCustomRoleBindingRevocationStore tenantCustomRoleBindingRevocationStore(
+            TenantRoleBindingMapper membershipMapper,
+            TenantCustomRoleBindingMapper mapper) {
+        return new PostgresTenantCustomRoleBindingRevocationStore(membershipMapper, mapper);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    TenantCustomRoleLifecycleStore tenantCustomRoleLifecycleStore(TenantCustomRoleLifecycleMapper mapper) {
+        return new PostgresTenantCustomRoleLifecycleStore(mapper);
     }
 
     @Bean

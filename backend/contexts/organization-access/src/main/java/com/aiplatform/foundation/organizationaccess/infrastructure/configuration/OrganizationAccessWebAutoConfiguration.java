@@ -6,6 +6,7 @@ import com.aiplatform.foundation.organizationaccess.interfaces.web.authenticatio
 import com.aiplatform.foundation.organizationaccess.interfaces.web.tenantlifecycle.controller.TenantLifecycleController;
 import com.aiplatform.foundation.organizationaccess.interfaces.web.authorization.controller.TenantCustomRoleController;
 import com.aiplatform.foundation.organizationaccess.interfaces.web.authorization.controller.TenantCustomRoleBindingController;
+import com.aiplatform.foundation.organizationaccess.interfaces.web.authorization.controller.TenantCustomRoleBindingRevocationController;
 import com.aiplatform.foundation.organizationaccess.interfaces.web.authorization.controller.TenantRoleBindingController;
 import com.aiplatform.foundation.organizationaccess.interfaces.web.member.controller.TenantMemberStatusController;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
@@ -26,6 +27,7 @@ import org.springframework.context.annotation.Import;
     TenantLifecycleController.class,
     TenantCustomRoleController.class,
     TenantCustomRoleBindingController.class,
+    TenantCustomRoleBindingRevocationController.class,
     TenantRoleBindingController.class,
     TenantMemberStatusController.class
 })

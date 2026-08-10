@@ -15,6 +15,12 @@ import com.aiplatform.foundation.organizationaccess.application.authorization.po
 import com.aiplatform.foundation.organizationaccess.application.authorization.service.TenantCustomRoleApplicationService;
 import com.aiplatform.foundation.organizationaccess.application.authorization.port.out.TenantCustomRoleBindingStore;
 import com.aiplatform.foundation.organizationaccess.application.authorization.service.TenantCustomRoleBindingApplicationService;
+import com.aiplatform.foundation.organizationaccess.application.authorization.port.out.TenantCustomRoleBindingRevocationStore;
+import com.aiplatform.foundation.organizationaccess.application.authorization.service.TenantCustomRoleBindingRevocationApplicationService;
+import com.aiplatform.foundation.organizationaccess.application.authorization.port.out.TenantCustomRoleLifecycleStore;
+import com.aiplatform.foundation.organizationaccess.application.authorization.service.TenantCustomRoleLifecycleApplicationService;
+import com.aiplatform.foundation.organizationaccess.application.authorization.port.out.TenantCustomRoleDirectory;
+import com.aiplatform.foundation.organizationaccess.application.authorization.service.TenantCustomRoleDirectoryApplicationService;
 import com.aiplatform.foundation.organizationaccess.application.member.port.out.TenantMemberStatusStore;
 import com.aiplatform.foundation.organizationaccess.application.member.service.TenantMemberStatusApplicationService;
 import com.aiplatform.foundation.organizationaccess.application.member.port.out.TenantMemberDirectory;
@@ -180,6 +186,29 @@ public class OrganizationAccessCoreAutoConfiguration {
             TenantCustomRoleBindingStore store,
             TenantMemberSessionRevoker sessions) {
         return new TenantCustomRoleBindingApplicationService(store, sessions, Clock.systemUTC());
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    TenantCustomRoleBindingRevocationApplicationService tenantCustomRoleBindingRevocationApplicationService(
+            TenantCustomRoleBindingRevocationStore store,
+            TenantMemberSessionRevoker sessions) {
+        return new TenantCustomRoleBindingRevocationApplicationService(store, sessions, Clock.systemUTC());
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    TenantCustomRoleLifecycleApplicationService tenantCustomRoleLifecycleApplicationService(
+            TenantCustomRoleLifecycleStore store,
+            TenantMemberSessionRevoker sessions) {
+        return new TenantCustomRoleLifecycleApplicationService(store, sessions, Clock.systemUTC());
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    TenantCustomRoleDirectoryApplicationService tenantCustomRoleDirectoryApplicationService(
+            TenantCustomRoleDirectory directory) {
+        return new TenantCustomRoleDirectoryApplicationService(directory);
     }
 
     @Bean

@@ -27,6 +27,16 @@ describe("统一控制台路由", () => {
     })).toBe("/access/members?page=3");
   });
 
+  it("自定义角色目录使用独立可恢复路由和服务端页码", () => {
+    expect(parseConsoleRoute("/access/roles", "?page=2")).toEqual({
+      navigationId: "access",
+      task: "roles",
+      page: 2,
+    });
+    expect(formatConsoleRoute({ navigationId: "access", task: "roles", page: 2 }))
+      .toBe("/access/roles?page=2");
+  });
+
   it("从深链接恢复模型供应链发现记录的服务端页码", () => {
     expect(parseConsoleRoute(
       "/models/providers",

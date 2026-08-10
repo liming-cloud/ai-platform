@@ -279,6 +279,7 @@
 | M6 租户内置角色撤销与成员权限弹窗 | `project/evidence/WP-0014-tenant-role-revocation.md` | 本次提交 | 最后访问管理员失败关闭、权限修订、旧会话撤销、真实 PostgreSQL 回滚、受限 HTTP、服务端分页角色摘要和本机浏览器确认弹窗回归通过；M6 仍进行中。 |
 | M6 租户厂商连接凭据生命周期 | `project/evidence/WP-0014-provider-connection-credential-lifecycle.md` | 本次提交 | API Key 仅写入、连接自有密文、轮换失效、真实 PostgreSQL 回滚、无秘密 HTTP、自动配置和服务端分页弹窗控制台通过；本机 HTTPS 入口健康，人工浏览器操作仍待可调用连接器，M6 仍进行中。 |
 | M6 模型发现、部署与能力验证供应链 | `project/evidence/WP-0014-provider-model-deployment-supply-chain.md` | 本次提交 | 当前修订、未过期候选服务端分页，草稿、探测、`PT24H` 有效期和发布控制台闭环通过；容器 HTTPS 健康与未认证失败关闭已复核，真实浏览器角色任务仍待人工验收，M6 仍进行中。 |
+| M6 自定义角色生命周期、目录与导航预览 | `project/evidence/WP-0014-tenant-custom-role-lifecycle-and-directory.md` | 本次提交 | 修改／停用／解绑、最后管理员保护、权限修订和旧会话撤销，真实 PostgreSQL、HTTP、自动配置、服务端分页和模态控制台均通过；ADR-0061 的全局账户治理仍未接受。 |
 
 ## 证据规则
 

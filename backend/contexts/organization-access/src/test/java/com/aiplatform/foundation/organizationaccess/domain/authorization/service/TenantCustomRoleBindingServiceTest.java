@@ -39,6 +39,16 @@ class TenantCustomRoleBindingServiceTest {
                 activeRole(new TenantId(100000000000000002L)), NOW));
     }
 
+    @Test
+    void 解除活动自定义角色绑定时推进成员权限修订并保留角色标识() {
+        var result = TenantCustomRoleBindingService.unbind(
+                member(TENANT, TenantMembershipStatus.ENABLED), activeRole(TENANT), true, 1L, NOW);
+
+        assertEquals(1L, result.revisedMembership().permissionVersion());
+        assertEquals(new TenantCustomRoleId(9001L), result.customRoleId());
+        assertEquals(new MemberId(3382738893456539650L), result.membershipId());
+    }
+
     private static TenantMembership member(TenantId tenantId, TenantMembershipStatus status) {
         return TenantMembership.reconstitute(new MemberId(3382738893456539650L), tenantId,
                 new SubjectId(4921825928971026434L), TenantMembershipRole.MEMBER, status, 0L, 1L, NOW);

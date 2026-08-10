@@ -12,6 +12,9 @@ import com.aiplatform.foundation.organizationaccess.application.authorization.se
 import com.aiplatform.foundation.organizationaccess.application.authorization.service.TenantRoleRevocationApplicationService;
 import com.aiplatform.foundation.organizationaccess.application.authorization.service.TenantCustomRoleApplicationService;
 import com.aiplatform.foundation.organizationaccess.application.authorization.service.TenantCustomRoleBindingApplicationService;
+import com.aiplatform.foundation.organizationaccess.application.authorization.service.TenantCustomRoleBindingRevocationApplicationService;
+import com.aiplatform.foundation.organizationaccess.application.authorization.service.TenantCustomRoleLifecycleApplicationService;
+import com.aiplatform.foundation.organizationaccess.application.authorization.service.TenantCustomRoleDirectoryApplicationService;
 import com.aiplatform.foundation.organizationaccess.application.member.service.TenantMemberStatusApplicationService;
 import com.aiplatform.foundation.organizationaccess.application.member.service.TenantMemberDirectoryApplicationService;
 import com.aiplatform.foundation.organizationaccess.application.member.service.TenantMemberEstablishmentApplicationService;
@@ -21,6 +24,8 @@ import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.service.TenantProvisioningService;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.authorization.mapper.PlatformAccessGrantMapper;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.authorization.mapper.TenantCustomRoleBindingMapper;
+import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.authorization.mapper.TenantCustomRoleLifecycleMapper;
+import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.authorization.mapper.TenantCustomRoleDirectoryMapper;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.authorization.mapper.TenantCustomRoleMapper;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.authorization.mapper.TenantRoleBindingMapper;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.identity.mapper.SubjectIdentityMapper;
@@ -38,6 +43,7 @@ import com.aiplatform.foundation.organizationaccess.interfaces.web.authenticatio
 import com.aiplatform.foundation.organizationaccess.interfaces.web.tenantlifecycle.controller.TenantLifecycleController;
 import com.aiplatform.foundation.organizationaccess.interfaces.web.authorization.controller.TenantRoleBindingController;
 import com.aiplatform.foundation.organizationaccess.interfaces.web.authorization.controller.TenantCustomRoleBindingController;
+import com.aiplatform.foundation.organizationaccess.interfaces.web.authorization.controller.TenantCustomRoleBindingRevocationController;
 import com.aiplatform.foundation.organizationaccess.interfaces.web.authorization.controller.TenantCustomRoleController;
 import com.aiplatform.foundation.organizationaccess.interfaces.web.member.controller.TenantMemberStatusController;
 import com.aiplatform.foundation.security.session.AuthenticatedSessionGateway;
@@ -87,6 +93,12 @@ class OrganizationAccessAutoConfigurationTest {
                     TenantCustomRoleBindingMapper.class,
                     () -> mock(TenantCustomRoleBindingMapper.class))
             .withBean(
+                    TenantCustomRoleLifecycleMapper.class,
+                    () -> mock(TenantCustomRoleLifecycleMapper.class))
+            .withBean(
+                    TenantCustomRoleDirectoryMapper.class,
+                    () -> mock(TenantCustomRoleDirectoryMapper.class))
+            .withBean(
                     TenantLifecycleBackfillMapper.class,
                     () -> mock(TenantLifecycleBackfillMapper.class))
             .withBean(
@@ -119,6 +131,9 @@ class OrganizationAccessAutoConfigurationTest {
             assertThat(context).hasSingleBean(TenantRoleRevocationApplicationService.class);
             assertThat(context).hasSingleBean(TenantCustomRoleApplicationService.class);
             assertThat(context).hasSingleBean(TenantCustomRoleBindingApplicationService.class);
+            assertThat(context).hasSingleBean(TenantCustomRoleBindingRevocationApplicationService.class);
+            assertThat(context).hasSingleBean(TenantCustomRoleLifecycleApplicationService.class);
+            assertThat(context).hasSingleBean(TenantCustomRoleDirectoryApplicationService.class);
             assertThat(context).hasSingleBean(TenantMemberStatusApplicationService.class);
             assertThat(context).hasSingleBean(TenantMemberDirectoryApplicationService.class);
             assertThat(context).hasSingleBean(TenantMemberEstablishmentApplicationService.class);
@@ -133,6 +148,7 @@ class OrganizationAccessAutoConfigurationTest {
             assertThat(context).hasSingleBean(TenantRoleBindingController.class);
             assertThat(context).hasSingleBean(TenantCustomRoleController.class);
             assertThat(context).hasSingleBean(TenantCustomRoleBindingController.class);
+            assertThat(context).hasSingleBean(TenantCustomRoleBindingRevocationController.class);
             assertThat(context).hasSingleBean(TenantMemberStatusController.class);
         });
     }
@@ -158,6 +174,12 @@ class OrganizationAccessAutoConfigurationTest {
                             TenantCustomRoleApplicationService.class);
                     assertThat(context).doesNotHaveBean(
                             TenantCustomRoleBindingApplicationService.class);
+                    assertThat(context).doesNotHaveBean(
+                            TenantCustomRoleBindingRevocationApplicationService.class);
+                    assertThat(context).doesNotHaveBean(
+                            TenantCustomRoleLifecycleApplicationService.class);
+                    assertThat(context).doesNotHaveBean(
+                            TenantCustomRoleDirectoryApplicationService.class);
                     assertThat(context).doesNotHaveBean(
                             TenantMemberStatusApplicationService.class);
                     assertThat(context).doesNotHaveBean(
@@ -186,6 +208,8 @@ class OrganizationAccessAutoConfigurationTest {
                             TenantCustomRoleController.class);
                     assertThat(context).doesNotHaveBean(
                             TenantCustomRoleBindingController.class);
+                    assertThat(context).doesNotHaveBean(
+                            TenantCustomRoleBindingRevocationController.class);
                     assertThat(context).doesNotHaveBean(
                             TenantMemberStatusController.class);
                 });

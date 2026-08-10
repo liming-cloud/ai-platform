@@ -23,7 +23,7 @@ import {
 } from "../../api/control-plane-client";
 import type { ConsoleRoute } from "../../session/console-route";
 
-type MemberRoute = Extract<ConsoleRoute, { navigationId: "access" }>;
+type MemberRoute = Extract<ConsoleRoute, { navigationId: "access"; task: "members" }>;
 type ViewState = "unauthenticated" | "loading" | "ready" | "error";
 
 /**
@@ -181,9 +181,9 @@ export function TenantMemberWorkspace({
       <div className="governance-toolbar"><Text>第 {route.page} 页，共 {total} 名成员。列表始终由服务端分页。</Text><div><Button appearance="secondary" onClick={() => setEstablishmentOpen(true)}>新建成员</Button><Button appearance="subtle" onClick={() => void load()}>刷新</Button></div></div>
       <div className="member-directory-table" role="region" aria-label="成员分页表格">
         <table>
-          <thead><tr><th>登录名</th><th>成员身份</th><th>内置角色</th><th>状态</th><th>权限修订</th><th>操作</th></tr></thead>
-          <tbody>{members.length === 0 ? <tr><td colSpan={6}>当前页没有成员。</td></tr> : members.map((member) => <tr key={member.membershipId}>
-            <td>{member.loginName}</td><td>{member.membershipRole}</td><td>{member.builtInRoles.length === 0 ? "未分配" : member.builtInRoles.map(roleLabel).join("、")}</td><td><Badge appearance="tint" color={member.status === "ENABLED" ? "success" : "danger"}>{member.status === "ENABLED" ? "已启用" : "已停用"}</Badge></td><td>{member.permissionVersion}</td>
+          <thead><tr><th>登录名</th><th>成员标识</th><th>成员身份</th><th>内置角色</th><th>状态</th><th>权限修订</th><th>操作</th></tr></thead>
+          <tbody>{members.length === 0 ? <tr><td colSpan={7}>当前页没有成员。</td></tr> : members.map((member) => <tr key={member.membershipId}>
+            <td>{member.loginName}</td><td>{member.membershipId}</td><td>{member.membershipRole}</td><td>{member.builtInRoles.length === 0 ? "未分配" : member.builtInRoles.map(roleLabel).join("、")}</td><td><Badge appearance="tint" color={member.status === "ENABLED" ? "success" : "danger"}>{member.status === "ENABLED" ? "已启用" : "已停用"}</Badge></td><td>{member.permissionVersion}</td>
             <td><Button appearance="secondary" disabled={submitting || member.status !== "ENABLED"} onClick={() => setRoleTarget(member)}>管理角色</Button>{member.status === "ENABLED" ? <Button appearance="secondary" disabled={submitting} onClick={() => setTarget(member)}>停用</Button> : <Button appearance="secondary" disabled={submitting} onClick={() => void enable(member)}>启用</Button>}</td>
           </tr>)}</tbody>
         </table>

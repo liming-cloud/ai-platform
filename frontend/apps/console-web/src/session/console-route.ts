@@ -6,6 +6,7 @@ export type ConsoleNavigationId = typeof NAVIGATION[number]["id"];
 /** 统一控制台的可恢复工作区状态；列表页码只描述服务端分页位置。 */
 export type ConsoleRoute =
   | { navigationId: "access"; task: "members"; page: number }
+  | { navigationId: "access"; task: "roles"; page: number }
   | {
     navigationId: "data";
     task: "governed-file" | "structured-dataset" | "object-storage" | "first-publication";
@@ -65,6 +66,10 @@ export function parseConsoleRoute(pathname: string, search: string): ConsoleRout
     const parameters = new URLSearchParams(search);
     return { navigationId: "access", task: "members", page: positivePage(parameters.get("page")) };
   }
+  if (routePath === "/access/roles") {
+    const parameters = new URLSearchParams(search);
+    return { navigationId: "access", task: "roles", page: positivePage(parameters.get("page")) };
+  }
   if (routePath === "/data/datasets") {
     return { navigationId: "data", task: "structured-dataset" };
   }
@@ -115,7 +120,7 @@ export function parseConsoleRoute(pathname: string, search: string): ConsoleRout
 /** 将可恢复状态编码为规范 URL，避免页内状态与浏览器地址不一致。 */
 export function formatConsoleRoute(route: ConsoleRoute): string {
   if (route.navigationId === "access") {
-    return `/access/members?page=${route.page}`;
+    return `${route.task === "members" ? "/access/members" : "/access/roles"}?page=${route.page}`;
   }
   if (route.navigationId === "data") {
     return route.task === "governed-file"

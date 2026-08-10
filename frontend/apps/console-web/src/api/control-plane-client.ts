@@ -40,6 +40,16 @@ export interface TenantMemberSummary {
   createdAt: string;
 }
 
+/** 当前租户自定义角色的最小安全投影，成员绑定只以计数呈现。 */
+export interface TenantCustomRoleSummary {
+  id: string;
+  name: string;
+  permissionCodes: string[];
+  version: number;
+  status: "ACTIVE" | "DISABLED";
+  boundMemberCount: number;
+}
+
 /** 平台建立租户只接受已存在主体这一业务资源目标。 */
 export interface TenantProvisioningInput {
   tenantCode: string;
@@ -841,6 +851,72 @@ export class ControlPlaneClient {
   ): Promise<PageResult<TenantMemberSummary>> {
     return this.request<PageResult<TenantMemberSummary>>(
       `/tenant/members?pageNumber=${pageNumber}&pageSize=${pageSize}`,
+    );
+  }
+
+  /** 自定义角色目录始终由服务端分页，不能改为浏览器全量读取。 */
+  async listTenantCustomRoles(
+    pageNumber = 1,
+    pageSize = 20,
+  ): Promise<PageResult<TenantCustomRoleSummary>> {
+    return this.request<PageResult<TenantCustomRoleSummary>>(
+      `/tenant/custom-roles?pageNumber=${pageNumber}&pageSize=${pageSize}`,
+    );
+  }
+
+  async createTenantCustomRole(
+    name: string,
+    permissions: string[],
+  ): Promise<TenantCustomRoleSummary> {
+    return this.request<TenantCustomRoleSummary>("/tenant/custom-roles", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, permissions }),
+    });
+  }
+
+  async changeTenantCustomRolePermissions(
+    customRoleId: string,
+    permissions: string[],
+  ): Promise<TenantCustomRoleSummary> {
+    return this.request<TenantCustomRoleSummary>(
+      `/tenant/custom-roles/${encodeURIComponent(customRoleId)}/permissions`,
+      {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ permissions }),
+      },
+    );
+  }
+
+  async disableTenantCustomRole(customRoleId: string): Promise<TenantCustomRoleSummary> {
+    return this.request<TenantCustomRoleSummary>(
+      `/tenant/custom-roles/${encodeURIComponent(customRoleId)}/disable`,
+      { method: "POST" },
+    );
+  }
+
+  async bindTenantMemberCustomRole(
+    membershipId: string,
+    customRoleId: string,
+  ): Promise<{ membershipId: string; customRoleId: string; permissionVersion: number }> {
+    return this.request(
+      `/tenant/members/${encodeURIComponent(membershipId)}/custom-role-bindings`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ customRoleId }),
+      },
+    );
+  }
+
+  async unbindTenantMemberCustomRole(
+    membershipId: string,
+    customRoleId: string,
+  ): Promise<{ membershipId: string; customRoleId: string; permissionVersion: number }> {
+    return this.request(
+      `/tenant/members/${encodeURIComponent(membershipId)}/custom-role-bindings/${encodeURIComponent(customRoleId)}`,
+      { method: "DELETE" },
     );
   }
 

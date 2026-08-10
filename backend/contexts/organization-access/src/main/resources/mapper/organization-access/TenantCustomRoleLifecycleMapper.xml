@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aiplatform.foundation.organizationaccess.infrastructure.persistence.authorization.mapper.TenantCustomRoleLifecycleMapper">
+
+    <resultMap id="customRole" type="com.aiplatform.foundation.organizationaccess.infrastructure.persistence.authorization.projection.TenantCustomRoleRow">
+        <id column="custom_role_id" property="customRoleId"/>
+        <result column="tenant_id" property="tenantId"/>
+        <result column="role_name" property="roleName"/>
+        <result column="status" property="status"/>
+        <result column="version" property="version"/>
+        <result column="created_at" property="createdAt"/>
+        <result column="disabled_at" property="disabledAt"/>
+    </resultMap>
+
+    <resultMap id="membership" type="com.aiplatform.foundation.organizationaccess.infrastructure.persistence.membership.entity.TenantMembershipEntity">
+        <id column="membership_id" property="membershipId"/>
+        <result column="tenant_id" property="tenantId"/>
+        <result column="subject_id" property="subjectId"/>
+        <result column="membership_role" property="membershipRole"/>
+        <result column="status" property="status"/>
+        <result column="permission_version" property="permissionVersion"/>
+        <result column="version" property="version"/>
+        <result column="created_at" property="createdAt"/>
+    </resultMap>
+
+    <select id="lockActiveRole" resultMap="customRole">
+        SELECT custom_role_id, tenant_id, role_name, status, version, created_at, disabled_at
+        FROM organization_access.tenant_custom_role
+        WHERE tenant_id = #{tenantId}
+          AND custom_role_id = #{customRoleId}
+          AND status = 'ACTIVE'
+        FOR UPDATE
+    </select>
+
+    <select id="findPermissionCodes" resultType="java.lang.String">
+        SELECT permission_code
+        FROM organization_access.tenant_custom_role_permission
+        WHERE custom_role_id = #{customRoleId}
+        ORDER BY permission_code
+    </select>
+
+    <select id="lockEnabledBoundMembers" resultMap="membership">
+        SELECT membership.membership_id, membership.tenant_id, membership.subject_id, membership.membership_role,
+               membership.status, membership.permission_version, membership.version, membership.created_at
+        FROM organization_access.tenant_membership membership
+        INNER JOIN organization_access.tenant_custom_role_binding binding
+            ON binding.tenant_id = membership.tenant_id
+           AND binding.membership_id = membership.membership_id
+        WHERE membership.tenant_id = #{tenantId}
+          AND binding.custom_role_id = #{customRoleId}
+          AND membership.status = 'ENABLED'
+        ORDER BY membership.membership_id
+        FOR UPDATE OF membership
+    </select>
+
+    <select id="countEnabledAccessManagersAfterChange" resultType="long">
+        SELECT count(*)
+        FROM organization_access.tenant_membership membership
+        WHERE membership.tenant_id = #{tenantId}
+          AND membership.status = 'ENABLED'
+          AND EXISTS (
+              SELECT 1 FROM organization_access.membership_permission direct_permission
+              WHERE direct_permission.tenant_id = membership.tenant_id
+                AND direct_permission.membership_id = membership.membership_id
+                AND direct_permission.permission_code = 'access:manage'
+              UNION ALL
+              SELECT 1 FROM organization_access.tenant_membership_role_binding built_in_binding
+              WHERE built_in_binding.tenant_id = membership.tenant_id
+                AND built_in_binding.membership_id = membership.membership_id
+                AND built_in_binding.role_code = 'TENANT_ACCESS_ADMINISTRATOR'
+              UNION ALL
+              SELECT 1 FROM organization_access.tenant_custom_role_binding custom_binding
+              INNER JOIN organization_access.tenant_custom_role custom_role
+                  ON custom_role.tenant_id = custom_binding.tenant_id
+                 AND custom_role.custom_role_id = custom_binding.custom_role_id
+                 AND custom_role.status = 'ACTIVE'
+              INNER JOIN organization_access.tenant_custom_role_permission custom_permission
+                  ON custom_permission.custom_role_id = custom_role.custom_role_id
+                 AND custom_permission.permission_code = 'access:manage'
+              WHERE custom_binding.tenant_id = membership.tenant_id
+                AND custom_binding.membership_id = membership.membership_id
+                AND (#{retainsAccessManage} = TRUE OR custom_binding.custom_role_id &lt;&gt; #{customRoleId})
+          )
+    </select>
+
+    <update id="updateRole">
+        UPDATE organization_access.tenant_custom_role
+        SET status = #{status},
+            version = #{version},
+            disabled_at = #{disabledAt}
+        WHERE tenant_id = #{tenantId}
+          AND custom_role_id = #{customRoleId}
+    </update>
+
+    <delete id="deletePermissions">
+        DELETE FROM organization_access.tenant_custom_role_permission
+        WHERE custom_role_id = #{customRoleId}
+    </delete>
+
+    <insert id="insertPermission">
+        INSERT INTO organization_access.tenant_custom_role_permission (custom_role_id, permission_code)
+        VALUES (#{customRoleId}, #{permissionCode})
+    </insert>
+
+    <update id="revisePermissionVersion">
+        UPDATE organization_access.tenant_membership
+        SET permission_version = #{permissionVersion},
+            version = #{version},
+            updated_at = CURRENT_TIMESTAMP
+        WHERE tenant_id = #{tenantId}
+          AND membership_id = #{membershipId}
+    </update>
+</mapper>
