@@ -159,6 +159,21 @@ describe("统一控制台路由", () => {
       .toBe("/platform/tenants?page=2");
   });
 
+  it("平台账户目录以独立能力入口和 URL 恢复服务端页码", () => {
+    expect(defaultConsoleRoute("platform-accounts")).toEqual({
+      navigationId: "platform-accounts",
+      task: "accounts",
+      page: 1,
+    });
+    expect(parseConsoleRoute("/platform/accounts", "?page=3")).toEqual({
+      navigationId: "platform-accounts",
+      task: "accounts",
+      page: 3,
+    });
+    expect(formatConsoleRoute({ navigationId: "platform-accounts", task: "accounts", page: 3 }))
+      .toBe("/platform/accounts?page=3");
+  });
+
   it("受治理文件任务从 URL 恢复资源选择器的服务端页码", () => {
     expect(parseConsoleRoute(
       "/data/files",

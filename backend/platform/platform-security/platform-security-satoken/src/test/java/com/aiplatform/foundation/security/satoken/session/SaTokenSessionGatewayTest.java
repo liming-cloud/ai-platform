@@ -102,6 +102,21 @@ class SaTokenSessionGatewayTest {
     }
 
     @Test
+    void 应在全局账户变更后撤销该主体的全部租户会话() {
+        var first = gateway.issue(context());
+        var second = gateway.issue(context());
+
+        gateway.revokeSubjectSessions(context().subjectId());
+
+        assertThrows(
+                InvalidAuthenticatedSessionException.class,
+                () -> gateway.resolve(first.tokenValue()));
+        assertThrows(
+                InvalidAuthenticatedSessionException.class,
+                () -> gateway.resolve(second.tokenValue()));
+    }
+
+    @Test
     void 应拒绝登录标识与会话成员不一致的令牌() {
         var issued = gateway.issue(context());
         logic.getTokenSessionByToken(issued.tokenValue())

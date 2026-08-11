@@ -843,6 +843,36 @@ describe("ControlPlaneClient", () => {
     expect(page.items[0]?.lastChangedAt).toBe("2026-08-03T04:00:00Z");
   });
 
+  it("平台账户目录从服务端分页投影读取，且不携带浏览器授权头", async () => {
+    let request: Request | undefined;
+    const client = authenticatedClient(async (input, init) => {
+      request = new Request(input, init);
+      return new Response(JSON.stringify({
+        items: [{
+          subjectId: "510000000000000001",
+          loginName: "platform-admin",
+          status: "ACTIVE",
+          version: 3,
+          createdAt: "2026-08-11T03:00:00Z",
+        }],
+        pageNumber: 3,
+        pageSize: 20,
+        totalElements: 41,
+        totalPages: 3,
+        hasPrevious: true,
+        hasNext: false,
+      }), { status: 200, headers: { "Content-Type": "application/json" } });
+    });
+
+    const page = await client.listPlatformAccounts(3, 20);
+
+    expect(request?.url).toBe("http://localhost/api/v1/platform/accounts?pageNumber=3&pageSize=20");
+    expect(request?.method).toBe("GET");
+    expect(request?.headers.get("Authorization")).toBeNull();
+    expect(page.items[0]).not.toHaveProperty("passwordHash");
+    expect(page.items[0]?.loginName).toBe("platform-admin");
+  });
+
   it("建立租户成员时只提交目标主体标识", async () => {
     let request: Request | undefined;
     const client = authenticatedClient(async (input, init) => {

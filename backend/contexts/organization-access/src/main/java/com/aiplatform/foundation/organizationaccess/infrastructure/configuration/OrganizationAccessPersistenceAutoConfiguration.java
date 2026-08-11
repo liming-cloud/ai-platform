@@ -8,6 +8,7 @@ import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.port.out.TenantLifecycleTransitionStore;
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.port.out.TenantProvisioningStore;
 import com.aiplatform.foundation.organizationaccess.application.authorization.port.out.TenantRoleBindingStore;
+import com.aiplatform.foundation.organizationaccess.application.authorization.port.out.PlatformAccountStore;
 import com.aiplatform.foundation.organizationaccess.application.authorization.port.out.TenantRoleRevocationStore;
 import com.aiplatform.foundation.organizationaccess.application.authorization.port.out.TenantCustomRoleStore;
 import com.aiplatform.foundation.organizationaccess.application.authorization.port.out.TenantCustomRoleBindingStore;
@@ -32,6 +33,8 @@ import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.a
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.authorization.repository.PostgresTenantCustomRoleLifecycleStore;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.authorization.repository.PostgresTenantCustomRoleDirectory;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.identity.mapper.SubjectIdentityMapper;
+import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.identity.mapper.PlatformAccountMapper;
+import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.identity.repository.PostgresPlatformAccountStore;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.identity.repository.PostgresSubjectIdentityRepository;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.membership.mapper.TenantMembershipMapper;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.membership.repository.PostgresTenantMembershipRepository;
@@ -71,6 +74,7 @@ import org.springframework.context.annotation.Bean;
     TenantCustomRoleDirectoryMapper.class,
     TenantRoleBindingMapper.class,
     SubjectIdentityMapper.class,
+    PlatformAccountMapper.class,
     TenantMembershipMapper.class,
     TenantMemberStatusMapper.class,
     TenantMemberDirectoryMapper.class,
@@ -85,6 +89,12 @@ public class OrganizationAccessPersistenceAutoConfiguration {
     @ConditionalOnMissingBean
     SubjectIdentityRepository subjectIdentityRepository(SubjectIdentityMapper mapper) {
         return new PostgresSubjectIdentityRepository(mapper);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    PlatformAccountStore platformAccountStore(PlatformAccountMapper mapper) {
+        return new PostgresPlatformAccountStore(mapper);
     }
 
     @Bean

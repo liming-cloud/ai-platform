@@ -59,7 +59,8 @@ export type ConsoleRoute =
   | { navigationId: "governance"; task: "query"; auditPage: number }
   | { navigationId: "governance"; task: "evaluation" }
   | { navigationId: "query"; task: "ask"; assistantPage: number }
-  | { navigationId: "platform"; task: "tenants"; page: number };
+  | { navigationId: "platform"; task: "tenants"; page: number }
+  | { navigationId: "platform-accounts"; task: "accounts"; page: number };
 
 /** 路由解析后的授权结果，拒绝时保留目标以便页面明确说明失败原因。 */
 export type AuthorizedConsoleRoute =
@@ -88,6 +89,8 @@ export function defaultConsoleRoute(navigationId: ConsoleNavigationId): ConsoleR
       return { navigationId, task: "ask", assistantPage: 1 };
     case "platform":
       return { navigationId, task: "tenants", page: 1 };
+    case "platform-accounts":
+      return { navigationId, task: "accounts", page: 1 };
   }
 }
 
@@ -194,6 +197,13 @@ export function parseConsoleRoute(pathname: string, search: string): ConsoleRout
       page: positivePage(new URLSearchParams(search).get("page")),
     };
   }
+  if (routePath === "/platform/accounts") {
+    return {
+      navigationId: "platform-accounts",
+      task: "accounts",
+      page: positivePage(new URLSearchParams(search).get("page")),
+    };
+  }
   return undefined;
 }
 
@@ -226,7 +236,9 @@ export function formatConsoleRoute(route: ConsoleRoute): string {
   if (route.navigationId === "query") {
     return `/ask?assistantPage=${route.assistantPage}`;
   }
-  return `/platform/tenants?page=${route.page}`;
+  return route.navigationId === "platform"
+    ? `/platform/tenants?page=${route.page}`
+    : `/platform/accounts?page=${route.page}`;
 }
 
 /**

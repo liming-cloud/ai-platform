@@ -10,6 +10,12 @@ export const NAVIGATION = [
     requiredCapability: "tenant-governance:write",
     workspace: "PLATFORM_TENANT_GOVERNANCE",
   },
+  {
+    id: "platform-accounts",
+    label: "平台账户",
+    requiredCapability: "platform:accounts:manage",
+    workspace: "PLATFORM_TENANT_GOVERNANCE",
+  },
 ] as const;
 
 /** 以服务端会话投影过滤导航；结果只影响入口可见性，不参与接口授权。 */

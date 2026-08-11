@@ -9,6 +9,7 @@ import com.aiplatform.foundation.organizationaccess.application.authentication.s
 import com.aiplatform.foundation.organizationaccess.application.authentication.service.BrowserSessionCapabilityService;
 import com.aiplatform.foundation.organizationaccess.application.authentication.service.BrowserSessionTerminationService;
 import com.aiplatform.foundation.organizationaccess.application.authorization.service.TenantRoleBindingApplicationService;
+import com.aiplatform.foundation.organizationaccess.application.authorization.service.PlatformAccountGovernanceApplicationService;
 import com.aiplatform.foundation.organizationaccess.application.authorization.service.TenantRoleRevocationApplicationService;
 import com.aiplatform.foundation.organizationaccess.application.authorization.service.TenantCustomRoleApplicationService;
 import com.aiplatform.foundation.organizationaccess.application.authorization.service.TenantCustomRoleBindingApplicationService;
@@ -29,6 +30,7 @@ import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.a
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.authorization.mapper.TenantCustomRoleMapper;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.authorization.mapper.TenantRoleBindingMapper;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.identity.mapper.SubjectIdentityMapper;
+import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.identity.mapper.PlatformAccountMapper;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.membership.mapper.TenantMembershipMapper;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.member.mapper.TenantMemberStatusMapper;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.member.mapper.TenantMemberDirectoryMapper;
@@ -68,6 +70,9 @@ class OrganizationAccessAutoConfigurationTest {
             .withBean(
                     SubjectIdentityMapper.class,
                     () -> mock(SubjectIdentityMapper.class))
+            .withBean(
+                    PlatformAccountMapper.class,
+                    () -> mock(PlatformAccountMapper.class))
             .withBean(
                     TenantMembershipMapper.class,
                     () -> mock(TenantMembershipMapper.class))
@@ -128,6 +133,7 @@ class OrganizationAccessAutoConfigurationTest {
             assertThat(context).hasSingleBean(BrowserSessionCapabilityService.class);
             assertThat(context).hasSingleBean(BrowserSessionTerminationService.class);
             assertThat(context).hasSingleBean(TenantRoleBindingApplicationService.class);
+            assertThat(context).hasSingleBean(PlatformAccountGovernanceApplicationService.class);
             assertThat(context).hasSingleBean(TenantRoleRevocationApplicationService.class);
             assertThat(context).hasSingleBean(TenantCustomRoleApplicationService.class);
             assertThat(context).hasSingleBean(TenantCustomRoleBindingApplicationService.class);
@@ -168,6 +174,8 @@ class OrganizationAccessAutoConfigurationTest {
                             BrowserSessionTerminationService.class);
                     assertThat(context).doesNotHaveBean(
                             TenantRoleBindingApplicationService.class);
+                    assertThat(context).doesNotHaveBean(
+                            PlatformAccountGovernanceApplicationService.class);
                     assertThat(context).doesNotHaveBean(
                             TenantRoleRevocationApplicationService.class);
                     assertThat(context).doesNotHaveBean(

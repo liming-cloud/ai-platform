@@ -17,9 +17,9 @@ import com.aiplatform.foundation.security.session.InvalidAuthenticatedSessionExc
 import com.aiplatform.foundation.security.session.IssuedSession;
 import java.time.Duration;
 import java.util.Collection;
+import java.util.TreeSet;
 import java.util.Objects;
 import java.util.Set;
-import java.util.TreeSet;
 
 /**
  * 使用 Sa-Token 保存服务端会话状态的认证会话适配器。
@@ -34,6 +34,8 @@ public final class SaTokenSessionGateway implements AuthenticatedSessionGateway 
     private static final String PERMISSION_VERSION = "permissionVersion";
     private static final String PERMISSIONS = "permissions";
     private static final String TRACE_ID = "traceId";
+    private static final String SUBJECT_SESSION_PREFIX = "foundation-subject-session:";
+    private static final String SUBJECT_TOKENS = "tokens";
 
     private final StpLogic stpLogic;
     private final Duration timeout;
@@ -63,6 +65,7 @@ public final class SaTokenSessionGateway implements AuthenticatedSessionGateway 
                     Long.toString(context.membershipId().value()),
                     parameter);
             writeContext(stpLogic.getTokenSessionByToken(tokenValue, true), context);
+            recordSubjectToken(context.subjectId(), tokenValue);
             return new IssuedSession(stpLogic.getTokenName(), tokenValue, timeout);
         } catch (RuntimeException exception) {
             if (tokenValue != null) {
@@ -131,6 +134,25 @@ public final class SaTokenSessionGateway implements AuthenticatedSessionGateway 
         }
     }
 
+    @Override
+    public void revokeSubjectSessions(SubjectId subjectId) {
+        subjectId = Objects.requireNonNull(subjectId, "主体标识不能为空");
+        try {
+            var session = stpLogic.getSessionBySessionId(subjectSessionId(subjectId), false, null, null);
+            if (session == null) {
+                return;
+            }
+            var tokens = subjectTokens(session);
+            for (var token : tokens) {
+                stpLogic.logoutByTokenValue(token);
+            }
+            session.delete(SUBJECT_TOKENS);
+            session.update();
+        } catch (RuntimeException exception) {
+            throw new AuthenticatedSessionUnavailableException(exception);
+        }
+    }
+
     private void revokeAfterFailedIssue(
             String tokenValue,
             RuntimeException original) {
@@ -139,6 +161,36 @@ public final class SaTokenSessionGateway implements AuthenticatedSessionGateway 
         } catch (RuntimeException cleanupFailure) {
             original.addSuppressed(cleanupFailure);
         }
+    }
+
+    private void recordSubjectToken(SubjectId subjectId, String tokenValue) {
+        var session = stpLogic.getSessionBySessionId(subjectSessionId(subjectId), true, null, null);
+        var tokens = subjectTokens(session);
+        tokens.add(tokenValue);
+        session.set(SUBJECT_TOKENS, tokens);
+        session.update();
+    }
+
+    private static TreeSet<String> subjectTokens(SaSession session) {
+        var value = session.get(SUBJECT_TOKENS);
+        if (value == null) {
+            return new TreeSet<>();
+        }
+        if (!(value instanceof Collection<?> values)) {
+            throw new IllegalStateException("主体会话族索引损坏");
+        }
+        var tokens = new TreeSet<String>();
+        for (var item : values) {
+            if (!(item instanceof String token) || token.isBlank()) {
+                throw new IllegalStateException("主体会话族令牌损坏");
+            }
+            tokens.add(token);
+        }
+        return tokens;
+    }
+
+    private static String subjectSessionId(SubjectId subjectId) {
+        return SUBJECT_SESSION_PREFIX + subjectId.value();
     }
 
     private static void writeContext(SaSession session, TrustedRequestContext context) {

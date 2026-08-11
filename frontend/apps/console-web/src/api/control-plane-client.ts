@@ -28,6 +28,15 @@ export interface TenantLifecycleSummary {
   lastChangedAt: string;
 }
 
+/** 平台账户目录的最小安全摘要，不携带凭据、会话或权限快照。 */
+export interface PlatformAccountSummary {
+  subjectId: string;
+  loginName: string;
+  status: "ACTIVE" | "DISABLED";
+  version: number;
+  createdAt: string;
+}
+
 /** 当前租户成员目录的最小安全投影，不包含凭据、会话或完整权限集合。 */
 export interface TenantMemberSummary {
   membershipId: string;
@@ -440,6 +449,15 @@ export class ControlPlaneClient {
   ): Promise<PageResult<TenantLifecycleSummary>> {
     return this.request<PageResult<TenantLifecycleSummary>>(
       `/platform/tenants?pageNumber=${pageNumber}&pageSize=${pageSize}`,
+    );
+  }
+
+  async listPlatformAccounts(
+    pageNumber = 1,
+    pageSize = 20,
+  ): Promise<PageResult<PlatformAccountSummary>> {
+    return this.request<PageResult<PlatformAccountSummary>>(
+      `/platform/accounts?pageNumber=${pageNumber}&pageSize=${pageSize}`,
     );
   }
 

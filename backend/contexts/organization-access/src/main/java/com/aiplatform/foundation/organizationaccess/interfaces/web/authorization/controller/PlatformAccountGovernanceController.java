@@ -1,0 +1,64 @@
+package com.aiplatform.foundation.organizationaccess.interfaces.web.authorization.controller;
+
+import com.aiplatform.foundation.organizationaccess.application.authorization.dto.PlatformAccountSummary;
+import com.aiplatform.foundation.organizationaccess.application.authorization.service.PlatformAccountDirectoryApplicationService;
+import com.aiplatform.foundation.organizationaccess.application.authorization.service.PlatformAccountGovernanceApplicationService;
+import com.aiplatform.foundation.security.identity.PlatformRequestContext;
+import com.aiplatform.foundation.shared.contract.paging.PageQuery;
+import com.aiplatform.foundation.shared.contract.paging.PageResult;
+import java.util.Objects;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.bind.annotation.RestController;
+
+/**
+ * 平台账户高风险治理入口。
+ *
+ * <p>平台操作者及其权限只能由 `PlatformRequestContext` 恢复；路径主体标识只是受管账户资源，响应不披露
+ * 凭据、会话或权限快照。</p>
+ */
+@RestController
+@RequestMapping("/api/v1/platform/accounts")
+public final class PlatformAccountGovernanceController {
+
+    private final PlatformAccountGovernanceApplicationService accounts;
+    private final PlatformAccountDirectoryApplicationService directory;
+
+    /** 构造平台账户治理 HTTP 入口。 */
+    public PlatformAccountGovernanceController(
+            PlatformAccountGovernanceApplicationService accounts,
+            PlatformAccountDirectoryApplicationService directory) {
+        this.accounts = Objects.requireNonNull(accounts, "平台账户治理服务不能为空");
+        this.directory = Objects.requireNonNull(directory, "平台账户目录服务不能为空");
+    }
+
+    @GetMapping
+    public PageResult<PlatformAccountSummary> list(
+            PlatformRequestContext platform,
+            @RequestParam(defaultValue = "1") long pageNumber,
+            @RequestParam(defaultValue = "20") long pageSize) {
+        return directory.list(platform, new PageQuery(pageNumber, pageSize));
+    }
+
+    /** 禁用目标账户，并使该主体的全部平台及租户会话失效。 */
+    @PostMapping("/{subjectId}/disable")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void disable(
+            PlatformRequestContext platform,
+            @PathVariable String subjectId) {
+        accounts.disable(platform, parseSubjectId(subjectId));
+    }
+
+    private static long parseSubjectId(String subjectId) {
+        try {
+            return Long.parseLong(subjectId);
+        } catch (NumberFormatException exception) {
+            throw new IllegalArgumentException("主体标识必须是十进制正整数", exception);
+        }
+    }
+}

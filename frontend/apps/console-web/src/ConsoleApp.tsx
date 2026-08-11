@@ -81,6 +81,11 @@ const PlatformTenantLifecycleWorkspace = lazy(async () => {
   return { default: module.PlatformTenantLifecycleWorkspace };
 });
 
+const PlatformAccountDirectoryWorkspace = lazy(async () => {
+  const module = await import("./features/platform-governance/PlatformAccountDirectoryWorkspace");
+  return { default: module.PlatformAccountDirectoryWorkspace };
+});
+
 const TenantMemberWorkspace = lazy(async () => {
   const module = await import("./features/access/TenantMemberWorkspace");
   return { default: module.TenantMemberWorkspace };
@@ -232,13 +237,14 @@ function AuthenticatedConsoleApp({
   const governanceActive = route.navigationId === "governance";
   const queryActive = route.navigationId === "query";
   const platformActive = route.navigationId === "platform";
+  const platformAccountsActive = route.navigationId === "platform-accounts";
   const dataPage = dataActive ? dataPageContent(route) : undefined;
 
   return (
     <ProductShell
       productName="可信知识平台"
       pageTitle={
-        accessActive ? "成员与权限" : platformActive ? "平台租户生命周期" : queryActive ? "从已授权资料中获得答案" : governanceActive ? route.task === "query" ? "查询用量与审计" : "受限评测运行" : modelsActive ? route.task === "configuration" ? "受控模型配置" : route.task === "providers" ? "供应商连接与模型发现" : "模型部署与能力验证" : dataPage?.title ?? "可信知识平台"
+        accessActive ? "成员与权限" : platformActive ? "平台租户生命周期" : platformAccountsActive ? "平台账户目录" : queryActive ? "从已授权资料中获得答案" : governanceActive ? route.task === "query" ? "查询用量与审计" : "受限评测运行" : modelsActive ? route.task === "configuration" ? "受控模型配置" : route.task === "providers" ? "供应商连接与模型发现" : "模型部署与能力验证" : dataPage?.title ?? "可信知识平台"
       }
       pageSummary={
         queryActive
@@ -247,6 +253,8 @@ function AuthenticatedConsoleApp({
           ? "成员操作由当前浏览器会话恢复租户范围；目录使用服务端分页，停用必须二次确认。"
           : platformActive
           ? "建立与迁移租户状态，不展示租户正文、成员详情或平台操作者信息。"
+          : platformAccountsActive
+          ? "账户目录由服务端分页提供，不展示凭据、会话或权限快照。"
           : governanceActive && route.task === "query"
           ? "核对当前租户的查询配额、计量结果和脱敏运行记录。"
           : governanceActive
@@ -432,6 +440,13 @@ function AuthenticatedConsoleApp({
         {platformActive ? (
           <Suspense fallback={<StatePanel kind="loading" title="正在加载平台租户工作区" description="正在准备受限生命周期任务。" />}>
             <PlatformTenantLifecycleWorkspace client={client} route={route} onRouteChange={navigate} />
+          </Suspense>
+        ) : null}
+      </section>
+      <section hidden={!platformAccountsActive}>
+        {platformAccountsActive ? (
+          <Suspense fallback={<StatePanel kind="loading" title="正在加载平台账户目录" description="正在准备服务端分页摘要。" />}>
+            <PlatformAccountDirectoryWorkspace client={client} route={route} onRouteChange={navigate} />
           </Suspense>
         ) : null}
       </section>
