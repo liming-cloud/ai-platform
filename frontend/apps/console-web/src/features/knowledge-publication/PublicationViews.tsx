@@ -14,6 +14,7 @@ import {
 } from "@fluentui/react-components";
 import { CheckmarkCircle20Filled } from "@fluentui/react-icons";
 import { StatePanel } from "@foundation/design-system";
+import { PagedResourceNavigation } from "../shared/PagedResourceNavigation";
 import { type FormEvent, type ReactNode, useState } from "react";
 import type { KnowledgeSpace } from "../../api/control-plane-client";
 import type { PublicationWorkflow } from "./publication-workflow";
@@ -22,14 +23,26 @@ export function SpacePicker({
   spaces,
   selectedId,
   busy,
+  page,
+  total,
+  hasPrevious,
+  hasNext,
   onSelected,
+  onPrevious,
+  onNext,
   onContinue,
   onCreate,
 }: {
   spaces: KnowledgeSpace[];
   selectedId: string;
   busy: boolean;
+  page: number;
+  total: number;
+  hasPrevious: boolean;
+  hasNext: boolean;
   onSelected: (id: string) => void;
+  onPrevious: () => void;
+  onNext: () => void;
   onContinue: () => void;
   onCreate: () => void;
 }) {
@@ -63,6 +76,16 @@ export function SpacePicker({
           />
         ))}
       </RadioGroup>
+      <PagedResourceNavigation
+        label="知识空间"
+        page={page}
+        total={total}
+        hasPrevious={hasPrevious}
+        hasNext={hasNext}
+        disabled={busy}
+        onPrevious={onPrevious}
+        onNext={onNext}
+      />
       <div className="task-actions">
         <Button
           appearance="primary"
@@ -282,11 +305,17 @@ export function Completion({
 export function IndexBuildReview({
   busy,
   indexVersion,
+  selectedEmbeddingModelConfigurationId,
+  canBuildIndex,
+  embeddingModelPicker,
   onBuild,
   onPublish,
 }: {
   busy: boolean;
   indexVersion: PublicationWorkflow["indexVersion"];
+  selectedEmbeddingModelConfigurationId?: string;
+  canBuildIndex: boolean;
+  embeddingModelPicker: ReactNode;
   onBuild: () => Promise<void>;
   onPublish: () => Promise<void>;
 }) {
@@ -302,9 +331,10 @@ export function IndexBuildReview({
             : `上次构建未完成，错误码为 ${indexVersion.failureCode ?? "未知"}。重新构建会创建新版本，不覆盖失败记录。`
         }
       >
+        {embeddingModelPicker}
         <Button
           appearance="primary"
-          disabled={busy}
+          disabled={busy || selectedEmbeddingModelConfigurationId === undefined || !canBuildIndex}
           onClick={() => void onBuild()}
         >
           {busy ? "正在提交" : "开始构建"}

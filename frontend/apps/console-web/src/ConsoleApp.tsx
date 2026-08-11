@@ -304,7 +304,7 @@ function AuthenticatedConsoleApp({
           </Button>
           <Button
             appearance={route.navigationId === "data" && route.task === "first-publication" ? "primary" : "subtle"}
-            onClick={() => navigate({ navigationId: "data", task: "first-publication" })}
+            onClick={() => navigate({ navigationId: "data", task: "first-publication", knowledgeSpacePage: 1, embeddingModelConfigurationPage: 1 })}
           >
             首份文本发布
           </Button>
@@ -339,13 +339,15 @@ function AuthenticatedConsoleApp({
               onRouteChange={navigate}
             />
           </Suspense>
-        ) : (
+        ) : route.navigationId === "data" && route.task === "first-publication" ? (
           <KnowledgePublicationFlow
             client={client}
+            route={route}
             sessionRevision={sessionRevision}
             onSessionChanged={sessionChanged}
+            onRouteChange={navigate}
           />
-        )}
+        ) : null}
       </section>
       <section hidden={!accessActive}>
         {accessActive ? <>

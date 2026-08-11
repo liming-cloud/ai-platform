@@ -15,6 +15,7 @@ export function EmbeddingModelConfigurationPicker({
   disabled,
   onChange,
   onFailure,
+  onSelectionAvailabilityChange,
 }: {
   client: ControlPlaneClient;
   page: number;
@@ -22,6 +23,7 @@ export function EmbeddingModelConfigurationPicker({
   disabled: boolean;
   onChange: (page: number, selectedId?: string) => void;
   onFailure: (error: unknown) => boolean;
+  onSelectionAvailabilityChange?: (available: boolean) => void;
 }) {
   const [configurations, setConfigurations] = useState<ModelConfiguration[]>([]);
   const [hasPrevious, setHasPrevious] = useState(false);
@@ -62,6 +64,12 @@ export function EmbeddingModelConfigurationPicker({
       && configuration.status === "ACTIVE"
       && configuration.credentialConfigured
   ));
+
+  useEffect(() => {
+    onSelectionAvailabilityChange?.(
+      !loading && !failed && eligible.some((configuration) => configuration.id === selectedId),
+    );
+  }, [eligible, failed, loading, onSelectionAvailabilityChange, selectedId]);
 
   return (
     <div className="governed-file-form">

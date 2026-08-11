@@ -241,4 +241,26 @@ describe("统一控制台路由", () => {
       embeddingModelConfigurationId: "510000000000000003",
     })).toBe("/data/object-storage?knowledgeSpacePage=4&knowledgeSpaceId=410000000000000003&embeddingModelConfigurationPage=5&embeddingModelConfigurationId=510000000000000003");
   });
+
+  it("首份发布任务从深链接恢复知识空间和嵌入模型的服务端页码", () => {
+    expect(parseConsoleRoute(
+      "/data/publication",
+      "?knowledgeSpacePage=2&knowledgeSpaceId=410000000000000004&embeddingModelConfigurationPage=3&embeddingModelConfigurationId=510000000000000004",
+    )).toEqual({
+      navigationId: "data",
+      task: "first-publication",
+      knowledgeSpacePage: 2,
+      knowledgeSpaceId: "410000000000000004",
+      embeddingModelConfigurationPage: 3,
+      embeddingModelConfigurationId: "510000000000000004",
+    });
+    expect(formatConsoleRoute({
+      navigationId: "data",
+      task: "first-publication",
+      knowledgeSpacePage: 2,
+      knowledgeSpaceId: "410000000000000004",
+      embeddingModelConfigurationPage: 3,
+      embeddingModelConfigurationId: "510000000000000004",
+    })).toBe("/data/publication?knowledgeSpacePage=2&knowledgeSpaceId=410000000000000004&embeddingModelConfigurationPage=3&embeddingModelConfigurationId=510000000000000004");
+  });
 });

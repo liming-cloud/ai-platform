@@ -300,6 +300,7 @@
 | M6 控制面自动验收修复 | `project/evidence/WP-0014-control-plane-automatic-acceptance-repair.md` | 本次提交 | 修复事务 CGLIB 代理与迁移后平台角色投影演示种子；真实 PostgreSQL、Redis、Flyway、Tomcat 的平台认证 21 项回归和全后端 Maven 反应堆通过；正式 HTTPS 浏览器角色任务仍待受信任部署环境续证。 |
 | ADR-0062 租户历史直接权限退役提议 | `docs/adr/ADR-0062-tenant-direct-permission-retirement.md` | 本次控制面提交 | 提议由人工确认的迁移清单把历史直接权限转换为角色绑定；未映射模型配置权限不得自动建角色或静默撤销，等待人工决定。 |
 | M6 自动验收前置条件审计 | `project/evidence/M6-automatic-acceptance-precondition-audit.md` | 本次控制面提交 | 已汇总 ADR-0057 至 ADR-0059 的自动化覆盖；ADR-0062 授权决策和受信任 TLS 的真实浏览器角色回归完成前，不得发起 M6 自动验收或人工评审。 |
+| M6 首份发布资源选择器分页与显式模型选择 | `project/evidence/WP-0014-publication-resource-picker-pagination.md` | 本次提交 | 首份发布路由、知识空间和嵌入模型选择已完成前端 TDD 与生产构建；当前 Docker Buildx 无法完成重建，真实 PostgreSQL／MinIO／HTTP 与受信任 TLS 浏览器回归待续证。 |
 
 ## 证据规则
 

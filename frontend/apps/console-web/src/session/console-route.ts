@@ -35,6 +35,10 @@ export type ConsoleRoute =
   | {
     navigationId: "data";
     task: "first-publication";
+    knowledgeSpacePage: number;
+    knowledgeSpaceId?: string;
+    embeddingModelConfigurationPage: number;
+    embeddingModelConfigurationId?: string;
   }
   | {
     navigationId: "models";
@@ -142,7 +146,15 @@ export function parseConsoleRoute(pathname: string, search: string): ConsoleRout
     };
   }
   if (routePath === "/data/publication") {
-    return { navigationId: "data", task: "first-publication" };
+    const parameters = new URLSearchParams(search);
+    return {
+      navigationId: "data",
+      task: "first-publication",
+      knowledgeSpacePage: positivePage(parameters.get("knowledgeSpacePage")),
+      knowledgeSpaceId: nonBlankParameter(parameters.get("knowledgeSpaceId")),
+      embeddingModelConfigurationPage: positivePage(parameters.get("embeddingModelConfigurationPage")),
+      embeddingModelConfigurationId: nonBlankParameter(parameters.get("embeddingModelConfigurationId")),
+    };
   }
   if (routePath === "/models/configurations") {
     const parameters = new URLSearchParams(search);
@@ -219,7 +231,7 @@ export function formatConsoleRoute(route: ConsoleRoute): string {
         ? formatStructuredDatasetRoute(route)
         : route.task === "object-storage"
           ? formatObjectStorageRoute(route)
-          : "/data/publication";
+          : formatPublicationRoute(route);
   }
   if (route.navigationId === "models") {
     return route.task === "configuration"
@@ -318,6 +330,19 @@ function formatObjectStorageRoute(route: Extract<ConsoleRoute, { task: "object-s
   }
   appendEmbeddingModelConfigurationSelection(parameters, route);
   return `/data/object-storage?${parameters}`;
+}
+
+function formatPublicationRoute(route: Extract<ConsoleRoute, { task: "first-publication" }>): string {
+  const parameters = new URLSearchParams();
+  parameters.set("knowledgeSpacePage", String(route.knowledgeSpacePage));
+  if (route.knowledgeSpaceId !== undefined) {
+    parameters.set("knowledgeSpaceId", route.knowledgeSpaceId);
+  }
+  parameters.set("embeddingModelConfigurationPage", String(route.embeddingModelConfigurationPage));
+  if (route.embeddingModelConfigurationId !== undefined) {
+    parameters.set("embeddingModelConfigurationId", route.embeddingModelConfigurationId);
+  }
+  return `/data/publication?${parameters.toString()}`;
 }
 
 function appendEmbeddingModelConfigurationSelection(
