@@ -241,6 +241,7 @@ latestEvidence:
   - project/evidence/WP-0014-model-deployment-disable.md
   - project/evidence/WP-0014-control-plane-automatic-acceptance-repair.md
   - docs/adr/ADR-0062-tenant-direct-permission-retirement.md
+  - project/evidence/M6-automatic-acceptance-precondition-audit.md
 nextReviewAt: 2026-08-12
-updatedAt: 2026-08-11T13:57:00+08:00
+updatedAt: 2026-08-11T14:06:44+08:00
 updatedBy: codex
