@@ -63,6 +63,7 @@ export type ConsoleRoute =
   | { navigationId: "governance"; task: "query"; auditPage: number }
   | { navigationId: "governance"; task: "evaluation" }
   | { navigationId: "query"; task: "ask"; assistantPage: number }
+  | { navigationId: "platform-workspace"; task: "workspace" }
   | { navigationId: "platform"; task: "tenants"; page: number }
   | { navigationId: "platform-accounts"; task: "accounts"; page: number };
 
@@ -91,6 +92,8 @@ export function defaultConsoleRoute(navigationId: ConsoleNavigationId): ConsoleR
       return { navigationId, task: "query", auditPage: 1 };
     case "query":
       return { navigationId, task: "ask", assistantPage: 1 };
+    case "platform-workspace":
+      return { navigationId, task: "workspace" };
     case "platform":
       return { navigationId, task: "tenants", page: 1 };
     case "platform-accounts":
@@ -202,6 +205,9 @@ export function parseConsoleRoute(pathname: string, search: string): ConsoleRout
       assistantPage: positivePage(new URLSearchParams(search).get("assistantPage")),
     };
   }
+  if (routePath === "/platform") {
+    return { navigationId: "platform-workspace", task: "workspace" };
+  }
   if (routePath === "/platform/tenants") {
     return {
       navigationId: "platform",
@@ -247,6 +253,9 @@ export function formatConsoleRoute(route: ConsoleRoute): string {
   }
   if (route.navigationId === "query") {
     return `/ask?assistantPage=${route.assistantPage}`;
+  }
+  if (route.navigationId === "platform-workspace") {
+    return "/platform";
   }
   return route.navigationId === "platform"
     ? `/platform/tenants?page=${route.page}`

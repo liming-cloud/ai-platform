@@ -5,6 +5,12 @@ export const NAVIGATION = [
   { id: "governance", label: "治理", requiredCapability: "usage:read", workspace: "TENANT" },
   { id: "query", label: "问答", requiredCapability: "assistant:query", workspace: "TENANT" },
   {
+    id: "platform-workspace",
+    label: "平台工作区",
+    requiredCapability: "platform-session:access",
+    workspace: "PLATFORM_TENANT_GOVERNANCE",
+  },
+  {
     id: "platform",
     label: "平台租户",
     requiredCapability: "tenant-governance:write",

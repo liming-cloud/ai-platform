@@ -305,6 +305,7 @@
 | ADR-0063 人工接受 | `project/evidence/ADR-0063-approval.md` | 本次控制面提交 | 用户确认 Docker 已启动、禁止无必要新增容器，并授权本地成员基线重置与 M6 TLS 门禁调整。 |
 | M6 自动验收前置条件审计 | `project/evidence/M6-automatic-acceptance-precondition-audit.md` | 本次控制面提交 | 已汇总 ADR-0057 至 ADR-0059 的自动化覆盖；当前本地身份基线、当前镜像的真实基础设施和 HTTP／浏览器角色回归完成前，不得发起 M6 自动验收或人工评审。 |
 | M6 本地身份重置只读预检 | `project/evidence/WP-0014-local-identity-reset-preflight.md` | 本次提交 | 精确确认当前 Compose 数据库、成员／主体数量、外键及旧凭据 `401`；人工确认清理范围与初始凭据前未执行删除。 |
+| M6 本地身份基线与企业角色浏览器回归 | `project/evidence/WP-0014-local-identity-baseline-and-browser-regression.md` | 本次提交 | 本地关联数据清理、页面建立租户／账户／角色、真实 PostgreSQL 修订、平台运营员无数据工作区与管理员分页治理入口回归通过；ADR-0062 迁移清单仍阻断 M6 验收。 |
 | M6 首份发布资源选择器分页与显式模型选择 | `project/evidence/WP-0014-publication-resource-picker-pagination.md` | 本次提交 | 首份发布路由、知识空间和嵌入模型选择已完成前端 TDD 与生产构建；当前 Docker Buildx 无法完成重建，真实 PostgreSQL／MinIO／HTTP 与受信任 TLS 浏览器回归待续证。 |
 
 ## 证据规则

@@ -236,6 +236,7 @@ function AuthenticatedConsoleApp({
   const modelsActive = route.navigationId === "models";
   const governanceActive = route.navigationId === "governance";
   const queryActive = route.navigationId === "query";
+  const platformWorkspaceActive = route.navigationId === "platform-workspace";
   const platformActive = route.navigationId === "platform";
   const platformAccountsActive = route.navigationId === "platform-accounts";
   const dataPage = dataActive ? dataPageContent(route) : undefined;
@@ -244,13 +245,15 @@ function AuthenticatedConsoleApp({
     <ProductShell
       productName="可信知识平台"
       pageTitle={
-        accessActive ? "成员与权限" : platformActive ? "平台租户生命周期" : platformAccountsActive ? "平台账户目录" : queryActive ? "从已授权资料中获得答案" : governanceActive ? route.task === "query" ? "查询用量与审计" : "受限评测运行" : modelsActive ? route.task === "configuration" ? "受控模型配置" : route.task === "providers" ? "供应商连接与模型发现" : "模型部署与能力验证" : dataPage?.title ?? "可信知识平台"
+        accessActive ? "成员与权限" : platformWorkspaceActive ? "平台工作区" : platformActive ? "平台租户生命周期" : platformAccountsActive ? "平台账户目录" : queryActive ? "从已授权资料中获得答案" : governanceActive ? route.task === "query" ? "查询用量与审计" : "受限评测运行" : modelsActive ? route.task === "configuration" ? "受控模型配置" : route.task === "providers" ? "供应商连接与模型发现" : "模型部署与能力验证" : dataPage?.title ?? "可信知识平台"
       }
       pageSummary={
         queryActive
           ? "答案必须附带可核验来源。没有足够证据或没有访问权限时，系统会明确拒绝回答。"
           : accessActive
           ? "成员操作由当前浏览器会话恢复租户范围；目录使用服务端分页，停用必须二次确认。"
+          : platformWorkspaceActive
+          ? "只确认当前平台浏览器会话；不会展示租户正文、成员、账户、凭据或治理数据。"
           : platformActive
           ? "建立与迁移租户状态，不展示租户正文、成员详情或平台操作者信息。"
           : platformAccountsActive
@@ -443,6 +446,15 @@ function AuthenticatedConsoleApp({
           <Suspense fallback={<StatePanel kind="loading" title="正在加载平台租户工作区" description="正在准备受限生命周期任务。" />}>
             <PlatformTenantLifecycleWorkspace client={client} route={route} onRouteChange={navigate} />
           </Suspense>
+        ) : null}
+      </section>
+      <section hidden={!platformWorkspaceActive}>
+        {platformWorkspaceActive ? (
+          <StatePanel
+            kind="empty"
+            title="当前没有获授权的平台治理任务"
+            description="请由平台管理员授予与实际职责相符的固定角色；本入口不以页面可见性替代服务端授权。"
+          />
         ) : null}
       </section>
       <section hidden={!platformAccountsActive}>

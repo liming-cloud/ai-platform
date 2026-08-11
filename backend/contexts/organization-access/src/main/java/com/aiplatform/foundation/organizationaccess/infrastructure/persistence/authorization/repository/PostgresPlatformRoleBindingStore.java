@@ -66,7 +66,7 @@ public final class PostgresPlatformRoleBindingStore implements PlatformRoleBindi
                 binding.subjectId().value(),
                 binding.role().name(),
                 binding.createdAt()), "平台角色绑定写入失败");
-        requireSingleWrite(mapper.bumpAuthorizationRevision(binding.subjectId().value()), "平台权限修订写入失败");
+        reviseAuthorization(binding.subjectId());
     }
 
     @Override
@@ -80,7 +80,7 @@ public final class PostgresPlatformRoleBindingStore implements PlatformRoleBindi
                 binding.version(),
                 binding.version() - 1L,
                 binding.revokedAt()), "平台角色绑定撤销冲突");
-        requireSingleWrite(mapper.bumpAuthorizationRevision(binding.subjectId().value()), "平台权限修订写入失败");
+        reviseAuthorization(binding.subjectId());
     }
 
     private static PlatformRoleBinding toDomain(PlatformRoleBindingEntity entity) {
@@ -93,6 +93,18 @@ public final class PostgresPlatformRoleBindingStore implements PlatformRoleBindi
                 entity.getVersion(),
                 entity.getCreatedAt(),
                 entity.getRevokedAt());
+    }
+
+    /**
+     * 主体锁已由调用方持有，先推进既有修订；首次绑定才建立认证事实。
+     *
+     * <p>不用 PostgreSQL UPSERT，避免安全更新拦截器将该语句误判为无条件写入。</p>
+     */
+    private void reviseAuthorization(SubjectId subjectId) {
+        if (mapper.advanceAuthorizationRevision(subjectId.value()) == 0) {
+            requireSingleWrite(
+                    mapper.establishAuthorizationRevision(subjectId.value()), "平台权限修订建立失败");
+        }
     }
 
     private static void requireSingleWrite(int rows, String message) {

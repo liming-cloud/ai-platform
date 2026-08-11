@@ -7,6 +7,19 @@ import {
 } from "./console-route";
 
 describe("统一控制台路由", () => {
+  it("平台运营员工作区使用固定的无数据入口", () => {
+    expect(defaultConsoleRoute("platform-workspace")).toEqual({
+      navigationId: "platform-workspace",
+      task: "workspace",
+    });
+    expect(parseConsoleRoute("/platform", "")).toEqual({
+      navigationId: "platform-workspace",
+      task: "workspace",
+    });
+    expect(formatConsoleRoute({ navigationId: "platform-workspace", task: "workspace" }))
+      .toBe("/platform");
+  });
+
   it("一级模型导航进入可恢复的配置工作区，而不是内存标签页", () => {
     expect(defaultConsoleRoute("models")).toEqual({
       navigationId: "models",

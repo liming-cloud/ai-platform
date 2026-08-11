@@ -1,5 +1,6 @@
 package com.aiplatform.foundation.organizationaccess.interfaces.web.authorization.controller;
 
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -24,7 +25,7 @@ class PlatformAccountGovernanceControllerTest {
         var service = mock(PlatformAccountGovernanceApplicationService.class);
         var directory = mock(PlatformAccountDirectoryApplicationService.class);
         when(directory.list(any(), any())).thenReturn(new com.aiplatform.foundation.shared.contract.paging.PageResult<>(
-                java.util.List.of(new PlatformAccountSummary(102L, "target-account", "ACTIVE", 0L, Instant.parse("2026-08-11T00:00:00Z"), java.util.Set.of())),
+                java.util.List.of(new PlatformAccountSummary(4921825928971026436L, "target-account", "ACTIVE", 0L, Instant.parse("2026-08-11T00:00:00Z"), java.util.Set.of())),
                 2L, 20L, 21L, 2L, true, false));
         var context = context();
         var mvc = org.springframework.test.web.servlet.setup.MockMvcBuilders
@@ -35,6 +36,8 @@ class PlatformAccountGovernanceControllerTest {
         mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
                         .get("/api/v1/platform/accounts?pageNumber=2&pageSize=20"))
                 .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().isOk())
+                .andExpect(result -> assertTrue(result.getResponse().getContentAsString()
+                        .contains("\"subjectId\":\"4921825928971026436\"")))
                 .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath("$.items[0].loginName").value("target-account"))
                 .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath("$.pageNumber").value(2));
 

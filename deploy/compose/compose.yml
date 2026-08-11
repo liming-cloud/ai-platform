@@ -74,7 +74,8 @@ services:
     image: trusted-rag/control-plane:foundation-v1
     environment:
       SERVER_PORT: "8080"
-      SPRING_PROFILES_ACTIVE: demo
+      # 本地研发基线只执行正式迁移；平台超级管理员由受控本地重置建立，不能回灌演示成员和租户。
+      SPRING_PROFILES_ACTIVE: local
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${FOUNDATION_POSTGRES_DATABASE:?必须设置数据库名称}
       SPRING_DATASOURCE_USERNAME: ${FOUNDATION_POSTGRES_USER:?必须设置数据库用户}
       SPRING_DATASOURCE_PASSWORD: ${FOUNDATION_POSTGRES_PASSWORD:?必须设置数据库密码}

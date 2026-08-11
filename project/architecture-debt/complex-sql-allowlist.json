@@ -777,9 +777,15 @@
     },
     {
       "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/PlatformRoleBindingMapper.xml",
-      "statementId": "bumpAuthorizationRevision",
+      "statementId": "advanceAuthorizationRevision",
       "category": "ATOMIC_STATE_TRANSITION",
-      "reason": "以 PostgreSQL UPSERT 原子建立或推进平台授权修订，使旧会话失效。"
+      "reason": "在受锁主体已有认证事实时有条件推进平台授权修订，使旧会话失效。"
+    },
+    {
+      "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/PlatformRoleBindingMapper.xml",
+      "statementId": "establishAuthorizationRevision",
+      "category": "ATOMIC_STATE_TRANSITION",
+      "reason": "首次平台角色绑定时建立认证修订事实，避免安全更新拦截器误判 UPSERT。"
     }
   ]
 }

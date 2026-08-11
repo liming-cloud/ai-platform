@@ -51,9 +51,9 @@ public final class BrowserSessionCapabilityService {
             workspaces.add(WorkspaceCategory.TENANT);
             roles.add(DisplayRole.TENANT_MEMBER);
         }
-        if (platform.hasTenantGovernanceWorkspace()) {
+        if (platform.hasPlatformWorkspace()) {
             workspaces.add(WorkspaceCategory.PLATFORM_TENANT_GOVERNANCE);
-            roles.add(DisplayRole.PLATFORM_TENANT_GOVERNOR);
+            roles.addAll(platform.displayRoles());
         }
         return new BrowserSessionCapabilityResult(
                 Optional.of(new BrowserSessionCapability(
@@ -142,8 +142,25 @@ public final class BrowserSessionCapabilityService {
             return new ResolvedPlatformSession(false, true, null);
         }
 
-        boolean hasTenantGovernanceWorkspace() {
-            return isValid && context.hasPermission(PlatformPermissions.TENANT_GOVERNANCE_WRITE);
+        boolean hasPlatformWorkspace() {
+            return isValid && context.hasPermission(PlatformPermissions.SESSION_ACCESS);
+        }
+
+        EnumSet<DisplayRole> displayRoles() {
+            var roles = EnumSet.noneOf(DisplayRole.class);
+            if (!isValid) {
+                return roles;
+            }
+            if (context.hasPermission(PlatformPermissions.ACCOUNT_MANAGE)) {
+                roles.add(DisplayRole.PLATFORM_ACCOUNT_ADMINISTRATOR);
+            }
+            if (context.hasPermission(PlatformPermissions.TENANT_GOVERNANCE_WRITE)) {
+                roles.add(DisplayRole.PLATFORM_TENANT_GOVERNOR);
+            }
+            if (roles.isEmpty()) {
+                roles.add(DisplayRole.PLATFORM_OPERATOR);
+            }
+            return roles;
         }
 
         Stream<String> permissionCodes() {

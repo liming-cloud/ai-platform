@@ -1,5 +1,6 @@
 package com.aiplatform.foundation.organizationaccess.interfaces.web.authorization.controller;
 
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -22,7 +23,7 @@ class PlatformAccountEstablishmentControllerTest {
     void HTTP建立账户只接受登录名和初始口令并从解析器恢复平台上下文() throws Exception {
         var service = mock(PlatformAccountEstablishmentApplicationService.class);
         when(service.establish(any(), any(), any())).thenReturn(new PlatformAccountSummary(
-                102L, "new-account", "ACTIVE", 0L, Instant.parse("2026-08-11T04:00:00Z"), Set.of()));
+                4921825928971026436L, "new-account", "ACTIVE", 0L, Instant.parse("2026-08-11T04:00:00Z"), Set.of()));
         var context = context();
         var mvc = org.springframework.test.web.servlet.setup.MockMvcBuilders
                 .standaloneSetup(new PlatformAccountEstablishmentController(service))
@@ -34,7 +35,8 @@ class PlatformAccountEstablishmentControllerTest {
                         .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
                         .content("{\"loginName\":\"new-account\",\"password\":\"initial-password\"}"))
                 .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().isCreated())
-                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath("$.subjectId").value(102L))
+                .andExpect(result -> assertTrue(result.getResponse().getContentAsString()
+                        .contains("\"subjectId\":\"4921825928971026436\"")))
                 .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath("$.loginName").value("new-account"));
 
         verify(service).establish(org.mockito.Mockito.same(context), org.mockito.Mockito.eq("new-account"), any(char[].class));

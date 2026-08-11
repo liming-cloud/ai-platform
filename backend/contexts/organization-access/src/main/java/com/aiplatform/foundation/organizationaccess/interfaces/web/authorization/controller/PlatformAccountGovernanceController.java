@@ -1,9 +1,9 @@
 package com.aiplatform.foundation.organizationaccess.interfaces.web.authorization.controller;
 
-import com.aiplatform.foundation.organizationaccess.application.authorization.dto.PlatformAccountSummary;
 import com.aiplatform.foundation.organizationaccess.application.authorization.service.PlatformAccountDirectoryApplicationService;
 import com.aiplatform.foundation.organizationaccess.application.authorization.service.PlatformAccountGovernanceApplicationService;
 import com.aiplatform.foundation.organizationaccess.interfaces.web.authorization.request.PlatformAccountPasswordResetRequest;
+import com.aiplatform.foundation.organizationaccess.interfaces.web.authorization.response.PlatformAccountSummaryResponse;
 import com.aiplatform.foundation.security.identity.PlatformRequestContext;
 import com.aiplatform.foundation.shared.contract.paging.PageQuery;
 import com.aiplatform.foundation.shared.contract.paging.PageResult;
@@ -41,11 +41,19 @@ public final class PlatformAccountGovernanceController {
     }
 
     @GetMapping
-    public PageResult<PlatformAccountSummary> list(
+    public PageResult<PlatformAccountSummaryResponse> list(
             PlatformRequestContext platform,
             @RequestParam(defaultValue = "1") long pageNumber,
             @RequestParam(defaultValue = "20") long pageSize) {
-        return directory.list(platform, new PageQuery(pageNumber, pageSize));
+        var page = directory.list(platform, new PageQuery(pageNumber, pageSize));
+        return new PageResult<>(
+                page.items().stream().map(PlatformAccountSummaryResponse::from).toList(),
+                page.pageNumber(),
+                page.pageSize(),
+                page.totalElements(),
+                page.totalPages(),
+                page.hasPrevious(),
+                page.hasNext());
     }
 
     /** 禁用目标账户，并使该主体的全部平台及租户会话失效。 */

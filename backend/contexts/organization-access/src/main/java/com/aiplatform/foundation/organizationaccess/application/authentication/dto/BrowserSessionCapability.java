@@ -5,7 +5,7 @@ import java.util.Set;
 
 /**
  * 浏览器可用工作区与导航能力的最小只读投影，不包含身份、成员、凭据、token 或完整策略事实。
- * 已验证但未获分配工作区的平台主体以两个空集合表示，不代表会话失效。
+ * 无有效范围会话时以两个空集合表示，不代表浏览器凭据或底层会话事实。
  */
 public record BrowserSessionCapability(
         Set<WorkspaceCategory> workspaceCategories,
@@ -41,6 +41,8 @@ public record BrowserSessionCapability(
      */
     public enum DisplayRole {
         TENANT_MEMBER,
-        PLATFORM_TENANT_GOVERNOR
+        PLATFORM_ACCOUNT_ADMINISTRATOR,
+        PLATFORM_TENANT_GOVERNOR,
+        PLATFORM_OPERATOR
     }
 }

@@ -1,8 +1,8 @@
 package com.aiplatform.foundation.organizationaccess.interfaces.web.authorization.controller;
 
-import com.aiplatform.foundation.organizationaccess.application.authorization.dto.PlatformAccountSummary;
 import com.aiplatform.foundation.organizationaccess.application.authorization.service.PlatformAccountEstablishmentApplicationService;
 import com.aiplatform.foundation.organizationaccess.interfaces.web.authorization.request.PlatformAccountEstablishmentRequest;
+import com.aiplatform.foundation.organizationaccess.interfaces.web.authorization.response.PlatformAccountSummaryResponse;
 import com.aiplatform.foundation.security.identity.PlatformRequestContext;
 import java.util.Map;
 import java.util.Objects;
@@ -26,12 +26,13 @@ public final class PlatformAccountEstablishmentController {
     }
 
     @PostMapping
-    public ResponseEntity<PlatformAccountSummary> establish(
+    public ResponseEntity<PlatformAccountSummaryResponse> establish(
             PlatformRequestContext platform, @RequestBody Map<String, Object> payload) {
         var request = PlatformAccountEstablishmentRequest.from(payload);
         try {
             return ResponseEntity.status(HttpStatus.CREATED)
-                    .body(accounts.establish(platform, request.loginName(), request.passwordCopy()));
+                    .body(PlatformAccountSummaryResponse.from(
+                            accounts.establish(platform, request.loginName(), request.passwordCopy())));
         } finally {
             request.clear();
         }

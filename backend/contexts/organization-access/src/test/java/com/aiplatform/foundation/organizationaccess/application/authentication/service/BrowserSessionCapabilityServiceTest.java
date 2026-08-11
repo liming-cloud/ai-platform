@@ -2,6 +2,8 @@ package com.aiplatform.foundation.organizationaccess.application.authentication.
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import com.aiplatform.foundation.organizationaccess.application.authentication.dto.BrowserSessionCapability.DisplayRole;
+import com.aiplatform.foundation.organizationaccess.application.authentication.dto.BrowserSessionCapability.WorkspaceCategory;
 import com.aiplatform.foundation.security.identity.AccessChannel;
 import com.aiplatform.foundation.security.identity.CredentialType;
 import com.aiplatform.foundation.security.identity.MembershipId;
@@ -22,6 +24,27 @@ import org.junit.jupiter.api.Test;
  * 验证浏览器能力只投影已验证会话中的实际权限，不能由前端或静态菜单补写。
  */
 class BrowserSessionCapabilityServiceTest {
+
+    @Test
+    void 平台运营员应获得无数据平台工作区而非租户治理入口() {
+        var platformContext = new PlatformRequestContext(
+                new SubjectId(4921825928971026436L),
+                CredentialType.PERSON,
+                AccessChannel.CONSOLE,
+                4L,
+                Set.of(PlatformPermissions.SESSION_ACCESS),
+                "trc_platform_operator_capability");
+        var service = new BrowserSessionCapabilityService(
+                tenantSessions(null),
+                platformSessions(platformContext),
+                Duration.ofMinutes(30));
+
+        var capability = service.inspect(null, "platform-session").capability().orElseThrow();
+
+        assertEquals(Set.of(WorkspaceCategory.PLATFORM_TENANT_GOVERNANCE), capability.workspaceCategories());
+        assertEquals(Set.of(DisplayRole.PLATFORM_OPERATOR), capability.displayRoles());
+        assertEquals(Set.of("platform-session:access"), capability.capabilityCodes());
+    }
 
     @Test
     void 应把双范围会话的实际权限投影为导航能力码() {

@@ -36,5 +36,7 @@ public interface PlatformRoleBindingMapper {
             @Param("expectedVersion") long expectedVersion,
             @Param("revokedAt") Instant revokedAt);
 
-    int bumpAuthorizationRevision(@Param("subjectId") long subjectId);
+    int advanceAuthorizationRevision(@Param("subjectId") long subjectId);
+
+    int establishAuthorizationRevision(@Param("subjectId") long subjectId);
 }

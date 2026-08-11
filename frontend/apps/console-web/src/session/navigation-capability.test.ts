@@ -18,6 +18,14 @@ describe("visibleNavigation", () => {
     })).toEqual([]);
   });
 
+  it("平台运营员只看到不含治理数据的平台工作区入口", () => {
+    expect(visibleNavigation({
+      canUseTenantWorkspace: false,
+      canUsePlatformGovernance: true,
+      capabilityCodes: ["platform-session:access"],
+    }).map((item) => item.id)).toEqual(["platform-workspace"]);
+  });
+
   it("访问管理员应看到成员与权限入口，普通成员不得看到", () => {
     expect(visibleNavigation({
       canUseTenantWorkspace: true,

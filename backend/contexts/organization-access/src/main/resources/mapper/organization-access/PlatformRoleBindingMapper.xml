@@ -97,16 +97,20 @@
           AND version = #{expectedVersion}
     </update>
 
-    <!-- 主体行锁序列化角色变化，故认证修订可安全地用单条 UPSERT 建立或推进。 -->
-    <update id="bumpAuthorizationRevision">
+    <!-- 主体行锁序列化角色变化，因此可先推进既有认证修订，首次绑定才建立事实。 -->
+    <update id="advanceAuthorizationRevision">
+        UPDATE organization_access.platform_subject_authorization
+        SET permission_version = organization_access.platform_subject_authorization.permission_version + 1,
+            version = organization_access.platform_subject_authorization.version + 1,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE subject_id = #{subjectId}
+    </update>
+
+    <insert id="establishAuthorizationRevision">
         INSERT INTO organization_access.platform_subject_authorization
             (subject_id, permission_version, version)
         VALUES
             (#{subjectId}, 1, 1)
-        ON CONFLICT (subject_id) DO UPDATE
-        SET permission_version = organization_access.platform_subject_authorization.permission_version + 1,
-            version = organization_access.platform_subject_authorization.version + 1,
-            updated_at = CURRENT_TIMESTAMP
-    </update>
+    </insert>
 
 </mapper>
