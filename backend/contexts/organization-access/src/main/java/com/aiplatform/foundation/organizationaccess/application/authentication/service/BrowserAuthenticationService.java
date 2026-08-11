@@ -4,7 +4,7 @@ import com.aiplatform.foundation.organizationaccess.application.authentication.c
 import com.aiplatform.foundation.organizationaccess.application.authentication.dto.BrowserSessionIssue;
 import com.aiplatform.foundation.organizationaccess.application.authentication.exception.InvalidCredentialsException;
 import com.aiplatform.foundation.organizationaccess.application.authentication.port.out.PasswordVerifier;
-import com.aiplatform.foundation.organizationaccess.domain.authorization.repository.PlatformAccessGrantRepository;
+import com.aiplatform.foundation.organizationaccess.domain.authorization.repository.PlatformRoleBindingRepository;
 import com.aiplatform.foundation.organizationaccess.domain.identity.repository.SubjectIdentityRepository;
 import com.aiplatform.foundation.organizationaccess.domain.member.repository.TenantMembershipRepository;
 import com.aiplatform.foundation.security.identity.CredentialType;
@@ -27,7 +27,7 @@ public final class BrowserAuthenticationService {
 
     private final SubjectIdentityRepository identities;
     private final TenantMembershipRepository memberships;
-    private final PlatformAccessGrantRepository grants;
+    private final PlatformRoleBindingRepository bindings;
     private final PasswordVerifier passwords;
     private final AuthenticatedSessionGateway tenantSessions;
     private final PlatformSessionGateway platformSessions;
@@ -36,14 +36,14 @@ public final class BrowserAuthenticationService {
     public BrowserAuthenticationService(
             SubjectIdentityRepository identities,
             TenantMembershipRepository memberships,
-            PlatformAccessGrantRepository grants,
+            PlatformRoleBindingRepository bindings,
             PasswordVerifier passwords,
             AuthenticatedSessionGateway tenantSessions,
             PlatformSessionGateway platformSessions,
             String dummyEncodedPassword) {
         this.identities = java.util.Objects.requireNonNull(identities, "主体仓储不能为空");
         this.memberships = java.util.Objects.requireNonNull(memberships, "成员资格仓储不能为空");
-        this.grants = java.util.Objects.requireNonNull(grants, "平台授权仓储不能为空");
+        this.bindings = java.util.Objects.requireNonNull(bindings, "平台角色绑定仓储不能为空");
         this.passwords = java.util.Objects.requireNonNull(passwords, "密码验证器不能为空");
         this.tenantSessions = java.util.Objects.requireNonNull(tenantSessions, "租户会话网关不能为空");
         this.platformSessions = java.util.Objects.requireNonNull(platformSessions, "平台会话网关不能为空");
@@ -78,8 +78,8 @@ public final class BrowserAuthenticationService {
         if (command.tenantCode() != null && member.isEmpty()) {
             throw new InvalidCredentialsException();
         }
-        var grant = grants.findActiveBySubject(authenticated.id());
-        if (member.isEmpty() && grant.isEmpty()) {
+        var authorization = bindings.findActiveAuthorizationBySubject(authenticated.id());
+        if (member.isEmpty() && authorization.isEmpty()) {
             throw new InvalidCredentialsException();
         }
 
@@ -100,8 +100,8 @@ public final class BrowserAuthenticationService {
                         permissions,
                         command.traceId()));
             }
-            if (grant.isPresent()) {
-                var current = grant.orElseThrow();
+            if (authorization.isPresent()) {
+                var current = authorization.orElseThrow();
                 var permissions = current.permissions().stream()
                         .map(permission -> new PermissionCode(permission.value()))
                         .collect(Collectors.toUnmodifiableSet());

@@ -55,6 +55,18 @@ class SaTokenPlatformSessionGatewayTest {
                 () -> platformGateway.resolve(tenantToken.tokenValue()));
     }
 
+    @Test
+    void 按主体撤销应使该主体全部平台会话立即失效() {
+        var gateway = gateway(new SaTokenDaoDefaultImpl(), "platform-test-");
+        var first = gateway.issue(context());
+        var second = gateway.issue(context());
+
+        gateway.revokeSubjectSessions(context().subjectId());
+
+        assertThrows(InvalidAuthenticatedSessionException.class, () -> gateway.resolve(first.tokenValue()));
+        assertThrows(InvalidAuthenticatedSessionException.class, () -> gateway.resolve(second.tokenValue()));
+    }
+
     private static SaTokenPlatformSessionGateway gateway(SaTokenDaoDefaultImpl dao, String prefix) {
         return new SaTokenPlatformSessionGateway(
                 new ContextBoundStpLogic(

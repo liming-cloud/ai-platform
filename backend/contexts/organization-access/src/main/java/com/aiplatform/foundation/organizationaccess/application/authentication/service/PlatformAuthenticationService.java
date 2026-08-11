@@ -3,7 +3,7 @@ package com.aiplatform.foundation.organizationaccess.application.authentication.
 import com.aiplatform.foundation.organizationaccess.application.authentication.command.PlatformLoginCommand;
 import com.aiplatform.foundation.organizationaccess.application.authentication.exception.InvalidCredentialsException;
 import com.aiplatform.foundation.organizationaccess.application.authentication.port.out.PasswordVerifier;
-import com.aiplatform.foundation.organizationaccess.domain.authorization.repository.PlatformAccessGrantRepository;
+import com.aiplatform.foundation.organizationaccess.domain.authorization.repository.PlatformRoleBindingRepository;
 import com.aiplatform.foundation.organizationaccess.domain.identity.repository.SubjectIdentityRepository;
 import com.aiplatform.foundation.security.identity.CredentialType;
 import com.aiplatform.foundation.security.identity.PermissionCode;
@@ -20,19 +20,19 @@ import java.util.stream.Collectors;
 public final class PlatformAuthenticationService {
 
     private final SubjectIdentityRepository identities;
-    private final PlatformAccessGrantRepository grants;
+    private final PlatformRoleBindingRepository bindings;
     private final PasswordVerifier passwords;
     private final PlatformSessionGateway sessions;
     private final String dummyEncodedPassword;
 
     public PlatformAuthenticationService(
             SubjectIdentityRepository identities,
-            PlatformAccessGrantRepository grants,
+            PlatformRoleBindingRepository bindings,
             PasswordVerifier passwords,
             PlatformSessionGateway sessions,
             String dummyEncodedPassword) {
         this.identities = Objects.requireNonNull(identities, "主体仓储不能为空");
-        this.grants = Objects.requireNonNull(grants, "平台授权仓储不能为空");
+        this.bindings = Objects.requireNonNull(bindings, "平台角色绑定仓储不能为空");
         this.passwords = Objects.requireNonNull(passwords, "密码验证器不能为空");
         this.sessions = Objects.requireNonNull(sessions, "平台会话网关不能为空");
         this.dummyEncodedPassword = requireDummyPassword(dummyEncodedPassword);
@@ -55,12 +55,12 @@ public final class PlatformAuthenticationService {
             throw new InvalidCredentialsException();
         }
         var authenticated = identity.orElseThrow();
-        var grant = grants.findActiveBySubject(authenticated.id());
-        if (grant.isEmpty()) {
+        var authorization = bindings.findActiveAuthorizationBySubject(authenticated.id());
+        if (authorization.isEmpty()) {
             throw new InvalidCredentialsException();
         }
-        var activeGrant = grant.orElseThrow();
-        var permissions = activeGrant.permissions().stream()
+        var activeAuthorization = authorization.orElseThrow();
+        var permissions = activeAuthorization.permissions().stream()
                 .map(permission -> new PermissionCode(permission.value()))
                 .collect(Collectors.toUnmodifiableSet());
         return sessions.issue(new PlatformRequestContext(
@@ -68,7 +68,7 @@ public final class PlatformAuthenticationService {
                         authenticated.id().value()),
                 CredentialType.PERSON,
                 command.channel(),
-                activeGrant.permissionVersion(),
+                activeAuthorization.permissionVersion(),
                 permissions,
                 command.traceId()));
     }

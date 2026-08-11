@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aiplatform.foundation.organizationaccess.infrastructure.persistence.authorization.mapper.PlatformRoleBindingMapper">
+
+    <resultMap id="platformRoleAuthorization"
+        type="com.aiplatform.foundation.organizationaccess.infrastructure.persistence.authorization.projection.PlatformRoleAuthorizationRow">
+        <result column="subject_id" property="subjectId"/>
+        <result column="permission_version" property="permissionVersion"/>
+        <result column="role_code" property="roleCode"/>
+    </resultMap>
+
+    <select id="findActiveAuthorizationBySubject" resultMap="platformRoleAuthorization">
+        SELECT revision.subject_id, revision.permission_version, binding.role_code
+        FROM organization_access.platform_subject_authorization revision
+        INNER JOIN organization_access.subject_identity subject
+            ON subject.subject_id = revision.subject_id
+        INNER JOIN organization_access.platform_role_binding binding
+            ON binding.subject_id = revision.subject_id
+        WHERE revision.subject_id = #{subjectId}
+          AND subject.status = 'ACTIVE'
+          AND binding.status = 'ACTIVE'
+        ORDER BY binding.role_code
+    </select>
+
+</mapper>

@@ -45,4 +45,19 @@ class SubjectIdentityTest {
                 () -> SubjectIdentity.register(
                         new SubjectId(101L), "platform-admin", new EncodedPassword(" "), CREATED_AT));
     }
+
+    @Test
+    void 启用和受控凭据重置都应生成新的不可变修订() {
+        var identity = SubjectIdentity.register(
+                new SubjectId(101L), "platform-admin", new EncodedPassword("encoded"), CREATED_AT)
+                .disable();
+
+        var enabled = identity.enable();
+        var passwordReset = enabled.resetPassword(new EncodedPassword("new-encoded"));
+
+        assertTrue(enabled.isActive());
+        assertEquals(2L, enabled.version());
+        assertEquals(3L, passwordReset.version());
+        assertEquals("[已脱敏]", passwordReset.encodedPassword().toString());
+    }
 }

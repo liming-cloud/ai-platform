@@ -78,6 +78,36 @@ public final class SubjectIdentity implements AggregateRoot<SubjectId> {
                 id, loginName, encodedPassword, SubjectIdentityStatus.DISABLED, version + 1L, createdAt);
     }
 
+    /**
+     * 重新启用已禁用主体。
+     *
+     * @throws IllegalStateException 当主体并非禁用状态时拒绝重复启用。
+     */
+    public SubjectIdentity enable() {
+        if (status == SubjectIdentityStatus.ACTIVE) {
+            return this;
+        }
+        return new SubjectIdentity(
+                id, loginName, encodedPassword, SubjectIdentityStatus.ACTIVE, version + 1L, createdAt);
+    }
+
+    /**
+     * 使用已编码的新凭据替换旧凭据。
+     *
+     * <p>调用方必须已完成受控密码重置的授权和原子会话撤销；本根只保证凭据事实与修订一致。</p>
+     *
+     * @throws IllegalArgumentException 当新凭据为空或不合法时拒绝。
+     */
+    public SubjectIdentity resetPassword(EncodedPassword replacement) {
+        return new SubjectIdentity(
+                id,
+                loginName,
+                Objects.requireNonNull(replacement, "新主体凭据摘要不能为空"),
+                status,
+                version + 1L,
+                createdAt);
+    }
+
     @Override
     public SubjectId id() {
         return id;

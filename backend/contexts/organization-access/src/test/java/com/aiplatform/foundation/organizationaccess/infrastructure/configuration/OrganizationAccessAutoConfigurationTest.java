@@ -22,7 +22,7 @@ import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.service.TenantLifecycleQueryService;
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.service.TenantLifecycleTransitionService;
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.service.TenantProvisioningService;
-import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.authorization.mapper.PlatformAccessGrantMapper;
+import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.authorization.mapper.PlatformRoleBindingMapper;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.authorization.mapper.TenantCustomRoleBindingMapper;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.authorization.mapper.TenantCustomRoleLifecycleMapper;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.authorization.mapper.TenantCustomRoleDirectoryMapper;
@@ -81,8 +81,8 @@ class OrganizationAccessAutoConfigurationTest {
                     TenantMemberEstablishmentMapper.class,
                     () -> mock(TenantMemberEstablishmentMapper.class))
             .withBean(
-                    PlatformAccessGrantMapper.class,
-                    () -> mock(PlatformAccessGrantMapper.class))
+                    PlatformRoleBindingMapper.class,
+                    () -> mock(PlatformRoleBindingMapper.class))
             .withBean(
                     TenantRoleBindingMapper.class,
                     () -> mock(TenantRoleBindingMapper.class))

@@ -6,8 +6,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import com.aiplatform.foundation.organizationaccess.application.authentication.command.BrowserLoginCommand;
 import com.aiplatform.foundation.organizationaccess.application.authentication.port.out.PasswordVerifier;
 import com.aiplatform.foundation.organizationaccess.domain.authorization.model.PermissionCode;
-import com.aiplatform.foundation.organizationaccess.domain.authorization.model.PlatformAccessGrant;
-import com.aiplatform.foundation.organizationaccess.domain.authorization.repository.PlatformAccessGrantRepository;
+import com.aiplatform.foundation.organizationaccess.domain.authorization.model.platform.PlatformRole;
+import com.aiplatform.foundation.organizationaccess.domain.authorization.model.platform.PlatformRoleAuthorization;
 import com.aiplatform.foundation.organizationaccess.domain.authorization.model.PermissionGrantSet;
 import com.aiplatform.foundation.organizationaccess.domain.identity.model.SubjectIdentity;
 import com.aiplatform.foundation.organizationaccess.domain.identity.repository.SubjectIdentityRepository;
@@ -128,12 +128,8 @@ class BrowserAuthenticationServiceTest {
                 new PermissionGrantSet(2, Set.of(new PermissionCode("knowledge:write"))));
     }
 
-    private static PlatformAccessGrant platformGrant() {
-        return new PlatformAccessGrant(
-                SUBJECT_ID,
-                2L,
-                Set.of(
-                        new PermissionCode("platform-session:access"),
-                        new PermissionCode("tenant-governance:write")));
+    private static PlatformRoleAuthorization platformGrant() {
+        return new PlatformRoleAuthorization(
+                SUBJECT_ID, 2L, Set.of(PlatformRole.PLATFORM_TENANT_GOVERNOR));
     }
 }

@@ -114,6 +114,17 @@ public final class SaTokenPlatformSessionGateway implements PlatformSessionGatew
         }
     }
 
+    @Override
+    public void revokeSubjectSessions(
+            com.aiplatform.foundation.security.identity.SubjectId subjectId) {
+        subjectId = Objects.requireNonNull(subjectId, "主体标识不能为空");
+        try {
+            stpLogic.logout(Long.toString(subjectId.value()));
+        } catch (RuntimeException exception) {
+            throw new AuthenticatedSessionUnavailableException(exception);
+        }
+    }
+
     private void revokeAfterFailedIssue(String tokenValue, RuntimeException original) {
         try {
             stpLogic.logoutByTokenValue(tokenValue);

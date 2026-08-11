@@ -35,7 +35,7 @@ import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.service.TenantLifecycleQueryService;
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.service.TenantLifecycleTransitionService;
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.service.TenantProvisioningService;
-import com.aiplatform.foundation.organizationaccess.domain.authorization.repository.PlatformAccessGrantRepository;
+import com.aiplatform.foundation.organizationaccess.domain.authorization.repository.PlatformRoleBindingRepository;
 import com.aiplatform.foundation.organizationaccess.domain.identity.repository.SubjectIdentityRepository;
 import com.aiplatform.foundation.organizationaccess.domain.member.repository.TenantMembershipRepository;
 import com.aiplatform.foundation.organizationaccess.infrastructure.password.Pbkdf2PasswordAdapter;
@@ -91,14 +91,14 @@ public class OrganizationAccessCoreAutoConfiguration {
     @ConditionalOnMissingBean
     PlatformAuthenticationService platformAuthenticationService(
             SubjectIdentityRepository identities,
-            PlatformAccessGrantRepository grants,
+            PlatformRoleBindingRepository bindings,
             PlatformSessionGateway sessions,
             Pbkdf2PasswordAdapter passwords) {
         var dummyPassword = "不存在主体的等价验证口令".toCharArray();
         try {
             return new PlatformAuthenticationService(
                     identities,
-                    grants,
+                    bindings,
                     passwords,
                     sessions,
                     passwords.encode(dummyPassword));
@@ -112,7 +112,7 @@ public class OrganizationAccessCoreAutoConfiguration {
     BrowserAuthenticationService browserAuthenticationService(
             SubjectIdentityRepository identities,
             TenantMembershipRepository memberships,
-            PlatformAccessGrantRepository grants,
+            PlatformRoleBindingRepository bindings,
             AuthenticatedSessionGateway tenantSessions,
             PlatformSessionGateway platformSessions,
             Pbkdf2PasswordAdapter passwords) {
@@ -121,7 +121,7 @@ public class OrganizationAccessCoreAutoConfiguration {
             return new BrowserAuthenticationService(
                     identities,
                     memberships,
-                    grants,
+                    bindings,
                     passwords,
                     tenantSessions,
                     platformSessions,

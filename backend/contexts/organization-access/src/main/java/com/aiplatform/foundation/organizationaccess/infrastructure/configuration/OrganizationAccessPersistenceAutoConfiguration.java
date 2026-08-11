@@ -1,7 +1,7 @@
 package com.aiplatform.foundation.organizationaccess.infrastructure.configuration;
 
 import com.aiplatform.foundation.organizationaccess.domain.identity.repository.SubjectIdentityRepository;
-import com.aiplatform.foundation.organizationaccess.domain.authorization.repository.PlatformAccessGrantRepository;
+import com.aiplatform.foundation.organizationaccess.domain.authorization.repository.PlatformRoleBindingRepository;
 import com.aiplatform.foundation.organizationaccess.domain.member.repository.TenantMembershipRepository;
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.port.out.TenantLifecycleBackfillStore;
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.port.out.TenantLifecycleReadPort;
@@ -17,8 +17,8 @@ import com.aiplatform.foundation.organizationaccess.application.authorization.po
 import com.aiplatform.foundation.organizationaccess.application.member.port.out.TenantMemberStatusStore;
 import com.aiplatform.foundation.organizationaccess.application.member.port.out.TenantMemberDirectory;
 import com.aiplatform.foundation.organizationaccess.application.member.port.out.TenantMemberEstablishmentStore;
-import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.authorization.mapper.PlatformAccessGrantMapper;
-import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.authorization.repository.PostgresPlatformAccessGrantRepository;
+import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.authorization.mapper.PlatformRoleBindingMapper;
+import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.authorization.repository.PostgresPlatformRoleBindingRepository;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.authorization.mapper.TenantRoleBindingMapper;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.authorization.repository.PostgresTenantRoleBindingStore;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.authorization.repository.PostgresTenantRoleRevocationStore;
@@ -64,7 +64,7 @@ import org.springframework.context.annotation.Bean;
         name = "foundation.organization-access.enabled",
         havingValue = "true")
 @MapperScan(basePackageClasses = {
-    PlatformAccessGrantMapper.class,
+    PlatformRoleBindingMapper.class,
     TenantCustomRoleMapper.class,
     TenantCustomRoleBindingMapper.class,
     TenantCustomRoleLifecycleMapper.class,
@@ -89,9 +89,9 @@ public class OrganizationAccessPersistenceAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    PlatformAccessGrantRepository platformAccessGrantRepository(
-            PlatformAccessGrantMapper mapper) {
-        return new PostgresPlatformAccessGrantRepository(mapper);
+    PlatformRoleBindingRepository platformRoleBindingRepository(
+            PlatformRoleBindingMapper mapper) {
+        return new PostgresPlatformRoleBindingRepository(mapper);
     }
 
     @Bean

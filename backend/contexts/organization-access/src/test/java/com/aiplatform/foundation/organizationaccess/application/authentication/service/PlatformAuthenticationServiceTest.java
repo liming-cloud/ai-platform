@@ -6,9 +6,9 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import com.aiplatform.foundation.organizationaccess.application.authentication.command.PlatformLoginCommand;
 import com.aiplatform.foundation.organizationaccess.application.authentication.exception.InvalidCredentialsException;
 import com.aiplatform.foundation.organizationaccess.application.authentication.port.out.PasswordVerifier;
-import com.aiplatform.foundation.organizationaccess.domain.authorization.model.PlatformAccessGrant;
-import com.aiplatform.foundation.organizationaccess.domain.authorization.model.PermissionCode;
-import com.aiplatform.foundation.organizationaccess.domain.authorization.repository.PlatformAccessGrantRepository;
+import com.aiplatform.foundation.organizationaccess.domain.authorization.model.platform.PlatformRole;
+import com.aiplatform.foundation.organizationaccess.domain.authorization.model.platform.PlatformRoleAuthorization;
+import com.aiplatform.foundation.organizationaccess.domain.authorization.repository.PlatformRoleBindingRepository;
 import com.aiplatform.foundation.organizationaccess.domain.identity.model.SubjectIdentity;
 import com.aiplatform.foundation.organizationaccess.domain.identity.repository.SubjectIdentityRepository;
 import com.aiplatform.foundation.organizationaccess.domain.member.model.EncodedPassword;
@@ -71,11 +71,11 @@ class PlatformAuthenticationServiceTest {
 
     private static PlatformAuthenticationService service(
             Optional<SubjectIdentity> subject,
-            Optional<PlatformAccessGrant> grant,
+            Optional<PlatformRoleAuthorization> authorization,
             PasswordVerifier passwords,
             SessionIssuer issuer) {
         SubjectIdentityRepository identities = loginName -> subject;
-        PlatformAccessGrantRepository grants = subjectId -> grant;
+        PlatformRoleBindingRepository bindings = subjectId -> authorization;
         PlatformSessionGateway sessions = new PlatformSessionGateway() {
             @Override
             public IssuedSession issue(PlatformRequestContext context) {
@@ -92,7 +92,7 @@ class PlatformAuthenticationServiceTest {
                 throw new UnsupportedOperationException();
             }
         };
-        return new PlatformAuthenticationService(identities, grants, passwords, sessions, "dummy");
+        return new PlatformAuthenticationService(identities, bindings, passwords, sessions, "dummy");
     }
 
     private static SubjectIdentity subject() {
@@ -103,10 +103,9 @@ class PlatformAuthenticationServiceTest {
                 Instant.parse("2026-08-03T00:00:00Z"));
     }
 
-    private static PlatformAccessGrant grant() {
-        return new PlatformAccessGrant(SUBJECT_ID, 2L, Set.of(
-                new PermissionCode("platform-session:access"),
-                new PermissionCode("tenant-governance:write")));
+    private static PlatformRoleAuthorization grant() {
+        return new PlatformRoleAuthorization(
+                SUBJECT_ID, 2L, Set.of(PlatformRole.PLATFORM_TENANT_GOVERNOR));
     }
 
     private static PlatformLoginCommand command(String password) {

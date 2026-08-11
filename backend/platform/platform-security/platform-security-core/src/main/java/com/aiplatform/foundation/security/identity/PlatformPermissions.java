@@ -19,6 +19,14 @@ public final class PlatformPermissions {
     public static final PermissionCode TENANT_GOVERNANCE_WRITE =
             new PermissionCode("tenant-governance:write");
 
+    /**
+     * 允许管理全局人员账户、固定平台角色绑定及受控凭据重置。
+     *
+     * <p>它不授予租户正文、模型凭据或审计正文读取权限。</p>
+     */
+    public static final PermissionCode ACCOUNT_MANAGE =
+            new PermissionCode("platform:accounts:manage");
+
     private PlatformPermissions() {
     }
 }
