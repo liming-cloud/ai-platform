@@ -180,8 +180,9 @@ public class OrganizationAccessCoreAutoConfiguration {
     @ConditionalOnMissingBean
     PlatformAccountGovernanceApplicationService platformAccountGovernanceApplicationService(
             PlatformAccountStore store,
-            PersonSessionFamilyRevoker sessions) {
-        return new PlatformAccountGovernanceApplicationService(store, sessions);
+            PersonSessionFamilyRevoker sessions,
+            PasswordHasher passwords) {
+        return new PlatformAccountGovernanceApplicationService(store, sessions, passwords);
     }
 
     @Bean

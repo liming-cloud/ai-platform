@@ -10,6 +10,7 @@ import com.aiplatform.foundation.organizationaccess.domain.member.model.EncodedP
 import com.aiplatform.foundation.organizationaccess.domain.identity.model.SubjectIdentity;
 import com.aiplatform.foundation.organizationaccess.application.authorization.port.out.PersonSessionFamilyRevoker;
 import com.aiplatform.foundation.organizationaccess.application.authorization.service.PlatformAccountGovernanceApplicationService;
+import com.aiplatform.foundation.organizationaccess.infrastructure.password.Pbkdf2PasswordAdapter;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.identity.mapper.PlatformAccountMapper;
 import com.aiplatform.foundation.security.identity.AccessChannel;
 import com.aiplatform.foundation.security.identity.CredentialType;
@@ -17,6 +18,7 @@ import com.aiplatform.foundation.security.identity.PlatformPermissions;
 import com.aiplatform.foundation.security.identity.PlatformRequestContext;
 import com.aiplatform.foundation.shared.contract.paging.PageQuery;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.security.SecureRandom;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mybatis.spring.annotation.MapperScan;
@@ -60,6 +62,9 @@ class PostgresPlatformAccountStoreTest {
 
     @Autowired
     private PlatformAccountGovernanceApplicationService governance;
+
+    @Autowired
+    private Pbkdf2PasswordAdapter passwords;
 
     @DynamicPropertySource
     static void databaseProperties(DynamicPropertyRegistry registry) {
@@ -202,6 +207,45 @@ class PostgresPlatformAccountStoreTest {
     }
 
     @Test
+    void 会话族撤销失败时不得提交账户密码重置() {
+        var before = jdbc.queryForObject(
+                "SELECT password_hash FROM organization_access.subject_identity WHERE subject_id = ?",
+                String.class,
+                TARGET_SUBJECT);
+
+        assertThrows(IllegalStateException.class, () -> governance.resetPassword(
+                accountAdministrator(), TARGET_SUBJECT, "new-password".toCharArray()));
+
+        assertEquals(before, jdbc.queryForObject(
+                "SELECT password_hash FROM organization_access.subject_identity WHERE subject_id = ?",
+                String.class,
+                TARGET_SUBJECT));
+        assertEquals(0L, jdbc.queryForObject(
+                "SELECT version FROM organization_access.subject_identity WHERE subject_id = ?",
+                Long.class,
+                TARGET_SUBJECT));
+    }
+
+    @Test
+    void 密码重置应在真实事务内提交新摘要和修订并使新口令可验证() {
+        REVOCATION_FAILURE.set(false);
+        var newPassword = "new-password".toCharArray();
+
+        governance.resetPassword(accountAdministrator(), TARGET_SUBJECT, newPassword);
+
+        var hash = jdbc.queryForObject(
+                "SELECT password_hash FROM organization_access.subject_identity WHERE subject_id = ?",
+                String.class,
+                TARGET_SUBJECT);
+        assertTrue(passwords.matches("new-password".toCharArray(), hash));
+        assertEquals(1L, jdbc.queryForObject(
+                "SELECT version FROM organization_access.subject_identity WHERE subject_id = ?",
+                Long.class,
+                TARGET_SUBJECT));
+        assertEquals(new String(new char[newPassword.length]), new String(newPassword));
+    }
+
+    @Test
     void 启用应在真实事务内提交状态和修订() {
         jdbc.update(
                 "UPDATE organization_access.subject_identity SET status = 'DISABLED', version = 1 WHERE subject_id = ?",
@@ -252,14 +296,19 @@ class PostgresPlatformAccountStoreTest {
     static class TestApplication {
 
         @Bean
+        Pbkdf2PasswordAdapter pbkdf2PasswordAdapter() {
+            return new Pbkdf2PasswordAdapter(new SecureRandom());
+        }
+
+        @Bean
         PlatformAccountGovernanceApplicationService platformAccountGovernanceApplicationService(
-                PostgresPlatformAccountStore store) {
+                PostgresPlatformAccountStore store, Pbkdf2PasswordAdapter passwords) {
             PersonSessionFamilyRevoker unavailableRevoker = subjectId -> {
                 if (REVOCATION_FAILURE.get()) {
                     throw new IllegalStateException("会话族撤销不可用");
                 }
             };
-            return new PlatformAccountGovernanceApplicationService(store, unavailableRevoker);
+            return new PlatformAccountGovernanceApplicationService(store, unavailableRevoker, passwords);
         }
     }
 }

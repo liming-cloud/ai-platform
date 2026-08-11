@@ -73,6 +73,24 @@ class PlatformAccountGovernanceControllerTest {
         verify(service).enable(org.mockito.Mockito.same(context), org.mockito.Mockito.eq(102L));
     }
 
+    @Test
+    void HTTP重置入口只从路径读取目标账户并提交一次性新口令() throws Exception {
+        var service = mock(PlatformAccountGovernanceApplicationService.class);
+        var controller = new PlatformAccountGovernanceController(service, mock(PlatformAccountDirectoryApplicationService.class));
+        var context = context();
+        var mvc = org.springframework.test.web.servlet.setup.MockMvcBuilders.standaloneSetup(controller)
+                .setCustomArgumentResolvers(platformContext(context))
+                .build();
+
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+                        .post("/api/v1/platform/accounts/102/password-reset")
+                        .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                        .content("{\"password\":\"new-password\"}"))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().isNoContent());
+
+        verify(service).resetPassword(org.mockito.Mockito.same(context), org.mockito.Mockito.eq(102L), any(char[].class));
+    }
+
     private static org.springframework.web.method.support.HandlerMethodArgumentResolver platformContext(
             PlatformRequestContext context) {
         return new org.springframework.web.method.support.HandlerMethodArgumentResolver() {

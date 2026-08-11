@@ -28,6 +28,21 @@ describe("ControlPlaneClient", () => {
     expect(await request?.json()).toEqual({ loginName: "new-account", password: "initial-password" });
   });
 
+  it("重置平台账户口令只写入目标路径和一次性新口令", async () => {
+    let request: Request | undefined;
+    const client = authenticatedClient(async (input, init) => {
+      request = new Request(input, init);
+      return new Response(null, { status: 204 });
+    });
+
+    await client.resetPlatformAccountPassword("102", "new-password");
+
+    expect(request?.method).toBe("POST");
+    expect(request?.url).toContain("/platform/accounts/102/password-reset");
+    expect(request?.headers.get("Authorization")).toBeNull();
+    expect(await request?.json()).toEqual({ password: "new-password" });
+  });
+
   it("创建和轮换供应商连接时只写入受控业务字段与一次性 API Key", async () => {
     const requests: Request[] = [];
     const connection = {

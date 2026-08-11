@@ -3,15 +3,18 @@ package com.aiplatform.foundation.organizationaccess.interfaces.web.authorizatio
 import com.aiplatform.foundation.organizationaccess.application.authorization.dto.PlatformAccountSummary;
 import com.aiplatform.foundation.organizationaccess.application.authorization.service.PlatformAccountDirectoryApplicationService;
 import com.aiplatform.foundation.organizationaccess.application.authorization.service.PlatformAccountGovernanceApplicationService;
+import com.aiplatform.foundation.organizationaccess.interfaces.web.authorization.request.PlatformAccountPasswordResetRequest;
 import com.aiplatform.foundation.security.identity.PlatformRequestContext;
 import com.aiplatform.foundation.shared.contract.paging.PageQuery;
 import com.aiplatform.foundation.shared.contract.paging.PageResult;
+import java.util.Map;
 import java.util.Objects;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
@@ -61,6 +64,21 @@ public final class PlatformAccountGovernanceController {
             PlatformRequestContext platform,
             @PathVariable String subjectId) {
         accounts.enable(platform, parseSubjectId(subjectId));
+    }
+
+    /** 重置路径目标账户的凭据，并撤销该主体全部旧范围会话。 */
+    @PostMapping("/{subjectId}/password-reset")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void resetPassword(
+            PlatformRequestContext platform,
+            @PathVariable String subjectId,
+            @RequestBody Map<String, Object> payload) {
+        var request = PlatformAccountPasswordResetRequest.from(payload);
+        try {
+            accounts.resetPassword(platform, parseSubjectId(subjectId), request.passwordCopy());
+        } finally {
+            request.clear();
+        }
     }
 
     private static long parseSubjectId(String subjectId) {

@@ -488,6 +488,17 @@ export class ControlPlaneClient {
     );
   }
 
+  async resetPlatformAccountPassword(subjectId: string, password: string): Promise<void> {
+    return this.request<void>(
+      `/platform/accounts/${encodeURIComponent(subjectId)}/password-reset`,
+      {
+        method: "POST",
+        headers: this.writeHeaders("application/json"),
+        body: JSON.stringify({ password }),
+      },
+    );
+  }
+
   async bindPlatformRole(
     subjectId: string,
     roleCode: string,

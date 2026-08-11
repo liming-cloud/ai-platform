@@ -12,6 +12,12 @@ import {
   MessageBar,
   MessageBarBody,
   MessageBarTitle,
+  Menu,
+  MenuButton,
+  MenuItem,
+  MenuList,
+  MenuPopover,
+  MenuTrigger,
   Text,
   Title3,
 } from "@fluentui/react-components";
@@ -27,7 +33,7 @@ import type { ConsoleRoute } from "../../session/console-route";
 type AccountRoute = Extract<ConsoleRoute, { task: "accounts" }>;
 type PlatformRoleCode = "PLATFORM_ACCOUNT_ADMINISTRATOR" | "PLATFORM_TENANT_GOVERNOR" | "PLATFORM_OPERATOR";
 type RoleDialogTarget = { kind: "role"; account: PlatformAccountSummary; roleCode: PlatformRoleCode; action: "bind" | "revoke" };
-type DialogTarget = RoleDialogTarget | { kind: "enable"; account: PlatformAccountSummary } | { kind: "create" };
+type DialogTarget = RoleDialogTarget | { kind: "enable"; account: PlatformAccountSummary } | { kind: "create" } | { kind: "reset"; account: PlatformAccountSummary };
 
 const roles: ReadonlyArray<{ code: PlatformRoleCode; label: string; navigation: string }> = [
   { code: "PLATFORM_ACCOUNT_ADMINISTRATOR", label: "平台账户管理员", navigation: "平台账户目录" },
@@ -117,6 +123,21 @@ export function PlatformAccountDirectoryWorkspace({
     }
   }
 
+  async function resetAccountPassword(account: PlatformAccountSummary) {
+    setBusy(true);
+    setFailure("");
+    try {
+      await client.resetPlatformAccountPassword(account.subjectId, password);
+      closeDialog();
+      await reload();
+    } catch (error) {
+      setFailure(error instanceof ApiRequestError ? error.message : "账户口令重置暂时不可用，请稍后重试。");
+    } finally {
+      setPassword("");
+      setBusy(false);
+    }
+  }
+
   function closeDialog() {
     setDialog(undefined);
     setLoginName("");
@@ -169,14 +190,22 @@ export function PlatformAccountDirectoryWorkspace({
             <Badge appearance="tint" color={account.status === "ACTIVE" ? "success" : "danger"}>{account.status}</Badge>
             {account.status === "ACTIVE" ? (
               <div className="task-actions" aria-label={`${account.loginName} 的角色操作`}>
-                {roles.filter((role) => !account.activeRoleCodes.includes(role.code)).map((role) => (
-                  <Button key={role.code} appearance="secondary" disabled={busy} onClick={() => setDialog({ kind: "role", account, roleCode: role.code, action: "bind" })}>绑定{role.label}</Button>
-                ))}
-                {account.activeRoleCodes.filter((code): code is PlatformRoleCode => roles.some((role) => role.code === code)).map((roleCode) => (
-                  <Button key={roleCode} appearance="secondary" disabled={busy} onClick={() => setDialog({ kind: "role", account, roleCode, action: "revoke" })}>撤销{roleLabel(roleCode)}</Button>
-                ))}
+                <Button appearance="secondary" disabled={busy} onClick={() => setDialog({ kind: "reset", account })}>重置口令</Button>
+                <Menu>
+                  <MenuTrigger disableButtonEnhancement>
+                    <MenuButton disabled={busy}>管理角色</MenuButton>
+                  </MenuTrigger>
+                  <MenuPopover><MenuList>
+                    {roles.filter((role) => !account.activeRoleCodes.includes(role.code)).map((role) => (
+                      <MenuItem key={role.code} onClick={() => setDialog({ kind: "role", account, roleCode: role.code, action: "bind" })}>绑定{role.label}</MenuItem>
+                    ))}
+                    {account.activeRoleCodes.filter((code): code is PlatformRoleCode => roles.some((role) => role.code === code)).map((roleCode) => (
+                      <MenuItem key={roleCode} onClick={() => setDialog({ kind: "role", account, roleCode, action: "revoke" })}>撤销{roleLabel(roleCode)}</MenuItem>
+                    ))}
+                  </MenuList></MenuPopover>
+                </Menu>
               </div>
-            ) : <Button appearance="primary" disabled={busy} onClick={() => setDialog({ kind: "enable", account })}>启用账户</Button>}
+            ) : <div className="task-actions"><Button appearance="primary" disabled={busy} onClick={() => setDialog({ kind: "enable", account })}>启用账户</Button><Button appearance="secondary" disabled={busy} onClick={() => setDialog({ kind: "reset", account })}>重置口令</Button></div>}
           </article>
         ))}
       </div>
@@ -188,7 +217,7 @@ export function PlatformAccountDirectoryWorkspace({
       <Dialog open={dialog !== undefined} onOpenChange={(_, data) => { if (!data.open && !busy) closeDialog(); }}>
         <DialogSurface>
           <DialogBody>
-            <DialogTitle>{dialog?.kind === "create" ? "建立平台账户" : dialog?.kind === "enable" ? "确认启用平台账户" : dialog?.action === "bind" ? "确认绑定平台角色" : "确认撤销平台角色"}</DialogTitle>
+            <DialogTitle>{dialog?.kind === "create" ? "建立平台账户" : dialog?.kind === "reset" ? "重置平台账户口令" : dialog?.kind === "enable" ? "确认启用平台账户" : dialog?.action === "bind" ? "确认绑定平台角色" : "确认撤销平台角色"}</DialogTitle>
             <DialogContent>{dialog?.kind === "create"
               ? <>
                 <Text>新账户默认不绑定任何平台角色；请建立后再单独授予最小权限。</Text>
@@ -199,6 +228,8 @@ export function PlatformAccountDirectoryWorkspace({
                   <Input type="password" value={password} onChange={(_, data) => setPassword(data.value)} autoComplete="new-password" />
                 </Field>
               </>
+              : dialog?.kind === "reset"
+                ? <><Text>{dialog.account.loginName} 的旧平台和租户会话会全部失效，需使用新口令重新认证。</Text><Field label="新口令" required><Input type="password" value={password} onChange={(_, data) => setPassword(data.value)} autoComplete="new-password" /></Field></>
               : dialog?.kind === "enable"
               ? `${dialog.account.loginName} 将恢复为活动账户。提交后该主体的全部平台与租户旧会话将失效，需重新认证。`
               : dialog?.kind === "role"
@@ -206,7 +237,7 @@ export function PlatformAccountDirectoryWorkspace({
                 : ""}</DialogContent>
             <DialogActions>
               <Button appearance="secondary" disabled={busy} onClick={closeDialog}>取消</Button>
-              <Button appearance="primary" disabled={busy || dialog === undefined || (dialog.kind === "create" && (loginName.trim() === "" || password === ""))} onClick={() => dialog && void (dialog.kind === "create" ? createAccount() : dialog.kind === "enable" ? enableAccount(dialog.account) : changeRole(dialog))}>{busy ? "正在提交" : dialog?.kind === "create" ? "建立账户" : "确认提交"}</Button>
+              <Button appearance="primary" disabled={busy || dialog === undefined || ((dialog.kind === "create" || dialog.kind === "reset") && (dialog.kind === "create" ? loginName.trim() === "" || password === "" : password === ""))} onClick={() => dialog && void (dialog.kind === "create" ? createAccount() : dialog.kind === "reset" ? resetAccountPassword(dialog.account) : dialog.kind === "enable" ? enableAccount(dialog.account) : changeRole(dialog))}>{busy ? "正在提交" : dialog?.kind === "create" ? "建立账户" : dialog?.kind === "reset" ? "重置口令" : "确认提交"}</Button>
             </DialogActions>
           </DialogBody>
         </DialogSurface>

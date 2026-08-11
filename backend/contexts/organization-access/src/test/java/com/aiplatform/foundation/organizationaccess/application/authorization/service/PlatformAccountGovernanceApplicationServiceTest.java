@@ -23,7 +23,7 @@ class PlatformAccountGovernanceApplicationServiceTest {
         var service = new PlatformAccountGovernanceApplicationService(store, subjectId -> {
             revoked.set(subjectId.value());
             throw new IllegalStateException("会话族撤销不可用");
-        });
+        }, password -> "test-password-hash");
 
         assertThrows(IllegalStateException.class, () -> service.disable(accountAdministrator(), 102L));
 
@@ -35,7 +35,7 @@ class PlatformAccountGovernanceApplicationServiceTest {
     @Test
     void 无账户治理权限的平台注册上下文不得禁用账户() {
         PlatformAccountStore store = new RecordingStore();
-        var service = new PlatformAccountGovernanceApplicationService(store, subjectId -> { });
+        var service = new PlatformAccountGovernanceApplicationService(store, subjectId -> { }, password -> "test-password-hash");
         var context = new PlatformRequestContext(
                 new com.aiplatform.foundation.security.identity.SubjectId(101L),
                 com.aiplatform.foundation.security.identity.CredentialType.PERSON,
@@ -52,13 +52,31 @@ class PlatformAccountGovernanceApplicationServiceTest {
         var store = new RecordingStore(
                 com.aiplatform.foundation.organizationaccess.domain.identity.model.SubjectIdentityStatus.DISABLED);
         var revoked = new AtomicLong();
-        var service = new PlatformAccountGovernanceApplicationService(store, subjectId -> revoked.set(subjectId.value()));
+        var service = new PlatformAccountGovernanceApplicationService(store, subjectId -> revoked.set(subjectId.value()), password -> "test-password-hash");
 
         service.enable(accountAdministrator(), 102L);
 
         assertEquals(102L, revoked.get());
         assertEquals("ACTIVE", store.updated.status().name());
         assertEquals(1L, store.updated.version());
+    }
+
+    @Test
+    void 受控重置必须替换摘要并撤销目标主体全部会话族后清除新口令() {
+        var store = new RecordingStore();
+        var revoked = new AtomicLong();
+        var service = new PlatformAccountGovernanceApplicationService(
+                store,
+                subjectId -> revoked.set(subjectId.value()),
+                password -> "new-encoded-password");
+        var password = "new-password".toCharArray();
+
+        service.resetPassword(accountAdministrator(), 102L, password);
+
+        assertEquals(102L, revoked.get());
+        assertEquals("new-encoded-password", store.updated.encodedPassword().verificationValue());
+        assertEquals(1L, store.updated.version());
+        assertEquals(new String(new char[password.length]), new String(password));
     }
 
     private static PlatformRequestContext accountAdministrator() {
