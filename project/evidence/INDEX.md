@@ -289,6 +289,7 @@
 | M6 索引模型显式选择 | `project/evidence/WP-0014-index-model-explicit-selection.md` | 本次提交 | 三类数据任务不再隐式选择第一个嵌入模型，模型页码与选择标识进入 URL；24 项架构门禁和 80 项前端回归通过。 |
 | M6 统一控制台查询入口退役 | `project/evidence/WP-0014-unified-console-query-retirement.md` | 本次提交 | `query-web` 独立入口、服务、代理和构建分支已退役；控制台 `/ask` 与查询运行时 API 代理保持，6 项部署门禁和唯一控制台镜像构建通过。 |
 | M6 统一问答助手目录分页 | `project/evidence/WP-0014-query-assistant-catalog-pagination.md` | 本次提交 | `/ask` 的助手目录使用 URL 可恢复的服务器分页；第三页请求、类型、lint、81 项前端回归、唯一控制台构建与全量门禁通过。 |
+| ADR-0061 人工接受 | `project/evidence/ADR-0061-approval.md` | 本次控制面提交 | 用户接受全局账户生命周期、内置平台角色和会话族撤销；不授权平台自定义角色、个人直接授权、服务账户、M7 或 M8。 |
 
 ## 证据规则
 
