@@ -301,9 +301,10 @@
 | ADR-0062 租户历史直接权限退役 | `docs/adr/ADR-0062-tenant-direct-permission-retirement.md` | 本次控制面提交 | 已接受清单驱动、逐成员原子迁移；未提供清单的模型配置权限仍不得自动建角色或静默撤销。 |
 | ADR-0062 人工接受 | `project/evidence/ADR-0062-approval.md` | 本次控制面提交 | 用户接受方案 A；逐成员角色映射和批准撤销仍是迁移运行输入，认证兼容读取与表结构删除未获授权。 |
 | M6 历史直接权限迁移领域等价约束 | `project/evidence/WP-0014-tenant-direct-permission-migration-domain.md` | 本次提交 | 已以红绿测试固定迁移权限等价、批准撤销、既有角色保留和成员修订；清单驱动的 PostgreSQL、会话撤销、HTTP 与浏览器证据尚未完成。 |
-| ADR-0063 本地身份基线与浏览器验收边界 | `docs/adr/ADR-0063-m6-local-identity-baseline-and-browser-evidence.md` | 本次控制面提交 | 仅本地 Compose 可清理历史成员并建立唯一平台超级管理员；受信任 TLS 不再阻断 M6，但隔离浏览器功能验收与生产 cookie 默认值继续分离。 |
+| ADR-0063 本地身份基线与浏览器验收边界 | `docs/adr/ADR-0063-m6-local-identity-baseline-and-browser-evidence.md` | 本次控制面提交 | 仅本地 Compose 可清理历史成员并建立唯一平台超级管理员；受信任 TLS 不再阻断 M6，`localhost` 验收继续保留生产同等 cookie 属性。 |
 | ADR-0063 人工接受 | `project/evidence/ADR-0063-approval.md` | 本次控制面提交 | 用户确认 Docker 已启动、禁止无必要新增容器，并授权本地成员基线重置与 M6 TLS 门禁调整。 |
-| M6 自动验收前置条件审计 | `project/evidence/M6-automatic-acceptance-precondition-audit.md` | 本次控制面提交 | 已汇总 ADR-0057 至 ADR-0059 的自动化覆盖；有效迁移清单和受信任 TLS 的真实浏览器角色回归完成前，不得发起 M6 自动验收或人工评审。 |
+| M6 自动验收前置条件审计 | `project/evidence/M6-automatic-acceptance-precondition-audit.md` | 本次控制面提交 | 已汇总 ADR-0057 至 ADR-0059 的自动化覆盖；当前本地身份基线、当前镜像的真实基础设施和 HTTP／浏览器角色回归完成前，不得发起 M6 自动验收或人工评审。 |
+| M6 本地身份重置只读预检 | `project/evidence/WP-0014-local-identity-reset-preflight.md` | 本次提交 | 精确确认当前 Compose 数据库、成员／主体数量、外键及旧凭据 `401`；人工确认清理范围与初始凭据前未执行删除。 |
 | M6 首份发布资源选择器分页与显式模型选择 | `project/evidence/WP-0014-publication-resource-picker-pagination.md` | 本次提交 | 首份发布路由、知识空间和嵌入模型选择已完成前端 TDD 与生产构建；当前 Docker Buildx 无法完成重建，真实 PostgreSQL／MinIO／HTTP 与受信任 TLS 浏览器回归待续证。 |
 
 ## 证据规则
