@@ -17,14 +17,14 @@
 
 | 前置能力 | 已有可复核证据 | 自动验收状态 | 未满足条件 |
 | --- | --- | --- | --- |
-| ADR-0057：账户、角色权限与导航能力投影 | `WP-0014-tenant-custom-role-lifecycle-and-directory.md`、`WP-0014-platform-account-password-reset.md`、`WP-0014-control-plane-automatic-acceptance-repair.md` 记录纯领域、真实 PostgreSQL、HTTP、自动配置、服务端分页控制台与全后端回归。 | 未通过 | 历史 `membership_permission` 仍参与认证与最后访问管理员判断。ADR-0062 尚未接受，且历史模型配置权限没有获准的角色映射或撤销清单。 |
+| ADR-0057：账户、角色权限与导航能力投影 | `WP-0014-tenant-custom-role-lifecycle-and-directory.md`、`WP-0014-platform-account-password-reset.md`、`WP-0014-control-plane-automatic-acceptance-repair.md` 记录纯领域、真实 PostgreSQL、HTTP、自动配置、服务端分页控制台与全后端回归。 | 未通过 | ADR-0062 已接受，但历史 `membership_permission` 仍参与认证与最后访问管理员判断；逐成员迁移清单及模型配置权限的获准角色映射或撤销例外尚未提供。 |
 | ADR-0058：厂商连接、模型探测与可用性供应链 | `WP-0014-provider-model-deployment-supply-chain.md`、`WP-0014-model-deployment-availability-projection.md`、`WP-0014-model-deployment-disable.md` 记录真实基础设施、HTTP 分页和控制台回归。 | 未通过 | 真实浏览器角色任务尚未能在受信任 HTTPS 环境执行。 |
 | ADR-0059：统一企业 SPA、服务端分页与注意力保护 | `WP-0014-console-pagination-and-attention-guard.md`、`WP-0014-platform-tenant-pagination-dialog.md`、`WP-0014-query-assistant-catalog-pagination.md` 记录 URL 可恢复分页、单一 Dialog 与前端门禁回归。 | 未通过 | 真实浏览器对统一入口、角色任务和安全 Cookie 的正式回归尚未完成。 |
 
 ## 硬阻塞与退出条件
 
-1. **授权决策**：人工接受 ADR-0062，并明确选择：为 `model-tenant:write`、`model-personal:write`、`model-platform:write` 建立对应的已发布角色，或由租户运营负责人在显式迁移清单中批准撤销。接受后才可按清单、权限等价校验、原子会话撤销和全库零行检查开始 TDD 切片。
-2. **浏览器环境**：提供使用受信任 TLS 证书的部署环境，重新执行 ADR-0048／ADR-0059 的真实浏览器角色任务。`net::ERR_CERT_AUTHORITY_INVALID` 的本地预检不能以 HTTP、`--insecure`、忽略证书错误或安装本机 System keychain CA 替代。
+1. **迁移清单**：ADR-0062 已获接受；租户运营负责人仍须提供逐成员清单，并明确为 `model-tenant:write`、`model-personal:write`、`model-platform:write` 建立对应已发布角色，或在清单中逐项批准撤销。清单到位后才可按权限等价校验、原子会话撤销和全库零行检查开始 TDD 切片。
+2. **浏览器环境**：正式 HTTPS 浏览器证据按 ADR-0048 延期。`net::ERR_CERT_AUTHORITY_INVALID` 的本地预检不能以 HTTP、`--insecure`、忽略证书错误或安装本机 System keychain CA 替代；延期期间不得把 M6 自动验收、人工评审或 M7 当作可推进事项。
 
 ## 门禁判定
 
