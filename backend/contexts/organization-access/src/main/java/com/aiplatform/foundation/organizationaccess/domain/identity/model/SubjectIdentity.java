@@ -85,7 +85,7 @@ public final class SubjectIdentity implements AggregateRoot<SubjectId> {
      */
     public SubjectIdentity enable() {
         if (status == SubjectIdentityStatus.ACTIVE) {
-            return this;
+            throw new IllegalStateException("活动账户不能重复启用");
         }
         return new SubjectIdentity(
                 id, loginName, encodedPassword, SubjectIdentityStatus.ACTIVE, version + 1L, createdAt);

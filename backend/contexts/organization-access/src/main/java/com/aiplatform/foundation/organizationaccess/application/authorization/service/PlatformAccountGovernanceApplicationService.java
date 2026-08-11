@@ -40,4 +40,20 @@ public class PlatformAccountGovernanceApplicationService {
         store.update(result.identity());
         sessions.revokeAll(result.sessionRevocationSubjectId());
     }
+
+    /** 启用目标账户并撤销其全范围会话族，防止旧会话恢复已失效状态。 */
+    @Transactional
+    public void enable(PlatformRequestContext context, long subjectId) {
+        context = Objects.requireNonNull(context, "可信平台上下文不能为空");
+        if (!context.hasPermission(PlatformPermissions.ACCOUNT_MANAGE)) {
+            throw new IllegalArgumentException("当前主体没有账户治理权限");
+        }
+        var targetId = new SubjectId(subjectId);
+        var target = store.lock(targetId)
+                .orElseThrow(() -> new IllegalArgumentException("目标账户不存在"));
+        var result = PlatformAccountGovernance.enable(
+                new SubjectId(context.subjectId().value()), target);
+        store.update(result.identity());
+        sessions.revokeAll(result.sessionRevocationSubjectId());
+    }
 }

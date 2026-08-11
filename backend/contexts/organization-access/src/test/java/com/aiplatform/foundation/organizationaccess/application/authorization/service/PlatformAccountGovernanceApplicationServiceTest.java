@@ -47,6 +47,20 @@ class PlatformAccountGovernanceApplicationServiceTest {
         assertThrows(IllegalArgumentException.class, () -> service.disable(context, 102L));
     }
 
+    @Test
+    void 启用后必须撤销目标主体的全部会话族() {
+        var store = new RecordingStore(
+                com.aiplatform.foundation.organizationaccess.domain.identity.model.SubjectIdentityStatus.DISABLED);
+        var revoked = new AtomicLong();
+        var service = new PlatformAccountGovernanceApplicationService(store, subjectId -> revoked.set(subjectId.value()));
+
+        service.enable(accountAdministrator(), 102L);
+
+        assertEquals(102L, revoked.get());
+        assertEquals("ACTIVE", store.updated.status().name());
+        assertEquals(1L, store.updated.version());
+    }
+
     private static PlatformRequestContext accountAdministrator() {
         return new PlatformRequestContext(
                 new com.aiplatform.foundation.security.identity.SubjectId(101L),
@@ -60,6 +74,16 @@ class PlatformAccountGovernanceApplicationServiceTest {
     private static final class RecordingStore implements PlatformAccountStore {
 
         private SubjectIdentity updated;
+        private final com.aiplatform.foundation.organizationaccess.domain.identity.model.SubjectIdentityStatus targetStatus;
+
+        private RecordingStore() {
+            this(com.aiplatform.foundation.organizationaccess.domain.identity.model.SubjectIdentityStatus.ACTIVE);
+        }
+
+        private RecordingStore(
+                com.aiplatform.foundation.organizationaccess.domain.identity.model.SubjectIdentityStatus targetStatus) {
+            this.targetStatus = targetStatus;
+        }
 
         @Override
         public Optional<SubjectIdentity> lock(SubjectId subjectId) {
@@ -67,7 +91,7 @@ class PlatformAccountGovernanceApplicationServiceTest {
                     subjectId,
                     "target-account",
                     new EncodedPassword("test-password-hash"),
-                    com.aiplatform.foundation.organizationaccess.domain.identity.model.SubjectIdentityStatus.ACTIVE,
+                    targetStatus,
                     0L,
                     Instant.parse("2026-08-11T00:00:00Z")));
         }

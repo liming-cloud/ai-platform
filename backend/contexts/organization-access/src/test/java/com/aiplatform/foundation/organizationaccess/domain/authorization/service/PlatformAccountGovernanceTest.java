@@ -58,6 +58,12 @@ class PlatformAccountGovernanceTest {
         assertEquals(TARGET, enabled.sessionRevocationSubjectId());
     }
 
+    @Test
+    void 不得重复启用已活动账户() {
+        assertThrows(IllegalStateException.class, () -> PlatformAccountGovernance.enable(
+                OPERATOR, identity(TARGET)));
+    }
+
     private static SubjectIdentity identity(SubjectId id) {
         return SubjectIdentity.register(id, "account-" + id.value(), new EncodedPassword("encoded"), CREATED_AT);
     }

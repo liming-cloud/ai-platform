@@ -473,6 +473,13 @@ export class ControlPlaneClient {
     );
   }
 
+  async enablePlatformAccount(subjectId: string): Promise<void> {
+    return this.request<void>(
+      `/platform/accounts/${encodeURIComponent(subjectId)}/enable`,
+      { method: "POST" },
+    );
+  }
+
   async bindPlatformRole(
     subjectId: string,
     roleCode: string,

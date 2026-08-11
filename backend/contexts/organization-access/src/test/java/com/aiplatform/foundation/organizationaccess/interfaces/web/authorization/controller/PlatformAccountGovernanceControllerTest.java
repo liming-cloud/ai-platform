@@ -57,6 +57,22 @@ class PlatformAccountGovernanceControllerTest {
         verify(service).disable(org.mockito.Mockito.same(context), org.mockito.Mockito.eq(102L));
     }
 
+    @Test
+    void HTTP启用入口只从路径读取目标账户且从解析器恢复平台上下文() throws Exception {
+        var service = mock(PlatformAccountGovernanceApplicationService.class);
+        var controller = new PlatformAccountGovernanceController(service, mock(PlatformAccountDirectoryApplicationService.class));
+        var context = context();
+        var mvc = org.springframework.test.web.servlet.setup.MockMvcBuilders.standaloneSetup(controller)
+                .setCustomArgumentResolvers(platformContext(context))
+                .build();
+
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+                        .post("/api/v1/platform/accounts/102/enable"))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().isNoContent());
+
+        verify(service).enable(org.mockito.Mockito.same(context), org.mockito.Mockito.eq(102L));
+    }
+
     private static org.springframework.web.method.support.HandlerMethodArgumentResolver platformContext(
             PlatformRequestContext context) {
         return new org.springframework.web.method.support.HandlerMethodArgumentResolver() {

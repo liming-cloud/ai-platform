@@ -13,6 +13,7 @@ import com.aiplatform.foundation.security.identity.CredentialType;
 import com.aiplatform.foundation.security.identity.PlatformPermissions;
 import com.aiplatform.foundation.security.identity.PlatformRequestContext;
 import com.aiplatform.foundation.shared.contract.paging.PageQuery;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mybatis.spring.annotation.MapperScan;
@@ -39,6 +40,7 @@ class PostgresPlatformAccountStoreTest {
 
     private static final long ACCOUNT_ADMINISTRATOR = 4921825928971026434L;
     private static final long TARGET_SUBJECT = 4921825928971026435L;
+    private static final AtomicBoolean REVOCATION_FAILURE = new AtomicBoolean();
 
     @Container
     private static final PostgreSQLContainer POSTGRES =
@@ -66,6 +68,7 @@ class PostgresPlatformAccountStoreTest {
 
     @BeforeEach
     void seedFacts() {
+        REVOCATION_FAILURE.set(true);
         jdbc.update("DELETE FROM organization_access.platform_role_binding");
         jdbc.update("DELETE FROM organization_access.subject_identity");
         insertSubject(ACCOUNT_ADMINISTRATOR, "account-admin", "ACTIVE");
@@ -146,6 +149,51 @@ class PostgresPlatformAccountStoreTest {
                 jdbc.queryForObject(
                         "SELECT status FROM organization_access.subject_identity WHERE subject_id = ?",
                         String.class,
+                TARGET_SUBJECT));
+    }
+
+    @Test
+    void 会话族撤销失败时不得提交账户启用() {
+        jdbc.update(
+                "UPDATE organization_access.subject_identity SET status = 'DISABLED', version = 1 WHERE subject_id = ?",
+                TARGET_SUBJECT);
+
+        assertThrows(IllegalStateException.class, () -> governance.enable(accountAdministrator(), TARGET_SUBJECT));
+
+        assertEquals(
+                "DISABLED",
+                jdbc.queryForObject(
+                        "SELECT status FROM organization_access.subject_identity WHERE subject_id = ?",
+                        String.class,
+                        TARGET_SUBJECT));
+        assertEquals(
+                1L,
+                jdbc.queryForObject(
+                        "SELECT version FROM organization_access.subject_identity WHERE subject_id = ?",
+                        Long.class,
+                TARGET_SUBJECT));
+    }
+
+    @Test
+    void 启用应在真实事务内提交状态和修订() {
+        jdbc.update(
+                "UPDATE organization_access.subject_identity SET status = 'DISABLED', version = 1 WHERE subject_id = ?",
+                TARGET_SUBJECT);
+        REVOCATION_FAILURE.set(false);
+
+        governance.enable(accountAdministrator(), TARGET_SUBJECT);
+
+        assertEquals(
+                "ACTIVE",
+                jdbc.queryForObject(
+                        "SELECT status FROM organization_access.subject_identity WHERE subject_id = ?",
+                        String.class,
+                        TARGET_SUBJECT));
+        assertEquals(
+                2L,
+                jdbc.queryForObject(
+                        "SELECT version FROM organization_access.subject_identity WHERE subject_id = ?",
+                        Long.class,
                         TARGET_SUBJECT));
     }
 
@@ -180,7 +228,9 @@ class PostgresPlatformAccountStoreTest {
         PlatformAccountGovernanceApplicationService platformAccountGovernanceApplicationService(
                 PostgresPlatformAccountStore store) {
             PersonSessionFamilyRevoker unavailableRevoker = subjectId -> {
-                throw new IllegalStateException("会话族撤销不可用");
+                if (REVOCATION_FAILURE.get()) {
+                    throw new IllegalStateException("会话族撤销不可用");
+                }
             };
             return new PlatformAccountGovernanceApplicationService(store, unavailableRevoker);
         }

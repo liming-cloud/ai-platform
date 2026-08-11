@@ -900,6 +900,21 @@ describe("ControlPlaneClient", () => {
     expect(await requests[0]?.json()).toEqual({ role: "PLATFORM_OPERATOR" });
   });
 
+  it("启用平台账户只提交路径目标且不携带 Authorization", async () => {
+    let request: Request | undefined;
+    const client = authenticatedClient(async (input, init) => {
+      request = new Request(input, init);
+      return new Response(null, { status: 204 });
+    });
+
+    await client.enablePlatformAccount("510000000000000001");
+
+    expect(request?.url).toBe("http://localhost/api/v1/platform/accounts/510000000000000001/enable");
+    expect(request?.method).toBe("POST");
+    expect(request?.headers.get("Authorization")).toBeNull();
+    expect(await request?.text()).toBe("");
+  });
+
   it("建立租户成员时只提交目标主体标识", async () => {
     let request: Request | undefined;
     const client = authenticatedClient(async (input, init) => {

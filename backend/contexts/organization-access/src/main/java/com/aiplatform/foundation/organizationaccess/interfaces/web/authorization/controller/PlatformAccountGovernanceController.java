@@ -54,6 +54,15 @@ public final class PlatformAccountGovernanceController {
         accounts.disable(platform, parseSubjectId(subjectId));
     }
 
+    /** 启用路径目标账户，并使目标主体旧会话全部失效。 */
+    @PostMapping("/{subjectId}/enable")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void enable(
+            PlatformRequestContext platform,
+            @PathVariable String subjectId) {
+        accounts.enable(platform, parseSubjectId(subjectId));
+    }
+
     private static long parseSubjectId(String subjectId) {
         try {
             return Long.parseLong(subjectId);

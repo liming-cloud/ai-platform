@@ -24,7 +24,8 @@ import type { ConsoleRoute } from "../../session/console-route";
 
 type AccountRoute = Extract<ConsoleRoute, { task: "accounts" }>;
 type PlatformRoleCode = "PLATFORM_ACCOUNT_ADMINISTRATOR" | "PLATFORM_TENANT_GOVERNOR" | "PLATFORM_OPERATOR";
-type DialogTarget = { account: PlatformAccountSummary; roleCode: PlatformRoleCode; action: "bind" | "revoke" };
+type RoleDialogTarget = { kind: "role"; account: PlatformAccountSummary; roleCode: PlatformRoleCode; action: "bind" | "revoke" };
+type DialogTarget = RoleDialogTarget | { kind: "enable"; account: PlatformAccountSummary };
 
 const roles: ReadonlyArray<{ code: PlatformRoleCode; label: string; navigation: string }> = [
   { code: "PLATFORM_ACCOUNT_ADMINISTRATOR", label: "平台账户管理员", navigation: "平台账户目录" },
@@ -82,7 +83,7 @@ export function PlatformAccountDirectoryWorkspace({
     return () => window.clearTimeout(timeout);
   }, [reload]);
 
-  async function changeRole(target: DialogTarget) {
+  async function changeRole(target: RoleDialogTarget) {
     setBusy(true);
     setFailure("");
     try {
@@ -93,6 +94,20 @@ export function PlatformAccountDirectoryWorkspace({
       await reload();
     } catch (error) {
       setFailure(error instanceof ApiRequestError ? error.message : "角色操作暂时不可用，请稍后重试。");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function enableAccount(account: PlatformAccountSummary) {
+    setBusy(true);
+    setFailure("");
+    try {
+      await client.enablePlatformAccount(account.subjectId);
+      setDialog(undefined);
+      await reload();
+    } catch (error) {
+      setFailure(error instanceof ApiRequestError ? error.message : "账户启用暂时不可用，请稍后重试。");
     } finally {
       setBusy(false);
     }
@@ -125,13 +140,13 @@ export function PlatformAccountDirectoryWorkspace({
             {account.status === "ACTIVE" ? (
               <div className="task-actions" aria-label={`${account.loginName} 的角色操作`}>
                 {roles.filter((role) => !account.activeRoleCodes.includes(role.code)).map((role) => (
-                  <Button key={role.code} appearance="secondary" disabled={busy} onClick={() => setDialog({ account, roleCode: role.code, action: "bind" })}>绑定{role.label}</Button>
+                  <Button key={role.code} appearance="secondary" disabled={busy} onClick={() => setDialog({ kind: "role", account, roleCode: role.code, action: "bind" })}>绑定{role.label}</Button>
                 ))}
                 {account.activeRoleCodes.filter((code): code is PlatformRoleCode => roles.some((role) => role.code === code)).map((roleCode) => (
-                  <Button key={roleCode} appearance="secondary" disabled={busy} onClick={() => setDialog({ account, roleCode, action: "revoke" })}>撤销{roleLabel(roleCode)}</Button>
+                  <Button key={roleCode} appearance="secondary" disabled={busy} onClick={() => setDialog({ kind: "role", account, roleCode, action: "revoke" })}>撤销{roleLabel(roleCode)}</Button>
                 ))}
               </div>
-            ) : null}
+            ) : <Button appearance="primary" disabled={busy} onClick={() => setDialog({ kind: "enable", account })}>启用账户</Button>}
           </article>
         ))}
       </div>
@@ -143,11 +158,15 @@ export function PlatformAccountDirectoryWorkspace({
       <Dialog open={dialog !== undefined} onOpenChange={(_, data) => { if (!data.open && !busy) setDialog(undefined); }}>
         <DialogSurface>
           <DialogBody>
-            <DialogTitle>{dialog?.action === "bind" ? "确认绑定平台角色" : "确认撤销平台角色"}</DialogTitle>
-            <DialogContent>{dialog ? `${dialog.account.loginName} 将${dialog.action === "bind" ? "获得" : "失去"}“${roleLabel(dialog.roleCode)}”。该角色投影的导航能力为“${roles.find((role) => role.code === dialog.roleCode)?.navigation}”；提交后目标账户的全部会话将失效。${dialog.action === "revoke" && dialog.roleCode === "PLATFORM_ACCOUNT_ADMINISTRATOR" ? "若这会留下最后一个活动的平台账户管理员，服务端将拒绝操作。" : ""}` : ""}</DialogContent>
+            <DialogTitle>{dialog?.kind === "enable" ? "确认启用平台账户" : dialog?.action === "bind" ? "确认绑定平台角色" : "确认撤销平台角色"}</DialogTitle>
+            <DialogContent>{dialog?.kind === "enable"
+              ? `${dialog.account.loginName} 将恢复为活动账户。提交后该主体的全部平台与租户旧会话将失效，需重新认证。`
+              : dialog?.kind === "role"
+                ? `${dialog.account.loginName} 将${dialog.action === "bind" ? "获得" : "失去"}“${roleLabel(dialog.roleCode)}”。该角色投影的导航能力为“${roles.find((role) => role.code === dialog.roleCode)?.navigation}”；提交后目标账户的全部会话将失效。${dialog.action === "revoke" && dialog.roleCode === "PLATFORM_ACCOUNT_ADMINISTRATOR" ? "若这会留下最后一个活动的平台账户管理员，服务端将拒绝操作。" : ""}`
+                : ""}</DialogContent>
             <DialogActions>
               <Button appearance="secondary" disabled={busy} onClick={() => setDialog(undefined)}>取消</Button>
-              <Button appearance="primary" disabled={busy || dialog === undefined} onClick={() => dialog && void changeRole(dialog)}>{busy ? "正在提交" : "确认提交"}</Button>
+              <Button appearance="primary" disabled={busy || dialog === undefined} onClick={() => dialog && void (dialog.kind === "enable" ? enableAccount(dialog.account) : changeRole(dialog))}>{busy ? "正在提交" : "确认提交"}</Button>
             </DialogActions>
           </DialogBody>
         </DialogSurface>
