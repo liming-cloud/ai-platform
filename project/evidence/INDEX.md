@@ -298,6 +298,7 @@
 | M6 模型部署可用性投影 | `project/evidence/WP-0014-model-deployment-availability-projection.md` | 本次提交 | 当前连接修订、部署状态和验证有效期推导 `HEALTHY`／`DEGRADED`／`UNAVAILABLE` 与唯一建议下一步；真实 PostgreSQL、HTTP 分页和统一控制台回归通过，正式 HTTPS 浏览器角色任务仍待受信任部署环境续证。 |
 | M6 模型部署不可逆停用 | `project/evidence/WP-0014-model-deployment-disable.md` | 本次提交 | `DISABLED` 生命周期、验证事实约束迁移、运行时失败关闭、真实 PostgreSQL、可信 HTTP 与统一控制台确认操作回归通过；正式 HTTPS 浏览器角色任务仍待受信任部署环境续证。 |
 | M6 控制面自动验收修复 | `project/evidence/WP-0014-control-plane-automatic-acceptance-repair.md` | 本次提交 | 修复事务 CGLIB 代理与迁移后平台角色投影演示种子；真实 PostgreSQL、Redis、Flyway、Tomcat 的平台认证 21 项回归和全后端 Maven 反应堆通过；正式 HTTPS 浏览器角色任务仍待受信任部署环境续证。 |
+| ADR-0062 租户历史直接权限退役提议 | `docs/adr/ADR-0062-tenant-direct-permission-retirement.md` | 本次控制面提交 | 提议由人工确认的迁移清单把历史直接权限转换为角色绑定；未映射模型配置权限不得自动建角色或静默撤销，等待人工决定。 |
 
 ## 证据规则
 

@@ -68,7 +68,8 @@ confirmedDecisions:
   - ADR-0059
   - ADR-0060
   - ADR-0061
-openDecisions: []
+openDecisions:
+  - ADR-0062
 latestEvidence:
   - docs/research/WP-0003-framework-baseline.md
   - project/evidence/WP-0003-trusted-context.md
@@ -239,6 +240,7 @@ latestEvidence:
   - project/evidence/WP-0014-model-deployment-availability-projection.md
   - project/evidence/WP-0014-model-deployment-disable.md
   - project/evidence/WP-0014-control-plane-automatic-acceptance-repair.md
+  - docs/adr/ADR-0062-tenant-direct-permission-retirement.md
 nextReviewAt: 2026-08-12
-updatedAt: 2026-08-11T13:44:44+08:00
+updatedAt: 2026-08-11T13:57:00+08:00
 updatedBy: codex
