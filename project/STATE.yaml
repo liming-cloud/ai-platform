@@ -69,6 +69,7 @@ confirmedDecisions:
   - ADR-0060
   - ADR-0061
   - ADR-0062
+  - ADR-0063
 openDecisions:
 latestEvidence:
   - docs/research/WP-0003-framework-baseline.md
@@ -243,8 +244,10 @@ latestEvidence:
   - docs/adr/ADR-0062-tenant-direct-permission-retirement.md
   - project/evidence/ADR-0062-approval.md
   - project/evidence/WP-0014-tenant-direct-permission-migration-domain.md
+  - docs/adr/ADR-0063-m6-local-identity-baseline-and-browser-evidence.md
+  - project/evidence/ADR-0063-approval.md
   - project/evidence/M6-automatic-acceptance-precondition-audit.md
   - project/evidence/WP-0014-publication-resource-picker-pagination.md
 nextReviewAt: 2026-08-12
-updatedAt: 2026-08-11T16:03:00+08:00
+updatedAt: 2026-08-11T16:20:00+08:00
 updatedBy: codex
