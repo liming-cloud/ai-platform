@@ -2,7 +2,7 @@
 
 ## 结论
 
-截至 `08da61e7d7e00b7da45ebf635b4ce7b2c7d9046c`，M6 仍不具备发起自动验收或人工评审的条件，`M7` 必须保持未激活。本记录只汇总已有证据与缺口，不替代任何浏览器角色验收。
+截至 `5ed67f506dc0a4c5e3bebfc1c703f0c90bdab71f`，ADR-0063 要求的平台身份基线、当前镜像与平台角色浏览器回归均已完成；ADR-0062 的逐成员清单不再是本地 M6 路径的输入，且相应未接线迁移代码已经删除。后续首份发布回归发现：本地新租户的 `TenantLifecycle` 已为 `ACTIVE`，但全局生命周期认证切换事实为空，认证仍读取固定为 `DISABLED` 的兼容租户行并拒绝登录。ADR-0046 与 ADR-0063 未规定空历史本地库的切换激活方式；在该决定落实并完成租户浏览器复归前，不得发起 M6 自动验收或人工评审，`M7` 必须保持未激活。本记录不替代任何浏览器角色验收。
 
 ## 审计范围与基线
 
@@ -10,26 +10,30 @@
 | --- | --- | --- |
 | 工作包 | `WP-0014` | 仍为当前前沿。 |
 | 里程碑 | `M6` | 保持进行中。 |
-| 自动化代码基线 | `ac1a3c93b` | `mvn test` 全后端反应堆通过；平台认证 HTTP 回归 21 项通过。 |
-| 当前控制面基线 | `08da61e7d7e00b7da45ebf635b4ce7b2c7d9046c` | ADR-0062 的领域与清单快照约束已实现；尚未连通真实 PostgreSQL。 |
+| 自动化代码基线 | `5ed67f506` | `make validate`、全后端 Maven 反应堆、前端定向测试与控制台构建均通过。 |
+| 当前控制面基线 | `5ed67f506` | 当前 Compose 以 `local` profile 运行；PostgreSQL、Redis、MinIO、控制面与控制台均已重建。平台会话回归通过，但租户会话被生命周期认证切换缺口拒绝。 |
 
 ## ADR 覆盖与未满足条件
 
 | 前置能力 | 已有可复核证据 | 自动验收状态 | 未满足条件 |
 | --- | --- | --- | --- |
-| ADR-0057：账户、角色权限与导航能力投影 | `WP-0014-tenant-custom-role-lifecycle-and-directory.md`、`WP-0014-platform-account-password-reset.md`、`WP-0014-control-plane-automatic-acceptance-repair.md` 记录纯领域、真实 PostgreSQL、HTTP、自动配置、服务端分页控制台与全后端回归。 | 未通过 | ADR-0063 已授权本地身份基线重置；当前容器仍是旧镜像和旧种子，必须以唯一平台超级管理员基线重建并补齐角色、用户、菜单与接口权限的真实回归。 |
-| ADR-0058：厂商连接、模型探测与可用性供应链 | `WP-0014-provider-model-deployment-supply-chain.md`、`WP-0014-model-deployment-availability-projection.md`、`WP-0014-model-deployment-disable.md` 记录真实基础设施、HTTP 分页和控制台回归。 | 未通过 | 需在当前镜像与本地身份基线上重跑真实基础设施、HTTP 和隔离浏览器角色任务。 |
-| ADR-0059：统一企业 SPA、服务端分页与注意力保护 | `WP-0014-console-pagination-and-attention-guard.md`、`WP-0014-platform-tenant-pagination-dialog.md`、`WP-0014-query-assistant-catalog-pagination.md` 记录 URL 可恢复分页、单一 Dialog 与前端门禁回归。 | 未通过 | 需在当前镜像与本地身份基线上重跑统一入口、角色任务、服务端分页和注意力保护的浏览器功能回归。 |
+| ADR-0057：账户、角色权限与导航能力投影 | `WP-0014-local-identity-baseline-and-browser-regression.md` 与既有账户、角色、会话撤销证据。 | 未通过 | 当前镜像的平台角色回归通过；租户初始管理员的真实登录被生命周期认证切换缺口拒绝，无法完成租户角色与导航续证。 |
+| ADR-0058：厂商连接、模型探测与可用性供应链 | `WP-0014-provider-model-deployment-supply-chain.md`、`WP-0014-model-deployment-availability-projection.md`、`WP-0014-model-deployment-disable.md`。 | 未通过 | 需以当前本地身份基线续证受控连接、模型部署页的 HTTP 与浏览器角色任务；租户会话缺口解决前无法执行。 |
+| ADR-0059：统一企业 SPA、服务端分页与注意力保护 | `WP-0014-console-pagination-and-attention-guard.md`、`WP-0014-platform-tenant-pagination-dialog.md`、`WP-0014-query-assistant-catalog-pagination.md`、`WP-0014-publication-resource-picker-pagination.md`。 | 未通过 | 前三个目录已有运行证据；首份发布页的当前镜像复核需租户会话，现被生命周期认证切换缺口阻断。 |
 
 ## 硬阻塞与退出条件
 
-1. **本地身份基线**：按 ADR-0063 只读确认当前本地 Compose 目标后，清理历史成员与直接权限，建立唯一平台超级管理员，并以实际角色、账户、菜单和接口权限闭合浏览器与 HTTP 回归。`project/evidence/WP-0014-local-identity-reset-preflight.md` 已确认当前成员删除会受到租户生命周期和查询事实外键阻止；在人工确认清理租户关联事实及初始管理员凭据前不得执行删除。
-2. **当前镜像回归**：Docker 已恢复，但现有服务早于当前源码；必须重建当前 Compose 服务并在不新增长期容器的前提下重跑 PostgreSQL、Redis、MinIO、HTTP 和前端验收。
+1. **空历史本地库的生命周期认证切换**：当前库已按 ADR-0063 清空历史租户，故 ADR-0046 的“历史回填完成后原子激活”没有运行入口。新建租户激活后仅更新 `TenantLifecycle`，认证切换未激活时仍读 `tenant.status = ENABLED`，但该兼容列按既有契约固定为 `DISABLED`。需要人工选择以下一项，并以新 ADR 或对 ADR-0063 的明确补充记录：
+   - 仅 `local` profile 在已证明无历史租户后，以受控基础设施操作建立全局切换事实；不改变生产或共享环境行为。
+   - 为无历史新租户定义一条受控、原子且可审计的切换激活路径；须明确其与 ADR-0046 历史回填原子性的关系。
+   - 改变认证 SQL 的分支规则，使有生命周期根的新租户在全局切换前使用生命周期状态；这会改变 ADR-0046 的全局切换语义，必须明确接受。
+2. **首份发布当前镜像回归**：上述决定落实后，在当前 Compose 与本地身份基线上复核服务端分页、显式嵌入模型选择、MinIO／PostgreSQL HTTP 行为和浏览器注意力保护。
+3. **自动验收汇总**：上述复核完成后，以当前提交重新执行工作包声明的全量验证并登记 M6 自动验收记录。
+
+ADR-0062 的清单迁移只适用于不可清理的非本地历史环境。ADR-0063 已明确将它排除出当前本地 M6 基线，并要求删除未接线实现；因此它既不是本地自动验收的硬阻塞，也不是需要人工回答的问题。
 
 ## 门禁判定
 
-- 2026-08-11 在当前工作区执行 `make project-verify`：项目治理 9 项测试和控制面验证均通过。
-- 同日执行 `make architecture-guard`：后端架构与前端产品门禁共 24 项测试通过；架构债务递减与分页／Dialog 规则均通过。
-- 这些门禁与已有自动化证据保持有效，但不消除上述两项前置条件。
-- 上述条件完成并以当前实现基线重新汇总证据前，不得创建 M6 自动验收通过记录、不得请求 M6 人工评审、不得激活 M7。ADR-0063 已将受信任 TLS 浏览器证据移出 M6 门禁。
-- `http://localhost:13000` 的浏览器验收保留现有 `Secure`、`HttpOnly`、`SameSite=Lax` 与 `__Host-` cookie；当前浏览器登录失败已由同一旧控制面的无 Cookie 登录 `401` 复核为旧身份基线问题，不得误归因于 TLS 或 cookie 降级。
+- 当前工作区的 `make project-verify`、`make validate`、后端 Maven 反应堆、前端构建和平台角色浏览器回归均已通过；这些事实由 `WP-0014-local-identity-baseline-and-browser-regression.md` 绑定当前基线，但不证明租户会话已可签发。
+- 受信任 TLS 已由 ADR-0063 移出 M6 门禁；`http://localhost:13000` 验收仍保留 `Secure`、`HttpOnly`、`SameSite=Lax` 与 `__Host-` cookie，不得将本地例外扩展为生产配置。
+- 生命周期认证切换决定、首份发布回归与自动验收汇总完成并登记前，不得创建 M6 自动验收通过记录、不得请求 M6 人工评审、不得激活 M7。
