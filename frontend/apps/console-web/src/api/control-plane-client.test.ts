@@ -6,6 +6,28 @@ import {
 } from "./control-plane-client";
 
 describe("ControlPlaneClient", () => {
+  it("建立平台账户只写入登录名和一次性初始口令", async () => {
+    let request: Request | undefined;
+    const client = authenticatedClient(async (input, init) => {
+      request = new Request(input, init);
+      return new Response(JSON.stringify({
+        subjectId: "102",
+        loginName: "new-account",
+        status: "ACTIVE",
+        version: 0,
+        createdAt: "2026-08-11T04:00:00Z",
+        activeRoleCodes: [],
+      }), { status: 201, headers: { "Content-Type": "application/json" } });
+    });
+
+    await client.createPlatformAccount({ loginName: "new-account", password: "initial-password" });
+
+    expect(request?.method).toBe("POST");
+    expect(request?.url).toContain("/platform/accounts");
+    expect(request?.headers.get("Authorization")).toBeNull();
+    expect(await request?.json()).toEqual({ loginName: "new-account", password: "initial-password" });
+  });
+
   it("创建和轮换供应商连接时只写入受控业务字段与一次性 API Key", async () => {
     const requests: Request[] = [];
     const connection = {

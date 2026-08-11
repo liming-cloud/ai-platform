@@ -107,6 +107,11 @@ class PlatformAccountGovernanceApplicationServiceTest {
         }
 
         @Override
+        public boolean insert(SubjectIdentity identity) {
+            throw new AssertionError("账户治理状态变更不得建立账户");
+        }
+
+        @Override
         public void update(SubjectIdentity identity) {
             updated = identity;
         }

@@ -13,5 +13,12 @@ public interface PlatformAccountStore extends PlatformAccountDirectory {
 
     long countOtherActiveAccountAdministrators(SubjectId subjectId);
 
+    /**
+     * 插入全局账户事实。
+     *
+     * @return 当且仅当数据库全局登录名唯一约束允许本次写入时为真。
+     */
+    boolean insert(SubjectIdentity identity);
+
     void update(SubjectIdentity identity);
 }

@@ -10,6 +10,7 @@ import com.aiplatform.foundation.organizationaccess.application.authentication.s
 import com.aiplatform.foundation.organizationaccess.application.authentication.service.BrowserSessionTerminationService;
 import com.aiplatform.foundation.organizationaccess.application.authorization.service.TenantRoleBindingApplicationService;
 import com.aiplatform.foundation.organizationaccess.application.authorization.service.PlatformAccountGovernanceApplicationService;
+import com.aiplatform.foundation.organizationaccess.application.authorization.service.PlatformAccountEstablishmentApplicationService;
 import com.aiplatform.foundation.organizationaccess.application.authorization.service.PlatformRoleBindingApplicationService;
 import com.aiplatform.foundation.organizationaccess.application.authorization.service.TenantRoleRevocationApplicationService;
 import com.aiplatform.foundation.organizationaccess.application.authorization.service.TenantCustomRoleApplicationService;
@@ -46,6 +47,7 @@ import com.aiplatform.foundation.organizationaccess.interfaces.web.authenticatio
 import com.aiplatform.foundation.organizationaccess.interfaces.web.tenantlifecycle.controller.TenantLifecycleController;
 import com.aiplatform.foundation.organizationaccess.interfaces.web.authorization.controller.TenantRoleBindingController;
 import com.aiplatform.foundation.organizationaccess.interfaces.web.authorization.controller.PlatformRoleBindingController;
+import com.aiplatform.foundation.organizationaccess.interfaces.web.authorization.controller.PlatformAccountEstablishmentController;
 import com.aiplatform.foundation.organizationaccess.interfaces.web.authorization.controller.TenantCustomRoleBindingController;
 import com.aiplatform.foundation.organizationaccess.interfaces.web.authorization.controller.TenantCustomRoleBindingRevocationController;
 import com.aiplatform.foundation.organizationaccess.interfaces.web.authorization.controller.TenantCustomRoleController;
@@ -136,6 +138,7 @@ class OrganizationAccessAutoConfigurationTest {
             assertThat(context).hasSingleBean(BrowserSessionTerminationService.class);
             assertThat(context).hasSingleBean(TenantRoleBindingApplicationService.class);
             assertThat(context).hasSingleBean(PlatformAccountGovernanceApplicationService.class);
+            assertThat(context).hasSingleBean(PlatformAccountEstablishmentApplicationService.class);
             assertThat(context).hasSingleBean(PlatformRoleBindingApplicationService.class);
             assertThat(context).hasSingleBean(TenantRoleRevocationApplicationService.class);
             assertThat(context).hasSingleBean(TenantCustomRoleApplicationService.class);
@@ -156,6 +159,7 @@ class OrganizationAccessAutoConfigurationTest {
             assertThat(context).hasSingleBean(TenantLifecycleController.class);
             assertThat(context).hasSingleBean(TenantRoleBindingController.class);
             assertThat(context).hasSingleBean(PlatformRoleBindingController.class);
+            assertThat(context).hasSingleBean(PlatformAccountEstablishmentController.class);
             assertThat(context).hasSingleBean(TenantCustomRoleController.class);
             assertThat(context).hasSingleBean(TenantCustomRoleBindingController.class);
             assertThat(context).hasSingleBean(TenantCustomRoleBindingRevocationController.class);
@@ -180,6 +184,8 @@ class OrganizationAccessAutoConfigurationTest {
                             TenantRoleBindingApplicationService.class);
                     assertThat(context).doesNotHaveBean(
                             PlatformAccountGovernanceApplicationService.class);
+                    assertThat(context).doesNotHaveBean(
+                            PlatformAccountEstablishmentApplicationService.class);
                     assertThat(context).doesNotHaveBean(
                             PlatformRoleBindingApplicationService.class);
                     assertThat(context).doesNotHaveBean(
@@ -220,6 +226,8 @@ class OrganizationAccessAutoConfigurationTest {
                             TenantRoleBindingController.class);
                     assertThat(context).doesNotHaveBean(
                             PlatformRoleBindingController.class);
+                    assertThat(context).doesNotHaveBean(
+                            PlatformAccountEstablishmentController.class);
                     assertThat(context).doesNotHaveBean(
                             TenantCustomRoleController.class);
                     assertThat(context).doesNotHaveBean(

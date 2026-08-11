@@ -13,6 +13,14 @@ public interface PlatformAccountMapper {
 
     long countOtherActiveAccountAdministrators(@Param("subjectId") long subjectId);
 
+    int insert(
+            @Param("subjectId") long subjectId,
+            @Param("loginName") String loginName,
+            @Param("passwordHash") String passwordHash,
+            @Param("status") String status,
+            @Param("version") long version,
+            @Param("createdAt") java.time.Instant createdAt);
+
     int update(
             @Param("subjectId") long subjectId,
             @Param("passwordHash") String passwordHash,

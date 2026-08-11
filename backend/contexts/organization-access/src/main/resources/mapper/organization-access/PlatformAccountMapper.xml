@@ -14,6 +14,7 @@
     <select id="lock" resultMap="subjectIdentity">SELECT subject_id, login_name, password_hash, status, version, created_at FROM organization_access.subject_identity WHERE subject_id = #{subjectId} FOR UPDATE</select>
     <select id="hasActiveAccountAdministratorRole" resultType="boolean">SELECT EXISTS (SELECT 1 FROM organization_access.platform_role_binding WHERE subject_id = #{subjectId} AND role_code = 'PLATFORM_ACCOUNT_ADMINISTRATOR' AND status = 'ACTIVE')</select>
     <select id="countOtherActiveAccountAdministrators" resultType="long">SELECT COUNT(*) FROM organization_access.platform_role_binding binding INNER JOIN organization_access.subject_identity subject ON subject.subject_id = binding.subject_id WHERE binding.role_code = 'PLATFORM_ACCOUNT_ADMINISTRATOR' AND binding.status = 'ACTIVE' AND subject.status = 'ACTIVE' AND binding.subject_id &lt;&gt; #{subjectId}</select>
+    <insert id="insert">INSERT INTO organization_access.subject_identity (subject_id, login_name, password_hash, status, version, created_at) VALUES (#{subjectId}, #{loginName}, #{passwordHash}, #{status}, #{version}, #{createdAt}) ON CONFLICT (login_name) DO NOTHING</insert>
     <update id="update">UPDATE organization_access.subject_identity SET password_hash = #{passwordHash}, status = #{status}, version = #{version} WHERE subject_id = #{subjectId} AND version = #{expectedVersion}</update>
     <select id="list" resultMap="accountSummary">
         SELECT subject.subject_id, subject.login_name, subject.status, subject.version, subject.created_at,

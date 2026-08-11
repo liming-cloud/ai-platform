@@ -1,6 +1,7 @@
 package com.aiplatform.foundation.organizationaccess.infrastructure.password;
 
 import com.aiplatform.foundation.organizationaccess.application.authentication.port.out.PasswordVerifier;
+import com.aiplatform.foundation.organizationaccess.application.authentication.port.out.PasswordHasher;
 import java.security.GeneralSecurityException;
 import java.security.MessageDigest;
 import java.security.SecureRandom;
@@ -13,7 +14,7 @@ import javax.crypto.spec.PBEKeySpec;
 /**
  * 使用 JDK PBKDF2-HMAC-SHA256 的密码摘要适配器。
  */
-public final class Pbkdf2PasswordAdapter implements PasswordVerifier {
+public final class Pbkdf2PasswordAdapter implements PasswordHasher, PasswordVerifier {
 
     private static final String ALGORITHM_ID = "pbkdf2-sha256";
     private static final String FORMAT_VERSION = "v1";
@@ -34,6 +35,7 @@ public final class Pbkdf2PasswordAdapter implements PasswordVerifier {
     /**
      * 为新密码生成带独立随机盐的版本化摘要。
      */
+    @Override
     public String encode(char[] password) {
         requirePassword(password);
         var salt = new byte[SALT_BYTES];

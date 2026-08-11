@@ -717,6 +717,12 @@
     },
     {
       "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/PlatformAccountMapper.xml",
+      "statementId": "insert",
+      "category": "ATOMIC_STATE_TRANSITION",
+      "reason": "依赖全局登录名唯一约束原子建立账户，并使并发重复请求以零行写入失败关闭。"
+    },
+    {
+      "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/PlatformAccountMapper.xml",
       "statementId": "update",
       "category": "ATOMIC_STATE_TRANSITION",
       "reason": "按预期修订原子更新全局账户状态和凭据摘要，冲突时拒绝覆盖。"

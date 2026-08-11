@@ -473,6 +473,14 @@ export class ControlPlaneClient {
     );
   }
 
+  async createPlatformAccount(input: { loginName: string; password: string }): Promise<PlatformAccountSummary> {
+    return this.request<PlatformAccountSummary>("/platform/accounts", {
+      method: "POST",
+      headers: this.writeHeaders("application/json"),
+      body: JSON.stringify(input),
+    });
+  }
+
   async enablePlatformAccount(subjectId: string): Promise<void> {
     return this.request<void>(
       `/platform/accounts/${encodeURIComponent(subjectId)}/enable`,

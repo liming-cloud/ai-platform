@@ -7,6 +7,8 @@ import {
   DialogContent,
   DialogSurface,
   DialogTitle,
+  Field,
+  Input,
   MessageBar,
   MessageBarBody,
   MessageBarTitle,
@@ -25,7 +27,7 @@ import type { ConsoleRoute } from "../../session/console-route";
 type AccountRoute = Extract<ConsoleRoute, { task: "accounts" }>;
 type PlatformRoleCode = "PLATFORM_ACCOUNT_ADMINISTRATOR" | "PLATFORM_TENANT_GOVERNOR" | "PLATFORM_OPERATOR";
 type RoleDialogTarget = { kind: "role"; account: PlatformAccountSummary; roleCode: PlatformRoleCode; action: "bind" | "revoke" };
-type DialogTarget = RoleDialogTarget | { kind: "enable"; account: PlatformAccountSummary };
+type DialogTarget = RoleDialogTarget | { kind: "enable"; account: PlatformAccountSummary } | { kind: "create" };
 
 const roles: ReadonlyArray<{ code: PlatformRoleCode; label: string; navigation: string }> = [
   { code: "PLATFORM_ACCOUNT_ADMINISTRATOR", label: "平台账户管理员", navigation: "平台账户目录" },
@@ -57,6 +59,8 @@ export function PlatformAccountDirectoryWorkspace({
   const [busy, setBusy] = useState(false);
   const [failure, setFailure] = useState("");
   const [dialog, setDialog] = useState<DialogTarget>();
+  const [loginName, setLoginName] = useState("");
+  const [password, setPassword] = useState("");
 
   const reload = useCallback(async () => {
     setBusy(true);
@@ -113,6 +117,31 @@ export function PlatformAccountDirectoryWorkspace({
     }
   }
 
+  function closeDialog() {
+    setDialog(undefined);
+    setLoginName("");
+    setPassword("");
+  }
+
+  async function createAccount() {
+    setBusy(true);
+    setFailure("");
+    try {
+      await client.createPlatformAccount({ loginName: loginName.trim(), password });
+      closeDialog();
+      if (route.page === 1) {
+        await reload();
+      } else {
+        onRouteChange({ ...route, page: 1 });
+      }
+    } catch (error) {
+      setFailure(error instanceof ApiRequestError ? error.message : "账户建立暂时不可用，请稍后重试。");
+    } finally {
+      setPassword("");
+      setBusy(false);
+    }
+  }
+
   return (
     <section className="governed-file-workspace" aria-live="polite">
       <header className="task-heading">
@@ -120,6 +149,7 @@ export function PlatformAccountDirectoryWorkspace({
           <Title3>平台账户目录</Title3>
           <Text>仅显示固定角色代码；每次角色变更都会使目标账户的全部会话失效。</Text>
         </div>
+        <Button appearance="primary" disabled={busy} onClick={() => setDialog({ kind: "create" })}>建立账户</Button>
       </header>
       {failure ? <MessageBar intent="error"><MessageBarBody><MessageBarTitle>读取未完成</MessageBarTitle>{failure}</MessageBarBody></MessageBar> : null}
       {busy && accounts.length === 0 ? <StatePanel kind="loading" title="正在加载平台账户" description="正在读取当前服务器页。" /> : null}
@@ -155,18 +185,28 @@ export function PlatformAccountDirectoryWorkspace({
         <Button appearance="subtle" disabled={!hasPrevious || busy} onClick={() => onRouteChange({ ...route, page: route.page - 1 })}>上一页</Button>
         <Button appearance="subtle" disabled={!hasNext || busy} onClick={() => onRouteChange({ ...route, page: route.page + 1 })}>下一页</Button>
       </div>
-      <Dialog open={dialog !== undefined} onOpenChange={(_, data) => { if (!data.open && !busy) setDialog(undefined); }}>
+      <Dialog open={dialog !== undefined} onOpenChange={(_, data) => { if (!data.open && !busy) closeDialog(); }}>
         <DialogSurface>
           <DialogBody>
-            <DialogTitle>{dialog?.kind === "enable" ? "确认启用平台账户" : dialog?.action === "bind" ? "确认绑定平台角色" : "确认撤销平台角色"}</DialogTitle>
-            <DialogContent>{dialog?.kind === "enable"
+            <DialogTitle>{dialog?.kind === "create" ? "建立平台账户" : dialog?.kind === "enable" ? "确认启用平台账户" : dialog?.action === "bind" ? "确认绑定平台角色" : "确认撤销平台角色"}</DialogTitle>
+            <DialogContent>{dialog?.kind === "create"
+              ? <>
+                <Text>新账户默认不绑定任何平台角色；请建立后再单独授予最小权限。</Text>
+                <Field label="全局登录名" required>
+                  <Input value={loginName} onChange={(_, data) => setLoginName(data.value)} autoComplete="username" />
+                </Field>
+                <Field label="初始口令" required>
+                  <Input type="password" value={password} onChange={(_, data) => setPassword(data.value)} autoComplete="new-password" />
+                </Field>
+              </>
+              : dialog?.kind === "enable"
               ? `${dialog.account.loginName} 将恢复为活动账户。提交后该主体的全部平台与租户旧会话将失效，需重新认证。`
               : dialog?.kind === "role"
                 ? `${dialog.account.loginName} 将${dialog.action === "bind" ? "获得" : "失去"}“${roleLabel(dialog.roleCode)}”。该角色投影的导航能力为“${roles.find((role) => role.code === dialog.roleCode)?.navigation}”；提交后目标账户的全部会话将失效。${dialog.action === "revoke" && dialog.roleCode === "PLATFORM_ACCOUNT_ADMINISTRATOR" ? "若这会留下最后一个活动的平台账户管理员，服务端将拒绝操作。" : ""}`
                 : ""}</DialogContent>
             <DialogActions>
-              <Button appearance="secondary" disabled={busy} onClick={() => setDialog(undefined)}>取消</Button>
-              <Button appearance="primary" disabled={busy || dialog === undefined} onClick={() => dialog && void (dialog.kind === "enable" ? enableAccount(dialog.account) : changeRole(dialog))}>{busy ? "正在提交" : "确认提交"}</Button>
+              <Button appearance="secondary" disabled={busy} onClick={closeDialog}>取消</Button>
+              <Button appearance="primary" disabled={busy || dialog === undefined || (dialog.kind === "create" && (loginName.trim() === "" || password === ""))} onClick={() => dialog && void (dialog.kind === "create" ? createAccount() : dialog.kind === "enable" ? enableAccount(dialog.account) : changeRole(dialog))}>{busy ? "正在提交" : dialog?.kind === "create" ? "建立账户" : "确认提交"}</Button>
             </DialogActions>
           </DialogBody>
         </DialogSurface>

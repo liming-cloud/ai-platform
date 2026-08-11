@@ -1,6 +1,7 @@
 package com.aiplatform.foundation.organizationaccess.infrastructure.configuration;
 
 import com.aiplatform.foundation.organizationaccess.application.authentication.port.out.PasswordVerifier;
+import com.aiplatform.foundation.organizationaccess.application.authentication.port.out.PasswordHasher;
 import com.aiplatform.foundation.organizationaccess.application.authentication.service.PersonAuthenticationService;
 import com.aiplatform.foundation.organizationaccess.application.authentication.service.PlatformAuthenticationService;
 import com.aiplatform.foundation.organizationaccess.application.authentication.service.BrowserAuthenticationService;
@@ -12,6 +13,7 @@ import com.aiplatform.foundation.organizationaccess.application.authorization.po
 import com.aiplatform.foundation.organizationaccess.application.authorization.port.out.PlatformRoleBindingStore;
 import com.aiplatform.foundation.organizationaccess.application.authorization.port.out.TenantRoleBindingStore;
 import com.aiplatform.foundation.organizationaccess.application.authorization.service.PlatformAccountGovernanceApplicationService;
+import com.aiplatform.foundation.organizationaccess.application.authorization.service.PlatformAccountEstablishmentApplicationService;
 import com.aiplatform.foundation.organizationaccess.application.authorization.service.PlatformAccountDirectoryApplicationService;
 import com.aiplatform.foundation.organizationaccess.application.authorization.service.PlatformRoleBindingApplicationService;
 import com.aiplatform.foundation.organizationaccess.application.authorization.service.TenantRoleBindingApplicationService;
@@ -180,6 +182,13 @@ public class OrganizationAccessCoreAutoConfiguration {
             PlatformAccountStore store,
             PersonSessionFamilyRevoker sessions) {
         return new PlatformAccountGovernanceApplicationService(store, sessions);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    PlatformAccountEstablishmentApplicationService platformAccountEstablishmentApplicationService(
+            PlatformAccountStore store, PasswordHasher passwords, EntityIdGenerator identifiers) {
+        return new PlatformAccountEstablishmentApplicationService(store, passwords, identifiers);
     }
 
     @Bean

@@ -49,6 +49,17 @@ public final class PostgresPlatformAccountStore implements PlatformAccountStore 
     }
 
     @Override
+    public boolean insert(SubjectIdentity identity) {
+        return mapper.insert(
+                identity.id().value(),
+                identity.loginName(),
+                identity.encodedPassword().verificationValue(),
+                identity.status().name(),
+                identity.version(),
+                identity.createdAt()) == 1;
+    }
+
+    @Override
     public void update(SubjectIdentity identity) {
         var updated = mapper.update(
                 identity.id().value(),

@@ -293,6 +293,7 @@
 | M6 平台账户目录与全范围会话撤销 | `project/evidence/WP-0014-platform-account-directory-session-revocation.md` | 本次提交 | 账户目录服务端分页、目标停用、主体租户／平台会话族撤销、真实 PostgreSQL 回滚、自动配置、HTTP 与统一控制台回归通过；正式 HTTPS 浏览器角色任务仍待受信任部署环境续证。 |
 | M6 平台固定角色绑定治理 | `project/evidence/WP-0014-platform-role-binding-governance.md` | 本次提交 | 固定平台角色绑定／撤销、最后账户管理员保护、授权修订、全范围会话撤销、真实 PostgreSQL、HTTP 与统一控制台服务端分页 Dialog 回归通过；正式 HTTPS 浏览器角色任务仍待受信任部署环境续证。 |
 | M6 平台账户启用与会话撤销 | `project/evidence/WP-0014-platform-account-enable.md` | 本次提交 | 禁用账户启用、重复启用拒绝、全范围会话撤销、真实 PostgreSQL 提交／回滚、HTTP 与统一控制台单一确认 Dialog 回归通过；正式 HTTPS 浏览器角色任务仍待受信任部署环境续证。 |
+| M6 平台账户建立 | `project/evidence/WP-0014-platform-account-establishment.md` | 本次提交 | 受权初始口令摘要、严格 HTTP、数据库并发唯一登录名、真实 PostgreSQL、自动配置与统一控制台单一 Dialog 回归通过；正式 HTTPS 浏览器角色任务仍待受信任部署环境续证。 |
 
 ## 证据规则
 

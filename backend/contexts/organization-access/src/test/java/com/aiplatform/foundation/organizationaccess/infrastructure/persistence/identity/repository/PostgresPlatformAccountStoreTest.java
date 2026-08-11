@@ -1,10 +1,13 @@
 package com.aiplatform.foundation.organizationaccess.infrastructure.persistence.identity.repository;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.aiplatform.foundation.organizationaccess.domain.member.model.SubjectId;
+import com.aiplatform.foundation.organizationaccess.domain.member.model.EncodedPassword;
+import com.aiplatform.foundation.organizationaccess.domain.identity.model.SubjectIdentity;
 import com.aiplatform.foundation.organizationaccess.application.authorization.port.out.PersonSessionFamilyRevoker;
 import com.aiplatform.foundation.organizationaccess.application.authorization.service.PlatformAccountGovernanceApplicationService;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.identity.mapper.PlatformAccountMapper;
@@ -99,6 +102,30 @@ class PostgresPlatformAccountStoreTest {
                         "SELECT version FROM organization_access.subject_identity WHERE subject_id = ?",
                         Long.class,
                         TARGET_SUBJECT));
+    }
+
+    @Test
+    void 应由真实数据库唯一约束建立全局账户且拒绝并发重复登录名() {
+        var created = SubjectIdentity.register(
+                new SubjectId(TARGET_SUBJECT + 10L),
+                "new-account",
+                new EncodedPassword("test-password-hash"),
+                java.time.Instant.parse("2026-08-11T04:00:00Z"));
+        var duplicate = SubjectIdentity.register(
+                new SubjectId(TARGET_SUBJECT + 11L),
+                "new-account",
+                new EncodedPassword("test-password-hash"),
+                java.time.Instant.parse("2026-08-11T04:00:01Z"));
+
+        assertTrue(store.insert(created));
+        assertFalse(store.insert(duplicate));
+
+        assertEquals(1L, jdbc.queryForObject(
+                "SELECT COUNT(*) FROM organization_access.subject_identity WHERE login_name = 'new-account'",
+                Long.class));
+        assertEquals(TARGET_SUBJECT + 10L, jdbc.queryForObject(
+                "SELECT subject_id FROM organization_access.subject_identity WHERE login_name = 'new-account'",
+                Long.class));
     }
 
     @Test
