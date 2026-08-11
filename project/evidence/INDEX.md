@@ -291,6 +291,7 @@
 | M6 统一问答助手目录分页 | `project/evidence/WP-0014-query-assistant-catalog-pagination.md` | 本次提交 | `/ask` 的助手目录使用 URL 可恢复的服务器分页；第三页请求、类型、lint、81 项前端回归、唯一控制台构建与全量门禁通过。 |
 | ADR-0061 人工接受 | `project/evidence/ADR-0061-approval.md` | 本次控制面提交 | 用户接受全局账户生命周期、内置平台角色和会话族撤销；不授权平台自定义角色、个人直接授权、服务账户、M7 或 M8。 |
 | M6 平台账户目录与全范围会话撤销 | `project/evidence/WP-0014-platform-account-directory-session-revocation.md` | 本次提交 | 账户目录服务端分页、目标停用、主体租户／平台会话族撤销、真实 PostgreSQL 回滚、自动配置、HTTP 与统一控制台回归通过；正式 HTTPS 浏览器角色任务仍待受信任部署环境续证。 |
+| M6 平台固定角色绑定治理 | `project/evidence/WP-0014-platform-role-binding-governance.md` | 本次提交 | 固定平台角色绑定／撤销、最后账户管理员保护、授权修订、全范围会话撤销、真实 PostgreSQL、HTTP 与统一控制台服务端分页 Dialog 回归通过；正式 HTTPS 浏览器角色任务仍待受信任部署环境续证。 |
 
 ## 证据规则
 

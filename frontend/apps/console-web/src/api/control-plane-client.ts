@@ -35,6 +35,18 @@ export interface PlatformAccountSummary {
   status: "ACTIVE" | "DISABLED";
   version: number;
   createdAt: string;
+  activeRoleCodes: string[];
+}
+
+/** 平台角色写操作的最小回显，不包含权限快照或会话信息。 */
+export interface PlatformRoleBinding {
+  bindingId: string;
+  subjectId: string;
+  roleCode: string;
+  status: "ACTIVE" | "REVOKED";
+  version: number;
+  createdAt: string;
+  revokedAt: string | null;
 }
 
 /** 当前租户成员目录的最小安全投影，不包含凭据、会话或完整权限集合。 */
@@ -458,6 +470,30 @@ export class ControlPlaneClient {
   ): Promise<PageResult<PlatformAccountSummary>> {
     return this.request<PageResult<PlatformAccountSummary>>(
       `/platform/accounts?pageNumber=${pageNumber}&pageSize=${pageSize}`,
+    );
+  }
+
+  async bindPlatformRole(
+    subjectId: string,
+    roleCode: string,
+  ): Promise<PlatformRoleBinding> {
+    return this.request<PlatformRoleBinding>(
+      `/platform/accounts/${encodeURIComponent(subjectId)}/role-bindings`,
+      {
+        method: "POST",
+        headers: this.writeHeaders("application/json"),
+        body: JSON.stringify({ role: roleCode }),
+      },
+    );
+  }
+
+  async revokePlatformRole(
+    subjectId: string,
+    roleCode: string,
+  ): Promise<PlatformRoleBinding> {
+    return this.request<PlatformRoleBinding>(
+      `/platform/accounts/${encodeURIComponent(subjectId)}/role-bindings/${encodeURIComponent(roleCode)}`,
+      { method: "DELETE" },
     );
   }
 

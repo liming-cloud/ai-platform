@@ -11,6 +11,8 @@ import com.aiplatform.foundation.shared.contract.paging.PageQuery;
 import com.aiplatform.foundation.shared.contract.paging.PageResult;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Arrays;
+import java.util.Set;
 
 /** PostgreSQL 平台账户存储，使用行锁读取并以修订号原子更新。 */
 public final class PostgresPlatformAccountStore implements PlatformAccountStore {
@@ -64,7 +66,9 @@ public final class PostgresPlatformAccountStore implements PlatformAccountStore 
         var total = mapper.count();
         var offset = (query.pageNumber() - 1L) * query.pageSize();
         var items = mapper.list(offset, query.pageSize()).stream()
-                .map(row -> new PlatformAccountSummary(row.getSubjectId(), row.getLoginName(), row.getStatus(), row.getVersion(), row.getCreatedAt()))
+                .map(row -> new PlatformAccountSummary(
+                        row.getSubjectId(), row.getLoginName(), row.getStatus(), row.getVersion(), row.getCreatedAt(),
+                        activeRoleCodes(row.getActiveRoleCodes())))
                 .toList();
         var pages = total == 0L ? 0L : (total + query.pageSize() - 1L) / query.pageSize();
         return new PageResult<>(
@@ -75,5 +79,12 @@ public final class PostgresPlatformAccountStore implements PlatformAccountStore 
                 pages,
                 query.pageNumber() > 1L,
                 query.pageNumber() < pages);
+    }
+
+    private static Set<String> activeRoleCodes(String codes) {
+        if (codes == null || codes.isBlank()) {
+            return Set.of();
+        }
+        return Set.copyOf(Arrays.asList(codes.split(",")));
     }
 }

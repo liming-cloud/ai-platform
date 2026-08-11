@@ -1,0 +1,159 @@
+package com.aiplatform.foundation.organizationaccess.infrastructure.persistence.authorization.repository;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import com.aiplatform.foundation.organizationaccess.domain.authorization.model.platform.PlatformRole;
+import com.aiplatform.foundation.organizationaccess.domain.authorization.model.platform.PlatformRoleBinding;
+import com.aiplatform.foundation.organizationaccess.domain.authorization.model.platform.PlatformRoleBindingId;
+import com.aiplatform.foundation.organizationaccess.domain.authorization.repository.PlatformRoleBindingRepository;
+import com.aiplatform.foundation.organizationaccess.domain.member.model.SubjectId;
+import com.aiplatform.foundation.organizationaccess.application.authorization.port.out.PersonSessionFamilyRevoker;
+import com.aiplatform.foundation.organizationaccess.application.authorization.service.PlatformRoleBindingApplicationService;
+import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.authorization.mapper.PlatformRoleBindingMapper;
+import com.aiplatform.foundation.security.identity.AccessChannel;
+import com.aiplatform.foundation.security.identity.CredentialType;
+import com.aiplatform.foundation.security.identity.PlatformPermissions;
+import com.aiplatform.foundation.security.identity.PlatformRequestContext;
+import java.time.Instant;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mybatis.spring.annotation.MapperScan;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.SpringBootConfiguration;
+import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
+import org.springframework.context.annotation.Bean;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.transaction.annotation.EnableTransactionManagement;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.postgresql.PostgreSQLContainer;
+
+@SpringBootTest(
+        classes = PostgresPlatformRoleBindingStoreTest.TestApplication.class,
+        properties = "foundation.organization-access.enabled=false")
+@Testcontainers
+class PostgresPlatformRoleBindingStoreTest {
+
+    private static final long SUBJECT_ID = 4921825928971026436L;
+
+    @Container
+    private static final PostgreSQLContainer POSTGRES =
+            new PostgreSQLContainer("postgres:18.4-alpine3.24")
+                    .withDatabaseName("foundation_test")
+                    .withUsername("foundation")
+                    .withPassword("foundation_test_only");
+
+    @Autowired
+    private PostgresPlatformRoleBindingStore store;
+
+    @Autowired
+    private PlatformRoleBindingRepository authorizations;
+
+    @Autowired
+    private PlatformRoleBindingApplicationService governance;
+
+    @Autowired
+    private JdbcTemplate jdbc;
+
+    @DynamicPropertySource
+    static void databaseProperties(DynamicPropertyRegistry registry) {
+        registry.add("spring.datasource.url", POSTGRES::getJdbcUrl);
+        registry.add("spring.datasource.username", POSTGRES::getUsername);
+        registry.add("spring.datasource.password", POSTGRES::getPassword);
+        registry.add("spring.flyway.locations", () -> "classpath:db/migration/organization-access");
+    }
+
+    @BeforeEach
+    void seedFacts() {
+        jdbc.update("DELETE FROM organization_access.platform_role_binding");
+        jdbc.update("DELETE FROM organization_access.platform_subject_authorization");
+        jdbc.update("DELETE FROM organization_access.subject_identity");
+        jdbc.update(
+                "INSERT INTO organization_access.subject_identity "
+                        + "(subject_id, login_name, password_hash, status, version) "
+                        + "VALUES (?, 'platform-account', 'platform-hash', 'ACTIVE', 0)",
+                SUBJECT_ID);
+    }
+
+    @Test
+    void 绑定与撤销均应原子推进认证权限修订() {
+        var binding = PlatformRoleBinding.bind(
+                new PlatformRoleBindingId(4921825928971026437L),
+                new SubjectId(SUBJECT_ID),
+                PlatformRole.PLATFORM_OPERATOR,
+                Instant.parse("2026-08-11T06:00:00Z"));
+
+        store.bind(binding);
+
+        var authorization = authorizations.findActiveAuthorizationBySubject(new SubjectId(SUBJECT_ID)).orElseThrow();
+        assertEquals(1L, authorization.permissionVersion());
+        assertEquals(java.util.Set.of(PlatformRole.PLATFORM_OPERATOR), authorization.roles());
+
+        store.revoke(binding.revoke(Instant.parse("2026-08-11T07:00:00Z")));
+
+        assertTrue(authorizations.findActiveAuthorizationBySubject(new SubjectId(SUBJECT_ID)).isEmpty());
+        assertEquals(
+                2L,
+                jdbc.queryForObject(
+                        "SELECT permission_version FROM organization_access.platform_subject_authorization "
+                                + "WHERE subject_id = ?",
+                        Long.class,
+                        SUBJECT_ID));
+    }
+
+    @Test
+    void 会话族撤销失败时不得提交角色绑定或权限修订() {
+        org.junit.jupiter.api.Assertions.assertThrows(
+                IllegalStateException.class,
+                () -> governance.bind(accountAdministrator(), SUBJECT_ID, "PLATFORM_OPERATOR"));
+
+        assertEquals(
+                0L,
+                jdbc.queryForObject(
+                        "SELECT COUNT(*) FROM organization_access.platform_role_binding WHERE subject_id = ?",
+                        Long.class,
+                        SUBJECT_ID));
+        assertEquals(
+                0L,
+                jdbc.queryForObject(
+                        "SELECT COUNT(*) FROM organization_access.platform_subject_authorization WHERE subject_id = ?",
+                        Long.class,
+                        SUBJECT_ID));
+    }
+
+    private static PlatformRequestContext accountAdministrator() {
+        return new PlatformRequestContext(
+                new com.aiplatform.foundation.security.identity.SubjectId(4921825928971026435L),
+                CredentialType.PERSON,
+                AccessChannel.CONSOLE,
+                0L,
+                java.util.Set.of(PlatformPermissions.SESSION_ACCESS, PlatformPermissions.ACCOUNT_MANAGE),
+                "trc_platform_role_binding");
+    }
+
+    @SpringBootConfiguration
+    @EnableAutoConfiguration
+    @EnableTransactionManagement
+    @MapperScan(basePackageClasses = PlatformRoleBindingMapper.class)
+    @Import({PostgresPlatformRoleBindingRepository.class, PostgresPlatformRoleBindingStore.class})
+    static class TestApplication {
+
+        @Bean
+        PlatformRoleBindingApplicationService platformRoleBindingApplicationService(
+                PostgresPlatformRoleBindingStore store) {
+            PersonSessionFamilyRevoker unavailableRevoker = subjectId -> {
+                throw new IllegalStateException("会话族撤销不可用");
+            };
+            return new PlatformRoleBindingApplicationService(
+                    store,
+                    unavailableRevoker,
+                    () -> 4921825928971026437L,
+                    java.time.Clock.systemUTC());
+        }
+    }
+}

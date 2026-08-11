@@ -120,6 +120,12 @@ class PostgresPlatformAccountStoreTest {
 
     @Test
     void 应从真实数据库返回可恢复的账户目录分页摘要() {
+        jdbc.update(
+                "INSERT INTO organization_access.platform_role_binding "
+                        + "(binding_id, subject_id, role_code, status, version) "
+                        + "VALUES (?, ?, 'PLATFORM_OPERATOR', 'ACTIVE', 0)",
+                TARGET_SUBJECT + 1L,
+                TARGET_SUBJECT);
         var page = store.list(new PageQuery(1, 1));
 
         assertEquals(2L, page.totalElements());
@@ -128,6 +134,7 @@ class PostgresPlatformAccountStoreTest {
         assertEquals(TARGET_SUBJECT, page.items().getFirst().subjectId());
         assertEquals("target-account", page.items().getFirst().loginName());
         assertEquals("ACTIVE", page.items().getFirst().status());
+        assertEquals(java.util.Set.of("PLATFORM_OPERATOR"), page.items().getFirst().activeRoleCodes());
     }
 
     @Test

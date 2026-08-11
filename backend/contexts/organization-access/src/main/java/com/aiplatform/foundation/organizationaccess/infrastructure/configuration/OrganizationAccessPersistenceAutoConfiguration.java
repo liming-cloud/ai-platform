@@ -9,6 +9,7 @@ import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.port.out.TenantProvisioningStore;
 import com.aiplatform.foundation.organizationaccess.application.authorization.port.out.TenantRoleBindingStore;
 import com.aiplatform.foundation.organizationaccess.application.authorization.port.out.PlatformAccountStore;
+import com.aiplatform.foundation.organizationaccess.application.authorization.port.out.PlatformRoleBindingStore;
 import com.aiplatform.foundation.organizationaccess.application.authorization.port.out.TenantRoleRevocationStore;
 import com.aiplatform.foundation.organizationaccess.application.authorization.port.out.TenantCustomRoleStore;
 import com.aiplatform.foundation.organizationaccess.application.authorization.port.out.TenantCustomRoleBindingStore;
@@ -20,6 +21,7 @@ import com.aiplatform.foundation.organizationaccess.application.member.port.out.
 import com.aiplatform.foundation.organizationaccess.application.member.port.out.TenantMemberEstablishmentStore;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.authorization.mapper.PlatformRoleBindingMapper;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.authorization.repository.PostgresPlatformRoleBindingRepository;
+import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.authorization.repository.PostgresPlatformRoleBindingStore;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.authorization.mapper.TenantRoleBindingMapper;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.authorization.repository.PostgresTenantRoleBindingStore;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.authorization.repository.PostgresTenantRoleRevocationStore;
@@ -102,6 +104,12 @@ public class OrganizationAccessPersistenceAutoConfiguration {
     PlatformRoleBindingRepository platformRoleBindingRepository(
             PlatformRoleBindingMapper mapper) {
         return new PostgresPlatformRoleBindingRepository(mapper);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    PlatformRoleBindingStore platformRoleBindingStore(PlatformRoleBindingMapper mapper) {
+        return new PostgresPlatformRoleBindingStore(mapper);
     }
 
     @Bean

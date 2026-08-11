@@ -6,10 +6,24 @@
         <result column="password_hash" property="passwordHash"/><result column="status" property="status"/>
         <result column="version" property="version"/><result column="created_at" property="createdAt"/>
     </resultMap>
+    <resultMap id="accountSummary" type="com.aiplatform.foundation.organizationaccess.infrastructure.persistence.identity.entity.PlatformAccountSummaryRow">
+        <result column="subject_id" property="subjectId"/><result column="login_name" property="loginName"/>
+        <result column="status" property="status"/><result column="version" property="version"/>
+        <result column="created_at" property="createdAt"/><result column="active_role_codes" property="activeRoleCodes"/>
+    </resultMap>
     <select id="lock" resultMap="subjectIdentity">SELECT subject_id, login_name, password_hash, status, version, created_at FROM organization_access.subject_identity WHERE subject_id = #{subjectId} FOR UPDATE</select>
     <select id="hasActiveAccountAdministratorRole" resultType="boolean">SELECT EXISTS (SELECT 1 FROM organization_access.platform_role_binding WHERE subject_id = #{subjectId} AND role_code = 'PLATFORM_ACCOUNT_ADMINISTRATOR' AND status = 'ACTIVE')</select>
     <select id="countOtherActiveAccountAdministrators" resultType="long">SELECT COUNT(*) FROM organization_access.platform_role_binding binding INNER JOIN organization_access.subject_identity subject ON subject.subject_id = binding.subject_id WHERE binding.role_code = 'PLATFORM_ACCOUNT_ADMINISTRATOR' AND binding.status = 'ACTIVE' AND subject.status = 'ACTIVE' AND binding.subject_id &lt;&gt; #{subjectId}</select>
     <update id="update">UPDATE organization_access.subject_identity SET password_hash = #{passwordHash}, status = #{status}, version = #{version} WHERE subject_id = #{subjectId} AND version = #{expectedVersion}</update>
-    <select id="list" resultMap="subjectIdentity">SELECT subject_id, login_name, password_hash, status, version, created_at FROM organization_access.subject_identity ORDER BY created_at DESC, subject_id DESC OFFSET #{offset} LIMIT #{limit}</select>
+    <select id="list" resultMap="accountSummary">
+        SELECT subject.subject_id, subject.login_name, subject.status, subject.version, subject.created_at,
+               COALESCE(string_agg(binding.role_code, ',' ORDER BY binding.role_code), '') AS active_role_codes
+        FROM organization_access.subject_identity subject
+        LEFT JOIN organization_access.platform_role_binding binding
+            ON binding.subject_id = subject.subject_id AND binding.status = 'ACTIVE'
+        GROUP BY subject.subject_id, subject.login_name, subject.status, subject.version, subject.created_at
+        ORDER BY subject.created_at DESC, subject.subject_id DESC
+        OFFSET #{offset} LIMIT #{limit}
+    </select>
     <select id="count" resultType="long">SELECT COUNT(*) FROM organization_access.subject_identity</select>
 </mapper>

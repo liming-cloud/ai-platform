@@ -696,6 +696,84 @@
       "statementId": "count",
       "category": "SECURITY_PROJECTION",
       "reason": "使用与角色目录相同的租户范围计算总数，避免分页元数据跨租户泄露。"
+    },
+    {
+      "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/PlatformAccountMapper.xml",
+      "statementId": "lock",
+      "category": "ROW_LOCK",
+      "reason": "账户状态变化前锁定目标主体，保证最后管理员判断和修订提交一致。"
+    },
+    {
+      "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/PlatformAccountMapper.xml",
+      "statementId": "hasActiveAccountAdministratorRole",
+      "category": "SECURITY_PROJECTION",
+      "reason": "仅投影目标主体的活动账户管理员角色，用于账户治理不变量。"
+    },
+    {
+      "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/PlatformAccountMapper.xml",
+      "statementId": "countOtherActiveAccountAdministrators",
+      "category": "SECURITY_PROJECTION",
+      "reason": "统计其他活动账户管理员，防止停用最后一个账户治理主体。"
+    },
+    {
+      "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/PlatformAccountMapper.xml",
+      "statementId": "update",
+      "category": "ATOMIC_STATE_TRANSITION",
+      "reason": "按预期修订原子更新全局账户状态和凭据摘要，冲突时拒绝覆盖。"
+    },
+    {
+      "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/PlatformAccountMapper.xml",
+      "statementId": "list",
+      "category": "SECURITY_PROJECTION",
+      "reason": "以单次服务端分页聚合投影账户安全摘要及有界活动固定角色代码。"
+    },
+    {
+      "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/PlatformAccountMapper.xml",
+      "statementId": "count",
+      "category": "SECURITY_PROJECTION",
+      "reason": "计算与平台账户目录相同范围的总数，供服务端分页元数据使用。"
+    },
+    {
+      "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/PlatformRoleBindingMapper.xml",
+      "statementId": "lockSubject",
+      "category": "ROW_LOCK",
+      "reason": "角色写入前锁定目标主体，使绑定和授权修订在同一串行范围内提交。"
+    },
+    {
+      "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/PlatformRoleBindingMapper.xml",
+      "statementId": "hasActiveBinding",
+      "category": "SECURITY_PROJECTION",
+      "reason": "投影目标主体是否已有活动固定角色，拒绝重复绑定。"
+    },
+    {
+      "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/PlatformRoleBindingMapper.xml",
+      "statementId": "lockActiveBinding",
+      "category": "ROW_LOCK",
+      "reason": "撤销前锁定活动绑定，保护状态和乐观修订的一致性。"
+    },
+    {
+      "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/PlatformRoleBindingMapper.xml",
+      "statementId": "countOtherActiveAccountAdministrators",
+      "category": "SECURITY_PROJECTION",
+      "reason": "统计其他活动账户管理员，拒绝撤销最后一个账户治理角色。"
+    },
+    {
+      "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/PlatformRoleBindingMapper.xml",
+      "statementId": "insertBinding",
+      "category": "ATOMIC_STATE_TRANSITION",
+      "reason": "在锁定事务内写入已通过领域规则的不可变平台角色绑定事实。"
+    },
+    {
+      "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/PlatformRoleBindingMapper.xml",
+      "statementId": "revokeBinding",
+      "category": "ATOMIC_STATE_TRANSITION",
+      "reason": "按活动状态和预期修订原子撤销目标平台角色绑定。"
+    },
+    {
+      "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/PlatformRoleBindingMapper.xml",
+      "statementId": "bumpAuthorizationRevision",
+      "category": "ATOMIC_STATE_TRANSITION",
+      "reason": "以 PostgreSQL UPSERT 原子建立或推进平台授权修订，使旧会话失效。"
     }
   ]
 }

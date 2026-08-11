@@ -1,6 +1,7 @@
 package com.aiplatform.foundation.organizationaccess.infrastructure.persistence.identity.mapper;
 
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.identity.entity.SubjectIdentityEntity;
+import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.identity.entity.PlatformAccountSummaryRow;
 import org.apache.ibatis.annotations.Param;
 
 /** 平台账户治理的受锁读取和乐观更新映射器。 */
@@ -19,7 +20,7 @@ public interface PlatformAccountMapper {
             @Param("version") long version,
             @Param("expectedVersion") long expectedVersion);
 
-    java.util.List<com.aiplatform.foundation.organizationaccess.infrastructure.persistence.identity.entity.SubjectIdentityEntity> list(
+    java.util.List<PlatformAccountSummaryRow> list(
             @Param("offset") long offset, @Param("limit") long limit);
 
     long count();

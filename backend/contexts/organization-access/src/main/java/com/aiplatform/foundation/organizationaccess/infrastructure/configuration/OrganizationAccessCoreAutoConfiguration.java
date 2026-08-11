@@ -9,9 +9,11 @@ import com.aiplatform.foundation.organizationaccess.application.authentication.s
 import com.aiplatform.foundation.organizationaccess.application.authorization.port.out.TenantMemberSessionRevoker;
 import com.aiplatform.foundation.organizationaccess.application.authorization.port.out.PersonSessionFamilyRevoker;
 import com.aiplatform.foundation.organizationaccess.application.authorization.port.out.PlatformAccountStore;
+import com.aiplatform.foundation.organizationaccess.application.authorization.port.out.PlatformRoleBindingStore;
 import com.aiplatform.foundation.organizationaccess.application.authorization.port.out.TenantRoleBindingStore;
 import com.aiplatform.foundation.organizationaccess.application.authorization.service.PlatformAccountGovernanceApplicationService;
 import com.aiplatform.foundation.organizationaccess.application.authorization.service.PlatformAccountDirectoryApplicationService;
+import com.aiplatform.foundation.organizationaccess.application.authorization.service.PlatformRoleBindingApplicationService;
 import com.aiplatform.foundation.organizationaccess.application.authorization.service.TenantRoleBindingApplicationService;
 import com.aiplatform.foundation.organizationaccess.application.authorization.port.out.TenantRoleRevocationStore;
 import com.aiplatform.foundation.organizationaccess.application.authorization.service.TenantRoleRevocationApplicationService;
@@ -185,6 +187,15 @@ public class OrganizationAccessCoreAutoConfiguration {
     PlatformAccountDirectoryApplicationService platformAccountDirectoryApplicationService(
             PlatformAccountStore store) {
         return new PlatformAccountDirectoryApplicationService(store);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    PlatformRoleBindingApplicationService platformRoleBindingApplicationService(
+            PlatformRoleBindingStore store,
+            PersonSessionFamilyRevoker sessions,
+            EntityIdGenerator identifiers) {
+        return new PlatformRoleBindingApplicationService(store, sessions, identifiers, Clock.systemUTC());
     }
 
     @Bean

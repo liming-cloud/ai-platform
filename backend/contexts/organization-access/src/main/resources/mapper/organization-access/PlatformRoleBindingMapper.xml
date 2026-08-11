@@ -11,6 +11,27 @@
         <result column="role_code" property="roleCode"/>
     </resultMap>
 
+    <resultMap id="subjectIdentity"
+        type="com.aiplatform.foundation.organizationaccess.infrastructure.persistence.identity.entity.SubjectIdentityEntity">
+        <result column="subject_id" property="subjectId"/>
+        <result column="login_name" property="loginName"/>
+        <result column="password_hash" property="passwordHash"/>
+        <result column="status" property="status"/>
+        <result column="version" property="version"/>
+        <result column="created_at" property="createdAt"/>
+    </resultMap>
+
+    <resultMap id="platformRoleBinding"
+        type="com.aiplatform.foundation.organizationaccess.infrastructure.persistence.authorization.entity.PlatformRoleBindingEntity">
+        <result column="binding_id" property="bindingId"/>
+        <result column="subject_id" property="subjectId"/>
+        <result column="role_code" property="roleCode"/>
+        <result column="status" property="status"/>
+        <result column="version" property="version"/>
+        <result column="created_at" property="createdAt"/>
+        <result column="revoked_at" property="revokedAt"/>
+    </resultMap>
+
     <select id="findActiveAuthorizationBySubject" resultMap="platformRoleAuthorization">
         SELECT revision.subject_id, revision.permission_version, binding.role_code
         FROM organization_access.platform_subject_authorization revision
@@ -23,5 +44,69 @@
           AND binding.status = 'ACTIVE'
         ORDER BY binding.role_code
     </select>
+
+    <select id="lockSubject" resultMap="subjectIdentity">
+        SELECT subject_id, login_name, password_hash, status, version, created_at
+        FROM organization_access.subject_identity
+        WHERE subject_id = #{subjectId}
+        FOR UPDATE
+    </select>
+
+    <select id="hasActiveBinding" resultType="boolean">
+        SELECT EXISTS (
+            SELECT 1
+            FROM organization_access.platform_role_binding
+            WHERE subject_id = #{subjectId}
+              AND role_code = #{roleCode}
+              AND status = 'ACTIVE'
+        )
+    </select>
+
+    <select id="lockActiveBinding" resultMap="platformRoleBinding">
+        SELECT binding_id, subject_id, role_code, status, version, created_at, revoked_at
+        FROM organization_access.platform_role_binding
+        WHERE subject_id = #{subjectId}
+          AND role_code = #{roleCode}
+          AND status = 'ACTIVE'
+        FOR UPDATE
+    </select>
+
+    <select id="countOtherActiveAccountAdministrators" resultType="long">
+        SELECT COUNT(*)
+        FROM organization_access.platform_role_binding binding
+        INNER JOIN organization_access.subject_identity subject
+            ON subject.subject_id = binding.subject_id
+        WHERE binding.role_code = 'PLATFORM_ACCOUNT_ADMINISTRATOR'
+          AND binding.status = 'ACTIVE'
+          AND subject.status = 'ACTIVE'
+          AND binding.subject_id &lt;&gt; #{subjectId}
+    </select>
+
+    <insert id="insertBinding">
+        INSERT INTO organization_access.platform_role_binding
+            (binding_id, subject_id, role_code, status, version, created_at)
+        VALUES
+            (#{bindingId}, #{subjectId}, #{roleCode}, 'ACTIVE', 0, #{createdAt})
+    </insert>
+
+    <update id="revokeBinding">
+        UPDATE organization_access.platform_role_binding
+        SET status = 'REVOKED', version = #{version}, revoked_at = #{revokedAt}
+        WHERE binding_id = #{bindingId}
+          AND status = 'ACTIVE'
+          AND version = #{expectedVersion}
+    </update>
+
+    <!-- 主体行锁序列化角色变化，故认证修订可安全地用单条 UPSERT 建立或推进。 -->
+    <update id="bumpAuthorizationRevision">
+        INSERT INTO organization_access.platform_subject_authorization
+            (subject_id, permission_version, version)
+        VALUES
+            (#{subjectId}, 1, 1)
+        ON CONFLICT (subject_id) DO UPDATE
+        SET permission_version = organization_access.platform_subject_authorization.permission_version + 1,
+            version = organization_access.platform_subject_authorization.version + 1,
+            updated_at = CURRENT_TIMESTAMP
+    </update>
 
 </mapper>

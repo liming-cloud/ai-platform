@@ -873,6 +873,33 @@ describe("ControlPlaneClient", () => {
     expect(page.items[0]?.loginName).toBe("platform-admin");
   });
 
+  it("平台角色绑定与撤销只提交固定角色代码和路径目标", async () => {
+    const requests: Request[] = [];
+    const client = authenticatedClient(async (input, init) => {
+      requests.push(new Request(input, init));
+      return new Response(JSON.stringify({
+        bindingId: "3001",
+        subjectId: "510000000000000001",
+        roleCode: "PLATFORM_OPERATOR",
+        status: requests.length === 1 ? "ACTIVE" : "REVOKED",
+        version: requests.length - 1,
+        createdAt: "2026-08-11T03:00:00Z",
+        revokedAt: requests.length === 1 ? null : "2026-08-11T04:00:00Z",
+      }), { status: 200, headers: { "Content-Type": "application/json" } });
+    });
+
+    await client.bindPlatformRole("510000000000000001", "PLATFORM_OPERATOR");
+    await client.revokePlatformRole("510000000000000001", "PLATFORM_OPERATOR");
+
+    expect(requests.map((request) => request.url)).toEqual([
+      "http://localhost/api/v1/platform/accounts/510000000000000001/role-bindings",
+      "http://localhost/api/v1/platform/accounts/510000000000000001/role-bindings/PLATFORM_OPERATOR",
+    ]);
+    expect(requests.map((request) => request.method)).toEqual(["POST", "DELETE"]);
+    expect(requests[0]?.headers.get("Authorization")).toBeNull();
+    expect(await requests[0]?.json()).toEqual({ role: "PLATFORM_OPERATOR" });
+  });
+
   it("建立租户成员时只提交目标主体标识", async () => {
     let request: Request | undefined;
     const client = authenticatedClient(async (input, init) => {
