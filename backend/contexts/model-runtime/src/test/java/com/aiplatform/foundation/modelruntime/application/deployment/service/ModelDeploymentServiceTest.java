@@ -9,6 +9,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
 import com.aiplatform.foundation.modelruntime.application.deployment.command.CreateModelDeploymentCommand;
+import com.aiplatform.foundation.modelruntime.application.deployment.query.ListModelDeploymentsQuery;
+import com.aiplatform.foundation.modelruntime.application.deployment.dto.ModelDeploymentAvailability;
+import com.aiplatform.foundation.modelruntime.application.deployment.dto.ModelDeploymentAvailabilityNextStep;
 import com.aiplatform.foundation.modelruntime.application.deployment.command.ProbeModelDeploymentCommand;
 import com.aiplatform.foundation.modelruntime.application.deployment.command.PublishModelDeploymentCommand;
 import com.aiplatform.foundation.modelruntime.application.deployment.port.out.ModelDeploymentVerificationStore;
@@ -31,6 +34,7 @@ import com.aiplatform.foundation.modelruntime.domain.provider.repository.Provide
 import com.aiplatform.foundation.modelruntime.domain.provider.model.AuthenticationType;
 import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelDeployment;
 import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelDeploymentId;
+import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelCapabilityVerificationId;
 import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelDeploymentStatus;
 import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelType;
 import com.aiplatform.foundation.modelruntime.domain.provider.model.ProviderConnection;
@@ -43,6 +47,7 @@ import com.aiplatform.foundation.security.identity.SubjectId;
 import com.aiplatform.foundation.security.identity.TrustedRequestContext;
 import com.aiplatform.foundation.modelruntime.domain.provider.model.CredentialReference;
 import com.aiplatform.foundation.modelruntime.domain.provider.model.DiscoveredModel;
+import com.aiplatform.foundation.shared.contract.paging.PageQuery;
 import java.net.URI;
 import java.time.Clock;
 import java.time.Duration;
@@ -98,6 +103,55 @@ class ModelDeploymentServiceTest {
         assertEquals(ModelDeploymentStatus.VERIFIED.name(), probed.modelDeployment().status());
         assertEquals(ModelDeploymentStatus.PUBLISHED.name(), published.status());
         assertEquals(2, published.version());
+    }
+
+    @Test
+    void 列表必须以当前连接修订和验证有效期投影部署可用性() {
+        var deployments = new InMemoryDeploymentRepository();
+        var providers = new InMemoryProviderRepository(verifiedProvider());
+        var service = service(deployments, providers, successfulProbe());
+        service.create(createCommand(context("model:write")));
+        service.probe(new ProbeModelDeploymentCommand(
+                context("model:write"), DEPLOYMENT_ID_TEXT, 0, Duration.ofSeconds(2)));
+        service.publish(new PublishModelDeploymentCommand(
+                context("model:write"), DEPLOYMENT_ID_TEXT, 1));
+
+        var healthy = service.list(new ListModelDeploymentsQuery(
+                context("model:read"), new PageQuery(1, 20)));
+        assertEquals(ModelDeploymentAvailability.HEALTHY, healthy.items().getFirst().availability());
+        assertEquals(ModelDeploymentAvailabilityNextStep.NONE, healthy.items().getFirst().nextStep());
+
+        providers.connection = providers.connection.recordSuccessfulProbe(
+                "DETERMINISTIC_OK", NOW.plusSeconds(1));
+
+        var unavailable = service.list(new ListModelDeploymentsQuery(
+                context("model:read"), new PageQuery(1, 20)));
+        assertEquals(ModelDeploymentAvailability.UNAVAILABLE, unavailable.items().getFirst().availability());
+        assertEquals(ModelDeploymentAvailabilityNextStep.VERIFY_CONNECTION, unavailable.items().getFirst().nextStep());
+
+        providers.connection = verifiedProvider();
+        deployments.deployment = ModelDeployment.reconstitute(
+                TENANT,
+                new ModelDeploymentId(DEPLOYMENT_ID),
+                CONNECTION_ID,
+                1,
+                "deterministic-chat",
+                "演示对话模型",
+                ModelType.CHAT,
+                Set.of(ModelCapability.CHAT),
+                8192,
+                1024,
+                null,
+                new ModelCapabilityVerificationId(330000000000000001L),
+                NOW.minusSeconds(1),
+                ModelDeploymentStatus.PUBLISHED,
+                2,
+                NOW.minusSeconds(60));
+
+        var degraded = service.list(new ListModelDeploymentsQuery(
+                context("model:read"), new PageQuery(1, 20)));
+        assertEquals(ModelDeploymentAvailability.DEGRADED, degraded.items().getFirst().availability());
+        assertEquals(ModelDeploymentAvailabilityNextStep.REPROBE_MODEL, degraded.items().getFirst().nextStep());
     }
 
     @Test

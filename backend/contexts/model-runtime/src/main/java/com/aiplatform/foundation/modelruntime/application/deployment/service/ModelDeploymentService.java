@@ -9,6 +9,8 @@ import com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator;
 import com.aiplatform.foundation.modelruntime.application.deployment.command.CreateModelDeploymentCommand;
 import com.aiplatform.foundation.modelruntime.application.deployment.dto.CreateModelDeploymentResult;
 import com.aiplatform.foundation.modelruntime.application.deployment.query.ListModelDeploymentsQuery;
+import com.aiplatform.foundation.modelruntime.application.deployment.dto.ModelDeploymentAvailability;
+import com.aiplatform.foundation.modelruntime.application.deployment.dto.ModelDeploymentAvailabilityNextStep;
 import com.aiplatform.foundation.modelruntime.application.deployment.dto.ModelDeploymentView;
 import com.aiplatform.foundation.modelruntime.application.deployment.command.ProbeModelDeploymentCommand;
 import com.aiplatform.foundation.modelruntime.application.deployment.dto.ProbeModelDeploymentResult;
@@ -22,6 +24,7 @@ import com.aiplatform.foundation.modelruntime.domain.deployment.repository.Model
 import com.aiplatform.foundation.modelruntime.domain.deployment.repository.ModelDeploymentRepository;
 import com.aiplatform.foundation.modelruntime.domain.provider.repository.ProviderConnectionRepository;
 import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelDeployment;
+import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelDeploymentStatus;
 import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelCapabilityVerificationId;
 import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelCapabilityObservation;
 import com.aiplatform.foundation.modelruntime.domain.deployment.service.ModelDeploymentVerification;
@@ -124,7 +127,7 @@ public final class ModelDeploymentService {
                         fingerprint(command)),
                 tenantLimit);
         return new CreateModelDeploymentResult(
-                toView(outcome.deployment()),
+                toView(outcome.deployment(), provider, clock.instant()),
                 outcome.replayed());
     }
 
@@ -137,7 +140,13 @@ public final class ModelDeploymentService {
                 query.page().pageSize());
         return PageResult.of(
                 slice.items().stream()
-                        .map(ModelDeploymentService::toView)
+                        .map(deployment -> toView(
+                                deployment,
+                                providers.findById(
+                                                deployment.tenantId(),
+                                                deployment.providerConnectionId())
+                                        .orElse(null),
+                                clock.instant()))
                         .toList(),
                 query.page(),
                 slice.totalElements());
@@ -169,7 +178,7 @@ public final class ModelDeploymentService {
                 result.probedAt().plus(verificationValidity));
         verificationStore.commit(verification, command.expectedVersion());
         return new ProbeModelDeploymentResult(
-                toView(verification.revisedDeployment()),
+                toView(verification.revisedDeployment(), provider, result.probedAt()),
                 verification.verified(),
                 result.capabilities(),
                 result.elapsed(),
@@ -182,10 +191,10 @@ public final class ModelDeploymentService {
         requirePermission(command.context(), WRITE);
         var deployment = load(command.context(), command.modelDeploymentId());
         requireExpectedVersion(deployment, command.expectedVersion());
-        loadFrozenProvider(command.context(), deployment);
+        var provider = loadFrozenProvider(command.context(), deployment);
         var published = deployment.publish(clock.instant());
         update(published, command.expectedVersion());
-        return toView(published);
+        return toView(published, provider, clock.instant());
     }
 
     private ModelDeployment load(
@@ -245,7 +254,9 @@ public final class ModelDeploymentService {
         return value;
     }
 
-    private static ModelDeploymentView toView(ModelDeployment deployment) {
+    private static ModelDeploymentView toView(
+            ModelDeployment deployment, ProviderConnection provider, java.time.Instant now) {
+        var availability = availability(deployment, provider, now);
         return new ModelDeploymentView(
                 deployment.id().toString(),
                 deployment.providerConnectionId().toString(),
@@ -259,9 +270,45 @@ public final class ModelDeploymentService {
                 deployment.embeddingDimension(),
                 deployment.verificationExpiresAt(),
                 deployment.status().name(),
+                availability.status(),
+                availability.nextStep(),
                 deployment.version(),
                 deployment.createdAt());
     }
+
+    private static AvailabilityProjection availability(
+            ModelDeployment deployment, ProviderConnection provider, java.time.Instant now) {
+        if (provider == null
+                || provider.status() != ProviderConnectionStatus.VERIFIED
+                || provider.version() != deployment.providerConnectionRevision()) {
+            return new AvailabilityProjection(
+                    ModelDeploymentAvailability.UNAVAILABLE,
+                    ModelDeploymentAvailabilityNextStep.VERIFY_CONNECTION);
+        }
+        if (deployment.status() == ModelDeploymentStatus.DRAFT) {
+            return new AvailabilityProjection(
+                    ModelDeploymentAvailability.UNAVAILABLE,
+                    ModelDeploymentAvailabilityNextStep.PROBE_MODEL);
+        }
+        if (deployment.verificationExpiresAt() == null
+                || !deployment.verificationExpiresAt().isAfter(now)) {
+            return new AvailabilityProjection(
+                    ModelDeploymentAvailability.DEGRADED,
+                    ModelDeploymentAvailabilityNextStep.REPROBE_MODEL);
+        }
+        if (deployment.status() == ModelDeploymentStatus.VERIFIED) {
+            return new AvailabilityProjection(
+                    ModelDeploymentAvailability.HEALTHY,
+                    ModelDeploymentAvailabilityNextStep.PUBLISH);
+        }
+        return new AvailabilityProjection(
+                ModelDeploymentAvailability.HEALTHY,
+                ModelDeploymentAvailabilityNextStep.NONE);
+    }
+
+    private record AvailabilityProjection(
+            ModelDeploymentAvailability status,
+            ModelDeploymentAvailabilityNextStep nextStep) {}
 
     private static String fingerprint(CreateModelDeploymentCommand command) {
         try {

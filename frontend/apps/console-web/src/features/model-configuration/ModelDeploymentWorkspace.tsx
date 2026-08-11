@@ -216,7 +216,7 @@ export function ModelDeploymentWorkspace({
 
       <section className="model-configuration-section" aria-label="模型部署目录">
         <header className="task-heading"><Title3>模型部署</Title3><Text>草稿必须先完成最小真实能力探测，验证在 `PT24H` 内才可发布；发布后不能原地改写。</Text></header>
-        <div className="member-directory-table" role="region" aria-label="模型部署分页表格"><table><thead><tr><th>部署</th><th>模型与连接</th><th>状态</th><th>验证有效期</th><th>操作</th></tr></thead><tbody>{deployments.length === 0 ? <tr><td colSpan={5}>当前页没有模型部署。</td></tr> : deployments.map((deployment) => <tr key={deployment.id}><td>{deployment.displayName}</td><td>{deployment.modelCode} · {deployment.modelType}<br /><Text size={200}>连接 {deployment.providerConnectionId}，修订 {deployment.providerConnectionRevision}</Text></td><td><Badge appearance="tint" color={deployment.status === "PUBLISHED" ? "success" : deployment.status === "VERIFIED" ? "brand" : "warning"}>{deployment.status}</Badge></td><td>{deployment.verificationExpiresAt === null ? "待真实能力验证" : new Date(deployment.verificationExpiresAt).toLocaleString("zh-CN")}</td><td><div className="task-actions"><Button appearance="secondary" disabled={submitting || deployment.status !== "DRAFT"} onClick={() => setProbeTarget(deployment)}>探测能力</Button><Button appearance="primary" disabled={submitting || deployment.status !== "VERIFIED"} onClick={() => setPublishTarget(deployment)}>发布部署</Button></div></td></tr>)}</tbody></table></div>
+        <div className="member-directory-table" role="region" aria-label="模型部署分页表格"><table><thead><tr><th>部署</th><th>模型与连接</th><th>状态</th><th>可用性</th><th>验证有效期</th><th>操作</th></tr></thead><tbody>{deployments.length === 0 ? <tr><td colSpan={6}>当前页没有模型部署。</td></tr> : deployments.map((deployment) => <tr key={deployment.id}><td>{deployment.displayName}</td><td>{deployment.modelCode} · {deployment.modelType}<br /><Text size={200}>连接 {deployment.providerConnectionId}，修订 {deployment.providerConnectionRevision}</Text></td><td><Badge appearance="tint" color={deployment.status === "PUBLISHED" ? "success" : deployment.status === "VERIFIED" ? "brand" : "warning"}>{deployment.status}</Badge></td><td><Badge appearance="tint" color={deployment.availability === "HEALTHY" ? "success" : deployment.availability === "DEGRADED" ? "warning" : "danger"}>{deployment.availability}</Badge><br /><Text size={200}>建议：{nextStepLabel(deployment.nextStep)}</Text></td><td>{deployment.verificationExpiresAt === null ? "待真实能力验证" : new Date(deployment.verificationExpiresAt).toLocaleString("zh-CN")}</td><td><div className="task-actions"><Button appearance="secondary" disabled={submitting || deployment.status !== "DRAFT"} onClick={() => setProbeTarget(deployment)}>探测能力</Button><Button appearance="primary" disabled={submitting || deployment.status !== "VERIFIED"} onClick={() => setPublishTarget(deployment)}>发布部署</Button></div></td></tr>)}</tbody></table></div>
         <Pagination label="模型部署" page={route.deploymentPage} total={deploymentTotal} hasPrevious={deploymentHasPrevious} hasNext={deploymentHasNext} onPrevious={() => onRouteChange({ ...route, deploymentPage: route.deploymentPage - 1 })} onNext={() => onRouteChange({ ...route, deploymentPage: route.deploymentPage + 1 })} />
       </section>
 
@@ -235,4 +235,14 @@ function Pagination({ label, page, total, hasPrevious, hasNext, onPrevious, onNe
 
 function toFailure(error: unknown): Failure {
   return { message: error instanceof Error && error.message ? error.message : "请求失败，请稍后重试。" };
+}
+
+function nextStepLabel(nextStep: ModelDeployment["nextStep"]): string {
+  return {
+    VERIFY_CONNECTION: "验证厂商连接",
+    PROBE_MODEL: "执行能力探测",
+    REPROBE_MODEL: "重新执行能力探测",
+    PUBLISH: "发布已验证部署",
+    NONE: "无需操作",
+  }[nextStep];
 }

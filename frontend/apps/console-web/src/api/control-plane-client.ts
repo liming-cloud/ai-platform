@@ -173,6 +173,8 @@ export interface ModelDeployment {
   outputLimit: number | null;
   verificationExpiresAt: string | null;
   status: string;
+  availability: "HEALTHY" | "DEGRADED" | "UNAVAILABLE";
+  nextStep: "VERIFY_CONNECTION" | "PROBE_MODEL" | "REPROBE_MODEL" | "PUBLISH" | "NONE";
   version: number;
   embeddingDimension: number | null;
   createdAt: string;

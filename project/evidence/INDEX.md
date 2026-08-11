@@ -295,6 +295,7 @@
 | M6 平台账户启用与会话撤销 | `project/evidence/WP-0014-platform-account-enable.md` | 本次提交 | 禁用账户启用、重复启用拒绝、全范围会话撤销、真实 PostgreSQL 提交／回滚、HTTP 与统一控制台单一确认 Dialog 回归通过；正式 HTTPS 浏览器角色任务仍待受信任部署环境续证。 |
 | M6 平台账户建立 | `project/evidence/WP-0014-platform-account-establishment.md` | 本次提交 | 受权初始口令摘要、严格 HTTP、数据库并发唯一登录名、真实 PostgreSQL、自动配置与统一控制台单一 Dialog 回归通过；正式 HTTPS 浏览器角色任务仍待受信任部署环境续证。 |
 | M6 平台账户受控密码重置 | `project/evidence/WP-0014-platform-account-password-reset.md` | 本次提交 | 禁止自重置、PBKDF2 摘要、全范围会话撤销、真实 PostgreSQL 提交／回滚、HTTP 与统一控制台 Dialog 回归通过；正式 HTTPS 浏览器角色任务仍待受信任部署环境续证。 |
+| M6 模型部署可用性投影 | `project/evidence/WP-0014-model-deployment-availability-projection.md` | 本次提交 | 当前连接修订、部署状态和验证有效期推导 `HEALTHY`／`DEGRADED`／`UNAVAILABLE` 与唯一建议下一步；真实 PostgreSQL、HTTP 分页和统一控制台回归通过，正式 HTTPS 浏览器角色任务仍待受信任部署环境续证。 |
 
 ## 证据规则
 

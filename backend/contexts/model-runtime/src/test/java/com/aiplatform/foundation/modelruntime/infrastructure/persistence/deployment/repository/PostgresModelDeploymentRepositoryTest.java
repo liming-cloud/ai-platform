@@ -22,11 +22,31 @@ import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelDeplo
 import com.aiplatform.foundation.modelruntime.domain.deployment.operation.ModelDeploymentVerificationResult;
 import com.aiplatform.foundation.modelruntime.domain.deployment.service.ModelDeploymentVerification;
 import com.aiplatform.foundation.modelruntime.application.deployment.port.out.ModelDeploymentVerificationStore;
+import com.aiplatform.foundation.modelruntime.application.deployment.dto.ModelDeploymentAvailability;
+import com.aiplatform.foundation.modelruntime.application.deployment.query.ListModelDeploymentsQuery;
+import com.aiplatform.foundation.modelruntime.application.deployment.service.ModelDeploymentService;
+import com.aiplatform.foundation.modelruntime.application.deployment.port.out.ProviderModelDiscoveryLookup;
+import com.aiplatform.foundation.modelruntime.application.probe.service.ProbeProviderService;
 import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelType;
 import com.aiplatform.foundation.modelruntime.domain.provider.model.ProviderConnectionId;
+import com.aiplatform.foundation.modelruntime.domain.provider.repository.ProviderConnectionRepository;
+import com.aiplatform.foundation.modelruntime.infrastructure.persistence.provider.mapper.ProviderConnectionMapper;
+import com.aiplatform.foundation.modelruntime.infrastructure.persistence.provider.mapper.ProviderConnectionRequestMapper;
+import com.aiplatform.foundation.modelruntime.infrastructure.persistence.provider.repository.PostgresProviderConnectionRepository;
+import com.aiplatform.foundation.security.identity.AccessChannel;
+import com.aiplatform.foundation.security.identity.CredentialType;
+import com.aiplatform.foundation.security.identity.MembershipId;
+import com.aiplatform.foundation.security.identity.PermissionCode;
+import com.aiplatform.foundation.security.identity.SubjectId;
+import com.aiplatform.foundation.security.identity.TrustedRequestContext;
+import com.aiplatform.foundation.shared.contract.paging.PageQuery;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.Duration;
+import java.time.Clock;
+import java.time.ZoneOffset;
+import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 import org.junit.jupiter.api.BeforeEach;
@@ -76,6 +96,9 @@ class PostgresModelDeploymentRepositoryTest {
 
     @Autowired
     private ModelDeploymentVerificationStore verificationStore;
+
+    @Autowired
+    private ProviderConnectionRepository providers;
 
     @DynamicPropertySource
     static void databaseProperties(DynamicPropertyRegistry registry) {
@@ -194,6 +217,47 @@ class PostgresModelDeploymentRepositoryTest {
     }
 
     @Test
+    void 真实PostgreSQL连接修订漂移只改变部署可用性投影() {
+        var created = repository.create(
+                        creation(
+                                STORE_TENANT,
+                                STORE_PROVIDER,
+                                "deployment-request-availability",
+                                "1".repeat(64),
+                                "可用性模型"),
+                        6)
+                .deployment();
+        var verification = ModelDeploymentVerification.verify(
+                created,
+                new ModelCapabilityVerificationId(330000000000000002L),
+                new ModelCapabilityObservation(
+                        true,
+                        Set.of(ModelCapability.CHAT),
+                        "DETERMINISTIC_OK",
+                        Duration.ofMillis(10),
+                        CREATED_AT),
+                CREATED_AT.plusSeconds(86_400));
+        verificationStore.commit(verification, 0);
+        var verified = repository.findById(STORE_TENANT, created.id()).orElseThrow();
+        assertTrue(repository.update(verified.publish(CREATED_AT.plusSeconds(1)), 1));
+        var service = availabilityService();
+
+        var healthy = service.list(new ListModelDeploymentsQuery(
+                trustedContext(), new PageQuery(1, 20)));
+        assertEquals(ModelDeploymentAvailability.HEALTHY, healthy.items().getFirst().availability());
+        assertEquals("PUBLISHED", healthy.items().getFirst().status());
+
+        jdbc.update(
+                "UPDATE model_runtime.provider_connection SET version = 2 WHERE tenant_id = ? AND id = ?",
+                STORE_TENANT.value(), STORE_PROVIDER.value());
+
+        var unavailable = service.list(new ListModelDeploymentsQuery(
+                trustedContext(), new PageQuery(1, 20)));
+        assertEquals(ModelDeploymentAvailability.UNAVAILABLE, unavailable.items().getFirst().availability());
+        assertEquals("PUBLISHED", unavailable.items().getFirst().status());
+    }
+
+    @Test
     void 租户配额同名约束和畸形游标均稳定拒绝() {
         repository.create(
                 creation(
@@ -271,6 +335,34 @@ class PostgresModelDeploymentRepositoryTest {
                 fingerprint);
     }
 
+    private ModelDeploymentService availabilityService() {
+        var clock = Clock.fixed(CREATED_AT.plusSeconds(2), ZoneOffset.UTC);
+        ProviderModelDiscoveryLookup discoveries =
+                (tenantId, providerId, revision, modelCode, modelType, now) -> Optional.empty();
+        return new ModelDeploymentService(
+                repository,
+                providers,
+                discoveries,
+                new ProbeProviderService(List.of(), clock),
+                verificationStore,
+                clock,
+                () -> 320000000000000999L,
+                6,
+                Duration.ofHours(24));
+    }
+
+    private static TrustedRequestContext trustedContext() {
+        return new TrustedRequestContext(
+                STORE_TENANT,
+                new SubjectId(1843651857942052866L),
+                new MembershipId(3382738893456539650L),
+                CredentialType.PERSON,
+                AccessChannel.CONSOLE,
+                1,
+                Set.of(new PermissionCode("model:read")),
+                "trace-deployment-availability");
+    }
+
     @SpringBootConfiguration
     @EnableAutoConfiguration
     @MapperScan("com.aiplatform.foundation.modelruntime.infrastructure.persistence")
@@ -294,6 +386,14 @@ class PostgresModelDeploymentRepositoryTest {
                 PlatformTransactionManager transactions) {
             return new PostgresModelDeploymentVerificationStore(
                     deployments, verifications, transactions);
+        }
+
+        @Bean
+        ProviderConnectionRepository providerConnectionRepository(
+                ProviderConnectionMapper mapper,
+                ProviderConnectionRequestMapper requestMapper,
+                PlatformTransactionManager transactions) {
+            return new PostgresProviderConnectionRepository(mapper, requestMapper, transactions);
         }
     }
 }

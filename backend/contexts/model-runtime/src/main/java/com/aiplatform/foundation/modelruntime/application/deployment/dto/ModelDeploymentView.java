@@ -21,6 +21,8 @@ public record ModelDeploymentView(
         Integer embeddingDimension,
         Instant verificationExpiresAt,
         String status,
+        ModelDeploymentAvailability availability,
+        ModelDeploymentAvailabilityNextStep nextStep,
         long version,
         Instant createdAt) {
 
@@ -28,6 +30,8 @@ public record ModelDeploymentView(
         Objects.requireNonNull(id, "模型部署标识不能为空");
         Objects.requireNonNull(providerConnectionId, "供应商连接标识不能为空");
         capabilities = Set.copyOf(Objects.requireNonNull(capabilities, "模型能力不能为空"));
+        Objects.requireNonNull(availability, "模型部署可用性不能为空");
+        Objects.requireNonNull(nextStep, "模型部署建议下一步不能为空");
         Objects.requireNonNull(createdAt, "创建时间不能为空");
     }
 }
