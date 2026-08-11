@@ -10,7 +10,7 @@ import java.util.Objects;
 import org.springframework.transaction.annotation.Transactional;
 
 /** 受权分页读取当前租户自定义角色目录。 */
-public final class TenantCustomRoleDirectoryApplicationService {
+public class TenantCustomRoleDirectoryApplicationService {
 
     private static final PermissionCode ACCESS_MANAGE = new PermissionCode("access:manage");
 

@@ -79,6 +79,27 @@ INSERT INTO organization_access.platform_access_permission (
     (4921825928971026437, 'platform-session:access')
 ON CONFLICT DO NOTHING;
 
+-- 重复种子在版本化角色迁移之后执行，必须直接提供迁移后认证投影，避免演示平台主体被错误拒绝。
+INSERT INTO organization_access.platform_subject_authorization (
+    subject_id,
+    permission_version,
+    version
+) VALUES
+    (4921825928971026436, 1, 0),
+    (4921825928971026437, 0, 0)
+ON CONFLICT DO NOTHING;
+
+INSERT INTO organization_access.platform_role_binding (
+    binding_id,
+    subject_id,
+    role_code,
+    status,
+    version
+) VALUES
+    (4921825928971026436, 4921825928971026436, 'PLATFORM_TENANT_GOVERNOR', 'ACTIVE', 0),
+    (4921825928971026437, 4921825928971026437, 'PLATFORM_OPERATOR', 'ACTIVE', 0)
+ON CONFLICT DO NOTHING;
+
 INSERT INTO organization_access.tenant_membership (
     membership_id,
     tenant_id,
