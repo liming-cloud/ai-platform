@@ -65,6 +65,21 @@ class ModelDeploymentVerificationTest {
                 () -> verified.revisedDeployment().publish(NOW.plusSeconds(2)));
     }
 
+    @Test
+    void 已发布部署可不可逆停用且保留验证历史() {
+        var verified = ModelDeploymentVerification.verify(
+                draft(),
+                new ModelCapabilityVerificationId(330000000000000001L),
+                probe(true, Set.of(ModelCapability.CHAT, ModelCapability.STREAMING_CHAT), "MODEL_OK"),
+                NOW.plusSeconds(300));
+
+        var disabled = verified.revisedDeployment().publish(NOW).disable();
+
+        assertEquals(ModelDeploymentStatus.DISABLED, disabled.status());
+        assertEquals(3, disabled.version());
+        assertEquals(verified.revisedDeployment().lastVerificationId(), disabled.lastVerificationId());
+    }
+
     private static ModelDeployment draft() {
         return ModelDeployment.create(
                 new TenantId(100000000000000001L),

@@ -24,6 +24,7 @@ import com.aiplatform.foundation.modelruntime.domain.deployment.service.ModelDep
 import com.aiplatform.foundation.modelruntime.application.deployment.port.out.ModelDeploymentVerificationStore;
 import com.aiplatform.foundation.modelruntime.application.deployment.dto.ModelDeploymentAvailability;
 import com.aiplatform.foundation.modelruntime.application.deployment.query.ListModelDeploymentsQuery;
+import com.aiplatform.foundation.modelruntime.application.deployment.command.DisableModelDeploymentCommand;
 import com.aiplatform.foundation.modelruntime.application.deployment.service.ModelDeploymentService;
 import com.aiplatform.foundation.modelruntime.application.deployment.port.out.ProviderModelDiscoveryLookup;
 import com.aiplatform.foundation.modelruntime.application.probe.service.ProbeProviderService;
@@ -258,6 +259,42 @@ class PostgresModelDeploymentRepositoryTest {
     }
 
     @Test
+    void 真实PostgreSQL持久化停用状态并以乐观版本拒绝旧写入() {
+        var created = repository.create(
+                        creation(
+                                STORE_TENANT,
+                                STORE_PROVIDER,
+                                "deployment-request-disable",
+                                "2".repeat(64),
+                                "待停用模型"),
+                        6)
+                .deployment();
+        var verification = ModelDeploymentVerification.verify(
+                created,
+                new ModelCapabilityVerificationId(330000000000000003L),
+                new ModelCapabilityObservation(
+                        true,
+                        Set.of(ModelCapability.CHAT),
+                        "DETERMINISTIC_OK",
+                        Duration.ofMillis(10),
+                        CREATED_AT),
+                CREATED_AT.plusSeconds(86_400));
+        verificationStore.commit(verification, 0);
+        var verified = repository.findById(STORE_TENANT, created.id()).orElseThrow();
+        assertTrue(repository.update(verified.publish(CREATED_AT.plusSeconds(1)), 1));
+
+        var disabled = availabilityService().disable(new DisableModelDeploymentCommand(
+                trustedContext("model:write"), created.id().toString(), 2));
+
+        assertEquals("DISABLED", disabled.status());
+        assertEquals(ModelDeploymentAvailability.UNAVAILABLE, disabled.availability());
+        var restored = repository.findById(STORE_TENANT, created.id()).orElseThrow();
+        assertEquals("DISABLED", restored.status().name());
+        assertEquals(3, restored.version());
+        assertFalse(repository.update(restored, 2));
+    }
+
+    @Test
     void 租户配额同名约束和畸形游标均稳定拒绝() {
         repository.create(
                 creation(
@@ -352,6 +389,10 @@ class PostgresModelDeploymentRepositoryTest {
     }
 
     private static TrustedRequestContext trustedContext() {
+        return trustedContext("model:read");
+    }
+
+    private static TrustedRequestContext trustedContext(String permission) {
         return new TrustedRequestContext(
                 STORE_TENANT,
                 new SubjectId(1843651857942052866L),
@@ -359,7 +400,7 @@ class PostgresModelDeploymentRepositoryTest {
                 CredentialType.PERSON,
                 AccessChannel.CONSOLE,
                 1,
-                Set.of(new PermissionCode("model:read")),
+                Set.of(new PermissionCode(permission)),
                 "trace-deployment-availability");
     }
 

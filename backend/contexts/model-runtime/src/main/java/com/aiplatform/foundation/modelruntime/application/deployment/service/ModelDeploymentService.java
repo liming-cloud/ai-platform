@@ -7,6 +7,7 @@ import com.aiplatform.foundation.modelruntime.application.deployment.exception.M
 import com.aiplatform.foundation.modelruntime.application.deployment.exception.ModelDeploymentProviderUnavailableException;
 import com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator;
 import com.aiplatform.foundation.modelruntime.application.deployment.command.CreateModelDeploymentCommand;
+import com.aiplatform.foundation.modelruntime.application.deployment.command.DisableModelDeploymentCommand;
 import com.aiplatform.foundation.modelruntime.application.deployment.dto.CreateModelDeploymentResult;
 import com.aiplatform.foundation.modelruntime.application.deployment.query.ListModelDeploymentsQuery;
 import com.aiplatform.foundation.modelruntime.application.deployment.dto.ModelDeploymentAvailability;
@@ -197,6 +198,23 @@ public final class ModelDeploymentService {
         return toView(published, provider, clock.instant());
     }
 
+    /**
+     * 停用部署以阻断新运行时调用；同一版本重复请求只返回既有停用投影。
+     *
+     * @throws ModelDeploymentConcurrentModificationException 预期版本与当前版本不一致时拒绝。
+     */
+    public ModelDeploymentView disable(DisableModelDeploymentCommand command) {
+        Objects.requireNonNull(command, "停用命令不能为空");
+        requirePermission(command.context(), WRITE);
+        var deployment = load(command.context(), command.modelDeploymentId());
+        requireExpectedVersion(deployment, command.expectedVersion());
+        var disabled = deployment.disable();
+        if (disabled != deployment) {
+            update(disabled, command.expectedVersion());
+        }
+        return toView(disabled, null, clock.instant());
+    }
+
     private ModelDeployment load(
             TrustedRequestContext context,
             String deploymentId) {
@@ -278,6 +296,11 @@ public final class ModelDeploymentService {
 
     private static AvailabilityProjection availability(
             ModelDeployment deployment, ProviderConnection provider, java.time.Instant now) {
+        if (deployment.status() == ModelDeploymentStatus.DISABLED) {
+            return new AvailabilityProjection(
+                    ModelDeploymentAvailability.UNAVAILABLE,
+                    ModelDeploymentAvailabilityNextStep.NONE);
+        }
         if (provider == null
                 || provider.status() != ProviderConnectionStatus.VERIFIED
                 || provider.version() != deployment.providerConnectionRevision()) {

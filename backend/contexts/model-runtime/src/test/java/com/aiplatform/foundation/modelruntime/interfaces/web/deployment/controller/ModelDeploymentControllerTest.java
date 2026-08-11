@@ -11,6 +11,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.aiplatform.foundation.modelruntime.application.deployment.command.ProbeModelDeploymentCommand;
+import com.aiplatform.foundation.modelruntime.application.deployment.command.DisableModelDeploymentCommand;
 import com.aiplatform.foundation.modelruntime.application.deployment.query.ListModelDeploymentsQuery;
 import com.aiplatform.foundation.modelruntime.application.deployment.dto.ModelDeploymentView;
 import com.aiplatform.foundation.modelruntime.application.deployment.dto.ModelDeploymentAvailability;
@@ -96,6 +97,33 @@ class ModelDeploymentControllerTest {
         org.junit.jupiter.api.Assertions.assertEquals(new PageQuery(2, 10), query.getValue().page());
     }
 
+    @Test
+    void 停用HTTP入口只从可信上下文取身份且不接收范围参数() throws Exception {
+        var deployments = mock(ModelDeploymentService.class);
+        var context = mock(TrustedRequestContext.class);
+        var controller = new ModelDeploymentController(deployments);
+        var mvc = MockMvcBuilders.standaloneSetup(controller)
+                .setCustomArgumentResolvers(trustedContext(context))
+                .build();
+        when(deployments.disable(any())).thenReturn(disabledView());
+
+        mvc.perform(post("/api/v1/model-deployments/320000000000000001/disable")
+                        .param("tenantId", "100000000000000099")
+                        .contentType("application/json")
+                        .content("{\"expectedVersion\":2}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("DISABLED"))
+                .andExpect(jsonPath("$.availability").value("UNAVAILABLE"))
+                .andExpect(jsonPath("$.nextStep").value("NONE"));
+
+        var command = ArgumentCaptor.forClass(DisableModelDeploymentCommand.class);
+        verify(deployments).disable(command.capture());
+        org.junit.jupiter.api.Assertions.assertSame(context, command.getValue().context());
+        org.junit.jupiter.api.Assertions.assertEquals(
+                "320000000000000001", command.getValue().modelDeploymentId());
+        org.junit.jupiter.api.Assertions.assertEquals(2, command.getValue().expectedVersion());
+    }
+
     private static HandlerMethodArgumentResolver trustedContext(TrustedRequestContext context) {
         return new HandlerMethodArgumentResolver() {
             @Override
@@ -139,5 +167,26 @@ class ModelDeploymentControllerTest {
                 Duration.ofMillis(10),
                 "DETERMINISTIC_OK",
                 Instant.parse("2026-08-10T02:00:10Z"));
+    }
+
+    private static ModelDeploymentView disabledView() {
+        var verified = probeResult().modelDeployment();
+        return new ModelDeploymentView(
+                verified.id(),
+                verified.providerConnectionId(),
+                verified.providerConnectionRevision(),
+                verified.modelCode(),
+                verified.displayName(),
+                verified.modelType(),
+                verified.capabilities(),
+                verified.contextWindow(),
+                verified.outputLimit(),
+                verified.embeddingDimension(),
+                verified.verificationExpiresAt(),
+                "DISABLED",
+                ModelDeploymentAvailability.UNAVAILABLE,
+                ModelDeploymentAvailabilityNextStep.NONE,
+                3,
+                verified.createdAt());
     }
 }

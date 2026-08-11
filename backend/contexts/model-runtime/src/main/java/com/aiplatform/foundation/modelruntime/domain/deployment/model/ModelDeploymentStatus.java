@@ -7,5 +7,6 @@ import com.aiplatform.foundation.shared.kernel.domain.ValueObject;
 public enum ModelDeploymentStatus implements ValueObject {
     DRAFT,
     VERIFIED,
-    PUBLISHED
+    PUBLISHED,
+    DISABLED
 }

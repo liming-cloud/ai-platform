@@ -2,12 +2,14 @@ package com.aiplatform.foundation.modelruntime.interfaces.web.deployment.control
 
 import com.aiplatform.foundation.modelruntime.application.deployment.service.ModelDeploymentService;
 import com.aiplatform.foundation.modelruntime.application.deployment.command.CreateModelDeploymentCommand;
+import com.aiplatform.foundation.modelruntime.application.deployment.command.DisableModelDeploymentCommand;
 import com.aiplatform.foundation.modelruntime.application.deployment.query.ListModelDeploymentsQuery;
 import com.aiplatform.foundation.modelruntime.application.deployment.dto.ModelDeploymentView;
 import com.aiplatform.foundation.modelruntime.application.deployment.command.ProbeModelDeploymentCommand;
 import com.aiplatform.foundation.modelruntime.application.deployment.dto.ProbeModelDeploymentResult;
 import com.aiplatform.foundation.modelruntime.application.deployment.command.PublishModelDeploymentCommand;
 import com.aiplatform.foundation.modelruntime.interfaces.web.deployment.request.ModelDeploymentProbeRequest;
+import com.aiplatform.foundation.modelruntime.interfaces.web.deployment.request.ModelDeploymentDisableRequest;
 import com.aiplatform.foundation.modelruntime.interfaces.web.deployment.request.ModelDeploymentPublishRequest;
 import com.aiplatform.foundation.modelruntime.interfaces.web.deployment.request.ModelDeploymentRequest;
 import com.aiplatform.foundation.security.identity.TrustedRequestContext;
@@ -27,7 +29,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * 模型部署创建、列表、探测和发布入口。
+ * 模型部署创建、列表、探测、发布和停用入口。
  */
 @RestController
 @RequestMapping("/api/v1/model-deployments")
@@ -94,6 +96,20 @@ public class ModelDeploymentController {
             @PathVariable String modelDeploymentId,
             @RequestBody ModelDeploymentPublishRequest request) {
         return modelDeployments.publish(new PublishModelDeploymentCommand(
+                context,
+                modelDeploymentId,
+                request.expectedVersion()));
+    }
+
+    /**
+     * 停用指定部署；身份和租户范围只来自可信请求上下文。
+     */
+    @PostMapping("/{modelDeploymentId}/disable")
+    public ModelDeploymentView disable(
+            TrustedRequestContext context,
+            @PathVariable String modelDeploymentId,
+            @RequestBody ModelDeploymentDisableRequest request) {
+        return modelDeployments.disable(new DisableModelDeploymentCommand(
                 context,
                 modelDeploymentId,
                 request.expectedVersion()));

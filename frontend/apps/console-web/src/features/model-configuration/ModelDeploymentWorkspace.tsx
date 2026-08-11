@@ -57,6 +57,7 @@ export function ModelDeploymentWorkspace({
   const [creationCandidate, setCreationCandidate] = useState<ProviderModelCandidate>();
   const [probeTarget, setProbeTarget] = useState<ModelDeployment>();
   const [publishTarget, setPublishTarget] = useState<ModelDeployment>();
+  const [disableTarget, setDisableTarget] = useState<ModelDeployment>();
   const [submitting, setSubmitting] = useState(false);
 
   const loadDeployments = useCallback(async () => {
@@ -185,6 +186,21 @@ export function ModelDeploymentWorkspace({
     }
   }
 
+  async function disableDeployment() {
+    if (disableTarget === undefined) return;
+    setSubmitting(true);
+    setFailure(undefined);
+    try {
+      await client.disableModelDeployment(disableTarget.id, disableTarget.version);
+      setDisableTarget(undefined);
+      await loadDeployments();
+    } catch (error) {
+      setFailure(toFailure(error));
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
   if (viewState === "unauthenticated") {
     return <StatePanel kind="stale" title="浏览器会话已经失效" description="部署和候选状态已清除，请返回统一登录入口。" actionLabel="返回登录入口" onAction={() => window.location.assign("/")} />;
   }
@@ -215,8 +231,8 @@ export function ModelDeploymentWorkspace({
       </section>
 
       <section className="model-configuration-section" aria-label="模型部署目录">
-        <header className="task-heading"><Title3>模型部署</Title3><Text>草稿必须先完成最小真实能力探测，验证在 `PT24H` 内才可发布；发布后不能原地改写。</Text></header>
-        <div className="member-directory-table" role="region" aria-label="模型部署分页表格"><table><thead><tr><th>部署</th><th>模型与连接</th><th>状态</th><th>可用性</th><th>验证有效期</th><th>操作</th></tr></thead><tbody>{deployments.length === 0 ? <tr><td colSpan={6}>当前页没有模型部署。</td></tr> : deployments.map((deployment) => <tr key={deployment.id}><td>{deployment.displayName}</td><td>{deployment.modelCode} · {deployment.modelType}<br /><Text size={200}>连接 {deployment.providerConnectionId}，修订 {deployment.providerConnectionRevision}</Text></td><td><Badge appearance="tint" color={deployment.status === "PUBLISHED" ? "success" : deployment.status === "VERIFIED" ? "brand" : "warning"}>{deployment.status}</Badge></td><td><Badge appearance="tint" color={deployment.availability === "HEALTHY" ? "success" : deployment.availability === "DEGRADED" ? "warning" : "danger"}>{deployment.availability}</Badge><br /><Text size={200}>建议：{nextStepLabel(deployment.nextStep)}</Text></td><td>{deployment.verificationExpiresAt === null ? "待真实能力验证" : new Date(deployment.verificationExpiresAt).toLocaleString("zh-CN")}</td><td><div className="task-actions"><Button appearance="secondary" disabled={submitting || deployment.status !== "DRAFT"} onClick={() => setProbeTarget(deployment)}>探测能力</Button><Button appearance="primary" disabled={submitting || deployment.status !== "VERIFIED"} onClick={() => setPublishTarget(deployment)}>发布部署</Button></div></td></tr>)}</tbody></table></div>
+        <header className="task-heading"><Title3>模型部署</Title3><Text>草稿必须先完成最小真实能力探测，验证在 `PT24H` 内才可发布；停用会阻断新调用，且只能新建部署恢复供应。</Text></header>
+        <div className="member-directory-table" role="region" aria-label="模型部署分页表格"><table><thead><tr><th>部署</th><th>模型与连接</th><th>状态</th><th>可用性</th><th>验证有效期</th><th>操作</th></tr></thead><tbody>{deployments.length === 0 ? <tr><td colSpan={6}>当前页没有模型部署。</td></tr> : deployments.map((deployment) => <tr key={deployment.id}><td>{deployment.displayName}</td><td>{deployment.modelCode} · {deployment.modelType}<br /><Text size={200}>连接 {deployment.providerConnectionId}，修订 {deployment.providerConnectionRevision}</Text></td><td><Badge appearance="tint" color={deployment.status === "PUBLISHED" ? "success" : deployment.status === "VERIFIED" ? "brand" : deployment.status === "DISABLED" ? "danger" : "warning"}>{deployment.status}</Badge></td><td><Badge appearance="tint" color={deployment.availability === "HEALTHY" ? "success" : deployment.availability === "DEGRADED" ? "warning" : "danger"}>{deployment.availability}</Badge><br /><Text size={200}>建议：{nextStepLabel(deployment.nextStep)}</Text></td><td>{deployment.verificationExpiresAt === null ? "待真实能力验证" : new Date(deployment.verificationExpiresAt).toLocaleString("zh-CN")}</td><td><div className="task-actions"><Button appearance="secondary" disabled={submitting || deployment.status !== "DRAFT"} onClick={() => setProbeTarget(deployment)}>探测能力</Button><Button appearance="primary" disabled={submitting || deployment.status !== "VERIFIED"} onClick={() => setPublishTarget(deployment)}>发布部署</Button><Button appearance="secondary" disabled={submitting || deployment.status === "DISABLED"} onClick={() => setDisableTarget(deployment)}>停用部署</Button></div></td></tr>)}</tbody></table></div>
         <Pagination label="模型部署" page={route.deploymentPage} total={deploymentTotal} hasPrevious={deploymentHasPrevious} hasNext={deploymentHasNext} onPrevious={() => onRouteChange({ ...route, deploymentPage: route.deploymentPage - 1 })} onNext={() => onRouteChange({ ...route, deploymentPage: route.deploymentPage + 1 })} />
       </section>
 
@@ -225,6 +241,8 @@ export function ModelDeploymentWorkspace({
       <Dialog open={probeTarget !== undefined} onOpenChange={(_, data) => { if (!data.open && !submitting) setProbeTarget(undefined); }}><DialogSurface><DialogBody><DialogTitle>确认执行真实能力探测</DialogTitle><DialogContent><Text>系统将对 {probeTarget?.displayName} 发起最小真实模型调用。失败不会发布部署，成功验证有效期固定为 `PT24H`。</Text></DialogContent><DialogActions><Button appearance="secondary" disabled={submitting} onClick={() => setProbeTarget(undefined)}>取消</Button><Button appearance="primary" disabled={submitting} onClick={() => void probeDeployment()}>{submitting ? "正在探测" : "执行探测"}</Button></DialogActions></DialogBody></DialogSurface></Dialog>
 
       <Dialog open={publishTarget !== undefined} onOpenChange={(_, data) => { if (!data.open && !submitting) setPublishTarget(undefined); }}><DialogSurface><DialogBody><DialogTitle>确认发布模型部署</DialogTitle><DialogContent><Text>发布 {publishTarget?.displayName} 后，后续变更必须创建新修订。系统会重新核验连接修订和 `PT24H` 验证有效期。</Text></DialogContent><DialogActions><Button appearance="secondary" disabled={submitting} onClick={() => setPublishTarget(undefined)}>取消</Button><Button appearance="primary" disabled={submitting} onClick={() => void publishDeployment()}>{submitting ? "正在发布" : "确认发布"}</Button></DialogActions></DialogBody></DialogSurface></Dialog>
+
+      <Dialog open={disableTarget !== undefined} onOpenChange={(_, data) => { if (!data.open && !submitting) setDisableTarget(undefined); }}><DialogSurface><DialogBody><DialogTitle>确认停用模型部署</DialogTitle><DialogContent><Text>停用 {disableTarget?.displayName} 会立即阻断新运行时调用，无法在当前部署修订上恢复；如需恢复供应，请新建并重新验证部署。</Text></DialogContent><DialogActions><Button appearance="secondary" disabled={submitting} onClick={() => setDisableTarget(undefined)}>取消</Button><Button appearance="primary" disabled={submitting} onClick={() => void disableDeployment()}>{submitting ? "正在停用" : "确认停用"}</Button></DialogActions></DialogBody></DialogSurface></Dialog>
     </div>
   );
 }

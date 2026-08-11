@@ -1093,6 +1093,8 @@ describe("ControlPlaneClient", () => {
           ? { modelDeployment: { ...deployment, status: "VERIFIED", version: 1 }, reachable: true, capabilities: ["CHAT"], elapsed: "PT0.1S", detailCode: "PROBE_SUCCEEDED", probedAt: "2026-08-10T02:01:00Z" }
           : requests.length === 4
             ? { ...deployment, status: "PUBLISHED", version: 2 }
+            : requests.length === 5
+              ? { ...deployment, status: "DISABLED", availability: "UNAVAILABLE", nextStep: "NONE", version: 3 }
             : deployment;
       return new Response(JSON.stringify(payload), {
         status: requests.length === 2 ? 201 : 200,
@@ -1113,6 +1115,7 @@ describe("ControlPlaneClient", () => {
     });
     const probed = await client.probeModelDeployment(created.id, created.version, 10_000);
     const published = await client.publishModelDeployment(probed.modelDeployment.id, probed.modelDeployment.version);
+    const disabled = await client.disableModelDeployment(published.id, published.version);
 
     expect(candidates.items[0]?.modelCode).toBe("deterministic-chat");
     expect(requests[0]?.url).toBe("http://localhost/api/v1/model-providers/610000000000000001/current-model-candidates?pageNumber=2&pageSize=20");
@@ -1123,7 +1126,8 @@ describe("ControlPlaneClient", () => {
     });
     expect(await requests[2]?.json()).toEqual({ expectedVersion: 0, timeoutMillis: 10_000 });
     expect(await requests[3]?.json()).toEqual({ expectedVersion: 1 });
-    expect(published.status).toBe("PUBLISHED");
+    expect(await requests[4]?.json()).toEqual({ expectedVersion: 2 });
+    expect(disabled.status).toBe("DISABLED");
     expect(requests.every((request) => request.headers.get("Authorization") === null)).toBe(true);
   });
 });

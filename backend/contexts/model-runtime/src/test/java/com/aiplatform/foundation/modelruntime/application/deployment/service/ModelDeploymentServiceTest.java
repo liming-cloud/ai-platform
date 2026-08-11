@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
 import com.aiplatform.foundation.modelruntime.application.deployment.command.CreateModelDeploymentCommand;
+import com.aiplatform.foundation.modelruntime.application.deployment.command.DisableModelDeploymentCommand;
 import com.aiplatform.foundation.modelruntime.application.deployment.query.ListModelDeploymentsQuery;
 import com.aiplatform.foundation.modelruntime.application.deployment.dto.ModelDeploymentAvailability;
 import com.aiplatform.foundation.modelruntime.application.deployment.dto.ModelDeploymentAvailabilityNextStep;
@@ -36,6 +37,7 @@ import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelDeplo
 import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelDeploymentId;
 import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelCapabilityVerificationId;
 import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelDeploymentStatus;
+import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelDeploymentStateException;
 import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelType;
 import com.aiplatform.foundation.modelruntime.domain.provider.model.ProviderConnection;
 import com.aiplatform.foundation.modelruntime.domain.provider.model.ProviderConnectionId;
@@ -103,6 +105,30 @@ class ModelDeploymentServiceTest {
         assertEquals(ModelDeploymentStatus.VERIFIED.name(), probed.modelDeployment().status());
         assertEquals(ModelDeploymentStatus.PUBLISHED.name(), published.status());
         assertEquals(2, published.version());
+    }
+
+    @Test
+    void 模型写权限可停用已发布部署且不得在原修订重新发布() {
+        var deployments = new InMemoryDeploymentRepository();
+        var providers = new InMemoryProviderRepository(verifiedProvider());
+        var service = service(deployments, providers, successfulProbe());
+        service.create(createCommand(context("model:write")));
+        service.probe(new ProbeModelDeploymentCommand(
+                context("model:write"), DEPLOYMENT_ID_TEXT, 0, Duration.ofSeconds(2)));
+        service.publish(new PublishModelDeploymentCommand(
+                context("model:write"), DEPLOYMENT_ID_TEXT, 1));
+
+        var disabled = service.disable(new DisableModelDeploymentCommand(
+                context("model:write"), DEPLOYMENT_ID_TEXT, 2));
+
+        assertEquals(ModelDeploymentStatus.DISABLED.name(), disabled.status());
+        assertEquals(ModelDeploymentAvailability.UNAVAILABLE, disabled.availability());
+        assertEquals(ModelDeploymentAvailabilityNextStep.NONE, disabled.nextStep());
+        assertEquals(3, disabled.version());
+        assertThrows(
+                ModelDeploymentStateException.class,
+                () -> service.publish(new PublishModelDeploymentCommand(
+                        context("model:write"), DEPLOYMENT_ID_TEXT, 3)));
     }
 
     @Test

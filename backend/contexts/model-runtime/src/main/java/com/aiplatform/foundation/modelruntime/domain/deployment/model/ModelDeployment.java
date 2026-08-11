@@ -72,7 +72,7 @@ public final class ModelDeployment implements AggregateRoot<ModelDeploymentId> {
                 && (lastVerificationId != null || verificationExpiresAt != null)) {
             throw new IllegalArgumentException("草稿模型部署不得携带成功验证事实");
         }
-        if (status != ModelDeploymentStatus.DRAFT
+        if ((status == ModelDeploymentStatus.VERIFIED || status == ModelDeploymentStatus.PUBLISHED)
                 && (lastVerificationId == null || verificationExpiresAt == null)) {
             throw new IllegalArgumentException("已验证或已发布模型部署必须携带成功验证事实");
         }
@@ -196,6 +196,18 @@ public final class ModelDeployment implements AggregateRoot<ModelDeploymentId> {
             throw new ModelDeploymentStateException("过期验证不能发布模型部署");
         }
         return transitionTo(ModelDeploymentStatus.PUBLISHED, lastVerificationId, verificationExpiresAt);
+    }
+
+    /**
+     * 停用部署不会删除其验证历史，也不能在原修订上恢复。
+     *
+     * @return 已停用的下一修订；重复停用保持幂等。
+     */
+    public ModelDeployment disable() {
+        if (status == ModelDeploymentStatus.DISABLED) {
+            return this;
+        }
+        return transitionTo(ModelDeploymentStatus.DISABLED, lastVerificationId, verificationExpiresAt);
     }
 
     public TenantId tenantId() {

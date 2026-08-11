@@ -48,6 +48,16 @@ class PublishedEmbeddingDeploymentLookupServiceTest {
         assertTrue(lookup.find(TENANT_ID, DEPLOYMENT_ID.value()).isEmpty());
     }
 
+    @Test
+    void 已停用嵌入部署不得继续供应运行时调用() {
+        var repository = mock(ModelDeploymentRepository.class);
+        when(repository.findById(TENANT_ID, DEPLOYMENT_ID))
+                .thenReturn(Optional.of(published(ModelType.EMBEDDING).disable()));
+        var lookup = new PublishedEmbeddingDeploymentLookupService(repository);
+
+        assertTrue(lookup.find(TENANT_ID, DEPLOYMENT_ID.value()).isEmpty());
+    }
+
     private static ModelDeployment published(ModelType type) {
         return ModelDeployment.create(
                         TENANT_ID,

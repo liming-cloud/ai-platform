@@ -82,7 +82,7 @@ export interface KnowledgeSpace {
   id: string;
   name: string;
   description: string | null;
-  status: string;
+  status: "DRAFT" | "VERIFIED" | "PUBLISHED" | "DISABLED";
   version: number;
   createdAt: string;
 }
@@ -919,6 +919,20 @@ export class ControlPlaneClient {
   ): Promise<ModelDeployment> {
     return this.request<ModelDeployment>(
       `/model-deployments/${encodeURIComponent(modelDeploymentId)}/publish`,
+      {
+        method: "POST",
+        headers: this.writeHeaders("application/json"),
+        body: JSON.stringify({ expectedVersion }),
+      },
+    );
+  }
+
+  async disableModelDeployment(
+    modelDeploymentId: string,
+    expectedVersion: number,
+  ): Promise<ModelDeployment> {
+    return this.request<ModelDeployment>(
+      `/model-deployments/${encodeURIComponent(modelDeploymentId)}/disable`,
       {
         method: "POST",
         headers: this.writeHeaders("application/json"),
