@@ -309,6 +309,8 @@
 | M6 本地身份重置只读预检 | `project/evidence/WP-0014-local-identity-reset-preflight.md` | 本次提交 | 精确确认当前 Compose 数据库、成员／主体数量、外键及旧凭据 `401`；人工确认清理范围与初始凭据前未执行删除。 |
 | M6 本地身份基线与企业角色浏览器回归 | `project/evidence/WP-0014-local-identity-baseline-and-browser-regression.md` | 本次提交 | 本地关联数据清理、页面建立租户／账户／角色、真实 PostgreSQL 修订、平台运营员无数据工作区与管理员分页治理入口回归通过；新租户真实登录揭示生命周期认证切换尚未激活。 |
 | M6 首份发布资源选择器分页与显式模型选择 | `project/evidence/WP-0014-publication-resource-picker-pagination.md` | 本次提交 | 首份发布路由、知识空间和嵌入模型选择已完成前端 TDD 与生产构建；当前 Docker Buildx 无法完成重建，真实 PostgreSQL／MinIO／HTTP 与受信任 TLS 浏览器回归待续证。 |
+| M6 本地空库认证切换与模型供应链续证 | `project/evidence/WP-0014-local-empty-database-cutover-and-model-supply-chain.md` | 本次提交 | ADR-0064 local 切换、真实 PostgreSQL／HTTP／浏览器租户登录、角色导航、确定性供应商探测与发现均已续证；M6 自动验收与人工评审仍待完成。 |
+| M6 平台运营员无数据工作区契约 | `project/evidence/WP-0014-local-empty-database-cutover-and-model-supply-chain.md` | 本次提交 | 修正过期 HTTP 断言：运营员只进入无数据平台工作区，不含租户治理或账户治理能力；真实本地 HTTP 与浏览器直达拒绝均通过。 |
 
 ## 证据规则
 

@@ -746,7 +746,7 @@ class AuthenticationApiTest {
     }
 
     @Test
-    void 无治理写权限的平台运营主体登录后不得得到生命周期工作区() {
+    void 无治理写权限的平台运营主体登录后只得到无数据平台工作区() {
         var headers = new HttpHeaders();
         headers.set(HttpHeaders.COOKIE, browserPlatformLogin("platform-operator"));
 
@@ -758,8 +758,17 @@ class AuthenticationApiTest {
 
         assertEquals(HttpStatus.OK, capability.getStatusCode());
         assertNotNull(capability.getBody());
-        assertEquals(java.util.List.of(), capability.getBody().get("workspaceCategories"));
-        assertEquals(java.util.List.of(), capability.getBody().get("displayRoles"));
+        assertEquals(
+                java.util.List.of("PLATFORM_TENANT_GOVERNANCE"),
+                capability.getBody().get("workspaceCategories"));
+        assertEquals(
+                java.util.List.of("PLATFORM_OPERATOR"), capability.getBody().get("displayRoles"));
+        assertTrue(((java.util.List<?>) capability.getBody().get("capabilityCodes"))
+                .contains("platform-session:access"));
+        assertFalse(((java.util.List<?>) capability.getBody().get("capabilityCodes"))
+                .contains("tenant-governance:write"));
+        assertFalse(((java.util.List<?>) capability.getBody().get("capabilityCodes"))
+                .contains("platform:accounts:manage"));
     }
 
     private org.springframework.http.ResponseEntity<ApiError> loginFailure(

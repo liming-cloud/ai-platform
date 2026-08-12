@@ -2,3 +2,13 @@ spring:
   config:
     activate:
       on-profile: local
+  flyway:
+    locations:
+      - classpath:db/migration/organization-access
+      - classpath:db/migration/knowledge-data
+      - classpath:db/migration/model-runtime
+      - classpath:db/migration/assistant-delivery
+      - classpath:db/migration/trusted-query
+      - classpath:db/migration/evaluation-operations
+      # 纯本地空库在页面建立首个租户前启用生命周期认证事实；绝不加载演示身份种子。
+      - classpath:db/local/organization-access

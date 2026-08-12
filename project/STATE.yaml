@@ -253,6 +253,7 @@ latestEvidence:
   - project/evidence/WP-0014-local-identity-baseline-and-browser-regression.md
   - docs/adr/ADR-0064-local-empty-database-lifecycle-authentication-cutover.md
   - project/evidence/ADR-0064-approval.md
+  - project/evidence/WP-0014-local-empty-database-cutover-and-model-supply-chain.md
 nextReviewAt: 2026-08-12
-updatedAt: 2026-08-11T18:05:00+08:00
+updatedAt: 2026-08-12T15:30:00+08:00
 updatedBy: codex
