@@ -303,6 +303,8 @@
 | M6 历史直接权限迁移领域等价约束 | `project/evidence/WP-0014-tenant-direct-permission-migration-domain.md` | 本次提交 | 已以红绿测试固定迁移权限等价、批准撤销、既有角色保留和成员修订；清单驱动的 PostgreSQL、会话撤销、HTTP 与浏览器证据尚未完成。 |
 | ADR-0063 本地身份基线与浏览器验收边界 | `docs/adr/ADR-0063-m6-local-identity-baseline-and-browser-evidence.md` | 本次控制面提交 | 仅本地 Compose 可清理历史成员并建立唯一平台超级管理员；受信任 TLS 不再阻断 M6，`localhost` 验收继续保留生产同等 cookie 属性。 |
 | ADR-0063 人工接受 | `project/evidence/ADR-0063-approval.md` | 本次控制面提交 | 用户确认 Docker 已启动、禁止无必要新增容器，并授权本地成员基线重置与 M6 TLS 门禁调整。 |
+| ADR-0064 本地空数据库生命周期认证切换 | `docs/adr/ADR-0064-local-empty-database-lifecycle-authentication-cutover.md` | 本次控制面提交 | 纯本地空库以隔离的 local Flyway repeatable migration 建立切换事实；已有租户时不写入，生产与共享环境保持 ADR-0046 语义。 |
+| ADR-0064 人工接受 | `project/evidence/ADR-0064-approval.md` | 本次控制面提交 | 用户确认无历史迁移包袱，接受仅本地空库初始化路径；不改变公共认证语义。 |
 | M6 自动验收前置条件审计 | `project/evidence/M6-automatic-acceptance-precondition-audit.md` | 本次控制面提交 | ADR-0063 的平台身份基线与当前镜像回归已完成；ADR-0062 不适用于本地 M6。新租户登录被 ADR-0046 生命周期认证切换空白阻断，须先明确本地空历史库的激活方式。 |
 | M6 本地身份重置只读预检 | `project/evidence/WP-0014-local-identity-reset-preflight.md` | 本次提交 | 精确确认当前 Compose 数据库、成员／主体数量、外键及旧凭据 `401`；人工确认清理范围与初始凭据前未执行删除。 |
 | M6 本地身份基线与企业角色浏览器回归 | `project/evidence/WP-0014-local-identity-baseline-and-browser-regression.md` | 本次提交 | 本地关联数据清理、页面建立租户／账户／角色、真实 PostgreSQL 修订、平台运营员无数据工作区与管理员分页治理入口回归通过；新租户真实登录揭示生命周期认证切换尚未激活。 |

@@ -70,6 +70,7 @@ confirmedDecisions:
   - ADR-0061
   - ADR-0062
   - ADR-0063
+  - ADR-0064
 openDecisions:
 latestEvidence:
   - docs/research/WP-0003-framework-baseline.md
@@ -250,6 +251,8 @@ latestEvidence:
   - project/evidence/WP-0014-publication-resource-picker-pagination.md
   - project/evidence/WP-0014-local-identity-reset-preflight.md
   - project/evidence/WP-0014-local-identity-baseline-and-browser-regression.md
+  - docs/adr/ADR-0064-local-empty-database-lifecycle-authentication-cutover.md
+  - project/evidence/ADR-0064-approval.md
 nextReviewAt: 2026-08-12
 updatedAt: 2026-08-11T18:05:00+08:00
 updatedBy: codex
