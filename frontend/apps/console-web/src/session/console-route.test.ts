@@ -187,6 +187,21 @@ describe("统一控制台路由", () => {
       .toBe("/platform/accounts?page=3");
   });
 
+  it("平台模型供应链以独立能力入口和 URL 恢复服务端页码", () => {
+    expect(defaultConsoleRoute("platform-model-supply")).toEqual({
+      navigationId: "platform-model-supply",
+      task: "connections",
+      page: 1,
+    });
+    expect(parseConsoleRoute("/platform/model-supply", "?page=3")).toEqual({
+      navigationId: "platform-model-supply",
+      task: "connections",
+      page: 3,
+    });
+    expect(formatConsoleRoute({ navigationId: "platform-model-supply", task: "connections", page: 3 }))
+      .toBe("/platform/model-supply?page=3");
+  });
+
   it("受治理文件任务从 URL 恢复资源选择器的服务端页码", () => {
     expect(parseConsoleRoute(
       "/data/files",

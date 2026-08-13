@@ -65,7 +65,8 @@ export type ConsoleRoute =
   | { navigationId: "query"; task: "ask"; assistantPage: number }
   | { navigationId: "platform-workspace"; task: "workspace" }
   | { navigationId: "platform"; task: "tenants"; page: number }
-  | { navigationId: "platform-accounts"; task: "accounts"; page: number };
+  | { navigationId: "platform-accounts"; task: "accounts"; page: number }
+  | { navigationId: "platform-model-supply"; task: "connections"; page: number };
 
 /** 路由解析后的授权结果，拒绝时保留目标以便页面明确说明失败原因。 */
 export type AuthorizedConsoleRoute =
@@ -98,6 +99,8 @@ export function defaultConsoleRoute(navigationId: ConsoleNavigationId): ConsoleR
       return { navigationId, task: "tenants", page: 1 };
     case "platform-accounts":
       return { navigationId, task: "accounts", page: 1 };
+    case "platform-model-supply":
+      return { navigationId, task: "connections", page: 1 };
   }
 }
 
@@ -222,6 +225,13 @@ export function parseConsoleRoute(pathname: string, search: string): ConsoleRout
       page: positivePage(new URLSearchParams(search).get("page")),
     };
   }
+  if (routePath === "/platform/model-supply") {
+    return {
+      navigationId: "platform-model-supply",
+      task: "connections",
+      page: positivePage(new URLSearchParams(search).get("page")),
+    };
+  }
   return undefined;
 }
 
@@ -257,9 +267,12 @@ export function formatConsoleRoute(route: ConsoleRoute): string {
   if (route.navigationId === "platform-workspace") {
     return "/platform";
   }
-  return route.navigationId === "platform"
-    ? `/platform/tenants?page=${route.page}`
-    : `/platform/accounts?page=${route.page}`;
+  if (route.navigationId === "platform") {
+    return `/platform/tenants?page=${route.page}`;
+  }
+  return route.navigationId === "platform-accounts"
+    ? `/platform/accounts?page=${route.page}`
+    : `/platform/model-supply?page=${route.page}`;
 }
 
 /**

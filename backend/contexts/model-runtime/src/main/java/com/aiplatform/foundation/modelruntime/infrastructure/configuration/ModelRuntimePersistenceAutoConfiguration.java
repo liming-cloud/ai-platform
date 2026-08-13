@@ -30,6 +30,12 @@ import com.aiplatform.foundation.modelruntime.infrastructure.persistence.provide
 import com.aiplatform.foundation.modelruntime.infrastructure.persistence.provider.PostgresEncryptedProviderConnectionCredentialStore;
 import com.aiplatform.foundation.modelruntime.infrastructure.persistence.provider.SpringProviderConnectionCredentialTransaction;
 import com.aiplatform.foundation.modelruntime.infrastructure.persistence.provider.mapper.ProviderConnectionCredentialMapper;
+import com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.PlatformProviderConnectionCredentialTransaction;
+import com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.PlatformProviderConnectionCredentialWriter;
+import com.aiplatform.foundation.modelruntime.domain.platformsupply.repository.PlatformProviderConnectionRepository;
+import com.aiplatform.foundation.modelruntime.infrastructure.persistence.platformsupply.PostgresEncryptedPlatformProviderConnectionCredentialStore;
+import com.aiplatform.foundation.modelruntime.infrastructure.persistence.platformsupply.SpringPlatformProviderConnectionCredentialTransaction;
+import com.aiplatform.foundation.modelruntime.infrastructure.persistence.platformsupply.repository.PostgresPlatformProviderConnectionRepository;
 import com.baomidou.mybatisplus.autoconfigure.MybatisPlusAutoConfiguration;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.mybatis.spring.annotation.MapperScan;
@@ -75,6 +81,30 @@ public class ModelRuntimePersistenceAutoConfiguration {
                 mapper,
                 requestMapper,
                 transactions);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    PlatformProviderConnectionRepository platformProviderConnectionRepository(
+            JdbcTemplate jdbc,
+            PlatformTransactionManager transactions) {
+        return new PostgresPlatformProviderConnectionRepository(jdbc, transactions);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    PlatformProviderConnectionCredentialTransaction platformProviderConnectionCredentialTransaction(
+            PlatformTransactionManager transactions) {
+        return new SpringPlatformProviderConnectionCredentialTransaction(transactions);
+    }
+
+    @Bean
+    @ConditionalOnBean(SecretEncryptionKeyProvider.class)
+    @ConditionalOnMissingBean(PlatformProviderConnectionCredentialWriter.class)
+    PostgresEncryptedPlatformProviderConnectionCredentialStore platformProviderConnectionCredentialWriter(
+            JdbcTemplate jdbc,
+            SecretEncryptionKeyProvider keyProvider) {
+        return new PostgresEncryptedPlatformProviderConnectionCredentialStore(jdbc, keyProvider);
     }
 
     @Bean

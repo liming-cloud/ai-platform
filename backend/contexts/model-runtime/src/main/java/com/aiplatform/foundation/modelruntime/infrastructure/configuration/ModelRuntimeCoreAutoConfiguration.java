@@ -36,10 +36,14 @@ import com.aiplatform.foundation.modelruntime.application.provider.port.out.Prov
 import com.aiplatform.foundation.modelruntime.application.provider.port.out.ProviderModelDiscoveryCandidateReader;
 import com.aiplatform.foundation.modelruntime.application.provider.port.out.ProviderConnectionCredentialTransaction;
 import com.aiplatform.foundation.modelruntime.application.provider.port.out.ProviderConnectionCredentialWriter;
+import com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.PlatformProviderConnectionCredentialTransaction;
+import com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.PlatformProviderConnectionCredentialWriter;
+import com.aiplatform.foundation.modelruntime.application.platformsupply.service.PlatformProviderConnectionService;
 import com.aiplatform.foundation.modelruntime.domain.deployment.repository.ModelDeploymentRepository;
 import com.aiplatform.foundation.modelruntime.domain.configuration.repository.ModelConfigurationRepository;
 import com.aiplatform.foundation.modelruntime.domain.configuration.repository.ModelConfigurationAccessRepository;
 import com.aiplatform.foundation.modelruntime.domain.provider.repository.ProviderConnectionRepository;
+import com.aiplatform.foundation.modelruntime.domain.platformsupply.repository.PlatformProviderConnectionRepository;
 import com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator;
 import java.time.Clock;
 import java.util.List;
@@ -85,6 +89,21 @@ public class ModelRuntimeCoreAutoConfiguration {
                 Clock.systemUTC(),
                 identifiers,
                 properties.getProviderConnectionLimit());
+    }
+
+    @Bean
+    @ConditionalOnBean({
+        PlatformProviderConnectionCredentialWriter.class,
+        PlatformProviderConnectionCredentialTransaction.class
+    })
+    @ConditionalOnMissingBean
+    PlatformProviderConnectionService platformProviderConnectionService(
+            PlatformProviderConnectionRepository repository,
+            PlatformProviderConnectionCredentialWriter credentials,
+            PlatformProviderConnectionCredentialTransaction transactions,
+            EntityIdGenerator identifiers) {
+        return new PlatformProviderConnectionService(
+                repository, credentials, transactions, Clock.systemUTC(), identifiers);
     }
 
     @Bean @ConditionalOnMissingBean

@@ -22,6 +22,12 @@ export const NAVIGATION = [
     requiredCapability: "platform:accounts:manage",
     workspace: "PLATFORM_TENANT_GOVERNANCE",
   },
+  {
+    id: "platform-model-supply",
+    label: "平台模型供应链",
+    requiredCapability: "model-platform:write",
+    workspace: "PLATFORM_TENANT_GOVERNANCE",
+  },
 ] as const;
 
 /** 以服务端会话投影过滤导航；结果只影响入口可见性，不参与接口授权。 */

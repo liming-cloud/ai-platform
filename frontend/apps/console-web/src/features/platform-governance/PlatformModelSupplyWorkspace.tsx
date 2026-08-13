@@ -1,0 +1,173 @@
+import {
+  Badge,
+  Button,
+  Dialog,
+  DialogActions,
+  DialogBody,
+  DialogContent,
+  DialogSurface,
+  DialogTitle,
+  Field,
+  Input,
+  MessageBar,
+  MessageBarBody,
+  MessageBarTitle,
+  Select,
+  Text,
+  Title3,
+} from "@fluentui/react-components";
+import { StatePanel } from "@foundation/design-system";
+import { type FormEvent, useCallback, useEffect, useState } from "react";
+import {
+  ApiRequestError,
+  type ControlPlaneClient,
+  type PlatformProviderConnectionSummary,
+} from "../../api/control-plane-client";
+import type { ConsoleRoute } from "../../session/console-route";
+
+type PlatformSupplyRoute = Extract<ConsoleRoute, { navigationId: "platform-model-supply" }>;
+type ViewState = "unauthenticated" | "loading" | "ready" | "error";
+
+interface Failure {
+  message: string;
+  traceId: string;
+}
+
+/**
+ * 平台供应链只管理平台范围的连接摘要；租户连接、端点和凭据不进入此工作区。
+ */
+export function PlatformModelSupplyWorkspace({
+  client,
+  route,
+  sessionRevision,
+  onRouteChange,
+}: {
+  client: ControlPlaneClient;
+  route: PlatformSupplyRoute;
+  sessionRevision: number;
+  onRouteChange: (route: ConsoleRoute) => void;
+}) {
+  const [viewState, setViewState] = useState<ViewState>("unauthenticated");
+  const [connections, setConnections] = useState<PlatformProviderConnectionSummary[]>([]);
+  const [total, setTotal] = useState(0);
+  const [hasPrevious, setHasPrevious] = useState(false);
+  const [hasNext, setHasNext] = useState(false);
+  const [failure, setFailure] = useState<Failure>();
+  const [creating, setCreating] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [apiKey, setApiKey] = useState("");
+
+  const load = useCallback(async () => {
+    if (!client.hasSession()) {
+      setViewState("unauthenticated");
+      return;
+    }
+    setViewState("loading");
+    setFailure(undefined);
+    try {
+      const page = await client.listPlatformProviderConnections(route.page);
+      setConnections(page.items);
+      setTotal(page.totalElements);
+      setHasPrevious(page.hasPrevious);
+      setHasNext(page.hasNext);
+      setViewState("ready");
+    } catch (error) {
+      setFailure(toFailure(error));
+      setViewState("error");
+    }
+  }, [client, route.page]);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => void load(), 0);
+    return () => window.clearTimeout(timer);
+  }, [load, sessionRevision]);
+
+  async function createConnection(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const values = new FormData(form);
+    const submittedApiKey = apiKey;
+    form.reset();
+    setApiKey("");
+    const displayName = String(values.get("displayName") ?? "").trim();
+    const endpoint = String(values.get("endpoint") ?? "").trim();
+    const region = String(values.get("region") ?? "").trim();
+    const providerKind = String(values.get("providerKind") ?? "DETERMINISTIC") as "DETERMINISTIC" | "OPENAI_COMPATIBLE" | "OLLAMA";
+    if (!displayName || !endpoint || !region || !submittedApiKey.trim()) {
+      setFailure({ message: "请完整填写连接名称、厂商、受控 Endpoint、区域和 API Key。", traceId: "" });
+      return;
+    }
+    setSubmitting(true);
+    setFailure(undefined);
+    try {
+      await client.createPlatformProviderConnection({
+        displayName,
+        endpoint,
+        region,
+        providerKind,
+        authenticationType: "API_KEY",
+        apiKey: submittedApiKey,
+      });
+      setCreating(false);
+      await load();
+    } catch (error) {
+      setFailure(toFailure(error));
+    } finally {
+      setApiKey("");
+      setSubmitting(false);
+    }
+  }
+
+  if (viewState === "unauthenticated") {
+    return <StatePanel kind="stale" title="浏览器会话已经失效" description="平台模型供应链摘要已清除，请重新登录。" actionLabel="返回登录入口" onAction={() => window.location.assign("/")} />;
+  }
+  if (viewState === "loading") {
+    return <StatePanel kind="loading" title="正在加载平台连接" description="正在读取平台范围的安全摘要，不会读取 Endpoint 或凭据。" />;
+  }
+  if (viewState === "error") {
+    return <StatePanel kind="error" title="平台连接暂时不可用" description={failureDescription(failure)} actionLabel="重新加载" onAction={() => void load()} />;
+  }
+
+  return (
+    <div className="model-configuration-workspace">
+      <div className="governance-toolbar">
+        <Text>这是平台范围连接目录，独立于租户连接；所有列表均由服务端分页，Endpoint、凭据和厂商原始响应不会进入浏览器。</Text>
+        <div className="task-actions"><Button appearance="primary" onClick={() => setCreating(true)}>新建平台连接</Button><Button appearance="subtle" onClick={() => void load()}>刷新连接</Button></div>
+      </div>
+      {failure === undefined ? null : <FailureMessage failure={failure} />}
+      <section className="model-configuration-section">
+        <header className="task-heading"><Title3>平台厂商连接</Title3><Text>仅平台管理员可创建；连接创建后需继续完成真实探测、发现和部署发布。</Text></header>
+        <div className="member-directory-table" role="region" aria-label="平台厂商连接分页表格">
+          <table><thead><tr><th>连接</th><th>厂商与区域</th><th>凭据与状态</th><th>最近探测</th><th>修订</th></tr></thead><tbody>
+            {connections.length === 0 ? <tr><td colSpan={5}>当前页没有平台厂商连接。</td></tr> : connections.map((connection) => <tr key={connection.id}><td>{connection.displayName}</td><td>{connection.providerKind} · {connection.region}</td><td><Badge appearance="tint" color={connection.status === "VERIFIED" ? "success" : "warning"}>{connection.status === "VERIFIED" ? "已验证" : "待验证"}</Badge> {connection.credentialConfigured ? "凭据已配置" : "未配置凭据"}</td><td>{connection.lastProbeSucceeded === true ? "通过" : connection.lastProbeSucceeded === false ? "未通过" : "尚未探测"}</td><td>{connection.version}</td></tr>)}
+          </tbody></table>
+        </div>
+        <div className="task-actions"><Text>共 {total} 条</Text><Button disabled={!hasPrevious} onClick={() => onRouteChange({ ...route, page: route.page - 1 })}>上一页</Button><Text>第 {route.page} 页</Text><Button disabled={!hasNext} onClick={() => onRouteChange({ ...route, page: route.page + 1 })}>下一页</Button></div>
+      </section>
+      <Dialog open={creating} onOpenChange={(_, data) => { if (!data.open && !submitting) setCreating(false); }}>
+        <DialogSurface><DialogBody><DialogTitle>新建平台厂商连接</DialogTitle><form onSubmit={(event) => void createConnection(event)}><DialogContent>
+          <Text>Endpoint 和 API Key 仅用于本次平台范围受控写入；创建后页面不会回显二者，也不会写入租户范围。</Text>
+          <Field label="连接名称" required><Input name="displayName" autoFocus disabled={submitting} /></Field>
+          <Field label="厂商类型" required><Select name="providerKind" defaultValue="DETERMINISTIC" disabled={submitting}><option value="DETERMINISTIC">确定性开发连接</option><option value="OPENAI_COMPATIBLE">OpenAI 兼容接口</option><option value="OLLAMA">Ollama</option></Select></Field>
+          <Field label="受控 Endpoint" required><Input name="endpoint" type="url" placeholder="https://…/v1" disabled={submitting} /></Field>
+          <Field label="部署区域" required><Input name="region" placeholder="例如：local" disabled={submitting} /></Field>
+          <Field label="API Key" required><Input type="password" value={apiKey} onChange={(_, data) => setApiKey(data.value)} autoComplete="new-password" disabled={submitting} /></Field>
+        </DialogContent><DialogActions><Button appearance="secondary" disabled={submitting} onClick={() => setCreating(false)}>取消</Button><Button appearance="primary" type="submit" disabled={submitting}>{submitting ? "正在创建" : "创建平台连接"}</Button></DialogActions></form></DialogBody></DialogSurface>
+      </Dialog>
+    </div>
+  );
+}
+
+function FailureMessage({ failure }: { failure: Failure }) {
+  return <MessageBar intent="error"><MessageBarBody><MessageBarTitle>操作未完成</MessageBarTitle>{failureDescription(failure)}</MessageBarBody></MessageBar>;
+}
+
+function failureDescription(failure: Failure | undefined): string {
+  if (failure === undefined) return "请求未完成。";
+  return failure.traceId ? `${failure.message}（追踪号：${failure.traceId}）` : failure.message;
+}
+
+function toFailure(error: unknown): Failure {
+  if (error instanceof ApiRequestError) return { message: error.message, traceId: error.traceId };
+  return { message: "请求未完成，请稍后重试。", traceId: "" };
+}

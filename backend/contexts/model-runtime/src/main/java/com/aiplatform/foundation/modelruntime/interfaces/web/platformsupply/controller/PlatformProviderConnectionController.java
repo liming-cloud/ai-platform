@@ -1,0 +1,83 @@
+package com.aiplatform.foundation.modelruntime.interfaces.web.platformsupply.controller;
+
+import com.aiplatform.foundation.modelruntime.application.platformsupply.command.CreatePlatformProviderConnectionCommand;
+import com.aiplatform.foundation.modelruntime.application.platformsupply.dto.PlatformProviderConnectionView;
+import com.aiplatform.foundation.modelruntime.application.platformsupply.query.ListPlatformProviderConnectionsQuery;
+import com.aiplatform.foundation.modelruntime.application.platformsupply.service.PlatformProviderConnectionService;
+import com.aiplatform.foundation.modelruntime.interfaces.web.provider.request.ProviderConnectionRequest;
+import com.aiplatform.foundation.security.identity.PlatformRequestContext;
+import com.aiplatform.foundation.security.secret.SecretValue;
+import com.aiplatform.foundation.shared.contract.paging.PageQuery;
+import com.aiplatform.foundation.shared.contract.paging.PageResult;
+import java.util.Objects;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+/** 平台范围连接的创建和分页读取入口。 */
+@RestController
+@RequestMapping("/api/v1/platform/model-supply/connections")
+@ConditionalOnBean(PlatformProviderConnectionService.class)
+public class PlatformProviderConnectionController {
+
+    private static final String IDEMPOTENCY_KEY = "Idempotency-Key";
+    private static final String IDEMPOTENCY_REPLAYED = "Idempotency-Replayed";
+
+    private final PlatformProviderConnectionService connections;
+
+    public PlatformProviderConnectionController(PlatformProviderConnectionService connections) {
+        this.connections = Objects.requireNonNull(connections, "平台供应商连接用例不能为空");
+    }
+
+    @PostMapping
+    public ResponseEntity<PlatformProviderConnectionView> create(
+            PlatformRequestContext context,
+            @RequestHeader(name = IDEMPOTENCY_KEY, required = false) String idempotencyKey,
+            @RequestBody ProviderConnectionRequest request) {
+        var result = withApiKey(request.apiKey(), apiKey -> connections.create(
+                new CreatePlatformProviderConnectionCommand(
+                        context,
+                        requireIdempotencyKey(idempotencyKey),
+                        request.providerKind(),
+                        request.displayName(),
+                        request.endpoint(),
+                        request.region(),
+                        request.authenticationType(),
+                        apiKey)));
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .header(IDEMPOTENCY_REPLAYED, Boolean.toString(result.replayed()))
+                .body(result.providerConnection());
+    }
+
+    @GetMapping
+    public PageResult<PlatformProviderConnectionView> list(
+            PlatformRequestContext context,
+            @RequestParam(defaultValue = "1") long pageNumber,
+            @RequestParam(defaultValue = "20") long pageSize) {
+        return connections.list(new ListPlatformProviderConnectionsQuery(
+                context, new PageQuery(pageNumber, pageSize)));
+    }
+
+    private static String requireIdempotencyKey(String value) {
+        if (value == null) {
+            throw new IllegalArgumentException("必须提供幂等键");
+        }
+        return value;
+    }
+
+    private static <T> T withApiKey(
+            String value,
+            java.util.function.Function<SecretValue, T> action) {
+        Objects.requireNonNull(value, "API Key不能为空");
+        try (var apiKey = SecretValue.copyOf(value.toCharArray())) {
+            return action.apply(apiKey);
+        }
+    }
+}

@@ -86,6 +86,11 @@ const PlatformAccountDirectoryWorkspace = lazy(async () => {
   return { default: module.PlatformAccountDirectoryWorkspace };
 });
 
+const PlatformModelSupplyWorkspace = lazy(async () => {
+  const module = await import("./features/platform-governance/PlatformModelSupplyWorkspace");
+  return { default: module.PlatformModelSupplyWorkspace };
+});
+
 const TenantMemberWorkspace = lazy(async () => {
   const module = await import("./features/access/TenantMemberWorkspace");
   return { default: module.TenantMemberWorkspace };
@@ -239,13 +244,14 @@ function AuthenticatedConsoleApp({
   const platformWorkspaceActive = route.navigationId === "platform-workspace";
   const platformActive = route.navigationId === "platform";
   const platformAccountsActive = route.navigationId === "platform-accounts";
+  const platformModelSupplyActive = route.navigationId === "platform-model-supply";
   const dataPage = dataActive ? dataPageContent(route) : undefined;
 
   return (
     <ProductShell
       productName="可信知识平台"
       pageTitle={
-        accessActive ? "成员与权限" : platformWorkspaceActive ? "平台工作区" : platformActive ? "平台租户生命周期" : platformAccountsActive ? "平台账户目录" : queryActive ? "从已授权资料中获得答案" : governanceActive ? route.task === "query" ? "查询用量与审计" : "受限评测运行" : modelsActive ? route.task === "configuration" ? "受控模型配置" : route.task === "providers" ? "供应商连接与模型发现" : "模型部署与能力验证" : dataPage?.title ?? "可信知识平台"
+        accessActive ? "成员与权限" : platformWorkspaceActive ? "平台工作区" : platformActive ? "平台租户生命周期" : platformAccountsActive ? "平台账户目录" : platformModelSupplyActive ? "平台模型供应链" : queryActive ? "从已授权资料中获得答案" : governanceActive ? route.task === "query" ? "查询用量与审计" : "受限评测运行" : modelsActive ? route.task === "configuration" ? "受控模型配置" : route.task === "providers" ? "供应商连接与模型发现" : "模型部署与能力验证" : dataPage?.title ?? "可信知识平台"
       }
       pageSummary={
         queryActive
@@ -258,6 +264,8 @@ function AuthenticatedConsoleApp({
           ? "建立与迁移租户状态，不展示租户正文、成员详情或平台操作者信息。"
           : platformAccountsActive
           ? "账户目录由服务端分页提供，不展示凭据、会话或权限快照。"
+          : platformModelSupplyActive
+          ? "平台连接与后续部署独立于租户范围；Endpoint、凭据和厂商原始响应只在后端受控处理。"
           : governanceActive && route.task === "query"
           ? "核对当前租户的查询配额、计量结果和脱敏运行记录。"
           : governanceActive
@@ -461,6 +469,13 @@ function AuthenticatedConsoleApp({
         {platformAccountsActive ? (
           <Suspense fallback={<StatePanel kind="loading" title="正在加载平台账户目录" description="正在准备服务端分页摘要。" />}>
             <PlatformAccountDirectoryWorkspace client={client} route={route} onRouteChange={navigate} />
+          </Suspense>
+        ) : null}
+      </section>
+      <section hidden={!platformModelSupplyActive}>
+        {platformModelSupplyActive ? (
+          <Suspense fallback={<StatePanel kind="loading" title="正在加载平台模型供应链" description="正在准备平台范围连接目录。" />}>
+            <PlatformModelSupplyWorkspace client={client} route={route} sessionRevision={sessionRevision} onRouteChange={navigate} />
           </Suspense>
         ) : null}
       </section>

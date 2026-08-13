@@ -248,6 +248,9 @@ export interface ProviderConnectionCreateInput {
   apiKey: string;
 }
 
+/** 平台范围厂商连接的安全摘要；端点和凭据永不返回浏览器。 */
+export interface PlatformProviderConnectionSummary extends ProviderConnectionSummary {}
+
 /** 连接探测只返回安全摘要与受控能力，不回传端点、凭据或厂商原始响应。 */
 export interface ProviderConnectionProbeResult {
   providerConnection: ProviderConnectionSummary;
@@ -1124,6 +1127,26 @@ export class ControlPlaneClient {
     idempotencyKey?: string,
   ): Promise<ProviderConnectionSummary> {
     return this.request<ProviderConnectionSummary>("/model-providers", {
+      method: "POST",
+      headers: this.writeHeaders("application/json", idempotencyKey),
+      body: JSON.stringify(input),
+    });
+  }
+
+  async listPlatformProviderConnections(
+    pageNumber = 1,
+    pageSize = 20,
+  ): Promise<PageResult<PlatformProviderConnectionSummary>> {
+    return this.request<PageResult<PlatformProviderConnectionSummary>>(
+      `/platform/model-supply/connections?pageNumber=${pageNumber}&pageSize=${pageSize}`,
+    );
+  }
+
+  async createPlatformProviderConnection(
+    input: ProviderConnectionCreateInput,
+    idempotencyKey?: string,
+  ): Promise<PlatformProviderConnectionSummary> {
+    return this.request<PlatformProviderConnectionSummary>("/platform/model-supply/connections", {
       method: "POST",
       headers: this.writeHeaders("application/json", idempotencyKey),
       body: JSON.stringify(input),
