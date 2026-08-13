@@ -56,6 +56,8 @@ export function PlatformModelSupplyWorkspace({
   const [creating, setCreating] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [apiKey, setApiKey] = useState("");
+  const [probeTarget, setProbeTarget] = useState<PlatformProviderConnectionSummary>();
+  const [probeModelCode, setProbeModelCode] = useState("");
 
   const load = useCallback(async () => {
     if (!client.hasSession()) {
@@ -118,6 +120,26 @@ export function PlatformModelSupplyWorkspace({
     }
   }
 
+  async function probeConnection(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (probeTarget === undefined || probeModelCode.trim().length === 0) {
+      setFailure({ message: "请输入用于最小验证的模型代码。", traceId: "" });
+      return;
+    }
+    setSubmitting(true);
+    setFailure(undefined);
+    try {
+      await client.probePlatformProviderConnection(probeTarget.id, probeTarget.version, probeModelCode.trim());
+      setProbeTarget(undefined);
+      setProbeModelCode("");
+      await load();
+    } catch (error) {
+      setFailure(toFailure(error));
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
   if (viewState === "unauthenticated") {
     return <StatePanel kind="stale" title="浏览器会话已经失效" description="平台模型供应链摘要已清除，请重新登录。" actionLabel="返回登录入口" onAction={() => window.location.assign("/")} />;
   }
@@ -138,8 +160,8 @@ export function PlatformModelSupplyWorkspace({
       <section className="model-configuration-section">
         <header className="task-heading"><Title3>平台厂商连接</Title3><Text>仅平台管理员可创建；连接创建后需继续完成真实探测、发现和部署发布。</Text></header>
         <div className="member-directory-table" role="region" aria-label="平台厂商连接分页表格">
-          <table><thead><tr><th>连接</th><th>厂商与区域</th><th>凭据与状态</th><th>最近探测</th><th>修订</th></tr></thead><tbody>
-            {connections.length === 0 ? <tr><td colSpan={5}>当前页没有平台厂商连接。</td></tr> : connections.map((connection) => <tr key={connection.id}><td>{connection.displayName}</td><td>{connection.providerKind} · {connection.region}</td><td><Badge appearance="tint" color={connection.status === "VERIFIED" ? "success" : "warning"}>{connection.status === "VERIFIED" ? "已验证" : "待验证"}</Badge> {connection.credentialConfigured ? "凭据已配置" : "未配置凭据"}</td><td>{connection.lastProbeSucceeded === true ? "通过" : connection.lastProbeSucceeded === false ? "未通过" : "尚未探测"}</td><td>{connection.version}</td></tr>)}
+          <table><thead><tr><th>连接</th><th>厂商与区域</th><th>凭据与状态</th><th>最近探测</th><th>修订</th><th>操作</th></tr></thead><tbody>
+            {connections.length === 0 ? <tr><td colSpan={6}>当前页没有平台厂商连接。</td></tr> : connections.map((connection) => <tr key={connection.id}><td>{connection.displayName}</td><td>{connection.providerKind} · {connection.region}</td><td><Badge appearance="tint" color={connection.status === "VERIFIED" ? "success" : "warning"}>{connection.status === "VERIFIED" ? "已验证" : "待验证"}</Badge> {connection.credentialConfigured ? "凭据已配置" : "未配置凭据"}</td><td>{connection.lastProbeSucceeded === true ? "通过" : connection.lastProbeSucceeded === false ? "未通过" : "尚未探测"}</td><td>{connection.version}</td><td><Button appearance="secondary" disabled={submitting || !connection.credentialConfigured} onClick={() => setProbeTarget(connection)}>探测连接</Button></td></tr>)}
           </tbody></table>
         </div>
         <div className="task-actions"><Text>共 {total} 条</Text><Button disabled={!hasPrevious} onClick={() => onRouteChange({ ...route, page: route.page - 1 })}>上一页</Button><Text>第 {route.page} 页</Text><Button disabled={!hasNext} onClick={() => onRouteChange({ ...route, page: route.page + 1 })}>下一页</Button></div>
@@ -153,6 +175,12 @@ export function PlatformModelSupplyWorkspace({
           <Field label="部署区域" required><Input name="region" placeholder="例如：local" disabled={submitting} /></Field>
           <Field label="API Key" required><Input type="password" value={apiKey} onChange={(_, data) => setApiKey(data.value)} autoComplete="new-password" disabled={submitting} /></Field>
         </DialogContent><DialogActions><Button appearance="secondary" disabled={submitting} onClick={() => setCreating(false)}>取消</Button><Button appearance="primary" type="submit" disabled={submitting}>{submitting ? "正在创建" : "创建平台连接"}</Button></DialogActions></form></DialogBody></DialogSurface>
+      </Dialog>
+      <Dialog open={probeTarget !== undefined} onOpenChange={(_, data) => { if (!data.open && !submitting) setProbeTarget(undefined); }}>
+        <DialogSurface><DialogBody><DialogTitle>探测平台厂商连接</DialogTitle><form onSubmit={(event) => void probeConnection(event)}><DialogContent>
+          <Text>探测使用平台范围凭据执行最小调用，只保存安全结果摘要；不会向浏览器返回 Endpoint、凭据或厂商原始响应。</Text>
+          <Field label="模型代码" required><Input value={probeModelCode} onChange={(_, data) => setProbeModelCode(data.value)} disabled={submitting} /></Field>
+        </DialogContent><DialogActions><Button appearance="secondary" disabled={submitting} onClick={() => setProbeTarget(undefined)}>取消</Button><Button appearance="primary" type="submit" disabled={submitting}>{submitting ? "正在探测" : "开始探测"}</Button></DialogActions></form></DialogBody></DialogSurface>
       </Dialog>
     </div>
   );

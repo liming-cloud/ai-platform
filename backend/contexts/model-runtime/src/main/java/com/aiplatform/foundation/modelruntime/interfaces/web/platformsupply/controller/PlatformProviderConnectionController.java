@@ -1,10 +1,13 @@
 package com.aiplatform.foundation.modelruntime.interfaces.web.platformsupply.controller;
 
 import com.aiplatform.foundation.modelruntime.application.platformsupply.command.CreatePlatformProviderConnectionCommand;
+import com.aiplatform.foundation.modelruntime.application.platformsupply.command.ProbePlatformProviderConnectionCommand;
 import com.aiplatform.foundation.modelruntime.application.platformsupply.dto.PlatformProviderConnectionView;
 import com.aiplatform.foundation.modelruntime.application.platformsupply.query.ListPlatformProviderConnectionsQuery;
 import com.aiplatform.foundation.modelruntime.application.platformsupply.service.PlatformProviderConnectionService;
 import com.aiplatform.foundation.modelruntime.interfaces.web.provider.request.ProviderConnectionRequest;
+import com.aiplatform.foundation.modelruntime.interfaces.web.provider.request.ProviderConnectionProbeRequest;
+import java.time.Duration;
 import com.aiplatform.foundation.security.identity.PlatformRequestContext;
 import com.aiplatform.foundation.security.secret.SecretValue;
 import com.aiplatform.foundation.shared.contract.paging.PageQuery;
@@ -63,6 +66,16 @@ public class PlatformProviderConnectionController {
             @RequestParam(defaultValue = "20") long pageSize) {
         return connections.list(new ListPlatformProviderConnectionsQuery(
                 context, new PageQuery(pageNumber, pageSize)));
+    }
+
+    @PostMapping("/{providerConnectionId}/probe")
+    public PlatformProviderConnectionView probe(
+            PlatformRequestContext context,
+            @org.springframework.web.bind.annotation.PathVariable String providerConnectionId,
+            @RequestBody ProviderConnectionProbeRequest request) {
+        return connections.probe(new ProbePlatformProviderConnectionCommand(
+                context, providerConnectionId, request.expectedVersion(), request.modelCode(),
+                Duration.ofMillis(request.timeoutMillis())));
     }
 
     private static String requireIdempotencyKey(String value) {

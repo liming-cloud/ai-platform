@@ -1153,6 +1153,22 @@ export class ControlPlaneClient {
     });
   }
 
+  async probePlatformProviderConnection(
+    providerConnectionId: string,
+    expectedVersion: number,
+    modelCode: string,
+    timeoutMillis = 10_000,
+  ): Promise<PlatformProviderConnectionSummary> {
+    return this.request<PlatformProviderConnectionSummary>(
+      `/platform/model-supply/connections/${providerConnectionId}/probe`,
+      {
+        method: "POST",
+        headers: this.writeHeaders("application/json"),
+        body: JSON.stringify({ expectedVersion, modelCode, timeoutMillis }),
+      },
+    );
+  }
+
   async rotateProviderConnectionCredential(
     providerConnectionId: string,
     expectedVersion: number,

@@ -10,6 +10,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.aiplatform.foundation.modelruntime.application.platformsupply.command.CreatePlatformProviderConnectionCommand;
+import com.aiplatform.foundation.modelruntime.application.platformsupply.command.ProbePlatformProviderConnectionCommand;
 import com.aiplatform.foundation.modelruntime.application.platformsupply.dto.CreatePlatformProviderConnectionResult;
 import com.aiplatform.foundation.modelruntime.application.platformsupply.dto.PlatformProviderConnectionView;
 import com.aiplatform.foundation.modelruntime.application.platformsupply.query.ListPlatformProviderConnectionsQuery;
@@ -82,6 +83,27 @@ class PlatformProviderConnectionControllerTest {
         org.junit.jupiter.api.Assertions.assertSame(context, query.getValue().context());
         org.junit.jupiter.api.Assertions.assertEquals(2L, query.getValue().page().pageNumber());
         org.junit.jupiter.api.Assertions.assertEquals(20L, query.getValue().page().pageSize());
+    }
+
+    @Test
+    void 平台连接探测只从平台会话取身份且不接受租户标识() throws Exception {
+        var service = mock(PlatformProviderConnectionService.class);
+        var context = mock(PlatformRequestContext.class);
+        var mvc = MockMvcBuilders.standaloneSetup(new PlatformProviderConnectionController(service))
+                .setCustomArgumentResolvers(platformContext(context)).build();
+        when(service.probe(any())).thenReturn(view());
+
+        mvc.perform(post("/api/v1/platform/model-supply/connections/320000000000000001/probe")
+                        .param("tenantId", "100000000000000099")
+                        .contentType("application/json")
+                        .content("{\"expectedVersion\":0,\"modelCode\":\"deterministic-embedding\",\"timeoutMillis\":3000}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.endpoint").doesNotExist())
+                .andExpect(jsonPath("$.credentialReference").doesNotExist());
+        var command = ArgumentCaptor.forClass(ProbePlatformProviderConnectionCommand.class);
+        verify(service).probe(command.capture());
+        org.junit.jupiter.api.Assertions.assertSame(context, command.getValue().context());
+        org.junit.jupiter.api.Assertions.assertEquals("320000000000000001", command.getValue().providerConnectionId());
     }
 
     private static PlatformProviderConnectionView view() {

@@ -677,3 +677,20 @@ ADR-0058、ADR-0065、ADR-0066、现有 `ProviderConnection`、`ModelDeployment`
 | 租户运行时 | `ModelConfiguration` 与 `ModelConfigurationRuntimeService`。 | 待复核。 | 只消费目录安全快照；目录失效时失败关闭。 |
 
 红灯优先覆盖：租户会话不能建立平台连接、租户部署不能成为平台目录来源、草稿／过期／修订漂移平台部署不能发布目录、伪造快照参数不能改变目录事实，以及凭据和 Endpoint 不出现在列表或错误投影。绿灯必须以同一用例补齐 PostgreSQL、HTTP、标准服务端分页、统一 SPA 与本地 Compose 浏览器链路；自动验收与人工评审前不得进入 M7。
+
+### ADR-0066 平台连接探测窄切片
+
+平台连接当前仅能建立为 `DRAFT`，所以模型发现和部署尚不可合法开始。本切片先补齐独立的
+`PlatformProviderConnectionProbeRequest`、`PlatformProviderConnectionProbe` 和
+`PlatformProviderConnectionProbeService`；它们只接收平台连接标识、厂商、Endpoint、平台密钥引用、模型代码、
+能力和超时，**不接受 `TenantId`**。现有 `ProviderProbeRequest` 强制携带 `TenantId`，不得通过伪造租户或可空
+字段复用。
+
+| 场景 | 命令 | 守卫与失败关闭 | 成功结果 |
+| --- | --- | --- | --- |
+| 平台管理员探测草稿连接 | 平台连接探测 | `PlatformRequestContext` 含 `model-platform:write`、连接存在且版本匹配、未停用；租户上下文、旧修订、未支持厂商或适配器失败均不改变连接。 | 只记录安全探测摘要并将当前连接转为 `VERIFIED`。 |
+| 探测失败 | 平台连接探测 | 外部适配器不可达或返回不支持能力。 | 只记录稳定失败码，连接保持 `DRAFT`，不得生成发现候选。 |
+| 轮换后的旧探测 | 模型发现／部署前置检查 | 连接修订必须等于探测成功所对应的修订。 | 旧探测、旧发现和后续部署验证均失效。 |
+
+红灯顺序：先证明租户上下文不能调用平台探测、探测请求不能构造 `TenantId`、成功探测只影响平台连接，随后再验证真实
+PostgreSQL 事务、HTTP 平台会话和 SPA 写后重读。模型发现、部署和目录快照继续后置，避免在未经验证的连接上建立候选。

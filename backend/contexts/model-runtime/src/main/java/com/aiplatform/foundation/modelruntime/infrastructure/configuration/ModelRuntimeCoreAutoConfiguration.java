@@ -39,6 +39,8 @@ import com.aiplatform.foundation.modelruntime.application.provider.port.out.Prov
 import com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.PlatformProviderConnectionCredentialTransaction;
 import com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.PlatformProviderConnectionCredentialWriter;
 import com.aiplatform.foundation.modelruntime.application.platformsupply.service.PlatformProviderConnectionService;
+import com.aiplatform.foundation.modelruntime.application.platformsupply.service.PlatformProbeProviderService;
+import com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.PlatformProviderConnectionProbe;
 import com.aiplatform.foundation.modelruntime.domain.deployment.repository.ModelDeploymentRepository;
 import com.aiplatform.foundation.modelruntime.domain.configuration.repository.ModelConfigurationRepository;
 import com.aiplatform.foundation.modelruntime.domain.configuration.repository.ModelConfigurationAccessRepository;
@@ -63,6 +65,12 @@ import org.springframework.context.annotation.Bean;
         havingValue = "true")
 @EnableConfigurationProperties(ModelCatalogProperties.class)
 public class ModelRuntimeCoreAutoConfiguration {
+
+    @Bean
+    @ConditionalOnMissingBean
+    PlatformProbeProviderService platformProbeProviderService(List<PlatformProviderConnectionProbe> probes) {
+        return new PlatformProbeProviderService(probes, Clock.systemUTC());
+    }
 
     @Bean
     @ConditionalOnMissingBean
@@ -101,9 +109,10 @@ public class ModelRuntimeCoreAutoConfiguration {
             PlatformProviderConnectionRepository repository,
             PlatformProviderConnectionCredentialWriter credentials,
             PlatformProviderConnectionCredentialTransaction transactions,
+            PlatformProbeProviderService probes,
             EntityIdGenerator identifiers) {
         return new PlatformProviderConnectionService(
-                repository, credentials, transactions, Clock.systemUTC(), identifiers);
+                repository, credentials, transactions, probes, Clock.systemUTC(), identifiers);
     }
 
     @Bean @ConditionalOnMissingBean

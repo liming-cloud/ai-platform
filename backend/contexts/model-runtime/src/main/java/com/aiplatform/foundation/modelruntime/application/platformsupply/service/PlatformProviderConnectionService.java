@@ -1,6 +1,8 @@
 package com.aiplatform.foundation.modelruntime.application.platformsupply.service;
 
 import com.aiplatform.foundation.modelruntime.application.platformsupply.command.CreatePlatformProviderConnectionCommand;
+import com.aiplatform.foundation.modelruntime.application.platformsupply.command.ProbePlatformProviderConnectionCommand;
+import com.aiplatform.foundation.modelruntime.application.platformsupply.dto.PlatformProviderProbeRequest;
 import com.aiplatform.foundation.modelruntime.application.platformsupply.dto.CreatePlatformProviderConnectionResult;
 import com.aiplatform.foundation.modelruntime.application.platformsupply.dto.PlatformProviderConnectionView;
 import com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.PlatformProviderConnectionCredentialTransaction;
@@ -32,16 +34,19 @@ public final class PlatformProviderConnectionService {
     private final PlatformProviderConnectionCredentialTransaction transactions;
     private final Clock clock;
     private final EntityIdGenerator identifiers;
+    private final PlatformProbeProviderService probeProvider;
 
     public PlatformProviderConnectionService(
             PlatformProviderConnectionRepository repository,
             PlatformProviderConnectionCredentialWriter credentials,
             PlatformProviderConnectionCredentialTransaction transactions,
+            PlatformProbeProviderService probeProvider,
             Clock clock,
             EntityIdGenerator identifiers) {
         this.repository = Objects.requireNonNull(repository, "平台供应商连接仓储不能为空");
         this.credentials = Objects.requireNonNull(credentials, "平台供应商连接凭据写入器不能为空");
         this.transactions = Objects.requireNonNull(transactions, "平台供应商连接事务不能为空");
+        this.probeProvider = Objects.requireNonNull(probeProvider, "平台供应商探测用例不能为空");
         this.clock = Objects.requireNonNull(clock, "时钟不能为空");
         this.identifiers = Objects.requireNonNull(identifiers, "标识生成器不能为空");
     }
@@ -79,6 +84,27 @@ public final class PlatformProviderConnectionService {
         var slice = repository.findPage(query.page().pageNumber(), query.page().pageSize());
         return PageResult.of(slice.items().stream().map(PlatformProviderConnectionService::toView).toList(),
                 query.page(), slice.totalElements());
+    }
+
+    /** 平台探测只处理平台连接及其独立密钥引用，不得引入租户上下文。 */
+    public PlatformProviderConnectionView probe(ProbePlatformProviderConnectionCommand command) {
+        Objects.requireNonNull(command, "平台连接探测命令不能为空");
+        requirePermission(command.context());
+        var connection = repository.findById(PlatformProviderConnectionId.parse(command.providerConnectionId()))
+                .orElseThrow(() -> new IllegalArgumentException("平台供应商连接不存在"));
+        if (connection.version() != command.expectedVersion()) {
+            throw new IllegalStateException("平台供应商连接修订已变化");
+        }
+        var result = probeProvider.probe(new PlatformProviderProbeRequest(
+                connection.providerKind(), connection.endpoint(), connection.credentialReference(),
+                command.modelCode(), command.timeout()));
+        var updated = result.reachable()
+                ? connection.recordSuccessfulProbe(result.detailCode(), result.probedAt())
+                : connection.recordFailedProbe(result.detailCode(), result.probedAt());
+        if (!repository.update(updated, command.expectedVersion())) {
+            throw new IllegalStateException("平台供应商连接修订已变化");
+        }
+        return toView(updated);
     }
 
     private static void requirePermission(PlatformRequestContext context) {

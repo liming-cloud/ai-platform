@@ -315,6 +315,7 @@
 | M6 本地空库认证切换与模型供应链续证 | `project/evidence/WP-0014-local-empty-database-cutover-and-model-supply-chain.md` | 本次提交 | ADR-0064 local 切换、真实 PostgreSQL／HTTP／浏览器租户登录、角色导航、确定性供应商探测与发现均已续证；M6 自动验收与人工评审仍待完成。 |
 | M6 平台运营员无数据工作区契约 | `project/evidence/WP-0014-local-empty-database-cutover-and-model-supply-chain.md` | 本次提交 | 修正过期 HTTP 断言：运营员只进入无数据平台工作区，不含租户治理或账户治理能力；真实本地 HTTP 与浏览器直达拒绝均通过。 |
 | M6 平台范围模型供应链连接基础 | `project/evidence/WP-0014-platform-model-supply-connection-foundation.md` | 本次提交 | ADR-0066 的独立平台连接、密文和受限 HTTP／SPA 入口已完成；真实 Compose 装配和未认证失败关闭已复核，已登录浏览器与发现／部署仍待后续切片。 |
+| M6 平台厂商连接探测 | `project/evidence/WP-0014-platform-provider-connection-probe.md` | 本次提交 | 平台专属探测契约、确定性扩展、真实 PostgreSQL、HTTP 平台上下文与单一 SPA Dialog 已回归；模型发现／部署及已登录浏览器续证仍待后续切片。 |
 
 ## 证据规则
 
