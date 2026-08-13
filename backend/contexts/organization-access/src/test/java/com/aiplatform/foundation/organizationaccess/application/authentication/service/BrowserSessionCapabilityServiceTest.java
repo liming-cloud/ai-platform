@@ -47,6 +47,41 @@ class BrowserSessionCapabilityServiceTest {
     }
 
     @Test
+    void 平台管理员必须以独立显示角色投影全部固定平台权限() {
+        var platformContext = new PlatformRequestContext(
+                new SubjectId(4921825928971026436L),
+                CredentialType.PERSON,
+                AccessChannel.CONSOLE,
+                4L,
+                Set.of(
+                        PlatformPermissions.SESSION_ACCESS,
+                        PlatformPermissions.ACCOUNT_MANAGE,
+                        PlatformPermissions.TENANT_GOVERNANCE_WRITE,
+                        PlatformPermissions.MODEL_PLATFORM_WRITE),
+                "trc_platform_administrator_capability");
+        var service = new BrowserSessionCapabilityService(
+                tenantSessions(null),
+                platformSessions(platformContext),
+                Duration.ofMinutes(30));
+
+        var capability = service.inspect(null, "platform-session").capability().orElseThrow();
+
+        assertEquals(
+                Set.of(
+                        DisplayRole.PLATFORM_ACCOUNT_ADMINISTRATOR,
+                        DisplayRole.PLATFORM_TENANT_GOVERNOR,
+                        DisplayRole.PLATFORM_ADMINISTRATOR),
+                capability.displayRoles());
+        assertEquals(
+                Set.of(
+                        "platform-session:access",
+                        "platform:accounts:manage",
+                        "tenant-governance:write",
+                        "model-platform:write"),
+                capability.capabilityCodes());
+    }
+
+    @Test
     void 应把双范围会话的实际权限投影为导航能力码() {
         var tenantContext = new TrustedRequestContext(
                 new TenantId(100000000000000001L),

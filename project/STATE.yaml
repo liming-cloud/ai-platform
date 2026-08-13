@@ -257,6 +257,7 @@ latestEvidence:
   - project/evidence/WP-0014-local-empty-database-cutover-and-model-supply-chain.md
   - docs/adr/ADR-0065-platform-model-catalog-administration-and-deployment-snapshot.md
   - project/evidence/ADR-0065-approval.md
+  - project/evidence/WP-0014-platform-administrator-role-projection.md
 nextReviewAt: 2026-08-12
-updatedAt: 2026-08-12T15:30:00+08:00
+updatedAt: 2026-08-13T08:36:00+08:00
 updatedBy: codex

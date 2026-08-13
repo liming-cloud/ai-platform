@@ -36,6 +36,21 @@ class PlatformRoleBindingTest {
     }
 
     @Test
+    void 平台管理员绑定应派生目录治理所需的固定权限() {
+        var binding = PlatformRoleBinding.bind(
+                new PlatformRoleBindingId(702L),
+                new SubjectId(102L),
+                PlatformRole.PLATFORM_ADMINISTRATOR,
+                CREATED_AT);
+
+        assertTrue(binding.permissions().contains(new PermissionCode("platform-session:access")));
+        assertTrue(binding.permissions().contains(new PermissionCode("platform:accounts:manage")));
+        assertTrue(binding.permissions().contains(new PermissionCode("tenant-governance:write")));
+        assertTrue(binding.permissions().contains(new PermissionCode("model-platform:write")));
+        assertEquals(4, binding.permissions().size());
+    }
+
+    @Test
     void 不得将个人权限直接写入平台角色绑定() {
         assertThrows(IllegalArgumentException.class, () -> PlatformRole.from("platform:accounts:manage"));
     }

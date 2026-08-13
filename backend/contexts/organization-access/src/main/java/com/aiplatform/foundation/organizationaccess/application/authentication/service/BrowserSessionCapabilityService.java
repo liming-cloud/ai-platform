@@ -157,6 +157,9 @@ public final class BrowserSessionCapabilityService {
             if (context.hasPermission(PlatformPermissions.TENANT_GOVERNANCE_WRITE)) {
                 roles.add(DisplayRole.PLATFORM_TENANT_GOVERNOR);
             }
+            if (context.hasPermission(PlatformPermissions.MODEL_PLATFORM_WRITE)) {
+                roles.add(DisplayRole.PLATFORM_ADMINISTRATOR);
+            }
             if (roles.isEmpty()) {
                 roles.add(DisplayRole.PLATFORM_OPERATOR);
             }

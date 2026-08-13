@@ -27,6 +27,14 @@ public final class PlatformPermissions {
     public static final PermissionCode ACCOUNT_MANAGE =
             new PermissionCode("platform:accounts:manage");
 
+    /**
+     * 允许维护全局受控模型目录。
+     *
+     * <p>该权限不授予租户供应商连接、模型凭据、探测原始结果或业务正文读取能力。</p>
+     */
+    public static final PermissionCode MODEL_PLATFORM_WRITE =
+            new PermissionCode("model-platform:write");
+
     private PlatformPermissions() {
     }
 }

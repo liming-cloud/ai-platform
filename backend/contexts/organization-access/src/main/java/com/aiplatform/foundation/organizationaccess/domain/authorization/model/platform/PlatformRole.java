@@ -20,6 +20,13 @@ public enum PlatformRole {
             new PermissionCode("platform-session:access"),
             new PermissionCode("tenant-governance:write"))),
 
+    /** 管理平台账户、租户治理和全局受控模型目录。 */
+    PLATFORM_ADMINISTRATOR(Set.of(
+            new PermissionCode("platform-session:access"),
+            new PermissionCode("platform:accounts:manage"),
+            new PermissionCode("tenant-governance:write"),
+            new PermissionCode("model-platform:write"))),
+
     /** 只允许进入平台治理控制台。 */
     PLATFORM_OPERATOR(Set.of(new PermissionCode("platform-session:access")));
 

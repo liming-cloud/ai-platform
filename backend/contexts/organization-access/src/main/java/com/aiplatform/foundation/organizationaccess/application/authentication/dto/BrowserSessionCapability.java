@@ -43,6 +43,7 @@ public record BrowserSessionCapability(
         TENANT_MEMBER,
         PLATFORM_ACCOUNT_ADMINISTRATOR,
         PLATFORM_TENANT_GOVERNOR,
+        PLATFORM_ADMINISTRATOR,
         PLATFORM_OPERATOR
     }
 }

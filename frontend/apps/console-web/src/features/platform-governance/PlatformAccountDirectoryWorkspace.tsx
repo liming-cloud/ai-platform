@@ -31,13 +31,14 @@ import {
 import type { ConsoleRoute } from "../../session/console-route";
 
 type AccountRoute = Extract<ConsoleRoute, { task: "accounts" }>;
-type PlatformRoleCode = "PLATFORM_ACCOUNT_ADMINISTRATOR" | "PLATFORM_TENANT_GOVERNOR" | "PLATFORM_OPERATOR";
+type PlatformRoleCode = "PLATFORM_ACCOUNT_ADMINISTRATOR" | "PLATFORM_TENANT_GOVERNOR" | "PLATFORM_ADMINISTRATOR" | "PLATFORM_OPERATOR";
 type RoleDialogTarget = { kind: "role"; account: PlatformAccountSummary; roleCode: PlatformRoleCode; action: "bind" | "revoke" };
 type DialogTarget = RoleDialogTarget | { kind: "enable"; account: PlatformAccountSummary } | { kind: "create" } | { kind: "reset"; account: PlatformAccountSummary };
 
 const roles: ReadonlyArray<{ code: PlatformRoleCode; label: string; navigation: string }> = [
   { code: "PLATFORM_ACCOUNT_ADMINISTRATOR", label: "平台账户管理员", navigation: "平台账户目录" },
   { code: "PLATFORM_TENANT_GOVERNOR", label: "平台租户治理员", navigation: "平台租户生命周期" },
+  { code: "PLATFORM_ADMINISTRATOR", label: "平台管理员", navigation: "平台账户目录和平台租户生命周期" },
   { code: "PLATFORM_OPERATOR", label: "平台运营员", navigation: "平台工作区" },
 ];
 
