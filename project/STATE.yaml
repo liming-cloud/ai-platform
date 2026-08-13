@@ -3,9 +3,9 @@ productVersion: foundation-v1
 currentMilestone: M6
 currentFrontier: WP-0014
 lastVerifiedCommit: b38ec7387
-activeWorkPackages:
-  - WP-0014
+activeWorkPackages: []
 blockedWorkPackages:
+  - WP-0014
 confirmedDecisions:
   - ADR-0001
   - ADR-0002
@@ -260,5 +260,5 @@ latestEvidence:
   - project/evidence/ADR-0065-approval.md
   - project/evidence/WP-0014-platform-administrator-role-projection.md
 nextReviewAt: 2026-08-12
-updatedAt: 2026-08-13T09:08:00+08:00
+updatedAt: 2026-08-13T09:12:00+08:00
 updatedBy: codex
