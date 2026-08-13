@@ -786,6 +786,18 @@
       "statementId": "establishAuthorizationRevision",
       "category": "ATOMIC_STATE_TRANSITION",
       "reason": "首次平台角色绑定时建立认证修订事实，避免安全更新拦截器误判 UPSERT。"
+    },
+    {
+      "path": "backend/contexts/model-runtime/src/main/resources/mapper/model-runtime/ControlledModelCatalogEntryMapper.xml",
+      "statementId": "selectPublishedAvailablePage",
+      "category": "SECURITY_PROJECTION",
+      "reason": "关联目录快照、平台部署与连接，在分页前排除失效来源，避免租户选择不可调用模型。"
+    },
+    {
+      "path": "backend/contexts/model-runtime/src/main/resources/mapper/model-runtime/ControlledModelCatalogEntryMapper.xml",
+      "statementId": "countPublishedAvailable",
+      "category": "SECURITY_PROJECTION",
+      "reason": "使用与目录页相同的来源可用性谓词计算总数，避免分页元数据泄露或失真。"
     }
   ]
 }

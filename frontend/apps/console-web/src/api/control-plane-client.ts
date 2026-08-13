@@ -248,7 +248,7 @@ export interface ProviderConnectionCreateInput {
 }
 
 /** 平台范围厂商连接的安全摘要；端点和凭据永不返回浏览器。 */
-export interface PlatformProviderConnectionSummary extends ProviderConnectionSummary {}
+export type PlatformProviderConnectionSummary = ProviderConnectionSummary;
 
 /** 平台模型发现的安全摘要；候选只用于后续受控部署选择。 */
 export interface PlatformProviderModelDiscoverySummary {

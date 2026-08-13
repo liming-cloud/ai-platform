@@ -16,7 +16,10 @@ public interface ModelConfigurationRepository {
     Optional<ControlledModelCatalogEntry> findCatalogEntry(ControlledModelCatalogEntryId id);
 
     /**
-     * 返回可由配置者选择的已发布目录条目，草稿和其他非发布状态不得暴露。
+     * 返回可由配置者选择、来源当前可用的已发布目录条目。
+     *
+     * <p>实现必须在分页和总数计算前排除来源部署修订、连接修订或验证时效已经失真的快照，
+     * 防止选择器展示随后必然失败关闭的模型。</p>
      */
     default ControlledModelCatalogPage findPublishedCatalogPage(
             long pageNumber, long pageSize) {

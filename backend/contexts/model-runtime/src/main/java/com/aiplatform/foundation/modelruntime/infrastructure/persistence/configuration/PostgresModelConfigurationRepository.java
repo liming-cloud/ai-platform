@@ -52,19 +52,10 @@ public final class PostgresModelConfigurationRepository implements ModelConfigur
             throw new IllegalArgumentException("受控模型目录分页参数必须为正整数");
         }
         var offset = Math.multiplyExact(pageNumber - 1, pageSize);
-        var query = Wrappers.<ControlledModelCatalogEntryEntity>lambdaQuery()
-                .eq(ControlledModelCatalogEntryEntity::getStatus,
-                        ControlledModelCatalogEntryStatus.PUBLISHED.name())
-                .orderByDesc(ControlledModelCatalogEntryEntity::getCreatedAt)
-                .orderByDesc(ControlledModelCatalogEntryEntity::getId)
-                .last("LIMIT " + pageSize + " OFFSET " + offset);
-        var items = catalogMapper.selectList(query).stream()
+        var items = catalogMapper.selectPublishedAvailablePage(pageSize, offset).stream()
                 .map(PostgresModelConfigurationRepository::toCatalogDomain)
                 .toList();
-        var total = catalogMapper.selectCount(Wrappers
-                .<ControlledModelCatalogEntryEntity>lambdaQuery()
-                .eq(ControlledModelCatalogEntryEntity::getStatus,
-                        ControlledModelCatalogEntryStatus.PUBLISHED.name()));
+        var total = catalogMapper.countPublishedAvailable();
         return new ControlledModelCatalogPage(items, pageNumber, pageSize, total);
     }
 

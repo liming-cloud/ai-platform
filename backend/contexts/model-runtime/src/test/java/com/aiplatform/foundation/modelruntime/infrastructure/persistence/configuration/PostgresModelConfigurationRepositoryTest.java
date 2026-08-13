@@ -58,12 +58,21 @@ class PostgresModelConfigurationRepositoryTest {
         jdbc.update("DELETE FROM model_runtime.model_configuration_credential");
         jdbc.update("DELETE FROM model_runtime.model_configuration");
         jdbc.update("DELETE FROM model_runtime.controlled_model_catalog_entry");
+        jdbc.execute("TRUNCATE TABLE model_runtime.platform_provider_connection CASCADE");
+        insertVerifiedConnection(610000000000000001L, 2L);
+        insertPublishedDeployment(
+                620000000000000001L,
+                3L,
+                610000000000000001L,
+                2L,
+                Instant.parse("2030-07-28T00:00:00Z"));
         jdbc.update("""
                 INSERT INTO model_runtime.controlled_model_catalog_entry
                 (id, provider_kind, endpoint, model_code, model_type, context_window, output_limit,
-                 embedding_dimension, status, version, created_at)
+                 embedding_dimension, source_platform_deployment_id, source_platform_deployment_revision,
+                 status, version, created_at)
                 VALUES (3001, 'OPENAI_COMPATIBLE', 'https://example.com/v1', 'test-chat-model', 'CHAT', 32768, 4096,
-                        NULL, 'PUBLISHED', 1, ?)
+                        NULL, 620000000000000001, 3, 'PUBLISHED', 1, ?)
                 """, Timestamp.from(Instant.parse("2026-07-28T00:00:00Z")));
     }
 
@@ -86,7 +95,7 @@ class PostgresModelConfigurationRepositoryTest {
     }
 
     @Test
-    void 分页选择目录只返回已发布条目() {
+    void 分页选择目录只返回来源当前可用的已发布条目() {
         jdbc.update("""
                 INSERT INTO model_runtime.controlled_model_catalog_entry
                 (id, provider_kind, endpoint, model_code, model_type, context_window, output_limit,
@@ -94,6 +103,43 @@ class PostgresModelConfigurationRepositoryTest {
                 VALUES (3004, 'OPENAI_COMPATIBLE', 'https://example.com/v1', 'draft-chat', 'CHAT', 32768, 4096,
                         NULL, 'DRAFT', 0, ?)
                 """, Timestamp.from(Instant.parse("2026-07-28T00:00:01Z")));
+        jdbc.update("""
+                INSERT INTO model_runtime.controlled_model_catalog_entry
+                (id, provider_kind, endpoint, model_code, model_type, context_window, output_limit,
+                 embedding_dimension, source_platform_deployment_id, source_platform_deployment_revision,
+                 status, version, created_at)
+                VALUES (3005, 'OPENAI_COMPATIBLE', 'https://example.com/v1', 'stale-revision', 'CHAT', 32768, 4096,
+                        NULL, 620000000000000001, 2, 'PUBLISHED', 1, ?)
+                """, Timestamp.from(Instant.parse("2026-07-28T00:00:02Z")));
+        insertPublishedDeployment(
+                620000000000000002L,
+                1L,
+                610000000000000001L,
+                2L,
+                Instant.parse("2020-07-28T00:00:00Z"));
+        jdbc.update("""
+                INSERT INTO model_runtime.controlled_model_catalog_entry
+                (id, provider_kind, endpoint, model_code, model_type, context_window, output_limit,
+                 embedding_dimension, source_platform_deployment_id, source_platform_deployment_revision,
+                 status, version, created_at)
+                VALUES (3006, 'OPENAI_COMPATIBLE', 'https://example.com/v1', 'expired-verification', 'CHAT', 32768, 4096,
+                        NULL, 620000000000000002, 1, 'PUBLISHED', 1, ?)
+                """, Timestamp.from(Instant.parse("2026-07-28T00:00:03Z")));
+        insertVerifiedConnection(610000000000000002L, 3L);
+        insertPublishedDeployment(
+                620000000000000003L,
+                1L,
+                610000000000000002L,
+                2L,
+                Instant.parse("2030-07-28T00:00:00Z"));
+        jdbc.update("""
+                INSERT INTO model_runtime.controlled_model_catalog_entry
+                (id, provider_kind, endpoint, model_code, model_type, context_window, output_limit,
+                 embedding_dimension, source_platform_deployment_id, source_platform_deployment_revision,
+                 status, version, created_at)
+                VALUES (3007, 'OPENAI_COMPATIBLE', 'https://example.com/v1', 'revised-connection', 'CHAT', 32768, 4096,
+                        NULL, 620000000000000003, 1, 'PUBLISHED', 1, ?)
+                """, Timestamp.from(Instant.parse("2026-07-28T00:00:04Z")));
 
         var page = repository.findPublishedCatalogPage(1, 20);
 
@@ -101,6 +147,50 @@ class PostgresModelConfigurationRepositoryTest {
         assertEquals(java.util.List.of(3001L), page.items().stream()
                 .map(value -> value.id().value())
                 .toList());
+    }
+
+    private void insertVerifiedConnection(long id, long version) {
+        jdbc.update("""
+                INSERT INTO model_runtime.platform_provider_connection
+                (id, scope, provider_kind, display_name, endpoint, region, authentication_type,
+                 credential_reference, status, version, last_probe_succeeded, last_probe_code,
+                 last_probed_at, created_at)
+                VALUES (?, 'PLATFORM', 'DETERMINISTIC', ?, 'https://example.com/v1', 'local', 'API_KEY',
+                        ?, 'VERIFIED', ?, TRUE, 'ok', ?, ?)
+                """, id, "平台连接-" + id, "secret://platform-provider-connection/" + id, version,
+                Timestamp.from(Instant.parse("2026-07-28T00:00:00Z")),
+                Timestamp.from(Instant.parse("2026-07-28T00:00:00Z")));
+    }
+
+    private void insertPublishedDeployment(
+            long id,
+            long version,
+            long connectionId,
+            long connectionRevision,
+            Instant verificationExpiresAt) {
+        jdbc.update("""
+                INSERT INTO model_runtime.platform_model_deployment
+                (id, scope, platform_provider_connection_id, platform_provider_connection_revision,
+                 model_code, display_name, model_type, capabilities, context_window, output_limit,
+                 embedding_dimension, last_verification_id, verification_expires_at, status, version, created_at)
+                VALUES (?, 'PLATFORM', ?, ?, ?, ?, 'CHAT', ARRAY['CHAT'], 32768, 4096,
+                        NULL, NULL, NULL, 'DRAFT', ?, ?)
+                """, id, connectionId, connectionRevision, "model-" + id, "平台部署-" + id, version,
+                Timestamp.from(Instant.parse("2026-07-28T00:00:00Z")));
+        var verificationId = id + 10_000L;
+        jdbc.update("""
+                INSERT INTO model_runtime.platform_model_capability_verification
+                (id, platform_model_deployment_id, deployment_revision, platform_provider_connection_id,
+                 platform_provider_connection_revision, model_code, declared_capabilities, observed_capabilities,
+                 succeeded, result_code, elapsed_millis, probed_at, expires_at)
+                VALUES (?, ?, ?, ?, ?, ?, ARRAY['CHAT'], ARRAY['CHAT'], TRUE, 'ok', 1, ?, ?)
+                """, verificationId, id, version, connectionId, connectionRevision, "model-" + id,
+                Timestamp.from(verificationExpiresAt.minusSeconds(60)), Timestamp.from(verificationExpiresAt));
+        jdbc.update("""
+                UPDATE model_runtime.platform_model_deployment
+                SET last_verification_id = ?, verification_expires_at = ?, status = 'PUBLISHED'
+                WHERE id = ?
+                """, verificationId, Timestamp.from(verificationExpiresAt), id);
     }
 
     @Test

@@ -104,7 +104,7 @@ public final class ControlledModelCatalogService {
     }
 
     /**
-     * 向已认证成员提供可选的已发布目录分页，不暴露草稿条目或任何凭据材料。
+     * 向已认证成员提供来源当前可用的已发布目录分页，不暴露草稿条目或任何凭据材料。
      */
     public PageResult<ControlledModelCatalogEntry> listPublished(
             TrustedRequestContext context, PageQuery page) {

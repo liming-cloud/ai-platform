@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aiplatform.foundation.modelruntime.infrastructure.persistence.configuration.ControlledModelCatalogEntryMapper">
+
+    <resultMap id="controlledModelCatalogEntryEntity" type="com.aiplatform.foundation.modelruntime.infrastructure.persistence.configuration.entity.ControlledModelCatalogEntryEntity">
+        <id column="id" property="id"/>
+        <result column="provider_kind" property="providerKind"/>
+        <result column="endpoint" property="endpoint"/>
+        <result column="model_code" property="modelCode"/>
+        <result column="model_type" property="modelType"/>
+        <result column="context_window" property="contextWindow"/>
+        <result column="output_limit" property="outputLimit"/>
+        <result column="embedding_dimension" property="embeddingDimension"/>
+        <result column="source_platform_deployment_id" property="sourcePlatformDeploymentId"/>
+        <result column="source_platform_deployment_revision" property="sourcePlatformDeploymentRevision"/>
+        <result column="status" property="status"/>
+        <result column="version" property="version"/>
+        <result column="created_at" property="createdAt"/>
+    </resultMap>
+
+    <!--
+        目录条目是部署与连接修订的审计快照；选择器必须在分页前确认来源仍可调用，
+        以免租户看见随后必然被创建或运行时拒绝的模型。
+    -->
+    <sql id="publishedAvailableCatalogPredicate">
+        <![CDATA[
+        catalog.status = 'PUBLISHED'
+        AND catalog.source_platform_deployment_id IS NOT NULL
+        AND catalog.source_platform_deployment_revision IS NOT NULL
+        AND deployment.version = catalog.source_platform_deployment_revision
+        AND deployment.status = 'PUBLISHED'
+        AND deployment.verification_expires_at > CURRENT_TIMESTAMP
+        AND connection.version = deployment.platform_provider_connection_revision
+        AND connection.status = 'VERIFIED'
+        ]]>
+    </sql>
+
+    <sql id="publishedAvailableCatalogFrom">
+        <![CDATA[
+        FROM model_runtime.controlled_model_catalog_entry catalog
+        INNER JOIN model_runtime.platform_model_deployment deployment
+            ON deployment.id = catalog.source_platform_deployment_id
+        INNER JOIN model_runtime.platform_provider_connection connection
+            ON connection.id = deployment.platform_provider_connection_id
+        WHERE
+        ]]>
+        <include refid="publishedAvailableCatalogPredicate"/>
+    </sql>
+
+    <select id="selectPublishedAvailablePage" resultMap="controlledModelCatalogEntryEntity">
+        SELECT catalog.*
+        <include refid="publishedAvailableCatalogFrom"/>
+        <![CDATA[
+        ORDER BY catalog.created_at DESC, catalog.id DESC
+        LIMIT #{limit} OFFSET #{offset}
+        ]]>
+    </select>
+
+    <select id="countPublishedAvailable" resultType="long">
+        SELECT COUNT(*)
+        <include refid="publishedAvailableCatalogFrom"/>
+    </select>
+</mapper>
