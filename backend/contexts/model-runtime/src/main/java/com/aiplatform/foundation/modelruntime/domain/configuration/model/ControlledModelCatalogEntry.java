@@ -2,6 +2,7 @@ package com.aiplatform.foundation.modelruntime.domain.configuration.model;
 
 import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelType;
 import com.aiplatform.foundation.modelruntime.domain.provider.model.ProviderKind;
+import com.aiplatform.foundation.modelruntime.domain.platformsupply.model.PlatformModelDeploymentId;
 import com.aiplatform.foundation.shared.kernel.domain.AggregateRoot;
 import java.net.URI;
 import java.time.Instant;
@@ -24,6 +25,8 @@ public final class ControlledModelCatalogEntry
     private final ControlledModelCatalogEntryStatus status;
     private final long version;
     private final Instant createdAt;
+    private final PlatformModelDeploymentId sourceDeploymentId;
+    private final Long sourceDeploymentRevision;
 
     private ControlledModelCatalogEntry(
             ControlledModelCatalogEntryId id,
@@ -34,7 +37,9 @@ public final class ControlledModelCatalogEntry
             ModelRuntimeCapabilities capabilities,
             ControlledModelCatalogEntryStatus status,
             long version,
-            Instant createdAt) {
+            Instant createdAt,
+            PlatformModelDeploymentId sourceDeploymentId,
+            Long sourceDeploymentRevision) {
         this.id = Objects.requireNonNull(id, "受控模型目录条目标识不能为空");
         this.providerKind = Objects.requireNonNull(providerKind, "供应商类型不能为空");
         this.endpoint = requireEndpoint(endpoint);
@@ -48,6 +53,12 @@ public final class ControlledModelCatalogEntry
         }
         this.version = version;
         this.createdAt = Objects.requireNonNull(createdAt, "创建时间不能为空");
+        if ((sourceDeploymentId == null) != (sourceDeploymentRevision == null)
+                || sourceDeploymentRevision != null && sourceDeploymentRevision < 0) {
+            throw new IllegalArgumentException("平台部署快照来源不完整");
+        }
+        this.sourceDeploymentId = sourceDeploymentId;
+        this.sourceDeploymentRevision = sourceDeploymentRevision;
     }
 
     public static ControlledModelCatalogEntry create(
@@ -66,8 +77,7 @@ public final class ControlledModelCatalogEntry
                 modelType,
                 capabilities,
                 ControlledModelCatalogEntryStatus.DRAFT,
-                0,
-                createdAt);
+                0, createdAt, null, null);
     }
 
     public static ControlledModelCatalogEntry reconstitute(
@@ -81,7 +91,26 @@ public final class ControlledModelCatalogEntry
             long version,
             Instant createdAt) {
         return new ControlledModelCatalogEntry(
-                id, providerKind, endpoint, modelCode, modelType, capabilities, status, version, createdAt);
+                id, providerKind, endpoint, modelCode, modelType, capabilities, status, version, createdAt, null, null);
+    }
+
+    public static ControlledModelCatalogEntry reconstitute(
+            ControlledModelCatalogEntryId id, ProviderKind providerKind, URI endpoint, String modelCode,
+            ModelType modelType, ModelRuntimeCapabilities capabilities, ControlledModelCatalogEntryStatus status,
+            long version, Instant createdAt, PlatformModelDeploymentId sourceDeploymentId,
+            Long sourceDeploymentRevision) {
+        return new ControlledModelCatalogEntry(id, providerKind, endpoint, modelCode, modelType, capabilities,
+                status, version, createdAt, sourceDeploymentId, sourceDeploymentRevision);
+    }
+
+    /** 由平台已发布部署建立目录草稿，来源修订随目录事实冻结。 */
+    public static ControlledModelCatalogEntry createFromPlatformDeployment(
+            ControlledModelCatalogEntryId id, PlatformModelDeploymentId sourceDeploymentId,
+            long sourceDeploymentRevision, ProviderKind providerKind, URI endpoint, String modelCode,
+            ModelType modelType, ModelRuntimeCapabilities capabilities, Instant createdAt) {
+        return new ControlledModelCatalogEntry(id, providerKind, endpoint, modelCode, modelType, capabilities,
+                ControlledModelCatalogEntryStatus.DRAFT, 0, createdAt,
+                Objects.requireNonNull(sourceDeploymentId, "平台部署标识不能为空"), sourceDeploymentRevision);
     }
 
     public ControlledModelCatalogEntry publish() {
@@ -96,8 +125,7 @@ public final class ControlledModelCatalogEntry
                 modelType,
                 capabilities,
                 ControlledModelCatalogEntryStatus.PUBLISHED,
-                version + 1,
-                createdAt);
+                version + 1, createdAt, sourceDeploymentId, sourceDeploymentRevision);
     }
 
     @Override
@@ -139,6 +167,10 @@ public final class ControlledModelCatalogEntry
     public Instant createdAt() {
         return createdAt;
     }
+
+    public PlatformModelDeploymentId sourceDeploymentId() { return sourceDeploymentId; }
+
+    public Long sourceDeploymentRevision() { return sourceDeploymentRevision; }
 
     private static URI requireEndpoint(URI value) {
         Objects.requireNonNull(value, "受控模型目录端点不能为空");

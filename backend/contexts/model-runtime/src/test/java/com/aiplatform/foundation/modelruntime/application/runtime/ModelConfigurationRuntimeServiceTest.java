@@ -2,6 +2,8 @@ package com.aiplatform.foundation.modelruntime.application.runtime;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import com.aiplatform.foundation.modelruntime.application.configuration.dto.UsableModelConfigurationSnapshot;
 import com.aiplatform.foundation.modelruntime.application.configuration.facade.UsableModelConfigurationLookup;
@@ -29,6 +31,9 @@ import com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelCo
 import com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelRuntimeCapabilities;
 import com.aiplatform.foundation.modelruntime.domain.configuration.repository.ModelConfigurationRepository;
 import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelType;
+import com.aiplatform.foundation.modelruntime.domain.platformsupply.model.PlatformModelDeploymentId;
+import com.aiplatform.foundation.modelruntime.domain.platformsupply.repository.PlatformModelDeploymentRepository;
+import com.aiplatform.foundation.modelruntime.domain.platformsupply.repository.PlatformProviderConnectionRepository;
 import com.aiplatform.foundation.modelruntime.domain.provider.model.ProviderKind;
 import com.aiplatform.foundation.security.identity.AccessChannel;
 import com.aiplatform.foundation.security.identity.CredentialType;
@@ -82,6 +87,30 @@ class ModelConfigurationRuntimeServiceTest {
 
         assertThrows(ModelRuntimeUnavailableException.class,
                 () -> service.embed(member(), stale, request()));
+        assertEquals(null, factory.specification.get());
+    }
+
+    @Test
+    void 平台目录来源部署不存在时必须拒绝嵌入调用() {
+        var sourceEntry = ControlledModelCatalogEntry.createFromPlatformDeployment(
+                        new ControlledModelCatalogEntryId(3001L), new PlatformModelDeploymentId(7001L), 2L,
+                        ProviderKind.OPENAI_COMPATIBLE, URI.create("https://example.com/v1"), "text-embedding-v1",
+                        ModelType.EMBEDDING, ModelRuntimeCapabilities.embedding(8192, 1024),
+                        Instant.parse("2026-08-13T00:00:00Z"))
+                .publish();
+        var deployments = mock(PlatformModelDeploymentRepository.class);
+        when(deployments.findById(new PlatformModelDeploymentId(7001L))).thenReturn(Optional.empty());
+        var factory = new RecordingEmbeddingFactory();
+        var service = new ModelConfigurationRuntimeService(
+                (context, id, type) -> Optional.of(snapshot()),
+                new ConfigurationRepository(sourceEntry),
+                useCredential(),
+                List.of(factory),
+                List.of(),
+                deployments,
+                mock(PlatformProviderConnectionRepository.class));
+
+        assertThrows(ModelRuntimeUnavailableException.class, () -> service.embed(member(), snapshot(), request()));
         assertEquals(null, factory.specification.get());
     }
 
@@ -198,11 +227,19 @@ class ModelConfigurationRuntimeServiceTest {
     }
 
     private static final class ConfigurationRepository implements ModelConfigurationRepository {
-        private final ControlledModelCatalogEntry entry = ControlledModelCatalogEntry.create(
-                        new ControlledModelCatalogEntryId(3001L), ProviderKind.OPENAI_COMPATIBLE,
-                        URI.create("https://example.com/v1"), "text-embedding-v1", ModelType.EMBEDDING,
-                        ModelRuntimeCapabilities.embedding(8192, 1024), Instant.parse("2026-07-28T00:00:00Z"))
-                .publish();
+        private final ControlledModelCatalogEntry entry;
+
+        private ConfigurationRepository() {
+            this(ControlledModelCatalogEntry.create(
+                            new ControlledModelCatalogEntryId(3001L), ProviderKind.OPENAI_COMPATIBLE,
+                            URI.create("https://example.com/v1"), "text-embedding-v1", ModelType.EMBEDDING,
+                            ModelRuntimeCapabilities.embedding(8192, 1024), Instant.parse("2026-07-28T00:00:00Z"))
+                    .publish());
+        }
+
+        private ConfigurationRepository(ControlledModelCatalogEntry entry) {
+            this.entry = entry;
+        }
 
         @Override public Optional<ControlledModelCatalogEntry> findCatalogEntry(ControlledModelCatalogEntryId id) { return entry.id().equals(id) ? Optional.of(entry) : Optional.empty(); }
         @Override public void saveCatalogEntry(ControlledModelCatalogEntry value) { }

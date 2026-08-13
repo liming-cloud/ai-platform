@@ -13,6 +13,7 @@ import com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelCo
 import com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelRuntimeCapabilities;
 import com.aiplatform.foundation.modelruntime.domain.configuration.repository.ModelConfigurationRepository;
 import com.aiplatform.foundation.modelruntime.domain.configuration.repository.ModelConfigurationAccessRepository;
+import com.aiplatform.foundation.modelruntime.domain.platformsupply.model.PlatformModelDeploymentId;
 import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
 import java.sql.Timestamp;
 import java.time.Instant;
@@ -104,8 +105,11 @@ class PostgresModelConfigurationRepositoryTest {
 
     @Test
     void 保存并发布受控目录条目时使用乐观版本更新() {
-        var draft = ControlledModelCatalogEntry.create(
+        var deploymentId = new PlatformModelDeploymentId(620000000000000001L);
+        var draft = ControlledModelCatalogEntry.createFromPlatformDeployment(
                 new ControlledModelCatalogEntryId(3002L),
+                deploymentId,
+                3L,
                 com.aiplatform.foundation.modelruntime.domain.provider.model.ProviderKind.OPENAI_COMPATIBLE,
                 java.net.URI.create("https://example.com/v1"),
                 "qwen-embedding", com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelType.EMBEDDING,
@@ -118,6 +122,8 @@ class PostgresModelConfigurationRepositoryTest {
         assertEquals("PUBLISHED", published.status().name());
         assertEquals(1L, published.version());
         assertEquals(1_024, published.capabilities().embeddingDimension());
+        assertEquals(deploymentId, published.sourceDeploymentId());
+        assertEquals(3L, published.sourceDeploymentRevision());
     }
 
     @Test

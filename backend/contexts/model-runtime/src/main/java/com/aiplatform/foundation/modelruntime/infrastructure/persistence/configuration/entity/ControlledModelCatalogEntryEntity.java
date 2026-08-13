@@ -21,6 +21,8 @@ public class ControlledModelCatalogEntryEntity {
     @TableField("context_window") private Integer contextWindow;
     @TableField("output_limit") private Integer outputLimit;
     @TableField("embedding_dimension") private Integer embeddingDimension;
+    @TableField("source_platform_deployment_id") private Long sourcePlatformDeploymentId;
+    @TableField("source_platform_deployment_revision") private Long sourcePlatformDeploymentRevision;
     private String status;
     @Version private long version;
     @TableField("created_at") private Instant createdAt;
@@ -41,6 +43,10 @@ public class ControlledModelCatalogEntryEntity {
     public void setOutputLimit(Integer outputLimit) { this.outputLimit = outputLimit; }
     public Integer getEmbeddingDimension() { return embeddingDimension; }
     public void setEmbeddingDimension(Integer embeddingDimension) { this.embeddingDimension = embeddingDimension; }
+    public Long getSourcePlatformDeploymentId() { return sourcePlatformDeploymentId; }
+    public void setSourcePlatformDeploymentId(Long sourcePlatformDeploymentId) { this.sourcePlatformDeploymentId = sourcePlatformDeploymentId; }
+    public Long getSourcePlatformDeploymentRevision() { return sourcePlatformDeploymentRevision; }
+    public void setSourcePlatformDeploymentRevision(Long sourcePlatformDeploymentRevision) { this.sourcePlatformDeploymentRevision = sourcePlatformDeploymentRevision; }
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
     public long getVersion() { return version; }

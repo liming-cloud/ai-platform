@@ -17,6 +17,7 @@ import { type FormEvent, useCallback, useEffect, useState } from "react";
 import {
   ApiRequestError,
   type ControlPlaneClient,
+  type ControlledModelCatalogEntry,
   type PlatformModelDeploymentSummary,
   type PlatformProviderModelCandidate,
 } from "../../api/control-plane-client";
@@ -51,6 +52,8 @@ export function PlatformModelDeploymentWorkspace({
   const [probeTarget, setProbeTarget] = useState<PlatformModelDeploymentSummary>();
   const [publishTarget, setPublishTarget] = useState<PlatformModelDeploymentSummary>();
   const [disableTarget, setDisableTarget] = useState<PlatformModelDeploymentSummary>();
+  const [catalogCreationTarget, setCatalogCreationTarget] = useState<PlatformModelDeploymentSummary>();
+  const [catalogPublishTarget, setCatalogPublishTarget] = useState<ControlledModelCatalogEntry>();
   const [submitting, setSubmitting] = useState(false);
 
   const loadDeployments = useCallback(async () => {
@@ -121,6 +124,22 @@ export function PlatformModelDeploymentWorkspace({
     try { await client.disablePlatformModelDeployment(disableTarget.id, disableTarget.version); setDisableTarget(undefined); await loadDeployments(); }
     catch (error) { setFailure(toFailure(error)); } finally { setSubmitting(false); }
   }
+  async function createCatalogDraft() {
+    if (catalogCreationTarget === undefined) return;
+    setSubmitting(true); setFailure(undefined);
+    try {
+      const entry = await client.createControlledModelCatalogFromDeployment(
+        catalogCreationTarget.id, catalogCreationTarget.version,
+      );
+      setCatalogCreationTarget(undefined); setCatalogPublishTarget(entry);
+    } catch (error) { setFailure(toFailure(error)); } finally { setSubmitting(false); }
+  }
+  async function publishCatalog() {
+    if (catalogPublishTarget === undefined) return;
+    setSubmitting(true); setFailure(undefined);
+    try { await client.publishControlledModelCatalog(catalogPublishTarget.id); setCatalogPublishTarget(undefined); await loadDeployments(); }
+    catch (error) { setFailure(toFailure(error)); } finally { setSubmitting(false); }
+  }
 
   if (viewState === "unauthenticated") return <StatePanel kind="stale" title="浏览器会话已经失效" description="平台模型部署摘要已清除，请重新登录。" actionLabel="返回登录入口" onAction={() => window.location.assign("/")} />;
   if (viewState === "loading") return <StatePanel kind="loading" title="正在加载平台模型部署" description="正在从服务端读取部署与当前发现候选。" />;
@@ -132,11 +151,13 @@ export function PlatformModelDeploymentWorkspace({
     <section className="model-configuration-section" aria-label="平台当前发现候选"><header className="task-heading"><Title3>当前发现候选</Title3><Text>{route.connectionId === undefined ? "请从平台连接页面选择已验证连接。" : "只显示指定连接当前修订的未过期候选。"}</Text></header>
       {route.connectionId === undefined ? null : <><div className="member-directory-table" role="region" aria-label="平台模型候选分页表格"><table><thead><tr><th>模型代码</th><th>类型</th><th>能力</th><th>操作</th></tr></thead><tbody>{candidates.length === 0 ? <tr><td colSpan={4}>当前页没有可创建部署的候选；请重新执行模型发现。</td></tr> : candidates.map((candidate) => <tr key={`${candidate.modelCode}:${candidate.modelType}`}><td>{candidate.modelCode}</td><td>{candidate.modelType}</td><td>{candidate.capabilities.join("、")}</td><td><Button appearance="primary" disabled={submitting} onClick={() => setCreationCandidate(candidate)}>新建草稿部署</Button></td></tr>)}</tbody></table></div><Pagination label="当前发现候选" page={route.candidatePage} total={candidateTotal} hasPrevious={candidatePrevious} hasNext={candidateNext} onPrevious={() => onRouteChange({ ...route, candidatePage: route.candidatePage - 1 })} onNext={() => onRouteChange({ ...route, candidatePage: route.candidatePage + 1 })} /></>}
     </section>
-    <section className="model-configuration-section" aria-label="平台模型部署目录"><header className="task-heading"><Title3>平台模型部署</Title3><Text>草稿必须完成最小真实能力探测；仅未过期验证可发布，停用会阻断新目录发布和调用。</Text></header><div className="member-directory-table" role="region" aria-label="平台模型部署分页表格"><table><thead><tr><th>部署</th><th>模型与连接</th><th>状态</th><th>可用性</th><th>验证有效期</th><th>操作</th></tr></thead><tbody>{deployments.length === 0 ? <tr><td colSpan={6}>当前页没有平台模型部署。</td></tr> : deployments.map((deployment) => <tr key={deployment.id}><td>{deployment.displayName}</td><td>{deployment.modelCode} · {deployment.modelType}<br /><Text size={200}>连接 {deployment.providerConnectionId}，修订 {deployment.providerConnectionRevision}</Text></td><td><Badge appearance="tint" color={deployment.status === "PUBLISHED" ? "success" : deployment.status === "VERIFIED" ? "brand" : deployment.status === "DISABLED" ? "danger" : "warning"}>{deployment.status}</Badge></td><td><Badge appearance="tint" color={deployment.availability === "HEALTHY" ? "success" : deployment.availability === "DEGRADED" ? "warning" : "danger"}>{deployment.availability}</Badge><br /><Text size={200}>建议：{nextStepLabel(deployment.nextStep)}</Text></td><td>{deployment.verificationExpiresAt === null ? "待真实能力验证" : new Date(deployment.verificationExpiresAt).toLocaleString("zh-CN")}</td><td><div className="task-actions"><Button appearance="secondary" disabled={submitting || deployment.status !== "DRAFT"} onClick={() => setProbeTarget(deployment)}>探测能力</Button><Button appearance="primary" disabled={submitting || deployment.status !== "VERIFIED"} onClick={() => setPublishTarget(deployment)}>发布部署</Button><Button appearance="secondary" disabled={submitting || deployment.status === "DISABLED"} onClick={() => setDisableTarget(deployment)}>停用部署</Button></div></td></tr>)}</tbody></table></div><Pagination label="平台模型部署" page={route.deploymentPage} total={deploymentTotal} hasPrevious={deploymentPrevious} hasNext={deploymentNext} onPrevious={() => onRouteChange({ ...route, deploymentPage: route.deploymentPage - 1 })} onNext={() => onRouteChange({ ...route, deploymentPage: route.deploymentPage + 1 })} /></section>
+    <section className="model-configuration-section" aria-label="平台模型部署目录"><header className="task-heading"><Title3>平台模型部署</Title3><Text>草稿必须完成最小真实能力探测；仅未过期验证可发布，停用会阻断新目录发布和调用。</Text></header><div className="member-directory-table" role="region" aria-label="平台模型部署分页表格"><table><thead><tr><th>部署</th><th>模型与连接</th><th>状态</th><th>可用性</th><th>验证有效期</th><th>操作</th></tr></thead><tbody>{deployments.length === 0 ? <tr><td colSpan={6}>当前页没有平台模型部署。</td></tr> : deployments.map((deployment) => <tr key={deployment.id}><td>{deployment.displayName}</td><td>{deployment.modelCode} · {deployment.modelType}<br /><Text size={200}>连接 {deployment.providerConnectionId}，修订 {deployment.providerConnectionRevision}</Text></td><td><Badge appearance="tint" color={deployment.status === "PUBLISHED" ? "success" : deployment.status === "VERIFIED" ? "brand" : deployment.status === "DISABLED" ? "danger" : "warning"}>{deployment.status}</Badge></td><td><Badge appearance="tint" color={deployment.availability === "HEALTHY" ? "success" : deployment.availability === "DEGRADED" ? "warning" : "danger"}>{deployment.availability}</Badge><br /><Text size={200}>建议：{nextStepLabel(deployment.nextStep)}</Text></td><td>{deployment.verificationExpiresAt === null ? "待真实能力验证" : new Date(deployment.verificationExpiresAt).toLocaleString("zh-CN")}</td><td><div className="task-actions"><Button appearance="secondary" disabled={submitting || deployment.status !== "DRAFT"} onClick={() => setProbeTarget(deployment)}>探测能力</Button><Button appearance="primary" disabled={submitting || deployment.status !== "VERIFIED"} onClick={() => setPublishTarget(deployment)}>发布部署</Button><Button appearance="primary" disabled={submitting || deployment.status !== "PUBLISHED" || deployment.availability !== "HEALTHY"} onClick={() => setCatalogCreationTarget(deployment)}>建立目录</Button><Button appearance="secondary" disabled={submitting || deployment.status === "DISABLED"} onClick={() => setDisableTarget(deployment)}>停用部署</Button></div></td></tr>)}</tbody></table></div><Pagination label="平台模型部署" page={route.deploymentPage} total={deploymentTotal} hasPrevious={deploymentPrevious} hasNext={deploymentNext} onPrevious={() => onRouteChange({ ...route, deploymentPage: route.deploymentPage - 1 })} onNext={() => onRouteChange({ ...route, deploymentPage: route.deploymentPage + 1 })} /></section>
     <Dialog open={creationCandidate !== undefined} onOpenChange={(_, data) => { if (!data.open && !submitting) setCreationCandidate(undefined); }}><DialogSurface><DialogBody><DialogTitle>新建平台草稿部署</DialogTitle><form onSubmit={(event) => void createDeployment(event)}><DialogContent>{creationCandidate === undefined ? null : <><Text>选择的候选为 {creationCandidate.modelCode}（{creationCandidate.modelType}）。系统会再次确认候选仍属于此连接修订。</Text><Field label="部署名称" required><Input name="displayName" autoFocus disabled={submitting} /></Field><Field label="上下文窗口" required><Input name="contextWindow" type="number" min={1} defaultValue="8192" disabled={submitting} /></Field>{creationCandidate.modelType === "CHAT" ? <Field label="输出上限" required><Input name="outputLimit" type="number" min={1} defaultValue="1024" disabled={submitting} /></Field> : <Field label="嵌入维度" required><Input name="embeddingDimension" type="number" min={1} defaultValue="1024" disabled={submitting} /></Field>}</>}</DialogContent><DialogActions><Button appearance="secondary" type="button" disabled={submitting} onClick={() => setCreationCandidate(undefined)}>取消</Button><Button appearance="primary" type="submit" disabled={submitting}>{submitting ? "正在创建" : "创建草稿"}</Button></DialogActions></form></DialogBody></DialogSurface></Dialog>
     <ConfirmationDialog open={probeTarget !== undefined} title="确认执行真实能力探测" description={`系统将对 ${probeTarget?.displayName ?? "该部署"} 发起最小真实模型调用。成功验证只在固定有效期内允许发布。`} busy={submitting} action="执行探测" onClose={() => setProbeTarget(undefined)} onConfirm={() => void probeDeployment()} />
     <ConfirmationDialog open={publishTarget !== undefined} title="确认发布平台模型部署" description={`发布 ${publishTarget?.displayName ?? "该部署"} 前会重新核验连接修订与验证有效期。`} busy={submitting} action="确认发布" onClose={() => setPublishTarget(undefined)} onConfirm={() => void publishDeployment()} />
     <ConfirmationDialog open={disableTarget !== undefined} title="确认停用平台模型部署" description={`停用 ${disableTarget?.displayName ?? "该部署"} 会阻断新目录发布和调用；当前修订不能恢复。`} busy={submitting} action="确认停用" onClose={() => setDisableTarget(undefined)} onConfirm={() => void disableDeployment()} />
+    <ConfirmationDialog open={catalogCreationTarget !== undefined} title="确认建立平台目录草稿" description={`目录将只冻结 ${catalogCreationTarget?.displayName ?? "该部署"} 的当前发布修订、实测能力和厂商事实；浏览器不会提交 Endpoint 或模型参数。`} busy={submitting} action="建立目录草稿" onClose={() => setCatalogCreationTarget(undefined)} onConfirm={() => void createCatalogDraft()} />
+    <ConfirmationDialog open={catalogPublishTarget !== undefined} title="确认发布平台目录" description={`发布 ${catalogPublishTarget?.modelCode ?? "该目录"} 前会再次校验其冻结的平台部署、连接修订和验证有效期。`} busy={submitting} action="确认发布目录" onClose={() => setCatalogPublishTarget(undefined)} onConfirm={() => void publishCatalog()} />
   </div>;
 }
 

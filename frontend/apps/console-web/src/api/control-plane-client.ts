@@ -196,13 +196,12 @@ export interface ModelConfiguration {
 export interface ControlledModelCatalogEntry {
   id: string;
   providerKind: string;
-  endpoint: string;
   modelCode: string;
   modelType: "CHAT" | "EMBEDDING";
   contextWindow: number;
   outputLimit: number | null;
   embeddingDimension: number | null;
-  status: "PUBLISHED";
+  status: "DRAFT" | "PUBLISHED";
   version: number;
   createdAt: string;
 }
@@ -1151,6 +1150,25 @@ export class ControlPlaneClient {
   ): Promise<PageResult<ControlledModelCatalogEntry>> {
     return this.request<PageResult<ControlledModelCatalogEntry>>(
       `/controlled-model-catalog?pageNumber=${pageNumber}&pageSize=${pageSize}`,
+    );
+  }
+
+  /** 平台目录只能引用已发布部署；请求中不含 Endpoint、模型编码或能力。 */
+  async createControlledModelCatalogFromDeployment(
+    platformDeploymentId: string,
+    expectedDeploymentVersion: number,
+  ): Promise<ControlledModelCatalogEntry> {
+    return this.request<ControlledModelCatalogEntry>("/controlled-model-catalog", {
+      method: "POST",
+      headers: this.writeHeaders("application/json"),
+      body: JSON.stringify({ platformDeploymentId, expectedDeploymentVersion }),
+    });
+  }
+
+  async publishControlledModelCatalog(entryId: string): Promise<ControlledModelCatalogEntry> {
+    return this.request<ControlledModelCatalogEntry>(
+      `/controlled-model-catalog/${encodeURIComponent(entryId)}/publish`,
+      { method: "POST", headers: this.writeHeaders("application/json") },
     );
   }
 

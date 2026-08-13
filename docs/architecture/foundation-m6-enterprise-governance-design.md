@@ -672,9 +672,9 @@ ADR-0058、ADR-0065、ADR-0066、现有 `ProviderConnection`、`ModelDeployment`
 | 领域概念 | 代码／API／数据／文档指针 | 状态 | 差异与处理 |
 | --- | --- | --- | --- |
 | 租户供应链 | `domain.provider.ProviderConnection`、`domain.deployment.ModelDeployment`、租户 HTTP 路由及 `model_runtime.provider_*` 表。 | 已实施。 | 保持租户隔离，不能泛化为可空范围。 |
-| 平台供应链 | 新 `platformsupply` 领域、应用、持久化与 `/api/v1/platform/model-supply` 路由。 | 待实施。 | 使用独立表、标识、密钥命名空间和 `PlatformRequestContext`。 |
-| 全局目录 | `ControlledModelCatalogEntry`、`ControlledModelCatalogService`。 | 待改造。 | 改为只从已发布平台部署创建冻结快照；删除自由 Endpoint／模型／能力输入。 |
-| 租户运行时 | `ModelConfiguration` 与 `ModelConfigurationRuntimeService`。 | 待复核。 | 只消费目录安全快照；目录失效时失败关闭。 |
+| 平台供应链 | 新 `platformsupply` 领域、应用、持久化与 `/api/v1/platform/model-supply` 路由。 | 已实施。 | 使用独立表、标识、密钥命名空间和 `PlatformRequestContext`。 |
+| 全局目录 | `ControlledModelCatalogEntry`、`ControlledModelCatalogService`。 | 已实施。 | 只从已发布平台部署创建冻结快照；已删除自由 Endpoint／模型／能力输入。 |
+| 租户运行时 | `ModelConfiguration` 与 `ModelConfigurationRuntimeService`。 | 已复核。 | 只消费目录安全快照；目录失效时失败关闭。 |
 
 红灯优先覆盖：租户会话不能建立平台连接、租户部署不能成为平台目录来源、草稿／过期／修订漂移平台部署不能发布目录、伪造快照参数不能改变目录事实，以及凭据和 Endpoint 不出现在列表或错误投影。绿灯必须以同一用例补齐 PostgreSQL、HTTP、标准服务端分页、统一 SPA 与本地 Compose 浏览器链路；自动验收与人工评审前不得进入 M7。
 
@@ -722,3 +722,7 @@ PostgreSQL 事务、HTTP 平台会话和 SPA 写后重读。模型发现、部�
 | 停用部署 | `DisablePlatformModelDeploymentCommand` | 平台管理员与版本匹配；同一修订不可恢复。 | 保留验证审计并阻断后续目录绑定和调用。 |
 
 统一 SPA 将连接管理和部署管理拆成两个可恢复 URL：连接页只能进入已验证连接的部署页；部署页分别维护候选页码与部署页码，写操作完成后重新读取服务端页。候选创建、真实探测、发布和停用均采用明确确认 Dialog，避免在浏览器中隐藏执行或展示无界历史诊断。
+
+### ADR-0065／ADR-0066 目录快照窄切片
+
+目录创建 HTTP 只接收 `platformDeploymentId` 和当前部署修订，并由 `PlatformRequestContext` 授权；不接收 Endpoint、厂商、模型编码或能力。服务端从 `PUBLISHED`、`HEALTHY`、验证未过期且连接修订仍为 `VERIFIED` 的平台部署冻结目录事实，并持久化来源部署标识与修订。目录发布同样重新验证来源。运行时在真实平台仓储装配下复核该快照；部署停用、验证过期或连接漂移会在调用前失败关闭。控制台在现有平台部署服务端分页页只为健康已发布部署显示“建立目录”，随后以两个显式 Dialog 完成草稿建立和目录发布。

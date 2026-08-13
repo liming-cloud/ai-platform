@@ -14,6 +14,7 @@ import com.aiplatform.foundation.modelruntime.domain.configuration.repository.Mo
 import com.aiplatform.foundation.modelruntime.domain.configuration.repository.ModelConfigurationPage;
 import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelType;
 import com.aiplatform.foundation.modelruntime.domain.provider.model.ProviderKind;
+import com.aiplatform.foundation.modelruntime.domain.platformsupply.model.PlatformModelDeploymentId;
 import com.aiplatform.foundation.modelruntime.infrastructure.persistence.configuration.entity.ControlledModelCatalogEntryEntity;
 import com.aiplatform.foundation.modelruntime.infrastructure.persistence.configuration.entity.ModelConfigurationEntity;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
@@ -164,7 +165,10 @@ public final class PostgresModelConfigurationRepository implements ModelConfigur
                 requireCapabilities(row),
                 ControlledModelCatalogEntryStatus.valueOf(row.getStatus()),
                 row.getVersion(),
-                row.getCreatedAt());
+                row.getCreatedAt(),
+                row.getSourcePlatformDeploymentId() == null ? null
+                        : new PlatformModelDeploymentId(row.getSourcePlatformDeploymentId()),
+                row.getSourcePlatformDeploymentRevision());
     }
 
     private static ModelConfiguration toDomain(ModelConfigurationEntity row) {
@@ -191,6 +195,8 @@ public final class PostgresModelConfigurationRepository implements ModelConfigur
         entity.setContextWindow(entry.capabilities().contextWindow());
         entity.setOutputLimit(entry.capabilities().outputLimit());
         entity.setEmbeddingDimension(entry.capabilities().embeddingDimension());
+        entity.setSourcePlatformDeploymentId(entry.sourceDeploymentId() == null ? null : entry.sourceDeploymentId().value());
+        entity.setSourcePlatformDeploymentRevision(entry.sourceDeploymentRevision());
         entity.setStatus(entry.status().name());
         entity.setVersion(entry.version());
         entity.setCreatedAt(entry.createdAt());

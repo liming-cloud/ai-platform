@@ -9,7 +9,6 @@ import java.time.Instant;
 public record ControlledModelCatalogEntryView(
         String id,
         String providerKind,
-        String endpoint,
         String modelCode,
         String modelType,
         int contextWindow,
@@ -21,8 +20,8 @@ public record ControlledModelCatalogEntryView(
 
     public static ControlledModelCatalogEntryView from(ControlledModelCatalogEntry entry) {
         return new ControlledModelCatalogEntryView(
-                entry.id().toString(), entry.providerKind().name(), entry.endpoint().toString(),
-                entry.modelCode(), entry.modelType().name(), entry.capabilities().contextWindow(),
+                entry.id().toString(), entry.providerKind().name(), entry.modelCode(),
+                entry.modelType().name(), entry.capabilities().contextWindow(),
                 entry.capabilities().outputLimit(), entry.capabilities().embeddingDimension(),
                 entry.status().name(), entry.version(), entry.createdAt());
     }

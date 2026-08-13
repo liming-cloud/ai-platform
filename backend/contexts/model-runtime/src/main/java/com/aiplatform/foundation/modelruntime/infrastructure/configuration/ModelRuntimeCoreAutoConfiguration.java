@@ -65,6 +65,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
+import org.springframework.beans.factory.ObjectProvider;
 
 /**
  * 注册模型目录用例、探测编排和跨上下文发布查询门面。
@@ -226,19 +227,27 @@ public class ModelRuntimeCoreAutoConfiguration {
     @ConditionalOnMissingBean
     ModelConfigurationService modelConfigurationService(
             ModelConfigurationRepository repository,
-            EntityIdGenerator identifiers) {
-        return new ModelConfigurationService(
-                repository,
-                Clock.systemUTC(),
-                identifiers);
+            EntityIdGenerator identifiers,
+            ObjectProvider<PlatformModelDeploymentRepository> deployments,
+            ObjectProvider<PlatformProviderConnectionRepository> connections) {
+        var platformDeployments = deployments.getIfAvailable();
+        var platformConnections = connections.getIfAvailable();
+        return platformDeployments == null || platformConnections == null
+                ? new ModelConfigurationService(repository, Clock.systemUTC(), identifiers)
+                : new ModelConfigurationService(
+                        repository, Clock.systemUTC(), identifiers, platformDeployments, platformConnections);
     }
 
     @Bean
+    @ConditionalOnBean({PlatformModelDeploymentRepository.class, PlatformProviderConnectionRepository.class})
     @ConditionalOnMissingBean
     ControlledModelCatalogService controlledModelCatalogService(
             ModelConfigurationRepository repository,
-            EntityIdGenerator identifiers) {
-        return new ControlledModelCatalogService(repository, identifiers, Clock.systemUTC());
+            EntityIdGenerator identifiers,
+            PlatformModelDeploymentRepository deployments,
+            PlatformProviderConnectionRepository connections) {
+        return new ControlledModelCatalogService(
+                repository, identifiers, Clock.systemUTC(), deployments, connections);
     }
 
     @Bean
@@ -292,9 +301,12 @@ public class ModelRuntimeCoreAutoConfiguration {
             ModelConfigurationRepository catalog,
             ModelConfigurationCredentialUser credentials,
             List<EmbeddingModelFactory> embeddingFactories,
-            List<ChatModelFactory> chatFactories) {
+            List<ChatModelFactory> chatFactories,
+            ObjectProvider<PlatformModelDeploymentRepository> deployments,
+            ObjectProvider<PlatformProviderConnectionRepository> connections) {
         return new ModelConfigurationRuntimeService(
-                configurations, catalog, credentials, embeddingFactories, chatFactories);
+                configurations, catalog, credentials, embeddingFactories, chatFactories,
+                deployments.getIfAvailable(), connections.getIfAvailable());
     }
 
     @Bean

@@ -14,6 +14,10 @@ import com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.emb
 import com.aiplatform.foundation.modelruntime.application.runtime.port.out.EmbeddingModelFactory;
 import com.aiplatform.foundation.modelruntime.application.runtime.port.out.ChatModelFactory;
 import com.aiplatform.foundation.modelruntime.domain.configuration.model.ControlledModelCatalogEntryStatus;
+import com.aiplatform.foundation.modelruntime.domain.platformsupply.model.PlatformModelDeploymentStatus;
+import com.aiplatform.foundation.modelruntime.domain.platformsupply.repository.PlatformModelDeploymentRepository;
+import com.aiplatform.foundation.modelruntime.domain.platformsupply.repository.PlatformProviderConnectionRepository;
+import com.aiplatform.foundation.modelruntime.domain.provider.model.ProviderConnectionStatus;
 import com.aiplatform.foundation.modelruntime.domain.configuration.repository.ModelConfigurationRepository;
 import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelType;
 import com.aiplatform.foundation.modelruntime.domain.provider.model.CredentialReference;
@@ -36,13 +40,15 @@ public final class ModelConfigurationRuntimeService
     private final ModelConfigurationCredentialUser credentials;
     private final Map<ProviderKind, EmbeddingModelFactory> embeddingFactories;
     private final Map<ProviderKind, ChatModelFactory> chatFactories;
+    private final PlatformModelDeploymentRepository platformDeployments;
+    private final PlatformProviderConnectionRepository platformConnections;
 
     public ModelConfigurationRuntimeService(
             UsableModelConfigurationLookup configurations,
             ModelConfigurationRepository catalog,
             ModelConfigurationCredentialUser credentials,
             List<EmbeddingModelFactory> embeddingFactories) {
-        this(configurations, catalog, credentials, embeddingFactories, List.of());
+        this(configurations, catalog, credentials, embeddingFactories, List.of(), null, null);
     }
 
     public ModelConfigurationRuntimeService(
@@ -51,11 +57,25 @@ public final class ModelConfigurationRuntimeService
             ModelConfigurationCredentialUser credentials,
             List<EmbeddingModelFactory> embeddingFactories,
             List<ChatModelFactory> chatFactories) {
+        this(configurations, catalog, credentials, embeddingFactories, chatFactories, null, null);
+    }
+
+    /** 生产运行时必须同时复核目录冻结的平台供应链，停用或修订漂移即失败关闭。 */
+    public ModelConfigurationRuntimeService(
+            UsableModelConfigurationLookup configurations,
+            ModelConfigurationRepository catalog,
+            ModelConfigurationCredentialUser credentials,
+            List<EmbeddingModelFactory> embeddingFactories,
+            List<ChatModelFactory> chatFactories,
+            PlatformModelDeploymentRepository platformDeployments,
+            PlatformProviderConnectionRepository platformConnections) {
         this.configurations = Objects.requireNonNull(configurations, "可用模型配置查询不能为空");
         this.catalog = Objects.requireNonNull(catalog, "受控模型目录仓储不能为空");
         this.credentials = Objects.requireNonNull(credentials, "模型凭据使用端口不能为空");
         this.embeddingFactories = indexFactories(embeddingFactories);
         this.chatFactories = indexChatFactories(chatFactories);
+        this.platformDeployments = platformDeployments;
+        this.platformConnections = platformConnections;
     }
 
     /**
@@ -127,6 +147,7 @@ public final class ModelConfigurationRuntimeService
                 .filter(value -> value.version() == current.catalogEntryRevision())
                 .filter(value -> value.modelType() == ModelType.EMBEDDING)
                 .orElseThrow(() -> unavailable("受控模型目录已变化或不可用"));
+        requireCurrentPlatformSource(entry);
         var factory = embeddingFactories.get(entry.providerKind());
         if (factory == null) {
             throw unavailable("当前供应商没有嵌入模型扩展");
@@ -159,6 +180,7 @@ public final class ModelConfigurationRuntimeService
                 .filter(value -> value.version() == current.catalogEntryRevision())
                 .filter(value -> value.modelType() == ModelType.CHAT)
                 .orElseThrow(() -> unavailable("受控模型目录已变化或不可用"));
+        requireCurrentPlatformSource(entry);
         var factory = chatFactories.get(entry.providerKind());
         if (factory == null) {
             throw unavailable("当前供应商没有对话模型扩展");
@@ -234,5 +256,27 @@ public final class ModelConfigurationRuntimeService
 
     private static ModelRuntimeUnavailableException unavailable(String message) {
         return new ModelRuntimeUnavailableException(message);
+    }
+
+    private void requireCurrentPlatformSource(
+            com.aiplatform.foundation.modelruntime.domain.configuration.model.ControlledModelCatalogEntry entry) {
+        if (platformDeployments == null || platformConnections == null) {
+            return;
+        }
+        var deploymentId = entry.sourceDeploymentId();
+        var deploymentRevision = entry.sourceDeploymentRevision();
+        if (deploymentId == null || deploymentRevision == null) {
+            throw unavailable("受控模型目录缺少平台部署快照");
+        }
+        var deployment = platformDeployments.findById(deploymentId)
+                .filter(value -> value.version() == deploymentRevision)
+                .filter(value -> value.status() == PlatformModelDeploymentStatus.PUBLISHED)
+                .filter(value -> value.verificationExpiresAt() != null
+                        && value.verificationExpiresAt().isAfter(java.time.Instant.now()))
+                .orElseThrow(() -> unavailable("平台模型部署已变化或不可用"));
+        platformConnections.findById(deployment.providerConnectionId())
+                .filter(value -> value.version() == deployment.providerConnectionRevision())
+                .filter(value -> value.status() == ProviderConnectionStatus.VERIFIED)
+                .orElseThrow(() -> unavailable("平台供应商连接已变化或不可用"));
     }
 }

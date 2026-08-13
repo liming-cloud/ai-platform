@@ -8,6 +8,10 @@ import com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelCo
 import com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelConfigurationScope;
 import com.aiplatform.foundation.modelruntime.domain.configuration.repository.ModelConfigurationRepository;
 import com.aiplatform.foundation.modelruntime.application.configuration.exception.ModelConfigurationNotFoundException;
+import com.aiplatform.foundation.modelruntime.domain.platformsupply.model.PlatformModelDeploymentStatus;
+import com.aiplatform.foundation.modelruntime.domain.platformsupply.repository.PlatformModelDeploymentRepository;
+import com.aiplatform.foundation.modelruntime.domain.platformsupply.repository.PlatformProviderConnectionRepository;
+import com.aiplatform.foundation.modelruntime.domain.provider.model.ProviderConnectionStatus;
 import com.aiplatform.foundation.security.identity.PermissionCode;
 import com.aiplatform.foundation.security.identity.TrustedRequestContext;
 import com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator;
@@ -26,6 +30,8 @@ public final class ModelConfigurationService {
     private final ModelConfigurationRepository repository;
     private final Clock clock;
     private final EntityIdGenerator identifiers;
+    private final PlatformModelDeploymentRepository platformDeployments;
+    private final PlatformProviderConnectionRepository platformConnections;
 
     public ModelConfigurationService(
             ModelConfigurationRepository repository,
@@ -34,6 +40,24 @@ public final class ModelConfigurationService {
         this.repository = Objects.requireNonNull(repository, "模型配置仓储不能为空");
         this.clock = Objects.requireNonNull(clock, "时钟不能为空");
         this.identifiers = Objects.requireNonNull(identifiers, "标识生成器不能为空");
+        this.platformDeployments = null;
+        this.platformConnections = null;
+    }
+
+    /**
+     * 平台供应链是新模型配置的唯一目录来源，失效来源不得被重新绑定或启用。
+     */
+    public ModelConfigurationService(
+            ModelConfigurationRepository repository,
+            Clock clock,
+            EntityIdGenerator identifiers,
+            PlatformModelDeploymentRepository platformDeployments,
+            PlatformProviderConnectionRepository platformConnections) {
+        this.repository = Objects.requireNonNull(repository, "模型配置仓储不能为空");
+        this.clock = Objects.requireNonNull(clock, "时钟不能为空");
+        this.identifiers = Objects.requireNonNull(identifiers, "标识生成器不能为空");
+        this.platformDeployments = Objects.requireNonNull(platformDeployments, "平台模型部署仓储不能为空");
+        this.platformConnections = Objects.requireNonNull(platformConnections, "平台供应商连接仓储不能为空");
     }
 
     public ModelConfiguration create(
@@ -48,6 +72,7 @@ public final class ModelConfigurationService {
         if (catalog.status() != ControlledModelCatalogEntryStatus.PUBLISHED) {
             throw new IllegalStateException("只能选择已发布受控模型目录条目");
         }
+        requireCurrentPlatformSource(catalog);
         return switch (scope) {
             case PLATFORM -> createPlatform(context, displayName, catalogEntryId);
             case TENANT -> createTenant(context, displayName, catalogEntryId);
@@ -73,6 +98,10 @@ public final class ModelConfigurationService {
     public ModelConfiguration activate(
             TrustedRequestContext context, ModelConfigurationId configurationId) {
         var configuration = loadForCredentialRotation(context, configurationId);
+        var catalog = repository.findCatalogEntry(configuration.catalogEntryId())
+                .filter(value -> value.status() == ControlledModelCatalogEntryStatus.PUBLISHED)
+                .orElseThrow(ModelConfigurationNotFoundException::new);
+        requireCurrentPlatformSource(catalog);
         var active = configuration.activate();
         repository.updateConfiguration(active);
         return active;
@@ -154,6 +183,28 @@ public final class ModelConfigurationService {
         if (!context.hasPermission(permission)) {
             throw new IllegalStateException("当前成员没有模型配置写入权限");
         }
+    }
+
+    private void requireCurrentPlatformSource(
+            com.aiplatform.foundation.modelruntime.domain.configuration.model.ControlledModelCatalogEntry catalog) {
+        if (platformDeployments == null || platformConnections == null) {
+            return;
+        }
+        var deploymentId = catalog.sourceDeploymentId();
+        var deploymentRevision = catalog.sourceDeploymentRevision();
+        if (deploymentId == null || deploymentRevision == null) {
+            throw new IllegalStateException("受控模型目录缺少平台部署快照来源");
+        }
+        var deployment = platformDeployments.findById(deploymentId)
+                .filter(value -> value.version() == deploymentRevision)
+                .filter(value -> value.status() == PlatformModelDeploymentStatus.PUBLISHED)
+                .filter(value -> value.verificationExpiresAt() != null
+                        && value.verificationExpiresAt().isAfter(clock.instant()))
+                .orElseThrow(() -> new IllegalStateException("平台模型部署已变化或不可用"));
+        platformConnections.findById(deployment.providerConnectionId())
+                .filter(value -> value.version() == deployment.providerConnectionRevision())
+                .filter(value -> value.status() == ProviderConnectionStatus.VERIFIED)
+                .orElseThrow(() -> new IllegalStateException("平台供应商连接已变化或不可用"));
     }
 
     private static boolean canManage(

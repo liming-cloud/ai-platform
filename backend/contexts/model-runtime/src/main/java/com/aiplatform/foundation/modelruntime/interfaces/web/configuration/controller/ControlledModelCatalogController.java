@@ -2,9 +2,10 @@ package com.aiplatform.foundation.modelruntime.interfaces.web.configuration.cont
 
 import com.aiplatform.foundation.modelruntime.application.configuration.service.ControlledModelCatalogService;
 import com.aiplatform.foundation.modelruntime.domain.configuration.model.ControlledModelCatalogEntryId;
-import com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelRuntimeCapabilities;
-import com.aiplatform.foundation.modelruntime.interfaces.web.configuration.request.ControlledModelCatalogEntryCreateRequest;
+import com.aiplatform.foundation.modelruntime.domain.platformsupply.model.PlatformModelDeploymentId;
+import com.aiplatform.foundation.modelruntime.interfaces.web.configuration.request.ControlledModelCatalogEntryCreateFromDeploymentRequest;
 import com.aiplatform.foundation.modelruntime.interfaces.web.configuration.view.ControlledModelCatalogEntryView;
+import com.aiplatform.foundation.security.identity.PlatformRequestContext;
 import com.aiplatform.foundation.security.identity.TrustedRequestContext;
 import com.aiplatform.foundation.shared.contract.paging.PageQuery;
 import com.aiplatform.foundation.shared.contract.paging.PageResult;
@@ -34,21 +35,16 @@ public class ControlledModelCatalogController {
 
     @PostMapping
     public ResponseEntity<ControlledModelCatalogEntryView> create(
-            TrustedRequestContext context,
-            @RequestBody ControlledModelCatalogEntryCreateRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(ControlledModelCatalogEntryView.from(catalog.create(
-                context,
-                request.providerKind(),
-                request.endpoint(),
-                request.modelCode(),
-                request.modelType(),
-                new ModelRuntimeCapabilities(
-                        request.contextWindow(), request.outputLimit(), request.embeddingDimension()))));
+            PlatformRequestContext context,
+            @RequestBody ControlledModelCatalogEntryCreateFromDeploymentRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(ControlledModelCatalogEntryView.from(
+                catalog.createFromDeployment(context, new PlatformModelDeploymentId(request.platformDeploymentId()),
+                        request.expectedDeploymentVersion())));
     }
 
     @PostMapping("/{entryId}/publish")
     public ControlledModelCatalogEntryView publish(
-            TrustedRequestContext context, @PathVariable long entryId) {
+            PlatformRequestContext context, @PathVariable long entryId) {
         return ControlledModelCatalogEntryView.from(catalog.publish(
                 context, new ControlledModelCatalogEntryId(entryId)));
     }
