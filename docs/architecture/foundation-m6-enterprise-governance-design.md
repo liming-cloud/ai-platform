@@ -708,3 +708,17 @@ PostgreSQL 事务、HTTP 平台会话和 SPA 写后重读。模型发现、部�
 `PlatformProviderModelDiscoverer` 与既有租户 `ProviderModelDiscoverer` 是两条显式端口：后者的请求包含 `TenantId`，前者禁止该字段。`PostgresPlatformProviderModelDiscoveryStore` 只写入 `platform_provider_model_discovery` 与 `platform_discovered_model`，迁移不触碰 `provider_model_discovery` 或 `provider_discovered_model`。候选的完整分页读取与平台部署选择在下一切片实现；当前 HTTP 回执仅用于操作确认，控制台不渲染候选集合，避免把发现结果变成无界浏览器目录。
 
 红灯顺序：无 `model-platform:write` 的请求不得读取连接或写入发现；控制器不得从查询参数取得租户身份；平台失败发现不得伪造候选或有效期。绿灯必须补齐平台专表的真实 PostgreSQL 原子写入、HTTP 安全摘要、统一 SPA 生产构建和本地 Compose 续证。
+
+### ADR-0066 平台部署与当前候选窄切片
+
+平台部署只能从一个已验证平台连接的**最新成功、未过期**发现事实中创建；候选列表不合并同一连接修订的历史发现，避免浏览器展示已被后续发现取代的模型。平台候选与部署均采用服务端页码分页，路由分别为
+`/platform/model-supply/connections/{id}/model-candidates` 与 `/platform/model-supply/deployments`。响应只包含模型代码、类型、能力及部署安全摘要，禁止返回 Endpoint、凭据引用、密文或厂商原始响应。
+
+| 场景 | 命令／查询 | 守卫与失败关闭 | 成功结果 |
+| --- | --- | --- | --- |
+| 读取当前候选 | `ListPlatformProviderModelCandidatesQuery` | 平台会话含 `model-platform:write`；连接存在、为 `VERIFIED` 且修订匹配；查询仅取最新成功且未过期的发现。 | 页码、总数与安全候选摘要；无历史候选混入。 |
+| 创建草稿部署 | `CreatePlatformModelDeploymentCommand` | 连接修订与候选仍当前；声明能力必须为发现能力的子集；幂等键与平台全局显示名受仓储约束。 | 独立 `PlatformModelDeployment` 草稿，不带 `TenantId`。 |
+| 探测并发布 | `ProbePlatformModelDeploymentCommand`、`PublishPlatformModelDeploymentCommand` | 平台凭据只在服务器探测适配器内解析；探测事实和成功状态转换同一事务提交；发布重验连接修订与验证期限。 | `VERIFIED` 后在有效期内才能成为 `PUBLISHED`。 |
+| 停用部署 | `DisablePlatformModelDeploymentCommand` | 平台管理员与版本匹配；同一修订不可恢复。 | 保留验证审计并阻断后续目录绑定和调用。 |
+
+统一 SPA 将连接管理和部署管理拆成两个可恢复 URL：连接页只能进入已验证连接的部署页；部署页分别维护候选页码与部署页码，写操作完成后重新读取服务端页。候选创建、真实探测、发布和停用均采用明确确认 Dialog，避免在浏览器中隐藏执行或展示无界历史诊断。

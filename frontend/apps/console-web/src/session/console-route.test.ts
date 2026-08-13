@@ -202,6 +202,28 @@ describe("统一控制台路由", () => {
       .toBe("/platform/model-supply?page=3");
   });
 
+  it("平台部署任务从 URL 恢复连接修订与两组服务端页码", () => {
+    expect(parseConsoleRoute(
+      "/platform/model-supply/deployments",
+      "?connectionId=610000000000000001&connectionVersion=2&candidatePage=3&deploymentPage=4",
+    )).toEqual({
+      navigationId: "platform-model-supply",
+      task: "deployments",
+      connectionId: "610000000000000001",
+      connectionVersion: 2,
+      candidatePage: 3,
+      deploymentPage: 4,
+    });
+    expect(formatConsoleRoute({
+      navigationId: "platform-model-supply",
+      task: "deployments",
+      connectionId: "610000000000000001",
+      connectionVersion: 2,
+      candidatePage: 3,
+      deploymentPage: 4,
+    })).toBe("/platform/model-supply/deployments?connectionId=610000000000000001&connectionVersion=2&candidatePage=3&deploymentPage=4");
+  });
+
   it("受治理文件任务从 URL 恢复资源选择器的服务端页码", () => {
     expect(parseConsoleRoute(
       "/data/files",

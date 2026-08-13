@@ -33,11 +33,15 @@ import com.aiplatform.foundation.modelruntime.infrastructure.persistence.provide
 import com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.PlatformProviderConnectionCredentialTransaction;
 import com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.PlatformProviderConnectionCredentialWriter;
 import com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.PlatformProviderModelDiscoveryStore;
+import com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.PlatformModelDeploymentVerificationStore;
+import com.aiplatform.foundation.modelruntime.domain.platformsupply.repository.PlatformModelDeploymentRepository;
 import com.aiplatform.foundation.modelruntime.domain.platformsupply.repository.PlatformProviderConnectionRepository;
 import com.aiplatform.foundation.modelruntime.infrastructure.persistence.platformsupply.PostgresEncryptedPlatformProviderConnectionCredentialStore;
 import com.aiplatform.foundation.modelruntime.infrastructure.persistence.platformsupply.SpringPlatformProviderConnectionCredentialTransaction;
 import com.aiplatform.foundation.modelruntime.infrastructure.persistence.platformsupply.repository.PostgresPlatformProviderConnectionRepository;
 import com.aiplatform.foundation.modelruntime.infrastructure.persistence.platformsupply.repository.PostgresPlatformProviderModelDiscoveryStore;
+import com.aiplatform.foundation.modelruntime.infrastructure.persistence.platformsupply.repository.PostgresPlatformModelDeploymentRepository;
+import com.aiplatform.foundation.modelruntime.infrastructure.persistence.platformsupply.repository.PostgresPlatformModelDeploymentVerificationStore;
 import com.baomidou.mybatisplus.autoconfigure.MybatisPlusAutoConfiguration;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.mybatis.spring.annotation.MapperScan;
@@ -99,6 +103,22 @@ public class ModelRuntimePersistenceAutoConfiguration {
             JdbcTemplate jdbc,
             PlatformTransactionManager transactions) {
         return new PostgresPlatformProviderModelDiscoveryStore(jdbc, transactions);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    PlatformModelDeploymentRepository platformModelDeploymentRepository(
+            JdbcTemplate jdbc,
+            PlatformTransactionManager transactions) {
+        return new PostgresPlatformModelDeploymentRepository(jdbc, transactions);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    PlatformModelDeploymentVerificationStore platformModelDeploymentVerificationStore(
+            JdbcTemplate jdbc,
+            PlatformTransactionManager transactions) {
+        return new PostgresPlatformModelDeploymentVerificationStore(jdbc, transactions);
     }
 
     @Bean

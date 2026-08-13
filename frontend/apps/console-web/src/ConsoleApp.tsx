@@ -91,6 +91,11 @@ const PlatformModelSupplyWorkspace = lazy(async () => {
   return { default: module.PlatformModelSupplyWorkspace };
 });
 
+const PlatformModelDeploymentWorkspace = lazy(async () => {
+  const module = await import("./features/platform-governance/PlatformModelDeploymentWorkspace");
+  return { default: module.PlatformModelDeploymentWorkspace };
+});
+
 const TenantMemberWorkspace = lazy(async () => {
   const module = await import("./features/access/TenantMemberWorkspace");
   return { default: module.TenantMemberWorkspace };
@@ -475,7 +480,7 @@ function AuthenticatedConsoleApp({
       <section hidden={!platformModelSupplyActive}>
         {platformModelSupplyActive ? (
           <Suspense fallback={<StatePanel kind="loading" title="正在加载平台模型供应链" description="正在准备平台范围连接目录。" />}>
-            <PlatformModelSupplyWorkspace client={client} route={route} sessionRevision={sessionRevision} onRouteChange={navigate} />
+            {route.task === "connections" ? <PlatformModelSupplyWorkspace client={client} route={route} sessionRevision={sessionRevision} onRouteChange={navigate} /> : <PlatformModelDeploymentWorkspace client={client} route={route} sessionRevision={sessionRevision} onRouteChange={navigate} />}
           </Suspense>
         ) : null}
       </section>

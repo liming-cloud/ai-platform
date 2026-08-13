@@ -317,6 +317,7 @@
 | M6 平台范围模型供应链连接基础 | `project/evidence/WP-0014-platform-model-supply-connection-foundation.md` | 本次提交 | ADR-0066 的独立平台连接、密文和受限 HTTP／SPA 入口已完成；真实 Compose 装配和未认证失败关闭已复核，已登录浏览器与发现／部署仍待后续切片。 |
 | M6 平台厂商连接探测 | `project/evidence/WP-0014-platform-provider-connection-probe.md` | 本次提交 | 平台专属探测契约、确定性扩展、真实 PostgreSQL、HTTP 平台上下文与单一 SPA Dialog 已回归；模型发现／部署及已登录浏览器续证仍待后续切片。 |
 | M6 平台模型发现 | `project/evidence/WP-0014-platform-provider-model-discovery.md` | 本次提交 | ADR-0066 的独立平台发现端口、不可变发现事实、真实 PostgreSQL、HTTP 路由与统一 SPA 已回归；平台部署、目录快照和已登录浏览器续证仍待后续切片。 |
+| M6 平台部署、当前候选与控制台闭环 | `project/evidence/WP-0014-platform-model-deployment.md` | 本次提交 | 平台专属当前候选分页、草稿／真实探测／发布／不可逆停用、真实 PostgreSQL 回滚、受限 HTTP、URL 恢复的统一 SPA 与本地 Compose 已回归；目录快照、租户消费和已登录浏览器续证仍待后续切片。 |
 
 ## 证据规则
 

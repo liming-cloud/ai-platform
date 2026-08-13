@@ -43,12 +43,19 @@ import com.aiplatform.foundation.modelruntime.application.platformsupply.service
 import com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.PlatformProviderConnectionProbe;
 import com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.PlatformProviderModelDiscoverer;
 import com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.PlatformProviderModelDiscoveryStore;
+import com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.PlatformProviderModelDiscoveryLookup;
+import com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.PlatformModelDeploymentProbe;
+import com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.PlatformModelDeploymentVerificationStore;
 import com.aiplatform.foundation.modelruntime.application.platformsupply.service.PlatformProviderModelDiscoveryService;
+import com.aiplatform.foundation.modelruntime.application.platformsupply.service.PlatformProviderModelCandidateReadService;
+import com.aiplatform.foundation.modelruntime.application.platformsupply.service.PlatformModelDeploymentService;
+import com.aiplatform.foundation.modelruntime.application.platformsupply.service.PlatformModelProbeProviderService;
 import com.aiplatform.foundation.modelruntime.domain.deployment.repository.ModelDeploymentRepository;
 import com.aiplatform.foundation.modelruntime.domain.configuration.repository.ModelConfigurationRepository;
 import com.aiplatform.foundation.modelruntime.domain.configuration.repository.ModelConfigurationAccessRepository;
 import com.aiplatform.foundation.modelruntime.domain.provider.repository.ProviderConnectionRepository;
 import com.aiplatform.foundation.modelruntime.domain.platformsupply.repository.PlatformProviderConnectionRepository;
+import com.aiplatform.foundation.modelruntime.domain.platformsupply.repository.PlatformModelDeploymentRepository;
 import com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator;
 import java.time.Clock;
 import java.util.List;
@@ -132,6 +139,43 @@ public class ModelRuntimeCoreAutoConfiguration {
                 store,
                 Clock.systemUTC(),
                 identifiers,
+                properties.getCapabilityVerificationValidity());
+    }
+
+    @Bean
+    @ConditionalOnBean({PlatformProviderConnectionRepository.class, PlatformProviderModelDiscoveryLookup.class})
+    @ConditionalOnMissingBean
+    PlatformProviderModelCandidateReadService platformProviderModelCandidateReadService(
+            PlatformProviderConnectionRepository connections,
+            PlatformProviderModelDiscoveryLookup discoveries) {
+        return new PlatformProviderModelCandidateReadService(connections, discoveries, Clock.systemUTC());
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    PlatformModelProbeProviderService platformModelProbeProviderService(
+            List<PlatformModelDeploymentProbe> probes) {
+        return new PlatformModelProbeProviderService(probes, Clock.systemUTC());
+    }
+
+    @Bean
+    @ConditionalOnBean({
+        PlatformModelDeploymentRepository.class,
+        PlatformProviderConnectionRepository.class,
+        PlatformProviderModelDiscoveryLookup.class,
+        PlatformModelDeploymentVerificationStore.class
+    })
+    @ConditionalOnMissingBean
+    PlatformModelDeploymentService platformModelDeploymentService(
+            PlatformModelDeploymentRepository deployments,
+            PlatformProviderConnectionRepository connections,
+            PlatformProviderModelDiscoveryLookup discoveries,
+            PlatformModelProbeProviderService probes,
+            PlatformModelDeploymentVerificationStore verificationStore,
+            EntityIdGenerator identifiers,
+            ModelCatalogProperties properties) {
+        return new PlatformModelDeploymentService(
+                deployments, connections, discoveries, probes, verificationStore, Clock.systemUTC(), identifiers,
                 properties.getCapabilityVerificationValidity());
     }
 

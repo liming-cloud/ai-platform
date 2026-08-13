@@ -3,6 +3,7 @@ package com.aiplatform.foundation.provider.deterministic.autoconfigure;
 import com.aiplatform.foundation.modelruntime.application.probe.port.out.ProviderConnectionProbe;
 import com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.PlatformProviderConnectionProbe;
 import com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.PlatformProviderModelDiscoverer;
+import com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.PlatformModelDeploymentProbe;
 import com.aiplatform.foundation.modelruntime.application.provider.port.out.ProviderModelDiscoverer;
 import com.aiplatform.foundation.modelruntime.application.runtime.port.out.ChatModelFactory;
 import com.aiplatform.foundation.modelruntime.application.runtime.port.out.EmbeddingModelFactory;
@@ -11,6 +12,7 @@ import com.aiplatform.foundation.provider.deterministic.DeterministicEmbeddingMo
 import com.aiplatform.foundation.provider.deterministic.DeterministicProviderConnectionProbe;
 import com.aiplatform.foundation.provider.deterministic.DeterministicPlatformProviderConnectionProbe;
 import com.aiplatform.foundation.provider.deterministic.DeterministicPlatformProviderModelDiscoverer;
+import com.aiplatform.foundation.provider.deterministic.DeterministicPlatformModelDeploymentProbe;
 import com.aiplatform.foundation.provider.deterministic.DeterministicProviderModelDiscoverer;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.context.annotation.Bean;
@@ -34,6 +36,11 @@ public class DeterministicProviderAutoConfiguration {
     @Bean
     PlatformProviderModelDiscoverer deterministicPlatformProviderModelDiscoverer() {
         return new DeterministicPlatformProviderModelDiscoverer();
+    }
+
+    @Bean
+    PlatformModelDeploymentProbe deterministicPlatformModelDeploymentProbe() {
+        return new DeterministicPlatformModelDeploymentProbe();
     }
 
     @Bean

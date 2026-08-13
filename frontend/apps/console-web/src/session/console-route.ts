@@ -66,7 +66,15 @@ export type ConsoleRoute =
   | { navigationId: "platform-workspace"; task: "workspace" }
   | { navigationId: "platform"; task: "tenants"; page: number }
   | { navigationId: "platform-accounts"; task: "accounts"; page: number }
-  | { navigationId: "platform-model-supply"; task: "connections"; page: number };
+  | { navigationId: "platform-model-supply"; task: "connections"; page: number }
+  | {
+    navigationId: "platform-model-supply";
+    task: "deployments";
+    connectionId?: string;
+    connectionVersion?: number;
+    candidatePage: number;
+    deploymentPage: number;
+  };
 
 /** 路由解析后的授权结果，拒绝时保留目标以便页面明确说明失败原因。 */
 export type AuthorizedConsoleRoute =
@@ -232,6 +240,18 @@ export function parseConsoleRoute(pathname: string, search: string): ConsoleRout
       page: positivePage(new URLSearchParams(search).get("page")),
     };
   }
+  if (routePath === "/platform/model-supply/deployments") {
+    const parameters = new URLSearchParams(search);
+    const version = parameters.get("connectionVersion");
+    return {
+      navigationId: "platform-model-supply",
+      task: "deployments",
+      connectionId: nonBlankParameter(parameters.get("connectionId")),
+      connectionVersion: version !== null && /^\d+$/.test(version) ? Number(version) : undefined,
+      candidatePage: positivePage(parameters.get("candidatePage")),
+      deploymentPage: positivePage(parameters.get("deploymentPage")),
+    };
+  }
   return undefined;
 }
 
@@ -270,9 +290,12 @@ export function formatConsoleRoute(route: ConsoleRoute): string {
   if (route.navigationId === "platform") {
     return `/platform/tenants?page=${route.page}`;
   }
-  return route.navigationId === "platform-accounts"
-    ? `/platform/accounts?page=${route.page}`
-    : `/platform/model-supply?page=${route.page}`;
+  if (route.navigationId === "platform-accounts") {
+    return `/platform/accounts?page=${route.page}`;
+  }
+  return route.task === "connections"
+    ? `/platform/model-supply?page=${route.page}`
+    : formatPlatformDeploymentRoute(route);
 }
 
 /**
@@ -314,6 +337,15 @@ function formatProviderRoute(route: Extract<ConsoleRoute, { task: "providers" }>
   }
   parameters.set("discoveryPage", String(route.discoveryPage));
   return `/models/providers?${parameters}`;
+}
+
+function formatPlatformDeploymentRoute(route: Extract<ConsoleRoute, { navigationId: "platform-model-supply"; task: "deployments" }>): string {
+  const parameters = new URLSearchParams();
+  if (route.connectionId !== undefined) parameters.set("connectionId", route.connectionId);
+  if (route.connectionVersion !== undefined) parameters.set("connectionVersion", String(route.connectionVersion));
+  parameters.set("candidatePage", String(route.candidatePage));
+  parameters.set("deploymentPage", String(route.deploymentPage));
+  return `/platform/model-supply/deployments?${parameters}`;
 }
 
 function formatConfigurationRoute(route: Extract<ConsoleRoute, { task: "configuration" }>): string {

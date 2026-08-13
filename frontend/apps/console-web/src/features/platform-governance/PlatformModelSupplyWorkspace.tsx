@@ -25,7 +25,7 @@ import {
 } from "../../api/control-plane-client";
 import type { ConsoleRoute } from "../../session/console-route";
 
-type PlatformSupplyRoute = Extract<ConsoleRoute, { navigationId: "platform-model-supply" }>;
+type PlatformSupplyRoute = Extract<ConsoleRoute, { navigationId: "platform-model-supply"; task: "connections" }>;
 type ViewState = "unauthenticated" | "loading" | "ready" | "error";
 
 interface Failure {
@@ -186,7 +186,7 @@ export function PlatformModelSupplyWorkspace({
         <header className="task-heading"><Title3>平台厂商连接</Title3><Text>仅平台管理员可创建；连接创建后需继续完成真实探测、发现和部署发布。</Text></header>
         <div className="member-directory-table" role="region" aria-label="平台厂商连接分页表格">
           <table><thead><tr><th>连接</th><th>厂商与区域</th><th>凭据与状态</th><th>最近探测</th><th>修订</th><th>操作</th></tr></thead><tbody>
-            {connections.length === 0 ? <tr><td colSpan={6}>当前页没有平台厂商连接。</td></tr> : connections.map((connection) => <tr key={connection.id}><td>{connection.displayName}</td><td>{connection.providerKind} · {connection.region}</td><td><Badge appearance="tint" color={connection.status === "VERIFIED" ? "success" : "warning"}>{connection.status === "VERIFIED" ? "已验证" : "待验证"}</Badge> {connection.credentialConfigured ? "凭据已配置" : "未配置凭据"}</td><td>{connection.lastProbeSucceeded === true ? "通过" : connection.lastProbeSucceeded === false ? "未通过" : "尚未探测"}</td><td>{connection.version}</td><td><div className="task-actions"><Button appearance="secondary" disabled={submitting || !connection.credentialConfigured} onClick={() => setProbeTarget(connection)}>探测连接</Button><Button appearance="secondary" disabled={submitting || connection.status !== "VERIFIED"} onClick={() => setDiscoveryTarget(connection)}>发现模型</Button></div></td></tr>)}
+            {connections.length === 0 ? <tr><td colSpan={6}>当前页没有平台厂商连接。</td></tr> : connections.map((connection) => <tr key={connection.id}><td>{connection.displayName}</td><td>{connection.providerKind} · {connection.region}</td><td><Badge appearance="tint" color={connection.status === "VERIFIED" ? "success" : "warning"}>{connection.status === "VERIFIED" ? "已验证" : "待验证"}</Badge> {connection.credentialConfigured ? "凭据已配置" : "未配置凭据"}</td><td>{connection.lastProbeSucceeded === true ? "通过" : connection.lastProbeSucceeded === false ? "未通过" : "尚未探测"}</td><td>{connection.version}</td><td><div className="task-actions"><Button appearance="secondary" disabled={submitting || !connection.credentialConfigured} onClick={() => setProbeTarget(connection)}>探测连接</Button><Button appearance="secondary" disabled={submitting || connection.status !== "VERIFIED"} onClick={() => setDiscoveryTarget(connection)}>发现模型</Button><Button appearance="primary" disabled={connection.status !== "VERIFIED"} onClick={() => onRouteChange({ navigationId: "platform-model-supply", task: "deployments", connectionId: connection.id, connectionVersion: connection.version, candidatePage: 1, deploymentPage: 1 })}>管理部署</Button></div></td></tr>)}
           </tbody></table>
         </div>
         <div className="task-actions"><Text>共 {total} 条</Text><Button disabled={!hasPrevious} onClick={() => onRouteChange({ ...route, page: route.page - 1 })}>上一页</Button><Text>第 {route.page} 页</Text><Button disabled={!hasNext} onClick={() => onRouteChange({ ...route, page: route.page + 1 })}>下一页</Button></div>

@@ -3,6 +3,7 @@ package com.aiplatform.foundation.modelruntime.infrastructure.persistence.platfo
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.PlatformProviderModelDiscoveryStore;
+import com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.PlatformProviderModelDiscoveryLookup;
 import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelCapability;
 import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelType;
 import com.aiplatform.foundation.modelruntime.domain.platformsupply.model.PlatformProviderConnection;
@@ -21,6 +22,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
+import com.aiplatform.foundation.shared.contract.paging.PageQuery;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -50,6 +52,7 @@ class PostgresPlatformProviderModelDiscoveryStoreTest {
 
     @Autowired private PlatformProviderConnectionRepository connections;
     @Autowired private PlatformProviderModelDiscoveryStore discoveries;
+    @Autowired private PlatformProviderModelDiscoveryLookup discoveryLookup;
     @Autowired private JdbcTemplate jdbc;
 
     @DynamicPropertySource
@@ -103,6 +106,67 @@ class PostgresPlatformProviderModelDiscoveryStoreTest {
                 "SELECT COUNT(*) FROM model_runtime.platform_discovered_model", Long.class));
         assertEquals(0L, jdbc.queryForObject(
                 "SELECT COUNT(*) FROM model_runtime.provider_model_discovery", Long.class));
+    }
+
+    @Test
+    void 候选分页只返回当前连接修订且未过期的安全发现结果() {
+        var connection = connections.create(new PlatformProviderConnectionCreation(
+                PlatformProviderConnection.create(
+                        new PlatformProviderConnectionId(IDENTIFIERS.incrementAndGet()),
+                        ProviderKind.DETERMINISTIC,
+                        "平台候选分页连接",
+                        URI.create("memory://deterministic"),
+                        "本地",
+                        AuthenticationType.API_KEY,
+                        new CredentialReference("secret://platform-provider-connection/" + IDENTIFIERS.get()),
+                        Instant.parse("2026-08-13T02:00:00Z")),
+                "platform-discovery-page-request-0001",
+                "b".repeat(64))).connection();
+        discoveries.record(PlatformProviderModelDiscovery.capture(
+                new PlatformProviderModelDiscoveryId(IDENTIFIERS.incrementAndGet()),
+                connection.id(), connection.version(), new ProviderModelDiscoveryObservation(
+                        true,
+                        Set.of(
+                                new DiscoveredModel("deterministic-chat", ModelType.CHAT,
+                                        Set.of(ModelCapability.CHAT)),
+                                new DiscoveredModel("deterministic-embedding", ModelType.EMBEDDING,
+                                        Set.of(ModelCapability.EMBEDDING))),
+                        "DETERMINISTIC_DISCOVERY_OK", Duration.ZERO,
+                        Instant.parse("2026-08-13T02:01:00Z")),
+                Instant.parse("2026-08-13T03:01:00Z")));
+
+        var page = discoveryLookup.findCurrentCandidates(connection.id(), connection.version(),
+                new PageQuery(1, 1), Instant.parse("2026-08-13T02:30:00Z"));
+
+        assertEquals(2L, page.totalElements());
+        assertEquals(1, page.items().size());
+        assertEquals("deterministic-chat", page.items().getFirst().modelCode());
+    }
+
+    @Test
+    void 候选分页只返回同一连接修订最新成功发现() {
+        var connection = connections.create(new PlatformProviderConnectionCreation(
+                PlatformProviderConnection.create(
+                        new PlatformProviderConnectionId(IDENTIFIERS.incrementAndGet()), ProviderKind.DETERMINISTIC,
+                        "平台当前候选连接", URI.create("memory://deterministic"), "本地", AuthenticationType.API_KEY,
+                        new CredentialReference("secret://platform-provider-connection/" + IDENTIFIERS.get()),
+                        Instant.parse("2026-08-13T02:00:00Z")), "platform-discovery-current-request-0001", "c".repeat(64))).connection();
+        discoveries.record(PlatformProviderModelDiscovery.capture(
+                new PlatformProviderModelDiscoveryId(IDENTIFIERS.incrementAndGet()), connection.id(), connection.version(),
+                new ProviderModelDiscoveryObservation(true, Set.of(new DiscoveredModel("retired-model", ModelType.CHAT,
+                        Set.of(ModelCapability.CHAT))), "DETERMINISTIC_DISCOVERY_OK", Duration.ZERO,
+                        Instant.parse("2026-08-13T02:01:00Z")), Instant.parse("2026-08-13T03:01:00Z")));
+        discoveries.record(PlatformProviderModelDiscovery.capture(
+                new PlatformProviderModelDiscoveryId(IDENTIFIERS.incrementAndGet()), connection.id(), connection.version(),
+                new ProviderModelDiscoveryObservation(true, Set.of(new DiscoveredModel("current-model", ModelType.EMBEDDING,
+                        Set.of(ModelCapability.EMBEDDING))), "DETERMINISTIC_DISCOVERY_OK", Duration.ZERO,
+                        Instant.parse("2026-08-13T02:02:00Z")), Instant.parse("2026-08-13T03:02:00Z")));
+
+        var page = discoveryLookup.findCurrentCandidates(connection.id(), connection.version(), new PageQuery(1, 20),
+                Instant.parse("2026-08-13T02:30:00Z"));
+
+        assertEquals(1L, page.totalElements());
+        assertEquals("current-model", page.items().getFirst().modelCode());
     }
 
     @SpringBootConfiguration

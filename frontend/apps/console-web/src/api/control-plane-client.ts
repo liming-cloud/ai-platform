@@ -262,6 +262,56 @@ export interface PlatformProviderModelDiscoverySummary {
   expiresAt: string | null;
 }
 
+/** 平台连接当前修订中可创建部署的安全模型候选。 */
+export interface PlatformProviderModelCandidate {
+  modelCode: string;
+  modelType: "CHAT" | "EMBEDDING";
+  capabilities: string[];
+}
+
+/** 平台模型部署的安全摘要；端点、凭据和供应商原始响应永不进入浏览器。 */
+export interface PlatformModelDeploymentSummary {
+  id: string;
+  providerConnectionId: string;
+  providerConnectionRevision: number;
+  modelCode: string;
+  displayName: string;
+  modelType: "CHAT" | "EMBEDDING";
+  capabilities: string[];
+  contextWindow: number;
+  outputLimit: number | null;
+  embeddingDimension: number | null;
+  verificationExpiresAt: string | null;
+  status: "DRAFT" | "VERIFIED" | "PUBLISHED" | "DISABLED";
+  availability: "HEALTHY" | "DEGRADED" | "UNAVAILABLE";
+  nextStep: "VERIFY_CONNECTION" | "PROBE_MODEL" | "REPROBE_MODEL" | "PUBLISH" | "NONE";
+  version: number;
+  createdAt: string;
+}
+
+/** 平台管理员从已发现候选创建部署时可提交的最小业务字段。 */
+export interface PlatformModelDeploymentCreateInput {
+  providerConnectionId: string;
+  expectedConnectionVersion: number;
+  modelCode: string;
+  displayName: string;
+  modelType: "CHAT" | "EMBEDDING";
+  capabilities: string[];
+  contextWindow: number;
+  outputLimit: number | null;
+  embeddingDimension: number | null;
+}
+
+/** 平台模型探测的安全结果。 */
+export interface PlatformModelDeploymentProbeResult {
+  deployment: PlatformModelDeploymentSummary;
+  verified: boolean;
+  observedCapabilities: string[];
+  elapsed: string;
+  resultCode: string;
+  probedAt: string;
+}
+
 /** 连接探测只返回安全摘要与受控能力，不回传端点、凭据或厂商原始响应。 */
 export interface ProviderConnectionProbeResult {
   providerConnection: ProviderConnectionSummary;
@@ -1192,6 +1242,73 @@ export class ControlPlaneClient {
         headers: this.writeHeaders("application/json"),
         body: JSON.stringify({ expectedVersion, timeoutMillis }),
       },
+    );
+  }
+
+  async listPlatformProviderModelCandidates(
+    providerConnectionId: string,
+    expectedConnectionVersion: number,
+    pageNumber = 1,
+    pageSize = 20,
+  ): Promise<PageResult<PlatformProviderModelCandidate>> {
+    const parameters = new URLSearchParams({
+      expectedConnectionVersion: String(expectedConnectionVersion),
+      pageNumber: String(pageNumber),
+      pageSize: String(pageSize),
+    });
+    return this.request<PageResult<PlatformProviderModelCandidate>>(
+      `/platform/model-supply/connections/${encodeURIComponent(providerConnectionId)}/model-candidates?${parameters}`,
+    );
+  }
+
+  async listPlatformModelDeployments(
+    pageNumber = 1,
+    pageSize = 20,
+  ): Promise<PageResult<PlatformModelDeploymentSummary>> {
+    return this.request<PageResult<PlatformModelDeploymentSummary>>(
+      `/platform/model-supply/deployments?pageNumber=${pageNumber}&pageSize=${pageSize}`,
+    );
+  }
+
+  async createPlatformModelDeployment(
+    input: PlatformModelDeploymentCreateInput,
+    idempotencyKey?: string,
+  ): Promise<PlatformModelDeploymentSummary> {
+    return this.request<PlatformModelDeploymentSummary>("/platform/model-supply/deployments", {
+      method: "POST",
+      headers: this.writeHeaders("application/json", idempotencyKey),
+      body: JSON.stringify(input),
+    });
+  }
+
+  async probePlatformModelDeployment(
+    deploymentId: string,
+    expectedVersion: number,
+    timeoutMillis = 10_000,
+  ): Promise<PlatformModelDeploymentProbeResult> {
+    return this.request<PlatformModelDeploymentProbeResult>(
+      `/platform/model-supply/deployments/${encodeURIComponent(deploymentId)}/probe`,
+      { method: "POST", headers: this.writeHeaders("application/json"), body: JSON.stringify({ expectedVersion, timeoutMillis }) },
+    );
+  }
+
+  async publishPlatformModelDeployment(
+    deploymentId: string,
+    expectedVersion: number,
+  ): Promise<PlatformModelDeploymentSummary> {
+    return this.request<PlatformModelDeploymentSummary>(
+      `/platform/model-supply/deployments/${encodeURIComponent(deploymentId)}/publish`,
+      { method: "POST", headers: this.writeHeaders("application/json"), body: JSON.stringify({ expectedVersion }) },
+    );
+  }
+
+  async disablePlatformModelDeployment(
+    deploymentId: string,
+    expectedVersion: number,
+  ): Promise<PlatformModelDeploymentSummary> {
+    return this.request<PlatformModelDeploymentSummary>(
+      `/platform/model-supply/deployments/${encodeURIComponent(deploymentId)}/disable`,
+      { method: "POST", headers: this.writeHeaders("application/json"), body: JSON.stringify({ expectedVersion }) },
     );
   }
 
