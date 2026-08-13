@@ -73,6 +73,7 @@ confirmedDecisions:
   - ADR-0064
   - ADR-0065
 openDecisions:
+  - ADR-0066
 latestEvidence:
   - docs/research/WP-0003-framework-baseline.md
   - project/evidence/WP-0003-trusted-context.md
@@ -259,5 +260,5 @@ latestEvidence:
   - project/evidence/ADR-0065-approval.md
   - project/evidence/WP-0014-platform-administrator-role-projection.md
 nextReviewAt: 2026-08-12
-updatedAt: 2026-08-13T08:36:00+08:00
+updatedAt: 2026-08-13T09:02:00+08:00
 updatedBy: codex
