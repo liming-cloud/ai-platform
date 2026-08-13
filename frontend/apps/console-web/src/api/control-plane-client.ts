@@ -251,6 +251,17 @@ export interface ProviderConnectionCreateInput {
 /** 平台范围厂商连接的安全摘要；端点和凭据永不返回浏览器。 */
 export interface PlatformProviderConnectionSummary extends ProviderConnectionSummary {}
 
+/** 平台模型发现的安全摘要；候选只用于后续受控部署选择。 */
+export interface PlatformProviderModelDiscoverySummary {
+  discoveryId: string;
+  succeeded: boolean;
+  models: Array<{ modelCode: string; modelType: string; capabilities: string[] }>;
+  resultCode: string;
+  elapsed: string;
+  discoveredAt: string;
+  expiresAt: string | null;
+}
+
 /** 连接探测只返回安全摘要与受控能力，不回传端点、凭据或厂商原始响应。 */
 export interface ProviderConnectionProbeResult {
   providerConnection: ProviderConnectionSummary;
@@ -1165,6 +1176,21 @@ export class ControlPlaneClient {
         method: "POST",
         headers: this.writeHeaders("application/json"),
         body: JSON.stringify({ expectedVersion, modelCode, timeoutMillis }),
+      },
+    );
+  }
+
+  async discoverPlatformProviderModels(
+    providerConnectionId: string,
+    expectedVersion: number,
+    timeoutMillis = 10_000,
+  ): Promise<PlatformProviderModelDiscoverySummary> {
+    return this.request<PlatformProviderModelDiscoverySummary>(
+      `/platform/model-supply/connections/${providerConnectionId}/model-discovery`,
+      {
+        method: "POST",
+        headers: this.writeHeaders("application/json"),
+        body: JSON.stringify({ expectedVersion, timeoutMillis }),
       },
     );
   }

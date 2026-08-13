@@ -41,6 +41,9 @@ import com.aiplatform.foundation.modelruntime.application.platformsupply.port.ou
 import com.aiplatform.foundation.modelruntime.application.platformsupply.service.PlatformProviderConnectionService;
 import com.aiplatform.foundation.modelruntime.application.platformsupply.service.PlatformProbeProviderService;
 import com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.PlatformProviderConnectionProbe;
+import com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.PlatformProviderModelDiscoverer;
+import com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.PlatformProviderModelDiscoveryStore;
+import com.aiplatform.foundation.modelruntime.application.platformsupply.service.PlatformProviderModelDiscoveryService;
 import com.aiplatform.foundation.modelruntime.domain.deployment.repository.ModelDeploymentRepository;
 import com.aiplatform.foundation.modelruntime.domain.configuration.repository.ModelConfigurationRepository;
 import com.aiplatform.foundation.modelruntime.domain.configuration.repository.ModelConfigurationAccessRepository;
@@ -113,6 +116,23 @@ public class ModelRuntimeCoreAutoConfiguration {
             EntityIdGenerator identifiers) {
         return new PlatformProviderConnectionService(
                 repository, credentials, transactions, probes, Clock.systemUTC(), identifiers);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    PlatformProviderModelDiscoveryService platformProviderModelDiscoveryService(
+            PlatformProviderConnectionRepository connections,
+            List<PlatformProviderModelDiscoverer> discoverers,
+            PlatformProviderModelDiscoveryStore store,
+            EntityIdGenerator identifiers,
+            ModelCatalogProperties properties) {
+        return new PlatformProviderModelDiscoveryService(
+                connections,
+                discoverers,
+                store,
+                Clock.systemUTC(),
+                identifiers,
+                properties.getCapabilityVerificationValidity());
     }
 
     @Bean @ConditionalOnMissingBean

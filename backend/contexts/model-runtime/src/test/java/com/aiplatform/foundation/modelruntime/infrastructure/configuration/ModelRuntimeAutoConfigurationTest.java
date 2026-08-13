@@ -20,6 +20,9 @@ import com.aiplatform.foundation.modelruntime.application.runtime.facade.Governe
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.ChatRouteExecutor;
 import com.aiplatform.foundation.modelruntime.application.configuration.port.out.ModelConfigurationCredentialWriter;
 import com.aiplatform.foundation.modelruntime.application.probe.service.ProbeProviderService;
+import com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.PlatformProviderModelDiscoveryStore;
+import com.aiplatform.foundation.modelruntime.application.platformsupply.service.PlatformProviderConnectionService;
+import com.aiplatform.foundation.modelruntime.application.platformsupply.service.PlatformProviderModelDiscoveryService;
 import com.aiplatform.foundation.modelruntime.application.provider.port.out.ProviderModelDiscoveryStore;
 import com.aiplatform.foundation.modelruntime.application.provider.port.out.ProviderModelDiscoveryHistoryReader;
 import com.aiplatform.foundation.modelruntime.application.provider.port.out.ProviderConnectionCredentialTransaction;
@@ -32,6 +35,7 @@ import com.aiplatform.foundation.modelruntime.domain.deployment.repository.Model
 import com.aiplatform.foundation.modelruntime.domain.configuration.repository.ModelConfigurationRepository;
 import com.aiplatform.foundation.modelruntime.domain.configuration.repository.ModelConfigurationAccessRepository;
 import com.aiplatform.foundation.modelruntime.domain.provider.repository.ProviderConnectionRepository;
+import com.aiplatform.foundation.modelruntime.domain.platformsupply.repository.PlatformProviderConnectionRepository;
 import com.aiplatform.foundation.modelruntime.infrastructure.persistence.deployment.mapper.ModelDeploymentMapper;
 import com.aiplatform.foundation.modelruntime.infrastructure.persistence.deployment.mapper.ModelDeploymentRequestMapper;
 import com.aiplatform.foundation.modelruntime.infrastructure.persistence.deployment.mapper.ModelCapabilityVerificationMapper;
@@ -49,6 +53,8 @@ import com.aiplatform.foundation.modelruntime.interfaces.web.configuration.contr
 import com.aiplatform.foundation.modelruntime.interfaces.web.configuration.controller.ModelConfigurationLifecycleController;
 import com.aiplatform.foundation.modelruntime.interfaces.web.configuration.controller.ModelConfigurationReadController;
 import com.aiplatform.foundation.modelruntime.interfaces.web.provider.controller.ProviderConnectionController;
+import com.aiplatform.foundation.modelruntime.interfaces.web.platformsupply.controller.PlatformProviderConnectionController;
+import com.aiplatform.foundation.modelruntime.interfaces.web.platformsupply.controller.PlatformProviderModelDiscoveryController;
 import com.aiplatform.foundation.security.egress.OutboundEndpointPolicy;
 import com.aiplatform.foundation.security.secret.SecretResolver;
 import com.aiplatform.foundation.security.secret.SecretEncryptionKeyProvider;
@@ -74,6 +80,12 @@ class ModelRuntimeAutoConfigurationTest {
                 .withBean(
                         ProviderConnectionRepository.class,
                         () -> mock(ProviderConnectionRepository.class))
+                .withBean(
+                        PlatformProviderConnectionRepository.class,
+                        () -> mock(PlatformProviderConnectionRepository.class))
+                .withBean(
+                        PlatformProviderModelDiscoveryStore.class,
+                        () -> mock(PlatformProviderModelDiscoveryStore.class))
                 .withBean(
                         ModelDeploymentRepository.class,
                         () -> mock(ModelDeploymentRepository.class))
@@ -114,6 +126,7 @@ class ModelRuntimeAutoConfigurationTest {
                     assertThat(context).hasSingleBean(ProviderConnectionService.class);
                     assertThat(context).hasSingleBean(ProviderModelDiscoveryService.class);
                     assertThat(context).hasSingleBean(ProviderModelDiscoveryReadService.class);
+                    assertThat(context).hasSingleBean(PlatformProviderModelDiscoveryService.class);
                     assertThat(context).hasSingleBean(ModelDeploymentService.class);
                     assertThat(context).hasSingleBean(ModelConfigurationService.class);
                     assertThat(context).hasSingleBean(ModelConfigurationAccessService.class);
@@ -156,6 +169,12 @@ class ModelRuntimeAutoConfigurationTest {
                         ProviderModelDiscoveryReadService.class,
                         () -> mock(ProviderModelDiscoveryReadService.class))
                 .withBean(
+                        PlatformProviderConnectionService.class,
+                        () -> mock(PlatformProviderConnectionService.class))
+                .withBean(
+                        PlatformProviderModelDiscoveryService.class,
+                        () -> mock(PlatformProviderModelDiscoveryService.class))
+                .withBean(
                         ModelDeploymentService.class,
                         () -> mock(ModelDeploymentService.class))
                 .withBean(
@@ -176,6 +195,8 @@ class ModelRuntimeAutoConfigurationTest {
                 .run(context -> {
                     assertThat(context).hasNotFailed();
                     assertThat(context).hasSingleBean(ProviderConnectionController.class);
+                    assertThat(context).hasSingleBean(PlatformProviderConnectionController.class);
+                    assertThat(context).hasSingleBean(PlatformProviderModelDiscoveryController.class);
                     assertThat(context).hasSingleBean(ModelDeploymentController.class);
                     assertThat(context).hasSingleBean(ModelConfigurationController.class);
                     assertThat(context).hasSingleBean(ControlledModelCatalogController.class);
@@ -265,6 +286,8 @@ class ModelRuntimeAutoConfigurationTest {
                     assertThat(context).hasSingleBean(ProviderModelDiscoveryStore.class);
                     assertThat(context).hasSingleBean(ProviderModelDiscoveryHistoryReader.class);
                     assertThat(context).hasSingleBean(ProviderModelDiscoveryLookup.class);
+                    assertThat(context).hasSingleBean(PlatformProviderConnectionRepository.class);
+                    assertThat(context).hasSingleBean(PlatformProviderModelDiscoveryStore.class);
                     assertThat(context).hasSingleBean(ModelConfigurationRepository.class);
                     assertThat(context).hasSingleBean(ModelConfigurationAccessRepository.class);
                     assertThat(context).hasSingleBean(ProviderConnectionCredentialWriter.class);

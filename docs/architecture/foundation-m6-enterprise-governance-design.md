@@ -694,3 +694,17 @@ ADR-0058、ADR-0065、ADR-0066、现有 `ProviderConnection`、`ModelDeployment`
 
 红灯顺序：先证明租户上下文不能调用平台探测、探测请求不能构造 `TenantId`、成功探测只影响平台连接，随后再验证真实
 PostgreSQL 事务、HTTP 平台会话和 SPA 写后重读。模型发现、部署和目录快照继续后置，避免在未经验证的连接上建立候选。
+
+### ADR-0066 平台模型发现窄切片
+
+平台连接通过探测后，平台管理员需要将该连接当前修订可用的受控模型候选固化为不可变事实，作为后续平台部署的唯一候选来源。此切片不建立部署、目录或跨环境复制，也不让租户连接、租户发现或租户会话参与。
+
+| 场景 | 命令 | 守卫与失败关闭 | 成功结果 |
+| --- | --- | --- | --- |
+| 平台管理员发现模型 | `DiscoverPlatformProviderModelsCommand` | `PlatformRequestContext` 含 `model-platform:write`；连接存在、修订匹配且为 `VERIFIED`；扩展请求只携带厂商、Endpoint、平台密钥引用与超时。 | `PlatformProviderModelDiscovery` 固化连接标识与修订、候选、安全结果码、耗时和有效期。 |
+| 未支持或失败发现 | 同一命令 | 无适配器、协议拒绝或外部失败不得隐式改用租户发现器。 | 只记录无候选、无有效期的稳定失败事实，后续部署不能引用。 |
+| 浏览器确认发现 | `/platform/model-supply` 的单一确认 Dialog | 页面只允许对当前服务端页、已验证连接发起发现；写后重新读取连接页。 | 仅显示候选数量和结果码；不显示 Endpoint、凭据、密文或厂商原始响应。 |
+
+`PlatformProviderModelDiscoverer` 与既有租户 `ProviderModelDiscoverer` 是两条显式端口：后者的请求包含 `TenantId`，前者禁止该字段。`PostgresPlatformProviderModelDiscoveryStore` 只写入 `platform_provider_model_discovery` 与 `platform_discovered_model`，迁移不触碰 `provider_model_discovery` 或 `provider_discovered_model`。候选的完整分页读取与平台部署选择在下一切片实现；当前 HTTP 回执仅用于操作确认，控制台不渲染候选集合，避免把发现结果变成无界浏览器目录。
+
+红灯顺序：无 `model-platform:write` 的请求不得读取连接或写入发现；控制器不得从查询参数取得租户身份；平台失败发现不得伪造候选或有效期。绿灯必须补齐平台专表的真实 PostgreSQL 原子写入、HTTP 安全摘要、统一 SPA 生产构建和本地 Compose 续证。

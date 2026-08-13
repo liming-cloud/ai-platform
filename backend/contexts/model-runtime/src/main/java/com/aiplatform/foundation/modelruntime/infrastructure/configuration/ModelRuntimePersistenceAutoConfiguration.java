@@ -32,10 +32,12 @@ import com.aiplatform.foundation.modelruntime.infrastructure.persistence.provide
 import com.aiplatform.foundation.modelruntime.infrastructure.persistence.provider.mapper.ProviderConnectionCredentialMapper;
 import com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.PlatformProviderConnectionCredentialTransaction;
 import com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.PlatformProviderConnectionCredentialWriter;
+import com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.PlatformProviderModelDiscoveryStore;
 import com.aiplatform.foundation.modelruntime.domain.platformsupply.repository.PlatformProviderConnectionRepository;
 import com.aiplatform.foundation.modelruntime.infrastructure.persistence.platformsupply.PostgresEncryptedPlatformProviderConnectionCredentialStore;
 import com.aiplatform.foundation.modelruntime.infrastructure.persistence.platformsupply.SpringPlatformProviderConnectionCredentialTransaction;
 import com.aiplatform.foundation.modelruntime.infrastructure.persistence.platformsupply.repository.PostgresPlatformProviderConnectionRepository;
+import com.aiplatform.foundation.modelruntime.infrastructure.persistence.platformsupply.repository.PostgresPlatformProviderModelDiscoveryStore;
 import com.baomidou.mybatisplus.autoconfigure.MybatisPlusAutoConfiguration;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.mybatis.spring.annotation.MapperScan;
@@ -89,6 +91,14 @@ public class ModelRuntimePersistenceAutoConfiguration {
             JdbcTemplate jdbc,
             PlatformTransactionManager transactions) {
         return new PostgresPlatformProviderConnectionRepository(jdbc, transactions);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean(PlatformProviderModelDiscoveryStore.class)
+    PostgresPlatformProviderModelDiscoveryStore platformProviderModelDiscoveryStore(
+            JdbcTemplate jdbc,
+            PlatformTransactionManager transactions) {
+        return new PostgresPlatformProviderModelDiscoveryStore(jdbc, transactions);
     }
 
     @Bean

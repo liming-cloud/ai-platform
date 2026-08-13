@@ -58,6 +58,8 @@ export function PlatformModelSupplyWorkspace({
   const [apiKey, setApiKey] = useState("");
   const [probeTarget, setProbeTarget] = useState<PlatformProviderConnectionSummary>();
   const [probeModelCode, setProbeModelCode] = useState("");
+  const [discoveryTarget, setDiscoveryTarget] = useState<PlatformProviderConnectionSummary>();
+  const [discoverySummary, setDiscoverySummary] = useState<string>();
 
   const load = useCallback(async () => {
     if (!client.hasSession()) {
@@ -140,6 +142,28 @@ export function PlatformModelSupplyWorkspace({
     }
   }
 
+  async function discoverModels() {
+    if (discoveryTarget === undefined) return;
+    setSubmitting(true);
+    setFailure(undefined);
+    setDiscoverySummary(undefined);
+    try {
+      const result = await client.discoverPlatformProviderModels(
+        discoveryTarget.id,
+        discoveryTarget.version,
+      );
+      setDiscoveryTarget(undefined);
+      setDiscoverySummary(result.succeeded
+        ? `模型发现完成：已固化 ${result.models.length} 个候选，结果编码为 ${result.resultCode}。`
+        : `模型发现未完成，结果编码为 ${result.resultCode}。`);
+      await load();
+    } catch (error) {
+      setFailure(toFailure(error));
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
   if (viewState === "unauthenticated") {
     return <StatePanel kind="stale" title="浏览器会话已经失效" description="平台模型供应链摘要已清除，请重新登录。" actionLabel="返回登录入口" onAction={() => window.location.assign("/")} />;
   }
@@ -157,11 +181,12 @@ export function PlatformModelSupplyWorkspace({
         <div className="task-actions"><Button appearance="primary" onClick={() => setCreating(true)}>新建平台连接</Button><Button appearance="subtle" onClick={() => void load()}>刷新连接</Button></div>
       </div>
       {failure === undefined ? null : <FailureMessage failure={failure} />}
+      {discoverySummary === undefined ? null : <MessageBar intent="success"><MessageBarBody><MessageBarTitle>模型发现已记录</MessageBarTitle>{discoverySummary}</MessageBarBody></MessageBar>}
       <section className="model-configuration-section">
         <header className="task-heading"><Title3>平台厂商连接</Title3><Text>仅平台管理员可创建；连接创建后需继续完成真实探测、发现和部署发布。</Text></header>
         <div className="member-directory-table" role="region" aria-label="平台厂商连接分页表格">
           <table><thead><tr><th>连接</th><th>厂商与区域</th><th>凭据与状态</th><th>最近探测</th><th>修订</th><th>操作</th></tr></thead><tbody>
-            {connections.length === 0 ? <tr><td colSpan={6}>当前页没有平台厂商连接。</td></tr> : connections.map((connection) => <tr key={connection.id}><td>{connection.displayName}</td><td>{connection.providerKind} · {connection.region}</td><td><Badge appearance="tint" color={connection.status === "VERIFIED" ? "success" : "warning"}>{connection.status === "VERIFIED" ? "已验证" : "待验证"}</Badge> {connection.credentialConfigured ? "凭据已配置" : "未配置凭据"}</td><td>{connection.lastProbeSucceeded === true ? "通过" : connection.lastProbeSucceeded === false ? "未通过" : "尚未探测"}</td><td>{connection.version}</td><td><Button appearance="secondary" disabled={submitting || !connection.credentialConfigured} onClick={() => setProbeTarget(connection)}>探测连接</Button></td></tr>)}
+            {connections.length === 0 ? <tr><td colSpan={6}>当前页没有平台厂商连接。</td></tr> : connections.map((connection) => <tr key={connection.id}><td>{connection.displayName}</td><td>{connection.providerKind} · {connection.region}</td><td><Badge appearance="tint" color={connection.status === "VERIFIED" ? "success" : "warning"}>{connection.status === "VERIFIED" ? "已验证" : "待验证"}</Badge> {connection.credentialConfigured ? "凭据已配置" : "未配置凭据"}</td><td>{connection.lastProbeSucceeded === true ? "通过" : connection.lastProbeSucceeded === false ? "未通过" : "尚未探测"}</td><td>{connection.version}</td><td><div className="task-actions"><Button appearance="secondary" disabled={submitting || !connection.credentialConfigured} onClick={() => setProbeTarget(connection)}>探测连接</Button><Button appearance="secondary" disabled={submitting || connection.status !== "VERIFIED"} onClick={() => setDiscoveryTarget(connection)}>发现模型</Button></div></td></tr>)}
           </tbody></table>
         </div>
         <div className="task-actions"><Text>共 {total} 条</Text><Button disabled={!hasPrevious} onClick={() => onRouteChange({ ...route, page: route.page - 1 })}>上一页</Button><Text>第 {route.page} 页</Text><Button disabled={!hasNext} onClick={() => onRouteChange({ ...route, page: route.page + 1 })}>下一页</Button></div>
@@ -181,6 +206,11 @@ export function PlatformModelSupplyWorkspace({
           <Text>探测使用平台范围凭据执行最小调用，只保存安全结果摘要；不会向浏览器返回 Endpoint、凭据或厂商原始响应。</Text>
           <Field label="模型代码" required><Input value={probeModelCode} onChange={(_, data) => setProbeModelCode(data.value)} disabled={submitting} /></Field>
         </DialogContent><DialogActions><Button appearance="secondary" disabled={submitting} onClick={() => setProbeTarget(undefined)}>取消</Button><Button appearance="primary" type="submit" disabled={submitting}>{submitting ? "正在探测" : "开始探测"}</Button></DialogActions></form></DialogBody></DialogSurface>
+      </Dialog>
+      <Dialog open={discoveryTarget !== undefined} onOpenChange={(_, data) => { if (!data.open && !submitting) setDiscoveryTarget(undefined); }}>
+        <DialogSurface><DialogBody><DialogTitle>发现平台模型</DialogTitle><DialogContent>
+          <Text>发现从已验证的平台连接读取受控候选并固化安全摘要。候选随后只能在平台部署任务中使用；不会向浏览器返回 Endpoint、凭据或厂商原始响应。</Text>
+        </DialogContent><DialogActions><Button appearance="secondary" disabled={submitting} onClick={() => setDiscoveryTarget(undefined)}>取消</Button><Button appearance="primary" disabled={submitting} onClick={() => void discoverModels()}>{submitting ? "正在发现" : "开始发现"}</Button></DialogActions></DialogBody></DialogSurface>
       </Dialog>
     </div>
   );
