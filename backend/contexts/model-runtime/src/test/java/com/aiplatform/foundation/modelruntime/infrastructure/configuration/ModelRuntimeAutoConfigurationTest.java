@@ -158,7 +158,9 @@ class ModelRuntimeAutoConfigurationTest {
         new ApplicationContextRunner()
                 .withConfiguration(AutoConfigurations.of(
                         ModelRuntimeWebAutoConfiguration.class))
-                .withPropertyValues("foundation.model-catalog.enabled=true")
+                .withPropertyValues(
+                        "foundation.model-catalog.enabled=true",
+                        "foundation.model-catalog.web.enabled=true")
                 .withBean(
                         ProviderConnectionService.class,
                         () -> mock(ProviderConnectionService.class))
@@ -204,6 +206,16 @@ class ModelRuntimeAutoConfigurationTest {
                     assertThat(context).hasSingleBean(ModelConfigurationLifecycleController.class);
                     assertThat(context).hasSingleBean(ModelConfigurationReadController.class);
                 });
+    }
+
+    @Test
+    void 未启用控制平面Web时不得导入模型目录接口() {
+        new ApplicationContextRunner()
+                .withConfiguration(AutoConfigurations.of(
+                        ModelRuntimeWebAutoConfiguration.class))
+                .withPropertyValues("foundation.model-catalog.enabled=true")
+                .run(context -> assertThat(context)
+                        .doesNotHaveBean(ModelRuntimeWebAutoConfiguration.class));
     }
 
     @Test

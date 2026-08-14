@@ -42,7 +42,7 @@ public final class ControlledModelCatalogEntry
             Long sourceDeploymentRevision) {
         this.id = Objects.requireNonNull(id, "受控模型目录条目标识不能为空");
         this.providerKind = Objects.requireNonNull(providerKind, "供应商类型不能为空");
-        this.endpoint = requireEndpoint(endpoint);
+        this.endpoint = requireEndpoint(providerKind, endpoint);
         this.modelCode = requireModelCode(modelCode);
         this.modelType = Objects.requireNonNull(modelType, "模型类型不能为空");
         this.capabilities = Objects.requireNonNull(capabilities, "模型运行时能力不能为空");
@@ -172,14 +172,21 @@ public final class ControlledModelCatalogEntry
 
     public Long sourceDeploymentRevision() { return sourceDeploymentRevision; }
 
-    private static URI requireEndpoint(URI value) {
+    private static URI requireEndpoint(ProviderKind providerKind, URI value) {
+        Objects.requireNonNull(providerKind, "供应商类型不能为空");
         Objects.requireNonNull(value, "受控模型目录端点不能为空");
         if (!value.isAbsolute()
-                || !"https".equalsIgnoreCase(value.getScheme())
                 || value.getHost() == null
                 || value.getUserInfo() != null
                 || value.getQuery() != null
                 || value.getFragment() != null) {
+            throw new IllegalArgumentException("受控模型目录端点格式不正确");
+        }
+        if (providerKind == ProviderKind.DETERMINISTIC
+                && "memory".equalsIgnoreCase(value.getScheme())) {
+            return value;
+        }
+        if (!"https".equalsIgnoreCase(value.getScheme())) {
             throw new IllegalArgumentException("受控模型目录端点格式不正确");
         }
         return value;

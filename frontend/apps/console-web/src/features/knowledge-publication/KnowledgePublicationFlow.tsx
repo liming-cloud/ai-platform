@@ -398,10 +398,6 @@ export function KnowledgePublicationFlow({
                 embeddingModelConfigurationId,
               })}
               onSelectionAvailabilityChange={setCanBuildIndex}
-              onFailure={(error) => {
-                dispatchFailure(dispatch, error);
-                return true;
-              }}
             />}
             onBuild={buildIndex}
             onPublish={publishIndex}

@@ -53,6 +53,22 @@ class ControlledModelCatalogEntryTest {
     }
 
     @Test
+    void 确定性本地供应链可冻结受控内存端点() {
+        var entry = ControlledModelCatalogEntry.createFromPlatformDeployment(
+                new ControlledModelCatalogEntryId(3002L),
+                new com.aiplatform.foundation.modelruntime.domain.platformsupply.model.PlatformModelDeploymentId(620000000000000001L),
+                1L,
+                ProviderKind.DETERMINISTIC,
+                URI.create("memory://deterministic"),
+                "deterministic-embedding",
+                ModelType.EMBEDDING,
+                ModelRuntimeCapabilities.embedding(8_192, 1_024),
+                Instant.parse("2026-08-14T00:00:00Z"));
+
+        assertEquals("memory://deterministic", entry.endpoint().toString());
+    }
+
+    @Test
     void 目录能力快照必须与模型类型一致() {
         assertThrows(IllegalArgumentException.class, () -> ControlledModelCatalogEntry.create(
                 new ControlledModelCatalogEntryId(3001L),

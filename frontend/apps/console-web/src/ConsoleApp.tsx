@@ -4,7 +4,7 @@ import {
   MessageBarBody,
   MessageBarTitle,
 } from "@fluentui/react-components";
-import { ProductShell, StatePanel } from "@foundation/design-system";
+import { ProductShell, StatePanel, type NavigationItem } from "@foundation/design-system";
 import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { ControlPlaneClient } from "./api/control-plane-client";
 import { KnowledgePublicationFlow } from "./features/knowledge-publication/KnowledgePublicationFlow";
@@ -153,15 +153,17 @@ function AuthenticatedConsoleApp({
     canUsePlatformGovernance,
     capabilityCodes,
   });
+  const navigationIds = navigationTargets(navigation);
+  const defaultNavigationId = navigationIds[0];
   const [sessionRevision, setSessionRevision] = useState(0);
   const [location, setLocation] = useState(readBrowserLocation);
   const parsedRoute = parseConsoleRoute(location.pathname, location.search);
-  const requestedRoute = parsedRoute ?? (location.pathname === "/" && navigation[0] !== undefined
-    ? defaultConsoleRoute(navigation[0].id)
+  const requestedRoute = parsedRoute ?? (location.pathname === "/" && defaultNavigationId !== undefined
+    ? defaultConsoleRoute(defaultNavigationId)
     : undefined);
   const resolvedRoute = resolveAuthorizedConsoleRoute(
     requestedRoute,
-    navigation.map((item) => item.id),
+    navigationIds,
   );
 
   useEffect(() => {
@@ -183,11 +185,10 @@ function AuthenticatedConsoleApp({
   }, [location.pathname, resolvedRoute]);
 
   function selectNavigation(navigationId: string) {
-    const item = navigation.find((candidate) => candidate.id === navigationId);
-    if (item === undefined) {
+    if (!navigationIds.includes(navigationId as ConsoleRoute["navigationId"])) {
       return;
     }
-    navigate(defaultConsoleRoute(item.id));
+    navigate(defaultConsoleRoute(navigationId as ConsoleRoute["navigationId"]));
   }
 
   function sessionChanged() {
@@ -486,6 +487,11 @@ function AuthenticatedConsoleApp({
       </section>
     </ProductShell>
   );
+}
+
+function navigationTargets(navigation: readonly NavigationItem[]): ConsoleRoute["navigationId"][] {
+  return navigation.flatMap((item) =>
+    (item.children?.map((child) => child.id) ?? [item.id]) as ConsoleRoute["navigationId"][]);
 }
 
 function readBrowserLocation() {

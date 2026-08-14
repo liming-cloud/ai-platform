@@ -1,4 +1,10 @@
 import {
+  Button,
+  Menu,
+  MenuItem,
+  MenuList,
+  MenuPopover,
+  MenuTrigger,
   Tab,
   TabList,
   Text,
@@ -11,6 +17,7 @@ import { assertNavigationBudget } from "./navigation-budget";
 export interface NavigationItem {
   id: string;
   label: string;
+  children?: readonly NavigationItem[];
 }
 
 export interface ProductShellProps {
@@ -38,6 +45,8 @@ export function ProductShell({
   accountLabel = "演示租户",
 }: ProductShellProps) {
   assertNavigationBudget(navigation);
+  const directNavigation = navigation.filter((item) => item.children === undefined);
+  const groupedNavigation = navigation.filter((item) => item.children !== undefined);
 
   return (
     <div className="product-shell">
@@ -45,20 +54,40 @@ export function ProductShell({
         <div className="product-brand">
           <Text weight="semibold">{productName}</Text>
         </div>
-        <TabList
-          aria-label="主要导航"
-          className="desktop-navigation"
-          selectedValue={activeNavigationId}
-          onTabSelect={(_, data) => {
-            onNavigationChange?.(String(data.value));
-          }}
-        >
-          {navigation.map((item) => (
-            <Tab key={item.id} value={item.id}>
-              {item.label}
-            </Tab>
+        <div className="desktop-navigation" aria-label="主要导航">
+          <TabList
+            selectedValue={activeNavigationId}
+            onTabSelect={(_, data) => {
+              onNavigationChange?.(String(data.value));
+            }}
+          >
+            {directNavigation.map((item) => (
+              <Tab key={item.id} value={item.id}>
+                {item.label}
+              </Tab>
+            ))}
+          </TabList>
+          {groupedNavigation.map((item) => (
+            <Menu key={item.id}>
+              <MenuTrigger disableButtonEnhancement>
+                <Button appearance={item.children?.some((child) => child.id === activeNavigationId)
+                  ? "primary"
+                  : "subtle"}>
+                  {item.label}
+                </Button>
+              </MenuTrigger>
+              <MenuPopover>
+                <MenuList aria-label={item.label}>
+                  {item.children?.map((child) => (
+                    <MenuItem key={child.id} onClick={() => onNavigationChange?.(child.id)}>
+                      {child.label}
+                    </MenuItem>
+                  ))}
+                </MenuList>
+              </MenuPopover>
+            </Menu>
           ))}
-        </TabList>
+        </div>
         <Text className="account-label" size={200}>
           {accountLabel}
         </Text>

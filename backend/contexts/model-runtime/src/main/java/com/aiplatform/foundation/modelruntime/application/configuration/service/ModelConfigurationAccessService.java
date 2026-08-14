@@ -23,7 +23,7 @@ import java.util.Objects;
 public final class ModelConfigurationAccessService {
 
     private static final PermissionCode PLATFORM_WRITE = new PermissionCode("model-platform:write");
-    private static final PermissionCode TENANT_WRITE = new PermissionCode("model-tenant:write");
+    private static final PermissionCode MODEL_WRITE = new PermissionCode("model:write");
 
     private final ModelConfigurationRepository configurations;
     private final ModelConfigurationAccessRepository grants;
@@ -121,7 +121,7 @@ public final class ModelConfigurationAccessService {
             return;
         }
         if (configuration.scope() == ModelConfigurationScope.TENANT
-                && context.hasPermission(TENANT_WRITE)
+                && context.hasPermission(MODEL_WRITE)
                 && configuration.tenantId().equals(context.tenantId())
                 && configuration.tenantId().equals(granteeTenantId)) {
             return;

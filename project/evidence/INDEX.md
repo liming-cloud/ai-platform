@@ -319,6 +319,7 @@
 | M6 平台模型发现 | `project/evidence/WP-0014-platform-provider-model-discovery.md` | 本次提交 | ADR-0066 的独立平台发现端口、不可变发现事实、真实 PostgreSQL、HTTP 路由与统一 SPA 已回归；平台部署、目录快照和已登录浏览器续证仍待后续切片。 |
 | M6 平台部署、当前候选与控制台闭环 | `project/evidence/WP-0014-platform-model-deployment.md` | 本次提交 | 平台专属当前候选分页、草稿／真实探测／发布／不可逆停用、真实 PostgreSQL 回滚、受限 HTTP、URL 恢复的统一 SPA 与本地 Compose 已回归；目录快照、租户消费和已登录浏览器续证仍待后续切片。 |
 | M6 平台目录部署快照与当前可用性选择 | `project/evidence/WP-0014-platform-model-catalog-snapshot.md` | 本次提交 | 目录仅从已发布健康平台部署冻结事实，已删除自由 Endpoint／旧租户上下文旁路；创建／发布／运行时重验来源，选择器在 PostgreSQL 的同一分页／计数谓词排除修订漂移、到期和失效连接。Compose 同源 HTTP 失败关闭与当前浏览器登录边界已复核；已登录完整链路仍待续证。 |
+| M6 企业产品基础真实回归 | `project/evidence/WP-0014-enterprise-foundation-browser-regression.md` | 本次提交 | 修复模型配置辅助读取隔离、工作器 Web 装配与受控凭据主密钥接线；真实 PostgreSQL／MinIO、HTTP 和统一 SPA 已完成平台目录到租户索引发布闭环，M6 仍进行中。 |
 
 ## 证据规则
 

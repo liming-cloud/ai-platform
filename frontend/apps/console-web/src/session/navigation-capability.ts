@@ -1,3 +1,5 @@
+import type { NavigationItem } from "@foundation/design-system";
+
 export const NAVIGATION = [
   { id: "access", label: "成员与权限", requiredCapability: "access:manage", workspace: "TENANT" },
   { id: "data", label: "数据", requiredCapability: "knowledge:read", workspace: "TENANT" },
@@ -40,11 +42,23 @@ export function visibleNavigation({
   canUsePlatformGovernance: boolean;
   capabilityCodes: string[];
 }) {
-  return NAVIGATION.filter((item) =>
+  const tenantNavigation = NAVIGATION.filter((item) =>
     item.workspace === "TENANT"
-      ? canUseTenantWorkspace && capabilityCodes.includes(item.requiredCapability)
-      : canUsePlatformGovernance && capabilityCodes.includes(item.requiredCapability),
-  );
+      && canUseTenantWorkspace
+      && capabilityCodes.includes(item.requiredCapability));
+  const platformNavigation = NAVIGATION.filter((item) =>
+    item.workspace === "PLATFORM_TENANT_GOVERNANCE"
+      && canUsePlatformGovernance
+      && capabilityCodes.includes(item.requiredCapability));
+  const result: NavigationItem[] = [...tenantNavigation];
+  if (platformNavigation.length > 0) {
+    result.push({
+      id: "platform-governance",
+      label: "平台治理",
+      children: platformNavigation,
+    });
+  }
+  return result;
 }
 
 /**

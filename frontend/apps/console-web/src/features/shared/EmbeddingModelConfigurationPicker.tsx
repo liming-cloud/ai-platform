@@ -1,6 +1,11 @@
 import { Button, Field, Select, Text } from "@fluentui/react-components";
 import { useCallback, useEffect, useState } from "react";
-import type { ControlPlaneClient, ModelConfiguration } from "../../api/control-plane-client";
+import type { ControlPlaneClient } from "../../api/control-plane-client";
+import {
+  failedModelConfigurationPage,
+  initialModelConfigurationPage,
+  loadedModelConfigurationPage,
+} from "./embedding-model-configuration-page";
 import { PagedResourceNavigation } from "./PagedResourceNavigation";
 
 /**
@@ -14,7 +19,7 @@ export function EmbeddingModelConfigurationPicker({
   selectedId,
   disabled,
   onChange,
-  onFailure,
+  onSessionExpired,
   onSelectionAvailabilityChange,
 }: {
   client: ControlPlaneClient;
@@ -22,44 +27,36 @@ export function EmbeddingModelConfigurationPicker({
   selectedId?: string;
   disabled: boolean;
   onChange: (page: number, selectedId?: string) => void;
-  onFailure: (error: unknown) => boolean;
+  /** 仅在已确认浏览器会话失效时清理父任务状态。 */
+  onSessionExpired?: (error: unknown) => boolean;
   onSelectionAvailabilityChange?: (available: boolean) => void;
 }) {
-  const [configurations, setConfigurations] = useState<ModelConfiguration[]>([]);
-  const [hasPrevious, setHasPrevious] = useState(false);
-  const [hasNext, setHasNext] = useState(false);
-  const [total, setTotal] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [failed, setFailed] = useState(false);
+  const [modelConfigurationPage, setModelConfigurationPage] = useState(
+    initialModelConfigurationPage,
+  );
 
   const load = useCallback(async () => {
-    setLoading(true);
-    setFailed(false);
+    setModelConfigurationPage((current) => ({
+      ...current,
+      loading: true,
+      failed: false,
+    }));
     try {
       const result = await client.listModelConfigurations(page);
-      setConfigurations(result.items);
-      setHasPrevious(result.hasPrevious);
-      setHasNext(result.hasNext);
-      setTotal(result.totalElements);
+      setModelConfigurationPage(loadedModelConfigurationPage(result));
     } catch (error) {
-      setConfigurations([]);
-      setHasPrevious(false);
-      setHasNext(false);
-      setTotal(0);
-      if (!onFailure(error)) {
-        setFailed(true);
+      if (!onSessionExpired?.(error)) {
+        setModelConfigurationPage(failedModelConfigurationPage());
       }
-    } finally {
-      setLoading(false);
     }
-  }, [client, onFailure, page]);
+  }, [client, onSessionExpired, page]);
 
   useEffect(() => {
     const timeout = window.setTimeout(() => void load(), 0);
     return () => window.clearTimeout(timeout);
   }, [load]);
 
-  const eligible = configurations.filter((configuration) => (
+  const eligible = modelConfigurationPage.configurations.filter((configuration) => (
     configuration.modelType === "EMBEDDING"
       && configuration.status === "ACTIVE"
       && configuration.credentialConfigured
@@ -67,16 +64,18 @@ export function EmbeddingModelConfigurationPicker({
 
   useEffect(() => {
     onSelectionAvailabilityChange?.(
-      !loading && !failed && eligible.some((configuration) => configuration.id === selectedId),
+      !modelConfigurationPage.loading
+        && !modelConfigurationPage.failed
+        && eligible.some((configuration) => configuration.id === selectedId),
     );
-  }, [eligible, failed, loading, onSelectionAvailabilityChange, selectedId]);
+  }, [eligible, modelConfigurationPage.failed, modelConfigurationPage.loading, onSelectionAvailabilityChange, selectedId]);
 
   return (
     <div className="governed-file-form">
       <Field label="嵌入模型配置" required>
         <Select
           value={selectedId ?? ""}
-          disabled={disabled || loading || failed}
+          disabled={disabled || modelConfigurationPage.loading || modelConfigurationPage.failed}
           onChange={(_, data) => onChange(page, data.value || undefined)}
         >
           <option value="">请选择可用嵌入模型</option>
@@ -88,16 +87,16 @@ export function EmbeddingModelConfigurationPicker({
       <PagedResourceNavigation
         label="模型配置"
         page={page}
-        total={total}
-        hasPrevious={hasPrevious}
-        hasNext={hasNext}
-        disabled={disabled || loading}
+        total={modelConfigurationPage.total}
+        hasPrevious={modelConfigurationPage.hasPrevious}
+        hasNext={modelConfigurationPage.hasNext}
+        disabled={disabled || modelConfigurationPage.loading}
         onPrevious={() => onChange(page - 1, undefined)}
         onNext={() => onChange(page + 1, undefined)}
       />
-      {loading ? <Text size={200}>正在读取可用嵌入模型。</Text> : null}
-      {failed ? <div className="task-actions"><Text size={200}>模型配置暂时不可用。</Text><Button appearance="subtle" disabled={disabled} onClick={() => void load()}>重新加载模型配置</Button></div> : null}
-      {!loading && !failed && eligible.length === 0 ? <Text size={200}>当前页没有可用嵌入模型，请翻页或先完成模型配置。</Text> : null}
+      {modelConfigurationPage.loading ? <Text size={200}>正在读取可用嵌入模型。</Text> : null}
+      {modelConfigurationPage.failed ? <div className="task-actions"><Text size={200}>模型配置暂时不可用。</Text><Button appearance="subtle" disabled={disabled} onClick={() => void load()}>重新加载模型配置</Button></div> : null}
+      {!modelConfigurationPage.loading && !modelConfigurationPage.failed && eligible.length === 0 ? <Text size={200}>当前页没有可用嵌入模型，请翻页或先完成模型配置。</Text> : null}
     </div>
   );
 }

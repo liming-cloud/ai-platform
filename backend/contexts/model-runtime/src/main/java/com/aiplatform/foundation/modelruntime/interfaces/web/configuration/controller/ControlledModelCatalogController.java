@@ -38,7 +38,7 @@ public class ControlledModelCatalogController {
             PlatformRequestContext context,
             @RequestBody ControlledModelCatalogEntryCreateFromDeploymentRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(ControlledModelCatalogEntryView.from(
-                catalog.createFromDeployment(context, new PlatformModelDeploymentId(request.platformDeploymentId()),
+                catalog.createFromDeployment(context, new PlatformModelDeploymentId(request.parsedPlatformDeploymentId()),
                         request.expectedDeploymentVersion())));
     }
 

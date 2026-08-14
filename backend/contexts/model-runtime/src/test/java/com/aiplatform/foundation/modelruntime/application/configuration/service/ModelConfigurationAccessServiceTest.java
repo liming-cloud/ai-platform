@@ -89,7 +89,7 @@ class ModelConfigurationAccessServiceTest {
     }
 
     private static TrustedRequestContext tenantAdmin(TenantId tenantId) {
-        return context(tenantId, 9001L, "model-tenant:write");
+        return context(tenantId, 9001L, "model:write");
     }
 
     private static TrustedRequestContext member(TenantId tenantId, long membershipId) {

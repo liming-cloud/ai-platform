@@ -30,6 +30,12 @@
   white-space: nowrap;
 }
 
+.desktop-navigation {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
 .product-main {
   width: min(calc(100% - 3rem), 78rem);
   margin: 0 auto;

@@ -361,7 +361,7 @@ export function ObjectStorageDataWorkspace({
                 embeddingModelConfigurationPage,
                 embeddingModelConfigurationId,
               })}
-              onFailure={restartExpiredSession}
+              onSessionExpired={restartExpiredSession}
             /> : null}
             <Text>{source.syncArtifactId === null ? "登记完成，可同步冻结对象集合。" : `同步完成，质量状态：${source.qualityStatus}。`}</Text>
             <div className="task-actions">

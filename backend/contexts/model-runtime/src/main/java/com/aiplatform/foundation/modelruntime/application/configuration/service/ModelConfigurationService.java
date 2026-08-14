@@ -24,8 +24,7 @@ import java.util.Objects;
 public final class ModelConfigurationService {
 
     private static final PermissionCode PLATFORM_WRITE = new PermissionCode("model-platform:write");
-    private static final PermissionCode TENANT_WRITE = new PermissionCode("model-tenant:write");
-    private static final PermissionCode PERSONAL_WRITE = new PermissionCode("model-personal:write");
+    private static final PermissionCode MODEL_WRITE = new PermissionCode("model:write");
 
     private final ModelConfigurationRepository repository;
     private final Clock clock;
@@ -148,7 +147,7 @@ public final class ModelConfigurationService {
             TrustedRequestContext context,
             String displayName,
             ControlledModelCatalogEntryId catalogEntryId) {
-        requirePermission(context, TENANT_WRITE);
+        requirePermission(context, MODEL_WRITE);
         return save(ModelConfiguration.create(
                 new ModelConfigurationId(identifiers.nextId()),
                 ModelConfigurationScope.TENANT,
@@ -163,7 +162,7 @@ public final class ModelConfigurationService {
             TrustedRequestContext context,
             String displayName,
             ControlledModelCatalogEntryId catalogEntryId) {
-        requirePermission(context, PERSONAL_WRITE);
+        requirePermission(context, MODEL_WRITE);
         return save(ModelConfiguration.create(
                 new ModelConfigurationId(identifiers.nextId()),
                 ModelConfigurationScope.PERSONAL,
@@ -211,9 +210,9 @@ public final class ModelConfigurationService {
             TrustedRequestContext context, ModelConfiguration configuration) {
         return switch (configuration.scope()) {
             case PLATFORM -> context.hasPermission(PLATFORM_WRITE);
-            case TENANT -> context.hasPermission(TENANT_WRITE)
+            case TENANT -> context.hasPermission(MODEL_WRITE)
                     && configuration.tenantId().equals(context.tenantId());
-            case PERSONAL -> context.hasPermission(PERSONAL_WRITE)
+            case PERSONAL -> context.hasPermission(MODEL_WRITE)
                     && configuration.tenantId().equals(context.tenantId())
                     && configuration.ownerMembershipId().value() == context.membershipId().value();
         };

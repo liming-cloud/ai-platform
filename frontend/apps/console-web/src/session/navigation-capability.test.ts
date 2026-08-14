@@ -18,20 +18,40 @@ describe("visibleNavigation", () => {
     })).toEqual([]);
   });
 
-  it("平台运营员只看到不含治理数据的平台工作区入口", () => {
+  it("平台运营员通过单一平台治理入口访问获授子任务", () => {
     expect(visibleNavigation({
       canUseTenantWorkspace: false,
       canUsePlatformGovernance: true,
       capabilityCodes: ["platform-session:access"],
-    }).map((item) => item.id)).toEqual(["platform-workspace"]);
+    }).map((item) => item.id)).toEqual(["platform-governance"]);
   });
 
-  it("只有具备平台模型写能力的会话可见平台供应链入口", () => {
+  it("平台模型写能力作为平台治理入口的受权子任务显示", () => {
     expect(visibleNavigation({
       canUseTenantWorkspace: false,
       canUsePlatformGovernance: true,
       capabilityCodes: ["platform-session:access", "model-platform:write"],
-    }).map((item) => item.id)).toEqual(["platform-workspace", "platform-model-supply"]);
+    }).map((item) => item.id)).toEqual(["platform-governance"]);
+  });
+
+  it("平台和租户复合职责不会突破六项顶级导航预算", () => {
+    expect(visibleNavigation({
+      canUseTenantWorkspace: true,
+      canUsePlatformGovernance: true,
+      capabilityCodes: [
+        "access:manage",
+        "knowledge:read",
+        "model:read",
+        "usage:read",
+        "assistant:query",
+        "platform-session:access",
+        "tenant-governance:write",
+        "platform:accounts:manage",
+        "model-platform:write",
+      ],
+    }).map((item) => item.id)).toEqual([
+      "access", "data", "models", "governance", "query", "platform-governance",
+    ]);
   });
 
   it("访问管理员应看到成员与权限入口，普通成员不得看到", () => {

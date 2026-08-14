@@ -56,7 +56,7 @@ class ModelConfigurationServiceTest {
                 new ControlledModelCatalogEntryId(3001L)));
 
         var created = service.create(
-                context("model-personal:write"),
+                context("model:write"),
                 ModelConfigurationScope.PERSONAL,
                 "我的模型",
                 new ControlledModelCatalogEntryId(3001L));
@@ -74,7 +74,7 @@ class ModelConfigurationServiceTest {
         var service = service(repository, deployments, mock(PlatformProviderConnectionRepository.class));
 
         assertThrows(IllegalStateException.class, () -> service.create(
-                context("model-tenant:write"), ModelConfigurationScope.TENANT, "租户模型",
+                context("model:write"), ModelConfigurationScope.TENANT, "租户模型",
                 new ControlledModelCatalogEntryId(3001L)));
         assertEquals(null, repository.configuration);
     }
@@ -92,7 +92,7 @@ class ModelConfigurationServiceTest {
         ModelConfiguration created;
         try (var secret = SecretValue.copyOf("test-api-key".toCharArray())) {
             created = service.create(
-                    context("model-tenant:write"),
+                    context("model:write"),
                     ModelConfigurationScope.TENANT,
                     "租户模型",
                     new ControlledModelCatalogEntryId(3001L),
@@ -124,7 +124,7 @@ class ModelConfigurationServiceTest {
             assertThrows(
                     com.aiplatform.foundation.modelruntime.application.configuration.exception.ModelConfigurationNotFoundException.class,
                     () -> service.rotate(
-                            context("model-personal:write", 3382738893456539651L),
+                            context("model:write", 3382738893456539651L),
                             new ModelConfigurationId(4001L),
                             secret));
         }

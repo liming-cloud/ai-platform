@@ -108,7 +108,7 @@ class ControlledModelCatalogServiceTest {
         repository.saveCatalogEntry(published);
 
         var page = service.listPublished(
-                context("model-personal:write"), new PageQuery(1, 20));
+                context("model:write"), new PageQuery(1, 20));
 
         assertEquals(1, page.items().size());
         assertEquals("PUBLISHED", page.items().getFirst().status().name());

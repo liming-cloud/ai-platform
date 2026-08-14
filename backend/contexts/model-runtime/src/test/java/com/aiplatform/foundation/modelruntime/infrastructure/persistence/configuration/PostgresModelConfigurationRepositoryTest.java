@@ -217,6 +217,24 @@ class PostgresModelConfigurationRepositoryTest {
     }
 
     @Test
+    void 保存确定性目录快照时允许受控内存端点() {
+        var entry = ControlledModelCatalogEntry.createFromPlatformDeployment(
+                new ControlledModelCatalogEntryId(3008L),
+                new PlatformModelDeploymentId(620000000000000001L),
+                3L,
+                com.aiplatform.foundation.modelruntime.domain.provider.model.ProviderKind.DETERMINISTIC,
+                java.net.URI.create("memory://deterministic"),
+                "deterministic-embedding",
+                com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelType.EMBEDDING,
+                ModelRuntimeCapabilities.embedding(8_192, 1_024),
+                Instant.parse("2026-08-14T00:00:00Z"));
+
+        repository.saveCatalogEntry(entry);
+
+        assertEquals("memory://deterministic", repository.findCatalogEntry(entry.id()).orElseThrow().endpoint().toString());
+    }
+
+    @Test
     void 缺少能力快照的历史目录条目必须失效关闭() {
         jdbc.update("""
                 INSERT INTO model_runtime.controlled_model_catalog_entry

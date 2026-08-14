@@ -522,7 +522,7 @@ export function GovernedFileDataWorkspace({
                     embeddingModelConfigurationPage,
                     embeddingModelConfigurationId,
                   })}
-                  onFailure={restartExpiredSession}
+                  onSessionExpired={restartExpiredSession}
                 />
               ) : null}
               <div className="task-actions">

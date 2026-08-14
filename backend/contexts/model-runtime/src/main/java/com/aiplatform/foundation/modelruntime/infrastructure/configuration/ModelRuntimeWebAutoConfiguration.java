@@ -23,6 +23,9 @@ import org.springframework.context.annotation.Import;
 @ConditionalOnProperty(
         name = "foundation.model-catalog.enabled",
         havingValue = "true")
+@ConditionalOnProperty(
+        name = "foundation.model-catalog.web.enabled",
+        havingValue = "true")
 @Import({
     ProviderConnectionController.class,
     PlatformProviderConnectionController.class,

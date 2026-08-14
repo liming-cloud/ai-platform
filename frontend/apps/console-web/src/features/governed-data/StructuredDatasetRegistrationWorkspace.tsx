@@ -471,7 +471,7 @@ export function StructuredDatasetRegistrationWorkspace({
                     embeddingModelConfigurationPage,
                     embeddingModelConfigurationId,
                   })}
-                  onFailure={restartExpiredSession}
+                  onSessionExpired={restartExpiredSession}
                 />
               ) : null}
               {source.syncArtifactId === null ? (

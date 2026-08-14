@@ -39,7 +39,7 @@ class ControlledModelCatalogControllerTest {
         when(service.createFromDeployment(context, deploymentId, 3L)).thenReturn(entry);
 
         var response = controller.create(context,
-                new ControlledModelCatalogEntryCreateFromDeploymentRequest(deploymentId.value(), 3L));
+                new ControlledModelCatalogEntryCreateFromDeploymentRequest(Long.toString(deploymentId.value()), 3L));
 
         assertThat(response.getStatusCode().value()).isEqualTo(201);
         assertThat(response.getBody().toString()).doesNotContain("https://example.com/v1");
