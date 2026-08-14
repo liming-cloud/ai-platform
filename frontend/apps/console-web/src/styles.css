@@ -138,12 +138,159 @@
 
 .governance-login {
   display: grid;
-  gap: 1rem;
-  max-width: 46rem;
+  grid-template-columns: minmax(18rem, 0.88fr) minmax(24rem, 1.12fr);
+  min-height: 100dvh;
+  background: #f5f7fb;
 }
 
-.governance-login .task-heading {
-  margin-bottom: 1rem;
+.governance-login__context {
+  display: grid;
+  align-content: center;
+  gap: 1.25rem;
+  padding: clamp(2rem, 7vw, 7rem);
+  color: #f7fbff;
+  background: #123a5a;
+}
+
+.governance-login__product {
+  margin: 0;
+  color: #c7e8ff;
+  font-size: 0.875rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.governance-login__context h1,
+.governance-login__heading h2 {
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+
+.governance-login__context h1 {
+  max-width: 12rem;
+  font-size: clamp(2.25rem, 4vw, 3.75rem);
+  line-height: 1.08;
+}
+
+.governance-login__summary {
+  max-width: 28rem;
+  margin: 0;
+  color: #d6e8f7;
+  font-size: 1.0625rem;
+  line-height: 1.65;
+}
+
+.governance-login__workspace-guide {
+  display: grid;
+  gap: 1rem;
+  max-width: 28rem;
+  margin: 1.5rem 0 0;
+}
+
+.governance-login__workspace-guide div {
+  display: grid;
+  gap: 0.25rem;
+  padding-left: 1rem;
+  border-left: 2px solid #5db3e6;
+}
+
+.governance-login__workspace-guide dt {
+  font-weight: 700;
+}
+
+.governance-login__workspace-guide dd {
+  margin: 0;
+  color: #d6e8f7;
+  line-height: 1.5;
+}
+
+.governance-login__panel {
+  display: grid;
+  place-items: center;
+  padding: clamp(1.5rem, 5vw, 5rem);
+}
+
+.governance-login__card {
+  display: grid;
+  gap: 1.5rem;
+  width: min(100%, 31rem);
+  padding: clamp(1.5rem, 4vw, 2.75rem);
+  border: 1px solid #d8e2ec;
+  border-radius: 1rem;
+  background: var(--colorNeutralBackground1);
+  box-shadow: 0 1.25rem 3.75rem rgb(32 61 88 / 0.12);
+}
+
+.governance-login__heading {
+  display: grid;
+  gap: 0.625rem;
+}
+
+.governance-login__heading h2 {
+  font-size: 1.75rem;
+}
+
+.governance-login__heading p,
+.governance-login__platform-note {
+  margin: 0;
+  color: var(--colorNeutralForeground2);
+  line-height: 1.55;
+}
+
+.governance-login__workspace-tabs {
+  display: flex;
+  width: 100%;
+}
+
+.governance-login__workspace-tabs [role="tab"] {
+  flex: 1;
+  justify-content: center;
+}
+
+.governance-login__form {
+  display: grid;
+  gap: 1.125rem;
+}
+
+.governance-login__platform-note {
+  padding: 0.875rem 1rem;
+  border-left: 3px solid #0f6cbd;
+  background: #edf5fc;
+}
+
+.governance-login__submit {
+  justify-content: center;
+  width: 100%;
+  min-height: 2.75rem;
+}
+
+@media (max-width: 44rem) {
+  .governance-login {
+    grid-template-columns: 1fr;
+  }
+
+  .governance-login__context {
+    gap: 0.875rem;
+    padding: 2rem 1.5rem;
+  }
+
+  .governance-login__context h1 {
+    max-width: none;
+    font-size: 2.25rem;
+  }
+
+  .governance-login__workspace-guide {
+    margin-top: 0.75rem;
+  }
+
+  .governance-login__panel {
+    align-items: start;
+    padding: 1.25rem;
+  }
+
+  .governance-login__card {
+    padding: 1.5rem;
+  }
 }
 
 .governance-workspace {

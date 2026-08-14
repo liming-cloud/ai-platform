@@ -322,6 +322,7 @@
 | M6 企业产品基础真实回归 | `project/evidence/WP-0014-enterprise-foundation-browser-regression.md` | 本次提交 | 修复模型配置辅助读取隔离、工作器 Web 装配与受控凭据主密钥接线；真实 PostgreSQL／MinIO、HTTP 和统一 SPA 已完成平台目录到租户索引发布闭环，M6 仍进行中。 |
 | M6 自动验收与人工评审请求 | `project/evidence/M6-automatic-acceptance-review.md` | 本次提交 | ADR-0057 至 ADR-0059 的账户权限、模型供应链和统一 SPA 自动验收均通过；真实 Compose、HTTP、浏览器与全量门禁已复核，当前仅待人工评审，不得进入 M7。 |
 | M6 人工评审拒绝：登录页视觉与任务引导 | `project/evidence/M6-human-review-rejection.md` | 本次提交 | 人工拒绝当前登录页的企业产品质量；自动技术验收不关闭工作包，须完成登录页视觉整改并再次人工复核。 |
+| M6 登录入口视觉与可用性整改设计 | `project/evidence/WP-0014-login-visual-remediation-design.md` | 本次提交 | 统一入口改为显式平台／租户目标选择，并通过最小请求组装模型保持原有双范围认证边界；TDD、前端构建和本地 HTTP 已通过，浏览器视觉复核待人工完成。 |
 
 ## 证据规则
 
