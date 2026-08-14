@@ -400,7 +400,7 @@ class AuthenticationApiTest {
                 url("/api/v1/tenant/members/3382738893456539652/custom-role-bindings"),
                 HttpMethod.POST,
                 new HttpEntity<>(
-                        Map.of("customRoleId", Long.parseLong((String) created.getBody().get("id"))),
+                        Map.of("customRoleId", created.getBody().get("id")),
                         bearer(tenantLogin())),
                 Map.class);
 

@@ -262,6 +262,7 @@ latestEvidence:
   - project/evidence/ADR-0066-approval.md
   - project/evidence/WP-0014-platform-provider-model-discovery.md
   - project/evidence/WP-0014-enterprise-foundation-browser-regression.md
+  - project/evidence/M6-automatic-acceptance-review.md
 nextReviewAt: 2026-08-12
-updatedAt: 2026-08-14T10:10:00+08:00
+updatedAt: 2026-08-14T10:24:00+08:00
 updatedBy: codex
