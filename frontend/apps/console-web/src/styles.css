@@ -167,9 +167,10 @@
 }
 
 .governance-login__context h1 {
-  max-width: 12rem;
-  font-size: clamp(2.25rem, 4vw, 3.75rem);
+  max-width: 24rem;
+  font-size: clamp(2.25rem, 3.5vw, 3.25rem);
   line-height: 1.08;
+  word-break: keep-all;
 }
 
 .governance-login__summary {
