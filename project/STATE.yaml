@@ -2,7 +2,7 @@ schemaVersion: 1
 productVersion: foundation-v1
 currentMilestone: M6
 currentFrontier: WP-0014
-lastVerifiedCommit: 1ff96a013
+lastVerifiedCommit: ea5cdaaa4
 activeWorkPackages:
   - WP-0014
 blockedWorkPackages: []
@@ -274,5 +274,5 @@ latestEvidence:
   - docs/audits/WP-0014-m6-api-redundancy-audit.md
   - project/evidence/WP-0014-openai-style-enterprise-product-regression.md
 nextReviewAt: 2026-08-17
-updatedAt: 2026-08-17T00:10:00+08:00
+updatedAt: 2026-08-17T00:27:00+08:00
 updatedBy: codex
