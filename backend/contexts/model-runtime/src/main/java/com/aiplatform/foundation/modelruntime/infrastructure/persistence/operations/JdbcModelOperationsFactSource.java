@@ -3,6 +3,7 @@ package com.aiplatform.foundation.modelruntime.infrastructure.persistence.operat
 import com.aiplatform.foundation.modelruntime.application.operations.dto.ModelOperationsFacts;
 import com.aiplatform.foundation.modelruntime.application.operations.facade.ModelOperationsFactSource;
 import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -41,53 +42,47 @@ public final class JdbcModelOperationsFactSource implements ModelOperationsFactS
     }
 
     @Override
-    public Set<TenantId> tenantsWithoutPublishedDeployment() {
-        return Set.copyOf(jdbc.sql("""
-                        WITH configured_tenant AS (
-                            SELECT tenant_id FROM model_runtime.provider_connection
-                            UNION
-                            SELECT tenant_id FROM model_runtime.model_deployment
-                            UNION
-                            SELECT tenant_id FROM model_runtime.model_configuration
-                            WHERE tenant_id IS NOT NULL
-                        )
-                        SELECT configured.tenant_id
-                        FROM configured_tenant configured
-                        WHERE NOT EXISTS (
-                            SELECT 1
-                            FROM model_runtime.model_deployment deployment
-                            INNER JOIN model_runtime.provider_connection connection
-                                ON connection.tenant_id = deployment.tenant_id
-                                AND connection.id = deployment.provider_connection_id
-                            WHERE deployment.tenant_id = configured.tenant_id
-                                AND deployment.status = 'PUBLISHED'
-                                AND deployment.verification_expires_at > CURRENT_TIMESTAMP
-                                AND connection.status = 'VERIFIED'
-                                AND connection.version = deployment.provider_connection_revision
-                        )
-                        AND NOT EXISTS (
-                            SELECT 1
-                            FROM model_runtime.model_configuration configuration
-                            INNER JOIN model_runtime.model_configuration_credential credential
-                                ON credential.model_configuration_id = configuration.id
-                            INNER JOIN model_runtime.controlled_model_catalog_entry catalog
-                                ON catalog.id = configuration.catalog_entry_id
-                            INNER JOIN model_runtime.platform_model_deployment deployment
-                                ON deployment.id = catalog.source_platform_deployment_id
-                            INNER JOIN model_runtime.platform_provider_connection connection
-                                ON connection.id = deployment.platform_provider_connection_id
-                            WHERE configuration.tenant_id = configured.tenant_id
-                                AND configuration.status = 'ACTIVE'
-                                AND catalog.status = 'PUBLISHED'
-                                AND deployment.version = catalog.source_platform_deployment_revision
-                                AND deployment.status = 'PUBLISHED'
-                                AND deployment.verification_expires_at > CURRENT_TIMESTAMP
-                                AND connection.status = 'VERIFIED'
-                                AND connection.version = deployment.platform_provider_connection_revision
-                        )
+    public Set<TenantId> tenantsWithoutAvailableModel(Set<TenantId> activeTenantIds) {
+        Objects.requireNonNull(activeTenantIds, "活动租户集合不能为空");
+        if (activeTenantIds.isEmpty()) {
+            return Set.of();
+        }
+        var tenantsWithAvailableModel = Set.copyOf(jdbc.sql("""
+                        SELECT deployment.tenant_id
+                        FROM model_runtime.model_deployment deployment
+                        INNER JOIN model_runtime.provider_connection connection
+                            ON connection.tenant_id = deployment.tenant_id
+                            AND connection.id = deployment.provider_connection_id
+                        WHERE deployment.status = 'PUBLISHED'
+                            AND deployment.verification_expires_at > CURRENT_TIMESTAMP
+                            AND connection.status = 'VERIFIED'
+                            AND connection.version = deployment.provider_connection_revision
+                        UNION
+                        SELECT configuration.tenant_id
+                        FROM model_runtime.model_configuration configuration
+                        INNER JOIN model_runtime.model_configuration_credential credential
+                            ON credential.model_configuration_id = configuration.id
+                        INNER JOIN model_runtime.controlled_model_catalog_entry catalog
+                            ON catalog.id = configuration.catalog_entry_id
+                        INNER JOIN model_runtime.platform_model_deployment deployment
+                            ON deployment.id = catalog.source_platform_deployment_id
+                        INNER JOIN model_runtime.platform_provider_connection connection
+                            ON connection.id = deployment.platform_provider_connection_id
+                        WHERE configuration.tenant_id IS NOT NULL
+                            AND configuration.scope = 'TENANT'
+                            AND configuration.status = 'ACTIVE'
+                            AND catalog.status = 'PUBLISHED'
+                            AND deployment.version = catalog.source_platform_deployment_revision
+                            AND deployment.status = 'PUBLISHED'
+                            AND deployment.verification_expires_at > CURRENT_TIMESTAMP
+                            AND connection.status = 'VERIFIED'
+                            AND connection.version = deployment.platform_provider_connection_revision
                         """)
                 .query((row, rowNumber) -> new TenantId(row.getLong("tenant_id")))
                 .list());
+        var unavailable = new HashSet<>(activeTenantIds);
+        unavailable.removeAll(tenantsWithAvailableModel);
+        return Set.copyOf(unavailable);
     }
 
     /**

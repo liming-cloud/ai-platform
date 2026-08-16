@@ -29,6 +29,7 @@ class JdbcModelOperationsFactSourceTest {
     private static final TenantId PENDING_TENANT = new TenantId(8L);
     private static final TenantId EXPIRED_TENANT = new TenantId(9L);
     private static final TenantId CONFIGURED_TENANT = new TenantId(10L);
+    private static final TenantId EMPTY_ACTIVE_TENANT = new TenantId(11L);
 
     @Container
     private static final PostgreSQLContainer POSTGRES =
@@ -94,8 +95,13 @@ class JdbcModelOperationsFactSourceTest {
                 summary.tenantConnectionsByStatus());
         assertEquals(Map.of("PUBLISHED", 1L, "UNAVAILABLE", 1L),
                 summary.tenantDeploymentsByStatus());
-        assertEquals(Set.of(PENDING_TENANT, EXPIRED_TENANT),
-                facts.tenantsWithoutPublishedDeployment());
+        assertEquals(Set.of(PENDING_TENANT, EXPIRED_TENANT, EMPTY_ACTIVE_TENANT),
+                facts.tenantsWithoutAvailableModel(Set.of(
+                        HEALTHY_TENANT,
+                        PENDING_TENANT,
+                        EXPIRED_TENANT,
+                        CONFIGURED_TENANT,
+                        EMPTY_ACTIVE_TENANT)));
     }
 
     private void platformConnection(long id, String name, String status, Boolean probeSucceeded) {

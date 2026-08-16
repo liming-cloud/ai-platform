@@ -95,7 +95,10 @@ class OperationsOverviewServiceTest {
                                 LocalDate.parse("2026-08-16"), 3L, 2L, 0L, 1L, 42L))));
         when(queries.attentionTenants(Instant.parse("2026-08-10T00:00:00Z"), NOW))
                 .thenReturn(Set.of(new TenantId(1L), new TenantId(2L)));
-        when(models.tenantsWithoutPublishedDeployment())
+        when(organization.activeTenantIds()).thenReturn(Set.of(
+                new TenantId(1L), new TenantId(2L), new TenantId(3L), new TenantId(4L)));
+        when(models.tenantsWithoutAvailableModel(Set.of(
+                new TenantId(1L), new TenantId(2L), new TenantId(3L), new TenantId(4L))))
                 .thenReturn(Set.of(new TenantId(2L), new TenantId(3L)));
 
         var overview = service.platformOverview(platform(), OperationsRange.DAY_7);
@@ -105,6 +108,8 @@ class OperationsOverviewServiceTest {
         assertEquals(LocalDate.parse("2026-08-16"), overview.queries().daily().getFirst().date());
         assertEquals(42L, overview.queries().daily().getFirst().totalTokens());
         assertEquals(NOW.plusSeconds(300L), overview.staleAfter());
+        assertEquals("WARNING", overview.notices().getFirst().severity());
+        assertEquals("/platform/operations", overview.notices().getFirst().targetRoute());
     }
 
     @Test
@@ -134,6 +139,32 @@ class OperationsOverviewServiceTest {
     }
 
     @Test
+    void 租户注意事项必须使用统一SPA中已发布的可处理路由() {
+        when(organization.tenantSummary(TENANT_ID)).thenReturn(new TenantOrganizationOperationsFacts(
+                Map.of("ENABLED", 1L), Map.of("ENABLED", 1L)));
+        when(knowledge.tenantSummary(TENANT_ID)).thenReturn(new KnowledgeOperationsFacts(
+                Map.of(), Map.of(), Map.of(), Map.of("FAILED", 1L)));
+        when(models.tenantSummary(TENANT_ID)).thenReturn(new ModelOperationsFacts(
+                Map.of(), Map.of(), Map.of("VERIFIED", 1L), Map.of("UNAVAILABLE", 1L), Map.of()));
+        when(assistants.tenantSummary(TENANT_ID)).thenReturn(new AssistantOperationsFacts(
+                0L, Map.of(), Map.of()));
+        when(evaluations.tenantSummary(TENANT_ID)).thenReturn(new EvaluationOperationsFacts(
+                Map.of(), Map.of()));
+        when(queries.tenantSummary(
+                TENANT_ID, Instant.parse("2026-08-10T00:00:00Z"), NOW))
+                .thenReturn(new QueryOperationsSummaryFacts(1L, 0L, 0L, 1L, 0L, 0L));
+        when(usage.summarize(org.mockito.ArgumentMatchers.any())).thenReturn(new QueryUsageFacts(
+                1L, 0L, 0L, 1L, 0L, 0L, 0L, 0L, 1L, 0L));
+
+        var overview = service.tenantOverview(tenant(), OperationsRange.DAY_7);
+
+        assertEquals(List.of("/data/files", "/models/deployments", "/governance/query"),
+                overview.notices().stream().map(item -> item.targetRoute()).toList());
+        assertEquals(List.of("CRITICAL", "WARNING", "WARNING"),
+                overview.notices().stream().map(item -> item.severity()).toList());
+    }
+
+    @Test
     void 平台租户摘要必须保留服务器分页顺序并以零值补齐无查询租户() {
         var page = new PageQuery(2, 2);
         when(organization.listTenants(page)).thenReturn(PageResult.of(List.of(
@@ -146,7 +177,8 @@ class OperationsOverviewServiceTest {
                         new QueryOperationsSummaryFacts(3L, 2L, 0L, 1L, 0L, 12L)));
         when(queries.attentionTenants(Instant.parse("2026-08-10T00:00:00Z"), NOW))
                 .thenReturn(Set.of(new TenantId(7L)));
-        when(models.tenantsWithoutPublishedDeployment())
+        when(organization.activeTenantIds()).thenReturn(Set.of(new TenantId(7L), new TenantId(8L)));
+        when(models.tenantsWithoutAvailableModel(Set.of(new TenantId(7L), new TenantId(8L))))
                 .thenReturn(Set.of(new TenantId(8L)));
 
         var summaries = service.tenantSummaries(platform(), OperationsRange.DAY_7, page);

@@ -82,13 +82,13 @@ public final class OperationsOverviewService {
         var modelFacts = models.platformSummary();
         var queryFacts = queries.platformSummary(period.from(), period.to());
         var attention = new HashSet<>(queries.attentionTenants(period.from(), period.to()));
-        attention.addAll(models.tenantsWithoutPublishedDeployment());
+        attention.addAll(models.tenantsWithoutAvailableModel(organization.activeTenantIds()));
         var notices = new ArrayList<OperationsNoticeView>();
         if (!attention.isEmpty()) {
             notices.add(new OperationsNoticeView(
-                    "warning", "存在需要关注的租户",
+                    "WARNING", "存在需要关注的租户",
                     "部分租户出现查询失败、配额接近上限或没有可用模型，请查看租户摘要。",
-                    "/platform/operations/tenants"));
+                    "/platform/operations"));
         }
         return new PlatformOperationsOverviewView(
                 range, period.from(), period.to(), generatedAt, generatedAt.plus(FRESHNESS),
@@ -157,7 +157,7 @@ public final class OperationsOverviewService {
         var tenantIds = tenants.items().stream().map(item -> new TenantId(item.tenantId())).toList();
         var queryFacts = queries.tenantSummaries(tenantIds, period.from(), period.to());
         var attention = new HashSet<>(queries.attentionTenants(period.from(), period.to()));
-        attention.addAll(models.tenantsWithoutPublishedDeployment());
+        attention.addAll(models.tenantsWithoutAvailableModel(organization.activeTenantIds()));
         var items = tenants.items().stream().map(tenant -> {
             var tenantId = new TenantId(tenant.tenantId());
             var measured = queryFacts.getOrDefault(tenantId, emptyQuery());
@@ -191,15 +191,15 @@ public final class OperationsOverviewService {
         var notices = new ArrayList<OperationsNoticeView>();
         if (indexJobs.getOrDefault("FAILED", 0L) > 0L) {
             notices.add(new OperationsNoticeView(
-                    "error", "存在失败的索引任务", "请查看数据与索引状态并重新处理失败任务。", "/data"));
+                    "CRITICAL", "存在失败的索引任务", "请查看数据与索引状态并重新处理失败任务。", "/data/files"));
         }
         if (!deployments.isEmpty() && deployments.getOrDefault("PUBLISHED", 0L) == 0L) {
             notices.add(new OperationsNoticeView(
-                    "warning", "当前没有可用模型", "请完成模型验证并发布至少一个部署。", "/models"));
+                    "WARNING", "当前没有可用模型", "请完成模型验证并发布至少一个部署。", "/models/deployments"));
         }
         if (query.failedQueries() > 0L) {
             notices.add(new OperationsNoticeView(
-                    "warning", "部分问答未完成", "请查看审计记录确认失败集中时间，并检查模型和数据状态。", "/audit"));
+                    "WARNING", "部分问答未完成", "请查看审计记录确认失败集中时间，并检查模型和数据状态。", "/governance/query"));
         }
         return List.copyOf(notices);
     }

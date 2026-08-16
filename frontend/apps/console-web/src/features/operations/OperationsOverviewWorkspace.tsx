@@ -31,6 +31,7 @@ import {
   percentLabel,
   statusLabel,
 } from "./operations-presentation";
+import { loadPlatformOperationsSnapshot } from "./operations-loading";
 
 type OperationsRoute = Extract<ConsoleRoute, { task: "overview" }>;
 
@@ -50,13 +51,15 @@ export function OperationsOverviewWorkspace({
   onRouteChange: (route: ConsoleRoute) => void;
 }) {
   const platform = route.navigationId === "platform-operations";
-  const [range, setRange] = useState<OperationsRange>("DAY_7");
+  const range: OperationsRange = route.range;
   const [overview, setOverview] = useState<PlatformOperationsOverviewView | TenantOperationsOverviewView>();
   const [tenantSummaries, setTenantSummaries] = useState<PlatformTenantOperationsSummaryView[]>([]);
   const [tenantTotal, setTenantTotal] = useState(0);
   const [tenantHasPrevious, setTenantHasPrevious] = useState(false);
   const [tenantHasNext, setTenantHasNext] = useState(false);
-  const [failure, setFailure] = useState<UserFacingError>();
+  const [overviewFailure, setOverviewFailure] = useState<UserFacingError>();
+  const [tenantFailure, setTenantFailure] = useState<UserFacingError>();
+  const [tenantSnapshotAvailable, setTenantSnapshotAvailable] = useState(false);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [, setFreshnessRevision] = useState(0);
@@ -64,25 +67,40 @@ export function OperationsOverviewWorkspace({
 
   const load = useCallback(async (manual = false) => {
     if (manual) setRefreshing(true);
-    else setLoading(true);
-    setFailure(undefined);
+    else {
+      setLoading(true);
+      setOverview(undefined);
+      setTenantSummaries([]);
+      setTenantTotal(0);
+      setTenantHasPrevious(false);
+      setTenantHasNext(false);
+      setTenantSnapshotAvailable(false);
+    }
+    setOverviewFailure(undefined);
+    setTenantFailure(undefined);
     try {
       if (platform) {
-        const [nextOverview, nextTenants] = await Promise.all([
-          client.getPlatformOperationsOverview(range),
-          client.listPlatformTenantOperations(range, page, 20),
-        ]);
-        setOverview(nextOverview);
-        setTenantSummaries(nextTenants.items);
-        setTenantTotal(nextTenants.totalElements);
-        setTenantHasPrevious(nextTenants.hasPrevious);
-        setTenantHasNext(nextTenants.hasNext);
+        const snapshot = await loadPlatformOperationsSnapshot(client, range, page);
+        if (snapshot.overview !== undefined) {
+          setOverview(snapshot.overview);
+        } else {
+          setOverviewFailure(presentApiError(snapshot.overviewFailure, "加载平台运营总览"));
+        }
+        if (snapshot.tenants !== undefined) {
+          setTenantSummaries(snapshot.tenants.items);
+          setTenantTotal(snapshot.tenants.totalElements);
+          setTenantHasPrevious(snapshot.tenants.hasPrevious);
+          setTenantHasNext(snapshot.tenants.hasNext);
+          setTenantSnapshotAvailable(true);
+        } else {
+          setTenantFailure(presentApiError(snapshot.tenantFailure, "加载租户运营摘要"));
+        }
       } else {
         setOverview(await client.getTenantOperationsOverview(range));
         setTenantSummaries([]);
       }
     } catch (error) {
-      setFailure(presentApiError(error, "加载运营总览"));
+      setOverviewFailure(presentApiError(error, "加载运营总览"));
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -104,22 +122,22 @@ export function OperationsOverviewWorkspace({
     return () => window.clearTimeout(timeout);
   }, [overview]);
 
-  if (loading && overview === undefined) {
+  if (loading && overview === undefined && !tenantSnapshotAvailable) {
     return <OperationsSkeleton />;
   }
-  if (overview === undefined) {
+  if (overview === undefined && (!platform || !tenantSnapshotAvailable)) {
     return (
       <StatePanel
         kind="error"
-        title={failure?.title ?? "运营总览暂时不可用"}
-        description={failure?.description ?? "请稍后重试。"}
+        title={overviewFailure?.title ?? "运营总览暂时不可用"}
+        description={overviewFailure?.description ?? tenantFailure?.description ?? "请稍后重试。"}
         actionLabel="重新加载"
         onAction={() => void load()}
       />
     );
   }
 
-  const stale = isOverviewStale(overview.staleAfter);
+  const stale = overview === undefined ? false : isOverviewStale(overview.staleAfter);
   return (
     <div className="operations-overview">
       <div className="operations-overview__toolbar">
@@ -129,55 +147,74 @@ export function OperationsOverviewWorkspace({
               key={option.value}
               appearance={range === option.value ? "primary" : "subtle"}
               size="small"
-              onClick={() => setRange(option.value)}
+              onClick={() => onRouteChange(platform ? {
+                navigationId: "platform-operations",
+                task: "overview",
+                page: 1,
+                range: option.value,
+              } : {
+                navigationId: "operations",
+                task: "overview",
+                range: option.value,
+              })}
             >
               {option.label}
             </Button>
           ))}
         </div>
         <div className="operations-overview__freshness">
-          <Text size={200}>
-            数据生成于 {new Date(overview.generatedAt).toLocaleString("zh-CN")}
-          </Text>
-          {stale ? <Badge appearance="tint" color="warning">可能已过期</Badge> : <Badge appearance="tint" color="success">最新</Badge>}
-          <Button
-            appearance="subtle"
-            icon={<ArrowClockwise20Regular />}
-            disabled={refreshing}
-            onClick={() => void load(true)}
-          >
-            {refreshing ? "正在刷新" : "刷新"}
-          </Button>
+          {overview === undefined ? <Text size={200}>平台总览尚未加载</Text> : <>
+            <Text size={200}>数据生成于 {new Date(overview.generatedAt).toLocaleString("zh-CN")}</Text>
+            {stale ? <Badge appearance="tint" color="warning">可能已过期</Badge> : <Badge appearance="tint" color="success">最新</Badge>}
+          </>}
+          <RefreshButton refreshing={refreshing} onRefresh={() => void load(true)} />
         </div>
       </div>
 
-      {failure !== undefined ? (
+      {overviewFailure !== undefined ? (
         <MessageBar intent="warning">
           <MessageBarBody>
-            <MessageBarTitle>{failure.title}</MessageBarTitle>
-            {failure.description} 当前仍显示上一次成功获取的数据。
+            <MessageBarTitle>{overviewFailure.title}</MessageBarTitle>
+            {overviewFailure.description}{overview === undefined ? "" : " 当前仍显示上一次成功获取的总览数据。"}
           </MessageBarBody>
         </MessageBar>
       ) : null}
 
-      <QuerySummary queries={overview.queries} />
-      {platform
-        ? <PlatformOverview overview={overview as PlatformOperationsOverviewView} />
-        : <TenantOverview overview={overview as TenantOperationsOverviewView} />}
-      <NoticeList notices={overview.notices} />
+      {overview === undefined ? null : <>
+        <QuerySummary queries={overview.queries} />
+        {platform
+          ? <PlatformOverview overview={overview as PlatformOperationsOverviewView} />
+          : <TenantOverview overview={overview as TenantOperationsOverviewView} />}
+        <NoticeList notices={overview.notices} />
+      </>}
+      {tenantFailure !== undefined && tenantSnapshotAvailable ? (
+        <MessageBar intent="warning">
+          <MessageBarBody>
+            <MessageBarTitle>{tenantFailure.title}</MessageBarTitle>
+            {tenantFailure.description} 当前仍显示上一次成功获取的租户摘要。
+          </MessageBarBody>
+        </MessageBar>
+      ) : null}
       {platform ? (
-        <TenantSummaryTable
-          items={tenantSummaries}
-          total={tenantTotal}
-          page={page}
-          hasPrevious={tenantHasPrevious}
-          hasNext={tenantHasNext}
-          onPageChange={(nextPage) => onRouteChange({
-            navigationId: "platform-operations",
-            task: "overview",
-            page: nextPage,
-          })}
-        />
+        tenantSnapshotAvailable ? <TenantSummaryTable
+            items={tenantSummaries}
+            total={tenantTotal}
+            page={page}
+            hasPrevious={tenantHasPrevious}
+            hasNext={tenantHasNext}
+            onPageChange={(nextPage) => onRouteChange({
+              navigationId: "platform-operations",
+              task: "overview",
+              page: nextPage,
+              range,
+            })}
+          /> : <StatePanel
+            kind="error"
+            title={tenantFailure?.title ?? "租户运营摘要暂时不可用"}
+            description={tenantFailure?.description ?? "请稍后重试。"}
+            actionLabel="重新加载"
+            onAction={() => void load()}
+          />
       ) : null}
     </div>
   );
@@ -314,7 +351,7 @@ function TenantOverview({ overview }: { overview: TenantOperationsOverviewView }
   );
 }
 
-function StatusBlock({ title, value }: { title: string; value: ResourceStatusView }) {
+export function StatusBlock({ title, value }: { title: string; value: ResourceStatusView }) {
   return (
     <article className="operations-overview__resource">
       <div><Text weight="semibold">{title}</Text><strong>{numberLabel(value.total)}</strong></div>
@@ -346,7 +383,7 @@ function NoticeList({ notices }: { notices: OperationsNoticeView[] }) {
   );
 }
 
-function TenantSummaryTable({ items, total, page, hasPrevious, hasNext, onPageChange }: {
+export function TenantSummaryTable({ items, total, page, hasPrevious, hasNext, onPageChange }: {
   items: PlatformTenantOperationsSummaryView[];
   total: number;
   page: number;
@@ -373,6 +410,20 @@ function TenantSummaryTable({ items, total, page, hasPrevious, hasNext, onPageCh
   );
 }
 
-function OperationsSkeleton() {
+export function RefreshButton({ refreshing, onRefresh }: {
+  refreshing: boolean;
+  onRefresh: () => void;
+}) {
+  return <Button
+    appearance="subtle"
+    icon={<ArrowClockwise20Regular />}
+    disabled={refreshing}
+    onClick={onRefresh}
+  >
+    {refreshing ? "正在刷新" : "刷新"}
+  </Button>;
+}
+
+export function OperationsSkeleton() {
   return <div className="operations-overview__skeleton" aria-label="正在加载运营总览"><Skeleton><SkeletonItem size={32} /><SkeletonItem size={96} /><SkeletonItem size={96} /></Skeleton></div>;
 }

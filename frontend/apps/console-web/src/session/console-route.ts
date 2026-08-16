@@ -5,7 +5,7 @@ export type ConsoleNavigationId = typeof NAVIGATION[number]["id"];
 
 /** 统一控制台的可恢复工作区状态；列表页码只描述服务端分页位置。 */
 export type ConsoleRoute =
-  | { navigationId: "operations"; task: "overview" }
+  | { navigationId: "operations"; task: "overview"; range: OperationsRange }
   | { navigationId: "access"; task: "members"; page: number }
   | {
     navigationId: "data";
@@ -64,7 +64,7 @@ export type ConsoleRoute =
   | { navigationId: "governance"; task: "evaluation" }
   | { navigationId: "query"; task: "ask"; assistantPage: number }
   | { navigationId: "platform-workspace"; task: "workspace" }
-  | { navigationId: "platform-operations"; task: "overview"; page: number }
+  | { navigationId: "platform-operations"; task: "overview"; page: number; range: OperationsRange }
   | { navigationId: "platform"; task: "tenants"; page: number }
   | { navigationId: "platform"; task: "create"; step: 1 | 2 | 3 }
   | { navigationId: "platform-accounts"; task: "accounts"; page: number }
@@ -88,7 +88,7 @@ export type AuthorizedConsoleRoute =
 export function defaultConsoleRoute(navigationId: ConsoleNavigationId): ConsoleRoute {
   switch (navigationId) {
     case "operations":
-      return { navigationId, task: "overview" };
+      return { navigationId, task: "overview", range: "DAY_7" };
     case "access":
       return { navigationId, task: "members", page: 1 };
     case "data":
@@ -108,7 +108,7 @@ export function defaultConsoleRoute(navigationId: ConsoleNavigationId): ConsoleR
     case "platform-workspace":
       return { navigationId, task: "workspace" };
     case "platform-operations":
-      return { navigationId, task: "overview", page: 1 };
+      return { navigationId, task: "overview", page: 1, range: "DAY_7" };
     case "platform":
       return { navigationId, task: "tenants", page: 1 };
     case "platform-accounts":
@@ -124,7 +124,11 @@ export function defaultConsoleRoute(navigationId: ConsoleNavigationId): ConsoleR
 export function parseConsoleRoute(pathname: string, search: string): ConsoleRoute | undefined {
   const routePath = normalizedPath(pathname);
   if (routePath === "/operations") {
-    return { navigationId: "operations", task: "overview" };
+    return {
+      navigationId: "operations",
+      task: "overview",
+      range: operationsRange(new URLSearchParams(search).get("range")),
+    };
   }
   if (routePath === "/data/files") {
     const parameters = new URLSearchParams(search);
@@ -225,10 +229,12 @@ export function parseConsoleRoute(pathname: string, search: string): ConsoleRout
     return { navigationId: "platform-workspace", task: "workspace" };
   }
   if (routePath === "/platform/operations") {
+    const parameters = new URLSearchParams(search);
     return {
       navigationId: "platform-operations",
       task: "overview",
-      page: positivePage(new URLSearchParams(search).get("page")),
+      page: positivePage(parameters.get("page")),
+      range: operationsRange(parameters.get("range")),
     };
   }
   if (routePath === "/platform/tenants") {
@@ -277,7 +283,7 @@ export function parseConsoleRoute(pathname: string, search: string): ConsoleRout
 /** 将可恢复状态编码为规范 URL，避免页内状态与浏览器地址不一致。 */
 export function formatConsoleRoute(route: ConsoleRoute): string {
   if (route.navigationId === "operations") {
-    return "/operations";
+    return `/operations?range=${route.range}`;
   }
   if (route.navigationId === "access") {
     return `/access/members?page=${route.page}`;
@@ -310,7 +316,7 @@ export function formatConsoleRoute(route: ConsoleRoute): string {
     return "/platform";
   }
   if (route.navigationId === "platform-operations") {
-    return `/platform/operations?page=${route.page}`;
+    return `/platform/operations?range=${route.range}&page=${route.page}`;
   }
   if (route.navigationId === "platform") {
     return route.task === "tenants"
@@ -354,6 +360,12 @@ function positivePage(value: string | null): number {
 
 function provisioningStep(value: string | null): 1 | 2 | 3 {
   return value === "2" ? 2 : value === "3" ? 3 : 1;
+}
+
+type OperationsRange = "DAY_1" | "DAY_7" | "DAY_30";
+
+function operationsRange(value: string | null): OperationsRange {
+  return value === "DAY_1" || value === "DAY_30" ? value : "DAY_7";
 }
 
 function nonBlankParameter(value: string | null): string | undefined {

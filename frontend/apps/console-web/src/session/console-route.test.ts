@@ -11,29 +11,39 @@ describe("统一控制台路由", () => {
     expect(defaultConsoleRoute("operations")).toEqual({
       navigationId: "operations",
       task: "overview",
+      range: "DAY_7",
     });
-    expect(parseConsoleRoute("/operations", "")).toEqual({
+    expect(parseConsoleRoute("/operations", "?range=DAY_30")).toEqual({
       navigationId: "operations",
       task: "overview",
+      range: "DAY_30",
     });
-    expect(formatConsoleRoute({ navigationId: "operations", task: "overview" }))
-      .toBe("/operations");
+    expect(formatConsoleRoute({ navigationId: "operations", task: "overview", range: "DAY_1" }))
+      .toBe("/operations?range=DAY_1");
+    expect(parseConsoleRoute("/operations", "?range=ARBITRARY")).toEqual({
+      navigationId: "operations",
+      task: "overview",
+      range: "DAY_7",
+    });
 
     expect(defaultConsoleRoute("platform-operations")).toEqual({
       navigationId: "platform-operations",
       task: "overview",
       page: 1,
+      range: "DAY_7",
     });
-    expect(parseConsoleRoute("/platform/operations", "?page=3")).toEqual({
+    expect(parseConsoleRoute("/platform/operations", "?range=DAY_30&page=3")).toEqual({
       navigationId: "platform-operations",
       task: "overview",
       page: 3,
+      range: "DAY_30",
     });
     expect(formatConsoleRoute({
       navigationId: "platform-operations",
       task: "overview",
       page: 3,
-    })).toBe("/platform/operations?page=3");
+      range: "DAY_30",
+    })).toBe("/platform/operations?range=DAY_30&page=3");
   });
 
   it("平台运营员工作区使用固定的无数据入口", () => {

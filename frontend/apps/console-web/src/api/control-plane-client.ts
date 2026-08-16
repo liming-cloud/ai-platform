@@ -419,7 +419,7 @@ export interface QueryOperationsView {
 }
 
 export interface OperationsNoticeView {
-  severity: "INFO" | "WARNING" | "CRITICAL" | string;
+  severity: "INFO" | "WARNING" | "CRITICAL";
   title: string;
   description: string;
   targetRoute: string;

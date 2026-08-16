@@ -10,6 +10,7 @@ import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import org.springframework.jdbc.core.simple.JdbcClient;
 
 /** 只读取组织上下文计数列和租户安全摘要的 PostgreSQL 事实源。 */
@@ -52,6 +53,17 @@ public final class JdbcOrganizationOperationsFactSource implements OrganizationO
         return new TenantOrganizationOperationsFacts(
                 groupedByTenant("TENANT_ADMINISTRATOR", tenantId.value()),
                 groupedByTenant("TENANT_USER", tenantId.value()));
+    }
+
+    @Override
+    public Set<TenantId> activeTenantIds() {
+        return Set.copyOf(jdbc.sql("""
+                        SELECT tenant_id
+                        FROM organization_access.tenant_lifecycle
+                        WHERE status = 'ACTIVE'
+                        """)
+                .query((row, rowNumber) -> new TenantId(row.getLong("tenant_id")))
+                .list());
     }
 
     @Override

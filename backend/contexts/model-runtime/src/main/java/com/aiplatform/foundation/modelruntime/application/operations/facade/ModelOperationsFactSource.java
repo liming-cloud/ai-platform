@@ -11,6 +11,6 @@ public interface ModelOperationsFactSource {
 
     ModelOperationsFacts tenantSummary(TenantId tenantId);
 
-    /** 返回没有租户部署或平台目录配置等可用模型路径的已配置租户集合，仅供后端运营风险去重。 */
-    Set<TenantId> tenantsWithoutPublishedDeployment();
+    /** 在指定活动租户中返回没有租户部署或平台目录配置等可用模型路径的集合。 */
+    Set<TenantId> tenantsWithoutAvailableModel(Set<TenantId> activeTenantIds);
 }
