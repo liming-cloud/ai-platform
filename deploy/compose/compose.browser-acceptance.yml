@@ -1,9 +1,5 @@
-# WP-0014：仅用于本机浏览器验收，复用唯一控制台网关并以本地 TLS 终止同源 HTTPS。
+# WP-0014：仅用于本机浏览器验收，复用唯一控制台网关并固定暴露 HTTP 入口。
 services:
   console-web:
     ports:
-      - "127.0.0.1:${FOUNDATION_CONSOLE_HTTPS_PORT:-13443}:8443"
-    volumes:
-      - ../config/nginx-console-https.conf:/etc/nginx/conf.d/default.conf:ro
-      - ${FOUNDATION_LOCAL_TLS_DIRECTORY:-../.local/tls}/localhost.crt:/etc/nginx/tls/localhost.crt:ro
-      - ${FOUNDATION_LOCAL_TLS_DIRECTORY:-../.local/tls}/localhost.key:/etc/nginx/tls/localhost.key:ro
+      - "127.0.0.1:${FOUNDATION_CONSOLE_ACCEPTANCE_PORT:-13443}:8080"

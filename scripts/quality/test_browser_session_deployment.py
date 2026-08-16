@@ -59,14 +59,16 @@ class BrowserSessionDeploymentTest(unittest.TestCase):
                 msg=f"{name} 的根路径必须避免由目录索引返回旧入口脚本",
             )
 
-    def test_local_browser_acceptance_overlay_uses_https_and_expirable_session(self) -> None:
+    def test_local_browser_acceptance_overlay_uses_http_and_expirable_session(self) -> None:
         overlay = ROOT / "deploy/compose/compose.browser-acceptance.yml"
-        self.assertTrue(overlay.is_file(), "缺少本地 HTTPS 浏览器验收覆盖层")
+        self.assertTrue(overlay.is_file(), "缺少本地 HTTP 浏览器验收覆盖层")
         compose = (ROOT / "deploy/compose/compose.yml").read_text(encoding="utf-8")
         self.assertIn("FOUNDATION_SECURITY_SESSION_TIMEOUT", compose)
         text = overlay.read_text(encoding="utf-8")
-        self.assertIn("127.0.0.1:${FOUNDATION_CONSOLE_HTTPS_PORT:-13443}:8443", text)
-        self.assertIn("nginx-console-https.conf", text)
+        self.assertIn("127.0.0.1:${FOUNDATION_CONSOLE_ACCEPTANCE_PORT:-13443}:8080", text)
+        self.assertNotIn("nginx-console-https.conf", text)
+        self.assertNotIn("localhost.crt", text)
+        self.assertNotIn("localhost.key", text)
 
 
 if __name__ == "__main__":
