@@ -44,6 +44,22 @@ describe("全 SPA 用户信息边界", () => {
     expect(violations).toEqual([]);
   });
 
+  it("内部审计字段只能用于关联，不能成为可见响应信息", () => {
+    const internalField = "(?:assistantVersionId|questionDigest|resultCode|traceId|details)";
+    const visibleExpression = new RegExp(
+      `>\\s*\\{[A-Za-z_$][\\w$]*\\.${internalField}\\b(?:\\.[A-Za-z_$][\\w$]*\\([^}]*\\))?\\}\\s*<`,
+    );
+    const visibleAttribute = new RegExp(
+      `\\b(?:label|aria-label|placeholder|title)\\s*=\\s*\\{[^}]*\\.${internalField}\\b[^}]*\\}`,
+      "i",
+    );
+    const violations = spaSourceFiles().filter((path) => {
+      const source = readFileSync(path, "utf8");
+      return visibleExpression.test(source) || visibleAttribute.test(source);
+    });
+    expect(violations).toEqual([]);
+  });
+
   it("可见文案不得要求用户理解内部实现概念", () => {
     const forbiddenMarkers = [
       "内部标识",

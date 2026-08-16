@@ -330,8 +330,6 @@ function AuditRecords({
                 <tr>
                   <th scope="col">发生时间</th>
                   <th scope="col">结果</th>
-                  <th scope="col">助手版本</th>
-                  <th scope="col">问题摘要</th>
                   <th scope="col">输入</th>
                   <th scope="col">输出</th>
                   <th scope="col">总量</th>
@@ -342,12 +340,6 @@ function AuditRecords({
                   <tr key={record.queryRunId}>
                     <td>{formatTime(record.createdAt)}</td>
                     <td><StatusBadge record={record} /></td>
-                    <td title={record.assistantVersionId}>
-                      {shortId(record.assistantVersionId)}
-                    </td>
-                    <td title={record.questionDigest}>
-                      {record.questionDigest.slice(0, 12)}
-                    </td>
                     <td>{record.inputTokens}</td>
                     <td>{record.outputTokens}</td>
                     <td>{record.totalTokens}</td>
@@ -433,8 +425,4 @@ function formatTime(value: string) {
     timeStyle: "medium",
     hour12: false,
   }).format(new Date(value));
-}
-
-function shortId(value: string) {
-  return `${value.slice(0, 8)}…${value.slice(-4)}`;
 }

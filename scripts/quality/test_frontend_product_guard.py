@@ -56,6 +56,38 @@ class FrontendProductGuardTest(unittest.TestCase):
 
         self.assertTrue(any("嵌套 Dialog" in error for error in errors))
 
+    def test_rejects_internal_identifiers_in_editable_control_prompts(self):
+        self.write_workspace(
+            "DemoWorkspace.tsx",
+            '<Field label="SubjectId"><Input placeholder="请输入 modelId" /></Field>',
+        )
+
+        errors = MODULE.scan(self.root)
+
+        self.assertTrue(any("内部标识输入" in error for error in errors))
+
+    def test_rejects_unlabelled_internal_identifier_editors(self):
+        self.write_workspace(
+            "DemoWorkspace.tsx",
+            '<Input name="tenantId" value={tenantId} />',
+        )
+
+        errors = MODULE.scan(self.root)
+
+        self.assertTrue(any("内部标识编辑控件" in error for error in errors))
+
+    def test_rejects_internal_identifiers_in_visible_response_content(self):
+        self.write_workspace(
+            "DemoWorkspace.tsx",
+            "<table><thead><tr><th>助手版本</th></tr></thead>"
+            "<tbody><tr><td title={record.assistantVersionId}>"
+            "{record.assistantVersionId}</td></tr></tbody></table>",
+        )
+
+        errors = MODULE.scan(self.root)
+
+        self.assertTrue(any("内部响应信息" in error for error in errors))
+
     def test_allows_sibling_dialog_tasks_and_server_page_replacement(self):
         self.write_workspace(
             "DemoWorkspace.tsx",
