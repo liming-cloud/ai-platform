@@ -35,4 +35,14 @@ describe("全 SPA 用户信息边界", () => {
     });
     expect(violations).toEqual([]);
   });
+
+  it("M6 只声明浅色主题并完整尊重减少动态效果", () => {
+    const tokensPath = new URL("../../../packages/design-system/src/styles/tokens.css", import.meta.url).pathname;
+    const tokens = readFileSync(tokensPath, "utf8");
+    expect(tokens).toMatch(/color-scheme:\s*light;/);
+    expect(tokens).toContain("@media (prefers-reduced-motion: reduce)");
+    expect(tokens).toMatch(/animation-duration:\s*0\.01ms\s*!important;/);
+    expect(tokens).toMatch(/animation-iteration-count:\s*1\s*!important;/);
+    expect(tokens).toMatch(/transition-duration:\s*0\.01ms\s*!important;/);
+  });
 });
