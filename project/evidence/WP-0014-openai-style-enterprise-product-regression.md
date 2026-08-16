@@ -76,6 +76,24 @@ make validate
 
 当前 Mac 锁定，且真实平台口令属于敏感输入；登录后平台运营页、租户建立向导、租户管理员和普通用户全流程，以及真实 Chrome 200% 浏览器级缩放必须在人工解锁并明确确认输入本地验收凭据后续证。本证据不得把该部分表述为已完成。
 
+## 从零人工验收基线
+
+2026-08-17 的完成度审计确认，身份侧已经只有活动的 `platform.root`，但 `model_runtime` 仍保留上一轮浏览器验收建立的平台连接、发现、部署和目录事实。这与“只初始化平台管理员，再从页面完成全部建立操作”的人工验收起点不一致。
+
+执行前先将完整 `model_runtime` schema 和数据以 PostgreSQL custom dump 保存到未纳入版本控制的本机文件 `/tmp/wp0014-model-runtime-full-before-reset-20260817.dump`，权限为 `0600`，并用 `pg_restore --list` 验证目录可读。随后在单一 PostgreSQL 事务中以以下前置条件失败关闭：全库只有一个活动 `platform.root`、没有租户、成员、知识空间或查询；条件满足后只清空 `model_runtime` 业务表。外键声明的助手和查询级联目标原本均为零行。Redis `DBSIZE` 清理前后均为 `0`。
+
+重置后精确事实：
+
+| 事实 | 数量 |
+| --- | ---: |
+| 活动 `platform.root` | 1 |
+| 活动 `PLATFORM_ADMINISTRATOR` 绑定 | 1 |
+| 租户／成员 | 0／0 |
+| 平台模型连接／部署／目录 | 0／0／0 |
+| 知识空间／助手／查询 | 0／0／0 |
+
+该操作没有删除 `platform.root`、角色绑定、认证切换事实、Flyway 历史、PostgreSQL/Redis/MinIO 卷或任何服务。人工登录后的主流程必须从这一基线重新建立全部产品资源，不能复用旧验收事实。
+
 ## 代码图谱与工程助手证据
 
 - 代码图谱探索覆盖 `OperationsQueryService`、`ControlPlaneClient`、`ApiErrorResponse`、平台账户候选、运营范围和导航投影；影响分析确认运营重构不改变可信 RAG 运行链。
