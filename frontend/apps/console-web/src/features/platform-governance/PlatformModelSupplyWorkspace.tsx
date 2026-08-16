@@ -155,7 +155,7 @@ export function PlatformModelSupplyWorkspace({
   return (
     <div className="model-configuration-workspace">
       <div className="governance-toolbar">
-        <Text>这是平台范围连接目录，独立于租户连接；所有列表均由服务端分页，Endpoint、凭据和厂商原始响应不会进入浏览器。</Text>
+        <Text>这是平台范围连接目录，独立于租户连接；记录按页显示，Endpoint 和凭据不会在列表中展示。</Text>
         <div className="task-actions"><Button appearance="primary" onClick={() => setCreating(true)}>新建平台连接</Button><Button appearance="subtle" onClick={() => void load()}>刷新连接</Button></div>
       </div>
       {failure === undefined ? null : <FailureMessage failure={failure} />}
@@ -181,7 +181,7 @@ export function PlatformModelSupplyWorkspace({
       </Dialog>
       <Dialog open={discoveryTarget !== undefined} onOpenChange={(_, data) => { if (!data.open && !submitting) setDiscoveryTarget(undefined); }}>
         <DialogSurface><DialogBody><DialogTitle>发现平台模型</DialogTitle><DialogContent>
-          <Text>系统先验证 Endpoint 和凭据，再读取模型名称候选并固化安全摘要；无需输入模型代码，也不会返回厂商原始响应。</Text>
+          <Text>系统验证 Endpoint 和凭据后会列出可用模型名称，直接从候选列表中选择即可。</Text>
         </DialogContent><DialogActions><Button appearance="secondary" disabled={submitting} onClick={() => setDiscoveryTarget(undefined)}>取消</Button><Button appearance="primary" disabled={submitting} onClick={() => void discoverModels()}>{submitting ? "正在发现" : "开始发现"}</Button></DialogActions></DialogBody></DialogSurface>
       </Dialog>
     </div>

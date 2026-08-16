@@ -236,7 +236,7 @@ export function ModelProviderWorkspace({
   return (
     <div className="model-configuration-workspace">
       <div className="governance-toolbar">
-        <Text>每个列表均由服务端分页；供应商端点、凭据和厂商原始响应用于后端执行，不会进入浏览器。</Text>
+        <Text>连接与发现记录按页显示；供应商端点和凭据始终受到保护，不会在列表中展示。</Text>
         <div className="task-actions">
           <Button appearance="primary" onClick={() => setCreatingConnection(true)}>新建连接</Button>
           <Button appearance="subtle" icon={<ArrowClockwise20Regular />} onClick={() => void loadConnections()}>

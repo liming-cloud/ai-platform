@@ -387,7 +387,7 @@ export function GovernedFileDataWorkspace({
   return (
     <div className="governed-file-workspace">
       <div className="governance-toolbar">
-        <Text>文件必须依次完成探测、同步和质量检查，再显式发布、建立并发布索引；每一步均使用最新修订。</Text>
+        <Text>文件必须依次完成探测、同步和质量检查，再显式发布、建立并发布索引；每一步均以最新资源状态为准。</Text>
         <div className="task-actions">
           <Button appearance="subtle" icon={<ArrowClockwise20Regular />} onClick={() => void load()}>
             刷新

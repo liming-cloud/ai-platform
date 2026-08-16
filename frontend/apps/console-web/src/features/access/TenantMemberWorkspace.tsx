@@ -209,7 +209,7 @@ export function TenantMemberWorkspace({
         <Text>仅展示当前租户成员的最小身份、状态与已绑定内置角色。角色绑定、撤销与停用均会撤销目标成员的旧会话。</Text>
       </header>
       {failure === undefined ? null : <MessageBar intent="error"><MessageBarBody><MessageBarTitle>操作未完成</MessageBarTitle>{failure}</MessageBarBody></MessageBar>}
-      <div className="governance-toolbar"><Text>第 {route.page} 页，共 {total} 名成员。列表始终由服务端分页。</Text><div><Button appearance="secondary" onClick={() => setEstablishmentOpen(true)}>新建成员</Button><Button appearance="subtle" onClick={() => void load()}>刷新</Button></div></div>
+      <div className="governance-toolbar"><Text>第 {route.page} 页，共 {total} 名成员。可使用上一页和下一页浏览名单。</Text><div><Button appearance="secondary" onClick={() => setEstablishmentOpen(true)}>新建成员</Button><Button appearance="subtle" onClick={() => void load()}>刷新</Button></div></div>
       <div className="member-directory-table" role="region" aria-label="成员分页表格">
         <table>
           <thead><tr><th>登录名</th><th>角色</th><th>状态</th><th>加入时间</th><th>操作</th></tr></thead>

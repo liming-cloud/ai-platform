@@ -369,12 +369,9 @@ export function QueryWorkspace({
                   <Option
                     key={assistant.assistantVersionId}
                     value={assistant.assistantVersionId}
-                    text={`${assistant.displayName}，版本 ${assistant.versionNumber}`}
+                    text={assistant.displayName}
                   >
                     {assistant.displayName}
-                    <Text size={200}>
-                      版本 {assistant.versionNumber}
-                    </Text>
                   </Option>
                 ))}
               </Dropdown>
@@ -435,8 +432,7 @@ export function QueryWorkspace({
                 已发布
               </Badge>
               <Text>
-                {selectedAssistant.displayName}，版本{" "}
-                {selectedAssistant.versionNumber}
+                {selectedAssistant.displayName}
               </Text>
             </div>
           ) : null}

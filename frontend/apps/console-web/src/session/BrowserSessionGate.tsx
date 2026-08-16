@@ -221,7 +221,7 @@ export function BrowserSessionGate({
               </Field>
             ) : (
               <p className="governance-login__platform-note">
-                平台权限由服务端根据您的账户授权建立，不需要填写租户编码。
+                平台权限会根据您的账户授权自动建立，不需要填写租户编码。
               </p>
             )}
             <Field label="登录名" required>

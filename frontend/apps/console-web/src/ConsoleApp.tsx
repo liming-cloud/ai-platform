@@ -264,23 +264,23 @@ function AuthenticatedConsoleApp({
           : queryActive
           ? "答案必须附带可核验来源。没有足够证据或没有访问权限时，系统会明确拒绝回答。"
           : accessActive
-          ? "成员操作由当前浏览器会话恢复租户范围；目录使用服务端分页，停用必须二次确认。"
+          ? "成员目录按页显示；停用成员前必须二次确认。"
           : platformWorkspaceActive
           ? "只确认当前平台浏览器会话；不会展示租户正文、成员、账户、凭据或治理数据。"
           : platformActive
           ? "建立与迁移租户状态，不展示租户正文、成员详情或平台操作者信息。"
           : platformAccountsActive
-          ? "账户目录由服务端分页提供，不展示凭据、会话或权限快照。"
+          ? "账户目录按页显示，不展示凭据、会话或权限快照。"
           : platformModelSupplyActive
-          ? "平台连接与后续部署独立于租户范围；Endpoint、凭据和厂商原始响应只在后端受控处理。"
+          ? "平台连接与后续部署独立于租户范围；Endpoint 和凭据始终受到保护。"
           : governanceActive && route.task === "query"
           ? "核对当前租户的查询配额、计量结果和脱敏运行记录。"
           : governanceActive
-          ? "选择已有数据集和助手版本运行服务端评测，只展示指标和质量门结论。"
+          ? "选择已有数据集和助手运行评测，只展示指标和质量结论。"
           : modelsActive && route.task === "configuration"
           ? "从平台发布目录创建、轮换和启用模型配置；API Key 不会再次显示。"
           : modelsActive && route.task === "providers"
-          ? "核对供应商连接状态和可用的模型发现事实；Endpoint、凭据和原始响应用于后端执行，不会进入浏览器。"
+          ? "核对供应商连接状态和可用模型；Endpoint 和凭据始终受到保护。"
           : modelsActive
           ? "选择当前有效发现候选建立草稿部署，在独立任务中执行真实能力探测和高风险发布确认。"
           : dataPage?.summary ?? ""
@@ -462,13 +462,13 @@ function AuthenticatedConsoleApp({
           <StatePanel
             kind="empty"
             title="当前没有获授权的平台治理任务"
-            description="请由平台管理员授予与实际职责相符的固定角色；本入口不以页面可见性替代服务端授权。"
+            description="请由平台管理员授予与实际职责相符的固定角色。"
           />
         ) : null}
       </section>
       <section hidden={!platformAccountsActive}>
         {platformAccountsActive ? (
-          <Suspense fallback={<StatePanel kind="loading" title="正在加载平台账户目录" description="正在准备服务端分页摘要。" />}>
+          <Suspense fallback={<StatePanel kind="loading" title="正在加载平台账户目录" description="正在准备账户列表。" />}>
             <PlatformAccountDirectoryWorkspace client={client} route={route} onRouteChange={navigate} />
           </Suspense>
         ) : null}
@@ -511,7 +511,7 @@ function dataPageContent(route: Extract<ConsoleRoute, { navigationId: "data" }>)
     case "object-storage":
       return {
         title: "对象存储范围登记",
-        summary: "使用平台签发范围标识与选择修订登记受治理对象存储来源，不展示内部对象位置。",
+        summary: "从当前知识空间已获授权的对象范围中选择并登记数据来源。",
       };
     case "first-publication":
       return {

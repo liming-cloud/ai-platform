@@ -172,7 +172,7 @@ export function PlatformAccountDirectoryWorkspace({
       </header>
       {failure ? <MessageBar intent="error"><MessageBarBody><MessageBarTitle>读取未完成</MessageBarTitle>{failure}</MessageBarBody></MessageBar> : null}
       {busy && accounts.length === 0 ? <StatePanel kind="loading" title="正在加载平台账户" description="正在读取当前服务器页。" /> : null}
-      {!busy && accounts.length === 0 && !failure ? <StatePanel kind="empty" title="当前页没有账户" description="请切换到其他服务端页继续查看。" /> : null}
+      {!busy && accounts.length === 0 && !failure ? <StatePanel kind="empty" title="当前页没有账户" description="请切换到上一页或下一页继续查看。" /> : null}
       <div className="model-configuration-list">
         {accounts.map((account) => (
           <article className="model-configuration-card" key={account.subjectId}>
@@ -231,7 +231,7 @@ export function PlatformAccountDirectoryWorkspace({
               : dialog?.kind === "enable"
               ? `${dialog.account.loginName} 将恢复为活动账户。提交后该主体的全部平台与租户旧会话将失效，需重新认证。`
               : dialog?.kind === "role"
-                ? `${dialog.account.loginName} 将${dialog.action === "bind" ? "获得" : "失去"}“${roleLabel(dialog.roleCode)}”。该角色投影的导航能力为“${roles.find((role) => role.code === dialog.roleCode)?.navigation}”；提交后目标账户的全部会话将失效。${dialog.action === "revoke" ? "若这会留下最后一个活动的平台管理员，服务端将拒绝操作。" : ""}`
+                ? `${dialog.account.loginName} 将${dialog.action === "bind" ? "获得" : "失去"}“${roleLabel(dialog.roleCode)}”。该角色可使用“${roles.find((role) => role.code === dialog.roleCode)?.navigation}”；提交后目标账户的全部会话将失效。${dialog.action === "revoke" ? "平台必须至少保留一名可用的平台管理员。" : ""}`
                 : ""}</DialogContent>
             <DialogActions>
               <Button appearance="secondary" disabled={busy} onClick={closeDialog}>取消</Button>

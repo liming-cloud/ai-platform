@@ -53,7 +53,7 @@ export function PublicationProgress({ stage }: { stage: PublicationStage }) {
         })}
       </ol>
       <Text size={200} className="progress-note">
-        每一步都由服务端权限、幂等和版本事实校验。页面状态不能替代安全边界。
+        每一步都会核验当前权限和提交状态；刷新页面不会重复执行已完成的操作。
       </Text>
     </aside>
   );

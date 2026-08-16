@@ -248,7 +248,7 @@ export function PublishReview({
   return (
     <TaskSection
       title="核验并发布"
-      description="发布前服务端会再次核验对象元数据、租户权限和乐观版本。"
+      description="发布前系统会再次核验对象信息、当前权限和资源状态。"
     >
       <dl className="review-list">
         <div>
@@ -350,7 +350,7 @@ export function IndexBuildReview({
       description={
         ready
           ? "索引已完成一致性核验。发布后，它将成为该知识空间唯一可查询的活动版本。"
-          : "后台正在进行确定性分块和向量写入。页面会自动读取服务端状态。"
+          : "正在进行内容分块和索引写入，页面会自动更新处理进度。"
       }
     >
       <dl className="review-list">

@@ -206,7 +206,7 @@ export function ModelDeploymentWorkspace({
     return <StatePanel kind="stale" title="浏览器会话已经失效" description="部署和候选状态已清除，请返回统一登录入口。" actionLabel="返回登录入口" onAction={() => window.location.assign("/")} />;
   }
   if (viewState === "loading") {
-    return <StatePanel kind="loading" title="正在加载模型部署" description="正在读取服务端部署状态与当前发现候选。" />;
+    return <StatePanel kind="loading" title="正在加载模型部署" description="正在准备部署状态和可用模型候选。" />;
   }
   if (viewState === "error") {
     return <StatePanel kind="error" title="模型部署暂时不可用" description={failure?.message ?? "请稍后重试。"} actionLabel="重新加载" onAction={() => void loadDeployments()} />;
@@ -215,7 +215,7 @@ export function ModelDeploymentWorkspace({
   return (
     <div className="model-configuration-workspace">
       <div className="governance-toolbar">
-        <Text>能力探测调用真实受控模型；候选、部署和验证状态均由服务端重新读取，候选列表不包含历史诊断。</Text>
+        <Text>能力探测会调用真实受控模型；候选、部署和验证状态均会刷新，候选列表不包含历史诊断。</Text>
         <div className="task-actions">
           <Button appearance="secondary" onClick={() => onRouteChange({ navigationId: "models", task: "providers", providerPage: 1, connectionId: route.connectionId, discoveryPage: 1 })}>返回厂商连接</Button>
           <Button appearance="subtle" icon={<ArrowClockwise20Regular />} onClick={() => { void loadDeployments(); void loadCandidates(); }}>刷新</Button>
@@ -243,7 +243,7 @@ export function ModelDeploymentWorkspace({
 
       <Dialog open={publishTarget !== undefined} onOpenChange={(_, data) => { if (!data.open && !submitting) setPublishTarget(undefined); }}><DialogSurface><DialogBody><DialogTitle>确认发布模型部署</DialogTitle><DialogContent><Text>发布 {publishTarget?.displayName} 后将对租户任务可用；系统会再次确认连接和能力验证仍然有效。</Text></DialogContent><DialogActions><Button appearance="secondary" disabled={submitting} onClick={() => setPublishTarget(undefined)}>取消</Button><Button appearance="primary" disabled={submitting} onClick={() => void publishDeployment()}>{submitting ? "正在发布" : "确认发布"}</Button></DialogActions></DialogBody></DialogSurface></Dialog>
 
-      <Dialog open={disableTarget !== undefined} onOpenChange={(_, data) => { if (!data.open && !submitting) setDisableTarget(undefined); }}><DialogSurface><DialogBody><DialogTitle>确认停用模型部署</DialogTitle><DialogContent><Text>停用 {disableTarget?.displayName} 会立即阻断新运行时调用，无法在当前部署修订上恢复；如需恢复供应，请新建并重新验证部署。</Text></DialogContent><DialogActions><Button appearance="secondary" disabled={submitting} onClick={() => setDisableTarget(undefined)}>取消</Button><Button appearance="primary" disabled={submitting} onClick={() => void disableDeployment()}>{submitting ? "正在停用" : "确认停用"}</Button></DialogActions></DialogBody></DialogSurface></Dialog>
+      <Dialog open={disableTarget !== undefined} onOpenChange={(_, data) => { if (!data.open && !submitting) setDisableTarget(undefined); }}><DialogSurface><DialogBody><DialogTitle>确认停用模型部署</DialogTitle><DialogContent><Text>停用 {disableTarget?.displayName} 会立即阻断新的模型调用，且不能直接恢复；如需重新供应，请新建并验证部署。</Text></DialogContent><DialogActions><Button appearance="secondary" disabled={submitting} onClick={() => setDisableTarget(undefined)}>取消</Button><Button appearance="primary" disabled={submitting} onClick={() => void disableDeployment()}>{submitting ? "正在停用" : "确认停用"}</Button></DialogActions></DialogBody></DialogSurface></Dialog>
     </div>
   );
 }

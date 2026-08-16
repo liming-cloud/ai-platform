@@ -330,13 +330,13 @@ export function ObjectStorageDataWorkspace({
   return (
     <div className="governed-file-workspace">
       <div className="governance-toolbar">
-        <Text>对象范围由服务端按当前租户和知识空间筛选；对象位置、桶名、对象键、正文和凭据均不会展示。</Text>
+        <Text>这里只提供当前租户和知识空间已获授权的对象范围；对象位置、桶名、对象键、正文和凭据均不会展示。</Text>
         <div className="task-actions"><Button appearance="subtle" icon={<ArrowClockwise20Regular />} onClick={() => void load()}>刷新</Button><Button appearance="subtle" onClick={() => void logout()}>退出登录</Button></div>
       </div>
       {failure ? <FailureMessage failure={failure} /> : null}
       {spaces.length === 0 ? <StatePanel kind="empty" title="尚无可用知识空间" description="先在“首份文本发布”任务创建知识空间，再登记平台对象存储范围。" /> : (
         <section className="governed-file-section">
-          <header className="task-heading"><Title3>登记平台对象存储范围</Title3><Text>从当前知识空间已授权的范围中选择，无需输入内部引用或修订。</Text></header>
+          <header className="task-heading"><Title3>登记平台对象存储范围</Title3><Text>从当前知识空间已授权的范围中选择并登记即可。</Text></header>
           <form className="governed-file-form" onSubmit={register}>
             <Field label="知识空间" required><Select value={knowledgeSpaceId} disabled={submitting || source !== undefined} onChange={(_, data) => {
               setSource(undefined);
