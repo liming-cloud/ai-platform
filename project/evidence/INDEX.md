@@ -328,7 +328,7 @@
 | ADR-0068 运营投影与用户信息边界人工接受 | `project/evidence/ADR-0068-approval.md` | 本次控制面提交 | 接受两级运营总览、脱敏平台租户摘要、手动刷新、固定时间范围、名称选择器和禁止渲染后端信息。 |
 | M6 三角色授权与能力投影 | `project/evidence/WP-0014-three-role-authorization-and-projection.md` | 本次提交 | 平台／租户角色收敛为三种，真实 PostgreSQL 迁移、会话能力、HTTP 和统一 SPA 回归通过；自定义角色入口退役，遗留实现待冗余接口审计切片清理。 |
 | M6 API 冗余审计 | `docs/audits/WP-0014-m6-api-redundancy-audit.md` | `294c510da` | 自定义角色及绑定 HTTP 契约已从运行时和浏览器客户端退休；用量、审计、运营聚合和资源标识路径按独立职责保留。 |
-| M6 OpenAI 风格企业产品重构自动回归 | `project/evidence/WP-0014-openai-style-enterprise-product-regression.md` | `a0c8dde71` | 三角色、两级运营聚合、名称选择器、统一 SPA、内部信息保护及健康感知模型统计通过真实基础设施和 `make validate`；登录后全流程及真实 200% 缩放等待人工解锁与凭据输入确认。 |
+| M6 OpenAI 风格企业产品重构自动回归 | `project/evidence/WP-0014-openai-style-enterprise-product-regression.md` | `c06e239c8` | 三角色、两级运营聚合、名称选择器、统一 SPA、内部信息保护、健康感知统计及部分失败恢复通过真实基础设施和 `make validate`；登录后全流程及真实 200% 缩放等待人工解锁与凭据输入确认。 |
 
 ## 证据规则
 

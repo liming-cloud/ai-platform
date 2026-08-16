@@ -17,6 +17,8 @@ ADR-0067、ADR-0068 对应的三角色、两级运营投影、名称选择器、
 | `9c517100c` | 收敛后端包结构并登记运营 Mapper SQL |
 | `1ff96a013` | 固定浅色主题并尊重减少动态效果偏好 |
 | `ea5cdaaa4` | 清除 SPA 可见内部实现术语和可信问答助手版本号 |
+| `a0c8dde71` | 修正模型连接、部署与租户风险的业务健康统计 |
+| `c06e239c8` | 补齐运营总览部分失败恢复、URL 状态和活动租户模型风险语义 |
 
 ## 后端与真实基础设施
 
@@ -53,8 +55,8 @@ make validate
 项目治理：14 个工作包，当前前沿 WP-0014。
 架构门禁：SQL 文件 0、超预算包 0、旧 api/adapter/runtimes 文件 0。
 后端：完整 Maven clean test 反应堆通过，包含真实 PostgreSQL、Redis、MinIO、Flyway 与 Tomcat HTTP。
-前端：typecheck、lint 通过；20 个测试文件、113 项测试通过。
-构建：Vite 生产构建通过，2179 个模块完成转换。
+前端：typecheck、lint 通过；22 个测试文件、118 项测试通过。
+构建：Vite 生产构建通过，2180 个模块完成转换。
 交付：演示夹具 9 项、真实模型 5 项、恢复 8 项、容量 4 项、交付 6 项通过。
 ```
 
@@ -100,7 +102,37 @@ make validate
 结果：5 项真实 PostgreSQL／Redis／Tomcat HTTP 测试通过。
 
 make validate
-结果：退出码 0；完整 Maven 反应堆、前端 20 个测试文件共 113 项、生产构建和全部质量脚本通过。
+结果：退出码 0；完整 Maven 反应堆、前端 22 个测试文件共 118 项、生产构建和全部质量脚本通过。
+```
+
+## 运营总览恢复性与活动租户风险补全
+
+完成度审计继续发现四项会影响人工验收的稳定缺口，提交 `c06e239c8` 已完成红绿修正：
+
+- 平台总览和租户安全摘要由 `Promise.allSettled` 独立结算；一侧失败时仍展示另一侧成功数据，手动刷新失败时才保留并明确标注上一份成功快照。
+- `DAY_1`、`DAY_7`、`DAY_30` 与平台租户摘要页码共同进入规范 URL，刷新、前进和后退不会静默回到七天范围。
+- 组织事实源提供活动租户集合，模型事实源只判断这些租户是否具备健康的租户部署或租户范围平台目录配置；从未建立模型记录的新活动租户也会正确进入“模型不可用”风险，个人范围配置不能冒充租户级可用性。
+- 运营注意事项严重度固定为 `INFO`、`WARNING`、`CRITICAL`，下钻目标改为实际发布的 `/platform/operations`、`/data/files`、`/models/deployments`、`/governance/query`，不再返回无法到达的内部路径。
+
+红灯证据：前端首先因缺少独立结算加载器、路由未携带范围和状态组件不可测试而失败；后端首先因新活动租户事实契约缺失而编译失败，并由服务断言检出小写严重度及未发布路径。补齐最小实现后全部转绿。
+
+验证命令与结果：
+
+```text
+./mvnw -pl backend/contexts/model-runtime -am -Dtest=JdbcModelOperationsFactSourceTest -Dsurefire.failIfNoSpecifiedTests=false test
+结果：2 项真实 PostgreSQL／Flyway 测试通过，包含无模型记录活动租户和个人范围配置边界。
+
+./mvnw -pl backend/contexts/evaluation-operations -am -Dtest=OperationsOverviewServiceTest -Dsurefire.failIfNoSpecifiedTests=false test
+结果：4 项服务测试通过，包含严重度、公开下钻路径、分页补零和跨事实源风险合并。
+
+./mvnw -pl backend/bootstrap/control-plane-bootstrap -am -Dtest=OperationsApiTest -Dsurefire.failIfNoSpecifiedTests=false test
+结果：5 项真实 PostgreSQL／Redis／Tomcat HTTP 测试通过。
+
+cd frontend && npm run typecheck && npm run lint && npm run test && npm run build
+结果：22 个测试文件、118 项测试、2180 个生产构建模块全部通过。
+
+make validate
+结果：退出码 0；完整 Maven 反应堆、真实基础设施、前端、治理、架构、演示、恢复、容量和交付门禁全部通过。
 ```
 
 ## 从零人工验收基线
