@@ -19,6 +19,7 @@ ADR-0067、ADR-0068 对应的三角色、两级运营投影、名称选择器、
 | `ea5cdaaa4` | 清除 SPA 可见内部实现术语和可信问答助手版本号 |
 | `a0c8dde71` | 修正模型连接、部署与租户风险的业务健康统计 |
 | `c06e239c8` | 补齐运营总览部分失败恢复、URL 状态和活动租户模型风险语义 |
+| `d152e0747` | 阻断无标签内部标识编辑控件与审计响应字段泄露 |
 
 ## 后端与真实基础设施
 
@@ -170,6 +171,45 @@ docker compose --env-file deploy/compose/.env.example -f deploy/compose/compose.
 | 知识空间／助手／查询 | 0／0／0 |
 
 该操作没有删除 `platform.root`、角色绑定、认证切换事实、Flyway 历史、PostgreSQL/Redis/MinIO 卷或任何服务。人工登录后的主流程必须从这一基线重新建立全部产品资源，不能复用旧验收事实。
+
+## SPA 内部标识编辑与脱敏审计边界补全
+
+完成度审计发现租户查询审计表仍把 `assistantVersionId` 和 `questionDigest` 作为可见列及完整悬浮文本输出。提交 `d152e0747` 已移除这两个内部关联字段；审计页继续展示发生时间、业务结果和 Token 用量，不降低租户运营下钻能力。
+
+前端产品门禁同时扩展到统一控制台和可信问答包，并新增三类失败关闭检查：
+
+- 表单标签、提示和占位文本不得要求用户理解内部标识、版本或结果编码。
+- 可编辑控件即使没有可见标签，也不得直接绑定 `tenantId`、`SubjectId`、`modelId`、版本号等内部字段；隐藏传递控件不作为用户输入处理。
+- 可见表达式和属性不得渲染助手版本标识、问题摘要指纹、`resultCode`、`traceId` 或 `details`。
+
+红灯证据：质量门单元测试首先无法识别内部标识提示和可见审计字段，补充无标签 `<Input name="tenantId" value={tenantId}>` 后再次失败；门禁实现转绿后对真实 SPA 扫描，准确检出 `QueryGovernanceWorkspace` 的两个泄露字段。移除可见输出后仓库扫描通过。代码图谱进一步复核 `ControlPlaneClient`、`QueryClient` 与 `ApiErrorResponse` 的错误链路：稳定错误类型只用于客户端映射，`traceId` 被丢弃，后端 `message` 不进入渲染文本，因此本切片没有重复增加错误适配层。
+
+验证命令与结果：
+
+```text
+python3 -m unittest scripts.quality.test_frontend_product_guard
+结果：7 项质量门单元测试通过。
+
+python3 scripts/quality/frontend_product_guard.py verify
+结果：统一控制台与可信问答包未发现浏览器累加分页、嵌套 Dialog、内部标识输入或响应泄露。
+
+cd frontend && npm run typecheck && npm run lint && npm run test && npm run build
+结果：22 个测试文件、119 项测试、2180 个生产构建模块全部通过。
+
+./mvnw -pl backend/bootstrap/control-plane-bootstrap -am -Dtest=OperationsApiTest -Dsurefire.failIfNoSpecifiedTests=false test
+结果：5 项真实 PostgreSQL／Redis／Tomcat HTTP 测试通过。
+
+make validate
+结果：退出码 0；完整 Maven 反应堆、前端、真实基础设施及治理门禁全部通过。
+
+docker compose --env-file deploy/compose/.env.example -f deploy/compose/compose.yml -f deploy/compose/compose.browser-acceptance.yml up --detach --build --no-deps console-web
+结果：最新控制台镜像构建并启动成功；生产资源为 assets/index-C7_AmSmj.js。
+
+200 http://localhost:13443/
+401 http://localhost:13443/api/v1/platform/operations/overview?range=DAY_7
+401 http://localhost:13443/api/v1/operations/overview?range=DAY_7
+200 http://localhost:13443/actuator/health
+```
 
 ## 代码图谱与工程助手证据
 

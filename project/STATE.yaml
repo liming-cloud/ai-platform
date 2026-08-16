@@ -2,7 +2,7 @@ schemaVersion: 1
 productVersion: foundation-v1
 currentMilestone: M6
 currentFrontier: WP-0014
-lastVerifiedCommit: c06e239c8
+lastVerifiedCommit: d152e0747
 activeWorkPackages:
   - WP-0014
 blockedWorkPackages: []
