@@ -35,13 +35,13 @@ class PlatformRoleBindingApplicationServiceTest {
                 () -> 3001L,
                 Clock.fixed(Instant.parse("2026-08-11T06:00:00Z"), ZoneOffset.UTC));
 
-        var binding = service.bind(accountAdministrator(), 102L, "PLATFORM_OPERATOR");
+        var binding = service.bind(accountAdministrator(), 102L, "PLATFORM_ADMINISTRATOR");
 
-        assertEquals("PLATFORM_OPERATOR", binding.roleCode());
+        assertEquals("PLATFORM_ADMINISTRATOR", binding.roleCode());
         assertEquals(3001L, binding.bindingId());
         assertEquals(102L, revoked.get());
         assertEquals(1L, store.authorizationRevisionCount);
-        assertEquals(PlatformRole.PLATFORM_OPERATOR, store.saved.role());
+        assertEquals(PlatformRole.PLATFORM_ADMINISTRATOR, store.saved.role());
     }
 
     @Test
@@ -54,7 +54,7 @@ class PlatformRoleBindingApplicationServiceTest {
 
         assertThrows(
                 IllegalArgumentException.class,
-                () -> service.bind(platformOperator(), 102L, "PLATFORM_OPERATOR"));
+                () -> service.bind(platformOperator(), 102L, "PLATFORM_ADMINISTRATOR"));
     }
 
     private static PlatformRequestContext accountAdministrator() {

@@ -20,4 +20,10 @@
       (#{membershipId}, #{tenantId}, #{subjectId}, #{membershipRole}, #{status},
        #{permissionVersion}, #{version}, #{createdAt}, #{createdAt})
   </insert>
+  <insert id="insertDefaultRole">
+    INSERT INTO organization_access.tenant_membership_role_binding
+      (tenant_id, membership_id, role_code, bound_at)
+    VALUES
+      (#{tenantId}, #{membershipId}, 'TENANT_USER', #{boundAt})
+  </insert>
 </mapper>

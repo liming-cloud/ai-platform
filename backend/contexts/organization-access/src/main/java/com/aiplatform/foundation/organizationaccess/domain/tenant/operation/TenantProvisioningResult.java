@@ -33,7 +33,7 @@ public record TenantProvisioningResult(
                 || initialAdministrator.role() != TenantMembershipRole.TENANT_ADMINISTRATOR
                 || !lifecycle.id().equals(initialAdministratorRoleBinding.tenantId())
                 || !initialAdministrator.id().equals(initialAdministratorRoleBinding.membershipId())
-                || initialAdministratorRoleBinding.role() != TenantBuiltInRole.TENANT_ACCESS_ADMINISTRATOR
+                || initialAdministratorRoleBinding.role() != TenantBuiltInRole.TENANT_ADMINISTRATOR
                 || !occurredAt.equals(initialAdministratorRoleBinding.boundAt())
                 || !lifecycle.id().equals(lifecycleChange.tenantId())
                 || lifecycle.status() != lifecycleChange.status()

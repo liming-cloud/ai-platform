@@ -96,8 +96,8 @@ INSERT INTO organization_access.platform_role_binding (
     status,
     version
 ) VALUES
-    (4921825928971026436, 4921825928971026436, 'PLATFORM_TENANT_GOVERNOR', 'ACTIVE', 0),
-    (4921825928971026437, 4921825928971026437, 'PLATFORM_OPERATOR', 'ACTIVE', 0)
+    (4921825928971026436, 4921825928971026436, 'PLATFORM_ADMINISTRATOR', 'ACTIVE', 0),
+    (4921825928971026437, 4921825928971026437, 'PLATFORM_ADMINISTRATOR', 'ACTIVE', 0)
 ON CONFLICT DO NOTHING;
 
 INSERT INTO organization_access.tenant_membership (
@@ -113,7 +113,7 @@ INSERT INTO organization_access.tenant_membership (
         3382738893456539650,
         100000000000000001,
         4921825928971026434,
-        'MEMBER',
+        'TENANT_USER',
         'ENABLED',
         1,
         0
@@ -122,7 +122,7 @@ INSERT INTO organization_access.tenant_membership (
         3382738893456539651,
         100000000000000002,
         4921825928971026434,
-        'MEMBER',
+        'TENANT_USER',
         'ENABLED',
         1,
         0
@@ -131,7 +131,7 @@ INSERT INTO organization_access.tenant_membership (
         3382738893456539652,
         100000000000000001,
         4921825928971026436,
-        'MEMBER',
+        'TENANT_USER',
         'ENABLED',
         1,
         0
@@ -278,7 +278,7 @@ WHERE tenant_id IN (
           100000000000000002
       )
   AND subject_id = 4921825928971026434
-  AND membership_role = 'MEMBER';
+  AND membership_role = 'TENANT_USER';
 
 -- 演示初始管理员的权限来自角色绑定，避免在历史直授权限表中伪造新的治理授权。
 INSERT INTO organization_access.tenant_membership_role_binding (
@@ -290,7 +290,7 @@ INSERT INTO organization_access.tenant_membership_role_binding (
 SELECT
     tenant_id,
     membership_id,
-    'TENANT_ACCESS_ADMINISTRATOR',
+    'TENANT_ADMINISTRATOR',
     CURRENT_TIMESTAMP
 FROM organization_access.tenant_membership
 WHERE membership_role = 'TENANT_ADMINISTRATOR'

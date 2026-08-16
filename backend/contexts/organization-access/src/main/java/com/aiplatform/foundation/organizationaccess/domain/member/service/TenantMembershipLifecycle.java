@@ -58,7 +58,7 @@ public final class TenantMembershipLifecycle {
                 Objects.requireNonNull(id, "成员标识不能为空"),
                 Objects.requireNonNull(tenantId, "租户标识不能为空"),
                 Objects.requireNonNull(subjectId, "主体标识不能为空"),
-                TenantMembershipRole.MEMBER,
+                TenantMembershipRole.TENANT_USER,
                 TenantMembershipStatus.ENABLED,
                 0L,
                 0L,

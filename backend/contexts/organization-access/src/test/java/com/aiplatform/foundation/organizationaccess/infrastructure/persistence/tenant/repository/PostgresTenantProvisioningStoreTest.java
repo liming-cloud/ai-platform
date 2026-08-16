@@ -102,7 +102,7 @@ class PostgresTenantProvisioningStoreTest {
         assertEquals("TENANT_ADMINISTRATOR", jdbc.queryForObject("""
                 SELECT membership_role FROM organization_access.tenant_membership WHERE membership_id = ?
                 """, String.class, result.initialAdministrator().id().value()));
-        assertEquals("TENANT_ACCESS_ADMINISTRATOR", jdbc.queryForObject("""
+        assertEquals("TENANT_ADMINISTRATOR", jdbc.queryForObject("""
                 SELECT role_code FROM organization_access.tenant_membership_role_binding WHERE membership_id = ?
                 """, String.class, result.initialAdministrator().id().value()));
         assertEquals("PROVISIONING", jdbc.queryForObject("""

@@ -51,7 +51,7 @@ class TenantCustomRoleBindingServiceTest {
 
     private static TenantMembership member(TenantId tenantId, TenantMembershipStatus status) {
         return TenantMembership.reconstitute(new MemberId(3382738893456539650L), tenantId,
-                new SubjectId(4921825928971026434L), TenantMembershipRole.MEMBER, status, 0L, 1L, NOW);
+                new SubjectId(4921825928971026434L), TenantMembershipRole.TENANT_USER, status, 0L, 1L, NOW);
     }
 
     private static TenantCustomRole activeRole(TenantId tenantId) {

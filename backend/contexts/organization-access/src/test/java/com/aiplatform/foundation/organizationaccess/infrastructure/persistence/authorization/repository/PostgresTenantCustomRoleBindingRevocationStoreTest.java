@@ -80,7 +80,7 @@ class PostgresTenantCustomRoleBindingRevocationStoreTest {
         jdbc.update("DELETE FROM organization_access.tenant");
         jdbc.update("INSERT INTO organization_access.tenant (tenant_id, tenant_code, display_name, status, version) VALUES (?, 'custom-unbind', '自定义解绑测试', 'ENABLED', 0)", TENANT.value());
         jdbc.update("INSERT INTO organization_access.subject_identity (subject_id, login_name, password_hash, status, version) VALUES (4921825928971026434, 'unbind-admin', 'valid-hash', 'ACTIVE', 0)");
-        jdbc.update("INSERT INTO organization_access.tenant_membership (membership_id, tenant_id, subject_id, membership_role, status, permission_version, version) VALUES (?, ?, 4921825928971026434, 'MEMBER', 'ENABLED', 2, 3)", MEMBER.value(), TENANT.value());
+        jdbc.update("INSERT INTO organization_access.tenant_membership (membership_id, tenant_id, subject_id, membership_role, status, permission_version, version) VALUES (?, ?, 4921825928971026434, 'TENANT_USER', 'ENABLED', 2, 3)", MEMBER.value(), TENANT.value());
         jdbc.update("INSERT INTO organization_access.tenant_custom_role (custom_role_id, tenant_id, role_name, status, version, created_at) VALUES (9001, ?, '模型观察员', 'ACTIVE', 0, ?::timestamptz)", TENANT.value(), NOW.toString());
         jdbc.update("INSERT INTO organization_access.tenant_custom_role_permission (custom_role_id, permission_code) VALUES (9001, 'model:read')");
         jdbc.update("INSERT INTO organization_access.tenant_custom_role_binding (tenant_id, membership_id, custom_role_id, bound_at) VALUES (?, ?, 9001, ?::timestamptz)", TENANT.value(), MEMBER.value(), NOW.toString());

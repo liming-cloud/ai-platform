@@ -13,7 +13,7 @@ class PlatformAccountEstablishmentRequestTest {
         assertThrows(IllegalArgumentException.class, () -> PlatformAccountEstablishmentRequest.from(Map.of(
                 "loginName", "new-account",
                 "password", "initial-password",
-                "role", "PLATFORM_OPERATOR")));
+                "role", "PLATFORM_ADMINISTRATOR")));
 
         var request = PlatformAccountEstablishmentRequest.from(Map.of(
                 "loginName", "new-account",

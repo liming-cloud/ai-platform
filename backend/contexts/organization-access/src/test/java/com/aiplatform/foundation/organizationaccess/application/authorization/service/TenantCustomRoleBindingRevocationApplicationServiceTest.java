@@ -108,7 +108,7 @@ class TenantCustomRoleBindingRevocationApplicationServiceTest {
 
     private static TenantMembership member() {
         return TenantMembership.reconstitute(MEMBER, TENANT, new SubjectId(4921825928971026434L),
-                TenantMembershipRole.MEMBER, TenantMembershipStatus.ENABLED, 0L, 1L, NOW);
+                TenantMembershipRole.TENANT_USER, TenantMembershipStatus.ENABLED, 0L, 1L, NOW);
     }
 
     private static TenantCustomRole role() {

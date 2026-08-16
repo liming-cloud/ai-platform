@@ -66,6 +66,6 @@ class TenantCustomRoleLifecycleServiceTest {
 
     private static TenantMembership member(long memberId) {
         return TenantMembership.reconstitute(new MemberId(memberId), TENANT, new SubjectId(memberId + 10000L),
-                TenantMembershipRole.MEMBER, TenantMembershipStatus.ENABLED, 0L, 0L, NOW);
+                TenantMembershipRole.TENANT_USER, TenantMembershipStatus.ENABLED, 0L, 0L, NOW);
     }
 }

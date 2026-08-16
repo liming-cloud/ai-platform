@@ -74,7 +74,7 @@ public final class TenantRoleBindingService {
         if (otherEnabledAccessManagers < 0L) {
             throw new IllegalArgumentException("其他有效访问管理员数量不能为负数");
         }
-        if (role == TenantBuiltInRole.TENANT_ACCESS_ADMINISTRATOR
+        if (role == TenantBuiltInRole.TENANT_ADMINISTRATOR
                 && !retainsAccessManageAfterRevocation
                 && otherEnabledAccessManagers == 0L) {
             throw new IllegalStateException("不能撤销租户最后一个访问管理员角色");

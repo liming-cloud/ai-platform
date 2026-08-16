@@ -48,7 +48,7 @@ public final class TenantProvisioning {
                 new TenantRoleBinding(
                         lifecycle.id(),
                         membership.id(),
-                        TenantBuiltInRole.TENANT_ACCESS_ADMINISTRATOR,
+                        TenantBuiltInRole.TENANT_ADMINISTRATOR,
                         occurredAt),
                 new TenantLifecycleChange(
                         lifecycle.id(), lifecycle.status(), lifecycle.version(), occurredAt),

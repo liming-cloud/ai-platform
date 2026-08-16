@@ -14,6 +14,6 @@ public interface TenantMemberEstablishmentStore {
     /** 判断该启用主体是否已属于当前租户。 */
     boolean hasMembership(TenantId tenantId, SubjectId subjectId);
 
-    /** 写入已由领域服务创建的成员资格。 */
+    /** 原子写入已由领域服务创建的成员资格及其普通用户固定角色。 */
     void insert(TenantMembership membership);
 }

@@ -40,10 +40,8 @@ public record BrowserSessionCapability(
      * 仅供界面说明范围的显示角色，不对应成员详情或权限集合。
      */
     public enum DisplayRole {
-        TENANT_MEMBER,
-        PLATFORM_ACCOUNT_ADMINISTRATOR,
-        PLATFORM_TENANT_GOVERNOR,
         PLATFORM_ADMINISTRATOR,
-        PLATFORM_OPERATOR
+        TENANT_ADMINISTRATOR,
+        TENANT_USER
     }
 }

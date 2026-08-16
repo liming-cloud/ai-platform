@@ -79,12 +79,12 @@ class PostgresTenantMemberEstablishmentStoreTest {
     }
 
     @Test
-    void 建立成员必须写入无隐式权限的普通启用成员资格() {
+    void 建立成员必须原子写入普通用户资格和固定角色() {
         var result = service.establish(manager(), ACTIVE_SUBJECT);
 
         assertEquals("3382738893456539659", result.membershipId());
         assertEquals("ENABLED", result.status());
-        assertEquals("MEMBER", jdbc.queryForObject("""
+        assertEquals("TENANT_USER", jdbc.queryForObject("""
                 SELECT membership_role FROM organization_access.tenant_membership
                 WHERE tenant_id = ? AND subject_id = ?
                 """, String.class, TENANT.value(), ACTIVE_SUBJECT));
@@ -92,6 +92,10 @@ class PostgresTenantMemberEstablishmentStoreTest {
                 SELECT permission_version FROM organization_access.tenant_membership
                 WHERE tenant_id = ? AND subject_id = ?
                 """, Long.class, TENANT.value(), ACTIVE_SUBJECT));
+        assertEquals("TENANT_USER", jdbc.queryForObject("""
+                SELECT role_code FROM organization_access.tenant_membership_role_binding
+                WHERE tenant_id = ? AND membership_id = ?
+                """, String.class, TENANT.value(), 3382738893456539659L));
     }
 
     @Test

@@ -130,6 +130,6 @@ class BrowserAuthenticationServiceTest {
 
     private static PlatformRoleAuthorization platformGrant() {
         return new PlatformRoleAuthorization(
-                SUBJECT_ID, 2L, Set.of(PlatformRole.PLATFORM_TENANT_GOVERNOR));
+                SUBJECT_ID, 2L, Set.of(PlatformRole.PLATFORM_ADMINISTRATOR));
     }
 }

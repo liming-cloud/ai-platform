@@ -252,7 +252,7 @@ class AuthenticationApiTest {
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
         assertEquals(java.util.List.of("TENANT"), response.getBody().get("workspaceCategories"));
-        assertEquals(java.util.List.of("TENANT_MEMBER"), response.getBody().get("displayRoles"));
+        assertEquals(java.util.List.of("TENANT_ADMINISTRATOR"), response.getBody().get("displayRoles"));
         assertTrue(((java.util.List<?>) response.getBody().get("capabilityCodes"))
                 .containsAll(java.util.List.of("knowledge:read", "assistant:query")));
         assertEquals(3600, response.getBody().get("maximumSessionAgeSeconds"));
@@ -264,7 +264,7 @@ class AuthenticationApiTest {
     }
 
     @Test
-    void 租户访问管理员绑定已发布模型角色后应撤销目标成员的旧会话并更新权限投影() {
+    void 租户管理员绑定普通用户角色后应撤销目标成员的旧会话并更新权限投影() {
         var targetSession = http.postForEntity(
                 url("/api/v1/auth/sessions"),
                 Map.of(
@@ -280,13 +280,13 @@ class AuthenticationApiTest {
                 url("/api/v1/tenant/members/3382738893456539652/role-bindings"),
                 HttpMethod.POST,
                 new HttpEntity<>(
-                        Map.of("role", "TENANT_MODEL_MANAGER"),
+                        Map.of("role", "TENANT_USER"),
                         bearer(managerToken)),
                 Map.class);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
-        assertEquals("TENANT_MODEL_MANAGER", response.getBody().get("role"));
+        assertEquals("TENANT_USER", response.getBody().get("role"));
         assertEquals("3382738893456539652", response.getBody().get("membershipId"));
         assertThrows(InvalidAuthenticatedSessionException.class,
                 () -> sessions.resolve(targetSession.getBody().tokenValue()));
@@ -301,9 +301,9 @@ class AuthenticationApiTest {
         assertEquals(HttpStatus.CREATED, renewedSession.getStatusCode());
         assertNotNull(renewedSession.getBody());
         assertTrue(sessions.resolve(renewedSession.getBody().tokenValue())
-                .hasPermission(new com.aiplatform.foundation.security.identity.PermissionCode("model:read")));
+                .hasPermission(new com.aiplatform.foundation.security.identity.PermissionCode("knowledge:read")));
         assertTrue(sessions.resolve(renewedSession.getBody().tokenValue())
-                .hasPermission(new com.aiplatform.foundation.security.identity.PermissionCode("model:write")));
+                .hasPermission(new com.aiplatform.foundation.security.identity.PermissionCode("assistant:query")));
     }
 
     @Test
@@ -312,7 +312,7 @@ class AuthenticationApiTest {
                 url("/api/v1/tenant/members/3382738893456539652/role-bindings"),
                 HttpMethod.POST,
                 new HttpEntity<>(
-                        Map.of("role", "TENANT_ASSISTANT_OWNER"),
+                        Map.of("role", "TENANT_ADMINISTRATOR"),
                         bearer(tenantLogin())),
                 Map.class);
         assertEquals(HttpStatus.OK, bind.getStatusCode());
@@ -328,14 +328,14 @@ class AuthenticationApiTest {
         assertNotNull(targetSession.getBody());
 
         var response = http.exchange(
-                url("/api/v1/tenant/members/3382738893456539652/role-bindings/TENANT_ASSISTANT_OWNER"),
+                url("/api/v1/tenant/members/3382738893456539652/role-bindings/TENANT_ADMINISTRATOR"),
                 HttpMethod.DELETE,
                 new HttpEntity<>(bearer(tenantLogin())),
                 Map.class);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
-        assertEquals("TENANT_ASSISTANT_OWNER", response.getBody().get("role"));
+        assertEquals("TENANT_ADMINISTRATOR", response.getBody().get("role"));
         assertEquals("3382738893456539652", response.getBody().get("membershipId"));
         assertThrows(InvalidAuthenticatedSessionException.class,
                 () -> sessions.resolve(targetSession.getBody().tokenValue()));
@@ -354,7 +354,7 @@ class AuthenticationApiTest {
     }
 
     @Test
-    void 租户访问管理员可经受限接口创建自定义角色() {
+    void 三角色产品不再发布租户自定义角色接口() {
         var response = http.exchange(
                 url("/api/v1/tenant/custom-roles"),
                 HttpMethod.POST,
@@ -363,65 +363,17 @@ class AuthenticationApiTest {
                                 "name", "模型观察员",
                                 "permissions", java.util.List.of("model:read")),
                         bearer(tenantLogin())),
-                Map.class);
+                String.class);
 
-        assertEquals(HttpStatus.CREATED, response.getStatusCode());
-        assertNotNull(response.getBody());
-        assertEquals("模型观察员", response.getBody().get("name"));
-        assertEquals(java.util.List.of("model:read"), response.getBody().get("permissionCodes"));
-        assertEquals("ACTIVE", response.getBody().get("status"));
-    }
-
-    @Test
-    void 租户访问管理员绑定自定义角色后应撤销旧会话并投影角色权限() {
-        var created = http.exchange(
-                url("/api/v1/tenant/custom-roles"),
-                HttpMethod.POST,
-                new HttpEntity<>(
-                        Map.of(
-                                "name", "自定义模型观察员",
-                                "permissions", java.util.List.of("model:read")),
-                        bearer(tenantLogin())),
-                Map.class);
-        assertEquals(HttpStatus.CREATED, created.getStatusCode());
-        assertNotNull(created.getBody());
-
-        var targetSession = http.postForEntity(
-                url("/api/v1/auth/sessions"),
-                Map.of(
-                        "tenantCode", "demo-store",
-                        "loginName", "platform-admin",
-                        "password", new String(DEMO_PASSWORD)),
-                SessionResponse.class);
-        assertEquals(HttpStatus.CREATED, targetSession.getStatusCode());
-        assertNotNull(targetSession.getBody());
-
-        var response = http.exchange(
+        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
+        var binding = http.exchange(
                 url("/api/v1/tenant/members/3382738893456539652/custom-role-bindings"),
                 HttpMethod.POST,
                 new HttpEntity<>(
-                        Map.of("customRoleId", created.getBody().get("id")),
+                        Map.of("customRoleId", "9001"),
                         bearer(tenantLogin())),
-                Map.class);
-
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertNotNull(response.getBody());
-        assertEquals(created.getBody().get("id"), response.getBody().get("customRoleId"));
-        assertEquals("3382738893456539652", response.getBody().get("membershipId"));
-        assertThrows(InvalidAuthenticatedSessionException.class,
-                () -> sessions.resolve(targetSession.getBody().tokenValue()));
-
-        var renewedSession = http.postForEntity(
-                url("/api/v1/auth/sessions"),
-                Map.of(
-                        "tenantCode", "demo-store",
-                        "loginName", "platform-admin",
-                        "password", new String(DEMO_PASSWORD)),
-                SessionResponse.class);
-        assertEquals(HttpStatus.CREATED, renewedSession.getStatusCode());
-        assertNotNull(renewedSession.getBody());
-        assertTrue(sessions.resolve(renewedSession.getBody().tokenValue())
-                .hasPermission(new com.aiplatform.foundation.security.identity.PermissionCode("model:read")));
+                String.class);
+        assertEquals(HttpStatus.NOT_FOUND, binding.getStatusCode());
     }
 
     @Test
@@ -430,7 +382,7 @@ class AuthenticationApiTest {
         jdbc.update("""
                 INSERT INTO organization_access.tenant_membership
                     (membership_id, tenant_id, subject_id, membership_role, status, permission_version, version)
-                VALUES (?, 100000000000000001, 4921825928971026437, 'MEMBER', 'ENABLED', 0, 0)
+                VALUES (?, 100000000000000001, 4921825928971026437, 'TENANT_USER', 'ENABLED', 0, 0)
                 ON CONFLICT (tenant_id, membership_id) DO UPDATE
                     SET status = 'ENABLED', permission_version = 0, version = 0
                 """, targetMembershipId);
@@ -491,7 +443,7 @@ class AuthenticationApiTest {
         assertNotNull(response.getBody());
         assertEquals("ENABLED", response.getBody().get("status"));
         assertEquals(0, response.getBody().get("permissionVersion"));
-        assertEquals("MEMBER", jdbc.queryForObject("""
+        assertEquals("TENANT_USER", jdbc.queryForObject("""
                 SELECT membership_role FROM organization_access.tenant_membership
                 WHERE tenant_id = 100000000000000001 AND subject_id = ?
                 """, String.class, subjectId));
@@ -517,7 +469,7 @@ class AuthenticationApiTest {
                 java.util.List.of("PLATFORM_TENANT_GOVERNANCE"),
                 response.getBody().get("workspaceCategories"));
         assertEquals(
-                java.util.List.of("PLATFORM_TENANT_GOVERNOR"), response.getBody().get("displayRoles"));
+                java.util.List.of("PLATFORM_ADMINISTRATOR"), response.getBody().get("displayRoles"));
         assertTrue(response.getHeaders().getOrEmpty(HttpHeaders.SET_COOKIE).stream()
                 .anyMatch(cookie -> cookie.startsWith("__Host-foundation-tenant-session=")
                         && cookie.contains("Max-Age=0")));
@@ -715,18 +667,15 @@ class AuthenticationApiTest {
     }
 
     @Test
-    void 无治理写权限的平台运营主体不得读取或写入生命周期() {
+    void 新增平台管理员可读取并建立租户生命周期() {
         var platformToken = platformLogin("platform-operator");
         var denied = http.exchange(
                 url("/api/v1/platform/tenants?pageNumber=1&pageSize=20"),
                 HttpMethod.GET,
                 new HttpEntity<>(bearer(platformToken)),
-                ApiError.class);
+                Map.class);
 
-        assertEquals(HttpStatus.BAD_REQUEST, denied.getStatusCode());
-        assertNotNull(denied.getBody());
-        assertFalse(denied.getBody().message().contains("tenant"));
-        assertFalse(denied.getBody().details().containsKey("tenantId"));
+        assertEquals(HttpStatus.OK, denied.getStatusCode());
 
         var writeDenied = http.exchange(
                 url("/api/v1/platform/tenants"),
@@ -737,16 +686,13 @@ class AuthenticationApiTest {
                                 "displayName", "无权限租户",
                                 "initialAdministratorSubjectId", "4921825928971026436"),
                         bearer(platformToken)),
-                ApiError.class);
+                Map.class);
 
-        assertEquals(HttpStatus.BAD_REQUEST, writeDenied.getStatusCode());
-        assertNotNull(writeDenied.getBody());
-        assertFalse(writeDenied.getBody().message().contains("tenant"));
-        assertFalse(writeDenied.getBody().details().containsKey("tenantId"));
+        assertEquals(HttpStatus.CREATED, writeDenied.getStatusCode());
     }
 
     @Test
-    void 无治理写权限的平台运营主体登录后只得到无数据平台工作区() {
+    void 新增平台管理员登录后获得完整平台能力() {
         var headers = new HttpHeaders();
         headers.set(HttpHeaders.COOKIE, browserPlatformLogin("platform-operator"));
 
@@ -762,12 +708,12 @@ class AuthenticationApiTest {
                 java.util.List.of("PLATFORM_TENANT_GOVERNANCE"),
                 capability.getBody().get("workspaceCategories"));
         assertEquals(
-                java.util.List.of("PLATFORM_OPERATOR"), capability.getBody().get("displayRoles"));
+                java.util.List.of("PLATFORM_ADMINISTRATOR"), capability.getBody().get("displayRoles"));
         assertTrue(((java.util.List<?>) capability.getBody().get("capabilityCodes"))
                 .contains("platform-session:access"));
-        assertFalse(((java.util.List<?>) capability.getBody().get("capabilityCodes"))
+        assertTrue(((java.util.List<?>) capability.getBody().get("capabilityCodes"))
                 .contains("tenant-governance:write"));
-        assertFalse(((java.util.List<?>) capability.getBody().get("capabilityCodes"))
+        assertTrue(((java.util.List<?>) capability.getBody().get("capabilityCodes"))
                 .contains("platform:accounts:manage"));
     }
 

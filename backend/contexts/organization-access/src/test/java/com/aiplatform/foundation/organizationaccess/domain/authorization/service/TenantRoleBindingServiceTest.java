@@ -27,12 +27,12 @@ class TenantRoleBindingServiceTest {
         var member = member(STORE, 0L);
 
         var result = TenantRoleBindingService.bind(
-                member, STORE, TenantBuiltInRole.TENANT_ACCESS_ADMINISTRATOR, OCCURRED_AT);
+                member, STORE, TenantBuiltInRole.TENANT_ADMINISTRATOR, OCCURRED_AT);
 
         assertEquals(1L, result.revisedMembership().permissionVersion());
         assertEquals(STORE, result.binding().tenantId());
         assertEquals(member.id(), result.binding().membershipId());
-        assertEquals(TenantBuiltInRole.TENANT_ACCESS_ADMINISTRATOR, result.binding().role());
+        assertEquals(TenantBuiltInRole.TENANT_ADMINISTRATOR, result.binding().role());
         assertEquals(OCCURRED_AT, result.occurredAt());
     }
 
@@ -43,7 +43,7 @@ class TenantRoleBindingServiceTest {
         assertThrows(
                 IllegalArgumentException.class,
                 () -> TenantRoleBindingService.bind(
-                        member, CAMPUS, TenantBuiltInRole.TENANT_ACCESS_ADMINISTRATOR, OCCURRED_AT));
+                        member, CAMPUS, TenantBuiltInRole.TENANT_ADMINISTRATOR, OCCURRED_AT));
     }
 
     @Test
@@ -52,7 +52,7 @@ class TenantRoleBindingServiceTest {
                 new MemberId(3382738893456539650L),
                 STORE,
                 new SubjectId(4921825928971026434L),
-                TenantMembershipRole.MEMBER,
+                TenantMembershipRole.TENANT_USER,
                 TenantMembershipStatus.DISABLED,
                 0L,
                 2L,
@@ -61,7 +61,7 @@ class TenantRoleBindingServiceTest {
         assertThrows(
                 IllegalStateException.class,
                 () -> TenantRoleBindingService.bind(
-                        member, STORE, TenantBuiltInRole.TENANT_ACCESS_ADMINISTRATOR, OCCURRED_AT));
+                        member, STORE, TenantBuiltInRole.TENANT_ADMINISTRATOR, OCCURRED_AT));
     }
 
     @Test
@@ -71,7 +71,7 @@ class TenantRoleBindingServiceTest {
         var result = TenantRoleBindingService.revoke(
                 member,
                 STORE,
-                TenantBuiltInRole.TENANT_MODEL_MANAGER,
+                TenantBuiltInRole.TENANT_USER,
                 true,
                 0L,
                 OCCURRED_AT);
@@ -79,7 +79,7 @@ class TenantRoleBindingServiceTest {
         assertEquals(5L, result.revisedMembership().permissionVersion());
         assertEquals(STORE, result.tenantId());
         assertEquals(member.id(), result.membershipId());
-        assertEquals(TenantBuiltInRole.TENANT_MODEL_MANAGER, result.role());
+        assertEquals(TenantBuiltInRole.TENANT_USER, result.role());
         assertEquals(OCCURRED_AT, result.revokedAt());
     }
 
@@ -92,7 +92,7 @@ class TenantRoleBindingServiceTest {
                 () -> TenantRoleBindingService.revoke(
                         member,
                         STORE,
-                        TenantBuiltInRole.TENANT_ACCESS_ADMINISTRATOR,
+                        TenantBuiltInRole.TENANT_ADMINISTRATOR,
                         false,
                         0L,
                         OCCURRED_AT));
@@ -103,7 +103,7 @@ class TenantRoleBindingServiceTest {
                 new MemberId(3382738893456539650L),
                 tenantId,
                 new SubjectId(4921825928971026434L),
-                TenantMembershipRole.MEMBER,
+                TenantMembershipRole.TENANT_USER,
                 TenantMembershipStatus.ENABLED,
                 permissionVersion,
                 2L,

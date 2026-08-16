@@ -70,7 +70,7 @@ class PostgresPlatformRoleBindingRepositoryTest {
         jdbc.update(
                 "INSERT INTO organization_access.platform_role_binding "
                         + "(binding_id, subject_id, role_code, status, version) "
-                        + "VALUES (?, ?, 'PLATFORM_TENANT_GOVERNOR', 'ACTIVE', 0)",
+                        + "VALUES (?, ?, 'PLATFORM_ADMINISTRATOR', 'ACTIVE', 0)",
                 SUBJECT_ID, SUBJECT_ID);
     }
 
@@ -79,7 +79,7 @@ class PostgresPlatformRoleBindingRepositoryTest {
         var authorization = bindings.findActiveAuthorizationBySubject(new SubjectId(SUBJECT_ID)).orElseThrow();
 
         assertEquals(4L, authorization.permissionVersion());
-        assertEquals(java.util.Set.of(PlatformRole.PLATFORM_TENANT_GOVERNOR), authorization.roles());
+        assertEquals(java.util.Set.of(PlatformRole.PLATFORM_ADMINISTRATOR), authorization.roles());
     }
 
     @Test

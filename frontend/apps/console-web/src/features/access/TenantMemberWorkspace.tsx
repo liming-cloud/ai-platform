@@ -49,7 +49,7 @@ export function TenantMemberWorkspace({
   const [target, setTarget] = useState<TenantMemberSummary>();
   const [roleTarget, setRoleTarget] = useState<TenantMemberSummary>();
   const [roleToRevoke, setRoleToRevoke] = useState<string>();
-  const [selectedRole, setSelectedRole] = useState("TENANT_KNOWLEDGE_MANAGER");
+  const [selectedRole, setSelectedRole] = useState("TENANT_USER");
   const [establishmentOpen, setEstablishmentOpen] = useState(false);
   const [subjectId, setSubjectId] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -206,12 +206,8 @@ export function TenantMemberWorkspace({
 }
 
 const ROLE_CATALOG = [
-  { code: "TENANT_ACCESS_ADMINISTRATOR", label: "访问管理员" },
-  { code: "TENANT_KNOWLEDGE_MANAGER", label: "知识管理员" },
-  { code: "TENANT_MODEL_MANAGER", label: "模型管理员" },
-  { code: "TENANT_ASSISTANT_OWNER", label: "助手负责人" },
-  { code: "TENANT_AUDITOR", label: "审计员" },
-  { code: "TENANT_QUERY_USER", label: "问答用户" },
+  { code: "TENANT_ADMINISTRATOR", label: "租户管理员" },
+  { code: "TENANT_USER", label: "普通用户" },
 ] as const;
 
 function roleLabel(code: string): string {

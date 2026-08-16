@@ -129,7 +129,7 @@ class PostgresTenantLifecycleBackfillStoreTest {
         assertEquals(0L, count("organization_access.tenant_lifecycle"));
         assertEquals(0L, count("organization_access.tenant_lifecycle_outbox"));
         assertEquals(0L, count("organization_access.tenant_lifecycle_authentication_cutover"));
-        assertEquals(List.of("MEMBER", "MEMBER"), jdbc.queryForList("""
+        assertEquals(List.of("TENANT_USER", "TENANT_USER"), jdbc.queryForList("""
                 SELECT membership_role
                 FROM organization_access.tenant_membership
                 ORDER BY tenant_id
@@ -218,7 +218,7 @@ class PostgresTenantLifecycleBackfillStoreTest {
         assertEquals(0L, count("organization_access.tenant_lifecycle"));
         assertEquals(0L, count("organization_access.tenant_lifecycle_outbox"));
         assertEquals(0L, count("organization_access.tenant_lifecycle_authentication_cutover"));
-        assertEquals(List.of("MEMBER", "MEMBER"), jdbc.queryForList("""
+        assertEquals(List.of("TENANT_USER", "TENANT_USER"), jdbc.queryForList("""
                 SELECT membership_role
                 FROM organization_access.tenant_membership
                 ORDER BY tenant_id
@@ -245,7 +245,7 @@ class PostgresTenantLifecycleBackfillStoreTest {
         jdbc.update("""
                 INSERT INTO organization_access.tenant_membership
                     (membership_id, tenant_id, subject_id, membership_role, status, permission_version, version)
-                VALUES (?, ?, ?, 'MEMBER', 'ENABLED', 3, 7)
+                VALUES (?, ?, ?, 'TENANT_USER', 'ENABLED', 3, 7)
                 """, membershipId, tenantId, subjectId);
     }
 

@@ -10,25 +10,13 @@ import java.util.Set;
  */
 public enum PlatformRole {
 
-    /** 管理全局人员账户及其平台角色。 */
-    PLATFORM_ACCOUNT_ADMINISTRATOR(Set.of(
-            new PermissionCode("platform-session:access"),
-            new PermissionCode("platform:accounts:manage"))),
-
-    /** 管理租户生命周期。 */
-    PLATFORM_TENANT_GOVERNOR(Set.of(
-            new PermissionCode("platform-session:access"),
-            new PermissionCode("tenant-governance:write"))),
-
-    /** 管理平台账户、租户治理和全局受控模型目录。 */
+    /** 管理平台账户、租户、模型供应链和脱敏运营摘要。 */
     PLATFORM_ADMINISTRATOR(Set.of(
             new PermissionCode("platform-session:access"),
             new PermissionCode("platform:accounts:manage"),
             new PermissionCode("tenant-governance:write"),
-            new PermissionCode("model-platform:write"))),
-
-    /** 只允许进入平台治理控制台。 */
-    PLATFORM_OPERATOR(Set.of(new PermissionCode("platform-session:access")));
+            new PermissionCode("model-platform:write"),
+            new PermissionCode("platform-operations:read")));
 
     private final Set<PermissionCode> permissions;
 

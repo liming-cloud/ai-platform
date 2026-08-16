@@ -26,7 +26,7 @@ import org.junit.jupiter.api.Test;
 class BrowserSessionCapabilityServiceTest {
 
     @Test
-    void 平台运营员应获得无数据平台工作区而非租户治理入口() {
+    void 有效平台会话只投影平台管理员角色() {
         var platformContext = new PlatformRequestContext(
                 new SubjectId(4921825928971026436L),
                 CredentialType.PERSON,
@@ -42,7 +42,7 @@ class BrowserSessionCapabilityServiceTest {
         var capability = service.inspect(null, "platform-session").capability().orElseThrow();
 
         assertEquals(Set.of(WorkspaceCategory.PLATFORM_TENANT_GOVERNANCE), capability.workspaceCategories());
-        assertEquals(Set.of(DisplayRole.PLATFORM_OPERATOR), capability.displayRoles());
+        assertEquals(Set.of(DisplayRole.PLATFORM_ADMINISTRATOR), capability.displayRoles());
         assertEquals(Set.of("platform-session:access"), capability.capabilityCodes());
     }
 
@@ -66,12 +66,7 @@ class BrowserSessionCapabilityServiceTest {
 
         var capability = service.inspect(null, "platform-session").capability().orElseThrow();
 
-        assertEquals(
-                Set.of(
-                        DisplayRole.PLATFORM_ACCOUNT_ADMINISTRATOR,
-                        DisplayRole.PLATFORM_TENANT_GOVERNOR,
-                        DisplayRole.PLATFORM_ADMINISTRATOR),
-                capability.displayRoles());
+        assertEquals(Set.of(DisplayRole.PLATFORM_ADMINISTRATOR), capability.displayRoles());
         assertEquals(
                 Set.of(
                         "platform-session:access",
@@ -113,6 +108,9 @@ class BrowserSessionCapabilityServiceTest {
                         "platform-session:access",
                         "tenant-governance:write"),
                 capability.capabilityCodes());
+        assertEquals(
+                Set.of(DisplayRole.TENANT_USER, DisplayRole.PLATFORM_ADMINISTRATOR),
+                capability.displayRoles());
     }
 
     private static AuthenticatedSessionGateway tenantSessions(TrustedRequestContext context) {

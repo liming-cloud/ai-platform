@@ -4,9 +4,6 @@ import com.aiplatform.foundation.organizationaccess.interfaces.web.authenticatio
 import com.aiplatform.foundation.organizationaccess.interfaces.web.authentication.controller.BrowserAuthenticationController;
 import com.aiplatform.foundation.organizationaccess.interfaces.web.authentication.controller.PlatformAuthenticationController;
 import com.aiplatform.foundation.organizationaccess.interfaces.web.tenantlifecycle.controller.TenantLifecycleController;
-import com.aiplatform.foundation.organizationaccess.interfaces.web.authorization.controller.TenantCustomRoleController;
-import com.aiplatform.foundation.organizationaccess.interfaces.web.authorization.controller.TenantCustomRoleBindingController;
-import com.aiplatform.foundation.organizationaccess.interfaces.web.authorization.controller.TenantCustomRoleBindingRevocationController;
 import com.aiplatform.foundation.organizationaccess.interfaces.web.authorization.controller.TenantRoleBindingController;
 import com.aiplatform.foundation.organizationaccess.interfaces.web.authorization.controller.PlatformAccountGovernanceController;
 import com.aiplatform.foundation.organizationaccess.interfaces.web.authorization.controller.PlatformAccountEstablishmentController;
@@ -28,9 +25,6 @@ import org.springframework.context.annotation.Import;
     BrowserAuthenticationController.class,
     PlatformAuthenticationController.class,
     TenantLifecycleController.class,
-    TenantCustomRoleController.class,
-    TenantCustomRoleBindingController.class,
-    TenantCustomRoleBindingRevocationController.class,
     TenantRoleBindingController.class,
     PlatformAccountGovernanceController.class,
     PlatformAccountEstablishmentController.class,

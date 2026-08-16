@@ -85,14 +85,14 @@ class PostgresPlatformRoleBindingStoreTest {
         var binding = PlatformRoleBinding.bind(
                 new PlatformRoleBindingId(4921825928971026437L),
                 new SubjectId(SUBJECT_ID),
-                PlatformRole.PLATFORM_OPERATOR,
+                PlatformRole.PLATFORM_ADMINISTRATOR,
                 Instant.parse("2026-08-11T06:00:00Z"));
 
         store.bind(binding);
 
         var authorization = authorizations.findActiveAuthorizationBySubject(new SubjectId(SUBJECT_ID)).orElseThrow();
         assertEquals(1L, authorization.permissionVersion());
-        assertEquals(java.util.Set.of(PlatformRole.PLATFORM_OPERATOR), authorization.roles());
+        assertEquals(java.util.Set.of(PlatformRole.PLATFORM_ADMINISTRATOR), authorization.roles());
 
         store.revoke(binding.revoke(Instant.parse("2026-08-11T07:00:00Z")));
 
@@ -110,7 +110,7 @@ class PostgresPlatformRoleBindingStoreTest {
     void 会话族撤销失败时不得提交角色绑定或权限修订() {
         org.junit.jupiter.api.Assertions.assertThrows(
                 IllegalStateException.class,
-                () -> governance.bind(accountAdministrator(), SUBJECT_ID, "PLATFORM_OPERATOR"));
+                () -> governance.bind(accountAdministrator(), SUBJECT_ID, "PLATFORM_ADMINISTRATOR"));
 
         assertEquals(
                 0L,

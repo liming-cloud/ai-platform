@@ -4,9 +4,17 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
 import java.time.Instant;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 
 class TenantMembershipTest {
+
+    @Test
+    void 产品成员职责只保留租户管理员和普通用户() {
+        assertEquals(
+                List.of("TENANT_ADMINISTRATOR", "TENANT_USER"),
+                java.util.Arrays.stream(TenantMembershipRole.values()).map(Enum::name).toList());
+    }
 
     @Test
     void 启停成员资格均推进权限修订且不改变主体租户归属() {

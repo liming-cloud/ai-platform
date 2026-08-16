@@ -45,5 +45,9 @@ public final class PostgresTenantMemberEstablishmentStore implements TenantMembe
                 membership.createdAt()) != 1) {
             throw new IllegalStateException("成员资格写入失败");
         }
+        if (mapper.insertDefaultRole(
+                membership.tenantId().value(), membership.id().value(), membership.createdAt()) != 1) {
+            throw new IllegalStateException("普通用户角色写入失败");
+        }
     }
 }

@@ -10,6 +10,7 @@ import com.aiplatform.foundation.organizationaccess.domain.authorization.model.p
 import com.aiplatform.foundation.organizationaccess.domain.authorization.model.platform.PlatformRoleBindingId;
 import com.aiplatform.foundation.organizationaccess.domain.member.model.SubjectId;
 import java.time.Instant;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 
 class PlatformRoleBindingTest {
@@ -21,12 +22,13 @@ class PlatformRoleBindingTest {
         var binding = PlatformRoleBinding.bind(
                 new PlatformRoleBindingId(701L),
                 new SubjectId(101L),
-                PlatformRole.PLATFORM_ACCOUNT_ADMINISTRATOR,
+                PlatformRole.PLATFORM_ADMINISTRATOR,
                 CREATED_AT);
 
         assertTrue(binding.isActive());
         assertTrue(binding.permissions().contains(new PermissionCode("platform-session:access")));
         assertTrue(binding.permissions().contains(new PermissionCode("platform:accounts:manage")));
+        assertTrue(binding.permissions().contains(new PermissionCode("platform-operations:read")));
 
         var revoked = binding.revoke(CREATED_AT.plusSeconds(1));
 
@@ -47,7 +49,16 @@ class PlatformRoleBindingTest {
         assertTrue(binding.permissions().contains(new PermissionCode("platform:accounts:manage")));
         assertTrue(binding.permissions().contains(new PermissionCode("tenant-governance:write")));
         assertTrue(binding.permissions().contains(new PermissionCode("model-platform:write")));
-        assertEquals(4, binding.permissions().size());
+        assertTrue(binding.permissions().contains(new PermissionCode("platform-operations:read")));
+        assertEquals(5, binding.permissions().size());
+    }
+
+    @Test
+    void 产品只发布一个平台管理员角色() {
+        assertEquals(List.of("PLATFORM_ADMINISTRATOR"),
+                java.util.Arrays.stream(PlatformRole.values()).map(Enum::name).toList());
+        assertThrows(IllegalArgumentException.class,
+                () -> PlatformRole.from("PLATFORM_OPERATOR"));
     }
 
     @Test

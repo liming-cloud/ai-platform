@@ -97,7 +97,7 @@ class PostgresTenantMemberDirectoryTest {
         jdbc.update("""
                 INSERT INTO organization_access.tenant_membership
                     (membership_id, tenant_id, subject_id, membership_role, status, permission_version, version, created_at, updated_at)
-                VALUES (?, ?, ?, 'MEMBER', ?, 1, 0, ?::timestamptz, ?::timestamptz)
+                VALUES (?, ?, ?, 'TENANT_USER', ?, 1, 0, ?::timestamptz, ?::timestamptz)
                 """, membershipId, tenantId, subjectId, status, NOW.toString(), NOW.toString());
     }
 

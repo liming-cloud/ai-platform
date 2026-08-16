@@ -21,10 +21,10 @@ class PlatformRoleBindingGovernanceTest {
                 account(SubjectIdentityStatus.ACTIVE),
                 false,
                 new PlatformRoleBindingId(1001L),
-                PlatformRole.PLATFORM_OPERATOR,
+                PlatformRole.PLATFORM_ADMINISTRATOR,
                 Instant.parse("2026-08-11T04:00:00Z"));
 
-        assertEquals(PlatformRole.PLATFORM_OPERATOR, binding.role());
+        assertEquals(PlatformRole.PLATFORM_ADMINISTRATOR, binding.role());
         assertEquals(101L, binding.subjectId().value());
         assertEquals(0L, binding.version());
     }
@@ -37,7 +37,7 @@ class PlatformRoleBindingGovernanceTest {
                         account(SubjectIdentityStatus.DISABLED),
                         false,
                         new PlatformRoleBindingId(1001L),
-                        PlatformRole.PLATFORM_OPERATOR,
+                        PlatformRole.PLATFORM_ADMINISTRATOR,
                         Instant.parse("2026-08-11T04:00:00Z")));
     }
 
@@ -46,7 +46,7 @@ class PlatformRoleBindingGovernanceTest {
         var binding = PlatformRoleBinding.bind(
                 new PlatformRoleBindingId(1001L),
                 new SubjectId(101L),
-                PlatformRole.PLATFORM_ACCOUNT_ADMINISTRATOR,
+                PlatformRole.PLATFORM_ADMINISTRATOR,
                 Instant.parse("2026-08-11T04:00:00Z"));
 
         assertThrows(

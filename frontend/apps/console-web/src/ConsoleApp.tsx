@@ -101,11 +101,6 @@ const TenantMemberWorkspace = lazy(async () => {
   return { default: module.TenantMemberWorkspace };
 });
 
-const TenantCustomRoleWorkspace = lazy(async () => {
-  const module = await import("./features/access/TenantCustomRoleWorkspace");
-  return { default: module.TenantCustomRoleWorkspace };
-});
-
 export function ConsoleApp() {
   const client = useMemo(() => new ControlPlaneClient(), []);
 
@@ -368,13 +363,8 @@ function AuthenticatedConsoleApp({
       </section>
       <section hidden={!accessActive}>
         {accessActive ? <>
-          <div className="data-task-switcher" aria-label="成员与权限任务切换">
-            <Button appearance={route.navigationId === "access" && route.task === "members" ? "primary" : "subtle"} onClick={() => navigate({ navigationId: "access", task: "members", page: 1 })}>成员目录</Button>
-            <Button appearance={route.navigationId === "access" && route.task === "roles" ? "primary" : "subtle"} onClick={() => navigate({ navigationId: "access", task: "roles", page: 1 })}>自定义角色</Button>
-          </div>
           <Suspense fallback={<StatePanel kind="loading" title="正在加载成员与权限" description="正在准备受限访问治理入口。" />}>
             {route.navigationId === "access" && route.task === "members" ? <TenantMemberWorkspace client={client} route={route} sessionRevision={sessionRevision} onRouteChange={navigate} /> : null}
-            {route.navigationId === "access" && route.task === "roles" ? <TenantCustomRoleWorkspace client={client} route={route} sessionRevision={sessionRevision} onRouteChange={navigate} /> : null}
           </Suspense>
         </> : null}
       </section>

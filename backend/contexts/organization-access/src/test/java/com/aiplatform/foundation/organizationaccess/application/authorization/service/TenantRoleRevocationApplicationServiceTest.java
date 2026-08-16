@@ -42,11 +42,11 @@ class TenantRoleRevocationApplicationServiceTest {
         var service = service(true, false, 1L, committed, revoked);
 
         var result = service.revoke(manager(), new TenantRoleRevocationCommand(
-                TARGET.value(), TenantBuiltInRole.TENANT_ACCESS_ADMINISTRATOR.name()));
+                TARGET.value(), TenantBuiltInRole.TENANT_ADMINISTRATOR.name()));
 
         assertEquals(1L, result.permissionVersion());
         assertEquals(TARGET, revoked.get());
-        assertEquals(TenantBuiltInRole.TENANT_ACCESS_ADMINISTRATOR, committed.get().role());
+        assertEquals(TenantBuiltInRole.TENANT_ADMINISTRATOR, committed.get().role());
     }
 
     @Test
@@ -57,7 +57,7 @@ class TenantRoleRevocationApplicationServiceTest {
 
         assertThrows(IllegalStateException.class, () -> service.revoke(
                 manager(), new TenantRoleRevocationCommand(
-                        TARGET.value(), TenantBuiltInRole.TENANT_ACCESS_ADMINISTRATOR.name())));
+                        TARGET.value(), TenantBuiltInRole.TENANT_ADMINISTRATOR.name())));
 
         assertNull(committed.get());
         assertNull(revoked.get());
@@ -118,7 +118,7 @@ class TenantRoleRevocationApplicationServiceTest {
                 TARGET,
                 TENANT,
                 new SubjectId(4921825928971026434L),
-                TenantMembershipRole.MEMBER,
+                TenantMembershipRole.TENANT_USER,
                 TenantMembershipStatus.ENABLED,
                 0L,
                 1L,

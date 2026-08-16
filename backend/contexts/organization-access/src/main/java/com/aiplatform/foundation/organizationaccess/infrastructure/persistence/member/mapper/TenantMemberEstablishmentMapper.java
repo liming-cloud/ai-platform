@@ -9,9 +9,13 @@ public interface TenantMemberEstablishmentMapper {
     Long lockActiveSubject(@Param("subjectId") long subjectId);
     /** 检查主体是否已属于当前租户。 */
     int countMembership(@Param("tenantId") long tenantId, @Param("subjectId") long subjectId);
-    /** 写入无隐式权限的普通成员资格。 */
+    /** 写入普通用户成员资格。 */
     int insert(@Param("membershipId") long membershipId, @Param("tenantId") long tenantId,
                @Param("subjectId") long subjectId, @Param("membershipRole") String membershipRole,
                @Param("status") String status, @Param("permissionVersion") long permissionVersion,
                @Param("version") long version, @Param("createdAt") Instant createdAt);
+    /** 写入与普通用户成员资格一致的固定角色绑定。 */
+    int insertDefaultRole(@Param("tenantId") long tenantId,
+                          @Param("membershipId") long membershipId,
+                          @Param("boundAt") Instant boundAt);
 }

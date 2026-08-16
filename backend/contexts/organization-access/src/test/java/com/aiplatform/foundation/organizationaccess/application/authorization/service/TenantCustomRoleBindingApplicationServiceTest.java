@@ -78,7 +78,7 @@ class TenantCustomRoleBindingApplicationServiceTest {
         return new TenantCustomRoleBindingApplicationService(store, sessions, Clock.fixed(NOW, ZoneOffset.UTC));
     }
 
-    private static TenantMembership member() { return TenantMembership.reconstitute(MEMBER, TENANT, new SubjectId(4921825928971026434L), TenantMembershipRole.MEMBER, TenantMembershipStatus.ENABLED, 0L, 1L, NOW); }
+    private static TenantMembership member() { return TenantMembership.reconstitute(MEMBER, TENANT, new SubjectId(4921825928971026434L), TenantMembershipRole.TENANT_USER, TenantMembershipStatus.ENABLED, 0L, 1L, NOW); }
     private static TenantCustomRole role() { return TenantCustomRole.create(ROLE, TENANT, "模型观察员", Set.of(new PermissionCode("model:read")), NOW); }
     private static TrustedRequestContext manager() { return context(Set.of(new com.aiplatform.foundation.security.identity.PermissionCode("access:manage"))); }
     private static TrustedRequestContext reader() { return context(Set.of(new com.aiplatform.foundation.security.identity.PermissionCode("model:read"))); }

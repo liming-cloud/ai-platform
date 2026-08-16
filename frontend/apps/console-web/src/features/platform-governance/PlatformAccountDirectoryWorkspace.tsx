@@ -31,15 +31,12 @@ import {
 import type { ConsoleRoute } from "../../session/console-route";
 
 type AccountRoute = Extract<ConsoleRoute, { task: "accounts" }>;
-type PlatformRoleCode = "PLATFORM_ACCOUNT_ADMINISTRATOR" | "PLATFORM_TENANT_GOVERNOR" | "PLATFORM_ADMINISTRATOR" | "PLATFORM_OPERATOR";
+type PlatformRoleCode = "PLATFORM_ADMINISTRATOR";
 type RoleDialogTarget = { kind: "role"; account: PlatformAccountSummary; roleCode: PlatformRoleCode; action: "bind" | "revoke" };
 type DialogTarget = RoleDialogTarget | { kind: "enable"; account: PlatformAccountSummary } | { kind: "create" } | { kind: "reset"; account: PlatformAccountSummary };
 
 const roles: ReadonlyArray<{ code: PlatformRoleCode; label: string; navigation: string }> = [
-  { code: "PLATFORM_ACCOUNT_ADMINISTRATOR", label: "平台账户管理员", navigation: "平台账户目录" },
-  { code: "PLATFORM_TENANT_GOVERNOR", label: "平台租户治理员", navigation: "平台租户生命周期" },
-  { code: "PLATFORM_ADMINISTRATOR", label: "平台管理员", navigation: "平台账户目录和平台租户生命周期" },
-  { code: "PLATFORM_OPERATOR", label: "平台运营员", navigation: "平台工作区" },
+  { code: "PLATFORM_ADMINISTRATOR", label: "平台管理员", navigation: "运营、账户、租户和模型供应链" },
 ];
 
 function roleLabel(code: string): string {
@@ -234,7 +231,7 @@ export function PlatformAccountDirectoryWorkspace({
               : dialog?.kind === "enable"
               ? `${dialog.account.loginName} 将恢复为活动账户。提交后该主体的全部平台与租户旧会话将失效，需重新认证。`
               : dialog?.kind === "role"
-                ? `${dialog.account.loginName} 将${dialog.action === "bind" ? "获得" : "失去"}“${roleLabel(dialog.roleCode)}”。该角色投影的导航能力为“${roles.find((role) => role.code === dialog.roleCode)?.navigation}”；提交后目标账户的全部会话将失效。${dialog.action === "revoke" && dialog.roleCode === "PLATFORM_ACCOUNT_ADMINISTRATOR" ? "若这会留下最后一个活动的平台账户管理员，服务端将拒绝操作。" : ""}`
+                ? `${dialog.account.loginName} 将${dialog.action === "bind" ? "获得" : "失去"}“${roleLabel(dialog.roleCode)}”。该角色投影的导航能力为“${roles.find((role) => role.code === dialog.roleCode)?.navigation}”；提交后目标账户的全部会话将失效。${dialog.action === "revoke" ? "若这会留下最后一个活动的平台管理员，服务端将拒绝操作。" : ""}`
                 : ""}</DialogContent>
             <DialogActions>
               <Button appearance="secondary" disabled={busy} onClick={closeDialog}>取消</Button>

@@ -917,7 +917,7 @@ describe("ControlPlaneClient", () => {
       return new Response(JSON.stringify({
         bindingId: "3001",
         subjectId: "510000000000000001",
-        roleCode: "PLATFORM_OPERATOR",
+        roleCode: "PLATFORM_ADMINISTRATOR",
         status: requests.length === 1 ? "ACTIVE" : "REVOKED",
         version: requests.length - 1,
         createdAt: "2026-08-11T03:00:00Z",
@@ -925,16 +925,16 @@ describe("ControlPlaneClient", () => {
       }), { status: 200, headers: { "Content-Type": "application/json" } });
     });
 
-    await client.bindPlatformRole("510000000000000001", "PLATFORM_OPERATOR");
-    await client.revokePlatformRole("510000000000000001", "PLATFORM_OPERATOR");
+    await client.bindPlatformRole("510000000000000001", "PLATFORM_ADMINISTRATOR");
+    await client.revokePlatformRole("510000000000000001", "PLATFORM_ADMINISTRATOR");
 
     expect(requests.map((request) => request.url)).toEqual([
       "http://localhost/api/v1/platform/accounts/510000000000000001/role-bindings",
-      "http://localhost/api/v1/platform/accounts/510000000000000001/role-bindings/PLATFORM_OPERATOR",
+      "http://localhost/api/v1/platform/accounts/510000000000000001/role-bindings/PLATFORM_ADMINISTRATOR",
     ]);
     expect(requests.map((request) => request.method)).toEqual(["POST", "DELETE"]);
     expect(requests[0]?.headers.get("Authorization")).toBeNull();
-    expect(await requests[0]?.json()).toEqual({ role: "PLATFORM_OPERATOR" });
+    expect(await requests[0]?.json()).toEqual({ role: "PLATFORM_ADMINISTRATOR" });
   });
 
   it("启用平台账户只提交路径目标且不携带 Authorization", async () => {
@@ -1145,7 +1145,7 @@ function authenticatedClient(fetcher: typeof fetch) {
 function fakeBrowserSession(fetcher: typeof fetch): BrowserSessionGateway {
   const capability = {
     workspaceCategories: ["TENANT"],
-    displayRoles: ["TENANT_MEMBER"],
+    displayRoles: ["TENANT_USER"],
     capabilityCodes: ["knowledge:read"],
     maximumSessionAgeSeconds: 3600,
   };

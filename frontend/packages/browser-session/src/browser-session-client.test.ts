@@ -9,7 +9,7 @@ describe("BrowserSessionClient", () => {
       new Response(null, { status: 204 }),
       new Response(JSON.stringify({
         workspaceCategories: ["TENANT"],
-        displayRoles: ["TENANT_MEMBER"],
+        displayRoles: ["TENANT_USER"],
         capabilityCodes: ["knowledge:read"],
         maximumSessionAgeSeconds: 3600,
       }), { status: 200, headers: { "Content-Type": "application/json" } }),

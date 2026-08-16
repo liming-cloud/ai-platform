@@ -105,7 +105,7 @@ class PlatformAuthenticationServiceTest {
 
     private static PlatformRoleAuthorization grant() {
         return new PlatformRoleAuthorization(
-                SUBJECT_ID, 2L, Set.of(PlatformRole.PLATFORM_TENANT_GOVERNOR));
+                SUBJECT_ID, 2L, Set.of(PlatformRole.PLATFORM_ADMINISTRATOR));
     }
 
     private static PlatformLoginCommand command(String password) {

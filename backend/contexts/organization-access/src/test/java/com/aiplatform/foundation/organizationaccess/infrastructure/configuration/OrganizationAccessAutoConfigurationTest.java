@@ -160,9 +160,9 @@ class OrganizationAccessAutoConfigurationTest {
             assertThat(context).hasSingleBean(TenantRoleBindingController.class);
             assertThat(context).hasSingleBean(PlatformRoleBindingController.class);
             assertThat(context).hasSingleBean(PlatformAccountEstablishmentController.class);
-            assertThat(context).hasSingleBean(TenantCustomRoleController.class);
-            assertThat(context).hasSingleBean(TenantCustomRoleBindingController.class);
-            assertThat(context).hasSingleBean(TenantCustomRoleBindingRevocationController.class);
+            assertThat(context).doesNotHaveBean(TenantCustomRoleController.class);
+            assertThat(context).doesNotHaveBean(TenantCustomRoleBindingController.class);
+            assertThat(context).doesNotHaveBean(TenantCustomRoleBindingRevocationController.class);
             assertThat(context).hasSingleBean(TenantMemberStatusController.class);
         });
     }

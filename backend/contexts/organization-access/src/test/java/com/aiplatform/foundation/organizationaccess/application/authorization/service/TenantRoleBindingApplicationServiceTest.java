@@ -41,7 +41,7 @@ class TenantRoleBindingApplicationServiceTest {
         var service = service(Optional.of(member()), false, committed, revoked);
 
         var result = service.bind(manager(), new TenantRoleBindingCommand(
-                TARGET.value(), TenantBuiltInRole.TENANT_ACCESS_ADMINISTRATOR.name()));
+                TARGET.value(), TenantBuiltInRole.TENANT_ADMINISTRATOR.name()));
 
         assertEquals(1L, committed.get().revisedMembership().permissionVersion());
         assertEquals(TARGET, revoked.get());
@@ -57,7 +57,7 @@ class TenantRoleBindingApplicationServiceTest {
         assertThrows(
                 IllegalArgumentException.class,
                 () -> service.bind(reader(), new TenantRoleBindingCommand(
-                        TARGET.value(), TenantBuiltInRole.TENANT_ACCESS_ADMINISTRATOR.name())));
+                        TARGET.value(), TenantBuiltInRole.TENANT_ADMINISTRATOR.name())));
         assertNull(committed.get());
         assertNull(revoked.get());
     }
@@ -71,7 +71,7 @@ class TenantRoleBindingApplicationServiceTest {
         assertThrows(
                 IllegalArgumentException.class,
                 () -> service.bind(manager(), new TenantRoleBindingCommand(
-                        TARGET.value(), TenantBuiltInRole.TENANT_ACCESS_ADMINISTRATOR.name())));
+                        TARGET.value(), TenantBuiltInRole.TENANT_ADMINISTRATOR.name())));
 
         assertNull(committed.get());
         assertNull(revoked.get());
@@ -127,7 +127,7 @@ class TenantRoleBindingApplicationServiceTest {
                 TARGET,
                 TENANT,
                 new SubjectId(4921825928971026434L),
-                TenantMembershipRole.MEMBER,
+                TenantMembershipRole.TENANT_USER,
                 TenantMembershipStatus.ENABLED,
                 0L,
                 1L,

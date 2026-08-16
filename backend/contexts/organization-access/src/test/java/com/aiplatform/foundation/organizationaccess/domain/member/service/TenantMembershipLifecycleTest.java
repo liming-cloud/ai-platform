@@ -48,7 +48,7 @@ class TenantMembershipLifecycleTest {
                 new MemberId(3382738893456539651L), TENANT,
                 new SubjectId(4921825928971026435L), CREATED_AT);
 
-        assertEquals(TenantMembershipRole.MEMBER, member.role());
+        assertEquals(TenantMembershipRole.TENANT_USER, member.role());
         assertEquals(TenantMembershipStatus.ENABLED, member.status());
         assertEquals(0L, member.permissionVersion());
     }
@@ -58,7 +58,7 @@ class TenantMembershipLifecycleTest {
                 new MemberId(3382738893456539650L),
                 TENANT,
                 new SubjectId(4921825928971026434L),
-                TenantMembershipRole.MEMBER,
+                TenantMembershipRole.TENANT_USER,
                 TenantMembershipStatus.ENABLED,
                 3L,
                 7L,

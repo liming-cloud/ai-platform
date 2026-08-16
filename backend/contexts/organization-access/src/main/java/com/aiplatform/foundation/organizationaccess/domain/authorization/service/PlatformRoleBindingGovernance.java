@@ -60,7 +60,7 @@ public final class PlatformRoleBindingGovernance {
             throw new IllegalArgumentException("其他有效账户管理员数量不能为负数");
         }
         if (target.isActive()
-                && binding.role() == PlatformRole.PLATFORM_ACCOUNT_ADMINISTRATOR
+                && binding.role() == PlatformRole.PLATFORM_ADMINISTRATOR
                 && otherActiveAccountAdministrators == 0L) {
             throw new IllegalStateException("不能撤销最后一个有效账户管理员角色");
         }

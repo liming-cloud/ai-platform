@@ -122,7 +122,7 @@ class TenantMemberStatusApplicationServiceTest {
                 TARGET,
                 TENANT,
                 new SubjectId(4921825928971026434L),
-                TenantMembershipRole.MEMBER,
+                TenantMembershipRole.TENANT_USER,
                 TenantMembershipStatus.ENABLED,
                 3L,
                 7L,

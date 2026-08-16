@@ -24,7 +24,7 @@ class PlatformRoleBindingControllerTest {
         var service = mock(PlatformRoleBindingApplicationService.class);
         var context = accountAdministrator();
         when(service.bind(any(), any(Long.class), any())).thenReturn(new PlatformRoleBindingView(
-                3001L, 102L, "PLATFORM_OPERATOR", "ACTIVE", 0L,
+                3001L, 102L, "PLATFORM_ADMINISTRATOR", "ACTIVE", 0L,
                 Instant.parse("2026-08-11T06:00:00Z"), null));
         var mvc = org.springframework.test.web.servlet.setup.MockMvcBuilders
                 .standaloneSetup(new PlatformRoleBindingController(service))
@@ -34,11 +34,11 @@ class PlatformRoleBindingControllerTest {
         mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
                         .post("/api/v1/platform/accounts/102/role-bindings")
                         .contentType("application/json")
-                        .content("{\"role\":\"PLATFORM_OPERATOR\"}"))
+                        .content("{\"role\":\"PLATFORM_ADMINISTRATOR\"}"))
                 .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().isOk())
-                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath("$.roleCode").value("PLATFORM_OPERATOR"));
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath("$.roleCode").value("PLATFORM_ADMINISTRATOR"));
 
-        verify(service).bind(same(context), org.mockito.Mockito.eq(102L), org.mockito.Mockito.eq("PLATFORM_OPERATOR"));
+        verify(service).bind(same(context), org.mockito.Mockito.eq(102L), org.mockito.Mockito.eq("PLATFORM_ADMINISTRATOR"));
     }
 
     private static org.springframework.web.method.support.HandlerMethodArgumentResolver platformContext(

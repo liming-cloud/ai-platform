@@ -94,22 +94,22 @@ class PostgresTenantMemberStatusStoreTest {
         jdbc.update("""
                 INSERT INTO organization_access.tenant_membership
                     (membership_id, tenant_id, subject_id, membership_role, status, permission_version, version, created_at, updated_at)
-                VALUES (?, ?, 4921825928971026434, 'MEMBER', 'ENABLED', 3, 7, ?::timestamptz, ?::timestamptz)
+                VALUES (?, ?, 4921825928971026434, 'TENANT_USER', 'ENABLED', 3, 7, ?::timestamptz, ?::timestamptz)
                 """, TARGET.value(), TENANT.value(), NOW.toString(), NOW.toString());
         jdbc.update("""
                 INSERT INTO organization_access.tenant_membership_role_binding
                     (tenant_id, membership_id, role_code, bound_at)
-                VALUES (?, ?, 'TENANT_ACCESS_ADMINISTRATOR', ?::timestamptz)
+                VALUES (?, ?, 'TENANT_ADMINISTRATOR', ?::timestamptz)
                 """, TENANT.value(), TARGET.value(), NOW.toString());
         jdbc.update("""
                 INSERT INTO organization_access.tenant_membership
                     (membership_id, tenant_id, subject_id, membership_role, status, permission_version, version, created_at, updated_at)
-                VALUES (3382738893456539651, ?, 4921825928971026435, 'MEMBER', 'ENABLED', 1, 0, ?::timestamptz, ?::timestamptz)
+                VALUES (3382738893456539651, ?, 4921825928971026435, 'TENANT_USER', 'ENABLED', 1, 0, ?::timestamptz, ?::timestamptz)
                 """, TENANT.value(), NOW.toString(), NOW.toString());
         jdbc.update("""
                 INSERT INTO organization_access.tenant_membership_role_binding
                     (tenant_id, membership_id, role_code, bound_at)
-                VALUES (?, 3382738893456539651, 'TENANT_ACCESS_ADMINISTRATOR', ?::timestamptz)
+                VALUES (?, 3382738893456539651, 'TENANT_ADMINISTRATOR', ?::timestamptz)
                 """, TENANT.value(), NOW.toString());
     }
 

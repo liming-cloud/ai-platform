@@ -93,7 +93,7 @@ class PostgresTenantRoleBindingStoreTest {
         jdbc.update("""
                 INSERT INTO organization_access.tenant_membership
                     (membership_id, tenant_id, subject_id, membership_role, status, permission_version, version, created_at, updated_at)
-                VALUES (?, ?, 4921825928971026436, 'MEMBER', 'ENABLED', 4, 9, ?::timestamptz, ?::timestamptz)
+                VALUES (?, ?, 4921825928971026436, 'TENANT_USER', 'ENABLED', 4, 9, ?::timestamptz, ?::timestamptz)
                 """, TARGET.value(), TENANT.value(), NOW.toString(), NOW.toString());
     }
 
@@ -101,7 +101,7 @@ class PostgresTenantRoleBindingStoreTest {
     void 应提交角色绑定和同一成员的权限版本修订() {
         service.bind(manager(), command());
 
-        assertEquals("TENANT_ACCESS_ADMINISTRATOR", jdbc.queryForObject("""
+        assertEquals("TENANT_ADMINISTRATOR", jdbc.queryForObject("""
                 SELECT role_code FROM organization_access.tenant_membership_role_binding
                 WHERE tenant_id = ? AND membership_id = ?
                 """, String.class, TENANT.value(), TARGET.value()));
@@ -132,7 +132,7 @@ class PostgresTenantRoleBindingStoreTest {
 
     private static TenantRoleBindingCommand command() {
         return new TenantRoleBindingCommand(
-                TARGET.value(), TenantBuiltInRole.TENANT_ACCESS_ADMINISTRATOR.name());
+                TARGET.value(), TenantBuiltInRole.TENANT_ADMINISTRATOR.name());
     }
 
     private static TrustedRequestContext manager() {

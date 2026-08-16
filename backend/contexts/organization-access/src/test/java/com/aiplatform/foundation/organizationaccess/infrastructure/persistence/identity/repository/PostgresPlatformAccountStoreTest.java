@@ -84,7 +84,7 @@ class PostgresPlatformAccountStoreTest {
         jdbc.update(
                 "INSERT INTO organization_access.platform_role_binding "
                         + "(binding_id, subject_id, role_code, status, version) "
-                        + "VALUES (?, ?, 'PLATFORM_ACCOUNT_ADMINISTRATOR', 'ACTIVE', 0)",
+                        + "VALUES (?, ?, 'PLATFORM_ADMINISTRATOR', 'ACTIVE', 0)",
                 ACCOUNT_ADMINISTRATOR,
                 ACCOUNT_ADMINISTRATOR);
     }
@@ -158,7 +158,7 @@ class PostgresPlatformAccountStoreTest {
         jdbc.update(
                 "INSERT INTO organization_access.platform_role_binding "
                         + "(binding_id, subject_id, role_code, status, version) "
-                        + "VALUES (?, ?, 'PLATFORM_OPERATOR', 'ACTIVE', 0)",
+                        + "VALUES (?, ?, 'PLATFORM_ADMINISTRATOR', 'ACTIVE', 0)",
                 TARGET_SUBJECT + 1L,
                 TARGET_SUBJECT);
         var page = store.list(new PageQuery(1, 1));
@@ -169,7 +169,7 @@ class PostgresPlatformAccountStoreTest {
         assertEquals(TARGET_SUBJECT, page.items().getFirst().subjectId());
         assertEquals("target-account", page.items().getFirst().loginName());
         assertEquals("ACTIVE", page.items().getFirst().status());
-        assertEquals(java.util.Set.of("PLATFORM_OPERATOR"), page.items().getFirst().activeRoleCodes());
+        assertEquals(java.util.Set.of("PLATFORM_ADMINISTRATOR"), page.items().getFirst().activeRoleCodes());
     }
 
     @Test

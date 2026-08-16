@@ -9,31 +9,21 @@ import java.util.Set;
  */
 public enum TenantBuiltInRole {
 
-    /** 允许在所属租户内管理成员角色绑定。 */
-    TENANT_ACCESS_ADMINISTRATOR(Set.of(new PermissionCode("access:manage"))),
-
-    /** 管理所属租户知识空间、受治理数据源和索引版本。 */
-    TENANT_KNOWLEDGE_MANAGER(Set.of(
+    /** 管理所属租户的成员、数据、模型、助手、评测、运营和问答。 */
+    TENANT_ADMINISTRATOR(Set.of(
+            new PermissionCode("access:manage"),
             new PermissionCode("knowledge:read"),
-            new PermissionCode("knowledge:write"))),
-
-    /** 管理所属租户供应商连接、模型发现、部署和配置。 */
-    TENANT_MODEL_MANAGER(Set.of(
+            new PermissionCode("knowledge:write"),
             new PermissionCode("model:read"),
-            new PermissionCode("model:write"))),
-
-    /** 管理所属租户助手草稿、版本和现有受限评测入口。 */
-    TENANT_ASSISTANT_OWNER(Set.of(
+            new PermissionCode("model:write"),
             new PermissionCode("assistant:read"),
-            new PermissionCode("assistant:write"))),
-
-    /** 读取所属租户的用量、脱敏审计和诊断摘要。 */
-    TENANT_AUDITOR(Set.of(
+            new PermissionCode("assistant:write"),
             new PermissionCode("usage:read"),
-            new PermissionCode("audit:read"))),
+            new PermissionCode("audit:read"),
+            new PermissionCode("assistant:query"))),
 
     /** 在已有资料权限内发起可信问答与反馈。 */
-    TENANT_QUERY_USER(Set.of(
+    TENANT_USER(Set.of(
             new PermissionCode("assistant:query"),
             new PermissionCode("knowledge:read")));
 

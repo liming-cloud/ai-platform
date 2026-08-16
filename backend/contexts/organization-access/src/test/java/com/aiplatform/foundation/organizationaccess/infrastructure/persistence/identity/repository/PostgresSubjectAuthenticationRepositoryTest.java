@@ -137,16 +137,15 @@ class PostgresSubjectAuthenticationRepositoryTest {
     }
 
     @Test
-    void 应从成员已绑定的内置角色恢复权限而非在查询中硬编码角色名称() {
-        insertRoleBinding(STORE_TENANT, STORE_MEMBERSHIP, "TENANT_MODEL_MANAGER");
+    void 普通用户应从固定角色恢复问答和知识读取权限() {
+        insertRoleBinding(STORE_TENANT, STORE_MEMBERSHIP, "TENANT_USER");
 
         var profile = memberships.findEnabled("demo-store", new SubjectId(ADMIN_SUBJECT)).orElseThrow();
 
         assertEquals(
                 java.util.Set.of(
                         new PermissionCode("knowledge:read"),
-                        new PermissionCode("model:read"),
-                        new PermissionCode("model:write")),
+                        new PermissionCode("assistant:query")),
                 profile.permissions());
     }
 
@@ -180,7 +179,7 @@ class PostgresSubjectAuthenticationRepositoryTest {
                 "INSERT INTO organization_access.tenant_membership "
                         + "(membership_id, tenant_id, subject_id, membership_role, "
                         + "status, permission_version, version) "
-                        + "VALUES (?, ?, ?, 'MEMBER', ?, 1, 0)",
+                        + "VALUES (?, ?, ?, 'TENANT_USER', ?, 1, 0)",
                 membershipId,
                 tenantId,
                 subjectId,

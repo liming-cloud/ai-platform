@@ -49,7 +49,9 @@ public final class BrowserSessionCapabilityService {
         var roles = EnumSet.noneOf(DisplayRole.class);
         if (tenant.isValid()) {
             workspaces.add(WorkspaceCategory.TENANT);
-            roles.add(DisplayRole.TENANT_MEMBER);
+            roles.add(tenant.isAdministrator()
+                    ? DisplayRole.TENANT_ADMINISTRATOR
+                    : DisplayRole.TENANT_USER);
         }
         if (platform.hasPlatformWorkspace()) {
             workspaces.add(WorkspaceCategory.PLATFORM_TENANT_GOVERNANCE);
@@ -120,6 +122,11 @@ public final class BrowserSessionCapabilityService {
         Stream<String> permissionCodes() {
             return isValid ? context.permissions().stream().map(permission -> permission.value()) : Stream.empty();
         }
+
+        boolean isAdministrator() {
+            return isValid && context.permissions().stream()
+                    .anyMatch(permission -> "access:manage".equals(permission.value()));
+        }
     }
 
     private record ResolvedPlatformSession(
@@ -148,20 +155,8 @@ public final class BrowserSessionCapabilityService {
 
         EnumSet<DisplayRole> displayRoles() {
             var roles = EnumSet.noneOf(DisplayRole.class);
-            if (!isValid) {
-                return roles;
-            }
-            if (context.hasPermission(PlatformPermissions.ACCOUNT_MANAGE)) {
-                roles.add(DisplayRole.PLATFORM_ACCOUNT_ADMINISTRATOR);
-            }
-            if (context.hasPermission(PlatformPermissions.TENANT_GOVERNANCE_WRITE)) {
-                roles.add(DisplayRole.PLATFORM_TENANT_GOVERNOR);
-            }
-            if (context.hasPermission(PlatformPermissions.MODEL_PLATFORM_WRITE)) {
+            if (hasPlatformWorkspace()) {
                 roles.add(DisplayRole.PLATFORM_ADMINISTRATOR);
-            }
-            if (roles.isEmpty()) {
-                roles.add(DisplayRole.PLATFORM_OPERATOR);
             }
             return roles;
         }

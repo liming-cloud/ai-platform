@@ -290,7 +290,7 @@ function fakeBrowserSession(fetcher: typeof fetch): BrowserSessionGateway {
 function tenantCapability() {
   return {
     workspaceCategories: ["TENANT"],
-    displayRoles: ["TENANT_MEMBER"],
+    displayRoles: ["TENANT_USER"],
     capabilityCodes: ["assistant:query"],
     maximumSessionAgeSeconds: 3600,
   };

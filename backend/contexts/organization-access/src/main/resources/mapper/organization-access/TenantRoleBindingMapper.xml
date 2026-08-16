@@ -61,7 +61,7 @@
               SELECT 1 FROM organization_access.tenant_membership_role_binding built_in_binding
               WHERE built_in_binding.tenant_id = membership.tenant_id
                 AND built_in_binding.membership_id = membership.membership_id
-                AND built_in_binding.role_code = 'TENANT_ACCESS_ADMINISTRATOR'
+                AND built_in_binding.role_code = 'TENANT_ADMINISTRATOR'
                 AND built_in_binding.role_code &lt;&gt; #{revokedRoleCode}
               UNION ALL
               SELECT 1 FROM organization_access.tenant_custom_role_binding custom_binding
@@ -92,7 +92,7 @@
               SELECT 1 FROM organization_access.tenant_membership_role_binding built_in_binding
               WHERE built_in_binding.tenant_id = membership.tenant_id
                 AND built_in_binding.membership_id = membership.membership_id
-                AND built_in_binding.role_code = 'TENANT_ACCESS_ADMINISTRATOR'
+                AND built_in_binding.role_code = 'TENANT_ADMINISTRATOR'
               UNION ALL
               SELECT 1 FROM organization_access.tenant_custom_role_binding custom_binding
               INNER JOIN organization_access.tenant_custom_role custom_role

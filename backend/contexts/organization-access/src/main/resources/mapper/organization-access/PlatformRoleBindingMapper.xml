@@ -76,7 +76,7 @@
         FROM organization_access.platform_role_binding binding
         INNER JOIN organization_access.subject_identity subject
             ON subject.subject_id = binding.subject_id
-        WHERE binding.role_code = 'PLATFORM_ACCOUNT_ADMINISTRATOR'
+        WHERE binding.role_code = 'PLATFORM_ADMINISTRATOR'
           AND binding.status = 'ACTIVE'
           AND subject.status = 'ACTIVE'
           AND binding.subject_id &lt;&gt; #{subjectId}
