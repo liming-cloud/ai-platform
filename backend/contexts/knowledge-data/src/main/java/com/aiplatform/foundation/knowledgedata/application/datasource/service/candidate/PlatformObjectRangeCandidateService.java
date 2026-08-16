@@ -1,4 +1,4 @@
-package com.aiplatform.foundation.knowledgedata.application.datasource.service;
+package com.aiplatform.foundation.knowledgedata.application.datasource.service.candidate;
 
 import com.aiplatform.foundation.knowledgedata.application.datasource.dto.PlatformObjectRangeCandidate;
 import com.aiplatform.foundation.knowledgedata.application.datasource.port.out.PlatformObjectRangeCandidateDirectory;

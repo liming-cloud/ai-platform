@@ -9,7 +9,7 @@ import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.port.out.TenantProvisioningStore;
 import com.aiplatform.foundation.organizationaccess.application.authorization.port.out.TenantRoleBindingStore;
 import com.aiplatform.foundation.organizationaccess.application.authorization.port.out.PlatformAccountStore;
-import com.aiplatform.foundation.organizationaccess.application.authorization.port.out.PlatformAccountCandidateDirectory;
+import com.aiplatform.foundation.organizationaccess.application.authorization.port.out.candidate.PlatformAccountCandidateDirectory;
 import com.aiplatform.foundation.organizationaccess.application.authorization.port.out.PlatformRoleBindingStore;
 import com.aiplatform.foundation.organizationaccess.application.authorization.port.out.TenantRoleRevocationStore;
 import com.aiplatform.foundation.organizationaccess.application.authorization.port.out.TenantCustomRoleStore;

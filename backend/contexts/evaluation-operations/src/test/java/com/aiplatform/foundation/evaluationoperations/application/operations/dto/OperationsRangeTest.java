@@ -1,5 +1,6 @@
 package com.aiplatform.foundation.evaluationoperations.application.operations.dto;
 
+import com.aiplatform.foundation.evaluationoperations.application.operations.dto.overview.OperationsRange;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.time.Instant;

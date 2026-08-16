@@ -1,5 +1,6 @@
 package com.aiplatform.foundation.knowledgedata.application.datasource.service;
 
+import com.aiplatform.foundation.knowledgedata.application.datasource.service.candidate.PlatformObjectRangeCandidateService;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 

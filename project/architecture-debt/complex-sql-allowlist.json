@@ -620,6 +620,12 @@
       "reason": "在成员建立事务内写入无隐式权限的普通成员资格。"
     },
     {
+      "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/TenantMemberEstablishmentMapper.xml",
+      "statementId": "insertDefaultRole",
+      "category": "ATOMIC_STATE_TRANSITION",
+      "reason": "在成员建立事务内同步写入固定普通用户角色，避免成员资格与授权投影分离。"
+    },
+    {
       "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/TenantCustomRoleBindingMapper.xml",
       "statementId": "deleteBinding",
       "category": "ATOMIC_STATE_TRANSITION",

@@ -1,4 +1,4 @@
-package com.aiplatform.foundation.evaluationoperations.application.operations.dto;
+package com.aiplatform.foundation.evaluationoperations.application.operations.dto.overview;
 
 import com.aiplatform.foundation.evaluationoperations.domain.operations.model.ReportingPeriod;
 import java.time.Instant;

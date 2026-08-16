@@ -1,7 +1,7 @@
 package com.aiplatform.foundation.knowledgedata.interfaces.web.datasource.controller;
 
 import com.aiplatform.foundation.knowledgedata.application.datasource.dto.PlatformObjectRangeCandidate;
-import com.aiplatform.foundation.knowledgedata.application.datasource.service.PlatformObjectRangeCandidateService;
+import com.aiplatform.foundation.knowledgedata.application.datasource.service.candidate.PlatformObjectRangeCandidateService;
 import com.aiplatform.foundation.security.identity.TrustedRequestContext;
 import com.aiplatform.foundation.shared.contract.paging.PageQuery;
 import com.aiplatform.foundation.shared.contract.paging.PageResult;

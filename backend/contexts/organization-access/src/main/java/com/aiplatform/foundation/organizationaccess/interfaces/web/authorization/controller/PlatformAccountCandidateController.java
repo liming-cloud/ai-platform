@@ -1,8 +1,8 @@
 package com.aiplatform.foundation.organizationaccess.interfaces.web.authorization.controller;
 
 import com.aiplatform.foundation.organizationaccess.application.authorization.dto.PlatformAccountCandidate;
-import com.aiplatform.foundation.organizationaccess.application.authorization.service.AccountCandidatePurpose;
-import com.aiplatform.foundation.organizationaccess.application.authorization.service.PlatformAccountCandidateApplicationService;
+import com.aiplatform.foundation.organizationaccess.application.authorization.service.candidate.AccountCandidatePurpose;
+import com.aiplatform.foundation.organizationaccess.application.authorization.service.candidate.PlatformAccountCandidateApplicationService;
 import com.aiplatform.foundation.security.identity.PlatformRequestContext;
 import com.aiplatform.foundation.shared.contract.paging.PageQuery;
 import com.aiplatform.foundation.shared.contract.paging.PageResult;

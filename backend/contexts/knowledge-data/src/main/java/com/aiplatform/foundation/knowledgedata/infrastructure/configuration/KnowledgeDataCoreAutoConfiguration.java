@@ -18,7 +18,7 @@ import com.aiplatform.foundation.knowledgedata.application.datasource.port.out.F
 import com.aiplatform.foundation.knowledgedata.application.datasource.port.out.GovernedFileDataSourceReadPort;
 import com.aiplatform.foundation.knowledgedata.application.datasource.port.out.PlatformObjectRangeSelectionPort;
 import com.aiplatform.foundation.knowledgedata.application.datasource.port.out.PlatformObjectRangeCandidateDirectory;
-import com.aiplatform.foundation.knowledgedata.application.datasource.service.PlatformObjectRangeCandidateService;
+import com.aiplatform.foundation.knowledgedata.application.datasource.service.candidate.PlatformObjectRangeCandidateService;
 import com.aiplatform.foundation.knowledgedata.application.datasource.port.out.PlatformObjectContentReaderPort;
 import com.aiplatform.foundation.knowledgedata.application.datasource.port.out.dataset.StructuredDatasetCsvStoragePort;
 import com.aiplatform.foundation.knowledgedata.application.datasource.port.out.dataset.StructuredDatasetCsvProjectionPort;

@@ -4,7 +4,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.aiplatform.foundation.organizationaccess.application.authorization.dto.PlatformAccountCandidate;
-import com.aiplatform.foundation.organizationaccess.application.authorization.port.out.PlatformAccountCandidateDirectory;
+import com.aiplatform.foundation.organizationaccess.application.authorization.port.out.candidate.PlatformAccountCandidateDirectory;
+import com.aiplatform.foundation.organizationaccess.application.authorization.service.candidate.AccountCandidatePurpose;
+import com.aiplatform.foundation.organizationaccess.application.authorization.service.candidate.PlatformAccountCandidateApplicationService;
 import com.aiplatform.foundation.security.identity.AccessChannel;
 import com.aiplatform.foundation.security.identity.CredentialType;
 import com.aiplatform.foundation.security.identity.PlatformPermissions;

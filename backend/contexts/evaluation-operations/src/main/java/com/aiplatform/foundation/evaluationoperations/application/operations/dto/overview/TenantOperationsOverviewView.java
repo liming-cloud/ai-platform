@@ -1,4 +1,10 @@
-package com.aiplatform.foundation.evaluationoperations.application.operations.dto;
+package com.aiplatform.foundation.evaluationoperations.application.operations.dto.overview;
+
+import com.aiplatform.foundation.evaluationoperations.application.operations.dto.MemberOperationsView;
+import com.aiplatform.foundation.evaluationoperations.application.operations.dto.OperationsNoticeView;
+import com.aiplatform.foundation.evaluationoperations.application.operations.dto.OperationsQuotaView;
+import com.aiplatform.foundation.evaluationoperations.application.operations.dto.QueryOperationsView;
+import com.aiplatform.foundation.evaluationoperations.application.operations.dto.ResourceStatusView;
 
 import java.time.Instant;
 import java.util.List;

@@ -1,7 +1,7 @@
 package com.aiplatform.foundation.organizationaccess.infrastructure.persistence.identity.repository;
 
 import com.aiplatform.foundation.organizationaccess.application.authorization.dto.PlatformAccountCandidate;
-import com.aiplatform.foundation.organizationaccess.application.authorization.port.out.PlatformAccountCandidateDirectory;
+import com.aiplatform.foundation.organizationaccess.application.authorization.port.out.candidate.PlatformAccountCandidateDirectory;
 import com.aiplatform.foundation.shared.contract.paging.PageQuery;
 import com.aiplatform.foundation.shared.contract.paging.PageResult;
 import java.util.Locale;

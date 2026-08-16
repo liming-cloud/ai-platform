@@ -1,4 +1,4 @@
-package com.aiplatform.foundation.organizationaccess.application.authorization.port.out;
+package com.aiplatform.foundation.organizationaccess.application.authorization.port.out.candidate;
 
 import com.aiplatform.foundation.organizationaccess.application.authorization.dto.PlatformAccountCandidate;
 import com.aiplatform.foundation.shared.contract.paging.PageQuery;

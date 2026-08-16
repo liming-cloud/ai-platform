@@ -4,13 +4,13 @@ import com.aiplatform.foundation.assistantdelivery.application.operations.facade
 import com.aiplatform.foundation.evaluationoperations.application.operations.dto.MemberOperationsView;
 import com.aiplatform.foundation.evaluationoperations.application.operations.dto.OperationsNoticeView;
 import com.aiplatform.foundation.evaluationoperations.application.operations.dto.OperationsQuotaView;
-import com.aiplatform.foundation.evaluationoperations.application.operations.dto.OperationsRange;
 import com.aiplatform.foundation.evaluationoperations.application.operations.dto.OperationsRates;
-import com.aiplatform.foundation.evaluationoperations.application.operations.dto.PlatformOperationsOverviewView;
-import com.aiplatform.foundation.evaluationoperations.application.operations.dto.PlatformTenantOperationsSummaryView;
 import com.aiplatform.foundation.evaluationoperations.application.operations.dto.QueryOperationsView;
 import com.aiplatform.foundation.evaluationoperations.application.operations.dto.ResourceStatusView;
-import com.aiplatform.foundation.evaluationoperations.application.operations.dto.TenantOperationsOverviewView;
+import com.aiplatform.foundation.evaluationoperations.application.operations.dto.overview.OperationsRange;
+import com.aiplatform.foundation.evaluationoperations.application.operations.dto.overview.PlatformOperationsOverviewView;
+import com.aiplatform.foundation.evaluationoperations.application.operations.dto.overview.PlatformTenantOperationsSummaryView;
+import com.aiplatform.foundation.evaluationoperations.application.operations.dto.overview.TenantOperationsOverviewView;
 import com.aiplatform.foundation.evaluationoperations.application.operations.policy.OperationsAccessPolicy;
 import com.aiplatform.foundation.evaluationoperations.application.operations.port.out.EvaluationOperationsFactSource;
 import com.aiplatform.foundation.evaluationoperations.domain.operations.model.OperationsQuotaPolicy;

@@ -1,9 +1,9 @@
 package com.aiplatform.foundation.evaluationoperations.interfaces.web.operations.controller;
 
-import com.aiplatform.foundation.evaluationoperations.application.operations.dto.OperationsRange;
-import com.aiplatform.foundation.evaluationoperations.application.operations.dto.PlatformOperationsOverviewView;
-import com.aiplatform.foundation.evaluationoperations.application.operations.dto.PlatformTenantOperationsSummaryView;
-import com.aiplatform.foundation.evaluationoperations.application.operations.dto.TenantOperationsOverviewView;
+import com.aiplatform.foundation.evaluationoperations.application.operations.dto.overview.OperationsRange;
+import com.aiplatform.foundation.evaluationoperations.application.operations.dto.overview.PlatformOperationsOverviewView;
+import com.aiplatform.foundation.evaluationoperations.application.operations.dto.overview.PlatformTenantOperationsSummaryView;
+import com.aiplatform.foundation.evaluationoperations.application.operations.dto.overview.TenantOperationsOverviewView;
 import com.aiplatform.foundation.evaluationoperations.application.operations.service.OperationsOverviewService;
 import com.aiplatform.foundation.security.identity.PlatformRequestContext;
 import com.aiplatform.foundation.security.identity.TrustedRequestContext;
