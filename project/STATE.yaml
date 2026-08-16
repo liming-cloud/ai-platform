@@ -73,6 +73,8 @@ confirmedDecisions:
   - ADR-0064
   - ADR-0065
   - ADR-0066
+  - ADR-0067
+  - ADR-0068
 openDecisions: []
 latestEvidence:
   - docs/research/WP-0003-framework-baseline.md
@@ -264,6 +266,11 @@ latestEvidence:
   - project/evidence/WP-0014-enterprise-foundation-browser-regression.md
   - project/evidence/M6-automatic-acceptance-review.md
   - project/evidence/M6-human-review-rejection.md
+  - docs/adr/ADR-0067-three-role-product-and-capability-projection.md
+  - project/evidence/ADR-0067-approval.md
+  - docs/adr/ADR-0068-operations-projection-and-user-message-boundary.md
+  - project/evidence/ADR-0068-approval.md
+  - docs/design/m6-openai-style-ui-brief.md
 nextReviewAt: 2026-08-12
-updatedAt: 2026-08-14T20:40:00+08:00
+updatedAt: 2026-08-16T21:30:00+08:00
 updatedBy: codex

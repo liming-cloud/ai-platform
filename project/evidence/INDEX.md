@@ -324,6 +324,8 @@
 | M6 人工评审拒绝：登录页视觉与任务引导 | `project/evidence/M6-human-review-rejection.md` | 本次提交 | 人工拒绝当前登录页的企业产品质量；自动技术验收不关闭工作包，须完成登录页视觉整改并再次人工复核。 |
 | M6 登录入口视觉与可用性整改设计 | `project/evidence/WP-0014-login-visual-remediation-design.md` | 本次提交 | 统一入口改为显式平台／租户目标选择，并通过最小请求组装模型保持原有双范围认证边界；TDD、前端构建和本地 HTTP 已通过，浏览器视觉复核待人工完成。 |
 | M6 平台管理员干净基线与首次可操作入口 | `project/evidence/WP-0014-platform-administrator-initial-entry.md` | 本次提交 | 本地仅保留一个 `PLATFORM_ADMINISTRATOR`；运营员仍进入无数据工作区，管理员首次登录改为平台租户治理页，并以真实浏览器确认账户、租户与平台模型供应链菜单可见。 |
+| ADR-0067 三角色产品边界人工接受 | `project/evidence/ADR-0067-approval.md` | 本次控制面提交 | 产品端到端只保留平台管理员、租户管理员和普通用户；旧平台角色与租户自定义角色按红绿切片退役。 |
+| ADR-0068 运营投影与用户信息边界人工接受 | `project/evidence/ADR-0068-approval.md` | 本次控制面提交 | 接受两级运营总览、脱敏平台租户摘要、手动刷新、固定时间范围、名称选择器和禁止渲染后端信息。 |
 
 ## 证据规则
 
