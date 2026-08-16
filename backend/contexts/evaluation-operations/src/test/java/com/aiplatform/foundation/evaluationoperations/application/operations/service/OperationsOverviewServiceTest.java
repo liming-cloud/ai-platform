@@ -15,6 +15,7 @@ import com.aiplatform.foundation.knowledgedata.application.operations.facade.Kno
 import com.aiplatform.foundation.modelruntime.application.operations.dto.ModelOperationsFacts;
 import com.aiplatform.foundation.modelruntime.application.operations.facade.ModelOperationsFactSource;
 import com.aiplatform.foundation.organizationaccess.application.operations.dto.PlatformOrganizationOperationsFacts;
+import com.aiplatform.foundation.organizationaccess.application.operations.dto.TenantOperationsIdentity;
 import com.aiplatform.foundation.organizationaccess.application.operations.dto.TenantOrganizationOperationsFacts;
 import com.aiplatform.foundation.organizationaccess.application.operations.facade.OrganizationOperationsFactSource;
 import com.aiplatform.foundation.security.identity.AccessChannel;
@@ -25,6 +26,8 @@ import com.aiplatform.foundation.security.identity.PlatformPermissions;
 import com.aiplatform.foundation.security.identity.PlatformRequestContext;
 import com.aiplatform.foundation.security.identity.SubjectId;
 import com.aiplatform.foundation.security.identity.TrustedRequestContext;
+import com.aiplatform.foundation.shared.contract.paging.PageQuery;
+import com.aiplatform.foundation.shared.contract.paging.PageResult;
 import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
 import com.aiplatform.foundation.trustedquery.application.operations.dto.QueryOperationsSummaryFacts;
 import com.aiplatform.foundation.trustedquery.application.operations.dto.QueryDailyOperationsFacts;
@@ -35,6 +38,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
@@ -127,6 +131,33 @@ class OperationsOverviewServiceTest {
         assertEquals(100, overview.quota().dailyLimit());
         assertEquals(2L, overview.quota().concurrentUsed());
         assertEquals(5L, overview.members().users().total());
+    }
+
+    @Test
+    void 平台租户摘要必须保留服务器分页顺序并以零值补齐无查询租户() {
+        var page = new PageQuery(2, 2);
+        when(organization.listTenants(page)).thenReturn(PageResult.of(List.of(
+                new TenantOperationsIdentity(7L, "门店租户", "ACTIVE"),
+                new TenantOperationsIdentity(8L, "校园租户", "SUSPENDED")), page, 5));
+        when(queries.tenantSummaries(
+                List.of(new TenantId(7L), new TenantId(8L)),
+                Instant.parse("2026-08-10T00:00:00Z"), NOW))
+                .thenReturn(Map.of(new TenantId(7L),
+                        new QueryOperationsSummaryFacts(3L, 2L, 0L, 1L, 0L, 12L)));
+        when(queries.attentionTenants(Instant.parse("2026-08-10T00:00:00Z"), NOW))
+                .thenReturn(Set.of(new TenantId(7L)));
+        when(models.tenantsWithoutPublishedDeployment())
+                .thenReturn(Set.of(new TenantId(8L)));
+
+        var summaries = service.tenantSummaries(platform(), OperationsRange.DAY_7, page);
+
+        assertEquals(5L, summaries.totalElements());
+        assertEquals(List.of("门店租户", "校园租户"),
+                summaries.items().stream().map(item -> item.tenantName()).toList());
+        assertEquals(3L, summaries.items().getFirst().queries().accepted());
+        assertEquals(0L, summaries.items().getLast().queries().accepted());
+        assertEquals(true, summaries.items().getFirst().attentionRequired());
+        assertEquals(true, summaries.items().getLast().attentionRequired());
     }
 
     private static PlatformRequestContext platform() {
