@@ -9,7 +9,7 @@ import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react
 import { ControlPlaneClient } from "./api/control-plane-client";
 import { KnowledgePublicationFlow } from "./features/knowledge-publication/KnowledgePublicationFlow";
 import { BrowserSessionGate } from "./session/BrowserSessionGate";
-import { visibleNavigation } from "./session/navigation-capability";
+import { defaultNavigationTarget, visibleNavigation } from "./session/navigation-capability";
 import { resolvePostAuthenticationDestination } from "./session/post-authentication-navigation";
 import {
   defaultConsoleRoute,
@@ -154,7 +154,7 @@ function AuthenticatedConsoleApp({
     capabilityCodes,
   });
   const navigationIds = navigationTargets(navigation);
-  const defaultNavigationId = navigationIds[0];
+  const defaultNavigationId = defaultNavigationTarget(navigation);
   const [sessionRevision, setSessionRevision] = useState(0);
   const [location, setLocation] = useState(readBrowserLocation);
   const parsedRoute = parseConsoleRoute(location.pathname, location.search);

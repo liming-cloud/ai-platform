@@ -323,6 +323,7 @@
 | M6 自动验收与人工评审请求 | `project/evidence/M6-automatic-acceptance-review.md` | 本次提交 | ADR-0057 至 ADR-0059 的账户权限、模型供应链和统一 SPA 自动验收均通过；真实 Compose、HTTP、浏览器与全量门禁已复核，当前仅待人工评审，不得进入 M7。 |
 | M6 人工评审拒绝：登录页视觉与任务引导 | `project/evidence/M6-human-review-rejection.md` | 本次提交 | 人工拒绝当前登录页的企业产品质量；自动技术验收不关闭工作包，须完成登录页视觉整改并再次人工复核。 |
 | M6 登录入口视觉与可用性整改设计 | `project/evidence/WP-0014-login-visual-remediation-design.md` | 本次提交 | 统一入口改为显式平台／租户目标选择，并通过最小请求组装模型保持原有双范围认证边界；TDD、前端构建和本地 HTTP 已通过，浏览器视觉复核待人工完成。 |
+| M6 平台管理员干净基线与首次可操作入口 | `project/evidence/WP-0014-platform-administrator-initial-entry.md` | 本次提交 | 本地仅保留一个 `PLATFORM_ADMINISTRATOR`；运营员仍进入无数据工作区，管理员首次登录改为平台租户治理页，并以真实浏览器确认账户、租户与平台模型供应链菜单可见。 |
 
 ## 证据规则
 

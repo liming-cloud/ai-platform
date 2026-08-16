@@ -62,6 +62,18 @@ export function visibleNavigation({
 }
 
 /**
+ * 首次进入优先选择实际可执行的平台任务；只有平台会话进入能力时才停留在无数据工作区。
+ */
+export function defaultNavigationTarget(
+  navigation: readonly NavigationItem[],
+): typeof NAVIGATION[number]["id"] | undefined {
+  const targets = navigation.flatMap((item) =>
+    (item.children?.map((child) => child.id) ?? [item.id]) as typeof NAVIGATION[number]["id"][],
+  );
+  return targets.find((target) => target !== "platform-workspace") ?? targets[0];
+}
+
+/**
  * 将角色候选权限映射为其将可见的固定控制台入口。
  *
  * <p>预览只帮助管理员理解授予效果；真实接口授权仍由服务端会话权限执行。</p>

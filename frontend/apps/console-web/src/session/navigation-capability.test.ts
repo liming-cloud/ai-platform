@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { previewNavigation, visibleNavigation } from "./navigation-capability";
+import {
+  defaultNavigationTarget,
+  previewNavigation,
+  visibleNavigation,
+} from "./navigation-capability";
 
 describe("visibleNavigation", () => {
   it("只显示当前租户会话已具备实际能力的入口", () => {
@@ -19,11 +23,29 @@ describe("visibleNavigation", () => {
   });
 
   it("平台运营员通过单一平台治理入口访问获授子任务", () => {
-    expect(visibleNavigation({
+    const navigation = visibleNavigation({
       canUseTenantWorkspace: false,
       canUsePlatformGovernance: true,
       capabilityCodes: ["platform-session:access"],
-    }).map((item) => item.id)).toEqual(["platform-governance"]);
+    });
+
+    expect(navigation.map((item) => item.id)).toEqual(["platform-governance"]);
+    expect(defaultNavigationTarget(navigation)).toBe("platform-workspace");
+  });
+
+  it("平台管理员首次进入应从可操作的租户治理任务开始", () => {
+    const navigation = visibleNavigation({
+      canUseTenantWorkspace: false,
+      canUsePlatformGovernance: true,
+      capabilityCodes: [
+        "platform-session:access",
+        "tenant-governance:write",
+        "platform:accounts:manage",
+        "model-platform:write",
+      ],
+    });
+
+    expect(defaultNavigationTarget(navigation)).toBe("platform");
   });
 
   it("平台模型写能力作为平台治理入口的受权子任务显示", () => {
