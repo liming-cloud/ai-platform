@@ -3,6 +3,7 @@ package com.aiplatform.foundation.controlplane;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.verify;
@@ -153,6 +154,54 @@ class OperationsApiTest {
         assertEquals("EVALUATION_OPERATIONS.AUTHORIZATION.0001", denied.getBody().code());
     }
 
+    @Test
+    void 平台与租户管理员可读取各自边界内的脱敏运营总览() {
+        var platformOverview = http.exchange(
+                url("/api/v1/platform/operations/overview?range=DAY_7"),
+                HttpMethod.GET,
+                new HttpEntity<>(authorized(platformLogin())),
+                String.class);
+        assertEquals(HttpStatus.OK, platformOverview.getStatusCode());
+        assertSafeOverview(platformOverview.getBody());
+        assertTrue(platformOverview.getBody().contains("\"attentionTenantCount\""));
+
+        var tenantPage = http.exchange(
+                url("/api/v1/platform/operations/tenants?range=DAY_7&page=1&size=1"),
+                HttpMethod.GET,
+                new HttpEntity<>(authorized(platformLogin())),
+                String.class);
+        assertEquals(HttpStatus.OK, tenantPage.getStatusCode());
+        assertSafeOverview(tenantPage.getBody());
+        assertTrue(tenantPage.getBody().contains("\"pageNumber\":1"));
+        assertTrue(tenantPage.getBody().contains("\"pageSize\":1"));
+
+        var tenantOverview = http.exchange(
+                url("/api/v1/operations/overview?range=DAY_7"),
+                HttpMethod.GET,
+                new HttpEntity<>(authorized(login())),
+                String.class);
+        assertEquals(HttpStatus.OK, tenantOverview.getStatusCode());
+        assertSafeOverview(tenantOverview.getBody());
+        assertTrue(tenantOverview.getBody().contains("\"quota\""));
+    }
+
+    @Test
+    void 平台与租户运营入口不得跨会话边界访问() {
+        var tenantToPlatform = http.exchange(
+                url("/api/v1/platform/operations/overview"),
+                HttpMethod.GET,
+                new HttpEntity<>(authorized(login())),
+                ApiError.class);
+        assertEquals(HttpStatus.UNAUTHORIZED, tenantToPlatform.getStatusCode());
+
+        var platformToTenant = http.exchange(
+                url("/api/v1/operations/overview"),
+                HttpMethod.GET,
+                new HttpEntity<>(authorized(platformLogin())),
+                ApiError.class);
+        assertEquals(HttpStatus.UNAUTHORIZED, platformToTenant.getStatusCode());
+    }
+
     private String login() {
         var response = http.postForEntity(
                 url("/api/v1/auth/sessions"),
@@ -164,6 +213,28 @@ class OperationsApiTest {
         assertEquals(HttpStatus.CREATED, response.getStatusCode());
         assertNotNull(response.getBody());
         return response.getBody().tokenValue();
+    }
+
+    private String platformLogin() {
+        var response = http.postForEntity(
+                url("/api/v1/platform/auth/sessions"),
+                Map.of(
+                        "loginName", "platform-admin",
+                        "password", "Demo@2026!"),
+                SessionResponse.class);
+        assertEquals(HttpStatus.CREATED, response.getStatusCode());
+        assertNotNull(response.getBody());
+        return response.getBody().tokenValue();
+    }
+
+    private static void assertSafeOverview(String body) {
+        assertNotNull(body);
+        assertFalse(body.contains("tenantId"));
+        assertFalse(body.contains("subjectId"));
+        assertFalse(body.contains("membershipId"));
+        assertFalse(body.contains("loginName"));
+        assertFalse(body.contains("traceId"));
+        assertFalse(body.contains("details"));
     }
 
     private static QueryUsageView usage() {

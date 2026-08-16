@@ -1,6 +1,7 @@
 package com.aiplatform.foundation.trustedquery.infrastructure.configuration;
 
 import com.aiplatform.foundation.trustedquery.application.operations.facade.QueryOperationsFactSource;
+import com.aiplatform.foundation.trustedquery.application.operations.facade.QueryOverviewFactSource;
 import com.aiplatform.foundation.trustedquery.application.diagnostic.port.out.QueryDiagnosticFactLookup;
 import com.aiplatform.foundation.trustedquery.domain.query.feedback.repository.QueryFeedbackRepository;
 import com.aiplatform.foundation.trustedquery.infrastructure.persistence.query.mapper.QueryFeedbackMapper;
@@ -11,6 +12,7 @@ import com.aiplatform.foundation.trustedquery.infrastructure.persistence.query.m
 import com.aiplatform.foundation.trustedquery.infrastructure.persistence.query.mapper.QueryRunRequestMapper;
 import com.aiplatform.foundation.trustedquery.infrastructure.persistence.query.mapper.QueryModelInvocationTraceMapper;
 import com.aiplatform.foundation.trustedquery.infrastructure.persistence.query.repository.PostgresQueryOperationsFactSource;
+import com.aiplatform.foundation.trustedquery.infrastructure.persistence.query.repository.JdbcQueryOverviewFactSource;
 import com.aiplatform.foundation.trustedquery.infrastructure.persistence.query.repository.PostgresQueryRunRepository;
 import com.aiplatform.foundation.trustedquery.infrastructure.persistence.query.repository.PostgresQueryDiagnosticFactLookup;
 import com.aiplatform.foundation.trustedquery.infrastructure.persistence.query.repository.PostgresQueryFeedbackRepository;
@@ -19,18 +21,27 @@ import com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.jdbc.autoconfigure.JdbcClientAutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.jdbc.core.simple.JdbcClient;
 
 /**
  * 注册查询事实持久化与脱敏运营事实投影。
  */
-@AutoConfiguration(after = MybatisPlusAutoConfiguration.class)
+@AutoConfiguration(after = {MybatisPlusAutoConfiguration.class, JdbcClientAutoConfiguration.class})
 @ConditionalOnBean(SqlSessionFactory.class)
 @MapperScan(basePackageClasses = QueryRunMapper.class)
 public class TrustedQueryPersistenceAutoConfiguration {
+
+    @Bean
+    @ConditionalOnMissingBean
+    @org.springframework.boot.autoconfigure.condition.ConditionalOnBean(JdbcClient.class)
+    QueryOverviewFactSource queryOverviewFactSource(JdbcClient jdbc) {
+        return new JdbcQueryOverviewFactSource(jdbc);
+    }
 
     @Bean
     @ConditionalOnMissingBean

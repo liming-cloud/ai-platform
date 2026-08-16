@@ -17,6 +17,8 @@ import com.aiplatform.foundation.knowledgedata.application.datasource.service.Go
 import com.aiplatform.foundation.knowledgedata.application.datasource.port.out.FileSourceObjectProbe;
 import com.aiplatform.foundation.knowledgedata.application.datasource.port.out.GovernedFileDataSourceReadPort;
 import com.aiplatform.foundation.knowledgedata.application.datasource.port.out.PlatformObjectRangeSelectionPort;
+import com.aiplatform.foundation.knowledgedata.application.datasource.port.out.PlatformObjectRangeCandidateDirectory;
+import com.aiplatform.foundation.knowledgedata.application.datasource.service.PlatformObjectRangeCandidateService;
 import com.aiplatform.foundation.knowledgedata.application.datasource.port.out.PlatformObjectContentReaderPort;
 import com.aiplatform.foundation.knowledgedata.application.datasource.port.out.dataset.StructuredDatasetCsvStoragePort;
 import com.aiplatform.foundation.knowledgedata.application.datasource.port.out.dataset.StructuredDatasetCsvProjectionPort;
@@ -42,6 +44,7 @@ import com.aiplatform.foundation.knowledgedata.infrastructure.objectstorage.Unav
 import com.aiplatform.foundation.knowledgedata.infrastructure.objectstorage.UnavailableStructuredDatasetCsvStorageAdapter;
 import com.aiplatform.foundation.knowledgedata.infrastructure.objectstorage.TextContentFileSourceObjectProbe;
 import com.aiplatform.foundation.knowledgedata.infrastructure.objectstorage.ConfiguredPlatformObjectRangeSelectionAdapter;
+import com.aiplatform.foundation.knowledgedata.infrastructure.objectstorage.ConfiguredPlatformObjectRangeCandidateDirectory;
 import com.aiplatform.foundation.knowledgedata.infrastructure.objectstorage.UnavailablePlatformObjectContentReaderAdapter;
 import com.aiplatform.foundation.knowledgedata.infrastructure.datasource.Rfc4180StructuredDatasetCsvProjectionAdapter;
 import com.aiplatform.foundation.knowledgedata.infrastructure.staging.LocalTextContentStagingAdapter;
@@ -131,6 +134,19 @@ public class KnowledgeDataCoreAutoConfiguration {
     @ConditionalOnMissingBean
     PlatformObjectRangeSelectionPort platformObjectRangeSelectionPort(KnowledgeDataProperties properties) {
         return new ConfiguredPlatformObjectRangeSelectionAdapter(properties);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    PlatformObjectRangeCandidateDirectory platformObjectRangeCandidateDirectory(KnowledgeDataProperties properties) {
+        return new ConfiguredPlatformObjectRangeCandidateDirectory(properties);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    PlatformObjectRangeCandidateService platformObjectRangeCandidateService(
+            PlatformObjectRangeCandidateDirectory directory) {
+        return new PlatformObjectRangeCandidateService(directory);
     }
 
     @Bean

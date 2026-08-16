@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.autoconfigure.MybatisPlusAutoConfiguration;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.repository.TextDataSourceRepository;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.repository.GovernedDataSourceRepository;
 import com.aiplatform.foundation.knowledgedata.application.datasource.port.out.GovernedFileDataSourceReadPort;
+import com.aiplatform.foundation.knowledgedata.application.operations.facade.KnowledgeOperationsFactSource;
 import com.aiplatform.foundation.knowledgedata.domain.indexversion.repository.IndexVersionRepository;
 import com.aiplatform.foundation.knowledgedata.domain.knowledge.repository.KnowledgeSpaceRepository;
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.mapper.TextDataSourceMapper;
@@ -28,20 +29,23 @@ import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.index.
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.knowledge.mapper.KnowledgeSpaceMapper;
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.knowledge.mapper.KnowledgeSpaceRequestMapper;
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.knowledge.repository.PostgresKnowledgeSpaceRepository;
+import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.operations.JdbcKnowledgeOperationsFactSource;
 import com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.jdbc.autoconfigure.JdbcClientAutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
+import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.transaction.PlatformTransactionManager;
 
 /**
  * 注册知识数据上下文的 MyBatis Mapper 和持久化端口实现。
  */
-@AutoConfiguration(after = MybatisPlusAutoConfiguration.class)
+@AutoConfiguration(after = {MybatisPlusAutoConfiguration.class, JdbcClientAutoConfiguration.class})
 @ConditionalOnProperty(
         name = "foundation.knowledge-data.persistence.enabled",
         havingValue = "true")
@@ -52,6 +56,13 @@ import org.springframework.transaction.PlatformTransactionManager;
     IndexVersionMapper.class
 })
 public class KnowledgeDataPersistenceAutoConfiguration {
+
+    @Bean
+    @ConditionalOnMissingBean
+    @ConditionalOnBean(JdbcClient.class)
+    KnowledgeOperationsFactSource knowledgeOperationsFactSource(JdbcClient jdbc) {
+        return new JdbcKnowledgeOperationsFactSource(jdbc);
+    }
 
     @Bean
     @ConditionalOnMissingBean

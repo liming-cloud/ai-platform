@@ -6,9 +6,11 @@ import com.aiplatform.foundation.organizationaccess.interfaces.web.authenticatio
 import com.aiplatform.foundation.organizationaccess.interfaces.web.tenantlifecycle.controller.TenantLifecycleController;
 import com.aiplatform.foundation.organizationaccess.interfaces.web.authorization.controller.TenantRoleBindingController;
 import com.aiplatform.foundation.organizationaccess.interfaces.web.authorization.controller.PlatformAccountGovernanceController;
+import com.aiplatform.foundation.organizationaccess.interfaces.web.authorization.controller.PlatformAccountCandidateController;
 import com.aiplatform.foundation.organizationaccess.interfaces.web.authorization.controller.PlatformAccountEstablishmentController;
 import com.aiplatform.foundation.organizationaccess.interfaces.web.authorization.controller.PlatformRoleBindingController;
 import com.aiplatform.foundation.organizationaccess.interfaces.web.member.controller.TenantMemberStatusController;
+import com.aiplatform.foundation.organizationaccess.interfaces.web.member.controller.TenantMemberCandidateController;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Import;
@@ -27,8 +29,10 @@ import org.springframework.context.annotation.Import;
     TenantLifecycleController.class,
     TenantRoleBindingController.class,
     PlatformAccountGovernanceController.class,
+    PlatformAccountCandidateController.class,
     PlatformAccountEstablishmentController.class,
     PlatformRoleBindingController.class,
+    TenantMemberCandidateController.class,
     TenantMemberStatusController.class
 })
 public class OrganizationAccessWebAutoConfiguration {

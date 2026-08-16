@@ -54,8 +54,8 @@ class PlatformProviderModelDiscoveryServiceTest {
     }
 
     @Test
-    void 成功发现只冻结平台连接修订而不需要租户上下文() {
-        var connection = verifiedConnection();
+    void 草稿平台连接通过发现完成验证且不需要模型代码() {
+        var connection = draftConnection();
         var repository = new SingleConnectionRepository(connection);
         var store = new CapturingStore();
         var service = new PlatformProviderModelDiscoveryService(
@@ -72,11 +72,17 @@ class PlatformProviderModelDiscoveryServiceTest {
         assertEquals("620000000000000001", result.discoveryId());
         assertEquals(2, result.models().size());
         assertEquals(1L, store.discovery.connectionRevision());
+        assertEquals(com.aiplatform.foundation.modelruntime.domain.provider.model.ProviderConnectionStatus.VERIFIED,
+                repository.connection.status());
         assertEquals(connection.id(), store.discovery.connectionId());
     }
 
     private static PlatformProviderConnection verifiedConnection() {
-        var connection = PlatformProviderConnection.create(
+        return draftConnection().recordSuccessfulProbe("DETERMINISTIC_OK", Instant.parse("2026-08-13T01:00:00Z"));
+    }
+
+    private static PlatformProviderConnection draftConnection() {
+        return PlatformProviderConnection.create(
                 new PlatformProviderConnectionId(610000000000000001L),
                 ProviderKind.DETERMINISTIC,
                 "平台确定性连接",
@@ -85,7 +91,6 @@ class PlatformProviderModelDiscoveryServiceTest {
                 AuthenticationType.API_KEY,
                 new CredentialReference("secret://platform-provider-connection/610000000000000001"),
                 Instant.parse("2026-08-13T00:00:00Z"));
-        return connection.recordSuccessfulProbe("DETERMINISTIC_OK", Instant.parse("2026-08-13T01:00:00Z"));
     }
 
     private static PlatformRequestContext sessionWithoutPlatformModelWrite() {
@@ -120,12 +125,17 @@ class PlatformProviderModelDiscoveryServiceTest {
     }
 
     private static final class SingleConnectionRepository implements PlatformProviderConnectionRepository {
-        private final PlatformProviderConnection connection;
+        private PlatformProviderConnection connection;
         private SingleConnectionRepository(PlatformProviderConnection connection) { this.connection = connection; }
         @Override public com.aiplatform.foundation.modelruntime.domain.platformsupply.repository.PlatformProviderConnectionCreationOutcome create(
                 com.aiplatform.foundation.modelruntime.domain.platformsupply.repository.PlatformProviderConnectionCreation creation) { throw new AssertionError(); }
         @Override public Optional<PlatformProviderConnection> findById(PlatformProviderConnectionId id) {
             return connection.id().equals(id) ? Optional.of(connection) : Optional.empty();
+        }
+        @Override public boolean update(PlatformProviderConnection updated, long expectedVersion) {
+            if (connection.version() != expectedVersion) return false;
+            connection = updated;
+            return true;
         }
     }
 

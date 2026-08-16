@@ -49,6 +49,7 @@ import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -102,6 +103,9 @@ class PostgresQueryRunRepositoryTest {
 
     @Autowired
     private JdbcTemplate jdbc;
+
+    @Autowired
+    private JdbcClient jdbcClient;
 
     @DynamicPropertySource
     static void databaseProperties(DynamicPropertyRegistry registry) {
@@ -589,6 +593,56 @@ class PostgresQueryRunRepositoryTest {
         assertEquals(3, overflowPage.totalElements());
         assertTrue(!overflowPage.hasNext());
         assertTrue(crossTenant.items().isEmpty());
+    }
+
+    @Test
+    void 运营趋势必须由PostgreSQL按UTC自然日聚合() {
+        var firstTime = Instant.parse("2026-07-27T23:59:00Z");
+        var first = repository.claim(
+                runningAt(firstTime),
+                "overview-daily-key-001",
+                "3".repeat(64),
+                QUOTA);
+        commit(
+                first.queryRun().answer(
+                        "已回答。[1]",
+                        List.of(new QueryCitation(
+                                1,
+                                220000000000000001L,
+                                1,
+                                "5".repeat(64),
+                                0,
+                                "用于验证 UTC 聚合的证据。",
+                                0.9)),
+                        new QueryModelUsage(7, 5, 12),
+                        firstTime.plusSeconds(1)),
+                0);
+        var secondTime = Instant.parse("2026-07-28T00:01:00Z");
+        var second = repository.claim(
+                runningAt(secondTime),
+                "overview-daily-key-002",
+                "4".repeat(64),
+                QUOTA);
+        commit(
+                second.queryRun().refuse(
+                        com.aiplatform.foundation.trustedquery.domain.query.model
+                                .QueryRefusalReason.INSUFFICIENT_EVIDENCE,
+                        secondTime.plusSeconds(1)),
+                0);
+
+        var source = new JdbcQueryOverviewFactSource(jdbcClient);
+        var tenantSummary = source.tenantSummary(
+                TENANT,
+                Instant.parse("2026-07-27T00:00:00Z"),
+                Instant.parse("2026-07-29T00:00:00Z"));
+
+        assertEquals(2L, tenantSummary.acceptedQueries());
+        assertEquals(2, tenantSummary.daily().size());
+        assertEquals(java.time.LocalDate.parse("2026-07-27"), tenantSummary.daily().get(0).date());
+        assertEquals(1L, tenantSummary.daily().get(0).answered());
+        assertEquals(12L, tenantSummary.daily().get(0).totalTokens());
+        assertEquals(java.time.LocalDate.parse("2026-07-28"), tenantSummary.daily().get(1).date());
+        assertEquals(1L, tenantSummary.daily().get(1).refused());
     }
 
     @Test

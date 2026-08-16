@@ -35,6 +35,14 @@ public final class PlatformPermissions {
     public static final PermissionCode MODEL_PLATFORM_WRITE =
             new PermissionCode("model-platform:write");
 
+    /**
+     * 允许读取跨租户脱敏运营汇总与租户级安全摘要。
+     *
+     * <p>该权限不授予租户正文、成员明细、问题、回答、引用或凭据读取能力。</p>
+     */
+    public static final PermissionCode OPERATIONS_READ =
+            new PermissionCode("platform-operations:read");
+
     private PlatformPermissions() {
     }
 }

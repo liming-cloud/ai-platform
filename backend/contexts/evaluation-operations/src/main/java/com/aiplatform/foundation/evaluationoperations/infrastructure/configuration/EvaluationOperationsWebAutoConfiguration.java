@@ -2,7 +2,9 @@ package com.aiplatform.foundation.evaluationoperations.infrastructure.configurat
 
 import com.aiplatform.foundation.evaluationoperations.interfaces.web.operations.controller.AuditRecordController;
 import com.aiplatform.foundation.evaluationoperations.interfaces.web.operations.controller.UsageController;
+import com.aiplatform.foundation.evaluationoperations.interfaces.web.operations.controller.OperationsOverviewController;
 import com.aiplatform.foundation.evaluationoperations.interfaces.web.evaluation.controller.EvaluationDatasetController;
+import com.aiplatform.foundation.evaluationoperations.interfaces.web.evaluation.controller.EvaluationDatasetCandidateController;
 import com.aiplatform.foundation.evaluationoperations.interfaces.web.evaluation.controller.EvaluationRunController;
 import com.aiplatform.foundation.evaluationoperations.interfaces.web.release.controller.ReleaseDecisionController;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
@@ -23,7 +25,9 @@ import org.springframework.context.annotation.Import;
 @Import({
     AuditRecordController.class,
     UsageController.class,
+    OperationsOverviewController.class,
     EvaluationDatasetController.class,
+    EvaluationDatasetCandidateController.class,
     EvaluationRunController.class,
     ReleaseDecisionController.class
 })

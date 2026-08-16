@@ -5,6 +5,7 @@ import com.aiplatform.foundation.modelruntime.application.deployment.port.out.Mo
 import com.aiplatform.foundation.modelruntime.application.provider.port.out.ProviderModelDiscoveryStore;
 import com.aiplatform.foundation.modelruntime.application.provider.port.out.ProviderConnectionCredentialTransaction;
 import com.aiplatform.foundation.modelruntime.application.provider.port.out.ProviderConnectionCredentialWriter;
+import com.aiplatform.foundation.modelruntime.application.operations.facade.ModelOperationsFactSource;
 import com.aiplatform.foundation.modelruntime.infrastructure.persistence.provider.repository.PostgresProviderModelDiscoveryStore;
 import com.aiplatform.foundation.modelruntime.application.configuration.port.out.ModelConfigurationCredentialWriter;
 import com.aiplatform.foundation.modelruntime.application.configuration.port.out.ModelConfigurationTransaction;
@@ -42,22 +43,25 @@ import com.aiplatform.foundation.modelruntime.infrastructure.persistence.platfor
 import com.aiplatform.foundation.modelruntime.infrastructure.persistence.platformsupply.repository.PostgresPlatformProviderModelDiscoveryStore;
 import com.aiplatform.foundation.modelruntime.infrastructure.persistence.platformsupply.repository.PostgresPlatformModelDeploymentRepository;
 import com.aiplatform.foundation.modelruntime.infrastructure.persistence.platformsupply.repository.PostgresPlatformModelDeploymentVerificationStore;
+import com.aiplatform.foundation.modelruntime.infrastructure.persistence.operations.JdbcModelOperationsFactSource;
 import com.baomidou.mybatisplus.autoconfigure.MybatisPlusAutoConfiguration;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.jdbc.autoconfigure.JdbcClientAutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.simple.JdbcClient;
 import com.aiplatform.foundation.security.secret.SecretEncryptionKeyProvider;
 
 /**
  * 注册模型目录 Mapper 和聚合仓储实现。
  */
-@AutoConfiguration(after = MybatisPlusAutoConfiguration.class)
+@AutoConfiguration(after = {MybatisPlusAutoConfiguration.class, JdbcClientAutoConfiguration.class})
 @ConditionalOnProperty(
         name = "foundation.model-runtime.persistence.enabled",
         havingValue = "true")
@@ -68,6 +72,13 @@ import com.aiplatform.foundation.security.secret.SecretEncryptionKeyProvider;
     ModelConfigurationMapper.class
 })
 public class ModelRuntimePersistenceAutoConfiguration {
+
+    @Bean
+    @ConditionalOnMissingBean
+    @ConditionalOnBean(JdbcClient.class)
+    ModelOperationsFactSource modelOperationsFactSource(JdbcClient jdbc) {
+        return new JdbcModelOperationsFactSource(jdbc);
+    }
 
     @Bean
     @ConditionalOnMissingBean(ProviderModelDiscoveryStore.class)

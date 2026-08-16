@@ -68,8 +68,8 @@ public final class ProviderModelDiscoveryService {
         if (connection.version() != command.expectedVersion()) {
             throw new ProviderConnectionConcurrentModificationException();
         }
-        if (connection.status() != ProviderConnectionStatus.VERIFIED) {
-            throw new IllegalStateException("供应商连接尚未验证");
+        if (connection.status() == ProviderConnectionStatus.DISABLED) {
+            throw new IllegalStateException("已停用的供应商连接不能发现模型");
         }
         var discoverer = discoverers.get(connection.providerKind());
         var observation = discoverer == null
@@ -81,11 +81,20 @@ public final class ProviderModelDiscoveryService {
                         connection.endpoint(),
                         connection.credentialReference(),
                         command.timeout())));
+        var discoveredConnection = connection;
+        if (connection.status() != ProviderConnectionStatus.VERIFIED) {
+            discoveredConnection = observation.succeeded()
+                    ? connection.recordSuccessfulProbe(observation.resultCode(), observation.discoveredAt())
+                    : connection.recordFailedProbe(observation.resultCode(), observation.discoveredAt());
+            if (!connections.update(discoveredConnection, command.expectedVersion())) {
+                throw new ProviderConnectionConcurrentModificationException();
+            }
+        }
         var discovery = ProviderModelDiscovery.capture(
                 new ProviderModelDiscoveryId(identifiers.nextId()),
                 command.context().tenantId(),
-                connection.id(),
-                connection.version(),
+                discoveredConnection.id(),
+                discoveredConnection.version(),
                 observation,
                 observation.discoveredAt().plus(validity));
         store.record(discovery);

@@ -64,8 +64,8 @@ public final class PlatformProviderModelDiscoveryService {
         if (connection.version() != command.expectedVersion()) {
             throw new IllegalStateException("平台供应商连接修订已变化");
         }
-        if (connection.status() != ProviderConnectionStatus.VERIFIED) {
-            throw new IllegalStateException("平台供应商连接尚未验证");
+        if (connection.status() == ProviderConnectionStatus.DISABLED) {
+            throw new IllegalStateException("已停用的平台供应商连接不能发现模型");
         }
         var discoverer = discoverers.get(connection.providerKind());
         var observation = discoverer == null
@@ -73,10 +73,19 @@ public final class PlatformProviderModelDiscoveryService {
                 : discoveredAtNow(discoverer.discover(new PlatformProviderModelDiscoveryRequest(
                         connection.providerKind(), connection.endpoint(), connection.credentialReference(),
                         command.timeout())));
+        var discoveredConnection = connection;
+        if (connection.status() != ProviderConnectionStatus.VERIFIED) {
+            discoveredConnection = observation.succeeded()
+                    ? connection.recordSuccessfulProbe(observation.resultCode(), observation.discoveredAt())
+                    : connection.recordFailedProbe(observation.resultCode(), observation.discoveredAt());
+            if (!connections.update(discoveredConnection, command.expectedVersion())) {
+                throw new IllegalStateException("平台供应商连接修订已变化");
+            }
+        }
         var discovery = PlatformProviderModelDiscovery.capture(
                 new PlatformProviderModelDiscoveryId(identifiers.nextId()),
-                connection.id(),
-                connection.version(),
+                discoveredConnection.id(),
+                discoveredConnection.version(),
                 observation,
                 observation.discoveredAt().plus(validity));
         store.record(discovery);

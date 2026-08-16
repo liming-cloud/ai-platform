@@ -15,6 +15,8 @@ import com.aiplatform.foundation.organizationaccess.application.authorization.po
 import com.aiplatform.foundation.organizationaccess.application.authorization.service.PlatformAccountGovernanceApplicationService;
 import com.aiplatform.foundation.organizationaccess.application.authorization.service.PlatformAccountEstablishmentApplicationService;
 import com.aiplatform.foundation.organizationaccess.application.authorization.service.PlatformAccountDirectoryApplicationService;
+import com.aiplatform.foundation.organizationaccess.application.authorization.service.PlatformAccountCandidateApplicationService;
+import com.aiplatform.foundation.organizationaccess.application.authorization.port.out.PlatformAccountCandidateDirectory;
 import com.aiplatform.foundation.organizationaccess.application.authorization.service.PlatformRoleBindingApplicationService;
 import com.aiplatform.foundation.organizationaccess.application.authorization.service.TenantRoleBindingApplicationService;
 import com.aiplatform.foundation.organizationaccess.application.authorization.port.out.TenantRoleRevocationStore;
@@ -34,6 +36,8 @@ import com.aiplatform.foundation.organizationaccess.application.member.service.T
 import com.aiplatform.foundation.organizationaccess.application.member.port.out.TenantMemberDirectory;
 import com.aiplatform.foundation.organizationaccess.application.member.service.TenantMemberDirectoryApplicationService;
 import com.aiplatform.foundation.organizationaccess.application.member.port.out.TenantMemberEstablishmentStore;
+import com.aiplatform.foundation.organizationaccess.application.member.port.out.TenantMemberCandidateDirectory;
+import com.aiplatform.foundation.organizationaccess.application.member.service.TenantMemberCandidateApplicationService;
 import com.aiplatform.foundation.organizationaccess.application.member.service.TenantMemberEstablishmentApplicationService;
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.port.out.TenantLifecycleBackfillStore;
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.port.out.TenantLifecycleReadPort;
@@ -55,6 +59,7 @@ import java.time.Duration;
 import java.security.SecureRandom;
 import java.util.Arrays;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
@@ -201,6 +206,14 @@ public class OrganizationAccessCoreAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
+    @ConditionalOnBean(PlatformAccountCandidateDirectory.class)
+    PlatformAccountCandidateApplicationService platformAccountCandidateApplicationService(
+            PlatformAccountCandidateDirectory directory) {
+        return new PlatformAccountCandidateApplicationService(directory);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
     PlatformRoleBindingApplicationService platformRoleBindingApplicationService(
             PlatformRoleBindingStore store,
             PersonSessionFamilyRevoker sessions,
@@ -276,6 +289,14 @@ public class OrganizationAccessCoreAutoConfiguration {
     TenantMemberDirectoryApplicationService tenantMemberDirectoryApplicationService(
             TenantMemberDirectory directory) {
         return new TenantMemberDirectoryApplicationService(directory);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    @ConditionalOnBean(TenantMemberCandidateDirectory.class)
+    TenantMemberCandidateApplicationService tenantMemberCandidateApplicationService(
+            TenantMemberCandidateDirectory directory) {
+        return new TenantMemberCandidateApplicationService(directory);
     }
 
     @Bean

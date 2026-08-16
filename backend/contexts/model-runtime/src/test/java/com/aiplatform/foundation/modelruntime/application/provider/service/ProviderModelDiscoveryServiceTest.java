@@ -42,16 +42,20 @@ class ProviderModelDiscoveryServiceTest {
     private static final ProviderConnectionId CONNECTION = new ProviderConnectionId(310000000000000001L);
 
     @Test
-    void 已验证连接的成功发现应写入不可变事实且不泄漏连接细节() {
+    void 草稿连接的成功发现应同时完成验证且不要求用户输入模型代码() {
         var stored = new java.util.ArrayList<ProviderModelDiscovery>();
-        var service = service(verifiedConnection(), successDiscoverer(), stored::add);
+        var repository = new SingleConnectionRepository(draftConnection());
+        var service = service(repository, successDiscoverer(), stored::add);
 
         var result = service.discover(new DiscoverProviderModelsCommand(
-                context("model:write"), CONNECTION.toString(), 1, Duration.ofSeconds(2)));
+                context("model:write"), CONNECTION.toString(), 0, Duration.ofSeconds(2)));
 
         assertEquals("MODEL_DISCOVERY_OK", result.resultCode());
         assertEquals(1, stored.size());
         assertEquals("chat-model", stored.getFirst().models().iterator().next().modelCode());
+        assertEquals(1L, stored.getFirst().providerConnectionRevision());
+        assertEquals(com.aiplatform.foundation.modelruntime.domain.provider.model.ProviderConnectionStatus.VERIFIED,
+                repository.connection.status());
         assertEquals(NOW.plus(Duration.ofHours(24)), stored.getFirst().expiresAt());
     }
 
@@ -59,7 +63,7 @@ class ProviderModelDiscoveryServiceTest {
     void 连接修订漂移或未验证时不得调用发现端口() {
         var calls = new java.util.concurrent.atomic.AtomicInteger();
         var discoverer = discoverer(calls, observation());
-        var service = service(verifiedConnection(), discoverer, ignored -> { });
+        var service = service(new SingleConnectionRepository(verifiedConnection()), discoverer, ignored -> { });
 
         assertThrows(
                 ProviderConnectionConcurrentModificationException.class,
@@ -69,11 +73,11 @@ class ProviderModelDiscoveryServiceTest {
     }
 
     private static ProviderModelDiscoveryService service(
-            ProviderConnection connection,
+            ProviderConnectionRepository repository,
             ProviderModelDiscoverer discoverer,
             ProviderModelDiscoveryStore store) {
         return new ProviderModelDiscoveryService(
-                new SingleConnectionRepository(connection),
+                repository,
                 List.of(discoverer),
                 store,
                 Clock.fixed(NOW, ZoneOffset.UTC),
@@ -105,10 +109,14 @@ class ProviderModelDiscoveryServiceTest {
     }
 
     private static ProviderConnection verifiedConnection() {
+        return draftConnection()
+                .recordSuccessfulProbe("DETERMINISTIC_OK", NOW);
+    }
+
+    private static ProviderConnection draftConnection() {
         return ProviderConnection.create(TENANT, CONNECTION, ProviderKind.DETERMINISTIC,
                 "演示连接", URI.create("memory://deterministic"), "本地", AuthenticationType.API_KEY,
-                new com.aiplatform.foundation.modelruntime.domain.provider.model.CredentialReference("secret://demo/provider"), NOW)
-                .recordSuccessfulProbe("DETERMINISTIC_OK", NOW);
+                new com.aiplatform.foundation.modelruntime.domain.provider.model.CredentialReference("secret://demo/provider"), NOW);
     }
 
     private static TrustedRequestContext context(String permission) {
@@ -117,10 +125,16 @@ class ProviderModelDiscoveryServiceTest {
                 1, Set.of(new PermissionCode(permission)), "trc_model_discovery");
     }
 
-    private record SingleConnectionRepository(ProviderConnection connection) implements ProviderConnectionRepository {
+    private static final class SingleConnectionRepository implements ProviderConnectionRepository {
+        private ProviderConnection connection;
+        private SingleConnectionRepository(ProviderConnection connection) { this.connection = connection; }
         @Override public com.aiplatform.foundation.modelruntime.domain.provider.repository.ProviderConnectionCreationOutcome create(com.aiplatform.foundation.modelruntime.domain.provider.repository.ProviderConnectionCreation creation, int limit) { throw new UnsupportedOperationException(); }
         @Override public Optional<ProviderConnection> findById(TenantId tenantId, ProviderConnectionId id) { return connection.tenantId().equals(tenantId) && connection.id().equals(id) ? Optional.of(connection) : Optional.empty(); }
         @Override public com.aiplatform.foundation.modelruntime.domain.provider.repository.ProviderConnectionPage findPage(TenantId tenantId, long pageNumber, long pageSize) { return new com.aiplatform.foundation.modelruntime.domain.provider.repository.ProviderConnectionPage(List.of(), 0); }
-        @Override public boolean update(ProviderConnection updated, long expectedVersion) { return false; }
+        @Override public boolean update(ProviderConnection updated, long expectedVersion) {
+            if (connection.version() != expectedVersion) return false;
+            connection = updated;
+            return true;
+        }
     }
 }

@@ -5,6 +5,8 @@ import com.aiplatform.foundation.evaluationoperations.application.evaluation.por
 import com.aiplatform.foundation.evaluationoperations.application.evaluation.port.out.EvaluationDatasetPrivateContentStore;
 import com.aiplatform.foundation.evaluationoperations.application.evaluation.port.out.EvaluationDatasetRegistrationStore;
 import com.aiplatform.foundation.evaluationoperations.application.evaluation.service.EvaluationDatasetRegistrationService;
+import com.aiplatform.foundation.evaluationoperations.application.evaluation.service.EvaluationDatasetCandidateService;
+import com.aiplatform.foundation.evaluationoperations.application.evaluation.port.out.EvaluationDatasetCandidateDirectory;
 import com.aiplatform.foundation.evaluationoperations.application.evaluation.service.EvaluationRunExecutionService;
 import com.aiplatform.foundation.evaluationoperations.application.release.service.EvaluationReleasePublicationAuthorization;
 import com.aiplatform.foundation.evaluationoperations.application.release.service.ReleaseDecisionService;
@@ -16,9 +18,21 @@ import com.aiplatform.foundation.evaluationoperations.domain.release.repository.
 import com.aiplatform.foundation.assistantdelivery.application.evaluation.facade.EvaluationAssistantExecution;
 import com.aiplatform.foundation.assistantdelivery.application.release.facade.ReleasePublicationAuthorization;
 import com.aiplatform.foundation.assistantdelivery.infrastructure.configuration.AssistantDeliveryCoreAutoConfiguration;
+import com.aiplatform.foundation.assistantdelivery.infrastructure.configuration.AssistantDeliveryPersistenceAutoConfiguration;
+import com.aiplatform.foundation.knowledgedata.infrastructure.configuration.KnowledgeDataPersistenceAutoConfiguration;
+import com.aiplatform.foundation.modelruntime.infrastructure.configuration.ModelRuntimePersistenceAutoConfiguration;
+import com.aiplatform.foundation.organizationaccess.infrastructure.configuration.OrganizationAccessPersistenceAutoConfiguration;
+import com.aiplatform.foundation.trustedquery.infrastructure.configuration.TrustedQueryPersistenceAutoConfiguration;
 import com.aiplatform.foundation.evaluationoperations.application.operations.service.OperationsQueryService;
+import com.aiplatform.foundation.evaluationoperations.application.operations.service.OperationsOverviewService;
+import com.aiplatform.foundation.evaluationoperations.application.operations.port.out.EvaluationOperationsFactSource;
 import com.aiplatform.foundation.evaluationoperations.domain.operations.model.OperationsQuotaPolicy;
+import com.aiplatform.foundation.organizationaccess.application.operations.facade.OrganizationOperationsFactSource;
+import com.aiplatform.foundation.knowledgedata.application.operations.facade.KnowledgeOperationsFactSource;
+import com.aiplatform.foundation.modelruntime.application.operations.facade.ModelOperationsFactSource;
+import com.aiplatform.foundation.assistantdelivery.application.operations.facade.AssistantOperationsFactSource;
 import com.aiplatform.foundation.trustedquery.application.operations.facade.QueryOperationsFactSource;
+import com.aiplatform.foundation.trustedquery.application.operations.facade.QueryOverviewFactSource;
 import com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator;
 import java.time.Clock;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
@@ -33,6 +47,11 @@ import org.springframework.context.annotation.Bean;
  */
 @AutoConfiguration(after = {
     AssistantDeliveryCoreAutoConfiguration.class,
+    AssistantDeliveryPersistenceAutoConfiguration.class,
+    KnowledgeDataPersistenceAutoConfiguration.class,
+    ModelRuntimePersistenceAutoConfiguration.class,
+    OrganizationAccessPersistenceAutoConfiguration.class,
+    TrustedQueryPersistenceAutoConfiguration.class,
     EvaluationOperationsPersistenceAutoConfiguration.class,
     EvaluationOperationsObjectStorageAutoConfiguration.class,
     EvaluationOperationsContentStagingAutoConfiguration.class
@@ -46,6 +65,14 @@ import org.springframework.context.annotation.Bean;
         havingValue = "true")
 @EnableConfigurationProperties(QueryQuotaReportingProperties.class)
 public class EvaluationOperationsCoreAutoConfiguration {
+
+    @Bean
+    @ConditionalOnMissingBean
+    @ConditionalOnBean(EvaluationDatasetCandidateDirectory.class)
+    EvaluationDatasetCandidateService evaluationDatasetCandidateService(
+            EvaluationDatasetCandidateDirectory directory) {
+        return new EvaluationDatasetCandidateService(directory);
+    }
 
     @Bean
     @ConditionalOnMissingBean
@@ -125,6 +152,40 @@ public class EvaluationOperationsCoreAutoConfiguration {
             QueryQuotaReportingProperties properties) {
         return new OperationsQueryService(
                 facts,
+                new OperationsQuotaPolicy(
+                        properties.dailyLimit(),
+                        properties.concurrentLimit()),
+                Clock.systemUTC());
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    @ConditionalOnBean({
+        OrganizationOperationsFactSource.class,
+        KnowledgeOperationsFactSource.class,
+        ModelOperationsFactSource.class,
+        AssistantOperationsFactSource.class,
+        EvaluationOperationsFactSource.class,
+        QueryOverviewFactSource.class,
+        QueryOperationsFactSource.class
+    })
+    OperationsOverviewService operationsOverviewService(
+            OrganizationOperationsFactSource organization,
+            KnowledgeOperationsFactSource knowledge,
+            ModelOperationsFactSource models,
+            AssistantOperationsFactSource assistants,
+            EvaluationOperationsFactSource evaluations,
+            QueryOverviewFactSource queries,
+            QueryOperationsFactSource usage,
+            QueryQuotaReportingProperties properties) {
+        return new OperationsOverviewService(
+                organization,
+                knowledge,
+                models,
+                assistants,
+                evaluations,
+                queries,
+                usage,
                 new OperationsQuotaPolicy(
                         properties.dailyLimit(),
                         properties.concurrentLimit()),

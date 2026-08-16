@@ -9,6 +9,7 @@ import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.port.out.TenantProvisioningStore;
 import com.aiplatform.foundation.organizationaccess.application.authorization.port.out.TenantRoleBindingStore;
 import com.aiplatform.foundation.organizationaccess.application.authorization.port.out.PlatformAccountStore;
+import com.aiplatform.foundation.organizationaccess.application.authorization.port.out.PlatformAccountCandidateDirectory;
 import com.aiplatform.foundation.organizationaccess.application.authorization.port.out.PlatformRoleBindingStore;
 import com.aiplatform.foundation.organizationaccess.application.authorization.port.out.TenantRoleRevocationStore;
 import com.aiplatform.foundation.organizationaccess.application.authorization.port.out.TenantCustomRoleStore;
@@ -19,6 +20,8 @@ import com.aiplatform.foundation.organizationaccess.application.authorization.po
 import com.aiplatform.foundation.organizationaccess.application.member.port.out.TenantMemberStatusStore;
 import com.aiplatform.foundation.organizationaccess.application.member.port.out.TenantMemberDirectory;
 import com.aiplatform.foundation.organizationaccess.application.member.port.out.TenantMemberEstablishmentStore;
+import com.aiplatform.foundation.organizationaccess.application.member.port.out.TenantMemberCandidateDirectory;
+import com.aiplatform.foundation.organizationaccess.application.operations.facade.OrganizationOperationsFactSource;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.authorization.mapper.PlatformRoleBindingMapper;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.authorization.repository.PostgresPlatformRoleBindingRepository;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.authorization.repository.PostgresPlatformRoleBindingStore;
@@ -37,6 +40,7 @@ import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.a
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.identity.mapper.SubjectIdentityMapper;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.identity.mapper.PlatformAccountMapper;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.identity.repository.PostgresPlatformAccountStore;
+import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.identity.repository.JdbcPlatformAccountCandidateDirectory;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.identity.repository.PostgresSubjectIdentityRepository;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.membership.mapper.TenantMembershipMapper;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.membership.repository.PostgresTenantMembershipRepository;
@@ -46,6 +50,8 @@ import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.m
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.member.repository.PostgresTenantMemberDirectory;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.member.mapper.TenantMemberEstablishmentMapper;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.member.repository.PostgresTenantMemberEstablishmentStore;
+import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.member.repository.JdbcTenantMemberCandidateDirectory;
+import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.operations.JdbcOrganizationOperationsFactSource;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.mapper.TenantLifecycleBackfillMapper;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.mapper.TenantLifecycleReadMapper;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.mapper.TenantLifecycleTransitionMapper;
@@ -57,14 +63,17 @@ import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.t
 import com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator;
 import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.jdbc.autoconfigure.JdbcClientAutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
+import org.springframework.jdbc.core.simple.JdbcClient;
 
 /**
  * 注册组织权限持久化 Mapper 和领域仓储实现。
  */
-@AutoConfiguration
+@AutoConfiguration(after = JdbcClientAutoConfiguration.class)
 @ConditionalOnProperty(
         name = "foundation.organization-access.enabled",
         havingValue = "true")
@@ -86,6 +95,20 @@ import org.springframework.context.annotation.Bean;
     TenantLifecycleTransitionMapper.class
 })
 public class OrganizationAccessPersistenceAutoConfiguration {
+
+    @Bean
+    @ConditionalOnMissingBean
+    @ConditionalOnBean(JdbcClient.class)
+    OrganizationOperationsFactSource organizationOperationsFactSource(JdbcClient jdbc) {
+        return new JdbcOrganizationOperationsFactSource(jdbc);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    @ConditionalOnBean(JdbcClient.class)
+    PlatformAccountCandidateDirectory platformAccountCandidateDirectory(JdbcClient jdbc) {
+        return new JdbcPlatformAccountCandidateDirectory(jdbc);
+    }
 
     @Bean
     @ConditionalOnMissingBean
@@ -128,6 +151,13 @@ public class OrganizationAccessPersistenceAutoConfiguration {
     @ConditionalOnMissingBean
     TenantMemberDirectory tenantMemberDirectory(TenantMemberDirectoryMapper mapper) {
         return new PostgresTenantMemberDirectory(mapper);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    @ConditionalOnBean(JdbcClient.class)
+    TenantMemberCandidateDirectory tenantMemberCandidateDirectory(JdbcClient jdbc) {
+        return new JdbcTenantMemberCandidateDirectory(jdbc);
     }
 
     @Bean
