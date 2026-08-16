@@ -177,28 +177,15 @@ export function BrowserSessionGate({
 
   return (
     <section className="governance-login" aria-live="polite">
-      <aside className="governance-login__context" aria-label="产品说明">
-        <p className="governance-login__product">可信知识平台</p>
-        <h1>进入企业控制台</h1>
-        <p className="governance-login__summary">
-          使用同一浏览器入口进入已经获授权的平台管理或租户工作区。
-        </p>
-        <dl className="governance-login__workspace-guide">
-          <div>
-            <dt>平台管理</dt>
-            <dd>租户、安全基线和平台模型供应链。</dd>
-          </div>
-          <div>
-            <dt>租户工作区</dt>
-            <dd>仅处理当前组织被授权的数据、成员和业务任务。</dd>
-          </div>
-        </dl>
-      </aside>
       <div className="governance-login__panel">
+        <div className="governance-login__brand" aria-label="可信知识平台">
+          <span aria-hidden="true">知</span>
+          <strong>可信知识平台</strong>
+        </div>
         <div className="governance-login__card">
           <header className="governance-login__heading">
-            <h2>选择登录目标</h2>
-            <p>系统会在验证后仅展示您已获授权的工作区。</p>
+            <h1>登录企业控制台</h1>
+            <p>选择工作区并使用已分配的企业账户登录。</p>
           </header>
           <TabList
             className="governance-login__workspace-tabs"
@@ -226,6 +213,7 @@ export function BrowserSessionGate({
               >
                 <Input
                   value={tenantCode}
+                  placeholder="例如：demo-store"
                   autoComplete="organization"
                   disabled={state === "authenticating"}
                   onChange={(_, data) => setTenantCode(data.value)}
@@ -239,6 +227,7 @@ export function BrowserSessionGate({
             <Field label="登录名" required>
               <Input
                 value={loginName}
+                placeholder={workspace === "platform" ? "例如：platform.root" : "请输入登录名"}
                 autoComplete="username"
                 disabled={state === "authenticating"}
                 onChange={(_, data) => setLoginName(data.value)}
@@ -249,6 +238,7 @@ export function BrowserSessionGate({
                 value={password}
                 type="password"
                 autoComplete="current-password"
+                placeholder="请输入密码"
                 disabled={state === "authenticating"}
                 onChange={(_, data) => setPassword(data.value)}
               />

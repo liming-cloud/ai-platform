@@ -424,9 +424,7 @@ function failureDescription(failure?: Failure) {
   if (failure === undefined) {
     return "请稍后重试；如果问题持续存在，请联系平台运维人员。";
   }
-  return failure.traceId.length === 0
-    ? failure.message
-    : `${failure.message}，追踪标识：${failure.traceId}`;
+  return failure.message;
 }
 
 function formatTime(value: string) {

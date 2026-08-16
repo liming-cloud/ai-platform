@@ -537,9 +537,6 @@ function QueryResult({
           <MessageBarBody>
             <MessageBarTitle>查询未能完成</MessageBarTitle>
             {workflow.feedback.message}
-            {workflow.feedback.traceId.length > 0
-              ? `，追踪编号：${workflow.feedback.traceId}`
-              : ""}
           </MessageBarBody>
         </MessageBar>
         <div className="query-recovery-actions">
@@ -593,9 +590,7 @@ function QueryFeedbackPanel({
         <MessageBar intent="error">
           <MessageBarBody>
             <MessageBarTitle>反馈未提交</MessageBarTitle>
-            {feedback.traceId && feedback.traceId.length > 0
-              ? `${feedback.message}，追踪编号：${feedback.traceId}`
-              : feedback.message}
+            {feedback.message}
           </MessageBarBody>
         </MessageBar>
       ) : null}
@@ -652,7 +647,6 @@ function CitationList({
           >
             <div className="citation-heading">
               <Text weight="semibold">来源 {citation.sequence}</Text>
-              <Text size={200}>内容版本 {citation.contentVersion}</Text>
             </div>
             <blockquote>{citation.quote}</blockquote>
           </li>
@@ -700,7 +694,5 @@ function formatFeedback(
   if (feedback === undefined) {
     return fallback;
   }
-  return feedback.traceId.length > 0
-    ? `${feedback.message}，追踪编号：${feedback.traceId}`
-    : feedback.message;
+  return feedback.message;
 }

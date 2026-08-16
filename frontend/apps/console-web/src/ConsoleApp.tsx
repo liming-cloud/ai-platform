@@ -1,9 +1,4 @@
-import {
-  Button,
-  MessageBar,
-  MessageBarBody,
-  MessageBarTitle,
-} from "@fluentui/react-components";
+import { Button } from "@fluentui/react-components";
 import { ProductShell, StatePanel, type NavigationItem } from "@foundation/design-system";
 import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { ControlPlaneClient } from "./api/control-plane-client";
@@ -99,6 +94,11 @@ const PlatformModelDeploymentWorkspace = lazy(async () => {
 const TenantMemberWorkspace = lazy(async () => {
   const module = await import("./features/access/TenantMemberWorkspace");
   return { default: module.TenantMemberWorkspace };
+});
+
+const OperationsOverviewWorkspace = lazy(async () => {
+  const module = await import("./features/operations/OperationsOverviewWorkspace");
+  return { default: module.OperationsOverviewWorkspace };
 });
 
 export function ConsoleApp() {
@@ -236,13 +236,15 @@ function AuthenticatedConsoleApp({
     );
   }
 
-  const route = resolvedRoute.route;
+      const route = resolvedRoute.route;
+      const operationsActive = route.navigationId === "operations";
   const dataActive = route.navigationId === "data";
   const accessActive = route.navigationId === "access";
   const modelsActive = route.navigationId === "models";
   const governanceActive = route.navigationId === "governance";
   const queryActive = route.navigationId === "query";
-  const platformWorkspaceActive = route.navigationId === "platform-workspace";
+      const platformWorkspaceActive = route.navigationId === "platform-workspace";
+      const platformOperationsActive = route.navigationId === "platform-operations";
   const platformActive = route.navigationId === "platform";
   const platformAccountsActive = route.navigationId === "platform-accounts";
   const platformModelSupplyActive = route.navigationId === "platform-model-supply";
@@ -252,10 +254,14 @@ function AuthenticatedConsoleApp({
     <ProductShell
       productName="可信知识平台"
       pageTitle={
-        accessActive ? "成员与权限" : platformWorkspaceActive ? "平台工作区" : platformActive ? "平台租户生命周期" : platformAccountsActive ? "平台账户目录" : platformModelSupplyActive ? "平台模型供应链" : queryActive ? "从已授权资料中获得答案" : governanceActive ? route.task === "query" ? "查询用量与审计" : "受限评测运行" : modelsActive ? route.task === "configuration" ? "受控模型配置" : route.task === "providers" ? "供应商连接与模型发现" : "模型部署与能力验证" : dataPage?.title ?? "可信知识平台"
+        operationsActive ? "运营总览" : platformOperationsActive ? "平台运营总览" : accessActive ? "成员与权限" : platformWorkspaceActive ? "平台工作区" : platformActive ? "平台租户生命周期" : platformAccountsActive ? "平台账户目录" : platformModelSupplyActive ? "平台模型供应链" : queryActive ? "从已授权资料中获得答案" : governanceActive ? route.task === "query" ? "查询用量与审计" : "受限评测运行" : modelsActive ? route.task === "configuration" ? "受控模型配置" : route.task === "providers" ? "供应商连接与模型发现" : "模型部署与能力验证" : dataPage?.title ?? "可信知识平台"
       }
       pageSummary={
-        queryActive
+        operationsActive
+          ? "查看当前租户的成员、知识、模型、助手、评测和查询健康状态。"
+          : platformOperationsActive
+          ? "查看全平台脱敏运营指标和按租户分组的安全摘要，不进入租户内容。"
+          : queryActive
           ? "答案必须附带可核验来源。没有足够证据或没有访问权限时，系统会明确拒绝回答。"
           : accessActive
           ? "成员操作由当前浏览器会话恢复租户范围；目录使用服务端分页，停用必须二次确认。"
@@ -283,16 +289,15 @@ function AuthenticatedConsoleApp({
       activeNavigationId={route.navigationId}
       onNavigationChange={selectNavigation}
       accountLabel="已验证浏览器会话"
+      onLogout={() => void onLogout()}
     >
-      <MessageBar intent="info" className="usage-notice">
-        <MessageBarBody>
-          <MessageBarTitle>演示环境限制</MessageBarTitle>
-          当前站点使用合成数据，并限制模型调用次数、文件大小和并发会话。
-        </MessageBarBody>
-      </MessageBar>
-      <Button appearance="subtle" onClick={() => void onLogout()}>
-        退出登录
-      </Button>
+      <section hidden={!operationsActive && !platformOperationsActive}>
+        {operationsActive || platformOperationsActive ? (
+          <Suspense fallback={<StatePanel kind="loading" title="正在加载运营总览" description="正在汇总安全运营指标。" />}>
+            <OperationsOverviewWorkspace client={client} route={route as Extract<ConsoleRoute, { task: "overview" }>} onRouteChange={navigate} />
+          </Suspense>
+        ) : null}
+      </section>
 
       <section hidden={!dataActive}>
         <div className="data-task-switcher" aria-label="数据任务切换">

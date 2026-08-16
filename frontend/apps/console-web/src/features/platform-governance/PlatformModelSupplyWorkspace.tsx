@@ -56,8 +56,6 @@ export function PlatformModelSupplyWorkspace({
   const [creating, setCreating] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [apiKey, setApiKey] = useState("");
-  const [probeTarget, setProbeTarget] = useState<PlatformProviderConnectionSummary>();
-  const [probeModelCode, setProbeModelCode] = useState("");
   const [discoveryTarget, setDiscoveryTarget] = useState<PlatformProviderConnectionSummary>();
   const [discoverySummary, setDiscoverySummary] = useState<string>();
 
@@ -122,26 +120,6 @@ export function PlatformModelSupplyWorkspace({
     }
   }
 
-  async function probeConnection(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (probeTarget === undefined || probeModelCode.trim().length === 0) {
-      setFailure({ message: "请输入用于最小验证的模型代码。", traceId: "" });
-      return;
-    }
-    setSubmitting(true);
-    setFailure(undefined);
-    try {
-      await client.probePlatformProviderConnection(probeTarget.id, probeTarget.version, probeModelCode.trim());
-      setProbeTarget(undefined);
-      setProbeModelCode("");
-      await load();
-    } catch (error) {
-      setFailure(toFailure(error));
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
   async function discoverModels() {
     if (discoveryTarget === undefined) return;
     setSubmitting(true);
@@ -154,8 +132,8 @@ export function PlatformModelSupplyWorkspace({
       );
       setDiscoveryTarget(undefined);
       setDiscoverySummary(result.succeeded
-        ? `模型发现完成：已固化 ${result.models.length} 个候选，结果编码为 ${result.resultCode}。`
-        : `模型发现未完成，结果编码为 ${result.resultCode}。`);
+        ? `模型发现完成：已找到 ${result.models.length} 个可用候选。`
+        : "模型发现未完成，请确认连接状态后重试。");
       await load();
     } catch (error) {
       setFailure(toFailure(error));
@@ -183,10 +161,10 @@ export function PlatformModelSupplyWorkspace({
       {failure === undefined ? null : <FailureMessage failure={failure} />}
       {discoverySummary === undefined ? null : <MessageBar intent="success"><MessageBarBody><MessageBarTitle>模型发现已记录</MessageBarTitle>{discoverySummary}</MessageBarBody></MessageBar>}
       <section className="model-configuration-section">
-        <header className="task-heading"><Title3>平台厂商连接</Title3><Text>仅平台管理员可创建；连接创建后需继续完成真实探测、发现和部署发布。</Text></header>
+        <header className="task-heading"><Title3>平台厂商连接</Title3><Text>仅平台管理员可创建；连接创建后通过一次受控请求完成验证和模型发现。</Text></header>
         <div className="member-directory-table" role="region" aria-label="平台厂商连接分页表格">
-          <table><thead><tr><th>连接</th><th>厂商与区域</th><th>凭据与状态</th><th>最近探测</th><th>修订</th><th>操作</th></tr></thead><tbody>
-            {connections.length === 0 ? <tr><td colSpan={6}>当前页没有平台厂商连接。</td></tr> : connections.map((connection) => <tr key={connection.id}><td>{connection.displayName}</td><td>{connection.providerKind} · {connection.region}</td><td><Badge appearance="tint" color={connection.status === "VERIFIED" ? "success" : "warning"}>{connection.status === "VERIFIED" ? "已验证" : "待验证"}</Badge> {connection.credentialConfigured ? "凭据已配置" : "未配置凭据"}</td><td>{connection.lastProbeSucceeded === true ? "通过" : connection.lastProbeSucceeded === false ? "未通过" : "尚未探测"}</td><td>{connection.version}</td><td><div className="task-actions"><Button appearance="secondary" disabled={submitting || !connection.credentialConfigured} onClick={() => setProbeTarget(connection)}>探测连接</Button><Button appearance="secondary" disabled={submitting || connection.status !== "VERIFIED"} onClick={() => setDiscoveryTarget(connection)}>发现模型</Button><Button appearance="primary" disabled={connection.status !== "VERIFIED"} onClick={() => onRouteChange({ navigationId: "platform-model-supply", task: "deployments", connectionId: connection.id, connectionVersion: connection.version, candidatePage: 1, deploymentPage: 1 })}>管理部署</Button></div></td></tr>)}
+          <table><thead><tr><th>连接</th><th>厂商与区域</th><th>凭据与状态</th><th>最近探测</th><th>操作</th></tr></thead><tbody>
+            {connections.length === 0 ? <tr><td colSpan={5}>当前页没有平台厂商连接。</td></tr> : connections.map((connection) => <tr key={connection.id}><td>{connection.displayName}</td><td>{connection.providerKind} · {connection.region}</td><td><Badge appearance="tint" color={connection.status === "VERIFIED" ? "success" : "warning"}>{connection.status === "VERIFIED" ? "已验证" : "待验证"}</Badge> {connection.credentialConfigured ? "凭据已配置" : "未配置凭据"}</td><td>{connection.lastProbeSucceeded === true ? "通过" : connection.lastProbeSucceeded === false ? "未通过" : "尚未验证"}</td><td><div className="task-actions"><Button appearance="secondary" disabled={submitting || connection.status === "DISABLED" || !connection.credentialConfigured} onClick={() => setDiscoveryTarget(connection)}>{connection.status === "VERIFIED" ? "刷新模型候选" : "验证并发现模型"}</Button><Button appearance="primary" disabled={connection.status !== "VERIFIED"} onClick={() => onRouteChange({ navigationId: "platform-model-supply", task: "deployments", connectionId: connection.id, connectionVersion: connection.version, candidatePage: 1, deploymentPage: 1 })}>管理部署</Button></div></td></tr>)}
           </tbody></table>
         </div>
         <div className="task-actions"><Text>共 {total} 条</Text><Button disabled={!hasPrevious} onClick={() => onRouteChange({ ...route, page: route.page - 1 })}>上一页</Button><Text>第 {route.page} 页</Text><Button disabled={!hasNext} onClick={() => onRouteChange({ ...route, page: route.page + 1 })}>下一页</Button></div>
@@ -201,15 +179,9 @@ export function PlatformModelSupplyWorkspace({
           <Field label="API Key" required><Input type="password" value={apiKey} onChange={(_, data) => setApiKey(data.value)} autoComplete="new-password" disabled={submitting} /></Field>
         </DialogContent><DialogActions><Button appearance="secondary" disabled={submitting} onClick={() => setCreating(false)}>取消</Button><Button appearance="primary" type="submit" disabled={submitting}>{submitting ? "正在创建" : "创建平台连接"}</Button></DialogActions></form></DialogBody></DialogSurface>
       </Dialog>
-      <Dialog open={probeTarget !== undefined} onOpenChange={(_, data) => { if (!data.open && !submitting) setProbeTarget(undefined); }}>
-        <DialogSurface><DialogBody><DialogTitle>探测平台厂商连接</DialogTitle><form onSubmit={(event) => void probeConnection(event)}><DialogContent>
-          <Text>探测使用平台范围凭据执行最小调用，只保存安全结果摘要；不会向浏览器返回 Endpoint、凭据或厂商原始响应。</Text>
-          <Field label="模型代码" required><Input value={probeModelCode} onChange={(_, data) => setProbeModelCode(data.value)} disabled={submitting} /></Field>
-        </DialogContent><DialogActions><Button appearance="secondary" disabled={submitting} onClick={() => setProbeTarget(undefined)}>取消</Button><Button appearance="primary" type="submit" disabled={submitting}>{submitting ? "正在探测" : "开始探测"}</Button></DialogActions></form></DialogBody></DialogSurface>
-      </Dialog>
       <Dialog open={discoveryTarget !== undefined} onOpenChange={(_, data) => { if (!data.open && !submitting) setDiscoveryTarget(undefined); }}>
         <DialogSurface><DialogBody><DialogTitle>发现平台模型</DialogTitle><DialogContent>
-          <Text>发现从已验证的平台连接读取受控候选并固化安全摘要。候选随后只能在平台部署任务中使用；不会向浏览器返回 Endpoint、凭据或厂商原始响应。</Text>
+          <Text>系统先验证 Endpoint 和凭据，再读取模型名称候选并固化安全摘要；无需输入模型代码，也不会返回厂商原始响应。</Text>
         </DialogContent><DialogActions><Button appearance="secondary" disabled={submitting} onClick={() => setDiscoveryTarget(undefined)}>取消</Button><Button appearance="primary" disabled={submitting} onClick={() => void discoverModels()}>{submitting ? "正在发现" : "开始发现"}</Button></DialogActions></DialogBody></DialogSurface>
       </Dialog>
     </div>
@@ -222,7 +194,7 @@ function FailureMessage({ failure }: { failure: Failure }) {
 
 function failureDescription(failure: Failure | undefined): string {
   if (failure === undefined) return "请求未完成。";
-  return failure.traceId ? `${failure.message}（追踪号：${failure.traceId}）` : failure.message;
+  return failure.message;
 }
 
 function toFailure(error: unknown): Failure {

@@ -291,8 +291,8 @@ export class QueryClient {
     return new QueryApiError(
       response.status,
       body?.code ?? "REQUEST_FAILED",
-      body?.message ?? "请求未完成，请稍后重试",
-      body?.traceId ?? "",
+      safeRequestMessage(response.status),
+      "",
     );
   }
 
@@ -305,6 +305,16 @@ export class QueryClient {
       listener(active);
     }
   }
+}
+
+function safeRequestMessage(status: number): string {
+  if (status === 401) return "登录状态已失效，请重新登录后继续。";
+  if (status === 403) return "当前账户不能执行此操作，请联系管理员确认权限。";
+  if (status === 409) return "相关资源已变化，请刷新后重试。";
+  if (status === 429) return "请求过于频繁，请稍等片刻后再试。";
+  if (status === 502 || status === 503 || status === 504) return "依赖服务暂时不可用，请稍后重试。";
+  if (status >= 400 && status < 500) return "请求信息不完整，请检查后重试。";
+  return "服务暂时不可用，请稍后重试。";
 }
 
 export class QueryApiError extends Error {

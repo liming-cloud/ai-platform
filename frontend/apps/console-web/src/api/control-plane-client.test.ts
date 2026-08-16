@@ -3,9 +3,127 @@ import type { BrowserSessionGateway } from "@foundation/browser-session";
 import {
   ApiRequestError,
   ControlPlaneClient,
+  presentApiError,
 } from "./control-plane-client";
 
 describe("ControlPlaneClient", () => {
+  it("运营总览和平台租户摘要只使用固定统计范围与服务端分页", async () => {
+    const requests: Request[] = [];
+    const client = authenticatedClient(async (input, init) => {
+      requests.push(new Request(input, init));
+      return new Response(JSON.stringify(requests.length === 3 ? {
+        items: [], pageNumber: 2, pageSize: 20, totalElements: 0, totalPages: 0,
+        hasPrevious: true, hasNext: false,
+      } : { range: "DAY_30", notices: [] }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    });
+
+    await client.getTenantOperationsOverview("DAY_30");
+    await client.getPlatformOperationsOverview("DAY_30");
+    await client.listPlatformTenantOperations("DAY_30", 2, 20);
+
+    expect(requests.map((request) => request.url)).toEqual([
+      "http://localhost/api/v1/operations/overview?range=DAY_30",
+      "http://localhost/api/v1/platform/operations/overview?range=DAY_30",
+      "http://localhost/api/v1/platform/operations/tenants?range=DAY_30&page=2&size=20",
+    ]);
+  });
+
+  it("账户候选选择器只返回可理解摘要且使用服务端搜索分页", async () => {
+    let request: Request | undefined;
+    const client = authenticatedClient(async (input, init) => {
+      request = new Request(input, init);
+      return new Response(JSON.stringify({
+        items: [{ accountReference: "opaque-1", loginName: "tenant.admin", status: "ACTIVE" }],
+        pageNumber: 1, pageSize: 20, totalElements: 1, totalPages: 1,
+        hasPrevious: false, hasNext: false,
+      }), { status: 200, headers: { "Content-Type": "application/json" } });
+    });
+
+    const result = await client.listPlatformAccountCandidates("tenant admin", 1, 20);
+
+    expect(request?.url).toBe("http://localhost/api/v1/platform/accounts/candidates?purpose=TENANT_INITIAL_ADMINISTRATOR&q=tenant+admin&page=1&size=20");
+    expect(result.items[0]).toEqual({
+      accountReference: "opaque-1",
+      loginName: "tenant.admin",
+      status: "ACTIVE",
+    });
+  });
+
+  it("租户成员候选由当前会话限定范围并使用名称搜索", async () => {
+    let request: Request | undefined;
+    const client = authenticatedClient(async (input, init) => {
+      request = new Request(input, init);
+      return new Response(JSON.stringify({
+        items: [{ accountReference: "opaque-2", loginName: "tenant.user", status: "ACTIVE" }],
+        pageNumber: 1, pageSize: 20, totalElements: 1, totalPages: 1,
+        hasPrevious: false, hasNext: false,
+      }), { status: 200, headers: { "Content-Type": "application/json" } });
+    });
+
+    await client.listTenantMemberCandidates("tenant user", 1, 20);
+
+    expect(request?.url).toBe("http://localhost/api/v1/tenant/member-candidates?q=tenant+user&page=1&size=20");
+  });
+
+  it("评测资源通过服务端分页安全摘要选择", async () => {
+    const requests: Request[] = [];
+    const client = authenticatedClient(async (input, init) => {
+      requests.push(new Request(input, init));
+      return new Response(JSON.stringify({
+        items: [], pageNumber: 2, pageSize: 20, totalElements: 0, totalPages: 0,
+        hasPrevious: true, hasNext: false,
+      }), { status: 200, headers: { "Content-Type": "application/json" } });
+    });
+
+    await client.listEvaluationDatasetCandidates(2, 20);
+    await client.listEvaluationAssistantCandidates(2, 20);
+
+    expect(requests.map((request) => request.url)).toEqual([
+      "http://localhost/api/v1/evaluation-datasets/candidates?page=2&size=20",
+      "http://localhost/api/v1/query-assistants?pageNumber=2&pageSize=20",
+    ]);
+  });
+
+  it("对象存储授权范围通过知识空间内的名称化候选选择", async () => {
+    let request: Request | undefined;
+    const client = authenticatedClient(async (input, init) => {
+      request = new Request(input, init);
+      return new Response(JSON.stringify({ items: [], pageNumber: 1, pageSize: 20,
+        totalElements: 0, totalPages: 0, hasPrevious: false, hasNext: false }),
+      { status: 200, headers: { "Content-Type": "application/json" } });
+    });
+
+    await client.listPlatformObjectRangeCandidates("space/one", 1, 20);
+
+    expect(request?.url).toBe("http://localhost/api/v1/knowledge-spaces/space%2Fone/object-storage-ranges?page=1&size=20");
+  });
+
+  it("用户提示按故障类型解释下一步且不泄露后端字段", () => {
+    const failures = [
+      new ApiRequestError(400, "COMMON.REQUEST.0001", "SQL error modelId=42", "trc-secret"),
+      new ApiRequestError(401, "AUTH.0001", "token expired", "trc-secret"),
+      new ApiRequestError(403, "AUTH.0002", "denied", "trc-secret"),
+      new ApiRequestError(409, "TENANT.CONFLICT", "duplicate tenantId=42", "trc-secret"),
+      new ApiRequestError(429, "RATE_LIMIT", "vendor raw response", "trc-secret"),
+      new ApiRequestError(503, "UPSTREAM", "endpoint failed", "trc-secret"),
+      new ApiRequestError(500, "INTERNAL", "stack trace", "trc-secret"),
+    ].map((error) => presentApiError(error, "建立租户"));
+
+    expect(failures.map((failure) => failure.title)).toEqual([
+      "建立租户未完成",
+      "登录状态已失效",
+      "当前账户不能执行此操作",
+      "建立租户未完成",
+      "请求过于频繁",
+      "依赖服务暂时不可用",
+      "服务暂时不可用",
+    ]);
+    expect(JSON.stringify(failures)).not.toMatch(/trace|sql|modelId|tenantId|vendor|endpoint|stack|COMMON|AUTH/i);
+  });
+
   it("建立平台账户只写入登录名和一次性初始口令", async () => {
     let request: Request | undefined;
     const client = authenticatedClient(async (input, init) => {
@@ -504,8 +622,8 @@ describe("ControlPlaneClient", () => {
       new ApiRequestError(
         403,
         "KNOWLEDGE_DATA.AUTHORIZATION.0001",
-        "没有执行该操作的权限",
-        "trace-001",
+        "当前账户不能执行此操作",
+        "",
       ),
     );
   });

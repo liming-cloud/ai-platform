@@ -30,7 +30,6 @@ import type { ConsoleRoute } from "../../session/console-route";
 type ProviderRoute = Extract<ConsoleRoute, { task: "providers" }>;
 type ViewState = "unauthenticated" | "loading" | "ready" | "error";
 const MODEL_DISCOVERY_TIMEOUT_MILLIS = 10_000;
-const PROVIDER_PROBE_TIMEOUT_MILLIS = 10_000;
 
 interface Failure {
   message: string;
@@ -64,11 +63,9 @@ export function ModelProviderWorkspace({
   const [discoveringConnectionId, setDiscoveringConnectionId] = useState<string>();
   const [creatingConnection, setCreatingConnection] = useState(false);
   const [rotationTarget, setRotationTarget] = useState<ProviderConnectionSummary>();
-  const [probeTarget, setProbeTarget] = useState<ProviderConnectionSummary>();
   const [submitting, setSubmitting] = useState(false);
   const [creationApiKey, setCreationApiKey] = useState("");
   const [rotationApiKey, setRotationApiKey] = useState("");
-  const [probeModelCode, setProbeModelCode] = useState("");
 
   const loadConnections = useCallback(async () => {
     if (!client.hasSession()) {
@@ -202,33 +199,6 @@ export function ModelProviderWorkspace({
     }
   }
 
-  async function probeConnection(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (probeTarget === undefined) return;
-    const modelCode = probeModelCode.trim();
-    if (modelCode.length === 0) {
-      setFailure({ message: "请输入用于最小验证的模型代码。", traceId: "" });
-      return;
-    }
-    setSubmitting(true);
-    setFailure(undefined);
-    try {
-      await client.probeProviderConnection(
-        probeTarget.id,
-        probeTarget.version,
-        modelCode,
-        PROVIDER_PROBE_TIMEOUT_MILLIS,
-      );
-      setProbeTarget(undefined);
-      setProbeModelCode("");
-      await loadConnections();
-    } catch (error) {
-      setFailure(toFailure(error));
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
   if (viewState === "unauthenticated") {
     return (
       <StatePanel
@@ -284,18 +254,16 @@ export function ModelProviderWorkspace({
         </header>
         <div className="member-directory-table" role="region" aria-label="供应商连接分页表格">
           <table>
-            <thead><tr><th>连接</th><th>厂商与区域</th><th>凭据与状态</th><th>最近探测</th><th>修订</th><th>操作</th></tr></thead>
-            <tbody>{connections.length === 0 ? <tr><td colSpan={6}>当前页没有供应商连接。</td></tr> : connections.map((connection) => (
+            <thead><tr><th>连接</th><th>厂商与区域</th><th>凭据与状态</th><th>最近探测</th><th>操作</th></tr></thead>
+            <tbody>{connections.length === 0 ? <tr><td colSpan={5}>当前页没有供应商连接。</td></tr> : connections.map((connection) => (
               <tr key={connection.id}>
                 <td>{connection.displayName}</td>
                 <td>{connection.providerKind} · {connection.region}</td>
                 <td><Badge appearance="tint" color={connection.status === "VERIFIED" ? "success" : "warning"}>{connection.status === "VERIFIED" ? "已验证" : "待验证"}</Badge> {connection.credentialConfigured ? "凭据已配置" : "未配置凭据"}</td>
                 <td>{connection.lastProbeSucceeded === true ? "通过" : connection.lastProbeSucceeded === false ? "未通过" : "尚未探测"}</td>
-                <td>{connection.version}</td>
                 <td><div className="task-actions">
-                  <Button appearance="secondary" disabled={submitting || !connection.credentialConfigured} onClick={() => setProbeTarget(connection)}>探测连接</Button>
                   <Button appearance="secondary" disabled={submitting} onClick={() => setRotationTarget(connection)}>轮换 API Key</Button>
-                  <Button appearance="primary" disabled={connection.status !== "VERIFIED" || !connection.credentialConfigured || discoveringConnectionId !== undefined} onClick={() => void discoverModels(connection)}>{discoveringConnectionId === connection.id ? "正在发现模型" : "发现可用模型"}</Button>
+                  <Button appearance="primary" disabled={connection.status === "DISABLED" || !connection.credentialConfigured || discoveringConnectionId !== undefined} onClick={() => void discoverModels(connection)}>{discoveringConnectionId === connection.id ? "正在验证并发现" : connection.status === "VERIFIED" ? "刷新模型候选" : "验证并发现模型"}</Button>
                   <Button appearance="secondary" onClick={() => onRouteChange({ ...route, connectionId: connection.id, discoveryPage: 1 })}>查看发现记录</Button>
                   <Button appearance="secondary" disabled={connection.status !== "VERIFIED"} onClick={() => onRouteChange({ navigationId: "models", task: "deployments", connectionId: connection.id, candidatePage: 1, deploymentPage: 1 })}>管理部署</Button>
                 </div></td>
@@ -327,11 +295,10 @@ export function ModelProviderWorkspace({
           </header>
           <div className="member-directory-table" role="region" aria-label="模型发现历史分页表格">
             <table>
-              <thead><tr><th>结果</th><th>连接修订</th><th>候选数量</th><th>下一步</th><th>有效至</th></tr></thead>
-              <tbody>{discoveries.length === 0 ? <tr><td colSpan={5}>当前页没有模型发现记录。</td></tr> : discoveries.map((discovery) => (
+              <thead><tr><th>结果</th><th>候选数量</th><th>下一步</th><th>有效至</th></tr></thead>
+              <tbody>{discoveries.length === 0 ? <tr><td colSpan={4}>当前页没有模型发现记录。</td></tr> : discoveries.map((discovery) => (
                 <tr key={discovery.discoveryId}>
-                  <td><Badge appearance="tint" color={discovery.succeeded ? "success" : "danger"}>{discovery.succeeded ? "发现成功" : "发现未完成"}</Badge> {discovery.resultCode}</td>
-                  <td>{discovery.providerConnectionRevision}</td>
+                  <td><Badge appearance="tint" color={discovery.succeeded ? "success" : "danger"}>{discovery.succeeded ? "发现成功" : "发现未完成"}</Badge></td>
                   <td>{discovery.candidateCount}</td>
                   <td>{discovery.nextStep === "CREATE_DEPLOYMENT" ? "可创建部署" : "需要重新发现"}</td>
                   <td>{formatDate(discovery.expiresAt)}</td>
@@ -353,7 +320,7 @@ export function ModelProviderWorkspace({
 
       <Dialog open={creatingConnection} onOpenChange={(_, data) => { if (!data.open && !submitting) setCreatingConnection(false); }}>
         <DialogSurface><DialogBody><DialogTitle>新建租户厂商连接</DialogTitle><form onSubmit={(event) => void createConnection(event)}><DialogContent>
-          <Text>Endpoint 和 API Key 仅用于本次受控写入；创建后页面不会回显二者。新连接需先完成探测。</Text>
+          <Text>Endpoint 和 API Key 仅用于本次受控写入；创建后页面不会回显二者。创建后可直接验证连接并发现模型。</Text>
           <Field label="连接名称" required><Input name="displayName" autoFocus disabled={submitting} /></Field>
           <Field label="厂商类型" required><Select name="providerKind" defaultValue="OPENAI_COMPATIBLE" disabled={submitting}><option value="OPENAI_COMPATIBLE">OpenAI 兼容接口</option><option value="OLLAMA">Ollama</option><option value="DETERMINISTIC">确定性开发连接</option></Select></Field>
           <Field label="受控 Endpoint" required><Input name="endpoint" type="url" placeholder="https://…/v1" disabled={submitting} /></Field>
@@ -364,17 +331,11 @@ export function ModelProviderWorkspace({
 
       <Dialog open={rotationTarget !== undefined} onOpenChange={(_, data) => { if (!data.open && !submitting) setRotationTarget(undefined); }}>
         <DialogSurface><DialogBody><DialogTitle>轮换连接 API Key</DialogTitle><form onSubmit={(event) => void rotateCredential(event)}><DialogContent>
-          <Text>轮换后连接修订会改变，既有模型发现和能力验证将失效；请重新探测连接并发现模型。</Text>
+          <Text>轮换后既有模型发现和能力验证将失效；请重新执行验证并发现模型。</Text>
           <Field label="新的 API Key" required><Input type="password" value={rotationApiKey} onChange={(_, data) => setRotationApiKey(data.value)} autoComplete="new-password" disabled={submitting} /></Field>
         </DialogContent><DialogActions><Button appearance="secondary" disabled={submitting} onClick={() => setRotationTarget(undefined)}>取消</Button><Button appearance="primary" type="submit" disabled={submitting}>{submitting ? "正在轮换" : "确认轮换"}</Button></DialogActions></form></DialogBody></DialogSurface>
       </Dialog>
 
-      <Dialog open={probeTarget !== undefined} onOpenChange={(_, data) => { if (!data.open && !submitting) setProbeTarget(undefined); }}>
-        <DialogSurface><DialogBody><DialogTitle>探测厂商连接</DialogTitle><form onSubmit={(event) => void probeConnection(event)}><DialogContent>
-          <Text>输入一个用于最小真实调用的模型代码。探测只保存安全结果摘要，不向浏览器返回厂商原始响应。</Text>
-          <Field label="模型代码" required><Input value={probeModelCode} onChange={(_, data) => setProbeModelCode(data.value)} disabled={submitting} /></Field>
-        </DialogContent><DialogActions><Button appearance="secondary" disabled={submitting} onClick={() => setProbeTarget(undefined)}>取消</Button><Button appearance="primary" type="submit" disabled={submitting}>{submitting ? "正在探测" : "开始探测"}</Button></DialogActions></form></DialogBody></DialogSurface>
-      </Dialog>
     </div>
   );
 }
@@ -420,9 +381,7 @@ function failureDescription(failure?: Failure): string {
   if (failure === undefined) {
     return "请稍后重试；如果问题持续存在，请联系平台运维人员。";
   }
-  return failure.traceId.length === 0
-    ? failure.message
-    : `${failure.message}，追踪标识：${failure.traceId}`;
+  return failure.message;
 }
 
 function FailureMessage({ failure }: { failure: Failure }) {

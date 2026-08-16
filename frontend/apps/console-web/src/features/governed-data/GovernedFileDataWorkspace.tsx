@@ -506,7 +506,7 @@ export function GovernedFileDataWorkspace({
             <article className="governed-file-result">
               <div>
                 <Title3>{sourceName || "受治理文件来源"}</Title3>
-                <Text>数据源编号：{source.dataSourceId}</Text>
+                <Text>文件来源已安全登记。</Text>
               </div>
               <Badge appearance="tint" color={source.status === "READY" ? "success" : source.status === "FAILED" ? "danger" : "warning"}>
                 {source.status}
@@ -556,7 +556,7 @@ export function GovernedFileDataWorkspace({
                   </Button>
                 ) : null}
                 {indexVersion ? (
-                  <Text>索引版本：{indexVersion.status}{indexVersion.failureCode ? `（${indexVersion.failureCode}）` : ""}</Text>
+                  <Text>索引状态：{indexVersion.status === "READY" ? "准备完成" : indexVersion.status === "FAILED" ? "构建未完成" : "正在构建"}</Text>
                 ) : null}
                 {indexVersion?.status === "READY" ? (
                   <Button appearance="primary" disabled={submitting} onClick={() => void publishIndex()}>
@@ -616,7 +616,7 @@ function failureDescription(failure?: Failure) {
   if (failure === undefined) {
     return "请稍后重试；如果问题持续存在，请联系平台运维人员。";
   }
-  return failure.traceId.length === 0 ? failure.message : `${failure.message}，追踪标识：${failure.traceId}`;
+  return failure.message;
 }
 
 function canProbe(source: GovernedDataSourceLifecycleResult): boolean {

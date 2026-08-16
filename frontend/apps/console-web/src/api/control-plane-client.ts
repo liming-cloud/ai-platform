@@ -61,16 +61,6 @@ export interface TenantMemberSummary {
   createdAt: string;
 }
 
-/** 当前租户自定义角色的最小安全投影，成员绑定只以计数呈现。 */
-export interface TenantCustomRoleSummary {
-  id: string;
-  name: string;
-  permissionCodes: string[];
-  version: number;
-  status: "ACTIVE" | "DISABLED";
-  boundMemberCount: number;
-}
-
 /** 平台建立租户只接受已存在主体这一业务资源目标。 */
 export interface TenantProvisioningInput {
   tenantCode: string;
@@ -91,7 +81,7 @@ export interface TextDataSource {
   id: string;
   knowledgeSpaceId: string;
   name: string;
-  status: string;
+  status: "DRAFT" | "VERIFIED" | "PUBLISHED" | "DISABLED";
   version: number;
   contentVersion: number;
   publishedContentVersion: number;
@@ -172,7 +162,7 @@ export interface ModelDeployment {
   contextWindow: number;
   outputLimit: number | null;
   verificationExpiresAt: string | null;
-  status: string;
+  status: "DRAFT" | "VERIFIED" | "PUBLISHED" | "DISABLED";
   availability: "HEALTHY" | "DEGRADED" | "UNAVAILABLE";
   nextStep: "VERIFY_CONNECTION" | "PROBE_MODEL" | "REPROBE_MODEL" | "PUBLISH" | "NONE";
   version: number;
@@ -397,6 +387,131 @@ export interface QueryAuditRecord {
   completedAt: string | null;
 }
 
+export type OperationsRange = "DAY_1" | "DAY_7" | "DAY_30";
+
+export interface ResourceStatusView {
+  total: number;
+  statuses: Record<string, number>;
+}
+
+export interface OperationsRates {
+  answerRate: number;
+  refusalRate: number;
+  failureRate: number;
+}
+
+export interface QueryOperationsView {
+  accepted: number;
+  answered: number;
+  refused: number;
+  failed: number;
+  running: number;
+  totalTokens: number;
+  rates: OperationsRates;
+  daily?: Array<{
+    date: string;
+    accepted: number;
+    answered: number;
+    refused: number;
+    failed: number;
+    totalTokens: number;
+  }>;
+}
+
+export interface OperationsNoticeView {
+  severity: "INFO" | "WARNING" | "CRITICAL" | string;
+  title: string;
+  description: string;
+  targetRoute: string;
+}
+
+interface OperationsOverviewBase {
+  range: OperationsRange;
+  periodFrom: string;
+  periodTo: string;
+  generatedAt: string;
+  staleAfter: string;
+  queries: QueryOperationsView;
+  notices: OperationsNoticeView[];
+}
+
+export interface PlatformOperationsOverviewView extends OperationsOverviewBase {
+  tenants: ResourceStatusView;
+  platformAdministrators: ResourceStatusView;
+  tenantAdministrators: ResourceStatusView;
+  tenantUsers: ResourceStatusView;
+  knowledgeSpaces: ResourceStatusView;
+  dataSources: ResourceStatusView;
+  indexes: ResourceStatusView;
+  indexJobs: ResourceStatusView;
+  platformModelConnections: ResourceStatusView;
+  platformModelDeployments: ResourceStatusView;
+  attentionTenantCount: number;
+}
+
+export interface PlatformTenantOperationsSummaryView {
+  tenantReference: string;
+  tenantName: string;
+  lifecycleStatus: string;
+  queries: QueryOperationsView;
+  attentionRequired: boolean;
+}
+
+export interface TenantOperationsOverviewView extends OperationsOverviewBase {
+  members: {
+    administrators: ResourceStatusView;
+    users: ResourceStatusView;
+  };
+  knowledgeSpaces: ResourceStatusView;
+  dataSources: ResourceStatusView;
+  indexes: ResourceStatusView;
+  indexJobs: ResourceStatusView;
+  modelConnections: ResourceStatusView;
+  modelDeployments: ResourceStatusView;
+  modelConfigurations: ResourceStatusView;
+  assistants: number;
+  assistantVersions: ResourceStatusView;
+  assistantTestRuns: ResourceStatusView;
+  evaluationRuns: ResourceStatusView;
+  releaseDecisions: ResourceStatusView;
+  quota: {
+    dailyUsed: number;
+    dailyLimit: number;
+    concurrentUsed: number;
+    concurrentLimit: number;
+  };
+}
+
+export interface PlatformAccountCandidate {
+  accountReference: string;
+  loginName: string;
+  status: string;
+}
+
+export type TenantMemberCandidate = PlatformAccountCandidate;
+
+export interface EvaluationDatasetCandidate {
+  datasetReference: string;
+  entryCount: number;
+  classification: string;
+  createdAt: string;
+}
+
+export interface EvaluationAssistantCandidate {
+  assistantId: string;
+  displayName: string;
+  assistantVersionId: string;
+  versionNumber: number;
+  publishedAt: string;
+}
+
+export interface PlatformObjectRangeCandidate {
+  rangeReference: string;
+  selectionRevision: number;
+  displayName: string;
+  objectCount: number;
+}
+
 /**
  * 已完成评测运行的受限读取投影；不包含数据集引用、输入输出、证据明细或模型路由信息。
  */
@@ -538,6 +653,22 @@ export class ControlPlaneClient {
     );
   }
 
+  async listPlatformAccountCandidates(
+    query = "",
+    page = 1,
+    size = 20,
+  ): Promise<PageResult<PlatformAccountCandidate>> {
+    const parameters = new URLSearchParams({
+      purpose: "TENANT_INITIAL_ADMINISTRATOR",
+      q: query.trim(),
+      page: String(page),
+      size: String(size),
+    });
+    return this.request<PageResult<PlatformAccountCandidate>>(
+      `/platform/accounts/candidates?${parameters}`,
+    );
+  }
+
   async createPlatformAccount(input: { loginName: string; password: string }): Promise<PlatformAccountSummary> {
     return this.request<PlatformAccountSummary>("/platform/accounts", {
       method: "POST",
@@ -600,6 +731,32 @@ export class ControlPlaneClient {
     return this.transitionTenant(tenantId, "restore");
   }
 
+  async getTenantOperationsOverview(
+    range: OperationsRange = "DAY_7",
+  ): Promise<TenantOperationsOverviewView> {
+    return this.request<TenantOperationsOverviewView>(
+      `/operations/overview?range=${range}`,
+    );
+  }
+
+  async getPlatformOperationsOverview(
+    range: OperationsRange = "DAY_7",
+  ): Promise<PlatformOperationsOverviewView> {
+    return this.request<PlatformOperationsOverviewView>(
+      `/platform/operations/overview?range=${range}`,
+    );
+  }
+
+  async listPlatformTenantOperations(
+    range: OperationsRange = "DAY_7",
+    page = 1,
+    size = 20,
+  ): Promise<PageResult<PlatformTenantOperationsSummaryView>> {
+    return this.request<PageResult<PlatformTenantOperationsSummaryView>>(
+      `/platform/operations/tenants?range=${range}&page=${page}&size=${size}`,
+    );
+  }
+
   async getQueryUsage(from?: string, to?: string): Promise<QueryUsage> {
     const query = new URLSearchParams();
     if (from !== undefined) {
@@ -618,6 +775,34 @@ export class ControlPlaneClient {
   ): Promise<PageResult<QueryAuditRecord>> {
     return this.request<PageResult<QueryAuditRecord>>(
       `/audit-records?pageNumber=${pageNumber}&pageSize=${pageSize}`,
+    );
+  }
+
+  async listEvaluationDatasetCandidates(
+    page = 1,
+    size = 20,
+  ): Promise<PageResult<EvaluationDatasetCandidate>> {
+    return this.request<PageResult<EvaluationDatasetCandidate>>(
+      `/evaluation-datasets/candidates?page=${page}&size=${size}`,
+    );
+  }
+
+  async listEvaluationAssistantCandidates(
+    pageNumber = 1,
+    pageSize = 20,
+  ): Promise<PageResult<EvaluationAssistantCandidate>> {
+    return this.request<PageResult<EvaluationAssistantCandidate>>(
+      `/query-assistants?pageNumber=${pageNumber}&pageSize=${pageSize}`,
+    );
+  }
+
+  async listPlatformObjectRangeCandidates(
+    knowledgeSpaceId: string,
+    page = 1,
+    size = 20,
+  ): Promise<PageResult<PlatformObjectRangeCandidate>> {
+    return this.request<PageResult<PlatformObjectRangeCandidate>>(
+      `/knowledge-spaces/${encodeURIComponent(knowledgeSpaceId)}/object-storage-ranges?page=${page}&size=${size}`,
     );
   }
 
@@ -1013,72 +1198,6 @@ export class ControlPlaneClient {
     );
   }
 
-  /** 自定义角色目录始终由服务端分页，不能改为浏览器全量读取。 */
-  async listTenantCustomRoles(
-    pageNumber = 1,
-    pageSize = 20,
-  ): Promise<PageResult<TenantCustomRoleSummary>> {
-    return this.request<PageResult<TenantCustomRoleSummary>>(
-      `/tenant/custom-roles?pageNumber=${pageNumber}&pageSize=${pageSize}`,
-    );
-  }
-
-  async createTenantCustomRole(
-    name: string,
-    permissions: string[],
-  ): Promise<TenantCustomRoleSummary> {
-    return this.request<TenantCustomRoleSummary>("/tenant/custom-roles", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, permissions }),
-    });
-  }
-
-  async changeTenantCustomRolePermissions(
-    customRoleId: string,
-    permissions: string[],
-  ): Promise<TenantCustomRoleSummary> {
-    return this.request<TenantCustomRoleSummary>(
-      `/tenant/custom-roles/${encodeURIComponent(customRoleId)}/permissions`,
-      {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ permissions }),
-      },
-    );
-  }
-
-  async disableTenantCustomRole(customRoleId: string): Promise<TenantCustomRoleSummary> {
-    return this.request<TenantCustomRoleSummary>(
-      `/tenant/custom-roles/${encodeURIComponent(customRoleId)}/disable`,
-      { method: "POST" },
-    );
-  }
-
-  async bindTenantMemberCustomRole(
-    membershipId: string,
-    customRoleId: string,
-  ): Promise<{ membershipId: string; customRoleId: string; permissionVersion: number }> {
-    return this.request(
-      `/tenant/members/${encodeURIComponent(membershipId)}/custom-role-bindings`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ customRoleId }),
-      },
-    );
-  }
-
-  async unbindTenantMemberCustomRole(
-    membershipId: string,
-    customRoleId: string,
-  ): Promise<{ membershipId: string; customRoleId: string; permissionVersion: number }> {
-    return this.request(
-      `/tenant/members/${encodeURIComponent(membershipId)}/custom-role-bindings/${encodeURIComponent(customRoleId)}`,
-      { method: "DELETE" },
-    );
-  }
-
   /** 建立成员只指定既有全局主体；租户与操作者始终由浏览器会话恢复。 */
   async establishTenantMember(
     subjectId: string,
@@ -1090,6 +1209,21 @@ export class ControlPlaneClient {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ subjectId }),
       },
+    );
+  }
+
+  async listTenantMemberCandidates(
+    query = "",
+    page = 1,
+    size = 20,
+  ): Promise<PageResult<TenantMemberCandidate>> {
+    const parameters = new URLSearchParams({
+      q: query.trim(),
+      page: String(page),
+      size: String(size),
+    });
+    return this.request<PageResult<TenantMemberCandidate>>(
+      `/tenant/member-candidates?${parameters}`,
     );
   }
 
@@ -1538,11 +1672,46 @@ export class ApiRequestError extends Error {
   }
 }
 
+export interface UserFacingError {
+  title: string;
+  description: string;
+}
+
+/**
+ * 将服务端故障压缩为面向当前任务的安全提示，原始响应只保留在诊断链路中。
+ */
+export function presentApiError(error: unknown, operation: string): UserFacingError {
+  const status = error instanceof ApiRequestError ? error.status : 500;
+  if (status === 401) {
+    return { title: "登录状态已失效", description: "请重新登录后继续刚才的操作。" };
+  }
+  if (status === 403) {
+    return { title: "当前账户不能执行此操作", description: "请联系管理员确认您的职责范围。" };
+  }
+  if (status === 409) {
+    return { title: `${operation}未完成`, description: "相关资源已变化或存在同名项，请刷新后核对并重试。" };
+  }
+  if (status === 429) {
+    return { title: "请求过于频繁", description: "请稍等片刻后再试。" };
+  }
+  if (status === 502 || status === 503 || status === 504) {
+    return { title: "依赖服务暂时不可用", description: "请稍后重试；若持续发生，请联系平台管理员。" };
+  }
+  if (status >= 400 && status < 500) {
+    return { title: `${operation}未完成`, description: "请检查页面中标记的信息后重试。" };
+  }
+  return { title: "服务暂时不可用", description: "请稍后重试。" };
+}
+
 async function toApiRequestError(response: Response): Promise<ApiRequestError> {
+  const safeMessage = presentApiError(
+    new ApiRequestError(response.status, "REQUEST_FAILED", "", ""),
+    "请求",
+  ).title;
   const fallback = new ApiRequestError(
     response.status,
     "REQUEST_FAILED",
-    "请求处理失败，请稍后重试",
+    safeMessage,
     "",
   );
   if (!response.headers.get("Content-Type")?.includes("application/json")) {
@@ -1552,14 +1721,12 @@ async function toApiRequestError(response: Response): Promise<ApiRequestError> {
     const body = await response.json() as Partial<ApiErrorBody>;
     if (
       typeof body.code === "string"
-      && typeof body.message === "string"
-      && typeof body.traceId === "string"
     ) {
       return new ApiRequestError(
         response.status,
         body.code,
-        body.message,
-        body.traceId,
+        safeMessage,
+        "",
       );
     }
     return fallback;

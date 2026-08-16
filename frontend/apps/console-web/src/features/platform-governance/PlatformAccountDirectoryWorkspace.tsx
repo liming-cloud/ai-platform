@@ -178,14 +178,14 @@ export function PlatformAccountDirectoryWorkspace({
           <article className="model-configuration-card" key={account.subjectId}>
             <div>
               <Title3>{account.loginName}</Title3>
-              <Text>主体编号：{account.subjectId}；修订：{account.version}；建立：{account.createdAt}</Text>
+              <Text>建立于 {new Date(account.createdAt).toLocaleString("zh-CN")}</Text>
               <div className="task-actions" aria-label={`${account.loginName} 的已绑定角色`}>
                 {account.activeRoleCodes.length === 0 ? <Text>尚未绑定平台角色</Text> : account.activeRoleCodes.map((roleCode) => (
                   <Badge key={roleCode} appearance="outline">{roleLabel(roleCode)}</Badge>
                 ))}
               </div>
             </div>
-            <Badge appearance="tint" color={account.status === "ACTIVE" ? "success" : "danger"}>{account.status}</Badge>
+            <Badge appearance="tint" color={account.status === "ACTIVE" ? "success" : "danger"}>{account.status === "ACTIVE" ? "已启用" : "已停用"}</Badge>
             {account.status === "ACTIVE" ? (
               <div className="task-actions" aria-label={`${account.loginName} 的角色操作`}>
                 <Button appearance="secondary" disabled={busy} onClick={() => setDialog({ kind: "reset", account })}>重置口令</Button>

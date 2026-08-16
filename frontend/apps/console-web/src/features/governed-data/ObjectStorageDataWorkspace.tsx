@@ -18,6 +18,7 @@ import {
   type GovernedDataSourceLifecycleResult,
   type IndexVersion,
   type KnowledgeSpace,
+  type PlatformObjectRangeCandidate,
 } from "../../api/control-plane-client";
 import type { ConsoleRoute } from "../../session/console-route";
 import { modelRuntimeFailure, requiresSessionRestart } from "./GovernedFileDataWorkspace";
@@ -34,7 +35,7 @@ type ViewState = "unauthenticated" | "loading" | "ready" | "error";
 /**
  * 知识管理员的 OBJECT_STORAGE 受治理来源任务。
  *
- * <p>页面只接收部署已签发的范围标识与选择修订；不会读取或展示对象位置、桶名、对象键、正文或凭据。</p>
+ * <p>页面只展示服务端返回的名称化授权范围；不会要求用户理解内部引用、修订、对象位置或凭据。</p>
  */
 export function ObjectStorageDataWorkspace({
   client,
@@ -55,8 +56,10 @@ export function ObjectStorageDataWorkspace({
   const [spaceHasNext, setSpaceHasNext] = useState(false);
   const [spaceTotal, setSpaceTotal] = useState(0);
   const [name, setName] = useState("");
-  const [rangeId, setRangeId] = useState("");
-  const [selectionRevision, setSelectionRevision] = useState("");
+  const [rangeCandidates, setRangeCandidates] = useState<PlatformObjectRangeCandidate[]>([]);
+  const [selectedRangeReference, setSelectedRangeReference] = useState("");
+  const [rangePage, setRangePage] = useState(1);
+  const [rangeHasNext, setRangeHasNext] = useState(false);
   const [source, setSource] = useState<GovernedDataSourceLifecycleResult>();
   const [publishedArtifactId, setPublishedArtifactId] = useState<string>();
   const [indexVersion, setIndexVersion] = useState<IndexVersion>();
@@ -74,8 +77,10 @@ export function ObjectStorageDataWorkspace({
     setSpaceHasNext(false);
     setSpaceTotal(0);
     setName("");
-    setRangeId("");
-    setSelectionRevision("");
+    setRangeCandidates([]);
+    setSelectedRangeReference("");
+    setRangePage(1);
+    setRangeHasNext(false);
     setSource(undefined);
     setPublishedArtifactId(undefined);
     setIndexVersion(undefined);
@@ -126,12 +131,28 @@ export function ObjectStorageDataWorkspace({
     return () => window.clearTimeout(timeout);
   }, [load, sessionRevision]);
 
+  useEffect(() => {
+    let active = true;
+    if (!knowledgeSpaceId) {
+      return () => { active = false; };
+    }
+    void client.listPlatformObjectRangeCandidates(knowledgeSpaceId, rangePage).then((page) => {
+      if (!active) return;
+      setRangeCandidates(page.items);
+      setRangeHasNext(page.hasNext);
+      setSelectedRangeReference((current) => page.items.some((item) => item.rangeReference === current)
+        ? current : page.items[0]?.rangeReference ?? "");
+    }).catch((error: unknown) => {
+      if (active) setFailure(toFailure(error));
+    });
+    return () => { active = false; };
+  }, [client, knowledgeSpaceId, rangePage]);
+
   async function register(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const revision = Number(selectionRevision);
-    if (knowledgeSpaceId.length === 0 || name.trim().length === 0 || rangeId.trim().length === 0
-      || !Number.isSafeInteger(revision) || revision < 1) {
-      setFailure({ message: "请选择知识空间，并填写来源名称、平台签发范围标识和正整数选择修订。", traceId: "" });
+    const range = rangeCandidates.find((candidate) => candidate.rangeReference === selectedRangeReference);
+    if (knowledgeSpaceId.length === 0 || name.trim().length === 0 || range === undefined) {
+      setFailure({ message: "请选择知识空间、来源名称和一个可用对象范围。", traceId: "" });
       return;
     }
     setSubmitting(true);
@@ -140,8 +161,8 @@ export function ObjectStorageDataWorkspace({
       setSource(await client.registerObjectStorageDataSource(
         knowledgeSpaceId,
         name.trim(),
-        rangeId.trim(),
-        revision,
+        range.rangeReference,
+        range.selectionRevision,
       ));
       setPublishedArtifactId(undefined);
       setIndexVersion(undefined);
@@ -309,18 +330,19 @@ export function ObjectStorageDataWorkspace({
   return (
     <div className="governed-file-workspace">
       <div className="governance-toolbar">
-        <Text>仅接收平台签发范围标识与选择修订；对象位置、桶名、对象键、正文和凭据均不会展示或提交。</Text>
+        <Text>对象范围由服务端按当前租户和知识空间筛选；对象位置、桶名、对象键、正文和凭据均不会展示。</Text>
         <div className="task-actions"><Button appearance="subtle" icon={<ArrowClockwise20Regular />} onClick={() => void load()}>刷新</Button><Button appearance="subtle" onClick={() => void logout()}>退出登录</Button></div>
       </div>
       {failure ? <FailureMessage failure={failure} /> : null}
       {spaces.length === 0 ? <StatePanel kind="empty" title="尚无可用知识空间" description="先在“首份文本发布”任务创建知识空间，再登记平台对象存储范围。" /> : (
         <section className="governed-file-section">
-          <header className="task-heading"><Title3>登记平台对象存储范围</Title3><Text>范围标识由部署签发；控制台不会枚举平台范围或读取其内部位置。</Text></header>
+          <header className="task-heading"><Title3>登记平台对象存储范围</Title3><Text>从当前知识空间已授权的范围中选择，无需输入内部引用或修订。</Text></header>
           <form className="governed-file-form" onSubmit={register}>
             <Field label="知识空间" required><Select value={knowledgeSpaceId} disabled={submitting || source !== undefined} onChange={(_, data) => {
               setSource(undefined);
               setPublishedArtifactId(undefined);
               setIndexVersion(undefined);
+              setRangePage(1);
               onRouteChange({ ...route, knowledgeSpaceId: data.value || undefined });
             }}>{spaces.map((space) => <option key={space.id} value={space.id}>{space.name}</option>)}</Select></Field>
             <PagedResourceNavigation
@@ -344,12 +366,20 @@ export function ObjectStorageDataWorkspace({
               }}
             />
             <Field label="来源名称" required><input className="governed-file-name" value={name} disabled={submitting || source !== undefined} onChange={(event) => setName(event.target.value)} /></Field>
-            <Field label="平台签发范围标识" required><input className="governed-file-name" value={rangeId} disabled={submitting || source !== undefined} onChange={(event) => setRangeId(event.target.value)} /></Field>
-            <Field label="范围选择修订" required><input className="governed-file-name" inputMode="numeric" value={selectionRevision} disabled={submitting || source !== undefined} onChange={(event) => setSelectionRevision(event.target.value)} /></Field>
+            <Field label="已授权对象范围" required>
+              <Select value={selectedRangeReference} disabled={submitting || source !== undefined}
+                onChange={(_, data) => setSelectedRangeReference(data.value)}>
+                {rangeCandidates.map((range) => <option key={range.rangeReference} value={range.rangeReference}>{range.displayName}</option>)}
+              </Select>
+            </Field>
+            <PagedResourceNavigation label="对象范围" page={rangePage} total={rangeCandidates.length}
+              hasPrevious={rangePage > 1} hasNext={rangeHasNext} disabled={submitting || source !== undefined}
+              onPrevious={() => setRangePage((page) => page - 1)} onNext={() => setRangePage((page) => page + 1)} />
+            {rangeCandidates.length === 0 ? <Text>当前知识空间尚未配置可用对象范围。</Text> : null}
             {source === undefined ? <Button appearance="primary" type="submit" disabled={submitting}>{submitting ? "正在登记" : "登记对象存储范围"}</Button> : null}
           </form>
           {source ? <article className="governed-file-result">
-            <div><Title3>{name || "对象存储来源"}</Title3><Text>数据源编号：{source.dataSourceId}</Text></div>
+            <div><Title3>{name || "对象存储来源"}</Title3><Text>对象范围已安全登记。</Text></div>
             <Badge appearance="tint" color="warning">{source.status}</Badge>
             {canBuildObjectStorageIndex(source, publishedArtifactId) ? <EmbeddingModelConfigurationPicker
               client={client}
@@ -370,7 +400,7 @@ export function ObjectStorageDataWorkspace({
               {canPublishObjectStorageArtifact(source, publishedArtifactId) && source.syncArtifactId !== null ? <Button appearance="primary" disabled={probing || synchronizing || publishing} onClick={() => void publish()}>{publishing ? "正在发布" : "发布同步产物"}</Button> : null}
               {publishedArtifactId === source.syncArtifactId ? <Text>同步产物已发布。</Text> : null}
               {canBuildObjectStorageIndex(source, publishedArtifactId) ? <Button appearance="primary" disabled={probing || synchronizing || publishing || buildingIndex} onClick={() => void buildIndex()}>{buildingIndex ? "正在建立索引" : "创建索引版本"}</Button> : null}
-              {indexVersion ? <Text>索引版本：{indexVersion.status}{indexVersion.failureCode ? `（${indexVersion.failureCode}）` : ""}</Text> : null}
+              {indexVersion ? <Text>索引状态：{indexVersion.status === "READY" ? "准备完成" : indexVersion.status === "FAILED" ? "构建未完成" : "正在构建"}</Text> : null}
               {indexVersion?.status === "READY" ? <Button appearance="primary" disabled={probing || synchronizing || publishing || buildingIndex} onClick={() => void publishIndex()}>发布索引版本</Button> : null}
             </div>
           </article> : null}
@@ -414,10 +444,10 @@ function FailureMessage({ failure }: { failure: Failure }) {
 
 function failureDescription(failure?: Failure): string {
   if (failure === undefined) return "请稍后重试。";
-  return failure.traceId.length === 0 ? failure.message : `${failure.message}，追踪标识：${failure.traceId}`;
+  return failure.message;
 }
 
 function toFailure(error: unknown): Failure {
   if (error instanceof ApiRequestError) return { message: error.message, traceId: error.traceId };
-  return { message: error instanceof Error ? error.message : "请求失败", traceId: "" };
+  return { message: "服务暂时不可用，请稍后重试。", traceId: "" };
 }

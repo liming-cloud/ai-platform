@@ -5,6 +5,7 @@ export type ConsoleNavigationId = typeof NAVIGATION[number]["id"];
 
 /** 统一控制台的可恢复工作区状态；列表页码只描述服务端分页位置。 */
 export type ConsoleRoute =
+  | { navigationId: "operations"; task: "overview" }
   | { navigationId: "access"; task: "members"; page: number }
   | {
     navigationId: "data";
@@ -63,7 +64,9 @@ export type ConsoleRoute =
   | { navigationId: "governance"; task: "evaluation" }
   | { navigationId: "query"; task: "ask"; assistantPage: number }
   | { navigationId: "platform-workspace"; task: "workspace" }
+  | { navigationId: "platform-operations"; task: "overview"; page: number }
   | { navigationId: "platform"; task: "tenants"; page: number }
+  | { navigationId: "platform"; task: "create"; step: 1 | 2 | 3 }
   | { navigationId: "platform-accounts"; task: "accounts"; page: number }
   | { navigationId: "platform-model-supply"; task: "connections"; page: number }
   | {
@@ -84,6 +87,8 @@ export type AuthorizedConsoleRoute =
 /** 返回一级导航的稳定入口，供根路径首次进入和侧栏切换共同使用。 */
 export function defaultConsoleRoute(navigationId: ConsoleNavigationId): ConsoleRoute {
   switch (navigationId) {
+    case "operations":
+      return { navigationId, task: "overview" };
     case "access":
       return { navigationId, task: "members", page: 1 };
     case "data":
@@ -102,6 +107,8 @@ export function defaultConsoleRoute(navigationId: ConsoleNavigationId): ConsoleR
       return { navigationId, task: "ask", assistantPage: 1 };
     case "platform-workspace":
       return { navigationId, task: "workspace" };
+    case "platform-operations":
+      return { navigationId, task: "overview", page: 1 };
     case "platform":
       return { navigationId, task: "tenants", page: 1 };
     case "platform-accounts":
@@ -116,6 +123,9 @@ export function defaultConsoleRoute(navigationId: ConsoleNavigationId): ConsoleR
  */
 export function parseConsoleRoute(pathname: string, search: string): ConsoleRoute | undefined {
   const routePath = normalizedPath(pathname);
+  if (routePath === "/operations") {
+    return { navigationId: "operations", task: "overview" };
+  }
   if (routePath === "/data/files") {
     const parameters = new URLSearchParams(search);
     return {
@@ -214,11 +224,25 @@ export function parseConsoleRoute(pathname: string, search: string): ConsoleRout
   if (routePath === "/platform") {
     return { navigationId: "platform-workspace", task: "workspace" };
   }
+  if (routePath === "/platform/operations") {
+    return {
+      navigationId: "platform-operations",
+      task: "overview",
+      page: positivePage(new URLSearchParams(search).get("page")),
+    };
+  }
   if (routePath === "/platform/tenants") {
     return {
       navigationId: "platform",
       task: "tenants",
       page: positivePage(new URLSearchParams(search).get("page")),
+    };
+  }
+  if (routePath === "/platform/tenants/new") {
+    return {
+      navigationId: "platform",
+      task: "create",
+      step: provisioningStep(new URLSearchParams(search).get("step")),
     };
   }
   if (routePath === "/platform/accounts") {
@@ -252,6 +276,9 @@ export function parseConsoleRoute(pathname: string, search: string): ConsoleRout
 
 /** 将可恢复状态编码为规范 URL，避免页内状态与浏览器地址不一致。 */
 export function formatConsoleRoute(route: ConsoleRoute): string {
+  if (route.navigationId === "operations") {
+    return "/operations";
+  }
   if (route.navigationId === "access") {
     return `/access/members?page=${route.page}`;
   }
@@ -282,8 +309,13 @@ export function formatConsoleRoute(route: ConsoleRoute): string {
   if (route.navigationId === "platform-workspace") {
     return "/platform";
   }
+  if (route.navigationId === "platform-operations") {
+    return `/platform/operations?page=${route.page}`;
+  }
   if (route.navigationId === "platform") {
-    return `/platform/tenants?page=${route.page}`;
+    return route.task === "tenants"
+      ? `/platform/tenants?page=${route.page}`
+      : `/platform/tenants/new?step=${route.step}`;
   }
   if (route.navigationId === "platform-accounts") {
     return `/platform/accounts?page=${route.page}`;
@@ -318,6 +350,10 @@ function positivePage(value: string | null): number {
     return 1;
   }
   return Number(value);
+}
+
+function provisioningStep(value: string | null): 1 | 2 | 3 {
+  return value === "2" ? 2 : value === "3" ? 3 : 1;
 }
 
 function nonBlankParameter(value: string | null): string | undefined {

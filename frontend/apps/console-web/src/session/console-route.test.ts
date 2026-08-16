@@ -7,6 +7,35 @@ import {
 } from "./console-route";
 
 describe("统一控制台路由", () => {
+  it("两级运营总览使用稳定入口并恢复平台租户摘要页码", () => {
+    expect(defaultConsoleRoute("operations")).toEqual({
+      navigationId: "operations",
+      task: "overview",
+    });
+    expect(parseConsoleRoute("/operations", "")).toEqual({
+      navigationId: "operations",
+      task: "overview",
+    });
+    expect(formatConsoleRoute({ navigationId: "operations", task: "overview" }))
+      .toBe("/operations");
+
+    expect(defaultConsoleRoute("platform-operations")).toEqual({
+      navigationId: "platform-operations",
+      task: "overview",
+      page: 1,
+    });
+    expect(parseConsoleRoute("/platform/operations", "?page=3")).toEqual({
+      navigationId: "platform-operations",
+      task: "overview",
+      page: 3,
+    });
+    expect(formatConsoleRoute({
+      navigationId: "platform-operations",
+      task: "overview",
+      page: 3,
+    })).toBe("/platform/operations?page=3");
+  });
+
   it("平台运营员工作区使用固定的无数据入口", () => {
     expect(defaultConsoleRoute("platform-workspace")).toEqual({
       navigationId: "platform-workspace",
@@ -160,6 +189,21 @@ describe("统一控制台路由", () => {
     });
     expect(formatConsoleRoute({ navigationId: "platform", task: "tenants", page: 2 }))
       .toBe("/platform/tenants?page=2");
+  });
+
+  it("建立租户使用独立三步路由且拒绝无效步骤", () => {
+    expect(parseConsoleRoute("/platform/tenants/new", "?step=2")).toEqual({
+      navigationId: "platform",
+      task: "create",
+      step: 2,
+    });
+    expect(parseConsoleRoute("/platform/tenants/new", "?step=8")).toEqual({
+      navigationId: "platform",
+      task: "create",
+      step: 1,
+    });
+    expect(formatConsoleRoute({ navigationId: "platform", task: "create", step: 3 }))
+      .toBe("/platform/tenants/new?step=3");
   });
 
   it("平台账户目录以独立能力入口和 URL 恢复服务端页码", () => {

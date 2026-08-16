@@ -328,7 +328,7 @@ export function IndexBuildReview({
         description={
           indexVersion === undefined
             ? "系统将固定数据快照、分块规则和嵌入模型版本，并在后台生成可核验的索引。"
-            : `上次构建未完成，错误码为 ${indexVersion.failureCode ?? "未知"}。重新构建会创建新版本，不覆盖失败记录。`
+            : "上次构建未完成。请核对数据与模型状态后重新构建；失败记录会保留供平台诊断。"
         }
       >
         {embeddingModelPicker}
@@ -366,10 +366,7 @@ export function IndexBuildReview({
           <dt>文本分块</dt>
           <dd>{ready ? `${indexVersion.chunkCount} 个` : "计算中"}</dd>
         </div>
-        <div>
-          <dt>索引版本</dt>
-          <dd>{indexVersion.version}</dd>
-        </div>
+        <div><dt>可查询状态</dt><dd>{ready ? "准备完成" : "尚未完成"}</dd></div>
         <div>
           <dt>发布约束</dt>
           <dd>{ready ? "允许发布" : "等待构建完成"}</dd>
@@ -406,7 +403,6 @@ export function WorkflowFeedback({
       <MessageBarBody>
         <MessageBarTitle>{titles[feedback.kind]}</MessageBarTitle>
         {feedback.message}
-        {feedback.traceId ? `，追踪标识：${feedback.traceId}` : ""}
       </MessageBarBody>
     </MessageBar>
   );

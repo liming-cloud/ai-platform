@@ -67,7 +67,6 @@ export function StructuredDatasetRegistrationWorkspace({
   const [spaceHasNext, setSpaceHasNext] = useState(false);
   const [spaceTotal, setSpaceTotal] = useState(0);
   const [name, setName] = useState("");
-  const [mappingVersion, setMappingVersion] = useState("dataset-v1");
   const [fields, setFields] = useState<StructuredDatasetFieldInput[]>(defaultFields);
   const [contentField, setContentField] = useState("content");
   const [titleField, setTitleField] = useState("title");
@@ -90,7 +89,6 @@ export function StructuredDatasetRegistrationWorkspace({
     setSpaceHasNext(false);
     setSpaceTotal(0);
     setName("");
-    setMappingVersion("dataset-v1");
     setFields(defaultFields());
     setContentField("content");
     setTitleField("title");
@@ -150,8 +148,8 @@ export function StructuredDatasetRegistrationWorkspace({
 
   async function register(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (knowledgeSpaceId.length === 0 || name.trim().length === 0 || mappingVersion.trim().length === 0 || csv === undefined) {
-      setFailure({ message: "请选择知识空间，填写数据集名称和映射版本，并选择 UTF-8 CSV。", traceId: "" });
+    if (knowledgeSpaceId.length === 0 || name.trim().length === 0 || csv === undefined) {
+      setFailure({ message: "请选择知识空间，填写数据集名称，并选择 UTF-8 CSV。", traceId: "" });
       return;
     }
     setSubmitting(true);
@@ -160,7 +158,7 @@ export function StructuredDatasetRegistrationWorkspace({
       const registered = await client.registerStructuredDataset({
         knowledgeSpaceId,
         name: name.trim(),
-        mappingVersion: mappingVersion.trim(),
+        mappingVersion: "dataset-v1",
         contentField,
         titleField: titleField || null,
         fields,
@@ -411,9 +409,6 @@ export function StructuredDatasetRegistrationWorkspace({
             <Field label="数据集名称" required>
               <input className="governed-file-name" value={name} disabled={submitting || source !== undefined} onChange={(event) => setName(event.target.value)} />
             </Field>
-            <Field label="映射版本" required>
-              <input className="governed-file-name" value={mappingVersion} disabled={submitting || source !== undefined} onChange={(event) => setMappingVersion(event.target.value)} />
-            </Field>
             <Field label="字段映射" required>
               <div className="task-actions">
                 {fields.map((field, index) => (
@@ -457,7 +452,7 @@ export function StructuredDatasetRegistrationWorkspace({
             <article className="governed-file-result">
               <div>
                 <Title3>{name || "结构化数据集"}</Title3>
-                <Text>数据源编号：{source.dataSourceId}</Text>
+                <Text>字段映射和私有文件已安全登记。</Text>
               </div>
               <Badge appearance="tint" color="warning">{source.status}</Badge>
               {canBuildStructuredDatasetIndex(source, publishedArtifactId) ? (
@@ -496,7 +491,7 @@ export function StructuredDatasetRegistrationWorkspace({
                     {buildingIndex ? "正在建立索引" : "创建索引版本"}
                   </Button>
                 ) : null}
-                {indexVersion ? <Text>索引版本：{indexVersion.status}{indexVersion.failureCode ? `（${indexVersion.failureCode}）` : ""}</Text> : null}
+                {indexVersion ? <Text>索引状态：{indexVersion.status === "READY" ? "准备完成" : indexVersion.status === "FAILED" ? "构建未完成" : "正在构建"}</Text> : null}
                 {indexVersion?.status === "READY" ? (
                   <Button appearance="primary" disabled={synchronizing || publishing || buildingIndex} onClick={() => void publishIndex()}>
                     发布索引版本
@@ -538,7 +533,7 @@ function failureDescription(failure?: Failure) {
   if (failure === undefined) {
     return "请稍后重试；如果问题持续存在，请联系平台运维人员。";
   }
-  return failure.traceId.length === 0 ? failure.message : `${failure.message}，追踪标识：${failure.traceId}`;
+  return failure.message;
 }
 
 function FailureMessage({ failure }: { failure: Failure }) {

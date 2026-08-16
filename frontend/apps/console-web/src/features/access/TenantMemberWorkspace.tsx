@@ -11,14 +11,17 @@ import {
   MessageBar,
   MessageBarBody,
   MessageBarTitle,
+  Radio,
+  RadioGroup,
   Text,
   Title3,
 } from "@fluentui/react-components";
 import { StatePanel } from "@foundation/design-system";
 import { useCallback, useEffect, useState } from "react";
 import {
-  ApiRequestError,
+  presentApiError,
   type ControlPlaneClient,
+  type TenantMemberCandidate,
   type TenantMemberSummary,
 } from "../../api/control-plane-client";
 import type { ConsoleRoute } from "../../session/console-route";
@@ -51,7 +54,12 @@ export function TenantMemberWorkspace({
   const [roleToRevoke, setRoleToRevoke] = useState<string>();
   const [selectedRole, setSelectedRole] = useState("TENANT_USER");
   const [establishmentOpen, setEstablishmentOpen] = useState(false);
-  const [subjectId, setSubjectId] = useState("");
+  const [candidateQuery, setCandidateQuery] = useState("");
+  const [candidatePage, setCandidatePage] = useState(1);
+  const [candidates, setCandidates] = useState<TenantMemberCandidate[]>([]);
+  const [candidateHasPrevious, setCandidateHasPrevious] = useState(false);
+  const [candidateHasNext, setCandidateHasNext] = useState(false);
+  const [selectedCandidate, setSelectedCandidate] = useState<TenantMemberCandidate>();
   const [submitting, setSubmitting] = useState(false);
 
   const load = useCallback(async () => {
@@ -78,6 +86,29 @@ export function TenantMemberWorkspace({
     const timer = window.setTimeout(() => void load(), 0);
     return () => window.clearTimeout(timer);
   }, [load, sessionRevision]);
+
+  const loadCandidates = useCallback(async () => {
+    if (!establishmentOpen) return;
+    setSubmitting(true);
+    setFailure(undefined);
+    try {
+      const page = await client.listTenantMemberCandidates(candidateQuery, candidatePage, 20);
+      setCandidates(page.items);
+      setCandidateHasPrevious(page.hasPrevious);
+      setCandidateHasNext(page.hasNext);
+    } catch (error) {
+      setFailure(description(error, "加载成员候选"));
+      setCandidates([]);
+    } finally {
+      setSubmitting(false);
+    }
+  }, [candidatePage, candidateQuery, client, establishmentOpen]);
+
+  useEffect(() => {
+    if (!establishmentOpen) return undefined;
+    const timer = window.setTimeout(() => void loadCandidates(), 0);
+    return () => window.clearTimeout(timer);
+  }, [establishmentOpen, loadCandidates]);
 
   async function confirmDisable() {
     if (target === undefined) return;
@@ -108,15 +139,15 @@ export function TenantMemberWorkspace({
   }
 
   async function establish() {
-    if (!/^\d+$/.test(subjectId) || BigInt(subjectId) < 1n) {
-      setFailure("请输入既有全局主体的正整数标识。");
-      return;
-    }
+    if (selectedCandidate === undefined) return;
     setSubmitting(true);
     setFailure(undefined);
     try {
-      await client.establishTenantMember(subjectId);
-      setSubjectId("");
+      await client.establishTenantMember(selectedCandidate.accountReference);
+      setSelectedCandidate(undefined);
+      setCandidates([]);
+      setCandidateQuery("");
+      setCandidatePage(1);
       setEstablishmentOpen(false);
       await load();
     } catch (error) {
@@ -181,9 +212,9 @@ export function TenantMemberWorkspace({
       <div className="governance-toolbar"><Text>第 {route.page} 页，共 {total} 名成员。列表始终由服务端分页。</Text><div><Button appearance="secondary" onClick={() => setEstablishmentOpen(true)}>新建成员</Button><Button appearance="subtle" onClick={() => void load()}>刷新</Button></div></div>
       <div className="member-directory-table" role="region" aria-label="成员分页表格">
         <table>
-          <thead><tr><th>登录名</th><th>成员标识</th><th>成员身份</th><th>内置角色</th><th>状态</th><th>权限修订</th><th>操作</th></tr></thead>
-          <tbody>{members.length === 0 ? <tr><td colSpan={7}>当前页没有成员。</td></tr> : members.map((member) => <tr key={member.membershipId}>
-            <td>{member.loginName}</td><td>{member.membershipId}</td><td>{member.membershipRole}</td><td>{member.builtInRoles.length === 0 ? "未分配" : member.builtInRoles.map(roleLabel).join("、")}</td><td><Badge appearance="tint" color={member.status === "ENABLED" ? "success" : "danger"}>{member.status === "ENABLED" ? "已启用" : "已停用"}</Badge></td><td>{member.permissionVersion}</td>
+          <thead><tr><th>登录名</th><th>角色</th><th>状态</th><th>加入时间</th><th>操作</th></tr></thead>
+          <tbody>{members.length === 0 ? <tr><td colSpan={5}>当前页没有成员。</td></tr> : members.map((member) => <tr key={member.membershipId}>
+            <td>{member.loginName}</td><td>{member.builtInRoles.length === 0 ? "普通用户" : member.builtInRoles.map(roleLabel).join("、")}</td><td><Badge appearance="tint" color={member.status === "ENABLED" ? "success" : "danger"}>{member.status === "ENABLED" ? "已启用" : "已停用"}</Badge></td><td>{new Date(member.createdAt).toLocaleDateString("zh-CN")}</td>
             <td><Button appearance="secondary" disabled={submitting || member.status !== "ENABLED"} onClick={() => setRoleTarget(member)}>管理角色</Button>{member.status === "ENABLED" ? <Button appearance="secondary" disabled={submitting} onClick={() => setTarget(member)}>停用</Button> : <Button appearance="secondary" disabled={submitting} onClick={() => void enable(member)}>启用</Button>}</td>
           </tr>)}</tbody>
         </table>
@@ -199,7 +230,7 @@ export function TenantMemberWorkspace({
         <DialogSurface><DialogBody><DialogTitle>确认撤销内置角色</DialogTitle><DialogContent>将撤销“{roleTarget?.loginName}”的“{roleToRevoke === undefined ? "" : roleLabel(roleToRevoke)}”，并立即使其旧租户会话失效。若这会移除租户最后一个访问管理员，系统将拒绝本次操作。</DialogContent><DialogActions><Button appearance="secondary" disabled={submitting} onClick={() => setRoleToRevoke(undefined)}>取消</Button><Button appearance="primary" disabled={submitting} onClick={() => void confirmRevokeRole()}>{submitting ? "正在撤销" : "确认撤销"}</Button></DialogActions></DialogBody></DialogSurface>
       </Dialog>
       <Dialog open={establishmentOpen} onOpenChange={(_, data) => { if (!data.open && !submitting) setEstablishmentOpen(false); }}>
-        <DialogSurface><DialogBody><DialogTitle>新建租户成员</DialogTitle><DialogContent>输入已存在且启用的全局主体标识。新成员默认启用，但不自动获得任何业务权限；请在建立后单独完成角色绑定。<Input aria-label="全局主体标识" inputMode="numeric" value={subjectId} onChange={(_, data) => setSubjectId(data.value)} /></DialogContent><DialogActions><Button appearance="secondary" disabled={submitting} onClick={() => setEstablishmentOpen(false)}>取消</Button><Button appearance="primary" disabled={submitting} onClick={() => void establish()}>{submitting ? "正在建立" : "建立成员"}</Button></DialogActions></DialogBody></DialogSurface>
+        <DialogSurface><DialogBody><DialogTitle>新建租户成员</DialogTitle><DialogContent><Text>从已启用的平台账户中选择。已有成员不会再次出现。</Text><form className="member-candidate-search" onSubmit={(event) => { event.preventDefault(); setCandidatePage(1); void loadCandidates(); }}><Input aria-label="搜索登录名" placeholder="输入登录名关键词" value={candidateQuery} onChange={(_, data) => setCandidateQuery(data.value)} /><Button type="submit" appearance="secondary" disabled={submitting}>搜索</Button></form><RadioGroup value={selectedCandidate?.accountReference} onChange={(_, data) => setSelectedCandidate(candidates.find((candidate) => candidate.accountReference === data.value))}>{candidates.length === 0 ? <Text>{submitting ? "正在加载账户…" : "没有可加入的账户。"}</Text> : candidates.map((candidate) => <Radio key={candidate.accountReference} value={candidate.accountReference} label={candidate.loginName} />)}</RadioGroup><div className="task-actions"><Button appearance="subtle" disabled={!candidateHasPrevious || submitting} onClick={() => setCandidatePage(candidatePage - 1)}>上一页</Button><Text>第 {candidatePage} 页</Text><Button appearance="subtle" disabled={!candidateHasNext || submitting} onClick={() => setCandidatePage(candidatePage + 1)}>下一页</Button></div></DialogContent><DialogActions><Button appearance="secondary" disabled={submitting} onClick={() => setEstablishmentOpen(false)}>取消</Button><Button appearance="primary" disabled={submitting || selectedCandidate === undefined} onClick={() => void establish()}>{submitting ? "正在建立" : "建立成员"}</Button></DialogActions></DialogBody></DialogSurface>
       </Dialog>
     </section>
   );
@@ -211,11 +242,10 @@ const ROLE_CATALOG = [
 ] as const;
 
 function roleLabel(code: string): string {
-  return ROLE_CATALOG.find((role) => role.code === code)?.label ?? code;
+  return ROLE_CATALOG.find((role) => role.code === code)?.label ?? "其他角色";
 }
 
-function description(error: unknown): string {
-  return error instanceof ApiRequestError && error.traceId.length > 0
-    ? `${error.message}，追踪标识：${error.traceId}`
-    : error instanceof ApiRequestError ? error.message : "无法连接控制平面，请检查网络后重试。";
+function description(error: unknown, operation = "成员操作"): string {
+  const failure = presentApiError(error, operation);
+  return `${failure.title}。${failure.description}`;
 }

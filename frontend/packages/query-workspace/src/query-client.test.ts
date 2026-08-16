@@ -149,8 +149,8 @@ describe("QueryClient", () => {
       new QueryApiError(
         401,
         "PLATFORM_SECURITY.AUTHENTICATION.0001",
-        "会话已失效",
-        "trace-001",
+        "登录状态已失效，请重新登录后继续。",
+        "",
       ),
     );
     await expect(client.listAssistants()).rejects.toMatchObject({

@@ -5,11 +5,10 @@ import {
   MenuList,
   MenuPopover,
   MenuTrigger,
-  Tab,
-  TabList,
   Text,
   Title2,
 } from "@fluentui/react-components";
+import { ChevronDown16Regular, SignOut20Regular } from "@fluentui/react-icons";
 import type { ReactNode } from "react";
 import "../styles/shell.css";
 import { assertNavigationBudget } from "./navigation-budget";
@@ -29,6 +28,7 @@ export interface ProductShellProps {
   onNavigationChange?: (navigationId: string) => void;
   children: ReactNode;
   accountLabel?: string;
+  onLogout?: () => void;
 }
 
 /**
@@ -43,6 +43,7 @@ export function ProductShell({
   onNavigationChange,
   children,
   accountLabel = "演示租户",
+  onLogout,
 }: ProductShellProps) {
   assertNavigationBudget(navigation);
   const directNavigation = navigation.filter((item) => item.children === undefined);
@@ -50,56 +51,65 @@ export function ProductShell({
 
   return (
     <div className="product-shell">
-      <header className="product-header">
+      <aside className="product-sidebar">
         <div className="product-brand">
+          <span aria-hidden="true">知</span>
           <Text weight="semibold">{productName}</Text>
         </div>
-        <div className="desktop-navigation" aria-label="主要导航">
-          <TabList
-            selectedValue={activeNavigationId}
-            onTabSelect={(_, data) => {
-              onNavigationChange?.(String(data.value));
-            }}
-          >
-            {directNavigation.map((item) => (
-              <Tab key={item.id} value={item.id}>
-                {item.label}
-              </Tab>
-            ))}
-          </TabList>
-          {groupedNavigation.map((item) => (
-            <Menu key={item.id}>
-              <MenuTrigger disableButtonEnhancement>
-                <Button appearance={item.children?.some((child) => child.id === activeNavigationId)
-                  ? "primary"
-                  : "subtle"}>
-                  {item.label}
-                </Button>
-              </MenuTrigger>
-              <MenuPopover>
-                <MenuList aria-label={item.label}>
-                  {item.children?.map((child) => (
-                    <MenuItem key={child.id} onClick={() => onNavigationChange?.(child.id)}>
-                      {child.label}
-                    </MenuItem>
-                  ))}
-                </MenuList>
-              </MenuPopover>
-            </Menu>
+        <nav className="product-navigation" aria-label="主要导航">
+          {directNavigation.map((item) => (
+            <Button
+              key={item.id}
+              appearance="subtle"
+              className={item.id === activeNavigationId ? "is-active" : undefined}
+              aria-current={item.id === activeNavigationId ? "page" : undefined}
+              onClick={() => onNavigationChange?.(item.id)}
+            >
+              {item.label}
+            </Button>
           ))}
-        </div>
-        <Text className="account-label" size={200}>
-          {accountLabel}
-        </Text>
-      </header>
+          {groupedNavigation.map((item) => (
+            <section key={item.id} className="product-navigation__group" aria-label={item.label}>
+              <Text size={200}>{item.label}</Text>
+              {item.children?.map((child) => (
+                <Button
+                  key={child.id}
+                  appearance="subtle"
+                  className={child.id === activeNavigationId ? "is-active" : undefined}
+                  aria-current={child.id === activeNavigationId ? "page" : undefined}
+                  onClick={() => onNavigationChange?.(child.id)}
+                >
+                  {child.label}
+                </Button>
+              ))}
+            </section>
+          ))}
+        </nav>
+        <Menu>
+          <MenuTrigger disableButtonEnhancement>
+            <Button className="product-account" appearance="subtle" iconPosition="after" icon={<ChevronDown16Regular />}>
+              <span aria-hidden="true">{accountLabel.slice(0, 1)}</span>
+              <Text size={200}>{accountLabel}</Text>
+            </Button>
+          </MenuTrigger>
+          <MenuPopover>
+            <MenuList>
+              <MenuItem icon={<SignOut20Regular />} onClick={onLogout}>退出登录</MenuItem>
+            </MenuList>
+          </MenuPopover>
+        </Menu>
+      </aside>
 
-      <main className="product-main">
-        <section className="page-heading" aria-labelledby="page-title">
-          <Title2 id="page-title">{pageTitle}</Title2>
-          <Text className="page-summary">{pageSummary}</Text>
-        </section>
-        {children}
-      </main>
+      <div className="product-workspace">
+        <header className="product-mobile-header"><Text weight="semibold">{productName}</Text></header>
+        <main className="product-main">
+          <section className="page-heading" aria-labelledby="page-title">
+            <Title2 id="page-title">{pageTitle}</Title2>
+            <Text className="page-summary">{pageSummary}</Text>
+          </section>
+          {children}
+        </main>
+      </div>
     </div>
   );
 }

@@ -39,13 +39,35 @@ describe("visibleNavigation", () => {
       canUsePlatformGovernance: true,
       capabilityCodes: [
         "platform-session:access",
+        "platform-operations:read",
         "tenant-governance:write",
         "platform:accounts:manage",
         "model-platform:write",
       ],
     });
 
-    expect(defaultNavigationTarget(navigation)).toBe("platform");
+    expect(defaultNavigationTarget(navigation)).toBe("platform-operations");
+  });
+
+  it("两级管理员都把运营总览作为各自工作区首入口", () => {
+    const tenantNavigation = visibleNavigation({
+      canUseTenantWorkspace: true,
+      canUsePlatformGovernance: false,
+      capabilityCodes: ["access:manage", "knowledge:read"],
+    });
+    const platformNavigation = visibleNavigation({
+      canUseTenantWorkspace: false,
+      canUsePlatformGovernance: true,
+      capabilityCodes: ["platform-session:access", "platform-operations:read"],
+    });
+
+    expect(tenantNavigation.map((item) => item.id)).toEqual(["operations", "access", "data"]);
+    expect(defaultNavigationTarget(tenantNavigation)).toBe("operations");
+    expect(platformNavigation[0]?.children?.map((item) => item.id)).toEqual([
+      "platform-operations",
+      "platform-workspace",
+    ]);
+    expect(defaultNavigationTarget(platformNavigation)).toBe("platform-operations");
   });
 
   it("平台模型写能力作为平台治理入口的受权子任务显示", () => {
@@ -67,12 +89,13 @@ describe("visibleNavigation", () => {
         "usage:read",
         "assistant:query",
         "platform-session:access",
+        "platform-operations:read",
         "tenant-governance:write",
         "platform:accounts:manage",
         "model-platform:write",
       ],
     }).map((item) => item.id)).toEqual([
-      "access", "data", "models", "governance", "query", "platform-governance",
+      "operations", "access", "data", "models", "governance", "query", "platform-governance",
     ]);
   });
 
@@ -81,7 +104,7 @@ describe("visibleNavigation", () => {
       canUseTenantWorkspace: true,
       canUsePlatformGovernance: false,
       capabilityCodes: ["access:manage"],
-    }).map((item) => item.id)).toEqual(["access"]);
+    }).map((item) => item.id)).toEqual(["operations", "access"]);
     expect(visibleNavigation({
       canUseTenantWorkspace: true,
       canUsePlatformGovernance: false,
@@ -91,6 +114,6 @@ describe("visibleNavigation", () => {
 
   it("角色导航预览只映射其候选权限对应的租户入口", () => {
     expect(previewNavigation(["access:manage", "assistant:query"]).map((item) => item.id))
-      .toEqual(["access", "query"]);
+      .toEqual(["operations", "access", "query"]);
   });
 });
