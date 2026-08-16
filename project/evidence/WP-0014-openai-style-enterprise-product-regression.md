@@ -135,6 +135,24 @@ make validate
 结果：退出码 0；完整 Maven 反应堆、真实基础设施、前端、治理、架构、演示、恢复、容量和交付门禁全部通过。
 ```
 
+最新本地运行时回归：
+
+```text
+docker compose --env-file deploy/compose/.env.example -f deploy/compose/compose.yml -f deploy/compose/compose.browser-acceptance.yml up --detach --build --no-deps control-plane console-web
+结果：两个镜像从最新源码构建成功；只重建控制面与控制台，PostgreSQL、Redis、MinIO 和数据卷未重建。
+
+200 http://localhost:13443/
+401 http://localhost:13443/api/v1/platform/operations/overview?range=DAY_7
+401 http://localhost:13443/api/v1/operations/overview?range=DAY_7
+200 http://localhost:18080/actuator/health
+控制台生产资源：assets/index-BQLBeTtU.js
+
+活动 platform.root：1
+活动 PLATFORM_ADMINISTRATOR 绑定：1
+租户／成员：0／0
+平台模型连接／部署／目录：0／0／0
+```
+
 ## 从零人工验收基线
 
 2026-08-17 的完成度审计确认，身份侧已经只有活动的 `platform.root`，但 `model_runtime` 仍保留上一轮浏览器验收建立的平台连接、发现、部署和目录事实。这与“只初始化平台管理员，再从页面完成全部建立操作”的人工验收起点不一致。
