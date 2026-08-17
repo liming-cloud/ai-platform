@@ -2,7 +2,7 @@ schemaVersion: 1
 productVersion: foundation-v1
 currentMilestone: M6
 currentFrontier: WP-0014
-lastVerifiedCommit: d152e0747
+lastVerifiedCommit: e7ed97d77
 activeWorkPackages:
   - WP-0014
 blockedWorkPackages: []
@@ -276,6 +276,7 @@ latestEvidence:
   - project/evidence/WP-0014-openai-style-enterprise-product-regression.md
   - docs/adr/ADR-0069-local-platform-administrator-initialization.md
   - project/evidence/ADR-0069-approval.md
+  - project/evidence/WP-0014-local-platform-administrator-fixed-initialization.md
 nextReviewAt: 2026-08-17
-updatedAt: 2026-08-17T01:17:00+08:00
+updatedAt: 2026-08-17T21:07:59+08:00
 updatedBy: codex
