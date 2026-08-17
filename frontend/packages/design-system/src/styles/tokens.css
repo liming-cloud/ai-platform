@@ -25,15 +25,15 @@ textarea {
   font: inherit;
 }
 
-.foundation-provider {
+.foundation-app-root {
   min-height: 100dvh;
   background:
     linear-gradient(
-      145deg,
-      color-mix(in srgb, var(--colorBrandBackground2) 25%, transparent),
-      transparent 32rem
+      135deg,
+      rgb(18 107 92 / 4%),
+      transparent 36rem
     ),
-    var(--colorNeutralBackground1);
+    #f3f5f5;
 }
 
 @media (prefers-reduced-motion: reduce) {

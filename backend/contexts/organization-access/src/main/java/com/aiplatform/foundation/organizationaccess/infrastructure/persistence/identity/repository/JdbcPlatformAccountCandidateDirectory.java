@@ -8,7 +8,7 @@ import java.util.Locale;
 import java.util.Objects;
 import org.springframework.jdbc.core.simple.JdbcClient;
 
-/** 只选择账户引用、登录名和状态的 PostgreSQL 候选目录。 */
+/** 只选择符合初始租户管理员资格的账户引用、登录名和状态。 */
 public final class JdbcPlatformAccountCandidateDirectory implements PlatformAccountCandidateDirectory {
 
     private final JdbcClient jdbc;
@@ -21,17 +21,34 @@ public final class JdbcPlatformAccountCandidateDirectory implements PlatformAcco
     public PageResult<PlatformAccountCandidate> search(String query, PageQuery page) {
         var pattern = "%" + escapeLike(query.toLowerCase(Locale.ROOT)) + "%";
         var total = jdbc.sql("""
-                        SELECT COUNT(*) FROM organization_access.subject_identity
-                        WHERE lower(login_name) LIKE :pattern ESCAPE '\\'
+                        SELECT COUNT(*)
+                        FROM organization_access.subject_identity subject
+                        WHERE subject.status = 'ACTIVE'
+                          AND lower(subject.login_name) LIKE :pattern ESCAPE '\\'
+                          AND NOT EXISTS (
+                              SELECT 1
+                              FROM organization_access.platform_role_binding binding
+                              WHERE binding.subject_id = subject.subject_id
+                                AND binding.role_code = 'PLATFORM_ADMINISTRATOR'
+                                AND binding.status = 'ACTIVE'
+                          )
                         """)
                 .param("pattern", pattern)
                 .query(Long.class)
                 .single();
         var items = jdbc.sql("""
-                        SELECT subject_id, login_name, status
-                        FROM organization_access.subject_identity
-                        WHERE lower(login_name) LIKE :pattern ESCAPE '\\'
-                        ORDER BY lower(login_name), subject_id
+                        SELECT subject.subject_id, subject.login_name, subject.status
+                        FROM organization_access.subject_identity subject
+                        WHERE subject.status = 'ACTIVE'
+                          AND lower(subject.login_name) LIKE :pattern ESCAPE '\\'
+                          AND NOT EXISTS (
+                              SELECT 1
+                              FROM organization_access.platform_role_binding binding
+                              WHERE binding.subject_id = subject.subject_id
+                                AND binding.role_code = 'PLATFORM_ADMINISTRATOR'
+                                AND binding.status = 'ACTIVE'
+                          )
+                        ORDER BY lower(subject.login_name), subject.subject_id
                         LIMIT :limit OFFSET :offset
                         """)
                 .param("pattern", pattern)

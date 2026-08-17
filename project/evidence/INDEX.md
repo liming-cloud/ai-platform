@@ -331,6 +331,7 @@
 | M6 API 冗余审计 | `docs/audits/WP-0014-m6-api-redundancy-audit.md` | `294c510da` | 自定义角色及绑定 HTTP 契约已从运行时和浏览器客户端退休；用量、审计、运营聚合和资源标识路径按独立职责保留。 |
 | M6 OpenAI 风格企业产品重构自动回归 | `project/evidence/WP-0014-openai-style-enterprise-product-regression.md` | `d152e0747` | 三角色、两级运营聚合、名称选择器、统一 SPA、健康感知统计及部分失败恢复通过真实基础设施和 `make validate`；新增门禁阻断无标签内部标识编辑与审计响应泄露，登录后全流程及真实 200% 缩放待人工续证。 |
 | M6 本地平台管理员固定凭据初始化 | `project/evidence/WP-0014-local-platform-administrator-fixed-initialization.md` | `e7ed97d77` | 纯本地空库原子初始化唯一 `platform.root` 和平台管理员绑定；固定开发口令 PBKDF2 匹配、真实 PostgreSQL、Flyway、HTTP 会话与全量门禁通过，Chrome 从零流程待人工确认填写口令。 |
+| M6 平台界面连续性与租户入驻整改 | `project/evidence/WP-0014-platform-ui-continuity-and-tenant-onboarding.md` | 本次提交 | 排除平台管理员和停用账户候选，租户向导原地建立专用管理员，修复 Fluent Portal 整页遮蔽并重构统一壳与平台账户目录；真实 PostgreSQL、HTTP、Chrome 桌面回归通过，窄屏与 200% 人工复核待续证。 |
 
 ## 证据规则
 

@@ -45,6 +45,15 @@ export function StatePanel({
     );
   }
 
+  if (kind === "loading") {
+    return (
+      <section className="state-panel state-panel-loading" aria-live="polite" aria-busy="true">
+        <div className="state-panel__skeleton" aria-hidden="true"><span /><span /><span /></div>
+        <div className="state-panel__copy"><Title3>{title}</Title3><Text className="state-description">{description}</Text></div>
+      </section>
+    );
+  }
+
   return (
     <section className={`state-panel state-panel-${kind}`} aria-live="polite">
       {icon}

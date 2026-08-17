@@ -277,6 +277,7 @@ latestEvidence:
   - docs/adr/ADR-0069-local-platform-administrator-initialization.md
   - project/evidence/ADR-0069-approval.md
   - project/evidence/WP-0014-local-platform-administrator-fixed-initialization.md
+  - project/evidence/WP-0014-platform-ui-continuity-and-tenant-onboarding.md
 nextReviewAt: 2026-08-17
-updatedAt: 2026-08-17T21:07:59+08:00
+updatedAt: 2026-08-17T23:28:00+08:00
 updatedBy: codex

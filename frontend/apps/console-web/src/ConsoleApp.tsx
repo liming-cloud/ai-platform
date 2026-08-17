@@ -254,7 +254,7 @@ function AuthenticatedConsoleApp({
     <ProductShell
       productName="可信知识平台"
       pageTitle={
-        operationsActive ? "运营总览" : platformOperationsActive ? "平台运营总览" : accessActive ? "成员与权限" : platformWorkspaceActive ? "平台工作区" : platformActive ? "平台租户生命周期" : platformAccountsActive ? "平台账户目录" : platformModelSupplyActive ? "平台模型供应链" : queryActive ? "从已授权资料中获得答案" : governanceActive ? route.task === "query" ? "查询用量与审计" : "受限评测运行" : modelsActive ? route.task === "configuration" ? "受控模型配置" : route.task === "providers" ? "供应商连接与模型发现" : "模型部署与能力验证" : dataPage?.title ?? "可信知识平台"
+        operationsActive ? "运营总览" : platformOperationsActive ? "平台运营总览" : accessActive ? "成员与权限" : platformWorkspaceActive ? "平台工作区" : platformActive ? route.task === "create" ? "建立新租户" : "平台租户" : platformAccountsActive ? "平台账户目录" : platformModelSupplyActive ? "平台模型供应链" : queryActive ? "从已授权资料中获得答案" : governanceActive ? route.task === "query" ? "查询用量与审计" : "受限评测运行" : modelsActive ? route.task === "configuration" ? "受控模型配置" : route.task === "providers" ? "供应商连接与模型发现" : "模型部署与能力验证" : dataPage?.title ?? "可信知识平台"
       }
       pageSummary={
         operationsActive
@@ -268,7 +268,9 @@ function AuthenticatedConsoleApp({
           : platformWorkspaceActive
           ? "只确认当前平台浏览器会话；不会展示租户正文、成员、账户、凭据或治理数据。"
           : platformActive
-          ? "建立与迁移租户状态，不展示租户正文、成员详情或平台操作者信息。"
+          ? route.task === "create"
+            ? "定义租户信息，建立专用租户管理员账户，并在提交前核对全部业务结果。"
+            : "建立、激活和暂停租户，不展示租户正文、成员详情或平台操作者信息。"
           : platformAccountsActive
           ? "账户目录按页显示，不展示凭据、会话或权限快照。"
           : platformModelSupplyActive

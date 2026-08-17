@@ -24,9 +24,10 @@ import {
 import { StatePanel } from "@foundation/design-system";
 import { useCallback, useEffect, useState } from "react";
 import {
-  ApiRequestError,
+  presentApiError,
   type ControlPlaneClient,
   type PlatformAccountSummary,
+  type UserFacingError,
 } from "../../api/control-plane-client";
 import type { ConsoleRoute } from "../../session/console-route";
 
@@ -61,14 +62,14 @@ export function PlatformAccountDirectoryWorkspace({
   const [hasPrevious, setHasPrevious] = useState(false);
   const [hasNext, setHasNext] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [failure, setFailure] = useState("");
+  const [failure, setFailure] = useState<UserFacingError>();
   const [dialog, setDialog] = useState<DialogTarget>();
   const [loginName, setLoginName] = useState("");
   const [password, setPassword] = useState("");
 
   const reload = useCallback(async () => {
     setBusy(true);
-    setFailure("");
+    setFailure(undefined);
     try {
       const page = await client.listPlatformAccounts(route.page);
       setAccounts(page.items);
@@ -80,7 +81,7 @@ export function PlatformAccountDirectoryWorkspace({
       setTotal(0);
       setHasPrevious(false);
       setHasNext(false);
-      setFailure(error instanceof ApiRequestError ? error.message : "账户目录暂时不可用，请稍后重试。");
+      setFailure(presentApiError(error, "加载平台账户"));
     } finally {
       setBusy(false);
     }
@@ -93,7 +94,7 @@ export function PlatformAccountDirectoryWorkspace({
 
   async function changeRole(target: RoleDialogTarget) {
     setBusy(true);
-    setFailure("");
+    setFailure(undefined);
     try {
       await (target.action === "bind"
         ? client.bindPlatformRole(target.account.subjectId, target.roleCode)
@@ -101,7 +102,7 @@ export function PlatformAccountDirectoryWorkspace({
       setDialog(undefined);
       await reload();
     } catch (error) {
-      setFailure(error instanceof ApiRequestError ? error.message : "角色操作暂时不可用，请稍后重试。");
+      setFailure(presentApiError(error, "变更平台角色"));
     } finally {
       setBusy(false);
     }
@@ -109,13 +110,13 @@ export function PlatformAccountDirectoryWorkspace({
 
   async function enableAccount(account: PlatformAccountSummary) {
     setBusy(true);
-    setFailure("");
+    setFailure(undefined);
     try {
       await client.enablePlatformAccount(account.subjectId);
       setDialog(undefined);
       await reload();
     } catch (error) {
-      setFailure(error instanceof ApiRequestError ? error.message : "账户启用暂时不可用，请稍后重试。");
+      setFailure(presentApiError(error, "启用平台账户"));
     } finally {
       setBusy(false);
     }
@@ -123,13 +124,13 @@ export function PlatformAccountDirectoryWorkspace({
 
   async function resetAccountPassword(account: PlatformAccountSummary) {
     setBusy(true);
-    setFailure("");
+    setFailure(undefined);
     try {
       await client.resetPlatformAccountPassword(account.subjectId, password);
       closeDialog();
       await reload();
     } catch (error) {
-      setFailure(error instanceof ApiRequestError ? error.message : "账户口令重置暂时不可用，请稍后重试。");
+      setFailure(presentApiError(error, "重置平台账户口令"));
     } finally {
       setPassword("");
       setBusy(false);
@@ -144,7 +145,7 @@ export function PlatformAccountDirectoryWorkspace({
 
   async function createAccount() {
     setBusy(true);
-    setFailure("");
+    setFailure(undefined);
     try {
       await client.createPlatformAccount({ loginName: loginName.trim(), password });
       closeDialog();
@@ -154,7 +155,7 @@ export function PlatformAccountDirectoryWorkspace({
         onRouteChange({ ...route, page: 1 });
       }
     } catch (error) {
-      setFailure(error instanceof ApiRequestError ? error.message : "账户建立暂时不可用，请稍后重试。");
+      setFailure(presentApiError(error, "建立平台账户"));
     } finally {
       setPassword("");
       setBusy(false);
@@ -162,30 +163,30 @@ export function PlatformAccountDirectoryWorkspace({
   }
 
   return (
-    <section className="governed-file-workspace" aria-live="polite">
-      <header className="task-heading">
+    <section className="platform-account-workspace" aria-live="polite">
+      <header className="task-heading task-heading--split">
         <div>
           <Title3>平台账户目录</Title3>
           <Text>仅显示固定角色代码；每次角色变更都会使目标账户的全部会话失效。</Text>
         </div>
         <Button appearance="primary" disabled={busy} onClick={() => setDialog({ kind: "create" })}>建立账户</Button>
       </header>
-      {failure ? <MessageBar intent="error"><MessageBarBody><MessageBarTitle>读取未完成</MessageBarTitle>{failure}</MessageBarBody></MessageBar> : null}
+      {failure ? <MessageBar intent="error"><MessageBarBody><MessageBarTitle>{failure.title}</MessageBarTitle>{failure.description}</MessageBarBody></MessageBar> : null}
       {busy && accounts.length === 0 ? <StatePanel kind="loading" title="正在加载平台账户" description="正在读取当前服务器页。" /> : null}
       {!busy && accounts.length === 0 && !failure ? <StatePanel kind="empty" title="当前页没有账户" description="请切换到上一页或下一页继续查看。" /> : null}
-      <div className="model-configuration-list">
+      <div className="platform-account-list">
         {accounts.map((account) => (
-          <article className="model-configuration-card" key={account.subjectId}>
-            <div>
+          <article className="platform-account-row" key={account.subjectId}>
+            <div className="platform-account-row__identity">
               <Title3>{account.loginName}</Title3>
               <Text>建立于 {new Date(account.createdAt).toLocaleString("zh-CN")}</Text>
-              <div className="task-actions" aria-label={`${account.loginName} 的已绑定角色`}>
+              <div className="platform-account-row__roles" aria-label={`${account.loginName} 的已绑定角色`}>
                 {account.activeRoleCodes.length === 0 ? <Text>尚未绑定平台角色</Text> : account.activeRoleCodes.map((roleCode) => (
                   <Badge key={roleCode} appearance="outline">{roleLabel(roleCode)}</Badge>
                 ))}
               </div>
             </div>
-            <Badge appearance="tint" color={account.status === "ACTIVE" ? "success" : "danger"}>{account.status === "ACTIVE" ? "已启用" : "已停用"}</Badge>
+            <Badge className="platform-account-row__status" appearance="tint" color={account.status === "ACTIVE" ? "success" : "danger"}>{account.status === "ACTIVE" ? "已启用" : "已停用"}</Badge>
             {account.status === "ACTIVE" ? (
               <div className="task-actions" aria-label={`${account.loginName} 的角色操作`}>
                 <Button appearance="secondary" disabled={busy} onClick={() => setDialog({ kind: "reset", account })}>重置口令</Button>
@@ -207,23 +208,23 @@ export function PlatformAccountDirectoryWorkspace({
           </article>
         ))}
       </div>
-      <div className="task-actions" aria-label="平台账户目录分页">
+      <div className="platform-account-pagination" aria-label="平台账户目录分页">
         <Text>第 {route.page} 页，共 {total} 个账户</Text>
         <Button appearance="subtle" disabled={!hasPrevious || busy} onClick={() => onRouteChange({ ...route, page: route.page - 1 })}>上一页</Button>
         <Button appearance="subtle" disabled={!hasNext || busy} onClick={() => onRouteChange({ ...route, page: route.page + 1 })}>下一页</Button>
       </div>
       <Dialog open={dialog !== undefined} onOpenChange={(_, data) => { if (!data.open && !busy) closeDialog(); }}>
-        <DialogSurface>
+        <DialogSurface className="foundation-task-dialog">
           <DialogBody>
             <DialogTitle>{dialog?.kind === "create" ? "建立平台账户" : dialog?.kind === "reset" ? "重置平台账户口令" : dialog?.kind === "enable" ? "确认启用平台账户" : dialog?.action === "bind" ? "确认绑定平台角色" : "确认撤销平台角色"}</DialogTitle>
             <DialogContent>{dialog?.kind === "create"
               ? <>
                 <Text>新账户默认不绑定任何平台角色；请建立后再单独授予最小权限。</Text>
                 <Field label="全局登录名" required>
-                  <Input value={loginName} onChange={(_, data) => setLoginName(data.value)} autoComplete="username" />
+                  <Input size="large" value={loginName} onChange={(_, data) => setLoginName(data.value)} autoComplete="username" />
                 </Field>
                 <Field label="初始口令" required>
-                  <Input type="password" value={password} onChange={(_, data) => setPassword(data.value)} autoComplete="new-password" />
+                  <Input size="large" type="password" value={password} onChange={(_, data) => setPassword(data.value)} autoComplete="new-password" />
                 </Field>
               </>
               : dialog?.kind === "reset"

@@ -107,4 +107,15 @@ describe("全 SPA 用户信息边界", () => {
     expect(tokens).toMatch(/animation-iteration-count:\s*1\s*!important;/);
     expect(tokens).toMatch(/transition-duration:\s*0\.01ms\s*!important;/);
   });
+
+  it("应用根背景不得污染 Fluent Portal 并遮蔽当前页面", () => {
+    const providerPath = new URL("../../../packages/design-system/src/providers/FoundationProvider.tsx", import.meta.url).pathname;
+    const tokensPath = new URL("../../../packages/design-system/src/styles/tokens.css", import.meta.url).pathname;
+    const provider = readFileSync(providerPath, "utf8");
+    const tokens = readFileSync(tokensPath, "utf8");
+
+    expect(provider).toContain('className="foundation-app-root"');
+    expect(tokens).toMatch(/\.foundation-app-root\s*\{[^}]*min-height:\s*100dvh;/s);
+    expect(tokens).not.toMatch(/\.foundation-provider\s*\{[^}]*min-height:\s*100dvh;/s);
+  });
 });
