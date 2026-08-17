@@ -326,6 +326,7 @@
 | M6 平台管理员干净基线与首次可操作入口 | `project/evidence/WP-0014-platform-administrator-initial-entry.md` | 本次提交 | 本地仅保留一个 `PLATFORM_ADMINISTRATOR`；运营员仍进入无数据工作区，管理员首次登录改为平台租户治理页，并以真实浏览器确认账户、租户与平台模型供应链菜单可见。 |
 | ADR-0067 三角色产品边界人工接受 | `project/evidence/ADR-0067-approval.md` | 本次控制面提交 | 产品端到端只保留平台管理员、租户管理员和普通用户；旧平台角色与租户自定义角色按红绿切片退役。 |
 | ADR-0068 运营投影与用户信息边界人工接受 | `project/evidence/ADR-0068-approval.md` | 本次控制面提交 | 接受两级运营总览、脱敏平台租户摘要、手动刷新、固定时间范围、名称选择器和禁止渲染后端信息。 |
+| ADR-0069 本地固定平台管理员初始化凭据 | `project/evidence/ADR-0069-approval.md` | 本次控制面提交 | 纯本地空库固定初始化 `platform.root` 与公开开发口令；共享、测试、预发布和生产环境不得加载或复用。 |
 | M6 三角色授权与能力投影 | `project/evidence/WP-0014-three-role-authorization-and-projection.md` | 本次提交 | 平台／租户角色收敛为三种，真实 PostgreSQL 迁移、会话能力、HTTP 和统一 SPA 回归通过；自定义角色入口退役，遗留实现待冗余接口审计切片清理。 |
 | M6 API 冗余审计 | `docs/audits/WP-0014-m6-api-redundancy-audit.md` | `294c510da` | 自定义角色及绑定 HTTP 契约已从运行时和浏览器客户端退休；用量、审计、运营聚合和资源标识路径按独立职责保留。 |
 | M6 OpenAI 风格企业产品重构自动回归 | `project/evidence/WP-0014-openai-style-enterprise-product-regression.md` | `d152e0747` | 三角色、两级运营聚合、名称选择器、统一 SPA、健康感知统计及部分失败恢复通过真实基础设施和 `make validate`；新增门禁阻断无标签内部标识编辑与审计响应泄露，登录后全流程及真实 200% 缩放待人工续证。 |

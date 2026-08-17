@@ -75,6 +75,7 @@ confirmedDecisions:
   - ADR-0066
   - ADR-0067
   - ADR-0068
+  - ADR-0069
 openDecisions: []
 latestEvidence:
   - docs/research/WP-0003-framework-baseline.md
@@ -273,6 +274,8 @@ latestEvidence:
   - docs/design/m6-openai-style-ui-brief.md
   - docs/audits/WP-0014-m6-api-redundancy-audit.md
   - project/evidence/WP-0014-openai-style-enterprise-product-regression.md
+  - docs/adr/ADR-0069-local-platform-administrator-initialization.md
+  - project/evidence/ADR-0069-approval.md
 nextReviewAt: 2026-08-17
 updatedAt: 2026-08-17T01:17:00+08:00
 updatedBy: codex
