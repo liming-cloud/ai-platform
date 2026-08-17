@@ -28,4 +28,12 @@ class LocalProfileConfigurationTest {
         assertTrue(compose.contains("FOUNDATION_MODEL_CREDENTIALS_LOCAL_DEVELOPMENT_KEY_VERSION"));
         assertTrue(compose.contains("FOUNDATION_SECRET_ENCRYPTION_KEY_M2_V1"));
     }
+
+    @Test
+    void 本地Compose必须公开固定平台管理员登录信息() throws Exception {
+        var environment = Files.readString(
+                Path.of("../../../deploy/compose/.env.example"), StandardCharsets.UTF_8);
+        assertTrue(environment.contains("FOUNDATION_LOCAL_PLATFORM_ADMIN_LOGIN=platform.root"));
+        assertTrue(environment.contains("FOUNDATION_LOCAL_PLATFORM_ADMIN_PASSWORD=admin123456"));
+    }
 }
