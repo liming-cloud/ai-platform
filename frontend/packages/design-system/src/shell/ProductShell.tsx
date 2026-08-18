@@ -7,6 +7,7 @@ import {
   MenuTrigger,
   Text,
   Title2,
+  Tooltip,
 } from "@fluentui/react-components";
 import {
   Bot20Regular,
@@ -69,7 +70,7 @@ export function ProductShell({
   activeNavigationId,
   onNavigationChange,
   children,
-  accountLabel = "演示租户",
+  accountLabel = "当前账户",
   onLogout,
 }: ProductShellProps) {
   assertNavigationBudget(navigation);
@@ -83,43 +84,38 @@ export function ProductShell({
       <aside className="product-sidebar">
         <div className="product-brand">
           <span aria-hidden="true"><Sparkle20Filled /></span>
-          <div><Text weight="semibold">{productName}</Text><small>Enterprise</small></div>
+          <div><Text weight="semibold">{productName}</Text><small>管理控制台</small></div>
         </div>
         <nav className="product-navigation" aria-label="主要导航">
           {directNavigation.map((item) => (
-            <Button
+            <NavigationButton
               key={item.id}
-              appearance="subtle"
-              className={item.id === activeNavigationId ? "is-active" : undefined}
-              icon={navigationIcon(item.icon)}
-              aria-current={item.id === activeNavigationId ? "page" : undefined}
+              item={item}
+              active={item.id === activeNavigationId}
               onClick={() => onNavigationChange?.(item.id)}
-            >
-              <span className="product-navigation__label">{item.label}</span>
-            </Button>
+            />
           ))}
           {groupedNavigation.map((item) => (
             <section key={item.id} className="product-navigation__group" aria-label={item.label}>
               <Text size={200}>{item.label}</Text>
               {item.children?.map((child) => (
-                <Button
+                <NavigationButton
                   key={child.id}
-                  appearance="subtle"
-                  className={child.id === activeNavigationId ? "is-active" : undefined}
-                  icon={navigationIcon(child.icon)}
-                  aria-current={child.id === activeNavigationId ? "page" : undefined}
+                  item={child}
+                  active={child.id === activeNavigationId}
                   onClick={() => onNavigationChange?.(child.id)}
-                >
-                  <span className="product-navigation__label">{child.label}</span>
-                </Button>
+                />
               ))}
             </section>
           ))}
         </nav>
-        <AccountMenu accountLabel={accountLabel} onLogout={onLogout} />
       </aside>
 
       <div className="product-workspace">
+        <header className="product-topbar">
+          <Text className="product-topbar__context">{contextLabel}</Text>
+          <AccountMenu accountLabel={accountLabel} onLogout={onLogout} topbar />
+        </header>
         <header className="product-mobile-header">
           <div><span aria-hidden="true"><Sparkle20Filled /></span><Text weight="semibold">{productName}</Text></div>
           <AccountMenu accountLabel={accountLabel} onLogout={onLogout} compact />
@@ -139,16 +135,42 @@ export function ProductShell({
   );
 }
 
-function AccountMenu({ accountLabel, onLogout, compact = false }: {
+function NavigationButton({ item, active, onClick }: {
+  item: NavigationItem;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <Tooltip content={item.label} relationship="description">
+      <Button
+        appearance="subtle"
+        className={active ? "is-active" : undefined}
+        icon={navigationIcon(item.icon)}
+        aria-current={active ? "page" : undefined}
+        onClick={onClick}
+      >
+        <span className="product-navigation__label">{item.label}</span>
+      </Button>
+    </Tooltip>
+  );
+}
+
+function AccountMenu({ accountLabel, onLogout, compact = false, topbar = false }: {
   accountLabel: string;
   onLogout?: () => void;
   compact?: boolean;
+  topbar?: boolean;
 }) {
+  const className = compact
+    ? "product-account product-account--compact"
+    : topbar
+      ? "product-account product-account--topbar"
+      : "product-account";
   return <Menu>
     <MenuTrigger disableButtonEnhancement>
-      <Button className={compact ? "product-account product-account--compact" : "product-account"} appearance="subtle" iconPosition="after" icon={<ChevronDown16Regular />} aria-label={compact ? "打开账户菜单" : undefined}>
+      <Button className={className} appearance="subtle" iconPosition="after" icon={<ChevronDown16Regular />} aria-label={compact ? "打开账户菜单" : undefined}>
         <span aria-hidden="true">{accountLabel.slice(0, 1)}</span>
-        {!compact ? <span><small>当前会话</small><Text size={200}>{accountLabel}</Text></span> : null}
+        {!compact ? <span><small>当前会话角色</small><Text size={200}>{accountLabel}</Text></span> : null}
       </Button>
     </MenuTrigger>
     <MenuPopover>

@@ -5,9 +5,9 @@
   gap: 1rem;
   min-height: 16rem;
   padding: 2.25rem;
-  border: 1px dashed #d7dfdc;
-  border-radius: 1rem;
-  background: #fafbfa;
+  border: 1px solid var(--foundation-border);
+  border-radius: var(--foundation-panel-radius);
+  background: var(--foundation-subtle-surface);
 }
 
 .state-panel__copy {
@@ -17,7 +17,7 @@
 
 .state-description {
   max-width: 38rem;
-  color: var(--colorNeutralForeground2);
+  color: var(--foundation-muted-text);
   line-height: 1.6;
 }
 
@@ -34,8 +34,8 @@
 
 .state-panel__skeleton span {
   height: 0.75rem;
-  border-radius: 999px;
-  background: #e7ebe9;
+  border-radius: var(--foundation-control-radius);
+  background: #e2e8e5;
   animation: state-panel-pulse 1.6s ease-in-out infinite;
 }
 

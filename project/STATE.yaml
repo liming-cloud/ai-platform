@@ -278,6 +278,12 @@ latestEvidence:
   - project/evidence/ADR-0069-approval.md
   - project/evidence/WP-0014-local-platform-administrator-fixed-initialization.md
   - project/evidence/WP-0014-platform-ui-continuity-and-tenant-onboarding.md
-nextReviewAt: 2026-08-17
-updatedAt: 2026-08-17T23:28:00+08:00
+  - docs/design/m6-full-spa-ui-redesign.md
+  - project/evidence/WP-0014-full-spa-ui-redesign-design-review.md
+  - project/evidence/WP-0014-complete-ui-redesign.md
+  - project/evidence/artifacts/WP-0014-complete-ui-quality.md
+  - project/evidence/artifacts/WP-0014-complete-ui-performance-profile.md
+  - project/evidence/artifacts/WP-0014-complete-ui-code-review.md
+nextReviewAt: 2026-08-18
+updatedAt: 2026-08-18T11:00:32+08:00
 updatedBy: codex

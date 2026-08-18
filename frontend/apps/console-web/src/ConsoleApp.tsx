@@ -1,4 +1,4 @@
-import { Button } from "@fluentui/react-components";
+import { Tab, TabList } from "@fluentui/react-components";
 import { ProductShell, StatePanel, type NavigationItem } from "@foundation/design-system";
 import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { ControlPlaneClient } from "./api/control-plane-client";
@@ -123,6 +123,7 @@ export function ConsoleApp() {
           canUseTenantWorkspace={session.capability.workspaceCategories.includes("TENANT")}
           canUsePlatformGovernance={session.capability.workspaceCategories.includes("PLATFORM_TENANT_GOVERNANCE")}
           capabilityCodes={session.capability.capabilityCodes}
+          displayRoles={session.capability.displayRoles}
           onLogout={session.logout}
         />
       )}
@@ -135,12 +136,14 @@ function AuthenticatedConsoleApp({
   canUseTenantWorkspace,
   canUsePlatformGovernance,
   capabilityCodes,
+  displayRoles,
   onLogout,
 }: {
   client: ControlPlaneClient;
   canUseTenantWorkspace: boolean;
   canUsePlatformGovernance: boolean;
   capabilityCodes: string[];
+  displayRoles: string[];
   onLogout: () => Promise<void>;
 }) {
   const navigation = visibleNavigation({
@@ -160,6 +163,7 @@ function AuthenticatedConsoleApp({
     requestedRoute,
     navigationIds,
   );
+  const accountLabel = browserSessionRoleLabel(displayRoles);
 
   useEffect(() => {
     const refreshLocation = () => setLocation(readBrowserLocation());
@@ -198,7 +202,8 @@ function AuthenticatedConsoleApp({
         pageSummary="系统只显示与当前会话能力相符的入口，不会因此展示租户正文或管理入口。"
         navigation={[]}
         activeNavigationId=""
-        accountLabel="已验证浏览器会话"
+        accountLabel={accountLabel}
+        onLogout={() => void onLogout()}
       >
         <StatePanel
           kind="denied"
@@ -223,7 +228,8 @@ function AuthenticatedConsoleApp({
         navigation={navigation}
         activeNavigationId=""
         onNavigationChange={selectNavigation}
-        accountLabel="已验证浏览器会话"
+        accountLabel={accountLabel}
+        onLogout={() => void onLogout()}
       >
         <StatePanel
           kind={denied ? "denied" : "error"}
@@ -290,7 +296,7 @@ function AuthenticatedConsoleApp({
       navigation={navigation}
       activeNavigationId={route.navigationId}
       onNavigationChange={selectNavigation}
-      accountLabel="已验证浏览器会话"
+      accountLabel={accountLabel}
       onLogout={() => void onLogout()}
     >
       <section hidden={!operationsActive && !platformOperationsActive}>
@@ -302,32 +308,28 @@ function AuthenticatedConsoleApp({
       </section>
 
       <section hidden={!dataActive}>
-        <div className="data-task-switcher" aria-label="数据任务切换">
-          <Button
-            appearance={route.navigationId === "data" && route.task === "governed-file" ? "primary" : "subtle"}
-            onClick={() => navigate({ navigationId: "data", task: "governed-file", knowledgeSpacePage: 1, sourcePage: 1, embeddingModelConfigurationPage: 1 })}
-          >
-            文件来源登记
-          </Button>
-          <Button
-            appearance={route.navigationId === "data" && route.task === "structured-dataset" ? "primary" : "subtle"}
-            onClick={() => navigate({ navigationId: "data", task: "structured-dataset", knowledgeSpacePage: 1, embeddingModelConfigurationPage: 1 })}
-          >
-            结构化数据集登记
-          </Button>
-          <Button
-            appearance={route.navigationId === "data" && route.task === "object-storage" ? "primary" : "subtle"}
-            onClick={() => navigate({ navigationId: "data", task: "object-storage", knowledgeSpacePage: 1, embeddingModelConfigurationPage: 1 })}
-          >
-            对象存储范围登记
-          </Button>
-          <Button
-            appearance={route.navigationId === "data" && route.task === "first-publication" ? "primary" : "subtle"}
-            onClick={() => navigate({ navigationId: "data", task: "first-publication", knowledgeSpacePage: 1, embeddingModelConfigurationPage: 1 })}
-          >
-            首份文本发布
-          </Button>
-        </div>
+        <TaskNavigation
+          ariaLabel="数据任务切换"
+          activeValue={route.navigationId === "data" ? route.task : "governed-file"}
+          items={[
+            { value: "governed-file", label: "文件来源登记" },
+            { value: "structured-dataset", label: "结构化数据集登记" },
+            { value: "object-storage", label: "对象存储范围登记" },
+            { value: "first-publication", label: "首份文本发布" },
+          ]}
+          onSelect={(task) => {
+            switch (task) {
+              case "governed-file":
+                navigate({ navigationId: "data", task, knowledgeSpacePage: 1, sourcePage: 1, embeddingModelConfigurationPage: 1 });
+                break;
+              case "structured-dataset":
+              case "object-storage":
+              case "first-publication":
+                navigate({ navigationId: "data", task, knowledgeSpacePage: 1, embeddingModelConfigurationPage: 1 });
+                break;
+            }
+          }}
+        />
         {route.navigationId === "data" && route.task === "governed-file" ? (
           <Suspense fallback={<StatePanel kind="loading" title="正在加载数据任务" description="正在准备受治理文件来源流程。" />}>
             <GovernedFileDataWorkspace
@@ -426,14 +428,21 @@ function AuthenticatedConsoleApp({
       <section hidden={!governanceActive}>
         {governanceActive ? (
           <>
-            <div className="data-task-switcher" aria-label="治理任务切换">
-              <Button appearance={route.navigationId === "governance" && route.task === "query" ? "primary" : "subtle"} onClick={() => navigate({ navigationId: "governance", task: "query", auditPage: 1 })}>
-                查询用量与审计
-              </Button>
-              <Button appearance={route.navigationId === "governance" && route.task === "evaluation" ? "primary" : "subtle"} onClick={() => navigate({ navigationId: "governance", task: "evaluation" })}>
-                受限评测运行
-              </Button>
-            </div>
+            <TaskNavigation
+              ariaLabel="治理任务切换"
+              activeValue={route.navigationId === "governance" ? route.task : "query"}
+              items={[
+                { value: "query", label: "查询用量与审计" },
+                { value: "evaluation", label: "受限评测运行" },
+              ]}
+              onSelect={(task) => {
+                if (task === "query") {
+                  navigate({ navigationId: "governance", task, auditPage: 1 });
+                } else if (task === "evaluation") {
+                  navigate({ navigationId: "governance", task });
+                }
+              }}
+            />
             {route.navigationId === "governance" && route.task === "query" ? (
               <Suspense fallback={<StatePanel kind="loading" title="正在加载治理工作区" description="正在准备查询用量和脱敏审计视图。" />}>
                 <QueryGovernanceWorkspace
@@ -484,6 +493,39 @@ function AuthenticatedConsoleApp({
       </section>
     </ProductShell>
   );
+}
+
+function TaskNavigation({ ariaLabel, activeValue, items, onSelect }: {
+  ariaLabel: string;
+  activeValue: string;
+  items: readonly { value: string; label: string }[];
+  onSelect: (value: string) => void;
+}) {
+  return (
+    <TabList
+      className="task-navigation"
+      aria-label={ariaLabel}
+      selectedValue={activeValue}
+      onTabSelect={(_, data) => onSelect(String(data.value))}
+    >
+      {items.map((item) => (
+        <Tab key={item.value} value={item.value}>{item.label}</Tab>
+      ))}
+    </TabList>
+  );
+}
+
+const SESSION_ROLE_LABELS: Record<string, string> = {
+  PLATFORM_ADMINISTRATOR: "平台管理员",
+  TENANT_ADMINISTRATOR: "租户管理员",
+  TENANT_USER: "租户用户",
+};
+
+function browserSessionRoleLabel(displayRoles: readonly string[]) {
+  const labels = displayRoles
+    .map((role) => SESSION_ROLE_LABELS[role])
+    .filter((label): label is string => label !== undefined);
+  return labels.length > 0 ? labels.join("、") : "当前账户";
 }
 
 function navigationTargets(navigation: readonly NavigationItem[]): ConsoleRoute["navigationId"][] {

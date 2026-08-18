@@ -259,11 +259,13 @@
   gap: 1rem;
 }
 
-.data-task-switcher {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  margin-bottom: 1.5rem;
+.task-navigation {
+  margin-bottom: 1.75rem;
+  border-bottom: 1px solid var(--foundation-border);
+}
+
+.task-navigation [role="tab"] {
+  min-height: 2.75rem;
 }
 
 .publication-layout {
@@ -823,16 +825,19 @@
 }
 
 .governance-login {
+  color: var(--foundation-text);
   min-height: 100dvh;
-  background: #f7f7f8;
+  background: var(--foundation-canvas);
 }
 
 .governance-login__panel {
   display: grid;
-  grid-template-rows: auto 1fr auto;
-  justify-items: center;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 2rem;
+  width: min(100%, 80rem);
   min-height: 100dvh;
-  padding: 2rem 1.25rem;
+  margin: 0 auto;
+  padding: 1.5rem clamp(1.5rem, 4vw, 4rem) 3rem;
   box-sizing: border-box;
 }
 
@@ -846,25 +851,104 @@
 .governance-login__brand > span {
   display: grid;
   place-items: center;
-  width: 1.875rem;
-  height: 1.875rem;
+  width: 2rem;
+  height: 2rem;
   color: #fff;
   font-size: 0.75rem;
   font-weight: 700;
   border-radius: 0.5rem;
-  background: #111;
+  background: #182421;
+}
+
+.governance-login__layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(22rem, 0.85fr);
+  gap: clamp(3rem, 8vw, 7.5rem);
+  align-items: center;
+  align-self: center;
+  width: 100%;
+}
+
+.governance-login__brief {
+  display: grid;
+  gap: 1.25rem;
+  max-width: 39rem;
+}
+
+.governance-login__context {
+  color: var(--foundation-accent);
+  font-size: 0.6875rem;
+  font-weight: 750;
+  letter-spacing: 0.1em;
+}
+
+.governance-login__statement {
+  max-width: 9ch;
+  margin: 0;
+  color: var(--foundation-text);
+  font-size: clamp(2.5rem, 4vw, 3.25rem);
+  font-weight: 650;
+  letter-spacing: -0.055em;
+  line-height: 1.04;
+}
+
+.governance-login__description {
+  max-width: 34rem;
+  margin: 0;
+  color: var(--foundation-muted-text);
+  font-size: 1rem;
+  line-height: 1.7;
+}
+
+.governance-login__principles {
+  display: grid;
+  margin: 1.25rem 0 0;
+  padding: 0;
+  border-top: 1px solid var(--foundation-border);
+  list-style: none;
+}
+
+.governance-login__principles li {
+  display: grid;
+  grid-template-columns: 1.5rem minmax(0, 1fr);
+  gap: 0.875rem;
+  align-items: start;
+  padding: 1rem 0;
+  border-bottom: 1px solid var(--foundation-border);
+}
+
+.governance-login__principles svg {
+  margin-top: 0.125rem;
+  color: var(--foundation-accent);
+}
+
+.governance-login__principles li > span {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.governance-login__principles small {
+  color: var(--foundation-muted-text);
+  font-size: 0.8125rem;
+  line-height: 1.55;
 }
 
 .governance-login__card {
   display: grid;
   gap: 1.5rem;
-  align-self: center;
-  width: min(100%, 26.25rem);
-  padding: 2rem;
-  border: 1px solid #dedede;
-  border-radius: 0.75rem;
-  background: #fff;
-  box-shadow: 0 0.125rem 0.5rem rgb(0 0 0 / 0.04);
+  width: 100%;
+  padding: 2.25rem;
+  border: 1px solid var(--foundation-border);
+  border-radius: var(--foundation-panel-radius);
+  background: var(--foundation-surface);
+  box-shadow: var(--foundation-elevation);
+}
+
+.governance-login__card--state .state-panel {
+  min-height: 23rem;
+  padding: 0;
+  border: 0;
+  background: transparent;
 }
 
 .governance-login__heading {
@@ -874,9 +958,10 @@
 
 .governance-login__heading h1 {
   margin: 0;
-  color: #111;
-  font-size: 1.625rem;
-  letter-spacing: -0.025em;
+  color: var(--foundation-text);
+  font-size: 1.75rem;
+  font-weight: 650;
+  letter-spacing: -0.035em;
 }
 
 .governance-login__heading p,
@@ -891,8 +976,9 @@
   width: 100%;
   padding: 0.25rem;
   box-sizing: border-box;
+  border: 1px solid var(--foundation-border);
   border-radius: 0.625rem;
-  background: #f1f1f1;
+  background: var(--foundation-subtle-surface);
 }
 
 .governance-login__workspace-tabs [role="tab"] {
@@ -907,9 +993,9 @@
 
 .governance-login__platform-note {
   padding: 0.75rem 0.875rem;
-  border: 1px solid #e6e6e6;
+  border: 1px solid var(--foundation-border);
   border-radius: 0.5rem;
-  background: #fafafa;
+  background: var(--foundation-sidebar);
 }
 
 .governance-login__submit {
@@ -917,18 +1003,80 @@
   width: 100%;
   min-height: 2.75rem;
   color: #fff;
-  background: #111;
+  background: var(--foundation-accent);
+}
+
+@media (max-width: 52rem) {
+  .governance-login__panel {
+    gap: 2.5rem;
+  }
+
+  .governance-login__layout {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2.5rem;
+  }
+
+  .governance-login__brief {
+    max-width: none;
+  }
+
+  .governance-login__statement {
+    max-width: none;
+    font-size: clamp(2.25rem, 7vw, 3rem);
+  }
+
+  .governance-login__principles {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .governance-login__principles li {
+    grid-template-columns: 1.5rem minmax(0, 1fr);
+    padding-right: 1rem;
+    border-right: 1px solid var(--foundation-border);
+  }
+
+  .governance-login__principles li:last-child {
+    border-right: 0;
+  }
 }
 
 @media (max-width: 44rem) {
   .governance-login__panel {
-    padding: 1.25rem 1rem;
+    gap: 1.75rem;
+    padding: 1.25rem 1rem 2rem;
+  }
+
+  .governance-login__layout {
+    gap: 1.5rem;
+  }
+
+  .governance-login__brief {
+    gap: 0.75rem;
+  }
+
+  .governance-login__context,
+  .governance-login__description {
+    display: none;
+  }
+
+  .governance-login__statement {
+    max-width: 12ch;
+    font-size: 2rem;
+    line-height: 1.08;
+  }
+
+  .governance-login__principles {
+    display: none;
   }
 
   .governance-login__card {
     padding: 1.5rem 1.25rem;
-    border: 0;
+    border-radius: var(--foundation-panel-radius);
     box-shadow: none;
+  }
+
+  .governance-login__card--state .state-panel {
+    min-height: 18rem;
   }
 }
 

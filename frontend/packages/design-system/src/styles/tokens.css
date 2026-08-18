@@ -1,5 +1,16 @@
 :root {
   color-scheme: light;
+  --foundation-canvas: #f4f6f5;
+  --foundation-sidebar: #f8faf9;
+  --foundation-surface: #ffffff;
+  --foundation-subtle-surface: #f1f4f2;
+  --foundation-border: #dfe5e2;
+  --foundation-text: #17201e;
+  --foundation-muted-text: #65706c;
+  --foundation-accent: #126b5c;
+  --foundation-control-radius: 0.5rem;
+  --foundation-panel-radius: 0.75rem;
+  --foundation-elevation: 0 1px 2px rgb(23 32 30 / 5%);
   font-family:
     "Segoe UI Variable",
     "Segoe UI",
@@ -27,13 +38,8 @@ textarea {
 
 .foundation-app-root {
   min-height: 100dvh;
-  background:
-    linear-gradient(
-      135deg,
-      rgb(18 107 92 / 4%),
-      transparent 36rem
-    ),
-    #f3f5f5;
+  color: var(--foundation-text);
+  background: var(--foundation-canvas);
 }
 
 @media (prefers-reduced-motion: reduce) {
