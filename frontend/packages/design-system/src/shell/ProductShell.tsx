@@ -146,6 +146,7 @@ function NavigationButton({ item, active, onClick }: {
         appearance="subtle"
         className={active ? "is-active" : undefined}
         icon={navigationIcon(item.icon)}
+        aria-label={item.label}
         aria-current={active ? "page" : undefined}
         onClick={onClick}
       >

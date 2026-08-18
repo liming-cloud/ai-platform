@@ -37,4 +37,12 @@ describe("共享产品壳视觉契约", () => {
     expect(styles).toMatch(/\.product-topbar\s*\{[^}]*min-height:\s*3\.5rem;/s);
     expect(styles).toMatch(/@media \(max-width:\s*1040px\)[\s\S]*?\.product-shell\s*\{[^}]*grid-template-columns:\s*5rem\s+minmax\(0,\s*1fr\);/s);
   });
+
+  it("折叠侧栏隐藏可见文字后仍保留导航按钮名称", () => {
+    const source = readFileSync(shellPath, "utf8");
+
+    expect(source).toMatch(
+      /function NavigationButton[\s\S]*?<Button[\s\S]*?aria-label=\{item\.label\}/,
+    );
+  });
 });
