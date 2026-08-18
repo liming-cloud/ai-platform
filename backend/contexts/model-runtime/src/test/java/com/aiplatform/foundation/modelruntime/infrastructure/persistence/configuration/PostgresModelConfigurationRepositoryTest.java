@@ -3,6 +3,7 @@ package com.aiplatform.foundation.modelruntime.infrastructure.persistence.config
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import com.aiplatform.foundation.modelruntime.application.configuration.exception.ControlledModelCatalogConflictException;
 import com.aiplatform.foundation.modelruntime.domain.configuration.model.ControlledModelCatalogEntryId;
 import com.aiplatform.foundation.modelruntime.domain.configuration.model.ControlledModelCatalogEntry;
 import com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelConfiguration;
@@ -214,6 +215,23 @@ class PostgresModelConfigurationRepositoryTest {
         assertEquals(1_024, published.capabilities().embeddingDimension());
         assertEquals(deploymentId, published.sourceDeploymentId());
         assertEquals(3L, published.sourceDeploymentRevision());
+    }
+
+    @Test
+    void 相同厂商端点模型和类型的目录条目返回稳定冲突而不是数据库异常() {
+        var duplicate = ControlledModelCatalogEntry.createFromPlatformDeployment(
+                new ControlledModelCatalogEntryId(3008L),
+                new PlatformModelDeploymentId(620000000000000001L),
+                3L,
+                com.aiplatform.foundation.modelruntime.domain.provider.model.ProviderKind.OPENAI_COMPATIBLE,
+                java.net.URI.create("https://example.com/v1"),
+                "test-chat-model",
+                com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelType.CHAT,
+                ModelRuntimeCapabilities.chat(32_768, 4_096),
+                Instant.parse("2026-07-28T00:00:00Z"));
+
+        assertThrows(ControlledModelCatalogConflictException.class,
+                () -> repository.saveCatalogEntry(duplicate));
     }
 
     @Test

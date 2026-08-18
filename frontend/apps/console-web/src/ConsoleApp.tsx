@@ -254,7 +254,6 @@ function AuthenticatedConsoleApp({
   const modelsActive = route.navigationId === "models";
   const governanceActive = route.navigationId === "governance";
   const queryActive = route.navigationId === "query";
-      const platformWorkspaceActive = route.navigationId === "platform-workspace";
       const platformOperationsActive = route.navigationId === "platform-operations";
   const platformActive = route.navigationId === "platform";
   const platformAccountsActive = route.navigationId === "platform-accounts";
@@ -265,7 +264,7 @@ function AuthenticatedConsoleApp({
     <ProductShell
       productName="可信知识平台"
       pageTitle={
-        operationsActive ? "运营总览" : platformOperationsActive ? "平台运营总览" : accessActive ? route.task === "roles" ? "租户角色" : "成员与权限" : platformWorkspaceActive ? "平台工作区" : platformActive ? route.task === "create" ? "建立新租户" : "平台租户" : platformAccountsActive ? route.task === "roles" ? "平台角色" : "平台账户目录" : platformModelSupplyActive ? "平台模型供应链" : queryActive ? "从已授权资料中获得答案" : governanceActive ? route.task === "query" ? "查询用量与审计" : "受限评测运行" : modelsActive ? route.task === "configuration" ? "受控模型配置" : route.task === "providers" ? "供应商连接与模型发现" : "模型部署与能力验证" : dataPage?.title ?? "可信知识平台"
+        operationsActive ? "运营总览" : platformOperationsActive ? "平台运营总览" : accessActive ? route.task === "roles" ? "租户角色" : "成员与权限" : platformActive ? route.task === "create" ? "建立新租户" : "平台租户" : platformAccountsActive ? route.task === "roles" ? "角色目录" : "人员账户目录" : platformModelSupplyActive ? "平台模型供应链" : queryActive ? "从已授权资料中获得答案" : governanceActive ? route.task === "query" ? "查询用量与审计" : "受限评测运行" : modelsActive ? route.task === "configuration" ? "受控模型配置" : route.task === "providers" ? "供应商连接与模型发现" : "模型部署与能力验证" : dataPage?.title ?? "可信知识平台"
       }
       pageSummary={
         operationsActive
@@ -276,8 +275,6 @@ function AuthenticatedConsoleApp({
           ? "答案必须附带可核验来源。没有足够证据或没有访问权限时，系统会明确拒绝回答。"
           : accessActive
           ? route.task === "roles" ? "查看当前租户的固定角色、能力范围和安全边界。" : "成员目录按页显示；停用成员前必须二次确认。"
-          : platformWorkspaceActive
-          ? "只确认当前平台浏览器会话；不会展示租户正文、成员、账户、凭据或治理数据。"
           : platformActive
           ? route.task === "create"
             ? "定义租户信息，建立专用租户管理员账户，并在提交前核对全部业务结果。"
@@ -481,15 +478,6 @@ function AuthenticatedConsoleApp({
           <Suspense fallback={<StatePanel kind="loading" title="正在加载平台租户工作区" description="正在准备受限生命周期任务。" />}>
             <PlatformTenantLifecycleWorkspace client={client} route={route} onRouteChange={navigate} />
           </Suspense>
-        ) : null}
-      </section>
-      <section hidden={!platformWorkspaceActive}>
-        {platformWorkspaceActive ? (
-          <StatePanel
-            kind="empty"
-            title="当前没有获授权的平台治理任务"
-            description="请由平台管理员授予与实际职责相符的固定角色。"
-          />
         ) : null}
       </section>
       <section hidden={!platformAccountsActive}>

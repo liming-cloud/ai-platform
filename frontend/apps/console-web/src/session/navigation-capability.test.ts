@@ -22,15 +22,15 @@ describe("visibleNavigation", () => {
     })).toEqual([]);
   });
 
-  it("平台运营员通过单一平台治理入口访问获授子任务", () => {
+  it("只有平台会话而没有实际治理能力时不显示空占位任务", () => {
     const navigation = visibleNavigation({
       canUseTenantWorkspace: false,
       canUsePlatformGovernance: true,
       capabilityCodes: ["platform-session:access"],
     });
 
-    expect(navigation.map((item) => item.id)).toEqual(["platform-governance"]);
-    expect(defaultNavigationTarget(navigation)).toBe("platform-workspace");
+    expect(navigation).toEqual([]);
+    expect(defaultNavigationTarget(navigation)).toBeUndefined();
   });
 
   it("平台管理员首次进入应从可操作的租户治理任务开始", () => {
@@ -65,7 +65,6 @@ describe("visibleNavigation", () => {
     expect(defaultNavigationTarget(tenantNavigation)).toBe("operations");
     expect(platformNavigation[0]?.children?.map((item) => item.id)).toEqual([
       "platform-operations",
-      "platform-workspace",
     ]);
     expect(defaultNavigationTarget(platformNavigation)).toBe("platform-operations");
   });

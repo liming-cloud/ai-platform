@@ -2,6 +2,7 @@ package com.aiplatform.foundation.organizationaccess.application.authorization.s
 
 import com.aiplatform.foundation.organizationaccess.application.authentication.port.out.PasswordHasher;
 import com.aiplatform.foundation.organizationaccess.application.authorization.dto.PlatformAccountSummary;
+import com.aiplatform.foundation.organizationaccess.application.authorization.exception.PlatformAccountLoginNameConflictException;
 import com.aiplatform.foundation.organizationaccess.application.authorization.port.out.PlatformAccountStore;
 import com.aiplatform.foundation.organizationaccess.domain.identity.model.SubjectIdentity;
 import com.aiplatform.foundation.organizationaccess.domain.member.model.EncodedPassword;
@@ -40,7 +41,8 @@ public class PlatformAccountEstablishmentApplicationService {
     /**
      * 建立默认无固定角色的活动平台账户。
      *
-     * @throws IllegalArgumentException 当调用主体未获授权、登录名或口令不合法，或全局登录名已存在时拒绝。
+     * @throws IllegalArgumentException 当调用主体未获授权，或登录名、口令不合法时拒绝。
+     * @throws PlatformAccountLoginNameConflictException 当全局登录名已经存在时拒绝。
      */
     @Transactional
     public PlatformAccountSummary establish(PlatformRequestContext context, String loginName, char[] initialPassword) {
@@ -56,7 +58,7 @@ public class PlatformAccountEstablishmentApplicationService {
                     new EncodedPassword(passwords.encode(initialPassword)),
                     clock.instant());
             if (!store.insert(identity)) {
-                throw new IllegalArgumentException("全局登录名已存在");
+                throw new PlatformAccountLoginNameConflictException();
             }
             return new PlatformAccountSummary(
                     identity.id().value(),

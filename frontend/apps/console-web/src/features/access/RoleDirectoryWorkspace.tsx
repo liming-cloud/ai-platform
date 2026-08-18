@@ -27,22 +27,20 @@ interface RoleCatalogEntry {
   boundary: string;
 }
 
-export const platformRoleCatalog: readonly RoleCatalogEntry[] = [
-  {
-    code: "PLATFORM_ADMINISTRATOR",
-    label: "平台管理员",
-    scopeLabel: "平台范围",
-    purpose: "建立平台账户和租户，维护模型供应链，并读取脱敏运营摘要。",
-    capabilities: [
-      "平台账户与管理员治理",
-      "租户建立及生命周期管理",
-      "平台模型连接与部署供应",
-      "脱敏平台运营摘要",
-      "平台管理会话",
-    ],
-    boundary: "不能读取租户问题、回答、引用正文、知识正文、成员明细或凭据。",
-  },
-] as const;
+const platformAdministratorRole: RoleCatalogEntry = {
+  code: "PLATFORM_ADMINISTRATOR",
+  label: "平台管理员",
+  scopeLabel: "平台范围",
+  purpose: "建立人员账户和租户，维护模型供应链，并读取脱敏运营摘要。",
+  capabilities: [
+    "人员账户与平台授权治理",
+    "租户建立及生命周期管理",
+    "平台模型连接与部署供应",
+    "脱敏平台运营摘要",
+    "平台管理会话",
+  ],
+  boundary: "不能读取租户问题、回答、引用正文、知识正文、成员明细或凭据。",
+};
 
 export const tenantRoleCatalog: readonly RoleCatalogEntry[] = [
   {
@@ -72,6 +70,12 @@ export const tenantRoleCatalog: readonly RoleCatalogEntry[] = [
     ],
     boundary: "不能管理成员、数据、模型、助手、评测、用量或审计。",
   },
+] as const;
+
+/** 平台管理员需要理解完整产品角色，但只有平台角色能在人员账户目录授予。 */
+export const platformRoleCatalog: readonly RoleCatalogEntry[] = [
+  platformAdministratorRole,
+  ...tenantRoleCatalog,
 ] as const;
 
 /**
@@ -136,9 +140,13 @@ export function RoleDirectoryWorkspace({
             </div>
             <div className="task-actions role-directory__actions">
               <Button appearance="secondary" onClick={() => setSelectedRole(role)}>查看详情</Button>
-              <Button appearance="subtle" icon={<ArrowRight20Regular />} iconPosition="after" onClick={onManageMembers}>
-                管理成员
-              </Button>
+              {scope === "PLATFORM" && role.code !== "PLATFORM_ADMINISTRATOR"
+                ? <Button appearance="subtle" disabled>租户内分配</Button>
+                : (
+                  <Button appearance="subtle" icon={<ArrowRight20Regular />} iconPosition="after" onClick={onManageMembers}>
+                    {scope === "PLATFORM" ? "管理人员账户" : "管理租户成员"}
+                  </Button>
+                )}
             </div>
           </article>
         ))}
@@ -183,9 +191,13 @@ export function RoleDirectoryWorkspace({
                 <h3 id="role-configuration-heading">权限配置状态</h3>
                 <Text>当前版本由固定模板派生。修改能力集合需要版本化角色模板、受影响会话撤销和独立安全验收。</Text>
               </section>
-              <Button appearance="primary" onClick={() => { setSelectedRole(undefined); onManageMembers(); }}>
-                前往成员目录
-              </Button>
+              {scope === "PLATFORM" && selectedRole.code !== "PLATFORM_ADMINISTRATOR"
+                ? <Text>该角色由对应租户的租户管理员在成员目录分配，平台账户目录不会把它提升为平台权限。</Text>
+                : (
+                  <Button appearance="primary" onClick={() => { setSelectedRole(undefined); onManageMembers(); }}>
+                    前往{scope === "PLATFORM" ? "人员账户目录" : "租户成员目录"}
+                  </Button>
+                )}
             </div>
           )}
         </DrawerBody>

@@ -2,9 +2,11 @@ import { describe, expect, it } from "vitest";
 import { platformRoleCatalog, tenantRoleCatalog } from "./RoleDirectoryWorkspace";
 
 describe("三角色目录", () => {
-  it("只发布一个平台角色和两个租户角色", () => {
+  it("平台目录展示全部三个固定角色，租户目录只展示租户内角色", () => {
     expect(platformRoleCatalog.map((role) => role.code)).toEqual([
       "PLATFORM_ADMINISTRATOR",
+      "TENANT_ADMINISTRATOR",
+      "TENANT_USER",
     ]);
     expect(tenantRoleCatalog.map((role) => role.code)).toEqual([
       "TENANT_ADMINISTRATOR",

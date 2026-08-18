@@ -33,6 +33,12 @@ interface Failure {
   traceId: string;
 }
 
+interface DiscoverySummary {
+  intent: "success" | "warning";
+  title: string;
+  message: string;
+}
+
 /**
  * 平台供应链只管理平台范围的连接摘要；租户连接、端点和凭据不进入此工作区。
  */
@@ -57,7 +63,7 @@ export function PlatformModelSupplyWorkspace({
   const [submitting, setSubmitting] = useState(false);
   const [apiKey, setApiKey] = useState("");
   const [discoveryTarget, setDiscoveryTarget] = useState<PlatformProviderConnectionSummary>();
-  const [discoverySummary, setDiscoverySummary] = useState<string>();
+  const [discoverySummary, setDiscoverySummary] = useState<DiscoverySummary>();
 
   const load = useCallback(async () => {
     if (!client.hasSession()) {
@@ -132,8 +138,22 @@ export function PlatformModelSupplyWorkspace({
       );
       setDiscoveryTarget(undefined);
       setDiscoverySummary(result.succeeded
-        ? `模型发现完成：已找到 ${result.models.length} 个可用候选。`
-        : "模型发现未完成，请确认连接状态后重试。");
+        ? {
+          intent: "success",
+          title: "模型发现完成",
+          message: `已找到 ${result.models.length} 个可用候选，可以继续管理部署。`,
+        }
+        : result.resultCode === "PLATFORM_MODEL_DISCOVERY_UNSUPPORTED"
+          ? {
+            intent: "warning",
+            title: "模型发现未完成",
+            message: "当前厂商类型尚未提供平台自动发现适配器。连接已保留，但不能继续建立部署。",
+          }
+          : {
+            intent: "warning",
+            title: "模型发现未完成",
+            message: "连接没有返回可用候选。请核对 API 基础地址、凭据与厂商服务状态后重试。",
+          });
       await load();
     } catch (error) {
       setFailure(toFailure(error));
@@ -159,7 +179,7 @@ export function PlatformModelSupplyWorkspace({
         <div className="task-actions"><Button appearance="primary" onClick={() => setCreating(true)}>新建平台连接</Button><Button appearance="subtle" onClick={() => void load()}>刷新连接</Button></div>
       </div>
       {failure === undefined ? null : <FailureMessage failure={failure} />}
-      {discoverySummary === undefined ? null : <MessageBar intent="success"><MessageBarBody><MessageBarTitle>模型发现已记录</MessageBarTitle>{discoverySummary}</MessageBarBody></MessageBar>}
+      {discoverySummary === undefined ? null : <MessageBar intent={discoverySummary.intent}><MessageBarBody><MessageBarTitle>{discoverySummary.title}</MessageBarTitle>{discoverySummary.message}</MessageBarBody></MessageBar>}
       <section className="model-configuration-section">
         <header className="task-heading"><Title3>平台厂商连接</Title3><Text>仅平台管理员可创建；连接创建后通过一次受控请求完成验证和模型发现。</Text></header>
         <div className="member-directory-table" role="region" aria-label="平台厂商连接分页表格">
@@ -174,7 +194,7 @@ export function PlatformModelSupplyWorkspace({
           <Text>Endpoint 和 API Key 仅用于本次平台范围受控写入；创建后页面不会回显二者，也不会写入租户范围。</Text>
           <Field label="连接名称" required><Input name="displayName" autoFocus disabled={submitting} /></Field>
           <Field label="厂商类型" required><Select name="providerKind" defaultValue="DETERMINISTIC" disabled={submitting}><option value="DETERMINISTIC">确定性开发连接</option><option value="OPENAI_COMPATIBLE">OpenAI 兼容接口</option><option value="OLLAMA">Ollama</option></Select></Field>
-          <Field label="受控 Endpoint" required><Input name="endpoint" type="url" placeholder="https://…/v1" disabled={submitting} /></Field>
+          <Field label="API 基础地址" hint="填写厂商 API 根地址，不要包含 /chat/completions 或 /responses。" required><Input name="endpoint" type="url" placeholder="https://ark.cn-beijing.volces.com/api/v3" disabled={submitting} /></Field>
           <Field label="部署区域" required><Input name="region" placeholder="例如：local" disabled={submitting} /></Field>
           <Field label="API Key" required><Input type="password" value={apiKey} onChange={(_, data) => setApiKey(data.value)} autoComplete="new-password" disabled={submitting} /></Field>
         </DialogContent><DialogActions><Button appearance="secondary" disabled={submitting} onClick={() => setCreating(false)}>取消</Button><Button appearance="primary" type="submit" disabled={submitting}>{submitting ? "正在创建" : "创建平台连接"}</Button></DialogActions></form></DialogBody></DialogSurface>

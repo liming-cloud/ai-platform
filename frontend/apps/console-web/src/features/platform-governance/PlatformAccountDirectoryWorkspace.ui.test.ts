@@ -14,4 +14,14 @@ describe("平台账户详情", () => {
     expect(source).not.toContain("{detailAccount.subjectId}");
     expect(source).not.toContain("{detailAccount.version}");
   });
+
+  it("把全局人员账户与平台管理员授权明确分开", () => {
+    const source = readFileSync(workspacePath, "utf8");
+
+    expect(source).toContain("人员账户目录");
+    expect(source).toContain("尚未授予平台治理权限");
+    expect(source).toContain("授予平台治理权限");
+    expect(source).not.toContain("尚未绑定平台角色");
+    expect(source).not.toContain("绑定平台管理员");
+  });
 });

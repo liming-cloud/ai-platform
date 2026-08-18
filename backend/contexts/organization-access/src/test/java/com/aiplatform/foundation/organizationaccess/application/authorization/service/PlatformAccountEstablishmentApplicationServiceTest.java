@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import com.aiplatform.foundation.organizationaccess.application.authorization.exception.PlatformAccountLoginNameConflictException;
 import com.aiplatform.foundation.organizationaccess.application.authorization.port.out.PlatformAccountStore;
 import com.aiplatform.foundation.organizationaccess.domain.identity.model.SubjectIdentity;
 import com.aiplatform.foundation.organizationaccess.domain.member.model.SubjectId;
@@ -42,7 +43,7 @@ class PlatformAccountEstablishmentApplicationServiceTest {
     }
 
     @Test
-    void 无账户治理权限或重复登录名不得建立平台账户() {
+    void 无账户治理权限不得建立人员账户() {
         var service = new PlatformAccountEstablishmentApplicationService(
                 new RecordingStore(false),
                 password -> "encoded:" + String.valueOf(password),
@@ -50,7 +51,18 @@ class PlatformAccountEstablishmentApplicationServiceTest {
                 Clock.systemUTC());
 
         assertThrows(IllegalArgumentException.class, () -> service.establish(noPermission(), "new-account", "initial-password".toCharArray()));
-        assertThrows(IllegalArgumentException.class, () -> service.establish(accountAdministrator(), "new-account", "initial-password".toCharArray()));
+    }
+
+    @Test
+    void 重复登录名返回稳定冲突而不是请求格式错误() {
+        var service = new PlatformAccountEstablishmentApplicationService(
+                new RecordingStore(false),
+                password -> "encoded:" + String.valueOf(password),
+                () -> 102L,
+                Clock.systemUTC());
+
+        assertThrows(PlatformAccountLoginNameConflictException.class,
+                () -> service.establish(accountAdministrator(), "new-account", "initial-password".toCharArray()));
     }
 
     private static PlatformRequestContext accountAdministrator() {

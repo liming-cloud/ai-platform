@@ -46,17 +46,13 @@ describe("统一控制台路由", () => {
     })).toBe("/platform/operations?range=DAY_30&page=3");
   });
 
-  it("平台运营员工作区使用固定的无数据入口", () => {
-    expect(defaultConsoleRoute("platform-workspace")).toEqual({
-      navigationId: "platform-workspace",
-      task: "workspace",
-    });
+  it("旧平台根地址兼容进入真实的运营总览", () => {
     expect(parseConsoleRoute("/platform", "")).toEqual({
-      navigationId: "platform-workspace",
-      task: "workspace",
+      navigationId: "platform-operations",
+      task: "overview",
+      page: 1,
+      range: "DAY_7",
     });
-    expect(formatConsoleRoute({ navigationId: "platform-workspace", task: "workspace" }))
-      .toBe("/platform");
   });
 
   it("一级模型导航进入可恢复的配置工作区，而不是内存标签页", () => {

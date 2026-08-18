@@ -1,5 +1,6 @@
 package com.aiplatform.foundation.modelruntime.infrastructure.persistence.configuration;
 
+import com.aiplatform.foundation.modelruntime.application.configuration.exception.ControlledModelCatalogConflictException;
 import com.aiplatform.foundation.modelruntime.domain.configuration.model.ControlledModelCatalogEntry;
 import com.aiplatform.foundation.modelruntime.domain.configuration.model.ControlledModelCatalogEntryId;
 import com.aiplatform.foundation.modelruntime.domain.configuration.model.ControlledModelCatalogEntryStatus;
@@ -17,11 +18,12 @@ import com.aiplatform.foundation.modelruntime.domain.provider.model.ProviderKind
 import com.aiplatform.foundation.modelruntime.domain.platformsupply.model.PlatformModelDeploymentId;
 import com.aiplatform.foundation.modelruntime.infrastructure.persistence.configuration.entity.ControlledModelCatalogEntryEntity;
 import com.aiplatform.foundation.modelruntime.infrastructure.persistence.configuration.entity.ModelConfigurationEntity;
+import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import java.net.URI;
 import java.util.Objects;
 import java.util.Optional;
-import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
+import org.springframework.dao.DuplicateKeyException;
 
 /**
  * PostgreSQL 受控目录与模型配置仓储，所有配置所有权由领域对象验证。
@@ -62,7 +64,11 @@ public final class PostgresModelConfigurationRepository implements ModelConfigur
     @Override
     public void saveCatalogEntry(ControlledModelCatalogEntry entry) {
         Objects.requireNonNull(entry, "受控模型目录条目不能为空");
-        catalogMapper.insert(toEntity(entry));
+        try {
+            catalogMapper.insert(toEntity(entry));
+        } catch (DuplicateKeyException exception) {
+            throw new ControlledModelCatalogConflictException(exception);
+        }
     }
 
     @Override

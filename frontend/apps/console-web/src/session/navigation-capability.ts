@@ -15,13 +15,6 @@ export const NAVIGATION = [
     workspace: "PLATFORM_TENANT_GOVERNANCE",
   },
   {
-    id: "platform-workspace",
-    label: "平台工作区",
-    icon: "workspace",
-    requiredCapability: "platform-session:access",
-    workspace: "PLATFORM_TENANT_GOVERNANCE",
-  },
-  {
     id: "platform",
     label: "平台租户",
     icon: "platform",
@@ -75,7 +68,7 @@ export function visibleNavigation({
 }
 
 /**
- * 首次进入优先选择实际可执行的平台任务；只有平台会话进入能力时才停留在无数据工作区。
+ * 首次进入选择第一个实际可执行任务；纯会话能力不生成空占位入口。
  */
 export function defaultNavigationTarget(
   navigation: readonly NavigationItem[],
@@ -83,7 +76,7 @@ export function defaultNavigationTarget(
   const targets = navigation.flatMap((item) =>
     (item.children?.map((child) => child.id) ?? [item.id]) as typeof NAVIGATION[number]["id"][],
   );
-  return targets.find((target) => target !== "platform-workspace") ?? targets[0];
+  return targets[0];
 }
 
 /**

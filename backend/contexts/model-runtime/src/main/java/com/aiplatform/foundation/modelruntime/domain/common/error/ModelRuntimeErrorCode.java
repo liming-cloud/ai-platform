@@ -48,6 +48,10 @@ public enum ModelRuntimeErrorCode implements ErrorCode {
             "MODEL_RUNTIME.CONFLICT.0009",
             ErrorType.CONFLICT,
             "当前供应商连接修订不存在有效模型发现候选"),
+    CATALOG_ENTRY_CONFLICT(
+            "MODEL_RUNTIME.CONFLICT.0010",
+            ErrorType.CONFLICT,
+            "相同厂商、地址、模型和类型的目录条目已经存在"),
     UNSUPPORTED_PROVIDER("MODEL_RUNTIME.REQUEST.0001", ErrorType.REQUEST,
             "当前运行进程未装配请求的供应商协议");
 

@@ -64,7 +64,6 @@ export type ConsoleRoute =
   | { navigationId: "governance"; task: "query"; auditPage: number }
   | { navigationId: "governance"; task: "evaluation" }
   | { navigationId: "query"; task: "ask"; assistantPage: number }
-  | { navigationId: "platform-workspace"; task: "workspace" }
   | { navigationId: "platform-operations"; task: "overview"; page: number; range: OperationsRange }
   | { navigationId: "platform"; task: "tenants"; page: number }
   | { navigationId: "platform"; task: "create"; step: 1 | 2 | 3 }
@@ -107,8 +106,6 @@ export function defaultConsoleRoute(navigationId: ConsoleNavigationId): ConsoleR
       return { navigationId, task: "query", auditPage: 1 };
     case "query":
       return { navigationId, task: "ask", assistantPage: 1 };
-    case "platform-workspace":
-      return { navigationId, task: "workspace" };
     case "platform-operations":
       return { navigationId, task: "overview", page: 1, range: "DAY_7" };
     case "platform":
@@ -231,7 +228,7 @@ export function parseConsoleRoute(pathname: string, search: string): ConsoleRout
     };
   }
   if (routePath === "/platform") {
-    return { navigationId: "platform-workspace", task: "workspace" };
+    return { navigationId: "platform-operations", task: "overview", page: 1, range: "DAY_7" };
   }
   if (routePath === "/platform/operations") {
     const parameters = new URLSearchParams(search);
@@ -319,9 +316,6 @@ export function formatConsoleRoute(route: ConsoleRoute): string {
   }
   if (route.navigationId === "query") {
     return `/ask?assistantPage=${route.assistantPage}`;
-  }
-  if (route.navigationId === "platform-workspace") {
-    return "/platform";
   }
   if (route.navigationId === "platform-operations") {
     return `/platform/operations?range=${route.range}&page=${route.page}`;

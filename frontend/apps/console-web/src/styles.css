@@ -1493,6 +1493,46 @@
   border-top: 1px solid var(--colorNeutralStroke1);
 }
 
+.member-directory-table {
+  overflow-x: auto;
+  width: 100%;
+  min-width: 0;
+  border-block: 1px solid var(--colorNeutralStroke2);
+  scrollbar-gutter: stable;
+}
+
+.member-directory-table table {
+  width: 100%;
+  min-width: 58rem;
+  border-collapse: collapse;
+  color: var(--colorNeutralForeground1);
+  font-size: 0.875rem;
+}
+
+.member-directory-table th,
+.member-directory-table td {
+  padding: 0.875rem 1rem;
+  text-align: left;
+  vertical-align: middle;
+  border-bottom: 1px solid var(--colorNeutralStroke2);
+}
+
+.member-directory-table th {
+  color: var(--colorNeutralForeground3);
+  font-size: 0.75rem;
+  font-weight: 650;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.member-directory-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.member-directory-table tbody tr:hover {
+  background: var(--colorNeutralBackground1Hover);
+}
+
 .governed-file-section {
   gap: 1.25rem;
   padding-top: 1.75rem;
