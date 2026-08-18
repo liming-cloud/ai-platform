@@ -319,7 +319,7 @@ export function ModelProviderWorkspace({
       )}
 
       <Dialog open={creatingConnection} onOpenChange={(_, data) => { if (!data.open && !submitting) setCreatingConnection(false); }}>
-        <DialogSurface><DialogBody><DialogTitle>新建租户厂商连接</DialogTitle><form onSubmit={(event) => void createConnection(event)}><DialogContent>
+        <DialogSurface><DialogBody><DialogTitle>新建租户厂商连接</DialogTitle><form className="foundation-dialog-form" onSubmit={(event) => void createConnection(event)}><DialogContent>
           <Text>Endpoint 和 API Key 仅用于本次受控写入；创建后页面不会回显二者。创建后可直接验证连接并发现模型。</Text>
           <Field label="连接名称" required><Input name="displayName" autoFocus disabled={submitting} /></Field>
           <Field label="厂商类型" required><Select name="providerKind" defaultValue="OPENAI_COMPATIBLE" disabled={submitting}><option value="OPENAI_COMPATIBLE">OpenAI 兼容接口</option><option value="OLLAMA">Ollama</option><option value="DETERMINISTIC">确定性开发连接</option></Select></Field>
@@ -330,7 +330,7 @@ export function ModelProviderWorkspace({
       </Dialog>
 
       <Dialog open={rotationTarget !== undefined} onOpenChange={(_, data) => { if (!data.open && !submitting) setRotationTarget(undefined); }}>
-        <DialogSurface><DialogBody><DialogTitle>轮换连接 API Key</DialogTitle><form onSubmit={(event) => void rotateCredential(event)}><DialogContent>
+        <DialogSurface><DialogBody><DialogTitle>轮换连接 API Key</DialogTitle><form className="foundation-dialog-form" onSubmit={(event) => void rotateCredential(event)}><DialogContent>
           <Text>轮换后既有模型发现和能力验证将失效；请重新执行验证并发现模型。</Text>
           <Field label="新的 API Key" required><Input type="password" value={rotationApiKey} onChange={(_, data) => setRotationApiKey(data.value)} autoComplete="new-password" disabled={submitting} /></Field>
         </DialogContent><DialogActions><Button appearance="secondary" disabled={submitting} onClick={() => setRotationTarget(undefined)}>取消</Button><Button appearance="primary" type="submit" disabled={submitting}>{submitting ? "正在轮换" : "确认轮换"}</Button></DialogActions></form></DialogBody></DialogSurface>

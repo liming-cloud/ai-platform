@@ -170,7 +170,7 @@ export function PlatformModelSupplyWorkspace({
         <div className="task-actions"><Text>共 {total} 条</Text><Button disabled={!hasPrevious} onClick={() => onRouteChange({ ...route, page: route.page - 1 })}>上一页</Button><Text>第 {route.page} 页</Text><Button disabled={!hasNext} onClick={() => onRouteChange({ ...route, page: route.page + 1 })}>下一页</Button></div>
       </section>
       <Dialog open={creating} onOpenChange={(_, data) => { if (!data.open && !submitting) setCreating(false); }}>
-        <DialogSurface><DialogBody><DialogTitle>新建平台厂商连接</DialogTitle><form onSubmit={(event) => void createConnection(event)}><DialogContent>
+        <DialogSurface><DialogBody><DialogTitle>新建平台厂商连接</DialogTitle><form className="foundation-dialog-form" onSubmit={(event) => void createConnection(event)}><DialogContent>
           <Text>Endpoint 和 API Key 仅用于本次平台范围受控写入；创建后页面不会回显二者，也不会写入租户范围。</Text>
           <Field label="连接名称" required><Input name="displayName" autoFocus disabled={submitting} /></Field>
           <Field label="厂商类型" required><Select name="providerKind" defaultValue="DETERMINISTIC" disabled={submitting}><option value="DETERMINISTIC">确定性开发连接</option><option value="OPENAI_COMPATIBLE">OpenAI 兼容接口</option><option value="OLLAMA">Ollama</option></Select></Field>

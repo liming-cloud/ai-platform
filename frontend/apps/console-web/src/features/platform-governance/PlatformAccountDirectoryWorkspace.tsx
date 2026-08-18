@@ -7,6 +7,10 @@ import {
   DialogContent,
   DialogSurface,
   DialogTitle,
+  Drawer,
+  DrawerBody,
+  DrawerHeader,
+  DrawerHeaderTitle,
   Field,
   Input,
   MessageBar,
@@ -21,6 +25,7 @@ import {
   Text,
   Title3,
 } from "@fluentui/react-components";
+import { Dismiss20Regular } from "@fluentui/react-icons";
 import { StatePanel } from "@foundation/design-system";
 import { useCallback, useEffect, useState } from "react";
 import {
@@ -64,6 +69,7 @@ export function PlatformAccountDirectoryWorkspace({
   const [busy, setBusy] = useState(false);
   const [failure, setFailure] = useState<UserFacingError>();
   const [dialog, setDialog] = useState<DialogTarget>();
+  const [detailAccount, setDetailAccount] = useState<PlatformAccountSummary>();
   const [loginName, setLoginName] = useState("");
   const [password, setPassword] = useState("");
 
@@ -187,24 +193,26 @@ export function PlatformAccountDirectoryWorkspace({
               </div>
             </div>
             <Badge className="platform-account-row__status" appearance="tint" color={account.status === "ACTIVE" ? "success" : "danger"}>{account.status === "ACTIVE" ? "已启用" : "已停用"}</Badge>
-            {account.status === "ACTIVE" ? (
-              <div className="task-actions" aria-label={`${account.loginName} 的角色操作`}>
-                <Button appearance="secondary" disabled={busy} onClick={() => setDialog({ kind: "reset", account })}>重置口令</Button>
-                <Menu>
-                  <MenuTrigger disableButtonEnhancement>
-                    <MenuButton disabled={busy}>管理角色</MenuButton>
-                  </MenuTrigger>
-                  <MenuPopover><MenuList>
-                    {roles.filter((role) => !account.activeRoleCodes.includes(role.code)).map((role) => (
-                      <MenuItem key={role.code} onClick={() => setDialog({ kind: "role", account, roleCode: role.code, action: "bind" })}>绑定{role.label}</MenuItem>
-                    ))}
-                    {account.activeRoleCodes.filter((code): code is PlatformRoleCode => roles.some((role) => role.code === code)).map((roleCode) => (
-                      <MenuItem key={roleCode} onClick={() => setDialog({ kind: "role", account, roleCode, action: "revoke" })}>撤销{roleLabel(roleCode)}</MenuItem>
-                    ))}
-                  </MenuList></MenuPopover>
-                </Menu>
-              </div>
-            ) : <div className="task-actions"><Button appearance="primary" disabled={busy} onClick={() => setDialog({ kind: "enable", account })}>启用账户</Button><Button appearance="secondary" disabled={busy} onClick={() => setDialog({ kind: "reset", account })}>重置口令</Button></div>}
+            <div className="task-actions" aria-label={`${account.loginName} 的账户操作`}>
+              <Button appearance="secondary" disabled={busy} onClick={() => setDetailAccount(account)}>查看详情</Button>
+              <Menu>
+                <MenuTrigger disableButtonEnhancement>
+                  <MenuButton disabled={busy}>更多操作</MenuButton>
+                </MenuTrigger>
+                <MenuPopover><MenuList>
+                  {account.status === "DISABLED" ? (
+                    <MenuItem onClick={() => setDialog({ kind: "enable", account })}>启用账户</MenuItem>
+                  ) : null}
+                  <MenuItem onClick={() => setDialog({ kind: "reset", account })}>重置口令</MenuItem>
+                  {account.status === "ACTIVE" ? roles.filter((role) => !account.activeRoleCodes.includes(role.code)).map((role) => (
+                    <MenuItem key={role.code} onClick={() => setDialog({ kind: "role", account, roleCode: role.code, action: "bind" })}>绑定{role.label}</MenuItem>
+                  )) : null}
+                  {account.status === "ACTIVE" ? account.activeRoleCodes.filter((code): code is PlatformRoleCode => roles.some((role) => role.code === code)).map((roleCode) => (
+                    <MenuItem key={roleCode} onClick={() => setDialog({ kind: "role", account, roleCode, action: "revoke" })}>撤销{roleLabel(roleCode)}</MenuItem>
+                  )) : null}
+                </MenuList></MenuPopover>
+              </Menu>
+            </div>
           </article>
         ))}
       </div>
@@ -213,6 +221,44 @@ export function PlatformAccountDirectoryWorkspace({
         <Button appearance="subtle" disabled={!hasPrevious || busy} onClick={() => onRouteChange({ ...route, page: route.page - 1 })}>上一页</Button>
         <Button appearance="subtle" disabled={!hasNext || busy} onClick={() => onRouteChange({ ...route, page: route.page + 1 })}>下一页</Button>
       </div>
+      <Drawer
+        className="foundation-detail-drawer"
+        type="overlay"
+        position="end"
+        size="medium"
+        open={detailAccount !== undefined}
+        onOpenChange={(_, data) => { if (!data.open) setDetailAccount(undefined); }}
+      >
+        <DrawerHeader>
+          <DrawerHeaderTitle
+            action={<Button appearance="subtle" aria-label="关闭账户详情" icon={<Dismiss20Regular />} onClick={() => setDetailAccount(undefined)} />}
+          >
+            账户详情
+          </DrawerHeaderTitle>
+        </DrawerHeader>
+        <DrawerBody>
+          {detailAccount === undefined ? null : (
+            <div className="account-detail">
+              <div className="account-detail__heading">
+                <span className="account-detail__context">平台人员账户</span>
+                <Title3>{detailAccount.loginName}</Title3>
+                <Badge appearance="tint" color={detailAccount.status === "ACTIVE" ? "success" : "danger"}>
+                  {detailAccount.status === "ACTIVE" ? "已启用" : "已停用"}
+                </Badge>
+              </div>
+              <dl className="account-detail__facts">
+                <div><dt>建立时间</dt><dd>{new Date(detailAccount.createdAt).toLocaleString("zh-CN")}</dd></div>
+                <div><dt>平台角色</dt><dd>{detailAccount.activeRoleCodes.length === 0 ? "尚未绑定" : detailAccount.activeRoleCodes.map(roleLabel).join("、")}</dd></div>
+                <div><dt>会话影响</dt><dd>账户状态、口令或角色变化后，已有平台与租户会话都会失效。</dd></div>
+              </dl>
+              <div className="account-detail__boundary">
+                <strong>信息边界</strong>
+                <Text>详情不展示主体标识、账户修订、密码摘要、会话或权限快照。</Text>
+              </div>
+            </div>
+          )}
+        </DrawerBody>
+      </Drawer>
       <Dialog open={dialog !== undefined} onOpenChange={(_, data) => { if (!data.open && !busy) closeDialog(); }}>
         <DialogSurface className="foundation-task-dialog">
           <DialogBody>

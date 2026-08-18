@@ -99,6 +99,21 @@ describe("统一控制台路由", () => {
     })).toBe("/access/members?page=3");
   });
 
+  it("租户与平台角色目录都有可恢复的独立详情入口", () => {
+    expect(parseConsoleRoute("/access/roles", "")).toEqual({
+      navigationId: "access",
+      task: "roles",
+    });
+    expect(formatConsoleRoute({ navigationId: "access", task: "roles" }))
+      .toBe("/access/roles");
+    expect(parseConsoleRoute("/platform/roles", "")).toEqual({
+      navigationId: "platform-accounts",
+      task: "roles",
+    });
+    expect(formatConsoleRoute({ navigationId: "platform-accounts", task: "roles" }))
+      .toBe("/platform/roles");
+  });
+
   it("从深链接恢复模型供应链发现记录的服务端页码", () => {
     expect(parseConsoleRoute(
       "/models/providers",

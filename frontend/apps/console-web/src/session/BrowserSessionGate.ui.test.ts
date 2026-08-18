@@ -32,4 +32,18 @@ describe("登录入口视觉结构", () => {
       /@media \(max-width:\s*44rem\)[\s\S]*?\.governance-login__principles\s*\{[^}]*display:\s*none;/s,
     );
   });
+
+  it("登录失败提示出现后输入框仍可在卡片内收缩", () => {
+    const source = readFileSync(gatePath, "utf8");
+    const styles = readFileSync(stylesPath, "utf8");
+
+    expect(source.match(/className="governance-login__input"/g)?.length)
+      .toBeGreaterThanOrEqual(2);
+    expect(styles).toMatch(
+      /\.governance-login__card\s*>\s*\*\s*\{[^}]*min-width:\s*0;[^}]*max-width:\s*100%;/s,
+    );
+    expect(styles).toMatch(
+      /\.governance-login__input\s*\{[^}]*width:\s*100%;[^}]*min-width:\s*0;[^}]*max-width:\s*100%;/s,
+    );
+  });
 });

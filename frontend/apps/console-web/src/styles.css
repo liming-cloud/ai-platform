@@ -433,6 +433,240 @@
   line-height: 1.55;
 }
 
+.foundation-detail-drawer {
+  border-left: 1px solid #ccd8d3;
+  background: #f9fbfa;
+  box-shadow: -24px 0 72px rgb(11 27 22 / 14%);
+}
+
+.role-directory {
+  display: grid;
+  gap: 1.75rem;
+}
+
+.role-directory__heading {
+  max-width: 48rem;
+}
+
+.role-directory__eyebrow,
+.role-detail__scope,
+.account-detail__context {
+  color: #087f78;
+  font-size: 0.6875rem;
+  font-weight: 750;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.role-directory__trust-line {
+  display: flex;
+  gap: 0.875rem;
+  align-items: start;
+  padding: 1rem 1.125rem;
+  color: #eaf8f3;
+  border-left: 3px solid #2dd4bf;
+  background: #12201d;
+}
+
+.role-directory__trust-line > svg {
+  flex: 0 0 auto;
+  margin-top: 0.125rem;
+  color: #5eead4;
+}
+
+.role-directory__trust-line > div,
+.role-directory__identity > div,
+.role-detail,
+.role-detail__heading,
+.account-detail,
+.account-detail__heading {
+  display: grid;
+  gap: 0.375rem;
+}
+
+.role-directory__trust-line span {
+  color: #abc2bb;
+}
+
+.role-directory__list {
+  display: grid;
+  border-top: 1px solid #dbe4e0;
+}
+
+.role-directory__row {
+  display: grid;
+  grid-template-columns: minmax(17rem, 1.2fr) minmax(15rem, 1fr) auto;
+  gap: 1.5rem;
+  align-items: center;
+  min-width: 0;
+  padding: 1.25rem 0;
+  border-bottom: 1px solid #dbe4e0;
+}
+
+.role-directory__identity {
+  display: flex;
+  gap: 0.875rem;
+  align-items: start;
+  min-width: 0;
+}
+
+.role-directory__identity > div > span {
+  color: #65736e;
+  line-height: 1.5;
+}
+
+.role-directory__icon {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  color: #b7f7e8;
+  border: 1px solid #28453d;
+  border-radius: 0.5rem;
+  background: #13241f;
+}
+
+.role-directory__name {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.role-directory__name strong {
+  font-size: 1rem;
+}
+
+.role-directory__capability-preview {
+  display: grid;
+  gap: 0.375rem;
+  min-width: 0;
+  color: #42514c;
+  font-size: 0.8125rem;
+}
+
+.role-directory__capability-preview > span {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.role-directory__capability-preview svg {
+  flex: 0 0 auto;
+  color: #0f9488;
+}
+
+.role-directory__capability-preview > span:last-child {
+  color: #6a7773;
+}
+
+.role-directory__actions {
+  justify-content: flex-end;
+}
+
+.role-detail {
+  gap: 1.75rem;
+  padding: 0.5rem 0 2rem;
+}
+
+.role-detail__heading {
+  gap: 0.625rem;
+  padding-bottom: 1.25rem;
+  border-bottom: 1px solid #dbe4e0;
+}
+
+.role-detail__heading h3,
+.account-detail__heading h3 {
+  margin: 0;
+}
+
+.role-detail section {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.role-detail section h3 {
+  margin: 0;
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+
+.role-detail ul {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid #dbe4e0;
+  list-style: none;
+}
+
+.role-detail li {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.625rem;
+  align-items: center;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid #dbe4e0;
+}
+
+.role-detail li svg {
+  color: #0f9488;
+}
+
+.role-detail__boundary,
+.role-detail__configuration,
+.account-detail__boundary {
+  padding: 1rem;
+  border-left: 2px solid #0f9488;
+  background: #edf5f2;
+}
+
+.account-detail {
+  gap: 1.75rem;
+  padding: 0.5rem 0 2rem;
+}
+
+.account-detail__heading {
+  gap: 0.625rem;
+  justify-items: start;
+  padding-bottom: 1.25rem;
+  border-bottom: 1px solid #dbe4e0;
+}
+
+.account-detail__facts {
+  display: grid;
+  margin: 0;
+  border-top: 1px solid #dbe4e0;
+}
+
+.account-detail__facts > div {
+  display: grid;
+  grid-template-columns: 7rem minmax(0, 1fr);
+  gap: 1rem;
+  padding: 0.875rem 0;
+  border-bottom: 1px solid #dbe4e0;
+}
+
+.account-detail__facts dt {
+  color: #687570;
+  font-size: 0.75rem;
+}
+
+.account-detail__facts dd {
+  margin: 0;
+  line-height: 1.55;
+}
+
+.foundation-dialog-form {
+  display: grid;
+  grid-column: 1 / -1;
+  gap: 1rem;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
 .tenant-lifecycle-list {
   display: grid;
   border-top: 1px solid #e7e7e7;
@@ -944,6 +1178,12 @@
   box-shadow: var(--foundation-elevation);
 }
 
+.governance-login__card > * {
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
 .governance-login__card--state .state-panel {
   min-height: 23rem;
   padding: 0;
@@ -989,6 +1229,14 @@
 .governance-login__form {
   display: grid;
   gap: 1.125rem;
+  min-width: 0;
+}
+
+.governance-login__input {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .governance-login__platform-note {
@@ -1385,6 +1633,15 @@
 
   .platform-account-row > .task-actions {
     grid-column: 1 / -1;
+    justify-content: flex-start;
+  }
+
+  .role-directory__row {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1rem;
+  }
+
+  .role-directory__actions {
     justify-content: flex-start;
   }
 

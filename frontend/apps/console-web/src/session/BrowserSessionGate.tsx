@@ -213,6 +213,7 @@ export function BrowserSessionGate({
             hint="仅用于建立本次租户会话。"
           >
             <Input
+              className="governance-login__input"
               value={tenantCode}
               placeholder="例如：demo-store"
               autoComplete="organization"
@@ -227,6 +228,7 @@ export function BrowserSessionGate({
         )}
         <Field label="登录名" required>
           <Input
+            className="governance-login__input"
             value={loginName}
             placeholder={workspace === "platform" ? "例如：platform.root" : "请输入登录名"}
             autoComplete="username"
@@ -236,6 +238,7 @@ export function BrowserSessionGate({
         </Field>
         <Field label="密码" required>
           <Input
+            className="governance-login__input"
             value={password}
             type="password"
             autoComplete="current-password"

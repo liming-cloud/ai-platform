@@ -7,6 +7,7 @@ export type ConsoleNavigationId = typeof NAVIGATION[number]["id"];
 export type ConsoleRoute =
   | { navigationId: "operations"; task: "overview"; range: OperationsRange }
   | { navigationId: "access"; task: "members"; page: number }
+  | { navigationId: "access"; task: "roles" }
   | {
     navigationId: "data";
     task: "governed-file";
@@ -68,6 +69,7 @@ export type ConsoleRoute =
   | { navigationId: "platform"; task: "tenants"; page: number }
   | { navigationId: "platform"; task: "create"; step: 1 | 2 | 3 }
   | { navigationId: "platform-accounts"; task: "accounts"; page: number }
+  | { navigationId: "platform-accounts"; task: "roles" }
   | { navigationId: "platform-model-supply"; task: "connections"; page: number }
   | {
     navigationId: "platform-model-supply";
@@ -145,6 +147,9 @@ export function parseConsoleRoute(pathname: string, search: string): ConsoleRout
   if (routePath === "/access/members") {
     const parameters = new URLSearchParams(search);
     return { navigationId: "access", task: "members", page: positivePage(parameters.get("page")) };
+  }
+  if (routePath === "/access/roles") {
+    return { navigationId: "access", task: "roles" };
   }
   if (routePath === "/data/datasets") {
     const parameters = new URLSearchParams(search);
@@ -258,6 +263,9 @@ export function parseConsoleRoute(pathname: string, search: string): ConsoleRout
       page: positivePage(new URLSearchParams(search).get("page")),
     };
   }
+  if (routePath === "/platform/roles") {
+    return { navigationId: "platform-accounts", task: "roles" };
+  }
   if (routePath === "/platform/model-supply") {
     return {
       navigationId: "platform-model-supply",
@@ -286,7 +294,7 @@ export function formatConsoleRoute(route: ConsoleRoute): string {
     return `/operations?range=${route.range}`;
   }
   if (route.navigationId === "access") {
-    return `/access/members?page=${route.page}`;
+    return route.task === "members" ? `/access/members?page=${route.page}` : "/access/roles";
   }
   if (route.navigationId === "data") {
     return route.task === "governed-file"
@@ -324,7 +332,7 @@ export function formatConsoleRoute(route: ConsoleRoute): string {
       : `/platform/tenants/new?step=${route.step}`;
   }
   if (route.navigationId === "platform-accounts") {
-    return `/platform/accounts?page=${route.page}`;
+    return route.task === "accounts" ? `/platform/accounts?page=${route.page}` : "/platform/roles";
   }
   return route.task === "connections"
     ? `/platform/model-supply?page=${route.page}`
