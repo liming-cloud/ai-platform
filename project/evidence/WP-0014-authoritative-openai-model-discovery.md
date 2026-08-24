@@ -31,4 +31,5 @@
 ## 安全与未闭环项
 
 - 适配器只投影模型标识和平台稳定结果码，未持久化或返回厂商响应体。
-- 本证据不覆盖火山方舟 AK/SK 签名控制面适配、Compose 同源 HTTP 或 Chrome 响应式续证；这些仍属于 WP-0014 下一切片。
+- 火山方舟 AK/SK 签名控制面与 Compose 同源 HTTP 已由
+  `project/evidence/WP-0014-authoritative-volcengine-ark-model-discovery.md` 闭环；Chrome 登录后响应式续证仍待完成。

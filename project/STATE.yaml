@@ -2,7 +2,7 @@ schemaVersion: 1
 productVersion: foundation-v1
 currentMilestone: M6
 currentFrontier: WP-0014
-lastVerifiedCommit: e7ed97d77
+lastVerifiedCommit: 7c7b70962
 activeWorkPackages:
   - WP-0014
 blockedWorkPackages: []
@@ -287,9 +287,13 @@ latestEvidence:
   - project/evidence/WP-0014-computer-use-primary-flow-and-responsive-regression.md
   - project/evidence/WP-0014-role-directory-details-and-ui-containment.md
   - project/evidence/WP-0014-platform-governance-contract-and-model-supply-recovery.md
+  - project/evidence/WP-0014-authoritative-openai-model-discovery.md
+  - project/evidence/WP-0014-authoritative-volcengine-ark-model-discovery.md
+  - project/evidence/artifacts/WP-0014-ark-discovery-performance-profile.md
+  - project/evidence/artifacts/WP-0014-ark-discovery-code-review.md
   - project/evidence/artifacts/WP-0014-complete-ui-quality.md
   - project/evidence/artifacts/WP-0014-complete-ui-performance-profile.md
   - project/evidence/artifacts/WP-0014-complete-ui-code-review.md
-nextReviewAt: 2026-08-18
-updatedAt: 2026-08-18T20:18:08+08:00
+nextReviewAt: 2026-08-24
+updatedAt: 2026-08-24T17:49:00+08:00
 updatedBy: codex
