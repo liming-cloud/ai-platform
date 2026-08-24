@@ -76,6 +76,7 @@ confirmedDecisions:
   - ADR-0067
   - ADR-0068
   - ADR-0069
+  - ADR-0070
 openDecisions: []
 latestEvidence:
   - docs/research/WP-0003-framework-baseline.md
@@ -276,6 +277,8 @@ latestEvidence:
   - project/evidence/WP-0014-openai-style-enterprise-product-regression.md
   - docs/adr/ADR-0069-local-platform-administrator-initialization.md
   - project/evidence/ADR-0069-approval.md
+  - docs/adr/ADR-0070-authoritative-platform-model-discovery.md
+  - project/evidence/ADR-0070-approval.md
   - project/evidence/WP-0014-local-platform-administrator-fixed-initialization.md
   - project/evidence/WP-0014-platform-ui-continuity-and-tenant-onboarding.md
   - docs/design/m6-full-spa-ui-redesign.md
