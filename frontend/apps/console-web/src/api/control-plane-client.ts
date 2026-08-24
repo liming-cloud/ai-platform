@@ -246,6 +246,8 @@ export type PlatformModelDiscoveryProfile =
 /** 平台连接必须显式冻结权威模型发现协议。 */
 export interface PlatformProviderConnectionCreateInput extends ProviderConnectionCreateInput {
   discoveryProfile: PlatformModelDiscoveryProfile;
+  discoveryAccessKeyId?: string;
+  discoverySecretAccessKey?: string;
 }
 
 /** 平台范围厂商连接的安全摘要；端点和凭据永不返回浏览器。 */

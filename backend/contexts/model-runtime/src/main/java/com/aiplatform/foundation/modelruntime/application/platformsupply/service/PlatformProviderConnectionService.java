@@ -28,6 +28,10 @@ import java.util.Objects;
 public final class PlatformProviderConnectionService {
 
     private static final String CREDENTIAL_PREFIX = "secret://platform-provider-connection/";
+    private static final String DISCOVERY_ACCESS_KEY_PREFIX =
+            "secret://platform-provider-discovery-access-key/";
+    private static final String DISCOVERY_SECRET_KEY_PREFIX =
+            "secret://platform-provider-discovery-secret-key/";
 
     private final PlatformProviderConnectionRepository repository;
     private final PlatformProviderConnectionCredentialWriter credentials;
@@ -72,10 +76,22 @@ public final class PlatformProviderConnectionService {
                     connection, command.idempotencyKey(), fingerprint(command)));
             if (!created.replayed()) {
                 credentials.write(connection.credentialReference(), command.apiKey());
+                if (command.discoveryAccessKeyId() != null) {
+                    credentials.write(credentialReference(DISCOVERY_ACCESS_KEY_PREFIX, connectionId),
+                            command.discoveryAccessKeyId());
+                    credentials.write(credentialReference(DISCOVERY_SECRET_KEY_PREFIX, connectionId),
+                            command.discoverySecretAccessKey());
+                }
             }
             return created;
         });
         return new CreatePlatformProviderConnectionResult(toView(outcome.connection()), outcome.replayed());
+    }
+
+    private static com.aiplatform.foundation.modelruntime.domain.provider.model.CredentialReference
+            credentialReference(String prefix, PlatformProviderConnectionId connectionId) {
+        return new com.aiplatform.foundation.modelruntime.domain.provider.model.CredentialReference(
+                prefix + connectionId.value());
     }
 
     public PageResult<PlatformProviderConnectionView> list(

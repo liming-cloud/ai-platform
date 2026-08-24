@@ -78,6 +78,36 @@ class PlatformProviderModelDiscoveryServiceTest {
         assertEquals(connection.id(), store.discovery.connectionId());
     }
 
+    @Test
+    void 方舟发现必须向适配器提供区域和独立AKSK引用() {
+        var connection = PlatformProviderConnection.create(
+                new PlatformProviderConnectionId(610000000000000002L),
+                ProviderKind.OPENAI_COMPATIBLE,
+                PlatformModelDiscoveryProfile.VOLCENGINE_ARK_CONTROL_PLANE,
+                "火山方舟",
+                URI.create("https://ark.cn-beijing.volces.com/api/v3"),
+                "cn-beijing",
+                AuthenticationType.API_KEY,
+                new CredentialReference("secret://platform-provider-connection/610000000000000002"),
+                Instant.parse("2026-08-13T00:00:00Z"));
+        var repository = new SingleConnectionRepository(connection);
+        var store = new CapturingStore();
+        var discoverer = new CapturingArkDiscoverer();
+        var service = new PlatformProviderModelDiscoveryService(
+                repository, List.of(discoverer), store, CLOCK,
+                () -> 620000000000000002L, Duration.ofHours(1));
+
+        service.discover(new DiscoverPlatformProviderModelsCommand(
+                platformModelWriter(), connection.id().toString(), 0, Duration.ofSeconds(3)));
+
+        assertEquals("cn-beijing", discoverer.request.region());
+        var references = discoverer.request.discoveryCredentials().orElseThrow();
+        assertEquals("secret://platform-provider-discovery-access-key/610000000000000002",
+                references.accessKeyId().value());
+        assertEquals("secret://platform-provider-discovery-secret-key/610000000000000002",
+                references.secretAccessKey().value());
+    }
+
     private static PlatformProviderConnection verifiedConnection() {
         return draftConnection().recordSuccessfulProbe("DETERMINISTIC_OK", Instant.parse("2026-08-13T01:00:00Z"));
     }
@@ -122,6 +152,26 @@ class PlatformProviderModelDiscoveryServiceTest {
                                     "deterministic-embedding", ModelType.EMBEDDING,
                                     Set.of(ModelCapability.EMBEDDING))),
                     "DETERMINISTIC_DISCOVERY_OK", Duration.ZERO, CLOCK.instant());
+        }
+    }
+
+    private static final class CapturingArkDiscoverer implements PlatformProviderModelDiscoverer {
+        private PlatformProviderModelDiscoveryRequest request;
+
+        @Override public ProviderKind providerKind() { return ProviderKind.OPENAI_COMPATIBLE; }
+        @Override public PlatformModelDiscoveryProfile discoveryProfile() {
+            return PlatformModelDiscoveryProfile.VOLCENGINE_ARK_CONTROL_PLANE;
+        }
+        @Override public PlatformProviderModelDiscoveryObservation discover(
+                PlatformProviderModelDiscoveryRequest request) {
+            this.request = request;
+            return new PlatformProviderModelDiscoveryObservation(
+                    true,
+                    Set.of(PlatformDiscoveredModelCandidate.requiresAdministratorConfirmation(
+                            "ep-202608240001")),
+                    "VOLCENGINE_ARK_DISCOVERY_OK",
+                    Duration.ZERO,
+                    CLOCK.instant());
         }
     }
 

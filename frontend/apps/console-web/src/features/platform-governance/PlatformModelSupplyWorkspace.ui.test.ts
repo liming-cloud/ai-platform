@@ -37,4 +37,16 @@ describe("平台模型供应链呈现", () => {
     expect(source).toContain('value="VOLCENGINE_ARK_CONTROL_PLANE"');
     expect(source).toContain("元数据不足的候选需要管理员确认能力");
   });
+
+  it("方舟控制面凭据与推理APIKey分开录入且只在对应协议展示", () => {
+    const source = readFileSync(workspacePath, "utf8");
+
+    expect(source).toContain('discoveryProfile === "VOLCENGINE_ARK_CONTROL_PLANE"');
+    expect(source).toContain('label="Access Key ID"');
+    expect(source).toContain('label="Secret Access Key"');
+    expect(source).toContain("仅用于模型发现");
+    expect(source).toContain("仅用于推理与能力探测");
+    expect(source).toContain("discoveryAccessKeyId");
+    expect(source).toContain("discoverySecretAccessKey");
+  });
 });

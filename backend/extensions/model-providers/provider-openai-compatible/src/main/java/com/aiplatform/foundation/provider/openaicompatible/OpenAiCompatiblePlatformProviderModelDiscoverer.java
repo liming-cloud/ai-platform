@@ -2,14 +2,13 @@ package com.aiplatform.foundation.provider.openaicompatible;
 
 import com.aiplatform.foundation.modelruntime.application.platformsupply.dto.PlatformProviderModelDiscoveryRequest;
 import com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.PlatformProviderModelDiscoverer;
+import com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.PlatformProviderCredentialResolver;
 import com.aiplatform.foundation.modelruntime.domain.platformsupply.model.PlatformDiscoveredModelCandidate;
 import com.aiplatform.foundation.modelruntime.domain.platformsupply.model.PlatformModelDiscoveryProfile;
 import com.aiplatform.foundation.modelruntime.domain.platformsupply.model.PlatformProviderModelDiscoveryObservation;
 import com.aiplatform.foundation.modelruntime.domain.provider.model.ProviderKind;
 import com.aiplatform.foundation.security.egress.OutboundEndpointPolicy;
 import com.aiplatform.foundation.security.egress.UnsafeOutboundEndpointException;
-import com.aiplatform.foundation.security.secret.SecretResolver;
-import com.aiplatform.foundation.security.secret.SecretReference;
 import com.aiplatform.foundation.security.secret.SecretValue;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -30,12 +29,12 @@ public final class OpenAiCompatiblePlatformProviderModelDiscoverer implements Pl
     private static final int MAX_RESPONSE_BYTES = 1_048_576;
     private static final ObjectMapper JSON = new ObjectMapper();
 
-    private final SecretResolver secretResolver;
+    private final PlatformProviderCredentialResolver secretResolver;
     private final OutboundEndpointPolicy endpointPolicy;
     private final HttpClient httpClient;
 
     public OpenAiCompatiblePlatformProviderModelDiscoverer(
-            SecretResolver secretResolver,
+            PlatformProviderCredentialResolver secretResolver,
             OutboundEndpointPolicy endpointPolicy) {
         this(secretResolver, endpointPolicy, HttpClient.newBuilder()
                 .followRedirects(HttpClient.Redirect.NEVER)
@@ -43,7 +42,7 @@ public final class OpenAiCompatiblePlatformProviderModelDiscoverer implements Pl
     }
 
     OpenAiCompatiblePlatformProviderModelDiscoverer(
-            SecretResolver secretResolver,
+            PlatformProviderCredentialResolver secretResolver,
             OutboundEndpointPolicy endpointPolicy,
             HttpClient httpClient) {
         this.secretResolver = Objects.requireNonNull(secretResolver, "密钥解析器不能为空");
@@ -77,7 +76,7 @@ public final class OpenAiCompatiblePlatformProviderModelDiscoverer implements Pl
         final SecretValue secret;
         try {
             secret = Objects.requireNonNull(
-                    secretResolver.resolve(new SecretReference(request.credentialReference().value())),
+                    secretResolver.resolve(request.credentialReference()),
                     "密钥解析结果不能为空");
         } catch (RuntimeException exception) {
             return failure(startedAt, "OPENAI_COMPATIBLE_DISCOVERY_SECRET_RESOLUTION_FAILED");

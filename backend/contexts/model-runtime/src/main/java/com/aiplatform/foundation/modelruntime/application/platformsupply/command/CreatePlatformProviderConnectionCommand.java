@@ -19,7 +19,9 @@ public record CreatePlatformProviderConnectionCommand(
         URI endpoint,
         String region,
         AuthenticationType authenticationType,
-        SecretValue apiKey) {
+        SecretValue apiKey,
+        SecretValue discoveryAccessKeyId,
+        SecretValue discoverySecretAccessKey) {
 
     private static final Pattern IDEMPOTENCY_KEY =
             Pattern.compile("[A-Za-z0-9][A-Za-z0-9._:-]{7,127}");
@@ -32,12 +34,36 @@ public record CreatePlatformProviderConnectionCommand(
         }
         Objects.requireNonNull(providerKind, "供应商类型不能为空");
         Objects.requireNonNull(discoveryProfile, "模型发现协议不能为空");
+        Objects.requireNonNull(displayName, "连接名称不能为空");
         if (!discoveryProfile.supports(providerKind)) {
             throw new IllegalArgumentException("模型发现协议与供应商类型不兼容");
         }
         Objects.requireNonNull(endpoint, "供应商端点不能为空");
+        Objects.requireNonNull(region, "供应商区域不能为空");
         Objects.requireNonNull(authenticationType, "认证方式不能为空");
         Objects.requireNonNull(apiKey, "API Key不能为空");
+        var arkDiscovery = discoveryProfile == PlatformModelDiscoveryProfile.VOLCENGINE_ARK_CONTROL_PLANE;
+        if (arkDiscovery != (discoveryAccessKeyId != null && discoverySecretAccessKey != null)) {
+            throw new IllegalArgumentException("火山方舟控制面发现必须且只能配置独立 AK/SK");
+        }
+        if (arkDiscovery && !region.matches("[a-z]{2}-[a-z0-9]+(?:-[a-z0-9]+)*")) {
+            throw new IllegalArgumentException("火山方舟区域格式不正确");
+        }
+    }
+
+    /** 兼容不使用控制面 AK/SK 的连接。 */
+    public CreatePlatformProviderConnectionCommand(
+            PlatformRequestContext context,
+            String idempotencyKey,
+            ProviderKind providerKind,
+            PlatformModelDiscoveryProfile discoveryProfile,
+            String displayName,
+            URI endpoint,
+            String region,
+            AuthenticationType authenticationType,
+            SecretValue apiKey) {
+        this(context, idempotencyKey, providerKind, discoveryProfile, displayName, endpoint, region,
+                authenticationType, apiKey, null, null);
     }
 
     /** 仅供历史内部调用兼容；公共 HTTP 写入必须显式提交发现协议。 */
@@ -52,6 +78,6 @@ public record CreatePlatformProviderConnectionCommand(
             SecretValue apiKey) {
         this(context, idempotencyKey, providerKind,
                 PlatformModelDiscoveryProfile.legacyDefault(providerKind), displayName,
-                endpoint, region, authenticationType, apiKey);
+                endpoint, region, authenticationType, apiKey, null, null);
     }
 }

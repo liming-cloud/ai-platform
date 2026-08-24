@@ -2,6 +2,7 @@ package com.aiplatform.foundation.modelruntime.infrastructure.persistence.platfo
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.aiplatform.foundation.modelruntime.domain.provider.model.CredentialReference;
 import com.aiplatform.foundation.security.secret.SecretEncryptionKeyProvider;
@@ -84,6 +85,42 @@ class PostgresEncryptedPlatformProviderConnectionCredentialStoreTest {
                 byte[].class,
                 CONNECTION_ID);
         assertFalse(Arrays.equals("platform-provider-api-key".getBytes(), ciphertext));
+    }
+
+    @Test
+    void 同一平台连接的推理APIKey和发现AKSK必须分槽保存且互不覆盖() {
+        write("secret://platform-provider-connection/320000000000000001", "inference-api-key");
+        write("secret://platform-provider-discovery-access-key/320000000000000001", "access-key-id");
+        write("secret://platform-provider-discovery-secret-key/320000000000000001", "secret-access-key");
+
+        assertEquals(3, jdbc.queryForObject(
+                "SELECT count(*) FROM model_runtime.platform_provider_connection_credential WHERE platform_provider_connection_id = ?",
+                Integer.class,
+                CONNECTION_ID));
+        assertResolved("secret://platform-provider-connection/320000000000000001", "inference-api-key");
+        assertResolved("secret://platform-provider-discovery-access-key/320000000000000001", "access-key-id");
+        assertResolved("secret://platform-provider-discovery-secret-key/320000000000000001", "secret-access-key");
+    }
+
+    @Test
+    void 不得解析非平台私有命名空间或附带查询参数的凭据引用() {
+        assertThrows(IllegalArgumentException.class,
+                () -> credentials.resolve(new CredentialReference("https://platform-provider-connection/320000000000000001")));
+        assertThrows(IllegalArgumentException.class,
+                () -> credentials.resolve(new CredentialReference(
+                        "secret://platform-provider-connection/320000000000000001?purpose=other")));
+    }
+
+    private void write(String reference, String value) {
+        try (var secret = SecretValue.copyOf(value.toCharArray())) {
+            credentials.write(new CredentialReference(reference), secret);
+        }
+    }
+
+    private void assertResolved(String reference, String expected) {
+        try (var resolved = credentials.resolve(new CredentialReference(reference))) {
+            assertEquals(expected, resolved.use(String::new));
+        }
     }
 
     @SpringBootConfiguration

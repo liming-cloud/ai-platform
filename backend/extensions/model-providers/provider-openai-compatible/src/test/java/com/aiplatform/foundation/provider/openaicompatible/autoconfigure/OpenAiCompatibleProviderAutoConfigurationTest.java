@@ -5,6 +5,7 @@ import static org.mockito.Mockito.mock;
 
 import com.aiplatform.foundation.modelruntime.application.probe.port.out.ProviderConnectionProbe;
 import com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.PlatformProviderModelDiscoverer;
+import com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.PlatformProviderCredentialResolver;
 import com.aiplatform.foundation.modelruntime.application.runtime.port.out.ChatModelFactory;
 import com.aiplatform.foundation.modelruntime.application.runtime.port.out.EmbeddingModelFactory;
 import com.aiplatform.foundation.modelruntime.infrastructure.configuration.ModelRuntimeProperties;
@@ -33,9 +34,17 @@ class OpenAiCompatibleProviderAutoConfigurationTest {
                 .run(context -> {
                     assertThat(context).hasNotFailed();
                     assertThat(context).hasSingleBean(ProviderConnectionProbe.class);
-                    assertThat(context).hasSingleBean(PlatformProviderModelDiscoverer.class);
+                    assertThat(context).doesNotHaveBean(PlatformProviderModelDiscoverer.class);
                     assertThat(context).hasSingleBean(ChatModelFactory.class);
                     assertThat(context).hasSingleBean(EmbeddingModelFactory.class);
+                });
+
+        runner.withBean(SecretResolver.class, () -> mock(SecretResolver.class))
+                .withBean(PlatformProviderCredentialResolver.class,
+                        () -> mock(PlatformProviderCredentialResolver.class))
+                .run(context -> {
+                    assertThat(context).hasNotFailed();
+                    assertThat(context).getBeans(PlatformProviderModelDiscoverer.class).hasSize(2);
                 });
     }
 }

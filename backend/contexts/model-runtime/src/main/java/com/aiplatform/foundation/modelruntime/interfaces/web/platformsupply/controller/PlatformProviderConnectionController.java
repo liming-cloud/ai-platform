@@ -5,7 +5,7 @@ import com.aiplatform.foundation.modelruntime.application.platformsupply.command
 import com.aiplatform.foundation.modelruntime.application.platformsupply.dto.PlatformProviderConnectionView;
 import com.aiplatform.foundation.modelruntime.application.platformsupply.query.ListPlatformProviderConnectionsQuery;
 import com.aiplatform.foundation.modelruntime.application.platformsupply.service.PlatformProviderConnectionService;
-import com.aiplatform.foundation.modelruntime.interfaces.web.provider.request.ProviderConnectionRequest;
+import com.aiplatform.foundation.modelruntime.interfaces.web.platformsupply.request.PlatformProviderConnectionRequest;
 import com.aiplatform.foundation.modelruntime.interfaces.web.provider.request.ProviderConnectionProbeRequest;
 import java.time.Duration;
 import com.aiplatform.foundation.security.identity.PlatformRequestContext;
@@ -43,8 +43,8 @@ public class PlatformProviderConnectionController {
     public ResponseEntity<PlatformProviderConnectionView> create(
             PlatformRequestContext context,
             @RequestHeader(name = IDEMPOTENCY_KEY, required = false) String idempotencyKey,
-            @RequestBody ProviderConnectionRequest request) {
-        var result = withApiKey(request.apiKey(), apiKey -> connections.create(
+            @RequestBody PlatformProviderConnectionRequest request) {
+        var result = withCredentials(request, (apiKey, accessKeyId, secretAccessKey) -> connections.create(
                 new CreatePlatformProviderConnectionCommand(
                         context,
                         requireIdempotencyKey(idempotencyKey),
@@ -54,7 +54,9 @@ public class PlatformProviderConnectionController {
                         request.endpoint(),
                         request.region(),
                         request.authenticationType(),
-                        apiKey)));
+                        apiKey,
+                        accessKeyId,
+                        secretAccessKey)));
         return ResponseEntity.status(HttpStatus.CREATED)
                 .header(IDEMPOTENCY_REPLAYED, Boolean.toString(result.replayed()))
                 .body(result.providerConnection());
@@ -86,12 +88,29 @@ public class PlatformProviderConnectionController {
         return value;
     }
 
-    private static <T> T withApiKey(
-            String value,
-            java.util.function.Function<SecretValue, T> action) {
-        Objects.requireNonNull(value, "API Key不能为空");
-        try (var apiKey = SecretValue.copyOf(value.toCharArray())) {
-            return action.apply(apiKey);
+    private static <T> T withCredentials(
+            PlatformProviderConnectionRequest request,
+            CredentialAction<T> action) {
+        try (var apiKey = secret(request.apiKey(), "API Key不能为空");
+                var accessKeyId = optionalSecret(request.discoveryAccessKeyId());
+                var secretAccessKey = optionalSecret(request.discoverySecretAccessKey())) {
+            return action.apply(apiKey, accessKeyId, secretAccessKey);
         }
+    }
+
+    private static SecretValue secret(String value, String message) {
+        if (value == null || value.isBlank()) {
+            throw new IllegalArgumentException(message);
+        }
+        return SecretValue.copyOf(value.toCharArray());
+    }
+
+    private static SecretValue optionalSecret(String value) {
+        return value == null ? null : secret(value, "发现 AK/SK 不能为空");
+    }
+
+    @FunctionalInterface
+    private interface CredentialAction<T> {
+        T apply(SecretValue apiKey, SecretValue accessKeyId, SecretValue secretAccessKey);
     }
 }

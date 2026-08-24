@@ -63,6 +63,8 @@ export function PlatformModelSupplyWorkspace({
   const [creating, setCreating] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [apiKey, setApiKey] = useState("");
+  const [discoveryAccessKeyId, setDiscoveryAccessKeyId] = useState("");
+  const [discoverySecretAccessKey, setDiscoverySecretAccessKey] = useState("");
   const [providerKind, setProviderKind] = useState<"DETERMINISTIC" | "OPENAI_COMPATIBLE" | "OLLAMA">("DETERMINISTIC");
   const [discoveryProfile, setDiscoveryProfile] = useState<PlatformModelDiscoveryProfile>("DETERMINISTIC_CATALOG");
   const [discoveryTarget, setDiscoveryTarget] = useState<PlatformProviderConnectionSummary>();
@@ -98,15 +100,24 @@ export function PlatformModelSupplyWorkspace({
     const form = event.currentTarget;
     const values = new FormData(form);
     const submittedApiKey = apiKey;
+    const submittedDiscoveryAccessKeyId = discoveryAccessKeyId;
+    const submittedDiscoverySecretAccessKey = discoverySecretAccessKey;
     form.reset();
     setApiKey("");
+    setDiscoveryAccessKeyId("");
+    setDiscoverySecretAccessKey("");
     const displayName = String(values.get("displayName") ?? "").trim();
     const endpoint = String(values.get("endpoint") ?? "").trim();
     const region = String(values.get("region") ?? "").trim();
     const submittedProviderKind = String(values.get("providerKind") ?? "DETERMINISTIC") as "DETERMINISTIC" | "OPENAI_COMPATIBLE" | "OLLAMA";
     const submittedDiscoveryProfile = String(values.get("discoveryProfile") ?? "") as PlatformModelDiscoveryProfile;
-    if (!displayName || !endpoint || !region || !submittedApiKey.trim() || !submittedDiscoveryProfile) {
-      setFailure({ message: "请完整填写连接名称、厂商、发现协议、受控 Endpoint、区域和 API Key。", traceId: "" });
+    const submittedArkDiscovery = submittedDiscoveryProfile === "VOLCENGINE_ARK_CONTROL_PLANE";
+    if (!displayName || !endpoint || !region || !submittedApiKey.trim() || !submittedDiscoveryProfile
+      || (submittedArkDiscovery
+        && (!submittedDiscoveryAccessKeyId.trim() || !submittedDiscoverySecretAccessKey.trim()))) {
+      setFailure({ message: submittedArkDiscovery
+        ? "请完整填写连接信息、推理 API Key，以及模型发现专用 Access Key ID 和 Secret Access Key。"
+        : "请完整填写连接名称、厂商、发现协议、受控 Endpoint、区域和 API Key。", traceId: "" });
       return;
     }
     setSubmitting(true);
@@ -120,6 +131,10 @@ export function PlatformModelSupplyWorkspace({
         discoveryProfile: submittedDiscoveryProfile,
         authenticationType: "API_KEY",
         apiKey: submittedApiKey,
+        ...(submittedArkDiscovery ? {
+          discoveryAccessKeyId: submittedDiscoveryAccessKeyId,
+          discoverySecretAccessKey: submittedDiscoverySecretAccessKey,
+        } : {}),
       });
       setCreating(false);
       await load();
@@ -127,6 +142,8 @@ export function PlatformModelSupplyWorkspace({
       setFailure(toFailure(error));
     } finally {
       setApiKey("");
+      setDiscoveryAccessKeyId("");
+      setDiscoverySecretAccessKey("");
       setSubmitting(false);
     }
   }
@@ -179,6 +196,8 @@ export function PlatformModelSupplyWorkspace({
     return <StatePanel kind="error" title="平台连接暂时不可用" description={failureDescription(failure)} actionLabel="重新加载" onAction={() => void load()} />;
   }
 
+  const arkDiscovery = discoveryProfile === "VOLCENGINE_ARK_CONTROL_PLANE";
+
   return (
     <div className="model-configuration-workspace">
       <div className="governance-toolbar">
@@ -198,21 +217,34 @@ export function PlatformModelSupplyWorkspace({
       </section>
       <Dialog open={creating} onOpenChange={(_, data) => { if (!data.open && !submitting) setCreating(false); }}>
         <DialogSurface><DialogBody><DialogTitle>新建平台厂商连接</DialogTitle><form className="foundation-dialog-form" onSubmit={(event) => void createConnection(event)}><DialogContent>
-          <Text>Endpoint 和 API Key 仅用于本次平台范围受控写入；创建后页面不会回显二者，也不会写入租户范围。</Text>
+          <Text>Endpoint 与凭据仅用于本次平台范围受控写入；创建后页面不会回显，也不会写入租户范围。</Text>
           <Field label="连接名称" required><Input name="displayName" autoFocus disabled={submitting} /></Field>
           <Field label="厂商类型" required><Select name="providerKind" value={providerKind} disabled={submitting} onChange={(_, data) => {
             const next = data.value as "DETERMINISTIC" | "OPENAI_COMPATIBLE" | "OLLAMA";
             setProviderKind(next);
             setDiscoveryProfile(next === "DETERMINISTIC" ? "DETERMINISTIC_CATALOG" : next === "OPENAI_COMPATIBLE" ? "OPENAI_MODELS_API" : "NONE");
+            setDiscoveryAccessKeyId("");
+            setDiscoverySecretAccessKey("");
           }}><option value="DETERMINISTIC">确定性开发连接</option><option value="OPENAI_COMPATIBLE">OpenAI 兼容接口</option><option value="OLLAMA">Ollama</option></Select></Field>
-          <Field label="模型发现协议" hint="只使用供应商权威接口；元数据不足的候选需要管理员确认能力。" required><Select name="discoveryProfile" value={discoveryProfile} disabled={submitting} onChange={(_, data) => setDiscoveryProfile(data.value as PlatformModelDiscoveryProfile)}>
+          <Field label="模型发现协议" hint="只使用供应商权威接口；元数据不足的候选需要管理员确认能力。" required><Select name="discoveryProfile" value={discoveryProfile} disabled={submitting} onChange={(_, data) => {
+            const next = data.value as PlatformModelDiscoveryProfile;
+            setDiscoveryProfile(next);
+            if (next !== "VOLCENGINE_ARK_CONTROL_PLANE") {
+              setDiscoveryAccessKeyId("");
+              setDiscoverySecretAccessKey("");
+            }
+          }}>
             {providerKind === "DETERMINISTIC" ? <option value="DETERMINISTIC_CATALOG">确定性受控目录</option> : null}
             {providerKind === "OPENAI_COMPATIBLE" ? <><option value="OPENAI_MODELS_API">OpenAI Models API</option><option value="VOLCENGINE_ARK_CONTROL_PLANE">火山方舟控制面</option></> : null}
             {providerKind === "OLLAMA" ? <option value="NONE">暂不自动发现</option> : null}
           </Select></Field>
           <Field label="API 基础地址" hint="填写厂商 API 根地址，不要包含 /chat/completions 或 /responses。" required><Input name="endpoint" type="url" placeholder="https://ark.cn-beijing.volces.com/api/v3" disabled={submitting} /></Field>
-          <Field label="部署区域" required><Input name="region" placeholder="例如：local" disabled={submitting} /></Field>
-          <Field label="API Key" required><Input type="password" value={apiKey} onChange={(_, data) => setApiKey(data.value)} autoComplete="new-password" disabled={submitting} /></Field>
+          <Field label="部署区域" hint={arkDiscovery ? "方舟签名区域，例如 cn-beijing。" : undefined} required><Input name="region" placeholder={arkDiscovery ? "cn-beijing" : "例如：local"} disabled={submitting} /></Field>
+          <Field label="API Key" hint="仅用于推理与能力探测，不用于火山方舟控制面模型发现。" required><Input type="password" value={apiKey} onChange={(_, data) => setApiKey(data.value)} autoComplete="new-password" disabled={submitting} /></Field>
+          {arkDiscovery ? <>
+            <Field label="Access Key ID" hint="仅用于模型发现；需要方舟 ListEndpoints 的只读权限。" required><Input type="password" value={discoveryAccessKeyId} onChange={(_, data) => setDiscoveryAccessKeyId(data.value)} autoComplete="new-password" disabled={submitting} /></Field>
+            <Field label="Secret Access Key" hint="仅用于模型发现；与 Access Key ID 分槽加密保存且不会回显。" required><Input type="password" value={discoverySecretAccessKey} onChange={(_, data) => setDiscoverySecretAccessKey(data.value)} autoComplete="new-password" disabled={submitting} /></Field>
+          </> : null}
         </DialogContent><DialogActions><Button appearance="secondary" disabled={submitting} onClick={() => setCreating(false)}>取消</Button><Button appearance="primary" type="submit" disabled={submitting}>{submitting ? "正在创建" : "创建平台连接"}</Button></DialogActions></form></DialogBody></DialogSurface>
       </Dialog>
       <Dialog open={discoveryTarget !== undefined} onOpenChange={(_, data) => { if (!data.open && !submitting) setDiscoveryTarget(undefined); }}>

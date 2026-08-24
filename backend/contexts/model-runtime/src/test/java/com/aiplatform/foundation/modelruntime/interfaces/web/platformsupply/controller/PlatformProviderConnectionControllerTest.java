@@ -65,6 +65,39 @@ class PlatformProviderConnectionControllerTest {
     }
 
     @Test
+    void 方舟连接HTTP必须接收独立AKSK且响应不回显任何凭据() throws Exception {
+        var service = mock(PlatformProviderConnectionService.class);
+        var context = mock(PlatformRequestContext.class);
+        var mvc = MockMvcBuilders.standaloneSetup(new PlatformProviderConnectionController(service))
+                .setCustomArgumentResolvers(platformContext(context))
+                .build();
+        when(service.create(any())).thenReturn(new CreatePlatformProviderConnectionResult(view(), false));
+
+        mvc.perform(post("/api/v1/platform/model-supply/connections")
+                        .header("Idempotency-Key", "platform-ark-request-0001")
+                        .contentType("application/json")
+                        .content("{"+
+                                "\"providerKind\":\"OPENAI_COMPATIBLE\",\"displayName\":\"火山方舟\","+
+                                "\"discoveryProfile\":\"VOLCENGINE_ARK_CONTROL_PLANE\","+
+                                "\"endpoint\":\"https://ark.cn-beijing.volces.com/api/v3\","+
+                                "\"region\":\"cn-beijing\",\"authenticationType\":\"API_KEY\","+
+                                "\"apiKey\":\"inference-secret\",\"discoveryAccessKeyId\":\"AK_TEST\","+
+                                "\"discoverySecretAccessKey\":\"SK_TEST\"}"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.apiKey").doesNotExist())
+                .andExpect(jsonPath("$.discoveryAccessKeyId").doesNotExist())
+                .andExpect(jsonPath("$.discoverySecretAccessKey").doesNotExist())
+                .andExpect(jsonPath("$.endpoint").doesNotExist());
+
+        var command = ArgumentCaptor.forClass(CreatePlatformProviderConnectionCommand.class);
+        verify(service).create(command.capture());
+        org.junit.jupiter.api.Assertions.assertNotNull(command.getValue().discoveryAccessKeyId());
+        org.junit.jupiter.api.Assertions.assertNotNull(command.getValue().discoverySecretAccessKey());
+        org.junit.jupiter.api.Assertions.assertEquals("[已脱敏]", command.getValue().discoveryAccessKeyId().toString());
+        org.junit.jupiter.api.Assertions.assertEquals("[已脱敏]", command.getValue().discoverySecretAccessKey().toString());
+    }
+
+    @Test
     void 平台连接列表使用平台会话和服务端分页安全摘要() throws Exception {
         var service = mock(PlatformProviderConnectionService.class);
         var context = mock(PlatformRequestContext.class);

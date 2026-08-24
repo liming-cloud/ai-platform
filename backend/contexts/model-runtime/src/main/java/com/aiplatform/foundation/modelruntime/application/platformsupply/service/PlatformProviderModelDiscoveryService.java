@@ -3,6 +3,8 @@ package com.aiplatform.foundation.modelruntime.application.platformsupply.servic
 import com.aiplatform.foundation.modelruntime.application.platformsupply.command.DiscoverPlatformProviderModelsCommand;
 import com.aiplatform.foundation.modelruntime.application.platformsupply.dto.DiscoverPlatformProviderModelsResult;
 import com.aiplatform.foundation.modelruntime.application.platformsupply.dto.PlatformProviderModelDiscoveryRequest;
+import com.aiplatform.foundation.modelruntime.application.platformsupply.dto.PlatformProviderDiscoveryCredentialReferences;
+import com.aiplatform.foundation.modelruntime.domain.provider.model.CredentialReference;
 import com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.PlatformProviderModelDiscoverer;
 import com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.PlatformProviderModelDiscoveryStore;
 import com.aiplatform.foundation.modelruntime.application.provider.exception.ModelCatalogPermissionDeniedException;
@@ -24,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.Optional;
 
 /** 编排平台范围模型发现；外部发现调用不处于数据库事务内。 */
 public final class PlatformProviderModelDiscoveryService {
@@ -73,8 +76,8 @@ public final class PlatformProviderModelDiscoveryService {
         var observation = discoverer == null
                 ? unsupportedObservation()
                 : discoveredAtNow(discoverer.discover(new PlatformProviderModelDiscoveryRequest(
-                        connection.providerKind(), discoveryProfile, connection.endpoint(), connection.credentialReference(),
-                        command.timeout())));
+                        connection.providerKind(), discoveryProfile, connection.endpoint(), connection.region(),
+                        connection.credentialReference(), discoveryCredentials(connection), command.timeout())));
         var discoveredConnection = connection;
         if (connection.status() != ProviderConnectionStatus.VERIFIED) {
             discoveredConnection = observation.succeeded()
@@ -99,6 +102,17 @@ public final class PlatformProviderModelDiscoveryService {
                 discovery.elapsed(),
                 discovery.discoveredAt(),
                 discovery.expiresAt());
+    }
+
+    private static Optional<PlatformProviderDiscoveryCredentialReferences> discoveryCredentials(
+            com.aiplatform.foundation.modelruntime.domain.platformsupply.model.PlatformProviderConnection connection) {
+        if (connection.discoveryProfile() != PlatformModelDiscoveryProfile.VOLCENGINE_ARK_CONTROL_PLANE) {
+            return Optional.empty();
+        }
+        var id = connection.id().value();
+        return Optional.of(new PlatformProviderDiscoveryCredentialReferences(
+                new CredentialReference("secret://platform-provider-discovery-access-key/" + id),
+                new CredentialReference("secret://platform-provider-discovery-secret-key/" + id)));
     }
 
     private PlatformProviderModelDiscoveryObservation unsupportedObservation() {
