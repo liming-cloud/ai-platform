@@ -29,6 +29,7 @@ ADR-0058 与 ADR-0066 已建立“平台连接 → 模型发现 → 能力探测
 权威发现只产生供应商声明或待管理员确认的候选，真实能力探测仍是部署发布前的必要步骤。
 
 1. 平台连接新增显式 `DiscoveryProfile`：
+   - `DETERMINISTIC_CATALOG`：只用于仓库内确定性离线供应商，保留既有自动验收链路，不代表真实厂商能力。
    - `OPENAI_MODELS_API`：使用连接的短生命周期推理 API Key 调用受控 Endpoint 下的官方
      `GET /models`。
    - `VOLCENGINE_ARK_CONTROL_PLANE`：使用独立、只写的火山方舟 AK/SK 调用 Ark
@@ -50,6 +51,7 @@ ADR-0058 与 ADR-0066 已建立“平台连接 → 模型发现 → 能力探测
    - `CONFIRMED_BY_PROVIDER`：供应商权威元数据明确且能够无歧义映射到本平台 `CHAT` 或
      `EMBEDDING` 契约；
    - `CONFIRMED_BY_CONTROLLED_MAPPING`：平台版本化受控目录映射明确给出模型类型和可探测能力；
+   - `CONFIRMED_BY_ADMIN`：平台管理员已显式选择模型类型，且确认主体和时间作为独立不可变事实保留；
    - `REQUIRES_ADMIN_CONFIRMATION`：元数据不足或映射缺失。此时模型类型和待探测能力保持未确认，
      不得用名称、所有者、Endpoint 或当前产品默认值补齐。
 6. 只有 `PLATFORM_ADMINISTRATOR` 可对当前连接修订的待确认候选提交一次受控确认，显式选择

@@ -45,6 +45,7 @@ class PlatformProviderConnectionControllerTest {
                         .contentType("application/json")
                         .content("{" +
                                 "\"providerKind\":\"DETERMINISTIC\",\"displayName\":\"平台模型\","
+                                + "\"discoveryProfile\":\"DETERMINISTIC_CATALOG\","
                                 + "\"endpoint\":\"memory://deterministic\",\"region\":\"本地\","
                                 + "\"authenticationType\":\"API_KEY\",\"apiKey\":\"test-api-key\"}"))
                 .andExpect(status().isCreated())
@@ -56,6 +57,10 @@ class PlatformProviderConnectionControllerTest {
         var command = ArgumentCaptor.forClass(CreatePlatformProviderConnectionCommand.class);
         verify(service).create(command.capture());
         org.junit.jupiter.api.Assertions.assertSame(context, command.getValue().context());
+        org.junit.jupiter.api.Assertions.assertEquals(
+                com.aiplatform.foundation.modelruntime.domain.platformsupply.model.PlatformModelDiscoveryProfile
+                        .DETERMINISTIC_CATALOG,
+                command.getValue().discoveryProfile());
         org.junit.jupiter.api.Assertions.assertEquals("[已脱敏]", command.getValue().apiKey().toString());
     }
 

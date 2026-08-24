@@ -1,7 +1,5 @@
 package com.aiplatform.foundation.modelruntime.domain.platformsupply.model;
 
-import com.aiplatform.foundation.modelruntime.domain.provider.model.DiscoveredModel;
-import com.aiplatform.foundation.modelruntime.domain.provider.model.ProviderModelDiscoveryObservation;
 import com.aiplatform.foundation.shared.kernel.domain.AggregateRoot;
 import java.time.Duration;
 import java.time.Instant;
@@ -15,7 +13,7 @@ public final class PlatformProviderModelDiscovery implements AggregateRoot<Platf
     private final PlatformProviderConnectionId connectionId;
     private final long connectionRevision;
     private final boolean succeeded;
-    private final Set<DiscoveredModel> models;
+    private final Set<PlatformDiscoveredModelCandidate> models;
     private final String resultCode;
     private final Duration elapsed;
     private final Instant discoveredAt;
@@ -24,7 +22,7 @@ public final class PlatformProviderModelDiscovery implements AggregateRoot<Platf
             PlatformProviderModelDiscoveryId id,
             PlatformProviderConnectionId connectionId,
             long connectionRevision,
-            ProviderModelDiscoveryObservation observation,
+            PlatformProviderModelDiscoveryObservation observation,
             Instant expiresAt) {
         this.id = Objects.requireNonNull(id, "平台模型发现标识不能为空");
         this.connectionId = Objects.requireNonNull(connectionId, "平台连接标识不能为空");
@@ -34,7 +32,7 @@ public final class PlatformProviderModelDiscovery implements AggregateRoot<Platf
         this.connectionRevision = connectionRevision;
         observation = Objects.requireNonNull(observation, "平台模型发现观察值不能为空");
         this.succeeded = observation.succeeded();
-        this.models = immutableModels(observation.models());
+        this.models = immutableModels(observation.candidates());
         this.resultCode = requireResultCode(observation.resultCode());
         this.elapsed = requireElapsed(observation.elapsed());
         this.discoveredAt = Objects.requireNonNull(observation.discoveredAt(), "平台模型发现时间不能为空");
@@ -55,7 +53,7 @@ public final class PlatformProviderModelDiscovery implements AggregateRoot<Platf
             PlatformProviderModelDiscoveryId id,
             PlatformProviderConnectionId connectionId,
             long connectionRevision,
-            ProviderModelDiscoveryObservation observation,
+            PlatformProviderModelDiscoveryObservation observation,
             Instant expiresAt) {
         observation = Objects.requireNonNull(observation, "平台模型发现观察值不能为空");
         return new PlatformProviderModelDiscovery(
@@ -83,7 +81,7 @@ public final class PlatformProviderModelDiscovery implements AggregateRoot<Platf
         return succeeded;
     }
 
-    public Set<DiscoveredModel> models() {
+    public Set<PlatformDiscoveredModelCandidate> models() {
         return models;
     }
 
@@ -103,7 +101,7 @@ public final class PlatformProviderModelDiscovery implements AggregateRoot<Platf
         return expiresAt;
     }
 
-    private static Set<DiscoveredModel> immutableModels(Set<DiscoveredModel> values) {
+    private static Set<PlatformDiscoveredModelCandidate> immutableModels(Set<PlatformDiscoveredModelCandidate> values) {
         values = Objects.requireNonNull(values, "平台发现模型集合不能为空");
         if (values.stream().anyMatch(Objects::isNull)) {
             throw new IllegalArgumentException("平台发现模型集合不能包含空值");

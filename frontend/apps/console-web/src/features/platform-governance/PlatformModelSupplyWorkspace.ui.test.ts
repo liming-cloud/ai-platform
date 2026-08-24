@@ -28,4 +28,13 @@ describe("平台模型供应链呈现", () => {
     expect(source).toContain("https://ark.cn-beijing.volces.com/api/v3");
     expect(source).not.toContain('placeholder="https://…/v1"');
   });
+
+  it("创建连接显式选择权威发现协议并说明未知能力需管理员确认", () => {
+    const source = readFileSync(workspacePath, "utf8");
+
+    expect(source).toContain('name="discoveryProfile"');
+    expect(source).toContain('value="OPENAI_MODELS_API"');
+    expect(source).toContain('value="VOLCENGINE_ARK_CONTROL_PLANE"');
+    expect(source).toContain("元数据不足的候选需要管理员确认能力");
+  });
 });

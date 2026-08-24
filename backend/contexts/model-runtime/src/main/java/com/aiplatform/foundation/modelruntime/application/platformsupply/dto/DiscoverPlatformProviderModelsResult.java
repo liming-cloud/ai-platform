@@ -1,6 +1,6 @@
 package com.aiplatform.foundation.modelruntime.application.platformsupply.dto;
 
-import com.aiplatform.foundation.modelruntime.domain.provider.model.DiscoveredModel;
+import com.aiplatform.foundation.modelruntime.domain.platformsupply.model.PlatformDiscoveredModelCandidate;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Objects;
@@ -10,7 +10,7 @@ import java.util.Set;
 public record DiscoverPlatformProviderModelsResult(
         String discoveryId,
         boolean succeeded,
-        Set<DiscoveredModel> models,
+        Set<PlatformDiscoveredModelCandidate> models,
         String resultCode,
         Duration elapsed,
         Instant discoveredAt,

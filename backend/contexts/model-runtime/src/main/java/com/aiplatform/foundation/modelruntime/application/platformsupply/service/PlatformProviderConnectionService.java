@@ -59,6 +59,7 @@ public final class PlatformProviderConnectionService {
         var connection = PlatformProviderConnection.create(
                 connectionId,
                 command.providerKind(),
+                command.discoveryProfile(),
                 command.displayName(),
                 command.endpoint(),
                 command.region(),
@@ -116,6 +117,7 @@ public final class PlatformProviderConnectionService {
     private static PlatformProviderConnectionView toView(PlatformProviderConnection connection) {
         return new PlatformProviderConnectionView(
                 connection.id().toString(), connection.providerKind().name(), connection.displayName(),
+                connection.discoveryProfile().name(),
                 connection.region(), connection.authenticationType().name(), true, connection.status().name(),
                 connection.version(), connection.lastProbeSucceeded(), connection.lastProbeCode(),
                 connection.lastProbedAt(), connection.createdAt());
@@ -125,6 +127,7 @@ public final class PlatformProviderConnectionService {
         try {
             var digest = MessageDigest.getInstance("SHA-256");
             update(digest, command.providerKind().name());
+            update(digest, command.discoveryProfile().name());
             update(digest, command.displayName());
             update(digest, command.endpoint().toString());
             update(digest, command.region());

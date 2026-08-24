@@ -237,14 +237,32 @@ export interface ProviderConnectionCreateInput {
   apiKey: string;
 }
 
+export type PlatformModelDiscoveryProfile =
+  | "DETERMINISTIC_CATALOG"
+  | "OPENAI_MODELS_API"
+  | "VOLCENGINE_ARK_CONTROL_PLANE"
+  | "NONE";
+
+/** 平台连接必须显式冻结权威模型发现协议。 */
+export interface PlatformProviderConnectionCreateInput extends ProviderConnectionCreateInput {
+  discoveryProfile: PlatformModelDiscoveryProfile;
+}
+
 /** 平台范围厂商连接的安全摘要；端点和凭据永不返回浏览器。 */
-export type PlatformProviderConnectionSummary = ProviderConnectionSummary;
+export type PlatformProviderConnectionSummary = ProviderConnectionSummary & {
+  discoveryProfile: PlatformModelDiscoveryProfile;
+};
 
 /** 平台模型发现的安全摘要；候选只用于后续受控部署选择。 */
 export interface PlatformProviderModelDiscoverySummary {
   discoveryId: string;
   succeeded: boolean;
-  models: Array<{ modelCode: string; modelType: string; capabilities: string[] }>;
+  models: Array<{
+    modelCode: string;
+    modelType: "CHAT" | "EMBEDDING" | null;
+    capabilities: string[];
+    classification: "CONFIRMED_BY_PROVIDER" | "CONFIRMED_BY_CONTROLLED_MAPPING" | "CONFIRMED_BY_ADMIN" | "REQUIRES_ADMIN_CONFIRMATION";
+  }>;
   resultCode: string;
   elapsed: string;
   discoveredAt: string;
@@ -254,8 +272,9 @@ export interface PlatformProviderModelDiscoverySummary {
 /** 平台连接当前修订中可创建部署的安全模型候选。 */
 export interface PlatformProviderModelCandidate {
   modelCode: string;
-  modelType: "CHAT" | "EMBEDDING";
+  modelType: "CHAT" | "EMBEDDING" | null;
   capabilities: string[];
+  classification: "CONFIRMED_BY_PROVIDER" | "CONFIRMED_BY_CONTROLLED_MAPPING" | "CONFIRMED_BY_ADMIN" | "REQUIRES_ADMIN_CONFIRMATION";
 }
 
 /** 平台模型部署的安全摘要；端点、凭据和供应商原始响应永不进入浏览器。 */
@@ -1356,7 +1375,7 @@ export class ControlPlaneClient {
   }
 
   async createPlatformProviderConnection(
-    input: ProviderConnectionCreateInput,
+    input: PlatformProviderConnectionCreateInput,
     idempotencyKey?: string,
   ): Promise<PlatformProviderConnectionSummary> {
     return this.request<PlatformProviderConnectionSummary>("/platform/model-supply/connections", {
@@ -1410,6 +1429,22 @@ export class ControlPlaneClient {
     });
     return this.request<PageResult<PlatformProviderModelCandidate>>(
       `/platform/model-supply/connections/${encodeURIComponent(providerConnectionId)}/model-candidates?${parameters}`,
+    );
+  }
+
+  async confirmPlatformProviderModelCandidate(
+    providerConnectionId: string,
+    expectedConnectionVersion: number,
+    modelCode: string,
+    modelType: "CHAT" | "EMBEDDING",
+  ): Promise<PlatformProviderModelCandidate> {
+    return this.request<PlatformProviderModelCandidate>(
+      `/platform/model-supply/connections/${encodeURIComponent(providerConnectionId)}/model-candidates/confirmation`,
+      {
+        method: "POST",
+        headers: this.writeHeaders("application/json"),
+        body: JSON.stringify({ expectedConnectionVersion, modelCode, modelType }),
+      },
     );
   }
 

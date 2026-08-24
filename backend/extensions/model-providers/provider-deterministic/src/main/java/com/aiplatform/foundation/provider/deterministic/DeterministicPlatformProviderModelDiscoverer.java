@@ -4,9 +4,10 @@ import com.aiplatform.foundation.modelruntime.application.platformsupply.dto.Pla
 import com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.PlatformProviderModelDiscoverer;
 import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelCapability;
 import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelType;
-import com.aiplatform.foundation.modelruntime.domain.provider.model.DiscoveredModel;
+import com.aiplatform.foundation.modelruntime.domain.platformsupply.model.PlatformDiscoveredModelCandidate;
+import com.aiplatform.foundation.modelruntime.domain.platformsupply.model.PlatformModelDiscoveryProfile;
+import com.aiplatform.foundation.modelruntime.domain.platformsupply.model.PlatformProviderModelDiscoveryObservation;
 import com.aiplatform.foundation.modelruntime.domain.provider.model.ProviderKind;
-import com.aiplatform.foundation.modelruntime.domain.provider.model.ProviderModelDiscoveryObservation;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Set;
@@ -20,17 +21,22 @@ public final class DeterministicPlatformProviderModelDiscoverer implements Platf
     }
 
     @Override
-    public ProviderModelDiscoveryObservation discover(PlatformProviderModelDiscoveryRequest request) {
+    public PlatformModelDiscoveryProfile discoveryProfile() {
+        return PlatformModelDiscoveryProfile.DETERMINISTIC_CATALOG;
+    }
+
+    @Override
+    public PlatformProviderModelDiscoveryObservation discover(PlatformProviderModelDiscoveryRequest request) {
         if (!"memory".equals(request.endpoint().getScheme())) {
-            return new ProviderModelDiscoveryObservation(
+            return new PlatformProviderModelDiscoveryObservation(
                     false, Set.of(), "DETERMINISTIC_ENDPOINT_REJECTED", Duration.ZERO, Instant.now());
         }
-        return new ProviderModelDiscoveryObservation(
+        return new PlatformProviderModelDiscoveryObservation(
                 true,
                 Set.of(
-                        new DiscoveredModel(
+                        PlatformDiscoveredModelCandidate.confirmedByProvider(
                                 "deterministic-chat", ModelType.CHAT, Set.of(ModelCapability.CHAT)),
-                        new DiscoveredModel(
+                        PlatformDiscoveredModelCandidate.confirmedByProvider(
                                 "deterministic-embedding", ModelType.EMBEDDING,
                                 Set.of(ModelCapability.EMBEDDING))),
                 "DETERMINISTIC_DISCOVERY_OK",

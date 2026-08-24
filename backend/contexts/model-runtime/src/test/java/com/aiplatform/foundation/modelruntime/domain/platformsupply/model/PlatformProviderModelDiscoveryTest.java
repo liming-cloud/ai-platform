@@ -5,8 +5,6 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 
 import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelCapability;
 import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelType;
-import com.aiplatform.foundation.modelruntime.domain.provider.model.DiscoveredModel;
-import com.aiplatform.foundation.modelruntime.domain.provider.model.ProviderModelDiscoveryObservation;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Set;
@@ -20,8 +18,10 @@ class PlatformProviderModelDiscoveryTest {
         var discovery = PlatformProviderModelDiscovery.capture(
                 new PlatformProviderModelDiscoveryId(620000000000000001L),
                 new PlatformProviderConnectionId(610000000000000001L), 1L,
-                new ProviderModelDiscoveryObservation(true, Set.of(new DiscoveredModel(
-                        "deterministic-embedding", ModelType.EMBEDDING, Set.of(ModelCapability.EMBEDDING))),
+                new PlatformProviderModelDiscoveryObservation(true, Set.of(
+                        PlatformDiscoveredModelCandidate.confirmedByProvider(
+                                "deterministic-embedding", ModelType.EMBEDDING,
+                                Set.of(ModelCapability.EMBEDDING))),
                         "DETERMINISTIC_DISCOVERY_OK", Duration.ZERO, NOW), NOW.plusSeconds(3600));
         assertEquals(1L, discovery.connectionRevision());
         assertEquals(1, discovery.models().size());
@@ -32,7 +32,8 @@ class PlatformProviderModelDiscoveryTest {
         var discovery = PlatformProviderModelDiscovery.capture(
                 new PlatformProviderModelDiscoveryId(620000000000000001L),
                 new PlatformProviderConnectionId(610000000000000001L), 1L,
-                new ProviderModelDiscoveryObservation(false, Set.of(), "DISCOVERY_FAILED", Duration.ZERO, NOW),
+                new PlatformProviderModelDiscoveryObservation(
+                        false, Set.of(), "DISCOVERY_FAILED", Duration.ZERO, NOW),
                 NOW.plusSeconds(3600));
 
         assertNull(discovery.expiresAt());

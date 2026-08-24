@@ -2,6 +2,7 @@ package com.aiplatform.foundation.modelruntime.application.platformsupply.comman
 
 import com.aiplatform.foundation.modelruntime.domain.provider.model.AuthenticationType;
 import com.aiplatform.foundation.modelruntime.domain.provider.model.ProviderKind;
+import com.aiplatform.foundation.modelruntime.domain.platformsupply.model.PlatformModelDiscoveryProfile;
 import com.aiplatform.foundation.security.identity.PlatformRequestContext;
 import com.aiplatform.foundation.security.secret.SecretValue;
 import java.net.URI;
@@ -13,6 +14,7 @@ public record CreatePlatformProviderConnectionCommand(
         PlatformRequestContext context,
         String idempotencyKey,
         ProviderKind providerKind,
+        PlatformModelDiscoveryProfile discoveryProfile,
         String displayName,
         URI endpoint,
         String region,
@@ -29,8 +31,27 @@ public record CreatePlatformProviderConnectionCommand(
             throw new IllegalArgumentException("幂等键格式不正确");
         }
         Objects.requireNonNull(providerKind, "供应商类型不能为空");
+        Objects.requireNonNull(discoveryProfile, "模型发现协议不能为空");
+        if (!discoveryProfile.supports(providerKind)) {
+            throw new IllegalArgumentException("模型发现协议与供应商类型不兼容");
+        }
         Objects.requireNonNull(endpoint, "供应商端点不能为空");
         Objects.requireNonNull(authenticationType, "认证方式不能为空");
         Objects.requireNonNull(apiKey, "API Key不能为空");
+    }
+
+    /** 仅供历史内部调用兼容；公共 HTTP 写入必须显式提交发现协议。 */
+    public CreatePlatformProviderConnectionCommand(
+            PlatformRequestContext context,
+            String idempotencyKey,
+            ProviderKind providerKind,
+            String displayName,
+            URI endpoint,
+            String region,
+            AuthenticationType authenticationType,
+            SecretValue apiKey) {
+        this(context, idempotencyKey, providerKind,
+                PlatformModelDiscoveryProfile.legacyDefault(providerKind), displayName,
+                endpoint, region, authenticationType, apiKey);
     }
 }

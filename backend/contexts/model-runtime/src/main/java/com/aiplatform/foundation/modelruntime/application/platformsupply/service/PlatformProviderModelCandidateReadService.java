@@ -44,8 +44,12 @@ public final class PlatformProviderModelCandidateReadService {
         }
         var candidates = discoveries.findCurrentCandidates(connection.id(), connection.version(), query.page(), clock.instant());
         return PageResult.of(candidates.items().stream()
-                        .map(candidate -> new PlatformProviderModelCandidateView(candidate.modelCode(), candidate.modelType().name(),
-                                candidate.capabilities().stream().map(Enum::name).collect(java.util.stream.Collectors.toUnmodifiableSet())))
+                        .map(candidate -> new PlatformProviderModelCandidateView(
+                                candidate.modelCode(),
+                                candidate.modelType() == null ? null : candidate.modelType().name(),
+                                candidate.capabilities().stream().map(Enum::name)
+                                        .collect(java.util.stream.Collectors.toUnmodifiableSet()),
+                                candidate.classification().name()))
                         .toList(),
                 query.page(), candidates.totalElements());
     }

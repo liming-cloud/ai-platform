@@ -13,7 +13,7 @@ import com.aiplatform.foundation.modelruntime.application.platformsupply.dto.Dis
 import com.aiplatform.foundation.modelruntime.application.platformsupply.service.PlatformProviderModelDiscoveryService;
 import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelCapability;
 import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelType;
-import com.aiplatform.foundation.modelruntime.domain.provider.model.DiscoveredModel;
+import com.aiplatform.foundation.modelruntime.domain.platformsupply.model.PlatformDiscoveredModelCandidate;
 import com.aiplatform.foundation.security.identity.PlatformRequestContext;
 import java.time.Duration;
 import java.time.Instant;
@@ -38,7 +38,7 @@ class PlatformProviderModelDiscoveryControllerTest {
         when(service.discover(any())).thenReturn(new DiscoverPlatformProviderModelsResult(
                 "620000000000000001",
                 true,
-                Set.of(new DiscoveredModel(
+                Set.of(PlatformDiscoveredModelCandidate.confirmedByProvider(
                         "deterministic-embedding", ModelType.EMBEDDING, Set.of(ModelCapability.EMBEDDING))),
                 "DETERMINISTIC_DISCOVERY_OK",
                 Duration.ZERO,

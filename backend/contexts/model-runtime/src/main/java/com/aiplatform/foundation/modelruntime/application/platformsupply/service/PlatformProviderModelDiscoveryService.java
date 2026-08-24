@@ -7,18 +7,19 @@ import com.aiplatform.foundation.modelruntime.application.platformsupply.port.ou
 import com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.PlatformProviderModelDiscoveryStore;
 import com.aiplatform.foundation.modelruntime.application.provider.exception.ModelCatalogPermissionDeniedException;
 import com.aiplatform.foundation.modelruntime.domain.platformsupply.model.PlatformProviderConnectionId;
+import com.aiplatform.foundation.modelruntime.domain.platformsupply.model.PlatformModelDiscoveryProfile;
 import com.aiplatform.foundation.modelruntime.domain.platformsupply.model.PlatformProviderModelDiscovery;
 import com.aiplatform.foundation.modelruntime.domain.platformsupply.model.PlatformProviderModelDiscoveryId;
+import com.aiplatform.foundation.modelruntime.domain.platformsupply.model.PlatformProviderModelDiscoveryObservation;
 import com.aiplatform.foundation.modelruntime.domain.platformsupply.repository.PlatformProviderConnectionRepository;
 import com.aiplatform.foundation.modelruntime.domain.provider.model.ProviderConnectionStatus;
 import com.aiplatform.foundation.modelruntime.domain.provider.model.ProviderKind;
-import com.aiplatform.foundation.modelruntime.domain.provider.model.ProviderModelDiscoveryObservation;
 import com.aiplatform.foundation.security.identity.PlatformPermissions;
 import com.aiplatform.foundation.security.identity.PlatformRequestContext;
 import com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator;
 import java.time.Clock;
 import java.time.Duration;
-import java.util.EnumMap;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -28,7 +29,7 @@ import java.util.Set;
 public final class PlatformProviderModelDiscoveryService {
 
     private final PlatformProviderConnectionRepository connections;
-    private final Map<ProviderKind, PlatformProviderModelDiscoverer> discoverers;
+    private final Map<DiscovererKey, PlatformProviderModelDiscoverer> discoverers;
     private final PlatformProviderModelDiscoveryStore store;
     private final Clock clock;
     private final EntityIdGenerator identifiers;
@@ -67,11 +68,12 @@ public final class PlatformProviderModelDiscoveryService {
         if (connection.status() == ProviderConnectionStatus.DISABLED) {
             throw new IllegalStateException("已停用的平台供应商连接不能发现模型");
         }
-        var discoverer = discoverers.get(connection.providerKind());
+        var discoveryProfile = connection.discoveryProfile();
+        var discoverer = discoverers.get(new DiscovererKey(connection.providerKind(), discoveryProfile));
         var observation = discoverer == null
                 ? unsupportedObservation()
                 : discoveredAtNow(discoverer.discover(new PlatformProviderModelDiscoveryRequest(
-                        connection.providerKind(), connection.endpoint(), connection.credentialReference(),
+                        connection.providerKind(), discoveryProfile, connection.endpoint(), connection.credentialReference(),
                         command.timeout())));
         var discoveredConnection = connection;
         if (connection.status() != ProviderConnectionStatus.VERIFIED) {
@@ -99,17 +101,17 @@ public final class PlatformProviderModelDiscoveryService {
                 discovery.expiresAt());
     }
 
-    private ProviderModelDiscoveryObservation unsupportedObservation() {
-        return new ProviderModelDiscoveryObservation(
+    private PlatformProviderModelDiscoveryObservation unsupportedObservation() {
+        return new PlatformProviderModelDiscoveryObservation(
                 false, Set.of(), "PLATFORM_MODEL_DISCOVERY_UNSUPPORTED", Duration.ZERO, clock.instant());
     }
 
-    private ProviderModelDiscoveryObservation discoveredAtNow(
-            ProviderModelDiscoveryObservation observation) {
+    private PlatformProviderModelDiscoveryObservation discoveredAtNow(
+            PlatformProviderModelDiscoveryObservation observation) {
         observation = Objects.requireNonNull(observation, "平台模型发现扩展结果不能为空");
-        return new ProviderModelDiscoveryObservation(
+        return new PlatformProviderModelDiscoveryObservation(
                 observation.succeeded(),
-                observation.models(),
+                observation.candidates(),
                 observation.resultCode(),
                 observation.elapsed(),
                 clock.instant());
@@ -122,15 +124,23 @@ public final class PlatformProviderModelDiscoveryService {
         }
     }
 
-    private static Map<ProviderKind, PlatformProviderModelDiscoverer> index(
+    private static Map<DiscovererKey, PlatformProviderModelDiscoverer> index(
             List<PlatformProviderModelDiscoverer> values) {
-        var indexed = new EnumMap<ProviderKind, PlatformProviderModelDiscoverer>(ProviderKind.class);
+        var indexed = new HashMap<DiscovererKey, PlatformProviderModelDiscoverer>();
         for (var value : Objects.requireNonNull(values, "平台模型发现扩展不能为空")) {
-            if (indexed.putIfAbsent(value.providerKind(), value) != null) {
-                throw new IllegalArgumentException("供应商协议只能装配一个平台模型发现扩展");
+            var key = new DiscovererKey(value.providerKind(), value.discoveryProfile());
+            if (indexed.putIfAbsent(key, value) != null) {
+                throw new IllegalArgumentException("供应商协议与发现配置只能装配一个平台模型发现扩展");
             }
         }
         return Map.copyOf(indexed);
+    }
+
+    private record DiscovererKey(ProviderKind providerKind, PlatformModelDiscoveryProfile discoveryProfile) {
+        private DiscovererKey {
+            Objects.requireNonNull(providerKind, "供应商类型不能为空");
+            Objects.requireNonNull(discoveryProfile, "模型发现协议不能为空");
+        }
     }
 
     private static Duration requirePositive(Duration value) {

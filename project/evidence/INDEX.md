@@ -337,6 +337,7 @@
 | M6 操作电脑主流程与响应式续证 | `project/evidence/WP-0014-computer-use-primary-flow-and-responsive-regression.md` | 本次提交 | 从唯一平台管理员完成账户、活动租户、普通成员、确定性平台模型目录、租户模型配置、文本发布和 6 分块活动索引；物理 1024×768、真实 200%、键盘和 reduced-motion 通过。助手管理入口、首份文本恢复路径和物理 390×844 未闭环，M6 保持进行中。 |
 | M6 角色目录、详情与界面边界整改 | `project/evidence/WP-0014-role-directory-details-and-ui-containment.md` | 本次提交 | 补齐三种固定角色目录、角色／平台账户详情和成员管理入口，修复模型表单半屏与登录失败溢出；权限编辑需新 ADR，真实 200% 错误密码组合和物理 390×844 仍待续证，M6 保持进行中。 |
 | M6 平台治理契约与模型供应链错误恢复 | `project/evidence/WP-0014-platform-governance-contract-and-model-supply-recovery.md` | 本次提交 | 重复账户和模型目录稳定返回冲突，平台角色目录投影三种固定角色并纠正账户授权语义，退役无调用方平台工作区，改进发现反馈与统一宽表；真实 PostgreSQL、HTTP、1024×768、390×844 和全量门禁通过，200% 与 reduced-motion 仍待续证。 |
+| M6 OpenAI-compatible 权威模型发现与管理员确认 | `project/evidence/WP-0014-authoritative-openai-model-discovery.md` | 本次提交 | 显式发现协议、OpenAI Models API、本地真实 HTTP、未知能力不猜测、独立管理员确认审计、真实 PostgreSQL、受限 HTTP、前端全量测试与生产构建通过；火山方舟、Compose 和 Chrome 续证仍待下一切片。 |
 
 ## 证据规则
 

@@ -12,13 +12,14 @@ import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelCapab
 import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelType;
 import com.aiplatform.foundation.modelruntime.domain.platformsupply.model.PlatformProviderConnection;
 import com.aiplatform.foundation.modelruntime.domain.platformsupply.model.PlatformProviderConnectionId;
+import com.aiplatform.foundation.modelruntime.domain.platformsupply.model.PlatformDiscoveredModelCandidate;
+import com.aiplatform.foundation.modelruntime.domain.platformsupply.model.PlatformModelDiscoveryProfile;
 import com.aiplatform.foundation.modelruntime.domain.platformsupply.model.PlatformProviderModelDiscovery;
+import com.aiplatform.foundation.modelruntime.domain.platformsupply.model.PlatformProviderModelDiscoveryObservation;
 import com.aiplatform.foundation.modelruntime.domain.platformsupply.repository.PlatformProviderConnectionRepository;
 import com.aiplatform.foundation.modelruntime.domain.provider.model.AuthenticationType;
 import com.aiplatform.foundation.modelruntime.domain.provider.model.CredentialReference;
-import com.aiplatform.foundation.modelruntime.domain.provider.model.DiscoveredModel;
 import com.aiplatform.foundation.modelruntime.domain.provider.model.ProviderKind;
-import com.aiplatform.foundation.modelruntime.domain.provider.model.ProviderModelDiscoveryObservation;
 import com.aiplatform.foundation.security.identity.AccessChannel;
 import com.aiplatform.foundation.security.identity.CredentialType;
 import com.aiplatform.foundation.security.identity.PlatformPermissions;
@@ -108,12 +109,17 @@ class PlatformProviderModelDiscoveryServiceTest {
 
     private static final class DeterministicDiscoverer implements PlatformProviderModelDiscoverer {
         @Override public ProviderKind providerKind() { return ProviderKind.DETERMINISTIC; }
-        @Override public ProviderModelDiscoveryObservation discover(PlatformProviderModelDiscoveryRequest request) {
-            return new ProviderModelDiscoveryObservation(
+        @Override public PlatformModelDiscoveryProfile discoveryProfile() {
+            return PlatformModelDiscoveryProfile.DETERMINISTIC_CATALOG;
+        }
+        @Override public PlatformProviderModelDiscoveryObservation discover(PlatformProviderModelDiscoveryRequest request) {
+            return new PlatformProviderModelDiscoveryObservation(
                     true,
                     Set.of(
-                            new DiscoveredModel("deterministic-chat", ModelType.CHAT, Set.of(ModelCapability.CHAT)),
-                            new DiscoveredModel("deterministic-embedding", ModelType.EMBEDDING,
+                            PlatformDiscoveredModelCandidate.confirmedByProvider(
+                                    "deterministic-chat", ModelType.CHAT, Set.of(ModelCapability.CHAT)),
+                            PlatformDiscoveredModelCandidate.confirmedByProvider(
+                                    "deterministic-embedding", ModelType.EMBEDDING,
                                     Set.of(ModelCapability.EMBEDDING))),
                     "DETERMINISTIC_DISCOVERY_OK", Duration.ZERO, CLOCK.instant());
         }

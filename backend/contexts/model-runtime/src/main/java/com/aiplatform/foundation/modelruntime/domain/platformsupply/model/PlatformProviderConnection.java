@@ -26,6 +26,7 @@ public final class PlatformProviderConnection
     private final PlatformModelSupplyScope scope;
     private final PlatformProviderConnectionId id;
     private final ProviderKind providerKind;
+    private final PlatformModelDiscoveryProfile discoveryProfile;
     private final String displayName;
     private final URI endpoint;
     private final String region;
@@ -42,6 +43,7 @@ public final class PlatformProviderConnection
             PlatformModelSupplyScope scope,
             PlatformProviderConnectionId id,
             ProviderKind providerKind,
+            PlatformModelDiscoveryProfile discoveryProfile,
             String displayName,
             URI endpoint,
             String region,
@@ -59,6 +61,10 @@ public final class PlatformProviderConnection
         }
         this.id = Objects.requireNonNull(id, "平台供应商连接标识不能为空");
         this.providerKind = Objects.requireNonNull(providerKind, "供应商类型不能为空");
+        this.discoveryProfile = Objects.requireNonNull(discoveryProfile, "模型发现协议不能为空");
+        if (!discoveryProfile.supports(providerKind)) {
+            throw new IllegalArgumentException("模型发现协议与供应商类型不兼容");
+        }
         this.displayName = requireText(displayName, "平台供应商连接名称", MAX_NAME_CODE_POINTS);
         this.endpoint = requireEndpoint(endpoint);
         this.region = requireText(region, "部署区域", MAX_REGION_CODE_POINTS);
@@ -96,10 +102,27 @@ public final class PlatformProviderConnection
             AuthenticationType authenticationType,
             CredentialReference credentialReference,
             Instant createdAt) {
+        return create(
+                id, providerKind, PlatformModelDiscoveryProfile.legacyDefault(providerKind), displayName,
+                endpoint, region, authenticationType, credentialReference, createdAt);
+    }
+
+    /** 建立显式冻结权威发现协议的平台连接。 */
+    public static PlatformProviderConnection create(
+            PlatformProviderConnectionId id,
+            ProviderKind providerKind,
+            PlatformModelDiscoveryProfile discoveryProfile,
+            String displayName,
+            URI endpoint,
+            String region,
+            AuthenticationType authenticationType,
+            CredentialReference credentialReference,
+            Instant createdAt) {
         return new PlatformProviderConnection(
                 PlatformModelSupplyScope.PLATFORM,
                 id,
                 providerKind,
+                discoveryProfile,
                 displayName,
                 endpoint,
                 region,
@@ -127,10 +150,33 @@ public final class PlatformProviderConnection
             String lastProbeCode,
             Instant lastProbedAt,
             Instant createdAt) {
+        return reconstitute(
+                id, providerKind, PlatformModelDiscoveryProfile.legacyDefault(providerKind), displayName,
+                endpoint, region, authenticationType, credentialReference, status, version,
+                lastProbeSucceeded, lastProbeCode, lastProbedAt, createdAt);
+    }
+
+    /** 从持久化事实恢复显式发现协议。 */
+    public static PlatformProviderConnection reconstitute(
+            PlatformProviderConnectionId id,
+            ProviderKind providerKind,
+            PlatformModelDiscoveryProfile discoveryProfile,
+            String displayName,
+            URI endpoint,
+            String region,
+            AuthenticationType authenticationType,
+            CredentialReference credentialReference,
+            ProviderConnectionStatus status,
+            long version,
+            Boolean lastProbeSucceeded,
+            String lastProbeCode,
+            Instant lastProbedAt,
+            Instant createdAt) {
         return new PlatformProviderConnection(
                 PlatformModelSupplyScope.PLATFORM,
                 id,
                 providerKind,
+                discoveryProfile,
                 displayName,
                 endpoint,
                 region,
@@ -191,6 +237,7 @@ public final class PlatformProviderConnection
     public PlatformModelSupplyScope scope() { return scope; }
     @Override public PlatformProviderConnectionId id() { return id; }
     public ProviderKind providerKind() { return providerKind; }
+    public PlatformModelDiscoveryProfile discoveryProfile() { return discoveryProfile; }
     public String displayName() { return displayName; }
     public URI endpoint() { return endpoint; }
     public String region() { return region; }
@@ -210,7 +257,7 @@ public final class PlatformProviderConnection
             String probeCode,
             Instant probedAt) {
         return new PlatformProviderConnection(
-                scope, id, providerKind, displayName, endpoint, region, authenticationType,
+                scope, id, providerKind, discoveryProfile, displayName, endpoint, region, authenticationType,
                 nextCredential, nextStatus, version + 1, probeSucceeded, probeCode, probedAt, createdAt);
     }
 

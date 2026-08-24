@@ -4,6 +4,7 @@ import com.aiplatform.foundation.modelruntime.application.provider.exception.Pro
 import com.aiplatform.foundation.modelruntime.application.provider.exception.ProviderConnectionNameConflictException;
 import com.aiplatform.foundation.modelruntime.domain.platformsupply.model.PlatformProviderConnection;
 import com.aiplatform.foundation.modelruntime.domain.platformsupply.model.PlatformProviderConnectionId;
+import com.aiplatform.foundation.modelruntime.domain.platformsupply.model.PlatformModelDiscoveryProfile;
 import com.aiplatform.foundation.modelruntime.domain.platformsupply.repository.PlatformProviderConnectionCreation;
 import com.aiplatform.foundation.modelruntime.domain.platformsupply.repository.PlatformProviderConnectionCreationOutcome;
 import com.aiplatform.foundation.modelruntime.domain.platformsupply.repository.PlatformProviderConnectionPage;
@@ -80,12 +81,13 @@ public final class PostgresPlatformProviderConnectionRepository
         try {
             jdbc.update("""
                     INSERT INTO model_runtime.platform_provider_connection (
-                        id, scope, provider_kind, display_name, endpoint, region, authentication_type,
+                        id, scope, provider_kind, discovery_profile, display_name, endpoint, region, authentication_type,
                         credential_reference, status, version, last_probe_succeeded, last_probe_code,
                         last_probed_at, created_at)
-                    VALUES (?, 'PLATFORM', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    VALUES (?, 'PLATFORM', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
-                    connection.id().value(), connection.providerKind().name(), connection.displayName(),
+                    connection.id().value(), connection.providerKind().name(), connection.discoveryProfile().name(),
+                    connection.displayName(),
                     connection.endpoint().toString(), connection.region(), connection.authenticationType().name(),
                     connection.credentialReference().value(), connection.status().name(), connection.version(),
                     connection.lastProbeSucceeded(), connection.lastProbeCode(), timestamp(connection.lastProbedAt()),
@@ -105,7 +107,7 @@ public final class PostgresPlatformProviderConnectionRepository
     public Optional<PlatformProviderConnection> findById(PlatformProviderConnectionId id) {
         Objects.requireNonNull(id, "平台供应商连接标识不能为空");
         return Optional.ofNullable(jdbc.query("""
-                SELECT id, provider_kind, display_name, endpoint, region, authentication_type,
+                SELECT id, provider_kind, discovery_profile, display_name, endpoint, region, authentication_type,
                     credential_reference, status, version, last_probe_succeeded, last_probe_code,
                     last_probed_at, created_at
                 FROM model_runtime.platform_provider_connection
@@ -120,7 +122,7 @@ public final class PostgresPlatformProviderConnectionRepository
             throw new IllegalArgumentException("分页参数不正确");
         }
         var items = jdbc.query("""
-                SELECT id, provider_kind, display_name, endpoint, region, authentication_type,
+                SELECT id, provider_kind, discovery_profile, display_name, endpoint, region, authentication_type,
                     credential_reference, status, version, last_probe_succeeded, last_probe_code,
                     last_probed_at, created_at
                 FROM model_runtime.platform_provider_connection
@@ -151,7 +153,9 @@ public final class PostgresPlatformProviderConnectionRepository
     private static PlatformProviderConnection toDomain(ResultSet row) throws java.sql.SQLException {
         return PlatformProviderConnection.reconstitute(
                 new PlatformProviderConnectionId(row.getLong("id")),
-                ProviderKind.valueOf(row.getString("provider_kind")), row.getString("display_name"),
+                ProviderKind.valueOf(row.getString("provider_kind")),
+                PlatformModelDiscoveryProfile.valueOf(row.getString("discovery_profile")),
+                row.getString("display_name"),
                 URI.create(row.getString("endpoint")), row.getString("region"),
                 AuthenticationType.valueOf(row.getString("authentication_type")),
                 new CredentialReference(row.getString("credential_reference")),

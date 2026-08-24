@@ -49,6 +49,7 @@ public class PlatformProviderConnectionController {
                         context,
                         requireIdempotencyKey(idempotencyKey),
                         request.providerKind(),
+                        request.discoveryProfile(),
                         request.displayName(),
                         request.endpoint(),
                         request.region(),

@@ -1,22 +1,25 @@
 package com.aiplatform.foundation.modelruntime.infrastructure.persistence.platformsupply.repository;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.PlatformProviderModelDiscoveryStore;
 import com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.PlatformProviderModelDiscoveryLookup;
+import com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.PlatformProviderModelCandidateConfirmationStore;
 import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelCapability;
 import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelType;
 import com.aiplatform.foundation.modelruntime.domain.platformsupply.model.PlatformProviderConnection;
 import com.aiplatform.foundation.modelruntime.domain.platformsupply.model.PlatformProviderConnectionId;
+import com.aiplatform.foundation.modelruntime.domain.platformsupply.model.PlatformDiscoveredModelCandidate;
 import com.aiplatform.foundation.modelruntime.domain.platformsupply.model.PlatformProviderModelDiscovery;
 import com.aiplatform.foundation.modelruntime.domain.platformsupply.model.PlatformProviderModelDiscoveryId;
+import com.aiplatform.foundation.modelruntime.domain.platformsupply.model.PlatformProviderModelDiscoveryObservation;
 import com.aiplatform.foundation.modelruntime.domain.platformsupply.repository.PlatformProviderConnectionCreation;
 import com.aiplatform.foundation.modelruntime.domain.platformsupply.repository.PlatformProviderConnectionRepository;
 import com.aiplatform.foundation.modelruntime.domain.provider.model.AuthenticationType;
 import com.aiplatform.foundation.modelruntime.domain.provider.model.CredentialReference;
-import com.aiplatform.foundation.modelruntime.domain.provider.model.DiscoveredModel;
 import com.aiplatform.foundation.modelruntime.domain.provider.model.ProviderKind;
-import com.aiplatform.foundation.modelruntime.domain.provider.model.ProviderModelDiscoveryObservation;
 import java.net.URI;
 import java.time.Duration;
 import java.time.Instant;
@@ -53,6 +56,7 @@ class PostgresPlatformProviderModelDiscoveryStoreTest {
     @Autowired private PlatformProviderConnectionRepository connections;
     @Autowired private PlatformProviderModelDiscoveryStore discoveries;
     @Autowired private PlatformProviderModelDiscoveryLookup discoveryLookup;
+    @Autowired private PlatformProviderModelCandidateConfirmationStore confirmations;
     @Autowired private JdbcTemplate jdbc;
 
     @DynamicPropertySource
@@ -65,6 +69,7 @@ class PostgresPlatformProviderModelDiscoveryStoreTest {
 
     @BeforeEach
     void clearFacts() {
+        jdbc.update("DELETE FROM model_runtime.platform_model_candidate_confirmation");
         jdbc.update("DELETE FROM model_runtime.platform_discovered_model");
         jdbc.update("DELETE FROM model_runtime.platform_provider_model_discovery");
         jdbc.update("DELETE FROM model_runtime.platform_provider_connection_request");
@@ -90,9 +95,9 @@ class PostgresPlatformProviderModelDiscoveryStoreTest {
                 new PlatformProviderModelDiscoveryId(IDENTIFIERS.incrementAndGet()),
                 connection.id(),
                 connection.version(),
-                new ProviderModelDiscoveryObservation(
+                new PlatformProviderModelDiscoveryObservation(
                         true,
-                        Set.of(new DiscoveredModel(
+                        Set.of(PlatformDiscoveredModelCandidate.confirmedByProvider(
                                 "deterministic-embedding", ModelType.EMBEDDING,
                                 Set.of(ModelCapability.EMBEDDING))),
                         "DETERMINISTIC_DISCOVERY_OK",
@@ -124,12 +129,12 @@ class PostgresPlatformProviderModelDiscoveryStoreTest {
                 "b".repeat(64))).connection();
         discoveries.record(PlatformProviderModelDiscovery.capture(
                 new PlatformProviderModelDiscoveryId(IDENTIFIERS.incrementAndGet()),
-                connection.id(), connection.version(), new ProviderModelDiscoveryObservation(
+                connection.id(), connection.version(), new PlatformProviderModelDiscoveryObservation(
                         true,
                         Set.of(
-                                new DiscoveredModel("deterministic-chat", ModelType.CHAT,
+                                PlatformDiscoveredModelCandidate.confirmedByProvider("deterministic-chat", ModelType.CHAT,
                                         Set.of(ModelCapability.CHAT)),
-                                new DiscoveredModel("deterministic-embedding", ModelType.EMBEDDING,
+                                PlatformDiscoveredModelCandidate.confirmedByProvider("deterministic-embedding", ModelType.EMBEDDING,
                                         Set.of(ModelCapability.EMBEDDING))),
                         "DETERMINISTIC_DISCOVERY_OK", Duration.ZERO,
                         Instant.parse("2026-08-13T02:01:00Z")),
@@ -153,12 +158,12 @@ class PostgresPlatformProviderModelDiscoveryStoreTest {
                         Instant.parse("2026-08-13T02:00:00Z")), "platform-discovery-current-request-0001", "c".repeat(64))).connection();
         discoveries.record(PlatformProviderModelDiscovery.capture(
                 new PlatformProviderModelDiscoveryId(IDENTIFIERS.incrementAndGet()), connection.id(), connection.version(),
-                new ProviderModelDiscoveryObservation(true, Set.of(new DiscoveredModel("retired-model", ModelType.CHAT,
+                new PlatformProviderModelDiscoveryObservation(true, Set.of(PlatformDiscoveredModelCandidate.confirmedByProvider("retired-model", ModelType.CHAT,
                         Set.of(ModelCapability.CHAT))), "DETERMINISTIC_DISCOVERY_OK", Duration.ZERO,
                         Instant.parse("2026-08-13T02:01:00Z")), Instant.parse("2026-08-13T03:01:00Z")));
         discoveries.record(PlatformProviderModelDiscovery.capture(
                 new PlatformProviderModelDiscoveryId(IDENTIFIERS.incrementAndGet()), connection.id(), connection.version(),
-                new ProviderModelDiscoveryObservation(true, Set.of(new DiscoveredModel("current-model", ModelType.EMBEDDING,
+                new PlatformProviderModelDiscoveryObservation(true, Set.of(PlatformDiscoveredModelCandidate.confirmedByProvider("current-model", ModelType.EMBEDDING,
                         Set.of(ModelCapability.EMBEDDING))), "DETERMINISTIC_DISCOVERY_OK", Duration.ZERO,
                         Instant.parse("2026-08-13T02:02:00Z")), Instant.parse("2026-08-13T03:02:00Z")));
 
@@ -167,6 +172,59 @@ class PostgresPlatformProviderModelDiscoveryStoreTest {
 
         assertEquals(1L, page.totalElements());
         assertEquals("current-model", page.items().getFirst().modelCode());
+    }
+
+    @Test
+    void 待确认候选可安全分页但不能作为部署候选读取() {
+        var connection = connections.create(new PlatformProviderConnectionCreation(
+                PlatformProviderConnection.create(
+                        new PlatformProviderConnectionId(IDENTIFIERS.incrementAndGet()),
+                        ProviderKind.OPENAI_COMPATIBLE,
+                        "OpenAI-compatible 平台连接",
+                        URI.create("https://models.example.test/v1"),
+                        "global",
+                        AuthenticationType.API_KEY,
+                        new CredentialReference("secret://platform-provider-connection/" + IDENTIFIERS.get()),
+                        Instant.parse("2026-08-24T02:00:00Z")),
+                "platform-discovery-unclassified-request-0001",
+                "d".repeat(64))).connection();
+        discoveries.record(PlatformProviderModelDiscovery.capture(
+                new PlatformProviderModelDiscoveryId(IDENTIFIERS.incrementAndGet()),
+                connection.id(),
+                connection.version(),
+                new PlatformProviderModelDiscoveryObservation(
+                        true,
+                        Set.of(PlatformDiscoveredModelCandidate.requiresAdministratorConfirmation(
+                                "embedding-looking-name")),
+                        "OPENAI_COMPATIBLE_DISCOVERY_OK",
+                        Duration.ofMillis(8),
+                        Instant.parse("2026-08-24T02:01:00Z")),
+                Instant.parse("2026-08-24T03:01:00Z")));
+
+        var page = discoveryLookup.findCurrentCandidates(
+                connection.id(), connection.version(), new PageQuery(1, 20),
+                Instant.parse("2026-08-24T02:30:00Z"));
+
+        assertEquals(1L, page.totalElements());
+        assertNull(page.items().getFirst().modelType());
+        assertTrue(page.items().getFirst().capabilities().isEmpty());
+        assertTrue(discoveryLookup.findCurrentCandidate(
+                connection.id(), connection.version(), "embedding-looking-name",
+                ModelType.EMBEDDING, Instant.parse("2026-08-24T02:30:00Z")).isEmpty());
+
+        var confirmed = confirmations.confirmCurrentCandidate(
+                connection.id(), connection.version(), "embedding-looking-name", ModelType.EMBEDDING,
+                102L, Instant.parse("2026-08-24T02:31:00Z"), Instant.parse("2026-08-24T02:30:00Z"));
+
+        assertEquals(ModelType.EMBEDDING, confirmed.modelType());
+        assertEquals(Set.of(ModelCapability.EMBEDDING), confirmed.capabilities());
+        assertEquals("CONFIRMED_BY_ADMIN", confirmed.classification().name());
+        assertTrue(discoveryLookup.findCurrentCandidate(
+                connection.id(), connection.version(), "embedding-looking-name",
+                ModelType.EMBEDDING, Instant.parse("2026-08-24T02:32:00Z")).isPresent());
+        assertEquals(102L, jdbc.queryForObject(
+                "SELECT confirmed_by_subject_id FROM model_runtime.platform_model_candidate_confirmation WHERE model_code = ?",
+                Long.class, "embedding-looking-name"));
     }
 
     @SpringBootConfiguration

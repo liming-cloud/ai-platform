@@ -9,6 +9,7 @@ import {
   DialogTitle,
   Field,
   Input,
+  Select,
   Text,
   Title3,
 } from "@fluentui/react-components";
@@ -49,6 +50,8 @@ export function PlatformModelDeploymentWorkspace({
   const [candidateNext, setCandidateNext] = useState(false);
   const [failure, setFailure] = useState<Failure>();
   const [creationCandidate, setCreationCandidate] = useState<PlatformProviderModelCandidate>();
+  const [confirmationCandidate, setConfirmationCandidate] = useState<PlatformProviderModelCandidate>();
+  const [confirmationModelType, setConfirmationModelType] = useState<"CHAT" | "EMBEDDING">("CHAT");
   const [probeTarget, setProbeTarget] = useState<PlatformModelDeploymentSummary>();
   const [publishTarget, setPublishTarget] = useState<PlatformModelDeploymentSummary>();
   const [disableTarget, setDisableTarget] = useState<PlatformModelDeploymentSummary>();
@@ -85,11 +88,14 @@ export function PlatformModelDeploymentWorkspace({
   async function createDeployment(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (creationCandidate === undefined || route.connectionId === undefined || route.connectionVersion === undefined) return;
+    const modelType = creationCandidate.modelType;
+    if (modelType === null) return;
+    const candidate = creationCandidate;
     const values = new FormData(event.currentTarget);
     const displayName = String(values.get("displayName") ?? "").trim();
     const contextWindow = Number(values.get("contextWindow"));
-    const outputLimit = creationCandidate.modelType === "CHAT" ? Number(values.get("outputLimit")) : null;
-    const embeddingDimension = creationCandidate.modelType === "EMBEDDING" ? Number(values.get("embeddingDimension")) : null;
+    const outputLimit = modelType === "CHAT" ? Number(values.get("outputLimit")) : null;
+    const embeddingDimension = modelType === "EMBEDDING" ? Number(values.get("embeddingDimension")) : null;
     if (!displayName || !Number.isInteger(contextWindow) || contextWindow < 1
       || (outputLimit !== null && (!Number.isInteger(outputLimit) || outputLimit < 1))
       || (embeddingDimension !== null && (!Number.isInteger(embeddingDimension) || embeddingDimension < 1))) {
@@ -99,10 +105,24 @@ export function PlatformModelDeploymentWorkspace({
     try {
       await client.createPlatformModelDeployment({
         providerConnectionId: route.connectionId, expectedConnectionVersion: route.connectionVersion,
-        modelCode: creationCandidate.modelCode, displayName, modelType: creationCandidate.modelType,
-        capabilities: creationCandidate.capabilities, contextWindow, outputLimit, embeddingDimension,
+        modelCode: candidate.modelCode, displayName, modelType,
+        capabilities: candidate.capabilities, contextWindow, outputLimit, embeddingDimension,
       });
       setCreationCandidate(undefined); await loadDeployments();
+    } catch (error) { setFailure(toFailure(error)); } finally { setSubmitting(false); }
+  }
+
+  async function confirmCandidate() {
+    if (confirmationCandidate === undefined
+      || route.connectionId === undefined || route.connectionVersion === undefined) return;
+    setSubmitting(true); setFailure(undefined);
+    try {
+      await client.confirmPlatformProviderModelCandidate(
+        route.connectionId, route.connectionVersion,
+        confirmationCandidate.modelCode, confirmationModelType,
+      );
+      setConfirmationCandidate(undefined);
+      await loadCandidates();
     } catch (error) { setFailure(toFailure(error)); } finally { setSubmitting(false); }
   }
 
@@ -149,10 +169,11 @@ export function PlatformModelDeploymentWorkspace({
     <div className="governance-toolbar"><Text>候选、部署和验证状态按页显示；Endpoint 和凭据不会在列表中展示。</Text><div className="task-actions"><Button appearance="secondary" onClick={() => onRouteChange({ navigationId: "platform-model-supply", task: "connections", page: 1 })}>返回平台连接</Button><Button appearance="subtle" onClick={() => { void loadDeployments(); void loadCandidates(); }}>刷新</Button></div></div>
     {failure === undefined ? null : <p role="alert">{failureDescription(failure)}</p>}
     <section className="model-configuration-section" aria-label="平台当前发现候选"><header className="task-heading"><Title3>当前发现候选</Title3><Text>{route.connectionId === undefined ? "请从平台连接页面选择已验证连接。" : "只显示当前连接最新且仍可用的候选。"}</Text></header>
-      {route.connectionId === undefined ? null : <><div className="member-directory-table" role="region" aria-label="平台模型候选分页表格"><table><thead><tr><th>模型名称</th><th>类型</th><th>能力</th><th>操作</th></tr></thead><tbody>{candidates.length === 0 ? <tr><td colSpan={4}>当前页没有可创建部署的候选；请重新执行模型发现。</td></tr> : candidates.map((candidate) => <tr key={`${candidate.modelCode}:${candidate.modelType}`}><td>{candidate.modelCode}</td><td>{candidate.modelType === "CHAT" ? "对话" : "嵌入"}</td><td>{candidate.capabilities.join("、")}</td><td><Button appearance="primary" disabled={submitting} onClick={() => setCreationCandidate(candidate)}>新建草稿部署</Button></td></tr>)}</tbody></table></div><Pagination label="当前发现候选" page={route.candidatePage} total={candidateTotal} hasPrevious={candidatePrevious} hasNext={candidateNext} onPrevious={() => onRouteChange({ ...route, candidatePage: route.candidatePage - 1 })} onNext={() => onRouteChange({ ...route, candidatePage: route.candidatePage + 1 })} /></>}
+      {route.connectionId === undefined ? null : <><div className="member-directory-table" role="region" aria-label="平台模型候选分页表格"><table><thead><tr><th>模型名称</th><th>类型</th><th>能力</th><th>操作</th></tr></thead><tbody>{candidates.length === 0 ? <tr><td colSpan={4}>当前页没有模型候选；请重新执行模型发现。</td></tr> : candidates.map((candidate) => <tr key={`${candidate.modelCode}:${candidate.modelType}`}><td>{candidate.modelCode}</td><td>{candidate.modelType === "CHAT" ? "对话" : candidate.modelType === "EMBEDDING" ? "嵌入" : "待管理员确认"}</td><td>{candidate.capabilities.length === 0 ? "待确认" : candidate.capabilities.join("、")}</td><td>{candidate.modelType === null ? <Button appearance="primary" disabled={submitting} onClick={() => { setConfirmationModelType("CHAT"); setConfirmationCandidate(candidate); }}>确认模型类型</Button> : <Button appearance="primary" disabled={submitting} onClick={() => setCreationCandidate(candidate)}>新建草稿部署</Button>}</td></tr>)}</tbody></table></div><Pagination label="当前发现候选" page={route.candidatePage} total={candidateTotal} hasPrevious={candidatePrevious} hasNext={candidateNext} onPrevious={() => onRouteChange({ ...route, candidatePage: route.candidatePage - 1 })} onNext={() => onRouteChange({ ...route, candidatePage: route.candidatePage + 1 })} /></>}
     </section>
     <section className="model-configuration-section" aria-label="平台模型部署目录"><header className="task-heading"><Title3>平台模型部署</Title3><Text>草稿必须完成最小真实能力探测；仅验证有效的部署可发布，停用会阻断新调用。</Text></header><div className="member-directory-table" role="region" aria-label="平台模型部署分页表格"><table><thead><tr><th>部署</th><th>模型</th><th>状态</th><th>可用性</th><th>验证有效期</th><th>操作</th></tr></thead><tbody>{deployments.length === 0 ? <tr><td colSpan={6}>当前页没有平台模型部署。</td></tr> : deployments.map((deployment) => <tr key={deployment.id}><td>{deployment.displayName}</td><td>{deployment.modelCode} · {deployment.modelType === "CHAT" ? "对话" : "嵌入"}</td><td><Badge appearance="tint" color={deployment.status === "PUBLISHED" ? "success" : deployment.status === "VERIFIED" ? "brand" : deployment.status === "DISABLED" ? "danger" : "warning"}>{deploymentStatusLabel(deployment.status)}</Badge></td><td><Badge appearance="tint" color={deployment.availability === "HEALTHY" ? "success" : deployment.availability === "DEGRADED" ? "warning" : "danger"}>{availabilityLabel(deployment.availability)}</Badge><br /><Text size={200}>建议：{nextStepLabel(deployment.nextStep)}</Text></td><td>{deployment.verificationExpiresAt === null ? "待真实能力验证" : new Date(deployment.verificationExpiresAt).toLocaleString("zh-CN")}</td><td><div className="task-actions"><Button appearance="secondary" disabled={submitting || deployment.status !== "DRAFT"} onClick={() => setProbeTarget(deployment)}>探测能力</Button><Button appearance="primary" disabled={submitting || deployment.status !== "VERIFIED"} onClick={() => setPublishTarget(deployment)}>发布部署</Button><Button appearance="primary" disabled={submitting || deployment.status !== "PUBLISHED" || deployment.availability !== "HEALTHY"} onClick={() => setCatalogCreationTarget(deployment)}>建立目录</Button><Button appearance="secondary" disabled={submitting || deployment.status === "DISABLED"} onClick={() => setDisableTarget(deployment)}>停用部署</Button></div></td></tr>)}</tbody></table></div><Pagination label="平台模型部署" page={route.deploymentPage} total={deploymentTotal} hasPrevious={deploymentPrevious} hasNext={deploymentNext} onPrevious={() => onRouteChange({ ...route, deploymentPage: route.deploymentPage - 1 })} onNext={() => onRouteChange({ ...route, deploymentPage: route.deploymentPage + 1 })} /></section>
     <Dialog open={creationCandidate !== undefined} onOpenChange={(_, data) => { if (!data.open && !submitting) setCreationCandidate(undefined); }}><DialogSurface><DialogBody><DialogTitle>新建平台草稿部署</DialogTitle><form className="foundation-dialog-form" onSubmit={(event) => void createDeployment(event)}><DialogContent>{creationCandidate === undefined ? null : <><Text>选择的候选为 {creationCandidate.modelCode}（{creationCandidate.modelType}）。提交时系统会再次确认该模型仍然可用。</Text><Field label="部署名称" required><Input name="displayName" autoFocus disabled={submitting} /></Field><Field label="上下文窗口" required><Input name="contextWindow" type="number" min={1} defaultValue="8192" disabled={submitting} /></Field>{creationCandidate.modelType === "CHAT" ? <Field label="输出上限" required><Input name="outputLimit" type="number" min={1} defaultValue="1024" disabled={submitting} /></Field> : <Field label="嵌入维度" required><Input name="embeddingDimension" type="number" min={1} defaultValue="1024" disabled={submitting} /></Field>}</>}</DialogContent><DialogActions><Button appearance="secondary" type="button" disabled={submitting} onClick={() => setCreationCandidate(undefined)}>取消</Button><Button appearance="primary" type="submit" disabled={submitting}>{submitting ? "正在创建" : "创建草稿"}</Button></DialogActions></form></DialogBody></DialogSurface></Dialog>
+    <Dialog open={confirmationCandidate !== undefined} onOpenChange={(_, data) => { if (!data.open && !submitting) setConfirmationCandidate(undefined); }}><DialogSurface><DialogBody><DialogTitle>确认模型类型</DialogTitle><DialogContent><Text>供应商未提供足够的能力元数据。请选择 {confirmationCandidate?.modelCode ?? "该候选"} 的模型类型；确认不会替代后续真实能力探测。</Text><Field label="模型类型" required><Select value={confirmationModelType} disabled={submitting} onChange={(_, data) => setConfirmationModelType(data.value as "CHAT" | "EMBEDDING")}><option value="CHAT">对话</option><option value="EMBEDDING">嵌入</option></Select></Field></DialogContent><DialogActions><Button appearance="secondary" disabled={submitting} onClick={() => setConfirmationCandidate(undefined)}>取消</Button><Button appearance="primary" disabled={submitting} onClick={() => void confirmCandidate()}>{submitting ? "正在确认" : "确认类型"}</Button></DialogActions></DialogBody></DialogSurface></Dialog>
     <ConfirmationDialog open={probeTarget !== undefined} title="确认执行真实能力探测" description={`系统将对 ${probeTarget?.displayName ?? "该部署"} 发起最小真实模型调用。成功验证只在固定有效期内允许发布。`} busy={submitting} action="执行探测" onClose={() => setProbeTarget(undefined)} onConfirm={() => void probeDeployment()} />
     <ConfirmationDialog open={publishTarget !== undefined} title="确认发布平台模型部署" description={`发布 ${publishTarget?.displayName ?? "该部署"} 前会重新核验连接状态和验证有效期。`} busy={submitting} action="确认发布" onClose={() => setPublishTarget(undefined)} onConfirm={() => void publishDeployment()} />
     <ConfirmationDialog open={disableTarget !== undefined} title="确认停用平台模型部署" description={`停用 ${disableTarget?.displayName ?? "该部署"} 会阻断新目录发布和调用，停用后不可恢复。`} busy={submitting} action="确认停用" onClose={() => setDisableTarget(undefined)} onConfirm={() => void disableDeployment()} />

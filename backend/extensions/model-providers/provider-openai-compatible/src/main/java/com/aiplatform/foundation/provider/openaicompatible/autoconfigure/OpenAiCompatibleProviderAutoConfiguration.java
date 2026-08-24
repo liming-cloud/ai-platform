@@ -1,12 +1,14 @@
 package com.aiplatform.foundation.provider.openaicompatible.autoconfigure;
 
 import com.aiplatform.foundation.modelruntime.application.probe.port.out.ProviderConnectionProbe;
+import com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.PlatformProviderModelDiscoverer;
 import com.aiplatform.foundation.modelruntime.application.runtime.port.out.ChatModelFactory;
 import com.aiplatform.foundation.modelruntime.application.runtime.port.out.EmbeddingModelFactory;
 import com.aiplatform.foundation.modelruntime.infrastructure.configuration.ModelRuntimeExecutionAutoConfiguration;
 import com.aiplatform.foundation.modelruntime.infrastructure.configuration.ModelRuntimeProperties;
 import com.aiplatform.foundation.provider.openaicompatible.OpenAiCompatibleChatModelFactory;
 import com.aiplatform.foundation.provider.openaicompatible.OpenAiCompatibleConnectionProbe;
+import com.aiplatform.foundation.provider.openaicompatible.OpenAiCompatiblePlatformProviderModelDiscoverer;
 import com.aiplatform.foundation.provider.openaicompatible.OpenAiCompatibleEmbeddingModelFactory;
 import com.aiplatform.foundation.security.egress.OutboundEndpointPolicy;
 import com.aiplatform.foundation.security.secret.SecretResolver;
@@ -29,6 +31,13 @@ public class OpenAiCompatibleProviderAutoConfiguration {
             SecretResolver secrets,
             OutboundEndpointPolicy endpointPolicy) {
         return new OpenAiCompatibleConnectionProbe(secrets, endpointPolicy);
+    }
+
+    @Bean
+    PlatformProviderModelDiscoverer openAiCompatiblePlatformProviderModelDiscoverer(
+            SecretResolver secrets,
+            OutboundEndpointPolicy endpointPolicy) {
+        return new OpenAiCompatiblePlatformProviderModelDiscoverer(secrets, endpointPolicy);
     }
 
     @Bean

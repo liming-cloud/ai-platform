@@ -44,10 +44,12 @@ import com.aiplatform.foundation.modelruntime.application.platformsupply.port.ou
 import com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.PlatformProviderModelDiscoverer;
 import com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.PlatformProviderModelDiscoveryStore;
 import com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.PlatformProviderModelDiscoveryLookup;
+import com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.PlatformProviderModelCandidateConfirmationStore;
 import com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.PlatformModelDeploymentProbe;
 import com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.PlatformModelDeploymentVerificationStore;
 import com.aiplatform.foundation.modelruntime.application.platformsupply.service.PlatformProviderModelDiscoveryService;
 import com.aiplatform.foundation.modelruntime.application.platformsupply.service.PlatformProviderModelCandidateReadService;
+import com.aiplatform.foundation.modelruntime.application.platformsupply.service.PlatformProviderModelCandidateConfirmationService;
 import com.aiplatform.foundation.modelruntime.application.platformsupply.service.PlatformModelDeploymentService;
 import com.aiplatform.foundation.modelruntime.application.platformsupply.service.PlatformModelProbeProviderService;
 import com.aiplatform.foundation.modelruntime.domain.deployment.repository.ModelDeploymentRepository;
@@ -150,6 +152,16 @@ public class ModelRuntimeCoreAutoConfiguration {
             PlatformProviderConnectionRepository connections,
             PlatformProviderModelDiscoveryLookup discoveries) {
         return new PlatformProviderModelCandidateReadService(connections, discoveries, Clock.systemUTC());
+    }
+
+    @Bean
+    @ConditionalOnBean({PlatformProviderConnectionRepository.class, PlatformProviderModelCandidateConfirmationStore.class})
+    @ConditionalOnMissingBean
+    PlatformProviderModelCandidateConfirmationService platformProviderModelCandidateConfirmationService(
+            PlatformProviderConnectionRepository connections,
+            PlatformProviderModelCandidateConfirmationStore confirmations) {
+        return new PlatformProviderModelCandidateConfirmationService(
+                connections, confirmations, Clock.systemUTC());
     }
 
     @Bean
