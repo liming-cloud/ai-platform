@@ -19,7 +19,7 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 @Testcontainers
 class LocalPlatformAdministratorInitializationMigrationTest {
 
-    private static final char[] LOCAL_PASSWORD = "admin123456".toCharArray();
+    private static final char[] LOCAL_PASSWORD = "admin@123".toCharArray();
 
     @Container
     private static final PostgreSQLContainer POSTGRES = new PostgreSQLContainer("postgres:18.4-alpine3.24")
@@ -50,7 +50,7 @@ class LocalPlatformAdministratorInitializationMigrationTest {
                           ON a.subject_id = s.subject_id
                         JOIN organization_access.platform_role_binding b
                           ON b.subject_id = s.subject_id
-                        WHERE s.login_name = 'platform.root'
+                        WHERE s.login_name = 'admin'
                         """)) {
             assertTrue(rows.next());
             assertTrue(new Pbkdf2PasswordAdapter(new SecureRandom())
@@ -62,13 +62,14 @@ class LocalPlatformAdministratorInitializationMigrationTest {
             assertEquals("ACTIVE", rows.getString("role_status"));
             assertFalse(rows.next());
         }
+        assertEquals(0L, countLoginName("platform.root"));
     }
 
     @Test
     void 标准迁移不得初始化平台管理员() throws Exception {
         standardFlyway().migrate();
 
-        assertEquals(0L, countPlatformRoot());
+        assertEquals(0L, countLoginName("admin"));
     }
 
     @Test
@@ -85,7 +86,7 @@ class LocalPlatformAdministratorInitializationMigrationTest {
 
         localFlyway().migrate();
 
-        assertEquals(0L, countPlatformRoot());
+        assertEquals(0L, countLoginName("admin"));
     }
 
     @Test
@@ -102,7 +103,7 @@ class LocalPlatformAdministratorInitializationMigrationTest {
 
         localFlyway().migrate();
 
-        assertEquals(0L, countPlatformRoot());
+        assertEquals(0L, countLoginName("admin"));
     }
 
     private static Flyway localFlyway() {
@@ -128,16 +129,18 @@ class LocalPlatformAdministratorInitializationMigrationTest {
                 POSTGRES.getJdbcUrl(), POSTGRES.getUsername(), POSTGRES.getPassword());
     }
 
-    private static long countPlatformRoot() throws Exception {
+    private static long countLoginName(String loginName) throws Exception {
         try (var connection = connection();
-                var statement = connection.createStatement();
-                var rows = statement.executeQuery("""
+                var statement = connection.prepareStatement("""
                         SELECT count(*)
                         FROM organization_access.subject_identity
-                        WHERE login_name = 'platform.root'
+                        WHERE login_name = ?
                         """)) {
-            rows.next();
-            return rows.getLong(1);
+            statement.setString(1, loginName);
+            try (var rows = statement.executeQuery()) {
+                rows.next();
+                return rows.getLong(1);
+            }
         }
     }
 }

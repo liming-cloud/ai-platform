@@ -14,8 +14,8 @@ WITH local_subject AS (
     )
     SELECT
         1,
-        'platform.root',
-        'pbkdf2-sha256$v1$600000$Zm91bmRhdGlvbi1sb2NhbA$Ma5QciIbHoKQTuqaT7xmt3U1PtE7eZtZGTufYgiBAHY',
+        'admin',
+        'pbkdf2-sha256$v1$600000$Zm91bmRhdGlvbi1hZG1pbg$-0gs_eMeE9UpwcaV_4h2CHEAXlF58cPeZumOHiqSCB0',
         'ACTIVE',
         0,
         CURRENT_TIMESTAMP,

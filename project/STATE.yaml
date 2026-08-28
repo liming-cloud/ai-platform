@@ -77,6 +77,7 @@ confirmedDecisions:
   - ADR-0068
   - ADR-0069
   - ADR-0070
+  - ADR-0071
 openDecisions: []
 latestEvidence:
   - docs/research/WP-0003-framework-baseline.md
@@ -279,6 +280,9 @@ latestEvidence:
   - project/evidence/ADR-0069-approval.md
   - docs/adr/ADR-0070-authoritative-platform-model-discovery.md
   - project/evidence/ADR-0070-approval.md
+  - docs/adr/ADR-0071-local-platform-administrator-full-reset.md
+  - project/evidence/ADR-0071-approval.md
+  - project/evidence/WP-0014-local-platform-administrator-full-reset.md
   - project/evidence/WP-0014-local-platform-administrator-fixed-initialization.md
   - project/evidence/WP-0014-platform-ui-continuity-and-tenant-onboarding.md
   - docs/design/m6-full-spa-ui-redesign.md
@@ -294,6 +298,6 @@ latestEvidence:
   - project/evidence/artifacts/WP-0014-complete-ui-quality.md
   - project/evidence/artifacts/WP-0014-complete-ui-performance-profile.md
   - project/evidence/artifacts/WP-0014-complete-ui-code-review.md
-nextReviewAt: 2026-08-24
-updatedAt: 2026-08-24T17:49:00+08:00
+nextReviewAt: 2026-08-28
+updatedAt: 2026-08-28T14:05:00+08:00
 updatedBy: codex
