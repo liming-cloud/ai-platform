@@ -5,8 +5,8 @@ import com.aiplatform.foundation.modelruntime.application.platformsupply.port.ou
 import com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.PlatformProviderModelCandidateConfirmationStore;
 import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelCapability;
 import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelType;
-import com.aiplatform.foundation.modelruntime.domain.platformsupply.model.PlatformDiscoveredModelCandidate;
-import com.aiplatform.foundation.modelruntime.domain.platformsupply.model.PlatformModelCandidateClassification;
+import com.aiplatform.foundation.modelruntime.domain.platformsupply.model.discovery.PlatformDiscoveredModelCandidate;
+import com.aiplatform.foundation.modelruntime.domain.platformsupply.model.discovery.PlatformModelCandidateClassification;
 import com.aiplatform.foundation.modelruntime.domain.platformsupply.model.PlatformProviderConnectionId;
 import com.aiplatform.foundation.modelruntime.domain.platformsupply.model.PlatformProviderModelDiscovery;
 import com.aiplatform.foundation.shared.contract.paging.PageQuery;

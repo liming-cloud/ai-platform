@@ -46,4 +46,14 @@ describe("登录入口视觉结构", () => {
       /\.governance-login__input\s*\{[^}]*width:\s*100%;[^}]*min-width:\s*0;[^}]*max-width:\s*100%;/s,
     );
   });
+
+  it("登录输入拥有明确无障碍名称且平台示例不引用旧账号", () => {
+    const source = readFileSync(gatePath, "utf8");
+
+    expect(source).toContain('aria-label="租户编码"');
+    expect(source).toContain('aria-label="登录名"');
+    expect(source).toContain('aria-label="密码"');
+    expect(source).toContain('workspace === "platform" ? "请输入平台登录名" : "请输入登录名"');
+    expect(source).not.toContain("platform.root");
+  });
 });

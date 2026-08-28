@@ -6,7 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.aiplatform.foundation.modelruntime.application.platformsupply.dto.PlatformProviderDiscoveryCredentialReferences;
 import com.aiplatform.foundation.modelruntime.application.platformsupply.dto.PlatformProviderModelDiscoveryRequest;
-import com.aiplatform.foundation.modelruntime.domain.platformsupply.model.PlatformModelCandidateClassification;
+import com.aiplatform.foundation.modelruntime.domain.platformsupply.model.discovery.PlatformModelCandidateClassification;
 import com.aiplatform.foundation.modelruntime.domain.platformsupply.model.PlatformModelDiscoveryProfile;
 import com.aiplatform.foundation.modelruntime.domain.provider.model.CredentialReference;
 import com.aiplatform.foundation.modelruntime.domain.provider.model.ProviderKind;

@@ -1,6 +1,6 @@
 package com.aiplatform.foundation.modelruntime.application.platformsupply.dto;
 
-import com.aiplatform.foundation.modelruntime.domain.platformsupply.model.PlatformDiscoveredModelCandidate;
+import com.aiplatform.foundation.modelruntime.domain.platformsupply.model.discovery.PlatformDiscoveredModelCandidate;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Objects;

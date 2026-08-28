@@ -214,6 +214,7 @@ export function BrowserSessionGate({
           >
             <Input
               className="governance-login__input"
+              aria-label="租户编码"
               value={tenantCode}
               placeholder="例如：demo-store"
               autoComplete="organization"
@@ -229,8 +230,9 @@ export function BrowserSessionGate({
         <Field label="登录名" required>
           <Input
             className="governance-login__input"
+            aria-label="登录名"
             value={loginName}
-            placeholder={workspace === "platform" ? "例如：platform.root" : "请输入登录名"}
+            placeholder={workspace === "platform" ? "请输入平台登录名" : "请输入登录名"}
             autoComplete="username"
             disabled={state === "authenticating"}
             onChange={(_, data) => setLoginName(data.value)}
@@ -239,6 +241,7 @@ export function BrowserSessionGate({
         <Field label="密码" required>
           <Input
             className="governance-login__input"
+            aria-label="密码"
             value={password}
             type="password"
             autoComplete="current-password"

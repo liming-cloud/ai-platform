@@ -424,6 +424,8 @@
 .foundation-task-dialog {
   border-radius: 1rem;
   box-shadow: 0 24px 80px rgb(12 24 20 / 20%);
+  max-height: calc(100dvh - 2rem) !important;
+  overflow-y: auto !important;
 }
 
 .foundation-task-dialog [class*="DialogContent"] {

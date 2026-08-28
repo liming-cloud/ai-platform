@@ -1,4 +1,4 @@
-package com.aiplatform.foundation.modelruntime.domain.platformsupply.model;
+package com.aiplatform.foundation.modelruntime.domain.platformsupply.model.discovery;
 
 import com.aiplatform.foundation.shared.kernel.domain.ValueObject;
 import java.time.Duration;

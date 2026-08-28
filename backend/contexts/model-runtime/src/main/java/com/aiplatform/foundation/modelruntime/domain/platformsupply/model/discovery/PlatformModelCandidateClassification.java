@@ -1,4 +1,4 @@
-package com.aiplatform.foundation.modelruntime.domain.platformsupply.model;
+package com.aiplatform.foundation.modelruntime.domain.platformsupply.model.discovery;
 
 /** 平台模型候选的能力分类来源。 */
 public enum PlatformModelCandidateClassification {

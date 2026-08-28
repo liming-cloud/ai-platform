@@ -1,4 +1,4 @@
-package com.aiplatform.foundation.modelruntime.domain.platformsupply.model;
+package com.aiplatform.foundation.modelruntime.domain.platformsupply.model.discovery;
 
 import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelCapability;
 import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelType;

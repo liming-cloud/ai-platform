@@ -49,4 +49,22 @@ describe("平台模型供应链呈现", () => {
     expect(source).toContain("discoveryAccessKeyId");
     expect(source).toContain("discoverySecretAccessKey");
   });
+
+  it("平台连接表单在 200% 缩放下保留纵向滚动和完整操作区", () => {
+    const source = readFileSync(workspacePath, "utf8");
+    const styles = readFileSync(stylesPath, "utf8");
+
+    expect(source).toContain('<DialogSurface className="foundation-task-dialog"><DialogBody><DialogTitle>新建平台厂商连接</DialogTitle>');
+    expect(styles).toMatch(
+      /\.foundation-task-dialog\s*\{[^}]*max-height:\s*calc\(100dvh\s*-\s*2rem\)\s*!important;[^}]*overflow-y:\s*auto\s*!important;/s,
+    );
+  });
+
+  it("关闭平台连接表单后把键盘焦点还给触发按钮", () => {
+    const source = readFileSync(workspacePath, "utf8");
+
+    expect(source).toContain("const createConnectionTriggerRef = useRef<HTMLButtonElement>(null)");
+    expect(source).toContain("ref={createConnectionTriggerRef}");
+    expect(source).toContain("createConnectionTriggerRef.current?.focus()");
+  });
 });

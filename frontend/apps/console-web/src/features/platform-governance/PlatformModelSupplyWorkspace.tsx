@@ -17,7 +17,7 @@ import {
   Title3,
 } from "@fluentui/react-components";
 import { StatePanel } from "@foundation/design-system";
-import { type FormEvent, useCallback, useEffect, useState } from "react";
+import { type FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import {
   ApiRequestError,
   type ControlPlaneClient,
@@ -69,6 +69,7 @@ export function PlatformModelSupplyWorkspace({
   const [discoveryProfile, setDiscoveryProfile] = useState<PlatformModelDiscoveryProfile>("DETERMINISTIC_CATALOG");
   const [discoveryTarget, setDiscoveryTarget] = useState<PlatformProviderConnectionSummary>();
   const [discoverySummary, setDiscoverySummary] = useState<DiscoverySummary>();
+  const createConnectionTriggerRef = useRef<HTMLButtonElement>(null);
 
   const load = useCallback(async () => {
     if (!client.hasSession()) {
@@ -136,7 +137,7 @@ export function PlatformModelSupplyWorkspace({
           discoverySecretAccessKey: submittedDiscoverySecretAccessKey,
         } : {}),
       });
-      setCreating(false);
+      closeCreateDialog();
       await load();
     } catch (error) {
       setFailure(toFailure(error));
@@ -186,6 +187,11 @@ export function PlatformModelSupplyWorkspace({
     }
   }
 
+  function closeCreateDialog() {
+    setCreating(false);
+    window.requestAnimationFrame(() => createConnectionTriggerRef.current?.focus());
+  }
+
   if (viewState === "unauthenticated") {
     return <StatePanel kind="stale" title="浏览器会话已经失效" description="平台模型供应链摘要已清除，请重新登录。" actionLabel="返回登录入口" onAction={() => window.location.assign("/")} />;
   }
@@ -202,7 +208,7 @@ export function PlatformModelSupplyWorkspace({
     <div className="model-configuration-workspace">
       <div className="governance-toolbar">
         <Text>这是平台范围连接目录，独立于租户连接；记录按页显示，Endpoint 和凭据不会在列表中展示。</Text>
-        <div className="task-actions"><Button appearance="primary" onClick={() => setCreating(true)}>新建平台连接</Button><Button appearance="subtle" onClick={() => void load()}>刷新连接</Button></div>
+        <div className="task-actions"><Button ref={createConnectionTriggerRef} appearance="primary" onClick={() => setCreating(true)}>新建平台连接</Button><Button appearance="subtle" onClick={() => void load()}>刷新连接</Button></div>
       </div>
       {failure === undefined ? null : <FailureMessage failure={failure} />}
       {discoverySummary === undefined ? null : <MessageBar intent={discoverySummary.intent}><MessageBarBody><MessageBarTitle>{discoverySummary.title}</MessageBarTitle>{discoverySummary.message}</MessageBarBody></MessageBar>}
@@ -215,8 +221,8 @@ export function PlatformModelSupplyWorkspace({
         </div>
         <div className="task-actions"><Text>共 {total} 条</Text><Button disabled={!hasPrevious} onClick={() => onRouteChange({ ...route, page: route.page - 1 })}>上一页</Button><Text>第 {route.page} 页</Text><Button disabled={!hasNext} onClick={() => onRouteChange({ ...route, page: route.page + 1 })}>下一页</Button></div>
       </section>
-      <Dialog open={creating} onOpenChange={(_, data) => { if (!data.open && !submitting) setCreating(false); }}>
-        <DialogSurface><DialogBody><DialogTitle>新建平台厂商连接</DialogTitle><form className="foundation-dialog-form" onSubmit={(event) => void createConnection(event)}><DialogContent>
+      <Dialog open={creating} onOpenChange={(_, data) => { if (!data.open && !submitting) closeCreateDialog(); }}>
+        <DialogSurface className="foundation-task-dialog"><DialogBody><DialogTitle>新建平台厂商连接</DialogTitle><form className="foundation-dialog-form" onSubmit={(event) => void createConnection(event)}><DialogContent>
           <Text>Endpoint 与凭据仅用于本次平台范围受控写入；创建后页面不会回显，也不会写入租户范围。</Text>
           <Field label="连接名称" required><Input name="displayName" autoFocus disabled={submitting} /></Field>
           <Field label="厂商类型" required><Select name="providerKind" value={providerKind} disabled={submitting} onChange={(_, data) => {
@@ -245,7 +251,7 @@ export function PlatformModelSupplyWorkspace({
             <Field label="Access Key ID" hint="仅用于模型发现；需要方舟 ListEndpoints 的只读权限。" required><Input type="password" value={discoveryAccessKeyId} onChange={(_, data) => setDiscoveryAccessKeyId(data.value)} autoComplete="new-password" disabled={submitting} /></Field>
             <Field label="Secret Access Key" hint="仅用于模型发现；与 Access Key ID 分槽加密保存且不会回显。" required><Input type="password" value={discoverySecretAccessKey} onChange={(_, data) => setDiscoverySecretAccessKey(data.value)} autoComplete="new-password" disabled={submitting} /></Field>
           </> : null}
-        </DialogContent><DialogActions><Button appearance="secondary" disabled={submitting} onClick={() => setCreating(false)}>取消</Button><Button appearance="primary" type="submit" disabled={submitting}>{submitting ? "正在创建" : "创建平台连接"}</Button></DialogActions></form></DialogBody></DialogSurface>
+        </DialogContent><DialogActions><Button appearance="secondary" disabled={submitting} onClick={closeCreateDialog}>取消</Button><Button appearance="primary" type="submit" disabled={submitting}>{submitting ? "正在创建" : "创建平台连接"}</Button></DialogActions></form></DialogBody></DialogSurface>
       </Dialog>
       <Dialog open={discoveryTarget !== undefined} onOpenChange={(_, data) => { if (!data.open && !submitting) setDiscoveryTarget(undefined); }}>
         <DialogSurface><DialogBody><DialogTitle>发现平台模型</DialogTitle><DialogContent>

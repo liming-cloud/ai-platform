@@ -2,7 +2,7 @@ package com.aiplatform.foundation.modelruntime.application.platformsupply.port.o
 
 import com.aiplatform.foundation.modelruntime.application.platformsupply.dto.PlatformProviderModelDiscoveryRequest;
 import com.aiplatform.foundation.modelruntime.domain.platformsupply.model.PlatformModelDiscoveryProfile;
-import com.aiplatform.foundation.modelruntime.domain.platformsupply.model.PlatformProviderModelDiscoveryObservation;
+import com.aiplatform.foundation.modelruntime.domain.platformsupply.model.discovery.PlatformProviderModelDiscoveryObservation;
 import com.aiplatform.foundation.modelruntime.domain.provider.model.ProviderKind;
 
 /** 平台供应链执行模型发现的受信任扩展端口。 */

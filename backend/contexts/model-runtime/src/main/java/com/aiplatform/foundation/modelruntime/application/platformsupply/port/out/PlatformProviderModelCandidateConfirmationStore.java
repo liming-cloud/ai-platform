@@ -1,7 +1,7 @@
 package com.aiplatform.foundation.modelruntime.application.platformsupply.port.out;
 
 import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelType;
-import com.aiplatform.foundation.modelruntime.domain.platformsupply.model.PlatformDiscoveredModelCandidate;
+import com.aiplatform.foundation.modelruntime.domain.platformsupply.model.discovery.PlatformDiscoveredModelCandidate;
 import com.aiplatform.foundation.modelruntime.domain.platformsupply.model.PlatformProviderConnectionId;
 import java.time.Instant;
 

@@ -1,5 +1,7 @@
 package com.aiplatform.foundation.modelruntime.domain.platformsupply.model;
 
+import com.aiplatform.foundation.modelruntime.domain.platformsupply.model.discovery.PlatformDiscoveredModelCandidate;
+import com.aiplatform.foundation.modelruntime.domain.platformsupply.model.discovery.PlatformProviderModelDiscoveryObservation;
 import com.aiplatform.foundation.shared.kernel.domain.AggregateRoot;
 import java.time.Duration;
 import java.time.Instant;

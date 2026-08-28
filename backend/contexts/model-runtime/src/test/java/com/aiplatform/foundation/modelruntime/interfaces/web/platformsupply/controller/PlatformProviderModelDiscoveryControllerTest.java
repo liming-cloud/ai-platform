@@ -13,7 +13,7 @@ import com.aiplatform.foundation.modelruntime.application.platformsupply.dto.Dis
 import com.aiplatform.foundation.modelruntime.application.platformsupply.service.PlatformProviderModelDiscoveryService;
 import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelCapability;
 import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelType;
-import com.aiplatform.foundation.modelruntime.domain.platformsupply.model.PlatformDiscoveredModelCandidate;
+import com.aiplatform.foundation.modelruntime.domain.platformsupply.model.discovery.PlatformDiscoveredModelCandidate;
 import com.aiplatform.foundation.security.identity.PlatformRequestContext;
 import java.time.Duration;
 import java.time.Instant;
