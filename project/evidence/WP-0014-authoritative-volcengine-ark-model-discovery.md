@@ -57,11 +57,12 @@
 
 ## Chrome 续证状态
 
-受控 Chrome 已打开本地平台管理登录页。为避免 Agent 读取或传输账户密码，已把登录步骤交还人工；登录后的
-1024×768、390×844、真实 200% 缩放、键盘导航与 `prefers-reduced-motion` 证据必须在同一页面会话完成后
-补入本节。完成前，本证据不声明 Chrome 门禁通过，也不关闭 `WP-0014` 或进入 M7。
+2026-08-28 已使用授权的本地平台管理员完成登录后续证：1024×768、390×844、真实 Chrome 200% 缩放、
+键盘导航与 macOS 实际 `prefers-reduced-motion` 均通过，并修复 200% Dialog 操作区不可达和 Escape 焦点
+丢失。完整指标、红绿过程和最终 Compose 镜像见
+`project/evidence/WP-0014-authoritative-model-discovery-chrome-accessibility-regression.md`。
 
 ## 结论
 
 火山方舟权威模型发现、凭据用途分离、管理员确认边界以及前后端安全投影已经实现并通过自动与真实基础设施
-验证。Chrome 登录后全链路仍是本切片唯一未闭环证据；`M6 / WP-0014` 保持进行中。
+验证，登录后 Chrome 响应式与无障碍续证也已完成；`M6 / WP-0014` 仍因整体人工产品评审保持进行中。

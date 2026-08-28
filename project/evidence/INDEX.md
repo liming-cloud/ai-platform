@@ -343,6 +343,7 @@
 | M6 火山方舟发现性能 profile | `project/evidence/artifacts/WP-0014-ark-discovery-performance-profile.md` | `7c7b70962` | 实际两页本地 HTTP workload 通过，冻结 100 页、10000 候选、单响应 1 MiB 与 timeout 上界；不声明生产吞吐。 |
 | M6 火山方舟发现固定 diff 评审 | `project/evidence/artifacts/WP-0014-ark-discovery-code-review.md` | `7c7b70962` | `63edeed87..7c7b70962` 的规范轴、需求轴及秘密扇出评审通过，未发现未解决源码缺陷；Chrome 人工门禁独立保留。 |
 | M6 本地平台管理员与数据完全重制 | `project/evidence/WP-0014-local-platform-administrator-full-reset.md` | 本次提交 | PostgreSQL 可恢复备份、红绿 TDD、空库重建、Redis 旧会话清理、唯一 `admin`、新旧凭据 HTTP、Compose 全健康和全表零业务事实均已复核；MinIO 未删除。 |
+| M6 平台权威模型发现 Chrome 与无障碍续证 | `project/evidence/WP-0014-authoritative-model-discovery-chrome-accessibility-regression.md` | `2d5b0135c` | 1024×768、390×844、真实 200% 缩放、键盘和 reduced-motion 通过；修复登录语义、Dialog 可达性与焦点恢复，真实 PostgreSQL、全量门禁和最终源码 Compose 七服务均通过。 |
 
 ## 证据规则
 
