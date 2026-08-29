@@ -299,6 +299,9 @@ latestEvidence:
   - project/evidence/artifacts/WP-0014-complete-ui-quality.md
   - project/evidence/artifacts/WP-0014-complete-ui-performance-profile.md
   - project/evidence/artifacts/WP-0014-complete-ui-code-review.md
-nextReviewAt: 2026-08-28
-updatedAt: 2026-08-28T15:08:13+08:00
+  - project/evidence/WP-0014-model-discovery-blocker-remediation.md
+  - project/evidence/WP-0014-enterprise-component-library-decision.md
+  - project/evidence/M6-full-product-human-review-rejection-20260829.md
+nextReviewAt: "待关闭 P0/P1 后预约"
+updatedAt: 2026-08-29T22:09:12+08:00
 updatedBy: codex
