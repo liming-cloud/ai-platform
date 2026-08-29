@@ -344,7 +344,7 @@
 | M6 火山方舟发现固定 diff 评审 | `project/evidence/artifacts/WP-0014-ark-discovery-code-review.md` | `7c7b70962` | `63edeed87..7c7b70962` 的规范轴、需求轴及秘密扇出评审通过，未发现未解决源码缺陷；Chrome 人工门禁独立保留。 |
 | M6 本地平台管理员与数据完全重制 | `project/evidence/WP-0014-local-platform-administrator-full-reset.md` | 本次提交 | PostgreSQL 可恢复备份、红绿 TDD、空库重建、Redis 旧会话清理、唯一 `admin`、新旧凭据 HTTP、Compose 全健康和全表零业务事实均已复核；MinIO 未删除。 |
 | M6 平台权威模型发现 Chrome 与无障碍续证 | `project/evidence/WP-0014-authoritative-model-discovery-chrome-accessibility-regression.md` | `2d5b0135c` | 1024×768、390×844、真实 200% 缩放、键盘和 reduced-motion 通过；修复登录语义、Dialog 可达性与焦点恢复，真实 PostgreSQL、全量门禁和最终源码 Compose 七服务均通过。 |
-| M6 模型发现阻断修复 | `project/evidence/WP-0014-model-discovery-blocker-remediation.md` | 本次提交 | Compose 传递受控 Endpoint 与超时，接入预设阻止协议错配；真实同源 HTTP 返回 130 个待管理员确认候选且无内部字段泄漏，旧修订稳定返回 409。 |
+| M6 模型发现阻断修复 | `project/evidence/WP-0014-model-discovery-blocker-remediation.md` | `d7cf86fdd` | Compose 传递受控 Endpoint 与超时，接入预设阻止协议错配；真实同源 HTTP 返回 130 个待管理员确认候选且无内部字段泄漏，旧修订安全 409 不含错误码、消息、追踪标识和详情。 |
 | M6 企业组件库选型复核 | `project/evidence/WP-0014-enterprise-component-library-decision.md` | 本次提交 | 保留 Fluent UI v9 为唯一视觉系统，固定 7／5／6 设计参数，并以性能、包体、INP、响应式和无障碍量化门槛约束专项 Grid。 |
 | M6 全产品人工评审拒绝 | `project/evidence/M6-full-product-human-review-rejection-20260829.md` | 本次提交 | `HITL-0008-M6-REJECTION` 完整登记 19 项缺口；M6 与 WP-0014 保持进行中，M7 阻断，公共权限与生命周期整改须先有新 ADR。 |
 

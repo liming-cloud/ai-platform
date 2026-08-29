@@ -6,8 +6,8 @@
 - 当前里程碑与前沿保持 `M6 / WP-0014`；本证据只纠正模型发现阻断判断，不关闭工作包，也不激活 M7。
 - 本轮已通过正确同源 HTTP 请求完成 OpenAI-compatible 权威模型发现。此前手工请求返回的
   `400 COMMON.REQUEST.0001` 不是模型发现适配器或供应商 `/models` 的失败证据。
-- 当前工作区仍有尚未提交的整改源码与前端设计修改；以下结论严格区分已进入当前 Compose 的运行时事实、
-  仅在当前源码与定向红绿测试中成立的事实，以及仍待续证的外部／视觉事实。
+- 实现已绑定提交 `d7cf86fdd`；当前未提交内容只剩项目控制面与证据更新。以下结论严格区分已进入
+  当前 Compose 的运行时事实、已提交源码与测试事实，以及仍待续证的外部／视觉事实。
 
 ## 手工请求错误与正确请求契约
 
@@ -22,9 +22,9 @@
 1. 取得服务端 CSRF Cookie；
 2. 使用 `loginName` 登录，并发送 `Sec-Fetch-Site: same-origin`；
 3. 后续模型发现请求继续发送同源头、浏览器会话 Cookie、CSRF Cookie 与匹配的 CSRF 请求头；
-4. 对连接 `2093675537095458817` 提交 `expectedVersion=2`、`timeoutMillis=10000`。
+4. 首次以修正后的连接修订 `2` 完成发现；最终实现提交镜像复验使用当前修订 `3` 与 `timeoutMillis=10000`。
 
-该正确请求返回 HTTP `200`。因此不得再用上述错误手工请求的 `400` 作为当前模型发现阻断结论。
+两次正确请求均返回 HTTP `200`。因此不得再用上述错误手工请求的 `400` 作为当前模型发现阻断结论。
 
 ## 本地连接精确修正
 
@@ -65,16 +65,19 @@ OpenAI-compatible 适配器对修正后的 API 根地址调用权威 `/models`�
 
 响应也不暴露 Endpoint、凭据引用、API Key、供应商原始响应或内部错误详情。
 
+最终 HTTP 断言成功响应无内部字段；冲突响应也不包含 `code`、`message`、`traceId` 或 `details`。
+
 ## 旧修订冲突的红绿状态
 
 定向红测先冻结了旧修订请求不得执行发现、不得写入发现记录的行为。当前源码随后把两处泛化的
 `IllegalStateException` 收敛为 `ProviderConnectionConcurrentModificationException`：一处在请求进入外部发现前
 比较 `expectedVersion`，另一处在草稿连接探测后的乐观更新失败时拒绝。
+测试以 `ForbiddenDiscoverer` 证明旧修订在任何供应商 HTTP 调用前即被拒绝。
 
-该异常使用稳定错误码 `MODEL_RUNTIME.CONFLICT.0001`，错误类别为 `CONFLICT`；统一 HTTP 映射对应 `409`。
-最新源码已重新构建并替换 Compose 的 `control-plane` 镜像。真实同源 HTTP 先以当前修订返回 `200`，
-随后以旧修订返回 `409`、`MODEL_RUNTIME.CONFLICT.0001` 和空安全详情；不再把可恢复的修订漂移误报为
-`COMMON.SYSTEM.0001`。
+异常内部仍使用稳定分类 `MODEL_RUNTIME.CONFLICT.0001`，但该端点由
+`PlatformProviderModelDiscoveryController.concurrentModification` 局部投影为 HTTP `409`，公开正文只有
+`{"succeeded":false,"models":[]}`。最终 Compose 同源 HTTP 先以当前修订返回 `200`，再以旧修订返回
+`409`；浏览器不接收 `code`、`message`、`traceId` 或 `details`，内部稳定分类不越过端点边界。
 
 ## Compose 与外部能力边界
 
@@ -114,21 +117,23 @@ Chrome 控制插件仍无法启动。阻断来自 Codex 沙箱拒绝带 symlink 
 - `PlatformProviderModelDiscoveryService.discover`：在外部发现前及乐观更新失败处统一抛出稳定并发冲突异常；
 - `ProviderConnectionConcurrentModificationException` 与 `ModelRuntimeErrorCode.PROVIDER_CONCURRENT`：错误码为
   `MODEL_RUNTIME.CONFLICT.0001`；
-- `FoundationExceptionHandler` 与 `HttpErrorTypeMapping`：`FoundationException` 按 `CONFLICT` 映射为 HTTP `409`，
-  参数解析／JSON 绑定错误才进入 `COMMON.REQUEST.0001`。
+- `PlatformProviderModelDiscoveryController.concurrentModification`：把并发冲突局部投影为安全 `409`，只返回
+  `succeeded=false` 与空 `models`；全局 `FoundationExceptionHandler` 不是该端点最终浏览器响应来源。
 
 代码图谱影响分析覆盖 `PlatformProviderModelDiscoveryService` 的 17 个服务内部符号；公共调用入口仍收敛在
 `PlatformProviderModelDiscoveryController`，本轮只复用既有稳定冲突异常，没有新增公共错误码或扩大持久化结构。
 运行时核对还包括：
 
-- `lastVerifiedCommit=2d5b0135c` 是当前 HEAD `c300125a0f21eb07a605787a5061ea0742b05b11` 的祖先；
-- `make project-status` 通过；
+- 实现提交 `d7cf86fdd` 基于 `c300125a0f21eb07a605787a5061ea0742b05b11`，本次控制面把
+  `lastVerifiedCommit` 推进到该实现提交；
+- `make project-status` 与 `make project-verify` 通过；
+- `make validate` 通过，前端 31 个测试文件共 149 项，后端含真实 PostgreSQL／Testcontainers；
 - 指定连接当前非凭据字段和最新发现批次已通过 PostgreSQL 只读查询核对；
 - 七个 Compose 服务健康状态已通过 `docker compose ps` 核对。
 
 ## 结论
 
 模型发现主阻断已经用正确请求链闭环：同源浏览器 HTTP 返回 `200`，权威 `/models` 单次返回 `130` 个候选，
-全部保持管理员确认边界，公开响应不暴露内部发现元数据；旧修订也已在最终源码 Compose 中稳定返回 `409`。
+全部保持管理员确认边界，公开响应不暴露内部发现元数据；旧修订返回安全 `409`，正文只含失败状态和空候选。
 剩余工作是恢复 Chrome 控制插件后重做五项视觉证据，并在可授权条件下另行续证火山方舟控制面真实 AK/SK
 路径。`M6 / WP-0014` 继续保持进行中。
