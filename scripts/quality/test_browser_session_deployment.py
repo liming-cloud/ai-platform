@@ -70,6 +70,22 @@ class BrowserSessionDeploymentTest(unittest.TestCase):
         self.assertNotIn("localhost.crt", text)
         self.assertNotIn("localhost.key", text)
 
+    def test_base_compose_passes_the_controlled_model_outbound_boundary(self) -> None:
+        compose = (ROOT / "deploy/compose/compose.yml").read_text(encoding="utf-8")
+        for service_name in ("control-plane", "query-runtime", "ingestion-worker"):
+            service = re.search(
+                rf"^  {service_name}:\n(?P<body>.*?)(?=^  [a-z0-9-]+:|\Z)",
+                compose,
+                re.MULTILINE | re.DOTALL,
+            )
+            self.assertIsNotNone(service)
+            self.assertIn(
+                "MODEL_ALLOWED_ENDPOINTS: ${MODEL_ALLOWED_ENDPOINTS:-}",
+                service.group("body"),
+                msg=f"{service_name} 必须接收部署者显式配置的模型出站白名单",
+            )
+            self.assertIn("MODEL_CALL_TIMEOUT: ${MODEL_CALL_TIMEOUT:-PT60S}", service.group("body"))
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -29,19 +29,38 @@ describe("平台模型供应链呈现", () => {
     expect(source).not.toContain('placeholder="https://…/v1"');
   });
 
-  it("创建连接显式选择权威发现协议并说明未知能力需管理员确认", () => {
+  it("创建连接按接入预设锁定权威发现协议并说明未知能力需管理员确认", () => {
     const source = readFileSync(workspacePath, "utf8");
 
-    expect(source).toContain('name="discoveryProfile"');
-    expect(source).toContain('value="OPENAI_MODELS_API"');
-    expect(source).toContain('value="VOLCENGINE_ARK_CONTROL_PLANE"');
+    expect(source).toContain('label="接入预设"');
+    expect(source).toContain('value="VOLCENGINE_ARK"');
+    expect(source).toContain('value="OPENAI_COMPATIBLE"');
+    expect(source).toContain("resolveProviderPreset(providerPreset)");
+    expect(source).not.toContain('name="discoveryProfile"');
     expect(source).toContain("元数据不足的候选需要管理员确认能力");
+  });
+
+  it("火山方舟预设自动填充数据面地址和签名区域", () => {
+    const source = readFileSync(workspacePath, "utf8");
+
+    expect(source).toContain('endpoint: "https://ark.cn-beijing.volces.com/api/v3"');
+    expect(source).toContain('region: "cn-beijing"');
+    expect(source).toContain('discoveryProfile: "VOLCENGINE_ARK_CONTROL_PLANE"');
+    expect(source).toContain("方舟控制面使用 Access Key 签名发现模型，API Key 只用于数据面探测和推理");
+  });
+
+  it("OpenAI兼容预设只要求基础地址和APIKey", () => {
+    const source = readFileSync(workspacePath, "utf8");
+
+    expect(source).toContain('discoveryProfile: "OPENAI_MODELS_API"');
+    expect(source).toContain("供应商必须实现 OpenAI Models API");
+    expect(source).toContain('const arkDiscovery = providerPreset === "VOLCENGINE_ARK"');
   });
 
   it("方舟控制面凭据与推理APIKey分开录入且只在对应协议展示", () => {
     const source = readFileSync(workspacePath, "utf8");
 
-    expect(source).toContain('discoveryProfile === "VOLCENGINE_ARK_CONTROL_PLANE"');
+    expect(source).toContain('providerPreset === "VOLCENGINE_ARK"');
     expect(source).toContain('label="Access Key ID"');
     expect(source).toContain('label="Secret Access Key"');
     expect(source).toContain("仅用于模型发现");
@@ -66,5 +85,24 @@ describe("平台模型供应链呈现", () => {
     expect(source).toContain("const createConnectionTriggerRef = useRef<HTMLButtonElement>(null)");
     expect(source).toContain("ref={createConnectionTriggerRef}");
     expect(source).toContain("createConnectionTriggerRef.current?.focus()");
+  });
+
+  it("连接表格固定厂商与操作列布局", () => {
+    const source = readFileSync(workspacePath, "utf8");
+    const styles = readFileSync(stylesPath, "utf8");
+
+    expect(source).toContain('className="platform-model-supply-table"');
+    expect(source).toContain('className="platform-model-supply-table__provider"');
+    expect(source).toContain('className="platform-model-supply-table__actions"');
+    expect(styles).toMatch(/\.platform-model-supply-table__provider\s*\{[^}]*min-width:\s*16rem;[^}]*white-space:\s*nowrap;/s);
+    expect(styles).toMatch(/\.platform-model-supply-table__actions\s*\{[^}]*text-align:\s*right;/s);
+  });
+
+  it("区分连接验证与候选刷新结果", () => {
+    const source = readFileSync(workspacePath, "utf8");
+
+    expect(source).toContain("<th>连接验证</th>");
+    expect(source).toContain("连接既有验证状态和未过期候选不会自动失效");
+    expect(source).not.toContain("<th>最近探测</th>");
   });
 });

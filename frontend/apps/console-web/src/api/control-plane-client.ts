@@ -257,7 +257,6 @@ export type PlatformProviderConnectionSummary = ProviderConnectionSummary & {
 
 /** 平台模型发现的安全摘要；候选只用于后续受控部署选择。 */
 export interface PlatformProviderModelDiscoverySummary {
-  discoveryId: string;
   succeeded: boolean;
   models: Array<{
     modelCode: string;
@@ -265,10 +264,6 @@ export interface PlatformProviderModelDiscoverySummary {
     capabilities: string[];
     classification: "CONFIRMED_BY_PROVIDER" | "CONFIRMED_BY_CONTROLLED_MAPPING" | "CONFIRMED_BY_ADMIN" | "REQUIRES_ADMIN_CONFIRMATION";
   }>;
-  resultCode: string;
-  elapsed: string;
-  discoveredAt: string;
-  expiresAt: string | null;
 }
 
 /** 平台连接当前修订中可创建部署的安全模型候选。 */

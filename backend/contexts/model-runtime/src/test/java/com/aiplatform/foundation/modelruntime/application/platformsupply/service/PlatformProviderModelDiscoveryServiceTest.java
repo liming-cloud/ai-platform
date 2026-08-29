@@ -8,6 +8,7 @@ import com.aiplatform.foundation.modelruntime.application.platformsupply.dto.Pla
 import com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.PlatformProviderModelDiscoverer;
 import com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.PlatformProviderModelDiscoveryStore;
 import com.aiplatform.foundation.modelruntime.application.provider.exception.ModelCatalogPermissionDeniedException;
+import com.aiplatform.foundation.modelruntime.application.provider.exception.ProviderConnectionConcurrentModificationException;
 import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelCapability;
 import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelType;
 import com.aiplatform.foundation.modelruntime.domain.platformsupply.model.PlatformProviderConnection;
@@ -52,6 +53,24 @@ class PlatformProviderModelDiscoveryServiceTest {
         assertThrows(ModelCatalogPermissionDeniedException.class, () -> service.discover(
                 new DiscoverPlatformProviderModelsCommand(
                         sessionWithoutPlatformModelWrite(), "610000000000000001", 1, Duration.ofSeconds(3))));
+    }
+
+    @Test
+    void 旧修订不得执行模型发现且返回供应商连接冲突() {
+        var connection = verifiedConnection();
+        var service = new PlatformProviderModelDiscoveryService(
+                new SingleConnectionRepository(connection),
+                List.of(new ForbiddenDiscoverer()),
+                discovery -> {
+                    throw new AssertionError("旧修订不得写入平台模型发现");
+                },
+                CLOCK,
+                () -> 620000000000000001L,
+                Duration.ofHours(1));
+
+        assertThrows(ProviderConnectionConcurrentModificationException.class, () -> service.discover(
+                new DiscoverPlatformProviderModelsCommand(
+                        platformModelWriter(), connection.id().toString(), 0, Duration.ofSeconds(3))));
     }
 
     @Test
@@ -152,6 +171,17 @@ class PlatformProviderModelDiscoveryServiceTest {
                                     "deterministic-embedding", ModelType.EMBEDDING,
                                     Set.of(ModelCapability.EMBEDDING))),
                     "DETERMINISTIC_DISCOVERY_OK", Duration.ZERO, CLOCK.instant());
+        }
+    }
+
+    private static final class ForbiddenDiscoverer implements PlatformProviderModelDiscoverer {
+        @Override public ProviderKind providerKind() { return ProviderKind.DETERMINISTIC; }
+        @Override public PlatformModelDiscoveryProfile discoveryProfile() {
+            return PlatformModelDiscoveryProfile.DETERMINISTIC_CATALOG;
+        }
+        @Override public PlatformProviderModelDiscoveryObservation discover(
+                PlatformProviderModelDiscoveryRequest request) {
+            throw new AssertionError("旧修订不得调用平台模型发现适配器");
         }
     }
 

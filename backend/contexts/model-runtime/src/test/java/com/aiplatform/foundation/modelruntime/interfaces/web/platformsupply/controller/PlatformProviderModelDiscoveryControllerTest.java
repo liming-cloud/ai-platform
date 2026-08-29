@@ -11,6 +11,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.aiplatform.foundation.modelruntime.application.platformsupply.command.DiscoverPlatformProviderModelsCommand;
 import com.aiplatform.foundation.modelruntime.application.platformsupply.dto.DiscoverPlatformProviderModelsResult;
 import com.aiplatform.foundation.modelruntime.application.platformsupply.service.PlatformProviderModelDiscoveryService;
+import com.aiplatform.foundation.modelruntime.application.provider.exception.ProviderConnectionConcurrentModificationException;
 import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelCapability;
 import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelType;
 import com.aiplatform.foundation.modelruntime.domain.platformsupply.model.discovery.PlatformDiscoveredModelCandidate;
@@ -50,8 +51,13 @@ class PlatformProviderModelDiscoveryControllerTest {
                         .contentType("application/json")
                         .content("{\"expectedVersion\":1,\"timeoutMillis\":3000}"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.discoveryId").value("620000000000000001"))
+                .andExpect(jsonPath("$.succeeded").value(true))
                 .andExpect(jsonPath("$.models[0].modelCode").value("deterministic-embedding"))
+                .andExpect(jsonPath("$.discoveryId").doesNotExist())
+                .andExpect(jsonPath("$.resultCode").doesNotExist())
+                .andExpect(jsonPath("$.elapsed").doesNotExist())
+                .andExpect(jsonPath("$.discoveredAt").doesNotExist())
+                .andExpect(jsonPath("$.expiresAt").doesNotExist())
                 .andExpect(jsonPath("$.endpoint").doesNotExist())
                 .andExpect(jsonPath("$.credentialReference").doesNotExist())
                 .andExpect(jsonPath("$.apiKey").doesNotExist());
@@ -61,6 +67,27 @@ class PlatformProviderModelDiscoveryControllerTest {
         org.junit.jupiter.api.Assertions.assertSame(context, command.getValue().context());
         org.junit.jupiter.api.Assertions.assertEquals(
                 "610000000000000001", command.getValue().providerConnectionId());
+    }
+
+    @Test
+    void 并发冲突只返回安全业务状态且不泄露错误码或内部标识() throws Exception {
+        var service = mock(PlatformProviderModelDiscoveryService.class);
+        var context = mock(PlatformRequestContext.class);
+        var mvc = MockMvcBuilders.standaloneSetup(new PlatformProviderModelDiscoveryController(service))
+                .setCustomArgumentResolvers(platformContext(context))
+                .build();
+        when(service.discover(any())).thenThrow(new ProviderConnectionConcurrentModificationException());
+
+        mvc.perform(post("/api/v1/platform/model-supply/connections/610000000000000001/model-discovery")
+                        .contentType("application/json")
+                        .content("{\"expectedVersion\":0,\"timeoutMillis\":3000}"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.succeeded").value(false))
+                .andExpect(jsonPath("$.models").isEmpty())
+                .andExpect(jsonPath("$.code").doesNotExist())
+                .andExpect(jsonPath("$.message").doesNotExist())
+                .andExpect(jsonPath("$.traceId").doesNotExist())
+                .andExpect(jsonPath("$.details").doesNotExist());
     }
 
     private static HandlerMethodArgumentResolver platformContext(PlatformRequestContext context) {

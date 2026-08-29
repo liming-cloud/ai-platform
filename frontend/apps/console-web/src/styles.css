@@ -1535,6 +1535,50 @@
   background: var(--colorNeutralBackground1Hover);
 }
 
+.platform-model-supply-table__provider {
+  min-width: 16rem;
+  white-space: nowrap;
+}
+
+.platform-model-supply-table__actions {
+  min-width: 20rem;
+  text-align: right;
+}
+
+.platform-model-supply-table__actions > .task-actions {
+  flex-wrap: nowrap;
+  justify-content: flex-end;
+}
+
+.platform-provider-preset-summary {
+  display: grid;
+  gap: 0.375rem;
+  padding: 0.875rem 1rem;
+  border: 1px solid var(--colorBrandStroke2);
+  border-left: 3px solid var(--foundation-accent);
+  border-radius: 0.75rem;
+  background: linear-gradient(135deg, var(--colorBrandBackground2), var(--foundation-surface) 72%);
+  color: var(--foundation-text);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .platform-provider-preset-summary {
+    animation: platform-provider-preset-reveal 240ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+}
+
+@keyframes platform-provider-preset-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(0.375rem);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .governed-file-section {
   gap: 1.25rem;
   padding-top: 1.75rem;

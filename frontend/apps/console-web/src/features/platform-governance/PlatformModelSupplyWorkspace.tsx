@@ -40,6 +40,40 @@ interface DiscoverySummary {
   message: string;
 }
 
+type ProviderPreset = "VOLCENGINE_ARK" | "OPENAI_COMPATIBLE";
+
+interface ProviderPresetConfiguration {
+  providerKind: "OPENAI_COMPATIBLE";
+  discoveryProfile: PlatformModelDiscoveryProfile;
+  endpoint: string;
+  region: string;
+  discoveryLabel: string;
+  guidance: string;
+}
+
+const PROVIDER_PRESETS: Record<ProviderPreset, ProviderPresetConfiguration> = {
+  VOLCENGINE_ARK: {
+    providerKind: "OPENAI_COMPATIBLE",
+    discoveryProfile: "VOLCENGINE_ARK_CONTROL_PLANE",
+    endpoint: "https://ark.cn-beijing.volces.com/api/v3",
+    region: "cn-beijing",
+    discoveryLabel: "火山方舟控制面",
+    guidance: "方舟控制面使用 Access Key 签名发现模型，API Key 只用于数据面探测和推理。",
+  },
+  OPENAI_COMPATIBLE: {
+    providerKind: "OPENAI_COMPATIBLE",
+    discoveryProfile: "OPENAI_MODELS_API",
+    endpoint: "",
+    region: "global",
+    discoveryLabel: "OpenAI Models API",
+    guidance: "供应商必须实现 OpenAI Models API；候选能力缺少权威元数据时由管理员确认。",
+  },
+};
+
+function resolveProviderPreset(preset: ProviderPreset): ProviderPresetConfiguration {
+  return PROVIDER_PRESETS[preset];
+}
+
 /**
  * 平台供应链只管理平台范围的连接摘要；租户连接、端点和凭据不进入此工作区。
  */
@@ -65,8 +99,9 @@ export function PlatformModelSupplyWorkspace({
   const [apiKey, setApiKey] = useState("");
   const [discoveryAccessKeyId, setDiscoveryAccessKeyId] = useState("");
   const [discoverySecretAccessKey, setDiscoverySecretAccessKey] = useState("");
-  const [providerKind, setProviderKind] = useState<"DETERMINISTIC" | "OPENAI_COMPATIBLE" | "OLLAMA">("DETERMINISTIC");
-  const [discoveryProfile, setDiscoveryProfile] = useState<PlatformModelDiscoveryProfile>("DETERMINISTIC_CATALOG");
+  const [providerPreset, setProviderPreset] = useState<ProviderPreset>("VOLCENGINE_ARK");
+  const [endpoint, setEndpoint] = useState(PROVIDER_PRESETS.VOLCENGINE_ARK.endpoint);
+  const [region, setRegion] = useState(PROVIDER_PRESETS.VOLCENGINE_ARK.region);
   const [discoveryTarget, setDiscoveryTarget] = useState<PlatformProviderConnectionSummary>();
   const [discoverySummary, setDiscoverySummary] = useState<DiscoverySummary>();
   const createConnectionTriggerRef = useRef<HTMLButtonElement>(null);
@@ -103,22 +138,17 @@ export function PlatformModelSupplyWorkspace({
     const submittedApiKey = apiKey;
     const submittedDiscoveryAccessKeyId = discoveryAccessKeyId;
     const submittedDiscoverySecretAccessKey = discoverySecretAccessKey;
-    form.reset();
-    setApiKey("");
-    setDiscoveryAccessKeyId("");
-    setDiscoverySecretAccessKey("");
     const displayName = String(values.get("displayName") ?? "").trim();
-    const endpoint = String(values.get("endpoint") ?? "").trim();
-    const region = String(values.get("region") ?? "").trim();
-    const submittedProviderKind = String(values.get("providerKind") ?? "DETERMINISTIC") as "DETERMINISTIC" | "OPENAI_COMPATIBLE" | "OLLAMA";
-    const submittedDiscoveryProfile = String(values.get("discoveryProfile") ?? "") as PlatformModelDiscoveryProfile;
-    const submittedArkDiscovery = submittedDiscoveryProfile === "VOLCENGINE_ARK_CONTROL_PLANE";
-    if (!displayName || !endpoint || !region || !submittedApiKey.trim() || !submittedDiscoveryProfile
+    const presetConfiguration = resolveProviderPreset(providerPreset);
+    const submittedEndpoint = endpoint.trim();
+    const submittedRegion = region.trim();
+    const submittedArkDiscovery = providerPreset === "VOLCENGINE_ARK";
+    if (!displayName || !submittedEndpoint || !submittedRegion || !submittedApiKey.trim()
       || (submittedArkDiscovery
         && (!submittedDiscoveryAccessKeyId.trim() || !submittedDiscoverySecretAccessKey.trim()))) {
       setFailure({ message: submittedArkDiscovery
         ? "请完整填写连接信息、推理 API Key，以及模型发现专用 Access Key ID 和 Secret Access Key。"
-        : "请完整填写连接名称、厂商、发现协议、受控 Endpoint、区域和 API Key。", traceId: "" });
+        : "请完整填写连接名称、API 基础地址和 API Key。", traceId: "" });
       return;
     }
     setSubmitting(true);
@@ -126,10 +156,10 @@ export function PlatformModelSupplyWorkspace({
     try {
       await client.createPlatformProviderConnection({
         displayName,
-        endpoint,
-        region,
-        providerKind: submittedProviderKind,
-        discoveryProfile: submittedDiscoveryProfile,
+        endpoint: submittedEndpoint,
+        region: submittedRegion,
+        providerKind: presetConfiguration.providerKind,
+        discoveryProfile: presetConfiguration.discoveryProfile,
         authenticationType: "API_KEY",
         apiKey: submittedApiKey,
         ...(submittedArkDiscovery ? {
@@ -137,6 +167,7 @@ export function PlatformModelSupplyWorkspace({
           discoverySecretAccessKey: submittedDiscoverySecretAccessKey,
         } : {}),
       });
+      form.reset();
       closeCreateDialog();
       await load();
     } catch (error) {
@@ -168,17 +199,11 @@ export function PlatformModelSupplyWorkspace({
             ? `已找到 ${result.models.length} 个候选。元数据不足的候选需要管理员确认能力后才能部署。`
             : `已找到 ${result.models.length} 个已确认候选，可以继续管理部署。`,
         }
-        : result.resultCode === "PLATFORM_MODEL_DISCOVERY_UNSUPPORTED"
-          ? {
-            intent: "warning",
-            title: "模型发现未完成",
-            message: "当前厂商类型尚未提供平台自动发现适配器。连接已保留，但不能继续建立部署。",
-          }
-          : {
-            intent: "warning",
-            title: "模型发现未完成",
-            message: "连接没有返回可用候选。请核对 API 基础地址、凭据与厂商服务状态后重试。",
-          });
+        : {
+          intent: "warning",
+          title: "模型发现未完成",
+          message: "本次刷新没有返回可用候选。连接既有验证状态和未过期候选不会自动失效；请检查预设凭据与平台网络策略后重试。",
+        });
       await load();
     } catch (error) {
       setFailure(toFailure(error));
@@ -202,7 +227,8 @@ export function PlatformModelSupplyWorkspace({
     return <StatePanel kind="error" title="平台连接暂时不可用" description={failureDescription(failure)} actionLabel="重新加载" onAction={() => void load()} />;
   }
 
-  const arkDiscovery = discoveryProfile === "VOLCENGINE_ARK_CONTROL_PLANE";
+  const presetConfiguration = resolveProviderPreset(providerPreset);
+  const arkDiscovery = providerPreset === "VOLCENGINE_ARK";
 
   return (
     <div className="model-configuration-workspace">
@@ -215,8 +241,8 @@ export function PlatformModelSupplyWorkspace({
       <section className="model-configuration-section">
         <header className="task-heading"><Title3>平台厂商连接</Title3><Text>仅平台管理员可创建；连接创建后通过一次受控请求完成验证和模型发现。</Text></header>
         <div className="member-directory-table" role="region" aria-label="平台厂商连接分页表格">
-          <table><thead><tr><th>连接</th><th>厂商与区域</th><th>凭据与状态</th><th>最近探测</th><th>操作</th></tr></thead><tbody>
-            {connections.length === 0 ? <tr><td colSpan={5}>当前页没有平台厂商连接。</td></tr> : connections.map((connection) => <tr key={connection.id}><td>{connection.displayName}</td><td>{connection.providerKind} · {connection.region}<br /><Text size={200}>{discoveryProfileLabel(connection.discoveryProfile)}</Text></td><td><Badge appearance="tint" color={connection.status === "VERIFIED" ? "success" : "warning"}>{connection.status === "VERIFIED" ? "已验证" : "待验证"}</Badge> {connection.credentialConfigured ? "凭据已配置" : "未配置凭据"}</td><td>{connection.lastProbeSucceeded === true ? "通过" : connection.lastProbeSucceeded === false ? "未通过" : "尚未验证"}</td><td><div className="task-actions"><Button appearance="secondary" disabled={submitting || connection.status === "DISABLED" || !connection.credentialConfigured || connection.discoveryProfile === "NONE"} onClick={() => setDiscoveryTarget(connection)}>{connection.status === "VERIFIED" ? "刷新模型候选" : "验证并发现模型"}</Button><Button appearance="primary" disabled={connection.status !== "VERIFIED"} onClick={() => onRouteChange({ navigationId: "platform-model-supply", task: "deployments", connectionId: connection.id, connectionVersion: connection.version, candidatePage: 1, deploymentPage: 1 })}>管理部署</Button></div></td></tr>)}
+          <table className="platform-model-supply-table"><thead><tr><th>连接</th><th className="platform-model-supply-table__provider">厂商与区域</th><th>凭据与状态</th><th>连接验证</th><th className="platform-model-supply-table__actions">操作</th></tr></thead><tbody>
+            {connections.length === 0 ? <tr><td colSpan={5}>当前页没有平台厂商连接。</td></tr> : connections.map((connection) => <tr key={connection.id}><td>{connection.displayName}</td><td className="platform-model-supply-table__provider"><Text weight="semibold">{providerConnectionLabel(connection)}</Text><br /><Text size={200}>{connection.region}</Text><br /><Text size={200}>{discoveryProfileLabel(connection.discoveryProfile)}</Text></td><td><Badge appearance="tint" color={connection.status === "VERIFIED" ? "success" : "warning"}>{connection.status === "VERIFIED" ? "已验证" : "待验证"}</Badge> {connection.credentialConfigured ? "凭据已配置" : "未配置凭据"}</td><td>{connection.lastProbeSucceeded === true ? "验证通过" : connection.lastProbeSucceeded === false ? "验证未通过" : "尚未验证"}</td><td className="platform-model-supply-table__actions"><div className="task-actions"><Button appearance="secondary" disabled={submitting || connection.status === "DISABLED" || !connection.credentialConfigured || connection.discoveryProfile === "NONE"} onClick={() => setDiscoveryTarget(connection)}>{connection.status === "VERIFIED" ? "刷新模型候选" : "验证并发现模型"}</Button><Button appearance="primary" disabled={connection.status !== "VERIFIED"} onClick={() => onRouteChange({ navigationId: "platform-model-supply", task: "deployments", connectionId: connection.id, connectionVersion: connection.version, candidatePage: 1, deploymentPage: 1 })}>管理部署</Button></div></td></tr>)}
           </tbody></table>
         </div>
         <div className="task-actions"><Text>共 {total} 条</Text><Button disabled={!hasPrevious} onClick={() => onRouteChange({ ...route, page: route.page - 1 })}>上一页</Button><Text>第 {route.page} 页</Text><Button disabled={!hasNext} onClick={() => onRouteChange({ ...route, page: route.page + 1 })}>下一页</Button></div>
@@ -225,27 +251,31 @@ export function PlatformModelSupplyWorkspace({
         <DialogSurface className="foundation-task-dialog"><DialogBody><DialogTitle>新建平台厂商连接</DialogTitle><form className="foundation-dialog-form" onSubmit={(event) => void createConnection(event)}><DialogContent>
           <Text>Endpoint 与凭据仅用于本次平台范围受控写入；创建后页面不会回显，也不会写入租户范围。</Text>
           <Field label="连接名称" required><Input name="displayName" autoFocus disabled={submitting} /></Field>
-          <Field label="厂商类型" required><Select name="providerKind" value={providerKind} disabled={submitting} onChange={(_, data) => {
-            const next = data.value as "DETERMINISTIC" | "OPENAI_COMPATIBLE" | "OLLAMA";
-            setProviderKind(next);
-            setDiscoveryProfile(next === "DETERMINISTIC" ? "DETERMINISTIC_CATALOG" : next === "OPENAI_COMPATIBLE" ? "OPENAI_MODELS_API" : "NONE");
+          <Field label="接入预设" required><Select name="providerPreset" value={providerPreset} disabled={submitting} onChange={(_, data) => {
+            const next = data.value as ProviderPreset;
+            const nextConfiguration = resolveProviderPreset(next);
+            setProviderPreset(next);
+            setEndpoint(nextConfiguration.endpoint);
+            setRegion(nextConfiguration.region);
             setDiscoveryAccessKeyId("");
             setDiscoverySecretAccessKey("");
-          }}><option value="DETERMINISTIC">确定性开发连接</option><option value="OPENAI_COMPATIBLE">OpenAI 兼容接口</option><option value="OLLAMA">Ollama</option></Select></Field>
-          <Field label="模型发现协议" hint="只使用供应商权威接口；元数据不足的候选需要管理员确认能力。" required><Select name="discoveryProfile" value={discoveryProfile} disabled={submitting} onChange={(_, data) => {
-            const next = data.value as PlatformModelDiscoveryProfile;
-            setDiscoveryProfile(next);
-            if (next !== "VOLCENGINE_ARK_CONTROL_PLANE") {
-              setDiscoveryAccessKeyId("");
-              setDiscoverySecretAccessKey("");
-            }
           }}>
-            {providerKind === "DETERMINISTIC" ? <option value="DETERMINISTIC_CATALOG">确定性受控目录</option> : null}
-            {providerKind === "OPENAI_COMPATIBLE" ? <><option value="OPENAI_MODELS_API">OpenAI Models API</option><option value="VOLCENGINE_ARK_CONTROL_PLANE">火山方舟控制面</option></> : null}
-            {providerKind === "OLLAMA" ? <option value="NONE">暂不自动发现</option> : null}
+            <option value="VOLCENGINE_ARK">火山方舟</option>
+            <option value="OPENAI_COMPATIBLE">OpenAI-compatible</option>
           </Select></Field>
-          <Field label="API 基础地址" hint="填写厂商 API 根地址，不要包含 /chat/completions 或 /responses。" required><Input name="endpoint" type="url" placeholder="https://ark.cn-beijing.volces.com/api/v3" disabled={submitting} /></Field>
-          <Field label="部署区域" hint={arkDiscovery ? "方舟签名区域，例如 cn-beijing。" : undefined} required><Input name="region" placeholder={arkDiscovery ? "cn-beijing" : "例如：local"} disabled={submitting} /></Field>
+          <div key={providerPreset} className="platform-provider-preset-summary" aria-live="polite">
+            <Text weight="semibold">模型发现方式：{presetConfiguration.discoveryLabel}</Text>
+            <Text size={200}>{presetConfiguration.guidance}</Text>
+            <Text size={200}>只使用供应商权威接口；元数据不足的候选需要管理员确认能力。</Text>
+          </div>
+          <Field label="API 基础地址" hint={arkDiscovery
+            ? "当前预设固定使用方舟北京区域数据面根地址。"
+            : "填写供应商 API 根地址，不要包含 /chat/completions 或 /responses。"} required>
+            <Input type="url" value={endpoint} readOnly={arkDiscovery} placeholder="https://api.example.com/v1" onChange={(_, data) => setEndpoint(data.value)} disabled={submitting} />
+          </Field>
+          {arkDiscovery ? <Field label="部署区域" hint="控制面签名区域与数据面地址保持一致。" required>
+            <Input value={region} readOnly disabled={submitting} />
+          </Field> : null}
           <Field label="API Key" hint="仅用于推理与能力探测，不用于火山方舟控制面模型发现。" required><Input type="password" value={apiKey} onChange={(_, data) => setApiKey(data.value)} autoComplete="new-password" disabled={submitting} /></Field>
           {arkDiscovery ? <>
             <Field label="Access Key ID" hint="仅用于模型发现；需要方舟 ListEndpoints 的只读权限。" required><Input type="password" value={discoveryAccessKeyId} onChange={(_, data) => setDiscoveryAccessKeyId(data.value)} autoComplete="new-password" disabled={submitting} /></Field>
@@ -260,6 +290,16 @@ export function PlatformModelSupplyWorkspace({
       </Dialog>
     </div>
   );
+}
+
+function providerConnectionLabel(connection: PlatformProviderConnectionSummary): string {
+  if (connection.discoveryProfile === "VOLCENGINE_ARK_CONTROL_PLANE") return "火山方舟";
+  switch (connection.providerKind) {
+    case "OPENAI_COMPATIBLE": return "OpenAI-compatible";
+    case "OLLAMA": return "Ollama";
+    case "DETERMINISTIC": return "受控开发连接";
+    default: return "其他受控连接";
+  }
 }
 
 function discoveryProfileLabel(profile: PlatformModelDiscoveryProfile): string {

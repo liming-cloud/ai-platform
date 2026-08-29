@@ -8,6 +8,7 @@ import com.aiplatform.foundation.modelruntime.domain.provider.model.CredentialRe
 import com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.PlatformProviderModelDiscoverer;
 import com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.PlatformProviderModelDiscoveryStore;
 import com.aiplatform.foundation.modelruntime.application.provider.exception.ModelCatalogPermissionDeniedException;
+import com.aiplatform.foundation.modelruntime.application.provider.exception.ProviderConnectionConcurrentModificationException;
 import com.aiplatform.foundation.modelruntime.domain.platformsupply.model.PlatformProviderConnectionId;
 import com.aiplatform.foundation.modelruntime.domain.platformsupply.model.PlatformModelDiscoveryProfile;
 import com.aiplatform.foundation.modelruntime.domain.platformsupply.model.PlatformProviderModelDiscovery;
@@ -66,7 +67,7 @@ public final class PlatformProviderModelDiscoveryService {
                         PlatformProviderConnectionId.parse(command.providerConnectionId()))
                 .orElseThrow(() -> new IllegalArgumentException("平台供应商连接不存在"));
         if (connection.version() != command.expectedVersion()) {
-            throw new IllegalStateException("平台供应商连接修订已变化");
+            throw new ProviderConnectionConcurrentModificationException();
         }
         if (connection.status() == ProviderConnectionStatus.DISABLED) {
             throw new IllegalStateException("已停用的平台供应商连接不能发现模型");
@@ -84,7 +85,7 @@ public final class PlatformProviderModelDiscoveryService {
                     ? connection.recordSuccessfulProbe(observation.resultCode(), observation.discoveredAt())
                     : connection.recordFailedProbe(observation.resultCode(), observation.discoveredAt());
             if (!connections.update(discoveredConnection, command.expectedVersion())) {
-                throw new IllegalStateException("平台供应商连接修订已变化");
+                throw new ProviderConnectionConcurrentModificationException();
             }
         }
         var discovery = PlatformProviderModelDiscovery.capture(
