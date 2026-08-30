@@ -8,6 +8,7 @@ export type ConsoleRoute =
   | { navigationId: "operations"; task: "overview"; range: OperationsRange }
   | { navigationId: "access"; task: "members"; page: number }
   | { navigationId: "access"; task: "roles" }
+  | { navigationId: "data"; task: "knowledge-bases"; page: number }
   | {
     navigationId: "data";
     task: "governed-file";
@@ -93,13 +94,7 @@ export function defaultConsoleRoute(navigationId: ConsoleNavigationId): ConsoleR
     case "access":
       return { navigationId, task: "members", page: 1 };
     case "data":
-      return {
-        navigationId,
-        task: "governed-file",
-        knowledgeSpacePage: 1,
-        sourcePage: 1,
-        embeddingModelConfigurationPage: 1,
-      };
+      return { navigationId, task: "knowledge-bases", page: 1 };
     case "models":
       return { navigationId, task: "configuration", configurationPage: 1, catalogPage: 1 };
     case "governance":
@@ -117,6 +112,97 @@ export function defaultConsoleRoute(navigationId: ConsoleNavigationId): ConsoleR
   }
 }
 
+type KnowledgeDataRoute = Extract<ConsoleRoute, { navigationId: "data" }>;
+export type KnowledgeDataTask = KnowledgeDataRoute["task"];
+
+/** 只接受统一控制台发布的知识库子任务标识，未知值失败关闭。 */
+export function isKnowledgeDataTask(value: string): value is KnowledgeDataTask {
+  return value === "knowledge-bases"
+    || value === "governed-file"
+    || value === "structured-dataset"
+    || value === "object-storage"
+    || value === "first-publication";
+}
+
+/**
+ * 在知识库子任务之间保留显式选择和服务端页码。
+ *
+ * 目录点击可以显式覆盖知识库；普通标签切换不得猜测、清空或改选其他知识库。
+ */
+export function knowledgeDataTaskRoute(
+  current: KnowledgeDataRoute,
+  targetTask: KnowledgeDataTask,
+  selectedKnowledgeSpaceId?: string,
+): KnowledgeDataRoute {
+  const knowledgeSpacePage = current.task === "knowledge-bases"
+    ? current.page
+    : current.knowledgeSpacePage;
+  if (targetTask === "knowledge-bases") {
+    return {
+      navigationId: "data",
+      task: "knowledge-bases",
+      page: knowledgeSpacePage,
+    };
+  }
+
+  const knowledgeSpaceId = selectedKnowledgeSpaceId
+    ?? (current.task === "knowledge-bases" ? undefined : current.knowledgeSpaceId);
+  const embeddingModelConfigurationPage = current.task === "knowledge-bases"
+    ? 1
+    : current.embeddingModelConfigurationPage;
+  const embeddingModelConfigurationId = current.task === "knowledge-bases"
+    ? undefined
+    : current.embeddingModelConfigurationId;
+  const selection = {
+    navigationId: "data" as const,
+    knowledgeSpacePage,
+    ...(knowledgeSpaceId === undefined ? {} : { knowledgeSpaceId }),
+    embeddingModelConfigurationPage,
+    ...(embeddingModelConfigurationId === undefined
+      ? {}
+      : { embeddingModelConfigurationId }),
+  };
+
+  switch (targetTask) {
+    case "governed-file":
+      return {
+        ...selection,
+        task: "governed-file",
+        sourcePage: 1,
+      };
+    case "structured-dataset":
+      return {
+        ...selection,
+        task: "structured-dataset",
+      };
+    case "object-storage":
+      return {
+        ...selection,
+        task: "object-storage",
+      };
+    case "first-publication":
+      return {
+        ...selection,
+        task: "first-publication",
+      };
+  }
+}
+
+/**
+ * 仅恢复当前服务端页内真实存在的显式知识库，缺失或越页选择不得回退首项。
+ */
+export function resolveKnowledgeSpaceIdOnPage(
+  requestedId: string | undefined,
+  candidates: readonly { id: string }[],
+): string | undefined {
+  if (requestedId === undefined) {
+    return undefined;
+  }
+  return candidates.some((candidate) => candidate.id === requestedId)
+    ? requestedId
+    : undefined;
+}
+
 /**
  * 只识别控制台拥有的固定同源路由，未知路径不能隐式映射到默认工作区。
  */
@@ -127,6 +213,13 @@ export function parseConsoleRoute(pathname: string, search: string): ConsoleRout
       navigationId: "operations",
       task: "overview",
       range: operationsRange(new URLSearchParams(search).get("range")),
+    };
+  }
+  if (routePath === "/knowledge-bases") {
+    return {
+      navigationId: "data",
+      task: "knowledge-bases",
+      page: positivePage(new URLSearchParams(search).get("page")),
     };
   }
   if (routePath === "/data/files") {
@@ -294,13 +387,15 @@ export function formatConsoleRoute(route: ConsoleRoute): string {
     return route.task === "members" ? `/access/members?page=${route.page}` : "/access/roles";
   }
   if (route.navigationId === "data") {
-    return route.task === "governed-file"
-      ? formatGovernedFileRoute(route)
-      : route.task === "structured-dataset"
-        ? formatStructuredDatasetRoute(route)
-        : route.task === "object-storage"
-          ? formatObjectStorageRoute(route)
-          : formatPublicationRoute(route);
+    return route.task === "knowledge-bases"
+      ? `/knowledge-bases?page=${route.page}`
+      : route.task === "governed-file"
+        ? formatGovernedFileRoute(route)
+        : route.task === "structured-dataset"
+          ? formatStructuredDatasetRoute(route)
+          : route.task === "object-storage"
+            ? formatObjectStorageRoute(route)
+            : formatPublicationRoute(route);
   }
   if (route.navigationId === "models") {
     return route.task === "configuration"

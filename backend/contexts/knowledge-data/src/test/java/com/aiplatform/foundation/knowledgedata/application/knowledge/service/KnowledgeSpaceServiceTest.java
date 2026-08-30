@@ -75,11 +75,24 @@ class KnowledgeSpaceServiceTest {
         var service = new KnowledgeSpaceService(repository, CLOCK, () -> SPACE_ID, 3);
 
         var page = service.list(new ListKnowledgeSpacesQuery(
-                context("knowledge:read"),
+                context("knowledge:write"),
                 PageQuery.defaults()));
 
         assertEquals(TENANT_ID, repository.listTenant);
         assertTrue(page.items().isEmpty());
+    }
+
+    @Test
+    void 只有问答资料读取权时不得读取知识库管理目录() {
+        var repository = new RecordingRepository();
+        var service = new KnowledgeSpaceService(repository, CLOCK, () -> SPACE_ID, 3);
+
+        assertThrows(KnowledgePermissionDeniedException.class, () -> service.list(
+                new ListKnowledgeSpacesQuery(
+                        context("knowledge:read"),
+                        PageQuery.defaults())));
+
+        assertTrue(repository.listTenant == null);
     }
 
     private static TrustedRequestContext context(String permission) {

@@ -78,6 +78,7 @@ confirmedDecisions:
   - ADR-0069
   - ADR-0070
   - ADR-0071
+  - ADR-0072
 openDecisions: []
 latestEvidence:
   - docs/research/WP-0003-framework-baseline.md
@@ -282,6 +283,8 @@ latestEvidence:
   - project/evidence/ADR-0070-approval.md
   - docs/adr/ADR-0071-local-platform-administrator-full-reset.md
   - project/evidence/ADR-0071-approval.md
+  - docs/adr/ADR-0072-tenant-owned-knowledge-base-workspace.md
+  - project/evidence/ADR-0072-approval.md
   - project/evidence/WP-0014-local-platform-administrator-full-reset.md
   - project/evidence/WP-0014-local-platform-administrator-fixed-initialization.md
   - project/evidence/WP-0014-platform-ui-continuity-and-tenant-onboarding.md
@@ -301,7 +304,8 @@ latestEvidence:
   - project/evidence/artifacts/WP-0014-complete-ui-code-review.md
   - project/evidence/WP-0014-model-discovery-blocker-remediation.md
   - project/evidence/WP-0014-enterprise-component-library-decision.md
+  - project/evidence/WP-0014-tenant-owned-knowledge-base-workspace.md
   - project/evidence/M6-full-product-human-review-rejection-20260829.md
-nextReviewAt: "待关闭 P0/P1 后预约"
-updatedAt: 2026-08-29T22:45:00+08:00
+nextReviewAt: "解除浏览器 writable root 阻塞并完成真实 Chrome 六项矩阵后"
+updatedAt: 2026-08-30T12:32:52+08:00
 updatedBy: codex

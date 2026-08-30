@@ -16,8 +16,8 @@ const STEP_ORDER: PublicationStage[] = [
 ];
 
 const STEPS = [
-  { stage: "login", label: "验证演示租户" },
-  { stage: "space", label: "确定知识空间" },
+  { stage: "login", label: "验证租户会话" },
+  { stage: "space", label: "选择知识库" },
   { stage: "content", label: "上传首份文本" },
   { stage: "publish", label: "发布文本数据" },
   { stage: "index", label: "构建检索索引" },

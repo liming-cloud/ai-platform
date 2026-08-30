@@ -847,7 +847,7 @@ export class ControlPlaneClient {
 
   async createKnowledgeSpace(input: {
     name: string;
-    description: string;
+    description: string | null;
   }, idempotencyKey?: string): Promise<KnowledgeSpace> {
     return this.request<KnowledgeSpace>("/knowledge-spaces", {
       method: "POST",

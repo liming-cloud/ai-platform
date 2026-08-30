@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 import {
   defaultConsoleRoute,
   formatConsoleRoute,
+  knowledgeDataTaskRoute,
   parseConsoleRoute,
+  resolveKnowledgeSpaceIdOnPage,
   resolveAuthorizedConsoleRoute,
 } from "./console-route";
 
@@ -44,6 +46,87 @@ describe("统一控制台路由", () => {
       page: 3,
       range: "DAY_30",
     })).toBe("/platform/operations?range=DAY_30&page=3");
+  });
+
+  it("知识库一级入口使用独立可恢复目录路由", () => {
+    expect(defaultConsoleRoute("data")).toEqual({
+      navigationId: "data",
+      task: "knowledge-bases",
+      page: 1,
+    });
+    expect(parseConsoleRoute("/knowledge-bases", "?page=2")).toEqual({
+      navigationId: "data",
+      task: "knowledge-bases",
+      page: 2,
+    });
+    expect(formatConsoleRoute({
+      navigationId: "data",
+      task: "knowledge-bases",
+      page: 2,
+    })).toBe("/knowledge-bases?page=2");
+  });
+
+  it("从知识库目录第 2 页进入时保留知识库和服务端页码", () => {
+    expect(knowledgeDataTaskRoute(
+      { navigationId: "data", task: "knowledge-bases", page: 2 },
+      "governed-file",
+      "410000000000000021",
+    )).toEqual({
+      navigationId: "data",
+      task: "governed-file",
+      knowledgeSpacePage: 2,
+      knowledgeSpaceId: "410000000000000021",
+      sourcePage: 1,
+      embeddingModelConfigurationPage: 1,
+    });
+  });
+
+  it("跨知识库子任务保留显式选择，返回目录也保留所在页", () => {
+    const route = {
+      navigationId: "data" as const,
+      task: "governed-file" as const,
+      knowledgeSpacePage: 3,
+      knowledgeSpaceId: "410000000000000041",
+      sourcePage: 2,
+      embeddingModelConfigurationPage: 4,
+      embeddingModelConfigurationId: "510000000000000001",
+    };
+
+    expect(knowledgeDataTaskRoute(route, "object-storage")).toEqual({
+      navigationId: "data",
+      task: "object-storage",
+      knowledgeSpacePage: 3,
+      knowledgeSpaceId: "410000000000000041",
+      embeddingModelConfigurationPage: 4,
+      embeddingModelConfigurationId: "510000000000000001",
+    });
+    expect(knowledgeDataTaskRoute(route, "knowledge-bases")).toEqual({
+      navigationId: "data",
+      task: "knowledge-bases",
+      page: 3,
+    });
+  });
+
+  it("显式知识库未命中当前页时失败关闭，不回退到第一项", () => {
+    const candidates = [
+      { id: "410000000000000001" },
+      { id: "410000000000000002" },
+    ];
+
+    expect(resolveKnowledgeSpaceIdOnPage(undefined, candidates)).toBeUndefined();
+    expect(resolveKnowledgeSpaceIdOnPage("410000000000000099", candidates)).toBeUndefined();
+    expect(resolveKnowledgeSpaceIdOnPage("410000000000000002", candidates))
+      .toBe("410000000000000002");
+  });
+
+  it("平台工作区不得用其他入口替代知识库深链接", () => {
+    const route = parseConsoleRoute("/knowledge-bases", "");
+
+    expect(resolveAuthorizedConsoleRoute(route, ["platform", "platform-accounts"]))
+      .toEqual({
+        kind: "denied",
+        route: { navigationId: "data", task: "knowledge-bases", page: 1 },
+      });
   });
 
   it("旧平台根地址兼容进入真实的运营总览", () => {

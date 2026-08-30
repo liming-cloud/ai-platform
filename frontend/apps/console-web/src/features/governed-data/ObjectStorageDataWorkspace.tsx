@@ -20,7 +20,10 @@ import {
   type KnowledgeSpace,
   type PlatformObjectRangeCandidate,
 } from "../../api/control-plane-client";
-import type { ConsoleRoute } from "../../session/console-route";
+import {
+  resolveKnowledgeSpaceIdOnPage,
+  type ConsoleRoute,
+} from "../../session/console-route";
 import { modelRuntimeFailure, requiresSessionRestart } from "./GovernedFileDataWorkspace";
 import { EmbeddingModelConfigurationPicker } from "../shared/EmbeddingModelConfigurationPicker";
 import { PagedResourceNavigation } from "../shared/PagedResourceNavigation";
@@ -69,7 +72,8 @@ export function ObjectStorageDataWorkspace({
   const [synchronizing, setSynchronizing] = useState(false);
   const [publishing, setPublishing] = useState(false);
   const [buildingIndex, setBuildingIndex] = useState(false);
-  const knowledgeSpaceId = route.knowledgeSpaceId ?? "";
+  const knowledgeSpaceId = resolveKnowledgeSpaceIdOnPage(route.knowledgeSpaceId, spaces)
+    ?? "";
 
   const resetProtectedTaskState = useCallback(() => {
     setSpaces([]);
@@ -107,15 +111,19 @@ export function ObjectStorageDataWorkspace({
     setFailure(undefined);
     try {
       const page = await client.listKnowledgeSpaces(route.knowledgeSpacePage);
-      const selectedKnowledgeSpaceId = page.items.some((space) => space.id === knowledgeSpaceId)
-        ? knowledgeSpaceId
-        : page.items[0]?.id;
+      const selectedKnowledgeSpaceId = resolveKnowledgeSpaceIdOnPage(
+        route.knowledgeSpaceId,
+        page.items,
+      );
       setSpaces(page.items);
       setSpaceHasPrevious(page.hasPrevious);
       setSpaceHasNext(page.hasNext);
       setSpaceTotal(page.totalElements);
-      if (selectedKnowledgeSpaceId !== undefined && selectedKnowledgeSpaceId !== knowledgeSpaceId) {
-        onRouteChange({ ...route, knowledgeSpaceId: selectedKnowledgeSpaceId });
+      if (route.knowledgeSpaceId !== undefined && selectedKnowledgeSpaceId === undefined) {
+        setFailure({
+          message: "地址中的知识库不在当前目录页。请返回知识库目录重新选择；系统不会自动切换到其他知识库。",
+          traceId: "",
+        });
       }
       setViewState("ready");
     } catch (error) {
@@ -124,7 +132,7 @@ export function ObjectStorageDataWorkspace({
         setViewState("error");
       }
     }
-  }, [client, knowledgeSpaceId, onRouteChange, resetProtectedTaskState, restartExpiredSession, route]);
+  }, [client, resetProtectedTaskState, restartExpiredSession, route]);
 
   useEffect(() => {
     const timeout = window.setTimeout(() => void load(), 0);
@@ -152,7 +160,7 @@ export function ObjectStorageDataWorkspace({
     event.preventDefault();
     const range = rangeCandidates.find((candidate) => candidate.rangeReference === selectedRangeReference);
     if (knowledgeSpaceId.length === 0 || name.trim().length === 0 || range === undefined) {
-      setFailure({ message: "请选择知识空间、来源名称和一个可用对象范围。", traceId: "" });
+      setFailure({ message: "请选择知识库、来源名称和一个可用对象范围。", traceId: "" });
       return;
     }
     setSubmitting(true);
@@ -307,21 +315,12 @@ export function ObjectStorageDataWorkspace({
     }
   }
 
-  async function logout() {
-    try {
-      await client.logout();
-    } finally {
-      onSessionChanged();
-      resetProtectedTaskState();
-      setViewState("unauthenticated");
-    }
-  }
 
   if (viewState === "unauthenticated") {
     return <StatePanel kind="stale" title="浏览器会话已经失效" description="受保护的对象存储任务已清除，请返回统一登录入口。" actionLabel="返回登录入口" onAction={() => window.location.assign("/")} />;
   }
   if (viewState === "loading") {
-    return <StatePanel kind="loading" title="正在加载对象存储任务" description="正在读取当前租户可用知识空间。" />;
+    return <StatePanel kind="loading" title="正在加载对象存储任务" description="正在读取当前租户可用知识库。" />;
   }
   if (viewState === "error") {
     return <StatePanel kind="error" title="对象存储任务暂时不可用" description={failureDescription(failure)} actionLabel="重新加载" onAction={() => void load()} />;
@@ -330,23 +329,26 @@ export function ObjectStorageDataWorkspace({
   return (
     <div className="governed-file-workspace">
       <div className="governance-toolbar">
-        <Text>这里只提供当前租户和知识空间已获授权的对象范围；对象位置、桶名、对象键、正文和凭据均不会展示。</Text>
-        <div className="task-actions"><Button appearance="subtle" icon={<ArrowClockwise20Regular />} onClick={() => void load()}>刷新</Button><Button appearance="subtle" onClick={() => void logout()}>退出登录</Button></div>
+        <Text>这里只提供当前租户和知识库已获授权的对象范围；对象位置、桶名、对象键、正文和凭据均不会展示。</Text>
+        <div className="task-actions"><Button appearance="subtle" icon={<ArrowClockwise20Regular />} onClick={() => void load()}>刷新</Button></div>
       </div>
       {failure ? <FailureMessage failure={failure} /> : null}
-      {spaces.length === 0 ? <StatePanel kind="empty" title="尚无可用知识空间" description="先在“首份文本发布”任务创建知识空间，再登记平台对象存储范围。" /> : (
+      {spaces.length === 0 ? <StatePanel kind="empty" title="尚无可用知识库" description="先在“知识库目录”任务创建知识库，再登记平台对象存储范围。" /> : (
         <section className="governed-file-section">
-          <header className="task-heading"><Title3>登记平台对象存储范围</Title3><Text>从当前知识空间已授权的范围中选择并登记即可。</Text></header>
+          <header className="task-heading"><Title3>登记平台对象存储范围</Title3><Text>从当前知识库已授权的范围中选择并登记即可。</Text></header>
           <form className="governed-file-form" onSubmit={register}>
-            <Field label="知识空间" required><Select value={knowledgeSpaceId} disabled={submitting || source !== undefined} onChange={(_, data) => {
+            <Field label="知识库" required><Select value={knowledgeSpaceId} disabled={submitting || source !== undefined} onChange={(_, data) => {
               setSource(undefined);
               setPublishedArtifactId(undefined);
               setIndexVersion(undefined);
               setRangePage(1);
               onRouteChange({ ...route, knowledgeSpaceId: data.value || undefined });
-            }}>{spaces.map((space) => <option key={space.id} value={space.id}>{space.name}</option>)}</Select></Field>
+            }}>
+              <option value="">请选择知识库</option>
+              {spaces.map((space) => <option key={space.id} value={space.id}>{space.name}</option>)}
+            </Select></Field>
             <PagedResourceNavigation
-              label="知识空间"
+              label="知识库"
               page={route.knowledgeSpacePage}
               total={spaceTotal}
               hasPrevious={spaceHasPrevious}
@@ -375,7 +377,7 @@ export function ObjectStorageDataWorkspace({
             <PagedResourceNavigation label="对象范围" page={rangePage} total={rangeCandidates.length}
               hasPrevious={rangePage > 1} hasNext={rangeHasNext} disabled={submitting || source !== undefined}
               onPrevious={() => setRangePage((page) => page - 1)} onNext={() => setRangePage((page) => page + 1)} />
-            {rangeCandidates.length === 0 ? <Text>当前知识空间尚未配置可用对象范围。</Text> : null}
+            {rangeCandidates.length === 0 ? <Text>当前知识库尚未配置可用对象范围。</Text> : null}
             {source === undefined ? <Button appearance="primary" type="submit" disabled={submitting}>{submitting ? "正在登记" : "登记对象存储范围"}</Button> : null}
           </form>
           {source ? <article className="governed-file-result">

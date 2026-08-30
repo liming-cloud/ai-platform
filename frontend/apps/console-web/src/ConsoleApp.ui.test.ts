@@ -14,6 +14,13 @@ describe("控制台共享任务导航", () => {
     expect(source).not.toContain('className="data-task-switcher"');
   });
 
+  it("知识库子任务切换复用可恢复路由上下文", () => {
+    const source = readFileSync(appPath, "utf8");
+
+    expect(source).toContain("knowledgeDataTaskRoute(route, task)");
+    expect(source).not.toContain('task, knowledgeSpacePage: 1, embeddingModelConfigurationPage: 1');
+  });
+
   it("账户区展示当前浏览器会话的中文角色", () => {
     const source = readFileSync(appPath, "utf8");
 

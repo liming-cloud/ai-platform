@@ -13,6 +13,7 @@ UPGRADE_DRILL = (
     REPOSITORY_ROOT / "scripts" / "operations" / "demo-upgrade-drill.sh"
 )
 RUNBOOK = REPOSITORY_ROOT / "docs" / "runbooks" / "demo-delivery.md"
+DEPLOY_SMOKE = REPOSITORY_ROOT / "scripts" / "development" / "deploy-smoke.sh"
 REPORT_FILE = (
     REPOSITORY_ROOT
     / "project"
@@ -100,6 +101,13 @@ class DeliveryOperationsTest(unittest.TestCase):
         self.assertIn("每日查询上限：100", runbook)
         self.assertIn("本地确定性模型", runbook)
         self.assertIn("退出登录", runbook)
+
+    def test_deploy_smoke_matches_the_unified_console_topology(self) -> None:
+        content = DEPLOY_SMOKE.read_text(encoding="utf-8")
+
+        self.assertIn("FOUNDATION_CONSOLE_WEB_PORT", content)
+        self.assertNotIn("FOUNDATION_QUERY_WEB_PORT", content)
+        self.assertIn("四个应用入口健康检查通过", content)
 
     def test_drill_uses_fresh_resources_and_cleans_them(self) -> None:
         content = DELIVERY_DRILL.read_text(encoding="utf-8")

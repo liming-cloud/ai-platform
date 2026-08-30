@@ -12,7 +12,11 @@ import {
   ControlPlaneClient,
   type KnowledgeSpace,
 } from "../../api/control-plane-client";
-import type { ConsoleRoute } from "../../session/console-route";
+import {
+  knowledgeDataTaskRoute,
+  resolveKnowledgeSpaceIdOnPage,
+  type ConsoleRoute,
+} from "../../session/console-route";
 import { EmbeddingModelConfigurationPicker } from "../shared/EmbeddingModelConfigurationPicker";
 import {
   initialWorkflow,
@@ -26,7 +30,6 @@ import {
   ContentForm,
   IndexBuildReview,
   PublishReview,
-  SpaceForm,
   SpacePicker,
   WorkflowFeedback,
 } from "./PublicationViews";
@@ -35,13 +38,11 @@ export function KnowledgePublicationFlow({
   client: providedClient,
   route,
   sessionRevision: sharedSessionRevision = 0,
-  onSessionChanged,
   onRouteChange,
 }: {
   client?: ControlPlaneClient;
   route: Extract<ConsoleRoute, { task: "first-publication" }>;
   sessionRevision?: number;
-  onSessionChanged?: () => void;
   onRouteChange: (route: ConsoleRoute) => void;
 }) {
   const ownedClient = useMemo(() => new ControlPlaneClient(), []);
@@ -52,13 +53,14 @@ export function KnowledgePublicationFlow({
   const [spaceHasPrevious, setSpaceHasPrevious] = useState(false);
   const [spaceHasNext, setSpaceHasNext] = useState(false);
   const [canBuildIndex, setCanBuildIndex] = useState(false);
-  const [creatingSpace, setCreatingSpace] = useState(false);
   const [content, setContent] = useState("");
   const requestKeys = useRef(
     new Map<string, { fingerprint: string; key: string }>(),
   );
   const mounted = useRef(true);
   const sessionRevision = useRef(0);
+  const selectedKnowledgeSpaceId = resolveKnowledgeSpaceIdOnPage(
+    route.knowledgeSpaceId, spaces);
 
   useEffect(() => () => {
     mounted.current = false;
@@ -72,18 +74,23 @@ export function KnowledgePublicationFlow({
       setSpaceTotal(page.totalElements);
       setSpaceHasPrevious(page.hasPrevious);
       setSpaceHasNext(page.hasNext);
-      const selectedSpaceId = page.items.some((space) => space.id === route.knowledgeSpaceId)
-        ? route.knowledgeSpaceId
-        : page.items[0]?.id;
-      setCreatingSpace(page.totalElements === 0);
-      if (selectedSpaceId !== route.knowledgeSpaceId) {
-        onRouteChange({ ...route, knowledgeSpaceId: selectedSpaceId });
-      }
+      const selectedSpaceId = resolveKnowledgeSpaceIdOnPage(
+        route.knowledgeSpaceId,
+        page.items,
+      );
       dispatch({ type: "authenticated" });
+      if (route.knowledgeSpaceId !== undefined && selectedSpaceId === undefined) {
+        dispatch({
+          type: "failed",
+          code: "KNOWLEDGE_SPACE_SELECTION_NOT_FOUND",
+          message: "地址中的知识库不在当前目录页。请返回知识库目录重新选择；系统不会自动切换到其他知识库。",
+          traceId: "",
+        });
+      }
     } catch (error) {
       dispatchFailure(dispatch, error);
     }
-  }, [client, onRouteChange, route]);
+  }, [client, route]);
 
   useEffect(() => {
     const timeout = window.setTimeout(() => {
@@ -92,7 +99,6 @@ export function KnowledgePublicationFlow({
         setSpaceTotal(0);
         setSpaceHasPrevious(false);
         setSpaceHasNext(false);
-        setCreatingSpace(false);
         setContent("");
         requestKeys.current.clear();
         dispatch({ type: "signed-out" });
@@ -104,28 +110,6 @@ export function KnowledgePublicationFlow({
     }, 0);
     return () => window.clearTimeout(timeout);
   }, [client, loadSpaces, sharedSessionRevision, workflow.stage]);
-
-  async function createSpace(input: {
-    name: string;
-    description: string;
-  }) {
-    dispatch({ type: "submitting" });
-    try {
-      const space = await client.createKnowledgeSpace(
-        input,
-        stableRequestKey(requestKeys.current, "create-space", input),
-      );
-      requestKeys.current.delete("create-space");
-      onRouteChange({ ...route, knowledgeSpacePage: 1, knowledgeSpaceId: space.id });
-      dispatch({
-        type: "space-ready",
-        spaceId: space.id,
-        spaceName: space.name,
-      });
-    } catch (error) {
-      dispatchFailure(dispatch, error);
-    }
-  }
 
   function useSelectedSpace() {
     const space = spaces.find((candidate) => candidate.id === route.knowledgeSpaceId);
@@ -299,23 +283,6 @@ export function KnowledgePublicationFlow({
     }
   }
 
-  async function signOut() {
-    sessionRevision.current += 1;
-    try {
-      await client.logout();
-    } finally {
-      setSpaces([]);
-      setSpaceTotal(0);
-      setSpaceHasPrevious(false);
-      setSpaceHasNext(false);
-      setCreatingSpace(false);
-      setContent("");
-      requestKeys.current.clear();
-      dispatch({ type: "signed-out" });
-      onSessionChanged?.();
-    }
-  }
-
   return (
     <div className="publication-layout">
       <PublicationProgress stage={workflow.stage} />
@@ -336,29 +303,20 @@ export function KnowledgePublicationFlow({
         ) : null}
 
         {workflow.stage === "space" ? (
-          creatingSpace ? (
-            <SpaceForm
-              busy={workflow.busy}
-              canUseExisting={spaces.length > 0}
-              onCancel={() => setCreatingSpace(false)}
-              onSubmit={createSpace}
-            />
-          ) : (
-            <SpacePicker
-              spaces={spaces}
-              selectedId={route.knowledgeSpaceId ?? ""}
-              busy={workflow.busy}
-              page={route.knowledgeSpacePage}
-              total={spaceTotal}
-              hasPrevious={spaceHasPrevious}
-              hasNext={spaceHasNext}
-              onSelected={(knowledgeSpaceId) => onRouteChange({ ...route, knowledgeSpaceId })}
-              onPrevious={() => onRouteChange({ ...route, knowledgeSpacePage: route.knowledgeSpacePage - 1, knowledgeSpaceId: undefined })}
-              onNext={() => onRouteChange({ ...route, knowledgeSpacePage: route.knowledgeSpacePage + 1, knowledgeSpaceId: undefined })}
-              onContinue={useSelectedSpace}
-              onCreate={() => setCreatingSpace(true)}
-            />
-          )
+          <SpacePicker
+            spaces={spaces}
+            selectedId={selectedKnowledgeSpaceId ?? ""}
+            busy={workflow.busy}
+            page={route.knowledgeSpacePage}
+            total={spaceTotal}
+            hasPrevious={spaceHasPrevious}
+            hasNext={spaceHasNext}
+            onSelected={(knowledgeSpaceId) => onRouteChange({ ...route, knowledgeSpaceId })}
+            onPrevious={() => onRouteChange({ ...route, knowledgeSpacePage: route.knowledgeSpacePage - 1, knowledgeSpaceId: undefined })}
+            onNext={() => onRouteChange({ ...route, knowledgeSpacePage: route.knowledgeSpacePage + 1, knowledgeSpaceId: undefined })}
+            onContinue={useSelectedSpace}
+            onManage={() => onRouteChange(knowledgeDataTaskRoute(route, "knowledge-bases"))}
+          />
         ) : null}
 
         {workflow.stage === "content" ? (
@@ -409,7 +367,7 @@ export function KnowledgePublicationFlow({
             spaceName={workflow.space?.name ?? ""}
             sourceName={workflow.source?.name ?? ""}
             chunkCount={workflow.indexVersion?.chunkCount ?? 0}
-            onSignOut={signOut}
+            onReturn={() => onRouteChange(knowledgeDataTaskRoute(route, "knowledge-bases"))}
           />
         ) : null}
       </section>

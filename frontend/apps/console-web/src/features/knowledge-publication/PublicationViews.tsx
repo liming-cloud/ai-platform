@@ -31,7 +31,7 @@ export function SpacePicker({
   onPrevious,
   onNext,
   onContinue,
-  onCreate,
+  onManage,
 }: {
   spaces: KnowledgeSpace[];
   selectedId: string;
@@ -44,24 +44,24 @@ export function SpacePicker({
   onPrevious: () => void;
   onNext: () => void;
   onContinue: () => void;
-  onCreate: () => void;
+  onManage: () => void;
 }) {
   if (spaces.length === 0) {
     return (
       <StatePanel
         kind="empty"
-        title="还没有知识空间"
-        description="创建一个知识空间后即可登记首份文本数据。"
-        actionLabel="创建知识空间"
-        onAction={onCreate}
+        title="尚未建立知识库"
+        description="先返回知识库目录建立当前租户的数据与权限边界，再进入快速入门。"
+        actionLabel="返回知识库目录"
+        onAction={onManage}
       />
     );
   }
 
   return (
     <TaskSection
-      title="选择知识空间"
-      description="继续已有空间，或为新的权限和数据边界创建空间。"
+      title="选择知识库"
+      description="快速入门只使用当前租户已有知识库，不会在流程中隐式建库。"
     >
       <RadioGroup
         value={selectedId}
@@ -77,7 +77,7 @@ export function SpacePicker({
         ))}
       </RadioGroup>
       <PagedResourceNavigation
-        label="知识空间"
+        label="知识库"
         page={page}
         total={total}
         hasPrevious={hasPrevious}
@@ -92,78 +92,12 @@ export function SpacePicker({
           disabled={busy || selectedId.length === 0}
           onClick={onContinue}
         >
-          使用选中空间
+          使用选中知识库
         </Button>
-        <Button appearance="secondary" disabled={busy} onClick={onCreate}>
-          创建新空间
+        <Button appearance="secondary" disabled={busy} onClick={onManage}>
+          管理知识库
         </Button>
       </div>
-    </TaskSection>
-  );
-}
-
-export function SpaceForm({
-  busy,
-  canUseExisting,
-  onCancel,
-  onSubmit,
-}: {
-  busy: boolean;
-  canUseExisting: boolean;
-  onCancel: () => void;
-  onSubmit: (input: { name: string; description: string }) => Promise<void>;
-}) {
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
-
-  function submit(event: FormEvent) {
-    event.preventDefault();
-    void onSubmit({ name, description });
-  }
-
-  return (
-    <TaskSection
-      title="创建知识空间"
-      description="空间是数据、权限和后续索引版本的共同边界。"
-    >
-      <form className="task-form" onSubmit={submit}>
-        <Field label="空间名称" required>
-          <Input
-            value={name}
-            maxLength={80}
-            disabled={busy}
-            onChange={(_, data) => setName(data.value)}
-          />
-        </Field>
-        <Field label="用途说明">
-          <Textarea
-            value={description}
-            maxLength={500}
-            resize="vertical"
-            disabled={busy}
-            onChange={(_, data) => setDescription(data.value)}
-          />
-        </Field>
-        <div className="task-actions">
-          <Button
-            appearance="primary"
-            type="submit"
-            disabled={busy || name.trim().length === 0}
-          >
-            {busy ? "正在创建" : "创建并继续"}
-          </Button>
-          {canUseExisting ? (
-            <Button
-              appearance="secondary"
-              type="button"
-              disabled={busy}
-              onClick={onCancel}
-            >
-              返回已有空间
-            </Button>
-          ) : null}
-        </div>
-      </form>
     </TaskSection>
   );
 }
@@ -252,7 +186,7 @@ export function PublishReview({
     >
       <dl className="review-list">
         <div>
-          <dt>知识空间</dt>
+          <dt>知识库</dt>
           <dd>{spaceName}</dd>
         </div>
         <div>
@@ -283,20 +217,20 @@ export function Completion({
   spaceName,
   sourceName,
   chunkCount,
-  onSignOut,
+  onReturn,
 }: {
   spaceName: string;
   sourceName: string;
   chunkCount: number;
-  onSignOut: () => Promise<void>;
+  onReturn: () => void;
 }) {
   return (
     <StatePanel
       kind="empty"
       title="首份知识数据已可检索"
       description={`“${sourceName}”已进入“${spaceName}”，当前索引包含 ${chunkCount} 个文本分块。`}
-      actionLabel="退出演示会话"
-      onAction={() => void onSignOut()}
+      actionLabel="返回知识库目录"
+      onAction={onReturn}
       icon={<CheckmarkCircle20Filled aria-hidden />}
     />
   );
@@ -349,7 +283,7 @@ export function IndexBuildReview({
       title={ready ? "发布检索索引" : "正在构建检索索引"}
       description={
         ready
-          ? "索引已完成一致性核验。发布后，它将成为该知识空间唯一可查询的活动版本。"
+          ? "索引已完成一致性核验。发布后，它将成为该知识库唯一可查询的活动版本。"
           : "正在进行内容分块和索引写入，页面会自动更新处理进度。"
       }
     >

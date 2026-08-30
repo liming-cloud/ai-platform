@@ -13,6 +13,7 @@ import com.aiplatform.foundation.security.identity.PermissionCode;
 import com.aiplatform.foundation.security.identity.SubjectId;
 import com.aiplatform.foundation.security.identity.TrustedRequestContext;
 import com.aiplatform.foundation.security.session.AuthenticatedSessionGateway;
+import com.aiplatform.foundation.security.web.BrowserSessionCookieNames;
 import com.redis.testcontainers.RedisContainer;
 import java.time.Instant;
 import java.util.List;
@@ -45,6 +46,7 @@ class KnowledgeSpaceApiTest {
 
     private static final long STORE_TENANT =
             100000000000000001L;
+    private static final String DEMO_PASSWORD = "Demo@2026!";
 
     @Container
     private static final PostgreSQLContainer POSTGRES =
@@ -122,7 +124,7 @@ class KnowledgeSpaceApiTest {
     }
 
     @Test
-    void 未登录和缺少写权限均失败且不创建资源() {
+    void 未登录和普通用户资料读取权均不能进入知识库管理契约() {
         var unauthenticated = http.getForEntity(
                 url("/api/v1/knowledge-spaces"),
                 ApiError.class);
@@ -139,6 +141,17 @@ class KnowledgeSpaceApiTest {
                 1,
                 Set.of(new PermissionCode("knowledge:read")),
                 "trace-read-only"));
+        var hidden = http.exchange(
+                url("/api/v1/knowledge-spaces"),
+                HttpMethod.GET,
+                new HttpEntity<>(authorized(readOnly.tokenValue())),
+                ApiError.class);
+        assertEquals(HttpStatus.FORBIDDEN, hidden.getStatusCode());
+        assertNotNull(hidden.getBody());
+        assertEquals(
+                "KNOWLEDGE_DATA.AUTHORIZATION.0001",
+                hidden.getBody().code());
+
         var headers = authorized(readOnly.tokenValue());
         headers.add("Idempotency-Key", "request-http-0002");
         var denied = http.postForEntity(
@@ -149,6 +162,51 @@ class KnowledgeSpaceApiTest {
         assertEquals(HttpStatus.FORBIDDEN, denied.getStatusCode());
         assertNotNull(denied.getBody());
         assertEquals("KNOWLEDGE_DATA.AUTHORIZATION.0001", denied.getBody().code());
+        assertEquals(
+                0,
+                jdbc.queryForObject(
+                        "SELECT count(*) FROM knowledge_data.knowledge_space",
+                        Integer.class));
+    }
+
+    @Test
+    void 只有平台浏览器会话时不能访问或创建租户知识库() {
+        var browserHeaders = platformBrowserHeaders();
+        var capability = http.exchange(
+                url("/api/v1/auth/browser-session"),
+                HttpMethod.GET,
+                new HttpEntity<>(browserHeaders),
+                Map.class);
+        assertEquals(HttpStatus.OK, capability.getStatusCode());
+        assertNotNull(capability.getBody());
+        assertEquals(
+                List.of("PLATFORM_TENANT_GOVERNANCE"),
+                capability.getBody().get("workspaceCategories"));
+        assertEquals(
+                List.of("PLATFORM_ADMINISTRATOR"),
+                capability.getBody().get("displayRoles"));
+
+        var listed = http.exchange(
+                url("/api/v1/knowledge-spaces"),
+                HttpMethod.GET,
+                new HttpEntity<>(browserHeaders),
+                ApiError.class);
+        assertEquals(HttpStatus.UNAUTHORIZED, listed.getStatusCode());
+        assertNotNull(listed.getBody());
+        assertEquals(
+                "PLATFORM_SECURITY.AUTHENTICATION.0001",
+                listed.getBody().code());
+
+        browserHeaders.add("Idempotency-Key", "request-http-platform-browser");
+        var created = http.postForEntity(
+                url("/api/v1/knowledge-spaces"),
+                new HttpEntity<>(Map.of("name", "平台不得建立"), browserHeaders),
+                ApiError.class);
+        assertEquals(HttpStatus.UNAUTHORIZED, created.getStatusCode());
+        assertNotNull(created.getBody());
+        assertEquals(
+                "PLATFORM_SECURITY.AUTHENTICATION.0001",
+                created.getBody().code());
         assertEquals(
                 0,
                 jdbc.queryForObject(
@@ -199,6 +257,60 @@ class KnowledgeSpaceApiTest {
                 .anyMatch(item -> item.name().equals("令牌范围知识")));
         assertTrue(list(campusToken).items().stream()
                 .noneMatch(item -> item.name().equals("令牌范围知识")));
+    }
+
+    private HttpHeaders platformBrowserHeaders() {
+        var csrfResponse = http.getForEntity(
+                url("/api/v1/auth/browser-csrf"),
+                Void.class);
+        assertEquals(HttpStatus.NO_CONTENT, csrfResponse.getStatusCode());
+        var initialCsrfCookie = cookiePair(
+                csrfResponse.getHeaders(),
+                BrowserSessionCookieNames.CSRF + "=");
+        var loginHeaders = sameOriginHeaders();
+        loginHeaders.set(HttpHeaders.COOKIE, initialCsrfCookie);
+        loginHeaders.set(
+                "X-CSRF-Token",
+                initialCsrfCookie.substring(initialCsrfCookie.indexOf('=') + 1));
+        var login = http.exchange(
+                url("/api/v1/auth/browser-sessions"),
+                HttpMethod.POST,
+                new HttpEntity<>(
+                        Map.of(
+                                "loginName", "platform-admin",
+                                "password", DEMO_PASSWORD),
+                        loginHeaders),
+                Void.class);
+        assertEquals(HttpStatus.NO_CONTENT, login.getStatusCode());
+        var platformCookie = cookiePair(
+                login.getHeaders(),
+                BrowserSessionCookieNames.PLATFORM_SESSION + "=");
+        var refreshedCsrfCookie = cookiePair(
+                login.getHeaders(),
+                BrowserSessionCookieNames.CSRF + "=");
+        var browserHeaders = sameOriginHeaders();
+        browserHeaders.set(
+                HttpHeaders.COOKIE,
+                platformCookie + "; " + refreshedCsrfCookie);
+        browserHeaders.set(
+                "X-CSRF-Token",
+                refreshedCsrfCookie.substring(refreshedCsrfCookie.indexOf('=') + 1));
+        return browserHeaders;
+    }
+
+    private HttpHeaders sameOriginHeaders() {
+        var headers = new HttpHeaders();
+        headers.setOrigin("http://127.0.0.1:" + port);
+        headers.set("Sec-Fetch-Site", "same-origin");
+        return headers;
+    }
+
+    private static String cookiePair(HttpHeaders headers, String prefix) {
+        return headers.getOrEmpty(HttpHeaders.SET_COOKIE).stream()
+                .filter(value -> value.startsWith(prefix))
+                .findFirst()
+                .map(value -> value.substring(0, value.indexOf(';')))
+                .orElseThrow();
     }
 
     private void create(String token, String idempotencyKey, String name) {

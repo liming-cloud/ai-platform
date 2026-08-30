@@ -26,7 +26,6 @@ import java.util.Objects;
  */
 public final class KnowledgeSpaceService {
 
-    private static final PermissionCode READ = new PermissionCode("knowledge:read");
     private static final PermissionCode WRITE = new PermissionCode("knowledge:write");
 
     private final KnowledgeSpaceRepository repository;
@@ -70,7 +69,7 @@ public final class KnowledgeSpaceService {
 
     public PageResult<KnowledgeSpaceView> list(ListKnowledgeSpacesQuery query) {
         Objects.requireNonNull(query, "列表查询不能为空");
-        requirePermission(query.context(), READ);
+        requirePermission(query.context(), WRITE);
         var page = repository.findPage(
                 query.context().tenantId(),
                 query.page().pageNumber(),

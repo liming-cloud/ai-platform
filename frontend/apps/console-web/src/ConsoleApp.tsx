@@ -9,6 +9,8 @@ import { resolvePostAuthenticationDestination } from "./session/post-authenticat
 import {
   defaultConsoleRoute,
   formatConsoleRoute,
+  isKnowledgeDataTask,
+  knowledgeDataTaskRoute,
   parseConsoleRoute,
   resolveAuthorizedConsoleRoute,
   type ConsoleRoute,
@@ -31,6 +33,13 @@ const ObjectStorageDataWorkspace = lazy(async () => {
     "./features/governed-data/ObjectStorageDataWorkspace"
   );
   return { default: module.ObjectStorageDataWorkspace };
+});
+
+const KnowledgeSpaceWorkspace = lazy(async () => {
+  const module = await import(
+    "./features/knowledge-space/KnowledgeSpaceWorkspace"
+  );
+  return { default: module.KnowledgeSpaceWorkspace };
 });
 
 const QueryGovernanceWorkspace = lazy(async () => {
@@ -311,28 +320,26 @@ function AuthenticatedConsoleApp({
 
       <section hidden={!dataActive}>
         <TaskNavigation
-          ariaLabel="数据任务切换"
-          activeValue={route.navigationId === "data" ? route.task : "governed-file"}
+          ariaLabel="知识库任务切换"
+          activeValue={route.navigationId === "data" ? route.task : "knowledge-bases"}
           items={[
-            { value: "governed-file", label: "文件来源登记" },
+            { value: "knowledge-bases", label: "知识库目录" },
+            { value: "governed-file", label: "文件来源" },
             { value: "structured-dataset", label: "结构化数据集登记" },
-            { value: "object-storage", label: "对象存储范围登记" },
-            { value: "first-publication", label: "首份文本发布" },
+            { value: "object-storage", label: "对象存储范围" },
+            { value: "first-publication", label: "快速入门" },
           ]}
           onSelect={(task) => {
-            switch (task) {
-              case "governed-file":
-                navigate({ navigationId: "data", task, knowledgeSpacePage: 1, sourcePage: 1, embeddingModelConfigurationPage: 1 });
-                break;
-              case "structured-dataset":
-              case "object-storage":
-              case "first-publication":
-                navigate({ navigationId: "data", task, knowledgeSpacePage: 1, embeddingModelConfigurationPage: 1 });
-                break;
+            if (route.navigationId === "data" && isKnowledgeDataTask(task)) {
+              navigate(knowledgeDataTaskRoute(route, task));
             }
           }}
         />
-        {route.navigationId === "data" && route.task === "governed-file" ? (
+        {route.navigationId === "data" && route.task === "knowledge-bases" ? (
+          <Suspense fallback={<StatePanel kind="loading" title="正在加载知识库" description="正在读取当前租户的知识库目录。" />}>
+            <KnowledgeSpaceWorkspace client={client} route={route} onRouteChange={navigate} />
+          </Suspense>
+        ) : route.navigationId === "data" && route.task === "governed-file" ? (
           <Suspense fallback={<StatePanel kind="loading" title="正在加载数据任务" description="正在准备受治理文件来源流程。" />}>
             <GovernedFileDataWorkspace
               client={client}
@@ -367,7 +374,6 @@ function AuthenticatedConsoleApp({
             client={client}
             route={route}
             sessionRevision={sessionRevision}
-            onSessionChanged={sessionChanged}
             onRouteChange={navigate}
           />
         ) : null}
@@ -557,10 +563,15 @@ function readBrowserLocation() {
 
 function dataPageContent(route: Extract<ConsoleRoute, { navigationId: "data" }>) {
   switch (route.task) {
+    case "knowledge-bases":
+      return {
+        title: "知识库",
+        summary: "每个知识库只属于当前租户；从目录建立知识边界，再登记来源、完成质量检查并发布索引。",
+      };
     case "governed-file":
       return {
         title: "受治理文件来源",
-        summary: "在租户知识空间中登记并探测受控 UTF-8 文件，不展示对象位置或正文。",
+        summary: "在当前租户知识库中登记并探测受控 UTF-8 文件，不展示对象位置或正文。",
       };
     case "structured-dataset":
       return {
@@ -570,12 +581,12 @@ function dataPageContent(route: Extract<ConsoleRoute, { navigationId: "data" }>)
     case "object-storage":
       return {
         title: "对象存储范围登记",
-        summary: "从当前知识空间已获授权的对象范围中选择并登记数据来源。",
+        summary: "从当前知识库已获授权的对象范围中选择并登记数据来源。",
       };
     case "first-publication":
       return {
-        title: "发布首份知识数据",
-        summary: "用一个受控任务完成租户验证、知识空间创建、文本上传和发布核验。",
+        title: "知识发布快速入门",
+        summary: "选择当前租户已有知识库，完成文本上传、发布核验和检索索引；流程内不会隐式创建知识库。",
       };
   }
 }

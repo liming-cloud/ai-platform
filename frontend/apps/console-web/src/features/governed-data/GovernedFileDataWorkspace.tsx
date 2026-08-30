@@ -21,7 +21,10 @@ import {
   type IndexVersion,
   type KnowledgeSpace,
 } from "../../api/control-plane-client";
-import type { ConsoleRoute } from "../../session/console-route";
+import {
+  resolveKnowledgeSpaceIdOnPage,
+  type ConsoleRoute,
+} from "../../session/console-route";
 import { EmbeddingModelConfigurationPicker } from "../shared/EmbeddingModelConfigurationPicker";
 import { PagedResourceNavigation } from "../shared/PagedResourceNavigation";
 
@@ -64,7 +67,8 @@ export function GovernedFileDataWorkspace({
   const [indexVersion, setIndexVersion] = useState<IndexVersion>();
   const [failure, setFailure] = useState<Failure>();
   const [submitting, setSubmitting] = useState(false);
-  const knowledgeSpaceId = route.knowledgeSpaceId ?? "";
+  const knowledgeSpaceId = resolveKnowledgeSpaceIdOnPage(route.knowledgeSpaceId, spaces)
+    ?? "";
 
   const resetProtectedTaskState = useCallback(() => {
       setSpaces([]);
@@ -103,15 +107,19 @@ export function GovernedFileDataWorkspace({
     setFailure(undefined);
     try {
       const page = await client.listKnowledgeSpaces(route.knowledgeSpacePage);
-      const selectedKnowledgeSpaceId = page.items.some((space) => space.id === knowledgeSpaceId)
-        ? knowledgeSpaceId
-        : page.items[0]?.id;
+      const selectedKnowledgeSpaceId = resolveKnowledgeSpaceIdOnPage(
+        route.knowledgeSpaceId,
+        page.items,
+      );
       setSpaces(page.items);
       setSpaceHasPrevious(page.hasPrevious);
       setSpaceHasNext(page.hasNext);
       setSpaceTotal(page.totalElements);
-      if (selectedKnowledgeSpaceId !== undefined && selectedKnowledgeSpaceId !== knowledgeSpaceId) {
-        onRouteChange({ ...route, knowledgeSpaceId: selectedKnowledgeSpaceId, sourcePage: 1 });
+      if (route.knowledgeSpaceId !== undefined && selectedKnowledgeSpaceId === undefined) {
+        setFailure({
+          message: "地址中的知识库不在当前目录页。请返回知识库目录重新选择；系统不会自动切换到其他知识库。",
+          traceId: "",
+        });
       }
       if (selectedKnowledgeSpaceId !== undefined) {
         const sources = await client.listGovernedFileDataSources(selectedKnowledgeSpaceId, route.sourcePage);
@@ -133,7 +141,7 @@ export function GovernedFileDataWorkspace({
       setFailure(toFailure(error));
       setViewState("error");
     }
-  }, [client, knowledgeSpaceId, onRouteChange, resetProtectedTaskState, restartExpiredSession, route]);
+  }, [client, resetProtectedTaskState, restartExpiredSession, route]);
 
   useEffect(() => {
     const timeout = window.setTimeout(() => void load(), 0);
@@ -143,7 +151,7 @@ export function GovernedFileDataWorkspace({
   async function register(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (knowledgeSpaceId.length === 0 || sourceName.trim().length === 0 || content.trim().length === 0) {
-      setFailure({ message: "请选择知识空间，并填写来源名称和 UTF-8 文本内容。", traceId: "" });
+      setFailure({ message: "请选择知识库，并填写来源名称和 UTF-8 文本内容。", traceId: "" });
       return;
     }
     setSubmitting(true);
@@ -323,15 +331,6 @@ export function GovernedFileDataWorkspace({
     }
   }
 
-  async function logout() {
-    try {
-      await client.logout();
-    } finally {
-      onSessionChanged();
-      resetProtectedTaskState();
-      setViewState("unauthenticated");
-    }
-  }
 
   function selectSource(summary: GovernedFileDataSourceSummary | undefined) {
     setIndexVersion(undefined);
@@ -369,7 +368,7 @@ export function GovernedFileDataWorkspace({
   }
 
   if (viewState === "loading") {
-    return <StatePanel kind="loading" title="正在加载数据任务" description="正在读取当前租户可用知识空间。" />;
+    return <StatePanel kind="loading" title="正在加载数据任务" description="正在读取当前租户可用知识库。" />;
   }
 
   if (viewState === "error") {
@@ -392,9 +391,6 @@ export function GovernedFileDataWorkspace({
           <Button appearance="subtle" icon={<ArrowClockwise20Regular />} onClick={() => void load()}>
             刷新
           </Button>
-          <Button appearance="subtle" onClick={() => void logout()}>
-            退出登录
-          </Button>
         </div>
       </div>
 
@@ -403,8 +399,8 @@ export function GovernedFileDataWorkspace({
       {spaces.length === 0 ? (
         <StatePanel
           kind="empty"
-          title="尚无可用知识空间"
-          description="先在“首份文本发布”任务创建知识空间，再返回此处登记受治理文件来源。"
+          title="尚无可用知识库"
+          description="先在“知识库目录”任务创建知识库，再返回此处登记受治理文件来源。"
         />
       ) : (
         <section className="governed-file-section">
@@ -429,7 +425,7 @@ export function GovernedFileDataWorkspace({
             </Select>
           </Field>
           <form className="governed-file-form" onSubmit={register}>
-            <Field label="知识空间" required>
+            <Field label="知识库" required>
               <Select
                 value={knowledgeSpaceId}
                 onChange={(_, data) => {
@@ -442,11 +438,12 @@ export function GovernedFileDataWorkspace({
                 }}
                 disabled={submitting || source !== undefined}
               >
+                <option value="">请选择知识库</option>
                 {spaces.map((space) => <option key={space.id} value={space.id}>{space.name}</option>)}
               </Select>
             </Field>
             <PagedResourceNavigation
-              label="知识空间"
+              label="知识库"
               page={route.knowledgeSpacePage}
               total={spaceTotal}
               hasPrevious={spaceHasPrevious}

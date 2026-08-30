@@ -329,6 +329,7 @@
 | ADR-0069 本地固定平台管理员初始化凭据 | `project/evidence/ADR-0069-approval.md` | 本次控制面提交 | 纯本地空库固定初始化 `platform.root` 与公开开发口令；共享、测试、预发布和生产环境不得加载或复用。 |
 | ADR-0070 平台供应商权威模型发现 | `docs/adr/ADR-0070-authoritative-platform-model-discovery.md`、`project/evidence/ADR-0070-approval.md` | 本次控制面提交 | 用户接受 OpenAI-compatible／火山方舟权威发现、推理 API Key 与 Ark AK/SK 用途分离、未知候选管理员确认及前端脱敏边界。 |
 | ADR-0071 本地平台管理员完全重制 | `docs/adr/ADR-0071-local-platform-administrator-full-reset.md`、`project/evidence/ADR-0071-approval.md` | 本次控制面提交 | 用户授权备份后重建当前本地 PostgreSQL 并清空本地会话，固定初始化 `admin` 与公开开发口令；非本地环境和 MinIO 不在删除范围。 |
+| ADR-0072 租户知识库所有权与工作区边界 | `docs/adr/ADR-0072-tenant-owned-knowledge-base-workspace.md`、`project/evidence/ADR-0072-approval.md` | 本次控制面提交 | 用户确认知识库只归属单一租户并由租户管理员维护；平台只治理基础设施与脱敏聚合，真实浏览器三角色验收为不可替代门禁。 |
 | M6 三角色授权与能力投影 | `project/evidence/WP-0014-three-role-authorization-and-projection.md` | 本次提交 | 平台／租户角色收敛为三种，真实 PostgreSQL 迁移、会话能力、HTTP 和统一 SPA 回归通过；自定义角色入口退役，遗留实现待冗余接口审计切片清理。 |
 | M6 API 冗余审计 | `docs/audits/WP-0014-m6-api-redundancy-audit.md` | `294c510da` | 自定义角色及绑定 HTTP 契约已从运行时和浏览器客户端退休；用量、审计、运营聚合和资源标识路径按独立职责保留。 |
 | M6 OpenAI 风格企业产品重构自动回归 | `project/evidence/WP-0014-openai-style-enterprise-product-regression.md` | `d152e0747` | 三角色、两级运营聚合、名称选择器、统一 SPA、健康感知统计及部分失败恢复通过真实基础设施和 `make validate`；新增门禁阻断无标签内部标识编辑与审计响应泄露，登录后全流程及真实 200% 缩放待人工续证。 |
@@ -345,7 +346,8 @@
 | M6 本地平台管理员与数据完全重制 | `project/evidence/WP-0014-local-platform-administrator-full-reset.md` | 本次提交 | PostgreSQL 可恢复备份、红绿 TDD、空库重建、Redis 旧会话清理、唯一 `admin`、新旧凭据 HTTP、Compose 全健康和全表零业务事实均已复核；MinIO 未删除。 |
 | M6 平台权威模型发现 Chrome 与无障碍续证 | `project/evidence/WP-0014-authoritative-model-discovery-chrome-accessibility-regression.md` | `2d5b0135c` | 1024×768、390×844、真实 200% 缩放、键盘和 reduced-motion 通过；修复登录语义、Dialog 可达性与焦点恢复，真实 PostgreSQL、全量门禁和最终源码 Compose 七服务均通过。 |
 | M6 模型发现阻断修复 | `project/evidence/WP-0014-model-discovery-blocker-remediation.md` | `d7cf86fdd` | Compose 传递受控 Endpoint 与超时，接入预设阻止协议错配；真实同源 HTTP 返回 130 个待管理员确认候选且无内部字段泄漏，旧修订安全 409 不含错误码、消息、追踪标识和详情。 |
-| M6 企业组件库选型复核 | `project/evidence/WP-0014-enterprise-component-library-decision.md` | 本次提交 | 保留 Fluent UI v9 为唯一视觉系统，固定 7／5／6 设计参数，并以性能、包体、INP、响应式和无障碍量化门槛约束专项 Grid。 |
+| M6 企业组件库选型复核 | `project/evidence/WP-0014-enterprise-component-library-decision.md` | 本次提交 | 保留 Fluent UI v9 为唯一视觉系统，固定 7／6／6 设计参数，并以性能、包体、INP、响应式和无障碍量化门槛约束专项 Grid。 |
+| M6 租户知识库所有权与一等工作区 | `project/evidence/WP-0014-tenant-owned-knowledge-base-workspace.md` | 本次控制面提交 | 知识库固定归属单一租户，平台会话和只读租户会话均无法管理；后端、真实 PostgreSQL／HTTP、前端全量测试、最终源码 Compose 已通过，真实 Chrome 三角色与响应式硬门禁因工作区软链接权限配置待续证。 |
 | M6 全产品人工评审拒绝 | `project/evidence/M6-full-product-human-review-rejection-20260829.md` | 本次提交 | `HITL-0008-M6-REJECTION` 完整登记 19 项缺口；M6 与 WP-0014 保持进行中，M7 阻断，公共权限与生命周期整改须先有新 ADR。 |
 
 ## 证据规则

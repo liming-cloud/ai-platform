@@ -20,7 +20,10 @@ import {
   type KnowledgeSpace,
   type StructuredDatasetFieldInput,
 } from "../../api/control-plane-client";
-import type { ConsoleRoute } from "../../session/console-route";
+import {
+  resolveKnowledgeSpaceIdOnPage,
+  type ConsoleRoute,
+} from "../../session/console-route";
 import { modelRuntimeFailure, requiresSessionRestart } from "./GovernedFileDataWorkspace";
 import { EmbeddingModelConfigurationPicker } from "../shared/EmbeddingModelConfigurationPicker";
 import { PagedResourceNavigation } from "../shared/PagedResourceNavigation";
@@ -81,7 +84,8 @@ export function StructuredDatasetRegistrationWorkspace({
   const [publishedArtifactId, setPublishedArtifactId] = useState<string>();
   const [indexVersion, setIndexVersion] = useState<IndexVersion>();
   const [buildingIndex, setBuildingIndex] = useState(false);
-  const knowledgeSpaceId = route.knowledgeSpaceId ?? "";
+  const knowledgeSpaceId = resolveKnowledgeSpaceIdOnPage(route.knowledgeSpaceId, spaces)
+    ?? "";
 
   const resetProtectedTaskState = useCallback(() => {
     setSpaces([]);
@@ -121,15 +125,19 @@ export function StructuredDatasetRegistrationWorkspace({
     setFailure(undefined);
     try {
       const page = await client.listKnowledgeSpaces(route.knowledgeSpacePage);
-      const selectedKnowledgeSpaceId = page.items.some((space) => space.id === knowledgeSpaceId)
-        ? knowledgeSpaceId
-        : page.items[0]?.id;
+      const selectedKnowledgeSpaceId = resolveKnowledgeSpaceIdOnPage(
+        route.knowledgeSpaceId,
+        page.items,
+      );
       setSpaces(page.items);
       setSpaceHasPrevious(page.hasPrevious);
       setSpaceHasNext(page.hasNext);
       setSpaceTotal(page.totalElements);
-      if (selectedKnowledgeSpaceId !== undefined && selectedKnowledgeSpaceId !== knowledgeSpaceId) {
-        onRouteChange({ ...route, knowledgeSpaceId: selectedKnowledgeSpaceId });
+      if (route.knowledgeSpaceId !== undefined && selectedKnowledgeSpaceId === undefined) {
+        setFailure({
+          message: "地址中的知识库不在当前目录页。请返回知识库目录重新选择；系统不会自动切换到其他知识库。",
+          traceId: "",
+        });
       }
       setViewState("ready");
     } catch (error) {
@@ -139,7 +147,7 @@ export function StructuredDatasetRegistrationWorkspace({
       setFailure(toFailure(error));
       setViewState("error");
     }
-  }, [client, knowledgeSpaceId, onRouteChange, resetProtectedTaskState, restartExpiredSession, route]);
+  }, [client, resetProtectedTaskState, restartExpiredSession, route]);
 
   useEffect(() => {
     const timeout = window.setTimeout(() => void load(), 0);
@@ -149,7 +157,7 @@ export function StructuredDatasetRegistrationWorkspace({
   async function register(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (knowledgeSpaceId.length === 0 || name.trim().length === 0 || csv === undefined) {
-      setFailure({ message: "请选择知识空间，填写数据集名称，并选择 UTF-8 CSV。", traceId: "" });
+      setFailure({ message: "请选择知识库，填写数据集名称，并选择 UTF-8 CSV。", traceId: "" });
       return;
     }
     setSubmitting(true);
@@ -323,15 +331,6 @@ export function StructuredDatasetRegistrationWorkspace({
     }
   }
 
-  async function logout() {
-    try {
-      await client.logout();
-    } finally {
-      onSessionChanged();
-      resetProtectedTaskState();
-      setViewState("unauthenticated");
-    }
-  }
 
   if (viewState === "unauthenticated") {
     return (
@@ -346,7 +345,7 @@ export function StructuredDatasetRegistrationWorkspace({
   }
 
   if (viewState === "loading") {
-    return <StatePanel kind="loading" title="正在加载数据集登记任务" description="正在读取当前租户可用知识空间。" />;
+    return <StatePanel kind="loading" title="正在加载数据集登记任务" description="正在读取当前租户可用知识库。" />;
   }
 
   if (viewState === "error") {
@@ -359,12 +358,11 @@ export function StructuredDatasetRegistrationWorkspace({
         <Text>仅登记平台私有 UTF-8 CSV 与冻结字段映射；同步只读取冻结版本，质量由领域规则生成，发布仅选择 PASS 或 WARN 产物。</Text>
         <div className="task-actions">
           <Button appearance="subtle" icon={<ArrowClockwise20Regular />} onClick={() => void load()}>刷新</Button>
-          <Button appearance="subtle" onClick={() => void logout()}>退出登录</Button>
         </div>
       </div>
       {failure ? <FailureMessage failure={failure} /> : null}
       {spaces.length === 0 ? (
-        <StatePanel kind="empty" title="尚无可用知识空间" description="先在“首份文本发布”任务创建知识空间，再返回此处登记结构化数据集。" />
+        <StatePanel kind="empty" title="尚无可用知识库" description="先在“知识库目录”任务创建知识库，再返回此处登记结构化数据集。" />
       ) : (
         <section className="governed-file-section">
           <header className="task-heading">
@@ -372,7 +370,7 @@ export function StructuredDatasetRegistrationWorkspace({
             <Text>对象键、桶名、摘要、CSV 正文及敏感字段均不会在控制台展示或回显。</Text>
           </header>
           <form className="governed-file-form" onSubmit={register}>
-            <Field label="知识空间" required>
+            <Field label="知识库" required>
               <Select
                 value={knowledgeSpaceId}
                 disabled={submitting || source !== undefined}
@@ -383,11 +381,12 @@ export function StructuredDatasetRegistrationWorkspace({
                   onRouteChange({ ...route, knowledgeSpaceId: data.value || undefined });
                 }}
               >
+                <option value="">请选择知识库</option>
                 {spaces.map((space) => <option key={space.id} value={space.id}>{space.name}</option>)}
               </Select>
             </Field>
             <PagedResourceNavigation
-              label="知识空间"
+              label="知识库"
               page={route.knowledgeSpacePage}
               total={spaceTotal}
               hasPrevious={spaceHasPrevious}

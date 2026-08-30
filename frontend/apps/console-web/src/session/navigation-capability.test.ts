@@ -11,7 +11,26 @@ describe("visibleNavigation", () => {
       canUseTenantWorkspace: true,
       canUsePlatformGovernance: false,
       capabilityCodes: ["knowledge:read", "assistant:query"],
-    }).map((item) => item.id)).toEqual(["data", "query"]);
+    }).map((item) => item.id)).toEqual(["query"]);
+  });
+
+  it("只有租户知识管理能力才能看到知识库入口", () => {
+    const tenantNavigation = visibleNavigation({
+      canUseTenantWorkspace: true,
+      canUsePlatformGovernance: false,
+      capabilityCodes: ["knowledge:write"],
+    });
+    const platformNavigation = visibleNavigation({
+      canUseTenantWorkspace: false,
+      canUsePlatformGovernance: true,
+      capabilityCodes: ["knowledge:write"],
+    });
+
+    expect(tenantNavigation.map((item) => ({
+      id: item.id,
+      label: item.label,
+    }))).toEqual([{ id: "data", label: "知识库" }]);
+    expect(platformNavigation).toEqual([]);
   });
 
   it("平台运营主体没有治理写权限时不得看到平台租户入口", () => {
@@ -53,7 +72,7 @@ describe("visibleNavigation", () => {
     const tenantNavigation = visibleNavigation({
       canUseTenantWorkspace: true,
       canUsePlatformGovernance: false,
-      capabilityCodes: ["access:manage", "knowledge:read"],
+      capabilityCodes: ["access:manage", "knowledge:write"],
     });
     const platformNavigation = visibleNavigation({
       canUseTenantWorkspace: false,
@@ -84,6 +103,7 @@ describe("visibleNavigation", () => {
       capabilityCodes: [
         "access:manage",
         "knowledge:read",
+        "knowledge:write",
         "model:read",
         "usage:read",
         "assistant:query",

@@ -3,7 +3,7 @@ import type { NavigationItem } from "@foundation/design-system";
 export const NAVIGATION = [
   { id: "operations", label: "运营总览", icon: "overview", requiredCapability: "access:manage", workspace: "TENANT" },
   { id: "access", label: "成员与权限", icon: "people", requiredCapability: "access:manage", workspace: "TENANT" },
-  { id: "data", label: "数据", icon: "data", requiredCapability: "knowledge:read", workspace: "TENANT" },
+  { id: "data", label: "知识库", icon: "data", requiredCapability: "knowledge:write", workspace: "TENANT" },
   { id: "models", label: "模型", icon: "models", requiredCapability: "model:read", workspace: "TENANT" },
   { id: "governance", label: "治理", icon: "governance", requiredCapability: "usage:read", workspace: "TENANT" },
   { id: "query", label: "问答", icon: "query", requiredCapability: "assistant:query", workspace: "TENANT" },

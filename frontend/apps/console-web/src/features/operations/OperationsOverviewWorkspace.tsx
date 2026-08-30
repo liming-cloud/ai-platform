@@ -313,7 +313,7 @@ function PlatformOverview({ overview }: { overview: PlatformOperationsOverviewVi
         <StatusBlock title="平台管理员" value={overview.platformAdministrators} />
         <StatusBlock title="租户管理员" value={overview.tenantAdministrators} />
         <StatusBlock title="普通用户" value={overview.tenantUsers} />
-        <StatusBlock title="知识空间" value={overview.knowledgeSpaces} />
+        <StatusBlock title="知识库" value={overview.knowledgeSpaces} />
         <StatusBlock title="数据来源" value={overview.dataSources} />
         <StatusBlock title="索引" value={overview.indexes} />
         <StatusBlock title="同步与索引任务" value={overview.indexJobs} />
@@ -334,7 +334,7 @@ function TenantOverview({ overview }: { overview: TenantOperationsOverviewView }
       <div className="operations-overview__resource-grid">
         <StatusBlock title="租户管理员" value={overview.members.administrators} />
         <StatusBlock title="普通用户" value={overview.members.users} />
-        <StatusBlock title="知识空间" value={overview.knowledgeSpaces} />
+        <StatusBlock title="知识库" value={overview.knowledgeSpaces} />
         <StatusBlock title="数据来源" value={overview.dataSources} />
         <StatusBlock title="索引" value={overview.indexes} />
         <StatusBlock title="同步与索引任务" value={overview.indexJobs} />
