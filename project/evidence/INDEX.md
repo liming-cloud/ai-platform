@@ -350,6 +350,7 @@
 | M6 租户知识库所有权与一等工作区 | `project/evidence/WP-0014-tenant-owned-knowledge-base-workspace.md` | 本次控制面提交 | 知识库固定归属单一租户，平台会话和只读租户会话均无法管理；后端、真实 PostgreSQL／HTTP、前端全量测试、最终源码 Compose 已通过，真实 Chrome 三角色与响应式硬门禁因工作区软链接权限配置待续证。 |
 | M6 全产品人工评审拒绝 | `project/evidence/M6-full-product-human-review-rejection-20260829.md` | 本次提交 | `HITL-0008-M6-REJECTION` 完整登记 19 项缺口；M6 与 WP-0014 保持进行中，M7 阻断，公共权限与生命周期整改须先有新 ADR。 |
 | M6 租户成员候选内联 SQL 门禁与真实分页 | `project/evidence/WP-0014-tenant-member-candidate-inline-sql-guard.md` | `ceb946aa9` | Java 内联 SQL 架构门禁红绿、Mapper XML 迁移、真实 PostgreSQL 服务端分页、自动配置、完整上下文和 `make validate` 通过；权限互斥语义留待新 ADR。 |
+| ADR-0073 租户管理员所有权与人员范围资格提议 | `docs/adr/ADR-0073-platform-owned-tenant-administrator-governance.md`、`project/evidence/WP-0014-tenant-administrator-ownership-domain-design.md` | 本次控制面提交 | 推荐平台独占租户管理员生命周期、租户只治理普通成员，并以共同主体锁保护活动平台角色与启用租户成员资格互斥；等待人工接受，尚未修改生产授权逻辑。 |
 
 ## 证据规则
 

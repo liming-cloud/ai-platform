@@ -79,7 +79,8 @@ confirmedDecisions:
   - ADR-0070
   - ADR-0071
   - ADR-0072
-openDecisions: []
+openDecisions:
+  - ADR-0073
 latestEvidence:
   - docs/research/WP-0003-framework-baseline.md
   - project/evidence/WP-0003-trusted-context.md
@@ -307,6 +308,8 @@ latestEvidence:
   - project/evidence/WP-0014-tenant-owned-knowledge-base-workspace.md
   - project/evidence/M6-full-product-human-review-rejection-20260829.md
   - project/evidence/WP-0014-tenant-member-candidate-inline-sql-guard.md
-nextReviewAt: "解除浏览器 writable root 阻塞并完成真实 Chrome 六项矩阵后"
-updatedAt: 2026-08-31T08:23:33+08:00
+  - docs/adr/ADR-0073-platform-owned-tenant-administrator-governance.md
+  - project/evidence/WP-0014-tenant-administrator-ownership-domain-design.md
+nextReviewAt: "人工接受或否决 ADR-0073 后"
+updatedAt: 2026-08-31T08:31:48+08:00
 updatedBy: codex
