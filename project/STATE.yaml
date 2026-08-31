@@ -2,7 +2,7 @@ schemaVersion: 1
 productVersion: foundation-v1
 currentMilestone: M6
 currentFrontier: WP-0014
-lastVerifiedCommit: d7cf86fdd
+lastVerifiedCommit: ceb946aa9
 activeWorkPackages:
   - WP-0014
 blockedWorkPackages: []
@@ -306,6 +306,7 @@ latestEvidence:
   - project/evidence/WP-0014-enterprise-component-library-decision.md
   - project/evidence/WP-0014-tenant-owned-knowledge-base-workspace.md
   - project/evidence/M6-full-product-human-review-rejection-20260829.md
+  - project/evidence/WP-0014-tenant-member-candidate-inline-sql-guard.md
 nextReviewAt: "解除浏览器 writable root 阻塞并完成真实 Chrome 六项矩阵后"
-updatedAt: 2026-08-30T12:32:52+08:00
+updatedAt: 2026-08-31T08:23:33+08:00
 updatedBy: codex
