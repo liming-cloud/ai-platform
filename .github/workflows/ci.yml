@@ -20,3 +20,5 @@ jobs:
           persist-credentials: false
       - name: 验证长期项目控制面
         run: make project-verify
+      - name: 验证前后端架构门禁
+        run: make architecture-guard

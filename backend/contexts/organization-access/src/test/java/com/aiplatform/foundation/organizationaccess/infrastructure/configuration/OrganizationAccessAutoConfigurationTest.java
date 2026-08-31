@@ -34,6 +34,7 @@ import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.a
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.identity.mapper.SubjectIdentityMapper;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.identity.mapper.PlatformAccountMapper;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.membership.mapper.TenantMembershipMapper;
+import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.member.mapper.TenantMemberCandidateMapper;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.member.mapper.TenantMemberStatusMapper;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.member.mapper.TenantMemberDirectoryMapper;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.member.mapper.TenantMemberEstablishmentMapper;
@@ -80,6 +81,9 @@ class OrganizationAccessAutoConfigurationTest {
             .withBean(
                     TenantMembershipMapper.class,
                     () -> mock(TenantMembershipMapper.class))
+            .withBean(
+                    TenantMemberCandidateMapper.class,
+                    () -> mock(TenantMemberCandidateMapper.class))
             .withBean(
                     TenantMemberStatusMapper.class,
                     () -> mock(TenantMemberStatusMapper.class))

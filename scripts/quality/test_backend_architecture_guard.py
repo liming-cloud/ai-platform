@@ -58,6 +58,27 @@ class BackendArchitectureGuardTest(unittest.TestCase):
 
         self.assertTrue(any("SQL 注解" in error for error in errors))
 
+    def test_new_java_inline_sql_is_rejected(self):
+        baseline = MODULE.scan(self.root)
+        self.write_java(
+            "backend/contexts/demo/src/main/java/demo/DemoDirectory.java",
+            """
+            import org.springframework.jdbc.core.simple.JdbcClient;
+
+            final class DemoDirectory {
+                long count(JdbcClient jdbc) {
+                    return jdbc.sql("SELECT COUNT(*) FROM demo.item")
+                            .query(Long.class)
+                            .single();
+                }
+            }
+            """,
+        )
+
+        errors = MODULE.compare(MODULE.scan(self.root), baseline)
+
+        self.assertTrue(any("Java 内联 SQL" in error for error in errors))
+
     def test_new_uuid_use_is_rejected(self):
         baseline = MODULE.scan(self.root)
         self.write_java(

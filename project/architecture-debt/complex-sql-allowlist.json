@@ -602,6 +602,12 @@
       "reason": "使用与成员目录相同的租户范围计算总数，避免通过分页元数据泄露其他租户成员数量。"
     },
     {
+      "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/TenantMemberCandidateMapper.xml",
+      "statementId": "selectEligiblePage",
+      "category": "SECURITY_PROJECTION",
+      "reason": "按当前租户排除已有成员，只返回活动账户的名称化安全候选投影。"
+    },
+    {
       "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/TenantMemberEstablishmentMapper.xml",
       "statementId": "lockActiveSubject",
       "category": "ROW_LOCK",

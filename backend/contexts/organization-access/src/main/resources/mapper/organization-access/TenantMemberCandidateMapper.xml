@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aiplatform.foundation.organizationaccess.infrastructure.persistence.member.mapper.TenantMemberCandidateMapper">
+
+    <select id="selectEligiblePage"
+            resultType="com.aiplatform.foundation.organizationaccess.infrastructure.persistence.member.projection.TenantMemberCandidateRow">
+        <![CDATA[
+        SELECT account.subject_id,
+               account.login_name,
+               account.status
+        FROM organization_access.subject_identity account
+        WHERE account.status = 'ACTIVE'
+          AND lower(account.login_name) LIKE #{pattern} ESCAPE '\'
+          AND NOT EXISTS (
+              SELECT 1
+              FROM organization_access.tenant_membership member
+              WHERE member.tenant_id = #{tenantId}
+                AND member.subject_id = account.subject_id
+          )
+        ORDER BY lower(account.login_name), account.subject_id
+        ]]>
+    </select>
+</mapper>

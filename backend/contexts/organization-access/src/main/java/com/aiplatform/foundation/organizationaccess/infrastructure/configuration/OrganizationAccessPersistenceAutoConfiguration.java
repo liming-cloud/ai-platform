@@ -46,11 +46,12 @@ import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.m
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.membership.repository.PostgresTenantMembershipRepository;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.member.mapper.TenantMemberStatusMapper;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.member.repository.PostgresTenantMemberStatusStore;
+import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.member.mapper.TenantMemberCandidateMapper;
+import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.member.repository.PostgresTenantMemberCandidateDirectory;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.member.mapper.TenantMemberDirectoryMapper;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.member.repository.PostgresTenantMemberDirectory;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.member.mapper.TenantMemberEstablishmentMapper;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.member.repository.PostgresTenantMemberEstablishmentStore;
-import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.member.repository.JdbcTenantMemberCandidateDirectory;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.operations.JdbcOrganizationOperationsFactSource;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.mapper.TenantLifecycleBackfillMapper;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.mapper.TenantLifecycleReadMapper;
@@ -155,9 +156,8 @@ public class OrganizationAccessPersistenceAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    @ConditionalOnBean(JdbcClient.class)
-    TenantMemberCandidateDirectory tenantMemberCandidateDirectory(JdbcClient jdbc) {
-        return new JdbcTenantMemberCandidateDirectory(jdbc);
+    TenantMemberCandidateDirectory tenantMemberCandidateDirectory(TenantMemberCandidateMapper mapper) {
+        return new PostgresTenantMemberCandidateDirectory(mapper);
     }
 
     @Bean

@@ -11,6 +11,12 @@ SQL_ANNOTATION = re.compile(
     r"@(Select|Insert|Update|Delete|"
     r"SelectProvider|InsertProvider|UpdateProvider|DeleteProvider)\b"
 )
+JAVA_SQL_CLIENT_REFERENCE = re.compile(
+    r"\b(?:JdbcClient|JdbcTemplate|NamedParameterJdbcTemplate|DatabaseClient)\b"
+)
+JAVA_SQL_EXECUTION_CALL = re.compile(
+    r"\.\s*(?:sql|query|queryForObject|queryForList|update|batchUpdate|execute)\s*\("
+)
 UUID_REFERENCE = re.compile(r"\bUUID\b")
 SA_TOKEN_REFERENCE = re.compile(r"\bcn\.dev33\.satoken\b")
 CURSOR_LIST_CONTRACT = re.compile(r"\b(?:nextCursor|String\s+cursor)\b")
@@ -62,6 +68,7 @@ COMPLEX_SQL_CATEGORIES = {
 }
 LIST_CATEGORIES = {
     "sqlAnnotationFiles": "SQL 注解",
+    "javaInlineSqlFiles": "Java 内联 SQL",
     "uuidMainFiles": "UUID",
     "runtimeNonEntryFiles": "运行模块业务类",
     "saTokenOutsidePlatformFiles": "Sa-Token 越界",
@@ -280,6 +287,12 @@ def scan(root):
             for path, text in texts.items()
             if SQL_ANNOTATION.search(text)
         ],
+        "javaInlineSqlFiles": [
+            relative(root, path)
+            for path, text in texts.items()
+            if JAVA_SQL_CLIENT_REFERENCE.search(text)
+            and JAVA_SQL_EXECUTION_CALL.search(text)
+        ],
         "uuidMainFiles": [
             relative(root, path)
             for path, text in texts.items()
@@ -415,6 +428,7 @@ def verify(root):
     print(
         "架构债务递减门禁通过："
         f"SQL 文件 {len(actual['sqlAnnotationFiles'])}，"
+        f"Java 内联 SQL 文件 {len(actual['javaInlineSqlFiles'])}，"
         f"UUID 文件 {len(actual['uuidMainFiles'])}，"
         f"运行时非启动文件 {len(actual['runtimeNonEntryFiles'])}，"
         f"Sa-Token 越界文件 {len(actual['saTokenOutsidePlatformFiles'])}，"
