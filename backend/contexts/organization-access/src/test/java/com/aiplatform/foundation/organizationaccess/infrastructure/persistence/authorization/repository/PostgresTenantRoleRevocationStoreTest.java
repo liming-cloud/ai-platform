@@ -96,7 +96,7 @@ class PostgresTenantRoleRevocationStoreTest {
         jdbc.update("""
                 INSERT INTO organization_access.tenant_membership_role_binding
                     (tenant_id, membership_id, role_code, bound_at)
-                VALUES (?, ?, 'TENANT_ADMINISTRATOR', ?::timestamptz)
+                VALUES (?, ?, 'TENANT_USER', ?::timestamptz)
                 """, TENANT.value(), TARGET.value(), NOW.toString());
         jdbc.update("""
                 INSERT INTO organization_access.membership_permission
@@ -137,7 +137,7 @@ class PostgresTenantRoleRevocationStoreTest {
 
     private static TenantRoleRevocationCommand command() {
         return new TenantRoleRevocationCommand(
-                TARGET.value(), TenantBuiltInRole.TENANT_ADMINISTRATOR.name());
+                TARGET.value(), TenantBuiltInRole.TENANT_USER.name());
     }
 
     private static TrustedRequestContext manager() {

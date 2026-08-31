@@ -393,6 +393,12 @@
     },
     {
       "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/TenantProvisioningMapper.xml",
+      "statementId": "hasActivePlatformAdministrator",
+      "category": "SECURITY_PROJECTION",
+      "reason": "在共同主体锁内复核初始管理员没有活动平台管理员绑定，避免跨人员范围建立租户成员资格。"
+    },
+    {
+      "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/TenantProvisioningMapper.xml",
       "statementId": "insertTenant",
       "category": "ATOMIC_STATE_TRANSITION",
       "reason": "以固定不可认证兼容状态建立遗留租户行；认证状态不从该列读取。"
@@ -573,6 +579,18 @@
     },
     {
       "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/TenantMemberStatusMapper.xml",
+      "statementId": "lockSubjectForMembership",
+      "category": "ROW_LOCK",
+      "reason": "启用成员前按可信租户定位并锁定共同主体，使平台角色绑定与成员启用在同一串行点排序。"
+    },
+    {
+      "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/TenantMemberStatusMapper.xml",
+      "statementId": "hasActivePlatformAdministrator",
+      "category": "SECURITY_PROJECTION",
+      "reason": "在共同主体锁内复核活动平台管理员绑定，禁止同一主体同时拥有启用租户成员资格。"
+    },
+    {
+      "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/TenantMemberStatusMapper.xml",
       "statementId": "countAccessManage",
       "category": "SECURITY_PROJECTION",
       "reason": "合并遗留直授权限、内置角色和活动自定义角色，仅投影成员是否实际拥有访问管理能力。"
@@ -605,13 +623,19 @@
       "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/TenantMemberCandidateMapper.xml",
       "statementId": "selectEligiblePage",
       "category": "SECURITY_PROJECTION",
-      "reason": "按当前租户排除已有成员，只返回活动账户的名称化安全候选投影。"
+      "reason": "按当前租户排除已有成员和活动平台管理员，只返回可建立普通成员资格的名称化安全候选投影。"
     },
     {
       "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/TenantMemberEstablishmentMapper.xml",
       "statementId": "lockActiveSubject",
       "category": "ROW_LOCK",
       "reason": "建立成员前锁定启用的全局主体，避免主体状态与成员资格写入并发分叉。"
+    },
+    {
+      "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/TenantMemberEstablishmentMapper.xml",
+      "statementId": "hasActivePlatformAdministrator",
+      "category": "SECURITY_PROJECTION",
+      "reason": "在共同主体锁内复核活动平台管理员绑定，禁止从页面候选之外的请求绕过人员范围互斥。"
     },
     {
       "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/TenantMemberEstablishmentMapper.xml",
@@ -756,6 +780,12 @@
       "statementId": "lockSubject",
       "category": "ROW_LOCK",
       "reason": "角色写入前锁定目标主体，使绑定和授权修订在同一串行范围内提交。"
+    },
+    {
+      "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/PlatformRoleBindingMapper.xml",
+      "statementId": "countEnabledTenantMemberships",
+      "category": "SECURITY_PROJECTION",
+      "reason": "在共同主体锁内统计启用租户成员资格，禁止平台角色绑定与租户活动范围并存。"
     },
     {
       "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/PlatformRoleBindingMapper.xml",

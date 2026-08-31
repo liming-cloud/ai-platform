@@ -12,6 +12,7 @@ import com.aiplatform.foundation.organizationaccess.domain.authorization.operati
 import com.aiplatform.foundation.organizationaccess.domain.member.model.MemberId;
 import com.aiplatform.foundation.organizationaccess.domain.member.model.SubjectId;
 import com.aiplatform.foundation.organizationaccess.domain.member.model.TenantMembership;
+import com.aiplatform.foundation.organizationaccess.domain.shared.exception.OrganizationAccessRuleViolation;
 import com.aiplatform.foundation.organizationaccess.domain.member.model.TenantMembershipRole;
 import com.aiplatform.foundation.organizationaccess.domain.member.model.TenantMembershipStatus;
 import com.aiplatform.foundation.security.identity.AccessChannel;
@@ -35,17 +36,32 @@ class TenantRoleBindingApplicationServiceTest {
     private static final Instant NOW = Instant.parse("2026-08-10T02:00:00Z");
 
     @Test
-    void 受权绑定应原子提交权限修订并撤销目标成员租户会话() {
+    void 受权绑定普通用户角色应原子提交权限修订并撤销目标成员租户会话() {
         var committed = new AtomicReference<TenantRoleBindingResult>();
         var revoked = new AtomicReference<MemberId>();
         var service = service(Optional.of(member()), false, committed, revoked);
 
         var result = service.bind(manager(), new TenantRoleBindingCommand(
-                TARGET.value(), TenantBuiltInRole.TENANT_ADMINISTRATOR.name()));
+                TARGET.value(), TenantBuiltInRole.TENANT_USER.name()));
 
         assertEquals(1L, committed.get().revisedMembership().permissionVersion());
         assertEquals(TARGET, revoked.get());
         assertEquals(1L, result.permissionVersion());
+    }
+
+    @Test
+    void 租户管理员不得分配租户管理员角色() {
+        var committed = new AtomicReference<TenantRoleBindingResult>();
+        var revoked = new AtomicReference<MemberId>();
+        var service = service(Optional.of(member()), false, committed, revoked);
+
+        assertThrows(
+                OrganizationAccessRuleViolation.class,
+                () -> service.bind(manager(), new TenantRoleBindingCommand(
+                        TARGET.value(), TenantBuiltInRole.TENANT_ADMINISTRATOR.name())));
+
+        assertNull(committed.get());
+        assertNull(revoked.get());
     }
 
     @Test
@@ -71,7 +87,7 @@ class TenantRoleBindingApplicationServiceTest {
         assertThrows(
                 IllegalArgumentException.class,
                 () -> service.bind(manager(), new TenantRoleBindingCommand(
-                        TARGET.value(), TenantBuiltInRole.TENANT_ADMINISTRATOR.name())));
+                        TARGET.value(), TenantBuiltInRole.TENANT_USER.name())));
 
         assertNull(committed.get());
         assertNull(revoked.get());

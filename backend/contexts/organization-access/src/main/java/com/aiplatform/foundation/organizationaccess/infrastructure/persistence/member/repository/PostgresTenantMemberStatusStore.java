@@ -22,6 +22,20 @@ public final class PostgresTenantMemberStatusStore implements TenantMemberStatus
     }
 
     @Override
+    public Optional<SubjectId> lockSubjectForMembership(TenantId tenantId, MemberId membershipId) {
+        var subjectId = mapper.lockSubjectForMembership(
+                Objects.requireNonNull(tenantId, "租户标识不能为空").value(),
+                Objects.requireNonNull(membershipId, "成员标识不能为空").value());
+        return subjectId == null ? Optional.empty() : Optional.of(new SubjectId(subjectId));
+    }
+
+    @Override
+    public boolean hasActivePlatformAdministrator(SubjectId subjectId) {
+        return mapper.hasActivePlatformAdministrator(
+                Objects.requireNonNull(subjectId, "主体标识不能为空").value());
+    }
+
+    @Override
     public Optional<TenantMembership> lock(TenantId tenantId, MemberId membershipId) {
         var row = mapper.lock(
                 Objects.requireNonNull(tenantId, "租户标识不能为空").value(),

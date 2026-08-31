@@ -7,6 +7,15 @@
     WHERE subject_id = #{subjectId} AND status = 'ACTIVE'
     FOR UPDATE
   </select>
+  <select id="hasActivePlatformAdministrator" resultType="boolean">
+    SELECT EXISTS (
+      SELECT 1
+      FROM organization_access.platform_role_binding
+      WHERE subject_id = #{subjectId}
+        AND role_code = 'PLATFORM_ADMINISTRATOR'
+        AND status = 'ACTIVE'
+    )
+  </select>
   <select id="countMembership" resultType="int">
     SELECT COUNT(*)
     FROM organization_access.tenant_membership

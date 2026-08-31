@@ -22,6 +22,16 @@
         FOR UPDATE
     </select>
 
+    <select id="hasActivePlatformAdministrator" resultType="boolean">
+        SELECT EXISTS (
+            SELECT 1
+            FROM organization_access.platform_role_binding
+            WHERE subject_id = #{subjectId}
+              AND role_code = 'PLATFORM_ADMINISTRATOR'
+              AND status = 'ACTIVE'
+        )
+    </select>
+
     <insert id="insertTenant">
         INSERT INTO organization_access.tenant
             (tenant_id, tenant_code, display_name, status, version, created_at, updated_at)

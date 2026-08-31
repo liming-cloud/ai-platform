@@ -7,6 +7,8 @@ import com.aiplatform.foundation.organizationaccess.application.authorization.po
 import com.aiplatform.foundation.organizationaccess.domain.authorization.model.TenantBuiltInRole;
 import com.aiplatform.foundation.organizationaccess.domain.authorization.service.TenantRoleBindingService;
 import com.aiplatform.foundation.organizationaccess.domain.member.model.MemberId;
+import com.aiplatform.foundation.organizationaccess.domain.member.service.TenantMemberGovernance;
+import com.aiplatform.foundation.organizationaccess.domain.shared.exception.OrganizationAccessRuleViolation;
 import com.aiplatform.foundation.security.identity.PermissionCode;
 import com.aiplatform.foundation.security.identity.TrustedRequestContext;
 import java.time.Clock;
@@ -37,6 +39,7 @@ public class TenantRoleRevocationApplicationService {
      *
      * @throws IllegalArgumentException 当当前成员无权、角色未发布、目标不可用或绑定不存在时拒绝。
      * @throws IllegalStateException 当撤销会移除租户最后一个访问管理员时拒绝。
+     * @throws OrganizationAccessRuleViolation 当命令试图治理租户管理员时拒绝。
      */
     @Transactional
     public TenantRoleRevocationView revoke(
@@ -53,9 +56,11 @@ public class TenantRoleRevocationApplicationService {
         } catch (IllegalArgumentException exception) {
             throw new IllegalArgumentException("请求角色尚未发布", exception);
         }
+        TenantMemberGovernance.requireOrdinaryRole(role);
         var membershipId = new MemberId(command.membershipId());
         var membership = store.lockEnabled(context.tenantId(), membershipId)
                 .orElseThrow(() -> new IllegalArgumentException("目标成员不存在或未启用"));
+        TenantMemberGovernance.requireOrdinaryTarget(membership);
         if (!store.hasBinding(context.tenantId(), membershipId, role)) {
             throw new IllegalArgumentException("目标成员未拥有该角色");
         }

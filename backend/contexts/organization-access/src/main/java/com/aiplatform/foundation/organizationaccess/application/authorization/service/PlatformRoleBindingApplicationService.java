@@ -6,7 +6,9 @@ import com.aiplatform.foundation.organizationaccess.application.authorization.po
 import com.aiplatform.foundation.organizationaccess.domain.authorization.model.platform.PlatformRole;
 import com.aiplatform.foundation.organizationaccess.domain.authorization.model.platform.PlatformRoleBindingId;
 import com.aiplatform.foundation.organizationaccess.domain.authorization.service.PlatformRoleBindingGovernance;
+import com.aiplatform.foundation.organizationaccess.domain.authorization.service.PersonnelScopeEligibility;
 import com.aiplatform.foundation.organizationaccess.domain.member.model.SubjectId;
+import com.aiplatform.foundation.organizationaccess.domain.shared.exception.OrganizationAccessRuleViolation;
 import com.aiplatform.foundation.security.identity.PlatformPermissions;
 import com.aiplatform.foundation.security.identity.PlatformRequestContext;
 import com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator;
@@ -38,6 +40,7 @@ public class PlatformRoleBindingApplicationService {
      * 为已启用账户绑定一项固定平台角色。
      *
      * @throws IllegalArgumentException 当当前主体无账户治理权限、角色未发布或目标不存在时拒绝。
+     * @throws OrganizationAccessRuleViolation 当目标仍拥有启用租户成员资格时拒绝。
      */
     @Transactional
     public PlatformRoleBindingView bind(
@@ -47,6 +50,8 @@ public class PlatformRoleBindingApplicationService {
         var targetId = new SubjectId(subjectId);
         var target = store.lock(targetId)
                 .orElseThrow(() -> new IllegalArgumentException("目标账户不存在"));
+        PersonnelScopeEligibility.requirePlatformScope(
+                store.countEnabledTenantMemberships(targetId));
         var binding = PlatformRoleBindingGovernance.bind(
                 target,
                 store.hasActiveBinding(targetId, role),

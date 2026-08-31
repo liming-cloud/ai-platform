@@ -15,6 +15,9 @@ public interface TenantProvisioningStore {
      */
     Optional<SubjectIdentity> lockActiveInitialAdministrator(SubjectId subjectId);
 
+    /** 判断受锁初始管理员主体是否仍拥有活动平台管理员绑定。 */
+    boolean hasActivePlatformAdministrator(SubjectId subjectId);
+
     /**
      * 原子保存领域服务产生的完整建立结果。
      */

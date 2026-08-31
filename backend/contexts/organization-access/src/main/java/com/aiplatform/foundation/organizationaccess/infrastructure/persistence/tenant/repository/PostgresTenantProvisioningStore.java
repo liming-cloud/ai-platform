@@ -46,6 +46,12 @@ public final class PostgresTenantProvisioningStore implements TenantProvisioning
     }
 
     @Override
+    public boolean hasActivePlatformAdministrator(SubjectId subjectId) {
+        return mapper.hasActivePlatformAdministrator(
+                Objects.requireNonNull(subjectId, "初始管理员主体不能为空").value());
+    }
+
+    @Override
     public void commit(TenantProvisioningResult result) {
         result = Objects.requireNonNull(result, "租户建立结果不能为空");
         var lifecycle = result.lifecycle();

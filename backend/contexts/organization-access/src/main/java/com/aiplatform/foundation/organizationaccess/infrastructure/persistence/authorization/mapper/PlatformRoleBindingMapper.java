@@ -18,6 +18,8 @@ public interface PlatformRoleBindingMapper {
             @Param("subjectId") long subjectId,
             @Param("roleCode") String roleCode);
 
+    long countEnabledTenantMemberships(@Param("subjectId") long subjectId);
+
     PlatformRoleBindingEntity lockActiveBinding(
             @Param("subjectId") long subjectId,
             @Param("roleCode") String roleCode);

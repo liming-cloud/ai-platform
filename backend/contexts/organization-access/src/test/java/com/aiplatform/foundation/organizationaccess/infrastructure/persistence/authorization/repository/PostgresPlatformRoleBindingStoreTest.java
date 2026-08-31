@@ -72,7 +72,11 @@ class PostgresPlatformRoleBindingStoreTest {
     void seedFacts() {
         jdbc.update("DELETE FROM organization_access.platform_role_binding");
         jdbc.update("DELETE FROM organization_access.platform_subject_authorization");
+        jdbc.update("DELETE FROM organization_access.tenant_membership_role_binding");
+        jdbc.update("DELETE FROM organization_access.membership_permission");
+        jdbc.update("DELETE FROM organization_access.tenant_membership");
         jdbc.update("DELETE FROM organization_access.subject_identity");
+        jdbc.update("DELETE FROM organization_access.tenant");
         jdbc.update(
                 "INSERT INTO organization_access.subject_identity "
                         + "(subject_id, login_name, password_hash, status, version) "
@@ -124,6 +128,22 @@ class PostgresPlatformRoleBindingStoreTest {
                         "SELECT COUNT(*) FROM organization_access.platform_subject_authorization WHERE subject_id = ?",
                         Long.class,
                         SUBJECT_ID));
+    }
+
+    @Test
+    void 启用租户成员资格必须使平台角色绑定资格计数非零() {
+        jdbc.update("""
+                INSERT INTO organization_access.tenant
+                    (tenant_id, tenant_code, display_name, status, version)
+                VALUES (100000000000000001, 'platform-role-eligibility', '平台角色资格测试租户', 'ENABLED', 0)
+                """);
+        jdbc.update("""
+                INSERT INTO organization_access.tenant_membership
+                    (membership_id, tenant_id, subject_id, membership_role, status, permission_version, version)
+                VALUES (3382738893456539659, 100000000000000001, ?, 'TENANT_USER', 'ENABLED', 0, 0)
+                """, SUBJECT_ID);
+
+        assertEquals(1L, store.countEnabledTenantMemberships(new SubjectId(SUBJECT_ID)));
     }
 
     private static PlatformRequestContext accountAdministrator() {

@@ -40,6 +40,20 @@ INSERT INTO organization_access.subject_identity (
         'pbkdf2-sha256$v1$600000$xCeuZmvRbROcHBGNFfKU2A$OWzHrRHZCZ38xi3NaEHw1qEzE_-3X7F6vM37aNz--bk',
         'ACTIVE',
         0
+    ),
+    (
+        4921825928971026438,
+        'tenant-admin-candidate',
+        'pbkdf2-sha256$v1$600000$xCeuZmvRbROcHBGNFfKU2A$OWzHrRHZCZ38xi3NaEHw1qEzE_-3X7F6vM37aNz--bk',
+        'ACTIVE',
+        0
+    ),
+    (
+        4921825928971026439,
+        'tenant-user',
+        'pbkdf2-sha256$v1$600000$xCeuZmvRbROcHBGNFfKU2A$OWzHrRHZCZ38xi3NaEHw1qEzE_-3X7F6vM37aNz--bk',
+        'ACTIVE',
+        0
     )
 ON CONFLICT DO NOTHING;
 
@@ -130,7 +144,7 @@ INSERT INTO organization_access.tenant_membership (
     (
         3382738893456539652,
         100000000000000001,
-        4921825928971026436,
+        4921825928971026439,
         'TENANT_USER',
         'ENABLED',
         1,
@@ -266,7 +280,7 @@ WHERE tenant_id IN (
           100000000000000001,
           100000000000000002
       )
-  AND subject_id IN (4921825928971026434, 4921825928971026436)
+  AND subject_id IN (4921825928971026434, 4921825928971026439)
   AND permission_version < 2;
 
 UPDATE organization_access.tenant_membership

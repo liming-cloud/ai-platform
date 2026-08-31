@@ -6,6 +6,14 @@ import org.apache.ibatis.annotations.Param;
 /** 成员状态变更所需的受锁成员事实、有效权限计数和原子更新映射器。 */
 public interface TenantMemberStatusMapper {
 
+    /** 由成员资格定位并锁定共同人员主体。 */
+    Long lockSubjectForMembership(
+            @Param("tenantId") long tenantId,
+            @Param("membershipId") long membershipId);
+
+    /** 判断主体是否仍拥有活动平台管理员绑定。 */
+    boolean hasActivePlatformAdministrator(@Param("subjectId") long subjectId);
+
     /** 锁定当前租户中的成员资格，无论其当前是否启用。 */
     TenantMembershipEntity lock(@Param("tenantId") long tenantId, @Param("membershipId") long membershipId);
 

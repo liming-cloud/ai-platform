@@ -13,6 +13,9 @@ public interface PlatformRoleBindingStore {
 
     boolean hasActiveBinding(SubjectId subjectId, PlatformRole role);
 
+    /** 返回受锁主体当前启用的租户成员资格数量。 */
+    long countEnabledTenantMemberships(SubjectId subjectId);
+
     Optional<PlatformRoleBinding> lockActiveBinding(SubjectId subjectId, PlatformRole role);
 
     long countOtherActiveAccountAdministrators(SubjectId subjectId);

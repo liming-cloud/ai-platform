@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.aiplatform.foundation.organizationaccess.application.member.service.TenantMemberEstablishmentApplicationService;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.member.mapper.TenantMemberEstablishmentMapper;
+import com.aiplatform.foundation.organizationaccess.domain.shared.exception.OrganizationAccessRuleViolation;
 import com.aiplatform.foundation.security.identity.AccessChannel;
 import com.aiplatform.foundation.security.identity.CredentialType;
 import com.aiplatform.foundation.security.identity.MembershipId;
@@ -64,6 +65,8 @@ class PostgresTenantMemberEstablishmentStoreTest {
 
     @BeforeEach
     void seedFacts() {
+        jdbc.update("DELETE FROM organization_access.platform_role_binding");
+        jdbc.update("DELETE FROM organization_access.platform_subject_authorization");
         jdbc.update("DELETE FROM organization_access.tenant_membership_role_binding");
         jdbc.update("DELETE FROM organization_access.membership_permission");
         jdbc.update("DELETE FROM organization_access.tenant_membership");
@@ -104,6 +107,18 @@ class PostgresTenantMemberEstablishmentStoreTest {
                 () -> service.establish(manager(), DISABLED_SUBJECT));
         service.establish(manager(), ACTIVE_SUBJECT);
         assertThrows(IllegalArgumentException.class,
+                () -> service.establish(manager(), ACTIVE_SUBJECT));
+    }
+
+    @Test
+    void 建立成员必须拒绝活动平台管理员() {
+        jdbc.update("""
+                INSERT INTO organization_access.platform_role_binding
+                    (binding_id, subject_id, role_code, status, version, created_at)
+                VALUES (4921825928971026436, ?, 'PLATFORM_ADMINISTRATOR', 'ACTIVE', 0, ?::timestamptz)
+                """, ACTIVE_SUBJECT, NOW.toString());
+
+        assertThrows(OrganizationAccessRuleViolation.class,
                 () -> service.establish(manager(), ACTIVE_SUBJECT));
     }
 

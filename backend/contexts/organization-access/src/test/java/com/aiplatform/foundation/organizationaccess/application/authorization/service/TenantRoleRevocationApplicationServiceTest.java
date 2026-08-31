@@ -12,6 +12,7 @@ import com.aiplatform.foundation.organizationaccess.domain.authorization.operati
 import com.aiplatform.foundation.organizationaccess.domain.member.model.MemberId;
 import com.aiplatform.foundation.organizationaccess.domain.member.model.SubjectId;
 import com.aiplatform.foundation.organizationaccess.domain.member.model.TenantMembership;
+import com.aiplatform.foundation.organizationaccess.domain.shared.exception.OrganizationAccessRuleViolation;
 import com.aiplatform.foundation.organizationaccess.domain.member.model.TenantMembershipRole;
 import com.aiplatform.foundation.organizationaccess.domain.member.model.TenantMembershipStatus;
 import com.aiplatform.foundation.security.identity.AccessChannel;
@@ -36,27 +37,28 @@ class TenantRoleRevocationApplicationServiceTest {
     private static final Instant NOW = Instant.parse("2026-08-10T03:00:00Z");
 
     @Test
-    void 受权撤销应原子提交权限修订并撤销目标成员租户会话() {
+    void 受权撤销普通用户角色应原子提交权限修订并撤销目标成员租户会话() {
         var committed = new AtomicReference<TenantRoleRevocationResult>();
         var revoked = new AtomicReference<MemberId>();
         var service = service(true, false, 1L, committed, revoked);
 
         var result = service.revoke(manager(), new TenantRoleRevocationCommand(
-                TARGET.value(), TenantBuiltInRole.TENANT_ADMINISTRATOR.name()));
+                TARGET.value(), TenantBuiltInRole.TENANT_USER.name()));
 
         assertEquals(1L, result.permissionVersion());
         assertEquals(TARGET, revoked.get());
-        assertEquals(TenantBuiltInRole.TENANT_ADMINISTRATOR, committed.get().role());
+        assertEquals(TenantBuiltInRole.TENANT_USER, committed.get().role());
     }
 
     @Test
-    void 撤销最后一个访问管理员时不得写入或撤销会话() {
+    void 租户管理员不得撤销租户管理员角色() {
         var committed = new AtomicReference<TenantRoleRevocationResult>();
         var revoked = new AtomicReference<MemberId>();
-        var service = service(true, false, 0L, committed, revoked);
+        var service = service(true, false, 1L, committed, revoked);
 
-        assertThrows(IllegalStateException.class, () -> service.revoke(
-                manager(), new TenantRoleRevocationCommand(
+        assertThrows(
+                OrganizationAccessRuleViolation.class,
+                () -> service.revoke(manager(), new TenantRoleRevocationCommand(
                         TARGET.value(), TenantBuiltInRole.TENANT_ADMINISTRATOR.name())));
 
         assertNull(committed.get());

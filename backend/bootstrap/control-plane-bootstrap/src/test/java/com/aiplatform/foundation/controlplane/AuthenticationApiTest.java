@@ -269,7 +269,7 @@ class AuthenticationApiTest {
                 url("/api/v1/auth/sessions"),
                 Map.of(
                         "tenantCode", "demo-store",
-                        "loginName", "platform-admin",
+                        "loginName", "tenant-user",
                         "password", new String(DEMO_PASSWORD)),
                 SessionResponse.class);
         assertEquals(HttpStatus.CREATED, targetSession.getStatusCode());
@@ -295,7 +295,7 @@ class AuthenticationApiTest {
                 url("/api/v1/auth/sessions"),
                 Map.of(
                         "tenantCode", "demo-store",
-                        "loginName", "platform-admin",
+                        "loginName", "tenant-user",
                         "password", new String(DEMO_PASSWORD)),
                 SessionResponse.class);
         assertEquals(HttpStatus.CREATED, renewedSession.getStatusCode());
@@ -307,50 +307,37 @@ class AuthenticationApiTest {
     }
 
     @Test
-    void 租户访问管理员撤销成员内置角色后应使旧会话失效并移除权限投影() {
+    void 租户管理员不得提升降级或停用其他租户管理员() {
         var bind = http.exchange(
                 url("/api/v1/tenant/members/3382738893456539652/role-bindings"),
                 HttpMethod.POST,
                 new HttpEntity<>(
                         Map.of("role", "TENANT_ADMINISTRATOR"),
                         bearer(tenantLogin())),
-                Map.class);
-        assertEquals(HttpStatus.OK, bind.getStatusCode());
+                ApiError.class);
+        assertEquals(HttpStatus.FORBIDDEN, bind.getStatusCode());
+        assertNotNull(bind.getBody());
+        assertEquals("ORGANIZATION_ACCESS.AUTHORIZATION.0002", bind.getBody().code());
 
-        var targetSession = http.postForEntity(
-                url("/api/v1/auth/sessions"),
-                Map.of(
-                        "tenantCode", "demo-store",
-                        "loginName", "platform-admin",
-                        "password", new String(DEMO_PASSWORD)),
-                SessionResponse.class);
-        assertEquals(HttpStatus.CREATED, targetSession.getStatusCode());
-        assertNotNull(targetSession.getBody());
-
-        var response = http.exchange(
+        var revoke = http.exchange(
                 url("/api/v1/tenant/members/3382738893456539652/role-bindings/TENANT_ADMINISTRATOR"),
                 HttpMethod.DELETE,
                 new HttpEntity<>(bearer(tenantLogin())),
-                Map.class);
+                ApiError.class);
+        assertEquals(HttpStatus.FORBIDDEN, revoke.getStatusCode());
+        assertNotNull(revoke.getBody());
+        assertEquals("ORGANIZATION_ACCESS.AUTHORIZATION.0002", revoke.getBody().code());
 
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertNotNull(response.getBody());
-        assertEquals("TENANT_ADMINISTRATOR", response.getBody().get("role"));
-        assertEquals("3382738893456539652", response.getBody().get("membershipId"));
-        assertThrows(InvalidAuthenticatedSessionException.class,
-                () -> sessions.resolve(targetSession.getBody().tokenValue()));
-
-        var renewedSession = http.postForEntity(
-                url("/api/v1/auth/sessions"),
-                Map.of(
-                        "tenantCode", "demo-store",
-                        "loginName", "platform-admin",
-                        "password", new String(DEMO_PASSWORD)),
-                SessionResponse.class);
-        assertEquals(HttpStatus.CREATED, renewedSession.getStatusCode());
-        assertNotNull(renewedSession.getBody());
-        assertFalse(sessions.resolve(renewedSession.getBody().tokenValue())
-                .hasPermission(new com.aiplatform.foundation.security.identity.PermissionCode("assistant:read")));
+        var disable = http.exchange(
+                url("/api/v1/tenant/members/3382738893456539650/disable"),
+                HttpMethod.POST,
+                new HttpEntity<>(bearer(tenantLogin())),
+                ApiError.class);
+        assertEquals(HttpStatus.FORBIDDEN, disable.getStatusCode());
+        assertNotNull(disable.getBody());
+        assertEquals("ORGANIZATION_ACCESS.AUTHORIZATION.0002", disable.getBody().code());
+        assertFalse(disable.getBody().message().contains("TENANT_ADMINISTRATOR"));
+        assertFalse(disable.getBody().message().contains("3382738893456539650"));
     }
 
     @Test
@@ -382,11 +369,11 @@ class AuthenticationApiTest {
         jdbc.update("""
                 INSERT INTO organization_access.tenant_membership
                     (membership_id, tenant_id, subject_id, membership_role, status, permission_version, version)
-                VALUES (?, 100000000000000001, 4921825928971026437, 'TENANT_USER', 'ENABLED', 0, 0)
+                VALUES (?, 100000000000000001, 4921825928971026438, 'TENANT_USER', 'ENABLED', 0, 0)
                 ON CONFLICT (tenant_id, membership_id) DO UPDATE
                     SET status = 'ENABLED', permission_version = 0, version = 0
                 """, targetMembershipId);
-        var targetSession = tenantLoginWithName("platform-operator");
+        var targetSession = tenantLoginWithName("tenant-admin-candidate");
         var managerToken = tenantLogin();
         var directory = http.exchange(
                 url("/api/v1/tenant/members?pageNumber=1&pageSize=100"),
@@ -401,7 +388,7 @@ class AuthenticationApiTest {
                 .filter(Map.class::isInstance)
                 .map(Map.class::cast)
                 .anyMatch(item -> Long.toString(targetMembershipId).equals(item.get("membershipId"))
-                        && "platform-operator".equals(item.get("loginName"))));
+                        && "tenant-admin-candidate".equals(item.get("loginName"))));
 
         var response = http.exchange(
                 url("/api/v1/tenant/members/" + targetMembershipId + "/disable"),
@@ -417,12 +404,12 @@ class AuthenticationApiTest {
         assertThrows(InvalidAuthenticatedSessionException.class,
                 () -> sessions.resolve(targetSession));
         assertEquals(HttpStatus.UNAUTHORIZED,
-                tenantLoginWithNameResponse("platform-operator").getStatusCode());
+                tenantLoginWithNameResponse("tenant-admin-candidate").getStatusCode());
     }
 
     @Test
     void 租户访问管理员建立成员时应只接受主体标识且写入普通成员资格() {
-        var subjectId = 4921825928971026438L;
+        var subjectId = 4921825928971026440L;
         jdbc.update("DELETE FROM organization_access.tenant_membership WHERE subject_id = ?", subjectId);
         jdbc.update("""
                 INSERT INTO organization_access.subject_identity
@@ -447,6 +434,47 @@ class AuthenticationApiTest {
                 SELECT membership_role FROM organization_access.tenant_membership
                 WHERE tenant_id = 100000000000000001 AND subject_id = ?
                 """, String.class, subjectId));
+    }
+
+    @Test
+    void 双向人员范围冲突必须由真实HTTP安全拒绝() {
+        var tenantConflict = http.exchange(
+                url("/api/v1/tenant/members"),
+                HttpMethod.POST,
+                new HttpEntity<>(
+                        Map.of("subjectId", "4921825928971026436"),
+                        bearer(tenantLogin())),
+                ApiError.class);
+        assertEquals(HttpStatus.CONFLICT, tenantConflict.getStatusCode());
+        assertNotNull(tenantConflict.getBody());
+        assertEquals("ORGANIZATION_ACCESS.CONFLICT.0002", tenantConflict.getBody().code());
+        assertFalse(tenantConflict.getBody().message().contains("4921825928971026436"));
+
+        var platformConflict = http.exchange(
+                url("/api/v1/platform/accounts/4921825928971026434/role-bindings"),
+                HttpMethod.POST,
+                new HttpEntity<>(
+                        Map.of("role", "PLATFORM_ADMINISTRATOR"),
+                        bearer(platformLogin())),
+                ApiError.class);
+        assertEquals(HttpStatus.CONFLICT, platformConflict.getStatusCode());
+        assertNotNull(platformConflict.getBody());
+        assertEquals("ORGANIZATION_ACCESS.CONFLICT.0002", platformConflict.getBody().code());
+        assertFalse(platformConflict.getBody().message().contains("4921825928971026434"));
+
+        var provisioningConflict = http.exchange(
+                url("/api/v1/platform/tenants"),
+                HttpMethod.POST,
+                new HttpEntity<>(
+                        Map.of(
+                                "tenantCode", "scope-conflict-" + System.nanoTime(),
+                                "displayName", "人员范围冲突租户",
+                                "initialAdministratorSubjectId", "4921825928971026436"),
+                        bearer(platformLogin())),
+                ApiError.class);
+        assertEquals(HttpStatus.CONFLICT, provisioningConflict.getStatusCode());
+        assertNotNull(provisioningConflict.getBody());
+        assertEquals("ORGANIZATION_ACCESS.CONFLICT.0002", provisioningConflict.getBody().code());
     }
 
     @Test
@@ -554,7 +582,7 @@ class AuthenticationApiTest {
                         Map.of(
                                 "tenantCode", tenantCode,
                                 "displayName", "接口创建租户",
-                                "initialAdministratorSubjectId", "4921825928971026436"),
+                                "initialAdministratorSubjectId", "4921825928971026438"),
                         bearer(platformToken)),
                 TenantLifecycleResponse.class);
 
@@ -606,7 +634,7 @@ class AuthenticationApiTest {
                         Map.of(
                                 "tenantCode", tenantCode,
                                 "displayName", "读取投影租户",
-                                "initialAdministratorSubjectId", "4921825928971026436"),
+                                "initialAdministratorSubjectId", "4921825928971026438"),
                         bearer(platformToken)),
                 TenantLifecycleResponse.class);
         assertEquals(HttpStatus.CREATED, created.getStatusCode());
@@ -684,7 +712,7 @@ class AuthenticationApiTest {
                         Map.of(
                                 "tenantCode", "operator-denied-" + System.nanoTime(),
                                 "displayName", "无权限租户",
-                                "initialAdministratorSubjectId", "4921825928971026436"),
+                                "initialAdministratorSubjectId", "4921825928971026438"),
                         bearer(platformToken)),
                 Map.class);
 
@@ -778,7 +806,7 @@ class AuthenticationApiTest {
                 url("/api/v1/auth/sessions"),
                 Map.of(
                         "tenantCode", tenantCode,
-                        "loginName", "platform-admin",
+                        "loginName", "tenant-admin-candidate",
                         "password", new String(DEMO_PASSWORD)),
                 String.class);
     }

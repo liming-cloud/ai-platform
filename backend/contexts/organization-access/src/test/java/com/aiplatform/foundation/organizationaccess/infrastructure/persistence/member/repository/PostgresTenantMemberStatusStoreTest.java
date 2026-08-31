@@ -7,6 +7,7 @@ import com.aiplatform.foundation.organizationaccess.application.authorization.po
 import com.aiplatform.foundation.organizationaccess.application.member.service.TenantMemberStatusApplicationService;
 import com.aiplatform.foundation.organizationaccess.domain.member.model.MemberId;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.member.mapper.TenantMemberStatusMapper;
+import com.aiplatform.foundation.organizationaccess.domain.shared.exception.OrganizationAccessRuleViolation;
 import com.aiplatform.foundation.security.identity.AccessChannel;
 import com.aiplatform.foundation.security.identity.CredentialType;
 import com.aiplatform.foundation.security.identity.MembershipId;
@@ -71,6 +72,8 @@ class PostgresTenantMemberStatusStoreTest {
     @BeforeEach
     void seedFacts() {
         sessions.reset();
+        jdbc.update("DELETE FROM organization_access.platform_role_binding");
+        jdbc.update("DELETE FROM organization_access.platform_subject_authorization");
         jdbc.update("DELETE FROM organization_access.tenant_membership_role_binding");
         jdbc.update("DELETE FROM organization_access.membership_permission");
         jdbc.update("DELETE FROM organization_access.tenant_membership");
@@ -142,6 +145,29 @@ class PostgresTenantMemberStatusStoreTest {
                 SELECT permission_version FROM organization_access.tenant_membership
                 WHERE tenant_id = ? AND membership_id = ?
                 """, Long.class, TENANT.value(), TARGET.value()));
+    }
+
+    @Test
+    void 恢复成员必须拒绝活动平台管理员() {
+        jdbc.update("""
+                UPDATE organization_access.tenant_membership
+                SET status = 'DISABLED'
+                WHERE tenant_id = ? AND membership_id = ?
+                """, TENANT.value(), TARGET.value());
+        jdbc.update("""
+                INSERT INTO organization_access.platform_role_binding
+                    (binding_id, subject_id, role_code, status, version, created_at)
+                VALUES (4921825928971026436, 4921825928971026434,
+                    'PLATFORM_ADMINISTRATOR', 'ACTIVE', 0, ?::timestamptz)
+                """, NOW.toString());
+
+        assertThrows(OrganizationAccessRuleViolation.class,
+                () -> service.enable(manager(), TARGET.value()));
+
+        assertEquals("DISABLED", jdbc.queryForObject("""
+                SELECT status FROM organization_access.tenant_membership
+                WHERE tenant_id = ? AND membership_id = ?
+                """, String.class, TENANT.value(), TARGET.value()));
     }
 
     private static TrustedRequestContext manager() {

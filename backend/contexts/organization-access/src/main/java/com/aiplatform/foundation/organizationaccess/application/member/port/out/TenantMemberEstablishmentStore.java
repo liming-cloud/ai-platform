@@ -11,6 +11,9 @@ public interface TenantMemberEstablishmentStore {
     /** 锁定并确认全局主体仍处于启用状态。 */
     Optional<SubjectId> lockActiveSubject(SubjectId subjectId);
 
+    /** 判断受锁主体是否仍拥有活动平台管理员绑定。 */
+    boolean hasActivePlatformAdministrator(SubjectId subjectId);
+
     /** 判断该启用主体是否已属于当前租户。 */
     boolean hasMembership(TenantId tenantId, SubjectId subjectId);
 

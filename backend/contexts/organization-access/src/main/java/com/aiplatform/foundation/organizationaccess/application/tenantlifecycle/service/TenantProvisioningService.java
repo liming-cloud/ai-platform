@@ -3,8 +3,10 @@ package com.aiplatform.foundation.organizationaccess.application.tenantlifecycle
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.command.TenantProvisioningCommand;
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.dto.TenantLifecycleView;
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.port.out.TenantProvisioningStore;
+import com.aiplatform.foundation.organizationaccess.domain.authorization.service.PersonnelScopeEligibility;
 import com.aiplatform.foundation.organizationaccess.domain.member.model.MemberId;
 import com.aiplatform.foundation.organizationaccess.domain.member.model.SubjectId;
+import com.aiplatform.foundation.organizationaccess.domain.shared.exception.OrganizationAccessRuleViolation;
 import com.aiplatform.foundation.organizationaccess.domain.tenant.model.TenantLifecycle;
 import com.aiplatform.foundation.organizationaccess.domain.tenant.operation.TenantProvisioningResult;
 import com.aiplatform.foundation.organizationaccess.domain.tenant.service.TenantProvisioning;
@@ -42,6 +44,7 @@ public class TenantProvisioningService {
      * 建立一个尚未激活的新租户。
      *
      * @throws IllegalArgumentException 当平台上下文无治理权限或初始管理员不可用时拒绝。
+     * @throws OrganizationAccessRuleViolation 当初始管理员仍拥有活动平台管理员绑定时拒绝。
      */
     @Transactional
     public TenantProvisioningResult provision(
@@ -54,6 +57,8 @@ public class TenantProvisioningService {
         }
         var administrator = store.lockActiveInitialAdministrator(command.initialAdministratorId())
                 .orElseThrow(() -> new IllegalArgumentException("初始管理员不可用"));
+        PersonnelScopeEligibility.requireTenantScope(
+                store.hasActivePlatformAdministrator(administrator.id()));
         var occurredAt = Instant.now(clock);
         var lifecycle = TenantLifecycle.provision(
                 new TenantId(identifiers.nextId()),

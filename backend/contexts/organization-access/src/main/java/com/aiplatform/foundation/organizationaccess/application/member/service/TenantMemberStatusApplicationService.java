@@ -3,8 +3,11 @@ package com.aiplatform.foundation.organizationaccess.application.member.service;
 import com.aiplatform.foundation.organizationaccess.application.authorization.port.out.TenantMemberSessionRevoker;
 import com.aiplatform.foundation.organizationaccess.application.member.dto.TenantMemberStatusView;
 import com.aiplatform.foundation.organizationaccess.application.member.port.out.TenantMemberStatusStore;
+import com.aiplatform.foundation.organizationaccess.domain.authorization.service.PersonnelScopeEligibility;
 import com.aiplatform.foundation.organizationaccess.domain.member.model.MemberId;
+import com.aiplatform.foundation.organizationaccess.domain.member.service.TenantMemberGovernance;
 import com.aiplatform.foundation.organizationaccess.domain.member.service.TenantMembershipLifecycle;
+import com.aiplatform.foundation.organizationaccess.domain.shared.exception.OrganizationAccessRuleViolation;
 import com.aiplatform.foundation.security.identity.TrustedRequestContext;
 import java.util.Objects;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,6 +34,7 @@ public class TenantMemberStatusApplicationService {
      *
      * @throws IllegalArgumentException 当当前成员无权或目标成员不存在时拒绝。
      * @throws IllegalStateException 当目标是最后一个有效访问管理员时拒绝。
+     * @throws OrganizationAccessRuleViolation 当目标是租户管理员时拒绝。
      */
     @Transactional
     public TenantMemberStatusView disable(TrustedRequestContext context, long membershipId) {
@@ -41,6 +45,7 @@ public class TenantMemberStatusApplicationService {
         var target = new MemberId(membershipId);
         var membership = store.lock(context.tenantId(), target)
                 .orElseThrow(() -> new IllegalArgumentException("目标成员不存在"));
+        TenantMemberGovernance.requireOrdinaryTarget(membership);
         var disabled = TenantMembershipLifecycle.disable(
                 membership,
                 store.hasAccessManage(context.tenantId(), target),
@@ -57,6 +62,7 @@ public class TenantMemberStatusApplicationService {
      * 启用当前租户成员，并撤销其已签发的全部租户会话。
      *
      * @throws IllegalArgumentException 当当前成员无权或目标成员不存在时拒绝。
+     * @throws OrganizationAccessRuleViolation 当目标是租户管理员或仍拥有活动平台管理员绑定时拒绝。
      */
     @Transactional
     public TenantMemberStatusView enable(TrustedRequestContext context, long membershipId) {
@@ -65,8 +71,13 @@ public class TenantMemberStatusApplicationService {
             throw new IllegalArgumentException("当前成员没有成员治理权限");
         }
         var target = new MemberId(membershipId);
+        var subject = store.lockSubjectForMembership(context.tenantId(), target)
+                .orElseThrow(() -> new IllegalArgumentException("目标成员不存在"));
+        PersonnelScopeEligibility.requireTenantScope(
+                store.hasActivePlatformAdministrator(subject));
         var membership = store.lock(context.tenantId(), target)
                 .orElseThrow(() -> new IllegalArgumentException("目标成员不存在"));
+        TenantMemberGovernance.requireOrdinaryTarget(membership);
         var enabled = TenantMembershipLifecycle.enable(membership);
         if (enabled == membership) {
             return TenantMemberStatusView.from(enabled);

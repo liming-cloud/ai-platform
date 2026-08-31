@@ -45,6 +45,12 @@ public final class PostgresPlatformRoleBindingStore implements PlatformRoleBindi
     }
 
     @Override
+    public long countEnabledTenantMemberships(SubjectId subjectId) {
+        return mapper.countEnabledTenantMemberships(
+                Objects.requireNonNull(subjectId, "主体标识不能为空").value());
+    }
+
+    @Override
     public Optional<PlatformRoleBinding> lockActiveBinding(SubjectId subjectId, PlatformRole role) {
         var entity = mapper.lockActiveBinding(
                 Objects.requireNonNull(subjectId, "主体标识不能为空").value(),

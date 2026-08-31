@@ -1,6 +1,7 @@
 package com.aiplatform.foundation.organizationaccess.application.authorization.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.aiplatform.foundation.organizationaccess.application.authorization.port.out.PlatformRoleBindingStore;
@@ -11,6 +12,7 @@ import com.aiplatform.foundation.organizationaccess.domain.identity.model.Subjec
 import com.aiplatform.foundation.organizationaccess.domain.identity.model.SubjectIdentityStatus;
 import com.aiplatform.foundation.organizationaccess.domain.member.model.EncodedPassword;
 import com.aiplatform.foundation.organizationaccess.domain.member.model.SubjectId;
+import com.aiplatform.foundation.organizationaccess.domain.shared.exception.OrganizationAccessRuleViolation;
 import com.aiplatform.foundation.security.identity.AccessChannel;
 import com.aiplatform.foundation.security.identity.CredentialType;
 import com.aiplatform.foundation.security.identity.PlatformPermissions;
@@ -57,6 +59,24 @@ class PlatformRoleBindingApplicationServiceTest {
                 () -> service.bind(platformOperator(), 102L, "PLATFORM_ADMINISTRATOR"));
     }
 
+    @Test
+    void 存在启用租户成员资格时不得绑定平台管理员角色() {
+        var store = new RecordingStore();
+        store.enabledTenantMemberships = 1L;
+        var revoked = new AtomicLong();
+        var service = new PlatformRoleBindingApplicationService(
+                store,
+                subjectId -> revoked.set(subjectId.value()),
+                () -> 3001L,
+                Clock.systemUTC());
+
+        assertThrows(
+                OrganizationAccessRuleViolation.class,
+                () -> service.bind(accountAdministrator(), 102L, "PLATFORM_ADMINISTRATOR"));
+        assertNull(store.saved);
+        assertEquals(0L, revoked.get());
+    }
+
     private static PlatformRequestContext accountAdministrator() {
         return context(Set.of(PlatformPermissions.SESSION_ACCESS, PlatformPermissions.ACCOUNT_MANAGE));
     }
@@ -79,6 +99,7 @@ class PlatformRoleBindingApplicationServiceTest {
 
         private PlatformRoleBinding saved;
         private long authorizationRevisionCount;
+        private long enabledTenantMemberships;
 
         @Override
         public Optional<SubjectIdentity> lock(SubjectId subjectId) {
@@ -94,6 +115,11 @@ class PlatformRoleBindingApplicationServiceTest {
         @Override
         public boolean hasActiveBinding(SubjectId subjectId, PlatformRole role) {
             return false;
+        }
+
+        @Override
+        public long countEnabledTenantMemberships(SubjectId subjectId) {
+            return enabledTenantMemberships;
         }
 
         @Override

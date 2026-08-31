@@ -9,6 +9,7 @@ import com.aiplatform.foundation.organizationaccess.application.member.port.out.
 import com.aiplatform.foundation.organizationaccess.domain.member.model.MemberId;
 import com.aiplatform.foundation.organizationaccess.domain.member.model.SubjectId;
 import com.aiplatform.foundation.organizationaccess.domain.member.model.TenantMembership;
+import com.aiplatform.foundation.organizationaccess.domain.shared.exception.OrganizationAccessRuleViolation;
 import com.aiplatform.foundation.organizationaccess.domain.member.model.TenantMembershipRole;
 import com.aiplatform.foundation.organizationaccess.domain.member.model.TenantMembershipStatus;
 import com.aiplatform.foundation.security.identity.AccessChannel;
@@ -29,7 +30,7 @@ class TenantMemberStatusApplicationServiceTest {
     private static final MemberId TARGET = new MemberId(3382738893456539650L);
 
     @Test
-    void 有权管理员停用非最后访问管理员时必须提交并撤销旧会话() {
+    void 有权管理员停用普通成员时必须提交并撤销旧会话() {
         var committed = new AtomicReference<TenantMembership>();
         var revoked = new AtomicReference<MemberId>();
         var service = service(committed, revoked, 1L);
@@ -43,12 +44,36 @@ class TenantMemberStatusApplicationServiceTest {
     }
 
     @Test
-    void 停用最后访问管理员时不得提交或撤销会话() {
+    void 租户管理员不得停用其他租户管理员() {
         var committed = new AtomicReference<TenantMembership>();
         var revoked = new AtomicReference<MemberId>();
-        var service = service(committed, revoked, 0L);
+        var service = service(committed, revoked, 1L, enabledAdministrator());
 
-        assertThrows(IllegalStateException.class, () -> service.disable(manager(), TARGET.value()));
+        assertThrows(OrganizationAccessRuleViolation.class, () -> service.disable(manager(), TARGET.value()));
+
+        assertNull(committed.get());
+        assertNull(revoked.get());
+    }
+
+    @Test
+    void 租户管理员不得启用其他租户管理员() {
+        var committed = new AtomicReference<TenantMembership>();
+        var revoked = new AtomicReference<MemberId>();
+        var service = service(committed, revoked, 1L, disabledAdministrator());
+
+        assertThrows(OrganizationAccessRuleViolation.class, () -> service.enable(manager(), TARGET.value()));
+
+        assertNull(committed.get());
+        assertNull(revoked.get());
+    }
+
+    @Test
+    void 活动平台管理员不得重新启用租户普通成员资格() {
+        var committed = new AtomicReference<TenantMembership>();
+        var revoked = new AtomicReference<MemberId>();
+        var service = service(committed, revoked, 1L, disabledMember(), true);
+
+        assertThrows(OrganizationAccessRuleViolation.class, () -> service.enable(manager(), TARGET.value()));
 
         assertNull(committed.get());
         assertNull(revoked.get());
@@ -80,6 +105,17 @@ class TenantMemberStatusApplicationServiceTest {
             }
 
             @Override
+            public Optional<SubjectId> lockSubjectForMembership(TenantId tenantId, MemberId membershipId) {
+                return TENANT.equals(tenantId) && TARGET.equals(membershipId)
+                        ? Optional.of(enabledMember().subjectId()) : Optional.empty();
+            }
+
+            @Override
+            public boolean hasActivePlatformAdministrator(SubjectId subjectId) {
+                return false;
+            }
+
+            @Override
             public boolean hasAccessManage(TenantId tenantId, MemberId membershipId) {
                 return TENANT.equals(tenantId) && TARGET.equals(membershipId);
             }
@@ -103,11 +139,31 @@ class TenantMemberStatusApplicationServiceTest {
             AtomicReference<MemberId> revoked,
             long otherAccessManagers,
             TenantMembership membership) {
+        return service(committed, revoked, otherAccessManagers, membership, false);
+    }
+
+    private static TenantMemberStatusApplicationService service(
+            AtomicReference<TenantMembership> committed,
+            AtomicReference<MemberId> revoked,
+            long otherAccessManagers,
+            TenantMembership membership,
+            boolean activePlatformAdministrator) {
         TenantMemberStatusStore store = new TenantMemberStatusStore() {
             @Override
             public Optional<TenantMembership> lock(TenantId tenantId, MemberId membershipId) {
                 return TENANT.equals(tenantId) && TARGET.equals(membershipId)
                         ? Optional.of(membership) : Optional.empty();
+            }
+
+            @Override
+            public Optional<SubjectId> lockSubjectForMembership(TenantId tenantId, MemberId membershipId) {
+                return TENANT.equals(tenantId) && TARGET.equals(membershipId)
+                        ? Optional.of(membership.subjectId()) : Optional.empty();
+            }
+
+            @Override
+            public boolean hasActivePlatformAdministrator(SubjectId subjectId) {
+                return activePlatformAdministrator;
             }
 
             @Override public boolean hasAccessManage(TenantId tenantId, MemberId membershipId) { return false; }
@@ -131,6 +187,22 @@ class TenantMemberStatusApplicationServiceTest {
 
     private static TenantMembership disabledMember() {
         return enabledMember().disable();
+    }
+
+    private static TenantMembership enabledAdministrator() {
+        return TenantMembership.reconstitute(
+                TARGET,
+                TENANT,
+                new SubjectId(4921825928971026434L),
+                TenantMembershipRole.TENANT_ADMINISTRATOR,
+                TenantMembershipStatus.ENABLED,
+                3L,
+                7L,
+                Instant.parse("2026-08-10T08:00:00Z"));
+    }
+
+    private static TenantMembership disabledAdministrator() {
+        return enabledAdministrator().disable();
     }
 
     private static TrustedRequestContext manager() {

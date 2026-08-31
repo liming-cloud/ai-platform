@@ -11,6 +11,8 @@ public interface TenantProvisioningMapper {
 
     SubjectIdentityEntity lockActiveInitialAdministrator(@Param("subjectId") long subjectId);
 
+    boolean hasActivePlatformAdministrator(@Param("subjectId") long subjectId);
+
     int insertTenant(
             @Param("tenantId") long tenantId,
             @Param("tenantCode") String tenantCode,

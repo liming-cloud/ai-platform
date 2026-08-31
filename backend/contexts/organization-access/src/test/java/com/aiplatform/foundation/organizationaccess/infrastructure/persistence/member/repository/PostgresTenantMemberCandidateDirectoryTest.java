@@ -60,6 +60,7 @@ class PostgresTenantMemberCandidateDirectoryTest {
 
     @BeforeEach
     void seedFacts() {
+        jdbc.update("DELETE FROM organization_access.platform_role_binding");
         jdbc.update("DELETE FROM organization_access.tenant_membership");
         jdbc.update("DELETE FROM organization_access.subject_identity");
         jdbc.update("DELETE FROM organization_access.tenant");
@@ -70,8 +71,10 @@ class PostgresTenantMemberCandidateDirectoryTest {
         insertSubject(4921825928971026433L, "anna_x", "ACTIVE");
         insertSubject(4921825928971026434L, "bert", "DISABLED");
         insertSubject(4921825928971026435L, "claire", "ACTIVE");
+        insertSubject(4921825928971026436L, "platform-admin", "ACTIVE");
         insertMembership(3382738893456539651L, TENANT.value(), 4921825928971026431L);
         insertMembership(3382738893456539652L, OTHER_TENANT, 4921825928971026435L);
+        insertPlatformAdministrator(4921825928971026436L);
     }
 
     @Test
@@ -122,6 +125,14 @@ class PostgresTenantMemberCandidateDirectoryTest {
                     (membership_id, tenant_id, subject_id, membership_role, status, permission_version, version, created_at, updated_at)
                 VALUES (?, ?, ?, 'TENANT_USER', 'ENABLED', 1, 0, ?::timestamptz, ?::timestamptz)
                 """, membershipId, tenantId, subjectId, NOW.toString(), NOW.toString());
+    }
+
+    private void insertPlatformAdministrator(long subjectId) {
+        jdbc.update("""
+                INSERT INTO organization_access.platform_role_binding
+                    (binding_id, subject_id, role_code, status, version, created_at)
+                VALUES (?, ?, 'PLATFORM_ADMINISTRATOR', 'ACTIVE', 0, ?::timestamptz)
+                """, 4921825928971026500L, subjectId, NOW.toString());
     }
 
     @SpringBootConfiguration

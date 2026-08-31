@@ -8,6 +8,8 @@ import com.aiplatform.foundation.organizationaccess.domain.authorization.model.P
 import com.aiplatform.foundation.organizationaccess.domain.authorization.model.TenantBuiltInRole;
 import com.aiplatform.foundation.organizationaccess.domain.authorization.service.TenantRoleBindingService;
 import com.aiplatform.foundation.organizationaccess.domain.member.model.MemberId;
+import com.aiplatform.foundation.organizationaccess.domain.member.service.TenantMemberGovernance;
+import com.aiplatform.foundation.organizationaccess.domain.shared.exception.OrganizationAccessRuleViolation;
 import com.aiplatform.foundation.security.identity.TrustedRequestContext;
 import java.time.Clock;
 import java.util.Objects;
@@ -35,6 +37,7 @@ public class TenantRoleBindingApplicationService {
 
     /**
      * @throws IllegalArgumentException 当当前成员无权、目标不存在或绑定已存在时拒绝。
+     * @throws OrganizationAccessRuleViolation 当命令试图治理租户管理员时拒绝。
      */
     @Transactional
     public TenantRoleBindingView bind(
@@ -51,9 +54,11 @@ public class TenantRoleBindingApplicationService {
         } catch (IllegalArgumentException exception) {
             throw new IllegalArgumentException("请求角色尚未发布", exception);
         }
+        TenantMemberGovernance.requireOrdinaryRole(role);
         var membershipId = new MemberId(command.membershipId());
         var membership = store.lockEnabled(context.tenantId(), membershipId)
                 .orElseThrow(() -> new IllegalArgumentException("目标成员不存在或未启用"));
+        TenantMemberGovernance.requireOrdinaryTarget(membership);
         if (store.hasBinding(context.tenantId(), membershipId, role)) {
             throw new IllegalArgumentException("目标成员已拥有该角色");
         }

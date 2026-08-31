@@ -25,6 +25,12 @@ public final class PostgresTenantMemberEstablishmentStore implements TenantMembe
     }
 
     @Override
+    public boolean hasActivePlatformAdministrator(SubjectId subjectId) {
+        return mapper.hasActivePlatformAdministrator(
+                Objects.requireNonNull(subjectId, "主体标识不能为空").value());
+    }
+
+    @Override
     public boolean hasMembership(TenantId tenantId, SubjectId subjectId) {
         return mapper.countMembership(
                 Objects.requireNonNull(tenantId, "租户标识不能为空").value(),

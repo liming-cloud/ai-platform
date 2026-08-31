@@ -19,6 +19,13 @@
               WHERE member.tenant_id = #{tenantId}
                 AND member.subject_id = account.subject_id
           )
+          AND NOT EXISTS (
+              SELECT 1
+              FROM organization_access.platform_role_binding platform_binding
+              WHERE platform_binding.subject_id = account.subject_id
+                AND platform_binding.role_code = 'PLATFORM_ADMINISTRATOR'
+                AND platform_binding.status = 'ACTIVE'
+          )
         ORDER BY lower(account.login_name), account.subject_id
         ]]>
     </select>

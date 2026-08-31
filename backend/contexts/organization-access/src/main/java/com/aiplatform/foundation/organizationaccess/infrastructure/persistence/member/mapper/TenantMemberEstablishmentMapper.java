@@ -7,6 +7,8 @@ import org.apache.ibatis.annotations.Param;
 public interface TenantMemberEstablishmentMapper {
     /** 锁定仍启用的全局主体；不读取其凭据摘要。 */
     Long lockActiveSubject(@Param("subjectId") long subjectId);
+    /** 判断主体是否仍拥有活动平台管理员绑定。 */
+    boolean hasActivePlatformAdministrator(@Param("subjectId") long subjectId);
     /** 检查主体是否已属于当前租户。 */
     int countMembership(@Param("tenantId") long tenantId, @Param("subjectId") long subjectId);
     /** 写入普通用户成员资格。 */

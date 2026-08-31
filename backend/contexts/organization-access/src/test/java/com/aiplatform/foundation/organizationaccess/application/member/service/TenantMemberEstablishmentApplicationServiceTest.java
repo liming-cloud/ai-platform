@@ -1,12 +1,14 @@
 package com.aiplatform.foundation.organizationaccess.application.member.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.aiplatform.foundation.organizationaccess.application.member.port.out.TenantMemberEstablishmentStore;
 import com.aiplatform.foundation.organizationaccess.domain.member.model.MemberId;
 import com.aiplatform.foundation.organizationaccess.domain.member.model.SubjectId;
 import com.aiplatform.foundation.organizationaccess.domain.member.model.TenantMembership;
+import com.aiplatform.foundation.organizationaccess.domain.shared.exception.OrganizationAccessRuleViolation;
 import com.aiplatform.foundation.security.identity.AccessChannel;
 import com.aiplatform.foundation.security.identity.CredentialType;
 import com.aiplatform.foundation.security.identity.MembershipId;
@@ -27,7 +29,7 @@ class TenantMemberEstablishmentApplicationServiceTest {
     void 访问管理员建立已启用全局主体时必须创建无权限普通成员() {
         var committed = new AtomicReference<TenantMembership>();
         var service = new TenantMemberEstablishmentApplicationService(
-                store(committed, Optional.of(SUBJECT), false), () -> 3382738893456539651L);
+                store(committed, Optional.of(SUBJECT), false, false), () -> 3382738893456539651L);
 
         var view = service.establish(manager(), SUBJECT.value());
 
@@ -39,7 +41,7 @@ class TenantMemberEstablishmentApplicationServiceTest {
     @Test
     void 停用或不存在的全局主体不得建立成员资格() {
         var service = new TenantMemberEstablishmentApplicationService(
-                store(new AtomicReference<>(), Optional.empty(), false), () -> 3382738893456539651L);
+                store(new AtomicReference<>(), Optional.empty(), false, false), () -> 3382738893456539651L);
 
         assertThrows(IllegalArgumentException.class,
                 () -> service.establish(manager(), SUBJECT.value()));
@@ -48,18 +50,34 @@ class TenantMemberEstablishmentApplicationServiceTest {
     @Test
     void 同租户重复主体不得建立第二个成员资格() {
         var service = new TenantMemberEstablishmentApplicationService(
-                store(new AtomicReference<>(), Optional.of(SUBJECT), true), () -> 3382738893456539651L);
+                store(new AtomicReference<>(), Optional.of(SUBJECT), true, false), () -> 3382738893456539651L);
 
         assertThrows(IllegalArgumentException.class,
                 () -> service.establish(manager(), SUBJECT.value()));
     }
 
+    @Test
+    void 活动平台管理员不得建立租户成员资格() {
+        var committed = new AtomicReference<TenantMembership>();
+        var service = new TenantMemberEstablishmentApplicationService(
+                store(committed, Optional.of(SUBJECT), false, true), () -> 3382738893456539651L);
+
+        assertThrows(
+                OrganizationAccessRuleViolation.class,
+                () -> service.establish(manager(), SUBJECT.value()));
+        assertNull(committed.get());
+    }
+
     private static TenantMemberEstablishmentStore store(
             AtomicReference<TenantMembership> committed,
             Optional<SubjectId> activeSubject,
-            boolean exists) {
+            boolean exists,
+            boolean activePlatformAdministrator) {
         return new TenantMemberEstablishmentStore() {
             @Override public Optional<SubjectId> lockActiveSubject(SubjectId subjectId) { return activeSubject; }
+            @Override public boolean hasActivePlatformAdministrator(SubjectId subjectId) {
+                return activePlatformAdministrator;
+            }
             @Override public boolean hasMembership(TenantId tenantId, SubjectId subjectId) { return exists; }
             @Override public void insert(TenantMembership membership) { committed.set(membership); }
         };

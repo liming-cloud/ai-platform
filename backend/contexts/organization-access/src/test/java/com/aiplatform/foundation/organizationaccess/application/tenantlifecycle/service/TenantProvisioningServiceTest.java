@@ -9,6 +9,7 @@ import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.
 import com.aiplatform.foundation.organizationaccess.domain.identity.model.SubjectIdentity;
 import com.aiplatform.foundation.organizationaccess.domain.member.model.EncodedPassword;
 import com.aiplatform.foundation.organizationaccess.domain.member.model.SubjectId;
+import com.aiplatform.foundation.organizationaccess.domain.shared.exception.OrganizationAccessRuleViolation;
 import com.aiplatform.foundation.organizationaccess.domain.member.model.TenantMembershipRole;
 import com.aiplatform.foundation.organizationaccess.domain.tenant.model.TenantLifecycleStatus;
 import com.aiplatform.foundation.organizationaccess.domain.tenant.operation.TenantProvisioningResult;
@@ -33,7 +34,7 @@ class TenantProvisioningServiceTest {
     @Test
     void 应以令牌派生平台操作者为前置并原子提交准备中的租户() {
         var committed = new AtomicReference<TenantProvisioningResult>();
-        var service = service(Optional.of(activeAdministrator()), committed);
+        var service = service(Optional.of(activeAdministrator()), false, committed);
 
         var result = service.provision(
                 platformContext(),
@@ -49,7 +50,7 @@ class TenantProvisioningServiceTest {
     @Test
     void 不可用初始管理员不得产生任何提交() {
         var committed = new AtomicReference<TenantProvisioningResult>();
-        var service = service(Optional.empty(), committed);
+        var service = service(Optional.empty(), false, committed);
 
         assertThrows(
                 IllegalArgumentException.class,
@@ -60,13 +61,33 @@ class TenantProvisioningServiceTest {
         assertTrue(committed.get() == null);
     }
 
+    @Test
+    void 活动平台管理员不得成为新租户初始管理员() {
+        var committed = new AtomicReference<TenantProvisioningResult>();
+        var service = service(Optional.of(activeAdministrator()), true, committed);
+
+        assertThrows(
+                OrganizationAccessRuleViolation.class,
+                () -> service.provision(
+                        platformContext(),
+                        new TenantProvisioningCommand("fresh-tenant", "新租户", INITIAL_ADMINISTRATOR)));
+
+        assertTrue(committed.get() == null);
+    }
+
     private static TenantProvisioningService service(
             Optional<SubjectIdentity> administrator,
+            boolean activePlatformAdministrator,
             AtomicReference<TenantProvisioningResult> committed) {
         TenantProvisioningStore store = new TenantProvisioningStore() {
             @Override
             public Optional<SubjectIdentity> lockActiveInitialAdministrator(SubjectId subjectId) {
                 return administrator.filter(value -> value.id().equals(subjectId));
+            }
+
+            @Override
+            public boolean hasActivePlatformAdministrator(SubjectId subjectId) {
+                return activePlatformAdministrator;
             }
 
             @Override

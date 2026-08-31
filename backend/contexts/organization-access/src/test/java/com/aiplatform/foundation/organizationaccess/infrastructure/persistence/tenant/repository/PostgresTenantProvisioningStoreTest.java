@@ -7,6 +7,7 @@ import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.service.TenantProvisioningService;
 import com.aiplatform.foundation.organizationaccess.domain.member.model.SubjectId;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.mapper.TenantProvisioningMapper;
+import com.aiplatform.foundation.organizationaccess.domain.shared.exception.OrganizationAccessRuleViolation;
 import com.aiplatform.foundation.security.identity.AccessChannel;
 import com.aiplatform.foundation.security.identity.CredentialType;
 import com.aiplatform.foundation.security.identity.PlatformPermissions;
@@ -70,6 +71,8 @@ class PostgresTenantProvisioningStoreTest {
     void seedFacts() {
         jdbc.execute("DROP TRIGGER IF EXISTS fail_tenant_lifecycle_outbox ON organization_access.tenant_lifecycle_outbox");
         jdbc.execute("DROP FUNCTION IF EXISTS organization_access.fail_tenant_lifecycle_outbox()");
+        jdbc.update("DELETE FROM organization_access.platform_role_binding");
+        jdbc.update("DELETE FROM organization_access.platform_subject_authorization");
         jdbc.update("DELETE FROM organization_access.tenant_membership_role_binding");
         jdbc.update("DELETE FROM organization_access.tenant_lifecycle_authentication_cutover");
         jdbc.update("DELETE FROM organization_access.tenant_lifecycle_outbox");
@@ -139,6 +142,23 @@ class PostgresTenantProvisioningStoreTest {
         assertEquals(0L, count("organization_access.tenant_lifecycle_outbox"));
         assertEquals(0L, count("organization_access.tenant_membership_role_binding"));
         assertEquals(0L, count("organization_access.tenant_membership"));
+    }
+
+    @Test
+    void 初始租户管理员必须拒绝活动平台管理员() {
+        jdbc.update("""
+                INSERT INTO organization_access.platform_role_binding
+                    (binding_id, subject_id, role_code, status, version, created_at)
+                VALUES (4921825928971026437, ?, 'PLATFORM_ADMINISTRATOR', 'ACTIVE', 0,
+                    TIMESTAMPTZ '2026-07-01T00:00:00Z')
+                """, INITIAL_ADMINISTRATOR);
+
+        assertThrows(OrganizationAccessRuleViolation.class, () -> provisioning.provision(
+                platformContext(),
+                new TenantProvisioningCommand(
+                        "fresh-tenant", "新租户", new SubjectId(INITIAL_ADMINISTRATOR))));
+
+        assertEquals(0L, count("organization_access.tenant"));
     }
 
     private long count(String table) {
