@@ -124,6 +124,21 @@ describe("ControlPlaneClient", () => {
     expect(JSON.stringify(failures)).not.toMatch(/trace|sql|modelId|tenantId|vendor|endpoint|stack|COMMON|AUTH/i);
   });
 
+  it("最后一位租户管理员保护提供可执行的恢复指引", () => {
+    const failure = presentApiError(new ApiRequestError(
+      409,
+      "ORGANIZATION_ACCESS.CONFLICT.0003",
+      "不能停用租户最后一个启用管理员",
+      "trc-secret",
+    ), "停用租户管理员");
+
+    expect(failure).toEqual({
+      title: "必须保留一位启用管理员",
+      description: "请先分配或恢复另一位管理员，再停用当前管理员。",
+    });
+    expect(JSON.stringify(failure)).not.toMatch(/ORGANIZATION_ACCESS|trc-secret/i);
+  });
+
   it("建立平台账户只写入登录名和一次性初始口令", async () => {
     let request: Request | undefined;
     const client = authenticatedClient(async (input, init) => {
@@ -996,6 +1011,40 @@ describe("ControlPlaneClient", () => {
     expect(request?.method).toBe("GET");
     expect(page.items[0]).not.toHaveProperty("initialAdministratorSubjectId");
     expect(page.items[0]?.lastChangedAt).toBe("2026-08-03T04:00:00Z");
+  });
+
+  it("平台租户管理员目录和生命周期只提交目标租户与受控资源引用", async () => {
+    const requests: Request[] = [];
+    const client = authenticatedClient(async (input, init) => {
+      requests.push(new Request(input, init));
+      return new Response(JSON.stringify({
+        items: [], pageNumber: 1, pageSize: 20, totalElements: 0,
+        totalPages: 0, hasPrevious: false, hasNext: false,
+      }), { status: 200, headers: { "Content-Type": "application/json" } });
+    });
+
+    await client.listTenantAdministrators("tenant/alpha", 2, 10);
+    await client.listTenantAdministratorCandidates("tenant/alpha", "next admin", 3, 10);
+    await client.assignTenantAdministrator("tenant/alpha", "801");
+    await client.disableTenantAdministrator("tenant/alpha", "701", 4);
+    await client.restoreTenantAdministrator("tenant/alpha", "701", 5);
+    await client.replaceTenantAdministrator("tenant/alpha", "701", 6, "802");
+
+    expect(requests.map((request) => request.url)).toEqual([
+      "http://localhost/api/v1/platform/tenants/tenant%2Falpha/administrators?pageNumber=2&pageSize=10",
+      "http://localhost/api/v1/platform/tenants/tenant%2Falpha/administrators/candidates?q=next+admin&pageNumber=3&pageSize=10",
+      "http://localhost/api/v1/platform/tenants/tenant%2Falpha/administrators",
+      "http://localhost/api/v1/platform/tenants/tenant%2Falpha/administrators/701/disable",
+      "http://localhost/api/v1/platform/tenants/tenant%2Falpha/administrators/701/restore",
+      "http://localhost/api/v1/platform/tenants/tenant%2Falpha/administrators/701/replace",
+    ]);
+    expect(await requests[2]?.json()).toEqual({ accountReference: "801" });
+    expect(await requests[3]?.json()).toEqual({ expectedVersion: 4 });
+    expect(await requests[4]?.json()).toEqual({ expectedVersion: 5 });
+    expect(await requests[5]?.json()).toEqual({
+      expectedVersion: 6,
+      replacementAccountReference: "802",
+    });
   });
 
   it("平台账户目录从服务端分页投影读取，且不携带浏览器授权头", async () => {

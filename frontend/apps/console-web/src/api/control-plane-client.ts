@@ -28,6 +28,21 @@ export interface TenantLifecycleSummary {
   lastChangedAt: string;
 }
 
+/** 平台读取的租户管理员安全摘要，不包含主体标识、凭据或权限快照。 */
+export interface TenantAdministratorSummary {
+  membershipReference: string;
+  loginName: string;
+  status: "ENABLED" | "DISABLED";
+  permissionVersion: number;
+  version: number;
+  createdAt: string;
+}
+
+/** 平台租户管理员写操作的最小回显。 */
+export interface TenantAdministratorMutation extends TenantAdministratorSummary {
+  role: "TENANT_ADMINISTRATOR";
+}
+
 /** 平台账户目录的最小安全摘要，不携带凭据、会话或权限快照。 */
 export interface PlatformAccountSummary {
   subjectId: string;
@@ -657,6 +672,84 @@ export class ControlPlaneClient {
   ): Promise<PageResult<TenantLifecycleSummary>> {
     return this.request<PageResult<TenantLifecycleSummary>>(
       `/platform/tenants?pageNumber=${pageNumber}&pageSize=${pageSize}`,
+    );
+  }
+
+  async listTenantAdministrators(
+    tenantId: string,
+    pageNumber = 1,
+    pageSize = 20,
+  ): Promise<PageResult<TenantAdministratorSummary>> {
+    const target = encodeURIComponent(tenantId);
+    return this.request<PageResult<TenantAdministratorSummary>>(
+      `/platform/tenants/${target}/administrators?pageNumber=${pageNumber}&pageSize=${pageSize}`,
+    );
+  }
+
+  async listTenantAdministratorCandidates(
+    tenantId: string,
+    query = "",
+    pageNumber = 1,
+    pageSize = 20,
+  ): Promise<PageResult<PlatformAccountCandidate>> {
+    const parameters = new URLSearchParams({
+      q: query.trim(),
+      pageNumber: String(pageNumber),
+      pageSize: String(pageSize),
+    });
+    return this.request<PageResult<PlatformAccountCandidate>>(
+      `/platform/tenants/${encodeURIComponent(tenantId)}/administrators/candidates?${parameters}`,
+    );
+  }
+
+  async assignTenantAdministrator(
+    tenantId: string,
+    accountReference: string,
+  ): Promise<TenantAdministratorMutation> {
+    return this.request<TenantAdministratorMutation>(
+      `/platform/tenants/${encodeURIComponent(tenantId)}/administrators`,
+      {
+        method: "POST",
+        headers: this.writeHeaders("application/json"),
+        body: JSON.stringify({ accountReference }),
+      },
+    );
+  }
+
+  async disableTenantAdministrator(
+    tenantId: string,
+    membershipReference: string,
+    expectedVersion: number,
+  ): Promise<TenantAdministratorMutation> {
+    return this.changeTenantAdministratorStatus(
+      tenantId, membershipReference, "disable", expectedVersion,
+    );
+  }
+
+  async restoreTenantAdministrator(
+    tenantId: string,
+    membershipReference: string,
+    expectedVersion: number,
+  ): Promise<TenantAdministratorMutation> {
+    return this.changeTenantAdministratorStatus(
+      tenantId, membershipReference, "restore", expectedVersion,
+    );
+  }
+
+  async replaceTenantAdministrator(
+    tenantId: string,
+    membershipReference: string,
+    expectedVersion: number,
+    replacementAccountReference: string,
+  ): Promise<TenantAdministratorMutation> {
+    return this.request<TenantAdministratorMutation>(
+      `/platform/tenants/${encodeURIComponent(tenantId)}/administrators/`
+        + `${encodeURIComponent(membershipReference)}/replace`,
+      {
+        method: "POST",
+        headers: this.writeHeaders("application/json"),
+        body: JSON.stringify({ expectedVersion, replacementAccountReference }),
+      },
     );
   }
 
@@ -1638,6 +1731,23 @@ export class ControlPlaneClient {
     );
   }
 
+  private async changeTenantAdministratorStatus(
+    tenantId: string,
+    membershipReference: string,
+    action: "disable" | "restore",
+    expectedVersion: number,
+  ): Promise<TenantAdministratorMutation> {
+    return this.request<TenantAdministratorMutation>(
+      `/platform/tenants/${encodeURIComponent(tenantId)}/administrators/`
+        + `${encodeURIComponent(membershipReference)}/${action}`,
+      {
+        method: "POST",
+        headers: this.writeHeaders("application/json"),
+        body: JSON.stringify({ expectedVersion }),
+      },
+    );
+  }
+
   private writeIdempotencyHeaders(idempotencyKey?: string): HeadersInit {
     return { "Idempotency-Key": idempotencyKey ?? this.identifierFactory() };
   }
@@ -1714,6 +1824,13 @@ export interface UserFacingError {
  */
 export function presentApiError(error: unknown, operation: string): UserFacingError {
   const status = error instanceof ApiRequestError ? error.status : 500;
+  if (error instanceof ApiRequestError
+      && error.code === "ORGANIZATION_ACCESS.CONFLICT.0003") {
+    return {
+      title: "必须保留一位启用管理员",
+      description: "请先分配或恢复另一位管理员，再停用当前管理员。",
+    };
+  }
   if (status === 401) {
     return { title: "登录状态已失效", description: "请重新登录后继续刚才的操作。" };
   }

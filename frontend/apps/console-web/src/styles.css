@@ -671,21 +671,483 @@
 
 .tenant-lifecycle-list {
   display: grid;
-  border-top: 1px solid #e7e7e7;
+  gap: 0.75rem;
 }
 
 .tenant-lifecycle-list > article {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(15rem, 1fr) auto minmax(17rem, auto);
+  gap: 1.25rem;
+  align-items: center;
+  min-height: 5.5rem;
+  padding: 1rem 1.125rem 1rem 1.375rem;
+  overflow: hidden;
+  border: 1px solid var(--colorNeutralStroke2);
+  border-radius: 0.875rem;
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--foundation-accent) 6%, transparent), transparent 34%),
+    var(--colorNeutralBackground1);
+}
+
+.tenant-lifecycle-list > article::before {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 0.25rem;
+  content: "";
+  background: var(--foundation-accent);
+}
+
+.tenant-lifecycle-list > article > div:first-child {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.tenant-lifecycle-list > article h3 {
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+
+.tenant-lifecycle-list > article > div:first-child > span {
+  color: var(--colorNeutralForeground3);
+  font-variant-numeric: tabular-nums;
+}
+
+.tenant-lifecycle-list__actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+.tenant-lifecycle-list + .task-actions {
+  justify-content: flex-end;
+  min-height: 3.25rem;
+  margin-top: 0.25rem;
+  padding: 0.5rem 0.75rem;
+  border-top: 1px solid var(--colorNeutralStroke2);
+}
+
+.tenant-lifecycle-list + .task-actions > span {
+  margin-right: auto;
+  color: var(--colorNeutralForeground3);
+  font-variant-numeric: tabular-nums;
+}
+
+.fui-DialogSurface.tenant-administrator-dialog {
+  width: min(72rem, calc(100vw - 2rem));
+  max-width: none;
+  max-height: min(52rem, calc(100vh - 2rem));
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--foundation-accent) 28%, var(--colorNeutralStroke2));
+  border-radius: 1.125rem;
+  box-shadow: 0 28px 80px rgb(11 32 27 / 24%);
+}
+
+.tenant-administrator-dialog__content {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-auto-rows: max-content;
+  align-content: start;
+  gap: 1rem;
+  min-width: 0;
+  max-height: calc(100vh - 10rem);
+  overflow: auto;
+  padding-right: 0.25rem;
+}
+
+.tenant-administrator-dialog__heading {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 1.5rem;
+  align-items: end;
+  min-height: 8.5rem;
+  padding: 1.5rem;
+  overflow: hidden;
+  color: #e8f4f0;
+  border-radius: 0.875rem;
+  background:
+    radial-gradient(circle at 88% 18%, rgb(94 222 190 / 18%), transparent 26%),
+    linear-gradient(135deg, #10231f, #173b33 66%, #0b5f50);
+}
+
+.tenant-administrator-dialog__heading::after {
+  position: absolute;
+  top: -4rem;
+  right: 16%;
+  width: 9rem;
+  height: 9rem;
+  border: 1px solid rgb(133 241 213 / 22%);
+  border-radius: 50%;
+  content: "";
+}
+
+.tenant-administrator-dialog__heading > div:first-child {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 0.375rem;
+}
+
+.tenant-administrator-dialog__heading h2 {
+  margin: 0;
+  color: #fff;
+  font-size: clamp(1.5rem, 3vw, 2.25rem);
+  letter-spacing: -0.045em;
+}
+
+.tenant-administrator-dialog__heading > div:first-child > span:last-child {
+  max-width: 42rem;
+  color: #b7cbc5;
+  line-height: 1.55;
+}
+
+.tenant-administrator-dialog__eyebrow {
+  color: #76d9c1;
+  font-size: 0.6875rem;
+  font-weight: 750;
+  letter-spacing: 0.12em;
+}
+
+.tenant-administrator-dialog__metric {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  justify-items: end;
+  min-width: 7rem;
+  padding-left: 1.25rem;
+  border-left: 1px solid rgb(255 255 255 / 18%);
+}
+
+.tenant-administrator-dialog__metric strong {
+  color: #fff;
+  font-size: 2.5rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 720;
+  line-height: 1;
+}
+
+.tenant-administrator-dialog__metric span {
+  margin-top: 0.375rem;
+  color: #9eb8b1;
+  font-size: 0.75rem;
+}
+
+.tenant-administrator-dialog__workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1.55fr) minmax(18rem, 0.85fr);
+  gap: 1rem;
+  min-width: 0;
+}
+
+.tenant-administrator-directory,
+.tenant-administrator-candidates,
+.tenant-administrator-boundary {
+  min-width: 0;
+  border: 1px solid var(--colorNeutralStroke2);
+  border-radius: 0.875rem;
+}
+
+.tenant-administrator-directory {
+  display: grid;
+  align-content: start;
+  overflow: hidden;
+  background: var(--colorNeutralBackground1);
+}
+
+.tenant-administrator-directory__toolbar {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.125rem;
+  border-bottom: 1px solid var(--colorNeutralStroke2);
+}
+
+.tenant-administrator-directory__toolbar > div {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.tenant-administrator-directory__toolbar h3,
+.tenant-administrator-candidates h3,
+.tenant-administrator-boundary h3 {
+  margin: 0;
+}
+
+.tenant-administrator-directory__toolbar span {
+  color: var(--colorNeutralForeground3);
+}
+
+.tenant-administrator-directory__list {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  min-width: 0;
+}
+
+.tenant-administrator-card {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto auto;
   gap: 1rem;
   align-items: center;
-  padding: 1rem 0;
-  border-bottom: 1px solid #e7e7e7;
+  min-height: 4.75rem;
+  min-width: 0;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--colorNeutralStroke2);
 }
 
-.tenant-lifecycle-list > article > div {
+.tenant-administrator-card__identity {
+  display: grid;
+  grid-template-columns: 2.5rem minmax(0, 1fr);
+  gap: 0.75rem;
+  align-items: center;
+  min-width: 0;
+}
+
+.tenant-administrator-dialog .fui-MessageBar {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+.tenant-administrator-card__identity > span {
+  display: grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  color: #075d4e;
+  border: 1px solid #b9ded4;
+  border-radius: 0.75rem;
+  background: #e4f3ef;
+  font-weight: 750;
+}
+
+.tenant-administrator-card__identity > div {
+  display: grid;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.tenant-administrator-card__identity strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tenant-administrator-card__identity div > span {
+  color: var(--colorNeutralForeground3);
+  font-size: 0.75rem;
+}
+
+.tenant-administrator-card__actions {
+  display: flex;
+  gap: 0.375rem;
+}
+
+.tenant-administrator-directory__pagination,
+.tenant-administrator-candidates__pagination {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 3.25rem;
+  padding: 0.5rem 1rem;
+}
+
+.tenant-administrator-directory__pagination > span,
+.tenant-administrator-candidates__pagination > span {
+  color: var(--colorNeutralForeground3);
+  font-variant-numeric: tabular-nums;
+}
+
+.tenant-administrator-directory__pagination > div {
+  display: flex;
+  gap: 0.375rem;
+}
+
+.tenant-administrator-candidates,
+.tenant-administrator-boundary {
+  display: grid;
+  align-content: start;
+  gap: 1rem;
+  padding: 1.125rem;
+  color: #eaf4f1;
+  border-color: #294b43;
+  background: #142923;
+}
+
+.tenant-administrator-candidates__heading {
+  display: grid;
+  gap: 0.375rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid rgb(255 255 255 / 12%);
+}
+
+.tenant-administrator-candidates__heading > span:first-child,
+.tenant-administrator-boundary > span:first-child {
+  color: #72d5bd;
+  font-size: 0.6875rem;
+  font-weight: 750;
+  letter-spacing: 0.1em;
+}
+
+.tenant-administrator-candidates__heading > span:last-child {
+  color: #a9c0ba;
+  line-height: 1.55;
+}
+
+.tenant-administrator-candidates__search {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.5rem;
+  align-items: end;
+}
+
+.tenant-administrator-candidates__list {
+  display: grid;
+  gap: 0.5rem;
+  min-height: 5rem;
+}
+
+.tenant-administrator-candidates__list > span {
+  color: #b7cbc5;
+}
+
+.tenant-administrator-candidates__list label {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 0.625rem 0.75rem;
+  color: #eef8f5;
+  border: 1px solid rgb(255 255 255 / 13%);
+  border-radius: 0.625rem;
+  background: rgb(255 255 255 / 4%);
+}
+
+.tenant-administrator-candidates__list label > span {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: 1rem;
+}
+
+.tenant-administrator-candidates__list small {
+  color: #75d7bf;
+}
+
+.tenant-administrator-candidates__pagination {
+  padding-inline: 0;
+  border-top: 1px solid rgb(255 255 255 / 12%);
+}
+
+.tenant-administrator-candidates__actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+.tenant-administrator-boundary {
+  min-height: 19rem;
+  background:
+    radial-gradient(circle at 86% 90%, rgb(86 207 178 / 16%), transparent 28%),
+    #142923;
+}
+
+.tenant-administrator-boundary ul {
+  display: grid;
+  gap: 0.875rem;
+  margin: 0.5rem 0 0;
+  padding-left: 1.125rem;
+  color: #aec3bd;
+  line-height: 1.55;
+}
+
+.tenant-administrator-confirmation {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.125rem;
+  border: 1px solid #e6b96c;
+  border-radius: 0.75rem;
+  background: #fff9eb;
+}
+
+.tenant-administrator-confirmation > div:first-child {
   display: grid;
   gap: 0.25rem;
+}
+
+.tenant-administrator-confirmation > div:first-child > span {
+  color: #6f5a35;
+}
+
+.tenant-administrator-confirmation > div:last-child {
+  display: flex;
+  flex-shrink: 0;
+  gap: 0.5rem;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .fui-DialogSurface.tenant-administrator-dialog {
+    animation: tenant-administrator-dialog-enter 260ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  .tenant-administrator-card,
+  .tenant-lifecycle-list > article,
+  .tenant-administrator-candidates,
+  .tenant-administrator-confirmation {
+    transition:
+      transform 180ms cubic-bezier(0.16, 1, 0.3, 1),
+      border-color 180ms ease,
+      background-color 180ms ease;
+  }
+
+  .tenant-administrator-card:hover,
+  .tenant-lifecycle-list > article:hover {
+    transform: translateY(-1px);
+    border-color: color-mix(in srgb, var(--foundation-accent) 42%, var(--colorNeutralStroke2));
+  }
+
+  .tenant-administrator-candidates,
+  .tenant-administrator-confirmation {
+    animation: tenant-administrator-panel-enter 220ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tenant-administrator-dialog,
+  .tenant-administrator-card,
+  .tenant-lifecycle-list > article,
+  .tenant-administrator-candidates,
+  .tenant-administrator-confirmation {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+@keyframes tenant-administrator-dialog-enter {
+  from {
+    opacity: 0;
+    transform: translateY(0.75rem) scale(0.985);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes tenant-administrator-panel-enter {
+  from {
+    opacity: 0;
+    transform: translateX(0.625rem);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
 .tenant-provisioning {
@@ -1713,6 +2175,23 @@
     align-self: flex-start;
   }
 
+  .tenant-lifecycle-list > article {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .tenant-lifecycle-list__actions {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
+  }
+
+  .tenant-administrator-dialog__workspace {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .tenant-administrator-boundary {
+    min-height: auto;
+  }
+
   .platform-account-row {
     grid-template-columns: minmax(0, 1fr) auto;
   }
@@ -1877,6 +2356,99 @@
 }
 
 @media (max-width: 520px) {
+  .tenant-lifecycle-list > article {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.75rem;
+  }
+
+  .tenant-lifecycle-list > article > span {
+    justify-self: start;
+  }
+
+  .tenant-lifecycle-list__actions,
+  .tenant-lifecycle-list__actions > button {
+    width: 100%;
+  }
+
+  .tenant-lifecycle-list__actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .tenant-lifecycle-list + .task-actions {
+    justify-content: flex-start;
+  }
+
+  .tenant-lifecycle-list + .task-actions > span {
+    flex-basis: 100%;
+  }
+
+  .tenant-administrator-dialog {
+    width: calc(100vw - 0.75rem);
+    max-height: calc(100vh - 0.75rem);
+    border-radius: 0.75rem;
+  }
+
+  .tenant-administrator-dialog__content {
+    max-height: calc(100vh - 8rem);
+  }
+
+  .tenant-administrator-dialog__heading {
+    grid-template-columns: minmax(0, 1fr);
+    min-height: auto;
+    padding: 1.125rem;
+  }
+
+  .tenant-administrator-dialog__metric {
+    grid-template-columns: auto auto;
+    gap: 0.5rem;
+    align-items: baseline;
+    justify-content: start;
+    justify-items: start;
+    padding: 0;
+    border-left: 0;
+  }
+
+  .tenant-administrator-dialog__metric strong {
+    font-size: 1.75rem;
+  }
+
+  .tenant-administrator-directory__toolbar,
+  .tenant-administrator-confirmation {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .tenant-administrator-directory__toolbar > button {
+    align-self: flex-start;
+  }
+
+  .tenant-administrator-card {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0.75rem;
+  }
+
+  .tenant-administrator-card__actions {
+    grid-column: 1 / -1;
+  }
+
+  .tenant-administrator-card__actions > button {
+    flex: 1;
+  }
+
+  .tenant-administrator-candidates__search {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .tenant-administrator-candidates__search > button {
+    justify-self: start;
+  }
+
+  .tenant-administrator-confirmation > div:last-child,
+  .tenant-administrator-confirmation > div:last-child > button {
+    width: 100%;
+  }
+
   .tenant-provisioning__layout {
     margin-inline: -1rem;
     border-inline: 0;

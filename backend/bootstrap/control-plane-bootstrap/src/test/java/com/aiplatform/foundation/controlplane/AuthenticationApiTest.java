@@ -665,6 +665,128 @@ class AuthenticationApiTest {
     }
 
     @Test
+    void 平台应独占租户管理员全生命周期并撤销受影响主体会话() {
+        var assignSubjectId = 4921825928971026501L;
+        var replacementSubjectId = 4921825928971026502L;
+        seedActiveSubject(assignSubjectId, "platform-assigned-admin");
+        seedActiveSubject(replacementSubjectId, "platform-replacement-admin");
+        var platformToken = platformLogin();
+        var tenantCode = "administrator-lifecycle-" + System.nanoTime();
+        var created = http.exchange(
+                url("/api/v1/platform/tenants"),
+                HttpMethod.POST,
+                new HttpEntity<>(
+                        Map.of(
+                                "tenantCode", tenantCode,
+                                "displayName", "管理员生命周期租户",
+                                "initialAdministratorSubjectId", "4921825928971026438"),
+                        bearer(platformToken)),
+                TenantLifecycleResponse.class);
+        assertEquals(HttpStatus.CREATED, created.getStatusCode());
+        assertNotNull(created.getBody());
+        var tenantId = created.getBody().tenantId();
+        var activated = http.exchange(
+                url("/api/v1/platform/tenants/" + tenantId + "/lifecycle/activate"),
+                HttpMethod.POST,
+                new HttpEntity<>(bearer(platformToken)),
+                TenantLifecycleResponse.class);
+        assertEquals(HttpStatus.OK, activated.getStatusCode());
+        var oldSession = tenantLogin(tenantCode, "tenant-admin-candidate");
+
+        var candidates = http.exchange(
+                url("/api/v1/platform/tenants/" + tenantId
+                        + "/administrators/candidates?q=platform-&pageNumber=1&pageSize=20"),
+                HttpMethod.GET,
+                new HttpEntity<>(bearer(platformToken)),
+                Map.class);
+        assertEquals(HttpStatus.OK, candidates.getStatusCode());
+        assertNotNull(candidates.getBody());
+        var candidateItems = (java.util.List<?>) candidates.getBody().get("items");
+        assertTrue(candidateItems.stream().filter(Map.class::isInstance).map(Map.class::cast)
+                .anyMatch(item -> Long.toString(assignSubjectId).equals(item.get("accountReference"))));
+        assertTrue(candidateItems.stream().filter(Map.class::isInstance).map(Map.class::cast)
+                .anyMatch(item -> Long.toString(replacementSubjectId).equals(item.get("accountReference"))));
+
+        var assigned = http.exchange(
+                url("/api/v1/platform/tenants/" + tenantId + "/administrators"),
+                HttpMethod.POST,
+                new HttpEntity<>(
+                        Map.of("accountReference", Long.toString(assignSubjectId)),
+                        bearer(platformToken)),
+                Map.class);
+        assertEquals(HttpStatus.CREATED, assigned.getStatusCode());
+        assertNotNull(assigned.getBody());
+        assertEquals("platform-assigned-admin", assigned.getBody().get("loginName"));
+        assertFalse(assigned.getBody().containsKey("subjectId"));
+        assertFalse(assigned.getBody().containsKey("passwordHash"));
+
+        var directory = http.exchange(
+                url("/api/v1/platform/tenants/" + tenantId
+                        + "/administrators?pageNumber=1&pageSize=20"),
+                HttpMethod.GET,
+                new HttpEntity<>(bearer(platformToken)),
+                Map.class);
+        assertEquals(HttpStatus.OK, directory.getStatusCode());
+        assertNotNull(directory.getBody());
+        var oldAdministrator = ((java.util.List<?>) directory.getBody().get("items")).stream()
+                .filter(Map.class::isInstance)
+                .map(Map.class::cast)
+                .filter(item -> "tenant-admin-candidate".equals(item.get("loginName")))
+                .findFirst()
+                .orElseThrow();
+        var oldMembershipReference = oldAdministrator.get("membershipReference").toString();
+
+        var replaced = http.exchange(
+                url("/api/v1/platform/tenants/" + tenantId + "/administrators/"
+                        + oldMembershipReference + "/replace"),
+                HttpMethod.POST,
+                new HttpEntity<>(
+                        Map.of(
+                                "expectedVersion", oldAdministrator.get("version"),
+                                "replacementAccountReference", Long.toString(replacementSubjectId)),
+                        bearer(platformToken)),
+                Map.class);
+        assertEquals(HttpStatus.OK, replaced.getStatusCode());
+        assertNotNull(replaced.getBody());
+        assertEquals("platform-replacement-admin", replaced.getBody().get("loginName"));
+        assertThrows(InvalidAuthenticatedSessionException.class, () -> sessions.resolve(oldSession));
+        assertEquals(HttpStatus.UNAUTHORIZED,
+                tenantLoginStatus(tenantCode, "tenant-admin-candidate"));
+        assertEquals(HttpStatus.CREATED,
+                tenantLoginResponse(tenantCode, "platform-replacement-admin").getStatusCode());
+
+        var restored = http.exchange(
+                url("/api/v1/platform/tenants/" + tenantId + "/administrators/"
+                        + oldMembershipReference + "/restore"),
+                HttpMethod.POST,
+                new HttpEntity<>(Map.of("expectedVersion", 1), bearer(platformToken)),
+                Map.class);
+        assertEquals(HttpStatus.OK, restored.getStatusCode());
+        assertNotNull(restored.getBody());
+        assertEquals("ENABLED", restored.getBody().get("status"));
+        var restoredSession = tenantLogin(tenantCode, "tenant-admin-candidate");
+
+        var disabled = http.exchange(
+                url("/api/v1/platform/tenants/" + tenantId + "/administrators/"
+                        + oldMembershipReference + "/disable"),
+                HttpMethod.POST,
+                new HttpEntity<>(Map.of("expectedVersion", 2), bearer(platformToken)),
+                Map.class);
+        assertEquals(HttpStatus.OK, disabled.getStatusCode());
+        assertNotNull(disabled.getBody());
+        assertEquals("DISABLED", disabled.getBody().get("status"));
+        assertThrows(InvalidAuthenticatedSessionException.class, () -> sessions.resolve(restoredSession));
+
+        var tenantDenied = http.exchange(
+                url("/api/v1/platform/tenants/" + tenantId
+                        + "/administrators?pageNumber=1&pageSize=20"),
+                HttpMethod.GET,
+                new HttpEntity<>(bearer(tenantLogin(tenantCode, "platform-assigned-admin"))),
+                ApiError.class);
+        assertEquals(HttpStatus.UNAUTHORIZED, tenantDenied.getStatusCode());
+    }
+
+    @Test
     void 租户会话与伪造当前主体字段不得取得平台租户治理入口() {
         var tenantToken = tenantLogin();
         var denied = http.exchange(
@@ -809,6 +931,53 @@ class AuthenticationApiTest {
                         "loginName", "tenant-admin-candidate",
                         "password", new String(DEMO_PASSWORD)),
                 String.class);
+    }
+
+    private String tenantLogin(String tenantCode, String loginName) {
+        var response = tenantLoginResponse(tenantCode, loginName);
+        assertEquals(HttpStatus.CREATED, response.getStatusCode());
+        assertNotNull(response.getBody());
+        return response.getBody().tokenValue();
+    }
+
+    private org.springframework.http.ResponseEntity<SessionResponse> tenantLoginResponse(
+            String tenantCode,
+            String loginName) {
+        return http.postForEntity(
+                url("/api/v1/auth/sessions"),
+                Map.of(
+                        "tenantCode", tenantCode,
+                        "loginName", loginName,
+                        "password", new String(DEMO_PASSWORD)),
+                SessionResponse.class);
+    }
+
+    private org.springframework.http.HttpStatusCode tenantLoginStatus(
+            String tenantCode,
+            String loginName) {
+        return http.postForEntity(
+                        url("/api/v1/auth/sessions"),
+                        Map.of(
+                                "tenantCode", tenantCode,
+                                "loginName", loginName,
+                                "password", new String(DEMO_PASSWORD)),
+                        String.class)
+                .getStatusCode();
+    }
+
+    private void seedActiveSubject(long subjectId, String loginName) {
+        jdbc.update("""
+                INSERT INTO organization_access.subject_identity
+                    (subject_id, login_name, password_hash, status, version)
+                SELECT ?, ?, password_hash, 'ACTIVE', 0
+                FROM organization_access.subject_identity
+                WHERE subject_id = 4921825928971026438
+                ON CONFLICT (subject_id) DO UPDATE
+                    SET login_name = EXCLUDED.login_name,
+                        password_hash = EXCLUDED.password_hash,
+                        status = 'ACTIVE',
+                        version = 0
+                """, subjectId, loginName);
     }
 
     private static HttpHeaders bearer(String token) {

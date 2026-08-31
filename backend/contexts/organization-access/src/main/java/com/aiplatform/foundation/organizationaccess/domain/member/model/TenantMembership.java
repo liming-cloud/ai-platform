@@ -162,6 +162,27 @@ public final class TenantMembership implements AggregateRoot<MemberId> {
                 createdAt);
     }
 
+    /**
+     * 将当前租户成员资格转为启用的租户管理员，并只推进一次权限与聚合修订。
+     *
+     * <p>该转换只能由平台拥有的租户管理员治理领域服务调用；租户范围命令不得借此提升普通成员。</p>
+     */
+    public TenantMembership assignAdministrator() {
+        if (role == TenantMembershipRole.TENANT_ADMINISTRATOR
+                && status == TenantMembershipStatus.ENABLED) {
+            return this;
+        }
+        return new TenantMembership(
+                id,
+                tenantId,
+                subjectId,
+                TenantMembershipRole.TENANT_ADMINISTRATOR,
+                TenantMembershipStatus.ENABLED,
+                permissionVersion + 1L,
+                version + 1L,
+                createdAt);
+    }
+
     @Override
     public MemberId id() {
         return id;

@@ -830,6 +830,96 @@
       "reason": "首次平台角色绑定时建立认证修订事实，避免安全更新拦截器误判 UPSERT。"
     },
     {
+      "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/PlatformTenantAdministratorMapper.xml",
+      "statementId": "lockTenantGovernanceScope",
+      "category": "ROW_LOCK",
+      "reason": "所有平台租户管理员命令先锁定权威租户生命周期根，串行化最后管理员判断并禁止并发停用留下零管理员。"
+    },
+    {
+      "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/PlatformTenantAdministratorMapper.xml",
+      "statementId": "lockActiveSubject",
+      "category": "ROW_LOCK",
+      "reason": "分配或替换租户管理员前锁定活动主体，使人员范围互斥检查与成员写入串行一致。"
+    },
+    {
+      "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/PlatformTenantAdministratorMapper.xml",
+      "statementId": "lockSubjectForMembership",
+      "category": "ROW_LOCK",
+      "reason": "按可信租户和成员引用锁定关联主体，保证管理员状态迁移与会话撤销指向同一人员。"
+    },
+    {
+      "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/PlatformTenantAdministratorMapper.xml",
+      "statementId": "hasActivePlatformAdministrator",
+      "category": "SECURITY_PROJECTION",
+      "reason": "在共同主体锁范围内投影活动平台管理员角色，禁止平台人员与租户活动范围并存。"
+    },
+    {
+      "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/PlatformTenantAdministratorMapper.xml",
+      "statementId": "lockMembershipBySubject",
+      "category": "ROW_LOCK",
+      "reason": "分配前锁定候选主体在目标租户的既有成员资格，支持安全原位提升并避免重复建立。"
+    },
+    {
+      "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/PlatformTenantAdministratorMapper.xml",
+      "statementId": "lockMembership",
+      "category": "ROW_LOCK",
+      "reason": "管理员状态变更前按租户和资源引用锁定成员资格，保护乐观版本与角色不变量。"
+    },
+    {
+      "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/PlatformTenantAdministratorMapper.xml",
+      "statementId": "countOtherEnabledAdministrators",
+      "category": "SECURITY_PROJECTION",
+      "reason": "在目标成员锁内统计其他启用管理员，禁止停用租户最后一个可用管理员。"
+    },
+    {
+      "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/PlatformTenantAdministratorMapper.xml",
+      "statementId": "insertMembership",
+      "category": "ATOMIC_STATE_TRANSITION",
+      "reason": "在受锁事务内写入已通过人员范围与管理员领域规则的新成员资格。"
+    },
+    {
+      "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/PlatformTenantAdministratorMapper.xml",
+      "statementId": "updateMembership",
+      "category": "ATOMIC_STATE_TRANSITION",
+      "reason": "按可信租户、成员引用与预期修订原子提交管理员角色和状态迁移。"
+    },
+    {
+      "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/PlatformTenantAdministratorMapper.xml",
+      "statementId": "deleteBuiltInRoleBindings",
+      "category": "ATOMIC_STATE_TRANSITION",
+      "reason": "在成员资格锁定事务内清理旧固定角色绑定，保证角色投影与聚合事实同步。"
+    },
+    {
+      "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/PlatformTenantAdministratorMapper.xml",
+      "statementId": "insertAdministratorRoleBinding",
+      "category": "ATOMIC_STATE_TRANSITION",
+      "reason": "在成员资格写入同一事务内建立唯一租户管理员固定角色绑定。"
+    },
+    {
+      "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/PlatformTenantAdministratorMapper.xml",
+      "statementId": "selectAdministratorPage",
+      "category": "SECURITY_PROJECTION",
+      "reason": "按可信租户服务端分页投影管理员名称、状态和修订，不读取凭据或权限快照。"
+    },
+    {
+      "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/PlatformTenantAdministratorMapper.xml",
+      "statementId": "countAdministrators",
+      "category": "SECURITY_PROJECTION",
+      "reason": "使用与管理员目录相同租户和角色谓词计算总数，避免分页元数据跨租户泄露。"
+    },
+    {
+      "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/PlatformTenantAdministratorMapper.xml",
+      "statementId": "selectCandidatePage",
+      "category": "SECURITY_PROJECTION",
+      "reason": "按目标租户分页排除活动平台管理员和既有租户管理员，只返回可分配账户摘要。"
+    },
+    {
+      "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/PlatformTenantAdministratorMapper.xml",
+      "statementId": "countCandidates",
+      "category": "SECURITY_PROJECTION",
+      "reason": "使用与候选目录相同的人员范围和目标租户排除谓词计算分页总数。"
+    },
+    {
       "path": "backend/contexts/model-runtime/src/main/resources/mapper/model-runtime/ControlledModelCatalogEntryMapper.xml",
       "statementId": "selectPublishedAvailablePage",
       "category": "SECURITY_PROJECTION",

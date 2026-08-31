@@ -10,6 +10,10 @@ public enum OrganizationAccessRuleErrorCode implements ErrorCode {
             "ORGANIZATION_ACCESS.CONFLICT.0002",
             ErrorType.CONFLICT,
             "该账户存在冲突的人员身份，请先停用另一范围身份后重试"),
+    LAST_ENABLED_TENANT_ADMINISTRATOR(
+            "ORGANIZATION_ACCESS.CONFLICT.0003",
+            ErrorType.CONFLICT,
+            "不能停用租户最后一个启用管理员"),
     TENANT_ADMINISTRATOR_PLATFORM_OWNED(
             "ORGANIZATION_ACCESS.AUTHORIZATION.0002",
             ErrorType.AUTHORIZATION,

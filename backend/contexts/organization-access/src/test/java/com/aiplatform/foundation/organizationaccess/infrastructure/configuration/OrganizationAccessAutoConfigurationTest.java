@@ -21,6 +21,8 @@ import com.aiplatform.foundation.organizationaccess.application.authorization.se
 import com.aiplatform.foundation.organizationaccess.application.member.service.TenantMemberStatusApplicationService;
 import com.aiplatform.foundation.organizationaccess.application.member.service.TenantMemberDirectoryApplicationService;
 import com.aiplatform.foundation.organizationaccess.application.member.service.TenantMemberEstablishmentApplicationService;
+import com.aiplatform.foundation.organizationaccess.application.member.service.PlatformTenantAdministratorApplicationService;
+import com.aiplatform.foundation.organizationaccess.application.member.service.PlatformTenantAdministratorQueryService;
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.service.TenantLifecycleBackfillService;
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.service.TenantLifecycleQueryService;
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.service.TenantLifecycleTransitionService;
@@ -38,6 +40,7 @@ import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.m
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.member.mapper.TenantMemberStatusMapper;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.member.mapper.TenantMemberDirectoryMapper;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.member.mapper.TenantMemberEstablishmentMapper;
+import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.member.mapper.PlatformTenantAdministratorMapper;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.mapper.TenantLifecycleBackfillMapper;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.mapper.TenantLifecycleReadMapper;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.mapper.TenantLifecycleTransitionMapper;
@@ -46,6 +49,7 @@ import com.aiplatform.foundation.organizationaccess.interfaces.web.authenticatio
 import com.aiplatform.foundation.organizationaccess.interfaces.web.authentication.controller.BrowserAuthenticationController;
 import com.aiplatform.foundation.organizationaccess.interfaces.web.authentication.controller.PlatformAuthenticationController;
 import com.aiplatform.foundation.organizationaccess.interfaces.web.tenantlifecycle.controller.TenantLifecycleController;
+import com.aiplatform.foundation.organizationaccess.interfaces.web.tenantlifecycle.controller.PlatformTenantAdministratorController;
 import com.aiplatform.foundation.organizationaccess.interfaces.web.authorization.controller.TenantRoleBindingController;
 import com.aiplatform.foundation.organizationaccess.interfaces.web.authorization.controller.PlatformRoleBindingController;
 import com.aiplatform.foundation.organizationaccess.interfaces.web.authorization.controller.PlatformAccountEstablishmentController;
@@ -93,6 +97,9 @@ class OrganizationAccessAutoConfigurationTest {
             .withBean(
                     TenantMemberEstablishmentMapper.class,
                     () -> mock(TenantMemberEstablishmentMapper.class))
+            .withBean(
+                    PlatformTenantAdministratorMapper.class,
+                    () -> mock(PlatformTenantAdministratorMapper.class))
             .withBean(
                     PlatformRoleBindingMapper.class,
                     () -> mock(PlatformRoleBindingMapper.class))
@@ -153,6 +160,8 @@ class OrganizationAccessAutoConfigurationTest {
             assertThat(context).hasSingleBean(TenantMemberStatusApplicationService.class);
             assertThat(context).hasSingleBean(TenantMemberDirectoryApplicationService.class);
             assertThat(context).hasSingleBean(TenantMemberEstablishmentApplicationService.class);
+            assertThat(context).hasSingleBean(PlatformTenantAdministratorApplicationService.class);
+            assertThat(context).hasSingleBean(PlatformTenantAdministratorQueryService.class);
             assertThat(context).hasSingleBean(TenantLifecycleBackfillService.class);
             assertThat(context).hasSingleBean(TenantLifecycleQueryService.class);
             assertThat(context).hasSingleBean(TenantLifecycleTransitionService.class);
@@ -161,6 +170,7 @@ class OrganizationAccessAutoConfigurationTest {
             assertThat(context).hasSingleBean(BrowserAuthenticationController.class);
             assertThat(context).hasSingleBean(PlatformAuthenticationController.class);
             assertThat(context).hasSingleBean(TenantLifecycleController.class);
+            assertThat(context).hasSingleBean(PlatformTenantAdministratorController.class);
             assertThat(context).hasSingleBean(TenantRoleBindingController.class);
             assertThat(context).hasSingleBean(PlatformRoleBindingController.class);
             assertThat(context).hasSingleBean(PlatformAccountEstablishmentController.class);
@@ -211,6 +221,10 @@ class OrganizationAccessAutoConfigurationTest {
                     assertThat(context).doesNotHaveBean(
                             TenantMemberEstablishmentApplicationService.class);
                     assertThat(context).doesNotHaveBean(
+                            PlatformTenantAdministratorApplicationService.class);
+                    assertThat(context).doesNotHaveBean(
+                            PlatformTenantAdministratorQueryService.class);
+                    assertThat(context).doesNotHaveBean(
                             TenantLifecycleBackfillService.class);
                     assertThat(context).doesNotHaveBean(
                             TenantLifecycleQueryService.class);
@@ -226,6 +240,8 @@ class OrganizationAccessAutoConfigurationTest {
                             PlatformAuthenticationController.class);
                     assertThat(context).doesNotHaveBean(
                             TenantLifecycleController.class);
+                    assertThat(context).doesNotHaveBean(
+                            PlatformTenantAdministratorController.class);
                     assertThat(context).doesNotHaveBean(
                             TenantRoleBindingController.class);
                     assertThat(context).doesNotHaveBean(

@@ -213,10 +213,13 @@ export function TenantMemberWorkspace({
       <div className="member-directory-table" role="region" aria-label="成员分页表格">
         <table>
           <thead><tr><th>登录名</th><th>角色</th><th>状态</th><th>加入时间</th><th>操作</th></tr></thead>
-          <tbody>{members.length === 0 ? <tr><td colSpan={5}>当前页没有成员。</td></tr> : members.map((member) => <tr key={member.membershipId}>
-            <td>{member.loginName}</td><td>{member.builtInRoles.length === 0 ? "普通用户" : member.builtInRoles.map(roleLabel).join("、")}</td><td><Badge appearance="tint" color={member.status === "ENABLED" ? "success" : "danger"}>{member.status === "ENABLED" ? "已启用" : "已停用"}</Badge></td><td>{new Date(member.createdAt).toLocaleDateString("zh-CN")}</td>
-            <td><Button appearance="secondary" disabled={submitting || member.status !== "ENABLED"} onClick={() => setRoleTarget(member)}>管理角色</Button>{member.status === "ENABLED" ? <Button appearance="secondary" disabled={submitting} onClick={() => setTarget(member)}>停用</Button> : <Button appearance="secondary" disabled={submitting} onClick={() => void enable(member)}>启用</Button>}</td>
-          </tr>)}</tbody>
+          <tbody>{members.length === 0 ? <tr><td colSpan={5}>当前页没有成员。</td></tr> : members.map((member) => {
+            const platformManaged = member.builtInRoles.includes("TENANT_ADMINISTRATOR");
+            return <tr key={member.membershipId}>
+              <td>{member.loginName}</td><td>{member.builtInRoles.length === 0 ? "普通用户" : member.builtInRoles.map(roleLabel).join("、")}</td><td><Badge appearance="tint" color={member.status === "ENABLED" ? "success" : "danger"}>{member.status === "ENABLED" ? "已启用" : "已停用"}</Badge></td><td>{new Date(member.createdAt).toLocaleDateString("zh-CN")}</td>
+              <td>{platformManaged ? <Text>由平台治理</Text> : <><Button appearance="secondary" disabled={submitting || member.status !== "ENABLED"} onClick={() => setRoleTarget(member)}>管理角色</Button>{member.status === "ENABLED" ? <Button appearance="secondary" disabled={submitting} onClick={() => setTarget(member)}>停用</Button> : <Button appearance="secondary" disabled={submitting} onClick={() => void enable(member)}>启用</Button>}</>}</td>
+            </tr>;
+          })}</tbody>
         </table>
       </div>
       <div className="task-actions" aria-label="成员目录分页"><Button appearance="subtle" disabled={!hasPrevious} onClick={() => onRouteChange({ ...route, page: route.page - 1 })}>上一页</Button><Button appearance="subtle" disabled={!hasNext} onClick={() => onRouteChange({ ...route, page: route.page + 1 })}>下一页</Button></div>
@@ -237,11 +240,11 @@ export function TenantMemberWorkspace({
 }
 
 const ROLE_CATALOG = [
-  { code: "TENANT_ADMINISTRATOR", label: "租户管理员" },
   { code: "TENANT_USER", label: "普通用户" },
 ] as const;
 
 function roleLabel(code: string): string {
+  if (code === "TENANT_ADMINISTRATOR") return "租户管理员";
   return ROLE_CATALOG.find((role) => role.code === code)?.label ?? "其他角色";
 }
 

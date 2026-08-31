@@ -32,6 +32,10 @@ import com.aiplatform.foundation.organizationaccess.application.authorization.se
 import com.aiplatform.foundation.organizationaccess.application.authorization.port.out.TenantCustomRoleDirectory;
 import com.aiplatform.foundation.organizationaccess.application.authorization.service.TenantCustomRoleDirectoryApplicationService;
 import com.aiplatform.foundation.organizationaccess.application.member.port.out.TenantMemberStatusStore;
+import com.aiplatform.foundation.organizationaccess.application.member.port.out.PlatformTenantAdministratorDirectory;
+import com.aiplatform.foundation.organizationaccess.application.member.port.out.PlatformTenantAdministratorStore;
+import com.aiplatform.foundation.organizationaccess.application.member.service.PlatformTenantAdministratorApplicationService;
+import com.aiplatform.foundation.organizationaccess.application.member.service.PlatformTenantAdministratorQueryService;
 import com.aiplatform.foundation.organizationaccess.application.member.service.TenantMemberStatusApplicationService;
 import com.aiplatform.foundation.organizationaccess.application.member.port.out.TenantMemberDirectory;
 import com.aiplatform.foundation.organizationaccess.application.member.service.TenantMemberDirectoryApplicationService;
@@ -304,6 +308,23 @@ public class OrganizationAccessCoreAutoConfiguration {
     TenantMemberEstablishmentApplicationService tenantMemberEstablishmentApplicationService(
             TenantMemberEstablishmentStore store, EntityIdGenerator identifiers) {
         return new TenantMemberEstablishmentApplicationService(store, identifiers);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    PlatformTenantAdministratorApplicationService platformTenantAdministratorApplicationService(
+            PlatformTenantAdministratorStore store,
+            PersonSessionFamilyRevoker sessions,
+            EntityIdGenerator identifiers) {
+        return new PlatformTenantAdministratorApplicationService(
+                store, sessions, identifiers, Clock.systemUTC());
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    PlatformTenantAdministratorQueryService platformTenantAdministratorQueryService(
+            PlatformTenantAdministratorDirectory directory) {
+        return new PlatformTenantAdministratorQueryService(directory);
     }
 
     @Bean

@@ -1,0 +1,196 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aiplatform.foundation.organizationaccess.infrastructure.persistence.member.mapper.PlatformTenantAdministratorMapper">
+
+    <resultMap id="subjectIdentity"
+               type="com.aiplatform.foundation.organizationaccess.infrastructure.persistence.identity.entity.SubjectIdentityEntity">
+        <id column="subject_id" property="subjectId"/>
+        <result column="login_name" property="loginName"/>
+        <result column="password_hash" property="passwordHash"/>
+        <result column="status" property="status"/>
+        <result column="version" property="version"/>
+        <result column="created_at" property="createdAt"/>
+    </resultMap>
+
+    <resultMap id="membership"
+               type="com.aiplatform.foundation.organizationaccess.infrastructure.persistence.membership.entity.TenantMembershipEntity">
+        <id column="membership_id" property="membershipId"/>
+        <result column="tenant_id" property="tenantId"/>
+        <result column="subject_id" property="subjectId"/>
+        <result column="membership_role" property="membershipRole"/>
+        <result column="status" property="status"/>
+        <result column="permission_version" property="permissionVersion"/>
+        <result column="version" property="version"/>
+        <result column="created_at" property="createdAt"/>
+    </resultMap>
+
+    <select id="lockTenantGovernanceScope" resultType="long">
+        SELECT tenant_id
+        FROM organization_access.tenant_lifecycle
+        WHERE tenant_id = #{tenantId}
+        FOR UPDATE
+    </select>
+
+    <select id="lockActiveSubject" resultMap="subjectIdentity">
+        SELECT subject_id, login_name, password_hash, status, version, created_at
+        FROM organization_access.subject_identity
+        WHERE subject_id = #{subjectId}
+          AND status = 'ACTIVE'
+        FOR UPDATE
+    </select>
+
+    <select id="lockSubjectForMembership" resultMap="subjectIdentity">
+        SELECT subject.subject_id, subject.login_name, subject.password_hash,
+               subject.status, subject.version, subject.created_at
+        FROM organization_access.tenant_membership membership
+        INNER JOIN organization_access.subject_identity subject
+            ON subject.subject_id = membership.subject_id
+        WHERE membership.tenant_id = #{tenantId}
+          AND membership.membership_id = #{membershipId}
+        FOR UPDATE OF subject
+    </select>
+
+    <select id="hasActivePlatformAdministrator" resultType="boolean">
+        SELECT EXISTS (
+            SELECT 1
+            FROM organization_access.platform_role_binding
+            WHERE subject_id = #{subjectId}
+              AND role_code = 'PLATFORM_ADMINISTRATOR'
+              AND status = 'ACTIVE'
+        )
+    </select>
+
+    <select id="lockMembershipBySubject" resultMap="membership">
+        SELECT membership_id, tenant_id, subject_id, membership_role, status,
+               permission_version, version, created_at
+        FROM organization_access.tenant_membership
+        WHERE tenant_id = #{tenantId}
+          AND subject_id = #{subjectId}
+        FOR UPDATE
+    </select>
+
+    <select id="lockMembership" resultMap="membership">
+        SELECT membership_id, tenant_id, subject_id, membership_role, status,
+               permission_version, version, created_at
+        FROM organization_access.tenant_membership
+        WHERE tenant_id = #{tenantId}
+          AND membership_id = #{membershipId}
+        FOR UPDATE
+    </select>
+
+    <select id="countOtherEnabledAdministrators" resultType="long">
+        SELECT count(*)
+        FROM organization_access.tenant_membership
+        WHERE tenant_id = #{tenantId}
+          AND membership_id &lt;&gt; #{membershipId}
+          AND membership_role = 'TENANT_ADMINISTRATOR'
+          AND status = 'ENABLED'
+    </select>
+
+    <insert id="insertMembership">
+        INSERT INTO organization_access.tenant_membership
+            (membership_id, tenant_id, subject_id, membership_role, status,
+             permission_version, version, created_at, updated_at)
+        VALUES
+            (#{membershipId}, #{tenantId}, #{subjectId}, #{role}, #{status},
+             #{permissionVersion}, #{version}, #{createdAt}, #{createdAt})
+    </insert>
+
+    <update id="updateMembership">
+        UPDATE organization_access.tenant_membership
+        SET membership_role = #{role},
+            status = #{status},
+            permission_version = #{permissionVersion},
+            version = #{version},
+            updated_at = CURRENT_TIMESTAMP
+        WHERE tenant_id = #{tenantId}
+          AND membership_id = #{membershipId}
+          AND version = #{expectedVersion}
+    </update>
+
+    <delete id="deleteBuiltInRoleBindings">
+        DELETE FROM organization_access.tenant_membership_role_binding
+        WHERE tenant_id = #{tenantId}
+          AND membership_id = #{membershipId}
+    </delete>
+
+    <insert id="insertAdministratorRoleBinding">
+        INSERT INTO organization_access.tenant_membership_role_binding
+            (tenant_id, membership_id, role_code, bound_at)
+        VALUES
+            (#{tenantId}, #{membershipId}, 'TENANT_ADMINISTRATOR', #{boundAt})
+    </insert>
+
+    <select id="selectAdministratorPage"
+            resultType="com.aiplatform.foundation.organizationaccess.infrastructure.persistence.member.projection.PlatformTenantAdministratorSummaryRow">
+        SELECT membership.membership_id,
+               subject.login_name,
+               membership.status,
+               membership.permission_version,
+               membership.version,
+               membership.created_at
+        FROM organization_access.tenant_membership membership
+        INNER JOIN organization_access.subject_identity subject
+            ON subject.subject_id = membership.subject_id
+        WHERE membership.tenant_id = #{tenantId}
+          AND membership.membership_role = 'TENANT_ADMINISTRATOR'
+        ORDER BY lower(subject.login_name), membership.membership_id
+        LIMIT #{pageSize}
+        OFFSET #{offset}
+    </select>
+
+    <select id="countAdministrators" resultType="long">
+        SELECT count(*)
+        FROM organization_access.tenant_membership
+        WHERE tenant_id = #{tenantId}
+          AND membership_role = 'TENANT_ADMINISTRATOR'
+    </select>
+
+    <select id="selectCandidatePage"
+            resultType="com.aiplatform.foundation.organizationaccess.infrastructure.persistence.member.projection.PlatformTenantAdministratorCandidateRow">
+        SELECT subject.subject_id, subject.login_name, subject.status
+        FROM organization_access.subject_identity subject
+        WHERE subject.status = 'ACTIVE'
+          AND lower(subject.login_name) LIKE #{pattern} ESCAPE '\'
+          AND NOT EXISTS (
+              SELECT 1
+              FROM organization_access.platform_role_binding binding
+              WHERE binding.subject_id = subject.subject_id
+                AND binding.role_code = 'PLATFORM_ADMINISTRATOR'
+                AND binding.status = 'ACTIVE'
+          )
+          AND NOT EXISTS (
+              SELECT 1
+              FROM organization_access.tenant_membership membership
+              WHERE membership.tenant_id = #{tenantId}
+                AND membership.subject_id = subject.subject_id
+                AND membership.membership_role = 'TENANT_ADMINISTRATOR'
+          )
+        ORDER BY lower(subject.login_name), subject.subject_id
+        LIMIT #{pageSize}
+        OFFSET #{offset}
+    </select>
+
+    <select id="countCandidates" resultType="long">
+        SELECT count(*)
+        FROM organization_access.subject_identity subject
+        WHERE subject.status = 'ACTIVE'
+          AND lower(subject.login_name) LIKE #{pattern} ESCAPE '\'
+          AND NOT EXISTS (
+              SELECT 1
+              FROM organization_access.platform_role_binding binding
+              WHERE binding.subject_id = subject.subject_id
+                AND binding.role_code = 'PLATFORM_ADMINISTRATOR'
+                AND binding.status = 'ACTIVE'
+          )
+          AND NOT EXISTS (
+              SELECT 1
+              FROM organization_access.tenant_membership membership
+              WHERE membership.tenant_id = #{tenantId}
+                AND membership.subject_id = subject.subject_id
+                AND membership.membership_role = 'TENANT_ADMINISTRATOR'
+          )
+    </select>
+</mapper>

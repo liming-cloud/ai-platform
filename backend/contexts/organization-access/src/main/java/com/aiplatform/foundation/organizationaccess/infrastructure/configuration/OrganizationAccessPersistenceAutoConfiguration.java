@@ -18,6 +18,8 @@ import com.aiplatform.foundation.organizationaccess.application.authorization.po
 import com.aiplatform.foundation.organizationaccess.application.authorization.port.out.TenantCustomRoleLifecycleStore;
 import com.aiplatform.foundation.organizationaccess.application.authorization.port.out.TenantCustomRoleDirectory;
 import com.aiplatform.foundation.organizationaccess.application.member.port.out.TenantMemberStatusStore;
+import com.aiplatform.foundation.organizationaccess.application.member.port.out.PlatformTenantAdministratorDirectory;
+import com.aiplatform.foundation.organizationaccess.application.member.port.out.PlatformTenantAdministratorStore;
 import com.aiplatform.foundation.organizationaccess.application.member.port.out.TenantMemberDirectory;
 import com.aiplatform.foundation.organizationaccess.application.member.port.out.TenantMemberEstablishmentStore;
 import com.aiplatform.foundation.organizationaccess.application.member.port.out.TenantMemberCandidateDirectory;
@@ -45,6 +47,9 @@ import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.i
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.membership.mapper.TenantMembershipMapper;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.membership.repository.PostgresTenantMembershipRepository;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.member.mapper.TenantMemberStatusMapper;
+import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.member.mapper.PlatformTenantAdministratorMapper;
+import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.member.repository.PostgresPlatformTenantAdministratorDirectory;
+import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.member.repository.PostgresPlatformTenantAdministratorStore;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.member.repository.PostgresTenantMemberStatusStore;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.member.mapper.TenantMemberCandidateMapper;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.member.repository.PostgresTenantMemberCandidateDirectory;
@@ -164,6 +169,20 @@ public class OrganizationAccessPersistenceAutoConfiguration {
     @ConditionalOnMissingBean
     TenantMemberEstablishmentStore tenantMemberEstablishmentStore(TenantMemberEstablishmentMapper mapper) {
         return new PostgresTenantMemberEstablishmentStore(mapper);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    PlatformTenantAdministratorStore platformTenantAdministratorStore(
+            PlatformTenantAdministratorMapper mapper) {
+        return new PostgresPlatformTenantAdministratorStore(mapper);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    PlatformTenantAdministratorDirectory platformTenantAdministratorDirectory(
+            PlatformTenantAdministratorMapper mapper) {
+        return new PostgresPlatformTenantAdministratorDirectory(mapper);
     }
 
     @Bean

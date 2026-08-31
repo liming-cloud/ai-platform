@@ -312,6 +312,7 @@ latestEvidence:
   - project/evidence/WP-0014-tenant-administrator-ownership-domain-design.md
   - project/evidence/ADR-0073-approval.md
   - project/evidence/WP-0014-personnel-scope-exclusivity-and-ordinary-member-governance.md
-nextReviewAt: "完成平台侧租户管理员生命周期与 Chrome 三角色纵切后"
-updatedAt: 2026-08-31T09:43:41+08:00
+  - project/evidence/WP-0014-platform-tenant-administrator-lifecycle.md
+nextReviewAt: "完成普通用户已发布助手与可信 RAG 权限质量闭环后"
+updatedAt: 2026-08-31T20:11:00+08:00
 updatedBy: codex
