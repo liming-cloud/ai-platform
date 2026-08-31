@@ -79,8 +79,8 @@ confirmedDecisions:
   - ADR-0070
   - ADR-0071
   - ADR-0072
-openDecisions:
   - ADR-0073
+openDecisions: []
 latestEvidence:
   - docs/research/WP-0003-framework-baseline.md
   - project/evidence/WP-0003-trusted-context.md
@@ -310,6 +310,7 @@ latestEvidence:
   - project/evidence/WP-0014-tenant-member-candidate-inline-sql-guard.md
   - docs/adr/ADR-0073-platform-owned-tenant-administrator-governance.md
   - project/evidence/WP-0014-tenant-administrator-ownership-domain-design.md
-nextReviewAt: "人工接受或否决 ADR-0073 后"
-updatedAt: 2026-08-31T08:31:48+08:00
+  - project/evidence/ADR-0073-approval.md
+nextReviewAt: "完成 ADR-0073 后端安全纵切后"
+updatedAt: 2026-08-31T09:15:18+08:00
 updatedBy: codex
