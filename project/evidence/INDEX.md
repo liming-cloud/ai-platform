@@ -352,6 +352,7 @@
 | M6 租户成员候选内联 SQL 门禁与真实分页 | `project/evidence/WP-0014-tenant-member-candidate-inline-sql-guard.md` | `ceb946aa9` | Java 内联 SQL 架构门禁红绿、Mapper XML 迁移、真实 PostgreSQL 服务端分页、自动配置、完整上下文和 `make validate` 通过；权限互斥语义留待新 ADR。 |
 | ADR-0073 租户管理员所有权与人员范围资格设计 | `docs/adr/ADR-0073-platform-owned-tenant-administrator-governance.md`、`project/evidence/WP-0014-tenant-administrator-ownership-domain-design.md` | 本次控制面提交 | 固定平台独占租户管理员生命周期、租户只治理普通成员，并以共同主体锁保护活动平台角色与启用租户成员资格互斥；生产实现由接受后的红绿切片完成。 |
 | ADR-0073 人工接受 | `project/evidence/ADR-0073-approval.md` | 本次控制面提交 | 用户接受方案 A；授权共同主体锁下的双向范围互斥、平台拥有租户管理员和租户只治理普通成员进入红绿实现。 |
+| M6 人员范围互斥与租户普通成员治理 | `project/evidence/WP-0014-personnel-scope-exclusivity-and-ordinary-member-governance.md` | `790db7b17` | 共同主体锁下的平台／租户活动范围双向互斥、租户只治理普通成员、升级预检、安全 HTTP、真实 PostgreSQL 并发和全量门禁通过；平台侧管理员生命周期 UI 与 Chrome 为下一切片。 |
 
 ## 证据规则
 
