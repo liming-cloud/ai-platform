@@ -353,7 +353,7 @@
 | ADR-0073 租户管理员所有权与人员范围资格设计 | `docs/adr/ADR-0073-platform-owned-tenant-administrator-governance.md`、`project/evidence/WP-0014-tenant-administrator-ownership-domain-design.md` | 本次控制面提交 | 固定平台独占租户管理员生命周期、租户只治理普通成员，并以共同主体锁保护活动平台角色与启用租户成员资格互斥；生产实现由接受后的红绿切片完成。 |
 | ADR-0073 人工接受 | `project/evidence/ADR-0073-approval.md` | 本次控制面提交 | 用户接受方案 A；授权共同主体锁下的双向范围互斥、平台拥有租户管理员和租户只治理普通成员进入红绿实现。 |
 | M6 人员范围互斥与租户普通成员治理 | `project/evidence/WP-0014-personnel-scope-exclusivity-and-ordinary-member-governance.md` | `790db7b17` | 共同主体锁下的平台／租户活动范围双向互斥、租户只治理普通成员、升级预检、安全 HTTP、真实 PostgreSQL 并发和全量门禁通过；平台侧管理员生命周期 UI 与 Chrome 为下一切片。 |
-| M6 平台租户管理员生命周期与三角色 Chrome 验收 | `project/evidence/WP-0014-platform-tenant-administrator-lifecycle.md` | 本次实现提交 | 平台独占目录、候选、分配／提升、原子替换、停用／恢复、租户级并发归零保护与会话撤销通过领域、真实 PostgreSQL、HTTP、Compose 和 Chrome 三角色验收；390×844 溢出修复、真实 200%、键盘与 reduced-motion 规则续证完成。无已发布助手继续阻断全产品人工复验。 |
+| M6 平台租户管理员生命周期与三角色 Chrome 验收 | `project/evidence/WP-0014-platform-tenant-administrator-lifecycle.md` | `93c3a77fc` | 平台独占目录、候选、分配／提升、原子替换、停用／恢复、租户级并发归零保护与会话撤销通过领域、真实 PostgreSQL、HTTP、Compose 和 Chrome 三角色验收；390×844 溢出修复、真实 200%、键盘与 reduced-motion 规则续证完成。无已发布助手继续阻断全产品人工复验。 |
 
 ## 证据规则
 
