@@ -1,11 +1,11 @@
 schemaVersion: 1
 productVersion: foundation-v1
 currentMilestone: M6
-currentFrontier: WP-0015
-lastVerifiedCommit: 93c3a77fc
+currentFrontier: WP-0016
+lastVerifiedCommit: 22a23a612
 activeWorkPackages:
   - WP-0014
-  - WP-0015
+  - WP-0016
 blockedWorkPackages: []
 confirmedDecisions:
   - ADR-0001
@@ -92,5 +92,5 @@ latestEvidence:
   - project/evidence/WP-0015-control-plane-and-architecture-baseline.md
   - project/evidence/WP-0015-code-review.md
 nextReviewAt: 2026-09-03
-updatedAt: 2026-09-02T18:00:00+08:00
+updatedAt: 2026-09-02T18:12:00+08:00
 updatedBy: codex
