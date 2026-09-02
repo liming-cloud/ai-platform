@@ -355,6 +355,8 @@
 | M6 人员范围互斥与租户普通成员治理 | `project/evidence/WP-0014-personnel-scope-exclusivity-and-ordinary-member-governance.md` | `790db7b17` | 共同主体锁下的平台／租户活动范围双向互斥、租户只治理普通成员、升级预检、安全 HTTP、真实 PostgreSQL 并发和全量门禁通过；平台侧管理员生命周期 UI 与 Chrome 为下一切片。 |
 | M6 平台租户管理员生命周期与三角色 Chrome 验收 | `project/evidence/WP-0014-platform-tenant-administrator-lifecycle.md` | `93c3a77fc` | 平台独占目录、候选、分配／提升、原子替换、停用／恢复、租户级并发归零保护与会话撤销通过领域、真实 PostgreSQL、HTTP、Compose 和 Chrome 三角色验收；390×844 溢出修复、真实 200%、键盘与 reduced-motion 规则续证完成。无已发布助手继续阻断全产品人工复验。 |
 
+| WP-0015 控制面与架构基线 | project/evidence/WP-0015-control-plane-and-architecture-baseline.md | 待绑定提交 | ADR 元数据生成决策索引、活动证据／ADR／恢复上下文硬上限、连续工作包和可信 RAG 架构债务基线已完成红绿与治理门禁；不包含生产前后端实现。 |
+
 ## 证据规则
 
 - 命令证据记录完整命令、提交、环境和结果。

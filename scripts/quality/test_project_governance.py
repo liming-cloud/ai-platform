@@ -31,7 +31,6 @@ class ProjectGovernanceTest(unittest.TestCase):
             "project/TRACEABILITY.md",
             "project/RISKS.md",
             "project/evidence/INDEX.md",
-            "docs/adr/ADR-0001-test.md",
             *MODULE.REQUIRED_DESIGN_FILES,
         ):
             (self.root / relative).parent.mkdir(parents=True, exist_ok=True)
@@ -47,13 +46,16 @@ class ProjectGovernanceTest(unittest.TestCase):
             self.root
             / "docs/architecture/foundation-repository-layout.md"
         ).write_text(layout_sections, encoding="utf-8")
+        self.write_adr("ADR-0001")
         self.write_state(["WP-0001"])
         self.write_work_package("WP-0001", owner="后端")
+        self.sync_decisions()
 
     def tearDown(self):
         self.temp_dir.cleanup()
 
-    def write_state(self, active, blocked=()):
+    def write_state(self, active, blocked=(), confirmed=("ADR-0001",), evidence=None):
+        evidence = evidence or ("project/evidence/INDEX.md",)
         lines = [
             "schemaVersion: 1",
             "productVersion: foundation-v1",
@@ -65,18 +67,26 @@ class ProjectGovernanceTest(unittest.TestCase):
             "blockedWorkPackages:",
             *(f"  - {item}" for item in blocked),
             "confirmedDecisions:",
-            "  - ADR-0001",
+            *(f"  - {item}" for item in confirmed),
             "openDecisions:",
             "  - HITL-0001",
             "latestEvidence:",
-            "  - project/evidence/INDEX.md",
+            *(f"  - {item}" for item in evidence),
             "nextReviewAt: 2026-07-27",
             "updatedAt: 2026-07-26T00:00:00+08:00",
             "updatedBy: codex",
         ]
         (self.root / "project/STATE.yaml").write_text("\n".join(lines) + "\n", encoding="utf-8")
 
-    def write_work_package(self, identifier, owner, status="active", evidence="pending", commit="pending"):
+    def write_work_package(
+        self,
+        identifier,
+        owner,
+        status="active",
+        evidence="pending",
+        commit="pending",
+        adrs=("ADR-0001",),
+    ):
         sections = "\n".join(f"## {section}\n\n内容\n" for section in sorted(MODULE.REQUIRED_WORK_PACKAGE_SECTIONS))
         status_text = {"active": "进行中", "done": "已完成"}.get(status, status)
         text = f"""# {identifier}
@@ -88,13 +98,29 @@ class ProjectGovernanceTest(unittest.TestCase):
 | 负责人 | {owner} |
 | 分支 | codex/test |
 | 里程碑 | M0 |
-| ADR | ADR-0001 |
+| ADR | {", ".join(adrs)} |
 | 证据 | {evidence} |
 | 提交 | {commit} |
 
 {sections}
 """
         (self.root / "project/work-packages" / f"{identifier}.md").write_text(text, encoding="utf-8")
+
+    def write_adr(self, identifier, status="已接受"):
+        (self.root / "docs/adr" / f"{identifier}-test.md").write_text(
+            f"# {identifier}：测试决策\n\n## 状态\n\n{status}\n",
+            encoding="utf-8",
+        )
+
+    def sync_decisions(self):
+        path = self.root / "project/DECISIONS.md"
+        path.write_text(
+            MODULE.render_decision_index(
+                self.root,
+                path.read_text(encoding="utf-8"),
+            ),
+            encoding="utf-8",
+        )
 
     def test_valid_control_plane_passes(self):
         state, packages = MODULE.verify(self.root)
@@ -176,6 +202,57 @@ class ProjectGovernanceTest(unittest.TestCase):
 
         with self.assertRaisesRegex(MODULE.GovernanceError, "M1 缺少限界上下文模块"):
             MODULE.verify(self.root)
+
+    def test_latest_evidence_is_limited_to_eight_entries(self):
+        evidence = tuple(f"project/evidence/evidence-{index}.md" for index in range(9))
+        for relative in evidence:
+            (self.root / relative).write_text("# 证据\n", encoding="utf-8")
+        self.write_state(["WP-0001"], evidence=evidence)
+
+        with self.assertRaisesRegex(MODULE.GovernanceError, "latestEvidence 最多保留 8 条"):
+            MODULE.verify(self.root)
+
+    def test_frontier_is_limited_to_twelve_active_adrs(self):
+        adrs = tuple(f"ADR-{index:04d}" for index in range(1, 14))
+        for identifier in adrs[1:]:
+            self.write_adr(identifier)
+        self.write_work_package("WP-0001", owner="后端", adrs=adrs)
+        self.write_state(["WP-0001"], confirmed=adrs)
+        self.sync_decisions()
+
+        with self.assertRaisesRegex(MODULE.GovernanceError, "当前前沿最多引用 12 个 ADR"):
+            MODULE.verify(self.root)
+
+    def test_decision_index_must_match_adr_metadata(self):
+        index = self.root / "project/DECISIONS.md"
+        index.write_text(
+            index.read_text(encoding="utf-8") + "\n| ADR-9999 | 已接受 | 伪造 | 伪造 |\n",
+            encoding="utf-8",
+        )
+        with self.assertRaisesRegex(MODULE.GovernanceError, "决策索引与 ADR 元数据不一致"):
+            MODULE.verify(self.root)
+
+    def test_combined_status_and_date_metadata_is_supported(self):
+        path = self.root / "docs/adr/ADR-0001-test.md"
+        path.write_text(
+            "# ADR-0001：测试决策\n\n"
+            "## 状态和日期\n\n"
+            "- 状态：已接受\n"
+            "- 日期：2026-09-02\n",
+            encoding="utf-8",
+        )
+
+        self.assertEqual("已接受", MODULE.parse_adr(path).status)
+
+    def test_resume_context_has_twelve_kibibyte_budget(self):
+        package = self.root / "project/work-packages/WP-0001.md"
+        package.write_text(
+            package.read_text(encoding="utf-8") + "\n" + ("过长上下文" * 4096),
+            encoding="utf-8",
+        )
+
+        with self.assertRaisesRegex(MODULE.GovernanceError, "恢复上下文超过 12 KiB"):
+            MODULE.render_status(self.root, resume=True)
 
 
 if __name__ == "__main__":

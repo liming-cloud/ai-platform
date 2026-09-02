@@ -7,6 +7,9 @@ project-verify:
 	python3 -m unittest scripts.quality.test_project_governance
 	python3 scripts/project_governance.py verify
 
+decisions-sync:
+	python3 scripts/project_governance.py sync-decisions
+
 resume-context:
 	python3 scripts/project_governance.py resume
 

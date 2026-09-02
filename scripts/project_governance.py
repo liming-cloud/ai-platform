@@ -112,6 +112,9 @@ WORK_PACKAGE_ID = re.compile(r"^WP-\d{4}$")
 ADR_ID = re.compile(r"^ADR-\d{4}$")
 COMMIT_SHA = re.compile(r"^[0-9a-f]{7,40}$")
 STALE_ACTIVE_STATEMENT = re.compile(r"(?:本|该)?工作包(?:仍|继续)?保持进行中")
+MAX_LATEST_EVIDENCE = 8
+MAX_FRONTIER_ADRS = 12
+MAX_RESUME_CONTEXT_BYTES = 12 * 1024
 
 
 class GovernanceError(RuntimeError):
@@ -130,6 +133,14 @@ class WorkPackage:
     commit: str
     path: Path
     sections: frozenset[str]
+
+
+@dataclass(frozen=True)
+class AdrDecision:
+    identifier: str
+    status: str
+    title: str
+    path: Path
 
 
 def parse_scalar(value: str) -> str:
@@ -266,6 +277,91 @@ def find_adr(root: Path, identifier: str) -> list[Path]:
     return sorted((root / "docs" / "adr").glob(f"{identifier}-*.md"))
 
 
+def parse_adr(path: Path) -> AdrDecision:
+    text = path.read_text(encoding="utf-8")
+    heading = re.search(
+        r"^#\s+(ADR-\d{4})[：:]\s*(.+?)\s*$",
+        text,
+        flags=re.MULTILINE,
+    )
+    if heading is None:
+        raise GovernanceError(f"{path}：缺少规范 ADR 标题")
+    identifier, title = heading.groups()
+    if path.name.split("-", 2)[:2] != identifier.split("-"):
+        raise GovernanceError(f"{path}：文件名与 ADR 标题编号不一致")
+
+    status_heading = re.search(
+        r"^##\s+状态(?:和日期)?\s*$",
+        text,
+        flags=re.MULTILINE,
+    )
+    if status_heading is None:
+        raise GovernanceError(f"{path}：缺少状态章节")
+    status_section = text[status_heading.end():].split("\n## ", 1)[0]
+    labeled_status = re.search(
+        r"^-\s*状态[：:]\s*(.+?)\s*$",
+        status_section,
+        flags=re.MULTILINE,
+    )
+    status = (
+        labeled_status.group(1).strip().rstrip("。.")
+        if labeled_status
+        else next(
+            (
+                line.strip().rstrip("。.")
+                for line in status_section.splitlines()
+                if line.strip() and not line.startswith("#")
+            ),
+            "",
+        )
+    )
+    if not status:
+        raise GovernanceError(f"{path}：状态不能为空")
+    return AdrDecision(identifier, status, title, path)
+
+
+def adr_decisions(root: Path) -> tuple[AdrDecision, ...]:
+    decisions = tuple(
+        parse_adr(path)
+        for path in sorted((root / "docs" / "adr").glob("ADR-*.md"))
+    )
+    identifiers = [decision.identifier for decision in decisions]
+    if len(identifiers) != len(set(identifiers)):
+        raise GovernanceError("ADR 编号重复")
+    return decisions
+
+
+def is_confirmed_decision(status: str) -> bool:
+    return status.startswith("已接受") or status == "部分被替代"
+
+
+def human_decision_section(text: str) -> str:
+    heading = re.search(r"^##\s+已确认人工决策\s*$", text, flags=re.MULTILINE)
+    return text[heading.start():].strip() if heading else ""
+
+
+def render_decision_index(root: Path, current_text: str = "") -> str:
+    lines = [
+        "# 决策索引",
+        "",
+        "> 本表由 `python3 scripts/project_governance.py sync-decisions` 从 ADR 元数据生成。",
+        "",
+        "| 编号 | 状态 | 决策 | ADR |",
+        "| --- | --- | --- | --- |",
+    ]
+    for decision in adr_decisions(root):
+        title = decision.title.replace("|", "\\|")
+        status = decision.status.replace("|", "\\|")
+        relative_path = decision.path.relative_to(root)
+        lines.append(
+            f"| {decision.identifier} | {status} | {title} | `{relative_path}` |"
+        )
+    human_section = human_decision_section(current_text)
+    if human_section:
+        lines.extend(["", human_section])
+    return "\n".join(lines) + "\n"
+
+
 def tracked_files(root: Path) -> set[str]:
     result = subprocess.run(
         ["git", "ls-files"],
@@ -334,6 +430,13 @@ def verify(root: Path) -> tuple[dict[str, str | list[str]], dict[str, WorkPackag
         raise GovernanceError(f"缺少控制面文件：{', '.join(sorted(missing_files))}")
 
     state = parse_state(root / "project" / "STATE.yaml")
+    decision_index_path = root / "project" / "DECISIONS.md"
+    current_decision_index = decision_index_path.read_text(encoding="utf-8")
+    expected_decision_index = render_decision_index(root, current_decision_index)
+    if current_decision_index != expected_decision_index:
+        raise GovernanceError(
+            "决策索引与 ADR 元数据不一致；请运行 make decisions-sync"
+        )
     missing_design_files = [
         path for path in sorted(REQUIRED_DESIGN_FILES) if not (root / path).is_file()
     ]
@@ -385,6 +488,11 @@ def verify(root: Path) -> tuple[dict[str, str | list[str]], dict[str, WorkPackag
     assert isinstance(frontier, str)
     if frontier not in referenced_ids:
         raise GovernanceError("currentFrontier 必须是进行中或受阻工作包")
+    if len(packages[frontier].adrs) > MAX_FRONTIER_ADRS:
+        raise GovernanceError(
+            f"当前前沿最多引用 {MAX_FRONTIER_ADRS} 个 ADR，"
+            f"{frontier} 实际引用 {len(packages[frontier].adrs)} 个"
+        )
 
     active_owners: dict[str, str] = {}
     for identifier in active_ids:
@@ -415,12 +523,34 @@ def verify(root: Path) -> tuple[dict[str, str | list[str]], dict[str, WorkPackag
 
     decisions = state["confirmedDecisions"]
     assert isinstance(decisions, list)
+    accepted_decisions = {
+        decision.identifier
+        for decision in adr_decisions(root)
+        if is_confirmed_decision(decision.status)
+    }
+    confirmed_decisions = set(decisions)
+    if confirmed_decisions != accepted_decisions:
+        missing = sorted(accepted_decisions - confirmed_decisions)
+        unexpected = sorted(confirmed_decisions - accepted_decisions)
+        details = []
+        if missing:
+            details.append("缺少 " + ", ".join(missing))
+        if unexpected:
+            details.append("多余 " + ", ".join(unexpected))
+        raise GovernanceError(
+            "confirmedDecisions 与 ADR 状态不一致：" + "；".join(details)
+        )
     for decision in decisions:
         if not ADR_ID.fullmatch(decision) or len(find_adr(root, decision)) != 1:
             raise GovernanceError(f"状态引用了不存在或不唯一的决策：{decision}")
 
     evidence = state["latestEvidence"]
     assert isinstance(evidence, list)
+    if len(evidence) > MAX_LATEST_EVIDENCE:
+        raise GovernanceError(
+            f"latestEvidence 最多保留 {MAX_LATEST_EVIDENCE} 条，"
+            "历史证据应只保留在 project/evidence/INDEX.md"
+        )
     for evidence_path in evidence:
         if not (root / evidence_path.split("#", 1)[0]).is_file():
             raise GovernanceError(f"状态引用了不存在的证据：{evidence_path}")
@@ -434,11 +564,64 @@ def verify(root: Path) -> tuple[dict[str, str | list[str]], dict[str, WorkPackag
             raise GovernanceError("lastVerifiedCommit 不存在")
         if not is_ancestor(root, last_verified):
             raise GovernanceError("lastVerifiedCommit 不是当前 HEAD 的祖先")
+    resume_context = build_resume_context(root, state, packages)
+    if len(resume_context.encode("utf-8")) > MAX_RESUME_CONTEXT_BYTES:
+        raise GovernanceError(
+            f"恢复上下文超过 {MAX_RESUME_CONTEXT_BYTES // 1024} KiB，"
+            "请压缩当前工作包或活动证据"
+        )
     return state, packages
+
+
+def build_resume_context(
+    root: Path,
+    state: dict[str, str | list[str]],
+    packages: dict[str, WorkPackage],
+) -> str:
+    frontier = str(state["currentFrontier"])
+    package = packages[frontier]
+    evidence = state["latestEvidence"]
+    active = state["activeWorkPackages"]
+    blocked = state["blockedWorkPackages"]
+    open_decisions = state["openDecisions"]
+    assert isinstance(evidence, list)
+    assert isinstance(active, list)
+    assert isinstance(blocked, list)
+    assert isinstance(open_decisions, list)
+
+    adr_paths = [
+        find_adr(root, identifier)[0].relative_to(root)
+        for identifier in package.adrs
+    ]
+    lines = [
+        "# 项目恢复上下文",
+        "",
+        f"- 当前里程碑：{state['currentMilestone']}",
+        f"- 当前前沿：{frontier}",
+        f"- 最后验证提交：{state['lastVerifiedCommit']}",
+        f"- 进行中：{', '.join(active) if active else '无'}",
+        f"- 受阻：{', '.join(blocked) if blocked else '无'}",
+        f"- 待决策：{', '.join(open_decisions) if open_decisions else '无'}",
+        "",
+        "## 最近证据",
+        "",
+        *(f"- {item}" for item in evidence),
+        "",
+        "## 活动 ADR",
+        "",
+        *(f"- {item}" for item in adr_paths),
+        "",
+        "## 当前工作包",
+        "",
+        package.path.read_text(encoding="utf-8").strip(),
+    ]
+    return "\n".join(lines) + "\n"
 
 
 def render_status(root: Path, resume: bool) -> str:
     state, packages = verify(root)
+    if resume:
+        return build_resume_context(root, state, packages)
     active = state["activeWorkPackages"]
     blocked = state["blockedWorkPackages"]
     evidence = state["latestEvidence"]
@@ -456,19 +639,6 @@ def render_status(root: Path, resume: bool) -> str:
         f"最新证据：{', '.join(evidence) if evidence else '无'}",
         f"下次评审：{state['nextReviewAt']}",
     ]
-    if resume:
-        frontier = str(state["currentFrontier"])
-        lines.extend(
-            [
-                "",
-                "事实来源文件：",
-                "- project/CHARTER.md",
-                "- project/STATE.yaml",
-                f"- project/work-packages/{frontier}.md",
-                "",
-                (root / "project" / "work-packages" / f"{frontier}.md").read_text(encoding="utf-8"),
-            ]
-        )
     return "\n".join(lines)
 
 
@@ -486,6 +656,14 @@ def main() -> int:
             print(render_status(root, resume=False))
         elif command == "resume":
             print(render_status(root, resume=True))
+        elif command == "sync-decisions":
+            path = root / "project" / "DECISIONS.md"
+            current_text = path.read_text(encoding="utf-8") if path.is_file() else ""
+            path.write_text(
+                render_decision_index(root, current_text),
+                encoding="utf-8",
+            )
+            print("决策索引已从 ADR 元数据同步")
         else:
             raise GovernanceError(f"未知命令“{command}”")
     except GovernanceError as error:
