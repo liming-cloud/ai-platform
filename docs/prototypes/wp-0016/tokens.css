@@ -1,0 +1,76 @@
+:root {
+  color-scheme: light;
+  --color-canvas: #f4f6f5;
+  --color-sidebar: #f8faf9;
+  --color-surface: #ffffff;
+  --color-surface-subtle: #f1f4f2;
+  --color-surface-hover: #e9efec;
+  --color-border: #dfe5e2;
+  --color-border-strong: #c7d1cd;
+  --color-text: #17201e;
+  --color-text-secondary: #65706c;
+  --color-text-tertiary: #7b8682;
+  --color-accent: #126b5c;
+  --color-accent-hover: #0e5a4d;
+  --color-accent-subtle: #e7f2ef;
+  --color-accent-border: #bdd8d1;
+  --color-focus: #0f6cbd;
+  --color-success: #0f6b45;
+  --color-success-bg: #e8f4ed;
+  --color-success-border: #b8d9c7;
+  --color-warning: #8a4b08;
+  --color-warning-bg: #fff4ce;
+  --color-warning-border: #e8cf8d;
+  --color-danger: #b10e1e;
+  --color-danger-bg: #fde7e9;
+  --color-danger-border: #e7b8bd;
+  --color-info: #0f548c;
+  --color-info-bg: #e8f3fb;
+  --color-info-border: #b8d5ea;
+  --color-overlay: rgb(23 32 30 / 36%);
+  --shadow-subtle: 0 1px 2px rgb(23 32 30 / 5%);
+  --shadow-floating: 0 12px 32px rgb(23 32 30 / 14%);
+  --radius-control: 0.5rem;
+  --radius-panel: 0.75rem;
+  --radius-round: 999px;
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+  --font-sans:
+    "Segoe UI Variable", "Segoe UI", "Microsoft YaHei UI", system-ui, sans-serif;
+  --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-md: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.5rem;
+  --text-2xl: 2rem;
+  --line-body: 1.55;
+  --sidebar-width: 15rem;
+  --history-width: 17rem;
+  --content-max: 73.75rem;
+  --message-max: 48.75rem;
+  --control-height: 2.5rem;
+  --motion-fast: 120ms;
+  --motion-normal: 180ms;
+}
+
+@media (max-width: 1040px) and (min-width: 681px) {
+  :root {
+    --sidebar-width: 5rem;
+    --history-width: 15rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion-fast: 1ms;
+    --motion-normal: 1ms;
+  }
+}

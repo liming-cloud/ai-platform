@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "project": {
+    "id": "249f81f2-6f1a-46ff-988c-da3cdedb35e7",
+    "name": "WP-0016 可信 RAG 高保真原型",
+    "conversationId": "88968f9d-740d-4032-a1a7-6b3248d9d4d9",
+    "skillId": "emil-design-eng",
+    "entryFile": "index.html",
+    "importedFrom": "folder",
+    "importedAt": "2026-09-02T10:53:17+08:00"
+  },
+  "validation": {
+    "lintThreshold": "p1",
+    "lintStatus": "PASS",
+    "lintCounts": {
+      "p0": 0,
+      "p1": 0,
+      "p2": 0
+    },
+    "exportStatus": "TOOL_TIMEOUT",
+    "exportNote": "独立 HTML 导出与 files list 均在 60 秒内无响应，已人工终止，未产生不完整文件；导入、lint 与浏览器证据仍可独立复核。"
+  }
+}

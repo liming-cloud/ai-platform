@@ -357,6 +357,12 @@
 
 | WP-0015 控制面与架构基线 | project/evidence/WP-0015-control-plane-and-architecture-baseline.md | 22a23a612 | ADR 元数据生成决策索引、活动证据／ADR／恢复上下文硬上限、连续工作包和可信 RAG 架构债务基线已完成红绿与治理门禁；不包含生产前后端实现。 |
 
+## WP-0016
+
+| 证据 | 命令或评审 | 提交 | 结果 |
+| --- | --- | --- | --- |
+| OpenDesign 高保真原型候选 | `project/evidence/WP-0016-open-design-prototype-candidate.md` | 本次候选提交 | OpenDesign 0.21.1 签名、绝对路径 MCP、项目导入和 P1 lint 通过；922 条浏览器断言、147 个页面状态组合及 15 张截图通过。人工确认尚未完成，WP-0016 保持进行中。 |
+
 ## 证据规则
 
 - 命令证据记录完整命令、提交、环境和结果。

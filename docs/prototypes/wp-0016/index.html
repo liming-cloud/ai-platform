@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light" />
+    <meta
+      name="description"
+      content="WP-0016 可信 RAG 高保真交互原型，仅用于人工产品与视觉确认。"
+    />
+    <title>可信 RAG 原型审查</title>
+    <link rel="stylesheet" href="./tokens.css" />
+    <link rel="stylesheet" href="./prototype.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main-content">跳到主要内容</a>
+    <div id="prototype-root" class="prototype-root" aria-live="off">
+      <main id="main-content" class="boot-state" tabindex="-1">
+        <p class="eyebrow">OpenDesign 高保真原型</p>
+        <h1>正在准备可信 RAG 场景</h1>
+        <p>只加载本地脱敏 fixtures，不调用真实 API 或模型。</p>
+      </main>
+    </div>
+
+    <aside
+      id="prototype-reviewer"
+      class="prototype-reviewer"
+      aria-label="原型场景审查器"
+    >
+      <details>
+        <summary>原型场景</summary>
+        <div class="reviewer-fields">
+          <label>
+            页面
+            <select id="review-screen">
+              <option value="login">普通用户登录</option>
+              <option value="assistants">授权助手目录</option>
+              <option value="conversation">会话与历史</option>
+              <option value="knowledge-directory">知识库目录</option>
+              <option value="knowledge-sources">数据来源</option>
+              <option value="index-detail">索引激活</option>
+              <option value="assistant-release">助手发布</option>
+            </select>
+          </label>
+          <label>
+            状态
+            <select id="review-state">
+              <option value="success">成功</option>
+              <option value="loading">加载</option>
+              <option value="empty">空</option>
+              <option value="error">错误</option>
+              <option value="denied">无权限</option>
+              <option value="partial">部分完成</option>
+              <option value="disabled">禁用</option>
+            </select>
+          </label>
+          <button id="review-apply" class="button secondary" type="button">
+            切换场景
+          </button>
+          <p>该控件只服务原型审查，生产页面不包含它。</p>
+        </div>
+      </details>
+    </aside>
+
+    <noscript>
+      <p class="noscript-state">需要启用 JavaScript 才能操作原型。</p>
+    </noscript>
+    <script type="module" src="./prototype.js"></script>
+  </body>
+</html>

@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 1,
+  "verifiedAt": "2026-09-02T11:04:08+08:00",
+  "prototype": {
+    "status": "PASS",
+    "sha256": {
+      "index.html": "c180c323a6a8eb68acbda788d4c30839e2a7b986aeba412f2379f0e591cfac48",
+      "prototype.css": "c40eff9e0406067c4b1ea47ad0e7cabf9afc8f88e90d8aefebeb3fb43eae2b13",
+      "prototype.js": "8750b8fd43e3c1acfa51a042f14aa4204981e4a62502610488b5d7207d547bdf",
+      "tokens.css": "24b961f4604ec403179af505933d49e04d59e7d8053773d3014c0b95476cb065",
+      "fixtures.json": "4aa5af7ed977f1a6b225ce8e1ebc3019ff0795b43435fe4f9b3878252b3adf1f"
+    }
+  },
+  "openDesign": {
+    "version": "0.21.1",
+    "signatureStatus": "PASS",
+    "gatekeeper": "Notarized Developer ID",
+    "mcpStatus": "enabled",
+    "projectId": "249f81f2-6f1a-46ff-988c-da3cdedb35e7",
+    "skillId": "emil-design-eng",
+    "lint": {
+      "status": "PASS",
+      "failOn": "p1",
+      "p0": 0,
+      "p1": 0,
+      "p2": 0
+    },
+    "export": {
+      "status": "TOOL_TIMEOUT",
+      "requiredByWorkPackage": false,
+      "partialOutputCreated": false
+    }
+  },
+  "browser": {
+    "runtime": "Playwright 1.62.1 / Chromium 151.0.7922.34",
+    "status": "PASS",
+    "assertionCount": 922,
+    "scenarioCount": 147,
+    "screenshotCount": 15,
+    "browserErrorCount": 0,
+    "failureCount": 0,
+    "viewports": ["1440x1000", "1024x900", "390x844"],
+    "states": [
+      "loading",
+      "empty",
+      "error",
+      "denied",
+      "partial",
+      "disabled",
+      "success"
+    ]
+  },
+  "visualAudit": {
+    "status": "PASS",
+    "reviewedScreens": [
+      "login",
+      "assistants",
+      "conversation",
+      "knowledge-sources",
+      "index-detail",
+      "assistant-release"
+    ],
+    "reviewedResponsiveStates": ["desktop", "mobile"]
+  },
+  "humanReview": {
+    "status": "PENDING",
+    "productionFrontendAllowed": false,
+    "nextWorkPackageAllowed": false
+  }
+}

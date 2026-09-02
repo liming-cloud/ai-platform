@@ -1,0 +1,237 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-09-02T18:30:00+08:00",
+  "classification": "SYNTHETIC",
+  "tenant": {
+    "id": "tenant-demo-001",
+    "displayName": "云杉服务示例组织",
+    "memberLabel": "普通用户",
+    "administratorLabel": "租户管理员"
+  },
+  "quota": {
+    "knowledgeBases": { "used": 2, "limit": 3 },
+    "activeDocuments": { "used": 684, "limit": 1000 },
+    "rawBytes": { "used": 3758096384, "limit": 10737418240 },
+    "singleFileBytes": 52428800,
+    "pastedTextBytes": 1048576
+  },
+  "supportedSources": [
+    "粘贴文本",
+    "TXT",
+    "Markdown",
+    "DOC",
+    "DOCX",
+    "XLS",
+    "XLSX",
+    "CSV",
+    "PDF",
+    "PNG",
+    "JPEG",
+    "WebP"
+  ],
+  "knowledgeBases": [
+    {
+      "id": "kb-handbook",
+      "name": "员工服务手册",
+      "description": "面向全体成员的制度、假期、福利和办事指南。",
+      "status": "READY",
+      "documents": 428,
+      "storage": "2.6 GB",
+      "activeIndex": "idx-v11",
+      "updatedAt": "今天 17:42"
+    },
+    {
+      "id": "kb-support",
+      "name": "客户支持知识",
+      "description": "合成产品说明、故障排查和服务政策。",
+      "status": "INDEXING",
+      "documents": 256,
+      "storage": "986 MB",
+      "activeIndex": "idx-v7",
+      "updatedAt": "今天 17:18"
+    }
+  ],
+  "sources": [
+    {
+      "id": "src-policy-pdf",
+      "name": "2026 员工假期制度.pdf",
+      "kind": "PDF",
+      "revision": "rev-0007",
+      "status": "READY",
+      "stage": "READY",
+      "documents": 84,
+      "updatedAt": "今天 17:42",
+      "detail": "文本提取完成，引用保留页码。"
+    },
+    {
+      "id": "src-benefit-docx",
+      "name": "福利办事指南.docx",
+      "kind": "DOCX",
+      "revision": "rev-0004",
+      "status": "READY",
+      "stage": "READY",
+      "documents": 112,
+      "updatedAt": "今天 17:36",
+      "detail": "标题、段落和列表结构已保留。"
+    },
+    {
+      "id": "src-office-xlsx",
+      "name": "各地办公室联系表.xlsx",
+      "kind": "XLSX",
+      "revision": "rev-0003",
+      "status": "INDEXING",
+      "stage": "INDEXING",
+      "documents": 216,
+      "updatedAt": "今天 17:39",
+      "detail": "正在嵌入 184 / 216 个表格分块。"
+    },
+    {
+      "id": "src-scan-pdf",
+      "name": "报销流程扫描件.pdf",
+      "kind": "扫描 PDF",
+      "revision": "rev-0002",
+      "status": "FAILED",
+      "stage": "EXTRACTING",
+      "documents": 0,
+      "updatedAt": "今天 17:31",
+      "detail": "第 18 页像素超出安全限制，未写入索引。"
+    }
+  ],
+  "indexVersion": {
+    "id": "idx-v12",
+    "knowledgeBaseId": "kb-handbook",
+    "status": "READY_FOR_REVIEW",
+    "reason": "Embedding 维度由 1024 变更为 1536，已触发全量重建但未自动激活。",
+    "progress": 100,
+    "documents": 428,
+    "chunks": 3486,
+    "embedding": "text-embedding-3-large / 1536 / cosine",
+    "parser": "typed-parser-v4",
+    "chunking": "structure-parent-child-v3",
+    "retrieval": "dense 50 + sparse 50 + RRF k=60 + rerank 30 -> 8",
+    "quality": {
+      "recallAt10": 0.88,
+      "citationPrecision": 0.97,
+      "refusalAccuracy": 0.99,
+      "unauthorizedLeakage": 0,
+      "retrievalP95Ms": 612
+    }
+  },
+  "assistants": [
+    {
+      "id": "assistant-employee-service",
+      "versionId": "asv-0012",
+      "name": "员工服务助手",
+      "summary": "查询制度、假期、福利和办事流程，并提供可定位引用。",
+      "knowledgeBase": "员工服务手册",
+      "version": "v12",
+      "status": "PUBLISHED",
+      "updatedAt": "今天 16:58"
+    },
+    {
+      "id": "assistant-support",
+      "versionId": "asv-0008",
+      "name": "客户支持助手",
+      "summary": "查询合成产品说明和故障排查步骤。",
+      "knowledgeBase": "客户支持知识",
+      "version": "v8",
+      "status": "PUBLISHED",
+      "updatedAt": "昨天 18:20"
+    },
+    {
+      "id": "assistant-office",
+      "versionId": "asv-0004",
+      "name": "办公地点助手",
+      "summary": "查询办公室地址、开放时间和公共联系方式。",
+      "knowledgeBase": "员工服务手册",
+      "version": "v4",
+      "status": "PUBLISHED",
+      "updatedAt": "8 月 29 日"
+    }
+  ],
+  "assistantVersion": {
+    "id": "asv-0013",
+    "assistantId": "assistant-employee-service",
+    "name": "员工服务助手",
+    "status": "READY_FOR_RELEASE",
+    "knowledgeBase": "员工服务手册",
+    "indexVersion": "idx-v12",
+    "chatModel": "企业对话模型 / cm-v6",
+    "embeddingModel": "企业向量模型 / em-v4",
+    "rerankModel": "企业重排模型 / rr-v2",
+    "retrievalPolicy": "hybrid-rrf-rerank-v3",
+    "citationPolicy": "citation-required-v2",
+    "refusalPolicy": "calibrated-threshold-v5",
+    "quality": {
+      "recallAt10": 0.88,
+      "citationPrecision": 0.97,
+      "refusalAccuracy": 0.99,
+      "unauthorizedLeakage": 0,
+      "firstTokenP95Ms": 2840
+    }
+  },
+  "conversations": [
+    {
+      "id": "cv-20260902-01",
+      "title": "年假结转规则",
+      "assistant": "员工服务助手",
+      "updatedAt": "18:22",
+      "active": true
+    },
+    {
+      "id": "cv-20260902-02",
+      "title": "报销材料清单",
+      "assistant": "员工服务助手",
+      "updatedAt": "16:40",
+      "active": false
+    },
+    {
+      "id": "cv-20260901-01",
+      "title": "上海办公室开放时间",
+      "assistant": "办公地点助手",
+      "updatedAt": "昨天",
+      "active": false
+    },
+    {
+      "id": "cv-20260829-01",
+      "title": "密码重置步骤",
+      "assistant": "客户支持助手",
+      "updatedAt": "8 月 29 日",
+      "active": false
+    }
+  ],
+  "messages": [
+    {
+      "sequence": 41,
+      "role": "user",
+      "content": "今年没有休完的年假可以结转到明年吗？",
+      "createdAt": "18:21"
+    },
+    {
+      "sequence": 42,
+      "role": "assistant",
+      "content": "可以。符合条件的未休年假最多结转 5 天，并应在次年 3 月 31 日前使用。超过期限的结转天数会按制度失效。",
+      "createdAt": "18:22",
+      "citations": [
+        {
+          "id": "cit-42-1",
+          "source": "2026 员工假期制度.pdf",
+          "location": "第 6 页 · 年假结转",
+          "excerpt": "未休年假可结转至次年第一季度，结转上限为五个工作日。"
+        },
+        {
+          "id": "cit-42-2",
+          "source": "福利办事指南.docx",
+          "location": "假期申请 · 第 3 节",
+          "excerpt": "结转年假需在次年三月三十一日前完成申请和使用。"
+        }
+      ]
+    },
+    {
+      "sequence": 43,
+      "role": "user",
+      "content": "如果我有 7 天没有休完呢？",
+      "createdAt": "18:23"
+    }
+  ]
+}
