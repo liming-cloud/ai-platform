@@ -5,6 +5,12 @@
     "name": "WP-0016 可信 RAG 高保真原型",
     "conversationId": "88968f9d-740d-4032-a1a7-6b3248d9d4d9",
     "skillId": "emil-design-eng",
+    "workspaceId": "v1l0xylpndn2os1hsa17s8dy",
+    "scenarioBinding": {
+      "pluginId": "example-web-prototype",
+      "snapshotId": "a22f8380-fd7c-4792-91f0-47011e14083f",
+      "taskProfile": "prototype"
+    },
     "entryFile": "index.html",
     "importedFrom": "folder",
     "importedAt": "2026-09-02T10:53:17+08:00"
@@ -17,6 +23,11 @@
       "p1": 0,
       "p2": 0
     },
+    "staticVerificationStatus": "PASS",
+    "staticAssertionCount": 3929,
+    "httpScenarioCount": 1428,
+    "browserVerificationStatus": "BLOCKED_BY_BROWSER_PERMISSION",
+    "browserVerificationNote": "当前受限运行环境拒绝启动 Chromium，随后本地页面浏览器权限也被拒绝；真实 DOM、焦点、横向溢出、交互与截图必须在获准的浏览器环境重新运行。",
     "exportStatus": "TOOL_TIMEOUT",
     "exportNote": "独立 HTML 导出与 files list 均在 60 秒内无响应，已人工终止，未产生不完整文件；导入、lint 与浏览器证据仍可独立复核。"
   }

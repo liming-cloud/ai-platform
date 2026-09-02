@@ -1,0 +1,32 @@
+{
+  "status": "BLOCKED",
+  "generatedAt": "2026-09-02T10:05:00.000Z",
+  "pageCount": 68,
+  "stateCount": 7,
+  "viewportCount": 3,
+  "scenarioCount": 1428,
+  "assertionCount": 2,
+  "screenshotCount": 0,
+  "browserErrors": [
+    "当前运行环境未授予浏览器进程或本地页面访问权限。"
+  ],
+  "failures": [
+    "真实 DOM、焦点、文档级横向滚动、交互与截图验证未执行。"
+  ],
+  "inventorySummary": {
+    "schemaVersion": 1,
+    "description": "WP-0016 全平台高保真原型页面单一事实源",
+    "groups": [
+      {"id":"shared-access","label":"共享访问","phase":"M6","shell":"console","pageCount":1},
+      {"id":"platform-governance","label":"平台治理","phase":"M6","shell":"console","pageCount":10},
+      {"id":"tenant-access-knowledge","label":"租户访问与知识","phase":"M6","shell":"console","pageCount":13},
+      {"id":"knowledge-indexing","label":"知识处理与索引","phase":"M6","shell":"console","pageCount":6},
+      {"id":"tenant-models","label":"租户模型","phase":"M6","shell":"console","pageCount":7},
+      {"id":"assistant-delivery","label":"助手交付","phase":"M6","shell":"console","pageCount":7},
+      {"id":"evaluation-governance","label":"评测与治理","phase":"M6","shell":"console","pageCount":11},
+      {"id":"query-app","label":"普通用户问答","phase":"M6","shell":"query","pageCount":3},
+      {"id":"device-app","label":"设备问答","phase":"M7","shell":"device","pageCount":4},
+      {"id":"platform-operations","label":"平台运维","phase":"M8","shell":"console","pageCount":6}
+    ]
+  }
+}

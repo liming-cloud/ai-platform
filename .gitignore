@@ -3,6 +3,8 @@
 .codegraph/
 .codex-runtime/
 .superpowers/
+# OpenDesign 会在原型目录生成可再获取的本地技能快照，不作为项目事实提交。
+**/.od-skills/
 
 # Local environments
 .env

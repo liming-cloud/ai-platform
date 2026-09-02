@@ -13,8 +13,8 @@
     <link rel="stylesheet" href="./prototype.css" />
   </head>
   <body>
-    <a class="skip-link" href="#main-content">跳到主要内容</a>
-    <div id="prototype-root" class="prototype-root" aria-live="off">
+    <a class="skip-link" href="#main-content" data-od-id="skip-link">跳到主要内容</a>
+    <div id="prototype-root" class="prototype-root" aria-live="off" data-od-id="prototype-root">
       <main id="main-content" class="boot-state" tabindex="-1">
         <p class="eyebrow">OpenDesign 高保真原型</p>
         <h1>正在准备可信 RAG 场景</h1>
@@ -26,25 +26,30 @@
       id="prototype-reviewer"
       class="prototype-reviewer"
       aria-label="原型场景审查器"
+      data-od-id="prototype-reviewer"
     >
       <details>
         <summary>原型场景</summary>
         <div class="reviewer-fields">
           <label>
-            页面
-            <select id="review-screen">
-              <option value="login">普通用户登录</option>
-              <option value="assistants">授权助手目录</option>
-              <option value="conversation">会话与历史</option>
-              <option value="knowledge-directory">知识库目录</option>
-              <option value="knowledge-sources">数据来源</option>
-              <option value="index-detail">索引激活</option>
-              <option value="assistant-release">助手发布</option>
-            </select>
+            快速查找页面
+            <input
+              id="review-search"
+              data-od-id="review-search"
+              class="input"
+              type="search"
+              placeholder="输入阶段、页面名或 screen"
+              autocomplete="off"
+            />
           </label>
           <label>
+            页面
+            <select id="review-screen" aria-describedby="review-screen-help" data-od-id="review-screen"></select>
+          </label>
+          <p id="review-screen-help">页面由 page-inventory.json 的十个分组生成。</p>
+          <label>
             状态
-            <select id="review-state">
+            <select id="review-state" data-od-id="review-state">
               <option value="success">成功</option>
               <option value="loading">加载</option>
               <option value="empty">空</option>
@@ -54,7 +59,7 @@
               <option value="disabled">禁用</option>
             </select>
           </label>
-          <button id="review-apply" class="button secondary" type="button">
+          <button id="review-apply" class="button secondary" type="button" data-od-id="review-apply">
             切换场景
           </button>
           <p>该控件只服务原型审查，生产页面不包含它。</p>

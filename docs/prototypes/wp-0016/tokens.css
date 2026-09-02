@@ -51,12 +51,12 @@
   --text-lg: 1.125rem;
   --text-xl: 1.5rem;
   --text-2xl: 2rem;
-  --line-body: 1.55;
+  --line-body: 1.7;
   --sidebar-width: 15rem;
   --history-width: 17rem;
   --content-max: 73.75rem;
   --message-max: 48.75rem;
-  --control-height: 2.5rem;
+  --control-height: 2.75rem;
   --motion-fast: 120ms;
   --motion-normal: 180ms;
 }

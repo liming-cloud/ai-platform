@@ -1,27 +1,18 @@
+import { decorateExistingPage, renderInventoryPage } from "./full-platform.js";
+
 const root = document.querySelector("#prototype-root");
 const reviewer = document.querySelector("#prototype-reviewer");
 const screenSelect = document.querySelector("#review-screen");
 const stateSelect = document.querySelector("#review-state");
 const applyReview = document.querySelector("#review-apply");
+const reviewSearch = document.querySelector("#review-search");
 
-const screens = new Set([
-  "login",
-  "assistants",
-  "conversation",
-  "knowledge-directory",
-  "knowledge-sources",
-  "index-detail",
-  "assistant-release",
-]);
-const states = new Set([
-  "loading",
-  "empty",
-  "error",
-  "denied",
-  "partial",
-  "disabled",
-  "success",
-]);
+let screens = new Set();
+let states = new Set();
+let inventory;
+let pageFixtures;
+let pageByScreen;
+let groupByScreen;
 
 let fixtures;
 let selectedAssistantId = "assistant-employee-service";
@@ -29,11 +20,34 @@ let activeConversationId = "cv-20260902-01";
 let streamTimer;
 
 try {
-  const response = await fetch("./fixtures.json", { cache: "no-store" });
-  if (!response.ok) {
+  const [fixtureResponse, inventoryResponse, pageFixtureResponse] =
+    await Promise.all([
+      fetch("./fixtures.json", { cache: "no-store" }),
+      fetch("./page-inventory.json", { cache: "no-store" }),
+      fetch("./page-fixtures.json", { cache: "no-store" }),
+    ]);
+  if (
+    !fixtureResponse.ok ||
+    !inventoryResponse.ok ||
+    !pageFixtureResponse.ok
+  ) {
     throw new Error("fixture-load-failed");
   }
-  fixtures = await response.json();
+  [fixtures, inventory, pageFixtures] = await Promise.all([
+    fixtureResponse.json(),
+    inventoryResponse.json(),
+    pageFixtureResponse.json(),
+  ]);
+  const pages = inventory.groups.flatMap((group) => group.pages);
+  screens = new Set(pages.map((page) => page.screen));
+  states = new Set(inventory.states);
+  pageByScreen = new Map(pages.map((page) => [page.screen, page]));
+  groupByScreen = new Map(
+    inventory.groups.flatMap((group) =>
+      group.pages.map((page) => [page.screen, group]),
+    ),
+  );
+  initializeReviewer();
   render();
 } catch {
   root.innerHTML = [
@@ -47,6 +61,18 @@ try {
 
 applyReview.addEventListener("click", () => {
   navigate(screenSelect.value, stateSelect.value);
+});
+
+reviewSearch.addEventListener("input", filterReviewerOptions);
+reviewSearch.addEventListener("keydown", (event) => {
+  if (event.key !== "Enter") {
+    return;
+  }
+  const first = [...screenSelect.options].find((option) => !option.hidden);
+  if (first) {
+    screenSelect.value = first.value;
+    navigate(first.value, stateSelect.value);
+  }
 });
 
 window.addEventListener("popstate", render);
@@ -65,6 +91,29 @@ function currentScenario() {
     state: states.has(requestedState) ? requestedState : "success",
     review: params.get("review") !== "0",
   };
+}
+
+function initializeReviewer() {
+  screenSelect.innerHTML = inventory.groups
+    .map(
+      (group) =>
+        `<optgroup label="${escapeHtml(`${group.phase} · ${group.label}`)}">${group.pages
+          .map((page) => {
+            const title = pageFixtures.pages[page.screen]?.title || page.task;
+            return `<option value="${escapeHtml(page.screen)}">${escapeHtml(`${group.phase} · ${title} · ${page.screen}`)}</option>`;
+          })
+          .join("")}</optgroup>`,
+    )
+    .join("");
+}
+
+function filterReviewerOptions(event) {
+  const query = event.currentTarget.value.trim().toLocaleLowerCase("zh-CN");
+  [...screenSelect.options].forEach((option) => {
+    option.hidden =
+      query.length > 0 &&
+      !option.textContent.toLocaleLowerCase("zh-CN").includes(query);
+  });
 }
 
 function navigate(screen, state = "success") {
@@ -89,6 +138,19 @@ function render() {
   screenSelect.value = scenario.screen;
   stateSelect.value = scenario.state;
   root.innerHTML = renderScreen(scenario.screen, scenario.state);
+  const page = pageByScreen.get(scenario.screen);
+  decorateExistingPage(
+    root.querySelector(`main[data-screen="${CSS.escape(scenario.screen)}"]`),
+    page,
+    groupByScreen.get(scenario.screen),
+  );
+  root
+    .querySelectorAll("button, input, textarea, select, dialog")
+    .forEach((control, index) => {
+      if (!control.dataset.odId) {
+        control.dataset.odId = `${scenario.screen}-control-${index + 1}`;
+      }
+    });
   bindInteractions(scenario.screen);
   document.title = screenTitle(scenario.screen) + " · 可信 RAG 原型";
 }
@@ -108,20 +170,18 @@ function renderScreen(screen, state) {
     case "assistant-release":
       return renderAssistantRelease(state);
     default:
-      return renderLogin(state);
+      return renderInventoryPage(
+        pageByScreen.get(screen),
+        groupByScreen.get(screen),
+        pageFixtures.pages[screen],
+        state,
+        fixtures.tenant,
+      );
   }
 }
 
 function screenTitle(screen) {
-  return {
-    login: "普通用户登录",
-    assistants: "选择助手",
-    conversation: "可信问答会话",
-    "knowledge-directory": "知识库目录",
-    "knowledge-sources": "数据来源",
-    "index-detail": "索引激活",
-    "assistant-release": "助手发布",
-  }[screen];
+  return pageFixtures.pages[screen]?.title || pageByScreen.get(screen)?.task;
 }
 
 function escapeHtml(value) {
@@ -414,24 +474,27 @@ function renderConversation(state) {
   const assistant =
     fixtures.assistants.find((item) => item.id === selectedAssistantId) ||
     fixtures.assistants[0];
-  const history = fixtures.conversations
-    .map((conversation) =>
-      [
-        '<button class="conversation-item" type="button" data-conversation-id="' +
-          escapeHtml(conversation.id) +
-          '" aria-current="' +
-          (activeConversationId === conversation.id ? "page" : "false") +
-          '">',
-        "<span>" + escapeHtml(conversation.title) + "</span>",
-        "<small>" +
-          escapeHtml(conversation.assistant) +
-          " · " +
-          escapeHtml(conversation.updatedAt) +
-          "</small>",
-        "</button>",
-      ].join(""),
-    )
-    .join("");
+  const history =
+    state === "denied"
+      ? '<p class="field-hint">当前会话无权读取历史，未加载任何会话摘要。</p>'
+      : fixtures.conversations
+          .map((conversation) =>
+            [
+              '<button class="conversation-item" type="button" data-conversation-id="' +
+                escapeHtml(conversation.id) +
+                '" aria-current="' +
+                (activeConversationId === conversation.id ? "page" : "false") +
+                '">',
+              "<span>" + escapeHtml(conversation.title) + "</span>",
+              "<small>" +
+                escapeHtml(conversation.assistant) +
+                " · " +
+                escapeHtml(conversation.updatedAt) +
+                "</small>",
+              "</button>",
+            ].join(""),
+          )
+          .join("");
   return [
     '<main id="main-content" class="conversation-shell" data-screen="conversation" data-state="' +
       state +
@@ -448,12 +511,15 @@ function renderConversation(state) {
     '<section class="conversation-main">',
     '<header class="conversation-header">',
     '<div class="conversation-header-copy"><h1>' +
-      escapeHtml(assistant.name) +
+      (state === "denied" ? "可信问答会话" : escapeHtml(assistant.name)) +
       "</h1><small>" +
-      escapeHtml(assistant.knowledgeBase) +
-      " · 固定 " +
-      escapeHtml(assistant.version) +
-      " · 引用必需</small></div>",
+      (state === "denied"
+        ? "已隐藏受保护会话信息"
+        : escapeHtml(assistant.knowledgeBase) +
+          " · 固定 " +
+          escapeHtml(assistant.version) +
+          " · 引用必需") +
+      "</small></div>",
     '<div class="conversation-header-actions"><button class="button secondary compact mobile-history-button" type="button" aria-controls="history-panel" aria-expanded="false" data-open-history>会话记录</button><button class="button subtle compact" type="button" data-nav-screen="assistants">助手目录</button></div>',
     "</header>",
     renderMessageRegion(state),
@@ -490,6 +556,9 @@ function renderMessageRegion(state) {
   return [
     '<section class="message-region">',
     '<div class="older-messages"><button class="button subtle compact" type="button" data-load-older>加载更早消息 · beforeSequence=41</button></div>',
+    state === "partial"
+      ? '<div class="inline-note warning">连接曾短暂中断，已从最后确认的事件序号 44 恢复；已完成消息不会重复追加。</div>'
+      : "",
     disabled,
     '<div id="messages" class="messages" aria-live="polite">' +
       messages +
@@ -663,7 +732,7 @@ function renderKnowledgeDirectory(state) {
           escapeHtml(item.activeIndex) +
           "</span></td>",
         '<td data-label="最近变化">' + escapeHtml(item.updatedAt) + "</td>",
-        '<td data-label="操作"><div class="table-actions"><button class="button secondary compact" type="button" data-nav-screen="knowledge-sources">进入</button></div></td>',
+        '<td data-label="操作"><div class="table-actions"><button class="button secondary compact" type="button" data-nav-screen="knowledge-overview">进入</button></div></td>',
         "</tr>",
       ].join(""),
     )
@@ -688,7 +757,7 @@ function renderKnowledgeDirectory(state) {
     '<button class="button primary" type="button"' +
     (state === "disabled"
       ? ' disabled aria-describedby="kb-quota-reason"'
-      : "") +
+      : ' data-nav-screen="knowledge-overview"') +
     ">创建知识库</button>";
   return adminShell(
     "knowledge-directory",
@@ -735,7 +804,7 @@ function renderKnowledgeSources(state) {
         '<td data-label="状态">' + statusTag(item.status) + "</td>",
         '<td data-label="文档数">' + escapeHtml(item.documents) + "</td>",
         '<td data-label="最近变化">' + escapeHtml(item.updatedAt) + "</td>",
-        '<td data-label="操作"><div class="table-actions"><button class="button secondary compact" type="button">' +
+        '<td data-label="操作"><div class="table-actions"><button class="button secondary compact" type="button" data-nav-screen="source-detail">' +
           (item.status === "FAILED" ? "安全重试" : "查看") +
           '</button><button class="button subtle compact" type="button">更多</button></div></td>',
         "</tr>",
@@ -764,7 +833,7 @@ function renderKnowledgeSources(state) {
         '</dd></div><div class="summary-item"><dt>失败</dt><dd>' +
         (state === "partial" ? "1" : "0") +
         "</dd></div></dl>",
-      '<div class="toolbar"><label class="field"><span>搜索数据来源</span><input class="input" type="search" placeholder="按名称或类型搜索" /></label><button class="button secondary" type="button" data-nav-screen="index-detail">查看重建索引</button></div>',
+      '<div class="toolbar"><label class="field"><span>搜索数据来源</span><input class="input" type="search" placeholder="按名称或类型搜索" /></label><button class="button secondary" type="button" data-nav-screen="processing-quality">查看处理与质量</button></div>',
       '<div class="table-shell"><table class="data-table"><thead><tr><th style="width:31%">数据来源</th><th>处理阶段</th><th>状态</th><th>文档数</th><th>最近变化</th><th style="text-align:right">操作</th></tr></thead><tbody>' +
         rows +
         "</tbody></table>",
@@ -777,7 +846,7 @@ function renderKnowledgeSources(state) {
     '<button class="button primary" type="button"' +
     (state === "disabled"
       ? ' disabled aria-describedby="source-disabled-reason"'
-      : "") +
+      : ' data-nav-screen="source-add"') +
     ">添加数据</button>";
   return adminShell(
     "knowledge-sources",
@@ -891,7 +960,7 @@ function renderIndexDetail(state) {
     "index-detail",
     "索引 idx-v12",
     "评审全量重建结果，并在质量与权限门禁通过后原子激活。构建完成不等于自动上线。",
-    '<button class="button secondary" type="button" data-nav-screen="knowledge-sources">返回数据来源</button>',
+    '<button class="button secondary" type="button" data-nav-screen="index-rebuild">查看重建配置</button>',
     content,
     state,
     "知识管理 / 知识库 / 员工服务手册 / 索引 idx-v12",
@@ -964,7 +1033,7 @@ function renderAssistantRelease(state) {
     "assistant-release",
     "发布员工服务助手 v13",
     "核对冻结版本、质量门禁和会话影响，只形成一个可审计的发布决策。",
-    '<button class="button secondary" type="button">查看完整评测</button>',
+    '<button class="button secondary" type="button" data-nav-screen="assistant-evaluation">查看完整评测</button>',
     content,
     state,
     "AI 应用 / 助手 / 员工服务助手 / v13 / 发布",
@@ -1045,11 +1114,18 @@ function bindInteractions(screen) {
     ?.addEventListener("click", () => {
       root.querySelector("#release-dialog")?.showModal();
     });
-  if (screen === "conversation" && currentScenario().state === "partial") {
-    root
-      .querySelector("[data-streaming-message]")
-      ?.scrollIntoView({ block: "nearest" });
-  }
+  root
+    .querySelector('#release-dialog button[value="confirm"]')
+    ?.addEventListener("click", () => {
+      window.setTimeout(() => navigate("channel-binding"), 0);
+    });
+  root.querySelector("[data-open-page-dialog]")?.addEventListener("click", () => {
+    root.querySelector("#page-dialog")?.showModal();
+  });
+  root.querySelector("#console-login-form")?.addEventListener("submit", (event) => {
+    event.preventDefault();
+    navigate("platform-overview");
+  });
 }
 
 function filterAssistants(query) {
@@ -1164,8 +1240,4 @@ function submitQuestion(event) {
     },
     reduced ? 1 : 100,
   );
-  root.querySelector("[data-live-answer]")?.scrollIntoView({
-    block: "nearest",
-    behavior: reduced ? "auto" : "smooth",
-  });
 }
