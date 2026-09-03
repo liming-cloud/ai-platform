@@ -103,7 +103,7 @@ not ok 12 - 历史筛选及故障模式的重试和继续有实际结果
     [2m    - waiting 20ms[22m
     [2m    - waiting for element to be visible, enabled and stable[22m
     [2m  - element was detached from the DOM, retrying[22m
-    
+
   code: 'ERR_TEST_FAILURE'
   name: 'TimeoutError'
   stack: |-

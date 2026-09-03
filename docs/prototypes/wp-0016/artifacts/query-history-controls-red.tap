@@ -74,9 +74,9 @@ not ok 12 - 历史筛选及故障模式的重试和继续有实际结果
   failureType: 'testCodeFailure'
   error: |-
     Expected values to be strictly equal:
-    
+
     3 !== 1
-    
+
   code: 'ERR_ASSERTION'
   name: 'AssertionError'
   expected: 1

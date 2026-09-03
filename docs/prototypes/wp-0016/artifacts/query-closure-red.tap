@@ -10,7 +10,7 @@ not ok 1 - 普通用户登录具备独立表单而不是管理员页面
     locator.waitFor: Timeout 3000ms exceeded.
     Call log:
     [2m  - waiting for locator('#login-form') to be visible[22m
-    
+
   code: 'ERR_TEST_FAILURE'
   name: 'TimeoutError'
   stack: |-
@@ -26,9 +26,9 @@ not ok 2 - 未登录会话深链接不读取历史正文
   failureType: 'testCodeFailure'
   error: |-
     Expected values to be strictly equal:
-    
+
     5 !== 0
-    
+
   code: 'ERR_ASSERTION'
   name: 'AssertionError'
   expected: 0
@@ -51,7 +51,7 @@ not ok 3 - 错误登录可纠正且输入口令不写入浏览器存储
     locator.fill: Timeout 3000ms exceeded.
     Call log:
     [2m  - waiting for locator('#login-form input[name="tenantCode"]')[22m
-    
+
   code: 'ERR_TEST_FAILURE'
   name: 'TimeoutError'
   stack: |-
@@ -69,7 +69,7 @@ not ok 4 - 新增会话提问后刷新及重新登录恢复同一会话
     locator.fill: Timeout 3000ms exceeded.
     Call log:
     [2m  - waiting for locator('#login-form input[name="tenantCode"]')[22m
-    
+
   code: 'ERR_TEST_FAILURE'
   name: 'TimeoutError'
   stack: |-
@@ -88,7 +88,7 @@ not ok 5 - 两个会话正文隔离且未知问题不套用年假答案
     locator.fill: Timeout 3000ms exceeded.
     Call log:
     [2m  - waiting for locator('#login-form input[name="tenantCode"]')[22m
-    
+
   code: 'ERR_TEST_FAILURE'
   name: 'TimeoutError'
   stack: |-

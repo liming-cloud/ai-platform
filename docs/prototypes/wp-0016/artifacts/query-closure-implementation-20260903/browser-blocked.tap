@@ -9,7 +9,7 @@ not ok 1 - 普通用户登录具备独立表单而不是管理员页面
   error: |-
     browserType.launch: Target page, context or browser has been closed
     Browser logs:
-    
+
     <launching> /Users/lingou/Library/Caches/ms-playwright/chromium_headless_shell-1234/chrome-headless-shell-mac-arm64/chrome-headless-shell --disable-field-trial-config --disable-background-networking --disable-background-timer-throttling --disable-backgrounding-occluded-windows --disable-back-forward-cache --disable-breakpad --disable-client-side-phishing-detection --disable-component-extensions-with-background-pages --disable-component-update --no-default-browser-check --disable-default-apps --disable-dev-shm-usage --disable-edgeupdater --disable-extensions --disable-features=AvoidUnnecessaryBeforeUnloadCheckSync,BoundaryEventDispatchTracksNodeRemoval,DestroyProfileOnBrowserClose,DialMediaRouteProvider,GlobalMediaControls,HttpsUpgrades,LensOverlay,MediaRouter,PaintHolding,ThirdPartyStoragePartitioning,BlockOriginHeaderModificationOnRedirect,Translate,AutoDeElevate,OptimizationHints,msForceBrowserSignIn,msEdgeUpdateLaunchServicesPreferredVersion --enable-features=CDPScreenshotNewSurface --allow-pre-commit-input --disable-hang-monitor --disable-ipc-flooding-protection --disable-popup-blocking --disable-prompt-on-repost --disable-renderer-backgrounding --disable-updater-scheduler --force-color-profile=srgb --metrics-recording-only --no-first-run --password-store=basic --use-mock-keychain --no-service-autorun --export-tagged-pdf --disable-search-engine-choice-screen --unsafely-disable-devtools-self-xss-warnings --edge-skip-compat-layer-relaunch --disable-infobars --disable-search-engine-choice-screen --disable-sync --enable-unsafe-swiftshader --headless --hide-scrollbars --mute-audio --blink-settings=primaryHoverType=2,availableHoverTypes=2,primaryPointerType=4,availablePointerTypes=4 --no-sandbox --user-data-dir=/var/folders/sp/rqwpsl3n1c76pymvvdsssx_00000gn/T/playwright_chromiumdev_profile-k3JvRJ --remote-debugging-pipe --no-startup-window
     <launched> pid=10020
     [pid=10020][err] [0903/151625.172591:ERROR:base/power_monitor/thermal_state_observer_mac.mm:140] ThermalStateObserverMac unable to register to power notifications. Result: 9
@@ -29,7 +29,7 @@ not ok 1 - 普通用户登录具备独立表单而不是管理员页面
     [2m  - [pid=10020] starting temporary directories cleanup[22m
     [2m  - [pid=10020] finished temporary directories cleanup[22m
     [2m  - [pid=10020] <gracefully close end>[22m
-    
+
   code: 'ERR_TEST_FAILURE'
   stack: |-
     TestContext.<anonymous> (/Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/query-journey.test.cjs:5:47)
@@ -45,7 +45,7 @@ not ok 2 - 未登录会话深链接不读取历史正文
   error: |-
     browserType.launch: Target page, context or browser has been closed
     Browser logs:
-    
+
     <launching> /Users/lingou/Library/Caches/ms-playwright/chromium_headless_shell-1234/chrome-headless-shell-mac-arm64/chrome-headless-shell --disable-field-trial-config --disable-background-networking --disable-background-timer-throttling --disable-backgrounding-occluded-windows --disable-back-forward-cache --disable-breakpad --disable-client-side-phishing-detection --disable-component-extensions-with-background-pages --disable-component-update --no-default-browser-check --disable-default-apps --disable-dev-shm-usage --disable-edgeupdater --disable-extensions --disable-features=AvoidUnnecessaryBeforeUnloadCheckSync,BoundaryEventDispatchTracksNodeRemoval,DestroyProfileOnBrowserClose,DialMediaRouteProvider,GlobalMediaControls,HttpsUpgrades,LensOverlay,MediaRouter,PaintHolding,ThirdPartyStoragePartitioning,BlockOriginHeaderModificationOnRedirect,Translate,AutoDeElevate,OptimizationHints,msForceBrowserSignIn,msEdgeUpdateLaunchServicesPreferredVersion --enable-features=CDPScreenshotNewSurface --allow-pre-commit-input --disable-hang-monitor --disable-ipc-flooding-protection --disable-popup-blocking --disable-prompt-on-repost --disable-renderer-backgrounding --disable-updater-scheduler --force-color-profile=srgb --metrics-recording-only --no-first-run --password-store=basic --use-mock-keychain --no-service-autorun --export-tagged-pdf --disable-search-engine-choice-screen --unsafely-disable-devtools-self-xss-warnings --edge-skip-compat-layer-relaunch --disable-infobars --disable-search-engine-choice-screen --disable-sync --enable-unsafe-swiftshader --headless --hide-scrollbars --mute-audio --blink-settings=primaryHoverType=2,availableHoverTypes=2,primaryPointerType=4,availablePointerTypes=4 --no-sandbox --user-data-dir=/var/folders/sp/rqwpsl3n1c76pymvvdsssx_00000gn/T/playwright_chromiumdev_profile-k3JvRJ --remote-debugging-pipe --no-startup-window
     <launched> pid=10020
     [pid=10020][err] [0903/151625.172591:ERROR:base/power_monitor/thermal_state_observer_mac.mm:140] ThermalStateObserverMac unable to register to power notifications. Result: 9
@@ -65,7 +65,7 @@ not ok 2 - 未登录会话深链接不读取历史正文
     [2m  - [pid=10020] starting temporary directories cleanup[22m
     [2m  - [pid=10020] finished temporary directories cleanup[22m
     [2m  - [pid=10020] <gracefully close end>[22m
-    
+
   code: 'ERR_TEST_FAILURE'
   stack: |-
     TestContext.<anonymous> (/Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/query-journey.test.cjs:5:47)
@@ -81,7 +81,7 @@ not ok 3 - 错误登录可纠正且输入口令不写入浏览器存储
   error: |-
     browserType.launch: Target page, context or browser has been closed
     Browser logs:
-    
+
     <launching> /Users/lingou/Library/Caches/ms-playwright/chromium_headless_shell-1234/chrome-headless-shell-mac-arm64/chrome-headless-shell --disable-field-trial-config --disable-background-networking --disable-background-timer-throttling --disable-backgrounding-occluded-windows --disable-back-forward-cache --disable-breakpad --disable-client-side-phishing-detection --disable-component-extensions-with-background-pages --disable-component-update --no-default-browser-check --disable-default-apps --disable-dev-shm-usage --disable-edgeupdater --disable-extensions --disable-features=AvoidUnnecessaryBeforeUnloadCheckSync,BoundaryEventDispatchTracksNodeRemoval,DestroyProfileOnBrowserClose,DialMediaRouteProvider,GlobalMediaControls,HttpsUpgrades,LensOverlay,MediaRouter,PaintHolding,ThirdPartyStoragePartitioning,BlockOriginHeaderModificationOnRedirect,Translate,AutoDeElevate,OptimizationHints,msForceBrowserSignIn,msEdgeUpdateLaunchServicesPreferredVersion --enable-features=CDPScreenshotNewSurface --allow-pre-commit-input --disable-hang-monitor --disable-ipc-flooding-protection --disable-popup-blocking --disable-prompt-on-repost --disable-renderer-backgrounding --disable-updater-scheduler --force-color-profile=srgb --metrics-recording-only --no-first-run --password-store=basic --use-mock-keychain --no-service-autorun --export-tagged-pdf --disable-search-engine-choice-screen --unsafely-disable-devtools-self-xss-warnings --edge-skip-compat-layer-relaunch --disable-infobars --disable-search-engine-choice-screen --disable-sync --enable-unsafe-swiftshader --headless --hide-scrollbars --mute-audio --blink-settings=primaryHoverType=2,availableHoverTypes=2,primaryPointerType=4,availablePointerTypes=4 --no-sandbox --user-data-dir=/var/folders/sp/rqwpsl3n1c76pymvvdsssx_00000gn/T/playwright_chromiumdev_profile-k3JvRJ --remote-debugging-pipe --no-startup-window
     <launched> pid=10020
     [pid=10020][err] [0903/151625.172591:ERROR:base/power_monitor/thermal_state_observer_mac.mm:140] ThermalStateObserverMac unable to register to power notifications. Result: 9
@@ -101,7 +101,7 @@ not ok 3 - 错误登录可纠正且输入口令不写入浏览器存储
     [2m  - [pid=10020] starting temporary directories cleanup[22m
     [2m  - [pid=10020] finished temporary directories cleanup[22m
     [2m  - [pid=10020] <gracefully close end>[22m
-    
+
   code: 'ERR_TEST_FAILURE'
   stack: |-
     TestContext.<anonymous> (/Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/query-journey.test.cjs:5:47)
@@ -117,7 +117,7 @@ not ok 4 - 新增会话提问后刷新及重新登录恢复同一会话
   error: |-
     browserType.launch: Target page, context or browser has been closed
     Browser logs:
-    
+
     <launching> /Users/lingou/Library/Caches/ms-playwright/chromium_headless_shell-1234/chrome-headless-shell-mac-arm64/chrome-headless-shell --disable-field-trial-config --disable-background-networking --disable-background-timer-throttling --disable-backgrounding-occluded-windows --disable-back-forward-cache --disable-breakpad --disable-client-side-phishing-detection --disable-component-extensions-with-background-pages --disable-component-update --no-default-browser-check --disable-default-apps --disable-dev-shm-usage --disable-edgeupdater --disable-extensions --disable-features=AvoidUnnecessaryBeforeUnloadCheckSync,BoundaryEventDispatchTracksNodeRemoval,DestroyProfileOnBrowserClose,DialMediaRouteProvider,GlobalMediaControls,HttpsUpgrades,LensOverlay,MediaRouter,PaintHolding,ThirdPartyStoragePartitioning,BlockOriginHeaderModificationOnRedirect,Translate,AutoDeElevate,OptimizationHints,msForceBrowserSignIn,msEdgeUpdateLaunchServicesPreferredVersion --enable-features=CDPScreenshotNewSurface --allow-pre-commit-input --disable-hang-monitor --disable-ipc-flooding-protection --disable-popup-blocking --disable-prompt-on-repost --disable-renderer-backgrounding --disable-updater-scheduler --force-color-profile=srgb --metrics-recording-only --no-first-run --password-store=basic --use-mock-keychain --no-service-autorun --export-tagged-pdf --disable-search-engine-choice-screen --unsafely-disable-devtools-self-xss-warnings --edge-skip-compat-layer-relaunch --disable-infobars --disable-search-engine-choice-screen --disable-sync --enable-unsafe-swiftshader --headless --hide-scrollbars --mute-audio --blink-settings=primaryHoverType=2,availableHoverTypes=2,primaryPointerType=4,availablePointerTypes=4 --no-sandbox --user-data-dir=/var/folders/sp/rqwpsl3n1c76pymvvdsssx_00000gn/T/playwright_chromiumdev_profile-k3JvRJ --remote-debugging-pipe --no-startup-window
     <launched> pid=10020
     [pid=10020][err] [0903/151625.172591:ERROR:base/power_monitor/thermal_state_observer_mac.mm:140] ThermalStateObserverMac unable to register to power notifications. Result: 9
@@ -137,7 +137,7 @@ not ok 4 - 新增会话提问后刷新及重新登录恢复同一会话
     [2m  - [pid=10020] starting temporary directories cleanup[22m
     [2m  - [pid=10020] finished temporary directories cleanup[22m
     [2m  - [pid=10020] <gracefully close end>[22m
-    
+
   code: 'ERR_TEST_FAILURE'
   stack: |-
     TestContext.<anonymous> (/Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/query-journey.test.cjs:5:47)
@@ -153,7 +153,7 @@ not ok 5 - 两个会话正文隔离且未知问题不套用年假答案
   error: |-
     browserType.launch: Target page, context or browser has been closed
     Browser logs:
-    
+
     <launching> /Users/lingou/Library/Caches/ms-playwright/chromium_headless_shell-1234/chrome-headless-shell-mac-arm64/chrome-headless-shell --disable-field-trial-config --disable-background-networking --disable-background-timer-throttling --disable-backgrounding-occluded-windows --disable-back-forward-cache --disable-breakpad --disable-client-side-phishing-detection --disable-component-extensions-with-background-pages --disable-component-update --no-default-browser-check --disable-default-apps --disable-dev-shm-usage --disable-edgeupdater --disable-extensions --disable-features=AvoidUnnecessaryBeforeUnloadCheckSync,BoundaryEventDispatchTracksNodeRemoval,DestroyProfileOnBrowserClose,DialMediaRouteProvider,GlobalMediaControls,HttpsUpgrades,LensOverlay,MediaRouter,PaintHolding,ThirdPartyStoragePartitioning,BlockOriginHeaderModificationOnRedirect,Translate,AutoDeElevate,OptimizationHints,msForceBrowserSignIn,msEdgeUpdateLaunchServicesPreferredVersion --enable-features=CDPScreenshotNewSurface --allow-pre-commit-input --disable-hang-monitor --disable-ipc-flooding-protection --disable-popup-blocking --disable-prompt-on-repost --disable-renderer-backgrounding --disable-updater-scheduler --force-color-profile=srgb --metrics-recording-only --no-first-run --password-store=basic --use-mock-keychain --no-service-autorun --export-tagged-pdf --disable-search-engine-choice-screen --unsafely-disable-devtools-self-xss-warnings --edge-skip-compat-layer-relaunch --disable-infobars --disable-search-engine-choice-screen --disable-sync --enable-unsafe-swiftshader --headless --hide-scrollbars --mute-audio --blink-settings=primaryHoverType=2,availableHoverTypes=2,primaryPointerType=4,availablePointerTypes=4 --no-sandbox --user-data-dir=/var/folders/sp/rqwpsl3n1c76pymvvdsssx_00000gn/T/playwright_chromiumdev_profile-k3JvRJ --remote-debugging-pipe --no-startup-window
     <launched> pid=10020
     [pid=10020][err] [0903/151625.172591:ERROR:base/power_monitor/thermal_state_observer_mac.mm:140] ThermalStateObserverMac unable to register to power notifications. Result: 9
@@ -173,7 +173,7 @@ not ok 5 - 两个会话正文隔离且未知问题不套用年假答案
     [2m  - [pid=10020] starting temporary directories cleanup[22m
     [2m  - [pid=10020] finished temporary directories cleanup[22m
     [2m  - [pid=10020] <gracefully close end>[22m
-    
+
   code: 'ERR_TEST_FAILURE'
   stack: |-
     TestContext.<anonymous> (/Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/query-journey.test.cjs:5:47)

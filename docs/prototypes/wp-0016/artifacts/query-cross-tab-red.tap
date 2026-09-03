@@ -10,7 +10,7 @@ not ok 1 - 另一标签页关闭对话权限后当前正文与引用立即失效
     locator.fill: Timeout 5000ms exceeded.
     Call log:
     [2m  - waiting for locator('#login-form input[name="tenantCode"]')[22m
-    
+
   code: 'ERR_TEST_FAILURE'
   name: 'TimeoutError'
   stack: |-

@@ -9,10 +9,10 @@ not ok 1 - 接收中退出后重新登录会暂停旧轮次并允许原位继续
   error: |-
     Expected values to be strictly equal:
     + actual - expected
-    
+
     + 'RECEIVING'
     - 'PAUSED'
-    
+
   code: 'ERR_ASSERTION'
   name: 'AssertionError'
   expected: 'PAUSED'
