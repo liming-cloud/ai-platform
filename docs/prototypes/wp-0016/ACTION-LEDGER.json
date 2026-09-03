@@ -1,7 +1,7 @@
 {
   "workPackage": "WP-0016",
   "generatedOn": "2026-09-03",
-  "browserVerification": "failed",
+  "browserVerification": "passed",
   "classification": {
     "navigation": "仅改变原型页面，不计作业务完成",
     "implementedStateChange": "合成状态已有 Node 测试；browserVerified 只表示条目注明的浏览器范围，不代表完整业务或人工通过",
@@ -1281,5 +1281,5 @@
     "allControlsEnumerated": false,
     "limitation": "尚未穷举每页筛选、行操作、账户菜单和各状态控件；下列数量只统计已登记项，不代表全平台控件总数。"
   },
-  "browserEvidenceReport": "artifacts/query-closure-full-browser-final-20260903/verification.json"
+  "browserEvidenceReport": "artifacts/layout-remediation-final-browser-20260903/verification.json"
 }

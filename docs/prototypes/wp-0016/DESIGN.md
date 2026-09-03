@@ -2,7 +2,7 @@
 
 ## 状态与边界
 
-- 状态：人工验收仍不通过；普通问答专项已通过本机浏览器复验，全平台仍为 FAIL，见 `artifacts/query-closure-full-browser-final-20260903/verification.json`。
+- 状态：人工验收仍不通过；普通问答与布局专项通过，全平台有限自动合同 14/14 阶段通过，见 `artifacts/layout-remediation-final-browser-20260903/verification.json`；账本仍有 20 个未闭环项，不代表全部业务操作通过。
 - 工作包：`WP-0016`。
 - 设计系统：Fluent UI React v9 的信息层级、组件语义和既有 Foundation Token。
 - 交付形式：OpenDesign 项目中的可操作 HTML 原型、设计令牌、脱敏 fixtures、自动检查和截图。
@@ -24,6 +24,7 @@
 - 背景：浅灰画布、白色工作表面和深绿色唯一强调；平台范围用文字与导航结构区分，不新增装饰色。
 - 字体：继续使用 `Segoe UI Variable` 与中文系统字形，正文至少 15px，数字使用等宽数字特性；不使用营销式超大标题。
 - 布局：所有间距绑定 4px/8px 倍数，页头只保留页面名、当前对象、状态和一个主操作；目录、详情、向导、结果、时间线与风险页使用不同共享骨架。
+- 窄屏：详情、向导、结果、时间线在手机上按单列上下排列；标题与状态可换行，长标识不得撑开或覆盖相邻内容。审查器受动态视口高度约束，顶部收起入口固定可达，内部滚动不裁切表单控件。
 - 反馈：hover、focus、pressed、Drawer 和消息进入均有明确状态反馈，持续动画只用于真实进行中的操作，reduced-motion 关闭非必要位移与过渡。
 - 导航：平台与租户控制台共用 `navigation.js` 的单一配置和渲染入口。所有导航图标均为项目内 Microsoft Fluent System Icons 官方 SVG，通过 `<img src>` 引用；来源锁定到 commit `4d685f77b2cb8f3f412a74ec8d920c8c91149528`，清单与 MIT 许可位于 `assets/icons/`。
 
@@ -258,7 +259,7 @@ M6 页面是当前人工门禁范围。M7 设备问答与 M8 平台运维页面�
 
 页面右下角“原型场景”只属于审查工具：十个 `optgroup` 显示阶段、页面中文名和 screen，可按三者快速查找并跳转；目标路径、唯一任务、主要操作和 M7/M8 授权边界也在此显示，状态可独立切换。`review=0` 时完全隐藏，它不是生产导航。
 
-静态验证从 `page-inventory.json` 读取 68 个 screen、7 个 state 和 3 个 viewport，检查清单与 fixture 一致性、427 个共享渲染场景、1,428 个 HTTP 入口、正文合同隔离、向导字段、风险事实、分页上限、重复 id 和 denied 披露。Node 测试验证租户、成员、两级功能、运维状态及问答不变量；`ACTION-LEDGER.json` 区分真实状态变更、导航、待决策和未实现。真实浏览器分别验证普通用户旅程、失败恢复、三档尺寸和全平台有限 DOM/操作合同，不能用静态 HTML 或 HTTP 200 代替。最新结果见 `artifacts/query-closure-browser-green.tap` 与 `artifacts/query-closure-full-browser-final-20260903/verification.json`。
+静态验证从 `page-inventory.json` 读取 68 个 screen、7 个 state 和 3 个 viewport，检查清单与 fixture 一致性、427 个共享渲染场景、1,428 个 HTTP 入口、正文合同隔离、向导字段、风险事实、分页上限、重复 id 和 denied 披露。Node 测试验证租户、成员、两级功能、运维状态及问答不变量；`ACTION-LEDGER.json` 区分真实状态变更、导航、待决策和未实现。真实浏览器分别验证普通用户旅程、失败恢复、三档尺寸和全平台有限 DOM/操作合同，不能用静态 HTML 或 HTTP 200 代替。最新结果见 `artifacts/layout-remediation-query.tap`、`artifacts/layout-remediation-final.tap` 与 `artifacts/layout-remediation-final-browser-20260903/verification.json`。布局专项额外验证单列宽度、栏位内容边界、控件裁切、低高度和键盘收起，并在有限动画结束后截取代表图。
 
 ## 人工确认清单
 

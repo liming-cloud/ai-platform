@@ -88,6 +88,7 @@ openDecisions:
   - WP-0016：平台调整租户配额的权限与生效规则
   - WP-0016：是否新增邮件邀请与账户自助激活
 latestEvidence:
+  - project/evidence/WP-0016-layout-remediation-20260903.md
   - project/evidence/WP-0016-query-closure-20260903.md
   - project/evidence/WP-0016-browser-review-20260903.md
   - project/evidence/WP-0016-business-closure-candidate-20260903.md
@@ -95,7 +96,6 @@ latestEvidence:
   - project/evidence/WP-0016-visual-remediation-candidate-20260903.md
   - project/evidence/WP-0016-prototype-human-review-rejection-20260903.md
   - project/evidence/WP-0016-open-design-full-platform-candidate.md
-  - project/evidence/WP-0016-open-design-prototype-candidate.md
 nextReviewAt: 2026-09-03
-updatedAt: 2026-09-03T15:51:17+08:00
+updatedAt: 2026-09-03T16:33:54+08:00
 updatedBy: codex

@@ -1412,11 +1412,15 @@ h3 {
 }
 
 .prototype-reviewer {
+  --reviewer-bottom: var(--space-4);
   position: fixed;
   right: var(--space-4);
-  bottom: var(--space-4);
+  bottom: var(--reviewer-bottom);
   z-index: 150;
   width: min(19rem, calc(100vw - 2rem));
+  max-height: calc(100dvh - var(--reviewer-bottom) - var(--space-4));
+  overflow-y: auto;
+  overscroll-behavior: contain;
   border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-panel);
   background: var(--color-surface);
@@ -1424,13 +1428,18 @@ h3 {
 }
 
 .prototype-reviewer summary {
+  position: sticky;
+  top: 0;
+  z-index: 1;
   padding: var(--space-3) var(--space-4);
+  background: var(--color-surface);
   cursor: pointer;
   font-weight: 650;
 }
 
 .reviewer-fields {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-3);
   padding: 0 var(--space-4) var(--space-4);
 }
@@ -1441,6 +1450,8 @@ h3 {
 }
 
 .reviewer-fields select {
+  width: 100%;
+  min-width: 0;
   min-height: var(--control-height);
   border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-control);
@@ -1605,6 +1616,20 @@ body[data-review="hidden"] .prototype-reviewer {
 .result-workspace .section-block,
 .timeline-workspace .section-block {
   padding-top: 0;
+}
+
+.detail-workspace > * {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.detail-facts .section-heading {
+  flex-wrap: wrap;
+}
+
+.detail-facts .section-heading > div {
+  min-width: 0;
+  flex: 1 1 12rem;
 }
 
 .wizard-field-grid {
@@ -2037,6 +2062,13 @@ body[data-review="hidden"] .prototype-reviewer {
     font-size: 1.65rem;
   }
 
+  .wizard-workspace,
+  .detail-workspace,
+  .result-workspace,
+  .timeline-workspace {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
   .admin-shell {
     display: block;
     padding-bottom: 4.75rem;
@@ -2345,8 +2377,8 @@ body[data-review="hidden"] .prototype-reviewer {
   }
 
   .prototype-reviewer {
+    --reviewer-bottom: calc(4.9rem + env(safe-area-inset-bottom));
     right: var(--space-2);
-    bottom: calc(4.9rem + env(safe-area-inset-bottom));
   }
 
   .page-header > div + .primary-disabled-reason {
