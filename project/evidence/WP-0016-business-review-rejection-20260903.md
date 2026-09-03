@@ -15,3 +15,5 @@
 图谱探索 `navButton`、`consoleNavigation`、`adminShell`、`pageDialog`、`bindInteractions`。影响分析：`adminShell` 7 个符号，`bindInteractions` 4 个符号。本轮据此要求导航只有一个来源，状态变化有独立验证，拒绝以更多静态断言代替用户任务完成。
 
 执行环境为 Codex，已加载 engineering-assistant 的路由、decision-interview、prototype（UI reference）、tdd（security-seams reference）；Charter、STATE、WP、六份引用 ADR 和账号/管理员补充 ADR 已读取。没有 Runtime `StageRunResult`，阶段校验不适用。
+
+后续确认：产品负责人明确平台配置租户可用功能，租户管理员配置普通成员的对话功能，并要求“功能能用 → 功能好用”。已接受 ADR-0075 并绑定 `b1db144b4`，不引入自定义角色/API 勾选树。新账户邀请、安全可配置字段和配额调整规则仍未确认；这些待决策项不得阻止独立的导航和已有成员流程整改。
