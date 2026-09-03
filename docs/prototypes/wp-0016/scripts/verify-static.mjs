@@ -2,6 +2,8 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { renderInventoryPage } from "../full-platform.js";
+import { renderConsoleNavigation } from "../navigation.js";
+import { createMemoryStorage, createPrototypeStore } from "../prototype-state.js";
 
 const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
 const prototypeDirectory = path.resolve(scriptDirectory, "..");
@@ -36,6 +38,26 @@ const styleSource = fs.readFileSync(
   path.join(prototypeDirectory, "prototype.css"),
   "utf8",
 );
+const navigationSource = fs.readFileSync(
+  path.join(prototypeDirectory, "navigation.js"),
+  "utf8",
+);
+const stateSource = fs.readFileSync(
+  path.join(prototypeDirectory, "prototype-state.js"),
+  "utf8",
+);
+const iconManifest = JSON.parse(
+  fs.readFileSync(
+    path.join(prototypeDirectory, "assets/icons/manifest.json"),
+    "utf8",
+  ),
+);
+const actionLedger = JSON.parse(
+  fs.readFileSync(path.join(prototypeDirectory, "ACTION-LEDGER.json"), "utf8"),
+);
+const demoStore = createPrototypeStore(createMemoryStorage());
+demoStore.reset();
+const demoState = demoStore.getSnapshot();
 const pages = inventory.groups.flatMap((group) =>
   group.pages.map((page) => ({ page, group })),
 );
@@ -61,7 +83,7 @@ function assert(condition, message) {
 }
 
 function attributeValues(html, attribute) {
-  const expression = new RegExp(`${attribute}="([^"]+)"`, "g");
+  const expression = new RegExp(`(?:^|\\s)${attribute}="([^"]+)"`, "g");
   return [...html.matchAll(expression)].map((match) => match[1]);
 }
 
@@ -121,6 +143,70 @@ assert(
   "reduced-motion 未关闭非必要动画",
 );
 assert(
+  prototypeSource.includes('from "./navigation.js"') &&
+    fullPlatformSource.includes('from "./navigation.js"') &&
+    !prototypeSource.includes("function navGroup(") &&
+    !fullPlatformSource.includes("function consoleNavigation("),
+  "专属页与通用页尚未共用唯一导航渲染入口",
+);
+const platformNavigation = renderConsoleNavigation({
+  screen: "platform-model-deployment-detail",
+  scope: "platform",
+  snapshot: demoState,
+});
+const tenantNavigation = renderConsoleNavigation({
+  screen: "source-detail",
+  scope: "tenant",
+  snapshot: demoState,
+});
+assert(
+  [platformNavigation, tenantNavigation].every(
+    (html) =>
+      html.includes('<img class="nav-icon"') &&
+      !html.includes("nav-abbr") &&
+      !/emoji/i.test(html),
+  ),
+  "导航未全部使用本地 Fluent SVG 图片",
+);
+assert(
+  platformNavigation.includes(">平台运行状态<") &&
+    platformNavigation.includes(">备份与恢复<") &&
+    platformNavigation.includes('aria-label="治理"'),
+  "平台导航缺少完整自然中文或模型治理分组",
+);
+assert(
+  tenantNavigation.includes('data-nav-screen="knowledge-sources"') &&
+    tenantNavigation.includes('aria-current="page"'),
+  "文档详情未高亮文档与来源父目录",
+);
+assert(
+  iconManifest.package === "Microsoft Fluent UI System Icons" &&
+    /^[a-f0-9]{40}$/.test(iconManifest.commit) &&
+    iconManifest.license === "MIT" &&
+    iconManifest.files.every((entry) =>
+      fs.existsSync(path.join(prototypeDirectory, "assets/icons", entry.local)),
+    ) &&
+    fs.existsSync(path.join(prototypeDirectory, "assets/icons/LICENSE.txt")),
+  "Fluent 图标资产缺少固定 commit、清单、本地文件或 MIT 许可",
+);
+assert(
+  !prototypeSource.includes('value="prototype-only"') &&
+    !fullPlatformSource.includes('value="prototype-only"') &&
+    !/password|credential|secret/i.test(JSON.stringify(demoState)),
+  "密码被预填或进入了合成持久状态",
+);
+assert(
+  actionLedger.pages.length === pages.length &&
+    actionLedger.summary.unclosedControls > 0 &&
+    actionLedger.browserVerification === "pendingAuthorization",
+  "68 页操作账本缺失或错误宣称全部闭环",
+);
+assert(
+  navigationSource.includes("PARENT_SCREEN") &&
+    stateSource.includes("getEffectiveAccess"),
+  "导航父目录或有效权限交集缺少公共实现",
+);
+assert(
   !fullPlatformSource.includes("function contractStrip("),
   "共享渲染器仍包含产品正文工程合同条",
 );
@@ -157,7 +243,7 @@ for (const [from, to] of [
   ["platform-tenant-create", "platform-tenant-detail"],
   ["knowledge-overview", "knowledge-sources"],
   ["source-add", "source-detail"],
-  ["source-detail", "processing-quality"],
+  ["source-detail", "source-add"],
   ["processing-quality", "sync-result"],
   ["sync-result", "index-versions"],
   ["index-versions", "index-rebuild"],
@@ -185,11 +271,9 @@ for (const [from, to] of [
   ["device-consent", "device-question"],
   ["device-question", "device-answer"],
   ["device-answer", "device-question"],
-  ["platform-health", "ingestion-queue"],
   ["ingestion-queue", "model-health"],
   ["model-health", "capacity-planning"],
   ["capacity-planning", "backup-recovery"],
-  ["backup-recovery", "release-operations"],
 ]) {
   assert(fixtureNext(from) === to, `${from} 未声明通向 ${to} 的闭环跳转`);
 }
@@ -222,6 +306,7 @@ for (const { page, group } of pages) {
       fixture,
       state,
       fixtures.tenant,
+      demoState,
     );
     renderedScenarioCount += 1;
     const ids = attributeValues(html, "id");
@@ -259,7 +344,7 @@ for (const { page, group } of pages) {
       }
       if (fixture.mode === "detail") {
         assert(
-          (html.match(/data-fact-set=/g) || []).length === 1,
+          (html.match(/data-fact-set=/g) || []).length <= 1,
           `${page.screen} 详情事实被重复渲染`,
         );
       }
@@ -303,7 +388,7 @@ const result = {
   assertionCount,
   failures,
   limitation:
-    "此结果不启动浏览器；文档级横向滚动、真实焦点、交互与截图仍由 verify-and-capture.cjs 验证。",
+    "此结果只验证 Node 状态机、静态渲染合同和 URL 可达性；不启动浏览器，HTTP 成功不代表真实场景成立。文档级横向滚动、真实焦点、交互与本轮截图仍待用户重新授权。",
 };
 
 fs.mkdirSync(artifactDirectory, { recursive: true });

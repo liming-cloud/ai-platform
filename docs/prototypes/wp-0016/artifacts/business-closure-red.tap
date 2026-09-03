@@ -1,0 +1,203 @@
+TAP version 13
+# Subtest: 共享导航使用本地 Fluent SVG，并让详情页高亮父目录
+not ok 1 - 共享导航使用本地 Fluent SVG，并让详情页高亮父目录
+  ---
+  duration_ms: 1.903709
+  type: 'test'
+  location: '/Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/business-closure.test.mjs:33:1'
+  failureType: 'testCodeFailure'
+  error: "Cannot find module '/Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/navigation.js' imported from /Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/business-closure.test.mjs"
+  code: 'ERR_MODULE_NOT_FOUND'
+  stack: |-
+    finalizeResolution (node:internal/modules/esm/resolve:275:11)
+    moduleResolve (node:internal/modules/esm/resolve:861:10)
+    defaultResolve (node:internal/modules/esm/resolve:985:11)
+    #cachedDefaultResolve (node:internal/modules/esm/loader:747:20)
+    ModuleLoader.resolve (node:internal/modules/esm/loader:724:38)
+    ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:320:38)
+    onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:680:36)
+    TracingChannel.tracePromise (node:diagnostics_channel:350:14)
+    ModuleLoader.import (node:internal/modules/esm/loader:679:21)
+    defaultImportModuleDynamicallyForModule (node:internal/modules/esm/utils:222:31)
+  ...
+# Subtest: 文档、版本、重新处理和重建索引使用不同业务语义
+not ok 2 - 文档、版本、重新处理和重建索引使用不同业务语义
+  ---
+  duration_ms: 2.192417
+  type: 'test'
+  location: '/Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/business-closure.test.mjs:55:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    
+    '创建新修订' !== '更新文档'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: '更新文档'
+  actual: '创建新修订'
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/business-closure.test.mjs:58:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+  ...
+# Subtest: 租户建立要求有效组织、编码、合资格初始管理员和确认
+not ok 3 - 租户建立要求有效组织、编码、合资格初始管理员和确认
+  ---
+  duration_ms: 0.902167
+  type: 'test'
+  location: '/Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/business-closure.test.mjs:73:1'
+  failureType: 'testCodeFailure'
+  error: "Cannot find module '/Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/prototype-state.js' imported from /Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/business-closure.test.mjs"
+  code: 'ERR_MODULE_NOT_FOUND'
+  stack: |-
+    finalizeResolution (node:internal/modules/esm/resolve:275:11)
+    moduleResolve (node:internal/modules/esm/resolve:861:10)
+    defaultResolve (node:internal/modules/esm/resolve:985:11)
+    #cachedDefaultResolve (node:internal/modules/esm/loader:747:20)
+    ModuleLoader.resolve (node:internal/modules/esm/loader:724:38)
+    ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:320:38)
+    onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:680:36)
+    TracingChannel.tracePromise (node:diagnostics_channel:350:14)
+    ModuleLoader.import (node:internal/modules/esm/loader:679:21)
+    defaultImportModuleDynamicallyForModule (node:internal/modules/esm/utils:222:31)
+  ...
+# Subtest: 添加普通成员支持资格拒绝、去重、停用恢复和刷新
+not ok 4 - 添加普通成员支持资格拒绝、去重、停用恢复和刷新
+  ---
+  duration_ms: 0.45825
+  type: 'test'
+  location: '/Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/business-closure.test.mjs:118:1'
+  failureType: 'testCodeFailure'
+  error: "Cannot find module '/Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/prototype-state.js' imported from /Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/business-closure.test.mjs"
+  code: 'ERR_MODULE_NOT_FOUND'
+  stack: |-
+    finalizeResolution (node:internal/modules/esm/resolve:275:11)
+    moduleResolve (node:internal/modules/esm/resolve:861:10)
+    defaultResolve (node:internal/modules/esm/resolve:985:11)
+    #cachedDefaultResolve (node:internal/modules/esm/loader:747:20)
+    ModuleLoader.resolve (node:internal/modules/esm/loader:724:38)
+    ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:320:38)
+    onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:680:36)
+    TracingChannel.tracePromise (node:diagnostics_channel:350:14)
+    ModuleLoader.import (node:internal/modules/esm/loader:679:21)
+    defaultImportModuleDynamicallyForModule (node:internal/modules/esm/utils:222:31)
+  ...
+# Subtest: 两级功能草稿取消不生效，保存与刷新生效，直接访问受交集约束
+not ok 5 - 两级功能草稿取消不生效，保存与刷新生效，直接访问受交集约束
+  ---
+  duration_ms: 0.197916
+  type: 'test'
+  location: '/Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/business-closure.test.mjs:157:1'
+  failureType: 'testCodeFailure'
+  error: "Cannot find module '/Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/prototype-state.js' imported from /Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/business-closure.test.mjs"
+  code: 'ERR_MODULE_NOT_FOUND'
+  stack: |-
+    finalizeResolution (node:internal/modules/esm/resolve:275:11)
+    moduleResolve (node:internal/modules/esm/resolve:861:10)
+    defaultResolve (node:internal/modules/esm/resolve:985:11)
+    #cachedDefaultResolve (node:internal/modules/esm/loader:747:20)
+    ModuleLoader.resolve (node:internal/modules/esm/loader:724:38)
+    ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:320:38)
+    onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:680:36)
+    TracingChannel.tracePromise (node:diagnostics_channel:350:14)
+    ModuleLoader.import (node:internal/modules/esm/loader:679:21)
+    defaultImportModuleDynamicallyForModule (node:internal/modules/esm/utils:222:31)
+  ...
+# Subtest: 平台功能保存投影到租户导航和普通用户直接访问
+not ok 6 - 平台功能保存投影到租户导航和普通用户直接访问
+  ---
+  duration_ms: 0.265833
+  type: 'test'
+  location: '/Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/business-closure.test.mjs:219:1'
+  failureType: 'testCodeFailure'
+  error: "Cannot find module '/Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/prototype-state.js' imported from /Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/business-closure.test.mjs"
+  code: 'ERR_MODULE_NOT_FOUND'
+  stack: |-
+    finalizeResolution (node:internal/modules/esm/resolve:275:11)
+    moduleResolve (node:internal/modules/esm/resolve:861:10)
+    defaultResolve (node:internal/modules/esm/resolve:985:11)
+    #cachedDefaultResolve (node:internal/modules/esm/loader:747:20)
+    ModuleLoader.resolve (node:internal/modules/esm/loader:724:38)
+    ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:320:38)
+    onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:680:36)
+    TracingChannel.tracePromise (node:diagnostics_channel:350:14)
+    ModuleLoader.import (node:internal/modules/esm/loader:679:21)
+    defaultImportModuleDynamicallyForModule (node:internal/modules/esm/utils:222:31)
+  ...
+# Subtest: 平台运行状态支持处置记录以及连续重新检查结果
+not ok 7 - 平台运行状态支持处置记录以及连续重新检查结果
+  ---
+  duration_ms: 0.1435
+  type: 'test'
+  location: '/Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/business-closure.test.mjs:251:1'
+  failureType: 'testCodeFailure'
+  error: "Cannot find module '/Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/prototype-state.js' imported from /Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/business-closure.test.mjs"
+  code: 'ERR_MODULE_NOT_FOUND'
+  stack: |-
+    finalizeResolution (node:internal/modules/esm/resolve:275:11)
+    moduleResolve (node:internal/modules/esm/resolve:861:10)
+    defaultResolve (node:internal/modules/esm/resolve:985:11)
+    #cachedDefaultResolve (node:internal/modules/esm/loader:747:20)
+    ModuleLoader.resolve (node:internal/modules/esm/loader:724:38)
+    ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:320:38)
+    onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:680:36)
+    TracingChannel.tracePromise (node:diagnostics_channel:350:14)
+    ModuleLoader.import (node:internal/modules/esm/loader:679:21)
+    defaultImportModuleDynamicallyForModule (node:internal/modules/esm/utils:222:31)
+  ...
+# Subtest: 恢复演练限定隔离目标并覆盖完整性、进度、报告和失败重试
+not ok 8 - 恢复演练限定隔离目标并覆盖完整性、进度、报告和失败重试
+  ---
+  duration_ms: 0.180375
+  type: 'test'
+  location: '/Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/business-closure.test.mjs:275:1'
+  failureType: 'testCodeFailure'
+  error: "Cannot find module '/Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/prototype-state.js' imported from /Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/business-closure.test.mjs"
+  code: 'ERR_MODULE_NOT_FOUND'
+  stack: |-
+    finalizeResolution (node:internal/modules/esm/resolve:275:11)
+    moduleResolve (node:internal/modules/esm/resolve:861:10)
+    defaultResolve (node:internal/modules/esm/resolve:985:11)
+    #cachedDefaultResolve (node:internal/modules/esm/loader:747:20)
+    ModuleLoader.resolve (node:internal/modules/esm/loader:724:38)
+    ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:320:38)
+    onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:680:36)
+    TracingChannel.tracePromise (node:diagnostics_channel:350:14)
+    ModuleLoader.import (node:internal/modules/esm/loader:679:21)
+    defaultImportModuleDynamicallyForModule (node:internal/modules/esm/utils:222:31)
+  ...
+# Subtest: 全 68 页操作账本诚实保留未闭环项
+not ok 9 - 全 68 页操作账本诚实保留未闭环项
+  ---
+  duration_ms: 0.6905
+  type: 'test'
+  location: '/Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/business-closure.test.mjs:298:1'
+  failureType: 'testCodeFailure'
+  error: "ENOENT: no such file or directory, open '/Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/ACTION-LEDGER.json'"
+  code: 'ENOENT'
+  stack: |-
+    readFileSync (node:fs:440:20)
+    readJson (file:///Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/business-closure.test.mjs:7:14)
+    TestContext.<anonymous> (file:///Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/business-closure.test.mjs:299:18)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+1..9
+# tests 9
+# suites 0
+# pass 0
+# fail 9
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 104.877833

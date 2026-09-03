@@ -1,13 +1,13 @@
 {
   "status": "PASS",
-  "generatedAt": "2026-09-03T00:54:14.632Z",
+  "generatedAt": "2026-09-03T04:16:56.787Z",
   "pageCount": 68,
   "groupCount": 10,
   "stateCount": 7,
   "viewportCount": 3,
   "staticRenderedScenarioCount": 427,
   "httpScenarioCount": 1428,
-  "assertionCount": 4028,
+  "assertionCount": 4035,
   "failures": [],
-  "limitation": "此结果不启动浏览器；文档级横向滚动、真实焦点、交互与截图仍由 verify-and-capture.cjs 验证。"
+  "limitation": "此结果只验证 Node 状态机、静态渲染合同和 URL 可达性；不启动浏览器，HTTP 成功不代表真实场景成立。文档级横向滚动、真实焦点、交互与本轮截图仍待用户重新授权。"
 }

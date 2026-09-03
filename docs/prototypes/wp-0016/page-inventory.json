@@ -26,7 +26,7 @@
         {"screen": "platform-overview", "route": "/platform/operations", "task": "处理全平台脱敏运营风险", "primaryAction": "打开首个阻断项", "pagination": true, "contractLevel": "accepted"},
         {"screen": "platform-tenants", "route": "/platform/tenants", "task": "查找并管理租户生命周期", "primaryAction": "建立新租户", "pagination": true, "contractLevel": "accepted"},
         {"screen": "platform-tenant-create", "route": "/platform/tenants/new", "task": "分三步建立租户与首位租户管理员", "primaryAction": "建立租户", "pagination": false, "contractLevel": "accepted"},
-        {"screen": "platform-tenant-detail", "route": "/platform/tenants/:tenantId", "task": "核对并变更单个租户生命周期", "primaryAction": "变更租户状态", "pagination": false, "contractLevel": "prototype-only"},
+        {"screen": "platform-tenant-detail", "route": "/platform/tenants/:tenantId", "task": "核对租户事实并配置可用功能", "primaryAction": "保存可用功能", "pagination": false, "contractLevel": "prototype-only"},
         {"screen": "platform-accounts", "route": "/platform/accounts", "task": "管理平台人员账户", "primaryAction": "新增平台管理员", "pagination": true, "contractLevel": "accepted"},
         {"screen": "platform-roles", "route": "/platform/roles", "task": "理解平台固定角色及最小披露边界", "primaryAction": "管理账户", "pagination": false, "contractLevel": "accepted"},
         {"screen": "platform-model-connections", "route": "/platform/model-supply", "task": "管理平台模型供应商连接", "primaryAction": "新增供应商连接", "pagination": true, "contractLevel": "accepted"},
@@ -42,7 +42,7 @@
       "phase": "M6",
       "pages": [
         {"screen": "tenant-overview", "route": "/operations", "task": "处理当前租户最重要的阻断项", "primaryAction": "进入阻断项", "pagination": false, "contractLevel": "accepted"},
-        {"screen": "tenant-members", "route": "/access/members", "task": "管理租户成员生命周期", "primaryAction": "邀请成员", "pagination": true, "contractLevel": "accepted"},
+        {"screen": "tenant-members", "route": "/access/members", "task": "管理普通成员生命周期与对话功能", "primaryAction": "添加成员", "pagination": true, "contractLevel": "accepted"},
         {"screen": "tenant-roles", "route": "/access/roles", "task": "理解租户固定角色能力边界", "primaryAction": "管理成员", "pagination": false, "contractLevel": "accepted"},
         {"screen": "access-policies", "route": "/governance/access-policies", "task": "查找并发布资源访问策略", "primaryAction": "新建访问策略", "pagination": true, "contractLevel": "prototype-only"},
         {"screen": "access-policy-detail", "route": "/governance/access-policies/:policyId", "task": "编辑、预览并发布一个访问策略版本", "primaryAction": "发布策略", "pagination": false, "contractLevel": "prototype-only"},
@@ -51,7 +51,7 @@
         {"screen": "knowledge-overview", "route": "/knowledge-bases/:knowledgeBaseId", "task": "判断知识库当前可用性和唯一下一动作", "primaryAction": "继续当前阻断任务", "pagination": false, "contractLevel": "prototype-only"},
         {"screen": "knowledge-sources", "route": "/data/files", "task": "管理当前知识库的数据来源", "primaryAction": "添加数据", "pagination": true, "contractLevel": "accepted"},
         {"screen": "source-add", "route": "/knowledge-bases/:knowledgeBaseId/sources/new", "task": "通过粘贴或本地文件登记一个来源", "primaryAction": "开始安全扫描", "pagination": false, "contractLevel": "prototype-only"},
-        {"screen": "source-detail", "route": "/knowledge-bases/:knowledgeBaseId/sources/:sourceId", "task": "查看来源修订、解析结果和安全重试点", "primaryAction": "创建新修订", "pagination": false, "contractLevel": "prototype-only"},
+        {"screen": "source-detail", "route": "/knowledge-bases/:knowledgeBaseId/sources/:sourceId", "task": "查看文档版本、处理结果和安全重试点", "primaryAction": "更新文档", "pagination": false, "contractLevel": "prototype-only"},
         {"screen": "processing-quality", "route": "/knowledge-bases/:knowledgeBaseId/processing", "task": "处理解析、分块和索引质量问题", "primaryAction": "重试失败项", "pagination": false, "contractLevel": "prototype-only"},
         {"screen": "sync-result", "route": "/knowledge-bases/:knowledgeBaseId/sync-runs/:runId", "task": "审查一次同步的成功、失败、重复和越权结果", "primaryAction": "创建索引版本", "pagination": false, "contractLevel": "prototype-only"}
       ]
@@ -148,11 +148,11 @@
       "shell": "console",
       "phase": "M8",
       "pages": [
-        {"screen": "platform-health", "route": "/operations/health", "task": "识别服务、依赖和租户影响", "primaryAction": "打开异常", "pagination": true, "contractLevel": "prototype-only"},
+        {"screen": "platform-health", "route": "/operations/health", "task": "选择业务链路异常并确认处置结果", "primaryAction": "重新检查", "pagination": false, "contractLevel": "prototype-only"},
         {"screen": "ingestion-queue", "route": "/operations/ingestion", "task": "处理摄取积压、失败和死信", "primaryAction": "重试安全任务", "pagination": true, "contractLevel": "prototype-only"},
         {"screen": "model-health", "route": "/operations/models", "task": "处置模型连接、限流、延迟和熔断风险", "primaryAction": "下线异常部署", "pagination": true, "contractLevel": "prototype-only"},
         {"screen": "capacity-planning", "route": "/operations/capacity", "task": "核对容量、增长和租户影响阈值", "primaryAction": "创建扩容事项", "pagination": false, "contractLevel": "prototype-only"},
-        {"screen": "backup-recovery", "route": "/operations/recovery", "task": "检查备份并执行可审计恢复演练", "primaryAction": "发起恢复演练", "pagination": true, "contractLevel": "prototype-only"},
+        {"screen": "backup-recovery", "route": "/operations/recovery", "task": "检查备份并执行固定隔离恢复演练", "primaryAction": "开始完整性检查", "pagination": false, "contractLevel": "prototype-only"},
         {"screen": "release-operations", "route": "/operations/releases", "task": "审查镜像、迁移和配置并执行受控回滚", "primaryAction": "执行回滚", "pagination": true, "contractLevel": "prototype-only"}
       ]
     }

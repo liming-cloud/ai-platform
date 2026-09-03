@@ -65,6 +65,7 @@ async function openScenario(page, screen, state, review = false) {
 
 async function validateInventoryContract(page) {
   await openScenario(page, screens[0], "success", true);
+  await page.locator("#review-reset").click();
   const reviewer = await page.evaluate(() => ({
     options: [...document.querySelectorAll("#review-screen option")].map(
       (option) => option.value,
@@ -107,6 +108,26 @@ async function validateInventoryContract(page) {
       "原型前置，不代表实现授权",
     ),
     "M8 页面未在审查工具显示授权边界",
+  );
+  await openScenario(page, "platform-overview", "success");
+  const navigation = await page.evaluate(() => ({
+    iconCount: document.querySelectorAll(".admin-navigation .nav-icon").length,
+    invalidIcons: [...document.querySelectorAll(".admin-navigation .nav-icon")].filter(
+      (icon) =>
+        !icon.getAttribute("src")?.startsWith("./assets/icons/") ||
+        !icon.getAttribute("src")?.endsWith(".svg"),
+    ).length,
+    hasAbbreviation: Boolean(document.querySelector(".nav-abbr")),
+    text: document.querySelector(".admin-navigation")?.textContent || "",
+  }));
+  assert(navigation.iconCount >= 6, "平台导航缺少 Fluent SVG 图片图标");
+  assert(navigation.invalidIcons === 0, "平台导航包含非本地 SVG 图标");
+  assert(!navigation.hasAbbreviation, "平台导航仍使用首字或小字代替图标");
+  assert(
+    navigation.text.includes("平台运行状态") &&
+      navigation.text.includes("备份与恢复") &&
+      navigation.text.includes("模型治理"),
+    "平台导航缺少完整自然中文或模型治理入口",
   );
 }
 
@@ -223,21 +244,41 @@ async function runFlow(page, start, steps, label) {
 
 async function validateManagementFlows(page) {
   await page.setViewportSize(viewports[0]);
-  await runFlow(page, "platform-tenants", [
-    ["[data-primary-action]", "platform-tenant-create"],
-    ["[data-primary-action]", "platform-tenant-detail"],
-  ], "租户建立闭环");
+  await openScenario(page, "platform-tenant-create", "success", true);
+  await page.locator("#review-reset").click();
+  await page.locator("#tenant-organization-name").fill("青岚制造示例组织");
+  await page.locator("#tenant-code").fill("qinglan-demo");
+  await page.locator("#tenant-administrator").selectOption("account-qiao");
+  await page.locator('#tenant-create-form input[name="confirmed"]').check();
+  await page.locator("[data-primary-action]").click();
+  await page.locator('main[data-screen="platform-tenant-detail"]').waitFor();
+  assert(
+    await page.getByText("青岚制造示例组织", { exact: true }).first().isVisible(),
+    "建立租户后详情未回显组织名称",
+  );
+  await openScenario(page, "platform-tenants", "success");
+  assert(
+    await page.getByText("qinglan-demo", { exact: true }).isVisible(),
+    "建立租户后目录未回显租户编码",
+  );
+  await page.reload({ waitUntil: "domcontentloaded" });
+  assert(
+    await page.getByText("qinglan-demo", { exact: true }).isVisible(),
+    "刷新后新租户没有保留",
+  );
   await runFlow(page, "knowledge-directory", [
     ['[data-nav-screen="knowledge-overview"]', "knowledge-overview"],
     ["[data-primary-action]", "knowledge-sources"],
     ['.page-header [data-nav-screen="source-add"]', "source-add"],
     ["[data-primary-action]", "source-detail"],
-    ["[data-primary-action]", "processing-quality"],
+    ['[data-nav-screen="source-add"]', "source-add"],
+  ], "文档更新入口");
+  await runFlow(page, "processing-quality", [
     ["[data-primary-action]", "sync-result"],
     ["[data-primary-action]", "index-versions"],
     ["[data-primary-action]", "index-rebuild"],
     ["[data-primary-action]", "index-detail"],
-  ], "知识接入与索引闭环");
+  ], "处理结果与索引导航");
   await runFlow(page, "platform-model-connections", [
     ["[data-primary-action]", "platform-model-connection-detail"],
     ["[data-primary-action]", "platform-model-deployments"],
@@ -276,18 +317,113 @@ async function validateManagementFlows(page) {
     ["[data-primary-action]", "evaluation-comparison"],
     ["[data-primary-action]", "evaluation-failure-analysis"],
   ], "评测与失败分析闭环");
-  await runFlow(page, "platform-health", [
-    ["[data-primary-action]", "ingestion-queue"],
-    ["[data-primary-action]", "model-health"],
-    ["[data-primary-action]", "capacity-planning"],
-    ["[data-primary-action]", "backup-recovery"],
-    ["[data-primary-action]", "release-operations"],
-  ], "平台运维闭环");
+  await validateTenantAndMemberControls(page);
+  await validateHealthAndRecovery(page);
+}
+
+async function validateTenantAndMemberControls(page) {
+  await openScenario(page, "tenant-members", "success");
+  await page.locator('[data-business-action="open-add-member"]').click();
+  await page.locator("#member-account-search").fill("林澈");
+  await page.locator("#member-account-select").selectOption("account-lin");
+  await page.locator('#add-member-form button[type="submit"]').click();
+  assert(
+    await page.getByText("林澈（合成）", { exact: true }).first().isVisible(),
+    "添加普通成员后列表未更新",
+  );
+  await page.reload({ waitUntil: "domcontentloaded" });
+  assert(
+    await page.getByText("林澈（合成）", { exact: true }).first().isVisible(),
+    "刷新后新增普通成员未保留",
+  );
+
+  await openScenario(page, "platform-tenants", "success");
+  await page.locator('[data-select-tenant="tenant-spruce"]').click();
+  await page.locator('main[data-screen="platform-tenant-detail"]').waitFor();
+  const assistantFeature = page.locator('[data-tenant-feature="assistantSelection"]');
+  await assistantFeature.uncheck();
+  await page.locator('[data-business-action="cancel-tenant-features"]').click();
+  assert(
+    await page.locator('[data-tenant-feature="assistantSelection"]').isChecked(),
+    "取消租户功能编辑后仍然生效",
+  );
+  await page.locator('[data-tenant-feature="assistantSelection"]').uncheck();
+  await page.locator('[data-business-action="save-tenant-features"]').click();
+  await page.goto(scenarioUrl("assistants", "success"), {
+    waitUntil: "domcontentloaded",
+  });
+  await page.locator('main[data-screen="assistants"][data-state="denied"]').waitFor();
+  assert(
+    (await page.locator("main[data-screen=assistants]").textContent()).includes(
+      "当前会话不能访问此任务",
+    ),
+    "平台关闭租户功能后直接访问未拒绝",
+  );
+
+  await openScenario(page, "platform-tenant-detail", "success");
+  await page.locator('[data-tenant-feature="assistantSelection"]').check();
+  await page.locator('[data-business-action="save-tenant-features"]').click();
+  await openScenario(page, "tenant-members", "success");
+  await page
+    .locator('[data-business-action="select-demo-member"][data-account-id="account-lin"]')
+    .click();
+  await openScenario(page, "conversation", "success");
+  assert(
+    await page.locator("[data-open-history]").isDisabled(),
+    "重新开放租户功能后给未授权成员自动开启了本人历史",
+  );
+}
+
+async function validateHealthAndRecovery(page) {
+  await openScenario(page, "platform-health", "success");
+  await page
+    .locator('[data-incident-id="incident-file-processing"]')
+    .click();
+  await page.locator("#health-action").fill("保留活动索引并暂停新增处理批次");
+  await page.locator('#health-action-form button[type="submit"]').click();
+  assert(
+    await page.getByText("保留活动索引并暂停新增处理批次", { exact: true }).isVisible(),
+    "平台运行状态未记录处理结果",
+  );
+  await page.locator('[data-business-action="recheck-health"]').click();
+  assert(
+    await page.getByText("已恢复", { exact: true }).first().isVisible(),
+    "平台运行状态重新检查未显示恢复结果",
+  );
+
+  await openScenario(page, "backup-recovery", "success");
+  await page.locator('input[value="backup-verified"]').check();
+  await page.locator('[data-business-action="advance-recovery"]').click();
+  assert(await page.getByText("确认隔离演练", { exact: true }).isVisible(), "完整性检查后未进入确认阶段");
+  await page.locator('[data-business-action="advance-recovery"]').click();
+  await page.locator('[data-business-action="advance-recovery"]').click();
+  await page.locator('[data-business-action="advance-recovery"]').click();
+  assert(
+    await page.getByText("校验报告：通过", { exact: true }).isVisible(),
+    "隔离恢复演练未生成校验报告",
+  );
+
+  await openScenario(page, "backup-recovery", "success", true);
+  await page.locator("#review-reset").click();
+  await page.locator('input[value="backup-check-fails"]').check();
+  await page.locator('[data-business-action="advance-recovery"]').click();
+  assert(
+    await page.getByText("完整性检查未通过", { exact: true }).isVisible(),
+    "恢复演练失败路径未阻止创建隔离环境",
+  );
+  await page.locator('[data-business-action="retry-recovery"]').click();
+  assert(
+    await page.getByText("开始完整性检查", { exact: true }).first().isVisible(),
+    "恢复演练失败后不能重试",
+  );
 }
 
 async function validateQueryFlow(page) {
   await page.setViewportSize(viewports[0]);
+  await openScenario(page, "login", "success", true);
+  await page.locator("#review-reset").click();
   await openScenario(page, "login", "success");
+  await page.locator('#login-form input[name="password"]').fill("仅本次演示");
   await page.locator('#login-form button[type="submit"]').click();
   await page.locator('main[data-screen="assistants"]').waitFor();
   assert(
@@ -295,7 +431,7 @@ async function validateQueryFlow(page) {
     "普通用户登录没有进入助手目录",
   );
   const search = page.locator("#assistant-search");
-  await search.fill("办公");
+  await search.fill("员工");
   assert(
     (await page.locator("[data-assistant-id]:not([hidden])").count()) === 1,
     "助手搜索未收敛到一个结果",

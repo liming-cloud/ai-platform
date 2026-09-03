@@ -1,0 +1,53 @@
+{
+  "package": "Microsoft Fluent UI System Icons",
+  "repository": "https://github.com/microsoft/fluentui-system-icons",
+  "commit": "4d685f77b2cb8f3f412a74ec8d920c8c91149528",
+  "license": "MIT",
+  "licenseFile": "LICENSE.txt",
+  "files": [
+    {
+      "local": "home.svg",
+      "source": "assets/Home/SVG/ic_fluent_home_24_regular.svg"
+    },
+    {
+      "local": "building-people.svg",
+      "source": "assets/Building People/SVG/ic_fluent_building_people_24_regular.svg"
+    },
+    {
+      "local": "people-community.svg",
+      "source": "assets/People Community/SVG/ic_fluent_people_community_24_regular.svg"
+    },
+    {
+      "local": "book-database.svg",
+      "source": "assets/Book Database/SVG/ic_fluent_book_database_24_regular.svg"
+    },
+    {
+      "local": "document-text.svg",
+      "source": "assets/Document Text/SVG/ic_fluent_document_text_24_regular.svg"
+    },
+    {
+      "local": "shield-task.svg",
+      "source": "assets/Shield Task/SVG/ic_fluent_shield_task_24_regular.svg"
+    },
+    {
+      "local": "brain-circuit.svg",
+      "source": "assets/Brain Circuit/SVG/ic_fluent_brain_circuit_24_regular.svg"
+    },
+    {
+      "local": "bot.svg",
+      "source": "assets/Bot/SVG/ic_fluent_bot_24_regular.svg"
+    },
+    {
+      "local": "data-usage.svg",
+      "source": "assets/Data Usage/SVG/ic_fluent_data_usage_24_regular.svg"
+    },
+    {
+      "local": "pulse.svg",
+      "source": "assets/Pulse/SVG/ic_fluent_pulse_24_regular.svg"
+    },
+    {
+      "local": "arrow-sync-circle.svg",
+      "source": "assets/Arrow Sync Circle/SVG/ic_fluent_arrow_sync_circle_24_regular.svg"
+    }
+  ]
+}

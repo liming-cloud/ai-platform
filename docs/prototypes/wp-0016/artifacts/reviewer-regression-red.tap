@@ -1,0 +1,135 @@
+TAP version 13
+# Subtest: 全部管理页面默认导航恰有一个当前目录
+ok 1 - 全部管理页面默认导航恰有一个当前目录
+  ---
+  duration_ms: 1.872541
+  type: 'test'
+  ...
+# Subtest: 管理员助手管理与普通用户助手选择各用自己的功能开关
+not ok 2 - 管理员助手管理与普通用户助手选择各用自己的功能开关
+  ---
+  duration_ms: 0.734667
+  type: 'test'
+  location: '/Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/reviewer-regression.test.mjs:26:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    
+    true !== false
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: false
+  actual: true
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/reviewer-regression.test.mjs:31:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+  ...
+# Subtest: 成员取消按钮不提交添加表单
+not ok 3 - 成员取消按钮不提交添加表单
+  ---
+  duration_ms: 0.602042
+  type: 'test'
+  location: '/Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/reviewer-regression.test.mjs:39:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    The input did not match the regular expression /<button[^>]*type="button"[^>]*data-cancel-add-member[^>]*>取消<\/button>/. Input:
+    
+    '<dialog id="add-member-dialog" class="dialog-surface"><form id="add-member-form" method="dialog"><span class="section-kicker">添加已有账户</span><h2>添加普通成员</h2><label class="field" for="member-account-search"><span>搜索账户</span><input id="member-account-search" class="input" type="search" placeholder="按姓名或登录名搜索" autocomplete="off" /></label><label class="field" for="member-account-select"><span>可用账户</span><select id="member-account-select" class="select" name="accountId" required><option value="">请选择账户</option><option value="account-qiao">乔宁（合成） · qiao.demo</option><option value="account-lin">林澈（合成） · lin.demo</option><option value="account-shen">沈言（合成） · shen.demo</option></select></label><fieldset class="assistant-scope"><legend>初始对话功能</legend><label><input type="checkbox" name="conversationFeatures" value="assistantSelection" checked /> 选择已授权助手</label><label><input type="checkbox" name="conversationFeatures" value="conversation" checked /> 发起与继续对话</label><label><input type="checkbox" name="conversationFeatures" value="ownHistory" /> 查看本人历史</label><label><input type="checkbox" name="conversationFeatures" value="authorizedCitations" /> 查看有权引用</label></fieldset><fieldset class="assistant-scope"><legend>初始助手范围</legend><label><input type="checkbox" name="assistantIds" value="assistant-employee-service" checked /> 员工服务助手</label><label><input type="checkbox" name="assistantIds" value="assistant-finance" /> 财务制度助手</label></fieldset><p id="add-member-feedback" class="form-feedback" role="status" aria-live="polite"></p><div class="release-actions"><button class="button secondary" value="cancel" data-control-status="implemented">取消</button><button class="button primary" type="submit" value="default" data-control-status="implemented">确认添加</button></div></form></dialog></div></div></main></div></div>'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+  actual: '<dialog id="add-member-dialog" class="dialog-surface"><form id="add-member-form" method="dialog"><span class="section-kicker">添加已有账户</span><h2>添加普通成员</h2><label class="field" for="member-account-search"><span>搜索账户</span><input id="member-account-search" class="input" type="search" placeholder="按姓名或登录名搜索" autocomplete="off" /></label><label class="field" for="member-account-select"><span>可用账户</span><select id="member-account-select" class="select" name="accountId" required><option value="">请选择账户</option><option value="account-qiao">乔宁（合成） · qiao.demo</option><option value="account-lin">林澈（合成） · lin.demo</option><option value="account-shen">沈言（合成） · shen.demo</option></select></label><fieldset class="assistant-scope"><legend>初始对话功能</legend><label><input type="checkbox" name="conversationFeatures" value="assistantSelection" checked /> 选择已授权助手</label><label><input type="checkbox" name="conversationFeatures" value="conversation" checked /> 发起与继续对话</label><label><input type="checkbox" name="conversationFeatures" value="ownHistory" /> 查看本人历史</label><label><input type="checkbox" name="conversationFeatures" value="authorizedCitations" /> 查看有权引用</label></fieldset><fieldset class="assistant-scope"><legend>初始助手范围</legend><label><input type="checkbox" name="assistantIds" value="assistant-employee-service" checked /> 员工服务助手</label><label><input type="checkbox" name="assistantIds" value="assistant-finance" /> 财务制度助手</label></fieldset><p id="add-member-feedback" class="form-feedback" role="status" aria-live="polite"></p><div class="release-actions"><button class="button secondary" value="cancel" data-control-status="implemented">取消</button><button class="button primary" type="submit" value="default" data-control-status="implemented">确认添加</button></div></form></dialog></div></div></main></div></div>'
+  operator: 'match'
+  stack: |-
+    TestContext.<anonymous> (file:///Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/reviewer-regression.test.mjs:42:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: 成员可授权的助手必须存在于真实合成目录
+not ok 4 - 成员可授权的助手必须存在于真实合成目录
+  ---
+  duration_ms: 0.237917
+  type: 'test'
+  location: '/Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/reviewer-regression.test.mjs:47:1'
+  failureType: 'testCodeFailure'
+  error: '未知助手：assistant-finance'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: '=='
+  stack: |-
+    TestContext.<anonymous> (file:///Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/reviewer-regression.test.mjs:51:12)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: 产品操作区不夹带研发评审说明
+not ok 5 - 产品操作区不夹带研发评审说明
+  ---
+  duration_ms: 0.307625
+  type: 'test'
+  location: '/Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/reviewer-regression.test.mjs:55:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    The input was expected to not match the regular expression /本原型|待产品决策|伪保存|规则尚未确认/. Input:
+    
+    '<div class="admin-shell full-platform-shell" data-state="success" data-scope="platform"><aside class="admin-sidebar"><div class="brand"><span class="brand-mark" aria-hidden="true">R</span><span class="brand-copy"><strong>可信 RAG</strong><small>平台范围</small></span></div><nav class="admin-navigation" aria-label="平台范围导航" data-od-id="platform-navigation"><span class="navigation-scope">平台范围 / 脱敏治理</span><section class="nav-group" aria-label="平台治理"><span class="nav-group-label">平台治理</span><button class="nav-item" type="button" data-nav-screen="platform-overview" data-od-id="nav-platform-overview"><img class="nav-icon" src="./assets/icons/shield-task.svg" width="24" height="24" alt="" aria-hidden="true" /><span class="nav-label">平台治理概览</span></button><button class="nav-item" type="button" data-nav-screen="platform-tenants" data-od-id="nav-platform-tenants" aria-current="page"><img class="nav-icon" src="./assets/icons/building-people.svg" width="24" height="24" alt="" aria-hidden="true" /><span class="nav-label">租户管理</span></button><button class="nav-item" type="button" data-nav-screen="platform-accounts" data-od-id="nav-platform-accounts"><img class="nav-icon" src="./assets/icons/people-community.svg" width="24" height="24" alt="" aria-hidden="true" /><span class="nav-label">平台账户</span></button></section><section class="nav-group" aria-label="治理"><span class="nav-group-label">治理</span><button class="nav-item" type="button" data-nav-screen="platform-model-connections" data-od-id="nav-platform-model-connections"><img class="nav-icon" src="./assets/icons/brain-circuit.svg" width="24" height="24" alt="" aria-hidden="true" /><span class="nav-label">模型治理</span></button></section><section class="nav-group" aria-label="运行"><span class="nav-group-label">运行</span><button class="nav-item" type="button" data-nav-screen="platform-health" data-od-id="nav-platform-health"><img class="nav-icon" src="./assets/icons/pulse.svg" width="24" height="24" alt="" aria-hidden="true" /><span class="nav-label">平台运行状态</span></button><button class="nav-item" type="button" data-nav-screen="backup-recovery" data-od-id="nav-backup-recovery"><img class="nav-icon" src="./assets/icons/arrow-sync-circle.svg" width="24" height="24" alt="" aria-hidden="true" /><span class="nav-label">备份与恢复</span></button></section></nav><div class="admin-account"><strong>平台管理员</strong><small>仅脱敏聚合</small></div></aside><div class="admin-workspace"><header class="topbar"><span class="topbar-context scope-context">平台管理 / 不含租户内容</span><button class="button subtle account-button" type="button">平台管理员 / 账户菜单</button></header><main id="main-content" class="admin-main" data-screen="platform-tenant-create" data-state="success" data-od-id="screen-platform-tenant-create" tabindex="-1"><nav class="breadcrumb" aria-label="当前位置">平台治理</nav><header class="page-header"><div class="page-header-copy"><h1 data-od-id="heading-platform-tenant-create">建立新租户</h1><div class="page-object-line"><span>新租户</span><span class="status-tag" data-tone="success">等待填写</span></div></div><button class="button primary" data-primary-action data-od-id="primary-platform-tenant-create" data-control-status="implemented" type="submit" form="tenant-create-form" data-business-action="create-tenant">建立租户</button></header><div class="page-content"><div class="task-surface" data-protected-content><ol class="process-steps" aria-label="建立租户步骤"><li data-step-state="current"><span>1</span><strong>组织与编码</strong></li><li data-step-state="upcoming"><span>2</span><strong>初始管理员</strong></li><li data-step-state="upcoming"><span>3</span><strong>确认建立</strong></li></ol><form id="tenant-create-form" class="business-form" novalidate><section class="section-block"><div class="section-heading"><div><span class="section-kicker">组织身份</span><h2>建立独立租户边界</h2></div></div><div class="wizard-field-grid"><label class="field" for="tenant-organization-name"><span>组织名称</span><input id="tenant-organization-name" class="input" name="organizationName" required minlength="2" maxlength="40" autocomplete="organization" placeholder="例如：青岚制造示例组织" /></label><label class="field" for="tenant-code"><span>租户编码</span><input id="tenant-code" class="input mono" name="tenantCode" required pattern="[a-z][a-z0-9-]{2,19}" autocomplete="off" placeholder="qinglan-demo" /><small class="field-hint">3–20 位小写字母、数字或连字符，建立后不可直接修改。</small></label></div></section><section class="section-block"><div class="section-heading"><div><span class="section-kicker">初始管理员</span><h2>选择已有合资格账户</h2></div></div><label class="field" for="tenant-administrator"><span>租户管理员账户</span><select id="tenant-administrator" class="select" name="administratorAccountId" required><option value="">请选择账户</option><option value="account-qiao">乔宁（合成） · qiao.demo</option></select><small class="field-hint">平台管理员、已停用账户和普通成员候选不会出现在列表中。</small></label></section><section class="section-block"><div class="section-heading"><div><span class="section-kicker">固定默认值</span><h2>配额与不可关闭安全边界</h2></div></div><dl class="fact-list quota-facts"><div><dt>每租户知识库</dt><dd>3 个</dd></div><div><dt>每知识库有效文档</dt><dd>1,000 个</dd></div><div><dt>每知识库原始内容</dt><dd>10 GB</dd></div><div><dt>单文件</dt><dd>50 MB</dd></div><div><dt>粘贴文本</dt><dd>1 MiB</dd></div></dl><div class="inline-note">租户隔离、服务端权限校验和凭据不回显为不可关闭边界。安全策略可配置字段与配额修改规则仍待产品决策，本页不提供伪保存。</div><label class="consent-control"><input name="confirmed" type="checkbox" /><span><strong>确认组织、编码、初始管理员与默认配额</strong><small>不创建共享密码，也不在浏览器中保存任何密码。</small></span></label><p id="tenant-create-feedback" class="form-feedback" role="status" aria-live="polite"></p></section></form></div></div></main></div></div>'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+  actual: '<div class="admin-shell full-platform-shell" data-state="success" data-scope="platform"><aside class="admin-sidebar"><div class="brand"><span class="brand-mark" aria-hidden="true">R</span><span class="brand-copy"><strong>可信 RAG</strong><small>平台范围</small></span></div><nav class="admin-navigation" aria-label="平台范围导航" data-od-id="platform-navigation"><span class="navigation-scope">平台范围 / 脱敏治理</span><section class="nav-group" aria-label="平台治理"><span class="nav-group-label">平台治理</span><button class="nav-item" type="button" data-nav-screen="platform-overview" data-od-id="nav-platform-overview"><img class="nav-icon" src="./assets/icons/shield-task.svg" width="24" height="24" alt="" aria-hidden="true" /><span class="nav-label">平台治理概览</span></button><button class="nav-item" type="button" data-nav-screen="platform-tenants" data-od-id="nav-platform-tenants" aria-current="page"><img class="nav-icon" src="./assets/icons/building-people.svg" width="24" height="24" alt="" aria-hidden="true" /><span class="nav-label">租户管理</span></button><button class="nav-item" type="button" data-nav-screen="platform-accounts" data-od-id="nav-platform-accounts"><img class="nav-icon" src="./assets/icons/people-community.svg" width="24" height="24" alt="" aria-hidden="true" /><span class="nav-label">平台账户</span></button></section><section class="nav-group" aria-label="治理"><span class="nav-group-label">治理</span><button class="nav-item" type="button" data-nav-screen="platform-model-connections" data-od-id="nav-platform-model-connections"><img class="nav-icon" src="./assets/icons/brain-circuit.svg" width="24" height="24" alt="" aria-hidden="true" /><span class="nav-label">模型治理</span></button></section><section class="nav-group" aria-label="运行"><span class="nav-group-label">运行</span><button class="nav-item" type="button" data-nav-screen="platform-health" data-od-id="nav-platform-health"><img class="nav-icon" src="./assets/icons/pulse.svg" width="24" height="24" alt="" aria-hidden="true" /><span class="nav-label">平台运行状态</span></button><button class="nav-item" type="button" data-nav-screen="backup-recovery" data-od-id="nav-backup-recovery"><img class="nav-icon" src="./assets/icons/arrow-sync-circle.svg" width="24" height="24" alt="" aria-hidden="true" /><span class="nav-label">备份与恢复</span></button></section></nav><div class="admin-account"><strong>平台管理员</strong><small>仅脱敏聚合</small></div></aside><div class="admin-workspace"><header class="topbar"><span class="topbar-context scope-context">平台管理 / 不含租户内容</span><button class="button subtle account-button" type="button">平台管理员 / 账户菜单</button></header><main id="main-content" class="admin-main" data-screen="platform-tenant-create" data-state="success" data-od-id="screen-platform-tenant-create" tabindex="-1"><nav class="breadcrumb" aria-label="当前位置">平台治理</nav><header class="page-header"><div class="page-header-copy"><h1 data-od-id="heading-platform-tenant-create">建立新租户</h1><div class="page-object-line"><span>新租户</span><span class="status-tag" data-tone="success">等待填写</span></div></div><button class="button primary" data-primary-action data-od-id="primary-platform-tenant-create" data-control-status="implemented" type="submit" form="tenant-create-form" data-business-action="create-tenant">建立租户</button></header><div class="page-content"><div class="task-surface" data-protected-content><ol class="process-steps" aria-label="建立租户步骤"><li data-step-state="current"><span>1</span><strong>组织与编码</strong></li><li data-step-state="upcoming"><span>2</span><strong>初始管理员</strong></li><li data-step-state="upcoming"><span>3</span><strong>确认建立</strong></li></ol><form id="tenant-create-form" class="business-form" novalidate><section class="section-block"><div class="section-heading"><div><span class="section-kicker">组织身份</span><h2>建立独立租户边界</h2></div></div><div class="wizard-field-grid"><label class="field" for="tenant-organization-name"><span>组织名称</span><input id="tenant-organization-name" class="input" name="organizationName" required minlength="2" maxlength="40" autocomplete="organization" placeholder="例如：青岚制造示例组织" /></label><label class="field" for="tenant-code"><span>租户编码</span><input id="tenant-code" class="input mono" name="tenantCode" required pattern="[a-z][a-z0-9-]{2,19}" autocomplete="off" placeholder="qinglan-demo" /><small class="field-hint">3–20 位小写字母、数字或连字符，建立后不可直接修改。</small></label></div></section><section class="section-block"><div class="section-heading"><div><span class="section-kicker">初始管理员</span><h2>选择已有合资格账户</h2></div></div><label class="field" for="tenant-administrator"><span>租户管理员账户</span><select id="tenant-administrator" class="select" name="administratorAccountId" required><option value="">请选择账户</option><option value="account-qiao">乔宁（合成） · qiao.demo</option></select><small class="field-hint">平台管理员、已停用账户和普通成员候选不会出现在列表中。</small></label></section><section class="section-block"><div class="section-heading"><div><span class="section-kicker">固定默认值</span><h2>配额与不可关闭安全边界</h2></div></div><dl class="fact-list quota-facts"><div><dt>每租户知识库</dt><dd>3 个</dd></div><div><dt>每知识库有效文档</dt><dd>1,000 个</dd></div><div><dt>每知识库原始内容</dt><dd>10 GB</dd></div><div><dt>单文件</dt><dd>50 MB</dd></div><div><dt>粘贴文本</dt><dd>1 MiB</dd></div></dl><div class="inline-note">租户隔离、服务端权限校验和凭据不回显为不可关闭边界。安全策略可配置字段与配额修改规则仍待产品决策，本页不提供伪保存。</div><label class="consent-control"><input name="confirmed" type="checkbox" /><span><strong>确认组织、编码、初始管理员与默认配额</strong><small>不创建共享密码，也不在浏览器中保存任何密码。</small></span></label><p id="tenant-create-feedback" class="form-feedback" role="status" aria-live="polite"></p></section></form></div></div></main></div></div>'
+  operator: 'doesNotMatch'
+  stack: |-
+    TestContext.<anonymous> (file:///Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/reviewer-regression.test.mjs:57:12)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: 权限投影隐藏未授权助手、其他成员历史与引用
+not ok 6 - 权限投影隐藏未授权助手、其他成员历史与引用
+  ---
+  duration_ms: 0.101125
+  type: 'test'
+  location: '/Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/reviewer-regression.test.mjs:61:1'
+  failureType: 'testCodeFailure'
+  error: 'store.queryProjection is not a function'
+  code: 'ERR_TEST_FAILURE'
+  name: 'TypeError'
+  stack: |-
+    TestContext.<anonymous> (file:///Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/reviewer-regression.test.mjs:64:23)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+1..6
+# tests 6
+# suites 0
+# pass 1
+# fail 5
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 50.014792

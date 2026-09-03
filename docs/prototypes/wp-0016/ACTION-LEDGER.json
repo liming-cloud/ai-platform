@@ -1,0 +1,1230 @@
+{
+  "workPackage": "WP-0016",
+  "generatedOn": "2026-09-03",
+  "browserVerification": "pendingAuthorization",
+  "classification": {
+    "navigation": "仅改变原型页面，不计作业务完成",
+    "implementedStateChange": "合成状态操作已有 Node 测试；真实 DOM 事件和易用性仍待浏览器验证",
+    "pendingDecision": "产品规则未确认，不提供伪保存",
+    "unimplemented": "控件尚无合格业务结果",
+    "implementedRead": "已接入数据读取或过滤，具有定向检查；不是持久化状态变更",
+    "partialSimulation": "只演示局部反馈，尚不满足完整任务或刷新恢复",
+    "forbidden": "按角色边界明确禁止，不属于待实现功能"
+  },
+  "summary": {
+    "navigation": 46,
+    "implementedRead": 3,
+    "implementedStateChange": 16,
+    "pendingDecision": 3,
+    "unimplemented": 22,
+    "forbidden": 1,
+    "partialSimulation": 2,
+    "totalPages": 68,
+    "totalControls": 93,
+    "unclosedControls": 27,
+    "allControlsEnumerated": false,
+    "readyForFullAcceptance": false
+  },
+  "pages": [
+    {
+      "screen": "console-login",
+      "phase": "M6",
+      "shell": "console",
+      "primaryTask": "建立企业控制台会话并进入唯一已授权工作区",
+      "controls": [
+        {
+          "label": "登录",
+          "kind": "primaryAction",
+          "status": "navigation",
+          "evidence": "只完成受控页面跳转，不计作业务状态变更",
+          "browserVerified": false
+        }
+      ]
+    },
+    {
+      "screen": "platform-overview",
+      "phase": "M6",
+      "shell": "console",
+      "primaryTask": "处理全平台脱敏运营风险",
+      "controls": [
+        {
+          "label": "打开首个阻断项",
+          "kind": "primaryAction",
+          "status": "navigation",
+          "evidence": "只完成受控页面跳转，不计作业务状态变更",
+          "browserVerified": false
+        }
+      ]
+    },
+    {
+      "screen": "platform-tenants",
+      "phase": "M6",
+      "shell": "console",
+      "primaryTask": "查找并管理租户生命周期",
+      "controls": [
+        {
+          "label": "建立新租户",
+          "kind": "primaryAction",
+          "status": "navigation",
+          "evidence": "只完成受控页面跳转，不计作业务状态变更",
+          "browserVerified": false
+        },
+        {
+          "label": "搜索租户",
+          "kind": "taskControl",
+          "status": "implementedRead",
+          "evidence": "reviewer-regression.test.mjs：搜索输入与可筛选行绑定；真实浏览器待验证",
+          "browserVerified": false
+        }
+      ]
+    },
+    {
+      "screen": "platform-tenant-create",
+      "phase": "M6",
+      "shell": "console",
+      "primaryTask": "分三步建立租户与首位租户管理员",
+      "controls": [
+        {
+          "label": "建立租户",
+          "kind": "primaryOrTaskControl",
+          "status": "implementedStateChange",
+          "evidence": "business-closure.test.mjs：校验、保存、刷新",
+          "browserVerified": false
+        },
+        {
+          "label": "取消或校验失败",
+          "kind": "primaryOrTaskControl",
+          "status": "implementedStateChange",
+          "evidence": "失败不写入状态",
+          "browserVerified": false
+        }
+      ]
+    },
+    {
+      "screen": "platform-tenant-detail",
+      "phase": "M6",
+      "shell": "console",
+      "primaryTask": "核对租户事实并配置可用功能",
+      "controls": [
+        {
+          "label": "保存可用功能",
+          "kind": "primaryOrTaskControl",
+          "status": "implementedStateChange",
+          "evidence": "business-closure.test.mjs：保存、刷新、直接访问拒绝",
+          "browserVerified": false
+        },
+        {
+          "label": "取消",
+          "kind": "primaryOrTaskControl",
+          "status": "implementedStateChange",
+          "evidence": "business-closure.test.mjs：草稿丢弃",
+          "browserVerified": false
+        },
+        {
+          "label": "安全策略与配额修改",
+          "kind": "primaryOrTaskControl",
+          "status": "pendingDecision",
+          "evidence": "规则未确认，因此不渲染可保存控件",
+          "browserVerified": false
+        }
+      ]
+    },
+    {
+      "screen": "platform-accounts",
+      "phase": "M6",
+      "shell": "console",
+      "primaryTask": "管理平台人员账户",
+      "controls": [
+        {
+          "label": "新增平台管理员",
+          "kind": "primaryAction",
+          "status": "unimplemented",
+          "evidence": "当前控件仅展示确认或无持久状态结果",
+          "browserVerified": false
+        },
+        {
+          "label": "创建人员账户并设置初始密码",
+          "kind": "requiredTaskNotYetPrototyped",
+          "status": "unimplemented",
+          "evidence": "ADR-0061 既有产品能力；本原型尚无完整人员账户创建表单",
+          "browserVerified": false
+        },
+        {
+          "label": "重置人员账户密码",
+          "kind": "requiredTaskNotYetPrototyped",
+          "status": "unimplemented",
+          "evidence": "已有密码不可查看；原型尚未补齐重置确认及结果",
+          "browserVerified": false
+        }
+      ]
+    },
+    {
+      "screen": "platform-roles",
+      "phase": "M6",
+      "shell": "console",
+      "primaryTask": "理解平台固定角色及最小披露边界",
+      "controls": [
+        {
+          "label": "管理账户",
+          "kind": "primaryAction",
+          "status": "navigation",
+          "evidence": "只完成受控页面跳转，不计作业务状态变更",
+          "browserVerified": false
+        }
+      ]
+    },
+    {
+      "screen": "platform-model-connections",
+      "phase": "M6",
+      "shell": "console",
+      "primaryTask": "管理平台模型供应商连接",
+      "controls": [
+        {
+          "label": "新增供应商连接",
+          "kind": "primaryAction",
+          "status": "navigation",
+          "evidence": "只完成受控页面跳转，不计作业务状态变更",
+          "browserVerified": false
+        }
+      ]
+    },
+    {
+      "screen": "platform-model-connection-detail",
+      "phase": "M6",
+      "shell": "console",
+      "primaryTask": "探测并发布单个供应商连接版本",
+      "controls": [
+        {
+          "label": "执行连接探测",
+          "kind": "primaryAction",
+          "status": "navigation",
+          "evidence": "只完成受控页面跳转，不计作业务状态变更",
+          "browserVerified": false
+        }
+      ]
+    },
+    {
+      "screen": "platform-model-deployments",
+      "phase": "M6",
+      "shell": "console",
+      "primaryTask": "管理平台可授权模型部署",
+      "controls": [
+        {
+          "label": "建立部署草稿",
+          "kind": "primaryAction",
+          "status": "navigation",
+          "evidence": "只完成受控页面跳转，不计作业务状态变更",
+          "browserVerified": false
+        }
+      ]
+    },
+    {
+      "screen": "platform-model-deployment-detail",
+      "phase": "M6",
+      "shell": "console",
+      "primaryTask": "验证并发布单个模型部署",
+      "controls": [
+        {
+          "label": "发布部署",
+          "kind": "primaryAction",
+          "status": "navigation",
+          "evidence": "只完成受控页面跳转，不计作业务状态变更",
+          "browserVerified": false
+        }
+      ]
+    },
+    {
+      "screen": "tenant-overview",
+      "phase": "M6",
+      "shell": "console",
+      "primaryTask": "处理当前租户最重要的阻断项",
+      "controls": [
+        {
+          "label": "进入阻断项",
+          "kind": "primaryAction",
+          "status": "navigation",
+          "evidence": "只完成受控页面跳转，不计作业务状态变更",
+          "browserVerified": false
+        }
+      ]
+    },
+    {
+      "screen": "tenant-members",
+      "phase": "M6",
+      "shell": "console",
+      "primaryTask": "管理普通成员生命周期与对话功能",
+      "controls": [
+        {
+          "label": "添加成员",
+          "kind": "primaryOrTaskControl",
+          "status": "implementedStateChange",
+          "evidence": "business-closure.test.mjs：资格、去重、保存",
+          "browserVerified": false
+        },
+        {
+          "label": "停用或恢复普通成员",
+          "kind": "primaryOrTaskControl",
+          "status": "implementedStateChange",
+          "evidence": "business-closure.test.mjs：刷新保持",
+          "browserVerified": false
+        },
+        {
+          "label": "保存对话功能与助手范围",
+          "kind": "primaryOrTaskControl",
+          "status": "implementedStateChange",
+          "evidence": "business-closure.test.mjs：四层交集",
+          "browserVerified": false
+        },
+        {
+          "label": "配置或停用管理员",
+          "kind": "primaryOrTaskControl",
+          "status": "forbidden",
+          "evidence": "明确禁止，由平台治理",
+          "browserVerified": false
+        },
+        {
+          "label": "搜索成员",
+          "kind": "taskControl",
+          "status": "implementedRead",
+          "evidence": "reviewer-regression.test.mjs：搜索输入与可筛选行绑定；真实浏览器待验证",
+          "browserVerified": false
+        },
+        {
+          "label": "取消添加",
+          "kind": "taskControl",
+          "status": "implementedStateChange",
+          "evidence": "reviewer-regression.test.mjs：取消为非提交按钮；状态机无添加命令",
+          "browserVerified": false
+        },
+        {
+          "label": "邮件邀请与账户自助激活",
+          "kind": "proposedTaskNotRendered",
+          "status": "pendingDecision",
+          "evidence": "当前只添加已有账户；是否引入新账户邀请尚未确认",
+          "browserVerified": false
+        }
+      ]
+    },
+    {
+      "screen": "tenant-roles",
+      "phase": "M6",
+      "shell": "console",
+      "primaryTask": "理解租户固定角色能力边界",
+      "controls": [
+        {
+          "label": "管理成员",
+          "kind": "primaryAction",
+          "status": "navigation",
+          "evidence": "只完成受控页面跳转，不计作业务状态变更",
+          "browserVerified": false
+        }
+      ]
+    },
+    {
+      "screen": "access-policies",
+      "phase": "M6",
+      "shell": "console",
+      "primaryTask": "查找并发布资源访问策略",
+      "controls": [
+        {
+          "label": "新建访问策略",
+          "kind": "primaryAction",
+          "status": "navigation",
+          "evidence": "只完成受控页面跳转，不计作业务状态变更",
+          "browserVerified": false
+        }
+      ]
+    },
+    {
+      "screen": "access-policy-detail",
+      "phase": "M6",
+      "shell": "console",
+      "primaryTask": "编辑、预览并发布一个访问策略版本",
+      "controls": [
+        {
+          "label": "发布策略",
+          "kind": "primaryAction",
+          "status": "unimplemented",
+          "evidence": "当前控件仅展示确认或无持久状态结果",
+          "browserVerified": false
+        }
+      ]
+    },
+    {
+      "screen": "device-credentials",
+      "phase": "M6",
+      "shell": "console",
+      "primaryTask": "管理设备凭据、助手与现场范围",
+      "controls": [
+        {
+          "label": "创建设备凭据",
+          "kind": "primaryAction",
+          "status": "unimplemented",
+          "evidence": "当前控件仅展示确认或无持久状态结果",
+          "browserVerified": false
+        }
+      ]
+    },
+    {
+      "screen": "knowledge-directory",
+      "phase": "M6",
+      "shell": "console",
+      "primaryTask": "查找或创建租户知识库",
+      "controls": [
+        {
+          "label": "创建知识库",
+          "kind": "primaryAction",
+          "status": "unimplemented",
+          "evidence": "当前控件仅展示确认或无持久状态结果",
+          "browserVerified": false
+        }
+      ]
+    },
+    {
+      "screen": "knowledge-overview",
+      "phase": "M6",
+      "shell": "console",
+      "primaryTask": "判断知识库当前可用性和唯一下一动作",
+      "controls": [
+        {
+          "label": "继续当前阻断任务",
+          "kind": "primaryAction",
+          "status": "navigation",
+          "evidence": "只完成受控页面跳转，不计作业务状态变更",
+          "browserVerified": false
+        }
+      ]
+    },
+    {
+      "screen": "knowledge-sources",
+      "phase": "M6",
+      "shell": "console",
+      "primaryTask": "管理当前知识库的数据来源",
+      "controls": [
+        {
+          "label": "添加数据",
+          "kind": "primaryAction",
+          "status": "unimplemented",
+          "evidence": "当前控件仅展示确认或无持久状态结果",
+          "browserVerified": false
+        }
+      ]
+    },
+    {
+      "screen": "source-add",
+      "phase": "M6",
+      "shell": "console",
+      "primaryTask": "通过粘贴或本地文件登记一个来源",
+      "controls": [
+        {
+          "label": "开始安全扫描",
+          "kind": "primaryAction",
+          "status": "navigation",
+          "evidence": "只完成受控页面跳转，不计作业务状态变更",
+          "browserVerified": false
+        }
+      ]
+    },
+    {
+      "screen": "source-detail",
+      "phase": "M6",
+      "shell": "console",
+      "primaryTask": "查看文档版本、处理结果和安全重试点",
+      "controls": [
+        {
+          "label": "更新文档",
+          "kind": "primaryOrTaskControl",
+          "status": "navigation",
+          "evidence": "进入文件选择，不计作内容已更新",
+          "browserVerified": false
+        },
+        {
+          "label": "重新处理",
+          "kind": "primaryOrTaskControl",
+          "status": "unimplemented",
+          "evidence": "本轮只完成语义区分，尚无处理状态变更",
+          "browserVerified": false
+        },
+        {
+          "label": "重建索引",
+          "kind": "primaryOrTaskControl",
+          "status": "navigation",
+          "evidence": "进入索引重建页，不计作重建完成",
+          "browserVerified": false
+        }
+      ]
+    },
+    {
+      "screen": "processing-quality",
+      "phase": "M6",
+      "shell": "console",
+      "primaryTask": "处理解析、分块和索引质量问题",
+      "controls": [
+        {
+          "label": "重试失败项",
+          "kind": "primaryAction",
+          "status": "navigation",
+          "evidence": "只完成受控页面跳转，不计作业务状态变更",
+          "browserVerified": false
+        }
+      ]
+    },
+    {
+      "screen": "sync-result",
+      "phase": "M6",
+      "shell": "console",
+      "primaryTask": "审查一次同步的成功、失败、重复和越权结果",
+      "controls": [
+        {
+          "label": "创建索引版本",
+          "kind": "primaryAction",
+          "status": "navigation",
+          "evidence": "只完成受控页面跳转，不计作业务状态变更",
+          "browserVerified": false
+        }
+      ]
+    },
+    {
+      "screen": "dataset-schema",
+      "phase": "M6",
+      "shell": "console",
+      "primaryTask": "定义结构化数据字段、查询和敏感级别",
+      "controls": [
+        {
+          "label": "发布结构版本",
+          "kind": "primaryAction",
+          "status": "unimplemented",
+          "evidence": "当前控件仅展示确认或无持久状态结果",
+          "browserVerified": false
+        }
+      ]
+    },
+    {
+      "screen": "object-storage-scope",
+      "phase": "M6",
+      "shell": "console",
+      "primaryTask": "登记平台签发的对象存储范围",
+      "controls": [
+        {
+          "label": "登记对象范围",
+          "kind": "primaryAction",
+          "status": "unimplemented",
+          "evidence": "当前控件仅展示确认或无持久状态结果",
+          "browserVerified": false
+        }
+      ]
+    },
+    {
+      "screen": "quick-publication",
+      "phase": "M6",
+      "shell": "console",
+      "primaryTask": "在已有知识库中完成首份知识快速发布",
+      "controls": [
+        {
+          "label": "开始发布",
+          "kind": "primaryAction",
+          "status": "navigation",
+          "evidence": "只完成受控页面跳转，不计作业务状态变更",
+          "browserVerified": false
+        }
+      ]
+    },
+    {
+      "screen": "index-versions",
+      "phase": "M6",
+      "shell": "console",
+      "primaryTask": "比较知识库索引版本与活动状态",
+      "controls": [
+        {
+          "label": "重建索引",
+          "kind": "primaryAction",
+          "status": "navigation",
+          "evidence": "只完成受控页面跳转，不计作业务状态变更",
+          "browserVerified": false
+        }
+      ]
+    },
+    {
+      "screen": "index-detail",
+      "phase": "M6",
+      "shell": "console",
+      "primaryTask": "判断一个索引版本能否激活",
+      "controls": [
+        {
+          "label": "激活此版本",
+          "kind": "primaryAction",
+          "status": "unimplemented",
+          "evidence": "当前控件仅展示确认或无持久状态结果",
+          "browserVerified": false
+        }
+      ]
+    },
+    {
+      "screen": "index-rebuild",
+      "phase": "M6",
+      "shell": "console",
+      "primaryTask": "核对模型和分块变化后创建全库重建任务",
+      "controls": [
+        {
+          "label": "开始全库重建",
+          "kind": "primaryAction",
+          "status": "navigation",
+          "evidence": "只完成受控页面跳转，不计作业务状态变更",
+          "browserVerified": false
+        }
+      ]
+    },
+    {
+      "screen": "model-providers",
+      "phase": "M6",
+      "shell": "console",
+      "primaryTask": "查看租户可用供应商连接和模型发现",
+      "controls": [
+        {
+          "label": "执行模型发现",
+          "kind": "primaryAction",
+          "status": "navigation",
+          "evidence": "只完成受控页面跳转，不计作业务状态变更",
+          "browserVerified": false
+        }
+      ]
+    },
+    {
+      "screen": "model-provider-detail",
+      "phase": "M6",
+      "shell": "console",
+      "primaryTask": "核对单个供应商连接状态和发现结果",
+      "controls": [
+        {
+          "label": "重新探测",
+          "kind": "primaryAction",
+          "status": "navigation",
+          "evidence": "只完成受控页面跳转，不计作业务状态变更",
+          "browserVerified": false
+        }
+      ]
+    },
+    {
+      "screen": "model-configurations",
+      "phase": "M6",
+      "shell": "console",
+      "primaryTask": "查找并管理受控模型配置",
+      "controls": [
+        {
+          "label": "创建模型配置",
+          "kind": "primaryAction",
+          "status": "navigation",
+          "evidence": "只完成受控页面跳转，不计作业务状态变更",
+          "browserVerified": false
+        }
+      ]
+    },
+    {
+      "screen": "model-configuration-detail",
+      "phase": "M6",
+      "shell": "console",
+      "primaryTask": "编辑、轮换并启用一个模型配置",
+      "controls": [
+        {
+          "label": "启用配置",
+          "kind": "primaryAction",
+          "status": "navigation",
+          "evidence": "只完成受控页面跳转，不计作业务状态变更",
+          "browserVerified": false
+        }
+      ]
+    },
+    {
+      "screen": "model-deployments",
+      "phase": "M6",
+      "shell": "console",
+      "primaryTask": "管理租户模型部署与能力验证",
+      "controls": [
+        {
+          "label": "建立部署草稿",
+          "kind": "primaryAction",
+          "status": "navigation",
+          "evidence": "只完成受控页面跳转，不计作业务状态变更",
+          "browserVerified": false
+        }
+      ]
+    },
+    {
+      "screen": "model-deployment-detail",
+      "phase": "M6",
+      "shell": "console",
+      "primaryTask": "探测并发布一个租户模型部署",
+      "controls": [
+        {
+          "label": "发布部署",
+          "kind": "primaryAction",
+          "status": "navigation",
+          "evidence": "只完成受控页面跳转，不计作业务状态变更",
+          "browserVerified": false
+        }
+      ]
+    },
+    {
+      "screen": "routing-policies",
+      "phase": "M6",
+      "shell": "console",
+      "primaryTask": "模拟并发布主模型、有限回退和预算策略",
+      "controls": [
+        {
+          "label": "发布路由策略",
+          "kind": "primaryAction",
+          "status": "unimplemented",
+          "evidence": "当前控件仅展示确认或无持久状态结果",
+          "browserVerified": false
+        }
+      ]
+    },
+    {
+      "screen": "assistants-directory",
+      "phase": "M6",
+      "shell": "console",
+      "primaryTask": "查找草稿、待评测或已发布助手",
+      "controls": [
+        {
+          "label": "新建助手",
+          "kind": "primaryAction",
+          "status": "navigation",
+          "evidence": "只完成受控页面跳转，不计作业务状态变更",
+          "browserVerified": false
+        }
+      ]
+    },
+    {
+      "screen": "assistant-create",
+      "phase": "M6",
+      "shell": "console",
+      "primaryTask": "创建永久绑定一个知识库的稳定助手",
+      "controls": [
+        {
+          "label": "创建助手",
+          "kind": "primaryAction",
+          "status": "navigation",
+          "evidence": "只完成受控页面跳转，不计作业务状态变更",
+          "browserVerified": false
+        }
+      ]
+    },
+    {
+      "screen": "assistant-draft",
+      "phase": "M6",
+      "shell": "console",
+      "primaryTask": "配置并校验一个助手草稿版本",
+      "controls": [
+        {
+          "label": "保存草稿",
+          "kind": "primaryAction",
+          "status": "navigation",
+          "evidence": "只完成受控页面跳转，不计作业务状态变更",
+          "browserVerified": false
+        }
+      ]
+    },
+    {
+      "screen": "assistant-test",
+      "phase": "M6",
+      "shell": "console",
+      "primaryTask": "在冻结依赖下验证问题、答案和引用",
+      "controls": [
+        {
+          "label": "加入评测集",
+          "kind": "primaryAction",
+          "status": "navigation",
+          "evidence": "只完成受控页面跳转，不计作业务状态变更",
+          "browserVerified": false
+        }
+      ]
+    },
+    {
+      "screen": "assistant-evaluation",
+      "phase": "M6",
+      "shell": "console",
+      "primaryTask": "判断助手版本是否达到发布门禁",
+      "controls": [
+        {
+          "label": "请求发布",
+          "kind": "primaryAction",
+          "status": "navigation",
+          "evidence": "只完成受控页面跳转，不计作业务状态变更",
+          "browserVerified": false
+        }
+      ]
+    },
+    {
+      "screen": "assistant-release",
+      "phase": "M6",
+      "shell": "console",
+      "primaryTask": "确认一个助手版本的发布影响",
+      "controls": [
+        {
+          "label": "发布助手版本",
+          "kind": "primaryAction",
+          "status": "unimplemented",
+          "evidence": "当前控件仅展示确认或无持久状态结果",
+          "browserVerified": false
+        }
+      ]
+    },
+    {
+      "screen": "channel-binding",
+      "phase": "M6",
+      "shell": "console",
+      "primaryTask": "把固定助手版本绑定到受限交付渠道",
+      "controls": [
+        {
+          "label": "绑定渠道",
+          "kind": "primaryAction",
+          "status": "unimplemented",
+          "evidence": "当前控件仅展示确认或无持久状态结果",
+          "browserVerified": false
+        }
+      ]
+    },
+    {
+      "screen": "evaluation-datasets",
+      "phase": "M6",
+      "shell": "console",
+      "primaryTask": "管理问题、证据、拒答和权限样本",
+      "controls": [
+        {
+          "label": "新建评测数据集",
+          "kind": "primaryAction",
+          "status": "navigation",
+          "evidence": "只完成受控页面跳转，不计作业务状态变更",
+          "browserVerified": false
+        }
+      ]
+    },
+    {
+      "screen": "evaluation-dataset-detail",
+      "phase": "M6",
+      "shell": "console",
+      "primaryTask": "维护并发布不可变评测数据集版本",
+      "controls": [
+        {
+          "label": "发布数据集版本",
+          "kind": "primaryAction",
+          "status": "navigation",
+          "evidence": "只完成受控页面跳转，不计作业务状态变更",
+          "browserVerified": false
+        }
+      ]
+    },
+    {
+      "screen": "evaluation-run-create",
+      "phase": "M6",
+      "shell": "console",
+      "primaryTask": "选择冻结助手和数据集版本发起评测",
+      "controls": [
+        {
+          "label": "运行评测",
+          "kind": "primaryAction",
+          "status": "navigation",
+          "evidence": "只完成受控页面跳转，不计作业务状态变更",
+          "browserVerified": false
+        }
+      ]
+    },
+    {
+      "screen": "evaluation-run-detail",
+      "phase": "M6",
+      "shell": "console",
+      "primaryTask": "审查一次评测的门禁结论和指标",
+      "controls": [
+        {
+          "label": "比较版本",
+          "kind": "primaryAction",
+          "status": "navigation",
+          "evidence": "只完成受控页面跳转，不计作业务状态变更",
+          "browserVerified": false
+        }
+      ]
+    },
+    {
+      "screen": "evaluation-comparison",
+      "phase": "M6",
+      "shell": "console",
+      "primaryTask": "比较两个冻结版本的改善与回退",
+      "controls": [
+        {
+          "label": "形成门禁决定",
+          "kind": "primaryAction",
+          "status": "navigation",
+          "evidence": "只完成受控页面跳转，不计作业务状态变更",
+          "browserVerified": false
+        }
+      ]
+    },
+    {
+      "screen": "evaluation-failure-analysis",
+      "phase": "M6",
+      "shell": "console",
+      "primaryTask": "按失败类别定位可修复原因",
+      "controls": [
+        {
+          "label": "创建修复事项",
+          "kind": "primaryAction",
+          "status": "unimplemented",
+          "evidence": "当前控件仅展示确认或无持久状态结果",
+          "browserVerified": false
+        }
+      ]
+    },
+    {
+      "screen": "governance-query",
+      "phase": "M6",
+      "shell": "console",
+      "primaryTask": "查看查询用量和脱敏运行摘要",
+      "controls": [
+        {
+          "label": "调整查询配额",
+          "kind": "primaryAction",
+          "status": "unimplemented",
+          "evidence": "当前控件仅展示确认或无持久状态结果",
+          "browserVerified": false
+        }
+      ]
+    },
+    {
+      "screen": "usage-quotas",
+      "phase": "M6",
+      "shell": "console",
+      "primaryTask": "核对 Token、费用、预算和配额版本",
+      "controls": [
+        {
+          "label": "调整配额",
+          "kind": "primaryAction",
+          "status": "pendingDecision",
+          "evidence": "配额修改权限和生效规则尚未确认",
+          "browserVerified": false
+        }
+      ]
+    },
+    {
+      "screen": "audit-records",
+      "phase": "M6",
+      "shell": "console",
+      "primaryTask": "查询访问、配置、发布和撤销事件",
+      "controls": [
+        {
+          "label": "导出受控记录",
+          "kind": "primaryAction",
+          "status": "navigation",
+          "evidence": "只完成受控页面跳转，不计作业务状态变更",
+          "browserVerified": false
+        }
+      ]
+    },
+    {
+      "screen": "audit-record-detail",
+      "phase": "M6",
+      "shell": "console",
+      "primaryTask": "解释一条审计事件的主体、范围和版本链",
+      "controls": [
+        {
+          "label": "返回审计目录",
+          "kind": "primaryAction",
+          "status": "navigation",
+          "evidence": "只完成受控页面跳转，不计作业务状态变更",
+          "browserVerified": false
+        }
+      ]
+    },
+    {
+      "screen": "query-diagnostic",
+      "phase": "M6",
+      "shell": "console",
+      "primaryTask": "在受权范围内解释查询失败阶段",
+      "controls": [
+        {
+          "label": "创建修复事项",
+          "kind": "primaryAction",
+          "status": "unimplemented",
+          "evidence": "当前控件仅展示确认或无持久状态结果",
+          "browserVerified": false
+        }
+      ]
+    },
+    {
+      "screen": "login",
+      "phase": "M6",
+      "shell": "query",
+      "primaryTask": "建立普通用户 QUERY_APP 会话",
+      "controls": [
+        {
+          "label": "登录",
+          "kind": "primaryAction",
+          "status": "unimplemented",
+          "evidence": "当前控件仅展示确认或无持久状态结果",
+          "browserVerified": false
+        }
+      ]
+    },
+    {
+      "screen": "assistants",
+      "phase": "M6",
+      "shell": "query",
+      "primaryTask": "搜索并选择一个获授权助手",
+      "controls": [
+        {
+          "label": "开始新会话",
+          "kind": "primaryAction",
+          "status": "unimplemented",
+          "evidence": "当前控件仅展示确认或无持久状态结果",
+          "browserVerified": false
+        }
+      ]
+    },
+    {
+      "screen": "conversation",
+      "phase": "M6",
+      "shell": "query",
+      "primaryTask": "在固定助手版本的会话中恢复并继续问答",
+      "controls": [
+        {
+          "label": "发送问题",
+          "kind": "primaryOrTaskControl",
+          "status": "partialSimulation",
+          "evidence": "当前只追加 DOM 和固定回答，没有持久化轮次、幂等或恢复",
+          "browserVerified": false
+        },
+        {
+          "label": "切换本人历史",
+          "kind": "primaryOrTaskControl",
+          "status": "partialSimulation",
+          "evidence": "已过滤成员/助手并匹配消息归属；只有部分会话具备正文 fixture，尚无新增会话持久化",
+          "browserVerified": false
+        },
+        {
+          "label": "查看授权引用",
+          "kind": "primaryOrTaskControl",
+          "status": "implementedRead",
+          "evidence": "reviewer-regression.test.mjs：成员、助手、会话和引用过滤；toggleCitation 使用同一投影",
+          "browserVerified": false
+        },
+        {
+          "label": "搜索会话标题",
+          "kind": "taskControl",
+          "status": "unimplemented",
+          "evidence": "现有搜索控件没有完整过滤行为",
+          "browserVerified": false
+        },
+        {
+          "label": "加载更早消息",
+          "kind": "taskControl",
+          "status": "unimplemented",
+          "evidence": "现有按钮只改文案，没有读取更早消息",
+          "browserVerified": false
+        },
+        {
+          "label": "断线恢复与刷新续聊",
+          "kind": "taskControl",
+          "status": "unimplemented",
+          "evidence": "原型发送仍为临时 DOM 演示，没有可恢复会话数据",
+          "browserVerified": false
+        }
+      ]
+    },
+    {
+      "screen": "device-start",
+      "phase": "M7",
+      "shell": "device",
+      "primaryTask": "在固定设备与助手范围内开始一次问答",
+      "controls": [
+        {
+          "label": "开始提问",
+          "kind": "primaryAction",
+          "status": "navigation",
+          "evidence": "只完成受控页面跳转，不计作业务状态变更",
+          "browserVerified": false
+        }
+      ]
+    },
+    {
+      "screen": "device-consent",
+      "phase": "M7",
+      "shell": "device",
+      "primaryTask": "理解并确认语音、画像和保留范围",
+      "controls": [
+        {
+          "label": "同意并继续",
+          "kind": "primaryAction",
+          "status": "navigation",
+          "evidence": "只完成受控页面跳转，不计作业务状态变更",
+          "browserVerified": false
+        }
+      ]
+    },
+    {
+      "screen": "device-question",
+      "phase": "M7",
+      "shell": "device",
+      "primaryTask": "通过语音或触控提交一个现场问题",
+      "controls": [
+        {
+          "label": "提交问题",
+          "kind": "primaryAction",
+          "status": "navigation",
+          "evidence": "只完成受控页面跳转，不计作业务状态变更",
+          "browserVerified": false
+        }
+      ]
+    },
+    {
+      "screen": "device-answer",
+      "phase": "M7",
+      "shell": "device",
+      "primaryTask": "查看简洁答案、现场指引或安全拒答",
+      "controls": [
+        {
+          "label": "继续提问",
+          "kind": "primaryAction",
+          "status": "navigation",
+          "evidence": "只完成受控页面跳转，不计作业务状态变更",
+          "browserVerified": false
+        }
+      ]
+    },
+    {
+      "screen": "platform-health",
+      "phase": "M8",
+      "shell": "console",
+      "primaryTask": "选择业务链路异常并确认处置结果",
+      "controls": [
+        {
+          "label": "选择业务链路异常",
+          "kind": "primaryOrTaskControl",
+          "status": "implementedStateChange",
+          "evidence": "business-closure.test.mjs：选择异常",
+          "browserVerified": false
+        },
+        {
+          "label": "记录处理",
+          "kind": "primaryOrTaskControl",
+          "status": "implementedStateChange",
+          "evidence": "business-closure.test.mjs：记录持久化",
+          "browserVerified": false
+        },
+        {
+          "label": "重新检查",
+          "kind": "primaryOrTaskControl",
+          "status": "implementedStateChange",
+          "evidence": "business-closure.test.mjs：仍异常与已恢复",
+          "browserVerified": false
+        }
+      ]
+    },
+    {
+      "screen": "ingestion-queue",
+      "phase": "M8",
+      "shell": "console",
+      "primaryTask": "处理摄取积压、失败和死信",
+      "controls": [
+        {
+          "label": "重试安全任务",
+          "kind": "primaryAction",
+          "status": "navigation",
+          "evidence": "只完成受控页面跳转，不计作业务状态变更",
+          "browserVerified": false
+        }
+      ]
+    },
+    {
+      "screen": "model-health",
+      "phase": "M8",
+      "shell": "console",
+      "primaryTask": "处置模型连接、限流、延迟和熔断风险",
+      "controls": [
+        {
+          "label": "下线异常部署",
+          "kind": "primaryAction",
+          "status": "navigation",
+          "evidence": "只完成受控页面跳转，不计作业务状态变更",
+          "browserVerified": false
+        }
+      ]
+    },
+    {
+      "screen": "capacity-planning",
+      "phase": "M8",
+      "shell": "console",
+      "primaryTask": "核对容量、增长和租户影响阈值",
+      "controls": [
+        {
+          "label": "创建扩容事项",
+          "kind": "primaryAction",
+          "status": "navigation",
+          "evidence": "只完成受控页面跳转，不计作业务状态变更",
+          "browserVerified": false
+        }
+      ]
+    },
+    {
+      "screen": "backup-recovery",
+      "phase": "M8",
+      "shell": "console",
+      "primaryTask": "检查备份并执行固定隔离恢复演练",
+      "controls": [
+        {
+          "label": "选择备份",
+          "kind": "primaryOrTaskControl",
+          "status": "implementedStateChange",
+          "evidence": "business-closure.test.mjs：备份选择",
+          "browserVerified": false
+        },
+        {
+          "label": "开始完整性检查",
+          "kind": "primaryOrTaskControl",
+          "status": "implementedStateChange",
+          "evidence": "business-closure.test.mjs：通过与失败",
+          "browserVerified": false
+        },
+        {
+          "label": "确认隔离演练",
+          "kind": "primaryOrTaskControl",
+          "status": "implementedStateChange",
+          "evidence": "business-closure.test.mjs：固定隔离目标",
+          "browserVerified": false
+        },
+        {
+          "label": "继续演练并查看报告",
+          "kind": "primaryOrTaskControl",
+          "status": "implementedStateChange",
+          "evidence": "business-closure.test.mjs：进度与报告",
+          "browserVerified": false
+        },
+        {
+          "label": "重试检查",
+          "kind": "primaryOrTaskControl",
+          "status": "implementedStateChange",
+          "evidence": "business-closure.test.mjs：失败重试",
+          "browserVerified": false
+        }
+      ]
+    },
+    {
+      "screen": "release-operations",
+      "phase": "M8",
+      "shell": "console",
+      "primaryTask": "审查镜像、迁移和配置并执行受控回滚",
+      "controls": [
+        {
+          "label": "执行回滚",
+          "kind": "primaryAction",
+          "status": "navigation",
+          "evidence": "只完成受控页面跳转，不计作业务状态变更",
+          "browserVerified": false
+        }
+      ]
+    }
+  ],
+  "coverage": {
+    "scope": "68 页主任务及本轮已核对控件",
+    "allControlsEnumerated": false,
+    "limitation": "尚未穷举每页筛选、行操作、账户菜单和各状态控件；下列数量只统计已登记项，不代表全平台控件总数。"
+  }
+}

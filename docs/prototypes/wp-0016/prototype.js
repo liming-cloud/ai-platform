@@ -1,10 +1,13 @@
 import { decorateExistingPage, renderInventoryPage } from "./full-platform.js";
+import { renderConsoleNavigation } from "./navigation.js";
+import { createPrototypeStore, DEFAULT_TENANT_ID } from "./prototype-state.js";
 
 const root = document.querySelector("#prototype-root");
 const reviewer = document.querySelector("#prototype-reviewer");
 const screenSelect = document.querySelector("#review-screen");
 const stateSelect = document.querySelector("#review-state");
 const applyReview = document.querySelector("#review-apply");
+const resetReview = document.querySelector("#review-reset");
 const reviewSearch = document.querySelector("#review-search");
 const reviewContract = document.querySelector("#review-contract");
 
@@ -19,6 +22,7 @@ let fixtures;
 let selectedAssistantId = "assistant-employee-service";
 let activeConversationId = "cv-20260902-01";
 let streamTimer;
+const prototypeStore = createPrototypeStore();
 
 try {
   const [fixtureResponse, inventoryResponse, pageFixtureResponse] =
@@ -62,6 +66,11 @@ try {
 
 applyReview.addEventListener("click", () => {
   navigate(screenSelect.value, stateSelect.value);
+});
+
+resetReview.addEventListener("click", () => {
+  prototypeStore.reset();
+  render();
 });
 
 reviewSearch.addEventListener("input", filterReviewerOptions);
@@ -152,15 +161,29 @@ function render() {
   }
   window.clearInterval(streamTimer);
   const scenario = currentScenario();
+  const demoState = prototypeStore.getSnapshot();
+  const access = prototypeStore.authorizeScreen(
+    scenario.screen,
+    DEFAULT_TENANT_ID,
+    demoState.selectedDemoAccountId,
+  );
+  const objectAllowed = scenario.screen !== "conversation" || prototypeStore.queryProjection(fixtures, {
+    assistantId: selectedAssistantId,
+    conversationId: activeConversationId,
+  }).conversationAllowed;
+  const renderedState =
+    (!access.allowed || !objectAllowed) && ["success", "partial", "disabled"].includes(scenario.state)
+      ? "denied"
+      : scenario.state;
   document.body.dataset.screen = scenario.screen;
-  document.body.dataset.state = scenario.state;
+  document.body.dataset.state = renderedState;
   document.body.dataset.review = scenario.review ? "visible" : "hidden";
   document.body.dataset.historyOpen = "false";
   reviewer.hidden = !scenario.review;
   screenSelect.value = scenario.screen;
   stateSelect.value = scenario.state;
   updateReviewerContext(scenario.screen);
-  root.innerHTML = renderScreen(scenario.screen, scenario.state);
+  root.innerHTML = renderScreen(scenario.screen, renderedState, demoState);
   const page = pageByScreen.get(scenario.screen);
   decorateExistingPage(
     root.querySelector(`main[data-screen="${CSS.escape(scenario.screen)}"]`),
@@ -178,7 +201,7 @@ function render() {
   document.title = screenTitle(scenario.screen) + " · 可信 RAG 原型";
 }
 
-function renderScreen(screen, state) {
+function renderScreen(screen, state, demoState) {
   switch (screen) {
     case "assistants":
       return renderAssistants(state);
@@ -199,6 +222,7 @@ function renderScreen(screen, state) {
         pageFixtures.pages[screen],
         state,
         fixtures.tenant,
+        demoState,
       );
   }
 }
@@ -385,7 +409,7 @@ function renderLogin(state) {
         : "",
       '<label class="field"><span>组织编码</span><input class="input" name="tenantCode" autocomplete="organization" value="spruce-demo" required /></label>',
       '<label class="field"><span>登录名</span><input class="input" name="username" autocomplete="username" value="demo.user" required /></label>',
-      '<label class="field"><span>密码</span><input class="input" name="password" type="password" autocomplete="current-password" value="prototype-only" required /></label>',
+      '<label class="field"><span>密码</span><input class="input" name="password" type="password" autocomplete="current-password" required /></label>',
       '<div class="login-actions">',
       '<button class="button primary" type="submit"' +
         (state === "disabled"
@@ -421,17 +445,36 @@ function renderLogin(state) {
 }
 
 function appTopbar() {
+  const demoControl = demoAccountControl();
   return [
     '<header class="app-topbar">',
     '<div class="app-brand"><span class="brand-mark" aria-hidden="true">R</span><span>可信问答</span></div>',
-    '<button class="button subtle account-button" type="button">普通用户 · 账户菜单</button>',
+    `<div class="topbar-actions">${demoControl}<button class="button subtle account-button" type="button">普通用户 · 账户菜单</button></div>`,
     "</header>",
   ].join("");
 }
 
+function demoAccountControl() {
+  const snapshot = prototypeStore.getSnapshot();
+  const tenant = snapshot.tenants.find((item) => item.id === DEFAULT_TENANT_ID);
+  const members = (tenant?.members || []).filter(
+    (member) => member.role === "ordinaryMember",
+  );
+  return `<label class="demo-account-control"><span>演示成员</span><select class="select" data-demo-account aria-label="切换普通成员演示">${members
+    .map(
+      (member) =>
+        `<option value="${escapeHtml(member.accountId)}"${member.accountId === snapshot.selectedDemoAccountId ? " selected" : ""}>${escapeHtml(snapshot.accounts.find((account) => account.id === member.accountId)?.name || "合成成员")}</option>`,
+    )
+    .join("")}</select></label>`;
+}
+
 function renderAssistants(state) {
+  const availableAssistants = prototypeStore.queryProjection(fixtures).assistants;
+  if (!availableAssistants.some((assistant) => assistant.id === selectedAssistantId) && availableAssistants[0]) {
+    selectedAssistantId = availableAssistants[0].id;
+  }
   const generic = genericState("assistants", state);
-  const rows = fixtures.assistants
+  const rows = availableAssistants
     .map((assistant) => assistantRow(assistant, state === "disabled"))
     .join("");
   const body =
@@ -447,11 +490,13 @@ function renderAssistants(state) {
       '<label class="field"><span>搜索助手</span><input id="assistant-search" class="input" type="search" placeholder="按助手名称或用途搜索" autocomplete="off" /></label>',
       '<button class="button secondary" type="button" data-clear-assistant-search>清除</button>',
       "</div>",
-      '<div id="assistant-list" class="assistant-list" role="listbox" aria-label="已授权助手">' +
-        rows +
-        "</div>",
+      availableAssistants.length
+        ? '<div id="assistant-list" class="assistant-list" role="listbox" aria-label="已授权助手">' +
+          rows +
+          "</div>"
+        : '<section class="state-panel" data-kind="empty"><h2>当前成员没有已授权助手</h2><p>租户管理员可为普通成员选择可用助手范围。</p></section>',
       '<div class="pagination" aria-label="助手目录分页">',
-      "<span>第 1 页，共 3 个已授权助手</span>",
+      `<span>第 1 页，共 ${availableAssistants.length} 个已授权助手</span>`,
       '<div class="pagination-actions"><button class="button secondary compact" type="button" disabled>上一页</button><button class="button secondary compact" type="button" disabled>下一页</button></div>',
       "</div>",
     ].join("");
@@ -499,13 +544,17 @@ function assistantRow(assistant, disabled) {
 }
 
 function renderConversation(state) {
+  const projection = prototypeStore.queryProjection(fixtures, {
+    assistantId: selectedAssistantId,
+    conversationId: activeConversationId,
+  });
+  const historyAllowed = projection.history.length > 0;
   const assistant =
-    fixtures.assistants.find((item) => item.id === selectedAssistantId) ||
-    fixtures.assistants[0];
+    fixtures.assistants.find((item) => item.id === selectedAssistantId) || {};
   const history =
-    state === "denied"
-      ? '<p class="field-hint">当前会话无权读取历史，未加载任何会话摘要。</p>'
-      : fixtures.conversations
+    state === "denied" || !historyAllowed
+      ? '<p class="field-hint">暂无可查看的会话记录。</p>'
+      : projection.history
           .map((conversation) =>
             [
               '<button class="conversation-item" type="button" data-conversation-id="' +
@@ -548,16 +597,20 @@ function renderConversation(state) {
           escapeHtml(assistant.version) +
           " · 引用必需") +
       "</small></div>",
-    '<div class="conversation-header-actions"><button class="button secondary compact mobile-history-button" type="button" aria-controls="history-panel" aria-expanded="false" data-open-history>会话记录</button><button class="button subtle compact" type="button" data-nav-screen="assistants">助手目录</button></div>',
+    '<div class="conversation-header-actions">' +
+      demoAccountControl() +
+      '<button class="button secondary compact mobile-history-button" type="button" aria-controls="history-panel" aria-expanded="false" data-open-history' +
+      (historyAllowed ? "" : " disabled") +
+      '>会话记录</button><button class="button subtle compact" type="button" data-nav-screen="assistants">助手目录</button></div>',
     "</header>",
-    renderMessageRegion(state),
+    renderMessageRegion(state, projection.messages),
     renderComposer(state),
     "</section>",
     "</main>",
   ].join("");
 }
 
-function renderMessageRegion(state) {
+function renderMessageRegion(state, projectedMessages = []) {
   const generic = genericState("conversation", state);
   if (generic) {
     return (
@@ -566,9 +619,14 @@ function renderMessageRegion(state) {
       "</section>"
     );
   }
-  const messages = fixtures.messages.map(renderMessage).join("");
+  if (projectedMessages.length === 0 && state === "success") {
+    return '<section class="message-region"><section class="state-panel" data-kind="empty"><h2>没有可读取的当前会话</h2><p>此演示成员可以从助手目录开启自己的新会话。</p></section></section>';
+  }
+  const messages = projectedMessages
+    .map((message) => renderMessage(message))
+    .join("");
   const partial =
-    state === "partial"
+    state === "partial" && projectedMessages.length > 0
       ? [
           '<article class="message assistant" data-streaming-message>',
           '<div class="message-meta"><strong>员工服务助手</strong><span>正在回答</span></div>',
@@ -596,8 +654,8 @@ function renderMessageRegion(state) {
   ].join("");
 }
 
-function renderMessage(message) {
-  const citations = message.citations
+function renderMessage(message, citationsAllowed = true) {
+  const citations = message.citations && citationsAllowed
     ? '<div class="citations" aria-label="回答引用">' +
       message.citations
         .map((citation, index) =>
@@ -664,21 +722,17 @@ function renderComposer(state) {
 }
 
 function adminShell(active, title, summary, action, body, state, breadcrumb) {
+  const demoState = prototypeStore.getSnapshot();
   return [
     '<div class="admin-shell" data-state="' + state + '">',
     '<aside class="admin-sidebar">',
     '<div class="brand"><span class="brand-mark" aria-hidden="true">R</span><span class="brand-copy"><strong>可信 RAG</strong><small>租户工作区</small></span></div>',
-    '<nav class="admin-navigation" aria-label="租户管理导航">',
-    navGroup("知识管理", [
-      ["knowledge-directory", "库", "知识库", active === "knowledge-directory"],
-      ["knowledge-sources", "源", "数据来源", active === "knowledge-sources"],
-      ["index-detail", "索", "索引发布", active === "index-detail"],
-    ]),
-    navGroup("AI 应用", [
-      ["assistant-release", "助", "助手发布", active === "assistant-release"],
-      ["assistant-release", "评", "评测结果", false],
-    ]),
-    "</nav>",
+    renderConsoleNavigation({
+      screen: active,
+      scope: "tenant",
+      snapshot: demoState,
+      tenantLabel: fixtures.tenant.displayName,
+    }),
     '<div class="admin-account"><strong>' +
       escapeHtml(fixtures.tenant.administratorLabel) +
       "</strong><small>" +
@@ -688,7 +742,9 @@ function adminShell(active, title, summary, action, body, state, breadcrumb) {
     '<div class="admin-workspace">',
     '<header class="topbar"><span class="topbar-context">' +
       escapeHtml(fixtures.tenant.displayName) +
-      ' / 租户管理</span><button class="button subtle account-button" type="button">租户管理员 / 账户菜单</button></header>',
+      ' / 租户管理</span><div class="topbar-actions">' +
+      demoAccountControl() +
+      '<button class="button subtle account-button" type="button">租户管理员 / 账户菜单</button></div></header>',
     '<main id="main-content" class="admin-main" data-screen="' +
       active +
       '" data-state="' +
@@ -708,31 +764,6 @@ function adminShell(active, title, summary, action, body, state, breadcrumb) {
     "</main>",
     "</div>",
     "</div>",
-  ].join("");
-}
-
-function navGroup(label, items) {
-  return [
-    '<section class="nav-group" aria-label="' + escapeHtml(label) + '">',
-    '<span class="nav-group-label">' + escapeHtml(label) + "</span>",
-    items
-      .map((item) =>
-        [
-          '<button class="nav-item" type="button" data-nav-screen="' +
-            item[0] +
-            '"' +
-            (item[3] ? ' aria-current="page"' : "") +
-            ">",
-          '<span class="nav-abbr" aria-hidden="true">' +
-            item[1] +
-            '</span><span class="nav-label">' +
-            item[2] +
-            "</span>",
-          "</button>",
-        ].join(""),
-      )
-      .join(""),
-    "</section>",
   ].join("");
 }
 
@@ -830,13 +861,14 @@ function renderKnowledgeSources(state) {
           "</strong><span>" +
           escapeHtml(item.kind) +
           " · " +
-          escapeHtml(item.revision) +
+          "版本 " +
+          escapeHtml(item.revision.replace(/^rev-/, "v")) +
           "</span></span></td>",
         '<td data-label="处理阶段"><span class="mono">' +
           escapeHtml(item.stage) +
           "</span></td>",
         '<td data-label="状态">' + statusTag(item.status) + "</td>",
-        '<td data-label="文档数">' + escapeHtml(item.documents) + "</td>",
+        '<td data-label="内容范围">' + escapeHtml(item.coverage) + "</td>",
         '<td data-label="最近变化">' + escapeHtml(item.updatedAt) + "</td>",
         '<td data-label="操作"><div class="table-actions"><button class="button secondary compact" type="button" data-nav-screen="source-detail">' +
           (item.status === "FAILED" ? "安全重试" : "查看") +
@@ -868,7 +900,7 @@ function renderKnowledgeSources(state) {
         (state === "partial" ? "1" : "0") +
         "</dd></div></dl>",
       '<div class="toolbar"><label class="field"><span>搜索数据来源</span><input class="input" type="search" placeholder="按名称或类型搜索" /></label><button class="button secondary" type="button" data-nav-screen="processing-quality">查看处理与质量</button></div>',
-      '<div class="table-shell"><table class="data-table"><thead><tr><th style="width:31%">数据来源</th><th>处理阶段</th><th>状态</th><th>文档数</th><th>最近变化</th><th style="text-align:right">操作</th></tr></thead><tbody>' +
+      '<div class="table-shell"><table class="data-table"><thead><tr><th style="width:31%">数据来源</th><th>处理阶段</th><th>状态</th><th>内容范围</th><th>最近变化</th><th style="text-align:right">操作</th></tr></thead><tbody>' +
         rows +
         "</tbody></table>",
       '<div class="pagination" aria-label="数据来源分页"><span>第 1 页，共 4 个来源</span><div class="pagination-actions"><button class="button secondary compact" type="button" disabled>上一页</button><button class="button secondary compact" type="button" disabled>下一页</button></div></div></div>',
@@ -960,7 +992,7 @@ function renderIndexDetail(state) {
           false,
         ) +
         "</section>",
-      '<section class="section-block"><h2>构建时间线</h2><ol class="timeline"><li><span><strong>清单冻结</strong><br><small>428 个活动来源修订</small></span><small>17:05</small></li><li><span><strong>结构化分块</strong><br><small>structure-parent-child-v3</small></span><small>17:18</small></li><li><span><strong>向量与全文构建</strong><br><small>HNSW + PostgreSQL FTS</small></span><small>17:31</small></li><li><span><strong>冻结评测</strong><br><small>权限、召回、引用、拒答与延迟</small></span><small>17:44</small></li></ol></section>',
+      '<section class="section-block"><h2>构建时间线</h2><ol class="timeline"><li><span><strong>清单冻结</strong><br><small>428 个活动文档版本</small></span><small>17:05</small></li><li><span><strong>结构化分块</strong><br><small>structure-parent-child-v3</small></span><small>17:18</small></li><li><span><strong>向量与全文构建</strong><br><small>HNSW + PostgreSQL FTS</small></span><small>17:31</small></li><li><span><strong>冻结评测</strong><br><small>权限、召回、引用、拒答与延迟</small></span><small>17:44</small></li></ol></section>',
       "</div><aside>",
       '<section class="section-block"><h2>不可变配置</h2><dl class="description-list"><dt>Embedding</dt><dd>' +
         escapeHtml(index.embedding) +
@@ -994,7 +1026,7 @@ function renderIndexDetail(state) {
     "index-detail",
     "索引 idx-v12",
     "评审全量重建结果，并在质量与权限门禁通过后原子激活。构建完成不等于自动上线。",
-    '<button class="button secondary" type="button" data-nav-screen="index-rebuild">查看重建配置</button>',
+    '<button class="button secondary" type="button" data-nav-screen="index-rebuild">重建索引</button>',
     content,
     state,
     "知识管理 / 知识库 / 员工服务手册 / 索引 idx-v12",
@@ -1077,6 +1109,9 @@ function renderAssistantRelease(state) {
 function bindInteractions(screen) {
   root.querySelectorAll("[data-nav-screen]").forEach((element) => {
     element.addEventListener("click", () => {
+      if (element.dataset.selectTenant) {
+        prototypeStore.selectTenant(element.dataset.selectTenant);
+      }
       navigate(
         element.dataset.navScreen,
         element.dataset.navState || "success",
@@ -1109,7 +1144,10 @@ function bindInteractions(screen) {
   });
   root.querySelectorAll("[data-conversation-id]").forEach((element) => {
     element.addEventListener("click", () => {
-      activeConversationId = element.dataset.conversationId;
+      const conversation = prototypeStore.queryProjection(fixtures).history.find((item) => item.id === element.dataset.conversationId);
+      if (!conversation) return;
+      activeConversationId = conversation.id;
+      selectedAssistantId = conversation.assistantId;
       render();
       closeHistory();
     });
@@ -1160,6 +1198,243 @@ function bindInteractions(screen) {
     event.preventDefault();
     navigate("platform-overview");
   });
+  root.querySelectorAll("[data-demo-account]").forEach((select) => {
+    select.addEventListener("change", () => {
+      prototypeStore.selectDemoAccount(select.value);
+      activeConversationId = "";
+      selectedAssistantId = prototypeStore.queryProjection(fixtures).assistants[0]?.id || "";
+      render();
+    });
+  });
+  bindTenantCreation();
+  bindDirectorySearch();
+  bindTenantFeatures();
+  bindMemberManagement();
+  bindHealthManagement();
+  bindRecoveryDrill();
+}
+
+function bindDirectorySearch() {
+  root.querySelectorAll("[data-directory-search]").forEach((input) => {
+    input.addEventListener("input", () => {
+      const query = input.value.trim().toLocaleLowerCase("zh-CN");
+      root.querySelectorAll("[data-search-text]").forEach((row) => {
+        row.hidden =
+          query.length > 0 &&
+          !row.dataset.searchText.toLocaleLowerCase("zh-CN").includes(query);
+      });
+    });
+  });
+}
+
+function bindTenantCreation() {
+  root.querySelector("#tenant-create-form")?.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const values = new FormData(form);
+    const result = prototypeStore.createTenant({
+      organizationName: values.get("organizationName"),
+      tenantCode: values.get("tenantCode"),
+      administratorAccountId: values.get("administratorAccountId"),
+      confirmed: values.get("confirmed") === "on",
+    });
+    form.querySelectorAll("[aria-invalid]").forEach((control) =>
+      control.removeAttribute("aria-invalid"),
+    );
+    const feedback = form.querySelector("#tenant-create-feedback");
+    if (!result.ok) {
+      result.errors.forEach((error) => {
+        form.elements.namedItem(error.field)?.setAttribute("aria-invalid", "true");
+      });
+      feedback.textContent = result.errors.map((error) => error.message).join(" ");
+      feedback.dataset.tone = "danger";
+      return;
+    }
+    navigate("platform-tenant-detail");
+  });
+}
+
+function bindTenantFeatures() {
+  const snapshot = prototypeStore.getSnapshot();
+  const tenantId = snapshot.selectedTenantId || DEFAULT_TENANT_ID;
+  root.querySelectorAll("[data-tenant-feature]").forEach((control) => {
+    control.addEventListener("change", () => {
+      prototypeStore.setTenantFeatureDraft(
+        tenantId,
+        control.dataset.tenantFeature,
+        control.checked,
+      );
+    });
+  });
+  root
+    .querySelector('[data-business-action="save-tenant-features"]')
+    ?.addEventListener("click", () => {
+      const result = prototypeStore.commitTenantFeatureDraft(tenantId);
+      if (result.ok) {
+        render();
+      } else {
+        const feedback = root.querySelector("#tenant-feature-feedback");
+        if (feedback) feedback.textContent = "当前没有待保存的功能变更。";
+      }
+    });
+  root
+    .querySelector('[data-business-action="cancel-tenant-features"]')
+    ?.addEventListener("click", () => {
+      prototypeStore.discardTenantFeatureDraft(tenantId);
+      render();
+    });
+}
+
+function bindMemberManagement() {
+  root
+    .querySelector('[data-business-action="open-add-member"]')
+    ?.addEventListener("click", () => {
+      root.querySelector("#add-member-dialog")?.showModal();
+    });
+  root.querySelector("[data-cancel-add-member]")?.addEventListener("click", () => {
+    root.querySelector("#add-member-dialog")?.close();
+  });
+  root.querySelector("#member-account-search")?.addEventListener("input", (event) => {
+    const query = event.currentTarget.value.trim().toLocaleLowerCase("zh-CN");
+    const select = root.querySelector("#member-account-select");
+    [...select.options].forEach((option, index) => {
+      if (index > 0) {
+        option.hidden = query.length > 0 && !option.textContent.toLocaleLowerCase("zh-CN").includes(query);
+      }
+    });
+  });
+  root.querySelector("#add-member-form")?.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const values = new FormData(form);
+    const result = prototypeStore.addMember(DEFAULT_TENANT_ID, {
+      accountId: values.get("accountId"),
+      conversationFeatures: values.getAll("conversationFeatures"),
+      assistantIds: values.getAll("assistantIds"),
+    });
+    if (!result.ok) {
+      const messages = {
+        ACCOUNT_NOT_ELIGIBLE: "该账户不符合普通成员资格。",
+        MEMBER_ALREADY_EXISTS: "该账户已是当前租户成员。",
+      };
+      const feedback = form.querySelector("#add-member-feedback");
+      feedback.textContent = messages[result.reason] || "无法添加该成员。";
+      feedback.dataset.tone = "danger";
+      return;
+    }
+    form.closest("dialog")?.close();
+    render();
+  });
+  root
+    .querySelectorAll('[data-business-action="toggle-member-status"]')
+    .forEach((button) => {
+      button.addEventListener("click", () => {
+        prototypeStore.setMemberStatus(
+          DEFAULT_TENANT_ID,
+          button.dataset.accountId,
+          button.dataset.nextStatus,
+        );
+        render();
+      });
+    });
+  root
+    .querySelectorAll('[data-business-action="select-demo-member"]')
+    .forEach((button) => {
+      button.addEventListener("click", () => {
+        prototypeStore.selectDemoAccount(button.dataset.accountId);
+        render();
+      });
+    });
+  root.querySelectorAll("[data-member-feature]").forEach((control) => {
+    control.addEventListener("change", () => {
+      prototypeStore.setMemberFeatureDraft(
+        DEFAULT_TENANT_ID,
+        control.dataset.memberAccount,
+        control.dataset.memberFeature,
+        control.checked,
+      );
+    });
+  });
+  root.querySelectorAll("[data-member-assistant]").forEach((control) => {
+    control.addEventListener("change", () => {
+      const accountId = control.dataset.memberAccount;
+      const assistantIds = [...root.querySelectorAll(`[data-member-assistant][data-member-account="${CSS.escape(accountId)}"]:checked`)].map(
+        (item) => item.dataset.memberAssistant,
+      );
+      prototypeStore.setMemberAssistantDraft(
+        DEFAULT_TENANT_ID,
+        accountId,
+        assistantIds,
+      );
+    });
+  });
+  root
+    .querySelector('[data-business-action="save-member-features"]')
+    ?.addEventListener("click", (event) => {
+      const result = prototypeStore.commitMemberFeatureDraft(
+        DEFAULT_TENANT_ID,
+        event.currentTarget.dataset.memberAccount,
+      );
+      if (result.ok) render();
+    });
+  root
+    .querySelector('[data-business-action="cancel-member-features"]')
+    ?.addEventListener("click", (event) => {
+      prototypeStore.discardMemberFeatureDraft(
+        DEFAULT_TENANT_ID,
+        event.currentTarget.dataset.memberAccount,
+      );
+      render();
+    });
+}
+
+function bindHealthManagement() {
+  root
+    .querySelectorAll('[data-business-action="select-health-incident"]')
+    .forEach((button) => {
+      button.addEventListener("click", () => {
+        prototypeStore.selectHealthIncident(button.dataset.incidentId);
+        render();
+      });
+    });
+  root.querySelector("#health-action-form")?.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const snapshot = prototypeStore.getSnapshot();
+    const action = new FormData(event.currentTarget).get("action");
+    prototypeStore.recordHealthAction(snapshot.health.selectedIncidentId, action);
+    render();
+  });
+  root
+    .querySelector('[data-business-action="recheck-health"]')
+    ?.addEventListener("click", () => {
+      const snapshot = prototypeStore.getSnapshot();
+      prototypeStore.recheckHealth(snapshot.health.selectedIncidentId);
+      render();
+    });
+}
+
+function bindRecoveryDrill() {
+  root.querySelectorAll('input[name="recoveryBackup"]').forEach((control) => {
+    control.addEventListener("change", () => {
+      prototypeStore.selectRecoveryBackup(control.value);
+      render();
+    });
+  });
+  root
+    .querySelector('[data-business-action="advance-recovery"]')
+    ?.addEventListener("click", () => {
+      const stage = prototypeStore.getSnapshot().recovery.stage;
+      if (stage === "selected") prototypeStore.runIntegrityCheck();
+      if (stage === "readyToConfirm") prototypeStore.confirmRecovery();
+      if (stage === "running") prototypeStore.advanceRecovery();
+      render();
+    });
+  root
+    .querySelector('[data-business-action="retry-recovery"]')
+    ?.addEventListener("click", () => {
+      prototypeStore.retryRecovery();
+      render();
+    });
 }
 
 function filterAssistants(query) {
@@ -1211,6 +1486,8 @@ function closeHistory() {
 }
 
 function toggleCitation(button) {
+  const projection = prototypeStore.queryProjection(fixtures, { assistantId: selectedAssistantId, conversationId: activeConversationId });
+  if (!projection.messages.some((message) => message.citations?.some((citation) => citation.id === button.dataset.citationId))) return;
   const excerpt = root.querySelector(
     '[data-citation-excerpt="' + CSS.escape(button.dataset.citationId) + '"]',
   );
@@ -1224,6 +1501,10 @@ function toggleCitation(button) {
 
 function submitQuestion(event) {
   event.preventDefault();
+  if (!prototypeStore.queryProjection(fixtures, { assistantId: selectedAssistantId }).conversationAllowed) {
+    render();
+    return;
+  }
   const input = root.querySelector("#question-input");
   const question = input?.value.trim();
   if (!question) {

@@ -60,6 +60,8 @@
   --content-max: 73.75rem;
   --message-max: 48.75rem;
   --control-height: 2.75rem;
+  --navigation-icon-size: 1.5rem;
+  --table-row-height: 3.5rem;
   --motion-fast: 160ms;
   --motion-normal: 200ms;
   --motion-slow: 240ms;

@@ -59,7 +59,8 @@
       "revision": "rev-0007",
       "status": "READY",
       "stage": "READY",
-      "documents": 84,
+      "documents": 1,
+      "coverage": "42 页",
       "updatedAt": "今天 17:42",
       "detail": "文本提取完成，引用保留页码。"
     },
@@ -70,7 +71,8 @@
       "revision": "rev-0004",
       "status": "READY",
       "stage": "READY",
-      "documents": 112,
+      "documents": 1,
+      "coverage": "36 节",
       "updatedAt": "今天 17:36",
       "detail": "标题、段落和列表结构已保留。"
     },
@@ -81,7 +83,8 @@
       "revision": "rev-0003",
       "status": "INDEXING",
       "stage": "INDEXING",
-      "documents": 216,
+      "documents": 1,
+      "coverage": "216 行",
       "updatedAt": "今天 17:39",
       "detail": "正在嵌入 184 / 216 个表格分块。"
     },
@@ -92,7 +95,8 @@
       "revision": "rev-0002",
       "status": "FAILED",
       "stage": "EXTRACTING",
-      "documents": 0,
+      "documents": 1,
+      "coverage": "24 页，已处理 17 页",
       "updatedAt": "今天 17:31",
       "detail": "第 18 页像素超出安全限制，未写入索引。"
     }
@@ -173,6 +177,8 @@
   "conversations": [
     {
       "id": "cv-20260902-01",
+      "memberId": "account-shen",
+      "assistantId": "assistant-employee-service",
       "title": "年假结转规则",
       "assistant": "员工服务助手",
       "updatedAt": "18:22",
@@ -180,6 +186,8 @@
     },
     {
       "id": "cv-20260902-02",
+      "memberId": "account-shen",
+      "assistantId": "assistant-employee-service",
       "title": "报销材料清单",
       "assistant": "员工服务助手",
       "updatedAt": "16:40",
@@ -187,6 +195,8 @@
     },
     {
       "id": "cv-20260901-01",
+      "memberId": "account-shen",
+      "assistantId": "assistant-office",
       "title": "上海办公室开放时间",
       "assistant": "办公地点助手",
       "updatedAt": "昨天",
@@ -194,6 +204,8 @@
     },
     {
       "id": "cv-20260829-01",
+      "memberId": "account-shen",
+      "assistantId": "assistant-support",
       "title": "密码重置步骤",
       "assistant": "客户支持助手",
       "updatedAt": "8 月 29 日",
@@ -203,12 +215,14 @@
   "messages": [
     {
       "sequence": 41,
+      "conversationId": "cv-20260902-01",
       "role": "user",
       "content": "今年没有休完的年假可以结转到明年吗？",
       "createdAt": "18:21"
     },
     {
       "sequence": 42,
+      "conversationId": "cv-20260902-01",
       "role": "assistant",
       "content": "可以。符合条件的未休年假最多结转 5 天，并应在次年 3 月 31 日前使用。超过期限的结转天数会按制度失效。",
       "createdAt": "18:22",
@@ -229,6 +243,7 @@
     },
     {
       "sequence": 43,
+      "conversationId": "cv-20260902-01",
       "role": "user",
       "content": "如果我有 7 天没有休完呢？",
       "createdAt": "18:23"
