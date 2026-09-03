@@ -84,6 +84,7 @@ confirmedDecisions:
   - ADR-0074
 openDecisions: []
 latestEvidence:
+  - project/evidence/WP-0016-visual-remediation-candidate-20260903.md
   - project/evidence/WP-0016-prototype-human-review-rejection-20260903.md
   - project/evidence/WP-0016-open-design-full-platform-candidate.md
   - project/evidence/WP-0016-open-design-prototype-candidate.md
@@ -91,7 +92,6 @@ latestEvidence:
   - project/evidence/WP-0014-platform-tenant-administrator-lifecycle.md
   - project/evidence/ADR-0073-approval.md
   - docs/audits/WP-0015-rag-architecture-baseline.md
-  - project/evidence/ADR-0074-approval.md
 nextReviewAt: 2026-09-03
-updatedAt: 2026-09-03T08:26:00+08:00
+updatedAt: 2026-09-03T08:55:05+08:00
 updatedBy: codex

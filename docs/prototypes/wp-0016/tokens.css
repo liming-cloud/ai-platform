@@ -1,5 +1,8 @@
 :root {
   color-scheme: light;
+  --design-variance: 7;
+  --motion-intensity: 5;
+  --visual-density: 7;
   --color-canvas: #f4f6f5;
   --color-sidebar: #f8faf9;
   --color-surface: #ffffff;
@@ -45,20 +48,21 @@
   --font-sans:
     "Segoe UI Variable", "Segoe UI", "Microsoft YaHei UI", system-ui, sans-serif;
   --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
-  --text-xs: 0.75rem;
-  --text-sm: 0.875rem;
+  --text-xs: 0.8125rem;
+  --text-sm: 0.9375rem;
   --text-md: 1rem;
   --text-lg: 1.125rem;
   --text-xl: 1.5rem;
   --text-2xl: 2rem;
-  --line-body: 1.7;
+  --line-body: 1.6;
   --sidebar-width: 15rem;
   --history-width: 17rem;
   --content-max: 73.75rem;
   --message-max: 48.75rem;
   --control-height: 2.75rem;
-  --motion-fast: 120ms;
-  --motion-normal: 180ms;
+  --motion-fast: 160ms;
+  --motion-normal: 200ms;
+  --motion-slow: 240ms;
 }
 
 @media (max-width: 1040px) and (min-width: 681px) {
@@ -72,5 +76,6 @@
   :root {
     --motion-fast: 1ms;
     --motion-normal: 1ms;
+    --motion-slow: 1ms;
   }
 }

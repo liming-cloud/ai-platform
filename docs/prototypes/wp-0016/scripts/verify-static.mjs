@@ -20,6 +20,22 @@ const prototypeSource = fs.readFileSync(
   path.join(prototypeDirectory, "prototype.js"),
   "utf8",
 );
+const fullPlatformSource = fs.readFileSync(
+  path.join(prototypeDirectory, "full-platform.js"),
+  "utf8",
+);
+const indexSource = fs.readFileSync(
+  path.join(prototypeDirectory, "index.html"),
+  "utf8",
+);
+const tokenSource = fs.readFileSync(
+  path.join(prototypeDirectory, "tokens.css"),
+  "utf8",
+);
+const styleSource = fs.readFileSync(
+  path.join(prototypeDirectory, "prototype.css"),
+  "utf8",
+);
 const pages = inventory.groups.flatMap((group) =>
   group.pages.map((page) => ({ page, group })),
 );
@@ -49,6 +65,14 @@ function attributeValues(html, attribute) {
   return [...html.matchAll(expression)].map((match) => match[1]);
 }
 
+function functionSource(name, nextName) {
+  const start = fullPlatformSource.indexOf(`function ${name}(`);
+  const end = nextName
+    ? fullPlatformSource.indexOf(`function ${nextName}(`, start + 1)
+    : fullPlatformSource.length;
+  return start >= 0 ? fullPlatformSource.slice(start, end > start ? end : undefined) : "";
+}
+
 assert(pages.length === 68, `页面数应为 68，实际为 ${pages.length}`);
 assert(inventory.groups.length === 10, "页面分组数不是 10");
 assert(inventory.states.length === 7, "状态数不是 7");
@@ -70,6 +94,62 @@ assert(
     prototypeSource.includes("<optgroup"),
   "审查器未由清单分组生成 optgroup",
 );
+assert(
+  indexSource.includes('id="review-contract"') &&
+    prototypeSource.includes("updateReviewerContext"),
+  "目标路径、唯一任务和主要操作尚未迁入审查工具",
+);
+assert(
+  prototypeSource.includes("原型前置，不代表实现授权"),
+  "审查工具未显式保留 M7/M8 原型授权边界",
+);
+assert(
+  tokenSource.includes("--design-variance: 7") &&
+    tokenSource.includes("--motion-intensity: 5") &&
+    tokenSource.includes("--visual-density: 7"),
+  "视觉候选参数不是 7 / 5 / 7",
+);
+assert(
+  tokenSource.includes("--motion-fast: 160ms") &&
+    tokenSource.includes("--motion-normal: 200ms") &&
+    tokenSource.includes("--motion-slow: 240ms"),
+  "交互反馈未绑定 160-240ms 动效令牌",
+);
+assert(
+  styleSource.includes("@media (prefers-reduced-motion: reduce)") &&
+    styleSource.includes("animation-iteration-count: 1 !important"),
+  "reduced-motion 未关闭非必要动画",
+);
+assert(
+  !fullPlatformSource.includes("function contractStrip("),
+  "共享渲染器仍包含产品正文工程合同条",
+);
+assert(
+  !fullPlatformSource.includes('value="员工服务手册"'),
+  "向导仍硬编码错误的通用关联对象",
+);
+const detailSource = functionSource("renderDetail", "renderResult");
+assert(
+  !(detailSource.includes("summaryFacts(fixture)") && detailSource.includes("factList(fixture)")),
+  "详情模式仍重复渲染同一组事实",
+);
+
+for (const [screen, fixture] of Object.entries(pageFixtures.pages)) {
+  if (fixture.mode === "wizard") {
+    assert(
+      Array.isArray(fixture.fields) && fixture.fields.length >= 2,
+      `${screen} 向导缺少本任务专属输入字段`,
+    );
+  }
+  if (fixture.mode === "risk") {
+    assert(
+      ["object", "impact", "recovery", "audit"].every(
+        (key) => typeof fixture.risk?.[key] === "string" && fixture.risk[key].length > 0,
+      ),
+      `${screen} 高风险页面缺少对象、影响、恢复或审计事实`,
+    );
+  }
+}
 
 const fixtureNext = (screen) => pageFixtures.pages[screen]?.nextScreen;
 for (const [from, to] of [
@@ -159,9 +239,30 @@ for (const { page, group } of pages) {
     assert(paginationCount <= 1, `${page.screen}/${state} 出现多个普通分页`);
     assert(duplicateIds.length === 0, `${page.screen}/${state} 存在重复 id`);
     if (state === "success") {
-      assert(html.includes(`>${page.route}</span>`), `${page.screen} 未展示目标路径`);
-      assert(html.includes(page.task), `${page.screen} 未展示唯一任务`);
-      assert(html.includes(page.primaryAction), `${page.screen} 未展示主要操作`);
+      assert(
+        !html.includes("data-inventory-route") &&
+          !html.includes("data-inventory-task") &&
+          !html.includes("data-inventory-action"),
+        `${page.screen} 产品正文仍包含工程合同标记`,
+      );
+      assert(!html.includes(page.route), `${page.screen} 产品正文仍展示目标路径`);
+      assert(!html.includes(page.task), `${page.screen} 产品正文仍复述唯一任务`);
+      assert(
+        html.includes(`data-primary-action`) && html.includes(`>${page.primaryAction}</button>`),
+        `${page.screen} 缺少可操作的主要动作`,
+      );
+      if (group.phase === "M7" || group.phase === "M8") {
+        assert(
+          !html.includes("原型前置") && !html.includes("不代表实现授权"),
+          `${page.screen} 将原型授权边界写入产品正文`,
+        );
+      }
+      if (fixture.mode === "detail") {
+        assert(
+          (html.match(/data-fact-set=/g) || []).length === 1,
+          `${page.screen} 详情事实被重复渲染`,
+        );
+      }
     }
     if (state === "denied") {
       assert(
@@ -206,8 +307,9 @@ const result = {
 };
 
 fs.mkdirSync(artifactDirectory, { recursive: true });
+const outputName = process.env.STATIC_VERIFICATION_OUTPUT || "static-verification.json";
 fs.writeFileSync(
-  path.join(artifactDirectory, "static-verification.json"),
+  path.join(artifactDirectory, outputName),
   JSON.stringify(result, null, 2) + "\n",
 );
 process.stdout.write(JSON.stringify(result, null, 2) + "\n");

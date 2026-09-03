@@ -1,17 +1,17 @@
 {
   "status": "BLOCKED",
-  "generatedAt": "2026-09-02T10:05:00.000Z",
+  "generatedAt": "2026-09-03T00:46:28.704Z",
   "pageCount": 68,
   "stateCount": 7,
   "viewportCount": 3,
   "scenarioCount": 1428,
-  "assertionCount": 2,
+  "assertionCount": 0,
   "screenshotCount": 0,
   "browserErrors": [
-    "当前运行环境未授予浏览器进程或本地页面访问权限。"
+    "本轮未启动浏览器：等待用户重新授权本地页面访问。"
   ],
   "failures": [
-    "真实 DOM、焦点、文档级横向滚动、交互与截图验证未执行。"
+    "本轮真实 DOM、焦点、文档级横向滚动、九条交互闭环与截图验证待授权；没有生成或复用旧截图。"
   ],
   "inventorySummary": {
     "schemaVersion": 1,

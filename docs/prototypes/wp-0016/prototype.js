@@ -6,6 +6,7 @@ const screenSelect = document.querySelector("#review-screen");
 const stateSelect = document.querySelector("#review-state");
 const applyReview = document.querySelector("#review-apply");
 const reviewSearch = document.querySelector("#review-search");
+const reviewContract = document.querySelector("#review-contract");
 
 let screens = new Set();
 let states = new Set();
@@ -107,6 +108,27 @@ function initializeReviewer() {
     .join("");
 }
 
+function updateReviewerContext(screen) {
+  const page = pageByScreen.get(screen);
+  const group = groupByScreen.get(screen);
+  if (!page || !group) {
+    return;
+  }
+  const authorization =
+    group.phase === "M7" || group.phase === "M8"
+      ? `<div class="review-authorization"><strong>${escapeHtml(group.phase)} 原型前置，不代表实现授权</strong><span>本候选只用于产品与视觉评审。</span></div>`
+      : '<span class="review-boundary">当前里程碑授权范围内的原型页面</span>';
+  reviewContract.innerHTML = [
+    `<header><span>${escapeHtml(group.phase)} / ${escapeHtml(group.label)}</span><strong>${escapeHtml(pageFixtures.pages[screen]?.title || page.task)}</strong></header>`,
+    '<dl>',
+    `<div><dt>目标路径</dt><dd>${escapeHtml(page.route)}</dd></div>`,
+    `<div><dt>唯一任务</dt><dd>${escapeHtml(page.task)}</dd></div>`,
+    `<div><dt>主要操作</dt><dd>${escapeHtml(page.primaryAction)}</dd></div>`,
+    "</dl>",
+    authorization,
+  ].join("");
+}
+
 function filterReviewerOptions(event) {
   const query = event.currentTarget.value.trim().toLocaleLowerCase("zh-CN");
   [...screenSelect.options].forEach((option) => {
@@ -137,6 +159,7 @@ function render() {
   reviewer.hidden = !scenario.review;
   screenSelect.value = scenario.screen;
   stateSelect.value = scenario.state;
+  updateReviewerContext(scenario.screen);
   root.innerHTML = renderScreen(scenario.screen, scenario.state);
   const page = pageByScreen.get(scenario.screen);
   decorateExistingPage(
@@ -353,9 +376,9 @@ function renderLogin(state) {
     [
       '<form class="login-form" id="login-form">',
       '<div class="login-form-header">',
-      '<p class="eyebrow">普通用户问答</p>',
-      "<h2>登录你的问答工作区</h2>",
-      "<p>登录后只会显示当前账户获授权且已发布的助手。</p>",
+      '<span class="section-kicker">身份验证</span>',
+      "<h2>使用组织账户登录</h2>",
+      "<p>登录后只显示已授权助手。</p>",
       "</div>",
       state === "partial"
         ? '<div class="inline-note warning">上次会话已退出，未发送的输入没有保存。可以重新登录。</div>'
@@ -368,27 +391,27 @@ function renderLogin(state) {
         (state === "disabled"
           ? ' disabled aria-describedby="login-disabled-reason"'
           : "") +
-        ">进入问答工作区</button>",
+        ">登录</button>",
       state === "disabled"
-        ? '<p id="login-disabled-reason" class="field-hint">当前账户没有 QUERY_USE 能力或尚无已授权助手。</p>'
+        ? '<p id="login-disabled-reason" class="field-hint">当前账户暂时无法使用问答，请联系组织管理员。</p>'
         : '<button class="text-link" type="button">无法登录？联系组织管理员</button>',
       "</div>",
-      '<p class="session-safety">会话凭据只由同源 HttpOnly cookie 承载。本页面不会保存 token，也不会进入租户管理控制台。</p>',
+      '<p class="session-safety">请勿在公共设备上保存密码。</p>',
       "</form>",
     ].join("");
   return [
     '<main id="main-content" class="login-shell" data-screen="login" data-state="' +
       state +
       '" tabindex="-1">',
-    '<section class="login-story" aria-label="可信问答说明">',
+    '<section class="login-story" aria-label="普通用户访问范围">',
     '<div class="brand"><span class="brand-mark" aria-hidden="true">R</span><span class="brand-copy"><strong>可信 RAG</strong><small>普通用户工作区</small></span></div>',
     '<div class="login-story-main">',
-    '<p class="eyebrow">有依据地回答，不确定就拒答</p>',
-    "<h1>从获授权的企业知识中获得可核验答案</h1>",
-    "<p>每次回答都固定助手与索引版本，引用可定位到真实来源。权限撤销后，历史正文和引用立即停止披露。</p>",
-    '<ul class="trust-list"><li>只检索当前成员有权访问的知识</li><li>答案附带来源、版本与位置</li><li>证据不足时明确拒答，不编造结论</li></ul>',
+    '<span class="section-kicker">普通用户问答</span>',
+    "<h1>登录可信问答</h1>",
+    "<p>回答附带可核验引用，证据不足时明确拒答。</p>",
+    '<dl class="login-boundary-list"><div><dt>访问范围</dt><dd>当前成员已授权知识</dd></div><div><dt>会话基础</dt><dd>固定助手与索引版本</dd></div></dl>',
     "</div>",
-    '<p class="login-story-footer">此入口只面向 TENANT_USER。管理任务使用独立租户会话。</p>',
+    '<p class="login-story-footer">仅供组织成员使用。</p>',
     "</section>",
     '<section class="login-task" aria-label="普通用户登录表单">',
     task,
@@ -438,8 +461,13 @@ function renderAssistants(state) {
     '<main id="main-content" class="assistant-page" data-screen="assistants" data-state="' +
       state +
       '" tabindex="-1">',
-    '<header class="assistant-page-header"><div><p class="eyebrow">已授权助手</p><h1>你想向谁提问？</h1><p>选择助手会创建固定当前已发布版本的新会话。完整目录只有这一处普通分页。</p></div>',
-    '<button class="button secondary" type="button" data-nav-screen="conversation">继续最近会话</button></header>',
+    '<header class="assistant-page-header"><div><span class="section-kicker">已授权助手</span><h1>选择助手</h1></div>',
+    ["success", "partial", "disabled"].includes(state)
+      ? '<div class="header-actions"><button class="button subtle" type="button" data-nav-screen="conversation">继续最近会话</button><button class="button primary" type="button" data-nav-screen="conversation"' +
+        (state === "disabled" ? " disabled" : "") +
+        ">开始新会话</button></div>"
+      : "",
+    "</header>",
     body,
     "</main>",
     "</div>",
@@ -505,7 +533,7 @@ function renderConversation(state) {
     '<nav class="conversation-list" aria-label="历史会话">' +
       history +
       "</nav>",
-    '<footer class="history-footer"><button class="button primary" type="button" data-nav-screen="assistants">新会话</button><small>完整历史只用于查看和恢复，不会全部注入模型上下文。</small></footer>',
+    '<footer class="history-footer"><button class="button secondary" type="button" data-nav-screen="assistants">选择其他助手</button><small>仅你可查看自己的会话记录。</small></footer>',
     "</aside>",
     '<button class="history-backdrop" type="button" aria-label="关闭会话历史" data-close-history></button>',
     '<section class="conversation-main">',
@@ -626,11 +654,11 @@ function renderComposer(state) {
     '<label class="field"><span class="field-label">继续提问</span><textarea id="question-input" class="textarea" rows="2" maxlength="2000" placeholder="基于当前已授权知识继续提问"' +
       (blocked ? " disabled" : "") +
       "></textarea></label>",
-    '<button class="button primary" type="submit"' +
+    '<button class="button primary" type="submit" data-primary-action' +
       (blocked ? " disabled" : "") +
-      ">发送</button>",
+      ">发送问题</button>",
     "</form>",
-    '<p class="composer-hint">Enter 发送，Shift+Enter 换行。最多使用最近 6 个已完成轮次且不超过 3,000 tokens 做问题改写。</p>',
+    '<p class="composer-hint">Enter 发送，Shift+Enter 换行。请勿输入敏感信息。</p>',
     "</footer>",
   ].join("");
 }
@@ -660,22 +688,20 @@ function adminShell(active, title, summary, action, body, state, breadcrumb) {
     '<div class="admin-workspace">',
     '<header class="topbar"><span class="topbar-context">' +
       escapeHtml(fixtures.tenant.displayName) +
-      ' · 租户管理</span><button class="button subtle account-button" type="button">租户管理员 · 账户菜单</button></header>',
+      ' / 租户管理</span><button class="button subtle account-button" type="button">租户管理员 / 账户菜单</button></header>',
     '<main id="main-content" class="admin-main" data-screen="' +
       active +
       '" data-state="' +
       state +
       '" tabindex="-1">',
-    '<nav class="breadcrumb" aria-label="面包屑">' +
-      escapeHtml(breadcrumb) +
+    '<nav class="breadcrumb" aria-label="当前位置">' +
+      escapeHtml(breadcrumb.split(" / ")[0]) +
       "</nav>",
-    '<header class="page-header"><div class="page-header-copy"><p class="eyebrow">' +
-      pageContext(active) +
-      "</p><h1>" +
+    '<header class="page-header"><div class="page-header-copy"><h1>' +
       escapeHtml(title) +
-      "</h1><p>" +
-      escapeHtml(summary) +
-      "</p></div>" +
+      '</h1><div class="page-object-line"><span>' +
+      escapeHtml(pageStatus(active, state)) +
+      '</span></div></div>' +
       action +
       "</header>",
     '<div class="page-content">' + body + "</div>",
@@ -710,8 +736,16 @@ function navGroup(label, items) {
   ].join("");
 }
 
-function pageContext(active) {
-  return active === "assistant-release" ? "AI 应用 / 助手发布" : "知识管理";
+function pageStatus(active, state) {
+  if (state !== "success") {
+    return { loading: "正在载入", empty: "暂无记录", error: "载入失败", denied: "访问受限", partial: "部分完成", disabled: "暂不可用" }[state] || "";
+  }
+  return {
+    "knowledge-directory": "2 个知识库 / 1 项需处理",
+    "knowledge-sources": "员工服务手册 / 4 个来源",
+    "index-detail": "idx-v12 / 待激活",
+    "assistant-release": "员工服务助手 v13 / 发布门禁通过",
+  }[active] || "当前工作区";
 }
 
 function renderKnowledgeDirectory(state) {
@@ -747,7 +781,7 @@ function renderKnowledgeDirectory(state) {
         ? '<div class="inline-note warning">当前租户已使用 3 / 3 个知识库配额。创建入口已禁用，现有知识库仍可维护。</div>'
         : "",
       '<dl class="summary-strip"><div class="summary-item"><dt>知识库</dt><dd>2 / 3</dd></div><div class="summary-item"><dt>有效文档</dt><dd>684</dd></div><div class="summary-item"><dt>原始内容</dt><dd>3.5 / 10 GB</dd></div><div class="summary-item"><dt>需处理</dt><dd>1</dd></div></dl>',
-      '<div class="toolbar"><label class="field"><span>搜索知识库</span><input class="input" type="search" placeholder="按名称搜索" /></label><span class="muted">选择保持在可恢复 URL 中</span></div>',
+      '<div class="toolbar"><label class="field"><span>搜索知识库</span><input class="input" type="search" placeholder="按名称搜索" /></label><label class="field compact-field"><span>状态</span><select class="select"><option>全部状态</option><option>需处理</option><option>已就绪</option></select></label></div>',
       '<div class="table-shell"><table class="data-table"><thead><tr><th style="width:30%">知识库</th><th>状态</th><th>有效文档</th><th>原始内容</th><th>活动索引</th><th>最近变化</th><th style="text-align:right">操作</th></tr></thead><tbody>' +
         rows +
         "</tbody></table>",
@@ -762,7 +796,7 @@ function renderKnowledgeDirectory(state) {
   return adminShell(
     "knowledge-directory",
     "知识库",
-    "建立、找到并进入当前租户的知识库。每个知识库拥有独立来源、索引和助手边界。",
+    "当前租户知识库目录。",
     action,
     content +
       (state === "disabled"
@@ -1026,7 +1060,7 @@ function renderAssistantRelease(state) {
           : "发布后，新会话固定 v13。旧会话显示升级提示，但不会静默改变答案基础。") +
         '</p><button class="button primary" type="button" data-confirm-release' +
         (blocked ? " disabled" : "") +
-        ">确认发布</button></section></aside></div>",
+        ">发布助手版本</button></section></aside></div>",
       '<dialog id="release-dialog" class="dialog-surface"><form method="dialog"><p class="eyebrow">发布确认</p><h2>发布员工服务助手 v13？</h2><p>新会话将固定 asv-0013 和 idx-v12。旧会话继续使用旧版本，授权撤销仍立即失败关闭。</p><div class="release-actions"><button class="button secondary" value="cancel">取消</button><button class="button primary" value="confirm">发布版本</button></div></form></dialog>',
     ].join("");
   return adminShell(

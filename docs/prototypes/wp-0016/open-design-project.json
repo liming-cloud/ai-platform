@@ -15,6 +15,13 @@
     "importedFrom": "folder",
     "importedAt": "2026-09-02T10:53:17+08:00"
   },
+  "latestRefinement": {
+    "runId": "226b959a-efd9-483c-9ec8-1aee7cf8e1c6",
+    "status": "succeeded",
+    "date": "2026-09-03",
+    "postGenerationRegressionTests": 4,
+    "humanReview": "REJECTED_PENDING_REVIEW"
+  },
   "validation": {
     "lintThreshold": "p1",
     "lintStatus": "PASS",
@@ -24,10 +31,10 @@
       "p2": 0
     },
     "staticVerificationStatus": "PASS",
-    "staticAssertionCount": 3929,
+    "staticAssertionCount": 4028,
     "httpScenarioCount": 1428,
     "browserVerificationStatus": "BLOCKED_BY_BROWSER_PERMISSION",
-    "browserVerificationNote": "当前受限运行环境拒绝启动 Chromium，随后本地页面浏览器权限也被拒绝；真实 DOM、焦点、横向溢出、交互与截图必须在获准的浏览器环境重新运行。",
+    "browserVerificationNote": "上一轮本地页面浏览器权限被拒绝，本轮按要求未尝试其他浏览器或 renderer；真实 DOM、焦点、横向溢出、交互与新截图必须等待重新授权。",
     "exportStatus": "TOOL_TIMEOUT",
     "exportNote": "独立 HTML 导出与 files list 均在 60 秒内无响应，已人工终止，未产生不完整文件；导入、lint 与浏览器证据仍可独立复核。"
   }

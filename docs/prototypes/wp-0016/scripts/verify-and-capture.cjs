@@ -72,6 +72,7 @@ async function validateInventoryContract(page) {
     groups: [...document.querySelectorAll("#review-screen optgroup")].map(
       (group) => group.label,
     ),
+    contract: document.querySelector("#review-contract")?.textContent || "",
   }));
   assert(
     JSON.stringify(reviewer.options) === JSON.stringify(screens),
@@ -87,6 +88,12 @@ async function validateInventoryContract(page) {
       `审查器分组 ${group.id} 未显示阶段和中文名`,
     );
   });
+  assert(
+    reviewer.contract.includes(pages[0].route) &&
+      reviewer.contract.includes(pages[0].task) &&
+      reviewer.contract.includes(pages[0].primaryAction),
+    "审查工具未展示当前页面的路径、任务与主要操作",
+  );
   const search = page.locator("#review-search");
   await search.fill("device-answer");
   await search.press("Enter");
@@ -94,6 +101,12 @@ async function validateInventoryContract(page) {
   assert(
     new URL(page.url()).searchParams.get("screen") === "device-answer",
     "审查器快速查找未跳转到设备回答",
+  );
+  assert(
+    (await page.locator("#review-contract").textContent()).includes(
+      "原型前置，不代表实现授权",
+    ),
+    "M8 页面未在审查工具显示授权边界",
   );
 }
 
@@ -113,9 +126,8 @@ async function validateScenarioMatrix(page) {
               (element) => element.id,
             );
             const main = document.querySelector("main[data-screen]");
-            const route = main?.querySelector("[data-inventory-route]");
-            const task = main?.querySelector("[data-inventory-task]");
-            const action = main?.querySelector("[data-inventory-action]");
+            const mainText = main?.textContent || "";
+            const primaryAction = main?.querySelector("[data-primary-action]");
             return {
               paginationCount: document.querySelectorAll(".pagination").length,
               documentOverflow:
@@ -128,9 +140,21 @@ async function validateScenarioMatrix(page) {
                 document.body.dataset.review === "hidden" &&
                 document.querySelector("#prototype-reviewer").hidden,
               heading: main?.querySelector("h1")?.textContent.trim() || "",
-              routeMatches: route?.textContent.trim() === expectedRoute,
-              taskMatches: task?.textContent.includes(expectedTask) || false,
-              actionMatches: action?.textContent.includes(expectedAction) || false,
+              hasContractMarkers: Boolean(
+                main?.querySelector(
+                  "[data-inventory-route], [data-inventory-task], [data-inventory-action]",
+                ),
+              ),
+              hasContractCopy:
+                mainText.includes(expectedRoute) ||
+                mainText.includes(expectedTask) ||
+                mainText.includes("唯一任务") ||
+                mainText.includes("主要操作"),
+              actionMatches:
+                primaryAction?.textContent.trim() === expectedAction || false,
+              hasAuthorizationBanner: Boolean(
+                main?.querySelector(".authorization-banner"),
+              ),
               hasProtectedContent: Boolean(
                 main?.querySelector(
                   "[data-protected-content], [data-citation-excerpt]:not([hidden]), [data-conversation-id]",
@@ -151,9 +175,15 @@ async function validateScenarioMatrix(page) {
         assert(result.reviewerHidden, `${label} 未隐藏原型审查器`);
         assert(result.heading.length > 0, `${label} 缺少主标题`);
         if (state === "success") {
-          assert(result.routeMatches, `${label} 未展示目标路径 ${pageMeta.route}`);
-          assert(result.taskMatches, `${label} 未展示唯一任务`);
-          assert(result.actionMatches, `${label} 未展示主要操作`);
+          assert(!result.hasContractMarkers, `${label} 产品正文仍含工程合同标记`);
+          assert(!result.hasContractCopy, `${label} 产品正文仍复述工程合同`);
+          assert(result.actionMatches, `${label} 缺少可操作的主要动作`);
+          if (pageMeta.phase === "M7" || pageMeta.phase === "M8") {
+            assert(
+              !result.hasAuthorizationBanner,
+              `${label} 将原型授权边界伪装成产品正文`,
+            );
+          }
         }
         if (state === "denied") {
           assert(
