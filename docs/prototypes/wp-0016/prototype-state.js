@@ -55,13 +55,63 @@ const SCREEN_FEATURE = Object.freeze({
   "evaluation-failure-analysis": "evaluationGovernance",
 });
 
-const DEFAULT_QUOTAS = Object.freeze({
+export const DEFAULT_QUOTAS = Object.freeze({
   knowledgeBases: 3,
   documentsPerKnowledgeBase: 1000,
   rawContentGbPerKnowledgeBase: 10,
   singleFileMb: 50,
   pastedTextMib: 1,
 });
+
+/** 仅供配置交互的合成预填值，不代表生产安全建议或已执行登录锁定。 */
+export const TENANT_SECURITY_FIELDS = Object.freeze([
+  { key: "sessionHours", label: "会话有效期", unit: "小时", defaultValue: 8 },
+  { key: "failedAttempts", label: "登录失败次数", unit: "次", defaultValue: 5 },
+  { key: "lockMinutes", label: "锁定时长", unit: "分钟", defaultValue: 15 },
+].map(Object.freeze));
+const DEFAULT_SECURITY = Object.freeze(Object.fromEntries(TENANT_SECURITY_FIELDS.map(field => [field.key, field.defaultValue])));
+
+/** 原型输入和校验共享字段；这些值不代表生产解析器的容量承诺。 */
+export const TENANT_QUOTA_FIELDS = Object.freeze([
+  { key: "knowledgeBases", label: "知识库数量", unit: "个", integer: true },
+  { key: "documentsPerKnowledgeBase", label: "每库文档数量", unit: "个", integer: true },
+  { key: "rawContentGbPerKnowledgeBase", label: "每库内容容量", unit: "GB", integer: false },
+  { key: "singleFileMb", label: "单文件大小", unit: "MB", integer: false },
+  { key: "pastedTextMib", label: "粘贴文本大小", unit: "MiB", integer: false },
+].map(Object.freeze));
+
+function defaultTenantSetup() {
+  return { step: 1, organizationName: "", tenantCode: "", administratorAccountId: "", quotas: { ...DEFAULT_QUOTAS } };
+}
+
+/** 草稿只接收非秘密白名单字段，不能借此保存密码或额外权限。 */
+function tenantSetupFrom(input = {}) {
+  const setup = defaultTenantSetup();
+  for (const key of ["organizationName", "tenantCode", "administratorAccountId"]) {
+    if (typeof input[key] === "string") setup[key] = input[key];
+  }
+  if (Number.isInteger(input.step) && input.step >= 1 && input.step <= 3) setup.step = input.step;
+  for (const { key } of TENANT_QUOTA_FIELDS) {
+    if (["number", "string"].includes(typeof input.quotas?.[key])) setup.quotas[key] = input.quotas[key];
+  }
+  return setup;
+}
+
+function validateQuotas(input, usage = {}) {
+  const errors = [];
+  const quotas = {};
+  for (const { key, label, integer } of TENANT_QUOTA_FIELDS) {
+    const raw = input?.[key];
+    const value = ["number", "string"].includes(typeof raw) ? Number(raw) : NaN;
+    if (!Number.isFinite(value) || value <= 0 || value > Number.MAX_SAFE_INTEGER || (integer && !Number.isSafeInteger(value))) {
+      errors.push({ field: key, message: `${label}请输入有效的正${integer ? "整数" : "数"}。` });
+    } else if (value < (usage[key] || 0)) {
+      errors.push({ field: key, message: `${label}不能低于当前已用量 ${usage[key]}。` });
+    }
+    quotas[key] = value;
+  }
+  return { quotas, errors };
+}
 
 const QUERY_DEMO_ACCOUNT = Object.freeze({
   tenantCode: "spruce-demo",
@@ -112,6 +162,7 @@ function defaultFeatures() {
 function defaultState() {
   return {
     schemaVersion: 1,
+    tenantSetup: defaultTenantSetup(),
     accounts: [
       {
         id: "account-qiao",
@@ -294,6 +345,7 @@ function initialState(storage) {
     if (parsed?.schemaVersion !== 1) {
       return defaultState();
     }
+    parsed.tenantSetup = tenantSetupFrom(parsed.tenantSetup);
     parsed.query = {
       ...defaultQueryState(),
       ...(parsed.query || {}),
@@ -324,6 +376,72 @@ export function createPrototypeStore(storage = browserStorage()) {
     const snapshot = clone(state);
     snapshot.query.session = { ...defaultQueryState().session, epoch: state.query.session.epoch };
     storage.setItem(PROTOTYPE_STATE_KEY, JSON.stringify(snapshot));
+  }
+
+  /** 原型写入成功才替换可观察状态；存储失败不能留下幽灵租户或虚假成功。 */
+  function commitTenantState(next) {
+    const previous = state;
+    state = next;
+    try {
+      persist();
+      return { ok: true };
+    } catch {
+      state = previous;
+      return { ok: false, reason: "STORAGE_UNAVAILABLE", errors: [{ field: "form", message: "浏览器无法保存，请检查存储空间后重试。" }] };
+    }
+  }
+
+  function updateTenantSetup(patch = {}) {
+    const current = state.tenantSetup;
+    const tenantSetup = tenantSetupFrom({ ...current, ...patch, quotas: { ...current.quotas, ...patch.quotas } });
+    return commitTenantState({ ...state, tenantSetup });
+  }
+
+  function discardTenantSetup() {
+    return commitTenantState({ ...state, tenantSetup: defaultTenantSetup() });
+  }
+
+  /** 平台只看合成用量聚合，不投影知识库名称、来源、成员或正文。 */
+  function getTenantQuotas(tenantId) {
+    const tenant = tenantById(tenantId);
+    if (!tenant) return null;
+    // 与当前合成知识目录的 2 个知识库及最大每库用量保持一致；后续接入闭环再改为动态聚合。
+    const usage = tenantId === DEFAULT_TENANT_ID
+      ? { knowledgeBases: 2, documentsPerKnowledgeBase: 428, rawContentGbPerKnowledgeBase: 2.6 }
+      : { knowledgeBases: 0, documentsPerKnowledgeBase: 0, rawContentGbPerKnowledgeBase: 0 };
+    return { quotas: clone(tenant.quotas), usage };
+  }
+
+  /** actorRole 只模拟原型职责边界，不是可供生产使用的客户端授权方式。 */
+  function saveTenantQuotas(tenantId, input, actorRole) {
+    if (actorRole !== "platformAdministrator") return { ok: false, reason: "FORBIDDEN" };
+    const current = getTenantQuotas(tenantId);
+    if (!current) return { ok: false, reason: "TENANT_NOT_FOUND" };
+    const { quotas, errors } = validateQuotas(input, current.usage);
+    if (errors.length) return { ok: false, errors };
+    return commitTenantState({ ...state, tenants: state.tenants.map(tenant => tenant.id === tenantId ? { ...tenant, quotas } : tenant) });
+  }
+
+  /** 返回配置副本，不允许把安全底线写入可编辑字段。 */
+  function getTenantSecurity(tenantId) {
+    const tenant = tenantById(tenantId);
+    return tenant ? clone(tenant.securityPolicy ?? DEFAULT_SECURITY) : null;
+  }
+
+  /** 仅平台角色模拟保存白名单配置；真实认证策略由后续工作包实施。 */
+  function saveTenantSecurity(tenantId, input, actorRole) {
+    if (actorRole !== "platformAdministrator") return { ok: false, reason: "FORBIDDEN" };
+    if (!tenantById(tenantId)) return { ok: false, reason: "TENANT_NOT_FOUND" };
+    const errors = [];
+    const securityPolicy = {};
+    for (const { key, label } of TENANT_SECURITY_FIELDS) {
+      const raw = input?.[key];
+      const value = ["string", "number"].includes(typeof raw) ? Number(raw) : NaN;
+      if (!Number.isSafeInteger(value) || value <= 0) errors.push({ field: key, message: `${label}请输入有效的正整数。` });
+      securityPolicy[key] = value;
+    }
+    if (errors.length) return { ok: false, errors };
+    return commitTenantState({ ...state, tenants: state.tenants.map(tenant => tenant.id === tenantId ? { ...tenant, securityPolicy } : tenant) });
   }
 
   function tenantById(tenantId) {
@@ -375,11 +493,13 @@ export function createPrototypeStore(storage = browserStorage()) {
       !administrator.administratorEligible ||
       administrator.status !== "available"
     ) {
-      errors.push({ field: "administratorAccountId", message: "请选择合资格且非平台管理员的已有账户。" });
+      errors.push({ field: "administratorAccountId", message: "请选择一位可用的租户管理员。" });
     }
     if (input.confirmed !== true) {
-      errors.push({ field: "confirmed", message: "请确认组织、编码、初始管理员与默认配额。" });
+      errors.push({ field: "confirmed", message: "请确认租户信息、管理员和资源配额。" });
     }
+    const validated = validateQuotas(input.quotas ?? DEFAULT_QUOTAS);
+    errors.push(...validated.errors);
     if (errors.length > 0) {
       return { ok: false, errors };
     }
@@ -391,7 +511,7 @@ export function createPrototypeStore(storage = browserStorage()) {
       region: "华东受控区",
       status: "active",
       administratorAccountId,
-      quotas: clone(DEFAULT_QUOTAS),
+      quotas: validated.quotas,
       safetyBoundaryMutable: false,
       availableFeatures: defaultFeatures(),
       members: [
@@ -404,9 +524,8 @@ export function createPrototypeStore(storage = browserStorage()) {
         },
       ],
     };
-    state.tenants.push(tenant);
-    state.selectedTenantId = tenant.id;
-    persist();
+    const saved = commitTenantState({ ...state, tenants: [...state.tenants, tenant], selectedTenantId: tenant.id, tenantSetup: defaultTenantSetup() });
+    if (!saved.ok) return saved;
     return { ok: true, tenant: clone(tenant) };
   }
 
@@ -1221,6 +1340,12 @@ export function createPrototypeStore(storage = browserStorage()) {
   return {
     reset,
     getSnapshot: () => clone(state),
+    updateTenantSetup,
+    discardTenantSetup,
+    getTenantQuotas,
+    saveTenantQuotas,
+    getTenantSecurity,
+    saveTenantSecurity,
     createTenant,
     addMember,
     findMember,

@@ -22,6 +22,25 @@ const render = (screen, store) => {
   return renderInventoryPage(page, group, pageFixtures[screen], "success", fixtures.tenant, store.getSnapshot());
 };
 
+test("租户用量页只读已保存资源配额，不提供提权修改入口", () => {
+  const store = fresh();
+  const quotas = store.getTenantQuotas(DEFAULT_TENANT_ID).quotas;
+  store.saveTenantQuotas(DEFAULT_TENANT_ID, { ...quotas, knowledgeBases: 17 }, "platformAdministrator");
+  const html = render("usage-quotas", store);
+  assert.match(html, /知识库数量/);
+  assert.match(html, /17 个/);
+  assert.match(html, /刷新用量/);
+  assert.doesNotMatch(html, /调整配额|data-edit-tenant|data-open-page-dialog|id="page-dialog"/);
+});
+
+test("租户暂不可用场景禁用整组创建和配置控件", () => {
+  for (const screen of ["platform-tenant-create", "platform-tenant-detail"]) {
+    const { page, group } = entries.find(entry => entry.page.screen === screen);
+    const html = renderInventoryPage(page, group, pageFixtures[screen], "disabled", fixtures.tenant, fresh().getSnapshot());
+    assert.match(html, /<fieldset disabled class="tenant-disabled-fields"/);
+  }
+});
+
 test("全部管理页面默认导航恰有一个当前目录", () => {
   for (const { page, group } of entries.filter(({ page, group }) => group.shell === "console" && page.screen !== "console-login")) {
     const scope = ["platform-governance", "platform-operations"].includes(group.id) ? "platform" : "tenant";

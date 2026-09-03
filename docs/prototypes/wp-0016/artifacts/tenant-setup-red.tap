@@ -1,0 +1,194 @@
+TAP version 13
+# Subtest: 有无帮助说明的同排输入框顶部和高度一致
+not ok 1 - 有无帮助说明的同排输入框顶部和高度一致
+  ---
+  duration_ms: 887.118583
+  type: 'test'
+  location: '/Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/tenant-setup.browser.test.cjs:22:1'
+  failureType: 'testCodeFailure'
+  error: 'assistant-create 同排输入框顶部不齐'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: '=='
+  stack: |-
+    /Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/tenant-setup.browser.test.cjs:29:12
+    async visit (/Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/tenant-setup.browser.test.cjs:15:9)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+  ...
+# Subtest: 租户创建使用清晰业务用语
+not ok 2 - 租户创建使用清晰业务用语
+  ---
+  duration_ms: 193.12675
+  type: 'test'
+  location: '/Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/tenant-setup.browser.test.cjs:34:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    The input was expected to not match the regular expression /合资格|独立租户边界|配额与不可关闭安全边界/. Input:
+
+    '平台治理\n' +
+      '建立新租户\n' +
+      '新租户\n' +
+      '等待填写\n' +
+      '建立租户\n' +
+      '1\n' +
+      '组织与编码\n' +
+      '2\n' +
+      '初始管理员\n' +
+      '3\n' +
+      '确认建立\n' +
+      '组织身份\n' +
+      '建立独立租户边界\n' +
+      '组织名称\n' +
+      '租户编码\n' +
+      '3–20 位小写字母、数字或连字符，建立后不可直接修改。\n' +
+      '初始管理员\n' +
+      '选择已有合资格账户\n' +
+      '租户管理员账户\n' +
+      '请选择账户\n' +
+      '乔宁（合成） · qiao.demo\n' +
+      '平台管理员、已停用账户和普通成员候选不会出现在列表中。\n' +
+      '固定默认值\n' +
+      '配额与不可关闭安全边界\n' +
+      '每租户知识库\n' +
+      '3 个\n' +
+      '每知识库有效文档\n' +
+      '1,000 个\n' +
+      '每知识库原始内容\n' +
+      '10 GB\n' +
+      '单文件\n' +
+      '50 MB\n' +
+      '粘贴文本\n' +
+      '1 MiB\n' +
+      '租户隔离、服务端权限校验和凭据不回显不可关闭。此处使用固定默认配额，安全策略与配额不在建立流程中调整。\n' +
+      '确认组织、编码、初始管理员与默认配额\n' +
+      '不创建共享密码，也不在浏览器中保存任何密码。'
+
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+  actual: |-
+    平台治理
+    建立新租户
+    新租户
+    等待填写
+    建立租户
+    1
+    组织与编码
+    2
+    初始管理员
+    3
+    确认建立
+    组织身份
+    建立独立租户边界
+    组织名称
+    租户编码
+    3–20 位小写字母、数字或连字符，建立后不可直接修改。
+    初始管理员
+    选择已有合资格账户
+    租户管理员账户
+    请选择账户
+    乔宁（合成） · qiao.demo
+    平台管理员、已停用账户和普通成员候选不会出现在列表中。
+    固定默认值
+    配额与不可关闭安全边界
+    每租户知识库
+    3 个
+    每知识库有效文档
+    1,000 个
+    每知识库原始内容
+    10 GB
+    单文件
+    50 MB
+    粘贴文本
+    1 MiB
+    租户隔离、服务端权限校验和凭据不回显不可关闭。此处使用固定默认配额，安全策略与配额不在建立流程中调整。
+    确认组织、编码、初始管理员与默认配额
+    不创建共享密码，也不在浏览器中保存任何密码。
+  operator: 'doesNotMatch'
+  stack: |-
+    /Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/tenant-setup.browser.test.cjs:37:10
+    async visit (/Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/tenant-setup.browser.test.cjs:15:9)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: 1440 租户创建只呈现当前步骤且继续按钮可见
+not ok 3 - 1440 租户创建只呈现当前步骤且继续按钮可见
+  ---
+  duration_ms: 156.034916
+  type: 'test'
+  location: '/Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/tenant-setup.browser.test.cjs:42:3'
+  failureType: 'testCodeFailure'
+  error: |-
+    必须只呈现当前步骤
+
+    0 !== 1
+
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 1
+  actual: 0
+  operator: 'strictEqual'
+  stack: |-
+    /Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/tenant-setup.browser.test.cjs:45:12
+    async visit (/Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/tenant-setup.browser.test.cjs:15:9)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: 1024 租户创建只呈现当前步骤且继续按钮可见
+not ok 4 - 1024 租户创建只呈现当前步骤且继续按钮可见
+  ---
+  duration_ms: 137.3895
+  type: 'test'
+  location: '/Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/tenant-setup.browser.test.cjs:42:3'
+  failureType: 'testCodeFailure'
+  error: |-
+    必须只呈现当前步骤
+
+    0 !== 1
+
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 1
+  actual: 0
+  operator: 'strictEqual'
+  stack: |-
+    /Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/tenant-setup.browser.test.cjs:45:12
+    async visit (/Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/tenant-setup.browser.test.cjs:15:9)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: 390 租户创建只呈现当前步骤且继续按钮可见
+not ok 5 - 390 租户创建只呈现当前步骤且继续按钮可见
+  ---
+  duration_ms: 144.223125
+  type: 'test'
+  location: '/Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/tenant-setup.browser.test.cjs:42:3'
+  failureType: 'testCodeFailure'
+  error: |-
+    必须只呈现当前步骤
+
+    0 !== 1
+
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 1
+  actual: 0
+  operator: 'strictEqual'
+  stack: |-
+    /Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/tenant-setup.browser.test.cjs:45:12
+    async visit (/Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/tenant-setup.browser.test.cjs:15:9)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+1..5
+# tests 5
+# suites 0
+# pass 0
+# fail 5
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1744.515541

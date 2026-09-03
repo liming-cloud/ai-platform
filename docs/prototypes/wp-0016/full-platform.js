@@ -1,5 +1,11 @@
 import { renderConsoleNavigation } from "./navigation.js";
-import { CONVERSATION_FEATURES, DEFAULT_TENANT_ID } from "./prototype-state.js";
+import {
+  CONVERSATION_FEATURES,
+  DEFAULT_QUOTAS,
+  DEFAULT_TENANT_ID,
+  TENANT_QUOTA_FIELDS,
+  TENANT_SECURITY_FIELDS,
+} from "./prototype-state.js";
 
 function escapeHtml(value) {
   return String(value ?? "")
@@ -22,6 +28,7 @@ function primaryAction(page, fixture, state, demoState) {
     "tenant-members": ' type="button" data-business-action="open-add-member"',
     "platform-health": ' type="button" data-business-action="recheck-health"',
     "backup-recovery": ' type="button" data-business-action="advance-recovery"',
+    "usage-quotas": ' type="button" data-refresh-tenant-usage',
   }[page.screen];
   if (businessBehavior) {
     const recoveryBlocked =
@@ -264,37 +271,91 @@ function renderPlatformTenants(demoState) {
   const rows = (demoState?.tenants || [])
     .map(
       (tenant) =>
-        `<tr data-search-text="${escapeHtml(`${tenant.organizationName} ${tenant.code} ${tenant.region}`)}"><td data-label="租户"><span class="primary-cell"><strong>${escapeHtml(tenant.organizationName)}</strong><span class="mono">${escapeHtml(tenant.code)}</span></span></td><td data-label="驻留区域">${escapeHtml(tenant.region)}</td><td data-label="状态">${statusTag(tenant.status === "active" ? "活动" : "已停用")}</td><td data-label="初始管理员">已分配</td><td data-label="操作"><button class="button secondary compact" type="button" data-select-tenant="${escapeHtml(tenant.id)}" data-nav-screen="platform-tenant-detail" data-control-status="navigation">查看详情</button></td></tr>`,
+        `<tr data-search-text="${escapeHtml(`${tenant.organizationName} ${tenant.code} ${tenant.region}`)}"><td data-label="租户"><span class="primary-cell"><strong>${escapeHtml(tenant.organizationName)}</strong><span class="mono">${escapeHtml(tenant.code)}</span></span></td><td data-label="驻留区域">${escapeHtml(tenant.region)}</td><td data-label="状态">${statusTag(tenant.status === "active" ? "活动" : "已停用")}</td><td data-label="租户管理员">已分配</td><td data-label="操作"><button class="button secondary compact" type="button" data-select-tenant="${escapeHtml(tenant.id)}" data-nav-screen="platform-tenant-detail" data-control-status="navigation">查看详情</button></td></tr>`,
     )
     .join("");
   return [
     '<div class="compact-summary"><span><strong>租户目录</strong> · 合成生命周期数据</span><span>安全边界异常 0</span></div>',
     '<div class="toolbar"><label class="field"><span>搜索租户</span><input class="input" type="search" data-directory-search="platform-tenants" placeholder="按组织名称或租户编码搜索" /></label><label class="field compact-field"><span>状态</span><select class="select"><option>全部状态</option><option>活动</option><option>已停用</option></select></label></div>',
-    `<div class="table-shell"><table class="data-table"><thead><tr><th>租户</th><th>驻留区域</th><th>状态</th><th>初始管理员</th><th>操作</th></tr></thead><tbody>${rows}</tbody></table><div class="pagination" aria-label="租户目录分页"><span>第 1 页，共 ${demoState?.tenants?.length || 0} 个租户</span><div class="pagination-actions"><button class="button secondary compact" type="button" disabled>上一页</button><button class="button secondary compact" type="button" disabled>下一页</button></div></div></div>`,
+    `<div class="table-shell"><table class="data-table"><thead><tr><th>租户</th><th>驻留区域</th><th>状态</th><th>租户管理员</th><th>操作</th></tr></thead><tbody>${rows}</tbody></table><div class="pagination" aria-label="租户目录分页"><span>第 1 页，共 ${demoState?.tenants?.length || 0} 个租户</span><div class="pagination-actions"><button class="button secondary compact" type="button" disabled>上一页</button><button class="button secondary compact" type="button" disabled>下一页</button></div></div></div>`,
   ].join("");
 }
 
 function renderTenantCreate(demoState) {
+  const setup = demoState?.tenantSetup || {
+    step: 1,
+    organizationName: "",
+    tenantCode: "",
+    administratorAccountId: "",
+    quotas: DEFAULT_QUOTAS,
+  };
+  const step = Math.max(1, Math.min(3, Number(setup.step) || 1));
+  const steps = ["租户信息", "管理员", "配额设置"];
   const candidates = (demoState?.accounts || []).filter(
     (account) =>
       account.administratorEligible &&
       !account.platformAdministrator &&
       account.status === "available",
   );
+  const administrator = candidates.find(
+    (account) => account.id === setup.administratorAccountId,
+  );
+  const stepper = `<ol class="process-steps tenant-setup-progress" aria-label="建立租户步骤">${steps
+    .map(
+      (label, index) =>
+        `<li data-step-state="${index + 1 < step ? "complete" : index + 1 === step ? "current" : "upcoming"}"><span>${index + 1}</span><strong>${label}</strong></li>`,
+    )
+    .join("")}</ol>`;
+  const cancel = '<button class="button subtle" type="button" data-discard-tenant-setup data-control-status="implemented">取消</button>';
+  const back =
+    step > 1
+      ? '<button class="button secondary" type="button" data-tenant-setup-back data-control-status="implemented">上一步</button>'
+      : "";
+  const submit = `<button class="button primary" type="submit" data-primary-action data-control-status="implemented">${step === 3 ? "创建租户" : "下一步"}</button>`;
+  let currentStep;
+  if (step === 1) {
+    currentStep = [
+      '<section class="section-block tenant-step-card" data-tenant-step="1"><div class="tenant-step-heading"><div><span class="section-kicker">租户信息</span><h2>填写组织名称和租户编码</h2></div><span class="status-tag" data-tone="info">1 / 3</span></div>',
+      '<div class="wizard-field-grid"><label class="field" for="tenant-organization-name"><span>组织名称</span><input id="tenant-organization-name" class="input" name="organizationName" value="' +
+        escapeHtml(setup.organizationName) +
+        '" required minlength="2" maxlength="40" autocomplete="organization" placeholder="例如：青岚体验租户" aria-describedby="tenant-organization-help" data-tenant-draft /><small class="field-hint" id="tenant-organization-help">使用 2 至 40 个字符的组织名称。</small></label><label class="field" for="tenant-code"><span>租户编码</span><input id="tenant-code" class="input mono" name="tenantCode" value="' +
+        escapeHtml(setup.tenantCode) +
+        '" required pattern="[a-z][a-z0-9-]{2,19}" autocomplete="off" placeholder="qinglan-demo" aria-describedby="tenant-code-help" data-tenant-draft /><small class="field-hint" id="tenant-code-help">使用 3 至 20 位小写字母、数字或连字符，创建后不能修改。</small></label></div></section>',
+    ].join("");
+  } else if (step === 2) {
+    currentStep = [
+      '<section class="section-block tenant-step-card" data-tenant-step="2"><div class="tenant-step-heading"><div><span class="section-kicker">管理员</span><h2>选择租户管理员</h2></div><span class="status-tag" data-tone="info">2 / 3</span></div>',
+      '<label class="field tenant-administrator-field" for="tenant-administrator"><span>租户管理员</span><select id="tenant-administrator" class="select" name="administratorAccountId" required aria-describedby="tenant-administrator-help" data-tenant-draft><option value="">请选择账户</option>' +
+        candidates
+          .map(
+            (account) =>
+              `<option value="${escapeHtml(account.id)}"${account.id === setup.administratorAccountId ? " selected" : ""}>${escapeHtml(account.name)} · ${escapeHtml(account.loginName)}</option>`,
+          )
+          .join("") +
+        '</select><small class="field-hint" id="tenant-administrator-help">只列出可担任租户管理员的现有合成账户。</small></label></section>',
+    ].join("");
+  } else {
+    const quotaFields = TENANT_QUOTA_FIELDS.map(({ key, label, unit, integer }) => {
+      const helpId = `tenant-setup-${key}-help`;
+      return `<label class="field quota-field" for="tenant-setup-${key}"><span>${escapeHtml(label)} <small>${escapeHtml(unit)}</small></span><input id="tenant-setup-${key}" class="input mono" type="number" name="${escapeHtml(key)}" value="${escapeHtml(setup.quotas?.[key] ?? DEFAULT_QUOTAS[key])}" min="${integer ? "1" : "0.01"}" step="${integer ? "1" : "0.01"}" required inputmode="decimal" aria-describedby="${helpId}" data-tenant-quota /><small class="field-hint" id="${helpId}">请输入大于 0 的${integer ? "整数" : "数值"}。</small></label>`;
+    }).join("");
+    currentStep = [
+      '<section class="section-block tenant-step-card" data-tenant-step="3"><div class="tenant-step-heading"><div><span class="section-kicker">配额设置</span><h2>设置资源配额</h2></div><span class="status-tag" data-tone="info">3 / 3</span></div>',
+      `<div class="tenant-confirmation-summary"><span><strong>${escapeHtml(setup.organizationName)}</strong><small>${escapeHtml(setup.tenantCode)}</small></span><span><strong>${escapeHtml(administrator?.name || "未选择管理员")}</strong><small>租户管理员</small></span></div>`,
+      `<div class="tenant-quota-grid">${quotaFields}</div>`,
+      '<div class="tenant-safety-note"><strong>安全边界保持开启</strong><span>租户隔离、权限校验和凭据不回显不能关闭。</span></div>',
+      '<label class="consent-control"><input name="confirmed" type="checkbox" required aria-describedby="tenant-confirm-help" /><span><strong>确认创建此租户</strong><small id="tenant-confirm-help">创建后可在租户详情继续调整资源配额。</small></span></label></section>',
+    ].join("");
+  }
   return [
-    '<ol class="process-steps" aria-label="建立租户步骤"><li data-step-state="current"><span>1</span><strong>组织与编码</strong></li><li data-step-state="upcoming"><span>2</span><strong>初始管理员</strong></li><li data-step-state="upcoming"><span>3</span><strong>确认建立</strong></li></ol>',
-    '<form id="tenant-create-form" class="business-form" novalidate>',
-    '<section class="section-block"><div class="section-heading"><div><span class="section-kicker">组织身份</span><h2>建立独立租户边界</h2></div></div><div class="wizard-field-grid"><label class="field" for="tenant-organization-name"><span>组织名称</span><input id="tenant-organization-name" class="input" name="organizationName" required minlength="2" maxlength="40" autocomplete="organization" placeholder="例如：青岚制造示例组织" /></label><label class="field" for="tenant-code"><span>租户编码</span><input id="tenant-code" class="input mono" name="tenantCode" required pattern="[a-z][a-z0-9-]{2,19}" autocomplete="off" placeholder="qinglan-demo" /><small class="field-hint">3–20 位小写字母、数字或连字符，建立后不可直接修改。</small></label></div></section>',
-    '<section class="section-block"><div class="section-heading"><div><span class="section-kicker">初始管理员</span><h2>选择已有合资格账户</h2></div></div><label class="field" for="tenant-administrator"><span>租户管理员账户</span><select id="tenant-administrator" class="select" name="administratorAccountId" required><option value="">请选择账户</option>' +
-      candidates
-        .map(
-          (account) =>
-            `<option value="${escapeHtml(account.id)}">${escapeHtml(account.name)} · ${escapeHtml(account.loginName)}</option>`,
-        )
-        .join("") +
-      '</select><small class="field-hint">平台管理员、已停用账户和普通成员候选不会出现在列表中。</small></label></section>',
-    '<section class="section-block"><div class="section-heading"><div><span class="section-kicker">固定默认值</span><h2>配额与不可关闭安全边界</h2></div></div><dl class="fact-list quota-facts"><div><dt>每租户知识库</dt><dd>3 个</dd></div><div><dt>每知识库有效文档</dt><dd>1,000 个</dd></div><div><dt>每知识库原始内容</dt><dd>10 GB</dd></div><div><dt>单文件</dt><dd>50 MB</dd></div><div><dt>粘贴文本</dt><dd>1 MiB</dd></div></dl><div class="inline-note">租户隔离、服务端权限校验和凭据不回显不可关闭。此处使用固定默认配额，安全策略与配额不在建立流程中调整。</div><label class="consent-control"><input name="confirmed" type="checkbox" /><span><strong>确认组织、编码、初始管理员与默认配额</strong><small>不创建共享密码，也不在浏览器中保存任何密码。</small></span></label><p id="tenant-create-feedback" class="form-feedback" role="status" aria-live="polite"></p></section>',
+    '<div class="tenant-setup-surface">',
+    stepper,
+    `<form id="tenant-create-form" class="business-form tenant-setup-form" data-current-tenant-step="${step}" novalidate>`,
+    currentStep,
+    '<p id="tenant-create-feedback" class="form-feedback" role="alert" aria-live="assertive"></p>',
+    `<div class="form-actions tenant-setup-actions">${cancel}${back}${submit}</div>`,
     "</form>",
+    "</div>",
   ].join("");
 }
 
@@ -307,13 +368,41 @@ function featureControls(tenant) {
     .join("");
 }
 
+function renderTenantSecurity(tenant) {
+  const values = tenant.securityPolicy || {};
+  const rows = TENANT_SECURITY_FIELDS.map(({ key, label, unit, defaultValue }) =>
+    `<div><dt>${escapeHtml(label)}</dt><dd>${escapeHtml(values[key] ?? defaultValue)} ${unit}</dd></div>`,
+  ).join("");
+  const inputs = TENANT_SECURITY_FIELDS.map(({ key, label, unit, defaultValue }) =>
+    `<label class="field" for="security-${key}"><span>${label}（${unit}）</span><input id="security-${key}" class="input mono" type="number" name="${key}" value="${escapeHtml(values[key] ?? defaultValue)}" min="1" step="1" required inputmode="numeric" /></label>`,
+  ).join("");
+  return `<section class="section-block tenant-quota-section"><div class="section-heading"><h2>登录安全</h2><button class="button secondary" type="button" data-edit-tenant-security data-control-status="implemented">编辑登录策略</button></div><dl class="tenant-quota-summary tenant-security-summary">${rows}</dl></section>
+    <dialog id="tenant-security-dialog" class="dialog-surface tenant-quota-dialog" aria-labelledby="tenant-security-title"><form id="tenant-security-form" data-tenant-id="${escapeHtml(tenant.id)}" novalidate><div class="dialog-heading"><h2 id="tenant-security-title">编辑登录策略</h2><p>租户隔离、权限校验和密码不回显始终开启。</p></div><div class="tenant-quota-dialog-grid">${inputs}</div><p id="tenant-security-feedback" class="form-feedback" role="alert" aria-live="assertive"></p><div class="form-actions dialog-actions"><button class="button secondary" type="button" data-cancel-tenant-security>取消</button><button class="button primary" type="submit" data-control-status="implemented">保存策略</button></div></form></dialog>`;
+}
+
 function renderTenantDetail(demoState) {
   const tenant = snapshotTenant(demoState);
   if (!tenant) {
     return '<section class="state-panel" data-kind="empty"><h2>暂无可查看租户</h2></section>';
   }
+  const quotaProjection = demoState?.tenantQuotaProjection || {
+    quotas: tenant.quotas || DEFAULT_QUOTAS,
+    usage: {},
+  };
+  const quotaRows = TENANT_QUOTA_FIELDS.map(({ key, label, unit }) => {
+    const used = quotaProjection.usage?.[key];
+    return `<div><dt>${escapeHtml(label)}</dt><dd><strong class="mono">${escapeHtml(quotaProjection.quotas?.[key] ?? DEFAULT_QUOTAS[key])}</strong> ${escapeHtml(unit)}${Number.isFinite(used) ? `<small>已用 ${escapeHtml(used)} ${escapeHtml(unit)}</small>` : ""}</dd></div>`;
+  }).join("");
+  const quotaInputs = TENANT_QUOTA_FIELDS.map(({ key, label, unit, integer }) => {
+    const used = quotaProjection.usage?.[key] || 0;
+    const help =
+      key === "singleFileMb" || key === "pastedTextMib"
+        ? "降低后只影响后续新增内容。"
+        : `当前已用 ${used} ${unit}，保存值不能低于已用量。`;
+    return `<label class="field" for="tenant-quota-${escapeHtml(key)}"><span>${escapeHtml(label)} <small>${escapeHtml(unit)}</small></span><input id="tenant-quota-${escapeHtml(key)}" class="input mono" type="number" name="${escapeHtml(key)}" value="${escapeHtml(quotaProjection.quotas?.[key] ?? DEFAULT_QUOTAS[key])}" min="${integer ? "1" : "0.01"}" step="${integer ? "1" : "0.01"}" required inputmode="decimal" aria-describedby="tenant-quota-${escapeHtml(key)}-help" data-tenant-quota /><small class="field-hint" id="tenant-quota-${escapeHtml(key)}-help">${escapeHtml(help)}</small></label>`;
+  }).join("");
   return [
-    '<div class="detail-workspace"><section class="section-block detail-facts"><div class="section-heading"><div><span class="section-kicker">租户事实</span><h2>' +
+    '<div class="detail-workspace tenant-detail-overview"><section class="section-block detail-facts"><div class="section-heading"><div><span class="section-kicker">租户事实</span><h2>' +
       escapeHtml(tenant.organizationName) +
       "</h2></div>" +
       statusTag(tenant.status === "active" ? "活动" : "已停用") +
@@ -321,12 +410,18 @@ function renderTenantDetail(demoState) {
       escapeHtml(tenant.code) +
       '</dd></div><div><dt>驻留区域</dt><dd>' +
       escapeHtml(tenant.region) +
-      '</dd></div><div><dt>初始管理员</dt><dd>' +
+      '</dd></div><div><dt>租户管理员</dt><dd>' +
       escapeHtml(accountName(demoState, tenant.administratorAccountId)) +
-      '</dd></div><div><dt>默认配额</dt><dd>3 个知识库；每库 1,000 个文档 / 10 GB；单文件 50 MB；粘贴文本 1 MiB</dd></div></dl></section><aside class="next-step-panel"><span class="section-kicker">安全边界</span><h2>隔离、权限校验与凭据不回显不可关闭</h2><p>安全边界与默认配额在此只读；本页只保存租户可用功能。</p></aside></div>',
+      '</dd></div></dl></section><aside class="next-step-panel"><span class="section-kicker">安全边界</span><h2>隔离、权限校验与凭据不回显保持开启</h2><p>资源配额可调整，安全边界不可更改。</p></aside></div>',
+    '<section class="section-block tenant-quota-section"><div class="section-heading"><div><span class="section-kicker">平台配置</span><h2>资源配额</h2></div><button class="button secondary" type="button" data-edit-tenant-quotas data-control-status="implemented">编辑配额</button></div><dl class="tenant-quota-summary">' +
+      quotaRows +
+      "</dl></section>",
+    renderTenantSecurity(tenant),
+    '<p id="tenant-settings-feedback" class="form-feedback" role="status" aria-live="polite"></p>',
     '<section class="section-block feature-editor"><div class="section-heading"><div><span class="section-kicker">平台配置</span><h2>租户可用功能</h2></div><span class="status-tag" data-tone="info">保存后生效</span></div><div class="feature-grid">' +
       featureControls(tenant) +
       '</div><div class="form-actions"><button class="button secondary" type="button" data-business-action="cancel-tenant-features" data-control-status="implemented">取消</button><span id="tenant-feature-feedback" class="form-feedback" role="status" aria-live="polite"></span></div></section>',
+    `<dialog id="tenant-quota-dialog" class="dialog-surface tenant-quota-dialog" aria-labelledby="tenant-quota-title"><form id="tenant-quota-form" data-tenant-id="${escapeHtml(tenant.id)}" novalidate><div class="dialog-heading"><span class="section-kicker">资源配额</span><h2 id="tenant-quota-title">编辑 ${escapeHtml(tenant.organizationName)} 的配额</h2><p>保存值必须大于 0，且不能低于当前已用量。</p></div><div class="tenant-quota-dialog-grid">${quotaInputs}</div><p id="tenant-quota-feedback" class="form-feedback" role="alert" aria-live="assertive"></p><div class="form-actions dialog-actions"><button class="button secondary" type="button" data-cancel-tenant-quotas>取消</button><button class="button primary" type="submit" data-control-status="implemented">保存配额</button></div></form></dialog>`,
   ].join("");
 }
 
@@ -513,6 +608,13 @@ function renderRecovery(demoState) {
 
 function contentFor(page, fixture, demoState) {
   switch (page.screen) {
+    case "usage-quotas": {
+      const tenant = demoState?.tenants.find(item => item.id === DEFAULT_TENANT_ID);
+      const rows = TENANT_QUOTA_FIELDS.map(({ key, label, unit }) =>
+        `<div><dt>${escapeHtml(label)}</dt><dd>${escapeHtml(tenant?.quotas[key] ?? DEFAULT_QUOTAS[key])} ${unit}</dd></div>`,
+      ).join("");
+      return `<section class="section-block"><div class="section-heading"><h2>平台分配的资源配额</h2><span class="status-tag">只读</span></div><dl class="fact-list">${rows}</dl><p class="field-hint">需要调整资源上限时，请联系平台管理员。</p></section>${renderList(page, fixture)}<p id="tenant-usage-feedback" class="form-feedback" role="status"></p>`;
+    }
     case "platform-tenants":
       return renderPlatformTenants(demoState);
     case "platform-tenant-create":
@@ -565,7 +667,9 @@ function taskBody(page, fixture, state, demoState) {
     notice
       ? `<div class="inline-note ${state === "disabled" ? "danger" : "warning"}">${escapeHtml(notice)}</div>`
       : "",
-    contentFor(page, fixture, demoState),
+    state === "disabled" && ["platform-tenant-create", "platform-tenant-detail"].includes(page.screen)
+      ? `<fieldset disabled class="tenant-disabled-fields" aria-label="租户配置暂不可用">${contentFor(page, fixture, demoState)}</fieldset>`
+      : contentFor(page, fixture, demoState),
     "</div>",
   ].join("");
 }
@@ -658,6 +762,11 @@ export function renderInventoryPage(
     page.screen === "platform-tenant-detail"
       ? snapshotTenant(demoState)?.organizationName || fixture.entity
       : fixture.entity || fixture.title;
+  const interactive = ["success", "partial", "disabled"].includes(state);
+  const headerAction =
+    interactive && page.screen !== "platform-tenant-create"
+      ? primaryAction(page, fixture, state, demoState)
+      : "";
   return [
     `<div class="admin-shell full-platform-shell" data-state="${state}" data-scope="${platform ? "platform" : "tenant"}">`,
     '<aside class="admin-sidebar">',
@@ -673,12 +782,13 @@ export function renderInventoryPage(
     `<header class="topbar"><span class="topbar-context scope-context">${platform ? "平台管理 / 不含租户内容" : `${escapeHtml(tenant.displayName)} / 租户管理`}</span><button class="button subtle account-button" type="button">${platform ? "平台管理员" : "租户管理员"} / 账户菜单</button></header>`,
     `<main id="main-content" class="admin-main" data-screen="${escapeHtml(page.screen)}" data-state="${escapeHtml(state)}" data-od-id="screen-${escapeHtml(page.screen)}" tabindex="-1">`,
     `<nav class="breadcrumb" aria-label="当前位置">${escapeHtml(group.label)}</nav>`,
-    `<header class="page-header"><div class="page-header-copy"><h1 data-od-id="heading-${escapeHtml(page.screen)}">${escapeHtml(fixture.title)}</h1>${["success", "partial", "disabled"].includes(state) ? `<div class="page-object-line"><span>${escapeHtml(currentEntity)}</span>${statusTag(fixture.status || "可用", String(fixture.status || "").includes("失败") || String(fixture.status || "").includes("阻断") ? "danger" : "success")}</div>` : ""}</div>${["success", "partial", "disabled"].includes(state) ? primaryAction(page, fixture, state, demoState) : ""}</header>`,
+    `<header class="page-header"><div class="page-header-copy"><h1 data-od-id="heading-${escapeHtml(page.screen)}">${escapeHtml(fixture.title)}</h1>${interactive ? `<div class="page-object-line"><span>${escapeHtml(currentEntity)}</span>${statusTag(fixture.status || "可用", String(fixture.status || "").includes("失败") || String(fixture.status || "").includes("阻断") ? "danger" : "success")}</div>` : ""}</div>${headerAction}</header>`,
     `<div class="page-content">${taskBody(page, fixture, state, demoState)}</div>`,
     ["success", "partial", "disabled", "empty"].includes(state) &&
     ![
       "platform-tenant-create",
       "platform-tenant-detail",
+      "usage-quotas",
       "tenant-members",
       "platform-health",
       "backup-recovery",

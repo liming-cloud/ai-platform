@@ -79,6 +79,7 @@
 | ADR-0073 | 已接受 | 平台拥有租户管理员生命周期与人员身份互斥 | `docs/adr/ADR-0073-platform-owned-tenant-administrator-governance.md` |
 | ADR-0074 | 已接受 | M6 可信 RAG 产品与研发基线重建 | `docs/adr/ADR-0074-m6-trusted-rag-product-and-engineering-baseline.md` |
 | ADR-0075 | 已接受 | 租户功能上限与普通成员对话功能控制 | `docs/adr/ADR-0075-tenant-and-member-feature-control.md` |
+| ADR-0076 | 已接受 | 租户配额与登录安全配置原型 | `docs/adr/ADR-0076-configurable-tenant-quota-prototype.md` |
 
 ## 已确认人工决策
 

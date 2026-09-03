@@ -284,7 +284,9 @@ async function validateManagementFlows(page) {
   await page.locator("#review-reset").click();
   await page.locator("#tenant-organization-name").fill("青岚制造示例组织");
   await page.locator("#tenant-code").fill("qinglan-demo");
+  await page.getByRole("button", { name: "下一步", exact: true }).click();
   await page.locator("#tenant-administrator").selectOption("account-qiao");
+  await page.getByRole("button", { name: "下一步", exact: true }).click();
   await page.locator('#tenant-create-form input[name="confirmed"]').check();
   await page.locator("[data-primary-action]").click();
   await page.locator('main[data-screen="platform-tenant-detail"]').waitFor();

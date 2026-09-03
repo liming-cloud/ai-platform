@@ -214,6 +214,7 @@ h3 {
 
 .field {
   display: grid;
+  align-content: start;
   gap: var(--space-2);
 }
 
@@ -3075,5 +3076,324 @@ body[data-review="hidden"] .prototype-reviewer {
   /* 抽屉位移是开闭布局，不是可以清除的装饰动效。 */
   .history-panel {
     transition: none !important;
+  }
+}
+
+/* WP-0016 租户创建与配额：每次只呈现一个决策，保持高密度但不压缩字号。 */
+.tenant-disabled-fields {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.tenant-setup-surface {
+  display: grid;
+  gap: var(--space-4);
+  width: min(100%, 68rem);
+}
+
+.tenant-setup-progress li {
+  min-height: 3.75rem;
+}
+
+.tenant-setup-form {
+  gap: var(--space-3);
+}
+
+.tenant-setup-form .tenant-step-card {
+  display: grid;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-5);
+}
+
+.tenant-step-heading,
+.dialog-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.tenant-step-heading > div,
+.dialog-heading {
+  min-width: 0;
+}
+
+.tenant-step-heading h2,
+.dialog-heading h2 {
+  margin-top: var(--space-1);
+}
+
+.tenant-administrator-field {
+  width: min(100%, 38rem);
+}
+
+.tenant-confirmation-summary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  border-block: 1px solid var(--color-border);
+}
+
+.tenant-confirmation-summary > span {
+  display: grid;
+  gap: var(--space-1);
+  padding: var(--space-3) var(--space-4);
+}
+
+.tenant-confirmation-summary > span + span {
+  border-left: 1px solid var(--color-border);
+}
+
+.tenant-confirmation-summary small,
+.quota-field > span small,
+.tenant-quota-dialog-grid .field > span small,
+.tenant-quota-summary dd small {
+  color: var(--color-text-secondary);
+  font-size: var(--text-xs);
+  font-weight: 400;
+}
+
+.tenant-quota-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-3) var(--space-4);
+}
+
+.quota-field > span,
+.tenant-quota-dialog-grid .field > span {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.tenant-safety-note {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  background: var(--color-surface-subtle);
+}
+
+.tenant-safety-note span {
+  color: var(--color-text-secondary);
+}
+
+.tenant-setup-actions {
+  justify-content: flex-end;
+  min-height: var(--control-height);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-border);
+}
+
+.tenant-setup-actions [data-discard-tenant-setup] {
+  margin-right: auto;
+}
+
+.tenant-quota-section {
+  padding: 0;
+}
+
+.tenant-quota-section > .section-heading {
+  padding: var(--space-4) var(--space-5);
+}
+
+.tenant-quota-summary {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  margin: 0;
+  border-top: 1px solid var(--color-border);
+}
+
+.tenant-security-summary {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.tenant-quota-summary > div {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+  padding: var(--space-3) var(--space-4);
+  border-right: 1px solid var(--color-border);
+}
+
+.tenant-quota-summary > div:last-child {
+  border-right: 0;
+}
+
+.tenant-quota-summary dt {
+  color: var(--color-text-secondary);
+  font-size: var(--text-xs);
+}
+
+.tenant-quota-summary dd {
+  display: grid;
+  gap: var(--space-1);
+  margin: 0;
+}
+
+.tenant-quota-dialog {
+  width: min(48rem, calc(100vw - 2rem));
+  max-height: min(46rem, calc(100dvh - 2rem));
+  overflow: auto;
+}
+
+.tenant-quota-dialog .dialog-heading {
+  display: grid;
+  justify-content: stretch;
+  gap: var(--space-1);
+}
+
+.tenant-quota-dialog-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4);
+}
+
+.dialog-actions {
+  justify-content: flex-end;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .tenant-step-card {
+    animation: tenant-step-enter 200ms cubic-bezier(0.2, 0, 0, 1) both;
+  }
+
+  @keyframes tenant-step-enter {
+    from {
+      opacity: 0;
+      transform: translateY(0.375rem);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}
+
+@media (max-width: 1040px) and (min-width: 681px) {
+  .tenant-quota-summary {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .tenant-quota-summary > div:nth-child(3) {
+    border-right: 0;
+  }
+
+  .tenant-quota-summary > div:nth-child(n + 4) {
+    border-top: 1px solid var(--color-border);
+  }
+}
+
+@media (max-width: 680px) {
+  .tenant-setup-surface {
+    gap: var(--space-3);
+  }
+
+  .tenant-setup-progress {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .tenant-setup-progress li,
+  .tenant-setup-progress li:last-child {
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: var(--space-2);
+    min-height: 3.5rem;
+    padding: var(--space-2);
+    border-right: 1px solid var(--color-border);
+    border-bottom: 0;
+    font-size: var(--text-xs);
+  }
+
+  .tenant-setup-progress li:last-child {
+    border-right: 0;
+  }
+
+  .tenant-setup-progress li > span {
+    width: 1.5rem;
+    height: 1.5rem;
+  }
+
+  .tenant-setup-form {
+    padding-bottom: 4.75rem;
+  }
+
+  .tenant-setup-form .tenant-step-card {
+    gap: var(--space-3);
+    padding: var(--space-4);
+  }
+
+  .tenant-step-heading h2 {
+    font-size: var(--text-lg);
+  }
+
+  .tenant-confirmation-summary,
+  .tenant-quota-grid,
+  .tenant-quota-summary,
+  .tenant-quota-dialog-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .tenant-quota-summary > div:nth-child(2n) {
+    border-right: 0;
+  }
+
+  .tenant-quota-summary > div:nth-child(n + 3) {
+    border-top: 1px solid var(--color-border);
+  }
+
+  .tenant-setup-actions {
+    position: fixed;
+    right: var(--space-3);
+    bottom: calc(4.75rem + var(--space-2) + env(safe-area-inset-bottom));
+    left: var(--space-3);
+    z-index: 45;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+    padding: var(--space-2);
+    border: 1px solid var(--color-border-strong);
+    border-radius: var(--radius-control);
+    background: var(--color-surface);
+    box-shadow: var(--shadow-floating);
+  }
+
+  .tenant-setup-actions [data-discard-tenant-setup] {
+    margin-right: 0;
+  }
+
+  .tenant-setup-actions .button {
+    width: auto;
+    min-width: 0;
+    white-space: nowrap;
+  }
+
+  .tenant-quota-dialog {
+    width: calc(100vw - 1rem);
+    max-height: calc(100dvh - 1rem);
+  }
+
+  .tenant-quota-dialog form {
+    padding: var(--space-4);
+  }
+
+  .tenant-quota-dialog-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .tenant-quota-dialog .dialog-actions {
+    position: sticky;
+    bottom: 0;
+    padding-top: var(--space-3);
+    background: var(--color-surface);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tenant-step-card {
+    animation: none !important;
+    transform: none !important;
   }
 }

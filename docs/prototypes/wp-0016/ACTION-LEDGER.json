@@ -1,7 +1,8 @@
 {
   "workPackage": "WP-0016",
   "generatedOn": "2026-09-03",
-  "browserVerification": "passed",
+  "browserVerification": "pendingAuthorization",
+  "browserVerificationNote": "本轮首次浏览器复核 8/10；随后获知本地访问限制，新增安全配置与最终修复等待本次独立浏览器授权复验。旧条目的通过范围仅限所引历史证据。",
   "classification": {
     "navigation": "仅改变原型页面，不计作业务完成",
     "implementedStateChange": "合成状态已有 Node 测试；browserVerified 只表示条目注明的浏览器范围，不代表完整业务或人工通过",
@@ -13,15 +14,15 @@
   },
   "summary": {
     "navigation": 47,
-    "implementedRead": 5,
-    "implementedStateChange": 24,
-    "pendingDecision": 3,
+    "implementedRead": 6,
+    "implementedStateChange": 26,
+    "pendingDecision": 1,
     "unimplemented": 17,
     "forbidden": 1,
     "partialSimulation": 0,
     "totalPages": 68,
-    "totalControls": 97,
-    "unclosedControls": 20,
+    "totalControls": 98,
+    "unclosedControls": 18,
     "allControlsEnumerated": false,
     "readyForFullAcceptance": false
   },
@@ -82,16 +83,14 @@
       "screen": "platform-tenant-create",
       "phase": "M6",
       "shell": "console",
-      "primaryTask": "分三步建立租户与首位租户管理员",
+      "primaryTask": "分三步建立租户并设置资源配额",
       "controls": [
         {
-          "label": "建立租户",
+          "label": "下一步、上一步与创建租户",
           "kind": "primaryOrTaskControl",
           "status": "implementedStateChange",
-          "evidence": "business-closure.test.mjs：校验、保存、刷新",
-          "browserVerified": true,
-          "browserEvidence": "artifacts/browser-review-20260903-final/verification.json",
-          "browserScope": "仅报告中对应正常路径或失败重试；未测分支不因此获得通过"
+          "evidence": "tenant-quota-state.test.mjs：配额、草稿、创建、刷新、失败回滚；tenant-setup.browser.test.cjs 最终复验待授权",
+          "browserVerified": false
         },
         {
           "label": "取消或校验失败",
@@ -127,10 +126,17 @@
           "browserScope": "仅报告中对应正常路径或失败重试；未测分支不因此获得通过"
         },
         {
-          "label": "安全策略与配额修改",
+          "label": "编辑配额、保存与取消",
           "kind": "primaryOrTaskControl",
-          "status": "pendingDecision",
-          "evidence": "规则未确认，因此不渲染可保存控件",
+          "status": "implementedStateChange",
+          "evidence": "ADR-0076；tenant-quota-state.test.mjs：非默认值、低于用量、角色拒绝与存储失败；浏览器最终复验待授权",
+          "browserVerified": false
+        },
+        {
+          "label": "编辑登录策略、保存与取消",
+          "kind": "primaryOrTaskControl",
+          "status": "implementedStateChange",
+          "evidence": "ADR-0076；tenant-security-state.test.mjs：三项白名单配置、不可关闭安全底线、角色拒绝及存储失败；不代表真实登录锁定",
           "browserVerified": false
         }
       ]
@@ -903,13 +909,13 @@
       "screen": "usage-quotas",
       "phase": "M6",
       "shell": "console",
-      "primaryTask": "核对 Token、费用、预算和配额版本",
+      "primaryTask": "查看合成用量与平台分配的资源配额",
       "controls": [
         {
-          "label": "调整配额",
+          "label": "刷新用量",
           "kind": "primaryAction",
-          "status": "pendingDecision",
-          "evidence": "配额修改权限和生效规则尚未确认",
+          "status": "implementedRead",
+          "evidence": "reviewer-regression.test.mjs：只读已保存资源配额，不提供调整入口；浏览器复验待授权",
           "browserVerified": false
         }
       ]

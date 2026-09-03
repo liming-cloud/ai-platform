@@ -257,7 +257,16 @@ function render() {
   screenSelect.value = scenario.screen;
   stateSelect.value = scenario.state;
   updateReviewerContext(scenario.screen);
-  root.innerHTML = renderScreen(screen, renderedState, demoState);
+  const renderedDemoState =
+    screen === "platform-tenant-detail"
+      ? {
+          ...demoState,
+          tenantQuotaProjection: prototypeStore.getTenantQuotas(
+            demoState.selectedTenantId || DEFAULT_TENANT_ID,
+          ),
+        }
+      : demoState;
+  root.innerHTML = renderScreen(screen, renderedState, renderedDemoState);
   const page = pageByScreen.get(screen);
   decorateExistingPage(
     root.querySelector(`main[data-screen="${CSS.escape(screen)}"]`),
@@ -1181,7 +1190,7 @@ function renderAssistantRelease(state) {
       '<div class="split-detail"><div>',
       '<section class="section-block"><h2>冻结配置</h2><dl class="description-list"><dt>知识库</dt><dd>' +
         escapeHtml(assistant.knowledgeBase) +
-        ' · 永久绑定</dd><dt>索引</dt><dd><span class="mono">' +
+        ' · 创建后不能更换</dd><dt>索引</dt><dd><span class="mono">' +
         escapeHtml(assistant.indexVersion) +
         "</span></dd><dt>Chat</dt><dd>" +
         escapeHtml(assistant.chatModel) +
@@ -1429,6 +1438,13 @@ function bindInteractions(screen) {
     });
   });
   bindTenantCreation();
+  bindTenantSettingEditing("quota", "quotas", "资源配额", prototypeStore.saveTenantQuotas);
+  bindTenantSettingEditing("security", "security", "登录策略", prototypeStore.saveTenantSecurity);
+  root.querySelector("[data-refresh-tenant-usage]")?.addEventListener("click", () => {
+    render();
+    root.querySelector("[data-refresh-tenant-usage]")?.focus();
+    root.querySelector("#tenant-usage-feedback").textContent = "已刷新合成用量与平台配额。";
+  });
   bindDirectorySearch();
   bindTenantFeatures();
   bindMemberManagement();
@@ -1450,29 +1466,212 @@ function bindDirectorySearch() {
 }
 
 function bindTenantCreation() {
-  root.querySelector("#tenant-create-form")?.addEventListener("submit", (event) => {
+  const form = root.querySelector("#tenant-create-form");
+  if (!form) return;
+  const feedback = form.querySelector("#tenant-create-feedback");
+  const showStorageFailure = () => {
+    feedback.textContent = "浏览器无法保存租户草稿，请检查本地存储后重试。";
+    feedback.dataset.tone = "danger";
+  };
+  form.querySelectorAll("[data-tenant-draft], [data-tenant-quota]").forEach((control) => {
+    const persist = () => {
+      const patch = control.hasAttribute("data-tenant-quota")
+        ? { quotas: { [control.name]: control.value } }
+        : { [control.name]: control.value };
+      if (!prototypeStore.updateTenantSetup(patch).ok) showStorageFailure();
+    };
+    control.addEventListener(control.tagName === "SELECT" ? "change" : "input", persist);
+  });
+  form.querySelector("[data-tenant-setup-back]")?.addEventListener("click", () => {
+    const step = Number(form.dataset.currentTenantStep) || 1;
+    const result = prototypeStore.updateTenantSetup({ step: Math.max(1, step - 1) });
+    if (!result.ok) {
+      showStorageFailure();
+      return;
+    }
+    render();
+  });
+  form.querySelector("[data-discard-tenant-setup]")?.addEventListener("click", () => {
+    const result = prototypeStore.discardTenantSetup();
+    if (!result.ok) {
+      showStorageFailure();
+      return;
+    }
+    navigate("platform-tenants");
+  });
+  form.addEventListener("submit", (event) => {
     event.preventDefault();
-    const form = event.currentTarget;
-    const values = new FormData(form);
-    const result = prototypeStore.createTenant({
-      organizationName: values.get("organizationName"),
-      tenantCode: values.get("tenantCode"),
-      administratorAccountId: values.get("administratorAccountId"),
-      confirmed: values.get("confirmed") === "on",
-    });
     form.querySelectorAll("[aria-invalid]").forEach((control) =>
       control.removeAttribute("aria-invalid"),
     );
-    const feedback = form.querySelector("#tenant-create-feedback");
+    feedback.textContent = "";
+    feedback.removeAttribute("data-tone");
+    if (!form.reportValidity()) {
+      const invalid = form.querySelector(":invalid");
+      invalid?.setAttribute("aria-invalid", "true");
+      feedback.textContent = "请完成当前步骤后继续。";
+      feedback.dataset.tone = "danger";
+      invalid?.focus();
+      return;
+    }
+    const step = Number(form.dataset.currentTenantStep) || 1;
+    const values = new FormData(form);
+    if (step < 3) {
+      if (step === 1 && prototypeStore.getSnapshot().tenants.some(tenant => tenant.code === values.get("tenantCode"))) {
+        const control = form.elements.namedItem("tenantCode");
+        control.setAttribute("aria-invalid", "true");
+        feedback.textContent = "此租户编码已存在，请使用其他编码。";
+        feedback.dataset.tone = "danger";
+        control.focus();
+        return;
+      }
+      const patch =
+        step === 1
+          ? {
+              organizationName: values.get("organizationName"),
+              tenantCode: values.get("tenantCode"),
+              step: 2,
+            }
+          : {
+              administratorAccountId: values.get("administratorAccountId"),
+              step: 3,
+            };
+      const updated = prototypeStore.updateTenantSetup(patch);
+      if (!updated.ok) {
+        showStorageFailure();
+        return;
+      }
+      render();
+      return;
+    }
+    const setup = prototypeStore.getSnapshot().tenantSetup;
+    const quotas = Object.fromEntries(
+      [...form.querySelectorAll("[data-tenant-quota]")].map((control) => [
+        control.name,
+        control.value,
+      ]),
+    );
+    const result = prototypeStore.createTenant({
+      organizationName: setup.organizationName,
+      tenantCode: setup.tenantCode,
+      administratorAccountId: setup.administratorAccountId,
+      quotas,
+      confirmed: values.get("confirmed") === "on",
+    });
     if (!result.ok) {
-      result.errors.forEach((error) => {
+      const errors = result.errors || [];
+      const firstError = errors[0];
+      const errorStep =
+        firstError && ["organizationName", "tenantCode"].includes(firstError.field)
+          ? 1
+          : firstError?.field === "administratorAccountId"
+            ? 2
+            : 3;
+      if (errorStep !== step) {
+        const moved = prototypeStore.updateTenantSetup({ step: errorStep });
+        if (!moved.ok) {
+          showStorageFailure();
+          return;
+        }
+        render();
+        const nextForm = root.querySelector("#tenant-create-form");
+        const target = nextForm?.elements.namedItem(firstError.field);
+        target?.setAttribute("aria-invalid", "true");
+        const nextFeedback = nextForm?.querySelector("#tenant-create-feedback");
+        if (nextFeedback) {
+          nextFeedback.textContent = errors.map((error) => error.message).join(" ");
+          nextFeedback.dataset.tone = "danger";
+        }
+        target?.focus();
+        return;
+      }
+      errors.forEach((error) => {
         form.elements.namedItem(error.field)?.setAttribute("aria-invalid", "true");
       });
-      feedback.textContent = result.errors.map((error) => error.message).join(" ");
+      feedback.textContent =
+        result.reason === "STORAGE_UNAVAILABLE"
+          ? "浏览器无法保存新租户，本次创建未生效。"
+          : errors.map((error) => error.message).join(" ") || "当前信息无法创建租户。";
       feedback.dataset.tone = "danger";
+      const firstInvalid = form.querySelector("[aria-invalid='true']");
+      firstInvalid?.focus();
       return;
     }
     navigate("platform-tenant-detail");
+  });
+}
+
+/** 配额与登录策略共用编辑交互，状态层分别执行白名单与角色校验。 */
+function bindTenantSettingEditing(key, action, label, save) {
+  const triggerSelector = `[data-edit-tenant-${action}]`;
+  const trigger = root.querySelector(triggerSelector);
+  const dialog = root.querySelector(`#tenant-${key}-dialog`);
+  const form = root.querySelector(`#tenant-${key}-form`);
+  if (!trigger || !dialog || !form) return;
+  const feedback = form.querySelector(`#tenant-${key}-feedback`);
+  const resetForm = () => {
+    form.reset();
+    form.querySelectorAll("[aria-invalid]").forEach((control) =>
+      control.removeAttribute("aria-invalid"),
+    );
+    feedback.textContent = "";
+    feedback.removeAttribute("data-tone");
+  };
+  trigger.addEventListener("click", () => {
+    resetForm();
+    dialog.showModal();
+    form.querySelector("input")?.focus();
+  });
+  form.querySelector(`[data-cancel-tenant-${action}]`)?.addEventListener("click", () => {
+    resetForm();
+    dialog.close();
+    trigger.focus();
+  });
+  dialog.addEventListener("close", resetForm);
+  form.addEventListener("submit", (event) => {
+    event.preventDefault();
+    form.querySelectorAll("[aria-invalid]").forEach((control) =>
+      control.removeAttribute("aria-invalid"),
+    );
+    if (!form.reportValidity()) {
+      const invalid = form.querySelector(":invalid");
+      invalid?.setAttribute("aria-invalid", "true");
+      feedback.textContent = `请修正${label}后保存。`;
+      feedback.dataset.tone = "danger";
+      invalid?.focus();
+      return;
+    }
+    const values = new FormData(form);
+    const settings = Object.fromEntries(
+      [...form.querySelectorAll("input[name]")].map((control) => [
+        control.name,
+        values.get(control.name),
+      ]),
+    );
+    const result = save(
+      form.dataset.tenantId,
+      settings,
+      "platformAdministrator",
+    );
+    if (!result.ok) {
+      const errors = result.errors || [];
+      errors.forEach((error) => {
+        form.elements.namedItem(error.field)?.setAttribute("aria-invalid", "true");
+      });
+      feedback.textContent =
+        result.reason === "STORAGE_UNAVAILABLE"
+          ? `浏览器无法保存${label}，本次修改未生效。`
+          : result.reason === "FORBIDDEN"
+            ? `当前演示身份无权修改${label}。`
+            : errors.map((error) => error.message).join(" ") || `${label}未保存。`;
+      feedback.dataset.tone = "danger";
+      form.querySelector("[aria-invalid='true']")?.focus();
+      return;
+    }
+    dialog.close();
+    render();
+    root.querySelector(triggerSelector)?.focus();
+    root.querySelector("#tenant-settings-feedback").textContent = `${label}已保存。`;
   });
 }
 

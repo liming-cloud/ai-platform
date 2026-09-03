@@ -25,8 +25,8 @@
       "pages": [
         {"screen": "platform-overview", "route": "/platform/operations", "task": "处理全平台脱敏运营风险", "primaryAction": "打开首个阻断项", "pagination": true, "contractLevel": "accepted"},
         {"screen": "platform-tenants", "route": "/platform/tenants", "task": "查找并管理租户生命周期", "primaryAction": "建立新租户", "pagination": true, "contractLevel": "accepted"},
-        {"screen": "platform-tenant-create", "route": "/platform/tenants/new", "task": "分三步建立租户与首位租户管理员", "primaryAction": "建立租户", "pagination": false, "contractLevel": "accepted"},
-        {"screen": "platform-tenant-detail", "route": "/platform/tenants/:tenantId", "task": "核对租户事实并配置可用功能", "primaryAction": "保存可用功能", "pagination": false, "contractLevel": "prototype-only"},
+        {"screen": "platform-tenant-create", "route": "/platform/tenants/new", "task": "分三步建立租户并设置资源配额", "primaryAction": "下一步", "pagination": false, "contractLevel": "accepted"},
+        {"screen": "platform-tenant-detail", "route": "/platform/tenants/:tenantId", "task": "核对租户事实并维护功能与配额", "primaryAction": "保存功能配置", "pagination": false, "contractLevel": "prototype-only"},
         {"screen": "platform-accounts", "route": "/platform/accounts", "task": "管理平台人员账户", "primaryAction": "新增平台管理员", "pagination": true, "contractLevel": "accepted"},
         {"screen": "platform-roles", "route": "/platform/roles", "task": "理解平台固定角色及最小披露边界", "primaryAction": "管理账户", "pagination": false, "contractLevel": "accepted"},
         {"screen": "platform-model-connections", "route": "/platform/model-supply", "task": "管理平台模型供应商连接", "primaryAction": "新增供应商连接", "pagination": true, "contractLevel": "accepted"},
@@ -92,7 +92,7 @@
       "phase": "M6",
       "pages": [
         {"screen": "assistants-directory", "route": "/assistants", "task": "查找草稿、待评测或已发布助手", "primaryAction": "新建助手", "pagination": true, "contractLevel": "prototype-only"},
-        {"screen": "assistant-create", "route": "/assistants/new", "task": "创建永久绑定一个知识库的稳定助手", "primaryAction": "创建助手", "pagination": false, "contractLevel": "prototype-only"},
+        {"screen": "assistant-create", "route": "/assistants/new", "task": "创建助手并关联一个知识库", "primaryAction": "创建助手", "pagination": false, "contractLevel": "prototype-only"},
         {"screen": "assistant-draft", "route": "/assistants/:assistantId/draft", "task": "配置并校验一个助手草稿版本", "primaryAction": "保存草稿", "pagination": false, "contractLevel": "prototype-only"},
         {"screen": "assistant-test", "route": "/assistants/:assistantId/test", "task": "在冻结依赖下验证问题、答案和引用", "primaryAction": "加入评测集", "pagination": false, "contractLevel": "prototype-only"},
         {"screen": "assistant-evaluation", "route": "/assistants/:assistantId/evaluations", "task": "判断助手版本是否达到发布门禁", "primaryAction": "请求发布", "pagination": false, "contractLevel": "prototype-only"},
@@ -113,7 +113,7 @@
         {"screen": "evaluation-comparison", "route": "/evaluation/comparisons/:comparisonId", "task": "比较两个冻结版本的改善与回退", "primaryAction": "形成门禁决定", "pagination": false, "contractLevel": "prototype-only"},
         {"screen": "evaluation-failure-analysis", "route": "/evaluation/runs/:runId/failures", "task": "按失败类别定位可修复原因", "primaryAction": "创建修复事项", "pagination": true, "contractLevel": "prototype-only"},
         {"screen": "governance-query", "route": "/governance/query", "task": "查看查询用量和脱敏运行摘要", "primaryAction": "调整查询配额", "pagination": true, "contractLevel": "accepted"},
-        {"screen": "usage-quotas", "route": "/governance/usage", "task": "核对 Token、费用、预算和配额版本", "primaryAction": "调整配额", "pagination": true, "contractLevel": "prototype-only"},
+        {"screen": "usage-quotas", "route": "/governance/usage", "task": "查看合成用量与平台分配的资源配额", "primaryAction": "刷新用量", "pagination": true, "contractLevel": "prototype-only"},
         {"screen": "audit-records", "route": "/governance/audit", "task": "查询访问、配置、发布和撤销事件", "primaryAction": "导出受控记录", "pagination": true, "contractLevel": "prototype-only"},
         {"screen": "audit-record-detail", "route": "/governance/audit/:eventId", "task": "解释一条审计事件的主体、范围和版本链", "primaryAction": "返回审计目录", "pagination": false, "contractLevel": "prototype-only"},
         {"screen": "query-diagnostic", "route": "/governance/query-runs/:queryRunId", "task": "在受权范围内解释查询失败阶段", "primaryAction": "创建修复事项", "pagination": false, "contractLevel": "prototype-only"}

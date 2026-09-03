@@ -1,0 +1,198 @@
+TAP version 13
+# Subtest: 创建租户保存非默认配额且刷新恢复
+not ok 1 - 创建租户保存非默认配额且刷新恢复
+  ---
+  duration_ms: 2.151958
+  type: 'test'
+  location: '/Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/tenant-quota-state.test.mjs:9:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly deep-equal:
+    + actual - expected
+
+      {
+    +   documentsPerKnowledgeBase: 1000,
+    +   knowledgeBases: 3,
+    +   pastedTextMib: 1,
+    +   rawContentGbPerKnowledgeBase: 10,
+    +   singleFileMb: 50
+    -   documentsPerKnowledgeBase: 2500,
+    -   knowledgeBases: 6,
+    -   pastedTextMib: 2,
+    -   rawContentGbPerKnowledgeBase: 30,
+    -   singleFileMb: 80
+      }
+
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+    knowledgeBases: 6
+    documentsPerKnowledgeBase: 2500
+    rawContentGbPerKnowledgeBase: 30
+    singleFileMb: 80
+    pastedTextMib: 2
+  actual:
+    knowledgeBases: 3
+    documentsPerKnowledgeBase: 1000
+    rawContentGbPerKnowledgeBase: 10
+    singleFileMb: 50
+    pastedTextMib: 1
+  operator: 'deepStrictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/tenant-quota-state.test.mjs:13:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.start (node:internal/test_runner/test:944:17)
+    startSubtestAfterBootstrap (node:internal/test_runner/harness:296:17)
+  ...
+# Subtest: 非法配额在创建前拒绝且不留下租户
+not ok 2 - 非法配额在创建前拒绝且不留下租户
+  ---
+  duration_ms: 0.286959
+  type: 'test'
+  location: '/Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/tenant-quota-state.test.mjs:18:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    知识库数量 0 应拒绝
+
+    true !== false
+
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: false
+  actual: true
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/tenant-quota-state.test.mjs:22:12)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+  ...
+# Subtest: 创建草稿白名单持久化、回退与取消
+not ok 3 - 创建草稿白名单持久化、回退与取消
+  ---
+  duration_ms: 0.181333
+  type: 'test'
+  location: '/Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/tenant-quota-state.test.mjs:28:1'
+  failureType: 'testCodeFailure'
+  error: 'store.updateTenantSetup is not a function'
+  code: 'ERR_TEST_FAILURE'
+  name: 'TypeError'
+  stack: |-
+    TestContext.<anonymous> (file:///Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/tenant-quota-state.test.mjs:30:22)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: 成功创建清除草稿，重复编码失败则保留草稿
+not ok 4 - 成功创建清除草稿，重复编码失败则保留草稿
+  ---
+  duration_ms: 0.083334
+  type: 'test'
+  location: '/Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/tenant-quota-state.test.mjs:41:1'
+  failureType: 'testCodeFailure'
+  error: 'store.updateTenantSetup is not a function'
+  code: 'ERR_TEST_FAILURE'
+  name: 'TypeError'
+  stack: |-
+    TestContext.<anonymous> (file:///Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/tenant-quota-state.test.mjs:43:9)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: 平台保存配额、只读投影隔离与刷新
+not ok 5 - 平台保存配额、只读投影隔离与刷新
+  ---
+  duration_ms: 0.084875
+  type: 'test'
+  location: '/Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/tenant-quota-state.test.mjs:51:1'
+  failureType: 'testCodeFailure'
+  error: 'store.saveTenantQuotas is not a function'
+  code: 'ERR_TEST_FAILURE'
+  name: 'TypeError'
+  stack: |-
+    TestContext.<anonymous> (file:///Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/tenant-quota-state.test.mjs:53:22)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: 模拟租户角色和未知租户不能修改配额
+not ok 6 - 模拟租户角色和未知租户不能修改配额
+  ---
+  duration_ms: 0.135417
+  type: 'test'
+  location: '/Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/tenant-quota-state.test.mjs:62:1'
+  failureType: 'testCodeFailure'
+  error: 'store.saveTenantQuotas is not a function'
+  code: 'ERR_TEST_FAILURE'
+  name: 'TypeError'
+  stack: |-
+    TestContext.<anonymous> (file:///Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/tenant-quota-state.test.mjs:66:24)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: 资源配额不能低于已用量，单次接入限制可降低而不删数据
+not ok 7 - 资源配额不能低于已用量，单次接入限制可降低而不删数据
+  ---
+  duration_ms: 0.147834
+  type: 'test'
+  location: '/Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/tenant-quota-state.test.mjs:72:1'
+  failureType: 'testCodeFailure'
+  error: 'store.getTenantQuotas is not a function'
+  code: 'ERR_TEST_FAILURE'
+  name: 'TypeError'
+  stack: |-
+    TestContext.<anonymous> (file:///Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/tenant-quota-state.test.mjs:74:28)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: 存储失败不能报告创建、草稿或配置保存成功
+not ok 8 - 存储失败不能报告创建、草稿或配置保存成功
+  ---
+  duration_ms: 0.1365
+  type: 'test'
+  location: '/Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/tenant-quota-state.test.mjs:84:1'
+  failureType: 'testCodeFailure'
+  error: '合成存储故障'
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    Object.setItem (file:///Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/tenant-quota-state.test.mjs:86:51)
+    persist (file:///Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/prototype-state.js:326:13)
+    Object.createTenant (file:///Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/prototype-state.js:409:5)
+    store.updateTenantSetup.organizationName (file:///Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/tenant-quota-state.test.mjs:87:37)
+    TestContext.<anonymous> (file:///Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/tenant-quota-state.test.mjs:90:20)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+  ...
+1..8
+# tests 8
+# suites 0
+# pass 0
+# fail 8
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 51.517167

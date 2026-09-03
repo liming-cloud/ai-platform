@@ -1,0 +1,16 @@
+TAP version 13
+# Subtest: 有无帮助说明的同排输入框顶部和高度一致
+ok 1 - 有无帮助说明的同排输入框顶部和高度一致
+  ---
+  duration_ms: 688.873417
+  type: 'test'
+  ...
+1..1
+# tests 1
+# suites 0
+# pass 1
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 892.111334
