@@ -78,6 +78,7 @@
 | ADR-0072 | 已接受 | 租户知识库所有权、工作区边界与可恢复生命周期 | `docs/adr/ADR-0072-tenant-owned-knowledge-base-workspace.md` |
 | ADR-0073 | 已接受 | 平台拥有租户管理员生命周期与人员身份互斥 | `docs/adr/ADR-0073-platform-owned-tenant-administrator-governance.md` |
 | ADR-0074 | 已接受 | M6 可信 RAG 产品与研发基线重建 | `docs/adr/ADR-0074-m6-trusted-rag-product-and-engineering-baseline.md` |
+| ADR-0075 | 已接受 | 租户功能上限与普通成员对话功能控制 | `docs/adr/ADR-0075-tenant-and-member-feature-control.md` |
 
 ## 已确认人工决策
 

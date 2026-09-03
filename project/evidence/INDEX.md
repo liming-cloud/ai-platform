@@ -365,6 +365,7 @@
 | OpenDesign 全平台高保真原型候选 | `project/evidence/WP-0016-open-design-full-platform-candidate.md` | `18d9acdd1` | 原型扩展为 68 个实际页面；3,929 条静态断言与 1,428 个 HTTP 场景通过，最终 P1 lint 无发现。真实 DOM、响应式、交互和 83 张截图因浏览器权限拒绝未执行，不得以旧 15 张截图替代；WP-0016 保持进行中。 |
 | 原型人工评审拒绝 | `project/evidence/WP-0016-prototype-human-review-rejection-20260903.md` | 评审对象 `18d9acdd1` | 2026-09-03 明确不通过：说明过多、对齐与美观度不足。整改后须重新验证，WP-0016 保持进行中。 |
 | 原型视觉整改候选 | `project/evidence/WP-0016-visual-remediation-candidate-20260903.md` | `74970bb53` | 68 页采用 7 / 5 / 7 参数；4,028 条静态断言和 4 项补充回归通过；本轮浏览器未授权，新截图为 0，人工拒绝状态保留。 |
+| 业务闭环人工复核拒绝 | `project/evidence/WP-0016-business-review-rejection-20260903.md` | 评审对象 `74970bb53` | 导航、业务语义和操作闭环仍不满足验收；产品负责人已确认 ADR-0075 两级功能控制及先能用再好用。 |
 
 ## 证据规则
 
