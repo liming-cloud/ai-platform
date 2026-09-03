@@ -1,32 +1,117 @@
 {
-  "status": "BLOCKED",
-  "generatedAt": "2026-09-03T00:46:28.704Z",
+  "status": "FAIL",
+  "generatedAt": "2026-09-03T05:27:28.726Z",
+  "evidenceScope": "真实 DOM、布局、特定交互与导航；不是全部控件闭环或人工认可",
   "pageCount": 68,
   "stateCount": 7,
   "viewportCount": 3,
-  "scenarioCount": 1428,
-  "assertionCount": 0,
-  "screenshotCount": 0,
-  "browserErrors": [
-    "本轮未启动浏览器：等待用户重新授权本地页面访问。"
+  "declaredScenarioCount": 1428,
+  "completedScenarioCount": 1428,
+  "assertionCount": 9661,
+  "screenshotCount": 87,
+  "stages": [
+    {
+      "name": "审查器与导航图标",
+      "status": "PASS",
+      "failures": [],
+      "browserErrors": []
+    },
+    {
+      "name": "全部页面状态与视口",
+      "status": "FAIL",
+      "failures": [
+        "mobile/platform-roles/partial 出现文档级横向滚动",
+        "mobile/platform-roles/disabled 出现文档级横向滚动",
+        "mobile/platform-roles/success 出现文档级横向滚动"
+      ],
+      "browserErrors": []
+    },
+    {
+      "name": "创建租户与管理导航",
+      "status": "PASS",
+      "failures": [],
+      "browserErrors": []
+    },
+    {
+      "name": "成员与两级功能控制",
+      "status": "PASS",
+      "failures": [],
+      "browserErrors": []
+    },
+    {
+      "name": "成员弹窗键盘与取消",
+      "status": "PASS",
+      "failures": [],
+      "browserErrors": []
+    },
+    {
+      "name": "运行状态与隔离恢复",
+      "status": "PASS",
+      "failures": [],
+      "browserErrors": []
+    },
+    {
+      "name": "恢复检查失败与重试",
+      "status": "PASS",
+      "failures": [],
+      "browserErrors": []
+    },
+    {
+      "name": "审查器收起可达性",
+      "status": "FAIL",
+      "failures": [
+        "审查器收起可达性: locator.click: Timeout 5000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('#prototype-reviewer summary')\u001b[22m\n\u001b[2m    - locator resolved to <summary>原型场景</summary>\u001b[22m\n\u001b[2m  - attempting click action\u001b[22m\n\u001b[2m    2 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m      - element is visible, enabled and stable\u001b[22m\n\u001b[2m      - scrolling into view if needed\u001b[22m\n\u001b[2m      - done scrolling\u001b[22m\n\u001b[2m      - element is outside of the viewport\u001b[22m\n\u001b[2m    - retrying click action\u001b[22m\n\u001b[2m    - waiting 20ms\u001b[22m\n\u001b[2m    2 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m      - element is visible, enabled and stable\u001b[22m\n\u001b[2m      - scrolling into view if needed\u001b[22m\n\u001b[2m      - done scrolling\u001b[22m\n\u001b[2m      - element is outside of the viewport\u001b[22m\n\u001b[2m    - retrying click action\u001b[22m\n\u001b[2m      - waiting 100ms\u001b[22m\n\u001b[2m    9 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m      - element is visible, enabled and stable\u001b[22m\n\u001b[2m      - scrolling into view if needed\u001b[22m\n\u001b[2m      - done scrolling\u001b[22m\n\u001b[2m      - element is outside of the viewport\u001b[22m\n\u001b[2m    - retrying click action\u001b[22m\n\u001b[2m      - waiting 500ms\u001b[22m\n\n    at validateReviewerReachability (/Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/verify-and-capture.cjs:429:53)\n    at async runStage (/Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/verify-and-capture.cjs:668:5)\n    at async main (/Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/verify-and-capture.cjs:716:7)"
+      ],
+      "browserErrors": []
+    },
+    {
+      "name": "普通用户登录",
+      "status": "FAIL",
+      "failures": [
+        "普通用户登录: locator.fill: Timeout 5000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('#login-form input[name=\"password\"]')\u001b[22m\n\n    at validateQueryLogin (/Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/verify-and-capture.cjs:455:60)\n    at async runStage (/Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/verify-and-capture.cjs:668:5)\n    at async main (/Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/verify-and-capture.cjs:716:7)"
+      ],
+      "browserErrors": []
+    },
+    {
+      "name": "问答示例与键盘",
+      "status": "PASS",
+      "failures": [],
+      "browserErrors": []
+    },
+    {
+      "name": "会话刷新恢复",
+      "status": "FAIL",
+      "failures": [
+        "刷新后刚提交的问题丢失，会话未形成可恢复闭环"
+      ],
+      "browserErrors": []
+    },
+    {
+      "name": "设备前置导航",
+      "status": "PASS",
+      "failures": [],
+      "browserErrors": []
+    },
+    {
+      "name": "页面截图",
+      "status": "PASS",
+      "failures": [],
+      "browserErrors": []
+    },
+    {
+      "name": "减少动态效果",
+      "status": "PASS",
+      "failures": [],
+      "browserErrors": []
+    }
   ],
+  "browserErrors": [],
   "failures": [
-    "本轮真实 DOM、焦点、文档级横向滚动、九条交互闭环与截图验证待授权；没有生成或复用旧截图。"
-  ],
-  "inventorySummary": {
-    "schemaVersion": 1,
-    "description": "WP-0016 全平台高保真原型页面单一事实源",
-    "groups": [
-      {"id":"shared-access","label":"共享访问","phase":"M6","shell":"console","pageCount":1},
-      {"id":"platform-governance","label":"平台治理","phase":"M6","shell":"console","pageCount":10},
-      {"id":"tenant-access-knowledge","label":"租户访问与知识","phase":"M6","shell":"console","pageCount":13},
-      {"id":"knowledge-indexing","label":"知识处理与索引","phase":"M6","shell":"console","pageCount":6},
-      {"id":"tenant-models","label":"租户模型","phase":"M6","shell":"console","pageCount":7},
-      {"id":"assistant-delivery","label":"助手交付","phase":"M6","shell":"console","pageCount":7},
-      {"id":"evaluation-governance","label":"评测与治理","phase":"M6","shell":"console","pageCount":11},
-      {"id":"query-app","label":"普通用户问答","phase":"M6","shell":"query","pageCount":3},
-      {"id":"device-app","label":"设备问答","phase":"M7","shell":"device","pageCount":4},
-      {"id":"platform-operations","label":"平台运维","phase":"M8","shell":"console","pageCount":6}
-    ]
-  }
+    "mobile/platform-roles/partial 出现文档级横向滚动",
+    "mobile/platform-roles/disabled 出现文档级横向滚动",
+    "mobile/platform-roles/success 出现文档级横向滚动",
+    "审查器收起可达性: locator.click: Timeout 5000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('#prototype-reviewer summary')\u001b[22m\n\u001b[2m    - locator resolved to <summary>原型场景</summary>\u001b[22m\n\u001b[2m  - attempting click action\u001b[22m\n\u001b[2m    2 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m      - element is visible, enabled and stable\u001b[22m\n\u001b[2m      - scrolling into view if needed\u001b[22m\n\u001b[2m      - done scrolling\u001b[22m\n\u001b[2m      - element is outside of the viewport\u001b[22m\n\u001b[2m    - retrying click action\u001b[22m\n\u001b[2m    - waiting 20ms\u001b[22m\n\u001b[2m    2 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m      - element is visible, enabled and stable\u001b[22m\n\u001b[2m      - scrolling into view if needed\u001b[22m\n\u001b[2m      - done scrolling\u001b[22m\n\u001b[2m      - element is outside of the viewport\u001b[22m\n\u001b[2m    - retrying click action\u001b[22m\n\u001b[2m      - waiting 100ms\u001b[22m\n\u001b[2m    9 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m      - element is visible, enabled and stable\u001b[22m\n\u001b[2m      - scrolling into view if needed\u001b[22m\n\u001b[2m      - done scrolling\u001b[22m\n\u001b[2m      - element is outside of the viewport\u001b[22m\n\u001b[2m    - retrying click action\u001b[22m\n\u001b[2m      - waiting 500ms\u001b[22m\n\n    at validateReviewerReachability (/Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/verify-and-capture.cjs:429:53)\n    at async runStage (/Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/verify-and-capture.cjs:668:5)\n    at async main (/Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/verify-and-capture.cjs:716:7)",
+    "普通用户登录: locator.fill: Timeout 5000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('#login-form input[name=\"password\"]')\u001b[22m\n\n    at validateQueryLogin (/Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/verify-and-capture.cjs:455:60)\n    at async runStage (/Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/verify-and-capture.cjs:668:5)\n    at async main (/Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/verify-and-capture.cjs:716:7)",
+    "刷新后刚提交的问题丢失，会话未形成可恢复闭环"
+  ]
 }

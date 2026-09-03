@@ -1,0 +1,84 @@
+{
+  "status": "FAIL",
+  "generatedAt": "2026-09-03T05:19:01.713Z",
+  "evidenceScope": "真实 DOM、布局、特定交互与导航；不是全部控件闭环或人工认可",
+  "pageCount": 68,
+  "stateCount": 7,
+  "viewportCount": 3,
+  "declaredScenarioCount": 1428,
+  "completedScenarioCount": 1428,
+  "assertionCount": 9625,
+  "screenshotCount": 85,
+  "stages": [
+    {
+      "name": "审查器与导航图标",
+      "status": "PASS",
+      "failures": [],
+      "browserErrors": []
+    },
+    {
+      "name": "全部页面状态与视口",
+      "status": "FAIL",
+      "failures": [
+        "mobile/platform-roles/partial 出现文档级横向滚动",
+        "mobile/platform-roles/disabled 出现文档级横向滚动",
+        "mobile/platform-roles/success 出现文档级横向滚动"
+      ],
+      "browserErrors": []
+    },
+    {
+      "name": "创建租户与管理导航",
+      "status": "PASS",
+      "failures": [],
+      "browserErrors": []
+    },
+    {
+      "name": "成员与两级功能控制",
+      "status": "PASS",
+      "failures": [],
+      "browserErrors": []
+    },
+    {
+      "name": "运行状态与隔离恢复",
+      "status": "FAIL",
+      "failures": [
+        "运行状态与隔离恢复: locator.click: Timeout 5000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('[data-business-action=\"advance-recovery\"]')\u001b[22m\n\u001b[2m    - locator resolved to <button type=\"button\" class=\"button primary\" data-primary-action=\"\" data-control-status=\"implemented\" data-od-id=\"primary-backup-recovery\" data-business-action=\"advance-recovery\">开始完整性检查</button>\u001b[22m\n\u001b[2m  - attempting click action\u001b[22m\n\u001b[2m    2 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m      - element is visible, enabled and stable\u001b[22m\n\u001b[2m      - scrolling into view if needed\u001b[22m\n\u001b[2m      - done scrolling\u001b[22m\n\u001b[2m      - <div class=\"reviewer-fields\">…</div> from <aside aria-label=\"原型场景审查器\" id=\"prototype-reviewer\" class=\"prototype-reviewer\" data-od-id=\"prototype-reviewer\">…</aside> subtree intercepts pointer events\u001b[22m\n\u001b[2m    - retrying click action\u001b[22m\n\u001b[2m    - waiting 20ms\u001b[22m\n\u001b[2m    - waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m    - element is visible, enabled and stable\u001b[22m\n\u001b[2m    - scrolling into view if needed\u001b[22m\n\u001b[2m    - done scrolling\u001b[22m\n\u001b[2m    - <div class=\"reviewer-fields\">…</div> from <aside aria-label=\"原型场景审查器\" id=\"prototype-reviewer\" class=\"prototype-reviewer\" data-od-id=\"prototype-reviewer\">…</aside> subtree intercepts pointer events\u001b[22m\n\u001b[2m  2 × retrying click action\u001b[22m\n\u001b[2m      - waiting 100ms\u001b[22m\n\u001b[2m      - waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m      - element is visible, enabled and stable\u001b[22m\n\u001b[2m      - scrolling into view if needed\u001b[22m\n\u001b[2m      - done scrolling\u001b[22m\n\u001b[2m      - <input class=\"input\" type=\"search\" id=\"review-search\" autocomplete=\"off\" data-od-id=\"review-search\" placeholder=\"输入阶段、页面名或 screen\"/> from <aside aria-label=\"原型场景审查器\" id=\"prototype-reviewer\" class=\"prototype-reviewer\" data-od-id=\"prototype-reviewer\">…</aside> subtree intercepts pointer events\u001b[22m\n\u001b[2m  2 × retrying click action\u001b[22m\n\u001b[2m      - waiting 500ms\u001b[22m\n\u001b[2m      - waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m      - element is visible, enabled and stable\u001b[22m\n\u001b[2m      - scrolling into view if needed\u001b[22m\n\u001b[2m      - done scrolling\u001b[22m\n\u001b[2m      - <div class=\"reviewer-fields\">…</div> from <aside aria-label=\"原型场景审查器\" id=\"prototype-reviewer\" class=\"prototype-reviewer\" data-od-id=\"prototype-reviewer\">…</aside> subtree intercepts pointer events\u001b[22m\n\u001b[2m    - retrying click action\u001b[22m\n\u001b[2m      - waiting 500ms\u001b[22m\n\u001b[2m      - waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m      - element is visible, enabled and stable\u001b[22m\n\u001b[2m      - scrolling into view if needed\u001b[22m\n\u001b[2m      - done scrolling\u001b[22m\n\u001b[2m      - <div class=\"reviewer-fields\">…</div> from <aside aria-label=\"原型场景审查器\" id=\"prototype-reviewer\" class=\"prototype-reviewer\" data-od-id=\"prototype-reviewer\">…</aside> subtree intercepts pointer events\u001b[22m\n\u001b[2m    - retrying click action\u001b[22m\n\u001b[2m      - waiting 500ms\u001b[22m\n\u001b[2m      - waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m      - element is visible, enabled and stable\u001b[22m\n\u001b[2m      - scrolling into view if needed\u001b[22m\n\u001b[2m      - done scrolling\u001b[22m\n\u001b[2m      - <input class=\"input\" type=\"search\" id=\"review-search\" autocomplete=\"off\" data-od-id=\"review-search\" placeholder=\"输入阶段、页面名或 screen\"/> from <aside aria-label=\"原型场景审查器\" id=\"prototype-reviewer\" class=\"prototype-reviewer\" data-od-id=\"prototype-reviewer\">…</aside> subtree intercepts pointer events\u001b[22m\n\u001b[2m    - retrying click action\u001b[22m\n\u001b[2m      - waiting 500ms\u001b[22m\n\u001b[2m      - waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m      - element is visible, enabled and stable\u001b[22m\n\u001b[2m      - scrolling into view if needed\u001b[22m\n\u001b[2m      - done scrolling\u001b[22m\n\u001b[2m      - <input class=\"input\" type=\"search\" id=\"review-search\" autocomplete=\"off\" data-od-id=\"review-search\" placeholder=\"输入阶段、页面名或 screen\"/> from <aside aria-label=\"原型场景审查器\" id=\"prototype-reviewer\" class=\"prototype-reviewer\" data-od-id=\"prototype-reviewer\">…</aside> subtree intercepts pointer events\u001b[22m\n\u001b[2m  - retrying click action\u001b[22m\n\u001b[2m    - waiting 500ms\u001b[22m\n\n    at validateHealthAndRecovery (/Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/verify-and-capture.cjs:411:67)\n    at async runStage (/Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/verify-and-capture.cjs:622:5)\n    at async main (/Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/verify-and-capture.cjs:665:7)"
+      ],
+      "browserErrors": []
+    },
+    {
+      "name": "问答示例与键盘",
+      "status": "FAIL",
+      "failures": [
+        "问答示例与键盘: locator.fill: Timeout 5000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('#login-form input[name=\"password\"]')\u001b[22m\n\n    at validateQueryFlow (/Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/verify-and-capture.cjs:428:60)\n    at async runStage (/Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/verify-and-capture.cjs:622:5)\n    at async main (/Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/verify-and-capture.cjs:665:7)"
+      ],
+      "browserErrors": []
+    },
+    {
+      "name": "设备前置导航",
+      "status": "PASS",
+      "failures": [],
+      "browserErrors": []
+    },
+    {
+      "name": "页面截图",
+      "status": "PASS",
+      "failures": [],
+      "browserErrors": []
+    },
+    {
+      "name": "减少动态效果",
+      "status": "PASS",
+      "failures": [],
+      "browserErrors": []
+    }
+  ],
+  "browserErrors": [],
+  "failures": [
+    "mobile/platform-roles/partial 出现文档级横向滚动",
+    "mobile/platform-roles/disabled 出现文档级横向滚动",
+    "mobile/platform-roles/success 出现文档级横向滚动",
+    "运行状态与隔离恢复: locator.click: Timeout 5000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('[data-business-action=\"advance-recovery\"]')\u001b[22m\n\u001b[2m    - locator resolved to <button type=\"button\" class=\"button primary\" data-primary-action=\"\" data-control-status=\"implemented\" data-od-id=\"primary-backup-recovery\" data-business-action=\"advance-recovery\">开始完整性检查</button>\u001b[22m\n\u001b[2m  - attempting click action\u001b[22m\n\u001b[2m    2 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m      - element is visible, enabled and stable\u001b[22m\n\u001b[2m      - scrolling into view if needed\u001b[22m\n\u001b[2m      - done scrolling\u001b[22m\n\u001b[2m      - <div class=\"reviewer-fields\">…</div> from <aside aria-label=\"原型场景审查器\" id=\"prototype-reviewer\" class=\"prototype-reviewer\" data-od-id=\"prototype-reviewer\">…</aside> subtree intercepts pointer events\u001b[22m\n\u001b[2m    - retrying click action\u001b[22m\n\u001b[2m    - waiting 20ms\u001b[22m\n\u001b[2m    - waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m    - element is visible, enabled and stable\u001b[22m\n\u001b[2m    - scrolling into view if needed\u001b[22m\n\u001b[2m    - done scrolling\u001b[22m\n\u001b[2m    - <div class=\"reviewer-fields\">…</div> from <aside aria-label=\"原型场景审查器\" id=\"prototype-reviewer\" class=\"prototype-reviewer\" data-od-id=\"prototype-reviewer\">…</aside> subtree intercepts pointer events\u001b[22m\n\u001b[2m  2 × retrying click action\u001b[22m\n\u001b[2m      - waiting 100ms\u001b[22m\n\u001b[2m      - waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m      - element is visible, enabled and stable\u001b[22m\n\u001b[2m      - scrolling into view if needed\u001b[22m\n\u001b[2m      - done scrolling\u001b[22m\n\u001b[2m      - <input class=\"input\" type=\"search\" id=\"review-search\" autocomplete=\"off\" data-od-id=\"review-search\" placeholder=\"输入阶段、页面名或 screen\"/> from <aside aria-label=\"原型场景审查器\" id=\"prototype-reviewer\" class=\"prototype-reviewer\" data-od-id=\"prototype-reviewer\">…</aside> subtree intercepts pointer events\u001b[22m\n\u001b[2m  2 × retrying click action\u001b[22m\n\u001b[2m      - waiting 500ms\u001b[22m\n\u001b[2m      - waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m      - element is visible, enabled and stable\u001b[22m\n\u001b[2m      - scrolling into view if needed\u001b[22m\n\u001b[2m      - done scrolling\u001b[22m\n\u001b[2m      - <div class=\"reviewer-fields\">…</div> from <aside aria-label=\"原型场景审查器\" id=\"prototype-reviewer\" class=\"prototype-reviewer\" data-od-id=\"prototype-reviewer\">…</aside> subtree intercepts pointer events\u001b[22m\n\u001b[2m    - retrying click action\u001b[22m\n\u001b[2m      - waiting 500ms\u001b[22m\n\u001b[2m      - waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m      - element is visible, enabled and stable\u001b[22m\n\u001b[2m      - scrolling into view if needed\u001b[22m\n\u001b[2m      - done scrolling\u001b[22m\n\u001b[2m      - <div class=\"reviewer-fields\">…</div> from <aside aria-label=\"原型场景审查器\" id=\"prototype-reviewer\" class=\"prototype-reviewer\" data-od-id=\"prototype-reviewer\">…</aside> subtree intercepts pointer events\u001b[22m\n\u001b[2m    - retrying click action\u001b[22m\n\u001b[2m      - waiting 500ms\u001b[22m\n\u001b[2m      - waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m      - element is visible, enabled and stable\u001b[22m\n\u001b[2m      - scrolling into view if needed\u001b[22m\n\u001b[2m      - done scrolling\u001b[22m\n\u001b[2m      - <input class=\"input\" type=\"search\" id=\"review-search\" autocomplete=\"off\" data-od-id=\"review-search\" placeholder=\"输入阶段、页面名或 screen\"/> from <aside aria-label=\"原型场景审查器\" id=\"prototype-reviewer\" class=\"prototype-reviewer\" data-od-id=\"prototype-reviewer\">…</aside> subtree intercepts pointer events\u001b[22m\n\u001b[2m    - retrying click action\u001b[22m\n\u001b[2m      - waiting 500ms\u001b[22m\n\u001b[2m      - waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m      - element is visible, enabled and stable\u001b[22m\n\u001b[2m      - scrolling into view if needed\u001b[22m\n\u001b[2m      - done scrolling\u001b[22m\n\u001b[2m      - <input class=\"input\" type=\"search\" id=\"review-search\" autocomplete=\"off\" data-od-id=\"review-search\" placeholder=\"输入阶段、页面名或 screen\"/> from <aside aria-label=\"原型场景审查器\" id=\"prototype-reviewer\" class=\"prototype-reviewer\" data-od-id=\"prototype-reviewer\">…</aside> subtree intercepts pointer events\u001b[22m\n\u001b[2m  - retrying click action\u001b[22m\n\u001b[2m    - waiting 500ms\u001b[22m\n\n    at validateHealthAndRecovery (/Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/verify-and-capture.cjs:411:67)\n    at async runStage (/Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/verify-and-capture.cjs:622:5)\n    at async main (/Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/verify-and-capture.cjs:665:7)",
+    "问答示例与键盘: locator.fill: Timeout 5000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('#login-form input[name=\"password\"]')\u001b[22m\n\n    at validateQueryFlow (/Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/verify-and-capture.cjs:428:60)\n    at async runStage (/Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/verify-and-capture.cjs:622:5)\n    at async main (/Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/verify-and-capture.cjs:665:7)"
+  ]
+}

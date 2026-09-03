@@ -198,9 +198,14 @@ assert(
 assert(
   actionLedger.pages.length === pages.length &&
     actionLedger.summary.unclosedControls > 0 &&
-    actionLedger.browserVerification === "pendingAuthorization",
+    ["pendingAuthorization", "failed", "passed"].includes(actionLedger.browserVerification) &&
+    actionLedger.summary.readyForFullAcceptance === false,
   "68 页操作账本缺失或错误宣称全部闭环",
 );
+if (actionLedger.browserVerification !== "pendingAuthorization") {
+  const browserReport = JSON.parse(fs.readFileSync(path.join(prototypeDirectory, actionLedger.browserEvidenceReport), "utf8"));
+  assert(({ PASS: "passed", FAIL: "failed" })[browserReport.status] === actionLedger.browserVerification, "操作账本与真实浏览器结果不一致");
+}
 assert(
   navigationSource.includes("PARENT_SCREEN") &&
     stateSource.includes("getEffectiveAccess"),
@@ -388,7 +393,7 @@ const result = {
   assertionCount,
   failures,
   limitation:
-    "此结果只验证 Node 状态机、静态渲染合同和 URL 可达性；不启动浏览器，HTTP 成功不代表真实场景成立。文档级横向滚动、真实焦点、交互与本轮截图仍待用户重新授权。",
+    "此结果只验证 Node 状态机、静态渲染合同和 URL 可达性；HTTP 成功不代表真实场景成立。真实 DOM、焦点、交互与截图结论见独立浏览器报告。",
 };
 
 fs.mkdirSync(artifactDirectory, { recursive: true });

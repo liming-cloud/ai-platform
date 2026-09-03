@@ -4,7 +4,7 @@ const { chromium } = require("playwright");
 
 const baseUrl = process.env.PROTOTYPE_BASE_URL || "http://127.0.0.1:4176/";
 const prototypeDirectory = path.resolve(__dirname, "..");
-const artifactDirectory = path.join(prototypeDirectory, "artifacts");
+const artifactDirectory = process.env.PROTOTYPE_ARTIFACT_DIR || path.join(prototypeDirectory, "artifacts", "browser-review-20260903-final");
 const screenshotDirectory = path.join(artifactDirectory, "screenshots");
 const inventory = JSON.parse(
   fs.readFileSync(path.join(prototypeDirectory, "page-inventory.json"), "utf8"),
@@ -19,6 +19,8 @@ const failures = [];
 const browserErrors = [];
 let assertionCount = 0;
 let screenshotCount = 0;
+let completedScenarioCount = 0;
+const stageResults = [];
 
 function assert(condition, message) {
   assertionCount += 1;
@@ -31,9 +33,7 @@ function scenarioUrl(screen, state, review = false) {
   const url = new URL(baseUrl);
   url.searchParams.set("screen", screen);
   url.searchParams.set("state", state);
-  if (!review) {
-    url.searchParams.set("review", "0");
-  }
+  url.searchParams.set("review", review ? "1" : "0");
   return url.toString();
 }
 
@@ -61,6 +61,9 @@ async function openScenario(page, screen, state, review = false) {
   await page
     .locator(`main[data-screen="${screen}"][data-state="${state}"]`)
     .waitFor();
+  if (review) {
+    await page.locator("#prototype-reviewer summary").click();
+  }
 }
 
 async function validateInventoryContract(page) {
@@ -190,6 +193,7 @@ async function validateScenarioMatrix(page) {
           },
         );
         const label = `${viewport.name}/${pageMeta.screen}/${state}`;
+        completedScenarioCount += 1;
         assert(result.paginationCount <= 1, `${label} 出现多个普通分页`);
         assert(result.documentOverflow <= 1, `${label} 出现文档级横向滚动`);
         assert(result.duplicateIds.length === 0, `${label} 存在重复 id`);
@@ -283,7 +287,7 @@ async function validateManagementFlows(page) {
     ["[data-primary-action]", "platform-model-connection-detail"],
     ["[data-primary-action]", "platform-model-deployments"],
     ["[data-primary-action]", "platform-model-deployment-detail"],
-  ], "平台模型供应链闭环");
+  ], "平台模型供应链导航");
   await runFlow(page, "model-providers", [
     ["[data-primary-action]", "model-provider-detail"],
     ["[data-primary-action]", "model-configurations"],
@@ -291,14 +295,14 @@ async function validateManagementFlows(page) {
     ["[data-primary-action]", "model-deployments"],
     ["[data-primary-action]", "model-deployment-detail"],
     ["[data-primary-action]", "routing-policies"],
-  ], "租户模型闭环");
+  ], "租户模型导航");
   await runFlow(page, "assistants-directory", [
     ["[data-primary-action]", "assistant-create"],
     ["[data-primary-action]", "assistant-draft"],
     ["[data-primary-action]", "assistant-test"],
     ["[data-primary-action]", "assistant-evaluation"],
     ["[data-primary-action]", "assistant-release"],
-  ], "助手交付闭环");
+  ], "助手交付导航");
   await page.locator("[data-confirm-release]").click();
   assert(
     await page.locator("#release-dialog").evaluate((element) => element.open),
@@ -316,9 +320,7 @@ async function validateManagementFlows(page) {
     ["[data-primary-action]", "evaluation-run-detail"],
     ["[data-primary-action]", "evaluation-comparison"],
     ["[data-primary-action]", "evaluation-failure-analysis"],
-  ], "评测与失败分析闭环");
-  await validateTenantAndMemberControls(page);
-  await validateHealthAndRecovery(page);
+  ], "评测与失败分析导航");
 }
 
 async function validateTenantAndMemberControls(page) {
@@ -403,8 +405,10 @@ async function validateHealthAndRecovery(page) {
     "隔离恢复演练未生成校验报告",
   );
 
-  await openScenario(page, "backup-recovery", "success", true);
-  await page.locator("#review-reset").click();
+}
+
+async function validateRecoveryFailure(page) {
+  await openScenario(page, "backup-recovery", "success");
   await page.locator('input[value="backup-check-fails"]').check();
   await page.locator('[data-business-action="advance-recovery"]').click();
   assert(
@@ -418,7 +422,32 @@ async function validateHealthAndRecovery(page) {
   );
 }
 
-async function validateQueryFlow(page) {
+async function validateReviewerReachability(page) {
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await openScenario(page, "backup-recovery", "success", true);
+  await page.locator("#review-reset").click();
+  await page.locator("#prototype-reviewer summary").click();
+  assert(!(await page.locator("#prototype-reviewer details").evaluate((details) => details.open)), "审查器不能收起");
+}
+
+async function validateMemberDialog(page) {
+  await openScenario(page, "tenant-members", "success");
+  const trigger = page.locator('[data-business-action="open-add-member"]');
+  await trigger.click();
+  assert(await page.locator("#add-member-dialog").evaluate((dialog) => dialog.contains(document.activeElement)), "成员弹窗焦点未进入");
+  await page.keyboard.press("Escape");
+  assert(!(await page.locator("#add-member-dialog").evaluate((dialog) => dialog.open)), "Escape 未关闭成员弹窗");
+  assert(await trigger.evaluate((button) => button === document.activeElement), "成员弹窗关闭后焦点未返回");
+  await trigger.click();
+  await page.locator("#member-account-select").selectOption("account-lin");
+  await page.locator("[data-cancel-add-member]").click();
+  assert(!(await page.locator("main").innerText()).includes("林澈（合成）"), "取消添加仍创建成员");
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await page.locator('main[data-screen="tenant-members"]').waitFor();
+  assert(!(await page.locator("main").innerText()).includes("林澈（合成）"), "取消添加后刷新出现新成员");
+}
+
+async function validateQueryLogin(page) {
   await page.setViewportSize(viewports[0]);
   await openScenario(page, "login", "success", true);
   await page.locator("#review-reset").click();
@@ -430,6 +459,11 @@ async function validateQueryFlow(page) {
     new URL(page.url()).searchParams.get("screen") === "assistants",
     "普通用户登录没有进入助手目录",
   );
+}
+
+async function validateQueryFlow(page) {
+  await page.setViewportSize(viewports[0]);
+  await openScenario(page, "assistants", "success");
   const search = page.locator("#assistant-search");
   await search.fill("员工");
   assert(
@@ -493,6 +527,7 @@ async function validateQueryFlow(page) {
     "切换历史后 Drawer 未关闭",
   );
   await historyTrigger.click();
+  await page.waitForFunction(() => document.activeElement.matches("[data-close-history]"));
   await page.keyboard.press("Escape");
   assert(
     (await page.locator("body").getAttribute("data-history-open")) === "false",
@@ -523,6 +558,18 @@ async function validateQueryFlow(page) {
   );
 }
 
+async function validateConversationPersistence(page) {
+  await openScenario(page, "conversation", "success");
+  const question = "浏览器验收：未休 7 天如何处理？";
+  await page.locator("#question-input").fill(question);
+  await page.locator("#question-input").press("Enter");
+  await page.locator(".query-stage", { hasText: "COMPLETED" }).waitFor({ timeout: 7000 });
+  assert((await page.locator("main").innerText()).includes(question), "提交后没有显示本轮问题");
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await page.locator('main[data-screen="conversation"]').waitFor();
+  assert((await page.locator("main").innerText()).includes(question), "刷新后刚提交的问题丢失，会话未形成可恢复闭环");
+}
+
 async function validateDeviceFlow(page) {
   await page.setViewportSize(viewports[2]);
   await runFlow(page, "device-start", [
@@ -530,7 +577,7 @@ async function validateDeviceFlow(page) {
     ["[data-primary-action]", "device-question"],
     ["[data-primary-action]", "device-answer"],
     ["[data-primary-action]", "device-question"],
-  ], "设备问答闭环");
+  ], "设备问答导航");
 }
 
 async function capture(page, screen, state, viewport, suffix = "") {
@@ -558,6 +605,7 @@ async function captureReviewSet(page) {
     "platform-tenant-detail",
     "backup-recovery",
     "assistant-release",
+    "platform-roles",
   ]) {
     await capture(page, screen, "success", viewports[1], "-representative");
     await capture(page, screen, "success", viewports[2], "-representative");
@@ -607,88 +655,97 @@ async function validateReducedMotion(browserInstance) {
   await context.close();
 }
 
+async function runStage(browserInstance, name, task) {
+  // 每项使用独立合成存储，避免前一流程修改租户或成员污染后一验收。
+  const context = await browserInstance.newContext();
+  const page = await context.newPage();
+  page.setDefaultTimeout(5000);
+  attachBrowserErrorCapture(page, name);
+  const failureStart = failures.length;
+  const errorStart = browserErrors.length;
+  process.stdout.write(`开始：${name}\n`);
+  try {
+    await task(page);
+  } catch (error) {
+    failures.push(`${name}: ${error.stack}`);
+    try {
+      await page.screenshot({
+        path: path.join(screenshotDirectory, `failure-${stageResults.length + 1}.png`),
+        fullPage: true,
+        animations: "disabled",
+      });
+      screenshotCount += 1;
+    } catch (captureError) {
+      failures.push(`${name} 失败现场截图不可用：${captureError.message}`);
+    }
+  } finally {
+    stageResults.push({
+      name,
+      status: failures.length === failureStart && browserErrors.length === errorStart ? "PASS" : "FAIL",
+      failures: failures.slice(failureStart),
+      browserErrors: browserErrors.slice(errorStart),
+    });
+    await context.close();
+  }
+  process.stdout.write(`结束：${name} · ${stageResults.at(-1).status}\n`);
+}
+
 async function main() {
   fs.mkdirSync(screenshotDirectory, { recursive: true });
   assert(pages.length === 68, `页面清单数量应为 68，实际为 ${pages.length}`);
   assert(new Set(screens).size === screens.length, "页面清单包含重复 screen");
-  const browserInstance = await chromium.launch({ headless: true });
-  const context = await browserInstance.newContext();
-  const page = await context.newPage();
-  attachBrowserErrorCapture(page, "default");
-  await validateInventoryContract(page);
-  await validateScenarioMatrix(page);
-  await validateManagementFlows(page);
-  await validateQueryFlow(page);
-  await validateDeviceFlow(page);
-  await captureReviewSet(page);
-  await context.close();
-  await validateReducedMotion(browserInstance);
-  await browserInstance.close();
-  assert(browserErrors.length === 0, `浏览器错误：${browserErrors.join("；")}`);
-  const result = {
-    status: failures.length === 0 ? "PASS" : "FAIL",
-    generatedAt: new Date().toISOString(),
-    pageCount: pages.length,
-    stateCount: states.length,
-    viewportCount: viewports.length,
-    scenarioCount: pages.length * states.length * viewports.length,
-    assertionCount,
-    screenshotCount,
-    browserErrors,
-    failures,
-    inventorySummary: {
-      schemaVersion: inventory.schemaVersion,
-      description: inventory.description,
-      groups: inventory.groups.map((group) => ({
-        id: group.id,
-        label: group.label,
-        phase: group.phase,
-        shell: group.shell,
-        pageCount: group.pages.length,
-      })),
-    },
-  };
-  fs.writeFileSync(
-    path.join(artifactDirectory, "verification.json"),
-    JSON.stringify(result, null, 2) + "\n",
-  );
-  process.stdout.write(JSON.stringify(result, null, 2) + "\n");
-  if (failures.length > 0) {
-    process.exitCode = 1;
+  let browserInstance;
+  try {
+    browserInstance = await chromium.launch({ headless: true });
+    for (const [name, task] of [
+      ["审查器与导航图标", validateInventoryContract],
+      ["全部页面状态与视口", validateScenarioMatrix],
+      ["创建租户与管理导航", validateManagementFlows],
+      ["成员与两级功能控制", validateTenantAndMemberControls],
+      ["成员弹窗键盘与取消", validateMemberDialog],
+      ["运行状态与隔离恢复", validateHealthAndRecovery],
+      ["恢复检查失败与重试", validateRecoveryFailure],
+      ["审查器收起可达性", validateReviewerReachability],
+      ["普通用户登录", validateQueryLogin],
+      ["问答示例与键盘", validateQueryFlow],
+      ["会话刷新恢复", validateConversationPersistence],
+      ["设备前置导航", validateDeviceFlow],
+      ["页面截图", captureReviewSet],
+      ["减少动态效果", () => validateReducedMotion(browserInstance)],
+    ]) {
+      await runStage(browserInstance, name, task);
+    }
+  } catch (error) {
+    // 保留真实原因，不把产品超时、断言失败或脚本缺陷误报为授权问题。
+    failures.push(error.stack);
+  } finally {
+    await browserInstance?.close();
+    assert(browserErrors.length === 0, `浏览器错误：${browserErrors.join("；")}`);
+    const result = {
+      status: failures.length === 0 ? "PASS" : "FAIL",
+      generatedAt: new Date().toISOString(),
+      evidenceScope: "真实 DOM、布局、特定交互与导航；不是全部控件闭环或人工认可",
+      pageCount: pages.length,
+      stateCount: states.length,
+      viewportCount: viewports.length,
+      declaredScenarioCount: pages.length * states.length * viewports.length,
+      completedScenarioCount,
+      assertionCount,
+      screenshotCount,
+      stages: stageResults,
+      browserErrors,
+      failures,
+    };
+    fs.writeFileSync(path.join(artifactDirectory, "verification.json"), JSON.stringify(result, null, 2) + "\n");
+    if (!process.env.PROTOTYPE_ARTIFACT_DIR) {
+      fs.writeFileSync(path.join(prototypeDirectory, "artifacts", "verification.json"), JSON.stringify(result, null, 2) + "\n");
+    }
+    process.stdout.write(JSON.stringify(result, null, 2) + "\n");
+    if (failures.length > 0) process.exitCode = 1;
   }
 }
 
 main().catch((error) => {
-  const blockedResult = {
-    status: "BLOCKED",
-    generatedAt: new Date().toISOString(),
-    pageCount: pages.length,
-    stateCount: states.length,
-    viewportCount: viewports.length,
-    scenarioCount: pages.length * states.length * viewports.length,
-    assertionCount,
-    screenshotCount,
-    browserErrors: ["当前运行环境未授予浏览器进程或本地页面访问权限。"],
-    failures: [
-      "真实 DOM、焦点、文档级横向滚动、交互与截图验证未执行。",
-    ],
-    inventorySummary: {
-      schemaVersion: inventory.schemaVersion,
-      description: inventory.description,
-      groups: inventory.groups.map((group) => ({
-        id: group.id,
-        label: group.label,
-        phase: group.phase,
-        shell: group.shell,
-        pageCount: group.pages.length,
-      })),
-    },
-  };
-  fs.mkdirSync(artifactDirectory, { recursive: true });
-  fs.writeFileSync(
-    path.join(artifactDirectory, "verification.json"),
-    JSON.stringify(blockedResult, null, 2) + "\n",
-  );
   process.stderr.write(`${error.stack}\n`);
   process.exitCode = 1;
 });

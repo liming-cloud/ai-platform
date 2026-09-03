@@ -1,10 +1,10 @@
 {
   "workPackage": "WP-0016",
   "generatedOn": "2026-09-03",
-  "browserVerification": "pendingAuthorization",
+  "browserVerification": "failed",
   "classification": {
     "navigation": "仅改变原型页面，不计作业务完成",
-    "implementedStateChange": "合成状态操作已有 Node 测试；真实 DOM 事件和易用性仍待浏览器验证",
+    "implementedStateChange": "合成状态已有 Node 测试；browserVerified 只表示条目注明的浏览器范围，不代表完整业务或人工通过",
     "pendingDecision": "产品规则未确认，不提供伪保存",
     "unimplemented": "控件尚无合格业务结果",
     "implementedRead": "已接入数据读取或过滤，具有定向检查；不是持久化状态变更",
@@ -89,7 +89,9 @@
           "kind": "primaryOrTaskControl",
           "status": "implementedStateChange",
           "evidence": "business-closure.test.mjs：校验、保存、刷新",
-          "browserVerified": false
+          "browserVerified": true,
+          "browserEvidence": "artifacts/browser-review-20260903-final/verification.json",
+          "browserScope": "仅报告中对应正常路径或失败重试；未测分支不因此获得通过"
         },
         {
           "label": "取消或校验失败",
@@ -111,14 +113,18 @@
           "kind": "primaryOrTaskControl",
           "status": "implementedStateChange",
           "evidence": "business-closure.test.mjs：保存、刷新、直接访问拒绝",
-          "browserVerified": false
+          "browserVerified": true,
+          "browserEvidence": "artifacts/browser-review-20260903-final/verification.json",
+          "browserScope": "仅报告中对应正常路径或失败重试；未测分支不因此获得通过"
         },
         {
           "label": "取消",
           "kind": "primaryOrTaskControl",
           "status": "implementedStateChange",
           "evidence": "business-closure.test.mjs：草稿丢弃",
-          "browserVerified": false
+          "browserVerified": true,
+          "browserEvidence": "artifacts/browser-review-20260903-final/verification.json",
+          "browserScope": "仅报告中对应正常路径或失败重试；未测分支不因此获得通过"
         },
         {
           "label": "安全策略与配额修改",
@@ -259,7 +265,9 @@
           "kind": "primaryOrTaskControl",
           "status": "implementedStateChange",
           "evidence": "business-closure.test.mjs：资格、去重、保存",
-          "browserVerified": false
+          "browserVerified": true,
+          "browserEvidence": "artifacts/browser-review-20260903-final/verification.json",
+          "browserScope": "仅报告中对应正常路径或失败重试；未测分支不因此获得通过"
         },
         {
           "label": "停用或恢复普通成员",
@@ -294,7 +302,9 @@
           "kind": "taskControl",
           "status": "implementedStateChange",
           "evidence": "reviewer-regression.test.mjs：取消为非提交按钮；状态机无添加命令",
-          "browserVerified": false
+          "browserVerified": true,
+          "browserEvidence": "artifacts/browser-review-20260903-final/verification.json",
+          "browserScope": "仅报告中对应正常路径或失败重试；未测分支不因此获得通过"
         },
         {
           "label": "邮件邀请与账户自助激活",
@@ -959,7 +969,7 @@
           "label": "登录",
           "kind": "primaryAction",
           "status": "unimplemented",
-          "evidence": "当前控件仅展示确认或无持久状态结果",
+          "evidence": "真实浏览器未发现登录输入表单；validateQueryLogin 失败",
           "browserVerified": false
         }
       ]
@@ -1004,7 +1014,9 @@
           "kind": "primaryOrTaskControl",
           "status": "implementedRead",
           "evidence": "reviewer-regression.test.mjs：成员、助手、会话和引用过滤；toggleCitation 使用同一投影",
-          "browserVerified": false
+          "browserVerified": true,
+          "browserEvidence": "artifacts/browser-review-20260903-final/verification.json",
+          "browserScope": "仅报告中对应正常路径或失败重试；未测分支不因此获得通过"
         },
         {
           "label": "搜索会话标题",
@@ -1024,7 +1036,7 @@
           "label": "断线恢复与刷新续聊",
           "kind": "taskControl",
           "status": "unimplemented",
-          "evidence": "原型发送仍为临时 DOM 演示，没有可恢复会话数据",
+          "evidence": "真实浏览器已复现：固定回答完成后刷新，刚提交的问题丢失",
           "browserVerified": false
         }
       ]
@@ -1100,21 +1112,27 @@
           "kind": "primaryOrTaskControl",
           "status": "implementedStateChange",
           "evidence": "business-closure.test.mjs：选择异常",
-          "browserVerified": false
+          "browserVerified": true,
+          "browserEvidence": "artifacts/browser-review-20260903-final/verification.json",
+          "browserScope": "仅报告中对应正常路径或失败重试；未测分支不因此获得通过"
         },
         {
           "label": "记录处理",
           "kind": "primaryOrTaskControl",
           "status": "implementedStateChange",
           "evidence": "business-closure.test.mjs：记录持久化",
-          "browserVerified": false
+          "browserVerified": true,
+          "browserEvidence": "artifacts/browser-review-20260903-final/verification.json",
+          "browserScope": "仅报告中对应正常路径或失败重试；未测分支不因此获得通过"
         },
         {
           "label": "重新检查",
           "kind": "primaryOrTaskControl",
           "status": "implementedStateChange",
           "evidence": "business-closure.test.mjs：仍异常与已恢复",
-          "browserVerified": false
+          "browserVerified": true,
+          "browserEvidence": "artifacts/browser-review-20260903-final/verification.json",
+          "browserScope": "仅报告中对应正常路径或失败重试；未测分支不因此获得通过"
         }
       ]
     },
@@ -1174,35 +1192,45 @@
           "kind": "primaryOrTaskControl",
           "status": "implementedStateChange",
           "evidence": "business-closure.test.mjs：备份选择",
-          "browserVerified": false
+          "browserVerified": true,
+          "browserEvidence": "artifacts/browser-review-20260903-final/verification.json",
+          "browserScope": "仅报告中对应正常路径或失败重试；未测分支不因此获得通过"
         },
         {
           "label": "开始完整性检查",
           "kind": "primaryOrTaskControl",
           "status": "implementedStateChange",
           "evidence": "business-closure.test.mjs：通过与失败",
-          "browserVerified": false
+          "browserVerified": true,
+          "browserEvidence": "artifacts/browser-review-20260903-final/verification.json",
+          "browserScope": "仅报告中对应正常路径或失败重试；未测分支不因此获得通过"
         },
         {
           "label": "确认隔离演练",
           "kind": "primaryOrTaskControl",
           "status": "implementedStateChange",
           "evidence": "business-closure.test.mjs：固定隔离目标",
-          "browserVerified": false
+          "browserVerified": true,
+          "browserEvidence": "artifacts/browser-review-20260903-final/verification.json",
+          "browserScope": "仅报告中对应正常路径或失败重试；未测分支不因此获得通过"
         },
         {
           "label": "继续演练并查看报告",
           "kind": "primaryOrTaskControl",
           "status": "implementedStateChange",
           "evidence": "business-closure.test.mjs：进度与报告",
-          "browserVerified": false
+          "browserVerified": true,
+          "browserEvidence": "artifacts/browser-review-20260903-final/verification.json",
+          "browserScope": "仅报告中对应正常路径或失败重试；未测分支不因此获得通过"
         },
         {
           "label": "重试检查",
           "kind": "primaryOrTaskControl",
           "status": "implementedStateChange",
           "evidence": "business-closure.test.mjs：失败重试",
-          "browserVerified": false
+          "browserVerified": true,
+          "browserEvidence": "artifacts/browser-review-20260903-final/verification.json",
+          "browserScope": "仅报告中对应正常路径或失败重试；未测分支不因此获得通过"
         }
       ]
     },
@@ -1226,5 +1254,6 @@
     "scope": "68 页主任务及本轮已核对控件",
     "allControlsEnumerated": false,
     "limitation": "尚未穷举每页筛选、行操作、账户菜单和各状态控件；下列数量只统计已登记项，不代表全平台控件总数。"
-  }
+  },
+  "browserEvidenceReport": "artifacts/browser-review-20260903-final/verification.json"
 }
