@@ -63,6 +63,22 @@
               <option value="disabled">禁用</option>
             </select>
           </label>
+          <section id="review-query-tools" class="review-query-tools" aria-label="问答状态演示" data-od-id="review-query-tools" hidden>
+            <h2>问答演示控制</h2>
+            <label>
+              演示成员
+              <select id="review-demo-account" data-od-id="review-demo-account"></select>
+            </label>
+            <label>
+              下一轮结果
+              <select id="review-query-mode" data-od-id="review-query-mode">
+                <option value="normal">正常完成</option>
+                <option value="disconnect">模拟断线</option>
+                <option value="failure">模拟失败</option>
+              </select>
+            </label>
+            <p>只影响下一次提问；产品界面不包含这些控制。</p>
+          </section>
           <button id="review-apply" class="button secondary" type="button" data-od-id="review-apply">
             切换场景
           </button>

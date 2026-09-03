@@ -1,6 +1,11 @@
 import { decorateExistingPage, renderInventoryPage } from "./full-platform.js";
 import { renderConsoleNavigation } from "./navigation.js";
-import { createPrototypeStore, DEFAULT_TENANT_ID } from "./prototype-state.js";
+import {
+  createPrototypeStore,
+  DEFAULT_TENANT_ID,
+  PROTOTYPE_STATE_KEY,
+  QUERY_SESSION_KEY,
+} from "./prototype-state.js";
 
 const root = document.querySelector("#prototype-root");
 const reviewer = document.querySelector("#prototype-reviewer");
@@ -10,6 +15,9 @@ const applyReview = document.querySelector("#review-apply");
 const resetReview = document.querySelector("#review-reset");
 const reviewSearch = document.querySelector("#review-search");
 const reviewContract = document.querySelector("#review-contract");
+const reviewQueryTools = document.querySelector("#review-query-tools");
+const reviewDemoAccount = document.querySelector("#review-demo-account");
+const reviewQueryMode = document.querySelector("#review-query-mode");
 
 let screens = new Set();
 let states = new Set();
@@ -20,8 +28,13 @@ let groupByScreen;
 
 let fixtures;
 let selectedAssistantId = "assistant-employee-service";
-let activeConversationId = "cv-20260902-01";
+let activeConversationId = "";
 let streamTimer;
+let streamGeneration = 0;
+let loginFeedback = "";
+let queryFeedback = "";
+let nextQueryMode = "normal";
+let queryStreamingSuspended = false;
 const prototypeStore = createPrototypeStore();
 
 try {
@@ -69,8 +82,25 @@ applyReview.addEventListener("click", () => {
 });
 
 resetReview.addEventListener("click", () => {
+  cancelQueryTimer();
   prototypeStore.reset();
+  activeConversationId = "";
+  loginFeedback = "";
+  queryFeedback = "";
+  nextQueryMode = "normal";
   render();
+});
+
+reviewQueryMode.addEventListener("change", () => {
+  nextQueryMode = reviewQueryMode.value;
+});
+
+reviewDemoAccount.addEventListener("change", () => {
+  cancelQueryTimer();
+  prototypeStore.selectDemoAccount(reviewDemoAccount.value);
+  activeConversationId = "";
+  queryFeedback = "演示身份已切换，请重新登录。";
+  navigate("login");
 });
 
 reviewSearch.addEventListener("input", filterReviewerOptions);
@@ -86,6 +116,14 @@ reviewSearch.addEventListener("keydown", (event) => {
 });
 
 window.addEventListener("popstate", render);
+window.addEventListener("storage", (event) => {
+  if (![PROTOTYPE_STATE_KEY, QUERY_SESSION_KEY, null].includes(event.key)) {
+    return;
+  }
+  cancelQueryTimer();
+  prototypeStore.reloadFromStorage();
+  render();
+});
 document.addEventListener("keydown", (event) => {
   if (event.key === "Escape" && document.body.dataset.historyOpen === "true") {
     closeHistory();
@@ -100,6 +138,7 @@ function currentScenario() {
     screen: screens.has(requestedScreen) ? requestedScreen : "login",
     state: states.has(requestedState) ? requestedState : "success",
     review: params.get("review") !== "0",
+    conversationId: params.get("conversationId") || "",
   };
 }
 
@@ -136,6 +175,22 @@ function updateReviewerContext(screen) {
     "</dl>",
     authorization,
   ].join("");
+  const queryScreen = ["login", "assistants", "conversation"].includes(screen);
+  reviewQueryTools.hidden = !queryScreen;
+  if (queryScreen) {
+    const snapshot = prototypeStore.getSnapshot();
+    const tenant = snapshot.tenants.find((item) => item.id === DEFAULT_TENANT_ID);
+    reviewDemoAccount.innerHTML = (tenant?.members || [])
+      .filter((member) => member.role === "ordinaryMember")
+      .map((member) => {
+        const account = snapshot.accounts.find(
+          (item) => item.id === member.accountId,
+        );
+        return `<option value="${escapeHtml(member.accountId)}"${member.accountId === snapshot.selectedDemoAccountId ? " selected" : ""}>${escapeHtml(account?.name || "合成成员")}</option>`;
+      })
+      .join("");
+    reviewQueryMode.value = nextQueryMode;
+  }
 }
 
 function filterReviewerOptions(event) {
@@ -147,10 +202,15 @@ function filterReviewerOptions(event) {
   });
 }
 
-function navigate(screen, state = "success") {
+function navigate(screen, state = "success", options = {}) {
   const next = new URL(window.location.href);
   next.searchParams.set("screen", screens.has(screen) ? screen : "login");
   next.searchParams.set("state", states.has(state) ? state : "success");
+  if (screen === "conversation" && options.conversationId) {
+    next.searchParams.set("conversationId", options.conversationId);
+  } else if (screen !== "conversation") {
+    next.searchParams.delete("conversationId");
+  }
   window.history.pushState({}, "", next);
   render();
 }
@@ -159,15 +219,29 @@ function render() {
   if (!fixtures) {
     return;
   }
-  window.clearInterval(streamTimer);
+  cancelQueryTimer();
   const scenario = currentScenario();
+  const querySession = prototypeStore.getQuerySession();
+  const protectedQueryScreen = ["assistants", "conversation"].includes(
+    scenario.screen,
+  );
+  const screen =
+    protectedQueryScreen && !querySession.authenticated
+      ? "login"
+      : scenario.screen;
+  if (screen === "conversation") {
+    activeConversationId =
+      scenario.conversationId ||
+      prototypeStore.getSnapshot().query.currentConversationId ||
+      "";
+  }
   const demoState = prototypeStore.getSnapshot();
   const access = prototypeStore.authorizeScreen(
-    scenario.screen,
+    screen,
     DEFAULT_TENANT_ID,
-    demoState.selectedDemoAccountId,
+    querySession.accountId || demoState.selectedDemoAccountId,
   );
-  const objectAllowed = scenario.screen !== "conversation" || prototypeStore.queryProjection(fixtures, {
+  const objectAllowed = screen !== "conversation" || prototypeStore.queryProjection(fixtures, {
     assistantId: selectedAssistantId,
     conversationId: activeConversationId,
   }).conversationAllowed;
@@ -175,7 +249,7 @@ function render() {
     (!access.allowed || !objectAllowed) && ["success", "partial", "disabled"].includes(scenario.state)
       ? "denied"
       : scenario.state;
-  document.body.dataset.screen = scenario.screen;
+  document.body.dataset.screen = screen;
   document.body.dataset.state = renderedState;
   document.body.dataset.review = scenario.review ? "visible" : "hidden";
   document.body.dataset.historyOpen = "false";
@@ -183,26 +257,31 @@ function render() {
   screenSelect.value = scenario.screen;
   stateSelect.value = scenario.state;
   updateReviewerContext(scenario.screen);
-  root.innerHTML = renderScreen(scenario.screen, renderedState, demoState);
-  const page = pageByScreen.get(scenario.screen);
+  root.innerHTML = renderScreen(screen, renderedState, demoState);
+  const page = pageByScreen.get(screen);
   decorateExistingPage(
-    root.querySelector(`main[data-screen="${CSS.escape(scenario.screen)}"]`),
+    root.querySelector(`main[data-screen="${CSS.escape(screen)}"]`),
     page,
-    groupByScreen.get(scenario.screen),
+    groupByScreen.get(screen),
   );
   root
     .querySelectorAll("button, input, textarea, select, dialog")
     .forEach((control, index) => {
       if (!control.dataset.odId) {
-        control.dataset.odId = `${scenario.screen}-control-${index + 1}`;
+        control.dataset.odId = `${screen}-control-${index + 1}`;
       }
     });
-  bindInteractions(scenario.screen);
-  document.title = screenTitle(scenario.screen) + " · 可信 RAG 原型";
+  bindInteractions(screen);
+  if (screen === "conversation" && renderedState === "success") {
+    scheduleQueryContinuation();
+  }
+  document.title = screenTitle(screen) + " · 可信 RAG 原型";
 }
 
 function renderScreen(screen, state, demoState) {
   switch (screen) {
+    case "login":
+      return renderLogin(state);
     case "assistants":
       return renderAssistants(state);
     case "conversation":
@@ -404,21 +483,25 @@ function renderLogin(state) {
       "<h2>使用组织账户登录</h2>",
       "<p>登录后只显示已授权助手。</p>",
       "</div>",
+      '<div class="demo-credentials" aria-label="公开合成演示账号"><span>合成演示账号</span><code>演示口令：demo-only</code></div>',
       state === "partial"
         ? '<div class="inline-note warning">上次会话已退出，未发送的输入没有保存。可以重新登录。</div>'
         : "",
+      loginFeedback
+        ? `<p id="login-feedback" class="form-feedback" data-tone="danger" role="alert">${escapeHtml(loginFeedback)}</p>`
+        : '<p id="login-feedback" class="form-feedback" aria-live="polite"></p>',
       '<label class="field"><span>组织编码</span><input class="input" name="tenantCode" autocomplete="organization" value="spruce-demo" required /></label>',
       '<label class="field"><span>登录名</span><input class="input" name="username" autocomplete="username" value="demo.user" required /></label>',
       '<label class="field"><span>密码</span><input class="input" name="password" type="password" autocomplete="current-password" required /></label>',
       '<div class="login-actions">',
-      '<button class="button primary" type="submit"' +
+      '<button class="button primary" type="submit" data-primary-action' +
         (state === "disabled"
           ? ' disabled aria-describedby="login-disabled-reason"'
           : "") +
         ">登录</button>",
       state === "disabled"
         ? '<p id="login-disabled-reason" class="field-hint">当前账户暂时无法使用问答，请联系组织管理员。</p>'
-        : '<button class="text-link" type="button">无法登录？联系组织管理员</button>',
+        : '<p class="field-hint">无法登录时，请联系组织管理员。</p>',
       "</div>",
       '<p class="session-safety">请勿在公共设备上保存密码。</p>',
       "</form>",
@@ -445,11 +528,10 @@ function renderLogin(state) {
 }
 
 function appTopbar() {
-  const demoControl = demoAccountControl();
   return [
     '<header class="app-topbar">',
     '<div class="app-brand"><span class="brand-mark" aria-hidden="true">R</span><span>可信问答</span></div>',
-    `<div class="topbar-actions">${demoControl}<button class="button subtle account-button" type="button">普通用户 · 账户菜单</button></div>`,
+    '<div class="topbar-actions"><button class="button subtle account-button" type="button" data-query-logout>退出登录</button></div>',
     "</header>",
   ].join("");
 }
@@ -506,12 +588,7 @@ function renderAssistants(state) {
     '<main id="main-content" class="assistant-page" data-screen="assistants" data-state="' +
       state +
       '" tabindex="-1">',
-    '<header class="assistant-page-header"><div><span class="section-kicker">已授权助手</span><h1>选择助手</h1></div>',
-    ["success", "partial", "disabled"].includes(state)
-      ? '<div class="header-actions"><button class="button subtle" type="button" data-nav-screen="conversation">继续最近会话</button><button class="button primary" type="button" data-nav-screen="conversation"' +
-        (state === "disabled" ? " disabled" : "") +
-        ">开始新会话</button></div>"
-      : "",
+    '<header class="assistant-page-header"><div><span class="section-kicker">已授权助手</span><h1>选择助手</h1><p>选择后立即创建一条固定版本的空会话。</p></div>',
     "</header>",
     body,
     "</main>",
@@ -537,6 +614,8 @@ function assistantRow(assistant, disabled) {
       escapeHtml(assistant.knowledgeBase) +
       "</span><span>固定版本：" +
       escapeHtml(assistant.version) +
+      " · 索引 " +
+      escapeHtml(assistant.indexVersionId || "—") +
       "</span></span>",
     statusTag(assistant.status),
     "</button>",
@@ -545,9 +624,11 @@ function assistantRow(assistant, disabled) {
 
 function renderConversation(state) {
   const projection = prototypeStore.queryProjection(fixtures, {
-    assistantId: selectedAssistantId,
     conversationId: activeConversationId,
   });
+  if (projection.conversation?.assistantId) {
+    selectedAssistantId = projection.conversation.assistantId;
+  }
   const historyAllowed = projection.history.length > 0;
   const assistant =
     fixtures.assistants.find((item) => item.id === selectedAssistantId) || {};
@@ -578,7 +659,7 @@ function renderConversation(state) {
       '" tabindex="-1">',
     '<aside id="history-panel" class="history-panel" aria-label="会话历史">',
     '<header class="history-header"><div class="app-brand"><span class="brand-mark" aria-hidden="true">R</span><span>会话记录</span></div><button class="button subtle compact drawer-close" type="button" data-close-history>关闭</button></header>',
-    '<div class="history-search"><label class="field"><span class="field-label">搜索会话</span><input class="input" type="search" placeholder="按标题搜索" /></label></div>',
+    '<div class="history-search"><label class="field"><span class="field-label">搜索会话</span><input class="input" type="search" placeholder="按标题搜索" data-history-search /></label></div>',
     '<nav class="conversation-list" aria-label="历史会话">' +
       history +
       "</nav>",
@@ -593,24 +674,28 @@ function renderConversation(state) {
       (state === "denied"
         ? "已隐藏受保护会话信息"
         : escapeHtml(assistant.knowledgeBase) +
-          " · 固定 " +
-          escapeHtml(assistant.version) +
-          " · 引用必需") +
+          " · 助手 " +
+          escapeHtml(projection.conversation?.assistantVersion || assistant.version) +
+          " · 索引 " +
+          escapeHtml(projection.conversation?.indexVersionId || assistant.indexVersionId || "—")) +
       "</small></div>",
     '<div class="conversation-header-actions">' +
-      demoAccountControl() +
       '<button class="button secondary compact mobile-history-button" type="button" aria-controls="history-panel" aria-expanded="false" data-open-history' +
       (historyAllowed ? "" : " disabled") +
-      '>会话记录</button><button class="button subtle compact" type="button" data-nav-screen="assistants">助手目录</button></div>',
+      '>会话记录</button><button class="button subtle compact" type="button" data-new-conversation>新会话</button><button class="button subtle compact" type="button" data-query-logout>退出</button></div>',
     "</header>",
-    renderMessageRegion(state, projection.messages),
-    renderComposer(state),
+    queryFeedback
+      ? `<div class="conversation-feedback inline-note warning" role="status">${escapeHtml(queryFeedback)}</div>`
+      : "",
+    renderMessageRegion(state, projection),
+    renderComposer(state, projection.activeRun),
     "</section>",
     "</main>",
   ].join("");
 }
 
-function renderMessageRegion(state, projectedMessages = []) {
+function renderMessageRegion(state, projection) {
+  const projectedMessages = projection.messages || [];
   const generic = genericState("conversation", state);
   if (generic) {
     return (
@@ -620,42 +705,58 @@ function renderMessageRegion(state, projectedMessages = []) {
     );
   }
   if (projectedMessages.length === 0 && state === "success") {
-    return '<section class="message-region"><section class="state-panel" data-kind="empty"><h2>没有可读取的当前会话</h2><p>此演示成员可以从助手目录开启自己的新会话。</p></section></section>';
+    return '<section class="message-region"><div id="messages" class="messages" aria-live="polite"><section class="conversation-empty"><span class="section-kicker">新会话</span><h2>从一个明确问题开始</h2><p>回答只使用此会话固定的助手与索引版本；证据不足时会明确拒答。</p></section></div></section>';
   }
   const messages = projectedMessages
     .map((message) => renderMessage(message))
     .join("");
-  const partial =
-    state === "partial" && projectedMessages.length > 0
-      ? [
-          '<article class="message assistant" data-streaming-message>',
-          '<div class="message-meta"><strong>员工服务助手</strong><span>正在回答</span></div>',
-          '<div class="message-body"><p class="streaming-cursor">你有 7 天未休年假时，最多可结转 5 天。剩余 2 天是否可以补偿，需要继续核验适用制度和审批条件</p></div>',
-          '<p class="query-stage" aria-live="polite">已检索 8 个授权证据块，正在生成并等待引用最终化</p>',
-          "</article>",
-        ].join("")
+  const receiving =
+    projection.activeRun?.status === "RECEIVING" &&
+    !projectedMessages.some(
+      (message) => message.runId === projection.activeRun.id,
+    )
+      ? '<article class="message assistant run-status" data-run-state="RECEIVING"><div class="message-meta"><strong>员工服务助手</strong><span>正在回答</span></div><p class="query-stage" aria-live="polite">正在检索授权证据并保存接收进度</p><button class="button secondary compact" type="button" data-stop-run>停止生成</button></article>'
       : "";
+  const recovery = renderRunRecovery(projection.activeRun);
   const disabled =
     state === "disabled"
       ? '<div class="inline-note warning">助手已发布 v13。当前会话仍固定 v12；如需使用新版本，请明确开启新会话。</div>'
       : "";
   return [
     '<section class="message-region">',
-    '<div class="older-messages"><button class="button subtle compact" type="button" data-load-older>加载更早消息 · beforeSequence=41</button></div>',
+    projection.canLoadEarlier
+      ? '<div class="older-messages"><button class="button subtle compact" type="button" data-load-older>加载事件 41 之前的消息</button></div>'
+      : "",
     state === "partial"
       ? '<div class="inline-note warning">连接曾短暂中断，已从最后确认的事件序号 44 恢复；已完成消息不会重复追加。</div>'
       : "",
     disabled,
     '<div id="messages" class="messages" aria-live="polite">' +
       messages +
-      partial +
+      receiving +
+      recovery +
       "</div>",
     "</section>",
   ].join("");
 }
 
+function renderRunRecovery(run) {
+  if (!run || run.status === "RECEIVING") {
+    return "";
+  }
+  const copy = {
+    PAUSED: ["接收已暂停", "已保存当前偏移，可从这里继续。", "继续接收", "resume"],
+    FAILED: ["本轮接收失败", "问题只记录一次；重试会沿用同一轮次。", "重试本轮", "retry"],
+    STOPPED: ["已停止生成", "已保存当前内容，可选择继续。", "继续生成", "resume"],
+  }[run.status];
+  if (!copy) {
+    return "";
+  }
+  return `<section class="run-recovery" data-run-state="${escapeHtml(run.status)}"><div><strong>${copy[0]}</strong><p>${copy[1]}</p></div><button class="button secondary" type="button" data-run-action="${copy[3]}" data-query-${copy[3]}>${copy[2]}</button></section>`;
+}
+
 function renderMessage(message, citationsAllowed = true) {
-  const citations = message.citations && citationsAllowed
+  const citations = message.citations?.length && citationsAllowed
     ? '<div class="citations" aria-label="回答引用">' +
       message.citations
         .map((citation, index) =>
@@ -687,6 +788,10 @@ function renderMessage(message, citationsAllowed = true) {
       escapeHtml(message.role) +
       '" data-sequence="' +
       escapeHtml(message.sequence) +
+      '"' +
+      (message.runState
+        ? ' data-run-state="' + escapeHtml(message.runState) + '"'
+        : "") +
       '">',
     '<div class="message-meta"><strong>' +
       (message.role === "user" ? "你" : "员工服务助手") +
@@ -697,15 +802,24 @@ function renderMessage(message, citationsAllowed = true) {
       "</span></div>",
     '<div class="message-body"><p>' +
       escapeHtml(message.content) +
+      (message.runState === "RECEIVING"
+        ? '<span class="streaming-cursor" aria-hidden="true"></span>'
+        : "") +
       "</p></div>",
     citations,
+    message.runState === "RECEIVING"
+      ? '<div class="message-run-footer"><p class="query-stage" aria-live="polite">接收中 · 已保存当前偏移</p><button class="button secondary compact" type="button" data-stop-run>停止生成</button></div>'
+      : "",
     "</article>",
   ].join("");
 }
 
-function renderComposer(state) {
+function renderComposer(state, activeRun) {
   const blocked =
-    state === "disabled" || state === "denied" || state === "loading";
+    state === "disabled" ||
+    state === "denied" ||
+    state === "loading" ||
+    Boolean(activeRun);
   return [
     '<footer class="composer-shell">',
     '<form id="composer-form" class="composer">',
@@ -1120,7 +1234,32 @@ function bindInteractions(screen) {
   });
   root.querySelector("#login-form")?.addEventListener("submit", (event) => {
     event.preventDefault();
-    navigate("assistants");
+    const values = new FormData(event.currentTarget);
+    const result = prototypeStore.loginQuery({
+      tenantCode: values.get("tenantCode"),
+      username: values.get("username"),
+      password: values.get("password"),
+    });
+    event.currentTarget.elements.password.value = "";
+    if (!result.ok) {
+      loginFeedback =
+        result.reason === "STORAGE_UNAVAILABLE"
+          ? "浏览器无法保存演示会话，本次登录未生效。"
+          : "组织编码、登录名或密码不正确。";
+      render();
+      root.querySelector('#login-form input[name="password"]')?.focus();
+      return;
+    }
+    loginFeedback = "";
+    queryFeedback = "";
+    const requested = currentScenario();
+    if (requested.screen === "conversation" && requested.conversationId) {
+      navigate("conversation", "success", {
+        conversationId: requested.conversationId,
+      });
+    } else {
+      navigate("assistants");
+    }
   });
   root
     .querySelector("#assistant-search")
@@ -1138,7 +1277,23 @@ function bindInteractions(screen) {
   root.querySelectorAll("[data-assistant-id]").forEach((element) => {
     element.addEventListener("click", () => {
       selectedAssistantId = element.dataset.assistantId;
-      navigate("conversation");
+      const result = prototypeStore.createQueryConversation(
+        fixtures,
+        selectedAssistantId,
+      );
+      if (!result.ok) {
+        queryFeedback =
+          result.reason === "STORAGE_UNAVAILABLE"
+            ? "无法保存新会话，请检查浏览器存储后重试。"
+            : "当前授权不能创建此会话。";
+        render();
+        return;
+      }
+      activeConversationId = result.conversation.id;
+      queryFeedback = "";
+      navigate("conversation", "success", {
+        conversationId: activeConversationId,
+      });
     });
     element.addEventListener("keydown", moveAssistantFocus);
   });
@@ -1148,8 +1303,18 @@ function bindInteractions(screen) {
       if (!conversation) return;
       activeConversationId = conversation.id;
       selectedAssistantId = conversation.assistantId;
-      render();
       closeHistory();
+      navigate("conversation", "success", {
+        conversationId: activeConversationId,
+      });
+    });
+  });
+  root.querySelector("[data-history-search]")?.addEventListener("input", (event) => {
+    const query = event.currentTarget.value.trim().toLocaleLowerCase("zh-CN");
+    root.querySelectorAll("[data-conversation-id]").forEach((item) => {
+      item.hidden =
+        query.length > 0 &&
+        !item.textContent.toLocaleLowerCase("zh-CN").includes(query);
     });
   });
   root
@@ -1164,8 +1329,14 @@ function bindInteractions(screen) {
   root
     .querySelector("[data-load-older]")
     ?.addEventListener("click", (event) => {
-      event.currentTarget.textContent = "已加载到会话起点 · sequence=1";
-      event.currentTarget.disabled = true;
+      const result = prototypeStore.loadEarlierQueryMessages(
+        fixtures,
+        activeConversationId,
+      );
+      queryFeedback = result.ok
+        ? "已按事件序号载入更早消息。"
+        : "无法读取更早消息，当前内容保持不变。";
+      render();
     });
   root
     .querySelector("#composer-form")
@@ -1178,6 +1349,57 @@ function bindInteractions(screen) {
         event.currentTarget.form?.requestSubmit();
       }
     });
+  root.querySelectorAll("[data-query-logout]").forEach((button) => {
+    button.addEventListener("click", () => {
+      cancelQueryTimer();
+      const result = prototypeStore.logoutQuery();
+      if (!result.ok) {
+        loginFeedback = "当前页面已退出，但浏览器未能清除登录记录。请关闭原型并清理本地演示登录态后重试。";
+        navigate("login");
+        return;
+      }
+      activeConversationId = "";
+      queryFeedback = "";
+      navigate("login");
+    });
+  });
+  root.querySelector("[data-new-conversation]")?.addEventListener("click", () => {
+    queryFeedback = "";
+    navigate("assistants");
+  });
+  root.querySelectorAll("[data-stop-run]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const projection = prototypeStore.queryProjection(fixtures, {
+        conversationId: activeConversationId,
+      });
+      const result = prototypeStore.stopQueryRun(
+        fixtures,
+        activeConversationId,
+        projection.activeRun?.id,
+      );
+      queryFeedback = result.ok ? "已停止并保存当前接收位置。" : "本轮已不在接收中。";
+      render();
+    });
+  });
+  root.querySelectorAll("[data-run-action]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const projection = prototypeStore.queryProjection(fixtures, {
+        conversationId: activeConversationId,
+      });
+      const method =
+        button.dataset.runAction === "retry"
+          ? prototypeStore.retryQueryRun
+          : prototypeStore.resumeQueryRun;
+      const result = method(
+        fixtures,
+        activeConversationId,
+        projection.activeRun?.id,
+      );
+      queryStreamingSuspended = false;
+      queryFeedback = result.ok ? "已继续同一轮次。" : "当前状态不能继续。";
+      render();
+    });
+  });
   root.querySelector("[data-confirm-index]")?.addEventListener("click", () => {
     root.querySelector("#index-dialog")?.showModal();
   });
@@ -1501,7 +1723,10 @@ function toggleCitation(button) {
 
 function submitQuestion(event) {
   event.preventDefault();
-  if (!prototypeStore.queryProjection(fixtures, { assistantId: selectedAssistantId }).conversationAllowed) {
+  const projection = prototypeStore.queryProjection(fixtures, {
+    conversationId: activeConversationId,
+  });
+  if (!projection.conversationAllowed) {
     render();
     return;
   }
@@ -1511,48 +1736,92 @@ function submitQuestion(event) {
     input?.focus();
     return;
   }
-  const messages = root.querySelector("#messages");
-  const sendButton = event.currentTarget.querySelector('button[type="submit"]');
-  input.disabled = true;
-  sendButton.disabled = true;
-  messages.insertAdjacentHTML(
-    "beforeend",
-    [
-      '<article class="message user" data-sequence="44">',
-      '<div class="message-meta"><strong>你</strong><span>事件 44 · 刚刚</span></div>',
-      '<div class="message-body"><p>' + escapeHtml(question) + "</p></div>",
-      "</article>",
-      '<article class="message assistant" data-live-answer>',
-      '<div class="message-meta"><strong>员工服务助手</strong><span>正在回答</span></div>',
-      '<div class="message-body"><p class="streaming-cursor" data-live-text></p></div>',
-      '<p class="query-stage" aria-live="polite">RUN_ACCEPTED · 正在检索授权证据</p>',
-      "</article>",
-    ].join(""),
+  const result = prototypeStore.startQueryRun(
+    fixtures,
+    activeConversationId,
+    question,
+    { mode: nextQueryMode },
   );
-  input.value = "";
-  const answer =
-    "未休 7 天时，最多结转 5 天。其余 2 天是否可以补偿，需要根据适用制度和审批结果判断；当前证据不足以给出统一结论。";
-  const target = root.querySelector("[data-live-text]");
-  const stage = root.querySelector("[data-live-answer] .query-stage");
-  let offset = 0;
+  queryStreamingSuspended = false;
+  nextQueryMode = "normal";
+  const reviewerMode = document.querySelector("#review-query-mode");
+  if (reviewerMode) {
+    reviewerMode.value = "normal";
+  }
+  if (!result.ok) {
+    queryFeedback =
+      result.reason === "STORAGE_UNAVAILABLE"
+        ? "浏览器无法保存本轮问题，内容未发送。"
+        : "当前授权不能继续此会话。";
+    render();
+    const draft = root.querySelector("#question-input");
+    if (draft) { draft.value = question; draft.focus(); }
+    return;
+  }
+  queryFeedback = result.replayed
+    ? "已恢复同一问题的接收进度，没有重复追加。"
+    : result.run.status === "FAILED"
+      ? "已模拟本轮接收失败，可从原轮次重试。"
+      : result.run.status === "PAUSED"
+        ? "已模拟断线，接收位置已保存。"
+        : "";
+  render();
+}
+
+function cancelQueryTimer() {
+  streamGeneration += 1;
+  window.clearTimeout(streamTimer);
+  streamTimer = undefined;
+}
+
+function scheduleQueryContinuation() {
+  const projection = prototypeStore.queryProjection(fixtures, {
+    conversationId: activeConversationId,
+  });
+  if (
+    queryStreamingSuspended ||
+    projection.activeRun?.status !== "RECEIVING"
+  ) {
+    return;
+  }
+  const generation = streamGeneration;
+  const session = prototypeStore.getQuerySession();
   const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  const step = reduced ? answer.length : 4;
-  streamTimer = window.setInterval(
+  streamTimer = window.setTimeout(
     () => {
-      offset = Math.min(answer.length, offset + step);
-      target.textContent = answer.slice(0, offset);
-      stage.textContent =
-        offset < answer.length
-          ? "TOKEN_DELTA · 已持久化事件 45"
-          : "COMPLETED · 最终答案与引用已原子提交";
-      if (offset >= answer.length) {
-        window.clearInterval(streamTimer);
-        target.classList.remove("streaming-cursor");
-        input.disabled = false;
-        sendButton.disabled = false;
-        input.focus();
+      if (generation !== streamGeneration) {
+        return;
       }
+      const result = prototypeStore.advanceQueryRun(
+        fixtures,
+        activeConversationId,
+        projection.activeRun.id,
+        {
+          chunkSize: reduced ? projection.activeRun.totalCharacters : 12,
+          expectedEpoch: session.epoch,
+        },
+      );
+      if (!result.ok) {
+        queryStreamingSuspended = true;
+        queryFeedback =
+          result.reason === "STORAGE_UNAVAILABLE"
+            ? "接收进度无法保存，已停止继续生成。"
+            : "会话授权已变化，接收已停止。";
+      }
+      if (result.ok && result.run.status === "RECEIVING") {
+        const message = prototypeStore.queryProjection(fixtures, {
+          conversationId: activeConversationId,
+        }).messages.find(item => item.runId === result.run.id);
+        const paragraph = message && root.querySelector(`[data-sequence="${message.sequence}"] .message-body p`);
+        if (paragraph) {
+          // 保持操作节点稳定，避免增量接收不断打断点击、焦点和历史筛选。
+          paragraph.innerHTML = escapeHtml(message.content) + '<span class="streaming-cursor" aria-hidden="true"></span>';
+          scheduleQueryContinuation();
+          return;
+        }
+      }
+      render();
     },
-    reduced ? 1 : 100,
+    reduced ? 0 : 180,
   );
 }

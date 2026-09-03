@@ -1,0 +1,127 @@
+TAP version 13
+# Subtest: 错误口令不建立会话且口令从不进入持久化
+not ok 1 - 错误口令不建立会话且口令从不进入持久化
+  ---
+  duration_ms: 0.580917
+  type: 'test'
+  location: '/Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/query-state.test.mjs:23:1'
+  failureType: 'testCodeFailure'
+  error: 'store.loginQuery is not a function'
+  code: 'ERR_TEST_FAILURE'
+  name: 'TypeError'
+  stack: |-
+    TestContext.<anonymous> (file:///Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/query-state.test.mjs:27:11)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.start (node:internal/test_runner/test:944:17)
+    startSubtestAfterBootstrap (node:internal/test_runner/harness:296:17)
+  ...
+# Subtest: 新会话为空且固定助手版本与索引版本，会话之间相互隔离
+not ok 2 - 新会话为空且固定助手版本与索引版本，会话之间相互隔离
+  ---
+  duration_ms: 0.095625
+  type: 'test'
+  location: '/Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/query-state.test.mjs:40:1'
+  failureType: 'testCodeFailure'
+  error: 'store.loginQuery is not a function'
+  code: 'ERR_TEST_FAILURE'
+  name: 'TypeError'
+  stack: |-
+    login (file:///Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/query-state.test.mjs:16:16)
+    TestContext.<anonymous> (file:///Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/query-state.test.mjs:42:16)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+  ...
+# Subtest: 接收中的同一问题可恢复且不会重复追加
+not ok 3 - 接收中的同一问题可恢复且不会重复追加
+  ---
+  duration_ms: 0.082333
+  type: 'test'
+  location: '/Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/query-state.test.mjs:59:1'
+  failureType: 'testCodeFailure'
+  error: 'store.loginQuery is not a function'
+  code: 'ERR_TEST_FAILURE'
+  name: 'TypeError'
+  stack: |-
+    login (file:///Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/query-state.test.mjs:16:16)
+    TestContext.<anonymous> (file:///Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/query-state.test.mjs:62:16)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: 未知问题明确拒答且不复用年假答案
+not ok 4 - 未知问题明确拒答且不复用年假答案
+  ---
+  duration_ms: 0.076583
+  type: 'test'
+  location: '/Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/query-state.test.mjs:102:1'
+  failureType: 'testCodeFailure'
+  error: 'store.loginQuery is not a function'
+  code: 'ERR_TEST_FAILURE'
+  name: 'TypeError'
+  stack: |-
+    login (file:///Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/query-state.test.mjs:16:16)
+    TestContext.<anonymous> (file:///Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/query-state.test.mjs:104:16)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: 暂停、失败和重试沿用原轮次，退出或撤权后旧接收器失效
+not ok 5 - 暂停、失败和重试沿用原轮次，退出或撤权后旧接收器失效
+  ---
+  duration_ms: 0.077667
+  type: 'test'
+  location: '/Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/query-state.test.mjs:131:1'
+  failureType: 'testCodeFailure'
+  error: 'store.loginQuery is not a function'
+  code: 'ERR_TEST_FAILURE'
+  name: 'TypeError'
+  stack: |-
+    login (file:///Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/query-state.test.mjs:16:16)
+    TestContext.<anonymous> (file:///Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/query-state.test.mjs:133:16)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: 持久化失败会回滚登录并返回可见失败语义
+not ok 6 - 持久化失败会回滚登录并返回可见失败语义
+  ---
+  duration_ms: 0.062042
+  type: 'test'
+  location: '/Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/query-state.test.mjs:169:1'
+  failureType: 'testCodeFailure'
+  error: 'store.loginQuery is not a function'
+  code: 'ERR_TEST_FAILURE'
+  name: 'TypeError'
+  stack: |-
+    login (file:///Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/query-state.test.mjs:16:16)
+    TestContext.<anonymous> (file:///Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/query-state.test.mjs:180:20)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+1..6
+# tests 6
+# suites 0
+# pass 0
+# fail 6
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 54.882166

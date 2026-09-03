@@ -1,0 +1,29 @@
+TAP version 13
+# Subtest: 另一标签页关闭对话权限后当前正文与引用立即失效
+not ok 1 - 另一标签页关闭对话权限后当前正文与引用立即失效
+  ---
+  duration_ms: 5533.240541
+  type: 'test'
+  location: '/Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/query-resilience.test.cjs:75:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    locator.fill: Timeout 5000ms exceeded.
+    Call log:
+    [2m  - waiting for locator('#login-form input[name="tenantCode"]')[22m
+    
+  code: 'ERR_TEST_FAILURE'
+  name: 'TimeoutError'
+  stack: |-
+    login (/Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/query-resilience.test.cjs:28:66)
+    async /Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/query-resilience.test.cjs:76:3
+    async scenario (/Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/query-resilience.test.cjs:18:5)
+  ...
+1..1
+# tests 1
+# suites 0
+# pass 0
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 6017.860959

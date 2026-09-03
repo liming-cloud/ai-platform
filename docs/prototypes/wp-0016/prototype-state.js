@@ -1,5 +1,6 @@
 export const DEFAULT_TENANT_ID = "tenant-spruce";
 export const PROTOTYPE_STATE_KEY = "wp0016-business-demo-v1";
+export const QUERY_SESSION_KEY = "wp0016-query-session-v1";
 
 export const CONVERSATION_FEATURES = Object.freeze([
   "assistantSelection",
@@ -61,6 +62,44 @@ const DEFAULT_QUOTAS = Object.freeze({
   singleFileMb: 50,
   pastedTextMib: 1,
 });
+
+const QUERY_DEMO_ACCOUNT = Object.freeze({
+  tenantCode: "spruce-demo",
+  username: "demo.user",
+  password: "demo-only",
+  tenantId: DEFAULT_TENANT_ID,
+  accountId: "account-shen",
+});
+
+function defaultQueryState() {
+  return {
+    session: {
+      authenticated: false,
+      tenantId: null,
+      accountId: null,
+      epoch: 0,
+    },
+    currentConversationId: null,
+    nextConversationNumber: 1,
+    conversations: [],
+    loadedEarlierConversationIds: [],
+  };
+}
+
+/** 登录态与聊天记录分开保存，存储满时退出仍可移除登录态而不清除历史。 */
+function readQuerySession(storage, epoch = 0) {
+  const anonymous = { ...defaultQueryState().session, epoch };
+  try {
+    const session = JSON.parse(storage.getItem(QUERY_SESSION_KEY));
+    return session?.authenticated === true &&
+      session.tenantId === QUERY_DEMO_ACCOUNT.tenantId &&
+      session.accountId === QUERY_DEMO_ACCOUNT.accountId &&
+      Number.isSafeInteger(session.epoch) && session.epoch > 0
+      ? session : anonymous;
+  } catch {
+    return anonymous;
+  }
+}
 
 function clone(value) {
   return JSON.parse(JSON.stringify(value));
@@ -219,6 +258,7 @@ function defaultState() {
         },
       ],
     },
+    query: defaultQueryState(),
   };
 }
 
@@ -251,7 +291,23 @@ function browserStorage() {
 function initialState(storage) {
   try {
     const parsed = JSON.parse(storage.getItem(PROTOTYPE_STATE_KEY));
-    return parsed?.schemaVersion === 1 ? parsed : defaultState();
+    if (parsed?.schemaVersion !== 1) {
+      return defaultState();
+    }
+    parsed.query = {
+      ...defaultQueryState(),
+      ...(parsed.query || {}),
+      session: readQuerySession(storage, Number(parsed.query?.session?.epoch) || 0),
+      conversations: Array.isArray(parsed.query?.conversations)
+        ? parsed.query.conversations
+        : [],
+      loadedEarlierConversationIds: Array.isArray(
+        parsed.query?.loadedEarlierConversationIds,
+      )
+        ? parsed.query.loadedEarlierConversationIds
+        : [],
+    };
+    return parsed;
   } catch {
     return defaultState();
   }
@@ -262,9 +318,12 @@ export function createPrototypeStore(storage = browserStorage()) {
   let state = initialState(storage);
   const tenantDrafts = new Map();
   const memberDrafts = new Map();
+  let querySessionClosed = false;
 
   function persist() {
-    storage.setItem(PROTOTYPE_STATE_KEY, JSON.stringify(state));
+    const snapshot = clone(state);
+    snapshot.query.session = { ...defaultQueryState().session, epoch: state.query.session.epoch };
+    storage.setItem(PROTOTYPE_STATE_KEY, JSON.stringify(snapshot));
   }
 
   function tenantById(tenantId) {
@@ -286,6 +345,8 @@ export function createPrototypeStore(storage = browserStorage()) {
   }
 
   function reset() {
+    storage.removeItem(QUERY_SESSION_KEY);
+    querySessionClosed = true;
     state = defaultState();
     tenantDrafts.clear();
     memberDrafts.clear();
@@ -515,31 +576,491 @@ export function createPrototypeStore(storage = browserStorage()) {
       : { allowed: false, reason: "TENANT_FEATURE_CLOSED" };
   }
 
-  /** 合成问答数据也按成员、已发布助手和会话归属过滤，不以菜单隐藏替代数据过滤。 */
+  function persistQueryMutation(mutator) {
+    const before = clone(state.query);
+    const selectedDemoAccountId = state.selectedDemoAccountId;
+    const result = mutator();
+    try {
+      persist();
+      if (state.query.session.epoch !== before.session.epoch && state.query.session.authenticated) {
+        storage.setItem(QUERY_SESSION_KEY, JSON.stringify(state.query.session));
+      }
+      return result;
+    } catch {
+      state.query = before;
+      state.selectedDemoAccountId = selectedDemoAccountId;
+      return { ok: false, reason: "STORAGE_UNAVAILABLE" };
+    }
+  }
+
+  function getQuerySession() {
+    return clone(state.query.session);
+  }
+
+  function loginQuery(input = {}) {
+    const valid =
+      String(input.tenantCode || "").trim() === QUERY_DEMO_ACCOUNT.tenantCode &&
+      String(input.username || "").trim() === QUERY_DEMO_ACCOUNT.username &&
+      String(input.password || "") === QUERY_DEMO_ACCOUNT.password;
+    if (!valid) {
+      return { ok: false, reason: "INVALID_CREDENTIALS" };
+    }
+    const result = persistQueryMutation(() => {
+      state.selectedDemoAccountId = QUERY_DEMO_ACCOUNT.accountId;
+      state.query.session = {
+        authenticated: true,
+        tenantId: QUERY_DEMO_ACCOUNT.tenantId,
+        accountId: QUERY_DEMO_ACCOUNT.accountId,
+        epoch: state.query.session.epoch + 1,
+      };
+      // 旧登录的接收器已失效，保留偏移并等待当前用户显式继续。
+      for (const conversation of state.query.conversations) {
+        if (conversation.memberId !== QUERY_DEMO_ACCOUNT.accountId) continue;
+        for (const run of conversation.runs) {
+          if (run.status !== "RECEIVING") continue;
+          run.status = "PAUSED";
+          const message = conversation.messages.find(item => item.runId === run.id);
+          if (message) message.runState = "PAUSED";
+        }
+      }
+      return { ok: true, session: getQuerySession() };
+    });
+    if (result.ok) querySessionClosed = false;
+    return result;
+  }
+
+  function logoutQuery() {
+    querySessionClosed = true;
+    state.query.session = { ...defaultQueryState().session, epoch: state.query.session.epoch + 1 };
+    try {
+      storage.removeItem(QUERY_SESSION_KEY);
+      return { ok: true, session: getQuerySession() };
+    } catch {
+      return { ok: false, reason: "STORAGE_UNAVAILABLE" };
+    }
+  }
+
+  function queryAccess(feature, assistantId) {
+    const session = state.query.session;
+    if (!session.authenticated || !session.tenantId || !session.accountId) {
+      return { allowed: false, reason: "AUTH_REQUIRED" };
+    }
+    return getEffectiveAccess(session.tenantId, session.accountId, {
+      feature,
+      assistantId,
+    });
+  }
+
+  function publishedAssistant(fixtures, assistantId) {
+    return (fixtures?.assistants || []).find(
+      (assistant) =>
+        assistant.id === assistantId && assistant.status === "PUBLISHED",
+    );
+  }
+
+  function storedConversation(conversationId) {
+    return state.query.conversations.find(
+      (conversation) => conversation.id === conversationId,
+    );
+  }
+
+  function fixtureConversation(fixtures, conversationId) {
+    const source = (fixtures?.conversations || []).find(
+      (conversation) => conversation.id === conversationId,
+    );
+    if (!source) {
+      return null;
+    }
+    const assistant = publishedAssistant(fixtures, source.assistantId);
+    return {
+      ...clone(source),
+      assistantVersionId: assistant?.versionId || "",
+      assistantVersion: assistant?.version || "",
+      indexVersionId: assistant?.indexVersionId || "",
+      messages: clone(
+        (fixtures?.messages || []).filter(
+          (message) => message.conversationId === source.id,
+        ),
+      ),
+      runs: [],
+    };
+  }
+
+  function queryConversation(fixtures, conversationId) {
+    return storedConversation(conversationId) ||
+      fixtureConversation(fixtures, conversationId);
+  }
+
+  function materializeConversation(fixtures, conversationId) {
+    const stored = storedConversation(conversationId);
+    if (stored) {
+      return stored;
+    }
+    const seeded = fixtureConversation(fixtures, conversationId);
+    if (!seeded) {
+      return null;
+    }
+    state.query.conversations.push(seeded);
+    return seeded;
+  }
+
+  function createQueryConversation(fixtures, assistantId) {
+    const assistant = publishedAssistant(fixtures, assistantId);
+    if (!assistant) {
+      return { ok: false, reason: "ASSISTANT_NOT_FOUND" };
+    }
+    const canSelect = queryAccess("assistantSelection", assistantId);
+    const canConverse = queryAccess("conversation", assistantId);
+    if (!canSelect.allowed || !canConverse.allowed) {
+      return { ok: false, reason: canSelect.allowed ? canConverse.reason : canSelect.reason };
+    }
+    return persistQueryMutation(() => {
+      const number = state.query.nextConversationNumber;
+      const conversation = {
+        id: `cv-demo-${String(number).padStart(4, "0")}`,
+        memberId: state.query.session.accountId,
+        assistantId,
+        assistant: assistant.name,
+        title: "新会话",
+        updatedAt: "刚刚",
+        assistantVersionId: assistant.versionId,
+        assistantVersion: assistant.version,
+        indexVersionId: assistant.indexVersionId,
+        messages: [],
+        runs: [],
+      };
+      state.query.nextConversationNumber += 1;
+      state.query.currentConversationId = conversation.id;
+      state.query.conversations.unshift(conversation);
+      return { ok: true, conversation: clone(conversation) };
+    });
+  }
+
+  function queryAnswer(question) {
+    if (/年假|未休\s*7\s*天/.test(question)) {
+      return {
+        terminalStatus: "COMPLETED",
+        content:
+          "按当前制度，未休年假最多可结转 5 个工作日，并需在次年 3 月 31 日前使用。" +
+          (/未休\s*7\s*天/.test(question)
+            ? "你有 7 天未休，其中 5 天可结转；其余 2 天请联系直属负责人和人力资源确认安排。"
+            : "超过结转上限的部分，请联系直属负责人和人力资源确认安排。"),
+        citations: [
+          {
+            id: "cit-demo-leave-1",
+            source: "2026 员工假期制度.pdf",
+            location: "第 6 页 · 年假结转",
+            excerpt: "未休年假可结转至次年第一季度，结转上限为五个工作日。",
+          },
+          {
+            id: "cit-demo-leave-2",
+            source: "福利办事指南.docx",
+            location: "假期申请 · 第 3 节",
+            excerpt: "结转年假需在次年三月三十一日前完成申请和使用。",
+          },
+        ],
+      };
+    }
+    return {
+      terminalStatus: "REFUSED",
+      content:
+        "我无法依据当前已授权知识回答这个问题。请改问员工制度、假期或办事流程，或联系相应业务负责人。",
+      citations: [],
+    };
+  }
+
+  function nextMessageSequence(conversation) {
+    return Math.max(0, ...conversation.messages.map((message) => message.sequence || 0), ...conversation.runs.map(run => run.assistantSequence)) + 1;
+  }
+
+  /** 页面投影不返回内部完整答案、证据或消息容器，正文只能经过对应权限投影。 */
+  function conversationSummary(conversation) {
+    const { id, memberId, assistantId, assistant, title, updatedAt, assistantVersionId, assistantVersion, indexVersionId } = conversation;
+    return { id, memberId, assistantId, assistant, title, updatedAt, assistantVersionId, assistantVersion, indexVersionId };
+  }
+
+  function queryRunSummary(run) {
+    const { id, status, userSequence, assistantSequence, offset, sessionEpoch } = run;
+    return { id, status, userSequence, assistantSequence, offset, sessionEpoch, totalCharacters: run.answer.length };
+  }
+
+  function canUseConversation(fixtures, conversationId) {
+    if (!state.query.session.authenticated) {
+      return { allowed: false, reason: "AUTH_REQUIRED" };
+    }
+    const conversation = queryConversation(fixtures, conversationId);
+    if (!conversation || conversation.memberId !== state.query.session.accountId) {
+      return { allowed: false, reason: "CONVERSATION_NOT_FOUND" };
+    }
+    const history = queryAccess("ownHistory", conversation.assistantId);
+    const conversationAccess = queryAccess("conversation", conversation.assistantId);
+    if (!history.allowed || !conversationAccess.allowed) {
+      return {
+        allowed: false,
+        reason: history.allowed ? conversationAccess.reason : history.reason,
+      };
+    }
+    return { allowed: true, conversation };
+  }
+
+  function startQueryRun(fixtures, conversationId, rawQuestion, options = {}) {
+    const question = String(rawQuestion || "").trim();
+    if (!question) {
+      return { ok: false, reason: "QUESTION_REQUIRED" };
+    }
+    const access = canUseConversation(fixtures, conversationId);
+    if (!access.allowed) {
+      return { ok: false, reason: access.reason };
+    }
+    const active = (access.conversation.runs || []).find(
+      (run) =>
+        ["RECEIVING", "PAUSED", "FAILED", "STOPPED"].includes(run.status),
+    );
+    if (active) {
+      return active.question === question
+        ? { ok: true, replayed: true, run: queryRunSummary(active) }
+        : { ok: false, reason: "RUN_IN_PROGRESS" };
+    }
+    return persistQueryMutation(() => {
+      const conversation = materializeConversation(fixtures, conversationId);
+      const answer = queryAnswer(question);
+      const userSequence = nextMessageSequence(conversation);
+      const run = {
+        id: `${conversation.id}-run-${conversation.runs.length + 1}`,
+        question,
+        status:
+          options.mode === "failure"
+            ? "FAILED"
+            : options.mode === "disconnect"
+              ? "PAUSED"
+              : "RECEIVING",
+        userSequence,
+        assistantSequence: userSequence + 1,
+        answer: answer.content,
+        citations: answer.citations,
+        terminalStatus: answer.terminalStatus,
+        offset: 0,
+        sessionEpoch: state.query.session.epoch,
+      };
+      conversation.messages.push({
+        sequence: userSequence,
+        conversationId: conversation.id,
+        role: "user",
+        content: question,
+        createdAt: "刚刚",
+      });
+      conversation.runs.push(run);
+      conversation.title = question.length > 18 ? `${question.slice(0, 18)}…` : question;
+      conversation.updatedAt = "刚刚";
+      state.query.currentConversationId = conversation.id;
+      return { ok: true, replayed: false, run: queryRunSummary(run) };
+    });
+  }
+
+  function advanceQueryRun(fixtures, conversationId, runId, options = {}) {
+    const access = canUseConversation(fixtures, conversationId);
+    if (!access.allowed) {
+      return { ok: false, reason: access.reason };
+    }
+    if (
+      Number.isInteger(options.expectedEpoch) &&
+      options.expectedEpoch !== state.query.session.epoch
+    ) {
+      return { ok: false, reason: "STALE_SESSION" };
+    }
+    const conversation = storedConversation(conversationId);
+    const run = conversation?.runs.find((item) => item.id === runId);
+    if (!run || run.status !== "RECEIVING") {
+      return { ok: false, reason: "RUN_NOT_RECEIVING" };
+    }
+    if (run.sessionEpoch !== state.query.session.epoch) {
+      return { ok: false, reason: "STALE_SESSION" };
+    }
+    return persistQueryMutation(() => {
+      const chunkSize = Math.max(1, Number(options.chunkSize) || 18);
+      run.offset = Math.min(run.answer.length, run.offset + chunkSize);
+      if (run.offset >= run.answer.length) {
+        run.status = run.terminalStatus;
+      }
+      let message = conversation.messages.find(
+        (item) => item.sequence === run.assistantSequence,
+      );
+      if (!message) {
+        message = {
+          sequence: run.assistantSequence,
+          conversationId: conversation.id,
+          role: "assistant",
+          content: "",
+          createdAt: "刚刚",
+          citations: [],
+          runId: run.id,
+          runState: "RECEIVING",
+        };
+        conversation.messages.push(message);
+      }
+      message.content = run.answer.slice(0, run.offset);
+      message.runState = run.status;
+      message.citations = ["COMPLETED", "REFUSED"].includes(run.status)
+        ? clone(run.citations)
+        : [];
+      return { ok: true, run: queryRunSummary(run) };
+    });
+  }
+
+  function changeQueryRunStatus(fixtures, conversationId, runId, from, to) {
+    const access = canUseConversation(fixtures, conversationId);
+    if (!access.allowed) {
+      return { ok: false, reason: access.reason };
+    }
+    const conversation = storedConversation(conversationId);
+    const run = conversation?.runs.find((item) => item.id === runId);
+    if (!run || !from.includes(run.status)) {
+      return { ok: false, reason: "RUN_STATE_MISMATCH" };
+    }
+    return persistQueryMutation(() => {
+      run.status = to;
+      run.sessionEpoch = state.query.session.epoch;
+      const message = conversation.messages.find(
+        (item) => item.sequence === run.assistantSequence,
+      );
+      if (message) {
+        message.runState = to;
+      }
+      return { ok: true, run: queryRunSummary(run) };
+    });
+  }
+
+  function pauseQueryRun(fixtures, conversationId, runId) {
+    return changeQueryRunStatus(
+      fixtures,
+      conversationId,
+      runId,
+      ["RECEIVING"],
+      "PAUSED",
+    );
+  }
+
+  function resumeQueryRun(fixtures, conversationId, runId) {
+    return changeQueryRunStatus(
+      fixtures,
+      conversationId,
+      runId,
+      ["PAUSED", "STOPPED"],
+      "RECEIVING",
+    );
+  }
+
+  function retryQueryRun(fixtures, conversationId, runId) {
+    return changeQueryRunStatus(
+      fixtures,
+      conversationId,
+      runId,
+      ["FAILED"],
+      "RECEIVING",
+    );
+  }
+
+  function stopQueryRun(fixtures, conversationId, runId) {
+    return changeQueryRunStatus(
+      fixtures,
+      conversationId,
+      runId,
+      ["RECEIVING", "PAUSED"],
+      "STOPPED",
+    );
+  }
+
+  function loadEarlierQueryMessages(fixtures, conversationId) {
+    const access = canUseConversation(fixtures, conversationId);
+    if (!access.allowed) {
+      return { ok: false, reason: access.reason };
+    }
+    return persistQueryMutation(() => {
+      if (!state.query.loadedEarlierConversationIds.includes(conversationId)) {
+        state.query.loadedEarlierConversationIds.push(conversationId);
+      }
+      return { ok: true };
+    });
+  }
+
+  /** 合成问答数据也按当前登录成员、已发布助手和会话归属过滤，不以菜单隐藏替代数据过滤。 */
   function queryProjection(fixtures, request = {}) {
-    const tenantId = DEFAULT_TENANT_ID;
-    const accountId = state.selectedDemoAccountId;
+    const session = state.query.session;
+    if (!session.authenticated) {
+      return {
+        member: null,
+        assistants: [],
+        history: [],
+        messages: [],
+        conversation: null,
+        activeRun: null,
+        canLoadEarlier: false,
+        conversationAllowed: false,
+        reason: "AUTH_REQUIRED",
+      };
+    }
+    const tenantId = session.tenantId;
+    const accountId = session.accountId;
     const member = memberById(tenantId, accountId);
     const published = (fixtures?.assistants || []).filter((assistant) => assistant.status === "PUBLISHED");
     const allowed = (feature, assistantId) => published.some((assistant) => assistant.id === assistantId) &&
       getEffectiveAccess(tenantId, accountId, { feature, assistantId }).allowed;
     const assistants = published.filter((assistant) => allowed("assistantSelection", assistant.id));
-    const assistantId = request.assistantId || assistants[0]?.id;
-    const history = (fixtures?.conversations || []).filter((conversation) =>
+    const combined = [
+      ...state.query.conversations,
+      ...(fixtures?.conversations || []).filter(
+        (fixtureItem) =>
+          !state.query.conversations.some((stored) => stored.id === fixtureItem.id),
+      ),
+    ];
+    const history = combined.filter((conversation) =>
       conversation.memberId === accountId && allowed("ownHistory", conversation.assistantId));
-    const conversation = history.find((item) => item.id === request.conversationId && item.assistantId === assistantId);
-    const conversationAllowed = allowed("conversation", assistantId);
-    const messages = conversation && conversationAllowed
-      ? clone((fixtures?.messages || []).filter((message) => message.conversationId === conversation.id))
+    const conversation = history.find((item) => item.id === request.conversationId) || null;
+    const assistantId = conversation?.assistantId || request.assistantId || assistants[0]?.id;
+    const conversationAllowed = Boolean(
+      conversation &&
+      allowed("conversation", assistantId) &&
+      allowed("ownHistory", assistantId),
+    );
+    let messages = conversation && conversationAllowed
+      ? clone(
+          storedConversation(conversation.id)?.messages ||
+            (fixtures?.messages || []).filter(
+              (message) => message.conversationId === conversation.id,
+            ),
+        )
       : [];
+    if (
+      conversation &&
+      !state.query.loadedEarlierConversationIds.includes(conversation.id)
+    ) {
+      messages = messages.filter((message) => !message.earlier);
+    }
     if (!allowed("authorizedCitations", assistantId)) {
       messages.forEach((message) => delete message.citations);
     }
+    const stored = conversation ? storedConversation(conversation.id) : null;
+    const activeRun = stored && conversationAllowed
+      ? [...stored.runs].reverse().find((run) =>
+          ["RECEIVING", "PAUSED", "FAILED", "STOPPED"].includes(run.status),
+        ) || null
+      : null;
+    const canLoadEarlier = Boolean(
+      conversation &&
+        !state.query.loadedEarlierConversationIds.includes(conversation.id) &&
+        (fixtures?.messages || []).some(
+          (message) =>
+            message.conversationId === conversation.id && message.earlier,
+        ),
+    );
     return {
       member: member ? clone(member) : null,
       assistants: clone(assistants),
-      history: clone(history),
+      history: history.map(conversationSummary),
       messages,
+      conversation: conversation ? conversationSummary(conversation) : null,
+      activeRun: activeRun ? queryRunSummary(activeRun) : null,
+      canLoadEarlier,
       conversationAllowed,
     };
   }
@@ -549,9 +1070,11 @@ export function createPrototypeStore(storage = browserStorage()) {
     if (!member || member.role !== "ordinaryMember") {
       return { ok: false, reason: "DEMO_MEMBER_REQUIRED" };
     }
-    state.selectedDemoAccountId = accountId;
-    persist();
-    return { ok: true };
+    if (state.query.session.authenticated && state.query.session.accountId !== accountId) logoutQuery();
+    return persistQueryMutation(() => {
+      state.selectedDemoAccountId = accountId;
+      return { ok: true };
+    });
   }
 
   function selectTenant(tenantId) {
@@ -687,6 +1210,14 @@ export function createPrototypeStore(storage = browserStorage()) {
     return clone(state.recovery);
   }
 
+  function reloadFromStorage() {
+    state = initialState(storage);
+    if (querySessionClosed) state.query.session = { ...defaultQueryState().session, epoch: state.query.session.epoch };
+    tenantDrafts.clear();
+    memberDrafts.clear();
+    return clone(state);
+  }
+
   return {
     reset,
     getSnapshot: () => clone(state),
@@ -704,6 +1235,18 @@ export function createPrototypeStore(storage = browserStorage()) {
     getEffectiveAccess,
     authorizeScreen,
     queryProjection,
+    getQuerySession,
+    loginQuery,
+    logoutQuery,
+    createQueryConversation,
+    startQueryRun,
+    advanceQueryRun,
+    pauseQueryRun,
+    resumeQueryRun,
+    retryQueryRun,
+    stopQueryRun,
+    loadEarlierQueryMessages,
+    reloadFromStorage,
     selectTenant,
     selectDemoAccount,
     selectHealthIncident,

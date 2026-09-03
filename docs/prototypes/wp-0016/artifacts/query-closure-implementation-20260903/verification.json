@@ -1,0 +1,42 @@
+{
+  "status": "PARTIAL",
+  "generatedAt": "2026-09-03T07:21:38.000Z",
+  "scope": "WP-0016 普通用户登录、助手目录与会话闭环",
+  "designParameters": {
+    "designVariance": 7,
+    "motionIntensity": 5,
+    "visualDensity": 7
+  },
+  "redEvidence": {
+    "parentJourney": "artifacts/query-closure-red.tap",
+    "parentFailures": 5,
+    "stateMachine": "artifacts/query-closure-implementation-20260903/query-state-red.tap",
+    "stateMachineFailures": 6
+  },
+  "greenEvidence": {
+    "node": "artifacts/query-closure-implementation-20260903/node-green.tap",
+    "nodeTests": 30,
+    "nodeFailures": 0,
+    "static": "artifacts/query-closure-implementation-20260903/static-green.json",
+    "staticStatus": "PASS",
+    "staticAssertions": 4036,
+    "pageCount": 68,
+    "stateCount": 7,
+    "viewportCount": 3,
+    "officialLint": "PASS"
+  },
+  "browserEvidence": {
+    "status": "BLOCKED",
+    "report": "artifacts/query-closure-implementation-20260903/browser-blocked.tap",
+    "reason": "当前执行沙箱拒绝 Chromium 注册进程通信端口，测试在启动钩子终止，未执行产品断言。",
+    "executedProductAssertions": 0,
+    "screenshots": 0
+  },
+  "ledger": {
+    "registeredControls": 97,
+    "unclosedControls": 20,
+    "allControlsEnumerated": false,
+    "readyForFullAcceptance": false
+  },
+  "manualAcceptance": "PENDING"
+}

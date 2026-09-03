@@ -129,6 +129,7 @@
       "summary": "查询制度、假期、福利和办事流程，并提供可定位引用。",
       "knowledgeBase": "员工服务手册",
       "version": "v12",
+      "indexVersionId": "idx-v11",
       "status": "PUBLISHED",
       "updatedAt": "今天 16:58"
     },
@@ -139,6 +140,7 @@
       "summary": "查询合成产品说明和故障排查步骤。",
       "knowledgeBase": "客户支持知识",
       "version": "v8",
+      "indexVersionId": "idx-v7",
       "status": "PUBLISHED",
       "updatedAt": "昨天 18:20"
     },
@@ -149,6 +151,7 @@
       "summary": "查询办公室地址、开放时间和公共联系方式。",
       "knowledgeBase": "员工服务手册",
       "version": "v4",
+      "indexVersionId": "idx-v11",
       "status": "PUBLISHED",
       "updatedAt": "8 月 29 日"
     }
@@ -213,6 +216,30 @@
     }
   ],
   "messages": [
+    {
+      "sequence": 39,
+      "conversationId": "cv-20260902-01",
+      "role": "user",
+      "content": "年假制度最近一次更新是什么时候？",
+      "createdAt": "18:18",
+      "earlier": true
+    },
+    {
+      "sequence": 40,
+      "conversationId": "cv-20260902-01",
+      "role": "assistant",
+      "content": "当前授权版本标注为 2026 年 8 月更新。你可以继续核验具体条款。",
+      "createdAt": "18:19",
+      "earlier": true,
+      "citations": [
+        {
+          "id": "cit-40-1",
+          "source": "2026 员工假期制度.pdf",
+          "location": "版本说明",
+          "excerpt": "本制度于 2026 年 8 月完成修订。"
+        }
+      ]
+    },
     {
       "sequence": 41,
       "conversationId": "cv-20260902-01",

@@ -1,0 +1,114 @@
+{
+  "status": "FAIL",
+  "generatedAt": "2026-09-03T07:31:22.499Z",
+  "evidenceScope": "真实 DOM、布局、特定交互与导航；不是全部控件闭环或人工认可",
+  "pageCount": 68,
+  "stateCount": 7,
+  "viewportCount": 3,
+  "declaredScenarioCount": 1428,
+  "completedScenarioCount": 1428,
+  "assertionCount": 9656,
+  "screenshotCount": 87,
+  "stages": [
+    {
+      "name": "审查器与导航图标",
+      "status": "PASS",
+      "failures": [],
+      "browserErrors": []
+    },
+    {
+      "name": "全部页面状态与视口",
+      "status": "FAIL",
+      "failures": [
+        "mobile/platform-roles/partial 出现文档级横向滚动",
+        "mobile/platform-roles/disabled 出现文档级横向滚动",
+        "mobile/platform-roles/success 出现文档级横向滚动"
+      ],
+      "browserErrors": []
+    },
+    {
+      "name": "创建租户与管理导航",
+      "status": "PASS",
+      "failures": [],
+      "browserErrors": []
+    },
+    {
+      "name": "成员与两级功能控制",
+      "status": "FAIL",
+      "failures": [
+        "成员与两级功能控制: locator.waitFor: Timeout 5000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('main[data-screen=\"assistants\"][data-state=\"denied\"]') to be visible\u001b[22m\n\n    at validateTenantAndMemberControls (/Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/verify-and-capture.cjs:389:77)\n    at async runStage (/Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/verify-and-capture.cjs:718:5)\n    at async main (/Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/verify-and-capture.cjs:766:7)"
+      ],
+      "browserErrors": []
+    },
+    {
+      "name": "成员弹窗键盘与取消",
+      "status": "PASS",
+      "failures": [],
+      "browserErrors": []
+    },
+    {
+      "name": "运行状态与隔离恢复",
+      "status": "PASS",
+      "failures": [],
+      "browserErrors": []
+    },
+    {
+      "name": "恢复检查失败与重试",
+      "status": "PASS",
+      "failures": [],
+      "browserErrors": []
+    },
+    {
+      "name": "审查器收起可达性",
+      "status": "FAIL",
+      "failures": [
+        "审查器收起可达性: locator.click: Timeout 5000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('#prototype-reviewer summary')\u001b[22m\n\u001b[2m    - locator resolved to <summary>原型场景</summary>\u001b[22m\n\u001b[2m  - attempting click action\u001b[22m\n\u001b[2m    2 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m      - element is visible, enabled and stable\u001b[22m\n\u001b[2m      - scrolling into view if needed\u001b[22m\n\u001b[2m      - done scrolling\u001b[22m\n\u001b[2m      - element is outside of the viewport\u001b[22m\n\u001b[2m    - retrying click action\u001b[22m\n\u001b[2m    - waiting 20ms\u001b[22m\n\u001b[2m    2 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m      - element is visible, enabled and stable\u001b[22m\n\u001b[2m      - scrolling into view if needed\u001b[22m\n\u001b[2m      - done scrolling\u001b[22m\n\u001b[2m      - element is outside of the viewport\u001b[22m\n\u001b[2m    - retrying click action\u001b[22m\n\u001b[2m      - waiting 100ms\u001b[22m\n\u001b[2m    9 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m      - element is visible, enabled and stable\u001b[22m\n\u001b[2m      - scrolling into view if needed\u001b[22m\n\u001b[2m      - done scrolling\u001b[22m\n\u001b[2m      - element is outside of the viewport\u001b[22m\n\u001b[2m    - retrying click action\u001b[22m\n\u001b[2m      - waiting 500ms\u001b[22m\n\u001b[2m    - waiting for element to be visible, enabled and stable\u001b[22m\n\n    at validateReviewerReachability (/Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/verify-and-capture.cjs:465:53)\n    at async runStage (/Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/verify-and-capture.cjs:718:5)\n    at async main (/Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/verify-and-capture.cjs:766:7)"
+      ],
+      "browserErrors": []
+    },
+    {
+      "name": "普通用户登录",
+      "status": "PASS",
+      "failures": [],
+      "browserErrors": []
+    },
+    {
+      "name": "问答示例与键盘",
+      "status": "PASS",
+      "failures": [],
+      "browserErrors": []
+    },
+    {
+      "name": "会话刷新恢复",
+      "status": "PASS",
+      "failures": [],
+      "browserErrors": []
+    },
+    {
+      "name": "设备前置导航",
+      "status": "PASS",
+      "failures": [],
+      "browserErrors": []
+    },
+    {
+      "name": "页面截图",
+      "status": "PASS",
+      "failures": [],
+      "browserErrors": []
+    },
+    {
+      "name": "减少动态效果",
+      "status": "PASS",
+      "failures": [],
+      "browserErrors": []
+    }
+  ],
+  "browserErrors": [],
+  "failures": [
+    "mobile/platform-roles/partial 出现文档级横向滚动",
+    "mobile/platform-roles/disabled 出现文档级横向滚动",
+    "mobile/platform-roles/success 出现文档级横向滚动",
+    "成员与两级功能控制: locator.waitFor: Timeout 5000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('main[data-screen=\"assistants\"][data-state=\"denied\"]') to be visible\u001b[22m\n\n    at validateTenantAndMemberControls (/Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/verify-and-capture.cjs:389:77)\n    at async runStage (/Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/verify-and-capture.cjs:718:5)\n    at async main (/Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/verify-and-capture.cjs:766:7)",
+    "审查器收起可达性: locator.click: Timeout 5000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('#prototype-reviewer summary')\u001b[22m\n\u001b[2m    - locator resolved to <summary>原型场景</summary>\u001b[22m\n\u001b[2m  - attempting click action\u001b[22m\n\u001b[2m    2 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m      - element is visible, enabled and stable\u001b[22m\n\u001b[2m      - scrolling into view if needed\u001b[22m\n\u001b[2m      - done scrolling\u001b[22m\n\u001b[2m      - element is outside of the viewport\u001b[22m\n\u001b[2m    - retrying click action\u001b[22m\n\u001b[2m    - waiting 20ms\u001b[22m\n\u001b[2m    2 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m      - element is visible, enabled and stable\u001b[22m\n\u001b[2m      - scrolling into view if needed\u001b[22m\n\u001b[2m      - done scrolling\u001b[22m\n\u001b[2m      - element is outside of the viewport\u001b[22m\n\u001b[2m    - retrying click action\u001b[22m\n\u001b[2m      - waiting 100ms\u001b[22m\n\u001b[2m    9 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m      - element is visible, enabled and stable\u001b[22m\n\u001b[2m      - scrolling into view if needed\u001b[22m\n\u001b[2m      - done scrolling\u001b[22m\n\u001b[2m      - element is outside of the viewport\u001b[22m\n\u001b[2m    - retrying click action\u001b[22m\n\u001b[2m      - waiting 500ms\u001b[22m\n\u001b[2m    - waiting for element to be visible, enabled and stable\u001b[22m\n\n    at validateReviewerReachability (/Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/verify-and-capture.cjs:465:53)\n    at async runStage (/Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/verify-and-capture.cjs:718:5)\n    at async main (/Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/verify-and-capture.cjs:766:7)"
+  ]
+}

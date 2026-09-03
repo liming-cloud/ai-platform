@@ -12,16 +12,16 @@
     "forbidden": "按角色边界明确禁止，不属于待实现功能"
   },
   "summary": {
-    "navigation": 46,
-    "implementedRead": 3,
-    "implementedStateChange": 16,
+    "navigation": 47,
+    "implementedRead": 5,
+    "implementedStateChange": 24,
     "pendingDecision": 3,
-    "unimplemented": 22,
+    "unimplemented": 17,
     "forbidden": 1,
-    "partialSimulation": 2,
+    "partialSimulation": 0,
     "totalPages": 68,
-    "totalControls": 93,
-    "unclosedControls": 27,
+    "totalControls": 97,
+    "unclosedControls": 20,
     "allControlsEnumerated": false,
     "readyForFullAcceptance": false
   },
@@ -968,9 +968,9 @@
         {
           "label": "登录",
           "kind": "primaryAction",
-          "status": "unimplemented",
-          "evidence": "真实浏览器未发现登录输入表单；validateQueryLogin 失败",
-          "browserVerified": false
+          "status": "implementedStateChange",
+          "evidence": "query-state.test.mjs：正确/错误口令、无密码持久化和存储失败回滚；本轮 query-journey/query-resilience 与全平台问答阶段已实际点击复验，仅代表合成原型",
+          "browserVerified": true
         }
       ]
     },
@@ -983,9 +983,23 @@
         {
           "label": "开始新会话",
           "kind": "primaryAction",
-          "status": "unimplemented",
-          "evidence": "当前控件仅展示确认或无持久状态结果",
-          "browserVerified": false
+          "status": "implementedStateChange",
+          "evidence": "query-state.test.mjs：每次选择创建不同空会话并固定助手与索引版本；本轮 query-journey/query-resilience 与全平台问答阶段已实际点击复验，仅代表合成原型",
+          "browserVerified": true
+        },
+        {
+          "label": "搜索已授权助手",
+          "kind": "taskControl",
+          "status": "implementedRead",
+          "evidence": "目录过滤只作用于有效权限投影后的助手集合；本轮 query-journey/query-resilience 与全平台问答阶段已实际点击复验，仅代表合成原型",
+          "browserVerified": true
+        },
+        {
+          "label": "退出登录",
+          "kind": "taskControl",
+          "status": "implementedStateChange",
+          "evidence": "query-state.test.mjs：会话 epoch 递增并阻止旧接收器继续；本轮 query-journey/query-resilience 与全平台问答阶段已实际点击复验，仅代表合成原型",
+          "browserVerified": true
         }
       ]
     },
@@ -998,46 +1012,58 @@
         {
           "label": "发送问题",
           "kind": "primaryOrTaskControl",
-          "status": "partialSimulation",
-          "evidence": "当前只追加 DOM 和固定回答，没有持久化轮次、幂等或恢复",
-          "browserVerified": false
+          "status": "implementedStateChange",
+          "evidence": "query-state.test.mjs：问题、轮次、序号、偏移、引用和终态由同一状态源持久化；本轮 query-journey/query-resilience 与全平台问答阶段已实际点击复验，仅代表合成原型",
+          "browserVerified": true
         },
         {
           "label": "切换本人历史",
           "kind": "primaryOrTaskControl",
-          "status": "partialSimulation",
-          "evidence": "已过滤成员/助手并匹配消息归属；只有部分会话具备正文 fixture，尚无新增会话持久化",
-          "browserVerified": false
+          "status": "implementedStateChange",
+          "evidence": "query-state.test.mjs：成员/助手/会话归属过滤，新会话正文隔离并可刷新恢复；本轮 query-journey/query-resilience 与全平台问答阶段已实际点击复验，仅代表合成原型",
+          "browserVerified": true
         },
         {
           "label": "查看授权引用",
           "kind": "primaryOrTaskControl",
           "status": "implementedRead",
-          "evidence": "reviewer-regression.test.mjs：成员、助手、会话和引用过滤；toggleCitation 使用同一投影",
-          "browserVerified": true,
-          "browserEvidence": "artifacts/browser-review-20260903-final/verification.json",
-          "browserScope": "仅报告中对应正常路径或失败重试；未测分支不因此获得通过"
+          "evidence": "reviewer-regression.test.mjs：成员、助手、会话和引用过滤；toggleCitation 使用同一投影；本轮 query-journey/query-resilience 与全平台问答阶段已实际点击复验，仅代表合成原型",
+          "browserVerified": true
         },
         {
           "label": "搜索会话标题",
           "kind": "taskControl",
-          "status": "unimplemented",
-          "evidence": "现有搜索控件没有完整过滤行为",
-          "browserVerified": false
+          "status": "implementedRead",
+          "evidence": "搜索输入对当前有效历史投影逐项过滤，清空后恢复列表；本轮 query-journey/query-resilience 与全平台问答阶段已实际点击复验，仅代表合成原型",
+          "browserVerified": true
         },
         {
           "label": "加载更早消息",
           "kind": "taskControl",
-          "status": "unimplemented",
-          "evidence": "现有按钮只改文案，没有读取更早消息",
-          "browserVerified": false
+          "status": "implementedStateChange",
+          "evidence": "按 conversationId 保存已加载边界，投影增加事件 39–40 并移除重复入口；本轮 query-journey/query-resilience 与全平台问答阶段已实际点击复验，仅代表合成原型",
+          "browserVerified": true
         },
         {
           "label": "断线恢复与刷新续聊",
           "kind": "taskControl",
-          "status": "unimplemented",
-          "evidence": "真实浏览器已复现：固定回答完成后刷新，刚提交的问题丢失",
-          "browserVerified": false
+          "status": "implementedStateChange",
+          "evidence": "query-state.test.mjs：接收中幂等、停止/继续、失败重试、重新登录和跨标签退出；本轮 query-journey/query-resilience 与全平台问答阶段已实际点击复验，仅代表合成原型",
+          "browserVerified": true
+        },
+        {
+          "label": "开启新会话",
+          "kind": "navigation",
+          "status": "navigation",
+          "evidence": "返回授权助手目录，由助手选择动作创建新对象；本轮 query-journey/query-resilience 与全平台问答阶段已实际点击复验，仅代表合成原型",
+          "browserVerified": true
+        },
+        {
+          "label": "退出登录",
+          "kind": "taskControl",
+          "status": "implementedStateChange",
+          "evidence": "清除当前合成登录并使旧轮次回调失效，不删除本人历史；本轮 query-journey/query-resilience 与全平台问答阶段已实际点击复验，仅代表合成原型",
+          "browserVerified": true
         }
       ]
     },
@@ -1255,5 +1281,5 @@
     "allControlsEnumerated": false,
     "limitation": "尚未穷举每页筛选、行操作、账户菜单和各状态控件；下列数量只统计已登记项，不代表全平台控件总数。"
   },
-  "browserEvidenceReport": "artifacts/browser-review-20260903-final/verification.json"
+  "browserEvidenceReport": "artifacts/query-closure-full-browser-final-20260903/verification.json"
 }

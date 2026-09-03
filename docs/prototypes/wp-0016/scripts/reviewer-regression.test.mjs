@@ -11,6 +11,12 @@ const fixtures = read("fixtures.json");
 const pageFixtures = read("page-fixtures.json").pages;
 const entries = inventory.groups.flatMap((group) => group.pages.map((page) => ({ page, group })));
 const fresh = () => createPrototypeStore(createMemoryStorage());
+const loginQuery = (store) =>
+  store.loginQuery({
+    tenantCode: "spruce-demo",
+    username: "demo.user",
+    password: "demo-only",
+  });
 const render = (screen, store) => {
   const { page, group } = entries.find((entry) => entry.page.screen === screen);
   return renderInventoryPage(page, group, pageFixtures[screen], "success", fixtures.tenant, store.getSnapshot());
@@ -79,6 +85,7 @@ test("产品操作区不夹带研发评审说明", () => {
 
 test("权限投影隐藏未授权助手、其他成员历史与引用", () => {
   const store = fresh();
+  assert.equal(loginQuery(store).ok, true);
   const request = { assistantId: "assistant-employee-service", conversationId: "cv-20260902-01" };
   const first = store.queryProjection(fixtures, request);
   assert.deepEqual(first.assistants.map((assistant) => assistant.id), ["assistant-employee-service"]);
@@ -98,6 +105,7 @@ test("权限投影隐藏未授权助手、其他成员历史与引用", () => {
 
 test("历史目录逐项检查助手授权且正文只属于选中的会话", () => {
   const store = fresh();
+  assert.equal(loginQuery(store).ok, true);
   const first = store.queryProjection(fixtures, { assistantId: "assistant-employee-service", conversationId: "cv-20260902-01" });
   assert.deepEqual(first.history.map((conversation) => conversation.id), ["cv-20260902-01", "cv-20260902-02"]);
   const second = store.queryProjection(fixtures, { assistantId: "assistant-employee-service", conversationId: "cv-20260902-02" });

@@ -2,7 +2,7 @@
 
 ## 状态与边界
 
-- 状态：人工验收仍不通过；2026-09-03 已获本机浏览器验收授权，真实复验为 FAIL，见 `artifacts/browser-review-20260903-final/verification.json`。
+- 状态：人工验收仍不通过；普通问答专项已通过本机浏览器复验，全平台仍为 FAIL，见 `artifacts/query-closure-full-browser-final-20260903/verification.json`。
 - 工作包：`WP-0016`。
 - 设计系统：Fluent UI React v9 的信息层级、组件语义和既有 Foundation Token。
 - 交付形式：OpenDesign 项目中的可操作 HTML 原型、设计令牌、脱敏 fixtures、自动检查和截图。
@@ -151,6 +151,9 @@ M6 页面是当前人工门禁范围。M7 设备问答与 M8 平台运维页面�
 5. 引用最终化后才可打开；访问时再次显示授权检查结果。
 6. 断线状态从最后事件序号恢复，最终回答、引用和终态作为同一完成事实展示。
 7. 新助手版本发布时，旧会话显示提示，但不会静默漂移；用户可明确开启新会话。
+8. 公开合成演示登录只比较 `spruce-demo / demo.user / demo-only`，密码不进入状态或浏览器存储；它不代表真实认证。
+9. 会话、轮次、事件序号、接收偏移、引用和终态统一由 `prototype-state.js` 驱动；未知问题进入拒答，不复用年假答案。
+10. 合成登录态与历史分开保存，退出不清除聊天记录；重新登录后旧接收轮次先暂停，由本人明确继续。小屏登录优先展示输入与登录主操作，辅助边界说明不占据首屏。
 
 ### D. 平台运行状态与恢复演练
 
@@ -255,11 +258,11 @@ M6 页面是当前人工门禁范围。M7 设备问答与 M8 平台运维页面�
 
 页面右下角“原型场景”只属于审查工具：十个 `optgroup` 显示阶段、页面中文名和 screen，可按三者快速查找并跳转；目标路径、唯一任务、主要操作和 M7/M8 授权边界也在此显示，状态可独立切换。`review=0` 时完全隐藏，它不是生产导航。
 
-静态验证从 `page-inventory.json` 读取 68 个 screen、7 个 state 和 3 个 viewport，检查清单与 fixture 一致性、427 个共享渲染场景、1,428 个 HTTP 入口、正文合同隔离、向导字段、风险事实、分页上限、重复 id 和 denied 披露。`business-closure.test.mjs` 独立验证租户创建、成员治理、两级功能交集、运行状态与恢复演练状态机；`ACTION-LEDGER.json` 逐页标记导航、真实模拟状态变更、待决策和未实现控件。浏览器验证仍负责真实 DOM、文档级横向滚动、焦点、九条闭环、现有问答与发布交互，以及每页 1440 成功态和代表性 1024/390/reduced-motion 截图。本轮浏览器权限尚未重新授权，不能用旧截图、静态 HTML 或 HTTP 200 替代视觉结论。
+静态验证从 `page-inventory.json` 读取 68 个 screen、7 个 state 和 3 个 viewport，检查清单与 fixture 一致性、427 个共享渲染场景、1,428 个 HTTP 入口、正文合同隔离、向导字段、风险事实、分页上限、重复 id 和 denied 披露。Node 测试验证租户、成员、两级功能、运维状态及问答不变量；`ACTION-LEDGER.json` 区分真实状态变更、导航、待决策和未实现。真实浏览器分别验证普通用户旅程、失败恢复、三档尺寸和全平台有限 DOM/操作合同，不能用静态 HTML 或 HTTP 200 代替。最新结果见 `artifacts/query-closure-browser-green.tap` 与 `artifacts/query-closure-full-browser-final-20260903/verification.json`。
 
 ## 人工确认清单
 
-当前 `ACTION-LEDGER.json` 只枚举页面主任务及已核对控件，未达到逐控件全覆盖。普通问答仍是局部演示，不能视为完整会话闭环；其余未实现项详见账本与 `BUSINESS-CLOSURE.md`。下列复选项保持未通过，不能依据静态检查自行勾选。
+当前 `ACTION-LEDGER.json` 只枚举页面主任务及已核对控件，未达到逐控件全覆盖。普通问答专项已有真实浏览器证据，但整个平台和人工认可仍未通过；其余未实现项详见账本与 `BUSINESS-CLOSURE.md`。下列复选项保持未通过，不能依据局部绿灯自行勾选。
 
 - [ ] 三角色产品边界正确，平台范围没有租户正文入口。
 - [ ] 68 个清单 screen、审查器 option、实际 `main[data-screen]` 与 1440 成功态截图完全一致。

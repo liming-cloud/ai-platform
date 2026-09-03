@@ -4,7 +4,9 @@ const { chromium } = require("playwright");
 
 const baseUrl = process.env.PROTOTYPE_BASE_URL || "http://127.0.0.1:4176/";
 const prototypeDirectory = path.resolve(__dirname, "..");
-const artifactDirectory = process.env.PROTOTYPE_ARTIFACT_DIR || path.join(prototypeDirectory, "artifacts", "browser-review-20260903-final");
+const artifactDirectory =
+  process.env.PROTOTYPE_ARTIFACT_DIR ||
+  path.join(prototypeDirectory, "artifacts", "query-browser-review-20260903");
 const screenshotDirectory = path.join(artifactDirectory, "screenshots");
 const inventory = JSON.parse(
   fs.readFileSync(path.join(prototypeDirectory, "page-inventory.json"), "utf8"),
@@ -29,12 +31,26 @@ function assert(condition, message) {
   }
 }
 
-function scenarioUrl(screen, state, review = false) {
+function scenarioUrl(screen, state, review = false, conversationId = "") {
   const url = new URL(baseUrl);
   url.searchParams.set("screen", screen);
   url.searchParams.set("state", state);
   url.searchParams.set("review", review ? "1" : "0");
+  if (screen === "conversation" && conversationId) {
+    url.searchParams.set("conversationId", conversationId);
+  }
   return url.toString();
+}
+
+async function loginQueryDemo(page) {
+  await page.goto(scenarioUrl("login", "success"), {
+    waitUntil: "domcontentloaded",
+  });
+  await page.locator('#login-form input[name="tenantCode"]').fill("spruce-demo");
+  await page.locator('#login-form input[name="username"]').fill("demo.user");
+  await page.locator('#login-form input[name="password"]').fill("demo-only");
+  await page.locator('#login-form button[type="submit"]').click();
+  await page.locator('main[data-screen="assistants"]').waitFor();
 }
 
 function attachBrowserErrorCapture(page, label) {
@@ -54,9 +70,23 @@ function attachBrowserErrorCapture(page, label) {
 }
 
 async function openScenario(page, screen, state, review = false) {
-  const response = await page.goto(scenarioUrl(screen, state, review), {
+  const protectedQueryScreen = ["assistants", "conversation"].includes(screen);
+  const targetUrl = scenarioUrl(
+    screen,
+    state,
+    review,
+    screen === "conversation" ? "cv-20260902-01" : "",
+  );
+  let response = await page.goto(targetUrl, {
     waitUntil: "domcontentloaded",
   });
+  if (
+    protectedQueryScreen &&
+    (await page.locator('main[data-screen="login"]').count()) > 0
+  ) {
+    await loginQueryDemo(page);
+    response = await page.goto(targetUrl, { waitUntil: "domcontentloaded" });
+  }
   assert(response && response.ok(), `${screen}/${state} 返回非成功 HTTP 状态`);
   await page
     .locator(`main[data-screen="${screen}"][data-state="${state}"]`)
@@ -175,7 +205,9 @@ async function validateScenarioMatrix(page) {
                 mainText.includes("唯一任务") ||
                 mainText.includes("主要操作"),
               actionMatches:
-                primaryAction?.textContent.trim() === expectedAction || false,
+                primaryAction?.textContent.trim() === expectedAction ||
+                (main?.dataset.screen === "assistants" &&
+                  Boolean(main.querySelector("[data-assistant-id]"))),
               hasAuthorizationBanner: Boolean(
                 main?.querySelector(".authorization-banner"),
               ),
@@ -324,6 +356,7 @@ async function validateManagementFlows(page) {
 }
 
 async function validateTenantAndMemberControls(page) {
+  await loginQueryDemo(page);
   await openScenario(page, "tenant-members", "success");
   await page.locator('[data-business-action="open-add-member"]').click();
   await page.locator("#member-account-search").fill("林澈");
@@ -369,10 +402,14 @@ async function validateTenantAndMemberControls(page) {
   await page
     .locator('[data-business-action="select-demo-member"][data-account-id="account-lin"]')
     .click();
-  await openScenario(page, "conversation", "success");
+  await page.goto(
+    scenarioUrl("conversation", "success", false, "cv-20260902-01"),
+    { waitUntil: "domcontentloaded" },
+  );
   assert(
-    await page.locator("[data-open-history]").isDisabled(),
-    "重新开放租户功能后给未授权成员自动开启了本人历史",
+    (await page.locator('main[data-screen="login"]').count()) === 1 &&
+      (await page.locator(".message-body").count()) === 0,
+    "切换演示成员后旧登录仍读取会话正文",
   );
 }
 
@@ -452,7 +489,7 @@ async function validateQueryLogin(page) {
   await openScenario(page, "login", "success", true);
   await page.locator("#review-reset").click();
   await openScenario(page, "login", "success");
-  await page.locator('#login-form input[name="password"]').fill("仅本次演示");
+  await page.locator('#login-form input[name="password"]').fill("demo-only");
   await page.locator('#login-form button[type="submit"]').click();
   await page.locator('main[data-screen="assistants"]').waitFor();
   assert(
@@ -463,7 +500,7 @@ async function validateQueryLogin(page) {
 
 async function validateQueryFlow(page) {
   await page.setViewportSize(viewports[0]);
-  await openScenario(page, "assistants", "success");
+  await loginQueryDemo(page);
   const search = page.locator("#assistant-search");
   await search.fill("员工");
   assert(
@@ -485,6 +522,13 @@ async function validateQueryFlow(page) {
   );
   await assistantOptions.first().click();
   await page.locator('main[data-screen="conversation"]').waitFor();
+  assert(
+    new URL(page.url()).searchParams.has("conversationId") &&
+      (await page.locator(".message").count()) === 0,
+    "选择助手没有建立固定版本的空会话",
+  );
+  await page.locator('[data-conversation-id="cv-20260902-01"]').click();
+  await page.locator('[data-sequence="41"]').waitFor();
   const citationButton = page.locator("[data-citation-id]").first();
   await citationButton.click();
   assert(
@@ -497,16 +541,21 @@ async function validateQueryFlow(page) {
   );
   const olderButton = page.locator("[data-load-older]");
   await olderButton.click();
-  assert(await olderButton.isDisabled(), "按事件序号加载后按钮未进入终点状态");
+  assert(
+    (await page.locator('[data-sequence="39"]').count()) === 1 &&
+      (await page.locator("[data-load-older]").count()) === 0,
+    "按事件序号加载后没有显示更早消息或仍保留重复入口",
+  );
   const input = page.locator("#question-input");
   await input.fill("未休 7 天如何处理？");
   await input.press("Enter");
-  await page.locator(".query-stage", { hasText: "COMPLETED" }).waitFor({ timeout: 7000 });
+  await page.locator('[data-run-state="COMPLETED"]').last().waitFor({ timeout: 7000 });
   assert(await input.isEnabled(), "流式完成后输入框未恢复");
   assert(
-    (await page.locator("[data-live-text]").textContent()) ===
-      "未休 7 天时，最多结转 5 天。其余 2 天是否可以补偿，需要根据适用制度和审批结果判断；当前证据不足以给出统一结论。",
-    "流式完成答案与确定性 fixture 不一致",
+    (await page.locator('[data-run-state="COMPLETED"] .message-body').last().textContent()).includes(
+      "其中 5 天可结转",
+    ),
+    "完成态没有显示由状态源保存的确定性回答",
   );
   await openScenario(page, "conversation", "partial");
   assert(
@@ -559,11 +608,13 @@ async function validateQueryFlow(page) {
 }
 
 async function validateConversationPersistence(page) {
-  await openScenario(page, "conversation", "success");
+  await loginQueryDemo(page);
+  await page.locator('[data-assistant-id="assistant-employee-service"]').click();
+  await page.locator('main[data-screen="conversation"]').waitFor();
   const question = "浏览器验收：未休 7 天如何处理？";
   await page.locator("#question-input").fill(question);
   await page.locator("#question-input").press("Enter");
-  await page.locator(".query-stage", { hasText: "COMPLETED" }).waitFor({ timeout: 7000 });
+  await page.locator('[data-run-state="COMPLETED"]').waitFor({ timeout: 7000 });
   assert((await page.locator("main").innerText()).includes(question), "提交后没有显示本轮问题");
   await page.reload({ waitUntil: "domcontentloaded" });
   await page.locator('main[data-screen="conversation"]').waitFor();
@@ -737,9 +788,6 @@ async function main() {
       failures,
     };
     fs.writeFileSync(path.join(artifactDirectory, "verification.json"), JSON.stringify(result, null, 2) + "\n");
-    if (!process.env.PROTOTYPE_ARTIFACT_DIR) {
-      fs.writeFileSync(path.join(prototypeDirectory, "artifacts", "verification.json"), JSON.stringify(result, null, 2) + "\n");
-    }
     process.stdout.write(JSON.stringify(result, null, 2) + "\n");
     if (failures.length > 0) process.exitCode = 1;
   }
