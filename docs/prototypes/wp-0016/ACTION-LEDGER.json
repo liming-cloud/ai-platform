@@ -2,7 +2,7 @@
   "workPackage": "WP-0016",
   "generatedOn": "2026-09-04",
   "browserVerification": "passed",
-  "browserVerificationNote": "模型治理 11/11、索引 7/7、知识接入 8/8、账户 7/7、租户 10/10、问答 15/15、布局 13/13；全平台 68 页、7 状态、3 视口共 1,428 场景及 9,650 项断言通过，截图仅在临时目录生成。该结论仅覆盖已声明 DOM、布局和交互，不代表账本已穷举或人工验收通过。",
+  "browserVerificationNote": "助手交付 8/8、模型治理 11/11、索引 7/7、知识接入 8/8、账户 7/7、租户 10/10、问答 15/15、布局 13/13；全部专项 79/79，全平台 68 页、7 状态、3 视口共 1,428 场景及 9,644 项断言通过，截图仅在临时目录生成。该结论仅覆盖已声明 DOM、布局和交互，不代表账本已穷举或人工验收通过。",
   "classification": {
     "navigation": "仅改变原型页面，不计作业务完成",
     "implementedStateChange": "合成状态已有 Node 测试；browserVerified 只表示条目注明的浏览器范围，不代表完整业务或人工通过",
@@ -13,16 +13,16 @@
     "forbidden": "按角色边界明确禁止，不属于待实现功能"
   },
   "summary": {
-    "navigation": 42,
+    "navigation": 38,
     "implementedRead": 6,
-    "implementedStateChange": 59,
+    "implementedStateChange": 64,
     "pendingDecision": 1,
-    "unimplemented": 9,
+    "unimplemented": 8,
     "forbidden": 1,
     "partialSimulation": 0,
     "totalPages": 68,
     "totalControls": 118,
-    "unclosedControls": 10,
+    "unclosedControls": 9,
     "allControlsEnumerated": false,
     "readyForFullAcceptance": false
   },
@@ -901,9 +901,10 @@
         {
           "label": "创建助手",
           "kind": "primaryAction",
-          "status": "navigation",
-          "evidence": "只完成受控页面跳转，不计作业务状态变更",
-          "browserVerified": false
+          "status": "implementedStateChange",
+          "evidence": "assistant-delivery-state.test.mjs：永久绑定活动索引可用的知识库，拒绝重复、越权和无活动索引；浏览器验证真实提交与刷新恢复",
+          "browserVerified": true,
+          "browserEvidence": "artifacts/assistant-delivery-browser-verification.json"
         }
       ]
     },
@@ -916,9 +917,10 @@
         {
           "label": "保存草稿",
           "kind": "primaryAction",
-          "status": "navigation",
-          "evidence": "只完成受控页面跳转，不计作业务状态变更",
-          "browserVerified": false
+          "status": "implementedStateChange",
+          "evidence": "assistant-delivery-state.test.mjs：冻结知识库、索引、三类模型配置修订及检索、引用、拒答策略",
+          "browserVerified": true,
+          "browserEvidence": "artifacts/assistant-delivery-browser-verification.json"
         }
       ]
     },
@@ -931,9 +933,10 @@
         {
           "label": "加入评测集",
           "kind": "primaryAction",
-          "status": "navigation",
-          "evidence": "只完成受控页面跳转，不计作业务状态变更",
-          "browserVerified": false
+          "status": "implementedStateChange",
+          "evidence": "assistant-delivery-state.test.mjs：单题测试使用冻结依赖，回答保留两条定位引用并加入冻结评测集",
+          "browserVerified": true,
+          "browserEvidence": "artifacts/assistant-delivery-browser-verification.json"
         }
       ]
     },
@@ -946,9 +949,10 @@
         {
           "label": "请求发布",
           "kind": "primaryAction",
-          "status": "navigation",
-          "evidence": "只完成受控页面跳转，不计作业务状态变更",
-          "browserVerified": false
+          "status": "implementedStateChange",
+          "evidence": "assistant-delivery-state.test.mjs：冻结评测达到 M6 质量、安全和首 token 门禁后才形成待发布版本",
+          "browserVerified": true,
+          "browserEvidence": "artifacts/assistant-delivery-browser-verification.json"
         }
       ]
     },
@@ -961,9 +965,10 @@
         {
           "label": "发布助手版本",
           "kind": "primaryAction",
-          "status": "unimplemented",
-          "evidence": "当前控件仅展示确认或无持久状态结果",
-          "browserVerified": false
+          "status": "implementedStateChange",
+          "evidence": "assistant-delivery-state.test.mjs：原子推进稳定助手发布指针，旧会话继续固定旧版本；浏览器确认发布并刷新恢复",
+          "browserVerified": true,
+          "browserEvidence": "artifacts/assistant-delivery-browser-verification.json"
         }
       ]
     },

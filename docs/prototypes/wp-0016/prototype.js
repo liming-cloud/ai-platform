@@ -37,6 +37,7 @@ let accountFeedback = "";
 let knowledgeFeedback = "";
 let indexFeedback = "";
 let modelFeedback = "";
+let assistantFeedback = "";
 let nextQueryMode = "normal";
 let queryStreamingSuspended = false;
 const PLATFORM_ACCOUNT_ACTOR_ID = "account-platform-admin";
@@ -94,6 +95,7 @@ resetReview.addEventListener("click", () => {
   loginFeedback = "";
   queryFeedback = "";
   accountFeedback = "";
+  assistantFeedback = "";
   nextQueryMode = "normal";
   render();
 });
@@ -330,8 +332,13 @@ function renderScreen(screen, state, demoState) {
     case "model-deployment-detail":
     case "routing-policies":
       return renderModelGovernance(screen, state, demoState);
+    case "assistants-directory":
+    case "assistant-create":
+    case "assistant-draft":
+    case "assistant-test":
+    case "assistant-evaluation":
     case "assistant-release":
-      return renderAssistantRelease(state);
+      return renderAssistantDelivery(screen, state, demoState);
     default:
       return renderInventoryPage(
         pageByScreen.get(screen),
@@ -375,6 +382,10 @@ function statusTag(status) {
     CANCELLED: ["已取消", "info"],
     DRAFT: ["草稿", "info"],
     VERIFIED: ["验证通过", "success"],
+    TESTING: ["待单题测试", "warning"],
+    TESTED: ["单题已验证", "success"],
+    EVALUATION_PENDING: ["待冻结评测", "warning"],
+    EVALUATED: ["评测完成", "success"],
     COMPLETE: ["发现完成", "success"],
     OFFLINE: ["已停用", "danger"],
   };
@@ -444,6 +455,11 @@ function genericState(screen, state) {
     "knowledge-directory": "知识库目录",
     "knowledge-sources": "数据来源",
     "index-detail": "索引版本",
+    "assistants-directory": "助手目录",
+    "assistant-create": "助手",
+    "assistant-draft": "助手草稿",
+    "assistant-test": "单题测试",
+    "assistant-evaluation": "发布门禁",
     "assistant-release": "助手版本",
   };
   const subject = labels[screen];
@@ -961,7 +977,12 @@ function pageStatus(active, state) {
     "model-deployments": `${models.deployments.filter(item => item.status === "PUBLISHED").length} 个已发布部署`,
     "model-deployment-detail": modelStatusLabel(models.deployments.find(item => item.id === models.selectedDeploymentId)?.status),
     "routing-policies": modelStatusLabel(models.routingPolicies.find(item => item.id === models.selectedRoutingPolicyId)?.status),
-    "assistant-release": "员工服务助手 v13 / 发布门禁通过",
+    "assistants-directory": `${snapshot.assistantDelivery.assistants.length} 个稳定助手`,
+    "assistant-create": "永久关联一个知识库",
+    "assistant-draft": "冻结索引、模型修订和策略",
+    "assistant-test": "使用冻结依赖",
+    "assistant-evaluation": "质量与安全门禁",
+    "assistant-release": "只影响新会话",
   }[active] || "当前工作区";
 }
 
@@ -1651,77 +1672,160 @@ function renderModelGovernance(screen, state, demoState) {
   }[screen](state, demoState);
 }
 
-function renderAssistantRelease(state) {
-  const generic = genericState("assistant-release", state);
-  const assistant = fixtures.assistantVersion;
-  const blocked = state === "disabled" || state === "partial";
-  const quality =
-    state === "disabled"
-      ? {
-          ...assistant.quality,
-          citationPrecision: 0.91,
-          unauthorizedLeakage: 1,
-        }
-      : assistant.quality;
-  const content =
-    generic ||
-    [
-      '<div class="inline-note' +
-        (blocked ? " warning" : "") +
-        '">' +
-        (state === "partial"
-          ? "冻结评测已完成 84 / 100 题。结果未冻结前不能形成发布决定。"
-          : state === "disabled"
-            ? "发现 1 个无授权样本返回了引用，安全门禁失败。发布按钮保持禁用。"
-            : "所有 M6 质量门禁通过。发布只影响新会话，已有会话继续固定原版本。") +
-        "</div>",
-      '<section class="section-block"><div class="section-heading"><div><p class="eyebrow">发布结论</p><h2>' +
-        (blocked ? "暂不能发布 v13" : "v13 可以发布") +
-        "</h2></div>" +
-        statusTag(blocked ? "BUILDING" : "READY_FOR_RELEASE") +
-        "</div>",
-      qualityGrid(quality, true),
-      "</section>",
-      '<div class="split-detail"><div>',
-      '<section class="section-block"><h2>冻结配置</h2><dl class="description-list"><dt>知识库</dt><dd>' +
-        escapeHtml(assistant.knowledgeBase) +
-        ' · 创建后不能更换</dd><dt>索引</dt><dd><span class="mono">' +
-        escapeHtml(assistant.indexVersion) +
-        "</span></dd><dt>Chat</dt><dd>" +
-        escapeHtml(assistant.chatModel) +
-        "</dd><dt>Embedding</dt><dd>" +
-        escapeHtml(assistant.embeddingModel) +
-        "</dd><dt>Rerank</dt><dd>" +
-        escapeHtml(assistant.rerankModel) +
-        '</dd><dt>检索策略</dt><dd><span class="mono">' +
-        escapeHtml(assistant.retrievalPolicy) +
-        '</span></dd><dt>引用策略</dt><dd><span class="mono">' +
-        escapeHtml(assistant.citationPolicy) +
-        '</span></dd><dt>拒答策略</dt><dd><span class="mono">' +
-        escapeHtml(assistant.refusalPolicy) +
-        "</span></dd></dl></section>",
-      '</div><aside><section class="release-decision' +
-        (blocked ? " blocked" : "") +
-        '"><p class="eyebrow">唯一主决策</p><h2>' +
-        (blocked ? "先关闭阻断项" : "发布员工服务助手 v13") +
-        "</h2><p>" +
-        (blocked
-          ? "安全门禁不能被产品进度或人工例外绕过。修复后重新运行冻结评测。"
-          : "发布后，新会话固定 v13。旧会话显示升级提示，但不会静默改变答案基础。") +
-        '</p><button class="button primary" type="button" data-confirm-release' +
-        (blocked ? " disabled" : "") +
-        ">发布助手版本</button></section></aside></div>",
-      '<dialog id="release-dialog" class="dialog-surface"><form method="dialog"><p class="eyebrow">发布确认</p><h2>发布员工服务助手 v13？</h2><p>新会话将固定 asv-0013 和 idx-v12。旧会话继续使用旧版本，授权撤销仍立即失败关闭。</p><div class="release-actions"><button class="button secondary" value="cancel">取消</button><button class="button primary" value="confirm">发布版本</button></div></form></dialog>',
-    ].join("");
+function assistantStageContext(snapshot, statuses) {
+  const assistants = snapshot.assistantDelivery.assistants;
+  const selected = assistants
+    .flatMap(assistant => assistant.versions.map(version => ({ assistant, version })))
+    .find(item => item.version.id === snapshot.assistantDelivery.selectedVersionId);
+  if (selected && statuses.includes(selected.version.status)) return selected;
+  return assistants
+    .flatMap(assistant => assistant.versions.map(version => ({ assistant, version })))
+    .find(item => statuses.includes(item.version.status)) || null;
+}
+
+function assistantNextScreen(status) {
+  return {
+    DRAFT: "assistant-draft",
+    TESTING: "assistant-test",
+    TESTED: "assistant-test",
+    EVALUATION_PENDING: "assistant-evaluation",
+    EVALUATED: "assistant-evaluation",
+    READY_FOR_RELEASE: "assistant-release",
+  }[status] || "assistant-draft";
+}
+
+function renderAssistantDirectory(state, snapshot) {
+  const blocked = state !== "success";
+  const rows = snapshot.assistantDelivery.assistants.map(assistant => {
+    const published = assistant.versions.find(item => item.id === assistant.publishedVersionId);
+    const candidate = assistant.versions.find(item => !["PUBLISHED", "SUPERSEDED"].includes(item.status));
+    const knowledgeBase = snapshot.knowledgeBases.find(item => item.id === assistant.knowledgeBaseId);
+    const actionLabel = candidate ? "继续处理" : "创建新版本";
+    return `<tr><td data-label="助手"><strong>${escapeHtml(assistant.name)}</strong><small>${escapeHtml(assistant.summary)}</small></td><td data-label="关联知识库">${escapeHtml(knowledgeBase?.name || "知识库不可用")}</td><td data-label="已发布版本">${published ? `v${escapeHtml(published.number)}` : "尚未发布"}</td><td data-label="当前候选">${candidate ? `${statusTag(candidate.status)} <span class="mono">v${escapeHtml(candidate.number)}</span>` : "—"}</td><td data-label="操作" class="table-action"><button class="button secondary compact" type="button" data-manage-assistant-id="${escapeHtml(assistant.id)}"${candidate ? ` data-assistant-version-id="${escapeHtml(candidate.id)}" data-assistant-target="${assistantNextScreen(candidate.status)}"` : " data-create-assistant-version"}${blocked ? " disabled" : ""}>${actionLabel}</button></td></tr>`;
+  }).join("");
+  const body = [
+    state === "partial" ? '<div class="inline-note warning">候选状态正在刷新，目录保持只读。</div>' : "",
+    state === "disabled" ? '<div class="inline-note warning">平台已关闭助手交付，现有发布版本继续服务。</div>' : "",
+    assistantFeedback ? `<p class="form-feedback" role="status">${escapeHtml(assistantFeedback)}</p>` : "",
+    `<div class="table-shell"><table class="data-table"><thead><tr><th style="width:28%">助手</th><th>关联知识库</th><th>已发布版本</th><th>当前候选</th><th style="text-align:right">操作</th></tr></thead><tbody>${rows}</tbody></table><div class="pagination" aria-label="助手目录分页"><span>第 1 页，共 ${snapshot.assistantDelivery.assistants.length} 个助手</span><div class="pagination-actions"><button class="button secondary compact" type="button" disabled>上一页</button><button class="button secondary compact" type="button" disabled>下一页</button></div></div></div>`,
+  ].join("");
   return adminShell(
-    "assistant-release",
-    "发布员工服务助手 v13",
-    "核对冻结版本、质量门禁和会话影响，只形成一个可审计的发布决策。",
-    '<button class="button secondary" type="button" data-nav-screen="assistant-evaluation">查看完整评测</button>',
-    content,
+    "assistants-directory",
+    "助手目录",
+    "",
+    `<button class="button primary" type="button" data-nav-screen="assistant-create" data-primary-action${blocked ? " disabled" : ""}>新建助手</button>`,
+    body,
     state,
-    "AI 应用 / 助手 / 员工服务助手 / v13 / 发布",
+    "助手交付 / 助手目录",
   );
+}
+
+function renderAssistantCreate(state, snapshot) {
+  const blocked = state !== "success";
+  const knowledgeBases = snapshot.knowledgeBases.filter(item => item.tenantId === DEFAULT_TENANT_ID && item.indexVersions.some(version => version.id === item.activeIndex && version.status === "ACTIVE"));
+  const body = [
+    state === "partial" ? '<div class="inline-note warning">知识库目录正在刷新，暂不能创建助手。</div>' : "",
+    state === "disabled" ? '<div class="inline-note warning">当前租户没有助手交付权限。</div>' : "",
+    '<div class="split-detail">',
+    '<form id="assistant-create-form" class="section-block">',
+    '<div class="section-heading"><div><span class="section-kicker">基本信息</span><h2>创建稳定助手</h2></div><span class="status-tag" data-tone="info">创建后进入草稿</span></div>',
+    '<div class="form-grid"><label class="field"><span>助手名称</span><input class="input" name="name" minlength="2" maxlength="80" value="员工政策助手" autocomplete="off" required></label><label class="field"><span>关联知识库</span><input class="input" name="knowledgeBaseName" type="search" list="assistant-knowledge-base-options" value="员工服务手册" autocomplete="off" required></label></div>',
+    `<datalist id="assistant-knowledge-base-options">${knowledgeBases.map(item => `<option value="${escapeHtml(item.name)}"></option>`).join("")}</datalist>`,
+    '<label class="field"><span>用途说明</span><textarea class="textarea" name="summary" rows="3" minlength="8" maxlength="200" required>回答员工制度和办事流程问题，并提供可定位引用。</textarea></label>',
+    '<p id="assistant-create-feedback" class="form-feedback" role="alert"></p>',
+    `<div class="form-actions"><button class="button secondary" type="button" data-nav-screen="assistants-directory">取消</button><button class="button primary" type="submit" data-primary-action${blocked ? " disabled" : ""}>创建助手</button></div></form>`,
+    '<aside><section class="release-decision"><span class="section-kicker">永久边界</span><h2>关联后不能更换知识库</h2><dl class="description-list"><dt>可选范围</dt><dd>当前租户、索引就绪</dd><dt>版本变化</dt><dd>只替换索引或模型修订</dd><dt>需要换库</dt><dd>创建新的稳定助手</dd></dl></section></aside></div>',
+  ].join("");
+  return adminShell("assistant-create", "创建助手", "", '<button class="button secondary" type="button" data-nav-screen="assistants-directory">返回目录</button>', body, state, "助手交付 / 创建助手");
+}
+
+function renderAssistantDraft(state, snapshot) {
+  const context = assistantStageContext(snapshot, ["DRAFT"]);
+  if (!context) return adminShell("assistant-draft", "助手草稿配置", "", "", statePanel("empty", "没有待配置草稿", "从助手目录创建新助手或新版本。", "返回助手目录", "assistants-directory"), state, "助手交付 / 草稿配置");
+  const { assistant, version } = context;
+  const knowledgeBase = snapshot.knowledgeBases.find(item => item.id === assistant.knowledgeBaseId);
+  const indexVersions = knowledgeBase.indexVersions.filter(item => !["CANCELLED", "BLOCKED", "BUILDING"].includes(item.status));
+  const configurations = capability => snapshot.models.configurations.filter(item => item.tenantId === assistant.tenantId && item.capability === capability && item.status === "ACTIVE");
+  const options = capability => configurations(capability).map(item => `<option value="${escapeHtml(item.id)}">${escapeHtml(item.name)} · r${escapeHtml(item.activeRevision)}</option>`).join("");
+  const blocked = state !== "success";
+  const body = [
+    state === "partial" ? '<div class="inline-note warning">模型目录正在刷新，草稿保持未保存。</div>' : "",
+    state === "disabled" ? '<div class="inline-note warning">当前候选存在不可用依赖，请先恢复模型或索引。</div>' : "",
+    `<div class="inline-note">${escapeHtml(assistant.name)} v${escapeHtml(version.number)} 永久关联 ${escapeHtml(knowledgeBase.name)}。</div>`,
+    '<form id="assistant-draft-form" class="section-block" data-assistant-version-id="' + escapeHtml(version.id) + '">',
+    '<div class="section-heading"><div><span class="section-kicker">冻结配置</span><h2>选择本版本依赖</h2></div>' + statusTag(version.status) + '</div>',
+    `<input type="hidden" name="knowledgeBaseId" value="${escapeHtml(assistant.knowledgeBaseId)}"><div class="form-grid"><label class="field"><span>索引版本</span><select class="select" name="indexVersionId" required>${indexVersions.map(item => `<option value="${escapeHtml(item.id)}"${item.status === "READY_FOR_REVIEW" ? " selected" : ""}>${escapeHtml(item.id)} · ${escapeHtml(item.status === "ACTIVE" ? "当前活动" : "评测通过")}</option>`).join("")}</select></label><label class="field"><span>Chat 配置</span><select class="select" name="chatConfigurationId" required>${options("CHAT")}</select></label><label class="field"><span>Embedding 配置</span><select class="select" name="embeddingConfigurationId" required>${options("EMBEDDING")}</select></label><label class="field"><span>Rerank 配置</span><select class="select" name="rerankConfigurationId" required>${options("RERANK")}</select></label><label class="field"><span>检索策略</span><select class="select" name="retrievalPolicy"><option value="HYBRID_RRF_RERANK_V3">混合召回 + RRF + Rerank v3</option></select></label><label class="field"><span>引用策略</span><select class="select" name="citationPolicy"><option value="REQUIRED_V2">必须提供可定位引用 v2</option></select></label><label class="field"><span>拒答策略</span><select class="select" name="refusalPolicy"><option value="CALIBRATED_V5">冻结评测校准阈值 v5</option></select></label></div>`,
+    '<p id="assistant-draft-feedback" class="form-feedback" role="alert"></p>',
+    `<div class="form-actions"><button class="button secondary" type="button" data-nav-screen="assistants-directory">稍后处理</button><button class="button primary" type="submit" data-primary-action${blocked ? " disabled" : ""}>保存草稿</button></div></form>`,
+  ].join("");
+  return adminShell("assistant-draft", `${assistant.name} v${version.number}`, "", '<button class="button secondary" type="button" data-nav-screen="assistants-directory">返回目录</button>', body, state, "助手交付 / 草稿配置");
+}
+
+function renderAssistantTest(state, snapshot) {
+  const context = assistantStageContext(snapshot, ["TESTING", "TESTED"]);
+  if (!context) return adminShell("assistant-test", "助手单题测试", "", "", statePanel("empty", "没有待测试版本", "先保存助手草稿并冻结依赖。", "返回助手目录", "assistants-directory"), state, "助手交付 / 单题测试");
+  const { assistant, version } = context;
+  const result = version.testResult;
+  const blocked = state !== "success";
+  const resultPanel = result ? [
+    `<section class="section-block"><div class="section-heading"><div><span class="section-kicker">测试结果</span><h2>${escapeHtml(result.question)}</h2></div>${statusTag(result.status === "ANSWERED" ? "READY" : "BLOCKED")}</div><p class="result-copy">${escapeHtml(result.answer)}</p>`,
+    result.citations.length ? `<ol class="selection-list">${result.citations.map(item => `<li><strong>${escapeHtml(item.source)}</strong><span>${escapeHtml(item.location)}</span></li>`).join("")}</ol>` : '<div class="inline-note">没有足够证据，未生成引用。</div>',
+    `<div class="form-actions"><button class="button secondary" type="button" data-rerun-assistant-test>重新测试</button><button class="button primary" type="button" data-add-assistant-evaluation data-assistant-version-id="${escapeHtml(version.id)}" data-primary-action${blocked || result.addedToEvaluation ? " disabled" : ""}>${result.addedToEvaluation ? "已加入评测集" : "加入评测集"}</button></div></section>`,
+  ].join("") : [
+    `<form id="assistant-test-form" class="section-block" data-assistant-version-id="${escapeHtml(version.id)}"><div class="section-heading"><div><span class="section-kicker">冻结依赖</span><h2>${escapeHtml(assistant.name)} v${escapeHtml(version.number)}</h2></div>${statusTag(version.status)}</div><label class="field"><span>测试问题</span><textarea class="textarea" name="question" rows="3" required>年假最多可以结转几天？</textarea></label><p id="assistant-test-feedback" class="form-feedback" role="alert"></p><div class="form-actions"><button class="button primary" type="submit" data-primary-action${blocked ? " disabled" : ""}>运行单题测试</button></div></form>`,
+  ].join("");
+  const body = `<div class="inline-note">本次只读取 <span class="mono">${escapeHtml(version.frozen?.indexVersionId || "未冻结")}</span>，测试数据不写入用户会话。</div>${assistantFeedback ? `<p class="form-feedback" role="status">${escapeHtml(assistantFeedback)}</p>` : ""}${resultPanel}`;
+  return adminShell("assistant-test", "助手单题测试", "", '<button class="button secondary" type="button" data-nav-screen="assistant-draft">查看冻结配置</button>', body, state, "助手交付 / 单题测试");
+}
+
+function renderAssistantEvaluation(state, snapshot) {
+  const context = assistantStageContext(snapshot, ["EVALUATION_PENDING", "EVALUATED"]);
+  if (!context) return adminShell("assistant-evaluation", "助手发布门禁", "", "", statePanel("empty", "没有待评测版本", "先把单题测试加入冻结评测集。", "返回助手目录", "assistants-directory"), state, "助手交付 / 发布门禁");
+  const { assistant, version } = context;
+  const evaluation = version.evaluation;
+  const blocked = state !== "success";
+  const action = evaluation
+    ? `<button class="button primary" type="button" data-request-assistant-release data-assistant-version-id="${escapeHtml(version.id)}" data-primary-action${blocked || evaluation.status !== "PASSED" ? " disabled" : ""}>请求发布</button>`
+    : `<button class="button primary" type="button" data-run-assistant-evaluation data-assistant-version-id="${escapeHtml(version.id)}" data-primary-action${blocked ? " disabled" : ""}>运行冻结评测</button>`;
+  const body = [
+    evaluation?.status === "FAILED" ? '<div class="inline-note danger">发现越权泄漏或质量未达标，本版本不能请求发布。</div>' : '<div class="inline-note">越权泄漏必须为 0；其余指标达到 M6 门禁后才可请求发布。</div>',
+    `<section class="section-block"><div class="section-heading"><div><span class="section-kicker">评测集 v${escapeHtml(version.evaluationDataset?.version || 6)}</span><h2>${escapeHtml(assistant.name)} v${escapeHtml(version.number)}</h2></div>${statusTag(version.status)}</div>`,
+    evaluation ? qualityGrid(evaluation.metrics, true) : '<div class="metric-grid"><article class="metric-card"><span>冻结问题</span><strong>101</strong></article><article class="metric-card"><span>可回答</span><strong>60</strong></article><article class="metric-card"><span>应拒答</span><strong>20</strong></article><article class="metric-card"><span>安全样本</span><strong>10</strong></article></div>',
+    assistantFeedback ? `<p class="form-feedback" role="status">${escapeHtml(assistantFeedback)}</p>` : "",
+    `<div class="form-actions">${evaluation?.status === "FAILED" ? `<button class="button secondary" type="button" data-run-assistant-evaluation data-assistant-version-id="${escapeHtml(version.id)}">重新运行评测</button>` : ""}${action}</div></section>`,
+  ].join("");
+  return adminShell("assistant-evaluation", "助手发布门禁", "", '<button class="button secondary" type="button" data-nav-screen="assistant-test">返回单题测试</button>', body, state, "助手交付 / 发布门禁");
+}
+
+function renderAssistantRelease(state, snapshot) {
+  const context = assistantStageContext(snapshot, ["READY_FOR_RELEASE"]);
+  if (!context) return adminShell("assistant-release", "发布助手版本", "", "", statePanel("empty", "没有可发布版本", "只有通过冻结评测并完成发布请求的版本会出现在这里。", "返回助手目录", "assistants-directory"), state, "助手交付 / 发布确认");
+  const { assistant, version } = context;
+  const knowledgeBase = snapshot.knowledgeBases.find(item => item.id === assistant.knowledgeBaseId);
+  const frozen = version.frozen;
+  const blocked = state !== "success";
+  const body = [
+    `<div class="inline-note${blocked ? " warning" : ""}">${blocked ? "当前状态不可发布，发布指针保持不变。" : "发布只更新新会话使用的版本；已有会话继续固定原版本。"}</div>`,
+    `<section class="section-block"><div class="section-heading"><div><span class="section-kicker">发布门禁通过</span><h2>${escapeHtml(assistant.name)} v${escapeHtml(version.number)}</h2></div>${statusTag(version.status)}</div>${qualityGrid(version.evaluation.metrics, true)}</section>`,
+    '<div class="split-detail"><section class="section-block"><h2>冻结配置</h2><dl class="description-list">',
+    `<dt>知识库</dt><dd>${escapeHtml(knowledgeBase?.name || assistant.knowledgeBaseId)}（永久关联）</dd><dt>索引</dt><dd><span class="mono">${escapeHtml(frozen.indexVersionId)}</span></dd><dt>Chat</dt><dd><span class="mono">${escapeHtml(frozen.configurationRevisions.chat.id)} / r${escapeHtml(frozen.configurationRevisions.chat.revision)}</span></dd><dt>Embedding</dt><dd><span class="mono">${escapeHtml(frozen.configurationRevisions.embedding.id)} / r${escapeHtml(frozen.configurationRevisions.embedding.revision)}</span></dd><dt>Rerank</dt><dd><span class="mono">${escapeHtml(frozen.configurationRevisions.rerank.id)} / r${escapeHtml(frozen.configurationRevisions.rerank.revision)}</span></dd><dt>检索策略</dt><dd>${escapeHtml(frozen.retrievalPolicy)}</dd><dt>引用 / 拒答</dt><dd>${escapeHtml(frozen.citationPolicy)} / ${escapeHtml(frozen.refusalPolicy)}</dd></dl></section>`,
+    `<aside><section class="release-decision${blocked ? " blocked" : ""}"><span class="section-kicker">发布影响</span><h2>新会话切换到 v${escapeHtml(version.number)}</h2><p>旧会话不迁移；授权撤销仍立即阻断正文与引用。</p><button class="button primary" type="button" data-confirm-release data-assistant-version-id="${escapeHtml(version.id)}" data-primary-action${blocked ? " disabled" : ""}>发布助手版本</button>${assistantFeedback ? `<p class="form-feedback" role="status">${escapeHtml(assistantFeedback)}</p>` : ""}</section></aside></div>`,
+    `<dialog id="release-dialog" class="dialog-surface"><div class="dialog-body"><span class="section-kicker">发布确认</span><h2>发布 ${escapeHtml(assistant.name)} v${escapeHtml(version.number)}？</h2><dl class="description-list"><dt>新会话</dt><dd>${escapeHtml(version.id)} / ${escapeHtml(frozen.indexVersionId)}</dd><dt>已有会话</dt><dd>继续固定原版本</dd></dl><p id="assistant-release-feedback" class="form-feedback" role="alert"></p><div class="release-actions"><button class="button secondary" type="button" data-cancel-assistant-release>取消</button><button class="button primary" type="button" data-publish-assistant-version="${escapeHtml(version.id)}">确认发布</button></div></div></dialog>`,
+  ].join("");
+  return adminShell("assistant-release", "发布助手版本", "", '<button class="button secondary" type="button" data-nav-screen="assistant-evaluation">查看评测结果</button>', body, state, "助手交付 / 发布确认");
+}
+
+function renderAssistantDelivery(screen, state, snapshot) {
+  const generic = genericState(screen, state);
+  if (generic) return adminShell(screen, pageFixtures.pages[screen].title, "", "", generic, state, "助手交付");
+  return {
+    "assistants-directory": renderAssistantDirectory,
+    "assistant-create": renderAssistantCreate,
+    "assistant-draft": renderAssistantDraft,
+    "assistant-test": renderAssistantTest,
+    "assistant-evaluation": renderAssistantEvaluation,
+    "assistant-release": renderAssistantRelease,
+  }[screen](state, snapshot);
 }
 
 function bindKnowledgeManagement() {
@@ -2171,6 +2275,155 @@ function bindModelGovernance() {
   });
 }
 
+function assistantFailureMessage(result) {
+  return {
+    ASSISTANT_NAME_CONFLICT: "助手名称已存在，请使用其他名称。",
+    KNOWLEDGE_BASE_NOT_READY: "请选择当前租户内索引就绪的知识库。",
+    ASSISTANT_KNOWLEDGE_BASE_IMMUTABLE: "稳定助手的知识库不能更换。",
+    INDEX_VERSION_NOT_ELIGIBLE: "该索引版本不可用于新助手版本。",
+    MODEL_CONFIGURATION_NOT_ACTIVE: "请选择已启用且能力匹配的模型配置。",
+    EVALUATION_GATE_FAILED: "质量或安全门禁未通过，不能请求发布。",
+    STORAGE_UNAVAILABLE: "浏览器无法保存，本次操作未生效。",
+    FORBIDDEN: "当前演示身份无权管理助手。",
+  }[result.reason] || result.errors?.map(item => item.message).join(" ") || "操作未完成，状态保持不变。";
+}
+
+function bindAssistantDelivery() {
+  root.querySelectorAll("[data-manage-assistant-id]").forEach(button => {
+    button.addEventListener("click", () => {
+      let result;
+      if (button.hasAttribute("data-create-assistant-version")) {
+        result = prototypeStore.createAssistantVersion(button.dataset.manageAssistantId, TENANT_ADMIN_ACTOR_ID);
+      } else {
+        result = prototypeStore.selectAssistantDeliveryItem(button.dataset.manageAssistantId, button.dataset.assistantVersionId);
+      }
+      if (!result.ok) {
+        assistantFeedback = assistantFailureMessage(result);
+        render();
+        return;
+      }
+      assistantFeedback = "";
+      navigate(button.dataset.assistantTarget || "assistant-draft");
+    });
+  });
+
+  root.querySelector("#assistant-create-form")?.addEventListener("submit", event => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const feedback = form.querySelector("#assistant-create-feedback");
+    if (!form.reportValidity()) {
+      feedback.textContent = "请补全助手名称、知识库和用途说明。";
+      return;
+    }
+    const values = new FormData(form);
+    const snapshot = prototypeStore.getSnapshot();
+    const requestedKnowledgeBase = String(values.get("knowledgeBaseName") || "").trim();
+    const knowledgeBase = snapshot.knowledgeBases.find(item => item.tenantId === DEFAULT_TENANT_ID && item.name === requestedKnowledgeBase);
+    const result = prototypeStore.createAssistant(DEFAULT_TENANT_ID, {
+      name: values.get("name"),
+      summary: values.get("summary"),
+      knowledgeBaseId: knowledgeBase?.id || "",
+    }, TENANT_ADMIN_ACTOR_ID);
+    if (!result.ok) {
+      feedback.textContent = assistantFailureMessage(result);
+      feedback.dataset.tone = "danger";
+      return;
+    }
+    assistantFeedback = "助手已创建，知识库关联已固定。";
+    navigate("assistant-draft");
+  });
+
+  root.querySelector("#assistant-draft-form")?.addEventListener("submit", event => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const values = Object.fromEntries(new FormData(form));
+    const result = prototypeStore.saveAssistantDraft(form.dataset.assistantVersionId, values, TENANT_ADMIN_ACTOR_ID);
+    if (!result.ok) {
+      const feedback = form.querySelector("#assistant-draft-feedback");
+      feedback.textContent = assistantFailureMessage(result);
+      feedback.dataset.tone = "danger";
+      return;
+    }
+    assistantFeedback = "索引、模型配置修订和策略已冻结。";
+    navigate("assistant-test");
+  });
+
+  root.querySelector("#assistant-test-form")?.addEventListener("submit", event => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const result = prototypeStore.runAssistantTest(
+      form.dataset.assistantVersionId,
+      new FormData(form).get("question"),
+      TENANT_ADMIN_ACTOR_ID,
+    );
+    if (!result.ok) {
+      const feedback = form.querySelector("#assistant-test-feedback");
+      feedback.textContent = assistantFailureMessage(result);
+      feedback.dataset.tone = "danger";
+      return;
+    }
+    assistantFeedback = result.testResult.status === "ANSWERED"
+      ? "单题测试已完成，请核对回答与引用。"
+      : "证据不足，已按冻结策略拒答。";
+    render();
+  });
+  root.querySelector("[data-rerun-assistant-test]")?.addEventListener("click", () => {
+    const snapshot = prototypeStore.getSnapshot();
+    const context = assistantStageContext(snapshot, ["TESTED"]);
+    if (!context) return;
+    const result = prototypeStore.runAssistantTest(context.version.id, context.version.testResult.question, TENANT_ADMIN_ACTOR_ID);
+    assistantFeedback = result.ok ? "已使用同一冻结版本重新测试。" : assistantFailureMessage(result);
+    render();
+  });
+  root.querySelector("[data-add-assistant-evaluation]")?.addEventListener("click", event => {
+    const result = prototypeStore.addAssistantTestToEvaluationSet(event.currentTarget.dataset.assistantVersionId, TENANT_ADMIN_ACTOR_ID);
+    if (!result.ok) {
+      assistantFeedback = assistantFailureMessage(result);
+      render();
+      return;
+    }
+    assistantFeedback = "单题样本已加入冻结评测集。";
+    navigate("assistant-evaluation");
+  });
+
+  root.querySelectorAll("[data-run-assistant-evaluation]").forEach(button => {
+    button.addEventListener("click", () => {
+      const result = prototypeStore.runAssistantEvaluation(button.dataset.assistantVersionId, TENANT_ADMIN_ACTOR_ID);
+      assistantFeedback = result.ok ? "冻结评测完成，质量与安全门禁通过。" : assistantFailureMessage(result);
+      render();
+    });
+  });
+  root.querySelector("[data-request-assistant-release]")?.addEventListener("click", event => {
+    const result = prototypeStore.requestAssistantRelease(event.currentTarget.dataset.assistantVersionId, TENANT_ADMIN_ACTOR_ID);
+    if (!result.ok) {
+      assistantFeedback = assistantFailureMessage(result);
+      render();
+      return;
+    }
+    assistantFeedback = "发布请求已形成，请核对版本影响。";
+    navigate("assistant-release");
+  });
+
+  root.querySelector("[data-confirm-release]")?.addEventListener("click", () => {
+    root.querySelector("#release-dialog")?.showModal();
+  });
+  root.querySelector("[data-cancel-assistant-release]")?.addEventListener("click", () => {
+    root.querySelector("#release-dialog")?.close();
+  });
+  root.querySelector("[data-publish-assistant-version]")?.addEventListener("click", event => {
+    const result = prototypeStore.publishAssistantVersion(event.currentTarget.dataset.publishAssistantVersion, TENANT_ADMIN_ACTOR_ID);
+    if (!result.ok) {
+      const feedback = root.querySelector("#assistant-release-feedback");
+      feedback.textContent = assistantFailureMessage(result);
+      feedback.dataset.tone = "danger";
+      return;
+    }
+    root.querySelector("#release-dialog")?.close();
+    assistantFeedback = `${result.assistant.name} v${result.version.number} 已发布；已有会话未迁移。`;
+    navigate("assistants-directory");
+  });
+}
+
 function bindInteractions(screen) {
   root.querySelectorAll("[data-nav-screen]").forEach((element) => {
     element.addEventListener("click", () => {
@@ -2378,16 +2631,6 @@ function bindInteractions(screen) {
   root.querySelector("[data-confirm-index]")?.addEventListener("click", () => {
     root.querySelector("#index-dialog")?.showModal();
   });
-  root
-    .querySelector("[data-confirm-release]")
-    ?.addEventListener("click", () => {
-      root.querySelector("#release-dialog")?.showModal();
-    });
-  root
-    .querySelector('#release-dialog button[value="confirm"]')
-    ?.addEventListener("click", () => {
-      window.setTimeout(() => navigate("channel-binding"), 0);
-    });
   root.querySelector("[data-open-page-dialog]")?.addEventListener("click", () => {
     root.querySelector("#page-dialog")?.showModal();
   });
@@ -2420,6 +2663,7 @@ function bindInteractions(screen) {
   bindKnowledgeManagement();
   bindIndexManagement();
   bindModelGovernance();
+  bindAssistantDelivery();
 }
 
 function bindAccountManagement() {

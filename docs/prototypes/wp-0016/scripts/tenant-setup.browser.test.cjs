@@ -104,8 +104,9 @@ test("有无帮助说明的同排输入框顶部和高度一致", () => visit("a
       await page.getByRole("button", { name: "查看员工服务对话配置", exact: true }).click();
       await page.getByRole("button", { name: "新建配置版本", exact: true }).click();
     }
-    await page.locator(".wizard-field-grid").first().waitFor();
-    const controls = page.locator(".wizard-field-grid").first().locator("input,select,textarea");
+    const grid = page.locator(screen === "assistant-create" ? ".form-grid" : ".wizard-field-grid").first();
+    await grid.waitFor();
+    const controls = grid.locator("input,select,textarea");
     const first = await controls.nth(0).boundingBox();
     const second = await controls.nth(1).boundingBox();
     assert.ok(Math.abs(first.y - second.y) <= 1, `${screen} 同排输入框顶部不齐`);

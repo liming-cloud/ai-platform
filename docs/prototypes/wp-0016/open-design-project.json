@@ -31,10 +31,10 @@
       "p2": 0
     },
     "staticVerificationStatus": "PASS",
-    "staticAssertionCount": 3607,
+    "staticAssertionCount": 3411,
     "httpScenarioCount": 1428,
     "browserVerificationStatus": "PASS",
-    "browserVerificationNote": "独立 Chromium 已获用户授权；模型治理、索引、知识接入、账户、租户、问答和布局专项 71/71 通过，全平台 1,428 场景、9,650 项断言和 85 张临时核对截图通过。截图不进入仓库；OpenDesign 是内容与视觉事实源，该结果只代表已声明自动合同，不代表人工认可。",
+    "browserVerificationNote": "独立 Chromium 已获用户授权；助手交付、模型治理、索引、知识接入、账户、租户、问答和布局专项 79/79 通过，全平台 1,428 场景、9,644 项断言和 85 张临时核对截图通过。截图不进入仓库；OpenDesign 是内容与视觉事实源，该结果只代表已声明自动合同，不代表人工认可。",
     "exportStatus": "TOOL_TIMEOUT",
     "exportNote": "独立 HTML 导出与 files list 均在 60 秒内无响应，已人工终止，未产生不完整文件；导入、lint 与浏览器证据仍可独立复核。"
   }

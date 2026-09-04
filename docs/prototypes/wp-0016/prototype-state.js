@@ -510,6 +510,173 @@ function defaultModelGovernance() {
   };
 }
 
+function frozenAssistantDependencies(knowledgeBaseId, indexVersionId) {
+  return {
+    knowledgeBaseId,
+    indexVersionId,
+    configurationRevisions: {
+      chat: { id: "cfg-chat", revision: 6 },
+      embedding: { id: "cfg-embedding", revision: 4 },
+      rerank: { id: "cfg-rerank", revision: 2 },
+    },
+    retrievalPolicy: "HYBRID_RRF_RERANK_V3",
+    citationPolicy: "REQUIRED_V2",
+    refusalPolicy: "CALIBRATED_V5",
+  };
+}
+
+function passedAssistantEvaluation() {
+  return {
+    status: "PASSED",
+    datasetVersion: 6,
+    evaluatedAt: "今天 16:52",
+    metrics: {
+      recallAt10: 0.88,
+      citationPrecision: 0.97,
+      refusalAccuracy: 0.99,
+      unauthorizedLeakage: 0,
+      firstTokenP95Ms: 2840,
+    },
+  };
+}
+
+function answeredAssistantTest(addedToEvaluation = false) {
+  return {
+    id: "assistant-test-leave-transfer",
+    question: "年假最多可以结转几天？",
+    status: "ANSWERED",
+    answer: "未休年假最多可结转 5 个工作日，并需在次年 3 月 31 日前使用。",
+    citations: [
+      { source: "2026 员工假期制度.pdf", location: "第 6 页 · 年假结转" },
+      { source: "福利办事指南.docx", location: "假期申请 · 第 3 节" },
+    ],
+    frozenIndexVersionId: "idx-v11",
+    addedToEvaluation,
+  };
+}
+
+/** 稳定助手永久绑定知识库；候选版本只冻结可替换的索引、模型配置修订和问答策略。 */
+function defaultAssistantDelivery() {
+  return {
+    assistants: [
+      {
+        id: "assistant-employee-service",
+        tenantId: DEFAULT_TENANT_ID,
+        name: "员工服务助手",
+        summary: "查询制度、假期、福利和办事流程，并提供可定位引用。",
+        knowledgeBaseId: "kb-handbook",
+        status: "PUBLISHED",
+        publishedVersionId: "asv-0012",
+        versions: [
+          {
+            id: "asv-0012",
+            number: 12,
+            status: "PUBLISHED",
+            knowledgeBaseId: "kb-handbook",
+            frozen: frozenAssistantDependencies("kb-handbook", "idx-v11"),
+            publishedAt: "今天 16:58",
+          },
+          {
+            id: "asv-0013",
+            number: 13,
+            status: "READY_FOR_RELEASE",
+            knowledgeBaseId: "kb-handbook",
+            frozen: frozenAssistantDependencies("kb-handbook", "idx-v12"),
+            testResult: { ...answeredAssistantTest(true), frozenIndexVersionId: "idx-v12" },
+            evaluationDataset: { id: "eval-set-v6", version: 6, questionCount: 100, frozenAt: "今天 16:48" },
+            evaluation: passedAssistantEvaluation(),
+          },
+        ],
+      },
+      {
+        id: "assistant-support",
+        tenantId: DEFAULT_TENANT_ID,
+        name: "客户支持助手",
+        summary: "查询合成产品说明和故障排查步骤。",
+        knowledgeBaseId: "kb-support",
+        status: "PUBLISHED",
+        publishedVersionId: "asv-0008",
+        versions: [
+          {
+            id: "asv-0008",
+            number: 8,
+            status: "PUBLISHED",
+            knowledgeBaseId: "kb-support",
+            frozen: frozenAssistantDependencies("kb-support", "idx-v7"),
+            publishedAt: "昨天 18:20",
+          },
+          {
+            id: "asv-0009",
+            number: 9,
+            status: "TESTED",
+            knowledgeBaseId: "kb-support",
+            frozen: frozenAssistantDependencies("kb-support", "idx-v7"),
+            testResult: { ...answeredAssistantTest(false), frozenIndexVersionId: "idx-v7" },
+          },
+        ],
+      },
+      {
+        id: "assistant-office",
+        tenantId: DEFAULT_TENANT_ID,
+        name: "办公地点助手",
+        summary: "查询办公室地址、开放时间和公共联系方式。",
+        knowledgeBaseId: "kb-handbook",
+        status: "PUBLISHED",
+        publishedVersionId: "asv-0004",
+        versions: [
+          {
+            id: "asv-0004",
+            number: 4,
+            status: "PUBLISHED",
+            knowledgeBaseId: "kb-handbook",
+            frozen: frozenAssistantDependencies("kb-handbook", "idx-v11"),
+            publishedAt: "8 月 29 日",
+          },
+          {
+            id: "asv-0005",
+            number: 5,
+            status: "DRAFT",
+            knowledgeBaseId: "kb-handbook",
+            frozen: null,
+          },
+        ],
+      },
+      {
+        id: "assistant-policy",
+        tenantId: DEFAULT_TENANT_ID,
+        name: "制度问答助手",
+        summary: "面向制度维护人员验证检索质量和拒答边界。",
+        knowledgeBaseId: "kb-handbook",
+        status: "PUBLISHED",
+        publishedVersionId: "asv-policy-0002",
+        versions: [
+          {
+            id: "asv-policy-0002",
+            number: 2,
+            status: "PUBLISHED",
+            knowledgeBaseId: "kb-handbook",
+            frozen: frozenAssistantDependencies("kb-handbook", "idx-v11"),
+            publishedAt: "8 月 28 日",
+          },
+          {
+            id: "asv-policy-0003",
+            number: 3,
+            status: "EVALUATED",
+            knowledgeBaseId: "kb-handbook",
+            frozen: frozenAssistantDependencies("kb-handbook", "idx-v12"),
+            testResult: { ...answeredAssistantTest(true), frozenIndexVersionId: "idx-v12" },
+            evaluationDataset: { id: "eval-set-v6", version: 6, questionCount: 100, frozenAt: "今天 16:32" },
+            evaluation: passedAssistantEvaluation(),
+          },
+        ],
+      },
+    ],
+    selectedAssistantId: "assistant-employee-service",
+    selectedVersionId: "asv-0013",
+    effects: [],
+  };
+}
+
 function defaultKnowledgeBases() {
   return [
     {
@@ -656,6 +823,7 @@ function defaultState() {
     ],
     knowledgeBases: defaultKnowledgeBases(),
     models: defaultModelGovernance(),
+    assistantDelivery: defaultAssistantDelivery(),
     selectedKnowledgeBaseId: "kb-handbook",
     selectedKnowledgeSourceId: "src-policy-pdf",
     selectedIndexVersionId: "idx-v12",
@@ -764,6 +932,9 @@ function initialState(storage) {
     parsed.models = parsed.models && Array.isArray(parsed.models.platformConnections)
       ? parsed.models
       : defaultModelGovernance();
+    parsed.assistantDelivery = parsed.assistantDelivery && Array.isArray(parsed.assistantDelivery.assistants)
+      ? parsed.assistantDelivery
+      : defaultAssistantDelivery();
     const fallbackKnowledgeBases = defaultKnowledgeBases();
     parsed.knowledgeBases = (Array.isArray(parsed.knowledgeBases)
       ? parsed.knowledgeBases
@@ -1476,6 +1647,306 @@ export function createPrototypeStore(storage = browserStorage()) {
     const policy = { ...current, status: "PUBLISHED", publishedAt: "刚刚", updatedAt: "刚刚" };
     const saved = commitState(replaceModelItem("routingPolicies", policy));
     return saved.ok ? { ...saved, policy: clone(policy) } : saved;
+  }
+
+  /** 助手写操作必须同时满足租户、账户、管理员成员和助手交付功能上限。 */
+  function canManageAssistants(tenantId, actorAccountId) {
+    const tenant = tenantById(tenantId);
+    const actor = accountById(actorAccountId);
+    const member = tenant?.members.find(item => item.accountId === actorAccountId);
+    return Boolean(
+      tenant?.status === "active" &&
+      actor?.status === "available" &&
+      tenant.availableFeatures?.assistantDelivery !== false &&
+      member?.role === "tenantAdministrator" &&
+      member.status === "active",
+    );
+  }
+
+  function assistantById(assistantId) {
+    return state.assistantDelivery.assistants.find(item => item.id === assistantId);
+  }
+
+  function assistantVersionContext(versionId) {
+    for (const assistant of state.assistantDelivery.assistants) {
+      const version = assistant.versions.find(item => item.id === versionId);
+      if (version) return { assistant, version };
+    }
+    return null;
+  }
+
+  function replaceAssistant(assistant, selection = {}) {
+    return {
+      ...state,
+      assistantDelivery: {
+        ...state.assistantDelivery,
+        ...selection,
+        assistants: state.assistantDelivery.assistants.map(item => item.id === assistant.id ? assistant : item),
+      },
+    };
+  }
+
+  function selectAssistantDeliveryItem(assistantId, versionId = null) {
+    const assistant = assistantById(assistantId);
+    if (!assistant) return { ok: false, reason: "ASSISTANT_NOT_FOUND" };
+    const selectedVersionId = versionId || assistant.versions.at(-1)?.id || null;
+    if (selectedVersionId && !assistant.versions.some(item => item.id === selectedVersionId)) {
+      return { ok: false, reason: "ASSISTANT_VERSION_NOT_FOUND" };
+    }
+    return commitState({
+      ...state,
+      assistantDelivery: {
+        ...state.assistantDelivery,
+        selectedAssistantId: assistantId,
+        selectedVersionId,
+      },
+    });
+  }
+
+  /** 稳定助手在创建时永久绑定一个已就绪知识库，后续版本不能替换该边界。 */
+  function createAssistant(tenantId, input = {}, actorAccountId) {
+    if (!canManageAssistants(tenantId, actorAccountId)) return { ok: false, reason: "FORBIDDEN" };
+    const name = String(input.name || "").trim();
+    const summary = String(input.summary || "").trim();
+    const knowledgeBase = knowledgeBaseById(input.knowledgeBaseId);
+    const errors = [];
+    if (name.length < 2 || name.length > 80) errors.push({ field: "name", message: "助手名称请输入 2 至 80 个字符。" });
+    if (summary.length < 8 || summary.length > 200) errors.push({ field: "summary", message: "用途说明请输入 8 至 200 个字符。" });
+    if (errors.length) return { ok: false, reason: "VALIDATION_FAILED", errors };
+    if (state.assistantDelivery.assistants.some(item => item.tenantId === tenantId && item.name === name)) {
+      return { ok: false, reason: "ASSISTANT_NAME_CONFLICT" };
+    }
+    const activeIndex = knowledgeBase?.indexVersions.find(item => item.id === knowledgeBase.activeIndex && item.status === "ACTIVE");
+    if (knowledgeBase?.tenantId !== tenantId || !activeIndex) {
+      return { ok: false, reason: "KNOWLEDGE_BASE_NOT_READY" };
+    }
+    const ordinal = state.assistantDelivery.assistants.length + 1;
+    const assistant = {
+      id: `assistant-custom-${ordinal}`,
+      tenantId,
+      name,
+      summary,
+      knowledgeBaseId: knowledgeBase.id,
+      status: "DRAFT",
+      publishedVersionId: null,
+      versions: [{
+        id: `asv-custom-${ordinal}-0001`,
+        number: 1,
+        status: "DRAFT",
+        knowledgeBaseId: knowledgeBase.id,
+        frozen: null,
+      }],
+    };
+    const version = assistant.versions[0];
+    const saved = commitState({
+      ...state,
+      assistantDelivery: {
+        ...state.assistantDelivery,
+        assistants: [...state.assistantDelivery.assistants, assistant],
+        selectedAssistantId: assistant.id,
+        selectedVersionId: version.id,
+      },
+    });
+    return saved.ok ? { ...saved, assistant: clone(assistant), version: clone(version) } : saved;
+  }
+
+  /** 同一稳定助手只有一个未发布候选；重复点击继续现有候选，不制造并行分支。 */
+  function createAssistantVersion(assistantId, actorAccountId) {
+    const current = assistantById(assistantId);
+    if (!current) return { ok: false, reason: "ASSISTANT_NOT_FOUND" };
+    if (!canManageAssistants(current.tenantId, actorAccountId)) return { ok: false, reason: "FORBIDDEN" };
+    const existing = current.versions.find(item => !["PUBLISHED", "SUPERSEDED"].includes(item.status));
+    if (existing) {
+      const saved = selectAssistantDeliveryItem(current.id, existing.id);
+      return saved.ok ? { ...saved, replayed: true, assistant: clone(current), version: clone(existing) } : saved;
+    }
+    const number = Math.max(0, ...current.versions.map(item => Number(item.number) || 0)) + 1;
+    const version = {
+      id: `${current.id}-v${String(number).padStart(4, "0")}`,
+      number,
+      status: "DRAFT",
+      knowledgeBaseId: current.knowledgeBaseId,
+      frozen: null,
+    };
+    const assistant = { ...current, versions: [...current.versions, version] };
+    const saved = commitState(replaceAssistant(assistant, {
+      selectedAssistantId: assistant.id,
+      selectedVersionId: version.id,
+    }));
+    return saved.ok ? { ...saved, replayed: false, assistant: clone(assistant), version: clone(version) } : saved;
+  }
+
+  function saveAssistantDraft(versionId, input = {}, actorAccountId) {
+    const context = assistantVersionContext(versionId);
+    if (!context) return { ok: false, reason: "ASSISTANT_VERSION_NOT_FOUND" };
+    const { assistant, version } = context;
+    if (!canManageAssistants(assistant.tenantId, actorAccountId)) return { ok: false, reason: "FORBIDDEN" };
+    if (version.status !== "DRAFT") return { ok: false, reason: "ASSISTANT_VERSION_NOT_DRAFT" };
+    if (input.knowledgeBaseId !== assistant.knowledgeBaseId) {
+      return { ok: false, reason: "ASSISTANT_KNOWLEDGE_BASE_IMMUTABLE" };
+    }
+    const knowledgeBase = knowledgeBaseById(assistant.knowledgeBaseId);
+    const indexVersion = knowledgeBase?.indexVersions.find(item => item.id === input.indexVersionId);
+    if (!indexVersion || ["CANCELLED", "BLOCKED", "BUILDING"].includes(indexVersion.status)) {
+      return { ok: false, reason: "INDEX_VERSION_NOT_ELIGIBLE" };
+    }
+    const configurationKinds = [
+      ["chat", input.chatConfigurationId, "CHAT"],
+      ["embedding", input.embeddingConfigurationId, "EMBEDDING"],
+      ["rerank", input.rerankConfigurationId, "RERANK"],
+    ];
+    const configurationRevisions = {};
+    for (const [key, id, capability] of configurationKinds) {
+      const configuration = modelItem("configurations", id);
+      if (configuration?.tenantId !== assistant.tenantId || configuration.status !== "ACTIVE" || configuration.capability !== capability) {
+        return { ok: false, reason: "MODEL_CONFIGURATION_NOT_ACTIVE" };
+      }
+      configurationRevisions[key] = { id: configuration.id, revision: configuration.activeRevision };
+    }
+    if (![input.retrievalPolicy, input.citationPolicy, input.refusalPolicy].every(value => String(value || "").trim())) {
+      return { ok: false, reason: "ASSISTANT_POLICY_REQUIRED" };
+    }
+    const nextVersion = {
+      ...version,
+      status: "TESTING",
+      frozen: {
+        knowledgeBaseId: assistant.knowledgeBaseId,
+        indexVersionId: indexVersion.id,
+        configurationRevisions,
+        retrievalPolicy: input.retrievalPolicy,
+        citationPolicy: input.citationPolicy,
+        refusalPolicy: input.refusalPolicy,
+      },
+      updatedAt: "刚刚",
+    };
+    const nextAssistant = {
+      ...assistant,
+      versions: assistant.versions.map(item => item.id === version.id ? nextVersion : item),
+    };
+    const saved = commitState(replaceAssistant(nextAssistant, {
+      selectedAssistantId: assistant.id,
+      selectedVersionId: nextVersion.id,
+    }));
+    return saved.ok ? { ...saved, assistant: clone(nextAssistant), version: clone(nextVersion) } : saved;
+  }
+
+  function runAssistantTest(versionId, rawQuestion, actorAccountId) {
+    const context = assistantVersionContext(versionId);
+    if (!context) return { ok: false, reason: "ASSISTANT_VERSION_NOT_FOUND" };
+    const { assistant, version } = context;
+    if (!canManageAssistants(assistant.tenantId, actorAccountId)) return { ok: false, reason: "FORBIDDEN" };
+    if (!["TESTING", "TESTED"].includes(version.status) || !version.frozen) {
+      return { ok: false, reason: "ASSISTANT_VERSION_NOT_TESTABLE" };
+    }
+    const question = String(rawQuestion || "").trim();
+    if (!question) return { ok: false, reason: "QUESTION_REQUIRED" };
+    const answered = /年假|假期|结转/.test(question);
+    const testSequence = (version.testSequence || 0) + 1;
+    const testResult = answered
+      ? { ...answeredAssistantTest(false), id: `${version.id}-test-${testSequence}`, question, frozenIndexVersionId: version.frozen.indexVersionId }
+      : {
+          id: `${version.id}-test-${testSequence}`,
+          question,
+          status: "REFUSED",
+          answer: "当前已授权知识中没有足够证据，已拒绝回答。",
+          citations: [],
+          frozenIndexVersionId: version.frozen.indexVersionId,
+          addedToEvaluation: false,
+        };
+    const nextVersion = { ...version, status: "TESTED", testSequence, testResult, updatedAt: "刚刚" };
+    const nextAssistant = { ...assistant, versions: assistant.versions.map(item => item.id === version.id ? nextVersion : item) };
+    const saved = commitState(replaceAssistant(nextAssistant));
+    return saved.ok ? { ...saved, version: clone(nextVersion), testResult: clone(testResult) } : saved;
+  }
+
+  function addAssistantTestToEvaluationSet(versionId, actorAccountId) {
+    const context = assistantVersionContext(versionId);
+    if (!context) return { ok: false, reason: "ASSISTANT_VERSION_NOT_FOUND" };
+    const { assistant, version } = context;
+    if (!canManageAssistants(assistant.tenantId, actorAccountId)) return { ok: false, reason: "FORBIDDEN" };
+    if (version.status !== "TESTED" || !version.testResult) return { ok: false, reason: "ASSISTANT_TEST_REQUIRED" };
+    const nextVersion = {
+      ...version,
+      status: "EVALUATION_PENDING",
+      testResult: { ...version.testResult, addedToEvaluation: true },
+      evaluationDataset: { id: "eval-set-v6", version: 6, questionCount: 101, frozenAt: "刚刚" },
+      updatedAt: "刚刚",
+    };
+    const nextAssistant = { ...assistant, versions: assistant.versions.map(item => item.id === version.id ? nextVersion : item) };
+    const saved = commitState(replaceAssistant(nextAssistant));
+    return saved.ok ? { ...saved, version: clone(nextVersion) } : saved;
+  }
+
+  /** 评测同时校验质量、越权泄漏和首 token 时延；任一门禁失败都不能进入发布确认。 */
+  function runAssistantEvaluation(versionId, actorAccountId, options = {}) {
+    const context = assistantVersionContext(versionId);
+    if (!context) return { ok: false, reason: "ASSISTANT_VERSION_NOT_FOUND" };
+    const { assistant, version } = context;
+    if (!canManageAssistants(assistant.tenantId, actorAccountId)) return { ok: false, reason: "FORBIDDEN" };
+    if (!["EVALUATION_PENDING", "EVALUATED"].includes(version.status) || !version.evaluationDataset) {
+      return { ok: false, reason: "EVALUATION_DATASET_REQUIRED" };
+    }
+    const evaluation = options.failSecurity
+      ? {
+          status: "FAILED",
+          datasetVersion: version.evaluationDataset.version,
+          evaluatedAt: "刚刚",
+          metrics: { recallAt10: 0.86, citationPrecision: 0.91, refusalAccuracy: 0.96, unauthorizedLeakage: 1, firstTokenP95Ms: 3010 },
+        }
+      : { ...passedAssistantEvaluation(), datasetVersion: version.evaluationDataset.version, evaluatedAt: "刚刚" };
+    const nextVersion = { ...version, status: "EVALUATED", evaluation, updatedAt: "刚刚" };
+    const nextAssistant = { ...assistant, versions: assistant.versions.map(item => item.id === version.id ? nextVersion : item) };
+    const saved = commitState(replaceAssistant(nextAssistant));
+    return saved.ok ? { ...saved, version: clone(nextVersion), evaluation: clone(evaluation) } : saved;
+  }
+
+  function requestAssistantRelease(versionId, actorAccountId) {
+    const context = assistantVersionContext(versionId);
+    if (!context) return { ok: false, reason: "ASSISTANT_VERSION_NOT_FOUND" };
+    const { assistant, version } = context;
+    if (!canManageAssistants(assistant.tenantId, actorAccountId)) return { ok: false, reason: "FORBIDDEN" };
+    const metrics = version.evaluation?.metrics;
+    const gatesPassed = version.status === "EVALUATED" && version.evaluation?.status === "PASSED" &&
+      metrics?.recallAt10 >= 0.85 && metrics?.citationPrecision >= 0.95 &&
+      metrics?.refusalAccuracy >= 0.98 && metrics?.unauthorizedLeakage === 0 &&
+      metrics?.firstTokenP95Ms < 4000;
+    if (!gatesPassed) return { ok: false, reason: "EVALUATION_GATE_FAILED" };
+    const nextVersion = { ...version, status: "READY_FOR_RELEASE", releaseRequestedAt: "刚刚" };
+    const nextAssistant = { ...assistant, versions: assistant.versions.map(item => item.id === version.id ? nextVersion : item) };
+    const saved = commitState(replaceAssistant(nextAssistant));
+    return saved.ok ? { ...saved, version: clone(nextVersion) } : saved;
+  }
+
+  /** 发布只推进稳定助手的当前发布指针；旧会话已冻结的版本和索引不随指针变化。 */
+  function publishAssistantVersion(versionId, actorAccountId) {
+    const context = assistantVersionContext(versionId);
+    if (!context) return { ok: false, reason: "ASSISTANT_VERSION_NOT_FOUND" };
+    const { assistant, version } = context;
+    if (!canManageAssistants(assistant.tenantId, actorAccountId)) return { ok: false, reason: "FORBIDDEN" };
+    if (version.status !== "READY_FOR_RELEASE") return { ok: false, reason: "ASSISTANT_VERSION_NOT_READY" };
+    const nextVersions = assistant.versions.map(item => {
+      if (item.id === version.id) return { ...item, status: "PUBLISHED", publishedAt: "刚刚" };
+      if (item.id === assistant.publishedVersionId && item.status === "PUBLISHED") return { ...item, status: "SUPERSEDED" };
+      return item;
+    });
+    const nextVersion = nextVersions.find(item => item.id === version.id);
+    const nextAssistant = {
+      ...assistant,
+      status: "PUBLISHED",
+      publishedVersionId: version.id,
+      versions: nextVersions,
+    };
+    const effect = {
+      id: `assistant-release-${state.assistantDelivery.effects.length + 1}`,
+      assistantId: assistant.id,
+      versionId: version.id,
+      text: `v${version.number} 仅供新会话使用；已有会话继续固定原版本。`,
+      createdAt: "刚刚",
+    };
+    const next = replaceAssistant(nextAssistant);
+    next.assistantDelivery.effects = [...next.assistantDelivery.effects, effect];
+    const saved = commitState(next);
+    return saved.ok ? { ...saved, assistant: clone(nextAssistant), version: clone(nextVersion), effect: clone(effect) } : saved;
   }
 
   function replaceKnowledgeBase(knowledgeBase) {
@@ -2297,10 +2768,26 @@ export function createPrototypeStore(storage = browserStorage()) {
   }
 
   function publishedAssistant(fixtures, assistantId) {
-    return (fixtures?.assistants || []).find(
+    const fixture = (fixtures?.assistants || []).find(
       (assistant) =>
         assistant.id === assistantId && assistant.status === "PUBLISHED",
     );
+    const managed = assistantById(assistantId);
+    const version = managed?.versions.find(item => item.id === managed.publishedVersionId && item.status === "PUBLISHED");
+    if (!managed || !version) return fixture;
+    const knowledgeBase = knowledgeBaseById(managed.knowledgeBaseId);
+    return {
+      ...(fixture || {}),
+      id: managed.id,
+      versionId: version.id,
+      name: managed.name,
+      summary: managed.summary,
+      knowledgeBase: knowledgeBase?.name || "不可用知识库",
+      version: `v${version.number}`,
+      indexVersionId: version.frozen?.indexVersionId || "",
+      status: "PUBLISHED",
+      updatedAt: version.publishedAt || "刚刚",
+    };
   }
 
   function storedConversation(conversationId) {
@@ -2319,9 +2806,9 @@ export function createPrototypeStore(storage = browserStorage()) {
     const assistant = publishedAssistant(fixtures, source.assistantId);
     return {
       ...clone(source),
-      assistantVersionId: assistant?.versionId || "",
-      assistantVersion: assistant?.version || "",
-      indexVersionId: assistant?.indexVersionId || "",
+      assistantVersionId: source.assistantVersionId || assistant?.versionId || "",
+      assistantVersion: source.assistantVersion || assistant?.version || "",
+      indexVersionId: source.indexVersionId || assistant?.indexVersionId || "",
       messages: clone(
         (fixtures?.messages || []).filter(
           (message) => message.conversationId === source.id,
@@ -2647,7 +3134,11 @@ export function createPrototypeStore(storage = browserStorage()) {
     const tenantId = session.tenantId;
     const accountId = session.accountId;
     const member = memberById(tenantId, accountId);
-    const published = (fixtures?.assistants || []).filter((assistant) => assistant.status === "PUBLISHED");
+    const publishedIds = [...new Set([
+      ...(fixtures?.assistants || []).filter(item => item.status === "PUBLISHED").map(item => item.id),
+      ...state.assistantDelivery.assistants.filter(item => item.publishedVersionId).map(item => item.id),
+    ])];
+    const published = publishedIds.map(assistantId => publishedAssistant(fixtures, assistantId)).filter(Boolean);
     const allowed = (feature, assistantId) => published.some((assistant) => assistant.id === assistantId) &&
       getEffectiveAccess(tenantId, accountId, { feature, assistantId }).allowed;
     const assistants = published.filter((assistant) => allowed("assistantSelection", assistant.id));
@@ -2908,6 +3399,15 @@ export function createPrototypeStore(storage = browserStorage()) {
     deactivateTenantModelDeployment,
     simulateRoutingPolicy,
     publishRoutingPolicy,
+    selectAssistantDeliveryItem,
+    createAssistant,
+    createAssistantVersion,
+    saveAssistantDraft,
+    runAssistantTest,
+    addAssistantTestToEvaluationSet,
+    runAssistantEvaluation,
+    requestAssistantRelease,
+    publishAssistantVersion,
     createTenant,
     addMember,
     findMember,

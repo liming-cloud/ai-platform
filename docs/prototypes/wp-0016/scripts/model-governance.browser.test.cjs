@@ -69,7 +69,8 @@ test("租户模型发现只展示已授权目录并可刷新恢复", () => visit
   assert.match(await page.locator("main").innerText(), /企业对话模型 v6/);
   assert.doesNotMatch(await page.locator("main").innerText(), /https?:\/\/|访问密钥/);
   await page.getByRole("button", { name: "重新探测", exact: true }).click();
-  await page.reload();
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await page.locator('main[data-screen="model-provider-detail"]').waitFor();
   assert.match(await page.locator("main").innerText(), /发现完成/);
 }));
 

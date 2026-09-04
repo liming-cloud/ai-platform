@@ -79,7 +79,12 @@ const specialized = new Map([
   ["model-deployments", "renderModelGovernance"],
   ["model-deployment-detail", "renderModelGovernance"],
   ["routing-policies", "renderModelGovernance"],
-  ["assistant-release", "renderAssistantRelease"],
+  ["assistants-directory", "renderAssistantDelivery"],
+  ["assistant-create", "renderAssistantDelivery"],
+  ["assistant-draft", "renderAssistantDelivery"],
+  ["assistant-test", "renderAssistantDelivery"],
+  ["assistant-evaluation", "renderAssistantDelivery"],
+  ["assistant-release", "renderAssistantDelivery"],
 ]);
 const failures = [];
 let assertionCount = 0;
@@ -299,8 +304,9 @@ assert(
   "知识库目录未按所选对象进入概览或空库资料页",
 );
 assert(
-  prototypeSource.includes('navigate("channel-binding")'),
-  "助手发布确认后未进入渠道绑定",
+  prototypeSource.includes("publishAssistantVersion") &&
+    prototypeSource.includes('navigate("assistants-directory")'),
+  "助手发布确认后未形成发布终态并返回稳定助手目录",
 );
 
 for (const [screen, functionName] of specialized) {

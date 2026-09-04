@@ -2519,6 +2519,18 @@ body[data-review="hidden"] .prototype-reviewer {
   gap: var(--space-3);
 }
 
+/* 同排字段共享同一网格行，辅助说明不能再把相邻输入框顶出基线。 */
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4);
+  align-items: start;
+}
+
+.form-grid-wide {
+  grid-column: 1 / -1;
+}
+
 .file-picker {
   position: relative;
   display: flex;
@@ -2905,6 +2917,18 @@ body[data-review="hidden"] .prototype-reviewer {
 }
 
 @media (max-width: 680px) {
+  .split-detail {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .form-grid-wide {
+    grid-column: auto;
+  }
+
   .navigation-scope {
     display: none;
   }

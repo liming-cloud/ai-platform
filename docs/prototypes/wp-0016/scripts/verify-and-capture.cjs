@@ -343,6 +343,54 @@ async function validateModelGovernanceFlow(page) {
   );
 }
 
+async function validateAssistantDeliveryFlow(page) {
+  await openScenario(page, "assistants-directory", "success");
+  await page.getByRole("button", { name: "新建助手", exact: true }).click();
+  await page.locator('main[data-screen="assistant-create"]').waitFor();
+  await page.getByLabel("助手名称").fill("全矩阵制度助手");
+  await page.getByLabel("用途说明").fill("验证稳定助手从创建到发布的完整交付流程。");
+  await page.getByLabel("关联知识库").fill("员工服务手册");
+  await page.getByRole("button", { name: "创建助手", exact: true }).click();
+  await page.locator('main[data-screen="assistant-draft"]').waitFor();
+  assert(
+    (await page.locator("main").innerText()).includes("永久关联 员工服务手册"),
+    "助手草稿未显示永久知识库边界",
+  );
+  await page.locator('select[name="indexVersionId"]').selectOption("idx-v12");
+  await page.getByRole("button", { name: "保存草稿", exact: true }).click();
+  await page.locator('main[data-screen="assistant-test"]').waitFor();
+  await page.getByLabel("测试问题").fill("年假最多可以结转几天？");
+  await page.getByRole("button", { name: "运行单题测试", exact: true }).click();
+  await page.getByText("2026 员工假期制度.pdf", { exact: true }).waitFor();
+  await page.getByRole("button", { name: "加入评测集", exact: true }).click();
+  await page.locator('main[data-screen="assistant-evaluation"]').waitFor();
+  await page.getByRole("button", { name: "运行冻结评测", exact: true }).click();
+  await page.getByRole("button", { name: "请求发布", exact: true }).click();
+  await page.locator('main[data-screen="assistant-release"]').waitFor();
+  await page.getByRole("button", { name: "发布助手版本", exact: true }).click();
+  const dialog = page.locator("#release-dialog");
+  assert(await dialog.evaluate(element => element.open), "助手发布确认对话框未打开");
+  await dialog.getByRole("button", { name: "确认发布", exact: true }).click();
+  await page.locator('main[data-screen="assistants-directory"]').waitFor();
+  assert(
+    await page.getByText("全矩阵制度助手", { exact: true }).isVisible(),
+    "发布后助手目录未保留稳定助手",
+  );
+  const delivered = await page.evaluate(() => {
+    const state = JSON.parse(localStorage.getItem("wp0016-business-demo-v1"));
+    const assistant = state.assistantDelivery.assistants.find(item => item.name === "全矩阵制度助手");
+    const version = assistant?.versions.find(item => item.id === assistant.publishedVersionId);
+    return {
+      knowledgeBaseId: assistant?.knowledgeBaseId,
+      status: version?.status,
+      indexVersionId: version?.frozen?.indexVersionId,
+    };
+  });
+  assert(delivered.knowledgeBaseId === "kb-handbook", "发布后稳定助手知识库发生漂移");
+  assert(delivered.status === "PUBLISHED", "助手版本未形成已发布终态");
+  assert(delivered.indexVersionId === "idx-v12", "助手发布版本没有冻结选择的索引");
+}
+
 async function validateManagementFlows(page) {
   await page.setViewportSize(viewports[0]);
   await openScenario(page, "platform-tenant-create", "success", true);
@@ -393,24 +441,7 @@ async function validateManagementFlows(page) {
     ["[data-primary-action]", "index-detail"],
   ], "处理结果与索引导航");
   await validateModelGovernanceFlow(page);
-  await runFlow(page, "assistants-directory", [
-    ["[data-primary-action]", "assistant-create"],
-    ["[data-primary-action]", "assistant-draft"],
-    ["[data-primary-action]", "assistant-test"],
-    ["[data-primary-action]", "assistant-evaluation"],
-    ["[data-primary-action]", "assistant-release"],
-  ], "助手交付导航");
-  await page.locator("[data-confirm-release]").click();
-  assert(
-    await page.locator("#release-dialog").evaluate((element) => element.open),
-    "助手发布确认对话框未打开",
-  );
-  await page.locator('#release-dialog button[value="confirm"]').click();
-  await page.locator('main[data-screen="channel-binding"]').waitFor();
-  assert(
-    new URL(page.url()).searchParams.get("screen") === "channel-binding",
-    "助手发布后未进入渠道绑定",
-  );
+  await validateAssistantDeliveryFlow(page);
   await runFlow(page, "evaluation-datasets", [
     ["[data-primary-action]", "evaluation-dataset-detail"],
     ["[data-primary-action]", "evaluation-run-create"],

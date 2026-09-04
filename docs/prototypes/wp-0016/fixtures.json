@@ -184,6 +184,9 @@
       "assistantId": "assistant-employee-service",
       "title": "年假结转规则",
       "assistant": "员工服务助手",
+      "assistantVersionId": "asv-0012",
+      "assistantVersion": "v12",
+      "indexVersionId": "idx-v11",
       "updatedAt": "18:22",
       "active": true
     },
@@ -193,6 +196,9 @@
       "assistantId": "assistant-employee-service",
       "title": "报销材料清单",
       "assistant": "员工服务助手",
+      "assistantVersionId": "asv-0012",
+      "assistantVersion": "v12",
+      "indexVersionId": "idx-v11",
       "updatedAt": "16:40",
       "active": false
     },
@@ -202,6 +208,9 @@
       "assistantId": "assistant-office",
       "title": "上海办公室开放时间",
       "assistant": "办公地点助手",
+      "assistantVersionId": "asv-0004",
+      "assistantVersion": "v4",
+      "indexVersionId": "idx-v11",
       "updatedAt": "昨天",
       "active": false
     },
@@ -211,6 +220,9 @@
       "assistantId": "assistant-support",
       "title": "密码重置步骤",
       "assistant": "客户支持助手",
+      "assistantVersionId": "asv-0008",
+      "assistantVersion": "v8",
+      "indexVersionId": "idx-v7",
       "updatedAt": "8 月 29 日",
       "active": false
     }

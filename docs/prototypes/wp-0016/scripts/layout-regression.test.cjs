@@ -83,11 +83,11 @@ test("详情模板可容纳长连续标识，不以裁切掩盖溢出", () => sc
   assert.ok(await page.locator(".detail-facts h2").evaluate(element => element.scrollWidth <= element.clientWidth + 1), "长标题被截断或横向撑开");
 }));
 
-for (const [screen, layout] of [["assistant-create", "wizard"], ["platform-roles", "detail"], ["sync-result", "result"], ["audit-record-detail", "timeline"]]) {
+for (const [screen, layout, selector = `.${layout}-workspace`] of [["assistant-create", "assistant-create", ".split-detail"], ["platform-roles", "detail"], ["sync-result", "result"], ["audit-record-detail", "timeline"]]) {
   test(`手机 ${layout} 工作区上下排列且不压缩正文`, () => scenario(`workspace-${layout}`, { width: 390, height: 844 }, async page => {
     await page.goto(`${base}?screen=${screen}&state=success&review=0`);
-    await page.locator(`.${layout}-workspace`).waitFor();
-    await singleColumn(page, `.${layout}-workspace`);
+    await page.locator(selector).waitFor();
+    await singleColumn(page, selector);
     await settleMotion(page);
     await page.screenshot({ path: `${artifacts}/workspace-${layout}.png`, fullPage: true });
   }));
