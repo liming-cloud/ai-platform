@@ -36,6 +36,7 @@ let queryFeedback = "";
 let accountFeedback = "";
 let knowledgeFeedback = "";
 let indexFeedback = "";
+let modelFeedback = "";
 let nextQueryMode = "normal";
 let queryStreamingSuspended = false;
 const PLATFORM_ACCOUNT_ACTOR_ID = "account-platform-admin";
@@ -317,6 +318,18 @@ function renderScreen(screen, state, demoState) {
       return renderIndexRebuild(state, demoState);
     case "index-detail":
       return renderIndexDetail(state, demoState);
+    case "platform-model-connections":
+    case "platform-model-connection-detail":
+    case "platform-model-deployments":
+    case "platform-model-deployment-detail":
+    case "model-providers":
+    case "model-provider-detail":
+    case "model-configurations":
+    case "model-configuration-detail":
+    case "model-deployments":
+    case "model-deployment-detail":
+    case "routing-policies":
+      return renderModelGovernance(screen, state, demoState);
     case "assistant-release":
       return renderAssistantRelease(state);
     default:
@@ -360,6 +373,10 @@ function statusTag(status) {
     BLOCKED: ["门禁未通过", "danger"],
     SUPERSEDED: ["已保留", "info"],
     CANCELLED: ["已取消", "info"],
+    DRAFT: ["草稿", "info"],
+    VERIFIED: ["验证通过", "success"],
+    COMPLETE: ["发现完成", "success"],
+    OFFLINE: ["已停用", "danger"],
   };
   const item = mapping[status] || [status, "info"];
   return (
@@ -867,30 +884,35 @@ function renderComposer(state, activeRun) {
   ].join("");
 }
 
-function adminShell(active, title, summary, action, body, state, breadcrumb) {
+function adminShell(active, title, summary, action, body, state, breadcrumb, scope = "tenant") {
   const demoState = prototypeStore.getSnapshot();
+  const platform = scope === "platform";
   return [
-    '<div class="admin-shell" data-state="' + state + '">',
+    '<div class="admin-shell" data-state="' + state + '" data-scope="' + scope + '">',
     '<aside class="admin-sidebar">',
-    '<div class="brand"><span class="brand-mark" aria-hidden="true">R</span><span class="brand-copy"><strong>可信 RAG</strong><small>租户工作区</small></span></div>',
+    '<div class="brand"><span class="brand-mark" aria-hidden="true">R</span><span class="brand-copy"><strong>可信 RAG</strong><small>' +
+      (platform ? "平台范围" : "租户工作区") +
+      "</small></span></div>",
     renderConsoleNavigation({
       screen: active,
-      scope: "tenant",
+      scope,
       snapshot: demoState,
       tenantLabel: fixtures.tenant.displayName,
     }),
     '<div class="admin-account"><strong>' +
-      escapeHtml(fixtures.tenant.administratorLabel) +
+      (platform ? "平台管理员" : escapeHtml(fixtures.tenant.administratorLabel)) +
       "</strong><small>" +
-      escapeHtml(fixtures.tenant.displayName) +
+      (platform ? "仅脱敏聚合" : escapeHtml(fixtures.tenant.displayName)) +
       "</small></div>",
     "</aside>",
     '<div class="admin-workspace">',
     '<header class="topbar"><span class="topbar-context">' +
-      escapeHtml(fixtures.tenant.displayName) +
-      ' / 租户管理</span><div class="topbar-actions">' +
-      demoAccountControl() +
-      '<button class="button subtle account-button" type="button">租户管理员 / 账户菜单</button></div></header>',
+      (platform ? "平台管理 / 不含租户内容" : escapeHtml(fixtures.tenant.displayName) + " / 租户管理") +
+      '</span><div class="topbar-actions">' +
+      (platform ? "" : demoAccountControl()) +
+      '<button class="button subtle account-button" type="button">' +
+      (platform ? "平台管理员" : "租户管理员") +
+      " / 账户菜单</button></div></header>",
     '<main id="main-content" class="admin-main" data-screen="' +
       active +
       '" data-state="' +
@@ -921,12 +943,24 @@ function pageStatus(active, state) {
   const knowledgeBases = snapshot.knowledgeBases.filter(item => item.tenantId === DEFAULT_TENANT_ID);
   const knowledgeBase = selectedKnowledgeBase(snapshot);
   const indexVersion = selectedIndexVersion(snapshot);
+  const models = snapshot.models;
   return {
     "knowledge-directory": `${knowledgeBases.length} 个知识库 / ${knowledgeBases.filter(item => !["READY", "EMPTY"].includes(item.status)).length} 项需处理`,
     "knowledge-sources": `${knowledgeBase?.name || "当前知识库"} / ${knowledgeBase?.sources.length || 0} 个来源`,
     "index-versions": `${knowledgeBase?.activeIndex || "尚无活动索引"} / ${knowledgeBase?.indexVersions.length || 0} 个版本`,
     "index-rebuild": `${knowledgeBase?.name || "当前知识库"} / 新建独立版本`,
     "index-detail": `${indexVersion?.id || "未选择版本"} / ${indexStatusLabel(indexVersion?.status)}`,
+    "platform-model-connections": `${models.platformConnections.filter(item => item.status === "PUBLISHED").length} 个已发布连接`,
+    "platform-model-connection-detail": modelStatusLabel(models.platformConnections.find(item => item.id === models.selectedPlatformConnectionId)?.status),
+    "platform-model-deployments": `${models.platformDeployments.filter(item => item.status === "PUBLISHED").length} 个可授权部署`,
+    "platform-model-deployment-detail": modelStatusLabel(models.platformDeployments.find(item => item.id === models.selectedPlatformDeploymentId)?.status),
+    "model-providers": `${models.platformConnections.filter(item => item.status === "PUBLISHED").length} 个可用连接`,
+    "model-provider-detail": "只显示当前租户获授权目录",
+    "model-configurations": `${models.configurations.filter(item => item.status === "ACTIVE").length} 个启用配置`,
+    "model-configuration-detail": modelStatusLabel(models.configurations.find(item => item.id === models.selectedConfigurationId)?.status),
+    "model-deployments": `${models.deployments.filter(item => item.status === "PUBLISHED").length} 个已发布部署`,
+    "model-deployment-detail": modelStatusLabel(models.deployments.find(item => item.id === models.selectedDeploymentId)?.status),
+    "routing-policies": modelStatusLabel(models.routingPolicies.find(item => item.id === models.selectedRoutingPolicyId)?.status),
     "assistant-release": "员工服务助手 v13 / 发布门禁通过",
   }[active] || "当前工作区";
 }
@@ -1355,6 +1389,268 @@ function renderIndexDetail(state, demoState) {
   );
 }
 
+function modelStatusLabel(status) {
+  return {
+    DRAFT: "草稿",
+    VERIFIED: "验证通过",
+    PUBLISHED: "已发布",
+    ACTIVE: "已启用",
+    COMPLETE: "发现完成",
+    READY_FOR_RELEASE: "待发布",
+    FAILED: "失败",
+    OFFLINE: "已停用",
+  }[status] || "待处理";
+}
+
+function modelCapabilityLabel(capability) {
+  return { CHAT: "Chat", EMBEDDING: "Embedding", RERANK: "Rerank" }[capability] || capability;
+}
+
+function selectedModelItem(models, collection, selectedKey) {
+  return models[collection].find(item => item.id === models[selectedKey]) || models[collection][0];
+}
+
+function modelDirectoryTable(headers, rows) {
+  return [
+    '<div class="table-shell"><table class="data-table"><thead><tr>',
+    headers.map(header => `<th scope="col">${escapeHtml(header)}</th>`).join(""),
+    "</tr></thead><tbody>",
+    rows.join(""),
+    "</tbody></table></div>",
+    '<nav class="pagination" aria-label="目录分页"><button class="button secondary" type="button" disabled>上一页</button><span>第 1 / 1 页</span><button class="button secondary" type="button" disabled>下一页</button></nav>',
+  ].join("");
+}
+
+function renderPlatformModelConnections(state, demoState) {
+  const models = demoState.models;
+  const rows = models.platformConnections.map(connection =>
+    `<tr><td><strong>${escapeHtml(connection.name)}</strong><small>${escapeHtml(connection.providerKind === "OPENAI_COMPATIBLE" ? "OpenAI 兼容运行接口" : connection.providerKind)}</small></td><td>${escapeHtml(modelCapabilityLabel(connection.capability))}</td><td>${statusTag(connection.status)}</td><td><button class="button subtle" type="button" data-select-platform-connection="${escapeHtml(connection.id)}" data-nav-screen="platform-model-connection-detail" aria-label="查看${escapeHtml(connection.name)}">查看</button></td></tr>`
+  );
+  const content = [
+    '<div class="inline-note">标准 Chat 与 Embedding 运行调用使用 OpenAI 兼容协议；Rerank 通过独立检索后处理适配。供应商发现可以使用受限控制面接口，但不会把地址、访问密钥或原始响应展示给租户。</div>',
+    modelDirectoryTable(["连接", "运行能力", "状态", "操作"], rows),
+    '<dialog id="platform-connection-dialog" class="dialog-surface"><form id="platform-connection-form"><span class="section-kicker">新增连接</span><h2>建立供应商连接草稿</h2><div class="form-grid"><label class="field"><span>连接名称</span><input class="input" name="name" autocomplete="off" required></label><label class="field"><span>运行能力</span><select class="select" name="capability"><option value="CHAT">Chat</option><option value="EMBEDDING">Embedding</option><option value="RERANK">Rerank</option></select></label><label class="field form-grid-wide"><span>运行地址</span><input class="input" name="runtimeBaseUrl" type="url" placeholder="https://models.example.invalid/v1" required><small>仅接受公网 HTTPS；保存后只显示脱敏连接事实。</small></label><label class="field form-grid-wide"><span>一次性访问密钥</span><input class="input" name="accessKey" type="password" autocomplete="new-password" required><small>只用于当前提交，不回显、不写入原型状态。</small></label></div><p id="platform-connection-feedback" class="form-feedback" role="alert"></p><div class="release-actions"><button class="button secondary" type="button" data-close-dialog="platform-connection-dialog">取消</button><button class="button primary" type="submit">保存连接草稿</button></div></form></dialog>',
+  ].join("");
+  return adminShell(
+    "platform-model-connections",
+    "平台模型连接",
+    "",
+    '<button class="button primary" type="button" data-open-platform-connection data-primary-action>新增供应商连接</button>',
+    content,
+    state,
+    "模型治理 / 平台模型连接",
+    "platform",
+  );
+}
+
+function renderPlatformModelConnectionDetail(state, demoState) {
+  const connection = selectedModelItem(demoState.models, "platformConnections", "selectedPlatformConnectionId");
+  const operation = connection.status === "VERIFIED"
+    ? '<button class="button primary" type="button" data-publish-platform-connection data-primary-action>发布连接</button>'
+    : '<button class="button primary" type="button" data-probe-platform-connection data-primary-action>执行连接探测</button>';
+  const models = connection.discoveredModels.length
+    ? connection.discoveredModels.map(item => `<li><span><strong>${escapeHtml(item.name)}</strong><br><small>${escapeHtml(modelCapabilityLabel(item.capability))}${item.embeddingDimension ? ` / ${escapeHtml(item.embeddingDimension)} 维` : ""}</small></span>${statusTag("VERIFIED")}</li>`).join("")
+    : '<li><span><strong>尚无发现结果</strong><br><small>先执行连接探测</small></span></li>';
+  const content = [
+    `<div class="inline-note${connection.status === "FAILED" ? " danger" : ""}">${escapeHtml(connection.probeResult || "尚未执行本版本的连接探测。")}</div>`,
+    '<div class="split-detail"><div>',
+    `<section class="section-block" data-model-status="${escapeHtml(connection.status)}"><div class="section-heading"><div><span class="section-kicker">连接版本 v${escapeHtml(connection.version)}</span><h2>${escapeHtml(connection.name)}</h2></div>${statusTag(connection.status)}</div><dl class="description-list"><div class="description-row"><dt>供应商类型</dt><dd>OpenAI 兼容</dd></div><div class="description-row"><dt>运行协议</dt><dd>${escapeHtml(connection.runtimeProtocol === "OPENAI_COMPATIBLE" ? "OpenAI 兼容接口" : "独立 Rerank 后处理适配")}</dd></div><div class="description-row"><dt>能力范围</dt><dd>${escapeHtml(modelCapabilityLabel(connection.capability))}</dd></div><div class="description-row"><dt>访问认证</dt><dd>${escapeHtml(connection.authenticationState === "CONFIGURED" ? "已配置（不回显）" : "待配置")}</dd></div><div class="description-row"><dt>最近探测</dt><dd>${escapeHtml(connection.lastProbe || "尚未探测")}</dd></div></dl></section>`,
+    `<section class="section-block"><div class="section-heading"><h2>发现模型</h2><span class="status-tag" data-tone="info">${connection.discoveredModels.length} 个</span></div><ul class="selection-list">${models}</ul></section>`,
+    '</div><aside><section class="release-decision"><span class="section-kicker">当前动作</span><h2>探测后再发布</h2><p>验证公网 HTTPS、认证、能力和响应边界；发布后仍需建立平台部署并显式授权租户。</p><div class="form-actions">' + operation + '</div>' + (modelFeedback ? `<p class="form-feedback" role="status">${escapeHtml(modelFeedback)}</p>` : "") + '</section></aside></div>',
+  ].join("");
+  return adminShell("platform-model-connection-detail", "供应商连接探测", "", '<button class="button secondary" type="button" data-nav-screen="platform-model-connections">返回连接目录</button>', content, state, "模型治理 / 连接探测", "platform");
+}
+
+function renderPlatformModelDeployments(state, demoState) {
+  const models = demoState.models;
+  const publishedConnections = models.platformConnections.filter(item => item.status === "PUBLISHED" && item.discoveredModels.length);
+  const modelOptions = publishedConnections.flatMap(connection =>
+    connection.discoveredModels.map(model => `<option value="${escapeHtml(connection.id)}|${escapeHtml(model.id)}">${escapeHtml(model.name)} / ${escapeHtml(modelCapabilityLabel(model.capability))}</option>`)
+  ).join("");
+  const rows = models.platformDeployments.map(deployment =>
+    `<tr><td><strong>${escapeHtml(deployment.name)}</strong><small>${escapeHtml(deployment.residency)}</small></td><td>${escapeHtml(modelCapabilityLabel(deployment.capability))}</td><td>${escapeHtml(deployment.tenantIds.length)} 个租户</td><td>${statusTag(deployment.status)}</td><td><button class="button subtle" type="button" data-select-platform-deployment="${escapeHtml(deployment.id)}" data-nav-screen="platform-model-deployment-detail" aria-label="查看${escapeHtml(deployment.name)}">查看</button></td></tr>`
+  );
+  const content = [
+    '<div class="inline-note">平台部署发布后只进入可授权目录，不会自动授予租户，也不会修改租户配置、索引或助手。</div>',
+    modelDirectoryTable(["部署", "能力", "授权范围", "状态", "操作"], rows),
+    `<dialog id="platform-deployment-dialog" class="dialog-surface"><form id="platform-deployment-form"><span class="section-kicker">部署草稿</span><h2>建立可授权模型部署</h2><div class="field-stack"><label class="field"><span>部署名称</span><input class="input" name="name" required></label><label class="field"><span>已发现模型</span><select class="select" name="modelSelection">${modelOptions}</select></label><label class="check-line"><input type="checkbox" name="authorizeTenant" checked><span>发布后授权“云杉服务示例组织”可发现</span></label></div><p id="platform-deployment-feedback" class="form-feedback" role="alert"></p><div class="release-actions"><button class="button secondary" type="button" data-close-dialog="platform-deployment-dialog">取消</button><button class="button primary" type="submit">保存部署草稿</button></div></form></dialog>`,
+  ].join("");
+  return adminShell("platform-model-deployments", "平台模型部署", "", '<button class="button primary" type="button" data-open-platform-deployment data-primary-action>建立部署草稿</button>', content, state, "模型治理 / 平台模型部署", "platform");
+}
+
+function renderPlatformModelDeploymentDetail(state, demoState) {
+  const models = demoState.models;
+  const deployment = selectedModelItem(models, "platformDeployments", "selectedPlatformDeploymentId");
+  const connection = models.platformConnections.find(item => item.id === deployment.connectionId);
+  const operation = deployment.status === "VERIFIED"
+    ? '<button class="button primary" type="button" data-publish-platform-deployment data-primary-action>发布部署</button>'
+    : deployment.status === "PUBLISHED"
+      ? '<button class="button primary" type="button" data-nav-screen="platform-model-deployments" data-primary-action>返回部署目录</button>'
+      : '<button class="button primary" type="button" data-verify-platform-deployment data-primary-action>执行能力验证</button>';
+  const tenantNames = deployment.tenantIds.map(tenantId => demoState.tenants.find(item => item.id === tenantId)?.organizationName || "已授权租户").join("、");
+  const content = [
+    `<div class="inline-note${deployment.status === "FAILED" ? " danger" : ""}">${escapeHtml(deployment.verificationResult || "冻结连接版本、模型能力、租户授权和驻留范围后执行验证。")}</div>`,
+    '<div class="split-detail"><div>',
+    `<section class="section-block" data-model-status="${escapeHtml(deployment.status)}"><div class="section-heading"><div><span class="section-kicker">平台部署</span><h2>${escapeHtml(deployment.name)}</h2></div>${statusTag(deployment.status)}</div><dl class="description-list"><div class="description-row"><dt>连接</dt><dd>${escapeHtml(connection?.name || "不可用连接")}</dd></div><div class="description-row"><dt>能力</dt><dd>${escapeHtml(modelCapabilityLabel(deployment.capability))}</dd></div><div class="description-row"><dt>驻留范围</dt><dd>${escapeHtml(deployment.residency)}</dd></div><div class="description-row"><dt>已授权租户</dt><dd>${escapeHtml(tenantNames || "尚未授权")}</dd></div><div class="description-row"><dt>最近验证</dt><dd>${escapeHtml(deployment.verifiedAt || "尚未验证")}</dd></div></dl></section>`,
+    '</div><aside><section class="release-decision"><span class="section-kicker">发布决定</span><h2>验证通过后进入授权目录</h2><p>发布不会自动生成租户配置，也不会触发索引或助手变更。</p><div class="form-actions">' + operation + '</div>' + (modelFeedback ? `<p class="form-feedback" role="status">${escapeHtml(modelFeedback)}</p>` : "") + '</section></aside></div>',
+  ].join("");
+  return adminShell("platform-model-deployment-detail", "平台部署发布", "", '<button class="button secondary" type="button" data-nav-screen="platform-model-deployments">返回部署目录</button>', content, state, "模型治理 / 平台部署发布", "platform");
+}
+
+function renderTenantModelProviders(state, demoState) {
+  const models = demoState.models;
+  const connections = models.platformConnections.filter(item => item.status === "PUBLISHED");
+  const selectedId = models.selectedTenantConnectionId || connections[0]?.id;
+  const rows = connections.map(connection => {
+    const discovery = models.tenantDiscoveries.find(item => item.tenantId === DEFAULT_TENANT_ID && item.connectionId === connection.id);
+    return `<tr><td><strong>${escapeHtml(connection.name)}</strong><small>平台已授权连接</small></td><td>${escapeHtml(modelCapabilityLabel(connection.capability))}</td><td>${statusTag(discovery?.status || "DRAFT")}</td><td><button class="button subtle" type="button" data-select-tenant-connection="${escapeHtml(connection.id)}" data-nav-screen="model-provider-detail" aria-label="查看${escapeHtml(connection.name)}">查看</button></td></tr>`;
+  });
+  const content = [
+    '<section class="section-block compact-toolbar"><label class="field"><span>本次发现连接</span><select class="select" id="tenant-discovery-connection">' + connections.map(item => `<option value="${escapeHtml(item.id)}"${item.id === selectedId ? " selected" : ""}>${escapeHtml(item.name)} / ${escapeHtml(modelCapabilityLabel(item.capability))}</option>`).join("") + '</select></label><p class="muted">只返回平台已发布且授权给当前租户的模型；不展示地址、访问认证或厂商原始响应。</p></section>',
+    modelDirectoryTable(["供应商连接", "能力", "发现状态", "操作"], rows),
+  ].join("");
+  return adminShell("model-providers", "租户模型供应商", "", '<button class="button primary" type="button" data-discover-tenant-models data-primary-action>执行模型发现</button>', content, state, "模型治理 / 供应商发现");
+}
+
+function renderTenantModelProviderDetail(state, demoState) {
+  const models = demoState.models;
+  const connection = models.platformConnections.find(item => item.id === models.selectedTenantConnectionId) || models.platformConnections.find(item => item.status === "PUBLISHED");
+  const discovery = models.tenantDiscoveries.find(item => item.tenantId === DEFAULT_TENANT_ID && item.connectionId === connection?.id);
+  const deployments = (discovery?.deploymentIds || []).map(id => models.platformDeployments.find(item => item.id === id)).filter(Boolean);
+  const items = deployments.length
+    ? deployments.map(deployment => `<li><span><strong>${escapeHtml(deployment.name)}</strong><br><small>${escapeHtml(modelCapabilityLabel(deployment.capability))} / ${escapeHtml(deployment.residency)}</small></span><button class="button secondary" type="button" data-use-catalog-model="${escapeHtml(deployment.id)}">使用此模型</button></li>`).join("")
+    : '<li><span><strong>尚无已授权模型</strong><br><small>请联系平台管理员核对部署发布和租户授权。</small></span></li>';
+  const content = [
+    `<div class="inline-note">发现结果只包含当前租户可使用的目录名称、能力和驻留范围；${escapeHtml(connection?.name || "当前连接")} 的底层地址与认证信息保持隐藏。</div>`,
+    `<div class="split-detail"><section class="section-block" data-model-status="${escapeHtml(discovery?.status || "DRAFT")}"><div class="section-heading"><div><span class="section-kicker">发现结果</span><h2>${escapeHtml(connection?.name || "供应商连接")}</h2></div>${statusTag(discovery?.status || "DRAFT")}</div><ul class="selection-list">${items}</ul></section><aside><section class="release-decision"><span class="section-kicker">下一步</span><h2>创建租户模型配置</h2><p>选择目录模型后仍需建立、验证并启用租户配置，发现不会自动改变索引或助手。</p>${modelFeedback ? `<p class="form-feedback" role="status">${escapeHtml(modelFeedback)}</p>` : ""}</section></aside></div>`,
+  ].join("");
+  return adminShell("model-provider-detail", "供应商发现结果", "", '<button class="button primary" type="button" data-rediscover-tenant-models data-primary-action>重新探测</button>', content, state, "模型治理 / 供应商发现结果");
+}
+
+function renderModelConfigurations(state, demoState) {
+  const models = demoState.models;
+  const available = models.platformDeployments.filter(item => item.status === "PUBLISHED" && item.tenantIds.includes(DEFAULT_TENANT_ID));
+  const selected = models.selectedCatalogDeploymentId || available[0]?.id;
+  const rows = models.configurations.filter(item => item.tenantId === DEFAULT_TENANT_ID).map(configuration =>
+    `<tr><td><strong>${escapeHtml(configuration.name)}</strong><small>当前 v${escapeHtml(configuration.activeRevision || "—")}</small></td><td>${escapeHtml(modelCapabilityLabel(configuration.capability))}</td><td>${statusTag(configuration.status)}</td><td><button class="button subtle" type="button" data-select-model-configuration="${escapeHtml(configuration.id)}" data-nav-screen="model-configuration-detail" aria-label="查看${escapeHtml(configuration.name)}">查看</button></td></tr>`
+  );
+  const content = [
+    '<div class="inline-note">配置只引用当前租户已获授权的目录模型。访问密钥提交后不回显；新修订验证并启用前，旧启用版本继续服务。</div>',
+    modelDirectoryTable(["配置", "能力", "状态", "操作"], rows),
+    `<dialog id="model-configuration-dialog" class="dialog-surface"><form id="model-configuration-form"><span class="section-kicker">创建配置</span><h2>建立受控模型配置</h2><div class="field-stack"><label class="field"><span>配置名称</span><input class="input" name="name" required></label><label class="field"><span>已授权目录模型</span><select class="select" name="platformDeploymentId">${available.map(item => `<option value="${escapeHtml(item.id)}"${item.id === selected ? " selected" : ""}>${escapeHtml(item.name)} / ${escapeHtml(modelCapabilityLabel(item.capability))}</option>`).join("")}</select></label></div><p id="model-configuration-feedback" class="form-feedback" role="alert"></p><div class="release-actions"><button class="button secondary" type="button" data-close-dialog="model-configuration-dialog">取消</button><button class="button primary" type="submit">保存配置草稿</button></div></form></dialog>`,
+  ].join("");
+  return adminShell("model-configurations", "模型配置目录", "", '<button class="button primary" type="button" data-open-model-configuration data-primary-action>创建模型配置</button>', content, state, "模型治理 / 模型配置");
+}
+
+function renderModelConfigurationDetail(state, demoState) {
+  const models = demoState.models;
+  const configuration = selectedModelItem(models, "configurations", "selectedConfigurationId");
+  const platformDeployment = models.platformDeployments.find(item => item.id === configuration.platformDeploymentId);
+  const pending = configuration.pendingRevision;
+  const operation = pending?.status === "VERIFIED"
+    ? '<button class="button primary" type="button" data-enable-model-configuration data-primary-action>启用配置</button>'
+    : pending
+      ? '<button class="button primary" type="button" data-verify-model-configuration data-primary-action>执行配置验证</button>'
+      : '<button class="button primary" type="button" data-open-model-revision data-primary-action>新建配置版本</button><button class="button secondary" type="button" data-open-model-key>轮换访问密钥</button>';
+  const parameters = pending?.parameters || configuration.parameters || {};
+  const parameterFacts = configuration.capability === "EMBEDDING"
+    ? `<div class="description-row"><dt>向量维度</dt><dd>${escapeHtml(parameters.embeddingDimension)} 维</dd></div><div class="description-row"><dt>距离度量</dt><dd>${escapeHtml(parameters.distanceMetric)}</dd></div>`
+    : configuration.capability === "CHAT"
+      ? `<div class="description-row"><dt>Temperature</dt><dd>${escapeHtml(parameters.temperature)}</dd></div><div class="description-row"><dt>最大输出</dt><dd>${escapeHtml(parameters.maxOutputTokens)} tokens</dd></div>`
+      : `<div class="description-row"><dt>重排候选</dt><dd>${escapeHtml(parameters.candidateCount)} 个</dd></div><div class="description-row"><dt>最终证据</dt><dd>${escapeHtml(parameters.evidenceCount)} 个</dd></div>`;
+  const revisionFields = configuration.capability === "EMBEDDING"
+    ? `<label class="field"><span>向量维度</span><input class="input" name="embeddingDimension" type="number" value="${escapeHtml(parameters.embeddingDimension)}"></label><label class="field"><span>距离度量</span><select class="select" name="distanceMetric"><option>COSINE</option><option>IP</option><option>L2</option></select></label>`
+    : configuration.capability === "CHAT"
+      ? `<label class="field"><span>Temperature</span><select class="select" name="temperature"><option value="0">0</option><option value="0.2">0.2</option></select></label><label class="field"><span>最大输出 tokens</span><input class="input" name="maxOutputTokens" type="number" value="${escapeHtml(parameters.maxOutputTokens)}"></label>`
+      : `<label class="field"><span>重排候选数量</span><input class="input" name="candidateCount" type="number" value="${escapeHtml(parameters.candidateCount)}"></label><label class="field"><span>最终证据数量</span><input class="input" name="evidenceCount" type="number" value="${escapeHtml(parameters.evidenceCount)}"></label>`;
+  const impact = configuration.capability === "EMBEDDING"
+    ? "启用维度、规范化或距离变化会自动创建全库重建候选，但不会自动激活索引。"
+    : "Chat 或 Rerank 修订启用后不重建向量，只要求助手新版本重新评测。";
+  const content = [
+    `<div class="inline-note${pending?.status === "FAILED" ? " danger" : ""}">${escapeHtml(pending?.result || impact)}</div>`,
+    '<div class="split-detail"><div>',
+    `<section class="section-block" data-model-status="${escapeHtml(configuration.status)}"><div class="section-heading"><div><span class="section-kicker">${escapeHtml(modelCapabilityLabel(configuration.capability))} 配置</span><h2>${escapeHtml(configuration.name)}</h2></div>${statusTag(configuration.status)}</div><dl class="description-list"><div class="description-row"><dt>目录模型</dt><dd>${escapeHtml(platformDeployment?.name || "不可用模型")}</dd></div><div class="description-row"><dt>当前启用版本</dt><dd>v${escapeHtml(configuration.activeRevision || "尚未启用")}</dd></div><div class="description-row"><dt>待验证版本</dt><dd>${pending ? `v${escapeHtml(pending.number)} / ${escapeHtml(modelStatusLabel(pending.status))}` : "无"}</dd></div><div class="description-row"><dt>访问认证</dt><dd>${escapeHtml(configuration.authenticationState === "PLATFORM_MANAGED" ? "平台托管" : configuration.authenticationState === "ROTATION_PENDING" ? "新密钥待验证" : "已配置（不回显）")}</dd></div>${parameterFacts}</dl></section>`,
+    '</div><aside><section class="release-decision"><span class="section-kicker">配置版本</span><h2>验证通过后再启用</h2><p>' + escapeHtml(impact) + '</p><div class="form-actions">' + operation + '</div>' + (modelFeedback ? `<p class="form-feedback" role="status">${escapeHtml(modelFeedback)}</p>` : "") + '</section></aside></div>',
+    `<dialog id="model-key-dialog" class="dialog-surface"><form id="model-key-form"><span class="section-kicker">密钥轮换</span><h2>提交新的访问密钥</h2><p>旧版本继续服务；新密钥只用于当前提交，验证成功并启用后才替换。</p><label class="field"><span>新访问密钥</span><input class="input" name="accessKey" type="password" autocomplete="new-password" required></label><p id="model-key-feedback" class="form-feedback" role="alert"></p><div class="release-actions"><button class="button secondary" type="button" data-close-dialog="model-key-dialog">取消</button><button class="button primary" type="submit">保存待验证版本</button></div></form></dialog>`,
+    `<dialog id="model-revision-dialog" class="dialog-surface"><form id="model-revision-form"><span class="section-kicker">新配置版本</span><h2>修改 ${escapeHtml(modelCapabilityLabel(configuration.capability))} 参数</h2><div class="form-grid wizard-field-grid">${revisionFields}</div><p id="model-revision-feedback" class="form-feedback" role="alert"></p><div class="release-actions"><button class="button secondary" type="button" data-close-dialog="model-revision-dialog">取消</button><button class="button primary" type="submit">保存待验证版本</button></div></form></dialog>`,
+  ].join("");
+  return adminShell("model-configuration-detail", "模型配置向导", "", '<button class="button secondary" type="button" data-nav-screen="model-configurations">返回配置目录</button>', content, state, "模型治理 / 模型配置向导");
+}
+
+function renderTenantModelDeployments(state, demoState) {
+  const models = demoState.models;
+  const configurations = models.configurations.filter(item => item.tenantId === DEFAULT_TENANT_ID && item.status === "ACTIVE");
+  const rows = models.deployments.filter(item => item.tenantId === DEFAULT_TENANT_ID).map(deployment =>
+    `<tr><td><strong>${escapeHtml(deployment.name)}</strong><small>${escapeHtml(deployment.residency)}</small></td><td>${escapeHtml(modelCapabilityLabel(deployment.capability))}</td><td>${statusTag(deployment.status)}</td><td><button class="button subtle" type="button" data-select-tenant-deployment="${escapeHtml(deployment.id)}" data-nav-screen="model-deployment-detail" aria-label="查看${escapeHtml(deployment.name)}">查看</button></td></tr>`
+  );
+  const content = [
+    '<div class="inline-note">部署冻结一个已启用配置版本。发布不会自动修改助手；停用前必须核对被固定的助手和路由影响。</div>',
+    modelDirectoryTable(["部署", "能力", "状态", "操作"], rows),
+    `<dialog id="tenant-deployment-dialog" class="dialog-surface"><form id="tenant-deployment-form"><span class="section-kicker">部署草稿</span><h2>建立租户模型部署</h2><div class="field-stack"><label class="field"><span>部署名称</span><input class="input" name="name" required></label><label class="field"><span>启用配置</span><select class="select" name="configurationId">${configurations.map(item => `<option value="${escapeHtml(item.id)}">${escapeHtml(item.name)} / ${escapeHtml(modelCapabilityLabel(item.capability))}</option>`).join("")}</select></label></div><p id="tenant-deployment-feedback" class="form-feedback" role="alert"></p><div class="release-actions"><button class="button secondary" type="button" data-close-dialog="tenant-deployment-dialog">取消</button><button class="button primary" type="submit">保存部署草稿</button></div></form></dialog>`,
+  ].join("");
+  return adminShell("model-deployments", "租户模型部署", "", '<button class="button primary" type="button" data-open-tenant-deployment data-primary-action>建立部署草稿</button>', content, state, "模型治理 / 租户模型部署");
+}
+
+function renderTenantModelDeploymentDetail(state, demoState) {
+  const models = demoState.models;
+  const deployment = selectedModelItem(models, "deployments", "selectedDeploymentId");
+  const configuration = models.configurations.find(item => item.id === deployment.configurationId);
+  const assistantNames = deployment.assistantIds.map(id => id === "assistant-employee-service" ? "员工服务助手" : "已绑定助手");
+  const routingNames = models.routingPolicies
+    .filter(policy => policy.primaryDeploymentId === deployment.id || policy.fallbackDeploymentId === deployment.id)
+    .map(policy => policy.name);
+  const operation = deployment.status === "VERIFIED"
+    ? '<button class="button primary" type="button" data-publish-tenant-deployment data-primary-action>发布部署</button>'
+    : deployment.status === "PUBLISHED"
+      ? '<button class="button primary" type="button" data-open-deployment-stop data-primary-action>停用部署</button>'
+      : deployment.status === "OFFLINE"
+        ? '<button class="button primary" type="button" data-nav-screen="model-deployments" data-primary-action>返回部署目录</button>'
+        : '<button class="button primary" type="button" data-verify-tenant-deployment data-primary-action>执行部署验证</button>';
+  const content = [
+    `<div class="inline-note${deployment.status === "FAILED" ? " danger" : ""}">${escapeHtml(deployment.verificationResult || "验证能力、预算、驻留和安全样本后才能发布。")}</div>`,
+    '<div class="split-detail"><div>',
+    `<section class="section-block" data-model-status="${escapeHtml(deployment.status)}"><div class="section-heading"><div><span class="section-kicker">${escapeHtml(modelCapabilityLabel(deployment.capability))} 部署</span><h2>${escapeHtml(deployment.name)}</h2></div>${statusTag(deployment.status)}</div><dl class="description-list"><div class="description-row"><dt>冻结配置</dt><dd>${escapeHtml(configuration?.name || "配置不可用")} / v${escapeHtml(configuration?.activeRevision || "—")}</dd></div><div class="description-row"><dt>驻留范围</dt><dd>${escapeHtml(deployment.residency)}</dd></div><div class="description-row"><dt>助手影响</dt><dd>${escapeHtml(assistantNames.length ? assistantNames.join("、") : "当前无助手固定")}</dd></div><div class="description-row"><dt>最近验证</dt><dd>${escapeHtml(deployment.verifiedAt || "尚未验证")}</dd></div></dl></section>`,
+    '</div><aside><section class="release-decision"><span class="section-kicker">部署操作</span><h2>发布不等于助手切换</h2><p>助手版本必须显式冻结部署；停用会使固定此部署且无可用路由的问答失败关闭。</p><div class="form-actions">' + operation + '</div>' + (modelFeedback ? `<p class="form-feedback" role="status">${escapeHtml(modelFeedback)}</p>` : "") + '</section></aside></div>',
+    `<dialog id="deployment-stop-dialog" class="dialog-surface"><form id="deployment-stop-form"><span class="section-kicker">影响确认</span><h2>停用 ${escapeHtml(deployment.name)}？</h2><p>受影响助手：${escapeHtml(assistantNames.length ? assistantNames.join("、") : "当前无助手")}；受影响路由：${escapeHtml(routingNames.length ? routingNames.join("、") : "当前无路由")}。停用后新调用失败关闭，不会静默换成不同能力模型。</p><label class="check-line"><input type="checkbox" name="acknowledged"><span>我已确认受影响助手与路由</span></label><p id="deployment-stop-feedback" class="form-feedback" role="alert"></p><div class="release-actions"><button class="button secondary" type="button" data-close-dialog="deployment-stop-dialog">取消</button><button class="button primary" type="submit">确认停用</button></div></form></dialog>`,
+  ].join("");
+  return adminShell("model-deployment-detail", "租户部署验证", "", '<button class="button secondary" type="button" data-nav-screen="model-deployments">返回部署目录</button>', content, state, "模型治理 / 租户部署验证");
+}
+
+function renderRoutingPolicies(state, demoState) {
+  const models = demoState.models;
+  const policy = selectedModelItem(models, "routingPolicies", "selectedRoutingPolicyId");
+  const deployments = models.deployments.filter(item => item.tenantId === DEFAULT_TENANT_ID && item.status === "PUBLISHED");
+  const simulation = policy.simulation
+    ? `<div class="metric-grid"><article class="metric-card"><span>模拟样本</span><strong>${escapeHtml(policy.simulation.passed)} / ${escapeHtml(policy.simulation.total)}</strong></article><article class="metric-card"><span>预计月度消耗</span><strong>${escapeHtml(policy.simulation.estimatedBudget)}</strong></article><article class="metric-card"><span>路由 p95</span><strong>${escapeHtml(policy.simulation.p95Ms)} ms</strong></article></div>`
+    : '<p class="muted">尚未运行本版本模拟。</p>';
+  const content = [
+    `<div class="inline-note">有限回退只能选择同能力、同驻留、已发布部署；不会跨 Chat、Embedding、Rerank 或租户边界静默降级。</div>`,
+    `<div class="split-detail"><form id="routing-policy-form" class="section-block" data-model-status="${escapeHtml(policy.status)}"><div class="section-heading"><div><span class="section-kicker">策略 v${escapeHtml(policy.version)}</span><h2>${escapeHtml(policy.name)}</h2></div>${statusTag(policy.status)}</div><div class="form-grid"><label class="field"><span>主部署</span><select class="select" name="primaryDeploymentId">${deployments.map(item => `<option value="${escapeHtml(item.id)}"${item.id === policy.primaryDeploymentId ? " selected" : ""}>${escapeHtml(item.name)} / ${escapeHtml(modelCapabilityLabel(item.capability))}</option>`).join("")}</select></label><label class="field"><span>有限回退</span><select class="select" name="fallbackDeploymentId">${deployments.map(item => `<option value="${escapeHtml(item.id)}"${item.id === policy.fallbackDeploymentId ? " selected" : ""}>${escapeHtml(item.name)} / ${escapeHtml(modelCapabilityLabel(item.capability))}</option>`).join("")}</select></label><label class="field"><span>月度预算上限</span><input class="input" name="monthlyBudget" type="number" value="${escapeHtml(policy.monthlyBudget)}"></label></div><p id="routing-policy-feedback" class="form-feedback" role="alert"></p><div class="form-actions"><button class="button secondary" type="submit">运行路由模拟</button><button class="button primary" type="button" data-publish-routing-policy data-primary-action${policy.status !== "READY_FOR_RELEASE" ? " disabled" : ""}>发布路由策略</button></div></form><aside><section class="section-block"><span class="section-kicker">模拟结果</span><h2>成本、延迟与失败边界</h2>${simulation}${modelFeedback ? `<p class="form-feedback" role="status">${escapeHtml(modelFeedback)}</p>` : ""}</section></aside></div>`,
+  ].join("");
+  return adminShell("routing-policies", "模型路由策略", "", '<button class="button secondary" type="button" data-nav-screen="model-deployments">返回部署目录</button>', content, state, "模型治理 / 模型路由策略");
+}
+
+function renderModelGovernance(screen, state, demoState) {
+  const platform = screen.startsWith("platform-model-");
+  const generic = genericState(screen, state);
+  if (generic) {
+    return adminShell(screen, pageFixtures.pages[screen].title, "", "", generic, state, "模型治理", platform ? "platform" : "tenant");
+  }
+  return {
+    "platform-model-connections": renderPlatformModelConnections,
+    "platform-model-connection-detail": renderPlatformModelConnectionDetail,
+    "platform-model-deployments": renderPlatformModelDeployments,
+    "platform-model-deployment-detail": renderPlatformModelDeploymentDetail,
+    "model-providers": renderTenantModelProviders,
+    "model-provider-detail": renderTenantModelProviderDetail,
+    "model-configurations": renderModelConfigurations,
+    "model-configuration-detail": renderModelConfigurationDetail,
+    "model-deployments": renderTenantModelDeployments,
+    "model-deployment-detail": renderTenantModelDeploymentDetail,
+    "routing-policies": renderRoutingPolicies,
+  }[screen](state, demoState);
+}
+
 function renderAssistantRelease(state) {
   const generic = genericState("assistant-release", state);
   const assistant = fixtures.assistantVersion;
@@ -1628,6 +1924,253 @@ function bindIndexManagement() {
   });
 }
 
+function bindModelGovernance() {
+  root.querySelectorAll("[data-close-dialog]").forEach(button => {
+    button.addEventListener("click", () => root.querySelector(`#${CSS.escape(button.dataset.closeDialog)}`)?.close());
+  });
+
+  const platformConnectionDialog = root.querySelector("#platform-connection-dialog");
+  root.querySelector("[data-open-platform-connection]")?.addEventListener("click", () => platformConnectionDialog?.showModal());
+  root.querySelector("#platform-connection-form")?.addEventListener("submit", event => {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    const result = prototypeStore.createPlatformModelConnection({
+      name: form.get("name"),
+      runtimeBaseUrl: form.get("runtimeBaseUrl"),
+      capability: form.get("capability"),
+      accessKey: form.get("accessKey"),
+    }, PLATFORM_ACCOUNT_ACTOR_ID);
+    if (!result.ok) {
+      root.querySelector("#platform-connection-feedback").textContent = {
+        UNSAFE_RUNTIME_ENDPOINT: "运行地址必须是公网 HTTPS，不能使用本机或私网目标。",
+        ACCESS_KEY_REQUIRED: "请输入至少 8 个字符的一次性访问密钥。",
+        CONNECTION_NAME_CONFLICT: "连接名称已存在。",
+      }[result.reason] || "连接草稿未保存，请核对输入后重试。";
+      return;
+    }
+    modelFeedback = "连接草稿已保存；访问密钥未回显、未进入原型状态。";
+    platformConnectionDialog?.close();
+    navigate("platform-model-connection-detail");
+  });
+  root.querySelector("[data-probe-platform-connection]")?.addEventListener("click", () => {
+    const snapshot = prototypeStore.getSnapshot();
+    const result = prototypeStore.probePlatformModelConnection(snapshot.models.selectedPlatformConnectionId, PLATFORM_ACCOUNT_ACTOR_ID);
+    modelFeedback = result.ok ? "连接探测通过，可以发布本版本。" : "连接探测失败，未发布任何能力。";
+    render();
+  });
+  root.querySelector("[data-publish-platform-connection]")?.addEventListener("click", () => {
+    const snapshot = prototypeStore.getSnapshot();
+    const result = prototypeStore.publishPlatformModelConnection(snapshot.models.selectedPlatformConnectionId, PLATFORM_ACCOUNT_ACTOR_ID);
+    modelFeedback = result.ok ? "连接版本已发布；尚未自动建立部署或授权租户。" : "连接未发布，状态未变化。";
+    render();
+  });
+
+  const platformDeploymentDialog = root.querySelector("#platform-deployment-dialog");
+  root.querySelector("[data-open-platform-deployment]")?.addEventListener("click", () => platformDeploymentDialog?.showModal());
+  root.querySelector("#platform-deployment-form")?.addEventListener("submit", event => {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    const [connectionId, modelId] = String(form.get("modelSelection") || "").split("|");
+    const result = prototypeStore.createPlatformModelDeployment({
+      name: form.get("name"),
+      connectionId,
+      modelId,
+      tenantIds: form.get("authorizeTenant") ? [DEFAULT_TENANT_ID] : [],
+    }, PLATFORM_ACCOUNT_ACTOR_ID);
+    if (!result.ok) {
+      root.querySelector("#platform-deployment-feedback").textContent = result.reason === "TENANT_AUTHORIZATION_REQUIRED"
+        ? "请至少选择一个可发现此部署的租户。"
+        : "部署草稿未保存，请核对连接、模型和名称。";
+      return;
+    }
+    modelFeedback = "部署草稿已建立；验证通过前不会进入租户目录。";
+    platformDeploymentDialog?.close();
+    navigate("platform-model-deployment-detail");
+  });
+  root.querySelector("[data-verify-platform-deployment]")?.addEventListener("click", () => {
+    const snapshot = prototypeStore.getSnapshot();
+    const result = prototypeStore.verifyPlatformModelDeployment(snapshot.models.selectedPlatformDeploymentId, PLATFORM_ACCOUNT_ACTOR_ID);
+    modelFeedback = result.ok ? "能力、预算与安全样本验证通过。" : "验证失败，部署未进入授权目录。";
+    render();
+  });
+  root.querySelector("[data-publish-platform-deployment]")?.addEventListener("click", () => {
+    const snapshot = prototypeStore.getSnapshot();
+    const result = prototypeStore.publishPlatformModelDeployment(snapshot.models.selectedPlatformDeploymentId, PLATFORM_ACCOUNT_ACTOR_ID);
+    modelFeedback = result.ok ? "部署已发布到租户授权目录；未自动创建租户配置。" : "部署未发布，状态未变化。";
+    render();
+  });
+
+  root.querySelector("[data-discover-tenant-models]")?.addEventListener("click", () => {
+    const connectionId = root.querySelector("#tenant-discovery-connection")?.value;
+    const result = prototypeStore.discoverTenantModels(DEFAULT_TENANT_ID, connectionId, TENANT_ADMIN_ACTOR_ID);
+    modelFeedback = result.ok ? `发现完成：${result.models.length} 个已授权模型。` : "发现失败，没有改变租户目录。";
+    if (result.ok) navigate("model-provider-detail");
+    else render();
+  });
+  root.querySelector("[data-rediscover-tenant-models]")?.addEventListener("click", () => {
+    const snapshot = prototypeStore.getSnapshot();
+    const result = prototypeStore.discoverTenantModels(DEFAULT_TENANT_ID, snapshot.models.selectedTenantConnectionId, TENANT_ADMIN_ACTOR_ID);
+    modelFeedback = result.ok ? `发现完成：${result.models.length} 个已授权模型。` : "重新探测失败，保留上次成功结果。";
+    render();
+  });
+  root.querySelectorAll("[data-use-catalog-model]").forEach(button => {
+    button.addEventListener("click", () => {
+      prototypeStore.selectModelGovernanceItem("catalogDeployment", button.dataset.useCatalogModel);
+      modelFeedback = "已选择目录模型，请创建租户配置。";
+      navigate("model-configurations");
+    });
+  });
+
+  const modelConfigurationDialog = root.querySelector("#model-configuration-dialog");
+  root.querySelector("[data-open-model-configuration]")?.addEventListener("click", () => modelConfigurationDialog?.showModal());
+  root.querySelector("#model-configuration-form")?.addEventListener("submit", event => {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    const result = prototypeStore.createTenantModelConfiguration(DEFAULT_TENANT_ID, {
+      name: form.get("name"),
+      platformDeploymentId: form.get("platformDeploymentId"),
+    }, TENANT_ADMIN_ACTOR_ID);
+    if (!result.ok) {
+      root.querySelector("#model-configuration-feedback").textContent = result.reason === "CONFIGURATION_NAME_CONFLICT"
+        ? "配置名称已存在。"
+        : "配置草稿未保存，请核对名称与目录模型授权。";
+      return;
+    }
+    modelFeedback = "配置草稿已建立，验证通过前不能启用。";
+    modelConfigurationDialog?.close();
+    navigate("model-configuration-detail");
+  });
+  const modelKeyDialog = root.querySelector("#model-key-dialog");
+  root.querySelector("[data-open-model-key]")?.addEventListener("click", () => modelKeyDialog?.showModal());
+  root.querySelector("#model-key-form")?.addEventListener("submit", event => {
+    event.preventDefault();
+    const snapshot = prototypeStore.getSnapshot();
+    const result = prototypeStore.rotateTenantModelAccessKey(
+      snapshot.models.selectedConfigurationId,
+      new FormData(event.currentTarget).get("accessKey"),
+      TENANT_ADMIN_ACTOR_ID,
+    );
+    if (!result.ok) {
+      root.querySelector("#model-key-feedback").textContent = "新访问密钥未保存，请确认至少 8 个字符且没有其他待验证版本。";
+      return;
+    }
+    modelFeedback = "新访问密钥已提交为待验证版本；旧启用版本继续服务，页面不回显密钥。";
+    modelKeyDialog?.close();
+    render();
+  });
+  const modelRevisionDialog = root.querySelector("#model-revision-dialog");
+  root.querySelector("[data-open-model-revision]")?.addEventListener("click", () => modelRevisionDialog?.showModal());
+  root.querySelector("#model-revision-form")?.addEventListener("submit", event => {
+    event.preventDefault();
+    const snapshot = prototypeStore.getSnapshot();
+    const configuration = snapshot.models.configurations.find(item => item.id === snapshot.models.selectedConfigurationId);
+    const values = Object.fromEntries(new FormData(event.currentTarget));
+    const input = configuration.capability === "EMBEDDING"
+      ? { embeddingDimension: Number(values.embeddingDimension), distanceMetric: values.distanceMetric }
+      : configuration.capability === "CHAT"
+        ? { temperature: Number(values.temperature), maxOutputTokens: Number(values.maxOutputTokens) }
+        : { candidateCount: Number(values.candidateCount), evidenceCount: Number(values.evidenceCount) };
+    const result = prototypeStore.createTenantModelConfigurationRevision(configuration.id, input, TENANT_ADMIN_ACTOR_ID);
+    if (!result.ok) {
+      root.querySelector("#model-revision-feedback").textContent = result.reason === "CONFIGURATION_CHANGE_REQUIRED"
+        ? "请至少修改一项参数。"
+        : "新配置版本未保存，请核对参数范围。";
+      return;
+    }
+    modelFeedback = "新配置版本已保存；验证并启用前旧版本继续服务。";
+    modelRevisionDialog?.close();
+    render();
+  });
+  root.querySelector("[data-verify-model-configuration]")?.addEventListener("click", () => {
+    const snapshot = prototypeStore.getSnapshot();
+    const result = prototypeStore.verifyTenantModelConfiguration(snapshot.models.selectedConfigurationId, TENANT_ADMIN_ACTOR_ID);
+    modelFeedback = result.ok ? "配置验证通过，可以启用待验证版本。" : "配置验证失败，旧版本继续服务。";
+    render();
+  });
+  root.querySelector("[data-enable-model-configuration]")?.addEventListener("click", () => {
+    const snapshot = prototypeStore.getSnapshot();
+    const result = prototypeStore.enableTenantModelConfiguration(snapshot.models.selectedConfigurationId, TENANT_ADMIN_ACTOR_ID);
+    if (!result.ok) {
+      modelFeedback = "配置未启用，原状态保持不变。";
+    } else if (result.effects.some(item => item.type === "FULL_INDEX_REBUILD_CREATED")) {
+      modelFeedback = `配置已启用；自动建立 ${result.effects.length} 个全库重建候选，不会自动激活。`;
+    } else {
+      modelFeedback = "配置已启用；已标记助手重新评测，不重建向量索引。";
+    }
+    render();
+  });
+
+  const tenantDeploymentDialog = root.querySelector("#tenant-deployment-dialog");
+  root.querySelector("[data-open-tenant-deployment]")?.addEventListener("click", () => tenantDeploymentDialog?.showModal());
+  root.querySelector("#tenant-deployment-form")?.addEventListener("submit", event => {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    const result = prototypeStore.createTenantModelDeployment(DEFAULT_TENANT_ID, {
+      name: form.get("name"),
+      configurationId: form.get("configurationId"),
+    }, TENANT_ADMIN_ACTOR_ID);
+    if (!result.ok) {
+      root.querySelector("#tenant-deployment-feedback").textContent = "部署草稿未保存，请选择已启用配置并核对名称。";
+      return;
+    }
+    modelFeedback = "部署草稿已建立；发布前必须完成能力与安全验证。";
+    tenantDeploymentDialog?.close();
+    navigate("model-deployment-detail");
+  });
+  root.querySelector("[data-verify-tenant-deployment]")?.addEventListener("click", () => {
+    const snapshot = prototypeStore.getSnapshot();
+    const result = prototypeStore.verifyTenantModelDeployment(snapshot.models.selectedDeploymentId, TENANT_ADMIN_ACTOR_ID);
+    modelFeedback = result.ok ? "部署验证通过，可以发布。" : "部署验证失败，未发布。";
+    render();
+  });
+  root.querySelector("[data-publish-tenant-deployment]")?.addEventListener("click", () => {
+    const snapshot = prototypeStore.getSnapshot();
+    const result = prototypeStore.publishTenantModelDeployment(snapshot.models.selectedDeploymentId, TENANT_ADMIN_ACTOR_ID);
+    modelFeedback = result.ok ? "部署已发布；助手版本不会自动切换。" : "部署未发布，状态未变化。";
+    render();
+  });
+  const stopDialog = root.querySelector("#deployment-stop-dialog");
+  root.querySelector("[data-open-deployment-stop]")?.addEventListener("click", () => stopDialog?.showModal());
+  root.querySelector("#deployment-stop-form")?.addEventListener("submit", event => {
+    event.preventDefault();
+    const snapshot = prototypeStore.getSnapshot();
+    const acknowledged = new FormData(event.currentTarget).get("acknowledged") === "on";
+    const result = prototypeStore.deactivateTenantModelDeployment(snapshot.models.selectedDeploymentId, acknowledged, TENANT_ADMIN_ACTOR_ID);
+    if (!result.ok) {
+      root.querySelector("#deployment-stop-feedback").textContent = result.reason === "IMPACT_ACK_REQUIRED"
+        ? "请先确认受影响助手与路由。"
+        : "部署未停用，原状态保持不变。";
+      return;
+    }
+    modelFeedback = "部署已停用；受影响调用将失败关闭，不会跨能力静默回退。";
+    stopDialog?.close();
+    render();
+  });
+
+  root.querySelector("#routing-policy-form")?.addEventListener("submit", event => {
+    event.preventDefault();
+    const snapshot = prototypeStore.getSnapshot();
+    const form = new FormData(event.currentTarget);
+    const result = prototypeStore.simulateRoutingPolicy(snapshot.models.selectedRoutingPolicyId, {
+      primaryDeploymentId: form.get("primaryDeploymentId"),
+      fallbackDeploymentId: form.get("fallbackDeploymentId"),
+      monthlyBudget: form.get("monthlyBudget"),
+    }, TENANT_ADMIN_ACTOR_ID);
+    modelFeedback = result.ok ? "30 / 30 个成本、延迟与失败样本通过，可以发布。" : {
+      ROUTING_FALLBACK_DUPLICATE: "主部署与有限回退不能选择同一个部署。",
+      ROUTING_CAPABILITY_MISMATCH: "主部署与回退部署能力不同，不能发布。",
+      ROUTING_RESIDENCY_MISMATCH: "主部署与回退部署驻留范围不同，不能发布。",
+    }[result.reason] || "路由模拟失败，策略未改变。";
+    render();
+  });
+  root.querySelector("[data-publish-routing-policy]")?.addEventListener("click", () => {
+    const snapshot = prototypeStore.getSnapshot();
+    const result = prototypeStore.publishRoutingPolicy(snapshot.models.selectedRoutingPolicyId, TENANT_ADMIN_ACTOR_ID);
+    modelFeedback = result.ok ? "路由策略已发布；只允许同能力、同驻留的有限回退。" : "路由策略未发布，请先通过模拟。";
+    render();
+  });
+}
+
 function bindInteractions(screen) {
   root.querySelectorAll("[data-nav-screen]").forEach((element) => {
     element.addEventListener("click", () => {
@@ -1642,6 +2185,21 @@ function bindInteractions(screen) {
       }
       if (element.dataset.selectIndex) {
         prototypeStore.selectIndexVersion(element.dataset.selectIndex);
+      }
+      if (element.dataset.selectPlatformConnection) {
+        prototypeStore.selectModelGovernanceItem("platformConnection", element.dataset.selectPlatformConnection);
+      }
+      if (element.dataset.selectPlatformDeployment) {
+        prototypeStore.selectModelGovernanceItem("platformDeployment", element.dataset.selectPlatformDeployment);
+      }
+      if (element.dataset.selectTenantConnection) {
+        prototypeStore.selectModelGovernanceItem("tenantConnection", element.dataset.selectTenantConnection);
+      }
+      if (element.dataset.selectModelConfiguration) {
+        prototypeStore.selectModelGovernanceItem("configuration", element.dataset.selectModelConfiguration);
+      }
+      if (element.dataset.selectTenantDeployment) {
+        prototypeStore.selectModelGovernanceItem("tenantDeployment", element.dataset.selectTenantDeployment);
       }
       navigate(
         element.dataset.navScreen,
@@ -1861,6 +2419,7 @@ function bindInteractions(screen) {
   bindRecoveryDrill();
   bindKnowledgeManagement();
   bindIndexManagement();
+  bindModelGovernance();
 }
 
 function bindAccountManagement() {

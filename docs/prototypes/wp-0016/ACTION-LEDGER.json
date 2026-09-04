@@ -2,7 +2,7 @@
   "workPackage": "WP-0016",
   "generatedOn": "2026-09-04",
   "browserVerification": "passed",
-  "browserVerificationNote": "索引 7/7、知识接入 8/8、账户 7/7、租户 10/10、问答 15/15、布局 13/13；全平台 68 页、7 状态、3 视口共 1,428 场景及 9,662 项断言通过，截图仅在临时目录生成。该结论仅覆盖已声明 DOM、布局和交互，不代表账本已穷举或人工验收通过。",
+  "browserVerificationNote": "模型治理 11/11、索引 7/7、知识接入 8/8、账户 7/7、租户 10/10、问答 15/15、布局 13/13；全平台 68 页、7 状态、3 视口共 1,428 场景及 9,650 项断言通过，截图仅在临时目录生成。该结论仅覆盖已声明 DOM、布局和交互，不代表账本已穷举或人工验收通过。",
   "classification": {
     "navigation": "仅改变原型页面，不计作业务完成",
     "implementedStateChange": "合成状态已有 Node 测试；browserVerified 只表示条目注明的浏览器范围，不代表完整业务或人工通过",
@@ -13,16 +13,16 @@
     "forbidden": "按角色边界明确禁止，不属于待实现功能"
   },
   "summary": {
-    "navigation": 46,
+    "navigation": 42,
     "implementedRead": 6,
-    "implementedStateChange": 40,
+    "implementedStateChange": 59,
     "pendingDecision": 1,
-    "unimplemented": 10,
+    "unimplemented": 9,
     "forbidden": 1,
     "partialSimulation": 0,
     "totalPages": 68,
-    "totalControls": 104,
-    "unclosedControls": 11,
+    "totalControls": 118,
+    "unclosedControls": 10,
     "allControlsEnumerated": false,
     "readyForFullAcceptance": false
   },
@@ -217,9 +217,19 @@
         {
           "label": "新增供应商连接",
           "kind": "primaryAction",
+          "status": "implementedStateChange",
+          "evidence": "model-governance-state.test.mjs：安全 HTTPS、一次性密钥不落状态、创建与刷新",
+          "browserVerified": true,
+          "browserEvidence": "artifacts/model-governance-browser-verification.json",
+          "browserScope": "覆盖弹窗提交、错误边界、详情回显和刷新恢复"
+        },
+        {
+          "label": "查看连接",
+          "kind": "rowAction",
           "status": "navigation",
-          "evidence": "只完成受控页面跳转，不计作业务状态变更",
-          "browserVerified": false
+          "evidence": "只选择对象并进入详情，不计作业务状态变更",
+          "browserVerified": true,
+          "browserEvidence": "artifacts/model-governance-browser-verification.json"
         }
       ]
     },
@@ -232,9 +242,18 @@
         {
           "label": "执行连接探测",
           "kind": "primaryAction",
-          "status": "navigation",
-          "evidence": "只完成受控页面跳转，不计作业务状态变更",
-          "browserVerified": false
+          "status": "implementedStateChange",
+          "evidence": "model-governance-state.test.mjs：探测状态与已发布目录标识稳定",
+          "browserVerified": true,
+          "browserEvidence": "artifacts/model-governance-browser-verification.json"
+        },
+        {
+          "label": "发布连接",
+          "kind": "primaryAction",
+          "status": "implementedStateChange",
+          "evidence": "model-governance-state.test.mjs：仅 VERIFIED 可发布并可刷新恢复",
+          "browserVerified": true,
+          "browserEvidence": "artifacts/model-governance-browser-verification.json"
         }
       ]
     },
@@ -247,9 +266,18 @@
         {
           "label": "建立部署草稿",
           "kind": "primaryAction",
+          "status": "implementedStateChange",
+          "evidence": "model-governance-state.test.mjs：冻结已发布连接模型并显式选择租户授权",
+          "browserVerified": true,
+          "browserEvidence": "artifacts/model-governance-browser-verification.json"
+        },
+        {
+          "label": "查看部署",
+          "kind": "rowAction",
           "status": "navigation",
-          "evidence": "只完成受控页面跳转，不计作业务状态变更",
-          "browserVerified": false
+          "evidence": "只选择对象并进入详情，不计作业务状态变更",
+          "browserVerified": true,
+          "browserEvidence": "artifacts/model-governance-browser-verification.json"
         }
       ]
     },
@@ -260,11 +288,20 @@
       "primaryTask": "验证并发布单个模型部署",
       "controls": [
         {
+          "label": "执行能力验证",
+          "kind": "primaryAction",
+          "status": "implementedStateChange",
+          "evidence": "model-governance-state.test.mjs：草稿经能力、预算和安全样本验证进入 VERIFIED",
+          "browserVerified": true,
+          "browserEvidence": "artifacts/model-governance-browser-verification.json"
+        },
+        {
           "label": "发布部署",
           "kind": "primaryAction",
-          "status": "navigation",
-          "evidence": "只完成受控页面跳转，不计作业务状态变更",
-          "browserVerified": false
+          "status": "implementedStateChange",
+          "evidence": "model-governance-state.test.mjs：未验证拒绝，发布后进入租户授权目录",
+          "browserVerified": true,
+          "browserEvidence": "artifacts/model-governance-browser-verification.json"
         }
       ]
     },
@@ -657,9 +694,18 @@
         {
           "label": "执行模型发现",
           "kind": "primaryAction",
+          "status": "implementedStateChange",
+          "evidence": "model-governance-state.test.mjs：只保存当前租户已获授权的发布模型目录",
+          "browserVerified": true,
+          "browserEvidence": "artifacts/model-governance-browser-verification.json"
+        },
+        {
+          "label": "查看发现结果",
+          "kind": "rowAction",
           "status": "navigation",
-          "evidence": "只完成受控页面跳转，不计作业务状态变更",
-          "browserVerified": false
+          "evidence": "只选择供应商连接并进入结果页，不计作业务状态变更",
+          "browserVerified": true,
+          "browserEvidence": "artifacts/model-governance-browser-verification.json"
         }
       ]
     },
@@ -672,9 +718,18 @@
         {
           "label": "重新探测",
           "kind": "primaryAction",
+          "status": "implementedStateChange",
+          "evidence": "model-governance-state.test.mjs：替换同租户同连接的发现快照并保留授权过滤",
+          "browserVerified": true,
+          "browserEvidence": "artifacts/model-governance-browser-verification.json"
+        },
+        {
+          "label": "使用此模型",
+          "kind": "rowAction",
           "status": "navigation",
-          "evidence": "只完成受控页面跳转，不计作业务状态变更",
-          "browserVerified": false
+          "evidence": "选择目录模型后进入创建配置，不直接启用能力",
+          "browserVerified": true,
+          "browserEvidence": "artifacts/model-governance-browser-verification.json"
         }
       ]
     },
@@ -687,9 +742,18 @@
         {
           "label": "创建模型配置",
           "kind": "primaryAction",
+          "status": "implementedStateChange",
+          "evidence": "model-governance-state.test.mjs：只引用已发布且授权给本租户的目录模型",
+          "browserVerified": true,
+          "browserEvidence": "artifacts/model-governance-browser-verification.json"
+        },
+        {
+          "label": "查看配置",
+          "kind": "rowAction",
           "status": "navigation",
-          "evidence": "只完成受控页面跳转，不计作业务状态变更",
-          "browserVerified": false
+          "evidence": "只选择配置并进入详情，不计作业务状态变更",
+          "browserVerified": true,
+          "browserEvidence": "artifacts/model-governance-browser-verification.json"
         }
       ]
     },
@@ -700,11 +764,36 @@
       "primaryTask": "编辑、轮换并启用一个模型配置",
       "controls": [
         {
+          "label": "新建配置版本",
+          "kind": "primaryAction",
+          "status": "implementedStateChange",
+          "evidence": "model-governance-state.test.mjs：建立待验证修订，旧活动修订继续服务",
+          "browserVerified": true,
+          "browserEvidence": "artifacts/model-governance-browser-verification.json"
+        },
+        {
+          "label": "轮换访问密钥",
+          "kind": "taskControl",
+          "status": "implementedStateChange",
+          "evidence": "model-governance-state.test.mjs：密钥不落状态，新修订启用前保留旧版本",
+          "browserVerified": true,
+          "browserEvidence": "artifacts/model-governance-browser-verification.json"
+        },
+        {
+          "label": "执行配置验证",
+          "kind": "primaryAction",
+          "status": "implementedStateChange",
+          "evidence": "model-governance-state.test.mjs：失败不替换活动修订，成功进入 VERIFIED",
+          "browserVerified": true,
+          "browserEvidence": "artifacts/model-governance-browser-verification.json"
+        },
+        {
           "label": "启用配置",
           "kind": "primaryAction",
-          "status": "navigation",
-          "evidence": "只完成受控页面跳转，不计作业务状态变更",
-          "browserVerified": false
+          "status": "implementedStateChange",
+          "evidence": "model-governance-state.test.mjs：启用前复查授权；Embedding 建重建候选，Chat/Rerank 标记重评测",
+          "browserVerified": true,
+          "browserEvidence": "artifacts/model-governance-browser-verification.json"
         }
       ]
     },
@@ -717,9 +806,18 @@
         {
           "label": "建立部署草稿",
           "kind": "primaryAction",
+          "status": "implementedStateChange",
+          "evidence": "model-governance-state.test.mjs：仅冻结当前租户已启用配置版本",
+          "browserVerified": true,
+          "browserEvidence": "artifacts/model-governance-browser-verification.json"
+        },
+        {
+          "label": "查看部署",
+          "kind": "rowAction",
           "status": "navigation",
-          "evidence": "只完成受控页面跳转，不计作业务状态变更",
-          "browserVerified": false
+          "evidence": "只选择租户部署并进入详情，不计作业务状态变更",
+          "browserVerified": true,
+          "browserEvidence": "artifacts/model-governance-browser-verification.json"
         }
       ]
     },
@@ -730,11 +828,28 @@
       "primaryTask": "探测并发布一个租户模型部署",
       "controls": [
         {
+          "label": "执行部署验证",
+          "kind": "primaryAction",
+          "status": "implementedStateChange",
+          "evidence": "model-governance-state.test.mjs：验证能力、预算、驻留和安全样本",
+          "browserVerified": true,
+          "browserEvidence": "artifacts/model-governance-browser-verification.json"
+        },
+        {
           "label": "发布部署",
           "kind": "primaryAction",
-          "status": "navigation",
-          "evidence": "只完成受控页面跳转，不计作业务状态变更",
-          "browserVerified": false
+          "status": "implementedStateChange",
+          "evidence": "model-governance-state.test.mjs：未验证拒绝，发布不自动切换助手",
+          "browserVerified": true,
+          "browserEvidence": "artifacts/model-governance-browser-verification.json"
+        },
+        {
+          "label": "停用部署",
+          "kind": "taskControl",
+          "status": "implementedStateChange",
+          "evidence": "model-governance-state.test.mjs：助手或路由受影响时要求确认并失败关闭",
+          "browserVerified": true,
+          "browserEvidence": "artifacts/model-governance-browser-verification.json"
         }
       ]
     },
@@ -745,11 +860,20 @@
       "primaryTask": "模拟并发布主模型、有限回退和预算策略",
       "controls": [
         {
+          "label": "运行路由模拟",
+          "kind": "primaryAction",
+          "status": "implementedStateChange",
+          "evidence": "model-governance-state.test.mjs：租户、能力、驻留、主备差异和预算全部通过才形成待发布版本",
+          "browserVerified": true,
+          "browserEvidence": "artifacts/model-governance-browser-verification.json"
+        },
+        {
           "label": "发布路由策略",
           "kind": "primaryAction",
-          "status": "unimplemented",
-          "evidence": "当前控件仅展示确认或无持久状态结果",
-          "browserVerified": false
+          "status": "implementedStateChange",
+          "evidence": "model-governance-state.test.mjs：30/30 模拟通过后发布并可刷新恢复",
+          "browserVerified": true,
+          "browserEvidence": "artifacts/model-governance-browser-verification.json"
         }
       ]
     },
@@ -1345,5 +1469,5 @@
     "allControlsEnumerated": false,
     "limitation": "尚未穷举每页筛选、行操作、账户菜单和各状态控件；下列数量只统计已登记项，不代表全平台控件总数。"
   },
-  "browserEvidenceReport": "artifacts/index-lifecycle-browser-verification.json"
+  "browserEvidenceReport": "artifacts/model-governance-browser-verification.json"
 }

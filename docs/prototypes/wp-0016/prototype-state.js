@@ -263,6 +263,253 @@ function defaultIndexVersions(knowledgeBaseId, activeIndex) {
   }];
 }
 
+const MODEL_CAPABILITIES = Object.freeze(["CHAT", "EMBEDDING", "RERANK"]);
+
+function modelParameters(capability, overrides = {}) {
+  const defaults = {
+    CHAT: { temperature: 0, maxOutputTokens: 4096 },
+    EMBEDDING: { embeddingDimension: 1024, normalization: "L2", distanceMetric: "COSINE" },
+    RERANK: { candidateCount: 30, evidenceCount: 8 },
+  }[capability] || {};
+  return { ...defaults, ...overrides };
+}
+
+function defaultModelGovernance() {
+  return {
+    platformConnections: [
+      {
+        id: "pc-chat",
+        name: "企业对话模型连接",
+        providerKind: "OPENAI_COMPATIBLE",
+        runtimeProtocol: "OPENAI_COMPATIBLE",
+        runtimeOrigin: "https://chat.example.invalid",
+        capability: "CHAT",
+        status: "PUBLISHED",
+        version: 4,
+        authenticationState: "CONFIGURED",
+        lastProbe: "今天 16:20",
+        discoveredModels: [{ id: "model-chat-v6", name: "企业对话模型 v6", capability: "CHAT" }],
+      },
+      {
+        id: "pc-embedding",
+        name: "向量服务连接",
+        providerKind: "OPENAI_COMPATIBLE",
+        runtimeProtocol: "OPENAI_COMPATIBLE",
+        runtimeOrigin: "https://embedding.example.invalid",
+        capability: "EMBEDDING",
+        status: "PUBLISHED",
+        version: 3,
+        authenticationState: "CONFIGURED",
+        lastProbe: "今天 16:05",
+        discoveredModels: [{ id: "model-embedding-v4", name: "企业向量模型 v4", capability: "EMBEDDING", embeddingDimension: 1024 }],
+      },
+      {
+        id: "pc-rerank",
+        name: "重排服务连接",
+        providerKind: "OPENAI_COMPATIBLE",
+        runtimeProtocol: "VENDOR_POST_PROCESSOR",
+        runtimeOrigin: "https://rerank.example.invalid",
+        capability: "RERANK",
+        status: "PUBLISHED",
+        version: 2,
+        authenticationState: "CONFIGURED",
+        lastProbe: "今天 15:48",
+        discoveredModels: [{ id: "model-rerank-v2", name: "企业重排模型 v2", capability: "RERANK" }],
+      },
+    ],
+    selectedPlatformConnectionId: "pc-chat",
+    platformDeployments: [
+      {
+        id: "pd-chat-v6",
+        name: "企业对话模型 v6",
+        connectionId: "pc-chat",
+        modelId: "model-chat-v6",
+        capability: "CHAT",
+        status: "PUBLISHED",
+        tenantIds: [DEFAULT_TENANT_ID],
+        residency: "华东受控区",
+        verifiedAt: "今天 16:24",
+      },
+      {
+        id: "pd-chat-backup",
+        name: "企业对话模型 v6 备用",
+        connectionId: "pc-chat",
+        modelId: "model-chat-v6",
+        capability: "CHAT",
+        status: "PUBLISHED",
+        tenantIds: [DEFAULT_TENANT_ID],
+        residency: "华东受控区",
+        verifiedAt: "今天 16:22",
+      },
+      {
+        id: "pd-embedding-v4",
+        name: "企业向量模型 v4",
+        connectionId: "pc-embedding",
+        modelId: "model-embedding-v4",
+        capability: "EMBEDDING",
+        status: "PUBLISHED",
+        tenantIds: [DEFAULT_TENANT_ID],
+        residency: "华东受控区",
+        verifiedAt: "今天 16:08",
+      },
+      {
+        id: "pd-rerank-v2",
+        name: "企业重排模型 v2",
+        connectionId: "pc-rerank",
+        modelId: "model-rerank-v2",
+        capability: "RERANK",
+        status: "PUBLISHED",
+        tenantIds: [DEFAULT_TENANT_ID],
+        residency: "华东受控区",
+        verifiedAt: "今天 15:52",
+      },
+      {
+        id: "pd-chat-candidate",
+        name: "企业对话模型 v7 候选",
+        connectionId: "pc-chat",
+        modelId: "model-chat-v6",
+        capability: "CHAT",
+        status: "VERIFIED",
+        tenantIds: [DEFAULT_TENANT_ID],
+        residency: "华东受控区",
+        verifiedAt: "今天 16:45",
+      },
+    ],
+    selectedPlatformDeploymentId: "pd-chat-candidate",
+    tenantDiscoveries: [{
+      tenantId: DEFAULT_TENANT_ID,
+      connectionId: "pc-chat",
+      status: "COMPLETE",
+      deploymentIds: ["pd-chat-v6", "pd-chat-backup"],
+      updatedAt: "今天 16:30",
+    }],
+    selectedTenantConnectionId: "pc-chat",
+    selectedCatalogDeploymentId: "pd-chat-v6",
+    configurations: [
+      {
+        id: "cfg-chat",
+        tenantId: DEFAULT_TENANT_ID,
+        name: "员工服务对话配置",
+        platformDeploymentId: "pd-chat-v6",
+        capability: "CHAT",
+        status: "ACTIVE",
+        activeRevision: 6,
+        pendingRevision: null,
+        parameters: modelParameters("CHAT"),
+        authenticationState: "CONFIGURED",
+        updatedAt: "今天 16:35",
+      },
+      {
+        id: "cfg-embedding",
+        tenantId: DEFAULT_TENANT_ID,
+        name: "知识库向量配置",
+        platformDeploymentId: "pd-embedding-v4",
+        capability: "EMBEDDING",
+        status: "ACTIVE",
+        activeRevision: 4,
+        pendingRevision: null,
+        parameters: modelParameters("EMBEDDING"),
+        authenticationState: "PLATFORM_MANAGED",
+        updatedAt: "今天 16:12",
+      },
+      {
+        id: "cfg-rerank",
+        tenantId: DEFAULT_TENANT_ID,
+        name: "召回重排配置",
+        platformDeploymentId: "pd-rerank-v2",
+        capability: "RERANK",
+        status: "ACTIVE",
+        activeRevision: 2,
+        pendingRevision: null,
+        parameters: modelParameters("RERANK"),
+        authenticationState: "CONFIGURED",
+        updatedAt: "今天 15:58",
+      },
+      {
+        id: "cfg-rerank-candidate",
+        tenantId: DEFAULT_TENANT_ID,
+        name: "召回重排配置候选",
+        platformDeploymentId: "pd-rerank-v2",
+        capability: "RERANK",
+        status: "VERIFIED",
+        activeRevision: null,
+        pendingRevision: {
+          number: 1,
+          status: "VERIFIED",
+          parameters: modelParameters("RERANK"),
+          changedFields: ["candidateCount", "evidenceCount"],
+          result: "能力、限时调用和敏感输出检查通过。",
+        },
+        parameters: modelParameters("RERANK"),
+        authenticationState: "CONFIGURED",
+        updatedAt: "今天 16:46",
+      },
+    ],
+    selectedConfigurationId: "cfg-rerank-candidate",
+    deployments: [
+      {
+        id: "td-chat-v6",
+        tenantId: DEFAULT_TENANT_ID,
+        name: "员工服务 Chat",
+        configurationId: "cfg-chat",
+        capability: "CHAT",
+        status: "PUBLISHED",
+        residency: "华东受控区",
+        assistantIds: ["assistant-employee-service"],
+        verifiedAt: "今天 16:40",
+      },
+      {
+        id: "td-chat-backup",
+        tenantId: DEFAULT_TENANT_ID,
+        name: "员工服务 Chat 备用",
+        configurationId: "cfg-chat",
+        capability: "CHAT",
+        status: "PUBLISHED",
+        residency: "华东受控区",
+        assistantIds: [],
+        verifiedAt: "今天 16:38",
+      },
+      {
+        id: "td-embedding-v4",
+        tenantId: DEFAULT_TENANT_ID,
+        name: "知识检索 Embedding",
+        configurationId: "cfg-embedding",
+        capability: "EMBEDDING",
+        status: "PUBLISHED",
+        residency: "华东受控区",
+        assistantIds: [],
+        verifiedAt: "今天 16:18",
+      },
+      {
+        id: "td-rerank-candidate",
+        tenantId: DEFAULT_TENANT_ID,
+        name: "结果重排候选",
+        configurationId: "cfg-rerank",
+        capability: "RERANK",
+        status: "VERIFIED",
+        residency: "华东受控区",
+        assistantIds: [],
+        verifiedAt: "今天 16:47",
+      },
+    ],
+    selectedDeploymentId: "td-rerank-candidate",
+    routingPolicies: [{
+      id: "route-employee",
+      tenantId: DEFAULT_TENANT_ID,
+      name: "员工服务路由",
+      version: 5,
+      status: "DRAFT",
+      primaryDeploymentId: "td-chat-v6",
+      fallbackDeploymentId: "td-chat-backup",
+      monthlyBudget: 10000,
+      simulation: null,
+      updatedAt: "今天 16:42",
+    }],
+    selectedRoutingPolicyId: "route-employee",
+    effects: [],
+  };
+}
+
 function defaultKnowledgeBases() {
   return [
     {
@@ -408,6 +655,7 @@ function defaultState() {
       },
     ],
     knowledgeBases: defaultKnowledgeBases(),
+    models: defaultModelGovernance(),
     selectedKnowledgeBaseId: "kb-handbook",
     selectedKnowledgeSourceId: "src-policy-pdf",
     selectedIndexVersionId: "idx-v12",
@@ -513,6 +761,9 @@ function initialState(storage) {
       return defaultState();
     }
     parsed.tenantSetup = tenantSetupFrom(parsed.tenantSetup);
+    parsed.models = parsed.models && Array.isArray(parsed.models.platformConnections)
+      ? parsed.models
+      : defaultModelGovernance();
     const fallbackKnowledgeBases = defaultKnowledgeBases();
     parsed.knowledgeBases = (Array.isArray(parsed.knowledgeBases)
       ? parsed.knowledgeBases
@@ -665,6 +916,566 @@ export function createPrototypeStore(storage = browserStorage()) {
       member?.role === "tenantAdministrator" &&
       member.status === "active",
     );
+  }
+
+  function canManagePlatformModels(actorAccountId) {
+    return canManageAccounts(actorAccountId);
+  }
+
+  /** 模型治理写操作必须同时满足账户、租户、管理员成员和租户功能上限。 */
+  function canManageModels(tenantId, actorAccountId) {
+    const tenant = tenantById(tenantId);
+    const actor = accountById(actorAccountId);
+    const member = tenant?.members.find(item => item.accountId === actorAccountId);
+    return Boolean(
+      tenant?.status === "active" &&
+      actor?.status === "available" &&
+      tenant.availableFeatures?.modelGovernance !== false &&
+      member?.role === "tenantAdministrator" &&
+      member.status === "active",
+    );
+  }
+
+  function modelItem(collection, id) {
+    return state.models[collection].find(item => item.id === id);
+  }
+
+  function selectModelGovernanceItem(target, id) {
+    const mapping = {
+      platformConnection: ["platformConnections", "selectedPlatformConnectionId"],
+      platformDeployment: ["platformDeployments", "selectedPlatformDeploymentId"],
+      tenantConnection: ["platformConnections", "selectedTenantConnectionId"],
+      catalogDeployment: ["platformDeployments", "selectedCatalogDeploymentId"],
+      configuration: ["configurations", "selectedConfigurationId"],
+      tenantDeployment: ["deployments", "selectedDeploymentId"],
+      routingPolicy: ["routingPolicies", "selectedRoutingPolicyId"],
+    };
+    const [collection, selectedKey] = mapping[target] || [];
+    if (!collection || !modelItem(collection, id)) return { ok: false, reason: "MODEL_ITEM_NOT_FOUND" };
+    return commitState({ ...state, models: { ...state.models, [selectedKey]: id } });
+  }
+
+  function replaceModelItem(collection, item, selection = {}) {
+    return {
+      ...state,
+      models: {
+        ...state.models,
+        ...selection,
+        [collection]: state.models[collection].map(current => current.id === item.id ? item : current),
+      },
+    };
+  }
+
+  function safeRuntimeOrigin(value) {
+    try {
+      const endpoint = new URL(String(value || ""));
+      const hostname = endpoint.hostname.toLowerCase();
+      const privateIpv4 = /^(127\.|10\.|192\.168\.|169\.254\.|172\.(1[6-9]|2\d|3[01])\.)/;
+      if (
+        endpoint.protocol !== "https:" ||
+        !hostname ||
+        hostname === "localhost" ||
+        hostname.endsWith(".local") ||
+        hostname === "::1" ||
+        privateIpv4.test(hostname)
+      ) {
+        return null;
+      }
+      return endpoint.origin;
+    } catch {
+      return null;
+    }
+  }
+
+  /** 访问密钥仅参与当前校验，不进入返回对象、状态或持久化快照。 */
+  function createPlatformModelConnection(input = {}, actorAccountId) {
+    if (!canManagePlatformModels(actorAccountId)) return { ok: false, reason: "FORBIDDEN" };
+    const name = typeof input.name === "string" ? input.name.trim() : "";
+    const runtimeOrigin = safeRuntimeOrigin(input.runtimeBaseUrl);
+    const capability = String(input.capability || "CHAT");
+    if (name.length < 2 || name.length > 80) return { ok: false, reason: "CONNECTION_NAME_INVALID" };
+    if (!runtimeOrigin) return { ok: false, reason: "UNSAFE_RUNTIME_ENDPOINT" };
+    if (!MODEL_CAPABILITIES.includes(capability)) return { ok: false, reason: "MODEL_CAPABILITY_INVALID" };
+    if (typeof input.accessKey !== "string" || input.accessKey.length < 8) return { ok: false, reason: "ACCESS_KEY_REQUIRED" };
+    if (state.models.platformConnections.some(item => item.name === name)) return { ok: false, reason: "CONNECTION_NAME_CONFLICT" };
+    const connection = {
+      id: `pc-custom-${state.models.platformConnections.length + 1}`,
+      name,
+      providerKind: "OPENAI_COMPATIBLE",
+      runtimeProtocol: capability === "RERANK" ? "VENDOR_POST_PROCESSOR" : "OPENAI_COMPATIBLE",
+      runtimeOrigin,
+      capability,
+      status: "DRAFT",
+      version: 1,
+      authenticationState: "CONFIGURED",
+      lastProbe: null,
+      discoveredModels: [],
+    };
+    const saved = commitState({
+      ...state,
+      models: {
+        ...state.models,
+        platformConnections: [...state.models.platformConnections, connection],
+        selectedPlatformConnectionId: connection.id,
+      },
+    });
+    return saved.ok ? { ...saved, connection: clone(connection) } : saved;
+  }
+
+  function probePlatformModelConnection(connectionId, actorAccountId, options = {}) {
+    if (!canManagePlatformModels(actorAccountId)) return { ok: false, reason: "FORBIDDEN" };
+    const current = modelItem("platformConnections", connectionId);
+    if (!current) return { ok: false, reason: "CONNECTION_NOT_FOUND" };
+    const failed = options.fail === true;
+    const modelName = {
+      CHAT: "企业对话模型候选",
+      EMBEDDING: "企业向量模型候选",
+      RERANK: "企业重排模型候选",
+    }[current.capability];
+    const published = current.status === "PUBLISHED";
+    const candidateModels = [{
+      id: `model-${current.capability.toLowerCase()}-${current.id.replace("pc-", "")}`,
+      name: modelName,
+      capability: current.capability,
+      ...(current.capability === "EMBEDDING" ? { embeddingDimension: 1536 } : {}),
+    }];
+    const connection = {
+      ...current,
+      status: failed ? published ? "PUBLISHED" : "FAILED" : published ? "PUBLISHED" : "VERIFIED",
+      lastProbe: "刚刚",
+      probeResult: failed
+        ? published ? "探测失败，已发布版本继续服务。" : "连接失败，未发布任何能力。"
+        : "HTTPS、鉴权和能力探测通过。",
+      discoveredModels: published ? current.discoveredModels : failed ? [] : candidateModels,
+    };
+    const saved = commitState(replaceModelItem("platformConnections", connection));
+    return saved.ok ? { ...saved, connection: clone(connection) } : saved;
+  }
+
+  function publishPlatformModelConnection(connectionId, actorAccountId) {
+    if (!canManagePlatformModels(actorAccountId)) return { ok: false, reason: "FORBIDDEN" };
+    const current = modelItem("platformConnections", connectionId);
+    if (!current) return { ok: false, reason: "CONNECTION_NOT_FOUND" };
+    if (current.status !== "VERIFIED") return { ok: false, reason: "CONNECTION_NOT_VERIFIED" };
+    const connection = { ...current, status: "PUBLISHED", publishedAt: "刚刚" };
+    const saved = commitState(replaceModelItem("platformConnections", connection));
+    return saved.ok ? { ...saved, connection: clone(connection) } : saved;
+  }
+
+  function createPlatformModelDeployment(input = {}, actorAccountId) {
+    if (!canManagePlatformModels(actorAccountId)) return { ok: false, reason: "FORBIDDEN" };
+    const connection = modelItem("platformConnections", input.connectionId);
+    if (!connection || connection.status !== "PUBLISHED") return { ok: false, reason: "CONNECTION_NOT_PUBLISHED" };
+    const model = connection.discoveredModels.find(item => item.id === input.modelId);
+    if (!model) return { ok: false, reason: "DISCOVERED_MODEL_NOT_FOUND" };
+    const name = typeof input.name === "string" ? input.name.trim() : "";
+    if (name.length < 2 || name.length > 80) return { ok: false, reason: "DEPLOYMENT_NAME_INVALID" };
+    const tenantIds = [...new Set(Array.isArray(input.tenantIds) ? input.tenantIds : [])]
+      .filter(tenantId => Boolean(tenantById(tenantId)));
+    if (!tenantIds.length) return { ok: false, reason: "TENANT_AUTHORIZATION_REQUIRED" };
+    const deployment = {
+      id: `pd-custom-${state.models.platformDeployments.length + 1}`,
+      name,
+      connectionId: connection.id,
+      modelId: model.id,
+      capability: model.capability,
+      status: "DRAFT",
+      tenantIds,
+      residency: "华东受控区",
+      verifiedAt: null,
+    };
+    const saved = commitState({
+      ...state,
+      models: {
+        ...state.models,
+        platformDeployments: [...state.models.platformDeployments, deployment],
+        selectedPlatformDeploymentId: deployment.id,
+      },
+    });
+    return saved.ok ? { ...saved, deployment: clone(deployment) } : saved;
+  }
+
+  function verifyPlatformModelDeployment(deploymentId, actorAccountId, options = {}) {
+    if (!canManagePlatformModels(actorAccountId)) return { ok: false, reason: "FORBIDDEN" };
+    const current = modelItem("platformDeployments", deploymentId);
+    if (!current) return { ok: false, reason: "DEPLOYMENT_NOT_FOUND" };
+    if (!["DRAFT", "FAILED"].includes(current.status)) return { ok: false, reason: "DEPLOYMENT_NOT_VERIFIABLE" };
+    const deployment = {
+      ...current,
+      status: options.fail === true ? "FAILED" : "VERIFIED",
+      verifiedAt: "刚刚",
+      verificationResult: options.fail === true ? "能力验证失败，未进入授权目录。" : "能力、预算和安全样本通过。",
+    };
+    const saved = commitState(replaceModelItem("platformDeployments", deployment));
+    return saved.ok ? { ...saved, deployment: clone(deployment) } : saved;
+  }
+
+  function publishPlatformModelDeployment(deploymentId, actorAccountId) {
+    if (!canManagePlatformModels(actorAccountId)) return { ok: false, reason: "FORBIDDEN" };
+    const current = modelItem("platformDeployments", deploymentId);
+    if (!current) return { ok: false, reason: "DEPLOYMENT_NOT_FOUND" };
+    if (current.status !== "VERIFIED") return { ok: false, reason: "DEPLOYMENT_NOT_VERIFIED" };
+    const deployment = { ...current, status: "PUBLISHED", publishedAt: "刚刚" };
+    const saved = commitState(replaceModelItem("platformDeployments", deployment));
+    return saved.ok ? { ...saved, deployment: clone(deployment) } : saved;
+  }
+
+  /** 租户发现只投影平台已发布且显式授权给当前租户的部署。 */
+  function discoverTenantModels(tenantId, connectionId, actorAccountId) {
+    if (!canManageModels(tenantId, actorAccountId)) return { ok: false, reason: "FORBIDDEN" };
+    const connection = modelItem("platformConnections", connectionId);
+    if (!connection || connection.status !== "PUBLISHED") return { ok: false, reason: "CONNECTION_NOT_AVAILABLE" };
+    const models = state.models.platformDeployments.filter(item =>
+      item.connectionId === connectionId &&
+      item.status === "PUBLISHED" &&
+      item.tenantIds.includes(tenantId)
+    );
+    const discovery = {
+      tenantId,
+      connectionId,
+      status: "COMPLETE",
+      deploymentIds: models.map(item => item.id),
+      updatedAt: "刚刚",
+    };
+    const discoveries = [
+      ...state.models.tenantDiscoveries.filter(item => !(item.tenantId === tenantId && item.connectionId === connectionId)),
+      discovery,
+    ];
+    const saved = commitState({
+      ...state,
+      models: {
+        ...state.models,
+        tenantDiscoveries: discoveries,
+        selectedTenantConnectionId: connectionId,
+        selectedCatalogDeploymentId: models[0]?.id ?? null,
+      },
+    });
+    return saved.ok ? { ...saved, discovery: clone(discovery), models: clone(models) } : saved;
+  }
+
+  function createTenantModelConfiguration(tenantId, input = {}, actorAccountId) {
+    if (!canManageModels(tenantId, actorAccountId)) return { ok: false, reason: "FORBIDDEN" };
+    const platformDeployment = modelItem("platformDeployments", input.platformDeploymentId);
+    if (
+      !platformDeployment ||
+      platformDeployment.status !== "PUBLISHED" ||
+      !platformDeployment.tenantIds.includes(tenantId)
+    ) {
+      return { ok: false, reason: "MODEL_NOT_AUTHORIZED" };
+    }
+    const name = typeof input.name === "string" ? input.name.trim() : "";
+    if (name.length < 2 || name.length > 80) return { ok: false, reason: "CONFIGURATION_NAME_INVALID" };
+    if (state.models.configurations.some(item => item.tenantId === tenantId && item.name === name)) {
+      return { ok: false, reason: "CONFIGURATION_NAME_CONFLICT" };
+    }
+    const configuration = {
+      id: `cfg-custom-${state.models.configurations.length + 1}`,
+      tenantId,
+      name,
+      platformDeploymentId: platformDeployment.id,
+      capability: platformDeployment.capability,
+      status: "DRAFT",
+      activeRevision: null,
+      pendingRevision: {
+        number: 1,
+        status: "DRAFT",
+        parameters: modelParameters(platformDeployment.capability),
+        changedFields: ["INITIAL_CONFIGURATION"],
+      },
+      parameters: null,
+      authenticationState: "PLATFORM_MANAGED",
+      updatedAt: "刚刚",
+    };
+    const saved = commitState({
+      ...state,
+      models: {
+        ...state.models,
+        configurations: [...state.models.configurations, configuration],
+        selectedConfigurationId: configuration.id,
+      },
+    });
+    return saved.ok ? { ...saved, configuration: clone(configuration) } : saved;
+  }
+
+  function createTenantModelConfigurationRevision(configurationId, input = {}, actorAccountId) {
+    const current = modelItem("configurations", configurationId);
+    if (!current) return { ok: false, reason: "CONFIGURATION_NOT_FOUND" };
+    if (!canManageModels(current.tenantId, actorAccountId)) return { ok: false, reason: "FORBIDDEN" };
+    if (current.status !== "ACTIVE" || current.pendingRevision) return { ok: false, reason: "CONFIGURATION_REVISION_CONFLICT" };
+    const parameters = modelParameters(current.capability, { ...current.parameters, ...input });
+    const changedFields = Object.keys(parameters).filter(key => parameters[key] !== current.parameters?.[key]);
+    if (!changedFields.length) return { ok: false, reason: "CONFIGURATION_CHANGE_REQUIRED" };
+    if (
+      current.capability === "EMBEDDING" &&
+      (!Number.isSafeInteger(parameters.embeddingDimension) ||
+        parameters.embeddingDimension < 384 ||
+        parameters.embeddingDimension > 4096 ||
+        !["COSINE", "IP", "L2"].includes(parameters.distanceMetric))
+    ) {
+      return { ok: false, reason: "EMBEDDING_CONFIGURATION_INVALID" };
+    }
+    const configuration = {
+      ...current,
+      pendingRevision: {
+        number: current.activeRevision + 1,
+        status: "DRAFT",
+        parameters,
+        changedFields,
+      },
+      updatedAt: "刚刚",
+    };
+    const saved = commitState(replaceModelItem("configurations", configuration, { selectedConfigurationId: configuration.id }));
+    return saved.ok ? { ...saved, configuration: clone(configuration) } : saved;
+  }
+
+  /** 新访问密钥不落状态；待验证版本失败时旧活动修订继续服务。 */
+  function rotateTenantModelAccessKey(configurationId, accessKey, actorAccountId) {
+    const current = modelItem("configurations", configurationId);
+    if (!current) return { ok: false, reason: "CONFIGURATION_NOT_FOUND" };
+    if (!canManageModels(current.tenantId, actorAccountId)) return { ok: false, reason: "FORBIDDEN" };
+    if (typeof accessKey !== "string" || accessKey.length < 8) return { ok: false, reason: "ACCESS_KEY_REQUIRED" };
+    if (current.status !== "ACTIVE" || current.pendingRevision) return { ok: false, reason: "CONFIGURATION_REVISION_CONFLICT" };
+    const configuration = {
+      ...current,
+      pendingRevision: {
+        number: current.activeRevision + 1,
+        status: "DRAFT",
+        parameters: clone(current.parameters),
+        changedFields: ["ACCESS_KEY"],
+      },
+      authenticationState: "ROTATION_PENDING",
+      updatedAt: "刚刚",
+    };
+    const saved = commitState(replaceModelItem("configurations", configuration, { selectedConfigurationId: configuration.id }));
+    return saved.ok ? { ...saved, configuration: clone(configuration) } : saved;
+  }
+
+  function verifyTenantModelConfiguration(configurationId, actorAccountId, options = {}) {
+    const current = modelItem("configurations", configurationId);
+    if (!current) return { ok: false, reason: "CONFIGURATION_NOT_FOUND" };
+    if (!canManageModels(current.tenantId, actorAccountId)) return { ok: false, reason: "FORBIDDEN" };
+    if (!current.pendingRevision || !["DRAFT", "FAILED"].includes(current.pendingRevision.status)) {
+      return { ok: false, reason: "CONFIGURATION_NOT_VERIFIABLE" };
+    }
+    const configuration = {
+      ...current,
+      status: current.activeRevision ? "ACTIVE" : options.fail === true ? "DRAFT" : "VERIFIED",
+      pendingRevision: {
+        ...current.pendingRevision,
+        status: options.fail === true ? "FAILED" : "VERIFIED",
+        result: options.fail === true ? "验证失败，旧版本继续服务。" : "能力、限时调用和敏感输出检查通过。",
+      },
+      updatedAt: "刚刚",
+    };
+    const saved = commitState(replaceModelItem("configurations", configuration));
+    return saved.ok ? { ...saved, configuration: clone(configuration) } : saved;
+  }
+
+  function buildEmbeddingIndexCandidate(knowledgeBase, configuration, revision) {
+    if (!knowledgeBase.activeIndex || knowledgeBase.indexVersions.some(item => ["BUILDING", "EVALUATING"].includes(item.status))) {
+      return { knowledgeBase, effect: null };
+    }
+    const number = Math.max(0, ...knowledgeBase.indexVersions.map(item => Number(item.id.replace(/^idx-v/, "")) || 0)) + 1;
+    const active = knowledgeBase.indexVersions.find(item => item.id === knowledgeBase.activeIndex) || knowledgeBase.indexVersions[0];
+    const indexVersion = {
+      id: `idx-v${number}`,
+      status: "BUILDING",
+      stage: "MANIFEST_FREEZING",
+      trigger: "CONFIGURATION_CHANGE",
+      changedFields: clone(revision.changedFields),
+      reason: `Embedding 配置 ${configuration.name} v${revision.number} 已启用`,
+      config: {
+        ...(active?.config || indexConfig()),
+        embeddingModel: configuration.name,
+        embeddingDimension: revision.parameters.embeddingDimension,
+        normalization: revision.parameters.normalization,
+        distanceMetric: revision.parameters.distanceMetric.toLowerCase(),
+      },
+      progress: 10,
+      documents: knowledgeBase.documents,
+      chunks: null,
+      evaluationSet: "eval-set-v6",
+      evaluationQuestionCount: 100,
+      quality: null,
+      failedGates: [],
+      activeIndexAtCreation: knowledgeBase.activeIndex,
+      updatedAt: "刚刚",
+    };
+    return {
+      knowledgeBase: {
+        ...knowledgeBase,
+        status: "INDEXING",
+        updatedAt: "刚刚",
+        indexVersions: [indexVersion, ...knowledgeBase.indexVersions],
+      },
+      effect: { type: "FULL_INDEX_REBUILD_CREATED", knowledgeBaseId: knowledgeBase.id, indexVersionId: indexVersion.id },
+    };
+  }
+
+  /** 启用修订与其后续影响同次提交；Embedding 只建候选索引，不自动切换活动指针。 */
+  function enableTenantModelConfiguration(configurationId, actorAccountId) {
+    const current = modelItem("configurations", configurationId);
+    if (!current) return { ok: false, reason: "CONFIGURATION_NOT_FOUND" };
+    if (!canManageModels(current.tenantId, actorAccountId)) return { ok: false, reason: "FORBIDDEN" };
+    if (current.pendingRevision?.status !== "VERIFIED") return { ok: false, reason: "CONFIGURATION_NOT_VERIFIED" };
+    const platformDeployment = modelItem("platformDeployments", current.platformDeploymentId);
+    if (
+      !platformDeployment ||
+      platformDeployment.status !== "PUBLISHED" ||
+      !platformDeployment.tenantIds.includes(current.tenantId)
+    ) {
+      return { ok: false, reason: "MODEL_NOT_AUTHORIZED" };
+    }
+    const revision = current.pendingRevision;
+    const configuration = {
+      ...current,
+      status: "ACTIVE",
+      activeRevision: revision.number,
+      pendingRevision: null,
+      parameters: clone(revision.parameters),
+      authenticationState: "CONFIGURED",
+      updatedAt: "刚刚",
+    };
+    const effects = [];
+    let knowledgeBases = state.knowledgeBases;
+    if (configuration.capability === "EMBEDDING" && revision.changedFields.some(field => ["embeddingDimension", "distanceMetric", "normalization"].includes(field))) {
+      knowledgeBases = state.knowledgeBases.map(knowledgeBase => {
+        if (knowledgeBase.tenantId !== configuration.tenantId) return knowledgeBase;
+        const result = buildEmbeddingIndexCandidate(knowledgeBase, configuration, revision);
+        if (result.effect) effects.push(result.effect);
+        return result.knowledgeBase;
+      });
+    } else if (["CHAT", "RERANK"].includes(configuration.capability)) {
+      effects.push({ type: "ASSISTANT_REEVALUATION_REQUIRED", capability: configuration.capability, configurationId });
+    }
+    const nextState = replaceModelItem("configurations", configuration);
+    const saved = commitState({
+      ...nextState,
+      knowledgeBases,
+      models: {
+        ...nextState.models,
+        effects: [...state.models.effects, ...effects],
+      },
+    });
+    return saved.ok ? { ...saved, configuration: clone(configuration), effects: clone(effects) } : saved;
+  }
+
+  function createTenantModelDeployment(tenantId, input = {}, actorAccountId) {
+    if (!canManageModels(tenantId, actorAccountId)) return { ok: false, reason: "FORBIDDEN" };
+    const configuration = modelItem("configurations", input.configurationId);
+    if (!configuration || configuration.tenantId !== tenantId || configuration.status !== "ACTIVE") {
+      return { ok: false, reason: "CONFIGURATION_NOT_ACTIVE" };
+    }
+    const name = typeof input.name === "string" ? input.name.trim() : "";
+    if (name.length < 2 || name.length > 80) return { ok: false, reason: "DEPLOYMENT_NAME_INVALID" };
+    const deployment = {
+      id: `td-custom-${state.models.deployments.length + 1}`,
+      tenantId,
+      name,
+      configurationId: configuration.id,
+      capability: configuration.capability,
+      status: "DRAFT",
+      residency: "华东受控区",
+      assistantIds: [],
+      verifiedAt: null,
+    };
+    const saved = commitState({
+      ...state,
+      models: {
+        ...state.models,
+        deployments: [...state.models.deployments, deployment],
+        selectedDeploymentId: deployment.id,
+      },
+    });
+    return saved.ok ? { ...saved, deployment: clone(deployment) } : saved;
+  }
+
+  function verifyTenantModelDeployment(deploymentId, actorAccountId, options = {}) {
+    const current = modelItem("deployments", deploymentId);
+    if (!current) return { ok: false, reason: "DEPLOYMENT_NOT_FOUND" };
+    if (!canManageModels(current.tenantId, actorAccountId)) return { ok: false, reason: "FORBIDDEN" };
+    if (!["DRAFT", "FAILED"].includes(current.status)) return { ok: false, reason: "DEPLOYMENT_NOT_VERIFIABLE" };
+    const deployment = {
+      ...current,
+      status: options.fail === true ? "FAILED" : "VERIFIED",
+      verifiedAt: "刚刚",
+      verificationResult: options.fail === true ? "安全样本失败，部署未发布。" : "能力、预算、驻留和安全样本通过。",
+    };
+    const saved = commitState(replaceModelItem("deployments", deployment));
+    return saved.ok ? { ...saved, deployment: clone(deployment) } : saved;
+  }
+
+  function publishTenantModelDeployment(deploymentId, actorAccountId) {
+    const current = modelItem("deployments", deploymentId);
+    if (!current) return { ok: false, reason: "DEPLOYMENT_NOT_FOUND" };
+    if (!canManageModels(current.tenantId, actorAccountId)) return { ok: false, reason: "FORBIDDEN" };
+    if (current.status !== "VERIFIED") return { ok: false, reason: "DEPLOYMENT_NOT_VERIFIED" };
+    const deployment = { ...current, status: "PUBLISHED", publishedAt: "刚刚" };
+    const saved = commitState(replaceModelItem("deployments", deployment));
+    return saved.ok ? { ...saved, deployment: clone(deployment) } : saved;
+  }
+
+  function deactivateTenantModelDeployment(deploymentId, acknowledged, actorAccountId) {
+    const current = modelItem("deployments", deploymentId);
+    if (!current) return { ok: false, reason: "DEPLOYMENT_NOT_FOUND" };
+    if (!canManageModels(current.tenantId, actorAccountId)) return { ok: false, reason: "FORBIDDEN" };
+    if (current.status !== "PUBLISHED") return { ok: false, reason: "DEPLOYMENT_NOT_PUBLISHED" };
+    const routingPolicyIds = state.models.routingPolicies
+      .filter(policy => policy.primaryDeploymentId === deploymentId || policy.fallbackDeploymentId === deploymentId)
+      .map(policy => policy.id);
+    if ((current.assistantIds.length || routingPolicyIds.length) && acknowledged !== true) {
+      return {
+        ok: false,
+        reason: "IMPACT_ACK_REQUIRED",
+        assistantIds: clone(current.assistantIds),
+        routingPolicyIds: clone(routingPolicyIds),
+      };
+    }
+    const deployment = { ...current, status: "OFFLINE", offlineAt: "刚刚" };
+    const saved = commitState(replaceModelItem("deployments", deployment));
+    return saved.ok ? { ...saved, deployment: clone(deployment) } : saved;
+  }
+
+  function simulateRoutingPolicy(policyId, input = {}, actorAccountId) {
+    const current = modelItem("routingPolicies", policyId);
+    if (!current) return { ok: false, reason: "ROUTING_POLICY_NOT_FOUND" };
+    if (!canManageModels(current.tenantId, actorAccountId)) return { ok: false, reason: "FORBIDDEN" };
+    const primary = modelItem("deployments", input.primaryDeploymentId);
+    const fallback = modelItem("deployments", input.fallbackDeploymentId);
+    if (!primary || !fallback || primary.status !== "PUBLISHED" || fallback.status !== "PUBLISHED") {
+      return { ok: false, reason: "ROUTING_DEPLOYMENT_NOT_AVAILABLE" };
+    }
+    if (primary.tenantId !== current.tenantId || fallback.tenantId !== current.tenantId) {
+      return { ok: false, reason: "ROUTING_DEPLOYMENT_NOT_AVAILABLE" };
+    }
+    if (primary.id === fallback.id) return { ok: false, reason: "ROUTING_FALLBACK_DUPLICATE" };
+    if (primary.capability !== fallback.capability) return { ok: false, reason: "ROUTING_CAPABILITY_MISMATCH" };
+    if (primary.residency !== fallback.residency) return { ok: false, reason: "ROUTING_RESIDENCY_MISMATCH" };
+    const monthlyBudget = Number(input.monthlyBudget);
+    if (!Number.isFinite(monthlyBudget) || monthlyBudget <= 0) return { ok: false, reason: "ROUTING_BUDGET_INVALID" };
+    const policy = {
+      ...current,
+      primaryDeploymentId: primary.id,
+      fallbackDeploymentId: fallback.id,
+      monthlyBudget,
+      status: "READY_FOR_RELEASE",
+      simulation: { passed: 30, total: 30, estimatedBudget: Math.round(monthlyBudget * 0.72), p95Ms: 2180 },
+      updatedAt: "刚刚",
+    };
+    const saved = commitState(replaceModelItem("routingPolicies", policy));
+    return saved.ok ? { ...saved, policy: clone(policy) } : saved;
+  }
+
+  function publishRoutingPolicy(policyId, actorAccountId) {
+    const current = modelItem("routingPolicies", policyId);
+    if (!current) return { ok: false, reason: "ROUTING_POLICY_NOT_FOUND" };
+    if (!canManageModels(current.tenantId, actorAccountId)) return { ok: false, reason: "FORBIDDEN" };
+    if (current.status !== "READY_FOR_RELEASE" || current.simulation?.passed !== current.simulation?.total) {
+      return { ok: false, reason: "ROUTING_SIMULATION_REQUIRED" };
+    }
+    const policy = { ...current, status: "PUBLISHED", publishedAt: "刚刚", updatedAt: "刚刚" };
+    const saved = commitState(replaceModelItem("routingPolicies", policy));
+    return saved.ok ? { ...saved, policy: clone(policy) } : saved;
   }
 
   function replaceKnowledgeBase(knowledgeBase) {
@@ -2078,6 +2889,25 @@ export function createPrototypeStore(storage = browserStorage()) {
     recordIndexEvaluation,
     activateIndexVersion,
     cancelIndexBuild,
+    selectModelGovernanceItem,
+    createPlatformModelConnection,
+    probePlatformModelConnection,
+    publishPlatformModelConnection,
+    createPlatformModelDeployment,
+    verifyPlatformModelDeployment,
+    publishPlatformModelDeployment,
+    discoverTenantModels,
+    createTenantModelConfiguration,
+    createTenantModelConfigurationRevision,
+    rotateTenantModelAccessKey,
+    verifyTenantModelConfiguration,
+    enableTenantModelConfiguration,
+    createTenantModelDeployment,
+    verifyTenantModelDeployment,
+    publishTenantModelDeployment,
+    deactivateTenantModelDeployment,
+    simulateRoutingPolicy,
+    publishRoutingPolicy,
     createTenant,
     addMember,
     findMember,

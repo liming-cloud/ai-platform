@@ -99,6 +99,11 @@ test("低于已用量拒绝并定位错误，保存失败不能假称成功", ()
 test("有无帮助说明的同排输入框顶部和高度一致", () => visit("alignment", async page => {
   for (const screen of ["assistant-create", "platform-tenant-create", "model-configuration-detail"]) {
     await page.goto(url(screen));
+    if (screen === "model-configuration-detail") {
+      await page.goto(url("model-configurations"));
+      await page.getByRole("button", { name: "查看员工服务对话配置", exact: true }).click();
+      await page.getByRole("button", { name: "新建配置版本", exact: true }).click();
+    }
     await page.locator(".wizard-field-grid").first().waitFor();
     const controls = page.locator(".wizard-field-grid").first().locator("input,select,textarea");
     const first = await controls.nth(0).boundingBox();

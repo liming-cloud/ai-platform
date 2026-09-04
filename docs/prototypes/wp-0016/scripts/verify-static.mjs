@@ -68,6 +68,17 @@ const specialized = new Map([
   ["knowledge-directory", "renderKnowledgeDirectory"],
   ["knowledge-sources", "renderKnowledgeSources"],
   ["index-detail", "renderIndexDetail"],
+  ["platform-model-connections", "renderModelGovernance"],
+  ["platform-model-connection-detail", "renderModelGovernance"],
+  ["platform-model-deployments", "renderModelGovernance"],
+  ["platform-model-deployment-detail", "renderModelGovernance"],
+  ["model-providers", "renderModelGovernance"],
+  ["model-provider-detail", "renderModelGovernance"],
+  ["model-configurations", "renderModelGovernance"],
+  ["model-configuration-detail", "renderModelGovernance"],
+  ["model-deployments", "renderModelGovernance"],
+  ["model-deployment-detail", "renderModelGovernance"],
+  ["routing-policies", "renderModelGovernance"],
   ["assistant-release", "renderAssistantRelease"],
 ]);
 const failures = [];

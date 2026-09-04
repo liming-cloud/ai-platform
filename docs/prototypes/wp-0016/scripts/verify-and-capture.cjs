@@ -279,6 +279,70 @@ async function runFlow(page, start, steps, label) {
   }
 }
 
+async function validateModelGovernanceFlow(page) {
+  await openScenario(page, "platform-model-connections", "success");
+  await page.getByRole("button", { name: "新增供应商连接", exact: true }).click();
+  let dialog = page.locator("#platform-connection-dialog");
+  await dialog.getByLabel("连接名称").fill("全矩阵对话连接");
+  await dialog.getByLabel("运行地址").fill("https://matrix-models.example.invalid/v1");
+  await dialog.getByLabel("一次性访问密钥").fill("matrix-ephemeral-key");
+  await dialog.getByRole("button", { name: "保存连接草稿", exact: true }).click();
+  await page.locator('main[data-screen="platform-model-connection-detail"]').waitFor();
+  assert(
+    !(await page.locator("body").innerText()).includes("matrix-ephemeral-key"),
+    "平台模型连接回显了一次性访问密钥",
+  );
+  await page.getByRole("button", { name: "执行连接探测", exact: true }).click();
+  await page.getByRole("button", { name: "发布连接", exact: true }).click();
+
+  await openScenario(page, "platform-model-deployments", "success");
+  await page.getByRole("button", { name: "建立部署草稿", exact: true }).click();
+  dialog = page.locator("#platform-deployment-dialog");
+  await dialog.getByLabel("部署名称").fill("全矩阵对话模型");
+  await dialog.getByLabel("已发现模型").selectOption({ label: "企业对话模型候选 / Chat" });
+  await dialog.getByRole("button", { name: "保存部署草稿", exact: true }).click();
+  await page.locator('main[data-screen="platform-model-deployment-detail"]').waitFor();
+  await page.getByRole("button", { name: "执行能力验证", exact: true }).click();
+  await page.getByRole("button", { name: "发布部署", exact: true }).click();
+
+  await openScenario(page, "model-providers", "success");
+  await page.locator("#tenant-discovery-connection").selectOption({ label: "全矩阵对话连接 / Chat" });
+  await page.getByRole("button", { name: "执行模型发现", exact: true }).click();
+  await page.locator('main[data-screen="model-provider-detail"]').waitFor();
+  assert(
+    await page.getByText("全矩阵对话模型", { exact: true }).isVisible(),
+    "租户发现结果缺少平台已授权模型",
+  );
+  await page.getByRole("button", { name: "使用此模型", exact: true }).click();
+  await page.locator('main[data-screen="model-configurations"]').waitFor();
+
+  await page.getByRole("button", { name: "创建模型配置", exact: true }).click();
+  dialog = page.locator("#model-configuration-dialog");
+  await dialog.getByLabel("配置名称").fill("全矩阵租户对话配置");
+  await dialog.getByRole("button", { name: "保存配置草稿", exact: true }).click();
+  await page.locator('main[data-screen="model-configuration-detail"]').waitFor();
+  await page.getByRole("button", { name: "执行配置验证", exact: true }).click();
+  await page.getByRole("button", { name: "启用配置", exact: true }).click();
+
+  await openScenario(page, "model-deployments", "success");
+  await page.getByRole("button", { name: "建立部署草稿", exact: true }).click();
+  dialog = page.locator("#tenant-deployment-dialog");
+  await dialog.getByLabel("部署名称").fill("全矩阵租户对话部署");
+  await dialog.getByLabel("启用配置").selectOption({ label: "全矩阵租户对话配置 / Chat" });
+  await dialog.getByRole("button", { name: "保存部署草稿", exact: true }).click();
+  await page.locator('main[data-screen="model-deployment-detail"]').waitFor();
+  await page.getByRole("button", { name: "执行部署验证", exact: true }).click();
+  await page.getByRole("button", { name: "发布部署", exact: true }).click();
+
+  await openScenario(page, "routing-policies", "success");
+  await page.getByRole("button", { name: "运行路由模拟", exact: true }).click();
+  await page.getByRole("button", { name: "发布路由策略", exact: true }).click();
+  assert(
+    (await page.locator("[data-model-status]").getAttribute("data-model-status")) === "PUBLISHED",
+    "路由策略未形成已发布版本",
+  );
+}
+
 async function validateManagementFlows(page) {
   await page.setViewportSize(viewports[0]);
   await openScenario(page, "platform-tenant-create", "success", true);
@@ -328,19 +392,7 @@ async function validateManagementFlows(page) {
     ["[data-primary-action]", "index-rebuild"],
     ["[data-primary-action]", "index-detail"],
   ], "处理结果与索引导航");
-  await runFlow(page, "platform-model-connections", [
-    ["[data-primary-action]", "platform-model-connection-detail"],
-    ["[data-primary-action]", "platform-model-deployments"],
-    ["[data-primary-action]", "platform-model-deployment-detail"],
-  ], "平台模型供应链导航");
-  await runFlow(page, "model-providers", [
-    ["[data-primary-action]", "model-provider-detail"],
-    ["[data-primary-action]", "model-configurations"],
-    ["[data-primary-action]", "model-configuration-detail"],
-    ["[data-primary-action]", "model-deployments"],
-    ["[data-primary-action]", "model-deployment-detail"],
-    ["[data-primary-action]", "routing-policies"],
-  ], "租户模型导航");
+  await validateModelGovernanceFlow(page);
   await runFlow(page, "assistants-directory", [
     ["[data-primary-action]", "assistant-create"],
     ["[data-primary-action]", "assistant-draft"],
