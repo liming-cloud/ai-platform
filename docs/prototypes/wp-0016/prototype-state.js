@@ -53,6 +53,10 @@ const SCREEN_FEATURE = Object.freeze({
   "evaluation-run-detail": "evaluationGovernance",
   "evaluation-comparison": "evaluationGovernance",
   "evaluation-failure-analysis": "evaluationGovernance",
+  "access-policies": "assistantDelivery",
+  "access-policy-detail": "assistantDelivery",
+  "governance-query": "evaluationGovernance",
+  "query-diagnostic": "evaluationGovernance",
 });
 
 export const DEFAULT_QUOTAS = Object.freeze({
@@ -838,6 +842,127 @@ function defaultEvaluationGovernance() {
   };
 }
 
+/**
+ * 访问策略只表达普通成员对已发布助手的使用范围；知识库由助手的永久关联关系派生。
+ * 查询治理仅保存合成的脱敏终态事实，不保存问题、回答、引用正文或供应商错误。
+ */
+function defaultAccessGovernance() {
+  return {
+    accessPolicies: [
+      {
+        id: "access-policy-all-employees",
+        tenantId: DEFAULT_TENANT_ID,
+        name: "全员制度访问",
+        publishedVersionId: "access-policy-v5",
+        versions: [
+          {
+            id: "access-policy-v5",
+            number: 5,
+            status: "PUBLISHED",
+            assistantId: "assistant-employee-service",
+            knowledgeBaseId: "kb-handbook",
+            memberAccountIds: ["account-shen"],
+            preview: { passed: true, allowCount: 24, denyCount: 8 },
+            publishedAt: "昨天 17:12",
+          },
+          {
+            id: "access-policy-v6",
+            number: 6,
+            status: "DRAFT",
+            assistantId: "assistant-employee-service",
+            knowledgeBaseId: "kb-handbook",
+            memberAccountIds: ["account-shen"],
+            preview: null,
+            updatedAt: "今天 16:24",
+          },
+        ],
+      },
+    ],
+    selectedPolicyId: "access-policy-all-employees",
+    selectedPolicyVersionId: "access-policy-v6",
+    queryQuota: {
+      dailyAcceptedLimit: 1000,
+      maxConcurrent: 20,
+      leaseSeconds: 120,
+      timezone: "UTC",
+      source: "部署配置",
+    },
+    queryUsage: {
+      acceptedToday: 252,
+      remainingToday: 748,
+      activeNow: 3,
+      refusedToday: 20,
+    },
+    queryRuns: [
+      {
+        id: "query-run-refused-042",
+        reference: "Q-042",
+        tenantId: DEFAULT_TENANT_ID,
+        assistantName: "员工服务助手",
+        outcome: "REFUSED",
+        durationMs: 641,
+        occurredAt: "今天 16:42",
+        diagnostic: {
+          candidateCollection: "FILTERED",
+          candidateCount: 0,
+          retrievalAuthorization: "AUTHORIZED",
+          chatModelRevision: "chat-r13",
+          embeddingModelRevision: "embed-r8",
+          citationValidation: "NOT_APPLICABLE",
+          stage: "INSUFFICIENT_EVIDENCE",
+          outcome: "REFUSED",
+          historical: true,
+          createdAt: "今天 16:42",
+        },
+      },
+      {
+        id: "query-run-answered-041",
+        reference: "Q-041",
+        tenantId: DEFAULT_TENANT_ID,
+        assistantName: "客户支持助手",
+        outcome: "ANSWERED",
+        durationMs: 524,
+        occurredAt: "今天 16:38",
+        diagnostic: {
+          candidateCollection: "FILTERED",
+          candidateCount: 30,
+          retrievalAuthorization: "AUTHORIZED",
+          chatModelRevision: "chat-r11",
+          embeddingModelRevision: "embed-r7",
+          citationValidation: "VALIDATED",
+          stage: "COMPLETED",
+          outcome: "ANSWERED",
+          historical: true,
+          createdAt: "今天 16:38",
+        },
+      },
+      {
+        id: "query-run-failed-040",
+        reference: "Q-040",
+        tenantId: DEFAULT_TENANT_ID,
+        assistantName: "办公地点助手",
+        outcome: "FAILED",
+        durationMs: 812,
+        occurredAt: "今天 16:31",
+        diagnostic: {
+          candidateCollection: "NOT_COMPLETED",
+          candidateCount: null,
+          retrievalAuthorization: "AUTHORIZED",
+          chatModelRevision: "chat-r13",
+          embeddingModelRevision: "embed-r8",
+          citationValidation: "NOT_APPLICABLE",
+          stage: "RETRIEVAL_FAILED",
+          outcome: "FAILED",
+          historical: true,
+          createdAt: "今天 16:31",
+        },
+      },
+    ],
+    selectedQueryRunId: "query-run-refused-042",
+    queryRemediations: [],
+  };
+}
+
 function defaultKnowledgeBases() {
   return [
     {
@@ -986,6 +1111,7 @@ function defaultState() {
     models: defaultModelGovernance(),
     assistantDelivery: defaultAssistantDelivery(),
     evaluation: defaultEvaluationGovernance(),
+    accessGovernance: defaultAccessGovernance(),
     selectedKnowledgeBaseId: "kb-handbook",
     selectedKnowledgeSourceId: "src-policy-pdf",
     selectedIndexVersionId: "idx-v12",
@@ -1100,6 +1226,9 @@ function initialState(storage) {
     parsed.evaluation = parsed.evaluation && Array.isArray(parsed.evaluation.datasets)
       ? parsed.evaluation
       : defaultEvaluationGovernance();
+    parsed.accessGovernance = parsed.accessGovernance && Array.isArray(parsed.accessGovernance.accessPolicies)
+      ? parsed.accessGovernance
+      : defaultAccessGovernance();
     const fallbackKnowledgeBases = defaultKnowledgeBases();
     parsed.knowledgeBases = (Array.isArray(parsed.knowledgeBases)
       ? parsed.knowledgeBases
@@ -2504,6 +2633,225 @@ export function createPrototypeStore(storage = browserStorage()) {
         remediations: [...state.evaluation.remediations, remediation],
         selectedRunId: runId,
         selectedFailureCategory: category,
+      },
+    });
+    return saved.ok ? { ...saved, replayed: false, remediation: clone(remediation) } : saved;
+  }
+
+  function canManageAccessPolicies(tenantId, actorAccountId) {
+    return canManageAssistants(tenantId, actorAccountId);
+  }
+
+  function accessPolicyVersionContext(versionId) {
+    for (const policy of state.accessGovernance.accessPolicies) {
+      const version = policy.versions.find(item => item.id === versionId);
+      if (version) return { policy, version };
+    }
+    return null;
+  }
+
+  function replaceAccessPolicy(policy, selection = {}) {
+    return {
+      ...state,
+      accessGovernance: {
+        ...state.accessGovernance,
+        ...selection,
+        accessPolicies: state.accessGovernance.accessPolicies.map(item => item.id === policy.id ? policy : item),
+      },
+    };
+  }
+
+  /** 访问策略不单独选择知识库，防止策略范围与助手的永久知识库关系发生错配。 */
+  function saveAccessPolicyDraft(versionId, input = {}, actorAccountId) {
+    const context = accessPolicyVersionContext(versionId);
+    if (!context) return { ok: false, reason: "ACCESS_POLICY_VERSION_NOT_FOUND" };
+    const { policy, version } = context;
+    if (!canManageAccessPolicies(policy.tenantId, actorAccountId)) return { ok: false, reason: "FORBIDDEN" };
+    if (version.status !== "DRAFT") return { ok: false, reason: "ACCESS_POLICY_VERSION_IMMUTABLE" };
+    const assistant = assistantById(String(input.assistantId || ""));
+    const publishedVersion = assistant?.versions.find(item => item.id === assistant.publishedVersionId && item.status === "PUBLISHED");
+    if (!assistant || assistant.tenantId !== policy.tenantId || !publishedVersion) {
+      return { ok: false, reason: "ACCESS_POLICY_ASSISTANT_INVALID" };
+    }
+    const memberAccountIds = [...new Set(Array.isArray(input.memberAccountIds) ? input.memberAccountIds.map(String) : [])];
+    const membersValid = memberAccountIds.length > 0 && memberAccountIds.every(accountId => {
+      const member = memberById(policy.tenantId, accountId);
+      const account = accountById(accountId);
+      return member?.role === "ordinaryMember" && member.status === "active" && account?.status === "available";
+    });
+    if (!membersValid) return { ok: false, reason: "ACCESS_POLICY_MEMBER_INVALID" };
+    const nextVersion = {
+      ...version,
+      assistantId: assistant.id,
+      knowledgeBaseId: assistant.knowledgeBaseId,
+      memberAccountIds,
+      preview: null,
+      updatedAt: "刚刚",
+    };
+    const nextPolicy = { ...policy, versions: policy.versions.map(item => item.id === version.id ? nextVersion : item) };
+    const saved = commitState(replaceAccessPolicy(nextPolicy, {
+      selectedPolicyId: policy.id,
+      selectedPolicyVersionId: version.id,
+    }));
+    return saved.ok ? { ...saved, version: clone(nextVersion) } : saved;
+  }
+
+  function previewAccessPolicyVersion(versionId, actorAccountId) {
+    const context = accessPolicyVersionContext(versionId);
+    if (!context) return { ok: false, reason: "ACCESS_POLICY_VERSION_NOT_FOUND" };
+    const { policy, version } = context;
+    if (!canManageAccessPolicies(policy.tenantId, actorAccountId)) return { ok: false, reason: "FORBIDDEN" };
+    if (version.status !== "DRAFT") return { ok: false, reason: "ACCESS_POLICY_VERSION_IMMUTABLE" };
+    const preview = {
+      passed: true,
+      allowCount: 24,
+      denyCount: 8,
+      checks: [
+        "已选活动普通成员可以看到并使用助手",
+        "未选成员不能通过目录或直接路由使用助手",
+        "引用访问沿用同一助手授权范围",
+        "权限撤销后历史和引用立即失败关闭",
+      ],
+      generatedAt: "刚刚",
+    };
+    const nextVersion = { ...version, preview, updatedAt: "刚刚" };
+    const nextPolicy = { ...policy, versions: policy.versions.map(item => item.id === version.id ? nextVersion : item) };
+    const saved = commitState(replaceAccessPolicy(nextPolicy));
+    return saved.ok ? { ...saved, version: clone(nextVersion) } : saved;
+  }
+
+  /** 发布后以新版本替换同一助手的成员范围；移除授权同样即时作用于历史和引用入口。 */
+  function publishAccessPolicyVersion(versionId, actorAccountId) {
+    const context = accessPolicyVersionContext(versionId);
+    if (!context) return { ok: false, reason: "ACCESS_POLICY_VERSION_NOT_FOUND" };
+    const { policy, version } = context;
+    if (!canManageAccessPolicies(policy.tenantId, actorAccountId)) return { ok: false, reason: "FORBIDDEN" };
+    if (version.status !== "DRAFT") return { ok: false, reason: "ACCESS_POLICY_VERSION_IMMUTABLE" };
+    if (!version.preview?.passed) return { ok: false, reason: "ACCESS_POLICY_PREVIEW_REQUIRED" };
+    const previousPublished = policy.versions.find(item => item.id === policy.publishedVersionId);
+    const versions = policy.versions.map(item => {
+      if (item.id === version.id) return { ...item, status: "PUBLISHED", publishedAt: "刚刚" };
+      if (item.id === policy.publishedVersionId && item.status === "PUBLISHED") return { ...item, status: "SUPERSEDED" };
+      return item;
+    });
+    const nextVersion = versions.find(item => item.id === version.id);
+    const nextPolicy = { ...policy, publishedVersionId: version.id, versions };
+    const next = replaceAccessPolicy(nextPolicy);
+    next.tenants = next.tenants.map(tenant => tenant.id !== policy.tenantId ? tenant : {
+      ...tenant,
+      members: tenant.members.map(member => member.role !== "ordinaryMember" ? member : {
+        ...member,
+        assistantIds: version.memberAccountIds.includes(member.accountId)
+          ? [...new Set([
+              ...member.assistantIds.filter(assistantId => assistantId !== previousPublished?.assistantId),
+              version.assistantId,
+            ])]
+          : member.assistantIds.filter(assistantId =>
+              assistantId !== version.assistantId && assistantId !== previousPublished?.assistantId),
+      }),
+    });
+    const saved = commitState(next);
+    return saved.ok ? { ...saved, policy: clone(nextPolicy), version: clone(nextVersion) } : saved;
+  }
+
+  function getAccessPolicyProjection(policyId, actorAccountId) {
+    const policy = state.accessGovernance.accessPolicies.find(item => item.id === policyId);
+    if (!policy) return { ok: false, reason: "ACCESS_POLICY_NOT_FOUND" };
+    if (!canManageAccessPolicies(policy.tenantId, actorAccountId)) return { ok: false, reason: "FORBIDDEN" };
+    const version = policy.versions.find(item => item.id === state.accessGovernance.selectedPolicyVersionId) || policy.versions.at(-1);
+    const assistant = assistantById(version.assistantId);
+    const knowledgeBase = knowledgeBaseById(version.knowledgeBaseId);
+    const members = version.memberAccountIds.map(accountId => {
+      const account = accountById(accountId);
+      return { accountId, name: account?.name || "不可用成员" };
+    });
+    return {
+      ok: true,
+      policy: { id: policy.id, name: policy.name, publishedVersionId: policy.publishedVersionId },
+      version: clone(version),
+      assistant: { id: assistant.id, name: assistant.name, publishedVersionId: assistant.publishedVersionId },
+      knowledgeBase: { id: knowledgeBase.id, name: knowledgeBase.name },
+      members,
+    };
+  }
+
+  /** 查询治理目录只投影配额与脱敏终态摘要，模型修订只在单次受权诊断内披露。 */
+  function getQueryGovernanceProjection(tenantId, actorAccountId) {
+    if (!canManageEvaluations(tenantId, actorAccountId)) return { ok: false, reason: "FORBIDDEN" };
+    return {
+      ok: true,
+      quota: clone(state.accessGovernance.queryQuota),
+      usage: clone(state.accessGovernance.queryUsage),
+      runs: state.accessGovernance.queryRuns
+        .filter(item => item.tenantId === tenantId)
+        .map(({ id, reference, assistantName, outcome, durationMs, occurredAt }) => ({ id, reference, assistantName, outcome, durationMs, occurredAt })),
+    };
+  }
+
+  function selectQueryDiagnostic(queryRunId, actorAccountId) {
+    const run = state.accessGovernance.queryRuns.find(item => item.id === queryRunId);
+    if (!run || !canManageEvaluations(run.tenantId, actorAccountId)) return { ok: false, reason: "FORBIDDEN" };
+    return commitState({
+      ...state,
+      accessGovernance: { ...state.accessGovernance, selectedQueryRunId: queryRunId },
+    });
+  }
+
+  /** 诊断读取固定终态事实，不重新运行检索，也不从当前配置推断历史结果。 */
+  function getQueryDiagnostic(queryRunId, actorAccountId) {
+    const run = state.accessGovernance.queryRuns.find(item => item.id === queryRunId);
+    if (!run) return { ok: false, reason: "QUERY_DIAGNOSTIC_NOT_FOUND" };
+    if (!canManageEvaluations(run.tenantId, actorAccountId)) return { ok: false, reason: "FORBIDDEN" };
+    return {
+      ok: true,
+      run: {
+        id: run.id,
+        reference: run.reference,
+        assistantName: run.assistantName,
+        outcome: run.outcome,
+        durationMs: run.durationMs,
+        occurredAt: run.occurredAt,
+      },
+      diagnostic: clone(run.diagnostic),
+      remediation: clone(state.accessGovernance.queryRemediations.find(item => item.queryRunId === run.id && item.status === "OPEN") || null),
+    };
+  }
+
+  /** 修复事项只复制允许披露的阶段、分类和数量，不复制问题、回答、引用或供应商错误。 */
+  function createQueryRemediation(queryRunId, input = {}, actorAccountId) {
+    const run = state.accessGovernance.queryRuns.find(item => item.id === queryRunId);
+    if (!run) return { ok: false, reason: "QUERY_DIAGNOSTIC_NOT_FOUND" };
+    if (!canManageEvaluations(run.tenantId, actorAccountId)) return { ok: false, reason: "FORBIDDEN" };
+    const category = String(input.category || "");
+    if (![
+      "AUTHORIZED_EVIDENCE_EMPTY",
+      "RETRIEVAL_RUNTIME_FAILURE",
+      "CITATION_VALIDATION_FAILURE",
+    ].includes(category)) return { ok: false, reason: "QUERY_REMEDIATION_CATEGORY_INVALID" };
+    const existing = state.accessGovernance.queryRemediations.find(item => item.queryRunId === queryRunId && item.category === category && item.status === "OPEN");
+    if (existing) return { ok: true, replayed: true, remediation: clone(existing) };
+    const title = String(input.title || "").trim();
+    const owner = String(input.owner || "").trim();
+    if (title.length < 4 || title.length > 100 || owner.length < 2 || owner.length > 40) {
+      return { ok: false, reason: "QUERY_REMEDIATION_INVALID" };
+    }
+    const remediation = {
+      id: `query-remediation-${state.accessGovernance.queryRemediations.length + 1}`,
+      queryRunId,
+      category,
+      stage: run.diagnostic.stage,
+      candidateCount: run.diagnostic.candidateCount,
+      title,
+      owner,
+      status: "OPEN",
+      createdAt: "刚刚",
+    };
+    const saved = commitState({
+      ...state,
+      accessGovernance: {
+        ...state.accessGovernance,
+        queryRemediations: [...state.accessGovernance.queryRemediations, remediation],
+        selectedQueryRunId: queryRunId,
       },
     });
     return saved.ok ? { ...saved, replayed: false, remediation: clone(remediation) } : saved;
@@ -3981,6 +4329,14 @@ export function createPrototypeStore(storage = browserStorage()) {
     createEvaluationComparison,
     recordEvaluationDecision,
     createEvaluationRemediation,
+    saveAccessPolicyDraft,
+    previewAccessPolicyVersion,
+    publishAccessPolicyVersion,
+    getAccessPolicyProjection,
+    getQueryGovernanceProjection,
+    selectQueryDiagnostic,
+    getQueryDiagnostic,
+    createQueryRemediation,
     createTenant,
     addMember,
     findMember,

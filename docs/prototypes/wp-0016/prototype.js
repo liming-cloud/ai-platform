@@ -39,6 +39,7 @@ let indexFeedback = "";
 let modelFeedback = "";
 let assistantFeedback = "";
 let evaluationFeedback = "";
+let accessGovernanceFeedback = "";
 let nextQueryMode = "normal";
 let queryStreamingSuspended = false;
 const PLATFORM_ACCOUNT_ACTOR_ID = "account-platform-admin";
@@ -98,6 +99,7 @@ resetReview.addEventListener("click", () => {
   accountFeedback = "";
   assistantFeedback = "";
   evaluationFeedback = "";
+  accessGovernanceFeedback = "";
   nextQueryMode = "normal";
   render();
 });
@@ -348,6 +350,10 @@ function renderScreen(screen, state, demoState) {
     case "evaluation-comparison":
     case "evaluation-failure-analysis":
       return renderEvaluationGovernance(screen, state, demoState);
+    case "access-policy-detail":
+    case "governance-query":
+    case "query-diagnostic":
+      return renderAccessQueryGovernance(screen, state, demoState);
     default:
       return renderInventoryPage(
         pageByScreen.get(screen),
@@ -401,6 +407,8 @@ function statusTag(status) {
     EVALUATION_PENDING: ["待冻结评测", "warning"],
     EVALUATED: ["评测完成", "success"],
     COMPLETE: ["发现完成", "success"],
+    ANSWERED: ["已回答", "success"],
+    REFUSED: ["安全拒答", "warning"],
     OFFLINE: ["已停用", "danger"],
   };
   const item = mapping[status] || [status, "info"];
@@ -481,6 +489,9 @@ function genericState(screen, state) {
     "evaluation-run-detail": "评测运行结果",
     "evaluation-comparison": "版本对比",
     "evaluation-failure-analysis": "失败分类",
+    "access-policy-detail": "访问策略版本",
+    "governance-query": "查询治理摘要",
+    "query-diagnostic": "受权查询诊断",
   };
   const subject = labels[screen];
   if (state === "loading") {
@@ -530,6 +541,9 @@ function emptyDescription(screen) {
       "当前知识库还没有数据来源。可以粘贴文本或上传本地文件。",
     "index-detail": "还没有待评审的索引版本。创建重建任务后在此跟踪。",
     "assistant-release": "还没有待发布的助手版本。先完成草稿、测试和冻结评测。",
+    "access-policy-detail": "还没有可维护的策略草稿。请从策略目录建立新版本。",
+    "governance-query": "当前周期还没有已接受的查询运行。配额规则仍可查看。",
+    "query-diagnostic": "当前没有可读取的终态诊断事实。",
   }[screen];
 }
 
@@ -542,6 +556,9 @@ function emptyAction(screen) {
     "knowledge-sources": "添加数据",
     "index-detail": "返回索引目录",
     "assistant-release": "返回助手草稿",
+    "access-policy-detail": "返回策略目录",
+    "governance-query": "返回工作区",
+    "query-diagnostic": "返回查询治理",
   }[screen];
 }
 
@@ -554,6 +571,9 @@ function emptyActionScreen(screen) {
     "knowledge-sources": "knowledge-sources",
     "index-detail": "knowledge-sources",
     "assistant-release": "assistant-release",
+    "access-policy-detail": "access-policies",
+    "governance-query": "tenant-overview",
+    "query-diagnostic": "governance-query",
   }[screen];
 }
 
@@ -1003,6 +1023,9 @@ function pageStatus(active, state) {
     "assistant-test": "使用冻结依赖",
     "assistant-evaluation": "质量与安全门禁",
     "assistant-release": "只影响新会话",
+    "access-policy-detail": "成员助手授权版本",
+    "governance-query": "UTC 日配额 / 脱敏终态摘要",
+    "query-diagnostic": "只读历史事实",
   }[active] || "当前工作区";
 }
 
@@ -2011,6 +2034,107 @@ function renderEvaluationGovernance(screen, state, snapshot) {
   }[screen](state, snapshot);
 }
 
+function accessPolicyFailureMessage(result) {
+  return {
+    ACCESS_POLICY_VERSION_IMMUTABLE: "已发布版本不可修改，请建立新的策略草稿。",
+    ACCESS_POLICY_ASSISTANT_INVALID: "请选择当前租户已发布的助手。",
+    ACCESS_POLICY_MEMBER_INVALID: "至少选择一名可用的普通成员。",
+    ACCESS_POLICY_PREVIEW_REQUIRED: "发布前必须重新生成并通过授权预览。",
+    QUERY_REMEDIATION_CATEGORY_INVALID: "请选择与当前失败阶段匹配的修复分类。",
+    QUERY_REMEDIATION_INVALID: "请填写 4 至 100 字事项名称和 2 至 40 字负责人。",
+    STORAGE_UNAVAILABLE: "浏览器无法保存，本次操作没有生效。",
+    FORBIDDEN: "当前演示身份无权执行此操作。",
+  }[result.reason] || "操作未完成，原状态保持不变。";
+}
+
+function renderAccessPolicyDetail(state, snapshot) {
+  const projection = prototypeStore.getAccessPolicyProjection("access-policy-all-employees", TENANT_ADMIN_ACTOR_ID);
+  if (!projection.ok) return adminShell("access-policy-detail", "访问策略版本", "", "", statePanel("denied", "当前会话不能访问此策略", "页面不会确认策略或成员是否存在。", "返回访问策略", "access-policies"), state, "访问治理 / 策略版本");
+  const { policy, version, assistant, knowledgeBase, members } = projection;
+  const blocked = state !== "success" || version.status !== "DRAFT";
+  const tenant = snapshot.tenants.find(item => item.id === DEFAULT_TENANT_ID);
+  const ordinaryMembers = (tenant?.members || []).filter(member => member.role === "ordinaryMember" && member.status === "active");
+  const publishedAssistants = snapshot.assistantDelivery.assistants.filter(item => item.status === "PUBLISHED" && item.publishedVersionId);
+  const memberControls = ordinaryMembers.map(member => {
+    const account = snapshot.accounts.find(item => item.id === member.accountId);
+    return `<label class="feature-control"><input type="checkbox" name="memberAccountIds" value="${escapeHtml(member.accountId)}"${version.memberAccountIds.includes(member.accountId) ? " checked" : ""}${blocked ? " disabled" : ""}><span><strong>${escapeHtml(account?.name || "不可用成员")}</strong><small>普通成员 · 只获得所选助手的对话与授权引用</small></span></label>`;
+  }).join("");
+  const preview = version.preview;
+  const previewBody = preview
+    ? `<div class="summary-strip"><dl class="summary-item"><dt>允许样本</dt><dd>${preview.allowCount}</dd></dl><dl class="summary-item"><dt>拒绝样本</dt><dd>${preview.denyCount}</dd></dl><dl class="summary-item"><dt>越权泄漏</dt><dd>0</dd></dl><dl class="summary-item"><dt>预览结果</dt><dd>通过</dd></dl></div><ul class="timeline">${preview.checks.map(item => `<li><strong>${escapeHtml(item)}</strong><small>通过</small></li>`).join("")}</ul>`
+    : '<div class="inline-note warning">成员或助手变化后预览会失效。请在发布前核对允许、拒绝、历史与引用四类样本。</div>';
+  const primary = version.status === "DRAFT"
+    ? `<button class="button primary" type="button" data-publish-access-policy data-access-policy-version-id="${escapeHtml(version.id)}" data-primary-action${blocked || !preview?.passed ? " disabled" : ""}>发布策略版本</button>`
+    : '<button class="button primary" type="button" data-primary-action disabled>策略版本已发布</button>';
+  const body = [
+    '<div class="inline-note">策略只配置普通成员可用的助手；知识库由助手的永久关联关系确定，不能在这里另选。</div>',
+    `<div class="split-detail"><form id="access-policy-form" class="section-block" data-access-policy-version-id="${escapeHtml(version.id)}"><div class="section-heading"><div><span class="section-kicker">${escapeHtml(policy.name)}</span><h2>策略 v${escapeHtml(version.number)}</h2></div>${statusTag(version.status)}</div><div class="form-grid"><label class="field"><span>已发布助手</span><select class="select" name="assistantId" data-access-policy-assistant${blocked ? " disabled" : ""}>${publishedAssistants.map(item => `<option value="${escapeHtml(item.id)}"${item.id === version.assistantId ? " selected" : ""}>${escapeHtml(item.name)}</option>`).join("")}</select></label><div class="field"><span>关联知识库（自动确定）</span><div class="input readonly-value" data-derived-knowledge-base>${escapeHtml(knowledgeBase.name)}</div><small class="field-hint" data-derived-knowledge-help>来自“${escapeHtml(assistant.name)}”的永久知识库关系。</small></div></div><fieldset class="feature-editor access-policy-members"><legend class="section-kicker">授权普通成员</legend><div class="feature-grid">${memberControls}</div></fieldset><p id="access-policy-feedback" class="form-feedback" role="alert">${escapeHtml(accessGovernanceFeedback)}</p><div class="form-actions"><button class="button secondary" type="submit"${blocked ? " disabled" : ""}>保存草稿</button><button class="button ${preview?.passed ? "secondary" : "primary"}" type="button" data-preview-access-policy data-access-policy-version-id="${escapeHtml(version.id)}"${preview?.passed ? "" : " data-primary-action"}${blocked ? " disabled" : ""}>生成授权预览</button></div></form>`,
+    `<aside><section class="release-decision${preview?.passed ? "" : " pending"}"><span class="section-kicker">发布前授权预览</span><h2>${preview?.passed ? "32 个样本已通过" : "尚未生成有效预览"}</h2>${previewBody}<div class="form-actions">${primary}</div><dl class="description-list"><dt>当前成员</dt><dd>${escapeHtml(members.map(item => item.name).join("、"))}</dd><dt>生效范围</dt><dd>助手目录、对话、本人历史和授权引用</dd><dt>撤销结果</dt><dd>直接路由、历史正文与引用立即失败关闭</dd></dl></section></aside></div>`,
+  ].join("");
+  return adminShell("access-policy-detail", `${policy.name} v${version.number}`, "", '<button class="button secondary" type="button" data-nav-screen="access-policies">返回策略目录</button>', body, state, "访问治理 / 策略版本");
+}
+
+function queryOutcomeLabel(outcome) {
+  return { ANSWERED: "已回答", REFUSED: "安全拒答", FAILED: "失败关闭" }[outcome] || outcome;
+}
+
+function renderGovernanceQuery(state) {
+  const projection = prototypeStore.getQueryGovernanceProjection(DEFAULT_TENANT_ID, TENANT_ADMIN_ACTOR_ID);
+  if (!projection.ok) return adminShell("governance-query", "查询治理", "", "", statePanel("denied", "当前会话不能读取查询治理", "不显示租户、运行或配额是否存在。", "返回工作区", "tenant-overview"), state, "评测治理 / 查询治理");
+  const blocked = state !== "success";
+  const { quota, usage, runs } = projection;
+  const rows = runs.map(item => `<tr data-query-run-row="${escapeHtml(item.reference)}"><td data-label="运行"><span class="primary-cell"><strong class="mono">${escapeHtml(item.reference)}</strong><span>${escapeHtml(item.occurredAt)}</span></span></td><td data-label="助手">${escapeHtml(item.assistantName)}</td><td data-label="终态">${statusTag(item.outcome)}</td><td data-label="耗时">${escapeHtml(item.durationMs)} ms</td><td data-label="操作"><button class="button secondary compact" type="button" data-select-query-run="${escapeHtml(item.id)}" data-nav-screen="query-diagnostic"${blocked ? " disabled" : ""}>查看诊断</button></td></tr>`).join("");
+  const body = [
+    '<div class="inline-note">只显示聚合用量和脱敏终态，不展示问题、回答、引用正文、模型原始响应或租户内部标识。</div>',
+    `<div class="summary-strip"><dl class="summary-item"><dt>今日已接受</dt><dd>${usage.acceptedToday}</dd></dl><dl class="summary-item"><dt>今日剩余</dt><dd>${usage.remainingToday}</dd></dl><dl class="summary-item"><dt>当前执行中</dt><dd>${usage.activeNow}</dd></dl><dl class="summary-item"><dt>今日安全拒答</dt><dd>${usage.refusedToday}</dd></dl></div>`,
+    `<section class="section-block"><div class="section-heading"><div><span class="section-kicker">脱敏终态投影</span><h2>最近查询运行</h2></div><span class="status-tag" data-tone="info">只读</span></div><div class="table-shell"><table class="data-table"><thead><tr><th>运行</th><th>助手</th><th>终态</th><th>耗时</th><th>操作</th></tr></thead><tbody>${rows}</tbody></table><div class="pagination" aria-label="查询运行分页"><span>第 1 页，共 ${runs.length} 条运行</span><div class="pagination-actions"><button class="button secondary compact" type="button" disabled>上一页</button><button class="button secondary compact" type="button" disabled>下一页</button></div></div></div></section>`,
+    `<dialog id="query-quota-dialog" class="dialog-surface" aria-labelledby="query-quota-title"><form method="dialog"><div class="dialog-heading"><span class="section-kicker">${escapeHtml(quota.source)}</span><h2 id="query-quota-title">查询配额规则</h2><p>当前版本不提供在线修改；变更须通过受控部署配置与发布验证。</p></div><dl class="description-list"><dt>UTC 每日已接受请求</dt><dd>${quota.dailyAcceptedLimit} 次</dd><dt>最大并发运行</dt><dd>${quota.maxConcurrent} 个</dd><dt>运行租约</dt><dd>${quota.leaseSeconds} 秒</dd><dt>消耗规则</dt><dd>请求一经接受即计入当日用量，后续失败或拒答不会返还</dd><dt>超限结果</dt><dd>失败关闭，仅返回限制类型、限制值和重试时间</dd></dl><div class="form-actions dialog-actions"><button class="button primary" value="close">关闭</button></div></form></dialog>`,
+  ].join("");
+  return adminShell("governance-query", "查询治理", "", `<button class="button primary" type="button" data-open-query-quota data-primary-action${blocked ? " disabled" : ""}>查看配额规则</button>`, body, state, "评测治理 / 查询治理");
+}
+
+function renderQueryDiagnostic(state, snapshot) {
+  const selectedId = snapshot.accessGovernance.selectedQueryRunId;
+  const projection = prototypeStore.getQueryDiagnostic(selectedId, TENANT_ADMIN_ACTOR_ID);
+  if (!projection.ok) return adminShell("query-diagnostic", "受权查询诊断", "", "", statePanel("empty", "诊断事实不可用", "终态事实不存在或当前会话无权读取。", "返回查询治理", "governance-query"), state, "评测治理 / 查询诊断");
+  const { run, diagnostic, remediation } = projection;
+  const actionable = run.outcome !== "ANSWERED";
+  const blocked = state !== "success" || Boolean(remediation) || !actionable;
+  const stageLabels = {
+    RUN_ACCEPTED: "请求已接受",
+    AUTHORIZATION_FILTERED: "授权过滤完成",
+    INSUFFICIENT_EVIDENCE: "证据不足",
+    COMPLETED_REFUSAL: "安全拒答完成",
+    CITATIONS_VALIDATED: "引用校验完成",
+    FAILED_CLOSED: "失败关闭完成",
+  };
+  const stages = diagnostic.outcome === "REFUSED"
+    ? ["RUN_ACCEPTED", "AUTHORIZATION_FILTERED", "INSUFFICIENT_EVIDENCE", "COMPLETED_REFUSAL"]
+    : diagnostic.outcome === "ANSWERED"
+      ? ["RUN_ACCEPTED", "AUTHORIZATION_FILTERED", "CITATIONS_VALIDATED", "COMPLETED"]
+      : ["RUN_ACCEPTED", "AUTHORIZATION_FILTERED", diagnostic.stage, "FAILED_CLOSED"];
+  const candidateCollection = { FILTERED: "已完成授权过滤", NOT_COMPLETED: "未完成" }[diagnostic.candidateCollection] || diagnostic.candidateCollection;
+  const authorization = { AUTHORIZED: "已在授权范围内" }[diagnostic.retrievalAuthorization] || diagnostic.retrievalAuthorization;
+  const citationValidation = { VALIDATED: "已通过", NOT_APPLICABLE: "不适用" }[diagnostic.citationValidation] || diagnostic.citationValidation;
+  const body = [
+    '<div class="inline-note">这是运行结束时原子写入的历史事实。页面不会重新检索，也不会根据当前策略推断过去结果。</div>',
+    `<div class="split-detail"><div><section class="section-block"><div class="section-heading"><div><span class="section-kicker mono">${escapeHtml(run.reference)}</span><h2>${escapeHtml(run.assistantName)} · ${escapeHtml(queryOutcomeLabel(run.outcome))}</h2></div>${statusTag(run.outcome)}</div><ol class="process-steps" aria-label="查询终态阶段">${stages.map((stage, index) => `<li data-step-state="complete"><span>${index + 1}</span><strong>${escapeHtml(stageLabels[stage] || stage)}</strong></li>`).join("")}</ol></section><section class="section-block"><div class="section-heading"><h2>最小诊断事实</h2><span class="status-tag" data-tone="info">只读</span></div><dl class="description-list"><dt>候选收集</dt><dd>${escapeHtml(candidateCollection)}</dd><dt>可披露候选</dt><dd>${diagnostic.candidateCount ?? "未完成"}</dd><dt>授权判定</dt><dd>${escapeHtml(authorization)}</dd><dt>引用校验</dt><dd>${escapeHtml(citationValidation)}</dd><dt>Chat 修订</dt><dd>${escapeHtml(diagnostic.chatModelRevision)}</dd><dt>Embedding 修订</dt><dd>${escapeHtml(diagnostic.embeddingModelRevision)}</dd><dt>事实时间</dt><dd>${escapeHtml(diagnostic.createdAt)}</dd></dl></section></div>`,
+    `<aside><section class="release-decision"><span class="section-kicker">${actionable ? "可执行下一步" : "运行结论"}</span><h2>${remediation ? "修复事项已创建" : actionable ? "将原因转成交付事项" : "本次运行无需修复"}</h2><p>${actionable ? "只引用运行编号、失败阶段、分类和候选数量，不复制问题、回答或引用正文。" : "回答和引用校验均已完成，可以返回查询治理继续查看。"}</p>${remediation ? `<dl class="description-list"><dt>事项</dt><dd>${escapeHtml(remediation.title)}</dd><dt>负责人</dt><dd>${escapeHtml(remediation.owner)}</dd><dt>阶段</dt><dd>${escapeHtml(remediation.stage)}</dd><dt>状态</dt><dd>待处理</dd></dl>` : ""}<button class="button primary" type="button" data-open-query-remediation data-primary-action${blocked ? " disabled" : ""}>${remediation ? "修复事项已创建" : actionable ? "创建修复事项" : "无需创建修复事项"}</button>${accessGovernanceFeedback ? `<p class="form-feedback" role="status">${escapeHtml(accessGovernanceFeedback)}</p>` : ""}</section></aside></div>`,
+    `<dialog id="query-remediation-dialog" class="dialog-surface" aria-labelledby="query-remediation-title"><form id="query-remediation-form" data-query-run-id="${escapeHtml(run.id)}"><div class="dialog-heading"><span class="section-kicker mono">${escapeHtml(run.reference)}</span><h2 id="query-remediation-title">创建查询修复事项</h2></div><label class="field"><span>失败分类</span><select class="select" name="category"><option value="AUTHORIZED_EVIDENCE_EMPTY"${diagnostic.stage === "INSUFFICIENT_EVIDENCE" ? " selected" : ""}>授权后无可披露证据</option><option value="RETRIEVAL_RUNTIME_FAILURE"${diagnostic.stage === "RETRIEVAL_FAILED" ? " selected" : ""}>检索运行失败</option><option value="CITATION_VALIDATION_FAILURE">引用校验失败</option></select></label><label class="field"><span>事项名称</span><input class="input" name="title" minlength="4" maxlength="100" value="${diagnostic.stage === "RETRIEVAL_FAILED" ? "排查检索运行失败" : "复核访问策略与索引覆盖"}" required></label><label class="field"><span>负责人</span><input class="input" name="owner" minlength="2" maxlength="40" value="知识治理组" required></label><p id="query-remediation-feedback" class="form-feedback" role="alert"></p><div class="form-actions dialog-actions"><button class="button secondary" type="button" data-close-query-remediation>取消</button><button class="button primary" type="submit">创建事项</button></div></form></dialog>`,
+  ].join("");
+  return adminShell("query-diagnostic", "受权查询诊断", "", '<button class="button secondary" type="button" data-nav-screen="governance-query">返回查询治理</button>', body, state, "评测治理 / 查询诊断");
+}
+
+function renderAccessQueryGovernance(screen, state, snapshot) {
+  const generic = genericState(screen, state);
+  if (generic) return adminShell(screen, pageFixtures.pages[screen].title, "", "", generic, state, screen === "access-policy-detail" ? "访问治理" : "评测治理");
+  return {
+    "access-policy-detail": renderAccessPolicyDetail,
+    "governance-query": renderGovernanceQuery,
+    "query-diagnostic": renderQueryDiagnostic,
+  }[screen](state, snapshot);
+}
+
 function bindKnowledgeManagement() {
   const createDialog = root.querySelector("#create-knowledge-base-dialog");
   root.querySelector("[data-open-create-knowledge]")?.addEventListener("click", () => {
@@ -2646,6 +2770,9 @@ function bindInteractions(screen) {
       if (element.dataset.selectEvaluationComparison) {
         prototypeStore.selectEvaluationComparison(element.dataset.selectEvaluationComparison);
       }
+      if (element.dataset.selectQueryRun) {
+        prototypeStore.selectQueryDiagnostic(element.dataset.selectQueryRun, TENANT_ADMIN_ACTOR_ID);
+      }
       navigate(
         element.dataset.navScreen,
         element.dataset.navState || "success",
@@ -2857,6 +2984,7 @@ function bindInteractions(screen) {
   bindModelGovernance();
   bindAssistantDelivery();
   bindEvaluationGovernance();
+  bindAccessQueryGovernance();
 }
 
 function bindAccountManagement() {
@@ -3675,6 +3803,64 @@ function bindEvaluationGovernance() {
     }
     remediationDialog?.close();
     evaluationFeedback = result.replayed ? "该失败类别已有未关闭事项。" : `已创建修复事项“${result.remediation.title}”。`;
+    render();
+  });
+}
+
+function bindAccessQueryGovernance() {
+  root.querySelector("[data-access-policy-assistant]")?.addEventListener("change", event => {
+    const snapshot = prototypeStore.getSnapshot();
+    const selected = snapshot.assistantDelivery.assistants.find(item => item.id === event.currentTarget.value);
+    const knowledgeBase = snapshot.knowledgeBases.find(item => item.id === selected?.knowledgeBaseId);
+    const field = root.querySelector("[data-derived-knowledge-base]");
+    const help = root.querySelector("[data-derived-knowledge-help]");
+    if (field) field.textContent = knowledgeBase?.name || "知识库不可用";
+    if (help) help.textContent = `来自“${selected?.name || "所选助手"}”的永久知识库关系。`;
+  });
+  root.querySelector("#access-policy-form")?.addEventListener("submit", event => {
+    event.preventDefault();
+    const values = new FormData(event.currentTarget);
+    const result = prototypeStore.saveAccessPolicyDraft(event.currentTarget.dataset.accessPolicyVersionId, {
+      assistantId: values.get("assistantId"),
+      memberAccountIds: values.getAll("memberAccountIds"),
+    }, TENANT_ADMIN_ACTOR_ID);
+    accessGovernanceFeedback = result.ok ? "策略草稿已保存；请重新生成授权预览。" : accessPolicyFailureMessage(result);
+    render();
+  });
+  root.querySelector("[data-preview-access-policy]")?.addEventListener("click", event => {
+    const result = prototypeStore.previewAccessPolicyVersion(event.currentTarget.dataset.accessPolicyVersionId, TENANT_ADMIN_ACTOR_ID);
+    accessGovernanceFeedback = result.ok ? "允许、拒绝、历史和引用样本预览全部通过。" : accessPolicyFailureMessage(result);
+    render();
+  });
+  root.querySelector("[data-publish-access-policy]")?.addEventListener("click", event => {
+    const result = prototypeStore.publishAccessPolicyVersion(event.currentTarget.dataset.accessPolicyVersionId, TENANT_ADMIN_ACTOR_ID);
+    accessGovernanceFeedback = result.ok ? `策略 v${result.version.number} 已发布，成员授权范围已更新。` : accessPolicyFailureMessage(result);
+    render();
+  });
+
+  const quotaDialog = root.querySelector("#query-quota-dialog");
+  root.querySelector("[data-open-query-quota]")?.addEventListener("click", () => quotaDialog?.showModal());
+
+  const remediationDialog = root.querySelector("#query-remediation-dialog");
+  root.querySelector("[data-open-query-remediation]")?.addEventListener("click", () => {
+    remediationDialog?.showModal();
+    remediationDialog?.querySelector('[name="title"]')?.focus();
+  });
+  root.querySelector("[data-close-query-remediation]")?.addEventListener("click", () => remediationDialog?.close());
+  root.querySelector("#query-remediation-form")?.addEventListener("submit", event => {
+    event.preventDefault();
+    const values = Object.fromEntries(new FormData(event.currentTarget));
+    const result = prototypeStore.createQueryRemediation(
+      event.currentTarget.dataset.queryRunId,
+      values,
+      TENANT_ADMIN_ACTOR_ID,
+    );
+    if (!result.ok) {
+      event.currentTarget.querySelector("#query-remediation-feedback").textContent = accessPolicyFailureMessage(result);
+      return;
+    }
+    remediationDialog?.close();
+    accessGovernanceFeedback = result.replayed ? "此运行已有相同分类的待处理事项。" : `已创建修复事项“${result.remediation.title}”。`;
     render();
   });
 }

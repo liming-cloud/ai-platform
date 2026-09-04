@@ -2,7 +2,7 @@
   "workPackage": "WP-0016",
   "generatedOn": "2026-09-04",
   "browserVerification": "passed",
-  "browserVerificationNote": "助手交付 8/8、模型治理 11/11、索引 7/7、知识接入 8/8、账户 7/7、租户 10/10、问答 15/15、布局 13/13；全部专项 79/79，全平台 68 页、7 状态、3 视口共 1,428 场景及 9,644 项断言通过，截图仅在临时目录生成。该结论仅覆盖已声明 DOM、布局和交互，不代表账本已穷举或人工验收通过。",
+  "browserVerificationNote": "访问策略与查询治理 8/8；全部专项浏览器 94/94，全平台 68 页、7 状态、3 视口共 1,428 场景及 9,642 项断言通过，截图仅在临时目录生成。该结论仅覆盖已声明 DOM、布局和交互，不代表账本已穷举或人工验收通过。",
   "classification": {
     "navigation": "仅改变原型页面，不计作业务完成",
     "implementedStateChange": "合成状态已有 Node 测试；browserVerified 只表示条目注明的浏览器范围，不代表完整业务或人工通过",
@@ -14,15 +14,15 @@
   },
   "summary": {
     "navigation": 33,
-    "implementedRead": 6,
-    "implementedStateChange": 70,
+    "implementedRead": 7,
+    "implementedStateChange": 72,
     "pendingDecision": 1,
-    "unimplemented": 7,
+    "unimplemented": 4,
     "forbidden": 1,
     "partialSimulation": 0,
     "totalPages": 68,
     "totalControls": 118,
-    "unclosedControls": 8,
+    "unclosedControls": 5,
     "allControlsEnumerated": false,
     "readyForFullAcceptance": false
   },
@@ -418,11 +418,13 @@
       "primaryTask": "编辑、预览并发布一个访问策略版本",
       "controls": [
         {
-          "label": "发布策略",
+          "label": "保存、预览并发布策略版本",
           "kind": "primaryAction",
-          "status": "unimplemented",
-          "evidence": "当前控件仅展示确认或无持久状态结果",
-          "browserVerified": false
+          "status": "implementedStateChange",
+          "evidence": "access-query-governance-state.test.mjs：助手派生知识库、普通成员边界、预览门禁、版本不可变、刷新恢复、越权与存储失败回滚",
+          "browserVerified": true,
+          "browserEvidence": "artifacts/access-query-governance-browser-verification.json",
+          "browserScope": "覆盖保存草稿、预览、发布、刷新恢复、知识库只读派生与三档视口"
         }
       ]
     },
@@ -1090,11 +1092,13 @@
       "primaryTask": "查看查询用量和脱敏运行摘要",
       "controls": [
         {
-          "label": "调整查询配额",
+          "label": "查看配额规则",
           "kind": "primaryAction",
-          "status": "unimplemented",
-          "evidence": "当前控件仅展示确认或无持久状态结果",
-          "browserVerified": false
+          "status": "implementedRead",
+          "evidence": "ADR-0018；access-query-governance-state.test.mjs：UTC 日配额、并发、租约和脱敏运行投影只读，明确不存在在线修改接口",
+          "browserVerified": true,
+          "browserEvidence": "artifacts/access-query-governance-browser-verification.json",
+          "browserScope": "覆盖配额规则弹窗、敏感内容缺失、单一运行分页与三档视口"
         }
       ]
     },
@@ -1152,9 +1156,11 @@
         {
           "label": "创建修复事项",
           "kind": "primaryAction",
-          "status": "unimplemented",
-          "evidence": "当前控件仅展示确认或无持久状态结果",
-          "browserVerified": false
+          "status": "implementedStateChange",
+          "evidence": "ADR-0038；access-query-governance-state.test.mjs：只读终态事实、不重新检索、修复事项去重且不复制问题、回答或引用正文",
+          "browserVerified": true,
+          "browserEvidence": "artifacts/access-query-governance-browser-verification.json",
+          "browserScope": "覆盖运行选择、历史诊断、修复事项创建、刷新恢复、脱敏与三档视口"
         }
       ]
     },
