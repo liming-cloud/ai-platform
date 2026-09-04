@@ -2,7 +2,7 @@
 
 ## 状态与边界
 
-- 状态：人工验收仍不通过。本轮租户建立、配额和登录策略已实现待浏览器复验；49 项 Node 回归、静态及 lint 通过，浏览器等待本次授权。操作账本 98 项，其中 18 项未实现或待决策，另有本轮已实现但待浏览器复验的条目。历史全平台 14/14 结果不代表本次代码已通过。
+- 状态：人工验收仍不通过。本轮租户建立、配额和登录策略已完成浏览器复验；49 项 Node、10 项租户、15 项问答、13 项布局、静态及 lint 均通过，全平台 1,428 个场景、9,662 项断言无浏览器异常。操作账本 98 项，其中 18 项未实现或待决策，且尚未穷举全部控件。
 - 工作包：`WP-0016`。
 - 设计系统：Fluent UI React v9 的信息层级、组件语义和既有 Foundation Token。
 - 交付形式：OpenDesign 项目中的可操作 HTML 原型、设计令牌、脱敏 fixtures、自动检查和截图。
@@ -261,11 +261,11 @@ M6 页面是当前人工门禁范围。M7 设备问答与 M8 平台运维页面�
 
 页面右下角“原型场景”只属于审查工具：十个 `optgroup` 显示阶段、页面中文名和 screen，可按三者快速查找并跳转；目标路径、唯一任务、主要操作和 M7/M8 授权边界也在此显示，状态可独立切换。`review=0` 时完全隐藏，它不是生产导航。
 
-静态验证从 `page-inventory.json` 读取 68 个 screen、7 个 state 和 3 个 viewport，检查清单与 fixture 一致性、427 个共享渲染场景、1,428 个 HTTP 入口、正文合同隔离、向导字段、风险事实、分页上限、重复 id 和 denied 披露。Node 测试验证租户、成员、两级功能、运维状态及问答不变量；`ACTION-LEDGER.json` 区分真实状态变更、导航、待决策和未实现。真实浏览器分别验证普通用户旅程、失败恢复、三档尺寸和全平台有限 DOM/操作合同，不能用静态 HTML 或 HTTP 200 代替。最新结果见 `artifacts/layout-remediation-query.tap`、`artifacts/layout-remediation-final.tap` 与 `artifacts/layout-remediation-final-browser-20260903/verification.json`。布局专项额外验证单列宽度、栏位内容边界、控件裁切、低高度和键盘收起，并在有限动画结束后截取代表图。
+静态验证从 `page-inventory.json` 读取 68 个 screen、7 个 state 和 3 个 viewport，检查清单与 fixture 一致性、427 个共享渲染场景、1,428 个 HTTP 入口、正文合同隔离、向导字段、风险事实、分页上限、重复 id 和 denied 披露。Node 测试验证租户、成员、两级功能、运维状态及问答不变量；`ACTION-LEDGER.json` 区分真实状态变更、导航、待决策和未实现。真实浏览器分别验证普通用户旅程、失败恢复、三档尺寸和全平台有限 DOM/操作合同，不能用静态 HTML 或 HTTP 200 代替。最新结果见 `artifacts/tenant-remediation-query.tap`、`artifacts/tenant-remediation-layout.tap`、`artifacts/tenant-remediation-browser.tap` 与 `artifacts/tenant-remediation-final-browser-20260904/verification.json`。布局专项额外验证单列宽度、栏位内容边界、控件裁切、低高度和键盘收起，并在有限动画结束后截取代表图。
 
 ## 人工确认清单
 
-当前 `ACTION-LEDGER.json` 只枚举页面主任务及已核对控件，未达到逐控件全覆盖。普通问答专项已有真实浏览器证据，但整个平台和人工认可仍未通过；其余未实现项详见账本与 `BUSINESS-CLOSURE.md`。下列复选项保持未通过，不能依据局部绿灯自行勾选。
+当前 `ACTION-LEDGER.json` 只枚举页面主任务及已核对控件，未达到逐控件全覆盖。全平台自动浏览器矩阵已通过，但人工认可仍未通过；其余未实现项详见账本与 `BUSINESS-CLOSURE.md`。下列复选项保持未通过，不能依据自动化绿灯自行勾选。
 
 - [ ] 三角色产品边界正确，平台范围没有租户正文入口。
 - [ ] 68 个清单 screen、审查器 option、实际 `main[data-screen]` 与 1440 成功态截图完全一致。
