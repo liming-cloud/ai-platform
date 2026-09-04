@@ -7,6 +7,9 @@
 **/.od-skills/
 # 高保真原型由 OpenDesign 统一管理；浏览器截图只作为临时人工核对产物。
 docs/prototypes/wp-0016/artifacts/**/*.png
+docs/prototypes/wp-0016/artifacts/**/*.jpg
+docs/prototypes/wp-0016/artifacts/**/*.jpeg
+docs/prototypes/wp-0016/artifacts/**/*.webp
 
 # Local environments
 .env
