@@ -2,7 +2,7 @@
   "workPackage": "WP-0016",
   "generatedOn": "2026-09-04",
   "browserVerification": "passed",
-  "browserVerificationNote": "知识接入 8/8、账户 7/7、租户 10/10、问答 15/15、布局 13/13；全平台 68 页、7 状态、3 视口共 1,428 场景及 9,662 项断言通过，截图仅在临时目录生成。该结论仅覆盖已声明 DOM、布局和交互，不代表账本已穷举或人工验收通过。",
+  "browserVerificationNote": "索引 7/7、知识接入 8/8、账户 7/7、租户 10/10、问答 15/15、布局 13/13；全平台 68 页、7 状态、3 视口共 1,428 场景及 9,662 项断言通过，截图仅在临时目录生成。该结论仅覆盖已声明 DOM、布局和交互，不代表账本已穷举或人工验收通过。",
   "classification": {
     "navigation": "仅改变原型页面，不计作业务完成",
     "implementedStateChange": "合成状态已有 Node 测试；browserVerified 只表示条目注明的浏览器范围，不代表完整业务或人工通过",
@@ -13,16 +13,16 @@
     "forbidden": "按角色边界明确禁止，不属于待实现功能"
   },
   "summary": {
-    "navigation": 47,
+    "navigation": 46,
     "implementedRead": 6,
-    "implementedStateChange": 35,
+    "implementedStateChange": 40,
     "pendingDecision": 1,
-    "unimplemented": 11,
+    "unimplemented": 10,
     "forbidden": 1,
     "partialSimulation": 0,
     "totalPages": 68,
-    "totalControls": 101,
-    "unclosedControls": 12,
+    "totalControls": 104,
+    "unclosedControls": 11,
     "allControlsEnumerated": false,
     "readyForFullAcceptance": false
   },
@@ -593,7 +593,7 @@
           "kind": "primaryAction",
           "status": "navigation",
           "evidence": "只完成受控页面跳转，不计作业务状态变更",
-          "browserVerified": false
+          "browserVerified": true
         }
       ]
     },
@@ -606,9 +606,30 @@
         {
           "label": "激活此版本",
           "kind": "primaryAction",
-          "status": "unimplemented",
-          "evidence": "当前控件仅展示确认或无持久状态结果",
-          "browserVerified": false
+          "status": "implementedStateChange",
+          "evidence": "index-lifecycle-state.test.mjs 与 index-lifecycle.browser.test.cjs：门禁通过后原子切换，取消和存储失败保留旧索引",
+          "browserVerified": true
+        },
+        {
+          "label": "刷新构建状态",
+          "kind": "taskControl",
+          "status": "implementedStateChange",
+          "evidence": "index-lifecycle-state.test.mjs 与 index-lifecycle.browser.test.cjs：候选版本按冻结清单、分块、向量、混合索引和评测阶段推进",
+          "browserVerified": true
+        },
+        {
+          "label": "运行冻结评测",
+          "kind": "taskControl",
+          "status": "implementedStateChange",
+          "evidence": "index-lifecycle-state.test.mjs 与 index-lifecycle.browser.test.cjs：五项质量门禁决定待激活或阻止状态",
+          "browserVerified": true
+        },
+        {
+          "label": "取消构建",
+          "kind": "taskControl",
+          "status": "implementedStateChange",
+          "evidence": "index-lifecycle-state.test.mjs 与 index-lifecycle.browser.test.cjs：确认取消候选版本且活动索引不变",
+          "browserVerified": true
         }
       ]
     },
@@ -621,9 +642,9 @@
         {
           "label": "开始全库重建",
           "kind": "primaryAction",
-          "status": "navigation",
-          "evidence": "只完成受控页面跳转，不计作业务状态变更",
-          "browserVerified": false
+          "status": "implementedStateChange",
+          "evidence": "index-lifecycle-state.test.mjs 与 index-lifecycle.browser.test.cjs：冻结配置并创建独立候选版本，不自动激活且刷新恢复",
+          "browserVerified": true
         }
       ]
     },
@@ -1324,5 +1345,5 @@
     "allControlsEnumerated": false,
     "limitation": "尚未穷举每页筛选、行操作、账户菜单和各状态控件；下列数量只统计已登记项，不代表全平台控件总数。"
   },
-  "browserEvidenceReport": "artifacts/tenant-remediation-final-browser-20260904/verification.json"
+  "browserEvidenceReport": "artifacts/index-lifecycle-browser-verification.json"
 }

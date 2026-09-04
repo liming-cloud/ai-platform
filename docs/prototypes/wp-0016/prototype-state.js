@@ -161,6 +161,108 @@ const FILE_TYPES = Object.freeze({
   webp: { kind: "WebP", mimeTypes: ["image/webp"] },
 });
 
+const INDEX_BUILD_STAGES = Object.freeze([
+  { stage: "MANIFEST_FREEZING", progress: 10 },
+  { stage: "CHUNKING", progress: 35 },
+  { stage: "EMBEDDING", progress: 65 },
+  { stage: "HYBRID_INDEXING", progress: 85 },
+  { stage: "EVALUATING", progress: 95 },
+]);
+
+const INDEX_QUALITY_GATES = Object.freeze({
+  recallAt10: { label: "Recall@10", accepts: value => value >= 0.85 },
+  citationPrecision: { label: "引用正确率", accepts: value => value >= 0.95 },
+  refusalAccuracy: { label: "拒答准确率", accepts: value => value >= 0.98 },
+  unauthorizedLeakage: { label: "越权泄漏", accepts: value => value === 0 },
+  retrievalP95Ms: { label: "检索 p95", accepts: value => value < 800 },
+});
+
+function indexConfig(embeddingDimension = 1536, parserVersion = "typed-parser-v4", chunkingStrategy = "structure-parent-child-v3") {
+  return {
+    embeddingModel: "text-embedding-3-large",
+    embeddingDimension,
+    normalization: "L2",
+    distanceMetric: "cosine",
+    parserVersion,
+    chunkingStrategy,
+    retrievalStrategy: "dense 50 + sparse 50 + RRF k=60 + rerank 30 -> 8",
+  };
+}
+
+function defaultIndexVersions(knowledgeBaseId, activeIndex) {
+  if (knowledgeBaseId === "kb-handbook") {
+    return [
+      {
+        id: "idx-v12",
+        status: "READY_FOR_REVIEW",
+        stage: "READY_FOR_REVIEW",
+        trigger: "CONFIGURATION_CHANGE",
+        changedFields: ["embeddingDimension"],
+        reason: "Embedding 维度由 1024 变更为 1536",
+        config: indexConfig(),
+        progress: 100,
+        documents: 428,
+        chunks: 3486,
+        evaluationSet: "eval-set-v6",
+        evaluationQuestionCount: 100,
+        quality: { recallAt10: 0.88, citationPrecision: 0.97, refusalAccuracy: 0.99, unauthorizedLeakage: 0, retrievalP95Ms: 612 },
+        failedGates: [],
+        activeIndexAtCreation: "idx-v11",
+        updatedAt: "今天 17:44",
+      },
+      {
+        id: "idx-v11",
+        status: "ACTIVE",
+        stage: "ACTIVE",
+        trigger: "MANUAL_REBUILD",
+        changedFields: [],
+        reason: "当前活动索引",
+        config: indexConfig(1024, "typed-parser-v3", "structure-parent-child-v2"),
+        progress: 100,
+        documents: 428,
+        chunks: 3312,
+        quality: { recallAt10: 0.86, citationPrecision: 0.96, refusalAccuracy: 0.99, unauthorizedLeakage: 0, retrievalP95Ms: 640 },
+        failedGates: [],
+        activeIndexAtCreation: "idx-v10",
+        updatedAt: "8 月 21 日",
+      },
+      {
+        id: "idx-v10",
+        status: "SUPERSEDED",
+        stage: "SUPERSEDED",
+        trigger: "PARSER_CHANGE",
+        changedFields: ["parserVersion"],
+        reason: "解析器升级",
+        config: indexConfig(1024, "typed-parser-v2", "structure-parent-child-v2"),
+        progress: 100,
+        documents: 412,
+        chunks: 3198,
+        quality: null,
+        failedGates: [],
+        activeIndexAtCreation: "idx-v9",
+        updatedAt: "7 月 30 日",
+      },
+    ];
+  }
+  if (!activeIndex) return [];
+  return [{
+    id: activeIndex,
+    status: "ACTIVE",
+    stage: "ACTIVE",
+    trigger: "MANUAL_REBUILD",
+    changedFields: [],
+    reason: "当前活动索引",
+    config: indexConfig(),
+    progress: 100,
+    documents: 0,
+    chunks: 0,
+    quality: null,
+    failedGates: [],
+    activeIndexAtCreation: null,
+    updatedAt: "今天",
+  }];
+}
+
 function defaultKnowledgeBases() {
   return [
     {
@@ -172,6 +274,7 @@ function defaultKnowledgeBases() {
       documents: 428,
       storageGb: 2.6,
       activeIndex: "idx-v11",
+      indexVersions: defaultIndexVersions("kb-handbook", "idx-v11"),
       updatedAt: "今天 17:42",
       sources: [
         { id: "src-policy-pdf", name: "2026 员工假期制度.pdf", kind: "PDF", revision: "rev-0007", activeRevision: "rev-0007", stage: "READY", status: "READY", indexed: true, coverage: "42 页", detail: "文本提取完成，引用保留页码。" },
@@ -189,6 +292,7 @@ function defaultKnowledgeBases() {
       documents: 256,
       storageGb: 0.986,
       activeIndex: "idx-v7",
+      indexVersions: defaultIndexVersions("kb-support", "idx-v7"),
       updatedAt: "今天 17:18",
       sources: [],
     },
@@ -306,6 +410,7 @@ function defaultState() {
     knowledgeBases: defaultKnowledgeBases(),
     selectedKnowledgeBaseId: "kb-handbook",
     selectedKnowledgeSourceId: "src-policy-pdf",
+    selectedIndexVersionId: "idx-v12",
     selectedTenantId: DEFAULT_TENANT_ID,
     selectedDemoAccountId: "account-shen",
     health: {
@@ -408,9 +513,15 @@ function initialState(storage) {
       return defaultState();
     }
     parsed.tenantSetup = tenantSetupFrom(parsed.tenantSetup);
-    parsed.knowledgeBases = Array.isArray(parsed.knowledgeBases)
+    const fallbackKnowledgeBases = defaultKnowledgeBases();
+    parsed.knowledgeBases = (Array.isArray(parsed.knowledgeBases)
       ? parsed.knowledgeBases
-      : defaultKnowledgeBases();
+      : fallbackKnowledgeBases).map(knowledgeBase => ({
+        ...knowledgeBase,
+        indexVersions: Array.isArray(knowledgeBase.indexVersions)
+          ? knowledgeBase.indexVersions
+          : clone(fallbackKnowledgeBases.find(item => item.id === knowledgeBase.id)?.indexVersions || defaultIndexVersions(knowledgeBase.id, knowledgeBase.activeIndex)),
+      }));
     parsed.selectedKnowledgeBaseId = parsed.knowledgeBases.some(
       knowledgeBase => knowledgeBase.id === parsed.selectedKnowledgeBaseId,
     ) ? parsed.selectedKnowledgeBaseId : parsed.knowledgeBases[0]?.id ?? null;
@@ -420,6 +531,11 @@ function initialState(storage) {
     parsed.selectedKnowledgeSourceId = selectedKnowledgeBase?.sources.some(
       source => source.id === parsed.selectedKnowledgeSourceId,
     ) ? parsed.selectedKnowledgeSourceId : selectedKnowledgeBase?.sources[0]?.id ?? null;
+    parsed.selectedIndexVersionId = selectedKnowledgeBase?.indexVersions.some(
+      indexVersion => indexVersion.id === parsed.selectedIndexVersionId,
+    ) ? parsed.selectedIndexVersionId : selectedKnowledgeBase?.indexVersions.find(
+      indexVersion => indexVersion.status === "READY_FOR_REVIEW",
+    )?.id ?? selectedKnowledgeBase?.activeIndex ?? selectedKnowledgeBase?.indexVersions[0]?.id ?? null;
     parsed.query = {
       ...defaultQueryState(),
       ...(parsed.query || {}),
@@ -583,6 +699,7 @@ export function createPrototypeStore(storage = browserStorage()) {
       documents: 0,
       storageGb: 0,
       activeIndex: null,
+      indexVersions: [],
       updatedAt: "刚刚",
       sources: [],
     };
@@ -593,7 +710,12 @@ export function createPrototypeStore(storage = browserStorage()) {
   function selectKnowledgeBase(knowledgeBaseId) {
     const knowledgeBase = knowledgeBaseById(knowledgeBaseId);
     if (!knowledgeBase) return { ok: false, reason: "KNOWLEDGE_BASE_NOT_FOUND" };
-    return commitState({ ...state, selectedKnowledgeBaseId: knowledgeBaseId, selectedKnowledgeSourceId: knowledgeBase.sources[0]?.id ?? null });
+    return commitState({
+      ...state,
+      selectedKnowledgeBaseId: knowledgeBaseId,
+      selectedKnowledgeSourceId: knowledgeBase.sources[0]?.id ?? null,
+      selectedIndexVersionId: knowledgeBase.indexVersions.find(item => item.status === "READY_FOR_REVIEW")?.id ?? knowledgeBase.activeIndex ?? knowledgeBase.indexVersions[0]?.id ?? null,
+    });
   }
 
   function selectKnowledgeSource(sourceId) {
@@ -733,6 +855,153 @@ export function createPrototypeStore(storage = browserStorage()) {
     const revisionNumber = Number(current.revision.replace("rev-", "")) + 1;
     const source = { ...current, revision: `rev-${String(revisionNumber).padStart(4, "0")}`, stage: "EXTRACTING", status: "PROCESSING", indexed: false, error: null, detail: "新修订正在重新提取；活动索引继续使用上一修订。" };
     return updateKnowledgeSource(knowledgeBase, source);
+  }
+
+  function selectIndexVersion(indexVersionId) {
+    const knowledgeBase = knowledgeBaseById(state.selectedKnowledgeBaseId);
+    if (!knowledgeBase?.indexVersions.some(indexVersion => indexVersion.id === indexVersionId)) {
+      return { ok: false, reason: "INDEX_VERSION_NOT_FOUND" };
+    }
+    return commitState({ ...state, selectedIndexVersionId: indexVersionId });
+  }
+
+  function updateIndexVersion(knowledgeBase, indexVersion, knowledgeBaseStatus = knowledgeBase.status) {
+    const nextKnowledgeBase = {
+      ...knowledgeBase,
+      status: knowledgeBaseStatus,
+      updatedAt: "刚刚",
+      indexVersions: knowledgeBase.indexVersions.map(item => item.id === indexVersion.id ? indexVersion : item),
+    };
+    const saved = commitState(replaceKnowledgeBase(nextKnowledgeBase));
+    return saved.ok ? { ...saved, indexVersion: clone(indexVersion) } : saved;
+  }
+
+  /** 重建只创建不可变候选版本，活动索引指针必须由独立激活动作修改。 */
+  function createIndexRebuild(knowledgeBaseId, input = {}, actorAccountId) {
+    const knowledgeBase = knowledgeBaseById(knowledgeBaseId);
+    if (!knowledgeBase) return { ok: false, reason: "KNOWLEDGE_BASE_NOT_FOUND" };
+    if (!canManageKnowledge(knowledgeBase.tenantId, actorAccountId)) return { ok: false, reason: "FORBIDDEN" };
+    if (knowledgeBase.documents <= 0) return { ok: false, reason: "NO_ACTIVE_DOCUMENTS" };
+    if (knowledgeBase.indexVersions.some(item => ["BUILDING", "EVALUATING"].includes(item.status))) {
+      return { ok: false, reason: "INDEX_BUILD_ALREADY_ACTIVE" };
+    }
+    const trigger = String(input.trigger || "MANUAL_REBUILD");
+    const changedFields = Array.isArray(input.changedFields) ? [...new Set(input.changedFields.map(String))] : [];
+    if (trigger === "CONFIGURATION_CHANGE" && changedFields.length === 0) {
+      return { ok: false, reason: "CONFIGURATION_CHANGE_REQUIRED" };
+    }
+    const number = Math.max(0, ...knowledgeBase.indexVersions.map(item => Number(item.id.replace(/^idx-v/, "")) || 0)) + 1;
+    const config = clone(input.config || knowledgeBase.indexVersions[0]?.config || indexConfig());
+    const indexVersion = {
+      id: `idx-v${number}`,
+      status: "BUILDING",
+      stage: "MANIFEST_FREEZING",
+      trigger,
+      changedFields,
+      reason: String(input.reason || "管理员发起全库重建").trim(),
+      config,
+      progress: 10,
+      documents: knowledgeBase.documents,
+      chunks: null,
+      evaluationSet: "eval-set-v6",
+      evaluationQuestionCount: 100,
+      quality: null,
+      failedGates: [],
+      activeIndexAtCreation: knowledgeBase.activeIndex,
+      updatedAt: "刚刚",
+    };
+    const nextKnowledgeBase = {
+      ...knowledgeBase,
+      status: "INDEXING",
+      updatedAt: "刚刚",
+      indexVersions: [indexVersion, ...knowledgeBase.indexVersions],
+    };
+    const saved = commitState({ ...replaceKnowledgeBase(nextKnowledgeBase), selectedIndexVersionId: indexVersion.id });
+    return saved.ok ? { ...saved, indexVersion: clone(indexVersion) } : saved;
+  }
+
+  function advanceIndexBuild(knowledgeBaseId, indexVersionId, actorAccountId) {
+    const knowledgeBase = knowledgeBaseById(knowledgeBaseId);
+    if (!knowledgeBase) return { ok: false, reason: "KNOWLEDGE_BASE_NOT_FOUND" };
+    if (!canManageKnowledge(knowledgeBase.tenantId, actorAccountId)) return { ok: false, reason: "FORBIDDEN" };
+    const current = knowledgeBase.indexVersions.find(item => item.id === indexVersionId);
+    if (!current) return { ok: false, reason: "INDEX_VERSION_NOT_FOUND" };
+    if (current.status === "EVALUATING") return { ok: false, reason: "INDEX_EVALUATION_REQUIRED" };
+    if (current.status !== "BUILDING") return { ok: false, reason: "INDEX_NOT_BUILDING" };
+    const currentPosition = INDEX_BUILD_STAGES.findIndex(item => item.stage === current.stage);
+    const next = INDEX_BUILD_STAGES[currentPosition + 1];
+    if (!next) return { ok: false, reason: "INDEX_EVALUATION_REQUIRED" };
+    return updateIndexVersion(knowledgeBase, {
+      ...current,
+      ...next,
+      status: next.stage === "EVALUATING" ? "EVALUATING" : "BUILDING",
+      chunks: next.stage === "EVALUATING" ? Math.max(current.documents * 8, 1) : current.chunks,
+      updatedAt: "刚刚",
+    });
+  }
+
+  function recordIndexEvaluation(knowledgeBaseId, indexVersionId, quality = {}, actorAccountId) {
+    const knowledgeBase = knowledgeBaseById(knowledgeBaseId);
+    if (!knowledgeBase) return { ok: false, reason: "KNOWLEDGE_BASE_NOT_FOUND" };
+    if (!canManageKnowledge(knowledgeBase.tenantId, actorAccountId)) return { ok: false, reason: "FORBIDDEN" };
+    const current = knowledgeBase.indexVersions.find(item => item.id === indexVersionId);
+    if (!current) return { ok: false, reason: "INDEX_VERSION_NOT_FOUND" };
+    if (current.status !== "EVALUATING") return { ok: false, reason: "INDEX_NOT_EVALUATING" };
+    if (Object.keys(INDEX_QUALITY_GATES).some(key => !Number.isFinite(quality[key]))) {
+      return { ok: false, reason: "INVALID_QUALITY_RESULT" };
+    }
+    const failedGates = Object.entries(INDEX_QUALITY_GATES)
+      .filter(([key, gate]) => !gate.accepts(quality[key]))
+      .map(([, gate]) => gate.label);
+    const status = failedGates.length ? "BLOCKED" : "READY_FOR_REVIEW";
+    return updateIndexVersion(knowledgeBase, {
+      ...current,
+      status,
+      stage: status,
+      progress: 100,
+      quality: clone(quality),
+      failedGates,
+      updatedAt: "刚刚",
+    }, knowledgeBase.activeIndex ? "READY" : "EMPTY");
+  }
+
+  /** 激活在一次持久化提交中更新新旧版本和知识库活动指针，失败时整体回滚。 */
+  function activateIndexVersion(knowledgeBaseId, indexVersionId, actorAccountId) {
+    const knowledgeBase = knowledgeBaseById(knowledgeBaseId);
+    if (!knowledgeBase) return { ok: false, reason: "KNOWLEDGE_BASE_NOT_FOUND" };
+    if (!canManageKnowledge(knowledgeBase.tenantId, actorAccountId)) return { ok: false, reason: "FORBIDDEN" };
+    const current = knowledgeBase.indexVersions.find(item => item.id === indexVersionId);
+    if (!current) return { ok: false, reason: "INDEX_VERSION_NOT_FOUND" };
+    if (current.status === "BLOCKED") return { ok: false, reason: "QUALITY_GATE_FAILED" };
+    if (current.status !== "READY_FOR_REVIEW") return { ok: false, reason: "INDEX_NOT_READY" };
+    const nextKnowledgeBase = {
+      ...knowledgeBase,
+      activeIndex: current.id,
+      status: "READY",
+      updatedAt: "刚刚",
+      indexVersions: knowledgeBase.indexVersions.map(item => {
+        if (item.id === current.id) return { ...item, status: "ACTIVE", stage: "ACTIVE", updatedAt: "刚刚" };
+        if (["ACTIVE", "READY_FOR_REVIEW"].includes(item.status)) return { ...item, status: "SUPERSEDED", stage: "SUPERSEDED" };
+        return item;
+      }),
+    };
+    const saved = commitState(replaceKnowledgeBase(nextKnowledgeBase));
+    const activated = nextKnowledgeBase.indexVersions.find(item => item.id === current.id);
+    return saved.ok ? { ...saved, indexVersion: clone(activated) } : saved;
+  }
+
+  function cancelIndexBuild(knowledgeBaseId, indexVersionId, actorAccountId) {
+    const knowledgeBase = knowledgeBaseById(knowledgeBaseId);
+    if (!knowledgeBase) return { ok: false, reason: "KNOWLEDGE_BASE_NOT_FOUND" };
+    if (!canManageKnowledge(knowledgeBase.tenantId, actorAccountId)) return { ok: false, reason: "FORBIDDEN" };
+    const current = knowledgeBase.indexVersions.find(item => item.id === indexVersionId);
+    if (!current) return { ok: false, reason: "INDEX_VERSION_NOT_FOUND" };
+    if (!["BUILDING", "EVALUATING"].includes(current.status)) return { ok: false, reason: "INDEX_NOT_CANCELLABLE" };
+    return updateIndexVersion(
+      knowledgeBase,
+      { ...current, status: "CANCELLED", stage: "CANCELLED", updatedAt: "刚刚" },
+      knowledgeBase.activeIndex ? "READY" : "EMPTY",
+    );
   }
 
   function accountPasswordErrors(input = {}) {
@@ -1803,6 +2072,12 @@ export function createPrototypeStore(storage = browserStorage()) {
     advanceKnowledgeSource,
     retryKnowledgeSource,
     reprocessKnowledgeSource,
+    selectIndexVersion,
+    createIndexRebuild,
+    advanceIndexBuild,
+    recordIndexEvaluation,
+    activateIndexVersion,
+    cancelIndexBuild,
     createTenant,
     addMember,
     findMember,

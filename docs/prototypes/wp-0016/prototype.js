@@ -35,6 +35,7 @@ let loginFeedback = "";
 let queryFeedback = "";
 let accountFeedback = "";
 let knowledgeFeedback = "";
+let indexFeedback = "";
 let nextQueryMode = "normal";
 let queryStreamingSuspended = false;
 const PLATFORM_ACCOUNT_ACTOR_ID = "account-platform-admin";
@@ -310,8 +311,12 @@ function renderScreen(screen, state, demoState) {
       return renderSourceAdd(state, demoState);
     case "source-detail":
       return renderSourceDetail(state, demoState);
+    case "index-versions":
+      return renderIndexVersions(state, demoState);
+    case "index-rebuild":
+      return renderIndexRebuild(state, demoState);
     case "index-detail":
-      return renderIndexDetail(state);
+      return renderIndexDetail(state, demoState);
     case "assistant-release":
       return renderAssistantRelease(state);
     default:
@@ -350,6 +355,11 @@ function statusTag(status) {
     EMPTY: ["待添加资料", "info"],
     FAILED: ["失败", "danger"],
     BUILDING: ["构建中", "warning"],
+    EVALUATING: ["评测中", "warning"],
+    ACTIVE: ["当前活动", "success"],
+    BLOCKED: ["门禁未通过", "danger"],
+    SUPERSEDED: ["已保留", "info"],
+    CANCELLED: ["已取消", "info"],
   };
   const item = mapping[status] || [status, "info"];
   return (
@@ -910,10 +920,13 @@ function pageStatus(active, state) {
   const snapshot = prototypeStore.getSnapshot();
   const knowledgeBases = snapshot.knowledgeBases.filter(item => item.tenantId === DEFAULT_TENANT_ID);
   const knowledgeBase = selectedKnowledgeBase(snapshot);
+  const indexVersion = selectedIndexVersion(snapshot);
   return {
     "knowledge-directory": `${knowledgeBases.length} 个知识库 / ${knowledgeBases.filter(item => !["READY", "EMPTY"].includes(item.status)).length} 项需处理`,
     "knowledge-sources": `${knowledgeBase?.name || "当前知识库"} / ${knowledgeBase?.sources.length || 0} 个来源`,
-    "index-detail": "idx-v12 / 待激活",
+    "index-versions": `${knowledgeBase?.activeIndex || "尚无活动索引"} / ${knowledgeBase?.indexVersions.length || 0} 个版本`,
+    "index-rebuild": `${knowledgeBase?.name || "当前知识库"} / 新建独立版本`,
+    "index-detail": `${indexVersion?.id || "未选择版本"} / ${indexStatusLabel(indexVersion?.status)}`,
     "assistant-release": "员工服务助手 v13 / 发布门禁通过",
   }[active] || "当前工作区";
 }
@@ -1158,6 +1171,92 @@ function renderSourceDetail(state, demoState) {
   );
 }
 
+function selectedIndexVersion(demoState) {
+  const knowledgeBase = selectedKnowledgeBase(demoState);
+  return knowledgeBase?.indexVersions.find(
+    item => item.id === demoState.selectedIndexVersionId,
+  ) || knowledgeBase?.indexVersions.find(item => item.id === knowledgeBase.activeIndex) || knowledgeBase?.indexVersions[0];
+}
+
+function indexStatusLabel(status) {
+  return {
+    BUILDING: "构建中",
+    EVALUATING: "评测中",
+    READY_FOR_REVIEW: "待激活",
+    ACTIVE: "当前活动",
+    BLOCKED: "门禁未通过",
+    SUPERSEDED: "已保留",
+    CANCELLED: "已取消",
+  }[status] || "未知状态";
+}
+
+function renderIndexVersions(state, demoState) {
+  const generic = genericState("index-versions", state);
+  if (generic) {
+    return adminShell("index-versions", "索引版本", "", "", generic, state, "知识管理 / 索引版本");
+  }
+  const knowledgeBase = selectedKnowledgeBase(demoState);
+  const versions = knowledgeBase?.indexVersions || [];
+  const rows = versions.map(indexVersion => [
+    `<tr data-index-row="${escapeHtml(indexVersion.id)}" data-directory-row>`,
+    `<td data-label="版本"><span class="primary-cell"><strong>${escapeHtml(indexVersion.id)}</strong><span>${escapeHtml(indexVersion.reason)}</span></span></td>`,
+    `<td data-label="触发原因">${escapeHtml(indexVersion.trigger === "CONFIGURATION_CHANGE" ? "配置变化" : indexVersion.trigger === "PARSER_CHANGE" ? "解析器变化" : "手动重建")}</td>`,
+    `<td data-label="文档">${escapeHtml(indexVersion.documents)}</td>`,
+    `<td data-label="进度">${escapeHtml(indexVersion.progress)}%</td>`,
+    `<td data-label="状态">${statusTag(indexVersion.status)}</td>`,
+    `<td data-label="最近变化">${escapeHtml(indexVersion.updatedAt)}</td>`,
+    `<td data-label="操作"><div class="table-actions"><button class="button secondary compact" type="button" data-select-index="${escapeHtml(indexVersion.id)}" data-nav-screen="index-detail">查看</button></div></td>`,
+    "</tr>",
+  ].join("")).join("");
+  const content = [
+    state === "partial" ? `<div class="inline-note warning">候选版本仍在构建，活动 ${escapeHtml(knowledgeBase?.activeIndex || "索引")} 继续服务。</div>` : "",
+    `<dl class="summary-strip"><div class="summary-item"><dt>活动版本</dt><dd>${escapeHtml(knowledgeBase?.activeIndex || "尚无")}</dd></div><div class="summary-item"><dt>构建中</dt><dd>${versions.filter(item => ["BUILDING", "EVALUATING"].includes(item.status)).length}</dd></div><div class="summary-item"><dt>待激活</dt><dd>${versions.filter(item => item.status === "READY_FOR_REVIEW").length}</dd></div><div class="summary-item"><dt>被阻止</dt><dd>${versions.filter(item => item.status === "BLOCKED").length}</dd></div></dl>`,
+    '<div class="toolbar"><label class="field"><span>搜索索引版本</span><input class="input" type="search" data-directory-search placeholder="按版本或原因搜索" /></label><button class="button secondary" type="button" data-nav-screen="processing-quality">查看处理与质量</button></div>',
+    `<div class="table-shell"><table class="data-table"><thead><tr><th style="width:28%">版本</th><th>触发原因</th><th>文档</th><th>进度</th><th>状态</th><th>最近变化</th><th style="text-align:right">操作</th></tr></thead><tbody>${rows || '<tr><td colspan="7"><div class="empty-table">尚无索引版本。</div></td></tr>'}</tbody></table><div class="pagination" aria-label="索引版本分页"><span>第 1 页，共 ${versions.length} 个版本</span><div class="pagination-actions"><button class="button secondary compact" type="button" disabled>上一页</button><button class="button secondary compact" type="button" disabled>下一页</button></div></div></div>`,
+    indexFeedback ? `<p class="form-feedback" role="status">${escapeHtml(indexFeedback)}</p>` : "",
+  ].join("");
+  return adminShell(
+    "index-versions",
+    "索引版本",
+    "",
+    '<button class="button primary" type="button" data-nav-screen="index-rebuild">重建索引</button>',
+    content,
+    state,
+    "知识管理 / 索引版本",
+  );
+}
+
+function renderIndexRebuild(state, demoState) {
+  const generic = genericState("index-rebuild", state);
+  if (generic) {
+    return adminShell("index-rebuild", "全库索引重建", "", "", generic, state, "知识管理 / 索引重建");
+  }
+  const knowledgeBase = selectedKnowledgeBase(demoState);
+  const activeVersion = knowledgeBase?.indexVersions.find(item => item.id === knowledgeBase.activeIndex);
+  const candidateConfig = knowledgeBase?.indexVersions[0]?.config || activeVersion?.config;
+  const activeBuild = knowledgeBase?.indexVersions.find(item => ["BUILDING", "EVALUATING"].includes(item.status));
+  const disabled = state === "disabled" || Boolean(activeBuild);
+  const content = [
+    disabled ? `<div class="inline-note warning">${activeBuild ? `${escapeHtml(activeBuild.id)} 正在执行，同一知识库不能并发创建第二个全库重建。` : "当前资源不足，暂不能开始新的全库重建。"}</div>` : "",
+    '<form id="index-rebuild-form" class="wizard-workspace">',
+    '<section class="section-block wizard-inputs"><div class="section-heading"><div><span class="section-kicker">新建候选版本</span><h2>确认重建原因</h2></div><span class="status-tag" data-tone="info">不会自动激活</span></div>',
+    '<div class="field-stack"><label class="field"><span>重建原因</span><select class="select" name="trigger"><option value="CONFIGURATION_CHANGE">Embedding、维度或距离度量变化</option><option value="PARSER_CHANGE">解析器或分块策略变化</option><option value="MANUAL_REBUILD">内容治理后手动全量重建</option></select></label>',
+    `<dl class="description-list"><div class="description-row"><dt>活动文档</dt><dd>${escapeHtml(knowledgeBase?.documents || 0)} 个</dd></div><div class="description-row"><dt>当前活动索引</dt><dd>${escapeHtml(knowledgeBase?.activeIndex || "尚无")}</dd></div><div class="description-row"><dt>候选 Embedding</dt><dd>${escapeHtml(candidateConfig?.embeddingModel || "未配置")} / ${escapeHtml(candidateConfig?.embeddingDimension || 0)} 维</dd></div><div class="description-row"><dt>距离与归一化</dt><dd>${escapeHtml(candidateConfig?.distanceMetric || "未配置")} / ${escapeHtml(candidateConfig?.normalization || "未配置")}</dd></div><div class="description-row"><dt>解析与分块</dt><dd>${escapeHtml(candidateConfig?.parserVersion || "未配置")} / ${escapeHtml(candidateConfig?.chunkingStrategy || "未配置")}</dd></div></dl>`,
+    '<p id="index-rebuild-feedback" class="form-feedback" role="alert"></p><div class="form-actions"><button class="button secondary" type="button" data-nav-screen="index-versions">取消</button><button class="button primary" type="submit" data-primary-action' + (disabled ? " disabled" : "") + '>开始全库重建</button></div></div></section>',
+    `<aside class="section-block wizard-review"><span class="section-kicker">影响范围</span><h2>${escapeHtml(knowledgeBase?.name || "当前知识库")}</h2><dl class="description-list"><div class="description-row"><dt>新版本</dt><dd>独立构建，不修改活动索引</dd></div><div class="description-row"><dt>查询服务</dt><dd>${escapeHtml(knowledgeBase?.activeIndex || "当前版本")} 持续服务</dd></div><div class="description-row"><dt>上线条件</dt><dd>构建和冻结评测通过后人工激活</dd></div><div class="description-row"><dt>恢复方式</dt><dd>取消候选构建，保留活动指针</dd></div></dl></aside>`,
+    "</form>",
+  ].join("");
+  return adminShell(
+    "index-rebuild",
+    "全库索引重建",
+    "",
+    '<button class="button secondary" type="button" data-nav-screen="index-versions">返回索引版本</button>',
+    content,
+    state,
+    "知识管理 / 索引重建",
+  );
+}
+
 function qualityGrid(quality, includeFirstToken) {
   const items = [
     ["Recall@10", (quality.recallAt10 * 100).toFixed(0) + "%"],
@@ -1184,82 +1283,75 @@ function qualityGrid(quality, includeFirstToken) {
   );
 }
 
-function renderIndexDetail(state) {
+function renderIndexDetail(state, demoState) {
   const generic = genericState("index-detail", state);
-  const index = fixtures.indexVersion;
-  const ready = state !== "partial" && state !== "disabled";
-  const content =
-    generic ||
-    [
-      '<div class="inline-note' +
-        (ready ? "" : " warning") +
-        '">' +
-        (state === "partial"
-          ? "已处理 301 / 428 个文档，活动 idx-v11 继续服务。构建完成前不能评测或激活。"
-          : state === "disabled"
-            ? "冻结评测发现成员授权过滤后的 Recall@10 为 0.81，未达到 0.85 门槛。"
-            : escapeHtml(index.reason)) +
-        "</div>",
-      '<div class="split-detail"><div>',
-      '<section class="section-block"><div class="section-heading"><div><p class="eyebrow">构建状态</p><h2>' +
-        (ready ? "构建与评测完成" : "正在构建新版本") +
-        "</h2></div>" +
-        statusTag(ready ? "READY_FOR_REVIEW" : "BUILDING") +
-        "</div>",
-      '<div class="progress-track" aria-label="索引构建进度"><div class="progress-value" style="width:' +
-        (ready ? "100" : "71") +
-        '%"></div></div>',
-      '<p class="muted">' +
-        (ready
-          ? "428 个文档 · 3,486 个分块 · 未自动激活"
-          : "301 / 428 个文档 · 可安全断点恢复") +
-        "</p></section>",
-      '<section class="section-block"><div class="section-heading"><h2>冻结评测</h2><span class="mono">eval-set-v6 · 100 题</span></div>' +
-        qualityGrid(
-          state === "disabled"
-            ? { ...index.quality, recallAt10: 0.81 }
-            : index.quality,
-          false,
-        ) +
-        "</section>",
-      '<section class="section-block"><h2>构建时间线</h2><ol class="timeline"><li><span><strong>清单冻结</strong><br><small>428 个活动文档版本</small></span><small>17:05</small></li><li><span><strong>结构化分块</strong><br><small>structure-parent-child-v3</small></span><small>17:18</small></li><li><span><strong>向量与全文构建</strong><br><small>HNSW + PostgreSQL FTS</small></span><small>17:31</small></li><li><span><strong>冻结评测</strong><br><small>权限、召回、引用、拒答与延迟</small></span><small>17:44</small></li></ol></section>',
-      "</div><aside>",
-      '<section class="section-block"><h2>不可变配置</h2><dl class="description-list"><dt>Embedding</dt><dd>' +
-        escapeHtml(index.embedding) +
-        "</dd><dt>解析器</dt><dd>" +
-        escapeHtml(index.parser) +
-        "</dd><dt>分块</dt><dd>" +
-        escapeHtml(index.chunking) +
-        "</dd><dt>检索</dt><dd>" +
-        escapeHtml(index.retrieval) +
-        '</dd><dt>当前活动</dt><dd><span class="mono">idx-v11</span></dd></dl></section>',
-      '<section class="release-decision' +
-        (state === "disabled" ? " blocked" : "") +
-        '"><p class="eyebrow">激活决定</p><h2>' +
-        (state === "disabled"
-          ? "暂不能激活"
-          : ready
-            ? "可以激活 idx-v12"
-            : "等待构建完成") +
-        "</h2><p>" +
-        (state === "disabled"
-          ? "先修复授权过滤后的召回损失并重新运行冻结评测。"
-          : "激活是原子切换。旧索引保留，不会在构建期间停止服务。") +
-        "</p>",
-      '<button class="button primary" type="button" data-confirm-index' +
-        (!ready || state === "disabled" ? " disabled" : "") +
-        ">激活此版本</button></section>",
-      "</aside></div>",
-      '<dialog id="index-dialog" class="dialog-surface"><form method="dialog"><p class="eyebrow">高风险确认</p><h2>激活 idx-v12？</h2><p>新查询将使用 idx-v12；已固定旧版本的会话继续使用原版本。此操作会记录审计事件。</p><div class="release-actions"><button class="button secondary" value="cancel">取消</button><button class="button primary" value="confirm">确认激活</button></div></form></dialog>',
-    ].join("");
+  if (generic) {
+    return adminShell("index-detail", "索引版本", "", "", generic, state, "知识管理 / 索引版本");
+  }
+  const knowledgeBase = selectedKnowledgeBase(demoState);
+  const stored = selectedIndexVersion(demoState);
+  if (!stored) {
+    return adminShell(
+      "index-detail",
+      "索引版本",
+      "",
+      '<button class="button primary" type="button" data-nav-screen="index-rebuild">建立索引</button>',
+      statePanel("empty", "尚无索引版本", "请先建立一个全库索引版本。", "建立索引", "index-rebuild"),
+      state,
+      "知识管理 / 索引版本",
+    );
+  }
+  const indexVersion = state === "partial"
+    ? { ...stored, status: "BUILDING", stage: "EMBEDDING", progress: 65, quality: null }
+    : state === "disabled"
+      ? { ...stored, status: "BLOCKED", stage: "BLOCKED", progress: 100, quality: { ...fixtures.indexVersion.quality, recallAt10: 0.81 }, failedGates: ["Recall@10"] }
+      : stored;
+  const building = indexVersion.status === "BUILDING";
+  const evaluating = indexVersion.status === "EVALUATING";
+  const ready = indexVersion.status === "READY_FOR_REVIEW";
+  const complete = ["READY_FOR_REVIEW", "ACTIVE", "BLOCKED", "SUPERSEDED", "CANCELLED"].includes(indexVersion.status);
+  const stageOrder = ["MANIFEST_FREEZING", "CHUNKING", "EMBEDDING", "HYBRID_INDEXING", "EVALUATING"];
+  const stageNames = { MANIFEST_FREEZING: "冻结清单", CHUNKING: "结构化分块", EMBEDDING: "生成向量", HYBRID_INDEXING: "建立混合索引", EVALUATING: "冻结评测" };
+  const position = complete ? stageOrder.length : Math.max(0, stageOrder.indexOf(indexVersion.stage));
+  const operation = building
+    ? '<button class="button primary" type="button" data-advance-index>刷新构建状态</button><button class="button secondary" type="button" data-cancel-index>取消构建</button>'
+    : evaluating
+      ? '<button class="button primary" type="button" data-evaluate-index>运行冻结评测</button><button class="button secondary" type="button" data-cancel-index>取消构建</button>'
+      : ready
+        ? '<button class="button primary" type="button" data-confirm-index>激活此版本</button>'
+        : indexVersion.status === "ACTIVE"
+          ? '<button class="button secondary" type="button" data-nav-screen="index-versions">返回版本目录</button>'
+          : '<button class="button primary" type="button" data-nav-screen="index-rebuild">重新建立版本</button>';
+  const quality = indexVersion.quality
+    ? `<section class="section-block"><div class="section-heading"><h2>冻结评测</h2><span class="mono">${escapeHtml(indexVersion.evaluationSet || "eval-set-v6")} / ${escapeHtml(indexVersion.evaluationQuestionCount || 100)} 题</span></div>${qualityGrid(indexVersion.quality, false)}${indexVersion.failedGates?.length ? `<p class="inline-note danger">未通过：${indexVersion.failedGates.map(escapeHtml).join("、")}</p>` : ""}</section>`
+    : '<section class="section-block"><div class="section-heading"><h2>冻结评测</h2><span class="status-tag" data-tone="info">尚未运行</span></div><p class="muted">构建完成后运行权限、召回、引用、拒答和延迟评测。</p></section>';
+  const notice = indexVersion.status === "BLOCKED"
+    ? `质量门禁未通过，活动 ${knowledgeBase.activeIndex} 继续服务。`
+    : indexVersion.status === "ACTIVE"
+      ? `${indexVersion.id} 已成为当前活动索引。旧版本继续保留。`
+      : indexVersion.status === "CANCELLED"
+        ? `候选构建已取消，活动 ${knowledgeBase.activeIndex} 未变化。`
+        : `活动 ${knowledgeBase.activeIndex} 继续服务；${indexVersion.id} 不会自动激活。`;
+  const content = [
+    `<div class="inline-note${indexVersion.status === "BLOCKED" ? " danger" : building || evaluating ? " warning" : ""}">${escapeHtml(notice)}</div>`,
+    '<div class="split-detail"><div>',
+    `<section class="section-block" data-index-stage="${escapeHtml(indexVersion.stage)}" data-index-status="${escapeHtml(indexVersion.status)}"><div class="section-heading"><div><span class="section-kicker">构建状态</span><h2>${escapeHtml(indexStatusLabel(indexVersion.status))}</h2></div>${statusTag(indexVersion.status)}</div><ol class="process-steps source-process index-process" aria-label="索引构建阶段">${stageOrder.map((stage, index) => `<li data-step-state="${index < position ? "complete" : index === position ? "current" : "upcoming"}"><span>${index + 1}</span><strong>${stageNames[stage]}</strong></li>`).join("")}</ol><div class="progress-track" aria-label="索引构建进度"><div class="progress-value" style="width:${escapeHtml(indexVersion.progress)}%"></div></div><p class="muted">${escapeHtml(indexVersion.documents)} 个文档${indexVersion.chunks ? ` / ${escapeHtml(indexVersion.chunks)} 个分块` : ""}</p></section>`,
+    quality,
+    "</div><aside>",
+    `<section class="section-block"><h2>不可变配置</h2><dl class="description-list"><div class="description-row"><dt>Embedding</dt><dd>${escapeHtml(indexVersion.config.embeddingModel)} / ${escapeHtml(indexVersion.config.embeddingDimension)} 维</dd></div><div class="description-row"><dt>规范化与距离</dt><dd>${escapeHtml(indexVersion.config.normalization)} / ${escapeHtml(indexVersion.config.distanceMetric)}</dd></div><div class="description-row"><dt>解析器</dt><dd>${escapeHtml(indexVersion.config.parserVersion)}</dd></div><div class="description-row"><dt>分块</dt><dd>${escapeHtml(indexVersion.config.chunkingStrategy)}</dd></div><div class="description-row"><dt>检索</dt><dd>${escapeHtml(indexVersion.config.retrievalStrategy)}</dd></div><div class="description-row"><dt>当前活动索引</dt><dd>${escapeHtml(knowledgeBase.activeIndex || "尚无")}</dd></div></dl></section>`,
+    `<section class="release-decision${indexVersion.status === "BLOCKED" ? " blocked" : ""}"><span class="section-kicker">版本操作</span><h2>${escapeHtml(indexVersion.id)}</h2><p>${escapeHtml(indexVersion.reason)}</p><div class="form-actions">${operation}</div>${indexFeedback ? `<p class="form-feedback" role="status">${escapeHtml(indexFeedback)}</p>` : ""}</section>`,
+    "</aside></div>",
+    `<dialog id="index-dialog" class="dialog-surface"><form method="dialog"><span class="section-kicker">激活确认</span><h2>激活 ${escapeHtml(indexVersion.id)}？</h2><p>新查询使用此版本；已固定旧版本的会话继续使用原版本。</p><div class="dialog-impact"><div><dt>当前</dt><dd>${escapeHtml(knowledgeBase.activeIndex || "尚无")}</dd></div><div><dt>切换后</dt><dd>${escapeHtml(indexVersion.id)}</dd></div></div><div class="release-actions"><button class="button secondary" value="cancel">取消</button><button class="button primary" type="button" data-activate-index>确认激活</button></div></form></dialog>`,
+    `<dialog id="cancel-index-dialog" class="dialog-surface"><form method="dialog"><span class="section-kicker">取消确认</span><h2>取消 ${escapeHtml(indexVersion.id)} 的构建？</h2><p>候选版本停止推进，活动 ${escapeHtml(knowledgeBase.activeIndex || "索引")} 不受影响。</p><div class="release-actions"><button class="button secondary" value="cancel">返回</button><button class="button primary" type="button" data-confirm-cancel-index>确认取消</button></div></form></dialog>`,
+  ].join("");
   return adminShell(
     "index-detail",
-    "索引 idx-v12",
-    "评审全量重建结果，并在质量与权限门禁通过后原子激活。构建完成不等于自动上线。",
+    `索引 ${indexVersion.id}`,
+    "",
     '<button class="button secondary" type="button" data-nav-screen="index-rebuild">重建索引</button>',
     content,
     state,
-    "知识管理 / 知识库 / 员工服务手册 / 索引 idx-v12",
+    "知识管理 / 索引版本",
   );
 }
 
@@ -1455,6 +1547,87 @@ function bindKnowledgeManagement() {
   });
 }
 
+function bindIndexManagement() {
+  root.querySelector("#index-rebuild-form")?.addEventListener("submit", event => {
+    event.preventDefault();
+    const snapshot = prototypeStore.getSnapshot();
+    const knowledgeBase = selectedKnowledgeBase(snapshot);
+    const trigger = new FormData(event.currentTarget).get("trigger");
+    const definitions = {
+      CONFIGURATION_CHANGE: { changedFields: ["embeddingModel", "embeddingDimension", "distanceMetric"], reason: "Embedding、维度或距离度量变化" },
+      PARSER_CHANGE: { changedFields: ["parserVersion", "chunkingStrategy"], reason: "解析器或分块策略变化" },
+      MANUAL_REBUILD: { changedFields: [], reason: "内容治理后手动全量重建" },
+    };
+    const definition = definitions[trigger] || definitions.MANUAL_REBUILD;
+    const result = prototypeStore.createIndexRebuild(
+      knowledgeBase?.id,
+      { trigger, ...definition },
+      TENANT_ADMIN_ACTOR_ID,
+    );
+    if (!result.ok) {
+      const message = {
+        INDEX_BUILD_ALREADY_ACTIVE: "已有索引版本正在执行，请先查看或取消现有任务。",
+        NO_ACTIVE_DOCUMENTS: "当前没有可冻结的有效文档。",
+        STORAGE_UNAVAILABLE: "浏览器无法保存，未创建索引版本。",
+      }[result.reason] || "当前不能创建全库重建任务。";
+      root.querySelector("#index-rebuild-feedback").textContent = message;
+      return;
+    }
+    indexFeedback = `已创建 ${result.indexVersion.id}，活动索引未变化。`;
+    navigate("index-detail");
+  });
+
+  root.querySelector("[data-advance-index]")?.addEventListener("click", () => {
+    const snapshot = prototypeStore.getSnapshot();
+    const result = prototypeStore.advanceIndexBuild(
+      snapshot.selectedKnowledgeBaseId,
+      snapshot.selectedIndexVersionId,
+      TENANT_ADMIN_ACTOR_ID,
+    );
+    indexFeedback = result.ok ? `构建已推进到 ${result.indexVersion.stage}。` : "当前构建不能继续推进。";
+    render();
+  });
+  root.querySelector("[data-evaluate-index]")?.addEventListener("click", () => {
+    const snapshot = prototypeStore.getSnapshot();
+    const result = prototypeStore.recordIndexEvaluation(
+      snapshot.selectedKnowledgeBaseId,
+      snapshot.selectedIndexVersionId,
+      fixtures.indexVersion.quality,
+      TENANT_ADMIN_ACTOR_ID,
+    );
+    indexFeedback = result.ok && result.indexVersion.status === "READY_FOR_REVIEW"
+      ? "冻结评测通过，可以由授权管理员激活。"
+      : "冻结评测未通过，活动索引继续服务。";
+    render();
+  });
+  const indexDialog = root.querySelector("#index-dialog");
+  root.querySelector("[data-confirm-index]")?.addEventListener("click", () => indexDialog?.showModal());
+  root.querySelector("[data-activate-index]")?.addEventListener("click", () => {
+    const snapshot = prototypeStore.getSnapshot();
+    const result = prototypeStore.activateIndexVersion(
+      snapshot.selectedKnowledgeBaseId,
+      snapshot.selectedIndexVersionId,
+      TENANT_ADMIN_ACTOR_ID,
+    );
+    indexFeedback = result.ok ? `${result.indexVersion.id} 已原子切换为当前活动索引。` : "激活失败，活动索引未变化。";
+    indexDialog?.close();
+    render();
+  });
+  const cancelDialog = root.querySelector("#cancel-index-dialog");
+  root.querySelector("[data-cancel-index]")?.addEventListener("click", () => cancelDialog?.showModal());
+  root.querySelector("[data-confirm-cancel-index]")?.addEventListener("click", () => {
+    const snapshot = prototypeStore.getSnapshot();
+    const result = prototypeStore.cancelIndexBuild(
+      snapshot.selectedKnowledgeBaseId,
+      snapshot.selectedIndexVersionId,
+      TENANT_ADMIN_ACTOR_ID,
+    );
+    indexFeedback = result.ok ? "候选构建已取消，活动索引未变化。" : "当前版本不能取消。";
+    cancelDialog?.close();
+    render();
+  });
+}
+
 function bindInteractions(screen) {
   root.querySelectorAll("[data-nav-screen]").forEach((element) => {
     element.addEventListener("click", () => {
@@ -1466,6 +1639,9 @@ function bindInteractions(screen) {
       }
       if (element.dataset.selectSource) {
         prototypeStore.selectKnowledgeSource(element.dataset.selectSource);
+      }
+      if (element.dataset.selectIndex) {
+        prototypeStore.selectIndexVersion(element.dataset.selectIndex);
       }
       navigate(
         element.dataset.navScreen,
@@ -1684,6 +1860,7 @@ function bindInteractions(screen) {
   bindHealthManagement();
   bindRecoveryDrill();
   bindKnowledgeManagement();
+  bindIndexManagement();
 }
 
 function bindAccountManagement() {
