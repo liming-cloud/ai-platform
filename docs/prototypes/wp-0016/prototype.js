@@ -33,8 +33,10 @@ let streamTimer;
 let streamGeneration = 0;
 let loginFeedback = "";
 let queryFeedback = "";
+let accountFeedback = "";
 let nextQueryMode = "normal";
 let queryStreamingSuspended = false;
+const PLATFORM_ACCOUNT_ACTOR_ID = "account-platform-admin";
 const prototypeStore = createPrototypeStore();
 
 try {
@@ -87,6 +89,7 @@ resetReview.addEventListener("click", () => {
   activeConversationId = "";
   loginFeedback = "";
   queryFeedback = "";
+  accountFeedback = "";
   nextQueryMode = "normal";
   render();
 });
@@ -265,7 +268,9 @@ function render() {
             demoState.selectedTenantId || DEFAULT_TENANT_ID,
           ),
         }
-      : demoState;
+      : screen === "platform-accounts"
+        ? { ...demoState, accountFeedback }
+        : demoState;
   root.innerHTML = renderScreen(screen, renderedState, renderedDemoState);
   const page = pageByScreen.get(screen);
   decorateExistingPage(
@@ -1446,10 +1451,267 @@ function bindInteractions(screen) {
     root.querySelector("#tenant-usage-feedback").textContent = "已刷新合成用量与平台配额。";
   });
   bindDirectorySearch();
+  bindAccountManagement();
   bindTenantFeatures();
   bindMemberManagement();
   bindHealthManagement();
   bindRecoveryDrill();
+}
+
+function bindAccountManagement() {
+  const createDialog = root.querySelector("#create-account-dialog");
+  const createForm = root.querySelector("#create-account-form");
+  const createTrigger = root.querySelector(
+    '[data-business-action="open-create-account"]',
+  );
+
+  const resetValidation = (form, feedback) => {
+    form?.reset();
+    form?.querySelectorAll("[aria-invalid]").forEach((control) =>
+      control.removeAttribute("aria-invalid"),
+    );
+    if (feedback) {
+      feedback.textContent = "";
+      feedback.removeAttribute("data-tone");
+    }
+  };
+
+  const showErrors = (form, feedback, result, fallback) => {
+    const errors = result.errors || [];
+    errors.forEach((error) => {
+      form.elements.namedItem(error.field)?.setAttribute("aria-invalid", "true");
+    });
+    feedback.textContent =
+      result.reason === "STORAGE_UNAVAILABLE"
+        ? "浏览器无法保存账户变更，本次操作未生效。"
+        : result.reason === "FORBIDDEN"
+          ? "当前演示身份无权管理人员账户。"
+          : errors.map((error) => error.message).join(" ") || fallback;
+    feedback.dataset.tone = "danger";
+    form.querySelector("[aria-invalid='true']")?.focus();
+  };
+
+  createTrigger?.addEventListener("click", () => {
+    resetValidation(createForm, createForm?.querySelector("[role='alert']"));
+    createDialog?.showModal();
+    createForm?.elements.namedItem("loginName")?.focus();
+  });
+  createForm
+    ?.querySelector("[data-cancel-create-account]")
+    ?.addEventListener("click", () => {
+      resetValidation(createForm, createForm.querySelector("[role='alert']"));
+      createDialog.close();
+      createTrigger?.focus();
+    });
+  createForm?.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const feedback = createForm.querySelector("[role='alert']");
+    createForm.querySelectorAll("[aria-invalid]").forEach((control) =>
+      control.removeAttribute("aria-invalid"),
+    );
+    feedback.textContent = "";
+    if (!createForm.reportValidity()) {
+      const invalid = createForm.querySelector(":invalid");
+      invalid?.setAttribute("aria-invalid", "true");
+      feedback.textContent = "请修正账户信息后提交。";
+      feedback.dataset.tone = "danger";
+      invalid?.focus();
+      return;
+    }
+    const values = new FormData(createForm);
+    const result = prototypeStore.createAccount(
+      {
+        loginName: values.get("loginName"),
+        password: values.get("password"),
+        passwordConfirmation: values.get("passwordConfirmation"),
+      },
+      PLATFORM_ACCOUNT_ACTOR_ID,
+    );
+    if (!result.ok) {
+      showErrors(createForm, feedback, result, "当前信息无法创建账户。");
+      return;
+    }
+    const createdAccountId = result.account.id;
+    accountFeedback = `已创建 ${result.account.loginName}；初始密码不再显示。`;
+    createDialog.close();
+    render();
+    root.querySelector(`[data-account-row="${CSS.escape(createdAccountId)}"]`)?.focus();
+  });
+
+  const resetDialog = root.querySelector("#reset-account-password-dialog");
+  const resetForm = root.querySelector("#reset-account-password-form");
+  root.querySelectorAll("[data-reset-account]").forEach((trigger) => {
+    trigger.addEventListener("click", () => {
+      resetValidation(resetForm, resetForm?.querySelector("[role='alert']"));
+      const accountId = trigger.dataset.resetAccount;
+      const account = prototypeStore
+        .getSnapshot()
+        .accounts.find((item) => item.id === accountId);
+      resetForm.dataset.accountId = accountId;
+      root.querySelector("#reset-account-target").textContent =
+        `为 ${account?.loginName || "此账户"} 设置新密码。系统不会回显或保存明文。`;
+      resetDialog?.showModal();
+      resetForm.elements.namedItem("password")?.focus();
+    });
+  });
+  resetForm
+    ?.querySelector("[data-cancel-reset-account]")
+    ?.addEventListener("click", () => {
+      const accountId = resetForm.dataset.accountId;
+      resetValidation(resetForm, resetForm.querySelector("[role='alert']"));
+      resetDialog.close();
+      root.querySelector(`[data-reset-account="${CSS.escape(accountId)}"]`)?.focus();
+    });
+  resetForm?.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const feedback = resetForm.querySelector("[role='alert']");
+    resetForm.querySelectorAll("[aria-invalid]").forEach((control) =>
+      control.removeAttribute("aria-invalid"),
+    );
+    feedback.textContent = "";
+    if (!resetForm.reportValidity()) {
+      const invalid = resetForm.querySelector(":invalid");
+      invalid?.setAttribute("aria-invalid", "true");
+      feedback.textContent = "请完整填写新密码并确认撤销全部会话。";
+      feedback.dataset.tone = "danger";
+      invalid?.focus();
+      return;
+    }
+    const values = new FormData(resetForm);
+    const accountId = resetForm.dataset.accountId;
+    const result = prototypeStore.resetAccountPassword(
+      accountId,
+      {
+        password: values.get("password"),
+        passwordConfirmation: values.get("passwordConfirmation"),
+        revokeSessions: values.get("revokeSessions") === "on",
+      },
+      PLATFORM_ACCOUNT_ACTOR_ID,
+    );
+    if (!result.ok) {
+      showErrors(resetForm, feedback, result, "当前账户无法重置密码。");
+      return;
+    }
+    accountFeedback = `${result.account.loginName} 的密码已重置，全部会话已撤销；系统不显示新密码。`;
+    resetDialog.close();
+    render();
+    root.querySelector(`[data-account-row="${CSS.escape(accountId)}"]`)?.focus();
+  });
+
+  const governanceDialog = root.querySelector("#account-governance-dialog");
+  const governanceForm = root.querySelector("#account-governance-form");
+  const openGovernance = (trigger, action, nextStatus = "") => {
+    const accountId =
+      trigger.dataset.assignPlatformAdministrator || trigger.dataset.setAccountStatus;
+    const account = prototypeStore
+      .getSnapshot()
+      .accounts.find((item) => item.id === accountId);
+    governanceForm.dataset.accountId = accountId;
+    governanceForm.dataset.action = action;
+    governanceForm.dataset.nextStatus = nextStatus;
+    governanceForm.querySelector("[role='alert']").textContent = "";
+    const title = root.querySelector("#account-governance-title");
+    const description = root.querySelector("#account-governance-description");
+    const impact = root.querySelector("#account-governance-impact");
+    const recovery = root.querySelector("#account-governance-recovery");
+    const confirm = root.querySelector("#account-governance-confirm");
+    if (action === "assign") {
+      title.textContent = "设置平台管理员身份";
+      description.textContent = `确认将 ${account?.loginName || "此账户"} 设为平台管理员？`;
+      impact.textContent = "获得平台范围治理能力，并撤销该账户既有会话。";
+      recovery.textContent = "当前原型不提供自助降级；需走受控身份变更流程。";
+      confirm.textContent = "确认设置";
+    } else {
+      const suspended = nextStatus === "suspended";
+      title.textContent = suspended ? "停用人员账户" : "恢复人员账户";
+      description.textContent = `${suspended ? "确认停用" : "确认恢复"} ${account?.loginName || "此账户"}？`;
+      impact.textContent = suspended
+        ? "立即禁止登录并撤销全部既有会话。"
+        : "恢复登录资格，但不会恢复曾被撤销的会话。";
+      recovery.textContent = suspended ? "可由其他平台管理员恢复此账户。" : "需要时可再次停用。";
+      confirm.textContent = suspended ? "确认停用" : "确认恢复";
+    }
+    governanceDialog?.showModal();
+    confirm.focus();
+  };
+  root.querySelectorAll("[data-assign-platform-administrator]").forEach((trigger) => {
+    trigger.addEventListener("click", () => openGovernance(trigger, "assign"));
+  });
+  root.querySelectorAll("[data-set-account-status]").forEach((trigger) => {
+    trigger.addEventListener("click", () =>
+      openGovernance(trigger, "status", trigger.dataset.nextStatus),
+    );
+  });
+  governanceForm
+    ?.querySelector("[data-cancel-account-governance]")
+    ?.addEventListener("click", () => {
+      const accountId = governanceForm.dataset.accountId;
+      const action = governanceForm.dataset.action;
+      governanceDialog.close();
+      const selector =
+        action === "assign"
+          ? `[data-assign-platform-administrator="${CSS.escape(accountId)}"]`
+          : `[data-set-account-status="${CSS.escape(accountId)}"]`;
+      root.querySelector(selector)?.focus();
+    });
+  governanceForm?.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const accountId = governanceForm.dataset.accountId;
+    const action = governanceForm.dataset.action;
+    const nextStatus = governanceForm.dataset.nextStatus;
+    const result =
+      action === "assign"
+        ? prototypeStore.assignPlatformAdministrator(
+            accountId,
+            PLATFORM_ACCOUNT_ACTOR_ID,
+          )
+        : prototypeStore.setAccountStatus(
+            accountId,
+            nextStatus,
+            PLATFORM_ACCOUNT_ACTOR_ID,
+          );
+    if (!result.ok) {
+      const messages = {
+        ACCOUNT_ASSIGNED_TO_TENANT: "该账户已属于租户人员范围，不能设为平台管理员。",
+        ACCOUNT_NOT_ACTIVE: "请先恢复该账户。",
+        LAST_PLATFORM_ADMINISTRATOR: "不能停用最后一个可用的平台管理员。",
+        SELF_MUTATION_FORBIDDEN: "不能在当前会话中停用自己。",
+        STORAGE_UNAVAILABLE: "浏览器无法保存账户变更，本次操作未生效。",
+      };
+      const feedback = governanceForm.querySelector("[role='alert']");
+      feedback.textContent = messages[result.reason] || "当前账户操作未生效。";
+      feedback.dataset.tone = "danger";
+      return;
+    }
+    accountFeedback =
+      action === "assign"
+        ? `${result.account.loginName} 已设为平台管理员，既有会话已撤销。`
+        : `${result.account.loginName} 已${nextStatus === "suspended" ? "停用，全部会话已撤销" : "恢复"}。`;
+    governanceDialog.close();
+    render();
+    root.querySelector(`[data-account-row="${CSS.escape(accountId)}"]`)?.focus();
+  });
+
+  const applyAccountFilters = () => {
+    const query =
+      root
+        .querySelector('[data-directory-search="platform-accounts"]')
+        ?.value.trim()
+        .toLocaleLowerCase("zh-CN") || "";
+    const status = root.querySelector("[data-account-status-filter]")?.value || "";
+    root.querySelectorAll("[data-account-row]").forEach((row) => {
+      const matchesQuery =
+        query.length === 0 || row.dataset.searchText.toLocaleLowerCase("zh-CN").includes(query);
+      const matchesStatus = status.length === 0 || row.dataset.accountStatus === status;
+      row.hidden = !matchesQuery || !matchesStatus;
+    });
+  };
+  root
+    .querySelector('[data-directory-search="platform-accounts"]')
+    ?.addEventListener("input", applyAccountFilters);
+  root
+    .querySelector("[data-account-status-filter]")
+    ?.addEventListener("change", applyAccountFilters);
 }
 
 function bindDirectorySearch() {

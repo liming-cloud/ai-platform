@@ -3458,3 +3458,78 @@ body[data-review="hidden"] .prototype-reviewer {
     transform: none !important;
   }
 }
+
+/* 平台人员账户：操作菜单和凭据表单保持紧凑，秘密字段不承担说明文案。 */
+.account-row-actions {
+  align-items: center;
+  white-space: nowrap;
+}
+
+.account-actions-menu summary {
+  list-style: none;
+  cursor: pointer;
+}
+
+.account-actions-menu summary::-webkit-details-marker {
+  display: none;
+}
+
+.account-actions-popover {
+  position: static;
+  display: grid;
+  min-width: 11rem;
+  margin-top: var(--space-1);
+  padding: var(--space-2);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-control);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-floating);
+}
+
+.account-actions-popover .button {
+  justify-content: flex-start;
+  width: 100%;
+}
+
+.account-dialog {
+  width: min(38rem, calc(100vw - 2rem));
+  max-height: calc(100dvh - 2rem);
+  overflow: auto;
+}
+
+.account-dialog .dialog-heading {
+  display: grid;
+  justify-content: stretch;
+  gap: var(--space-1);
+}
+
+.account-password-grid .field {
+  align-content: start;
+}
+
+@media (max-width: 680px) {
+  .account-row-actions {
+    flex-wrap: wrap;
+  }
+
+  .account-actions-menu {
+    width: 100%;
+  }
+
+  .account-actions-menu summary {
+    width: 100%;
+  }
+
+  .account-actions-popover {
+    width: 100%;
+  }
+
+  .account-dialog {
+    width: calc(100vw - 1rem);
+    max-height: calc(100dvh - 1rem);
+  }
+
+  .account-dialog form {
+    padding: var(--space-4);
+  }
+}

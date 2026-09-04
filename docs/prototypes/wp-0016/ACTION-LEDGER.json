@@ -2,7 +2,7 @@
   "workPackage": "WP-0016",
   "generatedOn": "2026-09-04",
   "browserVerification": "passed",
-  "browserVerificationNote": "本轮租户专项 10/10、问答 15/15、布局 13/13；全平台 68 页、7 状态、3 视口共 1,428 场景及 9,662 项断言通过。该结论仅覆盖已声明 DOM、布局和交互，不代表账本已穷举或人工验收通过。",
+  "browserVerificationNote": "本轮账户专项 7/7、租户专项 10/10、问答 15/15、布局 13/13；全平台 68 页、7 状态、3 视口共 1,428 场景及 9,662 项断言通过。该结论仅覆盖已声明 DOM、布局和交互，不代表账本已穷举或人工验收通过。",
   "classification": {
     "navigation": "仅改变原型页面，不计作业务完成",
     "implementedStateChange": "合成状态已有 Node 测试；browserVerified 只表示条目注明的浏览器范围，不代表完整业务或人工通过",
@@ -15,14 +15,14 @@
   "summary": {
     "navigation": 47,
     "implementedRead": 6,
-    "implementedStateChange": 26,
+    "implementedStateChange": 30,
     "pendingDecision": 1,
-    "unimplemented": 17,
+    "unimplemented": 14,
     "forbidden": 1,
     "partialSimulation": 0,
     "totalPages": 68,
-    "totalControls": 98,
-    "unclosedControls": 18,
+    "totalControls": 99,
+    "unclosedControls": 15,
     "allControlsEnumerated": false,
     "readyForFullAcceptance": false
   },
@@ -153,28 +153,43 @@
       "screen": "platform-accounts",
       "phase": "M6",
       "shell": "console",
-      "primaryTask": "管理平台人员账户",
+      "primaryTask": "建立和治理全局人员账户",
       "controls": [
         {
-          "label": "新增平台管理员",
+          "label": "设置平台管理员身份",
           "kind": "primaryAction",
-          "status": "unimplemented",
-          "evidence": "当前控件仅展示确认或无持久状态结果",
-          "browserVerified": false
+          "status": "implementedStateChange",
+          "evidence": "account-lifecycle-state.test.mjs：人员范围互斥、操作者资格与刷新恢复",
+          "browserVerified": true,
+          "browserEvidence": "artifacts/account-lifecycle-browser-green.tap",
+          "browserScope": "覆盖租户成员禁升、平台管理员设置、会话撤销提示和刷新恢复"
         },
         {
           "label": "创建人员账户并设置初始密码",
-          "kind": "requiredTaskNotYetPrototyped",
-          "status": "unimplemented",
-          "evidence": "ADR-0061 既有产品能力；本原型尚无完整人员账户创建表单",
-          "browserVerified": false
+          "kind": "primaryAction",
+          "status": "implementedStateChange",
+          "evidence": "account-lifecycle-state.test.mjs：登录名、一次性初始密码、越权、重复与存储失败",
+          "browserVerified": true,
+          "browserEvidence": "artifacts/account-lifecycle-browser-green.tap",
+          "browserScope": "覆盖创建、重复校验、刷新恢复、三档视口以及密码不回显、不落浏览器存储"
         },
         {
           "label": "重置人员账户密码",
-          "kind": "requiredTaskNotYetPrototyped",
-          "status": "unimplemented",
-          "evidence": "已有密码不可查看；原型尚未补齐重置确认及结果",
-          "browserVerified": false
+          "kind": "rowAction",
+          "status": "implementedStateChange",
+          "evidence": "account-lifecycle-state.test.mjs：自重置拒绝、认证修订、会话撤销确认与秘密不持久化",
+          "browserVerified": true,
+          "browserEvidence": "artifacts/account-lifecycle-browser-green.tap",
+          "browserScope": "覆盖取消焦点恢复、强制撤销会话、认证修订刷新恢复与密码不持久化"
+        },
+        {
+          "label": "停用或恢复人员账户",
+          "kind": "primaryOrTaskControl",
+          "status": "implementedStateChange",
+          "evidence": "account-lifecycle-state.test.mjs：操作者、状态、最后管理员与刷新恢复",
+          "browserVerified": true,
+          "browserEvidence": "artifacts/account-lifecycle-browser-green.tap",
+          "browserScope": "覆盖停用、恢复、会话撤销影响说明与刷新恢复"
         }
       ]
     },

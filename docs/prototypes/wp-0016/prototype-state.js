@@ -378,8 +378,8 @@ export function createPrototypeStore(storage = browserStorage()) {
     storage.setItem(PROTOTYPE_STATE_KEY, JSON.stringify(snapshot));
   }
 
-  /** 原型写入成功才替换可观察状态；存储失败不能留下幽灵租户或虚假成功。 */
-  function commitTenantState(next) {
+  /** 原型写入成功才替换可观察状态；存储失败不能留下幽灵对象或虚假成功。 */
+  function commitState(next) {
     const previous = state;
     state = next;
     try {
@@ -394,11 +394,11 @@ export function createPrototypeStore(storage = browserStorage()) {
   function updateTenantSetup(patch = {}) {
     const current = state.tenantSetup;
     const tenantSetup = tenantSetupFrom({ ...current, ...patch, quotas: { ...current.quotas, ...patch.quotas } });
-    return commitTenantState({ ...state, tenantSetup });
+    return commitState({ ...state, tenantSetup });
   }
 
   function discardTenantSetup() {
-    return commitTenantState({ ...state, tenantSetup: defaultTenantSetup() });
+    return commitState({ ...state, tenantSetup: defaultTenantSetup() });
   }
 
   /** 平台只看合成用量聚合，不投影知识库名称、来源、成员或正文。 */
@@ -419,7 +419,7 @@ export function createPrototypeStore(storage = browserStorage()) {
     if (!current) return { ok: false, reason: "TENANT_NOT_FOUND" };
     const { quotas, errors } = validateQuotas(input, current.usage);
     if (errors.length) return { ok: false, errors };
-    return commitTenantState({ ...state, tenants: state.tenants.map(tenant => tenant.id === tenantId ? { ...tenant, quotas } : tenant) });
+    return commitState({ ...state, tenants: state.tenants.map(tenant => tenant.id === tenantId ? { ...tenant, quotas } : tenant) });
   }
 
   /** 返回配置副本，不允许把安全底线写入可编辑字段。 */
@@ -441,7 +441,7 @@ export function createPrototypeStore(storage = browserStorage()) {
       securityPolicy[key] = value;
     }
     if (errors.length) return { ok: false, errors };
-    return commitTenantState({ ...state, tenants: state.tenants.map(tenant => tenant.id === tenantId ? { ...tenant, securityPolicy } : tenant) });
+    return commitState({ ...state, tenants: state.tenants.map(tenant => tenant.id === tenantId ? { ...tenant, securityPolicy } : tenant) });
   }
 
   function tenantById(tenantId) {
@@ -450,6 +450,174 @@ export function createPrototypeStore(storage = browserStorage()) {
 
   function accountById(accountId) {
     return state.accounts.find((account) => account.id === accountId);
+  }
+
+  function canManageAccounts(actorAccountId) {
+    const actor = accountById(actorAccountId);
+    return Boolean(actor?.platformAdministrator && actor.status === "available");
+  }
+
+  function accountPasswordErrors(input = {}) {
+    const password = typeof input.password === "string" ? input.password : "";
+    const confirmation =
+      typeof input.passwordConfirmation === "string"
+        ? input.passwordConfirmation
+        : "";
+    const errors = [];
+    if (password.length < 1 || password.length > 1024) {
+      errors.push({
+        field: "password",
+        message: "请输入有效的新密码。",
+      });
+    }
+    if (confirmation !== password) {
+      errors.push({
+        field: "passwordConfirmation",
+        message: "两次输入的密码不一致。",
+      });
+    }
+    return errors;
+  }
+
+  /** 只保存非秘密账户事实；明文初始密码只参与本次合成校验。 */
+  function createAccount(input = {}, actorAccountId) {
+    if (!canManageAccounts(actorAccountId)) {
+      return { ok: false, reason: "FORBIDDEN" };
+    }
+    const loginName = String(input.loginName || "").trim();
+    const errors = accountPasswordErrors(input);
+    if (!/^[a-z][a-z0-9._-]{2,63}$/.test(loginName)) {
+      errors.unshift({
+        field: "loginName",
+        message: "登录名需为 3–64 位小写字母、数字、点、下划线或连字符。",
+      });
+    }
+    if (state.accounts.some((account) => account.loginName === loginName)) {
+      return {
+        ok: false,
+        reason: "LOGIN_NAME_CONFLICT",
+        errors: [{ field: "loginName", message: "此登录名已存在，请使用其他登录名。" }, ...errors.filter(error => error.field !== "loginName")],
+      };
+    }
+    if (errors.length) {
+      return { ok: false, reason: "VALIDATION_FAILED", errors };
+    }
+    const account = {
+      id: `account-${loginName.replaceAll(/[^a-z0-9]+/g, "-")}-${state.accounts.length + 1}`,
+      name: loginName,
+      loginName,
+      status: "available",
+      platformAdministrator: false,
+      administratorEligible: true,
+      memberEligible: true,
+      authenticationRevision: 1,
+      authenticationChangedAt: "刚刚创建",
+    };
+    const saved = commitState({ ...state, accounts: [...state.accounts, account] });
+    return saved.ok ? { ok: true, account: clone(account) } : saved;
+  }
+
+  /** 重置只推进非秘密认证修订；原型状态、日志和返回值均不携带明文。 */
+  function resetAccountPassword(accountId, input = {}, actorAccountId) {
+    if (!canManageAccounts(actorAccountId)) {
+      return { ok: false, reason: "FORBIDDEN" };
+    }
+    if (accountId === actorAccountId) {
+      return { ok: false, reason: "SELF_RESET_FORBIDDEN" };
+    }
+    const account = accountById(accountId);
+    if (!account) {
+      return { ok: false, reason: "ACCOUNT_NOT_FOUND" };
+    }
+    const errors = accountPasswordErrors(input);
+    if (input.revokeSessions !== true) {
+      errors.push({
+        field: "revokeSessions",
+        message: "必须确认撤销该账户的全部会话。",
+      });
+    }
+    if (errors.length) {
+      return { ok: false, reason: "VALIDATION_FAILED", errors };
+    }
+    const nextAccount = {
+      ...account,
+      authenticationRevision: (account.authenticationRevision || 1) + 1,
+      authenticationChangedAt: "刚刚重置",
+    };
+    const saved = commitState({
+      ...state,
+      accounts: state.accounts.map((item) =>
+        item.id === accountId ? nextAccount : item,
+      ),
+    });
+    return saved.ok ? { ok: true, account: clone(nextAccount), sessionsRevoked: true } : saved;
+  }
+
+  /** 平台身份与租户成员范围互斥，不能通过账户页给已有租户成员提权。 */
+  function assignPlatformAdministrator(accountId, actorAccountId) {
+    if (!canManageAccounts(actorAccountId)) {
+      return { ok: false, reason: "FORBIDDEN" };
+    }
+    const account = accountById(accountId);
+    if (!account) {
+      return { ok: false, reason: "ACCOUNT_NOT_FOUND" };
+    }
+    if (state.tenants.some((tenant) => tenant.members.some((member) => member.accountId === accountId))) {
+      return { ok: false, reason: "ACCOUNT_ASSIGNED_TO_TENANT" };
+    }
+    if (account.status !== "available") {
+      return { ok: false, reason: "ACCOUNT_NOT_ACTIVE" };
+    }
+    if (account.platformAdministrator) {
+      return { ok: false, reason: "ALREADY_PLATFORM_ADMINISTRATOR" };
+    }
+    const nextAccount = {
+      ...account,
+      platformAdministrator: true,
+      administratorEligible: false,
+      memberEligible: false,
+    };
+    const saved = commitState({
+      ...state,
+      accounts: state.accounts.map((item) =>
+        item.id === accountId ? nextAccount : item,
+      ),
+    });
+    return saved.ok ? { ok: true, account: clone(nextAccount), sessionsRevoked: true } : saved;
+  }
+
+  function setAccountStatus(accountId, status, actorAccountId) {
+    if (!canManageAccounts(actorAccountId)) {
+      return { ok: false, reason: "FORBIDDEN" };
+    }
+    if (accountId === actorAccountId) {
+      return { ok: false, reason: "SELF_MUTATION_FORBIDDEN" };
+    }
+    const account = accountById(accountId);
+    if (!account) {
+      return { ok: false, reason: "ACCOUNT_NOT_FOUND" };
+    }
+    if (!["available", "suspended"].includes(status)) {
+      return { ok: false, reason: "INVALID_STATUS" };
+    }
+    const activeAdministrators = state.accounts.filter(
+      (item) => item.platformAdministrator && item.status === "available",
+    ).length;
+    if (
+      status === "suspended" &&
+      account.platformAdministrator &&
+      activeAdministrators <= 1
+    ) {
+      return { ok: false, reason: "LAST_PLATFORM_ADMINISTRATOR" };
+    }
+    const nextAccount = { ...account, status };
+    const saved = commitState({
+      ...state,
+      accounts: state.accounts.map((item) =>
+        item.id === accountId ? nextAccount : item,
+      ),
+    });
+    return saved.ok ? { ok: true, account: clone(nextAccount), sessionsRevoked: status === "suspended" } : saved;
   }
 
   function memberKey(tenantId, accountId) {
@@ -524,7 +692,7 @@ export function createPrototypeStore(storage = browserStorage()) {
         },
       ],
     };
-    const saved = commitTenantState({ ...state, tenants: [...state.tenants, tenant], selectedTenantId: tenant.id, tenantSetup: defaultTenantSetup() });
+    const saved = commitState({ ...state, tenants: [...state.tenants, tenant], selectedTenantId: tenant.id, tenantSetup: defaultTenantSetup() });
     if (!saved.ok) return saved;
     return { ok: true, tenant: clone(tenant) };
   }
@@ -1346,6 +1514,10 @@ export function createPrototypeStore(storage = browserStorage()) {
     saveTenantQuotas,
     getTenantSecurity,
     saveTenantSecurity,
+    createAccount,
+    resetAccountPassword,
+    assignPlatformAdministrator,
+    setAccountStatus,
     createTenant,
     addMember,
     findMember,

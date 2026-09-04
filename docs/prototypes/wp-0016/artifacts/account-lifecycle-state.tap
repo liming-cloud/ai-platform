@@ -1,0 +1,40 @@
+TAP version 13
+# Subtest: 平台建立人员账户并刷新恢复，明文口令不进入状态或存储
+ok 1 - 平台建立人员账户并刷新恢复，明文口令不进入状态或存储
+  ---
+  duration_ms: 1.30075
+  type: 'test'
+  ...
+# Subtest: 账户建立拒绝越权、非法或重复登录名及不一致口令
+ok 2 - 账户建立拒绝越权、非法或重复登录名及不一致口令
+  ---
+  duration_ms: 0.886541
+  type: 'test'
+  ...
+# Subtest: 密码重置只允许其他账户，推进认证修订且不持久化口令
+ok 3 - 密码重置只允许其他账户，推进认证修订且不持久化口令
+  ---
+  duration_ms: 0.558
+  type: 'test'
+  ...
+# Subtest: 平台管理员分配和账户停用遵守人员范围、操作者与最后管理员边界
+ok 4 - 平台管理员分配和账户停用遵守人员范围、操作者与最后管理员边界
+  ---
+  duration_ms: 0.353041
+  type: 'test'
+  ...
+# Subtest: 账户建立和密码重置在存储失败时回滚
+ok 5 - 账户建立和密码重置在存储失败时回滚
+  ---
+  duration_ms: 0.213542
+  type: 'test'
+  ...
+1..5
+# tests 5
+# suites 0
+# pass 5
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 45.262666

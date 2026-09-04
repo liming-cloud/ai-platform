@@ -1,0 +1,103 @@
+TAP version 13
+# Subtest: 平台建立人员账户并刷新恢复，明文口令不进入状态或存储
+not ok 1 - 平台建立人员账户并刷新恢复，明文口令不进入状态或存储
+  ---
+  duration_ms: 0.839292
+  type: 'test'
+  location: '/Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/account-lifecycle-state.test.mjs:9:1'
+  failureType: 'testCodeFailure'
+  error: 'store.createAccount is not a function'
+  code: 'ERR_TEST_FAILURE'
+  name: 'TypeError'
+  stack: |-
+    TestContext.<anonymous> (file:///Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/account-lifecycle-state.test.mjs:12:24)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.start (node:internal/test_runner/test:944:17)
+    startSubtestAfterBootstrap (node:internal/test_runner/harness:296:17)
+  ...
+# Subtest: 账户建立拒绝越权、非法或重复登录名及不一致口令
+not ok 2 - 账户建立拒绝越权、非法或重复登录名及不一致口令
+  ---
+  duration_ms: 0.162875
+  type: 'test'
+  location: '/Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/account-lifecycle-state.test.mjs:30:1'
+  failureType: 'testCodeFailure'
+  error: 'store.createAccount is not a function'
+  code: 'ERR_TEST_FAILURE'
+  name: 'TypeError'
+  stack: |-
+    TestContext.<anonymous> (file:///Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/account-lifecycle-state.test.mjs:34:22)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+  ...
+# Subtest: 密码重置只允许其他账户，推进认证修订且不持久化口令
+not ok 3 - 密码重置只允许其他账户，推进认证修订且不持久化口令
+  ---
+  duration_ms: 0.103084
+  type: 'test'
+  location: '/Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/account-lifecycle-state.test.mjs:51:1'
+  failureType: 'testCodeFailure'
+  error: 'store.resetAccountPassword is not a function'
+  code: 'ERR_TEST_FAILURE'
+  name: 'TypeError'
+  stack: |-
+    TestContext.<anonymous> (file:///Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/account-lifecycle-state.test.mjs:55:11)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: 平台管理员分配和账户停用遵守人员范围、操作者与最后管理员边界
+not ok 4 - 平台管理员分配和账户停用遵守人员范围、操作者与最后管理员边界
+  ---
+  duration_ms: 0.138625
+  type: 'test'
+  location: '/Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/account-lifecycle-state.test.mjs:82:1'
+  failureType: 'testCodeFailure'
+  error: 'store.assignPlatformAdministrator is not a function'
+  code: 'ERR_TEST_FAILURE'
+  name: 'TypeError'
+  stack: |-
+    TestContext.<anonymous> (file:///Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/account-lifecycle-state.test.mjs:86:22)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: 账户建立和密码重置在存储失败时回滚
+not ok 5 - 账户建立和密码重置在存储失败时回滚
+  ---
+  duration_ms: 0.385417
+  type: 'test'
+  location: '/Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/account-lifecycle-state.test.mjs:97:1'
+  failureType: 'testCodeFailure'
+  error: 'store.createAccount is not a function'
+  code: 'ERR_TEST_FAILURE'
+  name: 'TypeError'
+  stack: |-
+    TestContext.<anonymous> (file:///Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/scripts/account-lifecycle-state.test.mjs:108:11)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+1..5
+# tests 5
+# suites 0
+# pass 0
+# fail 5
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 47.097167

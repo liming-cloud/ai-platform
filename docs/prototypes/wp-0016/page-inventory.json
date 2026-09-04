@@ -27,7 +27,7 @@
         {"screen": "platform-tenants", "route": "/platform/tenants", "task": "查找并管理租户生命周期", "primaryAction": "建立新租户", "pagination": true, "contractLevel": "accepted"},
         {"screen": "platform-tenant-create", "route": "/platform/tenants/new", "task": "分三步建立租户并设置资源配额", "primaryAction": "下一步", "pagination": false, "contractLevel": "accepted"},
         {"screen": "platform-tenant-detail", "route": "/platform/tenants/:tenantId", "task": "核对租户事实并维护功能与配额", "primaryAction": "保存功能配置", "pagination": false, "contractLevel": "prototype-only"},
-        {"screen": "platform-accounts", "route": "/platform/accounts", "task": "管理平台人员账户", "primaryAction": "新增平台管理员", "pagination": true, "contractLevel": "accepted"},
+        {"screen": "platform-accounts", "route": "/platform/accounts", "task": "建立和治理全局人员账户", "primaryAction": "创建人员账户", "pagination": true, "contractLevel": "accepted"},
         {"screen": "platform-roles", "route": "/platform/roles", "task": "理解平台固定角色及最小披露边界", "primaryAction": "管理账户", "pagination": false, "contractLevel": "accepted"},
         {"screen": "platform-model-connections", "route": "/platform/model-supply", "task": "管理平台模型供应商连接", "primaryAction": "新增供应商连接", "pagination": true, "contractLevel": "accepted"},
         {"screen": "platform-model-connection-detail", "route": "/platform/model-supply/:connectionId", "task": "探测并发布单个供应商连接版本", "primaryAction": "执行连接探测", "pagination": false, "contractLevel": "prototype-only"},

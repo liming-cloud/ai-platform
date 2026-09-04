@@ -1,0 +1,12 @@
+{
+  "ok": true,
+  "file": "/Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/index.html",
+  "failOn": "p1",
+  "counts": {
+    "p0": 0,
+    "p1": 0,
+    "p2": 0
+  },
+  "findings": [],
+  "agentMessage": ""
+}

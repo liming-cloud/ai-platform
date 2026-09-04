@@ -1,0 +1,100 @@
+{
+  "status": "PASS",
+  "generatedAt": "2026-09-04T02:28:24.658Z",
+  "evidenceScope": "真实 DOM、布局、特定交互与导航；不是全部控件闭环或人工认可",
+  "pageCount": 68,
+  "stateCount": 7,
+  "viewportCount": 3,
+  "declaredScenarioCount": 1428,
+  "completedScenarioCount": 1428,
+  "assertionCount": 9662,
+  "screenshotCount": 85,
+  "stages": [
+    {
+      "name": "审查器与导航图标",
+      "status": "PASS",
+      "failures": [],
+      "browserErrors": []
+    },
+    {
+      "name": "全部页面状态与视口",
+      "status": "PASS",
+      "failures": [],
+      "browserErrors": []
+    },
+    {
+      "name": "创建租户与管理导航",
+      "status": "PASS",
+      "failures": [],
+      "browserErrors": []
+    },
+    {
+      "name": "成员与两级功能控制",
+      "status": "PASS",
+      "failures": [],
+      "browserErrors": []
+    },
+    {
+      "name": "成员弹窗键盘与取消",
+      "status": "PASS",
+      "failures": [],
+      "browserErrors": []
+    },
+    {
+      "name": "运行状态与隔离恢复",
+      "status": "PASS",
+      "failures": [],
+      "browserErrors": []
+    },
+    {
+      "name": "恢复检查失败与重试",
+      "status": "PASS",
+      "failures": [],
+      "browserErrors": []
+    },
+    {
+      "name": "审查器收起可达性",
+      "status": "PASS",
+      "failures": [],
+      "browserErrors": []
+    },
+    {
+      "name": "普通用户登录",
+      "status": "PASS",
+      "failures": [],
+      "browserErrors": []
+    },
+    {
+      "name": "问答示例与键盘",
+      "status": "PASS",
+      "failures": [],
+      "browserErrors": []
+    },
+    {
+      "name": "会话刷新恢复",
+      "status": "PASS",
+      "failures": [],
+      "browserErrors": []
+    },
+    {
+      "name": "设备前置导航",
+      "status": "PASS",
+      "failures": [],
+      "browserErrors": []
+    },
+    {
+      "name": "页面截图",
+      "status": "PASS",
+      "failures": [],
+      "browserErrors": []
+    },
+    {
+      "name": "减少动态效果",
+      "status": "PASS",
+      "failures": [],
+      "browserErrors": []
+    }
+  ],
+  "browserErrors": [],
+  "failures": []
+}
