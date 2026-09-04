@@ -963,6 +963,96 @@ function defaultAccessGovernance() {
   };
 }
 
+/**
+ * 结构化数据只冻结字段规则，不保存样本行；对象范围只保存平台签发的业务标识。
+ * 桶名、对象键、端点和凭据属于部署私有事实，禁止进入原型状态与读取投影。
+ */
+function defaultDataGovernance() {
+  const fields = [
+    { name: "office_name", logicalType: "TEXT", semantic: "地点名称", queryEligible: true, sensitivity: "PUBLIC" },
+    { name: "floor", logicalType: "INTEGER", semantic: "楼层", queryEligible: false, sensitivity: "PUBLIC" },
+    { name: "access_note", logicalType: "TEXT", semantic: "到访说明", queryEligible: true, sensitivity: "PUBLIC" },
+    { name: "contact", logicalType: "TEXT", semantic: "内部联系人", queryEligible: false, sensitivity: "RESTRICTED" },
+  ];
+  return {
+    structuredDatasets: [
+      {
+        id: "dataset-office-directory",
+        tenantId: DEFAULT_TENANT_ID,
+        knowledgeBaseId: "kb-handbook",
+        name: "办公地点数据",
+        sourceRevision: "rev-0004",
+        sourceName: "办公地点清单.csv",
+        headers: fields.map(field => field.name),
+        publishedVersionId: "dataset-schema-v3",
+        selectedVersionId: "dataset-schema-v4",
+        versions: [
+          {
+            id: "dataset-schema-v3",
+            number: 3,
+            status: "PUBLISHED",
+            headers: fields.map(field => field.name),
+            fields: clone(fields),
+            contentField: "access_note",
+            titleField: "office_name",
+            rowFilter: "NON_BLANK_CONTENT",
+            qualityRuleVersion: "dataset-csv-v1",
+            preview: { passed: true, checkedRows: 100, blockedRows: 0, skippedRows: 2 },
+            publishedAt: "昨天 16:20",
+          },
+          {
+            id: "dataset-schema-v4",
+            number: 4,
+            status: "DRAFT",
+            headers: fields.map(field => field.name),
+            fields: clone(fields),
+            contentField: "access_note",
+            titleField: "office_name",
+            rowFilter: "NON_BLANK_CONTENT",
+            qualityRuleVersion: "dataset-csv-v1",
+            preview: null,
+            updatedAt: "今天 14:36",
+          },
+        ],
+      },
+    ],
+    selectedDatasetId: "dataset-office-directory",
+    platformObjectRanges: [
+      {
+        id: "range-east-office-text",
+        tenantId: DEFAULT_TENANT_ID,
+        label: "华东办公制度文本",
+        region: "华东受控区",
+        selectionRevision: 7,
+        objectCount: 18,
+        mediaType: "text/plain",
+        status: "AVAILABLE",
+      },
+      {
+        id: "range-east-support-text",
+        tenantId: DEFAULT_TENANT_ID,
+        label: "华东客户支持文本",
+        region: "华东受控区",
+        selectionRevision: 3,
+        objectCount: 42,
+        mediaType: "text/plain",
+        status: "AVAILABLE",
+      },
+      {
+        id: "range-other-tenant",
+        tenantId: "tenant-other",
+        label: "其他租户范围",
+        region: "华北受控区",
+        selectionRevision: 2,
+        objectCount: 9,
+        mediaType: "text/plain",
+        status: "AVAILABLE",
+      },
+    ],
+    objectScopeRegistrations: [],
+  };
+}
+
 function defaultKnowledgeBases() {
   return [
     {
@@ -1112,6 +1202,7 @@ function defaultState() {
     assistantDelivery: defaultAssistantDelivery(),
     evaluation: defaultEvaluationGovernance(),
     accessGovernance: defaultAccessGovernance(),
+    dataGovernance: defaultDataGovernance(),
     selectedKnowledgeBaseId: "kb-handbook",
     selectedKnowledgeSourceId: "src-policy-pdf",
     selectedIndexVersionId: "idx-v12",
@@ -1229,6 +1320,9 @@ function initialState(storage) {
     parsed.accessGovernance = parsed.accessGovernance && Array.isArray(parsed.accessGovernance.accessPolicies)
       ? parsed.accessGovernance
       : defaultAccessGovernance();
+    parsed.dataGovernance = parsed.dataGovernance && Array.isArray(parsed.dataGovernance.structuredDatasets)
+      ? parsed.dataGovernance
+      : defaultDataGovernance();
     const fallbackKnowledgeBases = defaultKnowledgeBases();
     parsed.knowledgeBases = (Array.isArray(parsed.knowledgeBases)
       ? parsed.knowledgeBases
@@ -2857,6 +2951,228 @@ export function createPrototypeStore(storage = browserStorage()) {
     return saved.ok ? { ...saved, replayed: false, remediation: clone(remediation) } : saved;
   }
 
+  function structuredSchemaContext(versionId) {
+    for (const dataset of state.dataGovernance.structuredDatasets) {
+      const version = dataset.versions.find(item => item.id === versionId);
+      if (version) return { dataset, version };
+    }
+    return null;
+  }
+
+  function structuredSchemaFailure(dataset, input = {}) {
+    const headers = Array.isArray(input.headers) ? input.headers.map(String) : [];
+    if (JSON.stringify(headers) !== JSON.stringify(dataset.headers)) return "DATASET_HEADERS_MISMATCH";
+    const fields = Array.isArray(input.fields) ? input.fields : [];
+    if (fields.length !== headers.length || fields.some((field, index) => String(field?.name || "") !== headers[index])) {
+      return "DATASET_FIELDS_MISMATCH";
+    }
+    if (new Set(fields.map(field => field.name)).size !== fields.length) return "DATASET_FIELDS_MISMATCH";
+    const logicalTypes = new Set(["TEXT", "INTEGER", "DECIMAL", "DATE"]);
+    const sensitivities = new Set(["PUBLIC", "INTERNAL", "RESTRICTED"]);
+    if (fields.some(field =>
+      !logicalTypes.has(field.logicalType) ||
+      !sensitivities.has(field.sensitivity) ||
+      typeof field.queryEligible !== "boolean" ||
+      !String(field.semantic || "").trim()
+    )) return "DATASET_FIELD_INVALID";
+    const contentField = fields.find(field => field.name === input.contentField);
+    if (!contentField || contentField.logicalType !== "TEXT" || contentField.sensitivity !== "PUBLIC" || !contentField.queryEligible) {
+      return "DATASET_CONTENT_FIELD_UNSAFE";
+    }
+    if (input.titleField) {
+      const titleField = fields.find(field => field.name === input.titleField);
+      if (!titleField || titleField.logicalType !== "TEXT" || titleField.sensitivity !== "PUBLIC" || !titleField.queryEligible) {
+        return "DATASET_TITLE_FIELD_UNSAFE";
+      }
+    }
+    if (fields.some(field => field.queryEligible && field.sensitivity !== "PUBLIC")) {
+      return "DATASET_QUERY_FIELD_UNSAFE";
+    }
+    if (!["ALL_ROWS", "NON_BLANK_CONTENT"].includes(input.rowFilter)) return "DATASET_ROW_FILTER_INVALID";
+    return null;
+  }
+
+  function replaceStructuredDataset(dataset) {
+    return {
+      ...state,
+      dataGovernance: {
+        ...state.dataGovernance,
+        selectedDatasetId: dataset.id,
+        structuredDatasets: state.dataGovernance.structuredDatasets.map(item => item.id === dataset.id ? dataset : item),
+      },
+    };
+  }
+
+  /** 结构读取投影只包含字段规则和 CSV 标题，不投影样本行或字段值。 */
+  function getStructuredDatasetProjection(datasetId, actorAccountId) {
+    const dataset = state.dataGovernance.structuredDatasets.find(item => item.id === datasetId);
+    if (!dataset) return { ok: false, reason: "STRUCTURED_DATASET_NOT_FOUND" };
+    if (!canManageKnowledge(dataset.tenantId, actorAccountId)) return { ok: false, reason: "FORBIDDEN" };
+    const version = dataset.versions.find(item => item.id === dataset.selectedVersionId) || dataset.versions.at(-1);
+    return {
+      ok: true,
+      dataset: {
+        id: dataset.id,
+        name: dataset.name,
+        knowledgeBaseId: dataset.knowledgeBaseId,
+        sourceRevision: dataset.sourceRevision,
+        sourceName: dataset.sourceName,
+        headers: clone(dataset.headers),
+        publishedVersionId: dataset.publishedVersionId,
+      },
+      version: clone(version),
+    };
+  }
+
+  function saveStructuredSchemaDraft(versionId, input = {}, actorAccountId) {
+    const context = structuredSchemaContext(versionId);
+    if (!context) return { ok: false, reason: "DATASET_SCHEMA_NOT_FOUND" };
+    const { dataset, version } = context;
+    if (!canManageKnowledge(dataset.tenantId, actorAccountId)) return { ok: false, reason: "FORBIDDEN" };
+    if (version.status !== "DRAFT") return { ok: false, reason: "DATASET_SCHEMA_IMMUTABLE" };
+    const failure = structuredSchemaFailure(dataset, input);
+    if (failure) return { ok: false, reason: failure };
+    const nextVersion = {
+      ...version,
+      headers: dataset.headers.slice(),
+      fields: input.fields.map(field => ({
+        name: String(field.name),
+        logicalType: field.logicalType,
+        semantic: String(field.semantic).trim(),
+        queryEligible: field.queryEligible,
+        sensitivity: field.sensitivity,
+      })),
+      contentField: input.contentField,
+      titleField: input.titleField || null,
+      rowFilter: input.rowFilter,
+      qualityRuleVersion: "dataset-csv-v1",
+      preview: null,
+      updatedAt: "刚刚",
+    };
+    const nextDataset = {
+      ...dataset,
+      versions: dataset.versions.map(item => item.id === version.id ? nextVersion : item),
+    };
+    const saved = commitState(replaceStructuredDataset(nextDataset));
+    return saved.ok ? { ...saved, version: clone(nextVersion) } : saved;
+  }
+
+  function previewStructuredSchemaVersion(versionId, actorAccountId) {
+    const context = structuredSchemaContext(versionId);
+    if (!context) return { ok: false, reason: "DATASET_SCHEMA_NOT_FOUND" };
+    const { dataset, version } = context;
+    if (!canManageKnowledge(dataset.tenantId, actorAccountId)) return { ok: false, reason: "FORBIDDEN" };
+    if (version.status !== "DRAFT") return { ok: false, reason: "DATASET_SCHEMA_IMMUTABLE" };
+    const failure = structuredSchemaFailure(dataset, version);
+    if (failure) return { ok: false, reason: failure };
+    const nextVersion = {
+      ...version,
+      preview: {
+        passed: true,
+        checkedRows: 100,
+        blockedRows: 0,
+        skippedRows: version.rowFilter === "NON_BLANK_CONTENT" ? 2 : 0,
+        headerMatched: true,
+        generatedAt: "刚刚",
+      },
+      updatedAt: "刚刚",
+    };
+    const nextDataset = {
+      ...dataset,
+      versions: dataset.versions.map(item => item.id === version.id ? nextVersion : item),
+    };
+    const saved = commitState(replaceStructuredDataset(nextDataset));
+    return saved.ok ? { ...saved, version: clone(nextVersion) } : saved;
+  }
+
+  function publishStructuredSchemaVersion(versionId, actorAccountId) {
+    const context = structuredSchemaContext(versionId);
+    if (!context) return { ok: false, reason: "DATASET_SCHEMA_NOT_FOUND" };
+    const { dataset, version } = context;
+    if (!canManageKnowledge(dataset.tenantId, actorAccountId)) return { ok: false, reason: "FORBIDDEN" };
+    if (version.status !== "DRAFT") return { ok: false, reason: "DATASET_SCHEMA_IMMUTABLE" };
+    if (!version.preview?.passed) return { ok: false, reason: "DATASET_PREVIEW_REQUIRED" };
+    const versions = dataset.versions.map(item => {
+      if (item.id === version.id) return { ...item, status: "PUBLISHED", publishedAt: "刚刚" };
+      if (item.id === dataset.publishedVersionId && item.status === "PUBLISHED") return { ...item, status: "SUPERSEDED" };
+      return item;
+    });
+    const nextVersion = versions.find(item => item.id === version.id);
+    const nextDataset = { ...dataset, versions, publishedVersionId: version.id, selectedVersionId: version.id };
+    const saved = commitState(replaceStructuredDataset(nextDataset));
+    return saved.ok ? { ...saved, version: clone(nextVersion) } : saved;
+  }
+
+  /** 对象范围只投影签发标签与冻结元数据；基础设施定位和凭据始终不可见。 */
+  function getObjectStorageScopeProjection(tenantId, actorAccountId) {
+    if (!canManageKnowledge(tenantId, actorAccountId)) return { ok: false, reason: "FORBIDDEN" };
+    const availableRanges = state.dataGovernance.platformObjectRanges
+      .filter(item => item.tenantId === tenantId && item.status === "AVAILABLE")
+      .map(({ id, label, region, selectionRevision, objectCount, mediaType }) => ({
+        id,
+        label,
+        region,
+        selectionRevision,
+        objectCount,
+        mediaType,
+      }));
+    const registrations = state.dataGovernance.objectScopeRegistrations
+      .filter(item => item.tenantId === tenantId)
+      .map(item => ({
+        ...clone(item),
+        knowledgeBaseName: knowledgeBaseById(item.knowledgeBaseId)?.name || "知识库不可用",
+      }));
+    return { ok: true, availableRanges, registrations };
+  }
+
+  /** 登记只接受签发范围标识和修订，客户端不能提交桶、对象键、端点或凭据。 */
+  function registerObjectStorageScope(input = {}, actorAccountId) {
+    const tenantId = String(input.tenantId || "");
+    if (!canManageKnowledge(tenantId, actorAccountId)) return { ok: false, reason: "FORBIDDEN" };
+    const knowledgeBase = knowledgeBaseById(String(input.knowledgeBaseId || ""));
+    if (!knowledgeBase || knowledgeBase.tenantId !== tenantId) return { ok: false, reason: "KNOWLEDGE_BASE_NOT_FOUND" };
+    const range = state.dataGovernance.platformObjectRanges.find(item =>
+      item.id === String(input.rangeId || "") && item.tenantId === tenantId && item.status === "AVAILABLE",
+    );
+    if (!range) return { ok: false, reason: "OBJECT_RANGE_NOT_FOUND" };
+    if (Number(input.selectionRevision) !== range.selectionRevision) return { ok: false, reason: "OBJECT_RANGE_REVISION_MISMATCH" };
+    if (range.mediaType !== "text/plain") return { ok: false, reason: "OBJECT_RANGE_MEDIA_TYPE_UNSUPPORTED" };
+    const name = String(input.name || "").trim();
+    if (name.length < 2 || name.length > 80) return { ok: false, reason: "OBJECT_RANGE_NAME_INVALID" };
+    const existing = state.dataGovernance.objectScopeRegistrations.find(item =>
+      item.tenantId === tenantId &&
+      item.knowledgeBaseId === knowledgeBase.id &&
+      item.rangeId === range.id &&
+      item.selectionRevision === range.selectionRevision,
+    );
+    if (existing) {
+      if (existing.name !== name) return { ok: false, reason: "OBJECT_RANGE_ALREADY_REGISTERED" };
+      return { ok: true, replayed: true, registration: clone(existing) };
+    }
+    const registration = {
+      id: `object-source-${state.dataGovernance.objectScopeRegistrations.length + 1}`,
+      tenantId,
+      knowledgeBaseId: knowledgeBase.id,
+      rangeId: range.id,
+      rangeLabel: range.label,
+      selectionRevision: range.selectionRevision,
+      region: range.region,
+      objectCount: range.objectCount,
+      mediaType: range.mediaType,
+      name,
+      status: "DRAFT",
+      createdAt: "刚刚",
+    };
+    const saved = commitState({
+      ...state,
+      dataGovernance: {
+        ...state.dataGovernance,
+        objectScopeRegistrations: [...state.dataGovernance.objectScopeRegistrations, registration],
+      },
+    });
+    return saved.ok ? { ...saved, replayed: false, registration: clone(registration) } : saved;
+  }
+
   function replaceKnowledgeBase(knowledgeBase) {
     return {
       ...state,
@@ -4337,6 +4653,12 @@ export function createPrototypeStore(storage = browserStorage()) {
     selectQueryDiagnostic,
     getQueryDiagnostic,
     createQueryRemediation,
+    getStructuredDatasetProjection,
+    saveStructuredSchemaDraft,
+    previewStructuredSchemaVersion,
+    publishStructuredSchemaVersion,
+    getObjectStorageScopeProjection,
+    registerObjectStorageScope,
     createTenant,
     addMember,
     findMember,

@@ -3598,7 +3598,89 @@ body[data-review="hidden"] .prototype-reviewer {
   align-content: start;
 }
 
+/* 结构化字段规则保持单表扫描；移动端沿用共享表格卡片化，不新增第二套布局。 */
+.schema-header-order {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  background: var(--color-surface-subtle);
+}
+
+.schema-header-order > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.schema-header-order code {
+  padding: 0.2rem 0.45rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  background: var(--color-surface);
+}
+
+.schema-field-table .compact-select,
+.schema-field-table .compact-input {
+  width: 100%;
+  min-width: 0;
+}
+
+.table-checkbox {
+  display: inline-flex;
+  gap: var(--space-2);
+  align-items: center;
+  min-height: 2rem;
+}
+
+.readonly-fact {
+  display: grid;
+  align-content: start;
+  gap: var(--space-2);
+  min-height: 4.25rem;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  background: var(--color-surface-subtle);
+}
+
+.readonly-fact span,
+.empty-inline span {
+  color: var(--color-text-secondary);
+}
+
+.empty-inline {
+  display: grid;
+  gap: var(--space-1);
+  padding: var(--space-5);
+  border: 1px dashed var(--color-border-strong);
+  border-radius: var(--radius-panel);
+  background: var(--color-surface-subtle);
+}
+
 @media (max-width: 680px) {
+  .admin-shell {
+    padding-bottom: 0;
+  }
+
+  .admin-sidebar {
+    position: sticky;
+    inset: 0 0 auto;
+  }
+
+  .tenant-setup-actions {
+    bottom: max(var(--space-3), env(safe-area-inset-bottom));
+  }
+
+  .prototype-reviewer {
+    --reviewer-bottom: max(var(--space-3), env(safe-area-inset-bottom));
+  }
+
   .account-row-actions {
     flex-wrap: wrap;
   }
@@ -3622,5 +3704,30 @@ body[data-review="hidden"] .prototype-reviewer {
 
   .account-dialog form {
     padding: var(--space-4);
+  }
+
+  .schema-header-order {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .schema-field-table tr {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-3);
+  }
+
+  .schema-field-table td {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-1);
+    min-height: 0;
+    padding: 0;
+  }
+
+  .schema-field-table td:first-child {
+    grid-column: 1 / -1;
+    padding-bottom: var(--space-2);
+    border-bottom: 1px solid var(--color-border);
   }
 }

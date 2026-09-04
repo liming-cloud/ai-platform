@@ -40,6 +40,7 @@ let modelFeedback = "";
 let assistantFeedback = "";
 let evaluationFeedback = "";
 let accessGovernanceFeedback = "";
+let dataGovernanceFeedback = "";
 let nextQueryMode = "normal";
 let queryStreamingSuspended = false;
 const PLATFORM_ACCOUNT_ACTOR_ID = "account-platform-admin";
@@ -100,6 +101,7 @@ resetReview.addEventListener("click", () => {
   assistantFeedback = "";
   evaluationFeedback = "";
   accessGovernanceFeedback = "";
+  dataGovernanceFeedback = "";
   nextQueryMode = "normal";
   render();
 });
@@ -354,6 +356,9 @@ function renderScreen(screen, state, demoState) {
     case "governance-query":
     case "query-diagnostic":
       return renderAccessQueryGovernance(screen, state, demoState);
+    case "dataset-schema":
+    case "object-storage-scope":
+      return renderStructuredObjectGovernance(screen, state, demoState);
     default:
       return renderInventoryPage(
         pageByScreen.get(screen),
@@ -492,6 +497,8 @@ function genericState(screen, state) {
     "access-policy-detail": "访问策略版本",
     "governance-query": "查询治理摘要",
     "query-diagnostic": "受权查询诊断",
+    "dataset-schema": "结构化数据版本",
+    "object-storage-scope": "对象存储范围",
   };
   const subject = labels[screen];
   if (state === "loading") {
@@ -544,6 +551,8 @@ function emptyDescription(screen) {
     "access-policy-detail": "还没有可维护的策略草稿。请从策略目录建立新版本。",
     "governance-query": "当前周期还没有已接受的查询运行。配额规则仍可查看。",
     "query-diagnostic": "当前没有可读取的终态诊断事实。",
+    "dataset-schema": "当前没有可维护的结构草稿。请先上传受控 UTF-8 CSV。",
+    "object-storage-scope": "平台尚未向当前租户签发可用对象范围。",
   }[screen];
 }
 
@@ -559,6 +568,8 @@ function emptyAction(screen) {
     "access-policy-detail": "返回策略目录",
     "governance-query": "返回工作区",
     "query-diagnostic": "返回查询治理",
+    "dataset-schema": "返回数据来源",
+    "object-storage-scope": "返回数据来源",
   }[screen];
 }
 
@@ -574,6 +585,8 @@ function emptyActionScreen(screen) {
     "access-policy-detail": "access-policies",
     "governance-query": "tenant-overview",
     "query-diagnostic": "governance-query",
+    "dataset-schema": "knowledge-sources",
+    "object-storage-scope": "knowledge-sources",
   }[screen];
 }
 
@@ -1026,6 +1039,8 @@ function pageStatus(active, state) {
     "access-policy-detail": "成员助手授权版本",
     "governance-query": "UTC 日配额 / 脱敏终态摘要",
     "query-diagnostic": "只读历史事实",
+    "dataset-schema": "CSV 字段规则与不可变版本",
+    "object-storage-scope": "平台签发范围 / 部署定位不可见",
   }[active] || "当前工作区";
 }
 
@@ -2125,6 +2140,94 @@ function renderQueryDiagnostic(state, snapshot) {
   return adminShell("query-diagnostic", "受权查询诊断", "", '<button class="button secondary" type="button" data-nav-screen="governance-query">返回查询治理</button>', body, state, "评测治理 / 查询诊断");
 }
 
+function structuredDataFailureMessage(result) {
+  return {
+    DATASET_HEADERS_MISMATCH: "CSV 标题或顺序已变化，请重新建立来源修订。",
+    DATASET_FIELDS_MISMATCH: "字段必须与冻结的 CSV 标题逐项一致。",
+    DATASET_FIELD_INVALID: "请核对字段类型、用途和敏感级别。",
+    DATASET_QUERY_FIELD_UNSAFE: "敏感字段不能设为可查询。",
+    DATASET_CONTENT_FIELD_UNSAFE: "主内容必须是公开、可查询的文本字段。",
+    DATASET_TITLE_FIELD_UNSAFE: "标题必须是公开、可查询的文本字段。",
+    DATASET_ROW_FILTER_INVALID: "请选择受支持的空内容处理方式。",
+    DATASET_PREVIEW_REQUIRED: "请先运行抽样预检。",
+    DATASET_SCHEMA_IMMUTABLE: "已发布版本不可修改。",
+    OBJECT_RANGE_NOT_FOUND: "所选范围不可用或不属于当前租户。",
+    OBJECT_RANGE_REVISION_MISMATCH: "范围修订已变化，请刷新后重新选择。",
+    OBJECT_RANGE_ALREADY_REGISTERED: "该范围修订已登记，不能改名后重复登记。",
+    OBJECT_RANGE_NAME_INVALID: "来源名称请输入 2 至 80 个字符。",
+    STORAGE_UNAVAILABLE: "浏览器无法保存，本次操作未生效。",
+    FORBIDDEN: "当前身份不能执行此操作。",
+  }[result?.reason] || "当前操作未完成，请核对后重试。";
+}
+
+function fieldSelect(name, label, value, options, disabled) {
+  return `<select class="select compact-select" name="${escapeHtml(name)}" aria-label="${escapeHtml(label)}"${disabled ? " disabled" : ""}>${options.map(option => `<option value="${escapeHtml(option.value)}"${option.value === value ? " selected" : ""}>${escapeHtml(option.label)}</option>`).join("")}</select>`;
+}
+
+function renderDatasetSchema(state, snapshot) {
+  const projection = prototypeStore.getStructuredDatasetProjection("dataset-office-directory", TENANT_ADMIN_ACTOR_ID);
+  if (!projection.ok) return adminShell("dataset-schema", "结构化数据版本", "", "", statePanel("denied", "当前会话不能访问此任务", "页面不会确认数据集是否存在。", "返回数据来源", "knowledge-sources"), state, "知识处理 / 结构化数据");
+  const { dataset, version } = projection;
+  const editable = state === "success" && version.status === "DRAFT";
+  const typeOptions = [
+    { value: "TEXT", label: "文本" },
+    { value: "INTEGER", label: "整数" },
+    { value: "DECIMAL", label: "小数" },
+    { value: "DATE", label: "日期" },
+  ];
+  const sensitivityOptions = [
+    { value: "PUBLIC", label: "可用于回答" },
+    { value: "INTERNAL", label: "仅内部处理" },
+    { value: "RESTRICTED", label: "禁止进入检索" },
+  ];
+  const fieldRows = version.fields.map(field => [
+    `<tr data-dataset-field-row data-field-name="${escapeHtml(field.name)}">`,
+    `<td data-label="CSV 字段"><span class="primary-cell"><strong class="mono">${escapeHtml(field.name)}</strong></span></td>`,
+    `<td data-label="逻辑类型">${fieldSelect(`type-${field.name}`, `${field.name} 的逻辑类型`, field.logicalType, typeOptions, !editable)}</td>`,
+    `<td data-label="业务含义"><input class="input compact-input" name="semantic-${escapeHtml(field.name)}" aria-label="${escapeHtml(field.name)} 的业务含义" value="${escapeHtml(field.semantic)}"${editable ? "" : " disabled"}></td>`,
+    `<td data-label="查询资格"><label class="table-checkbox"><input type="checkbox" name="query-${escapeHtml(field.name)}" aria-label="${escapeHtml(field.name)} 的查询资格"${field.queryEligible ? " checked" : ""}${editable ? "" : " disabled"}><span>${field.queryEligible ? "允许" : "禁止"}</span></label></td>`,
+    `<td data-label="敏感级别">${fieldSelect(`sensitivity-${field.name}`, `${field.name} 的敏感级别`, field.sensitivity, sensitivityOptions, !editable)}</td>`,
+    "</tr>",
+  ].join("")).join("");
+  const preview = version.preview;
+  const primary = version.status === "PUBLISHED"
+    ? '<button class="button primary" type="button" data-primary-action disabled>结构版本已发布</button>'
+    : `<button class="button primary" type="button" data-publish-structured-schema="${escapeHtml(version.id)}" data-primary-action${!editable || !preview?.passed ? " disabled" : ""}>发布结构版本</button>`;
+  const body = [
+    state === "partial" ? '<div class="inline-note warning">来源修订正在刷新；当前结构草稿保持只读。</div>' : "",
+    state === "disabled" ? '<div class="inline-note warning">平台已关闭知识管理；结构规则可查看但不可修改。</div>' : "",
+    `<section class="section-block"><div class="section-heading"><div><span class="section-kicker">${escapeHtml(dataset.sourceName)} · 来源版本 ${escapeHtml(formatRevision(dataset.sourceRevision))}</span><h2>${escapeHtml(dataset.name)} v${escapeHtml(version.number)}</h2></div>${statusTag(version.status)}</div><div class="schema-header-order"><span>CSV 标题顺序</span><div>${dataset.headers.map(header => `<code>${escapeHtml(header)}</code>`).join('<span aria-hidden="true">→</span>')}</div></div></section>`,
+    `<form id="structured-schema-form" data-version-id="${escapeHtml(version.id)}"><div class="table-shell schema-table-shell"><table class="data-table schema-field-table"><thead><tr><th>CSV 字段</th><th>逻辑类型</th><th>业务含义</th><th>查询资格</th><th>敏感级别</th></tr></thead><tbody>${fieldRows}</tbody></table></div><section class="section-block"><div class="form-grid"><label class="field"><span>主内容字段</span><select class="select" name="contentField"${editable ? "" : " disabled"}>${version.fields.map(field => `<option value="${escapeHtml(field.name)}"${field.name === version.contentField ? " selected" : ""}>${escapeHtml(field.name)}</option>`).join("")}</select><small>仅公开、可查询的文本字段可作为正文。</small></label><label class="field"><span>标题字段</span><select class="select" name="titleField"${editable ? "" : " disabled"}><option value="">不使用标题</option>${version.fields.map(field => `<option value="${escapeHtml(field.name)}"${field.name === version.titleField ? " selected" : ""}>${escapeHtml(field.name)}</option>`).join("")}</select><small>标题只用于证据定位，不拼接其他字段。</small></label><label class="field"><span>空内容行</span><select class="select" name="rowFilter"${editable ? "" : " disabled"}><option value="NON_BLANK_CONTENT"${version.rowFilter === "NON_BLANK_CONTENT" ? " selected" : ""}>跳过并记录警告</option><option value="ALL_ROWS"${version.rowFilter === "ALL_ROWS" ? " selected" : ""}>发现即阻断</option></select></label><div class="readonly-fact"><span>质量规则</span><strong class="mono">${escapeHtml(version.qualityRuleVersion)}</strong></div></div><p class="form-feedback" role="status">${escapeHtml(dataGovernanceFeedback)}</p><div class="form-actions"><button class="button secondary" type="submit"${editable ? "" : " disabled"}>保存结构草稿</button><button class="button secondary" type="button" data-preview-structured-schema="${escapeHtml(version.id)}"${editable ? "" : " disabled"}>运行抽样预检</button></div></section></form>`,
+    `<section class="release-decision${preview?.passed ? "" : " pending"}"><span class="section-kicker">发布前检查</span><h2>${preview?.passed ? `${preview.checkedRows} 行已检查，${preview.blockedRows} 个阻断` : "等待抽样预检"}</h2><dl class="description-list"><dt>标题匹配</dt><dd>${preview?.headerMatched ? "逐项一致" : "待检查"}</dd><dt>跳过空内容</dt><dd>${preview ? `${preview.skippedRows} 行` : "待检查"}</dd><dt>敏感正文</dt><dd>${preview?.passed ? "未进入投影" : "待检查"}</dd><dt>发布影响</dt><dd>形成不可变版本，不自动重建活动索引</dd></dl></section>`,
+  ].join("");
+  return adminShell("dataset-schema", "结构化数据版本", "", primary, body, state, "知识处理 / 结构化数据");
+}
+
+function renderObjectStorageScope(state, snapshot) {
+  const projection = prototypeStore.getObjectStorageScopeProjection(DEFAULT_TENANT_ID, TENANT_ADMIN_ACTOR_ID);
+  if (!projection.ok) return adminShell("object-storage-scope", "对象存储范围", "", "", statePanel("denied", "当前会话不能访问此任务", "页面不会确认对象范围是否存在。", "返回数据来源", "knowledge-sources"), state, "知识处理 / 对象范围");
+  const blocked = state !== "success" || projection.availableRanges.length === 0;
+  const rangeRows = projection.availableRanges.map(range => `<tr><td data-label="签发范围"><span class="primary-cell"><strong>${escapeHtml(range.label)}</strong><span>版本 ${escapeHtml(range.selectionRevision)}</span></span></td><td data-label="驻留区域">${escapeHtml(range.region)}</td><td data-label="冻结对象">${escapeHtml(range.objectCount)} 个</td><td data-label="支持内容">严格 UTF-8 文本</td><td data-label="状态">${statusTag("READY")}</td></tr>`).join("");
+  const registrationRows = projection.registrations.map(item => `<tr><td data-label="对象来源"><span class="primary-cell"><strong>${escapeHtml(item.name)}</strong><span>${escapeHtml(item.rangeLabel)} · 版本 ${escapeHtml(item.selectionRevision)}</span></span></td><td data-label="知识库">${escapeHtml(item.knowledgeBaseName)}</td><td data-label="冻结对象">${escapeHtml(item.objectCount)} 个</td><td data-label="状态"><span class="status-tag" data-tone="warning">待探测</span></td><td data-label="建立时间">${escapeHtml(item.createdAt)}</td></tr>`).join("");
+  const body = [
+    state === "partial" ? '<div class="inline-note warning">签发目录正在刷新；当前列表可查看但不能登记。</div>' : "",
+    state === "disabled" ? '<div class="inline-note warning">平台已关闭知识管理；既有登记保持只读。</div>' : "",
+    '<div class="inline-note">只选择平台签发范围。桶名、对象键、端点与凭据不会进入页面或浏览器状态。</div>',
+    `<section class="section-block"><div class="section-heading"><div><span class="section-kicker">当前可用</span><h2>${projection.availableRanges.length} 个签发范围</h2></div><span class="status-tag" data-tone="info">只读目录</span></div><div class="table-shell"><table class="data-table"><thead><tr><th>签发范围</th><th>驻留区域</th><th>冻结对象</th><th>支持内容</th><th>状态</th></tr></thead><tbody>${rangeRows}</tbody></table></div></section>`,
+    `<section class="section-block"><div class="section-heading"><div><span class="section-kicker">当前知识工作区</span><h2>已登记对象来源</h2></div><span>${projection.registrations.length} 个</span></div>${projection.registrations.length ? `<div class="table-shell"><table class="data-table"><thead><tr><th>对象来源</th><th>知识库</th><th>冻结对象</th><th>状态</th><th>建立时间</th></tr></thead><tbody>${registrationRows}</tbody></table></div>` : '<div class="empty-inline"><strong>尚未登记对象来源</strong><span>从上方签发范围建立来源后，将进入探测与同步流程。</span></div>'}${dataGovernanceFeedback ? `<p class="form-feedback" role="status">${escapeHtml(dataGovernanceFeedback)}</p>` : ""}</section>`,
+    `<dialog id="object-scope-dialog" class="dialog-surface" aria-labelledby="object-scope-title"><form id="object-scope-form"><div class="dialog-heading"><span class="section-kicker">只登记签发事实</span><h2 id="object-scope-title">登记对象来源</h2></div><label class="field"><span>来源名称</span><input class="input" name="name" value="华东办公制度对象来源" minlength="2" maxlength="80" required></label><label class="field"><span>目标知识库</span><select class="select" name="knowledgeBaseId">${snapshot.knowledgeBases.filter(item => item.tenantId === DEFAULT_TENANT_ID).map(item => `<option value="${escapeHtml(item.id)}">${escapeHtml(item.name)}</option>`).join("")}</select></label><label class="field"><span>平台签发范围</span><select class="select" name="rangeId">${projection.availableRanges.map(range => `<option value="${escapeHtml(range.id)}">${escapeHtml(range.label)} · ${escapeHtml(range.objectCount)} 个文本对象</option>`).join("")}</select><small>范围版本由平台冻结，不能手工输入。</small></label><div class="dialog-impact"><div><dt>登记结果</dt><dd>建立待探测来源，不自动同步或发布</dd></div><div><dt>失败语义</dt><dd>范围变化或越权时不留下半成品</dd></div></div><p id="object-scope-feedback" class="form-feedback" role="alert"></p><div class="form-actions dialog-actions"><button class="button secondary" type="button" data-close-object-scope>取消</button><button class="button primary" type="submit">确认登记</button></div></form></dialog>`,
+  ].join("");
+  return adminShell("object-storage-scope", "对象范围登记", "", `<button class="button primary" type="button" data-open-object-scope data-primary-action${blocked ? " disabled" : ""}>登记对象范围</button>`, body, state, "知识处理 / 对象范围");
+}
+
+function renderStructuredObjectGovernance(screen, state, snapshot) {
+  const generic = genericState(screen, state);
+  if (generic) return adminShell(screen, pageFixtures.pages[screen].title, "", "", generic, state, "知识处理");
+  return screen === "dataset-schema"
+    ? renderDatasetSchema(state, snapshot)
+    : renderObjectStorageScope(state, snapshot);
+}
+
 function renderAccessQueryGovernance(screen, state, snapshot) {
   const generic = genericState(screen, state);
   if (generic) return adminShell(screen, pageFixtures.pages[screen].title, "", "", generic, state, screen === "access-policy-detail" ? "访问治理" : "评测治理");
@@ -2985,6 +3088,7 @@ function bindInteractions(screen) {
   bindAssistantDelivery();
   bindEvaluationGovernance();
   bindAccessQueryGovernance();
+  bindStructuredObjectGovernance();
 }
 
 function bindAccountManagement() {
@@ -3861,6 +3965,73 @@ function bindAccessQueryGovernance() {
     }
     remediationDialog?.close();
     accessGovernanceFeedback = result.replayed ? "此运行已有相同分类的待处理事项。" : `已创建修复事项“${result.remediation.title}”。`;
+    render();
+  });
+}
+
+function bindStructuredObjectGovernance() {
+  root.querySelector("#structured-schema-form")?.addEventListener("submit", event => {
+    event.preventDefault();
+    const values = new FormData(event.currentTarget);
+    const projection = prototypeStore.getStructuredDatasetProjection("dataset-office-directory", TENANT_ADMIN_ACTOR_ID);
+    if (!projection.ok) return;
+    const fields = [...event.currentTarget.querySelectorAll("[data-dataset-field-row]")].map(row => {
+      const name = row.dataset.fieldName;
+      return {
+        name,
+        logicalType: values.get(`type-${name}`),
+        semantic: values.get(`semantic-${name}`),
+        queryEligible: values.has(`query-${name}`),
+        sensitivity: values.get(`sensitivity-${name}`),
+      };
+    });
+    const result = prototypeStore.saveStructuredSchemaDraft(event.currentTarget.dataset.versionId, {
+      headers: projection.dataset.headers,
+      fields,
+      contentField: values.get("contentField"),
+      titleField: values.get("titleField"),
+      rowFilter: values.get("rowFilter"),
+    }, TENANT_ADMIN_ACTOR_ID);
+    dataGovernanceFeedback = result.ok ? "结构草稿已保存；字段变化后需要重新抽样预检。" : structuredDataFailureMessage(result);
+    render();
+  });
+
+  root.querySelector("[data-preview-structured-schema]")?.addEventListener("click", event => {
+    const result = prototypeStore.previewStructuredSchemaVersion(event.currentTarget.dataset.previewStructuredSchema, TENANT_ADMIN_ACTOR_ID);
+    dataGovernanceFeedback = result.ok ? "抽样预检通过：100 行已检查，0 个阻断。" : structuredDataFailureMessage(result);
+    render();
+  });
+
+  root.querySelector("[data-publish-structured-schema]")?.addEventListener("click", event => {
+    const result = prototypeStore.publishStructuredSchemaVersion(event.currentTarget.dataset.publishStructuredSchema, TENANT_ADMIN_ACTOR_ID);
+    dataGovernanceFeedback = result.ok ? `结构 v${result.version.number} 已发布；活动索引没有自动变化。` : structuredDataFailureMessage(result);
+    render();
+  });
+
+  const objectDialog = root.querySelector("#object-scope-dialog");
+  root.querySelector("[data-open-object-scope]")?.addEventListener("click", () => {
+    objectDialog?.showModal();
+    objectDialog?.querySelector('[name="name"]')?.focus();
+  });
+  root.querySelector("[data-close-object-scope]")?.addEventListener("click", () => objectDialog?.close());
+  root.querySelector("#object-scope-form")?.addEventListener("submit", event => {
+    event.preventDefault();
+    const values = new FormData(event.currentTarget);
+    const projection = prototypeStore.getObjectStorageScopeProjection(DEFAULT_TENANT_ID, TENANT_ADMIN_ACTOR_ID);
+    const range = projection.ok ? projection.availableRanges.find(item => item.id === values.get("rangeId")) : null;
+    const result = prototypeStore.registerObjectStorageScope({
+      tenantId: DEFAULT_TENANT_ID,
+      knowledgeBaseId: values.get("knowledgeBaseId"),
+      rangeId: values.get("rangeId"),
+      selectionRevision: range?.selectionRevision,
+      name: values.get("name"),
+    }, TENANT_ADMIN_ACTOR_ID);
+    if (!result.ok) {
+      event.currentTarget.querySelector("#object-scope-feedback").textContent = structuredDataFailureMessage(result);
+      return;
+    }
+    objectDialog?.close();
+    dataGovernanceFeedback = result.replayed ? "该范围修订已经登记，没有重复创建来源。" : `已登记“${result.registration.name}”，下一步执行范围探测。`;
     render();
   });
 }

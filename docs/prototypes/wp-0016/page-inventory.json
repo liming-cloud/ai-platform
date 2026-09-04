@@ -62,8 +62,8 @@
       "shell": "console",
       "phase": "M6",
       "pages": [
-        {"screen": "dataset-schema", "route": "/data/datasets", "task": "定义结构化数据字段、查询和敏感级别", "primaryAction": "发布结构版本", "pagination": false, "contractLevel": "accepted"},
-        {"screen": "object-storage-scope", "route": "/data/object-storage", "task": "登记平台签发的对象存储范围", "primaryAction": "登记对象范围", "pagination": false, "contractLevel": "accepted"},
+        {"screen": "dataset-schema", "route": "/data/datasets", "task": "冻结 CSV 字段规则与敏感级别", "primaryAction": "发布结构版本", "pagination": false, "contractLevel": "accepted"},
+        {"screen": "object-storage-scope", "route": "/data/object-storage", "task": "把平台签发的文本范围登记为知识来源", "primaryAction": "登记对象范围", "pagination": false, "contractLevel": "accepted"},
         {"screen": "quick-publication", "route": "/data/publication", "task": "在已有知识库中完成首份知识快速发布", "primaryAction": "开始发布", "pagination": false, "contractLevel": "accepted"},
         {"screen": "index-versions", "route": "/knowledge-bases/:knowledgeBaseId/indexes", "task": "比较知识库索引版本与活动状态", "primaryAction": "重建索引", "pagination": true, "contractLevel": "prototype-only"},
         {"screen": "index-detail", "route": "/knowledge-bases/:knowledgeBaseId/indexes/:versionId", "task": "判断一个索引版本能否激活", "primaryAction": "激活此版本", "pagination": false, "contractLevel": "prototype-only"},

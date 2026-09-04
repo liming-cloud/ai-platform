@@ -2,7 +2,7 @@
   "workPackage": "WP-0016",
   "generatedOn": "2026-09-04",
   "browserVerification": "passed",
-  "browserVerificationNote": "访问策略与查询治理 8/8；全部专项浏览器 94/94，全平台 68 页、7 状态、3 视口共 1,428 场景及 9,642 项断言通过，截图仅在临时目录生成。该结论仅覆盖已声明 DOM、布局和交互，不代表账本已穷举或人工验收通过。",
+  "browserVerificationNote": "结构化数据与对象范围 7/7；全部专项浏览器 101/101，全平台 68 页、7 状态、3 视口共 1,428 场景及 9,642 项断言通过，截图仅在临时目录生成。该结论仅覆盖已声明 DOM、布局和交互，不代表账本已穷举或人工验收通过。",
   "classification": {
     "navigation": "仅改变原型页面，不计作业务完成",
     "implementedStateChange": "合成状态已有 Node 测试；browserVerified 只表示条目注明的浏览器范围，不代表完整业务或人工通过",
@@ -15,14 +15,14 @@
   "summary": {
     "navigation": 33,
     "implementedRead": 7,
-    "implementedStateChange": 72,
+    "implementedStateChange": 74,
     "pendingDecision": 1,
-    "unimplemented": 4,
+    "unimplemented": 2,
     "forbidden": 1,
     "partialSimulation": 0,
     "totalPages": 68,
     "totalControls": 118,
-    "unclosedControls": 5,
+    "unclosedControls": 3,
     "allControlsEnumerated": false,
     "readyForFullAcceptance": false
   },
@@ -580,14 +580,16 @@
       "screen": "dataset-schema",
       "phase": "M6",
       "shell": "console",
-      "primaryTask": "定义结构化数据字段、查询和敏感级别",
+      "primaryTask": "冻结 CSV 字段规则与敏感级别",
       "controls": [
         {
           "label": "发布结构版本",
           "kind": "primaryAction",
-          "status": "unimplemented",
-          "evidence": "当前控件仅展示确认或无持久状态结果",
-          "browserVerified": false
+          "status": "implementedStateChange",
+          "evidence": "structured-object-governance-state.test.mjs：保存、预检、发布、刷新恢复、不可变和失败回滚",
+          "browserVerified": true,
+          "browserEvidence": "artifacts/structured-object-governance-browser-verification.json",
+          "browserScope": "字段规则、抽样预检、不可变发布、拒绝态、不可用态和三档宽度"
         }
       ]
     },
@@ -595,14 +597,16 @@
       "screen": "object-storage-scope",
       "phase": "M6",
       "shell": "console",
-      "primaryTask": "登记平台签发的对象存储范围",
+      "primaryTask": "把平台签发的文本范围登记为知识来源",
       "controls": [
         {
           "label": "登记对象范围",
           "kind": "primaryAction",
-          "status": "unimplemented",
-          "evidence": "当前控件仅展示确认或无持久状态结果",
-          "browserVerified": false
+          "status": "implementedStateChange",
+          "evidence": "structured-object-governance-state.test.mjs：同租户范围校验、登记、幂等、刷新恢复和失败回滚",
+          "browserVerified": true,
+          "browserEvidence": "artifacts/structured-object-governance-browser-verification.json",
+          "browserScope": "已签发范围登记、基础设施事实隔离、拒绝态、不可用态和三档宽度"
         }
       ]
     },
@@ -1486,5 +1490,5 @@
     "allControlsEnumerated": false,
     "limitation": "尚未穷举每页筛选、行操作、账户菜单和各状态控件；下列数量只统计已登记项，不代表全平台控件总数。"
   },
-  "browserEvidenceReport": "artifacts/model-governance-browser-verification.json"
+  "browserEvidenceReport": "artifacts/structured-object-governance-browser-verification.json"
 }
