@@ -14,6 +14,9 @@ async function visit(name, action, width = 1440, height = 900) {
   page.setDefaultTimeout(5000);
   const errors = [];
   page.on("pageerror", error => errors.push(error.message));
+  page.on("console", message => {
+    if (message.type() === "error") errors.push(message.text());
+  });
   try { await action(page); assert.deepEqual(errors, [], "页面出现运行异常"); }
   catch (error) { await page.screenshot({ path: `${artifacts}/${name}-failure.png`, fullPage: true }); throw error; }
   finally { await context.close(); }

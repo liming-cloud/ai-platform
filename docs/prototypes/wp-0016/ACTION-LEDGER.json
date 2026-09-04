@@ -1,8 +1,8 @@
 {
   "workPackage": "WP-0016",
-  "generatedOn": "2026-09-03",
-  "browserVerification": "pendingAuthorization",
-  "browserVerificationNote": "本轮首次浏览器复核 8/10；随后获知本地访问限制，新增安全配置与最终修复等待本次独立浏览器授权复验。旧条目的通过范围仅限所引历史证据。",
+  "generatedOn": "2026-09-04",
+  "browserVerification": "passed",
+  "browserVerificationNote": "本轮租户专项 10/10、问答 15/15、布局 13/13；全平台 68 页、7 状态、3 视口共 1,428 场景及 9,662 项断言通过。该结论仅覆盖已声明 DOM、布局和交互，不代表账本已穷举或人工验收通过。",
   "classification": {
     "navigation": "仅改变原型页面，不计作业务完成",
     "implementedStateChange": "合成状态已有 Node 测试；browserVerified 只表示条目注明的浏览器范围，不代表完整业务或人工通过",
@@ -89,15 +89,19 @@
           "label": "下一步、上一步与创建租户",
           "kind": "primaryOrTaskControl",
           "status": "implementedStateChange",
-          "evidence": "tenant-quota-state.test.mjs：配额、草稿、创建、刷新、失败回滚；tenant-setup.browser.test.cjs 最终复验待授权",
-          "browserVerified": false
+          "evidence": "tenant-quota-state.test.mjs：配额、草稿、创建、刷新、失败回滚；tenant-setup.browser.test.cjs：创建、刷新、响应式与错误恢复",
+          "browserVerified": true,
+          "browserEvidence": "artifacts/tenant-remediation-browser.tap；artifacts/tenant-remediation-final-browser-20260904/verification.json",
+          "browserScope": "三步建立、刷新恢复、桌面与移动端主要操作可见；未登记控件不因此获得通过"
         },
         {
           "label": "取消或校验失败",
           "kind": "primaryOrTaskControl",
           "status": "implementedStateChange",
-          "evidence": "失败不写入状态",
-          "browserVerified": false
+          "evidence": "失败不写入状态；tenant-setup.browser.test.cjs：重复编码即时拒绝并回到对应步骤",
+          "browserVerified": true,
+          "browserEvidence": "artifacts/tenant-remediation-browser.tap",
+          "browserScope": "覆盖重复编码和创建失败返回步骤；未测失败类型不因此获得通过"
         }
       ]
     },
@@ -129,15 +133,19 @@
           "label": "编辑配额、保存与取消",
           "kind": "primaryOrTaskControl",
           "status": "implementedStateChange",
-          "evidence": "ADR-0076；tenant-quota-state.test.mjs：非默认值、低于用量、角色拒绝与存储失败；浏览器最终复验待授权",
-          "browserVerified": false
+          "evidence": "ADR-0076；tenant-quota-state.test.mjs：非默认值、低于用量、角色拒绝与存储失败",
+          "browserVerified": true,
+          "browserEvidence": "artifacts/tenant-remediation-browser.tap",
+          "browserScope": "覆盖非默认值保存、取消、刷新恢复、低于已使用量拒绝与存储失败回滚"
         },
         {
           "label": "编辑登录策略、保存与取消",
           "kind": "primaryOrTaskControl",
           "status": "implementedStateChange",
           "evidence": "ADR-0076；tenant-security-state.test.mjs：三项白名单配置、不可关闭安全底线、角色拒绝及存储失败；不代表真实登录锁定",
-          "browserVerified": false
+          "browserVerified": true,
+          "browserEvidence": "artifacts/tenant-remediation-browser.tap",
+          "browserScope": "覆盖三项策略保存、取消、刷新、输入校验和存储失败；不代表生产认证策略已执行"
         }
       ]
     },
@@ -1287,5 +1295,5 @@
     "allControlsEnumerated": false,
     "limitation": "尚未穷举每页筛选、行操作、账户菜单和各状态控件；下列数量只统计已登记项，不代表全平台控件总数。"
   },
-  "browserEvidenceReport": "artifacts/layout-remediation-final-browser-20260903/verification.json"
+  "browserEvidenceReport": "artifacts/tenant-remediation-final-browser-20260904/verification.json"
 }

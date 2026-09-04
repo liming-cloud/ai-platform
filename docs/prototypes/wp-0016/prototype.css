@@ -3193,6 +3193,44 @@ body[data-review="hidden"] .prototype-reviewer {
   margin-right: auto;
 }
 
+@media (min-width: 681px) {
+  .tenant-setup-form[data-current-tenant-step="3"] .tenant-step-card {
+    grid-template-areas:
+      "heading heading"
+      "quotas summary"
+      "quotas safety"
+      "quotas consent";
+    grid-template-columns: minmax(0, 2fr) minmax(16rem, 0.8fr);
+    align-items: start;
+  }
+
+  .tenant-setup-form[data-current-tenant-step="3"] .tenant-step-heading {
+    grid-area: heading;
+  }
+
+  .tenant-setup-form[data-current-tenant-step="3"] .tenant-confirmation-summary {
+    grid-area: summary;
+    grid-template-columns: 1fr;
+  }
+
+  .tenant-setup-form[data-current-tenant-step="3"] .tenant-confirmation-summary > span + span {
+    border-top: 1px solid var(--color-border);
+    border-left: 0;
+  }
+
+  .tenant-setup-form[data-current-tenant-step="3"] .tenant-quota-grid {
+    grid-area: quotas;
+  }
+
+  .tenant-setup-form[data-current-tenant-step="3"] .tenant-safety-note {
+    grid-area: safety;
+  }
+
+  .tenant-setup-form[data-current-tenant-step="3"] .consent-control {
+    grid-area: consent;
+  }
+}
+
 .tenant-quota-section {
   padding: 0;
 }
@@ -3275,6 +3313,29 @@ body[data-review="hidden"] .prototype-reviewer {
 }
 
 @media (max-width: 1040px) and (min-width: 681px) {
+  .admin-main[data-screen="platform-tenant-create"] > .page-header {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .tenant-setup-form[data-current-tenant-step="3"] {
+    gap: var(--space-2);
+  }
+
+  .tenant-setup-form[data-current-tenant-step="3"] .tenant-step-card {
+    padding-block: var(--space-4);
+  }
+
+  .tenant-setup-form[data-current-tenant-step="3"] .tenant-setup-actions {
+    padding-top: 0;
+  }
+
   .tenant-quota-summary {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }

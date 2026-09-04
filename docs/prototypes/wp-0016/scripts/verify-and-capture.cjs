@@ -282,6 +282,13 @@ async function validateManagementFlows(page) {
   await page.setViewportSize(viewports[0]);
   await openScenario(page, "platform-tenant-create", "success", true);
   await page.locator("#review-reset").click();
+  const reviewerSummary = page.locator("#prototype-reviewer summary");
+  await reviewerSummary.focus();
+  await reviewerSummary.press("Enter");
+  assert(
+    !(await page.locator("#prototype-reviewer details").evaluate((details) => details.open)),
+    "创建租户前原型审查器未通过键盘收起",
+  );
   await page.locator("#tenant-organization-name").fill("青岚制造示例组织");
   await page.locator("#tenant-code").fill("qinglan-demo");
   await page.getByRole("button", { name: "下一步", exact: true }).click();

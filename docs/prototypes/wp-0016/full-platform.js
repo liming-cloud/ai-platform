@@ -320,7 +320,7 @@ function renderTenantCreate(demoState) {
         escapeHtml(setup.organizationName) +
         '" required minlength="2" maxlength="40" autocomplete="organization" placeholder="例如：青岚体验租户" aria-describedby="tenant-organization-help" data-tenant-draft /><small class="field-hint" id="tenant-organization-help">使用 2 至 40 个字符的组织名称。</small></label><label class="field" for="tenant-code"><span>租户编码</span><input id="tenant-code" class="input mono" name="tenantCode" value="' +
         escapeHtml(setup.tenantCode) +
-        '" required pattern="[a-z][a-z0-9-]{2,19}" autocomplete="off" placeholder="qinglan-demo" aria-describedby="tenant-code-help" data-tenant-draft /><small class="field-hint" id="tenant-code-help">使用 3 至 20 位小写字母、数字或连字符，创建后不能修改。</small></label></div></section>',
+        '" required pattern="[a-z](?:[a-z0-9]|-){2,19}" autocomplete="off" placeholder="qinglan-demo" aria-describedby="tenant-code-help" data-tenant-draft /><small class="field-hint" id="tenant-code-help">使用 3 至 20 位小写字母、数字或连字符，创建后不能修改。</small></label></div></section>',
     ].join("");
   } else if (step === 2) {
     currentStep = [
