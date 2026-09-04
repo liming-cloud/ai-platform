@@ -2,7 +2,7 @@
   "workPackage": "WP-0016",
   "generatedOn": "2026-09-04",
   "browserVerification": "passed",
-  "browserVerificationNote": "本轮账户专项 7/7、租户专项 10/10、问答 15/15、布局 13/13；全平台 68 页、7 状态、3 视口共 1,428 场景及 9,662 项断言通过。该结论仅覆盖已声明 DOM、布局和交互，不代表账本已穷举或人工验收通过。",
+  "browserVerificationNote": "知识接入 8/8、账户 7/7、租户 10/10、问答 15/15、布局 13/13；全平台 68 页、7 状态、3 视口共 1,428 场景及 9,662 项断言通过，截图仅在临时目录生成。该结论仅覆盖已声明 DOM、布局和交互，不代表账本已穷举或人工验收通过。",
   "classification": {
     "navigation": "仅改变原型页面，不计作业务完成",
     "implementedStateChange": "合成状态已有 Node 测试；browserVerified 只表示条目注明的浏览器范围，不代表完整业务或人工通过",
@@ -15,14 +15,14 @@
   "summary": {
     "navigation": 47,
     "implementedRead": 6,
-    "implementedStateChange": 30,
+    "implementedStateChange": 35,
     "pendingDecision": 1,
-    "unimplemented": 14,
+    "unimplemented": 11,
     "forbidden": 1,
     "partialSimulation": 0,
     "totalPages": 68,
-    "totalControls": 99,
-    "unclosedControls": 15,
+    "totalControls": 101,
+    "unclosedControls": 12,
     "allControlsEnumerated": false,
     "readyForFullAcceptance": false
   },
@@ -410,12 +410,12 @@
       "shell": "console",
       "primaryTask": "查找或创建租户知识库",
       "controls": [
-        {
-          "label": "创建知识库",
-          "kind": "primaryAction",
-          "status": "unimplemented",
-          "evidence": "当前控件仅展示确认或无持久状态结果",
-          "browserVerified": false
+      {
+        "label": "创建知识库",
+        "kind": "primaryAction",
+        "status": "implementedStateChange",
+        "evidence": "knowledge-ingestion-state.test.mjs 与 knowledge-ingestion.browser.test.cjs：创建、取消、配额、越权、刷新和存储失败回滚",
+        "browserVerified": true
         }
       ]
     },
@@ -440,12 +440,12 @@
       "shell": "console",
       "primaryTask": "管理当前知识库的数据来源",
       "controls": [
-        {
-          "label": "添加数据",
-          "kind": "primaryAction",
-          "status": "unimplemented",
-          "evidence": "当前控件仅展示确认或无持久状态结果",
-          "browserVerified": false
+      {
+        "label": "添加数据",
+        "kind": "primaryAction",
+        "status": "navigation",
+        "evidence": "knowledge-ingestion.browser.test.cjs：进入当前知识库的真实资料接入表单",
+        "browserVerified": true
         }
       ]
     },
@@ -455,12 +455,12 @@
       "shell": "console",
       "primaryTask": "通过粘贴或本地文件登记一个来源",
       "controls": [
-        {
-          "label": "开始安全扫描",
-          "kind": "primaryAction",
-          "status": "navigation",
-          "evidence": "只完成受控页面跳转，不计作业务状态变更",
-          "browserVerified": false
+      {
+        "label": "开始安全扫描",
+        "kind": "primaryAction",
+        "status": "implementedStateChange",
+        "evidence": "knowledge-ingestion-state.test.mjs 与 knowledge-ingestion.browser.test.cjs：白名单、MIME、大小、安全拒绝和 RECEIVED 状态持久化",
+        "browserVerified": true
         }
       ]
     },
@@ -477,12 +477,26 @@
           "evidence": "进入文件选择，不计作内容已更新",
           "browserVerified": false
         },
-        {
-          "label": "重新处理",
-          "kind": "primaryOrTaskControl",
-          "status": "unimplemented",
-          "evidence": "本轮只完成语义区分，尚无处理状态变更",
-          "browserVerified": false
+      {
+        "label": "重新处理",
+        "kind": "primaryOrTaskControl",
+        "status": "implementedStateChange",
+        "evidence": "knowledge-ingestion-state.test.mjs 与 knowledge-ingestion.browser.test.cjs：建立新修订且活动索引继续服务",
+        "browserVerified": true
+      },
+      {
+        "label": "安全重试",
+        "kind": "taskControl",
+        "status": "implementedStateChange",
+        "evidence": "knowledge-ingestion-state.test.mjs 与 knowledge-ingestion.browser.test.cjs：失败来源从结构化安全阶段重试",
+        "browserVerified": true
+      },
+      {
+        "label": "刷新处理状态",
+        "kind": "taskControl",
+        "status": "implementedStateChange",
+        "evidence": "knowledge-ingestion-state.test.mjs 与 knowledge-ingestion.browser.test.cjs：统一阶段推进并刷新恢复",
+        "browserVerified": true
         },
         {
           "label": "重建索引",

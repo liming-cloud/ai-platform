@@ -12,7 +12,7 @@
 2. `PAGE-INVENTORY.md`：页面成立条件、弹层边界和漂移门禁。
 3. `page-inventory.json`：页面唯一事实源。
 4. `index.html`、`prototype.js`、`prototype.css`、`tokens.css`、`fixtures.json`：当前已确认原型和交互。
-5. `scripts/verify-and-capture.cjs`：现有自动检查与截图合同。
+5. `scripts/verify-and-capture.cjs`：现有自动检查与临时视觉核对合同。
 
 ## 不可变设计原则
 
@@ -93,8 +93,8 @@
 - 检查 `denied` 不包含受保护内容标记。
 - 保留现有问答、引用、事件恢复、移动历史、skip link、索引激活和助手发布交互断言。
 - 增加上述九条闭环的关键跳转断言。
-- 为每个页面生成一张 1440 成功态截图；另外为三种外壳和高风险流程生成代表性 1024、390 与 reduced-motion 截图。
-- `verification.json` 写入页面数、组合数、断言数、截图数、浏览器错误和清单摘要。
+- 为每个页面生成一张临时 1440 成功态截图；另外为三种外壳和高风险流程生成临时 1024、390 与 reduced-motion 截图，全部写入系统临时目录，不提交仓库。
+- `verification.json` 写入页面数、组合数、断言数、临时截图数、浏览器错误和清单摘要。
 
 ## 文档
 

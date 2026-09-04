@@ -136,6 +136,65 @@ function defaultQueryState() {
   };
 }
 
+const SOURCE_STAGES = Object.freeze([
+  "RECEIVED",
+  "SCANNING",
+  "EXTRACTING",
+  "EXTRACTED",
+  "CHUNKING",
+  "INDEXING",
+  "READY",
+]);
+
+const FILE_TYPES = Object.freeze({
+  txt: { kind: "TXT", mimeTypes: ["text/plain"] },
+  md: { kind: "Markdown", mimeTypes: ["text/markdown", "text/plain"] },
+  doc: { kind: "DOC", mimeTypes: ["application/msword"] },
+  docx: { kind: "DOCX", mimeTypes: ["application/vnd.openxmlformats-officedocument.wordprocessingml.document"] },
+  xls: { kind: "XLS", mimeTypes: ["application/vnd.ms-excel"] },
+  xlsx: { kind: "XLSX", mimeTypes: ["application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"] },
+  csv: { kind: "CSV", mimeTypes: ["text/csv", "text/plain"] },
+  pdf: { kind: "PDF", mimeTypes: ["application/pdf"] },
+  png: { kind: "PNG", mimeTypes: ["image/png"] },
+  jpg: { kind: "JPEG", mimeTypes: ["image/jpeg"] },
+  jpeg: { kind: "JPEG", mimeTypes: ["image/jpeg"] },
+  webp: { kind: "WebP", mimeTypes: ["image/webp"] },
+});
+
+function defaultKnowledgeBases() {
+  return [
+    {
+      id: "kb-handbook",
+      tenantId: DEFAULT_TENANT_ID,
+      name: "员工服务手册",
+      description: "面向全体成员的制度、假期、福利和办事指南。",
+      status: "READY",
+      documents: 428,
+      storageGb: 2.6,
+      activeIndex: "idx-v11",
+      updatedAt: "今天 17:42",
+      sources: [
+        { id: "src-policy-pdf", name: "2026 员工假期制度.pdf", kind: "PDF", revision: "rev-0007", activeRevision: "rev-0007", stage: "READY", status: "READY", indexed: true, coverage: "42 页", detail: "文本提取完成，引用保留页码。" },
+        { id: "src-benefit-docx", name: "福利办事指南.docx", kind: "DOCX", revision: "rev-0004", activeRevision: "rev-0004", stage: "READY", status: "READY", indexed: true, coverage: "36 节", detail: "标题、段落和列表结构已保留。" },
+        { id: "src-office-xlsx", name: "各地办公室联系表.xlsx", kind: "XLSX", revision: "rev-0003", activeRevision: "rev-0002", stage: "INDEXING", status: "PROCESSING", indexed: false, coverage: "216 行", detail: "正在嵌入 184 / 216 个表格分块。" },
+        { id: "src-scan-pdf", name: "报销流程扫描件.pdf", kind: "扫描 PDF", revision: "rev-0002", activeRevision: "rev-0001", stage: "FAILED", status: "FAILED", indexed: false, retryStage: "EXTRACTING", error: { code: "PIXEL_LIMIT", message: "第 18 页像素超出安全限制，未写入索引。" }, coverage: "24 页，已处理 17 页", detail: "第 18 页像素超出安全限制，未写入索引。" },
+      ],
+    },
+    {
+      id: "kb-support",
+      tenantId: DEFAULT_TENANT_ID,
+      name: "客户支持知识",
+      description: "合成产品说明、故障排查和服务政策。",
+      status: "INDEXING",
+      documents: 256,
+      storageGb: 0.986,
+      activeIndex: "idx-v7",
+      updatedAt: "今天 17:18",
+      sources: [],
+    },
+  ];
+}
+
 /** 登录态与聊天记录分开保存，存储满时退出仍可移除登录态而不清除历史。 */
 function readQuerySession(storage, epoch = 0) {
   const anonymous = { ...defaultQueryState().session, epoch };
@@ -244,6 +303,9 @@ function defaultState() {
         ],
       },
     ],
+    knowledgeBases: defaultKnowledgeBases(),
+    selectedKnowledgeBaseId: "kb-handbook",
+    selectedKnowledgeSourceId: "src-policy-pdf",
     selectedTenantId: DEFAULT_TENANT_ID,
     selectedDemoAccountId: "account-shen",
     health: {
@@ -346,6 +408,18 @@ function initialState(storage) {
       return defaultState();
     }
     parsed.tenantSetup = tenantSetupFrom(parsed.tenantSetup);
+    parsed.knowledgeBases = Array.isArray(parsed.knowledgeBases)
+      ? parsed.knowledgeBases
+      : defaultKnowledgeBases();
+    parsed.selectedKnowledgeBaseId = parsed.knowledgeBases.some(
+      knowledgeBase => knowledgeBase.id === parsed.selectedKnowledgeBaseId,
+    ) ? parsed.selectedKnowledgeBaseId : parsed.knowledgeBases[0]?.id ?? null;
+    const selectedKnowledgeBase = parsed.knowledgeBases.find(
+      knowledgeBase => knowledgeBase.id === parsed.selectedKnowledgeBaseId,
+    );
+    parsed.selectedKnowledgeSourceId = selectedKnowledgeBase?.sources.some(
+      source => source.id === parsed.selectedKnowledgeSourceId,
+    ) ? parsed.selectedKnowledgeSourceId : selectedKnowledgeBase?.sources[0]?.id ?? null;
     parsed.query = {
       ...defaultQueryState(),
       ...(parsed.query || {}),
@@ -405,10 +479,12 @@ export function createPrototypeStore(storage = browserStorage()) {
   function getTenantQuotas(tenantId) {
     const tenant = tenantById(tenantId);
     if (!tenant) return null;
-    // 与当前合成知识目录的 2 个知识库及最大每库用量保持一致；后续接入闭环再改为动态聚合。
-    const usage = tenantId === DEFAULT_TENANT_ID
-      ? { knowledgeBases: 2, documentsPerKnowledgeBase: 428, rawContentGbPerKnowledgeBase: 2.6 }
-      : { knowledgeBases: 0, documentsPerKnowledgeBase: 0, rawContentGbPerKnowledgeBase: 0 };
+    const knowledgeBases = state.knowledgeBases.filter(item => item.tenantId === tenantId);
+    const usage = {
+      knowledgeBases: knowledgeBases.length,
+      documentsPerKnowledgeBase: Math.max(0, ...knowledgeBases.map(item => item.documents || 0)),
+      rawContentGbPerKnowledgeBase: Math.max(0, ...knowledgeBases.map(item => item.storageGb || 0)),
+    };
     return { quotas: clone(tenant.quotas), usage };
   }
 
@@ -455,6 +531,208 @@ export function createPrototypeStore(storage = browserStorage()) {
   function canManageAccounts(actorAccountId) {
     const actor = accountById(actorAccountId);
     return Boolean(actor?.platformAdministrator && actor.status === "available");
+  }
+
+  function knowledgeBaseById(knowledgeBaseId) {
+    return state.knowledgeBases.find(knowledgeBase => knowledgeBase.id === knowledgeBaseId);
+  }
+
+  /** 原型授权在状态变更前检查租户、成员状态、角色和租户功能上限。 */
+  function canManageKnowledge(tenantId, actorAccountId) {
+    const tenant = tenantById(tenantId);
+    const actor = accountById(actorAccountId);
+    const member = tenant?.members.find(item => item.accountId === actorAccountId);
+    return Boolean(
+      tenant?.status === "active" &&
+      actor?.status === "available" &&
+      tenant.availableFeatures?.knowledgeManagement !== false &&
+      member?.role === "tenantAdministrator" &&
+      member.status === "active",
+    );
+  }
+
+  function replaceKnowledgeBase(knowledgeBase) {
+    return {
+      ...state,
+      knowledgeBases: state.knowledgeBases.map(item => item.id === knowledgeBase.id ? knowledgeBase : item),
+    };
+  }
+
+  function createKnowledgeBase(input = {}, actorAccountId, tenantId = DEFAULT_TENANT_ID) {
+    if (!canManageKnowledge(tenantId, actorAccountId)) return { ok: false, reason: "FORBIDDEN" };
+    const tenant = tenantById(tenantId);
+    const name = typeof input.name === "string" ? input.name.trim() : "";
+    const description = typeof input.description === "string" ? input.description.trim() : "";
+    const errors = [];
+    if (name.length < 2 || name.length > 80) errors.push({ field: "name", message: "知识库名称请输入 2 至 80 个字符。" });
+    if (description.length > 200) errors.push({ field: "description", message: "用途说明最多 200 个字符。" });
+    if (errors.length) return { ok: false, errors };
+    if (state.knowledgeBases.some(item => item.tenantId === tenantId && item.name === name)) {
+      return { ok: false, reason: "KNOWLEDGE_BASE_NAME_CONFLICT" };
+    }
+    const tenantKnowledgeBases = state.knowledgeBases.filter(item => item.tenantId === tenantId);
+    if (tenantKnowledgeBases.length >= tenant.quotas.knowledgeBases) {
+      return { ok: false, reason: "KNOWLEDGE_BASE_QUOTA_EXCEEDED" };
+    }
+    const knowledgeBase = {
+      id: `kb-custom-${tenantKnowledgeBases.length + 1}`,
+      tenantId,
+      name,
+      description,
+      status: "EMPTY",
+      documents: 0,
+      storageGb: 0,
+      activeIndex: null,
+      updatedAt: "刚刚",
+      sources: [],
+    };
+    const saved = commitState({ ...state, knowledgeBases: [...state.knowledgeBases, knowledgeBase], selectedKnowledgeBaseId: knowledgeBase.id, selectedKnowledgeSourceId: null });
+    return saved.ok ? { ...saved, knowledgeBase: clone(knowledgeBase) } : saved;
+  }
+
+  function selectKnowledgeBase(knowledgeBaseId) {
+    const knowledgeBase = knowledgeBaseById(knowledgeBaseId);
+    if (!knowledgeBase) return { ok: false, reason: "KNOWLEDGE_BASE_NOT_FOUND" };
+    return commitState({ ...state, selectedKnowledgeBaseId: knowledgeBaseId, selectedKnowledgeSourceId: knowledgeBase.sources[0]?.id ?? null });
+  }
+
+  function selectKnowledgeSource(sourceId) {
+    const knowledgeBase = knowledgeBaseById(state.selectedKnowledgeBaseId);
+    if (!knowledgeBase?.sources.some(source => source.id === sourceId)) {
+      return { ok: false, reason: "SOURCE_NOT_FOUND" };
+    }
+    return commitState({ ...state, selectedKnowledgeSourceId: sourceId });
+  }
+
+  function sourceInputFailure(knowledgeBase, input = {}) {
+    const tenant = tenantById(knowledgeBase.tenantId);
+    if (input.remoteUrl || input.mode === "url") return "REMOTE_URL_FORBIDDEN";
+    if (input.mode === "paste") {
+      const text = typeof input.text === "string" ? input.text.trim() : "";
+      if (!text || !String(input.name || "").trim()) return "SOURCE_CONTENT_REQUIRED";
+      if (new TextEncoder().encode(text).byteLength > tenant.quotas.pastedTextMib * 1024 * 1024) return "PASTED_TEXT_TOO_LARGE";
+      return null;
+    }
+    if (input.mode !== "file") return "SOURCE_MODE_REQUIRED";
+    const name = typeof input.name === "string" ? input.name.trim() : "";
+    const extension = name.includes(".") ? name.split(".").at(-1).toLowerCase() : "";
+    const type = FILE_TYPES[extension];
+    if (!type) return "UNSUPPORTED_FILE_TYPE";
+    if (!Number.isFinite(input.sizeMb) || input.sizeMb <= 0) return "FILE_SIZE_INVALID";
+    if (input.sizeMb > tenant.quotas.singleFileMb) return "FILE_TOO_LARGE";
+    if (input.encrypted) return "ENCRYPTED_FILE";
+    if (input.containsMacros) return "OFFICE_MACRO_DETECTED";
+    if (input.damagedArchive) return "DAMAGED_ARCHIVE";
+    if (!type.mimeTypes.includes(input.mimeType)) return "MIME_MISMATCH";
+    return null;
+  }
+
+  function addKnowledgeSource(knowledgeBaseId, input = {}, actorAccountId) {
+    const knowledgeBase = knowledgeBaseById(knowledgeBaseId);
+    if (!knowledgeBase) return { ok: false, reason: "KNOWLEDGE_BASE_NOT_FOUND" };
+    if (!canManageKnowledge(knowledgeBase.tenantId, actorAccountId)) return { ok: false, reason: "FORBIDDEN" };
+    const tenant = tenantById(knowledgeBase.tenantId);
+    if (knowledgeBase.documents + knowledgeBase.sources.filter(source => source.reservedDocument).length >= tenant.quotas.documentsPerKnowledgeBase) {
+      return { ok: false, reason: "DOCUMENT_QUOTA_EXCEEDED" };
+    }
+    const failure = sourceInputFailure(knowledgeBase, input);
+    if (failure) return { ok: false, reason: failure };
+    const name = String(input.name).trim();
+    const extension = input.mode === "file" ? name.split(".").at(-1).toLowerCase() : "";
+    const source = {
+      id: `src-${knowledgeBaseId}-${knowledgeBase.sources.length + 1}`,
+      name,
+      kind: input.mode === "paste" ? "粘贴文本" : FILE_TYPES[extension].kind,
+      revision: "rev-0001",
+      activeRevision: null,
+      stage: "RECEIVED",
+      status: "PROCESSING",
+      indexed: false,
+      reservedDocument: true,
+      rawContentStored: false,
+      sizeMb: input.mode === "file" ? input.sizeMb : Number((new TextEncoder().encode(input.text.trim()).byteLength / 1024 / 1024).toFixed(3)),
+      simulatedFailure: input.simulatedFailure || null,
+      error: null,
+      detail: "已接收，等待安全扫描。",
+    };
+    const nextKnowledgeBase = {
+      ...knowledgeBase,
+      status: "PROCESSING",
+      updatedAt: "刚刚",
+      storageGb: Number((knowledgeBase.storageGb + source.sizeMb / 1024).toFixed(3)),
+      sources: [...knowledgeBase.sources, source],
+    };
+    const saved = commitState({ ...replaceKnowledgeBase(nextKnowledgeBase), selectedKnowledgeSourceId: source.id });
+    return saved.ok ? { ...saved, source: clone(source) } : saved;
+  }
+
+  function updateKnowledgeSource(knowledgeBase, source) {
+    const previous = knowledgeBase.sources.find(item => item.id === source.id);
+    const reservationCompleted = source.stage === "READY" && previous?.reservedDocument;
+    const updatedSource = reservationCompleted
+      ? { ...source, reservedDocument: false }
+      : source;
+    const nextKnowledgeBase = {
+      ...knowledgeBase,
+      updatedAt: "刚刚",
+      documents: knowledgeBase.documents + (reservationCompleted ? 1 : 0),
+      status: updatedSource.stage === "READY" && knowledgeBase.sources.every(item => item.id === updatedSource.id || ["READY", "FAILED"].includes(item.stage)) ? "READY" : "PROCESSING",
+      sources: knowledgeBase.sources.map(item => item.id === updatedSource.id ? updatedSource : item),
+    };
+    const saved = commitState(replaceKnowledgeBase(nextKnowledgeBase));
+    return saved.ok ? { ...saved, source: clone(updatedSource) } : saved;
+  }
+
+  function advanceKnowledgeSource(knowledgeBaseId, sourceId, actorAccountId) {
+    const knowledgeBase = knowledgeBaseById(knowledgeBaseId);
+    if (!knowledgeBase) return { ok: false, reason: "KNOWLEDGE_BASE_NOT_FOUND" };
+    if (!canManageKnowledge(knowledgeBase.tenantId, actorAccountId)) return { ok: false, reason: "FORBIDDEN" };
+    const current = knowledgeBase.sources.find(source => source.id === sourceId);
+    if (!current) return { ok: false, reason: "SOURCE_NOT_FOUND" };
+    if (["FAILED", "READY"].includes(current.stage)) return { ok: false, reason: "SOURCE_NOT_ADVANCEABLE" };
+    if (current.stage === "EXTRACTING" && current.simulatedFailure) {
+      return updateKnowledgeSource(knowledgeBase, {
+        ...current,
+        stage: "FAILED",
+        status: "FAILED",
+        indexed: false,
+        retryStage: "EXTRACTING",
+        error: { code: current.simulatedFailure, message: "处理超时，未写入活动索引。" },
+        detail: "处理超时，未写入活动索引。",
+      });
+    }
+    const nextStage = SOURCE_STAGES[SOURCE_STAGES.indexOf(current.stage) + 1];
+    const ready = nextStage === "READY";
+    return updateKnowledgeSource(knowledgeBase, {
+      ...current,
+      stage: nextStage,
+      status: ready ? "READY" : "PROCESSING",
+      indexed: ready,
+      activeRevision: ready ? current.revision : current.activeRevision,
+      rawContentStored: ["EXTRACTING", "EXTRACTED", "CHUNKING", "INDEXING", "READY"].includes(nextStage),
+      detail: ready ? "处理完成，已进入待激活索引清单。" : `正在执行 ${nextStage}。`,
+    });
+  }
+
+  function retryKnowledgeSource(knowledgeBaseId, sourceId, actorAccountId) {
+    const knowledgeBase = knowledgeBaseById(knowledgeBaseId);
+    if (!knowledgeBase) return { ok: false, reason: "KNOWLEDGE_BASE_NOT_FOUND" };
+    if (!canManageKnowledge(knowledgeBase.tenantId, actorAccountId)) return { ok: false, reason: "FORBIDDEN" };
+    const current = knowledgeBase.sources.find(source => source.id === sourceId);
+    if (current?.stage !== "FAILED") return { ok: false, reason: "SOURCE_NOT_FAILED" };
+    return updateKnowledgeSource(knowledgeBase, { ...current, stage: current.retryStage || "SCANNING", status: "PROCESSING", error: null, simulatedFailure: null, detail: "已从安全重试点继续处理。" });
+  }
+
+  function reprocessKnowledgeSource(knowledgeBaseId, sourceId, actorAccountId) {
+    const knowledgeBase = knowledgeBaseById(knowledgeBaseId);
+    if (!knowledgeBase) return { ok: false, reason: "KNOWLEDGE_BASE_NOT_FOUND" };
+    if (!canManageKnowledge(knowledgeBase.tenantId, actorAccountId)) return { ok: false, reason: "FORBIDDEN" };
+    const current = knowledgeBase.sources.find(source => source.id === sourceId);
+    if (!current) return { ok: false, reason: "SOURCE_NOT_FOUND" };
+    if (current.stage !== "READY") return { ok: false, reason: "SOURCE_NOT_READY" };
+    const revisionNumber = Number(current.revision.replace("rev-", "")) + 1;
+    const source = { ...current, revision: `rev-${String(revisionNumber).padStart(4, "0")}`, stage: "EXTRACTING", status: "PROCESSING", indexed: false, error: null, detail: "新修订正在重新提取；活动索引继续使用上一修订。" };
+    return updateKnowledgeSource(knowledgeBase, source);
   }
 
   function accountPasswordErrors(input = {}) {
@@ -1518,6 +1796,13 @@ export function createPrototypeStore(storage = browserStorage()) {
     resetAccountPassword,
     assignPlatformAdministrator,
     setAccountStatus,
+    createKnowledgeBase,
+    selectKnowledgeBase,
+    selectKnowledgeSource,
+    addKnowledgeSource,
+    advanceKnowledgeSource,
+    retryKnowledgeSource,
+    reprocessKnowledgeSource,
     createTenant,
     addMember,
     findMember,

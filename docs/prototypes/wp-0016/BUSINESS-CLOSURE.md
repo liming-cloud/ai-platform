@@ -13,7 +13,7 @@
 5. 为全部 68 页建立操作覆盖账本，区分导航、真实模拟状态变更、无行为控件和待决策操作。普通按钮必须有具体结果，不能统一弹框后只关闭，也不能把跳到另一个模块算作完成操作。
 6. 平台人员账户页闭环创建、初始密码、重置密码、平台管理员设置、停用与恢复；密码不回显、不持久化，敏感变更撤销会话，人员范围冲突、自操作和最后管理员均失败关闭。
 
-当前 `ACTION-LEDGER.json` 登记 99 个操作或待设计任务：47 个导航、30 个状态变更、6 个读取、1 个待决策、14 个未实现和 1 个禁止项；其中 15 个已登记项尚未闭环。清单尚未穷举全部控件，不能作为全平台剩余量。
+当前 `ACTION-LEDGER.json` 登记 101 个操作或待设计任务：47 个导航、35 个状态变更、6 个读取、1 个待决策、11 个未实现和 1 个禁止项；其中 12 个已登记项尚未闭环。清单尚未穷举全部控件，不能作为全平台剩余量。
 
 ## 平台运行状态
 
@@ -68,14 +68,15 @@ ADR-0076 已确认：平台管理员可编辑租户资源配额、会话有效�
 - 红灯：`artifacts/business-closure-red.tap`，0 项通过、9 项失败，覆盖共享导航、官方图标、文档版本语义、租户与成员状态、功能交集、运行状态、恢复演练和操作账本。
 - 追加红灯：`artifacts/reviewer-regression-red.tap`，1 项通过、5 项失败，复现功能开关混用、取消提交、虚构助手、研发措辞和普通用户数据未过滤。
 - 追加红灯：`artifacts/reviewer-directory-red.tap` 复现新租户页头仍为旧对象和目录搜索无绑定；`artifacts/reviewer-object-scope-red.tap` 复现历史未逐项检查助手授权、不同会话复用正文。
-- 账户红灯：`artifacts/account-lifecycle-state-red.tap` 与 `artifacts/account-lifecycle-browser-red.tap` 复现缺少状态能力和可操作界面；失败截图保留在同名红灯目录。
+- 账户红灯：`artifacts/account-lifecycle-state-red.tap` 与 `artifacts/account-lifecycle-browser-red.tap` 复现缺少状态能力和可操作界面；失败截图只用于当次临时诊断。
 - 账户绿灯：`artifacts/account-lifecycle-node-green.tap` 为 54/54，`artifacts/account-lifecycle-browser-green.tap` 为 45/45，其中账户专项 7/7；密码不会出现在页面、状态或浏览器存储。
 - 全量静态：`artifacts/static-verification.json` 记录 68 页、7 状态、3 视口配置、427 个共享渲染场景、1,428 个 URL 探测和 4,036 项断言。URL 成功不代表真实场景或视觉验收。
 - OpenDesign：`artifacts/account-lifecycle-opendesign-lint.json` 的 P0/P1/P2 均为 0。
+- 原型事实源：依据 ADR-0077，OpenDesign 统一管理内容与视觉；浏览器截图写入临时目录，不进入 Git。
 - 图标来源：`assets/icons/manifest.json` 锁定 Microsoft Fluent System Icons commit，`assets/icons/LICENSE.txt` 保留 MIT 许可。
 
 ## 尚未闭环
 
-`ACTION-LEDGER.json` 覆盖 68 页主任务及 99 个已登记操作/待设计任务，仍有 15 个未闭环项且未穷举全部控件，不能当作全平台操作数量。普通用户问答和平台人员账户已形成各自的合成状态闭环，并由本机浏览器验证刷新恢复、失败关闭和多尺寸操作；这不是人工接受或生产安全证明。知识接入、索引激活、模型与助手发布、评测等仍有未闭环路径。禁止租户管理员变更其他管理员是角色边界，不是待开发功能。
+`ACTION-LEDGER.json` 覆盖 68 页主任务及 101 个已登记操作/待设计任务，仍有 12 个未闭环项且未穷举全部控件，不能当作全平台操作数量。知识接入、普通用户问答和平台人员账户已形成各自的合成状态闭环，并由本机浏览器验证刷新恢复、失败关闭和多尺寸操作；这不是人工接受或生产安全证明。全库索引激活、模型与助手发布、评测等仍有未闭环路径。禁止租户管理员变更其他管理员是角色边界，不是待开发功能。
 
 下一切片仍在 WP-0016 内闭环知识库创建和多类型数据接入，再依次处理索引激活、模型、助手发布与评测；最新真实浏览器报告为 `artifacts/account-lifecycle-final-browser-20260904/verification.json`。人工拒绝保持有效，不跳入生产开发。

@@ -1,9 +1,11 @@
 const { test, before, after } = require("node:test");
 const assert = require("node:assert/strict");
 const { mkdir } = require("node:fs/promises");
+const { tmpdir } = require("node:os");
+const { join } = require("node:path");
 const { chromium } = require("playwright");
 const base = process.env.PROTOTYPE_BASE_URL || "http://127.0.0.1:4176/";
-const artifacts = process.env.QUERY_ARTIFACT_DIR || "docs/prototypes/wp-0016/artifacts/query-closure-independent";
+const artifacts = process.env.QUERY_ARTIFACT_DIR || join(tmpdir(), "wp-0016", "query-resilience");
 let browser;
 before(async () => { browser = await chromium.launch({ headless: true }); await mkdir(artifacts, { recursive: true }); });
 after(async () => { await browser?.close(); });

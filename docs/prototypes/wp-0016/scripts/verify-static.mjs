@@ -283,8 +283,9 @@ for (const [from, to] of [
   assert(fixtureNext(from) === to, `${from} 未声明通向 ${to} 的闭环跳转`);
 }
 assert(
-  prototypeSource.includes('data-nav-screen="knowledge-overview"'),
-  "知识库目录未进入知识库概览",
+  prototypeSource.includes("data-select-kb=") &&
+    prototypeSource.includes('"knowledge-overview" : "knowledge-sources"'),
+  "知识库目录未按所选对象进入概览或空库资料页",
 );
 assert(
   prototypeSource.includes('navigate("channel-binding")'),
@@ -393,7 +394,7 @@ const result = {
   assertionCount,
   failures,
   limitation:
-    "此结果只验证 Node 状态机、静态渲染合同和 URL 可达性；HTTP 成功不代表真实场景成立。真实 DOM、焦点、交互与截图结论见独立浏览器报告。",
+    "此结果只验证 Node 状态机、静态渲染合同和 URL 可达性；HTTP 成功不代表真实场景成立。真实 DOM、焦点、交互与临时视觉核对结论见独立浏览器报告。",
 };
 
 fs.mkdirSync(artifactDirectory, { recursive: true });

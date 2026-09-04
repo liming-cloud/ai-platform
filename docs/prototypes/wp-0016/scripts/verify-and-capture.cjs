@@ -1,4 +1,5 @@
 const fs = require("node:fs");
+const os = require("node:os");
 const path = require("node:path");
 const { chromium } = require("playwright");
 
@@ -6,7 +7,7 @@ const baseUrl = process.env.PROTOTYPE_BASE_URL || "http://127.0.0.1:4176/";
 const prototypeDirectory = path.resolve(__dirname, "..");
 const artifactDirectory =
   process.env.PROTOTYPE_ARTIFACT_DIR ||
-  path.join(prototypeDirectory, "artifacts", "query-browser-review-20260903");
+  path.join(os.tmpdir(), "wp-0016", "full-platform-browser");
 const screenshotDirectory = path.join(artifactDirectory, "screenshots");
 const inventory = JSON.parse(
   fs.readFileSync(path.join(prototypeDirectory, "page-inventory.json"), "utf8"),
@@ -315,9 +316,12 @@ async function validateManagementFlows(page) {
     ['[data-nav-screen="knowledge-overview"]', "knowledge-overview"],
     ["[data-primary-action]", "knowledge-sources"],
     ['.page-header [data-nav-screen="source-add"]', "source-add"],
-    ["[data-primary-action]", "source-detail"],
-    ['[data-nav-screen="source-add"]', "source-add"],
   ], "文档更新入口");
+  await page.locator('#source-add-form [name="mode"]').selectOption("paste");
+  await page.locator('#source-add-form [name="name"]').fill("全矩阵合成资料");
+  await page.locator('#source-add-form [name="text"]').fill("用于验证安全扫描入口的合成内容。");
+  await clickTo(page, "[data-primary-action]", "source-detail", "资料安全扫描");
+  await clickTo(page, '[data-primary-action][data-nav-screen="source-add"]', "source-add", "文档更新入口");
   await runFlow(page, "processing-quality", [
     ["[data-primary-action]", "sync-result"],
     ["[data-primary-action]", "index-versions"],

@@ -80,6 +80,7 @@
 | ADR-0074 | 已接受 | M6 可信 RAG 产品与研发基线重建 | `docs/adr/ADR-0074-m6-trusted-rag-product-and-engineering-baseline.md` |
 | ADR-0075 | 已接受 | 租户功能上限与普通成员对话功能控制 | `docs/adr/ADR-0075-tenant-and-member-feature-control.md` |
 | ADR-0076 | 已接受 | 租户配额与登录安全配置原型 | `docs/adr/ADR-0076-configurable-tenant-quota-prototype.md` |
+| ADR-0077 | 已接受 | OpenDesign 原型事实源与截图存储边界 | `docs/adr/ADR-0077-opendesign-prototype-source-boundary.md` |
 
 ## 已确认人工决策
 

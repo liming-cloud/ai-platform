@@ -20,7 +20,7 @@
 先新增 `account-lifecycle-state.test.mjs` 与 `account-lifecycle.browser.test.cjs`：
 
 - 状态红灯 `artifacts/account-lifecycle-state-red.tap`：0/5，证明账户状态能力不存在。
-- 浏览器红灯 `artifacts/account-lifecycle-browser-red.tap`：0/7，证明创建、重置和治理入口不可操作；失败截图位于 `artifacts/account-lifecycle-browser-red-20260904/`。
+- 浏览器红灯 `artifacts/account-lifecycle-browser-red.tap`：0/7，证明创建、重置和治理入口不可操作；失败截图仅用于当次临时诊断，未作为仓库证据保留。
 - 状态绿灯 `artifacts/account-lifecycle-node-green.tap`：54/54，包含账户 5 项及既有租户、问答、安全投影回归。
 - 浏览器绿灯 `artifacts/account-lifecycle-browser-green.tap`：45/45，其中账户 7、租户 10、问答 15、布局 13。
 
@@ -35,12 +35,12 @@
 ## 全量与 OpenDesign 验证
 
 - `node docs/prototypes/wp-0016/scripts/verify-static.mjs`：PASS；68 页、7 状态、3 视口、427 个共享渲染场景、1,428 个 HTTP 场景、4,036 项断言。
-- `NODE_PATH=/private/tmp/wp0016-playwright/node_modules PROTOTYPE_ARTIFACT_DIR=docs/prototypes/wp-0016/artifacts/account-lifecycle-final-browser-20260904 node docs/prototypes/wp-0016/scripts/verify-and-capture.cjs`：14/14 阶段 PASS；1,428/1,428 场景、9,662 项断言、85 张截图、0 浏览器异常。
+- `NODE_PATH=/private/tmp/wp0016-playwright/node_modules PROTOTYPE_ARTIFACT_DIR=/tmp/wp-0016/account-lifecycle-final-browser node docs/prototypes/wp-0016/scripts/verify-and-capture.cjs`：14/14 阶段 PASS；1,428/1,428 场景、9,662 项断言、85 张临时核对截图、0 浏览器异常。
 - OpenDesign 0.21.1 应用内绝对 CLI 执行 `lint <index.html> --fail-on p1 --json`：P0/P1/P2 均为 0，报告为 `artifacts/account-lifecycle-opendesign-lint.json`；未调用 `/usr/bin/od`。
-- 对 1440 和 390 截图进行人工目视复核；根据移动端截图将弹窗标题改为纵向层级，修正窄屏挤压后再次通过账户 7/7、全平台矩阵和 OpenDesign lint。
+- 在 OpenDesign 与 1440、390 临时浏览器渲染中进行目视复核；修正窄屏弹窗层级后再次通过账户 7/7、全平台矩阵和 OpenDesign lint。
 - `make project-status`、`make project-verify` 与 `git diff --check`：通过。
 
-上述浏览器结论只覆盖报告声明的 DOM、布局、特定交互、导航和截图，不代表操作账本已穷举或人工验收通过。
+上述浏览器结论只覆盖报告声明的 DOM、布局、特定交互和导航，不代表操作账本已穷举或人工验收通过。依据 ADR-0077，截图只存临时目录，OpenDesign 是视觉事实源。
 
 ## 工程方法与范围
 

@@ -84,6 +84,7 @@ confirmedDecisions:
   - ADR-0074
   - ADR-0075
   - ADR-0076
+  - ADR-0077
 openDecisions:
   - 后续认证实现包：登录安全策略的生产上下限与已登录会话生效时机
   - WP-0016：是否新增邮件邀请与账户自助激活

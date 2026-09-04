@@ -34,9 +34,11 @@ let streamGeneration = 0;
 let loginFeedback = "";
 let queryFeedback = "";
 let accountFeedback = "";
+let knowledgeFeedback = "";
 let nextQueryMode = "normal";
 let queryStreamingSuspended = false;
 const PLATFORM_ACCOUNT_ACTOR_ID = "account-platform-admin";
+const TENANT_ADMIN_ACTOR_ID = "account-qiao";
 const prototypeStore = createPrototypeStore();
 
 try {
@@ -301,9 +303,13 @@ function renderScreen(screen, state, demoState) {
     case "conversation":
       return renderConversation(state);
     case "knowledge-directory":
-      return renderKnowledgeDirectory(state);
+      return renderKnowledgeDirectory(state, demoState);
     case "knowledge-sources":
-      return renderKnowledgeSources(state);
+      return renderKnowledgeSources(state, demoState);
+    case "source-add":
+      return renderSourceAdd(state, demoState);
+    case "source-detail":
+      return renderSourceDetail(state, demoState);
     case "index-detail":
       return renderIndexDetail(state);
     case "assistant-release":
@@ -340,6 +346,8 @@ function statusTag(status) {
     READY_FOR_REVIEW: ["待激活", "success"],
     READY_FOR_RELEASE: ["可发布", "success"],
     INDEXING: ["索引中", "warning"],
+    PROCESSING: ["处理中", "warning"],
+    EMPTY: ["待添加资料", "info"],
     FAILED: ["失败", "danger"],
     BUILDING: ["构建中", "warning"],
   };
@@ -899,20 +907,46 @@ function pageStatus(active, state) {
   if (state !== "success") {
     return { loading: "正在载入", empty: "暂无记录", error: "载入失败", denied: "访问受限", partial: "部分完成", disabled: "暂不可用" }[state] || "";
   }
+  const snapshot = prototypeStore.getSnapshot();
+  const knowledgeBases = snapshot.knowledgeBases.filter(item => item.tenantId === DEFAULT_TENANT_ID);
+  const knowledgeBase = selectedKnowledgeBase(snapshot);
   return {
-    "knowledge-directory": "2 个知识库 / 1 项需处理",
-    "knowledge-sources": "员工服务手册 / 4 个来源",
+    "knowledge-directory": `${knowledgeBases.length} 个知识库 / ${knowledgeBases.filter(item => !["READY", "EMPTY"].includes(item.status)).length} 项需处理`,
+    "knowledge-sources": `${knowledgeBase?.name || "当前知识库"} / ${knowledgeBase?.sources.length || 0} 个来源`,
     "index-detail": "idx-v12 / 待激活",
     "assistant-release": "员工服务助手 v13 / 发布门禁通过",
   }[active] || "当前工作区";
 }
 
-function renderKnowledgeDirectory(state) {
+function selectedKnowledgeBase(demoState) {
+  return demoState.knowledgeBases.find(
+    item => item.id === demoState.selectedKnowledgeBaseId,
+  ) || demoState.knowledgeBases.find(item => item.id === "kb-handbook") || demoState.knowledgeBases[0];
+}
+
+function formatStorage(storageGb) {
+  return storageGb >= 1
+    ? `${storageGb.toFixed(1)} GB`
+    : `${Math.round(storageGb * 1000)} MB`;
+}
+
+function formatRevision(revision) {
+  const number = Number(String(revision).replace(/^rev-/, ""));
+  return Number.isSafeInteger(number) ? `v${number}` : String(revision);
+}
+
+function renderKnowledgeDirectory(state, demoState) {
   const generic = genericState("knowledge-directory", state);
-  const rows = fixtures.knowledgeBases
+  const tenant = demoState.tenants.find(item => item.id === DEFAULT_TENANT_ID);
+  const knowledgeBases = demoState.knowledgeBases.filter(
+    item => item.tenantId === DEFAULT_TENANT_ID,
+  );
+  const quota = tenant?.quotas.knowledgeBases || 0;
+  const quotaReached = knowledgeBases.length >= quota;
+  const rows = knowledgeBases
     .map((item) =>
       [
-        "<tr>",
+        `<tr data-kb-row="${escapeHtml(item.id)}" data-directory-row>`,
         '<td data-label="知识库"><span class="primary-cell"><strong>' +
           escapeHtml(item.name) +
           "</strong><span>" +
@@ -920,12 +954,12 @@ function renderKnowledgeDirectory(state) {
           "</span></span></td>",
         '<td data-label="状态">' + statusTag(item.status) + "</td>",
         '<td data-label="有效文档">' + escapeHtml(item.documents) + "</td>",
-        '<td data-label="原始内容">' + escapeHtml(item.storage) + "</td>",
+        '<td data-label="原始内容">' + escapeHtml(formatStorage(item.storageGb)) + "</td>",
         '<td data-label="活动索引"><span class="mono">' +
-          escapeHtml(item.activeIndex) +
+          escapeHtml(item.activeIndex || "尚未建立") +
           "</span></td>",
         '<td data-label="最近变化">' + escapeHtml(item.updatedAt) + "</td>",
-        '<td data-label="操作"><div class="table-actions"><button class="button secondary compact" type="button" data-nav-screen="knowledge-overview">进入</button></div></td>',
+        `<td data-label="操作"><div class="table-actions"><button class="button secondary compact" type="button" data-select-kb="${escapeHtml(item.id)}" data-nav-screen="${item.sources.length ? "knowledge-overview" : "knowledge-sources"}">进入</button></div></td>`,
         "</tr>",
       ].join(""),
     )
@@ -936,71 +970,74 @@ function renderKnowledgeDirectory(state) {
       state === "partial"
         ? '<div class="inline-note warning">“客户支持知识”正在构建新索引，活动 idx-v7 仍持续服务。目录可以继续管理。</div>'
         : "",
-      state === "disabled"
-        ? '<div class="inline-note warning">当前租户已使用 3 / 3 个知识库配额。创建入口已禁用，现有知识库仍可维护。</div>'
+      state === "disabled" || quotaReached
+        ? `<div class="inline-note warning">当前租户已使用 ${knowledgeBases.length} / ${quota} 个知识库配额。现有知识库仍可维护。</div>`
         : "",
-      '<dl class="summary-strip"><div class="summary-item"><dt>知识库</dt><dd>2 / 3</dd></div><div class="summary-item"><dt>有效文档</dt><dd>684</dd></div><div class="summary-item"><dt>原始内容</dt><dd>3.5 / 10 GB</dd></div><div class="summary-item"><dt>需处理</dt><dd>1</dd></div></dl>',
-      '<div class="toolbar"><label class="field"><span>搜索知识库</span><input class="input" type="search" placeholder="按名称搜索" /></label><label class="field compact-field"><span>状态</span><select class="select"><option>全部状态</option><option>需处理</option><option>已就绪</option></select></label></div>',
+      `<dl class="summary-strip"><div class="summary-item"><dt>知识库</dt><dd>${knowledgeBases.length} / ${quota}</dd></div><div class="summary-item"><dt>有效文档</dt><dd>${knowledgeBases.reduce((sum, item) => sum + item.documents, 0)}</dd></div><div class="summary-item"><dt>原始内容</dt><dd>${formatStorage(knowledgeBases.reduce((sum, item) => sum + item.storageGb, 0))}</dd></div><div class="summary-item"><dt>需处理</dt><dd>${knowledgeBases.filter(item => !["READY", "EMPTY"].includes(item.status)).length}</dd></div></dl>`,
+      '<div class="toolbar"><label class="field"><span>搜索知识库</span><input class="input" type="search" data-directory-search placeholder="按名称搜索" /></label><label class="field compact-field"><span>状态</span><select class="select"><option>全部状态</option><option>需处理</option><option>已就绪</option></select></label></div>',
       '<div class="table-shell"><table class="data-table"><thead><tr><th style="width:30%">知识库</th><th>状态</th><th>有效文档</th><th>原始内容</th><th>活动索引</th><th>最近变化</th><th style="text-align:right">操作</th></tr></thead><tbody>' +
         rows +
         "</tbody></table>",
-      '<div class="pagination" aria-label="知识库目录分页"><span>第 1 页，共 2 个知识库</span><div class="pagination-actions"><button class="button secondary compact" type="button" disabled>上一页</button><button class="button secondary compact" type="button" disabled>下一页</button></div></div></div>',
+      `<div class="pagination" aria-label="知识库目录分页"><span>第 1 页，共 ${knowledgeBases.length} 个知识库</span><div class="pagination-actions"><button class="button secondary compact" type="button" disabled>上一页</button><button class="button secondary compact" type="button" disabled>下一页</button></div></div></div>`,
+      knowledgeFeedback ? `<p class="form-feedback" role="status">${escapeHtml(knowledgeFeedback)}</p>` : "",
     ].join("");
   const action =
-    '<button class="button primary" type="button"' +
-    (state === "disabled"
+    '<button class="button primary" type="button" data-open-create-knowledge' +
+    (state === "disabled" || quotaReached
       ? ' disabled aria-describedby="kb-quota-reason"'
-      : ' data-nav-screen="knowledge-overview"') +
+      : "") +
     ">创建知识库</button>";
+  const dialog = [
+    '<dialog class="dialog-surface account-dialog" id="create-knowledge-base-dialog" aria-labelledby="create-knowledge-base-title">',
+    '<form id="create-knowledge-base-form" method="dialog">',
+    '<header class="dialog-heading"><div><span class="section-kicker">新建知识容器</span><h2 id="create-knowledge-base-title">创建知识库</h2></div><button class="button subtle compact" type="button" data-close-knowledge-dialog aria-label="关闭">关闭</button></header>',
+    '<div class="dialog-body field-stack"><label class="field"><span>知识库名称</span><input class="input" name="name" maxlength="80" autocomplete="off" required /></label><label class="field"><span>用途说明</span><textarea class="textarea" name="description" maxlength="200" rows="3" placeholder="说明主要内容和使用人群"></textarea></label><p class="inline-note">创建后先添加资料，再建立索引。当前租户还可创建 ' +
+      Math.max(0, quota - knowledgeBases.length) +
+      ' 个知识库。</p><p id="create-knowledge-base-feedback" class="form-feedback" role="alert"></p></div>',
+    '<footer class="dialog-actions"><button class="button secondary" type="button" data-close-knowledge-dialog>取消</button><button class="button primary" type="submit">确认创建</button></footer>',
+    "</form></dialog>",
+  ].join("");
   return adminShell(
     "knowledge-directory",
     "知识库",
     "当前租户知识库目录。",
     action,
     content +
-      (state === "disabled"
-        ? '<p id="kb-quota-reason" class="field-hint">达到每租户 3 个知识库的小型试点配额。</p>'
-        : ""),
+      (state === "disabled" || quotaReached
+        ? `<p id="kb-quota-reason" class="field-hint">已达到平台配置的 ${quota} 个知识库配额。</p>`
+        : "") +
+      (generic ? "" : dialog),
     state,
     "知识管理 / 知识库",
   );
 }
 
-function renderKnowledgeSources(state) {
+function renderKnowledgeSources(state, demoState) {
   const generic = genericState("knowledge-sources", state);
-  const sourceItems =
-    state === "success"
-      ? fixtures.sources.map((item) => ({
-          ...item,
-          status: "READY",
-          stage: "READY",
-          detail:
-            item.status === "FAILED"
-              ? "安全重试完成，引用定位已保留。"
-              : item.detail,
-        }))
-      : fixtures.sources;
+  const knowledgeBase = selectedKnowledgeBase(demoState);
+  const tenant = demoState.tenants.find(item => item.id === knowledgeBase?.tenantId);
+  const sourceItems = knowledgeBase?.sources || [];
   const rows = sourceItems
     .map((item) =>
       [
-        "<tr>",
+        `<tr data-source-row="${escapeHtml(item.id)}" data-directory-row>`,
         '<td data-label="数据来源"><span class="primary-cell"><strong>' +
           escapeHtml(item.name) +
           "</strong><span>" +
           escapeHtml(item.kind) +
           " · " +
           "版本 " +
-          escapeHtml(item.revision.replace(/^rev-/, "v")) +
+          escapeHtml(formatRevision(item.revision)) +
           "</span></span></td>",
         '<td data-label="处理阶段"><span class="mono">' +
           escapeHtml(item.stage) +
           "</span></td>",
-        '<td data-label="状态">' + statusTag(item.status) + "</td>",
-        '<td data-label="内容范围">' + escapeHtml(item.coverage) + "</td>",
-        '<td data-label="最近变化">' + escapeHtml(item.updatedAt) + "</td>",
-        '<td data-label="操作"><div class="table-actions"><button class="button secondary compact" type="button" data-nav-screen="source-detail">' +
+        '<td data-label="状态">' + statusTag(item.stage === "FAILED" ? "FAILED" : item.stage === "READY" ? "READY" : "PROCESSING") + "</td>",
+        '<td data-label="内容范围">' + escapeHtml(item.coverage || "待处理") + "</td>",
+        '<td data-label="最近变化">' + escapeHtml(item.updatedAt || "刚刚") + "</td>",
+        `<td data-label="操作"><div class="table-actions"><button class="button secondary compact" type="button" data-open-source data-select-source="${escapeHtml(item.id)}" data-nav-screen="source-detail">` +
           (item.status === "FAILED" ? "安全重试" : "查看") +
-          '</button><button class="button subtle compact" type="button">更多</button></div></td>',
+          "</button></div></td>",
         "</tr>",
         item.status === "FAILED"
           ? '<tr><td data-label="失败说明" colspan="6"><div class="inline-note danger">' +
@@ -1013,28 +1050,16 @@ function renderKnowledgeSources(state) {
   const content =
     generic ||
     [
-      '<div class="inline-note' +
-        (state === "partial" ? " warning" : "") +
-        '">' +
-        (state === "partial"
-          ? "3 个来源可继续用于当前活动索引，1 个扫描 PDF 失败且未写入索引。"
-          : "活动索引 idx-v11 继续服务。添加或替换来源不会原地修改活动索引。") +
-        "</div>",
-      '<dl class="summary-strip"><div class="summary-item"><dt>来源</dt><dd>4</dd></div><div class="summary-item"><dt>就绪</dt><dd>' +
-        (state === "partial" ? "2" : "4") +
-        '</dd></div><div class="summary-item"><dt>处理中</dt><dd>' +
-        (state === "partial" ? "1" : "0") +
-        '</dd></div><div class="summary-item"><dt>失败</dt><dd>' +
-        (state === "partial" ? "1" : "0") +
-        "</dd></div></dl>",
-      '<div class="toolbar"><label class="field"><span>搜索数据来源</span><input class="input" type="search" placeholder="按名称或类型搜索" /></label><button class="button secondary" type="button" data-nav-screen="processing-quality">查看处理与质量</button></div>',
+      `<div class="inline-note${sourceItems.some(item => item.stage === "FAILED") ? " warning" : ""}">活动索引 ${escapeHtml(knowledgeBase?.activeIndex || "尚未建立")} 继续服务；失败或新修订不会原地修改活动索引。</div>`,
+      `<dl class="summary-strip"><div class="summary-item"><dt>来源</dt><dd>${sourceItems.length}</dd></div><div class="summary-item"><dt>就绪</dt><dd>${sourceItems.filter(item => item.stage === "READY").length}</dd></div><div class="summary-item"><dt>处理中</dt><dd>${sourceItems.filter(item => !["READY", "FAILED"].includes(item.stage)).length}</dd></div><div class="summary-item"><dt>失败</dt><dd>${sourceItems.filter(item => item.stage === "FAILED").length}</dd></div></dl>`,
+      '<div class="toolbar"><label class="field"><span>搜索数据来源</span><input class="input" type="search" data-directory-search placeholder="按名称或类型搜索" /></label><button class="button secondary" type="button" data-nav-screen="processing-quality">查看处理与质量</button></div>',
       '<div class="table-shell"><table class="data-table"><thead><tr><th style="width:31%">数据来源</th><th>处理阶段</th><th>状态</th><th>内容范围</th><th>最近变化</th><th style="text-align:right">操作</th></tr></thead><tbody>' +
-        rows +
+        (rows || '<tr><td colspan="6"><div class="empty-table">尚无资料。添加粘贴文本或本地文件开始处理。</div></td></tr>') +
         "</tbody></table>",
-      '<div class="pagination" aria-label="数据来源分页"><span>第 1 页，共 4 个来源</span><div class="pagination-actions"><button class="button secondary compact" type="button" disabled>上一页</button><button class="button secondary compact" type="button" disabled>下一页</button></div></div></div>',
+      `<div class="pagination" aria-label="数据来源分页"><span>第 1 页，共 ${sourceItems.length} 个来源</span><div class="pagination-actions"><button class="button secondary compact" type="button" disabled>上一页</button><button class="button secondary compact" type="button" disabled>下一页</button></div></div></div>`,
       '<p class="field-hint">支持：' +
         fixtures.supportedSources.map(escapeHtml).join("、") +
-        "。单文件上限 50 MB；粘贴文本上限 1 MiB；不接受远程 URL。</p>",
+        `。单文件上限 ${escapeHtml(tenant?.quotas.singleFileMb || 0)} MB；粘贴文本上限 ${escapeHtml(tenant?.quotas.pastedTextMib || 0)} MiB；不接受远程 URL。</p>`,
     ].join("");
   const action =
     '<button class="button primary" type="button"' +
@@ -1045,14 +1070,91 @@ function renderKnowledgeSources(state) {
   return adminShell(
     "knowledge-sources",
     "数据来源",
-    "员工服务手册 · 管理本库的粘贴文本和本地文件，观察每个来源的安全处理阶段。",
+    `${knowledgeBase?.name || "知识库"} · 管理粘贴文本和本地文件，观察每个来源的安全处理阶段。`,
     action,
     content +
       (state === "disabled"
         ? '<p id="source-disabled-reason" class="field-hint">全库重建正在生成清单，暂不接受并发替换。</p>'
         : ""),
     state,
-    "知识管理 / 知识库 / 员工服务手册 / 数据来源",
+    `知识管理 / 知识库 / ${knowledgeBase?.name || "当前知识库"} / 数据来源`,
+  );
+}
+
+function renderSourceAdd(state, demoState) {
+  const generic = genericState("source-add", state);
+  const knowledgeBase = selectedKnowledgeBase(demoState);
+  const tenant = demoState.tenants.find(item => item.id === knowledgeBase?.tenantId);
+  const content = generic || [
+    '<form id="source-add-form" class="wizard-workspace source-intake-form">',
+    '<section class="section-block wizard-inputs"><div class="section-heading"><div><span class="section-kicker">资料接入</span><h2>选择一种来源方式</h2></div><span class="status-tag" data-tone="info">尚未提交</span></div>',
+    '<div class="field-stack"><label class="field"><span>来源方式</span><select class="select" name="mode"><option value="file">本地文件</option><option value="paste">粘贴文本</option></select></label>',
+    '<div data-file-fields><label class="field"><span>选择本地文件</span><span class="file-picker"><span class="button secondary" aria-hidden="true">选择文件</span><span data-selected-file>尚未选择文件</span><input name="file" type="file" accept=".txt,.md,.doc,.docx,.xls,.xlsx,.csv,.pdf,.png,.jpg,.jpeg,.webp" /></span></label><p class="field-hint">选择后先校验扩展名、MIME、大小和安全属性，不直接写入索引。</p></div>',
+    '<div data-paste-fields hidden><label class="field"><span>资料名称</span><input class="input" name="name" maxlength="120" autocomplete="off" /></label><label class="field"><span>粘贴内容</span><textarea class="textarea" name="text" rows="8" placeholder="粘贴需要进入知识库的已授权内容"></textarea></label></div>',
+    '<p id="source-add-feedback" class="form-feedback" role="alert"></p>',
+    '<div class="form-actions"><button class="button secondary" type="button" data-nav-screen="knowledge-sources">取消</button><button class="button primary" type="submit" data-primary-action>开始安全扫描</button></div></div></section>',
+    '<aside class="section-block wizard-review"><span class="section-kicker">提交前核对</span><dl class="description-list"><div class="description-row"><dt>知识库</dt><dd>' +
+      escapeHtml(knowledgeBase?.name || "未选择") +
+      '</dd></div><div class="description-row"><dt>单文件上限</dt><dd>' +
+      escapeHtml(tenant?.quotas.singleFileMb || 0) +
+      ' MB</dd></div><div class="description-row"><dt>粘贴上限</dt><dd>' +
+      escapeHtml(tenant?.quotas.pastedTextMib || 0) +
+      ' MiB</dd></div><div class="description-row"><dt>远程 URL</dt><dd>不接受</dd></div></dl><p class="inline-note">加密文件、含宏 Office、损坏压缩包和 MIME 不一致会直接拒绝。扫描通过后才开始提取。</p></aside></form>',
+  ].join("");
+  return adminShell(
+    "source-add",
+    "添加数据来源",
+    `${knowledgeBase?.name || "当前知识库"} · 添加一份粘贴文本或本地文件。`,
+    '<button class="button secondary" type="button" data-nav-screen="knowledge-sources">返回数据来源</button>',
+    content,
+    state,
+    `知识管理 / 知识库 / ${knowledgeBase?.name || "当前知识库"} / 添加数据`,
+  );
+}
+
+function renderSourceDetail(state, demoState) {
+  const generic = genericState("source-detail", state);
+  const knowledgeBase = selectedKnowledgeBase(demoState);
+  const source = knowledgeBase?.sources.find(
+    item => item.id === demoState.selectedKnowledgeSourceId,
+  ) || knowledgeBase?.sources[0];
+  if (generic || !source) {
+    return adminShell(
+      "source-detail",
+      "文档详情",
+      knowledgeBase?.name || "当前知识库",
+      '<button class="button secondary" type="button" data-nav-screen="knowledge-sources">返回数据来源</button>',
+      generic || statePanel("empty", "尚未选择资料", "请从数据来源目录选择一项。", "返回数据来源", "knowledge-sources"),
+      state,
+      `知识管理 / 知识库 / ${knowledgeBase?.name || "当前知识库"} / 文档详情`,
+    );
+  }
+  const revision = formatRevision(source.revision);
+  const processing = !["READY", "FAILED"].includes(source.stage);
+  const operation = source.stage === "FAILED"
+    ? '<button class="button primary" type="button" data-retry-source>安全重试</button>'
+    : processing
+      ? '<button class="button primary" type="button" data-advance-source>刷新处理状态</button>'
+      : '<button class="button secondary" type="button" data-reprocess-source>重新处理</button>';
+  const stages = ["RECEIVED", "SCANNING", "EXTRACTING", "EXTRACTED", "CHUNKING", "INDEXING", "READY"];
+  const currentIndex = Math.max(0, stages.indexOf(source.stage === "FAILED" ? source.retryStage : source.stage));
+  const content = [
+    `<section class="section-block source-detail-card" data-source-stage="${escapeHtml(source.stage)}"><div class="section-heading"><div><span class="section-kicker">当前文档</span><h2>${escapeHtml(source.name)}</h2><p class="entity-meta">版本 ${escapeHtml(revision)} · ${escapeHtml(source.kind)}</p></div>${statusTag(source.stage === "FAILED" ? "FAILED" : source.stage === "READY" ? "READY" : "PROCESSING")}</div>`,
+    `<ol class="process-steps source-process" aria-label="处理阶段">${stages.map((stage, index) => `<li data-step-state="${index < currentIndex ? "complete" : index === currentIndex ? "current" : "upcoming"}"><span>${index + 1}</span><strong>${stage}</strong></li>`).join("")}</ol>`,
+    source.error ? `<div class="inline-note danger"><strong>${escapeHtml(source.error.code)}</strong> · ${escapeHtml(source.error.message)}</div>` : "",
+    `<dl class="description-list"><div class="description-row"><dt>当前修订</dt><dd>${escapeHtml(revision)}</dd></div><div class="description-row"><dt>活动修订</dt><dd>${escapeHtml(source.activeRevision ? formatRevision(source.activeRevision) : "尚无")}</dd></div><div class="description-row"><dt>活动索引</dt><dd>${escapeHtml(knowledgeBase.activeIndex || "尚未建立")} 继续服务</dd></div><div class="description-row"><dt>索引写入</dt><dd>${source.indexed ? "已进入当前清单" : "尚未写入"}</dd></div></dl>`,
+    `<div class="form-actions">${operation}<button class="button ${source.stage === "READY" ? "primary" : "secondary"}" type="button" data-primary-action data-nav-screen="source-add">更新文档</button><button class="button subtle" type="button" data-nav-screen="index-rebuild">全库重建</button></div>`,
+    knowledgeFeedback ? `<p class="form-feedback" role="status">${escapeHtml(knowledgeFeedback)}</p>` : "",
+    "</section>",
+  ].join("");
+  return adminShell(
+    "source-detail",
+    "文档详情",
+    `${knowledgeBase.name} · 查看修订、处理阶段与失败恢复。`,
+    '<button class="button secondary" type="button" data-nav-screen="knowledge-sources">返回数据来源</button>',
+    content,
+    state,
+    `知识管理 / 知识库 / ${knowledgeBase.name} / ${source.name}`,
   );
 }
 
@@ -1234,11 +1336,136 @@ function renderAssistantRelease(state) {
   );
 }
 
+function bindKnowledgeManagement() {
+  const createDialog = root.querySelector("#create-knowledge-base-dialog");
+  root.querySelector("[data-open-create-knowledge]")?.addEventListener("click", () => {
+    createDialog?.showModal();
+    createDialog?.querySelector('[name="name"]')?.focus();
+  });
+  root.querySelectorAll("[data-close-knowledge-dialog]").forEach(button => {
+    button.addEventListener("click", () => createDialog?.close());
+  });
+  root.querySelector("#create-knowledge-base-form")?.addEventListener("submit", event => {
+    event.preventDefault();
+    const values = new FormData(event.currentTarget);
+    const result = prototypeStore.createKnowledgeBase(
+      { name: values.get("name"), description: values.get("description") },
+      TENANT_ADMIN_ACTOR_ID,
+      DEFAULT_TENANT_ID,
+    );
+    if (!result.ok) {
+      const message = {
+        KNOWLEDGE_BASE_NAME_CONFLICT: "此知识库名称已存在，请使用其他名称。",
+        KNOWLEDGE_BASE_QUOTA_EXCEEDED: "已达到平台配置的知识库配额。",
+        STORAGE_UNAVAILABLE: "浏览器无法保存，知识库没有创建。",
+      }[result.reason] || result.errors?.[0]?.message || "当前无法创建知识库。";
+      root.querySelector("#create-knowledge-base-feedback").textContent = message;
+      event.currentTarget.querySelector(`[name="${result.errors?.[0]?.field || "name"}"]`)?.focus();
+      return;
+    }
+    createDialog?.close();
+    knowledgeFeedback = `已创建“${result.knowledgeBase.name}”，下一步可进入并添加资料。`;
+    render();
+    root.querySelector(`[data-kb-row="${CSS.escape(result.knowledgeBase.id)}"]`)?.focus();
+  });
+
+  const sourceForm = root.querySelector("#source-add-form");
+  const mode = sourceForm?.elements.mode;
+  const updateSourceMode = () => {
+    const paste = mode?.value === "paste";
+    const fileFields = sourceForm?.querySelector("[data-file-fields]");
+    const pasteFields = sourceForm?.querySelector("[data-paste-fields]");
+    if (fileFields) fileFields.hidden = paste;
+    if (pasteFields) pasteFields.hidden = !paste;
+  };
+  mode?.addEventListener("change", updateSourceMode);
+  updateSourceMode();
+  sourceForm?.elements.file?.addEventListener("change", event => {
+    const selected = sourceForm.querySelector("[data-selected-file]");
+    if (selected) selected.textContent = event.currentTarget.files?.[0]?.name || "尚未选择文件";
+  });
+  sourceForm?.addEventListener("submit", event => {
+    event.preventDefault();
+    const knowledgeBase = selectedKnowledgeBase(prototypeStore.getSnapshot());
+    const values = new FormData(event.currentTarget);
+    const sourceMode = values.get("mode");
+    const file = event.currentTarget.elements.file?.files?.[0];
+    const input = sourceMode === "paste"
+      ? { mode: "paste", name: values.get("name"), text: values.get("text") }
+      : {
+          mode: "file",
+          name: file?.name || "",
+          sizeMb: file ? file.size / 1024 / 1024 : 0,
+          mimeType: file?.type || "",
+          simulatedFailure: file?.name.includes("超时") ? "OCR_TIMEOUT" : null,
+        };
+    const result = prototypeStore.addKnowledgeSource(
+      knowledgeBase?.id,
+      input,
+      TENANT_ADMIN_ACTOR_ID,
+    );
+    if (!result.ok) {
+      const message = {
+        SOURCE_CONTENT_REQUIRED: "请填写资料名称和粘贴内容。",
+        SOURCE_MODE_REQUIRED: "请选择一种来源方式。",
+        UNSUPPORTED_FILE_TYPE: "不支持此文件类型，请选择允许的本地文件。",
+        FILE_SIZE_INVALID: "请选择非空文件。",
+        FILE_TOO_LARGE: "文件超过平台配置的单文件上限。",
+        PASTED_TEXT_TOO_LARGE: "粘贴内容超过平台配置的大小上限。",
+        MIME_MISMATCH: "文件类型与内容类型不一致，已拒绝接入。",
+        DOCUMENT_QUOTA_EXCEEDED: "当前知识库已达到文档配额。",
+        STORAGE_UNAVAILABLE: "浏览器无法保存，资料没有进入处理队列。",
+      }[result.reason] || "安全校验未通过，资料没有进入处理队列。";
+      root.querySelector("#source-add-feedback").textContent = message;
+      return;
+    }
+    knowledgeFeedback = `已接收“${result.source.name}”，等待安全扫描。`;
+    navigate("source-detail");
+  });
+
+  root.querySelector("[data-advance-source]")?.addEventListener("click", () => {
+    const snapshot = prototypeStore.getSnapshot();
+    const result = prototypeStore.advanceKnowledgeSource(
+      snapshot.selectedKnowledgeBaseId,
+      snapshot.selectedKnowledgeSourceId,
+      TENANT_ADMIN_ACTOR_ID,
+    );
+    knowledgeFeedback = result.ok ? `处理阶段已更新为 ${result.source.stage}。` : "当前阶段不能继续推进。";
+    render();
+  });
+  root.querySelector("[data-retry-source]")?.addEventListener("click", () => {
+    const snapshot = prototypeStore.getSnapshot();
+    const result = prototypeStore.retryKnowledgeSource(
+      snapshot.selectedKnowledgeBaseId,
+      snapshot.selectedKnowledgeSourceId,
+      TENANT_ADMIN_ACTOR_ID,
+    );
+    knowledgeFeedback = result.ok ? "已从安全重试点继续，失败内容仍未进入活动索引。" : "当前来源不能重试。";
+    render();
+  });
+  root.querySelector("[data-reprocess-source]")?.addEventListener("click", () => {
+    const snapshot = prototypeStore.getSnapshot();
+    const result = prototypeStore.reprocessKnowledgeSource(
+      snapshot.selectedKnowledgeBaseId,
+      snapshot.selectedKnowledgeSourceId,
+      TENANT_ADMIN_ACTOR_ID,
+    );
+    knowledgeFeedback = result.ok ? "已建立新修订并开始重新提取；活动索引继续服务。" : "当前来源不能重新处理。";
+    render();
+  });
+}
+
 function bindInteractions(screen) {
   root.querySelectorAll("[data-nav-screen]").forEach((element) => {
     element.addEventListener("click", () => {
       if (element.dataset.selectTenant) {
         prototypeStore.selectTenant(element.dataset.selectTenant);
+      }
+      if (element.dataset.selectKb) {
+        prototypeStore.selectKnowledgeBase(element.dataset.selectKb);
+      }
+      if (element.dataset.selectSource) {
+        prototypeStore.selectKnowledgeSource(element.dataset.selectSource);
       }
       navigate(
         element.dataset.navScreen,
@@ -1456,6 +1683,7 @@ function bindInteractions(screen) {
   bindMemberManagement();
   bindHealthManagement();
   bindRecoveryDrill();
+  bindKnowledgeManagement();
 }
 
 function bindAccountManagement() {
