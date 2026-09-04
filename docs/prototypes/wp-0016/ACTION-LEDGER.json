@@ -13,16 +13,16 @@
     "forbidden": "按角色边界明确禁止，不属于待实现功能"
   },
   "summary": {
-    "navigation": 38,
+    "navigation": 33,
     "implementedRead": 6,
-    "implementedStateChange": 64,
+    "implementedStateChange": 70,
     "pendingDecision": 1,
-    "unimplemented": 8,
+    "unimplemented": 7,
     "forbidden": 1,
     "partialSimulation": 0,
     "totalPages": 68,
     "totalControls": 118,
-    "unclosedControls": 9,
+    "unclosedControls": 8,
     "allControlsEnumerated": false,
     "readyForFullAcceptance": false
   },
@@ -996,9 +996,10 @@
         {
           "label": "新建评测数据集",
           "kind": "primaryAction",
-          "status": "navigation",
-          "evidence": "只完成受控页面跳转，不计作业务状态变更",
-          "browserVerified": false
+          "status": "implementedStateChange",
+          "evidence": "evaluation-governance-state.test.mjs：可建立空白或复制已发布基线的独立草稿，名称、租户、知识库、上级功能和存储失败均失败关闭",
+          "browserVerified": true,
+          "browserEvidence": "artifacts/evaluation-governance-browser-verification.json"
         }
       ]
     },
@@ -1011,9 +1012,10 @@
         {
           "label": "发布数据集版本",
           "kind": "primaryAction",
-          "status": "navigation",
-          "evidence": "只完成受控页面跳转，不计作业务状态变更",
-          "browserVerified": false
+          "status": "implementedStateChange",
+          "evidence": "evaluation-governance-state.test.mjs：校验 60/20/10/10 四类最小样本和期望证据后发布不可变版本；浏览器验证新增样本、发布与刷新恢复",
+          "browserVerified": true,
+          "browserEvidence": "artifacts/evaluation-governance-browser-verification.json"
         }
       ]
     },
@@ -1026,9 +1028,10 @@
         {
           "label": "运行评测",
           "kind": "primaryAction",
-          "status": "navigation",
-          "evidence": "只完成受控页面跳转，不计作业务状态变更",
-          "browserVerified": false
+          "status": "implementedStateChange",
+          "evidence": "evaluation-governance-state.test.mjs：只接受同租户冻结助手版本与已发布数据集，并冻结助手、索引、模型配置修订和数据集版本",
+          "browserVerified": true,
+          "browserEvidence": "artifacts/evaluation-governance-browser-verification.json"
         }
       ]
     },
@@ -1041,9 +1044,10 @@
         {
           "label": "比较版本",
           "kind": "primaryAction",
-          "status": "navigation",
-          "evidence": "只完成受控页面跳转，不计作业务状态变更",
-          "browserVerified": false
+          "status": "implementedStateChange",
+          "evidence": "evaluation-governance-state.test.mjs：四阶段运行产出质量、安全、性能、一致性和失败分类，同一数据集完成运行才能建立版本对比",
+          "browserVerified": true,
+          "browserEvidence": "artifacts/evaluation-governance-browser-verification.json"
         }
       ]
     },
@@ -1056,9 +1060,10 @@
         {
           "label": "形成门禁决定",
           "kind": "primaryAction",
-          "status": "navigation",
-          "evidence": "只完成受控页面跳转，不计作业务状态变更",
-          "browserVerified": false
+          "status": "implementedStateChange",
+          "evidence": "evaluation-governance-state.test.mjs：同数据集比较且无安全、质量、性能或一致性回退才可放行，安全回退强制阻断",
+          "browserVerified": true,
+          "browserEvidence": "artifacts/evaluation-governance-browser-verification.json"
         }
       ]
     },
@@ -1071,9 +1076,10 @@
         {
           "label": "创建修复事项",
           "kind": "primaryAction",
-          "status": "unimplemented",
-          "evidence": "当前控件仅展示确认或无持久状态结果",
-          "browserVerified": false
+          "status": "implementedStateChange",
+          "evidence": "evaluation-governance-state.test.mjs：按运行与失败类别建立去重事项，只复制分类和数量，不复制问题、回答或引用正文",
+          "browserVerified": true,
+          "browserEvidence": "artifacts/evaluation-governance-browser-verification.json"
         }
       ]
     },

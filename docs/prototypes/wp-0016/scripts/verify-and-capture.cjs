@@ -391,6 +391,41 @@ async function validateAssistantDeliveryFlow(page) {
   assert(delivered.indexVersionId === "idx-v12", "助手发布版本没有冻结选择的索引");
 }
 
+async function validateEvaluationGovernanceFlow(page) {
+  await openScenario(page, "evaluation-datasets", "success");
+  await page.getByRole("button", { name: "新建评测数据集", exact: true }).click();
+  await page.getByLabel("数据集名称").fill("全矩阵制度评测集");
+  await page.getByRole("button", { name: "创建数据集", exact: true }).click();
+  await page.locator('main[data-screen="evaluation-dataset-detail"]').waitFor();
+  assert((await page.locator("main").innerText()).includes("100 个冻结样本"), "复制基线后未形成独立评测草稿");
+  await page.getByRole("button", { name: "发布数据集版本", exact: true }).click();
+  assert(await page.getByRole("button", { name: "创建新草稿版本", exact: true }).isVisible(), "评测数据集未发布为不可变版本");
+
+  await openScenario(page, "evaluation-run-create", "success");
+  await page.getByLabel("已发布数据集版本").selectOption("eval-set-v6");
+  await page.getByRole("button", { name: "运行评测", exact: true }).click();
+  await page.locator('main[data-screen="evaluation-run-detail"]').waitFor();
+  for (let index = 0; index < 4; index += 1) {
+    await page.getByRole("button", { name: "继续运行评测", exact: true }).click();
+  }
+  const result = await page.locator("main").innerText();
+  assert(result.includes("越权泄漏\n0") || /越权泄漏\s*0/.test(result), "评测结果未显示零越权泄漏");
+  assert(result.includes("五次一致性\n稳定") || /五次一致性\s*稳定/.test(result), "评测结果未显示重复一致性");
+  await page.getByRole("button", { name: "比较版本", exact: true }).click();
+  await page.getByLabel("基线运行").selectOption("eval-run-v12");
+  await page.getByRole("button", { name: "生成对比", exact: true }).click();
+  await page.locator('main[data-screen="evaluation-comparison"]').waitFor();
+  await page.getByRole("button", { name: "形成门禁决定", exact: true }).click();
+  assert((await page.locator("main").innerText()).includes("候选已放行"), "同数据集版本对比未形成放行决定");
+
+  await openScenario(page, "evaluation-failure-analysis", "success");
+  await page.locator('tr[data-failure-category="CITATION_MISMATCH"] button').click();
+  await page.getByRole("button", { name: "创建修复事项", exact: true }).click();
+  await page.getByLabel("负责人").fill("全矩阵解析治理组");
+  await page.getByRole("button", { name: "创建事项", exact: true }).click();
+  assert((await page.locator("main").innerText()).includes("全矩阵解析治理组"), "失败分类未形成可恢复修复事项");
+}
+
 async function validateManagementFlows(page) {
   await page.setViewportSize(viewports[0]);
   await openScenario(page, "platform-tenant-create", "success", true);
@@ -442,13 +477,7 @@ async function validateManagementFlows(page) {
   ], "处理结果与索引导航");
   await validateModelGovernanceFlow(page);
   await validateAssistantDeliveryFlow(page);
-  await runFlow(page, "evaluation-datasets", [
-    ["[data-primary-action]", "evaluation-dataset-detail"],
-    ["[data-primary-action]", "evaluation-run-create"],
-    ["[data-primary-action]", "evaluation-run-detail"],
-    ["[data-primary-action]", "evaluation-comparison"],
-    ["[data-primary-action]", "evaluation-failure-analysis"],
-  ], "评测与失败分析导航");
+  await validateEvaluationGovernanceFlow(page);
 }
 
 async function validateTenantAndMemberControls(page) {

@@ -85,6 +85,12 @@ const specialized = new Map([
   ["assistant-test", "renderAssistantDelivery"],
   ["assistant-evaluation", "renderAssistantDelivery"],
   ["assistant-release", "renderAssistantDelivery"],
+  ["evaluation-datasets", "renderEvaluationGovernance"],
+  ["evaluation-dataset-detail", "renderEvaluationGovernance"],
+  ["evaluation-run-create", "renderEvaluationGovernance"],
+  ["evaluation-run-detail", "renderEvaluationGovernance"],
+  ["evaluation-comparison", "renderEvaluationGovernance"],
+  ["evaluation-failure-analysis", "renderEvaluationGovernance"],
 ]);
 const failures = [];
 let assertionCount = 0;

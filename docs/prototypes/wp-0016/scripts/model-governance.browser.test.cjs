@@ -133,7 +133,8 @@ test("同能力路由先模拟再发布，刷新后保留发布版本", () => vi
   assert.match(await page.locator("main").innerText(), /30 \/ 30/);
   await page.getByRole("button", { name: "发布路由策略", exact: true }).click();
   assert.equal(await page.locator("[data-model-status]").getAttribute("data-model-status"), "PUBLISHED");
-  await page.reload();
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await page.locator('main[data-screen="routing-policies"]').waitFor();
   assert.match(await page.locator("main").innerText(), /已发布/);
 }));
 

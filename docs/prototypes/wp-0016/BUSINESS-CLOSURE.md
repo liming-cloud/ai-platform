@@ -15,8 +15,9 @@
 7. 全库重建页冻结来源清单、Embedding、维度、距离度量、解析器和分块策略；索引详情按五阶段推进，运行冻结评测后才能由授权管理员原子激活。构建、评测、取消和保存失败期间旧索引持续服务。
 8. 模型治理按平台与租户职责闭环：平台建立、探测并发布供应商连接和可授权部署；租户只发现被授权目录，建立并启用版本化配置和部署，再经同租户、同能力、同驻留路由模拟后发布。一次性密钥不落状态，Embedding 关键配置只建立索引重建候选，Chat/Rerank 只要求助手重新评测。
 9. 助手交付按稳定身份闭环：创建时永久关联一个存在活动索引的知识库，草稿冻结索引、三类模型配置修订和策略，单题测试结果进入冻结评测集，全部质量与安全门禁通过后确认发布；发布只影响新会话，旧会话继续固定原版本。
+10. 独立评测治理按数据集、运行、对比和修复事项闭环：数据集版本达到 60/20/10/10 样本门槛后冻结发布；运行固定同知识库助手、索引、模型修订和数据集；只有同一稳定助手、同一数据集版本且无安全、质量、性能或一致性回退的对比可以放行；失败事项不复制问题、回答或引用正文。
 
-当前 `ACTION-LEDGER.json` 登记 118 个操作或待设计任务：38 个导航、64 个状态变更、6 个读取、1 个待决策、8 个未实现和 1 个禁止项；其中 9 个已登记项尚未闭环。清单尚未穷举全部控件，不能作为全平台剩余量。
+当前 `ACTION-LEDGER.json` 登记 118 个操作或待设计任务：33 个导航、70 个状态变更、6 个读取、1 个待决策、7 个未实现和 1 个禁止项；其中 8 个已登记项尚未闭环。清单尚未穷举全部控件，不能作为全平台剩余量。
 
 ## 平台运行状态
 
@@ -73,15 +74,16 @@ ADR-0076 已确认：平台管理员可编辑租户资源配额、会话有效�
 - 追加红灯：`artifacts/reviewer-directory-red.tap` 复现新租户页头仍为旧对象和目录搜索无绑定；`artifacts/reviewer-object-scope-red.tap` 复现历史未逐项检查助手授权、不同会话复用正文。
 - 账户红灯：`artifacts/account-lifecycle-state-red.tap` 与 `artifacts/account-lifecycle-browser-red.tap` 复现缺少状态能力和可操作界面；失败截图只用于当次临时诊断。
 - 账户绿灯：`artifacts/account-lifecycle-node-green.tap` 为 54/54，`artifacts/account-lifecycle-browser-green.tap` 为 45/45，其中账户专项 7/7；密码不会出现在页面、状态或浏览器存储。
-- 全量静态：`artifacts/static-verification.json` 记录 68 页、7 状态、3 视口配置、315 个共享渲染场景、1,428 个 URL 探测和 3,411 项断言。URL 成功不代表真实场景或视觉验收。
+- 全量静态：`artifacts/static-verification.json` 记录 68 页、7 状态、3 视口配置、273 个共享渲染场景、1,428 个 URL 探测和 3,177 项断言。专属渲染页由真实浏览器测试覆盖；URL 成功不代表真实场景或视觉验收。
 - 助手交付：`assistant-delivery-state.test.mjs` 为 6/6，`assistant-delivery.browser.test.cjs` 为 8/8；全量 Node 为 79/79，全部专项浏览器为 79/79。
-- 最新浏览器机器报告：`artifacts/assistant-delivery-browser-verification.json`，1,428/1,428 个场景、9,644 项断言、14/14 阶段通过。85 张视觉核对图仅存在系统临时目录，不进入项目。
-- 最新 OpenDesign lint：`artifacts/assistant-delivery-opendesign-lint.json` 的 P0/P1/P2 均为 0。
+- 独立评测：`evaluation-governance-state.test.mjs` 为 6/6，`evaluation-governance.browser.test.cjs` 为 7/7；全量 Node 为 85/85，全部专项浏览器为 86/86。
+- 最新浏览器机器报告：`artifacts/evaluation-governance-browser-verification.json`，1,428/1,428 个场景、9,642 项断言、14/14 阶段通过。85 张视觉核对图仅存在系统临时目录，不进入项目。
+- 最新 OpenDesign lint：`artifacts/evaluation-governance-opendesign-lint.json` 的 P0/P1/P2 均为 0。
 - 原型事实源：依据 ADR-0077，OpenDesign 统一管理内容与视觉；浏览器截图写入临时目录，不进入 Git。
 - 图标来源：`assets/icons/manifest.json` 锁定 Microsoft Fluent System Icons commit，`assets/icons/LICENSE.txt` 保留 MIT 许可。
 
 ## 尚未闭环
 
-`ACTION-LEDGER.json` 覆盖 68 页主任务及 118 个已登记操作/待设计任务，仍有 9 个未闭环项且未穷举全部控件，不能当作全平台操作数量。知识接入、全库索引重建与原子激活、模型治理、助手交付、普通用户问答和平台人员账户已形成各自的合成状态闭环，并由本机浏览器验证刷新恢复、失败关闭和多尺寸操作；这不是人工接受或生产安全证明。独立评测集、评测运行与失败分析等仍有未闭环路径。禁止租户管理员变更其他管理员是角色边界，不是待开发功能。
+`ACTION-LEDGER.json` 覆盖 68 页主任务及 118 个已登记操作/待设计任务，仍有 8 个未闭环项且未穷举全部控件，不能当作全平台操作数量。知识接入、全库索引重建与原子激活、模型治理、助手交付、独立评测、普通用户问答和平台人员账户已形成各自的合成状态闭环，并由本机浏览器验证刷新恢复、失败关闭和多尺寸操作；这不是人工接受或生产安全证明。禁止租户管理员变更其他管理员是角色边界，不是待开发功能。
 
-下一切片仍在 WP-0016 内闭环独立评测集、评测运行、对比和失败分析；最新真实浏览器报告为 `artifacts/assistant-delivery-browser-verification.json`。人工拒绝保持有效，不跳入生产开发。
+下一切片仍在 WP-0016 内闭环访问策略发布与查询治理；最新真实浏览器报告为 `artifacts/evaluation-governance-browser-verification.json`。人工拒绝保持有效，不跳入生产开发。

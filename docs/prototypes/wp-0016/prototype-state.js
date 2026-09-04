@@ -677,6 +677,167 @@ function defaultAssistantDelivery() {
   };
 }
 
+const EVALUATION_SAMPLE_TYPES = Object.freeze([
+  ["ANSWERABLE", "可回答"],
+  ["REFUSAL", "证据不足拒答"],
+  ["AUTHORIZATION", "权限拒绝"],
+  ["MULTI_TURN", "多轮指代"],
+]);
+
+function evaluationSamples(prefix, composition) {
+  const samples = [];
+  for (const [type, label] of EVALUATION_SAMPLE_TYPES) {
+    const key = {
+      ANSWERABLE: "answerable",
+      REFUSAL: "refusal",
+      AUTHORIZATION: "authorization",
+      MULTI_TURN: "multiTurn",
+    }[type];
+    for (let index = 1; index <= composition[key]; index += 1) {
+      samples.push({
+        id: `${prefix}-${type.toLowerCase()}-${index}`,
+        type,
+        label,
+        questionSummary: `${label}合成样本 ${index}`,
+        expectedEvidence: ["ANSWERABLE", "MULTI_TURN"].includes(type)
+          ? [`src-policy-pdf#evidence-${index}`]
+          : [],
+        expectedOutcome: type === "ANSWERABLE" || type === "MULTI_TURN" ? "ANSWER" : "REFUSE",
+      });
+    }
+  }
+  return samples;
+}
+
+function evaluationComposition(samples) {
+  const result = { answerable: 0, refusal: 0, authorization: 0, multiTurn: 0 };
+  const mapping = {
+    ANSWERABLE: "answerable",
+    REFUSAL: "refusal",
+    AUTHORIZATION: "authorization",
+    MULTI_TURN: "multiTurn",
+  };
+  for (const sample of samples) {
+    const key = mapping[sample.type];
+    if (key) result[key] += 1;
+  }
+  return result;
+}
+
+function evaluationMetrics(overrides = {}) {
+  return {
+    recallAt10: 0.88,
+    citationPrecision: 0.97,
+    refusalAccuracy: 0.99,
+    unauthorizedLeakage: 0,
+    retrievalP95Ms: 612,
+    firstTokenP95Ms: 2840,
+    consistency: "PASSED",
+    ...overrides,
+  };
+}
+
+function evaluationFailures() {
+  return [
+    { category: "RETRIEVAL_MISS", label: "召回不足", sampleCount: 3, suggestedAction: "调整检索或分块" },
+    { category: "CITATION_MISMATCH", label: "引用定位偏差", sampleCount: 2, suggestedAction: "修复解析定位" },
+    { category: "OVER_REFUSAL", label: "过度拒答", sampleCount: 2, suggestedAction: "校准拒答阈值" },
+  ];
+}
+
+function completedEvaluationRun(id, assistantVersionId, datasetVersionId, metrics, options = {}) {
+  const assistantId = options.assistantId || {
+    "asv-0012": "assistant-employee-service",
+    "asv-0013": "assistant-employee-service",
+    "asv-0008": "assistant-support",
+    "asv-policy-0003": "assistant-policy",
+  }[assistantVersionId];
+  return {
+    id,
+    tenantId: DEFAULT_TENANT_ID,
+    name: options.name || `${assistantVersionId} / ${datasetVersionId}`,
+    status: "COMPLETED",
+    gate: metrics.unauthorizedLeakage === 0 &&
+      metrics.recallAt10 >= 0.85 &&
+      metrics.citationPrecision >= 0.95 &&
+      metrics.refusalAccuracy >= 0.98 &&
+      metrics.retrievalP95Ms < 800 &&
+      metrics.firstTokenP95Ms < 4000 &&
+      metrics.consistency === "PASSED" ? "PASSED" : "FAILED",
+    stageIndex: 4,
+    stage: "COMPLETED",
+    progress: 100,
+    frozen: {
+      assistantId,
+      assistantVersionId,
+      datasetVersionId,
+      indexVersionId: options.indexVersionId || "idx-v11",
+      configurationRevisions: options.configurationRevisions || frozenAssistantDependencies("kb-handbook", options.indexVersionId || "idx-v11").configurationRevisions,
+    },
+    metrics,
+    failures: evaluationFailures(),
+    completedAt: options.completedAt || "今天 16:54",
+  };
+}
+
+/** 评测数据只保存合成问题摘要和期望证据标识，不包含真实用户问题或回答正文。 */
+function defaultEvaluationGovernance() {
+  const v6Samples = evaluationSamples("eval-v6", { answerable: 60, refusal: 20, authorization: 10, multiTurn: 10 });
+  const v7Samples = evaluationSamples("eval-v7", { answerable: 62, refusal: 20, authorization: 12, multiTurn: 10 });
+  const otherSamples = evaluationSamples("eval-support-v4", { answerable: 60, refusal: 20, authorization: 10, multiTurn: 10 });
+  const baselineRun = completedEvaluationRun("eval-run-v12", "asv-0012", "eval-set-v6", evaluationMetrics({ recallAt10: 0.85, citationPrecision: 0.96, retrievalP95Ms: 720, firstTokenP95Ms: 3200 }), { name: "员工服务助手 v12 / 基线 v6", indexVersionId: "idx-v11", completedAt: "昨天 18:10" });
+  const candidateRun = completedEvaluationRun("eval-run-v13", "asv-0013", "eval-set-v6", evaluationMetrics(), { name: "员工服务助手 v13 / 基线 v6", indexVersionId: "idx-v12" });
+  const otherRun = completedEvaluationRun("eval-run-other-dataset", "asv-0008", "eval-support-v4", evaluationMetrics({ recallAt10: 0.87 }), { name: "客户支持助手 v8 / 回归 v4", indexVersionId: "idx-v7" });
+  const unsafeRun = completedEvaluationRun("eval-run-security-regression", "asv-0013", "eval-set-v6", evaluationMetrics({ citationPrecision: 0.94, unauthorizedLeakage: 1 }), { name: "员工服务助手 v13 / 安全回退复测", indexVersionId: "idx-v12", assistantId: "assistant-employee-service" });
+  const initialComparison = {
+    id: "evaluation-comparison-initial",
+    tenantId: DEFAULT_TENANT_ID,
+    baselineRunId: baselineRun.id,
+    candidateRunId: candidateRun.id,
+    datasetVersionId: "eval-set-v6",
+    sameDataset: true,
+    safeToApprove: true,
+    noQualityRegression: true,
+    decision: "PENDING",
+    createdAt: "今天 16:56",
+  };
+  return {
+    datasets: [
+      {
+        id: "eval-set",
+        tenantId: DEFAULT_TENANT_ID,
+        name: "员工制度基线",
+        knowledgeBaseId: "kb-handbook",
+        status: "PUBLISHED",
+        publishedVersionId: "eval-set-v6",
+        versions: [
+          { id: "eval-set-v6", number: 6, status: "PUBLISHED", samples: v6Samples, composition: evaluationComposition(v6Samples), publishedAt: "昨天 17:20" },
+          { id: "eval-set-v7", number: 7, status: "DRAFT", samples: v7Samples, composition: evaluationComposition(v7Samples), sourceTemplateVersionId: "eval-set-v6", updatedAt: "今天 16:40" },
+        ],
+      },
+      {
+        id: "eval-support",
+        tenantId: DEFAULT_TENANT_ID,
+        name: "客户支持回归",
+        knowledgeBaseId: "kb-support",
+        status: "PUBLISHED",
+        publishedVersionId: "eval-support-v4",
+        versions: [
+          { id: "eval-support-v4", number: 4, status: "PUBLISHED", samples: otherSamples, composition: evaluationComposition(otherSamples), publishedAt: "8 月 30 日" },
+        ],
+      },
+    ],
+    selectedDatasetId: "eval-set",
+    selectedDatasetVersionId: "eval-set-v7",
+    runs: [baselineRun, candidateRun, otherRun, unsafeRun],
+    selectedRunId: "eval-run-v13",
+    comparisons: [initialComparison],
+    selectedComparisonId: initialComparison.id,
+    remediations: [],
+    selectedFailureCategory: "RETRIEVAL_MISS",
+  };
+}
+
 function defaultKnowledgeBases() {
   return [
     {
@@ -824,6 +985,7 @@ function defaultState() {
     knowledgeBases: defaultKnowledgeBases(),
     models: defaultModelGovernance(),
     assistantDelivery: defaultAssistantDelivery(),
+    evaluation: defaultEvaluationGovernance(),
     selectedKnowledgeBaseId: "kb-handbook",
     selectedKnowledgeSourceId: "src-policy-pdf",
     selectedIndexVersionId: "idx-v12",
@@ -935,6 +1097,9 @@ function initialState(storage) {
     parsed.assistantDelivery = parsed.assistantDelivery && Array.isArray(parsed.assistantDelivery.assistants)
       ? parsed.assistantDelivery
       : defaultAssistantDelivery();
+    parsed.evaluation = parsed.evaluation && Array.isArray(parsed.evaluation.datasets)
+      ? parsed.evaluation
+      : defaultEvaluationGovernance();
     const fallbackKnowledgeBases = defaultKnowledgeBases();
     parsed.knowledgeBases = (Array.isArray(parsed.knowledgeBases)
       ? parsed.knowledgeBases
@@ -1947,6 +2112,401 @@ export function createPrototypeStore(storage = browserStorage()) {
     next.assistantDelivery.effects = [...next.assistantDelivery.effects, effect];
     const saved = commitState(next);
     return saved.ok ? { ...saved, assistant: clone(nextAssistant), version: clone(nextVersion), effect: clone(effect) } : saved;
+  }
+
+  /** 评测治理写操作与助手交付分离授权，但同样受租户功能上限约束。 */
+  function canManageEvaluations(tenantId, actorAccountId) {
+    const tenant = tenantById(tenantId);
+    const actor = accountById(actorAccountId);
+    const member = tenant?.members.find(item => item.accountId === actorAccountId);
+    return Boolean(
+      tenant?.status === "active" &&
+      actor?.status === "available" &&
+      tenant.availableFeatures?.evaluationGovernance !== false &&
+      member?.role === "tenantAdministrator" &&
+      member.status === "active",
+    );
+  }
+
+  function evaluationDatasetById(datasetId) {
+    return state.evaluation.datasets.find(item => item.id === datasetId);
+  }
+
+  function evaluationVersionContext(versionId) {
+    for (const dataset of state.evaluation.datasets) {
+      const version = dataset.versions.find(item => item.id === versionId);
+      if (version) return { dataset, version };
+    }
+    return null;
+  }
+
+  function evaluationRunById(runId) {
+    return state.evaluation.runs.find(item => item.id === runId);
+  }
+
+  function replaceEvaluationDataset(dataset, selection = {}) {
+    return {
+      ...state,
+      evaluation: {
+        ...state.evaluation,
+        ...selection,
+        datasets: state.evaluation.datasets.map(item => item.id === dataset.id ? dataset : item),
+      },
+    };
+  }
+
+  function selectEvaluationDataset(datasetId, versionId = null) {
+    const dataset = evaluationDatasetById(datasetId);
+    if (!dataset) return { ok: false, reason: "EVALUATION_DATASET_NOT_FOUND" };
+    const selectedVersionId = versionId || dataset.versions.at(-1)?.id || null;
+    if (selectedVersionId && !dataset.versions.some(item => item.id === selectedVersionId)) {
+      return { ok: false, reason: "EVALUATION_VERSION_NOT_FOUND" };
+    }
+    return commitState({
+      ...state,
+      evaluation: {
+        ...state.evaluation,
+        selectedDatasetId: dataset.id,
+        selectedDatasetVersionId,
+      },
+    });
+  }
+
+  function selectEvaluationRun(runId) {
+    if (!evaluationRunById(runId)) return { ok: false, reason: "EVALUATION_RUN_NOT_FOUND" };
+    return commitState({ ...state, evaluation: { ...state.evaluation, selectedRunId: runId } });
+  }
+
+  function selectEvaluationComparison(comparisonId) {
+    if (!state.evaluation.comparisons.some(item => item.id === comparisonId)) {
+      return { ok: false, reason: "EVALUATION_COMPARISON_NOT_FOUND" };
+    }
+    return commitState({ ...state, evaluation: { ...state.evaluation, selectedComparisonId: comparisonId } });
+  }
+
+  function selectEvaluationFailure(runId, category) {
+    const run = evaluationRunById(runId);
+    if (!run?.failures.some(item => item.category === category)) {
+      return { ok: false, reason: "EVALUATION_FAILURE_NOT_FOUND" };
+    }
+    return commitState({
+      ...state,
+      evaluation: {
+        ...state.evaluation,
+        selectedRunId: runId,
+        selectedFailureCategory: category,
+      },
+    });
+  }
+
+  /** 新数据集可显式复制已发布基线，复制品始终成为独立草稿，不能冒充原版本。 */
+  function createEvaluationDataset(tenantId, input = {}, actorAccountId) {
+    if (!canManageEvaluations(tenantId, actorAccountId)) return { ok: false, reason: "FORBIDDEN" };
+    const name = String(input.name || "").trim();
+    const knowledgeBase = knowledgeBaseById(input.knowledgeBaseId);
+    if (name.length < 2 || name.length > 80) return { ok: false, reason: "EVALUATION_DATASET_NAME_INVALID" };
+    if (state.evaluation.datasets.some(item => item.tenantId === tenantId && item.name === name)) {
+      return { ok: false, reason: "EVALUATION_DATASET_NAME_CONFLICT" };
+    }
+    if (knowledgeBase?.tenantId !== tenantId) return { ok: false, reason: "KNOWLEDGE_BASE_NOT_FOUND" };
+    const template = input.templateVersionId ? evaluationVersionContext(input.templateVersionId) : null;
+    if (input.templateVersionId && (template?.dataset.tenantId !== tenantId || template.version.status !== "PUBLISHED" || template.dataset.knowledgeBaseId !== knowledgeBase.id)) {
+      return { ok: false, reason: "EVALUATION_TEMPLATE_NOT_AVAILABLE" };
+    }
+    const ordinal = state.evaluation.datasets.length + 1;
+    const samples = clone(template?.version.samples || []);
+    const version = {
+      id: `eval-custom-${ordinal}-v1`,
+      number: 1,
+      status: "DRAFT",
+      samples,
+      composition: evaluationComposition(samples),
+      sourceTemplateVersionId: template?.version.id || null,
+      updatedAt: "刚刚",
+    };
+    const dataset = {
+      id: `eval-custom-${ordinal}`,
+      tenantId,
+      name,
+      knowledgeBaseId: knowledgeBase.id,
+      status: "DRAFT",
+      publishedVersionId: null,
+      versions: [version],
+    };
+    const saved = commitState({
+      ...state,
+      evaluation: {
+        ...state.evaluation,
+        datasets: [...state.evaluation.datasets, dataset],
+        selectedDatasetId: dataset.id,
+        selectedDatasetVersionId: version.id,
+      },
+    });
+    return saved.ok ? { ...saved, dataset: clone(dataset), version: clone(version) } : saved;
+  }
+
+  function createEvaluationDatasetVersion(datasetId, actorAccountId) {
+    const current = evaluationDatasetById(datasetId);
+    if (!current) return { ok: false, reason: "EVALUATION_DATASET_NOT_FOUND" };
+    if (!canManageEvaluations(current.tenantId, actorAccountId)) return { ok: false, reason: "FORBIDDEN" };
+    const existing = current.versions.find(item => item.status === "DRAFT");
+    if (existing) {
+      const saved = selectEvaluationDataset(current.id, existing.id);
+      return saved.ok ? { ...saved, replayed: true, dataset: clone(current), version: clone(existing) } : saved;
+    }
+    const source = current.versions.find(item => item.id === current.publishedVersionId);
+    if (!source) return { ok: false, reason: "EVALUATION_PUBLISHED_BASELINE_REQUIRED" };
+    const number = Math.max(...current.versions.map(item => item.number)) + 1;
+    const samples = clone(source.samples);
+    const version = {
+      id: `${current.id}-v${number}`,
+      number,
+      status: "DRAFT",
+      samples,
+      composition: evaluationComposition(samples),
+      sourceTemplateVersionId: source.id,
+      updatedAt: "刚刚",
+    };
+    const dataset = { ...current, versions: [...current.versions, version] };
+    const saved = commitState(replaceEvaluationDataset(dataset, {
+      selectedDatasetId: dataset.id,
+      selectedDatasetVersionId: version.id,
+    }));
+    return saved.ok ? { ...saved, replayed: false, dataset: clone(dataset), version: clone(version) } : saved;
+  }
+
+  function addEvaluationSample(versionId, input = {}, actorAccountId) {
+    const context = evaluationVersionContext(versionId);
+    if (!context) return { ok: false, reason: "EVALUATION_VERSION_NOT_FOUND" };
+    const { dataset, version } = context;
+    if (!canManageEvaluations(dataset.tenantId, actorAccountId)) return { ok: false, reason: "FORBIDDEN" };
+    if (version.status !== "DRAFT") return { ok: false, reason: "EVALUATION_VERSION_IMMUTABLE" };
+    const type = String(input.type || "");
+    const question = String(input.question || "").trim();
+    const expectedEvidence = Array.isArray(input.expectedEvidence)
+      ? input.expectedEvidence.map(item => String(item).trim()).filter(Boolean)
+      : String(input.expectedEvidence || "").split(/[，,\n]/).map(item => item.trim()).filter(Boolean);
+    if (!EVALUATION_SAMPLE_TYPES.some(([value]) => value === type) || question.length < 4) {
+      return { ok: false, reason: "EVALUATION_SAMPLE_INVALID" };
+    }
+    if (["ANSWERABLE", "MULTI_TURN"].includes(type) && expectedEvidence.length === 0) {
+      return { ok: false, reason: "EXPECTED_EVIDENCE_REQUIRED" };
+    }
+    const sample = {
+      id: `${version.id}-sample-${version.samples.length + 1}`,
+      type,
+      label: EVALUATION_SAMPLE_TYPES.find(([value]) => value === type)[1],
+      questionSummary: question,
+      expectedEvidence,
+      expectedOutcome: ["ANSWERABLE", "MULTI_TURN"].includes(type) ? "ANSWER" : "REFUSE",
+    };
+    const samples = [...version.samples, sample];
+    const nextVersion = { ...version, samples, composition: evaluationComposition(samples), updatedAt: "刚刚" };
+    const nextDataset = { ...dataset, versions: dataset.versions.map(item => item.id === version.id ? nextVersion : item) };
+    const saved = commitState(replaceEvaluationDataset(nextDataset));
+    return saved.ok ? { ...saved, version: clone(nextVersion), sample: clone(sample) } : saved;
+  }
+
+  /** 发布校验四类冻结样本下限与期望证据，发布后版本不可变。 */
+  function publishEvaluationDatasetVersion(versionId, actorAccountId) {
+    const context = evaluationVersionContext(versionId);
+    if (!context) return { ok: false, reason: "EVALUATION_VERSION_NOT_FOUND" };
+    const { dataset, version } = context;
+    if (!canManageEvaluations(dataset.tenantId, actorAccountId)) return { ok: false, reason: "FORBIDDEN" };
+    if (version.status !== "DRAFT") return { ok: false, reason: "EVALUATION_VERSION_IMMUTABLE" };
+    const composition = evaluationComposition(version.samples);
+    const complete = version.samples.length >= 100 &&
+      composition.answerable >= 60 && composition.refusal >= 20 &&
+      composition.authorization >= 10 && composition.multiTurn >= 10 &&
+      version.samples.filter(item => ["ANSWERABLE", "MULTI_TURN"].includes(item.type))
+        .every(item => item.expectedEvidence.length > 0);
+    if (!complete) return { ok: false, reason: "EVALUATION_DATASET_INCOMPLETE", composition };
+    const nextVersion = { ...version, status: "PUBLISHED", composition, publishedAt: "刚刚", updatedAt: "刚刚" };
+    const nextDataset = {
+      ...dataset,
+      status: "PUBLISHED",
+      publishedVersionId: version.id,
+      versions: dataset.versions.map(item => item.id === version.id ? nextVersion : item),
+    };
+    const saved = commitState(replaceEvaluationDataset(nextDataset));
+    return saved.ok ? { ...saved, dataset: clone(nextDataset), version: clone(nextVersion) } : saved;
+  }
+
+  /** 运行固定助手、索引、模型配置修订与已发布数据集，运行中不读取活动指针。 */
+  function createEvaluationRun(tenantId, input = {}, actorAccountId) {
+    if (!canManageEvaluations(tenantId, actorAccountId)) return { ok: false, reason: "FORBIDDEN" };
+    const assistantContext = assistantVersionContext(input.assistantVersionId);
+    if (assistantContext?.assistant.tenantId !== tenantId || !assistantContext.version.frozen) {
+      return { ok: false, reason: "ASSISTANT_VERSION_NOT_FROZEN" };
+    }
+    const datasetContext = evaluationVersionContext(input.datasetVersionId);
+    if (datasetContext?.dataset.tenantId !== tenantId || datasetContext.version.status !== "PUBLISHED") {
+      return { ok: false, reason: "EVALUATION_DATASET_NOT_PUBLISHED" };
+    }
+    if (assistantContext.assistant.knowledgeBaseId !== datasetContext.dataset.knowledgeBaseId) {
+      return { ok: false, reason: "EVALUATION_KNOWLEDGE_BASE_MISMATCH" };
+    }
+    const ordinal = state.evaluation.runs.length + 1;
+    const run = {
+      id: `eval-run-${ordinal}`,
+      tenantId,
+      name: `${assistantContext.assistant.name} v${assistantContext.version.number} / ${datasetContext.dataset.name} v${datasetContext.version.number}`,
+      status: "RUNNING",
+      gate: "PENDING",
+      stageIndex: 0,
+      stage: "RETRIEVING",
+      progress: 10,
+      frozen: {
+        assistantId: assistantContext.assistant.id,
+        assistantVersionId: assistantContext.version.id,
+        datasetVersionId: datasetContext.version.id,
+        indexVersionId: assistantContext.version.frozen.indexVersionId,
+        configurationRevisions: clone(assistantContext.version.frozen.configurationRevisions),
+      },
+      metrics: null,
+      failures: [],
+      createdAt: "刚刚",
+    };
+    const saved = commitState({
+      ...state,
+      evaluation: {
+        ...state.evaluation,
+        runs: [...state.evaluation.runs, run],
+        selectedRunId: run.id,
+      },
+    });
+    return saved.ok ? { ...saved, run: clone(run) } : saved;
+  }
+
+  function advanceEvaluationRun(runId, actorAccountId) {
+    const current = evaluationRunById(runId);
+    if (!current) return { ok: false, reason: "EVALUATION_RUN_NOT_FOUND" };
+    if (!canManageEvaluations(current.tenantId, actorAccountId)) return { ok: false, reason: "FORBIDDEN" };
+    if (current.status !== "RUNNING") return { ok: false, reason: "EVALUATION_RUN_NOT_RUNNING" };
+    const stages = ["RETRIEVING", "GENERATING", "SCORING", "FINALIZING"];
+    const nextIndex = current.stageIndex + 1;
+    const complete = nextIndex >= stages.length;
+    const metrics = complete ? evaluationMetrics() : null;
+    const run = complete
+      ? { ...current, status: "COMPLETED", gate: "PASSED", stageIndex: nextIndex, stage: "COMPLETED", progress: 100, metrics, failures: evaluationFailures(), completedAt: "刚刚" }
+      : { ...current, stageIndex: nextIndex, stage: stages[nextIndex], progress: [10, 35, 68, 90][nextIndex] };
+    const saved = commitState({
+      ...state,
+      evaluation: {
+        ...state.evaluation,
+        runs: state.evaluation.runs.map(item => item.id === run.id ? run : item),
+      },
+    });
+    return saved.ok ? { ...saved, run: clone(run) } : saved;
+  }
+
+  function createEvaluationComparison(baselineRunId, candidateRunId, actorAccountId) {
+    const baseline = evaluationRunById(baselineRunId);
+    const candidate = evaluationRunById(candidateRunId);
+    if (!baseline || !candidate || baseline.status !== "COMPLETED" || candidate.status !== "COMPLETED") {
+      return { ok: false, reason: "EVALUATION_RUN_NOT_COMPLETED" };
+    }
+    if (baseline.tenantId !== candidate.tenantId || !canManageEvaluations(baseline.tenantId, actorAccountId)) {
+      return { ok: false, reason: "FORBIDDEN" };
+    }
+    if (baseline.frozen.datasetVersionId !== candidate.frozen.datasetVersionId) {
+      return { ok: false, reason: "EVALUATION_DATASET_MISMATCH" };
+    }
+    if (baseline.frozen.assistantId !== candidate.frozen.assistantId) {
+      return { ok: false, reason: "EVALUATION_ASSISTANT_MISMATCH" };
+    }
+    const noQualityRegression = candidate.metrics.recallAt10 >= baseline.metrics.recallAt10 &&
+      candidate.metrics.citationPrecision >= baseline.metrics.citationPrecision &&
+      candidate.metrics.refusalAccuracy >= baseline.metrics.refusalAccuracy &&
+      candidate.metrics.retrievalP95Ms <= baseline.metrics.retrievalP95Ms &&
+      candidate.metrics.firstTokenP95Ms <= baseline.metrics.firstTokenP95Ms &&
+      candidate.metrics.consistency === "PASSED";
+    const safeToApprove = candidate.gate === "PASSED" &&
+      candidate.metrics.unauthorizedLeakage === 0 &&
+      candidate.metrics.unauthorizedLeakage <= baseline.metrics.unauthorizedLeakage &&
+      noQualityRegression;
+    const comparison = {
+      id: `evaluation-comparison-${state.evaluation.comparisons.length + 1}`,
+      tenantId: baseline.tenantId,
+      baselineRunId,
+      candidateRunId,
+      datasetVersionId: baseline.frozen.datasetVersionId,
+      sameDataset: true,
+      safeToApprove,
+      noQualityRegression,
+      decision: "PENDING",
+      createdAt: "刚刚",
+    };
+    const saved = commitState({
+      ...state,
+      evaluation: {
+        ...state.evaluation,
+        comparisons: [...state.evaluation.comparisons, comparison],
+        selectedComparisonId: comparison.id,
+        selectedRunId: candidate.id,
+      },
+    });
+    return saved.ok ? { ...saved, comparison: clone(comparison) } : saved;
+  }
+
+  function recordEvaluationDecision(comparisonId, action, actorAccountId) {
+    const current = state.evaluation.comparisons.find(item => item.id === comparisonId);
+    if (!current) return { ok: false, reason: "EVALUATION_COMPARISON_NOT_FOUND" };
+    if (!canManageEvaluations(current.tenantId, actorAccountId)) return { ok: false, reason: "FORBIDDEN" };
+    if (action === "APPROVE" && !current.safeToApprove) {
+      return { ok: false, reason: "EVALUATION_REGRESSION_BLOCKED" };
+    }
+    const comparison = {
+      ...current,
+      decision: action === "APPROVE" ? "APPROVED" : "BLOCKED",
+      decidedAt: "刚刚",
+    };
+    const saved = commitState({
+      ...state,
+      evaluation: {
+        ...state.evaluation,
+        comparisons: state.evaluation.comparisons.map(item => item.id === comparison.id ? comparison : item),
+      },
+    });
+    return saved.ok ? { ...saved, comparison: clone(comparison) } : saved;
+  }
+
+  /** 修复事项只引用失败分类和数量，不复制评测问题、模型回答或引用正文。 */
+  function createEvaluationRemediation(runId, category, input = {}, actorAccountId) {
+    const run = evaluationRunById(runId);
+    if (!run) return { ok: false, reason: "EVALUATION_RUN_NOT_FOUND" };
+    if (!canManageEvaluations(run.tenantId, actorAccountId)) return { ok: false, reason: "FORBIDDEN" };
+    const failure = run.failures.find(item => item.category === category);
+    if (!failure) return { ok: false, reason: "EVALUATION_FAILURE_NOT_FOUND" };
+    const existing = state.evaluation.remediations.find(item => item.runId === runId && item.category === category && item.status === "OPEN");
+    if (existing) return { ok: true, replayed: true, remediation: clone(existing) };
+    const title = String(input.title || "").trim();
+    const owner = String(input.owner || "").trim();
+    if (title.length < 4 || title.length > 100 || owner.length < 2 || owner.length > 40) {
+      return { ok: false, reason: "EVALUATION_REMEDIATION_INVALID" };
+    }
+    const remediation = {
+      id: `evaluation-remediation-${state.evaluation.remediations.length + 1}`,
+      tenantId: run.tenantId,
+      runId,
+      category,
+      categoryLabel: failure.label,
+      sampleCount: failure.sampleCount,
+      title,
+      owner,
+      status: "OPEN",
+      createdAt: "刚刚",
+    };
+    const saved = commitState({
+      ...state,
+      evaluation: {
+        ...state.evaluation,
+        remediations: [...state.evaluation.remediations, remediation],
+        selectedRunId: runId,
+        selectedFailureCategory: category,
+      },
+    });
+    return saved.ok ? { ...saved, replayed: false, remediation: clone(remediation) } : saved;
   }
 
   function replaceKnowledgeBase(knowledgeBase) {
@@ -3408,6 +3968,19 @@ export function createPrototypeStore(storage = browserStorage()) {
     runAssistantEvaluation,
     requestAssistantRelease,
     publishAssistantVersion,
+    selectEvaluationDataset,
+    selectEvaluationRun,
+    selectEvaluationComparison,
+    selectEvaluationFailure,
+    createEvaluationDataset,
+    createEvaluationDatasetVersion,
+    addEvaluationSample,
+    publishEvaluationDatasetVersion,
+    createEvaluationRun,
+    advanceEvaluationRun,
+    createEvaluationComparison,
+    recordEvaluationDecision,
+    createEvaluationRemediation,
     createTenant,
     addMember,
     findMember,

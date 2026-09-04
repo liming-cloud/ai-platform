@@ -38,6 +38,7 @@ let knowledgeFeedback = "";
 let indexFeedback = "";
 let modelFeedback = "";
 let assistantFeedback = "";
+let evaluationFeedback = "";
 let nextQueryMode = "normal";
 let queryStreamingSuspended = false;
 const PLATFORM_ACCOUNT_ACTOR_ID = "account-platform-admin";
@@ -96,6 +97,7 @@ resetReview.addEventListener("click", () => {
   queryFeedback = "";
   accountFeedback = "";
   assistantFeedback = "";
+  evaluationFeedback = "";
   nextQueryMode = "normal";
   render();
 });
@@ -339,6 +341,13 @@ function renderScreen(screen, state, demoState) {
     case "assistant-evaluation":
     case "assistant-release":
       return renderAssistantDelivery(screen, state, demoState);
+    case "evaluation-datasets":
+    case "evaluation-dataset-detail":
+    case "evaluation-run-create":
+    case "evaluation-run-detail":
+    case "evaluation-comparison":
+    case "evaluation-failure-analysis":
+      return renderEvaluationGovernance(screen, state, demoState);
     default:
       return renderInventoryPage(
         pageByScreen.get(screen),
@@ -370,6 +379,11 @@ function statusTag(status) {
     PUBLISHED: ["已发布", "success"],
     READY_FOR_REVIEW: ["待激活", "success"],
     READY_FOR_RELEASE: ["可发布", "success"],
+    RUNNING: ["运行中", "warning"],
+    COMPLETED: ["已完成", "success"],
+    PASSED: ["门禁通过", "success"],
+    PENDING: ["待决定", "warning"],
+    APPROVED: ["已放行", "success"],
     INDEXING: ["索引中", "warning"],
     PROCESSING: ["处理中", "warning"],
     EMPTY: ["待添加资料", "info"],
@@ -461,6 +475,12 @@ function genericState(screen, state) {
     "assistant-test": "单题测试",
     "assistant-evaluation": "发布门禁",
     "assistant-release": "助手版本",
+    "evaluation-datasets": "评测数据集",
+    "evaluation-dataset-detail": "评测数据集版本",
+    "evaluation-run-create": "评测运行",
+    "evaluation-run-detail": "评测运行结果",
+    "evaluation-comparison": "版本对比",
+    "evaluation-failure-analysis": "失败分类",
   };
   const subject = labels[screen];
   if (state === "loading") {
@@ -1828,6 +1848,169 @@ function renderAssistantDelivery(screen, state, snapshot) {
   }[screen](state, snapshot);
 }
 
+function evaluationDatasetContext(snapshot) {
+  const dataset = snapshot.evaluation.datasets.find(item => item.id === snapshot.evaluation.selectedDatasetId)
+    || snapshot.evaluation.datasets[0];
+  const version = dataset?.versions.find(item => item.id === snapshot.evaluation.selectedDatasetVersionId)
+    || dataset?.versions.at(-1);
+  return dataset && version ? { dataset, version } : null;
+}
+
+function evaluationAssistantVersionLabel(snapshot, versionId) {
+  for (const assistant of snapshot.assistantDelivery.assistants) {
+    const version = assistant.versions.find(item => item.id === versionId);
+    if (version) return `${assistant.name} v${version.number}`;
+  }
+  return versionId;
+}
+
+function evaluationMetricValue(key, value) {
+  if (["recallAt10", "citationPrecision", "refusalAccuracy"].includes(key)) return `${Math.round(value * 100)}%`;
+  if (["retrievalP95Ms", "firstTokenP95Ms"].includes(key)) return `${value} ms`;
+  if (key === "consistency") return value === "PASSED" ? "稳定" : "存在矛盾";
+  return String(value);
+}
+
+function evaluationMetricGrid(metrics) {
+  const entries = [
+    ["Recall@10", "recallAt10"],
+    ["引用正确率", "citationPrecision"],
+    ["拒答准确率", "refusalAccuracy"],
+    ["越权泄漏", "unauthorizedLeakage"],
+    ["检索 p95", "retrievalP95Ms"],
+    ["首 Token p95", "firstTokenP95Ms"],
+    ["五次一致性", "consistency"],
+  ];
+  return `<div class="quality-grid evaluation-quality-grid">${entries.map(([label, key]) => `<div class="quality-item"><span>${label}</span><strong>${escapeHtml(evaluationMetricValue(key, metrics[key]))}</strong></div>`).join("")}</div>`;
+}
+
+function renderEvaluationDatasets(state, snapshot) {
+  const blocked = state !== "success";
+  const rows = snapshot.evaluation.datasets.map(dataset => {
+    const published = dataset.versions.find(item => item.id === dataset.publishedVersionId);
+    const draft = dataset.versions.find(item => item.status === "DRAFT");
+    const version = draft || published || dataset.versions.at(-1);
+    const knowledgeBase = snapshot.knowledgeBases.find(item => item.id === dataset.knowledgeBaseId);
+    return `<tr data-evaluation-dataset-row="${escapeHtml(dataset.id)}"><td data-label="数据集"><span class="primary-cell"><strong>${escapeHtml(dataset.name)}</strong><small>${escapeHtml(knowledgeBase?.name || "知识库不可用")}</small></span></td><td data-label="已发布版本">${published ? `v${escapeHtml(published.number)} · ${published.samples.length} 题` : "尚未发布"}</td><td data-label="当前草稿">${draft ? `${statusTag(draft.status)} v${escapeHtml(draft.number)} · ${draft.samples.length} 题` : "—"}</td><td data-label="操作"><button class="button secondary compact" type="button" data-select-evaluation-dataset="${escapeHtml(dataset.id)}" data-evaluation-version-id="${escapeHtml(version.id)}" data-nav-screen="evaluation-dataset-detail"${blocked ? " disabled" : ""}>${draft ? "继续维护" : "查看版本"}</button></td></tr>`;
+  }).join("");
+  const publishedVersions = snapshot.evaluation.datasets.flatMap(dataset => dataset.versions
+    .filter(version => version.status === "PUBLISHED")
+    .map(version => ({ dataset, version })));
+  const body = [
+    state === "partial" ? '<div class="inline-note warning">数据集目录正在刷新，当前版本保持只读。</div>' : "",
+    state === "disabled" ? '<div class="inline-note warning">平台已关闭评测治理，既有评测结论仍可查看。</div>' : "",
+    evaluationFeedback ? `<p class="form-feedback" role="status">${escapeHtml(evaluationFeedback)}</p>` : "",
+    `<div class="table-shell"><table class="data-table"><thead><tr><th style="width:32%">数据集</th><th>已发布版本</th><th>当前草稿</th><th>操作</th></tr></thead><tbody>${rows}</tbody></table><div class="pagination" aria-label="评测数据集分页"><span>第 1 页，共 ${snapshot.evaluation.datasets.length} 个数据集</span><div class="pagination-actions"><button class="button secondary compact" type="button" disabled>上一页</button><button class="button secondary compact" type="button" disabled>下一页</button></div></div></div>`,
+    `<dialog id="evaluation-dataset-dialog" class="dialog-surface" aria-labelledby="evaluation-dataset-title"><form id="evaluation-dataset-form"><div class="dialog-heading"><span class="section-kicker">独立质量资产</span><h2 id="evaluation-dataset-title">新建评测数据集</h2></div><div class="form-grid"><label class="field"><span>数据集名称</span><input class="input" name="name" minlength="2" maxlength="80" value="制度专项回归" required></label><label class="field"><span>关联知识库</span><select class="select" name="knowledgeBaseId">${snapshot.knowledgeBases.filter(item => item.tenantId === DEFAULT_TENANT_ID).map(item => `<option value="${escapeHtml(item.id)}">${escapeHtml(item.name)}</option>`).join("")}</select></label><label class="field"><span>起始方式</span><select class="select" name="templateVersionId"><option value="">建立空白数据集</option>${publishedVersions.map(({ dataset, version }) => `<option value="${escapeHtml(version.id)}"${version.id === "eval-set-v6" ? " selected" : ""}>复制 ${escapeHtml(dataset.name)} v${escapeHtml(version.number)}</option>`).join("")}</select></label></div><p class="inline-note compact-note">复制会创建独立草稿；发布版本不会被修改。</p><p id="evaluation-dataset-feedback" class="form-feedback" role="alert"></p><div class="form-actions dialog-actions"><button class="button secondary" type="button" data-close-evaluation-dataset>取消</button><button class="button primary" type="submit">创建数据集</button></div></form></dialog>`,
+  ].join("");
+  return adminShell("evaluation-datasets", "评测数据集", "", `<button class="button primary" type="button" data-open-evaluation-dataset data-primary-action${blocked ? " disabled" : ""}>新建评测数据集</button>`, body, state, "评测治理 / 数据集");
+}
+
+function renderEvaluationDatasetDetail(state, snapshot) {
+  const context = evaluationDatasetContext(snapshot);
+  if (!context) return adminShell("evaluation-dataset-detail", "评测数据集版本", "", "", statePanel("empty", "没有评测数据集", "先创建一个数据集。", "返回数据集", "evaluation-datasets"), state, "评测治理 / 数据集版本");
+  const { dataset, version } = context;
+  const blocked = state !== "success";
+  const composition = version.composition;
+  const sampleRows = version.samples.slice(0, 6).map(sample => `<tr><td data-label="类型">${escapeHtml(sample.label)}</td><td data-label="问题摘要"><strong>${escapeHtml(sample.questionSummary)}</strong></td><td data-label="期望结果">${sample.expectedOutcome === "ANSWER" ? "回答并引用" : "拒答且不泄漏"}</td><td data-label="期望证据">${sample.expectedEvidence.length ? escapeHtml(sample.expectedEvidence.join("、")) : "不应返回正文"}</td></tr>`).join("");
+  const primary = version.status === "DRAFT"
+    ? `<button class="button primary" type="button" data-publish-evaluation-version="${escapeHtml(version.id)}" data-primary-action${blocked ? " disabled" : ""}>发布数据集版本</button>`
+    : `<button class="button primary" type="button" data-create-evaluation-version="${escapeHtml(dataset.id)}" data-primary-action${blocked ? " disabled" : ""}>创建新草稿版本</button>`;
+  const body = [
+    `<div class="inline-note${version.status === "DRAFT" ? " warning" : ""}">${version.status === "DRAFT" ? "发布前可维护样本；发布后本版本不可变。" : "此版本已冻结，新的修改必须创建草稿版本。"}</div>`,
+    `<div class="metric-grid"><article class="metric-card"><span>可回答</span><strong>${composition.answerable}</strong><small>门槛 60</small></article><article class="metric-card"><span>证据不足拒答</span><strong>${composition.refusal}</strong><small>门槛 20</small></article><article class="metric-card"><span>权限拒绝</span><strong>${composition.authorization}</strong><small>门槛 10</small></article><article class="metric-card"><span>多轮指代</span><strong>${composition.multiTurn}</strong><small>门槛 10</small></article></div>`,
+    `<section class="section-block"><div class="section-heading"><div><span class="section-kicker">${escapeHtml(dataset.name)}</span><h2>v${escapeHtml(version.number)} · ${version.samples.length} 个冻结样本</h2></div>${statusTag(version.status)}</div><div class="table-shell"><table class="data-table"><thead><tr><th>类型</th><th>问题摘要</th><th>期望结果</th><th>期望证据</th></tr></thead><tbody>${sampleRows}</tbody></table><div class="pagination" aria-label="评测样本分页"><span>第 1 页，共 ${version.samples.length} 个样本</span><div class="pagination-actions"><button class="button secondary compact" type="button" disabled>上一页</button><button class="button secondary compact" type="button" disabled>下一页</button></div></div></div>${evaluationFeedback ? `<p class="form-feedback" role="status">${escapeHtml(evaluationFeedback)}</p>` : ""}<div class="form-actions">${version.status === "DRAFT" ? '<button class="button secondary" type="button" data-open-evaluation-sample>新增样本</button>' : ""}${primary}</div></section>`,
+    `<dialog id="evaluation-sample-dialog" class="dialog-surface" aria-labelledby="evaluation-sample-title"><form id="evaluation-sample-form" data-evaluation-version-id="${escapeHtml(version.id)}"><div class="dialog-heading"><span class="section-kicker">仅保存合成摘要</span><h2 id="evaluation-sample-title">新增评测样本</h2></div><label class="field"><span>样本类型</span><select class="select" name="type"><option value="ANSWERABLE">可回答</option><option value="REFUSAL">证据不足拒答</option><option value="AUTHORIZATION">权限拒绝</option><option value="MULTI_TURN">多轮指代</option></select></label><label class="field"><span>问题摘要</span><textarea class="textarea" name="question" rows="3" required>年假结转规则专项验证</textarea></label><label class="field"><span>期望证据标识</span><input class="input" name="expectedEvidence" value="src-policy-pdf#p6"></label><p id="evaluation-sample-feedback" class="form-feedback" role="alert"></p><div class="form-actions dialog-actions"><button class="button secondary" type="button" data-close-evaluation-sample>取消</button><button class="button primary" type="submit">保存样本</button></div></form></dialog>`,
+  ].join("");
+  return adminShell("evaluation-dataset-detail", `${dataset.name} v${version.number}`, "", '<button class="button secondary" type="button" data-nav-screen="evaluation-datasets">返回数据集</button>', body, state, "评测治理 / 数据集版本");
+}
+
+function renderEvaluationRunCreate(state, snapshot) {
+  const blocked = state !== "success";
+  const assistantVersions = snapshot.assistantDelivery.assistants.flatMap(assistant => assistant.versions
+    .filter(version => Boolean(version.frozen))
+    .map(version => ({ assistant, version })));
+  const datasetVersions = snapshot.evaluation.datasets.flatMap(dataset => dataset.versions
+    .filter(version => version.status === "PUBLISHED")
+    .map(version => ({ dataset, version })));
+  const selectedDataset = datasetVersions.find(item => item.version.id === snapshot.evaluation.selectedDatasetVersionId) || datasetVersions[0];
+  const body = [
+    state === "partial" ? '<div class="inline-note warning">版本目录正在刷新，当前选择尚未提交。</div>' : "",
+    '<div class="split-detail"><form id="evaluation-run-form" class="section-block"><div class="section-heading"><div><span class="section-kicker">冻结一次运行</span><h2>选择评测输入</h2></div><span class="status-tag" data-tone="info">运行中不漂移</span></div>',
+    `<div class="form-grid"><label class="field"><span>助手版本</span><select class="select" name="assistantVersionId">${assistantVersions.map(({ assistant, version }) => `<option value="${escapeHtml(version.id)}"${version.id === "asv-0013" ? " selected" : ""}>${escapeHtml(assistant.name)} v${escapeHtml(version.number)} · ${escapeHtml(version.frozen.indexVersionId)}</option>`).join("")}</select></label><label class="field"><span>已发布数据集版本</span><select class="select" name="datasetVersionId">${datasetVersions.map(({ dataset, version }) => `<option value="${escapeHtml(version.id)}"${version.id === selectedDataset?.version.id ? " selected" : ""}>${escapeHtml(dataset.name)} v${escapeHtml(version.number)} · ${version.samples.length} 题</option>`).join("")}</select></label></div>`,
+    `<p id="evaluation-run-feedback" class="form-feedback" role="alert">${escapeHtml(evaluationFeedback)}</p><div class="form-actions"><button class="button secondary" type="button" data-nav-screen="evaluation-datasets">取消</button><button class="button primary" type="submit" data-primary-action${blocked ? " disabled" : ""}>运行评测</button></div></form>`,
+    '<aside><section class="release-decision"><span class="section-kicker">运行边界</span><h2>助手与数据集必须冻结</h2><dl class="description-list"><dt>配置变化</dt><dd>不影响本次运行</dd><dt>安全门禁</dt><dd>越权泄漏必须为 0</dd><dt>对比条件</dt><dd>必须使用同一数据集版本</dd><dt>原始内容</dt><dd>失败页只显示合成摘要</dd></dl></section></aside></div>',
+  ].join("");
+  return adminShell("evaluation-run-create", "发起评测", "", '<button class="button secondary" type="button" data-nav-screen="evaluation-datasets">返回数据集</button>', body, state, "评测治理 / 发起运行");
+}
+
+function renderEvaluationRunDetail(state, snapshot) {
+  const run = snapshot.evaluation.runs.find(item => item.id === snapshot.evaluation.selectedRunId) || snapshot.evaluation.runs[0];
+  if (!run) return adminShell("evaluation-run-detail", "评测运行", "", "", statePanel("empty", "尚无评测运行", "选择冻结版本发起第一次评测。", "发起评测", "evaluation-run-create"), state, "评测治理 / 运行详情");
+  const blocked = state !== "success";
+  const stages = ["冻结输入", "检索与生成", "质量与安全评分", "形成门禁结论"];
+  const stageList = `<ol class="process-steps evaluation-run-steps" aria-label="评测运行阶段">${stages.map((label, index) => `<li data-step-state="${run.status === "COMPLETED" || index < run.stageIndex ? "complete" : index === run.stageIndex ? "current" : "upcoming"}"><span>${index + 1}</span><strong>${label}</strong></li>`).join("")}</ol>`;
+  const baselineOptions = snapshot.evaluation.runs.filter(item => item.id !== run.id && item.status === "COMPLETED" && item.frozen.datasetVersionId === run.frozen.datasetVersionId);
+  const operation = run.status === "RUNNING"
+    ? `<button class="button primary" type="button" data-advance-evaluation-run="${escapeHtml(run.id)}" data-primary-action${blocked ? " disabled" : ""}>继续运行评测</button>`
+    : `<button class="button secondary" type="button" data-nav-screen="evaluation-failure-analysis" data-select-evaluation-run="${escapeHtml(run.id)}">查看失败分类</button><button class="button primary" type="button" data-open-evaluation-comparison data-primary-action${blocked || baselineOptions.length === 0 ? " disabled" : ""}>比较版本</button>`;
+  const body = [
+    `<div class="inline-note${run.gate === "FAILED" ? " danger" : run.status === "RUNNING" ? " warning" : ""}">${run.status === "RUNNING" ? `正在执行 ${escapeHtml(run.stage)}；已冻结输入不会随活动版本变化。` : run.gate === "PASSED" ? "全部 M6 质量、安全、性能和一致性门禁通过。" : "至少一项门禁未通过，本运行不能支持发布。"}</div>`,
+    `<div class="split-detail"><div><section class="section-block"><div class="section-heading"><div><span class="section-kicker">${escapeHtml(run.id)}</span><h2>${escapeHtml(run.name)}</h2></div>${statusTag(run.status)}</div>${stageList}<div class="progress-track" aria-label="评测运行进度"><div class="progress-value" style="width:${escapeHtml(run.progress)}%"></div></div></section>${run.metrics ? `<section class="section-block"><div class="section-heading"><h2>门禁指标</h2>${statusTag(run.gate)}</div>${evaluationMetricGrid(run.metrics)}</section>` : ""}</div>`,
+    `<aside><section class="section-block"><h2>冻结输入</h2><dl class="description-list"><dt>助手版本</dt><dd>${escapeHtml(evaluationAssistantVersionLabel(snapshot, run.frozen.assistantVersionId))}</dd><dt>数据集版本</dt><dd><span class="mono">${escapeHtml(run.frozen.datasetVersionId)}</span></dd><dt>索引版本</dt><dd><span class="mono">${escapeHtml(run.frozen.indexVersionId)}</span></dd><dt>模型修订</dt><dd>Chat r${escapeHtml(run.frozen.configurationRevisions.chat.revision)} / Embedding r${escapeHtml(run.frozen.configurationRevisions.embedding.revision)} / Rerank r${escapeHtml(run.frozen.configurationRevisions.rerank.revision)}</dd></dl></section><section class="release-decision"><span class="section-kicker">下一步</span><h2>${run.status === "RUNNING" ? "完成全部四个阶段" : "同数据集比较基线"}</h2><div class="form-actions">${operation}</div>${evaluationFeedback ? `<p class="form-feedback" role="status">${escapeHtml(evaluationFeedback)}</p>` : ""}</section></aside></div>`,
+    `<dialog id="evaluation-comparison-dialog" class="dialog-surface" aria-labelledby="evaluation-comparison-title"><form id="evaluation-comparison-form" data-candidate-run-id="${escapeHtml(run.id)}"><div class="dialog-heading"><span class="section-kicker">同一数据集版本</span><h2 id="evaluation-comparison-title">选择对比基线</h2></div><label class="field"><span>基线运行</span><select class="select" name="baselineRunId">${baselineOptions.map(item => `<option value="${escapeHtml(item.id)}">${escapeHtml(item.name)}</option>`).join("")}</select></label><p id="evaluation-comparison-feedback" class="form-feedback" role="alert"></p><div class="form-actions dialog-actions"><button class="button secondary" type="button" data-close-evaluation-comparison>取消</button><button class="button primary" type="submit">生成对比</button></div></form></dialog>`,
+  ].join("");
+  return adminShell("evaluation-run-detail", "评测运行详情", "", '<button class="button secondary" type="button" data-nav-screen="evaluation-run-create">发起新评测</button>', body, state, "评测治理 / 运行详情");
+}
+
+function renderEvaluationComparison(state, snapshot) {
+  const comparison = snapshot.evaluation.comparisons.find(item => item.id === snapshot.evaluation.selectedComparisonId) || snapshot.evaluation.comparisons[0];
+  if (!comparison) return adminShell("evaluation-comparison", "版本对比", "", "", statePanel("empty", "尚无版本对比", "从已完成运行中选择同一数据集基线。", "查看运行", "evaluation-run-detail"), state, "评测治理 / 版本对比");
+  const baseline = snapshot.evaluation.runs.find(item => item.id === comparison.baselineRunId);
+  const candidate = snapshot.evaluation.runs.find(item => item.id === comparison.candidateRunId);
+  const blocked = state !== "success" || comparison.decision !== "PENDING";
+  const metrics = [
+    ["Recall@10", "recallAt10"], ["引用正确率", "citationPrecision"], ["拒答准确率", "refusalAccuracy"],
+    ["越权泄漏", "unauthorizedLeakage"], ["检索 p95", "retrievalP95Ms"], ["首 Token p95", "firstTokenP95Ms"], ["五次一致性", "consistency"],
+  ];
+  const rows = metrics.map(([label, key]) => `<tr><td data-label="指标"><strong>${label}</strong></td><td data-label="基线">${escapeHtml(evaluationMetricValue(key, baseline.metrics[key]))}</td><td data-label="候选">${escapeHtml(evaluationMetricValue(key, candidate.metrics[key]))}</td><td data-label="判断">${key === "unauthorizedLeakage" ? (candidate.metrics[key] === 0 ? "无泄漏" : "安全回退") : key === "consistency" ? (candidate.metrics[key] === "PASSED" ? "稳定" : "回退") : comparison.noQualityRegression ? "未回退" : "需复核"}</td></tr>`).join("");
+  const body = [
+    `<div class="inline-note${comparison.safeToApprove ? "" : " danger"}">${comparison.safeToApprove ? "候选无安全或质量回退，可以形成放行决定。" : "发现安全或质量回退，只能阻断并继续修复。"}</div>`,
+    `<div class="split-detail"><section class="section-block"><div class="section-heading"><div><span class="section-kicker">数据集 ${escapeHtml(comparison.datasetVersionId)}</span><h2>${escapeHtml(candidate.name)}</h2></div>${statusTag(comparison.decision)}</div><div class="table-shell"><table class="data-table"><thead><tr><th>指标</th><th>基线</th><th>候选</th><th>判断</th></tr></thead><tbody>${rows}</tbody></table></div></section>`,
+    `<aside><section class="release-decision${comparison.safeToApprove ? "" : " blocked"}"><span class="section-kicker">门禁决定</span><h2>${comparison.decision === "PENDING" ? "形成评测结论" : comparison.decision === "APPROVED" ? "候选已放行" : "候选已阻断"}</h2><dl class="description-list"><dt>基线</dt><dd>${escapeHtml(baseline.name)}</dd><dt>候选</dt><dd>${escapeHtml(candidate.name)}</dd><dt>数据集</dt><dd>${escapeHtml(comparison.datasetVersionId)}</dd></dl><div class="form-actions"><button class="button secondary" type="button" data-evaluation-decision="BLOCK" data-evaluation-comparison-id="${escapeHtml(comparison.id)}"${blocked ? " disabled" : ""}>阻断候选</button><button class="button primary" type="button" data-evaluation-decision="APPROVE" data-evaluation-comparison-id="${escapeHtml(comparison.id)}" data-primary-action${blocked || !comparison.safeToApprove ? " disabled" : ""}>形成门禁决定</button></div>${evaluationFeedback ? `<p class="form-feedback" role="status">${escapeHtml(evaluationFeedback)}</p>` : ""}</section></aside></div>`,
+  ].join("");
+  return adminShell("evaluation-comparison", "评测版本对比", "", '<button class="button secondary" type="button" data-nav-screen="evaluation-run-detail">返回运行</button>', body, state, "评测治理 / 版本对比");
+}
+
+function renderEvaluationFailureAnalysis(state, snapshot) {
+  const run = snapshot.evaluation.runs.find(item => item.id === snapshot.evaluation.selectedRunId && item.status === "COMPLETED") || snapshot.evaluation.runs.find(item => item.id === "eval-run-v13");
+  const selected = run?.failures.find(item => item.category === snapshot.evaluation.selectedFailureCategory) || run?.failures[0];
+  if (!run || !selected) return adminShell("evaluation-failure-analysis", "失败分析", "", "", statePanel("empty", "没有失败分类", "当前运行没有可归类失败。", "返回运行", "evaluation-run-detail"), state, "评测治理 / 失败分析");
+  const blocked = state !== "success";
+  const rows = run.failures.map(item => `<tr data-failure-category="${escapeHtml(item.category)}"><td data-label="类别"><strong>${escapeHtml(item.label)}</strong></td><td data-label="样本数">${item.sampleCount}</td><td data-label="建议处理">${escapeHtml(item.suggestedAction)}</td><td data-label="操作"><button class="button secondary compact" type="button" data-select-evaluation-failure="${escapeHtml(item.category)}" data-evaluation-run-id="${escapeHtml(run.id)}"${blocked ? " disabled" : ""}>查看</button></td></tr>`).join("");
+  const remediation = snapshot.evaluation.remediations.find(item => item.runId === run.id && item.category === selected.category && item.status === "OPEN");
+  const body = [
+    '<div class="inline-note">这里只显示合成问题摘要、失败类别和数量，不展示真实问题、回答或引用正文。</div>',
+    `<div class="split-detail"><section class="section-block"><div class="section-heading"><div><span class="section-kicker">${escapeHtml(run.name)}</span><h2>7 个失败样本 / 3 类原因</h2></div>${statusTag(run.gate)}</div><div class="table-shell"><table class="data-table"><thead><tr><th>类别</th><th>样本数</th><th>建议处理</th><th>操作</th></tr></thead><tbody>${rows}</tbody></table><div class="pagination" aria-label="失败分类分页"><span>第 1 页，共 ${run.failures.length} 个分类</span><div class="pagination-actions"><button class="button secondary compact" type="button" disabled>上一页</button><button class="button secondary compact" type="button" disabled>下一页</button></div></div></div></section>`,
+    `<aside><section class="release-decision"><span class="section-kicker">当前类别</span><h2>${escapeHtml(selected.label)}</h2><dl class="description-list"><dt>失败样本</dt><dd>${selected.sampleCount}</dd><dt>建议修复</dt><dd>${escapeHtml(selected.suggestedAction)}</dd><dt>修复事项</dt><dd>${remediation ? `${escapeHtml(remediation.title)} · ${escapeHtml(remediation.owner)}` : "尚未创建"}</dd></dl><button class="button primary" type="button" data-open-evaluation-remediation data-primary-action${blocked || Boolean(remediation) ? " disabled" : ""}>${remediation ? "修复事项已创建" : "创建修复事项"}</button>${evaluationFeedback ? `<p class="form-feedback" role="status">${escapeHtml(evaluationFeedback)}</p>` : ""}</section></aside></div>`,
+    `<dialog id="evaluation-remediation-dialog" class="dialog-surface" aria-labelledby="evaluation-remediation-title"><form id="evaluation-remediation-form" data-evaluation-run-id="${escapeHtml(run.id)}" data-failure-category="${escapeHtml(selected.category)}"><div class="dialog-heading"><span class="section-kicker">${escapeHtml(selected.label)}</span><h2 id="evaluation-remediation-title">创建修复事项</h2></div><label class="field"><span>事项名称</span><input class="input" name="title" minlength="4" maxlength="100" value="${escapeHtml(selected.suggestedAction)}" required></label><label class="field"><span>负责人</span><input class="input" name="owner" minlength="2" maxlength="40" value="知识治理组" required></label><p id="evaluation-remediation-feedback" class="form-feedback" role="alert"></p><div class="form-actions dialog-actions"><button class="button secondary" type="button" data-close-evaluation-remediation>取消</button><button class="button primary" type="submit">创建事项</button></div></form></dialog>`,
+  ].join("");
+  return adminShell("evaluation-failure-analysis", "评测失败分析", "", '<button class="button secondary" type="button" data-nav-screen="evaluation-run-detail">返回运行</button>', body, state, "评测治理 / 失败分析");
+}
+
+function renderEvaluationGovernance(screen, state, snapshot) {
+  const generic = genericState(screen, state);
+  if (generic) return adminShell(screen, pageFixtures.pages[screen].title, "", "", generic, state, "评测治理");
+  return {
+    "evaluation-datasets": renderEvaluationDatasets,
+    "evaluation-dataset-detail": renderEvaluationDatasetDetail,
+    "evaluation-run-create": renderEvaluationRunCreate,
+    "evaluation-run-detail": renderEvaluationRunDetail,
+    "evaluation-comparison": renderEvaluationComparison,
+    "evaluation-failure-analysis": renderEvaluationFailureAnalysis,
+  }[screen](state, snapshot);
+}
+
 function bindKnowledgeManagement() {
   const createDialog = root.querySelector("#create-knowledge-base-dialog");
   root.querySelector("[data-open-create-knowledge]")?.addEventListener("click", () => {
@@ -2454,6 +2637,15 @@ function bindInteractions(screen) {
       if (element.dataset.selectTenantDeployment) {
         prototypeStore.selectModelGovernanceItem("tenantDeployment", element.dataset.selectTenantDeployment);
       }
+      if (element.dataset.selectEvaluationDataset) {
+        prototypeStore.selectEvaluationDataset(element.dataset.selectEvaluationDataset, element.dataset.evaluationVersionId || null);
+      }
+      if (element.dataset.selectEvaluationRun) {
+        prototypeStore.selectEvaluationRun(element.dataset.selectEvaluationRun);
+      }
+      if (element.dataset.selectEvaluationComparison) {
+        prototypeStore.selectEvaluationComparison(element.dataset.selectEvaluationComparison);
+      }
       navigate(
         element.dataset.navScreen,
         element.dataset.navState || "success",
@@ -2664,6 +2856,7 @@ function bindInteractions(screen) {
   bindIndexManagement();
   bindModelGovernance();
   bindAssistantDelivery();
+  bindEvaluationGovernance();
 }
 
 function bindAccountManagement() {
@@ -3334,6 +3527,155 @@ function filterAssistants(query) {
     element.hidden =
       normalized.length > 0 &&
       !element.textContent.toLocaleLowerCase("zh-CN").includes(normalized);
+  });
+}
+
+function evaluationFailureMessage(result) {
+  return {
+    EVALUATION_DATASET_NAME_CONFLICT: "数据集名称已存在，请使用其他名称。",
+    EVALUATION_TEMPLATE_NOT_AVAILABLE: "所选基线不属于当前知识库或尚未发布。",
+    EVALUATION_DATASET_INCOMPLETE: "尚未达到 60 个可回答、20 个拒答、10 个权限和 10 个多轮样本门槛。",
+    EVALUATION_VERSION_IMMUTABLE: "已发布版本不可修改，请创建新草稿版本。",
+    EXPECTED_EVIDENCE_REQUIRED: "可回答和多轮样本必须填写期望证据标识。",
+    ASSISTANT_VERSION_NOT_FROZEN: "请选择已冻结索引和模型修订的助手版本。",
+    EVALUATION_DATASET_NOT_PUBLISHED: "请选择已发布的数据集版本。",
+    EVALUATION_KNOWLEDGE_BASE_MISMATCH: "评测数据集必须属于助手永久关联的知识库。",
+    EVALUATION_DATASET_MISMATCH: "只能比较使用同一数据集版本的运行。",
+    EVALUATION_ASSISTANT_MISMATCH: "只能比较同一个稳定助手的冻结版本。",
+    EVALUATION_REGRESSION_BLOCKED: "发现安全或质量回退，不能形成放行决定。",
+    EVALUATION_REMEDIATION_INVALID: "请填写 4 至 100 字事项名称和 2 至 40 字负责人。",
+    STORAGE_UNAVAILABLE: "浏览器无法保存，本次操作未生效。",
+    FORBIDDEN: "当前演示身份无权管理评测。",
+  }[result.reason] || "操作未完成，原状态保持不变。";
+}
+
+function bindEvaluationGovernance() {
+  const datasetDialog = root.querySelector("#evaluation-dataset-dialog");
+  root.querySelector("[data-open-evaluation-dataset]")?.addEventListener("click", () => {
+    datasetDialog?.showModal();
+    datasetDialog?.querySelector('[name="name"]')?.focus();
+  });
+  root.querySelector("[data-close-evaluation-dataset]")?.addEventListener("click", () => datasetDialog?.close());
+  root.querySelector("#evaluation-dataset-form")?.addEventListener("submit", event => {
+    event.preventDefault();
+    const values = Object.fromEntries(new FormData(event.currentTarget));
+    const result = prototypeStore.createEvaluationDataset(DEFAULT_TENANT_ID, values, TENANT_ADMIN_ACTOR_ID);
+    if (!result.ok) {
+      event.currentTarget.querySelector("#evaluation-dataset-feedback").textContent = evaluationFailureMessage(result);
+      return;
+    }
+    datasetDialog?.close();
+    evaluationFeedback = `已建立“${result.dataset.name}”草稿，发布前可继续维护样本。`;
+    navigate("evaluation-dataset-detail");
+  });
+
+  root.querySelectorAll("[data-select-evaluation-dataset]").forEach(button => {
+    button.addEventListener("click", () => {
+      prototypeStore.selectEvaluationDataset(button.dataset.selectEvaluationDataset, button.dataset.evaluationVersionId);
+    });
+  });
+  root.querySelector("[data-create-evaluation-version]")?.addEventListener("click", event => {
+    const result = prototypeStore.createEvaluationDatasetVersion(event.currentTarget.dataset.createEvaluationVersion, TENANT_ADMIN_ACTOR_ID);
+    evaluationFeedback = result.ok
+      ? result.replayed ? "已继续现有草稿，没有建立并行版本。" : "已从当前发布版本创建独立草稿。"
+      : evaluationFailureMessage(result);
+    render();
+  });
+  root.querySelector("[data-publish-evaluation-version]")?.addEventListener("click", event => {
+    const result = prototypeStore.publishEvaluationDatasetVersion(event.currentTarget.dataset.publishEvaluationVersion, TENANT_ADMIN_ACTOR_ID);
+    evaluationFeedback = result.ok ? `数据集 v${result.version.number} 已发布并冻结。` : evaluationFailureMessage(result);
+    render();
+  });
+
+  const sampleDialog = root.querySelector("#evaluation-sample-dialog");
+  root.querySelector("[data-open-evaluation-sample]")?.addEventListener("click", () => sampleDialog?.showModal());
+  root.querySelector("[data-close-evaluation-sample]")?.addEventListener("click", () => sampleDialog?.close());
+  root.querySelector("#evaluation-sample-form")?.addEventListener("submit", event => {
+    event.preventDefault();
+    const values = Object.fromEntries(new FormData(event.currentTarget));
+    const result = prototypeStore.addEvaluationSample(event.currentTarget.dataset.evaluationVersionId, values, TENANT_ADMIN_ACTOR_ID);
+    if (!result.ok) {
+      event.currentTarget.querySelector("#evaluation-sample-feedback").textContent = evaluationFailureMessage(result);
+      return;
+    }
+    sampleDialog?.close();
+    evaluationFeedback = `已新增 1 个${result.sample.label}样本。`;
+    render();
+  });
+
+  root.querySelector("#evaluation-run-form")?.addEventListener("submit", event => {
+    event.preventDefault();
+    const values = Object.fromEntries(new FormData(event.currentTarget));
+    const result = prototypeStore.createEvaluationRun(DEFAULT_TENANT_ID, values, TENANT_ADMIN_ACTOR_ID);
+    if (!result.ok) {
+      event.currentTarget.querySelector("#evaluation-run-feedback").textContent = evaluationFailureMessage(result);
+      return;
+    }
+    evaluationFeedback = "评测已启动，助手、索引、模型修订和数据集版本均已冻结。";
+    navigate("evaluation-run-detail");
+  });
+  root.querySelector("[data-advance-evaluation-run]")?.addEventListener("click", event => {
+    const result = prototypeStore.advanceEvaluationRun(event.currentTarget.dataset.advanceEvaluationRun, TENANT_ADMIN_ACTOR_ID);
+    evaluationFeedback = result.ok
+      ? result.run.status === "COMPLETED" ? "评测完成，全部 M6 门禁通过。" : `已完成当前阶段，进入 ${result.run.stage}。`
+      : evaluationFailureMessage(result);
+    render();
+  });
+
+  const comparisonDialog = root.querySelector("#evaluation-comparison-dialog");
+  root.querySelector("[data-open-evaluation-comparison]")?.addEventListener("click", () => comparisonDialog?.showModal());
+  root.querySelector("[data-close-evaluation-comparison]")?.addEventListener("click", () => comparisonDialog?.close());
+  root.querySelector("#evaluation-comparison-form")?.addEventListener("submit", event => {
+    event.preventDefault();
+    const result = prototypeStore.createEvaluationComparison(
+      new FormData(event.currentTarget).get("baselineRunId"),
+      event.currentTarget.dataset.candidateRunId,
+      TENANT_ADMIN_ACTOR_ID,
+    );
+    if (!result.ok) {
+      event.currentTarget.querySelector("#evaluation-comparison-feedback").textContent = evaluationFailureMessage(result);
+      return;
+    }
+    comparisonDialog?.close();
+    evaluationFeedback = result.comparison.safeToApprove ? "对比完成，未发现安全或质量回退。" : "对比完成，候选存在回退。";
+    navigate("evaluation-comparison");
+  });
+  root.querySelectorAll("[data-evaluation-decision]").forEach(button => {
+    button.addEventListener("click", () => {
+      const result = prototypeStore.recordEvaluationDecision(button.dataset.evaluationComparisonId, button.dataset.evaluationDecision, TENANT_ADMIN_ACTOR_ID);
+      evaluationFeedback = result.ok
+        ? result.comparison.decision === "APPROVED" ? "已形成放行决定，可回到助手发布门禁继续处理。" : "已阻断候选，保留基线版本。"
+        : evaluationFailureMessage(result);
+      render();
+    });
+  });
+
+  root.querySelectorAll("[data-select-evaluation-failure]").forEach(button => {
+    button.addEventListener("click", () => {
+      prototypeStore.selectEvaluationFailure(button.dataset.evaluationRunId, button.dataset.selectEvaluationFailure);
+      evaluationFeedback = "";
+      render();
+    });
+  });
+  const remediationDialog = root.querySelector("#evaluation-remediation-dialog");
+  root.querySelector("[data-open-evaluation-remediation]")?.addEventListener("click", () => remediationDialog?.showModal());
+  root.querySelector("[data-close-evaluation-remediation]")?.addEventListener("click", () => remediationDialog?.close());
+  root.querySelector("#evaluation-remediation-form")?.addEventListener("submit", event => {
+    event.preventDefault();
+    const values = Object.fromEntries(new FormData(event.currentTarget));
+    const result = prototypeStore.createEvaluationRemediation(
+      event.currentTarget.dataset.evaluationRunId,
+      event.currentTarget.dataset.failureCategory,
+      values,
+      TENANT_ADMIN_ACTOR_ID,
+    );
+    if (!result.ok) {
+      event.currentTarget.querySelector("#evaluation-remediation-feedback").textContent = evaluationFailureMessage(result);
+      return;
+    }
+    remediationDialog?.close();
+    evaluationFeedback = result.replayed ? "该失败类别已有未关闭事项。" : `已创建修复事项“${result.remediation.title}”。`;
+    render();
   });
 }
 
