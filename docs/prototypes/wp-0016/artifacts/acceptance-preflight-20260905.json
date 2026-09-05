@@ -1,0 +1,195 @@
+{
+  "workPackage": "WP-0016",
+  "auditedHead": "553098099b8ba64928e48f0bde13e90e5e412233",
+  "generatedAt": "2026-09-05T01:56:24.499Z",
+  "status": "FAIL",
+  "readyForHumanAcceptance": false,
+  "humanReviewStatus": "rejected",
+  "scope": {
+    "deferredTasks": [
+      "渠道绑定",
+      "设备凭据",
+      "邮件邀请与账户自助激活"
+    ],
+    "inScopeM6Pages": 56,
+    "visualOnlyM7M8Pages": 10,
+    "contentSource": "OpenDesign 项目 249f81f2-6f1a-46ff-988c-da3cdedb35e7",
+    "screenshotsCommitted": 0
+  },
+  "existingChecks": {
+    "nodeTests": {
+      "pass": 100,
+      "fail": 0
+    },
+    "browserTests": {
+      "pass": 101,
+      "fail": 0
+    },
+    "static": {
+      "status": "PASS",
+      "assertions": 3177
+    },
+    "matrix": {
+      "generatedAt": "2026-09-05T01:50:54.045Z",
+      "status": "PASS",
+      "completedScenarioCount": 1428,
+      "assertionCount": 9642,
+      "temporaryScreenshotCount": 85,
+      "stageCount": 14,
+      "errors": [],
+      "failures": []
+    },
+    "openDesignLint": {
+      "p0": 0,
+      "p1": 0,
+      "p2": 0
+    }
+  },
+  "targetedAudit": {
+    "head": "553098099b8ba64928e48f0bde13e90e5e412233",
+    "generatedAt": "2026-09-05T01:56:24.499Z",
+    "pageCount": 66,
+    "visibleControls": 380,
+    "probeCount": 13,
+    "executionErrors": [],
+    "errors": [],
+    "probes": [
+      {
+        "name": "管理端登录角色和口令",
+        "results": [
+          {
+            "login": "platform.admin.demo",
+            "actualScreen": "platform-overview"
+          },
+          {
+            "login": "lin.demo",
+            "actualScreen": "platform-overview"
+          },
+          {
+            "login": "does-not-exist",
+            "actualScreen": "platform-overview"
+          }
+        ]
+      },
+      {
+        "name": "审计目录搜索筛选行操作和导出",
+        "before": [
+          "助手版本发布员工服务助手成功查看",
+          "访问策略撤销全员制度访问成功查看",
+          "索引版本激活员工服务手册成功查看"
+        ],
+        "afterSearch": [
+          "助手版本发布员工服务助手成功查看",
+          "访问策略撤销全员制度访问成功查看",
+          "索引版本激活员工服务手册成功查看"
+        ],
+        "afterFilter": [
+          "助手版本发布员工服务助手成功查看",
+          "访问策略撤销全员制度访问成功查看",
+          "索引版本激活员工服务手册成功查看"
+        ],
+        "secondRowChanged": false,
+        "exportDestination": "audit-record-detail",
+        "downloads": []
+      },
+      {
+        "name": "账户菜单",
+        "changed": false
+      },
+      {
+        "name": "平台账户空态创建入口",
+        "changed": false
+      },
+      {
+        "name": "来源失败处理总览主操作",
+        "destination": "sync-result",
+        "stateChanged": false
+      },
+      {
+        "name": "结构草稿未保存直接预检发布",
+        "typed": "楼层说明更新",
+        "afterPreview": "楼层",
+        "published": "楼层"
+      },
+      {
+        "name": "登记对象范围后进入来源目录",
+        "registered": true,
+        "operations": [],
+        "visibleInSourceDirectory": false,
+        "state": {
+          "registrations": 1,
+          "sources": 0
+        }
+      },
+      {
+        "name": "知识目录筛选与对象上下文",
+        "before": [
+          "员工服务手册面向全体成员的制度、假期、福利和办事指南。就绪4282.6 GBidx-v11今天 17:42进入",
+          "客户支持知识合成产品说明、故障排查和服务政策。索引中256986 MBidx-v7今天 17:18进入"
+        ],
+        "afterSearch": [
+          "员工服务手册面向全体成员的制度、假期、福利和办事指南。就绪4282.6 GBidx-v11今天 17:42进入",
+          "客户支持知识合成产品说明、故障排查和服务政策。索引中256986 MBidx-v7今天 17:18进入"
+        ],
+        "afterFilter": [
+          "员工服务手册面向全体成员的制度、假期、福利和办事指南。就绪4282.6 GBidx-v11今天 17:42进入",
+          "客户支持知识合成产品说明、故障排查和服务政策。索引中256986 MBidx-v7今天 17:18进入"
+        ],
+        "selected": "kb-support",
+        "actualUrl": "http://127.0.0.1:65153/api/projects/249f81f2-6f1a-46ff-988c-da3cdedb35e7/raw/index.html?screen=knowledge-sources&state=success&review=0"
+      },
+      {
+        "name": "快速发布输入与提交结果",
+        "destination": "index-detail",
+        "stateChanged": false
+      },
+      {
+        "name": "知识库空态创建入口",
+        "changed": false,
+        "dialogs": 0
+      },
+      {
+        "name": "普通用户登录后直接访问管理页",
+        "renderedState": "success",
+        "protectedVisible": true,
+        "canCreate": true,
+        "queryPages": {
+          "assistantsControls": 5,
+          "conversationControls": 12
+        }
+      },
+      {
+        "name": "知识库深链接在不同标签页的对象恢复",
+        "firstUrl": "http://127.0.0.1:65153/api/projects/249f81f2-6f1a-46ff-988c-da3cdedb35e7/raw/index.html?screen=knowledge-sources&state=success&review=0",
+        "initialTitle": "员工服务手册 / 4 个来源",
+        "afterReload": "客户支持知识 / 0 个来源",
+        "sameUrl": true
+      },
+      {
+        "name": "关闭本人历史后创建新会话",
+        "actualScreen": "conversation",
+        "renderedState": "denied",
+        "features": {
+          "assistantSelection": true,
+          "conversation": true,
+          "ownHistory": false,
+          "authorizedCitations": true
+        }
+      }
+    ]
+  },
+  "findings": {
+    "blockingGroups": 8,
+    "nonBlockingGroups": 2,
+    "knownInScopeUnclosedControls": 17,
+    "deferredControls": 3,
+    "allControlsEnumerated": false
+  },
+  "limitations": [
+    "事件监听记录只用于发现线索，不能单独证明控件无行为。",
+    "13 项探针收集已复现行为；完成探针不代表测试通过或功能完整。",
+    "既有全矩阵覆盖 68 页，包含 2 个暂缓页面的只读回归，不将其作为本次验收阻断。",
+    "M7/M8 仍仅作既定信息架构与视觉检查；没有验收设备语音或生产运维操作。",
+    "这些是可丢弃原型中的缺陷，不用于推断生产后端授权、安全、性能或 RAG 质量。"
+  ]
+}
