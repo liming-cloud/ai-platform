@@ -12,7 +12,7 @@ function started(storage = createMemoryStorage()) {
 }
 function complete(context) {
   return context.store.advanceQueryRun(fixtures, context.conversation.id, context.run.id, {
-    chunkSize: 1000, expectedEpoch: context.store.getQuerySession().epoch,
+    chunkSize: 1000, expectedEpoch: context.store.getSession().epoch,
   });
 }
 function project(context) {
@@ -46,12 +46,12 @@ test("退出时即使持久化失败也不能让旧接收器继续", () => {
     removeItem: key => memory.removeItem(key),
   };
   const context = started(storage);
-  const epoch = context.store.getQuerySession().epoch;
+  const epoch = context.store.getSession().epoch;
   failing = true;
-  context.store.logoutQuery();
-  assert.equal(context.store.getQuerySession().authenticated, false);
+  context.store.logoutSession();
+  assert.equal(context.store.getSession().authenticated, false);
   const reopened = createPrototypeStore(storage);
-  assert.equal(reopened.getQuerySession().authenticated, false);
+  assert.equal(reopened.getSession().authenticated, false);
   assert.equal(reopened.getSnapshot().query.conversations.length, 1);
   failing = false;
   assert.equal(context.store.advanceQueryRun(fixtures, context.conversation.id, context.run.id, { expectedEpoch: epoch }).ok, false);
@@ -66,13 +66,13 @@ test("年假的一般问题不虚构用户有七天未休", () => {
   const context = started();
   complete(context);
   const second = context.store.startQueryRun(fixtures, context.conversation.id, "年假是否支持结转？");
-  context.store.advanceQueryRun(fixtures, context.conversation.id, second.run.id, { chunkSize: 1000, expectedEpoch: context.store.getQuerySession().epoch });
+  context.store.advanceQueryRun(fixtures, context.conversation.id, second.run.id, { chunkSize: 1000, expectedEpoch: context.store.getSession().epoch });
   assert.doesNotMatch(project(context).messages.at(-1).content, /你有 7 天|其余 2 天/);
 });
 test("接收中退出后重新登录会暂停旧轮次并允许原位继续", () => {
   const context = started();
-  context.store.advanceQueryRun(fixtures, context.conversation.id, context.run.id, { chunkSize: 12, expectedEpoch: context.store.getQuerySession().epoch });
-  context.store.logoutQuery();
+  context.store.advanceQueryRun(fixtures, context.conversation.id, context.run.id, { chunkSize: 12, expectedEpoch: context.store.getSession().epoch });
+  context.store.logoutSession();
   context.store.loginQuery({ tenantCode: "spruce-demo", username: "demo.user", password: "demo-only" });
   assert.equal(project(context).activeRun.status, "PAUSED");
   assert.equal(context.store.resumeQueryRun(fixtures, context.conversation.id, context.run.id).ok, true);

@@ -1,3 +1,4 @@
+const { openForReview } = require("./browser-session.cjs");
 const { test, before, after } = require("node:test");
 const assert = require("node:assert/strict");
 const { chromium } = require("playwright");
@@ -25,13 +26,13 @@ async function visit(action, width = 1440) {
 }
 
 async function reset(page, screen) {
-  await page.goto(url(screen));
+  await openForReview(page, url(screen));
   await page.evaluate(() => localStorage.removeItem("wp0016-business-demo-v1"));
   await page.reload();
 }
 
 async function createRebuild(page) {
-  await page.goto(url("index-rebuild"));
+  await openForReview(page, url("index-rebuild"));
   await page.getByRole("button", { name: "开始全库重建", exact: true }).click();
   await page.locator('main[data-screen="index-detail"]').waitFor();
 }
@@ -84,7 +85,7 @@ test("构建中的版本可取消且不会改变活动索引", () => visit(async
 
 test("无权限态不泄露索引标识、配置或质量详情", () => visit(async page => {
   await reset(page, "index-detail");
-  await page.goto(`${base}?screen=index-detail&state=denied&review=0`);
+  await openForReview(page, `${base}?screen=index-detail&state=denied&review=0`);
   const text = await page.locator("body").innerText();
   assert.doesNotMatch(text, /idx-v11|idx-v12|1536|Recall@10|员工服务手册/);
 }));

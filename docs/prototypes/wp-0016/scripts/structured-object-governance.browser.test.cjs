@@ -1,3 +1,4 @@
+const { openForReview } = require("./browser-session.cjs");
 const { test, before, after } = require("node:test");
 const assert = require("node:assert/strict");
 const { chromium } = require("playwright");
@@ -25,7 +26,7 @@ async function visit(action, width = 1440) {
 }
 
 async function reset(page, screen) {
-  await page.goto(url(screen));
+  await openForReview(page, url(screen));
   await page.evaluate(() => localStorage.removeItem("wp0016-business-demo-v1"));
   await page.reload();
   await page.locator(`main[data-screen="${screen}"]`).waitFor();
@@ -62,7 +63,7 @@ test("对象范围登记只接受已签发范围且不出现基础设施定位�
 
 test("拒绝态不披露数据集、对象范围或字段事实", () => visit(async page => {
   for (const screen of ["dataset-schema", "object-storage-scope"]) {
-    await page.goto(url(screen, "denied"));
+    await openForReview(page, url(screen, "denied"));
     const content = await page.locator("main").innerText();
     assert.doesNotMatch(content, /office_name|华东办公制度|range-east|员工服务手册/);
   }
@@ -70,7 +71,7 @@ test("拒绝态不披露数据集、对象范围或字段事实", () => visit(as
 
 test("不可用态保留可理解说明并禁用主要操作", () => visit(async page => {
   for (const screen of ["dataset-schema", "object-storage-scope"]) {
-    await page.goto(url(screen, "disabled"));
+    await openForReview(page, url(screen, "disabled"));
     const primary = page.locator("[data-primary-action]").first();
     await primary.waitFor();
     assert.equal(await primary.isDisabled(), true);
@@ -80,7 +81,7 @@ test("不可用态保留可理解说明并禁用主要操作", () => visit(async
 for (const width of [390, 1024, 1440]) {
   test(`${width} 宽度下结构化与对象范围页面无横向溢出且主任务可达`, () => visit(async page => {
     for (const screen of ["dataset-schema", "object-storage-scope"]) {
-      await page.goto(url(screen));
+      await openForReview(page, url(screen));
       await page.locator(`main[data-screen="${screen}"]`).waitFor();
       assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), `${screen} 横向溢出`);
       if (width === 390) {

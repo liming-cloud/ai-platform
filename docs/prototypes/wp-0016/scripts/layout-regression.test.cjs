@@ -1,3 +1,4 @@
+const { openForReview } = require("./browser-session.cjs");
 const { test, before, after } = require("node:test");
 const assert = require("node:assert/strict");
 const { mkdir } = require("node:fs/promises");
@@ -66,7 +67,7 @@ async function settleMotion(page) {
 for (const width of [390, 1024, 1440]) {
   test(`${width} 宽度下角色详情三种内容状态不溢出且使用中文名称`, () => scenario(`roles-${width}`, { width, height: 844 }, async page => {
     for (const state of ["partial", "disabled", "success"]) {
-      await page.goto(`${base}?screen=platform-roles&state=${state}&review=0`);
+      await openForReview(page, `${base}?screen=platform-roles&state=${state}&review=0`);
       await page.locator(".detail-facts").waitFor();
       await settleMotion(page);
       await detailFits(page, width);
@@ -77,7 +78,7 @@ for (const width of [390, 1024, 1440]) {
 }
 
 test("详情模板可容纳长连续标识，不以裁切掩盖溢出", () => scenario("long-title", { width: 390, height: 844 }, async page => {
-  await page.goto(`${base}?screen=platform-roles&state=success&review=0`);
+  await openForReview(page, `${base}?screen=platform-roles&state=success&review=0`);
   await page.locator(".detail-facts h2").evaluate(element => { element.textContent = "PLATFORM_ADMINISTRATOR_LONG_IDENTIFIER"; });
   await detailFits(page, 390);
   assert.ok(await page.locator(".detail-facts h2").evaluate(element => element.scrollWidth <= element.clientWidth + 1), "长标题被截断或横向撑开");
@@ -85,7 +86,7 @@ test("详情模板可容纳长连续标识，不以裁切掩盖溢出", () => sc
 
 for (const [screen, layout, selector = `.${layout}-workspace`] of [["assistant-create", "assistant-create", ".split-detail"], ["platform-roles", "detail"], ["sync-result", "result"], ["audit-record-detail", "timeline"]]) {
   test(`手机 ${layout} 工作区上下排列且不压缩正文`, () => scenario(`workspace-${layout}`, { width: 390, height: 844 }, async page => {
-    await page.goto(`${base}?screen=${screen}&state=success&review=0`);
+    await openForReview(page, `${base}?screen=${screen}&state=success&review=0`);
     await page.locator(selector).waitFor();
     await singleColumn(page, selector);
     await settleMotion(page);
@@ -96,7 +97,7 @@ for (const [screen, layout, selector = `.${layout}-workspace`] of [["assistant-c
 for (const viewport of [{ width: 390, height: 600 }, { width: 1024, height: 600 }, { width: 1280, height: 720 }, { width: 1440, height: 720 }, { width: 844, height: 390 }]) {
   const name = `reviewer-${viewport.width}-${viewport.height}`;
   test(`${viewport.width}×${viewport.height} 审查器重置后仍可点击与键盘收起`, () => scenario(name, viewport, async page => {
-    await page.goto(`${base}?screen=backup-recovery&state=success&review=1`);
+    await openForReview(page, `${base}?screen=backup-recovery&state=success&review=1`);
     const summary = page.locator("#prototype-reviewer summary");
     const details = page.locator("#prototype-reviewer details");
     await summary.click();
@@ -118,6 +119,7 @@ for (const viewport of [{ width: 390, height: 600 }, { width: 1024, height: 600 
     await page.keyboard.press("Shift+Tab");
     await page.keyboard.press("Space");
     assert.equal(await details.evaluate(element => element.open), false);
+    await openForReview(page, `${base}?screen=backup-recovery&state=success&review=0`);
     await page.locator('input[value="backup-verified"]').check();
     assert.ok(await page.locator('input[value="backup-verified"]').isChecked(), "审查器收起后产品操作仍被遮挡");
   }, viewport.width === 390 ? "reduce" : "no-preference"));

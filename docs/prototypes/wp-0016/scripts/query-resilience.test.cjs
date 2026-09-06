@@ -4,6 +4,7 @@ const { mkdir } = require("node:fs/promises");
 const { tmpdir } = require("node:os");
 const { join } = require("node:path");
 const { chromium } = require("playwright");
+const { loginConsole } = require("./browser-session.cjs");
 const base = process.env.PROTOTYPE_BASE_URL || "http://127.0.0.1:4176/";
 const artifacts = process.env.QUERY_ARTIFACT_DIR || join(tmpdir(), "wp-0016", "query-resilience");
 let browser;
@@ -79,19 +80,30 @@ test("流式接收时退出不会被旧回调恢复正文", () => scenario("logo
   await terminal(page);
   assert.equal(await page.locator(".message.user", { hasText: "未休 7 天如何处理？" }).count(), 1);
 }));
-test("另一标签页关闭对话权限后当前正文与引用立即失效", () => scenario("cross-tab-revocation", async page => {
+test("独立管理会话撤销权限，业务状态广播后当前问答正文与引用失效", () => scenario("cross-tab-revocation", async page => {
   await login(page);
   await start(page);
-  const administration = await page.context().newPage();
-  await administration.goto(url("platform-tenant-detail"));
-  await administration.locator('[data-tenant-feature="conversation"]').uncheck();
-  await administration.locator('[data-business-action="save-tenant-features"]').click();
+  const administrationContext = await browser.newContext();
+  try {
+    const administration = await administrationContext.newPage();
+    await loginConsole(administration, "platform");
+    await administration.goto(url("platform-tenant-detail"));
+    await administration.locator('[data-tenant-feature="conversation"]').uncheck();
+    await administration.locator('[data-business-action="save-tenant-features"]').click();
+    // 无后端的原型用业务快照模拟服务端广播；人员登录态不跨浏览器会话复制。
+    const snapshot = await administration.evaluate(() => localStorage.getItem("wp0016-business-demo-v1"));
+    const relay = await page.context().newPage();
+    await relay.goto(url("login"));
+    await relay.evaluate(value => localStorage.setItem("wp0016-business-demo-v1", value), snapshot);
+    await relay.close();
+  } finally { await administrationContext.close(); }
   await page.waitForFunction(() => document.querySelectorAll(".message-body, [data-citation-id]").length === 0);
   await page.waitForTimeout(750);
   assert.equal(await page.locator(".message-body, [data-citation-id]").count(), 0);
   await page.reload();
   await page.locator("main[data-screen]").waitFor();
   assert.equal(await page.locator(".message-body, [data-citation-id]").count(), 0);
+  assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem("wp0016-query-session-v1")).accountId), "account-shen");
 }));
 test("浏览器存储写入失败不能显示已完成", () => scenario("storage-failure", async page => {
   await page.addInitScript(() => {

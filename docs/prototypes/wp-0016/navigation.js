@@ -136,6 +136,14 @@ function renderItem(item, activeScreen) {
   ].join("");
 }
 
+/** 同一人员身份驱动两种控制台外壳；账户菜单只展示本人并提供真实退出动作。 */
+export function renderAccountMenu(snapshot) {
+  const session = snapshot?.query?.session;
+  const account = snapshot?.accounts?.find(item => item.id === session?.accountId);
+  if (!account) return "";
+  return `<details class="account-menu account-actions-menu"><summary class="button subtle account-button">${account.platformAdministrator ? "平台管理员" : "租户管理员"} / 账户菜单</summary><div class="account-actions-popover"><strong>${escapeHtml(account.name)}</strong><small>${escapeHtml(account.loginName)}</small><button class="button subtle" type="button" data-console-logout>退出登录</button></div></details>`;
+}
+
 /** 专属页与共享页使用同一导航来源；功能投影只决定展示，不代表后端授权。 */
 export function renderConsoleNavigation({
   screen,

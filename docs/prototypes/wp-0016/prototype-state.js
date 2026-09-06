@@ -131,6 +131,8 @@ function defaultQueryState() {
       authenticated: false,
       tenantId: null,
       accountId: null,
+      accessChannel: null,
+      authenticationRevision: null,
       epoch: 0,
     },
     currentConversationId: null,
@@ -1095,10 +1097,13 @@ function readQuerySession(storage, epoch = 0) {
   try {
     const session = JSON.parse(storage.getItem(QUERY_SESSION_KEY));
     return session?.authenticated === true &&
-      session.tenantId === QUERY_DEMO_ACCOUNT.tenantId &&
-      session.accountId === QUERY_DEMO_ACCOUNT.accountId &&
+      ["CONSOLE", "QUERY_APP"].includes(session.accessChannel) &&
+      typeof session.accountId === "string" &&
+      Number.isSafeInteger(session.authenticationRevision) &&
       Number.isSafeInteger(session.epoch) && session.epoch > 0
-      ? session : anonymous;
+      ? { authenticated: true, tenantId: session.tenantId, accountId: session.accountId,
+          accessChannel: session.accessChannel, authenticationRevision: session.authenticationRevision, epoch: session.epoch }
+      : anonymous;
   } catch {
     return anonymous;
   }
@@ -1305,7 +1310,9 @@ function initialState(storage) {
   try {
     const parsed = JSON.parse(storage.getItem(PROTOTYPE_STATE_KEY));
     if (parsed?.schemaVersion !== 1) {
-      return defaultState();
+      const initial = defaultState();
+      initial.query.session = readQuerySession(storage);
+      return initial;
     }
     parsed.tenantSetup = tenantSetupFrom(parsed.tenantSetup);
     parsed.models = parsed.models && Array.isArray(parsed.models.platformConnections)
@@ -3902,18 +3909,32 @@ export function createPrototypeStore(storage = browserStorage()) {
     return { allowed: true, reason: "ALLOWED" };
   }
 
-  function authorizeScreen(screen, tenantId, accountId) {
+  function authorizeScreen(screen, tenantId, accountId, scope = "tenant") {
     const feature = SCREEN_FEATURE[screen];
-    if (!feature) {
-      return { allowed: true, reason: "NO_FEATURE_GATE" };
-    }
     if (CONVERSATION_FEATURES.includes(feature)) {
       return getEffectiveAccess(tenantId, accountId, { feature });
     }
+    const account = accountById(accountId);
+    if (!account || account.status !== "available") return { allowed: false, reason: "ACCOUNT_NOT_ACTIVE" };
+    if (scope === "platform") return { allowed: canManageAccounts(accountId), reason: "ROLE_BOUNDARY" };
+    const member = memberById(tenantId, accountId);
     const tenant = tenantById(tenantId);
-    return tenant?.availableFeatures[feature]
+    if (scope !== "tenant" || account.platformAdministrator || member?.role !== "tenantAdministrator" ||
+        member.status !== "active" || tenant?.status !== "active") {
+      return { allowed: false, reason: "ROLE_BOUNDARY" };
+    }
+    return !feature || tenant.availableFeatures[feature]
       ? { allowed: true, reason: "ALLOWED" }
       : { allowed: false, reason: "TENANT_FEATURE_CLOSED" };
+  }
+
+  /** 浏览器只消费当前合成登录身份；场景参数不能赋予角色或绕过功能上限。 */
+  function authorizeSession(screen, scope) {
+    if (["login", "console-login"].includes(screen) || scope === "device") return { allowed: true };
+    const session = getSession();
+    if (!session.authenticated) return { allowed: false, reason: "AUTH_REQUIRED" };
+    if ((scope === "query") !== (session.accessChannel === "QUERY_APP")) return { allowed: false, reason: "ROLE_BOUNDARY" };
+    return authorizeScreen(screen, session.tenantId, session.accountId, scope);
   }
 
   function persistQueryMutation(mutator) {
@@ -3922,9 +3943,6 @@ export function createPrototypeStore(storage = browserStorage()) {
     const result = mutator();
     try {
       persist();
-      if (state.query.session.epoch !== before.session.epoch && state.query.session.authenticated) {
-        storage.setItem(QUERY_SESSION_KEY, JSON.stringify(state.query.session));
-      }
       return result;
     } catch {
       state.query = before;
@@ -3933,8 +3951,46 @@ export function createPrototypeStore(storage = browserStorage()) {
     }
   }
 
-  function getQuerySession() {
-    return clone(state.query.session);
+  /** 合成会话独立于业务快照；重新校验账户修订、成员状态和渠道，失效时不返回旧主体。 */
+  function getSession() {
+    if (!querySessionClosed) state.query.session = readQuerySession(storage, state.query.session.epoch);
+    const session = state.query.session;
+    const account = accountById(session.accountId);
+    const member = memberById(session.tenantId, session.accountId);
+    const validAccount = account?.status === "available" && (account.authenticationRevision || 1) === session.authenticationRevision;
+    const validScope = session.accessChannel === "CONSOLE" && account?.platformAdministrator
+      ? session.tenantId === null
+      : tenantById(session.tenantId)?.status === "active" && member?.status === "active" &&
+        member.role === (session.accessChannel === "CONSOLE" ? "tenantAdministrator" : "ordinaryMember");
+    return session.authenticated && validAccount && validScope
+      ? clone(session) : { ...defaultQueryState().session, epoch: session.epoch };
+  }
+
+  function establishSession(accountId, tenantId, accessChannel, screen) {
+    const account = accountById(accountId);
+    const epoch = Math.max(Date.now(), state.query.session.epoch + 1, readQuerySession(storage).epoch + 1);
+    const session = { authenticated: true, tenantId, accountId, accessChannel,
+      authenticationRevision: account.authenticationRevision || 1, epoch };
+    // 登录只原子替换一个键，不在认证期间改写聊天记录；保存失败仍保持原身份和正文。
+    try { storage.setItem(QUERY_SESSION_KEY, JSON.stringify(session)); }
+    catch { return { ok: false, reason: "STORAGE_UNAVAILABLE" }; }
+    state.query.session = session;
+    state.query.currentConversationId = null;
+    if (accessChannel === "QUERY_APP") state.selectedDemoAccountId = accountId;
+    querySessionClosed = false;
+    return { ok: true, screen };
+  }
+
+  /** 仅比较公开演示口令，动态创建或重置的密码不参与本地认证模拟。 */
+  function loginConsole(input = {}) {
+    const username = String(input.username || "").trim();
+    const account = state.accounts.find(item => item.loginName === username);
+    if (!["platform.admin.demo", "qiao.demo"].includes(username) || input.password !== "demo-only" || account?.status !== "available") {
+      return { ok: false, reason: "INVALID_CREDENTIALS" };
+    }
+    if (account.platformAdministrator) return establishSession(account.id, null, "CONSOLE", "platform-overview");
+    if (!authorizeScreen("tenant-overview", DEFAULT_TENANT_ID, account.id).allowed) return { ok: false, reason: "ROLE_BOUNDARY" };
+    return establishSession(account.id, DEFAULT_TENANT_ID, "CONSOLE", "tenant-overview");
   }
 
   function loginQuery(input = {}) {
@@ -3945,44 +4001,27 @@ export function createPrototypeStore(storage = browserStorage()) {
     if (!valid) {
       return { ok: false, reason: "INVALID_CREDENTIALS" };
     }
-    const result = persistQueryMutation(() => {
-      state.selectedDemoAccountId = QUERY_DEMO_ACCOUNT.accountId;
-      state.query.session = {
-        authenticated: true,
-        tenantId: QUERY_DEMO_ACCOUNT.tenantId,
-        accountId: QUERY_DEMO_ACCOUNT.accountId,
-        epoch: state.query.session.epoch + 1,
-      };
-      // 旧登录的接收器已失效，保留偏移并等待当前用户显式继续。
-      for (const conversation of state.query.conversations) {
-        if (conversation.memberId !== QUERY_DEMO_ACCOUNT.accountId) continue;
-        for (const run of conversation.runs) {
-          if (run.status !== "RECEIVING") continue;
-          run.status = "PAUSED";
-          const message = conversation.messages.find(item => item.runId === run.id);
-          if (message) message.runState = "PAUSED";
-        }
-      }
-      return { ok: true, session: getQuerySession() };
-    });
-    if (result.ok) querySessionClosed = false;
-    return result;
+    const access = getEffectiveAccess(QUERY_DEMO_ACCOUNT.tenantId, QUERY_DEMO_ACCOUNT.accountId, { feature: "assistantSelection" });
+    if (!access.allowed) return { ok: false, reason: access.reason };
+    const member = memberById(QUERY_DEMO_ACCOUNT.tenantId, QUERY_DEMO_ACCOUNT.accountId);
+    if (!member.assistantIds.some(id => publishedAssistant(null, id))) return { ok: false, reason: "NO_AUTHORIZED_ASSISTANT" };
+    return establishSession(QUERY_DEMO_ACCOUNT.accountId, QUERY_DEMO_ACCOUNT.tenantId, "QUERY_APP", "assistants");
   }
 
-  function logoutQuery() {
+  function logoutSession() {
     querySessionClosed = true;
     state.query.session = { ...defaultQueryState().session, epoch: state.query.session.epoch + 1 };
     try {
       storage.removeItem(QUERY_SESSION_KEY);
-      return { ok: true, session: getQuerySession() };
+      return { ok: true, session: getSession() };
     } catch {
       return { ok: false, reason: "STORAGE_UNAVAILABLE" };
     }
   }
 
   function queryAccess(feature, assistantId) {
-    const session = state.query.session;
-    if (!session.authenticated || !session.tenantId || !session.accountId) {
+    const session = getSession();
+    if (!session.authenticated || session.accessChannel !== "QUERY_APP") {
       return { allowed: false, reason: "AUTH_REQUIRED" };
     }
     return getEffectiveAccess(session.tenantId, session.accountId, {
@@ -4075,6 +4114,7 @@ export function createPrototypeStore(storage = browserStorage()) {
       const conversation = {
         id: `cv-demo-${String(number).padStart(4, "0")}`,
         memberId: state.query.session.accountId,
+        createdSessionEpoch: state.query.session.epoch,
         assistantId,
         assistant: assistant.name,
         title: "新会话",
@@ -4136,12 +4176,15 @@ export function createPrototypeStore(storage = browserStorage()) {
   }
 
   function queryRunSummary(run) {
-    const { id, status, userSequence, assistantSequence, offset, sessionEpoch } = run;
+    const { id, userSequence, assistantSequence, offset, sessionEpoch } = run;
+    // 旧身份的接收器只能显示为暂停；用户明确继续后再保存新 epoch 和运行状态。
+    const status = run.status === "RECEIVING" && sessionEpoch !== state.query.session.epoch ? "PAUSED" : run.status;
     return { id, status, userSequence, assistantSequence, offset, sessionEpoch, totalCharacters: run.answer.length };
   }
 
   function canUseConversation(fixtures, conversationId) {
-    if (!state.query.session.authenticated) {
+    const session = getSession();
+    if (!session.authenticated || session.accessChannel !== "QUERY_APP") {
       return { allowed: false, reason: "AUTH_REQUIRED" };
     }
     const conversation = queryConversation(fixtures, conversationId);
@@ -4150,7 +4193,9 @@ export function createPrototypeStore(storage = browserStorage()) {
     }
     const history = queryAccess("ownHistory", conversation.assistantId);
     const conversationAccess = queryAccess("conversation", conversation.assistantId);
-    if (!history.allowed || !conversationAccess.allowed) {
+    // 仅当前登录中新建且仍选中的会话不依赖历史权限；URL 本身不能把旧历史变成当前会话。
+    const current = conversation.id === state.query.currentConversationId && conversation.createdSessionEpoch === session.epoch;
+    if ((!history.allowed && !current) || !conversationAccess.allowed) {
       return {
         allowed: false,
         reason: history.allowed ? conversationAccess.reason : history.reason,
@@ -4270,7 +4315,7 @@ export function createPrototypeStore(storage = browserStorage()) {
     }
     const conversation = storedConversation(conversationId);
     const run = conversation?.runs.find((item) => item.id === runId);
-    if (!run || !from.includes(run.status)) {
+    if (!run || !from.includes(queryRunSummary(run).status)) {
       return { ok: false, reason: "RUN_STATE_MISMATCH" };
     }
     return persistQueryMutation(() => {
@@ -4331,6 +4376,8 @@ export function createPrototypeStore(storage = browserStorage()) {
     if (!access.allowed) {
       return { ok: false, reason: access.reason };
     }
+    const history = queryAccess("ownHistory", access.conversation.assistantId);
+    if (!history.allowed) return { ok: false, reason: history.reason };
     return persistQueryMutation(() => {
       if (!state.query.loadedEarlierConversationIds.includes(conversationId)) {
         state.query.loadedEarlierConversationIds.push(conversationId);
@@ -4341,8 +4388,8 @@ export function createPrototypeStore(storage = browserStorage()) {
 
   /** 合成问答数据也按当前登录成员、已发布助手和会话归属过滤，不以菜单隐藏替代数据过滤。 */
   function queryProjection(fixtures, request = {}) {
-    const session = state.query.session;
-    if (!session.authenticated) {
+    const session = getSession();
+    if (!session.authenticated || session.accessChannel !== "QUERY_APP") {
       return {
         member: null,
         assistants: [],
@@ -4375,12 +4422,12 @@ export function createPrototypeStore(storage = browserStorage()) {
     ];
     const history = combined.filter((conversation) =>
       conversation.memberId === accountId && allowed("ownHistory", conversation.assistantId));
-    const conversation = history.find((item) => item.id === request.conversationId) || null;
+    const access = canUseConversation(fixtures, request.conversationId);
+    const conversation = access.allowed ? access.conversation : null;
     const assistantId = conversation?.assistantId || request.assistantId || assistants[0]?.id;
     const conversationAllowed = Boolean(
       conversation &&
-      allowed("conversation", assistantId) &&
-      allowed("ownHistory", assistantId),
+      allowed("conversation", assistantId),
     );
     let messages = conversation && conversationAllowed
       ? clone(
@@ -4400,6 +4447,10 @@ export function createPrototypeStore(storage = browserStorage()) {
       messages.forEach((message) => delete message.citations);
     }
     const stored = conversation ? storedConversation(conversation.id) : null;
+    for (const message of messages) {
+      const run = stored?.runs.find(item => item.id === message.runId);
+      if (run && message.runState) message.runState = queryRunSummary(run).status;
+    }
     const activeRun = stored && conversationAllowed
       ? [...stored.runs].reverse().find((run) =>
           ["RECEIVING", "PAUSED", "FAILED", "STOPPED"].includes(run.status),
@@ -4407,6 +4458,7 @@ export function createPrototypeStore(storage = browserStorage()) {
       : null;
     const canLoadEarlier = Boolean(
       conversation &&
+        allowed("ownHistory", conversation.assistantId) &&
         !state.query.loadedEarlierConversationIds.includes(conversation.id) &&
         (fixtures?.messages || []).some(
           (message) =>
@@ -4430,7 +4482,7 @@ export function createPrototypeStore(storage = browserStorage()) {
     if (!member || member.role !== "ordinaryMember") {
       return { ok: false, reason: "DEMO_MEMBER_REQUIRED" };
     }
-    if (state.query.session.authenticated && state.query.session.accountId !== accountId) logoutQuery();
+    if (state.query.session.authenticated && state.query.session.accountId !== accountId) logoutSession();
     return persistQueryMutation(() => {
       state.selectedDemoAccountId = accountId;
       return { ok: true };
@@ -4571,8 +4623,10 @@ export function createPrototypeStore(storage = browserStorage()) {
   }
 
   function reloadFromStorage() {
+    const closedEpoch = state.query.session.epoch;
     state = initialState(storage);
-    if (querySessionClosed) state.query.session = { ...defaultQueryState().session, epoch: state.query.session.epoch };
+    if (querySessionClosed && state.query.session.epoch <= closedEpoch) state.query.session = { ...defaultQueryState().session, epoch: closedEpoch };
+    else querySessionClosed = false;
     tenantDrafts.clear();
     memberDrafts.clear();
     return clone(state);
@@ -4672,10 +4726,12 @@ export function createPrototypeStore(storage = browserStorage()) {
     commitMemberFeatureDraft,
     getEffectiveAccess,
     authorizeScreen,
+    authorizeSession,
     queryProjection,
-    getQuerySession,
+    getSession,
+    loginConsole,
     loginQuery,
-    logoutQuery,
+    logoutSession,
     createQueryConversation,
     startQueryRun,
     advanceQueryRun,

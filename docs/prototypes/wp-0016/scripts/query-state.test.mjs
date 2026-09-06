@@ -31,7 +31,7 @@ test("错误口令不建立会话且口令从不进入持久化", () => {
     }),
     { ok: false, reason: "INVALID_CREDENTIALS" },
   );
-  assert.equal(store.getQuerySession().authenticated, false);
+  assert.equal(store.getSession().authenticated, false);
   assert.doesNotMatch(storage.dump(), /wrong-password|demo-only/);
   assert.equal(login(store).ok, true);
   assert.doesNotMatch(storage.dump(), /demo-only/);
@@ -81,7 +81,7 @@ test("接收中的同一问题可恢复且不会重复追加", () => {
   while (advanced.run.status === "RECEIVING") {
     advanced = store.advanceQueryRun(fixtures, conversation.id, started.run.id, {
       chunkSize: 32,
-      expectedEpoch: store.getQuerySession().epoch,
+      expectedEpoch: store.getSession().epoch,
     });
   }
   assert.equal(advanced.run.status, "COMPLETED");
@@ -97,7 +97,7 @@ test("接收中的同一问题可恢复且不会重复追加", () => {
   );
   assert.equal(projection.messages.at(-1).runState, "COMPLETED");
   assert.ok(projection.messages.at(-1).citations.length > 0);
-  assert.equal(reloaded.logoutQuery().ok, true);
+  assert.equal(reloaded.logoutSession().ok, true);
   assert.equal(login(reloaded).ok, true);
   assert.equal(
     reloaded.queryProjection(fixtures, {
@@ -123,7 +123,7 @@ test("未知问题明确拒答且不复用年假答案", () => {
   while (result.run.status === "RECEIVING") {
     result = store.advanceQueryRun(fixtures, conversation.id, started.run.id, {
       chunkSize: 80,
-      expectedEpoch: store.getQuerySession().epoch,
+      expectedEpoch: store.getSession().epoch,
     });
   }
   assert.equal(result.run.status, "REFUSED");
@@ -195,8 +195,8 @@ test("暂停、失败和重试沿用原轮次，退出或撤权后旧接收器�
     ).run.status,
     "RECEIVING",
   );
-  const epoch = store.getQuerySession().epoch;
-  store.logoutQuery();
+  const epoch = store.getSession().epoch;
+  store.logoutSession();
   assert.deepEqual(
     store.advanceQueryRun(fixtures, conversation.id, failed.run.id, {
       chunkSize: 20,
@@ -217,7 +217,7 @@ test("暂停、失败和重试沿用原轮次，退出或撤权后旧接收器�
   assert.equal(
     store.advanceQueryRun(fixtures, conversation.id, failed.run.id, {
       chunkSize: 20,
-      expectedEpoch: store.getQuerySession().epoch,
+      expectedEpoch: store.getSession().epoch,
     }).ok,
     false,
   );
@@ -236,9 +236,9 @@ test("跨标签退出后重新载入状态会阻止旧轮次继续", () => {
     conversation.id,
     "未休 7 天如何处理？",
   );
-  const oldEpoch = firstTab.getQuerySession().epoch;
+  const oldEpoch = firstTab.getSession().epoch;
   const secondTab = createPrototypeStore(storage);
-  assert.equal(secondTab.logoutQuery().ok, true);
+  assert.equal(secondTab.logoutSession().ok, true);
   firstTab.reloadFromStorage();
   assert.deepEqual(
     firstTab.advanceQueryRun(fixtures, conversation.id, started.run.id, {
@@ -261,6 +261,6 @@ test("持久化失败会回滚登录并返回可见失败语义", () => {
   };
   const store = createPrototypeStore(storage);
   assert.deepEqual(login(store), { ok: false, reason: "STORAGE_UNAVAILABLE" });
-  assert.equal(store.getQuerySession().authenticated, false);
+  assert.equal(store.getSession().authenticated, false);
   assert.equal(storage.getItem(PROTOTYPE_STATE_KEY), null);
 });

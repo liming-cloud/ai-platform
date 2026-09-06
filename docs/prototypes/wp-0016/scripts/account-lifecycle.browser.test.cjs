@@ -1,3 +1,4 @@
+const { openForReview } = require("./browser-session.cjs");
 const { test, before, after } = require("node:test");
 const assert = require("node:assert/strict");
 const { mkdir } = require("node:fs/promises");
@@ -25,7 +26,7 @@ async function visit(name, action, viewport = { width: 1440, height: 900 }) {
     if (message.type() === "error") errors.push(message.text());
   });
   try {
-    await page.goto(`${base}?screen=platform-accounts&state=success&review=0`);
+    await openForReview(page, `${base}?screen=platform-accounts&state=success&review=0`);
     await action(page);
     assert.deepEqual(errors, [], "页面出现运行异常");
   } catch (error) {

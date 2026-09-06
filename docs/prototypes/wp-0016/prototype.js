@@ -1,5 +1,5 @@
 import { decorateExistingPage, renderInventoryPage } from "./full-platform.js";
-import { renderConsoleNavigation } from "./navigation.js";
+import { renderConsoleNavigation, renderAccountMenu } from "./navigation.js";
 import {
   createPrototypeStore,
   DEFAULT_TENANT_ID,
@@ -32,6 +32,8 @@ let activeConversationId = "";
 let streamTimer;
 let streamGeneration = 0;
 let loginFeedback = "";
+let consoleLoginFeedback = "";
+let consoleLoginName = "";
 let queryFeedback = "";
 let accountFeedback = "";
 let knowledgeFeedback = "";
@@ -43,9 +45,8 @@ let accessGovernanceFeedback = "";
 let dataGovernanceFeedback = "";
 let nextQueryMode = "normal";
 let queryStreamingSuspended = false;
-const PLATFORM_ACCOUNT_ACTOR_ID = "account-platform-admin";
-const TENANT_ADMIN_ACTOR_ID = "account-qiao";
 const prototypeStore = createPrototypeStore();
+let renderedSessionEpoch = 0;
 
 try {
   const [fixtureResponse, inventoryResponse, pageFixtureResponse] =
@@ -131,6 +132,21 @@ reviewSearch.addEventListener("keydown", (event) => {
 });
 
 window.addEventListener("popstate", render);
+// 跨标签页身份改变后，即便 storage 通知尚未派发，旧页面事件也不能沿用管理员身份。
+for (const type of ["click", "submit", "change", "input"]) {
+  root.addEventListener(type, event => {
+    const main = root.querySelector("main[data-screen]");
+    const screen = main?.dataset.screen;
+    if (["login", "console-login"].includes(screen)) return;
+    if (main?.dataset.state === "denied") return;
+    const access = prototypeStore.authorizeSession(screen, scopeForScreen(screen));
+    if (!access.allowed || prototypeStore.getSession().epoch !== renderedSessionEpoch) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      render();
+    }
+  }, true);
+}
 window.addEventListener("storage", (event) => {
   if (![PROTOTYPE_STATE_KEY, QUERY_SESSION_KEY, null].includes(event.key)) {
     return;
@@ -140,6 +156,14 @@ window.addEventListener("storage", (event) => {
   render();
 });
 document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape") {
+    const accountMenu = root.querySelector(".account-menu[open]");
+    if (accountMenu) {
+      accountMenu.open = false;
+      accountMenu.querySelector("summary")?.focus();
+      event.preventDefault();
+    }
+  }
   if (event.key === "Escape" && document.body.dataset.historyOpen === "true") {
     closeHistory();
   }
@@ -236,13 +260,11 @@ function render() {
   }
   cancelQueryTimer();
   const scenario = currentScenario();
-  const querySession = prototypeStore.getQuerySession();
-  const protectedQueryScreen = ["assistants", "conversation"].includes(
-    scenario.screen,
-  );
+  const querySession = prototypeStore.getSession();
+  const requestedAccess = prototypeStore.authorizeSession(scenario.screen, scopeForScreen(scenario.screen));
   const screen =
-    protectedQueryScreen && !querySession.authenticated
-      ? "login"
+    requestedAccess.reason === "AUTH_REQUIRED"
+      ? scopeForScreen(scenario.screen) === "query" ? "login" : "console-login"
       : scenario.screen;
   if (screen === "conversation") {
     activeConversationId =
@@ -251,19 +273,15 @@ function render() {
       "";
   }
   const demoState = prototypeStore.getSnapshot();
-  const access = prototypeStore.authorizeScreen(
-    screen,
-    DEFAULT_TENANT_ID,
-    querySession.accountId || demoState.selectedDemoAccountId,
-  );
+  const access = prototypeStore.authorizeSession(screen, scopeForScreen(screen));
   const objectAllowed = screen !== "conversation" || prototypeStore.queryProjection(fixtures, {
     assistantId: selectedAssistantId,
     conversationId: activeConversationId,
   }).conversationAllowed;
   const renderedState =
-    (!access.allowed || !objectAllowed) && ["success", "partial", "disabled"].includes(scenario.state)
+    (!access.allowed || !objectAllowed)
       ? "denied"
-      : scenario.state;
+      : screen !== scenario.screen ? "success" : scenario.state;
   document.body.dataset.screen = screen;
   document.body.dataset.state = renderedState;
   document.body.dataset.review = scenario.review ? "visible" : "hidden";
@@ -282,8 +300,9 @@ function render() {
         }
       : screen === "platform-accounts"
         ? { ...demoState, accountFeedback }
-        : demoState;
-  root.innerHTML = renderScreen(screen, renderedState, renderedDemoState);
+        : screen === "console-login" ? { ...demoState, consoleLoginFeedback, consoleLoginName } : demoState;
+  root.innerHTML = access.allowed ? renderScreen(screen, renderedState, renderedDemoState) : renderAccessDenied(screen, querySession);
+  renderedSessionEpoch = querySession.epoch;
   const page = pageByScreen.get(screen);
   decorateExistingPage(
     root.querySelector(`main[data-screen="${CSS.escape(screen)}"]`),
@@ -302,6 +321,19 @@ function render() {
     scheduleQueryContinuation();
   }
   document.title = screenTitle(screen) + " · 可信 RAG 原型";
+}
+
+function scopeForScreen(screen) {
+  const group = groupByScreen.get(screen);
+  if (group?.shell === "device") return "device";
+  if (["login", "assistants", "conversation"].includes(screen)) return "query";
+  return ["platform-governance", "platform-operations"].includes(group?.id) ? "platform" : "tenant";
+}
+
+function renderAccessDenied(screen, session) {
+  const destination = session.accessChannel === "QUERY_APP" ? "assistants"
+    : session.tenantId ? "tenant-overview" : "platform-overview";
+  return `<main id="main-content" class="boot-state" data-screen="${escapeHtml(screen)}" data-state="denied" tabindex="-1"><h1>无法访问此页面</h1><p>当前账户没有此项访问权限，请返回自己的工作区。</p><div class="form-actions"><button class="button primary" type="button" data-nav-screen="${destination}">返回我的工作区</button><button class="button secondary" type="button" ${session.accessChannel === "QUERY_APP" ? "data-query-logout" : "data-console-logout"}>退出登录</button></div></main>`;
 }
 
 function renderScreen(screen, state, demoState) {
@@ -979,9 +1011,7 @@ function adminShell(active, title, summary, action, body, state, breadcrumb, sco
       (platform ? "平台管理 / 不含租户内容" : escapeHtml(fixtures.tenant.displayName) + " / 租户管理") +
       '</span><div class="topbar-actions">' +
       (platform ? "" : demoAccountControl()) +
-      '<button class="button subtle account-button" type="button">' +
-      (platform ? "平台管理员" : "租户管理员") +
-      " / 账户菜单</button></div></header>",
+      renderAccountMenu(demoState) + "</div></header>",
     '<main id="main-content" class="admin-main" data-screen="' +
       active +
       '" data-state="' +
@@ -2063,7 +2093,7 @@ function accessPolicyFailureMessage(result) {
 }
 
 function renderAccessPolicyDetail(state, snapshot) {
-  const projection = prototypeStore.getAccessPolicyProjection("access-policy-all-employees", TENANT_ADMIN_ACTOR_ID);
+  const projection = prototypeStore.getAccessPolicyProjection("access-policy-all-employees", prototypeStore.getSession().accountId);
   if (!projection.ok) return adminShell("access-policy-detail", "访问策略版本", "", "", statePanel("denied", "当前会话不能访问此策略", "页面不会确认策略或成员是否存在。", "返回访问策略", "access-policies"), state, "访问治理 / 策略版本");
   const { policy, version, assistant, knowledgeBase, members } = projection;
   const blocked = state !== "success" || version.status !== "DRAFT";
@@ -2094,7 +2124,7 @@ function queryOutcomeLabel(outcome) {
 }
 
 function renderGovernanceQuery(state) {
-  const projection = prototypeStore.getQueryGovernanceProjection(DEFAULT_TENANT_ID, TENANT_ADMIN_ACTOR_ID);
+  const projection = prototypeStore.getQueryGovernanceProjection(DEFAULT_TENANT_ID, prototypeStore.getSession().accountId);
   if (!projection.ok) return adminShell("governance-query", "查询治理", "", "", statePanel("denied", "当前会话不能读取查询治理", "不显示租户、运行或配额是否存在。", "返回工作区", "tenant-overview"), state, "评测治理 / 查询治理");
   const blocked = state !== "success";
   const { quota, usage, runs } = projection;
@@ -2110,7 +2140,7 @@ function renderGovernanceQuery(state) {
 
 function renderQueryDiagnostic(state, snapshot) {
   const selectedId = snapshot.accessGovernance.selectedQueryRunId;
-  const projection = prototypeStore.getQueryDiagnostic(selectedId, TENANT_ADMIN_ACTOR_ID);
+  const projection = prototypeStore.getQueryDiagnostic(selectedId, prototypeStore.getSession().accountId);
   if (!projection.ok) return adminShell("query-diagnostic", "受权查询诊断", "", "", statePanel("empty", "诊断事实不可用", "终态事实不存在或当前会话无权读取。", "返回查询治理", "governance-query"), state, "评测治理 / 查询诊断");
   const { run, diagnostic, remediation } = projection;
   const actionable = run.outcome !== "ANSWERED";
@@ -2165,7 +2195,7 @@ function fieldSelect(name, label, value, options, disabled) {
 }
 
 function renderDatasetSchema(state, snapshot) {
-  const projection = prototypeStore.getStructuredDatasetProjection("dataset-office-directory", TENANT_ADMIN_ACTOR_ID);
+  const projection = prototypeStore.getStructuredDatasetProjection("dataset-office-directory", prototypeStore.getSession().accountId);
   if (!projection.ok) return adminShell("dataset-schema", "结构化数据版本", "", "", statePanel("denied", "当前会话不能访问此任务", "页面不会确认数据集是否存在。", "返回数据来源", "knowledge-sources"), state, "知识处理 / 结构化数据");
   const { dataset, version } = projection;
   const editable = state === "success" && version.status === "DRAFT";
@@ -2204,7 +2234,7 @@ function renderDatasetSchema(state, snapshot) {
 }
 
 function renderObjectStorageScope(state, snapshot) {
-  const projection = prototypeStore.getObjectStorageScopeProjection(DEFAULT_TENANT_ID, TENANT_ADMIN_ACTOR_ID);
+  const projection = prototypeStore.getObjectStorageScopeProjection(DEFAULT_TENANT_ID, prototypeStore.getSession().accountId);
   if (!projection.ok) return adminShell("object-storage-scope", "对象存储范围", "", "", statePanel("denied", "当前会话不能访问此任务", "页面不会确认对象范围是否存在。", "返回数据来源", "knowledge-sources"), state, "知识处理 / 对象范围");
   const blocked = state !== "success" || projection.availableRanges.length === 0;
   const rangeRows = projection.availableRanges.map(range => `<tr><td data-label="签发范围"><span class="primary-cell"><strong>${escapeHtml(range.label)}</strong><span>版本 ${escapeHtml(range.selectionRevision)}</span></span></td><td data-label="驻留区域">${escapeHtml(range.region)}</td><td data-label="冻结对象">${escapeHtml(range.objectCount)} 个</td><td data-label="支持内容">严格 UTF-8 文本</td><td data-label="状态">${statusTag("READY")}</td></tr>`).join("");
@@ -2252,7 +2282,7 @@ function bindKnowledgeManagement() {
     const values = new FormData(event.currentTarget);
     const result = prototypeStore.createKnowledgeBase(
       { name: values.get("name"), description: values.get("description") },
-      TENANT_ADMIN_ACTOR_ID,
+      prototypeStore.getSession().accountId,
       DEFAULT_TENANT_ID,
     );
     if (!result.ok) {
@@ -2304,7 +2334,7 @@ function bindKnowledgeManagement() {
     const result = prototypeStore.addKnowledgeSource(
       knowledgeBase?.id,
       input,
-      TENANT_ADMIN_ACTOR_ID,
+      prototypeStore.getSession().accountId,
     );
     if (!result.ok) {
       const message = {
@@ -2330,7 +2360,7 @@ function bindKnowledgeManagement() {
     const result = prototypeStore.advanceKnowledgeSource(
       snapshot.selectedKnowledgeBaseId,
       snapshot.selectedKnowledgeSourceId,
-      TENANT_ADMIN_ACTOR_ID,
+      prototypeStore.getSession().accountId,
     );
     knowledgeFeedback = result.ok ? `处理阶段已更新为 ${result.source.stage}。` : "当前阶段不能继续推进。";
     render();
@@ -2340,7 +2370,7 @@ function bindKnowledgeManagement() {
     const result = prototypeStore.retryKnowledgeSource(
       snapshot.selectedKnowledgeBaseId,
       snapshot.selectedKnowledgeSourceId,
-      TENANT_ADMIN_ACTOR_ID,
+      prototypeStore.getSession().accountId,
     );
     knowledgeFeedback = result.ok ? "已从安全重试点继续，失败内容仍未进入活动索引。" : "当前来源不能重试。";
     render();
@@ -2350,7 +2380,7 @@ function bindKnowledgeManagement() {
     const result = prototypeStore.reprocessKnowledgeSource(
       snapshot.selectedKnowledgeBaseId,
       snapshot.selectedKnowledgeSourceId,
-      TENANT_ADMIN_ACTOR_ID,
+      prototypeStore.getSession().accountId,
     );
     knowledgeFeedback = result.ok ? "已建立新修订并开始重新提取；活动索引继续服务。" : "当前来源不能重新处理。";
     render();
@@ -2372,7 +2402,7 @@ function bindIndexManagement() {
     const result = prototypeStore.createIndexRebuild(
       knowledgeBase?.id,
       { trigger, ...definition },
-      TENANT_ADMIN_ACTOR_ID,
+      prototypeStore.getSession().accountId,
     );
     if (!result.ok) {
       const message = {
@@ -2392,7 +2422,7 @@ function bindIndexManagement() {
     const result = prototypeStore.advanceIndexBuild(
       snapshot.selectedKnowledgeBaseId,
       snapshot.selectedIndexVersionId,
-      TENANT_ADMIN_ACTOR_ID,
+      prototypeStore.getSession().accountId,
     );
     indexFeedback = result.ok ? `构建已推进到 ${result.indexVersion.stage}。` : "当前构建不能继续推进。";
     render();
@@ -2403,7 +2433,7 @@ function bindIndexManagement() {
       snapshot.selectedKnowledgeBaseId,
       snapshot.selectedIndexVersionId,
       fixtures.indexVersion.quality,
-      TENANT_ADMIN_ACTOR_ID,
+      prototypeStore.getSession().accountId,
     );
     indexFeedback = result.ok && result.indexVersion.status === "READY_FOR_REVIEW"
       ? "冻结评测通过，可以由授权管理员激活。"
@@ -2417,7 +2447,7 @@ function bindIndexManagement() {
     const result = prototypeStore.activateIndexVersion(
       snapshot.selectedKnowledgeBaseId,
       snapshot.selectedIndexVersionId,
-      TENANT_ADMIN_ACTOR_ID,
+      prototypeStore.getSession().accountId,
     );
     indexFeedback = result.ok ? `${result.indexVersion.id} 已原子切换为当前活动索引。` : "激活失败，活动索引未变化。";
     indexDialog?.close();
@@ -2430,7 +2460,7 @@ function bindIndexManagement() {
     const result = prototypeStore.cancelIndexBuild(
       snapshot.selectedKnowledgeBaseId,
       snapshot.selectedIndexVersionId,
-      TENANT_ADMIN_ACTOR_ID,
+      prototypeStore.getSession().accountId,
     );
     indexFeedback = result.ok ? "候选构建已取消，活动索引未变化。" : "当前版本不能取消。";
     cancelDialog?.close();
@@ -2453,7 +2483,7 @@ function bindModelGovernance() {
       runtimeBaseUrl: form.get("runtimeBaseUrl"),
       capability: form.get("capability"),
       accessKey: form.get("accessKey"),
-    }, PLATFORM_ACCOUNT_ACTOR_ID);
+    }, prototypeStore.getSession().accountId);
     if (!result.ok) {
       root.querySelector("#platform-connection-feedback").textContent = {
         UNSAFE_RUNTIME_ENDPOINT: "运行地址必须是公网 HTTPS，不能使用本机或私网目标。",
@@ -2468,13 +2498,13 @@ function bindModelGovernance() {
   });
   root.querySelector("[data-probe-platform-connection]")?.addEventListener("click", () => {
     const snapshot = prototypeStore.getSnapshot();
-    const result = prototypeStore.probePlatformModelConnection(snapshot.models.selectedPlatformConnectionId, PLATFORM_ACCOUNT_ACTOR_ID);
+    const result = prototypeStore.probePlatformModelConnection(snapshot.models.selectedPlatformConnectionId, prototypeStore.getSession().accountId);
     modelFeedback = result.ok ? "连接探测通过，可以发布本版本。" : "连接探测失败，未发布任何能力。";
     render();
   });
   root.querySelector("[data-publish-platform-connection]")?.addEventListener("click", () => {
     const snapshot = prototypeStore.getSnapshot();
-    const result = prototypeStore.publishPlatformModelConnection(snapshot.models.selectedPlatformConnectionId, PLATFORM_ACCOUNT_ACTOR_ID);
+    const result = prototypeStore.publishPlatformModelConnection(snapshot.models.selectedPlatformConnectionId, prototypeStore.getSession().accountId);
     modelFeedback = result.ok ? "连接版本已发布；尚未自动建立部署或授权租户。" : "连接未发布，状态未变化。";
     render();
   });
@@ -2490,7 +2520,7 @@ function bindModelGovernance() {
       connectionId,
       modelId,
       tenantIds: form.get("authorizeTenant") ? [DEFAULT_TENANT_ID] : [],
-    }, PLATFORM_ACCOUNT_ACTOR_ID);
+    }, prototypeStore.getSession().accountId);
     if (!result.ok) {
       root.querySelector("#platform-deployment-feedback").textContent = result.reason === "TENANT_AUTHORIZATION_REQUIRED"
         ? "请至少选择一个可发现此部署的租户。"
@@ -2503,27 +2533,27 @@ function bindModelGovernance() {
   });
   root.querySelector("[data-verify-platform-deployment]")?.addEventListener("click", () => {
     const snapshot = prototypeStore.getSnapshot();
-    const result = prototypeStore.verifyPlatformModelDeployment(snapshot.models.selectedPlatformDeploymentId, PLATFORM_ACCOUNT_ACTOR_ID);
+    const result = prototypeStore.verifyPlatformModelDeployment(snapshot.models.selectedPlatformDeploymentId, prototypeStore.getSession().accountId);
     modelFeedback = result.ok ? "能力、预算与安全样本验证通过。" : "验证失败，部署未进入授权目录。";
     render();
   });
   root.querySelector("[data-publish-platform-deployment]")?.addEventListener("click", () => {
     const snapshot = prototypeStore.getSnapshot();
-    const result = prototypeStore.publishPlatformModelDeployment(snapshot.models.selectedPlatformDeploymentId, PLATFORM_ACCOUNT_ACTOR_ID);
+    const result = prototypeStore.publishPlatformModelDeployment(snapshot.models.selectedPlatformDeploymentId, prototypeStore.getSession().accountId);
     modelFeedback = result.ok ? "部署已发布到租户授权目录；未自动创建租户配置。" : "部署未发布，状态未变化。";
     render();
   });
 
   root.querySelector("[data-discover-tenant-models]")?.addEventListener("click", () => {
     const connectionId = root.querySelector("#tenant-discovery-connection")?.value;
-    const result = prototypeStore.discoverTenantModels(DEFAULT_TENANT_ID, connectionId, TENANT_ADMIN_ACTOR_ID);
+    const result = prototypeStore.discoverTenantModels(DEFAULT_TENANT_ID, connectionId, prototypeStore.getSession().accountId);
     modelFeedback = result.ok ? `发现完成：${result.models.length} 个已授权模型。` : "发现失败，没有改变租户目录。";
     if (result.ok) navigate("model-provider-detail");
     else render();
   });
   root.querySelector("[data-rediscover-tenant-models]")?.addEventListener("click", () => {
     const snapshot = prototypeStore.getSnapshot();
-    const result = prototypeStore.discoverTenantModels(DEFAULT_TENANT_ID, snapshot.models.selectedTenantConnectionId, TENANT_ADMIN_ACTOR_ID);
+    const result = prototypeStore.discoverTenantModels(DEFAULT_TENANT_ID, snapshot.models.selectedTenantConnectionId, prototypeStore.getSession().accountId);
     modelFeedback = result.ok ? `发现完成：${result.models.length} 个已授权模型。` : "重新探测失败，保留上次成功结果。";
     render();
   });
@@ -2543,7 +2573,7 @@ function bindModelGovernance() {
     const result = prototypeStore.createTenantModelConfiguration(DEFAULT_TENANT_ID, {
       name: form.get("name"),
       platformDeploymentId: form.get("platformDeploymentId"),
-    }, TENANT_ADMIN_ACTOR_ID);
+    }, prototypeStore.getSession().accountId);
     if (!result.ok) {
       root.querySelector("#model-configuration-feedback").textContent = result.reason === "CONFIGURATION_NAME_CONFLICT"
         ? "配置名称已存在。"
@@ -2562,7 +2592,7 @@ function bindModelGovernance() {
     const result = prototypeStore.rotateTenantModelAccessKey(
       snapshot.models.selectedConfigurationId,
       new FormData(event.currentTarget).get("accessKey"),
-      TENANT_ADMIN_ACTOR_ID,
+      prototypeStore.getSession().accountId,
     );
     if (!result.ok) {
       root.querySelector("#model-key-feedback").textContent = "新访问密钥未保存，请确认至少 8 个字符且没有其他待验证版本。";
@@ -2584,7 +2614,7 @@ function bindModelGovernance() {
       : configuration.capability === "CHAT"
         ? { temperature: Number(values.temperature), maxOutputTokens: Number(values.maxOutputTokens) }
         : { candidateCount: Number(values.candidateCount), evidenceCount: Number(values.evidenceCount) };
-    const result = prototypeStore.createTenantModelConfigurationRevision(configuration.id, input, TENANT_ADMIN_ACTOR_ID);
+    const result = prototypeStore.createTenantModelConfigurationRevision(configuration.id, input, prototypeStore.getSession().accountId);
     if (!result.ok) {
       root.querySelector("#model-revision-feedback").textContent = result.reason === "CONFIGURATION_CHANGE_REQUIRED"
         ? "请至少修改一项参数。"
@@ -2597,13 +2627,13 @@ function bindModelGovernance() {
   });
   root.querySelector("[data-verify-model-configuration]")?.addEventListener("click", () => {
     const snapshot = prototypeStore.getSnapshot();
-    const result = prototypeStore.verifyTenantModelConfiguration(snapshot.models.selectedConfigurationId, TENANT_ADMIN_ACTOR_ID);
+    const result = prototypeStore.verifyTenantModelConfiguration(snapshot.models.selectedConfigurationId, prototypeStore.getSession().accountId);
     modelFeedback = result.ok ? "配置验证通过，可以启用待验证版本。" : "配置验证失败，旧版本继续服务。";
     render();
   });
   root.querySelector("[data-enable-model-configuration]")?.addEventListener("click", () => {
     const snapshot = prototypeStore.getSnapshot();
-    const result = prototypeStore.enableTenantModelConfiguration(snapshot.models.selectedConfigurationId, TENANT_ADMIN_ACTOR_ID);
+    const result = prototypeStore.enableTenantModelConfiguration(snapshot.models.selectedConfigurationId, prototypeStore.getSession().accountId);
     if (!result.ok) {
       modelFeedback = "配置未启用，原状态保持不变。";
     } else if (result.effects.some(item => item.type === "FULL_INDEX_REBUILD_CREATED")) {
@@ -2622,7 +2652,7 @@ function bindModelGovernance() {
     const result = prototypeStore.createTenantModelDeployment(DEFAULT_TENANT_ID, {
       name: form.get("name"),
       configurationId: form.get("configurationId"),
-    }, TENANT_ADMIN_ACTOR_ID);
+    }, prototypeStore.getSession().accountId);
     if (!result.ok) {
       root.querySelector("#tenant-deployment-feedback").textContent = "部署草稿未保存，请选择已启用配置并核对名称。";
       return;
@@ -2633,13 +2663,13 @@ function bindModelGovernance() {
   });
   root.querySelector("[data-verify-tenant-deployment]")?.addEventListener("click", () => {
     const snapshot = prototypeStore.getSnapshot();
-    const result = prototypeStore.verifyTenantModelDeployment(snapshot.models.selectedDeploymentId, TENANT_ADMIN_ACTOR_ID);
+    const result = prototypeStore.verifyTenantModelDeployment(snapshot.models.selectedDeploymentId, prototypeStore.getSession().accountId);
     modelFeedback = result.ok ? "部署验证通过，可以发布。" : "部署验证失败，未发布。";
     render();
   });
   root.querySelector("[data-publish-tenant-deployment]")?.addEventListener("click", () => {
     const snapshot = prototypeStore.getSnapshot();
-    const result = prototypeStore.publishTenantModelDeployment(snapshot.models.selectedDeploymentId, TENANT_ADMIN_ACTOR_ID);
+    const result = prototypeStore.publishTenantModelDeployment(snapshot.models.selectedDeploymentId, prototypeStore.getSession().accountId);
     modelFeedback = result.ok ? "部署已发布；助手版本不会自动切换。" : "部署未发布，状态未变化。";
     render();
   });
@@ -2649,7 +2679,7 @@ function bindModelGovernance() {
     event.preventDefault();
     const snapshot = prototypeStore.getSnapshot();
     const acknowledged = new FormData(event.currentTarget).get("acknowledged") === "on";
-    const result = prototypeStore.deactivateTenantModelDeployment(snapshot.models.selectedDeploymentId, acknowledged, TENANT_ADMIN_ACTOR_ID);
+    const result = prototypeStore.deactivateTenantModelDeployment(snapshot.models.selectedDeploymentId, acknowledged, prototypeStore.getSession().accountId);
     if (!result.ok) {
       root.querySelector("#deployment-stop-feedback").textContent = result.reason === "IMPACT_ACK_REQUIRED"
         ? "请先确认受影响助手与路由。"
@@ -2669,7 +2699,7 @@ function bindModelGovernance() {
       primaryDeploymentId: form.get("primaryDeploymentId"),
       fallbackDeploymentId: form.get("fallbackDeploymentId"),
       monthlyBudget: form.get("monthlyBudget"),
-    }, TENANT_ADMIN_ACTOR_ID);
+    }, prototypeStore.getSession().accountId);
     modelFeedback = result.ok ? "30 / 30 个成本、延迟与失败样本通过，可以发布。" : {
       ROUTING_FALLBACK_DUPLICATE: "主部署与有限回退不能选择同一个部署。",
       ROUTING_CAPABILITY_MISMATCH: "主部署与回退部署能力不同，不能发布。",
@@ -2679,7 +2709,7 @@ function bindModelGovernance() {
   });
   root.querySelector("[data-publish-routing-policy]")?.addEventListener("click", () => {
     const snapshot = prototypeStore.getSnapshot();
-    const result = prototypeStore.publishRoutingPolicy(snapshot.models.selectedRoutingPolicyId, TENANT_ADMIN_ACTOR_ID);
+    const result = prototypeStore.publishRoutingPolicy(snapshot.models.selectedRoutingPolicyId, prototypeStore.getSession().accountId);
     modelFeedback = result.ok ? "路由策略已发布；只允许同能力、同驻留的有限回退。" : "路由策略未发布，请先通过模拟。";
     render();
   });
@@ -2703,7 +2733,7 @@ function bindAssistantDelivery() {
     button.addEventListener("click", () => {
       let result;
       if (button.hasAttribute("data-create-assistant-version")) {
-        result = prototypeStore.createAssistantVersion(button.dataset.manageAssistantId, TENANT_ADMIN_ACTOR_ID);
+        result = prototypeStore.createAssistantVersion(button.dataset.manageAssistantId, prototypeStore.getSession().accountId);
       } else {
         result = prototypeStore.selectAssistantDeliveryItem(button.dataset.manageAssistantId, button.dataset.assistantVersionId);
       }
@@ -2733,7 +2763,7 @@ function bindAssistantDelivery() {
       name: values.get("name"),
       summary: values.get("summary"),
       knowledgeBaseId: knowledgeBase?.id || "",
-    }, TENANT_ADMIN_ACTOR_ID);
+    }, prototypeStore.getSession().accountId);
     if (!result.ok) {
       feedback.textContent = assistantFailureMessage(result);
       feedback.dataset.tone = "danger";
@@ -2747,7 +2777,7 @@ function bindAssistantDelivery() {
     event.preventDefault();
     const form = event.currentTarget;
     const values = Object.fromEntries(new FormData(form));
-    const result = prototypeStore.saveAssistantDraft(form.dataset.assistantVersionId, values, TENANT_ADMIN_ACTOR_ID);
+    const result = prototypeStore.saveAssistantDraft(form.dataset.assistantVersionId, values, prototypeStore.getSession().accountId);
     if (!result.ok) {
       const feedback = form.querySelector("#assistant-draft-feedback");
       feedback.textContent = assistantFailureMessage(result);
@@ -2764,7 +2794,7 @@ function bindAssistantDelivery() {
     const result = prototypeStore.runAssistantTest(
       form.dataset.assistantVersionId,
       new FormData(form).get("question"),
-      TENANT_ADMIN_ACTOR_ID,
+      prototypeStore.getSession().accountId,
     );
     if (!result.ok) {
       const feedback = form.querySelector("#assistant-test-feedback");
@@ -2781,12 +2811,12 @@ function bindAssistantDelivery() {
     const snapshot = prototypeStore.getSnapshot();
     const context = assistantStageContext(snapshot, ["TESTED"]);
     if (!context) return;
-    const result = prototypeStore.runAssistantTest(context.version.id, context.version.testResult.question, TENANT_ADMIN_ACTOR_ID);
+    const result = prototypeStore.runAssistantTest(context.version.id, context.version.testResult.question, prototypeStore.getSession().accountId);
     assistantFeedback = result.ok ? "已使用同一冻结版本重新测试。" : assistantFailureMessage(result);
     render();
   });
   root.querySelector("[data-add-assistant-evaluation]")?.addEventListener("click", event => {
-    const result = prototypeStore.addAssistantTestToEvaluationSet(event.currentTarget.dataset.assistantVersionId, TENANT_ADMIN_ACTOR_ID);
+    const result = prototypeStore.addAssistantTestToEvaluationSet(event.currentTarget.dataset.assistantVersionId, prototypeStore.getSession().accountId);
     if (!result.ok) {
       assistantFeedback = assistantFailureMessage(result);
       render();
@@ -2798,13 +2828,13 @@ function bindAssistantDelivery() {
 
   root.querySelectorAll("[data-run-assistant-evaluation]").forEach(button => {
     button.addEventListener("click", () => {
-      const result = prototypeStore.runAssistantEvaluation(button.dataset.assistantVersionId, TENANT_ADMIN_ACTOR_ID);
+      const result = prototypeStore.runAssistantEvaluation(button.dataset.assistantVersionId, prototypeStore.getSession().accountId);
       assistantFeedback = result.ok ? "冻结评测完成，质量与安全门禁通过。" : assistantFailureMessage(result);
       render();
     });
   });
   root.querySelector("[data-request-assistant-release]")?.addEventListener("click", event => {
-    const result = prototypeStore.requestAssistantRelease(event.currentTarget.dataset.assistantVersionId, TENANT_ADMIN_ACTOR_ID);
+    const result = prototypeStore.requestAssistantRelease(event.currentTarget.dataset.assistantVersionId, prototypeStore.getSession().accountId);
     if (!result.ok) {
       assistantFeedback = assistantFailureMessage(result);
       render();
@@ -2821,7 +2851,7 @@ function bindAssistantDelivery() {
     root.querySelector("#release-dialog")?.close();
   });
   root.querySelector("[data-publish-assistant-version]")?.addEventListener("click", event => {
-    const result = prototypeStore.publishAssistantVersion(event.currentTarget.dataset.publishAssistantVersion, TENANT_ADMIN_ACTOR_ID);
+    const result = prototypeStore.publishAssistantVersion(event.currentTarget.dataset.publishAssistantVersion, prototypeStore.getSession().accountId);
     if (!result.ok) {
       const feedback = root.querySelector("#assistant-release-feedback");
       feedback.textContent = assistantFailureMessage(result);
@@ -2874,7 +2904,7 @@ function bindInteractions(screen) {
         prototypeStore.selectEvaluationComparison(element.dataset.selectEvaluationComparison);
       }
       if (element.dataset.selectQueryRun) {
-        prototypeStore.selectQueryDiagnostic(element.dataset.selectQueryRun, TENANT_ADMIN_ACTOR_ID);
+        prototypeStore.selectQueryDiagnostic(element.dataset.selectQueryRun, prototypeStore.getSession().accountId);
       }
       navigate(
         element.dataset.navScreen,
@@ -2895,7 +2925,9 @@ function bindInteractions(screen) {
       loginFeedback =
         result.reason === "STORAGE_UNAVAILABLE"
           ? "浏览器无法保存演示会话，本次登录未生效。"
-          : "组织编码、登录名或密码不正确。";
+          : result.reason === "INVALID_CREDENTIALS"
+            ? "组织编码、登录名或密码不正确。"
+            : "当前账户暂时无法使用问答，请联系组织管理员确认功能和助手授权。";
       render();
       root.querySelector('#login-form input[name="password"]')?.focus();
       return;
@@ -3002,7 +3034,7 @@ function bindInteractions(screen) {
   root.querySelectorAll("[data-query-logout]").forEach((button) => {
     button.addEventListener("click", () => {
       cancelQueryTimer();
-      const result = prototypeStore.logoutQuery();
+      const result = prototypeStore.logoutSession();
       if (!result.ok) {
         loginFeedback = "当前页面已退出，但浏览器未能清除登录记录。请关闭原型并清理本地演示登录态后重试。";
         navigate("login");
@@ -3058,8 +3090,28 @@ function bindInteractions(screen) {
   });
   root.querySelector("#console-login-form")?.addEventListener("submit", (event) => {
     event.preventDefault();
-    navigate("platform-overview");
+    const values = new FormData(event.currentTarget);
+    consoleLoginName = String(values.get("username") || "");
+    const result = prototypeStore.loginConsole({ username: consoleLoginName, password: values.get("password") });
+    event.currentTarget.reset();
+    if (!result.ok) {
+      consoleLoginFeedback = result.reason === "STORAGE_UNAVAILABLE" ? "浏览器无法保存登录状态，请检查存储后重试。" : "登录名或密码不正确，或当前账户不能进入控制台。";
+      render();
+      root.querySelector('#console-login-form [name="password"]')?.focus();
+      return;
+    }
+    consoleLoginFeedback = "";
+    cancelQueryTimer();
+    activeConversationId = "";
+    navigate(result.screen);
   });
+  root.querySelectorAll("[data-console-logout]").forEach(button => button.addEventListener("click", () => {
+    cancelQueryTimer();
+    const result = prototypeStore.logoutSession();
+    activeConversationId = "";
+    consoleLoginFeedback = result.ok ? "" : "当前页面已退出，但未能清理演示登录记录。请关闭原型并清理本地登录态后重试。";
+    navigate("console-login");
+  }));
   root.querySelectorAll("[data-demo-account]").forEach((select) => {
     select.addEventListener("change", () => {
       prototypeStore.selectDemoAccount(select.value);
@@ -3158,7 +3210,7 @@ function bindAccountManagement() {
         password: values.get("password"),
         passwordConfirmation: values.get("passwordConfirmation"),
       },
-      PLATFORM_ACCOUNT_ACTOR_ID,
+      prototypeStore.getSession().accountId,
     );
     if (!result.ok) {
       showErrors(createForm, feedback, result, "当前信息无法创建账户。");
@@ -3219,7 +3271,7 @@ function bindAccountManagement() {
         passwordConfirmation: values.get("passwordConfirmation"),
         revokeSessions: values.get("revokeSessions") === "on",
       },
-      PLATFORM_ACCOUNT_ACTOR_ID,
+      prototypeStore.getSession().accountId,
     );
     if (!result.ok) {
       showErrors(resetForm, feedback, result, "当前账户无法重置密码。");
@@ -3296,12 +3348,12 @@ function bindAccountManagement() {
       action === "assign"
         ? prototypeStore.assignPlatformAdministrator(
             accountId,
-            PLATFORM_ACCOUNT_ACTOR_ID,
+            prototypeStore.getSession().accountId,
           )
         : prototypeStore.setAccountStatus(
             accountId,
             nextStatus,
-            PLATFORM_ACCOUNT_ACTOR_ID,
+            prototypeStore.getSession().accountId,
           );
     if (!result.ok) {
       const messages = {
@@ -3791,7 +3843,7 @@ function bindEvaluationGovernance() {
   root.querySelector("#evaluation-dataset-form")?.addEventListener("submit", event => {
     event.preventDefault();
     const values = Object.fromEntries(new FormData(event.currentTarget));
-    const result = prototypeStore.createEvaluationDataset(DEFAULT_TENANT_ID, values, TENANT_ADMIN_ACTOR_ID);
+    const result = prototypeStore.createEvaluationDataset(DEFAULT_TENANT_ID, values, prototypeStore.getSession().accountId);
     if (!result.ok) {
       event.currentTarget.querySelector("#evaluation-dataset-feedback").textContent = evaluationFailureMessage(result);
       return;
@@ -3807,14 +3859,14 @@ function bindEvaluationGovernance() {
     });
   });
   root.querySelector("[data-create-evaluation-version]")?.addEventListener("click", event => {
-    const result = prototypeStore.createEvaluationDatasetVersion(event.currentTarget.dataset.createEvaluationVersion, TENANT_ADMIN_ACTOR_ID);
+    const result = prototypeStore.createEvaluationDatasetVersion(event.currentTarget.dataset.createEvaluationVersion, prototypeStore.getSession().accountId);
     evaluationFeedback = result.ok
       ? result.replayed ? "已继续现有草稿，没有建立并行版本。" : "已从当前发布版本创建独立草稿。"
       : evaluationFailureMessage(result);
     render();
   });
   root.querySelector("[data-publish-evaluation-version]")?.addEventListener("click", event => {
-    const result = prototypeStore.publishEvaluationDatasetVersion(event.currentTarget.dataset.publishEvaluationVersion, TENANT_ADMIN_ACTOR_ID);
+    const result = prototypeStore.publishEvaluationDatasetVersion(event.currentTarget.dataset.publishEvaluationVersion, prototypeStore.getSession().accountId);
     evaluationFeedback = result.ok ? `数据集 v${result.version.number} 已发布并冻结。` : evaluationFailureMessage(result);
     render();
   });
@@ -3825,7 +3877,7 @@ function bindEvaluationGovernance() {
   root.querySelector("#evaluation-sample-form")?.addEventListener("submit", event => {
     event.preventDefault();
     const values = Object.fromEntries(new FormData(event.currentTarget));
-    const result = prototypeStore.addEvaluationSample(event.currentTarget.dataset.evaluationVersionId, values, TENANT_ADMIN_ACTOR_ID);
+    const result = prototypeStore.addEvaluationSample(event.currentTarget.dataset.evaluationVersionId, values, prototypeStore.getSession().accountId);
     if (!result.ok) {
       event.currentTarget.querySelector("#evaluation-sample-feedback").textContent = evaluationFailureMessage(result);
       return;
@@ -3838,7 +3890,7 @@ function bindEvaluationGovernance() {
   root.querySelector("#evaluation-run-form")?.addEventListener("submit", event => {
     event.preventDefault();
     const values = Object.fromEntries(new FormData(event.currentTarget));
-    const result = prototypeStore.createEvaluationRun(DEFAULT_TENANT_ID, values, TENANT_ADMIN_ACTOR_ID);
+    const result = prototypeStore.createEvaluationRun(DEFAULT_TENANT_ID, values, prototypeStore.getSession().accountId);
     if (!result.ok) {
       event.currentTarget.querySelector("#evaluation-run-feedback").textContent = evaluationFailureMessage(result);
       return;
@@ -3847,7 +3899,7 @@ function bindEvaluationGovernance() {
     navigate("evaluation-run-detail");
   });
   root.querySelector("[data-advance-evaluation-run]")?.addEventListener("click", event => {
-    const result = prototypeStore.advanceEvaluationRun(event.currentTarget.dataset.advanceEvaluationRun, TENANT_ADMIN_ACTOR_ID);
+    const result = prototypeStore.advanceEvaluationRun(event.currentTarget.dataset.advanceEvaluationRun, prototypeStore.getSession().accountId);
     evaluationFeedback = result.ok
       ? result.run.status === "COMPLETED" ? "评测完成，全部 M6 门禁通过。" : `已完成当前阶段，进入 ${result.run.stage}。`
       : evaluationFailureMessage(result);
@@ -3862,7 +3914,7 @@ function bindEvaluationGovernance() {
     const result = prototypeStore.createEvaluationComparison(
       new FormData(event.currentTarget).get("baselineRunId"),
       event.currentTarget.dataset.candidateRunId,
-      TENANT_ADMIN_ACTOR_ID,
+      prototypeStore.getSession().accountId,
     );
     if (!result.ok) {
       event.currentTarget.querySelector("#evaluation-comparison-feedback").textContent = evaluationFailureMessage(result);
@@ -3874,7 +3926,7 @@ function bindEvaluationGovernance() {
   });
   root.querySelectorAll("[data-evaluation-decision]").forEach(button => {
     button.addEventListener("click", () => {
-      const result = prototypeStore.recordEvaluationDecision(button.dataset.evaluationComparisonId, button.dataset.evaluationDecision, TENANT_ADMIN_ACTOR_ID);
+      const result = prototypeStore.recordEvaluationDecision(button.dataset.evaluationComparisonId, button.dataset.evaluationDecision, prototypeStore.getSession().accountId);
       evaluationFeedback = result.ok
         ? result.comparison.decision === "APPROVED" ? "已形成放行决定，可回到助手发布门禁继续处理。" : "已阻断候选，保留基线版本。"
         : evaluationFailureMessage(result);
@@ -3899,7 +3951,7 @@ function bindEvaluationGovernance() {
       event.currentTarget.dataset.evaluationRunId,
       event.currentTarget.dataset.failureCategory,
       values,
-      TENANT_ADMIN_ACTOR_ID,
+      prototypeStore.getSession().accountId,
     );
     if (!result.ok) {
       event.currentTarget.querySelector("#evaluation-remediation-feedback").textContent = evaluationFailureMessage(result);
@@ -3927,17 +3979,17 @@ function bindAccessQueryGovernance() {
     const result = prototypeStore.saveAccessPolicyDraft(event.currentTarget.dataset.accessPolicyVersionId, {
       assistantId: values.get("assistantId"),
       memberAccountIds: values.getAll("memberAccountIds"),
-    }, TENANT_ADMIN_ACTOR_ID);
+    }, prototypeStore.getSession().accountId);
     accessGovernanceFeedback = result.ok ? "策略草稿已保存；请重新生成授权预览。" : accessPolicyFailureMessage(result);
     render();
   });
   root.querySelector("[data-preview-access-policy]")?.addEventListener("click", event => {
-    const result = prototypeStore.previewAccessPolicyVersion(event.currentTarget.dataset.accessPolicyVersionId, TENANT_ADMIN_ACTOR_ID);
+    const result = prototypeStore.previewAccessPolicyVersion(event.currentTarget.dataset.accessPolicyVersionId, prototypeStore.getSession().accountId);
     accessGovernanceFeedback = result.ok ? "允许、拒绝、历史和引用样本预览全部通过。" : accessPolicyFailureMessage(result);
     render();
   });
   root.querySelector("[data-publish-access-policy]")?.addEventListener("click", event => {
-    const result = prototypeStore.publishAccessPolicyVersion(event.currentTarget.dataset.accessPolicyVersionId, TENANT_ADMIN_ACTOR_ID);
+    const result = prototypeStore.publishAccessPolicyVersion(event.currentTarget.dataset.accessPolicyVersionId, prototypeStore.getSession().accountId);
     accessGovernanceFeedback = result.ok ? `策略 v${result.version.number} 已发布，成员授权范围已更新。` : accessPolicyFailureMessage(result);
     render();
   });
@@ -3957,7 +4009,7 @@ function bindAccessQueryGovernance() {
     const result = prototypeStore.createQueryRemediation(
       event.currentTarget.dataset.queryRunId,
       values,
-      TENANT_ADMIN_ACTOR_ID,
+      prototypeStore.getSession().accountId,
     );
     if (!result.ok) {
       event.currentTarget.querySelector("#query-remediation-feedback").textContent = accessPolicyFailureMessage(result);
@@ -3973,7 +4025,7 @@ function bindStructuredObjectGovernance() {
   root.querySelector("#structured-schema-form")?.addEventListener("submit", event => {
     event.preventDefault();
     const values = new FormData(event.currentTarget);
-    const projection = prototypeStore.getStructuredDatasetProjection("dataset-office-directory", TENANT_ADMIN_ACTOR_ID);
+    const projection = prototypeStore.getStructuredDatasetProjection("dataset-office-directory", prototypeStore.getSession().accountId);
     if (!projection.ok) return;
     const fields = [...event.currentTarget.querySelectorAll("[data-dataset-field-row]")].map(row => {
       const name = row.dataset.fieldName;
@@ -3991,19 +4043,19 @@ function bindStructuredObjectGovernance() {
       contentField: values.get("contentField"),
       titleField: values.get("titleField"),
       rowFilter: values.get("rowFilter"),
-    }, TENANT_ADMIN_ACTOR_ID);
+    }, prototypeStore.getSession().accountId);
     dataGovernanceFeedback = result.ok ? "结构草稿已保存；字段变化后需要重新抽样预检。" : structuredDataFailureMessage(result);
     render();
   });
 
   root.querySelector("[data-preview-structured-schema]")?.addEventListener("click", event => {
-    const result = prototypeStore.previewStructuredSchemaVersion(event.currentTarget.dataset.previewStructuredSchema, TENANT_ADMIN_ACTOR_ID);
+    const result = prototypeStore.previewStructuredSchemaVersion(event.currentTarget.dataset.previewStructuredSchema, prototypeStore.getSession().accountId);
     dataGovernanceFeedback = result.ok ? "抽样预检通过：100 行已检查，0 个阻断。" : structuredDataFailureMessage(result);
     render();
   });
 
   root.querySelector("[data-publish-structured-schema]")?.addEventListener("click", event => {
-    const result = prototypeStore.publishStructuredSchemaVersion(event.currentTarget.dataset.publishStructuredSchema, TENANT_ADMIN_ACTOR_ID);
+    const result = prototypeStore.publishStructuredSchemaVersion(event.currentTarget.dataset.publishStructuredSchema, prototypeStore.getSession().accountId);
     dataGovernanceFeedback = result.ok ? `结构 v${result.version.number} 已发布；活动索引没有自动变化。` : structuredDataFailureMessage(result);
     render();
   });
@@ -4017,7 +4069,7 @@ function bindStructuredObjectGovernance() {
   root.querySelector("#object-scope-form")?.addEventListener("submit", event => {
     event.preventDefault();
     const values = new FormData(event.currentTarget);
-    const projection = prototypeStore.getObjectStorageScopeProjection(DEFAULT_TENANT_ID, TENANT_ADMIN_ACTOR_ID);
+    const projection = prototypeStore.getObjectStorageScopeProjection(DEFAULT_TENANT_ID, prototypeStore.getSession().accountId);
     const range = projection.ok ? projection.availableRanges.find(item => item.id === values.get("rangeId")) : null;
     const result = prototypeStore.registerObjectStorageScope({
       tenantId: DEFAULT_TENANT_ID,
@@ -4025,7 +4077,7 @@ function bindStructuredObjectGovernance() {
       rangeId: values.get("rangeId"),
       selectionRevision: range?.selectionRevision,
       name: values.get("name"),
-    }, TENANT_ADMIN_ACTOR_ID);
+    }, prototypeStore.getSession().accountId);
     if (!result.ok) {
       event.currentTarget.querySelector("#object-scope-feedback").textContent = structuredDataFailureMessage(result);
       return;
@@ -4153,7 +4205,7 @@ function scheduleQueryContinuation() {
     return;
   }
   const generation = streamGeneration;
-  const session = prototypeStore.getQuerySession();
+  const session = prototypeStore.getSession();
   const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   streamTimer = window.setTimeout(
     () => {

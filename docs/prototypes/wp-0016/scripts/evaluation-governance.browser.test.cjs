@@ -1,3 +1,4 @@
+const { openForReview } = require("./browser-session.cjs");
 const { test, before, after } = require("node:test");
 const assert = require("node:assert/strict");
 const { chromium } = require("playwright");
@@ -25,7 +26,7 @@ async function visit(action, width = 1440) {
 }
 
 async function reset(page, screen) {
-  await page.goto(url(screen));
+  await openForReview(page, url(screen));
   await page.evaluate(() => localStorage.removeItem("wp0016-business-demo-v1"));
   await page.reload();
   await page.locator(`main[data-screen="${screen}"]`).waitFor();
@@ -88,16 +89,16 @@ test("失败分类只展示合成摘要并可创建可刷新恢复的去重修�
 
 test("拒绝态不投影冻结标识且不可用态禁用评测主操作", () => visit(async page => {
   await reset(page, "evaluation-run-detail");
-  await page.goto(url("evaluation-run-detail", "denied"));
+  await openForReview(page, url("evaluation-run-detail", "denied"));
   assert.doesNotMatch(await page.locator("main").innerText(), /eval-set-v6|idx-v12|cfg-chat|员工服务助手 v13/);
-  await page.goto(url("evaluation-run-create", "disabled"));
+  await openForReview(page, url("evaluation-run-create", "disabled"));
   assert.equal(await page.getByRole("button", { name: "运行评测", exact: true }).isDisabled(), true);
 }));
 
 for (const width of [390, 1024, 1440]) {
   test(`${width} 宽度下评测六页无横向溢出且主操作可达`, () => visit(async page => {
     for (const screen of ["evaluation-datasets", "evaluation-dataset-detail", "evaluation-run-create", "evaluation-run-detail", "evaluation-comparison", "evaluation-failure-analysis"]) {
-      await page.goto(url(screen));
+      await openForReview(page, url(screen));
       await page.locator(`main[data-screen="${screen}"]`).waitFor();
       assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), `${screen} 横向溢出`);
       await page.locator("[data-primary-action]").first().waitFor();

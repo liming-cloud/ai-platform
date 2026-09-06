@@ -1,3 +1,4 @@
+const { openForReview } = require("./browser-session.cjs");
 const { test, before, after } = require("node:test");
 const assert = require("node:assert/strict");
 const { mkdir } = require("node:fs/promises");
@@ -27,7 +28,7 @@ async function visit(name, action, width = 1440, height = 900) {
 const url = screen => `${base}?screen=${screen}&state=success&review=0`;
 
 async function fillTenant(page, code = "qinglan-full") {
-  await page.goto(url("platform-tenant-create"));
+  await openForReview(page, url("platform-tenant-create"));
   await page.locator("#tenant-organization-name").fill("青岚完整流程租户");
   await page.locator("#tenant-code").fill(code);
   await page.getByRole("button", { name: "下一步", exact: true }).click();
@@ -56,7 +57,7 @@ test("修改创建配额并刷新仍保留当前步骤和输入，成功后详�
 }));
 
 test("详情配额取消不生效，保存与刷新一致", () => visit("edit-quotas", async page => {
-  await page.goto(url("platform-tenant-detail"));
+  await openForReview(page, url("platform-tenant-detail"));
   const trigger = page.locator("[data-edit-tenant-quotas]");
   await trigger.click();
   const form = page.locator("#tenant-quota-form");
@@ -82,7 +83,7 @@ test("低于已用量拒绝并定位错误，保存失败不能假称成功", ()
       return original.apply(this, args);
     };
   });
-  await page.goto(url("platform-tenant-detail"));
+  await openForReview(page, url("platform-tenant-detail"));
   await page.locator("[data-edit-tenant-quotas]").click();
   const form = page.locator("#tenant-quota-form");
   await form.locator('[name="knowledgeBases"]').fill("1");
@@ -98,9 +99,9 @@ test("低于已用量拒绝并定位错误，保存失败不能假称成功", ()
 
 test("有无帮助说明的同排输入框顶部和高度一致", () => visit("alignment", async page => {
   for (const screen of ["assistant-create", "platform-tenant-create", "model-configuration-detail"]) {
-    await page.goto(url(screen));
+    await openForReview(page, url(screen));
     if (screen === "model-configuration-detail") {
-      await page.goto(url("model-configurations"));
+      await openForReview(page, url("model-configurations"));
       await page.getByRole("button", { name: "查看员工服务对话配置", exact: true }).click();
       await page.getByRole("button", { name: "新建配置版本", exact: true }).click();
     }
@@ -115,7 +116,7 @@ test("有无帮助说明的同排输入框顶部和高度一致", () => visit("a
 }));
 
 test("登录安全配置可编辑、取消、刷新，安全底线没有关闭控件", () => visit("security-policy", async page => {
-  await page.goto(url("platform-tenant-detail"));
+  await openForReview(page, url("platform-tenant-detail"));
   const trigger = page.locator("[data-edit-tenant-security]");
   await trigger.click();
   const form = page.locator("#tenant-security-form");
@@ -139,7 +140,7 @@ test("登录安全配置可编辑、取消、刷新，安全底线没有关闭�
 }));
 
 test("租户创建使用清晰业务用语", () => visit("wording", async page => {
-  await page.goto(url("platform-tenant-create"));
+  await openForReview(page, url("platform-tenant-create"));
   await page.locator("#tenant-create-form").waitFor();
   assert.doesNotMatch(await page.locator("main").innerText(), /合资格|独立租户边界|配额与不可关闭安全边界/);
   await page.locator("#tenant-organization-name").fill("自然用语租户");
@@ -149,7 +150,7 @@ test("租户创建使用清晰业务用语", () => visit("wording", async page =
 }));
 
 test("取消清除创建草稿，重复租户编码在当前步骤就定位错误", () => visit("cancel-and-validation", async page => {
-  await page.goto(url("platform-tenant-create"));
+  await openForReview(page, url("platform-tenant-create"));
   await page.locator("#tenant-organization-name").fill("重复编码租户");
   await page.locator("#tenant-code").fill("spruce-demo");
   await page.getByRole("button", { name: "下一步", exact: true }).click();
@@ -158,13 +159,13 @@ test("取消清除创建草稿，重复租户编码在当前步骤就定位错�
   await page.locator("#tenant-code").fill("new-code");
   await page.getByRole("button", { name: "下一步", exact: true }).click();
   await page.getByRole("button", { name: "取消", exact: true }).click();
-  await page.goto(url("platform-tenant-create"));
+  await openForReview(page, url("platform-tenant-create"));
   assert.equal(await page.locator("#tenant-organization-name").inputValue(), "");
 }));
 
 for (const viewport of [{ width: 1440, height: 900 }, { width: 1024, height: 768 }, { width: 390, height: 844 }]) {
   test(`${viewport.width} 租户创建只呈现当前步骤且继续按钮可见`, () => visit(`step-${viewport.width}`, async page => {
-    await page.goto(url("platform-tenant-create"));
+    await openForReview(page, url("platform-tenant-create"));
     await page.locator("#tenant-create-form").waitFor();
     assert.equal(await page.locator("[data-tenant-step]:visible").count(), 1, "必须只呈现当前步骤");
     const next = page.getByRole("button", { name: "下一步", exact: true });

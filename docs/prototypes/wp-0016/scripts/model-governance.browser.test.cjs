@@ -1,3 +1,4 @@
+const { openForReview } = require("./browser-session.cjs");
 const { test, before, after } = require("node:test");
 const assert = require("node:assert/strict");
 const { chromium } = require("playwright");
@@ -25,7 +26,7 @@ async function visit(action, width = 1440) {
 }
 
 async function reset(page, screen) {
-  await page.goto(url(screen));
+  await openForReview(page, url(screen));
   await page.evaluate(() => localStorage.removeItem("wp0016-business-demo-v1"));
   await page.reload();
 }
@@ -141,7 +142,7 @@ test("同能力路由先模拟再发布，刷新后保留发布版本", () => vi
 test("模型治理拒绝态不泄露地址、密钥、内部标识或租户授权明细", () => visit(async page => {
   await reset(page, "model-provider-detail");
   for (const screen of ["platform-model-connection-detail", "platform-model-deployment-detail", "model-provider-detail", "model-configuration-detail", "model-deployment-detail", "routing-policies"]) {
-    await page.goto(`${base}?screen=${screen}&state=denied&review=0`);
+    await openForReview(page, `${base}?screen=${screen}&state=denied&review=0`);
     const text = await page.locator("body").innerText();
     assert.doesNotMatch(text, /models\.example|pc-chat|pd-chat|cfg-chat|访问密钥/);
   }
@@ -150,7 +151,7 @@ test("模型治理拒绝态不泄露地址、密钥、内部标识或租户授�
 for (const width of [390, 1024, 1440]) {
   test(`${width} 宽度下模型治理 11 页无横向溢出且主操作可达`, () => visit(async page => {
     for (const screen of ["platform-model-connections", "platform-model-connection-detail", "platform-model-deployments", "platform-model-deployment-detail", "model-providers", "model-provider-detail", "model-configurations", "model-configuration-detail", "model-deployments", "model-deployment-detail", "routing-policies"]) {
-      await page.goto(url(screen));
+      await openForReview(page, url(screen));
       await page.locator(`main[data-screen="${screen}"]`).waitFor();
       assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), `${screen} 横向溢出`);
       await page.locator("[data-primary-action]").first().waitFor();

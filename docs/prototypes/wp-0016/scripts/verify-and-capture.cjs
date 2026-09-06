@@ -1,3 +1,4 @@
+const { openForReview } = require("./browser-session.cjs");
 const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
@@ -44,7 +45,7 @@ function scenarioUrl(screen, state, review = false, conversationId = "") {
 }
 
 async function loginQueryDemo(page) {
-  await page.goto(scenarioUrl("login", "success"), {
+  await openForReview(page, scenarioUrl("login", "success"), {
     waitUntil: "domcontentloaded",
   });
   await page.locator('#login-form input[name="tenantCode"]').fill("spruce-demo");
@@ -78,7 +79,7 @@ async function openScenario(page, screen, state, review = false) {
     review,
     screen === "conversation" ? "cv-20260902-01" : "",
   );
-  let response = await page.goto(targetUrl, {
+  let response = await openForReview(page, targetUrl, {
     waitUntil: "domcontentloaded",
   });
   if (
@@ -86,7 +87,7 @@ async function openScenario(page, screen, state, review = false) {
     (await page.locator('main[data-screen="login"]').count()) > 0
   ) {
     await loginQueryDemo(page);
-    response = await page.goto(targetUrl, { waitUntil: "domcontentloaded" });
+    response = await openForReview(page, targetUrl, { waitUntil: "domcontentloaded" });
   }
   assert(response && response.ok(), `${screen}/${state} 返回非成功 HTTP 状态`);
   await page
@@ -437,6 +438,7 @@ async function validateManagementFlows(page) {
     !(await page.locator("#prototype-reviewer details").evaluate((details) => details.open)),
     "创建租户前原型审查器未通过键盘收起",
   );
+  await openScenario(page, "platform-tenant-create", "success");
   await page.locator("#tenant-organization-name").fill("青岚制造示例组织");
   await page.locator("#tenant-code").fill("qinglan-demo");
   await page.getByRole("button", { name: "下一步", exact: true }).click();
@@ -509,15 +511,15 @@ async function validateTenantAndMemberControls(page) {
   );
   await page.locator('[data-tenant-feature="assistantSelection"]').uncheck();
   await page.locator('[data-business-action="save-tenant-features"]').click();
-  await page.goto(scenarioUrl("assistants", "success"), {
+  await page.goto(scenarioUrl("login", "success"), {
     waitUntil: "domcontentloaded",
   });
-  await page.locator('main[data-screen="assistants"][data-state="denied"]').waitFor();
+  await page.locator('#login-form input[name="password"]').fill("demo-only");
+  await page.locator('#login-form button[type="submit"]').click();
+  await page.locator('#login-form [role="alert"]').waitFor();
   assert(
-    (await page.locator("main[data-screen=assistants]").textContent()).includes(
-      "当前会话不能访问此任务",
-    ),
-    "平台关闭租户功能后直接访问未拒绝",
+    (await page.locator('[data-assistant-id]').count()) === 0,
+    "平台关闭租户功能后仍建立普通用户问答入口",
   );
 
   await openScenario(page, "platform-tenant-detail", "success");

@@ -3582,6 +3582,29 @@ body[data-review="hidden"] .prototype-reviewer {
   width: 100%;
 }
 
+/* 顶栏账户菜单不推高页面；窄屏仍固定在触发点右侧且不超出视口。 */
+.topbar .account-menu {
+  position: relative;
+  width: auto;
+  flex: 0 0 auto;
+}
+
+.topbar .account-menu .account-actions-popover {
+  position: absolute;
+  right: 0;
+  z-index: 40;
+  width: max-content;
+  max-width: calc(100vw - 2rem);
+  gap: var(--space-2);
+}
+
+.demo-login-help {
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
+}
+
+.demo-login-help summary { cursor: pointer; }
+
 .account-dialog {
   width: min(38rem, calc(100vw - 2rem));
   max-height: calc(100dvh - 2rem);

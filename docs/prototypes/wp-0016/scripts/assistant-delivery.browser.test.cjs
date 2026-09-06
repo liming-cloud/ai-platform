@@ -1,3 +1,4 @@
+const { openForReview } = require("./browser-session.cjs");
 const { test, before, after } = require("node:test");
 const assert = require("node:assert/strict");
 const { chromium } = require("playwright");
@@ -25,7 +26,7 @@ async function visit(action, width = 1440) {
 }
 
 async function reset(page, screen) {
-  await page.goto(url(screen));
+  await openForReview(page, url(screen));
   await page.evaluate(() => localStorage.removeItem("wp0016-business-demo-v1"));
   await page.reload();
 }
@@ -91,7 +92,7 @@ test("同一稳定助手重复进入候选时继续原版本而不制造并行�
   await officeRow.getByRole("button", { name: "继续处理", exact: true }).click();
   await page.locator('main[data-screen="assistant-draft"]').waitFor();
   assert.match(await page.locator("h1").innerText(), /v5/);
-  await page.goto(url("assistants-directory"));
+  await openForReview(page, url("assistants-directory"));
   await page.locator("tr", { hasText: "办公地点助手" }).getByRole("button", { name: "继续处理", exact: true }).click();
   const candidates = await page.evaluate(() => {
     const state = JSON.parse(localStorage.getItem("wp0016-business-demo-v1"));
@@ -102,9 +103,9 @@ test("同一稳定助手重复进入候选时继续原版本而不制造并行�
 
 test("安全门禁不可用状态禁用发布且拒绝态不投影冻结配置", () => visit(async page => {
   await reset(page, "assistant-release");
-  await page.goto(url("assistant-release", "disabled"));
+  await openForReview(page, url("assistant-release", "disabled"));
   assert.equal(await page.getByRole("button", { name: "发布助手版本", exact: true }).isDisabled(), true);
-  await page.goto(url("assistant-release", "denied"));
+  await openForReview(page, url("assistant-release", "denied"));
   const text = await page.locator("main").innerText();
   assert.doesNotMatch(text, /idx-v12|cfg-chat|员工服务手册|asv-0013/);
 }));
@@ -120,7 +121,7 @@ test("创建页同排输入框对齐且没有依赖下方说明撑开控件", ()
 for (const width of [390, 1024, 1440]) {
   test(`${width} 宽度下助手交付六页无横向溢出且主操作可达`, () => visit(async page => {
     for (const screen of ["assistants-directory", "assistant-create", "assistant-draft", "assistant-test", "assistant-evaluation", "assistant-release"]) {
-      await page.goto(url(screen));
+      await openForReview(page, url(screen));
       await page.locator(`main[data-screen="${screen}"]`).waitFor();
       assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), `${screen} 横向溢出`);
       await page.locator("[data-primary-action]").first().waitFor();

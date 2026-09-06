@@ -1,3 +1,4 @@
+const { openForReview } = require("./browser-session.cjs");
 const { test, before, after } = require("node:test");
 const assert = require("node:assert/strict");
 const { chromium } = require("playwright");
@@ -25,7 +26,7 @@ async function visit(action, width = 1440) {
 }
 
 async function reset(page, screen) {
-  await page.goto(url(screen));
+  await openForReview(page, url(screen));
   await page.evaluate(() => localStorage.removeItem("wp0016-business-demo-v1"));
   await page.reload();
 }
@@ -87,7 +88,7 @@ test("失败来源可从安全阶段重试，就绪来源重新处理建立新�
   await page.getByRole("button", { name: "安全重试", exact: true }).click();
   assert.equal(await page.locator("[data-source-stage]").getAttribute("data-source-stage"), "EXTRACTING");
 
-  await page.goto(url("knowledge-sources"));
+  await openForReview(page, url("knowledge-sources"));
   await page.locator('[data-source-row="src-policy-pdf"] [data-open-source]').click();
   await page.getByRole("button", { name: "重新处理", exact: true }).click();
   assert.match(await page.locator("main").innerText(), /版本 v8/);
@@ -100,7 +101,7 @@ test("失败来源可从安全阶段重试，就绪来源重新处理建立新�
 
 test("无权限态不泄露知识库名称、文档名称或处理详情", () => visit(async page => {
   await reset(page, "source-detail");
-  await page.goto(base + "?screen=source-detail&state=denied&review=0");
+  await openForReview(page, base + "?screen=source-detail&state=denied&review=0");
   const text = await page.locator("main").innerText();
   assert.doesNotMatch(text, /员工服务手册|2026 员工假期制度|idx-v11|rev-0007/);
 }));
@@ -112,7 +113,7 @@ for (const width of [390, 1024, 1440]) {
     await page.getByRole("button", { name: "创建知识库", exact: true }).click();
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1));
     await page.locator("#create-knowledge-base-dialog").getByRole("button", { name: "取消", exact: true }).click();
-    await page.goto(url("source-add"));
+    await openForReview(page, url("source-add"));
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1));
   }, width));
 }

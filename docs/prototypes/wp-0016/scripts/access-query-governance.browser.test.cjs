@@ -1,3 +1,4 @@
+const { openForReview } = require("./browser-session.cjs");
 const { test, before, after } = require("node:test");
 const assert = require("node:assert/strict");
 const { chromium } = require("playwright");
@@ -28,7 +29,7 @@ async function visit(action, width = 1440) {
 }
 
 async function reset(page, screen) {
-  await page.goto(url(screen));
+  await openForReview(page, url(screen));
   await page.evaluate(() => localStorage.removeItem("wp0016-business-demo-v1"));
   await page.reload();
   await page.locator(`main[data-screen="${screen}"]`).waitFor();
@@ -83,7 +84,7 @@ test("查询运行可进入历史诊断并创建不含正文的可恢复修复�
 
 test("拒绝态不披露策略、运行和模型修订", () => visit(async page => {
   for (const screen of ["access-policy-detail", "query-diagnostic"]) {
-    await page.goto(url(screen, "denied"));
+    await openForReview(page, url(screen, "denied"));
     const content = await page.locator("main").innerText();
     assert.doesNotMatch(content, /沈言|Q-042|chat-r13|embed-r8|员工服务手册/);
   }
@@ -91,7 +92,7 @@ test("拒绝态不披露策略、运行和模型修订", () => visit(async page 
 
 test("不可用态保留说明但禁用全部主要操作", () => visit(async page => {
   for (const screen of ["access-policy-detail", "governance-query", "query-diagnostic"]) {
-    await page.goto(url(screen, "disabled"));
+    await openForReview(page, url(screen, "disabled"));
     const primary = page.locator("[data-primary-action]").first();
     await primary.waitFor();
     assert.equal(await primary.isDisabled(), true, `${screen} 主要操作未禁用`);
@@ -101,7 +102,7 @@ test("不可用态保留说明但禁用全部主要操作", () => visit(async pa
 for (const width of [390, 1024, 1440]) {
   test(`${width} 宽度下访问与查询治理三页无横向溢出且主要操作可达`, () => visit(async page => {
     for (const screen of ["access-policy-detail", "governance-query", "query-diagnostic"]) {
-      await page.goto(url(screen));
+      await openForReview(page, url(screen));
       await page.locator(`main[data-screen="${screen}"]`).waitFor();
       assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), `${screen} 横向溢出`);
       await page.locator("[data-primary-action]").first().waitFor();

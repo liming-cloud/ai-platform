@@ -1,4 +1,4 @@
-import { renderConsoleNavigation } from "./navigation.js";
+import { renderConsoleNavigation, renderAccountMenu } from "./navigation.js";
 import {
   CONVERSATION_FEATURES,
   DEFAULT_QUOTAS,
@@ -284,7 +284,7 @@ function accountScope(demoState, account) {
 }
 
 function renderPlatformAccounts(demoState) {
-  const actorAccountId = "account-platform-admin";
+  const actorAccountId = demoState?.query?.session?.accountId;
   const accounts = demoState?.accounts || [];
   const activeCount = accounts.filter((account) => account.status === "available").length;
   const administratorCount = accounts.filter(
@@ -741,7 +741,7 @@ function pageDialog(page, fixture) {
   return `<dialog id="page-dialog" class="dialog-surface"><form method="dialog"><span class="section-kicker">确认操作</span><h2>${escapeHtml(page.primaryAction)}？</h2><p>${escapeHtml(fixture.entity)}。${escapeHtml(fixture.notice)}</p><dl class="dialog-impact"><div><dt>影响</dt><dd>${escapeHtml(fixture.dialog?.impact || `只更新${fixture.entity}的当前状态。`)}</dd></div><div><dt>恢复</dt><dd>${escapeHtml(fixture.dialog?.recovery || "保留最近已确认版本，可按记录撤销。")}</dd></div><div><dt>审计</dt><dd>${escapeHtml(fixture.dialog?.audit || "记录操作主体、对象、版本与结果。")}</dd></div></dl><div class="release-actions"><button class="button secondary" value="cancel">取消</button><button class="button primary" value="confirm">确认</button></div></form></dialog>`;
 }
 
-function renderConsoleLogin(page, fixture, state) {
+function renderConsoleLogin(page, fixture, state, demoState) {
   const interactive = ["success", "partial", "disabled"].includes(state);
   const statusNotice =
     state === "partial"
@@ -755,7 +755,7 @@ function renderConsoleLogin(page, fixture, state) {
     '<section class="console-login-task">',
     `<div class="login-form-header"><span class="section-kicker">身份验证</span><h2>${escapeHtml(fixture.title)}</h2><p>使用已授权账户继续。</p></div>`,
     interactive
-      ? `<form id="console-login-form" class="login-form"><label class="field"><span>登录名</span><input class="input" autocomplete="username" value="platform.admin.demo" /></label><label class="field"><span>密码</span><input class="input" type="password" autocomplete="current-password" /></label><p class="inline-note ${state === "disabled" ? "danger" : ""}">${escapeHtml(statusNotice)}</p>${primaryAction(page, fixture, state)}</form>`
+      ? `<form id="console-login-form" class="login-form"><label class="field"><span>登录名</span><input class="input" name="username" autocomplete="username" value="${escapeHtml(demoState?.consoleLoginName || "platform.admin.demo")}" required /></label><label class="field"><span>密码</span><input class="input" name="password" type="password" autocomplete="current-password" required /></label>${demoState?.consoleLoginFeedback ? `<p class="form-feedback" role="alert">${escapeHtml(demoState.consoleLoginFeedback)}</p>` : ""}<p class="inline-note ${state === "disabled" ? "danger" : ""}">${escapeHtml(statusNotice)}</p><button class="button primary" type="submit" data-primary-action${state === "disabled" ? " disabled" : ""}>登录</button><details class="demo-login-help"><summary>演示账户</summary><p>平台：platform.admin.demo<br />租户：qiao.demo<br />演示口令：demo-only</p><small>仅用于合成原型，请勿输入真实密码。</small></details></form>`
       : statePanel(page, fixture, state),
     "</section></main>",
   ].join("");
@@ -811,7 +811,7 @@ export function renderInventoryPage(
   demoState,
 ) {
   if (page.screen === "console-login") {
-    return renderConsoleLogin(page, fixture, state);
+    return renderConsoleLogin(page, fixture, state, demoState);
   }
   if (group.shell === "device") {
     return renderDevice(page, fixture, state);
@@ -838,7 +838,7 @@ export function renderInventoryPage(
     }),
     `<div class="admin-account"><strong>${platform ? "平台管理员" : escapeHtml(tenant.administratorLabel)}</strong><small>${platform ? "仅脱敏聚合" : escapeHtml(tenant.displayName)}</small></div>`,
     '</aside><div class="admin-workspace">',
-    `<header class="topbar"><span class="topbar-context scope-context">${platform ? "平台管理 / 不含租户内容" : `${escapeHtml(tenant.displayName)} / 租户管理`}</span><button class="button subtle account-button" type="button">${platform ? "平台管理员" : "租户管理员"} / 账户菜单</button></header>`,
+    `<header class="topbar"><span class="topbar-context scope-context">${platform ? "平台管理 / 不含租户内容" : `${escapeHtml(tenant.displayName)} / 租户管理`}</span>${renderAccountMenu(demoState)}</header>`,
     `<main id="main-content" class="admin-main" data-screen="${escapeHtml(page.screen)}" data-state="${escapeHtml(state)}" data-od-id="screen-${escapeHtml(page.screen)}" tabindex="-1">`,
     `<nav class="breadcrumb" aria-label="当前位置">${escapeHtml(group.label)}</nav>`,
     `<header class="page-header"><div class="page-header-copy"><h1 data-od-id="heading-${escapeHtml(page.screen)}">${escapeHtml(fixture.title)}</h1>${interactive ? `<div class="page-object-line"><span>${escapeHtml(currentEntity)}</span>${statusTag(fixture.status || "可用", String(fixture.status || "").includes("失败") || String(fixture.status || "").includes("阻断") ? "danger" : "success")}</div>` : ""}</div>${headerAction}</header>`,
