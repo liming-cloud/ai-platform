@@ -14,7 +14,7 @@ const fresh = () => createPrototypeStore(createMemoryStorage());
 const loginQuery = (store) =>
   store.loginQuery({
     tenantCode: "spruce-demo",
-    username: "demo.user",
+    username: "shen.demo",
     password: "demo-only",
   });
 const render = (screen, store) => {

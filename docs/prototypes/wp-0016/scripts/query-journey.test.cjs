@@ -15,7 +15,7 @@ async function scenario(action) {
 async function login(page) {
   await page.goto(url("login"));
   await page.locator('#login-form input[name="tenantCode"]').fill("spruce-demo");
-  await page.locator('#login-form input[name="username"]').fill("demo.user");
+  await page.locator('#login-form input[name="username"]').fill("shen.demo");
   await page.locator('#login-form input[name="password"]').fill("demo-only");
   await page.locator('#login-form button[type="submit"]').click();
   await page.locator('main[data-screen="assistants"]').waitFor();
@@ -47,7 +47,7 @@ test("未登录会话深链接不读取历史正文", () => scenario(async page 
 test("错误登录可纠正且输入口令不写入浏览器存储", () => scenario(async page => {
   await page.goto(url("login"));
   await page.locator('#login-form input[name="tenantCode"]').fill("spruce-demo");
-  await page.locator('#login-form input[name="username"]').fill("demo.user");
+  await page.locator('#login-form input[name="username"]').fill("shen.demo");
   await page.locator('#login-form input[name="password"]').fill("not-the-demo-password");
   await page.locator('#login-form button[type="submit"]').click();
   assert.equal(await page.locator('main[data-screen="assistants"]').count(), 0);

@@ -2,6 +2,17 @@ export const DEFAULT_TENANT_ID = "tenant-spruce";
 export const PROTOTYPE_STATE_KEY = "wp0016-business-demo-v1";
 export const QUERY_SESSION_KEY = "wp0016-query-session-v1";
 
+/** 公开、非秘密的验收夹具；只持久化场景标识，不接受真实密码或保存认证摘要。 */
+export const DEMO_LOGIN_SCENARIOS = Object.freeze({
+  INITIAL: "demo-only",
+  CREATED: "Initial-only-2026!",
+  ROTATED: "Reset-only-2026!",
+});
+
+function demoLoginScenario(value) {
+  return Object.entries(DEMO_LOGIN_SCENARIOS).find(([, phrase]) => phrase === value)?.[0] ?? null;
+}
+
 export const CONVERSATION_FEATURES = Object.freeze([
   "assistantSelection",
   "conversation",
@@ -116,14 +127,6 @@ function validateQuotas(input, usage = {}) {
   }
   return { quotas, errors };
 }
-
-const QUERY_DEMO_ACCOUNT = Object.freeze({
-  tenantCode: "spruce-demo",
-  username: "demo.user",
-  password: "demo-only",
-  tenantId: DEFAULT_TENANT_ID,
-  accountId: "account-shen",
-});
 
 function defaultQueryState() {
   return {
@@ -1167,7 +1170,7 @@ function defaultState() {
         administratorEligible: false,
         memberEligible: false,
       },
-    ],
+    ].map(account => ({ ...account, loginScenario: "INITIAL" })),
     tenants: [
       {
         id: DEFAULT_TENANT_ID,
@@ -3524,10 +3527,10 @@ export function createPrototypeStore(storage = browserStorage()) {
         ? input.passwordConfirmation
         : "";
     const errors = [];
-    if (password.length < 1 || password.length > 1024) {
+    if (!demoLoginScenario(password)) {
       errors.push({
         field: "password",
-        message: "请输入有效的新密码。",
+        message: "仅接受公开演示口令，请展开口令说明；不要输入真实密码。",
       });
     }
     if (confirmation !== password) {
@@ -3539,7 +3542,7 @@ export function createPrototypeStore(storage = browserStorage()) {
     return errors;
   }
 
-  /** 只保存非秘密账户事实；明文初始密码只参与本次合成校验。 */
+  /** 账户与公开登录场景在同一快照中提交；场景不是实际凭据。 */
   function createAccount(input = {}, actorAccountId) {
     if (!canManageAccounts(actorAccountId)) {
       return { ok: false, reason: "FORBIDDEN" };
@@ -3571,13 +3574,14 @@ export function createPrototypeStore(storage = browserStorage()) {
       administratorEligible: true,
       memberEligible: true,
       authenticationRevision: 1,
+      loginScenario: demoLoginScenario(input.password),
       authenticationChangedAt: "刚刚创建",
     };
     const saved = commitState({ ...state, accounts: [...state.accounts, account] });
     return saved.ok ? { ok: true, account: clone(account) } : saved;
   }
 
-  /** 重置只推进非秘密认证修订；原型状态、日志和返回值均不携带明文。 */
+  /** 重置同时切换公开场景和认证修订，保存失败时原场景与既有身份均不受影响。 */
   function resetAccountPassword(accountId, input = {}, actorAccountId) {
     if (!canManageAccounts(actorAccountId)) {
       return { ok: false, reason: "FORBIDDEN" };
@@ -3601,6 +3605,7 @@ export function createPrototypeStore(storage = browserStorage()) {
     }
     const nextAccount = {
       ...account,
+      loginScenario: demoLoginScenario(input.password),
       authenticationRevision: (account.authenticationRevision || 1) + 1,
       authenticationChangedAt: "刚刚重置",
     };
@@ -3951,13 +3956,31 @@ export function createPrototypeStore(storage = browserStorage()) {
     }
   }
 
+  /** storage 通知可能晚于点击；直接核对已提交账户事实，读取失败不回退旧口令或身份。 */
+  function authenticationAccounts() {
+    try {
+      const raw = storage.getItem(PROTOTYPE_STATE_KEY);
+      if (raw === null) return state.accounts;
+      const accounts = JSON.parse(raw)?.accounts;
+      return Array.isArray(accounts) ? accounts : [];
+    } catch { return []; }
+  }
+
+  function authenticateAccount(username, password) {
+    const scenario = demoLoginScenario(password);
+    if (!scenario) return null;
+    return authenticationAccounts().find(account => account.loginName === String(username || "").trim() &&
+      account.status === "available" && account.loginScenario === scenario) ?? null;
+  }
+
   /** 合成会话独立于业务快照；重新校验账户修订、成员状态和渠道，失效时不返回旧主体。 */
   function getSession() {
     if (!querySessionClosed) state.query.session = readQuerySession(storage, state.query.session.epoch);
     const session = state.query.session;
-    const account = accountById(session.accountId);
+    const account = authenticationAccounts().find(item => item.id === session.accountId);
     const member = memberById(session.tenantId, session.accountId);
-    const validAccount = account?.status === "available" && (account.authenticationRevision || 1) === session.authenticationRevision;
+    const validAccount = account?.status === "available" && Object.hasOwn(DEMO_LOGIN_SCENARIOS, account.loginScenario) &&
+      (account.authenticationRevision || 1) === session.authenticationRevision;
     const validScope = session.accessChannel === "CONSOLE" && account?.platformAdministrator
       ? session.tenantId === null
       : tenantById(session.tenantId)?.status === "active" && member?.status === "active" &&
@@ -3981,31 +4004,37 @@ export function createPrototypeStore(storage = browserStorage()) {
     return { ok: true, screen };
   }
 
-  /** 仅比较公开演示口令，动态创建或重置的密码不参与本地认证模拟。 */
+  /** 从同一人员目录认证；没有管理职责不能进入控制台，不能回落到默认租户。 */
   function loginConsole(input = {}) {
-    const username = String(input.username || "").trim();
-    const account = state.accounts.find(item => item.loginName === username);
-    if (!["platform.admin.demo", "qiao.demo"].includes(username) || input.password !== "demo-only" || account?.status !== "available") {
-      return { ok: false, reason: "INVALID_CREDENTIALS" };
-    }
+    const account = authenticateAccount(input.username, input.password);
+    if (!account) return { ok: false, reason: "INVALID_CREDENTIALS" };
+    reloadFromStorage();
     if (account.platformAdministrator) return establishSession(account.id, null, "CONSOLE", "platform-overview");
-    if (!authorizeScreen("tenant-overview", DEFAULT_TENANT_ID, account.id).allowed) return { ok: false, reason: "ROLE_BOUNDARY" };
-    return establishSession(account.id, DEFAULT_TENANT_ID, "CONSOLE", "tenant-overview");
+    const tenants = state.tenants.filter(tenant => authorizeScreen("tenant-overview", tenant.id, account.id).allowed);
+    if (!tenants.length) return { ok: false, reason: "ROLE_BOUNDARY" };
+    const tenantCode = String(input.tenantCode || "").trim();
+    if (tenants.length > 1 && !tenantCode) return {
+      ok: false, reason: "TENANT_SELECTION_REQUIRED",
+      tenants: tenants.map(({ code, organizationName }) => ({ code, organizationName })),
+    };
+    const tenant = tenantCode ? tenants.find(item => item.code === tenantCode) : tenants[0];
+    if (!tenant) return { ok: false, reason: "ROLE_BOUNDARY" };
+    // TODO(WP-0016): A03 完成多租户页面上下文隔离和浏览器回归后移除此拒绝，禁止展示默认组织内容。
+    if (tenant.id !== DEFAULT_TENANT_ID) return { ok: false, reason: "WORKSPACE_NOT_READY" };
+    return establishSession(account.id, tenant.id, "CONSOLE", "tenant-overview");
   }
 
   function loginQuery(input = {}) {
-    const valid =
-      String(input.tenantCode || "").trim() === QUERY_DEMO_ACCOUNT.tenantCode &&
-      String(input.username || "").trim() === QUERY_DEMO_ACCOUNT.username &&
-      String(input.password || "") === QUERY_DEMO_ACCOUNT.password;
-    if (!valid) {
-      return { ok: false, reason: "INVALID_CREDENTIALS" };
-    }
-    const access = getEffectiveAccess(QUERY_DEMO_ACCOUNT.tenantId, QUERY_DEMO_ACCOUNT.accountId, { feature: "assistantSelection" });
+    const account = authenticateAccount(input.username, input.password);
+    if (!account) return { ok: false, reason: "INVALID_CREDENTIALS" };
+    reloadFromStorage();
+    const tenant = state.tenants.find(item => item.code === String(input.tenantCode || "").trim());
+    const member = memberById(tenant?.id, account.id);
+    if (!tenant || member?.role !== "ordinaryMember" || account.platformAdministrator) return { ok: false, reason: "MEMBERSHIP_NOT_ACTIVE" };
+    const access = getEffectiveAccess(tenant.id, account.id, { feature: "assistantSelection" });
     if (!access.allowed) return { ok: false, reason: access.reason };
-    const member = memberById(QUERY_DEMO_ACCOUNT.tenantId, QUERY_DEMO_ACCOUNT.accountId);
-    if (!member.assistantIds.some(id => publishedAssistant(null, id))) return { ok: false, reason: "NO_AUTHORIZED_ASSISTANT" };
-    return establishSession(QUERY_DEMO_ACCOUNT.accountId, QUERY_DEMO_ACCOUNT.tenantId, "QUERY_APP", "assistants");
+    if (!member.assistantIds.some(id => assistantById(id)?.tenantId === tenant.id && publishedAssistant(null, id))) return { ok: false, reason: "NO_AUTHORIZED_ASSISTANT" };
+    return establishSession(account.id, tenant.id, "QUERY_APP", "assistants");
   }
 
   function logoutSession() {

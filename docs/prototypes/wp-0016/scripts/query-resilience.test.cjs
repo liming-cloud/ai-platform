@@ -27,7 +27,7 @@ async function scenario(name, action, width = 1440, reducedMotion = "no-preferen
 }
 async function login(page) {
   await page.goto(url("login"));
-  for (const [name, value] of Object.entries({ tenantCode: "spruce-demo", username: "demo.user", password: "demo-only" })) {
+  for (const [name, value] of Object.entries({ tenantCode: "spruce-demo", username: "shen.demo", password: "demo-only" })) {
     await page.locator('#login-form input[name="' + name + '"]').fill(value);
   }
   await page.locator('#login-form button[type="submit"]').click();

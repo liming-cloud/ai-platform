@@ -4,7 +4,7 @@ import test from "node:test";
 import { createMemoryStorage, createPrototypeStore, DEFAULT_TENANT_ID } from "../prototype-state.js";
 
 const fixtures = JSON.parse(readFileSync(new URL("../fixtures.json", import.meta.url), "utf8"));
-const memberLogin = { tenantCode: "spruce-demo", username: "demo.user", password: "demo-only" };
+const memberLogin = { tenantCode: "spruce-demo", username: "shen.demo", password: "demo-only" };
 const platformLogin = { username: "platform.admin.demo", password: "demo-only" };
 const tenantLogin = { username: "qiao.demo", password: "demo-only" };
 const assistantId = "assistant-employee-service";

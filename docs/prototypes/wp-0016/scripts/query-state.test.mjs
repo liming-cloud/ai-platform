@@ -15,7 +15,7 @@ const fixtures = JSON.parse(
 function login(store) {
   return store.loginQuery({
     tenantCode: "spruce-demo",
-    username: "demo.user",
+    username: "shen.demo",
     password: "demo-only",
   });
 }
@@ -26,7 +26,7 @@ test("错误口令不建立会话且口令从不进入持久化", () => {
   assert.deepEqual(
     store.loginQuery({
       tenantCode: "spruce-demo",
-      username: "demo.user",
+      username: "shen.demo",
       password: "wrong-password",
     }),
     { ok: false, reason: "INVALID_CREDENTIALS" },

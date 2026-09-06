@@ -49,7 +49,7 @@ async function loginQueryDemo(page) {
     waitUntil: "domcontentloaded",
   });
   await page.locator('#login-form input[name="tenantCode"]').fill("spruce-demo");
-  await page.locator('#login-form input[name="username"]').fill("demo.user");
+  await page.locator('#login-form input[name="username"]').fill("shen.demo");
   await page.locator('#login-form input[name="password"]').fill("demo-only");
   await page.locator('#login-form button[type="submit"]').click();
   await page.locator('main[data-screen="assistants"]').waitFor();

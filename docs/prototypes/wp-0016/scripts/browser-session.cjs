@@ -10,13 +10,20 @@ async function loginConsole(page, role = "tenant") {
   await page.getByLabel("登录名", { exact: true }).fill(role === "platform" ? "platform.admin.demo" : "qiao.demo");
   await page.getByLabel("密码", { exact: true }).fill("demo-only");
   await page.locator("#console-login-form [data-primary-action]").click();
+  await page.locator('main[data-screen="platform-overview"], main[data-screen="tenant-overview"], #console-tenant-select').first().waitFor();
+  if (await page.locator("#console-tenant-select").count()) {
+    // 此正向夹具明确选择已有示例组织，不要求产品静默选择第一个组织。
+    await page.locator("#console-tenant-select").selectOption("spruce-demo");
+    await page.getByLabel("密码", { exact: true }).fill("demo-only");
+    await page.locator("#console-login-form [data-primary-action]").click();
+  }
   await page.locator(`main[data-screen="${role === "platform" ? "platform-overview" : "tenant-overview"}"][data-state="success"]`).waitFor();
 }
 
 async function loginMember(page) {
   await page.goto(url("login"));
   await page.locator('#login-form [name="tenantCode"]').fill("spruce-demo");
-  await page.locator('#login-form [name="username"]').fill("demo.user");
+  await page.locator('#login-form [name="username"]').fill("shen.demo");
   await page.locator('#login-form [name="password"]').fill("demo-only");
   await page.locator('#login-form button[type="submit"]').click();
   await page.locator('main[data-screen="assistants"][data-state="success"]').waitFor();

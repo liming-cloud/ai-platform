@@ -1,4 +1,4 @@
-import { decorateExistingPage, renderInventoryPage } from "./full-platform.js";
+import { decorateExistingPage, renderInventoryPage, renderDemoLoginHelp } from "./full-platform.js";
 import { renderConsoleNavigation, renderAccountMenu } from "./navigation.js";
 import {
   createPrototypeStore,
@@ -34,6 +34,7 @@ let streamGeneration = 0;
 let loginFeedback = "";
 let consoleLoginFeedback = "";
 let consoleLoginName = "";
+let consoleLoginTenants = [];
 let queryFeedback = "";
 let accountFeedback = "";
 let knowledgeFeedback = "";
@@ -300,7 +301,7 @@ function render() {
         }
       : screen === "platform-accounts"
         ? { ...demoState, accountFeedback }
-        : screen === "console-login" ? { ...demoState, consoleLoginFeedback, consoleLoginName } : demoState;
+        : screen === "console-login" ? { ...demoState, consoleLoginFeedback, consoleLoginName, consoleLoginTenants } : demoState;
   root.innerHTML = access.allowed ? renderScreen(screen, renderedState, renderedDemoState) : renderAccessDenied(screen, querySession);
   renderedSessionEpoch = querySession.epoch;
   const page = pageByScreen.get(screen);
@@ -633,7 +634,6 @@ function renderLogin(state) {
       "<h2>使用组织账户登录</h2>",
       "<p>登录后只显示已授权助手。</p>",
       "</div>",
-      '<div class="demo-credentials" aria-label="公开合成演示账号"><span>合成演示账号</span><code>演示口令：demo-only</code></div>',
       state === "partial"
         ? '<div class="inline-note warning">上次会话已退出，未发送的输入没有保存。可以重新登录。</div>'
         : "",
@@ -641,7 +641,7 @@ function renderLogin(state) {
         ? `<p id="login-feedback" class="form-feedback" data-tone="danger" role="alert">${escapeHtml(loginFeedback)}</p>`
         : '<p id="login-feedback" class="form-feedback" aria-live="polite"></p>',
       '<label class="field"><span>组织编码</span><input class="input" name="tenantCode" autocomplete="organization" value="spruce-demo" required /></label>',
-      '<label class="field"><span>登录名</span><input class="input" name="username" autocomplete="username" value="demo.user" required /></label>',
+      '<label class="field"><span>登录名</span><input class="input" name="username" autocomplete="username" value="shen.demo" required /></label>',
       '<label class="field"><span>密码</span><input class="input" name="password" type="password" autocomplete="current-password" required /></label>',
       '<div class="login-actions">',
       '<button class="button primary" type="submit" data-primary-action' +
@@ -654,6 +654,7 @@ function renderLogin(state) {
         : '<p class="field-hint">无法登录时，请联系组织管理员。</p>',
       "</div>",
       '<p class="session-safety">请勿在公共设备上保存密码。</p>',
+      renderDemoLoginHelp(),
       "</form>",
     ].join("");
   return [
@@ -3092,12 +3093,16 @@ function bindInteractions(screen) {
     event.preventDefault();
     const values = new FormData(event.currentTarget);
     consoleLoginName = String(values.get("username") || "");
-    const result = prototypeStore.loginConsole({ username: consoleLoginName, password: values.get("password") });
+    const result = prototypeStore.loginConsole({ username: consoleLoginName, password: values.get("password"), tenantCode: values.get("tenantCode") });
     event.currentTarget.reset();
+    consoleLoginTenants = result.tenants || [];
     if (!result.ok) {
-      consoleLoginFeedback = result.reason === "STORAGE_UNAVAILABLE" ? "浏览器无法保存登录状态，请检查存储后重试。" : "登录名或密码不正确，或当前账户不能进入控制台。";
+      consoleLoginFeedback = result.reason === "STORAGE_UNAVAILABLE" ? "浏览器无法保存登录状态，请检查存储后重试。"
+        : result.reason === "TENANT_SELECTION_REQUIRED" ? "请选择本次管理的组织，并再次输入演示口令。"
+        : result.reason === "WORKSPACE_NOT_READY" ? "此组织工作区的原型尚未接通，暂不能进入；不会打开其他组织的数据。"
+        : "登录名或密码不正确，或当前账户不能进入控制台。";
       render();
-      root.querySelector('#console-login-form [name="password"]')?.focus();
+      root.querySelector(result.reason === "TENANT_SELECTION_REQUIRED" ? "#console-tenant-select" : '#console-login-form [name="password"]')?.focus();
       return;
     }
     consoleLoginFeedback = "";
@@ -3162,6 +3167,7 @@ function bindAccountManagement() {
   };
 
   const showErrors = (form, feedback, result, fallback) => {
+    form.querySelectorAll('input[type="password"]').forEach(control => { control.value = ""; });
     const errors = result.errors || [];
     errors.forEach((error) => {
       form.elements.namedItem(error.field)?.setAttribute("aria-invalid", "true");
@@ -3217,7 +3223,7 @@ function bindAccountManagement() {
       return;
     }
     const createdAccountId = result.account.id;
-    accountFeedback = `已创建 ${result.account.loginName}；初始密码不再显示。`;
+    accountFeedback = `已创建 ${result.account.loginName}；分配管理资格或成员与助手权限后，本人可使用刚设置的演示口令登录。`;
     createDialog.close();
     render();
     root.querySelector(`[data-account-row="${CSS.escape(createdAccountId)}"]`)?.focus();

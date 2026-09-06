@@ -5,7 +5,7 @@ import { createMemoryStorage, createPrototypeStore, DEFAULT_TENANT_ID } from "..
 const fixtures = JSON.parse(readFileSync(new URL("../fixtures.json", import.meta.url), "utf8"));
 function started(storage = createMemoryStorage()) {
   const store = createPrototypeStore(storage);
-  assert.equal(store.loginQuery({ tenantCode: "spruce-demo", username: "demo.user", password: "demo-only" }).ok, true);
+  assert.equal(store.loginQuery({ tenantCode: "spruce-demo", username: "shen.demo", password: "demo-only" }).ok, true);
   const { conversation } = store.createQueryConversation(fixtures, "assistant-employee-service");
   const { run } = store.startQueryRun(fixtures, conversation.id, "未休 7 天如何处理？");
   return { store, conversation, run };
@@ -73,7 +73,7 @@ test("接收中退出后重新登录会暂停旧轮次并允许原位继续", ()
   const context = started();
   context.store.advanceQueryRun(fixtures, context.conversation.id, context.run.id, { chunkSize: 12, expectedEpoch: context.store.getSession().epoch });
   context.store.logoutSession();
-  context.store.loginQuery({ tenantCode: "spruce-demo", username: "demo.user", password: "demo-only" });
+  context.store.loginQuery({ tenantCode: "spruce-demo", username: "shen.demo", password: "demo-only" });
   assert.equal(project(context).activeRun.status, "PAUSED");
   assert.equal(context.store.resumeQueryRun(fixtures, context.conversation.id, context.run.id).ok, true);
   assert.equal(complete(context).run.status, "COMPLETED");

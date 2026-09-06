@@ -117,7 +117,7 @@ test("越权泄漏阻断发布请求，重新评测通过后才能进入发布�
 
 test("发布新版本只影响新会话，已存在会话继续固定旧版本", () => {
   const { store } = fresh();
-  assert.equal(store.loginQuery({ tenantCode: "spruce-demo", username: "demo.user", password: "demo-only" }).ok, true);
+  assert.equal(store.loginQuery({ tenantCode: "spruce-demo", username: "shen.demo", password: "demo-only" }).ok, true);
   const before = store.queryProjection(fixtures, { conversationId: "cv-20260902-01" }).conversation;
   assert.equal(before.assistantVersionId, "asv-0012");
   assert.equal(store.publishAssistantVersion("asv-0013", TENANT_ACTOR).version.status, "PUBLISHED");
