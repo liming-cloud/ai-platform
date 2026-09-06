@@ -1,0 +1,193 @@
+{
+  "status": "PASS",
+  "generatedAt": "2026-09-06T05:28:57.464Z",
+  "evidenceScope": "真实 DOM、布局、特定交互与导航；不是全部控件闭环或人工认可",
+  "pageCount": 68,
+  "stateCount": 7,
+  "viewportCount": 3,
+  "declaredScenarioCount": 1428,
+  "completedScenarioCount": 1428,
+  "assertionCount": 9643,
+  "screenshotCount": 85,
+  "stages": [
+    {
+      "name": "审查器与导航图标",
+      "status": "PASS",
+      "failures": [],
+      "browserErrors": []
+    },
+    {
+      "name": "全部页面状态与视口",
+      "status": "PASS",
+      "failures": [],
+      "browserErrors": []
+    },
+    {
+      "name": "创建租户与管理导航",
+      "status": "PASS",
+      "failures": [],
+      "browserErrors": []
+    },
+    {
+      "name": "成员与两级功能控制",
+      "status": "PASS",
+      "failures": [],
+      "browserErrors": []
+    },
+    {
+      "name": "成员弹窗键盘与取消",
+      "status": "PASS",
+      "failures": [],
+      "browserErrors": []
+    },
+    {
+      "name": "运行状态与隔离恢复",
+      "status": "PASS",
+      "failures": [],
+      "browserErrors": []
+    },
+    {
+      "name": "恢复检查失败与重试",
+      "status": "PASS",
+      "failures": [],
+      "browserErrors": []
+    },
+    {
+      "name": "审查器收起可达性",
+      "status": "PASS",
+      "failures": [],
+      "browserErrors": []
+    },
+    {
+      "name": "普通用户登录",
+      "status": "PASS",
+      "failures": [],
+      "browserErrors": []
+    },
+    {
+      "name": "问答示例与键盘",
+      "status": "PASS",
+      "failures": [],
+      "browserErrors": []
+    },
+    {
+      "name": "会话刷新恢复",
+      "status": "PASS",
+      "failures": [],
+      "browserErrors": []
+    },
+    {
+      "name": "设备前置导航",
+      "status": "PASS",
+      "failures": [],
+      "browserErrors": []
+    },
+    {
+      "name": "页面截图",
+      "status": "PASS",
+      "failures": [],
+      "browserErrors": []
+    },
+    {
+      "name": "减少动态效果",
+      "status": "PASS",
+      "failures": [],
+      "browserErrors": []
+    }
+  ],
+  "browserErrors": [],
+  "failures": [],
+  "workPackage": "WP-0016",
+  "implementationCommit": "1e1dc4f1bee510e76c3bd086903091de50a3737f",
+  "verificationScope": "A01、A02 与 A09 账户菜单子项；页面矩阵只覆盖已声明合同",
+  "nodeTests": {
+    "pass": 108,
+    "fail": 0
+  },
+  "browserTests": {
+    "pass": 108,
+    "fail": 0
+  },
+  "sessionStateTests": {
+    "pass": 8,
+    "fail": 0
+  },
+  "sessionBrowserTests": {
+    "pass": 7,
+    "fail": 0
+  },
+  "staticAssertions": 3177,
+  "openDesignLint": {
+    "ok": true,
+    "counts": {
+      "p0": 0,
+      "p1": 0,
+      "p2": 0
+    }
+  },
+  "redEvidence": {
+    "initialState": {
+      "pass": 0,
+      "fail": 6
+    },
+    "initialBrowser": {
+      "pass": 0,
+      "fail": 6
+    },
+    "additionalState": {
+      "pass": 5,
+      "fail": 2
+    },
+    "keyboard": {
+      "pass": 0,
+      "fail": 1
+    },
+    "singleKeyLogin": {
+      "pass": 0,
+      "fail": 1
+    }
+  },
+  "resolvedFindings": [
+    "A01",
+    "A02"
+  ],
+  "partiallyResolvedFindings": [
+    {
+      "id": "A09",
+      "resolved": "账户菜单、身份显示、退出与键盘操作",
+      "remaining": "自然中文术语"
+    }
+  ],
+  "remainingBlockingFindings": [
+    "A03",
+    "A04",
+    "A05",
+    "A06",
+    "A07",
+    "A08",
+    "A11"
+  ],
+  "remainingUnclosedControls": 14,
+  "deferredTasks": [
+    "渠道绑定",
+    "设备凭据",
+    "邮件邀请"
+  ],
+  "allControlsEnumerated": false,
+  "readyForFullAcceptance": false,
+  "humanReviewStatus": "rejected",
+  "screenshotsCommitted": 0,
+  "openDesignProject": "249f81f2-6f1a-46ff-988c-da3cdedb35e7",
+  "limitations": [
+    "只使用公开合成账户和演示口令，不实现真实密码、登录限流或会话过期。",
+    "账户创建或重置后登录衔接在 WP-0016 内继续补齐，不借生产实现阶段隐藏原型缺口。",
+    "除本轮关闭项外，已有 6 类 P1 及本次确认的 A11 仍未关闭，不能提请整套人工验收。"
+  ],
+  "additionalFinding": {
+    "id": "A11",
+    "scope": "原型人员账户交付到登录",
+    "resetSaved": true,
+    "newPasswordLoginAllowed": false,
+    "publicDemoPasswordStillAllowed": true
+  }
+}
