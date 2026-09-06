@@ -1773,7 +1773,7 @@
   },
   "browserEvidenceReport": "artifacts/full-closure-verification-20260906.json",
   "acceptanceAudit": {
-    "auditedHead": "280885682824343ffd46e577ed51d38f3bbb7a9c",
+    "auditedHead": "10fd8eaaa71bc66cc8f3fe96f20c7dac58f7fd1c",
     "checkedOn": "2026-09-06",
     "technicalStatus": "passed",
     "humanReviewStatus": "rejected",
@@ -1795,7 +1795,7 @@
     "report": "artifacts/full-closure-verification-20260906.json",
     "evidence": "project/evidence/WP-0016-full-closure-prototype-20260906.md",
     "scope": "56 个 M6 页面七态，包括侧栏、账户菜单和隐藏弹窗；其余 10 页仅布局与信息架构，2 页及邮件邀请暂缓",
-    "implementationCommit": null,
+    "implementationCommit": "10fd8eaaa71bc66cc8f3fe96f20c7dac58f7fd1c",
     "unclosedControls": 0,
     "baselineAudit": "project/evidence/WP-0016-acceptance-preflight-20260905.md",
     "currentCandidate": "readyForReview"

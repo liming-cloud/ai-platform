@@ -1,6 +1,6 @@
 {
   "status": "PASS",
-  "generatedAt": "2026-09-06T12:36:39.776Z",
+  "generatedAt": "2026-09-06T12:41:03.366Z",
   "project": "249f81f2-6f1a-46ff-988c-da3cdedb35e7",
   "name": "WP-0016 可信 RAG 高保真原型",
   "version": "0.21.1",
@@ -22,8 +22,8 @@
     },
     {
       "path": "ACTION-LEDGER.json",
-      "bytes": 74337,
-      "sha256": "d04c192773bc05b297806d9c6dd8f90235d214b6e1b7d315ebbc17e0347054b0"
+      "bytes": 74375,
+      "sha256": "93e0b5c925b23d9935bfeeaaa4ae3319275884e81ab69a5590873a1f45e7d58d"
     },
     {
       "path": "ASSISTANT-DELIVERY.md",
@@ -38,7 +38,7 @@
     {
       "path": "DESIGN.md",
       "bytes": 27987,
-      "sha256": "7cf71d2b5cd4c0b491682becde6a43f1329f2265c13724bc52f649abdb5066bb"
+      "sha256": "3a5fd676baf7151615882ebc4c1cfd2789763f216de5dc18dc7225a4d42b1ea0"
     },
     {
       "path": "EVALUATION-GOVERNANCE.md",
