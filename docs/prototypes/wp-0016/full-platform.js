@@ -72,7 +72,7 @@ function statePanel(page, fixture, state) {
       ? '<div class="skeleton-stack" aria-label="正在加载"><span class="skeleton-line"></span><span class="skeleton-line"></span><span class="skeleton-line"></span></div>'
       : `<span class="section-kicker">${state === "empty" ? "暂无内容" : state === "error" ? "载入失败" : "访问受限"}</span><h2>${escapeHtml(copy[0])}</h2><p>${escapeHtml(copy[1])}</p>`,
     state === "empty"
-      ? `<button class="button secondary" type="button"${fixture.nextScreen ? ` data-nav-screen="${escapeHtml(fixture.nextScreen)}"` : ' data-open-page-dialog="true"'}>${escapeHtml(page.primaryAction)}</button>`
+      ? page.screen === "platform-accounts" ? primaryAction(page, fixture, "success") : `<button class="button secondary" type="button"${fixture.nextScreen ? ` data-nav-screen="${escapeHtml(fixture.nextScreen)}"` : ' data-open-page-dialog="true"'}>${escapeHtml(page.primaryAction)}</button>`
       : state === "error"
         ? `<button class="button secondary" type="button" data-nav-screen="${escapeHtml(page.screen)}">重新加载</button>`
         : state === "denied"
@@ -112,12 +112,12 @@ function renderRows(page, fixture) {
     rows
       .map(
         (row, rowIndex) =>
-          `<tr data-od-id="${escapeHtml(page.screen)}-row-${rowIndex + 1}">${row
+          `<tr data-od-id="${escapeHtml(page.screen)}-row-${rowIndex + 1}" data-search-text="${escapeHtml(row.join(" "))}" data-directory-state="${row.some(value => /成功|完成|正常/.test(value)) ? "READY" : "ATTENTION"}">${row
             .map(
               (cell, index) =>
                 `<td data-label="${escapeHtml(columns[index])}">${index === 0 ? `<strong>${escapeHtml(cell)}</strong>` : escapeHtml(cell)}</td>`,
             )
-            .join("")}<td data-label="操作"><button class="button secondary compact" type="button"${rowIndex === 0 && fixture.nextScreen ? ` data-nav-screen="${escapeHtml(fixture.nextScreen)}"` : ""}>查看</button></td></tr>`,
+            .join("")}<td data-label="操作">${fixture.nextScreen ? `<button class="button secondary compact" type="button" data-nav-screen="${escapeHtml(page.screen === "platform-overview" ? ["ingestion-queue", "model-health", "backup-recovery"][rowIndex] || fixture.nextScreen : fixture.nextScreen)}">查看</button>` : '<span class="muted">汇总记录</span>'}</td></tr>`,
       )
       .join(""),
     "</tbody></table>",
@@ -131,7 +131,7 @@ function renderRows(page, fixture) {
 function renderList(page, fixture) {
   return [
     summaryFacts(fixture),
-    `<div class="toolbar"><label class="field"><span>搜索${escapeHtml(fixture.entity)}</span><input class="input" type="search" placeholder="输入名称或状态" /></label><label class="field compact-field"><span>状态</span><select class="select"><option>全部状态</option><option>需处理</option><option>已完成</option></select></label></div>`,
+    `<div class="toolbar"><label class="field"><span>搜索${escapeHtml(fixture.entity)}</span><input class="input" type="search" data-directory-search placeholder="输入名称或状态" /></label><label class="field compact-field"><span>状态</span><select class="select" data-directory-status><option value="">全部状态</option><option value="ATTENTION">需处理</option><option value="READY">已完成</option></select></label></div><p data-filter-summary class="form-feedback" role="status"></p>`,
     renderRows(page, fixture),
   ].join("");
 }
@@ -316,17 +316,17 @@ function renderPlatformAccounts(demoState) {
           : suspended
             ? "请先恢复账户"
             : "设置平台管理员身份";
-      return `<tr data-account-row="${escapeHtml(account.id)}" data-search-text="${escapeHtml(`${account.loginName} ${scope} ${suspended ? "已停用" : "可用"}`)}" data-account-status="${suspended ? "suspended" : "available"}" tabindex="-1"><td data-label="登录名"><span class="primary-cell"><strong>${escapeHtml(account.loginName)}</strong><small>${escapeHtml(account.name || account.loginName)}</small></span></td><td data-label="账号用途">${escapeHtml(scope)}</td><td data-label="状态">${statusTag(suspended ? "已停用" : "可用", suspended ? "warning" : "success")}</td><td data-label="认证修订"><span class="primary-cell"><strong>认证修订 ${escapeHtml(account.authenticationRevision || 1)}</strong><small>${escapeHtml(account.authenticationChangedAt || "初始凭据已设置")}</small></span></td><td data-label="操作"><div class="table-actions account-row-actions"><button class="button secondary compact" type="button" data-reset-account="${escapeHtml(account.id)}"${self ? ' disabled aria-label="当前账户不能由此重置密码"' : ""}>重置密码</button><details class="account-actions-menu" data-account-menu="${escapeHtml(account.id)}"><summary class="button subtle compact">更多</summary><div class="account-actions-popover"><button class="button subtle compact" type="button" data-assign-platform-administrator="${escapeHtml(account.id)}"${assignmentDisabled ? " disabled" : ""} title="${escapeHtml(assignmentReason)}">设为平台管理员</button><button class="button subtle compact" type="button" data-set-account-status="${escapeHtml(account.id)}" data-next-status="${suspended ? "available" : "suspended"}"${self ? " disabled" : ""}>${suspended ? "恢复账户" : "停用账户"}</button></div></details></div></td></tr>`;
+      return `<tr data-account-row="${escapeHtml(account.id)}" data-search-text="${escapeHtml(`${account.loginName} ${scope} ${suspended ? "已停用" : "可用"}`)}" data-account-status="${suspended ? "suspended" : "available"}" tabindex="-1"><td data-label="登录名"><span class="primary-cell"><strong>${escapeHtml(account.loginName)}</strong><small>${escapeHtml(account.name || account.loginName)}</small></span></td><td data-label="账号用途">${escapeHtml(scope)}</td><td data-label="状态">${statusTag(suspended ? "已停用" : "可用", suspended ? "warning" : "success")}</td><td data-label="认证版本"><span class="primary-cell"><strong>认证版本 ${escapeHtml(account.authenticationRevision || 1)}</strong><small>${escapeHtml(account.authenticationChangedAt || "初始凭据已设置")}</small></span></td><td data-label="操作"><div class="table-actions account-row-actions"><button class="button secondary compact" type="button" data-reset-account="${escapeHtml(account.id)}"${self ? ' disabled aria-label="当前账户不能由此重置密码"' : ""}>重置密码</button><details class="account-actions-menu" data-account-menu="${escapeHtml(account.id)}"><summary class="button subtle compact">更多</summary><div class="account-actions-popover"><button class="button subtle compact" type="button" data-assign-platform-administrator="${escapeHtml(account.id)}"${assignmentDisabled ? " disabled" : ""} title="${escapeHtml(assignmentReason)}">设为平台管理员</button><button class="button subtle compact" type="button" data-set-account-status="${escapeHtml(account.id)}" data-next-status="${suspended ? "available" : "suspended"}"${self ? " disabled" : ""}>${suspended ? "恢复账户" : "停用账户"}</button></div></details></div></td></tr>`;
     })
     .join("");
   return [
     `<dl class="summary-strip domain-summary account-summary"><div class="summary-item"><dt>人员账户</dt><dd>${accounts.length}</dd></div><div class="summary-item"><dt>可用账户</dt><dd>${activeCount}</dd></div><div class="summary-item"><dt>平台管理员</dt><dd>${administratorCount}</dd></div><div class="summary-item"><dt>租户成员</dt><dd>${tenantMemberCount}</dd></div></dl>`,
     '<div class="toolbar"><label class="field"><span>搜索人员账户</span><input class="input" type="search" data-directory-search="platform-accounts" placeholder="按登录名或账号用途搜索" /></label><label class="field compact-field"><span>状态</span><select class="select" data-account-status-filter><option value="">全部状态</option><option value="available">可用</option><option value="suspended">已停用</option></select></label></div>',
-    `<div class="table-shell account-table-shell"><table class="data-table"><thead><tr><th>登录名</th><th>账号用途</th><th>状态</th><th>认证修订</th><th>操作</th></tr></thead><tbody>${rows}</tbody></table><div class="pagination" aria-label="人员账户分页"><span>第 1 页，共 ${accounts.length} 个账户</span><div class="pagination-actions"><button class="button secondary compact" type="button" disabled>上一页</button><button class="button secondary compact" type="button" disabled>下一页</button></div></div></div>`,
+    `<div class="table-shell account-table-shell"><table class="data-table"><thead><tr><th>登录名</th><th>账号用途</th><th>状态</th><th>认证版本</th><th>操作</th></tr></thead><tbody>${rows}</tbody></table><div class="pagination" aria-label="人员账户分页"><span>第 1 页，共 ${accounts.length} 个账户</span><div class="pagination-actions"><button class="button secondary compact" type="button" disabled>上一页</button><button class="button secondary compact" type="button" disabled>下一页</button></div></div></div>`,
     `<p id="account-operation-feedback" class="form-feedback" role="status" aria-live="polite">${escapeHtml(demoState?.accountFeedback || "")}</p>`,
     '<dialog id="create-account-dialog" class="dialog-surface account-dialog" aria-labelledby="create-account-title"><form id="create-account-form" novalidate><div class="dialog-heading"><span class="section-kicker">全局人员账户</span><h2 id="create-account-title">创建人员账户</h2><p>设置一次性初始密码；提交后不再显示。</p></div>' + renderDemoLoginHelp() + '<label class="field" for="create-account-login"><span>登录名</span><input id="create-account-login" class="input mono" name="loginName" required pattern="[a-z](?:[a-z0-9._]|-){2,63}" maxlength="64" autocomplete="off" placeholder="例如：zhou.demo" aria-describedby="create-account-login-help" /><small id="create-account-login-help" class="field-hint">3–64 位小写字母、数字、点、下划线或连字符。</small></label><div class="wizard-field-grid account-password-grid"><label class="field" for="create-account-password"><span>初始密码</span><input id="create-account-password" class="input" name="password" type="password" required maxlength="1024" autocomplete="new-password" /></label><label class="field" for="create-account-password-confirmation"><span>再次输入</span><input id="create-account-password-confirmation" class="input" name="passwordConfirmation" type="password" required maxlength="1024" autocomplete="new-password" /></label></div><p class="inline-note compact-note">请通过组织批准的安全渠道单独告知本人；页面、存储和审计均不保留明文。</p><p id="create-account-feedback" class="form-feedback" role="alert" aria-live="assertive"></p><div class="form-actions dialog-actions"><button class="button secondary" type="button" data-cancel-create-account>取消</button><button class="button primary" type="submit">创建账户</button></div></form></dialog>',
     '<dialog id="reset-account-password-dialog" class="dialog-surface account-dialog" aria-labelledby="reset-account-password-title"><form id="reset-account-password-form" novalidate><div class="dialog-heading"><span class="section-kicker">受控凭据重置</span><h2 id="reset-account-password-title">重置密码</h2><p id="reset-account-target"></p></div>' + renderDemoLoginHelp() + '<div class="wizard-field-grid account-password-grid"><label class="field" for="reset-account-password"><span>新密码</span><input id="reset-account-password" class="input" name="password" type="password" required maxlength="1024" autocomplete="new-password" /></label><label class="field" for="reset-account-password-confirmation"><span>再次输入</span><input id="reset-account-password-confirmation" class="input" name="passwordConfirmation" type="password" required maxlength="1024" autocomplete="new-password" /></label></div><label class="consent-control"><input name="revokeSessions" type="checkbox" required /><span><strong>撤销全部会话</strong><small>平台与租户范围的既有会话同时失效。</small></span></label><p id="reset-account-password-feedback" class="form-feedback" role="alert" aria-live="assertive"></p><div class="form-actions dialog-actions"><button class="button secondary" type="button" data-cancel-reset-account>取消</button><button class="button primary" type="submit">重置密码</button></div></form></dialog>',
-    '<dialog id="account-governance-dialog" class="dialog-surface account-dialog" aria-labelledby="account-governance-title"><form id="account-governance-form"><div class="dialog-heading"><span class="section-kicker">账户治理</span><h2 id="account-governance-title">确认账户操作</h2><p id="account-governance-description"></p></div><dl class="dialog-impact"><div><dt>影响</dt><dd id="account-governance-impact"></dd></div><div><dt>恢复</dt><dd id="account-governance-recovery"></dd></div><div><dt>审计</dt><dd>记录操作者、目标账户、操作、结果与非秘密修订。</dd></div></dl><p id="account-governance-feedback" class="form-feedback" role="alert" aria-live="assertive"></p><div class="form-actions dialog-actions"><button class="button secondary" type="button" data-cancel-account-governance>取消</button><button class="button primary" type="submit" id="account-governance-confirm">确认</button></div></form></dialog>',
+    '<dialog id="account-governance-dialog" class="dialog-surface account-dialog" aria-labelledby="account-governance-title"><form id="account-governance-form"><div class="dialog-heading"><span class="section-kicker">账户治理</span><h2 id="account-governance-title">确认账户操作</h2><p id="account-governance-description"></p></div><dl class="dialog-impact"><div><dt>影响</dt><dd id="account-governance-impact"></dd></div><div><dt>恢复</dt><dd id="account-governance-recovery"></dd></div><div><dt>审计</dt><dd>记录操作者、目标账户、操作、结果与非秘密版本。</dd></div></dl><p id="account-governance-feedback" class="form-feedback" role="alert" aria-live="assertive"></p><div class="form-actions dialog-actions"><button class="button secondary" type="button" data-cancel-account-governance>取消</button><button class="button primary" type="submit" id="account-governance-confirm">确认</button></div></form></dialog>',
   ].join("");
 }
 
@@ -334,12 +334,12 @@ function renderPlatformTenants(demoState) {
   const rows = (demoState?.tenants || [])
     .map(
       (tenant) =>
-        `<tr data-search-text="${escapeHtml(`${tenant.organizationName} ${tenant.code} ${tenant.region}`)}"><td data-label="租户"><span class="primary-cell"><strong>${escapeHtml(tenant.organizationName)}</strong><span class="mono">${escapeHtml(tenant.code)}</span></span></td><td data-label="驻留区域">${escapeHtml(tenant.region)}</td><td data-label="状态">${statusTag(tenant.status === "active" ? "活动" : "已停用")}</td><td data-label="租户管理员">已分配</td><td data-label="操作"><button class="button secondary compact" type="button" data-select-tenant="${escapeHtml(tenant.id)}" data-nav-screen="platform-tenant-detail" data-control-status="navigation">查看详情</button></td></tr>`,
+        `<tr data-directory-state="${escapeHtml(tenant.status)}" data-search-text="${escapeHtml(`${tenant.organizationName} ${tenant.code} ${tenant.region}`)}"><td data-label="租户"><span class="primary-cell"><strong>${escapeHtml(tenant.organizationName)}</strong><span class="mono">${escapeHtml(tenant.code)}</span></span></td><td data-label="驻留区域">${escapeHtml(tenant.region)}</td><td data-label="状态">${statusTag(tenant.status === "active" ? "活动" : "已停用")}</td><td data-label="租户管理员">已分配</td><td data-label="操作"><button class="button secondary compact" type="button" data-select-tenant="${escapeHtml(tenant.id)}" data-nav-screen="platform-tenant-detail" data-control-status="navigation">查看详情</button></td></tr>`,
     )
     .join("");
   return [
     '<div class="compact-summary"><span><strong>租户目录</strong> · 合成生命周期数据</span><span>安全边界异常 0</span></div>',
-    '<div class="toolbar"><label class="field"><span>搜索租户</span><input class="input" type="search" data-directory-search="platform-tenants" placeholder="按组织名称或租户编码搜索" /></label><label class="field compact-field"><span>状态</span><select class="select"><option>全部状态</option><option>活动</option><option>已停用</option></select></label></div>',
+    '<div class="toolbar"><label class="field"><span>搜索租户</span><input class="input" type="search" data-directory-search="platform-tenants" placeholder="按组织名称或租户编码搜索" /></label><label class="field compact-field"><span>状态</span><select class="select" data-directory-status><option value="">全部状态</option><option value="active">活动</option><option value="suspended">已停用</option></select></label></div><p data-filter-summary class="form-feedback" role="status"></p>',
     `<div class="table-shell"><table class="data-table"><thead><tr><th>租户</th><th>驻留区域</th><th>状态</th><th>租户管理员</th><th>操作</th></tr></thead><tbody>${rows}</tbody></table><div class="pagination" aria-label="租户目录分页"><span>第 1 页，共 ${demoState?.tenants?.length || 0} 个租户</span><div class="pagination-actions"><button class="button secondary compact" type="button" disabled>上一页</button><button class="button secondary compact" type="button" disabled>下一页</button></div></div></div>`,
   ].join("");
 }
@@ -488,6 +488,11 @@ function renderTenantDetail(demoState) {
   ].join("");
 }
 
+function memberAssistantChoices(demoState, tenant, member) {
+  const assistants = (demoState?.assistantDelivery?.assistants || []).filter(item => item.tenantId === tenant?.id && item.publishedVersionId);
+  return assistants.map((assistant, index) => `<label><input type="checkbox" ${member ? `data-member-assistant="${escapeHtml(assistant.id)}" data-member-account="${escapeHtml(member.accountId)}"` : `name="assistantIds" value="${escapeHtml(assistant.id)}"`}${member ? member.assistantIds.includes(assistant.id) ? " checked" : "" : index === 0 ? " checked" : ""}>${escapeHtml(assistant.name)}</label>`).join("") || '<span class="muted">暂无已发布助手，可先添加成员，待助手发布后授权。</span>';
+}
+
 function renderMemberFeatureEditor(demoState, tenant, member) {
   if (!member || member.role !== "ordinaryMember") {
     return '<aside class="section-block"><span class="section-kicker">管理员边界</span><h2>管理员由平台治理</h2><p>租户管理员在此只读，不能新增、提权或停用其他管理员。</p></aside>';
@@ -503,15 +508,7 @@ function renderMemberFeatureEditor(demoState, tenant, member) {
         (feature) =>
           `<label class="feature-control"><input type="checkbox" data-member-feature="${feature}" data-member-account="${escapeHtml(member.accountId)}"${member.conversationFeatures[feature] ? " checked" : ""} /><span><strong>${escapeHtml(FEATURE_LABELS[feature])}</strong><small>${tenant.availableFeatures[feature] ? "受成员授权与对象授权共同约束。" : "平台已关闭此租户功能，当前不会生效。"}</small></span></label>`,
       ).join("") +
-      '</div><fieldset class="assistant-scope"><legend>已授权助手范围</legend><label><input type="checkbox" data-member-assistant="assistant-employee-service" data-member-account="' +
-      escapeHtml(member.accountId) +
-      '"' +
-      (member.assistantIds.includes("assistant-employee-service") ? " checked" : "") +
-      " /> 员工服务助手</label><label><input type=\"checkbox\" data-member-assistant=\"assistant-support\" data-member-account=\"" +
-      escapeHtml(member.accountId) +
-      '"' +
-      (member.assistantIds.includes("assistant-support") ? " checked" : "") +
-      " /> 客户支持助手</label></fieldset>",
+      '</div><fieldset class="assistant-scope"><legend>已授权助手范围</legend>' + memberAssistantChoices(demoState, tenant, member) + '</fieldset>',
     '<div class="form-actions"><button class="button secondary" type="button" data-business-action="cancel-member-features" data-member-account="' +
       escapeHtml(member.accountId) +
       '" data-control-status="implemented">取消</button><button class="button primary" type="button" data-business-action="save-member-features" data-member-account="' +
@@ -521,7 +518,7 @@ function renderMemberFeatureEditor(demoState, tenant, member) {
 }
 
 function renderTenantMembers(demoState) {
-  const tenant = demoState?.tenants?.find((item) => item.id === DEFAULT_TENANT_ID);
+  const tenant = demoState?.tenants?.find((item) => item.id === (demoState.query?.session?.tenantId || DEFAULT_TENANT_ID));
   const selectedAccountId = demoState?.selectedDemoAccountId;
   const selectedMember = tenant?.members?.find(
     (member) => member.accountId === selectedAccountId,
@@ -547,7 +544,7 @@ function renderTenantMembers(demoState) {
             `<option value="${escapeHtml(account.id)}">${escapeHtml(account.name)} · ${escapeHtml(account.loginName)}</option>`,
         )
         .join("") +
-      '</select></label><fieldset class="assistant-scope"><legend>初始对话功能</legend><label><input type="checkbox" name="conversationFeatures" value="assistantSelection" checked /> 选择已授权助手</label><label><input type="checkbox" name="conversationFeatures" value="conversation" checked /> 发起与继续对话</label><label><input type="checkbox" name="conversationFeatures" value="ownHistory" /> 查看本人历史</label><label><input type="checkbox" name="conversationFeatures" value="authorizedCitations" /> 查看有权引用</label></fieldset><fieldset class="assistant-scope"><legend>初始助手范围</legend><label><input type="checkbox" name="assistantIds" value="assistant-employee-service" checked /> 员工服务助手</label><label><input type="checkbox" name="assistantIds" value="assistant-support" /> 客户支持助手</label></fieldset><p id="add-member-feedback" class="form-feedback" role="status" aria-live="polite"></p><div class="release-actions"><button class="button secondary" type="button" value="cancel" data-cancel-add-member data-control-status="implemented">取消</button><button class="button primary" type="submit" value="default" data-control-status="implemented">确认添加</button></div></form></dialog>',
+      '</select></label><fieldset class="assistant-scope"><legend>初始对话功能</legend><label><input type="checkbox" name="conversationFeatures" value="assistantSelection" checked /> 选择已授权助手</label><label><input type="checkbox" name="conversationFeatures" value="conversation" checked /> 发起与继续对话</label><label><input type="checkbox" name="conversationFeatures" value="ownHistory" /> 查看本人历史</label><label><input type="checkbox" name="conversationFeatures" value="authorizedCitations" /> 查看有权引用</label></fieldset><fieldset class="assistant-scope"><legend>初始助手范围</legend>' + memberAssistantChoices(demoState, tenant) + '</fieldset><p id="add-member-feedback" class="form-feedback" role="status" aria-live="polite"></p><div class="release-actions"><button class="button secondary" type="button" value="cancel" data-cancel-add-member data-control-status="implemented">取消</button><button class="button primary" type="submit" value="default" data-control-status="implemented">确认添加</button></div></form></dialog>',
   ].join("");
 }
 
@@ -672,11 +669,12 @@ function renderRecovery(demoState) {
 function contentFor(page, fixture, demoState) {
   switch (page.screen) {
     case "usage-quotas": {
-      const tenant = demoState?.tenants.find(item => item.id === DEFAULT_TENANT_ID);
+      const tenant = demoState?.tenants.find(item => item.id === (demoState.query?.session?.tenantId || DEFAULT_TENANT_ID));
       const rows = TENANT_QUOTA_FIELDS.map(({ key, label, unit }) =>
         `<div><dt>${escapeHtml(label)}</dt><dd>${escapeHtml(tenant?.quotas[key] ?? DEFAULT_QUOTAS[key])} ${unit}</dd></div>`,
       ).join("");
-      return `<section class="section-block"><div class="section-heading"><h2>平台分配的资源配额</h2><span class="status-tag">只读</span></div><dl class="fact-list">${rows}</dl><p class="field-hint">需要调整资源上限时，请联系平台管理员。</p></section>${renderList(page, fixture)}<p id="tenant-usage-feedback" class="form-feedback" role="status"></p>`;
+      const usage = demoState?.accessGovernance?.queryUsage || { acceptedToday: "未加载", remainingToday: "未加载", activeNow: "未加载", refusedToday: "未加载" };
+      return `<section class="section-block"><div class="section-heading"><h2>平台分配的资源配额</h2><span class="status-tag">只读</span></div><dl class="fact-list">${rows}</dl><p class="field-hint">需要调整资源上限时，请联系平台管理员。</p></section><section class="section-block"><div class="section-heading"><h2>当前查询用量</h2><button class="button secondary" type="button" data-nav-screen="governance-query">查看查询运行</button></div><dl class="summary-strip"><div class="summary-item"><dt>今日已接受</dt><dd>${usage.acceptedToday}</dd></div><div class="summary-item"><dt>今日剩余</dt><dd>${usage.remainingToday}</dd></div><div class="summary-item"><dt>当前执行中</dt><dd>${usage.activeNow}</dd></div><div class="summary-item"><dt>安全拒答</dt><dd>${usage.refusedToday}</dd></div></dl></section><p id="tenant-usage-feedback" class="form-feedback" role="status"></p>`;
     }
     case "platform-tenants":
       return renderPlatformTenants(demoState);
@@ -719,7 +717,9 @@ function contentFor(page, fixture, demoState) {
 
 function taskBody(page, fixture, state, demoState) {
   if (["loading", "empty", "error", "denied"].includes(state)) {
-    return statePanel(page, fixture, state);
+    const dialogs = state === "empty" && page.screen === "platform-accounts"
+      ? (renderPlatformAccounts(demoState).match(/<dialog\b[\s\S]*?<\/dialog>/g) || []).join("") : "";
+    return statePanel(page, fixture, state) + dialogs;
   }
   const notice =
     state === "partial"

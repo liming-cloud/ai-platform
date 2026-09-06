@@ -85,7 +85,7 @@ test("租户发现只返回已发布且已授权模型，配置验证后才能�
   assert.equal(enabled.configuration.activeRevision, 1);
 });
 
-test("访问密钥轮换在验证通过前保留旧修订且不保存密钥", () => {
+test("访问密钥轮换在验证通过前保留旧版本且不保存密钥", () => {
   const { storage, store } = fresh();
   const rotated = store.rotateTenantModelAccessKey("cfg-chat", "rotation-key-456", TENANT_ACTOR);
   assert.equal(rotated.configuration.activeRevision, 6);

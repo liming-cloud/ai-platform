@@ -81,7 +81,7 @@ test("本地文件拒绝非白名单类型且取消不新增来源", () => visit
   assert.equal(await page.getByText("脚本.exe", { exact: true }).count(), 0);
 }));
 
-test("失败来源可从安全阶段重试，就绪来源重新处理建立新修订", () => visit(async page => {
+test("失败来源可从安全阶段重试，就绪来源重新处理建立新版本", () => visit(async page => {
   await reset(page, "knowledge-sources");
   await page.locator('[data-source-row="src-scan-pdf"] [data-open-source]').click();
   assert.equal(await page.locator("[data-source-stage]").getAttribute("data-source-stage"), "FAILED");

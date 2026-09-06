@@ -1,3 +1,5 @@
+import { restoreDetailContext } from "./detail-context.js";
+
 export const DEFAULT_TENANT_ID = "tenant-spruce";
 export const PROTOTYPE_STATE_KEY = "wp0016-business-demo-v1";
 export const QUERY_SESSION_KEY = "wp0016-query-session-v1";
@@ -1211,6 +1213,12 @@ function defaultState() {
     evaluation: defaultEvaluationGovernance(),
     accessGovernance: defaultAccessGovernance(),
     dataGovernance: defaultDataGovernance(),
+    auditRecords: [
+      { id: "audit-1", tenantId: DEFAULT_TENANT_ID, event: "助手版本发布", scope: "员工服务助手", outcome: "SUCCESS", occurredAt: "昨天 17:40", actorRole: "租户管理员", summary: "发布版本已经冻结，仅影响新会话。" },
+      { id: "audit-2", tenantId: DEFAULT_TENANT_ID, event: "访问策略发布", scope: "全员制度访问", outcome: "SUCCESS", occurredAt: "昨天 17:12", actorRole: "租户管理员", summary: "已核对普通成员与助手范围，写入授权版本。" },
+      { id: "audit-3", tenantId: DEFAULT_TENANT_ID, event: "索引版本激活", scope: "员工服务手册", outcome: "SUCCESS", occurredAt: "昨天 16:30", actorRole: "租户管理员", summary: "评测通过后切换活动索引，旧版本保留。" },
+      { id: "audit-4", tenantId: DEFAULT_TENANT_ID, event: "来源处理超时", scope: "扫描 PDF", outcome: "FAILED", occurredAt: "今天 16:10", actorRole: "受控处理任务", summary: "提取阶段超时，未改变活动索引，可从安全检查点重试。" },
+    ],
     selectedKnowledgeBaseId: "kb-handbook",
     selectedKnowledgeSourceId: "src-policy-pdf",
     selectedIndexVersionId: "idx-v12",
@@ -2005,6 +2013,17 @@ export function createPrototypeStore(storage = browserStorage()) {
     return saved.ok ? { ...saved, deployment: clone(deployment) } : saved;
   }
 
+  /** 建立路由草稿不等于发布；主备部署和预算仍须通过独立模拟校验。 */
+  function createRoutingPolicy(tenantId, input = {}, actorAccountId) {
+    if (!canManageModels(tenantId, actorAccountId)) return { ok: false, reason: "FORBIDDEN" };
+    const name = String(input.name || "").trim();
+    if (name.length < 2 || name.length > 80) return { ok: false, reason: "ROUTING_POLICY_NAME_INVALID" };
+    if (state.models.routingPolicies.some(item => item.tenantId === tenantId && item.name === name)) return { ok: false, reason: "ROUTING_POLICY_NAME_CONFLICT" };
+    const policy = { id: `route-${state.models.routingPolicies.length + 1}`, tenantId, name, version: 1, status: "DRAFT", primaryDeploymentId: null, fallbackDeploymentId: null, monthlyBudget: 10000, simulation: null, updatedAt: "刚刚" };
+    const saved = commitState({ ...state, models: { ...state.models, routingPolicies: [...state.models.routingPolicies, policy], selectedRoutingPolicyId: policy.id } });
+    return saved.ok ? { ...saved, policy: clone(policy) } : saved;
+  }
+
   function simulateRoutingPolicy(policyId, input = {}, actorAccountId) {
     const current = modelItem("routingPolicies", policyId);
     if (!current) return { ok: false, reason: "ROUTING_POLICY_NOT_FOUND" };
@@ -2746,6 +2765,46 @@ export function createPrototypeStore(storage = browserStorage()) {
     return canManageAssistants(tenantId, actorAccountId);
   }
 
+  /** 新策略形成独立草稿，创建本身不授予成员访问权限。 */
+  function createAccessPolicy(tenantId, input = {}, actorAccountId) {
+    if (!canManageAccessPolicies(tenantId, actorAccountId)) return { ok: false, reason: "FORBIDDEN" };
+    const name = String(input.name || "").trim();
+    if (name.length < 2 || name.length > 80) return { ok: false, reason: "ACCESS_POLICY_NAME_INVALID" };
+    if (state.accessGovernance.accessPolicies.some(item => item.tenantId === tenantId && item.name === name)) return { ok: false, reason: "ACCESS_POLICY_NAME_CONFLICT" };
+    const assistant = assistantById(input.assistantId);
+    if (!assistant || assistant.tenantId !== tenantId || !assistant.publishedVersionId) return { ok: false, reason: "ACCESS_POLICY_ASSISTANT_INVALID" };
+    const memberAccountIds = [...new Set(input.memberAccountIds || [])];
+    if (!memberAccountIds.length || memberAccountIds.some(id => memberById(tenantId, id)?.role !== "ordinaryMember" || memberById(tenantId, id)?.status !== "active" || accountById(id)?.status !== "available")) return { ok: false, reason: "ACCESS_POLICY_MEMBER_INVALID" };
+    const id = `access-policy-${state.accessGovernance.accessPolicies.length + 1}`;
+    const version = { id: `${id}-v1`, number: 1, status: "DRAFT", assistantId: assistant.id, knowledgeBaseId: assistant.knowledgeBaseId, memberAccountIds, preview: null, updatedAt: "刚刚" };
+    const policy = { id, tenantId, name, publishedVersionId: null, versions: [version] };
+    const saved = commitState({ ...state, accessGovernance: { ...state.accessGovernance,
+      accessPolicies: [...state.accessGovernance.accessPolicies, policy], selectedPolicyId: id, selectedPolicyVersionId: version.id,
+    } });
+    return saved.ok ? { ...saved, policy: clone(policy) } : saved;
+  }
+
+  function selectAccessPolicy(policyId, actorAccountId) {
+    const policy = state.accessGovernance.accessPolicies.find(item => item.id === policyId);
+    if (!policy || !canManageAccessPolicies(policy.tenantId, actorAccountId)) return { ok: false, reason: "FORBIDDEN" };
+    state.accessGovernance.selectedPolicyId = policy.id;
+    state.accessGovernance.selectedPolicyVersionId = policy.versions.at(-1).id;
+    return { ok: true };
+  }
+
+  /** 调整已发布策略时复用唯一草稿；只有再次预览并发布才改变成员权限。 */
+  function createAccessPolicyVersion(policyId, actorAccountId) {
+    const policy = state.accessGovernance.accessPolicies.find(item => item.id === policyId);
+    if (!policy || !canManageAccessPolicies(policy.tenantId, actorAccountId)) return { ok: false, reason: "FORBIDDEN" };
+    const existing = policy.versions.find(item => item.status === "DRAFT");
+    const published = policy.versions.find(item => item.id === policy.publishedVersionId);
+    if (!existing && !published) return { ok: false, reason: "ACCESS_POLICY_VERSION_NOT_FOUND" };
+    const number = Math.max(...policy.versions.map(item => item.number)) + 1;
+    const version = existing || { ...published, id: `${policy.id}-v${number}`, number, status: "DRAFT", preview: null, updatedAt: "刚刚" };
+    const saved = commitState(replaceAccessPolicy({ ...policy, versions: existing ? policy.versions : [...policy.versions, version] }, { selectedPolicyId: policyId, selectedPolicyVersionId: version.id }));
+    return saved.ok ? { ...saved, version: clone(version), replayed: Boolean(existing) } : saved;
+  }
+
   function accessPolicyVersionContext(versionId) {
     for (const policy of state.accessGovernance.accessPolicies) {
       const version = policy.versions.find(item => item.id === versionId);
@@ -2885,11 +2944,21 @@ export function createPrototypeStore(storage = browserStorage()) {
     return {
       ok: true,
       quota: clone(state.accessGovernance.queryQuota),
-      usage: clone(state.accessGovernance.queryUsage),
+      usage: clone(tenantId === DEFAULT_TENANT_ID ? state.accessGovernance.queryUsage : { acceptedToday: 0, remainingToday: state.accessGovernance.queryQuota.dailyAcceptedLimit, activeNow: 0, refusedToday: 0 }),
       runs: state.accessGovernance.queryRuns
         .filter(item => item.tenantId === tenantId)
         .map(({ id, reference, assistantName, outcome, durationMs, occurredAt }) => ({ id, reference, assistantName, outcome, durationMs, occurredAt })),
     };
+  }
+
+  /** 审计读取和导出复用同一白名单投影，不包含凭据、问题、回答或原始异常。 */
+  function getAuditProjection(tenantId, actorAccountId, filters = {}) {
+    if (!canManageEvaluations(tenantId, actorAccountId)) return { ok: false, reason: "FORBIDDEN" };
+    const query = String(filters.query || "").trim().toLocaleLowerCase("zh-CN");
+    const records = (state.auditRecords || []).filter(item => item.tenantId === tenantId &&
+      (!filters.outcome || item.outcome === filters.outcome) && `${item.event} ${item.scope}`.toLocaleLowerCase("zh-CN").includes(query))
+      .map(({ id, event, scope, outcome, occurredAt, actorRole, summary }) => ({ id, event, scope, outcome, occurredAt, actorRole, summary }));
+    return { ok: true, records };
   }
 
   function selectQueryDiagnostic(queryRunId, actorAccountId) {
@@ -3159,6 +3228,9 @@ export function createPrototypeStore(storage = browserStorage()) {
       if (existing.name !== name) return { ok: false, reason: "OBJECT_RANGE_ALREADY_REGISTERED" };
       return { ok: true, replayed: true, registration: clone(existing) };
     }
+    if (knowledgeBase.documents + knowledgeBase.sources.filter(item => item.reservedDocument).length >= tenantById(tenantId).quotas.documentsPerKnowledgeBase) {
+      return { ok: false, reason: "DOCUMENT_QUOTA_EXCEEDED" };
+    }
     const registration = {
       id: `object-source-${state.dataGovernance.objectScopeRegistrations.length + 1}`,
       tenantId,
@@ -3175,6 +3247,14 @@ export function createPrototypeStore(storage = browserStorage()) {
     };
     const saved = commitState({
       ...state,
+      knowledgeBases: state.knowledgeBases.map(item => item.id !== knowledgeBase.id ? item : {
+        ...item, status: "PROCESSING", sources: [...item.sources, {
+          id: registration.id, name, kind: "对象存储", revision: "rev-0001", activeRevision: null,
+          stage: "RECEIVED", status: "PROCESSING", indexed: false, reservedDocument: true,
+          rawContentStored: false, sizeMb: 0, error: null, rangeRevision: range.selectionRevision,
+          coverage: `${range.objectCount} 个冻结文本对象`, detail: "待探测，尚未读取对象内容。",
+        }],
+      }),
       dataGovernance: {
         ...state.dataGovernance,
         objectScopeRegistrations: [...state.dataGovernance.objectScopeRegistrations, registration],
@@ -3207,7 +3287,7 @@ export function createPrototypeStore(storage = browserStorage()) {
       return { ok: false, reason: "KNOWLEDGE_BASE_QUOTA_EXCEEDED" };
     }
     const knowledgeBase = {
-      id: `kb-custom-${tenantKnowledgeBases.length + 1}`,
+      id: `kb-custom-${state.knowledgeBases.length + 1}`,
       tenantId,
       name,
       description,
@@ -3304,6 +3384,28 @@ export function createPrototypeStore(storage = browserStorage()) {
     return saved.ok ? { ...saved, source: clone(source) } : saved;
   }
 
+  /** 替换内容保持来源身份；旧修订和活动索引不原地修改，不保存输入正文。 */
+  function replaceKnowledgeSource(knowledgeBaseId, sourceId, input = {}, actorAccountId) {
+    const knowledgeBase = knowledgeBaseById(knowledgeBaseId);
+    if (!knowledgeBase || !canManageKnowledge(knowledgeBase.tenantId, actorAccountId)) return { ok: false, reason: "FORBIDDEN" };
+    const current = knowledgeBase.sources.find(item => item.id === sourceId);
+    if (!current || !["READY", "FAILED"].includes(current.stage)) return { ok: false, reason: "SOURCE_NOT_REPLACEABLE" };
+    const failure = sourceInputFailure(knowledgeBase, input);
+    if (failure) return { ok: false, reason: failure };
+    const sizeMb = input.mode === "paste" ? new TextEncoder().encode(input.text.trim()).byteLength / 1024 / 1024 : input.sizeMb;
+    const storageGb = knowledgeBase.storageGb + sizeMb / 1024;
+    if (storageGb > tenantById(knowledgeBase.tenantId).quotas.rawContentGbPerKnowledgeBase) return { ok: false, reason: "STORAGE_QUOTA_EXCEEDED" };
+    const source = { ...current, name: String(input.name).trim(), kind: input.mode === "paste" ? "粘贴文本" : FILE_TYPES[String(input.name).split(".").at(-1).toLowerCase()].kind,
+      revision: `rev-${String(Number(current.revision.replace("rev-", "")) + 1).padStart(4, "0")}`,
+      previousRevisions: [...(current.previousRevisions || []), { revision: current.revision, name: current.name, sizeMb: current.sizeMb }],
+      sizeMb, stage: "RECEIVED", status: "PROCESSING", indexed: false, rawContentStored: false,
+      simulatedFailure: input.simulatedFailure || null, error: null, detail: "新版本已接收，旧活动索引继续服务。",
+    };
+    const next = { ...knowledgeBase, storageGb, status: "PROCESSING", sources: knowledgeBase.sources.map(item => item.id === sourceId ? source : item) };
+    const saved = commitState({ ...replaceKnowledgeBase(next), selectedKnowledgeSourceId: sourceId });
+    return saved.ok ? { ...saved, source: clone(source) } : saved;
+  }
+
   function updateKnowledgeSource(knowledgeBase, source) {
     const previous = knowledgeBase.sources.find(item => item.id === source.id);
     const reservationCompleted = source.stage === "READY" && previous?.reservedDocument;
@@ -3361,6 +3463,20 @@ export function createPrototypeStore(storage = browserStorage()) {
     return updateKnowledgeSource(knowledgeBase, { ...current, stage: current.retryStage || "SCANNING", status: "PROCESSING", error: null, simulatedFailure: null, detail: "已从安全重试点继续处理。" });
   }
 
+  /** 批量安全重试在一个快照中提交；任一持久化失败不留下半批结果。 */
+  function retryFailedKnowledgeSources(knowledgeBaseId, actorAccountId) {
+    const knowledgeBase = knowledgeBaseById(knowledgeBaseId);
+    if (!knowledgeBase || !canManageKnowledge(knowledgeBase.tenantId, actorAccountId)) return { ok: false, reason: "FORBIDDEN" };
+    const count = knowledgeBase.sources.filter(item => item.stage === "FAILED").length;
+    if (!count) return { ok: false, reason: "NO_FAILED_SOURCES" };
+    const next = { ...knowledgeBase, status: "PROCESSING", sources: knowledgeBase.sources.map(item => item.stage !== "FAILED" ? item : {
+      ...item, stage: item.retryStage || "SCANNING", status: "PROCESSING", error: null, simulatedFailure: null,
+      detail: "已从安全检查点重试，活动索引不变。",
+    }) };
+    const saved = commitState(replaceKnowledgeBase(next));
+    return saved.ok ? { ...saved, count } : saved;
+  }
+
   function reprocessKnowledgeSource(knowledgeBaseId, sourceId, actorAccountId) {
     const knowledgeBase = knowledgeBaseById(knowledgeBaseId);
     if (!knowledgeBase) return { ok: false, reason: "KNOWLEDGE_BASE_NOT_FOUND" };
@@ -3397,6 +3513,8 @@ export function createPrototypeStore(storage = browserStorage()) {
     const knowledgeBase = knowledgeBaseById(knowledgeBaseId);
     if (!knowledgeBase) return { ok: false, reason: "KNOWLEDGE_BASE_NOT_FOUND" };
     if (!canManageKnowledge(knowledgeBase.tenantId, actorAccountId)) return { ok: false, reason: "FORBIDDEN" };
+    const source = input.sourceId ? knowledgeBase.sources.find(item => item.id === input.sourceId) : null;
+    if (input.sourceId && source?.stage !== "READY") return { ok: false, reason: "SOURCE_NOT_READY" };
     if (knowledgeBase.documents <= 0) return { ok: false, reason: "NO_ACTIVE_DOCUMENTS" };
     if (knowledgeBase.indexVersions.some(item => ["BUILDING", "EVALUATING"].includes(item.status))) {
       return { ok: false, reason: "INDEX_BUILD_ALREADY_ACTIVE" };
@@ -3415,6 +3533,7 @@ export function createPrototypeStore(storage = browserStorage()) {
       trigger,
       changedFields,
       reason: String(input.reason || "管理员发起全库重建").trim(),
+      ...(source ? { sourceId: source.id, sourceRevision: source.revision, reusedFromIndexId: knowledgeBase.activeIndex } : {}),
       config,
       progress: 10,
       documents: knowledgeBase.documents,
@@ -4019,8 +4138,6 @@ export function createPrototypeStore(storage = browserStorage()) {
     };
     const tenant = tenantCode ? tenants.find(item => item.code === tenantCode) : tenants[0];
     if (!tenant) return { ok: false, reason: "ROLE_BOUNDARY" };
-    // TODO(WP-0016): A03 完成多租户页面上下文隔离和浏览器回归后移除此拒绝，禁止展示默认组织内容。
-    if (tenant.id !== DEFAULT_TENANT_ID) return { ok: false, reason: "WORKSPACE_NOT_READY" };
     return establishSession(account.id, tenant.id, "CONSOLE", "tenant-overview");
   }
 
@@ -4661,9 +4778,62 @@ export function createPrototypeStore(storage = browserStorage()) {
     return clone(state);
   }
 
+  /** 页面只读取当前组织的合成资产；原始快照仅供状态验证和平台目录治理使用。 */
+  function getWorkspaceSnapshot() {
+    const session = getSession();
+    const snapshot = clone(state);
+    if (session.authenticated && !session.tenantId) return snapshot;
+    const tenantId = session.authenticated ? session.tenantId : null;
+    const project = value => {
+      if (Array.isArray(value)) return value.filter(item => !item || typeof item !== "object" ||
+        ((!Object.hasOwn(item, "tenantId") || item.tenantId === tenantId) &&
+         (!Array.isArray(item.tenantIds) || item.tenantIds.includes(tenantId)))).map(project);
+      if (!value || typeof value !== "object") return value;
+      return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, project(item)]));
+    };
+    const scoped = project(snapshot);
+    scoped.tenants = snapshot.tenants.filter(tenant => tenant.id === tenantId);
+    scoped.selectedTenantId = tenantId;
+    const runIds = new Set(scoped.evaluation.runs.map(item => item.id));
+    scoped.evaluation.comparisons = scoped.evaluation.comparisons.filter(item => runIds.has(item.baselineRunId) && runIds.has(item.candidateRunId));
+    if (tenantId !== DEFAULT_TENANT_ID) scoped.accessGovernance.queryUsage = { acceptedToday: 0, remainingToday: scoped.accessGovernance.queryQuota.dailyAcceptedLimit, activeNow: 0, refusedToday: 0 };
+    const authorizedConnections = new Set(scoped.models.platformDeployments.map(item => item.connectionId));
+    scoped.models.platformConnections = scoped.models.platformConnections.filter(item => authorizedConnections.has(item.id));
+    if (!scoped.knowledgeBases.some(item => item.id === scoped.selectedKnowledgeBaseId)) {
+      scoped.selectedKnowledgeBaseId = scoped.knowledgeBases[0]?.id ?? null;
+      scoped.selectedKnowledgeSourceId = null;
+      scoped.selectedIndexVersionId = null;
+    }
+    return scoped;
+  }
+
+  /** URL 是当前标签页的对象定位依据；读取只改本页选择，不持久化、不接受跨组织定位。 */
+  function applyWorkspaceContext(context = {}) {
+    const session = getSession();
+    if (!session.authenticated || !session.tenantId ||
+        (context.tenantId && context.tenantId !== session.tenantId)) return { ok: false, reason: "FORBIDDEN" };
+    const candidates = state.knowledgeBases.filter(item => item.tenantId === session.tenantId);
+    const knowledgeBase = context.knowledgeBaseId
+      ? candidates.find(item => item.id === context.knowledgeBaseId)
+      : candidates.find(item => item.id === state.selectedKnowledgeBaseId) || candidates[0];
+    if ((context.knowledgeBaseId && !knowledgeBase) ||
+        (context.sourceId && !knowledgeBase?.sources.some(item => item.id === context.sourceId)) ||
+        (context.indexVersionId && !knowledgeBase?.indexVersions.some(item => item.id === context.indexVersionId))) {
+      return { ok: false, reason: "OBJECT_NOT_AVAILABLE" };
+    }
+    const changed = state.selectedKnowledgeBaseId !== knowledgeBase?.id;
+    state.selectedKnowledgeBaseId = knowledgeBase?.id ?? null;
+    state.selectedKnowledgeSourceId = context.sourceId || (!changed && state.selectedKnowledgeSourceId) || knowledgeBase?.sources[0]?.id || null;
+    state.selectedIndexVersionId = context.indexVersionId || (!changed && state.selectedIndexVersionId) || knowledgeBase?.indexVersions.find(item => item.status === "READY_FOR_REVIEW")?.id || knowledgeBase?.activeIndex || null;
+    return { ok: true };
+  }
+
   return {
     reset,
     getSnapshot: () => clone(state),
+    getWorkspaceSnapshot,
+    applyWorkspaceContext,
+    applyDetailContext: context => getSession().authenticated ? restoreDetailContext(state, getWorkspaceSnapshot(), context) : { ok: false, reason: "AUTH_REQUIRED" },
     updateTenantSetup,
     discardTenantSetup,
     getTenantQuotas,
@@ -4678,8 +4848,10 @@ export function createPrototypeStore(storage = browserStorage()) {
     selectKnowledgeBase,
     selectKnowledgeSource,
     addKnowledgeSource,
+    replaceKnowledgeSource,
     advanceKnowledgeSource,
     retryKnowledgeSource,
+    retryFailedKnowledgeSources,
     reprocessKnowledgeSource,
     selectIndexVersion,
     createIndexRebuild,
@@ -4705,6 +4877,7 @@ export function createPrototypeStore(storage = browserStorage()) {
     publishTenantModelDeployment,
     deactivateTenantModelDeployment,
     simulateRoutingPolicy,
+    createRoutingPolicy,
     publishRoutingPolicy,
     selectAssistantDeliveryItem,
     createAssistant,
@@ -4729,10 +4902,14 @@ export function createPrototypeStore(storage = browserStorage()) {
     recordEvaluationDecision,
     createEvaluationRemediation,
     saveAccessPolicyDraft,
+    createAccessPolicy,
+    createAccessPolicyVersion,
+    selectAccessPolicy,
     previewAccessPolicyVersion,
     publishAccessPolicyVersion,
     getAccessPolicyProjection,
     getQueryGovernanceProjection,
+    getAuditProjection,
     selectQueryDiagnostic,
     getQueryDiagnostic,
     createQueryRemediation,

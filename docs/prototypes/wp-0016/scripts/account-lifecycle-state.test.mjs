@@ -48,7 +48,7 @@ test("账户建立拒绝越权、非法或重复登录名及不一致口令", ()
   assert.deepEqual(store.getSnapshot(), before);
 });
 
-test("密码重置只允许其他账户，推进认证修订且不持久化口令", () => {
+test("密码重置只允许其他账户，推进认证版本且不持久化口令", () => {
   const storage = createMemoryStorage();
   const store = createPrototypeStore(storage);
   assert.equal(

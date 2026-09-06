@@ -1,0 +1,245 @@
+{
+  "status": "PASS",
+  "generatedAt": "2026-09-06T12:31:20.426Z",
+  "workPackage": "WP-0016",
+  "implementationBase": "280885682824343ffd46e577ed51d38f3bbb7a9c",
+  "scope": {
+    "allPages": 68,
+    "inScopeM6Pages": 56,
+    "visualOnlyPages": 10,
+    "excludedTasks": [
+      "渠道绑定",
+      "设备凭据",
+      "邮件邀请"
+    ],
+    "designParameters": [
+      7,
+      5,
+      7
+    ]
+  },
+  "node": {
+    "tests": 131,
+    "passed": 131,
+    "failed": 0
+  },
+  "browser": {
+    "tests": 130,
+    "passed": 130,
+    "failed": 0
+  },
+  "matrix": {
+    "status": "PASS",
+    "generatedAt": "2026-09-06T12:31:20.426Z",
+    "evidenceScope": "真实 DOM、布局、特定交互与导航；不是全部控件闭环或人工认可",
+    "pageCount": 68,
+    "stateCount": 7,
+    "viewportCount": 3,
+    "declaredScenarioCount": 1428,
+    "completedScenarioCount": 1428,
+    "assertionCount": 9644,
+    "screenshotCount": 85,
+    "stages": [
+      {
+        "name": "审查器与导航图标",
+        "status": "PASS",
+        "failures": [],
+        "browserErrors": []
+      },
+      {
+        "name": "全部页面状态与视口",
+        "status": "PASS",
+        "failures": [],
+        "browserErrors": []
+      },
+      {
+        "name": "创建租户与管理导航",
+        "status": "PASS",
+        "failures": [],
+        "browserErrors": []
+      },
+      {
+        "name": "成员与两级功能控制",
+        "status": "PASS",
+        "failures": [],
+        "browserErrors": []
+      },
+      {
+        "name": "成员弹窗键盘与取消",
+        "status": "PASS",
+        "failures": [],
+        "browserErrors": []
+      },
+      {
+        "name": "运行状态与隔离恢复",
+        "status": "PASS",
+        "failures": [],
+        "browserErrors": []
+      },
+      {
+        "name": "恢复检查失败与重试",
+        "status": "PASS",
+        "failures": [],
+        "browserErrors": []
+      },
+      {
+        "name": "审查器收起可达性",
+        "status": "PASS",
+        "failures": [],
+        "browserErrors": []
+      },
+      {
+        "name": "普通用户登录",
+        "status": "PASS",
+        "failures": [],
+        "browserErrors": []
+      },
+      {
+        "name": "问答示例与键盘",
+        "status": "PASS",
+        "failures": [],
+        "browserErrors": []
+      },
+      {
+        "name": "会话刷新恢复",
+        "status": "PASS",
+        "failures": [],
+        "browserErrors": []
+      },
+      {
+        "name": "设备前置导航",
+        "status": "PASS",
+        "failures": [],
+        "browserErrors": []
+      },
+      {
+        "name": "页面截图",
+        "status": "PASS",
+        "failures": [],
+        "browserErrors": []
+      },
+      {
+        "name": "减少动态效果",
+        "status": "PASS",
+        "failures": [],
+        "browserErrors": []
+      }
+    ],
+    "browserErrors": [],
+    "failures": []
+  },
+  "controls": {
+    "report": "full-control-inventory-20260906.json",
+    "scenes": 392,
+    "instances": 5753,
+    "unbound": 0,
+    "routeMismatches": 0,
+    "errors": 0
+  },
+  "regression": {
+    "beforeFix": [
+      {
+        "area": "授权与路由未保存修改",
+        "tests": 2,
+        "failed": 2
+      },
+      {
+        "area": "助手阶段不匹配",
+        "tests": 1,
+        "failed": 1
+      },
+      {
+        "area": "访问策略新版本",
+        "tests": 1,
+        "failed": 1
+      }
+    ],
+    "newNodeTests": 14,
+    "newBrowserTests": 15
+  },
+  "lint": {
+    "p0": 0,
+    "p1": 0,
+    "p2": 0
+  },
+  "codeHashes": [
+    {
+      "path": "detail-context.js",
+      "sha256": "27e73f7b432e335299faeb1f2fab513081c59e2bf45743c47e87572fa07256c5"
+    },
+    {
+      "path": "full-platform.js",
+      "sha256": "bd6da392c32a2c593e130f626e0fd3f3a0b5818b746f5a6560f3c6c81df25ce2"
+    },
+    {
+      "path": "governance-directories.js",
+      "sha256": "3e7752ad133c761f0b62b7dcb2630d36358db07a1e9a695b3bdeb0fc021a48d6"
+    },
+    {
+      "path": "index.html",
+      "sha256": "718a5bee8606607fc6eabf353a47eb79556d7effa51f2d45f207ad6be2db65ec"
+    },
+    {
+      "path": "navigation.js",
+      "sha256": "b1950373c231ba5eaad10cab272f89fadb237abb094b803e06546274a6e82253"
+    },
+    {
+      "path": "prototype-state.js",
+      "sha256": "d6532bb83379cc787e664e45f0479e96ac7af15a31227503719234dc84dad4f7"
+    },
+    {
+      "path": "prototype.css",
+      "sha256": "6fa6b27faad473898187ee04cde9e7fdd2828c716480a05bd0d0c9430ed56370"
+    },
+    {
+      "path": "prototype.js",
+      "sha256": "18e152ab3f9294fb97fed862e60d158c19f8d50c172b633cb061bbeb9e78c277"
+    },
+    {
+      "path": "tokens.css",
+      "sha256": "27831d5d9c3d513e04497c5af686fceb7ad8ff377a6af6b64871d46b2aa01728"
+    },
+    {
+      "path": "workspace-journeys.js",
+      "sha256": "28debf04ef0ef53e0273b8d0ec719ba985428f4e704957d12402251002254855"
+    }
+  ],
+  "findings": {
+    "resolved": [
+      "A03",
+      "A04",
+      "A05",
+      "A06",
+      "A07",
+      "A08",
+      "A09",
+      "A10",
+      "A11"
+    ],
+    "previouslyResolved": [
+      "A01",
+      "A02"
+    ],
+    "knownBlockingGroups": 0
+  },
+  "humanReview": {
+    "previousDecision": "rejected",
+    "currentCandidate": "readyForReview",
+    "approved": false
+  },
+  "openDesign": {
+    "projectId": "249f81f2-6f1a-46ff-988c-da3cdedb35e7",
+    "version": "0.21.1",
+    "saveReport": "opendesign-save-20260906.json"
+  },
+  "screenshots": {
+    "repositoryCount": 0,
+    "temporaryCount": 85
+  },
+  "limitations": [
+    "仅验证已声明的合成行为；控件监听器不单独证明业务正确，也不是穷举一切输入组合。",
+    "文件扫描、OCR、索引、模型调用、评测与审计事件使用合成数据，不执行真实后台工作。",
+    "M7/M8 保留信息架构与视觉前置，不代表运行任务全部实现；用户暂缓三项未实施。",
+    "人工拒绝未被自动检查覆盖，WP-0016 仍进行中。"
+  ]
+}

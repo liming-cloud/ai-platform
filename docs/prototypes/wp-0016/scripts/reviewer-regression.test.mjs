@@ -89,8 +89,12 @@ test("新增租户和成员目录的搜索控件与可筛选行有绑定", () =>
 });
 
 test("成员可授权的助手必须存在于真实合成目录", () => {
-  const html = render("tenant-members", fresh());
-  const known = new Set(fixtures.assistants.map((assistant) => assistant.id));
+  const store = fresh();
+  const html = render("tenant-members", store);
+  const known = new Set(store.getSnapshot().assistantDelivery.assistants
+    .filter(assistant => assistant.tenantId === DEFAULT_TENANT_ID && assistant.publishedVersionId)
+    .map(assistant => assistant.id));
+  assert.ok([...html.matchAll(/data-member-assistant=/g)].length > 0, "成员授权目录不能空跑");
   for (const match of html.matchAll(/(?:data-member-assistant|value)="(assistant-[^"]+)"/g)) {
     assert.ok(known.has(match[1]), `未知助手：${match[1]}`);
   }

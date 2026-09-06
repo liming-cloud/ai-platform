@@ -49,7 +49,8 @@ test("访问策略保存后重新预览并发布，知识库始终由助手自�
   assert.match(await page.locator("main").innerText(), /策略版本已发布|已发布/);
   await page.reload();
   await page.locator('main[data-screen="access-policy-detail"]').waitFor();
-  assert.equal(await page.getByRole("button", { name: "策略版本已发布", exact: true }).isDisabled(), true);
+  assert.equal(await page.getByRole("button", { name: "创建策略新版本", exact: true }).isEnabled(), true);
+  assert.equal(await page.getByRole("button", { name: "保存草稿", exact: true }).isDisabled(), true);
   assert.equal(await page.locator("[data-derived-knowledge-base]").innerText(), "客户支持知识");
 }));
 
@@ -82,7 +83,7 @@ test("查询运行可进入历史诊断并创建不含正文的可恢复修复�
   assert.equal(await page.getByRole("button", { name: "修复事项已创建", exact: true }).isDisabled(), true);
 }));
 
-test("拒绝态不披露策略、运行和模型修订", () => visit(async page => {
+test("拒绝态不披露策略、运行和模型版本", () => visit(async page => {
   for (const screen of ["access-policy-detail", "query-diagnostic"]) {
     await openForReview(page, url(screen, "denied"));
     const content = await page.locator("main").innerText();

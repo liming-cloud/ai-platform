@@ -95,7 +95,7 @@ test("来源按统一阶段推进，失败不写索引并可从安全阶段重�
   assert.ok(restored.storageGb > before.storageGb);
 });
 
-test("单文档重新处理建立新修订且活动索引继续服务", () => {
+test("单文档重新处理建立新版本且活动索引继续服务", () => {
   const { store } = fresh();
   const before = store.getSnapshot().knowledgeBases.find(item => item.id === "kb-handbook");
   const result = store.reprocessKnowledgeSource("kb-handbook", "src-policy-pdf", ACTOR);

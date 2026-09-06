@@ -1,5 +1,8 @@
 import { decorateExistingPage, renderInventoryPage, renderDemoLoginHelp } from "./full-platform.js";
 import { renderConsoleNavigation, renderAccountMenu } from "./navigation.js";
+import { workspaceJourney } from "./workspace-journeys.js";
+import { governanceDirectory } from "./governance-directories.js";
+import { DETAIL_CONTEXT, valueAt } from "./detail-context.js";
 import {
   createPrototypeStore,
   DEFAULT_TENANT_ID,
@@ -218,8 +221,8 @@ function updateReviewerContext(screen) {
   const queryScreen = ["login", "assistants", "conversation"].includes(screen);
   reviewQueryTools.hidden = !queryScreen;
   if (queryScreen) {
-    const snapshot = prototypeStore.getSnapshot();
-    const tenant = snapshot.tenants.find((item) => item.id === DEFAULT_TENANT_ID);
+    const snapshot = prototypeStore.getWorkspaceSnapshot();
+    const tenant = snapshot.tenants.find((item) => item.id === workspaceTenantId());
     reviewDemoAccount.innerHTML = (tenant?.members || [])
       .filter((member) => member.role === "ordinaryMember")
       .map((member) => {
@@ -251,6 +254,26 @@ function navigate(screen, state = "success", options = {}) {
   } else if (screen !== "conversation") {
     next.searchParams.delete("conversationId");
   }
+  const snapshot = prototypeStore.getWorkspaceSnapshot();
+  const inKnowledge = ["knowledge-overview", "knowledge-sources", "source-add", "source-detail", "processing-quality", "sync-result", "quick-publication", "index-versions", "index-detail", "index-rebuild"].includes(screen);
+  for (const item of DETAIL_CONTEXT) {
+    const value = item.screens.includes(screen) ? valueAt(snapshot, item.selection) : null;
+    if (value) next.searchParams.set(item.parameter, value);
+    else next.searchParams.delete(item.parameter);
+  }
+  for (const [key, value] of Object.entries({
+    knowledgeBaseId: inKnowledge ? snapshot.selectedKnowledgeBaseId : null,
+    sourceId: screen === "source-detail" ? snapshot.selectedKnowledgeSourceId : screen === "source-add" ? options.updateSourceId : null,
+    indexVersionId: screen === "index-detail" ? snapshot.selectedIndexVersionId : null,
+  })) {
+    if (value) next.searchParams.set(key, value);
+    else next.searchParams.delete(key);
+  }
+  next.searchParams.delete("tenantId");
+  for (const [key, detail] of [["auditId", "audit-record-detail"], ["policyId", "access-policy-detail"]]) {
+    if (screen === detail && options[key]) next.searchParams.set(key, options[key]);
+    else if (screen !== detail) next.searchParams.delete(key);
+  }
   window.history.pushState({}, "", next);
   render();
 }
@@ -262,6 +285,11 @@ function render() {
   cancelQueryTimer();
   const scenario = currentScenario();
   const querySession = prototypeStore.getSession();
+  const params = new URLSearchParams(window.location.search);
+  const context = Object.fromEntries(["tenantId", "knowledgeBaseId", "sourceId", "indexVersionId"].filter(key => params.has(key)).map(key => [key, params.get(key)]));
+  const detailContext = Object.fromEntries(DETAIL_CONTEXT.filter(item => params.has(item.parameter)).map(item => [item.parameter, params.get(item.parameter)]));
+  const contextAllowed = (!Object.keys(context).length && !querySession.tenantId ||
+    prototypeStore.applyWorkspaceContext(context).ok) && (!Object.keys(detailContext).length || prototypeStore.applyDetailContext(detailContext).ok);
   const requestedAccess = prototypeStore.authorizeSession(scenario.screen, scopeForScreen(scenario.screen));
   const screen =
     requestedAccess.reason === "AUTH_REQUIRED"
@@ -270,17 +298,17 @@ function render() {
   if (screen === "conversation") {
     activeConversationId =
       scenario.conversationId ||
-      prototypeStore.getSnapshot().query.currentConversationId ||
+      prototypeStore.getWorkspaceSnapshot().query.currentConversationId ||
       "";
   }
-  const demoState = prototypeStore.getSnapshot();
+  const demoState = prototypeStore.getWorkspaceSnapshot();
   const access = prototypeStore.authorizeSession(screen, scopeForScreen(screen));
   const objectAllowed = screen !== "conversation" || prototypeStore.queryProjection(fixtures, {
     assistantId: selectedAssistantId,
     conversationId: activeConversationId,
   }).conversationAllowed;
   const renderedState =
-    (!access.allowed || !objectAllowed)
+    (!access.allowed || !objectAllowed || !contextAllowed)
       ? "denied"
       : screen !== scenario.screen ? "success" : scenario.state;
   document.body.dataset.screen = screen;
@@ -296,13 +324,16 @@ function render() {
       ? {
           ...demoState,
           tenantQuotaProjection: prototypeStore.getTenantQuotas(
-            demoState.selectedTenantId || DEFAULT_TENANT_ID,
+            demoState.selectedTenantId || workspaceTenantId(),
           ),
         }
       : screen === "platform-accounts"
         ? { ...demoState, accountFeedback }
         : screen === "console-login" ? { ...demoState, consoleLoginFeedback, consoleLoginName, consoleLoginTenants } : demoState;
-  root.innerHTML = access.allowed ? renderScreen(screen, renderedState, renderedDemoState) : renderAccessDenied(screen, querySession);
+  root.innerHTML = access.allowed && contextAllowed ? renderScreen(screen, renderedState, renderedDemoState) : renderAccessDenied(screen, querySession);
+  if (renderedState !== "success" && ["tenant-overview", "knowledge-overview", "processing-quality", "sync-result", "quick-publication", "access-policies", "audit-records"].includes(screen)) {
+    root.querySelectorAll("form input, form select, form textarea, form button").forEach(control => { control.disabled = true; });
+  }
   renderedSessionEpoch = querySession.epoch;
   const page = pageByScreen.get(screen);
   decorateExistingPage(
@@ -331,6 +362,15 @@ function scopeForScreen(screen) {
   return ["platform-governance", "platform-operations"].includes(group?.id) ? "platform" : "tenant";
 }
 
+function workspaceTenantId() {
+  return prototypeStore.getSession().tenantId || DEFAULT_TENANT_ID;
+}
+
+function workspaceTenant() {
+  const tenant = prototypeStore.getWorkspaceSnapshot().tenants.find(item => item.id === workspaceTenantId());
+  return { displayName: tenant?.organizationName || "当前组织", administratorLabel: "租户管理员" };
+}
+
 function renderAccessDenied(screen, session) {
   const destination = session.accessChannel === "QUERY_APP" ? "assistants"
     : session.tenantId ? "tenant-overview" : "platform-overview";
@@ -339,6 +379,18 @@ function renderAccessDenied(screen, session) {
 
 function renderScreen(screen, state, demoState) {
   switch (screen) {
+    case "access-policies":
+    case "audit-records":
+    case "audit-record-detail":
+      return renderGovernanceDirectory(screen, state, demoState);
+    case "tenant-overview":
+    case "knowledge-overview":
+    case "processing-quality":
+    case "sync-result":
+    case "quick-publication": {
+      const journey = workspaceJourney(screen, demoState, { escapeHtml, statusTag, feedback: knowledgeFeedback });
+      return adminShell(screen, journey.title, journey.summary, state === "success" ? journey.action : "", genericState(screen, state) || journey.body, state, "知识工作区");
+    }
     case "login":
       return renderLogin(state);
     case "assistants":
@@ -398,7 +450,7 @@ function renderScreen(screen, state, demoState) {
         groupByScreen.get(screen),
         pageFixtures.pages[screen],
         state,
-        fixtures.tenant,
+        workspaceTenant(),
         demoState,
       );
   }
@@ -533,7 +585,7 @@ function genericState(screen, state) {
     "dataset-schema": "结构化数据版本",
     "object-storage-scope": "对象存储范围",
   };
-  const subject = labels[screen];
+  const subject = labels[screen] || pageFixtures.pages[screen]?.title || "页面";
   if (state === "loading") {
     return statePanel("loading", "", "", "", "");
   }
@@ -688,8 +740,8 @@ function appTopbar() {
 }
 
 function demoAccountControl() {
-  const snapshot = prototypeStore.getSnapshot();
-  const tenant = snapshot.tenants.find((item) => item.id === DEFAULT_TENANT_ID);
+  const snapshot = prototypeStore.getWorkspaceSnapshot();
+  const tenant = snapshot.tenants.find((item) => item.id === workspaceTenantId());
   const members = (tenant?.members || []).filter(
     (member) => member.role === "ordinaryMember",
   );
@@ -987,7 +1039,7 @@ function renderComposer(state, activeRun) {
 }
 
 function adminShell(active, title, summary, action, body, state, breadcrumb, scope = "tenant") {
-  const demoState = prototypeStore.getSnapshot();
+  const demoState = prototypeStore.getWorkspaceSnapshot();
   const platform = scope === "platform";
   return [
     '<div class="admin-shell" data-state="' + state + '" data-scope="' + scope + '">',
@@ -999,17 +1051,17 @@ function adminShell(active, title, summary, action, body, state, breadcrumb, sco
       screen: active,
       scope,
       snapshot: demoState,
-      tenantLabel: fixtures.tenant.displayName,
+      tenantLabel: workspaceTenant().displayName,
     }),
     '<div class="admin-account"><strong>' +
-      (platform ? "平台管理员" : escapeHtml(fixtures.tenant.administratorLabel)) +
+      (platform ? "平台管理员" : escapeHtml(workspaceTenant().administratorLabel)) +
       "</strong><small>" +
-      (platform ? "仅脱敏聚合" : escapeHtml(fixtures.tenant.displayName)) +
+      (platform ? "仅脱敏聚合" : escapeHtml(workspaceTenant().displayName)) +
       "</small></div>",
     "</aside>",
     '<div class="admin-workspace">',
     '<header class="topbar"><span class="topbar-context">' +
-      (platform ? "平台管理 / 不含租户内容" : escapeHtml(fixtures.tenant.displayName) + " / 租户管理") +
+      (platform ? "平台管理 / 不含租户内容" : escapeHtml(workspaceTenant().displayName) + " / 租户管理") +
       '</span><div class="topbar-actions">' +
       (platform ? "" : demoAccountControl()) +
       renderAccountMenu(demoState) + "</div></header>",
@@ -1039,12 +1091,17 @@ function pageStatus(active, state) {
   if (state !== "success") {
     return { loading: "正在载入", empty: "暂无记录", error: "载入失败", denied: "访问受限", partial: "部分完成", disabled: "暂不可用" }[state] || "";
   }
-  const snapshot = prototypeStore.getSnapshot();
-  const knowledgeBases = snapshot.knowledgeBases.filter(item => item.tenantId === DEFAULT_TENANT_ID);
+  const snapshot = prototypeStore.getWorkspaceSnapshot();
+  const knowledgeBases = snapshot.knowledgeBases.filter(item => item.tenantId === workspaceTenantId());
   const knowledgeBase = selectedKnowledgeBase(snapshot);
   const indexVersion = selectedIndexVersion(snapshot);
   const models = snapshot.models;
   return {
+    "tenant-overview": workspaceTenant().displayName,
+    "knowledge-overview": knowledgeBase?.name || "请选择知识库",
+    "processing-quality": knowledgeBase?.name || "请选择知识库",
+    "sync-result": knowledgeBase?.name || "请选择知识库",
+    "quick-publication": knowledgeBase?.name || "请选择知识库",
     "knowledge-directory": `${knowledgeBases.length} 个知识库 / ${knowledgeBases.filter(item => !["READY", "EMPTY"].includes(item.status)).length} 项需处理`,
     "knowledge-sources": `${knowledgeBase?.name || "当前知识库"} / ${knowledgeBase?.sources.length || 0} 个来源`,
     "index-versions": `${knowledgeBase?.activeIndex || "尚无活动索引"} / ${knowledgeBase?.indexVersions.length || 0} 个版本`,
@@ -1063,7 +1120,7 @@ function pageStatus(active, state) {
     "routing-policies": modelStatusLabel(models.routingPolicies.find(item => item.id === models.selectedRoutingPolicyId)?.status),
     "assistants-directory": `${snapshot.assistantDelivery.assistants.length} 个稳定助手`,
     "assistant-create": "永久关联一个知识库",
-    "assistant-draft": "冻结索引、模型修订和策略",
+    "assistant-draft": "冻结索引、模型版本和策略",
     "assistant-test": "使用冻结依赖",
     "assistant-evaluation": "质量与安全门禁",
     "assistant-release": "只影响新会话",
@@ -1078,7 +1135,7 @@ function pageStatus(active, state) {
 function selectedKnowledgeBase(demoState) {
   return demoState.knowledgeBases.find(
     item => item.id === demoState.selectedKnowledgeBaseId,
-  ) || demoState.knowledgeBases.find(item => item.id === "kb-handbook") || demoState.knowledgeBases[0];
+  );
 }
 
 function formatStorage(storageGb) {
@@ -1093,17 +1150,17 @@ function formatRevision(revision) {
 }
 
 function renderKnowledgeDirectory(state, demoState) {
-  const generic = genericState("knowledge-directory", state);
-  const tenant = demoState.tenants.find(item => item.id === DEFAULT_TENANT_ID);
+  const generic = state === "empty" ? '<section class="state-panel" data-kind="empty"><h2>尚无知识库</h2><p>创建知识库后即可添加资料。</p></section>' : genericState("knowledge-directory", state);
+  const tenant = demoState.tenants.find(item => item.id === workspaceTenantId());
   const knowledgeBases = demoState.knowledgeBases.filter(
-    item => item.tenantId === DEFAULT_TENANT_ID,
+    item => item.tenantId === workspaceTenantId(),
   );
   const quota = tenant?.quotas.knowledgeBases || 0;
   const quotaReached = knowledgeBases.length >= quota;
   const rows = knowledgeBases
     .map((item) =>
       [
-        `<tr data-kb-row="${escapeHtml(item.id)}" data-directory-row>`,
+        `<tr data-kb-row="${escapeHtml(item.id)}" data-directory-row data-search-text="${escapeHtml(item.name)}" data-directory-state="${escapeHtml(item.status === "READY" ? "READY" : "ATTENTION")}">`,
         '<td data-label="知识库"><span class="primary-cell"><strong>' +
           escapeHtml(item.name) +
           "</strong><span>" +
@@ -1131,7 +1188,7 @@ function renderKnowledgeDirectory(state, demoState) {
         ? `<div class="inline-note warning">当前租户已使用 ${knowledgeBases.length} / ${quota} 个知识库配额。现有知识库仍可维护。</div>`
         : "",
       `<dl class="summary-strip"><div class="summary-item"><dt>知识库</dt><dd>${knowledgeBases.length} / ${quota}</dd></div><div class="summary-item"><dt>有效文档</dt><dd>${knowledgeBases.reduce((sum, item) => sum + item.documents, 0)}</dd></div><div class="summary-item"><dt>原始内容</dt><dd>${formatStorage(knowledgeBases.reduce((sum, item) => sum + item.storageGb, 0))}</dd></div><div class="summary-item"><dt>需处理</dt><dd>${knowledgeBases.filter(item => !["READY", "EMPTY"].includes(item.status)).length}</dd></div></dl>`,
-      '<div class="toolbar"><label class="field"><span>搜索知识库</span><input class="input" type="search" data-directory-search placeholder="按名称搜索" /></label><label class="field compact-field"><span>状态</span><select class="select"><option>全部状态</option><option>需处理</option><option>已就绪</option></select></label></div>',
+      '<div class="toolbar"><label class="field"><span>搜索知识库</span><input class="input" type="search" data-directory-search placeholder="按名称搜索" /></label><label class="field compact-field"><span>状态</span><select class="select" data-directory-status><option value="">全部状态</option><option value="ATTENTION">需处理</option><option value="READY">已就绪</option></select></label></div><p data-filter-summary class="form-feedback" role="status"></p>',
       '<div class="table-shell"><table class="data-table"><thead><tr><th style="width:30%">知识库</th><th>状态</th><th>有效文档</th><th>原始内容</th><th>活动索引</th><th>最近变化</th><th style="text-align:right">操作</th></tr></thead><tbody>' +
         rows +
         "</tbody></table>",
@@ -1163,7 +1220,7 @@ function renderKnowledgeDirectory(state, demoState) {
       (state === "disabled" || quotaReached
         ? `<p id="kb-quota-reason" class="field-hint">已达到平台配置的 ${quota} 个知识库配额。</p>`
         : "") +
-      (generic ? "" : dialog),
+      (!generic || state === "empty" ? dialog : ""),
     state,
     "知识管理 / 知识库",
   );
@@ -1207,7 +1264,7 @@ function renderKnowledgeSources(state, demoState) {
   const content =
     generic ||
     [
-      `<div class="inline-note${sourceItems.some(item => item.stage === "FAILED") ? " warning" : ""}">活动索引 ${escapeHtml(knowledgeBase?.activeIndex || "尚未建立")} 继续服务；失败或新修订不会原地修改活动索引。</div>`,
+      `<div class="inline-note${sourceItems.some(item => item.stage === "FAILED") ? " warning" : ""}">活动索引 ${escapeHtml(knowledgeBase?.activeIndex || "尚未建立")} 继续服务；失败或新版本不会原地修改活动索引。</div>`,
       `<dl class="summary-strip"><div class="summary-item"><dt>来源</dt><dd>${sourceItems.length}</dd></div><div class="summary-item"><dt>就绪</dt><dd>${sourceItems.filter(item => item.stage === "READY").length}</dd></div><div class="summary-item"><dt>处理中</dt><dd>${sourceItems.filter(item => !["READY", "FAILED"].includes(item.stage)).length}</dd></div><div class="summary-item"><dt>失败</dt><dd>${sourceItems.filter(item => item.stage === "FAILED").length}</dd></div></dl>`,
       '<div class="toolbar"><label class="field"><span>搜索数据来源</span><input class="input" type="search" data-directory-search placeholder="按名称或类型搜索" /></label><button class="button secondary" type="button" data-nav-screen="processing-quality">查看处理与质量</button></div>',
       '<div class="table-shell"><table class="data-table"><thead><tr><th style="width:31%">数据来源</th><th>处理阶段</th><th>状态</th><th>内容范围</th><th>最近变化</th><th style="text-align:right">操作</th></tr></thead><tbody>' +
@@ -1241,9 +1298,11 @@ function renderKnowledgeSources(state, demoState) {
 function renderSourceAdd(state, demoState) {
   const generic = genericState("source-add", state);
   const knowledgeBase = selectedKnowledgeBase(demoState);
+  const replacementId = new URLSearchParams(location.search).get("sourceId");
+  const replacement = knowledgeBase?.sources.find(item => item.id === replacementId);
   const tenant = demoState.tenants.find(item => item.id === knowledgeBase?.tenantId);
   const content = generic || [
-    '<form id="source-add-form" class="wizard-workspace source-intake-form">',
+    `<form id="source-add-form" class="wizard-workspace source-intake-form"${replacement ? ` data-replace-source="${escapeHtml(replacement.id)}"` : ""}>`,
     '<section class="section-block wizard-inputs"><div class="section-heading"><div><span class="section-kicker">资料接入</span><h2>选择一种来源方式</h2></div><span class="status-tag" data-tone="info">尚未提交</span></div>',
     '<div class="field-stack"><label class="field"><span>来源方式</span><select class="select" name="mode"><option value="file">本地文件</option><option value="paste">粘贴文本</option></select></label>',
     '<div data-file-fields><label class="field"><span>选择本地文件</span><span class="file-picker"><span class="button secondary" aria-hidden="true">选择文件</span><span data-selected-file>尚未选择文件</span><input name="file" type="file" accept=".txt,.md,.doc,.docx,.xls,.xlsx,.csv,.pdf,.png,.jpg,.jpeg,.webp" /></span></label><p class="field-hint">选择后先校验扩展名、MIME、大小和安全属性，不直接写入索引。</p></div>',
@@ -1260,7 +1319,7 @@ function renderSourceAdd(state, demoState) {
   ].join("");
   return adminShell(
     "source-add",
-    "添加数据来源",
+    replacement ? `更新文档 · ${replacement.name}` : "添加数据来源",
     `${knowledgeBase?.name || "当前知识库"} · 添加一份粘贴文本或本地文件。`,
     '<button class="button secondary" type="button" data-nav-screen="knowledge-sources">返回数据来源</button>',
     content,
@@ -1299,15 +1358,15 @@ function renderSourceDetail(state, demoState) {
     `<section class="section-block source-detail-card" data-source-stage="${escapeHtml(source.stage)}"><div class="section-heading"><div><span class="section-kicker">当前文档</span><h2>${escapeHtml(source.name)}</h2><p class="entity-meta">版本 ${escapeHtml(revision)} · ${escapeHtml(source.kind)}</p></div>${statusTag(source.stage === "FAILED" ? "FAILED" : source.stage === "READY" ? "READY" : "PROCESSING")}</div>`,
     `<ol class="process-steps source-process" aria-label="处理阶段">${stages.map((stage, index) => `<li data-step-state="${index < currentIndex ? "complete" : index === currentIndex ? "current" : "upcoming"}"><span>${index + 1}</span><strong>${stage}</strong></li>`).join("")}</ol>`,
     source.error ? `<div class="inline-note danger"><strong>${escapeHtml(source.error.code)}</strong> · ${escapeHtml(source.error.message)}</div>` : "",
-    `<dl class="description-list"><div class="description-row"><dt>当前修订</dt><dd>${escapeHtml(revision)}</dd></div><div class="description-row"><dt>活动修订</dt><dd>${escapeHtml(source.activeRevision ? formatRevision(source.activeRevision) : "尚无")}</dd></div><div class="description-row"><dt>活动索引</dt><dd>${escapeHtml(knowledgeBase.activeIndex || "尚未建立")} 继续服务</dd></div><div class="description-row"><dt>索引写入</dt><dd>${source.indexed ? "已进入当前清单" : "尚未写入"}</dd></div></dl>`,
-    `<div class="form-actions">${operation}<button class="button ${source.stage === "READY" ? "primary" : "secondary"}" type="button" data-primary-action data-nav-screen="source-add">更新文档</button><button class="button subtle" type="button" data-nav-screen="index-rebuild">全库重建</button></div>`,
+    `<dl class="description-list"><div class="description-row"><dt>当前版本</dt><dd>${escapeHtml(revision)}</dd></div><div class="description-row"><dt>活动版本</dt><dd>${escapeHtml(source.activeRevision ? formatRevision(source.activeRevision) : "尚无")}</dd></div><div class="description-row"><dt>活动索引</dt><dd>${escapeHtml(knowledgeBase.activeIndex || "尚未建立")} 继续服务</dd></div><div class="description-row"><dt>索引写入</dt><dd>${source.indexed ? "已进入当前清单" : "尚未写入"}</dd></div></dl>`,
+    `<div class="form-actions">${operation}<button class="button ${source.stage === "READY" ? "primary" : "secondary"}" type="button" data-primary-action data-nav-screen="source-add" data-update-source="${escapeHtml(source.id)}"${processing || source.kind === "对象存储" ? " disabled" : ""}>更新文档</button><button class="button secondary" type="button" data-rebuild-source${source.stage === "READY" ? "" : " disabled"}>单文件重建索引</button><button class="button subtle" type="button" data-nav-screen="index-rebuild">全库重建</button></div>`,
     knowledgeFeedback ? `<p class="form-feedback" role="status">${escapeHtml(knowledgeFeedback)}</p>` : "",
     "</section>",
   ].join("");
   return adminShell(
     "source-detail",
     "文档详情",
-    `${knowledgeBase.name} · 查看修订、处理阶段与失败恢复。`,
+    `${knowledgeBase.name} · 查看版本、处理阶段与失败恢复。`,
     '<button class="button secondary" type="button" data-nav-screen="knowledge-sources">返回数据来源</button>',
     content,
     state,
@@ -1583,7 +1642,7 @@ function renderPlatformModelDeployments(state, demoState) {
   const content = [
     '<div class="inline-note">平台部署发布后只进入可授权目录，不会自动授予租户，也不会修改租户配置、索引或助手。</div>',
     modelDirectoryTable(["部署", "能力", "授权范围", "状态", "操作"], rows),
-    `<dialog id="platform-deployment-dialog" class="dialog-surface"><form id="platform-deployment-form"><span class="section-kicker">部署草稿</span><h2>建立可授权模型部署</h2><div class="field-stack"><label class="field"><span>部署名称</span><input class="input" name="name" required></label><label class="field"><span>已发现模型</span><select class="select" name="modelSelection">${modelOptions}</select></label><label class="check-line"><input type="checkbox" name="authorizeTenant" checked><span>发布后授权“云杉服务示例组织”可发现</span></label></div><p id="platform-deployment-feedback" class="form-feedback" role="alert"></p><div class="release-actions"><button class="button secondary" type="button" data-close-dialog="platform-deployment-dialog">取消</button><button class="button primary" type="submit">保存部署草稿</button></div></form></dialog>`,
+    `<dialog id="platform-deployment-dialog" class="dialog-surface"><form id="platform-deployment-form"><span class="section-kicker">部署草稿</span><h2>建立可授权模型部署</h2><div class="field-stack"><label class="field"><span>部署名称</span><input class="input" name="name" required></label><label class="field"><span>已发现模型</span><select class="select" name="modelSelection">${modelOptions}</select></label><fieldset class="assistant-scope"><legend>授权租户</legend>${demoState.tenants.filter(item => item.status === "active").map(item => `<label><input type="checkbox" name="authorizeTenant" value="${escapeHtml(item.id)}"${item.id === DEFAULT_TENANT_ID ? " checked" : ""}>${escapeHtml(item.organizationName)}</label>`).join("")}</fieldset></div><p id="platform-deployment-feedback" class="form-feedback" role="alert"></p><div class="release-actions"><button class="button secondary" type="button" data-close-dialog="platform-deployment-dialog">取消</button><button class="button primary" type="submit">保存部署草稿</button></div></form></dialog>`,
   ].join("");
   return adminShell("platform-model-deployments", "平台模型部署", "", '<button class="button primary" type="button" data-open-platform-deployment data-primary-action>建立部署草稿</button>', content, state, "模型治理 / 平台模型部署", "platform");
 }
@@ -1612,7 +1671,7 @@ function renderTenantModelProviders(state, demoState) {
   const connections = models.platformConnections.filter(item => item.status === "PUBLISHED");
   const selectedId = models.selectedTenantConnectionId || connections[0]?.id;
   const rows = connections.map(connection => {
-    const discovery = models.tenantDiscoveries.find(item => item.tenantId === DEFAULT_TENANT_ID && item.connectionId === connection.id);
+    const discovery = models.tenantDiscoveries.find(item => item.tenantId === workspaceTenantId() && item.connectionId === connection.id);
     return `<tr><td><strong>${escapeHtml(connection.name)}</strong><small>平台已授权连接</small></td><td>${escapeHtml(modelCapabilityLabel(connection.capability))}</td><td>${statusTag(discovery?.status || "DRAFT")}</td><td><button class="button subtle" type="button" data-select-tenant-connection="${escapeHtml(connection.id)}" data-nav-screen="model-provider-detail" aria-label="查看${escapeHtml(connection.name)}">查看</button></td></tr>`;
   });
   const content = [
@@ -1625,7 +1684,7 @@ function renderTenantModelProviders(state, demoState) {
 function renderTenantModelProviderDetail(state, demoState) {
   const models = demoState.models;
   const connection = models.platformConnections.find(item => item.id === models.selectedTenantConnectionId) || models.platformConnections.find(item => item.status === "PUBLISHED");
-  const discovery = models.tenantDiscoveries.find(item => item.tenantId === DEFAULT_TENANT_ID && item.connectionId === connection?.id);
+  const discovery = models.tenantDiscoveries.find(item => item.tenantId === workspaceTenantId() && item.connectionId === connection?.id);
   const deployments = (discovery?.deploymentIds || []).map(id => models.platformDeployments.find(item => item.id === id)).filter(Boolean);
   const items = deployments.length
     ? deployments.map(deployment => `<li><span><strong>${escapeHtml(deployment.name)}</strong><br><small>${escapeHtml(modelCapabilityLabel(deployment.capability))} / ${escapeHtml(deployment.residency)}</small></span><button class="button secondary" type="button" data-use-catalog-model="${escapeHtml(deployment.id)}">使用此模型</button></li>`).join("")
@@ -1639,13 +1698,13 @@ function renderTenantModelProviderDetail(state, demoState) {
 
 function renderModelConfigurations(state, demoState) {
   const models = demoState.models;
-  const available = models.platformDeployments.filter(item => item.status === "PUBLISHED" && item.tenantIds.includes(DEFAULT_TENANT_ID));
+  const available = models.platformDeployments.filter(item => item.status === "PUBLISHED" && item.tenantIds.includes(workspaceTenantId()));
   const selected = models.selectedCatalogDeploymentId || available[0]?.id;
-  const rows = models.configurations.filter(item => item.tenantId === DEFAULT_TENANT_ID).map(configuration =>
+  const rows = models.configurations.filter(item => item.tenantId === workspaceTenantId()).map(configuration =>
     `<tr><td><strong>${escapeHtml(configuration.name)}</strong><small>当前 v${escapeHtml(configuration.activeRevision || "—")}</small></td><td>${escapeHtml(modelCapabilityLabel(configuration.capability))}</td><td>${statusTag(configuration.status)}</td><td><button class="button subtle" type="button" data-select-model-configuration="${escapeHtml(configuration.id)}" data-nav-screen="model-configuration-detail" aria-label="查看${escapeHtml(configuration.name)}">查看</button></td></tr>`
   );
   const content = [
-    '<div class="inline-note">配置只引用当前租户已获授权的目录模型。访问密钥提交后不回显；新修订验证并启用前，旧启用版本继续服务。</div>',
+    '<div class="inline-note">配置只引用当前租户已获授权的目录模型。访问密钥提交后不回显；新版本验证并启用前，旧启用版本继续服务。</div>',
     modelDirectoryTable(["配置", "能力", "状态", "操作"], rows),
     `<dialog id="model-configuration-dialog" class="dialog-surface"><form id="model-configuration-form"><span class="section-kicker">创建配置</span><h2>建立受控模型配置</h2><div class="field-stack"><label class="field"><span>配置名称</span><input class="input" name="name" required></label><label class="field"><span>已授权目录模型</span><select class="select" name="platformDeploymentId">${available.map(item => `<option value="${escapeHtml(item.id)}"${item.id === selected ? " selected" : ""}>${escapeHtml(item.name)} / ${escapeHtml(modelCapabilityLabel(item.capability))}</option>`).join("")}</select></label></div><p id="model-configuration-feedback" class="form-feedback" role="alert"></p><div class="release-actions"><button class="button secondary" type="button" data-close-dialog="model-configuration-dialog">取消</button><button class="button primary" type="submit">保存配置草稿</button></div></form></dialog>`,
   ].join("");
@@ -1675,7 +1734,7 @@ function renderModelConfigurationDetail(state, demoState) {
       : `<label class="field"><span>重排候选数量</span><input class="input" name="candidateCount" type="number" value="${escapeHtml(parameters.candidateCount)}"></label><label class="field"><span>最终证据数量</span><input class="input" name="evidenceCount" type="number" value="${escapeHtml(parameters.evidenceCount)}"></label>`;
   const impact = configuration.capability === "EMBEDDING"
     ? "启用维度、规范化或距离变化会自动创建全库重建候选，但不会自动激活索引。"
-    : "Chat 或 Rerank 修订启用后不重建向量，只要求助手新版本重新评测。";
+    : "Chat 或 Rerank 版本启用后不重建向量，只要求助手新版本重新评测。";
   const content = [
     `<div class="inline-note${pending?.status === "FAILED" ? " danger" : ""}">${escapeHtml(pending?.result || impact)}</div>`,
     '<div class="split-detail"><div>',
@@ -1689,8 +1748,8 @@ function renderModelConfigurationDetail(state, demoState) {
 
 function renderTenantModelDeployments(state, demoState) {
   const models = demoState.models;
-  const configurations = models.configurations.filter(item => item.tenantId === DEFAULT_TENANT_ID && item.status === "ACTIVE");
-  const rows = models.deployments.filter(item => item.tenantId === DEFAULT_TENANT_ID).map(deployment =>
+  const configurations = models.configurations.filter(item => item.tenantId === workspaceTenantId() && item.status === "ACTIVE");
+  const rows = models.deployments.filter(item => item.tenantId === workspaceTenantId()).map(deployment =>
     `<tr><td><strong>${escapeHtml(deployment.name)}</strong><small>${escapeHtml(deployment.residency)}</small></td><td>${escapeHtml(modelCapabilityLabel(deployment.capability))}</td><td>${statusTag(deployment.status)}</td><td><button class="button subtle" type="button" data-select-tenant-deployment="${escapeHtml(deployment.id)}" data-nav-screen="model-deployment-detail" aria-label="查看${escapeHtml(deployment.name)}">查看</button></td></tr>`
   );
   const content = [
@@ -1729,7 +1788,8 @@ function renderTenantModelDeploymentDetail(state, demoState) {
 function renderRoutingPolicies(state, demoState) {
   const models = demoState.models;
   const policy = selectedModelItem(models, "routingPolicies", "selectedRoutingPolicyId");
-  const deployments = models.deployments.filter(item => item.tenantId === DEFAULT_TENANT_ID && item.status === "PUBLISHED");
+  if (!policy) return adminShell("routing-policies", "模型路由策略", "", "", `<form class="section-block" id="create-routing-form"><h2>建立第一条路由策略</h2><label class="field"><span>路由名称</span><input class="input" name="name" value="对话主备路由" minlength="2" maxlength="80" required></label><p>建立草稿后选择同能力的主备部署，模拟通过才能发布。</p><p class="form-feedback" role="alert">${escapeHtml(modelFeedback)}</p><div class="form-actions"><button class="button secondary" type="button" data-nav-screen="model-deployments">查看部署</button><button class="button primary" type="submit"${state === "success" ? "" : " disabled"}>创建路由草稿</button></div></form>`, state, "模型治理 / 路由策略");
+  const deployments = models.deployments.filter(item => item.tenantId === workspaceTenantId() && item.status === "PUBLISHED");
   const simulation = policy.simulation
     ? `<div class="metric-grid"><article class="metric-card"><span>模拟样本</span><strong>${escapeHtml(policy.simulation.passed)} / ${escapeHtml(policy.simulation.total)}</strong></article><article class="metric-card"><span>预计月度消耗</span><strong>${escapeHtml(policy.simulation.estimatedBudget)}</strong></article><article class="metric-card"><span>路由 p95</span><strong>${escapeHtml(policy.simulation.p95Ms)} ms</strong></article></div>`
     : '<p class="muted">尚未运行本版本模拟。</p>';
@@ -1746,6 +1806,14 @@ function renderModelGovernance(screen, state, demoState) {
   if (generic) {
     return adminShell(screen, pageFixtures.pages[screen].title, "", "", generic, state, "模型治理", platform ? "platform" : "tenant");
   }
+  const detailCollection = {
+    "platform-model-connection-detail": ["platformConnections", "platform-model-connections"],
+    "platform-model-deployment-detail": ["platformDeployments", "platform-model-deployments"],
+    "model-provider-detail": ["platformConnections", "model-providers"],
+    "model-configuration-detail": ["configurations", "model-configurations"],
+    "model-deployment-detail": ["deployments", "model-deployments"],
+  }[screen];
+  if (detailCollection && !demoState.models[detailCollection[0]].length) return adminShell(screen, pageFixtures.pages[screen].title, "", "", statePanel("empty", "当前还没有可查看的模型记录", "请先从目录选择或建立模型记录。", "返回目录", detailCollection[1]), state, "模型治理", platform ? "platform" : "tenant");
   return {
     "platform-model-connections": renderPlatformModelConnections,
     "platform-model-connection-detail": renderPlatformModelConnectionDetail,
@@ -1767,6 +1835,7 @@ function assistantStageContext(snapshot, statuses) {
     .flatMap(assistant => assistant.versions.map(version => ({ assistant, version })))
     .find(item => item.version.id === snapshot.assistantDelivery.selectedVersionId);
   if (selected && statuses.includes(selected.version.status)) return selected;
+  if (new URLSearchParams(location.search).has("assistantVersionId")) return null;
   return assistants
     .flatMap(assistant => assistant.versions.map(version => ({ assistant, version })))
     .find(item => statuses.includes(item.version.status)) || null;
@@ -1811,19 +1880,19 @@ function renderAssistantDirectory(state, snapshot) {
 
 function renderAssistantCreate(state, snapshot) {
   const blocked = state !== "success";
-  const knowledgeBases = snapshot.knowledgeBases.filter(item => item.tenantId === DEFAULT_TENANT_ID && item.indexVersions.some(version => version.id === item.activeIndex && version.status === "ACTIVE"));
+  const knowledgeBases = snapshot.knowledgeBases.filter(item => item.tenantId === workspaceTenantId() && item.indexVersions.some(version => version.id === item.activeIndex && version.status === "ACTIVE"));
   const body = [
     state === "partial" ? '<div class="inline-note warning">知识库目录正在刷新，暂不能创建助手。</div>' : "",
     state === "disabled" ? '<div class="inline-note warning">当前租户没有助手交付权限。</div>' : "",
     '<div class="split-detail">',
     '<form id="assistant-create-form" class="section-block">',
-    '<div class="section-heading"><div><span class="section-kicker">基本信息</span><h2>创建稳定助手</h2></div><span class="status-tag" data-tone="info">创建后进入草稿</span></div>',
+    '<div class="section-heading"><div><span class="section-kicker">基本信息</span><h2>创建助手</h2></div><span class="status-tag" data-tone="info">创建后进入草稿</span></div>',
     '<div class="form-grid"><label class="field"><span>助手名称</span><input class="input" name="name" minlength="2" maxlength="80" value="员工政策助手" autocomplete="off" required></label><label class="field"><span>关联知识库</span><input class="input" name="knowledgeBaseName" type="search" list="assistant-knowledge-base-options" value="员工服务手册" autocomplete="off" required></label></div>',
     `<datalist id="assistant-knowledge-base-options">${knowledgeBases.map(item => `<option value="${escapeHtml(item.name)}"></option>`).join("")}</datalist>`,
     '<label class="field"><span>用途说明</span><textarea class="textarea" name="summary" rows="3" minlength="8" maxlength="200" required>回答员工制度和办事流程问题，并提供可定位引用。</textarea></label>',
     '<p id="assistant-create-feedback" class="form-feedback" role="alert"></p>',
     `<div class="form-actions"><button class="button secondary" type="button" data-nav-screen="assistants-directory">取消</button><button class="button primary" type="submit" data-primary-action${blocked ? " disabled" : ""}>创建助手</button></div></form>`,
-    '<aside><section class="release-decision"><span class="section-kicker">永久边界</span><h2>关联后不能更换知识库</h2><dl class="description-list"><dt>可选范围</dt><dd>当前租户、索引就绪</dd><dt>版本变化</dt><dd>只替换索引或模型修订</dd><dt>需要换库</dt><dd>创建新的稳定助手</dd></dl></section></aside></div>',
+    '<aside><section class="release-decision"><span class="section-kicker">永久边界</span><h2>关联后不能更换知识库</h2><dl class="description-list"><dt>可选范围</dt><dd>当前租户、索引就绪</dd><dt>版本变化</dt><dd>只替换索引或模型版本</dd><dt>需要换库</dt><dd>创建新的助手</dd></dl></section></aside></div>',
   ].join("");
   return adminShell("assistant-create", "创建助手", "", '<button class="button secondary" type="button" data-nav-screen="assistants-directory">返回目录</button>', body, state, "助手交付 / 创建助手");
 }
@@ -1970,7 +2039,7 @@ function renderEvaluationDatasets(state, snapshot) {
     state === "disabled" ? '<div class="inline-note warning">平台已关闭评测治理，既有评测结论仍可查看。</div>' : "",
     evaluationFeedback ? `<p class="form-feedback" role="status">${escapeHtml(evaluationFeedback)}</p>` : "",
     `<div class="table-shell"><table class="data-table"><thead><tr><th style="width:32%">数据集</th><th>已发布版本</th><th>当前草稿</th><th>操作</th></tr></thead><tbody>${rows}</tbody></table><div class="pagination" aria-label="评测数据集分页"><span>第 1 页，共 ${snapshot.evaluation.datasets.length} 个数据集</span><div class="pagination-actions"><button class="button secondary compact" type="button" disabled>上一页</button><button class="button secondary compact" type="button" disabled>下一页</button></div></div></div>`,
-    `<dialog id="evaluation-dataset-dialog" class="dialog-surface" aria-labelledby="evaluation-dataset-title"><form id="evaluation-dataset-form"><div class="dialog-heading"><span class="section-kicker">独立质量资产</span><h2 id="evaluation-dataset-title">新建评测数据集</h2></div><div class="form-grid"><label class="field"><span>数据集名称</span><input class="input" name="name" minlength="2" maxlength="80" value="制度专项回归" required></label><label class="field"><span>关联知识库</span><select class="select" name="knowledgeBaseId">${snapshot.knowledgeBases.filter(item => item.tenantId === DEFAULT_TENANT_ID).map(item => `<option value="${escapeHtml(item.id)}">${escapeHtml(item.name)}</option>`).join("")}</select></label><label class="field"><span>起始方式</span><select class="select" name="templateVersionId"><option value="">建立空白数据集</option>${publishedVersions.map(({ dataset, version }) => `<option value="${escapeHtml(version.id)}"${version.id === "eval-set-v6" ? " selected" : ""}>复制 ${escapeHtml(dataset.name)} v${escapeHtml(version.number)}</option>`).join("")}</select></label></div><p class="inline-note compact-note">复制会创建独立草稿；发布版本不会被修改。</p><p id="evaluation-dataset-feedback" class="form-feedback" role="alert"></p><div class="form-actions dialog-actions"><button class="button secondary" type="button" data-close-evaluation-dataset>取消</button><button class="button primary" type="submit">创建数据集</button></div></form></dialog>`,
+    `<dialog id="evaluation-dataset-dialog" class="dialog-surface" aria-labelledby="evaluation-dataset-title"><form id="evaluation-dataset-form"><div class="dialog-heading"><span class="section-kicker">独立质量资产</span><h2 id="evaluation-dataset-title">新建评测数据集</h2></div><div class="form-grid"><label class="field"><span>数据集名称</span><input class="input" name="name" minlength="2" maxlength="80" value="制度专项回归" required></label><label class="field"><span>关联知识库</span><select class="select" name="knowledgeBaseId">${snapshot.knowledgeBases.filter(item => item.tenantId === workspaceTenantId()).map(item => `<option value="${escapeHtml(item.id)}">${escapeHtml(item.name)}</option>`).join("")}</select></label><label class="field"><span>起始方式</span><select class="select" name="templateVersionId"><option value="">建立空白数据集</option>${publishedVersions.map(({ dataset, version }) => `<option value="${escapeHtml(version.id)}"${version.id === "eval-set-v6" ? " selected" : ""}>复制 ${escapeHtml(dataset.name)} v${escapeHtml(version.number)}</option>`).join("")}</select></label></div><p class="inline-note compact-note">复制会创建独立草稿；发布版本不会被修改。</p><p id="evaluation-dataset-feedback" class="form-feedback" role="alert"></p><div class="form-actions dialog-actions"><button class="button secondary" type="button" data-close-evaluation-dataset>取消</button><button class="button primary" type="submit">创建数据集</button></div></form></dialog>`,
   ].join("");
   return adminShell("evaluation-datasets", "评测数据集", "", `<button class="button primary" type="button" data-open-evaluation-dataset data-primary-action${blocked ? " disabled" : ""}>新建评测数据集</button>`, body, state, "评测治理 / 数据集");
 }
@@ -2026,7 +2095,7 @@ function renderEvaluationRunDetail(state, snapshot) {
   const body = [
     `<div class="inline-note${run.gate === "FAILED" ? " danger" : run.status === "RUNNING" ? " warning" : ""}">${run.status === "RUNNING" ? `正在执行 ${escapeHtml(run.stage)}；已冻结输入不会随活动版本变化。` : run.gate === "PASSED" ? "全部 M6 质量、安全、性能和一致性门禁通过。" : "至少一项门禁未通过，本运行不能支持发布。"}</div>`,
     `<div class="split-detail"><div><section class="section-block"><div class="section-heading"><div><span class="section-kicker">${escapeHtml(run.id)}</span><h2>${escapeHtml(run.name)}</h2></div>${statusTag(run.status)}</div>${stageList}<div class="progress-track" aria-label="评测运行进度"><div class="progress-value" style="width:${escapeHtml(run.progress)}%"></div></div></section>${run.metrics ? `<section class="section-block"><div class="section-heading"><h2>门禁指标</h2>${statusTag(run.gate)}</div>${evaluationMetricGrid(run.metrics)}</section>` : ""}</div>`,
-    `<aside><section class="section-block"><h2>冻结输入</h2><dl class="description-list"><dt>助手版本</dt><dd>${escapeHtml(evaluationAssistantVersionLabel(snapshot, run.frozen.assistantVersionId))}</dd><dt>数据集版本</dt><dd><span class="mono">${escapeHtml(run.frozen.datasetVersionId)}</span></dd><dt>索引版本</dt><dd><span class="mono">${escapeHtml(run.frozen.indexVersionId)}</span></dd><dt>模型修订</dt><dd>Chat r${escapeHtml(run.frozen.configurationRevisions.chat.revision)} / Embedding r${escapeHtml(run.frozen.configurationRevisions.embedding.revision)} / Rerank r${escapeHtml(run.frozen.configurationRevisions.rerank.revision)}</dd></dl></section><section class="release-decision"><span class="section-kicker">下一步</span><h2>${run.status === "RUNNING" ? "完成全部四个阶段" : "同数据集比较基线"}</h2><div class="form-actions">${operation}</div>${evaluationFeedback ? `<p class="form-feedback" role="status">${escapeHtml(evaluationFeedback)}</p>` : ""}</section></aside></div>`,
+    `<aside><section class="section-block"><h2>冻结输入</h2><dl class="description-list"><dt>助手版本</dt><dd>${escapeHtml(evaluationAssistantVersionLabel(snapshot, run.frozen.assistantVersionId))}</dd><dt>数据集版本</dt><dd><span class="mono">${escapeHtml(run.frozen.datasetVersionId)}</span></dd><dt>索引版本</dt><dd><span class="mono">${escapeHtml(run.frozen.indexVersionId)}</span></dd><dt>模型版本</dt><dd>Chat r${escapeHtml(run.frozen.configurationRevisions.chat.revision)} / Embedding r${escapeHtml(run.frozen.configurationRevisions.embedding.revision)} / Rerank r${escapeHtml(run.frozen.configurationRevisions.rerank.revision)}</dd></dl></section><section class="release-decision"><span class="section-kicker">下一步</span><h2>${run.status === "RUNNING" ? "完成全部四个阶段" : "同数据集比较基线"}</h2><div class="form-actions">${operation}</div>${evaluationFeedback ? `<p class="form-feedback" role="status">${escapeHtml(evaluationFeedback)}</p>` : ""}</section></aside></div>`,
     `<dialog id="evaluation-comparison-dialog" class="dialog-surface" aria-labelledby="evaluation-comparison-title"><form id="evaluation-comparison-form" data-candidate-run-id="${escapeHtml(run.id)}"><div class="dialog-heading"><span class="section-kicker">同一数据集版本</span><h2 id="evaluation-comparison-title">选择对比基线</h2></div><label class="field"><span>基线运行</span><select class="select" name="baselineRunId">${baselineOptions.map(item => `<option value="${escapeHtml(item.id)}">${escapeHtml(item.name)}</option>`).join("")}</select></label><p id="evaluation-comparison-feedback" class="form-feedback" role="alert"></p><div class="form-actions dialog-actions"><button class="button secondary" type="button" data-close-evaluation-comparison>取消</button><button class="button primary" type="submit">生成对比</button></div></form></dialog>`,
   ].join("");
   return adminShell("evaluation-run-detail", "评测运行详情", "", '<button class="button secondary" type="button" data-nav-screen="evaluation-run-create">发起新评测</button>', body, state, "评测治理 / 运行详情");
@@ -2093,12 +2162,30 @@ function accessPolicyFailureMessage(result) {
   }[result.reason] || "操作未完成，原状态保持不变。";
 }
 
+function renderGovernanceDirectory(screen, state, snapshot) {
+  const projection = prototypeStore.getAuditProjection(workspaceTenantId(), prototypeStore.getSession().accountId);
+  const generic = genericState(screen, state);
+  if (generic) return adminShell(screen, pageFixtures.pages[screen].title, "", "", generic, state, "访问与审计");
+  if (screen === "audit-record-detail") {
+    const auditId = new URLSearchParams(location.search).get("auditId");
+    const record = projection.ok ? auditId ? projection.records.find(item => item.id === auditId) : projection.records[0] : null;
+    const back = '<button class="button secondary" type="button" data-nav-screen="audit-records">返回审计目录</button>';
+    if (!record) return adminShell(screen, "审计事件", "", back, statePanel("empty", "没有可查看的审计事件", "请从当前组织的审计目录选择记录。", "返回审计目录", "audit-records"), state, "审计记录");
+    const body = `<section class="section-block" data-audit-detail="${escapeHtml(record.id)}"><div class="section-heading"><h2>${escapeHtml(record.event)}</h2>${statusTag(record.outcome === "SUCCESS" ? "READY" : "FAILED")}</div><dl class="description-list"><dt>操作范围</dt><dd>${escapeHtml(record.scope)}</dd><dt>主体类型</dt><dd>${escapeHtml(record.actorRole)}</dd><dt>记录时间</dt><dd>${escapeHtml(record.occurredAt)}</dd><dt>结果说明</dt><dd>${escapeHtml(record.summary)}</dd></dl></section>`;
+    return adminShell(screen, "审计事件解释", "", back, `<div class="timeline-workspace">${body}<aside class="next-step-panel"><h2>记录保持只读</h2><p>后续操作形成新的事实，不改写此条审计事件。</p>${back}</aside></div>`, state, "审计记录");
+  }
+  const result = governanceDirectory(screen, snapshot, projection.ok ? projection.records : [], { escapeHtml, statusTag });
+  return adminShell(screen, result.title, "", state === "success" ? result.action : "", result.body, state, "访问与审计");
+}
+
 function renderAccessPolicyDetail(state, snapshot) {
-  const projection = prototypeStore.getAccessPolicyProjection("access-policy-all-employees", prototypeStore.getSession().accountId);
+  const policyId = new URLSearchParams(location.search).get("policyId") || snapshot.accessGovernance.selectedPolicyId;
+  const visiblePolicy = snapshot.accessGovernance.accessPolicies.find(item => item.id === policyId);
+  const projection = visiblePolicy ? prototypeStore.getAccessPolicyProjection(policyId, prototypeStore.getSession().accountId) : { ok: false };
   if (!projection.ok) return adminShell("access-policy-detail", "访问策略版本", "", "", statePanel("denied", "当前会话不能访问此策略", "页面不会确认策略或成员是否存在。", "返回访问策略", "access-policies"), state, "访问治理 / 策略版本");
   const { policy, version, assistant, knowledgeBase, members } = projection;
   const blocked = state !== "success" || version.status !== "DRAFT";
-  const tenant = snapshot.tenants.find(item => item.id === DEFAULT_TENANT_ID);
+  const tenant = snapshot.tenants.find(item => item.id === workspaceTenantId());
   const ordinaryMembers = (tenant?.members || []).filter(member => member.role === "ordinaryMember" && member.status === "active");
   const publishedAssistants = snapshot.assistantDelivery.assistants.filter(item => item.status === "PUBLISHED" && item.publishedVersionId);
   const memberControls = ordinaryMembers.map(member => {
@@ -2111,7 +2198,7 @@ function renderAccessPolicyDetail(state, snapshot) {
     : '<div class="inline-note warning">成员或助手变化后预览会失效。请在发布前核对允许、拒绝、历史与引用四类样本。</div>';
   const primary = version.status === "DRAFT"
     ? `<button class="button primary" type="button" data-publish-access-policy data-access-policy-version-id="${escapeHtml(version.id)}" data-primary-action${blocked || !preview?.passed ? " disabled" : ""}>发布策略版本</button>`
-    : '<button class="button primary" type="button" data-primary-action disabled>策略版本已发布</button>';
+    : `<button class="button primary" type="button" data-primary-action data-create-access-version="${escapeHtml(policy.id)}"${state === "success" ? "" : " disabled"}>创建策略新版本</button>`;
   const body = [
     '<div class="inline-note">策略只配置普通成员可用的助手；知识库由助手的永久关联关系确定，不能在这里另选。</div>',
     `<div class="split-detail"><form id="access-policy-form" class="section-block" data-access-policy-version-id="${escapeHtml(version.id)}"><div class="section-heading"><div><span class="section-kicker">${escapeHtml(policy.name)}</span><h2>策略 v${escapeHtml(version.number)}</h2></div>${statusTag(version.status)}</div><div class="form-grid"><label class="field"><span>已发布助手</span><select class="select" name="assistantId" data-access-policy-assistant${blocked ? " disabled" : ""}>${publishedAssistants.map(item => `<option value="${escapeHtml(item.id)}"${item.id === version.assistantId ? " selected" : ""}>${escapeHtml(item.name)}</option>`).join("")}</select></label><div class="field"><span>关联知识库（自动确定）</span><div class="input readonly-value" data-derived-knowledge-base>${escapeHtml(knowledgeBase.name)}</div><small class="field-hint" data-derived-knowledge-help>来自“${escapeHtml(assistant.name)}”的永久知识库关系。</small></div></div><fieldset class="feature-editor access-policy-members"><legend class="section-kicker">授权普通成员</legend><div class="feature-grid">${memberControls}</div></fieldset><p id="access-policy-feedback" class="form-feedback" role="alert">${escapeHtml(accessGovernanceFeedback)}</p><div class="form-actions"><button class="button secondary" type="submit"${blocked ? " disabled" : ""}>保存草稿</button><button class="button ${preview?.passed ? "secondary" : "primary"}" type="button" data-preview-access-policy data-access-policy-version-id="${escapeHtml(version.id)}"${preview?.passed ? "" : " data-primary-action"}${blocked ? " disabled" : ""}>生成授权预览</button></div></form>`,
@@ -2125,7 +2212,7 @@ function queryOutcomeLabel(outcome) {
 }
 
 function renderGovernanceQuery(state) {
-  const projection = prototypeStore.getQueryGovernanceProjection(DEFAULT_TENANT_ID, prototypeStore.getSession().accountId);
+  const projection = prototypeStore.getQueryGovernanceProjection(workspaceTenantId(), prototypeStore.getSession().accountId);
   if (!projection.ok) return adminShell("governance-query", "查询治理", "", "", statePanel("denied", "当前会话不能读取查询治理", "不显示租户、运行或配额是否存在。", "返回工作区", "tenant-overview"), state, "评测治理 / 查询治理");
   const blocked = state !== "success";
   const { quota, usage, runs } = projection;
@@ -2141,7 +2228,7 @@ function renderGovernanceQuery(state) {
 
 function renderQueryDiagnostic(state, snapshot) {
   const selectedId = snapshot.accessGovernance.selectedQueryRunId;
-  const projection = prototypeStore.getQueryDiagnostic(selectedId, prototypeStore.getSession().accountId);
+  const projection = snapshot.accessGovernance.queryRuns.some(item => item.id === selectedId) ? prototypeStore.getQueryDiagnostic(selectedId, prototypeStore.getSession().accountId) : { ok: false };
   if (!projection.ok) return adminShell("query-diagnostic", "受权查询诊断", "", "", statePanel("empty", "诊断事实不可用", "终态事实不存在或当前会话无权读取。", "返回查询治理", "governance-query"), state, "评测治理 / 查询诊断");
   const { run, diagnostic, remediation } = projection;
   const actionable = run.outcome !== "ANSWERED";
@@ -2164,7 +2251,7 @@ function renderQueryDiagnostic(state, snapshot) {
   const citationValidation = { VALIDATED: "已通过", NOT_APPLICABLE: "不适用" }[diagnostic.citationValidation] || diagnostic.citationValidation;
   const body = [
     '<div class="inline-note">这是运行结束时原子写入的历史事实。页面不会重新检索，也不会根据当前策略推断过去结果。</div>',
-    `<div class="split-detail"><div><section class="section-block"><div class="section-heading"><div><span class="section-kicker mono">${escapeHtml(run.reference)}</span><h2>${escapeHtml(run.assistantName)} · ${escapeHtml(queryOutcomeLabel(run.outcome))}</h2></div>${statusTag(run.outcome)}</div><ol class="process-steps" aria-label="查询终态阶段">${stages.map((stage, index) => `<li data-step-state="complete"><span>${index + 1}</span><strong>${escapeHtml(stageLabels[stage] || stage)}</strong></li>`).join("")}</ol></section><section class="section-block"><div class="section-heading"><h2>最小诊断事实</h2><span class="status-tag" data-tone="info">只读</span></div><dl class="description-list"><dt>候选收集</dt><dd>${escapeHtml(candidateCollection)}</dd><dt>可披露候选</dt><dd>${diagnostic.candidateCount ?? "未完成"}</dd><dt>授权判定</dt><dd>${escapeHtml(authorization)}</dd><dt>引用校验</dt><dd>${escapeHtml(citationValidation)}</dd><dt>Chat 修订</dt><dd>${escapeHtml(diagnostic.chatModelRevision)}</dd><dt>Embedding 修订</dt><dd>${escapeHtml(diagnostic.embeddingModelRevision)}</dd><dt>事实时间</dt><dd>${escapeHtml(diagnostic.createdAt)}</dd></dl></section></div>`,
+    `<div class="split-detail"><div><section class="section-block"><div class="section-heading"><div><span class="section-kicker mono">${escapeHtml(run.reference)}</span><h2>${escapeHtml(run.assistantName)} · ${escapeHtml(queryOutcomeLabel(run.outcome))}</h2></div>${statusTag(run.outcome)}</div><ol class="process-steps" aria-label="查询终态阶段">${stages.map((stage, index) => `<li data-step-state="complete"><span>${index + 1}</span><strong>${escapeHtml(stageLabels[stage] || stage)}</strong></li>`).join("")}</ol></section><section class="section-block"><div class="section-heading"><h2>最小诊断事实</h2><span class="status-tag" data-tone="info">只读</span></div><dl class="description-list"><dt>候选收集</dt><dd>${escapeHtml(candidateCollection)}</dd><dt>可披露候选</dt><dd>${diagnostic.candidateCount ?? "未完成"}</dd><dt>授权判定</dt><dd>${escapeHtml(authorization)}</dd><dt>引用校验</dt><dd>${escapeHtml(citationValidation)}</dd><dt>Chat 版本</dt><dd>${escapeHtml(diagnostic.chatModelRevision)}</dd><dt>Embedding 版本</dt><dd>${escapeHtml(diagnostic.embeddingModelRevision)}</dd><dt>事实时间</dt><dd>${escapeHtml(diagnostic.createdAt)}</dd></dl></section></div>`,
     `<aside><section class="release-decision"><span class="section-kicker">${actionable ? "可执行下一步" : "运行结论"}</span><h2>${remediation ? "修复事项已创建" : actionable ? "将原因转成交付事项" : "本次运行无需修复"}</h2><p>${actionable ? "只引用运行编号、失败阶段、分类和候选数量，不复制问题、回答或引用正文。" : "回答和引用校验均已完成，可以返回查询治理继续查看。"}</p>${remediation ? `<dl class="description-list"><dt>事项</dt><dd>${escapeHtml(remediation.title)}</dd><dt>负责人</dt><dd>${escapeHtml(remediation.owner)}</dd><dt>阶段</dt><dd>${escapeHtml(remediation.stage)}</dd><dt>状态</dt><dd>待处理</dd></dl>` : ""}<button class="button primary" type="button" data-open-query-remediation data-primary-action${blocked ? " disabled" : ""}>${remediation ? "修复事项已创建" : actionable ? "创建修复事项" : "无需创建修复事项"}</button>${accessGovernanceFeedback ? `<p class="form-feedback" role="status">${escapeHtml(accessGovernanceFeedback)}</p>` : ""}</section></aside></div>`,
     `<dialog id="query-remediation-dialog" class="dialog-surface" aria-labelledby="query-remediation-title"><form id="query-remediation-form" data-query-run-id="${escapeHtml(run.id)}"><div class="dialog-heading"><span class="section-kicker mono">${escapeHtml(run.reference)}</span><h2 id="query-remediation-title">创建查询修复事项</h2></div><label class="field"><span>失败分类</span><select class="select" name="category"><option value="AUTHORIZED_EVIDENCE_EMPTY"${diagnostic.stage === "INSUFFICIENT_EVIDENCE" ? " selected" : ""}>授权后无可披露证据</option><option value="RETRIEVAL_RUNTIME_FAILURE"${diagnostic.stage === "RETRIEVAL_FAILED" ? " selected" : ""}>检索运行失败</option><option value="CITATION_VALIDATION_FAILURE">引用校验失败</option></select></label><label class="field"><span>事项名称</span><input class="input" name="title" minlength="4" maxlength="100" value="${diagnostic.stage === "RETRIEVAL_FAILED" ? "排查检索运行失败" : "复核访问策略与索引覆盖"}" required></label><label class="field"><span>负责人</span><input class="input" name="owner" minlength="2" maxlength="40" value="知识治理组" required></label><p id="query-remediation-feedback" class="form-feedback" role="alert"></p><div class="form-actions dialog-actions"><button class="button secondary" type="button" data-close-query-remediation>取消</button><button class="button primary" type="submit">创建事项</button></div></form></dialog>`,
   ].join("");
@@ -2173,7 +2260,7 @@ function renderQueryDiagnostic(state, snapshot) {
 
 function structuredDataFailureMessage(result) {
   return {
-    DATASET_HEADERS_MISMATCH: "CSV 标题或顺序已变化，请重新建立来源修订。",
+    DATASET_HEADERS_MISMATCH: "CSV 标题或顺序已变化，请重新建立来源版本。",
     DATASET_FIELDS_MISMATCH: "字段必须与冻结的 CSV 标题逐项一致。",
     DATASET_FIELD_INVALID: "请核对字段类型、用途和敏感级别。",
     DATASET_QUERY_FIELD_UNSAFE: "敏感字段不能设为可查询。",
@@ -2183,8 +2270,8 @@ function structuredDataFailureMessage(result) {
     DATASET_PREVIEW_REQUIRED: "请先运行抽样预检。",
     DATASET_SCHEMA_IMMUTABLE: "已发布版本不可修改。",
     OBJECT_RANGE_NOT_FOUND: "所选范围不可用或不属于当前租户。",
-    OBJECT_RANGE_REVISION_MISMATCH: "范围修订已变化，请刷新后重新选择。",
-    OBJECT_RANGE_ALREADY_REGISTERED: "该范围修订已登记，不能改名后重复登记。",
+    OBJECT_RANGE_REVISION_MISMATCH: "范围版本已变化，请刷新后重新选择。",
+    OBJECT_RANGE_ALREADY_REGISTERED: "该范围版本已登记，不能改名后重复登记。",
     OBJECT_RANGE_NAME_INVALID: "来源名称请输入 2 至 80 个字符。",
     STORAGE_UNAVAILABLE: "浏览器无法保存，本次操作未生效。",
     FORBIDDEN: "当前身份不能执行此操作。",
@@ -2196,7 +2283,8 @@ function fieldSelect(name, label, value, options, disabled) {
 }
 
 function renderDatasetSchema(state, snapshot) {
-  const projection = prototypeStore.getStructuredDatasetProjection("dataset-office-directory", prototypeStore.getSession().accountId);
+  const datasetId = snapshot.dataGovernance.structuredDatasets[0]?.id;
+  const projection = datasetId ? prototypeStore.getStructuredDatasetProjection(datasetId, prototypeStore.getSession().accountId) : { ok: false };
   if (!projection.ok) return adminShell("dataset-schema", "结构化数据版本", "", "", statePanel("denied", "当前会话不能访问此任务", "页面不会确认数据集是否存在。", "返回数据来源", "knowledge-sources"), state, "知识处理 / 结构化数据");
   const { dataset, version } = projection;
   const editable = state === "success" && version.status === "DRAFT";
@@ -2225,7 +2313,7 @@ function renderDatasetSchema(state, snapshot) {
     ? '<button class="button primary" type="button" data-primary-action disabled>结构版本已发布</button>'
     : `<button class="button primary" type="button" data-publish-structured-schema="${escapeHtml(version.id)}" data-primary-action${!editable || !preview?.passed ? " disabled" : ""}>发布结构版本</button>`;
   const body = [
-    state === "partial" ? '<div class="inline-note warning">来源修订正在刷新；当前结构草稿保持只读。</div>' : "",
+    state === "partial" ? '<div class="inline-note warning">来源版本正在刷新；当前结构草稿保持只读。</div>' : "",
     state === "disabled" ? '<div class="inline-note warning">平台已关闭知识管理；结构规则可查看但不可修改。</div>' : "",
     `<section class="section-block"><div class="section-heading"><div><span class="section-kicker">${escapeHtml(dataset.sourceName)} · 来源版本 ${escapeHtml(formatRevision(dataset.sourceRevision))}</span><h2>${escapeHtml(dataset.name)} v${escapeHtml(version.number)}</h2></div>${statusTag(version.status)}</div><div class="schema-header-order"><span>CSV 标题顺序</span><div>${dataset.headers.map(header => `<code>${escapeHtml(header)}</code>`).join('<span aria-hidden="true">→</span>')}</div></div></section>`,
     `<form id="structured-schema-form" data-version-id="${escapeHtml(version.id)}"><div class="table-shell schema-table-shell"><table class="data-table schema-field-table"><thead><tr><th>CSV 字段</th><th>逻辑类型</th><th>业务含义</th><th>查询资格</th><th>敏感级别</th></tr></thead><tbody>${fieldRows}</tbody></table></div><section class="section-block"><div class="form-grid"><label class="field"><span>主内容字段</span><select class="select" name="contentField"${editable ? "" : " disabled"}>${version.fields.map(field => `<option value="${escapeHtml(field.name)}"${field.name === version.contentField ? " selected" : ""}>${escapeHtml(field.name)}</option>`).join("")}</select><small>仅公开、可查询的文本字段可作为正文。</small></label><label class="field"><span>标题字段</span><select class="select" name="titleField"${editable ? "" : " disabled"}><option value="">不使用标题</option>${version.fields.map(field => `<option value="${escapeHtml(field.name)}"${field.name === version.titleField ? " selected" : ""}>${escapeHtml(field.name)}</option>`).join("")}</select><small>标题只用于证据定位，不拼接其他字段。</small></label><label class="field"><span>空内容行</span><select class="select" name="rowFilter"${editable ? "" : " disabled"}><option value="NON_BLANK_CONTENT"${version.rowFilter === "NON_BLANK_CONTENT" ? " selected" : ""}>跳过并记录警告</option><option value="ALL_ROWS"${version.rowFilter === "ALL_ROWS" ? " selected" : ""}>发现即阻断</option></select></label><div class="readonly-fact"><span>质量规则</span><strong class="mono">${escapeHtml(version.qualityRuleVersion)}</strong></div></div><p class="form-feedback" role="status">${escapeHtml(dataGovernanceFeedback)}</p><div class="form-actions"><button class="button secondary" type="submit"${editable ? "" : " disabled"}>保存结构草稿</button><button class="button secondary" type="button" data-preview-structured-schema="${escapeHtml(version.id)}"${editable ? "" : " disabled"}>运行抽样预检</button></div></section></form>`,
@@ -2235,18 +2323,21 @@ function renderDatasetSchema(state, snapshot) {
 }
 
 function renderObjectStorageScope(state, snapshot) {
-  const projection = prototypeStore.getObjectStorageScopeProjection(DEFAULT_TENANT_ID, prototypeStore.getSession().accountId);
+  const projection = prototypeStore.getObjectStorageScopeProjection(workspaceTenantId(), prototypeStore.getSession().accountId);
   if (!projection.ok) return adminShell("object-storage-scope", "对象存储范围", "", "", statePanel("denied", "当前会话不能访问此任务", "页面不会确认对象范围是否存在。", "返回数据来源", "knowledge-sources"), state, "知识处理 / 对象范围");
   const blocked = state !== "success" || projection.availableRanges.length === 0;
   const rangeRows = projection.availableRanges.map(range => `<tr><td data-label="签发范围"><span class="primary-cell"><strong>${escapeHtml(range.label)}</strong><span>版本 ${escapeHtml(range.selectionRevision)}</span></span></td><td data-label="驻留区域">${escapeHtml(range.region)}</td><td data-label="冻结对象">${escapeHtml(range.objectCount)} 个</td><td data-label="支持内容">严格 UTF-8 文本</td><td data-label="状态">${statusTag("READY")}</td></tr>`).join("");
-  const registrationRows = projection.registrations.map(item => `<tr><td data-label="对象来源"><span class="primary-cell"><strong>${escapeHtml(item.name)}</strong><span>${escapeHtml(item.rangeLabel)} · 版本 ${escapeHtml(item.selectionRevision)}</span></span></td><td data-label="知识库">${escapeHtml(item.knowledgeBaseName)}</td><td data-label="冻结对象">${escapeHtml(item.objectCount)} 个</td><td data-label="状态"><span class="status-tag" data-tone="warning">待探测</span></td><td data-label="建立时间">${escapeHtml(item.createdAt)}</td></tr>`).join("");
+  const registrationRows = projection.registrations.map(item => {
+    const source = snapshot.knowledgeBases.find(kb => kb.id === item.knowledgeBaseId)?.sources.find(source => source.id === item.id);
+    return `<tr><td data-label="对象来源"><span class="primary-cell"><strong>${escapeHtml(item.name)}</strong><span>${escapeHtml(item.rangeLabel)} · 版本 ${escapeHtml(item.selectionRevision)}</span></span></td><td data-label="知识库">${escapeHtml(item.knowledgeBaseName)}</td><td data-label="冻结对象">${escapeHtml(item.objectCount)} 个</td><td data-label="状态"><span class="status-tag" data-tone="warning">${source?.stage === "RECEIVED" ? "待探测" : escapeHtml(source?.stage || "未接通来源")}</span></td><td data-label="建立时间">${escapeHtml(item.createdAt)}<button class="button secondary compact" type="button" data-select-kb="${escapeHtml(item.knowledgeBaseId)}" data-select-source="${escapeHtml(item.id)}" data-nav-screen="source-detail"${source ? "" : " disabled"}>查看并继续处理</button></td></tr>`;
+  }).join("");
   const body = [
     state === "partial" ? '<div class="inline-note warning">签发目录正在刷新；当前列表可查看但不能登记。</div>' : "",
     state === "disabled" ? '<div class="inline-note warning">平台已关闭知识管理；既有登记保持只读。</div>' : "",
     '<div class="inline-note">只选择平台签发范围。桶名、对象键、端点与凭据不会进入页面或浏览器状态。</div>',
     `<section class="section-block"><div class="section-heading"><div><span class="section-kicker">当前可用</span><h2>${projection.availableRanges.length} 个签发范围</h2></div><span class="status-tag" data-tone="info">只读目录</span></div><div class="table-shell"><table class="data-table"><thead><tr><th>签发范围</th><th>驻留区域</th><th>冻结对象</th><th>支持内容</th><th>状态</th></tr></thead><tbody>${rangeRows}</tbody></table></div></section>`,
     `<section class="section-block"><div class="section-heading"><div><span class="section-kicker">当前知识工作区</span><h2>已登记对象来源</h2></div><span>${projection.registrations.length} 个</span></div>${projection.registrations.length ? `<div class="table-shell"><table class="data-table"><thead><tr><th>对象来源</th><th>知识库</th><th>冻结对象</th><th>状态</th><th>建立时间</th></tr></thead><tbody>${registrationRows}</tbody></table></div>` : '<div class="empty-inline"><strong>尚未登记对象来源</strong><span>从上方签发范围建立来源后，将进入探测与同步流程。</span></div>'}${dataGovernanceFeedback ? `<p class="form-feedback" role="status">${escapeHtml(dataGovernanceFeedback)}</p>` : ""}</section>`,
-    `<dialog id="object-scope-dialog" class="dialog-surface" aria-labelledby="object-scope-title"><form id="object-scope-form"><div class="dialog-heading"><span class="section-kicker">只登记签发事实</span><h2 id="object-scope-title">登记对象来源</h2></div><label class="field"><span>来源名称</span><input class="input" name="name" value="华东办公制度对象来源" minlength="2" maxlength="80" required></label><label class="field"><span>目标知识库</span><select class="select" name="knowledgeBaseId">${snapshot.knowledgeBases.filter(item => item.tenantId === DEFAULT_TENANT_ID).map(item => `<option value="${escapeHtml(item.id)}">${escapeHtml(item.name)}</option>`).join("")}</select></label><label class="field"><span>平台签发范围</span><select class="select" name="rangeId">${projection.availableRanges.map(range => `<option value="${escapeHtml(range.id)}">${escapeHtml(range.label)} · ${escapeHtml(range.objectCount)} 个文本对象</option>`).join("")}</select><small>范围版本由平台冻结，不能手工输入。</small></label><div class="dialog-impact"><div><dt>登记结果</dt><dd>建立待探测来源，不自动同步或发布</dd></div><div><dt>失败语义</dt><dd>范围变化或越权时不留下半成品</dd></div></div><p id="object-scope-feedback" class="form-feedback" role="alert"></p><div class="form-actions dialog-actions"><button class="button secondary" type="button" data-close-object-scope>取消</button><button class="button primary" type="submit">确认登记</button></div></form></dialog>`,
+    `<dialog id="object-scope-dialog" class="dialog-surface" aria-labelledby="object-scope-title"><form id="object-scope-form"><div class="dialog-heading"><span class="section-kicker">只登记签发事实</span><h2 id="object-scope-title">登记对象来源</h2></div><label class="field"><span>来源名称</span><input class="input" name="name" value="华东办公制度对象来源" minlength="2" maxlength="80" required></label><label class="field"><span>目标知识库</span><select class="select" name="knowledgeBaseId">${snapshot.knowledgeBases.filter(item => item.tenantId === workspaceTenantId()).map(item => `<option value="${escapeHtml(item.id)}">${escapeHtml(item.name)}</option>`).join("")}</select></label><label class="field"><span>平台签发范围</span><select class="select" name="rangeId">${projection.availableRanges.map(range => `<option value="${escapeHtml(range.id)}">${escapeHtml(range.label)} · ${escapeHtml(range.objectCount)} 个文本对象</option>`).join("")}</select><small>范围版本由平台冻结，不能手工输入。</small></label><div class="dialog-impact"><div><dt>登记结果</dt><dd>建立待探测来源，不自动同步或发布</dd></div><div><dt>失败语义</dt><dd>范围变化或越权时不留下半成品</dd></div></div><p id="object-scope-feedback" class="form-feedback" role="alert"></p><div class="form-actions dialog-actions"><button class="button secondary" type="button" data-close-object-scope>取消</button><button class="button primary" type="submit">确认登记</button></div></form></dialog>`,
   ].join("");
   return adminShell("object-storage-scope", "对象范围登记", "", `<button class="button primary" type="button" data-open-object-scope data-primary-action${blocked ? " disabled" : ""}>登记对象范围</button>`, body, state, "知识处理 / 对象范围");
 }
@@ -2270,6 +2361,35 @@ function renderAccessQueryGovernance(screen, state, snapshot) {
 }
 
 function bindKnowledgeManagement() {
+  root.querySelector("[data-rebuild-source]")?.addEventListener("click", () => {
+    const snapshot = prototypeStore.getWorkspaceSnapshot();
+    const kb = selectedKnowledgeBase(snapshot);
+    const source = kb?.sources.find(item => item.id === snapshot.selectedKnowledgeSourceId);
+    const result = prototypeStore.createIndexRebuild(kb?.id, { sourceId: source?.id, trigger: "SOURCE_REINDEX", reason: `单文件重建：${source?.name} ${formatRevision(source?.revision)}；其余内容复用 ${kb?.activeIndex || "现有清单"}` }, prototypeStore.getSession().accountId);
+    if (result.ok) navigate("index-detail");
+    else { knowledgeFeedback = "未能建立单文件索引，请先完成资料处理或正在进行的构建；原活动索引不变。"; render(); }
+  });
+  root.querySelector("[data-retry-failed-sources]")?.addEventListener("click", () => {
+    const result = prototypeStore.retryFailedKnowledgeSources(prototypeStore.getWorkspaceSnapshot().selectedKnowledgeBaseId, prototypeStore.getSession().accountId);
+    knowledgeFeedback = result.ok ? `已安全重试 ${result.count} 份资料，可逐项查看处理进度。` : result.reason === "STORAGE_UNAVAILABLE" ? "无法保存重试结果，资料状态未变，请重试。" : "当前没有可重试的失败资料。";
+    render();
+  });
+  root.querySelector("#quick-publication-form")?.addEventListener("submit", event => {
+    event.preventDefault();
+    const values = new FormData(event.currentTarget);
+    if (values.get("decision") === "repair") { navigate("processing-quality"); return; }
+    const kb = selectedKnowledgeBase(prototypeStore.getWorkspaceSnapshot());
+    if (!kb?.sources.some(item => item.stage === "READY")) {
+      root.querySelector("#quick-publication-feedback").textContent = "还没有已就绪资料，请先完成来源处理。";
+      return;
+    }
+    const result = prototypeStore.createIndexRebuild(kb.id, { reason: String(values.get("batchName")).trim() }, prototypeStore.getSession().accountId);
+    if (!result.ok) {
+      root.querySelector("#quick-publication-feedback").textContent = result.reason === "INDEX_BUILD_ALREADY_ACTIVE" ? "已有索引正在构建，请先在索引版本中继续处理。" : "创建失败，原活动索引不变，请重试。";
+      return;
+    }
+    navigate("index-detail");
+  });
   const createDialog = root.querySelector("#create-knowledge-base-dialog");
   root.querySelector("[data-open-create-knowledge]")?.addEventListener("click", () => {
     createDialog?.showModal();
@@ -2284,7 +2404,7 @@ function bindKnowledgeManagement() {
     const result = prototypeStore.createKnowledgeBase(
       { name: values.get("name"), description: values.get("description") },
       prototypeStore.getSession().accountId,
-      DEFAULT_TENANT_ID,
+      workspaceTenantId(),
     );
     if (!result.ok) {
       const message = {
@@ -2319,7 +2439,7 @@ function bindKnowledgeManagement() {
   });
   sourceForm?.addEventListener("submit", event => {
     event.preventDefault();
-    const knowledgeBase = selectedKnowledgeBase(prototypeStore.getSnapshot());
+    const knowledgeBase = selectedKnowledgeBase(prototypeStore.getWorkspaceSnapshot());
     const values = new FormData(event.currentTarget);
     const sourceMode = values.get("mode");
     const file = event.currentTarget.elements.file?.files?.[0];
@@ -2332,11 +2452,9 @@ function bindKnowledgeManagement() {
           mimeType: file?.type || "",
           simulatedFailure: file?.name.includes("超时") ? "OCR_TIMEOUT" : null,
         };
-    const result = prototypeStore.addKnowledgeSource(
-      knowledgeBase?.id,
-      input,
-      prototypeStore.getSession().accountId,
-    );
+    const result = event.currentTarget.dataset.replaceSource
+      ? prototypeStore.replaceKnowledgeSource(knowledgeBase?.id, event.currentTarget.dataset.replaceSource, input, prototypeStore.getSession().accountId)
+      : prototypeStore.addKnowledgeSource(knowledgeBase?.id, input, prototypeStore.getSession().accountId);
     if (!result.ok) {
       const message = {
         SOURCE_CONTENT_REQUIRED: "请填写资料名称和粘贴内容。",
@@ -2347,6 +2465,7 @@ function bindKnowledgeManagement() {
         PASTED_TEXT_TOO_LARGE: "粘贴内容超过平台配置的大小上限。",
         MIME_MISMATCH: "文件类型与内容类型不一致，已拒绝接入。",
         DOCUMENT_QUOTA_EXCEEDED: "当前知识库已达到文档配额。",
+        STORAGE_QUOTA_EXCEEDED: "原始内容容量不足，新版本未保存；请联系平台管理员调整配额。",
         STORAGE_UNAVAILABLE: "浏览器无法保存，资料没有进入处理队列。",
       }[result.reason] || "安全校验未通过，资料没有进入处理队列。";
       root.querySelector("#source-add-feedback").textContent = message;
@@ -2357,7 +2476,7 @@ function bindKnowledgeManagement() {
   });
 
   root.querySelector("[data-advance-source]")?.addEventListener("click", () => {
-    const snapshot = prototypeStore.getSnapshot();
+    const snapshot = prototypeStore.getWorkspaceSnapshot();
     const result = prototypeStore.advanceKnowledgeSource(
       snapshot.selectedKnowledgeBaseId,
       snapshot.selectedKnowledgeSourceId,
@@ -2367,7 +2486,7 @@ function bindKnowledgeManagement() {
     render();
   });
   root.querySelector("[data-retry-source]")?.addEventListener("click", () => {
-    const snapshot = prototypeStore.getSnapshot();
+    const snapshot = prototypeStore.getWorkspaceSnapshot();
     const result = prototypeStore.retryKnowledgeSource(
       snapshot.selectedKnowledgeBaseId,
       snapshot.selectedKnowledgeSourceId,
@@ -2377,13 +2496,13 @@ function bindKnowledgeManagement() {
     render();
   });
   root.querySelector("[data-reprocess-source]")?.addEventListener("click", () => {
-    const snapshot = prototypeStore.getSnapshot();
+    const snapshot = prototypeStore.getWorkspaceSnapshot();
     const result = prototypeStore.reprocessKnowledgeSource(
       snapshot.selectedKnowledgeBaseId,
       snapshot.selectedKnowledgeSourceId,
       prototypeStore.getSession().accountId,
     );
-    knowledgeFeedback = result.ok ? "已建立新修订并开始重新提取；活动索引继续服务。" : "当前来源不能重新处理。";
+    knowledgeFeedback = result.ok ? "已建立新版本并开始重新提取；活动索引继续服务。" : "当前来源不能重新处理。";
     render();
   });
 }
@@ -2391,7 +2510,7 @@ function bindKnowledgeManagement() {
 function bindIndexManagement() {
   root.querySelector("#index-rebuild-form")?.addEventListener("submit", event => {
     event.preventDefault();
-    const snapshot = prototypeStore.getSnapshot();
+    const snapshot = prototypeStore.getWorkspaceSnapshot();
     const knowledgeBase = selectedKnowledgeBase(snapshot);
     const trigger = new FormData(event.currentTarget).get("trigger");
     const definitions = {
@@ -2419,7 +2538,7 @@ function bindIndexManagement() {
   });
 
   root.querySelector("[data-advance-index]")?.addEventListener("click", () => {
-    const snapshot = prototypeStore.getSnapshot();
+    const snapshot = prototypeStore.getWorkspaceSnapshot();
     const result = prototypeStore.advanceIndexBuild(
       snapshot.selectedKnowledgeBaseId,
       snapshot.selectedIndexVersionId,
@@ -2429,7 +2548,7 @@ function bindIndexManagement() {
     render();
   });
   root.querySelector("[data-evaluate-index]")?.addEventListener("click", () => {
-    const snapshot = prototypeStore.getSnapshot();
+    const snapshot = prototypeStore.getWorkspaceSnapshot();
     const result = prototypeStore.recordIndexEvaluation(
       snapshot.selectedKnowledgeBaseId,
       snapshot.selectedIndexVersionId,
@@ -2444,7 +2563,7 @@ function bindIndexManagement() {
   const indexDialog = root.querySelector("#index-dialog");
   root.querySelector("[data-confirm-index]")?.addEventListener("click", () => indexDialog?.showModal());
   root.querySelector("[data-activate-index]")?.addEventListener("click", () => {
-    const snapshot = prototypeStore.getSnapshot();
+    const snapshot = prototypeStore.getWorkspaceSnapshot();
     const result = prototypeStore.activateIndexVersion(
       snapshot.selectedKnowledgeBaseId,
       snapshot.selectedIndexVersionId,
@@ -2457,7 +2576,7 @@ function bindIndexManagement() {
   const cancelDialog = root.querySelector("#cancel-index-dialog");
   root.querySelector("[data-cancel-index]")?.addEventListener("click", () => cancelDialog?.showModal());
   root.querySelector("[data-confirm-cancel-index]")?.addEventListener("click", () => {
-    const snapshot = prototypeStore.getSnapshot();
+    const snapshot = prototypeStore.getWorkspaceSnapshot();
     const result = prototypeStore.cancelIndexBuild(
       snapshot.selectedKnowledgeBaseId,
       snapshot.selectedIndexVersionId,
@@ -2470,6 +2589,15 @@ function bindIndexManagement() {
 }
 
 function bindModelGovernance() {
+  root.querySelector("#create-routing-form")?.addEventListener("submit", event => {
+    event.preventDefault();
+    const result = prototypeStore.createRoutingPolicy(workspaceTenantId(), { name: new FormData(event.currentTarget).get("name") }, prototypeStore.getSession().accountId);
+    modelFeedback = result.ok ? "路由草稿已创建，请配置主备部署并模拟。" : "无法创建路由草稿，请核对名称或存储后重试。";
+    render();
+  });
+  root.querySelector("#tenant-discovery-connection")?.addEventListener("change", event => {
+    prototypeStore.selectModelGovernanceItem("tenantConnection", event.currentTarget.value);
+  });
   root.querySelectorAll("[data-close-dialog]").forEach(button => {
     button.addEventListener("click", () => root.querySelector(`#${CSS.escape(button.dataset.closeDialog)}`)?.close());
   });
@@ -2498,13 +2626,13 @@ function bindModelGovernance() {
     navigate("platform-model-connection-detail");
   });
   root.querySelector("[data-probe-platform-connection]")?.addEventListener("click", () => {
-    const snapshot = prototypeStore.getSnapshot();
+    const snapshot = prototypeStore.getWorkspaceSnapshot();
     const result = prototypeStore.probePlatformModelConnection(snapshot.models.selectedPlatformConnectionId, prototypeStore.getSession().accountId);
     modelFeedback = result.ok ? "连接探测通过，可以发布本版本。" : "连接探测失败，未发布任何能力。";
     render();
   });
   root.querySelector("[data-publish-platform-connection]")?.addEventListener("click", () => {
-    const snapshot = prototypeStore.getSnapshot();
+    const snapshot = prototypeStore.getWorkspaceSnapshot();
     const result = prototypeStore.publishPlatformModelConnection(snapshot.models.selectedPlatformConnectionId, prototypeStore.getSession().accountId);
     modelFeedback = result.ok ? "连接版本已发布；尚未自动建立部署或授权租户。" : "连接未发布，状态未变化。";
     render();
@@ -2520,7 +2648,7 @@ function bindModelGovernance() {
       name: form.get("name"),
       connectionId,
       modelId,
-      tenantIds: form.get("authorizeTenant") ? [DEFAULT_TENANT_ID] : [],
+      tenantIds: form.getAll("authorizeTenant"),
     }, prototypeStore.getSession().accountId);
     if (!result.ok) {
       root.querySelector("#platform-deployment-feedback").textContent = result.reason === "TENANT_AUTHORIZATION_REQUIRED"
@@ -2533,13 +2661,13 @@ function bindModelGovernance() {
     navigate("platform-model-deployment-detail");
   });
   root.querySelector("[data-verify-platform-deployment]")?.addEventListener("click", () => {
-    const snapshot = prototypeStore.getSnapshot();
+    const snapshot = prototypeStore.getWorkspaceSnapshot();
     const result = prototypeStore.verifyPlatformModelDeployment(snapshot.models.selectedPlatformDeploymentId, prototypeStore.getSession().accountId);
     modelFeedback = result.ok ? "能力、预算与安全样本验证通过。" : "验证失败，部署未进入授权目录。";
     render();
   });
   root.querySelector("[data-publish-platform-deployment]")?.addEventListener("click", () => {
-    const snapshot = prototypeStore.getSnapshot();
+    const snapshot = prototypeStore.getWorkspaceSnapshot();
     const result = prototypeStore.publishPlatformModelDeployment(snapshot.models.selectedPlatformDeploymentId, prototypeStore.getSession().accountId);
     modelFeedback = result.ok ? "部署已发布到租户授权目录；未自动创建租户配置。" : "部署未发布，状态未变化。";
     render();
@@ -2547,14 +2675,14 @@ function bindModelGovernance() {
 
   root.querySelector("[data-discover-tenant-models]")?.addEventListener("click", () => {
     const connectionId = root.querySelector("#tenant-discovery-connection")?.value;
-    const result = prototypeStore.discoverTenantModels(DEFAULT_TENANT_ID, connectionId, prototypeStore.getSession().accountId);
+    const result = prototypeStore.discoverTenantModels(workspaceTenantId(), connectionId, prototypeStore.getSession().accountId);
     modelFeedback = result.ok ? `发现完成：${result.models.length} 个已授权模型。` : "发现失败，没有改变租户目录。";
     if (result.ok) navigate("model-provider-detail");
     else render();
   });
   root.querySelector("[data-rediscover-tenant-models]")?.addEventListener("click", () => {
-    const snapshot = prototypeStore.getSnapshot();
-    const result = prototypeStore.discoverTenantModels(DEFAULT_TENANT_ID, snapshot.models.selectedTenantConnectionId, prototypeStore.getSession().accountId);
+    const snapshot = prototypeStore.getWorkspaceSnapshot();
+    const result = prototypeStore.discoverTenantModels(workspaceTenantId(), snapshot.models.selectedTenantConnectionId, prototypeStore.getSession().accountId);
     modelFeedback = result.ok ? `发现完成：${result.models.length} 个已授权模型。` : "重新探测失败，保留上次成功结果。";
     render();
   });
@@ -2571,7 +2699,7 @@ function bindModelGovernance() {
   root.querySelector("#model-configuration-form")?.addEventListener("submit", event => {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
-    const result = prototypeStore.createTenantModelConfiguration(DEFAULT_TENANT_ID, {
+    const result = prototypeStore.createTenantModelConfiguration(workspaceTenantId(), {
       name: form.get("name"),
       platformDeploymentId: form.get("platformDeploymentId"),
     }, prototypeStore.getSession().accountId);
@@ -2589,7 +2717,7 @@ function bindModelGovernance() {
   root.querySelector("[data-open-model-key]")?.addEventListener("click", () => modelKeyDialog?.showModal());
   root.querySelector("#model-key-form")?.addEventListener("submit", event => {
     event.preventDefault();
-    const snapshot = prototypeStore.getSnapshot();
+    const snapshot = prototypeStore.getWorkspaceSnapshot();
     const result = prototypeStore.rotateTenantModelAccessKey(
       snapshot.models.selectedConfigurationId,
       new FormData(event.currentTarget).get("accessKey"),
@@ -2607,7 +2735,7 @@ function bindModelGovernance() {
   root.querySelector("[data-open-model-revision]")?.addEventListener("click", () => modelRevisionDialog?.showModal());
   root.querySelector("#model-revision-form")?.addEventListener("submit", event => {
     event.preventDefault();
-    const snapshot = prototypeStore.getSnapshot();
+    const snapshot = prototypeStore.getWorkspaceSnapshot();
     const configuration = snapshot.models.configurations.find(item => item.id === snapshot.models.selectedConfigurationId);
     const values = Object.fromEntries(new FormData(event.currentTarget));
     const input = configuration.capability === "EMBEDDING"
@@ -2627,13 +2755,13 @@ function bindModelGovernance() {
     render();
   });
   root.querySelector("[data-verify-model-configuration]")?.addEventListener("click", () => {
-    const snapshot = prototypeStore.getSnapshot();
+    const snapshot = prototypeStore.getWorkspaceSnapshot();
     const result = prototypeStore.verifyTenantModelConfiguration(snapshot.models.selectedConfigurationId, prototypeStore.getSession().accountId);
     modelFeedback = result.ok ? "配置验证通过，可以启用待验证版本。" : "配置验证失败，旧版本继续服务。";
     render();
   });
   root.querySelector("[data-enable-model-configuration]")?.addEventListener("click", () => {
-    const snapshot = prototypeStore.getSnapshot();
+    const snapshot = prototypeStore.getWorkspaceSnapshot();
     const result = prototypeStore.enableTenantModelConfiguration(snapshot.models.selectedConfigurationId, prototypeStore.getSession().accountId);
     if (!result.ok) {
       modelFeedback = "配置未启用，原状态保持不变。";
@@ -2650,7 +2778,7 @@ function bindModelGovernance() {
   root.querySelector("#tenant-deployment-form")?.addEventListener("submit", event => {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
-    const result = prototypeStore.createTenantModelDeployment(DEFAULT_TENANT_ID, {
+    const result = prototypeStore.createTenantModelDeployment(workspaceTenantId(), {
       name: form.get("name"),
       configurationId: form.get("configurationId"),
     }, prototypeStore.getSession().accountId);
@@ -2663,13 +2791,13 @@ function bindModelGovernance() {
     navigate("model-deployment-detail");
   });
   root.querySelector("[data-verify-tenant-deployment]")?.addEventListener("click", () => {
-    const snapshot = prototypeStore.getSnapshot();
+    const snapshot = prototypeStore.getWorkspaceSnapshot();
     const result = prototypeStore.verifyTenantModelDeployment(snapshot.models.selectedDeploymentId, prototypeStore.getSession().accountId);
     modelFeedback = result.ok ? "部署验证通过，可以发布。" : "部署验证失败，未发布。";
     render();
   });
   root.querySelector("[data-publish-tenant-deployment]")?.addEventListener("click", () => {
-    const snapshot = prototypeStore.getSnapshot();
+    const snapshot = prototypeStore.getWorkspaceSnapshot();
     const result = prototypeStore.publishTenantModelDeployment(snapshot.models.selectedDeploymentId, prototypeStore.getSession().accountId);
     modelFeedback = result.ok ? "部署已发布；助手版本不会自动切换。" : "部署未发布，状态未变化。";
     render();
@@ -2678,7 +2806,7 @@ function bindModelGovernance() {
   root.querySelector("[data-open-deployment-stop]")?.addEventListener("click", () => stopDialog?.showModal());
   root.querySelector("#deployment-stop-form")?.addEventListener("submit", event => {
     event.preventDefault();
-    const snapshot = prototypeStore.getSnapshot();
+    const snapshot = prototypeStore.getWorkspaceSnapshot();
     const acknowledged = new FormData(event.currentTarget).get("acknowledged") === "on";
     const result = prototypeStore.deactivateTenantModelDeployment(snapshot.models.selectedDeploymentId, acknowledged, prototypeStore.getSession().accountId);
     if (!result.ok) {
@@ -2692,9 +2820,14 @@ function bindModelGovernance() {
     render();
   });
 
-  root.querySelector("#routing-policy-form")?.addEventListener("submit", event => {
+  const routingForm = root.querySelector("#routing-policy-form");
+  for (const eventName of ["input", "change"]) routingForm?.addEventListener(eventName, () => {
+    root.querySelector("[data-publish-routing-policy]").disabled = true;
+    root.querySelector("#routing-policy-feedback").textContent = "配置已修改，请重新运行路由模拟后发布。";
+  });
+  routingForm?.addEventListener("submit", event => {
     event.preventDefault();
-    const snapshot = prototypeStore.getSnapshot();
+    const snapshot = prototypeStore.getWorkspaceSnapshot();
     const form = new FormData(event.currentTarget);
     const result = prototypeStore.simulateRoutingPolicy(snapshot.models.selectedRoutingPolicyId, {
       primaryDeploymentId: form.get("primaryDeploymentId"),
@@ -2709,7 +2842,7 @@ function bindModelGovernance() {
     render();
   });
   root.querySelector("[data-publish-routing-policy]")?.addEventListener("click", () => {
-    const snapshot = prototypeStore.getSnapshot();
+    const snapshot = prototypeStore.getWorkspaceSnapshot();
     const result = prototypeStore.publishRoutingPolicy(snapshot.models.selectedRoutingPolicyId, prototypeStore.getSession().accountId);
     modelFeedback = result.ok ? "路由策略已发布；只允许同能力、同驻留的有限回退。" : "路由策略未发布，请先通过模拟。";
     render();
@@ -2757,10 +2890,10 @@ function bindAssistantDelivery() {
       return;
     }
     const values = new FormData(form);
-    const snapshot = prototypeStore.getSnapshot();
+    const snapshot = prototypeStore.getWorkspaceSnapshot();
     const requestedKnowledgeBase = String(values.get("knowledgeBaseName") || "").trim();
-    const knowledgeBase = snapshot.knowledgeBases.find(item => item.tenantId === DEFAULT_TENANT_ID && item.name === requestedKnowledgeBase);
-    const result = prototypeStore.createAssistant(DEFAULT_TENANT_ID, {
+    const knowledgeBase = snapshot.knowledgeBases.find(item => item.tenantId === workspaceTenantId() && item.name === requestedKnowledgeBase);
+    const result = prototypeStore.createAssistant(workspaceTenantId(), {
       name: values.get("name"),
       summary: values.get("summary"),
       knowledgeBaseId: knowledgeBase?.id || "",
@@ -2785,7 +2918,7 @@ function bindAssistantDelivery() {
       feedback.dataset.tone = "danger";
       return;
     }
-    assistantFeedback = "索引、模型配置修订和策略已冻结。";
+    assistantFeedback = "索引、模型配置版本和策略已冻结。";
     navigate("assistant-test");
   });
 
@@ -2809,7 +2942,7 @@ function bindAssistantDelivery() {
     render();
   });
   root.querySelector("[data-rerun-assistant-test]")?.addEventListener("click", () => {
-    const snapshot = prototypeStore.getSnapshot();
+    const snapshot = prototypeStore.getWorkspaceSnapshot();
     const context = assistantStageContext(snapshot, ["TESTED"]);
     if (!context) return;
     const result = prototypeStore.runAssistantTest(context.version.id, context.version.testResult.question, prototypeStore.getSession().accountId);
@@ -2910,6 +3043,7 @@ function bindInteractions(screen) {
       navigate(
         element.dataset.navScreen,
         element.dataset.navState || "success",
+        { updateSourceId: element.dataset.updateSource },
       );
     });
   });
@@ -3236,7 +3370,7 @@ function bindAccountManagement() {
       resetValidation(resetForm, resetForm?.querySelector("[role='alert']"));
       const accountId = trigger.dataset.resetAccount;
       const account = prototypeStore
-        .getSnapshot()
+        .getWorkspaceSnapshot()
         .accounts.find((item) => item.id === accountId);
       resetForm.dataset.accountId = accountId;
       root.querySelector("#reset-account-target").textContent =
@@ -3295,7 +3429,7 @@ function bindAccountManagement() {
     const accountId =
       trigger.dataset.assignPlatformAdministrator || trigger.dataset.setAccountStatus;
     const account = prototypeStore
-      .getSnapshot()
+      .getWorkspaceSnapshot()
       .accounts.find((item) => item.id === accountId);
     governanceForm.dataset.accountId = accountId;
     governanceForm.dataset.action = action;
@@ -3406,15 +3540,22 @@ function bindAccountManagement() {
 }
 
 function bindDirectorySearch() {
-  root.querySelectorAll("[data-directory-search]").forEach((input) => {
-    input.addEventListener("input", () => {
-      const query = input.value.trim().toLocaleLowerCase("zh-CN");
-      root.querySelectorAll("[data-search-text]").forEach((row) => {
-        row.hidden =
-          query.length > 0 &&
-          !row.dataset.searchText.toLocaleLowerCase("zh-CN").includes(query);
-      });
+  const apply = input => {
+    const query = input.value.trim().toLocaleLowerCase("zh-CN");
+    const status = root.querySelector("[data-directory-status]")?.value || "";
+    let count = 0;
+    root.querySelectorAll("[data-search-text], [data-directory-row]").forEach(row => {
+      const text = (row.dataset.searchText || row.textContent).toLocaleLowerCase("zh-CN");
+      row.hidden = !text.includes(query) || Boolean(status && row.dataset.directoryState !== status);
+      if (!row.hidden) count += 1;
     });
+    const feedback = root.querySelector("[data-filter-summary]");
+    if (feedback) feedback.textContent = count ? `找到 ${count} 项` : "没有匹配结果，请修改搜索词或筛选条件。";
+  };
+  root.querySelectorAll("[data-directory-search]").forEach((input) => {
+    if (input.dataset.directorySearch === "platform-accounts") return;
+    input.addEventListener("input", () => apply(input));
+    root.querySelector("[data-directory-status]")?.addEventListener("change", () => apply(input));
   });
 }
 
@@ -3470,7 +3611,7 @@ function bindTenantCreation() {
     const step = Number(form.dataset.currentTenantStep) || 1;
     const values = new FormData(form);
     if (step < 3) {
-      if (step === 1 && prototypeStore.getSnapshot().tenants.some(tenant => tenant.code === values.get("tenantCode"))) {
+      if (step === 1 && prototypeStore.getWorkspaceSnapshot().tenants.some(tenant => tenant.code === values.get("tenantCode"))) {
         const control = form.elements.namedItem("tenantCode");
         control.setAttribute("aria-invalid", "true");
         feedback.textContent = "此租户编码已存在，请使用其他编码。";
@@ -3497,7 +3638,7 @@ function bindTenantCreation() {
       render();
       return;
     }
-    const setup = prototypeStore.getSnapshot().tenantSetup;
+    const setup = prototypeStore.getWorkspaceSnapshot().tenantSetup;
     const quotas = Object.fromEntries(
       [...form.querySelectorAll("[data-tenant-quota]")].map((control) => [
         control.name,
@@ -3629,8 +3770,8 @@ function bindTenantSettingEditing(key, action, label, save) {
 }
 
 function bindTenantFeatures() {
-  const snapshot = prototypeStore.getSnapshot();
-  const tenantId = snapshot.selectedTenantId || DEFAULT_TENANT_ID;
+  const snapshot = prototypeStore.getWorkspaceSnapshot();
+  const tenantId = snapshot.selectedTenantId || workspaceTenantId();
   root.querySelectorAll("[data-tenant-feature]").forEach((control) => {
     control.addEventListener("change", () => {
       prototypeStore.setTenantFeatureDraft(
@@ -3681,7 +3822,7 @@ function bindMemberManagement() {
     event.preventDefault();
     const form = event.currentTarget;
     const values = new FormData(form);
-    const result = prototypeStore.addMember(DEFAULT_TENANT_ID, {
+    const result = prototypeStore.addMember(workspaceTenantId(), {
       accountId: values.get("accountId"),
       conversationFeatures: values.getAll("conversationFeatures"),
       assistantIds: values.getAll("assistantIds"),
@@ -3704,7 +3845,7 @@ function bindMemberManagement() {
     .forEach((button) => {
       button.addEventListener("click", () => {
         prototypeStore.setMemberStatus(
-          DEFAULT_TENANT_ID,
+          workspaceTenantId(),
           button.dataset.accountId,
           button.dataset.nextStatus,
         );
@@ -3722,7 +3863,7 @@ function bindMemberManagement() {
   root.querySelectorAll("[data-member-feature]").forEach((control) => {
     control.addEventListener("change", () => {
       prototypeStore.setMemberFeatureDraft(
-        DEFAULT_TENANT_ID,
+        workspaceTenantId(),
         control.dataset.memberAccount,
         control.dataset.memberFeature,
         control.checked,
@@ -3736,7 +3877,7 @@ function bindMemberManagement() {
         (item) => item.dataset.memberAssistant,
       );
       prototypeStore.setMemberAssistantDraft(
-        DEFAULT_TENANT_ID,
+        workspaceTenantId(),
         accountId,
         assistantIds,
       );
@@ -3746,7 +3887,7 @@ function bindMemberManagement() {
     .querySelector('[data-business-action="save-member-features"]')
     ?.addEventListener("click", (event) => {
       const result = prototypeStore.commitMemberFeatureDraft(
-        DEFAULT_TENANT_ID,
+        workspaceTenantId(),
         event.currentTarget.dataset.memberAccount,
       );
       if (result.ok) render();
@@ -3755,7 +3896,7 @@ function bindMemberManagement() {
     .querySelector('[data-business-action="cancel-member-features"]')
     ?.addEventListener("click", (event) => {
       prototypeStore.discardMemberFeatureDraft(
-        DEFAULT_TENANT_ID,
+        workspaceTenantId(),
         event.currentTarget.dataset.memberAccount,
       );
       render();
@@ -3773,7 +3914,7 @@ function bindHealthManagement() {
     });
   root.querySelector("#health-action-form")?.addEventListener("submit", (event) => {
     event.preventDefault();
-    const snapshot = prototypeStore.getSnapshot();
+    const snapshot = prototypeStore.getWorkspaceSnapshot();
     const action = new FormData(event.currentTarget).get("action");
     prototypeStore.recordHealthAction(snapshot.health.selectedIncidentId, action);
     render();
@@ -3781,7 +3922,7 @@ function bindHealthManagement() {
   root
     .querySelector('[data-business-action="recheck-health"]')
     ?.addEventListener("click", () => {
-      const snapshot = prototypeStore.getSnapshot();
+      const snapshot = prototypeStore.getWorkspaceSnapshot();
       prototypeStore.recheckHealth(snapshot.health.selectedIncidentId);
       render();
     });
@@ -3797,7 +3938,7 @@ function bindRecoveryDrill() {
   root
     .querySelector('[data-business-action="advance-recovery"]')
     ?.addEventListener("click", () => {
-      const stage = prototypeStore.getSnapshot().recovery.stage;
+      const stage = prototypeStore.getWorkspaceSnapshot().recovery.stage;
       if (stage === "selected") prototypeStore.runIntegrityCheck();
       if (stage === "readyToConfirm") prototypeStore.confirmRecovery();
       if (stage === "running") prototypeStore.advanceRecovery();
@@ -3827,7 +3968,7 @@ function evaluationFailureMessage(result) {
     EVALUATION_DATASET_INCOMPLETE: "尚未达到 60 个可回答、20 个拒答、10 个权限和 10 个多轮样本门槛。",
     EVALUATION_VERSION_IMMUTABLE: "已发布版本不可修改，请创建新草稿版本。",
     EXPECTED_EVIDENCE_REQUIRED: "可回答和多轮样本必须填写期望证据标识。",
-    ASSISTANT_VERSION_NOT_FROZEN: "请选择已冻结索引和模型修订的助手版本。",
+    ASSISTANT_VERSION_NOT_FROZEN: "请选择已冻结索引和模型版本的助手版本。",
     EVALUATION_DATASET_NOT_PUBLISHED: "请选择已发布的数据集版本。",
     EVALUATION_KNOWLEDGE_BASE_MISMATCH: "评测数据集必须属于助手永久关联的知识库。",
     EVALUATION_DATASET_MISMATCH: "只能比较使用同一数据集版本的运行。",
@@ -3849,7 +3990,7 @@ function bindEvaluationGovernance() {
   root.querySelector("#evaluation-dataset-form")?.addEventListener("submit", event => {
     event.preventDefault();
     const values = Object.fromEntries(new FormData(event.currentTarget));
-    const result = prototypeStore.createEvaluationDataset(DEFAULT_TENANT_ID, values, prototypeStore.getSession().accountId);
+    const result = prototypeStore.createEvaluationDataset(workspaceTenantId(), values, prototypeStore.getSession().accountId);
     if (!result.ok) {
       event.currentTarget.querySelector("#evaluation-dataset-feedback").textContent = evaluationFailureMessage(result);
       return;
@@ -3896,12 +4037,12 @@ function bindEvaluationGovernance() {
   root.querySelector("#evaluation-run-form")?.addEventListener("submit", event => {
     event.preventDefault();
     const values = Object.fromEntries(new FormData(event.currentTarget));
-    const result = prototypeStore.createEvaluationRun(DEFAULT_TENANT_ID, values, prototypeStore.getSession().accountId);
+    const result = prototypeStore.createEvaluationRun(workspaceTenantId(), values, prototypeStore.getSession().accountId);
     if (!result.ok) {
       event.currentTarget.querySelector("#evaluation-run-feedback").textContent = evaluationFailureMessage(result);
       return;
     }
-    evaluationFeedback = "评测已启动，助手、索引、模型修订和数据集版本均已冻结。";
+    evaluationFeedback = "评测已启动，助手、索引、模型版本和数据集版本均已冻结。";
     navigate("evaluation-run-detail");
   });
   root.querySelector("[data-advance-evaluation-run]")?.addEventListener("click", event => {
@@ -3970,8 +4111,43 @@ function bindEvaluationGovernance() {
 }
 
 function bindAccessQueryGovernance() {
+  root.querySelector("[data-create-access-version]")?.addEventListener("click", event => {
+    const result = prototypeStore.createAccessPolicyVersion(event.currentTarget.dataset.createAccessVersion, prototypeStore.getSession().accountId);
+    accessGovernanceFeedback = result.ok ? "已创建草稿，当前已发布权限保持不变。" : accessPolicyFailureMessage(result);
+    render();
+  });
+  root.querySelector("[data-open-access-create]")?.addEventListener("click", () => root.querySelector("#access-create-dialog").showModal());
+  root.querySelector("#access-create-form")?.addEventListener("submit", event => {
+    event.preventDefault();
+    const values = new FormData(event.currentTarget);
+    const result = prototypeStore.createAccessPolicy(workspaceTenantId(), { name: values.get("name"), assistantId: values.get("assistantId"), memberAccountIds: values.getAll("memberAccountIds") }, prototypeStore.getSession().accountId);
+    if (!result.ok) {
+      root.querySelector("#access-create-feedback").textContent = result.reason === "ACCESS_POLICY_NAME_CONFLICT" ? "策略名称已存在，请修改名称。" : result.reason === "STORAGE_UNAVAILABLE" ? "无法保存，策略未创建，请重试。" : "请选择已发布助手及至少一位普通成员。";
+      return;
+    }
+    navigate("access-policy-detail", "success", { policyId: result.policy.id });
+  });
+  root.querySelectorAll("[data-open-access-policy]").forEach(button => button.addEventListener("click", () => {
+    const policyId = button.dataset.openAccessPolicy;
+    if (prototypeStore.selectAccessPolicy(policyId, prototypeStore.getSession().accountId).ok) navigate("access-policy-detail", "success", { policyId });
+  }));
+  root.querySelectorAll("[data-open-audit]").forEach(button => button.addEventListener("click", () => navigate("audit-record-detail", "success", { auditId: button.dataset.openAudit })));
+  root.querySelector("[data-export-audit]")?.addEventListener("click", () => {
+    const result = prototypeStore.getAuditProjection(workspaceTenantId(), prototypeStore.getSession().accountId, { query: root.querySelector("[data-directory-search]").value, outcome: root.querySelector("[data-directory-status]").value });
+    const feedback = root.querySelector("#governance-directory-feedback");
+    if (!result.ok || !result.records.length) { feedback.textContent = "没有可导出的授权记录，请调整筛选条件。"; return; }
+    let href;
+    try {
+      href = URL.createObjectURL(new Blob([JSON.stringify({ prototype: true, records: result.records }, null, 2)], { type: "application/json" }));
+      const link = document.createElement("a");
+      link.href = href; link.download = "受控审计记录-原型.json";
+      link.click();
+      feedback.textContent = `已生成 ${result.records.length} 条受控记录的下载文件。`;
+    } catch { feedback.textContent = "导出失败，审计记录未改变，请重试。"; }
+    finally { if (href) setTimeout(() => URL.revokeObjectURL(href), 1000); }
+  });
   root.querySelector("[data-access-policy-assistant]")?.addEventListener("change", event => {
-    const snapshot = prototypeStore.getSnapshot();
+    const snapshot = prototypeStore.getWorkspaceSnapshot();
     const selected = snapshot.assistantDelivery.assistants.find(item => item.id === event.currentTarget.value);
     const knowledgeBase = snapshot.knowledgeBases.find(item => item.id === selected?.knowledgeBaseId);
     const field = root.querySelector("[data-derived-knowledge-base]");
@@ -3979,7 +4155,12 @@ function bindAccessQueryGovernance() {
     if (field) field.textContent = knowledgeBase?.name || "知识库不可用";
     if (help) help.textContent = `来自“${selected?.name || "所选助手"}”的永久知识库关系。`;
   });
-  root.querySelector("#access-policy-form")?.addEventListener("submit", event => {
+  const accessForm = root.querySelector("#access-policy-form");
+  for (const eventName of ["input", "change"]) accessForm?.addEventListener(eventName, () => {
+    root.querySelectorAll("[data-preview-access-policy], [data-publish-access-policy]").forEach(button => { button.disabled = true; });
+    root.querySelector("#access-policy-feedback").textContent = "授权范围已修改，请先保存草稿，再重新生成授权预览。";
+  });
+  accessForm?.addEventListener("submit", event => {
     event.preventDefault();
     const values = new FormData(event.currentTarget);
     const result = prototypeStore.saveAccessPolicyDraft(event.currentTarget.dataset.accessPolicyVersionId, {
@@ -4028,6 +4209,14 @@ function bindAccessQueryGovernance() {
 }
 
 function bindStructuredObjectGovernance() {
+  const schemaForm = root.querySelector("#structured-schema-form");
+  const invalidateUnsaved = () => {
+    schemaForm.dataset.dirty = "true";
+    root.querySelectorAll("[data-preview-structured-schema], [data-publish-structured-schema]").forEach(button => { button.disabled = true; });
+    schemaForm.querySelector(".form-feedback").textContent = "有未保存修改。请保存结构草稿，再重新预检与发布。";
+  };
+  schemaForm?.addEventListener("input", invalidateUnsaved);
+  schemaForm?.addEventListener("change", invalidateUnsaved);
   root.querySelector("#structured-schema-form")?.addEventListener("submit", event => {
     event.preventDefault();
     const values = new FormData(event.currentTarget);
@@ -4075,10 +4264,10 @@ function bindStructuredObjectGovernance() {
   root.querySelector("#object-scope-form")?.addEventListener("submit", event => {
     event.preventDefault();
     const values = new FormData(event.currentTarget);
-    const projection = prototypeStore.getObjectStorageScopeProjection(DEFAULT_TENANT_ID, prototypeStore.getSession().accountId);
+    const projection = prototypeStore.getObjectStorageScopeProjection(workspaceTenantId(), prototypeStore.getSession().accountId);
     const range = projection.ok ? projection.availableRanges.find(item => item.id === values.get("rangeId")) : null;
     const result = prototypeStore.registerObjectStorageScope({
-      tenantId: DEFAULT_TENANT_ID,
+      tenantId: workspaceTenantId(),
       knowledgeBaseId: values.get("knowledgeBaseId"),
       rangeId: values.get("rangeId"),
       selectionRevision: range?.selectionRevision,
@@ -4089,7 +4278,7 @@ function bindStructuredObjectGovernance() {
       return;
     }
     objectDialog?.close();
-    dataGovernanceFeedback = result.replayed ? "该范围修订已经登记，没有重复创建来源。" : `已登记“${result.registration.name}”，下一步执行范围探测。`;
+    dataGovernanceFeedback = result.replayed ? "该范围版本已经登记，没有重复创建来源。" : `已登记“${result.registration.name}”，下一步执行范围探测。`;
     render();
   });
 }

@@ -470,10 +470,12 @@ async function validateManagementFlows(page) {
   await page.locator('#source-add-form [name="name"]').fill("全矩阵合成资料");
   await page.locator('#source-add-form [name="text"]').fill("用于验证安全扫描入口的合成内容。");
   await clickTo(page, "[data-primary-action]", "source-detail", "资料安全扫描");
-  await clickTo(page, '[data-primary-action][data-nav-screen="source-add"]', "source-add", "文档更新入口");
+  assert(await page.locator('[data-update-source]').isDisabled(), "处理中资料不得覆盖更新");
+  for (let stage = 0; stage < 6; stage += 1) await page.getByRole("button", { name: "刷新处理状态", exact: true }).click();
+  await clickTo(page, '[data-update-source]', "source-add", "文档更新入口");
   await runFlow(page, "processing-quality", [
-    ["[data-primary-action]", "sync-result"],
-    ["[data-primary-action]", "index-versions"],
+    ['[data-nav-screen="sync-result"]', "sync-result"],
+    ['[data-nav-screen="index-versions"]', "index-versions"],
     ["[data-primary-action]", "index-rebuild"],
     ["[data-primary-action]", "index-detail"],
   ], "处理结果与索引导航");

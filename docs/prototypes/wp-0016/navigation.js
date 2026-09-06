@@ -112,7 +112,7 @@ export function navigationParent(screen) {
 }
 
 function tenantFeatureState(snapshot) {
-  return snapshot?.tenants?.find((tenant) => tenant.id === DEFAULT_TENANT_ID)
+  return snapshot?.tenants?.find((tenant) => tenant.id === (snapshot.query?.session?.tenantId || DEFAULT_TENANT_ID))
     ?.availableFeatures;
 }
 

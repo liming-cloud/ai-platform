@@ -59,7 +59,7 @@ test("文档、版本、重新处理和重建索引使用不同业务语义", ()
   assert.match(source, />文档详情</);
   assert.match(source, />更新内容</);
   assert.match(source, />重新处理</);
-  assert.doesNotMatch(source, /创建新修订|来源修订详情|84\s*个文档/);
+  assert.doesNotMatch(source, /创建新版本|来源版本详情|84\s*个文档/);
 
   const sourceList = render("knowledge-sources");
   assert.doesNotMatch(sourceList, /修订/);
@@ -298,14 +298,22 @@ test("恢复演练限定隔离目标并覆盖完整性、进度、报告和失�
   assert.doesNotMatch(html, /覆盖生产|发布回滚/);
 });
 
-test("全 68 页操作账本诚实保留未闭环项", () => {
+test("全 68 页操作账本按范围计算缺口，技术预验不替代人工确认", () => {
   const ledger = readJson("ACTION-LEDGER.json");
   assert.equal(ledger.pages.length, 68);
   assert.deepEqual(
     new Set(ledger.pages.map((page) => page.screen)),
     new Set(pageEntries.map(({ page }) => page.screen)),
   );
-  assert.ok(ledger.summary.unclosedControls > 0);
+  const incomplete = ledger.pages.filter(page => page.phase === "M6").flatMap(page => page.controls)
+    .filter(control => !control.acceptanceExcluded && ["unimplemented", "partialSimulation", "pendingDecision"].includes(control.status));
+  assert.equal(ledger.summary.unclosedControls, incomplete.length);
+  if (ledger.summary.readyForFullAcceptance) {
+    assert.equal(incomplete.length, 0);
+    assert.equal(ledger.summary.allControlsEnumerated, true);
+    assert.equal(ledger.acceptanceAudit.technicalStatus, "passed");
+    assert.equal(ledger.acceptanceAudit.blockingFindingGroups, 0);
+  }
   assert.ok(
     ledger.pages.some((page) =>
       page.controls.some((control) => control.status === "unimplemented"),

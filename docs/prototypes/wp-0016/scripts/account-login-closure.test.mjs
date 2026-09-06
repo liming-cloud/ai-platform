@@ -101,13 +101,14 @@ test("另一标签页重置后，通知到达前旧身份和旧口令都失败�
   assert.equal(user.loginConsole(consoleInput("qiao.demo", replacement)).ok, true);
 });
 
-test("未接通的其他租户工作区不能回落到云杉示例组织", () => {
+test("新增租户工作区使用本人组织且不回落到云杉示例组织", () => {
   const store = createPrototypeStore();
   const created = create(store);
   store.createTenant({ organizationName: "新增组织", tenantCode: "new-org", administratorAccountId: created.account.id, confirmed: true });
   const result = store.loginConsole(consoleInput("new.person", initial));
-  assert.equal(result.reason, "WORKSPACE_NOT_READY");
-  assert.equal(store.getSession().authenticated, false);
+  assert.equal(result.ok, true);
+  assert.notEqual(store.getSession().tenantId, DEFAULT_TENANT_ID);
+  assert.equal(store.getWorkspaceSnapshot().knowledgeBases.length, 0);
 });
 
 test("管理员拥有多个组织时必须明确选择，只返回本人已授权组织", () => {
@@ -119,7 +120,8 @@ test("管理员拥有多个组织时必须明确选择，只返回本人已授�
   assert.equal(pending.reason, "TENANT_SELECTION_REQUIRED");
   assert.deepEqual(pending.tenants.map(item => item.code), ["spruce-demo", "second-org"]);
   assert.equal(store.getSession().authenticated, false);
-  assert.equal(store.loginConsole({ ...login, tenantCode: "second-org" }).reason, "WORKSPACE_NOT_READY");
+  assert.equal(store.loginConsole({ ...login, tenantCode: "second-org" }).ok, true);
+  assert.notEqual(store.getSession().tenantId, DEFAULT_TENANT_ID);
   assert.equal(store.loginConsole({ ...login, tenantCode: "unknown" }).ok, false);
   assert.equal(store.loginConsole({ ...login, tenantCode: "spruce-demo" }).ok, true);
   assert.equal(store.getSession().tenantId, DEFAULT_TENANT_ID);

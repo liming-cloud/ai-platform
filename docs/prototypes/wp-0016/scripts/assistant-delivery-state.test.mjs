@@ -50,7 +50,7 @@ function prepareEvaluation(store, name = "制度咨询助手") {
   return version.id;
 }
 
-test("创建稳定助手永久绑定一个就绪知识库并拒绝重复、越权或不可用知识库", () => {
+test("创建助手永久绑定一个就绪知识库并拒绝重复、越权或不可用知识库", () => {
   const { store } = fresh();
   const created = createDraft(store);
   assert.equal(created.assistant.knowledgeBaseId, "kb-handbook");
@@ -74,7 +74,7 @@ test("创建稳定助手永久绑定一个就绪知识库并拒绝重复、越�
   }, "account-shen").reason, "FORBIDDEN");
 });
 
-test("新版本继承稳定知识库并冻结索引、模型配置修订和三类策略", () => {
+test("新版本继承稳定知识库并冻结索引、模型配置版本和三类策略", () => {
   const { store } = fresh();
   const created = store.createAssistantVersion("assistant-office", TENANT_ACTOR);
   assert.equal(created.version.knowledgeBaseId, "kb-handbook");

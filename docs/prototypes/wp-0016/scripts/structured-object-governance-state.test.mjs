@@ -102,7 +102,7 @@ test("登记对象范围只接受同租户已签发范围并形成可刷新来�
   assert.equal(restored.registrations[0].name, "华东办公制度对象来源");
 });
 
-test("对象范围重复请求幂等，伪造修订、越权或不属于租户的范围失败关闭", () => {
+test("对象范围重复请求幂等，伪造版本、越权或不属于租户的范围失败关闭", () => {
   const { store } = fresh();
   const input = {
     tenantId: TENANT_ID,

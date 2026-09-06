@@ -219,9 +219,9 @@ assert(
 );
 assert(
   actionLedger.pages.length === pages.length &&
-    actionLedger.summary.unclosedControls > 0 &&
+    actionLedger.summary.unclosedControls === actionLedger.pages.filter(page => page.phase === "M6").flatMap(page => page.controls).filter(control => !control.acceptanceExcluded && ["unimplemented", "partialSimulation", "pendingDecision"].includes(control.status)).length &&
     ["pendingAuthorization", "failed", "passed"].includes(actionLedger.browserVerification) &&
-    actionLedger.summary.readyForFullAcceptance === false,
+    (!actionLedger.summary.readyForFullAcceptance || actionLedger.summary.unclosedControls === 0 && actionLedger.summary.allControlsEnumerated && actionLedger.acceptanceAudit.technicalStatus === "passed"),
   "68 页操作账本缺失或错误宣称全部闭环",
 );
 if (actionLedger.browserVerification !== "pendingAuthorization") {

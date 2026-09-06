@@ -66,10 +66,10 @@ test("重置他人密码支持取消、确认撤销会话和刷新恢复", () =>
   await form.locator('[name="passwordConfirmation"]').fill("Reset-only-2026!");
   await form.locator('[name="revokeSessions"]').check();
   await form.getByRole("button", { name: "重置密码", exact: true }).click();
-  assert.match(await page.locator('[data-account-row="account-lin"]').innerText(), /认证修订 2/);
+  assert.match(await page.locator('[data-account-row="account-lin"]').innerText(), /认证版本 2/);
   assert.doesNotMatch(await page.evaluate(() => localStorage.getItem("wp0016-business-demo-v1") || ""), /Reset-only-2026|Discarded-only-2026|password|credential|secret/i);
   await page.reload();
-  assert.match(await page.locator('[data-account-row="account-lin"]').innerText(), /认证修订 2/);
+  assert.match(await page.locator('[data-account-row="account-lin"]').innerText(), /认证版本 2/);
 }));
 
 test("人员范围冲突、平台管理员分配与停用恢复均有确定结果", () => visit("govern-account", async page => {

@@ -1668,6 +1668,7 @@ body[data-review="hidden"] .prototype-reviewer {
 
 .next-step-panel {
   display: grid;
+  align-content: start;
   gap: var(--space-3);
 }
 
