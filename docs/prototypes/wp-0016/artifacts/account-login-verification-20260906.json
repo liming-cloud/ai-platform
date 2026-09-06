@@ -1,0 +1,186 @@
+{
+  "status": "PASS",
+  "generatedAt": "2026-09-06T08:00:32.858Z",
+  "evidenceScope": "真实 DOM、布局、特定交互与导航；不是全部控件闭环或人工认可",
+  "pageCount": 68,
+  "stateCount": 7,
+  "viewportCount": 3,
+  "declaredScenarioCount": 1428,
+  "completedScenarioCount": 1428,
+  "assertionCount": 9643,
+  "screenshotCount": 85,
+  "stages": [
+    {
+      "name": "审查器与导航图标",
+      "status": "PASS",
+      "failures": [],
+      "browserErrors": []
+    },
+    {
+      "name": "全部页面状态与视口",
+      "status": "PASS",
+      "failures": [],
+      "browserErrors": []
+    },
+    {
+      "name": "创建租户与管理导航",
+      "status": "PASS",
+      "failures": [],
+      "browserErrors": []
+    },
+    {
+      "name": "成员与两级功能控制",
+      "status": "PASS",
+      "failures": [],
+      "browserErrors": []
+    },
+    {
+      "name": "成员弹窗键盘与取消",
+      "status": "PASS",
+      "failures": [],
+      "browserErrors": []
+    },
+    {
+      "name": "运行状态与隔离恢复",
+      "status": "PASS",
+      "failures": [],
+      "browserErrors": []
+    },
+    {
+      "name": "恢复检查失败与重试",
+      "status": "PASS",
+      "failures": [],
+      "browserErrors": []
+    },
+    {
+      "name": "审查器收起可达性",
+      "status": "PASS",
+      "failures": [],
+      "browserErrors": []
+    },
+    {
+      "name": "普通用户登录",
+      "status": "PASS",
+      "failures": [],
+      "browserErrors": []
+    },
+    {
+      "name": "问答示例与键盘",
+      "status": "PASS",
+      "failures": [],
+      "browserErrors": []
+    },
+    {
+      "name": "会话刷新恢复",
+      "status": "PASS",
+      "failures": [],
+      "browserErrors": []
+    },
+    {
+      "name": "设备前置导航",
+      "status": "PASS",
+      "failures": [],
+      "browserErrors": []
+    },
+    {
+      "name": "页面截图",
+      "status": "PASS",
+      "failures": [],
+      "browserErrors": []
+    },
+    {
+      "name": "减少动态效果",
+      "status": "PASS",
+      "failures": [],
+      "browserErrors": []
+    }
+  ],
+  "browserErrors": [],
+  "failures": [],
+  "workPackage": "WP-0016",
+  "implementationCommit": "c896c30898d9ea73f01cf52648a9cdf938974046",
+  "nodeTests": {
+    "passed": 117,
+    "total": 117
+  },
+  "browserTests": {
+    "passed": 115,
+    "total": 115
+  },
+  "accountStateTests": {
+    "passed": 9,
+    "total": 9
+  },
+  "accountBrowserTests": {
+    "passed": 7,
+    "total": 7
+  },
+  "staticAssertions": 3177,
+  "openDesignLint": {
+    "ok": true,
+    "p0": 0,
+    "p1": 0,
+    "p2": 0
+  },
+  "redEvidence": {
+    "initialState": {
+      "failed": 7,
+      "total": 7
+    },
+    "initialBrowser": {
+      "failed": 6,
+      "total": 6
+    },
+    "multipleTenantSelection": {
+      "failed": 1,
+      "total": 1
+    },
+    "legacySnapshot": {
+      "baseline": "b3c96b93e",
+      "actualAllowed": true,
+      "expectedAllowed": false
+    }
+  },
+  "finding": {
+    "id": "A11",
+    "status": "partial",
+    "completed": [
+      "平台账户首次登录",
+      "现有租户成员建账授权与首次登录",
+      "重置口令、刷新恢复、旧身份失效",
+      "同一人员目录登录名",
+      "多个管理组织显式选择"
+    ],
+    "remaining": "新建租户工作区仍依赖 A03，当前明确拒绝，不展示默认组织"
+  },
+  "remainingUnclosedControls": 14,
+  "remainingBlockingFindings": [
+    "A03",
+    "A04",
+    "A05",
+    "A06",
+    "A07",
+    "A08",
+    "A11"
+  ],
+  "allControlsEnumerated": false,
+  "readyForFullAcceptance": false,
+  "humanReviewStatus": "rejected",
+  "deferredTasks": [
+    "渠道绑定",
+    "设备凭据",
+    "邮件邀请"
+  ],
+  "screenshotsCommitted": 0,
+  "additionalTemporaryScreenshots": 3,
+  "openDesignProject": "249f81f2-6f1a-46ff-988c-da3cdedb35e7",
+  "openDesignConnection": "MCP Transport closed；既有原始预览 HTTP 200，状态模块 SHA-256 与磁盘一致，绝对路径 CLI lint 通过",
+  "servedStateSha256": "69f41ed576aab7f74022d29d9e80360a721a78c694733fa5ceed4236383d0f7e",
+  "limitations": [
+    "只接受三种公开口令，存储的是可查表的非秘密场景码，不是生产认证或密码哈希。",
+    "旧快照缺少场景时拒绝登录；不自动重置或清理原有合成数据。",
+    "新组织管理工作区尚未接通，A11 不标记完成。",
+    "自动检查不构成整套业务或人工验收通过。"
+  ]
+}
+

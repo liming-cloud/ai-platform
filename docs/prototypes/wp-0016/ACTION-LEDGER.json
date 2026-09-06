@@ -2,7 +2,7 @@
   "workPackage": "WP-0016",
   "generatedOn": "2026-09-06",
   "browserVerification": "passed",
-  "browserVerificationNote": "2026-09-06 专项 108/108、1,428 场景和 9,643 断言通过；A01/A02 及 A09 账户菜单子项已修复。范围内仍有 7 类 P1、14 个已登记未闭环控件，不代表人工验收通过。",
+  "browserVerificationNote": "2026-09-06 Node 117/117、浏览器 115/115、1,428 场景与 9,643 断言通过；A11 口令交付部分闭环，新建租户工作区仍依赖 A03。7 类 P1、14 个已知未闭环与人工拒绝保持，不代表全平台完成。",
   "classification": {
     "navigation": "仅改变原型页面，不计作业务完成",
     "implementedStateChange": "合成状态已有 Node 测试；browserVerified 只表示条目注明的浏览器范围，不代表完整业务或人工通过",
@@ -17,9 +17,9 @@
     "implementedRead": 8,
     "implementedStateChange": 77,
     "pendingDecision": 1,
-    "unimplemented": 11,
+    "unimplemented": 10,
     "forbidden": 1,
-    "partialSimulation": 5,
+    "partialSimulation": 6,
     "totalPages": 68,
     "totalControls": 132,
     "unclosedControls": 14,
@@ -210,12 +210,15 @@
         {
           "label": "新建或重置账户后的登录衔接",
           "kind": "taskControl",
-          "status": "unimplemented",
+          "status": "partialSimulation",
           "findingId": "A11",
-          "findingStatus": "open",
-          "evidence": "project/evidence/WP-0016-session-boundaries-prototype-20260906.md#A11",
-          "browserVerified": false,
-          "seamReproduced": true
+          "findingStatus": "partial",
+          "evidence": "project/evidence/WP-0016-account-login-prototype-20260906.md#A11",
+          "browserVerified": true,
+          "seamReproduced": true,
+          "browserEvidence": "artifacts/account-login-verification-20260906.json",
+          "browserScope": "公开口令的创建、平台授权、普通成员授权、首次登录和重置登录已回归；新建租户工作区未接通，A11 不能关闭",
+          "remainingDependency": "A03：新租户与知识库页面上下文隔离"
         }
       ]
     },
@@ -1657,9 +1660,9 @@
     "allControlsEnumerated": false,
     "limitation": "尚未穷举每页筛选、行操作、账户菜单和各状态控件；下列数量只统计已登记项，不代表全平台控件总数。"
   },
-  "browserEvidenceReport": "artifacts/session-boundaries-verification-20260906.json",
+  "browserEvidenceReport": "artifacts/account-login-verification-20260906.json",
   "acceptanceAudit": {
-    "auditedHead": "1e1dc4f1bee510e76c3bd086903091de50a3737f",
+    "auditedHead": "c896c30898d9ea73f01cf52648a9cdf938974046",
     "checkedOn": "2026-09-06",
     "technicalStatus": "failed",
     "humanReviewStatus": "rejected",
@@ -1678,10 +1681,10 @@
       }
     ],
     "blockingFindingGroups": 7,
-    "report": "artifacts/session-boundaries-verification-20260906.json",
-    "evidence": "project/evidence/WP-0016-session-boundaries-prototype-20260906.md",
+    "report": "artifacts/account-login-verification-20260906.json",
+    "evidence": "project/evidence/WP-0016-account-login-prototype-20260906.md",
     "scope": "56 个 M6 页面任务；M7/M8 的另外 10 页只核对既定信息架构与视觉。已登记控件仍非穷举；3 个暂缓项不计入当前未闭环数。",
-    "implementationCommit": "1e1dc4f1bee510e76c3bd086903091de50a3737f",
+    "implementationCommit": "c896c30898d9ea73f01cf52648a9cdf938974046",
     "unclosedControls": 14,
     "baselineAudit": "project/evidence/WP-0016-acceptance-preflight-20260905.md"
   }
