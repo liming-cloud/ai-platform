@@ -2,7 +2,7 @@ schemaVersion: 1
 productVersion: foundation-v1
 currentMilestone: M6
 currentFrontier: WP-0016
-lastVerifiedCommit: c506b0f52f95f2ccfd9c5d249af737f3c91f9bf0
+lastVerifiedCommit: 1d670bbce3a807bd92cc70228d332a8ae8f72584
 activeWorkPackages:
   - WP-0014
   - WP-0016
@@ -87,8 +87,11 @@ confirmedDecisions:
   - ADR-0077
   - ADR-0078
 openDecisions:
+  - WP-0016：是否允许租户管理员直接创建、重置、停用本租户普通成员账号
+  - WP-0016：厂商自动预填的只读官方资料调查方式待确认，厂商类型与预填尚未实现
   - 后续认证实现包：登录安全策略的生产上下限与已登录会话生效时机
 latestEvidence:
+  - project/evidence/WP-0016-platform-usability-20260907.md
   - project/evidence/WP-0016-legacy-login-repair-20260907.md
   - project/evidence/WP-0016-full-closure-prototype-20260906.md
   - project/evidence/WP-0016-account-login-prototype-20260906.md
@@ -96,5 +99,5 @@ latestEvidence:
   - project/evidence/WP-0016-acceptance-preflight-20260905.md
   - project/evidence/WP-0016-business-review-rejection-20260903.md
 nextReviewAt: 2026-09-07
-updatedAt: 2026-09-07T16:59:22+08:00
+updatedAt: 2026-09-07T19:20:18+08:00
 updatedBy: codex
