@@ -3807,3 +3807,10 @@ body[data-review="hidden"] .prototype-reviewer {
     border-bottom: 1px solid var(--color-border);
   }
 }
+.field[data-provider-workspace][hidden] { display: none; }
+
+/* 长成员表单只滚动内容区，移动端始终保留提交和取消操作。 */
+#add-member-dialog { overflow: hidden; }
+#add-member-form { display: flex; flex-direction: column; max-height: calc(100dvh - 80px); }
+#add-member-form .member-form-body { overflow-y: auto; min-height: 0; padding: 4px; margin: 0 -4px; }
+#add-member-form .release-actions { flex-shrink: 0; padding-top: 12px; margin-top: 12px; border-top: 1px solid var(--color-border); }

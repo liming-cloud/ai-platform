@@ -2,7 +2,7 @@
   "workPackage": "WP-0016",
   "generatedOn": "2026-09-07",
   "browserVerification": "passed",
-  "browserVerificationNote": "本轮已整改租户拆页、账户开通、登录入口、通用分页、运行记录与恢复摘要；普通成员凭据管理边界及厂商资料核对方式等待用户确认。机器测试不替代人工验收。",
+  "browserVerificationNote": "成员开户治理与厂商预填已按明确授权实现；当前报告按目标页面及状态核对控件，不采纳旧空壳计数。技术可重新送验，人工拒绝仍有效。",
   "classification": {
     "navigation": "仅改变原型页面，不计作业务完成",
     "implementedStateChange": "合成状态已有 Node 测试；browserVerified 只表示条目注明的浏览器范围，不代表完整业务或人工通过",
@@ -15,16 +15,16 @@
   "summary": {
     "navigation": 31,
     "implementedRead": 21,
-    "implementedStateChange": 92,
-    "pendingDecision": 3,
+    "implementedStateChange": 94,
+    "pendingDecision": 1,
     "unimplemented": 2,
     "forbidden": 1,
     "partialSimulation": 0,
     "totalPages": 73,
     "totalControls": 150,
-    "unclosedControls": 2,
+    "unclosedControls": 0,
     "allControlsEnumerated": true,
-    "readyForFullAcceptance": false,
+    "readyForFullAcceptance": true,
     "deferredControls": 3
   },
   "pages": [
@@ -334,12 +334,13 @@
           "browserEvidence": "artifacts/model-governance-browser-verification.json"
         },
         {
-          "label": "厂商类型与自动预填：官方资料只读核对方式待确认",
+          "label": "厂商类型、已核实能力与运行地址联动预填",
           "kind": "taskControl",
-          "status": "pendingDecision",
-          "evidence": "scripts/platform-usability.browser.test.cjs；scripts/account-entry.test.mjs",
-          "browserVerified": false,
-          "browserScope": "本轮定向浏览器与状态测试；不代表生产能力或人工通过"
+          "status": "implementedStateChange",
+          "evidence": "project/evidence/WP-0016-member-provider-closure-20260907.md",
+          "browserVerified": true,
+          "browserScope": "厂商/能力/业务空间联动，提交、详情、取消、Escape、失败和密钥清空",
+          "browserEvidence": "artifacts/member-provider-verification-20260907.json"
         }
       ]
     },
@@ -507,7 +508,7 @@
           "label": "邮件邀请与账户自助激活",
           "kind": "proposedTaskNotRendered",
           "status": "pendingDecision",
-          "evidence": "当前只添加已有账户；是否引入新账户邀请尚未确认",
+          "evidence": "用户明确暂缓邮件邀请；直接开户不是邮件邀请或自助激活。",
           "browserVerified": false,
           "acceptanceExcluded": true,
           "deferralReason": "2026-09-05 用户确认暂缓，不属于本次验收范围。"
@@ -525,12 +526,13 @@
           "browserScope": "当前合成身份的正反向访问、写入拒绝、跨页签失效及范围内功能；不代表生产授权或全平台完成"
         },
         {
-          "label": "由租户管理员创建和重置普通成员账号：权限边界待确认",
+          "label": "由租户管理员直接开户、重置与停用普通成员",
           "kind": "taskControl",
-          "status": "pendingDecision",
-          "evidence": "scripts/platform-usability.browser.test.cjs；scripts/account-entry.test.mjs",
-          "browserVerified": false,
-          "browserScope": "本轮定向浏览器与状态测试；不代表生产能力或人工通过"
+          "status": "implementedStateChange",
+          "evidence": "project/evidence/WP-0016-member-provider-closure-20260907.md",
+          "browserVerified": true,
+          "browserScope": "390/1024/1440 开户、轮换、停用恢复、本人登录；状态层越界与回滚另有 Node 用例",
+          "browserEvidence": "artifacts/member-provider-verification-20260907.json"
         }
       ]
     },
@@ -1864,15 +1866,15 @@
   "coverage": {
     "scope": "61 个 M6 页面七态，包括侧栏、账户菜单和隐藏弹窗；其余 10 页仅布局与信息架构，2 页及邮件邀请暂缓",
     "allControlsEnumerated": true,
-    "controlInstanceCount": 6448,
+    "controlInstanceCount": 6517,
     "sceneCount": 427,
-    "inventoryReport": "artifacts/usability-remediation-verification-20260907.json",
+    "inventoryReport": "artifacts/member-provider-verification-20260907.json",
     "limitation": "summary.totalControls 是人工可读的业务操作组，不等于七态 DOM 控件实例数；监听器接线检查不能替代专项行为测试或穷举全部输入组合。"
   },
-  "browserEvidenceReport": "artifacts/usability-remediation-verification-20260907.json",
+  "browserEvidenceReport": "artifacts/member-provider-verification-20260907.json",
   "acceptanceAudit": {
     "checkedOn": "2026-09-07",
-    "technicalStatus": "partial",
+    "technicalStatus": "passed",
     "humanReviewStatus": "rejected",
     "excludedTasks": [
       {
@@ -1888,14 +1890,14 @@
         "label": "邮件邀请与账户自助激活"
       }
     ],
-    "blockingFindingGroups": 2,
-    "report": "artifacts/usability-remediation-verification-20260907.json",
-    "evidence": "project/evidence/WP-0016-platform-usability-20260907.md",
-    "scope": "73 页；三项原暂缓保持不变。本轮账户与厂商待决策项不标记完成。",
+    "blockingFindingGroups": 0,
+    "report": "artifacts/member-provider-verification-20260907.json",
+    "evidence": "project/evidence/WP-0016-member-provider-closure-20260907.md",
+    "scope": "73 页布局、61 个 M6 页面任务；渠道绑定、设备凭据和邮件邀请仍暂缓。",
     "baselineImplementationCommit": "10fd8eaaa71bc66cc8f3fe96f20c7dac58f7fd1c",
-    "verificationScope": "机器回归通过；两组未决项尚未闭环，技术预验仅为局部通过，人工拒绝仍有效。实现提交由本轮证据绑定。",
-    "unclosedControls": 2,
+    "verificationScope": "本轮 151 个 Node、143 个浏览器专项及完整矩阵通过；不代表生产能力或人工通过。",
+    "unclosedControls": 0,
     "baselineAudit": "project/evidence/WP-0016-acceptance-preflight-20260905.md",
-    "currentCandidate": "awaitingDecisions"
+    "currentCandidate": "awaitingHumanReview"
   }
 }

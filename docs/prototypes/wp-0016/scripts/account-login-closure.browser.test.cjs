@@ -30,7 +30,7 @@ async function attempt(page, username, password, query = false) {
 
 async function resetAccount(page, id) {
   if (id === 'account-shen') {
-    // 只构造已轮换凭据的登录前置状态；普通成员凭据管理入口仍待产品确认。
+    // 此用例聚焦登录边界；租户成员可见重置入口另由 member-provider.browser.test.cjs 覆盖。
     await page.evaluate(async () => {
       const { createPrototypeStore } = await import('./prototype-state.js');
       createPrototypeStore().resetAccountPassword('account-shen', { password: 'Reset-only-2026!', passwordConfirmation: 'Reset-only-2026!', revokeSessions: true }, 'account-platform-admin');
@@ -77,15 +77,17 @@ test("新建平台账户使用刚设置的口令首次登录", () => visit(async
   assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem("wp0016-query-session-v1")).accountId), id);
 }));
 
-test("租户添加已有普通人员并授权，再由本人首次登录提问", () => visit(async page => {
-  const id = 'account-lin';
+test("租户创建普通人员并授权，再由本人首次登录提问", () => visit(async page => {
+  const id = 'account-lin-member-6';
   await loginConsole(page, "tenant");
   await page.goto(url("tenant-members"));
   await page.locator('[data-business-action="open-add-member"]').click();
-  await page.locator("#member-account-select").selectOption(id);
+  await page.locator('#add-member-form [name="loginName"]').fill('lin.member');
+  await page.locator('#add-member-form [name="password"]').fill('demo-only');
+  await page.locator('#add-member-form [name="passwordConfirmation"]').fill('demo-only');
   await page.locator("#add-member-form").getByRole("button", { name: "确认添加", exact: true }).click();
   await page.locator("#add-member-dialog").waitFor({ state: "hidden" });
-  await attempt(page, "lin.demo", "demo-only", true);
+  await attempt(page, "lin.member", "demo-only", true);
   await page.locator('main[data-screen="assistants"]').waitFor();
   assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem("wp0016-query-session-v1")).accountId), id);
   await page.locator('[data-assistant-id="assistant-employee-service"]').click();

@@ -25,12 +25,16 @@ async function main() {
   try {
     for (const group of inventory.groups.filter(item => item.phase === "M6")) for (const item of group.pages.filter(item => !excluded.includes(item.screen))) {
       for (const state of inventory.states) {
-        await openForReview(page, `${base}?screen=${item.screen}&state=${state}&review=0`);
-        await page.locator("main").waitFor();
-        if (item.screen === "conversation" && state === "success") {
+        if (item.screen === "conversation") {
           await openForReview(page, `${base}?screen=assistants&state=success&review=0`);
           await createConversation(page);
+          const conversationId = new URL(page.url()).searchParams.get("conversationId");
+          await page.goto(`${base}?screen=conversation&state=${state}&conversationId=${encodeURIComponent(conversationId)}&review=0`);
+        } else {
+          await openForReview(page, `${base}?screen=${item.screen}&state=${state}&review=0`);
         }
+        // 正常聊天须先创建真实合成会话；其余场景也不能把尚未渲染的外壳计入覆盖。
+        await page.locator(`main[data-screen="${item.screen}"][data-state="${state}"]`).waitFor();
         const controls = await page.evaluate(() => [...document.querySelectorAll("button, input, textarea, select, a, summary")].filter(element => !element.closest("#prototype-reviewer")).map(element => {
           const events = window.controlEvents.get(element) || [];
           const formEvents = window.controlEvents.get(element.form) || [];
@@ -42,7 +46,10 @@ async function main() {
           const bound = element.disabled || native || paginated || events.includes("click") || nativeControl && events.some(event => ["input", "change", "keydown"].includes(event));
           return { id: element.dataset.odId || element.id, tag: element.tagName, type: element.type, label: (element.getAttribute("aria-label") || element.closest("label")?.textContent || element.textContent || element.placeholder || "").trim(), disabled: element.disabled || false, visible: Boolean(element.getClientRects().length), dialog: Boolean(element.closest("dialog")), events, form: element.form?.id || "", bound, status: element.dataset.controlStatus || "" };
         }));
-        report.scenes.push({ screen: item.screen, state, actualScreen: await page.locator("main").getAttribute("data-screen"), controls });
+        const actualScreen = await page.locator("main").getAttribute("data-screen");
+        const actualState = await page.locator("main").getAttribute("data-state");
+        if (actualScreen !== item.screen || actualState !== state) report.errors.push(`场景不匹配：${item.screen}/${state} → ${actualScreen}/${actualState}`);
+        report.scenes.push({ screen: item.screen, state, actualScreen, actualState, controls });
         report.unbound.push(...controls.filter(control => !control.bound || control.status === "unimplemented").map(control => ({ screen: item.screen, state, ...control })));
       }
       console.log(`已枚举 ${item.screen}`);

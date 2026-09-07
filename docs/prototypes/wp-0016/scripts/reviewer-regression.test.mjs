@@ -120,8 +120,8 @@ test("权限投影隐藏未授权助手、其他成员历史与引用", () => {
   store.commitMemberFeatureDraft(DEFAULT_TENANT_ID, "account-shen");
   assert.deepEqual(store.queryProjection(fixtures, request).history, []);
   assert.deepEqual(store.queryProjection(fixtures, request).messages, []);
-  store.addMember(DEFAULT_TENANT_ID, { accountId: "account-lin", conversationFeatures: ["assistantSelection", "conversation", "ownHistory"], assistantIds: ["assistant-employee-service"] });
-  store.selectDemoAccount("account-lin");
+  store.addMember(DEFAULT_TENANT_ID, { loginName: "lin.member", password: "demo-only", passwordConfirmation: "demo-only", conversationFeatures: ["assistantSelection", "conversation", "ownHistory"], assistantIds: ["assistant-employee-service"] }, "account-qiao");
+  store.selectDemoAccount("account-lin-member-6");
   assert.deepEqual(store.queryProjection(fixtures, request).history, []);
   assert.deepEqual(store.queryProjection(fixtures, request).messages, []);
 });

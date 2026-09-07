@@ -1,0 +1,80 @@
+const { test, before, after } = require('node:test');
+const assert = require('node:assert/strict');
+const { chromium } = require('playwright');
+const { url, loginConsole } = require('./browser-session.cjs');
+let browser;
+before(async () => { browser = await chromium.launch(); });
+after(async () => browser?.close());
+async function visit(role, action, width = 1440) {
+  const context = await browser.newContext({ viewport: { width, height: 900 }, reducedMotion: 'reduce' });
+  const page = await context.newPage();
+  page.setDefaultTimeout(4000);
+  const errors = [];
+  page.on('pageerror', error => errors.push(error.message));
+  try { await loginConsole(page, role); await action(page); assert.deepEqual(errors, []); } finally { await context.close(); }
+}
+
+for (const width of [390, 1024, 1440]) test(`成员开户、密码轮换、停用恢复可实际操作 ${width}`, () => visit('tenant', async page => {
+  await page.goto(url('tenant-members'));
+  await page.locator('[data-business-action="open-add-member"]').click();
+  const form = page.locator('#add-member-form');
+  await form.getByLabel('登录名', { exact: true }).fill('member.browser');
+  await form.getByLabel('初始密码', { exact: true }).fill('Initial-only-2026!');
+  await form.getByLabel('再次输入', { exact: true }).fill('Initial-only-2026!');
+  const submitBounds = await form.getByRole('button', { name: '确认添加', exact: true }).boundingBox();
+  assert.ok(submitBounds.y >= 0 && submitBounds.y + submitBounds.height <= 900, '填写时提交按钮应留在视口内');
+  await page.screenshot({ path: `/private/tmp/wp0016-member-create-${width}.png` });
+  await form.getByRole('button', { name: '确认添加', exact: true }).click();
+  await page.locator('#add-member-dialog').waitFor({ state: 'hidden' });
+  const row = page.locator('tbody tr').filter({ hasText: 'member.browser' });
+  await row.getByRole('button', { name: '重置密码', exact: true }).click();
+  const reset = page.locator('#reset-account-password-form');
+  await reset.getByLabel('新密码', { exact: true }).fill('Reset-only-2026!');
+  await reset.getByLabel('再次输入', { exact: true }).fill('Reset-only-2026!');
+  await reset.locator('[name="revokeSessions"]').check();
+  await reset.getByRole('button', { name: '重置密码', exact: true }).click();
+  await page.locator('#reset-account-password-dialog').waitFor({ state: 'hidden' });
+  await row.getByRole('button', { name: '停用', exact: true }).click();
+  await page.getByRole('button', { name: '确认停用', exact: true }).click();
+  await row.getByRole('button', { name: '恢复', exact: true }).click();
+  await page.reload();
+  await row.getByRole('button', { name: '停用', exact: true }).waitFor();
+  await page.goto(url('login'));
+  await page.locator('#login-form [name="tenantCode"]').fill('spruce-demo');
+  await page.locator('#login-form [name="username"]').fill('member.browser');
+  await page.locator('#login-form [name="password"]').fill('Reset-only-2026!');
+  await page.locator('#login-form [type="submit"]').click();
+  await page.locator('main[data-screen="assistants"]').waitFor();
+  assert.doesNotMatch(await page.evaluate(() => Object.values(localStorage).join('\n')), /Initial-only|Reset-only/);
+}, width));
+
+test('厂商切换自动预填，能力受限，切换和关闭均清空访问密钥', () => visit('platform', async page => {
+  await page.goto(url('platform-model-connections'));
+  await page.locator('[data-open-platform-connection]').click();
+  const form = page.locator('#platform-connection-form');
+  await form.locator('[name="accessKey"]').fill('short');
+  await form.getByRole('button', { name: '保存连接草稿', exact: true }).click();
+  assert.equal(await form.locator('[name="accessKey"]').inputValue(), '');
+  assert.ok(await form.locator('[role="alert"]').innerText());
+  await form.getByLabel('厂商类型', { exact: true }).selectOption('DEEPSEEK');
+  assert.equal(await form.locator('[name="runtimeBaseUrl"]').inputValue(), 'https://api.deepseek.com');
+  assert.equal(await form.locator('[name="capability"] option').count(), 1);
+  await form.locator('[name="accessKey"]').fill('synthetic-only');
+  await form.getByLabel('厂商类型', { exact: true }).selectOption('ALIYUN');
+  assert.equal(await form.locator('[name="accessKey"]').inputValue(), '');
+  await form.getByLabel('业务空间 ID', { exact: true }).fill('demo-space');
+  await form.getByLabel('运行能力', { exact: true }).selectOption('RERANK');
+  assert.match(await form.locator('[name="runtimeBaseUrl"]').inputValue(), /\/services\/rerank\/text-rerank\/text-rerank$/);
+  assert.match(await form.locator('[data-provider-protocol]').innerText(), /厂商重排适配/);
+  await page.screenshot({ path: '/private/tmp/wp0016-provider-preset.png' });
+  await form.locator('[name="accessKey"]').fill('synthetic-only');
+  await page.keyboard.press('Escape');
+  await page.locator('[data-open-platform-connection]').click();
+  assert.equal(await form.locator('[name="accessKey"]').inputValue(), '');
+  await form.getByLabel('厂商类型', { exact: true }).selectOption('SILICONFLOW');
+  await form.locator('[name="accessKey"]').fill('synthetic-only');
+  await form.getByRole('button', { name: '保存连接草稿', exact: true }).click();
+  await page.locator('main[data-screen="platform-model-connection-detail"]').waitFor();
+  assert.equal(await page.locator('.description-row').filter({ hasText: '供应商类型' }).locator('dd').innerText(), '硅基流动');
+  assert.doesNotMatch(await page.evaluate(() => Object.values(localStorage).join('\n')), /synthetic-only/);
+}));

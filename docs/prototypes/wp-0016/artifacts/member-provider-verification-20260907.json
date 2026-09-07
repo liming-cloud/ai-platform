@@ -1,0 +1,183 @@
+{
+  "status": "PASS",
+  "generatedAt": "2026-09-07T12:15:24.774Z",
+  "humanReviewStatus": "rejected",
+  "readyForFullAcceptance": true,
+  "scope": "WP-0016 可丢弃原型的技术复验；仍需人工确认，不代表生产实现",
+  "node": {
+    "tests": 151,
+    "pass": 151,
+    "fail": 0,
+    "skipped": 0
+  },
+  "browser": {
+    "tests": 143,
+    "pass": 143,
+    "fail": 0,
+    "skipped": 0
+  },
+  "matrix": {
+    "status": "PASS",
+    "generatedAt": "2026-09-07T12:08:54.457Z",
+    "evidenceScope": "真实 DOM、布局、特定交互与导航；不是全部控件闭环或人工认可",
+    "pageCount": 73,
+    "stateCount": 7,
+    "viewportCount": 3,
+    "declaredScenarioCount": 1533,
+    "completedScenarioCount": 1533,
+    "assertionCount": 10339,
+    "screenshotCount": 90,
+    "stages": [
+      {
+        "name": "审查器与导航图标",
+        "status": "PASS",
+        "failures": [],
+        "browserErrors": []
+      },
+      {
+        "name": "全部页面状态与视口",
+        "status": "PASS",
+        "failures": [],
+        "browserErrors": []
+      },
+      {
+        "name": "创建租户与管理导航",
+        "status": "PASS",
+        "failures": [],
+        "browserErrors": []
+      },
+      {
+        "name": "成员与两级功能控制",
+        "status": "PASS",
+        "failures": [],
+        "browserErrors": []
+      },
+      {
+        "name": "成员弹窗键盘与取消",
+        "status": "PASS",
+        "failures": [],
+        "browserErrors": []
+      },
+      {
+        "name": "运行状态与隔离恢复",
+        "status": "PASS",
+        "failures": [],
+        "browserErrors": []
+      },
+      {
+        "name": "恢复检查失败与重试",
+        "status": "PASS",
+        "failures": [],
+        "browserErrors": []
+      },
+      {
+        "name": "审查器收起可达性",
+        "status": "PASS",
+        "failures": [],
+        "browserErrors": []
+      },
+      {
+        "name": "普通用户登录",
+        "status": "PASS",
+        "failures": [],
+        "browserErrors": []
+      },
+      {
+        "name": "问答示例与键盘",
+        "status": "PASS",
+        "failures": [],
+        "browserErrors": []
+      },
+      {
+        "name": "会话刷新恢复",
+        "status": "PASS",
+        "failures": [],
+        "browserErrors": []
+      },
+      {
+        "name": "设备前置导航",
+        "status": "PASS",
+        "failures": [],
+        "browserErrors": []
+      },
+      {
+        "name": "页面截图",
+        "status": "PASS",
+        "failures": [],
+        "browserErrors": []
+      },
+      {
+        "name": "减少动态效果",
+        "status": "PASS",
+        "failures": [],
+        "browserErrors": []
+      }
+    ],
+    "browserErrors": [],
+    "failures": []
+  },
+  "controls": {
+    "sceneCount": 427,
+    "controlInstanceCount": 6517,
+    "unbound": [],
+    "errors": [],
+    "mismatches": []
+  },
+  "static": {
+    "status": "PASS",
+    "generatedAt": "2026-09-07T12:07:39.452Z",
+    "pageCount": 73,
+    "groupCount": 10,
+    "stateCount": 7,
+    "viewportCount": 3,
+    "staticRenderedScenarioCount": 308,
+    "httpScenarioCount": 1533,
+    "assertionCount": 3491,
+    "failures": [],
+    "limitation": "此结果只验证 Node 状态机、静态渲染合同和 URL 可达性；HTTP 成功不代表真实场景成立。真实 DOM、焦点、交互与临时视觉核对结论见独立浏览器报告。"
+  },
+  "lint": {
+    "ok": true,
+    "file": "/Volumes/slm-ssd/projects/ai-project/ai-platform/docs/prototypes/wp-0016/index.html",
+    "failOn": "p1",
+    "counts": {
+      "p0": 0,
+      "p1": 0,
+      "p2": 0
+    },
+    "findings": [],
+    "agentMessage": ""
+  },
+  "sourceFiles": [
+    {
+      "file": "prototype-state.js",
+      "sha256": "5ec7355f56b1c6729e6f0b2968393c895a18c1e0aac2a54334b0467236593b53"
+    },
+    {
+      "file": "prototype.js",
+      "sha256": "ad90405dfe194bdb99670dd05119be77d00293787695bd997ca9974ec5d9a799"
+    },
+    {
+      "file": "full-platform.js",
+      "sha256": "b8e69e79199f3b23401027b181314d387c32f6cf51cd357ff36e3b4bdfc233f4"
+    },
+    {
+      "file": "provider-presets.js",
+      "sha256": "0da0548dd28d442d8d45e08ca38adbb222f5f48eaa6557090cf331d51a08fa33"
+    },
+    {
+      "file": "prototype.css",
+      "sha256": "541c65185857b062025b7ea84b773e7ed1963673412a42a8d7b5201cb8123667"
+    },
+    {
+      "file": "scripts/enumerate-controls.cjs",
+      "sha256": "16a9891b649f4d4069c4a2abd3998e2772adc077e41cbc57f2becca0c3063054"
+    }
+  ],
+  "limitations": [
+    "不穷举全部输入组合，控件接线不等于业务正确",
+    "不连接真实厂商、不验证生产安全和性能",
+    "90 张矩阵截图及专项截图只在系统临时目录",
+    "历史中错误的空壳控件枚举结果已作废，本报告使用目标页面及状态一致性检查后的数据"
+  ]
+}

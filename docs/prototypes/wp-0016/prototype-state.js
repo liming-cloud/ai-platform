@@ -1,4 +1,5 @@
 import { restoreDetailContext } from "./detail-context.js";
+import { resolveProviderPreset } from "./provider-presets.js";
 
 export const DEFAULT_TENANT_ID = "tenant-spruce";
 export const PROTOTYPE_STATE_KEY = "wp0016-business-demo-v1";
@@ -1570,6 +1571,9 @@ export function createPrototypeStore(storage = browserStorage()) {
     const name = typeof input.name === "string" ? input.name.trim() : "";
     const runtimeOrigin = safeRuntimeOrigin(input.runtimeBaseUrl);
     const capability = String(input.capability || "CHAT");
+    const preset = resolveProviderPreset({ ...input, capability });
+    if (!preset.ok) return preset;
+    if (input.providerId && input.providerId !== "CUSTOM" && input.runtimeBaseUrl !== preset.runtimeBaseUrl) return { ok: false, reason: "PROVIDER_ENDPOINT_MISMATCH" };
     if (name.length < 2 || name.length > 80) return { ok: false, reason: "CONNECTION_NAME_INVALID" };
     if (!runtimeOrigin) return { ok: false, reason: "UNSAFE_RUNTIME_ENDPOINT" };
     if (!MODEL_CAPABILITIES.includes(capability)) return { ok: false, reason: "MODEL_CAPABILITY_INVALID" };
@@ -1579,7 +1583,10 @@ export function createPrototypeStore(storage = browserStorage()) {
       id: `pc-custom-${state.models.platformConnections.length + 1}`,
       name,
       providerKind: "OPENAI_COMPATIBLE",
-      runtimeProtocol: capability === "RERANK" ? "VENDOR_POST_PROCESSOR" : "OPENAI_COMPATIBLE",
+      providerId: preset.providerId,
+      providerName: preset.providerName,
+      presetVersion: preset.version,
+      runtimeProtocol: preset.runtimeProtocol,
       runtimeOrigin,
       capability,
       status: "DRAFT",
@@ -3713,6 +3720,19 @@ export function createPrototypeStore(storage = browserStorage()) {
     if (accountId === actorAccountId) {
       return { ok: false, reason: "SELF_RESET_FORBIDDEN" };
     }
+    return applyPasswordReset(accountId, input);
+  }
+
+  /** 全局口令只能由所属租户治理；共享身份和管理员不能借成员入口重置。 */
+  function resetMemberPassword(tenantId, accountId, input, actorAccountId) {
+    if (!canManageMembers(tenantId, actorAccountId)) return { ok: false, reason: "FORBIDDEN" };
+    const memberships = state.tenants.flatMap(tenant => tenant.members.filter(member => member.accountId === accountId).map(member => ({ tenantId: tenant.id, ...member })));
+    if (accountById(accountId)?.platformAdministrator || memberships.length !== 1 || memberships[0].tenantId !== tenantId || memberships[0].role !== "ordinaryMember") return { ok: false, reason: "MEMBER_RESET_FORBIDDEN" };
+    return applyPasswordReset(accountId, input);
+  }
+
+  /** 两个受控入口共享口令轮换事务，失败不得撤销既有身份。 */
+  function applyPasswordReset(accountId, input = {}) {
     const account = accountById(accountId);
     if (!account) {
       return { ok: false, reason: "ACCOUNT_NOT_FOUND" };
@@ -3879,23 +3899,22 @@ export function createPrototypeStore(storage = browserStorage()) {
     return { ok: true, tenant: clone(tenant) };
   }
 
-  function addMember(tenantId, input = {}) {
+  /** 仅活动租户的活动管理员可治理普通成员；入口隐藏不是授权边界。 */
+  function canManageMembers(tenantId, actorAccountId) {
+    const account = accountById(actorAccountId);
     const tenant = tenantById(tenantId);
-    const account = accountById(input.accountId);
-    if (!tenant) {
-      return { ok: false, reason: "TENANT_NOT_FOUND" };
-    }
-    if (
-      !account ||
-      account.platformAdministrator ||
-      !account.memberEligible ||
-      account.status !== "available"
-    ) {
-      return { ok: false, reason: "ACCOUNT_NOT_ELIGIBLE" };
-    }
-    if (tenant.members.some((member) => member.accountId === account.id)) {
-      return { ok: false, reason: "MEMBER_ALREADY_EXISTS" };
-    }
+    const membership = memberById(tenantId, actorAccountId);
+    return account?.status === "available" && !account.platformAdministrator && tenant?.status === "active" && membership?.role === "tenantAdministrator" && membership.status === "active";
+  }
+
+  /** 开户与普通成员授权一次提交，不再依赖平台的人员候选目录。 */
+  function addMember(tenantId, input = {}, actorAccountId) {
+    if (!canManageMembers(tenantId, actorAccountId)) return { ok: false, reason: "FORBIDDEN" };
+    const prepared = prepareAccount(input, false);
+    if (!prepared.ok) return prepared;
+    const account = prepared.account;
+    if (!Array.isArray(input.conversationFeatures) || !Array.isArray(input.assistantIds) || input.conversationFeatures.some(feature => !CONVERSATION_FEATURES.includes(feature))) return { ok: false, reason: "MEMBER_FEATURES_INVALID" };
+    if (input.assistantIds.some(id => !state.assistantDelivery.assistants.some(assistant => assistant.id === id && assistant.tenantId === tenantId && assistant.versions.some(version => version.id === assistant.publishedVersionId && version.status === "PUBLISHED")))) return { ok: false, reason: "MEMBER_ASSISTANTS_INVALID" };
     const requested = new Set(input.conversationFeatures || []);
     const member = {
       accountId: account.id,
@@ -3906,9 +3925,8 @@ export function createPrototypeStore(storage = browserStorage()) {
       ),
       assistantIds: [...new Set(input.assistantIds || [])],
     };
-    tenant.members.push(member);
-    persist();
-    return { ok: true, member: clone(member) };
+    const saved = commitState({ ...state, selectedDemoAccountId: account.id, accounts: [...state.accounts, account], tenants: state.tenants.map(item => item.id === tenantId ? { ...item, members: [...item.members, member] } : item) });
+    return saved.ok ? { ok: true, member: clone(member), account: clone(account) } : saved;
   }
 
   function findMember(tenantId, accountId) {
@@ -3916,7 +3934,8 @@ export function createPrototypeStore(storage = browserStorage()) {
     return member ? clone(member) : null;
   }
 
-  function setMemberStatus(tenantId, accountId, status) {
+  function setMemberStatus(tenantId, accountId, status, actorAccountId) {
+    if (!canManageMembers(tenantId, actorAccountId)) return { ok: false, reason: "FORBIDDEN" };
     const member = memberById(tenantId, accountId);
     if (!member) {
       return { ok: false, reason: "MEMBER_NOT_FOUND" };
@@ -3927,9 +3946,9 @@ export function createPrototypeStore(storage = browserStorage()) {
     if (!["active", "disabled"].includes(status)) {
       return { ok: false, reason: "INVALID_STATUS" };
     }
-    member.status = status;
-    persist();
-    return { ok: true, member: clone(member) };
+    const nextMember = { ...member, status };
+    const saved = commitState({ ...state, tenants: state.tenants.map(tenant => tenant.id === tenantId ? { ...tenant, members: tenant.members.map(item => item.accountId === accountId ? nextMember : item) } : tenant) });
+    return saved.ok ? { ok: true, member: clone(nextMember) } : saved;
   }
 
   function setTenantFeatureDraft(tenantId, feature, enabled) {
@@ -4876,6 +4895,7 @@ export function createPrototypeStore(storage = browserStorage()) {
     saveTenantSecurity,
     createAccount,
     resetAccountPassword,
+    resetMemberPassword,
     assignPlatformAdministrator,
     setAccountStatus,
     createKnowledgeBase,

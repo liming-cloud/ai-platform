@@ -490,16 +490,19 @@ async function validateTenantAndMemberControls(page) {
   await loginQueryDemo(page);
   await openScenario(page, "tenant-members", "success");
   await page.locator('[data-business-action="open-add-member"]').click();
-  await page.locator("#member-account-search").fill("林澈");
-  await page.locator("#member-account-select").selectOption("account-lin");
+  await page.locator('#add-member-form [name="loginName"]').fill('lin.member');
+  await page.locator('#add-member-form [name="password"]').fill('demo-only');
+  await page.locator('#add-member-form [name="passwordConfirmation"]').fill('demo-only');
   await page.locator('#add-member-form button[type="submit"]').click();
+  await page.locator('tbody [data-account-row="account-lin-member-6"]').waitFor();
   assert(
-    await page.getByText("林澈（合成）", { exact: true }).first().isVisible(),
+    await page.locator('tbody [data-account-row="account-lin-member-6"]').isVisible(),
     "添加普通成员后列表未更新",
   );
   await page.reload({ waitUntil: "domcontentloaded" });
+  await page.locator('tbody [data-account-row="account-lin-member-6"]').waitFor();
   assert(
-    await page.getByText("林澈（合成）", { exact: true }).first().isVisible(),
+    await page.locator('tbody [data-account-row="account-lin-member-6"]').isVisible(),
     "刷新后新增普通成员未保留",
   );
 
@@ -532,7 +535,7 @@ async function validateTenantAndMemberControls(page) {
   await page.locator('[data-business-action="save-tenant-features"]').click();
   await openScenario(page, "tenant-members", "success");
   await page
-    .locator('[data-business-action="select-demo-member"][data-account-id="account-lin"]')
+    .locator('[data-business-action="select-demo-member"][data-account-id="account-lin-member-6"]')
     .click();
   await page.goto(
     scenarioUrl("conversation", "success", false, "cv-20260902-01"),
@@ -608,12 +611,12 @@ async function validateMemberDialog(page) {
   assert(!(await page.locator("#add-member-dialog").evaluate((dialog) => dialog.open)), "Escape 未关闭成员弹窗");
   assert(await trigger.evaluate((button) => button === document.activeElement), "成员弹窗关闭后焦点未返回");
   await trigger.click();
-  await page.locator("#member-account-select").selectOption("account-lin");
+  await page.locator('#add-member-form [name="loginName"]').fill('lin.member');
   await page.locator("[data-cancel-add-member]").click();
-  assert(!(await page.locator("main").innerText()).includes("林澈（合成）"), "取消添加仍创建成员");
+  assert(!(await page.locator("main").innerText()).includes("lin.member"), "取消添加仍创建成员");
   await page.reload({ waitUntil: "domcontentloaded" });
   await page.locator('main[data-screen="tenant-members"]').waitFor();
-  assert(!(await page.locator("main").innerText()).includes("林澈（合成）"), "取消添加后刷新出现新成员");
+  assert(!(await page.locator("main").innerText()).includes("lin.member"), "取消添加后刷新出现新成员");
 }
 
 async function validateQueryLogin(page) {

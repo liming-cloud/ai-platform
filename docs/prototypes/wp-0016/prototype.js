@@ -1,3 +1,4 @@
+import { PROVIDER_PRESETS, resolveProviderPreset } from "./provider-presets.js";
 import { decorateExistingPage, renderInventoryPage, renderDemoLoginHelp, renderDemoLoginRepair, renderLoginEntries } from "./full-platform.js";
 import { renderConsoleNavigation, renderAccountMenu } from "./navigation.js";
 import { workspaceJourney } from "./workspace-journeys.js";
@@ -331,7 +332,7 @@ function render() {
           ),
           accountFeedback,
         }
-      : screen === "platform-accounts"
+      : ["platform-accounts", "tenant-members"].includes(screen)
         ? { ...demoState, accountFeedback }
         : ["console-login", "tenant-login"].includes(screen) ? { ...demoState, consoleLoginFeedback, consoleLoginName, consoleLoginTenants, loginTenantCode: params.get('tenantCode'),
           needsDemoLoginRepair: prototypeStore.needsDemoLoginRepair(), demoLoginRepairFeedback } : demoState;
@@ -1600,12 +1601,22 @@ function modelDirectoryTable(headers, rows) {
 function renderPlatformModelConnections(state, demoState) {
   const models = demoState.models;
   const rows = models.platformConnections.map(connection =>
-    `<tr><td><strong>${escapeHtml(connection.name)}</strong><small>${escapeHtml(connection.providerKind === "OPENAI_COMPATIBLE" ? "OpenAI 兼容运行接口" : connection.providerKind)}</small></td><td>${escapeHtml(modelCapabilityLabel(connection.capability))}</td><td>${statusTag(connection.status)}</td><td><button class="button subtle" type="button" data-select-platform-connection="${escapeHtml(connection.id)}" data-nav-screen="platform-model-connection-detail" aria-label="查看${escapeHtml(connection.name)}">查看</button></td></tr>`
+    `<tr><td><strong>${escapeHtml(connection.name)}</strong><small>${escapeHtml(`${connection.providerName || "已有连接"} · ${connection.runtimeProtocol === "VENDOR_POST_PROCESSOR" || connection.capability === "RERANK" ? "厂商重排适配" : "OpenAI 兼容协议"}`)}</small></td><td>${escapeHtml(modelCapabilityLabel(connection.capability))}</td><td>${statusTag(connection.status)}</td><td><button class="button subtle" type="button" data-select-platform-connection="${escapeHtml(connection.id)}" data-nav-screen="platform-model-connection-detail" aria-label="查看${escapeHtml(connection.name)}">查看</button></td></tr>`
   );
   const content = [
     '<div class="inline-note">标准 Chat 与 Embedding 运行调用使用 OpenAI 兼容协议；Rerank 通过独立检索后处理适配。供应商发现可以使用受限控制面接口，但不会把地址、访问密钥或原始响应展示给租户。</div>',
     modelDirectoryTable(["连接", "运行能力", "状态", "操作"], rows),
-    '<dialog id="platform-connection-dialog" class="dialog-surface"><form id="platform-connection-form"><span class="section-kicker">新增连接</span><h2>建立供应商连接草稿</h2><div class="form-grid"><label class="field"><span>连接名称</span><input class="input" name="name" autocomplete="off" required></label><label class="field"><span>运行能力</span><select class="select" name="capability"><option value="CHAT">Chat</option><option value="EMBEDDING">Embedding</option><option value="RERANK">Rerank</option></select></label><label class="field form-grid-wide"><span>运行地址</span><input class="input" name="runtimeBaseUrl" type="url" placeholder="https://models.example.invalid/v1" required><small>仅接受公网 HTTPS；保存后只显示脱敏连接事实。</small></label><label class="field form-grid-wide"><span>一次性访问密钥</span><input class="input" name="accessKey" type="password" autocomplete="new-password" required><small>只用于当前提交，不回显、不写入原型状态。</small></label></div><p id="platform-connection-feedback" class="form-feedback" role="alert"></p><div class="release-actions"><button class="button secondary" type="button" data-close-dialog="platform-connection-dialog">取消</button><button class="button primary" type="submit">保存连接草稿</button></div></form></dialog>',
+    `<dialog id="platform-connection-dialog" class="dialog-surface account-dialog" aria-labelledby="platform-connection-title"><form id="platform-connection-form" novalidate>
+      <span class="section-kicker">模型治理 · 连接草稿</span><h2 id="platform-connection-title">新增供应商连接</h2>
+      <div class="wizard-field-grid"><label class="field"><span>厂商类型</span><select class="select" name="providerId" aria-label="厂商类型">${PROVIDER_PRESETS.map(preset => `<option value="${preset.id}">${preset.name}</option>`).join('')}</select></label>
+      <label class="field"><span>运行能力</span><select class="select" name="capability" aria-label="运行能力"><option value="CHAT">Chat · 对话</option><option value="EMBEDDING">Embedding · 文本向量</option><option value="RERANK">Rerank · 文本重排</option></select></label></div>
+      <label class="field"><span>连接名称</span><input class="input" name="name" autocomplete="off" required maxlength="80"></label>
+      <label class="field" data-provider-workspace hidden><span>业务空间 ID</span><input class="input" name="workspaceId" autocomplete="off" maxlength="63" placeholder="填写百炼控制台的业务空间 ID"></label>
+      <div class="compact-summary"><span data-provider-region>自行配置</span><span data-provider-protocol>OpenAI 兼容协议</span></div>
+      <label class="field"><span>运行地址</span><input class="input mono" name="runtimeBaseUrl" type="url" placeholder="https://models.example.invalid/v1" required><small data-provider-address-help>仅接受公网 HTTPS；不使用真实密钥测试原型。</small></label>
+      <label class="field"><span>一次性访问密钥</span><input class="input" name="accessKey" type="password" autocomplete="new-password" required minlength="8"><small>选择厂商或能力后重新填写，不保存到原型。</small></label>
+      <p id="platform-connection-feedback" class="form-feedback" role="alert"></p><div class="release-actions"><button class="button secondary" type="button" data-close-dialog="platform-connection-dialog">取消</button><button class="button primary" type="submit">保存连接草稿</button></div>
+    </form></dialog>`,
   ].join("");
   return adminShell(
     "platform-model-connections",
@@ -1630,7 +1641,7 @@ function renderPlatformModelConnectionDetail(state, demoState) {
   const content = [
     `<div class="inline-note${connection.status === "FAILED" ? " danger" : ""}">${escapeHtml(connection.probeResult || "尚未执行本版本的连接探测。")}</div>`,
     '<div class="split-detail"><div>',
-    `<section class="section-block" data-model-status="${escapeHtml(connection.status)}"><div class="section-heading"><div><span class="section-kicker">连接版本 v${escapeHtml(connection.version)}</span><h2>${escapeHtml(connection.name)}</h2></div>${statusTag(connection.status)}</div><dl class="description-list"><div class="description-row"><dt>供应商类型</dt><dd>OpenAI 兼容</dd></div><div class="description-row"><dt>运行协议</dt><dd>${escapeHtml(connection.runtimeProtocol === "OPENAI_COMPATIBLE" ? "OpenAI 兼容接口" : "独立 Rerank 后处理适配")}</dd></div><div class="description-row"><dt>能力范围</dt><dd>${escapeHtml(modelCapabilityLabel(connection.capability))}</dd></div><div class="description-row"><dt>访问认证</dt><dd>${escapeHtml(connection.authenticationState === "CONFIGURED" ? "已配置（不回显）" : "待配置")}</dd></div><div class="description-row"><dt>最近探测</dt><dd>${escapeHtml(connection.lastProbe || "尚未探测")}</dd></div></dl></section>`,
+    `<section class="section-block" data-model-status="${escapeHtml(connection.status)}"><div class="section-heading"><div><span class="section-kicker">连接版本 v${escapeHtml(connection.version)}</span><h2>${escapeHtml(connection.name)}</h2></div>${statusTag(connection.status)}</div><dl class="description-list"><div class="description-row"><dt>供应商类型</dt><dd>${escapeHtml(connection.providerName || "自定义连接")}</dd></div><div class="description-row"><dt>运行协议</dt><dd>${escapeHtml(connection.runtimeProtocol === "OPENAI_COMPATIBLE" ? "OpenAI 兼容接口" : "独立 Rerank 后处理适配")}</dd></div><div class="description-row"><dt>能力范围</dt><dd>${escapeHtml(modelCapabilityLabel(connection.capability))}</dd></div><div class="description-row"><dt>访问认证</dt><dd>${escapeHtml(connection.authenticationState === "CONFIGURED" ? "已配置（不回显）" : "待配置")}</dd></div><div class="description-row"><dt>最近探测</dt><dd>${escapeHtml(connection.lastProbe || "尚未探测")}</dd></div></dl></section>`,
     `<section class="section-block"><div class="section-heading"><h2>发现模型</h2><span class="status-tag" data-tone="info">${connection.discoveredModels.length} 个</span></div><ul class="selection-list">${models}</ul></section>`,
     '</div><aside><section class="release-decision"><span class="section-kicker">当前动作</span><h2>探测后再发布</h2><p>验证公网 HTTPS、认证、能力和响应边界；发布后仍需建立平台部署并显式授权租户。</p><div class="form-actions">' + operation + '</div>' + (modelFeedback ? `<p class="form-feedback" role="status">${escapeHtml(modelFeedback)}</p>` : "") + '</section></aside></div>',
   ].join("");
@@ -2610,18 +2621,60 @@ function bindModelGovernance() {
   });
 
   const platformConnectionDialog = root.querySelector("#platform-connection-dialog");
+  const connectionForm = root.querySelector("#platform-connection-form");
+  let suggestedConnectionName = "";
+  function updateProviderFields() {
+    const controls = connectionForm.elements;
+    const preset = PROVIDER_PRESETS.find(item => item.id === controls.providerId.value);
+    const previousCapability = controls.capability.value;
+    controls.capability.replaceChildren(...preset.capabilities.map(capability => new Option(modelCapabilityLabel(capability), capability)));
+    controls.capability.value = preset.capabilities.includes(previousCapability) ? previousCapability : preset.capabilities[0];
+    const requiresWorkspace = preset.id === "ALIYUN" && controls.capability.value !== "EMBEDDING";
+    connectionForm.querySelector("[data-provider-workspace]").hidden = !requiresWorkspace;
+    controls.workspaceId.required = requiresWorkspace;
+    controls.workspaceId.disabled = !requiresWorkspace;
+    const resolved = resolveProviderPreset({ providerId: preset.id, capability: controls.capability.value, workspaceId: controls.workspaceId.value, runtimeBaseUrl: controls.runtimeBaseUrl.value });
+    controls.runtimeBaseUrl.readOnly = preset.id !== "CUSTOM";
+    controls.runtimeBaseUrl.value = resolved.runtimeBaseUrl || "";
+    controls.accessKey.value = "";
+    const nextName = preset.id === "CUSTOM" ? "" : `${preset.name} · ${modelCapabilityLabel(controls.capability.value)}`;
+    if (!controls.name.value || controls.name.value === suggestedConnectionName) controls.name.value = nextName;
+    suggestedConnectionName = nextName;
+    connectionForm.querySelector("[data-provider-region]").textContent = preset.region;
+    connectionForm.querySelector("[data-provider-protocol]").textContent = controls.capability.value === "RERANK" ? "厂商重排适配 · 非统一 OpenAI 标准" : "OpenAI 兼容协议";
+    connectionForm.querySelector("[data-provider-address-help]").textContent = requiresWorkspace && !resolved.ok ? "先填写业务空间 ID，自动生成北京地域地址。" : preset.id === "CUSTOM" ? "填写服务商提供的公网 HTTPS 地址；重排填写完整端点。" : "地址由已核实的厂商预设生成；如需其他区域，请使用自定义连接。";
+    connectionForm.querySelector("[role='alert']").textContent = "";
+  }
+  connectionForm?.elements.providerId.addEventListener("change", () => {
+    connectionForm.elements.runtimeBaseUrl.value = "";
+    connectionForm.elements.workspaceId.value = "";
+    updateProviderFields();
+  });
+  connectionForm?.elements.capability.addEventListener("change", updateProviderFields);
+  connectionForm?.elements.workspaceId.addEventListener("input", updateProviderFields);
+  platformConnectionDialog?.addEventListener("close", () => {
+    connectionForm.reset();
+    updateProviderFields();
+    root.querySelector("[data-open-platform-connection]")?.focus();
+  });
   root.querySelector("[data-open-platform-connection]")?.addEventListener("click", () => platformConnectionDialog?.showModal());
   root.querySelector("#platform-connection-form")?.addEventListener("submit", event => {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
     const result = prototypeStore.createPlatformModelConnection({
       name: form.get("name"),
+      providerId: form.get("providerId"),
+      workspaceId: form.get("workspaceId"),
       runtimeBaseUrl: form.get("runtimeBaseUrl"),
       capability: form.get("capability"),
       accessKey: form.get("accessKey"),
     }, prototypeStore.getSession().accountId);
+    event.currentTarget.elements.accessKey.value = "";
     if (!result.ok) {
       root.querySelector("#platform-connection-feedback").textContent = {
+        WORKSPACE_REQUIRED: "业务空间 ID 仅允许小写字母、数字和连字符。",
+        PROVIDER_CAPABILITY_INVALID: "该厂商预设未覆盖此能力，请重新选择。",
+        PROVIDER_ENDPOINT_MISMATCH: "运行地址与厂商预设不一致，请重新选择厂商。",
         UNSAFE_RUNTIME_ENDPOINT: "运行地址必须是公网 HTTPS，不能使用本机或私网目标。",
         ACCESS_KEY_REQUIRED: "请输入至少 8 个字符的一次性访问密钥。",
         CONNECTION_NAME_CONFLICT: "连接名称已存在。",
@@ -3392,6 +3445,9 @@ function bindAccountManagement() {
 
   const resetDialog = root.querySelector("#reset-account-password-dialog");
   const resetForm = root.querySelector("#reset-account-password-form");
+  resetDialog?.addEventListener("close", () => {
+    resetForm.querySelectorAll('[type="password"]').forEach(control => { control.value = ""; });
+  });
   root.querySelectorAll("[data-reset-account]").forEach((trigger) => {
     trigger.addEventListener("click", () => {
       resetValidation(resetForm, resetForm?.querySelector("[role='alert']"));
@@ -3431,15 +3487,15 @@ function bindAccountManagement() {
     }
     const values = new FormData(resetForm);
     const accountId = resetForm.dataset.accountId;
-    const result = prototypeStore.resetAccountPassword(
-      accountId,
-      {
+    const resetInput = {
         password: values.get("password"),
         passwordConfirmation: values.get("passwordConfirmation"),
         revokeSessions: values.get("revokeSessions") === "on",
-      },
-      prototypeStore.getSession().accountId,
-    );
+    };
+    const actor = prototypeStore.getSession().accountId;
+    const result = root.querySelector('main[data-screen="tenant-members"]')
+      ? prototypeStore.resetMemberPassword(workspaceTenantId(), accountId, resetInput, actor)
+      : prototypeStore.resetAccountPassword(accountId, resetInput, actor);
     if (!result.ok) {
       showErrors(resetForm, feedback, result, "当前账户无法重置密码。");
       return;
@@ -3822,6 +3878,12 @@ function bindTenantFeatures() {
 }
 
 function bindMemberManagement() {
+  const memberDialog = root.querySelector("#add-member-dialog");
+  memberDialog?.addEventListener("close", () => {
+    memberDialog.querySelector("form").reset();
+    memberDialog.querySelector("#add-member-feedback").textContent = "";
+    root.querySelector('[data-business-action="open-add-member"]')?.focus();
+  });
   root
     .querySelector('[data-business-action="open-add-member"]')
     ?.addEventListener("click", () => {
@@ -3830,49 +3892,52 @@ function bindMemberManagement() {
   root.querySelector("[data-cancel-add-member]")?.addEventListener("click", () => {
     root.querySelector("#add-member-dialog")?.close();
   });
-  root.querySelector("#member-account-search")?.addEventListener("input", (event) => {
-    const query = event.currentTarget.value.trim().toLocaleLowerCase("zh-CN");
-    const select = root.querySelector("#member-account-select");
-    [...select.options].forEach((option, index) => {
-      if (index > 0) {
-        option.hidden = query.length > 0 && !option.textContent.toLocaleLowerCase("zh-CN").includes(query);
-      }
-    });
-  });
   root.querySelector("#add-member-form")?.addEventListener("submit", (event) => {
     event.preventDefault();
     const form = event.currentTarget;
     const values = new FormData(form);
     const result = prototypeStore.addMember(workspaceTenantId(), {
-      accountId: values.get("accountId"),
+      loginName: values.get("loginName"),
+      password: values.get("password"),
+      passwordConfirmation: values.get("passwordConfirmation"),
       conversationFeatures: values.getAll("conversationFeatures"),
       assistantIds: values.getAll("assistantIds"),
-    });
+    }, prototypeStore.getSession().accountId);
+    form.querySelectorAll('[type="password"]').forEach(control => { control.value = ""; });
     if (!result.ok) {
-      const messages = {
-        ACCOUNT_NOT_ELIGIBLE: "该账户不符合普通成员资格。",
-        MEMBER_ALREADY_EXISTS: "该账户已是当前租户成员。",
-      };
       const feedback = form.querySelector("#add-member-feedback");
-      feedback.textContent = messages[result.reason] || "无法添加该成员。";
+      feedback.textContent = result.errors?.map(error => error.message).join(" ") || "无法添加该成员，请核对身份、助手范围或浏览器存储。";
       feedback.dataset.tone = "danger";
+      form.elements.namedItem(result.errors?.[0]?.field || "loginName")?.focus();
       return;
     }
     form.closest("dialog")?.close();
+    accountFeedback = result.member.assistantIds.length ? `${result.account.loginName} 已创建，可从普通用户问答登录入口进入本租户。` : `${result.account.loginName} 已创建，尚未授权助手。请在对话功能中选择可用助手后再登录问答。`;
     render();
   });
   root
     .querySelectorAll('[data-business-action="toggle-member-status"]')
     .forEach((button) => {
       button.addEventListener("click", () => {
-        prototypeStore.setMemberStatus(
-          workspaceTenantId(),
-          button.dataset.accountId,
-          button.dataset.nextStatus,
-        );
-        render();
+        if (button.dataset.nextStatus === "disabled") {
+          const dialog = root.querySelector("#member-status-dialog");
+          dialog.dataset.accountId = button.dataset.accountId;
+          dialog.showModal();
+        } else updateStatus(button.dataset.accountId, "active");
       });
     });
+  function updateStatus(accountId, status) {
+    const result = prototypeStore.setMemberStatus(workspaceTenantId(), accountId, status, prototypeStore.getSession().accountId);
+    if (!result.ok) {
+      const error = root.querySelector("#member-status-dialog[open] #member-status-error") || root.querySelector("#account-operation-feedback");
+      error.textContent = "成员状态未保存，请核对权限与浏览器存储后重试。";
+      return;
+    }
+    accountFeedback = status === "disabled" ? "已停用此成员，本租户会话访问已撤销。" : "已恢复此成员，原有助手授权保持不变。";
+    render();
+    root.querySelector(`[data-account-row="${CSS.escape(accountId)}"]`)?.focus();
+  }
+  root.querySelector("[data-confirm-member-disable]")?.addEventListener("click", () => updateStatus(root.querySelector("#member-status-dialog").dataset.accountId, "disabled"));
   root
     .querySelectorAll('[data-business-action="select-demo-member"]')
     .forEach((button) => {

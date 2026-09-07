@@ -124,32 +124,32 @@ test("添加普通成员支持资格拒绝、去重、停用恢复和刷新", as
 
   assert.equal(
     store.addMember(DEFAULT_TENANT_ID, { accountId: "account-platform-admin" }).reason,
-    "ACCOUNT_NOT_ELIGIBLE",
+    "FORBIDDEN",
   );
   const added = store.addMember(DEFAULT_TENANT_ID, {
-    accountId: "account-lin",
+    loginName: "lin.member", password: "demo-only", passwordConfirmation: "demo-only",
     conversationFeatures: ["assistantSelection", "conversation"],
     assistantIds: ["assistant-employee-service"],
-  });
+  }, "account-qiao");
   assert.equal(added.ok, true);
   assert.equal(
-    store.addMember(DEFAULT_TENANT_ID, { accountId: "account-lin" }).reason,
-    "MEMBER_ALREADY_EXISTS",
+    store.addMember(DEFAULT_TENANT_ID, { loginName: "lin.member" }, "account-qiao").reason,
+    "LOGIN_NAME_CONFLICT",
   );
   assert.equal(
-    store.setMemberStatus(DEFAULT_TENANT_ID, "account-qiao", "disabled").reason,
+    store.setMemberStatus(DEFAULT_TENANT_ID, "account-qiao", "disabled", "account-qiao").reason,
     "ADMINISTRATOR_READ_ONLY",
   );
   assert.equal(
-    store.setMemberStatus(DEFAULT_TENANT_ID, "account-lin", "disabled").ok,
+    store.setMemberStatus(DEFAULT_TENANT_ID, "account-lin-member-6", "disabled", "account-qiao").ok,
     true,
   );
   assert.equal(
-    createPrototypeStore(storage).findMember(DEFAULT_TENANT_ID, "account-lin").status,
+    createPrototypeStore(storage).findMember(DEFAULT_TENANT_ID, "account-lin-member-6").status,
     "disabled",
   );
   assert.equal(
-    store.setMemberStatus(DEFAULT_TENANT_ID, "account-lin", "active").ok,
+    store.setMemberStatus(DEFAULT_TENANT_ID, "account-lin-member-6", "active", "account-qiao").ok,
     true,
   );
 });
@@ -161,10 +161,10 @@ test("两级功能草稿取消不生效，保存与刷新生效，直接访问�
   const store = createPrototypeStore(storage);
   store.reset();
   store.addMember(DEFAULT_TENANT_ID, {
-    accountId: "account-lin",
+    loginName: "lin.member", password: "demo-only", passwordConfirmation: "demo-only",
     conversationFeatures: ["assistantSelection", "conversation"],
     assistantIds: ["assistant-employee-service"],
-  });
+  }, "account-qiao");
 
   store.setTenantFeatureDraft(DEFAULT_TENANT_ID, "conversation", false);
   store.discardTenantFeatureDraft(DEFAULT_TENANT_ID);
@@ -178,7 +178,7 @@ test("两级功能草稿取消不生效，保存与刷新生效，直接访问�
   assert.equal(
     createPrototypeStore(storage).getEffectiveAccess(
       DEFAULT_TENANT_ID,
-      "account-lin",
+      "account-lin-member-6",
       { feature: "conversation" },
     ).allowed,
     false,
@@ -186,11 +186,11 @@ test("两级功能草稿取消不生效，保存与刷新生效，直接访问�
 
   store.setMemberFeatureDraft(
     DEFAULT_TENANT_ID,
-    "account-lin",
+    "account-lin-member-6",
     "ownHistory",
     false,
   );
-  store.commitMemberFeatureDraft(DEFAULT_TENANT_ID, "account-lin");
+  store.commitMemberFeatureDraft(DEFAULT_TENANT_ID, "account-lin-member-6");
   store.setTenantFeatureDraft(DEFAULT_TENANT_ID, "ownHistory", false);
   store.commitTenantFeatureDraft(DEFAULT_TENANT_ID);
   store.setTenantFeatureDraft(DEFAULT_TENANT_ID, "ownHistory", true);
@@ -198,7 +198,7 @@ test("两级功能草稿取消不生效，保存与刷新生效，直接访问�
   assert.equal(
     createPrototypeStore(storage).getEffectiveAccess(
       DEFAULT_TENANT_ID,
-      "account-lin",
+      "account-lin-member-6",
       { feature: "ownHistory" },
     ).allowed,
     false,
@@ -206,7 +206,7 @@ test("两级功能草稿取消不生效，保存与刷新生效，直接访问�
 
   const assistantDecision = store.getEffectiveAccess(
     DEFAULT_TENANT_ID,
-    "account-lin",
+    "account-lin-member-6",
     {
       feature: "assistantSelection",
       assistantId: "assistant-support",
@@ -227,11 +227,11 @@ test("平台功能保存投影到租户导航和普通用户直接访问", async
   const store = createPrototypeStore(storage);
   store.reset();
   store.addMember(DEFAULT_TENANT_ID, {
-    accountId: "account-lin",
+    loginName: "lin.member", password: "demo-only", passwordConfirmation: "demo-only",
     conversationFeatures: ["assistantSelection", "conversation"],
     assistantIds: ["assistant-employee-service"],
-  });
-  store.selectDemoAccount("account-lin");
+  }, "account-qiao");
+  store.selectDemoAccount("account-lin-member-6");
   store.setTenantFeatureDraft(DEFAULT_TENANT_ID, "assistantDelivery", false);
   store.commitTenantFeatureDraft(DEFAULT_TENANT_ID);
 
@@ -246,7 +246,7 @@ test("平台功能保存投影到租户导航和普通用户直接访问", async
   store.setTenantFeatureDraft(DEFAULT_TENANT_ID, "assistantSelection", false);
   store.commitTenantFeatureDraft(DEFAULT_TENANT_ID);
   assert.equal(
-    store.authorizeScreen("assistants", DEFAULT_TENANT_ID, "account-lin").allowed,
+    store.authorizeScreen("assistants", DEFAULT_TENANT_ID, "account-lin-member-6").allowed,
     false,
   );
 });

@@ -51,6 +51,7 @@ test('共享事实块具有布局；处理记录多时分批加载且不挤出�
     localStorage.setItem(PROTOTYPE_STATE_KEY, JSON.stringify(state));
   });
   await page.reload();
+  await page.locator('.timeline-list li:visible').first().waitFor();
   assert.equal(await page.locator('.timeline-list li:visible').count(), 5);
   await page.getByRole('button', { name: '加载更早记录', exact: true }).click();
   assert.equal(await page.locator('.timeline-list li:visible').count(), 10);
