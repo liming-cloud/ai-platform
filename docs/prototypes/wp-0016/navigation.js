@@ -61,6 +61,10 @@ export const NAVIGATION_GROUPS = Object.freeze({
 const PARENT_SCREEN = Object.freeze({
   "platform-tenant-create": "platform-tenants",
   "platform-tenant-detail": "platform-tenants",
+  "platform-tenant-admins": "platform-tenants",
+  "platform-tenant-quotas": "platform-tenants",
+  "platform-tenant-features": "platform-tenants",
+  "platform-tenant-security": "platform-tenants",
   "platform-roles": "platform-accounts",
   "platform-model-connection-detail": "platform-model-connections",
   "platform-model-deployments": "platform-model-connections",

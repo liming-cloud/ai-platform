@@ -3,12 +3,12 @@ import assert from "node:assert/strict";
 import { createMemoryStorage, createPrototypeStore, DEFAULT_TENANT_ID } from "../prototype-state.js";
 
 const quotas = { knowledgeBases: 6, documentsPerKnowledgeBase: 2500, rawContentGbPerKnowledgeBase: 30, singleFileMb: 80, pastedTextMib: 2 };
-const input = { organizationName: "青岚配置租户", tenantCode: "qinglan-config", administratorAccountId: "account-qiao", confirmed: true, quotas };
+const input = { organizationName: "青岚配置租户", tenantCode: "qinglan-config", administrator: { loginName: "qinglan.admin", password: "demo-only", passwordConfirmation: "demo-only" }, confirmed: true, quotas };
 const fresh = () => { const storage = createMemoryStorage(); return { storage, store: createPrototypeStore(storage) }; };
 
 test("创建租户保存非默认配额且刷新恢复", () => {
   const { storage, store } = fresh();
-  const result = store.createTenant(input);
+  const result = store.createTenant(input, "account-platform-admin");
   assert.equal(result.ok, true);
   assert.deepEqual(result.tenant.quotas, quotas);
   assert.deepEqual(createPrototypeStore(storage).getSnapshot().tenants.find(t => t.id === result.tenant.id).quotas, quotas);
@@ -18,7 +18,7 @@ test("创建租户保存非默认配额且刷新恢复", () => {
 test("非法配额在创建前拒绝且不留下租户", () => {
   for (const value of [0, -1, 1.5, "", true, Infinity, NaN]) {
     const { store } = fresh();
-    const result = store.createTenant({ ...input, quotas: { ...quotas, knowledgeBases: value } });
+    const result = store.createTenant({ ...input, quotas: { ...quotas, knowledgeBases: value } }, "account-platform-admin");
     assert.equal(result.ok, false, `知识库数量 ${value} 应拒绝`);
     assert.ok(result.errors.some(error => error.field === "knowledgeBases"));
     assert.equal(store.getSnapshot().tenants.length, 1);
@@ -41,10 +41,10 @@ test("创建草稿白名单持久化、回退与取消", () => {
 test("成功创建清除草稿，重复编码失败则保留草稿", () => {
   const { store } = fresh();
   store.updateTenantSetup({ ...input, step: 3 });
-  assert.equal(store.createTenant(input).ok, true);
+  assert.equal(store.createTenant(input, "account-platform-admin").ok, true);
   assert.equal(store.getSnapshot().tenantSetup.step, 1);
   store.updateTenantSetup({ ...input, step: 3 });
-  assert.equal(store.createTenant(input).ok, false);
+  assert.equal(store.createTenant(input, "account-platform-admin").ok, false);
   assert.equal(store.getSnapshot().tenantSetup.organizationName, input.organizationName);
 });
 
@@ -84,7 +84,7 @@ test("资源配额不能低于已用量，单次接入限制可降低而不删�
 test("存储失败不能报告创建、草稿或配置保存成功", () => {
   const storage = createMemoryStorage();
   const failing = { ...storage, setItem() { throw new Error("合成存储故障"); } };
-  for (const act of [store => store.createTenant(input), store => store.updateTenantSetup({ organizationName: "失败草稿" }), store => store.saveTenantQuotas(DEFAULT_TENANT_ID, quotas, "platformAdministrator")]) {
+  for (const act of [store => store.createTenant(input, "account-platform-admin"), store => store.updateTenantSetup({ organizationName: "失败草稿" }), store => store.saveTenantQuotas(DEFAULT_TENANT_ID, quotas, "platformAdministrator")]) {
     const store = createPrototypeStore(failing);
     const before = store.getSnapshot();
     const result = act(store);

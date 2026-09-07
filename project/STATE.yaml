@@ -85,6 +85,7 @@ confirmedDecisions:
   - ADR-0075
   - ADR-0076
   - ADR-0077
+  - ADR-0078
 openDecisions:
   - 后续认证实现包：登录安全策略的生产上下限与已登录会话生效时机
 latestEvidence:

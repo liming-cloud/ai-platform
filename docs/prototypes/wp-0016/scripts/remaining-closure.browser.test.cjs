@@ -33,7 +33,7 @@ test("知识库搜索与状态筛选组合生效，无结果可清空恢复", ()
   assert.equal(await page.locator("[data-kb-row]:visible").count(), 2);
 }));
 
-for (const [screen, label, dialog] of [["knowledge-directory", "创建知识库", "#create-knowledge-base-dialog"], ["platform-accounts", "创建人员账户", "#create-account-dialog"]]) {
+for (const [screen, label, dialog] of [["knowledge-directory", "创建知识库", "#create-knowledge-base-dialog"], ["platform-accounts", "创建平台账户", "#create-account-dialog"]]) {
   test(`${screen} 空态入口可以打开完整创建表单并取消`, () => visit(screen, async page => {
     await page.getByRole("button", { name: label, exact: true }).first().click();
     await page.locator(`${dialog}[open]`).waitFor();
@@ -104,15 +104,15 @@ test("新租户从创建到登录、知识接入全程不展示示例组织内�
   await page.locator("#tenant-organization-name").fill("北辰服务组织");
   await page.locator("#tenant-code").fill("beichen-demo");
   await page.getByRole("button", { name: "下一步", exact: true }).click();
-  await page.locator("#tenant-administrator").selectOption("account-qiao");
   await page.getByRole("button", { name: "下一步", exact: true }).click();
+  await page.locator('[name="loginName"]').fill('beichen.admin');
+  await page.locator('[name="password"]').fill('demo-only');
+  await page.locator('[name="passwordConfirmation"]').fill('demo-only');
   await page.locator('[name="confirmed"]').check();
   await page.getByRole("button", { name: "创建租户", exact: true }).click();
-  await page.goto(url("console-login"));
-  await page.getByLabel("登录名", { exact: true }).fill("qiao.demo");
-  await page.getByLabel("密码", { exact: true }).fill("demo-only");
-  await page.locator("#console-login-form [data-primary-action]").click();
-  await page.locator("#console-tenant-select").selectOption("beichen-demo");
+  await page.goto(url("tenant-login"));
+  await page.getByLabel('租户编码', { exact: true }).fill('beichen-demo');
+  await page.getByLabel("登录名", { exact: true }).fill("beichen.admin");
   await page.getByLabel("密码", { exact: true }).fill("demo-only");
   await page.locator("#console-login-form [data-primary-action]").click();
   await page.locator('main[data-screen="tenant-overview"]').waitFor();

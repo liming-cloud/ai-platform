@@ -1,6 +1,6 @@
 /** 详情页定位使用 URL；选择只是当前标签页视图，不是共享业务事实。 */
 export const DETAIL_CONTEXT = [
-  { parameter: "platformTenantId", collection: ["tenants"], selection: ["selectedTenantId"], screens: ["platform-tenant-detail"] },
+  { parameter: "platformTenantId", collection: ["tenants"], selection: ["selectedTenantId"], screens: ["platform-tenant-detail", "platform-tenant-admins", "platform-tenant-quotas", "platform-tenant-features", "platform-tenant-security"] },
   { parameter: "connectionId", collection: ["models", "platformConnections"], selection: ["models", "selectedPlatformConnectionId"], screens: ["platform-model-connection-detail"] },
   { parameter: "platformDeploymentId", collection: ["models", "platformDeployments"], selection: ["models", "selectedPlatformDeploymentId"], screens: ["platform-model-deployment-detail"] },
   { parameter: "providerId", collection: ["models", "platformConnections"], selection: ["models", "selectedTenantConnectionId"], screens: ["model-provider-detail"] },

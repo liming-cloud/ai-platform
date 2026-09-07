@@ -6,7 +6,7 @@ const url = (screen, state = "success") => `${base}?screen=${screen}&state=${sta
 
 /** 专项通过可见登录表单准备身份，不注入存储或以路由推断产品身份。 */
 async function loginConsole(page, role = "tenant") {
-  await page.goto(url("console-login"));
+  await page.goto(url(role === 'platform' ? 'console-login' : 'tenant-login'));
   await page.getByLabel("登录名", { exact: true }).fill(role === "platform" ? "platform.admin.demo" : "qiao.demo");
   await page.getByLabel("密码", { exact: true }).fill("demo-only");
   await page.locator("#console-login-form [data-primary-action]").click();
@@ -47,7 +47,7 @@ async function openForReview(page, targetUrl, options) {
     });
     if (channel !== "QUERY_APP") await loginMember(page);
   }
-  if (group?.shell === "console" && screen !== "console-login") {
+  if (group?.shell === "console" && !["console-login", "tenant-login"].includes(screen)) {
     const role = ["platform-governance", "platform-operations"].includes(group.id) ? "platform" : "tenant";
     const session = await page.evaluate(() => {
       try { return JSON.parse(localStorage.getItem("wp0016-query-session-v1")); } catch { return null; }
@@ -58,4 +58,18 @@ async function openForReview(page, targetUrl, options) {
   return page.goto(targetUrl, options);
 }
 
-module.exports = { url, loginConsole, loginMember, createConversation, openForReview };
+/** 通过平台目录创建新的平台夹具账户，用于生命周期浏览器验证。 */
+async function createPlatformAccount(page, loginName = 'platform.review') {
+  await page.goto(url('platform-accounts'));
+  await page.getByRole('button', { name: '创建平台账户', exact: true }).click();
+  const form = page.locator('#create-account-form');
+  await form.locator('[name="loginName"]').fill(loginName);
+  await form.locator('[name="password"]').fill('Initial-only-2026!');
+  await form.locator('[name="passwordConfirmation"]').fill('Initial-only-2026!');
+  await form.getByRole('button', { name: '创建账户', exact: true }).click();
+  const row = page.locator('[data-account-row]').filter({ has: page.getByText(loginName, { exact: true }).first() });
+  await row.waitFor();
+  return row.getAttribute('data-account-row');
+}
+
+module.exports = { url, loginConsole, loginMember, createConversation, openForReview, createPlatformAccount };

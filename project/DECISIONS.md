@@ -81,6 +81,7 @@
 | ADR-0075 | 已接受 | 租户功能上限与普通成员对话功能控制 | `docs/adr/ADR-0075-tenant-and-member-feature-control.md` |
 | ADR-0076 | 已接受 | 租户配额与登录安全配置原型 | `docs/adr/ADR-0076-configurable-tenant-quota-prototype.md` |
 | ADR-0077 | 已接受 | OpenDesign 原型事实源与截图存储边界 | `docs/adr/ADR-0077-opendesign-prototype-source-boundary.md` |
+| ADR-0078 | 已接受 | 平台账户与租户开通职责拆分原型 | `docs/adr/ADR-0078-account-entry-and-tenant-setup-prototype.md` |
 
 ## 已确认人工决策
 

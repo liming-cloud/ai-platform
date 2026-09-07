@@ -1,4 +1,4 @@
-const { openForReview } = require("./browser-session.cjs");
+const { openForReview, createPlatformAccount } = require("./browser-session.cjs");
 const { test, before, after } = require("node:test");
 const assert = require("node:assert/strict");
 const { mkdir } = require("node:fs/promises");
@@ -37,8 +37,8 @@ async function visit(name, action, viewport = { width: 1440, height: 900 }) {
   }
 }
 
-test("创建人员账户后刷新仍可见且口令不回显不落存储", () => visit("create-account", async page => {
-  await page.getByRole("button", { name: "创建人员账户", exact: true }).click();
+test("创建平台账户后刷新仍可见且口令不回显不落存储", () => visit("create-account", async page => {
+  await page.getByRole("button", { name: "创建平台账户", exact: true }).click();
   const form = page.locator("#create-account-form");
   await form.locator('[name="loginName"]').fill("zhou.demo");
   await form.locator('[name="password"]').fill("Initial-only-2026!");
@@ -53,7 +53,8 @@ test("创建人员账户后刷新仍可见且口令不回显不落存储", () =>
 }));
 
 test("重置他人密码支持取消、确认撤销会话和刷新恢复", () => visit("reset-password", async page => {
-  const trigger = page.locator('[data-reset-account="account-lin"]');
+  const id = await createPlatformAccount(page);
+  const trigger = page.locator(`[data-reset-account="${id}"]`);
   await trigger.click();
   let form = page.locator("#reset-account-password-form");
   await form.locator('[name="password"]').fill("Discarded-only-2026!");
@@ -66,34 +67,28 @@ test("重置他人密码支持取消、确认撤销会话和刷新恢复", () =>
   await form.locator('[name="passwordConfirmation"]').fill("Reset-only-2026!");
   await form.locator('[name="revokeSessions"]').check();
   await form.getByRole("button", { name: "重置密码", exact: true }).click();
-  assert.match(await page.locator('[data-account-row="account-lin"]').innerText(), /认证版本 2/);
+  assert.match(await page.locator(`[data-account-row="${id}"]`).innerText(), /刚刚重置/);
   assert.doesNotMatch(await page.evaluate(() => localStorage.getItem("wp0016-business-demo-v1") || ""), /Reset-only-2026|Discarded-only-2026|password|credential|secret/i);
   await page.reload();
-  assert.match(await page.locator('[data-account-row="account-lin"]').innerText(), /认证版本 2/);
+  assert.match(await page.locator(`[data-account-row="${id}"]`).innerText(), /刚刚重置/);
 }));
 
-test("人员范围冲突、平台管理员分配与停用恢复均有确定结果", () => visit("govern-account", async page => {
-  await page.locator('[data-account-menu="account-qiao"] summary').click();
-  assert.equal(await page.locator('[data-assign-platform-administrator="account-qiao"]').isDisabled(), true);
-
-  await page.locator('[data-account-menu="account-lin"] summary').click();
-  await page.locator('[data-assign-platform-administrator="account-lin"]').click();
-  await page.locator("#account-governance-form").getByRole("button", { name: "确认设置", exact: true }).click();
-  assert.match(await page.locator('[data-account-row="account-lin"]').innerText(), /平台管理员/);
-
-  await page.locator('[data-account-menu="account-lin"] summary').click();
-  await page.locator('[data-set-account-status="account-lin"]').click();
+test("平台目录隔离租户身份，新平台账户停用恢复均有确定结果", () => visit("govern-account", async page => {
+  assert.equal(await page.locator('[data-account-row="account-qiao"]').count(), 0);
+  const id = await createPlatformAccount(page);
+  await page.locator(`[data-account-menu="${id}"] summary`).click();
+  await page.locator(`[data-set-account-status="${id}"]`).click();
   await page.locator("#account-governance-form").getByRole("button", { name: "确认停用", exact: true }).click();
-  assert.match(await page.locator('[data-account-row="account-lin"]').innerText(), /已停用/);
+  assert.match(await page.locator(`[data-account-row="${id}"]`).innerText(), /已停用/);
 
-  await page.locator('[data-account-menu="account-lin"] summary').click();
-  await page.locator('[data-set-account-status="account-lin"]').click();
+  await page.locator(`[data-account-menu="${id}"] summary`).click();
+  await page.locator(`[data-set-account-status="${id}"]`).click();
   await page.locator("#account-governance-form").getByRole("button", { name: "确认恢复", exact: true }).click();
-  assert.match(await page.locator('[data-account-row="account-lin"]').innerText(), /可用/);
+  assert.match(await page.locator(`[data-account-row="${id}"]`).innerText(), /可用/);
 }));
 
 test("重复登录名和两次口令不一致时定位首个错误", () => visit("validation", async page => {
-  await page.getByRole("button", { name: "创建人员账户", exact: true }).click();
+  await page.getByRole("button", { name: "创建平台账户", exact: true }).click();
   const form = page.locator("#create-account-form");
   await form.locator('[name="loginName"]').fill("qiao.demo");
   await form.locator('[name="password"]').fill("Initial-only-2026!");
@@ -109,7 +104,7 @@ for (const viewport of [
   { width: 390, height: 844 },
 ]) {
   test(`${viewport.width} 账户目录和创建弹窗无横向溢出且主操作可见`, () => visit(`viewport-${viewport.width}`, async page => {
-    const primary = page.getByRole("button", { name: "创建人员账户", exact: true });
+    const primary = page.getByRole("button", { name: "创建平台账户", exact: true });
     const box = await primary.boundingBox();
     assert.ok(box && box.y >= 0 && box.y + box.height <= viewport.height);
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);

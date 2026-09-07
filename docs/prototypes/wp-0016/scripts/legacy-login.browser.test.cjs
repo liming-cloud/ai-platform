@@ -31,7 +31,7 @@ async function visit(action, width = 1440, screen = "console-login") {
 
 for (const [width, username, screen, target] of [
   [1440, "platform.admin.demo", "console-login", "platform-overview"],
-  [1024, "qiao.demo", "console-login", "tenant-overview"],
+  [1024, "qiao.demo", "tenant-login", "tenant-overview"],
   [390, "shen.demo", "login", "assistants"],
 ]) {
   test(`${width} 旧版登录修复有确认、取消与保留数据结果，${username} 可登录并刷新`, () => visit(async (page, before) => {

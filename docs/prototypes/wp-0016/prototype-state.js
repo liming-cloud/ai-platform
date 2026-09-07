@@ -3661,11 +3661,8 @@ export function createPrototypeStore(storage = browserStorage()) {
     return errors;
   }
 
-  /** 账户与公开登录场景在同一快照中提交；场景不是实际凭据。 */
-  function createAccount(input = {}, actorAccountId) {
-    if (!canManageAccounts(actorAccountId)) {
-      return { ok: false, reason: "FORBIDDEN" };
-    }
+  /** 构造身份但不提交；租户开通必须与管理员资格共同原子写入。 */
+  function prepareAccount(input = {}, platformAdministrator = false) {
     const loginName = String(input.loginName || "").trim();
     const errors = accountPasswordErrors(input);
     if (!/^[a-z][a-z0-9._-]{2,63}$/.test(loginName)) {
@@ -3689,15 +3686,23 @@ export function createPrototypeStore(storage = browserStorage()) {
       name: loginName,
       loginName,
       status: "available",
-      platformAdministrator: false,
-      administratorEligible: true,
-      memberEligible: true,
+      platformAdministrator,
+      administratorEligible: !platformAdministrator,
+      memberEligible: !platformAdministrator,
       authenticationRevision: 1,
       loginScenario: demoLoginScenario(input.password),
       authenticationChangedAt: "刚刚创建",
     };
-    const saved = commitState({ ...state, accounts: [...state.accounts, account] });
-    return saved.ok ? { ok: true, account: clone(account) } : saved;
+    return { ok: true, account };
+  }
+
+  /** 平台目录只创建平台管理身份；合成口令场景不是实际凭据。 */
+  function createAccount(input = {}, actorAccountId) {
+    if (!canManageAccounts(actorAccountId)) return { ok: false, reason: "FORBIDDEN" };
+    const prepared = prepareAccount(input, true);
+    if (!prepared.ok) return prepared;
+    const saved = commitState({ ...state, accounts: [...state.accounts, prepared.account] });
+    return saved.ok ? { ok: true, account: clone(prepared.account) } : saved;
   }
 
   /** 重置同时切换公开场景和认证修订，保存失败时原场景与既有身份均不受影响。 */
@@ -3824,13 +3829,12 @@ export function createPrototypeStore(storage = browserStorage()) {
     return clone(state);
   }
 
-  function createTenant(input = {}) {
+  /** 平台一次性开通组织、身份和管理员资格；失败不留下账号或无管理员租户。 */
+  function createTenant(input = {}, actorAccountId) {
+    if (!canManageAccounts(actorAccountId)) return { ok: false, reason: "FORBIDDEN" };
     const organizationName = String(input.organizationName || "").trim();
     const tenantCode = String(input.tenantCode || "").trim().toLowerCase();
-    const administratorAccountId = String(
-      input.administratorAccountId || "",
-    );
-    const administrator = accountById(administratorAccountId);
+    const administrator = prepareAccount(input.administrator);
     const errors = [];
 
     if (organizationName.length < 2 || organizationName.length > 40) {
@@ -3839,14 +3843,7 @@ export function createPrototypeStore(storage = browserStorage()) {
     if (!/^[a-z][a-z0-9-]{2,19}$/.test(tenantCode) || state.tenants.some((tenant) => tenant.code === tenantCode)) {
       errors.push({ field: "tenantCode", message: "租户编码需为 3–20 位小写字母、数字或连字符，且不能重复。" });
     }
-    if (
-      !administrator ||
-      administrator.platformAdministrator ||
-      !administrator.administratorEligible ||
-      administrator.status !== "available"
-    ) {
-      errors.push({ field: "administratorAccountId", message: "请选择一位可用的租户管理员。" });
-    }
+    if (!administrator.ok) errors.push(...administrator.errors);
     if (input.confirmed !== true) {
       errors.push({ field: "confirmed", message: "请确认租户信息、管理员和资源配额。" });
     }
@@ -3856,6 +3853,7 @@ export function createPrototypeStore(storage = browserStorage()) {
       return { ok: false, errors };
     }
 
+    const administratorAccountId = administrator.account.id;
     const tenant = {
       id: `tenant-${tenantCode}`,
       organizationName,
@@ -3876,7 +3874,7 @@ export function createPrototypeStore(storage = browserStorage()) {
         },
       ],
     };
-    const saved = commitState({ ...state, tenants: [...state.tenants, tenant], selectedTenantId: tenant.id, tenantSetup: defaultTenantSetup() });
+    const saved = commitState({ ...state, accounts: [...state.accounts, administrator.account], tenants: [...state.tenants, tenant], selectedTenantId: tenant.id, tenantSetup: defaultTenantSetup() });
     if (!saved.ok) return saved;
     return { ok: true, tenant: clone(tenant) };
   }
@@ -4054,7 +4052,7 @@ export function createPrototypeStore(storage = browserStorage()) {
 
   /** 浏览器只消费当前合成登录身份；场景参数不能赋予角色或绕过功能上限。 */
   function authorizeSession(screen, scope) {
-    if (["login", "console-login"].includes(screen) || scope === "device") return { allowed: true };
+    if (["login", "console-login", "tenant-login"].includes(screen) || scope === "device") return { allowed: true };
     const session = getSession();
     if (!session.authenticated) return { allowed: false, reason: "AUTH_REQUIRED" };
     if ((scope === "query") !== (session.accessChannel === "QUERY_APP")) return { allowed: false, reason: "ROLE_BOUNDARY" };
@@ -4163,6 +4161,7 @@ export function createPrototypeStore(storage = browserStorage()) {
     const account = authenticateAccount(input.username, input.password);
     if (!account) return { ok: false, reason: "INVALID_CREDENTIALS" };
     reloadFromStorage();
+    if ((input.entry === 'platform' && !account.platformAdministrator) || (input.entry === 'tenant' && account.platformAdministrator)) return { ok: false, reason: 'ROLE_BOUNDARY' };
     if (account.platformAdministrator) return establishSession(account.id, null, "CONSOLE", "platform-overview");
     const tenants = state.tenants.filter(tenant => authorizeScreen("tenant-overview", tenant.id, account.id).allowed);
     if (!tenants.length) return { ok: false, reason: "ROLE_BOUNDARY" };

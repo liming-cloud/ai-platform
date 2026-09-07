@@ -17,9 +17,9 @@ test("模型、助手、评测详情从本页 URL 恢复，跨组织参数整组
   assert.equal(store.applyDetailContext(context).ok, false);
 });
 function secondTenant(store) {
-  return store.createTenant({ organizationName: "北辰服务组织", tenantCode: "beichen-demo", administratorAccountId: admin, confirmed: true }).tenant;
+  return store.createTenant({ organizationName: "北辰服务组织", tenantCode: "beichen-demo", administrator: { loginName: 'beichen.admin', password: 'demo-only', passwordConfirmation: 'demo-only' }, confirmed: true }, 'account-platform-admin').tenant;
 }
-const login = (store, tenantCode = "spruce-demo") => store.loginConsole({ username: "qiao.demo", password: "demo-only", tenantCode });
+const login = (store, tenantCode = "spruce-demo") => store.loginConsole({ username: tenantCode === 'spruce-demo' ? 'qiao.demo' : 'beichen.admin', password: "demo-only", tenantCode });
 
 test("新组织登录后只展示自己的空工作区，创建知识库不写入默认组织", () => {
   const storage = createMemoryStorage();
@@ -29,7 +29,7 @@ test("新组织登录后只展示自己的空工作区，创建知识库不写�
   assert.deepEqual(store.getWorkspaceSnapshot().knowledgeBases, []);
   assert.deepEqual(store.getWorkspaceSnapshot().assistantDelivery.assistants, []);
   assert.deepEqual(store.getWorkspaceSnapshot().models.configurations, []);
-  const created = store.createKnowledgeBase({ name: "北辰制度" }, admin, tenant.id);
+  const created = store.createKnowledgeBase({ name: "北辰制度" }, tenant.administratorAccountId, tenant.id);
   assert.equal(created.ok, true);
   assert.equal(created.knowledgeBase.tenantId, tenant.id);
   store = createPrototypeStore(storage);
@@ -41,7 +41,7 @@ test("不同组织创建知识库产生全局唯一标识", () => {
   const store = createPrototypeStore();
   const tenant = secondTenant(store);
   const first = store.createKnowledgeBase({ name: "新增知识库甲" }, admin, DEFAULT_TENANT_ID);
-  const second = store.createKnowledgeBase({ name: "新增知识库乙" }, admin, tenant.id);
+  const second = store.createKnowledgeBase({ name: "新增知识库乙" }, tenant.administratorAccountId, tenant.id);
   assert.equal(first.ok && second.ok, true);
   assert.notEqual(first.knowledgeBase.id, second.knowledgeBase.id);
 });

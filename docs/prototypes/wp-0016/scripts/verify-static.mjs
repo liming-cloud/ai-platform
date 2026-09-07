@@ -117,7 +117,7 @@ function functionSource(name, nextName) {
   return start >= 0 ? fullPlatformSource.slice(start, end > start ? end : undefined) : "";
 }
 
-assert(pages.length === 68, `页面数应为 68，实际为 ${pages.length}`);
+assert(pages.length === Object.keys(pageFixtures.pages).length, "页面清单与页面夹具数量不一致");
 assert(inventory.groups.length === 10, "页面分组数不是 10");
 assert(inventory.states.length === 7, "状态数不是 7");
 assert(inventory.viewports.length === 3, "视口数不是 3");
@@ -222,7 +222,7 @@ assert(
     actionLedger.summary.unclosedControls === actionLedger.pages.filter(page => page.phase === "M6").flatMap(page => page.controls).filter(control => !control.acceptanceExcluded && ["unimplemented", "partialSimulation", "pendingDecision"].includes(control.status)).length &&
     ["pendingAuthorization", "failed", "passed"].includes(actionLedger.browserVerification) &&
     (!actionLedger.summary.readyForFullAcceptance || actionLedger.summary.unclosedControls === 0 && actionLedger.summary.allControlsEnumerated && actionLedger.acceptanceAudit.technicalStatus === "passed"),
-  "68 页操作账本缺失或错误宣称全部闭环",
+  "全页操作账本缺失或错误宣称全部闭环",
 );
 if (actionLedger.browserVerification !== "pendingAuthorization") {
   const browserReport = JSON.parse(fs.readFileSync(path.join(prototypeDirectory, actionLedger.browserEvidenceReport), "utf8"));

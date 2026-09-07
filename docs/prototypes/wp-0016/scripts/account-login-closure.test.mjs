@@ -25,13 +25,12 @@ test("重置后新演示口令可登录、旧口令失效，刷新与再次轮�
   assert.doesNotMatch(storage.dump(), /Initial-only|Reset-only|demo-only|password|credential|secret/i);
 });
 
-test("创建账户不隐含管理权限，分配平台角色后首次登录进入本人范围", () => {
+test("平台目录创建账户即获得平台职责，首次登录只进入本人范围", () => {
   const storage = createMemoryStorage();
   let store = createPrototypeStore(storage);
   const created = create(store);
   assert.equal(created.ok, true);
-  assert.equal(store.loginConsole(consoleInput("new.person", initial)).ok, false);
-  assert.equal(store.assignPlatformAdministrator(created.account.id, actor).ok, true);
+  assert.equal(created.account.platformAdministrator, true);
   store = createPrototypeStore(storage);
   assert.equal(store.loginConsole(consoleInput("new.person", initial)).screen, "platform-overview");
   assert.equal(store.getSession().accountId, created.account.id);
@@ -43,19 +42,21 @@ test("普通成员使用目录中同一登录名，账户口令与成员助手�
   const store = createPrototypeStore();
   assert.equal(store.loginQuery(queryInput("shen.demo", "demo-only")).ok, true);
   assert.equal(store.loginQuery(queryInput("demo.user", "demo-only")).ok, false);
-  const created = create(store);
-  assert.equal(store.loginQuery(queryInput("new.person", initial)).ok, false);
+  const created = { account: store.getSnapshot().accounts.find(account => account.id === 'account-lin') };
+  const memberInput = password => queryInput('lin.demo', password);
+  store.resetAccountPassword(created.account.id, input(initial), actor);
+  assert.equal(store.loginQuery(memberInput(initial)).ok, false);
   store.addMember(DEFAULT_TENANT_ID, { accountId: created.account.id, conversationFeatures: ["assistantSelection", "conversation"], assistantIds: [] });
-  assert.equal(store.loginQuery(queryInput("new.person", initial)).reason, "NO_AUTHORIZED_ASSISTANT");
+  assert.equal(store.loginQuery(memberInput(initial)).reason, "NO_AUTHORIZED_ASSISTANT");
   store.setMemberAssistantDraft(DEFAULT_TENANT_ID, created.account.id, ["assistant-employee-service"]);
   store.commitMemberFeatureDraft(DEFAULT_TENANT_ID, created.account.id);
-  assert.equal(store.loginQuery(queryInput("new.person", initial)).ok, true);
+  assert.equal(store.loginQuery(memberInput(initial)).ok, true);
   assert.equal(store.getSession().accountId, created.account.id);
-  assert.equal(store.loginConsole(consoleInput("new.person", initial)).ok, false);
-  assert.equal(store.loginQuery({ ...queryInput("new.person", initial), tenantCode: "unknown" }).ok, false);
+  assert.equal(store.loginConsole(consoleInput("lin.demo", initial)).ok, false);
+  assert.equal(store.loginQuery({ ...memberInput(initial), tenantCode: "unknown" }).ok, false);
   store.resetAccountPassword(created.account.id, input(replacement), actor);
-  assert.equal(store.loginQuery(queryInput("new.person", initial)).ok, false);
-  assert.equal(store.loginQuery(queryInput("new.person", replacement)).ok, true);
+  assert.equal(store.loginQuery(memberInput(initial)).ok, false);
+  assert.equal(store.loginQuery(memberInput(replacement)).ok, true);
 });
 
 test("原型拒绝非公开口令与畸形输入，不能保存或回显输入材料", () => {
@@ -103,8 +104,7 @@ test("另一标签页重置后，通知到达前旧身份和旧口令都失败�
 
 test("新增租户工作区使用本人组织且不回落到云杉示例组织", () => {
   const store = createPrototypeStore();
-  const created = create(store);
-  store.createTenant({ organizationName: "新增组织", tenantCode: "new-org", administratorAccountId: created.account.id, confirmed: true });
+  store.createTenant({ organizationName: "新增组织", tenantCode: "new-org", administrator: { loginName: 'new.person', ...input(initial) }, confirmed: true }, actor);
   const result = store.loginConsole(consoleInput("new.person", initial));
   assert.equal(result.ok, true);
   assert.notEqual(store.getSession().tenantId, DEFAULT_TENANT_ID);
@@ -112,8 +112,12 @@ test("新增租户工作区使用本人组织且不回落到云杉示例组织",
 });
 
 test("管理员拥有多个组织时必须明确选择，只返回本人已授权组织", () => {
-  const store = createPrototypeStore();
-  store.createTenant({ organizationName: "第二个组织", tenantCode: "second-org", administratorAccountId: "account-qiao", confirmed: true });
+  // 多组织身份是已有数据兼容边界，不借新建租户流程给现有人额外授权。
+  const storage = createMemoryStorage();
+  const snapshot = createPrototypeStore(storage).getSnapshot();
+  snapshot.tenants.push({ ...structuredClone(snapshot.tenants[0]), id: 'tenant-second-org', code: 'second-org', organizationName: '第二个组织' });
+  storage.setItem(PROTOTYPE_STATE_KEY, JSON.stringify(snapshot));
+  const store = createPrototypeStore(storage);
   const login = consoleInput("qiao.demo", "demo-only");
   assert.equal(store.loginConsole({ ...login, password: "wrong" }).tenants, undefined);
   const pending = store.loginConsole(login);

@@ -6,7 +6,7 @@ const ACTOR = "account-platform-admin";
 const INITIAL_PASSWORD = "Initial-only-2026!";
 const RESET_PASSWORD = "Reset-only-2026!";
 
-test("平台建立人员账户并刷新恢复，明文口令不进入状态或存储", () => {
+test("平台建立平台账户并刷新恢复，明文口令不进入状态或存储", () => {
   const storage = createMemoryStorage();
   const store = createPrototypeStore(storage);
   const result = store.createAccount(
@@ -20,7 +20,7 @@ test("平台建立人员账户并刷新恢复，明文口令不进入状态或�
 
   assert.equal(result.ok, true);
   assert.equal(result.account.loginName, "zhou.demo");
-  assert.equal(result.account.platformAdministrator, false);
+  assert.equal(result.account.platformAdministrator, true);
   assert.equal(result.account.authenticationRevision, 1);
   assert.equal(createPrototypeStore(storage).getSnapshot().accounts.at(-1).loginName, "zhou.demo");
   assert.doesNotMatch(JSON.stringify(result), /Initial-only-2026/);

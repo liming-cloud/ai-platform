@@ -87,7 +87,7 @@ test("独立管理会话撤销权限，业务状态广播后当前问答正文�
   try {
     const administration = await administrationContext.newPage();
     await loginConsole(administration, "platform");
-    await administration.goto(url("platform-tenant-detail"));
+    await administration.goto(url("platform-tenant-features"));
     await administration.locator('[data-tenant-feature="conversation"]').uncheck();
     await administration.locator('[data-business-action="save-tenant-features"]').click();
     // 无后端的原型用业务快照模拟服务端广播；人员登录态不跨浏览器会话复制。

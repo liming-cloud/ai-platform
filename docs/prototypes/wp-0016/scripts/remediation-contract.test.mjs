@@ -8,7 +8,7 @@ const inventory = read("page-inventory.json");
 const fixtures = read("page-fixtures.json").pages;
 const tenant = read("fixtures.json").tenant;
 const pages = inventory.groups.flatMap((group) => group.pages.map((page) => ({ group, page })));
-const adminPages = pages.filter(({ group, page }) => group.shell === "console" && page.screen !== "console-login" && fixtures[page.screen].mode);
+const adminPages = pages.filter(({ group, page }) => group.shell === "console" && !["console-login", "tenant-login"].includes(page.screen) && fixtures[page.screen].mode);
 const prototypeSource = readFileSync(new URL("../prototype.js", import.meta.url), "utf8");
 
 // 只验证可丢弃原型的范围投影，不把这些断言当作服务端授权证据。

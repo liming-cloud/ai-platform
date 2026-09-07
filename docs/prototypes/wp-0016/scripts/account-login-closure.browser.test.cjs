@@ -21,7 +21,7 @@ async function visit(action, width = 1440) {
 }
 
 async function attempt(page, username, password, query = false) {
-  await page.goto(url(query ? "login" : "console-login"));
+  await page.goto(url(query ? "login" : username === "qiao.demo" ? "tenant-login" : "console-login"));
   const form = page.locator(query ? "#login-form" : "#console-login-form");
   await form.locator('[name="username"]').fill(username);
   await form.locator('[name="password"]').fill(password);
@@ -29,7 +29,15 @@ async function attempt(page, username, password, query = false) {
 }
 
 async function resetAccount(page, id) {
-  await page.goto(url("platform-accounts"));
+  if (id === 'account-shen') {
+    // 只构造已轮换凭据的登录前置状态；普通成员凭据管理入口仍待产品确认。
+    await page.evaluate(async () => {
+      const { createPrototypeStore } = await import('./prototype-state.js');
+      createPrototypeStore().resetAccountPassword('account-shen', { password: 'Reset-only-2026!', passwordConfirmation: 'Reset-only-2026!', revokeSessions: true }, 'account-platform-admin');
+    });
+    return;
+  }
+  await page.goto(url("platform-tenant-admins"));
   await page.locator(`[data-reset-account="${id}"]`).click();
   const form = page.locator("#reset-account-password-form");
   await form.locator('[name="password"]').fill("Reset-only-2026!");
@@ -53,7 +61,7 @@ test("管理账户密码重置后旧口令拒绝、新口令进入正确身份�
 
 async function createPerson(page) {
   await page.goto(url("platform-accounts"));
-  await page.getByRole("button", { name: "创建人员账户", exact: true }).click();
+  await page.getByRole("button", { name: "创建平台账户", exact: true }).click();
   const form = page.locator("#create-account-form");
   await form.locator('[name="loginName"]').fill("new.person");
   await form.locator('[name="password"]').fill("Initial-only-2026!");
@@ -62,25 +70,22 @@ async function createPerson(page) {
   return "account-new-person-6";
 }
 
-test("新建账户授予平台资格后使用刚设置的口令首次登录", () => visit(async page => {
+test("新建平台账户使用刚设置的口令首次登录", () => visit(async page => {
   const id = await createPerson(page);
-  await page.locator(`[data-account-menu="${id}"] summary`).click();
-  await page.locator(`[data-assign-platform-administrator="${id}"]`).click();
-  await page.locator("#account-governance-form").getByRole("button", { name: "确认设置", exact: true }).click();
   await attempt(page, "new.person", "Initial-only-2026!");
   await page.locator('main[data-screen="platform-overview"]').waitFor();
   assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem("wp0016-query-session-v1")).accountId), id);
 }));
 
-test("平台创建普通人员后由租户添加和授权，再由本人首次登录提问", () => visit(async page => {
-  const id = await createPerson(page);
+test("租户添加已有普通人员并授权，再由本人首次登录提问", () => visit(async page => {
+  const id = 'account-lin';
   await loginConsole(page, "tenant");
   await page.goto(url("tenant-members"));
   await page.locator('[data-business-action="open-add-member"]').click();
   await page.locator("#member-account-select").selectOption(id);
   await page.locator("#add-member-form").getByRole("button", { name: "确认添加", exact: true }).click();
   await page.locator("#add-member-dialog").waitFor({ state: "hidden" });
-  await attempt(page, "new.person", "Initial-only-2026!", true);
+  await attempt(page, "lin.demo", "demo-only", true);
   await page.locator('main[data-screen="assistants"]').waitFor();
   assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem("wp0016-query-session-v1")).accountId), id);
   await page.locator('[data-assistant-id="assistant-employee-service"]').click();
@@ -101,7 +106,7 @@ test("普通用户按账户目录登录名使用重置口令进入助手与新�
 for (const width of [390, 1024, 1440]) {
   test(`${width} 口令帮助可访问，非演示口令拒绝且取消不留下密码`, () => visit(async page => {
     await page.goto(url("platform-accounts"));
-    await page.getByRole("button", { name: "创建人员账户", exact: true }).click();
+    await page.getByRole("button", { name: "创建平台账户", exact: true }).click();
     const form = page.locator("#create-account-form");
     await form.getByText("演示口令说明", { exact: true }).click();
     assert.match(await form.innerText(), /Initial-only-2026!/);

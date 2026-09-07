@@ -32,8 +32,6 @@ async function fillTenant(page, code = "qinglan-full") {
   await page.locator("#tenant-organization-name").fill("青岚完整流程租户");
   await page.locator("#tenant-code").fill(code);
   await page.getByRole("button", { name: "下一步", exact: true }).click();
-  await page.locator("#tenant-administrator").selectOption("account-qiao");
-  await page.getByRole("button", { name: "下一步", exact: true }).click();
 }
 
 test("修改创建配额并刷新仍保留当前步骤和输入，成功后详情回显", () => visit("create-quotas", async page => {
@@ -46,10 +44,15 @@ test("修改创建配额并刷新仍保留当前步骤和输入，成功后详�
   await page.reload();
   assert.equal(await form.locator('[name="knowledgeBases"]').inputValue(), "6");
   assert.equal(await page.locator("[data-tenant-step]:visible").count(), 1);
+  await page.getByRole('button', { name: '下一步', exact: true }).click();
+  await form.locator('[name="loginName"]').fill('qinglan.admin');
+  await form.locator('[name="password"]').fill('Initial-only-2026!');
+  await form.locator('[name="passwordConfirmation"]').fill('Initial-only-2026!');
   await form.locator('[name="confirmed"]').check();
   await page.getByRole("button", { name: "创建租户", exact: true }).click();
   await page.locator('main[data-screen="platform-tenant-detail"]').waitFor();
   assert.match(await page.locator("main").innerText(), /青岚完整流程租户/);
+  await page.getByRole('navigation', { name: '租户设置' }).getByRole('button', { name: '资源配额', exact: true }).click();
   await page.locator("[data-edit-tenant-quotas]").click();
   assert.equal(await page.locator('#tenant-quota-form [name="knowledgeBases"]').inputValue(), "6");
   assert.equal(await page.locator('#tenant-quota-form [name="documentsPerKnowledgeBase"]').inputValue(), "2500");
@@ -57,7 +60,7 @@ test("修改创建配额并刷新仍保留当前步骤和输入，成功后详�
 }));
 
 test("详情配额取消不生效，保存与刷新一致", () => visit("edit-quotas", async page => {
-  await openForReview(page, url("platform-tenant-detail"));
+  await openForReview(page, url("platform-tenant-quotas"));
   const trigger = page.locator("[data-edit-tenant-quotas]");
   await trigger.click();
   const form = page.locator("#tenant-quota-form");
@@ -83,7 +86,7 @@ test("低于已用量拒绝并定位错误，保存失败不能假称成功", ()
       return original.apply(this, args);
     };
   });
-  await openForReview(page, url("platform-tenant-detail"));
+  await openForReview(page, url("platform-tenant-quotas"));
   await page.locator("[data-edit-tenant-quotas]").click();
   const form = page.locator("#tenant-quota-form");
   await form.locator('[name="knowledgeBases"]').fill("1");
@@ -116,7 +119,7 @@ test("有无帮助说明的同排输入框顶部和高度一致", () => visit("a
 }));
 
 test("登录安全配置可编辑、取消、刷新，安全底线没有关闭控件", () => visit("security-policy", async page => {
-  await openForReview(page, url("platform-tenant-detail"));
+  await openForReview(page, url("platform-tenant-security"));
   const trigger = page.locator("[data-edit-tenant-security]");
   await trigger.click();
   const form = page.locator("#tenant-security-form");
@@ -146,7 +149,7 @@ test("租户创建使用清晰业务用语", () => visit("wording", async page =
   await page.locator("#tenant-organization-name").fill("自然用语租户");
   await page.locator("#tenant-code").fill("natural-copy");
   await page.getByRole("button", { name: "下一步", exact: true }).click();
-  assert.match(await page.locator("main").innerText(), /选择租户管理员/);
+  assert.match(await page.locator("main").innerText(), /设置资源配额/);
 }));
 
 test("取消清除创建草稿，重复租户编码在当前步骤就定位错误", () => visit("cancel-and-validation", async page => {
@@ -174,14 +177,26 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 1024, height: 768
     await page.locator("#tenant-organization-name").fill("青岚体验租户");
     await page.locator("#tenant-code").fill("qinglan-ux");
     await next.click();
-    await page.locator("#tenant-administrator").waitFor({ state: "visible" });
+    await page.locator("#tenant-setup-knowledgeBases").waitFor({ state: "visible" });
     await page.getByRole("button", { name: "上一步", exact: true }).click();
     assert.equal(await page.locator("#tenant-organization-name").inputValue(), "青岚体验租户");
     await page.screenshot({ path: `${artifacts}/tenant-first-step-${viewport.width}.png`, fullPage: true });
     await fillTenant(page, `qinglan-${viewport.width}`);
-    const createBox = await page.getByRole("button", { name: "创建租户", exact: true }).boundingBox();
-    assert.ok(createBox && createBox.y >= 0 && createBox.y + createBox.height <= viewport.height, "配额步骤的创建按钮不在视口内");
+    const createBox = await page.getByRole("button", { name: "下一步", exact: true }).boundingBox();
+    assert.ok(createBox && createBox.y >= 0 && createBox.y + createBox.height <= viewport.height, "配额步骤的继续按钮不在视口内");
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
     await page.screenshot({ path: `${artifacts}/tenant-quota-step-${viewport.width}.png`, fullPage: true });
+    await page.getByRole("button", { name: "下一步", exact: true }).click();
+    const submitBox = await page.getByRole("button", { name: "创建租户", exact: true }).boundingBox();
+    assert.ok(submitBox && submitBox.y >= 0 && submitBox.y + submitBox.height <= viewport.height, "管理员步骤的提交按钮不在视口内");
+    assert.equal(await page.locator("[data-tenant-step]:visible").count(), 1);
+    const passwords = page.locator('#tenant-create-form input[type="password"]');
+    if (viewport.width >= 1024) {
+      const first = await passwords.nth(0).boundingBox();
+      const second = await passwords.nth(1).boundingBox();
+      assert.ok(Math.abs(first.y - second.y) <= 1 && Math.abs(first.height - second.height) <= 1, "管理员密码输入框未对齐");
+    }
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
+    await page.screenshot({ path: `${artifacts}/tenant-admin-step-${viewport.width}.png`, fullPage: true });
   }, viewport.width, viewport.height));
 }

@@ -1,13 +1,13 @@
 {
   "status": "PASS",
-  "generatedAt": "2026-09-07T08:53:21.216Z",
-  "pageCount": 68,
+  "generatedAt": "2026-09-07T11:18:37.151Z",
+  "pageCount": 73,
   "groupCount": 10,
   "stateCount": 7,
   "viewportCount": 3,
-  "staticRenderedScenarioCount": 273,
-  "httpScenarioCount": 1428,
-  "assertionCount": 3177,
+  "staticRenderedScenarioCount": 308,
+  "httpScenarioCount": 1533,
+  "assertionCount": 3491,
   "failures": [],
   "limitation": "此结果只验证 Node 状态机、静态渲染合同和 URL 可达性；HTTP 成功不代表真实场景成立。真实 DOM、焦点、交互与临时视觉核对结论见独立浏览器报告。"
 }

@@ -2,21 +2,23 @@
 
 ## 当前候选
 
-原型与对应代码统一保存在 OpenDesign 项目「WP-0016 可信 RAG 高保真原型」。68 页完整呈现；本次交互验收包含 56 个 M6 页面任务，渠道绑定、设备凭据和邮件邀请暂缓。M7/M8 另外 10 页保留视觉与信息架构，不声称运维和设备任务全部实现。
+原型与对应代码统一保存在 OpenDesign 项目「WP-0016 可信 RAG 高保真原型」。73 页已登记；本次交互验收范围包含 61 个 M6 页面任务，渠道绑定、设备凭据和邮件邀请暂缓。M7/M8 另外 10 页保留视觉与信息架构，不声称运维和设备任务全部实现。
 
-本轮技术预验通过，尚未取得新的人工通过结论。验收顺序为“功能能用 → 功能好用”，7/5/7 不变。
+本轮人工拒绝仍有效。普通成员账号职责和厂商预填尚待确认，不能宣称整套可验收。验收顺序为“功能能用 → 功能好用”，7/5/7 不变。
 
 ## 从这里开始
 
 | 角色 | 入口 | 合成登录信息 |
 | --- | --- | --- |
-| 平台管理员 | [企业控制台](http://127.0.0.1:65153/api/projects/249f81f2-6f1a-46ff-988c-da3cdedb35e7/raw/index.html?screen=console-login&state=success) | platform.admin.demo / demo-only |
-| 租户管理员 | [企业控制台](http://127.0.0.1:65153/api/projects/249f81f2-6f1a-46ff-988c-da3cdedb35e7/raw/index.html?screen=console-login&state=success) | qiao.demo / demo-only；多个管理组织需明确选择 |
+| 平台管理员 | [平台管理登录](http://127.0.0.1:65153/api/projects/249f81f2-6f1a-46ff-988c-da3cdedb35e7/raw/index.html?screen=console-login&state=success) | platform.admin.demo / demo-only |
+| 租户管理员 | [租户管理员登录](http://127.0.0.1:65153/api/projects/249f81f2-6f1a-46ff-988c-da3cdedb35e7/raw/index.html?screen=tenant-login&state=success) | spruce-demo / qiao.demo / demo-only |
 | 普通用户 | [普通用户登录](http://127.0.0.1:65153/api/projects/249f81f2-6f1a-46ff-988c-da3cdedb35e7/raw/index.html?screen=login&state=success) | spruce-demo / shen.demo / demo-only |
 
 仅使用公开演示账户和口令，不输入真实凭据或资料。角色切换要先退出；页面查询参数不能授予角色。表格口令只适用于未修改过的内置账户，创建或重置过的账户必须用刚设置的演示口令。
 
-旧浏览器如显示“检测到旧版演示数据”，点击“修复演示登录 → 确认修复”，再用原登录名和 `demo-only` 登录。此修复保留租户、知识库、会话和草稿，只补齐没有登录配置且未被重置过的内置账户；不会重新启用停用账户、恢复角色或自动登录。取消不写入，保存失败可以重试；非内置或已重置账户仍走原来的平台账户治理流程。
+旧浏览器如显示“检测到旧版演示数据”，点击“修复演示登录 → 确认修复”，再用原登录名和 `demo-only` 登录。此修复保留租户、知识库、会话和草稿，只补齐没有登录配置且未被重置过的内置账户；不会重新启用停用账户、恢复角色或自动登录。取消不写入，保存失败可以重试。平台账户在平台账户页重置，租户管理员在对应租户的管理员页重置；普通成员凭据管理入口待确认。
+
+您之前手动停用的 `qiao.demo` 不会被自动恢复。需要继续测试该账户时，请由平台管理员进入“租户管理 → 云杉服务示例组织 → 管理员 → 更多 → 恢复账户”，再从租户管理员入口登录。
 
 只有确实要从头复核时，才由您主动在原型场景审查器重置全部数据。它与“修复演示登录”是两个不同操作，重置全部数据会清除该浏览器的合成演示内容。
 
@@ -38,13 +40,14 @@
 
 ## 全页面入口
 
-以下清单与 `page-inventory.json` 对齐。登录后使用对应角色；直接点开不等于获得访问权。
+以下表格由当前页面清单展开；待补厂商预填与成员账号职责不标记完成。
 
 ### 共享访问（M6）
 
 | 页面 | 唯一任务 | 验收范围 |
 | --- | --- | --- |
-| [企业控制台登录](http://127.0.0.1:65153/api/projects/249f81f2-6f1a-46ff-988c-da3cdedb35e7/raw/index.html?screen=console-login&state=success) | 建立企业控制台会话并进入唯一已授权工作区 | 逐项操作与七态复核 |
+| [平台管理登录](http://127.0.0.1:65153/api/projects/249f81f2-6f1a-46ff-988c-da3cdedb35e7/raw/index.html?screen=console-login&state=success) | 验证平台账户并进入平台管理 | 逐项操作与七态复核 |
+| [租户管理员登录](http://127.0.0.1:65153/api/projects/249f81f2-6f1a-46ff-988c-da3cdedb35e7/raw/index.html?screen=tenant-login&state=success) | 验证租户管理员并进入指定组织 | 逐项操作与七态复核 |
 
 ### 平台治理（M6）
 
@@ -53,10 +56,14 @@
 | [平台运营摘要](http://127.0.0.1:65153/api/projects/249f81f2-6f1a-46ff-988c-da3cdedb35e7/raw/index.html?screen=platform-overview&state=success) | 处理全平台脱敏运营风险 | 逐项操作与七态复核 |
 | [租户目录](http://127.0.0.1:65153/api/projects/249f81f2-6f1a-46ff-988c-da3cdedb35e7/raw/index.html?screen=platform-tenants&state=success) | 查找并管理租户生命周期 | 逐项操作与七态复核 |
 | [建立新租户](http://127.0.0.1:65153/api/projects/249f81f2-6f1a-46ff-988c-da3cdedb35e7/raw/index.html?screen=platform-tenant-create&state=success) | 分三步建立租户并设置资源配额 | 逐项操作与七态复核 |
-| [租户详情](http://127.0.0.1:65153/api/projects/249f81f2-6f1a-46ff-988c-da3cdedb35e7/raw/index.html?screen=platform-tenant-detail&state=success) | 核对租户事实并维护功能与配额 | 逐项操作与七态复核 |
-| [人员账户](http://127.0.0.1:65153/api/projects/249f81f2-6f1a-46ff-988c-da3cdedb35e7/raw/index.html?screen=platform-accounts&state=success) | 建立和治理全局人员账户 | 逐项操作与七态复核 |
+| [租户概览](http://127.0.0.1:65153/api/projects/249f81f2-6f1a-46ff-988c-da3cdedb35e7/raw/index.html?screen=platform-tenant-detail&state=success) | 租户概览独立查看与维护 | 逐项操作与七态复核 |
+| [租户管理员](http://127.0.0.1:65153/api/projects/249f81f2-6f1a-46ff-988c-da3cdedb35e7/raw/index.html?screen=platform-tenant-admins&state=success) | 租户管理员独立查看与维护 | 逐项操作与七态复核 |
+| [资源配额](http://127.0.0.1:65153/api/projects/249f81f2-6f1a-46ff-988c-da3cdedb35e7/raw/index.html?screen=platform-tenant-quotas&state=success) | 资源配额独立查看与维护 | 逐项操作与七态复核 |
+| [可用功能](http://127.0.0.1:65153/api/projects/249f81f2-6f1a-46ff-988c-da3cdedb35e7/raw/index.html?screen=platform-tenant-features&state=success) | 可用功能独立查看与维护 | 逐项操作与七态复核 |
+| [登录安全](http://127.0.0.1:65153/api/projects/249f81f2-6f1a-46ff-988c-da3cdedb35e7/raw/index.html?screen=platform-tenant-security&state=success) | 登录安全独立查看与维护 | 逐项操作与七态复核 |
+| [平台账户](http://127.0.0.1:65153/api/projects/249f81f2-6f1a-46ff-988c-da3cdedb35e7/raw/index.html?screen=platform-accounts&state=success) | 创建和管理平台管理员账户 | 逐项操作与七态复核 |
 | [平台固定角色](http://127.0.0.1:65153/api/projects/249f81f2-6f1a-46ff-988c-da3cdedb35e7/raw/index.html?screen=platform-roles&state=success) | 理解平台固定角色及最小披露边界 | 逐项操作与七态复核 |
-| [平台模型连接](http://127.0.0.1:65153/api/projects/249f81f2-6f1a-46ff-988c-da3cdedb35e7/raw/index.html?screen=platform-model-connections&state=success) | 管理平台模型供应商连接 | 逐项操作与七态复核 |
+| [平台模型连接](http://127.0.0.1:65153/api/projects/249f81f2-6f1a-46ff-988c-da3cdedb35e7/raw/index.html?screen=platform-model-connections&state=success) | 管理平台模型供应商连接 | 包含本轮未决项 |
 | [供应商连接探测](http://127.0.0.1:65153/api/projects/249f81f2-6f1a-46ff-988c-da3cdedb35e7/raw/index.html?screen=platform-model-connection-detail&state=success) | 探测并发布单个供应商连接版本 | 逐项操作与七态复核 |
 | [平台模型部署](http://127.0.0.1:65153/api/projects/249f81f2-6f1a-46ff-988c-da3cdedb35e7/raw/index.html?screen=platform-model-deployments&state=success) | 管理平台可授权模型部署 | 逐项操作与七态复核 |
 | [平台部署发布](http://127.0.0.1:65153/api/projects/249f81f2-6f1a-46ff-988c-da3cdedb35e7/raw/index.html?screen=platform-model-deployment-detail&state=success) | 验证并发布单个模型部署 | 逐项操作与七态复核 |
@@ -66,7 +73,7 @@
 | 页面 | 唯一任务 | 验收范围 |
 | --- | --- | --- |
 | [租户运营概览](http://127.0.0.1:65153/api/projects/249f81f2-6f1a-46ff-988c-da3cdedb35e7/raw/index.html?screen=tenant-overview&state=success) | 处理当前租户最重要的阻断项 | 逐项操作与七态复核 |
-| [成员与对话功能](http://127.0.0.1:65153/api/projects/249f81f2-6f1a-46ff-988c-da3cdedb35e7/raw/index.html?screen=tenant-members&state=success) | 管理普通成员生命周期与对话功能 | 逐项操作与七态复核 |
+| [成员与对话功能](http://127.0.0.1:65153/api/projects/249f81f2-6f1a-46ff-988c-da3cdedb35e7/raw/index.html?screen=tenant-members&state=success) | 管理普通成员生命周期与对话功能 | 包含本轮未决项 |
 | [租户固定角色](http://127.0.0.1:65153/api/projects/249f81f2-6f1a-46ff-988c-da3cdedb35e7/raw/index.html?screen=tenant-roles&state=success) | 理解租户固定角色能力边界 | 逐项操作与七态复核 |
 | [访问策略目录](http://127.0.0.1:65153/api/projects/249f81f2-6f1a-46ff-988c-da3cdedb35e7/raw/index.html?screen=access-policies&state=success) | 查找并发布资源访问策略 | 逐项操作与七态复核 |
 | [访问策略版本](http://127.0.0.1:65153/api/projects/249f81f2-6f1a-46ff-988c-da3cdedb35e7/raw/index.html?screen=access-policy-detail&state=success) | 编辑、预览并发布一个访问策略版本 | 逐项操作与七态复核 |
@@ -142,30 +149,18 @@
 
 | 页面 | 唯一任务 | 验收范围 |
 | --- | --- | --- |
-| [开始现场问答](http://127.0.0.1:65153/api/projects/249f81f2-6f1a-46ff-988c-da3cdedb35e7/raw/index.html?screen=device-start&state=success) | 在固定设备与助手范围内开始一次问答 | 仅信息架构与视觉前置 |
-| [确认使用范围](http://127.0.0.1:65153/api/projects/249f81f2-6f1a-46ff-988c-da3cdedb35e7/raw/index.html?screen=device-consent&state=success) | 理解并确认语音、画像和保留范围 | 仅信息架构与视觉前置 |
-| [说出或输入问题](http://127.0.0.1:65153/api/projects/249f81f2-6f1a-46ff-988c-da3cdedb35e7/raw/index.html?screen=device-question&state=success) | 通过语音或触控提交一个现场问题 | 仅信息架构与视觉前置 |
-| [现场回答](http://127.0.0.1:65153/api/projects/249f81f2-6f1a-46ff-988c-da3cdedb35e7/raw/index.html?screen=device-answer&state=success) | 查看简洁答案、现场指引或安全拒答 | 仅信息架构与视觉前置 |
+| [开始现场问答](http://127.0.0.1:65153/api/projects/249f81f2-6f1a-46ff-988c-da3cdedb35e7/raw/index.html?screen=device-start&state=success) | 在固定设备与助手范围内开始一次问答 | 信息架构与视觉前置 |
+| [确认使用范围](http://127.0.0.1:65153/api/projects/249f81f2-6f1a-46ff-988c-da3cdedb35e7/raw/index.html?screen=device-consent&state=success) | 理解并确认语音、画像和保留范围 | 信息架构与视觉前置 |
+| [说出或输入问题](http://127.0.0.1:65153/api/projects/249f81f2-6f1a-46ff-988c-da3cdedb35e7/raw/index.html?screen=device-question&state=success) | 通过语音或触控提交一个现场问题 | 信息架构与视觉前置 |
+| [现场回答](http://127.0.0.1:65153/api/projects/249f81f2-6f1a-46ff-988c-da3cdedb35e7/raw/index.html?screen=device-answer&state=success) | 查看简洁答案、现场指引或安全拒答 | 信息架构与视觉前置 |
 
 ### 平台运维（M8）
 
 | 页面 | 唯一任务 | 验收范围 |
 | --- | --- | --- |
-| [平台运行状态](http://127.0.0.1:65153/api/projects/249f81f2-6f1a-46ff-988c-da3cdedb35e7/raw/index.html?screen=platform-health&state=success) | 选择业务链路异常并确认处置结果 | 仅信息架构与视觉前置 |
-| [摄取队列](http://127.0.0.1:65153/api/projects/249f81f2-6f1a-46ff-988c-da3cdedb35e7/raw/index.html?screen=ingestion-queue&state=success) | 处理摄取积压、失败和死信 | 仅信息架构与视觉前置 |
-| [模型健康](http://127.0.0.1:65153/api/projects/249f81f2-6f1a-46ff-988c-da3cdedb35e7/raw/index.html?screen=model-health&state=success) | 处置模型连接、限流、延迟和熔断风险 | 仅信息架构与视觉前置 |
-| [容量规划](http://127.0.0.1:65153/api/projects/249f81f2-6f1a-46ff-988c-da3cdedb35e7/raw/index.html?screen=capacity-planning&state=success) | 核对容量、增长和租户影响阈值 | 仅信息架构与视觉前置 |
-| [备份与恢复](http://127.0.0.1:65153/api/projects/249f81f2-6f1a-46ff-988c-da3cdedb35e7/raw/index.html?screen=backup-recovery&state=success) | 检查备份并执行固定隔离恢复演练 | 仅信息架构与视觉前置 |
-| [发布与回滚](http://127.0.0.1:65153/api/projects/249f81f2-6f1a-46ff-988c-da3cdedb35e7/raw/index.html?screen=release-operations&state=success) | 审查镜像、迁移和配置并执行受控回滚 | 仅信息架构与视觉前置 |
-
-## 设计与代码
-
-- `DESIGN.md`：布局、产品边界、状态与 7/5/7 设计基线。
-- `tokens.css`、`prototype.css`：样式令牌与共享布局。
-- `index.html`、`prototype.js`、`full-platform.js`：入口、交互及页面。
-- `prototype-state.js`：统一合成状态；`detail-context.js`：详情 URL；`workspace-journeys.js`、`governance-directories.js`：上下文相关页面。
-- `page-inventory.json`、`page-fixtures.json`、`fixtures.json`：全页清单与脱敏数据。
-- `ACTION-LEDGER.json`、`BUSINESS-CLOSURE.md`、`scripts/`：操作账本、闭环边界及复核脚本。
-- `assets/icons/`：真实官方 SVG 图标及许可。
-
-扫描、OCR、模型、索引、评测与审计记录使用合成数据。技术测试通过不证明真实后端能力或生产安全，也不代替您的人工确认。截图只在临时目录核对，不随原型提交。
+| [平台运行状态](http://127.0.0.1:65153/api/projects/249f81f2-6f1a-46ff-988c-da3cdedb35e7/raw/index.html?screen=platform-health&state=success) | 选择业务链路异常并确认处置结果 | 信息架构与视觉前置 |
+| [摄取队列](http://127.0.0.1:65153/api/projects/249f81f2-6f1a-46ff-988c-da3cdedb35e7/raw/index.html?screen=ingestion-queue&state=success) | 处理摄取积压、失败和死信 | 信息架构与视觉前置 |
+| [模型健康](http://127.0.0.1:65153/api/projects/249f81f2-6f1a-46ff-988c-da3cdedb35e7/raw/index.html?screen=model-health&state=success) | 处置模型连接、限流、延迟和熔断风险 | 信息架构与视觉前置 |
+| [容量规划](http://127.0.0.1:65153/api/projects/249f81f2-6f1a-46ff-988c-da3cdedb35e7/raw/index.html?screen=capacity-planning&state=success) | 核对容量、增长和租户影响阈值 | 信息架构与视觉前置 |
+| [备份与恢复](http://127.0.0.1:65153/api/projects/249f81f2-6f1a-46ff-988c-da3cdedb35e7/raw/index.html?screen=backup-recovery&state=success) | 检查备份并执行固定隔离恢复演练 | 信息架构与视觉前置 |
+| [发布与回滚](http://127.0.0.1:65153/api/projects/249f81f2-6f1a-46ff-988c-da3cdedb35e7/raw/index.html?screen=release-operations&state=success) | 审查镜像、迁移和配置并执行受控回滚 | 信息架构与视觉前置 |

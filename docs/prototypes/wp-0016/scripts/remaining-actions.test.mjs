@@ -40,7 +40,8 @@ test("更新文档保留来源身份和旧活动版本，不重复新增文档�
 });
 test("新组织可以创建自己的路由草稿，但没有可用主备部署不能模拟或发布", () => {
   const store = createPrototypeStore();
-  const tenant = store.createTenant({ organizationName: "路由验证组织", tenantCode: "route-demo", administratorAccountId: actor, confirmed: true }).tenant;
+  const tenant = store.createTenant({ organizationName: "路由验证组织", tenantCode: "route-demo", administrator: { loginName: 'route.admin', password: 'demo-only', passwordConfirmation: 'demo-only' }, confirmed: true }, 'account-platform-admin').tenant;
+  const actor = tenant.administratorAccountId;
   const result = store.createRoutingPolicy(tenant.id, { name: "对话主备路由" }, actor);
   assert.equal(result.ok, true);
   assert.equal(result.policy.tenantId, tenant.id);

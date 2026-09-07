@@ -70,7 +70,7 @@ test("文档、版本、重新处理和重建索引使用不同业务语义", ()
   assert.doesNotMatch(index, /更新内容|重新处理/);
 });
 
-test("租户建立要求有效组织、编码、合资格初始管理员和确认", async () => {
+test("租户建立要求有效组织、编码、新管理员凭据和确认", async () => {
   const { createMemoryStorage, createPrototypeStore } = await import(
     "../prototype-state.js"
   );
@@ -81,24 +81,24 @@ test("租户建立要求有效组织、编码、合资格初始管理员和确�
   const rejected = store.createTenant({
     organizationName: "A",
     tenantCode: "Bad Code",
-    administratorAccountId: "account-platform-admin",
+    administrator: { loginName: 'bad name', password: 'demo-only', passwordConfirmation: 'demo-only' },
     confirmed: false,
     password: "不得持久化",
-  });
+  }, 'account-platform-admin');
   assert.equal(rejected.ok, false);
   assert.deepEqual(
     new Set(rejected.errors.map((error) => error.field)),
-    new Set(["organizationName", "tenantCode", "administratorAccountId", "confirmed"]),
+    new Set(["organizationName", "tenantCode", "loginName", "confirmed"]),
   );
   assert.equal(store.getSnapshot().tenants.length, 1);
 
   const created = store.createTenant({
     organizationName: "青岚制造示例组织",
     tenantCode: "qinglan-demo",
-    administratorAccountId: "account-qiao",
+    administrator: { loginName: 'qinglan.admin', password: 'demo-only', passwordConfirmation: 'demo-only' },
     confirmed: true,
     password: "不得持久化",
-  });
+  }, 'account-platform-admin');
   assert.equal(created.ok, true);
   assert.equal(created.tenant.organizationName, "青岚制造示例组织");
   assert.deepEqual(created.tenant.quotas, {
@@ -298,9 +298,9 @@ test("恢复演练限定隔离目标并覆盖完整性、进度、报告和失�
   assert.doesNotMatch(html, /覆盖生产|发布回滚/);
 });
 
-test("全 68 页操作账本按范围计算缺口，技术预验不替代人工确认", () => {
+test("全页操作账本按范围计算缺口，技术预验不替代人工确认", () => {
   const ledger = readJson("ACTION-LEDGER.json");
-  assert.equal(ledger.pages.length, 68);
+  assert.equal(ledger.pages.length, pageEntries.length);
   assert.deepEqual(
     new Set(ledger.pages.map((page) => page.screen)),
     new Set(pageEntries.map(({ page }) => page.screen)),

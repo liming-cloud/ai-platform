@@ -42,7 +42,7 @@ test("租户暂不可用场景禁用整组创建和配置控件", () => {
 });
 
 test("全部管理页面默认导航恰有一个当前目录", () => {
-  for (const { page, group } of entries.filter(({ page, group }) => group.shell === "console" && page.screen !== "console-login")) {
+  for (const { page, group } of entries.filter(({ page, group }) => group.shell === "console" && !["console-login", "tenant-login"].includes(page.screen))) {
     const scope = ["platform-governance", "platform-operations"].includes(group.id) ? "platform" : "tenant";
     assert.equal((renderConsoleNavigation({ screen: page.screen, scope }).match(/aria-current="page"/g) || []).length, 1, page.screen);
   }
@@ -71,7 +71,7 @@ test("成员取消按钮不提交添加表单", () => {
 
 test("新租户详情页头与正文均显示刚创建的对象", () => {
   const store = fresh();
-  const created = store.createTenant({ organizationName: "青岚制造复核租户", tenantCode: "qinglan-review", administratorAccountId: "account-qiao", confirmed: true });
+  const created = store.createTenant({ organizationName: "青岚制造复核租户", tenantCode: "qinglan-review", administrator: { loginName: "qinglan.admin", password: "demo-only", passwordConfirmation: "demo-only" }, confirmed: true }, "account-platform-admin");
   assert.equal(created.ok, true);
   const html = render("platform-tenant-detail", store);
   const objectLine = html.match(/<div class="page-object-line">([\s\S]*?)<\/div>/)?.[1];

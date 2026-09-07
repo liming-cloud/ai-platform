@@ -1,8 +1,9 @@
-import { decorateExistingPage, renderInventoryPage, renderDemoLoginHelp, renderDemoLoginRepair } from "./full-platform.js";
+import { decorateExistingPage, renderInventoryPage, renderDemoLoginHelp, renderDemoLoginRepair, renderLoginEntries } from "./full-platform.js";
 import { renderConsoleNavigation, renderAccountMenu } from "./navigation.js";
 import { workspaceJourney } from "./workspace-journeys.js";
 import { governanceDirectory } from "./governance-directories.js";
 import { DETAIL_CONTEXT, valueAt } from "./detail-context.js";
+import { bindDirectoryPagination } from "./directory-pagination.js";
 import {
   createPrototypeStore,
   DEFAULT_TENANT_ID,
@@ -142,7 +143,7 @@ for (const type of ["click", "submit", "change", "input"]) {
   root.addEventListener(type, event => {
     const main = root.querySelector("main[data-screen]");
     const screen = main?.dataset.screen;
-    if (["login", "console-login"].includes(screen)) return;
+    if (["login", "console-login", "tenant-login"].includes(screen)) return;
     if (main?.dataset.state === "denied") return;
     const access = prototypeStore.authorizeSession(screen, scopeForScreen(screen));
     if (!access.allowed || prototypeStore.getSession().epoch !== renderedSessionEpoch) {
@@ -248,6 +249,7 @@ function filterReviewerOptions(event) {
 
 function navigate(screen, state = "success", options = {}) {
   const next = new URL(window.location.href);
+  if (screen !== currentScenario().screen) for (const key of ['page', 'size', 'q', 'status']) next.searchParams.delete(key);
   next.searchParams.set("screen", screens.has(screen) ? screen : "login");
   next.searchParams.set("state", states.has(state) ? state : "success");
   if (screen === "conversation" && options.conversationId) {
@@ -294,7 +296,7 @@ function render() {
   const requestedAccess = prototypeStore.authorizeSession(scenario.screen, scopeForScreen(scenario.screen));
   const screen =
     requestedAccess.reason === "AUTH_REQUIRED"
-      ? scopeForScreen(scenario.screen) === "query" ? "login" : "console-login"
+      ? scopeForScreen(scenario.screen) === "query" ? "login" : scopeForScreen(scenario.screen) === "platform" ? "console-login" : "tenant-login"
       : scenario.screen;
   if (screen === "conversation") {
     activeConversationId =
@@ -321,16 +323,17 @@ function render() {
   stateSelect.value = scenario.state;
   updateReviewerContext(scenario.screen);
   const renderedDemoState =
-    screen === "platform-tenant-detail"
+    screen.startsWith("platform-tenant-")
       ? {
           ...demoState,
           tenantQuotaProjection: prototypeStore.getTenantQuotas(
             demoState.selectedTenantId || workspaceTenantId(),
           ),
+          accountFeedback,
         }
       : screen === "platform-accounts"
         ? { ...demoState, accountFeedback }
-        : screen === "console-login" ? { ...demoState, consoleLoginFeedback, consoleLoginName, consoleLoginTenants,
+        : ["console-login", "tenant-login"].includes(screen) ? { ...demoState, consoleLoginFeedback, consoleLoginName, consoleLoginTenants, loginTenantCode: params.get('tenantCode'),
           needsDemoLoginRepair: prototypeStore.needsDemoLoginRepair(), demoLoginRepairFeedback } : demoState;
   root.innerHTML = access.allowed && contextAllowed ? renderScreen(screen, renderedState, renderedDemoState) : renderAccessDenied(screen, querySession);
   if (renderedState !== "success" && ["tenant-overview", "knowledge-overview", "processing-quality", "sync-result", "quick-publication", "access-policies", "audit-records"].includes(screen)) {
@@ -711,6 +714,7 @@ function renderLogin(state) {
       renderDemoLoginHelp(),
       "</form>",
       state !== "disabled" ? renderDemoLoginRepair(prototypeStore.needsDemoLoginRepair(), demoLoginRepairFeedback) : "",
+      renderLoginEntries('login'),
     ].join("");
   return [
     '<main id="main-content" class="login-shell" data-screen="login" data-state="' +
@@ -1257,7 +1261,7 @@ function renderKnowledgeSources(state, demoState) {
           "</button></div></td>",
         "</tr>",
         item.status === "FAILED"
-          ? '<tr><td data-label="失败说明" colspan="6"><div class="inline-note danger">' +
+          ? '<tr data-directory-row-detail><td data-label="失败说明" colspan="6"><div class="inline-note danger">' +
             escapeHtml(item.detail) +
             " 仅可从 EXTRACTING 安全阶段重试。</div></td></tr>"
           : "",
@@ -1588,8 +1592,8 @@ function modelDirectoryTable(headers, rows) {
     headers.map(header => `<th scope="col">${escapeHtml(header)}</th>`).join(""),
     "</tr></thead><tbody>",
     rows.join(""),
-    "</tbody></table></div>",
-    '<nav class="pagination" aria-label="目录分页"><button class="button secondary" type="button" disabled>上一页</button><span>第 1 / 1 页</span><button class="button secondary" type="button" disabled>下一页</button></nav>',
+    "</tbody></table>",
+    '<nav class="pagination" aria-label="目录分页"></nav></div>',
   ].join("");
 }
 
@@ -2053,7 +2057,7 @@ function renderEvaluationDatasetDetail(state, snapshot) {
   const { dataset, version } = context;
   const blocked = state !== "success";
   const composition = version.composition;
-  const sampleRows = version.samples.slice(0, 6).map(sample => `<tr><td data-label="类型">${escapeHtml(sample.label)}</td><td data-label="问题摘要"><strong>${escapeHtml(sample.questionSummary)}</strong></td><td data-label="期望结果">${sample.expectedOutcome === "ANSWER" ? "回答并引用" : "拒答且不泄漏"}</td><td data-label="期望证据">${sample.expectedEvidence.length ? escapeHtml(sample.expectedEvidence.join("、")) : "不应返回正文"}</td></tr>`).join("");
+  const sampleRows = version.samples.map(sample => `<tr><td data-label="类型">${escapeHtml(sample.label)}</td><td data-label="问题摘要"><strong>${escapeHtml(sample.questionSummary)}</strong></td><td data-label="期望结果">${sample.expectedOutcome === "ANSWER" ? "回答并引用" : "拒答且不泄漏"}</td><td data-label="期望证据">${sample.expectedEvidence.length ? escapeHtml(sample.expectedEvidence.join("、")) : "不应返回正文"}</td></tr>`).join("");
   const primary = version.status === "DRAFT"
     ? `<button class="button primary" type="button" data-publish-evaluation-version="${escapeHtml(version.id)}" data-primary-action${blocked ? " disabled" : ""}>发布数据集版本</button>`
     : `<button class="button primary" type="button" data-create-evaluation-version="${escapeHtml(dataset.id)}" data-primary-action${blocked ? " disabled" : ""}>创建新草稿版本</button>`;
@@ -3230,7 +3234,7 @@ function bindInteractions(screen) {
     event.preventDefault();
     const values = new FormData(event.currentTarget);
     consoleLoginName = String(values.get("username") || "");
-    const result = prototypeStore.loginConsole({ username: consoleLoginName, password: values.get("password"), tenantCode: values.get("tenantCode") });
+    const result = prototypeStore.loginConsole({ username: consoleLoginName, password: values.get("password"), tenantCode: values.get("tenantCode"), entry: event.currentTarget.dataset.loginEntry });
     event.currentTarget.reset();
     consoleLoginTenants = result.tenants || [];
     if (!result.ok) {
@@ -3302,6 +3306,7 @@ function bindInteractions(screen) {
   bindEvaluationGovernance();
   bindAccessQueryGovernance();
   bindStructuredObjectGovernance();
+  bindDirectoryPagination(root);
 }
 
 function bindAccountManagement() {
@@ -3379,7 +3384,7 @@ function bindAccountManagement() {
       return;
     }
     const createdAccountId = result.account.id;
-    accountFeedback = `已创建 ${result.account.loginName}；分配管理资格或成员与助手权限后，本人可使用刚设置的演示口令登录。`;
+    accountFeedback = `已创建平台账户 ${result.account.loginName}，本人可从平台登录入口进入。`;
     createDialog.close();
     render();
     root.querySelector(`[data-account-row="${CSS.escape(createdAccountId)}"]`)?.focus();
@@ -3649,7 +3654,6 @@ function bindTenantCreation() {
               step: 2,
             }
           : {
-              administratorAccountId: values.get("administratorAccountId"),
               step: 3,
             };
       const updated = prototypeStore.updateTenantSetup(patch);
@@ -3661,26 +3665,21 @@ function bindTenantCreation() {
       return;
     }
     const setup = prototypeStore.getWorkspaceSnapshot().tenantSetup;
-    const quotas = Object.fromEntries(
-      [...form.querySelectorAll("[data-tenant-quota]")].map((control) => [
-        control.name,
-        control.value,
-      ]),
-    );
     const result = prototypeStore.createTenant({
       organizationName: setup.organizationName,
       tenantCode: setup.tenantCode,
-      administratorAccountId: setup.administratorAccountId,
-      quotas,
+      administrator: { loginName: values.get('loginName'), password: values.get('password'), passwordConfirmation: values.get('passwordConfirmation') },
+      quotas: setup.quotas,
       confirmed: values.get("confirmed") === "on",
-    });
+    }, prototypeStore.getSession().accountId);
+    form.querySelectorAll('input[type="password"]').forEach(control => { control.value = ''; });
     if (!result.ok) {
       const errors = result.errors || [];
       const firstError = errors[0];
       const errorStep =
         firstError && ["organizationName", "tenantCode"].includes(firstError.field)
           ? 1
-          : firstError?.field === "administratorAccountId"
+          : firstError && Object.hasOwn(setup.quotas, firstError.field)
             ? 2
             : 3;
       if (errorStep !== step) {
@@ -3926,6 +3925,12 @@ function bindMemberManagement() {
 }
 
 function bindHealthManagement() {
+  root.querySelector('[data-load-health-records]')?.addEventListener('click', event => {
+    const earlier = [...root.querySelectorAll('.timeline-list li[hidden]')];
+    earlier.slice(0, 5).forEach(row => { row.hidden = false; });
+    root.querySelector('#health-feedback').textContent = `已显示 ${root.querySelectorAll('.timeline-list li:not([hidden])').length} 条处理记录。`;
+    if (earlier.length <= 5) { event.currentTarget.disabled = true; event.currentTarget.textContent = '已加载全部记录'; }
+  });
   root
     .querySelectorAll('[data-business-action="select-health-incident"]')
     .forEach((button) => {

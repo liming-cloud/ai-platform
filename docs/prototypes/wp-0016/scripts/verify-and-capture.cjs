@@ -442,8 +442,10 @@ async function validateManagementFlows(page) {
   await page.locator("#tenant-organization-name").fill("青岚制造示例组织");
   await page.locator("#tenant-code").fill("qinglan-demo");
   await page.getByRole("button", { name: "下一步", exact: true }).click();
-  await page.locator("#tenant-administrator").selectOption("account-qiao");
   await page.getByRole("button", { name: "下一步", exact: true }).click();
+  await page.locator('#tenant-create-form [name="loginName"]').fill('qinglan.admin');
+  await page.locator('#tenant-create-form [name="password"]').fill('demo-only');
+  await page.locator('#tenant-create-form [name="passwordConfirmation"]').fill('demo-only');
   await page.locator('#tenant-create-form input[name="confirmed"]').check();
   await page.locator("[data-primary-action]").click();
   await page.locator('main[data-screen="platform-tenant-detail"]').waitFor();
@@ -504,6 +506,7 @@ async function validateTenantAndMemberControls(page) {
   await openScenario(page, "platform-tenants", "success");
   await page.locator('[data-select-tenant="tenant-spruce"]').click();
   await page.locator('main[data-screen="platform-tenant-detail"]').waitFor();
+  await page.getByRole('navigation', { name: '租户设置' }).getByRole('button', { name: '可用功能', exact: true }).click();
   const assistantFeature = page.locator('[data-tenant-feature="assistantSelection"]');
   await assistantFeature.uncheck();
   await page.locator('[data-business-action="cancel-tenant-features"]').click();
@@ -524,7 +527,7 @@ async function validateTenantAndMemberControls(page) {
     "平台关闭租户功能后仍建立普通用户问答入口",
   );
 
-  await openScenario(page, "platform-tenant-detail", "success");
+  await openScenario(page, "platform-tenant-features", "success");
   await page.locator('[data-tenant-feature="assistantSelection"]').check();
   await page.locator('[data-business-action="save-tenant-features"]').click();
   await openScenario(page, "tenant-members", "success");
@@ -872,7 +875,7 @@ async function runStage(browserInstance, name, task) {
 
 async function main() {
   fs.mkdirSync(screenshotDirectory, { recursive: true });
-  assert(pages.length === 68, `页面清单数量应为 68，实际为 ${pages.length}`);
+  assert(pages.length === Object.keys(require('../page-fixtures.json').pages).length, '页面清单与夹具数量不一致');
   assert(new Set(screens).size === screens.length, "页面清单包含重复 screen");
   let browserInstance;
   try {

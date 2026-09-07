@@ -2795,6 +2795,55 @@ body[data-review="hidden"] .prototype-reviewer {
   align-items: start;
 }
 
+/* 事实摘要统一提供键值层级，避免浏览器默认 dl 将标签和值堆成正文。 */
+.fact-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 var(--space-5);
+  margin: var(--space-4) 0;
+}
+.tenant-settings-nav { display: flex; flex-wrap: wrap; gap: var(--space-2); border-bottom: 1px solid var(--color-border); margin-bottom: var(--space-5); padding-bottom: var(--space-2); }
+.login-entry-links { display: flex; flex-wrap: wrap; gap: var(--space-4); margin-top: var(--space-5); padding-top: var(--space-4); border-top: 1px solid var(--color-border); font-size: var(--text-sm); }
+.login-entry-links a { color: var(--color-accent); text-underline-offset: 4px; }
+.tenant-settings-nav [aria-current="page"] { color: var(--color-accent); background: var(--color-surface-hover); box-shadow: inset 0 -2px var(--color-accent); }
+.tenant-detail-overview .detail-facts { border: 1px solid var(--color-border); border-radius: var(--radius-panel); padding: var(--space-5); }
+.safety-checklist { list-style: none; padding: 0; margin: var(--space-4) 0 0; display: grid; gap: var(--space-3); }
+.safety-checklist li::before { content: '✓'; display: inline-block; color: var(--color-accent); margin-right: var(--space-2); }
+.fact-list > div { min-width: 0; padding: var(--space-3) 0; border-bottom: 1px solid var(--color-border); }
+.fact-list dt { font-size: var(--text-sm); color: var(--color-text-secondary); margin-bottom: var(--space-2); }
+.fact-list dd { margin: 0; font-weight: 550; line-height: 1.55; overflow-wrap: anywhere; }
+.incident-detail .fact-list > div:first-child,
+.incident-detail .fact-list > div:nth-child(2) { grid-column: 1 / -1; }
+.incident-detail .record-heading { margin-top: var(--space-5); }
+.health-chain { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); padding: 0; margin: 0; list-style: none; }
+.health-chain li { display: flex; align-items: center; gap: var(--space-2); }
+.health-chain li:not(:last-child)::after { content: '→'; color: var(--color-text-secondary); }
+.incident-detail .timeline-list { max-height: 22rem; overflow-y: auto; overscroll-behavior: contain; margin-top: 0; }
+.incident-detail .timeline-list li[hidden] { display: none; }
+.incident-detail [data-load-health-records] { margin-top: var(--space-3); }
+.recovery-layout { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+.recovery-layout > section,
+.recovery-status { padding: var(--space-5); border: 1px solid var(--color-border); border-radius: var(--radius-panel); }
+.recovery-status { background: var(--color-surface-subtle); min-height: 0; align-content: start; }
+.recovery-status h2 { font-size: 1.25rem; margin: var(--space-3) 0; }
+.recovery-status > p { margin-top: var(--space-3); }
+.pagination { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: var(--space-3); }
+.pagination-summary { margin-right: auto; white-space: nowrap; }
+.pagination-size, .pagination-jump, .pagination-jump label { display: flex; align-items: center; gap: var(--space-2); white-space: nowrap; }
+.pagination-size .select { width: 5.5rem; }
+.pagination-jump .input { width: 4rem; min-width: 0; }
+.pagination [aria-current="page"] { background: var(--color-accent); border-color: var(--color-accent); color: white; }
+.pagination-error { color: var(--color-danger); flex-basis: 100%; }
+.pagination-error:empty { display: none; }
+[data-page-hidden="true"] { display: none !important; }
+@media (max-width: 680px) {
+  .fact-list { grid-template-columns: 1fr; }
+  .pagination { justify-content: flex-start; padding: var(--space-3); }
+  .pagination-summary { width: 100%; }
+  .pagination-actions { max-width: 100%; flex-wrap: wrap; }
+  .recovery-layout > section, .recovery-status { padding: var(--space-3); }
+}
+
 .incident-list,
 .backup-options {
   display: grid;
@@ -2890,9 +2939,12 @@ body[data-review="hidden"] .prototype-reviewer {
 }
 
 .recovery-status {
-  min-height: 18rem;
+  min-height: 0;
   padding: var(--space-5);
 }
+.recovery-checklist { display: grid; gap: var(--space-3); padding: 0; margin: var(--space-4) 0 0; list-style: none; }
+.recovery-checklist li { display: grid; gap: var(--space-1); padding-block: var(--space-3); border-top: 1px solid var(--color-border); }
+.recovery-checklist span { font-size: var(--text-sm); color: var(--color-text-secondary); }
 
 .progress-track {
   height: 0.5rem;
