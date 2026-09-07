@@ -10,7 +10,13 @@ import {
 
 /** 显示全部公开夹具，不展示或推断任何账户当前选择的口令。 */
 export function renderDemoLoginHelp() {
-  return `<details class="demo-login-help"><summary>演示口令说明</summary><p>仅接受以下公开演示口令：<br />${Object.values(DEMO_LOGIN_SCENARIOS).map(escapeHtml).join("<br />")}</p><small>请勿输入真实密码。创建或重置后使用刚设置的演示口令；不会显示账户当前口令。旧演示数据无法登录时，可在原型场景审查器中重置。</small></details>`;
+  return `<details class="demo-login-help"><summary>演示口令说明</summary><p>仅接受以下公开演示口令：<br />${Object.values(DEMO_LOGIN_SCENARIOS).map(escapeHtml).join("<br />")}</p><small>请勿输入真实密码。未修改过的内置账户使用 demo-only；创建或重置后使用刚设置的演示口令，并非上面任意一个都能登录。不会显示账户当前口令。检测到旧版数据时，登录页提供保留数据的修复入口。</small></details>`;
+}
+
+/** 演示数据升级与产品登录分开，修复必须明确确认且不能清空原来的业务快照。 */
+export function renderDemoLoginRepair(required, feedback = "") {
+  if (!required) return feedback ? `<p class="inline-note" role="status">${escapeHtml(feedback)}</p>` : "";
+  return `<section class="inline-note warning" aria-label="旧版演示登录配置"><strong>检测到旧版演示数据</strong><p>缺少登录配置，按初始口令也无法进入。可保留数据修复后重试。</p><button class="button secondary compact" type="button" data-open-demo-login-repair>修复演示登录</button></section><dialog id="demo-login-repair-dialog" class="dialog-surface" aria-labelledby="demo-login-repair-title"><h2 id="demo-login-repair-title">修复旧版演示登录</h2><p>仅补齐未修改过的内置演示账户，修复后使用公开口令 demo-only。</p><p>不清空租户、知识库、会话和草稿；不覆盖已重置的口令，不恢复停用账户，不改变角色和权限。</p><p>修复后仍需手动登录。这是本机原型修复，不是真实账户密码恢复。</p><p class="form-feedback" role="alert" data-demo-login-repair-error></p><div class="dialog-actions"><button class="button secondary" type="button" data-cancel-demo-login-repair autofocus>取消</button><button class="button primary" type="button" data-confirm-demo-login-repair>确认修复</button></div></dialog>`;
 }
 
 function escapeHtml(value) {
@@ -765,6 +771,7 @@ function renderConsoleLogin(page, fixture, state, demoState) {
     interactive
       ? `<form id="console-login-form" class="login-form"><label class="field"><span>登录名</span><input class="input" name="username" autocomplete="username" value="${escapeHtml(demoState?.consoleLoginName || "platform.admin.demo")}" required /></label>${tenantSelection}<label class="field"><span>密码</span><input class="input" name="password" type="password" autocomplete="current-password" required /></label>${demoState?.consoleLoginFeedback ? `<p class="form-feedback" role="alert">${escapeHtml(demoState.consoleLoginFeedback)}</p>` : ""}<p class="inline-note ${state === "disabled" ? "danger" : ""}">${escapeHtml(statusNotice)}</p><button class="button primary" type="submit" data-primary-action${state === "disabled" ? " disabled" : ""}>登录</button><details class="demo-login-help"><summary>演示账户</summary><p>平台：platform.admin.demo<br />租户：qiao.demo<br />初始演示口令：demo-only</p></details>${renderDemoLoginHelp()}</form>`
       : statePanel(page, fixture, state),
+    interactive && state !== "disabled" ? renderDemoLoginRepair(demoState?.needsDemoLoginRepair, demoState?.demoLoginRepairFeedback) : "",
     "</section></main>",
   ].join("");
 }

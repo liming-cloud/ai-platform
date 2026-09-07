@@ -4092,6 +4092,41 @@ export function createPrototypeStore(storage = browserStorage()) {
       account.status === "available" && account.loginScenario === scenario) ?? null;
   }
 
+  /** 只识别未配置过登录的内置合成账户；不覆盖重置、停用、自建或畸形账户。 */
+  function legacyDemoAccounts(snapshot) {
+    if (snapshot?.schemaVersion !== 1 || !Array.isArray(snapshot.accounts)) return [];
+    const fixtures = defaultState().accounts;
+    return snapshot.accounts.filter(account => account && account.status === "available" &&
+      !Object.hasOwn(account, "loginScenario") && (account.authenticationRevision ?? 1) === 1 &&
+      !account.authenticationChangedAt && fixtures.some(fixture => fixture.id === account.id &&
+        fixture.loginName === account.loginName) &&
+      snapshot.accounts.filter(item => item?.id === account.id || item?.loginName === account.loginName).length === 1);
+  }
+
+  /** 仅投影旧演示配置是否可修复，不显示账户当前口令，也不以读取动作迁移数据。 */
+  function needsDemoLoginRepair() {
+    try { return legacyDemoAccounts(JSON.parse(storage.getItem(PROTOTYPE_STATE_KEY))).length > 0; }
+    catch { return false; }
+  }
+
+  /**
+   * 必须人工确认后补齐旧内置夹具。此操作不是生产密码恢复：不赋予角色、不启用账户、不自动登录。
+   * 只原子写回最新快照的登录字段，保留全部业务数据；提高认证版本使旧会话继续失效。
+   */
+  function repairDemoLogin(confirmed) {
+    if (confirmed !== true) return { ok: false, reason: "CONFIRMATION_REQUIRED" };
+    try {
+      const snapshot = JSON.parse(storage.getItem(PROTOTYPE_STATE_KEY));
+      if (snapshot?.schemaVersion !== 1 || !Array.isArray(snapshot.accounts)) return { ok: false, reason: "INVALID_DEMO_DATA" };
+      const accounts = legacyDemoAccounts(snapshot);
+      if (!accounts.length) return { ok: true, repairedCount: 0 };
+      for (const account of accounts) Object.assign(account, { loginScenario: "INITIAL", authenticationRevision: 2 });
+      storage.setItem(PROTOTYPE_STATE_KEY, JSON.stringify(snapshot));
+      state.accounts = snapshot.accounts;
+      return { ok: true, repairedCount: accounts.length };
+    } catch { return { ok: false, reason: "STORAGE_UNAVAILABLE" }; }
+  }
+
   /** 合成会话独立于业务快照；重新校验账户修订、成员状态和渠道，失效时不返回旧主体。 */
   function getSession() {
     if (!querySessionClosed) state.query.session = readQuerySession(storage, state.query.session.epoch);
@@ -4937,6 +4972,8 @@ export function createPrototypeStore(storage = browserStorage()) {
     getSession,
     loginConsole,
     loginQuery,
+    needsDemoLoginRepair,
+    repairDemoLogin,
     logoutSession,
     createQueryConversation,
     startQueryRun,

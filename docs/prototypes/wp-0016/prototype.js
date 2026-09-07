@@ -1,4 +1,4 @@
-import { decorateExistingPage, renderInventoryPage, renderDemoLoginHelp } from "./full-platform.js";
+import { decorateExistingPage, renderInventoryPage, renderDemoLoginHelp, renderDemoLoginRepair } from "./full-platform.js";
 import { renderConsoleNavigation, renderAccountMenu } from "./navigation.js";
 import { workspaceJourney } from "./workspace-journeys.js";
 import { governanceDirectory } from "./governance-directories.js";
@@ -36,6 +36,7 @@ let streamTimer;
 let streamGeneration = 0;
 let loginFeedback = "";
 let consoleLoginFeedback = "";
+let demoLoginRepairFeedback = "";
 let consoleLoginName = "";
 let consoleLoginTenants = [];
 let queryFeedback = "";
@@ -329,7 +330,8 @@ function render() {
         }
       : screen === "platform-accounts"
         ? { ...demoState, accountFeedback }
-        : screen === "console-login" ? { ...demoState, consoleLoginFeedback, consoleLoginName, consoleLoginTenants } : demoState;
+        : screen === "console-login" ? { ...demoState, consoleLoginFeedback, consoleLoginName, consoleLoginTenants,
+          needsDemoLoginRepair: prototypeStore.needsDemoLoginRepair(), demoLoginRepairFeedback } : demoState;
   root.innerHTML = access.allowed && contextAllowed ? renderScreen(screen, renderedState, renderedDemoState) : renderAccessDenied(screen, querySession);
   if (renderedState !== "success" && ["tenant-overview", "knowledge-overview", "processing-quality", "sync-result", "quick-publication", "access-policies", "audit-records"].includes(screen)) {
     root.querySelectorAll("form input, form select, form textarea, form button").forEach(control => { control.disabled = true; });
@@ -708,6 +710,7 @@ function renderLogin(state) {
       '<p class="session-safety">请勿在公共设备上保存密码。</p>',
       renderDemoLoginHelp(),
       "</form>",
+      state !== "disabled" ? renderDemoLoginRepair(prototypeStore.needsDemoLoginRepair(), demoLoginRepairFeedback) : "",
     ].join("");
   return [
     '<main id="main-content" class="login-shell" data-screen="login" data-state="' +
@@ -3243,6 +3246,25 @@ function bindInteractions(screen) {
     cancelQueryTimer();
     activeConversationId = "";
     navigate(result.screen);
+  });
+  const repairDialog = root.querySelector("#demo-login-repair-dialog");
+  const repairTrigger = root.querySelector("[data-open-demo-login-repair]");
+  repairTrigger?.addEventListener("click", () => repairDialog.showModal());
+  root.querySelector("[data-cancel-demo-login-repair]")?.addEventListener("click", () => repairDialog.close());
+  repairDialog?.addEventListener("close", () => repairTrigger?.focus());
+  root.querySelector("[data-confirm-demo-login-repair]")?.addEventListener("click", () => {
+    const result = prototypeStore.repairDemoLogin(true);
+    if (!result.ok) {
+      repairDialog.querySelector("[data-demo-login-repair-error]").textContent = "修复未能保存，未修改原数据。请检查浏览器存储后重试。";
+      return;
+    }
+    consoleLoginFeedback = "";
+    loginFeedback = "";
+    demoLoginRepairFeedback = result.repairedCount > 0
+      ? "演示登录已修复，原数据已保留。请使用原登录名和 demo-only 登录。"
+      : "登录配置已变化，本次未修改数据。请使用最近设置的演示口令登录。";
+    render();
+    root.querySelector('input[name="password"]')?.focus();
   });
   root.querySelectorAll("[data-console-logout]").forEach(button => button.addEventListener("click", () => {
     cancelQueryTimer();

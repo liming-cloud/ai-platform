@@ -1,8 +1,8 @@
 {
   "workPackage": "WP-0016",
-  "generatedOn": "2026-09-06",
+  "generatedOn": "2026-09-07",
   "browserVerification": "passed",
-  "browserVerificationNote": "2026-09-06 Node 131/131、浏览器 130/130、1,428 场景及 9,644 断言通过。56 个 M6 页面七态共 5,753 控件实例均已枚举；旧 14 项已知缺口及新增闭环已回归。当前可提请人工复核，不表示人工通过。",
+  "browserVerificationNote": "2026-09-07 补充旧浏览器登录缺口：新增 6 个状态测试及 4 个浏览器测试，覆盖三角色保留数据修复、明确确认、取消、刷新及写入失败。既有全平台回归仍保留；当前用户还需确认本机修复并重新验收，不把技术测试当作人工通过。",
   "classification": {
     "navigation": "仅改变原型页面，不计作业务完成",
     "implementedStateChange": "合成状态已有 Node 测试；browserVerified 只表示条目注明的浏览器范围，不代表完整业务或人工通过",
@@ -15,13 +15,13 @@
   "summary": {
     "navigation": 28,
     "implementedRead": 18,
-    "implementedStateChange": 91,
+    "implementedStateChange": 93,
     "pendingDecision": 1,
     "unimplemented": 2,
     "forbidden": 1,
     "partialSimulation": 0,
     "totalPages": 68,
-    "totalControls": 141,
+    "totalControls": 143,
     "unclosedControls": 0,
     "allControlsEnumerated": true,
     "readyForFullAcceptance": true,
@@ -45,6 +45,16 @@
           "browserEvidence": "artifacts/session-boundaries-verification-20260906.json",
           "findingStatus": "resolved",
           "browserScope": "当前合成身份的正反向访问、写入拒绝、跨页签失效及范围内功能；不代表生产授权或全平台完成"
+        },
+        {
+          "label": "修复演示登录：确认、取消、保留数据和失败重试",
+          "kind": "taskControl",
+          "status": "implementedStateChange",
+          "evidence": "scripts/legacy-login.test.mjs；scripts/legacy-login.browser.test.cjs；project/evidence/WP-0016-legacy-login-repair-20260907.md",
+          "browserVerified": true,
+          "findingId": "A12",
+          "findingStatus": "resolved",
+          "browserScope": "旧合成快照，平台与租户登录；用户当前 Chrome 只验证检测及修复入口，修复确认留给用户"
         }
       ]
     },
@@ -1458,6 +1468,16 @@
           "status": "implementedStateChange",
           "evidence": "query-state.test.mjs：正确/错误口令、无密码持久化和存储失败回滚；本轮 query-journey/query-resilience 与全平台问答阶段已实际点击复验，仅代表合成原型",
           "browserVerified": true
+        },
+        {
+          "label": "修复演示登录：确认、取消、保留数据和失败重试",
+          "kind": "taskControl",
+          "status": "implementedStateChange",
+          "evidence": "scripts/legacy-login.test.mjs；scripts/legacy-login.browser.test.cjs；project/evidence/WP-0016-legacy-login-repair-20260907.md",
+          "browserVerified": true,
+          "findingId": "A12",
+          "findingStatus": "resolved",
+          "browserScope": "390 旧合成快照保留全部业务数据，普通成员修复后手动登录并刷新"
         }
       ]
     },
