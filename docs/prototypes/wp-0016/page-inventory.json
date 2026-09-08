@@ -1,11 +1,31 @@
 {
   "schemaVersion": 1,
   "description": "WP-0016 全平台高保真原型页面单一事实源",
-  "states": ["loading", "empty", "error", "denied", "partial", "disabled", "success"],
+  "states": [
+    "loading",
+    "empty",
+    "error",
+    "denied",
+    "partial",
+    "disabled",
+    "success"
+  ],
   "viewports": [
-    {"name": "desktop", "width": 1440, "height": 1000},
-    {"name": "tablet", "width": 1024, "height": 900},
-    {"name": "mobile", "width": 390, "height": 844}
+    {
+      "name": "desktop",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "name": "tablet",
+      "width": 1024,
+      "height": 900
+    },
+    {
+      "name": "mobile",
+      "width": 390,
+      "height": 844
+    }
   ],
   "groups": [
     {
@@ -14,8 +34,62 @@
       "shell": "console",
       "phase": "M6",
       "pages": [
-        {"screen":"console-login","route":"/login","task":"验证平台账户并进入平台管理","primaryAction":"登录","pagination":false,"contractLevel":"accepted","migration":{"disposition":"保留","destinations":["console-login"],"workspace":"console-login","stage":"阶段三待迁移","status":"待人工确认","legacyUrlPreserved":true}},
-        {"screen":"tenant-login","route":"/tenant/login","task":"验证租户管理员并进入指定组织","primaryAction":"登录","pagination":false,"contractLevel":"prototype-only","migration":{"disposition":"保留","destinations":["tenant-login"],"workspace":"tenant-login","stage":"阶段三待迁移","status":"待人工确认","legacyUrlPreserved":true}}
+        {
+          "screen": "console-login",
+          "route": "/login",
+          "task": "验证平台账户并进入平台管理",
+          "primaryAction": "登录",
+          "pagination": false,
+          "contractLevel": "accepted",
+          "migration": {
+            "disposition": "保留",
+            "destinations": [
+              "console-login"
+            ],
+            "workspace": "console-login",
+            "stage": "阶段三已迁移",
+            "status": "机器复验通过，等待全量人工验收",
+            "legacyUrlPreserved": true,
+            "changes": [
+              "平台角色独立标题和登录摘要，保留公开演示密码及既有账户状态。"
+            ],
+            "evidence": [
+              "scripts/stage-three-migration.test.mjs",
+              "scripts/stage-three-render.test.mjs",
+              "artifacts/stage-three-validation-summary.json"
+            ],
+            "browserVerified": true,
+            "browserScope": "本页七态、三尺寸及所属专项业务回归；不等于穷举所有输入或人工认可"
+          }
+        },
+        {
+          "screen": "tenant-login",
+          "route": "/tenant/login",
+          "task": "验证租户管理员并进入指定组织",
+          "primaryAction": "登录",
+          "pagination": false,
+          "contractLevel": "prototype-only",
+          "migration": {
+            "disposition": "保留",
+            "destinations": [
+              "tenant-login"
+            ],
+            "workspace": "tenant-login",
+            "stage": "阶段三已迁移",
+            "status": "机器复验通过，等待全量人工验收",
+            "legacyUrlPreserved": true,
+            "changes": [
+              "组织管理员独立入口和简短说明，保留组织选择与登录拒绝。"
+            ],
+            "evidence": [
+              "scripts/stage-three-migration.test.mjs",
+              "scripts/stage-three-render.test.mjs",
+              "artifacts/stage-three-validation-summary.json"
+            ],
+            "browserVerified": true,
+            "browserScope": "本页七态、三尺寸及所属专项业务回归；不等于穷举所有输入或人工认可"
+          }
+        }
       ]
     },
     {
@@ -24,20 +98,398 @@
       "shell": "console",
       "phase": "M6",
       "pages": [
-        {"screen":"platform-overview","route":"/platform/operations","task":"处理全平台脱敏运营风险","primaryAction":"打开首个阻断项","pagination":true,"contractLevel":"accepted","migration":{"disposition":"保留","destinations":["platform-overview"],"workspace":"platform-overview","stage":"阶段三待迁移","status":"待人工确认","legacyUrlPreserved":true}},
-        {"screen":"platform-tenants","route":"/platform/tenants","task":"查找并管理租户生命周期","primaryAction":"建立新租户","pagination":true,"contractLevel":"accepted","migration":{"disposition":"保留","destinations":["platform-tenants"],"workspace":"platform-tenants","stage":"阶段三待迁移","status":"待人工确认","legacyUrlPreserved":true}},
-        {"screen":"platform-tenant-create","route":"/platform/tenants/new","task":"分三步建立租户并设置资源配额","primaryAction":"下一步","pagination":false,"contractLevel":"accepted","migration":{"disposition":"保留","destinations":["platform-tenant-create"],"workspace":"platform-tenant-create","stage":"阶段三待迁移","status":"待人工确认","legacyUrlPreserved":true}},
-        {"screen":"platform-tenant-detail","route":"/platform/tenants/:tenantId","task":"租户概览独立查看与维护","primaryAction":"返回租户目录","pagination":false,"contractLevel":"prototype-only","migration":{"disposition":"保留","destinations":["platform-tenant-detail"],"workspace":"platform-tenant-detail","stage":"阶段三待迁移","status":"待人工确认","legacyUrlPreserved":true}},
-        {"screen":"platform-tenant-admins","route":"/platform/tenants/:tenantId/admins","task":"租户管理员独立查看与维护","primaryAction":"返回租户目录","pagination":true,"contractLevel":"prototype-only","migration":{"disposition":"保留","destinations":["platform-tenant-admins"],"workspace":"platform-tenant-admins","stage":"阶段三待迁移","status":"待人工确认","legacyUrlPreserved":true}},
-        {"screen":"platform-tenant-quotas","route":"/platform/tenants/:tenantId/quotas","task":"资源配额独立查看与维护","primaryAction":"返回租户目录","pagination":false,"contractLevel":"prototype-only","migration":{"disposition":"保留","destinations":["platform-tenant-quotas"],"workspace":"platform-tenant-quotas","stage":"阶段三待迁移","status":"待人工确认","legacyUrlPreserved":true}},
-        {"screen":"platform-tenant-features","route":"/platform/tenants/:tenantId/features","task":"可用功能独立查看与维护","primaryAction":"保存功能配置","pagination":false,"contractLevel":"prototype-only","migration":{"disposition":"保留","destinations":["platform-tenant-features"],"workspace":"platform-tenant-features","stage":"阶段三待迁移","status":"待人工确认","legacyUrlPreserved":true}},
-        {"screen":"platform-tenant-security","route":"/platform/tenants/:tenantId/security","task":"登录安全独立查看与维护","primaryAction":"返回租户目录","pagination":false,"contractLevel":"prototype-only","migration":{"disposition":"保留","destinations":["platform-tenant-security"],"workspace":"platform-tenant-security","stage":"阶段三待迁移","status":"待人工确认","legacyUrlPreserved":true}},
-        {"screen":"platform-accounts","route":"/platform/accounts","task":"创建和管理平台管理员账户","primaryAction":"创建平台账户","pagination":true,"contractLevel":"prototype-only","migration":{"disposition":"保留","destinations":["platform-accounts"],"workspace":"platform-accounts","stage":"阶段三待迁移","status":"待人工确认","legacyUrlPreserved":true}},
-        {"screen":"platform-roles","route":"/platform/roles","task":"理解平台固定角色及最小披露边界","primaryAction":"管理账户","pagination":false,"contractLevel":"accepted","migration":{"disposition":"保留","destinations":["platform-roles"],"workspace":"platform-roles","stage":"阶段三待迁移","status":"待人工确认","legacyUrlPreserved":true}},
-        {"screen":"platform-model-connections","route":"/platform/model-supply","task":"管理平台模型供应商连接","primaryAction":"新增供应商连接","pagination":true,"contractLevel":"accepted","migration":{"disposition":"保留","destinations":["platform-model-connections"],"workspace":"platform-model-connections","stage":"阶段三待迁移","status":"待人工确认","legacyUrlPreserved":true}},
-        {"screen":"platform-model-connection-detail","route":"/platform/model-supply/:connectionId","task":"探测并发布单个供应商连接版本","primaryAction":"执行连接探测","pagination":false,"contractLevel":"prototype-only","migration":{"disposition":"保留","destinations":["platform-model-connection-detail"],"workspace":"platform-model-connection-detail","stage":"阶段三待迁移","status":"待人工确认","legacyUrlPreserved":true}},
-        {"screen":"platform-model-deployments","route":"/platform/model-supply/deployments","task":"管理平台可授权模型部署","primaryAction":"建立部署草稿","pagination":true,"contractLevel":"accepted","migration":{"disposition":"保留","destinations":["platform-model-deployments"],"workspace":"platform-model-deployments","stage":"阶段三待迁移","status":"待人工确认","legacyUrlPreserved":true}},
-        {"screen":"platform-model-deployment-detail","route":"/platform/model-supply/deployments/:deploymentId","task":"验证并发布单个模型部署","primaryAction":"发布部署","pagination":false,"contractLevel":"prototype-only","migration":{"disposition":"保留","destinations":["platform-model-deployment-detail"],"workspace":"platform-model-deployment-detail","stage":"阶段三待迁移","status":"待人工确认","legacyUrlPreserved":true}}
+        {
+          "screen": "platform-overview",
+          "route": "/platform/operations",
+          "task": "处理全平台脱敏运营风险",
+          "primaryAction": "打开首个阻断项",
+          "pagination": true,
+          "contractLevel": "accepted",
+          "migration": {
+            "disposition": "保留",
+            "destinations": [
+              "platform-overview"
+            ],
+            "workspace": "platform-overview",
+            "stage": "阶段三已迁移",
+            "status": "机器复验通过，等待全量人工验收",
+            "legacyUrlPreserved": true,
+            "changes": [
+              "目录统一先筛选后切片，默认 20 行、页大小及跳页，搜索和页码进入 URL；保留行级业务动作。"
+            ],
+            "evidence": [
+              "scripts/stage-three-migration.test.mjs",
+              "scripts/stage-three-render.test.mjs",
+              "artifacts/stage-three-validation-summary.json"
+            ],
+            "browserVerified": true,
+            "browserScope": "本页七态、三尺寸及所属专项业务回归；不等于穷举所有输入或人工认可"
+          }
+        },
+        {
+          "screen": "platform-tenants",
+          "route": "/platform/tenants",
+          "task": "查找并管理租户生命周期",
+          "primaryAction": "建立新租户",
+          "pagination": true,
+          "contractLevel": "accepted",
+          "migration": {
+            "disposition": "保留",
+            "destinations": [
+              "platform-tenants"
+            ],
+            "workspace": "platform-tenants",
+            "stage": "阶段三已迁移",
+            "status": "机器复验通过，等待全量人工验收",
+            "legacyUrlPreserved": true,
+            "changes": [
+              "目录统一先筛选后切片，默认 20 行、页大小及跳页，搜索和页码进入 URL；保留行级业务动作。"
+            ],
+            "evidence": [
+              "scripts/stage-three-migration.test.mjs",
+              "scripts/stage-three-render.test.mjs",
+              "artifacts/stage-three-validation-summary.json"
+            ],
+            "browserVerified": true,
+            "browserScope": "本页七态、三尺寸及所属专项业务回归；不等于穷举所有输入或人工认可"
+          }
+        },
+        {
+          "screen": "platform-tenant-create",
+          "route": "/platform/tenants/new",
+          "task": "分三步建立租户并设置资源配额",
+          "primaryAction": "下一步",
+          "pagination": false,
+          "contractLevel": "accepted",
+          "migration": {
+            "disposition": "保留",
+            "destinations": [
+              "platform-tenant-create"
+            ],
+            "workspace": "platform-tenant-create",
+            "stage": "阶段三已迁移",
+            "status": "机器复验通过，等待全量人工验收",
+            "legacyUrlPreserved": true,
+            "changes": [
+              "复用任务组件统一字段帮助与确认弹窗三区；异常态禁用写入口，保留“分三步建立租户并设置资源配额”原有独立保存和权限边界。"
+            ],
+            "evidence": [
+              "scripts/stage-three-migration.test.mjs",
+              "scripts/stage-three-render.test.mjs",
+              "artifacts/stage-three-validation-summary.json"
+            ],
+            "browserVerified": true,
+            "browserScope": "本页七态、三尺寸及所属专项业务回归；不等于穷举所有输入或人工认可"
+          }
+        },
+        {
+          "screen": "platform-tenant-detail",
+          "route": "/platform/tenants/:tenantId",
+          "task": "租户概览独立查看与维护",
+          "primaryAction": "返回租户目录",
+          "pagination": false,
+          "contractLevel": "prototype-only",
+          "migration": {
+            "disposition": "保留",
+            "destinations": [
+              "platform-tenant-detail"
+            ],
+            "workspace": "platform-tenant-detail",
+            "stage": "阶段三已迁移",
+            "status": "机器复验通过，等待全量人工验收",
+            "legacyUrlPreserved": true,
+            "changes": [
+              "复用任务组件统一字段帮助与确认弹窗三区；异常态禁用写入口，保留“租户概览独立查看与维护”原有独立保存和权限边界。"
+            ],
+            "evidence": [
+              "scripts/stage-three-migration.test.mjs",
+              "scripts/stage-three-render.test.mjs",
+              "artifacts/stage-three-validation-summary.json"
+            ],
+            "browserVerified": true,
+            "browserScope": "本页七态、三尺寸及所属专项业务回归；不等于穷举所有输入或人工认可"
+          }
+        },
+        {
+          "screen": "platform-tenant-admins",
+          "route": "/platform/tenants/:tenantId/admins",
+          "task": "租户管理员独立查看与维护",
+          "primaryAction": "返回租户目录",
+          "pagination": true,
+          "contractLevel": "prototype-only",
+          "migration": {
+            "disposition": "保留",
+            "destinations": [
+              "platform-tenant-admins"
+            ],
+            "workspace": "platform-tenant-admins",
+            "stage": "阶段三已迁移",
+            "status": "机器复验通过，等待全量人工验收",
+            "legacyUrlPreserved": true,
+            "changes": [
+              "目录统一先筛选后切片，默认 20 行、页大小及跳页，搜索和页码进入 URL；保留行级业务动作。"
+            ],
+            "evidence": [
+              "scripts/stage-three-migration.test.mjs",
+              "scripts/stage-three-render.test.mjs",
+              "artifacts/stage-three-validation-summary.json"
+            ],
+            "browserVerified": true,
+            "browserScope": "本页七态、三尺寸及所属专项业务回归；不等于穷举所有输入或人工认可"
+          }
+        },
+        {
+          "screen": "platform-tenant-quotas",
+          "route": "/platform/tenants/:tenantId/quotas",
+          "task": "资源配额独立查看与维护",
+          "primaryAction": "返回租户目录",
+          "pagination": false,
+          "contractLevel": "prototype-only",
+          "migration": {
+            "disposition": "保留",
+            "destinations": [
+              "platform-tenant-quotas"
+            ],
+            "workspace": "platform-tenant-quotas",
+            "stage": "阶段三已迁移",
+            "status": "机器复验通过，等待全量人工验收",
+            "legacyUrlPreserved": true,
+            "changes": [
+              "复用任务组件统一字段帮助与确认弹窗三区；异常态禁用写入口，保留“资源配额独立查看与维护”原有独立保存和权限边界。"
+            ],
+            "evidence": [
+              "scripts/stage-three-migration.test.mjs",
+              "scripts/stage-three-render.test.mjs",
+              "artifacts/stage-three-validation-summary.json"
+            ],
+            "browserVerified": true,
+            "browserScope": "本页七态、三尺寸及所属专项业务回归；不等于穷举所有输入或人工认可"
+          }
+        },
+        {
+          "screen": "platform-tenant-features",
+          "route": "/platform/tenants/:tenantId/features",
+          "task": "可用功能独立查看与维护",
+          "primaryAction": "保存功能配置",
+          "pagination": false,
+          "contractLevel": "prototype-only",
+          "migration": {
+            "disposition": "保留",
+            "destinations": [
+              "platform-tenant-features"
+            ],
+            "workspace": "platform-tenant-features",
+            "stage": "阶段三已迁移",
+            "status": "机器复验通过，等待全量人工验收",
+            "legacyUrlPreserved": true,
+            "changes": [
+              "复用任务组件统一字段帮助与确认弹窗三区；异常态禁用写入口，保留“可用功能独立查看与维护”原有独立保存和权限边界。"
+            ],
+            "evidence": [
+              "scripts/stage-three-migration.test.mjs",
+              "scripts/stage-three-render.test.mjs",
+              "artifacts/stage-three-validation-summary.json"
+            ],
+            "browserVerified": true,
+            "browserScope": "本页七态、三尺寸及所属专项业务回归；不等于穷举所有输入或人工认可"
+          }
+        },
+        {
+          "screen": "platform-tenant-security",
+          "route": "/platform/tenants/:tenantId/security",
+          "task": "登录安全独立查看与维护",
+          "primaryAction": "返回租户目录",
+          "pagination": false,
+          "contractLevel": "prototype-only",
+          "migration": {
+            "disposition": "保留",
+            "destinations": [
+              "platform-tenant-security"
+            ],
+            "workspace": "platform-tenant-security",
+            "stage": "阶段三已迁移",
+            "status": "机器复验通过，等待全量人工验收",
+            "legacyUrlPreserved": true,
+            "changes": [
+              "复用任务组件统一字段帮助与确认弹窗三区；异常态禁用写入口，保留“登录安全独立查看与维护”原有独立保存和权限边界。"
+            ],
+            "evidence": [
+              "scripts/stage-three-migration.test.mjs",
+              "scripts/stage-three-render.test.mjs",
+              "artifacts/stage-three-validation-summary.json"
+            ],
+            "browserVerified": true,
+            "browserScope": "本页七态、三尺寸及所属专项业务回归；不等于穷举所有输入或人工认可"
+          }
+        },
+        {
+          "screen": "platform-accounts",
+          "route": "/platform/accounts",
+          "task": "创建和管理平台管理员账户",
+          "primaryAction": "创建平台账户",
+          "pagination": true,
+          "contractLevel": "prototype-only",
+          "migration": {
+            "disposition": "保留",
+            "destinations": [
+              "platform-accounts"
+            ],
+            "workspace": "platform-accounts",
+            "stage": "阶段三已迁移",
+            "status": "机器复验通过，等待全量人工验收",
+            "legacyUrlPreserved": true,
+            "changes": [
+              "目录统一先筛选后切片，默认 20 行、页大小及跳页，搜索和页码进入 URL；保留行级业务动作。"
+            ],
+            "evidence": [
+              "scripts/stage-three-migration.test.mjs",
+              "scripts/stage-three-render.test.mjs",
+              "artifacts/stage-three-validation-summary.json"
+            ],
+            "browserVerified": true,
+            "browserScope": "本页七态、三尺寸及所属专项业务回归；不等于穷举所有输入或人工认可"
+          }
+        },
+        {
+          "screen": "platform-roles",
+          "route": "/platform/roles",
+          "task": "理解平台固定角色及最小披露边界",
+          "primaryAction": "管理账户",
+          "pagination": false,
+          "contractLevel": "accepted",
+          "migration": {
+            "disposition": "保留",
+            "destinations": [
+              "platform-roles"
+            ],
+            "workspace": "platform-roles",
+            "stage": "阶段三已迁移",
+            "status": "机器复验通过，等待全量人工验收",
+            "legacyUrlPreserved": true,
+            "changes": [
+              "复用任务组件统一字段帮助与确认弹窗三区；异常态禁用写入口，保留“理解平台固定角色及最小披露边界”原有独立保存和权限边界。"
+            ],
+            "evidence": [
+              "scripts/stage-three-migration.test.mjs",
+              "scripts/stage-three-render.test.mjs",
+              "artifacts/stage-three-validation-summary.json"
+            ],
+            "browserVerified": true,
+            "browserScope": "本页七态、三尺寸及所属专项业务回归；不等于穷举所有输入或人工认可"
+          }
+        },
+        {
+          "screen": "platform-model-connections",
+          "route": "/platform/model-supply",
+          "task": "管理平台模型供应商连接",
+          "primaryAction": "新增供应商连接",
+          "pagination": true,
+          "contractLevel": "accepted",
+          "migration": {
+            "disposition": "保留",
+            "destinations": [
+              "platform-model-connections"
+            ],
+            "workspace": "platform-model-connections",
+            "stage": "阶段三已迁移",
+            "status": "机器复验通过，等待全量人工验收",
+            "legacyUrlPreserved": true,
+            "changes": [
+              "目录统一先筛选后切片，默认 20 行、页大小及跳页，搜索和页码进入 URL；保留行级业务动作。"
+            ],
+            "evidence": [
+              "scripts/stage-three-migration.test.mjs",
+              "scripts/stage-three-render.test.mjs",
+              "artifacts/stage-three-validation-summary.json"
+            ],
+            "browserVerified": true,
+            "browserScope": "本页七态、三尺寸及所属专项业务回归；不等于穷举所有输入或人工认可"
+          }
+        },
+        {
+          "screen": "platform-model-connection-detail",
+          "route": "/platform/model-supply/:connectionId",
+          "task": "探测并发布单个供应商连接版本",
+          "primaryAction": "执行连接探测",
+          "pagination": true,
+          "contractLevel": "prototype-only",
+          "migration": {
+            "disposition": "保留",
+            "destinations": [
+              "platform-model-connection-detail"
+            ],
+            "workspace": "platform-model-connection-detail",
+            "stage": "阶段三已迁移",
+            "status": "机器复验通过，等待全量人工验收",
+            "legacyUrlPreserved": true,
+            "changes": [
+              "发现模型改为搜索分页表格，保留连接探测和发布门禁。"
+            ],
+            "evidence": [
+              "scripts/stage-three-migration.test.mjs",
+              "scripts/stage-three-render.test.mjs",
+              "artifacts/stage-three-validation-summary.json"
+            ],
+            "browserVerified": true,
+            "browserScope": "本页七态、三尺寸及所属专项业务回归；不等于穷举所有输入或人工认可"
+          }
+        },
+        {
+          "screen": "platform-model-deployments",
+          "route": "/platform/model-supply/deployments",
+          "task": "管理平台可授权模型部署",
+          "primaryAction": "建立部署草稿",
+          "pagination": true,
+          "contractLevel": "accepted",
+          "migration": {
+            "disposition": "保留",
+            "destinations": [
+              "platform-model-deployments"
+            ],
+            "workspace": "platform-model-deployments",
+            "stage": "阶段三已迁移",
+            "status": "机器复验通过，等待全量人工验收",
+            "legacyUrlPreserved": true,
+            "changes": [
+              "目录统一先筛选后切片，默认 20 行、页大小及跳页，搜索和页码进入 URL；保留行级业务动作。"
+            ],
+            "evidence": [
+              "scripts/stage-three-migration.test.mjs",
+              "scripts/stage-three-render.test.mjs",
+              "artifacts/stage-three-validation-summary.json"
+            ],
+            "browserVerified": true,
+            "browserScope": "本页七态、三尺寸及所属专项业务回归；不等于穷举所有输入或人工认可"
+          }
+        },
+        {
+          "screen": "platform-model-deployment-detail",
+          "route": "/platform/model-supply/deployments/:deploymentId",
+          "task": "验证并发布单个模型部署",
+          "primaryAction": "发布部署",
+          "pagination": false,
+          "contractLevel": "prototype-only",
+          "migration": {
+            "disposition": "保留",
+            "destinations": [
+              "platform-model-deployment-detail"
+            ],
+            "workspace": "platform-model-deployment-detail",
+            "stage": "阶段三已迁移",
+            "status": "机器复验通过，等待全量人工验收",
+            "legacyUrlPreserved": true,
+            "changes": [
+              "模型对象导航贯通供应商、配置、部署和路由；可见能力中文化，字段帮助和弹窗三区统一，沿用原保存门禁。"
+            ],
+            "evidence": [
+              "scripts/stage-three-migration.test.mjs",
+              "scripts/stage-three-render.test.mjs",
+              "artifacts/stage-three-validation-summary.json"
+            ],
+            "browserVerified": true,
+            "browserScope": "本页七态、三尺寸及所属专项业务回归；不等于穷举所有输入或人工认可"
+          }
+        }
       ]
     },
     {
@@ -46,23 +498,416 @@
       "shell": "console",
       "phase": "M6",
       "pages": [
-        {"screen":"tenant-member-create","route":"/tenant/members/new","task":"分三步创建并授权普通成员","primaryAction":"下一步","pagination":false,"contractLevel":"prototype-only","migration":{"disposition":"新增样板","stage":"阶段二样板","status":"待人工确认"}},
-        {"screen":"tenant-member-account","route":"/tenant/members/:memberId","task":"查看一个成员的账号信息","primaryAction":"返回成员目录","pagination":false,"contractLevel":"prototype-only","migration":{"disposition":"新增样板","stage":"阶段二样板","status":"待人工确认"}},
-        {"screen":"tenant-member-features","route":"/tenant/members/:memberId/features","task":"保存一个成员的对话功能","primaryAction":"保存对话功能","pagination":false,"contractLevel":"prototype-only","migration":{"disposition":"新增样板","stage":"阶段二样板","status":"待人工确认"}},
-        {"screen":"tenant-member-assistants","route":"/tenant/members/:memberId/assistants","task":"保存一个成员的可用助手范围","primaryAction":"保存可用助手","pagination":false,"contractLevel":"prototype-only","migration":{"disposition":"新增样板","stage":"阶段二样板","status":"待人工确认"}},
-        {"screen":"tenant-overview","route":"/operations","task":"处理当前租户最重要的阻断项","primaryAction":"进入阻断项","pagination":false,"contractLevel":"accepted","migration":{"disposition":"保留","destinations":["tenant-overview"],"workspace":"tenant-overview","stage":"阶段三待迁移","status":"待人工确认","legacyUrlPreserved":true}},
-        {"screen":"tenant-members","route":"/access/members","task":"管理普通成员生命周期与对话功能","primaryAction":"添加成员","pagination":true,"contractLevel":"accepted","migration":{"disposition":"拆分","destinations":["tenant-members","tenant-member-account","tenant-member-features","tenant-member-assistants","tenant-member-create"],"workspace":"tenant-members","stage":"阶段二样板","status":"待人工确认","legacyUrlPreserved":true}},
-        {"screen":"tenant-roles","route":"/access/roles","task":"理解租户固定角色能力边界","primaryAction":"管理成员","pagination":false,"contractLevel":"accepted","migration":{"disposition":"保留","destinations":["tenant-roles"],"workspace":"tenant-roles","stage":"阶段三待迁移","status":"待人工确认","legacyUrlPreserved":true}},
-        {"screen":"access-policies","route":"/governance/access-policies","task":"查找并发布资源访问策略","primaryAction":"新建访问策略","pagination":true,"contractLevel":"prototype-only","migration":{"disposition":"保留","destinations":["access-policies"],"workspace":"access-policies","stage":"阶段三待迁移","status":"待人工确认","legacyUrlPreserved":true}},
-        {"screen":"access-policy-detail","route":"/governance/access-policies/:policyId","task":"编辑、预览并发布一个访问策略版本","primaryAction":"生成授权预览","pagination":false,"contractLevel":"prototype-only","migration":{"disposition":"保留","destinations":["access-policy-detail"],"workspace":"access-policy-detail","stage":"阶段三待迁移","status":"待人工确认","legacyUrlPreserved":true}},
-        {"screen":"device-credentials","route":"/governance/device-credentials","task":"管理设备凭据、助手与现场范围","primaryAction":"创建设备凭据","pagination":true,"contractLevel":"prototype-only","migration":{"disposition":"保留","destinations":["device-credentials"],"workspace":"device-credentials","stage":"暂缓","status":"暂缓","legacyUrlPreserved":true}},
-        {"screen":"knowledge-directory","route":"/knowledge-bases","task":"查找或创建租户知识库","primaryAction":"创建知识库","pagination":true,"contractLevel":"accepted","migration":{"disposition":"保留","destinations":["knowledge-directory"],"workspace":"knowledge-directory","stage":"阶段二样板","status":"待人工确认","legacyUrlPreserved":true}},
-        {"screen":"knowledge-overview","route":"/knowledge-bases/:knowledgeBaseId","task":"判断知识库当前可用性和唯一下一动作","primaryAction":"继续当前阻断任务","pagination":false,"contractLevel":"prototype-only","migration":{"disposition":"保留","destinations":["knowledge-overview"],"workspace":"knowledge-overview","stage":"阶段二样板","status":"待人工确认","legacyUrlPreserved":true}},
-        {"screen":"knowledge-sources","route":"/data/files","task":"管理当前知识库的数据来源","primaryAction":"添加数据","pagination":true,"contractLevel":"accepted","migration":{"disposition":"迁移","destinations":["knowledge-sources"],"workspace":"knowledge-overview","stage":"阶段二样板","status":"待人工确认","legacyUrlPreserved":true}},
-        {"screen":"source-add","route":"/knowledge-bases/:knowledgeBaseId/sources/new","task":"通过粘贴或本地文件登记一个来源","primaryAction":"开始安全扫描","pagination":false,"contractLevel":"prototype-only","migration":{"disposition":"保留","destinations":["source-add"],"workspace":"source-add","stage":"阶段二样板","status":"待人工确认","legacyUrlPreserved":true}},
-        {"screen":"source-detail","route":"/knowledge-bases/:knowledgeBaseId/sources/:sourceId","task":"查看文档版本、处理结果和安全重试点","primaryAction":"更新文档","pagination":false,"views":[{"key":"preview","label":"内容预览"},{"key":"records","label":"处理记录"},{"key":"versions","label":"版本","pagination":true}],"contractLevel":"prototype-only","migration":{"disposition":"拆分","destinations":["source-detail"],"workspace":"source-detail","stage":"阶段二样板","status":"待人工确认","legacyUrlPreserved":true}},
-        {"screen":"processing-quality","route":"/knowledge-bases/:knowledgeBaseId/processing","task":"处理解析、分块和索引质量问题","primaryAction":"重试失败项","pagination":true,"contractLevel":"prototype-only","migration":{"disposition":"迁移","destinations":["processing-quality"],"workspace":"knowledge-overview","stage":"阶段二样板","status":"待人工确认","legacyUrlPreserved":true}},
-        {"screen":"sync-result","route":"/knowledge-bases/:knowledgeBaseId/sync-runs/:runId","task":"审查一次同步的成功、失败、重复和越权结果","primaryAction":"创建索引版本","pagination":true,"contractLevel":"prototype-only","migration":{"disposition":"保留","destinations":["sync-result"],"workspace":"sync-result","stage":"阶段三待迁移","status":"待人工确认","legacyUrlPreserved":true}}
+        {
+          "screen": "tenant-member-create",
+          "route": "/tenant/members/new",
+          "task": "分三步创建并授权普通成员",
+          "primaryAction": "下一步",
+          "pagination": false,
+          "contractLevel": "prototype-only",
+          "migration": {
+            "disposition": "新增样板",
+            "stage": "阶段二样板",
+            "status": "机器复验通过，等待全量人工验收",
+            "browserVerified": true,
+            "browserScope": "本页七态、三尺寸及所属专项业务回归；不等于穷举所有输入或人工认可",
+            "evidence": [
+              "artifacts/stage-three-validation-summary.json"
+            ]
+          }
+        },
+        {
+          "screen": "tenant-member-account",
+          "route": "/tenant/members/:memberId",
+          "task": "查看一个成员的账号信息",
+          "primaryAction": "返回成员目录",
+          "pagination": false,
+          "contractLevel": "prototype-only",
+          "migration": {
+            "disposition": "新增样板",
+            "stage": "阶段二样板",
+            "status": "机器复验通过，等待全量人工验收",
+            "browserVerified": true,
+            "browserScope": "本页七态、三尺寸及所属专项业务回归；不等于穷举所有输入或人工认可",
+            "evidence": [
+              "artifacts/stage-three-validation-summary.json"
+            ]
+          }
+        },
+        {
+          "screen": "tenant-member-features",
+          "route": "/tenant/members/:memberId/features",
+          "task": "保存一个成员的对话功能",
+          "primaryAction": "保存对话功能",
+          "pagination": false,
+          "contractLevel": "prototype-only",
+          "migration": {
+            "disposition": "新增样板",
+            "stage": "阶段二样板",
+            "status": "机器复验通过，等待全量人工验收",
+            "browserVerified": true,
+            "browserScope": "本页七态、三尺寸及所属专项业务回归；不等于穷举所有输入或人工认可",
+            "evidence": [
+              "artifacts/stage-three-validation-summary.json"
+            ]
+          }
+        },
+        {
+          "screen": "tenant-member-assistants",
+          "route": "/tenant/members/:memberId/assistants",
+          "task": "保存一个成员的可用助手范围",
+          "primaryAction": "保存可用助手",
+          "pagination": false,
+          "contractLevel": "prototype-only",
+          "migration": {
+            "disposition": "新增样板",
+            "stage": "阶段二样板",
+            "status": "机器复验通过，等待全量人工验收",
+            "browserVerified": true,
+            "browserScope": "本页七态、三尺寸及所属专项业务回归；不等于穷举所有输入或人工认可",
+            "evidence": [
+              "artifacts/stage-three-validation-summary.json"
+            ]
+          }
+        },
+        {
+          "screen": "tenant-overview",
+          "route": "/operations",
+          "task": "处理当前租户最重要的阻断项",
+          "primaryAction": "进入阻断项",
+          "pagination": false,
+          "contractLevel": "accepted",
+          "migration": {
+            "disposition": "保留",
+            "destinations": [
+              "tenant-overview"
+            ],
+            "workspace": "tenant-overview",
+            "stage": "阶段三已迁移",
+            "status": "机器复验通过，等待全量人工验收",
+            "legacyUrlPreserved": true,
+            "changes": [
+              "复用任务组件统一字段帮助与确认弹窗三区；异常态禁用写入口，保留“处理当前租户最重要的阻断项”原有独立保存和权限边界。"
+            ],
+            "evidence": [
+              "scripts/stage-three-migration.test.mjs",
+              "scripts/stage-three-render.test.mjs",
+              "artifacts/stage-three-validation-summary.json"
+            ],
+            "browserVerified": true,
+            "browserScope": "本页七态、三尺寸及所属专项业务回归；不等于穷举所有输入或人工认可"
+          }
+        },
+        {
+          "screen": "tenant-members",
+          "route": "/access/members",
+          "task": "管理普通成员生命周期与对话功能",
+          "primaryAction": "添加成员",
+          "pagination": true,
+          "contractLevel": "accepted",
+          "migration": {
+            "disposition": "拆分",
+            "destinations": [
+              "tenant-members",
+              "tenant-member-account",
+              "tenant-member-features",
+              "tenant-member-assistants",
+              "tenant-member-create"
+            ],
+            "workspace": "tenant-members",
+            "stage": "阶段二样板",
+            "status": "机器复验通过，等待全量人工验收",
+            "legacyUrlPreserved": true,
+            "browserVerified": true,
+            "browserScope": "本页七态、三尺寸及所属专项业务回归；不等于穷举所有输入或人工认可",
+            "evidence": [
+              "artifacts/stage-three-validation-summary.json"
+            ]
+          }
+        },
+        {
+          "screen": "tenant-roles",
+          "route": "/access/roles",
+          "task": "理解租户固定角色能力边界",
+          "primaryAction": "管理成员",
+          "pagination": false,
+          "contractLevel": "accepted",
+          "migration": {
+            "disposition": "保留",
+            "destinations": [
+              "tenant-roles"
+            ],
+            "workspace": "tenant-roles",
+            "stage": "阶段三已迁移",
+            "status": "机器复验通过，等待全量人工验收",
+            "legacyUrlPreserved": true,
+            "changes": [
+              "复用任务组件统一字段帮助与确认弹窗三区；异常态禁用写入口，保留“理解租户固定角色能力边界”原有独立保存和权限边界。"
+            ],
+            "evidence": [
+              "scripts/stage-three-migration.test.mjs",
+              "scripts/stage-three-render.test.mjs",
+              "artifacts/stage-three-validation-summary.json"
+            ],
+            "browserVerified": true,
+            "browserScope": "本页七态、三尺寸及所属专项业务回归；不等于穷举所有输入或人工认可"
+          }
+        },
+        {
+          "screen": "access-policies",
+          "route": "/governance/access-policies",
+          "task": "查找并发布资源访问策略",
+          "primaryAction": "新建访问策略",
+          "pagination": true,
+          "contractLevel": "prototype-only",
+          "migration": {
+            "disposition": "保留",
+            "destinations": [
+              "access-policies"
+            ],
+            "workspace": "access-policies",
+            "stage": "阶段三已迁移",
+            "status": "机器复验通过，等待全量人工验收",
+            "legacyUrlPreserved": true,
+            "changes": [
+              "目录统一先筛选后切片，默认 20 行、页大小及跳页，搜索和页码进入 URL；保留行级业务动作。"
+            ],
+            "evidence": [
+              "scripts/stage-three-migration.test.mjs",
+              "scripts/stage-three-render.test.mjs",
+              "artifacts/stage-three-validation-summary.json"
+            ],
+            "browserVerified": true,
+            "browserScope": "本页七态、三尺寸及所属专项业务回归；不等于穷举所有输入或人工认可"
+          }
+        },
+        {
+          "screen": "access-policy-detail",
+          "route": "/governance/access-policies/:policyId",
+          "task": "编辑、预览并发布一个访问策略版本",
+          "primaryAction": "生成授权预览",
+          "pagination": false,
+          "contractLevel": "prototype-only",
+          "migration": {
+            "disposition": "保留",
+            "destinations": [
+              "access-policy-detail"
+            ],
+            "workspace": "access-policy-detail",
+            "stage": "阶段三已迁移",
+            "status": "机器复验通过，等待全量人工验收",
+            "legacyUrlPreserved": true,
+            "changes": [
+              "复用任务组件统一字段帮助与确认弹窗三区；异常态禁用写入口，保留“编辑、预览并发布一个访问策略版本”原有独立保存和权限边界。"
+            ],
+            "evidence": [
+              "scripts/stage-three-migration.test.mjs",
+              "scripts/stage-three-render.test.mjs",
+              "artifacts/stage-three-validation-summary.json"
+            ],
+            "browserVerified": true,
+            "browserScope": "本页七态、三尺寸及所属专项业务回归；不等于穷举所有输入或人工认可"
+          }
+        },
+        {
+          "screen": "device-credentials",
+          "route": "/governance/device-credentials",
+          "task": "管理设备凭据、助手与现场范围",
+          "primaryAction": "创建设备凭据",
+          "pagination": true,
+          "contractLevel": "prototype-only",
+          "migration": {
+            "disposition": "保留",
+            "destinations": [
+              "device-credentials"
+            ],
+            "workspace": "device-credentials",
+            "stage": "暂缓",
+            "status": "暂缓",
+            "legacyUrlPreserved": true
+          }
+        },
+        {
+          "screen": "knowledge-directory",
+          "route": "/knowledge-bases",
+          "task": "查找或创建租户知识库",
+          "primaryAction": "创建知识库",
+          "pagination": true,
+          "contractLevel": "accepted",
+          "migration": {
+            "disposition": "保留",
+            "destinations": [
+              "knowledge-directory"
+            ],
+            "workspace": "knowledge-directory",
+            "stage": "阶段二样板",
+            "status": "机器复验通过，等待全量人工验收",
+            "legacyUrlPreserved": true,
+            "browserVerified": true,
+            "browserScope": "本页七态、三尺寸及所属专项业务回归；不等于穷举所有输入或人工认可",
+            "evidence": [
+              "artifacts/stage-three-validation-summary.json"
+            ]
+          }
+        },
+        {
+          "screen": "knowledge-overview",
+          "route": "/knowledge-bases/:knowledgeBaseId",
+          "task": "判断知识库当前可用性和唯一下一动作",
+          "primaryAction": "继续当前阻断任务",
+          "pagination": false,
+          "contractLevel": "prototype-only",
+          "migration": {
+            "disposition": "保留",
+            "destinations": [
+              "knowledge-overview"
+            ],
+            "workspace": "knowledge-overview",
+            "stage": "阶段二样板",
+            "status": "机器复验通过，等待全量人工验收",
+            "legacyUrlPreserved": true,
+            "browserVerified": true,
+            "browserScope": "本页七态、三尺寸及所属专项业务回归；不等于穷举所有输入或人工认可",
+            "evidence": [
+              "artifacts/stage-three-validation-summary.json"
+            ]
+          }
+        },
+        {
+          "screen": "knowledge-sources",
+          "route": "/data/files",
+          "task": "管理当前知识库的数据来源",
+          "primaryAction": "添加数据",
+          "pagination": true,
+          "contractLevel": "accepted",
+          "migration": {
+            "disposition": "迁移",
+            "destinations": [
+              "knowledge-sources"
+            ],
+            "workspace": "knowledge-overview",
+            "stage": "阶段二样板",
+            "status": "机器复验通过，等待全量人工验收",
+            "legacyUrlPreserved": true,
+            "browserVerified": true,
+            "browserScope": "本页七态、三尺寸及所属专项业务回归；不等于穷举所有输入或人工认可",
+            "evidence": [
+              "artifacts/stage-three-validation-summary.json"
+            ]
+          }
+        },
+        {
+          "screen": "source-add",
+          "route": "/knowledge-bases/:knowledgeBaseId/sources/new",
+          "task": "通过粘贴或本地文件登记一个来源",
+          "primaryAction": "开始安全扫描",
+          "pagination": false,
+          "contractLevel": "prototype-only",
+          "migration": {
+            "disposition": "保留",
+            "destinations": [
+              "source-add"
+            ],
+            "workspace": "source-add",
+            "stage": "阶段二样板",
+            "status": "机器复验通过，等待全量人工验收",
+            "legacyUrlPreserved": true,
+            "browserVerified": true,
+            "browserScope": "本页七态、三尺寸及所属专项业务回归；不等于穷举所有输入或人工认可",
+            "evidence": [
+              "artifacts/stage-three-validation-summary.json"
+            ]
+          }
+        },
+        {
+          "screen": "source-detail",
+          "route": "/knowledge-bases/:knowledgeBaseId/sources/:sourceId",
+          "task": "查看文档版本、处理结果和安全重试点",
+          "primaryAction": "更新文档",
+          "pagination": false,
+          "views": [
+            {
+              "key": "preview",
+              "label": "内容预览"
+            },
+            {
+              "key": "records",
+              "label": "处理记录"
+            },
+            {
+              "key": "versions",
+              "label": "版本",
+              "pagination": true
+            }
+          ],
+          "contractLevel": "prototype-only",
+          "migration": {
+            "disposition": "拆分",
+            "destinations": [
+              "source-detail"
+            ],
+            "workspace": "source-detail",
+            "stage": "阶段二样板",
+            "status": "机器复验通过，等待全量人工验收",
+            "legacyUrlPreserved": true,
+            "browserVerified": true,
+            "browserScope": "本页七态、三尺寸及所属专项业务回归；不等于穷举所有输入或人工认可",
+            "evidence": [
+              "artifacts/stage-three-validation-summary.json"
+            ]
+          }
+        },
+        {
+          "screen": "processing-quality",
+          "route": "/knowledge-bases/:knowledgeBaseId/processing",
+          "task": "处理解析、分块和索引质量问题",
+          "primaryAction": "重试失败项",
+          "pagination": true,
+          "contractLevel": "prototype-only",
+          "migration": {
+            "disposition": "迁移",
+            "destinations": [
+              "processing-quality"
+            ],
+            "workspace": "knowledge-overview",
+            "stage": "阶段二样板",
+            "status": "机器复验通过，等待全量人工验收",
+            "legacyUrlPreserved": true,
+            "browserVerified": true,
+            "browserScope": "本页七态、三尺寸及所属专项业务回归；不等于穷举所有输入或人工认可",
+            "evidence": [
+              "artifacts/stage-three-validation-summary.json"
+            ]
+          }
+        },
+        {
+          "screen": "sync-result",
+          "route": "/knowledge-bases/:knowledgeBaseId/sync-runs/:runId",
+          "task": "审查一次同步的成功、失败、重复和越权结果",
+          "primaryAction": "创建索引版本",
+          "pagination": true,
+          "contractLevel": "prototype-only",
+          "migration": {
+            "disposition": "保留",
+            "destinations": [
+              "sync-result"
+            ],
+            "workspace": "sync-result",
+            "stage": "阶段三已迁移",
+            "status": "机器复验通过，等待全量人工验收",
+            "legacyUrlPreserved": true,
+            "changes": [
+              "目录统一先筛选后切片，默认 20 行、页大小及跳页，搜索和页码进入 URL；保留行级业务动作。"
+            ],
+            "evidence": [
+              "scripts/stage-three-migration.test.mjs",
+              "scripts/stage-three-render.test.mjs",
+              "artifacts/stage-three-validation-summary.json"
+            ],
+            "browserVerified": true,
+            "browserScope": "本页七态、三尺寸及所属专项业务回归；不等于穷举所有输入或人工认可"
+          }
+        }
       ]
     },
     {
@@ -71,12 +916,164 @@
       "shell": "console",
       "phase": "M6",
       "pages": [
-        {"screen":"dataset-schema","route":"/data/datasets","task":"冻结 CSV 字段规则与敏感级别","primaryAction":"发布结构版本","pagination":false,"contractLevel":"accepted","migration":{"disposition":"保留","destinations":["dataset-schema"],"workspace":"dataset-schema","stage":"阶段三待迁移","status":"待人工确认","legacyUrlPreserved":true}},
-        {"screen":"object-storage-scope","route":"/data/object-storage","task":"把平台签发的文本范围登记为知识来源","primaryAction":"登记对象范围","pagination":false,"contractLevel":"accepted","migration":{"disposition":"保留","destinations":["object-storage-scope"],"workspace":"object-storage-scope","stage":"阶段三待迁移","status":"待人工确认","legacyUrlPreserved":true}},
-        {"screen":"quick-publication","route":"/data/publication","task":"在已有知识库中完成首份知识快速发布","primaryAction":"开始发布","pagination":true,"contractLevel":"accepted","migration":{"disposition":"保留","destinations":["quick-publication"],"workspace":"quick-publication","stage":"阶段三待迁移","status":"待人工确认","legacyUrlPreserved":true}},
-        {"screen":"index-versions","route":"/knowledge-bases/:knowledgeBaseId/indexes","task":"比较知识库索引版本与活动状态","primaryAction":"重建索引","pagination":true,"contractLevel":"prototype-only","migration":{"disposition":"迁移","destinations":["index-versions"],"workspace":"knowledge-overview","stage":"阶段二样板","status":"待人工确认","legacyUrlPreserved":true}},
-        {"screen":"index-detail","route":"/knowledge-bases/:knowledgeBaseId/indexes/:versionId","task":"判断一个索引版本能否激活","primaryAction":"激活此版本","pagination":false,"contractLevel":"prototype-only","migration":{"disposition":"保留","destinations":["index-detail"],"workspace":"index-detail","stage":"阶段二样板","status":"待人工确认","legacyUrlPreserved":true}},
-        {"screen":"index-rebuild","route":"/knowledge-bases/:knowledgeBaseId/indexes/rebuild","task":"核对模型和分块变化后创建全库重建任务","primaryAction":"开始全库重建","pagination":false,"contractLevel":"prototype-only","migration":{"disposition":"迁移","destinations":["index-rebuild"],"workspace":"index-versions","stage":"阶段三待迁移","status":"待人工确认","legacyUrlPreserved":true}}
+        {
+          "screen": "dataset-schema",
+          "route": "/data/datasets",
+          "task": "冻结 CSV 字段规则与敏感级别",
+          "primaryAction": "发布结构版本",
+          "pagination": false,
+          "contractLevel": "accepted",
+          "migration": {
+            "disposition": "保留",
+            "destinations": [
+              "dataset-schema"
+            ],
+            "workspace": "dataset-schema",
+            "stage": "阶段三已迁移",
+            "status": "机器复验通过，等待全量人工验收",
+            "legacyUrlPreserved": true,
+            "changes": [
+              "复用任务组件统一字段帮助与确认弹窗三区；异常态禁用写入口，保留“冻结 CSV 字段规则与敏感级别”原有独立保存和权限边界。"
+            ],
+            "evidence": [
+              "scripts/stage-three-migration.test.mjs",
+              "scripts/stage-three-render.test.mjs",
+              "artifacts/stage-three-validation-summary.json"
+            ],
+            "browserVerified": true,
+            "browserScope": "本页七态、三尺寸及所属专项业务回归；不等于穷举所有输入或人工认可"
+          }
+        },
+        {
+          "screen": "object-storage-scope",
+          "route": "/data/object-storage",
+          "task": "把平台签发的文本范围登记为知识来源",
+          "primaryAction": "登记对象范围",
+          "pagination": true,
+          "contractLevel": "accepted",
+          "migration": {
+            "disposition": "保留",
+            "destinations": [
+              "object-storage-scope"
+            ],
+            "workspace": "object-storage-scope",
+            "stage": "阶段三已迁移",
+            "status": "机器复验通过，等待全量人工验收",
+            "legacyUrlPreserved": true,
+            "changes": [
+              "可登记范围与登记记录由 URL 切换；只挂载当前表格并复用单一分页。"
+            ],
+            "evidence": [
+              "scripts/stage-three-migration.test.mjs",
+              "scripts/stage-three-render.test.mjs",
+              "artifacts/stage-three-validation-summary.json"
+            ],
+            "browserVerified": true,
+            "browserScope": "本页七态、三尺寸及所属专项业务回归；不等于穷举所有输入或人工认可"
+          }
+        },
+        {
+          "screen": "quick-publication",
+          "route": "/data/publication",
+          "task": "在已有知识库中完成首份知识快速发布",
+          "primaryAction": "开始发布",
+          "pagination": true,
+          "contractLevel": "accepted",
+          "migration": {
+            "disposition": "保留",
+            "destinations": [
+              "quick-publication"
+            ],
+            "workspace": "quick-publication",
+            "stage": "阶段三已迁移",
+            "status": "机器复验通过，等待全量人工验收",
+            "legacyUrlPreserved": true,
+            "changes": [
+              "目录统一先筛选后切片，默认 20 行、页大小及跳页，搜索和页码进入 URL；保留行级业务动作。"
+            ],
+            "evidence": [
+              "scripts/stage-three-migration.test.mjs",
+              "scripts/stage-three-render.test.mjs",
+              "artifacts/stage-three-validation-summary.json"
+            ],
+            "browserVerified": true,
+            "browserScope": "本页七态、三尺寸及所属专项业务回归；不等于穷举所有输入或人工认可"
+          }
+        },
+        {
+          "screen": "index-versions",
+          "route": "/knowledge-bases/:knowledgeBaseId/indexes",
+          "task": "比较知识库索引版本与活动状态",
+          "primaryAction": "重建索引",
+          "pagination": true,
+          "contractLevel": "prototype-only",
+          "migration": {
+            "disposition": "迁移",
+            "destinations": [
+              "index-versions"
+            ],
+            "workspace": "knowledge-overview",
+            "stage": "阶段二样板",
+            "status": "机器复验通过，等待全量人工验收",
+            "legacyUrlPreserved": true,
+            "browserVerified": true,
+            "browserScope": "本页七态、三尺寸及所属专项业务回归；不等于穷举所有输入或人工认可",
+            "evidence": [
+              "artifacts/stage-three-validation-summary.json"
+            ]
+          }
+        },
+        {
+          "screen": "index-detail",
+          "route": "/knowledge-bases/:knowledgeBaseId/indexes/:versionId",
+          "task": "判断一个索引版本能否激活",
+          "primaryAction": "激活此版本",
+          "pagination": false,
+          "contractLevel": "prototype-only",
+          "migration": {
+            "disposition": "保留",
+            "destinations": [
+              "index-detail"
+            ],
+            "workspace": "index-detail",
+            "stage": "阶段二样板",
+            "status": "机器复验通过，等待全量人工验收",
+            "legacyUrlPreserved": true,
+            "browserVerified": true,
+            "browserScope": "本页七态、三尺寸及所属专项业务回归；不等于穷举所有输入或人工认可",
+            "evidence": [
+              "artifacts/stage-three-validation-summary.json"
+            ]
+          }
+        },
+        {
+          "screen": "index-rebuild",
+          "route": "/knowledge-bases/:knowledgeBaseId/indexes/rebuild",
+          "task": "核对模型和分块变化后创建全库重建任务",
+          "primaryAction": "开始全库重建",
+          "pagination": false,
+          "contractLevel": "prototype-only",
+          "migration": {
+            "disposition": "迁移",
+            "destinations": [
+              "index-rebuild"
+            ],
+            "workspace": "index-versions",
+            "stage": "阶段三已迁移",
+            "status": "机器复验通过，等待全量人工验收",
+            "legacyUrlPreserved": true,
+            "changes": [
+              "候选索引配置进入技术详情；保留人工核对与原重建动作。"
+            ],
+            "evidence": [
+              "scripts/stage-three-migration.test.mjs",
+              "scripts/stage-three-render.test.mjs",
+              "artifacts/stage-three-validation-summary.json"
+            ],
+            "browserVerified": true,
+            "browserScope": "本页七态、三尺寸及所属专项业务回归；不等于穷举所有输入或人工认可"
+          }
+        }
       ]
     },
     {
@@ -85,13 +1082,202 @@
       "shell": "console",
       "phase": "M6",
       "pages": [
-        {"screen":"model-providers","route":"/models/providers","task":"查看租户可用供应商连接和模型发现","primaryAction":"执行模型发现","pagination":true,"contractLevel":"accepted","migration":{"disposition":"保留","destinations":["model-providers"],"workspace":"model-providers","stage":"阶段三待迁移","status":"待人工确认","legacyUrlPreserved":true}},
-        {"screen":"model-provider-detail","route":"/models/providers/:connectionId","task":"核对单个供应商连接状态和发现结果","primaryAction":"重新探测","pagination":false,"contractLevel":"prototype-only","migration":{"disposition":"保留","destinations":["model-provider-detail"],"workspace":"model-provider-detail","stage":"阶段三待迁移","status":"待人工确认","legacyUrlPreserved":true}},
-        {"screen":"model-configurations","route":"/models/configurations","task":"查找并管理受控模型配置","primaryAction":"创建模型配置","pagination":true,"contractLevel":"accepted","migration":{"disposition":"保留","destinations":["model-configurations"],"workspace":"model-configurations","stage":"阶段三待迁移","status":"待人工确认","legacyUrlPreserved":true}},
-        {"screen":"model-configuration-detail","route":"/models/configurations/:configurationId","task":"编辑、轮换并启用一个模型配置","primaryAction":"启用配置","pagination":false,"contractLevel":"prototype-only","migration":{"disposition":"保留","destinations":["model-configuration-detail"],"workspace":"model-configuration-detail","stage":"阶段三待迁移","status":"待人工确认","legacyUrlPreserved":true}},
-        {"screen":"model-deployments","route":"/models/deployments","task":"管理租户模型部署与能力验证","primaryAction":"建立部署草稿","pagination":true,"contractLevel":"accepted","migration":{"disposition":"保留","destinations":["model-deployments"],"workspace":"model-deployments","stage":"阶段三待迁移","status":"待人工确认","legacyUrlPreserved":true}},
-        {"screen":"model-deployment-detail","route":"/models/deployments/:deploymentId","task":"探测并发布一个租户模型部署","primaryAction":"发布部署","pagination":false,"contractLevel":"prototype-only","migration":{"disposition":"保留","destinations":["model-deployment-detail"],"workspace":"model-deployment-detail","stage":"阶段三待迁移","status":"待人工确认","legacyUrlPreserved":true}},
-        {"screen":"routing-policies","route":"/models/routing","task":"模拟并发布主模型、有限回退和预算策略","primaryAction":"发布路由策略","pagination":true,"contractLevel":"prototype-only","migration":{"disposition":"保留","destinations":["routing-policies"],"workspace":"routing-policies","stage":"阶段三待迁移","status":"待人工确认","legacyUrlPreserved":true}}
+        {
+          "screen": "model-providers",
+          "route": "/models/providers",
+          "task": "查看租户可用供应商连接和模型发现",
+          "primaryAction": "执行模型发现",
+          "pagination": true,
+          "contractLevel": "accepted",
+          "migration": {
+            "disposition": "保留",
+            "destinations": [
+              "model-providers"
+            ],
+            "workspace": "model-providers",
+            "stage": "阶段三已迁移",
+            "status": "机器复验通过，等待全量人工验收",
+            "legacyUrlPreserved": true,
+            "changes": [
+              "目录统一先筛选后切片，默认 20 行、页大小及跳页，搜索和页码进入 URL；保留行级业务动作。"
+            ],
+            "evidence": [
+              "scripts/stage-three-migration.test.mjs",
+              "scripts/stage-three-render.test.mjs",
+              "artifacts/stage-three-validation-summary.json"
+            ],
+            "browserVerified": true,
+            "browserScope": "本页七态、三尺寸及所属专项业务回归；不等于穷举所有输入或人工认可"
+          }
+        },
+        {
+          "screen": "model-provider-detail",
+          "route": "/models/providers/:connectionId",
+          "task": "核对单个供应商连接状态和发现结果",
+          "primaryAction": "重新探测",
+          "pagination": true,
+          "contractLevel": "prototype-only",
+          "migration": {
+            "disposition": "保留",
+            "destinations": [
+              "model-provider-detail"
+            ],
+            "workspace": "model-provider-detail",
+            "stage": "阶段三已迁移",
+            "status": "机器复验通过，等待全量人工验收",
+            "legacyUrlPreserved": true,
+            "changes": [
+              "授权模型改为搜索分页表格，中文能力名与沿用原配置入口。"
+            ],
+            "evidence": [
+              "scripts/stage-three-migration.test.mjs",
+              "scripts/stage-three-render.test.mjs",
+              "artifacts/stage-three-validation-summary.json"
+            ],
+            "browserVerified": true,
+            "browserScope": "本页七态、三尺寸及所属专项业务回归；不等于穷举所有输入或人工认可"
+          }
+        },
+        {
+          "screen": "model-configurations",
+          "route": "/models/configurations",
+          "task": "查找并管理受控模型配置",
+          "primaryAction": "创建模型配置",
+          "pagination": true,
+          "contractLevel": "accepted",
+          "migration": {
+            "disposition": "保留",
+            "destinations": [
+              "model-configurations"
+            ],
+            "workspace": "model-configurations",
+            "stage": "阶段三已迁移",
+            "status": "机器复验通过，等待全量人工验收",
+            "legacyUrlPreserved": true,
+            "changes": [
+              "目录统一先筛选后切片，默认 20 行、页大小及跳页，搜索和页码进入 URL；保留行级业务动作。"
+            ],
+            "evidence": [
+              "scripts/stage-three-migration.test.mjs",
+              "scripts/stage-three-render.test.mjs",
+              "artifacts/stage-three-validation-summary.json"
+            ],
+            "browserVerified": true,
+            "browserScope": "本页七态、三尺寸及所属专项业务回归；不等于穷举所有输入或人工认可"
+          }
+        },
+        {
+          "screen": "model-configuration-detail",
+          "route": "/models/configurations/:configurationId",
+          "task": "编辑、轮换并启用一个模型配置",
+          "primaryAction": "启用配置",
+          "pagination": false,
+          "contractLevel": "prototype-only",
+          "migration": {
+            "disposition": "保留",
+            "destinations": [
+              "model-configuration-detail"
+            ],
+            "workspace": "model-configuration-detail",
+            "stage": "阶段三已迁移",
+            "status": "机器复验通过，等待全量人工验收",
+            "legacyUrlPreserved": true,
+            "changes": [
+              "模型对象导航贯通供应商、配置、部署和路由；可见能力中文化，字段帮助和弹窗三区统一，沿用原保存门禁。"
+            ],
+            "evidence": [
+              "scripts/stage-three-migration.test.mjs",
+              "scripts/stage-three-render.test.mjs",
+              "artifacts/stage-three-validation-summary.json"
+            ],
+            "browserVerified": true,
+            "browserScope": "本页七态、三尺寸及所属专项业务回归；不等于穷举所有输入或人工认可"
+          }
+        },
+        {
+          "screen": "model-deployments",
+          "route": "/models/deployments",
+          "task": "管理租户模型部署与能力验证",
+          "primaryAction": "建立部署草稿",
+          "pagination": true,
+          "contractLevel": "accepted",
+          "migration": {
+            "disposition": "保留",
+            "destinations": [
+              "model-deployments"
+            ],
+            "workspace": "model-deployments",
+            "stage": "阶段三已迁移",
+            "status": "机器复验通过，等待全量人工验收",
+            "legacyUrlPreserved": true,
+            "changes": [
+              "目录统一先筛选后切片，默认 20 行、页大小及跳页，搜索和页码进入 URL；保留行级业务动作。"
+            ],
+            "evidence": [
+              "scripts/stage-three-migration.test.mjs",
+              "scripts/stage-three-render.test.mjs",
+              "artifacts/stage-three-validation-summary.json"
+            ],
+            "browserVerified": true,
+            "browserScope": "本页七态、三尺寸及所属专项业务回归；不等于穷举所有输入或人工认可"
+          }
+        },
+        {
+          "screen": "model-deployment-detail",
+          "route": "/models/deployments/:deploymentId",
+          "task": "探测并发布一个租户模型部署",
+          "primaryAction": "发布部署",
+          "pagination": false,
+          "contractLevel": "prototype-only",
+          "migration": {
+            "disposition": "保留",
+            "destinations": [
+              "model-deployment-detail"
+            ],
+            "workspace": "model-deployment-detail",
+            "stage": "阶段三已迁移",
+            "status": "机器复验通过，等待全量人工验收",
+            "legacyUrlPreserved": true,
+            "changes": [
+              "模型对象导航贯通供应商、配置、部署和路由；可见能力中文化，字段帮助和弹窗三区统一，沿用原保存门禁。"
+            ],
+            "evidence": [
+              "scripts/stage-three-migration.test.mjs",
+              "scripts/stage-three-render.test.mjs",
+              "artifacts/stage-three-validation-summary.json"
+            ],
+            "browserVerified": true,
+            "browserScope": "本页七态、三尺寸及所属专项业务回归；不等于穷举所有输入或人工认可"
+          }
+        },
+        {
+          "screen": "routing-policies",
+          "route": "/models/routing",
+          "task": "模拟并发布主模型、有限回退和预算策略",
+          "primaryAction": "发布路由策略",
+          "pagination": true,
+          "contractLevel": "prototype-only",
+          "migration": {
+            "disposition": "保留",
+            "destinations": [
+              "routing-policies"
+            ],
+            "workspace": "routing-policies",
+            "stage": "阶段三已迁移",
+            "status": "机器复验通过，等待全量人工验收",
+            "legacyUrlPreserved": true,
+            "changes": [
+              "目录统一先筛选后切片，默认 20 行、页大小及跳页，搜索和页码进入 URL；保留行级业务动作。"
+            ],
+            "evidence": [
+              "scripts/stage-three-migration.test.mjs",
+              "scripts/stage-three-render.test.mjs",
+              "artifacts/stage-three-validation-summary.json"
+            ],
+            "browserVerified": true,
+            "browserScope": "本页七态、三尺寸及所属专项业务回归；不等于穷举所有输入或人工认可"
+          }
+        }
       ]
     },
     {
@@ -100,14 +1286,185 @@
       "shell": "console",
       "phase": "M6",
       "pages": [
-        {"screen":"assistants-directory","route":"/assistants","task":"查找草稿、待评测或已发布助手","primaryAction":"新建助手","pagination":true,"contractLevel":"prototype-only","migration":{"disposition":"保留","destinations":["assistants-directory"],"workspace":"assistants-directory","stage":"阶段二样板","status":"待人工确认","legacyUrlPreserved":true}},
-        {"screen":"assistant-create","route":"/assistants/new","task":"创建助手并关联一个知识库","primaryAction":"创建助手","pagination":false,"contractLevel":"prototype-only","migration":{"disposition":"保留","destinations":["assistant-create"],"workspace":"assistant-create","stage":"阶段二样板","status":"待人工确认","legacyUrlPreserved":true}},
-        {"screen":"assistant-overview","route":"/assistants/:assistantId","task":"查看当前助手版本并继续交付","primaryAction":"继续当前版本","pagination":true,"contractLevel":"prototype-only","migration":{"disposition":"新增样板","destinations":["assistant-overview"],"workspace":"assistant-overview","stage":"阶段二样板","status":"待父验证","legacyUrlPreserved":true}},
-        {"screen":"assistant-draft","route":"/assistants/:assistantId/draft","task":"配置并校验一个助手草稿版本","primaryAction":"保存草稿","pagination":false,"contractLevel":"prototype-only","migration":{"disposition":"拆分","destinations":["assistant-draft"],"workspace":"assistant-draft","stage":"阶段二样板","status":"待人工确认","legacyUrlPreserved":true}},
-        {"screen":"assistant-test","route":"/assistants/:assistantId/test","task":"在冻结依赖下验证问题、答案和引用","primaryAction":"加入评测集","pagination":false,"contractLevel":"prototype-only","migration":{"disposition":"保留","destinations":["assistant-test"],"workspace":"assistant-test","stage":"阶段二样板","status":"待人工确认","legacyUrlPreserved":true}},
-        {"screen":"assistant-evaluation","route":"/assistants/:assistantId/evaluations","task":"判断助手版本是否达到发布门禁","primaryAction":"请求发布","pagination":false,"contractLevel":"prototype-only","migration":{"disposition":"保留","destinations":["assistant-evaluation"],"workspace":"assistant-evaluation","stage":"阶段二样板","status":"待人工确认","legacyUrlPreserved":true}},
-        {"screen":"assistant-release","route":"/assistants/:assistantId/releases/:versionId","task":"确认一个助手版本的发布影响","primaryAction":"发布助手版本","pagination":false,"contractLevel":"prototype-only","migration":{"disposition":"保留","destinations":["assistant-release"],"workspace":"assistant-release","stage":"阶段二样板","status":"待人工确认","legacyUrlPreserved":true}},
-        {"screen":"channel-binding","route":"/assistants/:assistantId/channels","task":"把固定助手版本绑定到受限交付渠道","primaryAction":"绑定渠道","pagination":true,"contractLevel":"prototype-only","migration":{"disposition":"保留","destinations":["channel-binding"],"workspace":"channel-binding","stage":"暂缓","status":"暂缓","legacyUrlPreserved":true}}
+        {
+          "screen": "assistants-directory",
+          "route": "/assistants",
+          "task": "查找草稿、待评测或已发布助手",
+          "primaryAction": "新建助手",
+          "pagination": true,
+          "contractLevel": "prototype-only",
+          "migration": {
+            "disposition": "保留",
+            "destinations": [
+              "assistants-directory"
+            ],
+            "workspace": "assistants-directory",
+            "stage": "阶段二样板",
+            "status": "机器复验通过，等待全量人工验收",
+            "legacyUrlPreserved": true,
+            "browserVerified": true,
+            "browserScope": "本页七态、三尺寸及所属专项业务回归；不等于穷举所有输入或人工认可",
+            "evidence": [
+              "artifacts/stage-three-validation-summary.json"
+            ]
+          }
+        },
+        {
+          "screen": "assistant-create",
+          "route": "/assistants/new",
+          "task": "创建助手并关联一个知识库",
+          "primaryAction": "创建助手",
+          "pagination": false,
+          "contractLevel": "prototype-only",
+          "migration": {
+            "disposition": "保留",
+            "destinations": [
+              "assistant-create"
+            ],
+            "workspace": "assistant-create",
+            "stage": "阶段二样板",
+            "status": "机器复验通过，等待全量人工验收",
+            "legacyUrlPreserved": true,
+            "browserVerified": true,
+            "browserScope": "本页七态、三尺寸及所属专项业务回归；不等于穷举所有输入或人工认可",
+            "evidence": [
+              "artifacts/stage-three-validation-summary.json"
+            ]
+          }
+        },
+        {
+          "screen": "assistant-overview",
+          "route": "/assistants/:assistantId",
+          "task": "查看当前助手版本并继续交付",
+          "primaryAction": "继续当前版本",
+          "pagination": true,
+          "contractLevel": "prototype-only",
+          "migration": {
+            "disposition": "新增样板",
+            "destinations": [
+              "assistant-overview"
+            ],
+            "workspace": "assistant-overview",
+            "stage": "阶段二样板",
+            "status": "机器复验通过，等待全量人工验收",
+            "legacyUrlPreserved": true,
+            "browserVerified": true,
+            "browserScope": "本页七态、三尺寸及所属专项业务回归；不等于穷举所有输入或人工认可",
+            "evidence": [
+              "artifacts/stage-three-validation-summary.json"
+            ]
+          }
+        },
+        {
+          "screen": "assistant-draft",
+          "route": "/assistants/:assistantId/draft",
+          "task": "配置并校验一个助手草稿版本",
+          "primaryAction": "保存草稿",
+          "pagination": false,
+          "contractLevel": "prototype-only",
+          "migration": {
+            "disposition": "拆分",
+            "destinations": [
+              "assistant-draft"
+            ],
+            "workspace": "assistant-draft",
+            "stage": "阶段二样板",
+            "status": "机器复验通过，等待全量人工验收",
+            "legacyUrlPreserved": true,
+            "browserVerified": true,
+            "browserScope": "本页七态、三尺寸及所属专项业务回归；不等于穷举所有输入或人工认可",
+            "evidence": [
+              "artifacts/stage-three-validation-summary.json"
+            ]
+          }
+        },
+        {
+          "screen": "assistant-test",
+          "route": "/assistants/:assistantId/test",
+          "task": "在冻结依赖下验证问题、答案和引用",
+          "primaryAction": "加入评测集",
+          "pagination": false,
+          "contractLevel": "prototype-only",
+          "migration": {
+            "disposition": "保留",
+            "destinations": [
+              "assistant-test"
+            ],
+            "workspace": "assistant-test",
+            "stage": "阶段二样板",
+            "status": "机器复验通过，等待全量人工验收",
+            "legacyUrlPreserved": true,
+            "browserVerified": true,
+            "browserScope": "本页七态、三尺寸及所属专项业务回归；不等于穷举所有输入或人工认可",
+            "evidence": [
+              "artifacts/stage-three-validation-summary.json"
+            ]
+          }
+        },
+        {
+          "screen": "assistant-evaluation",
+          "route": "/assistants/:assistantId/evaluations",
+          "task": "判断助手版本是否达到发布门禁",
+          "primaryAction": "请求发布",
+          "pagination": false,
+          "contractLevel": "prototype-only",
+          "migration": {
+            "disposition": "保留",
+            "destinations": [
+              "assistant-evaluation"
+            ],
+            "workspace": "assistant-evaluation",
+            "stage": "阶段二样板",
+            "status": "机器复验通过，等待全量人工验收",
+            "legacyUrlPreserved": true,
+            "browserVerified": true,
+            "browserScope": "本页七态、三尺寸及所属专项业务回归；不等于穷举所有输入或人工认可",
+            "evidence": [
+              "artifacts/stage-three-validation-summary.json"
+            ]
+          }
+        },
+        {
+          "screen": "assistant-release",
+          "route": "/assistants/:assistantId/releases/:versionId",
+          "task": "确认一个助手版本的发布影响",
+          "primaryAction": "发布助手版本",
+          "pagination": false,
+          "contractLevel": "prototype-only",
+          "migration": {
+            "disposition": "保留",
+            "destinations": [
+              "assistant-release"
+            ],
+            "workspace": "assistant-release",
+            "stage": "阶段二样板",
+            "status": "机器复验通过，等待全量人工验收",
+            "legacyUrlPreserved": true,
+            "browserVerified": true,
+            "browserScope": "本页七态、三尺寸及所属专项业务回归；不等于穷举所有输入或人工认可",
+            "evidence": [
+              "artifacts/stage-three-validation-summary.json"
+            ]
+          }
+        },
+        {
+          "screen": "channel-binding",
+          "route": "/assistants/:assistantId/channels",
+          "task": "把固定助手版本绑定到受限交付渠道",
+          "primaryAction": "绑定渠道",
+          "pagination": true,
+          "contractLevel": "prototype-only",
+          "migration": {
+            "disposition": "保留",
+            "destinations": [
+              "channel-binding"
+            ],
+            "workspace": "channel-binding",
+            "stage": "暂缓",
+            "status": "暂缓",
+            "legacyUrlPreserved": true
+          }
+        }
       ]
     },
     {
@@ -116,17 +1473,314 @@
       "shell": "console",
       "phase": "M6",
       "pages": [
-        {"screen":"evaluation-datasets","route":"/evaluation/datasets","task":"管理问题、证据、拒答和权限样本","primaryAction":"新建评测数据集","pagination":true,"contractLevel":"prototype-only","migration":{"disposition":"保留","destinations":["evaluation-datasets"],"workspace":"evaluation-datasets","stage":"阶段三待迁移","status":"待人工确认","legacyUrlPreserved":true}},
-        {"screen":"evaluation-dataset-detail","route":"/evaluation/datasets/:datasetId","task":"维护并发布不可变评测数据集版本","primaryAction":"发布数据集版本","pagination":true,"contractLevel":"prototype-only","migration":{"disposition":"保留","destinations":["evaluation-dataset-detail"],"workspace":"evaluation-dataset-detail","stage":"阶段三待迁移","status":"待人工确认","legacyUrlPreserved":true}},
-        {"screen":"evaluation-run-create","route":"/evaluation/runs/new","task":"选择冻结助手和数据集版本发起评测","primaryAction":"运行评测","pagination":false,"contractLevel":"prototype-only","migration":{"disposition":"保留","destinations":["evaluation-run-create"],"workspace":"evaluation-run-create","stage":"阶段三待迁移","status":"待人工确认","legacyUrlPreserved":true}},
-        {"screen":"evaluation-run-detail","route":"/evaluation/runs/:runId","task":"审查一次评测的门禁结论和指标","primaryAction":"比较版本","pagination":false,"contractLevel":"prototype-only","migration":{"disposition":"保留","destinations":["evaluation-run-detail"],"workspace":"evaluation-run-detail","stage":"阶段三待迁移","status":"待人工确认","legacyUrlPreserved":true}},
-        {"screen":"evaluation-comparison","route":"/evaluation/comparisons/:comparisonId","task":"比较两个冻结版本的改善与回退","primaryAction":"形成门禁决定","pagination":false,"contractLevel":"prototype-only","migration":{"disposition":"保留","destinations":["evaluation-comparison"],"workspace":"evaluation-comparison","stage":"阶段三待迁移","status":"待人工确认","legacyUrlPreserved":true}},
-        {"screen":"evaluation-failure-analysis","route":"/evaluation/runs/:runId/failures","task":"按失败类别定位可修复原因","primaryAction":"创建修复事项","pagination":true,"contractLevel":"prototype-only","migration":{"disposition":"保留","destinations":["evaluation-failure-analysis"],"workspace":"evaluation-failure-analysis","stage":"阶段三待迁移","status":"待人工确认","legacyUrlPreserved":true}},
-        {"screen":"governance-query","route":"/governance/query","task":"查看查询用量和脱敏运行摘要","primaryAction":"查看配额规则","pagination":true,"contractLevel":"accepted","migration":{"disposition":"保留","destinations":["governance-query"],"workspace":"governance-query","stage":"阶段三待迁移","status":"待人工确认","legacyUrlPreserved":true}},
-        {"screen":"usage-quotas","route":"/governance/usage","task":"查看合成用量与平台分配的资源配额","primaryAction":"刷新用量","pagination":true,"contractLevel":"prototype-only","migration":{"disposition":"迁移","destinations":["usage-quotas"],"workspace":"governance-query","stage":"阶段三待迁移","status":"待人工确认","legacyUrlPreserved":true}},
-        {"screen":"audit-records","route":"/governance/audit","task":"查询访问、配置、发布和撤销事件","primaryAction":"导出受控记录","pagination":true,"contractLevel":"prototype-only","migration":{"disposition":"迁移","destinations":["audit-records"],"workspace":"governance-query","stage":"阶段三待迁移","status":"待人工确认","legacyUrlPreserved":true}},
-        {"screen":"audit-record-detail","route":"/governance/audit/:eventId","task":"解释一条审计事件的主体、范围和版本链","primaryAction":"返回审计目录","pagination":false,"contractLevel":"prototype-only","migration":{"disposition":"保留","destinations":["audit-record-detail"],"workspace":"audit-record-detail","stage":"阶段三待迁移","status":"待人工确认","legacyUrlPreserved":true}},
-        {"screen":"query-diagnostic","route":"/governance/query-runs/:queryRunId","task":"在受权范围内解释查询失败阶段","primaryAction":"创建修复事项","pagination":false,"contractLevel":"prototype-only","migration":{"disposition":"迁移","destinations":["query-diagnostic"],"workspace":"governance-query","stage":"阶段三待迁移","status":"待人工确认","legacyUrlPreserved":true}}
+        {
+          "screen": "evaluation-datasets",
+          "route": "/evaluation/datasets",
+          "task": "管理问题、证据、拒答和权限样本",
+          "primaryAction": "新建评测数据集",
+          "pagination": true,
+          "contractLevel": "prototype-only",
+          "migration": {
+            "disposition": "保留",
+            "destinations": [
+              "evaluation-datasets"
+            ],
+            "workspace": "evaluation-datasets",
+            "stage": "阶段三已迁移",
+            "status": "机器复验通过，等待全量人工验收",
+            "legacyUrlPreserved": true,
+            "changes": [
+              "目录统一先筛选后切片，默认 20 行、页大小及跳页，搜索和页码进入 URL；保留行级业务动作。"
+            ],
+            "evidence": [
+              "scripts/stage-three-migration.test.mjs",
+              "scripts/stage-three-render.test.mjs",
+              "artifacts/stage-three-validation-summary.json"
+            ],
+            "browserVerified": true,
+            "browserScope": "本页七态、三尺寸及所属专项业务回归；不等于穷举所有输入或人工认可"
+          }
+        },
+        {
+          "screen": "evaluation-dataset-detail",
+          "route": "/evaluation/datasets/:datasetId",
+          "task": "维护并发布不可变评测数据集版本",
+          "primaryAction": "发布数据集版本",
+          "pagination": true,
+          "contractLevel": "prototype-only",
+          "migration": {
+            "disposition": "保留",
+            "destinations": [
+              "evaluation-dataset-detail"
+            ],
+            "workspace": "evaluation-dataset-detail",
+            "stage": "阶段三已迁移",
+            "status": "机器复验通过，等待全量人工验收",
+            "legacyUrlPreserved": true,
+            "changes": [
+              "目录统一先筛选后切片，默认 20 行、页大小及跳页，搜索和页码进入 URL；保留行级业务动作。"
+            ],
+            "evidence": [
+              "scripts/stage-three-migration.test.mjs",
+              "scripts/stage-three-render.test.mjs",
+              "artifacts/stage-three-validation-summary.json"
+            ],
+            "browserVerified": true,
+            "browserScope": "本页七态、三尺寸及所属专项业务回归；不等于穷举所有输入或人工认可"
+          }
+        },
+        {
+          "screen": "evaluation-run-create",
+          "route": "/evaluation/runs/new",
+          "task": "选择冻结助手和数据集版本发起评测",
+          "primaryAction": "运行评测",
+          "pagination": false,
+          "contractLevel": "prototype-only",
+          "migration": {
+            "disposition": "保留",
+            "destinations": [
+              "evaluation-run-create"
+            ],
+            "workspace": "evaluation-run-create",
+            "stage": "阶段三已迁移",
+            "status": "机器复验通过，等待全量人工验收",
+            "legacyUrlPreserved": true,
+            "changes": [
+              "评测对象导航贯通数据集、运行和分析；关联对象可搜索，运行阶段中文化，冻结输入渐进披露。"
+            ],
+            "evidence": [
+              "scripts/stage-three-migration.test.mjs",
+              "scripts/stage-three-render.test.mjs",
+              "artifacts/stage-three-validation-summary.json"
+            ],
+            "browserVerified": true,
+            "browserScope": "本页七态、三尺寸及所属专项业务回归；不等于穷举所有输入或人工认可"
+          }
+        },
+        {
+          "screen": "evaluation-run-detail",
+          "route": "/evaluation/runs/:runId",
+          "task": "审查一次评测的门禁结论和指标",
+          "primaryAction": "比较版本",
+          "pagination": false,
+          "contractLevel": "prototype-only",
+          "migration": {
+            "disposition": "保留",
+            "destinations": [
+              "evaluation-run-detail"
+            ],
+            "workspace": "evaluation-run-detail",
+            "stage": "阶段三已迁移",
+            "status": "机器复验通过，等待全量人工验收",
+            "legacyUrlPreserved": true,
+            "changes": [
+              "评测对象导航贯通数据集、运行和分析；关联对象可搜索，运行阶段中文化，冻结输入渐进披露。"
+            ],
+            "evidence": [
+              "scripts/stage-three-migration.test.mjs",
+              "scripts/stage-three-render.test.mjs",
+              "artifacts/stage-three-validation-summary.json"
+            ],
+            "browserVerified": true,
+            "browserScope": "本页七态、三尺寸及所属专项业务回归；不等于穷举所有输入或人工认可"
+          }
+        },
+        {
+          "screen": "evaluation-comparison",
+          "route": "/evaluation/comparisons/:comparisonId",
+          "task": "比较两个冻结版本的改善与回退",
+          "primaryAction": "形成门禁决定",
+          "pagination": false,
+          "contractLevel": "prototype-only",
+          "migration": {
+            "disposition": "保留",
+            "destinations": [
+              "evaluation-comparison"
+            ],
+            "workspace": "evaluation-comparison",
+            "stage": "阶段三已迁移",
+            "status": "机器复验通过，等待全量人工验收",
+            "legacyUrlPreserved": true,
+            "changes": [
+              "评测对象导航贯通数据集、运行和分析；关联对象可搜索，运行阶段中文化，冻结输入渐进披露。"
+            ],
+            "evidence": [
+              "scripts/stage-three-migration.test.mjs",
+              "scripts/stage-three-render.test.mjs",
+              "artifacts/stage-three-validation-summary.json"
+            ],
+            "browserVerified": true,
+            "browserScope": "本页七态、三尺寸及所属专项业务回归；不等于穷举所有输入或人工认可"
+          }
+        },
+        {
+          "screen": "evaluation-failure-analysis",
+          "route": "/evaluation/runs/:runId/failures",
+          "task": "按失败类别定位可修复原因",
+          "primaryAction": "创建修复事项",
+          "pagination": true,
+          "contractLevel": "prototype-only",
+          "migration": {
+            "disposition": "保留",
+            "destinations": [
+              "evaluation-failure-analysis"
+            ],
+            "workspace": "evaluation-failure-analysis",
+            "stage": "阶段三已迁移",
+            "status": "机器复验通过，等待全量人工验收",
+            "legacyUrlPreserved": true,
+            "changes": [
+              "目录统一先筛选后切片，默认 20 行、页大小及跳页，搜索和页码进入 URL；保留行级业务动作。"
+            ],
+            "evidence": [
+              "scripts/stage-three-migration.test.mjs",
+              "scripts/stage-three-render.test.mjs",
+              "artifacts/stage-three-validation-summary.json"
+            ],
+            "browserVerified": true,
+            "browserScope": "本页七态、三尺寸及所属专项业务回归；不等于穷举所有输入或人工认可"
+          }
+        },
+        {
+          "screen": "governance-query",
+          "route": "/governance/query",
+          "task": "查看查询用量和脱敏运行摘要",
+          "primaryAction": "查看配额规则",
+          "pagination": true,
+          "contractLevel": "accepted",
+          "migration": {
+            "disposition": "保留",
+            "destinations": [
+              "governance-query"
+            ],
+            "workspace": "governance-query",
+            "stage": "阶段三已迁移",
+            "status": "机器复验通过，等待全量人工验收",
+            "legacyUrlPreserved": true,
+            "changes": [
+              "目录统一先筛选后切片，默认 20 行、页大小及跳页，搜索和页码进入 URL；保留行级业务动作。"
+            ],
+            "evidence": [
+              "scripts/stage-three-migration.test.mjs",
+              "scripts/stage-three-render.test.mjs",
+              "artifacts/stage-three-validation-summary.json"
+            ],
+            "browserVerified": true,
+            "browserScope": "本页七态、三尺寸及所属专项业务回归；不等于穷举所有输入或人工认可"
+          }
+        },
+        {
+          "screen": "usage-quotas",
+          "route": "/governance/usage",
+          "task": "查看合成用量与平台分配的资源配额",
+          "primaryAction": "刷新用量",
+          "pagination": true,
+          "contractLevel": "prototype-only",
+          "migration": {
+            "disposition": "迁移",
+            "destinations": [
+              "usage-quotas"
+            ],
+            "workspace": "governance-query",
+            "stage": "阶段三已迁移",
+            "status": "机器复验通过，等待全量人工验收",
+            "legacyUrlPreserved": true,
+            "changes": [
+              "目录统一先筛选后切片，默认 20 行、页大小及跳页，搜索和页码进入 URL；保留行级业务动作。"
+            ],
+            "evidence": [
+              "scripts/stage-three-migration.test.mjs",
+              "scripts/stage-three-render.test.mjs",
+              "artifacts/stage-three-validation-summary.json"
+            ],
+            "browserVerified": true,
+            "browserScope": "本页七态、三尺寸及所属专项业务回归；不等于穷举所有输入或人工认可"
+          }
+        },
+        {
+          "screen": "audit-records",
+          "route": "/governance/audit",
+          "task": "查询访问、配置、发布和撤销事件",
+          "primaryAction": "导出受控记录",
+          "pagination": true,
+          "contractLevel": "prototype-only",
+          "migration": {
+            "disposition": "迁移",
+            "destinations": [
+              "audit-records"
+            ],
+            "workspace": "governance-query",
+            "stage": "阶段三已迁移",
+            "status": "机器复验通过，等待全量人工验收",
+            "legacyUrlPreserved": true,
+            "changes": [
+              "目录统一先筛选后切片，默认 20 行、页大小及跳页，搜索和页码进入 URL；保留行级业务动作。"
+            ],
+            "evidence": [
+              "scripts/stage-three-migration.test.mjs",
+              "scripts/stage-three-render.test.mjs",
+              "artifacts/stage-three-validation-summary.json"
+            ],
+            "browserVerified": true,
+            "browserScope": "本页七态、三尺寸及所属专项业务回归；不等于穷举所有输入或人工认可"
+          }
+        },
+        {
+          "screen": "audit-record-detail",
+          "route": "/governance/audit/:eventId",
+          "task": "解释一条审计事件的主体、范围和版本链",
+          "primaryAction": "返回审计目录",
+          "pagination": false,
+          "contractLevel": "prototype-only",
+          "migration": {
+            "disposition": "保留",
+            "destinations": [
+              "audit-record-detail"
+            ],
+            "workspace": "audit-record-detail",
+            "stage": "阶段三已迁移",
+            "status": "机器复验通过，等待全量人工验收",
+            "legacyUrlPreserved": true,
+            "changes": [
+              "复用任务组件统一字段帮助与确认弹窗三区；异常态禁用写入口，保留“解释一条审计事件的主体、范围和版本链”原有独立保存和权限边界。"
+            ],
+            "evidence": [
+              "scripts/stage-three-migration.test.mjs",
+              "scripts/stage-three-render.test.mjs",
+              "artifacts/stage-three-validation-summary.json"
+            ],
+            "browserVerified": true,
+            "browserScope": "本页七态、三尺寸及所属专项业务回归；不等于穷举所有输入或人工认可"
+          }
+        },
+        {
+          "screen": "query-diagnostic",
+          "route": "/governance/query-runs/:queryRunId",
+          "task": "在受权范围内解释查询失败阶段",
+          "primaryAction": "创建修复事项",
+          "pagination": false,
+          "contractLevel": "prototype-only",
+          "migration": {
+            "disposition": "迁移",
+            "destinations": [
+              "query-diagnostic"
+            ],
+            "workspace": "governance-query",
+            "stage": "阶段三已迁移",
+            "status": "机器复验通过，等待全量人工验收",
+            "legacyUrlPreserved": true,
+            "changes": [
+              "诊断阶段和模型职责中文化，保留受权范围与失败恢复。"
+            ],
+            "evidence": [
+              "scripts/stage-three-migration.test.mjs",
+              "scripts/stage-three-render.test.mjs",
+              "artifacts/stage-three-validation-summary.json"
+            ],
+            "browserVerified": true,
+            "browserScope": "本页七态、三尺寸及所属专项业务回归；不等于穷举所有输入或人工认可"
+          }
+        }
       ]
     },
     {
@@ -135,9 +1789,75 @@
       "shell": "query",
       "phase": "M6",
       "pages": [
-        {"screen":"login","route":"/app/login","task":"建立普通用户 QUERY_APP 会话","primaryAction":"登录","pagination":false,"contractLevel":"accepted","migration":{"disposition":"保留","destinations":["login"],"workspace":"login","stage":"阶段二样板","status":"待人工确认","legacyUrlPreserved":true}},
-        {"screen":"assistants","route":"/app/assistants","task":"搜索并选择一个获授权助手","primaryAction":"开始新会话","pagination":true,"contractLevel":"accepted","migration":{"disposition":"保留","destinations":["assistants"],"workspace":"assistants","stage":"阶段二样板","status":"待人工确认","legacyUrlPreserved":true}},
-        {"screen":"conversation","route":"/app/conversations/:conversationId","task":"在固定助手版本的会话中恢复并继续问答","primaryAction":"发送问题","pagination":false,"contractLevel":"accepted","migration":{"disposition":"保留","destinations":["conversation"],"workspace":"conversation","stage":"阶段二样板","status":"待人工确认","legacyUrlPreserved":true}}
+        {
+          "screen": "login",
+          "route": "/app/login",
+          "task": "建立普通用户 QUERY_APP 会话",
+          "primaryAction": "登录",
+          "pagination": false,
+          "contractLevel": "accepted",
+          "migration": {
+            "disposition": "保留",
+            "destinations": [
+              "login"
+            ],
+            "workspace": "login",
+            "stage": "阶段二样板",
+            "status": "机器复验通过，等待全量人工验收",
+            "legacyUrlPreserved": true,
+            "browserVerified": true,
+            "browserScope": "本页七态、三尺寸及所属专项业务回归；不等于穷举所有输入或人工认可",
+            "evidence": [
+              "artifacts/stage-three-validation-summary.json"
+            ]
+          }
+        },
+        {
+          "screen": "assistants",
+          "route": "/app/assistants",
+          "task": "搜索并选择一个获授权助手",
+          "primaryAction": "开始新会话",
+          "pagination": true,
+          "contractLevel": "accepted",
+          "migration": {
+            "disposition": "保留",
+            "destinations": [
+              "assistants"
+            ],
+            "workspace": "assistants",
+            "stage": "阶段二样板",
+            "status": "机器复验通过，等待全量人工验收",
+            "legacyUrlPreserved": true,
+            "browserVerified": true,
+            "browserScope": "本页七态、三尺寸及所属专项业务回归；不等于穷举所有输入或人工认可",
+            "evidence": [
+              "artifacts/stage-three-validation-summary.json"
+            ]
+          }
+        },
+        {
+          "screen": "conversation",
+          "route": "/app/conversations/:conversationId",
+          "task": "在固定助手版本的会话中恢复并继续问答",
+          "primaryAction": "发送问题",
+          "pagination": false,
+          "contractLevel": "accepted",
+          "migration": {
+            "disposition": "保留",
+            "destinations": [
+              "conversation"
+            ],
+            "workspace": "conversation",
+            "stage": "阶段二样板",
+            "status": "机器复验通过，等待全量人工验收",
+            "legacyUrlPreserved": true,
+            "browserVerified": true,
+            "browserScope": "本页七态、三尺寸及所属专项业务回归；不等于穷举所有输入或人工认可",
+            "evidence": [
+              "artifacts/stage-three-validation-summary.json"
+            ]
+          }
+        }
       ]
     },
     {
@@ -146,10 +1866,122 @@
       "shell": "device",
       "phase": "M7",
       "pages": [
-        {"screen":"device-start","route":"/device","task":"在固定设备与助手范围内开始一次问答","primaryAction":"开始提问","pagination":false,"contractLevel":"prototype-only","migration":{"disposition":"保留","destinations":["device-start"],"workspace":"device-start","stage":"阶段三仅视觉与信息架构","scope":"不实施业务闭环","status":"待人工确认","legacyUrlPreserved":true}},
-        {"screen":"device-consent","route":"/device/consent","task":"理解并确认语音、画像和保留范围","primaryAction":"同意并继续","pagination":false,"contractLevel":"prototype-only","migration":{"disposition":"保留","destinations":["device-consent"],"workspace":"device-consent","stage":"阶段三仅视觉与信息架构","scope":"不实施业务闭环","status":"待人工确认","legacyUrlPreserved":true}},
-        {"screen":"device-question","route":"/device/question","task":"通过语音或触控提交一个现场问题","primaryAction":"提交问题","pagination":false,"contractLevel":"prototype-only","migration":{"disposition":"保留","destinations":["device-question"],"workspace":"device-question","stage":"阶段三仅视觉与信息架构","scope":"不实施业务闭环","status":"待人工确认","legacyUrlPreserved":true}},
-        {"screen":"device-answer","route":"/device/answer","task":"查看简洁答案、现场指引或安全拒答","primaryAction":"继续提问","pagination":false,"contractLevel":"prototype-only","migration":{"disposition":"保留","destinations":["device-answer"],"workspace":"device-answer","stage":"阶段三仅视觉与信息架构","scope":"不实施业务闭环","status":"待人工确认","legacyUrlPreserved":true}}
+        {
+          "screen": "device-start",
+          "route": "/device",
+          "task": "在固定设备与助手范围内开始一次问答",
+          "primaryAction": "开始提问",
+          "pagination": false,
+          "contractLevel": "prototype-only",
+          "migration": {
+            "disposition": "保留",
+            "destinations": [
+              "device-start"
+            ],
+            "workspace": "device-start",
+            "stage": "阶段三视觉信息架构已迁移",
+            "scope": "不实施业务闭环",
+            "status": "机器复验通过，等待全量人工验收",
+            "legacyUrlPreserved": true,
+            "changes": [
+              "触控界面补当前步骤与未来阶段标识，保留低密度及原合成交互。"
+            ],
+            "evidence": [
+              "scripts/stage-three-migration.test.mjs",
+              "scripts/stage-three-render.test.mjs",
+              "artifacts/stage-three-validation-summary.json"
+            ],
+            "browserVerified": true,
+            "browserScope": "仅视觉、信息架构、合成导航及既有模拟；不代表真实运营或设备能力"
+          }
+        },
+        {
+          "screen": "device-consent",
+          "route": "/device/consent",
+          "task": "理解并确认语音、画像和保留范围",
+          "primaryAction": "同意并继续",
+          "pagination": false,
+          "contractLevel": "prototype-only",
+          "migration": {
+            "disposition": "保留",
+            "destinations": [
+              "device-consent"
+            ],
+            "workspace": "device-consent",
+            "stage": "阶段三视觉信息架构已迁移",
+            "scope": "不实施业务闭环",
+            "status": "机器复验通过，等待全量人工验收",
+            "legacyUrlPreserved": true,
+            "changes": [
+              "触控界面补当前步骤与未来阶段标识，保留低密度及原合成交互。"
+            ],
+            "evidence": [
+              "scripts/stage-three-migration.test.mjs",
+              "scripts/stage-three-render.test.mjs",
+              "artifacts/stage-three-validation-summary.json"
+            ],
+            "browserVerified": true,
+            "browserScope": "仅视觉、信息架构、合成导航及既有模拟；不代表真实运营或设备能力"
+          }
+        },
+        {
+          "screen": "device-question",
+          "route": "/device/question",
+          "task": "通过语音或触控提交一个现场问题",
+          "primaryAction": "提交问题",
+          "pagination": false,
+          "contractLevel": "prototype-only",
+          "migration": {
+            "disposition": "保留",
+            "destinations": [
+              "device-question"
+            ],
+            "workspace": "device-question",
+            "stage": "阶段三视觉信息架构已迁移",
+            "scope": "不实施业务闭环",
+            "status": "机器复验通过，等待全量人工验收",
+            "legacyUrlPreserved": true,
+            "changes": [
+              "触控界面补当前步骤与未来阶段标识，保留低密度及原合成交互。"
+            ],
+            "evidence": [
+              "scripts/stage-three-migration.test.mjs",
+              "scripts/stage-three-render.test.mjs",
+              "artifacts/stage-three-validation-summary.json"
+            ],
+            "browserVerified": true,
+            "browserScope": "仅视觉、信息架构、合成导航及既有模拟；不代表真实运营或设备能力"
+          }
+        },
+        {
+          "screen": "device-answer",
+          "route": "/device/answer",
+          "task": "查看简洁答案、现场指引或安全拒答",
+          "primaryAction": "继续提问",
+          "pagination": false,
+          "contractLevel": "prototype-only",
+          "migration": {
+            "disposition": "保留",
+            "destinations": [
+              "device-answer"
+            ],
+            "workspace": "device-answer",
+            "stage": "阶段三视觉信息架构已迁移",
+            "scope": "不实施业务闭环",
+            "status": "机器复验通过，等待全量人工验收",
+            "legacyUrlPreserved": true,
+            "changes": [
+              "触控界面补当前步骤与未来阶段标识，保留低密度及原合成交互。"
+            ],
+            "evidence": [
+              "scripts/stage-three-migration.test.mjs",
+              "scripts/stage-three-render.test.mjs",
+              "artifacts/stage-three-validation-summary.json"
+            ],
+            "browserVerified": true,
+            "browserScope": "仅视觉、信息架构、合成导航及既有模拟；不代表真实运营或设备能力"
+          }
+        }
       ]
     },
     {
@@ -158,12 +1990,180 @@
       "shell": "console",
       "phase": "M8",
       "pages": [
-        {"screen":"platform-health","route":"/operations/health","task":"选择业务链路异常并确认处置结果","primaryAction":"重新检查","pagination":false,"contractLevel":"prototype-only","migration":{"disposition":"保留","destinations":["platform-health"],"workspace":"platform-health","stage":"阶段三仅视觉与信息架构","scope":"不实施业务闭环","status":"待人工确认","legacyUrlPreserved":true}},
-        {"screen":"ingestion-queue","route":"/operations/ingestion","task":"处理摄取积压、失败和死信","primaryAction":"重试安全任务","pagination":true,"contractLevel":"prototype-only","migration":{"disposition":"保留","destinations":["ingestion-queue"],"workspace":"ingestion-queue","stage":"阶段三仅视觉与信息架构","scope":"不实施业务闭环","status":"待人工确认","legacyUrlPreserved":true}},
-        {"screen":"model-health","route":"/operations/models","task":"处置模型连接、限流、延迟和熔断风险","primaryAction":"下线异常部署","pagination":true,"contractLevel":"prototype-only","migration":{"disposition":"保留","destinations":["model-health"],"workspace":"model-health","stage":"阶段三仅视觉与信息架构","scope":"不实施业务闭环","status":"待人工确认","legacyUrlPreserved":true}},
-        {"screen":"capacity-planning","route":"/operations/capacity","task":"核对容量、增长和租户影响阈值","primaryAction":"创建扩容事项","pagination":false,"contractLevel":"prototype-only","migration":{"disposition":"保留","destinations":["capacity-planning"],"workspace":"capacity-planning","stage":"阶段三仅视觉与信息架构","scope":"不实施业务闭环","status":"待人工确认","legacyUrlPreserved":true}},
-        {"screen":"backup-recovery","route":"/operations/recovery","task":"检查备份并执行固定隔离恢复演练","primaryAction":"开始完整性检查","pagination":false,"contractLevel":"prototype-only","migration":{"disposition":"保留","destinations":["backup-recovery"],"workspace":"backup-recovery","stage":"阶段三仅视觉与信息架构","scope":"不实施业务闭环","status":"待人工确认","legacyUrlPreserved":true}},
-        {"screen":"release-operations","route":"/operations/releases","task":"审查镜像、迁移和配置并执行受控回滚","primaryAction":"执行回滚","pagination":true,"contractLevel":"prototype-only","migration":{"disposition":"保留","destinations":["release-operations"],"workspace":"release-operations","stage":"阶段三仅视觉与信息架构","scope":"不实施业务闭环","status":"待人工确认","legacyUrlPreserved":true}}
+        {
+          "screen": "platform-health",
+          "route": "/operations/health",
+          "task": "选择业务链路异常并确认处置结果",
+          "primaryAction": "重新检查",
+          "pagination": false,
+          "contractLevel": "prototype-only",
+          "migration": {
+            "disposition": "保留",
+            "destinations": [
+              "platform-health"
+            ],
+            "workspace": "platform-health",
+            "stage": "阶段三视觉信息架构已迁移",
+            "scope": "不实施业务闭环",
+            "status": "机器复验通过，等待全量人工验收",
+            "legacyUrlPreserved": true,
+            "changes": [
+              "异常对象写入 URL；处理记录按序号预切片 5 条，支持更早与最新，操作后展示最新结果。"
+            ],
+            "evidence": [
+              "scripts/stage-three-migration.test.mjs",
+              "scripts/stage-three-render.test.mjs",
+              "artifacts/stage-three-validation-summary.json"
+            ],
+            "browserVerified": true,
+            "browserScope": "仅视觉、信息架构、合成导航及既有模拟；不代表真实运营或设备能力"
+          }
+        },
+        {
+          "screen": "ingestion-queue",
+          "route": "/operations/ingestion",
+          "task": "处理摄取积压、失败和死信",
+          "primaryAction": "重试安全任务",
+          "pagination": true,
+          "contractLevel": "prototype-only",
+          "migration": {
+            "disposition": "保留",
+            "destinations": [
+              "ingestion-queue"
+            ],
+            "workspace": "ingestion-queue",
+            "stage": "阶段三视觉信息架构已迁移",
+            "scope": "不实施业务闭环",
+            "status": "机器复验通过，等待全量人工验收",
+            "legacyUrlPreserved": true,
+            "changes": [
+              "目录统一先筛选后切片，默认 20 行、页大小及跳页，搜索和页码进入 URL；保留行级业务动作。"
+            ],
+            "evidence": [
+              "scripts/stage-three-migration.test.mjs",
+              "scripts/stage-three-render.test.mjs",
+              "artifacts/stage-three-validation-summary.json"
+            ],
+            "browserVerified": true,
+            "browserScope": "仅视觉、信息架构、合成导航及既有模拟；不代表真实运营或设备能力"
+          }
+        },
+        {
+          "screen": "model-health",
+          "route": "/operations/models",
+          "task": "处置模型连接、限流、延迟和熔断风险",
+          "primaryAction": "下线异常部署",
+          "pagination": true,
+          "contractLevel": "prototype-only",
+          "migration": {
+            "disposition": "保留",
+            "destinations": [
+              "model-health"
+            ],
+            "workspace": "model-health",
+            "stage": "阶段三视觉信息架构已迁移",
+            "scope": "不实施业务闭环",
+            "status": "机器复验通过，等待全量人工验收",
+            "legacyUrlPreserved": true,
+            "changes": [
+              "目录统一先筛选后切片，默认 20 行、页大小及跳页，搜索和页码进入 URL；保留行级业务动作。"
+            ],
+            "evidence": [
+              "scripts/stage-three-migration.test.mjs",
+              "scripts/stage-three-render.test.mjs",
+              "artifacts/stage-three-validation-summary.json"
+            ],
+            "browserVerified": true,
+            "browserScope": "仅视觉、信息架构、合成导航及既有模拟；不代表真实运营或设备能力"
+          }
+        },
+        {
+          "screen": "capacity-planning",
+          "route": "/operations/capacity",
+          "task": "核对容量、增长和租户影响阈值",
+          "primaryAction": "创建扩容事项",
+          "pagination": false,
+          "contractLevel": "prototype-only",
+          "migration": {
+            "disposition": "保留",
+            "destinations": [
+              "capacity-planning"
+            ],
+            "workspace": "capacity-planning",
+            "stage": "阶段三视觉信息架构已迁移",
+            "scope": "不实施业务闭环",
+            "status": "机器复验通过，等待全量人工验收",
+            "legacyUrlPreserved": true,
+            "changes": [
+              "容量比例用带数值 meter 呈现；影响和返回运行状态独立区域。"
+            ],
+            "evidence": [
+              "scripts/stage-three-migration.test.mjs",
+              "scripts/stage-three-render.test.mjs",
+              "artifacts/stage-three-validation-summary.json"
+            ],
+            "browserVerified": true,
+            "browserScope": "仅视觉、信息架构、合成导航及既有模拟；不代表真实运营或设备能力"
+          }
+        },
+        {
+          "screen": "backup-recovery",
+          "route": "/operations/recovery",
+          "task": "检查备份并执行固定隔离恢复演练",
+          "primaryAction": "开始完整性检查",
+          "pagination": false,
+          "contractLevel": "prototype-only",
+          "migration": {
+            "disposition": "保留",
+            "destinations": [
+              "backup-recovery"
+            ],
+            "workspace": "backup-recovery",
+            "stage": "阶段三视觉信息架构已迁移",
+            "scope": "不实施业务闭环",
+            "status": "机器复验通过，等待全量人工验收",
+            "legacyUrlPreserved": true,
+            "changes": [
+              "恢复点选择、固定隔离目标、生产保护和下一动作分区；保留原合成演练，不增加生产执行。"
+            ],
+            "evidence": [
+              "scripts/stage-three-migration.test.mjs",
+              "scripts/stage-three-render.test.mjs",
+              "artifacts/stage-three-validation-summary.json"
+            ],
+            "browserVerified": true,
+            "browserScope": "仅视觉、信息架构、合成导航及既有模拟；不代表真实运营或设备能力"
+          }
+        },
+        {
+          "screen": "release-operations",
+          "route": "/operations/releases",
+          "task": "审查镜像、迁移和配置并执行受控回滚",
+          "primaryAction": "执行回滚",
+          "pagination": true,
+          "contractLevel": "prototype-only",
+          "migration": {
+            "disposition": "保留",
+            "destinations": [
+              "release-operations"
+            ],
+            "workspace": "release-operations",
+            "stage": "阶段三视觉信息架构已迁移",
+            "scope": "不实施业务闭环",
+            "status": "机器复验通过，等待全量人工验收",
+            "legacyUrlPreserved": true,
+            "changes": [
+              "发布事件按序号窗口呈现，移除虚构时刻，不新增回滚执行。"
+            ],
+            "evidence": [
+              "scripts/stage-three-migration.test.mjs",
+              "scripts/stage-three-render.test.mjs",
+              "artifacts/stage-three-validation-summary.json"
+            ],
+            "browserVerified": true,
+            "browserScope": "仅视觉、信息架构、合成导航及既有模拟；不代表真实运营或设备能力"
+          }
+        }
       ]
     }
   ]

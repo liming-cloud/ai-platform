@@ -7,31 +7,34 @@ export const syntheticExtract='合成演示文档\n员工办理年假结转时�
 export function recordWindow(records, before=Infinity, limit=20) {
   return records.filter(item=>item.sequence<before).sort((a,b)=>a.sequence-b.sequence).slice(-Math.min(100,limit));
 }
-export function pagedTable(rows, columns, params=new URLSearchParams(), rowAction=()=> '') {
-  const query=params.get('q')||'', matches=rows.filter(row=>String(row.name||'').includes(query));
+export function pagedTable(rows, columns, params=new URLSearchParams(), rowAction=null) {
+  const query=(params.get('q')||'').toLocaleLowerCase(), matches=rows.filter(row=>columns.some(column=>String(row[column.key]||'').toLocaleLowerCase().includes(query)));
   const page=directoryPage(matches.length,params.get('page'),params.get('size'));
-  return `<div class="table-shell" data-object-directory><table class="data-table"><thead><tr>${columns.map(c=>`<th>${e(c.label)}</th>`).join('')}<th>操作</th></tr></thead><tbody>${matches.slice(page.start,page.end).map(row=>`<tr>${columns.map(c=>`<td data-label="${e(c.label)}">${e(row[c.key])}</td>`).join('')}<td data-label="操作">${rowAction(row)}</td></tr>`).join('')}</tbody></table><div class="pagination" data-object-pagination>${directoryPaginationMarkup(page,matches.length,'object')}</div></div>`;
+  return `<div class="toolbar"><label class="field"><span>搜索当前目录</span><input class="input" type="search" value="${e(params.get('q')||'')}" placeholder="按名称或摘要搜索"></label></div><div class="table-shell" data-object-directory><table class="data-table"><thead><tr>${columns.map(c=>`<th>${e(c.label)}</th>`).join('')}${rowAction?'<th>操作</th>':''}</tr></thead><tbody>${matches.slice(page.start,page.end).map(row=>`<tr>${columns.map(c=>`<td data-label="${e(c.label)}">${e(row[c.key])}</td>`).join('')}${rowAction?`<td data-label="操作">${rowAction(row)}</td>`:''}</tr>`).join('') || `<tr><td colspan="${columns.length+(rowAction?1:0)}">没有匹配记录，请调整筛选条件或返回目录。</td></tr>`}</tbody></table><div class="pagination" data-object-pagination>${directoryPaginationMarkup(page,matches.length,'object')}</div></div>`;
 }
 
 /** 旧目录在进入 DOM 前切片，复用分页计算；行操作仍由现有绑定在本页行上接线。 */
 export function boundedDirectoryMarkup(html, params=new URLSearchParams()) {
+  if(html.includes('data-object-pagination'))return html;
   const table=html.match(/<tbody>([\s\S]*?)<\/tbody>/);
   if(!table || !html.includes('class="pagination"'))return html;
-  const query=(params.get('q')||'').toLowerCase();
+  const query=(params.get('q')||'').toLowerCase(), status=params.get('status');
   // 只处理原型模板的平面表格；错误详情附行与来源作为同一分页单元。
   const units=[];
   for(const row of table[1].match(/<tr\b[\s\S]*?<\/tr>/g)||[]) {
     if(row.includes('data-directory-row-detail') && units.length)units[units.length-1]+=row;
     else units.push(row);
   }
-  const rows=units.filter(row=>!query||row.replace(/<[^>]*>/g,'').toLowerCase().includes(query));
+  const rows=units.filter(row=>!/^<tr[^>]*>\s*<td[^>]*colspan=/.test(row) && (!query||row.replace(/<[^>]*>/g,'').toLowerCase().includes(query)) && (!status || status==='all' || ['status','account-status','directory-state'].some(key=>row.includes(`data-${key}="${e(status)}"`))));
   const page=directoryPage(rows.length,params.get('page'),params.get('size'));
-  const barStart=html.indexOf('<div class="pagination"');
+  const barStart=html.search(/<(?:div|nav) class="pagination"/);
   let depth=0,barEnd=barStart;
-  const tags=html.slice(barStart).matchAll(/<\/?div\b[^>]*>/g);
+  const barTag=html.slice(barStart+1).startsWith('nav')?'nav':'div';
+  const tags=html.slice(barStart).matchAll(new RegExp(`<\\/?${barTag}\\b[^>]*>`,'g'));
   for(const tag of tags){depth+=tag[0].startsWith('</')?-1:1;if(depth===0){barEnd=barStart+tag.index+tag[0].length;break;}}
   const pagination=`<div class="pagination" data-object-pagination>${directoryPaginationMarkup(page,rows.length,'object')}</div>`;
-  return (html.slice(0,barStart)+pagination+html.slice(barEnd)).replace(table[0],`<tbody>${rows.slice(page.start,page.end).join('')}</tbody>`);
+  const result=(html.slice(0,barStart)+pagination+html.slice(barEnd)).replace(table[0],`<tbody>${rows.slice(page.start,page.end).join('') || '<tr><td colspan="20">没有匹配记录，请调整筛选条件。</td></tr>'}</tbody>`);
+  return result.includes('class="toolbar"')?result:result.replace(/<div class="table-shell"[^>]*>/,match=>'<div class="toolbar"><label class="field"><span>搜索当前目录</span><input class="input" type="search" placeholder="按名称或摘要搜索"></label></div>'+match);
 }
 export function documentWorkspace(source, view='preview', params=new URLSearchParams()) {
   const nav=`<nav class="object-navigation" aria-label="文档工作区">${[['preview','内容预览'],['records','处理记录'],['versions','版本']].map(([key,label])=>`<button class="button secondary" data-document-view="${key}"${view===key?' aria-current="page"':''}>${label}</button>`).join('')}</nav>`;

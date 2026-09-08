@@ -1,4 +1,5 @@
 import { renderConsoleNavigation, renderAccountMenu } from "./navigation.js";
+import { recordWindow } from "./object-workspaces.js";
 import { memberWorkspace, memberCreateWorkspace } from "./member-workspace.js";
 import {
   CONVERSATION_FEATURES,
@@ -224,16 +225,19 @@ function renderResult(fixture) {
 }
 
 function renderTimeline(fixture) {
+  const records=(fixture.records || (fixture.steps||[]).map((text,index)=>({sequence:index+1,text})));
+  const params=typeof location==='undefined'?new URLSearchParams():new URLSearchParams(location.search);
+  const visible=recordWindow(records,Number(params.get('before'))||Infinity);
   return [
     '<div class="timeline-workspace"><section class="section-block"><div class="section-heading"><h2>事件顺序</h2>',
     statusTag(fixture.status),
     "</div>",
-    `<ol class="timeline event-timeline">${(fixture.steps || [])
+    `<ol class="timeline event-timeline">${visible
       .map(
-        (step, index) =>
-          `<li><span><strong>事件 ${index + 1}</strong><small>${escapeHtml(step)}</small></span><time>${18 + index}:0${index}</time></li>`,
+        (record) =>
+          `<li data-event-sequence="${record.sequence}"><span><strong>事件 ${record.sequence}</strong><small>${escapeHtml(record.text)}</small></span>${record.time?`<time>${escapeHtml(record.time)}</time>`:''}</li>`,
       )
-      .join("")}</ol>`,
+      .join("")}</ol><div class="form-actions"><button class="button secondary" data-record-before="${visible[0]?.sequence||1}"${records.some(item=>item.sequence<(visible[0]?.sequence||1))?'':' disabled'}>加载更早记录</button><button class="button secondary" data-record-before="">返回最新记录</button></div>`,
     '</section><aside class="section-block"><h2>范围与恢复</h2>',
     factList(fixture, "timeline"),
     `<p class="inline-note">${escapeHtml(fixture.notice)}</p>`,
@@ -507,8 +511,9 @@ function renderIndexSummary() {
 
 function renderPlatformHealth(demoState) {
   const health = demoState?.health;
+  const params=typeof location==='undefined'?new URLSearchParams():new URLSearchParams(location.search);
   const selected = health?.incidents?.find(
-    (incident) => incident.id === health.selectedIncidentId,
+    (incident) => incident.id === (params.get('healthIncident') || health.selectedIncidentId),
   );
   if (!selected) {
     return '<section class="state-panel" data-kind="empty"><h2>当前没有异常记录</h2></section>';
@@ -519,16 +524,18 @@ function renderPlatformHealth(demoState) {
         `<button class="incident-row" type="button" data-business-action="select-health-incident" data-incident-id="${escapeHtml(incident.id)}" aria-pressed="${String(incident.id === selected.id)}" data-control-status="implemented"><span><strong>${escapeHtml(incident.title)}</strong><small>${escapeHtml(incident.chain)}</small></span>${statusTag(incident.status === "recovered" ? "已恢复" : "仍异常", incident.status === "recovered" ? "success" : "warning")}</button>`,
     )
     .join("");
-  const events = [...selected.records].sort((a, b) => b.sequence - a.sequence)
+  const visible=recordWindow(selected.records,Number(params.get('healthBefore'))||Infinity,5);
+  const earlier=selected.records.some(record=>record.sequence<(visible[0]?.sequence||1));
+  const events = [...visible].reverse()
     .map(
-      (record, index) =>
-        `<li${index >= 5 ? ' hidden' : ''}><span class="timeline-index">${record.sequence}</span><div><strong>${escapeHtml(record.time)}</strong><p>${escapeHtml(record.text)}</p></div></li>`,
+      (record) =>
+        `<li data-event-sequence="${record.sequence}"><span class="timeline-index">${record.sequence}</span><div><strong>${escapeHtml(record.time)}</strong><p>${escapeHtml(record.text)}</p></div></li>`,
     )
     .join("");
   return [
     '<div class="health-layout"><section class="incident-list" aria-label="业务链路异常">' +
       incidentRows +
-      '</section><section class="section-block incident-detail"><div class="section-heading"><div><span class="section-kicker">脱敏影响</span><h2>' +
+      `</section><section class="section-block incident-detail" data-health-incident="${escapeHtml(selected.id)}"><div class="section-heading"><div><span class="section-kicker">脱敏影响</span><h2>` +
       escapeHtml(selected.title) +
       "</h2></div>" +
       statusTag(selected.status === "recovered" ? "已恢复" : "仍异常", selected.status === "recovered" ? "success" : "warning") +
@@ -542,7 +549,7 @@ function renderPlatformHealth(demoState) {
       selected.recheckCount +
       '</dd></div></dl><form id="health-action-form" class="compact-action-form"><label class="field" for="health-action"><span>新增处理记录</span><input id="health-action" class="input" name="action" placeholder="填写已采取的处理措施" required maxlength="500" /></label><button class="button secondary" type="submit" data-control-status="implemented">记录处理</button></form><div class="section-heading record-heading"><h3>处理记录</h3><span class="field-hint">最新在前 · 共 ' + selected.records.length + ' 条</span></div><ol class="timeline-list" aria-label="处理记录" tabindex="0">' +
       events +
-      `</ol>${selected.records.length > 5 ? '<button class="button secondary compact" type="button" data-load-health-records>加载更早记录</button>' : ''}<p id="health-feedback" class="form-feedback" role="status" aria-live="polite"></p></section></div>`,
+      `</ol><div class="form-actions"><button class="button secondary compact" type="button" data-load-health-records="${visible[0]?.sequence||1}"${earlier?'':' disabled'}>加载更早记录</button>${params.has('healthBefore')?'<button class="button secondary" data-health-latest>返回最新记录</button>':''}</div><p id="health-feedback" class="form-feedback" role="status" aria-live="polite"></p></section></div>`,
   ].join("");
 }
 
@@ -586,15 +593,7 @@ function renderRecovery(demoState) {
             `<label class="backup-option"><input type="radio" name="recoveryBackup" value="${escapeHtml(backup.id)}"${backup.id === recovery.selectedBackupId ? " checked" : ""} /><span><strong>${escapeHtml(backup.label)}</strong><small>可恢复时间点 ${escapeHtml(backup.recoveryPoint)} · ${escapeHtml(backup.size)}</small></span></label>`,
         )
         .join("") +
-      '</div><dl class="fact-list"><div><dt>固定目标</dt><dd>' +
-      escapeHtml(recovery?.target || "固定隔离演练环境") +
-      '</dd></div><div><dt>生产环境</dt><dd>不读取、不写入、不接收流量</dd></div><div><dt>下一操作</dt><dd>' +
-      escapeHtml(recoveryActionLabel(recovery)) +
-      "</dd></div>" +
-      (selected
-        ? `<div><dt>已选备份</dt><dd>${escapeHtml(selected.label)}</dd></div>`
-        : "") +
-      '</dl></section><aside class="section-block recovery-status"><span class="section-kicker">演练状态</span>' +
+      `</div><section class="recovery-target"><h3>固定隔离目标</h3><p>${escapeHtml(recovery?.target || "固定隔离演练环境")}</p><ul class="safety-checklist"><li>不读取生产数据</li><li>不写入生产环境</li><li>不接收生产流量</li></ul></section><section class="recovery-next"><span class="section-kicker">下一操作</span><h3>${escapeHtml(recoveryActionLabel(recovery))}</h3>${selected?`<p>已选：${escapeHtml(selected.label)}</p>`:""}</section></section><aside class="section-block recovery-status"><span class="section-kicker">演练状态</span>` +
       (recovery?.stage === "running"
         ? `<h2>正在恢复到固定隔离演练环境</h2><div class="progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${recovery.progress}"><span style="width:${recovery.progress}%"></span></div><p>${recovery.progress}% · 生产写入不受影响</p>`
         : recovery?.stage === "reported"
@@ -608,6 +607,8 @@ function renderRecovery(demoState) {
 
 function contentFor(page, fixture, demoState) {
   switch (page.screen) {
+    case "capacity-planning":
+      return `<section class="section-block"><div class="section-heading"><h2>${escapeHtml(fixture.entity)}</h2><span class="status-tag">合成趋势</span></div><div class="capacity-measures">${fixture.facts.filter(([,value])=>value.includes('%')).map(([label,value])=>{const amount=Number(value.match(/\d+/)?.[0]||0);return `<div class="capacity-measure"><label>${escapeHtml(label)}<strong>${amount}%</strong></label><meter min="0" max="100" value="${amount}" aria-label="${escapeHtml(label)}">${amount}%</meter></div>`;}).join('')}</div></section><section class="section-block"><h2>影响与下一步</h2><p>${escapeHtml(fixture.facts.find(([label])=>label==='影响范围')?.[1]||'仅脱敏聚合')}</p><p>先复核高峰并发和存储趋势，再记录容量建议。本页不执行扩容。</p><button class="button secondary" data-nav-screen="platform-health">返回平台运行状态</button></section>`;
     case "usage-quotas": {
       const tenant = demoState?.tenants.find(item => item.id === (demoState.query?.session?.tenantId || DEFAULT_TENANT_ID));
       const rows = TENANT_QUOTA_FIELDS.map(({ key, label, unit }) =>
@@ -709,7 +710,7 @@ function renderConsoleLogin(page, fixture, state, demoState) {
         : fixture.notice;
   return [
     `<main id="main-content" class="console-login-shell" data-screen="${page.screen}" data-state="${state}" data-od-id="screen-${page.screen}" tabindex="-1">`,
-    '<section class="console-login-brand"><div class="brand"><span class="brand-mark" aria-hidden="true">R</span><span class="brand-copy"><strong>可信 RAG</strong><small>企业控制台</small></span></div><div class="login-context"><span class="section-kicker">受控访问</span><h1 data-od-id="heading-console-login">登录可信 RAG</h1><p>平台治理与租户工作区按服务端权限分开进入。</p><dl class="login-boundary-list"><div><dt>平台范围</dt><dd>只看脱敏治理摘要</dd></div><div><dt>租户范围</dt><dd>只处理当前组织对象</dd></div></dl></div></section>',
+    `<section class="console-login-brand"><div class="brand"><span class="brand-mark" aria-hidden="true">R</span><span class="brand-copy"><strong>可信 RAG</strong><small>企业控制台</small></span></div><div class="login-context"><span class="section-kicker">${tenantEntry ? "组织工作区" : "平台管理"}</span><h1 data-od-id="heading-console-login">${tenantEntry ? "管理组织知识与助手" : "管理租户与模型供应"}</h1><p>${tenantEntry ? "使用当前组织的管理员账户，继续知识、助手与成员任务。" : "使用平台管理员账户，管理租户开通、资源与模型供应。"}</p><p class="field-hint">仅合成演示。此前停用或轮换的账户不会自动恢复。</p></div></section>`,
     '<section class="console-login-task">',
     `<div class="login-form-header"><span class="section-kicker">身份验证</span><h2>${escapeHtml(fixture.title)}</h2><p>使用已授权账户继续。</p></div>`,
     interactive
@@ -753,10 +754,11 @@ function renderDeviceTask(page, fixture, state) {
 
 function renderDevice(page, fixture, state) {
   const interactive = ["success", "partial", "disabled"].includes(state);
+  const deviceSteps=['device-start','device-consent','device-question','device-answer'];
   return [
     `<main id="main-content" class="device-shell" data-screen="${page.screen}" data-state="${state}" data-od-id="screen-${page.screen}" tabindex="-1">`,
-    '<header class="device-topbar"><div class="app-brand"><span class="brand-mark" aria-hidden="true">R</span><span>现场问答</span></div><span class="device-status">触控与语音</span></header>',
-    `<section class="device-stage"><header class="device-header-copy"><span class="section-kicker">${escapeHtml(fixture.status)}</span><h1 data-od-id="heading-${page.screen}">${escapeHtml(fixture.title)}</h1></header>`,
+    '<header class="device-topbar"><div class="app-brand"><span class="brand-mark" aria-hidden="true">R</span><span>现场问答</span></div><span class="device-status">M7 界面预览 · 合成数据</span></header>',
+    `<section class="device-stage"><header class="device-header-copy"><p class="device-step-label">${deviceSteps.indexOf(page.screen)+1} / 4 · ${['开始使用','确认范围','提出问题','查看回答'][deviceSteps.indexOf(page.screen)]}</p><span class="section-kicker">${escapeHtml(fixture.status)}</span><h1 data-od-id="heading-${page.screen}">${escapeHtml(fixture.title)}</h1></header>`,
     `<div class="device-task">${renderDeviceTask(page, fixture, state)}${interactive ? primaryAction(page, fixture, state) : ""}</div></section>`,
     "</main>",
   ].join("");
@@ -802,7 +804,7 @@ export function renderInventoryPage(
     `<main id="main-content" class="admin-main" data-screen="${escapeHtml(page.screen)}" data-state="${escapeHtml(state)}" data-od-id="screen-${escapeHtml(page.screen)}" tabindex="-1">`,
     `<nav class="breadcrumb" aria-label="当前位置">${escapeHtml(group.label)}</nav>`,
     `<header class="page-header"><div class="page-header-copy"><h1 data-od-id="heading-${escapeHtml(page.screen)}">${escapeHtml(fixture.title)}</h1>${interactive ? `<div class="page-object-line"><span>${escapeHtml(currentEntity)}</span>${statusTag(fixture.status || "可用", /失败|阻断/.test(fixture.status || "") ? "danger" : /异常|等待/.test(fixture.status || "") ? "warning" : "success")}</div>` : ""}</div>${headerAction}</header>`,
-    `<div class="page-content">${taskBody(page, fixture, state, demoState)}</div>`,
+    `<div class="page-content">${group.phase==='M8'?'<p class="future-stage-note">M8 前置信息架构 · 仅合成演示，不操作生产环境</p>':''}${taskBody(page, fixture, state, demoState)}</div>`,
     ["success", "partial", "disabled", "empty"].includes(state) &&
     ![
       "platform-tenant-create",

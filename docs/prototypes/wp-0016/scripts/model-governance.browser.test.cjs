@@ -119,13 +119,24 @@ test("租户部署完成创建、验证、发布和影响确认停用", () => vi
   await page.getByRole("button", { name: "执行部署验证", exact: true }).click();
   await page.getByRole("button", { name: "发布部署", exact: true }).click();
   await page.locator('[data-nav-screen="model-deployments"]').first().click();
-  await page.getByRole("button", { name: "查看员工服务 Chat", exact: true }).click();
+  await page.getByRole("button", { name: "查看员工服务 对话模型", exact: true }).click();
   await page.getByRole("button", { name: "停用部署", exact: true }).click();
   const stopDialog = page.locator("#deployment-stop-dialog");
   assert.match(await stopDialog.innerText(), /员工服务助手/);
   await stopDialog.getByLabel("我已确认受影响助手与路由").check();
   await stopDialog.getByRole("button", { name: "确认停用", exact: true }).click();
   assert.equal(await page.locator("[data-model-status]").getAttribute("data-model-status"), "OFFLINE");
+}));
+
+test("已发布连接不显示未探测矛盾说明，目录无匹配时有恢复提示", () => visit(async page => {
+  await reset(page, "platform-model-connection-detail");
+  assert.equal(await page.locator('[data-model-status]').getAttribute('data-model-status'), 'PUBLISHED');
+  assert.doesNotMatch(await page.locator('main').innerText(), /尚未执行本版本|探测后再发布/);
+  await page.getByLabel('搜索当前目录', { exact: true }).fill('不存在的模型');
+  assert.match(await page.locator('tbody').innerText(), /没有匹配记录/);
+  await page.getByLabel('搜索当前目录', { exact: true }).fill('');
+  assert.equal(await page.locator('tbody tr').count(), 1);
+  assert.doesNotMatch(await page.locator('tbody').innerText(), /没有匹配记录/);
 }));
 
 test("同能力路由先模拟再发布，刷新后保留发布版本", () => visit(async page => {

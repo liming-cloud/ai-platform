@@ -3659,7 +3659,7 @@ export function createPrototypeStore(storage = browserStorage()) {
     if (!demoLoginScenario(password)) {
       errors.push({
         field: "password",
-        message: "仅接受公开演示口令，请展开口令说明；不要输入真实密码。",
+        message: "仅接受公开演示密码，请展开密码说明；不要输入真实密码。",
       });
     }
     if (confirmation !== password) {

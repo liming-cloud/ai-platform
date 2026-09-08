@@ -1,0 +1,211 @@
+{
+  "status": "PASS",
+  "generatedAt": "2026-09-08T06:48:28.276Z",
+  "workPackage": "WP-0016",
+  "candidateStatus": "阶段三迁移及技术复验通过，送全量人工验收",
+  "sampleDirection": "approved",
+  "readyForFullAcceptance": true,
+  "humanReviewStatus": "rejected",
+  "finalHumanReviewStatus": "pending",
+  "openDesign": {
+    "project": "249f81f2-6f1a-46ff-988c-da3cdedb35e7",
+    "run": "fbd607b6-bad6-4a02-b72f-a737014bb6c5",
+    "runStatus": "succeeded",
+    "designSystem": "本机 Claude (Anthropic) 参考包",
+    "designParameters": "7/5/7"
+  },
+  "scope": {
+    "pages": 78,
+    "m6Interactive": 66,
+    "stageThreeM6Migrated": 43,
+    "stageTwoSamplesRegressed": 23,
+    "m7m8VisualOnly": 10,
+    "deferredPages": 2,
+    "deferredTasks": [
+      "渠道绑定",
+      "设备凭据",
+      "邮件邀请"
+    ],
+    "newRoutesThisStage": 0,
+    "productionChanges": false
+  },
+  "node": {
+    "command": "node --test docs/prototypes/wp-0016/scripts/*.test.mjs",
+    "tests": 169,
+    "passed": 169,
+    "failed": 0
+  },
+  "browser": {
+    "command": "node --test --test-concurrency=2 docs/prototypes/wp-0016/scripts/*.test.cjs",
+    "tests": 162,
+    "passed": 162,
+    "failed": 0
+  },
+  "matrix": {
+    "status": "PASS",
+    "generatedAt": "2026-09-08T06:46:19.455Z",
+    "evidenceScope": "真实 DOM、布局、特定交互与导航；不是全部控件闭环或人工认可",
+    "pageCount": 78,
+    "stateCount": 7,
+    "viewportCount": 3,
+    "declaredScenarioCount": 1638,
+    "completedScenarioCount": 1638,
+    "assertionCount": 11035,
+    "screenshotCount": 95,
+    "stages": [
+      {
+        "name": "审查器与导航图标",
+        "status": "PASS",
+        "failures": [],
+        "browserErrors": []
+      },
+      {
+        "name": "全部页面状态与视口",
+        "status": "PASS",
+        "failures": [],
+        "browserErrors": []
+      },
+      {
+        "name": "创建租户与管理导航",
+        "status": "PASS",
+        "failures": [],
+        "browserErrors": []
+      },
+      {
+        "name": "成员与两级功能控制",
+        "status": "PASS",
+        "failures": [],
+        "browserErrors": []
+      },
+      {
+        "name": "成员弹窗键盘与取消",
+        "status": "PASS",
+        "failures": [],
+        "browserErrors": []
+      },
+      {
+        "name": "运行状态与隔离恢复",
+        "status": "PASS",
+        "failures": [],
+        "browserErrors": []
+      },
+      {
+        "name": "恢复检查失败与重试",
+        "status": "PASS",
+        "failures": [],
+        "browserErrors": []
+      },
+      {
+        "name": "审查器收起可达性",
+        "status": "PASS",
+        "failures": [],
+        "browserErrors": []
+      },
+      {
+        "name": "普通用户登录",
+        "status": "PASS",
+        "failures": [],
+        "browserErrors": []
+      },
+      {
+        "name": "问答示例与键盘",
+        "status": "PASS",
+        "failures": [],
+        "browserErrors": []
+      },
+      {
+        "name": "会话刷新恢复",
+        "status": "PASS",
+        "failures": [],
+        "browserErrors": []
+      },
+      {
+        "name": "设备前置导航",
+        "status": "PASS",
+        "failures": [],
+        "browserErrors": []
+      },
+      {
+        "name": "页面截图",
+        "status": "PASS",
+        "failures": [],
+        "browserErrors": []
+      },
+      {
+        "name": "减少动态效果",
+        "status": "PASS",
+        "failures": [],
+        "browserErrors": []
+      }
+    ],
+    "browserErrors": [],
+    "failures": []
+  },
+  "controls": {
+    "scenes": 462,
+    "instances": 7989,
+    "unbound": 0,
+    "errors": 0,
+    "scope": "M6，排除渠道绑定与设备凭据；邮件邀请无实现控件"
+  },
+  "lint": {
+    "ok": true,
+    "counts": {
+      "p0": 0,
+      "p1": 0,
+      "p2": 0
+    }
+  },
+  "static": {
+    "status": "PASS",
+    "assertions": 3806,
+    "staticScenarios": 343,
+    "httpScenarios": 1638
+  },
+  "review": {
+    "diffBase": "580a1b61b",
+    "findingsResolved": [
+      "全页入口先过滤后分页，失败附行跟随来源",
+      "健康记录10000条有界序号窗口，刷新保留窗口",
+      "默认可见英文状态映射中文业务词",
+      "空目录首次创建与取消不应被状态只读规则禁用",
+      "大量选择器只增强授权组，保留外层任务、业务属性和禁用项不提交",
+      "已发布连接不显示未探测的矛盾说明；模型搜索空结果可恢复"
+    ],
+    "regressionMigrations": [
+      "旧公开演示口令断言改为密码，秘密不落库断言保留",
+      "原全量DOM隐藏断言改为真实总数与有界DOM，零匹配显示提示行而非数据行",
+      "健康加载更早改为替换窗口，不无限累积行"
+    ],
+    "codegraph": {
+      "explored": [
+        "renderPlatformHealth",
+        "renderInventoryPage",
+        "renderModelGovernance",
+        "renderScreen",
+        "render"
+      ],
+      "impact": [
+        {
+          "symbol": "renderInventoryPage",
+          "symbols": 8
+        },
+        {
+          "symbol": "renderModelGovernance",
+          "symbols": 4
+        }
+      ],
+      "decision": "保留原状态机和URL，只调整公共呈现、导航与有界读取；不扩展生产代码。"
+    }
+  },
+  "limitations": [
+    "原型仅使用合成数据，不证明真实RAG、服务端授权、解析或模型性能",
+    "1638场景为DOM布局及专项交互；7989控件枚举只证明接线，不能代替全部行为组合穷举",
+    "M7/M8只做前置信息架构与视觉，不新增真实危险操作",
+    "自动测试覆盖720×450等效CSS重排，实际200%浏览器缩放体验留待人工",
+    "macOS无头Chromium原生select弹层按键不受驱动：验证Tab焦点与原生选择事件，完整系统弹层键盘体验留待人工",
+    "截图95张仅在系统临时目录；本次目视抽查评测发起、平台运行、移动恢复和模型连接，未宣称逐张人工验收",
+    "OpenDesign生成子环境无浏览器启动能力，以上浏览器结果由主任务独立环境复跑得出"
+  ],
+  "temporaryReports": "/private/tmp/wp0016-stage3.eGaLUF/"
+}

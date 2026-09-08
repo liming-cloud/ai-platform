@@ -1,11 +1,15 @@
 import { boundedDirectoryMarkup } from "./object-workspaces.js";
 /** 对象导航沿用既有 URL 和选择上下文，不创建另一份页面注册表。 */
 export function objectNavigation(screen) {
-  const knowledge = ['knowledge-overview','knowledge-sources','source-add','source-detail','processing-quality','sync-result','index-versions','index-detail','index-rebuild'];
+  const knowledge = ['knowledge-overview','knowledge-sources','source-add','source-detail','processing-quality','sync-result','quick-publication','dataset-schema','object-storage-scope','index-versions','index-detail','index-rebuild'];
   const assistant = ['assistant-overview','assistant-draft','assistant-test','assistant-evaluation','assistant-release'];
+  const model=screen.startsWith('platform-model-') ? [['platform-model-connections','模型连接'],['platform-model-deployments','平台部署']]
+    : ['model-providers','model-provider-detail','model-configurations','model-configuration-detail','model-deployments','model-deployment-detail','routing-policies'].includes(screen) ? [['model-providers','模型供应商'],['model-configurations','模型配置'],['model-deployments','模型部署'],['routing-policies','路由策略']] : [];
+  const evaluation=screen.startsWith('evaluation-') ? [['evaluation-datasets','评测数据集'],['evaluation-run-create','发起评测'],['evaluation-run-detail','运行结果'],['evaluation-comparison','版本比较'],['evaluation-failure-analysis','失败分析']] : [];
+  const governance=['governance-query','usage-quotas','audit-records','audit-record-detail','query-diagnostic'].includes(screen) ? [['governance-query','问答记录'],['usage-quotas','用量与配额'],['audit-records','审计记录']] : [];
   const items = knowledge.includes(screen) ? [['knowledge-overview','概览'],['knowledge-sources','文档'],['processing-quality','处理任务'],['index-versions','索引管理']]
-    : assistant.includes(screen) ? [['assistant-overview','概览'],['assistant-draft','版本配置'],['assistant-test','测试'],['assistant-evaluation','质量检查'],['assistant-release','发布记录']] : [];
-  const active=({'source-detail':'knowledge-sources','source-add':'knowledge-sources','sync-result':'processing-quality','index-detail':'index-versions','index-rebuild':'index-versions'})[screen]||screen;
+    : assistant.includes(screen) ? [['assistant-overview','概览'],['assistant-draft','版本配置'],['assistant-test','测试'],['assistant-evaluation','质量检查'],['assistant-release','发布记录']] : model.length?model:evaluation.length?evaluation:governance;
+  const active=({'source-detail':'knowledge-sources','source-add':'knowledge-sources','dataset-schema':'knowledge-sources','object-storage-scope':'knowledge-sources','quick-publication':'processing-quality','sync-result':'processing-quality','index-detail':'index-versions','index-rebuild':'index-versions','model-configuration-detail':'model-configurations','model-deployment-detail':'model-deployments','model-provider-detail':'model-providers','platform-model-connection-detail':'platform-model-connections','platform-model-deployment-detail':'platform-model-deployments','evaluation-dataset-detail':'evaluation-datasets','audit-record-detail':'audit-records','query-diagnostic':'governance-query'})[screen]||screen;
   return items.length ? `<nav class="object-navigation" aria-label="对象工作区" data-od-id="object-navigation">${items.map(([target,label])=>`<button class="button secondary" type="button" data-nav-screen="${target}"${target===active?' aria-current="page"':''}>${label}</button>`).join('')}</nav>` : '';
 }
 

@@ -2,7 +2,7 @@
   "workPackage": "WP-0016",
   "generatedOn": "2026-09-08",
   "browserVerification": "passed",
-  "browserVerificationNote": "阶段一二候选的 161 项 Node、157 项浏览器和全页布局回归通过；不是全量迁移或人工验收通过。",
+  "browserVerificationNote": "阶段三：169项Node、162项浏览器、1638页面状态/尺寸场景通过；样板方向已确认，全量人工验收待进行。",
   "classification": {
     "navigation": "仅改变原型页面，不计作业务完成",
     "implementedStateChange": "合成状态已有 Node 测试；browserVerified 只表示条目注明的浏览器范围，不代表完整业务或人工通过",
@@ -13,6 +13,7 @@
     "forbidden": "按角色边界明确禁止，不属于待实现功能"
   },
   "summary": {
+    "countScope": "totalControls为155个人工归类操作组，不等于七态DOM控件实例；3项暂缓不纳入闭环门禁。",
     "navigation": 31,
     "implementedRead": 23,
     "implementedStateChange": 97,
@@ -24,7 +25,7 @@
     "totalControls": 155,
     "unclosedControls": 0,
     "allControlsEnumerated": true,
-    "readyForFullAcceptance": false,
+    "readyForFullAcceptance": true,
     "deferredControls": 3
   },
   "pages": [
@@ -49,6 +50,11 @@
         "nodeEvidence": "scripts/stage-two-closure.test.mjs",
         "browserStatus": "passed",
         "browserEvidence": "artifacts/stage-two-validation-summary.json"
+      },
+      "stageThree": {
+        "status": "passed",
+        "evidence": "artifacts/stage-three-validation-summary.json",
+        "scope": "本页七态与所属专项回归；逐控件历史标记保留，不把接线扩称行为穷举"
       }
     },
     {
@@ -72,6 +78,11 @@
         "nodeEvidence": "scripts/stage-two-closure.test.mjs",
         "browserStatus": "passed",
         "browserEvidence": "artifacts/stage-two-validation-summary.json"
+      },
+      "stageThree": {
+        "status": "passed",
+        "evidence": "artifacts/stage-three-validation-summary.json",
+        "scope": "本页七态与所属专项回归；逐控件历史标记保留，不把接线扩称行为穷举"
       }
     },
     {
@@ -102,7 +113,12 @@
           "findingStatus": "resolved",
           "browserScope": "旧合成快照，平台与租户登录；用户当前 Chrome 只验证检测及修复入口，修复确认留给用户"
         }
-      ]
+      ],
+      "stageThree": {
+        "status": "passed",
+        "evidence": "artifacts/stage-three-validation-summary.json",
+        "scope": "本页七态与所属专项回归；逐控件历史标记保留，不把接线扩称行为穷举"
+      }
     },
     {
       "screen": "tenant-login",
@@ -134,7 +150,12 @@
           "browserVerified": true,
           "browserScope": "本轮定向浏览器与状态测试；不代表生产能力或人工通过"
         }
-      ]
+      ],
+      "stageThree": {
+        "status": "passed",
+        "evidence": "artifacts/stage-three-validation-summary.json",
+        "scope": "本页七态与所属专项回归；逐控件历史标记保留，不把接线扩称行为穷举"
+      }
     },
     {
       "screen": "platform-overview",
@@ -149,7 +170,12 @@
           "evidence": "只完成受控页面跳转，不计作业务状态变更",
           "browserVerified": false
         }
-      ]
+      ],
+      "stageThree": {
+        "status": "passed",
+        "evidence": "artifacts/stage-three-validation-summary.json",
+        "scope": "本页七态与所属专项回归；逐控件历史标记保留，不把接线扩称行为穷举"
+      }
     },
     {
       "screen": "platform-tenants",
@@ -171,7 +197,12 @@
           "evidence": "reviewer-regression.test.mjs：搜索输入与可筛选行绑定；真实浏览器待验证",
           "browserVerified": false
         }
-      ]
+      ],
+      "stageThree": {
+        "status": "passed",
+        "evidence": "artifacts/stage-three-validation-summary.json",
+        "scope": "本页七态与所属专项回归；逐控件历史标记保留，不把接线扩称行为穷举"
+      }
     },
     {
       "screen": "platform-tenant-create",
@@ -195,7 +226,12 @@
           "browserVerified": true,
           "browserScope": "本轮定向浏览器与状态测试；不代表生产能力或人工通过"
         }
-      ]
+      ],
+      "stageThree": {
+        "status": "passed",
+        "evidence": "artifacts/stage-three-validation-summary.json",
+        "scope": "本页七态与所属专项回归；逐控件历史标记保留，不把接线扩称行为穷举"
+      }
     },
     {
       "screen": "platform-tenant-detail",
@@ -219,7 +255,12 @@
           "browserVerified": true,
           "browserScope": "本轮定向浏览器与状态测试；不代表生产能力或人工通过"
         }
-      ]
+      ],
+      "stageThree": {
+        "status": "passed",
+        "evidence": "artifacts/stage-three-validation-summary.json",
+        "scope": "本页七态与所属专项回归；逐控件历史标记保留，不把接线扩称行为穷举"
+      }
     },
     {
       "screen": "platform-tenant-admins",
@@ -243,7 +284,12 @@
           "browserVerified": true,
           "browserScope": "本轮定向浏览器与状态测试；不代表生产能力或人工通过"
         }
-      ]
+      ],
+      "stageThree": {
+        "status": "passed",
+        "evidence": "artifacts/stage-three-validation-summary.json",
+        "scope": "本页七态与所属专项回归；逐控件历史标记保留，不把接线扩称行为穷举"
+      }
     },
     {
       "screen": "platform-tenant-quotas",
@@ -259,7 +305,12 @@
           "browserVerified": true,
           "browserScope": "本轮定向浏览器与状态测试；不代表生产能力或人工通过"
         }
-      ]
+      ],
+      "stageThree": {
+        "status": "passed",
+        "evidence": "artifacts/stage-three-validation-summary.json",
+        "scope": "本页七态与所属专项回归；逐控件历史标记保留，不把接线扩称行为穷举"
+      }
     },
     {
       "screen": "platform-tenant-features",
@@ -275,7 +326,12 @@
           "browserVerified": true,
           "browserScope": "本轮定向浏览器与状态测试；不代表生产能力或人工通过"
         }
-      ]
+      ],
+      "stageThree": {
+        "status": "passed",
+        "evidence": "artifacts/stage-three-validation-summary.json",
+        "scope": "本页七态与所属专项回归；逐控件历史标记保留，不把接线扩称行为穷举"
+      }
     },
     {
       "screen": "platform-tenant-security",
@@ -291,7 +347,12 @@
           "browserVerified": true,
           "browserScope": "本轮定向浏览器与状态测试；不代表生产能力或人工通过"
         }
-      ]
+      ],
+      "stageThree": {
+        "status": "passed",
+        "evidence": "artifacts/stage-three-validation-summary.json",
+        "scope": "本页七态与所属专项回归；逐控件历史标记保留，不把接线扩称行为穷举"
+      }
     },
     {
       "screen": "platform-accounts",
@@ -339,7 +400,12 @@
           "browserVerified": true,
           "browserScope": "本轮定向浏览器与状态测试；不代表生产能力或人工通过"
         }
-      ]
+      ],
+      "stageThree": {
+        "status": "passed",
+        "evidence": "artifacts/stage-three-validation-summary.json",
+        "scope": "本页七态与所属专项回归；逐控件历史标记保留，不把接线扩称行为穷举"
+      }
     },
     {
       "screen": "platform-roles",
@@ -354,7 +420,12 @@
           "evidence": "只完成受控页面跳转，不计作业务状态变更",
           "browserVerified": false
         }
-      ]
+      ],
+      "stageThree": {
+        "status": "passed",
+        "evidence": "artifacts/stage-three-validation-summary.json",
+        "scope": "本页七态与所属专项回归；逐控件历史标记保留，不把接线扩称行为穷举"
+      }
     },
     {
       "screen": "platform-model-connections",
@@ -388,7 +459,12 @@
           "browserScope": "厂商/能力/业务空间联动，提交、详情、取消、Escape、失败和密钥清空",
           "browserEvidence": "artifacts/member-provider-verification-20260907.json"
         }
-      ]
+      ],
+      "stageThree": {
+        "status": "passed",
+        "evidence": "artifacts/stage-three-validation-summary.json",
+        "scope": "本页七态与所属专项回归；逐控件历史标记保留，不把接线扩称行为穷举"
+      }
     },
     {
       "screen": "platform-model-connection-detail",
@@ -412,7 +488,12 @@
           "browserVerified": true,
           "browserEvidence": "artifacts/model-governance-browser-verification.json"
         }
-      ]
+      ],
+      "stageThree": {
+        "status": "passed",
+        "evidence": "artifacts/stage-three-validation-summary.json",
+        "scope": "本页七态与所属专项回归；逐控件历史标记保留，不把接线扩称行为穷举"
+      }
     },
     {
       "screen": "platform-model-deployments",
@@ -436,7 +517,12 @@
           "browserVerified": true,
           "browserEvidence": "artifacts/model-governance-browser-verification.json"
         }
-      ]
+      ],
+      "stageThree": {
+        "status": "passed",
+        "evidence": "artifacts/stage-three-validation-summary.json",
+        "scope": "本页七态与所属专项回归；逐控件历史标记保留，不把接线扩称行为穷举"
+      }
     },
     {
       "screen": "platform-model-deployment-detail",
@@ -460,7 +546,12 @@
           "browserVerified": true,
           "browserEvidence": "artifacts/model-governance-browser-verification.json"
         }
-      ]
+      ],
+      "stageThree": {
+        "status": "passed",
+        "evidence": "artifacts/stage-three-validation-summary.json",
+        "scope": "本页七态与所属专项回归；逐控件历史标记保留，不把接线扩称行为穷举"
+      }
     },
     {
       "screen": "tenant-overview",
@@ -496,7 +587,12 @@
           "browserVerified": true,
           "browserScope": "本轮专项测试与全量浏览器回归"
         }
-      ]
+      ],
+      "stageThree": {
+        "status": "passed",
+        "evidence": "artifacts/stage-three-validation-summary.json",
+        "scope": "本页七态与所属专项回归；逐控件历史标记保留，不把接线扩称行为穷举"
+      }
     },
     {
       "screen": "tenant-members",
@@ -580,7 +676,12 @@
           "browserScope": "390/1024/1440 开户、轮换、停用恢复、本人登录；状态层越界与回滚另有 Node 用例",
           "browserEvidence": "artifacts/member-provider-verification-20260907.json"
         }
-      ]
+      ],
+      "stageThree": {
+        "status": "passed",
+        "evidence": "artifacts/stage-three-validation-summary.json",
+        "scope": "本页七态与所属专项回归；逐控件历史标记保留，不把接线扩称行为穷举"
+      }
     },
     {
       "screen": "tenant-roles",
@@ -595,7 +696,12 @@
           "evidence": "只完成受控页面跳转，不计作业务状态变更",
           "browserVerified": false
         }
-      ]
+      ],
+      "stageThree": {
+        "status": "passed",
+        "evidence": "artifacts/stage-three-validation-summary.json",
+        "scope": "本页七态与所属专项回归；逐控件历史标记保留，不把接线扩称行为穷举"
+      }
     },
     {
       "screen": "access-policies",
@@ -612,7 +718,12 @@
           "browserEvidence": "artifacts/full-closure-verification-20260906.json",
           "browserScope": "创建独立草稿、取消、保存、预览、发布、目录回显及新版本调整"
         }
-      ]
+      ],
+      "stageThree": {
+        "status": "passed",
+        "evidence": "artifacts/stage-three-validation-summary.json",
+        "scope": "本页七态与所属专项回归；逐控件历史标记保留，不把接线扩称行为穷举"
+      }
     },
     {
       "screen": "access-policy-detail",
@@ -647,7 +758,12 @@
           "browserVerified": true,
           "browserScope": "本轮专项测试与全量浏览器回归"
         }
-      ]
+      ],
+      "stageThree": {
+        "status": "passed",
+        "evidence": "artifacts/stage-three-validation-summary.json",
+        "scope": "本页七态与所属专项回归；逐控件历史标记保留，不把接线扩称行为穷举"
+      }
     },
     {
       "screen": "device-credentials",
@@ -739,7 +855,12 @@
           "findingStatus": "resolved",
           "browserScope": "remaining-actions、workspace-context 和 remaining-closure：真实合成状态、刷新、失败恢复及 URL/角色边界；不代表生产实现"
         }
-      ]
+      ],
+      "stageThree": {
+        "status": "passed",
+        "evidence": "artifacts/stage-three-validation-summary.json",
+        "scope": "本页七态与所属专项回归；逐控件历史标记保留，不把接线扩称行为穷举"
+      }
     },
     {
       "screen": "knowledge-overview",
@@ -754,7 +875,12 @@
           "evidence": "只完成受控页面跳转，不计作业务状态变更",
           "browserVerified": false
         }
-      ]
+      ],
+      "stageThree": {
+        "status": "passed",
+        "evidence": "artifacts/stage-three-validation-summary.json",
+        "scope": "本页七态与所属专项回归；逐控件历史标记保留，不把接线扩称行为穷举"
+      }
     },
     {
       "screen": "knowledge-sources",
@@ -769,7 +895,12 @@
           "evidence": "knowledge-ingestion.browser.test.cjs：进入当前知识库的真实资料接入表单",
           "browserVerified": true
         }
-      ]
+      ],
+      "stageThree": {
+        "status": "passed",
+        "evidence": "artifacts/stage-three-validation-summary.json",
+        "scope": "本页七态与所属专项回归；逐控件历史标记保留，不把接线扩称行为穷举"
+      }
     },
     {
       "screen": "source-add",
@@ -793,7 +924,12 @@
           "browserVerified": true,
           "browserScope": "本轮专项测试与全量浏览器回归"
         }
-      ]
+      ],
+      "stageThree": {
+        "status": "passed",
+        "evidence": "artifacts/stage-three-validation-summary.json",
+        "scope": "本页七态与所属专项回归；逐控件历史标记保留，不把接线扩称行为穷举"
+      }
     },
     {
       "screen": "source-detail",
@@ -869,6 +1005,11 @@
           "查看版本内容"
         ],
         "browserEvidence": "artifacts/stage-two-validation-summary.json"
+      },
+      "stageThree": {
+        "status": "passed",
+        "evidence": "artifacts/stage-three-validation-summary.json",
+        "scope": "本页七态与所属专项回归；逐控件历史标记保留，不把接线扩称行为穷举"
       }
     },
     {
@@ -889,7 +1030,12 @@
           "findingStatus": "resolved",
           "browserScope": "remaining-actions、workspace-context 和 remaining-closure：真实合成状态、刷新、失败恢复及 URL/角色边界；不代表生产实现"
         }
-      ]
+      ],
+      "stageThree": {
+        "status": "passed",
+        "evidence": "artifacts/stage-three-validation-summary.json",
+        "scope": "本页七态与所属专项回归；逐控件历史标记保留，不把接线扩称行为穷举"
+      }
     },
     {
       "screen": "sync-result",
@@ -904,7 +1050,12 @@
           "evidence": "只完成受控页面跳转，不计作业务状态变更",
           "browserVerified": false
         }
-      ]
+      ],
+      "stageThree": {
+        "status": "passed",
+        "evidence": "artifacts/stage-three-validation-summary.json",
+        "scope": "本页七态与所属专项回归；逐控件历史标记保留，不把接线扩称行为穷举"
+      }
     },
     {
       "screen": "dataset-schema",
@@ -933,7 +1084,12 @@
           "findingStatus": "resolved",
           "browserScope": "remaining-actions、workspace-context 和 remaining-closure：真实合成状态、刷新、失败恢复及 URL/角色边界；不代表生产实现"
         }
-      ]
+      ],
+      "stageThree": {
+        "status": "passed",
+        "evidence": "artifacts/stage-three-validation-summary.json",
+        "scope": "本页七态与所属专项回归；逐控件历史标记保留，不把接线扩称行为穷举"
+      }
     },
     {
       "screen": "object-storage-scope",
@@ -962,7 +1118,12 @@
           "findingStatus": "resolved",
           "browserScope": "remaining-actions、workspace-context 和 remaining-closure：真实合成状态、刷新、失败恢复及 URL/角色边界；不代表生产实现"
         }
-      ]
+      ],
+      "stageThree": {
+        "status": "passed",
+        "evidence": "artifacts/stage-three-validation-summary.json",
+        "scope": "本页七态与所属专项回归；逐控件历史标记保留，不把接线扩称行为穷举"
+      }
     },
     {
       "screen": "quick-publication",
@@ -982,7 +1143,12 @@
           "findingStatus": "resolved",
           "browserScope": "remaining-actions、workspace-context 和 remaining-closure：真实合成状态、刷新、失败恢复及 URL/角色边界；不代表生产实现"
         }
-      ]
+      ],
+      "stageThree": {
+        "status": "passed",
+        "evidence": "artifacts/stage-three-validation-summary.json",
+        "scope": "本页七态与所属专项回归；逐控件历史标记保留，不把接线扩称行为穷举"
+      }
     },
     {
       "screen": "index-versions",
@@ -997,7 +1163,12 @@
           "evidence": "只完成受控页面跳转，不计作业务状态变更",
           "browserVerified": true
         }
-      ]
+      ],
+      "stageThree": {
+        "status": "passed",
+        "evidence": "artifacts/stage-three-validation-summary.json",
+        "scope": "本页七态与所属专项回归；逐控件历史标记保留，不把接线扩称行为穷举"
+      }
     },
     {
       "screen": "index-detail",
@@ -1033,7 +1204,12 @@
           "evidence": "index-lifecycle-state.test.mjs 与 index-lifecycle.browser.test.cjs：确认取消候选版本且活动索引不变",
           "browserVerified": true
         }
-      ]
+      ],
+      "stageThree": {
+        "status": "passed",
+        "evidence": "artifacts/stage-three-validation-summary.json",
+        "scope": "本页七态与所属专项回归；逐控件历史标记保留，不把接线扩称行为穷举"
+      }
     },
     {
       "screen": "index-rebuild",
@@ -1048,7 +1224,12 @@
           "evidence": "index-lifecycle-state.test.mjs 与 index-lifecycle.browser.test.cjs：冻结配置并创建独立候选版本，不自动激活且刷新恢复",
           "browserVerified": true
         }
-      ]
+      ],
+      "stageThree": {
+        "status": "passed",
+        "evidence": "artifacts/stage-three-validation-summary.json",
+        "scope": "本页七态与所属专项回归；逐控件历史标记保留，不把接线扩称行为穷举"
+      }
     },
     {
       "screen": "model-providers",
@@ -1072,7 +1253,12 @@
           "browserVerified": true,
           "browserEvidence": "artifacts/model-governance-browser-verification.json"
         }
-      ]
+      ],
+      "stageThree": {
+        "status": "passed",
+        "evidence": "artifacts/stage-three-validation-summary.json",
+        "scope": "本页七态与所属专项回归；逐控件历史标记保留，不把接线扩称行为穷举"
+      }
     },
     {
       "screen": "model-provider-detail",
@@ -1096,7 +1282,12 @@
           "browserVerified": true,
           "browserEvidence": "artifacts/model-governance-browser-verification.json"
         }
-      ]
+      ],
+      "stageThree": {
+        "status": "passed",
+        "evidence": "artifacts/stage-three-validation-summary.json",
+        "scope": "本页七态与所属专项回归；逐控件历史标记保留，不把接线扩称行为穷举"
+      }
     },
     {
       "screen": "model-configurations",
@@ -1120,7 +1311,12 @@
           "browserVerified": true,
           "browserEvidence": "artifacts/model-governance-browser-verification.json"
         }
-      ]
+      ],
+      "stageThree": {
+        "status": "passed",
+        "evidence": "artifacts/stage-three-validation-summary.json",
+        "scope": "本页七态与所属专项回归；逐控件历史标记保留，不把接线扩称行为穷举"
+      }
     },
     {
       "screen": "model-configuration-detail",
@@ -1169,7 +1365,12 @@
           "browserVerified": true,
           "browserScope": "本轮专项测试与全量浏览器回归"
         }
-      ]
+      ],
+      "stageThree": {
+        "status": "passed",
+        "evidence": "artifacts/stage-three-validation-summary.json",
+        "scope": "本页七态与所属专项回归；逐控件历史标记保留，不把接线扩称行为穷举"
+      }
     },
     {
       "screen": "model-deployments",
@@ -1193,7 +1394,12 @@
           "browserVerified": true,
           "browserEvidence": "artifacts/model-governance-browser-verification.json"
         }
-      ]
+      ],
+      "stageThree": {
+        "status": "passed",
+        "evidence": "artifacts/stage-three-validation-summary.json",
+        "scope": "本页七态与所属专项回归；逐控件历史标记保留，不把接线扩称行为穷举"
+      }
     },
     {
       "screen": "model-deployment-detail",
@@ -1225,7 +1431,12 @@
           "browserVerified": true,
           "browserEvidence": "artifacts/model-governance-browser-verification.json"
         }
-      ]
+      ],
+      "stageThree": {
+        "status": "passed",
+        "evidence": "artifacts/stage-three-validation-summary.json",
+        "scope": "本页七态与所属专项回归；逐控件历史标记保留，不把接线扩称行为穷举"
+      }
     },
     {
       "screen": "routing-policies",
@@ -1267,7 +1478,12 @@
           "browserVerified": true,
           "browserScope": "本轮专项测试与全量浏览器回归"
         }
-      ]
+      ],
+      "stageThree": {
+        "status": "passed",
+        "evidence": "artifacts/stage-three-validation-summary.json",
+        "scope": "本页七态与所属专项回归；逐控件历史标记保留，不把接线扩称行为穷举"
+      }
     },
     {
       "screen": "assistants-directory",
@@ -1282,7 +1498,12 @@
           "evidence": "只完成受控页面跳转，不计作业务状态变更",
           "browserVerified": false
         }
-      ]
+      ],
+      "stageThree": {
+        "status": "passed",
+        "evidence": "artifacts/stage-three-validation-summary.json",
+        "scope": "本页七态与所属专项回归；逐控件历史标记保留，不把接线扩称行为穷举"
+      }
     },
     {
       "screen": "assistant-create",
@@ -1298,7 +1519,12 @@
           "browserVerified": true,
           "browserEvidence": "artifacts/assistant-delivery-browser-verification.json"
         }
-      ]
+      ],
+      "stageThree": {
+        "status": "passed",
+        "evidence": "artifacts/stage-three-validation-summary.json",
+        "scope": "本页七态与所属专项回归；逐控件历史标记保留，不把接线扩称行为穷举"
+      }
     },
     {
       "screen": "assistant-draft",
@@ -1314,7 +1540,12 @@
           "browserVerified": true,
           "browserEvidence": "artifacts/assistant-delivery-browser-verification.json"
         }
-      ]
+      ],
+      "stageThree": {
+        "status": "passed",
+        "evidence": "artifacts/stage-three-validation-summary.json",
+        "scope": "本页七态与所属专项回归；逐控件历史标记保留，不把接线扩称行为穷举"
+      }
     },
     {
       "screen": "assistant-test",
@@ -1339,7 +1570,12 @@
           "browserVerified": true,
           "browserScope": "本轮专项测试与全量浏览器回归"
         }
-      ]
+      ],
+      "stageThree": {
+        "status": "passed",
+        "evidence": "artifacts/stage-three-validation-summary.json",
+        "scope": "本页七态与所属专项回归；逐控件历史标记保留，不把接线扩称行为穷举"
+      }
     },
     {
       "screen": "assistant-evaluation",
@@ -1355,7 +1591,12 @@
           "browserVerified": true,
           "browserEvidence": "artifacts/assistant-delivery-browser-verification.json"
         }
-      ]
+      ],
+      "stageThree": {
+        "status": "passed",
+        "evidence": "artifacts/stage-three-validation-summary.json",
+        "scope": "本页七态与所属专项回归；逐控件历史标记保留，不把接线扩称行为穷举"
+      }
     },
     {
       "screen": "assistant-release",
@@ -1371,7 +1612,12 @@
           "browserVerified": true,
           "browserEvidence": "artifacts/assistant-delivery-browser-verification.json"
         }
-      ]
+      ],
+      "stageThree": {
+        "status": "passed",
+        "evidence": "artifacts/stage-three-validation-summary.json",
+        "scope": "本页七态与所属专项回归；逐控件历史标记保留，不把接线扩称行为穷举"
+      }
     },
     {
       "screen": "channel-binding",
@@ -1404,7 +1650,12 @@
           "browserVerified": true,
           "browserEvidence": "artifacts/evaluation-governance-browser-verification.json"
         }
-      ]
+      ],
+      "stageThree": {
+        "status": "passed",
+        "evidence": "artifacts/stage-three-validation-summary.json",
+        "scope": "本页七态与所属专项回归；逐控件历史标记保留，不把接线扩称行为穷举"
+      }
     },
     {
       "screen": "evaluation-dataset-detail",
@@ -1420,7 +1671,12 @@
           "browserVerified": true,
           "browserEvidence": "artifacts/evaluation-governance-browser-verification.json"
         }
-      ]
+      ],
+      "stageThree": {
+        "status": "passed",
+        "evidence": "artifacts/stage-three-validation-summary.json",
+        "scope": "本页七态与所属专项回归；逐控件历史标记保留，不把接线扩称行为穷举"
+      }
     },
     {
       "screen": "evaluation-run-create",
@@ -1436,7 +1692,12 @@
           "browserVerified": true,
           "browserEvidence": "artifacts/evaluation-governance-browser-verification.json"
         }
-      ]
+      ],
+      "stageThree": {
+        "status": "passed",
+        "evidence": "artifacts/stage-three-validation-summary.json",
+        "scope": "本页七态与所属专项回归；逐控件历史标记保留，不把接线扩称行为穷举"
+      }
     },
     {
       "screen": "evaluation-run-detail",
@@ -1452,7 +1713,12 @@
           "browserVerified": true,
           "browserEvidence": "artifacts/evaluation-governance-browser-verification.json"
         }
-      ]
+      ],
+      "stageThree": {
+        "status": "passed",
+        "evidence": "artifacts/stage-three-validation-summary.json",
+        "scope": "本页七态与所属专项回归；逐控件历史标记保留，不把接线扩称行为穷举"
+      }
     },
     {
       "screen": "evaluation-comparison",
@@ -1468,7 +1734,12 @@
           "browserVerified": true,
           "browserEvidence": "artifacts/evaluation-governance-browser-verification.json"
         }
-      ]
+      ],
+      "stageThree": {
+        "status": "passed",
+        "evidence": "artifacts/stage-three-validation-summary.json",
+        "scope": "本页七态与所属专项回归；逐控件历史标记保留，不把接线扩称行为穷举"
+      }
     },
     {
       "screen": "evaluation-failure-analysis",
@@ -1484,7 +1755,12 @@
           "browserVerified": true,
           "browserEvidence": "artifacts/evaluation-governance-browser-verification.json"
         }
-      ]
+      ],
+      "stageThree": {
+        "status": "passed",
+        "evidence": "artifacts/stage-three-validation-summary.json",
+        "scope": "本页七态与所属专项回归；逐控件历史标记保留，不把接线扩称行为穷举"
+      }
     },
     {
       "screen": "governance-query",
@@ -1501,7 +1777,12 @@
           "browserEvidence": "artifacts/access-query-governance-browser-verification.json",
           "browserScope": "覆盖配额规则弹窗、敏感内容缺失、单一运行分页与三档视口"
         }
-      ]
+      ],
+      "stageThree": {
+        "status": "passed",
+        "evidence": "artifacts/stage-three-validation-summary.json",
+        "scope": "本页七态与所属专项回归；逐控件历史标记保留，不把接线扩称行为穷举"
+      }
     },
     {
       "screen": "usage-quotas",
@@ -1516,7 +1797,12 @@
           "evidence": "reviewer-regression.test.mjs：只读已保存资源配额，不提供调整入口；浏览器复验待授权",
           "browserVerified": false
         }
-      ]
+      ],
+      "stageThree": {
+        "status": "passed",
+        "evidence": "artifacts/stage-three-validation-summary.json",
+        "scope": "本页七态与所属专项回归；逐控件历史标记保留，不把接线扩称行为穷举"
+      }
     },
     {
       "screen": "audit-records",
@@ -1572,7 +1858,12 @@
           "findingStatus": "resolved",
           "browserScope": "remaining-actions、workspace-context 和 remaining-closure：真实合成状态、刷新、失败恢复及 URL/角色边界；不代表生产实现"
         }
-      ]
+      ],
+      "stageThree": {
+        "status": "passed",
+        "evidence": "artifacts/stage-three-validation-summary.json",
+        "scope": "本页七态与所属专项回归；逐控件历史标记保留，不把接线扩称行为穷举"
+      }
     },
     {
       "screen": "audit-record-detail",
@@ -1587,7 +1878,12 @@
           "evidence": "只完成受控页面跳转，不计作业务状态变更",
           "browserVerified": false
         }
-      ]
+      ],
+      "stageThree": {
+        "status": "passed",
+        "evidence": "artifacts/stage-three-validation-summary.json",
+        "scope": "本页七态与所属专项回归；逐控件历史标记保留，不把接线扩称行为穷举"
+      }
     },
     {
       "screen": "query-diagnostic",
@@ -1604,7 +1900,12 @@
           "browserEvidence": "artifacts/access-query-governance-browser-verification.json",
           "browserScope": "覆盖运行选择、历史诊断、修复事项创建、刷新恢复、脱敏与三档视口"
         }
-      ]
+      ],
+      "stageThree": {
+        "status": "passed",
+        "evidence": "artifacts/stage-three-validation-summary.json",
+        "scope": "本页七态与所属专项回归；逐控件历史标记保留，不把接线扩称行为穷举"
+      }
     },
     {
       "screen": "login",
@@ -1629,7 +1930,12 @@
           "findingStatus": "resolved",
           "browserScope": "390 旧合成快照保留全部业务数据，普通成员修复后手动登录并刷新"
         }
-      ]
+      ],
+      "stageThree": {
+        "status": "passed",
+        "evidence": "artifacts/stage-three-validation-summary.json",
+        "scope": "本页七态与所属专项回归；逐控件历史标记保留，不把接线扩称行为穷举"
+      }
     },
     {
       "screen": "assistants",
@@ -1658,7 +1964,12 @@
           "evidence": "query-state.test.mjs：会话 epoch 递增并阻止旧接收器继续；本轮 query-journey/query-resilience 与全平台问答阶段已实际点击复验，仅代表合成原型",
           "browserVerified": true
         }
-      ]
+      ],
+      "stageThree": {
+        "status": "passed",
+        "evidence": "artifacts/stage-three-validation-summary.json",
+        "scope": "本页七态与所属专项回归；逐控件历史标记保留，不把接线扩称行为穷举"
+      }
     },
     {
       "screen": "conversation",
@@ -1722,7 +2033,12 @@
           "evidence": "清除当前合成登录并使旧轮次回调失效，不删除本人历史；本轮 query-journey/query-resilience 与全平台问答阶段已实际点击复验，仅代表合成原型",
           "browserVerified": true
         }
-      ]
+      ],
+      "stageThree": {
+        "status": "passed",
+        "evidence": "artifacts/stage-three-validation-summary.json",
+        "scope": "本页七态与所属专项回归；逐控件历史标记保留，不把接线扩称行为穷举"
+      }
     },
     {
       "screen": "device-start",
@@ -1737,7 +2053,12 @@
           "evidence": "只完成受控页面跳转，不计作业务状态变更",
           "browserVerified": false
         }
-      ]
+      ],
+      "stageThree": {
+        "status": "passed",
+        "evidence": "artifacts/stage-three-validation-summary.json",
+        "scope": "仅视觉、信息架构与既有合成模拟"
+      }
     },
     {
       "screen": "device-consent",
@@ -1752,7 +2073,12 @@
           "evidence": "只完成受控页面跳转，不计作业务状态变更",
           "browserVerified": false
         }
-      ]
+      ],
+      "stageThree": {
+        "status": "passed",
+        "evidence": "artifacts/stage-three-validation-summary.json",
+        "scope": "仅视觉、信息架构与既有合成模拟"
+      }
     },
     {
       "screen": "device-question",
@@ -1767,7 +2093,12 @@
           "evidence": "只完成受控页面跳转，不计作业务状态变更",
           "browserVerified": false
         }
-      ]
+      ],
+      "stageThree": {
+        "status": "passed",
+        "evidence": "artifacts/stage-three-validation-summary.json",
+        "scope": "仅视觉、信息架构与既有合成模拟"
+      }
     },
     {
       "screen": "device-answer",
@@ -1782,7 +2113,12 @@
           "evidence": "只完成受控页面跳转，不计作业务状态变更",
           "browserVerified": false
         }
-      ]
+      ],
+      "stageThree": {
+        "status": "passed",
+        "evidence": "artifacts/stage-three-validation-summary.json",
+        "scope": "仅视觉、信息架构与既有合成模拟"
+      }
     },
     {
       "screen": "platform-health",
@@ -1817,7 +2153,12 @@
           "browserEvidence": "artifacts/browser-review-20260903-final/verification.json",
           "browserScope": "仅报告中对应正常路径或失败重试；未测分支不因此获得通过"
         }
-      ]
+      ],
+      "stageThree": {
+        "status": "passed",
+        "evidence": "artifacts/stage-three-validation-summary.json",
+        "scope": "仅视觉、信息架构与既有合成模拟"
+      }
     },
     {
       "screen": "ingestion-queue",
@@ -1832,7 +2173,12 @@
           "evidence": "只完成受控页面跳转，不计作业务状态变更",
           "browserVerified": false
         }
-      ]
+      ],
+      "stageThree": {
+        "status": "passed",
+        "evidence": "artifacts/stage-three-validation-summary.json",
+        "scope": "仅视觉、信息架构与既有合成模拟"
+      }
     },
     {
       "screen": "model-health",
@@ -1847,7 +2193,12 @@
           "evidence": "只完成受控页面跳转，不计作业务状态变更",
           "browserVerified": false
         }
-      ]
+      ],
+      "stageThree": {
+        "status": "passed",
+        "evidence": "artifacts/stage-three-validation-summary.json",
+        "scope": "仅视觉、信息架构与既有合成模拟"
+      }
     },
     {
       "screen": "capacity-planning",
@@ -1862,7 +2213,12 @@
           "evidence": "只完成受控页面跳转，不计作业务状态变更",
           "browserVerified": false
         }
-      ]
+      ],
+      "stageThree": {
+        "status": "passed",
+        "evidence": "artifacts/stage-three-validation-summary.json",
+        "scope": "仅视觉、信息架构与既有合成模拟"
+      }
     },
     {
       "screen": "backup-recovery",
@@ -1915,7 +2271,12 @@
           "browserEvidence": "artifacts/browser-review-20260903-final/verification.json",
           "browserScope": "仅报告中对应正常路径或失败重试；未测分支不因此获得通过"
         }
-      ]
+      ],
+      "stageThree": {
+        "status": "passed",
+        "evidence": "artifacts/stage-three-validation-summary.json",
+        "scope": "仅视觉、信息架构与既有合成模拟"
+      }
     },
     {
       "screen": "release-operations",
@@ -1930,7 +2291,12 @@
           "evidence": "只完成受控页面跳转，不计作业务状态变更",
           "browserVerified": false
         }
-      ]
+      ],
+      "stageThree": {
+        "status": "passed",
+        "evidence": "artifacts/stage-three-validation-summary.json",
+        "scope": "仅视觉、信息架构与既有合成模拟"
+      }
     },
     {
       "screen": "tenant-member-account",
@@ -1953,6 +2319,11 @@
         "nodeEvidence": "scripts/stage-two-closure.test.mjs",
         "browserStatus": "passed",
         "browserEvidence": "artifacts/stage-two-validation-summary.json"
+      },
+      "stageThree": {
+        "status": "passed",
+        "evidence": "artifacts/stage-three-validation-summary.json",
+        "scope": "本页七态与所属专项回归；逐控件历史标记保留，不把接线扩称行为穷举"
       }
     },
     {
@@ -1976,6 +2347,11 @@
         "nodeEvidence": "scripts/stage-two-closure.test.mjs",
         "browserStatus": "passed",
         "browserEvidence": "artifacts/stage-two-validation-summary.json"
+      },
+      "stageThree": {
+        "status": "passed",
+        "evidence": "artifacts/stage-three-validation-summary.json",
+        "scope": "本页七态与所属专项回归；逐控件历史标记保留，不把接线扩称行为穷举"
       }
     },
     {
@@ -1999,18 +2375,23 @@
         "nodeEvidence": "scripts/stage-two-closure.test.mjs",
         "browserStatus": "passed",
         "browserEvidence": "artifacts/stage-two-validation-summary.json"
+      },
+      "stageThree": {
+        "status": "passed",
+        "evidence": "artifacts/stage-three-validation-summary.json",
+        "scope": "本页七态与所属专项回归；逐控件历史标记保留，不把接线扩称行为穷举"
       }
     }
   ],
   "coverage": {
     "scope": "66 个范围内 M6 入口七态；其余 10 页只做视觉与信息架构，2 页及邮件邀请暂缓。",
     "allControlsEnumerated": true,
-    "controlInstanceCount": 7779,
+    "controlInstanceCount": 7989,
     "sceneCount": 462,
-    "inventoryReport": "artifacts/stage-two-validation-summary.json",
+    "inventoryReport": "artifacts/stage-three-validation-summary.json",
     "limitation": "summary.totalControls 是人工可读的业务操作组，不等于七态 DOM 控件实例数；监听器接线检查不能替代专项行为测试或穷举全部输入组合。"
   },
-  "browserEvidenceReport": "artifacts/stage-two-validation-summary.json",
+  "browserEvidenceReport": "artifacts/stage-three-validation-summary.json",
   "acceptanceAudit": {
     "checkedOn": "2026-09-08",
     "technicalStatus": "passed",
@@ -2030,13 +2411,16 @@
       }
     ],
     "blockingFindingGroups": 0,
-    "report": "artifacts/stage-two-validation-summary.json",
-    "evidence": "project/evidence/WP-0016-usability-sample-20260908.md",
-    "scope": "阶段一二样板与共享组件回归；78 页布局检查不表示其余页面已迁移。",
-    "baselineImplementationCommit": "6d4249a73585744453b528b55b742fbca0ab542a",
-    "verificationScope": "161 个 Node、157 个浏览器、1638 个布局场景；样板方向等待人工确认。",
+    "report": "artifacts/stage-three-validation-summary.json",
+    "evidence": "project/evidence/WP-0016-stage-three-20260908.md",
+    "scope": "66个M6入口全部回归，10个M7/M8页面仅视觉信息架构，3项指定任务继续暂缓。",
+    "baselineImplementationCommit": "35110ca815fc3eed57abd3d5e2a8b83bc41b9ca7",
+    "verificationScope": "169项Node、162项浏览器、1638场景、462场景7989控件枚举。",
     "unclosedControls": 0,
     "baselineAudit": "project/evidence/WP-0016-acceptance-preflight-20260905.md",
-    "currentCandidate": "awaitingSampleDirectionReview"
+    "currentCandidate": "stageThreeReadyForHumanReview",
+    "sampleDirectionReviewStatus": "approved",
+    "finalHumanReviewStatus": "pending",
+    "currentEvidence": "artifacts/stage-three-validation-summary.json"
   }
 }

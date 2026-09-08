@@ -48,7 +48,8 @@ test('1000 文档只挂载当前页，支持每页大小、跳页、搜索和刷
   assert.equal(await page.locator('tbody tr').count(), 1);
   assert.equal(new URL(page.url()).searchParams.get('page'), '1');
   await page.getByLabel('搜索数据来源', { exact: true }).fill('无匹配内容');
-  assert.equal(await page.locator('tbody tr:visible').count(), 0);
+  assert.equal(await page.locator('tbody [data-source-row]').count(), 0);
+  assert.match(await page.locator('tbody').innerText(), /没有匹配记录/);
   assert.match(await page.locator('.pagination').innerText(), /0–0/);
 }));
 

@@ -1,4 +1,5 @@
 import { PROVIDER_PRESETS, resolveProviderPreset } from "./provider-presets.js";
+import { enhanceTaskComponents } from "./task-components.js";
 import { installMotionReview } from "./review-motion.js";
 import { bindAssistantPickers } from "./member-workspace.js";
 import { memberDrafts } from "./member-drafts.js";
@@ -8,7 +9,7 @@ import { renderConsoleNavigation, renderAccountMenu } from "./navigation.js";
 import { workspaceJourney, objectNavigation } from "./workspace-journeys.js";
 import { governanceDirectory } from "./governance-directories.js";
 import { DETAIL_CONTEXT, valueAt } from "./detail-context.js";
-import { bindDirectoryPagination } from "./directory-pagination.js";
+import { bindDirectoryPagination, directoryPage, directoryPaginationMarkup } from "./directory-pagination.js";
 import {
   createPrototypeStore,
   DEFAULT_TENANT_ID,
@@ -372,7 +373,14 @@ function render() {
         : ["console-login", "tenant-login"].includes(screen) ? { ...demoState, consoleLoginFeedback, consoleLoginName, consoleLoginTenants, loginTenantCode: params.get('tenantCode'),
           needsDemoLoginRepair: prototypeStore.needsDemoLoginRepair(), demoLoginRepairFeedback } : demoState;
   const markup=access.allowed && contextAllowed ? renderScreen(screen, renderedState, renderedDemoState) : renderAccessDenied(screen, querySession);
-  root.innerHTML = ['tenant-members','knowledge-sources','assistants-directory'].includes(screen) ? boundedDirectoryMarkup(markup,params) : markup;
+  root.innerHTML = boundedDirectoryMarkup(markup,params);
+  enhanceTaskComponents(root);
+  // 部分可用和禁用场景保持只读；空目录仍允许首次创建，错误页仍允许恢复。
+  if(['partial','disabled'].includes(renderedState) && !['login','console-login','tenant-login','assistants','conversation'].includes(screen)) {
+    root.querySelectorAll('main form input,main form select,main form textarea,main form button, main button[data-primary-action]').forEach(control=>{
+      if(!control.hasAttribute('data-nav-screen') && !control.hasAttribute('data-state'))control.disabled=true;
+    });
+  }
   const motionContext=screen==='conversation'&&renderedState==='success'?`${querySession.epoch}:${activeConversationId}`:'';
   const messages=[...root.querySelectorAll('.message[data-sequence]')];
   if(motionContext && motionContext===messageMotionContext && !matchMedia('(prefers-reduced-motion: reduce)').matches)messages.filter(item=>Number(item.dataset.sequence)>messageMotionSequence).forEach(item=>item.animate([{opacity:.5,transform:'translateY(4px)'},{opacity:1,transform:'none'}],{duration:200,easing:'cubic-bezier(0.2,0,0,1)'}));
@@ -807,11 +815,14 @@ function demoAccountControl() {
 
 function renderAssistants(state) {
   const availableAssistants = prototypeStore.queryProjection(fixtures).assistants;
+  const params=new URLSearchParams(location.search), query=(params.get('q')||'').toLocaleLowerCase();
+  const matches=availableAssistants.filter(item=>`${item.name} ${item.summary||''}`.toLocaleLowerCase().includes(query));
+  const page=directoryPage(matches.length,params.get('page'),params.get('size'));
   if (!availableAssistants.some((assistant) => assistant.id === selectedAssistantId) && availableAssistants[0]) {
     selectedAssistantId = availableAssistants[0].id;
   }
   const generic = genericState("assistants", state);
-  const rows = availableAssistants
+  const rows = matches.slice(page.start,page.end)
     .map((assistant) => assistantRow(assistant, state === "disabled"))
     .join("");
   const body =
@@ -832,9 +843,8 @@ function renderAssistants(state) {
           rows +
           "</div>"
         : '<section class="state-panel" data-kind="empty"><h2>当前成员没有已授权助手</h2><p>租户管理员可为普通成员选择可用助手范围。</p></section>',
-      '<div class="pagination" aria-label="助手目录分页">',
-      `<span>第 1 页，共 ${availableAssistants.length} 个已授权助手</span>`,
-      '<div class="pagination-actions"><button class="button secondary compact" type="button" disabled>上一页</button><button class="button secondary compact" type="button" disabled>下一页</button></div>',
+      '<div class="pagination" data-object-pagination aria-label="助手目录分页">',
+      directoryPaginationMarkup(page,matches.length,'object'),
       "</div>",
     ].join("");
   return [
@@ -1170,7 +1180,7 @@ function pageStatus(active, state) {
     "model-deployments": `${models.deployments.filter(item => item.status === "PUBLISHED").length} 个已发布部署`,
     "model-deployment-detail": modelStatusLabel(models.deployments.find(item => item.id === models.selectedDeploymentId)?.status),
     "routing-policies": modelStatusLabel(models.routingPolicies.find(item => item.id === models.selectedRoutingPolicyId)?.status),
-    "assistants-directory": `${snapshot.assistantDelivery.assistants.length} 个稳定助手`,
+    "assistants-directory": `${snapshot.assistantDelivery.assistants.length} 个助手`,
     "assistant-create": "关联一个知识库",
     "assistant-draft": "冻结索引、模型版本和策略",
     "assistant-test": "使用冻结依赖",
@@ -1295,8 +1305,8 @@ function renderKnowledgeSources(state, demoState) {
           "版本 " +
           escapeHtml(formatRevision(item.revision)) +
           "</span></span></td>",
-        '<td data-label="处理阶段"><span class="mono">' +
-          escapeHtml(item.stage) +
+        '<td data-label="处理阶段"><span>' +
+          escapeHtml(sourceStageName(item.stage)) +
           "</span></td>",
         '<td data-label="状态">' + statusTag(item.stage === "FAILED" ? "FAILED" : item.stage === "READY" ? "READY" : "PROCESSING") + "</td>",
         '<td data-label="内容范围">' + escapeHtml(item.coverage || "待处理") + "</td>",
@@ -1308,7 +1318,7 @@ function renderKnowledgeSources(state, demoState) {
         item.status === "FAILED"
           ? '<tr data-directory-row-detail><td data-label="失败说明" colspan="6"><div class="inline-note danger">' +
             escapeHtml(item.detail) +
-            " 仅可从 EXTRACTING 安全阶段重试。</div></td></tr>"
+            " 请从内容提取步骤安全重试。</div></td></tr>"
           : "",
       ].join(""),
     )
@@ -1455,7 +1465,7 @@ function renderIndexVersions(state, demoState) {
   const versions = knowledgeBase?.indexVersions || [];
   const rows = versions.map(indexVersion => [
     `<tr data-index-row="${escapeHtml(indexVersion.id)}" data-directory-row>`,
-    `<td data-label="版本"><span class="primary-cell"><strong>${escapeHtml(indexVersion.id)}</strong><span>${escapeHtml(indexVersion.reason)}</span></span></td>`,
+    `<td data-label="版本"><span class="primary-cell"><strong>${escapeHtml(indexVersion.id)}</strong><span>${escapeHtml(modelProductName(indexVersion.reason))}</span></span></td>`,
     `<td data-label="触发原因">${escapeHtml(indexVersion.trigger === "CONFIGURATION_CHANGE" ? "配置变化" : indexVersion.trigger === "PARSER_CHANGE" ? "解析器变化" : "手动重建")}</td>`,
     `<td data-label="文档">${escapeHtml(indexVersion.documents)}</td>`,
     `<td data-label="进度">${escapeHtml(indexVersion.progress)}%</td>`,
@@ -1496,8 +1506,8 @@ function renderIndexRebuild(state, demoState) {
     disabled ? `<div class="inline-note warning">${activeBuild ? `${escapeHtml(activeBuild.id)} 正在执行，同一知识库不能并发创建第二个全库重建。` : "当前资源不足，暂不能开始新的全库重建。"}</div>` : "",
     '<form id="index-rebuild-form" class="wizard-workspace">',
     '<section class="section-block wizard-inputs"><div class="section-heading"><div><span class="section-kicker">新建候选版本</span><h2>确认重建原因</h2></div><span class="status-tag" data-tone="info">不会自动激活</span></div>',
-    '<div class="field-stack"><label class="field"><span>重建原因</span><select class="select" name="trigger"><option value="CONFIGURATION_CHANGE">Embedding、维度或距离度量变化</option><option value="PARSER_CHANGE">解析器或分块策略变化</option><option value="MANUAL_REBUILD">内容治理后手动全量重建</option></select></label>',
-    `<dl class="description-list"><div class="description-row"><dt>活动文档</dt><dd>${escapeHtml(knowledgeBase?.documents || 0)} 个</dd></div><div class="description-row"><dt>当前活动索引</dt><dd>${escapeHtml(knowledgeBase?.activeIndex || "尚无")}</dd></div><div class="description-row"><dt>候选 Embedding</dt><dd>${escapeHtml(candidateConfig?.embeddingModel || "未配置")} / ${escapeHtml(candidateConfig?.embeddingDimension || 0)} 维</dd></div><div class="description-row"><dt>距离与归一化</dt><dd>${escapeHtml(candidateConfig?.distanceMetric || "未配置")} / ${escapeHtml(candidateConfig?.normalization || "未配置")}</dd></div><div class="description-row"><dt>解析与分块</dt><dd>${escapeHtml(candidateConfig?.parserVersion || "未配置")} / ${escapeHtml(candidateConfig?.chunkingStrategy || "未配置")}</dd></div></dl>`,
+    '<div class="field-stack"><label class="field"><span>重建原因</span><select class="select" name="trigger"><option value="CONFIGURATION_CHANGE">向量模型、维度或距离度量变化</option><option value="PARSER_CHANGE">解析器或分块策略变化</option><option value="MANUAL_REBUILD">内容治理后手动全量重建</option></select></label>',
+    `<details><summary>技术详情 · 候选配置</summary><dl class="description-list"><div class="description-row"><dt>活动文档</dt><dd>${escapeHtml(knowledgeBase?.documents || 0)} 个</dd></div><div class="description-row"><dt>当前活动索引</dt><dd>${escapeHtml(knowledgeBase?.activeIndex || "尚无")}</dd></div><div class="description-row"><dt>候选向量模型</dt><dd>${escapeHtml(candidateConfig?.embeddingModel || "未配置")} / ${escapeHtml(candidateConfig?.embeddingDimension || 0)} 维</dd></div><div class="description-row"><dt>距离与归一化</dt><dd>${escapeHtml(candidateConfig?.distanceMetric || "未配置")} / ${escapeHtml(candidateConfig?.normalization || "未配置")}</dd></div><div class="description-row"><dt>解析与分块</dt><dd>${escapeHtml(candidateConfig?.parserVersion || "未配置")} / ${escapeHtml(candidateConfig?.chunkingStrategy || "未配置")}</dd></div></dl></details>`,
     '<p id="index-rebuild-feedback" class="form-feedback" role="alert"></p><div class="form-actions"><button class="button secondary" type="button" data-nav-screen="index-versions">取消</button><button class="button primary" type="submit" data-primary-action' + (disabled ? " disabled" : "") + '>开始全库重建</button></div></div></section>',
     `<aside class="section-block wizard-review"><span class="section-kicker">影响范围</span><h2>${escapeHtml(knowledgeBase?.name || "当前知识库")}</h2><dl class="description-list"><div class="description-row"><dt>新版本</dt><dd>独立构建，不修改活动索引</dd></div><div class="description-row"><dt>查询服务</dt><dd>${escapeHtml(knowledgeBase?.activeIndex || "当前版本")} 持续服务</dd></div><div class="description-row"><dt>上线条件</dt><dd>构建和冻结评测通过后人工激活</dd></div><div class="description-row"><dt>恢复方式</dt><dd>取消候选构建，保留活动指针</dd></div></dl></aside>`,
     "</form>",
@@ -1594,8 +1604,8 @@ function renderIndexDetail(state, demoState) {
     `<section class="section-block" data-index-stage="${escapeHtml(indexVersion.stage)}" data-index-status="${escapeHtml(indexVersion.status)}"><div class="section-heading"><div><span class="section-kicker">构建状态</span><h2>${escapeHtml(indexStatusLabel(indexVersion.status))}</h2></div>${statusTag(indexVersion.status)}</div><ol class="process-steps source-process index-process" aria-label="索引构建阶段">${stageOrder.map((stage, index) => `<li data-step-state="${index < position ? "complete" : index === position ? "current" : "upcoming"}"><span>${index + 1}</span><strong>${stageNames[stage]}</strong></li>`).join("")}</ol><div class="progress-track" aria-label="索引构建进度"><div class="progress-value" style="width:${escapeHtml(indexVersion.progress)}%"></div></div><p class="muted">${escapeHtml(indexVersion.documents)} 个文档${indexVersion.chunks ? ` / ${escapeHtml(indexVersion.chunks)} 个分块` : ""}</p></section>`,
     quality,
     "</div><aside>",
-    `<section class="section-block"><h2>不可变配置</h2><dl class="description-list"><div class="description-row"><dt>Embedding</dt><dd>${escapeHtml(indexVersion.config.embeddingModel)} / ${escapeHtml(indexVersion.config.embeddingDimension)} 维</dd></div><div class="description-row"><dt>规范化与距离</dt><dd>${escapeHtml(indexVersion.config.normalization)} / ${escapeHtml(indexVersion.config.distanceMetric)}</dd></div><div class="description-row"><dt>解析器</dt><dd>${escapeHtml(indexVersion.config.parserVersion)}</dd></div><div class="description-row"><dt>分块</dt><dd>${escapeHtml(indexVersion.config.chunkingStrategy)}</dd></div><div class="description-row"><dt>检索</dt><dd>${escapeHtml(indexVersion.config.retrievalStrategy)}</dd></div><div class="description-row"><dt>当前活动索引</dt><dd>${escapeHtml(knowledgeBase.activeIndex || "尚无")}</dd></div></dl></section>`,
-    `<section class="release-decision${indexVersion.status === "BLOCKED" ? " blocked" : ""}"><span class="section-kicker">版本操作</span><h2>${escapeHtml(indexVersion.id)}</h2><p>${escapeHtml(indexVersion.reason)}</p><div class="form-actions">${operation}</div>${indexFeedback ? `<p class="form-feedback" role="status">${escapeHtml(indexFeedback)}</p>` : ""}</section>`,
+    `<section class="section-block"><h2>不可变配置</h2><dl class="description-list"><div class="description-row"><dt>向量模型</dt><dd>${escapeHtml(indexVersion.config.embeddingModel)} / ${escapeHtml(indexVersion.config.embeddingDimension)} 维</dd></div><div class="description-row"><dt>规范化与距离</dt><dd>${escapeHtml(indexVersion.config.normalization)} / ${escapeHtml(indexVersion.config.distanceMetric)}</dd></div><div class="description-row"><dt>解析器</dt><dd>${escapeHtml(indexVersion.config.parserVersion)}</dd></div><div class="description-row"><dt>分块</dt><dd>${escapeHtml(indexVersion.config.chunkingStrategy)}</dd></div><div class="description-row"><dt>检索</dt><dd>${escapeHtml(indexVersion.config.retrievalStrategy)}</dd></div><div class="description-row"><dt>当前活动索引</dt><dd>${escapeHtml(knowledgeBase.activeIndex || "尚无")}</dd></div></dl></section>`,
+    `<section class="release-decision${indexVersion.status === "BLOCKED" ? " blocked" : ""}"><span class="section-kicker">版本操作</span><h2>${escapeHtml(indexVersion.id)}</h2><p>${escapeHtml(modelProductName(indexVersion.reason))}</p><div class="form-actions">${operation}</div>${indexFeedback ? `<p class="form-feedback" role="status">${escapeHtml(indexFeedback)}</p>` : ""}</section>`,
     "</aside></div>",
     `<dialog id="index-dialog" class="dialog-surface"><form method="dialog"><span class="section-kicker">激活确认</span><h2>激活 ${escapeHtml(indexVersion.id)}？</h2><p>新查询使用此版本；已固定旧版本的会话继续使用原版本。</p><div class="dialog-impact"><div><dt>当前</dt><dd>${escapeHtml(knowledgeBase.activeIndex || "尚无")}</dd></div><div><dt>切换后</dt><dd>${escapeHtml(indexVersion.id)}</dd></div></div><div class="release-actions"><button class="button secondary" value="cancel">取消</button><button class="button primary" type="button" data-activate-index>确认激活</button></div></form></dialog>`,
     `<dialog id="cancel-index-dialog" class="dialog-surface"><form method="dialog"><span class="section-kicker">取消确认</span><h2>取消 ${escapeHtml(indexVersion.id)} 的构建？</h2><p>候选版本停止推进，活动 ${escapeHtml(knowledgeBase.activeIndex || "索引")} 不受影响。</p><div class="release-actions"><button class="button secondary" value="cancel">返回</button><button class="button primary" type="button" data-confirm-cancel-index>确认取消</button></div></form></dialog>`,
@@ -1624,6 +1634,11 @@ function modelStatusLabel(status) {
   }[status] || "待处理";
 }
 
+/** 仅对模型名称和变更说明投影能力词；协议值与持久化名称保持不变。 */
+function modelProductName(value) {
+  return String(value||'').replace(/\b(Chat|Embedding|Rerank)\b/g,word=>({Chat:'对话模型',Embedding:'向量模型',Rerank:'重排序模型'})[word]);
+}
+
 function modelCapabilityLabel(capability) {
   return { CHAT: "对话模型", EMBEDDING: "向量模型", RERANK: "重排序模型" }[capability] || capability;
 }
@@ -1649,12 +1664,12 @@ function renderPlatformModelConnections(state, demoState) {
     `<tr><td><strong>${escapeHtml(connection.name)}</strong><small>${escapeHtml(`${connection.providerName || "已有连接"} · ${connection.runtimeProtocol === "VENDOR_POST_PROCESSOR" || connection.capability === "RERANK" ? "厂商重排适配" : "OpenAI 兼容协议"}`)}</small></td><td>${escapeHtml(modelCapabilityLabel(connection.capability))}</td><td>${statusTag(connection.status)}</td><td><button class="button subtle" type="button" data-select-platform-connection="${escapeHtml(connection.id)}" data-nav-screen="platform-model-connection-detail" aria-label="查看${escapeHtml(connection.name)}">查看</button></td></tr>`
   );
   const content = [
-    '<div class="inline-note">标准 Chat 与 Embedding 运行调用使用 OpenAI 兼容协议；Rerank 通过独立检索后处理适配。供应商发现可以使用受限控制面接口，但不会把地址、访问密钥或原始响应展示给租户。</div>',
+    '<div class="inline-note">先添加供应商连接，再探测模型与发布。租户只看已授权模型，不显示平台地址或访问密钥。</div>',
     modelDirectoryTable(["连接", "运行能力", "状态", "操作"], rows),
     `<dialog id="platform-connection-dialog" class="dialog-surface account-dialog" aria-labelledby="platform-connection-title"><form id="platform-connection-form" novalidate>
       <span class="section-kicker">模型治理 · 连接草稿</span><h2 id="platform-connection-title">新增供应商连接</h2>
       <div class="wizard-field-grid"><label class="field"><span>厂商类型</span><select class="select" name="providerId" aria-label="厂商类型">${PROVIDER_PRESETS.map(preset => `<option value="${preset.id}">${preset.name}</option>`).join('')}</select></label>
-      <label class="field"><span>运行能力</span><select class="select" name="capability" aria-label="运行能力"><option value="CHAT">Chat · 对话</option><option value="EMBEDDING">Embedding · 文本向量</option><option value="RERANK">Rerank · 文本重排</option></select></label></div>
+      <label class="field"><span>运行能力</span><select class="select" name="capability" aria-label="运行能力"><option value="CHAT">对话模型</option><option value="EMBEDDING">向量模型</option><option value="RERANK">重排序模型</option></select></label></div>
       <label class="field"><span>连接名称</span><input class="input" name="name" autocomplete="off" required maxlength="80"></label>
       <label class="field" data-provider-workspace hidden><span>业务空间 ID</span><input class="input" name="workspaceId" autocomplete="off" maxlength="63" placeholder="填写百炼控制台的业务空间 ID"></label>
       <div class="compact-summary"><span data-provider-region>自行配置</span><span data-provider-protocol>OpenAI 兼容协议</span></div>
@@ -1680,15 +1695,12 @@ function renderPlatformModelConnectionDetail(state, demoState) {
   const operation = connection.status === "VERIFIED"
     ? '<button class="button primary" type="button" data-publish-platform-connection data-primary-action>发布连接</button>'
     : '<button class="button primary" type="button" data-probe-platform-connection data-primary-action>执行连接探测</button>';
-  const models = connection.discoveredModels.length
-    ? connection.discoveredModels.map(item => `<li><span><strong>${escapeHtml(item.name)}</strong><br><small>${escapeHtml(modelCapabilityLabel(item.capability))}${item.embeddingDimension ? ` / ${escapeHtml(item.embeddingDimension)} 维` : ""}</small></span>${statusTag("VERIFIED")}</li>`).join("")
-    : '<li><span><strong>尚无发现结果</strong><br><small>先执行连接探测</small></span></li>';
   const content = [
-    `<div class="inline-note${connection.status === "FAILED" ? " danger" : ""}">${escapeHtml(connection.probeResult || "尚未执行本版本的连接探测。")}</div>`,
+    `<div class="inline-note${connection.status === "FAILED" ? " danger" : ""}">${escapeHtml(connection.probeResult || (connection.status === "PUBLISHED" ? "初始演示快照保留了最近探测时间；可重新探测查看详细结果。" : connection.status === "VERIFIED" ? "连接探测已通过，可以发布连接。" : "尚未执行本版本的连接探测。"))}</div>`,
     '<div class="split-detail"><div>',
-    `<section class="section-block" data-model-status="${escapeHtml(connection.status)}"><div class="section-heading"><div><span class="section-kicker">连接版本 v${escapeHtml(connection.version)}</span><h2>${escapeHtml(connection.name)}</h2></div>${statusTag(connection.status)}</div><dl class="description-list"><div class="description-row"><dt>供应商类型</dt><dd>${escapeHtml(connection.providerName || "自定义连接")}</dd></div><div class="description-row"><dt>运行协议</dt><dd>${escapeHtml(connection.runtimeProtocol === "OPENAI_COMPATIBLE" ? "OpenAI 兼容接口" : "独立 Rerank 后处理适配")}</dd></div><div class="description-row"><dt>能力范围</dt><dd>${escapeHtml(modelCapabilityLabel(connection.capability))}</dd></div><div class="description-row"><dt>访问认证</dt><dd>${escapeHtml(connection.authenticationState === "CONFIGURED" ? "已配置（不回显）" : "待配置")}</dd></div><div class="description-row"><dt>最近探测</dt><dd>${escapeHtml(connection.lastProbe || "尚未探测")}</dd></div></dl></section>`,
-    `<section class="section-block"><div class="section-heading"><h2>发现模型</h2><span class="status-tag" data-tone="info">${connection.discoveredModels.length} 个</span></div><ul class="selection-list">${models}</ul></section>`,
-    '</div><aside><section class="release-decision"><span class="section-kicker">当前动作</span><h2>探测后再发布</h2><p>验证公网 HTTPS、认证、能力和响应边界；发布后仍需建立平台部署并显式授权租户。</p><div class="form-actions">' + operation + '</div>' + (modelFeedback ? `<p class="form-feedback" role="status">${escapeHtml(modelFeedback)}</p>` : "") + '</section></aside></div>',
+    `<section class="section-block" data-model-status="${escapeHtml(connection.status)}"><div class="section-heading"><div><span class="section-kicker">连接版本 v${escapeHtml(connection.version)}</span><h2>${escapeHtml(connection.name)}</h2></div>${statusTag(connection.status)}</div><dl class="description-list"><div class="description-row"><dt>供应商类型</dt><dd>${escapeHtml(connection.providerName || "自定义连接")}</dd></div><div class="description-row"><dt>运行协议</dt><dd>${escapeHtml(connection.runtimeProtocol === "OPENAI_COMPATIBLE" ? "OpenAI 兼容接口" : "独立重排序适配")}</dd></div><div class="description-row"><dt>能力范围</dt><dd>${escapeHtml(modelCapabilityLabel(connection.capability))}</dd></div><div class="description-row"><dt>访问认证</dt><dd>${escapeHtml(connection.authenticationState === "CONFIGURED" ? "已配置（不回显）" : "待配置")}</dd></div><div class="description-row"><dt>最近探测</dt><dd>${escapeHtml(connection.lastProbe || "尚未探测")}</dd></div></dl></section>`,
+    `<section class="section-block"><div class="section-heading"><h2>发现模型</h2><span class="status-tag" data-tone="info">${connection.discoveredModels.length} 个</span></div>${pagedTable(connection.discoveredModels.map(item=>({...item,name:modelProductName(item.name),capabilityName:modelCapabilityLabel(item.capability)})),[{key:"name",label:"发现模型"},{key:"capabilityName",label:"能力"}],new URLSearchParams(location.search))}</section>`,
+    '</div><aside><section class="release-decision"><span class="section-kicker">当前动作</span><h2>' + (connection.status === "PUBLISHED" ? "连接已发布" : "探测后再发布") + '</h2><p>验证公网 HTTPS、认证、能力和响应边界；发布后仍需建立平台部署并显式授权租户。</p><div class="form-actions">' + operation + '</div>' + (modelFeedback ? `<p class="form-feedback" role="status">${escapeHtml(modelFeedback)}</p>` : "") + '</section></aside></div>',
   ].join("");
   return adminShell("platform-model-connection-detail", "供应商连接探测", "", '<button class="button secondary" type="button" data-nav-screen="platform-model-connections">返回连接目录</button>', content, state, "模型治理 / 连接探测", "platform");
 }
@@ -1700,7 +1712,7 @@ function renderPlatformModelDeployments(state, demoState) {
     connection.discoveredModels.map(model => `<option value="${escapeHtml(connection.id)}|${escapeHtml(model.id)}">${escapeHtml(model.name)} / ${escapeHtml(modelCapabilityLabel(model.capability))}</option>`)
   ).join("");
   const rows = models.platformDeployments.map(deployment =>
-    `<tr><td><strong>${escapeHtml(deployment.name)}</strong><small>${escapeHtml(deployment.residency)}</small></td><td>${escapeHtml(modelCapabilityLabel(deployment.capability))}</td><td>${escapeHtml(deployment.tenantIds.length)} 个租户</td><td>${statusTag(deployment.status)}</td><td><button class="button subtle" type="button" data-select-platform-deployment="${escapeHtml(deployment.id)}" data-nav-screen="platform-model-deployment-detail" aria-label="查看${escapeHtml(deployment.name)}">查看</button></td></tr>`
+    `<tr><td><strong>${escapeHtml(modelProductName(deployment.name))}</strong><small>${escapeHtml(deployment.residency)}</small></td><td>${escapeHtml(modelCapabilityLabel(deployment.capability))}</td><td>${escapeHtml(deployment.tenantIds.length)} 个租户</td><td>${statusTag(deployment.status)}</td><td><button class="button subtle" type="button" data-select-platform-deployment="${escapeHtml(deployment.id)}" data-nav-screen="platform-model-deployment-detail" aria-label="查看${escapeHtml(modelProductName(deployment.name))}">查看</button></td></tr>`
   );
   const content = [
     '<div class="inline-note">平台部署发布后只进入可授权目录，不会自动授予租户，也不会修改租户配置、索引或助手。</div>',
@@ -1723,7 +1735,7 @@ function renderPlatformModelDeploymentDetail(state, demoState) {
   const content = [
     `<div class="inline-note${deployment.status === "FAILED" ? " danger" : ""}">${escapeHtml(deployment.verificationResult || "冻结连接版本、模型能力、租户授权和驻留范围后执行验证。")}</div>`,
     '<div class="split-detail"><div>',
-    `<section class="section-block" data-model-status="${escapeHtml(deployment.status)}"><div class="section-heading"><div><span class="section-kicker">平台部署</span><h2>${escapeHtml(deployment.name)}</h2></div>${statusTag(deployment.status)}</div><dl class="description-list"><div class="description-row"><dt>连接</dt><dd>${escapeHtml(connection?.name || "不可用连接")}</dd></div><div class="description-row"><dt>能力</dt><dd>${escapeHtml(modelCapabilityLabel(deployment.capability))}</dd></div><div class="description-row"><dt>驻留范围</dt><dd>${escapeHtml(deployment.residency)}</dd></div><div class="description-row"><dt>已授权租户</dt><dd>${escapeHtml(tenantNames || "尚未授权")}</dd></div><div class="description-row"><dt>最近验证</dt><dd>${escapeHtml(deployment.verifiedAt || "尚未验证")}</dd></div></dl></section>`,
+    `<section class="section-block" data-model-status="${escapeHtml(deployment.status)}"><div class="section-heading"><div><span class="section-kicker">平台部署</span><h2>${escapeHtml(modelProductName(deployment.name))}</h2></div>${statusTag(deployment.status)}</div><dl class="description-list"><div class="description-row"><dt>连接</dt><dd>${escapeHtml(connection?.name || "不可用连接")}</dd></div><div class="description-row"><dt>能力</dt><dd>${escapeHtml(modelCapabilityLabel(deployment.capability))}</dd></div><div class="description-row"><dt>驻留范围</dt><dd>${escapeHtml(deployment.residency)}</dd></div><div class="description-row"><dt>已授权租户</dt><dd>${escapeHtml(tenantNames || "尚未授权")}</dd></div><div class="description-row"><dt>最近验证</dt><dd>${escapeHtml(deployment.verifiedAt || "尚未验证")}</dd></div></dl></section>`,
     '</div><aside><section class="release-decision"><span class="section-kicker">发布决定</span><h2>验证通过后进入授权目录</h2><p>发布不会自动生成租户配置，也不会触发索引或助手变更。</p><div class="form-actions">' + operation + '</div>' + (modelFeedback ? `<p class="form-feedback" role="status">${escapeHtml(modelFeedback)}</p>` : "") + '</section></aside></div>',
   ].join("");
   return adminShell("platform-model-deployment-detail", "平台部署发布", "", '<button class="button secondary" type="button" data-nav-screen="platform-model-deployments">返回部署目录</button>', content, state, "模型治理 / 平台部署发布", "platform");
@@ -1749,12 +1761,9 @@ function renderTenantModelProviderDetail(state, demoState) {
   const connection = models.platformConnections.find(item => item.id === models.selectedTenantConnectionId) || models.platformConnections.find(item => item.status === "PUBLISHED");
   const discovery = models.tenantDiscoveries.find(item => item.tenantId === workspaceTenantId() && item.connectionId === connection?.id);
   const deployments = (discovery?.deploymentIds || []).map(id => models.platformDeployments.find(item => item.id === id)).filter(Boolean);
-  const items = deployments.length
-    ? deployments.map(deployment => `<li><span><strong>${escapeHtml(deployment.name)}</strong><br><small>${escapeHtml(modelCapabilityLabel(deployment.capability))} / ${escapeHtml(deployment.residency)}</small></span><button class="button secondary" type="button" data-use-catalog-model="${escapeHtml(deployment.id)}">使用此模型</button></li>`).join("")
-    : '<li><span><strong>尚无已授权模型</strong><br><small>请联系平台管理员核对部署发布和租户授权。</small></span></li>';
   const content = [
     `<div class="inline-note">发现结果只包含当前租户可使用的目录名称、能力和驻留范围；${escapeHtml(connection?.name || "当前连接")} 的底层地址与认证信息保持隐藏。</div>`,
-    `<div class="split-detail"><section class="section-block" data-model-status="${escapeHtml(discovery?.status || "DRAFT")}"><div class="section-heading"><div><span class="section-kicker">发现结果</span><h2>${escapeHtml(connection?.name || "供应商连接")}</h2></div>${statusTag(discovery?.status || "DRAFT")}</div><ul class="selection-list">${items}</ul></section><aside><section class="release-decision"><span class="section-kicker">下一步</span><h2>创建租户模型配置</h2><p>选择目录模型后仍需建立、验证并启用租户配置，发现不会自动改变索引或助手。</p>${modelFeedback ? `<p class="form-feedback" role="status">${escapeHtml(modelFeedback)}</p>` : ""}</section></aside></div>`,
+    `<div class="split-detail"><section class="section-block" data-model-status="${escapeHtml(discovery?.status || "DRAFT")}"><div class="section-heading"><div><span class="section-kicker">发现结果</span><h2>${escapeHtml(connection?.name || "供应商连接")}</h2></div>${statusTag(discovery?.status || "DRAFT")}</div>${pagedTable(deployments.map(item=>({...item,name:modelProductName(item.name),capabilityName:modelCapabilityLabel(item.capability)})),[{key:"name",label:"模型"},{key:"capabilityName",label:"能力"},{key:"residency",label:"驻留范围"}],new URLSearchParams(location.search),item=>`<button class="button secondary" data-use-catalog-model="${escapeHtml(item.id)}">使用此模型</button>`)}</section><aside><section class="release-decision"><span class="section-kicker">下一步</span><h2>创建租户模型配置</h2><p>选择目录模型后仍需建立、验证并启用租户配置，发现不会自动改变索引或助手。</p>${modelFeedback ? `<p class="form-feedback" role="status">${escapeHtml(modelFeedback)}</p>` : ""}</section></aside></div>`,
   ].join("");
   return adminShell("model-provider-detail", "供应商发现结果", "", '<button class="button primary" type="button" data-rediscover-tenant-models data-primary-action>重新探测</button>', content, state, "模型治理 / 供应商发现结果");
 }
@@ -1786,18 +1795,18 @@ function renderModelConfigurationDetail(state, demoState) {
       : '<button class="button primary" type="button" data-open-model-revision data-primary-action>新建配置版本</button><button class="button secondary" type="button" data-open-model-key>轮换访问密钥</button>';
   const parameters = pending?.parameters || configuration.parameters || {};
   const parameterFacts = configuration.capability === "EMBEDDING"
-    ? `<div class="description-row"><dt>向量维度</dt><dd>${escapeHtml(parameters.embeddingDimension)} 维</dd></div><div class="description-row"><dt>距离度量</dt><dd>${escapeHtml(parameters.distanceMetric)}</dd></div>`
+    ? `<div class="description-row"><dt>向量维度</dt><dd>${escapeHtml(parameters.embeddingDimension)} 维</dd></div><div class="description-row"><dt>距离度量</dt><dd>${escapeHtml(({COSINE:"余弦距离",IP:"内积",L2:"欧氏距离"})[parameters.distanceMetric] || "待配置")}</dd></div>`
     : configuration.capability === "CHAT"
-      ? `<div class="description-row"><dt>Temperature</dt><dd>${escapeHtml(parameters.temperature)}</dd></div><div class="description-row"><dt>最大输出</dt><dd>${escapeHtml(parameters.maxOutputTokens)} tokens</dd></div>`
+      ? `<div class="description-row"><dt>回答随机性</dt><dd>${escapeHtml(parameters.temperature)}</dd></div><div class="description-row"><dt>最大输出</dt><dd>${escapeHtml(parameters.maxOutputTokens)} tokens</dd></div>`
       : `<div class="description-row"><dt>重排候选</dt><dd>${escapeHtml(parameters.candidateCount)} 个</dd></div><div class="description-row"><dt>最终证据</dt><dd>${escapeHtml(parameters.evidenceCount)} 个</dd></div>`;
   const revisionFields = configuration.capability === "EMBEDDING"
-    ? `<label class="field"><span>向量维度</span><input class="input" name="embeddingDimension" type="number" value="${escapeHtml(parameters.embeddingDimension)}"></label><label class="field"><span>距离度量</span><select class="select" name="distanceMetric"><option>COSINE</option><option>IP</option><option>L2</option></select></label>`
+    ? `<label class="field"><span>向量维度</span><input class="input" name="embeddingDimension" type="number" value="${escapeHtml(parameters.embeddingDimension)}"></label><label class="field"><span>距离度量</span><select class="select" name="distanceMetric"><option value="COSINE">余弦距离</option><option value="IP">内积</option><option value="L2">欧氏距离</option></select></label>`
     : configuration.capability === "CHAT"
-      ? `<label class="field"><span>Temperature</span><select class="select" name="temperature"><option value="0">0</option><option value="0.2">0.2</option></select></label><label class="field"><span>最大输出 tokens</span><input class="input" name="maxOutputTokens" type="number" value="${escapeHtml(parameters.maxOutputTokens)}"></label>`
+      ? `<label class="field"><span>回答随机性</span><select class="select" name="temperature"><option value="0">0</option><option value="0.2">0.2</option></select></label><label class="field"><span>最大输出长度（词元）</span><input class="input" name="maxOutputTokens" type="number" value="${escapeHtml(parameters.maxOutputTokens)}"></label>`
       : `<label class="field"><span>重排候选数量</span><input class="input" name="candidateCount" type="number" value="${escapeHtml(parameters.candidateCount)}"></label><label class="field"><span>最终证据数量</span><input class="input" name="evidenceCount" type="number" value="${escapeHtml(parameters.evidenceCount)}"></label>`;
   const impact = configuration.capability === "EMBEDDING"
     ? "启用维度、规范化或距离变化会自动创建全库重建候选，但不会自动激活索引。"
-    : "Chat 或 Rerank 版本启用后不重建向量，只要求助手新版本重新评测。";
+    : "对话模型或重排序模型启用新版本后，需重新评测助手；不重建向量。";
   const content = [
     `<div class="inline-note${pending?.status === "FAILED" ? " danger" : ""}">${escapeHtml(pending?.result || impact)}</div>`,
     '<div class="split-detail"><div>',
@@ -1806,14 +1815,14 @@ function renderModelConfigurationDetail(state, demoState) {
     `<dialog id="model-key-dialog" class="dialog-surface"><form id="model-key-form"><span class="section-kicker">密钥轮换</span><h2>提交新的访问密钥</h2><p>旧版本继续服务；新密钥只用于当前提交，验证成功并启用后才替换。</p><label class="field"><span>新访问密钥</span><input class="input" name="accessKey" type="password" autocomplete="new-password" required></label><p id="model-key-feedback" class="form-feedback" role="alert"></p><div class="release-actions"><button class="button secondary" type="button" data-close-dialog="model-key-dialog">取消</button><button class="button primary" type="submit">保存待验证版本</button></div></form></dialog>`,
     `<dialog id="model-revision-dialog" class="dialog-surface"><form id="model-revision-form"><span class="section-kicker">新配置版本</span><h2>修改 ${escapeHtml(modelCapabilityLabel(configuration.capability))} 参数</h2><div class="form-grid wizard-field-grid">${revisionFields}</div><p id="model-revision-feedback" class="form-feedback" role="alert"></p><div class="release-actions"><button class="button secondary" type="button" data-close-dialog="model-revision-dialog">取消</button><button class="button primary" type="submit">保存待验证版本</button></div></form></dialog>`,
   ].join("");
-  return adminShell("model-configuration-detail", "模型配置向导", "", '<button class="button secondary" type="button" data-nav-screen="model-configurations">返回配置目录</button>', content, state, "模型治理 / 模型配置向导");
+  return adminShell("model-configuration-detail", "模型配置详情", "", '<button class="button secondary" type="button" data-nav-screen="model-configurations">返回配置目录</button>', content, state, "模型治理 / 模型配置向导");
 }
 
 function renderTenantModelDeployments(state, demoState) {
   const models = demoState.models;
   const configurations = models.configurations.filter(item => item.tenantId === workspaceTenantId() && item.status === "ACTIVE");
   const rows = models.deployments.filter(item => item.tenantId === workspaceTenantId()).map(deployment =>
-    `<tr><td><strong>${escapeHtml(deployment.name)}</strong><small>${escapeHtml(deployment.residency)}</small></td><td>${escapeHtml(modelCapabilityLabel(deployment.capability))}</td><td>${statusTag(deployment.status)}</td><td><button class="button subtle" type="button" data-select-tenant-deployment="${escapeHtml(deployment.id)}" data-nav-screen="model-deployment-detail" aria-label="查看${escapeHtml(deployment.name)}">查看</button></td></tr>`
+    `<tr><td><strong>${escapeHtml(modelProductName(deployment.name))}</strong><small>${escapeHtml(deployment.residency)}</small></td><td>${escapeHtml(modelCapabilityLabel(deployment.capability))}</td><td>${statusTag(deployment.status)}</td><td><button class="button subtle" type="button" data-select-tenant-deployment="${escapeHtml(deployment.id)}" data-nav-screen="model-deployment-detail" aria-label="查看${escapeHtml(modelProductName(deployment.name))}">查看</button></td></tr>`
   );
   const content = [
     '<div class="inline-note">部署冻结一个已启用配置版本。发布不会自动修改助手；停用前必须核对被固定的助手和路由影响。</div>',
@@ -1841,9 +1850,9 @@ function renderTenantModelDeploymentDetail(state, demoState) {
   const content = [
     `<div class="inline-note${deployment.status === "FAILED" ? " danger" : ""}">${escapeHtml(deployment.verificationResult || "验证能力、预算、驻留和安全样本后才能发布。")}</div>`,
     '<div class="split-detail"><div>',
-    `<section class="section-block" data-model-status="${escapeHtml(deployment.status)}"><div class="section-heading"><div><span class="section-kicker">${escapeHtml(modelCapabilityLabel(deployment.capability))} 部署</span><h2>${escapeHtml(deployment.name)}</h2></div>${statusTag(deployment.status)}</div><dl class="description-list"><div class="description-row"><dt>冻结配置</dt><dd>${escapeHtml(configuration?.name || "配置不可用")} / v${escapeHtml(configuration?.activeRevision || "—")}</dd></div><div class="description-row"><dt>驻留范围</dt><dd>${escapeHtml(deployment.residency)}</dd></div><div class="description-row"><dt>助手影响</dt><dd>${escapeHtml(assistantNames.length ? assistantNames.join("、") : "当前无助手固定")}</dd></div><div class="description-row"><dt>最近验证</dt><dd>${escapeHtml(deployment.verifiedAt || "尚未验证")}</dd></div></dl></section>`,
+    `<section class="section-block" data-model-status="${escapeHtml(deployment.status)}"><div class="section-heading"><div><span class="section-kicker">${escapeHtml(modelCapabilityLabel(deployment.capability))} 部署</span><h2>${escapeHtml(modelProductName(deployment.name))}</h2></div>${statusTag(deployment.status)}</div><dl class="description-list"><div class="description-row"><dt>冻结配置</dt><dd>${escapeHtml(configuration?.name || "配置不可用")} / v${escapeHtml(configuration?.activeRevision || "—")}</dd></div><div class="description-row"><dt>驻留范围</dt><dd>${escapeHtml(deployment.residency)}</dd></div><div class="description-row"><dt>助手影响</dt><dd>${escapeHtml(assistantNames.length ? assistantNames.join("、") : "当前无助手固定")}</dd></div><div class="description-row"><dt>最近验证</dt><dd>${escapeHtml(deployment.verifiedAt || "尚未验证")}</dd></div></dl></section>`,
     '</div><aside><section class="release-decision"><span class="section-kicker">部署操作</span><h2>发布不等于助手切换</h2><p>助手版本必须显式冻结部署；停用会使固定此部署且无可用路由的问答失败关闭。</p><div class="form-actions">' + operation + '</div>' + (modelFeedback ? `<p class="form-feedback" role="status">${escapeHtml(modelFeedback)}</p>` : "") + '</section></aside></div>',
-    `<dialog id="deployment-stop-dialog" class="dialog-surface"><form id="deployment-stop-form"><span class="section-kicker">影响确认</span><h2>停用 ${escapeHtml(deployment.name)}？</h2><p>受影响助手：${escapeHtml(assistantNames.length ? assistantNames.join("、") : "当前无助手")}；受影响路由：${escapeHtml(routingNames.length ? routingNames.join("、") : "当前无路由")}。停用后新调用失败关闭，不会静默换成不同能力模型。</p><label class="check-line"><input type="checkbox" name="acknowledged"><span>我已确认受影响助手与路由</span></label><p id="deployment-stop-feedback" class="form-feedback" role="alert"></p><div class="release-actions"><button class="button secondary" type="button" data-close-dialog="deployment-stop-dialog">取消</button><button class="button primary" type="submit">确认停用</button></div></form></dialog>`,
+    `<dialog id="deployment-stop-dialog" class="dialog-surface"><form id="deployment-stop-form"><span class="section-kicker">影响确认</span><h2>停用 ${escapeHtml(modelProductName(deployment.name))}？</h2><p>受影响助手：${escapeHtml(assistantNames.length ? assistantNames.join("、") : "当前无助手")}；受影响路由：${escapeHtml(routingNames.length ? routingNames.join("、") : "当前无路由")}。停用后新调用失败关闭，不会静默换成不同能力模型。</p><label class="check-line"><input type="checkbox" name="acknowledged"><span>我已确认受影响助手与路由</span></label><p id="deployment-stop-feedback" class="form-feedback" role="alert"></p><div class="release-actions"><button class="button secondary" type="button" data-close-dialog="deployment-stop-dialog">取消</button><button class="button primary" type="submit">确认停用</button></div></form></dialog>`,
   ].join("");
   return adminShell("model-deployment-detail", "租户部署验证", "", '<button class="button secondary" type="button" data-nav-screen="model-deployments">返回部署目录</button>', content, state, "模型治理 / 租户部署验证");
 }
@@ -1857,7 +1866,7 @@ function renderRoutingPolicies(state, demoState) {
     ? `<div class="metric-grid"><article class="metric-card"><span>模拟样本</span><strong>${escapeHtml(policy.simulation.passed)} / ${escapeHtml(policy.simulation.total)}</strong></article><article class="metric-card"><span>预计月度消耗</span><strong>${escapeHtml(policy.simulation.estimatedBudget)}</strong></article><article class="metric-card"><span>路由 p95</span><strong>${escapeHtml(policy.simulation.p95Ms)} ms</strong></article></div>`
     : '<p class="muted">尚未运行本版本模拟。</p>';
   const content = [
-    `<div class="inline-note">有限回退只能选择同能力、同驻留、已发布部署；不会跨 Chat、Embedding、Rerank 或租户边界静默降级。</div>`,
+    `<div class="inline-note">主备部署必须具有相同模型能力和驻留范围。没有可用备份时停止调用，不跨租户切换。</div>`,
     `<div class="split-detail"><form id="routing-policy-form" class="section-block" data-model-status="${escapeHtml(policy.status)}"><div class="section-heading"><div><span class="section-kicker">策略 v${escapeHtml(policy.version)}</span><h2>${escapeHtml(policy.name)}</h2></div>${statusTag(policy.status)}</div><div class="form-grid"><label class="field"><span>主部署</span><select class="select" name="primaryDeploymentId">${deployments.map(item => `<option value="${escapeHtml(item.id)}"${item.id === policy.primaryDeploymentId ? " selected" : ""}>${escapeHtml(item.name)} / ${escapeHtml(modelCapabilityLabel(item.capability))}</option>`).join("")}</select></label><label class="field"><span>有限回退</span><select class="select" name="fallbackDeploymentId">${deployments.map(item => `<option value="${escapeHtml(item.id)}"${item.id === policy.fallbackDeploymentId ? " selected" : ""}>${escapeHtml(item.name)} / ${escapeHtml(modelCapabilityLabel(item.capability))}</option>`).join("")}</select></label><label class="field"><span>月度预算上限</span><input class="input" name="monthlyBudget" type="number" value="${escapeHtml(policy.monthlyBudget)}"></label></div><p id="routing-policy-feedback" class="form-feedback" role="alert"></p><div class="form-actions"><button class="button secondary" type="submit">运行路由模拟</button><button class="button primary" type="button" data-publish-routing-policy data-primary-action${policy.status !== "READY_FOR_RELEASE" ? " disabled" : ""}>发布路由策略</button></div></form><aside><section class="section-block"><span class="section-kicker">模拟结果</span><h2>成本、延迟与失败边界</h2>${simulation}${modelFeedback ? `<p class="form-feedback" role="status">${escapeHtml(modelFeedback)}</p>` : ""}</section></aside></div>`,
   ].join("");
   return adminShell("routing-policies", "模型路由策略", "", '<button class="button secondary" type="button" data-nav-screen="model-deployments">返回部署目录</button>', content, state, "模型治理 / 模型路由策略");
@@ -2045,7 +2054,7 @@ function renderAssistantRelease(state, snapshot) {
     `<div class="inline-note${blocked ? " warning" : ""}">${blocked ? "当前状态不可发布，发布指针保持不变。" : "发布只更新新会话使用的版本；已有会话继续固定原版本。"}</div>`,
     `<section class="section-block"><div class="section-heading"><div><span class="section-kicker">发布记录</span><h2>${escapeHtml(assistant.name)} v${escapeHtml(version.number)}</h2></div>${statusTag(version.status)}</div>${version.evaluation?.metrics ? qualityGrid(version.evaluation.metrics, true) : '<p>初始合成版本未保留评测指标快照。新版本需重新完成质量检查。</p>'}<button class="button secondary" data-nav-screen="tenant-members">配置成员授权</button></section>`,
     `<div class="split-detail"><section class="section-block"><h2>版本配置</h2>${assistantModelSummary(snapshot, frozen)}<details><summary>技术详情</summary><dl class="description-list">`,
-    `<dt>知识库</dt><dd>${escapeHtml(knowledgeBase?.name || assistant.knowledgeBaseId)}（关联）</dd><dt>索引</dt><dd><span class="mono">${escapeHtml(frozen.indexVersionId)}</span></dd><dt>Chat</dt><dd><span class="mono">${escapeHtml(frozen.configurationRevisions.chat.id)} / r${escapeHtml(frozen.configurationRevisions.chat.revision)}</span></dd><dt>Embedding</dt><dd><span class="mono">${escapeHtml(frozen.configurationRevisions.embedding.id)} / r${escapeHtml(frozen.configurationRevisions.embedding.revision)}</span></dd><dt>Rerank</dt><dd><span class="mono">${escapeHtml(frozen.configurationRevisions.rerank.id)} / r${escapeHtml(frozen.configurationRevisions.rerank.revision)}</span></dd><dt>检索策略</dt><dd>${escapeHtml(frozen.retrievalPolicy)}</dd><dt>引用 / 拒答</dt><dd>${escapeHtml(frozen.citationPolicy)} / ${escapeHtml(frozen.refusalPolicy)}</dd></dl></details></section>`,
+    `<dt>知识库</dt><dd>${escapeHtml(knowledgeBase?.name || assistant.knowledgeBaseId)}（关联）</dd><dt>索引</dt><dd><span class="mono">${escapeHtml(frozen.indexVersionId)}</span></dd><dt>对话模型</dt><dd><span class="mono">${escapeHtml(frozen.configurationRevisions.chat.id)} / r${escapeHtml(frozen.configurationRevisions.chat.revision)}</span></dd><dt>向量模型</dt><dd><span class="mono">${escapeHtml(frozen.configurationRevisions.embedding.id)} / r${escapeHtml(frozen.configurationRevisions.embedding.revision)}</span></dd><dt>重排序模型</dt><dd><span class="mono">${escapeHtml(frozen.configurationRevisions.rerank.id)} / r${escapeHtml(frozen.configurationRevisions.rerank.revision)}</span></dd><dt>检索策略</dt><dd>${escapeHtml(frozen.retrievalPolicy)}</dd><dt>引用 / 拒答</dt><dd>${escapeHtml(frozen.citationPolicy)} / ${escapeHtml(frozen.refusalPolicy)}</dd></dl></details></section>`,
     `<aside><section class="release-decision${blocked ? " blocked" : ""}"><span class="section-kicker">发布影响</span><h2>新会话切换到 v${escapeHtml(version.number)}</h2><p>旧会话不迁移；授权撤销仍立即阻断正文与引用。</p><button class="button primary" type="button" data-confirm-release data-assistant-version-id="${escapeHtml(version.id)}" data-primary-action${blocked ? " disabled" : ""}>发布助手版本</button>${assistantFeedback ? `<p class="form-feedback" role="status">${escapeHtml(assistantFeedback)}</p>` : ""}</section></aside></div>`,
     `<dialog id="release-dialog" class="dialog-surface"><header class="dialog-title"><h2>发布 ${escapeHtml(assistant.name)} v${escapeHtml(version.number)}？</h2></header><div class="dialog-body"><dl class="description-list"><dt>新会话</dt><dd>使用本次发布版本 ${escapeHtml(version.number)}，引用经核验的知识内容</dd><dt>已有会话</dt><dd>继续固定原版本</dd></dl><p id="assistant-release-feedback" class="form-feedback" role="alert"></p></div><div class="dialog-actions"><button class="button secondary" type="button" data-cancel-assistant-release>取消</button><button class="button primary" type="button" data-publish-assistant-version="${escapeHtml(version.id)}">确认发布</button></div></dialog>`,
   ].join("");
@@ -2155,7 +2164,7 @@ function renderEvaluationRunCreate(state, snapshot) {
   const body = [
     state === "partial" ? '<div class="inline-note warning">版本目录正在刷新，当前选择尚未提交。</div>' : "",
     '<div class="split-detail"><form id="evaluation-run-form" class="section-block"><div class="section-heading"><div><span class="section-kicker">冻结一次运行</span><h2>选择评测输入</h2></div><span class="status-tag" data-tone="info">运行中不漂移</span></div>',
-    `<div class="form-grid"><label class="field"><span>助手版本</span><select class="select" name="assistantVersionId">${assistantVersions.map(({ assistant, version }) => `<option value="${escapeHtml(version.id)}"${version.id === "asv-0013" ? " selected" : ""}>${escapeHtml(assistant.name)} v${escapeHtml(version.number)} · ${escapeHtml(version.frozen.indexVersionId)}</option>`).join("")}</select></label><label class="field"><span>已发布数据集版本</span><select class="select" name="datasetVersionId">${datasetVersions.map(({ dataset, version }) => `<option value="${escapeHtml(version.id)}"${version.id === selectedDataset?.version.id ? " selected" : ""}>${escapeHtml(dataset.name)} v${escapeHtml(version.number)} · ${version.samples.length} 题</option>`).join("")}</select></label></div>`,
+    `<div class="form-grid"><label class="field"><span>助手版本</span><select class="select" name="assistantVersionId">${assistantVersions.map(({ assistant, version }) => `<option value="${escapeHtml(version.id)}"${version.id === "asv-0013" ? " selected" : ""}>${escapeHtml(assistant.name)} 第 ${escapeHtml(version.number)} 版</option>`).join("")}</select></label><label class="field"><span>已发布数据集版本</span><select class="select" name="datasetVersionId">${datasetVersions.map(({ dataset, version }) => `<option value="${escapeHtml(version.id)}"${version.id === selectedDataset?.version.id ? " selected" : ""}>${escapeHtml(dataset.name)} v${escapeHtml(version.number)} · ${version.samples.length} 题</option>`).join("")}</select></label></div>`,
     `<p id="evaluation-run-feedback" class="form-feedback" role="alert">${escapeHtml(evaluationFeedback)}</p><div class="form-actions"><button class="button secondary" type="button" data-nav-screen="evaluation-datasets">取消</button><button class="button primary" type="submit" data-primary-action${blocked ? " disabled" : ""}>运行评测</button></div></form>`,
     '<aside><section class="release-decision"><span class="section-kicker">运行边界</span><h2>助手与数据集必须冻结</h2><dl class="description-list"><dt>配置变化</dt><dd>不影响本次运行</dd><dt>安全门禁</dt><dd>越权泄漏必须为 0</dd><dt>对比条件</dt><dd>必须使用同一数据集版本</dd><dt>原始内容</dt><dd>失败页只显示合成摘要</dd></dl></section></aside></div>',
   ].join("");
@@ -2173,9 +2182,9 @@ function renderEvaluationRunDetail(state, snapshot) {
     ? `<button class="button primary" type="button" data-advance-evaluation-run="${escapeHtml(run.id)}" data-primary-action${blocked ? " disabled" : ""}>继续运行评测</button>`
     : `<button class="button secondary" type="button" data-nav-screen="evaluation-failure-analysis" data-select-evaluation-run="${escapeHtml(run.id)}">查看失败分类</button><button class="button primary" type="button" data-open-evaluation-comparison data-primary-action${blocked || baselineOptions.length === 0 ? " disabled" : ""}>比较版本</button>`;
   const body = [
-    `<div class="inline-note${run.gate === "FAILED" ? " danger" : run.status === "RUNNING" ? " warning" : ""}">${run.status === "RUNNING" ? `正在执行 ${escapeHtml(run.stage)}；已冻结输入不会随活动版本变化。` : run.gate === "PASSED" ? "全部 M6 质量、安全、性能和一致性门禁通过。" : "至少一项门禁未通过，本运行不能支持发布。"}</div>`,
-    `<div class="split-detail"><div><section class="section-block"><div class="section-heading"><div><span class="section-kicker">${escapeHtml(run.id)}</span><h2>${escapeHtml(run.name)}</h2></div>${statusTag(run.status)}</div>${stageList}<div class="progress-track" aria-label="评测运行进度"><div class="progress-value" style="width:${escapeHtml(run.progress)}%"></div></div></section>${run.metrics ? `<section class="section-block"><div class="section-heading"><h2>门禁指标</h2>${statusTag(run.gate)}</div>${evaluationMetricGrid(run.metrics)}</section>` : ""}</div>`,
-    `<aside><section class="section-block"><h2>冻结输入</h2><dl class="description-list"><dt>助手版本</dt><dd>${escapeHtml(evaluationAssistantVersionLabel(snapshot, run.frozen.assistantVersionId))}</dd><dt>数据集版本</dt><dd><span class="mono">${escapeHtml(run.frozen.datasetVersionId)}</span></dd><dt>索引版本</dt><dd><span class="mono">${escapeHtml(run.frozen.indexVersionId)}</span></dd><dt>模型版本</dt><dd>Chat r${escapeHtml(run.frozen.configurationRevisions.chat.revision)} / Embedding r${escapeHtml(run.frozen.configurationRevisions.embedding.revision)} / Rerank r${escapeHtml(run.frozen.configurationRevisions.rerank.revision)}</dd></dl></section><section class="release-decision"><span class="section-kicker">下一步</span><h2>${run.status === "RUNNING" ? "完成全部四个阶段" : "同数据集比较基线"}</h2><div class="form-actions">${operation}</div>${evaluationFeedback ? `<p class="form-feedback" role="status">${escapeHtml(evaluationFeedback)}</p>` : ""}</section></aside></div>`,
+    `<div class="inline-note${run.gate === "FAILED" ? " danger" : run.status === "RUNNING" ? " warning" : ""}">${run.status === "RUNNING" ? `正在${escapeHtml(stages[run.stageIndex] || "形成评测结论")}；本次输入保持不变。` : run.gate === "PASSED" ? "全部 M6 质量、安全、性能和一致性门禁通过。" : "至少一项门禁未通过，本运行不能支持发布。"}</div>`,
+    `<div class="split-detail"><div><section class="section-block"><div class="section-heading"><div><span class="section-kicker">当前评测运行</span><h2>${escapeHtml(run.name)}</h2></div>${statusTag(run.status)}</div>${stageList}<div class="progress-track" aria-label="评测运行进度"><div class="progress-value" style="width:${escapeHtml(run.progress)}%"></div></div></section>${run.metrics ? `<section class="section-block"><div class="section-heading"><h2>门禁指标</h2>${statusTag(run.gate)}</div>${evaluationMetricGrid(run.metrics)}</section>` : ""}</div>`,
+    `<aside><section class="section-block"><h2>本次评测对象</h2><p>${escapeHtml(evaluationAssistantVersionLabel(snapshot, run.frozen.assistantVersionId))}</p><details><summary>技术详情 · 冻结输入</summary><dl class="description-list"><dt>助手版本</dt><dd>${escapeHtml(evaluationAssistantVersionLabel(snapshot, run.frozen.assistantVersionId))}</dd><dt>数据集版本</dt><dd><span class="mono">${escapeHtml(run.frozen.datasetVersionId)}</span></dd><dt>索引版本</dt><dd><span class="mono">${escapeHtml(run.frozen.indexVersionId)}</span></dd><dt>模型版本</dt><dd>对话模型 · 第 ${escapeHtml(run.frozen.configurationRevisions.chat.revision)} 版 / 向量模型 · 第 ${escapeHtml(run.frozen.configurationRevisions.embedding.revision)} 版 / 重排序模型 · 第 ${escapeHtml(run.frozen.configurationRevisions.rerank.revision)} 版</dd></dl></details></section><section class="release-decision"><span class="section-kicker">下一步</span><h2>${run.status === "RUNNING" ? "完成全部四个阶段" : "同数据集比较基线"}</h2><div class="form-actions">${operation}</div>${evaluationFeedback ? `<p class="form-feedback" role="status">${escapeHtml(evaluationFeedback)}</p>` : ""}</section></aside></div>`,
     `<dialog id="evaluation-comparison-dialog" class="dialog-surface" aria-labelledby="evaluation-comparison-title"><form id="evaluation-comparison-form" data-candidate-run-id="${escapeHtml(run.id)}"><div class="dialog-heading"><span class="section-kicker">同一数据集版本</span><h2 id="evaluation-comparison-title">选择对比基线</h2></div><label class="field"><span>基线运行</span><select class="select" name="baselineRunId">${baselineOptions.map(item => `<option value="${escapeHtml(item.id)}">${escapeHtml(item.name)}</option>`).join("")}</select></label><p id="evaluation-comparison-feedback" class="form-feedback" role="alert"></p><div class="form-actions dialog-actions"><button class="button secondary" type="button" data-close-evaluation-comparison>取消</button><button class="button primary" type="submit">生成对比</button></div></form></dialog>`,
   ].join("");
   return adminShell("evaluation-run-detail", "评测运行详情", "", '<button class="button secondary" type="button" data-nav-screen="evaluation-run-create">发起新评测</button>', body, state, "评测治理 / 运行详情");
@@ -2209,7 +2218,7 @@ function renderEvaluationFailureAnalysis(state, snapshot) {
   const remediation = snapshot.evaluation.remediations.find(item => item.runId === run.id && item.category === selected.category && item.status === "OPEN");
   const body = [
     '<div class="inline-note">这里只显示合成问题摘要、失败类别和数量，不展示真实问题、回答或引用正文。</div>',
-    `<div class="split-detail"><section class="section-block"><div class="section-heading"><div><span class="section-kicker">${escapeHtml(run.name)}</span><h2>7 个失败样本 / 3 类原因</h2></div>${statusTag(run.gate)}</div><div class="table-shell"><table class="data-table"><thead><tr><th>类别</th><th>样本数</th><th>建议处理</th><th>操作</th></tr></thead><tbody>${rows}</tbody></table><div class="pagination" aria-label="失败分类分页"><span>第 1 页，共 ${run.failures.length} 个分类</span><div class="pagination-actions"><button class="button secondary compact" type="button" disabled>上一页</button><button class="button secondary compact" type="button" disabled>下一页</button></div></div></div></section>`,
+    `<div class="split-detail"><section class="section-block"><div class="section-heading"><div><span class="section-kicker">${escapeHtml(run.name)}</span><h2>${run.failures.reduce((sum,item)=>sum+item.sampleCount,0)} 个失败样本 / ${run.failures.length} 类原因</h2></div>${statusTag(run.gate)}</div><div class="table-shell"><table class="data-table"><thead><tr><th>类别</th><th>样本数</th><th>建议处理</th><th>操作</th></tr></thead><tbody>${rows}</tbody></table><div class="pagination" aria-label="失败分类分页"><span>第 1 页，共 ${run.failures.length} 个分类</span><div class="pagination-actions"><button class="button secondary compact" type="button" disabled>上一页</button><button class="button secondary compact" type="button" disabled>下一页</button></div></div></div></section>`,
     `<aside><section class="release-decision"><span class="section-kicker">当前类别</span><h2>${escapeHtml(selected.label)}</h2><dl class="description-list"><dt>失败样本</dt><dd>${selected.sampleCount}</dd><dt>建议修复</dt><dd>${escapeHtml(selected.suggestedAction)}</dd><dt>修复事项</dt><dd>${remediation ? `${escapeHtml(remediation.title)} · ${escapeHtml(remediation.owner)}` : "尚未创建"}</dd></dl><button class="button primary" type="button" data-open-evaluation-remediation data-primary-action${blocked || Boolean(remediation) ? " disabled" : ""}>${remediation ? "修复事项已创建" : "创建修复事项"}</button>${evaluationFeedback ? `<p class="form-feedback" role="status">${escapeHtml(evaluationFeedback)}</p>` : ""}</section></aside></div>`,
     `<dialog id="evaluation-remediation-dialog" class="dialog-surface" aria-labelledby="evaluation-remediation-title"><form id="evaluation-remediation-form" data-evaluation-run-id="${escapeHtml(run.id)}" data-failure-category="${escapeHtml(selected.category)}"><div class="dialog-heading"><span class="section-kicker">${escapeHtml(selected.label)}</span><h2 id="evaluation-remediation-title">创建修复事项</h2></div><label class="field"><span>事项名称</span><input class="input" name="title" minlength="4" maxlength="100" value="${escapeHtml(selected.suggestedAction)}" required></label><label class="field"><span>负责人</span><input class="input" name="owner" minlength="2" maxlength="40" value="知识治理组" required></label><p id="evaluation-remediation-feedback" class="form-feedback" role="alert"></p><div class="form-actions dialog-actions"><button class="button secondary" type="button" data-close-evaluation-remediation>取消</button><button class="button primary" type="submit">创建事项</button></div></form></dialog>`,
   ].join("");
@@ -2251,7 +2260,7 @@ function renderGovernanceDirectory(screen, state, snapshot) {
     const record = projection.ok ? auditId ? projection.records.find(item => item.id === auditId) : projection.records[0] : null;
     const back = '<button class="button secondary" type="button" data-nav-screen="audit-records">返回审计目录</button>';
     if (!record) return adminShell(screen, "审计事件", "", back, statePanel("empty", "没有可查看的审计事件", "请从当前组织的审计目录选择记录。", "返回审计目录", "audit-records"), state, "审计记录");
-    const body = `<section class="section-block" data-audit-detail="${escapeHtml(record.id)}"><div class="section-heading"><h2>${escapeHtml(record.event)}</h2>${statusTag(record.outcome === "SUCCESS" ? "READY" : "FAILED")}</div><dl class="description-list"><dt>操作范围</dt><dd>${escapeHtml(record.scope)}</dd><dt>主体类型</dt><dd>${escapeHtml(record.actorRole)}</dd><dt>记录时间</dt><dd>${escapeHtml(record.occurredAt)}</dd><dt>结果说明</dt><dd>${escapeHtml(record.summary)}</dd></dl></section>`;
+    const body = `<section class="section-block" data-audit-detail="${escapeHtml(record.id)}"><div class="section-heading"><h2>${escapeHtml(record.event)}</h2>${statusTag(record.outcome === "SUCCESS" ? "READY" : "FAILED")}</div><dl class="description-list"><dt>操作范围</dt><dd>${escapeHtml(record.scope)}</dd><dt>主体类型</dt><dd>${escapeHtml(({platformAdministrator:"平台管理员",tenantAdministrator:"租户管理员",ordinaryMember:"普通成员"})[record.actorRole] || "系统记录")}</dd><dt>记录时间</dt><dd>${escapeHtml(record.occurredAt)}</dd><dt>结果说明</dt><dd>${escapeHtml(record.summary)}</dd></dl></section>`;
     return adminShell(screen, "审计事件解释", "", back, `<div class="timeline-workspace">${body}<aside class="next-step-panel"><h2>记录保持只读</h2><p>后续操作形成新的事实，不改写此条审计事件。</p>${back}</aside></div>`, state, "审计记录");
   }
   const result = governanceDirectory(screen, snapshot, projection.ok ? projection.records : [], { escapeHtml, statusTag });
@@ -2281,7 +2290,7 @@ function renderAccessPolicyDetail(state, snapshot) {
     : `<button class="button primary" type="button" data-primary-action data-create-access-version="${escapeHtml(policy.id)}"${state === "success" ? "" : " disabled"}>创建策略新版本</button>`;
   const body = [
     '<div class="inline-note">策略只配置普通成员可用的助手；知识库由助手的关联关系确定，不能在这里另选。</div>',
-    `<div class="split-detail"><form id="access-policy-form" class="section-block" data-access-policy-version-id="${escapeHtml(version.id)}"><div class="section-heading"><div><span class="section-kicker">${escapeHtml(policy.name)}</span><h2>策略 v${escapeHtml(version.number)}</h2></div>${statusTag(version.status)}</div><div class="form-grid"><label class="field"><span>已发布助手</span><select class="select" name="assistantId" data-access-policy-assistant${blocked ? " disabled" : ""}>${publishedAssistants.map(item => `<option value="${escapeHtml(item.id)}"${item.id === version.assistantId ? " selected" : ""}>${escapeHtml(item.name)}</option>`).join("")}</select></label><div class="field"><span>关联知识库（自动确定）</span><div class="input readonly-value" data-derived-knowledge-base>${escapeHtml(knowledgeBase.name)}</div><small class="field-hint" data-derived-knowledge-help>来自“${escapeHtml(assistant.name)}”的永久知识库关系。</small></div></div><fieldset class="feature-editor access-policy-members"><legend class="section-kicker">授权普通成员</legend><div class="feature-grid">${memberControls}</div></fieldset><p id="access-policy-feedback" class="form-feedback" role="alert">${escapeHtml(accessGovernanceFeedback)}</p><div class="form-actions"><button class="button secondary" type="submit"${blocked ? " disabled" : ""}>保存草稿</button><button class="button ${preview?.passed ? "secondary" : "primary"}" type="button" data-preview-access-policy data-access-policy-version-id="${escapeHtml(version.id)}"${preview?.passed ? "" : " data-primary-action"}${blocked ? " disabled" : ""}>生成授权预览</button></div></form>`,
+    `<div class="split-detail"><form id="access-policy-form" class="section-block" data-access-policy-version-id="${escapeHtml(version.id)}"><div class="section-heading"><div><span class="section-kicker">${escapeHtml(policy.name)}</span><h2>策略 v${escapeHtml(version.number)}</h2></div>${statusTag(version.status)}</div><div class="form-grid"><label class="field"><span>已发布助手</span><select class="select" name="assistantId" data-access-policy-assistant${blocked ? " disabled" : ""}>${publishedAssistants.map(item => `<option value="${escapeHtml(item.id)}"${item.id === version.assistantId ? " selected" : ""}>${escapeHtml(item.name)}</option>`).join("")}</select></label><div class="field"><span>关联知识库（自动确定）</span><div class="input readonly-value" data-derived-knowledge-base>${escapeHtml(knowledgeBase.name)}</div><small class="field-hint" data-derived-knowledge-help>由“${escapeHtml(assistant.name)}”关联，创建后不可更换。</small></div></div><fieldset class="feature-editor access-policy-members"><legend class="section-kicker">授权普通成员</legend><div class="feature-grid">${memberControls}</div></fieldset><p id="access-policy-feedback" class="form-feedback" role="alert">${escapeHtml(accessGovernanceFeedback)}</p><div class="form-actions"><button class="button secondary" type="submit"${blocked ? " disabled" : ""}>保存草稿</button><button class="button ${preview?.passed ? "secondary" : "primary"}" type="button" data-preview-access-policy data-access-policy-version-id="${escapeHtml(version.id)}"${preview?.passed ? "" : " data-primary-action"}${blocked ? " disabled" : ""}>生成授权预览</button></div></form>`,
     `<aside><section class="release-decision${preview?.passed ? "" : " pending"}"><span class="section-kicker">发布前授权预览</span><h2>${preview?.passed ? "32 个样本已通过" : "尚未生成有效预览"}</h2>${previewBody}<div class="form-actions">${primary}</div><dl class="description-list"><dt>当前成员</dt><dd>${escapeHtml(members.map(item => item.name).join("、"))}</dd><dt>生效范围</dt><dd>助手目录、对话、本人历史和授权引用</dd><dt>撤销结果</dt><dd>直接路由、历史正文与引用立即失败关闭</dd></dl></section></aside></div>`,
   ].join("");
   return adminShell("access-policy-detail", `${policy.name} v${version.number}`, "", '<button class="button secondary" type="button" data-nav-screen="access-policies">返回策略目录</button>', body, state, "访问治理 / 策略版本");
@@ -2331,8 +2340,8 @@ function renderQueryDiagnostic(state, snapshot) {
   const citationValidation = { VALIDATED: "已通过", NOT_APPLICABLE: "不适用" }[diagnostic.citationValidation] || diagnostic.citationValidation;
   const body = [
     '<div class="inline-note">这是运行结束时原子写入的历史事实。页面不会重新检索，也不会根据当前策略推断过去结果。</div>',
-    `<div class="split-detail"><div><section class="section-block"><div class="section-heading"><div><span class="section-kicker mono">${escapeHtml(run.reference)}</span><h2>${escapeHtml(run.assistantName)} · ${escapeHtml(queryOutcomeLabel(run.outcome))}</h2></div>${statusTag(run.outcome)}</div><ol class="process-steps" aria-label="查询终态阶段">${stages.map((stage, index) => `<li data-step-state="complete"><span>${index + 1}</span><strong>${escapeHtml(stageLabels[stage] || stage)}</strong></li>`).join("")}</ol></section><section class="section-block"><div class="section-heading"><h2>最小诊断事实</h2><span class="status-tag" data-tone="info">只读</span></div><dl class="description-list"><dt>候选收集</dt><dd>${escapeHtml(candidateCollection)}</dd><dt>可披露候选</dt><dd>${diagnostic.candidateCount ?? "未完成"}</dd><dt>授权判定</dt><dd>${escapeHtml(authorization)}</dd><dt>引用校验</dt><dd>${escapeHtml(citationValidation)}</dd><dt>Chat 版本</dt><dd>${escapeHtml(diagnostic.chatModelRevision)}</dd><dt>Embedding 版本</dt><dd>${escapeHtml(diagnostic.embeddingModelRevision)}</dd><dt>事实时间</dt><dd>${escapeHtml(diagnostic.createdAt)}</dd></dl></section></div>`,
-    `<aside><section class="release-decision"><span class="section-kicker">${actionable ? "可执行下一步" : "运行结论"}</span><h2>${remediation ? "修复事项已创建" : actionable ? "将原因转成交付事项" : "本次运行无需修复"}</h2><p>${actionable ? "只引用运行编号、失败阶段、分类和候选数量，不复制问题、回答或引用正文。" : "回答和引用校验均已完成，可以返回查询治理继续查看。"}</p>${remediation ? `<dl class="description-list"><dt>事项</dt><dd>${escapeHtml(remediation.title)}</dd><dt>负责人</dt><dd>${escapeHtml(remediation.owner)}</dd><dt>阶段</dt><dd>${escapeHtml(remediation.stage)}</dd><dt>状态</dt><dd>待处理</dd></dl>` : ""}<button class="button primary" type="button" data-open-query-remediation data-primary-action${blocked ? " disabled" : ""}>${remediation ? "修复事项已创建" : actionable ? "创建修复事项" : "无需创建修复事项"}</button>${accessGovernanceFeedback ? `<p class="form-feedback" role="status">${escapeHtml(accessGovernanceFeedback)}</p>` : ""}</section></aside></div>`,
+    `<div class="split-detail"><div><section class="section-block"><div class="section-heading"><div><span class="section-kicker mono">${escapeHtml(run.reference)}</span><h2>${escapeHtml(run.assistantName)} · ${escapeHtml(queryOutcomeLabel(run.outcome))}</h2></div>${statusTag(run.outcome)}</div><ol class="process-steps" aria-label="查询终态阶段">${stages.map((stage, index) => `<li data-step-state="complete"><span>${index + 1}</span><strong>${escapeHtml(stageLabels[stage] || stage)}</strong></li>`).join("")}</ol></section><section class="section-block"><div class="section-heading"><h2>最小诊断事实</h2><span class="status-tag" data-tone="info">只读</span></div><dl class="description-list"><dt>候选收集</dt><dd>${escapeHtml(candidateCollection)}</dd><dt>可披露候选</dt><dd>${diagnostic.candidateCount ?? "未完成"}</dd><dt>授权判定</dt><dd>${escapeHtml(authorization)}</dd><dt>引用校验</dt><dd>${escapeHtml(citationValidation)}</dd><dt>对话模型版本</dt><dd>${escapeHtml(diagnostic.chatModelRevision)}</dd><dt>向量模型版本</dt><dd>${escapeHtml(diagnostic.embeddingModelRevision)}</dd><dt>事实时间</dt><dd>${escapeHtml(diagnostic.createdAt)}</dd></dl></section></div>`,
+    `<aside><section class="release-decision"><span class="section-kicker">${actionable ? "可执行下一步" : "运行结论"}</span><h2>${remediation ? "修复事项已创建" : actionable ? "将原因转成交付事项" : "本次运行无需修复"}</h2><p>${actionable ? "只引用运行编号、失败阶段、分类和候选数量，不复制问题、回答或引用正文。" : "回答和引用校验均已完成，可以返回查询治理继续查看。"}</p>${remediation ? `<dl class="description-list"><dt>事项</dt><dd>${escapeHtml(remediation.title)}</dd><dt>负责人</dt><dd>${escapeHtml(remediation.owner)}</dd><dt>阶段</dt><dd>${escapeHtml(stageLabels[remediation.stage] || "待复核")}</dd><dt>状态</dt><dd>待处理</dd></dl>` : ""}<button class="button primary" type="button" data-open-query-remediation data-primary-action${blocked ? " disabled" : ""}>${remediation ? "修复事项已创建" : actionable ? "创建修复事项" : "无需创建修复事项"}</button>${accessGovernanceFeedback ? `<p class="form-feedback" role="status">${escapeHtml(accessGovernanceFeedback)}</p>` : ""}</section></aside></div>`,
     `<dialog id="query-remediation-dialog" class="dialog-surface" aria-labelledby="query-remediation-title"><form id="query-remediation-form" data-query-run-id="${escapeHtml(run.id)}"><div class="dialog-heading"><span class="section-kicker mono">${escapeHtml(run.reference)}</span><h2 id="query-remediation-title">创建查询修复事项</h2></div><label class="field"><span>失败分类</span><select class="select" name="category"><option value="AUTHORIZED_EVIDENCE_EMPTY"${diagnostic.stage === "INSUFFICIENT_EVIDENCE" ? " selected" : ""}>授权后无可披露证据</option><option value="RETRIEVAL_RUNTIME_FAILURE"${diagnostic.stage === "RETRIEVAL_FAILED" ? " selected" : ""}>检索运行失败</option><option value="CITATION_VALIDATION_FAILURE">引用校验失败</option></select></label><label class="field"><span>事项名称</span><input class="input" name="title" minlength="4" maxlength="100" value="${diagnostic.stage === "RETRIEVAL_FAILED" ? "排查检索运行失败" : "复核访问策略与索引覆盖"}" required></label><label class="field"><span>负责人</span><input class="input" name="owner" minlength="2" maxlength="40" value="知识治理组" required></label><p id="query-remediation-feedback" class="form-feedback" role="alert"></p><div class="form-actions dialog-actions"><button class="button secondary" type="button" data-close-query-remediation>取消</button><button class="button primary" type="submit">创建事项</button></div></form></dialog>`,
   ].join("");
   return adminShell("query-diagnostic", "受权查询诊断", "", '<button class="button secondary" type="button" data-nav-screen="governance-query">返回查询治理</button>', body, state, "评测治理 / 查询诊断");
@@ -2406,17 +2415,19 @@ function renderObjectStorageScope(state, snapshot) {
   const projection = prototypeStore.getObjectStorageScopeProjection(workspaceTenantId(), prototypeStore.getSession().accountId);
   if (!projection.ok) return adminShell("object-storage-scope", "对象存储范围", "", "", statePanel("denied", "当前会话不能访问此任务", "页面不会确认对象范围是否存在。", "返回数据来源", "knowledge-sources"), state, "知识处理 / 对象范围");
   const blocked = state !== "success" || projection.availableRanges.length === 0;
+  const scopeView=new URLSearchParams(location.search).get("scopeView") || (projection.registrations.length?"registered":"available");
   const rangeRows = projection.availableRanges.map(range => `<tr><td data-label="签发范围"><span class="primary-cell"><strong>${escapeHtml(range.label)}</strong><span>版本 ${escapeHtml(range.selectionRevision)}</span></span></td><td data-label="驻留区域">${escapeHtml(range.region)}</td><td data-label="冻结对象">${escapeHtml(range.objectCount)} 个</td><td data-label="支持内容">严格 UTF-8 文本</td><td data-label="状态">${statusTag("READY")}</td></tr>`).join("");
   const registrationRows = projection.registrations.map(item => {
     const source = snapshot.knowledgeBases.find(kb => kb.id === item.knowledgeBaseId)?.sources.find(source => source.id === item.id);
-    return `<tr><td data-label="对象来源"><span class="primary-cell"><strong>${escapeHtml(item.name)}</strong><span>${escapeHtml(item.rangeLabel)} · 版本 ${escapeHtml(item.selectionRevision)}</span></span></td><td data-label="知识库">${escapeHtml(item.knowledgeBaseName)}</td><td data-label="冻结对象">${escapeHtml(item.objectCount)} 个</td><td data-label="状态"><span class="status-tag" data-tone="warning">${source?.stage === "RECEIVED" ? "待探测" : escapeHtml(source?.stage || "未接通来源")}</span></td><td data-label="建立时间">${escapeHtml(item.createdAt)}<button class="button secondary compact" type="button" data-select-kb="${escapeHtml(item.knowledgeBaseId)}" data-select-source="${escapeHtml(item.id)}" data-nav-screen="source-detail"${source ? "" : " disabled"}>查看并继续处理</button></td></tr>`;
+    return `<tr><td data-label="对象来源"><span class="primary-cell"><strong>${escapeHtml(item.name)}</strong><span>${escapeHtml(item.rangeLabel)} · 版本 ${escapeHtml(item.selectionRevision)}</span></span></td><td data-label="知识库">${escapeHtml(item.knowledgeBaseName)}</td><td data-label="冻结对象">${escapeHtml(item.objectCount)} 个</td><td data-label="状态"><span class="status-tag" data-tone="warning">${source?.stage === "RECEIVED" ? "待探测" : sourceStageName(source?.stage)}</span></td><td data-label="建立时间">${escapeHtml(item.createdAt)}<button class="button secondary compact" type="button" data-select-kb="${escapeHtml(item.knowledgeBaseId)}" data-select-source="${escapeHtml(item.id)}" data-nav-screen="source-detail"${source ? "" : " disabled"}>查看并继续处理</button></td></tr>`;
   }).join("");
   const body = [
     state === "partial" ? '<div class="inline-note warning">签发目录正在刷新；当前列表可查看但不能登记。</div>' : "",
     state === "disabled" ? '<div class="inline-note warning">平台已关闭知识管理；既有登记保持只读。</div>' : "",
     '<div class="inline-note">只选择平台签发范围。桶名、对象键、端点与凭据不会进入页面或浏览器状态。</div>',
-    `<section class="section-block"><div class="section-heading"><div><span class="section-kicker">当前可用</span><h2>${projection.availableRanges.length} 个签发范围</h2></div><span class="status-tag" data-tone="info">只读目录</span></div><div class="table-shell"><table class="data-table"><thead><tr><th>签发范围</th><th>驻留区域</th><th>冻结对象</th><th>支持内容</th><th>状态</th></tr></thead><tbody>${rangeRows}</tbody></table></div></section>`,
-    `<section class="section-block"><div class="section-heading"><div><span class="section-kicker">当前知识工作区</span><h2>已登记对象来源</h2></div><span>${projection.registrations.length} 个</span></div>${projection.registrations.length ? `<div class="table-shell"><table class="data-table"><thead><tr><th>对象来源</th><th>知识库</th><th>冻结对象</th><th>状态</th><th>建立时间</th></tr></thead><tbody>${registrationRows}</tbody></table></div>` : '<div class="empty-inline"><strong>尚未登记对象来源</strong><span>从上方签发范围建立来源后，将进入探测与同步流程。</span></div>'}${dataGovernanceFeedback ? `<p class="form-feedback" role="status">${escapeHtml(dataGovernanceFeedback)}</p>` : ""}</section>`,
+    `<nav class="object-navigation" aria-label="对象范围目录"><button class="button secondary" data-scope-view="available"${scopeView==="available"?' aria-current="page"':''}>可用签发范围</button><button class="button secondary" data-scope-view="registered"${scopeView==="registered"?' aria-current="page"':''}>已登记来源</button></nav>`,
+    scopeView==="available" ? `<section class="section-block"><div class="section-heading"><div><span class="section-kicker">当前可用</span><h2>${projection.availableRanges.length} 个签发范围</h2></div><span class="status-tag" data-tone="info">只读目录</span></div><div class="table-shell"><table class="data-table"><thead><tr><th>签发范围</th><th>驻留区域</th><th>冻结对象</th><th>支持内容</th><th>状态</th></tr></thead><tbody>${rangeRows}</tbody></table><div class="pagination"></div></div></section>` : "",
+    scopeView==="registered" ? `<section class="section-block"><div class="section-heading"><div><span class="section-kicker">当前知识工作区</span><h2>已登记对象来源</h2></div><span>${projection.registrations.length} 个</span></div>${projection.registrations.length ? `<div class="table-shell"><table class="data-table"><thead><tr><th>对象来源</th><th>知识库</th><th>冻结对象</th><th>状态</th><th>建立时间</th></tr></thead><tbody>${registrationRows}</tbody></table><div class="pagination"></div></div>` : '<div class="empty-inline"><strong>尚未登记对象来源</strong><span>从上方签发范围建立来源后，将进入探测与同步流程。</span></div>'}${dataGovernanceFeedback ? `<p class="form-feedback" role="status">${escapeHtml(dataGovernanceFeedback)}</p>` : ""}</section>` : "",
     `<dialog id="object-scope-dialog" class="dialog-surface" aria-labelledby="object-scope-title"><form id="object-scope-form"><div class="dialog-heading"><span class="section-kicker">只登记签发事实</span><h2 id="object-scope-title">登记对象来源</h2></div><label class="field"><span>来源名称</span><input class="input" name="name" value="华东办公制度对象来源" minlength="2" maxlength="80" required></label><label class="field"><span>目标知识库</span><select class="select" name="knowledgeBaseId">${snapshot.knowledgeBases.filter(item => item.tenantId === workspaceTenantId()).map(item => `<option value="${escapeHtml(item.id)}">${escapeHtml(item.name)}</option>`).join("")}</select></label><label class="field"><span>平台签发范围</span><select class="select" name="rangeId">${projection.availableRanges.map(range => `<option value="${escapeHtml(range.id)}">${escapeHtml(range.label)} · ${escapeHtml(range.objectCount)} 个文本对象</option>`).join("")}</select><small>范围版本由平台冻结，不能手工输入。</small></label><div class="dialog-impact"><div><dt>登记结果</dt><dd>建立待探测来源，不自动同步或发布</dd></div><div><dt>失败语义</dt><dd>范围变化或越权时不留下半成品</dd></div></div><p id="object-scope-feedback" class="form-feedback" role="alert"></p><div class="form-actions dialog-actions"><button class="button secondary" type="button" data-close-object-scope>取消</button><button class="button primary" type="submit">确认登记</button></div></form></dialog>`,
   ].join("");
   return adminShell("object-storage-scope", "对象范围登记", "", `<button class="button primary" type="button" data-open-object-scope data-primary-action${blocked ? " disabled" : ""}>登记对象范围</button>`, body, state, "知识处理 / 对象范围");
@@ -2594,7 +2605,7 @@ function bindIndexManagement() {
     const knowledgeBase = selectedKnowledgeBase(snapshot);
     const trigger = new FormData(event.currentTarget).get("trigger");
     const definitions = {
-      CONFIGURATION_CHANGE: { changedFields: ["embeddingModel", "embeddingDimension", "distanceMetric"], reason: "Embedding、维度或距离度量变化" },
+      CONFIGURATION_CHANGE: { changedFields: ["embeddingModel", "embeddingDimension", "distanceMetric"], reason: "向量模型、维度或距离度量变化" },
       PARSER_CHANGE: { changedFields: ["parserVersion", "chunkingStrategy"], reason: "解析器或分块策略变化" },
       MANUAL_REBUILD: { changedFields: [], reason: "内容治理后手动全量重建" },
     };
@@ -3130,16 +3141,19 @@ function bindInteractions(screen) {
   root.querySelectorAll('[data-document-view]').forEach(button=>button.onclick=()=>updateObjectParams({documentView:button.dataset.documentView,page:1,before:null,documentVersion:null}));
   root.querySelectorAll('[data-document-version]').forEach(button=>button.onclick=()=>updateObjectParams({documentView:'preview',documentVersion:button.dataset.documentVersion}));
   root.querySelectorAll('[data-record-before]').forEach(button=>button.onclick=()=>updateObjectParams({before:button.dataset.recordBefore}));
+  root.querySelectorAll('[data-scope-view]').forEach(button=>button.onclick=()=>updateObjectParams({scopeView:button.dataset.scopeView,page:1,q:null}));
   root.querySelectorAll('[data-object-page]').forEach(button=>button.onclick=()=>updateObjectParams({page:button.dataset.objectPage},'[data-object-page][aria-current="page"]'));
   root.querySelector('[data-object-size]')?.addEventListener('change',event=>updateObjectParams({size:event.target.value,page:1},'[data-object-size]'));
   if(root.querySelector('[data-object-pagination]')){
-    const search=root.querySelector('.toolbar input[type="search"]');
+    const search=root.querySelector('.toolbar input[type="search"], #assistant-search');
     if(search)search.value=new URLSearchParams(location.search).get('q')||'';
+    const filter=root.querySelector('[data-account-status-filter], [data-directory-status]');
+    if(filter){filter.value=new URLSearchParams(location.search).get('status')||'';filter.addEventListener('change',event=>updateObjectParams({status:event.target.value,page:1},'[data-account-status-filter], [data-directory-status]'));}
   }
-  if(root.querySelector('[data-object-pagination]'))root.querySelector('.toolbar input[type="search"]')?.addEventListener('input',event=>{
+  if(root.querySelector('[data-object-pagination]'))root.querySelector('.toolbar input[type="search"], #assistant-search')?.addEventListener('input',event=>{
     const value=event.target.value, position=event.target.selectionStart;
     updateObjectParams({q:value,page:1});
-    const control=root.querySelector('.toolbar input[type="search"]');control?.focus();control?.setSelectionRange(position,position);
+    const control=root.querySelector('.toolbar input[type="search"], #assistant-search');control?.focus();control?.setSelectionRange(position,position);
   });
   const jumpObjectPage=()=>{
     const input=root.querySelector('[data-object-jump]');
@@ -3237,10 +3251,7 @@ function bindInteractions(screen) {
   root
     .querySelector("[data-clear-assistant-search]")
     ?.addEventListener("click", () => {
-      const input = root.querySelector("#assistant-search");
-      input.value = "";
-      input.focus();
-      filterAssistants("");
+      updateObjectParams({q:null,page:1},'#assistant-search');
     });
   root.querySelectorAll("[data-assistant-id]").forEach((element) => {
     element.addEventListener("click", () => {
@@ -3717,6 +3728,7 @@ function bindAccountManagement() {
 }
 
 function bindDirectorySearch() {
+  if(root.querySelector('[data-object-pagination]'))return;
   const apply = input => {
     const query = input.value.trim().toLocaleLowerCase("zh-CN");
     const status = root.querySelector("[data-directory-status]")?.value || "";
@@ -4135,16 +4147,16 @@ function bindMemberManagement() {
 
 function bindHealthManagement() {
   root.querySelector('[data-load-health-records]')?.addEventListener('click', event => {
-    const earlier = [...root.querySelectorAll('.timeline-list li[hidden]')];
-    earlier.slice(0, 5).forEach(row => { row.hidden = false; });
-    root.querySelector('#health-feedback').textContent = `已显示 ${root.querySelectorAll('.timeline-list li:not([hidden])').length} 条处理记录。`;
-    if (earlier.length <= 5) { event.currentTarget.disabled = true; event.currentTarget.textContent = '已加载全部记录'; }
+    const url=new URL(location.href);url.searchParams.set('healthBefore',event.currentTarget.dataset.loadHealthRecords);
+    history.pushState({},'',url);render();root.querySelector('.timeline-list')?.focus();
   });
+  root.querySelector('[data-health-latest]')?.addEventListener('click',()=>{const url=new URL(location.href);url.searchParams.delete('healthBefore');history.pushState({},'',url);render();});
   root
     .querySelectorAll('[data-business-action="select-health-incident"]')
     .forEach((button) => {
       button.addEventListener("click", () => {
         prototypeStore.selectHealthIncident(button.dataset.incidentId);
+        const url=new URL(location.href);url.searchParams.set('healthIncident',button.dataset.incidentId);url.searchParams.delete('healthBefore');history.replaceState({},'',url);
         render();
       });
     });
@@ -4152,14 +4164,16 @@ function bindHealthManagement() {
     event.preventDefault();
     const snapshot = prototypeStore.getWorkspaceSnapshot();
     const action = new FormData(event.currentTarget).get("action");
-    prototypeStore.recordHealthAction(snapshot.health.selectedIncidentId, action);
+    prototypeStore.recordHealthAction(root.querySelector('[data-health-incident]')?.dataset.healthIncident || snapshot.health.selectedIncidentId, action);
+    const url=new URL(location.href);url.searchParams.delete('healthBefore');history.replaceState({},'',url);
     render();
   });
   root
     .querySelector('[data-business-action="recheck-health"]')
     ?.addEventListener("click", () => {
       const snapshot = prototypeStore.getWorkspaceSnapshot();
-      prototypeStore.recheckHealth(snapshot.health.selectedIncidentId);
+      prototypeStore.recheckHealth(root.querySelector('[data-health-incident]')?.dataset.healthIncident || snapshot.health.selectedIncidentId);
+      const url=new URL(location.href);url.searchParams.delete('healthBefore');history.replaceState({},'',url);
       render();
     });
 }
@@ -4515,6 +4529,7 @@ function bindStructuredObjectGovernance() {
     }
     objectDialog?.close();
     dataGovernanceFeedback = result.replayed ? "该范围版本已经登记，没有重复创建来源。" : `已登记“${result.registration.name}”，下一步执行范围探测。`;
+    const next=new URL(location.href);next.searchParams.set('scopeView','registered');next.searchParams.delete('q');next.searchParams.set('page','1');history.replaceState({},'',next);
     render();
   });
 }

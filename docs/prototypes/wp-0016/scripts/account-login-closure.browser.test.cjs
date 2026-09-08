@@ -120,7 +120,7 @@ for (const width of [390, 1024, 1440]) {
     await form.locator('[name="password"]').fill("not-a-public-fixture");
     await form.locator('[name="passwordConfirmation"]').fill("not-a-public-fixture");
     await form.getByRole("button", { name: "创建账户", exact: true }).click();
-    assert.match(await form.locator("[role=alert]").innerText(), /公开演示口令/);
+    assert.match(await form.locator("[role=alert]").innerText(), /公开演示密码/);
     assert.equal(await form.locator('[name="password"]').inputValue(), "");
     await form.getByRole("button", { name: "取消", exact: true }).click();
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
