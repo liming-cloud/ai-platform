@@ -1,8 +1,8 @@
 {
   "workPackage": "WP-0016",
-  "generatedOn": "2026-09-07",
+  "generatedOn": "2026-09-08",
   "browserVerification": "passed",
-  "browserVerificationNote": "成员开户治理与厂商预填已按明确授权实现；当前报告按目标页面及状态核对控件，不采纳旧空壳计数。技术可重新送验，人工拒绝仍有效。",
+  "browserVerificationNote": "阶段一二候选的 161 项 Node、157 项浏览器和全页布局回归通过；不是全量迁移或人工验收通过。",
   "classification": {
     "navigation": "仅改变原型页面，不计作业务完成",
     "implementedStateChange": "合成状态已有 Node 测试；browserVerified 只表示条目注明的浏览器范围，不代表完整业务或人工通过",
@@ -14,20 +14,66 @@
   },
   "summary": {
     "navigation": 31,
-    "implementedRead": 21,
-    "implementedStateChange": 94,
+    "implementedRead": 23,
+    "implementedStateChange": 97,
     "pendingDecision": 1,
     "unimplemented": 2,
     "forbidden": 1,
     "partialSimulation": 0,
-    "totalPages": 73,
-    "totalControls": 150,
+    "totalPages": 78,
+    "totalControls": 155,
     "unclosedControls": 0,
     "allControlsEnumerated": true,
-    "readyForFullAcceptance": true,
+    "readyForFullAcceptance": false,
     "deferredControls": 3
   },
   "pages": [
+    {
+      "screen": "assistant-overview",
+      "phase": "M6",
+      "shell": "console",
+      "primaryTask": "查看当前助手版本并继续交付",
+      "controls": [
+        {
+          "label": "查看版本、继续交付与开放成员使用",
+          "kind": "navigation",
+          "status": "implementedRead",
+          "browserVerified": true,
+          "note": "本轮定向验证通过，非全量人工验收结论",
+          "browserEvidence": "artifacts/stage-two-validation-summary.json",
+          "browserScope": "样板专项及既有业务回归，人工方向待确认"
+        }
+      ],
+      "stageTwo": {
+        "implementation": "样板实现并通过本轮定向验证",
+        "nodeEvidence": "scripts/stage-two-closure.test.mjs",
+        "browserStatus": "passed",
+        "browserEvidence": "artifacts/stage-two-validation-summary.json"
+      }
+    },
+    {
+      "screen": "tenant-member-create",
+      "phase": "M6",
+      "shell": "console",
+      "primaryTask": "分三步创建并授权普通成员",
+      "controls": [
+        {
+          "label": "成员开户向导",
+          "kind": "primaryAction",
+          "status": "implementedStateChange",
+          "browserVerified": true,
+          "note": "本轮定向验证通过，非全量人工验收结论",
+          "browserEvidence": "artifacts/stage-two-validation-summary.json",
+          "browserScope": "样板专项及既有业务回归，人工方向待确认"
+        }
+      ],
+      "stageTwo": {
+        "implementation": "样板实现并通过本轮定向验证",
+        "nodeEvidence": "scripts/stage-two-closure.test.mjs",
+        "browserStatus": "passed",
+        "browserEvidence": "artifacts/stage-two-validation-summary.json"
+      }
+    },
     {
       "screen": "console-login",
       "phase": "M6",
@@ -760,46 +806,70 @@
           "kind": "primaryOrTaskControl",
           "status": "navigation",
           "evidence": "进入文件选择，不计作内容已更新",
-          "browserVerified": false
+          "browserVerified": true,
+          "browserEvidence": "artifacts/stage-two-validation-summary.json",
+          "browserScope": "样板专项及既有业务回归，人工方向待确认"
         },
         {
           "label": "重新处理",
           "kind": "primaryOrTaskControl",
           "status": "implementedStateChange",
           "evidence": "knowledge-ingestion-state.test.mjs 与 knowledge-ingestion.browser.test.cjs：建立新修订且活动索引继续服务",
-          "browserVerified": true
+          "browserVerified": true,
+          "browserEvidence": "artifacts/stage-two-validation-summary.json",
+          "browserScope": "样板专项及既有业务回归，人工方向待确认"
         },
         {
           "label": "安全重试",
           "kind": "taskControl",
           "status": "implementedStateChange",
           "evidence": "knowledge-ingestion-state.test.mjs 与 knowledge-ingestion.browser.test.cjs：失败来源从结构化安全阶段重试",
-          "browserVerified": true
+          "browserVerified": true,
+          "browserEvidence": "artifacts/stage-two-validation-summary.json",
+          "browserScope": "样板专项及既有业务回归，人工方向待确认"
         },
         {
           "label": "刷新处理状态",
           "kind": "taskControl",
           "status": "implementedStateChange",
           "evidence": "knowledge-ingestion-state.test.mjs 与 knowledge-ingestion.browser.test.cjs：统一阶段推进并刷新恢复",
-          "browserVerified": true
+          "browserVerified": true,
+          "browserEvidence": "artifacts/stage-two-validation-summary.json",
+          "browserScope": "样板专项及既有业务回归，人工方向待确认"
         },
         {
-          "label": "重建索引",
+          "label": "进入知识库索引管理",
           "kind": "primaryOrTaskControl",
           "status": "navigation",
-          "evidence": "进入索引重建页，不计作重建完成",
-          "browserVerified": false
+          "evidence": "导航到当前知识库索引目录；文档页不提供全库重建",
+          "browserVerified": true,
+          "browserEvidence": "artifacts/stage-two-validation-summary.json",
+          "browserScope": "样板专项及既有业务回归，人工方向待确认"
         },
         {
           "label": "单文件重建索引并复用其他来源",
           "kind": "taskControl",
           "status": "implementedStateChange",
           "evidence": "project/evidence/WP-0016-full-closure-prototype-20260906.md",
-          "browserEvidence": "artifacts/full-closure-verification-20260906.json",
+          "browserEvidence": "artifacts/stage-two-validation-summary.json",
           "browserVerified": true,
-          "browserScope": "本轮专项测试与全量浏览器回归"
+          "browserScope": "样板专项及既有业务回归，人工方向待确认"
         }
-      ]
+      ],
+      "stageTwo": {
+        "implementation": "样板实现并通过本轮定向验证",
+        "nodeEvidence": "scripts/stage-two-closure.test.mjs",
+        "browserStatus": "passed",
+        "readControls": [
+          "内容预览",
+          "处理记录",
+          "加载更早记录",
+          "返回最新记录",
+          "版本目录",
+          "查看版本内容"
+        ],
+        "browserEvidence": "artifacts/stage-two-validation-summary.json"
+      }
     },
     {
       "screen": "processing-quality",
@@ -1861,19 +1931,88 @@
           "browserVerified": false
         }
       ]
+    },
+    {
+      "screen": "tenant-member-account",
+      "phase": "M6",
+      "shell": "console",
+      "primaryTask": "查看成员账号",
+      "controls": [
+        {
+          "label": "读取当前成员账号并进入独立设置页",
+          "kind": "primaryAction",
+          "status": "implementedRead",
+          "browserVerified": true,
+          "note": "本轮定向验证通过，非全量人工验收结论",
+          "browserEvidence": "artifacts/stage-two-validation-summary.json",
+          "browserScope": "样板专项及既有业务回归，人工方向待确认"
+        }
+      ],
+      "stageTwo": {
+        "implementation": "样板实现并通过本轮定向验证",
+        "nodeEvidence": "scripts/stage-two-closure.test.mjs",
+        "browserStatus": "passed",
+        "browserEvidence": "artifacts/stage-two-validation-summary.json"
+      }
+    },
+    {
+      "screen": "tenant-member-features",
+      "phase": "M6",
+      "shell": "console",
+      "primaryTask": "保存成员对话功能",
+      "controls": [
+        {
+          "label": "对象读取与独立保存复验",
+          "kind": "primaryAction",
+          "status": "implementedStateChange",
+          "browserVerified": true,
+          "note": "本轮定向验证通过，非全量人工验收结论",
+          "browserEvidence": "artifacts/stage-two-validation-summary.json",
+          "browserScope": "样板专项及既有业务回归，人工方向待确认"
+        }
+      ],
+      "stageTwo": {
+        "implementation": "样板实现并通过本轮定向验证",
+        "nodeEvidence": "scripts/stage-two-closure.test.mjs",
+        "browserStatus": "passed",
+        "browserEvidence": "artifacts/stage-two-validation-summary.json"
+      }
+    },
+    {
+      "screen": "tenant-member-assistants",
+      "phase": "M6",
+      "shell": "console",
+      "primaryTask": "保存成员可用助手",
+      "controls": [
+        {
+          "label": "对象读取与独立保存复验",
+          "kind": "primaryAction",
+          "status": "implementedStateChange",
+          "browserVerified": true,
+          "note": "本轮定向验证通过，非全量人工验收结论",
+          "browserEvidence": "artifacts/stage-two-validation-summary.json",
+          "browserScope": "样板专项及既有业务回归，人工方向待确认"
+        }
+      ],
+      "stageTwo": {
+        "implementation": "样板实现并通过本轮定向验证",
+        "nodeEvidence": "scripts/stage-two-closure.test.mjs",
+        "browserStatus": "passed",
+        "browserEvidence": "artifacts/stage-two-validation-summary.json"
+      }
     }
   ],
   "coverage": {
-    "scope": "61 个 M6 页面七态，包括侧栏、账户菜单和隐藏弹窗；其余 10 页仅布局与信息架构，2 页及邮件邀请暂缓",
+    "scope": "66 个范围内 M6 入口七态；其余 10 页只做视觉与信息架构，2 页及邮件邀请暂缓。",
     "allControlsEnumerated": true,
-    "controlInstanceCount": 6517,
-    "sceneCount": 427,
-    "inventoryReport": "artifacts/member-provider-verification-20260907.json",
+    "controlInstanceCount": 7779,
+    "sceneCount": 462,
+    "inventoryReport": "artifacts/stage-two-validation-summary.json",
     "limitation": "summary.totalControls 是人工可读的业务操作组，不等于七态 DOM 控件实例数；监听器接线检查不能替代专项行为测试或穷举全部输入组合。"
   },
-  "browserEvidenceReport": "artifacts/member-provider-verification-20260907.json",
+  "browserEvidenceReport": "artifacts/stage-two-validation-summary.json",
   "acceptanceAudit": {
-    "checkedOn": "2026-09-07",
+    "checkedOn": "2026-09-08",
     "technicalStatus": "passed",
     "humanReviewStatus": "rejected",
     "excludedTasks": [
@@ -1891,13 +2030,13 @@
       }
     ],
     "blockingFindingGroups": 0,
-    "report": "artifacts/member-provider-verification-20260907.json",
-    "evidence": "project/evidence/WP-0016-member-provider-closure-20260907.md",
-    "scope": "73 页布局、61 个 M6 页面任务；渠道绑定、设备凭据和邮件邀请仍暂缓。",
-    "baselineImplementationCommit": "10fd8eaaa71bc66cc8f3fe96f20c7dac58f7fd1c",
-    "verificationScope": "本轮 151 个 Node、143 个浏览器专项及完整矩阵通过；不代表生产能力或人工通过。",
+    "report": "artifacts/stage-two-validation-summary.json",
+    "evidence": "project/evidence/WP-0016-usability-sample-20260908.md",
+    "scope": "阶段一二样板与共享组件回归；78 页布局检查不表示其余页面已迁移。",
+    "baselineImplementationCommit": "6d4249a73585744453b528b55b742fbca0ab542a",
+    "verificationScope": "161 个 Node、157 个浏览器、1638 个布局场景；样板方向等待人工确认。",
     "unclosedControls": 0,
     "baselineAudit": "project/evidence/WP-0016-acceptance-preflight-20260905.md",
-    "currentCandidate": "awaitingHumanReview"
+    "currentCandidate": "awaitingSampleDirectionReview"
   }
 }

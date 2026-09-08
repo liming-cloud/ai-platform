@@ -1,83 +1,117 @@
+/* 来源：OpenDesign 本机 design-systems/claude/tokens.css，Claude 风格参考包，非官方完整企业规范。
+ * 保留包内令牌名和值：暖纸画布、象牙面板、陶土强调、暖中性色、衬线标题与无衬线正文。
+ * 原包采用环形边界与轻阴影；蓝色焦点仅供无障碍。企业密度、中文字体、深行动色与控件尺寸集中在第二层扩展。
+ * 状态色区分成功、警告、错误；动效只反馈交互，不延迟业务结果。
+ */
+
+
+:root {
+
+  --bg: #f5f4ed;
+  --surface: #faf9f5;
+  --surface-warm: #e8e6dc;
+
+  --fg: #141413;
+  --fg-2: #3d3d3a;
+  --muted: #5e5d59;
+  --meta: #87867f;
+
+  --border: #f0eee6;
+  --border-soft: #e8e6dc;
+
+  --accent: #c96442;
+  --accent-on: #faf9f5;
+  --accent-hover: color-mix(in oklab, var(--accent), black 8%);
+  --accent-active: color-mix(in oklab, var(--accent), black 14%);
+
+  --success: #17a34a;
+  --warn: #eab308;
+  --danger: #b53333;
+
+  --font-display: "Anthropic Serif", Georgia, "Times New Roman", serif;
+  --font-body: "Anthropic Sans", "Arial", system-ui, -apple-system, sans-serif;
+  --font-mono: "Anthropic Mono", ui-monospace, "JetBrains Mono", Menlo, monospace;
+
+  --text-xs: 10px;
+  --text-sm: 14px;
+  --text-base: 16px;
+  --text-lg: 20px;
+  --text-xl: 25px;
+  --text-2xl: 32px;
+  --text-3xl: 52px;
+  --text-4xl: 64px;
+
+  --leading-body: 1.6;
+  --leading-tight: 1.1;
+  --tracking-display: 0em;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-12: 48px;
+
+  --section-y-desktop: 96px;
+  --section-y-tablet: 64px;
+  --section-y-phone: 48px;
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-pill: 9999px;
+
+  --elev-flat: none;
+  --elev-ring: 0 0 0 1px var(--border);
+  --elev-raised: rgba(0, 0, 0, 0.05) 0px 4px 24px;
+
+  --focus-ring: 0 0 0 3px rgba(56, 152, 236, 0.3);
+
+  --motion-fast: 150ms;
+  --motion-base: 200ms;
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+
+  --container-max: 1200px;
+  --container-gutter-desktop: 24px;
+  --container-gutter-tablet: 16px;
+  --container-gutter-phone: 12px;
+}
+
 :root {
   color-scheme: light;
-  --design-variance: 7;
-  --motion-intensity: 5;
-  --visual-density: 7;
-  --color-canvas: #f4f6f5;
-  --color-sidebar: #f8faf9;
-  --color-surface: #ffffff;
-  --color-surface-subtle: #f1f4f2;
-  --color-surface-hover: #e9efec;
-  --color-border: #dfe5e2;
-  --color-border-strong: #c7d1cd;
-  --color-text: #17201e;
-  --color-text-secondary: #65706c;
-  --color-text-tertiary: #7b8682;
-  --color-accent: #126b5c;
-  --color-accent-hover: #0e5a4d;
-  --color-accent-subtle: #e7f2ef;
-  --color-accent-border: #bdd8d1;
-  --color-focus: #0f6cbd;
-  --color-success: #0f6b45;
-  --color-success-bg: #e8f4ed;
-  --color-success-border: #b8d9c7;
-  --color-warning: #8a4b08;
-  --color-warning-bg: #fff4ce;
-  --color-warning-border: #e8cf8d;
-  --color-danger: #b10e1e;
-  --color-danger-bg: #fde7e9;
-  --color-danger-border: #e7b8bd;
-  --color-info: #0f548c;
-  --color-info-bg: #e8f3fb;
-  --color-info-border: #b8d5ea;
-  --color-overlay: rgb(23 32 30 / 36%);
-  --shadow-subtle: 0 1px 2px rgb(23 32 30 / 5%);
-  --shadow-floating: 0 12px 32px rgb(23 32 30 / 14%);
-  --radius-control: 0.5rem;
-  --radius-panel: 0.75rem;
-  --radius-round: 999px;
-  --space-1: 0.25rem;
-  --space-2: 0.5rem;
-  --space-3: 0.75rem;
-  --space-4: 1rem;
-  --space-5: 1.25rem;
-  --space-6: 1.5rem;
-  --space-8: 2rem;
-  --space-10: 2.5rem;
-  --space-12: 3rem;
-  --font-sans:
-    "Segoe UI Variable", "Segoe UI", "Microsoft YaHei UI", system-ui, sans-serif;
-  --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
-  --text-xs: 0.8125rem;
-  --text-sm: 0.9375rem;
-  --text-md: 1rem;
-  --text-lg: 1.125rem;
-  --text-xl: 1.5rem;
-  --text-2xl: 2rem;
-  --line-body: 1.6;
-  --sidebar-width: 15rem;
-  --history-width: 17rem;
-  --content-max: 73.75rem;
-  --message-max: 48.75rem;
-  --control-height: 2.75rem;
-  --navigation-icon-size: 1.5rem;
-  --table-row-height: 3.5rem;
-  --motion-fast: 160ms;
-  --motion-normal: 200ms;
-  --motion-slow: 240ms;
+  --design-variance: 7; --motion-intensity: 5; --visual-density: 7;
+  --font-display:Georgia,"Songti SC","Noto Serif CJK SC",SimSun,serif;
+  --font-body:"PingFang SC","Microsoft YaHei","Segoe UI",system-ui,sans-serif;
+  --font-sans:var(--font-body);
+  --action:color-mix(in oklab,var(--accent),var(--fg) 24%);
+  --color-canvas:var(--bg); --color-sidebar:var(--surface); --color-surface:var(--surface);
+  --color-surface-subtle:var(--bg); --color-surface-hover:var(--surface-warm);
+  --color-border:var(--border-soft); --color-border-strong:color-mix(in oklab,var(--fg),var(--surface) 60%);
+  --color-text:var(--fg); --color-text-secondary:var(--muted); --color-text-tertiary:var(--muted);
+  --color-accent:var(--action); --color-accent-hover:color-mix(in oklab,var(--accent),var(--fg) 36%);
+  --color-accent-subtle:color-mix(in oklab,var(--accent),var(--surface) 90%);
+  --color-accent-border:color-mix(in oklab,var(--accent),var(--surface) 55%);
+  --color-focus:var(--action);
+  --color-success:color-mix(in oklab,var(--success),var(--fg) 45%);
+  --color-success-bg:color-mix(in oklab,var(--success),var(--surface) 94%);
+  --color-success-border:color-mix(in oklab,var(--success),var(--surface) 65%);
+  --color-warning:color-mix(in oklab,var(--warn),var(--fg) 65%);
+  --color-warning-bg:color-mix(in oklab,var(--warn),var(--surface) 90%);
+  --color-warning-border:color-mix(in oklab,var(--warn),var(--surface) 55%);
+  --color-danger:var(--danger); --color-danger-bg:color-mix(in oklab,var(--danger),var(--surface) 94%);
+  --color-danger-border:color-mix(in oklab,var(--danger),var(--surface) 65%);
+  --color-info:var(--fg-2); --color-info-bg:var(--bg); --color-info-border:var(--border-soft);
+  --color-overlay:color-mix(in oklab,var(--fg),transparent 64%);
+  --shadow-subtle:var(--elev-ring); --shadow-floating:var(--elev-raised);
+  --radius-control:var(--radius-sm); --radius-panel:var(--radius-md); --radius-round:var(--radius-pill);
+  --space-10:40px; --text-md:16px; --line-body:1.6;
+  --sidebar-width:15rem; --history-width:17rem; --content-max:73.75rem; --message-max:48.75rem;
+  --control-height:44px; --navigation-icon-size:24px; --table-row-height:56px;
+  --text-xs:14px;
+  --motion-complex:240ms; --motion-normal:var(--motion-base); --motion-slow:var(--motion-complex);
+  --section-y-desktop:32px; --section-y-tablet:24px; --section-y-phone:24px;
 }
-
-@media (max-width: 1040px) and (min-width: 681px) {
-  :root {
-    --sidebar-width: 5rem;
-    --history-width: 15rem;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  :root {
-    --motion-fast: 1ms;
-    --motion-normal: 1ms;
-    --motion-slow: 1ms;
-  }
-}
+@media (max-width:1040px) and (min-width:681px) { :root { --sidebar-width:5rem; --history-width:15rem; } }
+@media (prefers-reduced-motion:reduce) { :root { --motion-fast:0ms; --motion-base:0ms; --motion-complex:0ms; } }

@@ -83,10 +83,13 @@ test("租户创建普通人员并授权，再由本人首次登录提问", () =>
   await page.goto(url("tenant-members"));
   await page.locator('[data-business-action="open-add-member"]').click();
   await page.locator('#add-member-form [name="loginName"]').fill('lin.member');
+  await page.locator('#add-member-form').getByRole('button', { name: '下一步', exact: true }).click();
+  await page.locator('#add-member-form [data-choice-id="assistant-employee-service"]').check();
+  await page.locator('#add-member-form').getByRole('button', { name: '下一步', exact: true }).click();
   await page.locator('#add-member-form [name="password"]').fill('demo-only');
   await page.locator('#add-member-form [name="passwordConfirmation"]').fill('demo-only');
-  await page.locator("#add-member-form").getByRole("button", { name: "确认添加", exact: true }).click();
-  await page.locator("#add-member-dialog").waitFor({ state: "hidden" });
+  await page.locator("#add-member-form").getByRole("button", { name: "创建成员", exact: true }).click();
+  await page.locator('main[data-screen="tenant-member-account"]').waitFor();
   await attempt(page, "lin.member", "demo-only", true);
   await page.locator('main[data-screen="assistants"]').waitFor();
   assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem("wp0016-query-session-v1")).accountId), id);
@@ -110,7 +113,7 @@ for (const width of [390, 1024, 1440]) {
     await page.goto(url("platform-accounts"));
     await page.getByRole("button", { name: "创建平台账户", exact: true }).click();
     const form = page.locator("#create-account-form");
-    await form.getByText("演示口令说明", { exact: true }).click();
+    await form.getByText("演示密码说明", { exact: true }).click();
     assert.match(await form.innerText(), /Initial-only-2026!/);
     await page.screenshot({ path: join(artifacts, `account-login-help-${width}.png`), fullPage: true });
     await form.locator('[name="loginName"]').fill("rejected.person");

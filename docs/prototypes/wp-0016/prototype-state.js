@@ -37,6 +37,7 @@ const SCREEN_FEATURE = Object.freeze({
   "assistants-directory": "assistantDelivery",
   "assistant-create": "assistantDelivery",
   "assistant-draft": "assistantDelivery",
+  "assistant-overview": "assistantDelivery",
   "assistant-test": "assistantDelivery",
   "assistant-evaluation": "assistantDelivery",
   "assistant-release": "assistantDelivery",
@@ -3404,7 +3405,7 @@ export function createPrototypeStore(storage = browserStorage()) {
     if (storageGb > tenantById(knowledgeBase.tenantId).quotas.rawContentGbPerKnowledgeBase) return { ok: false, reason: "STORAGE_QUOTA_EXCEEDED" };
     const source = { ...current, name: String(input.name).trim(), kind: input.mode === "paste" ? "粘贴文本" : FILE_TYPES[String(input.name).split(".").at(-1).toLowerCase()].kind,
       revision: `rev-${String(Number(current.revision.replace("rev-", "")) + 1).padStart(4, "0")}`,
-      previousRevisions: [...(current.previousRevisions || []), { revision: current.revision, name: current.name, sizeMb: current.sizeMb }],
+      previousRevisions: [...(current.previousRevisions || []), { revision: current.revision, name: current.name, sizeMb: current.sizeMb, extractedText: current.extractedText }],
       sizeMb, stage: "RECEIVED", status: "PROCESSING", indexed: false, rawContentStored: false,
       simulatedFailure: input.simulatedFailure || null, error: null, detail: "新版本已接收，旧活动索引继续服务。",
     };
@@ -3415,6 +3416,8 @@ export function createPrototypeStore(storage = browserStorage()) {
 
   function updateKnowledgeSource(knowledgeBase, source) {
     const previous = knowledgeBase.sources.find(item => item.id === source.id);
+    // 合成操作记录只在状态实际推进时追加，不虚构后台时间或真实日志。
+    source = { ...source, processingRecords: [...(previous?.processingRecords || []), { sequence: (previous?.processingRecords?.at(-1)?.sequence || 0) + 1, stage: source.stage, detail: source.stage === 'FAILED' ? '合成处理失败，当前活动索引未改变。' : '已完成本次合成状态更新。' }] };
     const reservationCompleted = source.stage === "READY" && previous?.reservedDocument;
     const updatedSource = reservationCompleted
       ? { ...source, reservedDocument: false }
@@ -3457,7 +3460,7 @@ export function createPrototypeStore(storage = browserStorage()) {
       indexed: ready,
       activeRevision: ready ? current.revision : current.activeRevision,
       rawContentStored: ["EXTRACTING", "EXTRACTED", "CHUNKING", "INDEXING", "READY"].includes(nextStage),
-      detail: ready ? "处理完成，已进入待激活索引清单。" : `正在执行 ${nextStage}。`,
+      detail: ready ? "处理完成，已进入待激活索引清单。" : `正在${({SCANNING:'安全检查',EXTRACTING:'提取内容',EXTRACTED:'核对提取结果',CHUNKING:'内容分段',INDEXING:'建立索引'})[nextStage] || '处理资料'}。`,
     });
   }
 
@@ -4026,6 +4029,23 @@ export function createPrototypeStore(storage = browserStorage()) {
     memberDrafts.delete(key);
     persist();
     return { ok: true, member: clone(member) };
+  }
+
+  /** 两个编辑页只提交各自白名单字段；复用管理员授权与原子持久化，旧草稿不能夹带提交。 */
+  function saveMemberScope(tenantId, accountId, scope, value, actorAccountId) {
+    if (!canManageMembers(tenantId, actorAccountId)) return { ok: false, reason: "FORBIDDEN" };
+    const member = memberById(tenantId, accountId), tenant = tenantById(tenantId);
+    if (!member || member.role !== "ordinaryMember") return { ok: false, reason: "MEMBER_FEATURE_NOT_EDITABLE" };
+    let patch;
+    if (scope === 'features') {
+      if (!value || Object.keys(value).some(key => !CONVERSATION_FEATURES.includes(key)) || CONVERSATION_FEATURES.some(key => typeof value[key] !== 'boolean' || (value[key] && !member.conversationFeatures[key] && !tenant.availableFeatures[key]))) return { ok: false, reason: 'MEMBER_FEATURES_INVALID' };
+      patch = { conversationFeatures: clone(value) };
+    } else if (scope === 'assistants') {
+      if (!Array.isArray(value) || value.some(id => !state.assistantDelivery.assistants.some(assistant => assistant.id === id && assistant.tenantId === tenantId && assistant.publishedVersionId && assistant.versions.some(version => version.id === assistant.publishedVersionId && version.status === 'PUBLISHED')))) return { ok: false, reason: 'MEMBER_ASSISTANTS_INVALID' };
+      patch = { assistantIds: [...new Set(value)] };
+    } else return { ok: false, reason: 'SCOPE_INVALID' };
+    const saved = commitState({ ...state, tenants: state.tenants.map(item => item.id === tenantId ? { ...item, members: item.members.map(current => current.accountId === accountId ? { ...current, ...patch } : current) } : item) });
+    return saved.ok ? { ok: true, member: clone(memberById(tenantId, accountId)) } : saved;
   }
 
   function getEffectiveAccess(tenantId, accountId, request = {}) {
@@ -4984,6 +5004,7 @@ export function createPrototypeStore(storage = browserStorage()) {
     setMemberAssistantDraft,
     discardMemberFeatureDraft,
     commitMemberFeatureDraft,
+    saveMemberScope,
     getEffectiveAccess,
     authorizeScreen,
     authorizeSession,

@@ -300,14 +300,14 @@ async function validateModelGovernanceFlow(page) {
   await page.getByRole("button", { name: "建立部署草稿", exact: true }).click();
   dialog = page.locator("#platform-deployment-dialog");
   await dialog.getByLabel("部署名称").fill("全矩阵对话模型");
-  await dialog.getByLabel("已发现模型").selectOption({ label: "企业对话模型候选 / Chat" });
+  await dialog.getByLabel("已发现模型").selectOption({ label: "企业对话模型候选 / 对话模型" });
   await dialog.getByRole("button", { name: "保存部署草稿", exact: true }).click();
   await page.locator('main[data-screen="platform-model-deployment-detail"]').waitFor();
   await page.getByRole("button", { name: "执行能力验证", exact: true }).click();
   await page.getByRole("button", { name: "发布部署", exact: true }).click();
 
   await openScenario(page, "model-providers", "success");
-  await page.locator("#tenant-discovery-connection").selectOption({ label: "全矩阵对话连接 / Chat" });
+  await page.locator("#tenant-discovery-connection").selectOption({ label: "全矩阵对话连接 / 对话模型" });
   await page.getByRole("button", { name: "执行模型发现", exact: true }).click();
   await page.locator('main[data-screen="model-provider-detail"]').waitFor();
   assert(
@@ -329,7 +329,7 @@ async function validateModelGovernanceFlow(page) {
   await page.getByRole("button", { name: "建立部署草稿", exact: true }).click();
   dialog = page.locator("#tenant-deployment-dialog");
   await dialog.getByLabel("部署名称").fill("全矩阵租户对话部署");
-  await dialog.getByLabel("启用配置").selectOption({ label: "全矩阵租户对话配置 / Chat" });
+  await dialog.getByLabel("启用配置").selectOption({ label: "全矩阵租户对话配置 / 对话模型" });
   await dialog.getByRole("button", { name: "保存部署草稿", exact: true }).click();
   await page.locator('main[data-screen="model-deployment-detail"]').waitFor();
   await page.getByRole("button", { name: "执行部署验证", exact: true }).click();
@@ -354,8 +354,8 @@ async function validateAssistantDeliveryFlow(page) {
   await page.getByRole("button", { name: "创建助手", exact: true }).click();
   await page.locator('main[data-screen="assistant-draft"]').waitFor();
   assert(
-    (await page.locator("main").innerText()).includes("永久关联 员工服务手册"),
-    "助手草稿未显示永久知识库边界",
+    (await page.locator("main").innerText()).includes("关联 员工服务手册") && await page.locator('select[name="knowledgeBaseId"]').count() === 0,
+    "助手草稿未显示已固定且不可更改的知识库",
   );
   await page.locator('select[name="indexVersionId"]').selectOption("idx-v12");
   await page.getByRole("button", { name: "保存草稿", exact: true }).click();
@@ -372,10 +372,10 @@ async function validateAssistantDeliveryFlow(page) {
   const dialog = page.locator("#release-dialog");
   assert(await dialog.evaluate(element => element.open), "助手发布确认对话框未打开");
   await dialog.getByRole("button", { name: "确认发布", exact: true }).click();
-  await page.locator('main[data-screen="assistants-directory"]').waitFor();
+  await page.locator('main[data-screen="assistant-overview"]').waitFor();
   assert(
     await page.getByText("全矩阵制度助手", { exact: true }).isVisible(),
-    "发布后助手目录未保留稳定助手",
+    "发布后助手概览未保留稳定助手",
   );
   const delivered = await page.evaluate(() => {
     const state = JSON.parse(localStorage.getItem("wp0016-business-demo-v1"));
@@ -491,9 +491,14 @@ async function validateTenantAndMemberControls(page) {
   await openScenario(page, "tenant-members", "success");
   await page.locator('[data-business-action="open-add-member"]').click();
   await page.locator('#add-member-form [name="loginName"]').fill('lin.member');
+  await page.locator('#add-member-form button[type="submit"]').click();
+  await page.locator('#add-member-form [data-choice-id="assistant-employee-service"]').check();
+  await page.locator('#add-member-form button[type="submit"]').click();
   await page.locator('#add-member-form [name="password"]').fill('demo-only');
   await page.locator('#add-member-form [name="passwordConfirmation"]').fill('demo-only');
   await page.locator('#add-member-form button[type="submit"]').click();
+  await page.locator('main[data-screen="tenant-member-account"]').waitFor();
+  await page.getByRole('button', { name: '返回成员目录', exact: true }).click();
   await page.locator('tbody [data-account-row="account-lin-member-6"]').waitFor();
   assert(
     await page.locator('tbody [data-account-row="account-lin-member-6"]').isVisible(),
@@ -534,9 +539,13 @@ async function validateTenantAndMemberControls(page) {
   await page.locator('[data-tenant-feature="assistantSelection"]').check();
   await page.locator('[data-business-action="save-tenant-features"]').click();
   await openScenario(page, "tenant-members", "success");
+  const currentIdentity = await page.evaluate(() => JSON.parse(localStorage.getItem('wp0016-query-session-v1'))?.accountId);
   await page
     .locator('[data-business-action="select-demo-member"][data-account-id="account-lin-member-6"]')
     .click();
+  assert(await page.evaluate(() => JSON.parse(localStorage.getItem('wp0016-query-session-v1'))?.accountId) === currentIdentity, '查看成员不得切换登录身份');
+  await page.locator('.account-actions-menu > summary').click();
+  await page.locator('[data-console-logout]').click();
   await page.goto(
     scenarioUrl("conversation", "success", false, "cv-20260902-01"),
     { waitUntil: "domcontentloaded" },
@@ -544,7 +553,7 @@ async function validateTenantAndMemberControls(page) {
   assert(
     (await page.locator('main[data-screen="login"]').count()) === 1 &&
       (await page.locator(".message-body").count()) === 0,
-    "切换演示成员后旧登录仍读取会话正文",
+    "退出管理身份后仍读取旧会话正文",
   );
 }
 
@@ -605,14 +614,15 @@ async function validateReviewerReachability(page) {
 async function validateMemberDialog(page) {
   await openScenario(page, "tenant-members", "success");
   const trigger = page.locator('[data-business-action="open-add-member"]');
-  await trigger.click();
-  assert(await page.locator("#add-member-dialog").evaluate((dialog) => dialog.contains(document.activeElement)), "成员弹窗焦点未进入");
+  const resetTrigger = page.locator('[data-reset-account]').first();
+  await resetTrigger.click();
+  assert(await page.locator("#reset-account-password-dialog").evaluate((dialog) => dialog.contains(document.activeElement)), "成员密码弹窗焦点未进入");
   await page.keyboard.press("Escape");
-  assert(!(await page.locator("#add-member-dialog").evaluate((dialog) => dialog.open)), "Escape 未关闭成员弹窗");
-  assert(await trigger.evaluate((button) => button === document.activeElement), "成员弹窗关闭后焦点未返回");
+  assert(!(await page.locator("#reset-account-password-dialog").evaluate((dialog) => dialog.open)), "Escape 未关闭成员密码弹窗");
+  assert(await resetTrigger.evaluate((button) => button === document.activeElement), "成员密码弹窗关闭后焦点未返回");
   await trigger.click();
   await page.locator('#add-member-form [name="loginName"]').fill('lin.member');
-  await page.locator("[data-cancel-add-member]").click();
+  await page.locator("[data-cancel-member-wizard]").click();
   assert(!(await page.locator("main").innerText()).includes("lin.member"), "取消添加仍创建成员");
   await page.reload({ waitUntil: "domcontentloaded" });
   await page.locator('main[data-screen="tenant-members"]').waitFor();

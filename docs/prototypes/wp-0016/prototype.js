@@ -1,7 +1,11 @@
 import { PROVIDER_PRESETS, resolveProviderPreset } from "./provider-presets.js";
+import { installMotionReview } from "./review-motion.js";
+import { bindAssistantPickers } from "./member-workspace.js";
+import { memberDrafts } from "./member-drafts.js";
+import { documentWorkspace, sourceStageName, pagedTable, boundedDirectoryMarkup } from "./object-workspaces.js";
 import { decorateExistingPage, renderInventoryPage, renderDemoLoginHelp, renderDemoLoginRepair, renderLoginEntries } from "./full-platform.js";
 import { renderConsoleNavigation, renderAccountMenu } from "./navigation.js";
-import { workspaceJourney } from "./workspace-journeys.js";
+import { workspaceJourney, objectNavigation } from "./workspace-journeys.js";
 import { governanceDirectory } from "./governance-directories.js";
 import { DETAIL_CONTEXT, valueAt } from "./detail-context.js";
 import { bindDirectoryPagination } from "./directory-pagination.js";
@@ -23,6 +27,7 @@ const reviewContract = document.querySelector("#review-contract");
 const reviewQueryTools = document.querySelector("#review-query-tools");
 const reviewDemoAccount = document.querySelector("#review-demo-account");
 const reviewQueryMode = document.querySelector("#review-query-mode");
+installMotionReview(reviewer.querySelector('.reviewer-body') || reviewer.querySelector('details') || reviewer);
 
 let screens = new Set();
 let states = new Set();
@@ -37,6 +42,8 @@ let activeConversationId = "";
 let streamTimer;
 let streamGeneration = 0;
 let loginFeedback = "";
+let memberEditGuard = null;
+let messageMotionContext='', messageMotionSequence=0;
 let consoleLoginFeedback = "";
 let demoLoginRepairFeedback = "";
 let consoleLoginName = "";
@@ -138,7 +145,15 @@ reviewSearch.addEventListener("keydown", (event) => {
   }
 });
 
-window.addEventListener("popstate", render);
+window.addEventListener("popstate", () => {
+  if(memberEditGuard?.dirty && prototypeStore.getSession().authenticated){
+    const destination=location.href;
+    history.pushState({},'',memberEditGuard.url);
+    confirmMemberDeparture(()=>{history.replaceState({},'',destination);render();});
+    return;
+  }
+  render();
+});
 // 跨标签页身份改变后，即便 storage 通知尚未派发，旧页面事件也不能沿用管理员身份。
 for (const type of ["click", "submit", "change", "input"]) {
   root.addEventListener(type, event => {
@@ -248,8 +263,24 @@ function filterReviewerOptions(event) {
   });
 }
 
+/** 应用内导航和浏览器返回使用同一确认；失败时保留输入，不以原生弹窗替代设计组件。 */
+function confirmMemberDeparture(onDiscard) {
+    const trigger=document.activeElement, dialog=document.createElement('dialog');
+    dialog.className='dialog-surface'; dialog.setAttribute('aria-labelledby','member-unsaved-title');
+    dialog.innerHTML='<h2 id="member-unsaved-title">修改尚未保存</h2><div class="dialog-body"><p>留在当前页继续编辑，或放弃本页修改后离开。</p><p role="alert"></p></div><div class="dialog-actions"><button class="button secondary" data-stay>保留当前</button><button class="button primary" data-discard>放弃修改并离开</button></div>';
+    document.body.append(dialog);dialog.showModal();
+    dialog.querySelector('[data-stay]').onclick=()=>dialog.close();
+    dialog.querySelector('[data-discard]').onclick=()=>{try { memberEditGuard.clear();dialog.close();onDiscard(); } catch { dialog.querySelector('[role="alert"]').textContent='无法清除草稿，仍保留当前修改。'; }};
+    dialog.onclose=()=>{dialog.remove();if(trigger?.isConnected)trigger.focus();};
+}
+
 function navigate(screen, state = "success", options = {}) {
   const next = new URL(window.location.href);
+  if (!prototypeStore.getSession().authenticated) memberEditGuard=null;
+  if (memberEditGuard?.dirty && screen !== currentScenario().screen && !options.discardMemberChanges) {
+    confirmMemberDeparture(()=>navigate(screen,state,{...options,discardMemberChanges:true}));
+    return;
+  }
   if (screen !== currentScenario().screen) for (const key of ['page', 'size', 'q', 'status']) next.searchParams.delete(key);
   next.searchParams.set("screen", screens.has(screen) ? screen : "login");
   next.searchParams.set("state", states.has(state) ? state : "success");
@@ -260,6 +291,8 @@ function navigate(screen, state = "success", options = {}) {
   }
   const snapshot = prototypeStore.getWorkspaceSnapshot();
   const inKnowledge = ["knowledge-overview", "knowledge-sources", "source-add", "source-detail", "processing-quality", "sync-result", "quick-publication", "index-versions", "index-detail", "index-rebuild"].includes(screen);
+  if (screen.startsWith('tenant-member-') && options.memberAccountId) next.searchParams.set('memberAccountId', options.memberAccountId);
+  else if (!screen.startsWith('tenant-member-')) next.searchParams.delete('memberAccountId');
   for (const item of DETAIL_CONTEXT) {
     const value = item.screens.includes(screen) ? valueAt(snapshot, item.selection) : null;
     if (value) next.searchParams.set(item.parameter, value);
@@ -332,11 +365,21 @@ function render() {
           ),
           accountFeedback,
         }
+      : screen.startsWith('tenant-member-')
+        ? { ...demoState, selectedMemberAccountId: params.get('memberAccountId') || 'no-member-selected', accountFeedback }
       : ["platform-accounts", "tenant-members"].includes(screen)
         ? { ...demoState, accountFeedback }
         : ["console-login", "tenant-login"].includes(screen) ? { ...demoState, consoleLoginFeedback, consoleLoginName, consoleLoginTenants, loginTenantCode: params.get('tenantCode'),
           needsDemoLoginRepair: prototypeStore.needsDemoLoginRepair(), demoLoginRepairFeedback } : demoState;
-  root.innerHTML = access.allowed && contextAllowed ? renderScreen(screen, renderedState, renderedDemoState) : renderAccessDenied(screen, querySession);
+  const markup=access.allowed && contextAllowed ? renderScreen(screen, renderedState, renderedDemoState) : renderAccessDenied(screen, querySession);
+  root.innerHTML = ['tenant-members','knowledge-sources','assistants-directory'].includes(screen) ? boundedDirectoryMarkup(markup,params) : markup;
+  const motionContext=screen==='conversation'&&renderedState==='success'?`${querySession.epoch}:${activeConversationId}`:'';
+  const messages=[...root.querySelectorAll('.message[data-sequence]')];
+  if(motionContext && motionContext===messageMotionContext && !matchMedia('(prefers-reduced-motion: reduce)').matches)messages.filter(item=>Number(item.dataset.sequence)>messageMotionSequence).forEach(item=>item.animate([{opacity:.5,transform:'translateY(4px)'},{opacity:1,transform:'none'}],{duration:200,easing:'cubic-bezier(0.2,0,0,1)'}));
+  messageMotionContext=motionContext;messageMotionSequence=Math.max(0,...messages.map(item=>Number(item.dataset.sequence)));
+  if (access.allowed && contextAllowed && renderedState === "success") {
+    root.querySelector(".page-header")?.insertAdjacentHTML("afterend", objectNavigation(screen));
+  }
   if (renderedState !== "success" && ["tenant-overview", "knowledge-overview", "processing-quality", "sync-result", "quick-publication", "access-policies", "audit-records"].includes(screen)) {
     root.querySelectorAll("form input, form select, form textarea, form button").forEach(control => { control.disabled = true; });
   }
@@ -431,6 +474,7 @@ function renderScreen(screen, state, demoState) {
       return renderModelGovernance(screen, state, demoState);
     case "assistants-directory":
     case "assistant-create":
+    case "assistant-overview":
     case "assistant-draft":
     case "assistant-test":
     case "assistant-evaluation":
@@ -1127,7 +1171,7 @@ function pageStatus(active, state) {
     "model-deployment-detail": modelStatusLabel(models.deployments.find(item => item.id === models.selectedDeploymentId)?.status),
     "routing-policies": modelStatusLabel(models.routingPolicies.find(item => item.id === models.selectedRoutingPolicyId)?.status),
     "assistants-directory": `${snapshot.assistantDelivery.assistants.length} 个稳定助手`,
-    "assistant-create": "永久关联一个知识库",
+    "assistant-create": "关联一个知识库",
     "assistant-draft": "冻结索引、模型版本和策略",
     "assistant-test": "使用冻结依赖",
     "assistant-evaluation": "质量与安全门禁",
@@ -1341,7 +1385,7 @@ function renderSourceDetail(state, demoState) {
   const knowledgeBase = selectedKnowledgeBase(demoState);
   const source = knowledgeBase?.sources.find(
     item => item.id === demoState.selectedKnowledgeSourceId,
-  ) || knowledgeBase?.sources[0];
+  );
   if (generic || !source) {
     return adminShell(
       "source-detail",
@@ -1363,13 +1407,14 @@ function renderSourceDetail(state, demoState) {
   const stages = ["RECEIVED", "SCANNING", "EXTRACTING", "EXTRACTED", "CHUNKING", "INDEXING", "READY"];
   const currentIndex = Math.max(0, stages.indexOf(source.stage === "FAILED" ? source.retryStage : source.stage));
   const content = [
-    `<section class="section-block source-detail-card" data-source-stage="${escapeHtml(source.stage)}"><div class="section-heading"><div><span class="section-kicker">当前文档</span><h2>${escapeHtml(source.name)}</h2><p class="entity-meta">版本 ${escapeHtml(revision)} · ${escapeHtml(source.kind)}</p></div>${statusTag(source.stage === "FAILED" ? "FAILED" : source.stage === "READY" ? "READY" : "PROCESSING")}</div>`,
-    `<ol class="process-steps source-process" aria-label="处理阶段">${stages.map((stage, index) => `<li data-step-state="${index < currentIndex ? "complete" : index === currentIndex ? "current" : "upcoming"}"><span>${index + 1}</span><strong>${stage}</strong></li>`).join("")}</ol>`,
-    source.error ? `<div class="inline-note danger"><strong>${escapeHtml(source.error.code)}</strong> · ${escapeHtml(source.error.message)}</div>` : "",
-    `<dl class="description-list"><div class="description-row"><dt>当前版本</dt><dd>${escapeHtml(revision)}</dd></div><div class="description-row"><dt>活动版本</dt><dd>${escapeHtml(source.activeRevision ? formatRevision(source.activeRevision) : "尚无")}</dd></div><div class="description-row"><dt>活动索引</dt><dd>${escapeHtml(knowledgeBase.activeIndex || "尚未建立")} 继续服务</dd></div><div class="description-row"><dt>索引写入</dt><dd>${source.indexed ? "已进入当前清单" : "尚未写入"}</dd></div></dl>`,
-    `<div class="form-actions">${operation}<button class="button ${source.stage === "READY" ? "primary" : "secondary"}" type="button" data-primary-action data-nav-screen="source-add" data-update-source="${escapeHtml(source.id)}"${processing || source.kind === "对象存储" ? " disabled" : ""}>更新文档</button><button class="button secondary" type="button" data-rebuild-source${source.stage === "READY" ? "" : " disabled"}>单文件重建索引</button><button class="button subtle" type="button" data-nav-screen="index-rebuild">全库重建</button></div>`,
+    `<section class="section-block source-detail-card" data-source-stage="${escapeHtml(source.stage)}"><div class="section-heading"><div><span class="section-kicker">当前文档</span><h2>${escapeHtml(source.name)}</h2><p class="entity-meta">版本 ${escapeHtml(revision)}</p></div>${statusTag(sourceStageName(source.stage))}</div>`,
+    new URLSearchParams(location.search).get("documentView")==="records" ? `<ol class="process-steps source-process" aria-label="处理阶段">${stages.map((stage, index) => `<li data-step-state="${index < currentIndex ? "complete" : index === currentIndex ? "current" : "upcoming"}"><span>${index + 1}</span><strong>${({RECEIVED:"已接收",SCANNING:"安全检查",EXTRACTING:"提取内容",EXTRACTED:"提取完成",CHUNKING:"内容分段",INDEXING:"建立索引",READY:"已就绪"})[stage]}</strong></li>`).join("")}</ol>` : "",
+    source.error ? `<div class="inline-note danger">${escapeHtml(source.error.message)}</div>` : "",
+    `<details><summary>技术详情</summary><dl class="description-list"><div class="description-row"><dt>当前版本</dt><dd>${escapeHtml(revision)}</dd></div><div class="description-row"><dt>活动版本</dt><dd>${escapeHtml(source.activeRevision ? formatRevision(source.activeRevision) : "尚无")}</dd></div><div class="description-row"><dt>活动索引</dt><dd>${escapeHtml(knowledgeBase.activeIndex || "尚未建立")} 继续服务</dd></div><div class="description-row"><dt>索引写入</dt><dd>${source.indexed ? "已进入当前清单" : "尚未写入"}</dd></div></dl></details>`,
+    `<div class="form-actions">${operation}<button class="button ${source.stage === "READY" ? "primary" : "secondary"}" type="button" data-primary-action data-nav-screen="source-add" data-update-source="${escapeHtml(source.id)}"${processing || source.kind === "对象存储" ? " disabled" : ""}>更新文档</button><button class="button secondary" type="button" data-rebuild-source${source.stage === "READY" ? "" : " disabled"}>单文件重建索引</button><button class="button secondary" data-nav-screen="index-versions">进入知识库索引管理</button></div>`,
     knowledgeFeedback ? `<p class="form-feedback" role="status">${escapeHtml(knowledgeFeedback)}</p>` : "",
     "</section>",
+    documentWorkspace(source,new URLSearchParams(location.search).get('documentView')||'preview',new URLSearchParams(location.search)),
   ].join("");
   return adminShell(
     "source-detail",
@@ -1580,7 +1625,7 @@ function modelStatusLabel(status) {
 }
 
 function modelCapabilityLabel(capability) {
-  return { CHAT: "Chat", EMBEDDING: "Embedding", RERANK: "Rerank" }[capability] || capability;
+  return { CHAT: "对话模型", EMBEDDING: "向量模型", RERANK: "重排序模型" }[capability] || capability;
 }
 
 function selectedModelItem(models, collection, selectedKey) {
@@ -1877,7 +1922,7 @@ function renderAssistantDirectory(state, snapshot) {
     const candidate = assistant.versions.find(item => !["PUBLISHED", "SUPERSEDED"].includes(item.status));
     const knowledgeBase = snapshot.knowledgeBases.find(item => item.id === assistant.knowledgeBaseId);
     const actionLabel = candidate ? "继续处理" : "创建新版本";
-    return `<tr><td data-label="助手"><strong>${escapeHtml(assistant.name)}</strong><small>${escapeHtml(assistant.summary)}</small></td><td data-label="关联知识库">${escapeHtml(knowledgeBase?.name || "知识库不可用")}</td><td data-label="已发布版本">${published ? `v${escapeHtml(published.number)}` : "尚未发布"}</td><td data-label="当前候选">${candidate ? `${statusTag(candidate.status)} <span class="mono">v${escapeHtml(candidate.number)}</span>` : "—"}</td><td data-label="操作" class="table-action"><button class="button secondary compact" type="button" data-manage-assistant-id="${escapeHtml(assistant.id)}"${candidate ? ` data-assistant-version-id="${escapeHtml(candidate.id)}" data-assistant-target="${assistantNextScreen(candidate.status)}"` : " data-create-assistant-version"}${blocked ? " disabled" : ""}>${actionLabel}</button></td></tr>`;
+    return `<tr><td data-label="助手"><strong>${escapeHtml(assistant.name)}</strong><small>${escapeHtml(assistant.summary)}</small></td><td data-label="关联知识库">${escapeHtml(knowledgeBase?.name || "知识库不可用")}</td><td data-label="已发布版本">${published ? `v${escapeHtml(published.number)}` : "尚未发布"}</td><td data-label="当前候选">${candidate ? `${statusTag(candidate.status)} <span class="mono">v${escapeHtml(candidate.number)}</span>` : "—"}</td><td data-label="操作" class="table-action"><button class="button secondary compact" type="button" data-manage-assistant-id="${escapeHtml(assistant.id)}"${candidate ? ` data-assistant-version-id="${escapeHtml(candidate.id)}" data-assistant-target="${assistantNextScreen(candidate.status)}"` : " data-create-assistant-version"}${blocked ? " disabled" : ""}>${actionLabel}</button><button class="button secondary compact" data-manage-assistant-id="${escapeHtml(assistant.id)}" data-assistant-version-id="${escapeHtml((candidate||published||assistant.versions[0]).id)}" data-assistant-target="assistant-overview">概览</button></td></tr>`;
   }).join("");
   const body = [
     state === "partial" ? '<div class="inline-note warning">候选状态正在刷新，目录保持只读。</div>' : "",
@@ -1905,7 +1950,7 @@ function renderAssistantCreate(state, snapshot) {
     '<div class="split-detail">',
     '<form id="assistant-create-form" class="section-block">',
     '<div class="section-heading"><div><span class="section-kicker">基本信息</span><h2>创建助手</h2></div><span class="status-tag" data-tone="info">创建后进入草稿</span></div>',
-    '<div class="form-grid"><label class="field"><span>助手名称</span><input class="input" name="name" minlength="2" maxlength="80" value="员工政策助手" autocomplete="off" required></label><label class="field"><span>关联知识库</span><input class="input" name="knowledgeBaseName" type="search" list="assistant-knowledge-base-options" value="员工服务手册" autocomplete="off" required></label></div>',
+    '<div class="form-grid"><label class="field"><span>助手名称</span><input class="input" name="name" minlength="2" maxlength="80" value="员工政策助手" autocomplete="off" required></label><label class="field"><span>关联知识库</span><input class="input" name="knowledgeBaseName" type="search" list="assistant-knowledge-base-options" value="' + escapeHtml(knowledgeBases.find(item=>item.id===snapshot.selectedKnowledgeBaseId)?.name || knowledgeBases[0]?.name || '') + '" autocomplete="off" required></label></div>',
     `<datalist id="assistant-knowledge-base-options">${knowledgeBases.map(item => `<option value="${escapeHtml(item.name)}"></option>`).join("")}</datalist>`,
     '<label class="field"><span>用途说明</span><textarea class="textarea" name="summary" rows="3" minlength="8" maxlength="200" required>回答员工制度和办事流程问题，并提供可定位引用。</textarea></label>',
     '<p id="assistant-create-feedback" class="form-feedback" role="alert"></p>',
@@ -1915,10 +1960,22 @@ function renderAssistantCreate(state, snapshot) {
   return adminShell("assistant-create", "创建助手", "", '<button class="button secondary" type="button" data-nav-screen="assistants-directory">返回目录</button>', body, state, "助手交付 / 创建助手");
 }
 
+function renderAssistantOverview(state, snapshot) {
+  const context=assistantStageContext(snapshot,['DRAFT','TESTING','TESTED','EVALUATION_PENDING','EVALUATED','READY_FOR_RELEASE','PUBLISHED','SUPERSEDED']);
+  if(!context)return adminShell('assistant-overview','助手概览','','',statePanel('empty','请选择助手','从助手目录选择当前对象。','返回助手目录','assistants-directory'),state,'助手');
+  const {assistant}=context, kb=snapshot.knowledgeBases.find(item=>item.id===assistant.knowledgeBaseId);
+  const candidate=assistant.versions.find(item=>!['PUBLISHED','SUPERSEDED'].includes(item.status));
+  const rows=assistant.versions.map(version=>({...version,name:`版本 ${version.number}`,result:({DRAFT:'待配置',TESTING:'待测试',TESTED:'测试完成',EVALUATION_PENDING:'待质量检查',EVALUATED:'质量检查完成',READY_FOR_RELEASE:'待发布',PUBLISHED:'已发布',SUPERSEDED:'历史版本'})[version.status]||'待处理'})).reverse();
+  const action=candidate?`<button class="button primary" data-primary-action data-manage-assistant-id="${escapeHtml(assistant.id)}" data-assistant-version-id="${escapeHtml(candidate.id)}" data-assistant-target="${assistantNextScreen(candidate.status)}">继续当前版本</button>`:`<button class="button primary" data-primary-action data-manage-assistant-id="${escapeHtml(assistant.id)}" data-create-assistant-version>创建新版本</button>`;
+  const body=`<section class="section-block"><h2>${escapeHtml(assistant.name)}</h2><p>${escapeHtml(assistant.summary)}</p><dl class="description-list"><dt>关联知识库</dt><dd>${escapeHtml(kb?.name||'不可用')}</dd><dt>当前发布</dt><dd>${assistant.publishedVersionId?'已有发布版本，新会话可使用':'尚未发布'}</dd></dl><div class="form-actions"><button class="button secondary" data-nav-screen="tenant-members">开放给成员使用</button><button class="button secondary" data-nav-screen="login">普通用户登录问答</button></div></section><section class="section-block"><h2>版本与发布记录</h2>${pagedTable(rows,[{key:'name',label:'版本'},{key:'result',label:'状态'}],new URLSearchParams(location.search),version=>`<button class="button secondary" data-manage-assistant-id="${escapeHtml(assistant.id)}" data-assistant-version-id="${escapeHtml(version.id)}" data-assistant-target="${version.status==='PUBLISHED'||version.status==='SUPERSEDED'?'assistant-release':assistantNextScreen(version.status)}">查看版本</button>`)}</section>`;
+  return adminShell('assistant-overview','助手概览',assistant.name,action,body,state,'助手工作区');
+}
+
 function renderAssistantDraft(state, snapshot) {
-  const context = assistantStageContext(snapshot, ["DRAFT"]);
+  const context = assistantStageContext(snapshot, ["DRAFT","TESTING","TESTED","EVALUATION_PENDING","EVALUATED","READY_FOR_RELEASE","PUBLISHED","SUPERSEDED"]);
   if (!context) return adminShell("assistant-draft", "助手草稿配置", "", "", statePanel("empty", "没有待配置草稿", "从助手目录创建新助手或新版本。", "返回助手目录", "assistants-directory"), state, "助手交付 / 草稿配置");
   const { assistant, version } = context;
+  if(version.status!=='DRAFT')return adminShell('assistant-draft','版本配置',`${assistant.name} · 版本 ${version.number}`,'',`<section class="section-block"><h2>已冻结配置</h2><p>本版本配置只读；如需调整，请创建新版本。已有会话保持原配置。</p>${assistantModelSummary(snapshot,version.frozen)}<details><summary>技术详情</summary><pre>${escapeHtml(JSON.stringify(version.frozen,null,2))}</pre></details><div class="form-actions"><button class="button secondary" data-nav-screen="assistant-overview">返回助手概览</button><button class="button primary" data-primary-action data-nav-screen="${['PUBLISHED','SUPERSEDED'].includes(version.status)?'assistant-release':assistantNextScreen(version.status)}">继续当前版本</button></div></section>`,state,'助手工作区 / 版本配置');
   const knowledgeBase = snapshot.knowledgeBases.find(item => item.id === assistant.knowledgeBaseId);
   const indexVersions = knowledgeBase.indexVersions.filter(item => !["CANCELLED", "BLOCKED", "BUILDING"].includes(item.status));
   const configurations = capability => snapshot.models.configurations.filter(item => item.tenantId === assistant.tenantId && item.capability === capability && item.status === "ACTIVE");
@@ -1927,10 +1984,10 @@ function renderAssistantDraft(state, snapshot) {
   const body = [
     state === "partial" ? '<div class="inline-note warning">模型目录正在刷新，草稿保持未保存。</div>' : "",
     state === "disabled" ? '<div class="inline-note warning">当前候选存在不可用依赖，请先恢复模型或索引。</div>' : "",
-    `<div class="inline-note">${escapeHtml(assistant.name)} v${escapeHtml(version.number)} 永久关联 ${escapeHtml(knowledgeBase.name)}。</div>`,
+    `<div class="inline-note">${escapeHtml(assistant.name)} v${escapeHtml(version.number)} 关联 ${escapeHtml(knowledgeBase.name)}。</div>`,
     '<form id="assistant-draft-form" class="section-block" data-assistant-version-id="' + escapeHtml(version.id) + '">',
     '<div class="section-heading"><div><span class="section-kicker">冻结配置</span><h2>选择本版本依赖</h2></div>' + statusTag(version.status) + '</div>',
-    `<input type="hidden" name="knowledgeBaseId" value="${escapeHtml(assistant.knowledgeBaseId)}"><div class="form-grid"><label class="field"><span>索引版本</span><select class="select" name="indexVersionId" required>${indexVersions.map(item => `<option value="${escapeHtml(item.id)}"${item.status === "READY_FOR_REVIEW" ? " selected" : ""}>${escapeHtml(item.id)} · ${escapeHtml(item.status === "ACTIVE" ? "当前活动" : "评测通过")}</option>`).join("")}</select></label><label class="field"><span>Chat 配置</span><select class="select" name="chatConfigurationId" required>${options("CHAT")}</select></label><label class="field"><span>Embedding 配置</span><select class="select" name="embeddingConfigurationId" required>${options("EMBEDDING")}</select></label><label class="field"><span>Rerank 配置</span><select class="select" name="rerankConfigurationId" required>${options("RERANK")}</select></label><label class="field"><span>检索策略</span><select class="select" name="retrievalPolicy"><option value="HYBRID_RRF_RERANK_V3">混合召回 + RRF + Rerank v3</option></select></label><label class="field"><span>引用策略</span><select class="select" name="citationPolicy"><option value="REQUIRED_V2">必须提供可定位引用 v2</option></select></label><label class="field"><span>拒答策略</span><select class="select" name="refusalPolicy"><option value="CALIBRATED_V5">冻结评测校准阈值 v5</option></select></label></div>`,
+    `<input type="hidden" name="knowledgeBaseId" value="${escapeHtml(assistant.knowledgeBaseId)}"><div class="form-grid"><label class="field"><span>索引版本</span><select class="select" name="indexVersionId" required>${indexVersions.map(item => `<option value="${escapeHtml(item.id)}"${item.status === "READY_FOR_REVIEW" ? " selected" : ""}>版本 ${escapeHtml(item.id.replace(/^idx-v/,''))} · ${escapeHtml(item.status === "ACTIVE" ? "当前活动" : "评测通过")}</option>`).join("")}</select></label><label class="field"><span>对话模型</span><select class="select" name="chatConfigurationId" required>${options("CHAT")}</select></label><label class="field"><span>向量模型</span><select class="select" name="embeddingConfigurationId" required>${options("EMBEDDING")}</select></label><label class="field"><span>重排序模型</span><select class="select" name="rerankConfigurationId" required>${options("RERANK")}</select></label><label class="field"><span>检索策略</span><select class="select" name="retrievalPolicy"><option value="HYBRID_RRF_RERANK_V3">混合检索与重排序</option></select></label><label class="field"><span>引用策略</span><select class="select" name="citationPolicy"><option value="REQUIRED_V2">必须提供可定位引用 v2</option></select></label><label class="field"><span>拒答策略</span><select class="select" name="refusalPolicy"><option value="CALIBRATED_V5">冻结评测校准阈值 v5</option></select></label></div>`,
     '<p id="assistant-draft-feedback" class="form-feedback" role="alert"></p>',
     `<div class="form-actions"><button class="button secondary" type="button" data-nav-screen="assistants-directory">稍后处理</button><button class="button primary" type="submit" data-primary-action${blocked ? " disabled" : ""}>保存草稿</button></div></form>`,
   ].join("");
@@ -1950,7 +2007,7 @@ function renderAssistantTest(state, snapshot) {
   ].join("") : [
     `<form id="assistant-test-form" class="section-block" data-assistant-version-id="${escapeHtml(version.id)}"><div class="section-heading"><div><span class="section-kicker">冻结依赖</span><h2>${escapeHtml(assistant.name)} v${escapeHtml(version.number)}</h2></div>${statusTag(version.status)}</div><label class="field"><span>测试问题</span><textarea class="textarea" name="question" rows="3" required>年假最多可以结转几天？</textarea></label><p id="assistant-test-feedback" class="form-feedback" role="alert"></p><div class="form-actions"><button class="button primary" type="submit" data-primary-action${blocked ? " disabled" : ""}>运行单题测试</button></div></form>`,
   ].join("");
-  const body = `<div class="inline-note">本次只读取 <span class="mono">${escapeHtml(version.frozen?.indexVersionId || "未冻结")}</span>，测试数据不写入用户会话。</div>${assistantFeedback ? `<p class="form-feedback" role="status">${escapeHtml(assistantFeedback)}</p>` : ""}${resultPanel}`;
+  const body = `<div class="inline-note">测试使用本版本冻结配置，不写入用户会话。</div><details><summary>技术详情</summary><p>${escapeHtml(version.frozen?.indexVersionId || "未冻结")}</p></details>${assistantFeedback ? `<p class="form-feedback" role="status">${escapeHtml(assistantFeedback)}</p>` : ""}${resultPanel}`;
   return adminShell("assistant-test", "助手单题测试", "", '<button class="button secondary" type="button" data-nav-screen="assistant-draft">查看冻结配置</button>', body, state, "助手交付 / 单题测试");
 }
 
@@ -1973,20 +2030,24 @@ function renderAssistantEvaluation(state, snapshot) {
   return adminShell("assistant-evaluation", "助手发布门禁", "", '<button class="button secondary" type="button" data-nav-screen="assistant-test">返回单题测试</button>', body, state, "助手交付 / 发布门禁");
 }
 
+function assistantModelSummary(snapshot, frozen) {
+  return `<dl class="description-list">${[['chat','对话模型'],['embedding','向量模型'],['rerank','重排序模型']].map(([key,label])=>{const ref=frozen?.configurationRevisions?.[key];const model=snapshot.models.configurations.find(item=>item.id===ref?.id);return `<dt>${label}</dt><dd>${escapeHtml(model?.name||'未配置')} · 版本 ${ref?.revision||'待确认'}</dd>`;}).join('')}<dt>回答要求</dt><dd>引用可定位；证据不足时拒答</dd></dl>`;
+}
+
 function renderAssistantRelease(state, snapshot) {
-  const context = assistantStageContext(snapshot, ["READY_FOR_RELEASE"]);
+  const context = assistantStageContext(snapshot, ["READY_FOR_RELEASE", "PUBLISHED", "SUPERSEDED"]);
   if (!context) return adminShell("assistant-release", "发布助手版本", "", "", statePanel("empty", "没有可发布版本", "只有通过冻结评测并完成发布请求的版本会出现在这里。", "返回助手目录", "assistants-directory"), state, "助手交付 / 发布确认");
   const { assistant, version } = context;
   const knowledgeBase = snapshot.knowledgeBases.find(item => item.id === assistant.knowledgeBaseId);
   const frozen = version.frozen;
-  const blocked = state !== "success";
+  const blocked = state !== "success" || version.status !== "READY_FOR_RELEASE";
   const body = [
     `<div class="inline-note${blocked ? " warning" : ""}">${blocked ? "当前状态不可发布，发布指针保持不变。" : "发布只更新新会话使用的版本；已有会话继续固定原版本。"}</div>`,
-    `<section class="section-block"><div class="section-heading"><div><span class="section-kicker">发布门禁通过</span><h2>${escapeHtml(assistant.name)} v${escapeHtml(version.number)}</h2></div>${statusTag(version.status)}</div>${qualityGrid(version.evaluation.metrics, true)}</section>`,
-    '<div class="split-detail"><section class="section-block"><h2>冻结配置</h2><dl class="description-list">',
-    `<dt>知识库</dt><dd>${escapeHtml(knowledgeBase?.name || assistant.knowledgeBaseId)}（永久关联）</dd><dt>索引</dt><dd><span class="mono">${escapeHtml(frozen.indexVersionId)}</span></dd><dt>Chat</dt><dd><span class="mono">${escapeHtml(frozen.configurationRevisions.chat.id)} / r${escapeHtml(frozen.configurationRevisions.chat.revision)}</span></dd><dt>Embedding</dt><dd><span class="mono">${escapeHtml(frozen.configurationRevisions.embedding.id)} / r${escapeHtml(frozen.configurationRevisions.embedding.revision)}</span></dd><dt>Rerank</dt><dd><span class="mono">${escapeHtml(frozen.configurationRevisions.rerank.id)} / r${escapeHtml(frozen.configurationRevisions.rerank.revision)}</span></dd><dt>检索策略</dt><dd>${escapeHtml(frozen.retrievalPolicy)}</dd><dt>引用 / 拒答</dt><dd>${escapeHtml(frozen.citationPolicy)} / ${escapeHtml(frozen.refusalPolicy)}</dd></dl></section>`,
+    `<section class="section-block"><div class="section-heading"><div><span class="section-kicker">发布记录</span><h2>${escapeHtml(assistant.name)} v${escapeHtml(version.number)}</h2></div>${statusTag(version.status)}</div>${version.evaluation?.metrics ? qualityGrid(version.evaluation.metrics, true) : '<p>初始合成版本未保留评测指标快照。新版本需重新完成质量检查。</p>'}<button class="button secondary" data-nav-screen="tenant-members">配置成员授权</button></section>`,
+    `<div class="split-detail"><section class="section-block"><h2>版本配置</h2>${assistantModelSummary(snapshot, frozen)}<details><summary>技术详情</summary><dl class="description-list">`,
+    `<dt>知识库</dt><dd>${escapeHtml(knowledgeBase?.name || assistant.knowledgeBaseId)}（关联）</dd><dt>索引</dt><dd><span class="mono">${escapeHtml(frozen.indexVersionId)}</span></dd><dt>Chat</dt><dd><span class="mono">${escapeHtml(frozen.configurationRevisions.chat.id)} / r${escapeHtml(frozen.configurationRevisions.chat.revision)}</span></dd><dt>Embedding</dt><dd><span class="mono">${escapeHtml(frozen.configurationRevisions.embedding.id)} / r${escapeHtml(frozen.configurationRevisions.embedding.revision)}</span></dd><dt>Rerank</dt><dd><span class="mono">${escapeHtml(frozen.configurationRevisions.rerank.id)} / r${escapeHtml(frozen.configurationRevisions.rerank.revision)}</span></dd><dt>检索策略</dt><dd>${escapeHtml(frozen.retrievalPolicy)}</dd><dt>引用 / 拒答</dt><dd>${escapeHtml(frozen.citationPolicy)} / ${escapeHtml(frozen.refusalPolicy)}</dd></dl></details></section>`,
     `<aside><section class="release-decision${blocked ? " blocked" : ""}"><span class="section-kicker">发布影响</span><h2>新会话切换到 v${escapeHtml(version.number)}</h2><p>旧会话不迁移；授权撤销仍立即阻断正文与引用。</p><button class="button primary" type="button" data-confirm-release data-assistant-version-id="${escapeHtml(version.id)}" data-primary-action${blocked ? " disabled" : ""}>发布助手版本</button>${assistantFeedback ? `<p class="form-feedback" role="status">${escapeHtml(assistantFeedback)}</p>` : ""}</section></aside></div>`,
-    `<dialog id="release-dialog" class="dialog-surface"><div class="dialog-body"><span class="section-kicker">发布确认</span><h2>发布 ${escapeHtml(assistant.name)} v${escapeHtml(version.number)}？</h2><dl class="description-list"><dt>新会话</dt><dd>${escapeHtml(version.id)} / ${escapeHtml(frozen.indexVersionId)}</dd><dt>已有会话</dt><dd>继续固定原版本</dd></dl><p id="assistant-release-feedback" class="form-feedback" role="alert"></p><div class="release-actions"><button class="button secondary" type="button" data-cancel-assistant-release>取消</button><button class="button primary" type="button" data-publish-assistant-version="${escapeHtml(version.id)}">确认发布</button></div></div></dialog>`,
+    `<dialog id="release-dialog" class="dialog-surface"><header class="dialog-title"><h2>发布 ${escapeHtml(assistant.name)} v${escapeHtml(version.number)}？</h2></header><div class="dialog-body"><dl class="description-list"><dt>新会话</dt><dd>使用本次发布版本 ${escapeHtml(version.number)}，引用经核验的知识内容</dd><dt>已有会话</dt><dd>继续固定原版本</dd></dl><p id="assistant-release-feedback" class="form-feedback" role="alert"></p></div><div class="dialog-actions"><button class="button secondary" type="button" data-cancel-assistant-release>取消</button><button class="button primary" type="button" data-publish-assistant-version="${escapeHtml(version.id)}">确认发布</button></div></dialog>`,
   ].join("");
   return adminShell("assistant-release", "发布助手版本", "", '<button class="button secondary" type="button" data-nav-screen="assistant-evaluation">查看评测结果</button>', body, state, "助手交付 / 发布确认");
 }
@@ -1997,6 +2058,7 @@ function renderAssistantDelivery(screen, state, snapshot) {
   return {
     "assistants-directory": renderAssistantDirectory,
     "assistant-create": renderAssistantCreate,
+    "assistant-overview": renderAssistantOverview,
     "assistant-draft": renderAssistantDraft,
     "assistant-test": renderAssistantTest,
     "assistant-evaluation": renderAssistantEvaluation,
@@ -2218,7 +2280,7 @@ function renderAccessPolicyDetail(state, snapshot) {
     ? `<button class="button primary" type="button" data-publish-access-policy data-access-policy-version-id="${escapeHtml(version.id)}" data-primary-action${blocked || !preview?.passed ? " disabled" : ""}>发布策略版本</button>`
     : `<button class="button primary" type="button" data-primary-action data-create-access-version="${escapeHtml(policy.id)}"${state === "success" ? "" : " disabled"}>创建策略新版本</button>`;
   const body = [
-    '<div class="inline-note">策略只配置普通成员可用的助手；知识库由助手的永久关联关系确定，不能在这里另选。</div>',
+    '<div class="inline-note">策略只配置普通成员可用的助手；知识库由助手的关联关系确定，不能在这里另选。</div>',
     `<div class="split-detail"><form id="access-policy-form" class="section-block" data-access-policy-version-id="${escapeHtml(version.id)}"><div class="section-heading"><div><span class="section-kicker">${escapeHtml(policy.name)}</span><h2>策略 v${escapeHtml(version.number)}</h2></div>${statusTag(version.status)}</div><div class="form-grid"><label class="field"><span>已发布助手</span><select class="select" name="assistantId" data-access-policy-assistant${blocked ? " disabled" : ""}>${publishedAssistants.map(item => `<option value="${escapeHtml(item.id)}"${item.id === version.assistantId ? " selected" : ""}>${escapeHtml(item.name)}</option>`).join("")}</select></label><div class="field"><span>关联知识库（自动确定）</span><div class="input readonly-value" data-derived-knowledge-base>${escapeHtml(knowledgeBase.name)}</div><small class="field-hint" data-derived-knowledge-help>来自“${escapeHtml(assistant.name)}”的永久知识库关系。</small></div></div><fieldset class="feature-editor access-policy-members"><legend class="section-kicker">授权普通成员</legend><div class="feature-grid">${memberControls}</div></fieldset><p id="access-policy-feedback" class="form-feedback" role="alert">${escapeHtml(accessGovernanceFeedback)}</p><div class="form-actions"><button class="button secondary" type="submit"${blocked ? " disabled" : ""}>保存草稿</button><button class="button ${preview?.passed ? "secondary" : "primary"}" type="button" data-preview-access-policy data-access-policy-version-id="${escapeHtml(version.id)}"${preview?.passed ? "" : " data-primary-action"}${blocked ? " disabled" : ""}>生成授权预览</button></div></form>`,
     `<aside><section class="release-decision${preview?.passed ? "" : " pending"}"><span class="section-kicker">发布前授权预览</span><h2>${preview?.passed ? "32 个样本已通过" : "尚未生成有效预览"}</h2>${previewBody}<div class="form-actions">${primary}</div><dl class="description-list"><dt>当前成员</dt><dd>${escapeHtml(members.map(item => item.name).join("、"))}</dd><dt>生效范围</dt><dd>助手目录、对话、本人历史和授权引用</dd><dt>撤销结果</dt><dd>直接路由、历史正文与引用立即失败关闭</dd></dl></section></aside></div>`,
   ].join("");
@@ -3054,11 +3116,40 @@ function bindAssistantDelivery() {
     }
     root.querySelector("#release-dialog")?.close();
     assistantFeedback = `${result.assistant.name} v${result.version.number} 已发布；已有会话未迁移。`;
-    navigate("assistants-directory");
+    navigate("assistant-overview");
   });
 }
 
 function bindInteractions(screen) {
+  const updateObjectParams=(patch,focus)=>{
+    const url=new URL(location.href);
+    for(const [key,value] of Object.entries(patch)){if(value===null||value==='')url.searchParams.delete(key);else url.searchParams.set(key,String(value));}
+    history.pushState({},'',url);render();
+    if(focus)root.querySelector(focus)?.focus();
+  };
+  root.querySelectorAll('[data-document-view]').forEach(button=>button.onclick=()=>updateObjectParams({documentView:button.dataset.documentView,page:1,before:null,documentVersion:null}));
+  root.querySelectorAll('[data-document-version]').forEach(button=>button.onclick=()=>updateObjectParams({documentView:'preview',documentVersion:button.dataset.documentVersion}));
+  root.querySelectorAll('[data-record-before]').forEach(button=>button.onclick=()=>updateObjectParams({before:button.dataset.recordBefore}));
+  root.querySelectorAll('[data-object-page]').forEach(button=>button.onclick=()=>updateObjectParams({page:button.dataset.objectPage},'[data-object-page][aria-current="page"]'));
+  root.querySelector('[data-object-size]')?.addEventListener('change',event=>updateObjectParams({size:event.target.value,page:1},'[data-object-size]'));
+  if(root.querySelector('[data-object-pagination]')){
+    const search=root.querySelector('.toolbar input[type="search"]');
+    if(search)search.value=new URLSearchParams(location.search).get('q')||'';
+  }
+  if(root.querySelector('[data-object-pagination]'))root.querySelector('.toolbar input[type="search"]')?.addEventListener('input',event=>{
+    const value=event.target.value, position=event.target.selectionStart;
+    updateObjectParams({q:value,page:1});
+    const control=root.querySelector('.toolbar input[type="search"]');control?.focus();control?.setSelectionRange(position,position);
+  });
+  const jumpObjectPage=()=>{
+    const input=root.querySelector('[data-object-jump]');
+    if(!input.checkValidity()||!Number.isInteger(Number(input.value))){root.querySelector('[data-object-error]').textContent=`请输入 1–${input.max} 的整数。`;input.focus();return;}
+    updateObjectParams({page:input.value},'[data-object-jump]');
+  };
+  root.querySelector('[data-object-go]')?.addEventListener('click',jumpObjectPage);
+  root.querySelector('[data-object-jump]')?.addEventListener('keydown',event=>{
+    if(event.key==='Enter'){event.preventDefault();jumpObjectPage();}
+  });
   root.querySelectorAll("[data-nav-screen]").forEach((element) => {
     element.addEventListener("click", () => {
       if (element.dataset.selectTenant) {
@@ -3292,7 +3383,7 @@ function bindInteractions(screen) {
     consoleLoginTenants = result.tenants || [];
     if (!result.ok) {
       consoleLoginFeedback = result.reason === "STORAGE_UNAVAILABLE" ? "浏览器无法保存登录状态，请检查存储后重试。"
-        : result.reason === "TENANT_SELECTION_REQUIRED" ? "请选择本次管理的组织，并再次输入演示口令。"
+        : result.reason === "TENANT_SELECTION_REQUIRED" ? "请选择本次管理的组织，并再次输入演示密码。"
         : result.reason === "WORKSPACE_NOT_READY" ? "此组织工作区的原型尚未接通，暂不能进入；不会打开其他组织的数据。"
         : "登录名或密码不正确，或当前账户不能进入控制台。";
       render();
@@ -3319,7 +3410,7 @@ function bindInteractions(screen) {
     loginFeedback = "";
     demoLoginRepairFeedback = result.repairedCount > 0
       ? "演示登录已修复，原数据已保留。请使用原登录名和 demo-only 登录。"
-      : "登录配置已变化，本次未修改数据。请使用最近设置的演示口令登录。";
+      : "登录配置已变化，本次未修改数据。请使用最近设置的演示密码登录。";
     render();
     root.querySelector('input[name="password"]')?.focus();
   });
@@ -3350,6 +3441,9 @@ function bindInteractions(screen) {
   bindAccountManagement();
   bindTenantFeatures();
   bindMemberManagement();
+  if(screen.startsWith('tenant-member-') && currentScenario().state !== 'success') {
+    root.querySelectorAll('[data-od-id="member-workspace"] input, [data-od-id="member-workspace"] button:not([data-nav-screen]), #add-member-form input, #add-member-form [type="submit"], #add-member-form [data-member-back]').forEach(control=>control.disabled=true);
+  }
   bindHealthManagement();
   bindRecoveryDrill();
   bindKnowledgeManagement();
@@ -3878,23 +3972,95 @@ function bindTenantFeatures() {
 }
 
 function bindMemberManagement() {
-  const memberDialog = root.querySelector("#add-member-dialog");
-  memberDialog?.addEventListener("close", () => {
-    memberDialog.querySelector("form").reset();
-    memberDialog.querySelector("#add-member-feedback").textContent = "";
-    root.querySelector('[data-business-action="open-add-member"]')?.focus();
+  const wizard = root.querySelector('[data-member-wizard]');
+  const draftSession=prototypeStore.getSession();
+  const sameDraftSession=()=>{const current=prototypeStore.getSession();return current.authenticated&&current.accountId===draftSession.accountId&&current.epoch===draftSession.epoch;};
+  let memberStep = 1;
+  let drafts;
+  memberEditGuard=null;
+  try { drafts=memberDrafts(sessionStorage,draftSession); }
+  catch { accountFeedback="界面草稿不可用，刷新可能丢失未保存修改。"; }
+  const draftKey="create";
+  const paintStep = () => {
+    wizard.querySelectorAll('[data-member-step]').forEach(item => { item.hidden = Number(item.dataset.memberStep) !== memberStep; });
+    root.querySelectorAll('.member-create-steps li').forEach((item,index)=>{
+      item.dataset.stepState=index+1===memberStep?'current':index+1<memberStep?'complete':'upcoming';
+      if(index+1===memberStep)item.setAttribute('aria-current','step');else item.removeAttribute('aria-current');
+    });
+    wizard.querySelector('[data-member-back]').hidden = memberStep === 1;
+    wizard.querySelector('[type="submit"]').textContent = memberStep === 3 ? '创建成员' : '下一步';
+  };
+  const saveWizard = () => {
+    if (!wizard) return;
+    if(!sameDraftSession()){wizard.querySelectorAll('[type="password"]').forEach(input=>input.value='');render();return;}
+    const data = new FormData(wizard);
+    try { drafts.save(draftKey, {step:memberStep,loginName:data.get('loginName'),features:data.getAll('conversationFeatures'),assistants:data.getAll('assistantIds')}); }
+    catch { wizard.querySelector('[role="alert"]').textContent = '草稿未保存，刷新会丢失输入。'; }
+  };
+  if (wizard) {
+    try {
+      const draft = drafts.read(draftKey);
+      if (draft) {
+        memberStep = Math.min(3, Math.max(1, Number(draft.step) || 1));
+        wizard.elements.loginName.value = draft.loginName || '';
+        wizard.querySelectorAll('[name="conversationFeatures"]').forEach(input => { input.checked = draft.features?.includes(input.value) || false; });
+        wizard.querySelector('[data-assistant-picker]').dataset.selected = JSON.stringify(draft.assistants || []);
+      }
+    } catch { wizard.querySelector('[role="alert"]').textContent = '无法恢复草稿，请重新填写。'; }
+    paintStep();
+    wizard.addEventListener('input', saveWizard);
+    wizard.addEventListener('change', saveWizard);
+    wizard.querySelector('[data-member-back]').addEventListener('click', () => { memberStep=Math.max(1,memberStep-1); paintStep(); saveWizard(); });
+    wizard.querySelector('[data-cancel-member-wizard]').addEventListener('click', () => {
+      try { drafts.clear(draftKey); } catch { wizard.querySelector('[role="alert"]').textContent='无法清除草稿，请重试。'; return; }
+      navigate('tenant-members');
+    });
+  }
+  const editScreen=currentScenario().screen, memberId=new URLSearchParams(location.search).get('memberAccountId');
+  const editScope=`${editScreen}:${memberId}`;
+  const editing=['tenant-member-features','tenant-member-assistants'].includes(editScreen);
+  const picker=root.querySelector('[data-assistant-picker]');
+  let assistantIds=picker ? JSON.parse(picker.dataset.selected) : [];
+  const editValue=()=>({features:Object.fromEntries([...root.querySelectorAll('[data-member-feature]')].map(input=>[input.dataset.memberFeature,input.checked])),assistants:assistantIds});
+  const saveEditDraft=()=>{
+    if(!sameDraftSession()){render();return;}
+    memberEditGuard.dirty=true;
+    try { drafts.save(editScope,editValue()); }
+    catch { root.querySelector('#member-feature-feedback').textContent='修改尚未保存到草稿，刷新会丢失。'; }
+  };
+  if(editing && root.querySelector('#member-feature-feedback')) {
+    memberEditGuard={dirty:false,url:location.href,clear:()=>{drafts.clear(editScope);memberEditGuard.dirty=false;}};
+    try {
+      const saved=drafts.read(editScope);
+      if(saved){
+        root.querySelectorAll('[data-member-feature]').forEach(input=>{if(typeof saved.features?.[input.dataset.memberFeature]==='boolean')input.checked=saved.features[input.dataset.memberFeature];});
+        if(picker){assistantIds=saved.assistants || [];picker.dataset.selected=JSON.stringify(assistantIds);}
+        memberEditGuard.dirty=true;
+        root.querySelector('#member-feature-feedback').textContent='已恢复本页未保存修改。';
+      }
+    } catch { root.querySelector('#member-feature-feedback').textContent='无法恢复草稿，当前显示已保存配置。'; }
+    root.querySelectorAll('[data-member-feature]').forEach(input=>input.addEventListener('change',saveEditDraft));
+  }
+  bindAssistantPickers(root, (accountId, ids) => {assistantIds=ids;saveEditDraft();});
+  root.querySelector("[data-member-assistant-search]")?.addEventListener("input", event => {
+    const query = event.target.value.trim();
+    root.querySelectorAll("[data-assistant-choice]").forEach(item => { item.hidden = !item.dataset.assistantChoice.includes(query); });
   });
   root
     .querySelector('[data-business-action="open-add-member"]')
     ?.addEventListener("click", () => {
-      root.querySelector("#add-member-dialog")?.showModal();
+      navigate("tenant-member-create");
     });
-  root.querySelector("[data-cancel-add-member]")?.addEventListener("click", () => {
-    root.querySelector("#add-member-dialog")?.close();
-  });
   root.querySelector("#add-member-form")?.addEventListener("submit", (event) => {
     event.preventDefault();
     const form = event.currentTarget;
+    if (wizard && memberStep < 3) {
+      const invalid = [...wizard.querySelector(`[data-member-step="${memberStep}"]`).querySelectorAll('input')].find(input => !input.checkValidity());
+      if (invalid) { invalid.reportValidity(); invalid.focus(); return; }
+      memberStep++; paintStep(); saveWizard();
+      wizard.querySelector(`[data-member-step="${memberStep}"] input`)?.focus();
+      return;
+    }
     const values = new FormData(form);
     const result = prototypeStore.addMember(workspaceTenantId(), {
       loginName: values.get("loginName"),
@@ -3908,11 +4074,17 @@ function bindMemberManagement() {
       const feedback = form.querySelector("#add-member-feedback");
       feedback.textContent = result.errors?.map(error => error.message).join(" ") || "无法添加该成员，请核对身份、助手范围或浏览器存储。";
       feedback.dataset.tone = "danger";
+      if (wizard && result.errors?.[0]?.field === 'loginName') { memberStep=1; paintStep(); saveWizard(); }
       form.elements.namedItem(result.errors?.[0]?.field || "loginName")?.focus();
       return;
     }
     form.closest("dialog")?.close();
     accountFeedback = result.member.assistantIds.length ? `${result.account.loginName} 已创建，可从普通用户问答登录入口进入本租户。` : `${result.account.loginName} 已创建，尚未授权助手。请在对话功能中选择可用助手后再登录问答。`;
+    if (wizard) {
+      try { drafts.clear(draftKey); } catch { accountFeedback += '草稿清除失败。'; }
+      navigate('tenant-member-account', 'success', {memberAccountId:result.member.accountId});
+      return;
+    }
     render();
   });
   root
@@ -3942,49 +4114,21 @@ function bindMemberManagement() {
     .querySelectorAll('[data-business-action="select-demo-member"]')
     .forEach((button) => {
       button.addEventListener("click", () => {
-        prototypeStore.selectDemoAccount(button.dataset.accountId);
-        render();
+        navigate("tenant-member-account", "success", {memberAccountId:button.dataset.accountId});
       });
     });
-  root.querySelectorAll("[data-member-feature]").forEach((control) => {
-    control.addEventListener("change", () => {
-      prototypeStore.setMemberFeatureDraft(
-        workspaceTenantId(),
-        control.dataset.memberAccount,
-        control.dataset.memberFeature,
-        control.checked,
-      );
-    });
-  });
-  root.querySelectorAll("[data-member-assistant]").forEach((control) => {
-    control.addEventListener("change", () => {
-      const accountId = control.dataset.memberAccount;
-      const assistantIds = [...root.querySelectorAll(`[data-member-assistant][data-member-account="${CSS.escape(accountId)}"]:checked`)].map(
-        (item) => item.dataset.memberAssistant,
-      );
-      prototypeStore.setMemberAssistantDraft(
-        workspaceTenantId(),
-        accountId,
-        assistantIds,
-      );
-    });
-  });
   root
-    .querySelector('[data-business-action="save-member-features"]')
+    .querySelector('[data-business-action="save-member-features"], [data-business-action="save-member-assistants"]')
     ?.addEventListener("click", (event) => {
-      const result = prototypeStore.commitMemberFeatureDraft(
-        workspaceTenantId(),
-        event.currentTarget.dataset.memberAccount,
-      );
-      if (result.ok) render();
+      const scope=editScreen==='tenant-member-features'?'features':'assistants';
+      const result = prototypeStore.saveMemberScope(workspaceTenantId(),event.currentTarget.dataset.memberAccount,scope,scope==='features'?editValue().features:assistantIds,prototypeStore.getSession().accountId);
+      if (result.ok) { try {memberEditGuard.clear();} catch { root.querySelector('#member-feature-feedback').textContent='配置已保存，但草稿清除失败。';return;} render();root.querySelector('#member-feature-feedback').textContent=scope==='features'?'对话功能已保存。':'可用助手已保存。'; }
+      else root.querySelector('#member-feature-feedback').textContent = '未能保存，请检查当前授权与浏览器存储后重试。';
     });
   root
     .querySelector('[data-business-action="cancel-member-features"]')
     ?.addEventListener("click", (event) => {
-      prototypeStore.discardMemberFeatureDraft(
-        workspaceTenantId(),
-        event.currentTarget.dataset.memberAccount,
-      );
+      try {memberEditGuard.clear();} catch {root.querySelector('#member-feature-feedback').textContent='无法清除草稿，请重试。';return;}
       render();
     });
 }
@@ -4062,7 +4206,7 @@ function evaluationFailureMessage(result) {
     EXPECTED_EVIDENCE_REQUIRED: "可回答和多轮样本必须填写期望证据标识。",
     ASSISTANT_VERSION_NOT_FROZEN: "请选择已冻结索引和模型版本的助手版本。",
     EVALUATION_DATASET_NOT_PUBLISHED: "请选择已发布的数据集版本。",
-    EVALUATION_KNOWLEDGE_BASE_MISMATCH: "评测数据集必须属于助手永久关联的知识库。",
+    EVALUATION_KNOWLEDGE_BASE_MISMATCH: "评测数据集必须属于助手关联的知识库。",
     EVALUATION_DATASET_MISMATCH: "只能比较使用同一数据集版本的运行。",
     EVALUATION_ASSISTANT_MISMATCH: "只能比较同一个稳定助手的冻结版本。",
     EVALUATION_REGRESSION_BLOCKED: "发现安全或质量回退，不能形成放行决定。",

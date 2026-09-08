@@ -46,7 +46,7 @@ test("创建助手只接受当前租户内索引就绪知识库并永久关联",
   assert.match(await page.locator("#assistant-create-feedback").innerText(), /索引就绪/);
   await createAssistant(page, "制度边界助手");
   const text = await page.locator("main").innerText();
-  assert.match(text, /永久关联 员工服务手册/);
+  assert.match(text, /关联 员工服务手册/);
   assert.equal(await page.locator('select[name="knowledgeBaseId"]').count(), 0, "草稿页不应允许更换稳定知识库");
 }));
 
@@ -67,10 +67,10 @@ test("助手从创建、冻结、单题测试、评测到发布形成可刷新�
   const dialog = page.locator("#release-dialog");
   assert.equal(await dialog.evaluate(element => element.open), true);
   await dialog.getByRole("button", { name: "确认发布", exact: true }).click();
-  await page.locator('main[data-screen="assistants-directory"]').waitFor();
+  await page.locator('main[data-screen="assistant-overview"]').waitFor();
   assert.equal(await page.getByText("浏览器制度助手", { exact: true }).isVisible(), true);
   await page.reload({ waitUntil: "domcontentloaded" });
-  await page.locator('main[data-screen="assistants-directory"]').waitFor();
+  await page.locator('main[data-screen="assistant-overview"]').waitFor();
   assert.equal(await page.getByText("浏览器制度助手", { exact: true }).isVisible(), true);
   const frozen = await page.evaluate(() => {
     const state = JSON.parse(localStorage.getItem("wp0016-business-demo-v1"));

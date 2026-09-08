@@ -1,4 +1,5 @@
 import { renderConsoleNavigation, renderAccountMenu } from "./navigation.js";
+import { memberWorkspace, memberCreateWorkspace } from "./member-workspace.js";
 import {
   CONVERSATION_FEATURES,
   DEFAULT_QUOTAS,
@@ -8,9 +9,9 @@ import {
   DEMO_LOGIN_SCENARIOS,
 } from "./prototype-state.js";
 
-/** 显示全部公开夹具，不展示或推断任何账户当前选择的口令。 */
+/** 显示全部公开夹具，不展示或推断任何账户当前选择的密码。 */
 export function renderDemoLoginHelp() {
-  return `<details class="demo-login-help"><summary>演示口令说明</summary><p>仅接受以下公开演示口令：<br />${Object.values(DEMO_LOGIN_SCENARIOS).map(escapeHtml).join("<br />")}</p><small>请勿输入真实密码。未修改过的内置账户使用 demo-only；创建或重置后使用刚设置的演示口令，并非上面任意一个都能登录。不会显示账户当前口令。检测到旧版数据时，登录页提供保留数据的修复入口。</small></details>`;
+  return `<details class="demo-login-help"><summary>演示密码说明</summary><p>仅接受以下公开演示密码：<br />${Object.values(DEMO_LOGIN_SCENARIOS).map(escapeHtml).join("<br />")}</p><small>请勿输入真实密码。未修改过的内置账户使用 demo-only；创建或重置后使用刚设置的演示密码，并非上面任意一个都能登录。不会显示账户当前密码。检测到旧版数据时，登录页提供保留数据的修复入口。</small></details>`;
 }
 
 /** 两种治理入口复用重置表单，授权由各自状态方法重新检查。 */
@@ -21,7 +22,7 @@ export function renderPasswordResetDialog() {
 /** 演示数据升级与产品登录分开，修复必须明确确认且不能清空原来的业务快照。 */
 export function renderDemoLoginRepair(required, feedback = "") {
   if (!required) return feedback ? `<p class="inline-note" role="status">${escapeHtml(feedback)}</p>` : "";
-  return `<section class="inline-note warning" aria-label="旧版演示登录配置"><strong>检测到旧版演示数据</strong><p>缺少登录配置，按初始口令也无法进入。可保留数据修复后重试。</p><button class="button secondary compact" type="button" data-open-demo-login-repair>修复演示登录</button></section><dialog id="demo-login-repair-dialog" class="dialog-surface" aria-labelledby="demo-login-repair-title"><h2 id="demo-login-repair-title">修复旧版演示登录</h2><p>仅补齐未修改过的内置演示账户，修复后使用公开口令 demo-only。</p><p>不清空租户、知识库、会话和草稿；不覆盖已重置的口令，不恢复停用账户，不改变角色和权限。</p><p>修复后仍需手动登录。这是本机原型修复，不是真实账户密码恢复。</p><p class="form-feedback" role="alert" data-demo-login-repair-error></p><div class="dialog-actions"><button class="button secondary" type="button" data-cancel-demo-login-repair autofocus>取消</button><button class="button primary" type="button" data-confirm-demo-login-repair>确认修复</button></div></dialog>`;
+  return `<section class="inline-note warning" aria-label="旧版演示登录配置"><strong>检测到旧版演示数据</strong><p>缺少登录配置，按初始密码也无法进入。可保留数据修复后重试。</p><button class="button secondary compact" type="button" data-open-demo-login-repair>修复演示登录</button></section><dialog id="demo-login-repair-dialog" class="dialog-surface" aria-labelledby="demo-login-repair-title"><h2 id="demo-login-repair-title">修复旧版演示登录</h2><p>仅补齐未修改过的内置演示账户，修复后使用公开密码 demo-only。</p><p>不清空租户、知识库、会话和草稿；不覆盖已重置的密码，不恢复停用账户，不改变角色和权限。</p><p>修复后仍需手动登录。这是本机原型修复，不是真实账户密码恢复。</p><p class="form-feedback" role="alert" data-demo-login-repair-error></p><div class="dialog-actions"><button class="button secondary" type="button" data-cancel-demo-login-repair autofocus>取消</button><button class="button primary" type="button" data-confirm-demo-login-repair>确认修复</button></div></dialog>`;
 }
 
 /** 登录入口只是导航，不根据入口名称授予平台、租户或问答权限。 */
@@ -474,16 +475,13 @@ function renderTenantMembers(demoState) {
     .map((member) => {
       const administrator = member.role === "tenantAdministrator";
       const name = accountName(demoState, member.accountId);
-      return `<tr data-account-row="${escapeHtml(member.accountId)}" tabindex="-1" data-search-text="${escapeHtml(`${name} ${administrator ? "租户管理员" : "普通成员"} ${member.status === "active" ? "活动" : "已停用"}`)}"><td data-label="成员"><strong>${escapeHtml(name)}</strong></td><td data-label="角色">${administrator ? "租户管理员" : "普通成员"}</td><td data-label="状态">${statusTag(member.status === "active" ? "活动" : "已停用")}</td><td data-label="助手范围">${administrator ? "平台治理" : `${member.assistantIds.length} 个`}</td><td data-label="操作"><div class="table-actions">${administrator ? '<span class="field-hint">只读</span>' : `<button class="button secondary compact" type="button" data-business-action="select-demo-member" data-account-id="${escapeHtml(member.accountId)}" data-control-status="implemented">配置并演示</button><button class="button subtle compact" type="button" data-reset-account="${escapeHtml(member.accountId)}" data-control-status="implemented">重置密码</button><button class="button subtle compact" type="button" data-business-action="toggle-member-status" data-account-id="${escapeHtml(member.accountId)}" data-next-status="${member.status === "active" ? "disabled" : "active"}" data-control-status="implemented">${member.status === "active" ? "停用" : "恢复"}</button>`}</div></td></tr>`;
+      return `<tr data-account-row="${escapeHtml(member.accountId)}" tabindex="-1" data-search-text="${escapeHtml(`${name} ${administrator ? "租户管理员" : "普通成员"} ${member.status === "active" ? "活动" : "已停用"}`)}"><td data-label="成员"><strong>${escapeHtml(name)}</strong></td><td data-label="角色">${administrator ? "租户管理员" : "普通成员"}</td><td data-label="状态">${statusTag(member.status === "active" ? "活动" : "已停用")}</td><td data-label="助手范围">${administrator ? "平台治理" : `${member.assistantIds.length} 个`}</td><td data-label="操作"><div class="table-actions">${administrator ? '<span class="field-hint">只读</span>' : `<button class="button secondary compact" type="button" data-business-action="select-demo-member" data-account-id="${escapeHtml(member.accountId)}" data-control-status="implemented">查看成员</button><button class="button subtle compact" type="button" data-reset-account="${escapeHtml(member.accountId)}" data-control-status="implemented">重置密码</button><button class="button subtle compact" type="button" data-business-action="toggle-member-status" data-account-id="${escapeHtml(member.accountId)}" data-next-status="${member.status === "active" ? "disabled" : "active"}" data-control-status="implemented">${member.status === "active" ? "停用" : "恢复"}</button>`}</div></td></tr>`;
     })
     .join("");
   return [
-    '<div class="member-layout"><section><div class="toolbar"><label class="field"><span>搜索成员</span><input class="input" type="search" data-directory-search="tenant-members" placeholder="按姓名或角色搜索" /></label><span class="toolbar-note">管理员条目只读</span></div><div class="table-shell"><table class="data-table"><thead><tr><th>成员</th><th>角色</th><th>状态</th><th>助手范围</th><th>操作</th></tr></thead><tbody>' +
+    '<div class="member-directory"><section><div class="toolbar"><label class="field"><span>搜索成员</span><input class="input" type="search" data-directory-search="tenant-members" placeholder="按姓名或角色搜索" /></label><span class="toolbar-note">管理员条目只读</span></div><div class="table-shell"><table class="data-table"><thead><tr><th>成员</th><th>角色</th><th>状态</th><th>助手范围</th><th>操作</th></tr></thead><tbody>' +
       rows +
-      `</tbody></table><div class="pagination" aria-label="成员目录分页"><span>第 1 页，共 ${tenant?.members?.length || 0} 位成员</span><div class="pagination-actions"><button class="button secondary compact" type="button" disabled>上一页</button><button class="button secondary compact" type="button" disabled>下一页</button></div></div></div></section>${renderMemberFeatureEditor(demoState, tenant, selectedMember)}</div>`,
-    '<dialog id="add-member-dialog" class="dialog-surface account-dialog" aria-labelledby="add-member-title"><form id="add-member-form" novalidate><span class="section-kicker">当前租户 · 普通成员</span><h2 id="add-member-title">添加普通成员</h2><div class="member-form-body">' + renderDemoLoginHelp() +
-      '<label class="field"><span>登录名</span><input class="input" name="loginName" required autocomplete="off" maxlength="64" placeholder="例如：member.demo" /></label><div class="wizard-field-grid account-password-grid"><label class="field"><span>初始密码</span><input class="input" type="password" name="password" required autocomplete="new-password" /></label><label class="field"><span>再次输入</span><input class="input" type="password" name="passwordConfirmation" required autocomplete="new-password" /></label></div>' +
-      '<fieldset class="assistant-scope"><legend>初始对话功能</legend><label><input type="checkbox" name="conversationFeatures" value="assistantSelection" checked /> 选择已授权助手</label><label><input type="checkbox" name="conversationFeatures" value="conversation" checked /> 发起与继续对话</label><label><input type="checkbox" name="conversationFeatures" value="ownHistory" /> 查看本人历史</label><label><input type="checkbox" name="conversationFeatures" value="authorizedCitations" /> 查看有权引用</label></fieldset><fieldset class="assistant-scope"><legend>初始助手范围</legend>' + memberAssistantChoices(demoState, tenant) + '</fieldset><p id="add-member-feedback" class="form-feedback" role="status" aria-live="polite"></p></div><div class="release-actions"><button class="button secondary" type="button" value="cancel" data-cancel-add-member data-control-status="implemented">取消</button><button class="button primary" type="submit" value="default" data-control-status="implemented">确认添加</button></div></form></dialog>',
+      `</tbody></table><div class="pagination" aria-label="成员目录分页"><span>第 1 页，共 ${tenant?.members?.length || 0} 位成员</span><div class="pagination-actions"><button class="button secondary compact" type="button" disabled>上一页</button><button class="button secondary compact" type="button" disabled>下一页</button></div></div></div></section></div>`,
     renderPasswordResetDialog(),
     '<p id="account-operation-feedback" class="form-feedback" role="status" aria-live="polite">' + escapeHtml(demoState?.accountFeedback || '') + '</p>',
     '<dialog id="member-status-dialog" class="dialog-surface account-dialog" aria-labelledby="member-status-title"><h2 id="member-status-title">停用普通成员</h2><p>此成员将无法登录本租户，当前对话与历史访问立即失效。助手授权保留，可在成员目录恢复。</p><p id="member-status-error" role="alert"></p><div class="dialog-actions"><button type="button" class="button secondary" data-close-dialog="member-status-dialog">取消</button><button type="button" class="button primary" data-confirm-member-disable>确认停用</button></div></dialog>',
@@ -632,6 +630,12 @@ function contentFor(page, fixture, demoState) {
       return renderPlatformAccounts(demoState);
     case "tenant-members":
       return renderTenantMembers(demoState);
+    case "tenant-member-account":
+    case "tenant-member-features":
+    case "tenant-member-assistants":
+      return memberWorkspace(page.screen, demoState);
+    case "tenant-member-create":
+      return memberCreateWorkspace(demoState);
     case "source-detail":
       return renderDocumentDetail();
     case "knowledge-sources":
@@ -709,7 +713,7 @@ function renderConsoleLogin(page, fixture, state, demoState) {
     '<section class="console-login-task">',
     `<div class="login-form-header"><span class="section-kicker">身份验证</span><h2>${escapeHtml(fixture.title)}</h2><p>使用已授权账户继续。</p></div>`,
     interactive
-      ? `<form id="console-login-form" class="login-form" data-login-entry="${tenantEntry ? 'tenant' : 'platform'}">${tenantSelection}<label class="field"><span>登录名</span><input class="input" name="username" autocomplete="username" value="${escapeHtml(demoState?.consoleLoginName || (tenantEntry ? 'qiao.demo' : 'platform.admin.demo'))}" required /></label><label class="field"><span>密码</span><input class="input" name="password" type="password" autocomplete="current-password" required /></label>${demoState?.consoleLoginFeedback ? `<p class="form-feedback" role="alert">${escapeHtml(demoState.consoleLoginFeedback)}</p>` : ""}<p class="inline-note ${state === "disabled" ? "danger" : ""}">${escapeHtml(statusNotice)}</p><button class="button primary" type="submit" data-primary-action${state === "disabled" ? " disabled" : ""}>登录</button><details class="demo-login-help"><summary>演示账户</summary><p>${tenantEntry ? '租户：spruce-demo / qiao.demo' : '平台：platform.admin.demo'}<br />初始演示口令：demo-only</p></details>${renderDemoLoginHelp()}</form>`
+      ? `<form id="console-login-form" class="login-form" data-login-entry="${tenantEntry ? 'tenant' : 'platform'}">${tenantSelection}<label class="field"><span>登录名</span><input class="input" name="username" autocomplete="username" value="${escapeHtml(demoState?.consoleLoginName || (tenantEntry ? 'qiao.demo' : 'platform.admin.demo'))}" required /></label><label class="field"><span>密码</span><input class="input" name="password" type="password" autocomplete="current-password" required /></label>${demoState?.consoleLoginFeedback ? `<p class="form-feedback" role="alert">${escapeHtml(demoState.consoleLoginFeedback)}</p>` : ""}<p class="inline-note ${state === "disabled" ? "danger" : ""}">${escapeHtml(statusNotice)}</p><button class="button primary" type="submit" data-primary-action${state === "disabled" ? " disabled" : ""}>登录</button><details class="demo-login-help"><summary>演示账户</summary><p>${tenantEntry ? '租户：spruce-demo / qiao.demo' : '平台：platform.admin.demo'}<br />初始演示密码：demo-only</p></details>${renderDemoLoginHelp()}</form>`
       : statePanel(page, fixture, state),
     interactive && state !== "disabled" ? renderDemoLoginRepair(demoState?.needsDemoLoginRepair, demoState?.demoLoginRepairFeedback) : "",
     renderLoginEntries(page.screen),
@@ -779,7 +783,7 @@ export function renderInventoryPage(
       : fixture.entity || fixture.title;
   const interactive = ["success", "partial", "disabled"].includes(state);
   const headerAction =
-    interactive && page.screen !== "platform-tenant-create"
+    interactive && page.screen !== "platform-tenant-create" && !page.screen.startsWith("tenant-member-")
       ? primaryAction(page, fixture, state, demoState)
       : "";
   return [

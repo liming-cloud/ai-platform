@@ -11,10 +11,22 @@ export function directoryPage(total, requestedPage = 1, requestedSize = 20) {
   return { page, size, pages, start: (page - 1) * size, end: Math.min(total, page * size), numbers };
 }
 
+/** 目录与对象版本表复用同一套分页控件，交互模式仅区分本地显隐和重新渲染。 */
+export function directoryPaginationMarkup(state, total, mode = 'directory') {
+  const object = mode === 'object';
+  const pageKey = object ? 'data-object-page' : 'data-directory-page';
+  const button = (label, page, disabled, extra = '') => `<button class="button secondary compact" type="button" ${pageKey}="${page}"${disabled ? ' disabled' : ''} ${extra}>${label}</button>`;
+  return `<span class="pagination-summary" role="status">共 ${total} 条 · ${total ? state.start + 1 : 0}–${state.end} 条</span>
+    <label class="pagination-size">每页<select class="select" aria-label="每页条数" ${object ? 'data-object-size' : 'data-page-size'}>${SIZES.map(size => `<option value="${size}"${size === state.size ? ' selected' : ''}>${size} 条</option>`).join('')}</select></label>
+    <div class="pagination-actions">${button('上一页', state.page - 1, state.page === 1)}${state.numbers.map(number => number === '…' ? '<span aria-hidden="true">…</span>' : button(number, number, false, `aria-label="第 ${number} 页"${number === state.page ? ' aria-current="page"' : ''}`)).join('')}${button('下一页', state.page + 1, state.page === state.pages)}</div>
+    <div class="pagination-jump"><label>跳至<input class="input" type="number" min="1" max="${state.pages}" value="${state.page}" aria-label="跳转页码" ${object ? 'data-object-jump' : 'data-page-jump'}></label><span>页</span><button class="button secondary compact" type="button" ${object ? 'data-object-go' : 'data-jump-page'}>跳转</button></div><span class="pagination-error" role="alert"${object ? ' data-object-error' : ''}></span>`;
+}
+
 /** 筛选与分页各自维护可见性，避免换页后把上一页误认为筛选结果。 */
 export function bindDirectoryPagination(root) {
   const bar = root.querySelector('.pagination');
   if (!bar) return;
+  if (bar.hasAttribute('data-object-pagination')) return;
   const rows = [...(bar.closest('.table-shell')?.querySelectorAll('tbody > tr') || root.querySelectorAll('#assistant-list > [data-assistant-id]'))]
     .filter(row => !row.querySelector('td[colspan]'));
   const search = root.querySelector('.toolbar input[type="search"], #assistant-search');
@@ -38,11 +50,7 @@ export function bindDirectoryPagination(root) {
       const owner = detail.previousElementSibling;
       detail.dataset.pageHidden = String(!owner || owner.hidden || owner.dataset.pageHidden === 'true');
     });
-    const button = (label, page, disabled, extra = '') => `<button class="button secondary compact" type="button" data-directory-page="${page}"${disabled ? ' disabled' : ''} ${extra}>${label}</button>`;
-    bar.innerHTML = `<span class="pagination-summary" role="status">共 ${matches.length} 条 · ${matches.length ? state.start + 1 : 0}–${state.end} 条</span>
-      <label class="pagination-size">每页<select class="select" aria-label="每页条数" data-page-size>${SIZES.map(size => `<option value="${size}"${size === state.size ? ' selected' : ''}>${size} 条</option>`).join('')}</select></label>
-      <div class="pagination-actions">${button('上一页', state.page - 1, state.page === 1)}${state.numbers.map(number => number === '…' ? '<span aria-hidden="true">…</span>' : button(number, number, false, `aria-label="第 ${number} 页"${number === state.page ? ' aria-current="page"' : ''}`)).join('')}${button('下一页', state.page + 1, state.page === state.pages)}</div>
-      <div class="pagination-jump"><label>跳至<input class="input" type="number" min="1" max="${state.pages}" value="${state.page}" aria-label="跳转页码" data-page-jump></label><span>页</span><button class="button secondary compact" type="button" data-jump-page>跳转</button></div><span class="pagination-error" role="alert"></span>`;
+    bar.innerHTML = directoryPaginationMarkup(state, matches.length);
     bar.querySelectorAll('button, input, select').forEach((control, index) => {
       control.dataset.odId = `${root.querySelector('main')?.dataset.screen}-pagination-${index + 1}`;
       control.dataset.controlStatus = 'implemented';

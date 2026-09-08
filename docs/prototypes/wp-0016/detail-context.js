@@ -7,7 +7,7 @@ export const DETAIL_CONTEXT = [
   { parameter: "configurationId", collection: ["models", "configurations"], selection: ["models", "selectedConfigurationId"], screens: ["model-configuration-detail"] },
   { parameter: "deploymentId", collection: ["models", "deployments"], selection: ["models", "selectedDeploymentId"], screens: ["model-deployment-detail"] },
   { parameter: "routingPolicyId", collection: ["models", "routingPolicies"], selection: ["models", "selectedRoutingPolicyId"], screens: ["routing-policies"] },
-  { parameter: "assistantVersionId", collection: ["assistantDelivery", "assistants"], children: "versions", selection: ["assistantDelivery", "selectedVersionId"], screens: ["assistant-draft", "assistant-test", "assistant-evaluation", "assistant-release"] },
+  { parameter: "assistantVersionId", collection: ["assistantDelivery", "assistants"], children: "versions", selection: ["assistantDelivery", "selectedVersionId"], screens: ["assistant-overview", "assistant-draft", "assistant-test", "assistant-evaluation", "assistant-release"] },
   { parameter: "datasetId", collection: ["evaluation", "datasets"], selection: ["evaluation", "selectedDatasetId"], screens: ["evaluation-dataset-detail"] },
   { parameter: "datasetVersionId", collection: ["evaluation", "datasets"], children: "versions", selection: ["evaluation", "selectedDatasetVersionId"], screens: ["evaluation-dataset-detail"] },
   { parameter: "evaluationRunId", collection: ["evaluation", "runs"], selection: ["evaluation", "selectedRunId"], screens: ["evaluation-run-detail", "evaluation-failure-analysis"] },

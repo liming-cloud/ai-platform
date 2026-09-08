@@ -48,7 +48,7 @@ test("共享导航使用本地 Fluent SVG，并让详情页高亮父目录", asy
   assert.match(platform, />平台运行状态</);
   assert.match(platform, />备份与恢复</);
   assert.match(platform, /data-nav-screen="platform-model-connections"[^>]+aria-current="page"/);
-  assert.match(tenant, /data-nav-screen="knowledge-sources"[^>]+aria-current="page"/);
+  assert.match(tenant, /data-nav-screen="knowledge-directory"[^>]+aria-current="page"/);
   assert.match(tenant, /aria-label="治理"/);
 });
 

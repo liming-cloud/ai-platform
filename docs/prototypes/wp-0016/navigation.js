@@ -37,8 +37,7 @@ export const NAVIGATION_GROUPS = Object.freeze({
     {
       label: "内容",
       items: [
-        ["knowledge-directory", "知识管理", "book-database.svg", "knowledgeManagement"],
-        ["knowledge-sources", "文档与来源", "document-text.svg", "knowledgeManagement"],
+        ["knowledge-directory", "知识库", "book-database.svg", "knowledgeManagement"],
       ],
     },
     {
@@ -91,6 +90,7 @@ const PARENT_SCREEN = Object.freeze({
   "routing-policies": "model-providers",
   "assistant-create": "assistants-directory",
   "assistant-draft": "assistants-directory",
+  "assistant-overview": "assistants-directory",
   "assistant-test": "assistants-directory",
   "assistant-evaluation": "assistants-directory",
   "assistant-release": "assistants-directory",
@@ -112,7 +112,9 @@ const PARENT_SCREEN = Object.freeze({
 });
 
 export function navigationParent(screen) {
-  return PARENT_SCREEN[screen] || screen;
+  if (screen.startsWith("tenant-member-")) return "tenant-members";
+  const parent = PARENT_SCREEN[screen] || screen;
+  return parent === "knowledge-sources" || screen === "knowledge-sources" ? "knowledge-directory" : parent;
 }
 
 function tenantFeatureState(snapshot) {

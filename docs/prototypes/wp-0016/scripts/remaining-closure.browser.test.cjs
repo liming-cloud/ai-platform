@@ -227,6 +227,7 @@ test("更新文档不会另建来源，可从新版本发起单文件重建", ()
   await page.getByRole("button", { name: "单文件重建索引", exact: true }).click();
   assert.match(await page.locator("main").innerText(), /单文件重建.*年假制度更新.*v8/s);
   await page.goto(`${url("knowledge-sources")}&knowledgeBaseId=kb-handbook`);
+  await page.locator('main[data-screen="knowledge-sources"][data-state="success"]').waitFor();
   assert.equal(await page.locator("[data-source-row]").count(), count);
   assert.match(await page.locator('[data-source-row="src-policy-pdf"]').innerText(), /年假制度更新/);
 }));
@@ -238,9 +239,11 @@ test("模型配置详情的 URL 在另一个标签页选择后仍恢复原对象
   await other.goto(url("model-configurations"));
   await other.locator('[data-select-model-configuration="cfg-chat"]').click();
   await page.reload();
+  await page.locator('main[data-screen="model-configuration-detail"][data-state="success"]').waitFor();
   assert.match(page.url(), /configurationId=cfg-embedding/);
-  assert.match(await page.locator("main").innerText(), /Embedding/);
+  assert.match(await page.locator("main").innerText(), /向量模型/);
   await page.goto(`${url("model-configuration-detail")}&configurationId=missing`);
+  await page.locator('main[data-screen="model-configuration-detail"][data-state="denied"]').waitFor();
   assert.equal(await page.locator("main").getAttribute("data-state"), "denied");
 }));
 

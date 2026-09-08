@@ -55,7 +55,17 @@ async function openForReview(page, targetUrl, options) {
     const expected = role === "platform" ? "account-platform-admin" : "account-qiao";
     if (session?.accessChannel !== "CONSOLE" || session.accountId !== expected) await loginConsole(page, role);
   }
-  return page.goto(targetUrl, options);
+  const prepared = new URL(targetUrl);
+  // 正向矩阵显式选择合成成员；产品深链接缺少标识时仍须失败关闭。
+  if (['tenant-member-account', 'tenant-member-features', 'tenant-member-assistants'].includes(screen) && !prepared.searchParams.has('memberAccountId')) prepared.searchParams.set('memberAccountId', 'account-shen');
+  if (screen === 'assistant-draft' && !prepared.searchParams.has('assistantVersionId')) {
+    const draft = await page.evaluate(async () => {
+      const { createPrototypeStore } = await import('./prototype-state.js');
+      return createPrototypeStore().getWorkspaceSnapshot().assistantDelivery.assistants.flatMap(item => item.versions).find(item => item.status === 'DRAFT')?.id;
+    });
+    if (draft) prepared.searchParams.set('assistantVersionId', draft);
+  }
+  return page.goto(prepared.href, options);
 }
 
 /** 通过平台目录创建新的平台夹具账户，用于生命周期浏览器验证。 */

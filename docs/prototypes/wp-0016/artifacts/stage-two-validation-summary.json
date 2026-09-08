@@ -1,0 +1,236 @@
+{
+  "status": "PASS",
+  "date": "2026-09-08",
+  "scope": "WP-0016 阶段一迁移地图、阶段二公共组件与连续样板；其余页面只做回归，不启动阶段三",
+  "humanReviewStatus": "rejected",
+  "readyForFullAcceptance": false,
+  "baselineCommit": "6d4249a73585744453b528b55b742fbca0ab542a",
+  "red": {
+    "observed": [
+      "成员目录混入授权长表单",
+      "文档与知识库并列一级入口",
+      "文档处理阶段直接显示英文枚举",
+      "文档页承载全库重建"
+    ],
+    "initialProbeFailed": 4,
+    "finalProbePassed": 4,
+    "regressions": [
+      "压力夹具超过浏览器存储容量",
+      "候选重绘后键盘焦点丢失",
+      "手机首步隐藏按钮仍显示",
+      "手动减少动效未停止 CSS transition",
+      "禁用态成员表单仍可编辑",
+      "浏览器返回使用未设计的原生确认框",
+      "返回列表后测试未等待渲染完成"
+    ]
+  },
+  "node": {
+    "command": "node --test scripts/*.test.mjs",
+    "tests": 161,
+    "passed": 161,
+    "failed": 0
+  },
+  "browser": {
+    "command": "NODE_PATH=/private/tmp/wp0016-playwright/node_modules node --test --test-concurrency=2 scripts/*.test.cjs",
+    "tests": 157,
+    "passed": 157,
+    "failed": 0
+  },
+  "static": {
+    "status": "PASS",
+    "generatedAt": "2026-09-08T05:02:24.060Z",
+    "pageCount": 78,
+    "groupCount": 10,
+    "stateCount": 7,
+    "viewportCount": 3,
+    "staticRenderedScenarioCount": 343,
+    "httpScenarioCount": 1638,
+    "assertionCount": 3806,
+    "failures": [],
+    "limitation": "此结果只验证 Node 状态机、静态渲染合同和 URL 可达性；HTTP 成功不代表真实场景成立。真实 DOM、焦点、交互与临时视觉核对结论见独立浏览器报告。"
+  },
+  "matrix": {
+    "status": "PASS",
+    "generatedAt": "2026-09-08T04:55:00.496Z",
+    "evidenceScope": "真实 DOM、布局、特定交互与导航；不是全部控件闭环或人工认可",
+    "pageCount": 78,
+    "stateCount": 7,
+    "viewportCount": 3,
+    "declaredScenarioCount": 1638,
+    "completedScenarioCount": 1638,
+    "assertionCount": 11035,
+    "screenshotCount": 95,
+    "stages": [
+      {
+        "name": "审查器与导航图标",
+        "status": "PASS",
+        "failures": [],
+        "browserErrors": []
+      },
+      {
+        "name": "全部页面状态与视口",
+        "status": "PASS",
+        "failures": [],
+        "browserErrors": []
+      },
+      {
+        "name": "创建租户与管理导航",
+        "status": "PASS",
+        "failures": [],
+        "browserErrors": []
+      },
+      {
+        "name": "成员与两级功能控制",
+        "status": "PASS",
+        "failures": [],
+        "browserErrors": []
+      },
+      {
+        "name": "成员弹窗键盘与取消",
+        "status": "PASS",
+        "failures": [],
+        "browserErrors": []
+      },
+      {
+        "name": "运行状态与隔离恢复",
+        "status": "PASS",
+        "failures": [],
+        "browserErrors": []
+      },
+      {
+        "name": "恢复检查失败与重试",
+        "status": "PASS",
+        "failures": [],
+        "browserErrors": []
+      },
+      {
+        "name": "审查器收起可达性",
+        "status": "PASS",
+        "failures": [],
+        "browserErrors": []
+      },
+      {
+        "name": "普通用户登录",
+        "status": "PASS",
+        "failures": [],
+        "browserErrors": []
+      },
+      {
+        "name": "问答示例与键盘",
+        "status": "PASS",
+        "failures": [],
+        "browserErrors": []
+      },
+      {
+        "name": "会话刷新恢复",
+        "status": "PASS",
+        "failures": [],
+        "browserErrors": []
+      },
+      {
+        "name": "设备前置导航",
+        "status": "PASS",
+        "failures": [],
+        "browserErrors": []
+      },
+      {
+        "name": "页面截图",
+        "status": "PASS",
+        "failures": [],
+        "browserErrors": []
+      },
+      {
+        "name": "减少动态效果",
+        "status": "PASS",
+        "failures": [],
+        "browserErrors": []
+      }
+    ],
+    "browserErrors": [],
+    "failures": []
+  },
+  "controls": {
+    "scope": "M6，排除渠道绑定与设备凭据；邮件邀请无实现控件",
+    "generatedAt": "2026-09-08T04:48:18.728Z",
+    "scenes": 462,
+    "controlInstances": 7779,
+    "unbound": 0,
+    "errors": 0,
+    "report": "/private/tmp/wp0016-usability-review.JNxt5N/control-inventory-verified.json",
+    "limitation": "接线枚举不代表每个输入组合的业务验证；共享导航/目录专项与安全回归另行执行。"
+  },
+  "pressure": {
+    "browserTests": 3,
+    "documents": 1000,
+    "ordinaryMembers": 1000,
+    "assistantCandidates": 200,
+    "versions": 100,
+    "processingRecords": 10000,
+    "defaultMountedRows": 20,
+    "fixture": "stress-fixtures.js",
+    "isolation": "只注入独立测试上下文，不覆盖日常原型数据"
+  },
+  "continuousFlow": {
+    "browserTests": 5,
+    "viewports": [
+      "390×844",
+      "1024×900",
+      "1440×900",
+      "1366×768",
+      "720×450（200% 等效 CSS 重排）"
+    ],
+    "task": "创建知识库 → 粘贴资料 → 安全处理 → 建索引、评测、人工激活 → 新助手、冻结、测试、质量检查、发布 → 成员开户与授权 → 本人登录与首次问答 → 刷新恢复"
+  },
+  "motion": {
+    "durationsMs": [
+      150,
+      200,
+      240
+    ],
+    "checks": [
+      "正常动效",
+      "快速切换收敛",
+      "取消后焦点恢复",
+      "系统减少动态效果",
+      "手动减少动态效果"
+    ]
+  },
+  "visual": {
+    "temporaryDirectory": "/private/tmp/wp0016-usability-review.JNxt5N/final-matrix",
+    "screenshots": 95,
+    "committedScreenshots": 0,
+    "spotChecked": [
+      "知识库目录",
+      "文档详情",
+      "成员独立保存页",
+      "助手发布确认弹窗",
+      "手机成员向导"
+    ],
+    "limitation": "截图抽查和自动布局检查不代表用户已认可审美，也不是独立新用户可用性实验。"
+  },
+  "remaining": [
+    "样板方向人工确认",
+    "方向确认后全量迁移阶段三页面",
+    "全量人工验收后才进入 WP-0017"
+  ],
+  "openDesign": {
+    "projectId": "249f81f2-6f1a-46ff-988c-da3cdedb35e7",
+    "designSystem": "本机 Claude (Anthropic) 参考包",
+    "runs": [
+      "9f91945a-f036-4ab6-acf2-bdbbd2e4582f",
+      "f40821b3-0e11-4a26-83a8-f44fc4ce5f37"
+    ],
+    "runStatus": "succeeded",
+    "finalSaveEvidence": "project/evidence/WP-0016-usability-sample-20260908.md",
+    "savedFiles": 107,
+    "saveReport": "artifacts/opendesign-save-20260908.json",
+    "sha256Verification": "PASS"
+  },
+  "limitations": [
+    "原型为合成数据和可丢弃代码，不调用生产服务",
+    "M7/M8 只验证信息架构与视觉",
+    "设备凭据、渠道绑定、邮件邀请暂缓",
+    "200% 为等效 CSS 重排测试，非实际浏览器缩放设置",
+    "未自动恢复、重置或迁移用户演示账户"
+  ]
+}

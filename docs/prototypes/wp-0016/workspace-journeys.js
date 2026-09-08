@@ -1,3 +1,14 @@
+import { boundedDirectoryMarkup } from "./object-workspaces.js";
+/** 对象导航沿用既有 URL 和选择上下文，不创建另一份页面注册表。 */
+export function objectNavigation(screen) {
+  const knowledge = ['knowledge-overview','knowledge-sources','source-add','source-detail','processing-quality','sync-result','index-versions','index-detail','index-rebuild'];
+  const assistant = ['assistant-overview','assistant-draft','assistant-test','assistant-evaluation','assistant-release'];
+  const items = knowledge.includes(screen) ? [['knowledge-overview','概览'],['knowledge-sources','文档'],['processing-quality','处理任务'],['index-versions','索引管理']]
+    : assistant.includes(screen) ? [['assistant-overview','概览'],['assistant-draft','版本配置'],['assistant-test','测试'],['assistant-evaluation','质量检查'],['assistant-release','发布记录']] : [];
+  const active=({'source-detail':'knowledge-sources','source-add':'knowledge-sources','sync-result':'processing-quality','index-detail':'index-versions','index-rebuild':'index-versions'})[screen]||screen;
+  return items.length ? `<nav class="object-navigation" aria-label="对象工作区" data-od-id="object-navigation">${items.map(([target,label])=>`<button class="button secondary" type="button" data-nav-screen="${target}"${target===active?' aria-current="page"':''}>${label}</button>`).join('')}</nav>` : '';
+}
+
 /** 可丢弃工作区原型：概览与处理结果使用同一组织、知识库和来源快照，不另造成功事实。 */
 export function workspaceJourney(screen, snapshot, { escapeHtml: e, statusTag, feedback = "" }) {
   const tenant = snapshot.tenants[0];
@@ -7,13 +18,13 @@ export function workspaceJourney(screen, snapshot, { escapeHtml: e, statusTag, f
   const failed = sources.filter(item => item.stage === "FAILED");
   const button = (label, destination, extra = "") => `<button class="button secondary" type="button" data-nav-screen="${destination}" ${extra}>${label}</button>`;
   const facts = values => `<dl class="summary-strip">${values.map(([label, value]) => `<div class="summary-item"><dt>${label}</dt><dd>${e(value)}</dd></div>`).join("")}</dl>`;
-  const sourceTable = `<div class="table-shell"><table class="data-table"><thead><tr><th>资料</th><th>处理状态</th><th>处理说明</th><th>操作</th></tr></thead><tbody>${sources.map(source => `<tr data-processing-source="${e(source.id)}"><td data-label="资料"><strong>${e(source.name)}</strong></td><td data-label="处理状态">${statusTag(source.stage === "FAILED" ? "FAILED" : source.stage === "READY" ? "READY" : "PROCESSING")}</td><td data-label="处理说明">${e(source.detail || source.coverage || "已完成处理")}</td><td data-label="操作">${button(source.stage === "FAILED" ? "查看失败" : "查看处理", "source-detail", `data-select-source="${e(source.id)}"`)}</td></tr>`).join("") || '<tr><td colspan="4">还没有资料，请先添加数据。</td></tr>'}</tbody></table></div>`;
-  const response = (title, action, body, summary = kb?.name || tenant?.organizationName || "当前组织") => ({ title, action, body: body + `<p class="form-feedback" role="status">${e(feedback)}</p>`, summary });
+  const sourceTable = boundedDirectoryMarkup(`<div class="table-shell"><table class="data-table"><thead><tr><th>资料</th><th>处理状态</th><th>处理说明</th><th>操作</th></tr></thead><tbody>${sources.map(source => `<tr data-processing-source="${e(source.id)}"><td data-label="资料"><strong>${e(source.name)}</strong></td><td data-label="处理状态">${statusTag(source.stage === "FAILED" ? "处理失败" : source.stage === "READY" ? "已就绪" : "处理中")}</td><td data-label="处理说明">${e(source.detail || source.coverage || "已完成处理")}</td><td data-label="操作">${button(source.stage === "FAILED" ? "查看失败" : "查看处理", "source-detail", `data-select-source="${e(source.id)}"`)}</td></tr>`).join("") || '<tr><td colspan="4">还没有资料，请先添加数据。</td></tr>'}</tbody></table><div class="pagination"></div></div>`, typeof location === "undefined" ? new URLSearchParams() : new URLSearchParams(location.search));
+  const response = (title, action, body, summary = kb?.name || tenant?.organizationName || "当前组织") => ({ title, action, body: body + (screen==='knowledge-overview'&&kb?.activeIndex?`<div class="form-actions">${button('用此知识库创建助手','assistant-create')}</div>`:'') + `<p class="form-feedback" role="status">${e(feedback)}</p>`, summary });
   if (screen === "tenant-overview") {
     const pending = snapshot.knowledgeBases.flatMap(item => item.sources.map(source => ({ kb: item, source }))).find(item => item.source.stage !== "READY");
     return response("工作区概览", button(pending ? "进入阻断项" : "开始管理知识", pending ? "processing-quality" : "knowledge-directory", pending ? `data-select-kb="${e(pending.kb.id)}"` : ""),
       facts([["知识库", `${snapshot.knowledgeBases.length} / ${tenant?.quotas.knowledgeBases || 0}`], ["有效文档", snapshot.knowledgeBases.reduce((sum, item) => sum + item.documents, 0)], ["待处理来源", snapshot.knowledgeBases.flatMap(item => item.sources).filter(item => item.stage !== "READY").length], ["已发布助手", snapshot.assistantDelivery.assistants.filter(item => item.publishedVersionId).length]]) +
-      `<section class="section-block"><div class="section-heading"><h2>${pending ? e(pending.source.name) : "从第一份资料开始"}</h2>${statusTag(pending ? "PROCESSING" : "EMPTY")}</div><p>${pending ? e(pending.source.detail || "资料处理尚未完成") : "创建知识库、添加资料，再配置和发布助手。"}</p><div class="form-actions">${button("知识库", "knowledge-directory")}${button("助手目录", "assistants-directory")}${button("成员管理", "tenant-members")}</div></section>`, tenant?.organizationName);
+      `<section class="section-block"><div class="section-heading"><h2>${pending ? e(pending.source.name) : "从第一份资料开始"}</h2>${statusTag(pending ? "处理中" : "待添加")}</div><p>${pending ? e(pending.source.detail || "资料处理尚未完成") : "创建知识库、添加资料，再配置和发布助手。"}</p><div class="form-actions">${button("知识库", "knowledge-directory")}${button("助手目录", "assistants-directory")}${button("成员管理", "tenant-members")}</div></section>`, tenant?.organizationName);
   }
   if (!kb) return response("知识工作区", button("选择知识库", "knowledge-directory"), '<section class="state-panel" data-kind="empty"><h2>请先选择或创建知识库</h2><p>后续资料、处理结果和索引都将属于该知识库。</p></section>');
   if (screen === "knowledge-overview") return response("知识库概览", button("继续当前阻断任务", "knowledge-sources"),

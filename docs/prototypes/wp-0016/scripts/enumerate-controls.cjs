@@ -43,7 +43,10 @@ async function main() {
           // 公共分页以组件级事件委托接线；只有已验证的分页组件适用，不把根节点权限拦截误算成业务处理。
           const pagerEvents = window.controlEvents.get(element.closest('.pagination')) || [];
           const paginated = Boolean(element.closest('.pagination') && pagerEvents.includes('click') && pagerEvents.includes('change') && pagerEvents.includes('keydown'));
-          const bound = element.disabled || native || paginated || events.includes("click") || nativeControl && events.some(event => ["input", "change", "keydown"].includes(event));
+          const directHandler = ['onclick', 'oninput', 'onchange', 'onkeydown'].some(key => typeof element[key] === 'function');
+          const pickerEvents = window.controlEvents.get(element.closest('[data-assistant-picker]')) || [];
+          const pickerChoice = element.matches('[data-choice-id]') && pickerEvents.includes('change');
+          const bound = element.disabled || native || paginated || pickerChoice || directHandler || events.includes("click") || nativeControl && events.some(event => ["input", "change", "keydown"].includes(event));
           return { id: element.dataset.odId || element.id, tag: element.tagName, type: element.type, label: (element.getAttribute("aria-label") || element.closest("label")?.textContent || element.textContent || element.placeholder || "").trim(), disabled: element.disabled || false, visible: Boolean(element.getClientRects().length), dialog: Boolean(element.closest("dialog")), events, form: element.form?.id || "", bound, status: element.dataset.controlStatus || "" };
         }));
         const actualScreen = await page.locator("main").getAttribute("data-screen");

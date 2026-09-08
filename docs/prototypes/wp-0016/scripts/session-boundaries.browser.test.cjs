@@ -77,6 +77,8 @@ for (const width of [390, 1440]) {
   test(`${width} 宽度关闭本人历史后仍可新建、流式回答、刷新与续问`, () => scenario(async page => {
     await loginConsole(page, "tenant");
     await page.goto(url("tenant-members"));
+    await page.locator('tbody tr').filter({ hasText: '沈言（合成）' }).getByRole('button', { name: '查看成员', exact: true }).click();
+    await page.getByRole('navigation', { name: '成员工作区', exact: true }).getByRole('button', { name: '对话功能', exact: true }).click();
     await page.locator('[data-member-feature="ownHistory"]').uncheck();
     await page.getByRole("button", { name: "保存对话功能", exact: true }).click();
     await loginMember(page);

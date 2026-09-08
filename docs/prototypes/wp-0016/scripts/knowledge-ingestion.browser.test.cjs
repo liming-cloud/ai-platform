@@ -93,6 +93,7 @@ test("失败来源可从安全阶段重试，就绪来源重新处理建立新�
   await page.getByRole("button", { name: "重新处理", exact: true }).click();
   assert.match(await page.locator("main").innerText(), /版本 v8/);
   assert.equal(await page.locator("[data-source-stage]").getAttribute("data-source-stage"), "EXTRACTING");
+  await page.locator('.source-detail-card details').getByText('技术详情', { exact: true }).click();
   assert.match(await page.locator("main").innerText(), /idx-v11 继续服务/);
   await page.reload({ waitUntil: "domcontentloaded" });
   await page.locator('main[data-screen="source-detail"]').waitFor();

@@ -17,9 +17,9 @@ const loginQuery = (store) =>
     username: "shen.demo",
     password: "demo-only",
   });
-const render = (screen, store) => {
+const render = (screen, store, context = {}) => {
   const { page, group } = entries.find((entry) => entry.page.screen === screen);
-  return renderInventoryPage(page, group, pageFixtures[screen], "success", fixtures.tenant, store.getSnapshot());
+  return renderInventoryPage(page, group, pageFixtures[screen], "success", fixtures.tenant, { ...store.getSnapshot(), ...context });
 };
 
 test("租户用量页只读已保存资源配额，不提供提权修改入口", () => {
@@ -62,11 +62,10 @@ test("管理员助手管理与普通用户助手选择各用自己的功能开�
 });
 
 test("成员取消按钮不提交添加表单", () => {
-  const html = render("tenant-members", fresh());
-  const dialog = html.slice(html.indexOf('<dialog id="add-member-dialog"'));
-  assert.match(dialog, /<button[^>]*type="button"[^>]*data-cancel-add-member[^>]*>取消<\/button>/);
+  const html = render("tenant-member-create", fresh());
+  assert.match(html, /<button[^>]*type="button"[^>]*data-cancel-member-wizard[^>]*>取消<\/button>/);
   const source = readFileSync(new URL("../prototype.js", import.meta.url), "utf8");
-  assert.match(source, /querySelector\("\[data-cancel-add-member\]"\)/);
+  assert.match(source, /querySelector\('\[data-cancel-member-wizard\]'\)/);
 });
 
 test("新租户详情页头与正文均显示刚创建的对象", () => {
@@ -90,14 +89,15 @@ test("新增租户和成员目录的搜索控件与可筛选行有绑定", () =>
 
 test("成员可授权的助手必须存在于真实合成目录", () => {
   const store = fresh();
-  const html = render("tenant-members", store);
+  const html = render("tenant-member-assistants", store, { selectedMemberAccountId: 'account-shen' });
   const known = new Set(store.getSnapshot().assistantDelivery.assistants
     .filter(assistant => assistant.tenantId === DEFAULT_TENANT_ID && assistant.publishedVersionId)
     .map(assistant => assistant.id));
-  assert.ok([...html.matchAll(/data-member-assistant=/g)].length > 0, "成员授权目录不能空跑");
-  for (const match of html.matchAll(/(?:data-member-assistant|value)="(assistant-[^"]+)"/g)) {
-    assert.ok(known.has(match[1]), `未知助手：${match[1]}`);
-  }
+  const encoded = html.match(/data-options="([^"]+)"/)?.[1];
+  assert.ok(encoded, "成员授权目录不能空跑");
+  const choices = JSON.parse(encoded.replaceAll('&quot;', '"').replaceAll('&amp;', '&'));
+  assert.ok(choices.length > 0, "成员授权目录不能空跑");
+  for (const choice of choices) assert.ok(known.has(choice.id), `未知助手：${choice.id}`);
 });
 
 test("产品操作区不夹带研发评审说明", () => {
