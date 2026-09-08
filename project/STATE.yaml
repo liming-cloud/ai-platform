@@ -88,7 +88,9 @@ confirmedDecisions:
   - ADR-0078
 openDecisions:
   - 后续认证实现包：登录安全策略的生产上下限与已登录会话生效时机
+  - WP-0016：Claude 公共组件与连续样板完成后，等待样板方向人工确认再全量迁移
 latestEvidence:
+  - project/evidence/WP-0016-usability-sample-20260908.md
   - project/evidence/WP-0016-member-provider-closure-20260907.md
   - project/evidence/WP-0016-platform-usability-20260907.md
   - project/evidence/WP-0016-legacy-login-repair-20260907.md
@@ -96,7 +98,6 @@ latestEvidence:
   - project/evidence/WP-0016-account-login-prototype-20260906.md
   - project/evidence/WP-0016-session-boundaries-prototype-20260906.md
   - project/evidence/WP-0016-acceptance-preflight-20260905.md
-  - project/evidence/WP-0016-business-review-rejection-20260903.md
-nextReviewAt: 2026-09-07
-updatedAt: 2026-09-07T20:18:09+08:00
+nextReviewAt: 2026-09-08
+updatedAt: 2026-09-08T11:59:37+08:00
 updatedBy: codex
