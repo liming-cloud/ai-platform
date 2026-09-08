@@ -2,7 +2,7 @@ schemaVersion: 1
 productVersion: foundation-v1
 currentMilestone: M6
 currentFrontier: WP-0016
-lastVerifiedCommit: 0ff24482316c58288f8dd6f8a7e19872fd097c87
+lastVerifiedCommit: 35110ca815fc3eed57abd3d5e2a8b83bc41b9ca7
 activeWorkPackages:
   - WP-0014
   - WP-0016
@@ -88,7 +88,7 @@ confirmedDecisions:
   - ADR-0078
 openDecisions:
   - 后续认证实现包：登录安全策略的生产上下限与已登录会话生效时机
-  - WP-0016：Claude 公共组件与连续样板完成后，等待样板方向人工确认再全量迁移
+  - WP-0016：Claude 连续样板已验证，等待样板方向人工确认再全量迁移
 latestEvidence:
   - project/evidence/WP-0016-usability-sample-20260908.md
   - project/evidence/WP-0016-member-provider-closure-20260907.md
@@ -99,5 +99,5 @@ latestEvidence:
   - project/evidence/WP-0016-session-boundaries-prototype-20260906.md
   - project/evidence/WP-0016-acceptance-preflight-20260905.md
 nextReviewAt: 2026-09-08
-updatedAt: 2026-09-08T11:59:37+08:00
+updatedAt: 2026-09-08T13:07:14+08:00
 updatedBy: codex
