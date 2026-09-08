@@ -2,7 +2,7 @@ schemaVersion: 1
 productVersion: foundation-v1
 currentMilestone: M6
 currentFrontier: WP-0016
-lastVerifiedCommit: 35110ca815fc3eed57abd3d5e2a8b83bc41b9ca7
+lastVerifiedCommit: 1d8ca6ad35eac1c7b73ce9db3df5b0432db5af4c
 activeWorkPackages:
   - WP-0014
   - WP-0016
@@ -88,8 +88,9 @@ confirmedDecisions:
   - ADR-0078
 openDecisions:
   - 后续认证实现包：登录安全策略的生产上下限与已登录会话生效时机
-  - WP-0016：样板方向已确认；剩余页面迁移完成后等待全量人工验收
+  - WP-0016：阶段三迁移及技术复验通过，等待全量任务式人工验收
 latestEvidence:
+  - project/evidence/WP-0016-stage-three-20260908.md
   - project/evidence/WP-0016-sample-direction-approved-20260908.md
   - project/evidence/WP-0016-usability-sample-20260908.md
   - project/evidence/WP-0016-member-provider-closure-20260907.md
@@ -97,7 +98,6 @@ latestEvidence:
   - project/evidence/WP-0016-legacy-login-repair-20260907.md
   - project/evidence/WP-0016-full-closure-prototype-20260906.md
   - project/evidence/WP-0016-account-login-prototype-20260906.md
-  - project/evidence/WP-0016-session-boundaries-prototype-20260906.md
 nextReviewAt: 2026-09-08
-updatedAt: 2026-09-08T13:07:14+08:00
+updatedAt: 2026-09-08T06:54:05.981Z
 updatedBy: codex

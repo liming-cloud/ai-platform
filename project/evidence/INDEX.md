@@ -482,6 +482,13 @@
 | 证据 | 命令或评审 | 提交 | 结果 |
 | --- | --- | --- | --- |
 | 整体易用性与 Claude 样板 | `project/evidence/WP-0016-usability-sample-20260908.md` | `35110ca815fc3eed57abd3d5e2a8b83bc41b9ca7` | 78 页去向地图、Claude 连续样板；161 Node、157 浏览器、1638 场景通过，107 文件经 OpenDesign 保存校验。样板方向待确认，未全量迁移或人工通过。 |
+| 样板方向人工确认 | `project/evidence/WP-0016-sample-direction-approved-20260908.md` | `35110ca815fc3eed57abd3d5e2a8b83bc41b9ca7` | 用户确认样板方向，允许阶段三迁移；不等于全量原型或 M6 人工通过。 |
+
+## WP-0016 阶段三全平台原型迁移
+
+| 证据 | 命令或评审 | 提交 | 结果 |
+| --- | --- | --- | --- |
+| 阶段三迁移与技术复验 | `project/evidence/WP-0016-stage-three-20260908.md` | `1d8ca6ad35eac1c7b73ce9db3df5b0432db5af4c` | 169 Node、162 浏览器、1638 场景通过；462 场景 7989 控件无未接线或异常；112 文件经 OpenDesign 保存校验。可全量送验，最终人工确认仍待进行。 |
 
 ## 证据规则
 
@@ -490,5 +497,3 @@
 - RAG 证据记录数据集版本、模型部署版本、索引版本和指标。
 - 安全证据记录攻击场景和被保护的信息边界。
 - 截图和录像只能补充自动证据，不能替代自动证据。
-
-| 样板方向人工确认 | `project/evidence/WP-0016-sample-direction-approved-20260908.md` | `35110ca815fc3eed57abd3d5e2a8b83bc41b9ca7` | 用户确认样板方向，允许阶段三迁移；不等于全量原型或 M6 人工通过。 |
