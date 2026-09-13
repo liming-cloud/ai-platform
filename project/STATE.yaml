@@ -1,11 +1,11 @@
 schemaVersion: 1
 productVersion: foundation-v1
 currentMilestone: M6
-currentFrontier: WP-0016
-lastVerifiedCommit: 21b45c347a4008f5959b1b972e3ffd8a5aadcc6f
+currentFrontier: WP-0017
+lastVerifiedCommit: a708fdfc67a043648b2aede81a8989db852c1a64
 activeWorkPackages:
   - WP-0014
-  - WP-0016
+  - WP-0017
 blockedWorkPackages: []
 confirmedDecisions:
   - ADR-0001
@@ -88,8 +88,9 @@ confirmedDecisions:
   - ADR-0078
 openDecisions:
   - 后续认证实现包：登录安全策略的生产上下限与已登录会话生效时机
-  - WP-0016：全量UI方向基本通过，视觉精修技术复验通过，待最终人工确认
+  - WP-0017：冻结多格式知识接入、配额预留、解析重试与重建的专属契约后实施
 latestEvidence:
+  - project/evidence/WP-0016-human-acceptance-20260913.md
   - project/evidence/WP-0016-visual-polish-20260913.md
   - project/evidence/WP-0016-stage-three-20260908.md
   - project/evidence/WP-0016-sample-direction-approved-20260908.md
@@ -97,7 +98,6 @@ latestEvidence:
   - project/evidence/WP-0016-member-provider-closure-20260907.md
   - project/evidence/WP-0016-platform-usability-20260907.md
   - project/evidence/WP-0016-legacy-login-repair-20260907.md
-  - project/evidence/WP-0016-full-closure-prototype-20260906.md
 nextReviewAt: 2026-09-13
-updatedAt: 2026-09-13T14:15:12Z
+updatedAt: 2026-09-13T14:58:08Z
 updatedBy: codex
