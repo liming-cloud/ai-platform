@@ -2,11 +2,20 @@
   "workPackage": "WP-0016",
   "generatedOn": "2026-09-13",
   "browserVerification": "passed",
-  "browserVerificationNote": "视觉精修：169项Node、179项浏览器（含17项视觉专项）、1638页面状态/尺寸场景通过；全量UI方向基本认可，最终视觉人工验收待确认。",
+  "browserVerificationNote": "已验收实现的视觉精修证据：169项Node、179项浏览器（含17项视觉专项）、1638页面状态/尺寸场景通过；2026-09-13用户明确确认原型UI验收完毕。历史逐操作与阶段标记不作为当前人工状态。",
+  "humanAcceptance": {
+    "status": "passed",
+    "reviewedOn": "2026-09-13",
+    "source": "用户明确确认：UI工作验收完毕",
+    "implementationCommit": "21b45c347a4008f5959b1b972e3ffd8a5aadcc6f",
+    "evidence": "project/evidence/WP-0016-human-acceptance-20260913.md",
+    "scope": "66个M6原型交互入口；10个M7/M8入口仅视觉与信息架构；渠道绑定、设备凭据、邮件邀请仍暂缓",
+    "limits": "不代表生产系统或M6通过；不推定用户逐项执行了实际200%缩放、系统原生选择弹层或独立新用户实验"
+  },
   "visualRefinement": {
     "status": "passed",
     "evidence": "artifacts/visual-polish-validation-summary.json",
-    "humanAcceptance": "整体方向基本通过，视觉精修待最终人工确认",
+    "humanAcceptance": "2026-09-13 原型UI人工验收通过",
     "scope": "仅公共控件、分区对齐、间距；不改变页面任务、角色、保存范围或7/5/7"
   },
   "classification": {
