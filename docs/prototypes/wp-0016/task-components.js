@@ -54,4 +54,27 @@ export function enhanceTaskComponents(root) {
     const paint=()=>{const matches=options.filter(item=>item.label.toLocaleLowerCase().includes(search.value.trim().toLocaleLowerCase()));const visible=matches.slice(0,20);const selected=options.find(item=>item.value===value);if(selected&&!visible.some(item=>item.value===value))visible.unshift(selected);select.replaceChildren(...visible.map(item=>{const option=new Option(item.label,item.value);option.disabled=item.disabled;return option;}));select.value=value;hint.textContent=`匹配 ${matches.length} 项 · 最多展示 20 项，已选项保留`;};
     search.addEventListener('input',paint);select.addEventListener('change',()=>{value=select.value;});paint();
   });
+  enhanceFieldLayout(root);
+}
+
+/** 分离标签与控件内容以共享对齐基线；只移动原节点，不改变表单归属、授权或提交值。 */
+function enhanceFieldLayout(root) {
+  const groups = '.form-grid, .wizard-field-grid, .tenant-quota-grid, .tenant-quota-dialog-grid, .toolbar, .compact-action-form';
+  root.querySelectorAll(groups).forEach(group => {
+    const fields = [...group.children].filter(child => child.matches('.field'));
+    for (const field of fields) {
+      const label = field.firstElementChild;
+      if (!label?.matches('span, .field-label')) continue;
+      let content = field.querySelector(':scope > .field-content');
+      if (!content) {
+        content = document.createElement('span');
+        content.className = 'field-content';
+      }
+      // 可重复增强：新出现的校验说明仍归入内容，不额外占用共享标签行。
+      [...field.childNodes].filter(node => node !== label && node !== content).forEach(node => content.append(node));
+      field.append(content);
+    }
+    if (group.matches('.toolbar, .compact-action-form') && fields.length && group.children.length === 2 &&
+        [...group.children].every(child => child.matches('.field, .button'))) group.classList.add('control-row');
+  });
 }

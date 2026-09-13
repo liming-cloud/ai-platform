@@ -1,8 +1,14 @@
 {
   "workPackage": "WP-0016",
-  "generatedOn": "2026-09-08",
+  "generatedOn": "2026-09-13",
   "browserVerification": "passed",
-  "browserVerificationNote": "阶段三：169项Node、162项浏览器、1638页面状态/尺寸场景通过；样板方向已确认，全量人工验收待进行。",
+  "browserVerificationNote": "视觉精修：169项Node、179项浏览器（含17项视觉专项）、1638页面状态/尺寸场景通过；全量UI方向基本认可，最终视觉人工验收待确认。",
+  "visualRefinement": {
+    "status": "passed",
+    "evidence": "artifacts/visual-polish-validation-summary.json",
+    "humanAcceptance": "整体方向基本通过，视觉精修待最终人工确认",
+    "scope": "仅公共控件、分区对齐、间距；不改变页面任务、角色、保存范围或7/5/7"
+  },
   "classification": {
     "navigation": "仅改变原型页面，不计作业务完成",
     "implementedStateChange": "合成状态已有 Node 测试；browserVerified 只表示条目注明的浏览器范围，不代表完整业务或人工通过",

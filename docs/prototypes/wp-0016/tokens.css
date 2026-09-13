@@ -108,10 +108,15 @@
   --radius-control:var(--radius-sm); --radius-panel:var(--radius-md); --radius-round:var(--radius-pill);
   --space-10:40px; --text-md:16px; --line-body:1.6;
   --sidebar-width:15rem; --history-width:17rem; --content-max:73.75rem; --message-max:48.75rem;
-  --control-height:44px; --navigation-icon-size:24px; --table-row-height:56px;
+  /* 桌面区分表单与目录密度；触控与登录保留独立可达下限。 */
+  --control-height:36px; --control-height-compact:32px; --control-height-touch:44px;
+  --control-font-size:14px; --navigation-icon-size:24px; --table-row-height:48px;
   --text-xs:14px;
   --motion-complex:240ms; --motion-normal:var(--motion-base); --motion-slow:var(--motion-complex);
   --section-y-desktop:32px; --section-y-tablet:24px; --section-y-phone:24px;
 }
 @media (max-width:1040px) and (min-width:681px) { :root { --sidebar-width:5rem; --history-width:15rem; } }
+@media (max-width:680px), (any-pointer:coarse) {
+  :root { --control-height:var(--control-height-touch); --control-height-compact:var(--control-height-touch); }
+}
 @media (prefers-reduced-motion:reduce) { :root { --motion-fast:0ms; --motion-base:0ms; --motion-complex:0ms; } }

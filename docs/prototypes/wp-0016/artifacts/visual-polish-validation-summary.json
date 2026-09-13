@@ -1,0 +1,165 @@
+{
+  "schemaVersion": 1,
+  "workPackage": "WP-0016",
+  "generatedAt": "2026-09-13T14:13:35.172Z",
+  "baseCommit": "2b4eee0719a4c212568b430154c24536a9163b53",
+  "status": "PASS",
+  "humanAcceptance": "整体方向基本通过，视觉精修待最终人工确认",
+  "scope": "公共控件36/32/44px、字段对齐、分页与弹窗留白；不改变业务与生产代码",
+  "node": {
+    "passed": 169,
+    "failed": 0
+  },
+  "browser": {
+    "passed": 179,
+    "failed": 0,
+    "visualPolishIncluded": 17
+  },
+  "redEvidence": {
+    "source": "子Agent实际运行新增用例；不是推定失败",
+    "passed": 5,
+    "failed": 12,
+    "causes": [
+      "普通/分页控件仍为44px",
+      "长标签使控件顶部相差25.59px",
+      "帮助文本使按钮顶部偏移52.78px",
+      "弹窗操作间距仍为12px",
+      "文字放大后输入框44px无法容纳48px行高"
+    ]
+  },
+  "matrix": {
+    "status": "PASS",
+    "generatedAt": "2026-09-13T14:10:42.927Z",
+    "evidenceScope": "真实 DOM、布局、特定交互与导航；不是全部控件闭环或人工认可",
+    "pageCount": 78,
+    "stateCount": 7,
+    "viewportCount": 3,
+    "declaredScenarioCount": 1638,
+    "completedScenarioCount": 1638,
+    "assertionCount": 11035,
+    "screenshotCount": 95,
+    "stages": [
+      {
+        "name": "审查器与导航图标",
+        "status": "PASS",
+        "failures": [],
+        "browserErrors": []
+      },
+      {
+        "name": "全部页面状态与视口",
+        "status": "PASS",
+        "failures": [],
+        "browserErrors": []
+      },
+      {
+        "name": "创建租户与管理导航",
+        "status": "PASS",
+        "failures": [],
+        "browserErrors": []
+      },
+      {
+        "name": "成员与两级功能控制",
+        "status": "PASS",
+        "failures": [],
+        "browserErrors": []
+      },
+      {
+        "name": "成员弹窗键盘与取消",
+        "status": "PASS",
+        "failures": [],
+        "browserErrors": []
+      },
+      {
+        "name": "运行状态与隔离恢复",
+        "status": "PASS",
+        "failures": [],
+        "browserErrors": []
+      },
+      {
+        "name": "恢复检查失败与重试",
+        "status": "PASS",
+        "failures": [],
+        "browserErrors": []
+      },
+      {
+        "name": "审查器收起可达性",
+        "status": "PASS",
+        "failures": [],
+        "browserErrors": []
+      },
+      {
+        "name": "普通用户登录",
+        "status": "PASS",
+        "failures": [],
+        "browserErrors": []
+      },
+      {
+        "name": "问答示例与键盘",
+        "status": "PASS",
+        "failures": [],
+        "browserErrors": []
+      },
+      {
+        "name": "会话刷新恢复",
+        "status": "PASS",
+        "failures": [],
+        "browserErrors": []
+      },
+      {
+        "name": "设备前置导航",
+        "status": "PASS",
+        "failures": [],
+        "browserErrors": []
+      },
+      {
+        "name": "页面截图",
+        "status": "PASS",
+        "failures": [],
+        "browserErrors": []
+      },
+      {
+        "name": "减少动态效果",
+        "status": "PASS",
+        "failures": [],
+        "browserErrors": []
+      }
+    ],
+    "browserErrors": [],
+    "failures": []
+  },
+  "controls": {
+    "scenarios": 462,
+    "instances": 7989,
+    "unbound": 0,
+    "errors": []
+  },
+  "lint": {
+    "status": "PASS",
+    "counts": {
+      "p0": 0,
+      "p1": 0,
+      "p2": 0
+    }
+  },
+  "visualInspection": {
+    "views": [
+      "平台账户1440",
+      "平台运行状态1440",
+      "助手配置1024",
+      "供应商弹窗1440",
+      "供应商弹窗390"
+    ],
+    "temporaryScreenshotCount": 100,
+    "repositoryScreenshots": 0
+  },
+  "governance": {
+    "tests": 14,
+    "status": "PASS"
+  },
+  "limits": [
+    "机器结果不替代最终人工验收",
+    "实际浏览器200%缩放与原生选择弹层体验仍需人工复核；自动测试只验证200%文字放大和等效布局重排",
+    "原始报告和截图位于系统临时目录，命令可再生",
+    "未调用生产API、真实模型或修改用户演示数据"
+  ]
+}
