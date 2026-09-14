@@ -106,5 +106,12 @@ class PostgresTenantLifecycleReadAdapterTest {
     @MapperScan(basePackageClasses = TenantLifecycleReadMapper.class)
     @Import(PostgresTenantLifecycleReadAdapter.class)
     static class TestApplication {
+        @org.springframework.context.annotation.Bean
+        com.baomidou.mybatisplus.extension.plugins.MybatisPlusInterceptor paginationInterceptor() {
+            var interceptor = new com.baomidou.mybatisplus.extension.plugins.MybatisPlusInterceptor();
+            interceptor.addInnerInterceptor(new com.baomidou.mybatisplus.extension.plugins.inner.PaginationInnerInterceptor(
+                    com.baomidou.mybatisplus.annotation.DbType.POSTGRE_SQL));
+            return interceptor;
+        }
     }
 }

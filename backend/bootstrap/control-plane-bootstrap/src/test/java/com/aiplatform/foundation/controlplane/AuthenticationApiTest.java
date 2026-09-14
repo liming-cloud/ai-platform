@@ -467,14 +467,15 @@ class AuthenticationApiTest {
                 HttpMethod.POST,
                 new HttpEntity<>(
                         Map.of(
-                                "tenantCode", "scope-conflict-" + System.nanoTime(),
+                                "tenantCode", "scope-" + Long.toUnsignedString(System.nanoTime(), 36),
                                 "displayName", "人员范围冲突租户",
-                                "initialAdministratorSubjectId", "4921825928971026436"),
+                                "administrator", Map.of("loginName", "platform-admin", "password", new String(DEMO_PASSWORD)),
+                                "quotas", onboardingQuotas()),
                         bearer(platformLogin())),
                 ApiError.class);
         assertEquals(HttpStatus.CONFLICT, provisioningConflict.getStatusCode());
         assertNotNull(provisioningConflict.getBody());
-        assertEquals("ORGANIZATION_ACCESS.CONFLICT.0002", provisioningConflict.getBody().code());
+        assertEquals("ORGANIZATION_ACCESS.CONFLICT.0080", provisioningConflict.getBody().code());
     }
 
     @Test
@@ -572,35 +573,31 @@ class AuthenticationApiTest {
     }
 
     @Test
-    void 平台会话应建立并激活租户且新租户随后可取得租户会话() {
+    void 平台会话应原子建立可用租户与新管理员且立即可登录() {
         var platformToken = platformLogin();
-        var tenantCode = "api-tenant-" + System.nanoTime();
+        var tenantCode = "api-" + Long.toUnsignedString(System.nanoTime(), 36);
         var created = http.exchange(
                 url("/api/v1/platform/tenants"),
                 HttpMethod.POST,
                 new HttpEntity<>(
-                        Map.of(
-                                "tenantCode", tenantCode,
-                                "displayName", "接口创建租户",
-                                "initialAdministratorSubjectId", "4921825928971026438"),
+                        onboarding(tenantCode, "接口创建租户"),
                         bearer(platformToken)),
                 TenantLifecycleResponse.class);
 
         assertEquals(HttpStatus.CREATED, created.getStatusCode());
         assertNotNull(created.getBody());
-        assertEquals("PROVISIONING", created.getBody().status());
-        assertEquals(HttpStatus.UNAUTHORIZED, tenantLogin(tenantCode).getStatusCode());
-
-        var activated = http.exchange(
-                url("/api/v1/platform/tenants/" + created.getBody().tenantId() + "/lifecycle/activate"),
-                HttpMethod.POST,
-                new HttpEntity<>(bearer(platformToken)),
-                TenantLifecycleResponse.class);
-        assertEquals(HttpStatus.OK, activated.getStatusCode());
-        assertNotNull(activated.getBody());
-        assertEquals("ACTIVE", activated.getBody().status());
-
+        assertEquals("ACTIVE", created.getBody().status());
+        assertEquals(1L, created.getBody().version());
         assertEquals(HttpStatus.CREATED, tenantLogin(tenantCode).getStatusCode());
+
+        var quota = http.exchange(
+                url("/api/v1/platform/tenants/" + created.getBody().tenantId() + "/quotas"),
+                HttpMethod.GET, new HttpEntity<>(bearer(platformToken)), Map.class);
+        assertEquals(HttpStatus.OK, quota.getStatusCode());
+        assertNotNull(quota.getBody());
+        onboardingQuotas().forEach((key, value) -> assertEquals(value, quota.getBody().get(key)));
+        assertEquals(0, quota.getBody().get("version"));
+        assertFalse(quota.getBody().containsKey("password"));
 
         var suspended = http.exchange(
                 url("/api/v1/platform/tenants/" + created.getBody().tenantId() + "/lifecycle/suspend"),
@@ -626,15 +623,12 @@ class AuthenticationApiTest {
     @Test
     void 平台治理会话应分页读取不含受限字段的生命周期投影() {
         var platformToken = platformLogin();
-        var tenantCode = "projection-tenant-" + System.nanoTime();
+        var tenantCode = "view-" + Long.toUnsignedString(System.nanoTime(), 36);
         var created = http.exchange(
                 url("/api/v1/platform/tenants"),
                 HttpMethod.POST,
                 new HttpEntity<>(
-                        Map.of(
-                                "tenantCode", tenantCode,
-                                "displayName", "读取投影租户",
-                                "initialAdministratorSubjectId", "4921825928971026438"),
+                        onboarding(tenantCode, "读取投影租户"),
                         bearer(platformToken)),
                 TenantLifecycleResponse.class);
         assertEquals(HttpStatus.CREATED, created.getStatusCode());
@@ -656,12 +650,70 @@ class AuthenticationApiTest {
                 .findFirst()
                 .orElseThrow();
         assertEquals("读取投影租户", summary.get("displayName"));
-        assertEquals("PROVISIONING", summary.get("status"));
-        assertEquals(0, summary.get("version"));
+        assertEquals("ACTIVE", summary.get("status"));
+        assertEquals(1, summary.get("version"));
         assertNotNull(summary.get("createdAt"));
         assertNotNull(summary.get("lastChangedAt"));
         assertFalse(summary.containsKey("initialAdministratorSubjectId"));
         assertFalse(summary.containsKey("permissions"));
+    }
+
+    @Test
+    void 原子开户应拒绝旧请求和未知身份字段且冲突不遗留新主体() {
+        var platformToken = platformLogin();
+        var code = "safe-" + Long.toUnsignedString(System.nanoTime(), 36);
+        var input = onboarding(code, "开户合同反例");
+        var created = http.exchange(url("/api/v1/platform/tenants"), HttpMethod.POST,
+                new HttpEntity<>(input, bearer(platformToken)), TenantLifecycleResponse.class);
+        assertEquals(HttpStatus.CREATED, created.getStatusCode());
+        assertNotNull(created.getBody());
+        var tenantId = created.getBody().tenantId();
+
+        var duplicateCode = new java.util.HashMap<>(input);
+        duplicateCode.put("administrator", Map.of("loginName", "unused-" + code, "password", new String(DEMO_PASSWORD)));
+        var conflict = http.exchange(url("/api/v1/platform/tenants"), HttpMethod.POST,
+                new HttpEntity<>(duplicateCode, bearer(platformToken)), ApiError.class);
+        assertEquals(HttpStatus.CONFLICT, conflict.getStatusCode());
+        assertNotNull(conflict.getBody());
+        assertEquals("ORGANIZATION_ACCESS.CONFLICT.0081", conflict.getBody().code());
+        assertEquals(0, jdbc.queryForObject("SELECT COUNT(*) FROM organization_access.subject_identity WHERE login_name = ?", Integer.class, "unused-" + code));
+
+        var duplicateLogin = new java.util.HashMap<>(input);
+        duplicateLogin.put("tenantCode", "dup-" + Long.toUnsignedString(System.nanoTime(), 36));
+        var loginConflict = http.exchange(url("/api/v1/platform/tenants"), HttpMethod.POST,
+                new HttpEntity<>(duplicateLogin, bearer(platformToken)), ApiError.class);
+        assertEquals(HttpStatus.CONFLICT, loginConflict.getStatusCode());
+        assertNotNull(loginConflict.getBody());
+        assertEquals("ORGANIZATION_ACCESS.CONFLICT.0080", loginConflict.getBody().code());
+        assertEquals(0, jdbc.queryForObject("SELECT COUNT(*) FROM organization_access.tenant WHERE tenant_code = ?", Integer.class, duplicateLogin.get("tenantCode")));
+
+        for (var extra : java.util.List.of("subjectId", "roles", "initialAdministratorSubjectId")) {
+            var forged = new java.util.HashMap<>(input);
+            forged.put(extra, "forged");
+            assertEquals(HttpStatus.BAD_REQUEST, http.exchange(url("/api/v1/platform/tenants"), HttpMethod.POST,
+                    new HttpEntity<>(forged, bearer(platformToken)), ApiError.class).getStatusCode());
+        }
+        var old = Map.of("tenantCode", code, "displayName", "旧请求反例", "initialAdministratorSubjectId", created.getBody().initialAdministratorSubjectId());
+        assertEquals(HttpStatus.BAD_REQUEST, http.exchange(url("/api/v1/platform/tenants"), HttpMethod.POST,
+                new HttpEntity<>(old, bearer(platformToken)), ApiError.class).getStatusCode());
+        var identity = new java.util.HashMap<String, Object>();
+        identity.put("loginName", "owner-" + code);
+        identity.put("password", new String(DEMO_PASSWORD));
+        identity.put("role", "PLATFORM_ADMINISTRATOR");
+        var nested = new java.util.HashMap<>(input);
+        nested.put("administrator", identity);
+        assertEquals(HttpStatus.BAD_REQUEST, http.exchange(url("/api/v1/platform/tenants"), HttpMethod.POST,
+                new HttpEntity<>(nested, bearer(platformToken)), ApiError.class).getStatusCode());
+
+        var detail = http.exchange(url("/api/v1/platform/tenants/" + tenantId), HttpMethod.GET,
+                new HttpEntity<>(bearer(platformToken)), String.class);
+        assertEquals(HttpStatus.OK, detail.getStatusCode());
+        assertNotNull(detail.getBody());
+        assertFalse(detail.getBody().toLowerCase(java.util.Locale.ROOT).matches(".*(password|hash|token).*"));
+        assertFalse(detail.getBody().contains(new String(DEMO_PASSWORD)));
+        var tenantToken = tenantLogin(code, "owner-" + code);
+        assertEquals(HttpStatus.UNAUTHORIZED, http.exchange(url("/api/v1/platform/tenants/" + tenantId + "/quotas"), HttpMethod.GET,
+                new HttpEntity<>(bearer(tenantToken)), ApiError.class).getStatusCode());
     }
 
     @Test
@@ -671,27 +723,20 @@ class AuthenticationApiTest {
         seedActiveSubject(assignSubjectId, "platform-assigned-admin");
         seedActiveSubject(replacementSubjectId, "platform-replacement-admin");
         var platformToken = platformLogin();
-        var tenantCode = "administrator-lifecycle-" + System.nanoTime();
+        var tenantCode = "admin-" + Long.toUnsignedString(System.nanoTime(), 36);
+        var initialLoginName = "owner-" + tenantCode;
         var created = http.exchange(
                 url("/api/v1/platform/tenants"),
                 HttpMethod.POST,
                 new HttpEntity<>(
-                        Map.of(
-                                "tenantCode", tenantCode,
-                                "displayName", "管理员生命周期租户",
-                                "initialAdministratorSubjectId", "4921825928971026438"),
+                        onboarding(tenantCode, "管理员生命周期租户"),
                         bearer(platformToken)),
                 TenantLifecycleResponse.class);
         assertEquals(HttpStatus.CREATED, created.getStatusCode());
         assertNotNull(created.getBody());
         var tenantId = created.getBody().tenantId();
-        var activated = http.exchange(
-                url("/api/v1/platform/tenants/" + tenantId + "/lifecycle/activate"),
-                HttpMethod.POST,
-                new HttpEntity<>(bearer(platformToken)),
-                TenantLifecycleResponse.class);
-        assertEquals(HttpStatus.OK, activated.getStatusCode());
-        var oldSession = tenantLogin(tenantCode, "tenant-admin-candidate");
+        assertEquals("ACTIVE", created.getBody().status());
+        var oldSession = tenantLogin(tenantCode, initialLoginName);
 
         var candidates = http.exchange(
                 url("/api/v1/platform/tenants/" + tenantId
@@ -731,7 +776,7 @@ class AuthenticationApiTest {
         var oldAdministrator = ((java.util.List<?>) directory.getBody().get("items")).stream()
                 .filter(Map.class::isInstance)
                 .map(Map.class::cast)
-                .filter(item -> "tenant-admin-candidate".equals(item.get("loginName")))
+                .filter(item -> initialLoginName.equals(item.get("loginName")))
                 .findFirst()
                 .orElseThrow();
         var oldMembershipReference = oldAdministrator.get("membershipReference").toString();
@@ -751,7 +796,7 @@ class AuthenticationApiTest {
         assertEquals("platform-replacement-admin", replaced.getBody().get("loginName"));
         assertThrows(InvalidAuthenticatedSessionException.class, () -> sessions.resolve(oldSession));
         assertEquals(HttpStatus.UNAUTHORIZED,
-                tenantLoginStatus(tenantCode, "tenant-admin-candidate"));
+                tenantLoginStatus(tenantCode, initialLoginName));
         assertEquals(HttpStatus.CREATED,
                 tenantLoginResponse(tenantCode, "platform-replacement-admin").getStatusCode());
 
@@ -764,7 +809,7 @@ class AuthenticationApiTest {
         assertEquals(HttpStatus.OK, restored.getStatusCode());
         assertNotNull(restored.getBody());
         assertEquals("ENABLED", restored.getBody().get("status"));
-        var restoredSession = tenantLogin(tenantCode, "tenant-admin-candidate");
+        var restoredSession = tenantLogin(tenantCode, initialLoginName);
 
         var disabled = http.exchange(
                 url("/api/v1/platform/tenants/" + tenantId + "/administrators/"
@@ -831,10 +876,7 @@ class AuthenticationApiTest {
                 url("/api/v1/platform/tenants"),
                 HttpMethod.POST,
                 new HttpEntity<>(
-                        Map.of(
-                                "tenantCode", "operator-denied-" + System.nanoTime(),
-                                "displayName", "无权限租户",
-                                "initialAdministratorSubjectId", "4921825928971026438"),
+                        onboarding("oper-" + Long.toUnsignedString(System.nanoTime(), 36), "运营开通租户"),
                         bearer(platformToken)),
                 Map.class);
 
@@ -928,7 +970,7 @@ class AuthenticationApiTest {
                 url("/api/v1/auth/sessions"),
                 Map.of(
                         "tenantCode", tenantCode,
-                        "loginName", "tenant-admin-candidate",
+                        "loginName", "owner-" + tenantCode,
                         "password", new String(DEMO_PASSWORD)),
                 String.class);
     }
@@ -978,6 +1020,18 @@ class AuthenticationApiTest {
                         status = 'ACTIVE',
                         version = 0
                 """, subjectId, loginName);
+    }
+
+    /** 开户 HTTP 反例使用同一新合同；这里只构造请求，不代替真实事务或认证。 */
+    private static Map<String, Object> onboarding(String tenantCode, String displayName) {
+        return Map.of("tenantCode", tenantCode, "displayName", displayName,
+                "administrator", Map.of("loginName", "owner-" + tenantCode, "password", new String(DEMO_PASSWORD)),
+                "quotas", onboardingQuotas());
+    }
+
+    private static Map<String, Object> onboardingQuotas() {
+        return Map.of("knowledgeBases", 4, "documentsPerKnowledgeBase", 1234,
+                "bytesPerKnowledgeBase", "12500000000", "maxFileBytes", "75000000", "maxTextBytes", "2097152");
     }
 
     private static HttpHeaders bearer(String token) {

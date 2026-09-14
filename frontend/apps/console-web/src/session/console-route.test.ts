@@ -9,6 +9,12 @@ import {
 } from "./console-route";
 
 describe("统一控制台路由", () => {
+  it("租户概览由稳定标识恢复，未知子路径不猜测目标", () => {
+    const route = { navigationId: "platform", task: "detail", tenantId: "610000000000000001" } as const;
+    expect(formatConsoleRoute(route)).toBe("/platform/tenants/610000000000000001");
+    expect(parseConsoleRoute("/platform/tenants/610000000000000001", "")).toEqual(route);
+    expect(parseConsoleRoute("/platform/tenants/not-a-tenant", "")).toBeUndefined();
+  });
   it("两级运营总览使用稳定入口并恢复平台租户摘要页码", () => {
     expect(defaultConsoleRoute("operations")).toEqual({
       navigationId: "operations",

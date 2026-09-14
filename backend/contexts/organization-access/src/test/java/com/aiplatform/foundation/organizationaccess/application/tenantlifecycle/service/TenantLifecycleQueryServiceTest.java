@@ -25,10 +25,11 @@ class TenantLifecycleQueryServiceTest {
     @Test
     void 缺少治理写权限时不得触达生命周期读取端口() {
         var read = new AtomicBoolean();
-        TenantLifecycleReadPort port = query -> {
+        var port = org.mockito.Mockito.mock(TenantLifecycleReadPort.class);
+        org.mockito.Mockito.when(port.page(org.mockito.ArgumentMatchers.any())).thenAnswer(invocation -> {
             read.set(true);
-            return PageResult.of(List.of(), query, 0L);
-        };
+            return PageResult.of(List.of(), invocation.getArgument(0), 0L);
+        });
         var service = new TenantLifecycleQueryService(port);
 
         assertThrows(IllegalArgumentException.class, () -> service.list(
@@ -47,7 +48,9 @@ class TenantLifecycleQueryServiceTest {
                 3L,
                 Instant.parse("2026-08-03T03:00:00Z"),
                 Instant.parse("2026-08-03T04:00:00Z"));
-        TenantLifecycleReadPort port = query -> PageResult.of(List.of(summary), query, 1L);
+        var port = org.mockito.Mockito.mock(TenantLifecycleReadPort.class);
+        org.mockito.Mockito.when(port.page(org.mockito.ArgumentMatchers.any())).thenAnswer(invocation ->
+                PageResult.of(List.of(summary), invocation.getArgument(0), 1L));
         var service = new TenantLifecycleQueryService(port);
 
         var page = service.list(

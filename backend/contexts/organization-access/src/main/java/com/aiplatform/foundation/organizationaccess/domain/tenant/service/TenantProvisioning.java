@@ -6,6 +6,7 @@ import com.aiplatform.foundation.organizationaccess.domain.authorization.model.T
 import com.aiplatform.foundation.organizationaccess.domain.member.model.MemberId;
 import com.aiplatform.foundation.organizationaccess.domain.member.model.TenantMembership;
 import com.aiplatform.foundation.organizationaccess.domain.tenant.model.TenantLifecycle;
+import com.aiplatform.foundation.organizationaccess.domain.tenant.model.TenantQuota;
 import com.aiplatform.foundation.organizationaccess.domain.tenant.operation.TenantLifecycleChange;
 import com.aiplatform.foundation.organizationaccess.domain.tenant.operation.TenantProvisioningResult;
 import java.time.Instant;
@@ -20,7 +21,7 @@ public final class TenantProvisioning {
     }
 
     /**
-     * 为准备中的租户建立初始管理员成员资格。
+     * 为准备中的租户建立初始管理员，并以合法激活转换产出完整开户事实。
      *
      * @throws IllegalArgumentException 当管理员主体与生命周期引用不一致时拒绝。
      * @throws IllegalStateException 当管理员主体已禁用时拒绝。
@@ -29,6 +30,7 @@ public final class TenantProvisioning {
             TenantLifecycle lifecycle,
             SubjectIdentity administrator,
             MemberId membershipId,
+            TenantQuota quotas,
             Instant occurredAt) {
         lifecycle = Objects.requireNonNull(lifecycle, "租户生命周期不能为空");
         administrator = Objects.requireNonNull(administrator, "初始管理员主体不能为空");
@@ -42,14 +44,17 @@ public final class TenantProvisioning {
         }
         var membership = TenantMembership.establishInitialAdministrator(
                 membershipId, lifecycle.id(), administrator.id(), occurredAt);
+        lifecycle = lifecycle.activate();
         return new TenantProvisioningResult(
                 lifecycle,
+                administrator,
                 membership,
                 new TenantRoleBinding(
                         lifecycle.id(),
                         membership.id(),
                         TenantBuiltInRole.TENANT_ADMINISTRATOR,
                         occurredAt),
+                quotas,
                 new TenantLifecycleChange(
                         lifecycle.id(), lifecycle.status(), lifecycle.version(), occurredAt),
                 occurredAt);

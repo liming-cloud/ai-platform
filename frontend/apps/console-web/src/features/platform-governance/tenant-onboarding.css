@@ -1,0 +1,69 @@
+/* 开户切片沿用已验收 Claude 中性色与紧凑控件，不改变其他工作区。 */
+.tenant-onboarding {
+  --colorBrandBackground: color-mix(in oklab, #c96442, #141413 24%);
+  --colorBrandBackgroundHover: color-mix(in oklab, #c96442, #141413 36%);
+  --colorBrandBackgroundPressed: color-mix(in oklab, #c96442, #141413 42%);
+  --colorBrandForeground1: #a84c30;
+  --colorNeutralBackground1: #fffdf9;
+  color: #302c28;
+  max-width: 960px;
+  margin-inline: auto;
+  display: grid;
+  gap: 24px;
+}
+.tenant-onboarding *, .tenant-onboarding *::before, .tenant-onboarding *::after { box-sizing: border-box; }
+.tenant-onboarding__steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); list-style: none; padding: 0; margin: 0; border-block: 1px solid #e8e0d7; }
+.tenant-onboarding__steps li { display: flex; align-items: center; gap: 10px; padding: 16px; color: #77716b; }
+.tenant-onboarding__steps li[aria-current="step"] { background: #f5eae3; color: #703f2d; }
+.tenant-onboarding__steps li > span { display: grid; place-items: center; width: 26px; height: 26px; flex: 0 0 26px; border: 1px solid #d9cfc5; border-radius: 50%; font-variant-numeric: tabular-nums; }
+.tenant-onboarding__steps li[aria-current="step"] > span, .tenant-onboarding__steps li[data-complete="true"] > span { background: #b75a3b; color: white; border-color: #b75a3b; }
+.tenant-onboarding form { display: grid; gap: 24px; min-width: 0; }
+.tenant-onboarding__heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.tenant-onboarding h2 { font-size: 22px; line-height: 1.4; margin: 0; }
+.tenant-onboarding h3 { font-size: 18px; line-height: 1.4; margin: 0 0 12px; }
+.tenant-onboarding__heading > span { color: #77716b; font-variant-numeric: tabular-nums; }
+.tenant-onboarding fieldset { margin: 0; padding: 0; border: 0; min-width: 0; display: grid; gap: 24px; }
+.tenant-onboarding__fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px 20px; align-items: start; }
+.tenant-onboarding__quotas { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.tenant-onboarding .fui-Field { min-width: 0; display: grid; grid-template-rows: subgrid; grid-row: span 3; row-gap: 6px; }
+.tenant-onboarding .fui-Field > label { margin: 0; }
+.tenant-onboarding .fui-Input { min-height: 36px; border-radius: 7px; width: 100%; min-width: 0; align-self: start; border-color: #d8d0c7; }
+.tenant-onboarding .fui-Input input { font-size: 16px; line-height: 1.4; min-width: 0; width: 100%; }
+.tenant-onboarding .fui-Input__contentAfter { font-size: 12px; color: #77716b; }
+.tenant-onboarding .fui-Button { min-height: 36px; padding: 7px 14px; font-size: 14px; line-height: 1.4; border-radius: 7px; width: auto; white-space: normal; }
+.tenant-onboarding .fui-Checkbox { align-items: start; }
+.tenant-onboarding__note { color: #77716b; font-size: 13px; line-height: 1.6; margin: 0; }
+.tenant-onboarding__summary { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; background: #f5f1eb; border: 1px solid #e8e0d7; border-radius: 10px; padding: 16px; }
+.tenant-onboarding__summary > span { display: grid; gap: 6px; overflow-wrap: anywhere; }
+.tenant-onboarding__summary small { color: #77716b; }
+.tenant-onboarding__validation { color: #a33427; margin: 0; }
+.tenant-onboarding__actions { display: flex; align-items: center; justify-content: space-between; gap: 12px; border-top: 1px solid #e8e0d7; padding-top: 16px; }
+.tenant-onboarding__actions > div { display: flex; flex-wrap: wrap; gap: 10px; }
+.tenant-onboarding__actions button[type="submit"] { min-width: 112px; }
+.tenant-onboarding a { color: #a84c30; text-underline-offset: 4px; }
+.tenant-onboarding :focus-visible { outline: 2px solid #b75a3b; outline-offset: 3px; }
+.tenant-onboarding__heading h2:focus { outline: none; }
+.tenant-overview__identity { display: flex; gap: 16px; align-items: center; padding: 20px; border: 1px solid #e8e0d7; border-radius: 12px; background: #fffdf9; overflow-wrap: anywhere; }
+.tenant-overview__identity > div { flex: 1; min-width: 0; }
+.tenant-overview__identity p { margin: 0; color: #77716b; }
+.tenant-overview__monogram { display: grid; place-items: center; width: 48px; height: 48px; flex: 0 0 48px; border-radius: 12px; background: #f5eae3; color: #a84c30; font-size: 22px; }
+.tenant-overview__facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border-top: 1px solid #e8e0d7; margin: 0; }
+.tenant-overview__facts > div { padding: 16px 12px; border-bottom: 1px solid #e8e0d7; }
+.tenant-overview__facts dt { color: #77716b; font-size: 13px; margin-bottom: 8px; }
+.tenant-overview__facts dd { margin: 0; font-size: 16px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.tenant-overview__entry { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; padding: 20px; background: #f5f1eb; border-radius: 10px; }
+.tenant-overview__entry p { margin: 0; color: #77716b; max-width: 36em; line-height: 1.6; }
+@media (prefers-reduced-motion: no-preference) { .tenant-onboarding form { animation: onboarding-enter 160ms ease-out; } }
+@keyframes onboarding-enter { from { opacity: 0; transform: translateY(3px); } to { opacity: 1; transform: none; } }
+@media (max-width: 700px) {
+  .tenant-onboarding { gap: 20px; }
+  .tenant-onboarding__steps li { padding: 12px 6px; flex-direction: column; gap: 8px; text-align: center; }
+  .tenant-onboarding__steps strong { font-size: 13px; }
+  .tenant-onboarding__fields, .tenant-onboarding__quotas, .tenant-overview__facts { grid-template-columns: minmax(0, 1fr); }
+  .tenant-onboarding__summary { grid-template-columns: minmax(0, 1fr); }
+  .tenant-onboarding__heading { align-items: start; flex-wrap: wrap; }
+}
+@media (max-width: 700px), (pointer: coarse) {
+  .tenant-onboarding .fui-Input { min-height: 44px; }
+  .tenant-onboarding .fui-Button { min-height: 44px; }
+}

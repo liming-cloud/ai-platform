@@ -7,6 +7,19 @@ import {
 } from "./control-plane-client";
 
 describe("ControlPlaneClient", () => {
+  it("租户概览和配额从独立受保护接口读取且保留容量精度", async () => {
+    const requests: Request[] = [];
+    const client = authenticatedClient(async (input, init) => {
+      const request = new Request(input, init); requests.push(request);
+      return Response.json(request.url.endsWith("/quotas") ? { bytesPerKnowledgeBase: "9223372036854775807", version: 0 } : { tenantId: "610000000000000001", displayName: "青岚科技" });
+    });
+    expect((await client.getTenantLifecycle("610000000000000001")).displayName).toBe("青岚科技");
+    expect((await client.getTenantQuotas("610000000000000001")).bytesPerKnowledgeBase).toBe("9223372036854775807");
+    expect(requests.map(request => [request.method, request.url])).toEqual([
+      ["GET", "http://localhost/api/v1/platform/tenants/610000000000000001"],
+      ["GET", "http://localhost/api/v1/platform/tenants/610000000000000001/quotas"],
+    ]);
+  });
   it("运营总览和平台租户摘要只使用固定统计范围与服务端分页", async () => {
     const requests: Request[] = [];
     const client = authenticatedClient(async (input, init) => {
@@ -962,7 +975,8 @@ describe("ControlPlaneClient", () => {
     await client.provisionTenant({
       tenantCode: lifecycle.tenantCode,
       displayName: lifecycle.displayName,
-      initialAdministratorSubjectId: lifecycle.initialAdministratorSubjectId,
+      administrator: { loginName: "qinglan.admin", password: "仅测试密码" },
+      quotas: { knowledgeBases: 3, documentsPerKnowledgeBase: 1000, bytesPerKnowledgeBase: "10000000000", maxFileBytes: "50000000", maxTextBytes: "1048576" },
     });
     await client.activateTenant(lifecycle.tenantId);
     await client.suspendTenant(lifecycle.tenantId);
@@ -978,7 +992,8 @@ describe("ControlPlaneClient", () => {
     expect(await requests[0]?.json()).toEqual({
       tenantCode: lifecycle.tenantCode,
       displayName: lifecycle.displayName,
-      initialAdministratorSubjectId: lifecycle.initialAdministratorSubjectId,
+      administrator: { loginName: "qinglan.admin", password: "仅测试密码" },
+      quotas: { knowledgeBases: 3, documentsPerKnowledgeBase: 1000, bytesPerKnowledgeBase: "10000000000", maxFileBytes: "50000000", maxTextBytes: "1048576" },
     });
   });
 

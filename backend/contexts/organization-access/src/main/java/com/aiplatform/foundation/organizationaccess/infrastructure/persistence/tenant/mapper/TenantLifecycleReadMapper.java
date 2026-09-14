@@ -1,8 +1,7 @@
 package com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.mapper;
 
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.projection.TenantLifecycleSummaryRow;
-import java.util.List;
-import org.apache.ibatis.annotations.Param;
+import com.baomidou.mybatisplus.core.metadata.IPage;
 
 /**
  * 生命周期最小读取投影的分页查询映射器。
@@ -12,12 +11,5 @@ public interface TenantLifecycleReadMapper {
     /**
      * 按最后变更时间稳定排序后读取一页最小投影。
      */
-    List<TenantLifecycleSummaryRow> selectPage(
-            @Param("offset") long offset,
-            @Param("pageSize") long pageSize);
-
-    /**
-     * 统计受限生命周期投影的总数。
-     */
-    long count();
+    IPage<TenantLifecycleSummaryRow> selectPage(IPage<TenantLifecycleSummaryRow> page);
 }

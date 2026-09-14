@@ -1,12 +1,17 @@
 package com.aiplatform.foundation.organizationaccess.infrastructure.persistence.identity.entity;
 
 import java.time.Instant;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
+import com.baomidou.mybatisplus.annotation.IdType;
 
 /**
  * 全局主体身份事实的 PostgreSQL 映射实体。
  */
+@TableName("organization_access.subject_identity")
 public class SubjectIdentityEntity {
 
+    @TableId(type = IdType.INPUT)
     private Long subjectId;
     private String loginName;
     private String passwordHash;

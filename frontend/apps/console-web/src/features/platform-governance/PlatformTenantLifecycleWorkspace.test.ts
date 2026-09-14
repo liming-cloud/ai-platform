@@ -6,11 +6,11 @@ const workspacePath = new URL("./PlatformTenantLifecycleWorkspace.tsx", import.m
 const stylesPath = new URL("../../styles.css", import.meta.url).pathname;
 
 describe("租户建立流程", () => {
-  it("在管理员选择步骤原地建立专用租户管理员账户", () => {
+  it("开户只通过原子向导提交，不提前创建人员账户", () => {
     const source = readFileSync(workspacePath, "utf8");
 
-    expect(source).toContain("client.createPlatformAccount");
-    expect(source).toContain("建立专用租户管理员账户");
+    expect(source).not.toContain("client.createPlatformAccount");
+    expect(source).toContain('import { TenantProvisioningFlow }');
     expect(source).not.toContain("请先在平台账户页面创建并启用账户");
   });
 

@@ -1,6 +1,7 @@
 package com.aiplatform.foundation.organizationaccess.interfaces.web.tenantlifecycle.controller;
 
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.dto.TenantLifecycleView;
+import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.dto.TenantQuotaView;
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.service.TenantLifecycleQueryService;
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.service.TenantLifecycleTransitionService;
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.service.TenantProvisioningService;
@@ -26,8 +27,7 @@ import org.springframework.web.bind.annotation.RestController;
 /**
  * 受限的平台租户建立与生命周期状态迁移入口。
  *
- * <p>每个操作均先由参数解析器从 Bearer 令牌恢复 `PlatformRequestContext`；路径租户标识和请求中的
- * 初始管理员标识只是受管业务资源目标。</p>
+ * <p>操作者只由认证参数解析器恢复，开户不接受任何候选主体、角色或身份覆盖字段。</p>
  */
 @RestController
 @RequestMapping("/api/v1/platform/tenants")
@@ -66,19 +66,29 @@ public final class TenantLifecycleController {
     }
 
     /**
-     * 建立处于准备中状态的新租户。
+     * 一次提交建立可用租户和初始管理员；不在 HTTP 层拆分事务步骤。
      */
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public TenantLifecycleResponse provision(
             PlatformRequestContext platform,
             @RequestBody Map<String, Object> payload) {
-        var request = TenantProvisioningRequest.from(payload);
-        return TenantLifecycleResponse.from(provisioning.provision(
-                platform,
-                request.tenantCode(),
-                request.displayName(),
-                request.initialAdministratorSubjectIdValue()));
+        try (var request = TenantProvisioningRequest.from(payload)) {
+            return TenantLifecycleResponse.from(provisioning.provision(
+                    platform, request.command(), request.passwordCopy()));
+        }
+    }
+
+    /** 读取租户概览使用的原生命周期投影。 */
+    @GetMapping("/{tenantId}")
+    public TenantLifecycleResponse find(PlatformRequestContext platform, @PathVariable long tenantId) {
+        return TenantLifecycleResponse.from(lifecycleQueries.find(platform, tenantId));
+    }
+
+    /** 独立读取已保存配额，不返回租户正文或登录凭据。 */
+    @GetMapping("/{tenantId}/quotas")
+    public TenantQuotaView quotas(PlatformRequestContext platform, @PathVariable long tenantId) {
+        return lifecycleQueries.quotas(platform, tenantId);
     }
 
     /**

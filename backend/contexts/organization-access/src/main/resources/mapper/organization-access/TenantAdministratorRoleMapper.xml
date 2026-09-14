@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.mapper.TenantAdministratorRoleMapper">
+    <!-- 复合主键保持原有数据库不变量，不能映射成不存在的单一实体主键。 -->
+    <insert id="insert">
+        INSERT INTO organization_access.tenant_membership_role_binding (tenant_id, membership_id, role_code, bound_at)
+        VALUES (#{tenantId}, #{membershipId}, #{roleCode}, #{boundAt})
+    </insert>
+</mapper>

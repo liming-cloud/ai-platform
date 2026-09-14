@@ -148,7 +148,7 @@ async function assertKeyboard(page, role) {
 
 /** setup 只准备合成验收对象，不重置、删除或恢复任何既有数据；部分成功也保留 ID 供人工处理。 */
 async function prepareTenant(page, configuration) {
-  const suffix = `${Date.now().toString(36)}-${crypto.randomBytes(4).toString("hex")}`;
+  const suffix = crypto.randomBytes(6).toString("hex");
   const credentials = { platform: configuration.credentials.platform, tenant: {
     tenantCode: `wp17-${suffix}`, loginName: `wp17-${suffix}`, password: `Aa9!${crypto.randomBytes(24).toString("base64url")}`,
   }, setup: { status: "STARTED" } };
@@ -167,28 +167,20 @@ async function prepareTenant(page, configuration) {
     requireCondition((await request(page, "/auth/browser-sessions", "POST", credentials.platform)).status === 204, "setup 平台登录失败");
     authenticated = true;
     await assertIdentity(page, "platform");
-    const account = await request(page, "/platform/accounts", "POST", {
-      loginName: credentials.tenant.loginName, password: credentials.tenant.password,
-    });
-    requireCondition(account.status === 201 && typeof account.body?.subjectId === "string"
-      && /^[1-9][0-9]*$/.test(account.body.subjectId), "setup 建立合成主体失败");
-    credentials.setup.subjectId = account.body.subjectId;
-    credentials.setup.status = "ACCOUNT_CREATED";
-    persist();
     const tenant = await request(page, "/platform/tenants", "POST", {
       tenantCode: credentials.tenant.tenantCode, displayName: "WP-0017 登录切片验收租户",
-      initialAdministratorSubjectId: credentials.setup.subjectId,
+      administrator: { loginName: credentials.tenant.loginName, password: credentials.tenant.password },
+      quotas: { knowledgeBases: 3, documentsPerKnowledgeBase: 1000, bytesPerKnowledgeBase: "10000000000",
+        maxFileBytes: "50000000", maxTextBytes: "1048576" },
     });
     requireCondition(tenant.status === 201 && typeof tenant.body?.tenantId === "string"
-      && /^[1-9][0-9]*$/.test(tenant.body.tenantId), "setup 建立合成租户失败，保留已建主体");
+      && /^[1-9][0-9]*$/.test(tenant.body.tenantId) && tenant.body.status === "ACTIVE"
+      && typeof tenant.body.initialAdministratorSubjectId === "string", "setup 原子建立合成租户失败");
     credentials.setup.tenantId = tenant.body.tenantId;
-    credentials.setup.status = "TENANT_CREATED";
-    persist();
-    const activation = await request(page, `/platform/tenants/${credentials.setup.tenantId}/lifecycle/activate`, "POST");
-    requireCondition(activation.status === 200 && activation.body?.status === "ACTIVE", "setup 激活租户失败，保留已建租户");
+    credentials.setup.subjectId = tenant.body.initialAdministratorSubjectId;
     credentials.setup.status = "ACTIVE";
     persist();
-    process.stdout.write(`${JSON.stringify({ preparation: "合成租户准备完成，不代表原子开户交付", ...credentials.setup })}\n`);
+    process.stdout.write(`${JSON.stringify({ preparation: "合成租户准备完成，尚未执行浏览器切片验收", ...credentials.setup })}\n`);
   } catch (error) {
     failed = true;
     throw error;
@@ -305,7 +297,8 @@ async function run(configuration) {
   }
 }
 
-module.exports = { readConfiguration, assertWorkspace, logoutWorkspace };
+module.exports = { readConfiguration, assertWorkspace, logoutWorkspace, request, requireCondition,
+  SafeAssertionError, assertIdentity, assertAnonymous, openLogin, fillLogin, submitLogin };
 if (require.main === module) {
   try {
     const configuration = readConfiguration();

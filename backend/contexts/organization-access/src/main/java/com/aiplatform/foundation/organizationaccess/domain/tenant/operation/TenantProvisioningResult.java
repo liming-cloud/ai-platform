@@ -6,6 +6,8 @@ import com.aiplatform.foundation.organizationaccess.domain.member.model.TenantMe
 import com.aiplatform.foundation.organizationaccess.domain.member.model.TenantMembershipRole;
 import com.aiplatform.foundation.organizationaccess.domain.tenant.model.TenantLifecycle;
 import com.aiplatform.foundation.organizationaccess.domain.tenant.model.TenantLifecycleStatus;
+import com.aiplatform.foundation.organizationaccess.domain.identity.model.SubjectIdentity;
+import com.aiplatform.foundation.organizationaccess.domain.tenant.model.TenantQuota;
 import com.aiplatform.foundation.shared.kernel.domain.ValueObject;
 import java.time.Instant;
 import java.util.Objects;
@@ -15,19 +17,29 @@ import java.util.Objects;
  */
 public record TenantProvisioningResult(
         TenantLifecycle lifecycle,
+        SubjectIdentity administratorIdentity,
         TenantMembership initialAdministrator,
         TenantRoleBinding initialAdministratorRoleBinding,
+        TenantQuota quotas,
         TenantLifecycleChange lifecycleChange,
         Instant occurredAt) implements ValueObject {
 
     public TenantProvisioningResult {
         lifecycle = Objects.requireNonNull(lifecycle, "租户生命周期不能为空");
+        administratorIdentity = Objects.requireNonNull(administratorIdentity, "新管理员身份不能为空");
+        quotas = Objects.requireNonNull(quotas, "租户配额不能为空");
         initialAdministrator = Objects.requireNonNull(initialAdministrator, "初始管理员成员资格不能为空");
         initialAdministratorRoleBinding = Objects.requireNonNull(
                 initialAdministratorRoleBinding, "初始管理员角色绑定不能为空");
         lifecycleChange = Objects.requireNonNull(lifecycleChange, "租户生命周期变化不能为空");
         occurredAt = Objects.requireNonNull(occurredAt, "操作时间不能为空");
-        if (lifecycle.status() != TenantLifecycleStatus.PROVISIONING
+        if (lifecycle.status() != TenantLifecycleStatus.ACTIVE
+                || lifecycle.version() != 1L
+                || !administratorIdentity.isActive()
+                || administratorIdentity.version() != 0L
+                || !administratorIdentity.id().equals(lifecycle.initialAdministratorId())
+                || !lifecycle.id().equals(quotas.tenantId())
+                || quotas.version() != 0L
                 || !lifecycle.id().equals(initialAdministrator.tenantId())
                 || !lifecycle.initialAdministratorId().equals(initialAdministrator.subjectId())
                 || initialAdministrator.role() != TenantMembershipRole.TENANT_ADMINISTRATOR

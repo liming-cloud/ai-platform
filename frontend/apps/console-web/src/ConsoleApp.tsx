@@ -287,8 +287,9 @@ function AuthenticatedConsoleApp({
           ? route.task === "roles" ? "查看当前租户的固定角色、能力范围和安全边界。" : "成员目录按页显示；停用成员前必须二次确认。"
           : platformActive
           ? route.task === "create"
-            ? "定义租户信息，建立专用租户管理员账户，并在提交前核对全部业务结果。"
-            : "建立、激活和暂停租户，不展示租户正文、成员详情或平台操作者信息。"
+            ? "填写租户信息、资源配额与管理员账号，一次创建即可使用。"
+            : route.task === "detail" ? "核对租户信息与资源配额，获取管理员登录入口。"
+              : "建立、激活和暂停租户，不展示租户正文、成员详情或平台操作者信息。"
           : platformAccountsActive
           ? route.task === "roles" ? "查看平台固定角色的任务范围、能力和信息边界。" : "账户目录按页显示，不展示凭据、会话或权限快照。"
           : platformModelSupplyActive

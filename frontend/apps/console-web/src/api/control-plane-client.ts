@@ -76,12 +76,25 @@ export interface TenantMemberSummary {
   createdAt: string;
 }
 
-/** 平台建立租户只接受已存在主体这一业务资源目标。 */
+/** 原子开户只在最后一次提交携带凭据；不得持久化整个请求。 */
 export interface TenantProvisioningInput {
   tenantCode: string;
   displayName: string;
-  initialAdministratorSubjectId: string;
+  administrator: { loginName: string; password: string };
+  quotas: TenantQuotas;
 }
+
+/** 容量使用十进制字节串，避免 JavaScript 安全整数边界造成配额变形。 */
+export interface TenantQuotas {
+  knowledgeBases: number;
+  documentsPerKnowledgeBase: number;
+  bytesPerKnowledgeBase: string;
+  maxFileBytes: string;
+  maxTextBytes: string;
+}
+
+/** 配额只读投影；配置版本不代表接入计量已启用。 */
+export interface TenantQuotaSummary extends TenantQuotas { version: number }
 
 export interface KnowledgeSpace {
   id: string;
@@ -673,6 +686,15 @@ export class ControlPlaneClient {
     return this.request<PageResult<TenantLifecycleSummary>>(
       `/platform/tenants?pageNumber=${pageNumber}&pageSize=${pageSize}`,
     );
+  }
+
+  /** 刷新后重新读取租户事实，不把开户回显当作永久详情缓存。 */
+  async getTenantLifecycle(tenantId: string): Promise<TenantLifecycle> {
+    return this.request<TenantLifecycle>(`/platform/tenants/${encodeURIComponent(tenantId)}`);
+  }
+
+  async getTenantQuotas(tenantId: string): Promise<TenantQuotaSummary> {
+    return this.request<TenantQuotaSummary>(`/platform/tenants/${encodeURIComponent(tenantId)}/quotas`);
   }
 
   async listTenantAdministrators(

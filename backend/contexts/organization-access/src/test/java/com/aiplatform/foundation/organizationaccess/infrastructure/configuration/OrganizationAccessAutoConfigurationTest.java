@@ -45,6 +45,10 @@ import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.t
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.mapper.TenantLifecycleReadMapper;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.mapper.TenantLifecycleTransitionMapper;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.mapper.TenantProvisioningMapper;
+import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.mapper.TenantAnchorMapper;
+import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.mapper.TenantAdministratorRoleMapper;
+import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.mapper.TenantQuotaMapper;
+import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.mapper.TenantLifecycleOutboxMapper;
 import com.aiplatform.foundation.organizationaccess.interfaces.web.authentication.controller.AuthenticationController;
 import com.aiplatform.foundation.organizationaccess.interfaces.web.authentication.controller.BrowserAuthenticationController;
 import com.aiplatform.foundation.organizationaccess.interfaces.web.authentication.controller.PlatformAuthenticationController;
@@ -130,6 +134,10 @@ class OrganizationAccessAutoConfigurationTest {
             .withBean(
                     TenantProvisioningMapper.class,
                     () -> mock(TenantProvisioningMapper.class))
+            .withBean(TenantAnchorMapper.class, () -> mock(TenantAnchorMapper.class))
+            .withBean(TenantAdministratorRoleMapper.class, () -> mock(TenantAdministratorRoleMapper.class))
+            .withBean(TenantQuotaMapper.class, () -> mock(TenantQuotaMapper.class))
+            .withBean(TenantLifecycleOutboxMapper.class, () -> mock(TenantLifecycleOutboxMapper.class))
             .withBean(
                     AuthenticatedSessionGateway.class,
                     () -> mock(AuthenticatedSessionGateway.class))

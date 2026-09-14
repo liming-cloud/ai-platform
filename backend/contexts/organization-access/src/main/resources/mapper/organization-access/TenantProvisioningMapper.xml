@@ -1,69 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE mapper
-        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
-        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.mapper.TenantProvisioningMapper">
-
-    <resultMap id="subjectIdentity"
-        type="com.aiplatform.foundation.organizationaccess.infrastructure.persistence.identity.entity.SubjectIdentityEntity">
-        <result column="subject_id" property="subjectId"/>
-        <result column="login_name" property="loginName"/>
-        <result column="password_hash" property="passwordHash"/>
-        <result column="status" property="status"/>
-        <result column="version" property="version"/>
-        <result column="created_at" property="createdAt"/>
-    </resultMap>
-
-    <select id="lockActiveInitialAdministrator" resultMap="subjectIdentity">
-        SELECT subject_id, login_name, password_hash, status, version, created_at
-        FROM organization_access.subject_identity
-        WHERE subject_id = #{subjectId}
-          AND status = 'ACTIVE'
-        FOR UPDATE
-    </select>
-
-    <select id="hasActivePlatformAdministrator" resultType="boolean">
+    <!-- 单行全局就绪断言不读取租户内容，不写入或绕过历史迁移切换事实。 -->
+    <select id="authenticationReady" resultType="boolean">
         SELECT EXISTS (
-            SELECT 1
-            FROM organization_access.platform_role_binding
-            WHERE subject_id = #{subjectId}
-              AND role_code = 'PLATFORM_ADMINISTRATOR'
-              AND status = 'ACTIVE'
+            SELECT 1 FROM organization_access.tenant_lifecycle_authentication_cutover
+            WHERE singleton_key IS TRUE
         )
     </select>
-
-    <insert id="insertTenant">
-        INSERT INTO organization_access.tenant
-            (tenant_id, tenant_code, display_name, status, version, created_at, updated_at)
-        VALUES
-            (#{tenantId}, #{tenantCode}, #{displayName}, 'DISABLED', 0, #{createdAt}, #{createdAt})
-    </insert>
-
-    <insert id="insertLifecycle">
-        INSERT INTO organization_access.tenant_lifecycle
-            (tenant_id, tenant_code, display_name, initial_administrator_subject_id, status, version, created_at)
-        VALUES
-            (#{tenantId}, #{tenantCode}, #{displayName}, #{initialAdministratorId}, #{status}, #{version}, #{createdAt})
-    </insert>
-
-    <insert id="insertInitialAdministrator">
-        INSERT INTO organization_access.tenant_membership
-            (membership_id, tenant_id, subject_id, membership_role, status, permission_version, version, created_at, updated_at)
-        VALUES
-            (#{membershipId}, #{tenantId}, #{subjectId}, #{role}, #{status}, #{permissionVersion}, #{version}, #{createdAt}, #{createdAt})
-    </insert>
-
-    <insert id="insertInitialAdministratorRoleBinding">
-        INSERT INTO organization_access.tenant_membership_role_binding
-            (tenant_id, membership_id, role_code, bound_at)
-        VALUES
-            (#{tenantId}, #{membershipId}, #{roleCode}, #{boundAt})
-    </insert>
-
-    <insert id="insertOutbox">
-        INSERT INTO organization_access.tenant_lifecycle_outbox
-            (event_id, tenant_id, event_type, lifecycle_status, lifecycle_version, occurred_at)
-        VALUES
-            (#{eventId}, #{tenantId}, 'TENANT_LIFECYCLE_CHANGED', #{status}, #{version}, #{occurredAt})
-    </insert>
 </mapper>

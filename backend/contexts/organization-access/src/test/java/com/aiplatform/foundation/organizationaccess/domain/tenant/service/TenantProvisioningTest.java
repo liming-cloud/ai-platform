@@ -9,6 +9,7 @@ import com.aiplatform.foundation.organizationaccess.domain.member.model.MemberId
 import com.aiplatform.foundation.organizationaccess.domain.member.model.SubjectId;
 import com.aiplatform.foundation.organizationaccess.domain.member.model.TenantMembershipRole;
 import com.aiplatform.foundation.organizationaccess.domain.tenant.model.TenantLifecycle;
+import com.aiplatform.foundation.organizationaccess.domain.tenant.model.TenantQuota;
 import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
 import java.time.Instant;
 import org.junit.jupiter.api.Test;
@@ -25,9 +26,9 @@ class TenantProvisioningTest {
         var lifecycle = lifecycle(SUBJECT_ID);
 
         var result = TenantProvisioning.provision(
-                lifecycle, activeSubject(), MEMBERSHIP_ID, OCCURRED_AT);
+                lifecycle, activeSubject(), MEMBERSHIP_ID, quotas(), OCCURRED_AT);
 
-        assertEquals(lifecycle, result.lifecycle());
+        assertEquals("ACTIVE", result.lifecycle().status().name());
         assertEquals(TENANT_ID, result.initialAdministrator().tenantId());
         assertEquals(SUBJECT_ID, result.initialAdministrator().subjectId());
         assertEquals(MEMBERSHIP_ID, result.initialAdministrator().id());
@@ -35,7 +36,7 @@ class TenantProvisioningTest {
                 TenantMembershipRole.TENANT_ADMINISTRATOR,
                 result.initialAdministrator().role());
         assertEquals(TENANT_ID, result.lifecycleChange().tenantId());
-        assertEquals(0L, result.lifecycleChange().version());
+        assertEquals(1L, result.lifecycleChange().version());
         assertEquals(OCCURRED_AT, result.occurredAt());
     }
 
@@ -47,6 +48,7 @@ class TenantProvisioningTest {
                         lifecycle(SUBJECT_ID),
                         activeSubject().disable(),
                         MEMBERSHIP_ID,
+                        quotas(),
                         OCCURRED_AT));
         assertThrows(
                 IllegalArgumentException.class,
@@ -58,6 +60,7 @@ class TenantProvisioningTest {
                                 new EncodedPassword("valid"),
                                 OCCURRED_AT),
                         MEMBERSHIP_ID,
+                        quotas(),
                         OCCURRED_AT));
     }
 
@@ -76,5 +79,9 @@ class TenantProvisioningTest {
                 "admin",
                 new EncodedPassword("valid"),
                 OCCURRED_AT);
+    }
+
+    private static TenantQuota quotas() {
+        return new TenantQuota(TENANT_ID, 3, 1000, 10000000000L, 50000000L, 1048576L, 0L);
     }
 }

@@ -1,101 +1,111 @@
 package com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.repository;
 
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.port.out.TenantProvisioningStore;
-import com.aiplatform.foundation.organizationaccess.domain.identity.model.SubjectIdentity;
-import com.aiplatform.foundation.organizationaccess.domain.identity.model.SubjectIdentityStatus;
-import com.aiplatform.foundation.organizationaccess.domain.member.model.EncodedPassword;
-import com.aiplatform.foundation.organizationaccess.domain.member.model.SubjectId;
+import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.exception.TenantOnboardingErrorCode;
 import com.aiplatform.foundation.organizationaccess.domain.tenant.operation.TenantProvisioningResult;
+import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.identity.entity.SubjectIdentityEntity;
+import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.identity.mapper.SubjectIdentityMapper;
+import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.membership.entity.TenantMembershipEntity;
+import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.membership.mapper.TenantMembershipMapper;
+import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.entity.TenantAnchorEntity;
+import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.entity.TenantLifecycleEntity;
+import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.entity.TenantLifecycleOutboxEntity;
+import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.entity.TenantAdministratorRoleEntity;
+import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.entity.TenantQuotaEntity;
+import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.mapper.TenantAnchorMapper;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.mapper.TenantProvisioningMapper;
+import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.mapper.TenantLifecycleOutboxMapper;
+import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.mapper.TenantAdministratorRoleMapper;
+import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.mapper.TenantQuotaMapper;
+import com.aiplatform.foundation.shared.kernel.error.ApplicationException;
 import com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator;
+import org.springframework.dao.DuplicateKeyException;
+import org.springframework.dao.DataAccessException;
 import java.util.Objects;
-import java.util.Optional;
 
-/**
- * PostgreSQL 的新租户建立受锁读取与原子操作结果提交。
- *
- * <p>兼容租户行固定写为 `DISABLED`，只为满足遗留外键与列约束；认证状态始终来自生命周期根。领域
- * 状态、初始管理员角色和事件内容均只从操作结果取得。</p>
- */
+/** 单表写入均交给 MyBatis-Plus；提交顺序只满足外键，状态、角色与配额来自领域操作结果。 */
 public final class PostgresTenantProvisioningStore implements TenantProvisioningStore {
-
-    private final TenantProvisioningMapper mapper;
+    private final SubjectIdentityMapper identities;
+    private final TenantAnchorMapper anchors;
+    private final TenantProvisioningMapper lifecycles;
+    private final TenantMembershipMapper memberships;
+    private final TenantAdministratorRoleMapper roles;
+    private final TenantQuotaMapper quotas;
+    private final TenantLifecycleOutboxMapper outbox;
     private final EntityIdGenerator identifiers;
 
-    public PostgresTenantProvisioningStore(
-            TenantProvisioningMapper mapper,
-            EntityIdGenerator identifiers) {
-        this.mapper = Objects.requireNonNull(mapper, "租户建立映射器不能为空");
-        this.identifiers = Objects.requireNonNull(identifiers, "实体标识生成器不能为空");
+    /** 构造单表映射依赖；不允许可空或旧新并行存储路径。 */
+    public PostgresTenantProvisioningStore(SubjectIdentityMapper identities, TenantAnchorMapper anchors,
+            TenantProvisioningMapper lifecycles, TenantMembershipMapper memberships,
+            TenantAdministratorRoleMapper roles, TenantQuotaMapper quotas,
+            TenantLifecycleOutboxMapper outbox, EntityIdGenerator identifiers) {
+        this.identities = Objects.requireNonNull(identities);
+        this.anchors = Objects.requireNonNull(anchors);
+        this.lifecycles = Objects.requireNonNull(lifecycles);
+        this.memberships = Objects.requireNonNull(memberships);
+        this.roles = Objects.requireNonNull(roles);
+        this.quotas = Objects.requireNonNull(quotas);
+        this.outbox = Objects.requireNonNull(outbox);
+        this.identifiers = Objects.requireNonNull(identifiers);
     }
 
     @Override
-    public Optional<SubjectIdentity> lockActiveInitialAdministrator(SubjectId subjectId) {
-        var row = mapper.lockActiveInitialAdministrator(
-                Objects.requireNonNull(subjectId, "初始管理员主体不能为空").value());
-        if (row == null) {
-            return Optional.empty();
-        }
-        return Optional.of(SubjectIdentity.reconstitute(
-                new SubjectId(row.getSubjectId()),
-                row.getLoginName(),
-                new EncodedPassword(row.getPasswordHash()),
-                SubjectIdentityStatus.valueOf(row.getStatus()),
-                row.getVersion(),
-                row.getCreatedAt()));
-    }
-
-    @Override
-    public boolean hasActivePlatformAdministrator(SubjectId subjectId) {
-        return mapper.hasActivePlatformAdministrator(
-                Objects.requireNonNull(subjectId, "初始管理员主体不能为空").value());
+    public boolean authenticationReady() {
+        return lifecycles.authenticationReady();
     }
 
     @Override
     public void commit(TenantProvisioningResult result) {
-        result = Objects.requireNonNull(result, "租户建立结果不能为空");
+        var identity = result.administratorIdentity();
+        var row = new SubjectIdentityEntity();
+        row.setSubjectId(identity.id().value());
+        row.setLoginName(identity.loginName());
+        row.setPasswordHash(identity.encodedPassword().verificationValue());
+        row.setStatus(identity.status().name());
+        row.setVersion(identity.version());
+        row.setCreatedAt(identity.createdAt());
+        try {
+            requireWrite(identities.insert(row));
+        } catch (DuplicateKeyException conflict) {
+            // 不携带原 SQL 异常链，避免将密码摘要带入日志或响应。
+            throw new ApplicationException(TenantOnboardingErrorCode.IDENTITY_CONFLICT);
+        } catch (DataAccessException failure) {
+            // 数据库约束、触发器等失败也可能包含摘要，禁止原始原因链进入全局异常日志。
+            throw new ApplicationException(TenantOnboardingErrorCode.IDENTITY_WRITE_FAILED);
+        }
         var lifecycle = result.lifecycle();
-        requireSingleWrite(mapper.insertTenant(
-                lifecycle.id().value(),
-                lifecycle.code(),
-                lifecycle.displayName(),
-                lifecycle.createdAt()), "租户兼容行写入失败");
-        requireSingleWrite(mapper.insertLifecycle(
-                lifecycle.id().value(),
-                lifecycle.code(),
-                lifecycle.displayName(),
-                lifecycle.initialAdministratorId().value(),
-                lifecycle.status().name(),
-                lifecycle.version(),
-                lifecycle.createdAt()), "租户生命周期写入失败");
+        try {
+            requireWrite(anchors.insert(new TenantAnchorEntity(lifecycle.id().value(), lifecycle.code(),
+                    lifecycle.displayName(), "DISABLED", 0L, lifecycle.createdAt(), lifecycle.createdAt())));
+        } catch (DuplicateKeyException conflict) {
+            throw new ApplicationException(TenantOnboardingErrorCode.TENANT_CONFLICT);
+        }
+        requireWrite(lifecycles.insert(new TenantLifecycleEntity(lifecycle.id().value(), lifecycle.code(),
+                lifecycle.displayName(), lifecycle.initialAdministratorId().value(), lifecycle.status().name(),
+                lifecycle.version(), lifecycle.createdAt())));
         var administrator = result.initialAdministrator();
-        requireSingleWrite(mapper.insertInitialAdministrator(
-                administrator.id().value(),
-                administrator.tenantId().value(),
-                administrator.subjectId().value(),
-                administrator.role().name(),
-                administrator.status().name(),
-                administrator.permissionVersion(),
-                administrator.version(),
-                administrator.createdAt()), "初始管理员成员资格写入失败");
-        var roleBinding = result.initialAdministratorRoleBinding();
-        requireSingleWrite(mapper.insertInitialAdministratorRoleBinding(
-                roleBinding.tenantId().value(),
-                roleBinding.membershipId().value(),
-                roleBinding.role().name(),
-                roleBinding.boundAt()), "初始管理员角色绑定写入失败");
+        var membership = new TenantMembershipEntity();
+        membership.setMembershipId(administrator.id().value());
+        membership.setTenantId(administrator.tenantId().value());
+        membership.setSubjectId(administrator.subjectId().value());
+        membership.setMembershipRole(administrator.role().name());
+        membership.setStatus(administrator.status().name());
+        membership.setPermissionVersion(administrator.permissionVersion());
+        membership.setVersion(administrator.version());
+        membership.setCreatedAt(administrator.createdAt());
+        requireWrite(memberships.insert(membership));
+        var role = result.initialAdministratorRoleBinding();
+        requireWrite(roles.insert(new TenantAdministratorRoleEntity(role.tenantId().value(),
+                role.membershipId().value(), role.role().name(), role.boundAt())));
+        requireWrite(quotas.insert(TenantQuotaEntity.from(result.quotas())));
         var change = result.lifecycleChange();
-        requireSingleWrite(mapper.insertOutbox(
-                identifiers.nextId(),
-                change.tenantId().value(),
-                change.status().name(),
-                change.version(),
-                change.occurredAt()), "租户生命周期发件箱写入失败");
+        requireWrite(outbox.insert(new TenantLifecycleOutboxEntity(identifiers.nextId(), change.tenantId().value(),
+                "TENANT_LIFECYCLE_CHANGED", change.status().name(), change.version(), change.occurredAt())));
     }
 
-    private static void requireSingleWrite(int rows, String message) {
-        if (rows != 1) {
-            throw new IllegalStateException(message);
+    private static void requireWrite(int count) {
+        if (count != 1) {
+            throw new IllegalStateException("开户事实写入失败");
         }
     }
 }

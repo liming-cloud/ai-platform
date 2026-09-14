@@ -241,8 +241,10 @@ public class OrganizationAccessPersistenceAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    TenantLifecycleReadPort tenantLifecycleReadPort(TenantLifecycleReadMapper mapper) {
-        return new PostgresTenantLifecycleReadAdapter(mapper);
+    TenantLifecycleReadPort tenantLifecycleReadPort(TenantLifecycleReadMapper mapper,
+            TenantProvisioningMapper lifecycles,
+            com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.mapper.TenantQuotaMapper quotas) {
+        return new PostgresTenantLifecycleReadAdapter(mapper, lifecycles, quotas);
     }
 
     @Bean
@@ -257,7 +259,13 @@ public class OrganizationAccessPersistenceAutoConfiguration {
     @ConditionalOnMissingBean
     TenantProvisioningStore tenantProvisioningStore(
             TenantProvisioningMapper mapper,
+            SubjectIdentityMapper identities,
+            TenantMembershipMapper memberships,
+            com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.mapper.TenantAnchorMapper anchors,
+            com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.mapper.TenantAdministratorRoleMapper roles,
+            com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.mapper.TenantQuotaMapper quotas,
+            com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.mapper.TenantLifecycleOutboxMapper outbox,
             EntityIdGenerator identifiers) {
-        return new PostgresTenantProvisioningStore(mapper, identifiers);
+        return new PostgresTenantProvisioningStore(identities, anchors, mapper, memberships, roles, quotas, outbox, identifiers);
     }
 }

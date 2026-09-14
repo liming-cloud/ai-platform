@@ -351,7 +351,8 @@ public class OrganizationAccessCoreAutoConfiguration {
     @ConditionalOnMissingBean
     TenantProvisioningService tenantProvisioningService(
             TenantProvisioningStore store,
-            EntityIdGenerator identifiers) {
-        return new TenantProvisioningService(store, identifiers, Clock.systemUTC());
+            EntityIdGenerator identifiers,
+            PasswordHasher passwords) {
+        return new TenantProvisioningService(store, identifiers, passwords, Clock.systemUTC());
     }
 }

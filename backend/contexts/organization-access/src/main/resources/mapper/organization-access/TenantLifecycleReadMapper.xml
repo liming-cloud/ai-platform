@@ -23,12 +23,6 @@
                  lifecycle.version,
                  lifecycle.created_at
         ORDER BY last_changed_at DESC, lifecycle.tenant_id DESC
-        LIMIT #{pageSize}
-        OFFSET #{offset}
     </select>
 
-    <select id="count" resultType="long">
-        SELECT COUNT(*)
-        FROM organization_access.tenant_lifecycle
-    </select>
 </mapper>

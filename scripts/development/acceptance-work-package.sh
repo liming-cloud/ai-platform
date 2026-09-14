@@ -3,11 +3,11 @@ set -euo pipefail
 
 # 切片绿灯不等于整包交付；未知范围必须在启动浏览器前拒绝。
 if [[ "${1:-}" != "WP-0017" ]]; then
-  echo "不支持的工作包，当前只实现 WP-0017 登录切片。" >&2
+  echo "不支持的工作包，当前只实现 WP-0017 登录和原子开户切片。" >&2
   exit 2
 fi
-if [[ "${2:-}" != "login" || "$#" != "2" ]]; then
-  echo "WP-0017 整包尚未实现；必须明确 SLICE=login。" >&2
+if [[ ( "${2:-}" != "login" && "${2:-}" != "onboarding" ) || "$#" != "2" ]]; then
+  echo "WP-0017 整包尚未实现；必须明确 SLICE=login 或 SLICE=onboarding。" >&2
   exit 2
 fi
 if [[ -n "${SETUP:-}" && "${SETUP}" != "tenant" ]]; then
@@ -20,4 +20,4 @@ if [[ -z "${FOUNDATION_ACCEPTANCE_CREDENTIALS_FILE:-}" ]]; then
 fi
 
 readonly SCRIPT_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-exec node "${SCRIPT_DIRECTORY}/acceptance-login.cjs"
+exec node "${SCRIPT_DIRECTORY}/acceptance-${2}.cjs"
