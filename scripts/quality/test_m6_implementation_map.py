@@ -304,6 +304,9 @@ class M6ImplementationMapTest(unittest.TestCase):
         for operation in page["operations"]:
             if operation["classification"] != "production":
                 continue
+            # 仓库入口可已交付；反例必须清除真实进度，再构造待测阶段。
+            operation.pop("verification", None)
+            operation.pop("verifiedCommit", None)
             operation.update(status=status, contract={
                 "adr": "ADR-9999",
                 "target": {"kind": "api", "value": "POST /unit-test-only"},

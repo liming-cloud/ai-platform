@@ -27,54 +27,204 @@ function verifyOnboardingResult(tenant, quotas) {
   }
 }
 
+/** 子步骤名称仅使用固定任务文案；不能附加凭据、字段值或浏览器原始异常。 */
+async function acceptanceStep(label, action) {
+  try { return await action(); }
+  catch (error) {
+    throw new SafeAssertionError(`${label}：${error instanceof SafeAssertionError ? error.message : "定位、交互或等待未完成"}`);
+  }
+}
+/** Fluent 的必填星号属于标签内容；只接受精确业务名称及可选星号，不做子串匹配。 */
+function wizardLabelPattern(label) {
+  return new RegExp(`^${label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*\\*?$`);
+}
 async function fillInformation(page, identity) {
-  await page.getByLabel("组织名称", { exact: true }).fill("WP-0017 原子开户验收租户");
-  await page.getByLabel("租户编码", { exact: true }).fill(identity.tenantCode);
+  await acceptanceStep("填写组织名称", () => page.getByLabel(wizardLabelPattern("组织名称")).fill("WP-0017 原子开户验收租户"));
+  await acceptanceStep("填写租户编码", () => page.getByLabel(wizardLabelPattern("租户编码")).fill(identity.tenantCode));
 }
 async function fillQuotas(page) {
   for (const [name, value] of [["知识库数量", "4"], ["每库文档数量", "1234"], ["每库内容容量", "12.5"], ["单文件大小", "75"], ["粘贴文本大小", "2"]]) {
-    await page.getByLabel(name, { exact: true }).fill(value);
+    await acceptanceStep(`填写${name}`, () => page.getByLabel(wizardLabelPattern(name)).fill(value));
   }
 }
 async function fillAdministrator(page, identity, matching = true) {
-  await page.getByLabel("管理员登录名", { exact: true }).fill(identity.loginName);
-  await page.getByLabel("初始密码", { exact: true }).fill(identity.password);
-  await page.getByLabel("再次输入", { exact: true }).fill(matching ? identity.password : "SyntheticWrong9!");
-  await page.getByRole("checkbox", { name: "确认创建租户及其管理员账号", exact: true }).check();
+  await acceptanceStep("填写管理员登录名", () => page.getByLabel(wizardLabelPattern("管理员登录名")).fill(identity.loginName));
+  await acceptanceStep("填写初始密码", () => page.getByLabel(wizardLabelPattern("初始密码")).fill(identity.password));
+  await acceptanceStep("再次输入密码", () => page.getByLabel(wizardLabelPattern("再次输入")).fill(matching ? identity.password : "SyntheticWrong9!"));
+  await acceptanceStep("勾选开户确认", () => page.getByRole("checkbox", { name: "确认创建租户及其管理员账号", exact: true }).check());
 }
 async function assertNoStoredSecret(page, secret) {
   requireCondition(await page.evaluate(secret => ![location.href, JSON.stringify(history.state),
     JSON.stringify(localStorage), JSON.stringify(sessionStorage)].some(value => value.includes(secret)), secret), "密码进入 URL 或浏览器草稿存储");
 }
-async function assertWizardLayout(page, width, enlarged = false) {
-  if (enlarged) await page.evaluate(() => {
-    const elements = [...document.querySelectorAll("main h1,main h2,main p,main label,main a,main span,main input,main button")];
-    const sizes = elements.map(element => parseFloat(getComputedStyle(element).fontSize));
-    elements.forEach((element, index) => { element.style.fontSize = `${sizes[index] * 2}px`; });
+/** 按 DOM 顺序和既定列数划分逻辑行，不能用错位后的坐标重新分组掩盖缺陷。 */
+function verifyLogicalFieldRows(fields, columns, expectedCount, expectedColumns = columns) {
+  requireCondition(Number.isInteger(columns) && columns > 0 && columns === expectedColumns, "开户表单列数不符合当前宽度");
+  requireCondition(fields.length === expectedCount && expectedCount > 0, "开户字段缺失，不能进行空集合验收");
+  for (const field of fields) {
+    requireCondition(field.control && ["left", "right", "top", "bottom"].every(key => Number.isFinite(field.control[key])), "开户字段控件缺失");
+    requireCondition(!field.control.clipped, "开户控件包装器发生裁切");
+    requireCondition(field.label && !field.label.clipped && field.label.bottom <= field.control.top + 1, "开户标签缺失、裁切或遮挡控件");
+    requireCondition(!field.hint || (!field.hint.clipped && field.hint.top >= field.control.bottom - 1), "开户帮助信息裁切或遮挡控件");
+  }
+  const aligned = numbers => Math.max(...numbers) - Math.min(...numbers) <= 1;
+  for (let index = 0; index < fields.length; index += columns) {
+    const row = fields.slice(index, index + columns);
+    requireCondition(aligned(row.map(field => field.control.top)) && aligned(row.map(field => field.control.bottom))
+      && aligned(row.map(field => field.label.top)), "同行表单控件或标签边界误差超过 1px");
+    const hints = row.flatMap(field => field.hint ? [field.hint.top] : []);
+    requireCondition(hints.length < 2 || aligned(hints), "同行帮助信息未对齐");
+    requireCondition(row.every((field, column) => !column || field.control.left >= row[column - 1].control.right - 1), "同行字段发生重叠");
+    const nextRow = fields.slice(index + columns, index + columns * 2);
+    requireCondition(!nextRow.length || Math.min(...nextRow.map(field => field.label.top)) >= Math.max(...row.map(field => field.hint?.bottom ?? field.control.bottom)) - 1,
+      "开户帮助信息与下一行发生重叠");
+  }
+}
+
+function wizardKeyboardPlan(step) {
+  const inputs = { 1: ["displayName", "tenantCode"],
+    2: ["knowledgeBases", "documentsPerKnowledgeBase", "storageGb", "fileMb", "textMib"],
+    3: ["loginName", "readonly", "password", "passwordConfirmation", "confirmed"] };
+  requireCondition(Object.hasOwn(inputs, step), "未知开户步骤");
+  return [...inputs[step].map(name => `input:${name}`), "button:取消", ...(step > 1 ? ["button:上一步"] : []), step === 3 ? "button:创建租户" : "button:下一步"];
+}
+function verifyKeyboardTraversal(expected, observed) {
+  requireCondition(expected.length > 0 && expected.length === observed.length && expected.every((target, index) => target === observed[index]), "开户键盘遍历遗漏控件或顺序错误");
+}
+async function exerciseWizardKeyboard(page, step, advance = false) {
+  const expected = wizardKeyboardPlan(step);
+  const activeTarget = () => page.evaluate(() => {
+    const element = document.activeElement;
+    if (!element?.closest(".tenant-onboarding form")) return "outside";
+    if (element.tagName === "INPUT") return `input:${element.name || (element.readOnly ? "readonly" : "unknown")}`;
+    if (element.tagName === "BUTTON") return `button:${element.textContent.trim()}`;
+    return "unknown";
   });
-  const result = await page.evaluate(() => {
-    const visible = element => element.getBoundingClientRect().width > 0 && element.getBoundingClientRect().height > 0;
-    const controls = [...document.querySelectorAll('.tenant-onboarding input:not([type="checkbox"]),.tenant-onboarding button')].filter(visible);
-    const rows = new Map();
-    for (const field of document.querySelectorAll(".tenant-onboarding__fields .fui-Field")) {
-      const control = field.querySelector(".fui-Input");
-      if (!control || !visible(control)) continue;
-      const row = Math.round(field.getBoundingClientRect().top);
-      rows.set(row, [...(rows.get(row) || []), control.getBoundingClientRect()]);
+  // 只定位非交互标题作为起点，所有控件都必须通过真实 Tab 到达。
+  await page.locator(".tenant-onboarding__heading h2").focus();
+  const forward = [];
+  for (const target of expected) {
+    await page.keyboard.press("Tab");
+    forward.push(await activeTarget());
+    if (target === "input:confirmed" && forward.at(-1) === target) {
+      const checkbox = page.getByRole("checkbox", { name: "确认创建租户及其管理员账号", exact: true });
+      const checked = await checkbox.isChecked();
+      await page.keyboard.press("Space");
+      requireCondition(await checkbox.isChecked() !== checked, "空格键无法切换开户确认框");
+      await page.keyboard.press("Space");
+      requireCondition(await checkbox.isChecked() === checked, "空格键无法恢复开户确认框");
     }
-    return { overflow: document.documentElement.scrollWidth > innerWidth + 1,
-      minimumHeight: Math.min(...controls.map(element => (element.closest(".fui-Input") || element).getBoundingClientRect().height)),
-      aligned: [...rows.values()].every(items => Math.max(...items.map(rect => rect.top)) - Math.min(...items.map(rect => rect.top)) <= 1
-        && Math.max(...items.map(rect => rect.bottom)) - Math.min(...items.map(rect => rect.bottom)) <= 1),
-      clipped: [...document.querySelectorAll("main button,main h1,main h2")].filter(visible)
-        .some(element => element.scrollHeight > element.clientHeight + 1),
-      moving: matchMedia("(prefers-reduced-motion: reduce)").matches && document.getAnimations()
-        .some(animation => animation.playState === "running" && animation.effect?.getTiming().duration > 1) };
+  }
+  verifyKeyboardTraversal(expected, forward);
+  const reverse = [];
+  for (let index = expected.length - 2; index >= 0; index -= 1) {
+    await page.keyboard.press("Shift+Tab");
+    reverse.push(await activeTarget());
+  }
+  verifyKeyboardTraversal(expected.slice(0, -1).reverse(), reverse);
+  if (advance) {
+    requireCondition(step < 3, "键盘布局验收不得创建租户");
+    for (let index = 1; index < expected.length; index += 1) await page.keyboard.press("Tab");
+    verifyKeyboardTraversal([expected.at(-1)], [await activeTarget()]);
+    await page.keyboard.press("Enter");
+  }
+}
+
+async function withTextScale(page, enlarged, action) {
+  let originalStyles;
+  try {
+    if (enlarged) originalStyles = await page.evaluate(() => {
+      const elements = [...document.querySelectorAll("main :is(h1,h2,h3,h4,p,label,a,span,input,button,strong,small,dt,dd,legend,textarea,select,.fui-Badge)")];
+      // 先读取全部原始字号，再统一放大，避免子元素继承父元素放大后的字号而变成 400%。
+      const originals = elements.map((element, index) => ({ index, style: element.getAttribute("style"),
+        marker: element.getAttribute("data-wp0017-text-scale"), size: parseFloat(getComputedStyle(element).fontSize) }));
+      elements.forEach((element, index) => {
+        element.setAttribute("data-wp0017-text-scale", String(index));
+        element.style.fontSize = `${originals[index].size * 2}px`;
+      });
+      return originals;
+    });
+    requireCondition(!enlarged || originalStyles.length > 0, "未找到待放大的页面文字，不能跳过 200% 检查");
+    return await action();
+  } finally {
+    if (originalStyles) {
+      const restored = await page.evaluate(originals => {
+        let count = 0;
+        for (const original of originals) {
+          const element = document.querySelector(`[data-wp0017-text-scale="${original.index}"]`);
+          if (!element) continue;
+          if (original.style === null) element.removeAttribute("style"); else element.setAttribute("style", original.style);
+          if (original.marker === null) element.removeAttribute("data-wp0017-text-scale"); else element.setAttribute("data-wp0017-text-scale", original.marker);
+          count += 1;
+        }
+        return count;
+      }, originalStyles);
+      requireCondition(restored === originalStyles.length, "200% 文字检查未完整恢复原始样式");
+    }
+  }
+}
+
+async function assertWizardLayout(page, width, step, enlarged = false) {
+  return withTextScale(page, enlarged, async () => {
+    const result = await page.evaluate(() => {
+      const visible = element => element && element.getBoundingClientRect().width > 0 && element.getBoundingClientRect().height > 0;
+      const clipped = element => element.scrollHeight > element.clientHeight + 1 || element.scrollWidth > element.clientWidth + 1;
+      const geometry = element => {
+        if (!visible(element)) return null;
+        const { left, right, top, bottom } = element.getBoundingClientRect();
+        return { left, right, top, bottom, clipped: clipped(element) };
+      };
+      const grid = document.querySelector(".tenant-onboarding__fields");
+      const controls = [...document.querySelectorAll('.tenant-onboarding input:not([type="checkbox"]),.tenant-onboarding button')].filter(visible);
+      return { overflow: document.documentElement.scrollWidth > innerWidth + 1,
+        controlCount: controls.length,
+        minimumHeight: Math.min(...controls.map(element => (element.closest(".fui-Input") || element).getBoundingClientRect().height)),
+        columns: grid ? getComputedStyle(grid).gridTemplateColumns.split(/\s+/).length : 0,
+        fields: [...(grid?.querySelectorAll(".fui-Field") || [])].map(field => ({ control: geometry(field.querySelector(".fui-Input")),
+          label: geometry(field.querySelector("label")), hint: geometry(field.querySelector(".fui-Field__hint")) })),
+        clipped: [...document.querySelectorAll("main button,main h1,main h2")].filter(visible).some(clipped),
+        moving: matchMedia("(prefers-reduced-motion: reduce)").matches && document.getAnimations()
+          .some(animation => animation.playState === "running" && animation.effect?.getTiming().duration > 1) };
+    });
+    requireCondition(!result.overflow && !result.clipped, "开户页面溢出或文字裁切");
+    requireCondition(result.controlCount > 0 && result.minimumHeight >= (width === 390 ? 44 : 36), "开户控件点击区域不足");
+    verifyLogicalFieldRows(result.fields, result.columns, { 1: 2, 2: 5, 3: 4 }[step], width <= 700 ? 1 : step === 2 ? 3 : 2);
+    requireCondition(result.fields.filter(field => field.hint).length === { 1: 2, 2: 5, 3: 1 }[step], "开户帮助信息缺失，不能跳过帮助文字验收");
+    requireCondition(!result.moving, "开户页 reduced-motion 未生效");
   });
-  requireCondition(!result.overflow && !result.clipped, "开户页面溢出或文字裁切");
-  requireCondition(result.minimumHeight >= (width === 390 ? 44 : 36), "开户控件点击区域不足");
-  requireCondition(result.aligned, "同行表单控件上下边界误差超过 1px");
-  requireCondition(!result.moving, "开户页 reduced-motion 未生效");
+}
+
+function verifyOverviewBadge({ cardWidth, badgeWidth, contentWidth, insets, badgeHeight, contentHeight, verticalInsets }) {
+  requireCondition([cardWidth, badgeWidth, contentWidth, badgeHeight, contentHeight].every(value => Number.isFinite(value) && value > 0)
+    && [insets, verticalInsets].every(value => Number.isFinite(value) && value >= 0), "租户状态徽标或内容缺失");
+  requireCondition(badgeWidth <= contentWidth + insets + 2,
+    `租户状态徽标被拉宽：实际 ${Math.round(badgeWidth)}px，内容含内边距 ${Math.round(contentWidth + insets)}px`);
+  requireCondition(badgeWidth < cardWidth / 2, "租户状态徽标占据半张卡片");
+  requireCondition(badgeHeight + 1 >= contentHeight + verticalInsets, "租户状态徽标文字被固定高度裁切");
+}
+
+async function assertOverviewBadgeLayout(page, enlarged = false) {
+  const originalFontSize = await page.locator(".tenant-overview__identity > .fui-Badge").evaluate(badge => parseFloat(getComputedStyle(badge).fontSize));
+  return withTextScale(page, enlarged, async () => {
+    const metrics = await page.evaluate(() => {
+      const card = document.querySelector(".tenant-overview__identity");
+      const badges = card?.querySelectorAll(":scope > .fui-Badge");
+      if (badges?.length !== 1) return { cardWidth: 0, badgeWidth: 0, contentWidth: 0, insets: 0 };
+      const badge = badges[0];
+      const style = getComputedStyle(badge);
+      const range = document.createRange();
+      range.selectNodeContents(badge);
+      const badgeRect = badge.getBoundingClientRect();
+      const contentRect = range.getBoundingClientRect();
+      return { cardWidth: card.getBoundingClientRect().width, badgeWidth: badgeRect.width, badgeHeight: badgeRect.height,
+        contentWidth: contentRect.width, contentHeight: contentRect.height, fontSize: parseFloat(style.fontSize),
+        insets: [style.paddingLeft, style.paddingRight, style.borderLeftWidth, style.borderRightWidth].reduce((sum, value) => sum + parseFloat(value), 0),
+        verticalInsets: [style.paddingTop, style.paddingBottom, style.borderTopWidth, style.borderBottomWidth].reduce((sum, value) => sum + parseFloat(value), 0) };
+    });
+    requireCondition(Math.abs(metrics.fontSize - originalFontSize * (enlarged ? 2 : 1)) < 0.1, "租户状态徽标未实际应用目标文字倍率");
+    verifyOverviewBadge(metrics);
+    return metrics;
+  });
 }
 
 async function run(configuration) {
@@ -116,31 +266,38 @@ async function run(configuration) {
       await assertWorkspace(page, "platform");
       await assertIdentity(page, "platform");
       authenticated = true;
+      await acceptanceStep("从导航进入平台租户", () => page.getByRole("button", { name: "平台租户", exact: true }).click());
+      await acceptanceStep("从租户目录进入建立租户", () => page.getByRole("button", { name: "建立租户", exact: true }).click());
+      await acceptanceStep("确认开户入口落点", () => page.waitForURL(url => url.pathname === "/platform/tenants/new" && url.searchParams.get("step") === "1"));
     });
     for (const width of [390, 1024, 1440]) {
       await scenario(`${width} 三步、回退、刷新、密码清除与取消`, async () => {
         await page.setViewportSize({ width, height: width === 390 ? 844 : 960 });
-        await page.goto(`${configuration.baseUrl}/platform/tenants/new?step=1`, { waitUntil: "networkidle" });
+        await acceptanceStep("进入开户第一页", () => page.goto(`${configuration.baseUrl}/platform/tenants/new?step=1`, { waitUntil: "networkidle" }));
         let creates = 0;
         const countCreate = outgoing => { if (outgoing.method() === "POST" && /\/api\/v1\/platform\/(tenants|accounts)$/.test(outgoing.url())) creates += 1; };
         page.on("request", countCreate);
         try {
           await fillInformation(page, credentials.tenant);
-          await assertWizardLayout(page, width);
-          await page.getByRole("button", { name: "下一步", exact: true }).press("Enter");
+          await acceptanceStep("第一步正常字号布局", () => assertWizardLayout(page, width, 1));
+          await acceptanceStep("第一步 200% 文字布局", () => assertWizardLayout(page, width, 1, true));
+          await acceptanceStep("第一步键盘遍历并进入配额", () => exerciseWizardKeyboard(page, 1, true));
           await fillQuotas(page);
-          await assertWizardLayout(page, width);
-          await page.getByRole("button", { name: "下一步", exact: true }).click();
+          await acceptanceStep("第二步正常字号布局", () => assertWizardLayout(page, width, 2));
+          await acceptanceStep("第二步 200% 文字布局", () => assertWizardLayout(page, width, 2, true));
+          await acceptanceStep("第二步键盘遍历并进入管理员", () => exerciseWizardKeyboard(page, 2, true));
           await fillAdministrator(page, credentials.tenant);
+          await acceptanceStep("第三步正常字号布局", () => assertWizardLayout(page, width, 3));
+          await acceptanceStep("第三步 200% 文字布局", () => assertWizardLayout(page, width, 3, true));
+          await acceptanceStep("第三步键盘与空格确认", () => exerciseWizardKeyboard(page, 3));
           await assertNoStoredSecret(page, credentials.tenant.password);
-          await page.reload({ waitUntil: "networkidle" });
-          requireCondition(await page.getByLabel("初始密码", { exact: true }).inputValue() === "", "刷新后仍保留密码");
-          await page.getByRole("button", { name: "上一步", exact: true }).click();
-          requireCondition(await page.getByLabel("每库内容容量", { exact: true }).inputValue() === "12.5", "刷新后非秘密配额草稿丢失");
-          await page.getByRole("button", { name: "上一步", exact: true }).click();
-          requireCondition(await page.getByLabel("租户编码", { exact: true }).inputValue() === credentials.tenant.tenantCode, "回退后租户信息丢失");
-          await assertWizardLayout(page, width, true);
-          await page.getByRole("button", { name: "取消", exact: true }).click();
+          await acceptanceStep("刷新管理员步骤", () => page.reload({ waitUntil: "networkidle" }));
+          requireCondition(await page.getByLabel(wizardLabelPattern("初始密码")).inputValue() === "", "刷新后仍保留密码");
+          await acceptanceStep("退回配额步骤", () => page.getByRole("button", { name: "上一步", exact: true }).click());
+          requireCondition(await page.getByLabel(wizardLabelPattern("每库内容容量")).inputValue() === "12.5", "刷新后非秘密配额草稿丢失");
+          await acceptanceStep("退回信息步骤", () => page.getByRole("button", { name: "上一步", exact: true }).click());
+          requireCondition(await page.getByLabel(wizardLabelPattern("租户编码")).inputValue() === credentials.tenant.tenantCode, "回退后租户信息丢失");
+          await acceptanceStep("取消开户", () => page.getByRole("button", { name: "取消", exact: true }).click());
           requireCondition(creates === 0, "进入步骤或取消时提前创建了账户或租户");
         } finally { page.off("request", countCreate); }
       });
@@ -148,7 +305,7 @@ async function run(configuration) {
     await page.setViewportSize({ width: 1440, height: 960 });
     await scenario("一次提交原子开户并刷新读取非默认配额", async () => {
       await page.goto(`${configuration.baseUrl}/platform/tenants/new?step=1`, { waitUntil: "networkidle" });
-      requireCondition(await page.getByLabel("组织名称", { exact: true }).inputValue() === "", "取消未清除开户草稿");
+      requireCondition(await page.getByLabel(wizardLabelPattern("组织名称")).inputValue() === "", "取消未清除开户草稿");
       await fillInformation(page, credentials.tenant);
       await page.getByRole("button", { name: "下一步", exact: true }).click();
       await fillQuotas(page);
@@ -188,6 +345,13 @@ async function run(configuration) {
         persist();
       } finally { page.off("request", countCreate); }
     });
+    for (const width of [390, 1024, 1440]) {
+      await scenario(`${width} 租户详情徽标正常与 200% 文字按内容展示`, async () => {
+        await page.setViewportSize({ width, height: width === 390 ? 844 : 960 });
+        await acceptanceStep("详情徽标正常字号", () => assertOverviewBadgeLayout(page));
+        await acceptanceStep("详情徽标 200% 文字", () => assertOverviewBadgeLayout(page, true));
+      });
+    }
     await scenario("重复编码、重复登录名、旧请求和缺少 CSRF 失败关闭", async () => {
       const input = onboardingRequest(credentials.tenant);
       requireCondition((await request(page, "/platform/tenants", "POST", { ...input, administrator: { ...input.administrator, loginName: `unused-${suffix}` } })).status === 409, "重复租户编码未拒绝");
@@ -205,7 +369,7 @@ async function run(configuration) {
       const pending = page.waitForResponse(response => /\/api\/v1\/platform\/tenants$/.test(response.url()) && response.request().method() === "POST");
       await page.getByRole("button", { name: "创建租户", exact: true }).click();
       requireCondition((await pending).status() === 409, "重复编码 UI 提交未返回冲突");
-      const field = page.getByLabel("租户编码", { exact: true });
+      const field = page.getByLabel(wizardLabelPattern("租户编码"));
       await field.waitFor();
       requireCondition(await field.inputValue() === credentials.tenant.tenantCode, "失败丢失非秘密输入");
       requireCondition(await field.evaluate(element => element === document.activeElement), "重复编码错误未定位可修正输入");
@@ -247,7 +411,9 @@ async function run(configuration) {
   }
 }
 
-module.exports = { readOnboardingConfiguration, onboardingRequest, verifyOnboardingResult };
+module.exports = { readOnboardingConfiguration, onboardingRequest, verifyOnboardingResult,
+  verifyLogicalFieldRows, wizardKeyboardPlan, verifyKeyboardTraversal, acceptanceStep, wizardLabelPattern,
+  verifyOverviewBadge, withTextScale, assertOverviewBadgeLayout };
 if (require.main === module) {
   try { run(readOnboardingConfiguration()).catch(error => { process.stderr.write(`${error.message}\n`); process.exitCode = 1; }); }
   catch (error) { process.stderr.write(`${error.message}\n`); process.exitCode = 1; }

@@ -44,7 +44,8 @@
 .tenant-onboarding :focus-visible { outline: 2px solid #b75a3b; outline-offset: 3px; }
 .tenant-onboarding__heading h2:focus { outline: none; }
 .tenant-overview__identity { display: flex; gap: 16px; align-items: center; padding: 20px; border: 1px solid #e8e0d7; border-radius: 12px; background: #fffdf9; overflow-wrap: anywhere; }
-.tenant-overview__identity > div { flex: 1; min-width: 0; }
+.tenant-overview__identity-copy { flex: 1; min-width: 0; }
+.tenant-overview__identity > .fui-Badge { height: auto; min-height: 20px; line-height: 1.4; }
 .tenant-overview__identity p { margin: 0; color: #77716b; }
 .tenant-overview__monogram { display: grid; place-items: center; width: 48px; height: 48px; flex: 0 0 48px; border-radius: 12px; background: #f5eae3; color: #a84c30; font-size: 22px; }
 .tenant-overview__facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border-top: 1px solid #e8e0d7; margin: 0; }
