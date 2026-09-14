@@ -510,6 +510,7 @@
 | 平台账户框架分页与空页修复 | `project/evidence/WP-0017-platform-account-pagination-20260914.md` | `8a52dbc7e470fe6ed45ef967a1dc07fba6755a81` | Mapper 契约与空目录第二页先失败后通过，1 契约及 13 项真实 PostgreSQL 测试通过；保留账户权限和事务边界。 |
 | 千条目录实测与切片质量复验 | `project/evidence/WP-0017-platform-account-pagination-20260914.md` | `5c1085838c6dfff53a2d980c1b096cc94e7b6790` | 最终 15 项测试无跳过；1002 账户串行 30 样本 p95 3.596792 ms，仅开发环境观察。工程助手 run-8f96ddd45aa445a8 五节点与六维 QualitySnapshot 校验通过；WP-0017 仍进行中。 |
 | 独立登录与真实 deploy 验收 | `project/evidence/WP-0017-independent-login-deploy-20260914.md` | `f9ba767bf2b20716b2c04e812b45e616fe037f53` | 两个管理入口、15 个真实浏览器场景通过；187 前端、216 组织权限、18 验收脚本测试通过；前端 OCI revision 与提交一致，原后端及数据保留。Runtime 五节点与六维质量校验通过；WP-0017 整包仍进行中。 |
+| 原子开户实现与构建阻塞 | `project/evidence/WP-0017-atomic-onboarding-build-blocked-20260914.md` | `5844fd3ba2b5909161b704df5fc7e1ff026d4a0a` | 239 组织访问、23 真实 HTTP、209 前端通过；前端镜像已构建。只读 BuildKit 历史诊断很可能触发引擎崩溃，后端构建和 deploy 验收未完成；等待全局 Docker 恢复确认，不推进下一切片。 |
 
 ## 证据规则
 
