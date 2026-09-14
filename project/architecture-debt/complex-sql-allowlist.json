@@ -770,12 +770,6 @@
       "reason": "以单次服务端分页聚合投影账户安全摘要及有界活动固定角色代码。"
     },
     {
-      "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/PlatformAccountMapper.xml",
-      "statementId": "count",
-      "category": "SECURITY_PROJECTION",
-      "reason": "计算与平台账户目录相同范围的总数，供服务端分页元数据使用。"
-    },
-    {
       "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/PlatformRoleBindingMapper.xml",
       "statementId": "lockSubject",
       "category": "ROW_LOCK",

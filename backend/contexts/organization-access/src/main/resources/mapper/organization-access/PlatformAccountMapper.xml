@@ -24,7 +24,5 @@
             ON binding.subject_id = subject.subject_id AND binding.status = 'ACTIVE'
         GROUP BY subject.subject_id, subject.login_name, subject.status, subject.version, subject.created_at
         ORDER BY subject.created_at DESC, subject.subject_id DESC
-        OFFSET #{offset} LIMIT #{limit}
     </select>
-    <select id="count" resultType="long">SELECT COUNT(*) FROM organization_access.subject_identity</select>
 </mapper>

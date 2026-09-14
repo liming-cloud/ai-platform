@@ -2,6 +2,7 @@ package com.aiplatform.foundation.organizationaccess.infrastructure.persistence.
 
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.identity.entity.SubjectIdentityEntity;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.identity.entity.PlatformAccountSummaryRow;
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import org.apache.ibatis.annotations.Param;
 
 /** 平台账户治理的受锁读取和乐观更新映射器。 */
@@ -28,8 +29,6 @@ public interface PlatformAccountMapper {
             @Param("version") long version,
             @Param("expectedVersion") long expectedVersion);
 
-    java.util.List<PlatformAccountSummaryRow> list(
-            @Param("offset") long offset, @Param("limit") long limit);
-
-    long count();
+    /** 分页投影账户安全摘要；总数与 SQL 分页由框架在相同查询范围内生成。 */
+    IPage<PlatformAccountSummaryRow> list(IPage<PlatformAccountSummaryRow> page);
 }

@@ -9,6 +9,7 @@ import com.aiplatform.foundation.organizationaccess.domain.member.model.SubjectI
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.identity.mapper.PlatformAccountMapper;
 import com.aiplatform.foundation.shared.contract.paging.PageQuery;
 import com.aiplatform.foundation.shared.contract.paging.PageResult;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Arrays;
@@ -74,22 +75,13 @@ public final class PostgresPlatformAccountStore implements PlatformAccountStore 
 
     @Override
     public PageResult<PlatformAccountSummary> list(PageQuery query) {
-        var total = mapper.count();
-        var offset = (query.pageNumber() - 1L) * query.pageSize();
-        var items = mapper.list(offset, query.pageSize()).stream()
+        var page = mapper.list(new Page<>(query.pageNumber(), query.pageSize()));
+        var items = page.getRecords().stream()
                 .map(row -> new PlatformAccountSummary(
                         row.getSubjectId(), row.getLoginName(), row.getStatus(), row.getVersion(), row.getCreatedAt(),
                         activeRoleCodes(row.getActiveRoleCodes())))
                 .toList();
-        var pages = total == 0L ? 0L : (total + query.pageSize() - 1L) / query.pageSize();
-        return new PageResult<>(
-                items,
-                query.pageNumber(),
-                query.pageSize(),
-                total,
-                pages,
-                query.pageNumber() > 1L,
-                query.pageNumber() < pages);
+        return PageResult.of(items, query, page.getTotal());
     }
 
     private static Set<String> activeRoleCodes(String codes) {

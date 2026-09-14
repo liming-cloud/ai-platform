@@ -17,6 +17,9 @@ import com.aiplatform.foundation.security.identity.CredentialType;
 import com.aiplatform.foundation.security.identity.PlatformPermissions;
 import com.aiplatform.foundation.security.identity.PlatformRequestContext;
 import com.aiplatform.foundation.shared.contract.paging.PageQuery;
+import com.baomidou.mybatisplus.annotation.DbType;
+import com.baomidou.mybatisplus.extension.plugins.MybatisPlusInterceptor;
+import com.baomidou.mybatisplus.extension.plugins.inner.PaginationInnerInterceptor;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.security.SecureRandom;
 import org.junit.jupiter.api.BeforeEach;
@@ -268,6 +271,64 @@ class PostgresPlatformAccountStoreTest {
                         TARGET_SUBJECT));
     }
 
+    @Test
+    void 空目录应返回零总数而不是虚构第一页数据() {
+        jdbc.update("DELETE FROM organization_access.platform_role_binding");
+        jdbc.update("DELETE FROM organization_access.subject_identity");
+
+        var page = store.list(new PageQuery(1, 20));
+
+        assertTrue(page.items().isEmpty());
+        assertEquals(0L, page.totalElements());
+        assertEquals(0L, page.totalPages());
+        assertFalse(page.hasPrevious());
+        assertFalse(page.hasNext());
+
+        var stalePage = store.list(new PageQuery(2, 20));
+        assertTrue(stalePage.items().isEmpty());
+        assertEquals(0L, stalePage.totalElements());
+        assertFalse(stalePage.hasPrevious());
+        assertFalse(stalePage.hasNext());
+    }
+
+    @Test
+    void 相同创建时间的跨页结果应按主体编号稳定排列() {
+        jdbc.update("UPDATE organization_access.subject_identity SET created_at = '2026-09-14T00:00:00Z'");
+
+        var first = store.list(new PageQuery(1, 1));
+        var second = store.list(new PageQuery(2, 1));
+        var beyond = store.list(new PageQuery(3, 1));
+
+        assertEquals(TARGET_SUBJECT, first.items().getFirst().subjectId());
+        assertEquals(ACCOUNT_ADMINISTRATOR, second.items().getFirst().subjectId());
+        assertEquals(2L, second.totalElements());
+        assertEquals(2L, second.totalPages());
+        assertTrue(second.hasPrevious());
+        assertFalse(second.hasNext());
+        assertTrue(beyond.items().isEmpty());
+        assertEquals(3, beyond.pageNumber());
+        assertEquals(2L, beyond.totalElements());
+        assertFalse(beyond.hasNext());
+    }
+
+    @Test
+    void 历史角色绑定不能重复计算账户总数或泄漏密码摘要() {
+        jdbc.update("INSERT INTO organization_access.platform_role_binding "
+                        + "(binding_id, subject_id, role_code, status, version, revoked_at) "
+                        + "VALUES (?, ?, 'PLATFORM_ADMINISTRATOR', 'REVOKED', 1, CURRENT_TIMESTAMP)",
+                TARGET_SUBJECT + 100L, ACCOUNT_ADMINISTRATOR);
+
+        var page = store.list(new PageQuery(1, 20));
+        var account = page.items().stream()
+                .filter(item -> item.subjectId() == ACCOUNT_ADMINISTRATOR).findFirst().orElseThrow();
+
+        assertEquals(2L, page.totalElements());
+        assertEquals(2, page.items().size());
+        assertEquals(java.util.Set.of("PLATFORM_ADMINISTRATOR"),
+                account.activeRoleCodes());
+        assertFalse(page.toString().contains("test-password-hash"));
+    }
+
     private static PlatformRequestContext accountAdministrator() {
         return new PlatformRequestContext(
                 new com.aiplatform.foundation.security.identity.SubjectId(ACCOUNT_ADMINISTRATOR),
@@ -294,6 +355,13 @@ class PostgresPlatformAccountStoreTest {
     @MapperScan(basePackageClasses = PlatformAccountMapper.class)
     @Import(PostgresPlatformAccountStore.class)
     static class TestApplication {
+
+        @Bean
+        MybatisPlusInterceptor paginationInterceptor() {
+            var interceptor = new MybatisPlusInterceptor();
+            interceptor.addInnerInterceptor(new PaginationInnerInterceptor(DbType.POSTGRE_SQL));
+            return interceptor;
+        }
 
         @Bean
         Pbkdf2PasswordAdapter pbkdf2PasswordAdapter() {
