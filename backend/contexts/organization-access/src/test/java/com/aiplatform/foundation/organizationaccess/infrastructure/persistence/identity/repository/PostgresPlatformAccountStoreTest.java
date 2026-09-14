@@ -329,6 +329,31 @@ class PostgresPlatformAccountStoreTest {
         assertFalse(page.toString().contains("test-password-hash"));
     }
 
+    @Test
+    void 千条账户目录应有界分页并记录当前环境查询耗时() {
+        jdbc.update("INSERT INTO organization_access.subject_identity "
+                        + "(subject_id, login_name, password_hash, status, version) "
+                        + "SELECT ? + n, 'scale-account-' || n, 'test-password-hash', 'ACTIVE', 0 "
+                        + "FROM generate_series(1, 1000) n",
+                TARGET_SUBJECT + 1000L);
+        for (var index = 0; index < 10; index++) {
+            store.list(new PageQuery(1, 20));
+        }
+        var elapsedNanos = new long[30];
+        for (var index = 0; index < elapsedNanos.length; index++) {
+            var started = System.nanoTime();
+            var page = store.list(new PageQuery(index + 1, 20));
+            elapsedNanos[index] = System.nanoTime() - started;
+            assertEquals(1002L, page.totalElements());
+            assertEquals(20, page.items().size());
+            assertEquals(51L, page.totalPages());
+        }
+        java.util.Arrays.sort(elapsedNanos);
+        // 耗时仅作为当前容器环境的实测，不把不稳定的墙钟阈值作为单元测试断言。
+        System.out.println("平台账户分页实测：1002 账户，每页 20，预热 10 次，样本 30，p95_ms="
+                + elapsedNanos[28] / 1_000_000.0);
+    }
+
     private static PlatformRequestContext accountAdministrator() {
         return new PlatformRequestContext(
                 new com.aiplatform.foundation.security.identity.SubjectId(ACCOUNT_ADMINISTRATOR),
