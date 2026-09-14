@@ -86,10 +86,11 @@ confirmedDecisions:
   - ADR-0076
   - ADR-0077
   - ADR-0078
+  - ADR-0079
 openDecisions:
-  - 后续认证实现包：登录安全策略的生产上下限与已登录会话生效时机
-  - WP-0017：冻结多格式知识接入、配额预留、解析重试与重建的专属契约后实施
+  - WP-0017：按已确认身份边界冻结原子开户与独立租户设置的具体生产合同后实施
 latestEvidence:
+  - project/evidence/WP-0017-sequential-delivery-baseline-20260914.md
   - project/evidence/WP-0016-human-acceptance-20260913.md
   - project/evidence/WP-0016-visual-polish-20260913.md
   - project/evidence/WP-0016-stage-three-20260908.md
@@ -97,7 +98,6 @@ latestEvidence:
   - project/evidence/WP-0016-usability-sample-20260908.md
   - project/evidence/WP-0016-member-provider-closure-20260907.md
   - project/evidence/WP-0016-platform-usability-20260907.md
-  - project/evidence/WP-0016-legacy-login-repair-20260907.md
-nextReviewAt: 2026-09-13
-updatedAt: 2026-09-13T14:58:08Z
+nextReviewAt: 2026-09-14
+updatedAt: 2026-09-14T00:19:53Z
 updatedBy: codex

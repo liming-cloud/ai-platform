@@ -1,5 +1,7 @@
 # 可信 RAG 基座 M3 至 M8 产品覆盖校准
 
+历史设计说明：本文件记录 2026-07-28 的覆盖判断，不再代表当前 M2/M3 前沿或不可更改的 UI 蓝图。当前里程碑/前沿以 project/STATE.yaml 为准；M6 实施顺序、66 个生产入口、三项暂缓和实际会员验收以 ADR-0079、project/ROADMAP.md 及 project/m6-implementation-map.json 为准。以下历史“当前”与设备凭据范围不覆盖新决定。
+
 ## 目的与边界
 
 本计划以 `docs/product/foundation-product-design.md` 和

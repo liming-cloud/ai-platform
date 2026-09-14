@@ -4,7 +4,7 @@ project-status:
 	python3 scripts/project_governance.py status
 
 project-verify:
-	python3 -m unittest scripts.quality.test_project_governance
+	python3 -m unittest scripts.quality.test_project_governance scripts.quality.test_m6_implementation_map
 	python3 scripts/project_governance.py verify
 
 decisions-sync:

@@ -82,6 +82,7 @@
 | ADR-0076 | 已接受 | 租户配额与登录安全配置原型 | `docs/adr/ADR-0076-configurable-tenant-quota-prototype.md` |
 | ADR-0077 | 已接受 | OpenDesign 原型事实源与截图存储边界 | `docs/adr/ADR-0077-opendesign-prototype-source-boundary.md` |
 | ADR-0078 | 已接受 | 平台账户与租户开通职责拆分原型 | `docs/adr/ADR-0078-account-entry-and-tenant-setup-prototype.md` |
+| ADR-0079 | 已接受 | M6 原型承接、顺排实施与真实会员验收 | `docs/adr/ADR-0079-m6-sequential-delivery-and-prototype-acceptance.md` |
 
 ## 已确认人工决策
 
