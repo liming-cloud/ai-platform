@@ -61,6 +61,10 @@ deploy-up:
 deploy-smoke:
 	bash scripts/development/deploy-smoke.sh
 
+.PHONY: acceptance-work-package
+acceptance-work-package:
+	bash scripts/development/acceptance-work-package.sh "$(WP)" "$(SLICE)"
+
 acceptance-knowledge-space:
 	bash scripts/development/acceptance-knowledge-space.sh
 

@@ -1522,124 +1522,112 @@
   font-weight: 600;
 }
 
+/* WP-0016 已验收登录令牌只作用于登录面，未迁移业务页面不随本切片变色。 */
 .governance-login {
+  --foundation-canvas: #f5f4ed;
+  --foundation-surface: #faf9f5;
+  --foundation-border: #e8e6dc;
+  --foundation-text: #141413;
+  --foundation-muted-text: #5e5d59;
+  --foundation-accent: color-mix(in oklab, #c96442, #141413 24%);
+  --colorBrandBackground: var(--foundation-accent);
+  --colorBrandBackgroundHover: color-mix(in oklab, #c96442, #141413 36%);
+  --colorBrandBackgroundPressed: color-mix(in oklab, #c96442, #141413 42%);
+  --colorCompoundBrandStroke: var(--foundation-accent);
+  --colorNeutralForeground1: var(--foundation-text);
+  --colorNeutralForeground2: var(--foundation-muted-text);
+  --colorNeutralForeground3: var(--foundation-muted-text);
+  --colorNeutralBackground1: var(--foundation-surface);
   color: var(--foundation-text);
+  font-family: "PingFang SC", "Microsoft YaHei", "Segoe UI", system-ui, sans-serif;
   min-height: 100dvh;
-  background: var(--foundation-canvas);
+  background: var(--foundation-surface);
 }
 
-.governance-login__panel {
+.governance-login__layout {
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
-  gap: 2rem;
-  width: min(100%, 80rem);
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
   min-height: 100dvh;
-  margin: 0 auto;
-  padding: 1.5rem clamp(1.5rem, 4vw, 4rem) 3rem;
-  box-sizing: border-box;
+}
+
+.governance-login__brief {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  gap: 2rem;
+  min-width: 0;
+  padding: clamp(2rem, 7vw, 6rem);
+  background: var(--foundation-canvas);
 }
 
 .governance-login__brand {
   display: flex;
   align-items: center;
   gap: 0.625rem;
-  justify-self: start;
 }
 
-.governance-login__brand > span {
+.governance-login__brand > span:first-child {
   display: grid;
   place-items: center;
   width: 2rem;
   height: 2rem;
-  color: #fff;
-  font-size: 0.75rem;
+  color: var(--foundation-surface);
+  font-size: 0.875rem;
   font-weight: 700;
   border-radius: 0.5rem;
-  background: #182421;
+  background: var(--foundation-text);
 }
 
-.governance-login__layout {
+.governance-login__brand > span:last-child {
   display: grid;
-  grid-template-columns: minmax(0, 1.15fr) minmax(22rem, 0.85fr);
-  gap: clamp(3rem, 8vw, 7.5rem);
-  align-items: center;
+}
+
+.governance-login__brand small {
+  color: var(--foundation-muted-text);
+  font-size: 0.875rem;
+}
+
+.governance-login__introduction {
+  display: grid;
   align-self: center;
-  width: 100%;
-}
-
-.governance-login__brief {
-  display: grid;
-  gap: 1.25rem;
-  max-width: 39rem;
+  gap: 1rem;
+  max-width: 36rem;
 }
 
 .governance-login__context {
-  color: var(--foundation-accent);
-  font-size: 0.6875rem;
-  font-weight: 750;
-  letter-spacing: 0.1em;
+  color: var(--foundation-muted-text);
+  font-size: 0.875rem;
+  line-height: 1.6;
 }
 
 .governance-login__statement {
-  max-width: 9ch;
   margin: 0;
   color: var(--foundation-text);
-  font-size: clamp(2.5rem, 4vw, 3.25rem);
+  font-family: Georgia, "Songti SC", "Noto Serif CJK SC", SimSun, serif;
+  font-size: clamp(1.75rem, 2.4vw, 2.5rem);
   font-weight: 650;
-  letter-spacing: -0.055em;
-  line-height: 1.04;
+  line-height: 1.3;
 }
 
 .governance-login__description {
-  max-width: 34rem;
   margin: 0;
   color: var(--foundation-muted-text);
   font-size: 1rem;
-  line-height: 1.7;
+  line-height: 1.6;
 }
 
-.governance-login__principles {
+.governance-login__task {
   display: grid;
-  margin: 1.25rem 0 0;
-  padding: 0;
-  border-top: 1px solid var(--foundation-border);
-  list-style: none;
-}
-
-.governance-login__principles li {
-  display: grid;
-  grid-template-columns: 1.5rem minmax(0, 1fr);
-  gap: 0.875rem;
-  align-items: start;
-  padding: 1rem 0;
-  border-bottom: 1px solid var(--foundation-border);
-}
-
-.governance-login__principles svg {
-  margin-top: 0.125rem;
-  color: var(--foundation-accent);
-}
-
-.governance-login__principles li > span {
-  display: grid;
-  gap: 0.25rem;
-}
-
-.governance-login__principles small {
-  color: var(--foundation-muted-text);
-  font-size: 0.8125rem;
-  line-height: 1.55;
+  align-content: center;
+  min-width: 0;
+  padding: clamp(1.5rem, 6vw, 5rem);
 }
 
 .governance-login__card {
   display: grid;
   gap: 1.5rem;
-  width: 100%;
-  padding: 2.25rem;
-  border: 1px solid var(--foundation-border);
-  border-radius: var(--foundation-panel-radius);
-  background: var(--foundation-surface);
-  box-shadow: var(--foundation-elevation);
+  width: min(100%, 34rem);
+  min-width: 0;
+  margin-inline: auto;
 }
 
 .governance-login__card > * {
@@ -1649,7 +1637,6 @@
 }
 
 .governance-login__card--state .state-panel {
-  min-height: 23rem;
   padding: 0;
   border: 0;
   background: transparent;
@@ -1657,42 +1644,27 @@
 
 .governance-login__heading {
   display: grid;
-  gap: 0.625rem;
+  gap: 0.5rem;
 }
 
 .governance-login__heading h1 {
   margin: 0;
-  color: var(--foundation-text);
-  font-size: 1.75rem;
+  font-family: Georgia, "Songti SC", "Noto Serif CJK SC", SimSun, serif;
+  font-size: 1.5rem;
   font-weight: 650;
-  letter-spacing: -0.035em;
+  line-height: 1.4;
 }
 
-.governance-login__heading p,
-.governance-login__platform-note {
+.governance-login__heading p {
   margin: 0;
-  color: var(--colorNeutralForeground2);
-  line-height: 1.55;
-}
-
-.governance-login__workspace-tabs {
-  display: flex;
-  width: 100%;
-  padding: 0.25rem;
-  box-sizing: border-box;
-  border: 1px solid var(--foundation-border);
-  border-radius: 0.625rem;
-  background: var(--foundation-subtle-surface);
-}
-
-.governance-login__workspace-tabs [role="tab"] {
-  flex: 1;
-  justify-content: center;
+  color: var(--foundation-muted-text);
+  font-size: 1rem;
+  line-height: 1.6;
 }
 
 .governance-login__form {
   display: grid;
-  gap: 1.125rem;
+  gap: 1rem;
   min-width: 0;
 }
 
@@ -1700,98 +1672,88 @@
   width: 100%;
   min-width: 0;
   max-width: 100%;
+  min-height: 2.75rem;
   box-sizing: border-box;
+  border-radius: 0.5rem;
 }
 
-.governance-login__platform-note {
-  padding: 0.75rem 0.875rem;
-  border: 1px solid var(--foundation-border);
+.governance-login__input input {
+  font-size: 1rem;
+  min-width: 0;
+}
+
+.governance-login .fui-Button {
+  min-height: 2.75rem;
+  font-size: 0.875rem;
+  line-height: 1.6;
   border-radius: 0.5rem;
-  background: var(--foundation-sidebar);
 }
 
 .governance-login__submit {
   justify-content: center;
   width: 100%;
+}
+
+.governance-login__entries {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--foundation-border);
+}
+
+.governance-login__entries a,
+.governance-login__link {
+  display: inline-flex;
+  align-items: center;
   min-height: 2.75rem;
-  color: #fff;
-  background: var(--foundation-accent);
+  color: var(--foundation-accent);
+  font-size: 0.875rem;
+  text-underline-offset: 4px;
+}
+
+.governance-login a:focus-visible {
+  outline: 2px solid var(--foundation-accent);
+  outline-offset: 4px;
+  border-radius: 2px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .governance-login__card {
+    animation: login-enter 200ms cubic-bezier(0.2, 0, 0, 1);
+  }
+}
+
+@keyframes login-enter {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 @media (max-width: 52rem) {
-  .governance-login__panel {
-    gap: 2.5rem;
-  }
-
   .governance-login__layout {
     grid-template-columns: minmax(0, 1fr);
-    gap: 2.5rem;
   }
 
   .governance-login__brief {
-    max-width: none;
+    padding: 1.5rem;
+    gap: 1.5rem;
   }
 
-  .governance-login__statement {
-    max-width: none;
-    font-size: clamp(2.25rem, 7vw, 3rem);
-  }
-
-  .governance-login__principles {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-
-  .governance-login__principles li {
-    grid-template-columns: 1.5rem minmax(0, 1fr);
-    padding-right: 1rem;
-    border-right: 1px solid var(--foundation-border);
-  }
-
-  .governance-login__principles li:last-child {
-    border-right: 0;
+  .governance-login__task {
+    padding: 1.5rem;
+    align-content: start;
   }
 }
 
 @media (max-width: 44rem) {
-  .governance-login__panel {
-    gap: 1.75rem;
-    padding: 1.25rem 1rem 2rem;
+  .governance-login__introduction {
+    display: none;
   }
 
   .governance-login__layout {
-    gap: 1.5rem;
-  }
-
-  .governance-login__brief {
-    gap: 0.75rem;
-  }
-
-  .governance-login__context,
-  .governance-login__description {
-    display: none;
-  }
-
-  .governance-login__statement {
-    max-width: 12ch;
-    font-size: 2rem;
-    line-height: 1.08;
-  }
-
-  .governance-login__principles {
-    display: none;
-  }
-
-  .governance-login__card {
-    padding: 1.5rem 1.25rem;
-    border-radius: var(--foundation-panel-radius);
-    box-shadow: none;
-  }
-
-  .governance-login__card--state .state-panel {
-    min-height: 18rem;
+    grid-template-rows: auto 1fr;
   }
 }
-
 .governance-workspace {
   display: grid;
   gap: 2rem;

@@ -5,14 +5,7 @@ import {
   MessageBar,
   MessageBarBody,
   MessageBarTitle,
-  Tab,
-  TabList,
 } from "@fluentui/react-components";
-import {
-  DataTrending20Regular,
-  Database20Regular,
-  ShieldTask20Regular,
-} from "@fluentui/react-icons";
 import {
   BrowserSessionExpirationMonitor,
   BrowserSessionInvalidationChannel,
@@ -30,7 +23,10 @@ import {
 import type { ControlPlaneClient } from "../api/control-plane-client";
 import {
   buildBrowserLoginCredentials,
+  canEnterLoginWorkspace,
+  isConsoleLoginPath,
   isLoginReady,
+  loginWorkspaceFromPath,
   type LoginWorkspace,
 } from "./login-workspace-choice";
 
@@ -60,10 +56,16 @@ export function BrowserSessionGate({
     [],
   );
   const receivingInvalidation = useRef(false);
+  // 失效或卸载后，旧的异步认证结果不得恢复界面或触发回跳。
+  const requestEpoch = useRef(0);
   const [capability, setCapability] = useState<BrowserSessionCapability>();
   const [state, setState] = useState<"restoring" | "anonymous" | "authenticating" | "failed">("restoring");
-  const [workspace, setWorkspace] = useState<LoginWorkspace>("tenant");
-  const [tenantCode, setTenantCode] = useState("");
+  const workspace = loginWorkspaceFromPath(window.location.pathname);
+  const explicitLoginEntry = isConsoleLoginPath(window.location.pathname);
+  const existingQueryEntry = window.location.pathname === "/ask"
+    || new URLSearchParams(window.location.search).get("next") === "/ask";
+  const [tenantCode, setTenantCode] = useState(() => workspace === "tenant"
+    ? new URLSearchParams(window.location.search).get("tenantCode") ?? "" : "");
   const [loginName, setLoginName] = useState("");
   const [password, setPassword] = useState("");
 
@@ -71,6 +73,7 @@ export function BrowserSessionGate({
     let current = true;
     const unsubscribe = client.subscribeSessionChange((active) => {
       if (current && !active) {
+        requestEpoch.current += 1;
         if (!receivingInvalidation.current) {
           invalidationChannel.publishInvalidation();
         }
@@ -83,9 +86,10 @@ export function BrowserSessionGate({
       client.discardSession();
       receivingInvalidation.current = false;
     });
+    const restoreEpoch = requestEpoch.current;
     void client.restoreSession().then(
       (restored) => {
-        if (!current) {
+        if (!current || restoreEpoch !== requestEpoch.current) {
           return;
         }
         if (restored === null) {
@@ -97,7 +101,7 @@ export function BrowserSessionGate({
         setState("restoring");
       },
       () => {
-        if (current) {
+        if (current && restoreEpoch === requestEpoch.current) {
           setCapability(undefined);
           setState("failed");
         }
@@ -105,6 +109,7 @@ export function BrowserSessionGate({
     );
     return () => {
       current = false;
+      requestEpoch.current += 1;
       unsubscribe();
       unsubscribeInvalidation();
       invalidationChannel.close();
@@ -117,14 +122,15 @@ export function BrowserSessionGate({
     }
     let current = true;
     expirationMonitor.schedule(capability.maximumSessionAgeSeconds, () => {
+      const restoreEpoch = requestEpoch.current;
       void client.restoreSession().then(
         (restored) => {
-          if (current && restored !== null && client.hasSession()) {
+          if (current && restoreEpoch === requestEpoch.current && restored !== null && client.hasSession()) {
             setCapability(restored);
           }
         },
         () => {
-          if (current) {
+          if (current && restoreEpoch === requestEpoch.current) {
             setCapability(undefined);
             setState("failed");
           }
@@ -140,39 +146,59 @@ export function BrowserSessionGate({
   async function login(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setState("authenticating");
+    const authentication = client.login(buildBrowserLoginCredentials({ workspace, tenantCode, loginName, password }));
+    const loginEpoch = ++requestEpoch.current;
     try {
-      const restored = await client.login(buildBrowserLoginCredentials({
-        workspace,
-        tenantCode,
-        loginName,
-        password,
-      }));
+      const restored = await authentication;
+      if (loginEpoch !== requestEpoch.current || !client.hasSession()) return;
       setPassword("");
+      // 错误角色的新会话立即退出；入口不能把普通会员提升为租户管理员。
+      if (explicitLoginEntry && !canEnterLoginWorkspace(workspace, restored)) {
+        await client.logout();
+        setState("failed");
+        return;
+      }
       setCapability(restored);
       setState("restoring");
       onAuthenticated?.(restored);
     } catch {
+      if (loginEpoch !== requestEpoch.current) return;
       setPassword("");
       setCapability(undefined);
       setState("failed");
     }
   }
 
-  async function logout() {
+  async function logout(stayAtEntry = false) {
+    const entry = capability?.displayRoles.includes("PLATFORM_ADMINISTRATOR") ? "/login"
+      : capability?.displayRoles.includes("TENANT_USER") ? "/ask" : "/tenant/login";
     try {
       await client.logout();
     } catch {
       // 客户端已在 finally 中失活；根入口不保留旧能力或受保护内容。
+    } finally {
+      setPassword("");
+      if (!stayAtEntry) window.location.replace(entry);
     }
   }
 
   if (capability !== undefined && client.hasSession()) {
+    if (explicitLoginEntry && !canEnterLoginWorkspace(workspace, capability)) {
+      return <LoginFrame workspace={workspace}>
+        <header className="governance-login__heading">
+          <h1>当前登录身份与入口不匹配</h1>
+          <p>可返回当前工作区，或退出后使用此入口对应的管理员账户登录。</p>
+        </header>
+        <a className="governance-login__link" href="/">返回当前工作区</a>
+        <Button appearance="secondary" onClick={() => void logout(true)}>退出并切换账户</Button>
+      </LoginFrame>;
+    }
     return children({ capability, logout });
   }
 
   if (state === "restoring") {
     return (
-      <LoginFrame stateful>
+      <LoginFrame workspace={workspace} stateful>
         <StatePanel
           kind="loading"
           title="正在恢复登录状态"
@@ -183,25 +209,18 @@ export function BrowserSessionGate({
   }
 
   return (
-    <LoginFrame>
+    <LoginFrame workspace={workspace}>
       <header className="governance-login__heading">
-        <h1>登录企业控制台</h1>
-        <p>选择工作区并使用已分配的企业账户登录。</p>
+        <span className="governance-login__context">身份验证</span>
+        <h1>{existingQueryEntry && !explicitLoginEntry ? "知识问答登录"
+          : workspace === "platform" ? "平台管理登录" : "租户管理员登录"}</h1>
+        <p>使用已授权账户继续。</p>
       </header>
-      <TabList
-        className="governance-login__workspace-tabs"
-        selectedValue={workspace}
-        aria-label="登录目标"
-        onTabSelect={(_, data) => setWorkspace(data.value as LoginWorkspace)}
-      >
-        <Tab value="tenant">租户工作区</Tab>
-        <Tab value="platform">平台管理</Tab>
-      </TabList>
       {state === "failed" ? (
         <MessageBar intent="error">
           <MessageBarBody>
             <MessageBarTitle>登录未成功</MessageBarTitle>
-            请检查登录信息后重试。系统不会显示凭据或会话细节。
+            登录信息不正确，或当前账户不能进入此工作区。请核对后重试。
           </MessageBarBody>
         </MessageBar>
       ) : null}
@@ -210,23 +229,18 @@ export function BrowserSessionGate({
           <Field
             label="租户编码"
             required
-            hint="仅用于建立本次租户会话。"
           >
             <Input
               className="governance-login__input"
               aria-label="租户编码"
               value={tenantCode}
-              placeholder="例如：demo-store"
+              placeholder="请输入租户编码"
               autoComplete="organization"
               disabled={state === "authenticating"}
               onChange={(_, data) => setTenantCode(data.value)}
             />
           </Field>
-        ) : (
-          <p className="governance-login__platform-note">
-            平台权限会根据您的账户授权自动建立，不需要填写租户编码。
-          </p>
-        )}
+        ) : null}
         <Field label="登录名" required>
           <Input
             className="governance-login__input"
@@ -261,55 +275,45 @@ export function BrowserSessionGate({
             password,
           })}
         >
-          {state === "authenticating"
-            ? "正在验证身份"
-            : workspace === "platform"
-              ? "进入平台管理"
-              : "进入租户工作区"}
+          {state === "authenticating" ? "正在登录" : "登录"}
         </Button>
       </form>
+      <nav className="governance-login__entries" aria-label="其他登录入口">
+        {workspace === "platform"
+          ? <a href="/tenant/login" onClick={() => setPassword("")}>租户管理员登录</a>
+          : <a href="/login" onClick={() => setPassword("")}>平台管理登录</a>}
+      </nav>
     </LoginFrame>
   );
 }
 
-function LoginFrame({ children, stateful = false }: {
+function LoginFrame({ children, workspace, stateful = false }: {
   children: ReactNode;
+  workspace: LoginWorkspace;
   stateful?: boolean;
 }) {
   return (
-    <section className="governance-login" aria-live="polite">
-      <div className="governance-login__panel">
-        <div className="governance-login__brand" aria-label="可信知识平台">
-          <span aria-hidden="true">知</span>
-          <strong>可信知识平台</strong>
-        </div>
-        <div className="governance-login__layout">
-          <aside className="governance-login__brief" aria-label="产品能力">
-            <span className="governance-login__context">企业知识基础设施</span>
-            <p className="governance-login__statement">让企业答案有据可查。</p>
-            <p className="governance-login__description">
-              把授权数据、模型和助手放进同一条可审计链路，面向真实业务稳定交付。
-            </p>
-            <ul className="governance-login__principles">
-              <li>
-                <ShieldTask20Regular aria-hidden="true" />
-                <span><strong>边界先于答案</strong><small>身份、租户和资源权限在检索前生效。</small></span>
-              </li>
-              <li>
-                <Database20Regular aria-hidden="true" />
-                <span><strong>证据随答案交付</strong><small>引用、拒答和反馈保留在同一条任务链路。</small></span>
-              </li>
-              <li>
-                <DataTrending20Regular aria-hidden="true" />
-                <span><strong>运营状态可恢复</strong><small>连接、数据、模型和问答风险都有明确下一步。</small></span>
-              </li>
-            </ul>
-          </aside>
+    <main className="governance-login" aria-live="polite">
+      <div className="governance-login__layout">
+        <aside className="governance-login__brief" aria-label="工作区说明">
+          <div className="governance-login__brand" aria-label="可信 RAG">
+            <span aria-hidden="true">R</span>
+            <span><strong>可信 RAG</strong><small>企业控制台</small></span>
+          </div>
+          <div className="governance-login__introduction">
+            <span className="governance-login__context">{workspace === "platform" ? "平台管理" : "组织工作区"}</span>
+            <h2 className="governance-login__statement">{workspace === "platform" ? "管理租户与模型供应" : "管理组织知识与助手"}</h2>
+            <p className="governance-login__description">{workspace === "platform"
+              ? "使用平台管理员账户，管理租户开通、资源与模型供应。"
+              : "使用当前组织的管理员账户，继续知识、助手与成员任务。"}</p>
+          </div>
+        </aside>
+        <section className="governance-login__task" aria-label="登录">
           <div className={stateful ? "governance-login__card governance-login__card--state" : "governance-login__card"}>
             {children}
           </div>
-        </div>
+        </section>
       </div>
-    </section>
+    </main>
   );
 }

@@ -6,6 +6,14 @@ const gatePath = new URL("./BrowserSessionGate.tsx", import.meta.url).pathname;
 const stylesPath = new URL("../styles.css", import.meta.url).pathname;
 
 describe("登录入口视觉结构", () => {
+  it("独立入口使用可发现链接，不继续在同页切换身份标签", () => {
+    const source = readFileSync(gatePath, "utf8");
+    expect(source).not.toContain("<TabList");
+    expect(source).toContain('href="/login"');
+    expect(source).toContain('href="/tenant/login"');
+    expect(source).toContain("当前登录身份与入口不匹配");
+    expect(source).toContain("canEnterLoginWorkspace");
+  });
   it("恢复会话和匿名登录复用同一页面框架", () => {
     const source = readFileSync(gatePath, "utf8");
 
@@ -21,7 +29,7 @@ describe("登录入口视觉结构", () => {
     const styles = readFileSync(stylesPath, "utf8");
 
     expect(source).toContain('className="governance-login__brief"');
-    expect(source).toContain('className="governance-login__principles"');
+    expect(source).toContain('className="governance-login__introduction"');
     expect(styles).toMatch(
       /\.governance-login__layout\s*\{[^}]*grid-template-columns:\s*minmax\([^;]+\)\s+minmax\([^;]+\);/s,
     );
@@ -29,7 +37,7 @@ describe("登录入口视觉结构", () => {
       /@media \(max-width:\s*52rem\)[\s\S]*?\.governance-login__layout\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\);/s,
     );
     expect(styles).toMatch(
-      /@media \(max-width:\s*44rem\)[\s\S]*?\.governance-login__principles\s*\{[^}]*display:\s*none;/s,
+      /@media \(max-width:\s*44rem\)[\s\S]*?\.governance-login__introduction\s*\{[^}]*display:\s*none;/s,
     );
   });
 

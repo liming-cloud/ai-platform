@@ -4,6 +4,7 @@ import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react
 import { ControlPlaneClient } from "./api/control-plane-client";
 import { KnowledgePublicationFlow } from "./features/knowledge-publication/KnowledgePublicationFlow";
 import { BrowserSessionGate } from "./session/BrowserSessionGate";
+import { isConsoleLoginPath } from "./session/login-workspace-choice";
 import { defaultNavigationTarget, visibleNavigation } from "./session/navigation-capability";
 import { resolvePostAuthenticationDestination } from "./session/post-authentication-navigation";
 import {
@@ -170,7 +171,7 @@ function AuthenticatedConsoleApp({
   const [sessionRevision, setSessionRevision] = useState(0);
   const [location, setLocation] = useState(readBrowserLocation);
   const parsedRoute = parseConsoleRoute(location.pathname, location.search);
-  const requestedRoute = parsedRoute ?? (location.pathname === "/" && defaultNavigationId !== undefined
+  const requestedRoute = parsedRoute ?? ((location.pathname === "/" || isConsoleLoginPath(location.pathname)) && defaultNavigationId !== undefined
     ? defaultConsoleRoute(defaultNavigationId)
     : undefined);
   const resolvedRoute = resolveAuthorizedConsoleRoute(
@@ -192,7 +193,7 @@ function AuthenticatedConsoleApp({
   }, [setLocation]);
 
   useEffect(() => {
-    if (location.pathname === "/" && resolvedRoute.kind === "route") {
+    if ((location.pathname === "/" || isConsoleLoginPath(location.pathname)) && resolvedRoute.kind === "route") {
       window.history.replaceState(null, "", formatConsoleRoute(resolvedRoute.route));
     }
   }, [location.pathname, resolvedRoute]);
