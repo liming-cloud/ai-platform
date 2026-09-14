@@ -62,7 +62,8 @@ test("禁止非回环、非 13000 和含凭据或查询参数的目标", () => {
 function workspacePage({ pathname, headings, passwordCount = 0, mobile = false }) {
   let menuOpen = false;
   let loggedOut = false;
-  const nodes = headings.map(name => ({ role: "heading", name }));
+  const nodes = headings.map(name => ({ role: "text", name }));
+  nodes.push({ role: "button", name: "运营总览" });
   nodes.push({ role: "button", name: mobile ? "打开账户菜单" : "当前会话角色 平台管理员", click: () => { menuOpen = true; } });
   nodes.push({ role: "menuitem", name: "退出登录", visible: () => menuOpen, click: () => { loggedOut = true; } });
   return {
@@ -71,10 +72,10 @@ function workspacePage({ pathname, headings, passwordCount = 0, mobile = false }
       assert.ok(predicate(new URL(pathname, "http://127.0.0.1:13000")), "未到达预期默认工作区 URL");
     },
     getByText(name, { exact }) {
-      return this.getByRole("heading", { name, exact });
+      return this.getByRole(undefined, { name, exact });
     },
     getByRole(role, { name, exact }) {
-      const matches = () => nodes.filter(node => node.role === role && (!node.visible || node.visible())
+      const matches = () => nodes.filter(node => (!role || node.role === role) && (!node.visible || node.visible())
         && (name instanceof RegExp ? name.test(node.name) : exact ? node.name === name : node.name.includes(name)));
       const resolve = () => {
         assert.equal(matches().length, 1, `没有唯一可见的 ${role}：${name}`);
@@ -83,6 +84,10 @@ function workspacePage({ pathname, headings, passwordCount = 0, mobile = false }
       return { async waitFor() { resolve(); }, async click() { resolve().click(); } };
     },
     locator(selector) {
+      if (selector === "#page-title") return {
+        async waitFor() { assert.ok(headings.length); },
+        async innerText() { return headings[0]; },
+      };
       assert.equal(selector, 'input[type="password"]');
       return { async count() { return passwordCount; } };
     },
@@ -108,7 +113,7 @@ test("错误路由、错误范围或错误默认参数不能当作登录成功",
 
 test("仅有外壳标题或仅有资源内容不能当作工作区加载成功", async () => {
   for (const headings of [["平台运营总览"], ["平台资源健康"]]) {
-    await assert.rejects(assertWorkspace(workspacePage({ ...workspaces.platform, headings }), "platform"), /没有唯一可见的 heading/);
+    await assert.rejects(assertWorkspace(workspacePage({ ...workspaces.platform, headings }), "platform"), /没有唯一可见的|未进入预期工作区/);
   }
 });
 

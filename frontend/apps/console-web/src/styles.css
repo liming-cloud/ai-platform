@@ -1668,7 +1668,7 @@
   min-width: 0;
 }
 
-.governance-login__input {
+.governance-login .governance-login__input {
   width: 100%;
   min-width: 0;
   max-width: 100%;
