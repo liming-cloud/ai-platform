@@ -90,7 +90,7 @@ confirmedDecisions:
   - ADR-0080
 openDecisions:
   - WP-0017：原子开户按 ADR-0080 实施；独立租户设置的更新合同待后续切片冻结
-  - WP-0017：原子开户已部署并通过业务验证；视觉修正 e008338e5 的前端构建被工具审批容量不足阻断，恢复后须完成最终部署与实际字号复验
+  - WP-0017：原子开户业务与 e008338e5 已部署；200%文字修正 27427a1be 镜像已构建，容器更新被工具审批容量不足阻断，恢复后须完成11场景终验
 latestEvidence:
   - project/evidence/WP-0017-atomic-onboarding-deploy-20260914.md
   - project/evidence/WP-0017-atomic-onboarding-build-blocked-20260914.md
@@ -101,5 +101,5 @@ latestEvidence:
   - project/evidence/WP-0016-visual-polish-20260913.md
   - project/evidence/WP-0016-stage-three-20260908.md
 nextReviewAt: 2026-09-14
-updatedAt: 2026-09-14T07:30:00Z
+updatedAt: 2026-09-14T09:00:00Z
 updatedBy: codex

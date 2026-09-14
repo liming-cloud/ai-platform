@@ -512,7 +512,8 @@
 | 独立登录与真实 deploy 验收 | `project/evidence/WP-0017-independent-login-deploy-20260914.md` | `f9ba767bf2b20716b2c04e812b45e616fe037f53` | 两个管理入口、15 个真实浏览器场景通过；187 前端、216 组织权限、18 验收脚本测试通过；前端 OCI revision 与提交一致，原后端及数据保留。Runtime 五节点与六维质量校验通过；WP-0017 整包仍进行中。 |
 | 原子开户实现与构建阻塞 | `project/evidence/WP-0017-atomic-onboarding-build-blocked-20260914.md` | `5844fd3ba2b5909161b704df5fc7e1ff026d4a0a` | 239 组织访问、23 真实 HTTP、209 前端通过；前端镜像已构建。只读 BuildKit 历史诊断很可能触发引擎崩溃，后端构建和 deploy 验收未完成；等待全局 Docker 恢复确认，不推进下一切片。 |
 | 原子开户恢复部署与业务验证 | `project/evidence/WP-0017-atomic-onboarding-deploy-20260914.md` | `5844fd3ba2b5909161b704df5fc7e1ff026d4a0a` | 已按用户授权恢复 Docker 并部署两个应用；迁移/健康、8 个开户及 15 个新管理员登录场景、15 项只读事实通过；数据和其他服务保留，视觉收口另行验证。 |
-| 开户视觉及真实验收修正 | `project/evidence/WP-0017-atomic-onboarding-deploy-20260914.md` | `e008338e53bffd81def84f5de21dd0028e16c0f0` | 修复 Fluent 必填标签选择器、逻辑行/键盘/文字放大验证及徽标拉伸和固定高度；209 前端、25 脚本通过。新前端构建因工具审批容量不足未执行，新增 11 场景终验及质量节点尚未通过，不推进下一切片。 |
+| 开户视觉及真实验收修正 | `project/evidence/WP-0017-atomic-onboarding-deploy-20260914.md` | `e008338e53bffd81def84f5de21dd0028e16c0f0` | 已构建并部署；正常徽标恢复内容宽度，四入口健康通过。强化实际字号等待后，11 场景在200%标签裁切失败，后续修正另行验证，不推进下一切片。 |
+| 开户真实字号等待与局部排版修正 | `project/evidence/WP-0017-atomic-onboarding-deploy-20260914.md` | `27427a1be3248efe8facb0811f8fa55d7b4a8849` | 红绿闭合 CSS 过渡采样和徽标宽度下界；239 组织、23 HTTP、209 前端、26 脚本通过。局部行高修正已构建镜像，但容器更新被自动审批容量不足阻断；最终11场景未完成，不标记切片通过。 |
 
 ## 证据规则
 

@@ -4,7 +4,7 @@
 
 唯一切片：平台管理员填写租户信息、非默认配额和新管理员凭据，一次创建可用租户；刷新详情并使用新管理员登录。合同为 ADR-0080。独立管理员、配额编辑、功能、安全设置及普通会员不在本次交付内。
 
-实现提交 `5844fd3ba2b5909161b704df5fc7e1ff026d4a0a`；验收脚本与视觉修正提交 `e008338e53bffd81def84f5de21dd0028e16c0f0`。前一记录为 `WP-0017-atomic-onboarding-build-blocked-20260914.md`，本记录不改写故障发生时的事实。视觉修正尚未部署，不能宣布切片最终通过。
+实现提交 `5844fd3ba2b5909161b704df5fc7e1ff026d4a0a`；首轮视觉修正 `e008338e53bffd81def84f5de21dd0028e16c0f0` 已部署。最终文字缩放修正为 `27427a1be3248efe8facb0811f8fa55d7b4a8849`，镜像构建成功但更新容器未执行，不能宣布切片最终通过。前一记录为 `WP-0017-atomic-onboarding-build-blocked-20260914.md`，不改写历史故障事实。
 
 ## 恢复与部署
 
@@ -15,7 +15,7 @@
 | 运行服务 | 镜像 ID | OCI revision |
 | --- | --- | --- |
 | control-plane | `sha256:287c22b27fc900992fb3bc18242e1f517f140d60109f2e71e679a9afdcbc4108` | `5844fd3ba2b5909161b704df5fc7e1ff026d4a0a` |
-| console-web | `sha256:6609b55ec2c306f28235bad9251134f736aec512f35ec49eb8d9a699bf5d507a` | `5844fd3ba2b5909161b704df5fc7e1ff026d4a0a` |
+| console-web | `sha256:25c8e41f319f52cbf5c8cf12eb5bd364000b61396d4c7803eed0173c9689be96` | `e008338e53bffd81def84f5de21dd0028e16c0f0` |
 
 7 个 Compose 服务均 healthy，`make deploy-smoke` 四个应用入口通过。不声称未重建的查询和接入服务已部署当前 HEAD。事前数据库备份保留在本机独占 0600 文件中，未复制入库。
 
@@ -26,11 +26,11 @@
 | `./mvnw -q -pl backend/contexts/organization-access -am test` | 本轮重跑：85 组、239 项，0 失败、错误、跳过 |
 | `./mvnw -q -pl backend/bootstrap/control-plane-bootstrap -am -Dtest=AuthenticationApiTest -Dsurefire.failIfNoSpecifiedTests=false test` | 本轮真实 PostgreSQL/Redis/HTTP 23 项通过 |
 | `make frontend-test` | 本轮 41 文件、209 项，类型检查、lint 和构建通过 |
-| `node --test scripts/quality/work-package-onboarding.test.cjs scripts/quality/work-package-login.test.cjs` | 最终候选 25 项通过 |
+| `node --test scripts/quality/work-package-onboarding.test.cjs scripts/quality/work-package-login.test.cjs` | 最终候选 26 项通过 |
 | `python3 -m unittest scripts.quality.test_work_package_acceptance` | 7 项通过 |
 | `make architecture-guard` | 28 项及前后端门禁通过；其他路径 15 处内联 SQL、3 处手工分页未冒称清零 |
 | `make project-verify` | 35 项及 26 个工作包治理通过 |
-| `SLICE=onboarding` | 首轮完整真实浏览器 8 场景通过；最终视觉修正后须复验 |
+| `SLICE=onboarding` | 首轮完整真实浏览器 8 场景通过；本轮强化的 11 场景在首个 390px/200% 标签裁切断言失败，未创建新对象；最终修正未部署 |
 | `SLICE=login` | 使用本次新管理员复验 15 场景通过 |
 | 当前部署只读事务 | 15 项限定对象事实检查全通过 |
 
@@ -42,6 +42,20 @@
 - 原对齐检查按错位后的坐标分组，可能将错位同行拆成单元素组；改用 DOM 顺序和已知列数。补齐三步键盘遍历、200% 样式恢复和控件包装器裁切反例。
 - 目视发现详情状态 Badge 被通用直系 `div` 规则拉伸。旧部署三尺寸及两档字号的 6 个宽度反例全部失败；200% 时还测得文字高 28px、容器固定高 20px。修正为只让身份文字区域伸展，徽标按内容宽度及字号自增高；未改布局结构、公共组件或 API。正式脚本新增三尺寸详情宽高和实际字号倍率断言，测试从 23 增为 25。独立诊断中曾观察到未实际放大的 12px，保留倍率断言并等待最终部署反馈环，不用放宽断言消除该未决观察。
 - 更新矩阵中已交付登录事实时，治理测试 fixture 沿用真实 `verifiedCommit`，导致其模拟 contracted/implemented 状态失败；fixture 先清理真实验证字段再构造反例，21 项矩阵测试通过，生产校验规则未放宽。
+
+### 08:30～09:00 的实际字号诊断与再修正
+
+工具恢复后 e008 前端构建、更新和四入口健康均通过。原有徽标正常字号已恢复为内容宽度，但只读三尺寸均测得 inline 24px、computed 12px，且两帧后变为 24px。`prefers-reduced-motion` 下仍有 0.01ms 的 CSS 过渡；还原不等待时，下一尺寸读到上次放大值，进而产生 48/96px。原因是测试采样时序，不是产品没有接受样式，不能用放宽倍率断言掩盖。
+
+先跑红灯（脚本 14 项中 3 项失败），再让共享字号 helper 有界等待全部目标字号及还原字号稳定；补齐徽标宽度下界，拒绝 30px 容器容纳 36px 内容的反例。26 项脚本测试通过；真实三尺寸均稳定 12→24→12，徽标宽度 36/60px、高度 20/33.59375px、文字高度 15/28px，六组检查通过。没有关闭生产动画或增大断言容差。
+
+正式重跑 11 场景后在第一个移动端步骤失败：标签字体 28px，但 Fluent 固定行高 20px、容器高 24px、内容高 28px。之前的字号检查未等待实际变化，不能继续引用其结果证明最终 200% 合格。还发现帮助文字为 `div`，须明确纳入缩放选择器；页头 `Title2` 实为 `span`，56px 字体仍配 36px 行高，不能靠未命中的 h1/h2 样式解决。
+
+候选只在 `tenant-onboarding.css` 内修正当前开户/概览的页头、标签、帮助文字及步骤圆标的随字号布局，保留颜色、动效、业务与提交边界。三个尺寸、三个步骤的局部 CSS 浏览器预览字段裁切计数为 0；这是临时样式诊断，不算最终部署通过。页头、步骤标记也已加入正式裁切断言，必须对最终镜像重跑。
+
+最终候选 `27427a1be3248efe8facb0811f8fa55d7b4a8849` 的前端 209 项、类型/lint/build 和脚本 26 项通过，镜像 `sha256:5eb5febc0c910e8ce7006b3c3f60023e2437cb923ce2ac049a4dbbb4ef04e7f2` 构建 exit 0。仅更新 console-web 的正常审批连续两次返回 `Selected model is at capacity`，更新命令没有启动；08:58 UTC 只读检查证实运行容器仍为表中的 e008 镜像且 healthy。
+
+本轮日志仅在本机：`/private/tmp/wp0017-final-badge-timing.log`（红灯）、`/private/tmp/wp0017-final-badge-green.log`（只读字号绿灯）、`/private/tmp/wp0017-font-timing-red.log`、`/private/tmp/wp0017-final3-script-tests.log`、`/private/tmp/wp0017-final3-frontend-tests.log`、`/private/tmp/wp0017-final2-backend-tests.log`、`/private/tmp/wp0017-final2-http-tests.log`、`/private/tmp/wp0017-final3-frontend-build.log`。正式失败日志为 `/private/tmp/wp0017-final-acceptance.kr2BEd/onboarding.log`，该轮输出记录为 STARTED，没有新开户。截图只在临时目录；没有复制进仓库。
 
 ## 合成数据与事务复核
 
@@ -72,18 +86,18 @@ make acceptance-work-package WP=WP-0017 SLICE=login
 
 ## 当前工具执行阻塞与下一步
 
-构建视觉修正镜像的执行请求被自动审批服务拒绝，返回 `Selected model is at capacity`。该命令尚未启动，不是 Docker 构建、npm 或业务测试失败。只读复核固定提交无前端/部署差异、Dockerfile 为锁定静态前端、本机目标不涉及数据卷后重试，仍返回同一审批容量错误；未改用其他工具绕过。
+本轮恢复后已完成 e008 镜像部署和 27427a1be 镜像构建；当前阻塞的是更新前端容器，不是构建。执行请求被自动审批服务拒绝，返回 `Selected model is at capacity`。只读复核固定提交、镜像标签、实际容器和无数据卷变更范围后重试仍拒绝，命令未启动；未改用其他工具绕过。
 
-当前运行镜像仍为上表的 `5844fd3ba…`，服务健康；源码和测试修正已提交，但不能把未部署的 `e008338e5…` 宣称已在线。工具执行恢复后，唯一前沿为：
+当前后端仍为 `5844fd3ba…`、前端为 `e008338e5…`，服务健康；最终源码和镜像已固定，但不能把 `27427a1be…` 宣称已在线。工具执行恢复后，唯一前沿为：
 
-1. 从固定候选构建前端镜像，OCI revision 使用完整提交；仅更新 `console-web`，保留后端及数据。
-2. 使用新独占输出文件执行最终 `SLICE=onboarding`（新增后共 11 场景），保留目录真实进入、详情三尺寸正常/200%实际字号断言。如倍率仍失败，用一次只读 DOM 观察区分目标范围、样式写入与节点刷新，不猜测、不删断言。
+1. 核对已构建 27427a1be 镜像的完整 OCI revision；仅更新 `console-web`，保留后端及数据，不重复重启 Docker 或清缓存。
+2. 使用新独占输出文件执行最终 `SLICE=onboarding`（共 11 场景），保留目录真实进入、三步字段/页头/步骤标记、详情三尺寸正常/200%实际字号断言，且缩放与还原必须等待稳定。保留 `/private/tmp/wp0017-final-acceptance.kr2BEd` 的失败记录；下一轮可用已准备但未使用的 `/private/tmp/wp0017-final-verified.ScNERL/created-credentials.json`。
 3. 用新合成管理员复验 15 个登录场景，并只读核对该轮精确对象事实；不删除旧测试记录。
 4. 固定 diff、最终目视、六维质量、Runtime 校验与治理提交闭合后，再推进下一独立切片。
 
 ## 工程助手与质量边界
 
-运行环境 Codex；使用已安装 engineering-assistant 技能及 MCP，恢复 `run-5b4368307c3d4be7` 的 implement 流程，显式加载 engineering-assistant、tdd、diagnosing-bugs、code-review 及授权/安全 seam。控制面为 Charter、STATE、WP-0017、其活动 ADR、ADR-0080 和原型承接矩阵。未完成的部署与实际字号观察使质量节点不能通过，不提交全绿快照。
+运行环境 Codex；使用已安装 engineering-assistant 技能及 MCP，恢复 `run-5b4368307c3d4be7` 的 implement 流程，显式加载 engineering-assistant、tdd、diagnosing-bugs、code-review 及授权/安全/偶发缺陷 seam。控制面为 Charter、STATE、WP-0017、其活动 ADR、ADR-0080 和原型承接矩阵。实际字号根因已闭合，但最终布局部署尚未完成，质量节点不能通过，不提交全绿快照。
 
 图谱调查延续原子开户的 TenantProvisioningService、SubjectIdentity、PostgresTenantProvisioningStore、ControlPlaneClient 及原影响分析；本轮聚焦 TenantOverview 和验收 seam。图谱在同名 TenantOverview 上返回其他上下文，最终以定向组件/CSS读取及真实 DOM 证实直系 `div` 的误匹配，修复仅限该卡片。独立评审补上逻辑同行、键盘和包装器裁切反例，并把浏览器结果与真实事务测试分开证明。
 
