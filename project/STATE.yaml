@@ -90,8 +90,9 @@ confirmedDecisions:
   - ADR-0080
 openDecisions:
   - WP-0017：原子开户按 ADR-0080 实施；独立租户设置的更新合同待后续切片冻结
-  - WP-0017：Docker BuildKit 历史诊断读取很可能触发引擎崩溃，部署受阻；等待确认正常启动全局 Docker，不清缓存或数据
+  - WP-0017：原子开户已部署并通过业务验证；视觉修正 e008338e5 的前端构建被工具审批容量不足阻断，恢复后须完成最终部署与实际字号复验
 latestEvidence:
+  - project/evidence/WP-0017-atomic-onboarding-deploy-20260914.md
   - project/evidence/WP-0017-atomic-onboarding-build-blocked-20260914.md
   - project/evidence/WP-0017-independent-login-deploy-20260914.md
   - project/evidence/WP-0017-platform-account-pagination-20260914.md
@@ -99,7 +100,6 @@ latestEvidence:
   - project/evidence/WP-0016-human-acceptance-20260913.md
   - project/evidence/WP-0016-visual-polish-20260913.md
   - project/evidence/WP-0016-stage-three-20260908.md
-  - project/evidence/WP-0016-sample-direction-approved-20260908.md
 nextReviewAt: 2026-09-14
-updatedAt: 2026-09-14T03:40:00Z
+updatedAt: 2026-09-14T07:30:00Z
 updatedBy: codex

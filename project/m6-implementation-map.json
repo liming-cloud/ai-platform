@@ -33,7 +33,7 @@
       "phase": "M6",
       "classification": "production",
       "workPackage": "WP-0017",
-      "status": "pending-contract",
+      "status": "verified",
       "operations": [
         {
           "id": "console-login:0",
@@ -43,7 +43,18 @@
           "reason": "m6-approved-prototype",
           "workPackage": "WP-0017",
           "dependsOn": [],
-          "status": "pending-contract"
+          "status": "verified",
+          "contract": {
+            "adr": "ADR-0079",
+            "target": { "kind": "api", "value": "POST /api/v1/auth/browser-session；GET/DELETE 同一浏览器会话资源" },
+            "saveBoundary": "复用统一身份与 Cookie/CSRF 会话；平台入口只接受平台身份，退出清除会话。",
+            "authorizationTests": ["错误角色入口拒绝", "CSRF 拒绝", "刷新恢复及退出失效"]
+          },
+          "verification": {
+            "commands": ["make acceptance-work-package WP=WP-0017 SLICE=login"],
+            "evidence": ["project/evidence/WP-0017-independent-login-deploy-20260914.md"]
+          },
+          "verifiedCommit": "f9ba767bf2b20716b2c04e812b45e616fe037f53"
         },
         {
           "id": "console-login:1",
@@ -64,7 +75,7 @@
       "phase": "M6",
       "classification": "production",
       "workPackage": "WP-0017",
-      "status": "pending-contract",
+      "status": "in-progress",
       "operations": [
         {
           "id": "tenant-login:0",
@@ -74,7 +85,18 @@
           "reason": "m6-approved-prototype",
           "workPackage": "WP-0017",
           "dependsOn": [],
-          "status": "pending-contract"
+          "status": "verified",
+          "contract": {
+            "adr": "ADR-0079",
+            "target": { "kind": "api", "value": "POST /api/v1/auth/browser-session；GET/DELETE 同一浏览器会话资源" },
+            "saveBoundary": "租户管理员入口校验指定租户与角色；不因访问另一入口自动替换当前身份。",
+            "authorizationTests": ["指定租户认证", "平台身份从租户入口拒绝", "刷新恢复及退出失效"]
+          },
+          "verification": {
+            "commands": ["make acceptance-work-package WP=WP-0017 SLICE=login"],
+            "evidence": ["project/evidence/WP-0017-independent-login-deploy-20260914.md"]
+          },
+          "verifiedCommit": "f9ba767bf2b20716b2c04e812b45e616fe037f53"
         },
         {
           "id": "tenant-login:1",
