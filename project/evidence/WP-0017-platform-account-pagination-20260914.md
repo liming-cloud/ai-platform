@@ -25,7 +25,7 @@
 
 `make architecture-guard` 的 28 项回归和门禁通过；`make project-verify` 的 35 项测试、26 包校验通过。架构脚本仍输出 3 处手工分页，因为其正则仅识别含 Page/After 的语句 ID，原 `list` 未计入；不能据此宣称全仓债务仅剩 3 处。该统计漏计交由 WP-0017 后续门禁修正，退出条件为补齐 list 命名反例、精确盘点并登记其余责任包，本切片不扩大其他列表重构。
 
-Codex 实际加载工程助手的 engineering-assistant、wayfinder、tdd、code-review；使用 Charter、STATE、WP-0017、ADR-0022/0079、代码图谱和真实测试。`implement` 流程为 `run-8f96ddd45aa445a8`，切片选择节点已由插件接受，红绿与评审节点随后校验。局部通过不等于整个 WP-0017 的 HTTP、浏览器、Compose 和业务门禁通过。
+Codex 实际加载工程助手的 engineering-assistant、wayfinder、tdd、code-review；使用 Charter、STATE、WP-0017、ADR-0022/0079、代码图谱和真实测试。`implement` 流程为 `run-8f96ddd45aa445a8`。在最后测试提交 5c1085838 后，插件已验证切片、红绿、实现、质量、评审五节点，状态 completed；六维 QualitySnapshot 绑定精确源差异摘要 `sha256:c1a4780d75fe396669542f2fb8fb89bb982cd5ba75911f816cbfe31e1c54a83e`、真实测试报告和性能采样后通过。局部通过不等于整个 WP-0017 的 HTTP、浏览器、Compose 和业务门禁通过。
 
 独立固定 diff 评审通过，无必修问题：框架类型仅在 infrastructure，账户范围、锁定/更新 SQL 及公共契约未改变；生产分页插件 `overflow=false/maxLimit=100`，测试实际验证越界不回首页，`PageQuery` 同样限制最大 100。空页、越界、历史绑定、摘要保护和现有事务成功/回滚均有真实 PostgreSQL 结果。未触及新身份、异步状态终止、凭据 grammar 或跨上下文写入 ID 合同，不把这些未触及项扩张成全仓测试。
 

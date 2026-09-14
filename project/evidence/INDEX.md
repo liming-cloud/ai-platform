@@ -502,6 +502,14 @@
 | --- | --- | --- | --- |
 | 原型 UI 最终人工确认 | `project/evidence/WP-0016-human-acceptance-20260913.md` | `21b45c347a4008f5959b1b972e3ffd8a5aadcc6f`（验收实现） | 用户明确确认“UI工作验收完毕”；本轮169项Node与治理验证通过，113文件经OpenDesign保存回读一致。仅关闭原型门禁，三项暂缓不扩展，M6仍进行中。 |
 
+## WP-0017
+
+| 证据 | 命令或评审 | 提交 | 结果 |
+| --- | --- | --- | --- |
+| 顺排计划与原型承接基线 | `project/evidence/WP-0017-sequential-delivery-baseline-20260914.md` | `9e35d9f7dfd5767ebb5b5ad0ba1bea2848945814` | 78 入口、155 操作分组；66 个 M6 入口、132 组生产操作。35 项治理/矩阵测试、架构门禁通过，两个假完成漏洞红绿修复；不表示生产完成。 |
+| 平台账户框架分页与空页修复 | `project/evidence/WP-0017-platform-account-pagination-20260914.md` | `8a52dbc7e470fe6ed45ef967a1dc07fba6755a81` | Mapper 契约与空目录第二页先失败后通过，1 契约及 13 项真实 PostgreSQL 测试通过；保留账户权限和事务边界。 |
+| 千条目录实测与切片质量复验 | `project/evidence/WP-0017-platform-account-pagination-20260914.md` | `5c1085838c6dfff53a2d980c1b096cc94e7b6790` | 最终 15 项测试无跳过；1002 账户串行 30 样本 p95 3.596792 ms，仅开发环境观察。工程助手 run-8f96ddd45aa445a8 五节点与六维 QualitySnapshot 校验通过；WP-0017 仍进行中。 |
+
 ## 证据规则
 
 - 命令证据记录完整命令、提交、环境和结果。

@@ -2,7 +2,7 @@ schemaVersion: 1
 productVersion: foundation-v1
 currentMilestone: M6
 currentFrontier: WP-0017
-lastVerifiedCommit: a708fdfc67a043648b2aede81a8989db852c1a64
+lastVerifiedCommit: 5c1085838c6dfff53a2d980c1b096cc94e7b6790
 activeWorkPackages:
   - WP-0014
   - WP-0017
@@ -90,6 +90,7 @@ confirmedDecisions:
 openDecisions:
   - WP-0017：按已确认身份边界冻结原子开户与独立租户设置的具体生产合同后实施
 latestEvidence:
+  - project/evidence/WP-0017-platform-account-pagination-20260914.md
   - project/evidence/WP-0017-sequential-delivery-baseline-20260914.md
   - project/evidence/WP-0016-human-acceptance-20260913.md
   - project/evidence/WP-0016-visual-polish-20260913.md
@@ -97,7 +98,6 @@ latestEvidence:
   - project/evidence/WP-0016-sample-direction-approved-20260908.md
   - project/evidence/WP-0016-usability-sample-20260908.md
   - project/evidence/WP-0016-member-provider-closure-20260907.md
-  - project/evidence/WP-0016-platform-usability-20260907.md
 nextReviewAt: 2026-09-14
-updatedAt: 2026-09-14T00:19:53Z
+updatedAt: 2026-09-14T00:41:26Z
 updatedBy: codex
