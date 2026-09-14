@@ -3,7 +3,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
-const { readConfiguration } = require("../development/acceptance-login.cjs");
+const { readConfiguration, assertWorkspace, logoutWorkspace } = require("../development/acceptance-login.cjs");
 
 const directory = fs.mkdtempSync(path.join(os.tmpdir(), "wp0017-configuration-test-"));
 after(() => fs.rmSync(directory, { recursive: true, force: true }));
@@ -55,5 +55,71 @@ test("禁止非回环、非 13000 和含凭据或查询参数的目标", () => {
   const file = credentialFile("url.json");
   for (const url of ["https://example.com", "http://127.0.0.1:13001", "http://name:private@127.0.0.1:13000", "http://127.0.0.1:13000/?token=private"]) {
     assert.throws(() => readConfiguration(environment(file, { FOUNDATION_ACCEPTANCE_BASE_URL: url })), /本机 13000/);
+  }
+});
+
+// 仅验证 Playwright 定位契约；默认路由和菜单行为仍须由真实部署浏览器复验。
+function workspacePage({ pathname, headings, passwordCount = 0, mobile = false }) {
+  let menuOpen = false;
+  let loggedOut = false;
+  const nodes = headings.map(name => ({ role: "heading", name }));
+  nodes.push({ role: "button", name: mobile ? "打开账户菜单" : "当前会话角色 平台管理员", click: () => { menuOpen = true; } });
+  nodes.push({ role: "menuitem", name: "退出登录", visible: () => menuOpen, click: () => { loggedOut = true; } });
+  return {
+    get loggedOut() { return loggedOut; },
+    async waitForURL(predicate) {
+      assert.ok(predicate(new URL(pathname, "http://127.0.0.1:13000")), "未到达预期默认工作区 URL");
+    },
+    getByText(name, { exact }) {
+      return this.getByRole("heading", { name, exact });
+    },
+    getByRole(role, { name, exact }) {
+      const matches = () => nodes.filter(node => node.role === role && (!node.visible || node.visible())
+        && (name instanceof RegExp ? name.test(node.name) : exact ? node.name === name : node.name.includes(name)));
+      const resolve = () => {
+        assert.equal(matches().length, 1, `没有唯一可见的 ${role}：${name}`);
+        return matches()[0];
+      };
+      return { async waitFor() { resolve(); }, async click() { resolve().click(); } };
+    },
+    locator(selector) {
+      assert.equal(selector, 'input[type="password"]');
+      return { async count() { return passwordCount; } };
+    },
+  };
+}
+
+const workspaces = {
+  platform: { pathname: "/platform/operations?range=DAY_7&page=1", headings: ["平台运营总览", "平台资源健康"] },
+  tenant: { pathname: "/operations?range=DAY_7", headings: ["运营总览", "当前租户资源"] },
+};
+
+test("两个角色的默认工作区通过真实落点与内容定位，不依赖未展开的退出菜单", async () => {
+  for (const [role, workspace] of Object.entries(workspaces)) {
+    await assertWorkspace(workspacePage(workspace), role);
+  }
+});
+
+test("错误路由、错误范围或错误默认参数不能当作登录成功", async () => {
+  for (const pathname of ["/unknown", "/operations?range=DAY_7", "/platform/operations?range=DAY_1&page=1", "/platform/operations?range=DAY_7&page=2"]) {
+    await assert.rejects(assertWorkspace(workspacePage({ ...workspaces.platform, pathname }), "platform"), /预期默认工作区 URL/);
+  }
+});
+
+test("仅有外壳标题或仅有资源内容不能当作工作区加载成功", async () => {
+  for (const headings of [["平台运营总览"], ["平台资源健康"]]) {
+    await assert.rejects(assertWorkspace(workspacePage({ ...workspaces.platform, headings }), "platform"), /没有唯一可见的 heading/);
+  }
+});
+
+test("工作区仍残留密码输入框时验收失败", async () => {
+  await assert.rejects(assertWorkspace(workspacePage({ ...workspaces.platform, passwordCount: 1 }), "platform"), /凭据表单/);
+});
+
+test("桌面和移动入口都先展开账户菜单再通过菜单项退出", async () => {
+  for (const mobile of [false, true]) {
+    const page = workspacePage({ ...workspaces.platform, mobile });
+    await logoutWorkspace(page);
+    assert.equal(page.loggedOut, true);
   }
 });

@@ -71,10 +71,19 @@ async function assertAnonymous(page) {
   requireCondition((await request(page, "/auth/browser-session")).status === 401, "退出或拒绝后仍存在可用会话");
 }
 
-async function assertWorkspace(page) {
-  await page.waitForURL(url => !Object.values(loginPaths).includes(url.pathname));
-  await page.getByRole("button", { name: "退出登录", exact: true }).waitFor();
+async function assertWorkspace(page, role) {
+  const platform = role === "platform";
+  await page.waitForURL(url => url.pathname === (platform ? "/platform/operations" : "/operations")
+    && url.searchParams.get("range") === "DAY_7" && (!platform || url.searchParams.get("page") === "1"));
+  // 既有工作区使用 Fluent Text 标题，不能假定其 DOM 已是 heading。
+  await page.getByText(platform ? "平台运营总览" : "运营总览", { exact: true }).waitFor();
+  await page.getByText(platform ? "平台资源健康" : "当前租户资源", { exact: true }).waitFor();
   requireCondition(await page.locator('input[type="password"]').count() === 0, "登录后仍停留在凭据表单");
+}
+
+async function logoutWorkspace(page) {
+  await page.getByRole("button", { name: /当前会话角色|打开账户菜单/ }).click();
+  await page.getByRole("menuitem", { name: "退出登录", exact: true }).click();
 }
 
 async function openLogin(page, configuration, role) {
@@ -246,14 +255,14 @@ async function run(configuration) {
           await openLogin(page, configuration, role);
           await fillLogin(page, configuration.credentials[role], role);
           await submitLogin(page);
-          await assertWorkspace(page);
+          await assertWorkspace(page, role);
           await assertIdentity(page, role);
           await page.reload({ waitUntil: "networkidle" });
-          await assertWorkspace(page);
+          await assertWorkspace(page, role);
           await assertIdentity(page, role);
           requireCondition((await request(page, "/auth/browser-session", "DELETE", undefined, false)).status === 403, "缺少 CSRF 的写入未被拒绝");
           await assertIdentity(page, role);
-          await page.getByRole("button", { name: "退出登录", exact: true }).click();
+          await logoutWorkspace(page);
           await page.getByRole("heading", { name: titles[role], exact: true }).waitFor();
           await assertAnonymous(page);
         }, 1440, reducedMotion);
@@ -263,12 +272,12 @@ async function run(configuration) {
         await openLogin(page, configuration, role);
         await fillLogin(page, configuration.credentials[role], role);
         await submitLogin(page);
-        await assertWorkspace(page);
+        await assertWorkspace(page, role);
         await page.goto(`${configuration.baseUrl}${loginPaths[other]}`, { waitUntil: "networkidle" });
         await page.getByText("当前登录身份与入口不匹配", { exact: true }).waitFor();
         await assertIdentity(page, role);
         await page.getByRole("link", { name: "返回当前工作区", exact: true }).click();
-        await assertWorkspace(page);
+        await assertWorkspace(page, role);
         await assertIdentity(page, role);
         await page.goto(`${configuration.baseUrl}${loginPaths[other]}`, { waitUntil: "networkidle" });
         await page.getByRole("button", { name: "退出并切换账户", exact: true }).click();
@@ -294,7 +303,7 @@ async function run(configuration) {
   }
 }
 
-module.exports = { readConfiguration };
+module.exports = { readConfiguration, assertWorkspace, logoutWorkspace };
 if (require.main === module) {
   try {
     const configuration = readConfiguration();
