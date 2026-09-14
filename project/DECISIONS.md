@@ -83,6 +83,7 @@
 | ADR-0077 | 已接受 | OpenDesign 原型事实源与截图存储边界 | `docs/adr/ADR-0077-opendesign-prototype-source-boundary.md` |
 | ADR-0078 | 已接受 | 平台账户与租户开通职责拆分原型 | `docs/adr/ADR-0078-account-entry-and-tenant-setup-prototype.md` |
 | ADR-0079 | 已接受 | M6 原型承接、顺排实施与真实会员验收 | `docs/adr/ADR-0079-m6-sequential-delivery-and-prototype-acceptance.md` |
+| ADR-0080 | 已接受 | 租户与初始管理员原子开户 | `docs/adr/ADR-0080-atomic-tenant-onboarding.md` |
 
 ## 已确认人工决策
 
