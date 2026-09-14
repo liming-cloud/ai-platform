@@ -100,16 +100,29 @@ test("租户状态徽标只能按内容宽度展示，不能被 flex 拉宽或�
   assert.throws(() => verifyOverviewBadge({ ...height, cardWidth: 200, badgeWidth: 100, contentWidth: 90, insets: 10 }), /半张卡片/);
   assert.throws(() => verifyOverviewBadge({ ...height, cardWidth: 944, badgeWidth: 0, contentWidth: 0, insets: 0 }), /缺失/);
   assert.throws(() => verifyOverviewBadge({ ...height, cardWidth: 944, badgeWidth: 36, contentWidth: 24, insets: 12, badgeHeight: 20 }), /徽标.*裁切/);
+  assert.throws(() => verifyOverviewBadge({ ...height, cardWidth: 320, badgeWidth: 30, contentWidth: 24, insets: 12 }), /徽标.*裁切/);
 });
 test("字号检查失败时仍恢复原 inline 样式，不能污染下一尺寸或步骤", async () => {
   const originals = [{ index: 0, style: "color: red", marker: null, size: 12 }];
   const restored = [];
-  const page = { evaluate: async (_callback, argument) => {
-    if (!argument) return originals;
+  const settled = [];
+  const page = { waitForFunction: async (_callback, argument) => { settled.push(argument); }, evaluate: async (_callback, argument) => {
+    if (typeof argument === "string") return originals;
     restored.push(argument);
     return argument.length;
   } };
   await assert.rejects(() => withTextScale(page, true, async () => { throw new SafeAssertionError("徽标被拉宽"); }), /徽标被拉宽/);
   assert.deepEqual(restored, [originals]);
-  await assert.rejects(() => withTextScale({ evaluate: async (_callback, argument) => argument ? 0 : [] }, true, async () => 42), /未找到.*文字/);
+  assert.deepEqual(settled.map(value => value.sizes), [[24], [12]]);
+  await assert.rejects(() => withTextScale({ evaluate: async (_callback, argument) => typeof argument === "string" ? [] : 0 }, true, async () => 42), /未找到.*文字/);
+});
+test("只有字号过渡结束后才能执行布局断言，恢复后才能进入下一尺寸", async () => {
+  const order = [];
+  const originals = [{ index: 0, style: null, marker: null, size: 12 }];
+  const page = {
+    evaluate: async (_callback, argument) => { const restoring = Array.isArray(argument); order.push(restoring ? "restore" : "scale"); return restoring ? 1 : originals; },
+    waitForFunction: async () => { order.push("settled"); },
+  };
+  await withTextScale(page, true, async () => { order.push("assert"); });
+  assert.deepEqual(order, ["scale", "settled", "assert", "restore", "settled"]);
 });

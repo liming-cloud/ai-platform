@@ -6,16 +6,20 @@
   --colorBrandForeground1: #a84c30;
   --colorNeutralBackground1: #fffdf9;
   color: #302c28;
+  line-height: 1.4;
   max-width: 960px;
   margin-inline: auto;
   display: grid;
   gap: 24px;
 }
 .tenant-onboarding *, .tenant-onboarding *::before, .tenant-onboarding *::after { box-sizing: border-box; }
+/* Fluent 的固定像素行高不会随文字缩放，仅修正当前开户/概览页头。 */
+.product-canvas:has(.tenant-onboarding) > .page-heading > .fui-Text { line-height: 1.4; }
+.product-canvas:has(.tenant-onboarding) > .page-heading > .fui-Title2 { line-height: 1.15; }
 .tenant-onboarding__steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); list-style: none; padding: 0; margin: 0; border-block: 1px solid #e8e0d7; }
 .tenant-onboarding__steps li { display: flex; align-items: center; gap: 10px; padding: 16px; color: #77716b; }
 .tenant-onboarding__steps li[aria-current="step"] { background: #f5eae3; color: #703f2d; }
-.tenant-onboarding__steps li > span { display: grid; place-items: center; width: 26px; height: 26px; flex: 0 0 26px; border: 1px solid #d9cfc5; border-radius: 50%; font-variant-numeric: tabular-nums; }
+.tenant-onboarding__steps li > span { display: grid; place-items: center; min-width: 26px; min-height: 26px; width: 1.8em; height: 1.8em; flex: 0 0 auto; border: 1px solid #d9cfc5; border-radius: 50%; font-variant-numeric: tabular-nums; }
 .tenant-onboarding__steps li[aria-current="step"] > span, .tenant-onboarding__steps li[data-complete="true"] > span { background: #b75a3b; color: white; border-color: #b75a3b; }
 .tenant-onboarding form { display: grid; gap: 24px; min-width: 0; }
 .tenant-onboarding__heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
@@ -27,6 +31,9 @@
 .tenant-onboarding__quotas { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .tenant-onboarding .fui-Field { min-width: 0; display: grid; grid-template-rows: subgrid; grid-row: span 3; row-gap: 6px; }
 .tenant-onboarding .fui-Field > label { margin: 0; }
+.tenant-onboarding .fui-Label,
+.tenant-onboarding .fui-Field__hint,
+.tenant-onboarding .fui-Field__validationMessage { line-height: 1.4; }
 .tenant-onboarding .fui-Input { min-height: 36px; border-radius: 7px; width: 100%; min-width: 0; align-self: start; border-color: #d8d0c7; }
 .tenant-onboarding .fui-Input input { font-size: 16px; line-height: 1.4; min-width: 0; width: 100%; }
 .tenant-onboarding .fui-Input__contentAfter { font-size: 12px; color: #77716b; }

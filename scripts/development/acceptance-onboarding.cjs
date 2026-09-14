@@ -132,9 +132,16 @@ async function exerciseWizardKeyboard(page, step, advance = false) {
 
 async function withTextScale(page, enlarged, action) {
   let originalStyles;
+  const selector = "main :is(h1,h2,h3,h4,p,label,a,span,input,button,strong,small,dt,dd,legend,textarea,select,.fui-Badge,.fui-Field__hint,.fui-Field__validationMessage)";
+  // CSS 过渡结束才是实际字号；还原也必须等待，避免下一轮读取到放大中的值。
+  const settle = sizes => page.waitForFunction(({ selector, sizes }) => {
+    const elements = [...document.querySelectorAll(selector)];
+    return elements.length === sizes.length && elements.every((element, index) =>
+      Math.abs(parseFloat(getComputedStyle(element).fontSize) - sizes[index]) < 0.1);
+  }, { selector, sizes }, { polling: "raf", timeout: 2000 });
   try {
-    if (enlarged) originalStyles = await page.evaluate(() => {
-      const elements = [...document.querySelectorAll("main :is(h1,h2,h3,h4,p,label,a,span,input,button,strong,small,dt,dd,legend,textarea,select,.fui-Badge)")];
+    if (enlarged) originalStyles = await page.evaluate(selector => {
+      const elements = [...document.querySelectorAll(selector)];
       // 先读取全部原始字号，再统一放大，避免子元素继承父元素放大后的字号而变成 400%。
       const originals = elements.map((element, index) => ({ index, style: element.getAttribute("style"),
         marker: element.getAttribute("data-wp0017-text-scale"), size: parseFloat(getComputedStyle(element).fontSize) }));
@@ -143,8 +150,9 @@ async function withTextScale(page, enlarged, action) {
         element.style.fontSize = `${originals[index].size * 2}px`;
       });
       return originals;
-    });
+    }, selector);
     requireCondition(!enlarged || originalStyles.length > 0, "未找到待放大的页面文字，不能跳过 200% 检查");
+    if (enlarged) await settle(originalStyles.map(original => original.size * 2));
     return await action();
   } finally {
     if (originalStyles) {
@@ -160,6 +168,7 @@ async function withTextScale(page, enlarged, action) {
         return count;
       }, originalStyles);
       requireCondition(restored === originalStyles.length, "200% 文字检查未完整恢复原始样式");
+      if (originalStyles.length) await settle(originalStyles.map(original => original.size));
     }
   }
 }
@@ -182,7 +191,7 @@ async function assertWizardLayout(page, width, step, enlarged = false) {
         columns: grid ? getComputedStyle(grid).gridTemplateColumns.split(/\s+/).length : 0,
         fields: [...(grid?.querySelectorAll(".fui-Field") || [])].map(field => ({ control: geometry(field.querySelector(".fui-Input")),
           label: geometry(field.querySelector("label")), hint: geometry(field.querySelector(".fui-Field__hint")) })),
-        clipped: [...document.querySelectorAll("main button,main h1,main h2")].filter(visible).some(clipped),
+        clipped: [...document.querySelectorAll("main button,main h1,main h2,main .page-heading > *, .tenant-onboarding__steps li > span")].filter(visible).some(clipped),
         moving: matchMedia("(prefers-reduced-motion: reduce)").matches && document.getAnimations()
           .some(animation => animation.playState === "running" && animation.effect?.getTiming().duration > 1) };
     });
@@ -199,6 +208,7 @@ function verifyOverviewBadge({ cardWidth, badgeWidth, contentWidth, insets, badg
     && [insets, verticalInsets].every(value => Number.isFinite(value) && value >= 0), "租户状态徽标或内容缺失");
   requireCondition(badgeWidth <= contentWidth + insets + 2,
     `租户状态徽标被拉宽：实际 ${Math.round(badgeWidth)}px，内容含内边距 ${Math.round(contentWidth + insets)}px`);
+  requireCondition(badgeWidth + 1 >= contentWidth + insets, "租户状态徽标内容被横向裁切");
   requireCondition(badgeWidth < cardWidth / 2, "租户状态徽标占据半张卡片");
   requireCondition(badgeHeight + 1 >= contentHeight + verticalInsets, "租户状态徽标文字被固定高度裁切");
 }
