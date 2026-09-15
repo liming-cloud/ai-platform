@@ -128,16 +128,17 @@ test("字号检查失败时仍恢复原 inline 样式，不能污染下一尺寸
   } };
   await assert.rejects(() => withTextScale(page, true, async () => { throw new SafeAssertionError("徽标被拉宽"); }), /徽标被拉宽/);
   assert.deepEqual(restored, [originals]);
-  assert.deepEqual(settled.map(value => value.sizes), [[24], [12]]);
-  await assert.rejects(() => withTextScale({ evaluate: async (_callback, argument) => typeof argument === "string" ? [] : 0 }, true, async () => 42), /未找到.*文字/);
+  assert.equal(settled[0].phase, "viewport");
+  assert.deepEqual(settled.filter(value => value.sizes).map(value => value.sizes), [[24], [12]]);
+  await assert.rejects(() => withTextScale({ waitForFunction: async () => {}, evaluate: async (_callback, argument) => typeof argument === "string" ? [] : 0 }, true, async () => 42), /未找到.*文字/);
 });
 test("只有字号过渡结束后才能执行布局断言，恢复后才能进入下一尺寸", async () => {
   const order = [];
   const originals = [{ index: 0, style: null, marker: null, size: 12 }];
   const page = {
     evaluate: async (_callback, argument) => { const restoring = Array.isArray(argument); order.push(restoring ? "restore" : "scale"); return restoring ? 1 : originals; },
-    waitForFunction: async () => { order.push("settled"); },
+    waitForFunction: async (_callback, argument) => { order.push(argument.phase === "viewport" ? "viewport-settled" : "settled"); },
   };
   await withTextScale(page, true, async () => { order.push("assert"); });
-  assert.deepEqual(order, ["scale", "settled", "assert", "restore", "settled"]);
+  assert.deepEqual(order, ["viewport-settled", "scale", "settled", "assert", "restore", "settled"]);
 });

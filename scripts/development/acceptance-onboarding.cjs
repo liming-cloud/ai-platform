@@ -140,6 +140,11 @@ async function withTextScale(page, enlarged, action) {
       Math.abs(parseFloat(getComputedStyle(element).fontSize) - sizes[index]) < 0.1);
   }, { selector, sizes }, { polling: "raf", timeout: 2000 });
   try {
+    // 改变视口后的媒体查询需经过布局帧；否则会记录旧标题字号，再拿新视口字号校验还原。
+    if (enlarged) await page.waitForFunction(async () => {
+      await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+      return true;
+    }, { phase: "viewport" }, { timeout: 2000 });
     if (enlarged) originalStyles = await page.evaluate(selector => {
       const elements = [...document.querySelectorAll(selector)];
       // 先读取全部原始字号，再统一放大，避免子元素继承父元素放大后的字号而变成 400%。
