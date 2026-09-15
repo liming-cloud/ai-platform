@@ -1,21 +1,33 @@
 :root {
   color-scheme: light;
-  --foundation-canvas: #f4f6f5;
-  --foundation-sidebar: #f8faf9;
-  --foundation-surface: #ffffff;
-  --foundation-subtle-surface: #f1f4f2;
-  --foundation-border: #dfe5e2;
-  --foundation-text: #17201e;
-  --foundation-muted-text: #65706c;
-  --foundation-accent: #126b5c;
+  /* 对应 WP-0016 已验收令牌；Fluent 与产品布局共用，页面不另建品牌主题。 */
+  --foundation-canvas: #f5f4ed;
+  --foundation-sidebar: var(--foundation-surface);
+  --foundation-surface: #faf9f5;
+  --foundation-subtle-surface: var(--foundation-canvas);
+  --foundation-hover-surface: #e8e6dc;
+  --foundation-border: #e8e6dc;
+  --foundation-border-strong: color-mix(in oklab, var(--foundation-text), var(--foundation-surface) 60%);
+  --foundation-text: #141413;
+  --foundation-muted-text: #5e5d59;
+  --foundation-accent-reference: #c96442;
+  --foundation-accent: color-mix(in oklab, var(--foundation-accent-reference), var(--foundation-text) 24%);
+  --foundation-accent-hover: color-mix(in oklab, var(--foundation-accent-reference), var(--foundation-text) 36%);
+  --foundation-accent-pressed: color-mix(in oklab, var(--foundation-accent-reference), var(--foundation-text) 42%);
+  --foundation-accent-subtle: color-mix(in oklab, var(--foundation-accent-reference), var(--foundation-surface) 90%);
+  --foundation-danger: #b53333;
   --foundation-control-radius: 0.5rem;
   --foundation-panel-radius: 0.75rem;
-  --foundation-elevation: 0 1px 2px rgb(23 32 30 / 5%);
-  font-family:
-    "Segoe UI Variable",
-    "Segoe UI",
-    "Microsoft YaHei UI",
-    sans-serif;
+  --foundation-elevation: 0 0 0 1px var(--foundation-border);
+  --foundation-font-display: Georgia, "Songti SC", "Noto Serif CJK SC", SimSun, serif;
+  --foundation-font-body: "PingFang SC", "Microsoft YaHei", "Segoe UI", system-ui, sans-serif;
+  --foundation-control-height: 36px;
+  --foundation-control-height-compact: 32px;
+  --foundation-control-height-touch: 44px;
+  --foundation-motion-fast: 150ms;
+  --foundation-motion-base: 200ms;
+  --foundation-ease: cubic-bezier(0.2, 0, 0, 1);
+  font-family: var(--foundation-font-body);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
 }
@@ -42,7 +54,33 @@ textarea {
   background: var(--foundation-canvas);
 }
 
+/* 基础控件只设最小尺寸；复合任务按钮和文字缩放仍可自然增高。 */
+.foundation-app-root .fui-Button {
+  min-height: var(--foundation-control-height);
+  font-size: 14px;
+  line-height: 1.428572;
+  border-radius: var(--foundation-control-radius);
+}
+
+.foundation-app-root .fui-Input {
+  min-height: var(--foundation-control-height);
+  border-radius: var(--foundation-control-radius);
+}
+
+.foundation-app-root .fui-Input input { font-size: 16px; line-height: 1.4; }
+.foundation-app-root .fui-Label,
+.foundation-app-root .fui-Field__hint,
+.foundation-app-root .fui-Field__validationMessage { line-height: 1.4; }
+
+@media (max-width: 680px), (any-pointer: coarse) {
+  :root {
+    --foundation-control-height: var(--foundation-control-height-touch);
+    --foundation-control-height-compact: var(--foundation-control-height-touch);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
+  :root { --foundation-motion-fast: 0ms; --foundation-motion-base: 0ms; }
   *,
   *::before,
   *::after {

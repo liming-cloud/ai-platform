@@ -129,7 +129,9 @@ export function TenantProvisioningFlow({ client, route, onRouteChange }: {
         </>}
       </fieldset>
       {validation ? <p role="alert" className="tenant-onboarding__validation">{validation}</p> : null}
-      <footer className="tenant-onboarding__actions"><Button appearance="subtle" type="button" disabled={busy} onClick={cancel}>取消</Button><div>{step > 1 ? <Button type="button" disabled={busy} onClick={() => navigate(step === 3 ? 2 : 1)}>上一步</Button> : null}<Button appearance="primary" type="submit" disabled={busy}>{busy ? "正在创建…" : step === 3 ? "创建租户" : "下一步"}</Button></div></footer>
+      <footer className="tenant-onboarding__actions"><Button appearance="subtle" type="button" disabled={busy} onClick={cancel}>取消</Button><div>{step > 1 ? <Button type="button" disabled={busy} onClick={() => navigate(step === 3 ? 2 : 1)}>上一步</Button> : null}<Button appearance="primary" type="submit" disabled={busy}>
+        {step === 3 ? <span className="tenant-onboarding__submit-copy"><span aria-hidden={busy} className={busy ? "is-hidden" : undefined}>创建租户</span><span aria-hidden={!busy} className={!busy ? "is-hidden" : undefined}>正在创建…</span></span> : "下一步"}
+      </Button></div></footer>
     </form>}
   </section>;
 }

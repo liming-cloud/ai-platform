@@ -23,7 +23,10 @@ export function TenantOverview({ client, tenantId, onRouteChange }: {
   return <section className="tenant-onboarding tenant-overview">
     <header className="tenant-onboarding__heading"><h2>租户概览</h2><Button onClick={() => onRouteChange({ navigationId: "platform", task: "tenants", page: 1 })}>返回租户目录</Button></header>
     {failure ? <><MessageBar intent="error"><MessageBarBody><MessageBarTitle>{failure.title}</MessageBarTitle>{failure.description}</MessageBarBody></MessageBar><Button onClick={() => setRevision(value => value + 1)}>重新加载</Button></> : !data ? <p role="status">正在读取租户信息与配额…</p> : <>
-      <div className="tenant-overview__identity"><span className="tenant-overview__monogram" aria-hidden="true">{Array.from(data.tenant.displayName)[0]}</span><div className="tenant-overview__identity-copy"><h3>{data.tenant.displayName}</h3><p>{data.tenant.tenantCode}</p></div><Badge appearance="tint" color={data.tenant.status === "ACTIVE" ? "success" : "warning"}>{data.tenant.status === "ACTIVE" ? "活动" : data.tenant.status === "SUSPENDED" ? "已暂停" : "准备中"}</Badge></div>
+      <div className="tenant-overview__summary-grid">
+        <div className="tenant-overview__identity"><span className="tenant-overview__monogram" aria-hidden="true">{Array.from(data.tenant.displayName)[0]}</span><div className="tenant-overview__identity-copy"><h3>{data.tenant.displayName}</h3><p>{data.tenant.tenantCode}</p></div><Badge appearance="tint" color={data.tenant.status === "ACTIVE" ? "success" : "warning"}>{data.tenant.status === "ACTIVE" ? "活动" : data.tenant.status === "SUSPENDED" ? "已暂停" : "准备中"}</Badge></div>
+        <aside className="tenant-overview__safety" aria-labelledby="tenant-safety-title"><h3 id="tenant-safety-title">基础保护已开启</h3><ul><li>租户数据隔离</li><li>服务端权限校验</li><li>密码与密钥不回显</li></ul></aside>
+      </div>
       <section aria-labelledby="tenant-quota-title"><h3 id="tenant-quota-title">资源配额</h3><dl className="tenant-overview__facts">
         <div><dt>知识库数量</dt><dd>{data.quotas.knowledgeBases} 个</dd></div>
         <div><dt>每库文档数量</dt><dd>{data.quotas.documentsPerKnowledgeBase} 个</dd></div>

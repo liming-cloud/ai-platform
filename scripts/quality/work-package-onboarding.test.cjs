@@ -5,7 +5,7 @@ const os = require("node:os");
 const path = require("node:path");
 const { readOnboardingConfiguration, onboardingRequest, verifyOnboardingResult,
   verifyLogicalFieldRows, wizardKeyboardPlan, verifyKeyboardTraversal, acceptanceStep, wizardLabelPattern,
-  verifyOverviewBadge, withTextScale } = require("../development/acceptance-onboarding.cjs");
+  verifyOverviewBadge, withTextScale, verifyPrototypeStyle } = require("../development/acceptance-onboarding.cjs");
 const { SafeAssertionError } = require("../development/acceptance-login.cjs");
 
 const directory = fs.mkdtempSync(path.join(os.tmpdir(), "wp0017-onboarding-test-"));
@@ -14,6 +14,17 @@ const credentialsFile = path.join(directory, "credentials.json");
 fs.writeFileSync(credentialsFile, JSON.stringify({ platform: { loginName: "synthetic-platform", password: "synthetic-only-password" } }), { mode: 0o600 });
 const environment = () => ({ FOUNDATION_ACCEPTANCE_CREDENTIALS_FILE: credentialsFile,
   FOUNDATION_ACCEPTANCE_OUTPUT_FILE: path.join(directory, "new-created.json") });
+
+test("原型一致性拒绝旧白底、旧字体及仅字号名正确的控件", () => {
+  const current = { surface: "rgb(250, 249, 245)", text: "rgb(20, 20, 19)", bodySize: 16, bodyFont: '"PingFang SC", sans-serif',
+    headingCount: 1, headingFont: 'Georgia, "Songti SC", serif', inputSize: 16, inputRadius: 8, heights: [36, 36, 36] };
+  assert.doesNotThrow(() => verifyPrototypeStyle(current, 1440));
+  assert.doesNotThrow(() => verifyPrototypeStyle({ ...current, heights: [44, 44, 44] }, 390));
+  for (const defect of [{ surface: "rgb(255, 255, 255)" }, { bodySize: 14 }, { headingCount: 0 }, { inputSize: 14 }, { inputRadius: 7 }, { heights: [36, 56] }]) {
+    assert.throws(() => verifyPrototypeStyle({ ...current, ...defect }, 1440), /原型/);
+  }
+  assert.throws(() => verifyPrototypeStyle(current, 390), /原型/);
+});
 
 test("开户只需平台凭据，但必须显式指定新的独占凭据输出文件", () => {
   assert.equal(readOnboardingConfiguration(environment()).setup, true);
@@ -76,6 +87,10 @@ test("Tab 跳过输入或错误顺序、Shift+Tab 无法返回都会失败", () 
   assert.throws(() => verifyKeyboardTraversal(expected, expected.filter(value => value !== "input:password")), /键盘/);
   assert.throws(() => verifyKeyboardTraversal(expected, [...expected].reverse()), /键盘/);
   assert.throws(() => verifyKeyboardTraversal(expected.slice(0, -1).reverse(), []), /键盘/);
+});
+test("键盘定位不把为加载尺寸保留的不可见文案算成当前按钮名称", () => {
+  const source = fs.readFileSync(path.join(__dirname, "../development/acceptance-onboarding.cjs"), "utf8");
+  assert.match(source, /return `button:\$\{element\.innerText\.trim\(\)\}`/);
 });
 test("子步骤定位只披露静态阶段，不输出浏览器原异常中的密码或页面数据", async () => {
   await assert.rejects(() => acceptanceStep("填写组织名称", async () => { throw new Error("synthetic-secret-password 页面正文"); }), error => {

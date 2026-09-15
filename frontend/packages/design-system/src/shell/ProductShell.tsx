@@ -6,7 +6,6 @@ import {
   MenuPopover,
   MenuTrigger,
   Text,
-  Title2,
   Tooltip,
 } from "@fluentui/react-components";
 import {
@@ -124,7 +123,7 @@ export function ProductShell({
           <div className="product-canvas">
             <section className="page-heading" aria-labelledby="page-title">
               <Text className="page-context">{contextLabel}</Text>
-              <Title2 id="page-title">{pageTitle}</Title2>
+              <h1 id="page-title">{pageTitle}</h1>
               <Text className="page-summary">{pageSummary}</Text>
             </section>
             <div className="product-content">{children}</div>

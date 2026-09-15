@@ -97,7 +97,7 @@ async function exerciseWizardKeyboard(page, step, advance = false) {
     const element = document.activeElement;
     if (!element?.closest(".tenant-onboarding form")) return "outside";
     if (element.tagName === "INPUT") return `input:${element.name || (element.readOnly ? "readonly" : "unknown")}`;
-    if (element.tagName === "BUTTON") return `button:${element.textContent.trim()}`;
+    if (element.tagName === "BUTTON") return `button:${element.innerText.trim()}`;
     return "unknown";
   });
   // 只定位非交互标题作为起点，所有控件都必须通过真实 Tab 到达。
@@ -173,7 +173,31 @@ async function withTextScale(page, enlarged, action) {
   }
 }
 
+/** 基线来自已人工验收原型，不从生产令牌反推期望值；正常字号下检查真实计算样式。 */
+function verifyPrototypeStyle(style, width) {
+  requireCondition(style.surface === "rgb(250, 249, 245)" && style.text === "rgb(20, 20, 19)", "原型面板或文字颜色不一致");
+  requireCondition(style.bodySize === 16 && style.bodyFont.includes("PingFang SC") && style.headingCount === 1 && style.headingFont.includes("Georgia"), "原型正文或标题排版不一致");
+  requireCondition(style.inputSize === 16 && style.inputRadius === 8, "原型输入控件字号或圆角不一致");
+  const height = width <= 680 ? 44 : 36;
+  requireCondition(style.heights.length > 0 && style.heights.every(value => Number.isFinite(value) && Math.abs(value - height) <= 1), "原型普通控件尺寸不一致");
+}
+
+async function assertPrototypeStyle(page, width) {
+  const style = await page.evaluate(() => {
+    const panel = document.querySelector(".tenant-onboarding");
+    const heading = document.querySelector("h1#page-title");
+    const input = panel.querySelector(".fui-Input");
+    return { surface: getComputedStyle(document.querySelector(".product-shell")).backgroundColor, text: getComputedStyle(panel).color,
+      bodySize: parseFloat(getComputedStyle(panel).fontSize), bodyFont: getComputedStyle(panel).fontFamily,
+      headingCount: document.querySelectorAll("main h1#page-title").length, headingFont: heading ? getComputedStyle(heading).fontFamily : "",
+      inputSize: parseFloat(getComputedStyle(input.querySelector("input")).fontSize), inputRadius: parseFloat(getComputedStyle(input).borderRadius),
+      heights: [...panel.querySelectorAll(".fui-Input,.tenant-onboarding__actions button")].map(element => element.getBoundingClientRect().height) };
+  });
+  verifyPrototypeStyle(style, width);
+}
+
 async function assertWizardLayout(page, width, step, enlarged = false) {
+  if (!enlarged) await assertPrototypeStyle(page, width);
   return withTextScale(page, enlarged, async () => {
     const result = await page.evaluate(() => {
       const visible = element => element && element.getBoundingClientRect().width > 0 && element.getBoundingClientRect().height > 0;
@@ -423,7 +447,7 @@ async function run(configuration) {
 
 module.exports = { readOnboardingConfiguration, onboardingRequest, verifyOnboardingResult,
   verifyLogicalFieldRows, wizardKeyboardPlan, verifyKeyboardTraversal, acceptanceStep, wizardLabelPattern,
-  verifyOverviewBadge, withTextScale, assertOverviewBadgeLayout };
+  verifyOverviewBadge, withTextScale, assertOverviewBadgeLayout, verifyPrototypeStyle, assertPrototypeStyle };
 if (require.main === module) {
   try { run(readOnboardingConfiguration()).catch(error => { process.stderr.write(`${error.message}\n`); process.exitCode = 1; }); }
   catch (error) { process.stderr.write(`${error.message}\n`); process.exitCode = 1; }
