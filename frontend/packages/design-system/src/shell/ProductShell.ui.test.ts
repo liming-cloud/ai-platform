@@ -70,6 +70,7 @@ describe("共享产品壳视觉契约", () => {
     const source = readFileSync(shellPath, "utf8");
     const styles = readFileSync(shellStylesPath, "utf8");
     expect(source).toContain('<h1 id="page-title">{pageTitle}</h1>');
+    expect(source).toContain('<span aria-hidden="true">R</span>');
     expect(styles).toMatch(/\.page-heading h1\s*\{[^}]*font-family:\s*var\(--foundation-font-display\);[^}]*line-height:\s*1\.35;/s);
   });
 

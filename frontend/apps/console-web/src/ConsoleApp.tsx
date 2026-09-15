@@ -212,7 +212,7 @@ function AuthenticatedConsoleApp({
   if (navigation.length === 0) {
     return (
       <ProductShell
-        productName="可信知识平台"
+        productName="可信 RAG"
         pageTitle="当前没有可用工作区"
         pageSummary="系统只显示与当前会话能力相符的入口，不会因此展示租户正文或管理入口。"
         navigation={[]}
@@ -235,7 +235,7 @@ function AuthenticatedConsoleApp({
     const denied = resolvedRoute.kind === "denied";
     return (
       <ProductShell
-        productName="可信知识平台"
+        productName="可信 RAG"
         pageTitle={denied ? "当前会话无权访问此工作区" : "未找到工作区"}
         pageSummary={denied
           ? "该 URL 不会被静默替换为其他工作区，请使用当前会话被授权的入口。"
@@ -272,7 +272,7 @@ function AuthenticatedConsoleApp({
 
   return (
     <ProductShell
-      productName="可信知识平台"
+      productName="可信 RAG"
       pageTitle={
         operationsActive ? "运营总览" : platformOperationsActive ? "平台运营总览" : accessActive ? route.task === "roles" ? "租户角色" : "成员与权限" : platformActive ? route.task === "create" ? "建立新租户" : "平台租户" : platformAccountsActive ? route.task === "roles" ? "角色目录" : "人员账户目录" : platformModelSupplyActive ? "平台模型供应链" : queryActive ? "从已授权资料中获得答案" : governanceActive ? route.task === "query" ? "查询用量与审计" : "受限评测运行" : modelsActive ? route.task === "configuration" ? "受控模型配置" : route.task === "providers" ? "供应商连接与模型发现" : "模型部署与能力验证" : dataPage?.title ?? "可信知识平台"
       }

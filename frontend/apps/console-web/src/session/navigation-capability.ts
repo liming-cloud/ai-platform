@@ -16,7 +16,7 @@ export const NAVIGATION = [
   },
   {
     id: "platform",
-    label: "平台租户",
+    label: "租户管理",
     icon: "platform",
     requiredCapability: "tenant-governance:write",
     workspace: "PLATFORM_TENANT_GOVERNANCE",

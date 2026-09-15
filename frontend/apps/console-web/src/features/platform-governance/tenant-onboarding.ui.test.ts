@@ -3,6 +3,11 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 describe("开户原型承接边界", () => {
+  it("管理外壳与登录入口使用原型的同一产品名", () => {
+    const source = readFileSync(new URL("../../ConsoleApp.tsx", import.meta.url), "utf8");
+    expect(source).toContain('productName="可信 RAG"');
+    expect(source).not.toContain('productName="可信知识平台"');
+  });
   it("只使用共享颜色，不重复维护局部品牌主题", () => {
     const styles = readFileSync(new URL("./tenant-onboarding.css", import.meta.url), "utf8");
     expect(styles).not.toMatch(/--color(?:Brand|Neutral)|#[0-9a-f]{3,8}\b/i);

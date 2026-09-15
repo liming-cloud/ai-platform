@@ -183,6 +183,7 @@ function verifyPrototypeStyle(style, width) {
   requireCondition(style.surface === "rgb(250, 249, 245)" && style.text === "rgb(20, 20, 19)", "原型面板或文字颜色不一致");
   requireCondition(style.bodySize === 16 && style.bodyFont.includes("PingFang SC") && style.headingCount === 1 && style.headingFont.includes("Georgia"), "原型正文或标题排版不一致");
   requireCondition(style.inputSize === 16 && style.inputRadius === 8, "原型输入控件字号或圆角不一致");
+  requireCondition(style.buttonMinWidths.length > 0 && style.buttonMinWidths.every(value => value === 0), "原型按钮不应沿用框架固定最小宽度");
   const height = width <= 680 ? 44 : 36;
   requireCondition(style.heights.length > 0 && style.heights.every(value => Number.isFinite(value) && Math.abs(value - height) <= 1), "原型普通控件尺寸不一致");
 }
@@ -196,7 +197,8 @@ async function assertPrototypeStyle(page, width) {
       bodySize: parseFloat(getComputedStyle(panel).fontSize), bodyFont: getComputedStyle(panel).fontFamily,
       headingCount: document.querySelectorAll("main h1#page-title").length, headingFont: heading ? getComputedStyle(heading).fontFamily : "",
       inputSize: parseFloat(getComputedStyle(input.querySelector("input")).fontSize), inputRadius: parseFloat(getComputedStyle(input).borderRadius),
-      heights: [...panel.querySelectorAll(".fui-Input,.tenant-onboarding__actions button")].map(element => element.getBoundingClientRect().height) };
+      heights: [...panel.querySelectorAll(".fui-Input,.tenant-onboarding__actions button")].map(element => element.getBoundingClientRect().height),
+      buttonMinWidths: [...panel.querySelectorAll(".tenant-onboarding__actions button")].map(element => parseFloat(getComputedStyle(element).minWidth)) };
   });
   verifyPrototypeStyle(style, width);
 }
@@ -305,7 +307,7 @@ async function run(configuration) {
       await assertWorkspace(page, "platform");
       await assertIdentity(page, "platform");
       authenticated = true;
-      await acceptanceStep("从导航进入平台租户", () => page.getByRole("button", { name: "平台租户", exact: true }).click());
+      await acceptanceStep("从导航进入租户管理", () => page.getByRole("button", { name: "租户管理", exact: true }).click());
       await acceptanceStep("从租户目录进入建立租户", () => page.getByRole("button", { name: "建立租户", exact: true }).click());
       await acceptanceStep("确认开户入口落点", () => page.waitForURL(url => url.pathname === "/platform/tenants/new" && url.searchParams.get("step") === "1"));
     });

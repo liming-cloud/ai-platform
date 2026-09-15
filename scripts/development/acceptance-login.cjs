@@ -75,7 +75,7 @@ async function assertWorkspace(page, role) {
   const platform = role === "platform";
   await page.waitForURL(url => url.pathname === (platform ? "/platform/operations" : "/operations")
     && url.searchParams.get("range") === "DAY_7" && (!platform || url.searchParams.get("page") === "1"));
-  // 既有工作区使用 Fluent Text 标题，不能假定其 DOM 已是 heading。
+  // 使用稳定的页头标识，避免与内容区的资源标题混淆。
   const pageTitle = page.locator("#page-title");
   await pageTitle.waitFor();
   requireCondition(await pageTitle.innerText() === (platform ? "平台运营总览" : "运营总览"), "登录后未进入预期工作区");

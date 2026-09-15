@@ -21,7 +21,6 @@ import {
   PersonAccounts20Regular,
   ShieldTask20Regular,
   SignOut20Regular,
-  Sparkle20Filled,
 } from "@fluentui/react-icons";
 import type { ReactNode } from "react";
 import "../styles/shell.css";
@@ -82,7 +81,7 @@ export function ProductShell({
     <div className="product-shell">
       <aside className="product-sidebar">
         <div className="product-brand">
-          <span aria-hidden="true"><Sparkle20Filled /></span>
+          <span aria-hidden="true">R</span>
           <div><Text weight="semibold">{productName}</Text><small>管理控制台</small></div>
         </div>
         <nav className="product-navigation" aria-label="主要导航">
@@ -116,7 +115,7 @@ export function ProductShell({
           <AccountMenu accountLabel={accountLabel} onLogout={onLogout} topbar />
         </header>
         <header className="product-mobile-header">
-          <div><span aria-hidden="true"><Sparkle20Filled /></span><Text weight="semibold">{productName}</Text></div>
+          <div><span aria-hidden="true">R</span><Text weight="semibold">{productName}</Text></div>
           <AccountMenu accountLabel={accountLabel} onLogout={onLogout} compact />
         </header>
         <main className="product-main">

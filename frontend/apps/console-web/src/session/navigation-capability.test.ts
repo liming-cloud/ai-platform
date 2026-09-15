@@ -6,6 +6,10 @@ import {
 } from "./navigation-capability";
 
 describe("visibleNavigation", () => {
+  it("租户治理入口使用已验收原型名称，路由与授权条件不变", () => {
+    const navigation = visibleNavigation({ canUseTenantWorkspace: false, canUsePlatformGovernance: true, capabilityCodes: ["tenant-governance:write"] });
+    expect(navigation[0]?.children).toEqual([{ id: "platform", label: "租户管理", icon: "platform", requiredCapability: "tenant-governance:write", workspace: "PLATFORM_TENANT_GOVERNANCE" }]);
+  });
   it("只显示当前租户会话已具备实际能力的入口", () => {
     expect(visibleNavigation({
       canUseTenantWorkspace: true,

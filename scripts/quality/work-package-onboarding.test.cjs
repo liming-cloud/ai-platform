@@ -17,10 +17,10 @@ const environment = () => ({ FOUNDATION_ACCEPTANCE_CREDENTIALS_FILE: credentials
 
 test("原型一致性拒绝旧白底、旧字体及仅字号名正确的控件", () => {
   const current = { surface: "rgb(250, 249, 245)", text: "rgb(20, 20, 19)", bodySize: 16, bodyFont: '"PingFang SC", sans-serif',
-    headingCount: 1, headingFont: 'Georgia, "Songti SC", serif', inputSize: 16, inputRadius: 8, heights: [36, 36, 36] };
+    headingCount: 1, headingFont: 'Georgia, "Songti SC", serif', inputSize: 16, inputRadius: 8, heights: [36, 36, 36], buttonMinWidths: [0, 0] };
   assert.doesNotThrow(() => verifyPrototypeStyle(current, 1440));
   assert.doesNotThrow(() => verifyPrototypeStyle({ ...current, heights: [44, 44, 44] }, 390));
-  for (const defect of [{ surface: "rgb(255, 255, 255)" }, { bodySize: 14 }, { headingCount: 0 }, { inputSize: 14 }, { inputRadius: 7 }, { heights: [36, 56] }]) {
+  for (const defect of [{ surface: "rgb(255, 255, 255)" }, { bodySize: 14 }, { headingCount: 0 }, { inputSize: 14 }, { inputRadius: 7 }, { heights: [36, 56] }, { buttonMinWidths: [96, 96] }]) {
     assert.throws(() => verifyPrototypeStyle({ ...current, ...defect }, 1440), /原型/);
   }
   assert.throws(() => verifyPrototypeStyle(current, 390), /原型/);
