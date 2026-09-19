@@ -30,6 +30,8 @@
 .tenant-onboarding .fui-Field__validationMessage { line-height: 1.4; }
 .tenant-onboarding .fui-Input { min-height: 36px; border-radius: var(--foundation-control-radius); width: 100%; min-width: 0; align-self: start; border-color: var(--foundation-border-strong); }
 .tenant-onboarding .fui-Input input { font-size: 16px; line-height: 1.4; min-width: 0; width: 100%; }
+.tenant-onboarding .fui-Input:has(input[readonly]) { background: var(--foundation-subtle-surface); }
+.tenant-onboarding .fui-Input input[readonly] { color: var(--foundation-muted-text); font-size: 14px; line-height: 1.5; }
 .tenant-onboarding .fui-Input__contentAfter { font-size: 14px; color: var(--foundation-muted-text); }
 .tenant-onboarding .fui-Button { min-height: 36px; padding: 6px 12px; font-size: 14px; font-weight: 620; line-height: 1.428572; border-radius: var(--foundation-control-radius); width: auto; white-space: normal; }
 .tenant-onboarding .fui-Checkbox { align-items: start; }
@@ -71,6 +73,7 @@
 @media (prefers-reduced-motion: no-preference) { .tenant-onboarding form { animation: onboarding-enter var(--foundation-motion-base) var(--foundation-ease); } }
 @keyframes onboarding-enter { from { opacity: 0; transform: translateY(3px); } to { opacity: 1; transform: none; } }
 /* 桌面第三步对应原型左右分区；DOM 顺序继续保证先填写身份再确认。 */
+.tenant-onboarding fieldset.tenant-onboarding__administrator { gap: 16px; }
 @media (min-width: 681px) {
   .tenant-onboarding fieldset.tenant-onboarding__administrator {
     grid-template-areas: "fields summary" "fields consent";
@@ -83,6 +86,7 @@
 }
 @media (max-width: 680px) {
   .tenant-onboarding { gap: 12px; }
+  .tenant-onboarding fieldset.tenant-onboarding__administrator { gap: 12px; }
   .tenant-onboarding__steps li { min-height: 56px; padding: 8px; gap: 8px; font-size: 14px; }
   .tenant-onboarding__steps li > span { min-width: 24px; min-height: 24px; width: max(24px, calc(1.6em + 2px)); height: max(24px, calc(1.6em + 2px)); }
   .tenant-onboarding__steps strong { font-size: 14px; }
@@ -102,7 +106,7 @@
 .tenant-onboarding__quota-label small { font-size: 14px; font-weight: 400; color: var(--foundation-muted-text); }
 .tenant-onboarding .fui-Field__hint { margin: 0; font-size: 14px; line-height: 1.6; }
 .tenant-onboarding input[name="tenantCode"], .tenant-onboarding input[name="loginName"], .tenant-onboarding__quotas input { font-family: ui-monospace, Menlo, monospace; }
-.tenant-onboarding .fui-Checkbox { display: flex; gap: 12px; min-height: var(--foundation-control-height); padding: 12px 0; border: 1px solid var(--foundation-border-strong); border-radius: var(--foundation-control-radius); background: var(--foundation-subtle-surface); }
+.tenant-onboarding .fui-Checkbox { display: flex; width: 100%; gap: 12px; min-height: var(--foundation-control-height); padding: 12px 0; border: 1px solid var(--foundation-border-strong); border-radius: var(--foundation-control-radius); background: var(--foundation-subtle-surface); }
 .tenant-onboarding .fui-Checkbox__label { padding: 0; margin: 0; color: var(--foundation-text); font-size: 16px; font-weight: 400; line-height: 1.6; }
 .tenant-onboarding .fui-Checkbox__indicator { flex: 0 0 18px; width: 18px; height: 18px; margin: 2px 0 0; }
 .tenant-onboarding__summary { gap: 0; padding: 0; }
