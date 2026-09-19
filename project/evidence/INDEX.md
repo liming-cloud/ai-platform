@@ -504,7 +504,7 @@
 
 ## WP-0017
 
-当前严格一致性重新打开；见 [恢复与截图治理](WP-0017-strict-parity-recovery-20260919.md)，基线 `50d15bb8319d3ee850eba6276d782a2a819bdcd9`。历史截图已移出当前树，路径仅用于 Git 追溯，不代表当前树图片附件。
+当前严格一致性尚未关闭；最新事实见 [部署后严格复验与待决冲突](WP-0017-strict-parity-retest-20260920.md)。[恢复与截图治理](WP-0017-strict-parity-recovery-20260919.md) 基线为 `50d15bb8319d3ee850eba6276d782a2a819bdcd9`。历史截图已移出当前树，路径仅用于 Git 追溯，不代表当前树图片附件。
 
 | 证据 | 命令或评审 | 提交 | 结果 |
 | --- | --- | --- | --- |
@@ -517,7 +517,9 @@
 | 开户视觉及真实验收修正 | `project/evidence/WP-0017-atomic-onboarding-deploy-20260914.md` | `e008338e53bffd81def84f5de21dd0028e16c0f0` | 已构建并部署；正常徽标恢复内容宽度，四入口健康通过。强化实际字号等待后，11 场景在200%标签裁切失败，后续修正另行验证，不推进下一切片。 |
 | 开户真实字号等待与局部排版修正 | `project/evidence/WP-0017-atomic-onboarding-deploy-20260914.md` | `27427a1be3248efe8facb0811f8fa55d7b4a8849` | 红绿闭合 CSS 过渡采样和徽标宽度下界；239 组织、23 HTTP、209 前端、26 脚本通过。局部行高修正已构建镜像，但容器更新被自动审批容量不足阻断；最终11场景未完成，不标记切片通过。 |
 | 开户切片原型一致性审计 | `project/evidence/WP-0017-prototype-parity-audit-20260915.md` | `2966981dc1c8ea2bbcc3b83afbfe7a3aae525ab3`（被审计源码） | 已读 OpenDesign 完整原型并核实三个预览文件；发现共享主题、排版、尺寸和测试基线漂移，一致性未通过。209 前端、26 脚本及治理复验通过不代替视觉验证；整改与部署仍待完成。 |
-| 原子开户部署后原型一致性闭环 | `project/evidence/WP-0017-prototype-parity-deploy-20260919.md`；`project/evidence/WP-0017-parity-navigation-profile-20260919.json`；`project/evidence/WP-0017-parity-quality-20260919.json` | `670d13e58432a7f0b4dc4bd54ae75921bfd48277` | 最终前端真实 11 个开户、15 个登录、15 项只读事实及有效 48 张视觉对照通过，结构/键盘红绿闭合，Runtime quality 通过；后端仍 5844fd3ba…；仅本切片完成，WP-0017/M6 未完成。 |
+| 原子开户前次范围验收（严格要求已重新打开） | `project/evidence/WP-0017-prototype-parity-deploy-20260919.md`；`project/evidence/WP-0017-parity-navigation-profile-20260919.json`；`project/evidence/WP-0017-parity-quality-20260919.json` | `670d13e58432a7f0b4dc4bd54ae75921bfd48277` | 最终前端真实 11 个开户、15 个登录、15 项只读事实及有效 48 张视觉对照通过，结构/键盘红绿闭合，Runtime quality 通过；后端仍 5844fd3ba…；结论限于当时范围，当前切片严格一致性已重新打开，WP-0017/M6 未完成。 |
+| 严格范围恢复与截图治理 | `project/evidence/WP-0017-strict-parity-recovery-20260919.md` | `c74a4eb5d` | 移除 41 张历史受控截图、加入截图门禁；保留五项用户 fixture 暂存重命名。严格一致性重新打开，不推进后续切片。 |
+| 最新部署严格复验与待决冲突 | `project/evidence/WP-0017-strict-parity-retest-20260920.md` | `e62a7682722661c5b778a74cdda51eab0ec4e568` | 前端 218、脚本 30、治理 38；实际部署 11 个开户、15 个登录、15 项只读事实通过，48 个画面观察无生产横向溢出。两项要求冲突待决定，严格一致性及当前切片均未整体关闭；不复用旧 Runtime quality 宣称通过。 |
 
 ## 证据规则
 
@@ -525,4 +527,4 @@
 - 性能证据记录数据集、硬件、并发、预热和分位值。
 - RAG 证据记录数据集版本、模型部署版本、索引版本和指标。
 - 安全证据记录攻击场景和被保护的信息边界。
-- 截图和录像只能补充自动证据，不能替代自动证据。
+- 截图仅保存于 `/private/tmp`，不得提交仓库；仓库关联固定 OpenDesign 项目/版本链接及文字证据。视觉观察不能替代自动证据，也不能把采样数量当作严格一致性通过。
