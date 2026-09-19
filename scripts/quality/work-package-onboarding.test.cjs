@@ -156,3 +156,11 @@ test("原型布局拒绝旧底部导航、无内边距表单和未固定的移�
   assert.throws(() => verifyPrototypeFrame({ ...tablet, headingClip: "none" }, 1024));
   assert.doesNotThrow(() => verifyPrototypeFrame({ ...tablet, headingClip: "none" }, 1440));
 });
+
+test("正常字号也必须等待视口布局后再检查概览触控尺寸", async () => {
+  const { withTextScale } = require("../development/acceptance-onboarding.cjs");
+  const order = [];
+  const page = { waitForFunction: async () => { order.push("viewport-settled"); } };
+  await withTextScale(page, false, async () => { order.push("assert"); });
+  assert.deepEqual(order, ["viewport-settled", "assert"]);
+});

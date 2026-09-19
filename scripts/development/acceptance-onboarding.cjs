@@ -153,8 +153,8 @@ async function withTextScale(page, enlarged, action) {
       Math.abs(parseFloat(getComputedStyle(element).fontSize) - sizes[index]) < 0.1);
   }, { selector, sizes }, { polling: "raf", timeout: 2000 });
   try {
-    // 改变视口后的媒体查询需经过布局帧；否则会记录旧标题字号，再拿新视口字号校验还原。
-    if (enlarged) await page.waitForFunction(async () => {
+    // 两种字号都先等待媒体查询布局，避免拿旧控件尺寸或旧标题字号校验新视口。
+    await page.waitForFunction(async () => {
       await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
       return true;
     }, { phase: "viewport" }, { timeout: 2000 });
@@ -284,8 +284,8 @@ async function assertOverviewStructure(page) {
 }
 
 async function assertWizardLayout(page, width, step, enlarged = false) {
-  if (!enlarged) await assertPrototypeStyle(page, width);
   return withTextScale(page, enlarged, async () => {
+    if (!enlarged) await assertPrototypeStyle(page, width);
     const result = await page.evaluate(() => {
       // 已单独断言平板页头的视觉收起合同；其辅助技术文本不按可见控件测量裁切。
       const visible = element => element && getComputedStyle(element.closest(".page-heading") || element).clipPath !== "inset(50%)"
@@ -328,10 +328,10 @@ function verifyOverviewBadge({ cardWidth, badgeWidth, contentWidth, insets, badg
 }
 
 async function assertOverviewBadgeLayout(page, enlarged = false) {
-  await assertOverviewStructure(page);
   const originalFontSize = await page.locator(".tenant-overview__identity-heading > .fui-Badge").evaluate(badge => parseFloat(getComputedStyle(badge).fontSize));
   const originalSafetySize = await page.locator(".tenant-overview__safety li").first().evaluate(item => parseFloat(getComputedStyle(item).fontSize));
   return withTextScale(page, enlarged, async () => {
+    await assertOverviewStructure(page);
     const metrics = await page.evaluate(() => {
       const card = document.querySelector(".tenant-overview__identity");
       const badges = card?.querySelectorAll(".tenant-overview__identity-heading > .fui-Badge");
