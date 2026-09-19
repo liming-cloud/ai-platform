@@ -9,8 +9,8 @@ export const NAVIGATION = [
   { id: "query", label: "问答", icon: "query", requiredCapability: "assistant:query", workspace: "TENANT" },
   {
     id: "platform-operations",
-    label: "运营总览",
-    icon: "overview",
+    label: "平台治理概览",
+    icon: "governance",
     requiredCapability: "platform-operations:read",
     workspace: "PLATFORM_TENANT_GOVERNANCE",
   },
@@ -30,8 +30,8 @@ export const NAVIGATION = [
   },
   {
     id: "platform-model-supply",
-    label: "平台模型供应链",
-    icon: "supply",
+    label: "模型治理",
+    icon: "models",
     requiredCapability: "model-platform:write",
     workspace: "PLATFORM_TENANT_GOVERNANCE",
   },
@@ -56,14 +56,10 @@ export function visibleNavigation({
       && canUsePlatformGovernance
       && capabilityCodes.includes(item.requiredCapability));
   const result: NavigationItem[] = [...tenantNavigation];
-  if (platformNavigation.length > 0) {
-    result.push({
-      id: "platform-governance",
-      label: "平台治理",
-      icon: "governance",
-      children: platformNavigation,
-    });
-  }
+  const governance = platformNavigation.filter(item => item.id !== "platform-model-supply");
+  const models = platformNavigation.filter(item => item.id === "platform-model-supply");
+  if (governance.length > 0) result.push({ id: "platform-governance", label: "平台治理", icon: "governance", children: governance });
+  if (models.length > 0) result.push({ id: "platform-model-governance", label: "治理", icon: "models", children: models });
   return result;
 }
 

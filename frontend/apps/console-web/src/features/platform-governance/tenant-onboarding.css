@@ -8,9 +8,9 @@
   gap: 16px;
 }
 .tenant-onboarding *, .tenant-onboarding *::before, .tenant-onboarding *::after { box-sizing: border-box; }
-.tenant-onboarding__steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); list-style: none; padding: 0; margin: 0; border-block: 1px solid var(--foundation-border); }
-.tenant-onboarding__steps li { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 12px; min-height: 60px; padding: 12px 16px; border-right: 1px solid var(--foundation-border); color: var(--foundation-muted-text); }
-.tenant-onboarding__steps li[aria-current="step"] { background: var(--foundation-accent-subtle); color: var(--foundation-accent); }
+.tenant-onboarding__steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); list-style: none; padding: 0; margin: 0; gap: 0; border-block: 1px solid var(--foundation-border); }
+.tenant-onboarding__steps li { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 12px; min-height: 60px; padding: 12px 16px; border-right: 1px solid var(--foundation-border); color: var(--foundation-text); }
+.tenant-onboarding__steps li[aria-current="step"] { background: var(--foundation-accent-subtle); color: var(--foundation-text); }
 .tenant-onboarding__steps li > span { display: grid; place-items: center; min-width: 28px; min-height: 28px; width: max(28px, calc(1.6em + 2px)); height: max(28px, calc(1.6em + 2px)); font-size: 14px; flex: 0 0 auto; border: 1px solid var(--foundation-border); border-radius: 50%; font-variant-numeric: tabular-nums; }
 .tenant-onboarding__steps li[aria-current="step"] > span, .tenant-onboarding__steps li[data-complete="true"] > span { background: var(--foundation-accent); color: var(--foundation-surface); border-color: var(--foundation-accent); }
 .tenant-onboarding form { display: grid; gap: 12px; min-width: 0; }
@@ -22,7 +22,7 @@
 .tenant-onboarding__fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; align-items: start; }
 .tenant-onboarding__quotas { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .tenant-onboarding .fui-Field { min-width: 0; display: grid; grid-template-rows: subgrid; grid-row: span 3; row-gap: 8px; }
-.tenant-onboarding .fui-Field > label { margin: 0; font-size: 16px; font-weight: 620; line-height: 1.6; }
+.tenant-onboarding .fui-Field > label { margin: 0; padding: 0; font-size: 16px; font-weight: 620; line-height: 1.6; }
 /* 保留原生 required 和无障碍语义；原型标签不附加装饰星号。 */
 .tenant-onboarding .fui-Label__required { display: none; }
 .tenant-onboarding .fui-Label,
@@ -38,7 +38,7 @@
 .tenant-onboarding__summary > span { display: grid; gap: 6px; overflow-wrap: anywhere; }
 .tenant-onboarding__summary small { color: var(--foundation-muted-text); }
 .tenant-onboarding__validation { color: var(--foundation-danger); margin: 0; }
-.tenant-onboarding__actions { display: flex; align-items: center; justify-content: space-between; gap: 12px; border-top: 1px solid var(--foundation-border); padding-top: 12px; }
+.tenant-onboarding__actions { display: flex; align-items: center; justify-content: space-between; gap: 8px; border-top: 1px solid var(--foundation-border); padding-top: 12px; }
 .tenant-onboarding__actions > div { display: flex; flex-wrap: wrap; gap: 8px; }
 /* 两种文案叠放，隐藏项仅参与内在尺寸，读屏只读当前状态。 */
 .tenant-onboarding__submit-copy { display: inline-grid; }
@@ -51,10 +51,11 @@
 .tenant-onboarding__heading h2:focus { outline: none; }
 .tenant-overview__summary-grid { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(19rem, 0.65fr); gap: 24px; }
 .tenant-overview__safety { padding: 20px; border: 1px solid var(--foundation-border); border-radius: var(--foundation-panel-radius); background: var(--foundation-subtle-surface); }
-.tenant-overview__safety ul { margin: 0; padding-left: 20px; display: grid; gap: 8px; color: var(--foundation-muted-text); }
+.tenant-overview__safety ul { list-style: none; margin: 16px 0 0; padding: 0; display: grid; gap: 12px; color: var(--foundation-text); }
+.tenant-overview__safety li::before { content: "✓"; display: inline-block; color: var(--foundation-accent); margin-right: 8px; }
 .tenant-overview__actions { justify-content: flex-end; }
 .tenant-overview__identity { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 24px; align-items: start; padding: 20px; border: 1px solid var(--foundation-border); border-radius: var(--foundation-panel-radius); background: var(--foundation-surface); overflow-wrap: anywhere; }
-.tenant-overview__identity-copy { min-width: 0; display: grid; gap: 12px; }
+.tenant-overview__identity-copy { min-width: 0; display: grid; gap: 0; }
 .tenant-overview__identity-copy > span, .tenant-overview__safety h3 { color: var(--foundation-muted-text); font-family: var(--foundation-font-body); font-size: 14px; font-weight: 600; }
 .tenant-overview__safety > p { font-family: var(--foundation-font-display); font-size: 22px; line-height: 1.4; }
 .tenant-overview__identity > .fui-Badge { justify-self: end; height: auto; min-height: 20px; line-height: 1.4; }
@@ -96,9 +97,10 @@
 
 .tenant-onboarding__steps li:last-child { border-right: 0; }
 .tenant-onboarding__card { display: grid; gap: 16px; padding: 16px 20px; min-width: 0; }
+.tenant-onboarding__quotas .fui-Field > label { width: 100%; }
 .tenant-onboarding__quota-label { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; width: 100%; }
 .tenant-onboarding__quota-label small { font-size: 14px; font-weight: 400; color: var(--foundation-muted-text); }
-.tenant-onboarding .fui-Field__hint { font-size: 14px; line-height: 1.6; }
+.tenant-onboarding .fui-Field__hint { margin: 0; font-size: 14px; line-height: 1.6; }
 .tenant-onboarding input[name="tenantCode"], .tenant-onboarding input[name="loginName"], .tenant-onboarding__quotas input { font-family: ui-monospace, Menlo, monospace; }
 .tenant-onboarding .fui-Checkbox { padding: 8px 0; border: 1px solid var(--foundation-border-strong); border-radius: var(--foundation-control-radius); background: var(--foundation-subtle-surface); }
 .tenant-onboarding .fui-Checkbox__label { font-size: 16px; }
@@ -106,10 +108,10 @@
 .tenant-onboarding__summary > span { gap: 4px; padding: 12px 16px; }
 .tenant-onboarding__summary > span + span { border-top: 1px solid var(--foundation-border); }
 .tenant-overview { padding-top: 24px; max-width: none; gap: 24px; }
-.tenant-overview__identity-facts { grid-column: 1 / -1; display: grid; gap: 12px; margin: 0; }
-.tenant-overview__identity-facts > div { display: grid; grid-template-columns: 8rem minmax(0, 1fr); gap: 16px; border-bottom: 1px solid var(--foundation-border); padding-bottom: 12px; }
-.tenant-overview__identity-facts dt { color: var(--foundation-muted-text); }
-.tenant-overview__identity-facts dd { margin: 0; font-family: ui-monospace, Menlo, monospace; }
+.tenant-overview__identity-facts { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 20px; margin: 16px 0; }
+.tenant-overview__identity-facts > div { min-width: 0; border-bottom: 1px solid var(--foundation-border); padding: 12px 0; }
+.tenant-overview__identity-facts dt { color: var(--foundation-muted-text); font-size: 14px; margin-bottom: 8px; }
+.tenant-overview__identity-facts dd { margin: 0; font-weight: 550; line-height: 1.55; font-family: ui-monospace, Menlo, monospace; }
 .tenant-overview__entry { padding: 0; border: 0; }
 .tenant-overview__safety { display: grid; align-content: start; gap: 12px; }
 .tenant-overview__safety h3, .tenant-overview__safety > p { margin: 0; }
@@ -128,3 +130,13 @@
 .tenant-onboarding .fui-Input:focus-within { border-color: var(--foundation-accent); outline: 2px solid var(--foundation-accent); outline-offset: 2px; }
 .tenant-onboarding .fui-Input::after { display: none; }
 .tenant-onboarding .fui-Input input:focus-visible { outline: none; }
+
+.tenant-onboarding__actions button[type="button"] { color: var(--foundation-text); }
+.tenant-overview__identity-copy h2 { margin: 0; }
+.tenant-overview__entry > a { color: var(--foundation-text); text-decoration: none; font-weight: 620; line-height: 1.2; min-height: 36px; }
+.tenant-overview__identity > .fui-Badge { gap: 0.35rem; min-height: 24px; padding: 2px 8px; border-radius: 999px; font-size: 14px; font-weight: 650; line-height: 1.6; }
+.tenant-overview__identity > .fui-Badge > span { font-size: 0.65em; }
+
+/* 仅连接当前已交付的概览资源，后续独立设置没有占位操作。 */
+.tenant-overview__settings { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; padding-bottom: 8px; border-bottom: 1px solid var(--foundation-border); }
+.tenant-overview__settings a { min-height: 32px; padding: 6px 12px; border: 1px solid transparent; border-radius: var(--foundation-control-radius); background: var(--foundation-hover-surface); box-shadow: inset 0 -2px var(--foundation-accent); font-size: 14px; font-weight: 620; line-height: 1.2; text-decoration: none; }

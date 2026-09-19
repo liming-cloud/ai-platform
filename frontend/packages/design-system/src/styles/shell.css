@@ -147,7 +147,7 @@
   background: rgb(255 255 255 / 97%);
 }
 
-.product-topbar__context {
+.product-topbar .product-topbar__context {
   color: var(--foundation-muted-text);
   font-size: 14px;
   font-weight: 650;
@@ -352,4 +352,9 @@
     border-color: Highlight;
     color: Highlight;
   }
+}
+
+.product-shell[data-scope="platform"] .product-topbar__context {
+  color: color-mix(in oklab, var(--foundation-warning-reference), var(--foundation-text) 65%);
+  font-weight: 700;
 }

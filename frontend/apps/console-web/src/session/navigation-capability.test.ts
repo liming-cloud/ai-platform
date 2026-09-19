@@ -6,6 +6,14 @@ import {
 } from "./navigation-capability";
 
 describe("visibleNavigation", () => {
+  it("已交付的平台入口承接原型分组与名称，不生成未交付的运行占位入口", () => {
+    const navigation = visibleNavigation({ canUseTenantWorkspace: false, canUsePlatformGovernance: true,
+      capabilityCodes: ["platform-operations:read", "tenant-governance:write", "platform:accounts:manage", "model-platform:write"] });
+    expect(navigation.map(group => ({ label: group.label, items: group.children?.map(item => item.label) }))).toEqual([
+      { label: "平台治理", items: ["平台治理概览", "租户管理", "平台账户"] },
+      { label: "治理", items: ["模型治理"] },
+    ]);
+  });
   it("租户治理入口使用已验收原型名称，路由与授权条件不变", () => {
     const navigation = visibleNavigation({ canUseTenantWorkspace: false, canUsePlatformGovernance: true, capabilityCodes: ["tenant-governance:write"] });
     expect(navigation[0]?.children).toEqual([{ id: "platform", label: "租户管理", icon: "platform", requiredCapability: "tenant-governance:write", workspace: "PLATFORM_TENANT_GOVERNANCE" }]);
@@ -92,12 +100,12 @@ describe("visibleNavigation", () => {
     expect(defaultNavigationTarget(platformNavigation)).toBe("platform-operations");
   });
 
-  it("平台模型写能力作为平台治理入口的受权子任务显示", () => {
+  it("平台模型写能力只生成原型治理组中的受权入口", () => {
     expect(visibleNavigation({
       canUseTenantWorkspace: false,
       canUsePlatformGovernance: true,
       capabilityCodes: ["platform-session:access", "model-platform:write"],
-    }).map((item) => item.id)).toEqual(["platform-governance"]);
+    }).map((item) => item.id)).toEqual(["platform-model-governance"]);
   });
 
   it("平台和租户复合职责不会突破六项顶级导航预算", () => {
@@ -118,7 +126,7 @@ describe("visibleNavigation", () => {
         "model-platform:write",
       ],
     }).map((item) => item.id)).toEqual([
-      "operations", "access", "data", "models", "governance", "query", "platform-governance",
+      "operations", "access", "data", "models", "governance", "query", "platform-governance", "platform-model-governance",
     ]);
   });
 

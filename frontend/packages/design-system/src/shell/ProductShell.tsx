@@ -9,16 +9,16 @@ import {
   Tooltip,
 } from "@fluentui/react-components";
 import {
-  Bot20Regular,
-  Building20Regular,
+  BrainCircuit24Regular,
+  BuildingPeople24Regular,
   Chat20Regular,
   CloudArrowUp20Regular,
   DataTrending20Regular,
   Database20Regular,
   Grid20Regular,
   PeopleTeam20Regular,
-  PersonAccounts20Regular,
-  ShieldTask20Regular,
+  PeopleCommunity24Regular,
+  ShieldTask24Regular,
   SignOut20Regular,
 } from "@fluentui/react-icons";
 import type { ReactNode } from "react";
@@ -87,7 +87,7 @@ export function ProductShell({
 
   const platform = workspaceScope === "platform";
   return (
-    <div className="product-shell">
+    <div className="product-shell" data-scope={workspaceScope}>
       <aside className="product-sidebar">
         <div className="product-brand">
           <span aria-hidden="true">R</span>
@@ -170,11 +170,11 @@ function navigationIcon(icon?: NavigationIcon) {
     case "overview": return <DataTrending20Regular />;
     case "people": return <PeopleTeam20Regular />;
     case "data": return <Database20Regular />;
-    case "models": return <Bot20Regular />;
-    case "governance": return <ShieldTask20Regular />;
+    case "models": return <BrainCircuit24Regular />;
+    case "governance": return <ShieldTask24Regular />;
     case "query": return <Chat20Regular />;
-    case "platform": return <Building20Regular />;
-    case "accounts": return <PersonAccounts20Regular />;
+    case "platform": return <BuildingPeople24Regular />;
+    case "accounts": return <PeopleCommunity24Regular />;
     case "supply": return <CloudArrowUp20Regular />;
     default: return <Grid20Regular />;
   }
