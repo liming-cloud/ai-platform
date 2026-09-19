@@ -2,7 +2,7 @@ schemaVersion: 1
 productVersion: foundation-v1
 currentMilestone: M6
 currentFrontier: WP-0017
-lastVerifiedCommit: f9ba767bf2b20716b2c04e812b45e616fe037f53
+lastVerifiedCommit: 670d13e58432a7f0b4dc4bd54ae75921bfd48277
 activeWorkPackages:
   - WP-0014
   - WP-0017
@@ -90,8 +90,9 @@ confirmedDecisions:
   - ADR-0080
 openDecisions:
   - WP-0017：原子开户按 ADR-0080 实施；独立租户设置的更新合同待后续切片冻结
-  - WP-0017：原型对照发现共享主题和尺寸测试仍为旧基线，先整改开户切片再最终部署；审批容量不足仍阻断更新，11场景及生产视觉对照未通过
+  - WP-0017：原子开户独立切片已于 2026-09-19 完成最终部署验收及原型对照；下一独立设置切片须先确认专属 ADR 与工作包边界，整包和 M6 未完成
 latestEvidence:
+  - project/evidence/WP-0017-prototype-parity-deploy-20260919.md
   - project/evidence/WP-0017-prototype-parity-audit-20260915.md
   - project/evidence/WP-0017-atomic-onboarding-deploy-20260914.md
   - project/evidence/WP-0017-atomic-onboarding-build-blocked-20260914.md
@@ -99,7 +100,6 @@ latestEvidence:
   - project/evidence/WP-0017-platform-account-pagination-20260914.md
   - project/evidence/WP-0017-sequential-delivery-baseline-20260914.md
   - project/evidence/WP-0016-human-acceptance-20260913.md
-  - project/evidence/WP-0016-visual-polish-20260913.md
-nextReviewAt: 2026-09-15
-updatedAt: 2026-09-15T07:50:00Z
+nextReviewAt: 2026-09-19
+updatedAt: 2026-09-19T14:11:51Z
 updatedBy: codex

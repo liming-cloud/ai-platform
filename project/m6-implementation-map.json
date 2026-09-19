@@ -4,7 +4,7 @@
   "openDesignProjectId": "249f81f2-6f1a-46ff-988c-da3cdedb35e7",
   "humanAcceptanceEvidence": "project/evidence/WP-0016-human-acceptance-20260913.md",
   "prototypeImplementationCommit": "21b45c347a4008f5959b1b972e3ffd8a5aadcc6f",
-  "updatedOn": "2026-09-14",
+  "updatedOn": "2026-09-19",
   "sources": [
     {
       "path": "docs/prototypes/wp-0016/page-inventory.json",
@@ -179,7 +179,7 @@
       "phase": "M6",
       "classification": "production",
       "workPackage": "WP-0017",
-      "status": "pending-contract",
+      "status": "verified",
       "operations": [
         {
           "id": "platform-tenant-create:0",
@@ -189,7 +189,30 @@
           "reason": "m6-approved-prototype",
           "workPackage": "WP-0017",
           "dependsOn": [],
-          "status": "pending-contract"
+          "status": "verified",
+          "contract": {
+            "adr": "ADR-0080",
+            "target": {
+              "kind": "api",
+              "value": "POST /api/v1/platform/tenants"
+            },
+            "saveBoundary": "一次提交原子建立租户、初始租户管理员、配额和生命周期事件；失败整体回滚，进入步骤/取消不写入。",
+            "authorizationTests": [
+              "缺少 CSRF 拒绝",
+              "重复编码/登录名及旧请求失败关闭",
+              "新管理员无平台权限"
+            ]
+          },
+          "verification": {
+            "commands": [
+              "make acceptance-work-package WP=WP-0017 SLICE=onboarding",
+              "make acceptance-work-package WP=WP-0017 SLICE=login"
+            ],
+            "evidence": [
+              "project/evidence/WP-0017-prototype-parity-deploy-20260919.md"
+            ]
+          },
+          "verifiedCommit": "670d13e58432a7f0b4dc4bd54ae75921bfd48277"
         },
         {
           "id": "platform-tenant-create:1",
@@ -199,7 +222,30 @@
           "reason": "m6-approved-prototype",
           "workPackage": "WP-0017",
           "dependsOn": [],
-          "status": "pending-contract"
+          "status": "verified",
+          "contract": {
+            "adr": "ADR-0080",
+            "target": {
+              "kind": "navigation",
+              "value": "/tenant/login（携带本次租户编码）"
+            },
+            "saveBoundary": "只导航，不写业务事实或暗中切换平台身份；退出当前身份后由租户入口验证新管理员。",
+            "authorizationTests": [
+              "当前平台身份不会被入口暗中替换",
+              "新管理员仅在租户入口建立会话",
+              "错误角色入口拒绝且无平台权限"
+            ]
+          },
+          "verification": {
+            "commands": [
+              "make acceptance-work-package WP=WP-0017 SLICE=onboarding",
+              "make acceptance-work-package WP=WP-0017 SLICE=login"
+            ],
+            "evidence": [
+              "project/evidence/WP-0017-prototype-parity-deploy-20260919.md"
+            ]
+          },
+          "verifiedCommit": "670d13e58432a7f0b4dc4bd54ae75921bfd48277"
         }
       ]
     },
@@ -210,7 +256,7 @@
       "phase": "M6",
       "classification": "production",
       "workPackage": "WP-0017",
-      "status": "pending-contract",
+      "status": "in-progress",
       "operations": [
         {
           "id": "platform-tenant-detail:0",
@@ -230,7 +276,30 @@
           "reason": "m6-approved-prototype",
           "workPackage": "WP-0017",
           "dependsOn": [],
-          "status": "pending-contract"
+          "status": "verified",
+          "contract": {
+            "adr": "ADR-0080",
+            "target": {
+              "kind": "navigation",
+              "value": "/tenant/login（携带本次租户编码）"
+            },
+            "saveBoundary": "只导航，不写业务事实或暗中切换平台身份；退出当前身份后由租户入口验证新管理员。",
+            "authorizationTests": [
+              "当前平台身份不会被入口暗中替换",
+              "新管理员仅在租户入口建立会话",
+              "错误角色入口拒绝且无平台权限"
+            ]
+          },
+          "verification": {
+            "commands": [
+              "make acceptance-work-package WP=WP-0017 SLICE=onboarding",
+              "make acceptance-work-package WP=WP-0017 SLICE=login"
+            ],
+            "evidence": [
+              "project/evidence/WP-0017-prototype-parity-deploy-20260919.md"
+            ]
+          },
+          "verifiedCommit": "670d13e58432a7f0b4dc4bd54ae75921bfd48277"
         }
       ]
     },

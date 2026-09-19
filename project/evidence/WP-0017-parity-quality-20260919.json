@@ -1,0 +1,205 @@
+{
+  "scope": "WP-0017 原子开户独立切片；不是整包/M6完成",
+  "candidateCommit": "670d13e58432a7f0b4dc4bd54ae75921bfd48277",
+  "snapshot": {
+    "id": "quality-parity-final-20260919",
+    "run_id": "run-5b4368307c3d4be7",
+    "node_id": "quality",
+    "state_revision": 15,
+    "observed_at": "2026-09-19T14:10:49.641Z",
+    "base_ref": "2966981dc1c8ea2bbcc3b83afbfe7a3aae525ab3",
+    "candidate_ref": "sha256:5e66886655ee4f7c56253848cbacf1bdde1870e0577dcf7b345a7086bd0fe8b0",
+    "candidate_evidence_id": "source-parity-bound-20260919",
+    "dimensions": [
+      {
+        "id": "correctness",
+        "status": "pass",
+        "delta": 1,
+        "summary": "本片最终实际部署通过11开户、15登录、15只读事实；原型结构及焦点真实红绿闭合，有效24张生产截图落点正确。",
+        "evidence_ids": [
+          "browser-parity-bound-20260919",
+          "test-parity-bound-20260919"
+        ]
+      },
+      {
+        "id": "complexity",
+        "status": "pass",
+        "delta": 0,
+        "summary": "复用既有主题和Provider；本轮只作局部布局、语义标题与CSS焦点滚动留白，无新增状态机或抽象。",
+        "evidence_ids": [
+          "source-parity-bound-20260919"
+        ]
+      },
+      {
+        "id": "redundancy",
+        "status": "pass",
+        "delta": 0,
+        "summary": "没有第二套账号库、模拟状态或公共控件；正式场景复用结构与可见性断言。",
+        "evidence_ids": [
+          "source-parity-bound-20260919"
+        ]
+      },
+      {
+        "id": "performance",
+        "status": "pass",
+        "delta": 0,
+        "summary": "本片补丁只改变CSS和既有DOM排布，无新增业务请求、轮询或重试；最终本机浏览器导航记录及构建通过，不扩大为负载或SLA结论。",
+        "evidence_ids": [
+          "source-parity-bound-20260919",
+          "browser-parity-bound-20260919",
+          "test-navigation-profile-20260919"
+        ]
+      },
+      {
+        "id": "architecture",
+        "status": "pass",
+        "delta": 0,
+        "summary": "未改后端、公共API和租户权限合同，架构28项通过；既有未触及15内联SQL与3手工分页如实保留。",
+        "evidence_ids": [
+          "source-parity-bound-20260919",
+          "test-parity-bound-20260919"
+        ]
+      },
+      {
+        "id": "test_quality",
+        "status": "pass",
+        "delta": 1,
+        "summary": "真实结构及键盘遮挡先红后绿，最终正式11场景含正常/200%正反向Tab；阈值未降低；无效落点截图与umask环境失败被明确排除并复验。",
+        "evidence_ids": [
+          "browser-parity-bound-20260919",
+          "test-parity-bound-20260919"
+        ]
+      }
+    ],
+    "evidence_refs": [
+      "source-parity-bound-20260919",
+      "browser-parity-bound-20260919",
+      "test-parity-bound-20260919",
+      "test-navigation-profile-20260919"
+    ],
+    "findings": [
+      {
+        "id": "scope-boundary",
+        "severity": "info",
+        "summary": "仅原子开户独立切片闭合；WP-0017整包、独立设置和M6仍未完成。",
+        "evidence_ids": [
+          "source-parity-bound-20260919"
+        ]
+      }
+    ],
+    "required_repairs": []
+  },
+  "snapshotValidation": {
+    "status": "passed",
+    "kind": "quality-snapshot"
+  },
+  "qualityGate": {
+    "decision": "pass",
+    "reasons": []
+  },
+  "qualityStepValidation": {
+    "status": "passed",
+    "kind": "step-result"
+  },
+  "qualityStepResult": {
+    "run_id": "run-5b4368307c3d4be7",
+    "node_id": "quality",
+    "status": "completed",
+    "requested_transition": "continue",
+    "criteria_results": [
+      {
+        "criterion_id": "quality:1",
+        "detail": "最终前端670d13e58432a7f0b4dc4bd54ae75921bfd48277已真实部署；216前端、28脚本、28架构、239组织访问/23HTTP、11开户/15登录/15只读事实、48视觉对照及焦点红绿均有本轮实证。后端运行仍5844fd3ba…；未扩大为WP-0017整包或M6完成。",
+        "evidence_ids": [
+          "source-parity-bound-20260919",
+          "test-parity-bound-20260919",
+          "browser-parity-bound-20260919",
+          "test-navigation-profile-20260919"
+        ],
+        "passed": true
+      }
+    ],
+    "findings": [
+      {
+        "id": "slice-only",
+        "severity": "info",
+        "summary": "原子开户切片已验收；下一独立设置切片需要先确认ADR和工作包边界，本轮不启动实现。",
+        "evidence_ids": [
+          "source-parity-bound-20260919"
+        ]
+      }
+    ],
+    "open_questions": [],
+    "outputs": [
+      "project/evidence/WP-0017-prototype-parity-deploy-20260919.md",
+      "project/evidence/WP-0017-parity-navigation-profile-20260919.json"
+    ],
+    "required_approvals": []
+  },
+  "qualityNodeGate": {
+    "decision": "continue",
+    "evaluated_policies": [
+      "evidence-quality"
+    ],
+    "missing_evidence": [],
+    "reason": "Step completion criteria passed with registered evidence.",
+    "next_node": "review"
+  },
+  "reviewStepValidation": {
+    "status": "passed",
+    "kind": "step-result"
+  },
+  "reviewStepResult": {
+    "run_id": "run-5b4368307c3d4be7",
+    "node_id": "review",
+    "status": "completed",
+    "requested_transition": "continue",
+    "criteria_results": [
+      {
+        "criterion_id": "review:1",
+        "detail": "依据根AGENTS精确修改、中文、失败先复现、可复核证据和用户当前严格范围，规范轴无阻断；依据ADR-0079/0080与11/15/15/视觉最终实证，需求轴无阻断。控制面35项与resume-context通过，矩阵只提升3个实际闭合操作，整包/M6状态未提升，五项用户暂存重命名保持。",
+        "evidence_ids": [
+          "review-parity-final-20260919",
+          "test-parity-bound-20260919",
+          "browser-parity-bound-20260919"
+        ],
+        "passed": true
+      }
+    ],
+    "findings": [],
+    "open_questions": [],
+    "outputs": [
+      "project/evidence/WP-0017-prototype-parity-deploy-20260919.md"
+    ],
+    "required_approvals": []
+  },
+  "finalGate": {
+    "decision": "complete",
+    "evaluated_policies": [
+      "safety-core",
+      "scope-control",
+      "evidence-quality",
+      "risk-approval"
+    ],
+    "missing_evidence": [],
+    "reason": "All flow nodes are resolved.",
+    "next_node": null
+  },
+  "finalRun": {
+    "run_id": "run-5b4368307c3d4be7",
+    "status": "completed",
+    "completed_nodes": [
+      "select-slice",
+      "red-green",
+      "implementation",
+      "quality",
+      "review"
+    ],
+    "revision": 19
+  },
+  "controlPlaneVerification": {
+    "projectVerify": "35 项通过",
+    "resumeContext": "通过，121 行",
+    "scope": "控制面更新后执行；lastVerifiedCommit 绑定实际部署源码候选，文档提交不冒充运行版本"
+  }
+}

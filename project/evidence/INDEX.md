@@ -515,6 +515,7 @@
 | 开户视觉及真实验收修正 | `project/evidence/WP-0017-atomic-onboarding-deploy-20260914.md` | `e008338e53bffd81def84f5de21dd0028e16c0f0` | 已构建并部署；正常徽标恢复内容宽度，四入口健康通过。强化实际字号等待后，11 场景在200%标签裁切失败，后续修正另行验证，不推进下一切片。 |
 | 开户真实字号等待与局部排版修正 | `project/evidence/WP-0017-atomic-onboarding-deploy-20260914.md` | `27427a1be3248efe8facb0811f8fa55d7b4a8849` | 红绿闭合 CSS 过渡采样和徽标宽度下界；239 组织、23 HTTP、209 前端、26 脚本通过。局部行高修正已构建镜像，但容器更新被自动审批容量不足阻断；最终11场景未完成，不标记切片通过。 |
 | 开户切片原型一致性审计 | `project/evidence/WP-0017-prototype-parity-audit-20260915.md` | `2966981dc1c8ea2bbcc3b83afbfe7a3aae525ab3`（被审计源码） | 已读 OpenDesign 完整原型并核实三个预览文件；发现共享主题、排版、尺寸和测试基线漂移，一致性未通过。209 前端、26 脚本及治理复验通过不代替视觉验证；整改与部署仍待完成。 |
+| 原子开户部署后原型一致性闭环 | `project/evidence/WP-0017-prototype-parity-deploy-20260919.md`；`project/evidence/WP-0017-parity-navigation-profile-20260919.json`；`project/evidence/WP-0017-parity-quality-20260919.json` | `670d13e58432a7f0b4dc4bd54ae75921bfd48277` | 最终前端真实 11 个开户、15 个登录、15 项只读事实及有效 48 张视觉对照通过，结构/键盘红绿闭合，Runtime quality 通过；后端仍 5844fd3ba…；仅本切片完成，WP-0017/M6 未完成。 |
 
 ## 证据规则
 
