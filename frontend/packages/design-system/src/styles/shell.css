@@ -156,12 +156,14 @@
   font-weight: 650;
 }
 
-.product-account {
+.product-topbar .product-account {
   flex: 0 0 auto;
-  min-height: 36px;
-  padding: 8px 12px;
+  min-height: var(--foundation-control-height);
+  padding: 6px 12px;
+  color: var(--foundation-text);
   font-size: 14px;
-  line-height: 1.2;
+  font-weight: 620;
+  line-height: 1.428572;
 }
 
 .product-main {

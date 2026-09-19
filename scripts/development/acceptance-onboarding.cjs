@@ -248,9 +248,11 @@ async function assertAdministratorSummaryLayout(page, width) {
       return { left, right, top, bottom };
     };
     return { fields: box(".tenant-onboarding__fields"), summary: box(".tenant-onboarding__summary"),
+      summaryColumns: getComputedStyle(document.querySelector(".tenant-onboarding__summary")).gridTemplateColumns.split(/\s+/).length,
       consent: box(".tenant-onboarding .fui-Checkbox") };
   });
   const { fields, summary, consent } = boxes;
+  requireCondition(boxes.summaryColumns === (width <= 680 ? 2 : 1), "管理员确认摘要的响应式列数未承接原型");
   requireCondition(fields && summary && consent, "管理员表单、摘要或确认区缺失");
   if (width > 680) {
     requireCondition(summary.left >= fields.right - 1 && Math.abs(summary.top - fields.top) <= 1

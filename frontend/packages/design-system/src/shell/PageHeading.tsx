@@ -12,7 +12,7 @@ export function PageHeading({ title, context, summary, status, action }: {
     <nav className="page-context" aria-label="当前位置">{context}</nav>
     <header className="page-heading">
       <div className="page-heading__copy"><h1 id="page-title">{title}</h1>
-        {summary || status ? <div className="page-summary">{summary}{status ? <span className="page-status" data-tone={status.tone}>{status.label}</span> : null}</div> : null}
+        {summary || status ? <div className="page-summary">{summary ? <span>{summary}</span> : null}{status ? <span className="page-status" data-tone={status.tone}>{status.label}</span> : null}</div> : null}
       </div>
       {action}
     </header>
