@@ -145,7 +145,7 @@ async function exerciseWizardKeyboard(page, step, advance = false) {
 
 async function withTextScale(page, enlarged, action) {
   let originalStyles;
-  const selector = "main :is(h1,h2,h3,h4,p,label,a,span,input,button,strong,small,dt,dd,legend,textarea,select,.fui-Badge,.fui-Field__hint,.fui-Field__validationMessage)";
+  const selector = "main :is(h1,h2,h3,h4,p,li,label,a,span,input,button,strong,small,dt,dd,legend,textarea,select,.fui-Badge,.fui-Field__hint,.fui-Field__validationMessage)";
   // CSS 过渡结束才是实际字号；还原也必须等待，避免下一轮读取到放大中的值。
   const settle = sizes => page.waitForFunction(({ selector, sizes }) => {
     const elements = [...document.querySelectorAll(selector)];
@@ -269,6 +269,18 @@ async function assertOverviewStructure(page) {
     "管理员登录入口未归属概览基本信息区");
   requireCondition(await page.locator(".tenant-overview__safety h3").innerText() === "安全保障",
     "概览安全保障区缺少原型分区标题");
+  const frame = await page.evaluate(() => {
+    const element = selector => document.querySelector(selector);
+    const columns = selector => getComputedStyle(element(selector)).gridTemplateColumns.split(/\s+/).length;
+    return { width: innerWidth, columns: columns(".tenant-overview__summary-grid"), factsColumns: columns(".tenant-overview__identity-facts"),
+      headingWidth: element(".page-heading").getBoundingClientRect().width,
+      returnWidth: element(".page-heading > button").getBoundingClientRect().width,
+      entryHeight: element(".tenant-overview__entry > a").getBoundingClientRect().height };
+  });
+  requireCondition(frame.columns === (frame.width <= 1040 ? 1 : 2), "概览与安全保障的响应式分栏未承接原型");
+  requireCondition(frame.factsColumns === (frame.width <= 680 ? 1 : 2), "概览基本信息的移动单列未承接原型");
+  requireCondition(frame.width > 680 || (Math.abs(frame.headingWidth - frame.returnWidth) <= 1 && frame.entryHeight >= 44),
+    "概览移动返回按钮宽度或登录入口触控高度未承接原型");
 }
 
 async function assertWizardLayout(page, width, step, enlarged = false) {
@@ -317,11 +329,12 @@ function verifyOverviewBadge({ cardWidth, badgeWidth, contentWidth, insets, badg
 
 async function assertOverviewBadgeLayout(page, enlarged = false) {
   await assertOverviewStructure(page);
-  const originalFontSize = await page.locator(".tenant-overview__identity > .fui-Badge").evaluate(badge => parseFloat(getComputedStyle(badge).fontSize));
+  const originalFontSize = await page.locator(".tenant-overview__identity-heading > .fui-Badge").evaluate(badge => parseFloat(getComputedStyle(badge).fontSize));
+  const originalSafetySize = await page.locator(".tenant-overview__safety li").first().evaluate(item => parseFloat(getComputedStyle(item).fontSize));
   return withTextScale(page, enlarged, async () => {
     const metrics = await page.evaluate(() => {
       const card = document.querySelector(".tenant-overview__identity");
-      const badges = card?.querySelectorAll(":scope > .fui-Badge");
+      const badges = card?.querySelectorAll(".tenant-overview__identity-heading > .fui-Badge");
       if (badges?.length !== 1) return { cardWidth: 0, badgeWidth: 0, contentWidth: 0, insets: 0 };
       const badge = badges[0];
       const style = getComputedStyle(badge);
@@ -330,11 +343,18 @@ async function assertOverviewBadgeLayout(page, enlarged = false) {
       const badgeRect = badge.getBoundingClientRect();
       const contentRect = range.getBoundingClientRect();
       return { cardWidth: card.getBoundingClientRect().width, badgeWidth: badgeRect.width, badgeHeight: badgeRect.height,
+        safetySizes: [...document.querySelectorAll(".tenant-overview__safety li")].map(item => parseFloat(getComputedStyle(item).fontSize)),
+        overflow: document.documentElement.scrollWidth > innerWidth + 1,
+        clipped: [...document.querySelectorAll("main h1,main h2,main dt,main dd,main li,main button,main a")]
+          .some(item => item.scrollWidth > item.clientWidth + 1 || item.scrollHeight > item.clientHeight + 1),
         contentWidth: contentRect.width, contentHeight: contentRect.height, fontSize: parseFloat(style.fontSize),
         insets: [style.paddingLeft, style.paddingRight, style.borderLeftWidth, style.borderRightWidth].reduce((sum, value) => sum + parseFloat(value), 0),
         verticalInsets: [style.paddingTop, style.paddingBottom, style.borderTopWidth, style.borderBottomWidth].reduce((sum, value) => sum + parseFloat(value), 0) };
     });
     requireCondition(Math.abs(metrics.fontSize - originalFontSize * (enlarged ? 2 : 1)) < 0.1, "租户状态徽标未实际应用目标文字倍率");
+    requireCondition(metrics.safetySizes.length === 3 && metrics.safetySizes.every(size => Math.abs(size - originalSafetySize * (enlarged ? 2 : 1)) < 0.1),
+      "概览安全保障文字未实际应用目标文字倍率");
+    requireCondition(!metrics.overflow && !metrics.clipped, "概览页面溢出或文字裁切");
     verifyOverviewBadge(metrics);
     return metrics;
   });

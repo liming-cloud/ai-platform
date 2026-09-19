@@ -199,7 +199,8 @@
   margin: 0;
   color: var(--foundation-text);
   font-family: var(--foundation-font-display);
-  font-size: 32px;
+  max-width: 48rem;
+  font-size: clamp(1.75rem, 3vw, 32px);
   font-weight: 500;
   line-height: 1.35;
 }
