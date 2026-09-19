@@ -91,6 +91,17 @@ function wizardKeyboardPlan(step) {
 function verifyKeyboardTraversal(expected, observed) {
   requireCondition(expected.length > 0 && expected.length === observed.length && expected.every((target, index) => target === observed[index]), "开户键盘遍历遗漏控件或顺序错误");
 }
+/** 原生 Tab 滚动后，焦点中心必须处于可见控件内，不能落在固定导航后方。 */
+async function assertFocusedControlVisible(page) {
+  requireCondition(await page.evaluate(() => {
+    const element = document.activeElement;
+    if (!element?.closest(".tenant-onboarding form")) return false;
+    const bounds = element.getBoundingClientRect();
+    const hit = document.elementFromPoint(bounds.left + bounds.width / 2, bounds.top + bounds.height / 2);
+    return bounds.top >= 0 && bounds.bottom <= innerHeight && element.contains(hit);
+  }), "开户键盘焦点被固定导航遮挡或位于视口之外");
+}
+
 async function exerciseWizardKeyboard(page, step, advance = false) {
   const expected = wizardKeyboardPlan(step);
   const activeTarget = () => page.evaluate(() => {
@@ -106,6 +117,7 @@ async function exerciseWizardKeyboard(page, step, advance = false) {
   for (const target of expected) {
     await page.keyboard.press("Tab");
     forward.push(await activeTarget());
+    await assertFocusedControlVisible(page);
     if (target === "input:confirmed" && forward.at(-1) === target) {
       const checkbox = page.getByRole("checkbox", { name: "确认创建租户及其管理员账号", exact: true });
       const checked = await checkbox.isChecked();
@@ -120,6 +132,7 @@ async function exerciseWizardKeyboard(page, step, advance = false) {
   for (let index = expected.length - 2; index >= 0; index -= 1) {
     await page.keyboard.press("Shift+Tab");
     reverse.push(await activeTarget());
+    await assertFocusedControlVisible(page);
   }
   verifyKeyboardTraversal(expected.slice(0, -1).reverse(), reverse);
   if (advance) {
@@ -357,14 +370,17 @@ async function run(configuration) {
           await fillInformation(page, credentials.tenant);
           await acceptanceStep("第一步正常字号布局", () => assertWizardLayout(page, width, 1));
           await acceptanceStep("第一步 200% 文字布局", () => assertWizardLayout(page, width, 1, true));
+          await acceptanceStep("第一步 200% 文字键盘可见性", () => withTextScale(page, true, () => exerciseWizardKeyboard(page, 1)));
           await acceptanceStep("第一步键盘遍历并进入配额", () => exerciseWizardKeyboard(page, 1, true));
           await fillQuotas(page);
           await acceptanceStep("第二步正常字号布局", () => assertWizardLayout(page, width, 2));
           await acceptanceStep("第二步 200% 文字布局", () => assertWizardLayout(page, width, 2, true));
+          await acceptanceStep("第二步 200% 文字键盘可见性", () => withTextScale(page, true, () => exerciseWizardKeyboard(page, 2)));
           await acceptanceStep("第二步键盘遍历并进入管理员", () => exerciseWizardKeyboard(page, 2, true));
           await fillAdministrator(page, credentials.tenant);
           await acceptanceStep("第三步正常字号布局", () => assertWizardLayout(page, width, 3));
           await acceptanceStep("第三步 200% 文字布局", () => assertWizardLayout(page, width, 3, true));
+          await acceptanceStep("第三步 200% 文字键盘可见性", () => withTextScale(page, true, () => exerciseWizardKeyboard(page, 3)));
           await acceptanceStep("第三步键盘与空格确认", () => exerciseWizardKeyboard(page, 3));
           await assertNoStoredSecret(page, credentials.tenant.password);
           await acceptanceStep("刷新管理员步骤", () => page.reload({ waitUntil: "networkidle" }));
@@ -487,7 +503,7 @@ async function run(configuration) {
   }
 }
 
-module.exports = { readOnboardingConfiguration, onboardingRequest, verifyOnboardingResult,
+module.exports = { assertFocusedControlVisible, exerciseWizardKeyboard, readOnboardingConfiguration, onboardingRequest, verifyOnboardingResult,
   verifyLogicalFieldRows, wizardKeyboardPlan, verifyKeyboardTraversal, acceptanceStep, wizardLabelPattern,
   verifyOverviewBadge, withTextScale, assertOverviewBadgeLayout, verifyPrototypeStyle, assertPrototypeStyle, assertAdministratorSummaryLayout, assertOverviewStructure };
 if (require.main === module) {

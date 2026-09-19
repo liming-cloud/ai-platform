@@ -43,6 +43,8 @@
 .tenant-onboarding__submit-copy > span { grid-area: 1 / 1; }
 .tenant-onboarding__submit-copy > .is-hidden { visibility: hidden; }
 .tenant-onboarding a { color: var(--foundation-accent); text-underline-offset: 4px; }
+/* 原生键盘滚动为固定导航保留空间，200% 文字下焦点仍完整可见。 */
+.tenant-onboarding :is(input, button) { scroll-margin-block: 6rem; }
 .tenant-onboarding :focus-visible { outline: 2px solid var(--foundation-accent); outline-offset: 3px; }
 .tenant-onboarding__heading h2:focus { outline: none; }
 .tenant-overview__summary-grid { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(16rem, 0.65fr); gap: 24px; }
