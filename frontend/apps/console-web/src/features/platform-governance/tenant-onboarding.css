@@ -30,7 +30,8 @@
 .tenant-onboarding .fui-Field__validationMessage { line-height: 1.4; }
 .tenant-onboarding .fui-Input { min-height: 36px; border-radius: var(--foundation-control-radius); width: 100%; min-width: 0; align-self: start; border-color: var(--foundation-border-strong); }
 .tenant-onboarding .fui-Input input { font-size: 16px; line-height: 1.4; min-width: 0; width: 100%; }
-.tenant-onboarding .fui-Input:has(input[readonly]) { background: var(--foundation-subtle-surface); }
+/* 只读值字号较小，控件仍按同排正文行高增长，避免 200% 文字下破坏对齐。 */
+.tenant-onboarding .fui-Input:has(input[readonly]) { min-height: max(var(--foundation-control-height), calc(1.4em + 2px)); background: var(--foundation-subtle-surface); }
 .tenant-onboarding .fui-Input input[readonly] { color: var(--foundation-muted-text); font-size: 14px; line-height: 1.5; }
 .tenant-onboarding .fui-Input__contentAfter { font-size: 14px; color: var(--foundation-muted-text); }
 .tenant-onboarding .fui-Button { min-height: 36px; padding: 6px 12px; font-size: 14px; font-weight: 620; line-height: 1.428572; border-radius: var(--foundation-control-radius); width: auto; white-space: normal; }
