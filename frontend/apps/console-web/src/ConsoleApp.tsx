@@ -213,6 +213,7 @@ function AuthenticatedConsoleApp({
     return (
       <ProductShell
         productName="可信 RAG"
+        workspaceScope={canUsePlatformGovernance ? "platform" : "tenant"}
         pageTitle="当前没有可用工作区"
         pageSummary="系统只显示与当前会话能力相符的入口，不会因此展示租户正文或管理入口。"
         navigation={[]}
@@ -236,6 +237,7 @@ function AuthenticatedConsoleApp({
     return (
       <ProductShell
         productName="可信 RAG"
+        workspaceScope={canUsePlatformGovernance ? "platform" : "tenant"}
         pageTitle={denied ? "当前会话无权访问此工作区" : "未找到工作区"}
         pageSummary={denied
           ? "该 URL 不会被静默替换为其他工作区，请使用当前会话被授权的入口。"
@@ -273,8 +275,11 @@ function AuthenticatedConsoleApp({
   return (
     <ProductShell
       productName="可信 RAG"
+      workspaceScope={canUsePlatformGovernance ? "platform" : "tenant"}
+      compactHeading={platformActive && route.task === "create"}
+      pageStatus={platformActive && route.task === "create" ? { label: "等待填写", tone: "warning" } : undefined}
       pageTitle={
-        operationsActive ? "运营总览" : platformOperationsActive ? "平台运营总览" : accessActive ? route.task === "roles" ? "租户角色" : "成员与权限" : platformActive ? route.task === "create" ? "建立新租户" : route.task === "detail" ? "租户概览" : "平台租户" : platformAccountsActive ? route.task === "roles" ? "角色目录" : "人员账户目录" : platformModelSupplyActive ? "平台模型供应链" : queryActive ? "从已授权资料中获得答案" : governanceActive ? route.task === "query" ? "查询用量与审计" : "受限评测运行" : modelsActive ? route.task === "configuration" ? "受控模型配置" : route.task === "providers" ? "供应商连接与模型发现" : "模型部署与能力验证" : dataPage?.title ?? "可信知识平台"
+        operationsActive ? "运营总览" : platformOperationsActive ? "平台运营总览" : accessActive ? route.task === "roles" ? "租户角色" : "成员与权限" : platformActive ? route.task === "create" ? "建立新租户" : route.task === "detail" ? undefined : "平台租户" : platformAccountsActive ? route.task === "roles" ? "角色目录" : "人员账户目录" : platformModelSupplyActive ? "平台模型供应链" : queryActive ? "从已授权资料中获得答案" : governanceActive ? route.task === "query" ? "查询用量与审计" : "受限评测运行" : modelsActive ? route.task === "configuration" ? "受控模型配置" : route.task === "providers" ? "供应商连接与模型发现" : "模型部署与能力验证" : dataPage?.title ?? "可信知识平台"
       }
       pageSummary={
         operationsActive
@@ -287,7 +292,7 @@ function AuthenticatedConsoleApp({
           ? route.task === "roles" ? "查看当前租户的固定角色、能力范围和安全边界。" : "成员目录按页显示；停用成员前必须二次确认。"
           : platformActive
           ? route.task === "create"
-            ? "填写租户信息、资源配额与管理员账号，一次创建即可使用。"
+            ? "新租户"
             : route.task === "detail" ? "核对租户信息与资源配额，获取管理员登录入口。"
               : "建立、激活和暂停租户，不展示租户正文、成员详情或平台操作者信息。"
           : platformAccountsActive

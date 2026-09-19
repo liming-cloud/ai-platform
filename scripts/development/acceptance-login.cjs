@@ -84,7 +84,7 @@ async function assertWorkspace(page, role) {
 }
 
 async function logoutWorkspace(page) {
-  await page.getByRole("button", { name: /当前会话角色|打开账户菜单/ }).click();
+  await page.getByRole("button", { name: /账户菜单/ }).click();
   await page.getByRole("menuitem", { name: "退出登录", exact: true }).click();
 }
 

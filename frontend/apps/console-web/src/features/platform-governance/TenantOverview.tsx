@@ -1,3 +1,4 @@
+import { PageHeading } from "@foundation/design-system";
 import { Badge, Button, MessageBar, MessageBarBody, MessageBarTitle } from "@fluentui/react-components";
 import { useEffect, useState } from "react";
 import type { ControlPlaneClient } from "../../api/control-plane-client";
@@ -20,11 +21,15 @@ export function TenantOverview({ client, tenantId, onRouteChange }: {
     const unsubscribe = client.subscribeSessionChange(active => { if (!active) { cancel(); setReading(undefined); } });
     return () => { cancel(); unsubscribe(); };
   }, [client, tenantId, owner]);
-  return <section className="tenant-onboarding tenant-overview">
-    <header className="tenant-onboarding__heading tenant-overview__actions"><Button onClick={() => onRouteChange({ navigationId: "platform", task: "tenants", page: 1 })}>返回租户目录</Button></header>
+  const status = data?.tenant.status === "ACTIVE" ? "活动" : data?.tenant.status === "SUSPENDED" ? "已暂停" : "准备中";
+  return <>
+    <PageHeading title="租户概览" context="平台治理" summary={data?.tenant.displayName}
+      status={data ? { label: status, tone: data.tenant.status === "ACTIVE" ? "success" : "warning" } : undefined}
+      action={<Button onClick={() => onRouteChange({ navigationId: "platform", task: "tenants", page: 1 })}>返回租户目录</Button>} />
+    <section className="tenant-onboarding tenant-overview">
     {failure ? <><MessageBar intent="error"><MessageBarBody><MessageBarTitle>{failure.title}</MessageBarTitle>{failure.description}</MessageBarBody></MessageBar><Button onClick={() => setRevision(value => value + 1)}>重新加载</Button></> : !data ? <p role="status">正在读取租户信息与配额…</p> : <>
       <div className="tenant-overview__summary-grid">
-        <div className="tenant-overview__identity"><div className="tenant-overview__identity-copy"><span>基本信息</span><h2>{data.tenant.displayName}</h2><p>{data.tenant.tenantCode}</p></div><Badge appearance="tint" color={data.tenant.status === "ACTIVE" ? "success" : "warning"}>{data.tenant.status === "ACTIVE" ? "活动" : data.tenant.status === "SUSPENDED" ? "已暂停" : "准备中"}</Badge><div className="tenant-overview__entry"><div><h3>管理员访问</h3><p>需先退出当前平台身份，再使用创建时设置的管理员账号与密码登录。</p></div><a href={`/tenant/login?tenantCode=${encodeURIComponent(data.tenant.tenantCode)}`}>租户管理员登录入口</a></div></div>
+        <div className="tenant-overview__identity"><div className="tenant-overview__identity-copy"><span>基本信息</span><h2>{data.tenant.displayName}</h2></div><Badge appearance="tint" color={data.tenant.status === "ACTIVE" ? "success" : "warning"}>{data.tenant.status === "ACTIVE" ? "活动" : data.tenant.status === "SUSPENDED" ? "已暂停" : "准备中"}</Badge><dl className="tenant-overview__identity-facts"><div><dt>租户编码</dt><dd>{data.tenant.tenantCode}</dd></div><div><dt>租户管理员</dt><dd>{data.administrators.totalElements === 1 ? data.administrators.items[0]?.loginName : data.administrators.totalElements > 1 ? `${data.administrators.totalElements} 名` : "暂未分配"}</dd></div></dl><div className="tenant-overview__entry"><a href={`/tenant/login?tenantCode=${encodeURIComponent(data.tenant.tenantCode)}`}>租户管理员登录入口</a></div></div>
         <aside className="tenant-overview__safety" aria-labelledby="tenant-safety-title"><h3 id="tenant-safety-title">安全保障</h3><p>基础保护已开启</p><ul><li>租户数据隔离</li><li>服务端权限校验</li><li>密码与密钥不回显</li></ul></aside>
       </div>
       <section aria-labelledby="tenant-quota-title"><h3 id="tenant-quota-title">资源配额</h3><dl className="tenant-overview__facts">
@@ -35,7 +40,7 @@ export function TenantOverview({ client, tenantId, onRouteChange }: {
         <div><dt>粘贴文本大小</dt><dd>{decimalBytes(data.quotas.maxTextBytes, 1_048_576n)} MiB</dd></div>
       </dl></section>
     </>}
-  </section>;
+  </section></>;
 }
 
 /** 展示整数字节的精确十进制值，不把大容量转换成浮点数。 */

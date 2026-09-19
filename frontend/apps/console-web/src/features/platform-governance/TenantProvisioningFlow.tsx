@@ -112,15 +112,16 @@ export function TenantProvisioningFlow({ client, route, onRouteChange }: {
       {["租户信息", "配额设置", "管理员账号"].map((label, index) => <li key={label} aria-current={index + 1 === step ? "step" : undefined} data-complete={index + 1 < step}><span>{index + 1}</span><strong>{label}</strong></li>)}
     </ol>
     {!ready ? <p role="status">正在恢复开户信息…</p> : <form key={step} ref={form} onSubmit={event => void submit(event)}>
-      <header className="tenant-onboarding__heading"><h2 ref={heading} tabIndex={-1}>{["填写租户信息", "设置资源配额", "创建租户管理员"][step - 1]}</h2><span>{step} / 3</span></header>
+      <div className="tenant-onboarding__card">
+      <header className="tenant-onboarding__heading"><h2 ref={heading} tabIndex={-1}>{["填写租户信息", "设置资源配额", "创建租户管理员"][step - 1]}</h2><span className="page-status" data-tone="info">{step} / 3</span></header>
       <fieldset disabled={busy} className={step === 3 ? "tenant-onboarding__administrator" : undefined}>
         {step === 1 ? <div className="tenant-onboarding__fields">
           <Field label="组织名称" hint="2–40 个字符。" required><Input name="displayName" value={draft.displayName} maxLength={80} autoComplete="organization" placeholder="例如：青岚科技" onChange={(_, data) => change("displayName", data.value)} /></Field>
-          <Field label="租户编码" hint="3–20 位小写字母、数字或连字符；创建后不能修改。" required><Input name="tenantCode" value={draft.tenantCode} maxLength={20} pattern="[a-z][a-z0-9-]{2,19}" autoComplete="off" placeholder="例如：qinglan-demo" onChange={(_, data) => change("tenantCode", data.value)} /></Field>
-        </div> : step === 2 ? <><div className="tenant-onboarding__fields tenant-onboarding__quotas">{quotaFields.map(field => <Field key={field.key} label={field.label} hint={field.integer ? "大于 0 的整数。" : "支持小数，须能精确换算为整数字节。"} required><Input name={field.key} inputMode={field.integer ? "numeric" : "decimal"} maxLength={40} value={draft[field.key]} contentAfter={<span>{field.unit}</span>} onChange={(_, data) => change(field.key, data.value)} /></Field>)}</div><p className="tenant-onboarding__note">租户隔离、权限校验和密码不回显始终开启。</p></> : <>
+          <Field label="租户编码" hint="3–20 位小写字母、数字或连字符；创建后不能修改。" required><Input name="tenantCode" value={draft.tenantCode} maxLength={20} pattern="[a-z][a-z0-9-]{2,19}" autoComplete="off" placeholder="qinglan-demo" onChange={(_, data) => change("tenantCode", data.value)} /></Field>
+        </div> : step === 2 ? <><div className="tenant-onboarding__fields tenant-onboarding__quotas">{quotaFields.map(field => <Field key={field.key} label={<span className="tenant-onboarding__quota-label">{field.label}<small>{field.unit}</small></span>} hint={field.integer ? "大于 0 的整数。" : "大于 0 的数值。"} required><Input aria-label={field.label} name={field.key} inputMode={field.integer ? "numeric" : "decimal"} maxLength={40} value={draft[field.key]} onChange={(_, data) => change(field.key, data.value)} /></Field>)}</div><p className="tenant-onboarding__note">租户隔离、权限校验和凭据不回显始终开启。</p></> : <>
           <div className="tenant-onboarding__summary"><span><strong>{draft.displayName}</strong><small>{draft.tenantCode}</small></span><span><strong>{draft.knowledgeBases} 个知识库</strong><small>每库 {draft.storageGb} GB</small></span></div>
           <div className="tenant-onboarding__fields">
-            <Field label="管理员登录名" hint="全局唯一，不需要提前创建账户。" required><Input name="loginName" value={draft.loginName} maxLength={64} pattern="[a-z][a-z0-9._-]{2,63}" autoComplete="off" placeholder="例如：qinglan.admin" onChange={(_, data) => change("loginName", data.value)} /></Field>
+            <Field label="管理员登录名" hint="平台范围唯一；不需要提前创建账户。" required><Input name="loginName" value={draft.loginName} maxLength={64} pattern="[a-z][a-z0-9._-]{2,63}" autoComplete="off" placeholder="例如：qinglan.admin" onChange={(_, data) => change("loginName", data.value)} /></Field>
             <Field label="账号权限"><Input value="当前租户管理员" readOnly /></Field>
             <Field label="初始密码" required><Input name="password" type="password" maxLength={1024} autoComplete="new-password" /></Field>
             <Field label="再次输入" required><Input name="passwordConfirmation" type="password" maxLength={1024} autoComplete="new-password" /></Field>
@@ -128,6 +129,7 @@ export function TenantProvisioningFlow({ client, route, onRouteChange }: {
           <Checkbox name="confirmed" label="确认创建租户及其管理员账号" required />
         </>}
       </fieldset>
+      </div>
       {validation ? <p role="alert" className="tenant-onboarding__validation">{validation}</p> : null}
       <footer className="tenant-onboarding__actions"><Button appearance="subtle" type="button" disabled={busy} onClick={cancel}>取消</Button><div>{step > 1 ? <Button type="button" disabled={busy} onClick={() => navigate(step === 3 ? 2 : 1)}>上一步</Button> : null}<Button appearance="primary" type="submit" disabled={busy}>
         {step === 3 ? <span className="tenant-onboarding__submit-copy"><span aria-hidden={busy} className={busy ? "is-hidden" : undefined}>创建租户</span><span aria-hidden={!busy} className={!busy ? "is-hidden" : undefined}>正在创建…</span></span> : "下一步"}

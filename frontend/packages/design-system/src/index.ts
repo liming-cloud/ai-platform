@@ -1,3 +1,4 @@
+export { PageHeading } from "./shell/PageHeading";
 export { FoundationProvider } from "./providers/FoundationProvider";
 export { ProductShell } from "./shell/ProductShell";
 export { StatePanel } from "./state/StatePanel";

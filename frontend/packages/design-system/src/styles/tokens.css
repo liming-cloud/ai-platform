@@ -16,6 +16,8 @@
   --foundation-accent-pressed: color-mix(in oklab, var(--foundation-accent-reference), var(--foundation-text) 42%);
   --foundation-accent-subtle: color-mix(in oklab, var(--foundation-accent-reference), var(--foundation-surface) 90%);
   --foundation-danger: #b53333;
+  --foundation-warning-reference: #eab308;
+  --foundation-success-reference: #17a34a;
   --foundation-control-radius: 0.5rem;
   --foundation-panel-radius: 0.75rem;
   --foundation-elevation: 0 0 0 1px var(--foundation-border);

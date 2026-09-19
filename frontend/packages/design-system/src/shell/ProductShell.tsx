@@ -12,7 +12,6 @@ import {
   Bot20Regular,
   Building20Regular,
   Chat20Regular,
-  ChevronDown16Regular,
   CloudArrowUp20Regular,
   DataTrending20Regular,
   Database20Regular,
@@ -24,6 +23,7 @@ import {
 } from "@fluentui/react-icons";
 import type { ReactNode } from "react";
 import "../styles/shell.css";
+import { PageHeading } from "./PageHeading";
 import { assertNavigationBudget } from "./navigation-budget";
 
 export interface NavigationItem {
@@ -47,8 +47,13 @@ export type NavigationIcon =
 
 export interface ProductShellProps {
   productName: string;
-  pageTitle: string;
-  pageSummary: string;
+  /** 对象页可在读取数据后自行使用 PageHeading；避免外壳持有业务读取状态。 */
+  pageTitle?: string;
+  pageSummary?: string;
+  pageStatus?: { label: string; tone: "warning" | "success" | "info" };
+  workspaceScope?: "platform" | "tenant";
+  /** 平板上的重复任务标题视觉收起，一级标题仍供辅助技术识别。 */
+  compactHeading?: boolean;
   navigation: readonly NavigationItem[];
   activeNavigationId: string;
   onNavigationChange?: (navigationId: string) => void;
@@ -64,6 +69,9 @@ export function ProductShell({
   productName,
   pageTitle,
   pageSummary,
+  pageStatus,
+  workspaceScope = "tenant",
+  compactHeading,
   navigation,
   activeNavigationId,
   onNavigationChange,
@@ -77,14 +85,16 @@ export function ProductShell({
   const contextLabel = groupedNavigation.find((group) => group.children?.some((item) => item.id === activeNavigationId))?.label
     ?? (directNavigation.some((item) => item.id === activeNavigationId) ? "租户工作区" : "可信企业控制台");
 
+  const platform = workspaceScope === "platform";
   return (
     <div className="product-shell">
       <aside className="product-sidebar">
         <div className="product-brand">
           <span aria-hidden="true">R</span>
-          <div><Text weight="semibold">{productName}</Text><small>管理控制台</small></div>
+          <div><Text weight="semibold">{productName}</Text><small>{platform ? "平台范围" : "租户范围"}</small></div>
         </div>
         <nav className="product-navigation" aria-label="主要导航">
+          {platform ? <p className="product-navigation__scope">平台范围 / 脱敏治理</p> : null}
           {directNavigation.map((item) => (
             <NavigationButton
               key={item.id}
@@ -107,25 +117,18 @@ export function ProductShell({
             </section>
           ))}
         </nav>
+        <div className="product-sidebar-account"><strong>{accountLabel}</strong><small>{platform ? "仅脱敏聚合" : "当前租户"}</small></div>
       </aside>
 
       <div className="product-workspace">
         <header className="product-topbar">
-          <Text className="product-topbar__context">{contextLabel}</Text>
-          <AccountMenu accountLabel={accountLabel} onLogout={onLogout} topbar />
+          <Text className="product-topbar__context">{platform ? "平台管理 / 不含租户内容" : contextLabel}</Text>
+          <AccountMenu accountLabel={accountLabel} onLogout={onLogout} />
         </header>
-        <header className="product-mobile-header">
-          <div><span aria-hidden="true">R</span><Text weight="semibold">{productName}</Text></div>
-          <AccountMenu accountLabel={accountLabel} onLogout={onLogout} compact />
-        </header>
-        <main className="product-main">
+        <main data-compact-heading={compactHeading} className="product-main">
           <div className="product-canvas">
-            <section className="page-heading" aria-labelledby="page-title">
-              <Text className="page-context">{contextLabel}</Text>
-              <h1 id="page-title">{pageTitle}</h1>
-              <Text className="page-summary">{pageSummary}</Text>
-            </section>
-            <div className="product-content">{children}</div>
+            {pageTitle ? <PageHeading title={pageTitle} context={contextLabel} summary={pageSummary} status={pageStatus} /> : null}
+            <div className={pageTitle ? "product-content" : "product-content product-content--owns-heading"}>{children}</div>
           </div>
         </main>
       </div>
@@ -154,30 +157,12 @@ function NavigationButton({ item, active, onClick }: {
   );
 }
 
-function AccountMenu({ accountLabel, onLogout, compact = false, topbar = false }: {
-  accountLabel: string;
-  onLogout?: () => void;
-  compact?: boolean;
-  topbar?: boolean;
-}) {
-  const className = compact
-    ? "product-account product-account--compact"
-    : topbar
-      ? "product-account product-account--topbar"
-      : "product-account";
-  return <Menu>
-    <MenuTrigger disableButtonEnhancement>
-      <Button className={className} appearance="subtle" iconPosition="after" icon={<ChevronDown16Regular />} aria-label={compact ? "打开账户菜单" : undefined}>
-        <span aria-hidden="true">{accountLabel.slice(0, 1)}</span>
-        {!compact ? <span><small>当前会话角色</small><Text size={200}>{accountLabel}</Text></span> : null}
-      </Button>
-    </MenuTrigger>
-    <MenuPopover>
-      <MenuList>
-        <MenuItem icon={<SignOut20Regular />} onClick={onLogout}>退出登录</MenuItem>
-      </MenuList>
-    </MenuPopover>
-  </Menu>;
+function AccountMenu({ accountLabel, onLogout }: { accountLabel: string; onLogout?: () => void }) {
+  return <Menu><MenuTrigger disableButtonEnhancement>
+    <Button className="product-account" appearance="subtle">{accountLabel} / 账户菜单</Button>
+  </MenuTrigger><MenuPopover><MenuList>
+    <MenuItem icon={<SignOut20Regular />} onClick={onLogout}>退出登录</MenuItem>
+  </MenuList></MenuPopover></Menu>;
 }
 
 function navigationIcon(icon?: NavigationIcon) {

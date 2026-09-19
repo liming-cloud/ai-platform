@@ -142,3 +142,17 @@ test("只有字号过渡结束后才能执行布局断言，恢复后才能进�
   await withTextScale(page, true, async () => { order.push("assert"); });
   assert.deepEqual(order, ["viewport-settled", "scale", "settled", "assert", "restore", "settled"]);
 });
+
+
+test("原型布局拒绝旧底部导航、无内边距表单和未固定的移动操作栏", () => {
+  const { verifyPrototypeFrame } = require("../development/acceptance-onboarding.cjs");
+  const mobile = { mainPadding: "20px 16px 40px", cardPadding: "16px", sidebarPosition: "sticky", sidebarTop: "0px", actionsPosition: "fixed", headingClip: "none" };
+  assert.doesNotThrow(() => verifyPrototypeFrame(mobile, 390));
+  for (const wrong of [{ sidebarPosition: "fixed" }, { cardPadding: "0px" }, { actionsPosition: "static" }, { mainPadding: "0px" }]) {
+    assert.throws(() => verifyPrototypeFrame({ ...mobile, ...wrong }, 390));
+  }
+  const tablet = { ...mobile, mainPadding: "32px 32px 48px", cardPadding: "16px 20px", actionsPosition: "static", headingClip: "inset(50%)" };
+  assert.doesNotThrow(() => verifyPrototypeFrame(tablet, 1024));
+  assert.throws(() => verifyPrototypeFrame({ ...tablet, headingClip: "none" }, 1024));
+  assert.doesNotThrow(() => verifyPrototypeFrame({ ...tablet, headingClip: "none" }, 1440));
+});

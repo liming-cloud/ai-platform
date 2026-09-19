@@ -64,7 +64,7 @@ function workspacePage({ pathname, headings, passwordCount = 0, mobile = false }
   let loggedOut = false;
   const nodes = headings.map(name => ({ role: "text", name }));
   nodes.push({ role: "button", name: "运营总览" });
-  nodes.push({ role: "button", name: mobile ? "打开账户菜单" : "当前会话角色 平台管理员", click: () => { menuOpen = true; } });
+  nodes.push({ role: "button", name: mobile ? "租户管理员 / 账户菜单" : "平台管理员 / 账户菜单", click: () => { menuOpen = true; } });
   nodes.push({ role: "menuitem", name: "退出登录", visible: () => menuOpen, click: () => { loggedOut = true; } });
   return {
     get loggedOut() { return loggedOut; },

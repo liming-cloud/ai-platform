@@ -201,6 +201,15 @@ function verifyPrototypeStyle(style, width) {
   requireCondition(style.heights.length > 0 && style.heights.every(value => Number.isFinite(value) && Math.abs(value - height) <= 1), "原型普通控件尺寸不一致");
 }
 
+/** 固定原型的响应式边界，移动导航与操作栏位置不能作为视觉例外。 */
+function verifyPrototypeFrame(frame, width) {
+  requireCondition(frame.mainPadding === (width <= 680 ? "20px 16px 40px" : "32px 32px 48px"), "页面内边距未承接原型");
+  requireCondition(frame.cardPadding === (width <= 680 ? "16px" : "16px 20px"), "开户卡片内边距未承接原型");
+  requireCondition(frame.sidebarPosition === "sticky" && frame.sidebarTop === "0px", "原型导航应固定在顶部滚动边界");
+  requireCondition(frame.actionsPosition === (width <= 680 ? "fixed" : "static"), "移动操作栏未按原型固定");
+  requireCondition(frame.headingClip === (width > 680 && width <= 1040 ? "inset(50%)" : "none"), "平板重复页头的可访问收起方式不一致");
+}
+
 async function assertPrototypeStyle(page, width) {
   const style = await page.evaluate(() => {
     const panel = document.querySelector(".tenant-onboarding");
@@ -214,6 +223,12 @@ async function assertPrototypeStyle(page, width) {
       buttonMinWidths: [...panel.querySelectorAll(".tenant-onboarding__actions button")].map(element => parseFloat(getComputedStyle(element).minWidth)) };
   });
   verifyPrototypeStyle(style, width);
+  verifyPrototypeFrame(await page.evaluate(() => {
+    const style = selector => getComputedStyle(document.querySelector(selector));
+    return { mainPadding: style(".product-main").padding, cardPadding: style(".tenant-onboarding__card").padding,
+      sidebarPosition: style(".product-sidebar").position, sidebarTop: style(".product-sidebar").top,
+      actionsPosition: style(".tenant-onboarding__actions").position, headingClip: style(".page-heading").clipPath };
+  }), width);
 }
 
 /** 结构基线来自固定原型：桌面管理员表单左置，摘要与确认右置；移动端顺序堆叠。 */
@@ -253,7 +268,9 @@ async function assertWizardLayout(page, width, step, enlarged = false) {
   if (!enlarged) await assertPrototypeStyle(page, width);
   return withTextScale(page, enlarged, async () => {
     const result = await page.evaluate(() => {
-      const visible = element => element && element.getBoundingClientRect().width > 0 && element.getBoundingClientRect().height > 0;
+      // 已单独断言平板页头的视觉收起合同；其辅助技术文本不按可见控件测量裁切。
+      const visible = element => element && getComputedStyle(element.closest(".page-heading") || element).clipPath !== "inset(50%)"
+        && element.getBoundingClientRect().width > 0 && element.getBoundingClientRect().height > 0;
       const clipped = element => element.scrollHeight > element.clientHeight + 1 || element.scrollWidth > element.clientWidth + 1;
       const geometry = element => {
         if (!visible(element)) return null;
@@ -274,7 +291,7 @@ async function assertWizardLayout(page, width, step, enlarged = false) {
     });
     requireCondition(!result.overflow && !result.clipped, "开户页面溢出或文字裁切");
     requireCondition(result.controlCount > 0 && result.minimumHeight >= (width === 390 ? 44 : 36), "开户控件点击区域不足");
-    verifyLogicalFieldRows(result.fields, result.columns, { 1: 2, 2: 5, 3: 4 }[step], width <= 700 ? 1 : step === 2 ? 3 : 2);
+    verifyLogicalFieldRows(result.fields, result.columns, { 1: 2, 2: 5, 3: 4 }[step], width <= 680 ? step === 2 ? 2 : 1 : step === 2 ? 3 : 2);
     requireCondition(result.fields.filter(field => field.hint).length === { 1: 2, 2: 5, 3: 1 }[step], "开户帮助信息缺失，不能跳过帮助文字验收");
     requireCondition(!result.moving, "开户页 reduced-motion 未生效");
     if (step === 3) await assertAdministratorSummaryLayout(page, width);
@@ -424,7 +441,7 @@ async function run(configuration) {
         await page.reload({ waitUntil: "networkidle" });
         await page.getByRole("heading", { name: "租户概览", exact: true }).waitFor();
         await page.getByRole("heading", { name: onboardingRequest(credentials.tenant).displayName, exact: true }).waitFor();
-        requireCondition(await page.locator(".tenant-overview__identity-copy p").textContent() === credentials.tenant.tenantCode, "刷新详情未显示当前租户编码");
+        requireCondition(await page.locator(".tenant-overview__identity-facts > div").filter({ has: page.locator("dt", { hasText: "租户编码" }) }).locator("dd").textContent() === credentials.tenant.tenantCode, "刷新详情未显示当前租户编码");
         for (const [label, expected] of [["知识库数量", "4 个"], ["每库文档数量", "1234 个"], ["每库内容容量", "12.5 GB"], ["单文件大小", "75 MB"], ["粘贴文本大小", "2 MiB"]]) {
           const row = page.locator(".tenant-overview__facts > div").filter({ has: page.locator("dt", { hasText: label }) });
           requireCondition((await row.locator("dd").textContent())?.trim() === expected, `刷新详情未显示实际${label}`);
@@ -505,7 +522,7 @@ async function run(configuration) {
 
 module.exports = { assertFocusedControlVisible, exerciseWizardKeyboard, readOnboardingConfiguration, onboardingRequest, verifyOnboardingResult,
   verifyLogicalFieldRows, wizardKeyboardPlan, verifyKeyboardTraversal, acceptanceStep, wizardLabelPattern,
-  verifyOverviewBadge, withTextScale, assertOverviewBadgeLayout, verifyPrototypeStyle, assertPrototypeStyle, assertAdministratorSummaryLayout, assertOverviewStructure };
+  verifyPrototypeFrame, verifyOverviewBadge, withTextScale, assertOverviewBadgeLayout, verifyPrototypeStyle, assertPrototypeStyle, assertAdministratorSummaryLayout, assertOverviewStructure };
 if (require.main === module) {
   try { run(readOnboardingConfiguration()).catch(error => { process.stderr.write(`${error.message}\n`); process.exitCode = 1; }); }
   catch (error) { process.stderr.write(`${error.message}\n`); process.exitCode = 1; }

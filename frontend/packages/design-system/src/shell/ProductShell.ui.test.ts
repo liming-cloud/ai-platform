@@ -69,7 +69,7 @@ describe("共享产品壳视觉契约", () => {
   it("页头使用真实一级标题，缩放时共享样式仍命中", () => {
     const source = readFileSync(shellPath, "utf8");
     const styles = readFileSync(shellStylesPath, "utf8");
-    expect(source).toContain('<h1 id="page-title">{pageTitle}</h1>');
+    expect(readFileSync(new URL("./PageHeading.tsx", import.meta.url), "utf8")).toContain('<h1 id="page-title">{title}</h1>');
     expect(source).toContain('<span aria-hidden="true">R</span>');
     expect(styles).toMatch(/\.page-heading h1\s*\{[^}]*font-family:\s*var\(--foundation-font-display\);[^}]*line-height:\s*1\.35;/s);
   });

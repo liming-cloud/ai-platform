@@ -1,8 +1,19 @@
-import { describe, expect, it } from "vitest";
-import type { TenantLifecycle, TenantQuotaSummary } from "../../api/control-plane-client";
+import { describe, expect, it, vi } from "vitest";
+import type { TenantLifecycle, TenantQuotaSummary, TenantAdministratorSummary, PageResult } from "../../api/control-plane-client";
 import { currentTenantOverview, readTenantOverview, type TenantOverviewRead } from "./tenant-overview-loader";
 
 describe("租户概览异步读取归属", () => {
+  it("概览读取真实管理员摘要并限制读取量", async () => {
+    const administrator = { loginName: "actual.admin", status: "ENABLED" } as TenantAdministratorSummary;
+    const administrators = { items: [administrator], totalElements: 1 } as PageResult<TenantAdministratorSummary>;
+    const client = { hasSession: () => true, getTenantLifecycle: () => Promise.resolve({} as TenantLifecycle),
+      getTenantQuotas: () => Promise.resolve({} as TenantQuotaSummary), listTenantAdministrators: vi.fn(async () => administrators) };
+    const events: TenantOverviewRead[] = [];
+    readTenantOverview(client, "tenant", "tenant:0", value => events.push(value));
+    await new Promise(resolve => setTimeout(resolve, 0));
+    expect(client.listTenantAdministrators).toHaveBeenCalledWith("tenant", 1, 1);
+    expect(events[0]?.data).toMatchObject({ administrators });
+  });
   it("新目标或重新读取期间不呈现上一轮租户事实", () => {
     const previous = { owner: "tenant-a:0", data: { tenant: { displayName: "上一租户" }, quotas: {} } } as TenantOverviewRead;
     expect(currentTenantOverview(previous, "tenant-b:0")).toBeUndefined();
@@ -13,7 +24,7 @@ describe("租户概览异步读取归属", () => {
     let resolveOld!: (value: TenantLifecycle) => void;
     const old = new Promise<TenantLifecycle>(resolve => { resolveOld = resolve; });
     const events: TenantOverviewRead[] = [];
-    const client = { hasSession: () => true, getTenantLifecycle: (id: string) => id === "old" ? old : Promise.reject(new Error("不可展示的原始响应")), getTenantQuotas: () => Promise.resolve({} as TenantQuotaSummary) };
+    const client = { hasSession: () => true, getTenantLifecycle: (id: string) => id === "old" ? old : Promise.reject(new Error("不可展示的原始响应")), getTenantQuotas: () => Promise.resolve({} as TenantQuotaSummary), listTenantAdministrators: () => Promise.resolve({ items: [], totalElements: 0 } as unknown as PageResult<TenantAdministratorSummary>) };
     const cancel = readTenantOverview(client, "old", "old:0", result => events.push(result));
     cancel();
     readTenantOverview(client, "new", "new:0", result => events.push(result));
@@ -27,7 +38,7 @@ describe("租户概览异步读取归属", () => {
   it("会话失效后的异步成功不能恢复受保护数据", async () => {
     let active = true;
     const events: TenantOverviewRead[] = [];
-    const client = { hasSession: () => active, getTenantLifecycle: () => Promise.resolve({} as TenantLifecycle), getTenantQuotas: () => Promise.resolve({} as TenantQuotaSummary) };
+    const client = { hasSession: () => active, getTenantLifecycle: () => Promise.resolve({} as TenantLifecycle), getTenantQuotas: () => Promise.resolve({} as TenantQuotaSummary), listTenantAdministrators: () => Promise.resolve({ items: [], totalElements: 0 } as unknown as PageResult<TenantAdministratorSummary>) };
     readTenantOverview(client, "tenant", "tenant:0", result => events.push(result));
     active = false;
     await new Promise(resolve => setTimeout(resolve, 0));
