@@ -254,6 +254,9 @@ async function assertAdministratorSummaryLayout(page, width) {
   const { fields, summary, consent } = boxes;
   requireCondition(boxes.summaryColumns === (width <= 680 ? 2 : 1), "管理员确认摘要的响应式列数未承接原型");
   requireCondition(fields && summary && consent, "管理员表单、摘要或确认区缺失");
+  const consentColumn = width > 680 ? summary : fields;
+  requireCondition(Math.abs((consent.right - consent.left) - (consentColumn.right - consentColumn.left)) <= 1,
+    "确认控件未使用原型分区的完整宽度");
   if (width > 680) {
     requireCondition(summary.left >= fields.right - 1 && Math.abs(summary.top - fields.top) <= 1
       && consent.left >= fields.right - 1 && consent.top >= summary.bottom - 1,

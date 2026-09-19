@@ -107,7 +107,7 @@
 .tenant-onboarding__quota-label small { font-size: 14px; font-weight: 400; color: var(--foundation-muted-text); }
 .tenant-onboarding .fui-Field__hint { margin: 0; font-size: 14px; line-height: 1.6; }
 .tenant-onboarding input[name="tenantCode"], .tenant-onboarding input[name="loginName"], .tenant-onboarding__quotas input { font-family: ui-monospace, Menlo, monospace; }
-.tenant-onboarding .fui-Checkbox { display: flex; width: 100%; gap: 12px; min-height: var(--foundation-control-height); padding: 12px 0; border: 1px solid var(--foundation-border-strong); border-radius: var(--foundation-control-radius); background: var(--foundation-subtle-surface); }
+.tenant-onboarding .fui-Checkbox { display: flex; width: 100%; max-width: none; gap: 12px; min-height: var(--foundation-control-height); padding: 12px 0; border: 1px solid var(--foundation-border-strong); border-radius: var(--foundation-control-radius); background: var(--foundation-subtle-surface); }
 .tenant-onboarding .fui-Checkbox__label { padding: 0; margin: 0; color: var(--foundation-text); font-size: 16px; font-weight: 400; line-height: 1.6; }
 .tenant-onboarding .fui-Checkbox__indicator { flex: 0 0 18px; width: 18px; height: 18px; margin: 2px 0 0; }
 .tenant-onboarding__summary { gap: 0; padding: 0; }
