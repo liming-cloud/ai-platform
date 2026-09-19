@@ -113,7 +113,7 @@ export function TenantProvisioningFlow({ client, route, onRouteChange }: {
     </ol>
     {!ready ? <p role="status">正在恢复开户信息…</p> : <form key={step} ref={form} onSubmit={event => void submit(event)}>
       <header className="tenant-onboarding__heading"><h2 ref={heading} tabIndex={-1}>{["填写租户信息", "设置资源配额", "创建租户管理员"][step - 1]}</h2><span>{step} / 3</span></header>
-      <fieldset disabled={busy}>
+      <fieldset disabled={busy} className={step === 3 ? "tenant-onboarding__administrator" : undefined}>
         {step === 1 ? <div className="tenant-onboarding__fields">
           <Field label="组织名称" hint="2–40 个字符。" required><Input name="displayName" value={draft.displayName} maxLength={80} autoComplete="organization" placeholder="例如：青岚科技" onChange={(_, data) => change("displayName", data.value)} /></Field>
           <Field label="租户编码" hint="3–20 位小写字母、数字或连字符；创建后不能修改。" required><Input name="tenantCode" value={draft.tenantCode} maxLength={20} pattern="[a-z][a-z0-9-]{2,19}" autoComplete="off" placeholder="例如：qinglan-demo" onChange={(_, data) => change("tenantCode", data.value)} /></Field>

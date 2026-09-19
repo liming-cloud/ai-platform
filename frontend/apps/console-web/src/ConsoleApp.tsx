@@ -274,7 +274,7 @@ function AuthenticatedConsoleApp({
     <ProductShell
       productName="可信 RAG"
       pageTitle={
-        operationsActive ? "运营总览" : platformOperationsActive ? "平台运营总览" : accessActive ? route.task === "roles" ? "租户角色" : "成员与权限" : platformActive ? route.task === "create" ? "建立新租户" : "平台租户" : platformAccountsActive ? route.task === "roles" ? "角色目录" : "人员账户目录" : platformModelSupplyActive ? "平台模型供应链" : queryActive ? "从已授权资料中获得答案" : governanceActive ? route.task === "query" ? "查询用量与审计" : "受限评测运行" : modelsActive ? route.task === "configuration" ? "受控模型配置" : route.task === "providers" ? "供应商连接与模型发现" : "模型部署与能力验证" : dataPage?.title ?? "可信知识平台"
+        operationsActive ? "运营总览" : platformOperationsActive ? "平台运营总览" : accessActive ? route.task === "roles" ? "租户角色" : "成员与权限" : platformActive ? route.task === "create" ? "建立新租户" : route.task === "detail" ? "租户概览" : "平台租户" : platformAccountsActive ? route.task === "roles" ? "角色目录" : "人员账户目录" : platformModelSupplyActive ? "平台模型供应链" : queryActive ? "从已授权资料中获得答案" : governanceActive ? route.task === "query" ? "查询用量与审计" : "受限评测运行" : modelsActive ? route.task === "configuration" ? "受控模型配置" : route.task === "providers" ? "供应商连接与模型发现" : "模型部署与能力验证" : dataPage?.title ?? "可信知识平台"
       }
       pageSummary={
         operationsActive

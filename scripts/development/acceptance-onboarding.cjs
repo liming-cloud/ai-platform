@@ -203,6 +203,39 @@ async function assertPrototypeStyle(page, width) {
   verifyPrototypeStyle(style, width);
 }
 
+/** 结构基线来自固定原型：桌面管理员表单左置，摘要与确认右置；移动端顺序堆叠。 */
+async function assertAdministratorSummaryLayout(page, width) {
+  const boxes = await page.evaluate(() => {
+    const box = selector => {
+      const element = document.querySelector(selector);
+      if (!element) return null;
+      const { left, right, top, bottom } = element.getBoundingClientRect();
+      return { left, right, top, bottom };
+    };
+    return { fields: box(".tenant-onboarding__fields"), summary: box(".tenant-onboarding__summary"),
+      consent: box(".tenant-onboarding .fui-Checkbox") };
+  });
+  const { fields, summary, consent } = boxes;
+  requireCondition(fields && summary && consent, "管理员表单、摘要或确认区缺失");
+  if (width > 680) {
+    requireCondition(summary.left >= fields.right - 1 && Math.abs(summary.top - fields.top) <= 1
+      && consent.left >= fields.right - 1 && consent.top >= summary.bottom - 1,
+    "管理员步骤未承接原型左表单、右摘要与确认布局");
+  } else {
+    requireCondition(summary.bottom <= fields.top + 1 && consent.top >= fields.bottom - 1,
+      "移动端管理员摘要、表单与确认区顺序不正确");
+  }
+}
+
+/** 概览只核对本片已有事实与真实入口，不要求未交付的独立设置导航。 */
+async function assertOverviewStructure(page) {
+  requireCondition(await page.locator("h1#page-title").innerText() === "租户概览", "概览页头仍未承接原型任务名称");
+  requireCondition(await page.locator(".tenant-overview__identity a").count() === 1,
+    "管理员登录入口未归属概览基本信息区");
+  requireCondition(await page.locator(".tenant-overview__safety h3").innerText() === "安全保障",
+    "概览安全保障区缺少原型分区标题");
+}
+
 async function assertWizardLayout(page, width, step, enlarged = false) {
   if (!enlarged) await assertPrototypeStyle(page, width);
   return withTextScale(page, enlarged, async () => {
@@ -231,6 +264,7 @@ async function assertWizardLayout(page, width, step, enlarged = false) {
     verifyLogicalFieldRows(result.fields, result.columns, { 1: 2, 2: 5, 3: 4 }[step], width <= 700 ? 1 : step === 2 ? 3 : 2);
     requireCondition(result.fields.filter(field => field.hint).length === { 1: 2, 2: 5, 3: 1 }[step], "开户帮助信息缺失，不能跳过帮助文字验收");
     requireCondition(!result.moving, "开户页 reduced-motion 未生效");
+    if (step === 3) await assertAdministratorSummaryLayout(page, width);
   });
 }
 
@@ -245,6 +279,7 @@ function verifyOverviewBadge({ cardWidth, badgeWidth, contentWidth, insets, badg
 }
 
 async function assertOverviewBadgeLayout(page, enlarged = false) {
+  await assertOverviewStructure(page);
   const originalFontSize = await page.locator(".tenant-overview__identity > .fui-Badge").evaluate(badge => parseFloat(getComputedStyle(badge).fontSize));
   return withTextScale(page, enlarged, async () => {
     const metrics = await page.evaluate(() => {
@@ -373,7 +408,7 @@ async function run(configuration) {
         await page.reload({ waitUntil: "networkidle" });
         await page.getByRole("heading", { name: "租户概览", exact: true }).waitFor();
         await page.getByRole("heading", { name: onboardingRequest(credentials.tenant).displayName, exact: true }).waitFor();
-        requireCondition(await page.locator(".tenant-overview__identity p").textContent() === credentials.tenant.tenantCode, "刷新详情未显示当前租户编码");
+        requireCondition(await page.locator(".tenant-overview__identity-copy p").textContent() === credentials.tenant.tenantCode, "刷新详情未显示当前租户编码");
         for (const [label, expected] of [["知识库数量", "4 个"], ["每库文档数量", "1234 个"], ["每库内容容量", "12.5 GB"], ["单文件大小", "75 MB"], ["粘贴文本大小", "2 MiB"]]) {
           const row = page.locator(".tenant-overview__facts > div").filter({ has: page.locator("dt", { hasText: label }) });
           requireCondition((await row.locator("dd").textContent())?.trim() === expected, `刷新详情未显示实际${label}`);
@@ -454,7 +489,7 @@ async function run(configuration) {
 
 module.exports = { readOnboardingConfiguration, onboardingRequest, verifyOnboardingResult,
   verifyLogicalFieldRows, wizardKeyboardPlan, verifyKeyboardTraversal, acceptanceStep, wizardLabelPattern,
-  verifyOverviewBadge, withTextScale, assertOverviewBadgeLayout, verifyPrototypeStyle, assertPrototypeStyle };
+  verifyOverviewBadge, withTextScale, assertOverviewBadgeLayout, verifyPrototypeStyle, assertPrototypeStyle, assertAdministratorSummaryLayout, assertOverviewStructure };
 if (require.main === module) {
   try { run(readOnboardingConfiguration()).catch(error => { process.stderr.write(`${error.message}\n`); process.exitCode = 1; }); }
   catch (error) { process.stderr.write(`${error.message}\n`); process.exitCode = 1; }

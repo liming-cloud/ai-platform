@@ -21,11 +21,11 @@ export function TenantOverview({ client, tenantId, onRouteChange }: {
     return () => { cancel(); unsubscribe(); };
   }, [client, tenantId, owner]);
   return <section className="tenant-onboarding tenant-overview">
-    <header className="tenant-onboarding__heading"><h2>租户概览</h2><Button onClick={() => onRouteChange({ navigationId: "platform", task: "tenants", page: 1 })}>返回租户目录</Button></header>
+    <header className="tenant-onboarding__heading tenant-overview__actions"><Button onClick={() => onRouteChange({ navigationId: "platform", task: "tenants", page: 1 })}>返回租户目录</Button></header>
     {failure ? <><MessageBar intent="error"><MessageBarBody><MessageBarTitle>{failure.title}</MessageBarTitle>{failure.description}</MessageBarBody></MessageBar><Button onClick={() => setRevision(value => value + 1)}>重新加载</Button></> : !data ? <p role="status">正在读取租户信息与配额…</p> : <>
       <div className="tenant-overview__summary-grid">
-        <div className="tenant-overview__identity"><span className="tenant-overview__monogram" aria-hidden="true">{Array.from(data.tenant.displayName)[0]}</span><div className="tenant-overview__identity-copy"><h3>{data.tenant.displayName}</h3><p>{data.tenant.tenantCode}</p></div><Badge appearance="tint" color={data.tenant.status === "ACTIVE" ? "success" : "warning"}>{data.tenant.status === "ACTIVE" ? "活动" : data.tenant.status === "SUSPENDED" ? "已暂停" : "准备中"}</Badge></div>
-        <aside className="tenant-overview__safety" aria-labelledby="tenant-safety-title"><h3 id="tenant-safety-title">基础保护已开启</h3><ul><li>租户数据隔离</li><li>服务端权限校验</li><li>密码与密钥不回显</li></ul></aside>
+        <div className="tenant-overview__identity"><div className="tenant-overview__identity-copy"><span>基本信息</span><h2>{data.tenant.displayName}</h2><p>{data.tenant.tenantCode}</p></div><Badge appearance="tint" color={data.tenant.status === "ACTIVE" ? "success" : "warning"}>{data.tenant.status === "ACTIVE" ? "活动" : data.tenant.status === "SUSPENDED" ? "已暂停" : "准备中"}</Badge><div className="tenant-overview__entry"><div><h3>管理员访问</h3><p>需先退出当前平台身份，再使用创建时设置的管理员账号与密码登录。</p></div><a href={`/tenant/login?tenantCode=${encodeURIComponent(data.tenant.tenantCode)}`}>租户管理员登录入口</a></div></div>
+        <aside className="tenant-overview__safety" aria-labelledby="tenant-safety-title"><h3 id="tenant-safety-title">安全保障</h3><p>基础保护已开启</p><ul><li>租户数据隔离</li><li>服务端权限校验</li><li>密码与密钥不回显</li></ul></aside>
       </div>
       <section aria-labelledby="tenant-quota-title"><h3 id="tenant-quota-title">资源配额</h3><dl className="tenant-overview__facts">
         <div><dt>知识库数量</dt><dd>{data.quotas.knowledgeBases} 个</dd></div>
@@ -34,7 +34,6 @@ export function TenantOverview({ client, tenantId, onRouteChange }: {
         <div><dt>单文件大小</dt><dd>{decimalBytes(data.quotas.maxFileBytes, 1_000_000n)} MB</dd></div>
         <div><dt>粘贴文本大小</dt><dd>{decimalBytes(data.quotas.maxTextBytes, 1_048_576n)} MiB</dd></div>
       </dl></section>
-      <div className="tenant-overview__entry"><div><h3>管理员访问</h3><p>需先退出当前平台身份，再使用创建时设置的管理员账号与密码登录。</p></div><a href={`/tenant/login?tenantCode=${encodeURIComponent(data.tenant.tenantCode)}`}>租户管理员登录入口</a></div>
     </>}
   </section>;
 }

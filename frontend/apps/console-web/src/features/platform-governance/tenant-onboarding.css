@@ -48,19 +48,33 @@
 .tenant-overview__summary-grid { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(16rem, 0.65fr); gap: 24px; }
 .tenant-overview__safety { padding: 20px; border: 1px solid var(--foundation-border); border-radius: var(--foundation-panel-radius); background: var(--foundation-subtle-surface); }
 .tenant-overview__safety ul { margin: 0; padding-left: 20px; display: grid; gap: 8px; color: var(--foundation-muted-text); }
-.tenant-overview__identity { display: flex; gap: 16px; align-items: center; padding: 20px; border: 1px solid var(--foundation-border); border-radius: var(--foundation-panel-radius); background: var(--foundation-surface); overflow-wrap: anywhere; }
-.tenant-overview__identity-copy { flex: 1; min-width: 0; }
-.tenant-overview__identity > .fui-Badge { height: auto; min-height: 20px; line-height: 1.4; }
+.tenant-overview__actions { justify-content: flex-end; }
+.tenant-overview__identity { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 24px; align-items: start; padding: 20px; border: 1px solid var(--foundation-border); border-radius: var(--foundation-panel-radius); background: var(--foundation-surface); overflow-wrap: anywhere; }
+.tenant-overview__identity-copy { min-width: 0; display: grid; gap: 12px; }
+.tenant-overview__identity-copy > span, .tenant-overview__safety h3 { color: var(--foundation-muted-text); font-family: var(--foundation-font-body); font-size: 14px; font-weight: 600; }
+.tenant-overview__safety > p { font-family: var(--foundation-font-display); font-size: 22px; line-height: 1.4; }
+.tenant-overview__identity > .fui-Badge { justify-self: end; height: auto; min-height: 20px; line-height: 1.4; }
 .tenant-overview__identity p { margin: 0; color: var(--foundation-muted-text); }
-.tenant-overview__monogram { display: grid; place-items: center; width: 48px; height: 48px; flex: 0 0 48px; border-radius: var(--foundation-panel-radius); background: var(--foundation-accent-subtle); color: var(--foundation-accent); font-size: 22px; }
 .tenant-overview__facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border-top: 1px solid var(--foundation-border); margin: 0; }
 .tenant-overview__facts > div { padding: 16px 12px; border-bottom: 1px solid var(--foundation-border); }
 .tenant-overview__facts dt { color: var(--foundation-muted-text); font-size: 14px; margin-bottom: 8px; }
 .tenant-overview__facts dd { margin: 0; font-size: 16px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
-.tenant-overview__entry { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; padding: 20px; background: var(--foundation-subtle-surface); border-radius: var(--foundation-panel-radius); }
+.tenant-overview__entry { grid-column: 1 / -1; display: grid; gap: 16px; border-top: 1px solid var(--foundation-border); padding-top: 20px; }
+.tenant-overview__entry > a { display: block; padding: 8px 12px; border: 1px solid var(--foundation-border-strong); border-radius: var(--foundation-control-radius); text-align: center; font-size: 14px; font-weight: 600; line-height: 1.4; }
 .tenant-overview__entry p { margin: 0; color: var(--foundation-muted-text); max-width: 36em; line-height: 1.6; }
 @media (prefers-reduced-motion: no-preference) { .tenant-onboarding form { animation: onboarding-enter var(--foundation-motion-base) var(--foundation-ease); } }
 @keyframes onboarding-enter { from { opacity: 0; transform: translateY(3px); } to { opacity: 1; transform: none; } }
+/* 桌面第三步对应原型左右分区；DOM 顺序继续保证先填写身份再确认。 */
+@media (min-width: 681px) {
+  .tenant-onboarding fieldset.tenant-onboarding__administrator {
+    grid-template-areas: "fields summary" "fields consent";
+    grid-template-columns: minmax(0, 2fr) minmax(16rem, 0.8fr);
+    align-items: start;
+  }
+  .tenant-onboarding__administrator > .tenant-onboarding__fields { grid-area: fields; }
+  .tenant-onboarding__administrator > .tenant-onboarding__summary { grid-area: summary; grid-template-columns: minmax(0, 1fr); background: transparent; border-inline: 0; border-radius: 0; }
+  .tenant-onboarding__administrator > .fui-Checkbox { grid-area: consent; }
+}
 @media (max-width: 680px) {
   .tenant-onboarding { gap: 20px; }
   .tenant-onboarding__steps li { padding: 12px 6px; flex-direction: column; gap: 8px; text-align: center; }
