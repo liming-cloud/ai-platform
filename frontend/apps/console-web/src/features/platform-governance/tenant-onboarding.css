@@ -12,7 +12,7 @@
 .tenant-onboarding__steps li { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 12px; min-height: 60px; padding: 12px 16px; border-right: 1px solid var(--foundation-border); color: var(--foundation-text); }
 .tenant-onboarding__steps li[aria-current="step"] { background: var(--foundation-accent-subtle); color: var(--foundation-text); }
 .tenant-onboarding__steps li > span { display: grid; place-items: center; min-width: 28px; min-height: 28px; width: max(28px, calc(1.6em + 2px)); height: max(28px, calc(1.6em + 2px)); font-size: 14px; flex: 0 0 auto; color: var(--foundation-muted-text); background: var(--foundation-surface); font-family: "Anthropic Mono", ui-monospace, "JetBrains Mono", Menlo, monospace; border: 1px solid var(--foundation-border-strong); border-radius: 50%; font-variant-numeric: tabular-nums; }
-.tenant-onboarding__steps li[aria-current="step"] > span, .tenant-onboarding__steps li[data-complete="true"] > span { background: var(--foundation-accent); color: var(--foundation-surface); border-color: var(--foundation-accent); }
+.tenant-onboarding__steps li[aria-current="step"] > span, .tenant-onboarding__steps li[data-complete="true"] > span { background: var(--foundation-accent); color: var(--foundation-on-accent); border-color: var(--foundation-accent); }
 .tenant-onboarding form { display: grid; gap: 12px; min-width: 0; }
 .tenant-onboarding__heading { display: flex; align-items: start; justify-content: space-between; gap: 16px; }
 .tenant-onboarding h2 { font-family: var(--foundation-font-display); font-size: 25px; font-weight: 500; line-height: 1.35; margin: 4px 0 0; }
@@ -29,17 +29,17 @@
 .tenant-onboarding .fui-Field__hint,
 .tenant-onboarding .fui-Field__validationMessage { line-height: 1.4; }
 .tenant-onboarding .fui-Input { min-height: 36px; border-radius: var(--foundation-control-radius); width: 100%; min-width: 0; align-self: start; border-color: var(--foundation-border-strong); }
-.tenant-onboarding .fui-Input input { font-size: 16px; line-height: 1.4; min-width: 0; width: 100%; }
-/* 只读值字号较小，控件仍按同排正文行高增长，避免 200% 文字下破坏对齐。 */
-.tenant-onboarding .fui-Input:has(input[readonly]) { min-height: max(var(--foundation-control-height), calc(1.4em + 2px)); background: var(--foundation-subtle-surface); }
-.tenant-onboarding .fui-Input input[readonly] { color: var(--foundation-muted-text); font-size: 14px; line-height: 1.5; }
+.tenant-onboarding .fui-Input input { font-size: 16px; line-height: 1.5; min-width: 0; width: 100%; }
+/* 原型只读值沿用 16px 正文；整行控件随同一行高增长，保持 200% 文字对齐。 */
+.tenant-onboarding .fui-Input:has(input[readonly]) { min-height: max(var(--foundation-control-height), calc(1.5em + 2px)); background: var(--foundation-subtle-surface); }
+.tenant-onboarding .fui-Input input[readonly] { color: var(--foundation-muted-text); font-size: 16px; line-height: 1.5; }
 .tenant-onboarding .fui-Input__contentAfter { font-size: 14px; color: var(--foundation-muted-text); }
 .tenant-onboarding .fui-Button { min-height: 36px; padding: 6px 12px; font-size: 14px; font-weight: 620; line-height: 1.428572; border-radius: var(--foundation-control-radius); width: auto; white-space: normal; }
 .tenant-onboarding .fui-Checkbox { align-items: start; }
 .tenant-onboarding__note { color: var(--foundation-text); font-size: 16px; line-height: 1.6; margin: 0; padding: 12px 16px; border: 1px solid var(--foundation-border); border-radius: var(--foundation-control-radius); background: var(--foundation-subtle-surface); }
 .tenant-onboarding__summary { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0; background: transparent; border: 0; border-block: 1px solid var(--foundation-border); border-radius: 0; padding: 0; }
 .tenant-onboarding__summary > span { display: grid; gap: 6px; overflow-wrap: anywhere; }
-.tenant-onboarding__summary small { color: var(--foundation-muted-text); }
+.tenant-onboarding__summary small { color: var(--foundation-muted-text); font-size: 14px; }
 .tenant-onboarding__validation { color: var(--foundation-danger); margin: 0; }
 .tenant-onboarding__actions { display: flex; align-items: center; justify-content: space-between; gap: 8px; border-top: 1px solid var(--foundation-border); padding-top: 12px; }
 .tenant-onboarding__actions > div { display: flex; flex-wrap: wrap; gap: 8px; }

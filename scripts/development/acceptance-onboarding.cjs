@@ -239,7 +239,7 @@ async function assertPrototypeStyle(page, width) {
 }
 
 /** 结构基线来自固定原型：桌面管理员表单左置，摘要与确认右置；移动端顺序堆叠。 */
-async function assertAdministratorSummaryLayout(page, width) {
+async function assertAdministratorSummaryLayout(page, width, enlarged = false) {
   const boxes = await page.evaluate(() => {
     const box = selector => {
       const element = document.querySelector(selector);
@@ -249,8 +249,19 @@ async function assertAdministratorSummaryLayout(page, width) {
     };
     return { fields: box(".tenant-onboarding__fields"), summary: box(".tenant-onboarding__summary"),
       summaryColumns: getComputedStyle(document.querySelector(".tenant-onboarding__summary")).gridTemplateColumns.split(/\s+/).length,
-      consent: box(".tenant-onboarding .fui-Checkbox") };
+      consent: box(".tenant-onboarding .fui-Checkbox"),
+      readonlySize: parseFloat(getComputedStyle(document.querySelector(".tenant-onboarding input[readonly]")).fontSize),
+      readonlyLineHeight: parseFloat(getComputedStyle(document.querySelector(".tenant-onboarding input[readonly]")).lineHeight),
+      summarySizes: [...document.querySelectorAll(".tenant-onboarding__summary small")].map(element => parseFloat(getComputedStyle(element).fontSize)),
+      stepColor: getComputedStyle(document.querySelector(".tenant-onboarding__steps li[aria-current] > span")).color,
+      submitWidth: document.querySelector(".tenant-onboarding__actions button[type=submit]").getBoundingClientRect().width };
   });
+  const scale = enlarged ? 2 : 1;
+  requireCondition(boxes.readonlySize === 16 * scale && boxes.readonlyLineHeight === 24 * scale
+    && boxes.summarySizes.length === 2 && boxes.summarySizes.every(size => size === 14 * scale),
+    "管理员只读值或摘要辅助字号未承接原型");
+  requireCondition(boxes.stepColor === "rgb(255, 255, 255)", "当前步骤数字颜色未承接原型");
+  if (!enlarged && width > 680) requireCondition(Math.abs(boxes.submitWidth - 82) <= 1, "创建租户按钮宽度未承接原型");
   const { fields, summary, consent } = boxes;
   requireCondition(boxes.summaryColumns === (width <= 680 ? 2 : 1), "管理员确认摘要的响应式列数未承接原型");
   requireCondition(fields && summary && consent, "管理员表单、摘要或确认区缺失");
@@ -318,7 +329,7 @@ async function assertWizardLayout(page, width, step, enlarged = false) {
     verifyLogicalFieldRows(result.fields, result.columns, { 1: 2, 2: 5, 3: 4 }[step], width <= 680 ? step === 2 ? 2 : 1 : step === 2 ? 3 : 2);
     requireCondition(result.fields.filter(field => field.hint).length === { 1: 2, 2: 5, 3: 1 }[step], "开户帮助信息缺失，不能跳过帮助文字验收");
     requireCondition(!result.moving, "开户页 reduced-motion 未生效");
-    if (step === 3) await assertAdministratorSummaryLayout(page, width);
+    if (step === 3) await assertAdministratorSummaryLayout(page, width, enlarged);
   });
 }
 
