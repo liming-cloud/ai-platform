@@ -146,12 +146,12 @@ test("只有字号过渡结束后才能执行布局断言，恢复后才能进�
 
 test("原型布局拒绝旧底部导航、无内边距表单和未固定的移动操作栏", () => {
   const { verifyPrototypeFrame } = require("../development/acceptance-onboarding.cjs");
-  const mobile = { mainPadding: "20px 16px 40px", cardPadding: "16px", sidebarPosition: "sticky", sidebarTop: "0px", actionsPosition: "fixed", headingClip: "none" };
+  const mobile = { mainPadding: "20px 16px 40px", cardPadding: "16px", sidebarPosition: "sticky", sidebarTop: "0px", actionsPosition: "fixed", headingClip: "none", navigationFontSize: "10.4px", navigationLineHeight: "16.64px", iconWidth: "20px", iconHeight: "24px", iconMarginRight: "0px" };
   assert.doesNotThrow(() => verifyPrototypeFrame(mobile, 390));
-  for (const wrong of [{ sidebarPosition: "fixed" }, { cardPadding: "0px" }, { actionsPosition: "static" }, { mainPadding: "0px" }]) {
+  for (const wrong of [{ sidebarPosition: "fixed" }, { cardPadding: "0px" }, { actionsPosition: "static" }, { mainPadding: "0px" }, { navigationFontSize: "14px" }, { navigationLineHeight: "20px" }, { iconHeight: "20px" }, { iconMarginRight: "6px" }]) {
     assert.throws(() => verifyPrototypeFrame({ ...mobile, ...wrong }, 390));
   }
-  const tablet = { ...mobile, mainPadding: "32px 32px 48px", cardPadding: "16px 20px", actionsPosition: "static", headingClip: "inset(50%)" };
+  const tablet = { ...mobile, mainPadding: "32px 32px 48px", cardPadding: "16px 20px", actionsPosition: "static", headingClip: "inset(50%)", navigationFontSize: "16px", navigationLineHeight: "25.6px", iconWidth: "24px" };
   assert.doesNotThrow(() => verifyPrototypeFrame(tablet, 1024));
   assert.throws(() => verifyPrototypeFrame({ ...tablet, headingClip: "none" }, 1024));
   assert.doesNotThrow(() => verifyPrototypeFrame({ ...tablet, headingClip: "none" }, 1440));

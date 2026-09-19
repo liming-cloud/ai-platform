@@ -18,6 +18,12 @@
   --foundation-danger: #b53333;
   --foundation-warning-reference: #eab308;
   --foundation-success-reference: #17a34a;
+  --foundation-success-foreground: color-mix(in oklab, var(--foundation-success-reference), var(--foundation-text) 45%);
+  --foundation-success-background: color-mix(in oklab, var(--foundation-success-reference), var(--foundation-surface) 94%);
+  --foundation-success-border: color-mix(in oklab, var(--foundation-success-reference), var(--foundation-surface) 65%);
+  --foundation-warning-foreground: color-mix(in oklab, var(--foundation-warning-reference), var(--foundation-text) 65%);
+  --foundation-warning-background: color-mix(in oklab, var(--foundation-warning-reference), var(--foundation-surface) 90%);
+  --foundation-warning-border: color-mix(in oklab, var(--foundation-warning-reference), var(--foundation-surface) 55%);
   --foundation-control-radius: 0.5rem;
   --foundation-panel-radius: 0.75rem;
   --foundation-elevation: 0 0 0 1px var(--foundation-border);

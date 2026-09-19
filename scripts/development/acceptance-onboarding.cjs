@@ -208,6 +208,10 @@ function verifyPrototypeFrame(frame, width) {
   requireCondition(frame.sidebarPosition === "sticky" && frame.sidebarTop === "0px", "原型导航应固定在顶部滚动边界");
   requireCondition(frame.actionsPosition === (width <= 680 ? "fixed" : "static"), "移动操作栏未按原型固定");
   requireCondition(frame.headingClip === (width > 680 && width <= 1040 ? "inset(50%)" : "none"), "平板重复页头的可访问收起方式不一致");
+  requireCondition(frame.navigationFontSize === (width <= 680 ? "10.4px" : "16px")
+    && frame.navigationLineHeight === (width <= 680 ? "16.64px" : "25.6px"), "导航字号或行高被普通按钮样式覆盖");
+  requireCondition(frame.iconWidth === (width <= 680 ? "20px" : "24px") && frame.iconHeight === "24px"
+    && frame.iconMarginRight === "0px", "导航图标槽尺寸或边距未承接原型");
 }
 
 async function assertPrototypeStyle(page, width) {
@@ -227,7 +231,10 @@ async function assertPrototypeStyle(page, width) {
     const style = selector => getComputedStyle(document.querySelector(selector));
     return { mainPadding: style(".product-main").padding, cardPadding: style(".tenant-onboarding__card").padding,
       sidebarPosition: style(".product-sidebar").position, sidebarTop: style(".product-sidebar").top,
-      actionsPosition: style(".tenant-onboarding__actions").position, headingClip: style(".page-heading").clipPath };
+      actionsPosition: style(".tenant-onboarding__actions").position, headingClip: style(".page-heading").clipPath,
+      navigationFontSize: style(".product-navigation button").fontSize, navigationLineHeight: style(".product-navigation button").lineHeight,
+      iconWidth: style(".product-navigation .fui-Button__icon").width, iconHeight: style(".product-navigation .fui-Button__icon").height,
+      iconMarginRight: style(".product-navigation .fui-Button__icon").marginRight };
   }), width);
 }
 

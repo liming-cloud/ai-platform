@@ -66,9 +66,10 @@
 
 .product-navigation__scope {
   margin: 0;
-  padding: 0 12px 12px;
+  padding: 0 12px 8px;
   color: var(--foundation-muted-text);
   font-size: 14px;
+  line-height: 1.6;
   font-weight: 650;
 }
 
@@ -81,11 +82,12 @@
   padding: 8px 12px;
   color: var(--foundation-muted-text);
   font-size: 0.68rem;
+  line-height: 1.6;
   font-weight: 750;
   letter-spacing: 0.06em;
 }
 
-.product-navigation > button, .product-navigation__group > button {
+.product-shell .product-navigation .fui-Button {
   position: relative;
   display: flex;
   justify-content: flex-start;
@@ -97,16 +99,17 @@
   border: 1px solid transparent;
   border-radius: var(--foundation-control-radius);
   font-size: 16px;
+  line-height: 1.6;
   font-weight: 400;
   text-align: left;
 }
 
-.product-navigation button:hover {
+.product-shell .product-navigation .fui-Button:hover {
   color: var(--foundation-text);
   background: var(--foundation-subtle-surface);
 }
 
-.product-navigation button.is-active {
+.product-shell .product-navigation .fui-Button.is-active {
   color: var(--foundation-text);
   font-weight: 650;
   border-color: var(--foundation-border);
@@ -239,15 +242,15 @@
 }
 
 .page-status[data-tone="warning"] {
-  color: color-mix(in oklab, var(--foundation-warning-reference), var(--foundation-text) 65%);
-  border-color: color-mix(in oklab, var(--foundation-warning-reference), var(--foundation-surface) 55%);
-  background: color-mix(in oklab, var(--foundation-warning-reference), var(--foundation-surface) 90%);
+  color: var(--foundation-warning-foreground);
+  border-color: var(--foundation-warning-border);
+  background: var(--foundation-warning-background);
 }
 
 .page-status[data-tone="success"] {
-  color: color-mix(in oklab, var(--foundation-success-reference), var(--foundation-text) 45%);
-  border-color: color-mix(in oklab, var(--foundation-success-reference), var(--foundation-surface) 65%);
-  background: color-mix(in oklab, var(--foundation-success-reference), var(--foundation-surface) 94%);
+  color: var(--foundation-success-foreground);
+  border-color: var(--foundation-success-border);
+  background: var(--foundation-success-background);
 }
 
 .product-content {
@@ -269,7 +272,7 @@
   .product-brand > div, .product-navigation__label, .product-navigation__group > span, .product-navigation__scope, .product-sidebar-account {
     display: none;
   }
-  .product-navigation > button, .product-navigation__group > button {
+  .product-shell .product-navigation .fui-Button {
     justify-content: center;
     min-width: 0;
     padding: 8px;
@@ -317,7 +320,7 @@
   .product-navigation__group {
     display: contents;
   }
-  .product-navigation > button, .product-navigation__group > button {
+  .product-shell .product-navigation .fui-Button {
     flex: 1 0 4.1rem;
     flex-direction: column;
     gap: 0.1rem;
@@ -348,13 +351,20 @@
 }
 
 @media (forced-colors: active) {
-  .product-navigation button.is-active {
+  .product-shell .product-navigation .fui-Button.is-active {
     border-color: Highlight;
     color: Highlight;
   }
 }
 
 .product-shell[data-scope="platform"] .product-topbar__context {
-  color: color-mix(in oklab, var(--foundation-warning-reference), var(--foundation-text) 65%);
+  color: var(--foundation-warning-foreground);
   font-weight: 700;
+}
+
+/* 导航是独立密度的复合控件，不继承普通按钮的 20px 图标槽与额外右边距。 */
+.product-navigation .fui-Button__icon { width: 24px; height: 24px; margin: 0; font-size: 24px; }
+@media (max-width: 680px) {
+  .product-navigation .fui-Button__icon { width: 20px; height: 24px; }
+  .product-navigation .fui-Button__icon svg { width: 20px; height: 24px; }
 }
