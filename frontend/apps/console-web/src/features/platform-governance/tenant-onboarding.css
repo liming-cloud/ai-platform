@@ -11,7 +11,7 @@
 .tenant-onboarding__steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); list-style: none; padding: 0; margin: 0; border-block: 1px solid var(--foundation-border); }
 .tenant-onboarding__steps li { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 12px; min-height: 60px; padding: 12px 16px; border-right: 1px solid var(--foundation-border); color: var(--foundation-muted-text); }
 .tenant-onboarding__steps li[aria-current="step"] { background: var(--foundation-accent-subtle); color: var(--foundation-accent); }
-.tenant-onboarding__steps li > span { display: grid; place-items: center; min-width: 28px; min-height: 28px; width: 1.75rem; height: 1.75rem; font-size: 14px; flex: 0 0 auto; border: 1px solid var(--foundation-border); border-radius: 50%; font-variant-numeric: tabular-nums; }
+.tenant-onboarding__steps li > span { display: grid; place-items: center; min-width: 28px; min-height: 28px; width: max(28px, calc(1.6em + 2px)); height: max(28px, calc(1.6em + 2px)); font-size: 14px; flex: 0 0 auto; border: 1px solid var(--foundation-border); border-radius: 50%; font-variant-numeric: tabular-nums; }
 .tenant-onboarding__steps li[aria-current="step"] > span, .tenant-onboarding__steps li[data-complete="true"] > span { background: var(--foundation-accent); color: var(--foundation-surface); border-color: var(--foundation-accent); }
 .tenant-onboarding form { display: grid; gap: 12px; min-width: 0; }
 .tenant-onboarding__heading { display: flex; align-items: start; justify-content: space-between; gap: 16px; }
@@ -82,7 +82,7 @@
 @media (max-width: 680px) {
   .tenant-onboarding { gap: 12px; }
   .tenant-onboarding__steps li { min-height: 56px; padding: 8px; gap: 8px; font-size: 14px; }
-  .tenant-onboarding__steps li > span { min-width: 24px; min-height: 24px; width: 24px; height: 24px; }
+  .tenant-onboarding__steps li > span { min-width: 24px; min-height: 24px; width: max(24px, calc(1.6em + 2px)); height: max(24px, calc(1.6em + 2px)); }
   .tenant-onboarding__steps strong { font-size: 14px; }
   .tenant-onboarding__fields, .tenant-overview__facts { grid-template-columns: minmax(0, 1fr); }
   .tenant-onboarding__quotas { grid-template-columns: repeat(2, minmax(0, 1fr)); }
