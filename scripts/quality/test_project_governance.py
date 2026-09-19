@@ -165,6 +165,30 @@ class ProjectGovernanceTest(unittest.TestCase):
         with self.assertRaisesRegex(MODULE.GovernanceError, "正文仍声明进行中"):
             MODULE.verify(self.root)
 
+    def test_rejects_untracked_or_ignored_screenshot_in_evidence(self):
+        image = self.root / "project/evidence/artifacts/onboarding.PNG"
+        image.parent.mkdir(parents=True)
+        image.write_bytes(b"screenshot")
+        with self.assertRaisesRegex(MODULE.GovernanceError, "截图不得保存在仓库"):
+            MODULE.verify(self.root)
+
+    def test_rejects_tracked_screenshot_even_if_missing_from_worktree(self):
+        (self.root / ".git").mkdir()
+        with (
+            mock.patch.object(MODULE, "tracked_files", return_value={"screenshots/login.webp"}),
+            mock.patch.object(MODULE, "git_commit_exists", return_value=True),
+            mock.patch.object(MODULE, "is_ancestor", return_value=True),
+            self.assertRaisesRegex(MODULE.GovernanceError, "截图不得保存在仓库"),
+        ):
+            MODULE.verify(self.root)
+
+    def test_allows_product_image_asset_and_text_evidence(self):
+        asset = self.root / "assets/product-logo.png"
+        asset.parent.mkdir()
+        asset.write_bytes(b"product asset")
+        (self.root / "project/evidence/screenshots.md").write_text("仅关联 OpenDesign 链接。")
+        MODULE.verify(self.root)
+
     def test_m0_rejects_legacy_tracked_files(self):
         (self.root / ".git").mkdir()
         with (

@@ -90,12 +90,12 @@ confirmedDecisions:
   - ADR-0080
 openDecisions:
   - WP-0017：原子开户按 ADR-0080 实施；独立租户设置的更新合同待后续切片冻结
-  - WP-0017：原子开户独立切片已于 2026-09-19 完成最终部署验收及原型对照；下一独立设置切片须先确认专属 ADR 与工作包边界，整包和 M6 未完成
+  - WP-0017：原子开户功能验收事实保留；按最新完全一致要求重新核对 OpenDesign，取消移动导航、辅助文案和间距的自行例外，严格视觉验收未完成前不进入下一切片
 latestEvidence:
+  - project/evidence/WP-0017-strict-parity-recovery-20260919.md
   - project/evidence/WP-0017-prototype-parity-deploy-20260919.md
   - project/evidence/WP-0017-prototype-parity-audit-20260915.md
   - project/evidence/WP-0017-atomic-onboarding-deploy-20260914.md
-  - project/evidence/WP-0017-atomic-onboarding-build-blocked-20260914.md
   - project/evidence/WP-0017-independent-login-deploy-20260914.md
   - project/evidence/WP-0017-platform-account-pagination-20260914.md
   - project/evidence/WP-0017-sequential-delivery-baseline-20260914.md

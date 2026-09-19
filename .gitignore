@@ -5,11 +5,15 @@
 .superpowers/
 # OpenDesign 会在原型目录生成可再获取的本地技能快照，不作为项目事实提交。
 **/.od-skills/
-# 高保真原型由 OpenDesign 统一管理；浏览器截图只作为临时人工核对产物。
-docs/prototypes/wp-0016/artifacts/**/*.png
-docs/prototypes/wp-0016/artifacts/**/*.jpg
-docs/prototypes/wp-0016/artifacts/**/*.jpeg
-docs/prototypes/wp-0016/artifacts/**/*.webp
+# 高保真原型由 OpenDesign 管理；截图只保存到 /private/tmp，强制入库由 project-verify 拒绝。
+project/evidence/**/*.[pP][nN][gG]
+project/evidence/**/*.[jJ][pP][gG]
+project/evidence/**/*.[jJ][pP][eE][gG]
+project/evidence/**/*.[wW][eE][bB][pP]
+docs/prototypes/**/*.[pP][nN][gG]
+docs/prototypes/**/*.[jJ][pP][gG]
+docs/prototypes/**/*.[jJ][pP][eE][gG]
+docs/prototypes/**/*.[wW][eE][bB][pP]
 
 # Local environments
 .env

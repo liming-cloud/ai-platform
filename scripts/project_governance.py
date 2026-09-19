@@ -375,6 +375,33 @@ def tracked_files(root: Path) -> set[str]:
     return {line for line in result.stdout.splitlines() if line}
 
 
+def verify_screenshot_policy(root: Path) -> None:
+    """截图只留在临时目录；同时检查索引及被忽略的证据文件，避免仅靠 .gitignore 放行。"""
+    evidence_roots = ("project/evidence", "docs/prototypes", "artifacts", "screenshots")
+    raster_suffixes = {".png", ".jpg", ".jpeg", ".webp", ".gif", ".avif"}
+    candidates = tracked_files(root) if (root / ".git").exists() else set()
+    for directory in evidence_roots:
+        candidates.update(
+            str(path.relative_to(root))
+            for path in (root / directory).rglob("*")
+            if path.is_file() and path.suffix.lower() in raster_suffixes
+        )
+    screenshots = sorted(
+        name for name in candidates
+        if Path(name).suffix.lower() in raster_suffixes
+        and (
+            any(name.startswith(directory + "/") for directory in evidence_roots)
+            or "screenshot" in name.lower()
+            or "截图" in name
+        )
+    )
+    if screenshots:
+        raise GovernanceError(
+            "截图不得保存在仓库；请保存到 /private/tmp，并登记 OpenDesign 链接："
+            + ", ".join(screenshots)
+        )
+
+
 def markdown_level_two_sections(path: Path) -> set[str]:
     return {
         match.group(1).strip()
@@ -429,6 +456,7 @@ def verify(root: Path) -> tuple[dict[str, str | list[str]], dict[str, WorkPackag
     if missing_files:
         raise GovernanceError(f"缺少控制面文件：{', '.join(sorted(missing_files))}")
 
+    verify_screenshot_policy(root)
     state = parse_state(root / "project" / "STATE.yaml")
     decision_index_path = root / "project" / "DECISIONS.md"
     current_decision_index = decision_index_path.read_text(encoding="utf-8")
