@@ -90,10 +90,9 @@ confirmedDecisions:
   - ADR-0080
 openDecisions:
   - WP-0017：原子开户按 ADR-0080 实施；独立租户设置的更新合同待后续切片冻结
-  - WP-0017：最新前端 e62a76827 已通过 11 个开户、15 个登录和 15 项只读事实；严格一致性尚未关闭，不进入下一切片
-  - WP-0017：原型概览无资源配额区，旧验收却要求展示五项配额；待确认改为保留 API/数据库核验并移除额外展示
-  - WP-0017：原型固定步骤圆圈在 390px/200% 文字下裁切，与无裁切要求冲突；待确认可访问适配边界，不自行豁免
+  - WP-0017：两项原型冲突已按用户决定写入 ADR-0080；待移除概览额外配额区并完成新部署验收，当前切片尚未关闭
 latestEvidence:
+  - project/evidence/WP-0017-parity-decisions-20260920.md
   - project/evidence/WP-0017-strict-parity-retest-20260920.md
   - project/evidence/WP-0017-strict-parity-recovery-20260919.md
   - project/evidence/WP-0017-prototype-parity-deploy-20260919.md
@@ -101,7 +100,6 @@ latestEvidence:
   - project/evidence/WP-0017-atomic-onboarding-deploy-20260914.md
   - project/evidence/WP-0017-independent-login-deploy-20260914.md
   - project/evidence/WP-0017-platform-account-pagination-20260914.md
-  - project/evidence/WP-0017-sequential-delivery-baseline-20260914.md
 nextReviewAt: 2026-09-20
-updatedAt: 2026-09-19T16:05:03Z
+updatedAt: 2026-09-20T00:28:21Z
 updatedBy: codex

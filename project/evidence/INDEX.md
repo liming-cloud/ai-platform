@@ -520,6 +520,7 @@
 | 原子开户前次范围验收（严格要求已重新打开） | `project/evidence/WP-0017-prototype-parity-deploy-20260919.md`；`project/evidence/WP-0017-parity-navigation-profile-20260919.json`；`project/evidence/WP-0017-parity-quality-20260919.json` | `670d13e58432a7f0b4dc4bd54ae75921bfd48277` | 最终前端真实 11 个开户、15 个登录、15 项只读事实及有效 48 张视觉对照通过，结构/键盘红绿闭合，Runtime quality 通过；后端仍 5844fd3ba…；结论限于当时范围，当前切片严格一致性已重新打开，WP-0017/M6 未完成。 |
 | 严格范围恢复与截图治理 | `project/evidence/WP-0017-strict-parity-recovery-20260919.md` | `c74a4eb5d` | 移除 41 张历史受控截图、加入截图门禁；保留五项用户 fixture 暂存重命名。严格一致性重新打开，不推进后续切片。 |
 | 最新部署严格复验与待决冲突 | `project/evidence/WP-0017-strict-parity-retest-20260920.md` | `e62a7682722661c5b778a74cdda51eab0ec4e568` | 前端 218、脚本 30、治理 38；实际部署 11 个开户、15 个登录、15 项只读事实通过，48 个画面观察无生产横向溢出。两项要求冲突待决定，严格一致性及当前切片均未整体关闭；不复用旧 Runtime quality 宣称通过。 |
+| 原型验收边界确认 | `project/evidence/WP-0017-parity-decisions-20260920.md`；ADR-0080 补充 | `054d9f133986338e745cd3900d45a3991244abaa`（确认前基线） | 用户确认概览按原型移除额外配额展示，允许 200% 圆圈自适应；只解除决策冲突，待新候选完整部署复验。 |
 
 ## 证据规则
 
