@@ -2,7 +2,7 @@ schemaVersion: 1
 productVersion: foundation-v1
 currentMilestone: M6
 currentFrontier: WP-0017
-lastVerifiedCommit: 670d13e58432a7f0b4dc4bd54ae75921bfd48277
+lastVerifiedCommit: 0a46a64b9105574a86b64facb513be20be20f01e
 activeWorkPackages:
   - WP-0014
   - WP-0017
@@ -89,9 +89,9 @@ confirmedDecisions:
   - ADR-0079
   - ADR-0080
 openDecisions:
-  - WP-0017：原子开户按 ADR-0080 实施；独立租户设置的更新合同待后续切片冻结
-  - WP-0017：两项原型冲突已按用户决定写入 ADR-0080；待移除概览额外配额区并完成新部署验收，当前切片尚未关闭
+  - WP-0017：原子开户独立切片已按 ADR-0080 及用户确认边界完成部署、登录、只读事实和原型一致性验收；下一步只确认独立设置切片专属 ADR、保存边界和反例，不自动实现后续功能
 latestEvidence:
+  - project/evidence/WP-0017-prototype-parity-closure-20260920.md
   - project/evidence/WP-0017-parity-decisions-20260920.md
   - project/evidence/WP-0017-strict-parity-retest-20260920.md
   - project/evidence/WP-0017-strict-parity-recovery-20260919.md
@@ -99,7 +99,6 @@ latestEvidence:
   - project/evidence/WP-0017-prototype-parity-audit-20260915.md
   - project/evidence/WP-0017-atomic-onboarding-deploy-20260914.md
   - project/evidence/WP-0017-independent-login-deploy-20260914.md
-  - project/evidence/WP-0017-platform-account-pagination-20260914.md
 nextReviewAt: 2026-09-20
-updatedAt: 2026-09-20T00:28:21Z
+updatedAt: 2026-09-20T00:40:24Z
 updatedBy: codex

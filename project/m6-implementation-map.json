@@ -4,7 +4,7 @@
   "openDesignProjectId": "249f81f2-6f1a-46ff-988c-da3cdedb35e7",
   "humanAcceptanceEvidence": "project/evidence/WP-0016-human-acceptance-20260913.md",
   "prototypeImplementationCommit": "21b45c347a4008f5959b1b972e3ffd8a5aadcc6f",
-  "updatedOn": "2026-09-19",
+  "updatedOn": "2026-09-20",
   "sources": [
     {
       "path": "docs/prototypes/wp-0016/page-inventory.json",
@@ -209,10 +209,10 @@
               "make acceptance-work-package WP=WP-0017 SLICE=login"
             ],
             "evidence": [
-              "project/evidence/WP-0017-prototype-parity-deploy-20260919.md"
+              "project/evidence/WP-0017-prototype-parity-closure-20260920.md"
             ]
           },
-          "verifiedCommit": "670d13e58432a7f0b4dc4bd54ae75921bfd48277"
+          "verifiedCommit": "0a46a64b9105574a86b64facb513be20be20f01e"
         },
         {
           "id": "platform-tenant-create:1",
@@ -242,10 +242,10 @@
               "make acceptance-work-package WP=WP-0017 SLICE=login"
             ],
             "evidence": [
-              "project/evidence/WP-0017-prototype-parity-deploy-20260919.md"
+              "project/evidence/WP-0017-prototype-parity-closure-20260920.md"
             ]
           },
-          "verifiedCommit": "670d13e58432a7f0b4dc4bd54ae75921bfd48277"
+          "verifiedCommit": "0a46a64b9105574a86b64facb513be20be20f01e"
         }
       ]
     },
@@ -296,10 +296,10 @@
               "make acceptance-work-package WP=WP-0017 SLICE=login"
             ],
             "evidence": [
-              "project/evidence/WP-0017-prototype-parity-deploy-20260919.md"
+              "project/evidence/WP-0017-prototype-parity-closure-20260920.md"
             ]
           },
-          "verifiedCommit": "670d13e58432a7f0b4dc4bd54ae75921bfd48277"
+          "verifiedCommit": "0a46a64b9105574a86b64facb513be20be20f01e"
         }
       ]
     },
