@@ -1,5 +1,9 @@
 # AGENTS.md
 
+## GPT-6 适配变更说明
+
+区分只读排查、局部修改与正式交付；保留 ADR、安全、质量、人工评审及 OpenDesign 一致性门禁。
+
 ## 语言规范
 
 - 面向用户的说明、计划、进度、错误、提交信息和文档统一使用简体中文。
@@ -84,7 +88,7 @@
 
 可信 RAG 基座以仓库为唯一事实来源。聊天记录、Agent 记忆和任务摘要不具有权威性。
 
-修改受版本控制的文件前：
+推进工作包实施、正式收口或影响公共契约与里程碑结论的修改前：
 
 1. 确认仓库、分支、HEAD 和工作区状态。
 2. 读取 `project/CHARTER.md`、`project/STATE.yaml` 和 `currentFrontier` 指向的工作包。
@@ -94,17 +98,19 @@
 6. 说明本会话唯一工作包结果、范围外内容和验证命令。
 7. 如果代码与项目状态不一致，先停止实施并修复控制面。
 
+局部文案或低影响修改先确认版本和工作区，读取直接影响的约束并执行相关检查；涉及公共契约或正式完成结论时仍适用上述完整协议。只读排查不修改控制面，不因排查完成创建提交或宣称工作包完成。
+
 工作过程中：
 
 - 每个会话只推进一个主要工作包。
 - 不得静默扩大范围，新发现应登记到风险、ADR 或新工作包。
 - 公共契约、领域边界、权限语义、模型能力和持久化结构变更必须先有已接受 ADR。
-- 对话中的决定只有写入仓库并提交后才生效。
+- 用户当前明确指令在平台指令和实际权限范围内即时适用；跨会话沿用的产品与架构决定写入仓库并提交后成为持久基线。
 - 不以代码存在代替产品闭环，不以页面存在代替用户任务完成。
 
-报告完成前：
+报告工作包或已授权实施切片完成前：
 
-1. 执行工作包声明的全部验证。
+1. 整包完成执行工作包声明的全部验证；独立切片执行其声明的完整验证，不把局部通过描述为整包通过。
 2. 在 `project/evidence/INDEX.md` 登记可复现证据。
 3. 更新工作包和 `project/STATE.yaml`。
 4. 运行 `make project-verify`。
@@ -156,24 +162,9 @@
 ### 2. 路由到最小充分技能
 
 - 当前环境提供插件限定技能时，选择最小充分的 `engineering-assistant:<skill-id>`。
-- 使用 Hermes 时先运行：
-
-```bash
-hermes plugins list --plain --no-bundled | grep '^engineering-assistant\b' || true
-```
-
-再运行：
-
-```bash
-python3 ~/.hermes/plugins/engineering-assistant/engineering-assistant/scripts/route_skill.py \
-  --root ~/.hermes/plugins/engineering-assistant \
-  --prompt '<用户请求>'
-```
-
-- 使用路由器后必须遵守结果：
-  - `selected`：使用返回的插件技能。
-  - `waiting_for_input`：不得猜测，只提出最小必要问题。
-  - `rejected`：当前请求只需解释，不得伪造阶段执行。
+- 仅在确需 Hermes 回退时，通过 `hermes --help`、当前插件管理命令和已安装包的 manifest 核对版本、入口及能力。
+- 使用该版本实际提供的技能、CLI 或 MCP 路由入口；不要调用历史布局中的固定脚本路径，也不因回退检查自动安装或升级。
+- 路由器要求澄清、授权或拒绝执行时，遵守实际返回协议；已有且范围匹配的授权继续复用，可独立完成的已授权工作继续。
 
 ### 3. 显式加载插件技能
 
@@ -184,21 +175,14 @@ python3 ~/.hermes/plugins/engineering-assistant/engineering-assistant/scripts/ro
 ### 4. 使用控制面资产
 
 - 只读取能够改变当前结论的最小插件资产集合。
-- 使用 Hermes 后备方案时，相关资产位于：
-  - `~/.hermes/plugins/engineering-assistant/engineering-assistant/registry/workflows.yaml`
-  - `~/.hermes/plugins/engineering-assistant/engineering-assistant/workflows/*.yaml`
-  - `~/.hermes/plugins/engineering-assistant/engineering-assistant/runtime/compiled/skill-runtime-index.json`
-  - 与任务相关的 `standards/*` 或 `checklists/*`
-- 使用这些资产确定流程、风险、需要显式授权的技能、门禁和预期产物。
+- Hermes 回退时依据该安装版本实际声明的位置读取相关 catalog、flow、policy、profile 和 schema，不推断存在旧 registry、compiled index 或 scripts 目录。
+- 仅用相关资产确定当前流程、风险、必要授权、门禁和产物。
 
 ### 5. 校验阶段结果
 
 - 产生 `StageRunResult` JSON 或等价阶段产物时，必须使用当前运行环境提供的校验器。
-- 使用 Hermes 后备方案时运行：
-
-```bash
-python3 ~/.hermes/plugins/engineering-assistant/engineering-assistant/scripts/validate_stage_run_result.py <结果文件>
-```
+- Hermes 回退使用当前安装版本实际提供的校验器，并先由 CLI 帮助或 manifest 确认入口；不调用不存在的旧校验脚本。
+- 没有产生正式阶段结果的内联任务，明确说明阶段结果校验不适用，不为形式合规创建 Runtime。
 
 - 校验失败时不得声称阶段成功。
 
