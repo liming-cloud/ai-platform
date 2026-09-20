@@ -28,7 +28,7 @@ export function TenantOverview({ client, tenantId, onRouteChange }: {
       action={<Button className="tenant-overview__return" appearance="primary" onClick={() => onRouteChange({ navigationId: "platform", task: "tenants", page: 1 })}>返回租户目录</Button>} />
     <section className="tenant-onboarding tenant-overview">
       <nav className="tenant-overview__settings" aria-label="租户设置"><a href={`/platform/tenants/${encodeURIComponent(tenantId)}`} aria-current="page">概览</a></nav>
-    {failure ? <><MessageBar intent="error"><MessageBarBody><MessageBarTitle>{failure.title}</MessageBarTitle>{failure.description}</MessageBarBody></MessageBar><Button onClick={() => setRevision(value => value + 1)}>重新加载</Button></> : !data ? <p role="status">正在读取租户信息与配额…</p> : <>
+    {failure ? <><MessageBar intent="error"><MessageBarBody><MessageBarTitle>{failure.title}</MessageBarTitle>{failure.description}</MessageBarBody></MessageBar><Button onClick={() => setRevision(value => value + 1)}>重新加载</Button></> : !data ? <p role="status">正在读取租户信息…</p> : <>
       <div className="tenant-overview__summary-grid">
         <div className="tenant-overview__identity">
           <div className="tenant-overview__identity-heading">
@@ -45,26 +45,6 @@ export function TenantOverview({ client, tenantId, onRouteChange }: {
         </div>
         <aside className="tenant-overview__safety" aria-labelledby="tenant-safety-title"><h3 id="tenant-safety-title">安全保障</h3><p>基础保护已开启</p><ul><li>租户数据隔离</li><li>服务端权限校验</li><li>密码与密钥不回显</li></ul></aside>
       </div>
-      <section aria-labelledby="tenant-quota-title"><h3 id="tenant-quota-title">资源配额</h3><dl className="tenant-overview__facts">
-        <div><dt>知识库数量</dt><dd>{data.quotas.knowledgeBases} 个</dd></div>
-        <div><dt>每库文档数量</dt><dd>{data.quotas.documentsPerKnowledgeBase} 个</dd></div>
-        <div><dt>每库内容容量</dt><dd>{decimalBytes(data.quotas.bytesPerKnowledgeBase, 1_000_000_000n)} GB</dd></div>
-        <div><dt>单文件大小</dt><dd>{decimalBytes(data.quotas.maxFileBytes, 1_000_000n)} MB</dd></div>
-        <div><dt>粘贴文本大小</dt><dd>{decimalBytes(data.quotas.maxTextBytes, 1_048_576n)} MiB</dd></div>
-      </dl></section>
     </>}
   </section></>;
-}
-
-/** 展示整数字节的精确十进制值，不把大容量转换成浮点数。 */
-function decimalBytes(value: string, unit: bigint): string {
-  let remainder = BigInt(value) % unit;
-  const whole = BigInt(value) / unit;
-  let fraction = "";
-  while (remainder > 0n && fraction.length < 20) {
-    remainder *= 10n;
-    fraction += (remainder / unit).toString();
-    remainder %= unit;
-  }
-  return whole.toString() + (fraction ? `.${fraction}` : "");
 }

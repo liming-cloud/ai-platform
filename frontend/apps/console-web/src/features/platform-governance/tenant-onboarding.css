@@ -64,10 +64,6 @@
 .tenant-overview__safety > p { font-family: var(--foundation-font-display); font-size: 22px; line-height: 1.4; }
 .tenant-overview__identity-heading > .fui-Badge { justify-self: end; height: auto; min-height: 20px; line-height: 1.4; }
 .tenant-overview__identity p { margin: 0; color: var(--foundation-muted-text); }
-.tenant-overview__facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border-top: 1px solid var(--foundation-border); margin: 0; }
-.tenant-overview__facts > div { padding: 16px 12px; border-bottom: 1px solid var(--foundation-border); }
-.tenant-overview__facts dt { color: var(--foundation-muted-text); font-size: 14px; margin-bottom: 8px; }
-.tenant-overview__facts dd { margin: 0; font-size: 16px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 .tenant-overview__entry { grid-column: 1 / -1; display: grid; gap: 16px; border-top: 1px solid var(--foundation-border); padding-top: 20px; }
 .tenant-overview__entry > a { display: block; padding: 8px 12px; border: 1px solid var(--foundation-border-strong); border-radius: var(--foundation-control-radius); text-align: center; font-size: 14px; font-weight: 600; line-height: 1.4; }
 .tenant-overview__entry p { margin: 0; color: var(--foundation-muted-text); max-width: 36em; line-height: 1.6; }
@@ -91,7 +87,7 @@
   .tenant-onboarding__steps li { min-height: 56px; padding: 8px; gap: 8px; font-size: 14px; }
   .tenant-onboarding__steps li > span { min-width: 24px; min-height: 24px; width: max(24px, calc(1.6em + 2px)); height: max(24px, calc(1.6em + 2px)); }
   .tenant-onboarding__steps strong { font-size: 14px; }
-  .tenant-onboarding__fields, .tenant-overview__facts { grid-template-columns: minmax(0, 1fr); }
+  .tenant-onboarding__fields { grid-template-columns: minmax(0, 1fr); }
   .tenant-onboarding__quotas { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .tenant-overview__summary-grid { grid-template-columns: minmax(0, 1fr); }
 }

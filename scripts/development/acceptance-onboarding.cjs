@@ -280,6 +280,8 @@ async function assertAdministratorSummaryLayout(page, width, enlarged = false) {
 
 /** 概览只核对本片已有事实与真实入口，不要求未交付的独立设置导航。 */
 async function assertOverviewStructure(page) {
+  requireCondition(await page.locator("#tenant-quota-title,.tenant-overview__facts").count() === 0,
+    "概览仍包含固定原型没有的额外资源配额区");
   requireCondition(await page.locator("h1#page-title").innerText() === "租户概览", "概览页头仍未承接原型任务名称");
   requireCondition(await page.locator(".tenant-overview__identity a").count() === 1,
     "管理员登录入口未归属概览基本信息区");
@@ -485,10 +487,7 @@ async function run(configuration) {
         await page.getByRole("heading", { name: "租户概览", exact: true }).waitFor();
         await page.getByRole("heading", { name: onboardingRequest(credentials.tenant).displayName, exact: true }).waitFor();
         requireCondition(await page.locator(".tenant-overview__identity-facts > div").filter({ has: page.locator("dt", { hasText: "租户编码" }) }).locator("dd").textContent() === credentials.tenant.tenantCode, "刷新详情未显示当前租户编码");
-        for (const [label, expected] of [["知识库数量", "4 个"], ["每库文档数量", "1234 个"], ["每库内容容量", "12.5 GB"], ["单文件大小", "75 MB"], ["粘贴文本大小", "2 MiB"]]) {
-          const row = page.locator(".tenant-overview__facts > div").filter({ has: page.locator("dt", { hasText: label }) });
-          requireCondition((await row.locator("dd").textContent())?.trim() === expected, `刷新详情未显示实际${label}`);
-        }
+        await assertOverviewStructure(page);
         const quotas = await request(page, `/platform/tenants/${body.tenantId}/quotas`);
         verifyOnboardingResult({ status: response.status(), body }, quotas);
         requireCondition(creates === 1, "开户没有保持单次提交边界");
