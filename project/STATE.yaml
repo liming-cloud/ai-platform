@@ -88,6 +88,7 @@ confirmedDecisions:
   - ADR-0078
   - ADR-0079
   - ADR-0080
+  - ADR-0081
 openDecisions:
   - WP-0017：原子开户独立切片已按 ADR-0080 及用户确认边界完成部署、登录、只读事实和原型一致性验收；下一步只确认独立设置切片专属 ADR、保存边界和反例，不自动实现后续功能
 latestEvidence:
