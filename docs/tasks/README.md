@@ -7,7 +7,7 @@
 | 任务 | 状态 | 负责人 | 恢复入口 |
 | --- | --- | --- | --- |
 | GOV-0001 | done | 文档与治理工具 | [GOV-0001](GOV-0001/README.md) |
-| GOV-0002 | active | 仓库迁移与治理 | [GOV-0002](GOV-0002/README.md) |
+| GOV-0002 | blocked | 仓库迁移与治理 | [GOV-0002](GOV-0002/README.md) |
 | WP-0001 | done | 产品 | Git 历史：`project/work-packages/WP-0001.md` |
 | WP-0002 | done | 后端 | Git 历史：`project/work-packages/WP-0002.md` |
 | WP-0003 | done | 后端 | Git 历史：`project/work-packages/WP-0003.md` |

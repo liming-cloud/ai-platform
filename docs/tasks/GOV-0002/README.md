@@ -3,12 +3,12 @@
 | 字段 | 值 |
 | --- | --- |
 | ID | GOV-0002 |
-| 状态 | 进行中 |
+| 状态 | 受阻 |
 | 负责人 | 仓库迁移与治理 |
 | 分支 | main |
 | 里程碑 | M6 |
 | ADR | ADR-0081 |
-| 证据 | pending |
+| 证据 | docs/tasks/GOV-0002/verification.md |
 | 提交 | pending |
 | 输入提交 | 346214b1d3cec5d6394e8c344d102dc9fdb3ab0d |
 | 基线提交 | 346214b1d3cec5d6394e8c344d102dc9fdb3ab0d |
@@ -46,11 +46,13 @@ make demo-fixtures-verify；make project-status；make project-verify；make arc
 
 ## 证据
 
-待迁移提交、全新克隆和 GitHub CI 验证后登记。
+- docs/tasks/GOV-0002/verification.md
+
+本地准备已验证；远端推送、新克隆、最终CI和Git清理未执行，不计为迁移完成。
 
 ## 下一前沿
 
-完成 fixture 路径红绿回归和迁移提交，认证后推送、校验新克隆与 CI，再收口本地 Git 遗留。当前 GitHub 本机认证待完成；产品仍停留在 WP-0017 下一独立设置切片的合同确认。
+fixture 路径与CI适配已提交并完成本地验证。唯一阻断为本机GitHub CLI授权：网页显示私有仓库、Workflow及CLI默认的Gist读写/组织只读权限，等待用户确认该账号授权范围；未取得认证，不推送或清理旧Git布局。授权后先复核远端引用，只推main，验证新克隆和CI，再合入原工作区、清理额外分支与工作树并登记完成。产品仍停留在WP-0017下一独立设置切片的合同确认。
 
 ## 固定输入与决定
 
