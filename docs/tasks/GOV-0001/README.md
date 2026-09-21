@@ -3,15 +3,15 @@
 | 字段 | 值 |
 | --- | --- |
 | ID | GOV-0001 |
-| 状态 | 进行中 |
+| 状态 | 已完成 |
 | 负责人 | 文档与治理工具 |
 | 分支 | codex/docs-control-plane-v2 |
 | 里程碑 | M6 |
 | ADR | ADR-0081 |
-| 证据 | pending |
-| 提交 | pending |
+| 证据 | docs/tasks/GOV-0001/verification.md |
+| 提交 | e4b5e0c6d8e533d4684020957d79b8d2c9d09287 |
 | 输入提交 | e7a1d673229acf8c7932dcae85699e517f2adab5 |
-| 基线提交 | e7a1d673229acf8c7932dcae85699e517f2adab5 |
+| 基线提交 | 5884519612d8faaa3a98f1a496762bb568666846 |
 | 人工验收 | 不适用 |
 
 ## 问题
@@ -44,11 +44,13 @@ make project-status；make project-verify；make architecture-guard；make resum
 
 ## 证据
 
-待产生本任务的红绿、固定 diff 评审、迁移校验和提交绑定；不复用 RAG Runtime。
+- docs/tasks/GOV-0001/verification.md
+
+68项治理、28项架构、19项运维脚本回归通过；650项来源和摘要校验。文件650→325，Markdown433→197。未执行业务验收，不复用 RAG Runtime。
 
 ## 下一前沿
 
-建立历史定位红灯测试，盘点文件引用后实施迁移。负责人：Agent。阻断：无。
+本治理任务已闭合。后续产品仍从 WP-0017 的下一独立设置切片 ADR、保存边界和反例恢复；本任务不自动启动业务实现。阻断：无；额外基线候选：无。
 
 ## 已确认决定与读取基线
 
