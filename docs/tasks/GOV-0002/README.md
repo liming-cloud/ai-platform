@@ -3,13 +3,13 @@
 | 字段 | 值 |
 | --- | --- |
 | ID | GOV-0002 |
-| 状态 | 进行中 |
+| 状态 | 已完成 |
 | 负责人 | 仓库迁移与治理 |
 | 分支 | main |
 | 里程碑 | M6 |
 | ADR | ADR-0081 |
 | 证据 | docs/tasks/GOV-0002/verification.md |
-| 提交 | pending |
+| 提交 | 90e4c5d4450c001fe46a31fcf127a8115500f2b2 |
 | 输入提交 | 346214b1d3cec5d6394e8c344d102dc9fdb3ab0d |
 | 基线提交 | 346214b1d3cec5d6394e8c344d102dc9fdb3ab0d |
 | 人工验收 | 不适用 |
@@ -48,11 +48,11 @@ make demo-fixtures-verify；make project-status；make project-verify；make arc
 
 - docs/tasks/GOV-0002/verification.md
 
-本地准备、GitHub首次main推送及全新完整历史克隆已验证；最终CI和本地Git清理待完成，不计为迁移完成。
+五项 fixture 原字节迁移、消费者回归、完整历史克隆及 GitHub CI 通过。本地已收敛为唯一 main、GitHub origin 和原工作树；HEAD 与 origin/main 一致，工作区及暂存区为空，650 项历史资料仍可校验。完成绑定的提交为已验证实现提交；随后仅登记本收口证据，证据提交自身仍须通过 CI 和最终两端一致性复查。
 
 ## 下一前沿
 
-用户已完成GitHub CLI授权，本机keyring认证有效。53ec62a02195c6039804fa224b2ac2dfc46475c8已精确推送为私有仓库main；全新完整历史克隆的fixture、治理、架构、状态和恢复检查通过。Actions已启用、工作流active，尚待实际CI结果；CI通过后合入原工作区，清理额外分支与工作树并登记完成。产品仍停留在WP-0017下一独立设置切片的合同确认。
+本治理任务已闭合。产品前沿仍为 WP-0017，整包和 M6 未完成；下一步仅确认下一独立设置切片的 ADR、保存边界和反例，不自动开始业务实现。阻断：无；额外基线候选：无。
 
 ## 固定输入与决定
 
