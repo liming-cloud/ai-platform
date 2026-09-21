@@ -30,7 +30,7 @@ class BackendArchitectureGuardTest(unittest.TestCase):
     def write_allowlist(self, statements):
         path = (
             self.root
-            / "project/architecture-debt/complex-sql-allowlist.json"
+            / "scripts/quality/baselines/complex-sql-allowlist.json"
         )
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(

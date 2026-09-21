@@ -50,9 +50,9 @@ VALID_ERROR_CODE = re.compile(
     r"\d{4}$"
 )
 MAX_PACKAGE_CLASSES = 12
-BASELINE = Path("project/architecture-debt/WP-0008-backend.json")
+BASELINE = Path("scripts/quality/baselines/WP-0008-backend.json")
 COMPLEX_SQL_ALLOWLIST = Path(
-    "project/architecture-debt/complex-sql-allowlist.json"
+    "scripts/quality/baselines/complex-sql-allowlist.json"
 )
 COMPLEX_SQL_CATEGORIES = {
     "POSTGRES_ADVISORY_LOCK",

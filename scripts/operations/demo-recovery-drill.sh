@@ -11,7 +11,7 @@ if [[ "$#" -gt 1 ]]; then
   exit 2
 fi
 
-readonly REPORT_FILE="${1:-${RECOVERY_REPOSITORY_ROOT}/project/evidence/artifacts/WP-0007-recovery-drill.json}"
+readonly REPORT_FILE="${1:-/private/tmp/ai-platform-operations/WP-0007-recovery-drill.json}"
 readonly BACKUP_DIRECTORY="$(
   mktemp -d "${RECOVERY_BACKUP_PREFIX}XXXXXX"
 )"

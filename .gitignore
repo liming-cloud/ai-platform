@@ -41,3 +41,9 @@ playwright-report/
 # Python cache
 __pycache__/
 *.pyc
+
+# 文档区不保存截图，原型固定资源只允许受控文本与矢量资产。
+docs/**/*.[pP][nN][gG]
+docs/**/*.[jJ][pP][gG]
+docs/**/*.[jJ][pP][eE][gG]
+docs/**/*.[wW][eE][bB][pP]

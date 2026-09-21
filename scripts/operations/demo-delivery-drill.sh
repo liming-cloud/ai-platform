@@ -11,7 +11,7 @@ if [[ "$#" -gt 1 ]]; then
   exit 2
 fi
 
-readonly REPORT_FILE="${1:-${RECOVERY_REPOSITORY_ROOT}/project/evidence/artifacts/WP-0007-delivery-demo.json}"
+readonly REPORT_FILE="${1:-/private/tmp/ai-platform-operations/WP-0007-delivery-demo.json}"
 readonly DELIVERY_NAME="trusted-rag-foundation-v1-recovery-delivery-$(
   date -u +%Y%m%d%H%M%S
 )-$$"

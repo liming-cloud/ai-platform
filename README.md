@@ -1,40 +1,14 @@
 # 可信 RAG 基座
 
-本仓库正在进行企业级可信 RAG 基座绿地建设。当前处于 M0 设计冻结阶段，只保留项目控制面、架构决策和可直接实施的产品设计，不包含可运行的产品源码。
+面向企业授权知识与数据的可信问答平台。后端为六个限界上下文、三个 Spring Boot 运行进程；人员前端为唯一 React/Fluent SPA。
 
-## 当前事实来源
+从 [文档入口](docs/README.md) 阅读目标、规范和设计，从 [任务入口](docs/tasks/README.md) 恢复当前工作。产品进展只以任务控制面和可复核证据为准，源码存在不表示产品闭环完成。
 
-- `project/CHARTER.md`：产品使命、边界和质量原则。
-- `project/STATE.yaml`：当前里程碑、工作包、决策和证据。
-- `project/work-packages/WP-0001.md`：当前唯一工作包。
-- `project/evidence/INDEX.md`：可复核证据索引。
-- `docs/adr/`：已经生效的架构决策。
-- `docs/product/`、`docs/design/`、`docs/architecture/`、`docs/planning/`：绿地产品与工程设计。
-
-聊天记录、历史摘要和旧实现都不是当前项目事实来源。
-
-## 恢复项目上下文
-
-```bash
+```sh
 make project-status
 make resume-context
-```
-
-## 验证项目控制面
-
-```bash
 make project-verify
-make validate
+make architecture-guard
 ```
 
-## 绿地边界
-
-- 不兼容旧接口、数据库、配置、页面和部署方式。
-- 不迁移旧数据，不建设双写或并行运行。
-- 旧后端、旧前端和旧部署文件已从当前分支移除，可通过 Git 历史恢复查阅。
-- 本地未受版本控制的配置和密钥不会被自动删除。
-- M0 人工评审通过前，不创建新的产品实现。
-
-## 下一步
-
-产品负责人完成 M0 设计评审后，创建 `codex/trusted-rag-foundation-v1`，激活 WP-0002，并从空源码边界建立新的前端、后端和 Docker 工程。
+开发、部署和验收入口见 [仓库结构](docs/architecture/repository.md)；运行条件与恢复步骤见 [运行设计](docs/design/operations/demo-delivery.md)。本地秘密不提交；截图只放 `/private/tmp`。

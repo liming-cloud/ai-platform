@@ -9,7 +9,9 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 OPERATIONS_DIRECTORY = REPOSITORY_ROOT / "scripts" / "operations"
 REPORT_FILE = (
     REPOSITORY_ROOT
-    / "project"
+    / "docs"
+    / "tasks"
+    / "milestones"
     / "evidence"
     / "artifacts"
     / "WP-0007-capacity-resilience.json"
@@ -48,7 +50,8 @@ class CapacityResilienceOperationsTest(unittest.TestCase):
         runbook = (
             REPOSITORY_ROOT
             / "docs"
-            / "runbooks"
+            / "design"
+            / "operations"
             / "demo-capacity-resilience.md"
         ).read_text(encoding="utf-8")
 

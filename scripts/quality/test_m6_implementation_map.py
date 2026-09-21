@@ -9,11 +9,13 @@ import unittest
 from collections import Counter
 from pathlib import Path
 
+from scripts import project_governance as governance
+
 
 ROOT = Path(__file__).resolve().parents[2]
-MAP_PATH = "project/m6-implementation-map.json"
-INVENTORY_PATH = "docs/prototypes/wp-0016/page-inventory.json"
-LEDGER_PATH = "docs/prototypes/wp-0016/ACTION-LEDGER.json"
+MAP_PATH = "docs/tasks/milestones/M6/implementation-map.json"
+INVENTORY_PATH = "docs/tasks/WP-0016/prototype/page-inventory.json"
+LEDGER_PATH = "docs/tasks/WP-0016/prototype/ACTION-LEDGER.json"
 
 # 页面责任包与操作责任包分开校验，防止跨包任务被入口页面提前结项。
 PACKAGE_SCREENS = {
@@ -42,20 +44,8 @@ CROSS_PACKAGE_OPERATIONS = {
 
 def evidence_index_bindings(text):
     """只接受工作包标题下证据表格中的明确文件和完整提交，不从叙述推断绑定。"""
-    bindings, package = set(), None
-    for line in text.splitlines():
-        if line.startswith("## "):
-            heading = re.fullmatch(r"## (WP-\d{4})\s*", line)
-            package = heading.group(1) if heading else None
-        if not package or not line.startswith("|"):
-            continue
-        cells = line.strip().strip("|").split("|")
-        if len(cells) != 4:
-            continue
-        references = re.findall(r"`(project/evidence/[^`]+)`", cells[1])
-        commits = re.findall(r"`([0-9a-f]{40})`", cells[2])
-        bindings.update((package, reference, commit) for reference in references for commit in commits)
-    return bindings
+    return governance.evidence_bindings(text)
+
 
 
 def repository_facts(root, mapping=None):
@@ -83,22 +73,23 @@ def repository_facts(root, mapping=None):
         )
         if ancestor.returncode == 0:
             verified_commits.add(commit)
+    history = governance.HistoryStore(root)
+    history.verify()
+    packages = governance.load_packages(root, history)
     return {
         "verified_commits": verified_commits,
-        "evidence_bindings": evidence_index_bindings((root / "project/evidence/INDEX.md").read_text(encoding="utf-8")),
+        "evidence_bindings": governance.historical_evidence_bindings(history) | governance.current_evidence_bindings(root),
         "accepted_adrs": {
-            path.name[:8] for path in (root / "docs/adr").glob("ADR-*.md")
-            if re.search(r"## 状态\s+已接受(?:。|\s)", path.read_text(encoding="utf-8"))
+            adr.identifier for adr in governance.adr_decisions(root)
+            if governance.is_confirmed_decision(adr.status)
         },
         "existing_evidence": {
             path.relative_to(root).as_posix()
-            for path in (root / "project/evidence").rglob("*") if path.is_file()
-        },
-        "completed_packages": {
-            path.stem for path in (root / "project/work-packages").glob("WP-*.md")
-            if re.search(r"\|\s*状态\s*\|\s*已完成\s*\|", path.read_text(encoding="utf-8"))
-        },
+            for path in (root / "docs/tasks").rglob("*") if path.is_file()
+        } | {name for name in history.entries if name.startswith("project/evidence/")},
+        "completed_packages": {p.identifier for p in packages.values() if p.status == "done"},
     }
+
 
 
 def validate_implementation_map(mapping, inventory, ledger, *, accepted_adrs=(),

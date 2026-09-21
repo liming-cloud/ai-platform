@@ -1,22 +1,22 @@
 .PHONY: project-status project-verify resume-context architecture-guard backend-test frontend-test demo-fixtures-verify real-model-acceptance-test recovery-operations-test recovery-demo capacity-resilience-operations-test capacity-resilience-demo delivery-operations-test delivery-demo upgrade-demo deploy-config deploy-up deploy-smoke acceptance-knowledge-space acceptance-model-provider acceptance-model-deployment acceptance-index-search acceptance-assistant acceptance-trusted-query acceptance-query-quota acceptance-query-operations evaluation-demo performance-index-search performance-query-candidate-pool deploy-down validate
 
 project-status:
-	python3 scripts/project_governance.py status
+	python3 -B scripts/project_governance.py status
 
 project-verify:
-	python3 -m unittest scripts.quality.test_project_governance scripts.quality.test_m6_implementation_map
-	python3 scripts/project_governance.py verify
+	python3 -B -m unittest scripts.quality.test_project_governance scripts.quality.test_project_history scripts.quality.test_m6_implementation_map
+	python3 -B scripts/project_governance.py verify
 
 decisions-sync:
-	python3 scripts/project_governance.py sync-decisions
+	python3 -B scripts/project_governance.py sync-decisions
 
 resume-context:
-	python3 scripts/project_governance.py resume
+	python3 -B scripts/project_governance.py resume
 
 architecture-guard:
-	python3 -m unittest scripts.quality.test_backend_architecture_guard scripts.quality.test_frontend_product_guard
-	python3 scripts/quality/backend_architecture_guard.py verify
-	python3 scripts/quality/frontend_product_guard.py verify
+	python3 -B -m unittest scripts.quality.test_backend_architecture_guard scripts.quality.test_frontend_product_guard
+	python3 -B scripts/quality/backend_architecture_guard.py verify
+	python3 -B scripts/quality/frontend_product_guard.py verify
 
 backend-test:
 	./mvnw -q clean test
@@ -25,26 +25,26 @@ frontend-test:
 	cd frontend && npm run typecheck && npm run lint && npm run test && npm run build
 
 demo-fixtures-verify:
-	python3 -m unittest scripts.quality.test_demo_fixtures scripts.quality.test_demo_evaluation
-	python3 scripts/quality/demo_fixtures.py
+	python3 -B -m unittest scripts.quality.test_demo_fixtures scripts.quality.test_demo_evaluation
+	python3 -B scripts/quality/demo_fixtures.py
 
 real-model-acceptance-test:
-	python3 -m unittest scripts.quality.test_real_model_acceptance
+	python3 -B -m unittest scripts.quality.test_real_model_acceptance
 
 recovery-operations-test:
-	python3 -m unittest scripts.quality.test_recovery_operations
+	python3 -B -m unittest scripts.quality.test_recovery_operations
 
 recovery-demo:
 	bash scripts/operations/demo-recovery-drill.sh
 
 capacity-resilience-operations-test:
-	python3 -m unittest scripts.quality.test_capacity_resilience_operations
+	python3 -B -m unittest scripts.quality.test_capacity_resilience_operations
 
 capacity-resilience-demo:
 	bash scripts/operations/demo-capacity-resilience-drill.sh
 
 delivery-operations-test:
-	python3 -m unittest scripts.quality.test_delivery_operations
+	python3 -B -m unittest scripts.quality.test_delivery_operations
 
 delivery-demo:
 	bash scripts/operations/demo-delivery-drill.sh

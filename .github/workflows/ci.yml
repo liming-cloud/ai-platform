@@ -16,9 +16,14 @@ jobs:
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
+          # 历史证据按原提交与摘要核验，浅克隆不能提供完整的可恢复依据。
           fetch-depth: 0
           persist-credentials: false
       - name: 验证长期项目控制面
         run: make project-verify
       - name: 验证前后端架构门禁
         run: make architecture-guard
+      - name: 验证当前状态与有界恢复入口
+        run: |
+          make project-status
+          make resume-context

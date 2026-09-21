@@ -13,7 +13,9 @@ ENV_FILE = REPOSITORY_ROOT / "deploy" / "compose" / ".env.example"
 OPERATIONS_DIRECTORY = REPOSITORY_ROOT / "scripts" / "operations"
 RECOVERY_REPORT = (
     REPOSITORY_ROOT
-    / "project"
+    / "docs"
+    / "tasks"
+    / "milestones"
     / "evidence"
     / "artifacts"
     / "WP-0007-recovery-drill.json"
@@ -121,7 +123,7 @@ class RecoveryOperationsTest(unittest.TestCase):
     ) -> None:
         makefile = (REPOSITORY_ROOT / "Makefile").read_text(encoding="utf-8")
         runbook = (
-            REPOSITORY_ROOT / "docs" / "runbooks" / "demo-backup-recovery.md"
+            REPOSITORY_ROOT / "docs" / "design" / "operations" / "demo-backup-recovery.md"
         ).read_text(encoding="utf-8")
 
         self.assertIn("recovery-operations-test:", makefile)

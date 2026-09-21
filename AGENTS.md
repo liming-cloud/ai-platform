@@ -91,9 +91,9 @@
 推进工作包实施、正式收口或影响公共契约与里程碑结论的修改前：
 
 1. 确认仓库、分支、HEAD 和工作区状态。
-2. 读取 `project/CHARTER.md`、`project/STATE.yaml` 和 `currentFrontier` 指向的工作包。
+2. 读取 `docs/foundation/charter.md`、`docs/tasks/STATE.yaml` 和 `currentTask` 指向的任务及 `productFrontier` 指向的产品工作包。
 3. 读取当前工作包引用的全部 ADR。
-4. 检查 `lastVerifiedCommit` 与当前 HEAD 的关系。
+4. 检查任务输入提交、基线提交与当前 HEAD 的关系；部署和原型版本从对应证据分别核对。
 5. 运行 `make project-status`。
 6. 说明本会话唯一工作包结果、范围外内容和验证命令。
 7. 如果代码与项目状态不一致，先停止实施并修复控制面。
@@ -111,8 +111,8 @@
 报告工作包或已授权实施切片完成前：
 
 1. 整包完成执行工作包声明的全部验证；独立切片执行其声明的完整验证，不把局部通过描述为整包通过。
-2. 在 `project/evidence/INDEX.md` 登记可复现证据。
-3. 更新工作包和 `project/STATE.yaml`。
+2. 在所属任务登记可复现证据；退休证据通过 `docs/tasks/history-index.json` 校验原 Git 对象。
+3. 更新任务恢复入口；仅在前沿变化时更新 `docs/tasks/STATE.yaml`，运行 `make decisions-sync` 生成索引。
 4. 运行 `make project-verify`。
 5. 确认工作区没有遗漏的任务内修改。
 6. 使用中文提交信息，前缀使用 `feat`、`bug`、`build` 或 `doc`。
@@ -122,7 +122,7 @@
 
 ## M0 设计分支边界
 
-当 `project/STATE.yaml` 的 `currentMilestone` 为 `M0` 时：
+当 `docs/tasks/STATE.yaml` 的 `currentMilestone` 为 `M0` 时：
 
 - 当前分支只保留项目控制面、ADR、产品设计、前端设计、架构设计、交付计划和治理脚本。
 - 不得恢复旧 `backend/`、`frontend/`、`deploy/` 或描述旧实现的文档。
@@ -132,10 +132,10 @@
 
 ## WP-0009 后端结构约束
 
-当 `project/STATE.yaml` 的当前前沿为 `WP-0009` 时：
+当 `docs/tasks/STATE.yaml` 的当前前沿为 `WP-0009` 时：
 
 - 后端目标结构以 ADR-0022 和
-  `docs/architecture/foundation-backend-development-structure.md` 为准。
+  `docs/architecture/backend.md` 为准。
 - 只允许 `interfaces -> application -> domain` 和
   `infrastructure -> application/domain` 的依赖方向。
 - 不得新增上下文 `api`、`adapter` 或 `backend/runtimes` 文件；现有数量只能递减。
@@ -270,3 +270,11 @@
 - 能用代码图谱回答架构、诊断或重构问题时，先进行宽泛文件搜索。
 - 在使用 `mcp_codegraph_codegraph_explore` 前手工读取大量完整源码。
 - 未使用 `mcp_codegraph_codegraph_impact` 或等价影响追踪，却声称已经理解非局部变化的影响。
+
+## 文档精简与历史恢复
+
+- 文档导航为 docs/README.md，任务恢复为 docs/tasks/README.md；产品前沿与当前执行任务分离。
+- 适用 ADR-0081 和 docs/standards/document-control.md。当前规范只保留有效正文，不将历史文件整体搬入归档目录。
+- 删除受控资料前核对精确来源提交、摘要、引用、替代和可恢复性；原证据不改写，秘密不复制。
+- 历史任务的旧状态只证明当时范围。新完成结论绑定完整提交、任务及范围，里程碑仍需人工接受。
+- 状态与校验默认只读，不生成缓存、账本或报告；只有显式同步命令写生成索引。

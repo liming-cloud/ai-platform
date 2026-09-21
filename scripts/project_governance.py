@@ -4,51 +4,35 @@
 from __future__ import annotations
 
 import re
+import json
+from urllib.parse import unquote, urlsplit
 import subprocess
 import sys
 from dataclasses import dataclass
 from pathlib import Path
 
+# 即使调用方没有传 -B，状态和历史查询也不在仓库生成 Python 缓存。
+sys.dont_write_bytecode = True
+
+if __package__:
+    from .project_history import GovernanceError, HistoryStore
+else:
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    from project_history import GovernanceError, HistoryStore
+
 
 REQUIRED_STATE_KEYS = {
-    "schemaVersion",
-    "productVersion",
-    "currentMilestone",
-    "currentFrontier",
-    "lastVerifiedCommit",
-    "activeWorkPackages",
-    "blockedWorkPackages",
-    "confirmedDecisions",
-    "openDecisions",
-    "latestEvidence",
-    "nextReviewAt",
-    "updatedAt",
-    "updatedBy",
+    "schemaVersion", "productVersion", "currentMilestone", "productFrontier",
+    "currentTask", "updatedAt", "updatedBy",
 }
 REQUIRED_DESIGN_FILES = {
-    "docs/product/foundation-product-design.md",
-    "docs/design/foundation-frontend-design.md",
-    "docs/architecture/foundation-domain-design.md",
-    "docs/architecture/foundation-backend-design.md",
-    "docs/architecture/foundation-backend-development-structure.md",
-    "docs/architecture/foundation-api-and-data-contracts.md",
-    "docs/architecture/foundation-repository-layout.md",
-    "docs/planning/foundation-delivery-plan.md",
+    "docs/foundation/charter.md", "docs/foundation/roadmap.md",
+    "docs/standards/document-control.md", "docs/architecture/repository.md",
+    "docs/architecture/backend.md", "docs/design/product-and-ui.md",
+    "docs/design/domain-and-contracts.md",
 }
 REQUIRED_REPOSITORY_LAYOUT_SECTIONS = {
-    "规划后的仓库根目录",
-    "后端 Maven 反应堆",
-    "限界上下文标准模板",
-    "扩展模块",
-    "三个可执行启动模块",
-    "前端工作区",
-    "公共契约目录",
-    "数据库与存储所有权",
-    "Docker 与部署目录",
-    "跨系统验证目录",
-    "M1 最小落地目录",
-    "自动化门禁",
-    "目录设计验收",
+    "根目录", "后端和运行边界", "能力与所有权", "前端依赖", "验证与变更",
 }
 M1_REQUIRED_CONTEXT_MODULES = {
     "organization-access": "organizationaccess",
@@ -74,13 +58,7 @@ M0_FORBIDDEN_TRACKED_FILES = {
     "scripts/quality/test_validate_backend_context_modules.py",
     "scripts/quality/validate_backend_context_modules.py",
 }
-LIST_STATE_KEYS = {
-    "activeWorkPackages",
-    "blockedWorkPackages",
-    "confirmedDecisions",
-    "openDecisions",
-    "latestEvidence",
-}
+LIST_STATE_KEYS = set()
 REQUIRED_WORK_PACKAGE_SECTIONS = {
     "问题",
     "范围内",
@@ -108,17 +86,13 @@ STATUS_VALUES = {
     "待开始": "pending",
     "已完成": "done",
 }
-WORK_PACKAGE_ID = re.compile(r"^WP-\d{4}$")
+WORK_PACKAGE_ID = re.compile(r"^(?:WP|GOV)-\d{4}$")
 ADR_ID = re.compile(r"^ADR-\d{4}$")
 COMMIT_SHA = re.compile(r"^[0-9a-f]{7,40}$")
 STALE_ACTIVE_STATEMENT = re.compile(r"(?:本|该)?工作包(?:仍|继续)?保持进行中")
 MAX_LATEST_EVIDENCE = 8
 MAX_FRONTIER_ADRS = 12
 MAX_RESUME_CONTEXT_BYTES = 12 * 1024
-
-
-class GovernanceError(RuntimeError):
-    pass
 
 
 @dataclass(frozen=True)
@@ -133,6 +107,7 @@ class WorkPackage:
     commit: str
     path: Path
     sections: frozenset[str]
+    metadata: dict[str, str]
 
 
 @dataclass(frozen=True)
@@ -200,7 +175,14 @@ def parse_state(path: Path) -> dict[str, str | list[str]]:
 
 def parse_metadata_table(text: str, path: Path) -> dict[str, str]:
     metadata: dict[str, str] = {}
+    started = False
     for line in text.splitlines():
+        if started and not line.startswith("|"):
+            break
+        if line.startswith("| 字段 |"):
+            started = True
+        if not started:
+            continue
         match = re.match(r"^\|\s*([^|]+?)\s*\|\s*([^|]*?)\s*\|$", line)
         if not match:
             continue
@@ -214,8 +196,8 @@ def parse_metadata_table(text: str, path: Path) -> dict[str, str]:
     return metadata
 
 
-def parse_work_package(path: Path) -> WorkPackage:
-    text = path.read_text(encoding="utf-8")
+def parse_work_package(path: Path, text: str | None = None) -> WorkPackage:
+    text = text if text is not None else path.read_text(encoding="utf-8")
     metadata = parse_metadata_table(text, path)
     required = {"ID", "Status", "Owner", "Branch", "Milestone", "ADRs", "Evidence", "Commit"}
     missing = required - metadata.keys()
@@ -231,7 +213,7 @@ def parse_work_package(path: Path) -> WorkPackage:
     identifier = metadata["ID"]
     if not WORK_PACKAGE_ID.fullmatch(identifier):
         raise GovernanceError(f"{path}：工作包编号无效“{identifier}”")
-    if path.stem != identifier:
+    if (path.parent.name if path.name == "README.md" else path.stem) != identifier:
         raise GovernanceError(f"{path}：文件名必须与工作包编号一致")
     adrs = tuple(item.strip() for item in metadata["ADRs"].split(",") if item.strip())
     status = STATUS_VALUES.get(metadata["Status"], metadata["Status"].lower())
@@ -248,6 +230,7 @@ def parse_work_package(path: Path) -> WorkPackage:
         commit=metadata["Commit"],
         path=path,
         sections=sections,
+        metadata=metadata,
     )
 
 
@@ -274,7 +257,7 @@ def is_ancestor(root: Path, ancestor: str) -> bool:
 
 
 def find_adr(root: Path, identifier: str) -> list[Path]:
-    return sorted((root / "docs" / "adr").glob(f"{identifier}-*.md"))
+    return sorted((root / "docs" / "architecture" / "decisions").glob(f"{identifier}-*.md"))
 
 
 def parse_adr(path: Path) -> AdrDecision:
@@ -323,7 +306,7 @@ def parse_adr(path: Path) -> AdrDecision:
 def adr_decisions(root: Path) -> tuple[AdrDecision, ...]:
     decisions = tuple(
         parse_adr(path)
-        for path in sorted((root / "docs" / "adr").glob("ADR-*.md"))
+        for path in sorted((root / "docs" / "architecture" / "decisions").glob("ADR-*.md"))
     )
     identifiers = [decision.identifier for decision in decisions]
     if len(identifiers) != len(set(identifiers)):
@@ -335,18 +318,15 @@ def is_confirmed_decision(status: str) -> bool:
     return status.startswith("已接受") or status == "部分被替代"
 
 
-def human_decision_section(text: str) -> str:
-    heading = re.search(r"^##\s+已确认人工决策\s*$", text, flags=re.MULTILINE)
-    return text[heading.start():].strip() if heading else ""
-
-
 def render_decision_index(root: Path, current_text: str = "") -> str:
     lines = [
         "# 决策索引",
         "",
         "> 本表由 `python3 scripts/project_governance.py sync-decisions` 从 ADR 元数据生成。",
         "",
-        "| 编号 | 状态 | 决策 | ADR |",
+        "原状态是决策时点记录；被后续 ADR 取代的条款不是现行规范。当前范围从 docs/README.md 的主题入口读取。",
+        "",
+        "| 编号 | 原状态 | 决策 | ADR |",
         "| --- | --- | --- | --- |",
     ]
     for decision in adr_decisions(root):
@@ -356,9 +336,6 @@ def render_decision_index(root: Path, current_text: str = "") -> str:
         lines.append(
             f"| {decision.identifier} | {status} | {title} | `{relative_path}` |"
         )
-    human_section = human_decision_section(current_text)
-    if human_section:
-        lines.extend(["", human_section])
     return "\n".join(lines) + "\n"
 
 
@@ -377,7 +354,7 @@ def tracked_files(root: Path) -> set[str]:
 
 def verify_screenshot_policy(root: Path) -> None:
     """截图只留在临时目录；同时检查索引及被忽略的证据文件，避免仅靠 .gitignore 放行。"""
-    evidence_roots = ("project/evidence", "docs/prototypes", "artifacts", "screenshots")
+    evidence_roots = ("docs", "project/evidence", "artifacts", "screenshots")
     raster_suffixes = {".png", ".jpg", ".jpeg", ".webp", ".gif", ".avif"}
     candidates = tracked_files(root) if (root / ".git").exists() else set()
     for directory in evidence_roots:
@@ -442,207 +419,239 @@ def verify_m1_context_modules(root: Path) -> None:
         )
 
 
-def verify(root: Path) -> tuple[dict[str, str | list[str]], dict[str, WorkPackage]]:
-    required_files = {
-        root / "project" / "CHARTER.md",
-        root / "project" / "ROADMAP.md",
-        root / "project" / "STATE.yaml",
-        root / "project" / "DECISIONS.md",
-        root / "project" / "TRACEABILITY.md",
-        root / "project" / "RISKS.md",
-        root / "project" / "evidence" / "INDEX.md",
-    }
-    missing_files = [str(path.relative_to(root)) for path in required_files if not path.is_file()]
-    if missing_files:
-        raise GovernanceError(f"缺少控制面文件：{', '.join(sorted(missing_files))}")
+def task_paths(root: Path) -> list[Path]:
+    return sorted(path for path in (root / "docs/tasks").glob("*/README.md")
+                  if WORK_PACKAGE_ID.fullmatch(path.parent.name)) + sorted(
+                      (root / "docs/tasks/backlog").glob("WP-*.md"))
 
-    verify_screenshot_policy(root)
-    state = parse_state(root / "project" / "STATE.yaml")
-    decision_index_path = root / "project" / "DECISIONS.md"
-    current_decision_index = decision_index_path.read_text(encoding="utf-8")
-    expected_decision_index = render_decision_index(root, current_decision_index)
-    if current_decision_index != expected_decision_index:
-        raise GovernanceError(
-            "决策索引与 ADR 元数据不一致；请运行 make decisions-sync"
-        )
-    missing_design_files = [
-        path for path in sorted(REQUIRED_DESIGN_FILES) if not (root / path).is_file()
-    ]
-    if missing_design_files:
-        raise GovernanceError(f"缺少基座设计文件：{', '.join(missing_design_files)}")
-    repository_layout_path = root / "docs" / "architecture" / "foundation-repository-layout.md"
-    missing_layout_sections = (
-        REQUIRED_REPOSITORY_LAYOUT_SECTIONS
-        - markdown_level_two_sections(repository_layout_path)
-    )
-    if missing_layout_sections:
-        raise GovernanceError(
-            "详细目录规划缺少章节：" + ", ".join(sorted(missing_layout_sections))
-        )
-    if state["currentMilestone"] != "M0":
-        verify_m1_context_modules(root)
-    if state["currentMilestone"] == "M0" and (root / ".git").exists():
-        current_tracked_files = tracked_files(root)
-        forbidden_files = sorted(
-            path
-            for path in current_tracked_files
-            if path in M0_FORBIDDEN_TRACKED_FILES
-            or path.startswith(M0_FORBIDDEN_TRACKED_PREFIXES)
-        )
-        if forbidden_files:
-            raise GovernanceError(
-                "M0 设计分支仍包含旧实现文件：" + ", ".join(forbidden_files[:10])
-            )
-    packages: dict[str, WorkPackage] = {}
-    for path in sorted((root / "project" / "work-packages").glob("WP-*.md")):
+
+def load_packages(root: Path, history: HistoryStore) -> dict[str, WorkPackage]:
+    """当前任务优先；退休任务只从校验过的原文恢复，不接受索引伪造状态。"""
+    packages = {}
+    for path in task_paths(root):
         package = parse_work_package(path)
         if package.identifier in packages:
             raise GovernanceError(f"工作包编号重复：{package.identifier}")
         packages[package.identifier] = package
-    if not packages:
-        raise GovernanceError("没有找到工作包")
+    for name, entry in history.entries.items():
+        if name.startswith("project/work-packages/") and entry["action"] == "delete":
+            package = parse_work_package(root / name, history.historical(name).decode())
+            if package.identifier in packages:
+                raise GovernanceError(f"退休工作包重复激活：{package.identifier}")
+            if package.status != "done":
+                raise GovernanceError(f"未完成工作包不能仅存历史：{package.identifier}")
+            packages[package.identifier] = package
+    return packages
 
-    active_ids = state["activeWorkPackages"]
-    blocked_ids = state["blockedWorkPackages"]
-    assert isinstance(active_ids, list)
-    assert isinstance(blocked_ids, list)
-    referenced_ids = active_ids + blocked_ids
-    if len(referenced_ids) != len(set(referenced_ids)):
-        raise GovernanceError("进行中和受阻工作包不能重复")
-    for identifier in referenced_ids:
-        if not WORK_PACKAGE_ID.fullmatch(identifier) or identifier not in packages:
-            raise GovernanceError(f"状态引用了不存在或无效的工作包：{identifier}")
-    frontier = state["currentFrontier"]
-    assert isinstance(frontier, str)
-    if frontier not in referenced_ids:
-        raise GovernanceError("currentFrontier 必须是进行中或受阻工作包")
-    if len(packages[frontier].adrs) > MAX_FRONTIER_ADRS:
-        raise GovernanceError(
-            f"当前前沿最多引用 {MAX_FRONTIER_ADRS} 个 ADR，"
-            f"{frontier} 实际引用 {len(packages[frontier].adrs)} 个"
-        )
 
-    active_owners: dict[str, str] = {}
-    for identifier in active_ids:
+def section(text: str, name: str) -> str:
+    match = re.search(r"^##\s+" + re.escape(name) + r"\s*$", text, re.MULTILINE)
+    return text[match.end():].split("\n## ", 1)[0].strip() if match else ""
+
+
+def recent_evidence(package: WorkPackage) -> list[str]:
+    if not package.path.is_file():
+        return []
+    text = section(package.path.read_text(), "证据")
+    return list(dict.fromkeys(re.findall(r"(?:docs|project)/(?:[\w./-]+)\.(?:md|json)", text)))
+
+
+def evidence_bindings(text: str) -> set[tuple[str, str, str]]:
+    bindings, package = set(), None
+    for line in text.splitlines():
+        if line.startswith("## "):
+            heading = re.fullmatch(r"## (WP-\d{4})\s*", line)
+            package = heading.group(1) if heading else None
+        cells = line.strip().strip("|").split("|") if line.startswith("|") else []
+        if package and len(cells) == 4:
+            references = re.findall(r"`((?:project|docs)/[^`]+)`", cells[1])
+            commits = re.findall(r"`([0-9a-f]{40})`", cells[2])
+            bindings.update((package, reference, commit) for reference in references for commit in commits)
+    return bindings
+
+
+def historical_evidence_bindings(history: HistoryStore) -> set[tuple[str, str, str]]:
+    if "project/evidence/INDEX.md" not in history.entries:
+        return set()
+    bindings = evidence_bindings(history.historical("project/evidence/INDEX.md").decode())
+    aliases = set(bindings)
+    for package, name, commit in bindings:
+        entry = history.entries.get(name.split("#", 1)[0], {})
+        if entry.get("action") == "move":
+            aliases.add((package, entry["destination"], commit))
+    return aliases
+
+
+def current_evidence_bindings(root: Path) -> set[tuple[str, str, str]]:
+    """新证据由自身元数据绑定，不再要求维护平行的证据总表。"""
+    bindings = set()
+    for path in (root / "docs/tasks").rglob("*.md"):
+        metadata = parse_metadata_table(path.read_text(), path)
+        owner = metadata.get("责任任务", "")
+        commit = metadata.get("验证提交", "")
+        if (WORK_PACKAGE_ID.fullmatch(owner) and re.fullmatch(r"[0-9a-f]{40}", commit)
+                and metadata.get("验证范围")):
+            bindings.add((owner, path.relative_to(root).as_posix(), commit))
+    return bindings
+
+
+def verify_milestone_transition(previous: str, current: str, packages: dict[str, WorkPackage]) -> None:
+    """变更全局指针不能绕过上一阶段的工作包结果与人工门禁。"""
+    if not re.fullmatch(r"M\d+", previous) or not re.fullmatch(r"M\d+", current):
+        raise GovernanceError("里程碑编号无效")
+    before, after = int(previous[1:]), int(current[1:])
+    if after < before:
+        raise GovernanceError("不能通过回退里程碑改写历史事实")
+    for number in range(before, after):
+        products = [p for p in packages.values() if p.milestone == f"M{number}" and p.identifier.startswith("WP-")]
+        gates = [p for p in products if p.metadata.get("任务类型") == "里程碑"]
+        if not gates or any(p.status != "done" or p.metadata.get("人工验收") != "已接受" for p in gates):
+            raise GovernanceError(f"M{number} 人工门禁未通过")
+        if any(p.status != "done" for p in products):
+            raise GovernanceError(f"M{number} 仍有未完成产品工作包")
+
+
+def render_task_index(root: Path, state: dict, packages: dict[str, WorkPackage]) -> str:
+    lines = ["# 任务索引", "", "> 由 make decisions-sync 生成；状态只编辑任务 README。", "",
+             f"产品前沿：{state['productFrontier']}；当前执行：{state['currentTask']}；里程碑：{state['currentMilestone']}。",
+             "", "| 任务 | 状态 | 负责人 | 恢复入口 |", "| --- | --- | --- | --- |"]
+    for identifier, package in sorted(packages.items()):
+        name = package.path.relative_to(root).as_posix()
+        target = f"[{identifier}]({package.path.relative_to(root / 'docs/tasks').as_posix()})" if package.path.is_file() else f"Git 历史：`{name}`"
+        lines.append(f"| {identifier} | {package.status} | {package.owner} | {target} |")
+    lines += ["", "待办按 ADR-0079 顺排，完成后回 WP-0014 人工复评；治理任务不推进产品。",
+              "历史恢复：python3 -B scripts/project_governance.py history <原路径>。"]
+    return "\n".join(lines) + "\n"
+
+
+def verify_current_links(root: Path, history: HistoryStore) -> None:
+    """冻结原文按来源解析；新规范和活动入口不得引用已退休的工作树路径。"""
+    frozen = {e.get("destination", p) for p, e in history.entries.items()
+              if e["action"] in {"keep", "move"}}
+    paths = [root / "README.md", root / "AGENTS.md", *(root / "docs").rglob("*.md")]
+    for path in paths:
+        if not path.is_file() or path.relative_to(root).as_posix() in frozen:
+            continue
+        text = re.sub(r"```.*?```", "", path.read_text(), flags=re.DOTALL)
+        for target in re.findall(r"(?<!!)\[[^]\n]+\]\(([^)]+)\)", text):
+            parts = urlsplit(target.strip("<>"))
+            if parts.scheme or not parts.path:
+                continue
+            resolved = (path.parent / unquote(parts.path)).resolve()
+            if not resolved.is_relative_to(root.resolve()) or not resolved.is_file():
+                raise GovernanceError(f"当前链接失效：{path.relative_to(root)} -> {target}")
+
+
+def verify(root: Path) -> tuple[dict, dict[str, WorkPackage]]:
+    root = root.resolve()
+    if (root / "project/STATE.yaml").exists():
+        raise GovernanceError("旧 STATE 仍存在，不能维护两个状态源")
+    missing = [name for name in REQUIRED_DESIGN_FILES if not (root / name).is_file()]
+    if missing:
+        raise GovernanceError("缺少基座设计文件：" + ", ".join(sorted(missing)))
+    state = parse_state(root / "docs/tasks/STATE.yaml")
+    if state["schemaVersion"] != "2":
+        raise GovernanceError("STATE 必须使用版本 2")
+    verify_screenshot_policy(root)
+    history = HistoryStore(root)
+    history.verify()
+    packages = load_packages(root, history)
+    if "project/STATE.yaml" in history.entries:
+        original = history.historical("project/STATE.yaml").decode()
+        match = re.search(r"^currentMilestone:\s*(M\d+)\s*$", original, re.MULTILINE)
+        if match is None:
+            raise GovernanceError("历史里程碑缺失")
+        verify_milestone_transition(match[1], str(state["currentMilestone"]), packages)
+    if not str(state["productFrontier"]).startswith("WP-"):
+        raise GovernanceError("产品前沿必须是 WP 工作包")
+    for key in ("productFrontier", "currentTask"):
+        identifier = str(state[key])
+        if identifier not in packages or not packages[identifier].path.is_file():
+            raise GovernanceError(f"{key} 引用了不存在或无效的工作包")
         package = packages[identifier]
-        if package.status != "active":
-            raise GovernanceError(f"{identifier} 在状态中为进行中，但工作包状态为“{package.status}”")
-        if package.owner in active_owners:
-            raise GovernanceError(
-                f"负责人“{package.owner}”存在多个进行中的工作包："
-                f"{active_owners[package.owner]}, {identifier}"
-            )
-        active_owners[package.owner] = identifier
-    for identifier in blocked_ids:
-        if packages[identifier].status != "blocked":
-            raise GovernanceError(f"{identifier} 在状态中受阻，但工作包状态不是受阻")
-
+        if package.milestone != state["currentMilestone"]:
+            raise GovernanceError("当前任务与里程碑不一致，不能绕过人工门禁")
+        if key == "productFrontier" and package.status not in {"active", "blocked"}:
+            raise GovernanceError("产品前沿必须指向进行中或受阻工作包")
+        if len(package.adrs) > MAX_FRONTIER_ADRS:
+            raise GovernanceError("当前前沿最多引用 12 个 ADR")
+        for field in ("输入提交", "基线提交"):
+            commit = package.metadata.get(field, "")
+            if not re.fullmatch(r"[0-9a-f]{40}", commit):
+                raise GovernanceError(f"{identifier} 缺少完整{field}")
+            if (root / ".git").exists() and (not git_commit_exists(root, commit) or not is_ancestor(root, commit)):
+                raise GovernanceError(f"{identifier} {field}不存在或不是 HEAD 祖先")
+        evidence = recent_evidence(package)
+        if len(evidence) > MAX_LATEST_EVIDENCE:
+            raise GovernanceError("latestEvidence 最多保留 8 条")
+        for name in evidence:
+            history.read(name)
+    decisions = adr_decisions(root)
+    accepted = {d.identifier for d in decisions if is_confirmed_decision(d.status)}
+    active_owners = {}
     for package in packages.values():
+        if package.status not in {"active", "blocked", "pending", "done"}:
+            raise GovernanceError(f"未知任务状态：{package.identifier}")
         for adr in package.adrs:
-            if not ADR_ID.fullmatch(adr) or len(find_adr(root, adr)) != 1:
-                raise GovernanceError(f"{package.identifier} 引用了不存在或不唯一的 ADR：{adr}")
+            if adr not in accepted:
+                raise GovernanceError(f"{package.identifier} 引用不存在或未接受的 ADR：{adr}")
+        if package.status == "active":
+            if package.owner in active_owners:
+                raise GovernanceError(f"负责人存在多个进行中的工作包：{package.owner}")
+            active_owners[package.owner] = package.identifier
         if package.status == "done":
             if package.evidence.lower() in {"", "pending", "none"}:
                 raise GovernanceError(f"{package.identifier} 已完成但没有证据")
-            if not COMMIT_SHA.fullmatch(package.commit):
-                raise GovernanceError(f"{package.identifier} 已完成但没有有效提交")
-            if not (root / package.evidence.split("#", 1)[0]).is_file():
-                raise GovernanceError(f"{package.identifier} 的证据路径不存在")
-
-    decisions = state["confirmedDecisions"]
-    assert isinstance(decisions, list)
-    accepted_decisions = {
-        decision.identifier
-        for decision in adr_decisions(root)
-        if is_confirmed_decision(decision.status)
-    }
-    confirmed_decisions = set(decisions)
-    if confirmed_decisions != accepted_decisions:
-        missing = sorted(accepted_decisions - confirmed_decisions)
-        unexpected = sorted(confirmed_decisions - accepted_decisions)
-        details = []
-        if missing:
-            details.append("缺少 " + ", ".join(missing))
-        if unexpected:
-            details.append("多余 " + ", ".join(unexpected))
-        raise GovernanceError(
-            "confirmedDecisions 与 ADR 状态不一致：" + "；".join(details)
-        )
-    for decision in decisions:
-        if not ADR_ID.fullmatch(decision) or len(find_adr(root, decision)) != 1:
-            raise GovernanceError(f"状态引用了不存在或不唯一的决策：{decision}")
-
-    evidence = state["latestEvidence"]
-    assert isinstance(evidence, list)
-    if len(evidence) > MAX_LATEST_EVIDENCE:
-        raise GovernanceError(
-            f"latestEvidence 最多保留 {MAX_LATEST_EVIDENCE} 条，"
-            "历史证据应只保留在 project/evidence/INDEX.md"
-        )
-    for evidence_path in evidence:
-        if not (root / evidence_path.split("#", 1)[0]).is_file():
-            raise GovernanceError(f"状态引用了不存在的证据：{evidence_path}")
-
-    last_verified = state["lastVerifiedCommit"]
-    assert isinstance(last_verified, str)
-    if not COMMIT_SHA.fullmatch(last_verified):
-        raise GovernanceError("lastVerifiedCommit 必须是 Git 提交 SHA")
-    if (root / ".git").exists():
-        if not git_commit_exists(root, last_verified):
-            raise GovernanceError("lastVerifiedCommit 不存在")
-        if not is_ancestor(root, last_verified):
-            raise GovernanceError("lastVerifiedCommit 不是当前 HEAD 的祖先")
-    resume_context = build_resume_context(root, state, packages)
-    if len(resume_context.encode("utf-8")) > MAX_RESUME_CONTEXT_BYTES:
-        raise GovernanceError(
-            f"恢复上下文超过 {MAX_RESUME_CONTEXT_BYTES // 1024} KiB，"
-            "请压缩当前工作包或活动证据"
-        )
+            commit_pattern = r"[0-9a-f]{40}" if package.path.is_file() else r"[0-9a-f]{7,40}"
+            if not re.fullmatch(commit_pattern, package.commit):
+                raise GovernanceError(f"{package.identifier} 已完成但没有完整提交")
+            if (root / ".git").exists() and (not git_commit_exists(root, package.commit) or not is_ancestor(root, package.commit)):
+                raise GovernanceError(f"{package.identifier} 完成提交不存在或不是 HEAD 祖先")
+            content = history.read(package.evidence).decode()
+            if package.path.is_file():
+                metadata = parse_metadata_table(content, root / package.evidence)
+                if not metadata.get("验证范围"):
+                    raise GovernanceError(f"{package.identifier} 证据缺少验证范围")
+                if metadata.get("责任任务") != package.identifier or metadata.get("验证提交") != package.commit:
+                    raise GovernanceError(f"{package.identifier} 证据未绑定任务与验证提交")
+                if package.metadata.get("人工验收") != "不适用":
+                    if package.metadata.get("人工验收") != "已接受" or not package.metadata.get("人工依据"):
+                        raise GovernanceError(f"{package.identifier} 缺少人工接受依据")
+                    history.read(package.metadata["人工依据"])
+            # 退休包的绑定直接来自已校验的原任务元数据；不把旧索引短 SHA 改写为新验收。
+        if package.metadata.get("任务类型") == "里程碑" and package.status == "done" and package.metadata.get("人工验收") != "已接受":
+            raise GovernanceError("里程碑完成缺少人工接受")
+    layout = root / "docs/architecture/repository.md"
+    if REQUIRED_REPOSITORY_LAYOUT_SECTIONS - markdown_level_two_sections(layout):
+        raise GovernanceError("详细目录规划缺少章节")
+    if state["currentMilestone"] == "M0" and (root / ".git").exists():
+        if any(p in M0_FORBIDDEN_TRACKED_FILES or p.startswith(M0_FORBIDDEN_TRACKED_PREFIXES) for p in tracked_files(root)):
+            raise GovernanceError("M0 设计分支仍包含旧实现文件")
+    if state["currentMilestone"] != "M0":
+        verify_m1_context_modules(root)
+    for name, expected in (
+        ("docs/architecture/decisions/README.md", render_decision_index(root)),
+        ("docs/tasks/README.md", render_task_index(root, state, packages)),
+    ):
+        path = root / name
+        if not path.is_file() or path.read_text() != expected:
+            raise GovernanceError(f"生成索引与事实不一致：{name}；请运行 make decisions-sync")
+    verify_current_links(root, history)
+    if len(build_resume_context(root, state, packages).encode()) > MAX_RESUME_CONTEXT_BYTES:
+        raise GovernanceError("恢复上下文超过 12 KiB")
     return state, packages
 
 
-def build_resume_context(
-    root: Path,
-    state: dict[str, str | list[str]],
-    packages: dict[str, WorkPackage],
-) -> str:
-    frontier = str(state["currentFrontier"])
-    package = packages[frontier]
-    evidence = state["latestEvidence"]
-    active = state["activeWorkPackages"]
-    blocked = state["blockedWorkPackages"]
-    open_decisions = state["openDecisions"]
-    assert isinstance(evidence, list)
-    assert isinstance(active, list)
-    assert isinstance(blocked, list)
-    assert isinstance(open_decisions, list)
-
-    adr_paths = [
-        find_adr(root, identifier)[0].relative_to(root)
-        for identifier in package.adrs
-    ]
-    lines = [
-        "# 项目恢复上下文",
-        "",
-        f"- 当前里程碑：{state['currentMilestone']}",
-        f"- 当前前沿：{frontier}",
-        f"- 最后验证提交：{state['lastVerifiedCommit']}",
-        f"- 进行中：{', '.join(active) if active else '无'}",
-        f"- 受阻：{', '.join(blocked) if blocked else '无'}",
-        f"- 待决策：{', '.join(open_decisions) if open_decisions else '无'}",
-        "",
-        "## 最近证据",
-        "",
-        *(f"- {item}" for item in evidence),
-        "",
-        "## 活动 ADR",
-        "",
-        *(f"- {item}" for item in adr_paths),
-        "",
-        "## 当前工作包",
-        "",
-        package.path.read_text(encoding="utf-8").strip(),
-    ]
+def build_resume_context(root: Path, state: dict, packages: dict[str, WorkPackage]) -> str:
+    task = packages[str(state["currentTask"])]
+    product = packages[str(state["productFrontier"])]
+    paths = [find_adr(root, adr)[0].relative_to(root).as_posix() for adr in task.adrs]
+    lines = ["# 项目恢复上下文", "", f"里程碑：{state['currentMilestone']}；产品前沿：{product.identifier}；当前执行：{task.identifier}。",
+             "", "## 当前任务 ADR", *["- " + path for path in paths], "",
+             task.path.read_text().strip()]
+    if task.identifier != product.identifier:
+        lines += ["", "## 产品前沿保持", f"{product.identifier}：{product.status}；入口 {product.path.relative_to(root)}。",
+                  section(product.path.read_text(), "下一前沿")]
     return "\n".join(lines) + "\n"
 
 
@@ -650,24 +659,12 @@ def render_status(root: Path, resume: bool) -> str:
     state, packages = verify(root)
     if resume:
         return build_resume_context(root, state, packages)
-    active = state["activeWorkPackages"]
-    blocked = state["blockedWorkPackages"]
-    evidence = state["latestEvidence"]
-    assert isinstance(active, list)
-    assert isinstance(blocked, list)
-    assert isinstance(evidence, list)
-    lines = [
-        f"产品版本：{state['productVersion']}",
-        f"当前里程碑：{state['currentMilestone']}",
-        f"当前前沿：{state['currentFrontier']}",
-        f"最后验证提交：{state['lastVerifiedCommit']}",
-        f"进行中：{', '.join(active) if active else '无'}",
-        f"受阻：{', '.join(blocked) if blocked else '无'}",
-        f"待决策：{', '.join(state['openDecisions']) if state['openDecisions'] else '无'}",
-        f"最新证据：{', '.join(evidence) if evidence else '无'}",
-        f"下次评审：{state['nextReviewAt']}",
-    ]
-    return "\n".join(lines)
+    return "\n".join([
+        f"产品版本：{state['productVersion']}", f"当前里程碑：{state['currentMilestone']}",
+        f"产品前沿：{state['productFrontier']}", f"当前执行任务：{state['currentTask']}",
+        "进行中：" + ", ".join(p.identifier for p in packages.values() if p.status == "active"),
+        "源码、部署和原型验证对象分别记录于任务证据，不使用全系统最后验证 SHA。",
+    ])
 
 
 def main() -> int:
@@ -676,25 +673,20 @@ def main() -> int:
     try:
         if command == "verify":
             state, packages = verify(root)
-            print(
-                f"项目治理验证通过：{len(packages)} 个工作包，"
-                f"当前前沿为 {state['currentFrontier']}"
-            )
-        elif command == "status":
-            print(render_status(root, resume=False))
-        elif command == "resume":
-            print(render_status(root, resume=True))
+            print(f"项目治理验证通过：{len(packages)} 个任务；产品前沿 {state['productFrontier']}；当前执行 {state['currentTask']}")
+        elif command in {"status", "resume"}:
+            print(render_status(root, resume=command == "resume"))
         elif command == "sync-decisions":
-            path = root / "project" / "DECISIONS.md"
-            current_text = path.read_text(encoding="utf-8") if path.is_file() else ""
-            path.write_text(
-                render_decision_index(root, current_text),
-                encoding="utf-8",
-            )
-            print("决策索引已从 ADR 元数据同步")
+            state = parse_state(root / "docs/tasks/STATE.yaml")
+            packages = load_packages(root, HistoryStore(root))
+            (root / "docs/architecture/decisions/README.md").write_text(render_decision_index(root))
+            (root / "docs/tasks/README.md").write_text(render_task_index(root, state, packages))
+            print("决策与任务索引已从唯一事实源同步")
+        elif command == "history" and len(sys.argv) == 3:
+            print(HistoryStore(root).historical(sys.argv[2]).decode(), end="")
         else:
-            raise GovernanceError(f"未知命令“{command}”")
-    except GovernanceError as error:
+            raise GovernanceError(f"未知命令或参数：{command}")
+    except (GovernanceError, OSError, ValueError) as error:
         print(f"项目治理验证失败：{error}", file=sys.stderr)
         return 1
     return 0

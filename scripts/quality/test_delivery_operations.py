@@ -12,18 +12,22 @@ DELIVERY_DRILL = (
 UPGRADE_DRILL = (
     REPOSITORY_ROOT / "scripts" / "operations" / "demo-upgrade-drill.sh"
 )
-RUNBOOK = REPOSITORY_ROOT / "docs" / "runbooks" / "demo-delivery.md"
+RUNBOOK = REPOSITORY_ROOT / "docs" / "design" / "operations" / "demo-delivery.md"
 DEPLOY_SMOKE = REPOSITORY_ROOT / "scripts" / "development" / "deploy-smoke.sh"
 REPORT_FILE = (
     REPOSITORY_ROOT
-    / "project"
+    / "docs"
+    / "tasks"
+    / "milestones"
     / "evidence"
     / "artifacts"
     / "WP-0007-delivery-demo.json"
 )
 UPGRADE_REPORT_FILE = (
     REPOSITORY_ROOT
-    / "project"
+    / "docs"
+    / "tasks"
+    / "milestones"
     / "evidence"
     / "artifacts"
     / "WP-0007-upgrade-drill.json"
