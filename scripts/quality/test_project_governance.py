@@ -203,6 +203,14 @@ updatedBy: test
             with self.assertRaisesRegex(g.GovernanceError, '仍包含旧实现文件'):
                 self.verify()
 
+    def test_git_checkout_cannot_silently_drop_history_index(self):
+        (self.root / '.git').mkdir()
+        with (mock.patch.object(g, 'tracked_files', return_value=set()),
+              mock.patch.object(g, 'git_commit_exists', return_value=True),
+              mock.patch.object(g, 'is_ancestor', return_value=True)):
+            with self.assertRaisesRegex(g.GovernanceError, '缺少历史索引'):
+                self.verify()
+
     def test_latest_evidence_is_limited_to_eight_entries(self):
         p = self.root / 'docs/tasks/WP-0001/README.md'
         refs = '\n'.join(f'- docs/tasks/WP-0001/evidence-{i}.md' for i in range(9))

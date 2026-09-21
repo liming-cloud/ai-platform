@@ -629,6 +629,8 @@ def verify(root: Path) -> tuple[dict, dict[str, WorkPackage]]:
             raise GovernanceError("M0 设计分支仍包含旧实现文件")
     if state["currentMilestone"] != "M0":
         verify_m1_context_modules(root)
+    if (root / ".git").exists() and not (root / "docs/tasks/history-index.json").is_file():
+        raise GovernanceError("Git 工作树缺少历史索引，不能跳过已退休证据校验")
     for name, expected in (
         ("docs/architecture/decisions/README.md", render_decision_index(root)),
         ("docs/tasks/README.md", render_task_index(root, state, packages)),

@@ -84,6 +84,18 @@ class ProjectHistoryTest(unittest.TestCase):
         with self.assertRaisesRegex(governance.GovernanceError, "路径"):
             self.store().read("../outside.md")
 
+    def test_move_target_cannot_read_a_symlink_outside_repository(self):
+        outside = tempfile.TemporaryDirectory()
+        self.addCleanup(outside.cleanup)
+        target = Path(outside.name) / 'outside.md'
+        target.write_bytes(self.content)
+        destination = self.root / 'docs/tasks/moved.md'
+        destination.symlink_to(target)
+        self.entry.update(action='move', destination='docs/tasks/moved.md')
+        self.write_index()
+        with self.assertRaisesRegex(governance.GovernanceError, '路径'):
+            self.store().verify()
+
     def test_verification_does_not_create_observation_or_cache_files(self):
         before = sorted(str(p.relative_to(self.root)) for p in self.root.rglob("*") if p.is_file())
         self.store().read(self.original)

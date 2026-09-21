@@ -121,6 +121,8 @@ class HistoryStore:
             destination = entry.get("destination", name)
             if action in {"keep", "update", "move", "merge"}:
                 path = self.root / destination
+                if not path.resolve().is_relative_to(self.root):
+                    raise GovernanceError(f"处置目标路径越出仓库：{destination}")
                 if not path.is_file():
                     raise GovernanceError(f"处置目标不存在：{destination}")
                 if action in {"keep", "move"} and hashlib.sha256(path.read_bytes()).hexdigest() != entry["sha256"]:
