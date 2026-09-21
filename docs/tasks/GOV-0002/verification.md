@@ -31,4 +31,6 @@ Git保留完整可达历史；650项来源路径、来源提交、摘要、目�
 
 ## 远端与最终清理
 
-尚未推送。GitHub本机授权完成后必须校验实际引用、精确推送、全新克隆、最终CI和本地唯一main/origin/工作树；通过后更新本节与任务状态。
+用户已完成GitHub CLI授权。目标私有仓库经git ls-remote确认没有任何引用后，仅将53ec62a02195c6039804fa224b2ac2dfc46475c8推送到main，没有标签或其他分支，默认分支为main。首次尝试被本地Gitee专用凭据助手阻断，显式使用官方gh凭据助手后成功，未输出凭据。
+
+从GitHub新建main的single-branch、no-tags完整历史克隆，非浅仓库；9项fixture、68项治理、28项架构，以及status/resume、两份Shell语法检查全部通过，Git状态为空，650项历史证据可独立恢复。Actions已启用、工作流active；实际CI和最终本地清理尚待验证。

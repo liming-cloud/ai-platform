@@ -3,7 +3,7 @@
 | 字段 | 值 |
 | --- | --- |
 | ID | GOV-0002 |
-| 状态 | 受阻 |
+| 状态 | 进行中 |
 | 负责人 | 仓库迁移与治理 |
 | 分支 | main |
 | 里程碑 | M6 |
@@ -48,11 +48,11 @@ make demo-fixtures-verify；make project-status；make project-verify；make arc
 
 - docs/tasks/GOV-0002/verification.md
 
-本地准备已验证；远端推送、新克隆、最终CI和Git清理未执行，不计为迁移完成。
+本地准备、GitHub首次main推送及全新完整历史克隆已验证；最终CI和本地Git清理待完成，不计为迁移完成。
 
 ## 下一前沿
 
-fixture 路径与CI适配已提交并完成本地验证。唯一阻断为本机GitHub CLI授权：网页显示私有仓库、Workflow及CLI默认的Gist读写/组织只读权限，等待用户确认该账号授权范围；未取得认证，不推送或清理旧Git布局。授权后先复核远端引用，只推main，验证新克隆和CI，再合入原工作区、清理额外分支与工作树并登记完成。产品仍停留在WP-0017下一独立设置切片的合同确认。
+用户已完成GitHub CLI授权，本机keyring认证有效。53ec62a02195c6039804fa224b2ac2dfc46475c8已精确推送为私有仓库main；全新完整历史克隆的fixture、治理、架构、状态和恢复检查通过。Actions已启用、工作流active，尚待实际CI结果；CI通过后合入原工作区，清理额外分支与工作树并登记完成。产品仍停留在WP-0017下一独立设置切片的合同确认。
 
 ## 固定输入与决定
 
