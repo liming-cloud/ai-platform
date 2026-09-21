@@ -2,9 +2,9 @@ name: 项目治理
 
 on:
   push:
-    branches: ["master", "codex/**"]
+    branches: ["main", "codex/**"]
   pull_request:
-    branches: ["master"]
+    branches: ["main"]
 
 permissions:
   contents: read
@@ -23,6 +23,8 @@ jobs:
         run: make project-verify
       - name: 验证前后端架构门禁
         run: make architecture-guard
+      - name: 验证参考数据与离线评测
+        run: make demo-fixtures-verify
       - name: 验证当前状态与有界恢复入口
         run: |
           make project-status

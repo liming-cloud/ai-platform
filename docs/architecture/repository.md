@@ -11,7 +11,7 @@
 | deploy | Compose、镜像、代理与环境装配 | 写入秘密、把本地部署等同 M8 |
 | scripts | 质量、开发验收和运维执行；quality/baselines 是机器门禁资产 | 把运行日志当稳定规范 |
 | docs | 目标、规范、架构、接受设计、任务恢复及历史定位 | 逐会话新增重复正文、截图、秘密 |
-| verification/fixtures | 当前提交中的参考验收数据 | 本次治理搬动用户另行暂存的 project/fixtures 重命名 |
+| project/fixtures | 合成参考验收数据及其清单；GOV-0002 接受路径迁移 | 存放真实用户数据、凭据或重复的旧路径副本 |
 
 根 contracts 目录当前并不存在；公共契约由上下文接口、shared-contract、对应 ADR 及契约测试共同约束。若需要独立生成契约制品，以实际消费者和专属 ADR 建立，不凭旧目录树生成空文件。
 

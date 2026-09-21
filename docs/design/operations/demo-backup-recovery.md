@@ -28,7 +28,7 @@
 
 ## 前置条件
 
-- 当前分支为 `codex/trusted-rag-foundation-v1`。
+- 仓库主分支为 GitHub `main`；执行前固定当前提交，运行版本仍按实际镜像单独核对。
 - 源环境使用 `deploy/compose/.env.example` 启动，八个服务均为健康状态。
 - 本机可执行 Docker、`curl`、`jq`、`shasum` 和 Bash。
 - 恢复端口 `28080`、`28081`、`28082`、`23000`、`23001` 未被占用。

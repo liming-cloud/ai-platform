@@ -5,7 +5,7 @@
 | ID | WP-0017 |
 | 状态 | 进行中 |
 | 负责人 | 平台身份与租户开通 |
-| 分支 | codex/trusted-rag-foundation-v1 |
+| 分支 | main |
 | 里程碑 | M6 |
 | ADR | ADR-0012, ADR-0022, ADR-0033, ADR-0041, ADR-0048, ADR-0059, ADR-0067, ADR-0073, ADR-0074, ADR-0075, ADR-0079, ADR-0080 |
 | 证据 | pending |
@@ -81,4 +81,4 @@
 
 ## 固定输入与工作区
 
-依据输入提交的 Charter、ROADMAP、STATE、上述12项 ADR 和固定 OpenDesign 版本恢复。原子开户被验前端为 0a46a64b9105574a86b64facb513be20be20f01e，实际后端为 5844fd3ba2b5909161b704df5fc7e1ff026d4a0a，部署摘要和范围以收口证据为准。当前源码 HEAD 不能替代运行版本。五项人工 fixture 暂存重命名独立保护。
+依据输入提交的 Charter、ROADMAP、STATE、上述12项 ADR 和固定 OpenDesign 版本恢复。原子开户被验前端为 0a46a64b9105574a86b64facb513be20be20f01e，实际后端为 5844fd3ba2b5909161b704df5fc7e1ff026d4a0a，部署摘要和范围以收口证据为准。当前源码 HEAD 不能替代运行版本。五项人工 fixture 重命名已由用户授权纳入 GOV-0002，迁移期间由该任务负责验证与提交；本包历史验收不受影响。

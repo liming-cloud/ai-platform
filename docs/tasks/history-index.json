@@ -6735,41 +6735,41 @@
     },
     {
       "path": "project/work-packages/WP-0021.md",
-      "action": "move",
+      "action": "update",
       "sha256": "9c00278c64917b4f2ddcb19270a5526acd841f71a72cf181a9fb9f2c43dca7cc",
-      "reason": "保留未开始计划，不当作已完成历史删除",
+      "reason": "保留未开始计划，不当作已完成历史删除；GOV-0002 按用户接受的 GitHub 迁移计划更新现行主分支名称，原路径、来源提交和原内容摘要保持不变。",
       "references": [],
       "destination": "docs/tasks/backlog/WP-0021.md"
     },
     {
       "path": "project/work-packages/WP-0022.md",
-      "action": "move",
+      "action": "update",
       "sha256": "6a5f88595e359b5d1c8c8d32d58420231db4e2f7cbad448d32b3b27f12b3807d",
-      "reason": "保留未开始计划，不当作已完成历史删除",
+      "reason": "保留未开始计划，不当作已完成历史删除；GOV-0002 按用户接受的 GitHub 迁移计划更新现行主分支名称，原路径、来源提交和原内容摘要保持不变。",
       "references": [],
       "destination": "docs/tasks/backlog/WP-0022.md"
     },
     {
       "path": "project/work-packages/WP-0023.md",
-      "action": "move",
+      "action": "update",
       "sha256": "54a66302d60bcaa7c7fc44c812b0f04c25b49dcdb537b20e8a15e94bbc4f38c8",
-      "reason": "保留未开始计划，不当作已完成历史删除",
+      "reason": "保留未开始计划，不当作已完成历史删除；GOV-0002 按用户接受的 GitHub 迁移计划更新现行主分支名称，原路径、来源提交和原内容摘要保持不变。",
       "references": [],
       "destination": "docs/tasks/backlog/WP-0023.md"
     },
     {
       "path": "project/work-packages/WP-0024.md",
-      "action": "move",
+      "action": "update",
       "sha256": "8e2fb21ac5410251eb8469104286c4f1f1b676669e9366c2f7b8f336d506d9eb",
-      "reason": "保留未开始计划，不当作已完成历史删除",
+      "reason": "保留未开始计划，不当作已完成历史删除；GOV-0002 按用户接受的 GitHub 迁移计划更新现行主分支名称，原路径、来源提交和原内容摘要保持不变。",
       "references": [],
       "destination": "docs/tasks/backlog/WP-0024.md"
     },
     {
       "path": "project/work-packages/WP-0025.md",
-      "action": "move",
+      "action": "update",
       "sha256": "1119d4510490431bc4b05fbfcc81035bca710be41ee4b830707b52e92235eda7",
-      "reason": "保留未开始计划，不当作已完成历史删除",
+      "reason": "保留未开始计划，不当作已完成历史删除；GOV-0002 按用户接受的 GitHub 迁移计划更新现行主分支名称，原路径、来源提交和原内容摘要保持不变。",
       "references": [],
       "destination": "docs/tasks/backlog/WP-0025.md"
     },

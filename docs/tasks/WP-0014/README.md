@@ -5,7 +5,7 @@
 | ID | WP-0014 |
 | 状态 | 进行中 |
 | 负责人 | M6 总控评审 |
-| 分支 | codex/trusted-rag-foundation-v1 |
+| 分支 | main |
 | 里程碑 | M6 |
 | ADR | ADR-0051, ADR-0059, ADR-0067, ADR-0068, ADR-0072, ADR-0073, ADR-0074, ADR-0079 |
 | 证据 | docs/tasks/milestones/evidence/M6-full-product-human-review-rejection-20260829.md |
