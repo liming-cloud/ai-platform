@@ -24,7 +24,7 @@ def verify(
     root: Path,
     expected_scenarios: set[str] | None = None,
 ) -> VerifyResult:
-    fixture_root = root / "verification/fixtures"
+    fixture_root = root / "project/fixtures"
     manifest = read_json(fixture_root / "manifest.json")
     require_schema(manifest, "演示数据清单")
     fixtures = manifest.get("fixtures")

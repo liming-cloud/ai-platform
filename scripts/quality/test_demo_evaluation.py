@@ -19,7 +19,7 @@ class DemoEvaluationTest(unittest.TestCase):
     def setUp(self):
         self.temp_dir = tempfile.TemporaryDirectory()
         self.root = Path(self.temp_dir.name)
-        fixture_dir = self.root / "verification/fixtures/store"
+        fixture_dir = self.root / "project/fixtures/store"
         fixture_dir.mkdir(parents=True)
         content = (
             "[合成数据]\n"
@@ -58,7 +58,7 @@ class DemoEvaluationTest(unittest.TestCase):
                 }
             ],
         }
-        (self.root / "verification/fixtures/manifest.json").write_text(
+        (self.root / "project/fixtures/manifest.json").write_text(
             json.dumps(manifest, ensure_ascii=False),
             encoding="utf-8",
         )

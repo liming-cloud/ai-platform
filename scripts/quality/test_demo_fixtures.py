@@ -19,7 +19,7 @@ class DemoFixturesTest(unittest.TestCase):
     def setUp(self):
         self.temp_dir = tempfile.TemporaryDirectory()
         self.root = Path(self.temp_dir.name)
-        self.fixture_dir = self.root / "verification/fixtures/store"
+        self.fixture_dir = self.root / "project/fixtures/store"
         self.fixture_dir.mkdir(parents=True)
         self.content = "[合成数据]\n[记录: product-001]\n名称: 示例商品\n"
         self.content_path = self.fixture_dir / "knowledge.txt"
@@ -56,7 +56,7 @@ class DemoFixturesTest(unittest.TestCase):
                 }
             ],
         }
-        (self.root / "verification/fixtures/manifest.json").write_text(
+        (self.root / "project/fixtures/manifest.json").write_text(
             json.dumps(manifest, ensure_ascii=False),
             encoding="utf-8",
         )
@@ -77,7 +77,7 @@ class DemoFixturesTest(unittest.TestCase):
     def test_fixture_must_be_marked_as_synthetic(self):
         content = self.content.replace("[合成数据]\n", "")
         self.content_path.write_text(content, encoding="utf-8")
-        manifest_path = self.root / "verification/fixtures/manifest.json"
+        manifest_path = self.root / "project/fixtures/manifest.json"
         manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
         manifest["fixtures"][0]["sha256"] = hashlib.sha256(
             content.encode("utf-8")

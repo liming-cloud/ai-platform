@@ -173,7 +173,7 @@ append_standard_cases() {
   local token="$1"
   local scenario="$2"
   local version_id="$3"
-  local cases_file="${REPOSITORY_ROOT}/verification/fixtures/${scenario}/search-cases.json"
+  local cases_file="${REPOSITORY_ROOT}/project/fixtures/${scenario}/search-cases.json"
   local case_value
   local identifier
   local question
@@ -336,13 +336,13 @@ append_cross_tenant_case \
   "store-asks-campus-001" \
   "${store_version_id}" \
   "中心图书馆周末几点开门？" \
-  "${REPOSITORY_ROOT}/verification/fixtures/campus/search-cases.json"
+  "${REPOSITORY_ROOT}/project/fixtures/campus/search-cases.json"
 append_cross_tenant_case \
   "${campus_token}" \
   "campus-asks-store-001" \
   "${campus_version_id}" \
   "青柚气泡水在哪里，多少钱？" \
-  "${REPOSITORY_ROOT}/verification/fixtures/store/search-cases.json"
+  "${REPOSITORY_ROOT}/project/fixtures/store/search-cases.json"
 
 append_refusal_case \
   "${store_token}" \

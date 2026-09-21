@@ -220,7 +220,7 @@ accept_scenario() {
   local tenant_code="$2"
   local space_name="$3"
   local source_name="$4"
-  local fixture="${REPOSITORY_ROOT}/verification/fixtures/${scenario}/knowledge.txt"
+  local fixture="${REPOSITORY_ROOT}/project/fixtures/${scenario}/knowledge.txt"
 
   local token
   local space_id

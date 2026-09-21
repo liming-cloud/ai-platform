@@ -16,7 +16,7 @@ def evaluate(root: Path, bundle: dict) -> dict:
     if runtime.get("providerKind") != "DETERMINISTIC":
         raise EvaluationError("离线评测只允许使用确定性供应商")
 
-    fixture_root = root / "verification/fixtures"
+    fixture_root = root / "project/fixtures"
     manifest = read_object(fixture_root / "manifest.json")
     fixtures = require_list(manifest, "fixtures", "演示数据清单")
     expected_cases: dict[str, tuple[str, dict]] = {}
