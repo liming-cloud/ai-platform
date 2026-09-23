@@ -1,11 +1,11 @@
 package com.aiplatform.foundation.objectstorage.minio;
 
-import com.aiplatform.foundation.knowledgedata.application.datasource.exception.ObjectStorageUnavailableException;
-import com.aiplatform.foundation.knowledgedata.application.datasource.exception.TextContentIntegrityException;
+import com.aiplatform.foundation.knowledgedata.application.datasource.port.out.ObjectStorageUnavailableException;
+import com.aiplatform.foundation.knowledgedata.application.datasource.port.out.TextContentIntegrityException;
 import com.aiplatform.foundation.knowledgedata.application.port.out.content.TextContentObjectMetadata;
-import com.aiplatform.foundation.knowledgedata.application.port.out.content.TextContentObjectStoragePort;
-import com.aiplatform.foundation.knowledgedata.application.port.out.content.TextContentStorageRequest;
-import com.aiplatform.foundation.knowledgedata.domain.datasource.model.TextContentReference;
+import com.aiplatform.foundation.knowledgedata.application.port.out.content.TextObjectStorageExtensionPort;
+import com.aiplatform.foundation.knowledgedata.application.port.out.content.TextObjectWriteRequest;
+import com.aiplatform.foundation.knowledgedata.application.port.out.content.TextObjectReference;
 import io.minio.BucketExistsArgs;
 import io.minio.GetObjectArgs;
 import io.minio.MakeBucketArgs;
@@ -22,7 +22,7 @@ import java.util.regex.Pattern;
  * 使用私有 MinIO 桶保存受治理原始文本。
  */
 public final class MinioTextContentObjectStorageAdapter
-        implements TextContentObjectStoragePort {
+        implements TextObjectStorageExtensionPort {
 
     private static final Pattern BUCKET_NAME =
             Pattern.compile("[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]");
@@ -69,7 +69,7 @@ public final class MinioTextContentObjectStorageAdapter
     }
 
     @Override
-    public TextContentReference put(TextContentStorageRequest request) {
+    public TextObjectReference put(TextObjectWriteRequest request) {
         Objects.requireNonNull(request, "文本对象存储请求不能为空");
         var reference = referenceFor(request);
         try (var content = request.content().openStream()) {
@@ -89,7 +89,7 @@ public final class MinioTextContentObjectStorageAdapter
     }
 
     @Override
-    public TextContentObjectMetadata metadata(TextContentReference reference) {
+    public TextContentObjectMetadata metadata(TextObjectReference reference) {
         Objects.requireNonNull(reference, "文本对象引用不能为空");
         final var response = stat(reference.objectKey());
         var sha256 = response.userMetadata().get(SHA256_METADATA);
@@ -106,7 +106,7 @@ public final class MinioTextContentObjectStorageAdapter
     }
 
     @Override
-    public InputStream read(TextContentReference reference) {
+    public InputStream read(TextObjectReference reference) {
         Objects.requireNonNull(reference, "文本对象引用不能为空");
         try {
             return client.getObject(GetObjectArgs.builder()
@@ -119,7 +119,7 @@ public final class MinioTextContentObjectStorageAdapter
     }
 
     @Override
-    public void delete(TextContentReference reference) {
+    public void delete(TextObjectReference reference) {
         Objects.requireNonNull(reference, "文本对象引用不能为空");
         try {
             client.removeObject(RemoveObjectArgs.builder()
@@ -148,20 +148,20 @@ public final class MinioTextContentObjectStorageAdapter
         }
     }
 
-    private static TextContentReference referenceFor(
-            TextContentStorageRequest request) {
+    private static TextObjectReference referenceFor(
+            TextObjectWriteRequest request) {
         var objectKey = KEY_TEMPLATE.formatted(
-                request.tenantId().value(),
-                request.knowledgeSpaceId().value(),
-                request.dataSourceId().value(),
+                request.tenantId(),
+                request.knowledgeSpaceId(),
+                request.dataSourceId(),
                 request.contentVersion(),
                 request.content().sha256());
-        return new TextContentReference(
+        return new TextObjectReference(
                 request.contentVersion(),
                 objectKey,
                 request.content().sha256(),
                 request.content().byteSize(),
-                TextContentReference.UTF8_TEXT,
+                TextObjectReference.UTF8_TEXT,
                 request.createdAt());
     }
 

@@ -1,13 +1,15 @@
 package com.aiplatform.foundation.modelruntime.application.configuration.service;
 
-import com.aiplatform.foundation.modelruntime.application.configuration.dto.UsableModelConfigurationSnapshot;
-import com.aiplatform.foundation.modelruntime.application.configuration.dto.ModelConfigurationUsageContext;
+import com.aiplatform.foundation.modelruntime.application.configuration.facade.UsableModelConfigurationSnapshot;
+import com.aiplatform.foundation.modelruntime.application.configuration.facade.ModelConfigurationUsageContext;
 import com.aiplatform.foundation.modelruntime.application.configuration.facade.UsableModelConfigurationLookup;
+import com.aiplatform.foundation.modelruntime.application.configuration.facade.ModelConfigurationId;
+import com.aiplatform.foundation.modelruntime.application.configuration.facade.ModelType;
+import com.aiplatform.foundation.modelruntime.application.configuration.facade.ModelRuntimeCapabilities;
+import com.aiplatform.foundation.modelruntime.application.configuration.facade.ControlledModelCatalogEntryId;
 import com.aiplatform.foundation.modelruntime.application.configuration.port.out.ModelConfigurationCredentialInspector;
 import com.aiplatform.foundation.modelruntime.domain.configuration.model.ControlledModelCatalogEntryStatus;
-import com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelConfigurationId;
 import com.aiplatform.foundation.modelruntime.domain.configuration.repository.ModelConfigurationRepository;
-import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelType;
 import com.aiplatform.foundation.security.identity.TrustedRequestContext;
 import java.util.Objects;
 import java.util.Optional;
@@ -45,8 +47,7 @@ public final class UsableModelConfigurationLookupService
         return find(
                 new ModelConfigurationUsageContext(
                         context.tenantId(),
-                        new com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelConfigurationOwnerId(
-                                context.membershipId().value())),
+                        context.membershipId().value()),
                 configurationId,
                 requiredType);
     }
@@ -59,21 +60,28 @@ public final class UsableModelConfigurationLookupService
         Objects.requireNonNull(context, "模型配置使用上下文不能为空");
         Objects.requireNonNull(configurationId, "模型配置标识不能为空");
         Objects.requireNonNull(requiredType, "所需模型类型不能为空");
-        var configuration = configurations.findConfiguration(configurationId);
+        var domainId = new com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelConfigurationId(
+                configurationId.value());
+        var configuration = configurations.findConfiguration(domainId);
         if (configuration.isEmpty()
-                || !access.mayUse(context.tenantId(), context.membershipId(), configuration.get())
-                || !credentials.isConfigured(configurationId)) {
+                || !access.mayUse(context.tenantId(),
+                        new com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelConfigurationOwnerId(
+                                context.membershipId()), configuration.get())
+                || !credentials.isConfigured(domainId)) {
             return Optional.empty();
         }
         return configurations.findCatalogEntry(configuration.get().catalogEntryId())
                 .filter(entry -> entry.status() == ControlledModelCatalogEntryStatus.PUBLISHED)
-                .filter(entry -> entry.modelType() == requiredType)
+                .filter(entry -> entry.modelType().name().equals(requiredType.name()))
                 .map(entry -> new UsableModelConfigurationSnapshot(
                         configurationId,
                         configuration.get().version(),
-                        entry.id(),
+                        new ControlledModelCatalogEntryId(entry.id().value()),
                         entry.version(),
-                        entry.modelType(),
-                        entry.capabilities()));
+                        ModelType.valueOf(entry.modelType().name()),
+                        new ModelRuntimeCapabilities(
+                                entry.capabilities().contextWindow(),
+                                entry.capabilities().outputLimit(),
+                                entry.capabilities().embeddingDimension())));
     }
 }

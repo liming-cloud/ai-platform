@@ -29,11 +29,11 @@ import com.aiplatform.foundation.modelruntime.application.runtime.facade.ChatMod
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.ModelRuntimeResolver;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.GovernedEmbeddingRuntime;
 import com.aiplatform.foundation.modelruntime.application.configuration.facade.UsableModelConfigurationLookup;
-import com.aiplatform.foundation.modelruntime.application.configuration.dto.ModelConfigurationUsageContext;
-import com.aiplatform.foundation.modelruntime.application.configuration.dto.UsableModelConfigurationSnapshot;
-import com.aiplatform.foundation.modelruntime.domain.configuration.model.ControlledModelCatalogEntryId;
-import com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelRuntimeCapabilities;
-import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelType;
+import com.aiplatform.foundation.modelruntime.application.configuration.facade.ModelConfigurationUsageContext;
+import com.aiplatform.foundation.modelruntime.application.configuration.facade.UsableModelConfigurationSnapshot;
+import com.aiplatform.foundation.modelruntime.application.configuration.facade.ControlledModelCatalogEntryId;
+import com.aiplatform.foundation.modelruntime.application.configuration.facade.ModelRuntimeCapabilities;
+import com.aiplatform.foundation.modelruntime.application.configuration.facade.ModelType;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.embedding.EmbeddingBatch;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.embedding.EmbeddingDeploymentRef;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.embedding.EmbeddingRequest;
@@ -164,7 +164,7 @@ class IndexBuildWorkerTest {
 
         assertNotNull(completion.batch);
         assertEquals(GOVERNED_EMBEDDING, completion.batch.embedding());
-        assertEquals(6765477786913079298L, runtime.context.membershipId().value());
+        assertEquals(6765477786913079298L, runtime.context.membershipId());
         assertEquals(GOVERNED_EMBEDDING.configurationId(), runtime.snapshot.configurationId().value());
     }
 
@@ -279,7 +279,7 @@ class IndexBuildWorkerTest {
             @Override
             public Optional<UsableModelConfigurationSnapshot> find(
                     com.aiplatform.foundation.security.identity.TrustedRequestContext context,
-                    com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelConfigurationId configurationId,
+                    com.aiplatform.foundation.modelruntime.application.configuration.facade.ModelConfigurationId configurationId,
                     ModelType requiredType) {
                 return snapshot(configurationId);
             }
@@ -287,13 +287,13 @@ class IndexBuildWorkerTest {
             @Override
             public Optional<UsableModelConfigurationSnapshot> find(
                     ModelConfigurationUsageContext context,
-                    com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelConfigurationId configurationId,
+                    com.aiplatform.foundation.modelruntime.application.configuration.facade.ModelConfigurationId configurationId,
                     ModelType requiredType) {
                 return snapshot(configurationId);
             }
 
             private Optional<UsableModelConfigurationSnapshot> snapshot(
-                    com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelConfigurationId configurationId) {
+                    com.aiplatform.foundation.modelruntime.application.configuration.facade.ModelConfigurationId configurationId) {
                 return Optional.of(new UsableModelConfigurationSnapshot(
                         configurationId,
                         GOVERNED_EMBEDDING.configurationRevision(),

@@ -6,9 +6,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.common.ModelRuntimeSpecification;
-import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelType;
-import com.aiplatform.foundation.modelruntime.domain.provider.model.ProviderKind;
-import com.aiplatform.foundation.modelruntime.domain.provider.model.CredentialReference;
+import com.aiplatform.foundation.modelruntime.application.extension.facade.ModelType;
+import com.aiplatform.foundation.modelruntime.application.extension.facade.ProviderKind;
 import java.net.URI;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
@@ -49,7 +48,7 @@ class OllamaModelFactoryTest {
                 2,
                 ProviderKind.OLLAMA,
                 URI.create("http://ollama.internal:11434"),
-                new CredentialReference("secret://environment/OLLAMA_UNUSED"),
+                "secret://environment/OLLAMA_UNUSED",
                 320000000000000001L,
                 3,
                 type == ModelType.CHAT ? "qwen-chat" : "nomic-embed",

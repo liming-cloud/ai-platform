@@ -4,12 +4,11 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.aiplatform.foundation.modelruntime.application.platformsupply.dto.PlatformProviderDiscoveryCredentialReferences;
-import com.aiplatform.foundation.modelruntime.application.platformsupply.dto.PlatformProviderModelDiscoveryRequest;
-import com.aiplatform.foundation.modelruntime.domain.platformsupply.model.discovery.PlatformModelCandidateClassification;
-import com.aiplatform.foundation.modelruntime.domain.platformsupply.model.PlatformModelDiscoveryProfile;
-import com.aiplatform.foundation.modelruntime.domain.provider.model.CredentialReference;
-import com.aiplatform.foundation.modelruntime.domain.provider.model.ProviderKind;
+import com.aiplatform.foundation.modelruntime.application.extension.facade.request.PlatformProviderDiscoveryCredentialReferences;
+import com.aiplatform.foundation.modelruntime.application.extension.facade.request.PlatformProviderModelDiscoveryRequest;
+import com.aiplatform.foundation.modelruntime.application.extension.facade.PlatformModelCandidateClassification;
+import com.aiplatform.foundation.modelruntime.application.extension.facade.PlatformModelDiscoveryProfile;
+import com.aiplatform.foundation.modelruntime.application.extension.facade.ProviderKind;
 import com.aiplatform.foundation.security.secret.SecretValue;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
@@ -66,7 +65,7 @@ class VolcengineArkPlatformProviderModelDiscovererTest {
                     """);
         });
         var discoverer = new VolcengineArkPlatformProviderModelDiscoverer(
-                reference -> reference.value().contains("access-key/")
+                reference -> reference.contains("access-key/")
                         ? SecretValue.copyOf("AK_TEST".toCharArray())
                         : SecretValue.copyOf("SK_TEST".toCharArray()),
                 endpoint -> {
@@ -96,7 +95,7 @@ class VolcengineArkPlatformProviderModelDiscovererTest {
                   "Code":"InternalVendorCode","Message":"SK_TEST"}}}
                 """));
         var discoverer = new VolcengineArkPlatformProviderModelDiscoverer(
-                reference -> reference.value().contains("access-key/")
+                reference -> reference.contains("access-key/")
                         ? SecretValue.copyOf("AK_TEST".toCharArray())
                         : SecretValue.copyOf("SK_TEST".toCharArray()),
                 endpoint -> {
@@ -142,10 +141,10 @@ class VolcengineArkPlatformProviderModelDiscovererTest {
                 PlatformModelDiscoveryProfile.VOLCENGINE_ARK_CONTROL_PLANE,
                 URI.create("https://ark.cn-beijing.volces.com/api/v3"),
                 "cn-beijing",
-                new CredentialReference("secret://platform-provider-connection/320000000000000001"),
+                "secret://platform-provider-connection/320000000000000001",
                 Optional.of(new PlatformProviderDiscoveryCredentialReferences(
-                        new CredentialReference("secret://platform-provider-discovery-access-key/320000000000000001"),
-                        new CredentialReference("secret://platform-provider-discovery-secret-key/320000000000000001"))),
+                        "secret://platform-provider-discovery-access-key/320000000000000001",
+                        "secret://platform-provider-discovery-secret-key/320000000000000001")),
                 Duration.ofSeconds(2));
     }
 

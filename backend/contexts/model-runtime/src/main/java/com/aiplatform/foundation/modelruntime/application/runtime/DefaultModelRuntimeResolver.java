@@ -48,11 +48,11 @@ public final class DefaultModelRuntimeResolver implements ModelRuntimeResolver {
         this.providers = Objects.requireNonNull(providers, "供应商连接仓储不能为空");
         this.chatFactories = indexFactories(
                 chatFactories,
-                ChatModelFactory::providerKind,
+                factory -> ProviderKind.valueOf(factory.providerKind().name()),
                 "对话模型工厂");
         this.embeddingFactories = indexFactories(
                 embeddingFactories,
-                EmbeddingModelFactory::providerKind,
+                factory -> ProviderKind.valueOf(factory.providerKind().name()),
                 "嵌入模型工厂");
         this.chatCache = new RevisionedRuntimeCache<>(maximumCacheSize, idleTimeout, clock);
         this.embeddingCache = new RevisionedRuntimeCache<>(maximumCacheSize, idleTimeout, clock);
@@ -147,13 +147,15 @@ public final class DefaultModelRuntimeResolver implements ModelRuntimeResolver {
                 deployment.tenantId(),
                 provider.id().value(),
                 provider.version(),
-                provider.providerKind(),
+                com.aiplatform.foundation.modelruntime.application.extension.facade.ProviderKind.valueOf(
+                        provider.providerKind().name()),
                 provider.endpoint(),
-                provider.credentialReference(),
+                provider.credentialReference().value(),
                 deployment.id().value(),
                 deployment.version(),
                 deployment.modelCode(),
-                deployment.modelType(),
+                com.aiplatform.foundation.modelruntime.application.extension.facade.ModelType.valueOf(
+                        deployment.modelType().name()),
                 deployment.contextWindow(),
                 deployment.outputLimit(),
                 deployment.embeddingDimension());

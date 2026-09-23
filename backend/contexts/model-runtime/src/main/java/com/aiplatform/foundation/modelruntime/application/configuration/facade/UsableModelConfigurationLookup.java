@@ -1,9 +1,7 @@
 package com.aiplatform.foundation.modelruntime.application.configuration.facade;
 
-import com.aiplatform.foundation.modelruntime.application.configuration.dto.UsableModelConfigurationSnapshot;
-import com.aiplatform.foundation.modelruntime.application.configuration.dto.ModelConfigurationUsageContext;
-import com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelConfigurationId;
-import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelType;
+import com.aiplatform.foundation.modelruntime.application.configuration.facade.UsableModelConfigurationSnapshot;
+import com.aiplatform.foundation.modelruntime.application.configuration.facade.ModelConfigurationUsageContext;
 import com.aiplatform.foundation.security.identity.TrustedRequestContext;
 import java.util.Optional;
 

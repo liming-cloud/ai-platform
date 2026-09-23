@@ -4,10 +4,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
 import com.aiplatform.foundation.assistantdelivery.application.assistant.facade.PublishedAssistantVersionLookup;
-import com.aiplatform.foundation.assistantdelivery.application.catalog.service.QueryAssistantCatalogService;
+import com.aiplatform.foundation.assistantdelivery.application.catalog.facade.QueryAssistantCatalogService;
 import com.aiplatform.foundation.knowledgedata.application.indexversion.facade.ActiveIndexLookup;
 import com.aiplatform.foundation.knowledgedata.application.knowledge.facade.KnowledgeSpaceLookup;
-import com.aiplatform.foundation.knowledgedata.application.indexversion.port.out.vector.IndexCandidateRetriever;
+import com.aiplatform.foundation.knowledgedata.application.indexversion.facade.IndexCandidateRetriever;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.ModelRuntimeResolver;
 import com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator;
 import com.aiplatform.foundation.trustedquery.application.candidate.service.CandidateSearchService;

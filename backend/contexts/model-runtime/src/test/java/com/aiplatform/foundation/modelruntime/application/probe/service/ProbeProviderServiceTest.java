@@ -50,15 +50,15 @@ class ProbeProviderServiceTest {
     private static ProviderConnectionProbe successfulProbe() {
         return new ProviderConnectionProbe() {
             @Override
-            public ProviderKind providerKind() {
-                return ProviderKind.DETERMINISTIC;
-            }
+            public com.aiplatform.foundation.modelruntime.application.extension.facade.ProviderKind providerKind() { return com.aiplatform.foundation.modelruntime.application.extension.facade.ProviderKind.DETERMINISTIC; }
 
             @Override
-            public ProviderProbeObservation probe(ProviderProbeRequest request) {
-                return new ProviderProbeObservation(
+            public com.aiplatform.foundation.modelruntime.application.extension.facade.ProviderProbeObservation probe(
+                    com.aiplatform.foundation.modelruntime.application.extension.facade.request.ProviderProbeRequest request) {
+                return new com.aiplatform.foundation.modelruntime.application.extension.facade.ProviderProbeObservation(
                         true,
-                        Set.of(ModelCapability.CHAT, ModelCapability.EMBEDDING),
+                        Set.of(com.aiplatform.foundation.modelruntime.application.extension.facade.ModelCapability.CHAT,
+                                com.aiplatform.foundation.modelruntime.application.extension.facade.ModelCapability.EMBEDDING),
                         Duration.ZERO,
                         "DETERMINISTIC_OK");
             }

@@ -8,14 +8,14 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.aiplatform.foundation.assistantdelivery.application.assistant.dto.PublishedAssistantVersionSnapshot;
-import com.aiplatform.foundation.assistantdelivery.domain.assistant.model.CitationPolicy;
-import com.aiplatform.foundation.assistantdelivery.domain.assistant.model.GovernedChatModelBinding;
-import com.aiplatform.foundation.assistantdelivery.domain.assistant.model.GovernedEmbeddingModelBinding;
-import com.aiplatform.foundation.assistantdelivery.domain.assistant.model.RefusalPolicy;
+import com.aiplatform.foundation.assistantdelivery.application.assistant.facade.PublishedAssistantVersionSnapshot;
+import com.aiplatform.foundation.assistantdelivery.application.assistant.facade.CitationPolicy;
+import com.aiplatform.foundation.assistantdelivery.application.assistant.facade.GovernedChatModelBinding;
+import com.aiplatform.foundation.assistantdelivery.application.assistant.facade.GovernedEmbeddingModelBinding;
+import com.aiplatform.foundation.assistantdelivery.application.assistant.facade.RefusalPolicy;
 import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
-import com.aiplatform.foundation.knowledgedata.application.indexversion.port.out.vector.IndexCandidate;
-import com.aiplatform.foundation.knowledgedata.application.indexversion.port.out.vector.IndexCandidateQuery;
+import com.aiplatform.foundation.knowledgedata.application.indexversion.facade.IndexCandidate;
+import com.aiplatform.foundation.knowledgedata.application.indexversion.facade.IndexCandidateQuery;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.ChatModelPort;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.ChatInvocationTransientException;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.GovernedChatRuntime;
@@ -27,12 +27,12 @@ import com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.cha
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.embedding.EmbeddingBatch;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.embedding.EmbeddingVector;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.common.ModelUsage;
-import com.aiplatform.foundation.modelruntime.application.configuration.dto.UsableModelConfigurationSnapshot;
+import com.aiplatform.foundation.modelruntime.application.configuration.facade.UsableModelConfigurationSnapshot;
 import com.aiplatform.foundation.modelruntime.application.configuration.facade.UsableModelConfigurationLookup;
-import com.aiplatform.foundation.modelruntime.domain.configuration.model.ControlledModelCatalogEntryId;
-import com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelConfigurationId;
-import com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelRuntimeCapabilities;
-import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelType;
+import com.aiplatform.foundation.modelruntime.application.configuration.facade.ControlledModelCatalogEntryId;
+import com.aiplatform.foundation.modelruntime.application.configuration.facade.ModelConfigurationId;
+import com.aiplatform.foundation.modelruntime.application.configuration.facade.ModelRuntimeCapabilities;
+import com.aiplatform.foundation.modelruntime.application.configuration.facade.ModelType;
 import com.aiplatform.foundation.security.identity.AccessChannel;
 import com.aiplatform.foundation.security.identity.CredentialType;
 import com.aiplatform.foundation.security.identity.MembershipId;
@@ -40,7 +40,7 @@ import com.aiplatform.foundation.security.identity.PermissionCode;
 import com.aiplatform.foundation.security.identity.SubjectId;
 import com.aiplatform.foundation.security.identity.TrustedRequestContext;
 import com.aiplatform.foundation.trustedquery.application.run.command.CreateQueryRunCommand;
-import com.aiplatform.foundation.assistantdelivery.application.answer.service.AssistantTrustedAnswerExecutionException;
+import com.aiplatform.foundation.assistantdelivery.application.answer.facade.AssistantTrustedAnswerExecutionException;
 import com.aiplatform.foundation.trustedquery.domain.query.policy.QueryRunClaim;
 import com.aiplatform.foundation.trustedquery.domain.query.policy.QueryRunClaimState;
 import com.aiplatform.foundation.trustedquery.domain.query.policy.QueryQuotaPolicy;
@@ -219,7 +219,7 @@ class QueryRunServiceTest {
         assertEquals("FAILED", repository.current.status().name());
         assertEquals(1, repository.terminal.modelInvocationTrace().attempts().size());
         assertEquals(
-                com.aiplatform.foundation.assistantdelivery.application.answer.dto.ModelInvocationTrace.Outcome
+                com.aiplatform.foundation.assistantdelivery.application.answer.facade.ModelInvocationTrace.Outcome
                         .TRANSIENT_FAILURE,
                 repository.terminal.modelInvocationTrace().attempts().getFirst().outcome());
     }
@@ -437,7 +437,7 @@ class QueryRunServiceTest {
 
         @Override
         public EmbeddingBatch embed(
-                com.aiplatform.foundation.modelruntime.application.configuration.dto.ModelConfigurationUsageContext context,
+                com.aiplatform.foundation.modelruntime.application.configuration.facade.ModelConfigurationUsageContext context,
                 UsableModelConfigurationSnapshot expected,
                 com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.embedding.EmbeddingRequest request) {
             throw new UnsupportedOperationException();

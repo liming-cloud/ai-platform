@@ -63,7 +63,6 @@ import com.aiplatform.foundation.knowledgedata.interfaces.web.knowledge.controll
 import com.aiplatform.foundation.modelruntime.application.deployment.facade.PublishedEmbeddingDeploymentLookup;
 import com.aiplatform.foundation.modelruntime.application.configuration.facade.UsableModelConfigurationLookup;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.ModelRuntimeResolver;
-import com.aiplatform.foundation.modelruntime.infrastructure.configuration.ModelRuntimeCoreAutoConfiguration;
 import com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.junit.jupiter.api.Test;
@@ -74,21 +73,21 @@ import org.springframework.transaction.PlatformTransactionManager;
 class KnowledgeDataAutoConfigurationTest {
 
     @Test
-    void 受控索引能力等待模型配置核心完成装配() {
+    void 知识核心只排序本上下文持久化装配() {
         var configuration = KnowledgeDataCoreAutoConfiguration.class
                 .getAnnotation(org.springframework.boot.autoconfigure.AutoConfiguration.class);
 
         assertThat(configuration.after())
-                .contains(ModelRuntimeCoreAutoConfiguration.class);
+                .contains(KnowledgeDataPersistenceAutoConfiguration.class);
     }
 
     @Test
-    void 摄取工作器等待模型配置核心完成装配() {
+    void 摄取工作器只排序本上下文持久化装配() {
         var configuration = KnowledgeDataJobAutoConfiguration.class
                 .getAnnotation(org.springframework.boot.autoconfigure.AutoConfiguration.class);
 
         assertThat(configuration.after())
-                .contains(ModelRuntimeCoreAutoConfiguration.class);
+                .contains(KnowledgeDataPersistenceAutoConfiguration.class);
     }
 
     @Test

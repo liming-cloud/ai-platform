@@ -1,6 +1,7 @@
 package com.aiplatform.foundation.modelruntime.application.probe.service;
 
 import com.aiplatform.foundation.modelruntime.application.probe.port.out.ProviderConnectionProbe;
+import com.aiplatform.foundation.modelruntime.application.extension.service.ExtensionContractMapper;
 import com.aiplatform.foundation.modelruntime.domain.provider.model.ProviderKind;
 import com.aiplatform.foundation.modelruntime.application.probe.dto.ProviderProbeRequest;
 import com.aiplatform.foundation.modelruntime.application.probe.dto.ProviderProbeResult;
@@ -33,11 +34,11 @@ public final class ProbeProviderService {
         if (adapter == null) {
             throw new UnsupportedProviderException(request.providerKind());
         }
-        var observation = adapter.probe(request);
+        var observation = adapter.probe(ExtensionContractMapper.probe(request));
         return new ProviderProbeResult(
                 request.providerKind(),
                 observation.reachable(),
-                observation.capabilities(),
+                ExtensionContractMapper.domainCapabilities(observation.capabilities()),
                 observation.elapsed(),
                 observation.detailCode(),
                 clock.instant());
@@ -49,7 +50,7 @@ public final class ProbeProviderService {
         var indexed = new EnumMap<ProviderKind, ProviderConnectionProbe>(ProviderKind.class);
         for (var candidate : candidates) {
             Objects.requireNonNull(candidate, "供应商探测扩展不能包含空值");
-            var previous = indexed.putIfAbsent(candidate.providerKind(), candidate);
+            var previous = indexed.putIfAbsent(ProviderKind.valueOf(candidate.providerKind().name()), candidate);
             if (previous != null) {
                 throw new IllegalArgumentException(
                         "供应商协议只能装配一个探测扩展: " + candidate.providerKind());

@@ -8,9 +8,10 @@ import com.aiplatform.foundation.modelruntime.application.platformsupply.port.ou
 import com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.PlatformProviderCredentialResolver;
 import com.aiplatform.foundation.modelruntime.application.runtime.port.out.ChatModelFactory;
 import com.aiplatform.foundation.modelruntime.application.runtime.port.out.EmbeddingModelFactory;
-import com.aiplatform.foundation.modelruntime.infrastructure.configuration.ModelRuntimeProperties;
+import com.aiplatform.foundation.modelruntime.application.runtime.facade.ModelRuntimeCallSettings;
 import com.aiplatform.foundation.security.egress.OutboundEndpointPolicy;
 import com.aiplatform.foundation.security.secret.SecretResolver;
+import java.time.Duration;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
@@ -22,7 +23,8 @@ class OpenAiCompatibleProviderAutoConfigurationTest {
         var runner = new ApplicationContextRunner()
                 .withConfiguration(AutoConfigurations.of(
                         OpenAiCompatibleProviderAutoConfiguration.class))
-                .withBean(ModelRuntimeProperties.class, ModelRuntimeProperties::new)
+                .withBean(ModelRuntimeCallSettings.class,
+                        () -> new ModelRuntimeCallSettings(Duration.ofSeconds(30)))
                 .withBean(
                         OutboundEndpointPolicy.class,
                         () -> mock(OutboundEndpointPolicy.class));

@@ -6,7 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import com.aiplatform.foundation.modelruntime.application.provider.exception.ModelCatalogPermissionDeniedException;
 import com.aiplatform.foundation.modelruntime.application.platformsupply.command.CreatePlatformProviderConnectionCommand;
 import com.aiplatform.foundation.modelruntime.application.platformsupply.command.ProbePlatformProviderConnectionCommand;
-import com.aiplatform.foundation.modelruntime.application.platformsupply.dto.PlatformProviderProbeRequest;
+import com.aiplatform.foundation.modelruntime.application.extension.facade.request.PlatformProviderProbeRequest;
 import com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.PlatformProviderConnectionProbe;
 import com.aiplatform.foundation.modelruntime.domain.platformsupply.model.PlatformProviderConnection;
 import com.aiplatform.foundation.modelruntime.domain.platformsupply.model.PlatformProviderConnectionId;
@@ -121,9 +121,9 @@ class PlatformProviderConnectionServiceTest {
                         "secret://platform-provider-connection/610000000000000001"), Instant.parse("2026-08-13T00:00:00Z"));
         var repository = new SingleConnectionRepository(connection);
         var probe = new PlatformProviderConnectionProbe() {
-            @Override public ProviderKind providerKind() { return ProviderKind.DETERMINISTIC; }
-            @Override public com.aiplatform.foundation.modelruntime.application.probe.dto.ProviderProbeObservation probe(PlatformProviderProbeRequest request) {
-                return new com.aiplatform.foundation.modelruntime.application.probe.dto.ProviderProbeObservation(true, Set.of(), java.time.Duration.ZERO, "DETERMINISTIC_OK");
+            @Override public com.aiplatform.foundation.modelruntime.application.extension.facade.ProviderKind providerKind() { return com.aiplatform.foundation.modelruntime.application.extension.facade.ProviderKind.DETERMINISTIC; }
+            @Override public com.aiplatform.foundation.modelruntime.application.extension.facade.ProviderProbeObservation probe(PlatformProviderProbeRequest request) {
+                return new com.aiplatform.foundation.modelruntime.application.extension.facade.ProviderProbeObservation(true, Set.of(), java.time.Duration.ZERO, "DETERMINISTIC_OK");
             }
         };
         var service = new PlatformProviderConnectionService(repository, new ForbiddenPathCredentialWriter(),

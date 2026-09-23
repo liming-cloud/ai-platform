@@ -105,10 +105,10 @@ class PostgresEncryptedPlatformProviderConnectionCredentialStoreTest {
     @Test
     void 不得解析非平台私有命名空间或附带查询参数的凭据引用() {
         assertThrows(IllegalArgumentException.class,
-                () -> credentials.resolve(new CredentialReference("https://platform-provider-connection/320000000000000001")));
+                () -> credentials.resolve("https://platform-provider-connection/320000000000000001"));
         assertThrows(IllegalArgumentException.class,
-                () -> credentials.resolve(new CredentialReference(
-                        "secret://platform-provider-connection/320000000000000001?purpose=other")));
+                () -> credentials.resolve(
+                        "secret://platform-provider-connection/320000000000000001?purpose=other"));
     }
 
     private void write(String reference, String value) {
@@ -118,7 +118,7 @@ class PostgresEncryptedPlatformProviderConnectionCredentialStoreTest {
     }
 
     private void assertResolved(String reference, String expected) {
-        try (var resolved = credentials.resolve(new CredentialReference(reference))) {
+        try (var resolved = credentials.resolve(reference)) {
             assertEquals(expected, resolved.use(String::new));
         }
     }

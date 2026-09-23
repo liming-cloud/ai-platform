@@ -43,10 +43,12 @@ class UsableModelConfigurationLookupServiceTest {
                 new ModelConfigurationAccessService(repository, new AccessRepository(), () -> 5001L, java.time.Clock.systemUTC()),
                 configurationId -> configurationId.equals(CONFIGURATION_ID));
 
-        var result = service.find(member(6001L), CONFIGURATION_ID, ModelType.EMBEDDING);
+        var result = service.find(member(6001L),
+                new com.aiplatform.foundation.modelruntime.application.configuration.facade.ModelConfigurationId(CONFIGURATION_ID.value()),
+                com.aiplatform.foundation.modelruntime.application.configuration.facade.ModelType.EMBEDDING);
 
         assertTrue(result.isPresent());
-        assertTrue(result.orElseThrow().configurationId().equals(CONFIGURATION_ID));
+        assertTrue(result.orElseThrow().configurationId().value() == CONFIGURATION_ID.value());
         assertTrue(result.orElseThrow().capabilities().embeddingDimension() == 1024);
     }
 
@@ -60,8 +62,12 @@ class UsableModelConfigurationLookupServiceTest {
         var configured = new UsableModelConfigurationLookupService(
                 repository, access, configurationId -> true);
 
-        assertFalse(noCredential.find(member(6001L), CONFIGURATION_ID, ModelType.EMBEDDING).isPresent());
-        assertFalse(configured.find(member(6002L), CONFIGURATION_ID, ModelType.EMBEDDING).isPresent());
+        assertFalse(noCredential.find(member(6001L),
+                new com.aiplatform.foundation.modelruntime.application.configuration.facade.ModelConfigurationId(CONFIGURATION_ID.value()),
+                com.aiplatform.foundation.modelruntime.application.configuration.facade.ModelType.EMBEDDING).isPresent());
+        assertFalse(configured.find(member(6002L),
+                new com.aiplatform.foundation.modelruntime.application.configuration.facade.ModelConfigurationId(CONFIGURATION_ID.value()),
+                com.aiplatform.foundation.modelruntime.application.configuration.facade.ModelType.EMBEDDING).isPresent());
     }
 
     @Test
@@ -72,7 +78,9 @@ class UsableModelConfigurationLookupServiceTest {
                 new ModelConfigurationAccessService(repository, new AccessRepository(), () -> 5001L, java.time.Clock.systemUTC()),
                 configurationId -> true);
 
-        assertFalse(service.find(member(6001L), CONFIGURATION_ID, ModelType.CHAT).isPresent());
+        assertFalse(service.find(member(6001L),
+                new com.aiplatform.foundation.modelruntime.application.configuration.facade.ModelConfigurationId(CONFIGURATION_ID.value()),
+                com.aiplatform.foundation.modelruntime.application.configuration.facade.ModelType.CHAT).isPresent());
     }
 
     @Test
@@ -85,7 +93,9 @@ class UsableModelConfigurationLookupServiceTest {
                 new ModelConfigurationAccessService(repository, new AccessRepository(), () -> 5001L, java.time.Clock.systemUTC()),
                 configurationId -> true);
 
-        assertFalse(service.find(member(6001L), CONFIGURATION_ID, ModelType.EMBEDDING).isPresent());
+        assertFalse(service.find(member(6001L),
+                new com.aiplatform.foundation.modelruntime.application.configuration.facade.ModelConfigurationId(CONFIGURATION_ID.value()),
+                com.aiplatform.foundation.modelruntime.application.configuration.facade.ModelType.EMBEDDING).isPresent());
     }
 
     private static ModelConfiguration activePersonalEmbedding() {

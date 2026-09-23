@@ -5,7 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import com.aiplatform.foundation.modelruntime.application.configuration.dto.UsableModelConfigurationSnapshot;
+import com.aiplatform.foundation.modelruntime.application.configuration.facade.UsableModelConfigurationSnapshot;
 import com.aiplatform.foundation.modelruntime.application.configuration.facade.UsableModelConfigurationLookup;
 import com.aiplatform.foundation.modelruntime.application.configuration.port.out.ModelConfigurationCredentialUser;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.EmbeddingModelPort;
@@ -82,8 +82,10 @@ class ModelConfigurationRuntimeServiceTest {
                 useCredential(),
                 List.of(factory));
         var stale = new UsableModelConfigurationSnapshot(
-                CONFIGURATION_ID, 2L, new ControlledModelCatalogEntryId(3001L), 1L,
-                ModelType.EMBEDDING, ModelRuntimeCapabilities.embedding(8192, 1024));
+                new com.aiplatform.foundation.modelruntime.application.configuration.facade.ModelConfigurationId(CONFIGURATION_ID.value()), 2L,
+                new com.aiplatform.foundation.modelruntime.application.configuration.facade.ControlledModelCatalogEntryId(3001L), 1L,
+                com.aiplatform.foundation.modelruntime.application.configuration.facade.ModelType.EMBEDDING,
+                com.aiplatform.foundation.modelruntime.application.configuration.facade.ModelRuntimeCapabilities.embedding(8192, 1024));
 
         assertThrows(ModelRuntimeUnavailableException.class,
                 () -> service.embed(member(), stale, request()));
@@ -142,8 +144,10 @@ class ModelConfigurationRuntimeServiceTest {
                 List.of(),
                 List.of(factory));
         var stale = new UsableModelConfigurationSnapshot(
-                CONFIGURATION_ID, 2L, new ControlledModelCatalogEntryId(3002L), 1L,
-                ModelType.CHAT, ModelRuntimeCapabilities.chat(8192, 512));
+                new com.aiplatform.foundation.modelruntime.application.configuration.facade.ModelConfigurationId(CONFIGURATION_ID.value()), 2L,
+                new com.aiplatform.foundation.modelruntime.application.configuration.facade.ControlledModelCatalogEntryId(3002L), 1L,
+                com.aiplatform.foundation.modelruntime.application.configuration.facade.ModelType.CHAT,
+                com.aiplatform.foundation.modelruntime.application.configuration.facade.ModelRuntimeCapabilities.chat(8192, 512));
         var request = new ChatRequest(
                 new ChatDeploymentRef(CONFIGURATION_ID.value(), 2L),
                 List.of(new ChatMessage(ChatRole.USER, "测试问题")),
@@ -156,14 +160,18 @@ class ModelConfigurationRuntimeServiceTest {
 
     private static UsableModelConfigurationSnapshot snapshot() {
         return new UsableModelConfigurationSnapshot(
-                CONFIGURATION_ID, 1L, new ControlledModelCatalogEntryId(3001L), 1L,
-                ModelType.EMBEDDING, ModelRuntimeCapabilities.embedding(8192, 1024));
+                new com.aiplatform.foundation.modelruntime.application.configuration.facade.ModelConfigurationId(CONFIGURATION_ID.value()), 1L,
+                new com.aiplatform.foundation.modelruntime.application.configuration.facade.ControlledModelCatalogEntryId(3001L), 1L,
+                com.aiplatform.foundation.modelruntime.application.configuration.facade.ModelType.EMBEDDING,
+                com.aiplatform.foundation.modelruntime.application.configuration.facade.ModelRuntimeCapabilities.embedding(8192, 1024));
     }
 
     private static UsableModelConfigurationSnapshot chatSnapshot() {
         return new UsableModelConfigurationSnapshot(
-                CONFIGURATION_ID, 1L, new ControlledModelCatalogEntryId(3002L), 1L,
-                ModelType.CHAT, ModelRuntimeCapabilities.chat(8192, 512));
+                new com.aiplatform.foundation.modelruntime.application.configuration.facade.ModelConfigurationId(CONFIGURATION_ID.value()), 1L,
+                new com.aiplatform.foundation.modelruntime.application.configuration.facade.ControlledModelCatalogEntryId(3002L), 1L,
+                com.aiplatform.foundation.modelruntime.application.configuration.facade.ModelType.CHAT,
+                com.aiplatform.foundation.modelruntime.application.configuration.facade.ModelRuntimeCapabilities.chat(8192, 512));
     }
 
     private static TrustedRequestContext member() {
@@ -200,7 +208,7 @@ class ModelConfigurationRuntimeServiceTest {
     private static final class RecordingEmbeddingFactory implements EmbeddingModelFactory {
         private final AtomicReference<ModelRuntimeSpecification> specification = new AtomicReference<>();
 
-        @Override public ProviderKind providerKind() { return ProviderKind.OPENAI_COMPATIBLE; }
+        @Override public com.aiplatform.foundation.modelruntime.application.extension.facade.ProviderKind providerKind() { return com.aiplatform.foundation.modelruntime.application.extension.facade.ProviderKind.OPENAI_COMPATIBLE; }
         @Override public EmbeddingModelPort create(ModelRuntimeSpecification value) { throw new AssertionError("不得解析长期凭据引用"); }
         @Override public EmbeddingModelPort create(ModelRuntimeSpecification value, SecretValue credential) {
             specification.set(value);
@@ -211,7 +219,7 @@ class ModelConfigurationRuntimeServiceTest {
     private static final class RecordingChatFactory implements ChatModelFactory {
         private final AtomicReference<ModelRuntimeSpecification> specification = new AtomicReference<>();
 
-        @Override public ProviderKind providerKind() { return ProviderKind.OPENAI_COMPATIBLE; }
+        @Override public com.aiplatform.foundation.modelruntime.application.extension.facade.ProviderKind providerKind() { return com.aiplatform.foundation.modelruntime.application.extension.facade.ProviderKind.OPENAI_COMPATIBLE; }
         @Override public ChatModelPort create(ModelRuntimeSpecification value) { throw new AssertionError("不得解析长期凭据引用"); }
         @Override public ChatModelPort create(ModelRuntimeSpecification value, SecretValue credential) {
             specification.set(value);

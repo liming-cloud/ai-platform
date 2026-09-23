@@ -2,7 +2,8 @@ package com.aiplatform.foundation.knowledgedata.application.indexversion.port.ou
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import com.aiplatform.foundation.knowledgedata.domain.indexversion.model.EmbeddingConfiguration;
+import com.aiplatform.foundation.knowledgedata.application.indexversion.facade.EmbeddingConfiguration;
+import com.aiplatform.foundation.knowledgedata.application.indexversion.facade.IndexCandidateQuery;
 import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
 import org.junit.jupiter.api.Test;
 

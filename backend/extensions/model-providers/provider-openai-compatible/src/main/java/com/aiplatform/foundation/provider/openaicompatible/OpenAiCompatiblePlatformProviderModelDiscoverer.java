@@ -1,12 +1,12 @@
 package com.aiplatform.foundation.provider.openaicompatible;
 
-import com.aiplatform.foundation.modelruntime.application.platformsupply.dto.PlatformProviderModelDiscoveryRequest;
+import com.aiplatform.foundation.modelruntime.application.extension.facade.request.PlatformProviderModelDiscoveryRequest;
 import com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.PlatformProviderModelDiscoverer;
 import com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.PlatformProviderCredentialResolver;
-import com.aiplatform.foundation.modelruntime.domain.platformsupply.model.discovery.PlatformDiscoveredModelCandidate;
-import com.aiplatform.foundation.modelruntime.domain.platformsupply.model.PlatformModelDiscoveryProfile;
-import com.aiplatform.foundation.modelruntime.domain.platformsupply.model.discovery.PlatformProviderModelDiscoveryObservation;
-import com.aiplatform.foundation.modelruntime.domain.provider.model.ProviderKind;
+import com.aiplatform.foundation.modelruntime.application.extension.facade.PlatformDiscoveredModelCandidate;
+import com.aiplatform.foundation.modelruntime.application.extension.facade.PlatformModelDiscoveryProfile;
+import com.aiplatform.foundation.modelruntime.application.extension.facade.PlatformProviderModelDiscoveryObservation;
+import com.aiplatform.foundation.modelruntime.application.extension.facade.ProviderKind;
 import com.aiplatform.foundation.security.egress.OutboundEndpointPolicy;
 import com.aiplatform.foundation.security.egress.UnsafeOutboundEndpointException;
 import com.aiplatform.foundation.security.secret.SecretValue;

@@ -1,7 +1,7 @@
 package com.aiplatform.foundation.modelruntime.application.runtime.facade;
 
-import com.aiplatform.foundation.modelruntime.application.configuration.dto.UsableModelConfigurationSnapshot;
-import com.aiplatform.foundation.modelruntime.application.configuration.dto.ModelConfigurationUsageContext;
+import com.aiplatform.foundation.modelruntime.application.configuration.facade.UsableModelConfigurationSnapshot;
+import com.aiplatform.foundation.modelruntime.application.configuration.facade.ModelConfigurationUsageContext;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.embedding.EmbeddingBatch;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.embedding.EmbeddingRequest;
 import com.aiplatform.foundation.security.identity.TrustedRequestContext;

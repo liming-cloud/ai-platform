@@ -1,8 +1,9 @@
 package com.aiplatform.foundation.assistantdelivery.application.evaluation.service;
 
-import com.aiplatform.foundation.assistantdelivery.application.answer.dto.AssistantTrustedAnswerTarget;
-import com.aiplatform.foundation.assistantdelivery.application.answer.dto.AssistantTrustedEvaluationResult;
-import com.aiplatform.foundation.assistantdelivery.application.answer.service.AssistantTrustedAnswerExecutionException;
+import com.aiplatform.foundation.assistantdelivery.application.answer.facade.AssistantTrustedAnswerTarget;
+import com.aiplatform.foundation.assistantdelivery.application.answer.service.AssistantTrustedAnswerTargets;
+import com.aiplatform.foundation.assistantdelivery.application.answer.facade.AssistantTrustedEvaluationResult;
+import com.aiplatform.foundation.assistantdelivery.application.answer.facade.AssistantTrustedAnswerExecutionException;
 import com.aiplatform.foundation.assistantdelivery.application.answer.service.AssistantTrustedAnswerExecutor;
 import com.aiplatform.foundation.assistantdelivery.application.assistant.dto.DraftAssistantVersionSnapshot;
 import com.aiplatform.foundation.assistantdelivery.application.assistant.exception.AssistantPermissionDeniedException;
@@ -56,7 +57,7 @@ public final class EvaluationAssistantExecutionService implements EvaluationAssi
                 .orElseThrow(() -> new IllegalArgumentException("评测助手目标已变化或不可用"));
         try {
             return from(executor.executeForEvaluation(
-                    context, AssistantTrustedAnswerTarget.from(snapshot.snapshot()), input));
+                    context, AssistantTrustedAnswerTargets.fromDraft(snapshot.snapshot()), input));
         } catch (AssistantTrustedAnswerExecutionException exception) {
             return failed(exception.observation().candidateCount());
         } catch (RuntimeException exception) {

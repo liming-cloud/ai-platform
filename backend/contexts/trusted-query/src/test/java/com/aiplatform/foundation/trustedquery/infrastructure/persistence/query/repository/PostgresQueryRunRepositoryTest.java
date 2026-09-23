@@ -4,7 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.aiplatform.foundation.assistantdelivery.application.answer.dto.ModelInvocationTrace;
+import com.aiplatform.foundation.assistantdelivery.application.answer.facade.ModelInvocationTrace;
 import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
 import com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator;
 import com.aiplatform.foundation.shared.contract.paging.PageQuery;
@@ -22,7 +22,7 @@ import com.aiplatform.foundation.trustedquery.domain.query.feedback.model.QueryF
 import com.aiplatform.foundation.trustedquery.domain.query.feedback.repository.QueryFeedbackRepository;
 import com.aiplatform.foundation.trustedquery.domain.query.repository.QueryRunRepository;
 import com.aiplatform.foundation.trustedquery.application.operations.facade.QueryOperationsFactSource;
-import com.aiplatform.foundation.trustedquery.application.operations.query.QueryUsageFactQuery;
+import com.aiplatform.foundation.trustedquery.application.operations.facade.QueryUsageFactQuery;
 import com.aiplatform.foundation.trustedquery.domain.query.model.QueryCitation;
 import com.aiplatform.foundation.trustedquery.domain.query.model.QueryModelUsage;
 import com.aiplatform.foundation.trustedquery.domain.query.model.QueryRequesterId;

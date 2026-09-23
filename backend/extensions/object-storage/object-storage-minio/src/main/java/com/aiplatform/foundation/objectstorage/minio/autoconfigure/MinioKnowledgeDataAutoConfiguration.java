@@ -1,7 +1,10 @@
 package com.aiplatform.foundation.objectstorage.minio.autoconfigure;
 
+import com.aiplatform.foundation.knowledgedata.application.port.out.content.TextObjectStorageExtensionPort;
 import com.aiplatform.foundation.knowledgedata.application.port.out.content.TextContentObjectStoragePort;
+import com.aiplatform.foundation.knowledgedata.application.datasource.port.out.dataset.CsvObjectStorageExtensionPort;
 import com.aiplatform.foundation.knowledgedata.application.datasource.port.out.dataset.StructuredDatasetCsvStoragePort;
+import com.aiplatform.foundation.knowledgedata.application.datasource.port.out.PlatformObjectContentReaderExtensionPort;
 import com.aiplatform.foundation.knowledgedata.application.datasource.port.out.PlatformObjectContentReaderPort;
 import com.aiplatform.foundation.objectstorage.minio.MinioPlatformObjectContentReaderAdapter;
 import com.aiplatform.foundation.objectstorage.minio.MinioStructuredDatasetCsvStorageAdapter;
@@ -33,8 +36,8 @@ public class MinioKnowledgeDataAutoConfiguration {
     }
 
     @Bean
-    @ConditionalOnMissingBean(TextContentObjectStoragePort.class)
-    TextContentObjectStoragePort knowledgeDataObjectStorage(
+    @ConditionalOnMissingBean({TextObjectStorageExtensionPort.class, TextContentObjectStoragePort.class})
+    TextObjectStorageExtensionPort knowledgeDataObjectStorage(
             MinioClient client,
             KnowledgeDataMinioProperties properties) {
         var adapter = new MinioTextContentObjectStorageAdapter(
@@ -45,8 +48,8 @@ public class MinioKnowledgeDataAutoConfiguration {
     }
 
     @Bean
-    @ConditionalOnMissingBean(StructuredDatasetCsvStoragePort.class)
-    StructuredDatasetCsvStoragePort knowledgeDataStructuredDatasetCsvStorage(
+    @ConditionalOnMissingBean({CsvObjectStorageExtensionPort.class, StructuredDatasetCsvStoragePort.class})
+    CsvObjectStorageExtensionPort knowledgeDataStructuredDatasetCsvStorage(
             MinioClient client,
             KnowledgeDataMinioProperties properties) {
         var adapter = new MinioStructuredDatasetCsvStorageAdapter(client, properties.getBucket());
@@ -55,8 +58,8 @@ public class MinioKnowledgeDataAutoConfiguration {
     }
 
     @Bean
-    @ConditionalOnMissingBean(PlatformObjectContentReaderPort.class)
-    PlatformObjectContentReaderPort knowledgeDataPlatformObjectContentReader(
+    @ConditionalOnMissingBean({PlatformObjectContentReaderExtensionPort.class, PlatformObjectContentReaderPort.class})
+    PlatformObjectContentReaderExtensionPort knowledgeDataPlatformObjectContentReader(
             MinioClient client,
             KnowledgeDataMinioProperties properties) {
         return new MinioPlatformObjectContentReaderAdapter(

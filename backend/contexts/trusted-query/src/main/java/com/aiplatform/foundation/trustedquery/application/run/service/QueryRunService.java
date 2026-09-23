@@ -6,32 +6,32 @@ import com.aiplatform.foundation.trustedquery.application.diagnostic.dto.Citatio
 import com.aiplatform.foundation.trustedquery.application.diagnostic.dto.QueryDiagnosticFact;
 import com.aiplatform.foundation.trustedquery.application.diagnostic.dto.QueryRunTerminalCommit;
 import com.aiplatform.foundation.trustedquery.application.diagnostic.port.out.QueryRunTerminalCommitter;
-import com.aiplatform.foundation.assistantdelivery.application.answer.dto.AssistantTrustedAnswerCitation;
-import com.aiplatform.foundation.assistantdelivery.application.answer.dto.AssistantTrustedAnswerExecutionObservation;
-import com.aiplatform.foundation.assistantdelivery.application.answer.dto.AssistantTrustedAnswerResult;
-import com.aiplatform.foundation.assistantdelivery.application.answer.dto.AssistantTrustedAnswerTarget;
-import com.aiplatform.foundation.assistantdelivery.application.answer.service.AssistantTrustedAnswerExecutionException;
-import com.aiplatform.foundation.assistantdelivery.application.answer.service.AssistantTrustedAnswerExecutor;
+import com.aiplatform.foundation.assistantdelivery.application.answer.facade.AssistantTrustedAnswerCitation;
+import com.aiplatform.foundation.assistantdelivery.application.answer.facade.AssistantTrustedAnswerExecutionObservation;
+import com.aiplatform.foundation.assistantdelivery.application.answer.facade.AssistantTrustedAnswerResult;
+import com.aiplatform.foundation.assistantdelivery.application.answer.facade.AssistantTrustedAnswerTarget;
+import com.aiplatform.foundation.assistantdelivery.application.answer.facade.AssistantTrustedAnswerExecutionException;
+import com.aiplatform.foundation.assistantdelivery.application.answer.facade.AssistantTrustedAnswerFacade;
 import com.aiplatform.foundation.assistantdelivery.application.assistant.facade.PublishedAssistantVersionLookup;
-import com.aiplatform.foundation.assistantdelivery.application.assistant.dto.PublishedAssistantVersionSnapshot;
+import com.aiplatform.foundation.assistantdelivery.application.assistant.facade.PublishedAssistantVersionSnapshot;
 import com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator;
-import com.aiplatform.foundation.knowledgedata.application.indexversion.port.out.vector.IndexCandidate;
-import com.aiplatform.foundation.knowledgedata.application.indexversion.port.out.vector.IndexCandidateQuery;
-import com.aiplatform.foundation.knowledgedata.application.indexversion.port.out.vector.IndexCandidateRetriever;
-import com.aiplatform.foundation.knowledgedata.domain.indexversion.model.EmbeddingConfiguration;
-import com.aiplatform.foundation.modelruntime.application.configuration.dto.UsableModelConfigurationSnapshot;
+import com.aiplatform.foundation.knowledgedata.application.indexversion.facade.IndexCandidate;
+import com.aiplatform.foundation.knowledgedata.application.indexversion.facade.IndexCandidateQuery;
+import com.aiplatform.foundation.knowledgedata.application.indexversion.facade.IndexCandidateRetriever;
+import com.aiplatform.foundation.knowledgedata.application.indexversion.facade.EmbeddingConfiguration;
+import com.aiplatform.foundation.modelruntime.application.configuration.facade.UsableModelConfigurationSnapshot;
 import com.aiplatform.foundation.modelruntime.application.configuration.facade.UsableModelConfigurationLookup;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.GovernedChatRuntime;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.ChatRouteExecutor;
-import com.aiplatform.foundation.modelruntime.application.runtime.DefaultChatRouteExecutor;
+import com.aiplatform.foundation.modelruntime.application.runtime.facade.DefaultChatRouteExecutor;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.GovernedEmbeddingRuntime;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.ModelRuntimeResolver;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.chat.ChatDeploymentRef;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.chat.ChatRequest;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.embedding.EmbeddingDeploymentRef;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.embedding.EmbeddingRequest;
-import com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelConfigurationId;
-import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelType;
+import com.aiplatform.foundation.modelruntime.application.configuration.facade.ModelConfigurationId;
+import com.aiplatform.foundation.modelruntime.application.configuration.facade.ModelType;
 import com.aiplatform.foundation.security.identity.PermissionCode;
 import com.aiplatform.foundation.security.identity.TrustedRequestContext;
 import com.aiplatform.foundation.trustedquery.application.run.command.CreateQueryRunCommand;
@@ -70,7 +70,7 @@ public final class QueryRunService  {
             new PermissionCode("knowledge:read");
 
     private final PublishedAssistantVersionLookup assistants;
-    private final AssistantTrustedAnswerExecutor executor;
+    private final AssistantTrustedAnswerFacade executor;
     private final QueryRunRepository repository;
     private final QueryRunTerminalCommitter terminalCommitter;
     private final QueryQuotaPolicy quota;
@@ -124,7 +124,7 @@ public final class QueryRunService  {
         this.assistants = Objects.requireNonNull(
                 assistants,
                 "已发布助手版本查询不能为空");
-        this.executor = new AssistantTrustedAnswerExecutor(
+        this.executor = new AssistantTrustedAnswerFacade(
                 Objects.requireNonNull(models, "模型运行时解析器不能为空"),
                 modelConfigurations, governedEmbeddings, governedChats,
                 chatRoutes == null && governedChats != null

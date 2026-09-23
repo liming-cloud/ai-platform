@@ -3,7 +3,7 @@ package com.aiplatform.foundation.trustedquery.infrastructure.configuration;
 import com.aiplatform.foundation.assistantdelivery.application.assistant.facade.PublishedAssistantVersionLookup;
 import com.aiplatform.foundation.knowledgedata.application.indexversion.facade.ActiveIndexLookup;
 import com.aiplatform.foundation.knowledgedata.application.knowledge.facade.KnowledgeSpaceLookup;
-import com.aiplatform.foundation.knowledgedata.application.indexversion.port.out.vector.IndexCandidateRetriever;
+import com.aiplatform.foundation.knowledgedata.application.indexversion.facade.IndexCandidateRetriever;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.ModelRuntimeResolver;
 import com.aiplatform.foundation.modelruntime.application.configuration.facade.UsableModelConfigurationLookup;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.GovernedChatRuntime;

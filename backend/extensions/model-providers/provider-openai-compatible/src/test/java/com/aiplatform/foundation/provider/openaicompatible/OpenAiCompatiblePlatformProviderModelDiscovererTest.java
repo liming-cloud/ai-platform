@@ -4,11 +4,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.aiplatform.foundation.modelruntime.application.platformsupply.dto.PlatformProviderModelDiscoveryRequest;
-import com.aiplatform.foundation.modelruntime.domain.platformsupply.model.discovery.PlatformModelCandidateClassification;
-import com.aiplatform.foundation.modelruntime.domain.platformsupply.model.PlatformModelDiscoveryProfile;
-import com.aiplatform.foundation.modelruntime.domain.provider.model.CredentialReference;
-import com.aiplatform.foundation.modelruntime.domain.provider.model.ProviderKind;
+import com.aiplatform.foundation.modelruntime.application.extension.facade.request.PlatformProviderModelDiscoveryRequest;
+import com.aiplatform.foundation.modelruntime.application.extension.facade.PlatformModelCandidateClassification;
+import com.aiplatform.foundation.modelruntime.application.extension.facade.PlatformModelDiscoveryProfile;
+import com.aiplatform.foundation.modelruntime.application.extension.facade.ProviderKind;
 import com.aiplatform.foundation.security.egress.UnsafeOutboundEndpointException;
 import com.aiplatform.foundation.security.secret.SecretValue;
 import com.sun.net.httpserver.HttpExchange;
@@ -111,7 +110,9 @@ class OpenAiCompatiblePlatformProviderModelDiscovererTest {
                 ProviderKind.OPENAI_COMPATIBLE,
                 PlatformModelDiscoveryProfile.OPENAI_MODELS_API,
                 URI.create("http://127.0.0.1:" + server.getAddress().getPort() + "/v1"),
-                new CredentialReference("secret://test/openai"),
+                "global",
+                "secret://test/openai",
+                java.util.Optional.empty(),
                 Duration.ofSeconds(2));
     }
 

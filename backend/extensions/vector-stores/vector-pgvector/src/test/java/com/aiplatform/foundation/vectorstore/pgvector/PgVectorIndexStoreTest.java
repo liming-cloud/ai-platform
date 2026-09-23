@@ -4,7 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.aiplatform.foundation.knowledgedata.application.indexversion.port.out.vector.IndexCandidateQuery;
+import com.aiplatform.foundation.knowledgedata.application.indexversion.facade.IndexCandidateQuery;
 import com.aiplatform.foundation.knowledgedata.application.indexversion.port.out.vector.IndexVector;
 import com.aiplatform.foundation.knowledgedata.application.indexversion.port.out.vector.IndexVectorBatch;
 import com.aiplatform.foundation.knowledgedata.domain.indexversion.model.EmbeddingConfiguration;
@@ -214,7 +214,9 @@ class PgVectorIndexStoreTest {
                 TENANT,
                 SPACE,
                 INDEX,
-                governed,
+                com.aiplatform.foundation.knowledgedata.application.indexversion.facade.EmbeddingConfiguration.governed(
+                        governed.configurationId(), governed.configurationRevision(),
+                        governed.catalogEntryId(), governed.catalogEntryRevision(), governed.dimension()),
                 new float[] {1, 0, 0, 0},
                 10));
         assertEquals(1, result.size());

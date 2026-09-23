@@ -270,16 +270,15 @@ class ModelDeploymentServiceTest {
                 new ProbeProviderService(
                         List.of(new ProviderConnectionProbe() {
                             @Override
-                            public ProviderKind providerKind() {
-                                return ProviderKind.DETERMINISTIC;
-                            }
+                            public com.aiplatform.foundation.modelruntime.application.extension.facade.ProviderKind providerKind() { return com.aiplatform.foundation.modelruntime.application.extension.facade.ProviderKind.DETERMINISTIC; }
 
                             @Override
-                            public com.aiplatform.foundation.modelruntime.application.probe.dto.ProviderProbeObservation probe(
-                                    com.aiplatform.foundation.modelruntime.application.probe.dto.ProviderProbeRequest request) {
-                                return new com.aiplatform.foundation.modelruntime.application.probe.dto.ProviderProbeObservation(
+                            public com.aiplatform.foundation.modelruntime.application.extension.facade.ProviderProbeObservation probe(
+                                    com.aiplatform.foundation.modelruntime.application.extension.facade.request.ProviderProbeRequest request) {
+                                return new com.aiplatform.foundation.modelruntime.application.extension.facade.ProviderProbeObservation(
                                         probeResult.reachable(),
-                                        probeResult.capabilities(),
+                                        com.aiplatform.foundation.modelruntime.application.extension.service.ExtensionContractMapper
+                                                .capabilities(probeResult.capabilities()),
                                         probeResult.elapsed(),
                                         probeResult.detailCode());
                             }

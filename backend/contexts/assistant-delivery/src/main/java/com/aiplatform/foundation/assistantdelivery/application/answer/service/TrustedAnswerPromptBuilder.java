@@ -1,7 +1,7 @@
 package com.aiplatform.foundation.assistantdelivery.application.answer.service;
 
-import com.aiplatform.foundation.assistantdelivery.application.answer.dto.AssistantTrustedAnswerTarget;
-import com.aiplatform.foundation.knowledgedata.application.indexversion.port.out.vector.IndexCandidate;
+import com.aiplatform.foundation.assistantdelivery.application.answer.facade.AssistantTrustedAnswerTarget;
+import com.aiplatform.foundation.knowledgedata.application.indexversion.facade.IndexCandidate;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.chat.ChatMessage;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.chat.ChatRole;
 import java.util.ArrayList;

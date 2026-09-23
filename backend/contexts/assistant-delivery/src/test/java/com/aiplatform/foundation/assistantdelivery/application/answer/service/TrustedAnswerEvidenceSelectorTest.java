@@ -3,7 +3,7 @@ package com.aiplatform.foundation.assistantdelivery.application.answer.service;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.aiplatform.foundation.knowledgedata.application.indexversion.port.out.vector.IndexCandidate;
+import com.aiplatform.foundation.knowledgedata.application.indexversion.facade.IndexCandidate;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 

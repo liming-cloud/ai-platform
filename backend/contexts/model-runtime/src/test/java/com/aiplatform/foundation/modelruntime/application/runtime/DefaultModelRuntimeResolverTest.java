@@ -57,9 +57,7 @@ class DefaultModelRuntimeResolverTest {
         var model = new StubChatModel();
         ChatModelFactory factory = new ChatModelFactory() {
             @Override
-            public ProviderKind providerKind() {
-                return ProviderKind.OPENAI_COMPATIBLE;
-            }
+            public com.aiplatform.foundation.modelruntime.application.extension.facade.ProviderKind providerKind() { return com.aiplatform.foundation.modelruntime.application.extension.facade.ProviderKind.OPENAI_COMPATIBLE; }
 
             @Override
             public ChatModelPort create(ModelRuntimeSpecification specification) {
@@ -85,9 +83,7 @@ class DefaultModelRuntimeResolverTest {
         var constructions = new AtomicInteger();
         ChatModelFactory factory = new ChatModelFactory() {
             @Override
-            public ProviderKind providerKind() {
-                return ProviderKind.OPENAI_COMPATIBLE;
-            }
+            public com.aiplatform.foundation.modelruntime.application.extension.facade.ProviderKind providerKind() { return com.aiplatform.foundation.modelruntime.application.extension.facade.ProviderKind.OPENAI_COMPATIBLE; }
 
             @Override
             public ChatModelPort create(ModelRuntimeSpecification specification) {
@@ -205,9 +201,7 @@ class DefaultModelRuntimeResolverTest {
     private static final class NoOpChatFactory implements ChatModelFactory {
 
         @Override
-        public ProviderKind providerKind() {
-            return ProviderKind.OPENAI_COMPATIBLE;
-        }
+        public com.aiplatform.foundation.modelruntime.application.extension.facade.ProviderKind providerKind() { return com.aiplatform.foundation.modelruntime.application.extension.facade.ProviderKind.OPENAI_COMPATIBLE; }
 
         @Override
         public ChatModelPort create(ModelRuntimeSpecification specification) {

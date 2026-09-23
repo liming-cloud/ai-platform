@@ -1,7 +1,7 @@
 package com.aiplatform.foundation.knowledgedata.application.indexversion.facade;
 
 import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
-import com.aiplatform.foundation.knowledgedata.application.indexversion.dto.ActiveIndexSnapshot;
+import com.aiplatform.foundation.knowledgedata.application.indexversion.facade.ActiveIndexSnapshot;
 import java.util.Optional;
 
 /**

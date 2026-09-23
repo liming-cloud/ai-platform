@@ -1,7 +1,8 @@
 package com.aiplatform.foundation.assistantdelivery.application.assistant.testrun.service;
 
-import com.aiplatform.foundation.assistantdelivery.application.answer.dto.AssistantTrustedAnswerTarget;
-import com.aiplatform.foundation.assistantdelivery.application.answer.service.AssistantTrustedAnswerExecutionException;
+import com.aiplatform.foundation.assistantdelivery.application.answer.facade.AssistantTrustedAnswerTarget;
+import com.aiplatform.foundation.assistantdelivery.application.answer.service.AssistantTrustedAnswerTargets;
+import com.aiplatform.foundation.assistantdelivery.application.answer.facade.AssistantTrustedAnswerExecutionException;
 import com.aiplatform.foundation.assistantdelivery.application.answer.service.AssistantTrustedAnswerExecutor;
 import com.aiplatform.foundation.assistantdelivery.application.assistant.testrun.dto.AssistantTestRunTerminalCommit;
 import com.aiplatform.foundation.assistantdelivery.application.assistant.testrun.port.out.AssistantTestRunTerminalCommitter;
@@ -75,10 +76,10 @@ public final class AssistantTestRunService {
                 new AssistantTestRequesterId(command.context().membershipId().value()), toTarget(draft),
                 digest(command.question()), clock.instant());
         var claimed = repository.claim(started, quota);
-        final com.aiplatform.foundation.assistantdelivery.application.answer.dto.AssistantTrustedAnswerResult answer;
+        final com.aiplatform.foundation.assistantdelivery.application.answer.facade.AssistantTrustedAnswerResult answer;
         try {
             answer = executor.execute(
-                    command.context(), AssistantTrustedAnswerTarget.from(draft), command.question());
+                    command.context(), AssistantTrustedAnswerTargets.fromDraft(draft), command.question());
         } catch (AssistantTrustedAnswerExecutionException exception) {
             commit(claimed.fail(clock.instant()), claimed.version(), exception.observation().modelInvocationTrace());
             throw exception;
@@ -86,7 +87,7 @@ public final class AssistantTestRunService {
             commit(claimed.fail(clock.instant()), claimed.version(), null);
             throw exception;
         }
-        if (answer.outcome() == com.aiplatform.foundation.assistantdelivery.application.answer.dto
+        if (answer.outcome() == com.aiplatform.foundation.assistantdelivery.application.answer.facade
                 .AssistantTrustedAnswerResult.Outcome.REFUSED_INSUFFICIENT_EVIDENCE) {
             var refused = claimed.refuse(AssistantTestRefusalReason.INSUFFICIENT_EVIDENCE, clock.instant());
             commit(refused, claimed.version(), null);
@@ -111,7 +112,7 @@ public final class AssistantTestRunService {
     private void commit(
             AssistantTestRun run,
             long expectedVersion,
-            com.aiplatform.foundation.assistantdelivery.application.answer.dto.ModelInvocationTrace trace) {
+            com.aiplatform.foundation.assistantdelivery.application.answer.facade.ModelInvocationTrace trace) {
         terminalCommitter.commit(new AssistantTestRunTerminalCommit(run, expectedVersion, trace));
     }
 

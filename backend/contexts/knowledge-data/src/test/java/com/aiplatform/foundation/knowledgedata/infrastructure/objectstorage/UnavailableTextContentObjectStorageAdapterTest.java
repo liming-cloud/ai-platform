@@ -3,7 +3,7 @@ package com.aiplatform.foundation.knowledgedata.infrastructure.objectstorage;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
-import com.aiplatform.foundation.knowledgedata.application.datasource.exception.ObjectStorageUnavailableException;
+import com.aiplatform.foundation.knowledgedata.application.datasource.port.out.ObjectStorageUnavailableException;
 import com.aiplatform.foundation.knowledgedata.application.port.out.content.StagedTextContent;
 import com.aiplatform.foundation.knowledgedata.application.port.out.content.TextContentStorageRequest;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.model.DataSourceId;

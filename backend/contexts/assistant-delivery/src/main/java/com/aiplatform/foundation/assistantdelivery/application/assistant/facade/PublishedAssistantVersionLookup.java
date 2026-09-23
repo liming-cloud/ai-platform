@@ -1,6 +1,6 @@
 package com.aiplatform.foundation.assistantdelivery.application.assistant.facade;
 
-import com.aiplatform.foundation.assistantdelivery.application.assistant.dto.PublishedAssistantVersionSnapshot;
+import com.aiplatform.foundation.assistantdelivery.application.assistant.facade.PublishedAssistantVersionSnapshot;
 import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
 import java.util.Optional;
 

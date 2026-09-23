@@ -4,7 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.aiplatform.foundation.modelruntime.application.platformsupply.command.DiscoverPlatformProviderModelsCommand;
-import com.aiplatform.foundation.modelruntime.application.platformsupply.dto.PlatformProviderModelDiscoveryRequest;
+import com.aiplatform.foundation.modelruntime.application.extension.facade.request.PlatformProviderModelDiscoveryRequest;
 import com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.PlatformProviderModelDiscoverer;
 import com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.PlatformProviderModelDiscoveryStore;
 import com.aiplatform.foundation.modelruntime.application.provider.exception.ModelCatalogPermissionDeniedException;
@@ -122,9 +122,9 @@ class PlatformProviderModelDiscoveryServiceTest {
         assertEquals("cn-beijing", discoverer.request.region());
         var references = discoverer.request.discoveryCredentials().orElseThrow();
         assertEquals("secret://platform-provider-discovery-access-key/610000000000000002",
-                references.accessKeyId().value());
+                references.accessKeyId());
         assertEquals("secret://platform-provider-discovery-secret-key/610000000000000002",
-                references.secretAccessKey().value());
+                references.secretAccessKey());
     }
 
     private static PlatformProviderConnection verifiedConnection() {
@@ -157,29 +157,29 @@ class PlatformProviderModelDiscoveryServiceTest {
     }
 
     private static final class DeterministicDiscoverer implements PlatformProviderModelDiscoverer {
-        @Override public ProviderKind providerKind() { return ProviderKind.DETERMINISTIC; }
-        @Override public PlatformModelDiscoveryProfile discoveryProfile() {
-            return PlatformModelDiscoveryProfile.DETERMINISTIC_CATALOG;
+        @Override public com.aiplatform.foundation.modelruntime.application.extension.facade.ProviderKind providerKind() { return com.aiplatform.foundation.modelruntime.application.extension.facade.ProviderKind.DETERMINISTIC; }
+        @Override public com.aiplatform.foundation.modelruntime.application.extension.facade.PlatformModelDiscoveryProfile discoveryProfile() {
+            return com.aiplatform.foundation.modelruntime.application.extension.facade.PlatformModelDiscoveryProfile.DETERMINISTIC_CATALOG;
         }
-        @Override public PlatformProviderModelDiscoveryObservation discover(PlatformProviderModelDiscoveryRequest request) {
-            return new PlatformProviderModelDiscoveryObservation(
+        @Override public com.aiplatform.foundation.modelruntime.application.extension.facade.PlatformProviderModelDiscoveryObservation discover(PlatformProviderModelDiscoveryRequest request) {
+            return new com.aiplatform.foundation.modelruntime.application.extension.facade.PlatformProviderModelDiscoveryObservation(
                     true,
                     Set.of(
-                            PlatformDiscoveredModelCandidate.confirmedByProvider(
-                                    "deterministic-chat", ModelType.CHAT, Set.of(ModelCapability.CHAT)),
-                            PlatformDiscoveredModelCandidate.confirmedByProvider(
-                                    "deterministic-embedding", ModelType.EMBEDDING,
-                                    Set.of(ModelCapability.EMBEDDING))),
+                            com.aiplatform.foundation.modelruntime.application.extension.facade.PlatformDiscoveredModelCandidate.confirmedByProvider(
+                                    "deterministic-chat", com.aiplatform.foundation.modelruntime.application.extension.facade.ModelType.CHAT, Set.of(com.aiplatform.foundation.modelruntime.application.extension.facade.ModelCapability.CHAT)),
+                            com.aiplatform.foundation.modelruntime.application.extension.facade.PlatformDiscoveredModelCandidate.confirmedByProvider(
+                                    "deterministic-embedding", com.aiplatform.foundation.modelruntime.application.extension.facade.ModelType.EMBEDDING,
+                                    Set.of(com.aiplatform.foundation.modelruntime.application.extension.facade.ModelCapability.EMBEDDING))),
                     "DETERMINISTIC_DISCOVERY_OK", Duration.ZERO, CLOCK.instant());
         }
     }
 
     private static final class ForbiddenDiscoverer implements PlatformProviderModelDiscoverer {
-        @Override public ProviderKind providerKind() { return ProviderKind.DETERMINISTIC; }
-        @Override public PlatformModelDiscoveryProfile discoveryProfile() {
-            return PlatformModelDiscoveryProfile.DETERMINISTIC_CATALOG;
+        @Override public com.aiplatform.foundation.modelruntime.application.extension.facade.ProviderKind providerKind() { return com.aiplatform.foundation.modelruntime.application.extension.facade.ProviderKind.DETERMINISTIC; }
+        @Override public com.aiplatform.foundation.modelruntime.application.extension.facade.PlatformModelDiscoveryProfile discoveryProfile() {
+            return com.aiplatform.foundation.modelruntime.application.extension.facade.PlatformModelDiscoveryProfile.DETERMINISTIC_CATALOG;
         }
-        @Override public PlatformProviderModelDiscoveryObservation discover(
+        @Override public com.aiplatform.foundation.modelruntime.application.extension.facade.PlatformProviderModelDiscoveryObservation discover(
                 PlatformProviderModelDiscoveryRequest request) {
             throw new AssertionError("旧修订不得调用平台模型发现适配器");
         }
@@ -188,16 +188,16 @@ class PlatformProviderModelDiscoveryServiceTest {
     private static final class CapturingArkDiscoverer implements PlatformProviderModelDiscoverer {
         private PlatformProviderModelDiscoveryRequest request;
 
-        @Override public ProviderKind providerKind() { return ProviderKind.OPENAI_COMPATIBLE; }
-        @Override public PlatformModelDiscoveryProfile discoveryProfile() {
-            return PlatformModelDiscoveryProfile.VOLCENGINE_ARK_CONTROL_PLANE;
+        @Override public com.aiplatform.foundation.modelruntime.application.extension.facade.ProviderKind providerKind() { return com.aiplatform.foundation.modelruntime.application.extension.facade.ProviderKind.OPENAI_COMPATIBLE; }
+        @Override public com.aiplatform.foundation.modelruntime.application.extension.facade.PlatformModelDiscoveryProfile discoveryProfile() {
+            return com.aiplatform.foundation.modelruntime.application.extension.facade.PlatformModelDiscoveryProfile.VOLCENGINE_ARK_CONTROL_PLANE;
         }
-        @Override public PlatformProviderModelDiscoveryObservation discover(
+        @Override public com.aiplatform.foundation.modelruntime.application.extension.facade.PlatformProviderModelDiscoveryObservation discover(
                 PlatformProviderModelDiscoveryRequest request) {
             this.request = request;
-            return new PlatformProviderModelDiscoveryObservation(
+            return new com.aiplatform.foundation.modelruntime.application.extension.facade.PlatformProviderModelDiscoveryObservation(
                     true,
-                    Set.of(PlatformDiscoveredModelCandidate.requiresAdministratorConfirmation(
+                    Set.of(com.aiplatform.foundation.modelruntime.application.extension.facade.PlatformDiscoveredModelCandidate.requiresAdministratorConfirmation(
                             "ep-202608240001")),
                     "VOLCENGINE_ARK_DISCOVERY_OK",
                     Duration.ZERO,

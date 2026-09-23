@@ -76,8 +76,8 @@ public final class PostgresEncryptedPlatformProviderConnectionCredentialStore
     }
 
     @Override
-    public SecretValue resolve(CredentialReference reference) {
-        var slot = slot(reference);
+    public SecretValue resolve(String reference) {
+        var slot = slot(new CredentialReference(reference));
         var encrypted = jdbc.query("""
                 SELECT algorithm, master_key_version, data_key_nonce, encrypted_data_key,
                        ciphertext_nonce, ciphertext

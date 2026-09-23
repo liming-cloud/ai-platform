@@ -1,13 +1,13 @@
 package com.aiplatform.foundation.provider.deterministic;
 
-import com.aiplatform.foundation.modelruntime.application.platformsupply.dto.PlatformProviderModelDiscoveryRequest;
+import com.aiplatform.foundation.modelruntime.application.extension.facade.request.PlatformProviderModelDiscoveryRequest;
 import com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.PlatformProviderModelDiscoverer;
-import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelCapability;
-import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelType;
-import com.aiplatform.foundation.modelruntime.domain.platformsupply.model.discovery.PlatformDiscoveredModelCandidate;
-import com.aiplatform.foundation.modelruntime.domain.platformsupply.model.PlatformModelDiscoveryProfile;
-import com.aiplatform.foundation.modelruntime.domain.platformsupply.model.discovery.PlatformProviderModelDiscoveryObservation;
-import com.aiplatform.foundation.modelruntime.domain.provider.model.ProviderKind;
+import com.aiplatform.foundation.modelruntime.application.extension.facade.ModelCapability;
+import com.aiplatform.foundation.modelruntime.application.extension.facade.ModelType;
+import com.aiplatform.foundation.modelruntime.application.extension.facade.PlatformDiscoveredModelCandidate;
+import com.aiplatform.foundation.modelruntime.application.extension.facade.PlatformModelDiscoveryProfile;
+import com.aiplatform.foundation.modelruntime.application.extension.facade.PlatformProviderModelDiscoveryObservation;
+import com.aiplatform.foundation.modelruntime.application.extension.facade.ProviderKind;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Set;

@@ -5,21 +5,16 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
-import com.aiplatform.foundation.knowledgedata.domain.common.model.CreatorId;
-import com.aiplatform.foundation.knowledgedata.application.datasource.exception.ObjectStorageUnavailableException;
-import com.aiplatform.foundation.knowledgedata.application.datasource.exception.TextContentIntegrityException;
+import com.aiplatform.foundation.knowledgedata.application.datasource.port.out.ObjectStorageUnavailableException;
+import com.aiplatform.foundation.knowledgedata.application.datasource.port.out.TextContentIntegrityException;
 import com.aiplatform.foundation.knowledgedata.application.port.out.content.StagedTextContent;
-import com.aiplatform.foundation.knowledgedata.application.port.out.content.TextContentStorageRequest;
-import com.aiplatform.foundation.knowledgedata.application.datasource.port.out.dataset.StructuredDatasetCsvStorageRequest;
+import com.aiplatform.foundation.knowledgedata.application.port.out.content.TextObjectWriteRequest;
+import com.aiplatform.foundation.knowledgedata.application.port.out.content.TextObjectReference;
+import com.aiplatform.foundation.knowledgedata.application.datasource.port.out.dataset.CsvObjectWriteRequest;
+import com.aiplatform.foundation.knowledgedata.application.datasource.port.out.dataset.CsvObjectReference;
+import com.aiplatform.foundation.knowledgedata.application.datasource.port.out.PlatformObjectReadRequest;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.model.DataSourceId;
-import com.aiplatform.foundation.knowledgedata.domain.datasource.model.GovernedDataSourceType;
 import com.aiplatform.foundation.knowledgedata.domain.knowledge.model.KnowledgeSpaceId;
-import com.aiplatform.foundation.knowledgedata.domain.datasource.model.TextContentReference;
-import com.aiplatform.foundation.knowledgedata.domain.datasource.revision.ObjectStorageObjectCollection;
-import com.aiplatform.foundation.knowledgedata.domain.datasource.revision.PlatformObjectRangeId;
-import com.aiplatform.foundation.knowledgedata.domain.datasource.revision.PlatformObjectReference;
-import com.aiplatform.foundation.knowledgedata.domain.datasource.revision.SourceRevision;
-import com.aiplatform.foundation.knowledgedata.domain.datasource.revision.StructuredDatasetCsvReference;
 import io.minio.GetObjectArgs;
 import io.minio.MinioClient;
 import io.minio.PutObjectArgs;
@@ -108,7 +103,7 @@ class MinioTextContentObjectStorageAdapterTest {
                 first.objectKey());
         assertEquals(sha256, first.sha256());
         assertEquals(bytes.length, first.byteSize());
-        assertEquals(TextContentReference.UTF8_TEXT, first.mediaType());
+        assertEquals(TextObjectReference.UTF8_TEXT, first.mediaType());
 
         var metadata = adapter.metadata(first);
         assertEquals(first.objectKey(), metadata.objectKey());
@@ -151,19 +146,19 @@ class MinioTextContentObjectStorageAdapterTest {
     @Test
     void 缺少受治理摘要的对象不能生成可信元数据() {
         var objectKey = "foundation-v1/invalid/content.txt";
-        var reference = new TextContentReference(
+        var reference = new TextObjectReference(
                 1,
                 objectKey,
                 "a".repeat(64),
                 1,
-                TextContentReference.UTF8_TEXT,
+                TextObjectReference.UTF8_TEXT,
                 CREATED_AT);
         try {
             client.putObject(PutObjectArgs.builder()
                     .bucket(BUCKET)
                     .object(objectKey)
                     .stream(new ByteArrayInputStream(new byte[] {'a'}), 1, -1)
-                    .contentType(TextContentReference.UTF8_TEXT)
+                    .contentType(TextObjectReference.UTF8_TEXT)
                     .build());
 
             assertThrows(
@@ -195,7 +190,7 @@ class MinioTextContentObjectStorageAdapterTest {
                 .bucket(BUCKET)
                 .object(reference.objectKey())
                 .build());
-        assertEquals(StructuredDatasetCsvReference.UTF8_CSV, stat.contentType());
+        assertEquals(CsvObjectReference.UTF8_CSV, stat.contentType());
         assertEquals(request.content().sha256(), stat.userMetadata().get("sha256"));
         try (var stored = structuredDatasetAdapter.read(reference)) {
             assertArrayEquals(bytes, stored.readAllBytes());
@@ -217,19 +212,11 @@ class MinioTextContentObjectStorageAdapterTest {
     }
 
     @Test
-    void 平台对象读取只接受冻结成员并在流读取完成时校验摘要() throws Exception {
+    void 平台对象读取在流读取完成时校验摘要() throws Exception {
         var bytes = "对象存储的受治理正文\n".getBytes(StandardCharsets.UTF_8);
-        var object = new PlatformObjectReference(
-                "obj_ObjectStorage001",
-                sha256(bytes),
-                bytes.length,
-                TextContentReference.UTF8_TEXT,
-                CREATED_AT);
-        var collection = new ObjectStorageObjectCollection(
-                new PlatformObjectRangeId("rng_ObjectStorage001"),
-                1,
-                java.util.List.of(object));
-        var revision = objectStorageRevision(collection);
+        var object = new PlatformObjectReadRequest(
+                TENANT_ID.value(), SPACE_ID.value(), "rng_ObjectStorage001", 1,
+                "obj_ObjectStorage001", sha256(bytes), bytes.length, TextObjectReference.UTF8_TEXT);
         var objectKey = "platform-internal/object-storage/content-001.txt";
         var reader = new MinioPlatformObjectContentReaderAdapter(
                 client,
@@ -237,41 +224,34 @@ class MinioTextContentObjectStorageAdapterTest {
                 java.util.List.of(new PlatformObjectLocation(
                         TENANT_ID.value(),
                         SPACE_ID.value(),
-                        collection.rangeId().value(),
-                        collection.selectionRevision(),
+                        object.rangeId(),
+                        object.selectionRevision(),
                         object.objectId(),
                         objectKey)));
         client.putObject(PutObjectArgs.builder()
                 .bucket(BUCKET)
                 .object(objectKey)
                 .stream(new ByteArrayInputStream(bytes), bytes.length, -1)
-                .contentType(TextContentReference.UTF8_TEXT)
+                .contentType(TextObjectReference.UTF8_TEXT)
                 .build());
 
-        try (var content = reader.open(revision, object)) {
+        try (var content = reader.open(object)) {
             assertArrayEquals(bytes, content.readAllBytes());
         }
 
-        var changedObject = new PlatformObjectReference(
-                object.objectId(),
-                "a".repeat(64),
-                object.byteSize(),
-                object.mediaType(),
-                object.freshAt());
-        var changedRevision = objectStorageRevision(new ObjectStorageObjectCollection(
-                collection.rangeId(),
-                collection.selectionRevision(),
-                java.util.List.of(changedObject)));
-        try (var content = reader.open(changedRevision, changedObject)) {
+        var changedObject = new PlatformObjectReadRequest(
+                object.tenantId(), object.knowledgeSpaceId(), object.rangeId(), object.selectionRevision(),
+                object.objectId(), "a".repeat(64), object.byteSize(), object.mediaType());
+        try (var content = reader.open(changedObject)) {
             assertThrows(TextContentIntegrityException.class, content::readAllBytes);
         }
     }
 
-    private static TextContentStorageRequest request(byte[] bytes, String sha256) {
-        return new TextContentStorageRequest(
-                TENANT_ID,
-                SPACE_ID,
-                SOURCE_ID,
+    private static TextObjectWriteRequest request(byte[] bytes, String sha256) {
+        return new TextObjectWriteRequest(
+                TENANT_ID.value(),
+                SPACE_ID.value(),
+                SOURCE_ID.value(),
                 1,
                 new StagedTextContent() {
                     @Override
@@ -297,28 +277,13 @@ class MinioTextContentObjectStorageAdapterTest {
                 CREATED_AT);
     }
 
-    private static StructuredDatasetCsvStorageRequest structuredDatasetRequest(byte[] bytes, String sha256) {
-        return new StructuredDatasetCsvStorageRequest(
-                TENANT_ID,
-                SPACE_ID,
-                SOURCE_ID,
+    private static CsvObjectWriteRequest structuredDatasetRequest(byte[] bytes, String sha256) {
+        return new CsvObjectWriteRequest(
+                TENANT_ID.value(),
+                SPACE_ID.value(),
+                SOURCE_ID.value(),
                 1,
                 stagedContent(bytes, sha256),
-                CREATED_AT);
-    }
-
-    private static SourceRevision objectStorageRevision(ObjectStorageObjectCollection collection) {
-        return SourceRevision.restore(
-                TENANT_ID,
-                SPACE_ID,
-                SOURCE_ID,
-                1,
-                GovernedDataSourceType.OBJECT_STORAGE,
-                collection.definitionDigest(),
-                null,
-                collection,
-                null,
-                new CreatorId(100000000000000001L),
                 CREATED_AT);
     }
 

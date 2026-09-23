@@ -32,8 +32,8 @@ import com.aiplatform.foundation.assistantdelivery.domain.assistant.model.Govern
 import com.aiplatform.foundation.knowledgedata.application.indexversion.facade.ActiveIndexLookup;
 import com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator;
 import com.aiplatform.foundation.modelruntime.application.configuration.facade.UsableModelConfigurationLookup;
-import com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelConfigurationId;
-import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelType;
+import com.aiplatform.foundation.modelruntime.application.configuration.facade.ModelConfigurationId;
+import com.aiplatform.foundation.modelruntime.application.configuration.facade.ModelType;
 import com.aiplatform.foundation.security.identity.PermissionCode;
 import com.aiplatform.foundation.security.identity.TrustedRequestContext;
 import com.aiplatform.foundation.shared.contract.paging.PageResult;
@@ -371,7 +371,7 @@ public final class AssistantService {
     }
 
     private static GovernedChatModelBinding governedChat(
-            com.aiplatform.foundation.modelruntime.application.configuration.dto.UsableModelConfigurationSnapshot snapshot) {
+            com.aiplatform.foundation.modelruntime.application.configuration.facade.UsableModelConfigurationSnapshot snapshot) {
         snapshot.capabilities().requireFor(ModelType.CHAT);
         return new GovernedChatModelBinding(
                 snapshot.configurationId().value(), snapshot.configurationRevision(),
@@ -387,7 +387,7 @@ public final class AssistantService {
     }
 
     private static GovernedEmbeddingModelBinding governedEmbedding(
-            com.aiplatform.foundation.modelruntime.application.configuration.dto.UsableModelConfigurationSnapshot snapshot) {
+            com.aiplatform.foundation.modelruntime.application.configuration.facade.UsableModelConfigurationSnapshot snapshot) {
         snapshot.capabilities().requireFor(ModelType.EMBEDDING);
         return new GovernedEmbeddingModelBinding(
                 snapshot.configurationId().value(), snapshot.configurationRevision(),
@@ -396,7 +396,7 @@ public final class AssistantService {
     }
 
     private static boolean matches(
-            com.aiplatform.foundation.knowledgedata.domain.indexversion.model.EmbeddingConfiguration index,
+            com.aiplatform.foundation.knowledgedata.application.indexversion.facade.EmbeddingConfiguration index,
             GovernedEmbeddingModelBinding embedding) {
         return index.configurationId() == embedding.configurationId()
                 && index.configurationRevision() == embedding.configurationRevision()

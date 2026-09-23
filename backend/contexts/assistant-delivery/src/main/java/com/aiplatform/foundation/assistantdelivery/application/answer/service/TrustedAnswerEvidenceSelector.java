@@ -1,6 +1,6 @@
 package com.aiplatform.foundation.assistantdelivery.application.answer.service;
 
-import com.aiplatform.foundation.knowledgedata.application.indexversion.port.out.vector.IndexCandidate;
+import com.aiplatform.foundation.knowledgedata.application.indexversion.facade.IndexCandidate;
 import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.Comparator;

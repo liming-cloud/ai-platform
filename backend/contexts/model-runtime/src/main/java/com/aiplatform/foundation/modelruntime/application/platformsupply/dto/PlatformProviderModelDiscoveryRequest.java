@@ -54,4 +54,14 @@ public record PlatformProviderModelDiscoveryRequest(
         this(providerKind, PlatformModelDiscoveryProfile.legacyDefault(providerKind), endpoint,
                 "global", credentialReference, Optional.empty(), timeout);
     }
+
+    /** 返回扩展契约供应商类型。 */
+    public com.aiplatform.foundation.modelruntime.application.extension.facade.ProviderKind providerKindContract() {
+        return com.aiplatform.foundation.modelruntime.application.extension.facade.ProviderKind.valueOf(providerKind.name());
+    }
+
+    /** 返回扩展契约发现协议。 */
+    public com.aiplatform.foundation.modelruntime.application.extension.facade.PlatformModelDiscoveryProfile discoveryProfileContract() {
+        return com.aiplatform.foundation.modelruntime.application.extension.facade.PlatformModelDiscoveryProfile.valueOf(discoveryProfile.name());
+    }
 }

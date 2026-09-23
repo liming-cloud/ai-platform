@@ -46,4 +46,17 @@ public record ProviderProbeRequest(
             throw new IllegalArgumentException("探测超时必须大于零");
         }
     }
+
+    /** 返回扩展契约能力集合，隐藏内部领域枚举。 */
+    public Set<com.aiplatform.foundation.modelruntime.application.extension.facade.ModelCapability> requestedCapabilitiesContract() {
+        return requestedCapabilities.stream()
+                .map(value -> com.aiplatform.foundation.modelruntime.application.extension.facade.ModelCapability.valueOf(value.name()))
+                .collect(java.util.stream.Collectors.toUnmodifiableSet());
+    }
+
+    /** 返回扩展契约供应商类型。 */
+    public com.aiplatform.foundation.modelruntime.application.extension.facade.ProviderKind providerKindContract() {
+        return com.aiplatform.foundation.modelruntime.application.extension.facade.ProviderKind.valueOf(providerKind.name());
+    }
+
 }

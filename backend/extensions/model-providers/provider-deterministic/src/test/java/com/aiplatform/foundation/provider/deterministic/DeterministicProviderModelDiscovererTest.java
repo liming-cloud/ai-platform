@@ -4,10 +4,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.aiplatform.foundation.modelruntime.application.provider.dto.ProviderModelDiscoveryRequest;
-import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelType;
-import com.aiplatform.foundation.modelruntime.domain.provider.model.CredentialReference;
-import com.aiplatform.foundation.modelruntime.domain.provider.model.ProviderKind;
+import com.aiplatform.foundation.modelruntime.application.extension.facade.request.ProviderModelDiscoveryRequest;
+import com.aiplatform.foundation.modelruntime.application.extension.facade.ModelType;
+import com.aiplatform.foundation.modelruntime.application.extension.facade.ProviderKind;
 import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
 import java.net.URI;
 import java.time.Duration;
@@ -46,7 +45,7 @@ class DeterministicProviderModelDiscovererTest {
                 new TenantId(100000000000000001L),
                 ProviderKind.DETERMINISTIC,
                 URI.create(endpoint),
-                new CredentialReference("secret://local/demo"),
+                "secret://local/demo",
                 Duration.ofSeconds(2));
     }
 }

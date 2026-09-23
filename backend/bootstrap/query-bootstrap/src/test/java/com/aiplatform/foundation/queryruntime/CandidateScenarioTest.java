@@ -8,8 +8,8 @@ import com.aiplatform.foundation.knowledgedata.application.indexversion.facade.A
 import com.aiplatform.foundation.knowledgedata.application.knowledge.facade.KnowledgeSpaceLookup;
 import com.aiplatform.foundation.knowledgedata.application.indexversion.port.out.vector.IndexVector;
 import com.aiplatform.foundation.knowledgedata.application.indexversion.port.out.vector.IndexVectorBatch;
-import com.aiplatform.foundation.knowledgedata.application.indexversion.dto.ActiveIndexSnapshot;
-import com.aiplatform.foundation.knowledgedata.domain.indexversion.model.EmbeddingConfiguration;
+import com.aiplatform.foundation.knowledgedata.application.indexversion.facade.ActiveIndexSnapshot;
+import com.aiplatform.foundation.knowledgedata.application.indexversion.facade.EmbeddingConfiguration;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.ChatModelPort;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.EmbeddingModelPort;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.ModelRuntimeResolver;

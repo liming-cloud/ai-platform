@@ -2,12 +2,13 @@
 
 > 由 make decisions-sync 生成；状态只编辑任务 README。
 
-产品前沿：WP-0017；当前执行：GOV-0002；里程碑：M6。
+产品前沿：WP-0017；当前执行：GOV-0003；里程碑：M6。
 
 | 任务 | 状态 | 负责人 | 恢复入口 |
 | --- | --- | --- | --- |
 | GOV-0001 | done | 文档与治理工具 | [GOV-0001](GOV-0001/README.md) |
 | GOV-0002 | done | 仓库迁移与治理 | [GOV-0002](GOV-0002/README.md) |
+| GOV-0003 | active | 后端架构治理 | [GOV-0003](GOV-0003/README.md) |
 | WP-0001 | done | 产品 | Git 历史：`project/work-packages/WP-0001.md` |
 | WP-0002 | done | 后端 | Git 历史：`project/work-packages/WP-0002.md` |
 | WP-0003 | done | 后端 | Git 历史：`project/work-packages/WP-0003.md` |

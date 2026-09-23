@@ -1,9 +1,8 @@
 package com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.common;
 
-import com.aiplatform.foundation.modelruntime.domain.provider.model.ProviderKind;
-import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelType;
+import com.aiplatform.foundation.modelruntime.application.extension.facade.ProviderKind;
+import com.aiplatform.foundation.modelruntime.application.extension.facade.ModelType;
 import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
-import com.aiplatform.foundation.modelruntime.domain.provider.model.CredentialReference;
 import java.net.URI;
 import java.util.Objects;
 
@@ -16,7 +15,7 @@ public record ModelRuntimeSpecification(
         long providerRevision,
         ProviderKind providerKind,
         URI endpoint,
-        CredentialReference credentialReference,
+        String credentialReference,
         long deploymentId,
         long deploymentRevision,
         String modelCode,
@@ -30,6 +29,11 @@ public record ModelRuntimeSpecification(
         Objects.requireNonNull(providerKind, "供应商类型不能为空");
         Objects.requireNonNull(endpoint, "供应商端点不能为空");
         Objects.requireNonNull(credentialReference, "密钥引用不能为空");
+        if (credentialReference.isBlank()
+                || !credentialReference.equals(credentialReference.trim())
+                || credentialReference.length() > 512) {
+            throw new IllegalArgumentException("密钥引用格式不正确");
+        }
         Objects.requireNonNull(modelCode, "模型代码不能为空");
         Objects.requireNonNull(modelType, "模型类型不能为空");
         if (providerConnectionId <= 0
@@ -52,4 +56,5 @@ public record ModelRuntimeSpecification(
             throw new IllegalArgumentException("嵌入运行时必须声明向量维度");
         }
     }
+
 }

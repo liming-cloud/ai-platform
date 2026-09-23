@@ -4,8 +4,8 @@ import com.aiplatform.foundation.modelruntime.application.runtime.port.out.ChatM
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.ChatModelPort;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.chat.ChatDeploymentRef;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.common.ModelRuntimeSpecification;
-import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelType;
-import com.aiplatform.foundation.modelruntime.domain.provider.model.ProviderKind;
+import com.aiplatform.foundation.modelruntime.application.extension.facade.ModelType;
+import com.aiplatform.foundation.modelruntime.application.extension.facade.ProviderKind;
 import java.util.Objects;
 
 /**

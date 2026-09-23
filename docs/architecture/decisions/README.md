@@ -87,3 +87,4 @@
 | ADR-0079 | 已接受 | M6 原型承接、顺排实施与真实会员验收 | `docs/architecture/decisions/ADR-0079-m6-sequential-delivery-and-prototype-acceptance.md` |
 | ADR-0080 | 已接受 | 租户与初始管理员原子开户 | `docs/architecture/decisions/ADR-0080-atomic-tenant-onboarding.md` |
 | ADR-0081 | 已接受 | 统一文档控制面与可验证历史退役 | `docs/architecture/decisions/ADR-0081-document-control-plane-and-history-retirement.md` |
+| ADR-0082 | 已接受。依据用户明确要求执行《后端上下文依赖边界整改计划》；仅决定本次编译边界，不改变产品范围和里程碑结论 | 后端上下文与扩展的编译依赖边界 | `docs/architecture/decisions/ADR-0082-backend-context-dependency-boundary.md` |

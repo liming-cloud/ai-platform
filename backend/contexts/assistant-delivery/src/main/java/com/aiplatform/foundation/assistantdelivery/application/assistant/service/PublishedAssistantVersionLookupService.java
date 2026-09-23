@@ -1,7 +1,12 @@
 package com.aiplatform.foundation.assistantdelivery.application.assistant.service;
 
 import com.aiplatform.foundation.assistantdelivery.application.assistant.facade.PublishedAssistantVersionLookup;
-import com.aiplatform.foundation.assistantdelivery.application.assistant.dto.PublishedAssistantVersionSnapshot;
+import com.aiplatform.foundation.assistantdelivery.application.assistant.facade.PublishedAssistantVersionSnapshot;
+import com.aiplatform.foundation.assistantdelivery.application.assistant.facade.CitationPolicy;
+import com.aiplatform.foundation.assistantdelivery.application.assistant.facade.GovernedChatModelBinding;
+import com.aiplatform.foundation.assistantdelivery.application.assistant.facade.GovernedChatModelRoute;
+import com.aiplatform.foundation.assistantdelivery.application.assistant.facade.GovernedEmbeddingModelBinding;
+import com.aiplatform.foundation.assistantdelivery.application.assistant.facade.RefusalPolicy;
 import com.aiplatform.foundation.assistantdelivery.domain.assistant.repository.AssistantRepository;
 import com.aiplatform.foundation.assistantdelivery.domain.assistant.model.AssistantVersionId;
 import com.aiplatform.foundation.assistantdelivery.domain.assistant.model.AssistantVersionStatus;
@@ -40,14 +45,14 @@ public final class PublishedAssistantVersionLookupService
                                 version.knowledgeSpaceId(),
                                 version.indexVersionId(),
                                 version.indexVersionRevision(),
-                                version.governedChatRoute(),
-                                version.governedEmbedding(),
+                                chatRoute(version.governedChatRoute()),
+                                embedding(version.governedEmbedding()),
                                 version.systemInstruction(),
                                 version.maxOutputTokens(),
                                 version.retrievalLimit(),
                                 version.minimumScore(),
-                                version.citationPolicy(),
-                                version.refusalPolicy())
+                                CitationPolicy.valueOf(version.citationPolicy().name()),
+                                RefusalPolicy.valueOf(version.refusalPolicy().name()))
                         : new PublishedAssistantVersionSnapshot(
                                 version.id().value(),
                                 version.assistantId().value(),
@@ -64,7 +69,22 @@ public final class PublishedAssistantVersionLookupService
                                 version.maxOutputTokens(),
                                 version.retrievalLimit(),
                                 version.minimumScore(),
-                                version.citationPolicy(),
-                                version.refusalPolicy()));
+                                CitationPolicy.valueOf(version.citationPolicy().name()),
+                                RefusalPolicy.valueOf(version.refusalPolicy().name())));
+    }
+
+    private static GovernedChatModelRoute chatRoute(
+            com.aiplatform.foundation.assistantdelivery.domain.assistant.model.GovernedChatModelRoute route) {
+        return new GovernedChatModelRoute(route.candidates().stream()
+                .map(value -> new GovernedChatModelBinding(value.configurationId(),
+                        value.configurationRevision(), value.catalogEntryId(),
+                        value.catalogEntryRevision(), value.outputLimit()))
+                .toList());
+    }
+
+    private static GovernedEmbeddingModelBinding embedding(
+            com.aiplatform.foundation.assistantdelivery.domain.assistant.model.GovernedEmbeddingModelBinding value) {
+        return new GovernedEmbeddingModelBinding(value.configurationId(), value.configurationRevision(),
+                value.catalogEntryId(), value.catalogEntryRevision(), value.dimension());
     }
 }

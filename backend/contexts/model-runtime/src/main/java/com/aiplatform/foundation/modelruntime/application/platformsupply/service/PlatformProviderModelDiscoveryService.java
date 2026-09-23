@@ -3,6 +3,7 @@ package com.aiplatform.foundation.modelruntime.application.platformsupply.servic
 import com.aiplatform.foundation.modelruntime.application.platformsupply.command.DiscoverPlatformProviderModelsCommand;
 import com.aiplatform.foundation.modelruntime.application.platformsupply.dto.DiscoverPlatformProviderModelsResult;
 import com.aiplatform.foundation.modelruntime.application.platformsupply.dto.PlatformProviderModelDiscoveryRequest;
+import com.aiplatform.foundation.modelruntime.application.extension.service.ExtensionContractMapper;
 import com.aiplatform.foundation.modelruntime.application.platformsupply.dto.PlatformProviderDiscoveryCredentialReferences;
 import com.aiplatform.foundation.modelruntime.domain.provider.model.CredentialReference;
 import com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.PlatformProviderModelDiscoverer;
@@ -76,9 +77,9 @@ public final class PlatformProviderModelDiscoveryService {
         var discoverer = discoverers.get(new DiscovererKey(connection.providerKind(), discoveryProfile));
         var observation = discoverer == null
                 ? unsupportedObservation()
-                : discoveredAtNow(discoverer.discover(new PlatformProviderModelDiscoveryRequest(
+                : discoveredAtNow(ExtensionContractMapper.domainPlatformDiscovery(discoverer.discover(ExtensionContractMapper.platformDiscovery(new PlatformProviderModelDiscoveryRequest(
                         connection.providerKind(), discoveryProfile, connection.endpoint(), connection.region(),
-                        connection.credentialReference(), discoveryCredentials(connection), command.timeout())));
+                        connection.credentialReference(), discoveryCredentials(connection), command.timeout())))));
         var discoveredConnection = connection;
         if (connection.status() != ProviderConnectionStatus.VERIFIED) {
             discoveredConnection = observation.succeeded()
@@ -143,7 +144,9 @@ public final class PlatformProviderModelDiscoveryService {
             List<PlatformProviderModelDiscoverer> values) {
         var indexed = new HashMap<DiscovererKey, PlatformProviderModelDiscoverer>();
         for (var value : Objects.requireNonNull(values, "平台模型发现扩展不能为空")) {
-            var key = new DiscovererKey(value.providerKind(), value.discoveryProfile());
+            var key = new DiscovererKey(
+                    ProviderKind.valueOf(value.providerKind().name()),
+                    PlatformModelDiscoveryProfile.valueOf(value.discoveryProfile().name()));
             if (indexed.putIfAbsent(key, value) != null) {
                 throw new IllegalArgumentException("供应商协议与发现配置只能装配一个平台模型发现扩展");
             }

@@ -1,7 +1,7 @@
 package com.aiplatform.foundation.modelruntime.application.runtime;
 
-import com.aiplatform.foundation.modelruntime.application.configuration.dto.UsableModelConfigurationSnapshot;
-import com.aiplatform.foundation.modelruntime.application.configuration.dto.ModelConfigurationUsageContext;
+import com.aiplatform.foundation.modelruntime.application.configuration.facade.UsableModelConfigurationSnapshot;
+import com.aiplatform.foundation.modelruntime.application.configuration.facade.ModelConfigurationUsageContext;
 import com.aiplatform.foundation.modelruntime.application.configuration.facade.UsableModelConfigurationLookup;
 import com.aiplatform.foundation.modelruntime.application.configuration.port.out.ModelConfigurationCredentialUser;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.common.ModelRuntimeSpecification;
@@ -93,7 +93,7 @@ public final class ModelConfigurationRuntimeService
         var current = configurations.find(
                         context,
                         expected.configurationId(),
-                        ModelType.CHAT)
+                        com.aiplatform.foundation.modelruntime.application.configuration.facade.ModelType.CHAT)
                 .filter(expected::equals)
                 .orElseThrow(() -> unavailable("模型配置不可用或冻结快照已变化"));
         return invokeChat(context.tenantId(), current, request);
@@ -114,7 +114,7 @@ public final class ModelConfigurationRuntimeService
         var current = configurations.find(
                         context,
                         expected.configurationId(),
-                        ModelType.EMBEDDING)
+                        com.aiplatform.foundation.modelruntime.application.configuration.facade.ModelType.EMBEDDING)
                 .filter(expected::equals)
                 .orElseThrow(() -> unavailable("模型配置不可用或冻结快照已变化"));
         return invoke(context.tenantId(), current, request);
@@ -132,7 +132,7 @@ public final class ModelConfigurationRuntimeService
         var current = configurations.find(
                         context,
                         expected.configurationId(),
-                        ModelType.EMBEDDING)
+                        com.aiplatform.foundation.modelruntime.application.configuration.facade.ModelType.EMBEDDING)
                 .filter(expected::equals)
                 .orElseThrow(() -> unavailable("模型配置不可用或冻结快照已变化"));
         return invoke(context.tenantId(), current, request);
@@ -142,7 +142,8 @@ public final class ModelConfigurationRuntimeService
             TenantId tenantId,
             UsableModelConfigurationSnapshot current,
             EmbeddingRequest request) {
-        var entry = catalog.findCatalogEntry(current.catalogEntryId())
+        var entry = catalog.findCatalogEntry(new com.aiplatform.foundation.modelruntime.domain.configuration.model.ControlledModelCatalogEntryId(
+                        current.catalogEntryId().value()))
                 .filter(value -> value.status() == ControlledModelCatalogEntryStatus.PUBLISHED)
                 .filter(value -> value.version() == current.catalogEntryRevision())
                 .filter(value -> value.modelType() == ModelType.EMBEDDING)
@@ -156,18 +157,20 @@ public final class ModelConfigurationRuntimeService
                 tenantId,
                 current.catalogEntryId().value(),
                 current.catalogEntryRevision(),
-                entry.providerKind(),
+                com.aiplatform.foundation.modelruntime.application.extension.facade.ProviderKind.valueOf(
+                        entry.providerKind().name()),
                 entry.endpoint(),
-                new CredentialReference("secret://governed-model-configuration/" + current.configurationId().value()),
+                new CredentialReference("secret://governed-model-configuration/" + current.configurationId().value()).value(),
                 current.configurationId().value(),
                 current.configurationRevision(),
                 entry.modelCode(),
-                ModelType.EMBEDDING,
+                com.aiplatform.foundation.modelruntime.application.extension.facade.ModelType.EMBEDDING,
                 current.capabilities().contextWindow(),
                 null,
                 current.capabilities().embeddingDimension());
         return credentials.useCredential(
-                current.configurationId(),
+                new com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelConfigurationId(
+                        current.configurationId().value()),
                 secret -> factory.create(specification, secret).embed(request));
     }
 
@@ -175,7 +178,8 @@ public final class ModelConfigurationRuntimeService
             TenantId tenantId,
             UsableModelConfigurationSnapshot current,
             ChatRequest request) {
-        var entry = catalog.findCatalogEntry(current.catalogEntryId())
+        var entry = catalog.findCatalogEntry(new com.aiplatform.foundation.modelruntime.domain.configuration.model.ControlledModelCatalogEntryId(
+                        current.catalogEntryId().value()))
                 .filter(value -> value.status() == ControlledModelCatalogEntryStatus.PUBLISHED)
                 .filter(value -> value.version() == current.catalogEntryRevision())
                 .filter(value -> value.modelType() == ModelType.CHAT)
@@ -189,25 +193,27 @@ public final class ModelConfigurationRuntimeService
                 tenantId,
                 current.catalogEntryId().value(),
                 current.catalogEntryRevision(),
-                entry.providerKind(),
+                com.aiplatform.foundation.modelruntime.application.extension.facade.ProviderKind.valueOf(
+                        entry.providerKind().name()),
                 entry.endpoint(),
-                new CredentialReference("secret://governed-model-configuration/" + current.configurationId().value()),
+                new CredentialReference("secret://governed-model-configuration/" + current.configurationId().value()).value(),
                 current.configurationId().value(),
                 current.configurationRevision(),
                 entry.modelCode(),
-                ModelType.CHAT,
+                com.aiplatform.foundation.modelruntime.application.extension.facade.ModelType.CHAT,
                 current.capabilities().contextWindow(),
                 current.capabilities().outputLimit(),
                 null);
         return credentials.useCredential(
-                current.configurationId(),
+                new com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelConfigurationId(
+                        current.configurationId().value()),
                 secret -> factory.create(specification, secret).chat(request));
     }
 
     private static void requireEmbeddingRequest(
             UsableModelConfigurationSnapshot expected,
             EmbeddingRequest request) {
-        if (expected.modelType() != ModelType.EMBEDDING
+        if (expected.modelType() != com.aiplatform.foundation.modelruntime.application.configuration.facade.ModelType.EMBEDDING
                 || request.deployment().deploymentId() != expected.configurationId().value()
                 || request.deployment().revision() != expected.configurationRevision()
                 || request.deployment().dimension()
@@ -219,7 +225,7 @@ public final class ModelConfigurationRuntimeService
     private static void requireChatRequest(
             UsableModelConfigurationSnapshot expected,
             ChatRequest request) {
-        if (expected.modelType() != ModelType.CHAT
+        if (expected.modelType() != com.aiplatform.foundation.modelruntime.application.configuration.facade.ModelType.CHAT
                 || request.deployment().deploymentId() != expected.configurationId().value()
                 || request.deployment().revision() != expected.configurationRevision()
                 || request.maxOutputTokens() < 1
@@ -234,7 +240,7 @@ public final class ModelConfigurationRuntimeService
         var indexed = new EnumMap<ProviderKind, EmbeddingModelFactory>(ProviderKind.class);
         for (var factory : factories) {
             Objects.requireNonNull(factory, "嵌入模型工厂列表不能包含空值");
-            if (indexed.put(factory.providerKind(), factory) != null) {
+            if (indexed.put(ProviderKind.valueOf(factory.providerKind().name()), factory) != null) {
                 throw new IllegalArgumentException("同一供应商不能注册多个嵌入模型工厂");
             }
         }
@@ -247,7 +253,7 @@ public final class ModelConfigurationRuntimeService
         var indexed = new EnumMap<ProviderKind, ChatModelFactory>(ProviderKind.class);
         for (var factory : factories) {
             Objects.requireNonNull(factory, "对话模型工厂列表不能包含空值");
-            if (indexed.put(factory.providerKind(), factory) != null) {
+            if (indexed.put(ProviderKind.valueOf(factory.providerKind().name()), factory) != null) {
                 throw new IllegalArgumentException("同一供应商不能注册多个对话模型工厂");
             }
         }

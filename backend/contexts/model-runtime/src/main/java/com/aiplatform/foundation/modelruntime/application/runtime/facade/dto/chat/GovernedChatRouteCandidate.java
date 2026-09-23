@@ -1,7 +1,7 @@
 package com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.chat;
 
-import com.aiplatform.foundation.modelruntime.application.configuration.dto.UsableModelConfigurationSnapshot;
-import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelType;
+import com.aiplatform.foundation.modelruntime.application.configuration.facade.UsableModelConfigurationSnapshot;
+import com.aiplatform.foundation.modelruntime.application.configuration.facade.ModelType;
 import java.util.Objects;
 
 /**

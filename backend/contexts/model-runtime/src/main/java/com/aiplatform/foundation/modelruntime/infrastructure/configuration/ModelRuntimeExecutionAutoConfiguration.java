@@ -2,6 +2,7 @@ package com.aiplatform.foundation.modelruntime.infrastructure.configuration;
 
 import com.aiplatform.foundation.modelruntime.application.runtime.DefaultModelRuntimeResolver;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.ModelRuntimeResolver;
+import com.aiplatform.foundation.modelruntime.application.runtime.facade.ModelRuntimeCallSettings;
 import com.aiplatform.foundation.modelruntime.application.runtime.port.out.ChatModelFactory;
 import com.aiplatform.foundation.modelruntime.application.runtime.port.out.EmbeddingModelFactory;
 import com.aiplatform.foundation.modelruntime.domain.deployment.repository.ModelDeploymentRepository;
@@ -30,6 +31,12 @@ import org.springframework.context.annotation.Bean;
         havingValue = "true")
 @EnableConfigurationProperties(ModelRuntimeProperties.class)
 public class ModelRuntimeExecutionAutoConfiguration {
+
+    @Bean
+    @ConditionalOnMissingBean
+    ModelRuntimeCallSettings modelRuntimeCallSettings(ModelRuntimeProperties properties) {
+        return new ModelRuntimeCallSettings(properties.getCallTimeout());
+    }
 
     @Bean
     @ConditionalOnMissingBean

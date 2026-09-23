@@ -3,6 +3,7 @@ package com.aiplatform.foundation.modelruntime.application.provider.service;
 import com.aiplatform.foundation.modelruntime.application.provider.command.DiscoverProviderModelsCommand;
 import com.aiplatform.foundation.modelruntime.application.provider.dto.DiscoverProviderModelsResult;
 import com.aiplatform.foundation.modelruntime.application.provider.dto.ProviderModelDiscoveryRequest;
+import com.aiplatform.foundation.modelruntime.application.extension.service.ExtensionContractMapper;
 import com.aiplatform.foundation.modelruntime.application.provider.exception.ModelCatalogPermissionDeniedException;
 import com.aiplatform.foundation.modelruntime.application.provider.exception.ProviderConnectionConcurrentModificationException;
 import com.aiplatform.foundation.modelruntime.application.provider.exception.ProviderConnectionNotFoundException;
@@ -10,6 +11,7 @@ import com.aiplatform.foundation.modelruntime.application.provider.port.out.Prov
 import com.aiplatform.foundation.modelruntime.application.provider.port.out.ProviderModelDiscoveryStore;
 import com.aiplatform.foundation.modelruntime.domain.provider.model.ProviderConnectionId;
 import com.aiplatform.foundation.modelruntime.domain.provider.model.ProviderConnectionStatus;
+import com.aiplatform.foundation.modelruntime.domain.provider.model.ProviderKind;
 import com.aiplatform.foundation.modelruntime.domain.provider.model.ProviderModelDiscovery;
 import com.aiplatform.foundation.modelruntime.domain.provider.model.ProviderModelDiscoveryId;
 import com.aiplatform.foundation.modelruntime.domain.provider.model.ProviderModelDiscoveryObservation;
@@ -75,12 +77,12 @@ public final class ProviderModelDiscoveryService {
         var observation = discoverer == null
                 ? new ProviderModelDiscoveryObservation(
                         false, java.util.Set.of(), "MODEL_DISCOVERY_UNSUPPORTED", Duration.ZERO, clock.instant())
-                : discoveredAtNow(discoverer.discover(new ProviderModelDiscoveryRequest(
+                : discoveredAtNow(ExtensionContractMapper.domainDiscovery(discoverer.discover(ExtensionContractMapper.discovery(new ProviderModelDiscoveryRequest(
                         command.context().tenantId(),
                         connection.providerKind(),
                         connection.endpoint(),
                         connection.credentialReference(),
-                        command.timeout())));
+                        command.timeout())))));
         var discoveredConnection = connection;
         if (connection.status() != ProviderConnectionStatus.VERIFIED) {
             discoveredConnection = observation.succeeded()
@@ -125,7 +127,7 @@ public final class ProviderModelDiscoveryService {
                 ProviderModelDiscoverer>(
                 com.aiplatform.foundation.modelruntime.domain.provider.model.ProviderKind.class);
         for (var value : Objects.requireNonNull(values, "模型发现扩展不能为空")) {
-            if (indexed.putIfAbsent(value.providerKind(), value) != null) {
+            if (indexed.putIfAbsent(ProviderKind.valueOf(value.providerKind().name()), value) != null) {
                 throw new IllegalArgumentException("供应商协议只能装配一个发现扩展");
             }
         }

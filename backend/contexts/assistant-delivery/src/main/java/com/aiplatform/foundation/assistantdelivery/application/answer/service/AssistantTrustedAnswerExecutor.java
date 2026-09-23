@@ -1,18 +1,19 @@
 package com.aiplatform.foundation.assistantdelivery.application.answer.service;
 
-import com.aiplatform.foundation.assistantdelivery.application.answer.dto.AssistantTrustedAnswerCitation;
-import com.aiplatform.foundation.assistantdelivery.application.answer.dto.AssistantTrustedAnswerExecutionObservation;
-import com.aiplatform.foundation.assistantdelivery.application.answer.dto.AssistantTrustedAnswerResult;
-import com.aiplatform.foundation.assistantdelivery.application.answer.dto.AssistantTrustedEvaluationResult;
-import com.aiplatform.foundation.assistantdelivery.application.answer.dto.AssistantTrustedAnswerTarget;
-import com.aiplatform.foundation.assistantdelivery.application.answer.dto.AssistantTrustedAnswerUsage;
-import com.aiplatform.foundation.assistantdelivery.application.answer.dto.ModelInvocationTrace;
-import com.aiplatform.foundation.assistantdelivery.domain.assistant.model.GovernedEmbeddingModelBinding;
-import com.aiplatform.foundation.knowledgedata.application.indexversion.port.out.vector.IndexCandidate;
-import com.aiplatform.foundation.knowledgedata.application.indexversion.port.out.vector.IndexCandidateQuery;
-import com.aiplatform.foundation.knowledgedata.application.indexversion.port.out.vector.IndexCandidateRetriever;
-import com.aiplatform.foundation.knowledgedata.domain.indexversion.model.EmbeddingConfiguration;
-import com.aiplatform.foundation.modelruntime.application.configuration.dto.UsableModelConfigurationSnapshot;
+import com.aiplatform.foundation.assistantdelivery.application.answer.facade.AssistantTrustedAnswerCitation;
+import com.aiplatform.foundation.assistantdelivery.application.answer.facade.AssistantTrustedAnswerExecutionObservation;
+import com.aiplatform.foundation.assistantdelivery.application.answer.facade.AssistantTrustedAnswerExecutionException;
+import com.aiplatform.foundation.assistantdelivery.application.answer.facade.AssistantTrustedAnswerResult;
+import com.aiplatform.foundation.assistantdelivery.application.answer.facade.AssistantTrustedEvaluationResult;
+import com.aiplatform.foundation.assistantdelivery.application.answer.facade.AssistantTrustedAnswerTarget;
+import com.aiplatform.foundation.assistantdelivery.application.answer.facade.AssistantTrustedAnswerUsage;
+import com.aiplatform.foundation.assistantdelivery.application.answer.facade.ModelInvocationTrace;
+import com.aiplatform.foundation.assistantdelivery.application.assistant.facade.GovernedEmbeddingModelBinding;
+import com.aiplatform.foundation.knowledgedata.application.indexversion.facade.IndexCandidate;
+import com.aiplatform.foundation.knowledgedata.application.indexversion.facade.IndexCandidateQuery;
+import com.aiplatform.foundation.knowledgedata.application.indexversion.facade.IndexCandidateRetriever;
+import com.aiplatform.foundation.knowledgedata.application.indexversion.facade.EmbeddingConfiguration;
+import com.aiplatform.foundation.modelruntime.application.configuration.facade.UsableModelConfigurationSnapshot;
 import com.aiplatform.foundation.modelruntime.application.configuration.facade.UsableModelConfigurationLookup;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.GovernedChatRuntime;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.ChatRouteExhaustedException;
@@ -25,8 +26,8 @@ import com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.cha
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.chat.ChatRequest;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.embedding.EmbeddingDeploymentRef;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.embedding.EmbeddingRequest;
-import com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelConfigurationId;
-import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelType;
+import com.aiplatform.foundation.modelruntime.application.configuration.facade.ModelConfigurationId;
+import com.aiplatform.foundation.modelruntime.application.configuration.facade.ModelType;
 import com.aiplatform.foundation.security.identity.TrustedRequestContext;
 import java.util.List;
 import java.util.Objects;
@@ -289,7 +290,7 @@ public final class AssistantTrustedAnswerExecutor {
 
     private UsableModelConfigurationSnapshot requireChatConfiguration(
             TrustedRequestContext context,
-            com.aiplatform.foundation.assistantdelivery.domain.assistant.model.GovernedChatModelBinding binding,
+            com.aiplatform.foundation.assistantdelivery.application.assistant.facade.GovernedChatModelBinding binding,
             int maxOutputTokens) {
         return requireModelConfigurations().find(context, new ModelConfigurationId(binding.configurationId()), ModelType.CHAT)
                 .filter(value -> value.configurationRevision() == binding.configurationRevision()

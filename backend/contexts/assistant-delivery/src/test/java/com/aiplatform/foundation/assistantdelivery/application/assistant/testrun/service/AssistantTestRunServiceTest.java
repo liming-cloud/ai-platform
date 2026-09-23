@@ -7,12 +7,12 @@ import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
-import com.aiplatform.foundation.assistantdelivery.application.answer.dto.AssistantTrustedAnswerCitation;
-import com.aiplatform.foundation.assistantdelivery.application.answer.dto.AssistantTrustedAnswerExecutionObservation;
-import com.aiplatform.foundation.assistantdelivery.application.answer.dto.AssistantTrustedAnswerResult;
-import com.aiplatform.foundation.assistantdelivery.application.answer.dto.AssistantTrustedAnswerUsage;
-import com.aiplatform.foundation.assistantdelivery.application.answer.dto.ModelInvocationTrace;
-import com.aiplatform.foundation.assistantdelivery.application.answer.service.AssistantTrustedAnswerExecutionException;
+import com.aiplatform.foundation.assistantdelivery.application.answer.facade.AssistantTrustedAnswerCitation;
+import com.aiplatform.foundation.assistantdelivery.application.answer.facade.AssistantTrustedAnswerExecutionObservation;
+import com.aiplatform.foundation.assistantdelivery.application.answer.facade.AssistantTrustedAnswerResult;
+import com.aiplatform.foundation.assistantdelivery.application.answer.facade.AssistantTrustedAnswerUsage;
+import com.aiplatform.foundation.assistantdelivery.application.answer.facade.ModelInvocationTrace;
+import com.aiplatform.foundation.assistantdelivery.application.answer.facade.AssistantTrustedAnswerExecutionException;
 import com.aiplatform.foundation.assistantdelivery.application.answer.service.AssistantTrustedAnswerExecutor;
 import com.aiplatform.foundation.assistantdelivery.application.assistant.dto.DraftAssistantVersionSnapshot;
 import com.aiplatform.foundation.assistantdelivery.application.assistant.facade.DraftAssistantVersionLookup;

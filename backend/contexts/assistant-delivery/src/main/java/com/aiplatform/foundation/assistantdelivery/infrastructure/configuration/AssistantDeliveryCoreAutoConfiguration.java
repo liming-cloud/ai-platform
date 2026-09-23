@@ -9,11 +9,12 @@ import com.aiplatform.foundation.assistantdelivery.application.assistant.service
 import com.aiplatform.foundation.assistantdelivery.application.assistant.service.PublishedAssistantVersionLookupService;
 import com.aiplatform.foundation.assistantdelivery.application.assistant.testrun.service.AssistantTestRunService;
 import com.aiplatform.foundation.assistantdelivery.application.assistant.testrun.port.out.AssistantTestRunTerminalCommitter;
-import com.aiplatform.foundation.assistantdelivery.application.catalog.service.QueryAssistantCatalogService;
+import com.aiplatform.foundation.assistantdelivery.application.catalog.facade.QueryAssistantCatalogService;
+import com.aiplatform.foundation.assistantdelivery.application.catalog.service.DefaultQueryAssistantCatalogService;
 import com.aiplatform.foundation.assistantdelivery.domain.assistant.repository.AssistantRepository;
 import com.aiplatform.foundation.assistantdelivery.domain.assistant.testrun.policy.AssistantTestQuotaPolicy;
 import com.aiplatform.foundation.assistantdelivery.domain.assistant.testrun.repository.AssistantTestRunRepository;
-import com.aiplatform.foundation.knowledgedata.application.indexversion.port.out.vector.IndexCandidateRetriever;
+import com.aiplatform.foundation.knowledgedata.application.indexversion.facade.IndexCandidateRetriever;
 import com.aiplatform.foundation.modelruntime.application.configuration.facade.UsableModelConfigurationLookup;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.GovernedChatRuntime;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.ChatRouteExecutor;
@@ -57,7 +58,7 @@ public class AssistantDeliveryCoreAutoConfiguration {
     @ConditionalOnMissingBean
     QueryAssistantCatalogService queryAssistantCatalogService(
             AssistantRepository repository) {
-        return new QueryAssistantCatalogService(repository);
+        return new DefaultQueryAssistantCatalogService(repository);
     }
 
     @Bean

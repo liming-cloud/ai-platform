@@ -2,7 +2,7 @@
 
 ## 1. 文档地位
 
-状态：已接受。本文承接 ADR-0022 的工程约束，目录事实经 GOV-0001 按实际 POM 校正。出现冲突时，
+状态：已接受。本文承接 ADR-0022 和 ADR-0082 的工程约束，目录事实经 GOV-0001 与 GOV-0003 按实际 POM 校正。出现冲突时，
 按“项目章程 -> 已接受 ADR -> 本文 -> 工作包”的顺序处理。
 
 目录不是分类展示用途，而是所有权、依赖方向、公开边界和测试边界。不能确定所有者的
@@ -61,13 +61,13 @@ contexts/*/adapter/
 | shared-contract | JDK | Spring、MyBatis-Plus、Sa-Token、任何业务上下文 |
 | platform | shared 模块和明确第三方框架 | 业务上下文的领域类型和业务表 |
 | context domain | JDK、shared-kernel | application、interfaces、infrastructure、shared-contract、框架 |
-| context application | 本上下文 domain、shared-kernel、必要的 shared-contract | interfaces、infrastructure、厂商实现 |
+| context application | 本上下文 domain、shared-kernel、必要的 shared-contract；跨上下文仅公开 facade | interfaces、infrastructure、厂商实现、其他上下文内部包 |
 | context interfaces | 本上下文 application、shared-contract、platform-web 契约 | Mapper、持久化对象、厂商实现 |
 | context infrastructure | 本上下文 application/domain、platform、框架 | 其他上下文内部包 |
-| extension | 公开扩展端口、platform、厂商框架 | Controller、其他上下文内部包 |
+| extension | 所属上下文公开 `application/.../port/out` 与明确的 facade 扩展契约、platform、厂商框架 | Controller、上下文 domain、内部 application、infrastructure |
 | bootstrap | 各模块自动配置和应用属性 | 业务 Bean 的手工实现与集中扫描 |
 
-Maven 和 ArchUnit 必须同时验证该矩阵，不能只依赖代码评审。
+上下文之间存在 Maven 编译依赖本身不违规，但每条边必须有实际的公开 facade 使用且图无环。业务引用只能进入被依赖上下文的 `application/.../facade`；扩展只能进入所需的公开端口或专用 facade 契约。公开请求、结果和值类型不能泄露拥有者的领域类型。各上下文自行注册自动配置，调用方不导入他方 `infrastructure`；条件装配确需排序时使用类名字符串并由启动集成测试验证。`scripts/quality/backend_architecture_guard.py` 检查 POM 编译图与主代码 Java 导入；自动配置与公开契约还需后端测试证明行为。不能只以 Maven 无环或旧守卫通过宣称边界合规。
 
 ## 4. shared-kernel
 
@@ -272,8 +272,8 @@ platform/platform-persistence/
 - 命令改变状态，查询不产生业务副作用。
 - 应用服务负责鉴权后的用例编排、事务边界、幂等和调用领域行为。
 - 应用服务默认是具体类，不创建同名接口与 Default 实现。
-- facade 是稳定跨上下文契约；dto 只暴露调用方需要的事实。
-- `port/out` 只保存模型、对象存储、缓存、时钟等外部技术能力端口。
+- facade 是稳定跨上下文契约，包含被调用方实际承诺的输入、输出和值类型；内部 DTO 不能因 `public` 修饰符而成为跨上下文契约。
+- `port/out` 保存模型、对象存储、缓存、时钟等外部技术能力端口；扩展所需的请求和结果必须使用公开契约，在上下文内部完成领域映射。
 - 不创建 Mapper、Wrapper、HTTP 请求对象和厂商参数。
 
 ### 8.3 interfaces
@@ -375,6 +375,7 @@ HTTP pageNumber/pageSize
 - 普通列表游标契约禁止新增；手工列表分页与 Java 内联 SQL 存量按 scripts/quality/baselines 递减，触及路径清理后必须验证，不能把旧验收目标写成当前零债务事实。
 - MyBatis-Plus 类型不越过 infrastructure。
 - 跨上下文内部包引用为零。
+- 跨上下文 Maven 依赖无环、无闲置边，所有边有公开 facade 使用；扩展不得导入上下文领域或基础设施。
 - bootstrap 非启动 Java 文件为零。
 - 自动配置注册缺失和宽泛组件扫描为零。
 - 每个包规模不超过门禁，超限必须拆分或由 ADR 说明。

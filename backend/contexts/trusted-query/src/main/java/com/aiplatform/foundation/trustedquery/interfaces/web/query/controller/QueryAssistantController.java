@@ -1,8 +1,8 @@
 package com.aiplatform.foundation.trustedquery.interfaces.web.query.controller;
 
-import com.aiplatform.foundation.assistantdelivery.application.catalog.service.QueryAssistantCatalogService;
-import com.aiplatform.foundation.assistantdelivery.application.catalog.query.ListQueryAssistantsQuery;
-import com.aiplatform.foundation.assistantdelivery.application.catalog.dto.QueryAssistantView;
+import com.aiplatform.foundation.assistantdelivery.application.catalog.facade.QueryAssistantCatalogService;
+import com.aiplatform.foundation.assistantdelivery.application.catalog.facade.ListQueryAssistantsQuery;
+import com.aiplatform.foundation.assistantdelivery.application.catalog.facade.QueryAssistantView;
 import com.aiplatform.foundation.shared.contract.paging.PageQuery;
 import com.aiplatform.foundation.shared.contract.paging.PageResult;
 import com.aiplatform.foundation.security.identity.TrustedRequestContext;

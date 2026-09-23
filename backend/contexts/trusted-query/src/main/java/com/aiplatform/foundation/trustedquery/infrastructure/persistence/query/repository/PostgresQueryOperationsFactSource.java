@@ -5,10 +5,10 @@ import com.aiplatform.foundation.trustedquery.infrastructure.persistence.query.e
 import com.aiplatform.foundation.shared.contract.paging.PageQuery;
 import com.aiplatform.foundation.shared.contract.paging.PageResult;
 import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
-import com.aiplatform.foundation.trustedquery.application.operations.dto.QueryAuditFact;
+import com.aiplatform.foundation.trustedquery.application.operations.facade.QueryAuditFact;
 import com.aiplatform.foundation.trustedquery.application.operations.facade.QueryOperationsFactSource;
-import com.aiplatform.foundation.trustedquery.application.operations.query.QueryUsageFactQuery;
-import com.aiplatform.foundation.trustedquery.application.operations.dto.QueryUsageFacts;
+import com.aiplatform.foundation.trustedquery.application.operations.facade.QueryUsageFactQuery;
+import com.aiplatform.foundation.trustedquery.application.operations.facade.QueryUsageFacts;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import java.util.Objects;

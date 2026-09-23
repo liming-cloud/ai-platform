@@ -91,20 +91,20 @@ class ProviderModelDiscoveryServiceTest {
 
     private static ProviderModelDiscoverer discoverer(
             java.util.concurrent.atomic.AtomicInteger calls,
-            ProviderModelDiscoveryObservation observation) {
+            com.aiplatform.foundation.modelruntime.application.extension.facade.ProviderModelDiscoveryObservation observation) {
         return new ProviderModelDiscoverer() {
-            @Override public ProviderKind providerKind() { return ProviderKind.DETERMINISTIC; }
-            @Override public ProviderModelDiscoveryObservation discover(
-                    com.aiplatform.foundation.modelruntime.application.provider.dto.ProviderModelDiscoveryRequest request) {
+            @Override public com.aiplatform.foundation.modelruntime.application.extension.facade.ProviderKind providerKind() { return com.aiplatform.foundation.modelruntime.application.extension.facade.ProviderKind.DETERMINISTIC; }
+            @Override public com.aiplatform.foundation.modelruntime.application.extension.facade.ProviderModelDiscoveryObservation discover(
+                    com.aiplatform.foundation.modelruntime.application.extension.facade.request.ProviderModelDiscoveryRequest request) {
                 calls.incrementAndGet();
                 return observation;
             }
         };
     }
 
-    private static ProviderModelDiscoveryObservation observation() {
-        return new ProviderModelDiscoveryObservation(true, Set.of(new DiscoveredModel(
-                "chat-model", ModelType.CHAT, Set.of(ModelCapability.CHAT))),
+    private static com.aiplatform.foundation.modelruntime.application.extension.facade.ProviderModelDiscoveryObservation observation() {
+        return new com.aiplatform.foundation.modelruntime.application.extension.facade.ProviderModelDiscoveryObservation(true, Set.of(new com.aiplatform.foundation.modelruntime.application.extension.facade.DiscoveredModel(
+                "chat-model", com.aiplatform.foundation.modelruntime.application.extension.facade.ModelType.CHAT, Set.of(com.aiplatform.foundation.modelruntime.application.extension.facade.ModelCapability.CHAT))),
                 "MODEL_DISCOVERY_OK", Duration.ofMillis(10), NOW);
     }
 

@@ -1,9 +1,9 @@
 package com.aiplatform.foundation.objectstorage.minio;
 
-import com.aiplatform.foundation.knowledgedata.application.datasource.exception.ObjectStorageUnavailableException;
-import com.aiplatform.foundation.knowledgedata.application.datasource.port.out.dataset.StructuredDatasetCsvStoragePort;
-import com.aiplatform.foundation.knowledgedata.application.datasource.port.out.dataset.StructuredDatasetCsvStorageRequest;
-import com.aiplatform.foundation.knowledgedata.domain.datasource.revision.StructuredDatasetCsvReference;
+import com.aiplatform.foundation.knowledgedata.application.datasource.port.out.ObjectStorageUnavailableException;
+import com.aiplatform.foundation.knowledgedata.application.datasource.port.out.dataset.CsvObjectStorageExtensionPort;
+import com.aiplatform.foundation.knowledgedata.application.datasource.port.out.dataset.CsvObjectWriteRequest;
+import com.aiplatform.foundation.knowledgedata.application.datasource.port.out.dataset.CsvObjectReference;
 import io.minio.BucketExistsArgs;
 import io.minio.GetObjectArgs;
 import io.minio.MakeBucketArgs;
@@ -16,7 +16,7 @@ import java.util.Objects;
 import java.util.regex.Pattern;
 
 /** 使用私有 MinIO 桶保存结构化数据集的 UTF-8 CSV。 */
-public final class MinioStructuredDatasetCsvStorageAdapter implements StructuredDatasetCsvStoragePort {
+public final class MinioStructuredDatasetCsvStorageAdapter implements CsvObjectStorageExtensionPort {
 
     private static final Pattern BUCKET_NAME = Pattern.compile("[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]");
     private static final String SHA256_METADATA = "sha256";
@@ -55,7 +55,7 @@ public final class MinioStructuredDatasetCsvStorageAdapter implements Structured
     }
 
     @Override
-    public StructuredDatasetCsvReference put(StructuredDatasetCsvStorageRequest request) {
+    public CsvObjectReference put(CsvObjectWriteRequest request) {
         Objects.requireNonNull(request, "CSV 对象存储请求不能为空");
         var reference = referenceFor(request);
         try (var content = request.content().openStream()) {
@@ -63,7 +63,7 @@ public final class MinioStructuredDatasetCsvStorageAdapter implements Structured
                     .bucket(bucket)
                     .object(reference.objectKey())
                     .stream(content, reference.byteSize(), -1)
-                    .contentType(StructuredDatasetCsvReference.UTF8_CSV)
+                    .contentType(CsvObjectReference.UTF8_CSV)
                     .userMetadata(Map.of(SHA256_METADATA, reference.contentDigest()))
                     .build());
             return reference;
@@ -73,7 +73,7 @@ public final class MinioStructuredDatasetCsvStorageAdapter implements Structured
     }
 
     @Override
-    public InputStream read(StructuredDatasetCsvReference reference) {
+    public InputStream read(CsvObjectReference reference) {
         Objects.requireNonNull(reference, "CSV 对象引用不能为空");
         try {
             return client.getObject(GetObjectArgs.builder().bucket(bucket).object(reference.objectKey()).build());
@@ -83,7 +83,7 @@ public final class MinioStructuredDatasetCsvStorageAdapter implements Structured
     }
 
     @Override
-    public void delete(StructuredDatasetCsvReference reference) {
+    public void delete(CsvObjectReference reference) {
         Objects.requireNonNull(reference, "CSV 对象引用不能为空");
         try {
             client.removeObject(RemoveObjectArgs.builder().bucket(bucket).object(reference.objectKey()).build());
@@ -92,12 +92,12 @@ public final class MinioStructuredDatasetCsvStorageAdapter implements Structured
         }
     }
 
-    private static StructuredDatasetCsvReference referenceFor(StructuredDatasetCsvStorageRequest request) {
-        return new StructuredDatasetCsvReference(
+    private static CsvObjectReference referenceFor(CsvObjectWriteRequest request) {
+        return new CsvObjectReference(
                 KEY_TEMPLATE.formatted(
-                        request.tenantId().value(),
-                        request.knowledgeSpaceId().value(),
-                        request.dataSourceId().value(),
+                        request.tenantId(),
+                        request.knowledgeSpaceId(),
+                        request.dataSourceId(),
                         request.revision(),
                         request.content().sha256()),
                 request.content().sha256(),

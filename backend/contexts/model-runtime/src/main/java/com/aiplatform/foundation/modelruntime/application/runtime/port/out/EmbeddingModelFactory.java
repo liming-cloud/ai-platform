@@ -2,7 +2,7 @@ package com.aiplatform.foundation.modelruntime.application.runtime.port.out;
 
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.EmbeddingModelPort;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.common.ModelRuntimeSpecification;
-import com.aiplatform.foundation.modelruntime.domain.provider.model.ProviderKind;
+import com.aiplatform.foundation.modelruntime.application.extension.facade.ProviderKind;
 import com.aiplatform.foundation.security.secret.SecretValue;
 import java.util.Objects;
 

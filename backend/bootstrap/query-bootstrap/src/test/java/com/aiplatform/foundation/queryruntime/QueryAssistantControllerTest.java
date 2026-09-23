@@ -6,9 +6,9 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import com.aiplatform.foundation.assistantdelivery.application.catalog.service.QueryAssistantCatalogService;
-import com.aiplatform.foundation.assistantdelivery.application.catalog.query.ListQueryAssistantsQuery;
-import com.aiplatform.foundation.assistantdelivery.application.catalog.dto.QueryAssistantView;
+import com.aiplatform.foundation.assistantdelivery.application.catalog.facade.QueryAssistantCatalogService;
+import com.aiplatform.foundation.assistantdelivery.application.catalog.facade.ListQueryAssistantsQuery;
+import com.aiplatform.foundation.assistantdelivery.application.catalog.facade.QueryAssistantView;
 import com.aiplatform.foundation.shared.contract.paging.PageQuery;
 import com.aiplatform.foundation.shared.contract.paging.PageResult;
 import com.aiplatform.foundation.shared.kernel.tenant.TenantId;

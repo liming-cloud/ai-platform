@@ -5,9 +5,7 @@ import com.aiplatform.foundation.modelruntime.application.platformsupply.port.ou
 import com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.PlatformProviderCredentialResolver;
 import com.aiplatform.foundation.modelruntime.application.runtime.port.out.ChatModelFactory;
 import com.aiplatform.foundation.modelruntime.application.runtime.port.out.EmbeddingModelFactory;
-import com.aiplatform.foundation.modelruntime.infrastructure.configuration.ModelRuntimeExecutionAutoConfiguration;
-import com.aiplatform.foundation.modelruntime.infrastructure.configuration.ModelRuntimePersistenceAutoConfiguration;
-import com.aiplatform.foundation.modelruntime.infrastructure.configuration.ModelRuntimeProperties;
+import com.aiplatform.foundation.modelruntime.application.runtime.facade.ModelRuntimeCallSettings;
 import com.aiplatform.foundation.provider.openaicompatible.OpenAiCompatibleChatModelFactory;
 import com.aiplatform.foundation.provider.openaicompatible.OpenAiCompatibleConnectionProbe;
 import com.aiplatform.foundation.provider.openaicompatible.OpenAiCompatiblePlatformProviderModelDiscoverer;
@@ -22,10 +20,7 @@ import org.springframework.context.annotation.Bean;
 /**
  * 在密钥和出站策略就绪时注册开放兼容协议能力。
  */
-@AutoConfiguration(after = {
-    ModelRuntimeExecutionAutoConfiguration.class,
-    ModelRuntimePersistenceAutoConfiguration.class
-})
+@AutoConfiguration
 @ConditionalOnBean(OutboundEndpointPolicy.class)
 public class OpenAiCompatibleProviderAutoConfiguration {
 
@@ -54,26 +49,26 @@ public class OpenAiCompatibleProviderAutoConfiguration {
     }
 
     @Bean
-    @ConditionalOnBean(SecretResolver.class)
+    @ConditionalOnBean({SecretResolver.class, ModelRuntimeCallSettings.class})
     ChatModelFactory openAiCompatibleChatModelFactory(
             SecretResolver secrets,
             OutboundEndpointPolicy endpointPolicy,
-            ModelRuntimeProperties properties) {
+            ModelRuntimeCallSettings settings) {
         return new OpenAiCompatibleChatModelFactory(
                 secrets,
                 endpointPolicy,
-                properties.getCallTimeout());
+                settings.timeout());
     }
 
     @Bean
-    @ConditionalOnBean(SecretResolver.class)
+    @ConditionalOnBean({SecretResolver.class, ModelRuntimeCallSettings.class})
     EmbeddingModelFactory openAiCompatibleEmbeddingModelFactory(
             SecretResolver secrets,
             OutboundEndpointPolicy endpointPolicy,
-            ModelRuntimeProperties properties) {
+            ModelRuntimeCallSettings settings) {
         return new OpenAiCompatibleEmbeddingModelFactory(
                 secrets,
                 endpointPolicy,
-                properties.getCallTimeout());
+                settings.timeout());
     }
 }

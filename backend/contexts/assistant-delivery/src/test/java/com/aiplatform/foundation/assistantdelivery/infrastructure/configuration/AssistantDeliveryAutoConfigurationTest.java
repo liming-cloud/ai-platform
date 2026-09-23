@@ -9,7 +9,7 @@ import com.aiplatform.foundation.assistantdelivery.application.assistant.service
 import com.aiplatform.foundation.assistantdelivery.application.answer.service.AssistantTrustedAnswerExecutor;
 import com.aiplatform.foundation.assistantdelivery.application.assistant.testrun.service.AssistantTestRunService;
 import com.aiplatform.foundation.assistantdelivery.application.assistant.testrun.port.out.AssistantTestRunTerminalCommitter;
-import com.aiplatform.foundation.assistantdelivery.application.catalog.service.QueryAssistantCatalogService;
+import com.aiplatform.foundation.assistantdelivery.application.catalog.facade.QueryAssistantCatalogService;
 import com.aiplatform.foundation.assistantdelivery.domain.assistant.repository.AssistantRepository;
 import com.aiplatform.foundation.assistantdelivery.domain.assistant.testrun.repository.AssistantTestRunRepository;
 import com.aiplatform.foundation.assistantdelivery.infrastructure.persistence.assistant.mapper.AssistantTestCitationMapper;
@@ -23,7 +23,7 @@ import com.aiplatform.foundation.assistantdelivery.interfaces.web.assistant.cont
 import com.aiplatform.foundation.assistantdelivery.interfaces.web.assistant.controller.AssistantTestRunController;
 import com.aiplatform.foundation.assistantdelivery.interfaces.web.assistant.controller.AssistantVersionController;
 import com.aiplatform.foundation.knowledgedata.application.indexversion.facade.ActiveIndexLookup;
-import com.aiplatform.foundation.knowledgedata.application.indexversion.port.out.vector.IndexCandidateRetriever;
+import com.aiplatform.foundation.knowledgedata.application.indexversion.facade.IndexCandidateRetriever;
 import com.aiplatform.foundation.modelruntime.application.configuration.facade.UsableModelConfigurationLookup;
 import com.aiplatform.foundation.modelruntime.application.deployment.facade.PublishedChatDeploymentLookup;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.GovernedChatRuntime;

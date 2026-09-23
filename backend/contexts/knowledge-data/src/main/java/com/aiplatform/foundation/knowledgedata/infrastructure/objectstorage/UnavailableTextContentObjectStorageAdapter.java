@@ -1,6 +1,6 @@
 package com.aiplatform.foundation.knowledgedata.infrastructure.objectstorage;
 
-import com.aiplatform.foundation.knowledgedata.application.datasource.exception.ObjectStorageUnavailableException;
+import com.aiplatform.foundation.knowledgedata.application.datasource.port.out.ObjectStorageUnavailableException;
 import com.aiplatform.foundation.knowledgedata.application.port.out.content.TextContentObjectMetadata;
 import com.aiplatform.foundation.knowledgedata.application.port.out.content.TextContentObjectStoragePort;
 import com.aiplatform.foundation.knowledgedata.application.port.out.content.TextContentStorageRequest;

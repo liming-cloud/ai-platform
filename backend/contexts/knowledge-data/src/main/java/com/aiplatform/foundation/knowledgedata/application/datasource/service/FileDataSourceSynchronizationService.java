@@ -4,7 +4,7 @@ import com.aiplatform.foundation.knowledgedata.application.datasource.command.Sy
 import com.aiplatform.foundation.knowledgedata.application.datasource.dto.GovernedDataSourceLifecycleResult;
 import com.aiplatform.foundation.knowledgedata.application.datasource.exception.DataSourceConcurrentModificationException;
 import com.aiplatform.foundation.knowledgedata.application.datasource.exception.DataSourceNotFoundException;
-import com.aiplatform.foundation.knowledgedata.application.datasource.exception.TextContentIntegrityException;
+import com.aiplatform.foundation.knowledgedata.application.datasource.port.out.TextContentIntegrityException;
 import com.aiplatform.foundation.knowledgedata.application.knowledge.exception.KnowledgePermissionDeniedException;
 import com.aiplatform.foundation.knowledgedata.application.port.out.content.TextContentObjectStoragePort;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.model.DataSourceId;

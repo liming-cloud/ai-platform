@@ -1,6 +1,6 @@
 package com.aiplatform.foundation.modelruntime.application.runtime.facade;
 
-import com.aiplatform.foundation.modelruntime.application.configuration.dto.UsableModelConfigurationSnapshot;
+import com.aiplatform.foundation.modelruntime.application.configuration.facade.UsableModelConfigurationSnapshot;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.chat.ChatRequest;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.chat.ChatResult;
 import com.aiplatform.foundation.security.identity.TrustedRequestContext;

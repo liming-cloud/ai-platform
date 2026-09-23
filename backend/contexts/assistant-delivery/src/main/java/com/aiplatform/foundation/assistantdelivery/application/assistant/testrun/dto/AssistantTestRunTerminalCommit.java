@@ -1,6 +1,6 @@
 package com.aiplatform.foundation.assistantdelivery.application.assistant.testrun.dto;
 
-import com.aiplatform.foundation.assistantdelivery.application.answer.dto.ModelInvocationTrace;
+import com.aiplatform.foundation.assistantdelivery.application.answer.facade.ModelInvocationTrace;
 import com.aiplatform.foundation.assistantdelivery.domain.assistant.testrun.model.AssistantTestRun;
 import java.util.Objects;
 

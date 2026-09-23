@@ -5,11 +5,10 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
-import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelCapability;
-import com.aiplatform.foundation.modelruntime.domain.provider.model.ProviderKind;
-import com.aiplatform.foundation.modelruntime.application.probe.dto.ProviderProbeRequest;
+import com.aiplatform.foundation.modelruntime.application.extension.facade.ModelCapability;
+import com.aiplatform.foundation.modelruntime.application.extension.facade.ProviderKind;
+import com.aiplatform.foundation.modelruntime.application.extension.facade.request.ProviderProbeRequest;
 import com.aiplatform.foundation.security.egress.UnsafeOutboundEndpointException;
-import com.aiplatform.foundation.modelruntime.domain.provider.model.CredentialReference;
 import com.aiplatform.foundation.security.secret.SecretValue;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
@@ -134,7 +133,7 @@ class OpenAiCompatibleConnectionProbeTest {
                 new TenantId(100000000000000001L),
                 ProviderKind.OPENAI_COMPATIBLE,
                 URI.create("http://127.0.0.1:" + server.getAddress().getPort() + "/v1"),
-                new CredentialReference("secret://test/openai"),
+                "secret://test/openai",
                 modelCode,
                 capabilities,
                 Duration.ofSeconds(2));

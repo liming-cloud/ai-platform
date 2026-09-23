@@ -2,7 +2,8 @@ package com.aiplatform.foundation.knowledgedata.application.indexversion.service
 
 import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
 import com.aiplatform.foundation.knowledgedata.application.indexversion.facade.ActiveIndexLookup;
-import com.aiplatform.foundation.knowledgedata.application.indexversion.dto.ActiveIndexSnapshot;
+import com.aiplatform.foundation.knowledgedata.application.indexversion.facade.ActiveIndexSnapshot;
+import com.aiplatform.foundation.knowledgedata.application.indexversion.facade.EmbeddingConfiguration;
 import com.aiplatform.foundation.knowledgedata.domain.indexversion.repository.IndexVersionRepository;
 import com.aiplatform.foundation.knowledgedata.domain.knowledge.model.KnowledgeSpaceId;
 import java.util.Objects;
@@ -30,6 +31,13 @@ public final class ActiveIndexLookupService implements ActiveIndexLookup {
                         index.knowledgeSpaceId().value(),
                         index.id().value(),
                         index.version(),
-                        index.embedding()));
+                        new EmbeddingConfiguration(
+                                index.embedding().deploymentId(),
+                                index.embedding().deploymentRevision(),
+                                index.embedding().configurationId(),
+                                index.embedding().configurationRevision(),
+                                index.embedding().catalogEntryId(),
+                                index.embedding().catalogEntryRevision(),
+                                index.embedding().dimension())));
     }
 }

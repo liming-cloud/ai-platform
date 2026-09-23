@@ -8,7 +8,7 @@ import com.aiplatform.foundation.assistantdelivery.application.assistant.testrun
 import com.aiplatform.foundation.assistantdelivery.application.assistant.testrun.AssistantTestQuotaLimitType;
 import com.aiplatform.foundation.assistantdelivery.application.assistant.testrun.dto.AssistantTestRunTerminalCommit;
 import com.aiplatform.foundation.assistantdelivery.application.assistant.testrun.port.out.AssistantTestRunTerminalCommitter;
-import com.aiplatform.foundation.assistantdelivery.application.answer.dto.ModelInvocationTrace;
+import com.aiplatform.foundation.assistantdelivery.application.answer.facade.ModelInvocationTrace;
 import com.aiplatform.foundation.assistantdelivery.domain.assistant.model.CitationPolicy;
 import com.aiplatform.foundation.assistantdelivery.domain.assistant.model.GovernedChatModelBinding;
 import com.aiplatform.foundation.assistantdelivery.domain.assistant.model.GovernedEmbeddingModelBinding;

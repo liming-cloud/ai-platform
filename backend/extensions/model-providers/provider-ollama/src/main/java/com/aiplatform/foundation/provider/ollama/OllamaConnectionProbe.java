@@ -1,10 +1,10 @@
 package com.aiplatform.foundation.provider.ollama;
 
 import com.aiplatform.foundation.modelruntime.application.probe.port.out.ProviderConnectionProbe;
-import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelCapability;
-import com.aiplatform.foundation.modelruntime.domain.provider.model.ProviderKind;
-import com.aiplatform.foundation.modelruntime.application.probe.dto.ProviderProbeObservation;
-import com.aiplatform.foundation.modelruntime.application.probe.dto.ProviderProbeRequest;
+import com.aiplatform.foundation.modelruntime.application.extension.facade.ModelCapability;
+import com.aiplatform.foundation.modelruntime.application.extension.facade.ProviderKind;
+import com.aiplatform.foundation.modelruntime.application.extension.facade.ProviderProbeObservation;
+import com.aiplatform.foundation.modelruntime.application.extension.facade.request.ProviderProbeRequest;
 import com.aiplatform.foundation.security.egress.OutboundEndpointPolicy;
 import com.aiplatform.foundation.security.egress.UnsafeOutboundEndpointException;
 import java.time.Duration;
@@ -53,7 +53,7 @@ public final class OllamaConnectionProbe implements ProviderConnectionProbe {
         }
         try {
             callModel(request);
-            return new ProviderProbeObservation(
+            return ProviderProbeObservation.of(
                     true,
                     detectedCapabilities(request),
                     elapsedSince(startedAt),
@@ -93,7 +93,7 @@ public final class OllamaConnectionProbe implements ProviderConnectionProbe {
     }
 
     private static ProviderProbeObservation failure(long startedAt, String detailCode) {
-        return new ProviderProbeObservation(
+        return ProviderProbeObservation.of(
                 false,
                 Set.of(),
                 elapsedSince(startedAt),

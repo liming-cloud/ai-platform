@@ -41,6 +41,12 @@ class BackendArchitectureGuardTest(unittest.TestCase):
             encoding="utf-8",
         )
 
+    def write_pom(self, relative, content):
+        path = self.root / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(content, encoding="utf-8")
+        return path
+
     def write_migration(self, relative):
         path = self.root / relative
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -336,6 +342,173 @@ class BackendArchitectureGuardTest(unittest.TestCase):
         errors = MODULE.compare(MODULE.scan(self.root), baseline)
 
         self.assertTrue(any("应用服务构造器领域状态依赖" in error for error in errors))
+
+
+    def test_current_backend_dependency_boundary_is_closed(self):
+        root = Path(__file__).resolve().parents[2]
+        actual = MODULE.scan(root)
+
+        self.assertEqual([], actual["backendDependencyBoundaryViolations"])
+
+    def test_cross_context_domain_import_is_rejected(self):
+        self.write_java(
+            "backend/contexts/alpha/src/main/java/com/example/alpha/Alpha.java",
+            """
+            package com.example.alpha;
+            import com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelConfigurationId;
+            final class Alpha { ModelConfigurationId value; }
+            """,
+        )
+        self.write_java(
+            "backend/contexts/model-runtime/src/main/java/com/aiplatform/foundation/modelruntime/domain/configuration/model/ModelConfigurationId.java",
+            "package com.aiplatform.foundation.modelruntime.domain.configuration.model; public record ModelConfigurationId(long value) {}\n",
+        )
+
+        violations = MODULE.backend_dependency_boundary_violations(self.root)
+
+        self.assertTrue(any("domain" in violation for violation in violations))
+
+    def test_cross_context_facade_import_is_allowed(self):
+        self.write_pom(
+            "backend/contexts/alpha/pom.xml",
+            "<project><artifactId>alpha</artifactId><dependencies><dependency><artifactId>model-runtime</artifactId></dependency></dependencies></project>",
+        )
+        self.write_pom(
+            "backend/contexts/model-runtime/pom.xml",
+            "<project><artifactId>model-runtime</artifactId></project>",
+        )
+        self.write_java(
+            "backend/contexts/alpha/src/main/java/com/example/alpha/Alpha.java",
+            """
+            package com.example.alpha;
+            import com.aiplatform.foundation.modelruntime.application.configuration.facade.UsableModelConfigurationLookup;
+            final class Alpha { UsableModelConfigurationLookup value; }
+            """,
+        )
+        self.write_java(
+            "backend/contexts/model-runtime/src/main/java/com/aiplatform/foundation/modelruntime/application/configuration/facade/UsableModelConfigurationLookup.java",
+            "package com.aiplatform.foundation.modelruntime.application.configuration.facade; public interface UsableModelConfigurationLookup {}\n",
+        )
+
+        violations = MODULE.backend_dependency_boundary_violations(self.root)
+
+        self.assertEqual([], violations)
+
+    def test_cross_context_port_import_is_rejected(self):
+        self.write_pom(
+            "backend/contexts/alpha/pom.xml",
+            "<project><artifactId>alpha</artifactId><dependencies><dependency><artifactId>model-runtime</artifactId></dependency></dependencies></project>",
+        )
+        self.write_pom(
+            "backend/contexts/model-runtime/pom.xml",
+            "<project><artifactId>model-runtime</artifactId></project>",
+        )
+        self.write_java(
+            "backend/contexts/alpha/src/main/java/com/example/alpha/Alpha.java",
+            "import com.aiplatform.foundation.modelruntime.application.runtime.port.out.ChatModelFactory;",
+        )
+
+        violations = MODULE.backend_dependency_boundary_violations(self.root)
+
+        self.assertTrue(any("禁止引用" in violation for violation in violations))
+
+    def test_cross_context_import_without_maven_dependency_is_rejected(self):
+        self.write_pom("backend/contexts/alpha/pom.xml", "<project><artifactId>alpha</artifactId></project>")
+        self.write_pom("backend/contexts/model-runtime/pom.xml", "<project><artifactId>model-runtime</artifactId></project>")
+        self.write_java(
+            "backend/contexts/alpha/src/main/java/com/example/alpha/Alpha.java",
+            "import com.aiplatform.foundation.modelruntime.application.configuration.facade.UsableModelConfigurationLookup;",
+        )
+
+        violations = MODULE.backend_dependency_boundary_violations(self.root)
+
+        self.assertTrue(any("缺少 Maven" in violation for violation in violations))
+
+    def test_extension_infrastructure_import_is_rejected(self):
+        self.write_java(
+            "backend/extensions/model-providers/provider-demo/src/main/java/com/example/provider/Demo.java",
+            """
+            package com.example.provider;
+            import com.aiplatform.foundation.modelruntime.infrastructure.configuration.ModelRuntimeProperties;
+            final class Demo { ModelRuntimeProperties value; }
+            """,
+        )
+        self.write_java(
+            "backend/contexts/model-runtime/src/main/java/com/aiplatform/foundation/modelruntime/infrastructure/configuration/ModelRuntimeProperties.java",
+            "package com.aiplatform.foundation.modelruntime.infrastructure.configuration; public class ModelRuntimeProperties {}\n",
+        )
+
+        violations = MODULE.backend_dependency_boundary_violations(self.root)
+
+        self.assertTrue(any("extension" in violation and "infrastructure" in violation for violation in violations))
+
+    def test_extension_domain_import_is_rejected(self):
+        self.write_pom(
+            "backend/extensions/model-providers/provider-demo/pom.xml",
+            "<project><artifactId>provider-demo</artifactId><dependencies><dependency><artifactId>model-runtime</artifactId></dependency></dependencies></project>",
+        )
+        self.write_pom(
+            "backend/contexts/model-runtime/pom.xml",
+            "<project><artifactId>model-runtime</artifactId></project>",
+        )
+        self.write_java(
+            "backend/extensions/model-providers/provider-demo/src/main/java/com/example/provider/Demo.java",
+            "import com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelConfigurationId;",
+        )
+
+        violations = MODULE.backend_dependency_boundary_violations(self.root)
+
+        self.assertTrue(any("extension" in violation and "domain" in violation for violation in violations))
+
+    def test_cross_context_auto_configuration_import_is_rejected(self):
+        self.write_pom(
+            "backend/contexts/alpha/pom.xml",
+            "<project><artifactId>alpha</artifactId><dependencies><dependency><artifactId>model-runtime</artifactId></dependency></dependencies></project>",
+        )
+        self.write_pom(
+            "backend/contexts/model-runtime/pom.xml",
+            "<project><artifactId>model-runtime</artifactId></project>",
+        )
+        self.write_java(
+            "backend/contexts/alpha/src/main/java/com/example/alpha/Alpha.java",
+            "import com.aiplatform.foundation.modelruntime.infrastructure.configuration.ModelRuntimeCoreAutoConfiguration;",
+        )
+
+        violations = MODULE.backend_dependency_boundary_violations(self.root)
+
+        self.assertTrue(any("上下文" in violation and "infrastructure" in violation for violation in violations))
+
+    def test_unused_cross_context_maven_dependency_is_rejected(self):
+        self.write_pom(
+            "backend/contexts/alpha/pom.xml",
+            "<project><artifactId>alpha</artifactId><dependencies><dependency><artifactId>model-runtime</artifactId></dependency></dependencies></project>",
+        )
+        self.write_pom(
+            "backend/contexts/model-runtime/pom.xml",
+            "<project><artifactId>model-runtime</artifactId></project>",
+        )
+
+        violations = MODULE.backend_dependency_boundary_violations(self.root)
+
+        self.assertTrue(any("未使用" in violation for violation in violations))
+
+    def test_cross_context_dependency_cycle_is_rejected(self):
+        self.write_pom(
+            "backend/contexts/alpha/pom.xml",
+            """
+            <project><dependencies><dependency><groupId>com.aiplatform.foundation</groupId><artifactId>model-runtime</artifactId></dependency></dependencies></project>
+            """,
+        )
+        self.write_pom(
+            "backend/contexts/model-runtime/pom.xml",
+            """
+            <project><dependencies><dependency><groupId>com.aiplatform.foundation</groupId><artifactId>alpha</artifactId></dependency></dependencies></project>
+            """,
+        )
+
+        violations = MODULE.backend_dependency_boundary_violations(self.root)
+
+        self.assertTrue(any("循环" in violation for violation in violations))
 
 
 if __name__ == "__main__":

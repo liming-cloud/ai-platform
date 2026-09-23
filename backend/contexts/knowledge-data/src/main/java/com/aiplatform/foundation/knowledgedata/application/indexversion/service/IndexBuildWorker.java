@@ -13,10 +13,9 @@ import com.aiplatform.foundation.knowledgedata.domain.datasource.model.TextConte
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.ModelRuntimeResolver;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.GovernedEmbeddingRuntime;
 import com.aiplatform.foundation.modelruntime.application.configuration.facade.UsableModelConfigurationLookup;
-import com.aiplatform.foundation.modelruntime.application.configuration.dto.ModelConfigurationUsageContext;
-import com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelConfigurationId;
-import com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelConfigurationOwnerId;
-import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelType;
+import com.aiplatform.foundation.modelruntime.application.configuration.facade.ModelConfigurationUsageContext;
+import com.aiplatform.foundation.modelruntime.application.configuration.facade.ModelConfigurationId;
+import com.aiplatform.foundation.modelruntime.application.configuration.facade.ModelType;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.embedding.EmbeddingDeploymentRef;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.embedding.EmbeddingRequest;
 import java.io.IOException;
@@ -148,7 +147,7 @@ public final class IndexBuildWorker {
         var deployment = embeddingReference(embedding);
         var usage = new ModelConfigurationUsageContext(
                 indexVersion.tenantId(),
-                new ModelConfigurationOwnerId(indexVersion.createdBy().value()));
+                indexVersion.createdBy().value());
         var governedSnapshot = embedding.isGoverned()
                 ? governedSnapshot(usage, embedding)
                 : null;
@@ -203,7 +202,7 @@ public final class IndexBuildWorker {
                 embedding.dimension());
     }
 
-    private com.aiplatform.foundation.modelruntime.application.configuration.dto.UsableModelConfigurationSnapshot governedSnapshot(
+    private com.aiplatform.foundation.modelruntime.application.configuration.facade.UsableModelConfigurationSnapshot governedSnapshot(
             ModelConfigurationUsageContext usage,
             EmbeddingConfiguration embedding) {
         if (governedConfigurations == null || governedModels == null) {

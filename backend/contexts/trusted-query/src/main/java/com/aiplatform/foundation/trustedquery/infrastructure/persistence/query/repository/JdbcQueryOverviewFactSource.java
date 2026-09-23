@@ -1,8 +1,8 @@
 package com.aiplatform.foundation.trustedquery.infrastructure.persistence.query.repository;
 
 import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
-import com.aiplatform.foundation.trustedquery.application.operations.dto.QueryOperationsSummaryFacts;
-import com.aiplatform.foundation.trustedquery.application.operations.dto.QueryDailyOperationsFacts;
+import com.aiplatform.foundation.trustedquery.application.operations.facade.QueryOperationsSummaryFacts;
+import com.aiplatform.foundation.trustedquery.application.operations.facade.QueryDailyOperationsFacts;
 import com.aiplatform.foundation.trustedquery.application.operations.facade.QueryOverviewFactSource;
 import java.time.Instant;
 import java.sql.Timestamp;

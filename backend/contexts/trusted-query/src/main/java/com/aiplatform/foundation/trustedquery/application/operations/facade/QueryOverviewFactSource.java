@@ -1,7 +1,7 @@
 package com.aiplatform.foundation.trustedquery.application.operations.facade;
 
 import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
-import com.aiplatform.foundation.trustedquery.application.operations.dto.QueryOperationsSummaryFacts;
+import com.aiplatform.foundation.trustedquery.application.operations.facade.QueryOperationsSummaryFacts;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;

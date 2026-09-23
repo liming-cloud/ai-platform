@@ -2,7 +2,7 @@ package com.aiplatform.foundation.knowledgedata.infrastructure.objectstorage;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import com.aiplatform.foundation.knowledgedata.application.datasource.exception.ObjectStorageUnavailableException;
+import com.aiplatform.foundation.knowledgedata.application.datasource.port.out.ObjectStorageUnavailableException;
 import org.junit.jupiter.api.Test;
 
 class UnavailablePlatformObjectContentReaderAdapterTest {

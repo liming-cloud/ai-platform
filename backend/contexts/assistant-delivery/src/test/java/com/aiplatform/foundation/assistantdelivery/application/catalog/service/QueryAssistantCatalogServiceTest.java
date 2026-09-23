@@ -3,7 +3,7 @@ package com.aiplatform.foundation.assistantdelivery.application.catalog.service;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import com.aiplatform.foundation.assistantdelivery.application.catalog.query.ListQueryAssistantsQuery;
+import com.aiplatform.foundation.assistantdelivery.application.catalog.facade.ListQueryAssistantsQuery;
 import com.aiplatform.foundation.assistantdelivery.application.assistant.exception.AssistantPermissionDeniedException;
 import com.aiplatform.foundation.assistantdelivery.domain.assistant.repository.AssistantCreation;
 import com.aiplatform.foundation.assistantdelivery.domain.assistant.repository.AssistantCreationOutcome;
@@ -45,7 +45,7 @@ class QueryAssistantCatalogServiceTest {
     @Test
     void 只向具备查询和知识读取权限的当前租户返回目录() {
         var repository = new RecordingRepository();
-        var service = new QueryAssistantCatalogService(repository);
+        var service = new DefaultQueryAssistantCatalogService(repository);
 
         var page = service.list(new ListQueryAssistantsQuery(
                 context(Set.of(
@@ -64,7 +64,7 @@ class QueryAssistantCatalogServiceTest {
 
     @Test
     void 缺少任一权限时不得读取目录() {
-        var service = new QueryAssistantCatalogService(
+        var service = new DefaultQueryAssistantCatalogService(
                 new RecordingRepository());
 
         assertThrows(

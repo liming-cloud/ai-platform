@@ -7,19 +7,19 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
 import com.aiplatform.foundation.knowledgedata.application.indexversion.facade.ActiveIndexLookup;
-import com.aiplatform.foundation.knowledgedata.application.indexversion.port.out.vector.IndexCandidate;
-import com.aiplatform.foundation.knowledgedata.application.indexversion.port.out.vector.IndexCandidateQuery;
-import com.aiplatform.foundation.knowledgedata.application.indexversion.dto.ActiveIndexSnapshot;
-import com.aiplatform.foundation.knowledgedata.domain.indexversion.model.EmbeddingConfiguration;
+import com.aiplatform.foundation.knowledgedata.application.indexversion.facade.IndexCandidate;
+import com.aiplatform.foundation.knowledgedata.application.indexversion.facade.IndexCandidateQuery;
+import com.aiplatform.foundation.knowledgedata.application.indexversion.facade.ActiveIndexSnapshot;
+import com.aiplatform.foundation.knowledgedata.application.indexversion.facade.EmbeddingConfiguration;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.ChatModelPort;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.EmbeddingModelPort;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.GovernedEmbeddingRuntime;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.ModelRuntimeResolver;
-import com.aiplatform.foundation.modelruntime.application.configuration.dto.UsableModelConfigurationSnapshot;
+import com.aiplatform.foundation.modelruntime.application.configuration.facade.UsableModelConfigurationSnapshot;
 import com.aiplatform.foundation.modelruntime.application.configuration.facade.UsableModelConfigurationLookup;
-import com.aiplatform.foundation.modelruntime.domain.configuration.model.ControlledModelCatalogEntryId;
-import com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelRuntimeCapabilities;
-import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelType;
+import com.aiplatform.foundation.modelruntime.application.configuration.facade.ControlledModelCatalogEntryId;
+import com.aiplatform.foundation.modelruntime.application.configuration.facade.ModelRuntimeCapabilities;
+import com.aiplatform.foundation.modelruntime.application.configuration.facade.ModelType;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.embedding.EmbeddingBatch;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.embedding.EmbeddingDeploymentRef;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.embedding.EmbeddingVector;
@@ -120,7 +120,7 @@ class CandidateSearchServiceTest {
 
             @Override
             public EmbeddingBatch embed(
-                    com.aiplatform.foundation.modelruntime.application.configuration.dto.ModelConfigurationUsageContext context,
+                    com.aiplatform.foundation.modelruntime.application.configuration.facade.ModelConfigurationUsageContext context,
                     UsableModelConfigurationSnapshot expected,
                     com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.embedding.EmbeddingRequest request) {
                 throw new UnsupportedOperationException();
@@ -221,7 +221,7 @@ class CandidateSearchServiceTest {
     }
 
     private static final class RecordingRetriever
-            implements com.aiplatform.foundation.knowledgedata.application.indexversion.port.out.vector.IndexCandidateRetriever {
+            implements com.aiplatform.foundation.knowledgedata.application.indexversion.facade.IndexCandidateRetriever {
 
         private IndexCandidateQuery query;
 

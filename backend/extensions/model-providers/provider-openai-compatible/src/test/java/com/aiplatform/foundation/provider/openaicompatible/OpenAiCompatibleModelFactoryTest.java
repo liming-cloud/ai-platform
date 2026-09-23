@@ -6,9 +6,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.common.ModelRuntimeSpecification;
-import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelType;
-import com.aiplatform.foundation.modelruntime.domain.provider.model.ProviderKind;
-import com.aiplatform.foundation.modelruntime.domain.provider.model.CredentialReference;
+import com.aiplatform.foundation.modelruntime.application.extension.facade.ModelType;
+import com.aiplatform.foundation.modelruntime.application.extension.facade.ProviderKind;
 import com.aiplatform.foundation.security.secret.SecretValue;
 import java.net.URI;
 import java.time.Duration;
@@ -17,8 +16,7 @@ import org.junit.jupiter.api.Test;
 
 class OpenAiCompatibleModelFactoryTest {
 
-    private static final CredentialReference SECRET_REFERENCE =
-            new CredentialReference("secret://environment/OPENAI_API_KEY");
+    private static final String SECRET_REFERENCE = "secret://environment/OPENAI_API_KEY";
 
     @Test
     void 对话工厂应先校验端点并在构造后关闭短期密钥() {

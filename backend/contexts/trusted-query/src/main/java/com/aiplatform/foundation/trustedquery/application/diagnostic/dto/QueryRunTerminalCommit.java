@@ -1,6 +1,6 @@
 package com.aiplatform.foundation.trustedquery.application.diagnostic.dto;
 
-import com.aiplatform.foundation.assistantdelivery.application.answer.dto.ModelInvocationTrace;
+import com.aiplatform.foundation.assistantdelivery.application.answer.facade.ModelInvocationTrace;
 import com.aiplatform.foundation.trustedquery.domain.query.model.QueryRun;
 import java.util.Objects;
 

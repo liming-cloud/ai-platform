@@ -17,11 +17,11 @@ import com.aiplatform.foundation.knowledgedata.domain.indexversion.model.Embeddi
 import com.aiplatform.foundation.knowledgedata.domain.indexversion.model.IndexVersion;
 import com.aiplatform.foundation.knowledgedata.domain.knowledge.model.KnowledgeSpaceId;
 import com.aiplatform.foundation.modelruntime.application.configuration.facade.UsableModelConfigurationLookup;
-import com.aiplatform.foundation.modelruntime.application.configuration.dto.UsableModelConfigurationSnapshot;
-import com.aiplatform.foundation.modelruntime.domain.configuration.model.ControlledModelCatalogEntryId;
-import com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelConfigurationId;
-import com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelRuntimeCapabilities;
-import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelType;
+import com.aiplatform.foundation.modelruntime.application.configuration.facade.UsableModelConfigurationSnapshot;
+import com.aiplatform.foundation.modelruntime.application.configuration.facade.ControlledModelCatalogEntryId;
+import com.aiplatform.foundation.modelruntime.application.configuration.facade.ModelConfigurationId;
+import com.aiplatform.foundation.modelruntime.application.configuration.facade.ModelRuntimeCapabilities;
+import com.aiplatform.foundation.modelruntime.application.configuration.facade.ModelType;
 import com.aiplatform.foundation.security.identity.AccessChannel;
 import com.aiplatform.foundation.security.identity.CredentialType;
 import com.aiplatform.foundation.security.identity.MembershipId;

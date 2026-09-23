@@ -1,10 +1,10 @@
 package com.aiplatform.foundation.provider.deterministic;
 
-import com.aiplatform.foundation.modelruntime.application.platformsupply.dto.PlatformProviderProbeRequest;
+import com.aiplatform.foundation.modelruntime.application.extension.facade.request.PlatformProviderProbeRequest;
 import com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.PlatformProviderConnectionProbe;
-import com.aiplatform.foundation.modelruntime.application.probe.dto.ProviderProbeObservation;
-import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelCapability;
-import com.aiplatform.foundation.modelruntime.domain.provider.model.ProviderKind;
+import com.aiplatform.foundation.modelruntime.application.extension.facade.ProviderProbeObservation;
+import com.aiplatform.foundation.modelruntime.application.extension.facade.ModelCapability;
+import com.aiplatform.foundation.modelruntime.application.extension.facade.ProviderKind;
 import java.time.Duration;
 import java.util.Set;
 
@@ -16,7 +16,7 @@ public final class DeterministicPlatformProviderConnectionProbe
     @Override public ProviderKind providerKind() { return ProviderKind.DETERMINISTIC; }
     @Override public ProviderProbeObservation probe(PlatformProviderProbeRequest request) {
         return "memory".equals(request.endpoint().getScheme())
-                ? new ProviderProbeObservation(true, CAPABILITIES, Duration.ZERO, "DETERMINISTIC_OK")
-                : new ProviderProbeObservation(false, Set.of(), Duration.ZERO, "DETERMINISTIC_ENDPOINT_REJECTED");
+                ? ProviderProbeObservation.of(true, CAPABILITIES, Duration.ZERO, "DETERMINISTIC_OK")
+                : ProviderProbeObservation.of(false, Set.of(), Duration.ZERO, "DETERMINISTIC_ENDPOINT_REJECTED");
     }
 }

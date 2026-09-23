@@ -182,14 +182,16 @@ class ProviderConnectionServiceTest {
     private static ProviderConnectionProbe probe(ProviderProbeObservation observation) {
         return new ProviderConnectionProbe() {
             @Override
-            public ProviderKind providerKind() {
-                return ProviderKind.DETERMINISTIC;
-            }
+            public com.aiplatform.foundation.modelruntime.application.extension.facade.ProviderKind providerKind() { return com.aiplatform.foundation.modelruntime.application.extension.facade.ProviderKind.DETERMINISTIC; }
 
             @Override
-            public ProviderProbeObservation probe(
-                    com.aiplatform.foundation.modelruntime.application.probe.dto.ProviderProbeRequest request) {
-                return observation;
+            public com.aiplatform.foundation.modelruntime.application.extension.facade.ProviderProbeObservation probe(
+                    com.aiplatform.foundation.modelruntime.application.extension.facade.request.ProviderProbeRequest request) {
+                return new com.aiplatform.foundation.modelruntime.application.extension.facade.ProviderProbeObservation(
+                        observation.reachable(),
+                        com.aiplatform.foundation.modelruntime.application.extension.service.ExtensionContractMapper
+                                .capabilities(observation.capabilities()),
+                        observation.elapsed(), observation.detailCode());
             }
         };
     }

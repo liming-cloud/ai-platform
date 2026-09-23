@@ -1,10 +1,10 @@
 package com.aiplatform.foundation.provider.openaicompatible;
 
 import com.aiplatform.foundation.modelruntime.application.probe.port.out.ProviderConnectionProbe;
-import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelCapability;
-import com.aiplatform.foundation.modelruntime.domain.provider.model.ProviderKind;
-import com.aiplatform.foundation.modelruntime.application.probe.dto.ProviderProbeObservation;
-import com.aiplatform.foundation.modelruntime.application.probe.dto.ProviderProbeRequest;
+import com.aiplatform.foundation.modelruntime.application.extension.facade.ModelCapability;
+import com.aiplatform.foundation.modelruntime.application.extension.facade.ProviderKind;
+import com.aiplatform.foundation.modelruntime.application.extension.facade.ProviderProbeObservation;
+import com.aiplatform.foundation.modelruntime.application.extension.facade.request.ProviderProbeRequest;
 import com.aiplatform.foundation.security.egress.OutboundEndpointPolicy;
 import com.aiplatform.foundation.security.egress.UnsafeOutboundEndpointException;
 import com.aiplatform.foundation.security.secret.SecretResolver;
@@ -67,7 +67,7 @@ public final class OpenAiCompatibleConnectionProbe implements ProviderConnection
         try {
             secret = Objects.requireNonNull(
                     secretResolver.resolve(new SecretReference(
-                            request.credentialReference().value())),
+                            request.credentialReference())),
                     "密钥解析结果不能为空");
         } catch (RuntimeException exception) {
             return failure(startedAt, "OPENAI_COMPATIBLE_SECRET_RESOLUTION_FAILED");
@@ -78,7 +78,7 @@ public final class OpenAiCompatibleConnectionProbe implements ProviderConnection
                 callModel(request, new String(chars));
                 return null;
             });
-            return new ProviderProbeObservation(
+            return ProviderProbeObservation.of(
                     true,
                     detectedCapabilities(request),
                     elapsedSince(startedAt),
@@ -138,7 +138,7 @@ public final class OpenAiCompatibleConnectionProbe implements ProviderConnection
     }
 
     private static ProviderProbeObservation failure(long startedAt, String detailCode) {
-        return new ProviderProbeObservation(
+        return ProviderProbeObservation.of(
                 false,
                 Set.of(),
                 elapsedSince(startedAt),

@@ -10,7 +10,7 @@ import com.aiplatform.foundation.knowledgedata.application.datasource.command.Up
 import com.aiplatform.foundation.knowledgedata.application.datasource.dto.UploadTextContentResult;
 import com.aiplatform.foundation.knowledgedata.application.datasource.exception.InvalidTextContentException;
 import com.aiplatform.foundation.knowledgedata.application.datasource.exception.DataSourceConcurrentModificationException;
-import com.aiplatform.foundation.knowledgedata.application.datasource.exception.TextContentIntegrityException;
+import com.aiplatform.foundation.knowledgedata.application.datasource.port.out.TextContentIntegrityException;
 import com.aiplatform.foundation.knowledgedata.application.datasource.exception.TextContentProcessingException;
 import com.aiplatform.foundation.knowledgedata.application.knowledge.exception.KnowledgePermissionDeniedException;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.repository.TextContentAttachment;

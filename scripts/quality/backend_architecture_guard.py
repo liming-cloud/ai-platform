@@ -3,6 +3,7 @@
 import json
 import re
 import sys
+import xml.etree.ElementTree as ET
 from collections import Counter
 from pathlib import Path
 
@@ -50,6 +51,20 @@ VALID_ERROR_CODE = re.compile(
     r"\d{4}$"
 )
 MAX_PACKAGE_CLASSES = 12
+
+
+CONTEXT_PACKAGE_PREFIXES = {
+    "assistant-delivery": "com.aiplatform.foundation.assistantdelivery",
+    "evaluation-operations": "com.aiplatform.foundation.evaluationoperations",
+    "knowledge-data": "com.aiplatform.foundation.knowledgedata",
+    "model-runtime": "com.aiplatform.foundation.modelruntime",
+    "organization-access": "com.aiplatform.foundation.organizationaccess",
+    "trusted-query": "com.aiplatform.foundation.trustedquery",
+}
+JAVA_IMPORT = re.compile(
+    r"^\s*import\s+(?:static\s+)?(?P<package>[A-Za-z_][\w.]*)"
+)
+COMPILE_SCOPES = {None, "", "compile"}
 BASELINE = Path("scripts/quality/baselines/WP-0008-backend.json")
 COMPLEX_SQL_ALLOWLIST = Path(
     "scripts/quality/baselines/complex-sql-allowlist.json"
@@ -83,6 +98,194 @@ COUNT_CATEGORIES = {
     "manualListLimitCount": "手工列表分页",
 }
 
+
+
+def _strip_xml_namespace(element):
+    for child in element.iter():
+        if "}" in child.tag:
+            child.tag = child.tag.rsplit("}", 1)[1]
+    return element
+
+
+def _module_descriptor(root, pom):
+    parts = relative(root, pom).split("/")
+    if parts[-1] != "pom.xml":
+        return None
+    if len(parts) == 4 and parts[1] == "contexts":
+        kind = "context"
+        name = parts[2]
+    elif len(parts) == 5 and parts[1] == "extensions":
+        kind = "extension"
+        name = "/".join(parts[2:4])
+    else:
+        return None
+    try:
+        document = _strip_xml_namespace(ET.parse(pom).getroot())
+    except (ET.ParseError, OSError) as error:
+        return {"kind": kind, "name": name, "artifact": None, "path": relative(root, pom), "error": str(error)}
+    artifact = document.findtext("./artifactId")
+    return {
+        "kind": kind,
+        "name": name,
+        "artifact": artifact or name.split("/")[-1],
+        "path": relative(root, pom),
+        "pom": pom,
+        "xml": document,
+    }
+
+
+def _backend_modules(root):
+    modules = []
+    for pom in sorted((Path(root) / "backend").glob("**/pom.xml")):
+        descriptor = _module_descriptor(root, pom)
+        if descriptor is not None:
+            modules.append(descriptor)
+    return modules
+
+
+def _java_module(root, path):
+    parts = relative(root, path).split("/")
+    if len(parts) >= 5 and parts[:2] == ["backend", "contexts"] and parts[3:5] == ["src", "main"]:
+        return ("context", parts[2])
+    if len(parts) >= 6 and parts[:2] == ["backend", "extensions"] and parts[4:6] == ["src", "main"]:
+        return ("extension", "/".join(parts[2:4]))
+    return None
+
+
+def _target_context(package):
+    for context, prefix in CONTEXT_PACKAGE_PREFIXES.items():
+        if package == prefix or package.startswith(prefix + "."):
+            return context, package[len(prefix):].lstrip(".")
+    return None
+
+
+def _package_category(source_kind, suffix):
+    if suffix.startswith("infrastructure"):
+        return "infrastructure"
+    if suffix.startswith("domain"):
+        return "domain"
+    if suffix.startswith("application.") and ".facade." in "." + suffix + ".":
+        return "facade"
+    if (source_kind == "extension" and suffix.startswith("application.")
+            and ".port.out." in "." + suffix + "."):
+        return "port"
+    if suffix.startswith("application"):
+        return "application"
+    return "internal"
+
+
+def _pom_edges(root, modules):
+    by_artifact = {
+        module["artifact"]: module
+        for module in modules
+        if module.get("artifact")
+    }
+    edges = []
+    parse_errors = []
+    for source in modules:
+        document = source.get("xml")
+        if document is None:
+            if source.get("error"):
+                parse_errors.append(f"POM 无法解析：{source['path']}：{source['error']}")
+            continue
+        dependencies = document.find("./dependencies")
+        if dependencies is None:
+            continue
+        for dependency in dependencies.findall("./dependency"):
+            scope = dependency.findtext("./scope")
+            target = by_artifact.get(dependency.findtext("./artifactId"))
+            if target is None or scope not in COMPILE_SCOPES:
+                continue
+            if source["kind"] in {"context", "extension"} and target["kind"] == "context":
+                edges.append((source, target))
+    return edges, parse_errors
+
+
+def _cycle_violations(edges):
+    graph = {}
+    for source, target in edges:
+        graph.setdefault(source["name"], set()).add(target["name"])
+    violations = []
+
+    def visit(node, path, active):
+        if node in active:
+            start = path.index(node)
+            violations.append("Maven 依赖循环：" + " -> ".join(path[start:] + [node]))
+            return
+        if node not in graph:
+            return
+        for child in sorted(graph[node]):
+            visit(child, path + [child], active | {node})
+
+    for node in sorted(graph):
+        visit(node, [node], set())
+    return sorted(set(violations))
+
+
+def backend_dependency_boundary_violations(root):
+    root = Path(root)
+    modules = _backend_modules(root)
+    imports_by_module = {}
+    violations = []
+    for path in main_java_files(root):
+        source = _java_module(root, path)
+        if source is None:
+            continue
+        imports = []
+        for line_number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
+            match = JAVA_IMPORT.match(line)
+            if match:
+                imports.append((match.group("package"), line_number, relative(root, path)))
+        imports_by_module.setdefault(source, []).extend(imports)
+
+    edges, parse_errors = _pom_edges(root, modules)
+    edge_names = {
+        (source["kind"], source["name"], target["name"])
+        for source, target in edges
+    }
+    for source, imports in imports_by_module.items():
+        source_kind, source_name = source
+        for package, line_number, file_path in imports:
+            target = _target_context(package)
+            if target is None:
+                continue
+            target_name, suffix = target
+            if source_kind == "context" and source_name == target_name:
+                continue
+            category = _package_category(source_kind, suffix)
+            if source_kind not in {"context", "extension"}:
+                continue
+            if (source_kind, source_name, target_name) not in edge_names:
+                violations.append(
+                    f"{source_kind} {source_name} -> {target_name} 缺少 Maven 编译依赖："
+                    f"{file_path}:{line_number} {package}"
+                )
+            if category in {"facade", "port"}:
+                continue
+            boundary = "上下文" if source_kind == "context" else "extension"
+            violations.append(
+                f"{boundary} {source_name} -> {target_name} 禁止引用 {category}："
+                f"{file_path}:{line_number} {package}"
+            )
+
+    violations.extend(parse_errors)
+    violations.extend(_cycle_violations(edges))
+    imports_by_source = {
+        key: {package for package, _, _ in value}
+        for key, value in imports_by_module.items()
+    }
+    for source, target in edges:
+        target_prefix = CONTEXT_PACKAGE_PREFIXES.get(target["name"])
+        if target_prefix is None:
+            continue
+        used = any(package == target_prefix or package.startswith(target_prefix + ".")
+                   for package in imports_by_source.get((source["kind"], source["name"]), set()))
+        if not used:
+            violations.append(
+                f"{source['kind']} {source['name']} 声明了未使用的上下文 Maven 依赖："
+                f"{target['name']}（{source['path']}）"
+            )
+    return sorted(set(violations))
 
 def main_java_files(root):
     return sorted(
@@ -347,6 +550,7 @@ def scan(root):
         "invalidErrorCodes": sorted(
             code for code in error_codes if not VALID_ERROR_CODE.fullmatch(code)
         ),
+        "backendDependencyBoundaryViolations": backend_dependency_boundary_violations(root),
         "duplicateErrorCodes": sorted(
             code for code, count in error_code_counts.items() if count > 1
         ),
@@ -361,6 +565,11 @@ def compare(actual, baseline):
         errors.append(
             "错误码格式违规："
             + ", ".join(actual["invalidErrorCodes"])
+        )
+    if actual.get("backendDependencyBoundaryViolations"):
+        errors.append(
+            "后端依赖边界违规："
+            + "；".join(actual["backendDependencyBoundaryViolations"])
         )
     if actual.get("duplicateErrorCodes"):
         errors.append(
@@ -437,7 +646,8 @@ def verify(root):
         f"旧 adapter 文件 {actual['legacyContextAdapterCount']}，"
         f"runtimes 文件 {actual['runtimeDirectoryFileCount']}，"
         f"游标列表契约 {actual['cursorListContractCount']}，"
-        f"手工列表分页 {actual['manualListLimitCount']}"
+        f"手工列表分页 {actual['manualListLimitCount']}，"
+        f"后端依赖边界违规 {len(actual['backendDependencyBoundaryViolations'])}"
     )
 
 

@@ -4,8 +4,8 @@ import com.aiplatform.foundation.modelruntime.application.runtime.port.out.Embed
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.EmbeddingModelPort;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.embedding.EmbeddingDeploymentRef;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.common.ModelRuntimeSpecification;
-import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelType;
-import com.aiplatform.foundation.modelruntime.domain.provider.model.ProviderKind;
+import com.aiplatform.foundation.modelruntime.application.extension.facade.ModelType;
+import com.aiplatform.foundation.modelruntime.application.extension.facade.ProviderKind;
 import com.aiplatform.foundation.provider.springai.SpringAiEmbeddingModelAdapter;
 import com.aiplatform.foundation.security.egress.OutboundEndpointPolicy;
 import com.aiplatform.foundation.security.secret.SecretResolver;
@@ -44,7 +44,7 @@ public final class OpenAiCompatibleEmbeddingModelFactory implements EmbeddingMod
     @Override
     public EmbeddingModelPort create(ModelRuntimeSpecification specification) {
         try (var secret = secrets.resolve(new SecretReference(
-                specification.credentialReference().value()))) {
+                specification.credentialReference()))) {
             return create(specification, secret);
         }
     }

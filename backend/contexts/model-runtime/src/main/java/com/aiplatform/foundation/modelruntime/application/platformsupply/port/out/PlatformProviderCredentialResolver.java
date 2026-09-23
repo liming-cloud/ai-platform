@@ -1,6 +1,5 @@
 package com.aiplatform.foundation.modelruntime.application.platformsupply.port.out;
 
-import com.aiplatform.foundation.modelruntime.domain.provider.model.CredentialReference;
 import com.aiplatform.foundation.security.secret.SecretValue;
 
 /**
@@ -17,5 +16,5 @@ public interface PlatformProviderCredentialResolver {
      * @param reference 平台专用凭据引用
      * @return 可主动清零的秘密值
      */
-    SecretValue resolve(CredentialReference reference);
+    SecretValue resolve(String reference);
 }

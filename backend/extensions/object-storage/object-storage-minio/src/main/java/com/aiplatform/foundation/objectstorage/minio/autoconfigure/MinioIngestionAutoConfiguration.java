@@ -1,5 +1,6 @@
 package com.aiplatform.foundation.objectstorage.minio.autoconfigure;
 
+import com.aiplatform.foundation.knowledgedata.application.port.out.content.TextObjectStorageExtensionPort;
 import com.aiplatform.foundation.knowledgedata.application.port.out.content.TextContentObjectStoragePort;
 import com.aiplatform.foundation.objectstorage.minio.MinioTextContentObjectStorageAdapter;
 import io.minio.MinioClient;
@@ -28,8 +29,8 @@ public class MinioIngestionAutoConfiguration {
     }
 
     @Bean
-    @ConditionalOnMissingBean(TextContentObjectStoragePort.class)
-    TextContentObjectStoragePort ingestionObjectStorage(
+    @ConditionalOnMissingBean({TextObjectStorageExtensionPort.class, TextContentObjectStoragePort.class})
+    TextObjectStorageExtensionPort ingestionObjectStorage(
             MinioClient client,
             IngestionMinioProperties properties) {
         var adapter = new MinioTextContentObjectStorageAdapter(

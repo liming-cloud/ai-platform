@@ -9,14 +9,18 @@ import com.aiplatform.foundation.knowledgedata.application.datasource.service.Go
 import com.aiplatform.foundation.knowledgedata.application.datasource.service.ObjectStorageSynchronizationService;
 import com.aiplatform.foundation.knowledgedata.application.datasource.service.publication.ObjectStorageSyncArtifactPublicationService;
 import com.aiplatform.foundation.knowledgedata.application.port.out.content.TextContentObjectStoragePort;
+import com.aiplatform.foundation.knowledgedata.application.port.out.content.TextObjectStorageExtensionPort;
 import com.aiplatform.foundation.knowledgedata.application.datasource.port.out.PlatformObjectContentReaderPort;
+import com.aiplatform.foundation.knowledgedata.application.datasource.port.out.PlatformObjectContentReaderExtensionPort;
 import com.aiplatform.foundation.knowledgedata.application.datasource.port.out.dataset.StructuredDatasetCsvStoragePort;
+import com.aiplatform.foundation.knowledgedata.application.datasource.port.out.dataset.CsvObjectStorageExtensionPort;
 import com.aiplatform.foundation.objectstorage.minio.MinioTextContentObjectStorageAdapter;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.repository.GovernedDataSourceRepository;
 import com.aiplatform.foundation.knowledgedata.domain.datasource.repository.TextDataSourceRepository;
 import com.aiplatform.foundation.knowledgedata.domain.indexversion.repository.IndexVersionRepository;
 import com.aiplatform.foundation.knowledgedata.domain.knowledge.repository.KnowledgeSpaceRepository;
 import com.aiplatform.foundation.knowledgedata.infrastructure.configuration.KnowledgeDataCoreAutoConfiguration;
+import com.aiplatform.foundation.knowledgedata.infrastructure.configuration.KnowledgeDataStorageExtensionAutoConfiguration;
 import com.aiplatform.foundation.modelruntime.application.configuration.facade.UsableModelConfigurationLookup;
 import com.aiplatform.foundation.modelruntime.application.deployment.facade.PublishedEmbeddingDeploymentLookup;
 import com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator;
@@ -35,6 +39,7 @@ class MinioAutoConfigurationTest {
         new ApplicationContextRunner()
                 .withConfiguration(AutoConfigurations.of(
                         KnowledgeDataCoreAutoConfiguration.class,
+                        KnowledgeDataStorageExtensionAutoConfiguration.class,
                         MinioKnowledgeDataAutoConfiguration.class))
                 .withPropertyValues(
                         "foundation.knowledge-data.enabled=true",
@@ -56,7 +61,8 @@ class MinioAutoConfigurationTest {
                 .run(context -> {
                     assertThat(context).hasNotFailed();
                     assertThat(context).hasSingleBean(PlatformObjectContentReaderPort.class);
-                    assertThat(context.getBean(TextContentObjectStoragePort.class))
+                    assertThat(context).hasSingleBean(TextObjectStorageExtensionPort.class);
+                    assertThat(context.getBean(TextObjectStorageExtensionPort.class))
                             .isInstanceOf(MinioTextContentObjectStorageAdapter.class);
                     assertThat(context).hasSingleBean(ObjectStorageSynchronizationService.class);
                     assertThat(context).hasSingleBean(
@@ -88,12 +94,9 @@ class MinioAutoConfigurationTest {
                 .withBean(MinioClient.class, () -> client)
                 .run(context -> {
                     assertThat(context).hasNotFailed();
-                    assertThat(context).hasSingleBean(
-                            TextContentObjectStoragePort.class);
-                    assertThat(context).hasSingleBean(
-                            StructuredDatasetCsvStoragePort.class);
-                    assertThat(context).hasSingleBean(
-                            PlatformObjectContentReaderPort.class);
+                    assertThat(context).hasSingleBean(TextObjectStorageExtensionPort.class);
+                    assertThat(context).hasSingleBean(CsvObjectStorageExtensionPort.class);
+                    assertThat(context).hasSingleBean(PlatformObjectContentReaderExtensionPort.class);
                     assertThat(context.getBean(KnowledgeDataMinioProperties.class)
                             .getBucket()).isEqualTo("knowledge-private");
                     assertThat(context.getBean(KnowledgeDataMinioProperties.class)

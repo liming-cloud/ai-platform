@@ -17,12 +17,6 @@ import com.aiplatform.foundation.evaluationoperations.domain.evaluation.reposito
 import com.aiplatform.foundation.evaluationoperations.domain.release.repository.ReleaseDecisionRepository;
 import com.aiplatform.foundation.assistantdelivery.application.evaluation.facade.EvaluationAssistantExecution;
 import com.aiplatform.foundation.assistantdelivery.application.release.facade.ReleasePublicationAuthorization;
-import com.aiplatform.foundation.assistantdelivery.infrastructure.configuration.AssistantDeliveryCoreAutoConfiguration;
-import com.aiplatform.foundation.assistantdelivery.infrastructure.configuration.AssistantDeliveryPersistenceAutoConfiguration;
-import com.aiplatform.foundation.knowledgedata.infrastructure.configuration.KnowledgeDataPersistenceAutoConfiguration;
-import com.aiplatform.foundation.modelruntime.infrastructure.configuration.ModelRuntimePersistenceAutoConfiguration;
-import com.aiplatform.foundation.organizationaccess.infrastructure.configuration.OrganizationAccessPersistenceAutoConfiguration;
-import com.aiplatform.foundation.trustedquery.infrastructure.configuration.TrustedQueryPersistenceAutoConfiguration;
 import com.aiplatform.foundation.evaluationoperations.application.operations.service.OperationsQueryService;
 import com.aiplatform.foundation.evaluationoperations.application.operations.service.OperationsOverviewService;
 import com.aiplatform.foundation.evaluationoperations.application.operations.port.out.EvaluationOperationsFactSource;
@@ -46,15 +40,17 @@ import org.springframework.context.annotation.Bean;
  * 注册评测运维应用服务，事实源缺失时拒绝创建不完整能力。
  */
 @AutoConfiguration(after = {
-    AssistantDeliveryCoreAutoConfiguration.class,
-    AssistantDeliveryPersistenceAutoConfiguration.class,
-    KnowledgeDataPersistenceAutoConfiguration.class,
-    ModelRuntimePersistenceAutoConfiguration.class,
-    OrganizationAccessPersistenceAutoConfiguration.class,
-    TrustedQueryPersistenceAutoConfiguration.class,
     EvaluationOperationsPersistenceAutoConfiguration.class,
     EvaluationOperationsObjectStorageAutoConfiguration.class,
     EvaluationOperationsContentStagingAutoConfiguration.class
+}, afterName = {
+    // 条件装配必须晚于事实源注册；名称排序不引入跨上下文基础设施编译依赖。
+    "com.aiplatform.foundation.assistantdelivery.infrastructure.configuration.AssistantDeliveryCoreAutoConfiguration",
+    "com.aiplatform.foundation.assistantdelivery.infrastructure.configuration.AssistantDeliveryPersistenceAutoConfiguration",
+    "com.aiplatform.foundation.knowledgedata.infrastructure.configuration.KnowledgeDataPersistenceAutoConfiguration",
+    "com.aiplatform.foundation.modelruntime.infrastructure.configuration.ModelRuntimePersistenceAutoConfiguration",
+    "com.aiplatform.foundation.organizationaccess.infrastructure.configuration.OrganizationAccessPersistenceAutoConfiguration",
+    "com.aiplatform.foundation.trustedquery.infrastructure.configuration.TrustedQueryPersistenceAutoConfiguration"
 })
 @ConditionalOnProperty(
         name = "foundation.evaluation-operations.enabled",

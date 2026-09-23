@@ -3,7 +3,8 @@ package com.aiplatform.foundation.modelruntime.application.runtime;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import com.aiplatform.foundation.modelruntime.application.configuration.dto.UsableModelConfigurationSnapshot;
+import com.aiplatform.foundation.modelruntime.application.configuration.facade.UsableModelConfigurationSnapshot;
+import com.aiplatform.foundation.modelruntime.application.runtime.facade.DefaultChatRouteExecutor;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.ChatInvocationTransientException;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.ChatRouteExhaustedException;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.GovernedChatRuntime;
@@ -13,10 +14,10 @@ import com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.cha
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.chat.ChatResult;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.chat.ChatRole;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.dto.common.ModelUsage;
-import com.aiplatform.foundation.modelruntime.domain.configuration.model.ControlledModelCatalogEntryId;
-import com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelConfigurationId;
-import com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelRuntimeCapabilities;
-import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelType;
+import com.aiplatform.foundation.modelruntime.application.configuration.facade.ControlledModelCatalogEntryId;
+import com.aiplatform.foundation.modelruntime.application.configuration.facade.ModelConfigurationId;
+import com.aiplatform.foundation.modelruntime.application.configuration.facade.ModelRuntimeCapabilities;
+import com.aiplatform.foundation.modelruntime.application.configuration.facade.ModelType;
 import com.aiplatform.foundation.security.identity.AccessChannel;
 import com.aiplatform.foundation.security.identity.CredentialType;
 import com.aiplatform.foundation.security.identity.MembershipId;

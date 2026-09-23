@@ -24,4 +24,19 @@ public record ProviderProbeObservation(
             throw new IllegalArgumentException("探测耗时不能为负数");
         }
     }
+
+    /** 使用公开扩展能力构造观察值，内部再映射为领域类型。 */
+    public static ProviderProbeObservation of(
+            boolean reachable,
+            Set<com.aiplatform.foundation.modelruntime.application.extension.facade.ModelCapability> capabilities,
+            Duration elapsed,
+            String detailCode) {
+        return new ProviderProbeObservation(
+                reachable,
+                com.aiplatform.foundation.modelruntime.application.extension.service.ExtensionContractMapper
+                        .domainCapabilities(capabilities),
+                elapsed,
+                detailCode);
+    }
+
 }
