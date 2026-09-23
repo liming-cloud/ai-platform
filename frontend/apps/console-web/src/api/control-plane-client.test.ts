@@ -1062,6 +1062,26 @@ describe("ControlPlaneClient", () => {
     });
   });
 
+  it("管理员设置页按服务端条件读取且密码重置只传成员版本", async () => {
+    const requests: Request[] = [];
+    const client = authenticatedClient(async (input, init) => {
+      const request = new Request(input, init);
+      requests.push(request);
+      return request.method === "POST"
+        ? new Response(null, { status: 204 })
+        : new Response(JSON.stringify({ items: [], pageNumber: 2, pageSize: 20,
+          totalElements: 0, totalPages: 0, hasPrevious: true, hasNext: false }),
+          { status: 200, headers: { "Content-Type": "application/json" } });
+    });
+
+    await client.listTenantAdministrators("123", 2, 20, "alice", "DISABLED");
+    await client.resetTenantAdministratorPassword("123", "701", 4, "synthetic-only");
+
+    expect(requests[0]?.url).toBe("http://localhost/api/v1/platform/tenants/123/administrators?pageNumber=2&pageSize=20&q=alice&status=DISABLED");
+    expect(requests[1]?.url).toBe("http://localhost/api/v1/platform/tenants/123/administrators/701/password-reset");
+    expect(await requests[1]?.json()).toEqual({ expectedVersion: 4, password: "synthetic-only" });
+  });
+
   it("平台账户目录从服务端分页投影读取，且不携带浏览器授权头", async () => {
     let request: Request | undefined;
     const client = authenticatedClient(async (input, init) => {

@@ -1,6 +1,7 @@
 package com.aiplatform.foundation.organizationaccess.application.authorization.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.aiplatform.foundation.organizationaccess.application.authorization.port.out.PlatformAccountStore;
@@ -18,7 +19,7 @@ class PlatformAccountGovernanceApplicationServiceTest {
 
     @Test
     void 禁用后必须撤销目标主体的全部会话族且撤销失败不得返回成功() {
-        var store = new RecordingStore();
+        var store = new RecordingStore(true);
         var revoked = new AtomicLong();
         var service = new PlatformAccountGovernanceApplicationService(store, subjectId -> {
             revoked.set(subjectId.value());
@@ -63,7 +64,7 @@ class PlatformAccountGovernanceApplicationServiceTest {
 
     @Test
     void 受控重置必须替换摘要并撤销目标主体全部会话族后清除新口令() {
-        var store = new RecordingStore();
+        var store = new RecordingStore(true);
         var revoked = new AtomicLong();
         var service = new PlatformAccountGovernanceApplicationService(
                 store,
@@ -77,6 +78,35 @@ class PlatformAccountGovernanceApplicationServiceTest {
         assertEquals("new-encoded-password", store.updated.encodedPassword().verificationValue());
         assertEquals(1L, store.updated.version());
         assertEquals(new String(new char[password.length]), new String(password));
+    }
+
+    @Test
+    void 平台账户入口不得重置只有租户管理员资格的主体() {
+        var store = new RecordingStore();
+        var service = new PlatformAccountGovernanceApplicationService(
+                store,
+                subjectId -> { throw new AssertionError("不得撤销无权目标会话"); },
+                password -> "new-encoded-password");
+        var password = "replacement-password".toCharArray();
+
+        assertThrows(IllegalArgumentException.class,
+                () -> service.resetPassword(accountAdministrator(), 102L, password));
+
+        assertNull(store.updated);
+        assertEquals(new String(new char[password.length]), new String(password));
+    }
+
+    @Test
+    void 平台账户入口不得停用或启用只有租户管理员资格的主体() {
+        var store = new RecordingStore();
+        var service = new PlatformAccountGovernanceApplicationService(
+                store,
+                subjectId -> { throw new AssertionError("不得撤销无权目标会话"); },
+                password -> "unused");
+
+        assertThrows(IllegalArgumentException.class, () -> service.disable(accountAdministrator(), 102L));
+        assertThrows(IllegalArgumentException.class, () -> service.enable(accountAdministrator(), 102L));
+        assertNull(store.updated);
     }
 
     private static PlatformRequestContext accountAdministrator() {
@@ -93,14 +123,27 @@ class PlatformAccountGovernanceApplicationServiceTest {
 
         private SubjectIdentity updated;
         private final com.aiplatform.foundation.organizationaccess.domain.identity.model.SubjectIdentityStatus targetStatus;
+        private final boolean platformAdministrator;
 
         private RecordingStore() {
-            this(com.aiplatform.foundation.organizationaccess.domain.identity.model.SubjectIdentityStatus.ACTIVE);
+            this(false);
+        }
+
+        private RecordingStore(boolean platformAdministrator) {
+            this(com.aiplatform.foundation.organizationaccess.domain.identity.model.SubjectIdentityStatus.ACTIVE,
+                    platformAdministrator);
         }
 
         private RecordingStore(
                 com.aiplatform.foundation.organizationaccess.domain.identity.model.SubjectIdentityStatus targetStatus) {
+            this(targetStatus, true);
+        }
+
+        private RecordingStore(
+                com.aiplatform.foundation.organizationaccess.domain.identity.model.SubjectIdentityStatus targetStatus,
+                boolean platformAdministrator) {
             this.targetStatus = targetStatus;
+            this.platformAdministrator = platformAdministrator;
         }
 
         @Override
@@ -116,7 +159,7 @@ class PlatformAccountGovernanceApplicationServiceTest {
 
         @Override
         public boolean hasActiveAccountAdministratorRole(SubjectId subjectId) {
-            return false;
+            return platformAdministrator;
         }
 
         @Override

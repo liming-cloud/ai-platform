@@ -14,6 +14,10 @@ public enum OrganizationAccessRuleErrorCode implements ErrorCode {
             "ORGANIZATION_ACCESS.CONFLICT.0003",
             ErrorType.CONFLICT,
             "不能停用租户最后一个启用管理员"),
+    TENANT_ADMINISTRATOR_ALREADY_ASSIGNED(
+            "ORGANIZATION_ACCESS.CONFLICT.0004",
+            ErrorType.CONFLICT,
+            "该账户已担任其他租户管理员"),
     TENANT_ADMINISTRATOR_PLATFORM_OWNED(
             "ORGANIZATION_ACCESS.AUTHORIZATION.0002",
             ErrorType.AUTHORIZATION,

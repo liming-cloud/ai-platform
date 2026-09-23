@@ -3,8 +3,10 @@ package com.aiplatform.foundation.organizationaccess.interfaces.web.tenantlifecy
 import com.aiplatform.foundation.organizationaccess.application.authorization.dto.PlatformAccountCandidate;
 import com.aiplatform.foundation.organizationaccess.application.member.dto.TenantAdministratorSummary;
 import com.aiplatform.foundation.organizationaccess.application.member.service.PlatformTenantAdministratorApplicationService;
+import com.aiplatform.foundation.organizationaccess.application.member.service.PlatformTenantAdministratorCredentialService;
 import com.aiplatform.foundation.organizationaccess.application.member.service.PlatformTenantAdministratorQueryService;
 import com.aiplatform.foundation.organizationaccess.interfaces.web.tenantlifecycle.request.TenantAdministratorAssignmentRequest;
+import com.aiplatform.foundation.organizationaccess.interfaces.web.tenantlifecycle.request.TenantAdministratorPasswordResetRequest;
 import com.aiplatform.foundation.organizationaccess.interfaces.web.tenantlifecycle.request.TenantAdministratorReplacementRequest;
 import com.aiplatform.foundation.organizationaccess.interfaces.web.tenantlifecycle.request.TenantAdministratorVersionRequest;
 import com.aiplatform.foundation.organizationaccess.interfaces.web.tenantlifecycle.response.TenantAdministratorResponse;
@@ -30,12 +32,15 @@ public final class PlatformTenantAdministratorController {
 
     private final PlatformTenantAdministratorApplicationService commands;
     private final PlatformTenantAdministratorQueryService queries;
+    private final PlatformTenantAdministratorCredentialService credentials;
 
     public PlatformTenantAdministratorController(
             PlatformTenantAdministratorApplicationService commands,
-            PlatformTenantAdministratorQueryService queries) {
+            PlatformTenantAdministratorQueryService queries,
+            PlatformTenantAdministratorCredentialService credentials) {
         this.commands = Objects.requireNonNull(commands, "租户管理员命令服务不能为空");
         this.queries = Objects.requireNonNull(queries, "租户管理员查询服务不能为空");
+        this.credentials = Objects.requireNonNull(credentials, "租户管理员凭据服务不能为空");
     }
 
     /** 分页读取目标租户的管理员安全摘要。 */
@@ -43,9 +48,11 @@ public final class PlatformTenantAdministratorController {
     public PageResult<TenantAdministratorSummary> list(
             PlatformRequestContext platform,
             @PathVariable String tenantId,
+            @RequestParam(defaultValue = "") String q,
+            @RequestParam(defaultValue = "ALL") String status,
             @RequestParam(defaultValue = "1") long pageNumber,
             @RequestParam(defaultValue = "20") long pageSize) {
-        return queries.list(platform, tenantId, new PageQuery(pageNumber, pageSize));
+        return queries.list(platform, tenantId, q, status, new PageQuery(pageNumber, pageSize));
     }
 
     /** 搜索可分配的活动人员账户，不返回凭据、权限或会话事实。 */
@@ -111,6 +118,23 @@ public final class PlatformTenantAdministratorController {
                 parseMembershipReference(membershipReference),
                 request.expectedVersion(),
                 request.replacementAccountReferenceValue()));
+    }
+
+    /** 按目标租户的管理员成员资格重置全局密码，响应不包含任何凭据。 */
+    @PostMapping("/{membershipReference}/password-reset")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void resetPassword(
+            PlatformRequestContext platform,
+            @PathVariable String tenantId,
+            @PathVariable String membershipReference,
+            @RequestBody Map<String, Object> payload) {
+        var request = TenantAdministratorPasswordResetRequest.from(payload);
+        try {
+            credentials.resetPassword(platform, tenantId,
+                    parseMembershipReference(membershipReference), request.expectedVersion(), request.passwordCopy());
+        } finally {
+            request.clear();
+        }
     }
 
     private static long parseMembershipReference(String reference) {

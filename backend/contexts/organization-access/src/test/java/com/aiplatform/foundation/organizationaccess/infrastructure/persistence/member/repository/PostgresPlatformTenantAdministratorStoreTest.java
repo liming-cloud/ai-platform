@@ -6,6 +6,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.aiplatform.foundation.organizationaccess.application.authorization.port.out.PersonSessionFamilyRevoker;
 import com.aiplatform.foundation.organizationaccess.application.member.service.PlatformTenantAdministratorApplicationService;
+import com.aiplatform.foundation.organizationaccess.application.member.service.PlatformTenantAdministratorCredentialService;
+import com.aiplatform.foundation.organizationaccess.application.authentication.port.out.PasswordHasher;
+import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.identity.mapper.PlatformAccountMapper;
+import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.identity.repository.PostgresPlatformAccountStore;
 import com.aiplatform.foundation.organizationaccess.domain.member.model.SubjectId;
 import com.aiplatform.foundation.organizationaccess.domain.shared.exception.OrganizationAccessRuleViolation;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.member.mapper.PlatformTenantAdministratorMapper;
@@ -61,6 +65,9 @@ class PostgresPlatformTenantAdministratorStoreTest {
 
     @Autowired
     private PlatformTenantAdministratorApplicationService service;
+
+    @Autowired
+    private PlatformTenantAdministratorCredentialService credentials;
 
     @Autowired
     private JdbcTemplate jdbc;
@@ -165,6 +172,42 @@ class PostgresPlatformTenantAdministratorStoreTest {
     }
 
     @Test
+    void 租户管理员密码重置的会话撤销失败必须回滚全局身份() {
+        sessions.fail();
+
+        assertThrows(IllegalStateException.class, () -> credentials.resetPassword(
+                platformAdministrator(), Long.toString(TENANT), OLD_MEMBERSHIP, 5L,
+                new char[]{'a', 'b', 'c'}));
+
+        assertEquals("valid-hash", jdbc.queryForObject("""
+                SELECT password_hash FROM organization_access.subject_identity WHERE subject_id = ?
+                """, String.class, OLD_SUBJECT));
+        assertEquals(0L, jdbc.queryForObject("""
+                SELECT version FROM organization_access.subject_identity WHERE subject_id = ?
+                """, Long.class, OLD_SUBJECT));
+    }
+
+    @Test
+    void 租户管理员密码重置只更新对应全局身份且保留成员资格() {
+        credentials.resetPassword(platformAdministrator(), Long.toString(TENANT), OLD_MEMBERSHIP, 5L,
+                new char[]{'a', 'b', 'c'});
+
+        assertEquals("test-replacement-digest", jdbc.queryForObject("""
+                SELECT password_hash FROM organization_access.subject_identity WHERE subject_id = ?
+                """, String.class, OLD_SUBJECT));
+        assertEquals(1L, jdbc.queryForObject("""
+                SELECT version FROM organization_access.subject_identity WHERE subject_id = ?
+                """, Long.class, OLD_SUBJECT));
+        assertTrue(jdbc.queryForObject("""
+                SELECT updated_at FROM organization_access.subject_identity WHERE subject_id = ?
+                """, java.sql.Timestamp.class, OLD_SUBJECT).toInstant().isAfter(NOW));
+        assertEquals("ENABLED", jdbc.queryForObject("""
+                SELECT status FROM organization_access.tenant_membership
+                WHERE tenant_id = ? AND membership_id = ?
+                """, String.class, TENANT, OLD_MEMBERSHIP));
+    }
+
+    @Test
     void 只有一个启用管理员时不得停用() {
         assertThrows(OrganizationAccessRuleViolation.class, () -> service.disable(
                 platformAdministrator(), Long.toString(TENANT), OLD_MEMBERSHIP, 5L));
@@ -173,6 +216,38 @@ class PostgresPlatformTenantAdministratorStoreTest {
                 SELECT status FROM organization_access.tenant_membership
                 WHERE tenant_id = ? AND membership_id = ?
                 """, String.class, TENANT, OLD_MEMBERSHIP));
+    }
+
+    @Test
+    void 已任其他租户管理员的主体不得再分配且数据库拒绝并发绕过() {
+        var anotherTenant = TENANT + 1L;
+        jdbc.update("""
+                INSERT INTO organization_access.tenant
+                    (tenant_id, tenant_code, display_name, status, version, created_at, updated_at)
+                VALUES (?, 'second-admin-tenant', '第二租户', 'ENABLED', 0, ?::timestamptz, ?::timestamptz)
+                """, anotherTenant, NOW.toString(), NOW.toString());
+        jdbc.update("""
+                INSERT INTO organization_access.tenant_membership
+                    (membership_id, tenant_id, subject_id, membership_role, status,
+                     permission_version, version, created_at, updated_at)
+                VALUES (?, ?, ?, 'TENANT_ADMINISTRATOR', 'DISABLED', 0, 0,
+                    ?::timestamptz, ?::timestamptz)
+                """, OLD_MEMBERSHIP + 10L, anotherTenant, CANDIDATE_SUBJECT, NOW.toString(), NOW.toString());
+
+        assertThrows(OrganizationAccessRuleViolation.class, () -> service.assign(
+                platformAdministrator(), Long.toString(TENANT), CANDIDATE_SUBJECT));
+        assertEquals("TENANT_USER", jdbc.queryForObject("""
+                SELECT membership_role FROM organization_access.tenant_membership
+                WHERE tenant_id = ? AND subject_id = ?
+                """, String.class, TENANT, CANDIDATE_SUBJECT));
+
+        assertThrows(org.springframework.dao.DataIntegrityViolationException.class, () -> jdbc.update("""
+                INSERT INTO organization_access.tenant_membership
+                    (membership_id, tenant_id, subject_id, membership_role, status,
+                     permission_version, version, created_at, updated_at)
+                VALUES (?, ?, ?, 'TENANT_ADMINISTRATOR', 'ENABLED', 0, 0,
+                    ?::timestamptz, ?::timestamptz)
+                """, OLD_MEMBERSHIP + 11L, anotherTenant, OLD_SUBJECT, NOW.toString(), NOW.toString()));
     }
 
     @Test
@@ -228,10 +303,12 @@ class PostgresPlatformTenantAdministratorStoreTest {
     @SpringBootConfiguration
     @EnableAutoConfiguration
     @EnableTransactionManagement
-    @MapperScan(basePackageClasses = PlatformTenantAdministratorMapper.class)
+    @MapperScan(basePackageClasses = {PlatformTenantAdministratorMapper.class, PlatformAccountMapper.class})
     @Import({
             PlatformTenantAdministratorApplicationService.class,
-            PostgresPlatformTenantAdministratorStore.class
+            PlatformTenantAdministratorCredentialService.class,
+            PostgresPlatformTenantAdministratorStore.class,
+            PostgresPlatformAccountStore.class
     })
     static class TestApplication {
 
@@ -248,6 +325,11 @@ class PostgresPlatformTenantAdministratorStoreTest {
         @Bean
         FailingSessionFamilyRevoker sessionRevoker() {
             return new FailingSessionFamilyRevoker();
+        }
+
+        @Bean
+        PasswordHasher testPasswordHasher() {
+            return password -> "test-replacement-digest";
         }
     }
 

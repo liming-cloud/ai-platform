@@ -11,6 +11,7 @@ public final class PlatformTenantAdministratorSummaryRow {
     private long permissionVersion;
     private long version;
     private Instant createdAt;
+    private Instant lastSecurityChangeAt;
 
     public long getMembershipId() { return membershipId; }
     public void setMembershipId(long value) { membershipId = value; }
@@ -24,4 +25,6 @@ public final class PlatformTenantAdministratorSummaryRow {
     public void setVersion(long value) { version = value; }
     public Instant getCreatedAt() { return createdAt; }
     public void setCreatedAt(Instant value) { createdAt = value; }
+    public Instant getLastSecurityChangeAt() { return lastSecurityChangeAt; }
+    public void setLastSecurityChangeAt(Instant value) { lastSecurityChangeAt = value; }
 }

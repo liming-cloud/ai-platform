@@ -9,5 +9,6 @@ public record TenantAdministratorSummary(
         String status,
         long permissionVersion,
         long version,
-        Instant createdAt) {
+        Instant createdAt,
+        Instant lastSecurityChangeAt) {
 }

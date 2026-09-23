@@ -316,6 +316,16 @@ describe("统一控制台路由", () => {
       .toBe("/platform/tenants/new?step=3");
   });
 
+  it("租户管理员独立页恢复搜索、状态与服务端页码", () => {
+    expect(parseConsoleRoute("/platform/tenants/123/admins", "?q=alice&status=DISABLED&page=2"))
+      .toEqual({ navigationId: "platform", task: "admins", tenantId: "123", query: "alice", status: "DISABLED", page: 2, pageSize: 20 });
+    expect(formatConsoleRoute({ navigationId: "platform", task: "admins", tenantId: "123",
+      query: "alice", status: "DISABLED", page: 2, pageSize: 20 }))
+      .toBe("/platform/tenants/123/admins?q=alice&status=DISABLED&page=2&pageSize=20");
+    expect(parseConsoleRoute("/platform/tenants/123/admins", "?status=BAD&page=0"))
+      .toEqual({ navigationId: "platform", task: "admins", tenantId: "123", query: "", status: "ALL", page: 1, pageSize: 20 });
+  });
+
   it("平台账户目录以独立能力入口和 URL 恢复服务端页码", () => {
     expect(defaultConsoleRoute("platform-accounts")).toEqual({
       navigationId: "platform-accounts",

@@ -1,6 +1,7 @@
 package com.aiplatform.foundation.organizationaccess.infrastructure.persistence.member.repository;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.aiplatform.foundation.organizationaccess.application.member.service.PlatformTenantAdministratorQueryService;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.member.mapper.PlatformTenantAdministratorMapper;
@@ -102,11 +103,49 @@ class PostgresPlatformTenantAdministratorDirectoryTest {
 
     @Test
     void 管理员目录必须同时返回启用和停用管理员() {
-        var page = service.list(platformAdministrator(), Long.toString(TENANT), new PageQuery(1, 20));
+        var page = service.list(platformAdministrator(), Long.toString(TENANT), "", "ALL", new PageQuery(1, 20));
 
         assertEquals(2L, page.totalElements());
         assertEquals(java.util.List.of("disabled-admin", "enabled-admin"),
                 page.items().stream().map(item -> item.loginName()).toList());
+    }
+
+    @Test
+    void 管理员目录的搜索与状态筛选必须在数据库分页前执行() {
+        var enabled = service.list(
+                platformAdministrator(), Long.toString(TENANT), "admin", "ENABLED", new PageQuery(1, 1));
+        var disabled = service.list(
+                platformAdministrator(), Long.toString(TENANT), "admin", "DISABLED", new PageQuery(1, 1));
+        var missing = service.list(
+                platformAdministrator(), Long.toString(TENANT), "ordinary", "ALL", new PageQuery(1, 20));
+
+        assertEquals(1L, enabled.totalElements());
+        assertEquals("enabled-admin", enabled.items().getFirst().loginName());
+        assertEquals(1L, disabled.totalElements());
+        assertEquals("disabled-admin", disabled.items().getFirst().loginName());
+        assertEquals(0L, missing.totalElements());
+        assertEquals(0L, service.list(platformAdministrator(), Long.toString(TENANT), "%", "ALL",
+                new PageQuery(1, 20)).totalElements());
+        assertThrows(IllegalArgumentException.class, () -> service.list(
+                platformAdministrator(), Long.toString(TENANT), "", "ACTIVE", new PageQuery(1, 20)));
+    }
+
+    @Test
+    void 最近安全变更来自真实身份或成员更新时间且初始凭据保持原型文案() {
+        var initial = service.list(platformAdministrator(), Long.toString(TENANT), "enabled-admin", "ALL",
+                new PageQuery(1, 20));
+        assertEquals(null, initial.items().getFirst().lastSecurityChangeAt());
+        var changedAt = NOW.plusSeconds(3600);
+        jdbc.update("""
+                UPDATE organization_access.subject_identity
+                SET updated_at = ?::timestamptz
+                WHERE subject_id = 8101
+                """, changedAt.toString());
+
+        var changed = service.list(platformAdministrator(), Long.toString(TENANT), "enabled-admin", "ALL",
+                new PageQuery(1, 20));
+
+        assertEquals(changedAt, changed.items().getFirst().lastSecurityChangeAt());
     }
 
     @Test
@@ -115,6 +154,28 @@ class PostgresPlatformTenantAdministratorDirectoryTest {
                 platformAdministrator(), Long.toString(TENANT), "", new PageQuery(1, 20));
 
         assertEquals(java.util.List.of("fresh-candidate", "ordinary-member"),
+                page.items().stream().map(item -> item.loginName()).toList());
+    }
+
+    @Test
+    void 候选不得展示其他租户已停用但仍占用归属的管理员() {
+        jdbc.update("""
+                INSERT INTO organization_access.tenant
+                    (tenant_id, tenant_code, display_name, status, version, created_at, updated_at)
+                VALUES (?, 'second-directory', '第二租户', 'ENABLED', 0, ?::timestamptz, ?::timestamptz)
+                """, TENANT + 1L, NOW.toString(), NOW.toString());
+        jdbc.update("""
+                INSERT INTO organization_access.tenant_membership
+                    (membership_id, tenant_id, subject_id, membership_role, status,
+                     permission_version, version, created_at, updated_at)
+                VALUES (8204, ?, 8104, 'TENANT_ADMINISTRATOR', 'DISABLED', 0, 0,
+                    ?::timestamptz, ?::timestamptz)
+                """, TENANT + 1L, NOW.toString(), NOW.toString());
+
+        var page = service.candidates(
+                platformAdministrator(), Long.toString(TENANT), "", new PageQuery(1, 20));
+
+        assertEquals(java.util.List.of("ordinary-member"),
                 page.items().stream().map(item -> item.loginName()).toList());
     }
 

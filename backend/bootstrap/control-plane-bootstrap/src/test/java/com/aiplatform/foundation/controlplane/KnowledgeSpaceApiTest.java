@@ -339,7 +339,7 @@ class KnowledgeSpaceApiTest {
                 url("/api/v1/auth/sessions"),
                 Map.of(
                         "tenantCode", tenantCode,
-                        "loginName", "admin",
+                        "loginName", "demo-campus".equals(tenantCode) ? "tenant-admin-candidate" : "admin",
                         "password", "Demo@2026!"),
                 SessionResponse.class);
         assertEquals(HttpStatus.CREATED, response.getStatusCode());

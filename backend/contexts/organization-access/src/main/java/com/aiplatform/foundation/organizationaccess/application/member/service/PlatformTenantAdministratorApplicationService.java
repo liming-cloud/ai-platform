@@ -8,6 +8,8 @@ import com.aiplatform.foundation.organizationaccess.domain.member.model.MemberId
 import com.aiplatform.foundation.organizationaccess.domain.member.model.SubjectId;
 import com.aiplatform.foundation.organizationaccess.domain.member.model.TenantMembership;
 import com.aiplatform.foundation.organizationaccess.domain.member.service.TenantAdministratorGovernance;
+import com.aiplatform.foundation.organizationaccess.domain.shared.exception.OrganizationAccessRuleErrorCode;
+import com.aiplatform.foundation.organizationaccess.domain.shared.exception.OrganizationAccessRuleViolation;
 import com.aiplatform.foundation.security.identity.PlatformPermissions;
 import com.aiplatform.foundation.security.identity.PlatformRequestContext;
 import com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator;
@@ -54,6 +56,7 @@ public class PlatformTenantAdministratorApplicationService {
                 .orElseThrow(() -> new IllegalArgumentException("租户管理员候选不可用"));
         PersonnelScopeEligibility.requireTenantScope(
                 store.hasActivePlatformAdministrator(targetSubject));
+        requireSingleTenantAdministrator(targetSubject, targetTenant);
         var assignment = TenantAdministratorGovernance.assign(
                 targetTenant,
                 subject,
@@ -104,6 +107,7 @@ public class PlatformTenantAdministratorApplicationService {
                 .orElseThrow(() -> new IllegalArgumentException("租户管理员账户未启用"));
         PersonnelScopeEligibility.requireTenantScope(
                 store.hasActivePlatformAdministrator(subject.id()));
+        requireSingleTenantAdministrator(subject.id(), targetTenant);
         var administrator = lockedAdministrator(targetTenant, targetMember, expectedVersion);
         var restored = TenantAdministratorGovernance.restore(subject, administrator);
         store.update(restored);
@@ -129,6 +133,7 @@ public class PlatformTenantAdministratorApplicationService {
                 .orElseThrow(() -> new IllegalArgumentException("替换管理员候选不可用"));
         PersonnelScopeEligibility.requireTenantScope(
                 store.hasActivePlatformAdministrator(replacementId));
+        requireSingleTenantAdministrator(replacementId, targetTenant);
         var assignment = TenantAdministratorGovernance.assign(
                 targetTenant,
                 replacementSubject,
@@ -162,6 +167,13 @@ public class PlatformTenantAdministratorApplicationService {
         context = Objects.requireNonNull(context, "可信平台上下文不能为空");
         if (!context.hasPermission(PlatformPermissions.TENANT_GOVERNANCE_WRITE)) {
             throw new IllegalArgumentException("当前主体没有租户管理员治理权限");
+        }
+    }
+
+    private void requireSingleTenantAdministrator(SubjectId subjectId, TenantId tenantId) {
+        if (store.hasAdministratorInOtherTenant(subjectId, tenantId)) {
+            throw new OrganizationAccessRuleViolation(
+                    OrganizationAccessRuleErrorCode.TENANT_ADMINISTRATOR_ALREADY_ASSIGNED);
         }
     }
 }

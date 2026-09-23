@@ -52,6 +52,12 @@ public final class PostgresPlatformTenantAdministratorStore implements PlatformT
     }
 
     @Override
+    public boolean hasAdministratorInOtherTenant(SubjectId subjectId, TenantId tenantId) {
+        return mapper.hasAdministratorInOtherTenant(
+                requireSubject(subjectId).value(), requireTenant(tenantId).value());
+    }
+
+    @Override
     public Optional<TenantMembership> lockMembershipBySubject(
             TenantId tenantId,
             SubjectId subjectId) {

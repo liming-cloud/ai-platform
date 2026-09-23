@@ -102,6 +102,41 @@ class PlatformTenantAdministratorApplicationServiceTest {
         assertEquals(Set.of(), revoked);
     }
 
+    @Test
+    void 已任其他租户管理员的主体不得在当前租户分配或替换() {
+        var store = new RecordingStore();
+        store.administratorInOtherTenant = true;
+        var revoked = new LinkedHashSet<SubjectId>();
+        var service = service(store, revoked);
+
+        assertThrows(OrganizationAccessRuleViolation.class,
+                () -> service.assign(platformAdministrator(), TENANT.toString(), CANDIDATE_SUBJECT.value()));
+        assertThrows(OrganizationAccessRuleViolation.class,
+                () -> service.replace(platformAdministrator(), TENANT.toString(), PREVIOUS.value(), 5L,
+                        CANDIDATE_SUBJECT.value()));
+
+        assertNull(store.assignment);
+        assertNull(store.replacement);
+        assertEquals(Set.of(), revoked);
+    }
+
+    @Test
+    void 恢复时发现跨租户管理员事实必须拒绝且不撤销会话() {
+        var store = new RecordingStore();
+        store.administratorInOtherTenant = true;
+        store.previous = membership(
+                PREVIOUS.value(), PREVIOUS_SUBJECT, TenantMembershipRole.TENANT_ADMINISTRATOR,
+                TenantMembershipStatus.DISABLED, 5L);
+        var revoked = new LinkedHashSet<SubjectId>();
+
+        assertThrows(OrganizationAccessRuleViolation.class,
+                () -> service(store, revoked).restore(
+                        platformAdministrator(), TENANT.toString(), PREVIOUS.value(), 5L));
+
+        assertNull(store.updated);
+        assertEquals(Set.of(), revoked);
+    }
+
     private static PlatformTenantAdministratorApplicationService service(
             RecordingStore store,
             Set<SubjectId> revoked) {
@@ -147,6 +182,7 @@ class PlatformTenantAdministratorApplicationServiceTest {
         private Optional<TenantMembership> candidateMembership = Optional.empty();
         private long otherEnabledAdministrators = 1L;
         private boolean activePlatformAdministrator;
+        private boolean administratorInOtherTenant;
         private TenantAdministratorGovernance.Assignment assignment;
         private TenantAdministratorGovernance.Replacement replacement;
         private TenantMembership updated;
@@ -178,6 +214,11 @@ class PlatformTenantAdministratorApplicationServiceTest {
         @Override
         public boolean hasActivePlatformAdministrator(SubjectId subjectId) {
             return activePlatformAdministrator;
+        }
+
+        @Override
+        public boolean hasAdministratorInOtherTenant(SubjectId subjectId, TenantId tenantId) {
+            return administratorInOtherTenant;
         }
 
         @Override

@@ -135,7 +135,7 @@ INSERT INTO organization_access.tenant_membership (
     (
         3382738893456539651,
         100000000000000002,
-        4921825928971026434,
+        4921825928971026438,
         'TENANT_USER',
         'ENABLED',
         1,
@@ -280,7 +280,7 @@ WHERE tenant_id IN (
           100000000000000001,
           100000000000000002
       )
-  AND subject_id IN (4921825928971026434, 4921825928971026439)
+  AND subject_id IN (4921825928971026434, 4921825928971026438, 4921825928971026439)
   AND permission_version < 2;
 
 UPDATE organization_access.tenant_membership
@@ -291,7 +291,8 @@ WHERE tenant_id IN (
           100000000000000001,
           100000000000000002
       )
-  AND subject_id = 4921825928971026434
+  AND ((tenant_id = 100000000000000001 AND subject_id = 4921825928971026434)
+       OR (tenant_id = 100000000000000002 AND subject_id = 4921825928971026438))
   AND membership_role = 'TENANT_USER';
 
 -- 演示初始管理员的权限来自角色绑定，避免在历史直授权限表中伪造新的治理授权。
@@ -332,7 +333,7 @@ INSERT INTO organization_access.tenant_lifecycle (
         100000000000000002,
         'demo-campus',
         '校园演示租户',
-        4921825928971026434,
+        4921825928971026438,
         'ACTIVE',
         1,
         TIMESTAMPTZ '2026-07-27T00:00:00Z'

@@ -69,6 +69,7 @@ export type ConsoleRoute =
   | { navigationId: "platform"; task: "tenants"; page: number }
   | { navigationId: "platform"; task: "create"; step: 1 | 2 | 3 }
   | { navigationId: "platform"; task: "detail"; tenantId: string }
+  | { navigationId: "platform"; task: "admins"; tenantId: string; query: string; status: "ALL" | "ENABLED" | "DISABLED"; page: number; pageSize: 20 | 50 }
   | { navigationId: "platform-accounts"; task: "accounts"; page: number }
   | { navigationId: "platform-accounts"; task: "roles" }
   | { navigationId: "platform-model-supply"; task: "connections"; page: number }
@@ -356,6 +357,20 @@ export function parseConsoleRoute(pathname: string, search: string): ConsoleRout
   }
   const tenantDetail = /^\/platform\/tenants\/([1-9]\d*)$/.exec(routePath);
   if (tenantDetail) return { navigationId: "platform", task: "detail", tenantId: tenantDetail[1]! };
+  const tenantAdministrators = /^\/platform\/tenants\/([1-9]\d*)\/admins$/.exec(routePath);
+  if (tenantAdministrators) {
+    const parameters = new URLSearchParams(search);
+    const status = parameters.get("status");
+    return {
+      navigationId: "platform",
+      task: "admins",
+      tenantId: tenantAdministrators[1]!,
+      query: parameters.get("q")?.trim() ?? "",
+      status: status === "ENABLED" || status === "DISABLED" ? status : "ALL",
+      page: positivePage(parameters.get("page")),
+      pageSize: parameters.get("pageSize") === "50" ? 50 : 20,
+    };
+  }
   if (routePath === "/platform/roles") {
     return { navigationId: "platform-accounts", task: "roles" };
   }
@@ -422,6 +437,7 @@ export function formatConsoleRoute(route: ConsoleRoute): string {
     return route.task === "tenants"
       ? `/platform/tenants?page=${route.page}`
       : route.task === "detail" ? `/platform/tenants/${encodeURIComponent(route.tenantId)}`
+        : route.task === "admins" ? `/platform/tenants/${encodeURIComponent(route.tenantId)}/admins?${new URLSearchParams({ q: route.query, status: route.status, page: String(route.page), pageSize: String(route.pageSize) })}`
         : `/platform/tenants/new?step=${route.step}`;
   }
   if (route.navigationId === "platform-accounts") {

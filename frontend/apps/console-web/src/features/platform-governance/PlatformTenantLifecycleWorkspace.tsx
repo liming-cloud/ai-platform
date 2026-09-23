@@ -15,6 +15,7 @@ import {
 } from "../../api/control-plane-client";
 import { TenantProvisioningFlow } from "./TenantProvisioningFlow";
 import { TenantOverview } from "./TenantOverview";
+import { TenantAdministratorSettings } from "./TenantAdministratorSettings";
 import type { ConsoleRoute } from "../../session/console-route";
 
 type TenantRoute = Extract<ConsoleRoute, { navigationId: "platform" }>;
@@ -86,6 +87,9 @@ export function PlatformTenantLifecycleWorkspace({ client, route, onRouteChange 
 
   if (route.task === "create") return <TenantProvisioningFlow client={client} route={route} onRouteChange={onRouteChange} />;
   if (route.task === "detail") return <TenantOverview key={route.tenantId} client={client} tenantId={route.tenantId} onRouteChange={onRouteChange} />;
+  if (route.task === "admins") return <TenantAdministratorSettings
+    key={`${route.tenantId}:${route.query}:${route.status}:${route.page}:${route.pageSize}`}
+    client={client} route={route} onRouteChange={onRouteChange} />;
 
   return (
     <section className="governed-file-workspace" aria-live="polite">
@@ -270,7 +274,7 @@ function TenantAdministratorDialog({ client, tenant, onClose, onChanged }: {
           tenant.tenantId, administrator.membershipReference, administrator.version,
         ));
       setPendingAction(undefined);
-      setNotice(`“${administrator.loginName}”已${action === "disable" ? "停用" : "恢复"}。`);
+      setNotice(`“${administrator.loginName}”在当前租户的管理员资格已${action === "disable" ? "停用" : "恢复"}。`);
       onChanged(`租户“${tenant.displayName}”的管理员状态已更新。`);
       await loadAdministrators();
     } catch (error) {
@@ -343,7 +347,7 @@ function TenantAdministratorDialog({ client, tenant, onClose, onChanged }: {
             </aside>}
           </div>
           {pendingAction ? <div className="tenant-administrator-confirmation" role="alert">
-            <div><strong>确认{pendingAction.action === "disable" ? "停用" : "恢复"}“{pendingAction.administrator.loginName}”</strong><Text>{pendingAction.action === "disable" ? "旧会话会立即失效；若这是最后一位启用管理员，服务端将拒绝操作。" : "系统会重新检查该账户没有活动平台管理员身份。"}</Text></div>
+            <div><strong>确认{pendingAction.action === "disable" ? "停用管理员资格" : "恢复管理员资格"}：“{pendingAction.administrator.loginName}”</strong><Text>{pendingAction.action === "disable" ? "仅影响当前租户；旧会话会立即失效。若这是最后一位启用管理员，服务端将拒绝操作。" : "系统会重新检查该账户没有活动平台管理员身份。"}</Text></div>
             <div><Button appearance="secondary" disabled={submitting} onClick={() => setPendingAction(undefined)}>取消</Button><Button appearance="primary" disabled={submitting} onClick={() => void commitStatusChange()}>{submitting ? "正在提交" : "确认变更"}</Button></div>
           </div> : null}
         </DialogContent>

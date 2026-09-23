@@ -23,6 +23,9 @@ public interface PlatformTenantAdministratorStore {
     /** 判断受锁主体是否仍拥有活动平台管理员绑定。 */
     boolean hasActivePlatformAdministrator(SubjectId subjectId);
 
+    /** 在主体锁内检查其他租户已有的管理员资格，停用资格仍占用其所属租户。 */
+    boolean hasAdministratorInOtherTenant(SubjectId subjectId, TenantId tenantId);
+
     /** 锁定目标主体在租户内的既有成员资格。 */
     Optional<TenantMembership> lockMembershipBySubject(TenantId tenantId, SubjectId subjectId);
 

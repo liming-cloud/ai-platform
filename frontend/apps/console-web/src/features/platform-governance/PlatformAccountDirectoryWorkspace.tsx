@@ -200,10 +200,11 @@ export function PlatformAccountDirectoryWorkspace({
                   <MenuButton disabled={busy}>更多操作</MenuButton>
                 </MenuTrigger>
                 <MenuPopover><MenuList>
-                  {account.status === "DISABLED" ? (
+                  {account.status === "DISABLED" && account.activeRoleCodes.includes("PLATFORM_ADMINISTRATOR") ? (
                     <MenuItem onClick={() => setDialog({ kind: "enable", account })}>启用账户</MenuItem>
                   ) : null}
-                  <MenuItem onClick={() => setDialog({ kind: "reset", account })}>重置口令</MenuItem>
+                  {account.activeRoleCodes.includes("PLATFORM_ADMINISTRATOR") ?
+                    <MenuItem onClick={() => setDialog({ kind: "reset", account })}>重置口令</MenuItem> : null}
                   {account.status === "ACTIVE" ? roles.filter((role) => !account.activeRoleCodes.includes(role.code)).map((role) => (
                     <MenuItem key={role.code} onClick={() => setDialog({ kind: "role", account, roleCode: role.code, action: "bind" })}>授予平台治理权限</MenuItem>
                   )) : null}

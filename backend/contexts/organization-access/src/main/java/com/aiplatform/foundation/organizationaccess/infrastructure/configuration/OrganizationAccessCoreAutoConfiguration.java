@@ -35,6 +35,7 @@ import com.aiplatform.foundation.organizationaccess.application.member.port.out.
 import com.aiplatform.foundation.organizationaccess.application.member.port.out.PlatformTenantAdministratorDirectory;
 import com.aiplatform.foundation.organizationaccess.application.member.port.out.PlatformTenantAdministratorStore;
 import com.aiplatform.foundation.organizationaccess.application.member.service.PlatformTenantAdministratorApplicationService;
+import com.aiplatform.foundation.organizationaccess.application.member.service.PlatformTenantAdministratorCredentialService;
 import com.aiplatform.foundation.organizationaccess.application.member.service.PlatformTenantAdministratorQueryService;
 import com.aiplatform.foundation.organizationaccess.application.member.service.TenantMemberStatusApplicationService;
 import com.aiplatform.foundation.organizationaccess.application.member.port.out.TenantMemberDirectory;
@@ -325,6 +326,16 @@ public class OrganizationAccessCoreAutoConfiguration {
     PlatformTenantAdministratorQueryService platformTenantAdministratorQueryService(
             PlatformTenantAdministratorDirectory directory) {
         return new PlatformTenantAdministratorQueryService(directory);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    PlatformTenantAdministratorCredentialService platformTenantAdministratorCredentialService(
+            PlatformTenantAdministratorStore administrators,
+            PlatformAccountStore accounts,
+            PersonSessionFamilyRevoker sessions,
+            PasswordHasher passwords) {
+        return new PlatformTenantAdministratorCredentialService(administrators, accounts, sessions, passwords);
     }
 
     @Bean

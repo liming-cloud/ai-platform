@@ -36,6 +36,7 @@ export interface TenantAdministratorSummary {
   permissionVersion: number;
   version: number;
   createdAt: string;
+  lastSecurityChangeAt?: string | null;
 }
 
 /** 平台租户管理员写操作的最小回显。 */
@@ -701,10 +702,18 @@ export class ControlPlaneClient {
     tenantId: string,
     pageNumber = 1,
     pageSize = 20,
+    query = "",
+    status: "ALL" | "ENABLED" | "DISABLED" = "ALL",
   ): Promise<PageResult<TenantAdministratorSummary>> {
     const target = encodeURIComponent(tenantId);
+    const parameters = new URLSearchParams({
+      pageNumber: String(pageNumber),
+      pageSize: String(pageSize),
+    });
+    if (query.trim()) parameters.set("q", query.trim());
+    if (status !== "ALL") parameters.set("status", status);
     return this.request<PageResult<TenantAdministratorSummary>>(
-      `/platform/tenants/${target}/administrators?pageNumber=${pageNumber}&pageSize=${pageSize}`,
+      `/platform/tenants/${target}/administrators?${parameters}`,
     );
   }
 
@@ -755,6 +764,24 @@ export class ControlPlaneClient {
   ): Promise<TenantAdministratorMutation> {
     return this.changeTenantAdministratorStatus(
       tenantId, membershipReference, "restore", expectedVersion,
+    );
+  }
+
+  /** 仅按当前租户管理员成员引用重置全局身份；响应不含凭据。 */
+  async resetTenantAdministratorPassword(
+    tenantId: string,
+    membershipReference: string,
+    expectedVersion: number,
+    password: string,
+  ): Promise<void> {
+    await this.request<void>(
+      `/platform/tenants/${encodeURIComponent(tenantId)}/administrators/`
+        + `${encodeURIComponent(membershipReference)}/password-reset`,
+      {
+        method: "POST",
+        headers: this.writeHeaders("application/json"),
+        body: JSON.stringify({ expectedVersion, password }),
+      },
     );
   }
 

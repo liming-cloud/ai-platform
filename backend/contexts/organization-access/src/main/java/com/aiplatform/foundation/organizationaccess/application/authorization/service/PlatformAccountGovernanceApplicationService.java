@@ -37,6 +37,7 @@ public class PlatformAccountGovernanceApplicationService {
         var targetId = new SubjectId(subjectId);
         var target = store.lock(targetId)
                 .orElseThrow(() -> new IllegalArgumentException("目标账户不存在"));
+        requirePlatformAccount(targetId);
         var result = PlatformAccountGovernance.disable(
                 new SubjectId(context.subjectId().value()),
                 target,
@@ -56,6 +57,7 @@ public class PlatformAccountGovernanceApplicationService {
         var targetId = new SubjectId(subjectId);
         var target = store.lock(targetId)
                 .orElseThrow(() -> new IllegalArgumentException("目标账户不存在"));
+        requirePlatformAccount(targetId);
         var result = PlatformAccountGovernance.enable(
                 new SubjectId(context.subjectId().value()), target);
         store.update(result.identity());
@@ -78,6 +80,7 @@ public class PlatformAccountGovernanceApplicationService {
             var targetId = new SubjectId(subjectId);
             var target = store.lock(targetId)
                     .orElseThrow(() -> new IllegalArgumentException("目标账户不存在"));
+            requirePlatformAccount(targetId);
             var result = PlatformAccountGovernance.resetPassword(
                     new SubjectId(context.subjectId().value()),
                     target,
@@ -86,6 +89,12 @@ public class PlatformAccountGovernanceApplicationService {
             sessions.revokeAll(result.sessionRevocationSubjectId());
         } finally {
             Arrays.fill(replacementPassword, '\0');
+        }
+    }
+
+    private void requirePlatformAccount(SubjectId subjectId) {
+        if (!store.hasActiveAccountAdministratorRole(subjectId)) {
+            throw new IllegalArgumentException("目标不是平台账户管理员");
         }
     }
 }

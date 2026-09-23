@@ -813,6 +813,12 @@
     },
     {
       "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/PlatformTenantAdministratorMapper.xml",
+      "statementId": "hasAdministratorInOtherTenant",
+      "category": "SECURITY_PROJECTION",
+      "reason": "在共同主体锁范围内核查其他租户的管理员资格，停用资格仍占用原租户。"
+    },
+    {
+      "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/PlatformTenantAdministratorMapper.xml",
       "statementId": "lockMembershipBySubject",
       "category": "ROW_LOCK",
       "reason": "分配前锁定候选主体在目标租户的既有成员资格，支持安全原位提升并避免重复建立。"

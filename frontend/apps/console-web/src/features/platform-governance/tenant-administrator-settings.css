@@ -1,0 +1,56 @@
+/* 管理员设置页沿用已验收原型的摘要、筛选、表格和分页节奏。 */
+.tenant-admin-page { gap: 0; }
+.tenant-admin-page .tenant-overview__settings { margin-bottom: 40px; }
+.tenant-admin-page__summary { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); margin: 0 0 20px; border-block: 1px solid var(--foundation-border); }
+.tenant-admin-page__summary > div { min-width: 0; padding: 16px; }
+.tenant-admin-page__summary > div + div { border-left: 1px solid var(--foundation-border); }
+.tenant-admin-page__summary dt { font-size: 14px; color: var(--foundation-secondary-text); }
+.tenant-admin-page__summary dd { margin: 4px 0 0; font-size: 20px; font-weight: 650; }
+.tenant-admin-page__toolbar { display: flex; align-items: end; justify-content: space-between; flex-wrap: wrap; gap: 16px; margin: 0 0 20px; }
+.tenant-admin-page__toolbar label { display: grid; gap: 8px; font-size: 16px; font-weight: 620; }
+.tenant-admin-page__toolbar label:first-child { width: min(100%, 352px); }
+.tenant-admin-page__toolbar .fui-Input { min-height: 36px; border-color: var(--foundation-border-strong); }
+.tenant-admin-page__toolbar .fui-Input input { font-size: 16px; }
+.tenant-admin-page__toolbar select, .tenant-admin-page__pagination select, .tenant-admin-page__pagination input { min-height: 36px; padding: 5px 12px; color: var(--foundation-text); background: var(--foundation-surface); border: 1px solid var(--foundation-border-strong); border-radius: var(--foundation-control-radius); font: inherit; }
+.tenant-admin-page__table-shell { min-width: 0; overflow: hidden; border: 1px solid var(--foundation-border); border-radius: var(--foundation-control-radius); background: var(--foundation-surface); }
+.tenant-admin-page__table-shell table { width: 100%; border-collapse: collapse; table-layout: fixed; font-size: 16px; }
+.tenant-admin-page__table-shell th { padding: 12px 16px; background: var(--foundation-subtle-surface); color: var(--foundation-secondary-text); font-weight: 620; text-align: left; overflow-wrap: anywhere; }
+.tenant-admin-page__table-shell td { padding: 12px 16px; border-top: 1px solid var(--foundation-border); vertical-align: middle; overflow-wrap: anywhere; }
+.tenant-admin-page__table-shell th:last-child, .tenant-admin-page__table-shell td:last-child { text-align: right; }
+.tenant-admin-page__table-shell td strong { font-weight: 650; }
+.tenant-admin-page__status { display: inline-flex; align-items: center; gap: 6px; padding: 2px 8px; border: 1px solid var(--foundation-success-border); border-radius: 999px; background: var(--foundation-success-background); color: var(--foundation-success-foreground); white-space: nowrap; font-size: 14px; font-weight: 620; }
+.tenant-admin-page__status[data-status="DISABLED"] { border-color: var(--foundation-warning-border); background: var(--foundation-warning-background); color: var(--foundation-warning-foreground); }
+.tenant-admin-page__status > span { font-size: 9px; }
+.tenant-admin-page__actions { display: inline-flex; align-items: center; justify-content: end; flex-wrap: wrap; gap: 8px; }
+.tenant-admin-page__actions .fui-Button, .tenant-admin-page__pagination .fui-Button { min-height: 36px; white-space: nowrap; }
+.tenant-admin-page__actions details { position: relative; }
+.tenant-admin-page__actions summary { display: inline-flex; align-items: center; min-height: 36px; padding: 5px 8px; cursor: pointer; list-style: none; font-size: 14px; font-weight: 620; white-space: nowrap; }
+.tenant-admin-page__actions summary::-webkit-details-marker { display: none; }
+.tenant-admin-page__actions details > div { position: absolute; z-index: 5; top: 100%; right: 0; min-width: 180px; padding: 6px; border: 1px solid var(--foundation-border-strong); border-radius: var(--foundation-control-radius); background: var(--foundation-surface); box-shadow: 0 12px 30px rgb(0 0 0 / 12%); }
+.tenant-admin-page__actions details button { width: 100%; min-height: 36px; padding: 6px 8px; border: 0; text-align: left; background: transparent; color: var(--foundation-text); font: inherit; cursor: pointer; }
+.tenant-admin-page__actions details button:hover { background: var(--foundation-hover-surface); }
+.tenant-admin-page__empty { margin: 0; padding: 20px; border-top: 1px solid var(--foundation-border); }
+.tenant-admin-page__pagination { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; padding: 12px 16px; border-top: 1px solid var(--foundation-border); font-size: 14px; }
+.tenant-admin-page__pagination > div, .tenant-admin-page__pagination form, .tenant-admin-page__pagination label { display: inline-flex; align-items: center; gap: 8px; }
+.tenant-admin-page__pagination form { margin: 0; padding: 0; }
+.tenant-admin-page__pagination input { width: 60px; }
+.tenant-admin-page__current { display: inline-grid; place-items: center; min-width: 32px; min-height: 36px; padding: 0 8px; border-radius: var(--foundation-control-radius); color: var(--foundation-on-accent); background: var(--foundation-accent); }
+.tenant-admin-page__dialog .fui-DialogContent { display: grid; gap: 12px; }
+.tenant-admin-page__dialog .fui-DialogContent p { margin: 0; line-height: 1.6; }
+@media (max-width: 680px) {
+  .tenant-admin-page__summary > div { padding: 12px; }
+  .tenant-admin-page__toolbar label, .tenant-admin-page__toolbar label:first-child { width: 100%; }
+  .tenant-admin-page__table-shell { overflow: visible; }
+  .tenant-admin-page__table-shell table, .tenant-admin-page__table-shell tbody, .tenant-admin-page__table-shell tr, .tenant-admin-page__table-shell td { display: block; width: 100%; min-width: 0; }
+  .tenant-admin-page__table-shell thead { display: none; }
+  .tenant-admin-page__table-shell tr { padding: 12px 16px; border-top: 1px solid var(--foundation-border); }
+  .tenant-admin-page__table-shell td, .tenant-admin-page__table-shell td:last-child { display: flex; justify-content: space-between; gap: 16px; padding: 6px 0; border: 0; text-align: right; }
+  .tenant-admin-page__table-shell td::before { content: attr(data-label); color: var(--foundation-muted-text); text-align: left; }
+  .tenant-admin-page__actions { flex-wrap: wrap; }
+  .tenant-admin-page__pagination > div { flex-wrap: wrap; }
+}
+@media (any-pointer: coarse) {
+  .tenant-admin-page__toolbar select, .tenant-admin-page__pagination select, .tenant-admin-page__pagination input,
+  .tenant-admin-page__actions summary, .tenant-admin-page__actions details button,
+  .tenant-admin-page__actions .fui-Button, .tenant-admin-page__pagination .fui-Button { min-height: 44px; }
+}

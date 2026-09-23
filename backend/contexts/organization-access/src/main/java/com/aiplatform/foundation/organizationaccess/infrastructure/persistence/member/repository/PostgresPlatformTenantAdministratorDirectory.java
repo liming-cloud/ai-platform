@@ -21,20 +21,23 @@ public final class PostgresPlatformTenantAdministratorDirectory
     }
 
     @Override
-    public PageResult<TenantAdministratorSummary> page(TenantId tenantId, PageQuery page) {
+    public PageResult<TenantAdministratorSummary> page(
+            TenantId tenantId, String query, String status, PageQuery page) {
         tenantId = Objects.requireNonNull(tenantId, "租户标识不能为空");
         page = Objects.requireNonNull(page, "分页查询不能为空");
+        var pattern = "%" + escapeLike(Objects.requireNonNull(query, "搜索词不能为空")
+                .toLowerCase(Locale.ROOT)) + "%";
         var items = mapper.selectAdministratorPage(
-                        tenantId.value(), page.offset(), page.pageSize()).stream()
+                        tenantId.value(), pattern, status, page.offset(), page.pageSize()).stream()
                 .map(row -> new TenantAdministratorSummary(
                         Long.toString(row.getMembershipId()),
                         row.getLoginName(),
                         row.getStatus(),
                         row.getPermissionVersion(),
                         row.getVersion(),
-                        row.getCreatedAt()))
+                        row.getCreatedAt(), row.getLastSecurityChangeAt()))
                 .toList();
-        return PageResult.of(items, page, mapper.countAdministrators(tenantId.value()));
+        return PageResult.of(items, page, mapper.countAdministrators(tenantId.value(), pattern, status));
     }
 
     @Override

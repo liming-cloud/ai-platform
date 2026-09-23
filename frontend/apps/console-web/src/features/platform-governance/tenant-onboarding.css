@@ -143,9 +143,11 @@
 .tenant-overview__identity-heading > .fui-Badge { gap: 0.35rem; min-height: 24px; padding: 2px 8px; border-radius: 999px; font-size: 14px; font-weight: 650; line-height: 1.6; border: 1px solid var(--foundation-warning-border); color: var(--foundation-warning-foreground); background: var(--foundation-warning-background); }
 .tenant-overview__identity-heading > .fui-Badge > span { font-size: 0; width: 0.4rem; height: 0.4rem; background: currentColor; border-radius: 50%; }
 
-/* 仅连接当前已交付的概览资源，后续独立设置没有占位操作。 */
+/* 仅概览与管理员是可操作入口；其余原型标题不提供虚假跳转。 */
 .tenant-overview__settings { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; padding-bottom: 8px; border-bottom: 1px solid var(--foundation-border); }
-.tenant-overview__settings a { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: var(--foundation-control-height); padding: 6px 12px; border: 1px solid transparent; border-radius: var(--foundation-control-radius); background: var(--foundation-hover-surface); box-shadow: inset 0 -2px var(--foundation-accent); font-size: 14px; font-weight: 620; line-height: 1.428572; text-decoration: none; }
+.tenant-overview__settings a, .tenant-overview__settings span { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: var(--foundation-control-height); padding: 6px 12px; border: 1px solid transparent; border-radius: var(--foundation-control-radius); font-size: 14px; font-weight: 620; line-height: 1.428572; text-decoration: none; }
+.tenant-overview__settings a[aria-current="page"] { background: var(--foundation-hover-surface); box-shadow: inset 0 -2px var(--foundation-accent); color: var(--foundation-accent); }
+.tenant-overview__settings span[aria-disabled="true"] { color: var(--foundation-text); }
 
 .tenant-overview__identity-heading > .fui-Badge[data-status="ACTIVE"] { border-color: var(--foundation-success-border); color: var(--foundation-success-foreground); background: var(--foundation-success-background); }
 

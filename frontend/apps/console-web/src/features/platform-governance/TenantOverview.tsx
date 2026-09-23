@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import type { ControlPlaneClient } from "../../api/control-plane-client";
 import type { ConsoleRoute } from "../../session/console-route";
 import { currentTenantOverview, readTenantOverview, type TenantOverviewRead } from "./tenant-overview-loader";
+import { TenantSettingsNavigation } from "./TenantSettingsNavigation";
 import "./tenant-onboarding.css";
 
 /** 新开户后及直接刷新均从真实读取接口恢复；仅展示该切片已经交付的事实。 */
@@ -27,7 +28,7 @@ export function TenantOverview({ client, tenantId, onRouteChange }: {
       status={data ? { label: status, tone: data.tenant.status === "ACTIVE" ? "success" : "warning" } : undefined}
       action={<Button className="tenant-overview__return" appearance="primary" onClick={() => onRouteChange({ navigationId: "platform", task: "tenants", page: 1 })}>返回租户目录</Button>} />
     <section className="tenant-onboarding tenant-overview">
-      <nav className="tenant-overview__settings" aria-label="租户设置"><a href={`/platform/tenants/${encodeURIComponent(tenantId)}`} aria-current="page">概览</a></nav>
+      <TenantSettingsNavigation tenantId={tenantId} active="detail" onRouteChange={onRouteChange} />
     {failure ? <><MessageBar intent="error"><MessageBarBody><MessageBarTitle>{failure.title}</MessageBarTitle>{failure.description}</MessageBarBody></MessageBar><Button onClick={() => setRevision(value => value + 1)}>重新加载</Button></> : !data ? <p role="status">正在读取租户信息…</p> : <>
       <div className="tenant-overview__summary-grid">
         <div className="tenant-overview__identity">

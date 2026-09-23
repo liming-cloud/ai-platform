@@ -43,6 +43,11 @@ class WorkPackageAcceptanceTest(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("必须提供 0600 验收凭据文件", result.stderr)
 
+    def test_admins_is_a_named_slice_not_whole_package_success(self):
+        result = self.invoke("WP-0017", "admins")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("必须提供 0600 验收凭据文件", result.stderr)
+
     def test_setup_requires_explicit_supported_value(self):
         result = self.invoke("WP-0017", "login", SETUP="reset")
         self.assertNotEqual(result.returncode, 0)

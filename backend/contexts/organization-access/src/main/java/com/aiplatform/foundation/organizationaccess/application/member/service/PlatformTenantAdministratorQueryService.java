@@ -25,9 +25,19 @@ public class PlatformTenantAdministratorQueryService {
     public PageResult<TenantAdministratorSummary> list(
             PlatformRequestContext context,
             String tenantId,
+            String query,
+            String status,
             PageQuery page) {
         requireTenantGovernor(context);
-        return directory.page(TenantId.parse(tenantId), Objects.requireNonNull(page, "分页查询不能为空"));
+        query = query == null ? "" : query.trim();
+        if (query.codePointCount(0, query.length()) > 64) {
+            throw new IllegalArgumentException("管理员搜索词不能超过六十四个字符");
+        }
+        if (!java.util.Set.of("ALL", "ENABLED", "DISABLED").contains(status)) {
+            throw new IllegalArgumentException("管理员状态筛选无效");
+        }
+        return directory.page(TenantId.parse(tenantId), query, status,
+                Objects.requireNonNull(page, "分页查询不能为空"));
     }
 
     /** 分页搜索可分配为目标租户管理员的活动账户。 */

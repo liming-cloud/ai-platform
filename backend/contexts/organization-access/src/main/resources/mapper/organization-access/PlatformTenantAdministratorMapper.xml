@@ -62,6 +62,16 @@
         )
     </select>
 
+    <select id="hasAdministratorInOtherTenant" resultType="boolean">
+        SELECT EXISTS (
+            SELECT 1
+            FROM organization_access.tenant_membership
+            WHERE subject_id = #{subjectId}
+              AND tenant_id &lt;&gt; #{tenantId}
+              AND membership_role = 'TENANT_ADMINISTRATOR'
+        )
+    </select>
+
     <select id="lockMembershipBySubject" resultMap="membership">
         SELECT membership_id, tenant_id, subject_id, membership_role, status,
                permission_version, version, created_at
@@ -130,12 +140,18 @@
                membership.status,
                membership.permission_version,
                membership.version,
-               membership.created_at
+               membership.created_at,
+               CASE WHEN subject.updated_at &gt; subject.created_at
+                         OR membership.updated_at &gt; membership.created_at
+                    THEN GREATEST(subject.updated_at, membership.updated_at)
+                    ELSE NULL END AS last_security_change_at
         FROM organization_access.tenant_membership membership
         INNER JOIN organization_access.subject_identity subject
             ON subject.subject_id = membership.subject_id
         WHERE membership.tenant_id = #{tenantId}
           AND membership.membership_role = 'TENANT_ADMINISTRATOR'
+          AND lower(subject.login_name) LIKE #{pattern} ESCAPE '\'
+          AND (#{status} = 'ALL' OR membership.status = #{status})
         ORDER BY lower(subject.login_name), membership.membership_id
         LIMIT #{pageSize}
         OFFSET #{offset}
@@ -143,9 +159,13 @@
 
     <select id="countAdministrators" resultType="long">
         SELECT count(*)
-        FROM organization_access.tenant_membership
-        WHERE tenant_id = #{tenantId}
-          AND membership_role = 'TENANT_ADMINISTRATOR'
+        FROM organization_access.tenant_membership membership
+        INNER JOIN organization_access.subject_identity subject
+            ON subject.subject_id = membership.subject_id
+        WHERE membership.tenant_id = #{tenantId}
+          AND membership.membership_role = 'TENANT_ADMINISTRATOR'
+          AND lower(subject.login_name) LIKE #{pattern} ESCAPE '\'
+          AND (#{status} = 'ALL' OR membership.status = #{status})
     </select>
 
     <select id="selectCandidatePage"
@@ -164,8 +184,7 @@
           AND NOT EXISTS (
               SELECT 1
               FROM organization_access.tenant_membership membership
-              WHERE membership.tenant_id = #{tenantId}
-                AND membership.subject_id = subject.subject_id
+              WHERE membership.subject_id = subject.subject_id
                 AND membership.membership_role = 'TENANT_ADMINISTRATOR'
           )
         ORDER BY lower(subject.login_name), subject.subject_id
@@ -188,8 +207,7 @@
           AND NOT EXISTS (
               SELECT 1
               FROM organization_access.tenant_membership membership
-              WHERE membership.tenant_id = #{tenantId}
-                AND membership.subject_id = subject.subject_id
+              WHERE membership.subject_id = subject.subject_id
                 AND membership.membership_role = 'TENANT_ADMINISTRATOR'
           )
     </select>

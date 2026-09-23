@@ -11,6 +11,7 @@ import com.aiplatform.foundation.organizationaccess.application.authorization.dt
 import com.aiplatform.foundation.organizationaccess.application.member.dto.TenantAdministratorSummary;
 import com.aiplatform.foundation.organizationaccess.application.member.dto.TenantAdministratorView;
 import com.aiplatform.foundation.organizationaccess.application.member.service.PlatformTenantAdministratorApplicationService;
+import com.aiplatform.foundation.organizationaccess.application.member.service.PlatformTenantAdministratorCredentialService;
 import com.aiplatform.foundation.organizationaccess.application.member.service.PlatformTenantAdministratorQueryService;
 import com.aiplatform.foundation.security.identity.AccessChannel;
 import com.aiplatform.foundation.security.identity.CredentialType;
@@ -32,16 +33,17 @@ class PlatformTenantAdministratorControllerTest {
         var commands = mock(PlatformTenantAdministratorApplicationService.class);
         var queries = mock(PlatformTenantAdministratorQueryService.class);
         var context = context();
-        when(queries.list(any(), any(), any())).thenReturn(new PageResult<>(
+        when(queries.list(any(), any(), any(), any(), any())).thenReturn(new PageResult<>(
                 List.of(new TenantAdministratorSummary(
                         "701", "tenant-admin", "ENABLED", 2L, 4L,
-                        Instant.parse("2026-08-31T00:00:00Z"))),
+                        Instant.parse("2026-08-31T00:00:00Z"), null)),
                 1L, 20L, 1L, 1L, false, false));
         when(queries.candidates(any(), any(), any(), any())).thenReturn(new PageResult<>(
                 List.of(new PlatformAccountCandidate("801", "next-admin", "ACTIVE")),
                 1L, 20L, 1L, 1L, false, false));
         var mvc = MockMvcBuilders
-                .standaloneSetup(new PlatformTenantAdministratorController(commands, queries))
+                .standaloneSetup(new PlatformTenantAdministratorController(
+                        commands, queries, mock(PlatformTenantAdministratorCredentialService.class)))
                 .setCustomArgumentResolvers(platformContext(context))
                 .build();
 
@@ -61,7 +63,8 @@ class PlatformTenantAdministratorControllerTest {
                 .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers
                         .jsonPath("$.items[0].loginName").value("next-admin"));
 
-        verify(queries).list(org.mockito.Mockito.same(context), org.mockito.Mockito.eq("tenant-a"), any());
+        verify(queries).list(org.mockito.Mockito.same(context), org.mockito.Mockito.eq("tenant-a"),
+                org.mockito.Mockito.eq(""), org.mockito.Mockito.eq("ALL"), any());
         verify(queries).candidates(
                 org.mockito.Mockito.same(context), org.mockito.Mockito.eq("tenant-a"),
                 org.mockito.Mockito.eq("next"), any());
@@ -80,7 +83,8 @@ class PlatformTenantAdministratorControllerTest {
         when(commands.restore(any(), any(), any(Long.class), any(Long.class))).thenReturn(view);
         when(commands.replace(any(), any(), any(Long.class), any(Long.class), any(Long.class))).thenReturn(view);
         var mvc = MockMvcBuilders
-                .standaloneSetup(new PlatformTenantAdministratorController(commands, queries))
+                .standaloneSetup(new PlatformTenantAdministratorController(
+                        commands, queries, mock(PlatformTenantAdministratorCredentialService.class)))
                 .setCustomArgumentResolvers(platformContext(context))
                 .build();
 
@@ -111,6 +115,28 @@ class PlatformTenantAdministratorControllerTest {
         verify(commands).disable(context, "tenant-a", 701L, 4L);
         verify(commands).restore(context, "tenant-a", 701L, 4L);
         verify(commands).replace(context, "tenant-a", 701L, 4L, 801L);
+    }
+
+    @Test
+    void HTTP重置入口只传租户成员引用和版本且响应不披露凭据() throws Exception {
+        var credentials = mock(PlatformTenantAdministratorCredentialService.class);
+        var context = context();
+        var mvc = MockMvcBuilders.standaloneSetup(new PlatformTenantAdministratorController(
+                        mock(PlatformTenantAdministratorApplicationService.class),
+                        mock(PlatformTenantAdministratorQueryService.class), credentials))
+                .setCustomArgumentResolvers(platformContext(context))
+                .build();
+
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+                        .post("/api/v1/platform/tenants/tenant-a/administrators/701/password-reset")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"expectedVersion\":4,\"password\":\"synthetic-only\"}"))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().isNoContent())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.content().string(""));
+
+        verify(credentials).resetPassword(
+                org.mockito.Mockito.same(context), org.mockito.Mockito.eq("tenant-a"),
+                org.mockito.Mockito.eq(701L), org.mockito.Mockito.eq(4L), any(char[].class));
     }
 
     private static org.springframework.web.method.support.HandlerMethodArgumentResolver platformContext(

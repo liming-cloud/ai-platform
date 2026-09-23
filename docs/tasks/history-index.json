@@ -3661,9 +3661,9 @@
     },
     {
       "path": "project/architecture-debt/complex-sql-allowlist.json",
-      "action": "move",
+      "action": "merge",
       "sha256": "cc294d27c2d58ed2dda2e57efdbe58842ede158a0a1003061dd5884689a0483d",
-      "reason": "架构门禁消费的机器基线归质量工具，限制值不变",
+      "reason": "旧机器基线合入质量工具可维护清单；原摘要保留供 Git 历史核验，现行清单按新增 SQL 更新",
       "references": [
         "project/evidence/WP-0011-data-lifecycle-design.md",
         "project/evidence/WP-0014-platform-role-binding-governance.md",

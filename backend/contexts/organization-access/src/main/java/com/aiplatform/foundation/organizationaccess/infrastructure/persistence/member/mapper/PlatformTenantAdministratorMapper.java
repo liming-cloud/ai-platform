@@ -21,6 +21,10 @@ public interface PlatformTenantAdministratorMapper {
 
     boolean hasActivePlatformAdministrator(@Param("subjectId") long subjectId);
 
+    boolean hasAdministratorInOtherTenant(
+            @Param("subjectId") long subjectId,
+            @Param("tenantId") long tenantId);
+
     TenantMembershipEntity lockMembershipBySubject(
             @Param("tenantId") long tenantId,
             @Param("subjectId") long subjectId);
@@ -63,10 +67,15 @@ public interface PlatformTenantAdministratorMapper {
 
     List<PlatformTenantAdministratorSummaryRow> selectAdministratorPage(
             @Param("tenantId") long tenantId,
+            @Param("pattern") String pattern,
+            @Param("status") String status,
             @Param("offset") long offset,
             @Param("pageSize") long pageSize);
 
-    long countAdministrators(@Param("tenantId") long tenantId);
+    long countAdministrators(
+            @Param("tenantId") long tenantId,
+            @Param("pattern") String pattern,
+            @Param("status") String status);
 
     List<PlatformTenantAdministratorCandidateRow> selectCandidatePage(
             @Param("tenantId") long tenantId,
