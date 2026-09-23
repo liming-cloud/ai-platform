@@ -70,6 +70,7 @@
 
 ## 证据
 
+- docs/tasks/WP-0017/evidence/WP-0017-admin-settings-deploy-candidate-20260923.md（仅证明已部署候选，浏览器和原型验收待执行）
 - docs/tasks/WP-0017/evidence/WP-0017-prototype-parity-closure-20260920.md
 - docs/tasks/WP-0017/evidence/WP-0017-parity-decisions-20260920.md
 - docs/tasks/WP-0017/evidence/WP-0017-strict-parity-retest-20260920.md
