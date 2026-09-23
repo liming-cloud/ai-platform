@@ -1271,7 +1271,7 @@
 
 .governance-login__introduction {
   display: grid;
-  align-self: center;
+  align-self: end;
   gap: 1rem;
   max-width: 36rem;
 }
@@ -1412,31 +1412,41 @@
   to { opacity: 1; transform: translateY(0); }
 }
 
-@media (max-width: 52rem) {
+@media (max-width: 65rem) and (min-width: 42.5625rem) {
+  .governance-login__brand {
+    justify-content: center;
+  }
+
+  .governance-login__brand > span:last-child {
+    display: none;
+  }
+}
+
+@media (max-width: 42.5rem) {
   .governance-login__layout {
     grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto 1fr;
   }
 
   .governance-login__brief {
-    padding: 1.5rem;
-    gap: 1.5rem;
+    grid-template-rows: auto;
+    padding: 2rem 1.25rem;
+  }
+
+  .governance-login__brand {
+    display: none;
+  }
+
+  .governance-login__introduction {
+    align-self: start;
   }
 
   .governance-login__task {
-    padding: 1.5rem;
+    padding: 2rem 1.25rem 3rem;
     align-content: start;
   }
 }
 
-@media (max-width: 44rem) {
-  .governance-login__introduction {
-    display: none;
-  }
-
-  .governance-login__layout {
-    grid-template-rows: auto 1fr;
-  }
-}
 .governance-workspace {
   display: grid;
   gap: 2rem;

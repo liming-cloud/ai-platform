@@ -24,7 +24,7 @@ describe("登录入口视觉结构", () => {
     );
   });
 
-  it("桌面提供产品上下文并在移动端收敛为单列任务", () => {
+  it("登录布局按已验收原型保留桌面说明、平板标识和移动端任务", () => {
     const source = readFileSync(gatePath, "utf8");
     const styles = readFileSync(stylesPath, "utf8");
 
@@ -34,10 +34,19 @@ describe("登录入口视觉结构", () => {
       /\.governance-login__layout\s*\{[^}]*grid-template-columns:\s*minmax\([^;]+\)\s+minmax\([^;]+\);/s,
     );
     expect(styles).toMatch(
-      /@media \(max-width:\s*52rem\)[\s\S]*?\.governance-login__layout\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\);/s,
+      /\.governance-login__introduction\s*\{[^}]*align-self:\s*end;/s,
     );
     expect(styles).toMatch(
-      /@media \(max-width:\s*44rem\)[\s\S]*?\.governance-login__introduction\s*\{[^}]*display:\s*none;/s,
+      /@media \(max-width:\s*65rem\) and \(min-width:\s*42\.5625rem\)[\s\S]*?\.governance-login__brand > span:last-child\s*\{[^}]*display:\s*none;/s,
+    );
+    expect(styles).toMatch(
+      /@media \(max-width:\s*42\.5rem\)[\s\S]*?\.governance-login__layout\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\);/s,
+    );
+    expect(styles).toMatch(
+      /@media \(max-width:\s*42\.5rem\)[\s\S]*?\.governance-login__brand\s*\{[^}]*display:\s*none;/s,
+    );
+    expect(styles).toMatch(
+      /@media \(max-width:\s*42\.5rem\)[\s\S]*?\.governance-login__introduction\s*\{[^}]*align-self:\s*start;/s,
     );
   });
 
