@@ -310,7 +310,7 @@
       "phase": "M6",
       "classification": "production",
       "workPackage": "WP-0017",
-      "status": "in-progress",
+      "status": "verified",
       "operations": [
         {
           "id": "platform-tenant-admins:0",
@@ -320,7 +320,7 @@
           "reason": "m6-approved-prototype",
           "workPackage": "WP-0017",
           "dependsOn": [],
-          "status": "implemented",
+          "status": "verified",
           "contract": {
             "adr": "ADR-0083",
             "target": { "kind": "api", "value": "GET /api/v1/platform/tenants/{tenantId}/administrators" },
@@ -330,10 +330,10 @@
           "verification": {
             "commands": ["make backend-test", "make acceptance-work-package WP=WP-0017 SLICE=admins"],
             "evidence": [
-              "docs/tasks/WP-0017/evidence/WP-0017-admin-settings-deploy-retest-20260924.md",
-              "docs/tasks/WP-0017/evidence/WP-0017-admin-settings-safe-dialog-deploy-20260924.md"
+              "docs/tasks/WP-0017/evidence/WP-0017-admin-settings-prototype-parity-closure-20260924.md"
             ]
-          }
+          },
+          "verifiedCommit": "dc6dea4dd27797c1119f23a4659dc13c6dc1d999"
         },
         {
           "id": "platform-tenant-admins:1",
@@ -343,7 +343,7 @@
           "reason": "m6-approved-prototype",
           "workPackage": "WP-0017",
           "dependsOn": [],
-          "status": "implemented",
+          "status": "verified",
           "contract": {
             "adr": "ADR-0083",
             "target": { "kind": "api", "value": "POST /api/v1/platform/tenants/{tenantId}/administrators/{membershipReference}/disable；POST /api/v1/platform/tenants/{tenantId}/administrators/{membershipReference}/restore；POST /api/v1/platform/tenants/{tenantId}/administrators/{membershipReference}/password-reset" },
@@ -353,10 +353,10 @@
           "verification": {
             "commands": ["make backend-test", "make acceptance-work-package WP=WP-0017 SLICE=admins", "make acceptance-work-package WP=WP-0017 SLICE=login"],
             "evidence": [
-              "docs/tasks/WP-0017/evidence/WP-0017-admin-settings-deploy-retest-20260924.md",
-              "docs/tasks/WP-0017/evidence/WP-0017-admin-settings-safe-dialog-deploy-20260924.md"
+              "docs/tasks/WP-0017/evidence/WP-0017-admin-settings-prototype-parity-closure-20260924.md"
             ]
-          }
+          },
+          "verifiedCommit": "dc6dea4dd27797c1119f23a4659dc13c6dc1d999"
         }
       ]
     },
