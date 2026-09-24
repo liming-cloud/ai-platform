@@ -282,6 +282,9 @@ export function TenantAdministratorSettings({ client, route, onRouteChange }: {
             <span>{pending?.kind === "reset" ? "重置密码" : pending?.target.status === "ENABLED" ? "停用管理员资格" : "恢复管理员资格"}</span></DialogTitle>
           <DialogContent>{pending?.kind === "reset" ? <>
             <p>为“{pending.target.loginName}”重置全局密码。该身份在所有租户的旧会话都会失效，需使用新密码重新登录。</p>
+            <details className="tenant-admin-page__password-help"><summary>密码安全说明</summary>
+              <p>当前密码无法查看。请为该身份设置独立的新密码，并通过安全渠道告知本人。</p>
+            </details>
             <div className="tenant-admin-page__password-grid">
               <Field label="新密码" required><Input ref={passwordInput} type="password" maxLength={1024} autoComplete="new-password"
                 aria-invalid={Boolean(dialogValidation && !password)} value={password}

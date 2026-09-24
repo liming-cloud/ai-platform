@@ -273,6 +273,21 @@ async function run(configuration) {
       requireCondition(await dialog.getByText("受控凭据重置", { exact: true }).isVisible()
         && await dialog.getByText("平台与租户范围的既有会话同时失效。", { exact: true }).isVisible(),
       "重置确认框未承接原型信息层级与全范围会话说明");
+      const safetyHelp = dialog.locator("details.tenant-admin-page__password-help");
+      const safetySummary = safetyHelp.locator("summary");
+      requireCondition((await safetySummary.textContent())?.trim() === "密码安全说明"
+        && await safetySummary.isVisible()
+        && await safetyHelp.getAttribute("open") === null
+        && await dialog.getByText("演示密码说明", { exact: true }).count() === 0,
+      "重置说明区未按原型结构默认折叠或仍含演示凭据说明");
+      await safetySummary.focus();
+      await safetySummary.press("Enter");
+      requireCondition(await safetyHelp.getAttribute("open") !== null
+        && await safetyHelp.getByText(/当前密码无法查看/).isVisible(),
+      "安全说明无法通过键盘展开");
+      await safetySummary.press("Space");
+      requireCondition(await safetyHelp.getAttribute("open") === null,
+        "安全说明无法通过键盘折叠");
       let invalidResetRequests = 0;
       const observeInvalidReset = outgoing => {
         if (outgoing.method() === "POST" && new URL(outgoing.url()).pathname.endsWith("/password-reset")) {
@@ -393,31 +408,39 @@ async function run(configuration) {
             if (await menu.evaluate(details => details.open)) await menu.locator("summary").click();
           }
         }
-        if (width === 390) {
-          const firstRow = page.locator("tbody tr").first();
-          for (const kind of ["reset", "status"]) {
-            if (kind === "reset") await firstRow.getByRole("button", { name: "重置密码" }).click();
-            else {
-              await firstRow.locator("summary").click();
-              await firstRow.getByRole("button", { name: "停用管理员资格" }).click();
-            }
-            const dialog = page.getByRole("dialog");
-            await withTextScale(page, true, async () => {
-              const confirm = dialog.getByRole("button", { name: kind === "reset" ? "重置密码" : "确认停用" });
-              await confirm.scrollIntoViewIfNeeded();
-              const reachable = await dialog.evaluate(surface => {
-                const surfaceBounds = surface.getBoundingClientRect();
-                const button = [...surface.querySelectorAll("button")].find(item =>
-                  item.textContent?.trim() === (surface.textContent?.includes("受控凭据重置") ? "重置密码" : "确认停用"));
-                const bounds = button?.getBoundingClientRect();
-                return surface.scrollWidth <= surface.clientWidth + 1
-                  && surfaceBounds.left >= -1 && surfaceBounds.right <= innerWidth + 1
-                  && bounds && bounds.top >= -1 && bounds.bottom <= innerHeight + 1;
-              });
-              requireCondition(reachable, `390 的 ${kind} 弹窗在 200% 文字下裁切或确认按钮不可达`);
-            }, ".tenant-admin-page__dialog");
-            await dialog.getByRole("button", { name: "取消" }).click();
+        const firstRow = page.locator("tbody tr").first();
+        for (const kind of width === 390 ? ["reset", "status"] : ["reset"]) {
+          if (kind === "reset") await firstRow.getByRole("button", { name: "重置密码" }).click();
+          else {
+            await firstRow.locator("summary").click();
+            await firstRow.getByRole("button", { name: "停用管理员资格" }).click();
           }
+          const dialog = page.getByRole("dialog");
+          await withTextScale(page, true, async () => {
+            const confirm = dialog.getByRole("button", { name: kind === "reset" ? "重置密码" : "确认停用" });
+            await confirm.scrollIntoViewIfNeeded();
+            const reachable = await dialog.evaluate(surface => {
+              const surfaceBounds = surface.getBoundingClientRect();
+              const content = surface.querySelector(".fui-DialogContent");
+              const contentBounds = content?.getBoundingClientRect();
+              const passwordInputs = [...surface.querySelectorAll(".tenant-admin-page__password-grid .fui-Input")];
+              const inputsFit = passwordInputs.every(input => {
+                const bounds = input.getBoundingClientRect();
+                return contentBounds && bounds.left >= contentBounds.left - 1
+                  && bounds.right <= contentBounds.right + 1
+                  && input.scrollWidth <= input.clientWidth + 1;
+              });
+              const button = [...surface.querySelectorAll("button")].find(item =>
+                item.textContent?.trim() === (surface.textContent?.includes("受控凭据重置") ? "重置密码" : "确认停用"));
+              const bounds = button?.getBoundingClientRect();
+              return surface.scrollWidth <= surface.clientWidth + 1
+                && content && content.scrollWidth <= content.clientWidth + 1 && inputsFit
+                && surfaceBounds.left >= -1 && surfaceBounds.right <= innerWidth + 1
+                && bounds && bounds.top >= -1 && bounds.bottom <= innerHeight + 1;
+            });
+            requireCondition(reachable, `${width} 的 ${kind} 弹窗在 200% 文字下裁切或确认按钮不可达`);
+          }, ".tenant-admin-page__dialog");
+          await dialog.getByRole("button", { name: "取消" }).click();
         }
       }
       requireCondition(pageErrors === 0, "浏览器页面发生未处理异常");
