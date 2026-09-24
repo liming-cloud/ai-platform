@@ -39,7 +39,7 @@
 .tenant-admin-page__pagination form { margin: 0; padding: 0; }
 .tenant-admin-page__pagination input { width: 4rem; min-width: 0; }
 .tenant-admin-page__page-error { color: var(--foundation-danger); flex-basis: 100%; }
-.tenant-admin-page__dialog { width: min(38rem, calc(100vw - 2rem)) !important; border-radius: var(--foundation-control-radius); }
+.tenant-admin-page__dialog { width: min(38rem, calc(100vw - 2rem)) !important; max-width: 38rem !important; border-radius: var(--foundation-control-radius); }
 .tenant-admin-page__dialog .fui-DialogActions { justify-content: flex-end; flex-wrap: wrap; padding-top: 16px; border-top: 1px solid var(--foundation-border); }
 .tenant-admin-page__dialog .fui-DialogTitle { display: grid; gap: 4px; font-family: var(--foundation-font-display); }
 .tenant-admin-page__dialog .fui-Label__required { display: none; }

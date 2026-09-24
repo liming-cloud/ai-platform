@@ -416,6 +416,9 @@ async function run(configuration) {
             await firstRow.getByRole("button", { name: "停用管理员资格" }).click();
           }
           const dialog = page.getByRole("dialog");
+          const dialogWidth = await dialog.evaluate(surface => surface.getBoundingClientRect().width);
+          requireCondition(Math.abs(dialogWidth - (width === 390 ? 352 : 608)) <= 1,
+            `${width} 的 ${kind} 弹窗宽度未承接固定原型`);
           await withTextScale(page, true, async () => {
             const confirm = dialog.getByRole("button", { name: kind === "reset" ? "重置密码" : "确认停用" });
             await confirm.scrollIntoViewIfNeeded();
