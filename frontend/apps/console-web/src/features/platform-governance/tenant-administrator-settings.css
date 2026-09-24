@@ -9,7 +9,7 @@
 .tenant-admin-page__toolbar { display: flex; align-items: end; justify-content: space-between; flex-wrap: wrap; gap: 16px; margin: 0 0 20px; }
 .tenant-admin-page__toolbar label { display: grid; gap: 8px; font-size: 16px; font-weight: 620; }
 .tenant-admin-page__toolbar label:first-child { width: min(100%, 352px); }
-.tenant-admin-page__toolbar label:last-child { width: min(100%, 13rem); }
+.tenant-admin-page__toolbar label:last-child { width: min(100%, 110px); }
 .tenant-admin-page__toolbar .fui-Input { min-height: 36px; border-color: var(--foundation-border-strong); }
 .tenant-admin-page__toolbar .fui-Input input { font-size: 16px; }
 .tenant-admin-page__toolbar select, .tenant-admin-page__pagination select, .tenant-admin-page__pagination input { min-height: 36px; padding: 5px 12px; color: var(--foundation-text); background: var(--foundation-surface); border: 1px solid var(--foundation-border-strong); border-radius: var(--foundation-control-radius); font: inherit; }
@@ -57,6 +57,7 @@
 }
 @media (max-width: 680px) {
   .tenant-admin-page__summary > div { padding: 16px; }
+  .tenant-admin-page__summary > div:nth-child(-n + 2) { border-bottom: 1px solid var(--foundation-border); }
   .tenant-admin-page__toolbar label, .tenant-admin-page__toolbar label:first-child, .tenant-admin-page__toolbar label:last-child { width: 100%; }
   .tenant-admin-page__toolbar .fui-Input, .tenant-admin-page__toolbar select,
   .tenant-admin-page__actions .fui-Button, .tenant-admin-page__actions summary,

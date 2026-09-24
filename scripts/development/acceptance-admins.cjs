@@ -296,11 +296,14 @@ async function run(configuration) {
           const summary = document.querySelector(".tenant-admin-page__summary");
           const status = document.querySelector('.tenant-admin-page__toolbar select[aria-label="管理员状态"]');
           return { columns: summary ? getComputedStyle(summary).gridTemplateColumns.split(" ").length : 0,
-            statusHeight: status?.getBoundingClientRect().height ?? 0 };
+            summaryHeight: summary?.getBoundingClientRect().height ?? 0,
+            statusHeight: status?.getBoundingClientRect().height ?? 0,
+            statusWidth: status?.getBoundingClientRect().width ?? 0 };
         });
         requireCondition(frame.columns === (width <= 1040 ? 2 : 4)
-          && (width !== 390 || Math.abs(frame.statusHeight - 44) <= 1),
-        `${width} 摘要列数或移动筛选高度未承接原型`);
+          && (width !== 390 || (Math.floor(frame.summaryHeight) === 93 && Math.abs(frame.statusHeight - 44) <= 1))
+          && (width === 390 || frame.statusWidth === 110),
+        `${width} 摘要列数或筛选控件尺寸未承接原型`);
         await withTextScale(page, true, async () => {
           requireCondition(await visible(), `${width} 的 200% 文字横向溢出或标题裁切`);
         });
