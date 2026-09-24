@@ -310,7 +310,7 @@
       "phase": "M6",
       "classification": "production",
       "workPackage": "WP-0017",
-      "status": "pending-contract",
+      "status": "in-progress",
       "operations": [
         {
           "id": "platform-tenant-admins:0",
@@ -320,7 +320,17 @@
           "reason": "m6-approved-prototype",
           "workPackage": "WP-0017",
           "dependsOn": [],
-          "status": "pending-contract"
+          "status": "implemented",
+          "contract": {
+            "adr": "ADR-0083",
+            "target": { "kind": "api", "value": "GET /api/v1/platform/tenants/{tenantId}/administrators" },
+            "saveBoundary": "只读查询当前租户的管理员资格；服务端分页、登录名搜索和状态筛选，刷新及浏览器前后退恢复筛选，不暴露全局主体标识或其他租户成员详情。",
+            "authorizationTests": ["非平台身份拒绝", "跨租户成员详情不泄露", "分页与筛选由真实服务端返回"]
+          },
+          "verification": {
+            "commands": ["make backend-test", "make acceptance-work-package WP=WP-0017 SLICE=admins"],
+            "evidence": ["docs/tasks/WP-0017/evidence/WP-0017-admin-settings-deploy-retest-20260924.md"]
+          }
         },
         {
           "id": "platform-tenant-admins:1",
@@ -330,7 +340,17 @@
           "reason": "m6-approved-prototype",
           "workPackage": "WP-0017",
           "dependsOn": [],
-          "status": "pending-contract"
+          "status": "implemented",
+          "contract": {
+            "adr": "ADR-0083",
+            "target": { "kind": "api", "value": "POST /api/v1/platform/tenants/{tenantId}/administrators/{membershipReference}/disable；POST /api/v1/platform/tenants/{tenantId}/administrators/{membershipReference}/restore；POST /api/v1/platform/tenants/{tenantId}/administrators/{membershipReference}/password-reset" },
+            "saveBoundary": "停用或恢复仅修改本租户管理员资格，停用后仍占原租户归属；密码重置作用于全局身份并撤销全部旧会话，不改变资格或全局账户状态。均使用服务端成员定位、预期版本及失败回滚。",
+            "authorizationTests": ["同一身份跨租户分配拒绝", "错租户及旧版本拒绝", "缺少 CSRF 拒绝", "最后启用管理员保护", "旧平台账户重置路径不可绕过资格校验", "重置后旧会话撤销"]
+          },
+          "verification": {
+            "commands": ["make backend-test", "make acceptance-work-package WP=WP-0017 SLICE=admins", "make acceptance-work-package WP=WP-0017 SLICE=login"],
+            "evidence": ["docs/tasks/WP-0017/evidence/WP-0017-admin-settings-deploy-retest-20260924.md"]
+          }
         }
       ]
     },

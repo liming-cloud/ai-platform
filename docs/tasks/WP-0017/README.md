@@ -7,7 +7,7 @@
 | 负责人 | 平台身份与租户开通 |
 | 分支 | main |
 | 里程碑 | M6 |
-| ADR | ADR-0012, ADR-0022, ADR-0033, ADR-0041, ADR-0048, ADR-0059, ADR-0067, ADR-0073, ADR-0074, ADR-0075, ADR-0079, ADR-0083 |
+| ADR | ADR-0012, ADR-0022, ADR-0033, ADR-0041, ADR-0048, ADR-0059, ADR-0067, ADR-0073, ADR-0074, ADR-0079, ADR-0080, ADR-0083 |
 | 证据 | pending |
 | 提交 | pending |
 | 输入提交 | e7a1d673229acf8c7932dcae85699e517f2adab5 |
@@ -62,7 +62,7 @@
 
 ## 已确认决定
 
-原子开户按照 ADR-0080 及 2026-09-20 补充通过。平台与租户独立登录已通过。管理员独立页的资格与凭据边界按 ADR-0083 冻结，源码已实现但尚未完成部署及浏览器验收；配额编辑、功能开关、登录策略仍待各自冻结契约。不创建普通会员，不把切片通过计为整包或 M6 通过。
+原子开户按照 ADR-0080 及 2026-09-20 补充通过。平台与租户独立登录已通过。管理员独立页按 ADR-0083 完成源码和实际 Compose 功能验证：最新镜像上 9 组管理员浏览器场景、15 项本轮新管理员登录回归、18 项只读数据库事实均通过；已局部修正筛选间距、控件高度、弹窗字段与按钮，但固定原型的未交付顶栏入口、移动“更多”与分页重叠，以及演示身份文案仍待边界决定，见[部署复验证据](evidence/WP-0017-admin-settings-deploy-retest-20260924.md)。本独立切片仍在进行中，不能因功能通过进入后续设置实现。配额编辑、功能开关、登录策略仍待各自冻结契约。不创建普通会员，不把局部通过计为整包或 M6 通过。
 
 ## 验证
 
@@ -70,7 +70,8 @@
 
 ## 证据
 
-- docs/tasks/WP-0017/evidence/WP-0017-admin-settings-deploy-candidate-20260923.md（仅证明已部署候选，浏览器和原型验收待执行）
+- docs/tasks/WP-0017/evidence/WP-0017-admin-settings-deploy-retest-20260924.md（管理员独立设置切片的功能复验与未关闭原型差异）
+- docs/tasks/WP-0017/evidence/WP-0017-admin-settings-deploy-candidate-20260923.md（历史候选，彼时浏览器和原型验收尚未执行）
 - docs/tasks/WP-0017/evidence/WP-0017-prototype-parity-closure-20260920.md
 - docs/tasks/WP-0017/evidence/WP-0017-parity-decisions-20260920.md
 - docs/tasks/WP-0017/evidence/WP-0017-strict-parity-retest-20260920.md
@@ -78,8 +79,8 @@
 
 ## 下一前沿
 
-按 ADR-0083 完成独立管理员页的真实部署、受限凭据与跨租户管理员分配拒绝浏览器反例、只读数据库事实和固定原型对照；负责人为产品/架构与 Agent。源码测试不能替代生产验收，配额、功能和登录策略不进入本片。概览导航操作 platform-tenant-detail:0 仍 pending-contract，概览入口仍 in-progress，整包提交和证据保持 pending。
+管理员页功能、登录、只读数据库及可局部对齐的视觉项已对当前部署复验；下一步需要明确固定原型导航六项与生产四项、390px 原型“更多”被分页挡住、演示密码说明与真实凭据安全语义这三处冲突的处理范围。未取得范围决定并完成视觉收口前，不把 `platform-tenant-admins:0`、`:1` 提升为 verified。资源配额、功能开关、登录策略、平台账户目录及普通会员仍在各自后续边界，不进入实现。概览导航操作 platform-tenant-detail:0 仍 pending-contract，概览入口仍 in-progress，整包提交和证据保持 pending。
 
 ## 固定输入与工作区
 
-依据输入提交的 Charter、ROADMAP、STATE、上述12项 ADR 和固定 OpenDesign 版本恢复。原子开户被验前端为 0a46a64b9105574a86b64facb513be20be20f01e，实际后端为 5844fd3ba2b5909161b704df5fc7e1ff026d4a0a，部署摘要和范围以收口证据为准。当前源码 HEAD 不能替代运行版本。五项人工 fixture 重命名已由用户授权纳入 GOV-0002，迁移期间由该任务负责验证与提交；本包历史验收不受影响。
+依据输入提交的 Charter、ROADMAP、STATE、上述12项当前前沿 ADR 和固定 OpenDesign 版本恢复；后续功能控制切片仍受已接受的 ADR-0075 约束。原子开户被验前端为 0a46a64b9105574a86b64facb513be20be20f01e，实际后端为 5844fd3ba2b5909161b704df5fc7e1ff026d4a0a；管理员独立页本轮功能复验前端为 d0b5b063295fd15ac258e8edb5d33f38313f4adb，验收脚本提交为 29b84c36ba36b39c8b48879af19344d5b8023453，实际后端为 02298633ba4ee38669bf46431494505d607ef8df。各自部署摘要和范围以对应证据为准，当前源码 HEAD 不能替代运行版本。五项人工 fixture 重命名已在 GOV-0002 完成验证与提交；本包历史验收不受影响。
