@@ -45,6 +45,10 @@ export function TenantAdministratorSettings({ client, route, onRouteChange }: {
   const [password, setPassword] = useState("");
   const [confirmation, setConfirmation] = useState("");
   const [revokeAcknowledged, setRevokeAcknowledged] = useState(false);
+  const [dialogValidation, setDialogValidation] = useState("");
+  const passwordInput = useRef<HTMLInputElement | null>(null);
+  const confirmationInput = useRef<HTMLInputElement | null>(null);
+  const revokeInput = useRef<HTMLInputElement | null>(null);
   const trigger = useRef<HTMLElement | null>(null);
   const owner = `${route.tenantId}:${route.query}:${route.status}:${route.page}:${route.pageSize}:${revision}`;
   const data = loaded?.owner === owner ? loaded : undefined;
@@ -122,23 +126,41 @@ export function TenantAdministratorSettings({ client, route, onRouteChange }: {
     setPassword("");
     setConfirmation("");
     setRevokeAcknowledged(false);
+    setDialogValidation("");
     window.requestAnimationFrame(() => trigger.current?.focus());
   }
 
   function openDialog(kind: Pending["kind"], target: TenantAdministratorSummary, element: HTMLElement) {
     trigger.current = element;
     setFailure(undefined);
+    setDialogValidation("");
     setPending({ kind, target });
   }
 
   async function commit() {
     if (!pending) return;
+    if (pending.kind === "reset") {
+      if (!password || !confirmation) {
+        setDialogValidation("请完整填写新密码并确认撤销全部会话。");
+        (password ? confirmationInput : passwordInput).current?.focus();
+        return;
+      }
+      if (password !== confirmation) {
+        setDialogValidation("两次输入不一致。");
+        confirmationInput.current?.focus();
+        return;
+      }
+      if (!revokeAcknowledged) {
+        setDialogValidation("请确认撤销全部会话。");
+        revokeInput.current?.focus();
+        return;
+      }
+    }
     setBusy(true);
     setFailure(undefined);
     try {
       const { target } = pending;
       if (pending.kind === "reset") {
-        if (!password || password !== confirmation || !revokeAcknowledged) return;
         await client.resetTenantAdministratorPassword(
           route.tenantId, target.membershipReference, target.version, password);
         setNotice(`“${target.loginName}”的密码已重置，旧会话已失效。`);
@@ -153,7 +175,10 @@ export function TenantAdministratorSettings({ client, route, onRouteChange }: {
       setRevision(value => value + 1);
       window.requestAnimationFrame(() => trigger.current?.focus());
     } catch (error) {
-      setFailure(presentApiError(error, pending.kind === "reset" ? "重置管理员密码" : "变更管理员资格"));
+      const presented = presentApiError(error, pending.kind === "reset" ? "重置管理员密码" : "变更管理员资格");
+      setFailure(presented);
+      setDialogValidation(`${presented.title}：${presented.description}`);
+      if (pending.kind === "reset") passwordInput.current?.focus();
     } finally {
       setPassword("");
       setConfirmation("");
@@ -258,15 +283,16 @@ export function TenantAdministratorSettings({ client, route, onRouteChange }: {
           <DialogContent>{pending?.kind === "reset" ? <>
             <p>为“{pending.target.loginName}”重置全局密码。该身份在所有租户的旧会话都会失效，需使用新密码重新登录。</p>
             <div className="tenant-admin-page__password-grid">
-              <Field label="新密码" required><Input type="password" maxLength={1024} autoComplete="new-password"
-                value={password} onChange={(_, value) => setPassword(value.value)} /></Field>
-              <Field label="再次输入" required validationMessage={confirmation && password !== confirmation ? "两次输入不一致" : undefined}>
-                <Input type="password" maxLength={1024} autoComplete="new-password" value={confirmation}
-                  onChange={(_, value) => setConfirmation(value.value)} /></Field>
+              <Field label="新密码" required><Input ref={passwordInput} type="password" maxLength={1024} autoComplete="new-password"
+                aria-invalid={Boolean(dialogValidation && !password)} value={password}
+                onChange={(_, value) => { setDialogValidation(""); setPassword(value.value); }} /></Field>
+              <Field label="再次输入" required><Input ref={confirmationInput} type="password" maxLength={1024} autoComplete="new-password"
+                aria-invalid={Boolean(dialogValidation && (!confirmation || password !== confirmation))} value={confirmation}
+                onChange={(_, value) => { setDialogValidation(""); setConfirmation(value.value); }} /></Field>
             </div>
-            <div className="tenant-admin-page__revoke"><Checkbox checked={revokeAcknowledged}
+            <div className="tenant-admin-page__revoke"><Checkbox ref={revokeInput} required checked={revokeAcknowledged}
               aria-label="确认撤销该身份在所有租户的旧会话"
-              onChange={(_, value) => setRevokeAcknowledged(Boolean(value.checked))} label="撤销全部会话" />
+              onChange={(_, value) => { setDialogValidation(""); setRevokeAcknowledged(Boolean(value.checked)); }} label="撤销全部会话" />
               <small>平台与租户范围的既有会话同时失效。</small></div>
           </> : pending ? <>
             <p>“{pending.target.loginName}”在当前租户的管理员资格将被{pending.target.status === "ENABLED" ? "停用" : "恢复"}。</p>
@@ -277,11 +303,11 @@ export function TenantAdministratorSettings({ client, route, onRouteChange }: {
                 : "可再次停用资格；恢复时重新校验人员范围。"}</dd></div>
               <div><dt>审计</dt><dd>审计范围只含操作者、目标身份、操作结果与非秘密版本，不含密码及会话值。</dd></div>
             </dl>
-          </> : null}</DialogContent>
+          </> : null}
+            {dialogValidation ? <p className="tenant-admin-page__validation" role="alert">{dialogValidation}</p> : null}</DialogContent>
           <DialogActions>
             <Button appearance="secondary" disabled={busy} onClick={closeDialog}>取消</Button>
-            <Button appearance="primary" disabled={busy || !pending || (pending.kind === "reset"
-              && (!password || password !== confirmation || !revokeAcknowledged))}
+            <Button appearance="primary" disabled={busy || !pending}
               onClick={() => void commit()}>{busy ? "正在提交" : pending?.kind === "reset" ? "重置密码"
                 : pending?.target.status === "ENABLED" ? "确认停用" : "确认恢复"}</Button>
           </DialogActions>

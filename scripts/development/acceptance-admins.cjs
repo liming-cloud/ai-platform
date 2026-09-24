@@ -258,16 +258,48 @@ async function run(configuration) {
       requireCondition(await dialog.getByText("受控凭据重置", { exact: true }).isVisible()
         && await dialog.getByText("平台与租户范围的既有会话同时失效。", { exact: true }).isVisible(),
       "重置确认框未承接原型信息层级与全范围会话说明");
+      let invalidResetRequests = 0;
+      const observeInvalidReset = outgoing => {
+        if (outgoing.method() === "POST" && new URL(outgoing.url()).pathname.endsWith("/password-reset")) {
+          invalidResetRequests += 1;
+        }
+      };
+      page.on("request", observeInvalidReset);
+      const confirmReset = dialog.getByRole("button", { name: "重置密码" });
+      requireCondition(await confirmReset.isEnabled(), "空表单应允许触发与原型一致的校验反馈");
+      await confirmReset.click();
+      requireCondition(await dialog.getByRole("alert").getByText("请完整填写新密码并确认撤销全部会话。").isVisible(),
+        "空表单未给出校验反馈");
       const nextPassword = `Aa9!${crypto.randomBytes(24).toString("base64url")}`;
       await dialog.getByLabel("新密码").fill(nextPassword);
       await dialog.getByLabel("再次输入").fill(created.shared.password);
-      requireCondition(!await dialog.getByRole("button", { name: "重置密码" }).isEnabled(),
-        "两次密码不一致仍可提交");
+      await confirmReset.click();
+      requireCondition(await dialog.getByRole("alert").getByText("两次输入不一致。").isVisible(),
+        "两次密码不一致未被拦截");
       await dialog.getByLabel("再次输入").fill(nextPassword);
-      requireCondition(!await dialog.getByRole("button", { name: "重置密码" }).isEnabled(),
+      await confirmReset.click();
+      requireCondition(await dialog.getByRole("alert").getByText("请确认撤销全部会话。").isVisible(),
         "未确认全范围会话撤销仍可提交");
-      await dialog.getByRole("checkbox", { name: "确认撤销该身份在所有租户的旧会话" }).check();
-      await dialog.getByRole("button", { name: "重置密码" }).click();
+      await page.waitForLoadState("networkidle");
+      page.off("request", observeInvalidReset);
+      requireCondition(invalidResetRequests === 0, "无效重置点击仍发送了密码重置请求");
+      const revokeAll = dialog.getByRole("checkbox", { name: "确认撤销该身份在所有租户的旧会话" });
+      await revokeAll.check();
+      let refusedRequests = 0;
+      await page.route("**/password-reset", async route => {
+        refusedRequests += 1;
+        await route.fulfill({ status: 409, contentType: "application/json",
+          body: JSON.stringify({ code: "CONFLICT", message: "资料已更新" }) });
+      });
+      await confirmReset.click();
+      await dialog.getByRole("alert").getByText(/重置管理员密码未完成/).waitFor();
+      requireCondition(refusedRequests === 1 && await dialog.getByLabel("新密码").inputValue() === ""
+        && !await revokeAll.isChecked(), "服务端拒绝后弹窗未反馈或秘密字段未清除");
+      await page.unroute("**/password-reset");
+      await dialog.getByLabel("新密码").fill(nextPassword);
+      await dialog.getByLabel("再次输入").fill(nextPassword);
+      await revokeAll.check();
+      await confirmReset.click();
       await page.getByText(/密码已重置，旧会话已失效/).waitFor();
       created.shared.password = nextPassword;
       persist();
