@@ -197,6 +197,15 @@ async function run(configuration) {
     await check("停用仅影响当前租户管理员资格并可恢复", async () => {
       await page.goto(adminUrl, { waitUntil: "networkidle" });
       const row = page.locator("tbody tr").filter({ hasText: created.shared.loginName });
+      let cancelledDisableRequests = 0;
+      const observeCancellation = outgoing => {
+        if (outgoing.method() === "POST"
+          && new URL(outgoing.url()).pathname.endsWith(
+            `/administrators/${created.tenantA.sharedMembershipReference}/disable`)) {
+          cancelledDisableRequests += 1;
+        }
+      };
+      page.on("request", observeCancellation);
       await row.locator("summary").click();
       await row.getByRole("button", { name: "停用管理员资格" }).click();
       const governance = page.getByRole("dialog");
@@ -211,7 +220,13 @@ async function run(configuration) {
         && document.activeElement.textContent?.trim() === "更多");
       const before = await request(page,
         `/platform/tenants/${created.tenantA.tenantId}/administrators?pageNumber=1&pageSize=20&q=${created.shared.loginName}`);
-      requireCondition(before.body?.items[0]?.status === "ENABLED", "取消仍改变管理员资格");
+      page.off("request", observeCancellation);
+      requireCondition(cancelledDisableRequests === 0, "取消时仍发送了停用管理员资格请求");
+      requireCondition(before.status === 200, `取消后目录查询失败：HTTP ${before.status}`);
+      requireCondition(before.body?.totalElements === 1
+        && before.body?.items?.[0]?.membershipReference === created.tenantA.sharedMembershipReference,
+      "取消后目录未返回精确管理员资格");
+      requireCondition(before.body.items[0].status === "ENABLED", "取消仍改变管理员资格");
       await row.locator("summary").click();
       await row.getByRole("button", { name: "停用管理员资格" }).click();
       await page.getByRole("button", { name: "确认停用" }).click();
