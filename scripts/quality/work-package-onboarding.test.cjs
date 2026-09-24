@@ -149,13 +149,15 @@ test("关闭菜单不制造字号等待误报，展开后菜单文字仍接受 2
   const menu = { open: false };
   const element = visible => {
     const attributes = new Map();
-    return { style: { fontSize: "" }, getClientRects: () => visible() ? [{}] : [],
+    return { style: { fontSize: "" }, getClientRects: () => visible() ? [{}] : [], closest: () => null,
       getAttribute(name) { return name === "style" ? (this.style.fontSize ? `font-size: ${this.style.fontSize}` : null) : attributes.get(name) ?? null; },
       setAttribute(name, value) { if (name === "style") this.style.fontSize = value.slice("font-size: ".length); else attributes.set(name, value); },
       removeAttribute(name) { if (name === "style") this.style.fontSize = ""; else attributes.delete(name); } };
   };
   const title = element(() => true);
-  const menuButton = element(() => menu.open);
+  // Chromium 可能给关闭的 details 子按钮保留布局盒，但它仍不参与实际绘制。
+  const menuButton = element(() => true);
+  menuButton.closest = selector => selector === "details:not([open])" && !menu.open ? menu : null;
   global.document = { querySelectorAll: () => [title, menuButton],
     querySelector: selector => [title, menuButton].find(node =>
       selector === `[data-wp0017-text-scale="${node.getAttribute("data-wp0017-text-scale")}"]`) };

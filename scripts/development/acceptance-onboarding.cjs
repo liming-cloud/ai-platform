@@ -148,7 +148,8 @@ async function withTextScale(page, enlarged, action, scope = "main") {
   const selector = `${scope} :is(h1,h2,h3,h4,p,li,label,a,span,input,button,strong,small,dt,dd,legend,textarea,select,.fui-Badge,.fui-Field__hint,.fui-Field__validationMessage)`;
   // CSS 过渡结束才是实际字号；还原也必须等待，避免下一轮读取到放大中的值。
   const settle = sizes => page.waitForFunction(({ selector, sizes }) => {
-    const elements = [...document.querySelectorAll(selector)].filter(element => element.getClientRects().length > 0);
+    const elements = [...document.querySelectorAll(selector)].filter(element =>
+      element.getClientRects().length > 0 && !element.closest("details:not([open])"));
     return elements.length === sizes.length && elements.every((element, index) =>
       Math.abs(parseFloat(getComputedStyle(element).fontSize) - sizes[index]) < 0.1);
   }, { selector, sizes }, { polling: "raf", timeout: 2000 });
@@ -159,8 +160,9 @@ async function withTextScale(page, enlarged, action, scope = "main") {
       return true;
     }, { phase: "viewport" }, { timeout: 2000 });
     if (enlarged) originalStyles = await page.evaluate(selector => {
-      // 关闭的 details 菜单没有渲染盒；展开状态由调用方另行逐项验收。
-      const elements = [...document.querySelectorAll(selector)].filter(element => element.getClientRects().length > 0);
+      // Chromium 可能给关闭的 details 子节点保留布局盒；展开状态由调用方另行逐项验收。
+      const elements = [...document.querySelectorAll(selector)].filter(element =>
+        element.getClientRects().length > 0 && !element.closest("details:not([open])"));
       // 先读取全部原始字号，再统一放大，避免子元素继承父元素放大后的字号而变成 400%。
       const originals = elements.map((element, index) => ({ index, style: element.getAttribute("style"),
         marker: element.getAttribute("data-wp0017-text-scale"), size: parseFloat(getComputedStyle(element).fontSize) }));
