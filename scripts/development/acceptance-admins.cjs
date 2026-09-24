@@ -416,6 +416,11 @@ async function run(configuration) {
             await firstRow.getByRole("button", { name: "停用管理员资格" }).click();
           }
           const dialog = page.getByRole("dialog");
+          // 先等 Fluent 入场缩放结束，再按固定原型比较真实盒宽。
+          await dialog.evaluate(async surface => {
+            await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+            await Promise.all(surface.getAnimations({ subtree: true }).map(animation => animation.finished.catch(() => {})));
+          });
           const dialogWidth = await dialog.evaluate(surface => surface.getBoundingClientRect().width);
           requireCondition(Math.abs(dialogWidth - (width === 390 ? 352 : 608)) <= 1,
             `${width} 的 ${kind} 弹窗宽度未承接固定原型`);
