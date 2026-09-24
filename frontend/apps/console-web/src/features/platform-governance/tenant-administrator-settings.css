@@ -23,9 +23,9 @@
 .tenant-admin-page__status[data-status="DISABLED"] { border-color: var(--foundation-warning-border); background: var(--foundation-warning-background); color: var(--foundation-warning-foreground); }
 .tenant-admin-page__status > span { font-size: 9px; }
 .tenant-admin-page__actions { display: inline-flex; align-items: center; justify-content: end; flex-wrap: wrap; gap: 8px; }
-.tenant-admin-page__actions .fui-Button, .tenant-admin-page__pagination .fui-Button { min-height: 36px; white-space: nowrap; }
+.tenant-admin-page__actions .fui-Button, .tenant-admin-page__pagination .fui-Button { white-space: nowrap; }
 .tenant-admin-page__actions details { min-width: 0; }
-.tenant-admin-page__actions summary { display: inline-flex; align-items: center; min-height: 36px; padding: 5px 8px; cursor: pointer; list-style: none; font-size: 14px; font-weight: 620; white-space: nowrap; }
+.tenant-admin-page__actions summary { display: inline-flex; align-items: center; min-height: 32px; padding: 5px 8px; cursor: pointer; list-style: none; font-size: 14px; font-weight: 620; white-space: nowrap; }
 .tenant-admin-page__actions summary::-webkit-details-marker { display: none; }
 .tenant-admin-page__actions details > div { display: grid; min-width: 11rem; margin-top: 4px; padding: 8px; border: 1px solid var(--foundation-border-strong); border-radius: var(--foundation-control-radius); background: var(--foundation-surface); box-shadow: 0 12px 30px rgb(0 0 0 / 12%); }
 .tenant-admin-page__actions details button { width: 100%; min-height: 36px; padding: 6px 8px; border: 0; text-align: left; background: transparent; color: var(--foundation-text); font: inherit; cursor: pointer; }
@@ -40,24 +40,34 @@
 .tenant-admin-page__pagination input { width: 4rem; min-width: 0; }
 .tenant-admin-page__page-error { color: var(--foundation-danger); flex-basis: 100%; }
 .tenant-admin-page__dialog { width: min(38rem, calc(100vw - 2rem)) !important; border-radius: var(--foundation-control-radius); }
+.tenant-admin-page__dialog .fui-DialogActions { justify-content: flex-end; flex-wrap: wrap; padding-top: 16px; border-top: 1px solid var(--foundation-border); }
 .tenant-admin-page__dialog .fui-DialogTitle { display: grid; gap: 4px; font-family: var(--foundation-font-display); }
 .tenant-admin-page__kicker { color: var(--foundation-secondary-text); font-family: var(--foundation-font-body); font-size: 14px; font-weight: 650; letter-spacing: 0.02em; }
 .tenant-admin-page__dialog .fui-DialogContent { display: grid; gap: 12px; }
 .tenant-admin-page__dialog .fui-DialogContent p { margin: 0; line-height: 1.6; }
 .tenant-admin-page__password-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
 .tenant-admin-page__password-grid .fui-Field { min-width: 0; align-content: start; }
+.tenant-admin-page__password-grid .fui-Input { min-height: 36px; }
 .tenant-admin-page__revoke { border: 1px solid var(--foundation-border-strong); border-radius: var(--foundation-control-radius); background: var(--foundation-subtle-surface); padding: 12px; }
 .tenant-admin-page__revoke small { display: block; margin-left: 30px; color: var(--foundation-secondary-text); }
 .tenant-admin-page__impact { display: grid; margin: 0; border-block: 1px solid var(--foundation-border); }
 .tenant-admin-page__impact > div { display: grid; grid-template-columns: 5rem minmax(0, 1fr); gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--foundation-border); }
 .tenant-admin-page__impact > div:last-child { border-bottom: 0; }
 .tenant-admin-page__impact dt { color: var(--foundation-secondary-text); }
+.tenant-admin-page__impact dd { min-width: 0; margin: 0; overflow-wrap: anywhere; }
+@media (min-width: 681px) {
+  .tenant-admin-page .tenant-admin-page__actions .fui-Button,
+  .tenant-admin-page .tenant-admin-page__pagination .fui-Button { min-height: 32px; padding-block: 0; }
+  .tenant-admin-page .tenant-admin-page__pagination select,
+  .tenant-admin-page .tenant-admin-page__pagination input { min-height: 32px; padding-block: 0; }
+}
 @media (max-width: 1040px) {
   .tenant-admin-page__summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (max-width: 680px) {
   .tenant-admin-page__summary > div { padding: 16px; }
   .tenant-admin-page__summary > div:nth-child(-n + 2) { border-bottom: 1px solid var(--foundation-border); }
+  .tenant-admin-page__toolbar { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
   .tenant-admin-page__toolbar label, .tenant-admin-page__toolbar label:first-child, .tenant-admin-page__toolbar label:last-child { width: 100%; }
   .tenant-admin-page__toolbar .fui-Input, .tenant-admin-page__toolbar select,
   .tenant-admin-page__actions .fui-Button, .tenant-admin-page__actions summary,
@@ -72,10 +82,13 @@
   .tenant-admin-page__table-shell td::before { content: attr(data-label); color: var(--foundation-muted-text); text-align: left; font-size: 14px; font-weight: 650; }
   .tenant-admin-page__actions { justify-content: flex-start; flex-wrap: wrap; }
   .tenant-admin-page__actions details, .tenant-admin-page__actions summary, .tenant-admin-page__actions details > div { width: 100%; }
-  .tenant-admin-page__pagination { justify-content: flex-start; }
+  .tenant-admin-page__actions summary { justify-content: center; }
+  .tenant-admin-page__pagination { justify-content: flex-start; padding-inline: 12px; }
   .tenant-admin-page__pagination > span:first-child { width: 100%; }
   .tenant-admin-page__password-grid { grid-template-columns: minmax(0, 1fr); }
-  .tenant-admin-page__dialog { width: calc(100vw - 2.375rem) !important; max-height: calc(100dvh - 1rem) !important; }
+  .tenant-admin-page__password-grid .fui-Input, .tenant-admin-page__dialog .fui-DialogActions .fui-Button { min-height: 44px; }
+  .tenant-admin-page__dialog { width: calc(100vw - 2.375rem) !important; max-height: calc(100dvh - 1rem) !important; padding: 16px !important; }
+  .tenant-admin-page__dialog .fui-DialogActions { flex-direction: row; }
 }
 @media (any-pointer: coarse) {
   .tenant-admin-page__toolbar select, .tenant-admin-page__pagination select, .tenant-admin-page__pagination input,

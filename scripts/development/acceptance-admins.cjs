@@ -214,7 +214,7 @@ async function run(configuration) {
       requireCondition(before.body?.items[0]?.status === "ENABLED", "取消仍改变管理员资格");
       await row.locator("summary").click();
       await row.getByRole("button", { name: "停用管理员资格" }).click();
-      await page.getByRole("button", { name: "确认提交" }).click();
+      await page.getByRole("button", { name: "确认停用" }).click();
       await page.getByText(/在当前租户的管理员资格已停用/).waitFor();
       const local = await request(page,
         `/platform/tenants/${created.tenantA.tenantId}/administrators?pageNumber=1&pageSize=20&q=${created.shared.loginName}`);
@@ -230,7 +230,7 @@ async function run(configuration) {
       const refreshed = page.locator("tbody tr").filter({ hasText: created.shared.loginName });
       await refreshed.locator("summary").click();
       await refreshed.getByRole("button", { name: "恢复管理员资格" }).click();
-      await page.getByRole("button", { name: "确认提交" }).click();
+      await page.getByRole("button", { name: "确认恢复" }).click();
       await page.getByText(/在当前租户的管理员资格已恢复/).waitFor();
       const restored = await request(page,
         `/platform/tenants/${created.tenantA.tenantId}/administrators?pageNumber=1&pageSize=20&q=${created.shared.loginName}`);
@@ -305,6 +305,17 @@ async function run(configuration) {
           && (width === 390 || frame.statusWidth === 110),
         `${width} 摘要列数或筛选控件尺寸未承接原型`);
         await withTextScale(page, true, async () => {
+          const directoryTextScaled = await page.evaluate(() => {
+            const rows = [...document.querySelectorAll(".tenant-admin-page__table-shell tbody tr")];
+            const headings = [...document.querySelectorAll(".tenant-admin-page__table-shell th")]
+              .filter(element => element.getClientRects().length > 0);
+            return rows.length > 0 && rows.every(row => {
+              const summary = row.querySelector("summary");
+              return summary?.hasAttribute("data-wp0017-text-scale")
+                && [...row.querySelectorAll("td")].every(cell => cell.hasAttribute("data-wp0017-text-scale"));
+            }) && headings.every(heading => heading.hasAttribute("data-wp0017-text-scale"));
+          });
+          requireCondition(directoryTextScaled, `${width} 的目录或菜单文字未参与 200% 验收`);
           requireCondition(await visible(), `${width} 的 200% 文字横向溢出或标题裁切`);
         });
         const menus = page.locator("tbody tr details");
@@ -345,12 +356,12 @@ async function run(configuration) {
             }
             const dialog = page.getByRole("dialog");
             await withTextScale(page, true, async () => {
-              const confirm = dialog.getByRole("button", { name: kind === "reset" ? "重置密码" : "确认提交" });
+              const confirm = dialog.getByRole("button", { name: kind === "reset" ? "重置密码" : "确认停用" });
               await confirm.scrollIntoViewIfNeeded();
               const reachable = await dialog.evaluate(surface => {
                 const surfaceBounds = surface.getBoundingClientRect();
                 const button = [...surface.querySelectorAll("button")].find(item =>
-                  item.textContent?.trim() === (surface.textContent?.includes("受控凭据重置") ? "重置密码" : "确认提交"));
+                  item.textContent?.trim() === (surface.textContent?.includes("受控凭据重置") ? "重置密码" : "确认停用"));
                 const bounds = button?.getBoundingClientRect();
                 return surface.scrollWidth <= surface.clientWidth + 1
                   && surfaceBounds.left >= -1 && surfaceBounds.right <= innerWidth + 1

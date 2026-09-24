@@ -145,7 +145,7 @@ async function exerciseWizardKeyboard(page, step, advance = false) {
 
 async function withTextScale(page, enlarged, action, scope = "main") {
   let originalStyles;
-  const selector = `${scope} :is(h1,h2,h3,h4,p,li,label,a,span,input,button,strong,small,dt,dd,legend,textarea,select,.fui-Badge,.fui-Field__hint,.fui-Field__validationMessage)`;
+  const selector = `${scope} :is(h1,h2,h3,h4,p,li,label,a,span,input,button,strong,small,dt,dd,legend,textarea,select,summary,th,td,.fui-Badge,.fui-Field__hint,.fui-Field__validationMessage)`;
   // CSS 过渡结束才是实际字号；还原也必须等待，避免下一轮读取到放大中的值。
   const settle = sizes => page.waitForFunction(({ selector, sizes }) => {
     const elements = [...document.querySelectorAll(selector)].filter(element =>

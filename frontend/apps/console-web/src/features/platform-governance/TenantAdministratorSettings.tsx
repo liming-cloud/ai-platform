@@ -282,7 +282,8 @@ export function TenantAdministratorSettings({ client, route, onRouteChange }: {
             <Button appearance="secondary" disabled={busy} onClick={closeDialog}>取消</Button>
             <Button appearance="primary" disabled={busy || !pending || (pending.kind === "reset"
               && (!password || password !== confirmation || !revokeAcknowledged))}
-              onClick={() => void commit()}>{busy ? "正在提交" : pending?.kind === "reset" ? "重置密码" : "确认提交"}</Button>
+              onClick={() => void commit()}>{busy ? "正在提交" : pending?.kind === "reset" ? "重置密码"
+                : pending?.target.status === "ENABLED" ? "确认停用" : "确认恢复"}</Button>
           </DialogActions>
         </DialogBody>
       </DialogSurface>
