@@ -329,7 +329,10 @@
           },
           "verification": {
             "commands": ["make backend-test", "make acceptance-work-package WP=WP-0017 SLICE=admins"],
-            "evidence": ["docs/tasks/WP-0017/evidence/WP-0017-admin-settings-deploy-retest-20260924.md"]
+            "evidence": [
+              "docs/tasks/WP-0017/evidence/WP-0017-admin-settings-deploy-retest-20260924.md",
+              "docs/tasks/WP-0017/evidence/WP-0017-admin-settings-safe-dialog-deploy-20260924.md"
+            ]
           }
         },
         {
@@ -349,7 +352,10 @@
           },
           "verification": {
             "commands": ["make backend-test", "make acceptance-work-package WP=WP-0017 SLICE=admins", "make acceptance-work-package WP=WP-0017 SLICE=login"],
-            "evidence": ["docs/tasks/WP-0017/evidence/WP-0017-admin-settings-deploy-retest-20260924.md"]
+            "evidence": [
+              "docs/tasks/WP-0017/evidence/WP-0017-admin-settings-deploy-retest-20260924.md",
+              "docs/tasks/WP-0017/evidence/WP-0017-admin-settings-safe-dialog-deploy-20260924.md"
+            ]
           }
         }
       ]
