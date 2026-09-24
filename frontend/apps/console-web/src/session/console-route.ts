@@ -69,7 +69,7 @@ export type ConsoleRoute =
   | { navigationId: "platform"; task: "tenants"; page: number }
   | { navigationId: "platform"; task: "create"; step: 1 | 2 | 3 }
   | { navigationId: "platform"; task: "detail"; tenantId: string }
-  | { navigationId: "platform"; task: "admins"; tenantId: string; query: string; status: "ALL" | "ENABLED" | "DISABLED"; page: number; pageSize: 20 | 50 }
+  | { navigationId: "platform"; task: "admins"; tenantId: string; query: string; status: "ALL" | "ENABLED" | "DISABLED"; page: number; pageSize: 10 | 20 | 50 | 100 }
   | { navigationId: "platform-accounts"; task: "accounts"; page: number }
   | { navigationId: "platform-accounts"; task: "roles" }
   | { navigationId: "platform-model-supply"; task: "connections"; page: number }
@@ -368,7 +368,8 @@ export function parseConsoleRoute(pathname: string, search: string): ConsoleRout
       query: parameters.get("q")?.trim() ?? "",
       status: status === "ENABLED" || status === "DISABLED" ? status : "ALL",
       page: positivePage(parameters.get("page")),
-      pageSize: parameters.get("pageSize") === "50" ? 50 : 20,
+      pageSize: [10, 20, 50, 100].includes(Number(parameters.get("pageSize")))
+        ? Number(parameters.get("pageSize")) as 10 | 20 | 50 | 100 : 20,
     };
   }
   if (routePath === "/platform/roles") {

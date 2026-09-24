@@ -120,6 +120,18 @@ async function run(configuration) {
         === created.shared.loginName, "搜索词刷新后丢失");
       requireCondition(await page.getByRole("combobox", { name: "管理员状态" }).inputValue()
         === "ENABLED", "状态刷新后丢失");
+      const pageSize = page.getByRole("combobox", { name: "每页条数" });
+      await pageSize.selectOption("10");
+      await page.waitForURL(url => url.searchParams.get("pageSize") === "10");
+      await page.waitForFunction(() => document.activeElement?.getAttribute("aria-label") === "每页条数");
+      await pageSize.selectOption("20");
+      await page.waitForURL(url => url.searchParams.get("pageSize") === "20");
+      const jump = page.getByRole("spinbutton", { name: "跳转页码" });
+      await jump.fill("0");
+      await page.getByRole("button", { name: "跳转" }).click();
+      requireCondition(await page.getByRole("alert").getByText(/请输入 1–/).isVisible(),
+        "越界页码未提供原型错误提示");
+      await jump.fill("1");
       const target = `/platform/tenants/${created.tenantA.tenantId}/administrators`;
       const first = await request(page, `${target}?pageNumber=1&pageSize=1`);
       const second = await request(page, `${target}?pageNumber=2&pageSize=1`);
@@ -128,6 +140,12 @@ async function run(configuration) {
         && first.body.items[0].membershipReference !== second.body.items[0].membershipReference,
       "真实分页未稳定返回两条不同管理员资格");
       await page.goBack({ waitUntil: "networkidle" });
+      requireCondition(new URL(page.url()).searchParams.get("pageSize") === "10",
+        "浏览器后退未恢复目录每页条数");
+      await page.goBack({ waitUntil: "networkidle" });
+      requireCondition(new URL(page.url()).searchParams.get("pageSize") === "20",
+        "浏览器后退未恢复默认每页条数");
+      await page.goBack({ waitUntil: "networkidle" });
       requireCondition(new URL(page.url()).searchParams.get("status") === "ALL", "浏览器后退未恢复筛选");
       requireCondition(await page.getByRole("combobox", { name: "管理员状态" }).inputValue() === "ALL",
         "浏览器后退后筛选控件未恢复");
@@ -135,6 +153,15 @@ async function run(configuration) {
       requireCondition(new URL(page.url()).searchParams.get("q") === null
         && await page.getByRole("searchbox", { name: "按登录名搜索" }).inputValue() === "",
       "浏览器后退后搜索控件未恢复");
+      await page.getByRole("button", { name: "第 1 页" }).click();
+      await page.goForward({ waitUntil: "networkidle" });
+      requireCondition(new URL(page.url()).searchParams.get("q") === created.shared.loginName,
+        "点击当前页重复写入历史，前进无法恢复搜索");
+      await page.goBack({ waitUntil: "networkidle" });
+      await page.getByRole("searchbox", { name: "按登录名搜索" }).fill(created.shared.loginName);
+      await page.waitForURL(url => url.searchParams.get("q") === created.shared.loginName);
+      requireCondition(await page.evaluate(() => document.activeElement?.getAttribute("aria-label") === "按登录名搜索"),
+        "点击当前页后搜索输入被旧分页焦点夺走");
     });
     await check("跨租户分配、错租户、旧版本和无 CSRF 写入失败关闭", async () => {
       const target = `/platform/tenants/${created.tenantA.tenantId}/administrators/${created.tenantA.sharedMembershipReference}`;
@@ -172,7 +199,16 @@ async function run(configuration) {
       const row = page.locator("tbody tr").filter({ hasText: created.shared.loginName });
       await row.locator("summary").click();
       await row.getByRole("button", { name: "停用管理员资格" }).click();
+      const governance = page.getByRole("dialog");
+      for (const label of ["影响", "恢复", "审计"]) {
+        requireCondition(await governance.getByText(label, { exact: true }).isVisible(),
+          `资格确认框缺少${label}范围`);
+      }
+      requireCondition(await governance.getByText(/全局账户状态不变/).isVisible(),
+        "资格确认框未说明全局账户不受影响");
       await page.getByRole("button", { name: "取消", exact: true }).click();
+      await page.waitForFunction(() => document.activeElement?.tagName === "SUMMARY"
+        && document.activeElement.textContent?.trim() === "更多");
       const before = await request(page,
         `/platform/tenants/${created.tenantA.tenantId}/administrators?pageNumber=1&pageSize=20&q=${created.shared.loginName}`);
       requireCondition(before.body?.items[0]?.status === "ENABLED", "取消仍改变管理员资格");
@@ -219,6 +255,9 @@ async function run(configuration) {
       const row = page.locator("tbody tr").filter({ hasText: created.shared.loginName });
       await row.getByRole("button", { name: "重置密码" }).click();
       const dialog = page.getByRole("dialog");
+      requireCondition(await dialog.getByText("受控凭据重置", { exact: true }).isVisible()
+        && await dialog.getByText("平台与租户范围的既有会话同时失效。", { exact: true }).isVisible(),
+      "重置确认框未承接原型信息层级与全范围会话说明");
       const nextPassword = `Aa9!${crypto.randomBytes(24).toString("base64url")}`;
       await dialog.getByLabel("新密码").fill(nextPassword);
       await dialog.getByLabel("再次输入").fill(created.shared.password);
@@ -253,9 +292,72 @@ async function run(configuration) {
             && document.documentElement.scrollWidth <= innerWidth + 1);
         });
         requireCondition(await visible(), `${width} 页面横向溢出或标题裁切`);
+        const frame = await page.evaluate(() => {
+          const summary = document.querySelector(".tenant-admin-page__summary");
+          const status = document.querySelector('.tenant-admin-page__toolbar select[aria-label="管理员状态"]');
+          return { columns: summary ? getComputedStyle(summary).gridTemplateColumns.split(" ").length : 0,
+            statusHeight: status?.getBoundingClientRect().height ?? 0 };
+        });
+        requireCondition(frame.columns === (width <= 1040 ? 2 : 4)
+          && (width !== 390 || Math.abs(frame.statusHeight - 44) <= 1),
+        `${width} 摘要列数或移动筛选高度未承接原型`);
         await withTextScale(page, true, async () => {
           requireCondition(await visible(), `${width} 的 200% 文字横向溢出或标题裁切`);
         });
+        const menus = page.locator("tbody tr details");
+        const menuCount = await menus.count();
+        requireCondition(menuCount > 0, `${width} 缺少待检查的管理员操作菜单`);
+        for (let index = 0; index < menuCount; index += 1) {
+          const menu = menus.nth(index);
+          await menu.locator("summary").click();
+          try {
+            const menuFlow = await menu.evaluate(details => {
+              const next = details.closest("tr")?.nextElementSibling;
+              return !next || next.getBoundingClientRect().top >= details.getBoundingClientRect().bottom - 1;
+            });
+            requireCondition(menuFlow, `${width} 操作菜单覆盖下一行`);
+            await withTextScale(page, true, async () => {
+              const expanded = await menu.evaluate(details => {
+                const buttons = [...details.querySelectorAll("button")]
+                  .filter(button => button.getClientRects().length > 0);
+                return details.open && buttons.length > 0 && buttons.every(button => {
+                  const bounds = button.getBoundingClientRect();
+                  return button.hasAttribute("data-wp0017-text-scale")
+                    && bounds.width > 0 && bounds.left >= -1 && bounds.right <= innerWidth + 1;
+                });
+              });
+              requireCondition(expanded && await visible(), `${width} 的 200% 操作菜单文字缺失或横向裁切`);
+            });
+          } finally {
+            if (await menu.evaluate(details => details.open)) await menu.locator("summary").click();
+          }
+        }
+        if (width === 390) {
+          const firstRow = page.locator("tbody tr").first();
+          for (const kind of ["reset", "status"]) {
+            if (kind === "reset") await firstRow.getByRole("button", { name: "重置密码" }).click();
+            else {
+              await firstRow.locator("summary").click();
+              await firstRow.getByRole("button", { name: "停用管理员资格" }).click();
+            }
+            const dialog = page.getByRole("dialog");
+            await withTextScale(page, true, async () => {
+              const confirm = dialog.getByRole("button", { name: kind === "reset" ? "重置密码" : "确认提交" });
+              await confirm.scrollIntoViewIfNeeded();
+              const reachable = await dialog.evaluate(surface => {
+                const surfaceBounds = surface.getBoundingClientRect();
+                const button = [...surface.querySelectorAll("button")].find(item =>
+                  item.textContent?.trim() === (surface.textContent?.includes("受控凭据重置") ? "重置密码" : "确认提交"));
+                const bounds = button?.getBoundingClientRect();
+                return surface.scrollWidth <= surface.clientWidth + 1
+                  && surfaceBounds.left >= -1 && surfaceBounds.right <= innerWidth + 1
+                  && bounds && bounds.top >= -1 && bounds.bottom <= innerHeight + 1;
+              });
+              requireCondition(reachable, `390 的 ${kind} 弹窗在 200% 文字下裁切或确认按钮不可达`);
+            }, ".tenant-admin-page__dialog");
+            await dialog.getByRole("button", { name: "取消" }).click();
+          }
+        }
       }
       requireCondition(pageErrors === 0, "浏览器页面发生未处理异常");
       requireCondition(await page.evaluate(() => !document.getAnimations().some(animation =>

@@ -143,6 +143,66 @@ test("只有字号过渡结束后才能执行布局断言，恢复后才能进�
   assert.deepEqual(order, ["viewport-settled", "scale", "settled", "assert", "restore", "settled"]);
 });
 
+test("关闭菜单不制造字号等待误报，展开后菜单文字仍接受 200% 检查", async () => {
+  const original = { document: global.document, getComputedStyle: global.getComputedStyle,
+    requestAnimationFrame: global.requestAnimationFrame };
+  const menu = { open: false };
+  const element = visible => {
+    const attributes = new Map();
+    return { style: { fontSize: "" }, getClientRects: () => visible() ? [{}] : [],
+      getAttribute(name) { return name === "style" ? (this.style.fontSize ? `font-size: ${this.style.fontSize}` : null) : attributes.get(name) ?? null; },
+      setAttribute(name, value) { if (name === "style") this.style.fontSize = value.slice("font-size: ".length); else attributes.set(name, value); },
+      removeAttribute(name) { if (name === "style") this.style.fontSize = ""; else attributes.delete(name); } };
+  };
+  const title = element(() => true);
+  const menuButton = element(() => menu.open);
+  global.document = { querySelectorAll: () => [title, menuButton],
+    querySelector: selector => [title, menuButton].find(node =>
+      selector === `[data-wp0017-text-scale="${node.getAttribute("data-wp0017-text-scale")}"]`) };
+  global.getComputedStyle = node => ({ fontSize: node.getClientRects().length ? (node.style.fontSize || "12px") : "12px" });
+  global.requestAnimationFrame = callback => callback();
+  const page = { evaluate: async (callback, argument) => callback(argument),
+    waitForFunction: async (callback, argument) => {
+      assert.equal(await callback(argument), true, "实际渲染文字未达到预期字号");
+    } };
+  try {
+    await withTextScale(page, true, async () => {
+      assert.equal(title.style.fontSize, "24px");
+      assert.equal(menuButton.style.fontSize, "");
+    });
+    assert.equal(title.style.fontSize, "");
+    menu.open = true;
+    await withTextScale(page, true, async () => {
+      assert.equal(title.style.fontSize, "24px");
+      assert.equal(menuButton.style.fontSize, "24px");
+    });
+    assert.equal(menuButton.style.fontSize, "");
+    const computed = global.getComputedStyle;
+    global.getComputedStyle = node => node === menuButton ? { fontSize: "12px" } : computed(node);
+    await assert.rejects(() => withTextScale(page, true, async () => {}), /实际渲染文字未达到预期字号/);
+    assert.equal(menuButton.style.fontSize, "");
+  } finally {
+    for (const [key, value] of Object.entries(original)) {
+      if (value === undefined) delete global[key]; else global[key] = value;
+    }
+  }
+});
+
+test("200% 字号检查可覆盖主内容区外的可见弹窗", async () => {
+  const selectors = [];
+  const original = [{ index: 0, style: null, marker: null, size: 16 }];
+  const page = {
+    evaluate: async (_callback, argument) => {
+      if (typeof argument === "string") { selectors.push(argument); return original; }
+      return argument.length;
+    },
+    waitForFunction: async (_callback, argument) => { if (argument.selector) selectors.push(argument.selector); },
+  };
+  await withTextScale(page, true, async () => {}, ".tenant-admin-page__dialog");
+  assert.equal(selectors.length, 3);
+  assert.ok(selectors.every(selector => selector.startsWith(".tenant-admin-page__dialog :is(")));
+});
+
 
 test("原型布局拒绝旧底部导航、无内边距表单和未固定的移动操作栏", () => {
   const { verifyPrototypeFrame } = require("../development/acceptance-onboarding.cjs");

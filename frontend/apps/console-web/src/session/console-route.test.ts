@@ -324,6 +324,12 @@ describe("统一控制台路由", () => {
       .toBe("/platform/tenants/123/admins?q=alice&status=DISABLED&page=2&pageSize=20");
     expect(parseConsoleRoute("/platform/tenants/123/admins", "?status=BAD&page=0"))
       .toEqual({ navigationId: "platform", task: "admins", tenantId: "123", query: "", status: "ALL", page: 1, pageSize: 20 });
+    for (const pageSize of [10, 20, 50, 100]) {
+      expect(parseConsoleRoute("/platform/tenants/123/admins", `?pageSize=${pageSize}`))
+        .toMatchObject({ task: "admins", pageSize });
+    }
+    expect(parseConsoleRoute("/platform/tenants/123/admins", "?pageSize=101"))
+      .toMatchObject({ task: "admins", pageSize: 20 });
   });
 
   it("平台账户目录以独立能力入口和 URL 恢复服务端页码", () => {
