@@ -295,8 +295,9 @@ export function TenantAdministratorSettings({ client, route, onRouteChange }: {
             </div>
             <div className="tenant-admin-page__revoke"><Checkbox ref={revokeInput} required checked={revokeAcknowledged}
               aria-label="确认撤销该身份在所有租户的旧会话"
-              onChange={(_, value) => { setDialogValidation(""); setRevokeAcknowledged(Boolean(value.checked)); }} label="撤销全部会话" />
-              <small>平台与租户范围的既有会话同时失效。</small></div>
+              onChange={(_, value) => { setDialogValidation(""); setRevokeAcknowledged(Boolean(value.checked)); }}
+              label={<span className="tenant-admin-page__revoke-copy"><strong>撤销全部会话</strong>
+                <small>平台与租户范围的既有会话同时失效。</small></span>} /></div>
           </> : pending ? <>
             <p>“{pending.target.loginName}”在当前租户的管理员资格将被{pending.target.status === "ENABLED" ? "停用" : "恢复"}。</p>
             <dl className="tenant-admin-page__impact">
