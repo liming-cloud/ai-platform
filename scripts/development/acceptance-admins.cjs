@@ -160,8 +160,8 @@ async function run(configuration) {
       await page.goBack({ waitUntil: "networkidle" });
       await page.getByRole("searchbox", { name: "按登录名搜索" }).fill(created.shared.loginName);
       await page.waitForURL(url => url.searchParams.get("q") === created.shared.loginName);
-      requireCondition(await page.evaluate(() => document.activeElement?.getAttribute("aria-label") === "按登录名搜索"),
-        "点击当前页后搜索输入被旧分页焦点夺走");
+      await page.waitForFunction(() => document.activeElement?.getAttribute("aria-label") === "按登录名搜索"
+        && Boolean(document.querySelector(".tenant-admin-page__pagination")));
     });
     await check("跨租户分配、错租户、旧版本和无 CSRF 写入失败关闭", async () => {
       const target = `/platform/tenants/${created.tenantA.tenantId}/administrators/${created.tenantA.sharedMembershipReference}`;
