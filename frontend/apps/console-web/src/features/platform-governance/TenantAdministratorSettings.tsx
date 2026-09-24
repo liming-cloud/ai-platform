@@ -23,9 +23,9 @@ type Loaded = {
   enabledCount: number;
 };
 type Pending = { kind: "status" | "reset"; target: TenantAdministratorSummary };
-type PaginationFocus = { tenantId: string; query: string; status: AdminRoute["status"];
-  page: number; pageSize: number; target: "page" | "size" | "jump" };
-let paginationFocus: PaginationFocus | undefined;
+type RouteFocus = { tenantId: string; query: string; status: AdminRoute["status"];
+  page: number; pageSize: number; target: "search" | "status" | "page" | "size" | "jump" };
+let routeFocus: RouteFocus | undefined;
 
 /** 平台受权的租户管理员独立设置页；所有目录与变更结果都从服务端事实恢复。 */
 export function TenantAdministratorSettings({ client, route, onRouteChange }: {
@@ -50,21 +50,27 @@ export function TenantAdministratorSettings({ client, route, onRouteChange }: {
   const data = loaded?.owner === owner ? loaded : undefined;
 
   useEffect(() => {
-    if (!data || !paginationFocus) return;
-    const pendingFocus = paginationFocus;
-    paginationFocus = undefined;
+    if (!data || !routeFocus) return;
+    const pendingFocus = routeFocus;
+    routeFocus = undefined;
     if (pendingFocus.tenantId !== route.tenantId || pendingFocus.query !== route.query
       || pendingFocus.status !== route.status || pendingFocus.page !== route.page
       || pendingFocus.pageSize !== route.pageSize) return;
-    const selector = pendingFocus.target === "size" ? 'select[aria-label="每页条数"]'
-      : pendingFocus.target === "jump" ? 'input[aria-label="跳转页码"]'
-        : `[aria-label="第 ${route.page} 页"]`;
-    document.querySelector<HTMLElement>(`.tenant-admin-page__pagination ${selector}`)?.focus();
+    const selector = pendingFocus.target === "search" ? 'input[aria-label="按登录名搜索"]'
+      : pendingFocus.target === "status" ? 'select[aria-label="管理员状态"]'
+        : pendingFocus.target === "size" ? 'select[aria-label="每页条数"]'
+          : pendingFocus.target === "jump" ? 'input[aria-label="跳转页码"]'
+            : `[aria-label="第 ${route.page} 页"]`;
+    document.querySelector<HTMLElement>(`.tenant-admin-page ${selector}`)?.focus();
   }, [data, route.page, route.pageSize, route.query, route.status, route.tenantId]);
 
   useEffect(() => {
     if (search === route.query) return;
-    const timer = window.setTimeout(() => onRouteChange({ ...route, query: search.trim(), page: 1 }), 350);
+    const timer = window.setTimeout(() => {
+      routeFocus = { tenantId: route.tenantId, query: search.trim(), status: route.status,
+        page: 1, pageSize: route.pageSize, target: "search" };
+      onRouteChange({ ...route, query: search.trim(), page: 1 });
+    }, 350);
     return () => window.clearTimeout(timer);
   }, [onRouteChange, route, search]);
 
@@ -93,7 +99,7 @@ export function TenantAdministratorSettings({ client, route, onRouteChange }: {
     return () => { active = false; unsubscribe(); };
   }, [client, onRouteChange, owner, route]);
 
-  function navigate(change: Partial<AdminRoute>, focus?: PaginationFocus["target"]) {
+  function navigate(change: Partial<AdminRoute>, focus?: RouteFocus["target"]) {
     setNotice("");
     setJumpError("");
     const next = { ...route, ...change };
@@ -103,8 +109,8 @@ export function TenantAdministratorSettings({ client, route, onRouteChange }: {
         '.tenant-admin-page__pagination input[aria-label="跳转页码"]')?.focus();
       return;
     }
-    if (focus && (next.page !== route.page || next.pageSize !== route.pageSize)) {
-      paginationFocus = { tenantId: next.tenantId, query: next.query, status: next.status,
+    if (focus) {
+      routeFocus = { tenantId: next.tenantId, query: next.query, status: next.status,
         page: next.page, pageSize: next.pageSize, target: focus };
     }
     onRouteChange(next);
@@ -183,7 +189,7 @@ export function TenantAdministratorSettings({ client, route, onRouteChange }: {
           </label>
           <label>状态
             <select aria-label="管理员状态" value={route.status}
-              onChange={event => navigate({ status: event.target.value as AdminRoute["status"], page: 1 })}>
+              onChange={event => navigate({ status: event.target.value as AdminRoute["status"], page: 1 }, "status")}>
               <option value="ALL">全部状态</option><option value="ENABLED">可用</option><option value="DISABLED">已停用</option>
             </select>
           </label>
