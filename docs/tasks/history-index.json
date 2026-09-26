@@ -1042,9 +1042,9 @@
     },
     {
       "path": "docs/prototypes/wp-0016/ACTION-LEDGER.json",
-      "action": "move",
+      "action": "keep",
       "sha256": "77ff6446f4707f0eb2fd46d3d546d1f638270565281a756ba9507713f3a4316f",
-      "reason": "保留已接受原型渲染资源、合成夹具、许可证和验证源码，内容不变",
+      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯",
       "references": [
         "docs/prototypes/wp-0016/ACCEPTANCE.md",
         "docs/prototypes/wp-0016/BUSINESS-CLOSURE.md",
@@ -1061,8 +1061,7 @@
         "docs/prototypes/wp-0016/scripts/verify-static.mjs",
         "project/m6-implementation-map.json",
         "scripts/quality/test_m6_implementation_map.py"
-      ],
-      "destination": "docs/tasks/WP-0016/prototype/ACTION-LEDGER.json"
+      ]
     },
     {
       "path": "docs/prototypes/wp-0016/ASSISTANT-DELIVERY.md",
@@ -1300,13 +1299,12 @@
     },
     {
       "path": "docs/prototypes/wp-0016/artifacts/access-query-governance-browser-verification.json",
-      "action": "move",
+      "action": "keep",
       "sha256": "7d64fa6ddc169c54f8facfb64beaf82736571460f503c3642ad9052b4d449f23",
-      "reason": "原型清单或测试源码引用的冻结结果，保留机器依赖",
+      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯",
       "references": [
         "project/evidence/WP-0016-access-query-governance-prototype-20260904.md"
-      ],
-      "destination": "docs/tasks/WP-0016/prototype/artifacts/access-query-governance-browser-verification.json"
+      ]
     },
     {
       "path": "docs/prototypes/wp-0016/artifacts/access-query-governance-opendesign-lint.json",
@@ -1333,11 +1331,10 @@
     },
     {
       "path": "docs/prototypes/wp-0016/artifacts/account-lifecycle-final-browser-20260904/verification.json",
-      "action": "move",
+      "action": "keep",
       "sha256": "1e35dd4c2a0b691987c2f738a9e440b36295a9e4265aa5c44f71b9019d169a74",
-      "reason": "原型清单或测试源码引用的冻结结果，保留机器依赖",
-      "references": [],
-      "destination": "docs/tasks/WP-0016/prototype/artifacts/account-lifecycle-final-browser-20260904/verification.json"
+      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯",
+      "references": []
     },
     {
       "path": "docs/prototypes/wp-0016/artifacts/account-lifecycle-node-green.tap",
@@ -1378,13 +1375,12 @@
     },
     {
       "path": "docs/prototypes/wp-0016/artifacts/assistant-delivery-browser-verification.json",
-      "action": "move",
+      "action": "keep",
       "sha256": "4f47f3cd654c12f7064eba2cf9aea25a2a3e9f98db77b873bde1bd89fe759434",
-      "reason": "原型清单或测试源码引用的冻结结果，保留机器依赖",
+      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯",
       "references": [
         "project/evidence/WP-0016-assistant-delivery-prototype-20260904.md"
-      ],
-      "destination": "docs/tasks/WP-0016/prototype/artifacts/assistant-delivery-browser-verification.json"
+      ]
     },
     {
       "path": "docs/prototypes/wp-0016/artifacts/assistant-delivery-opendesign-lint.json",
@@ -1397,21 +1393,19 @@
     },
     {
       "path": "docs/prototypes/wp-0016/artifacts/browser-review-20260903-final/verification.json",
-      "action": "move",
+      "action": "keep",
       "sha256": "ab4878d7a2ec88af1370b76484bfb23b29cc05cc88fd86448b6518a3e057b79c",
-      "reason": "原型清单或测试源码引用的冻结结果，保留机器依赖",
+      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯",
       "references": [
         "project/evidence/WP-0016-browser-review-20260903.md"
-      ],
-      "destination": "docs/tasks/WP-0016/prototype/artifacts/browser-review-20260903-final/verification.json"
+      ]
     },
     {
       "path": "docs/prototypes/wp-0016/artifacts/browser-review-20260903/verification.json",
-      "action": "move",
+      "action": "keep",
       "sha256": "9d03418d8fd9b2b0efa6069384b181ba427a42d79168f84c6be632f504a87d3f",
-      "reason": "原型清单或测试源码引用的冻结结果，保留机器依赖",
-      "references": [],
-      "destination": "docs/tasks/WP-0016/prototype/artifacts/browser-review-20260903/verification.json"
+      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯",
+      "references": []
     },
     {
       "path": "docs/prototypes/wp-0016/artifacts/business-closure-green.tap",
@@ -1431,13 +1425,12 @@
     },
     {
       "path": "docs/prototypes/wp-0016/artifacts/evaluation-governance-browser-verification.json",
-      "action": "move",
+      "action": "keep",
       "sha256": "2804717c9f7f772102628ed799ef20c6f1a7124f0f2569026482fb10cecb651a",
-      "reason": "原型清单或测试源码引用的冻结结果，保留机器依赖",
+      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯",
       "references": [
         "project/evidence/WP-0016-evaluation-governance-prototype-20260904.md"
-      ],
-      "destination": "docs/tasks/WP-0016/prototype/artifacts/evaluation-governance-browser-verification.json"
+      ]
     },
     {
       "path": "docs/prototypes/wp-0016/artifacts/evaluation-governance-opendesign-lint.json",
@@ -1450,13 +1443,12 @@
     },
     {
       "path": "docs/prototypes/wp-0016/artifacts/full-closure-verification-20260906.json",
-      "action": "move",
+      "action": "keep",
       "sha256": "25e6ca8f1d133307aa54b5be0dadadc1a48aff9ee1e4837250b4c0ad7c218c18",
-      "reason": "原型清单或测试源码引用的冻结结果，保留机器依赖",
+      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯",
       "references": [
         "project/evidence/WP-0016-full-closure-prototype-20260906.md"
-      ],
-      "destination": "docs/tasks/WP-0016/prototype/artifacts/full-closure-verification-20260906.json"
+      ]
     },
     {
       "path": "docs/prototypes/wp-0016/artifacts/full-control-inventory-20260906.json",
@@ -1534,11 +1526,10 @@
     },
     {
       "path": "docs/prototypes/wp-0016/artifacts/layout-remediation-final-browser-20260903/verification.json",
-      "action": "move",
+      "action": "keep",
       "sha256": "8e561cb1b8912fea9b6b3c2c5bfe9072327ca9786542f26efb5aab4078d57db9",
-      "reason": "原型清单或测试源码引用的冻结结果，保留机器依赖",
-      "references": [],
-      "destination": "docs/tasks/WP-0016/prototype/artifacts/layout-remediation-final-browser-20260903/verification.json"
+      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯",
+      "references": []
     },
     {
       "path": "docs/prototypes/wp-0016/artifacts/layout-remediation-final.tap",
@@ -1549,11 +1540,10 @@
     },
     {
       "path": "docs/prototypes/wp-0016/artifacts/layout-remediation-full-browser-20260903/verification.json",
-      "action": "move",
+      "action": "keep",
       "sha256": "857f72688a90376837aa66e5e4e5427b078954b1fe5163a4c50bed7624430af4",
-      "reason": "原型清单或测试源码引用的冻结结果，保留机器依赖",
-      "references": [],
-      "destination": "docs/tasks/WP-0016/prototype/artifacts/layout-remediation-full-browser-20260903/verification.json"
+      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯",
+      "references": []
     },
     {
       "path": "docs/prototypes/wp-0016/artifacts/layout-remediation-green.tap",
@@ -1615,23 +1605,21 @@
     },
     {
       "path": "docs/prototypes/wp-0016/artifacts/member-provider-verification-20260907.json",
-      "action": "move",
+      "action": "keep",
       "sha256": "377890a8e5e4716f7800a211d66c0a3bf4d00dd70be62de4e54a7a2f6049492a",
-      "reason": "原型清单或测试源码引用的冻结结果，保留机器依赖",
+      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯",
       "references": [
         "project/evidence/WP-0016-member-provider-closure-20260907.md"
-      ],
-      "destination": "docs/tasks/WP-0016/prototype/artifacts/member-provider-verification-20260907.json"
+      ]
     },
     {
       "path": "docs/prototypes/wp-0016/artifacts/model-governance-browser-verification.json",
-      "action": "move",
+      "action": "keep",
       "sha256": "4307eb7d9db9c628e5c58652f612f16b25b338350b87c34598f131c85c512d36",
-      "reason": "原型清单或测试源码引用的冻结结果，保留机器依赖",
+      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯",
       "references": [
         "project/evidence/WP-0016-model-governance-prototype-20260904.md"
-      ],
-      "destination": "docs/tasks/WP-0016/prototype/artifacts/model-governance-browser-verification.json"
+      ]
     },
     {
       "path": "docs/prototypes/wp-0016/artifacts/model-governance-opendesign-lint.json",
@@ -1720,21 +1708,19 @@
     },
     {
       "path": "docs/prototypes/wp-0016/artifacts/query-closure-full-browser-20260903/verification.json",
-      "action": "move",
+      "action": "keep",
       "sha256": "19e58fe89ef226acd87e666d6fb5634d537fcb71f0b1ffad66926ccb84d7a499",
-      "reason": "原型清单或测试源码引用的冻结结果，保留机器依赖",
-      "references": [],
-      "destination": "docs/tasks/WP-0016/prototype/artifacts/query-closure-full-browser-20260903/verification.json"
+      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯",
+      "references": []
     },
     {
       "path": "docs/prototypes/wp-0016/artifacts/query-closure-full-browser-final-20260903/verification.json",
-      "action": "move",
+      "action": "keep",
       "sha256": "57fb6dc567034b619da77e0e9cac961719ae08a6415b9b68a71a32953b952532",
-      "reason": "原型清单或测试源码引用的冻结结果，保留机器依赖",
+      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯",
       "references": [
         "project/evidence/WP-0016-query-closure-20260903.md"
-      ],
-      "destination": "docs/tasks/WP-0016/prototype/artifacts/query-closure-full-browser-final-20260903/verification.json"
+      ]
     },
     {
       "path": "docs/prototypes/wp-0016/artifacts/query-closure-implementation-20260903/browser-blocked.tap",
@@ -1774,11 +1760,10 @@
     },
     {
       "path": "docs/prototypes/wp-0016/artifacts/query-closure-implementation-20260903/verification.json",
-      "action": "move",
+      "action": "keep",
       "sha256": "27e34f62aaa788f84750e6731132157e09372c7b34c63e72607b41aec049fdb9",
-      "reason": "原型清单或测试源码引用的冻结结果，保留机器依赖",
-      "references": [],
-      "destination": "docs/tasks/WP-0016/prototype/artifacts/query-closure-implementation-20260903/verification.json"
+      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯",
+      "references": []
     },
     {
       "path": "docs/prototypes/wp-0016/artifacts/query-closure-node-green.tap",
@@ -1889,56 +1874,51 @@
     },
     {
       "path": "docs/prototypes/wp-0016/artifacts/session-boundaries-verification-20260906.json",
-      "action": "move",
+      "action": "keep",
       "sha256": "dba1de0ad6a0a97d2c8df350e9cf3ae31fe5bafe2b98c16b0dc598b0705093aa",
-      "reason": "原型清单或测试源码引用的冻结结果，保留机器依赖",
+      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯",
       "references": [
         "project/evidence/WP-0016-session-boundaries-prototype-20260906.md"
-      ],
-      "destination": "docs/tasks/WP-0016/prototype/artifacts/session-boundaries-verification-20260906.json"
+      ]
     },
     {
       "path": "docs/prototypes/wp-0016/artifacts/stage-three-validation-summary.json",
-      "action": "move",
+      "action": "keep",
       "sha256": "8f5caee0bcdf88ed5bb11611a81255cce6c6d28d2ce4fbfbc4a9bfca857ca8a6",
-      "reason": "原型清单或测试源码引用的冻结结果，保留机器依赖",
+      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯",
       "references": [
         "project/evidence/WP-0016-stage-three-20260908.md"
-      ],
-      "destination": "docs/tasks/WP-0016/prototype/artifacts/stage-three-validation-summary.json"
+      ]
     },
     {
       "path": "docs/prototypes/wp-0016/artifacts/stage-two-validation-summary.json",
-      "action": "move",
+      "action": "keep",
       "sha256": "7da51e14fcf7b395602e73ce5ccd91316f0bf09db17e7b2204faaaa87d731165",
-      "reason": "原型清单或测试源码引用的冻结结果，保留机器依赖",
+      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯",
       "references": [
         "project/evidence/WP-0016-usability-sample-20260908.md"
-      ],
-      "destination": "docs/tasks/WP-0016/prototype/artifacts/stage-two-validation-summary.json"
+      ]
     },
     {
       "path": "docs/prototypes/wp-0016/artifacts/static-verification.json",
-      "action": "move",
+      "action": "keep",
       "sha256": "61a0b6416cebd62704844530fab9c214a3c276861d0d97202aac23f74c220ba3",
-      "reason": "原型清单或测试源码引用的冻结结果，保留机器依赖",
+      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯",
       "references": [
         "project/evidence/WP-0016-full-closure-prototype-20260906.md",
         "project/evidence/WP-0016-legacy-login-repair-20260907.md",
         "project/evidence/WP-0016-open-design-full-platform-candidate.md",
         "project/evidence/WP-0016-platform-usability-20260907.md"
-      ],
-      "destination": "docs/tasks/WP-0016/prototype/artifacts/static-verification.json"
+      ]
     },
     {
       "path": "docs/prototypes/wp-0016/artifacts/structured-object-governance-browser-verification.json",
-      "action": "move",
+      "action": "keep",
       "sha256": "d4fb33627a49a070d974062eefc8de89ebbf1b09ae84332ba82582a785190537",
-      "reason": "原型清单或测试源码引用的冻结结果，保留机器依赖",
+      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯",
       "references": [
         "project/evidence/WP-0016-structured-object-governance-prototype-20260904.md"
-      ],
-      "destination": "docs/tasks/WP-0016/prototype/artifacts/structured-object-governance-browser-verification.json"
+      ]
     },
     {
       "path": "docs/prototypes/wp-0016/artifacts/structured-object-governance-opendesign-lint.json",
@@ -2014,11 +1994,10 @@
     },
     {
       "path": "docs/prototypes/wp-0016/artifacts/tenant-remediation-final-browser-20260904/verification.json",
-      "action": "move",
+      "action": "keep",
       "sha256": "e88c7de182ceca0e9eb3beb354844f689f22ee658ca756ad33db6ddace05d473",
-      "reason": "原型清单或测试源码引用的冻结结果，保留机器依赖",
-      "references": [],
-      "destination": "docs/tasks/WP-0016/prototype/artifacts/tenant-remediation-final-browser-20260904/verification.json"
+      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯",
+      "references": []
     },
     {
       "path": "docs/prototypes/wp-0016/artifacts/tenant-remediation-layout.tap",
@@ -2115,21 +2094,19 @@
     },
     {
       "path": "docs/prototypes/wp-0016/artifacts/verification.json",
-      "action": "move",
+      "action": "keep",
       "sha256": "ab4878d7a2ec88af1370b76484bfb23b29cc05cc88fd86448b6518a3e057b79c",
-      "reason": "原型清单或测试源码引用的冻结结果，保留机器依赖",
+      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯",
       "references": [
         "project/evidence/WP-0016-open-design-full-platform-candidate.md"
-      ],
-      "destination": "docs/tasks/WP-0016/prototype/artifacts/verification.json"
+      ]
     },
     {
       "path": "docs/prototypes/wp-0016/artifacts/visual-polish-validation-summary.json",
-      "action": "move",
+      "action": "keep",
       "sha256": "aa8019619de07ba0d3b83f25f426f22245f46fdce2cc4e42c8bc4b9502994b67",
-      "reason": "原型清单或测试源码引用的冻结结果，保留机器依赖",
-      "references": [],
-      "destination": "docs/tasks/WP-0016/prototype/artifacts/visual-polish-validation-summary.json"
+      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯",
+      "references": []
     },
     {
       "path": "docs/prototypes/wp-0016/artifacts/visual-remediation-green.json",
@@ -2154,137 +2131,124 @@
     },
     {
       "path": "docs/prototypes/wp-0016/assets/icons/LICENSE.txt",
-      "action": "move",
+      "action": "keep",
       "sha256": "69bc45dc42b9acb96a69823adbc6ae538374e3c0bde169b855b32c48eaaef52f",
-      "reason": "保留已接受原型渲染资源、合成夹具、许可证和验证源码，内容不变",
+      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯",
       "references": [
         "docs/prototypes/wp-0016/assets/icons/manifest.json"
-      ],
-      "destination": "docs/tasks/WP-0016/prototype/assets/icons/LICENSE.txt"
+      ]
     },
     {
       "path": "docs/prototypes/wp-0016/assets/icons/arrow-sync-circle.svg",
-      "action": "move",
+      "action": "keep",
       "sha256": "3764c0321b8c5b1d39f6924d56f8b21ba6b2e41a9fb7c53e8dd2dd2b0cfd53d7",
-      "reason": "保留已接受原型渲染资源、合成夹具、许可证和验证源码，内容不变",
+      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯",
       "references": [
         "docs/prototypes/wp-0016/assets/icons/manifest.json"
-      ],
-      "destination": "docs/tasks/WP-0016/prototype/assets/icons/arrow-sync-circle.svg"
+      ]
     },
     {
       "path": "docs/prototypes/wp-0016/assets/icons/book-database.svg",
-      "action": "move",
+      "action": "keep",
       "sha256": "33ce1861981b3cda167d4fb9ee6ef84aa79081259ca184bec97f24738b4ed763",
-      "reason": "保留已接受原型渲染资源、合成夹具、许可证和验证源码，内容不变",
+      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯",
       "references": [
         "docs/prototypes/wp-0016/assets/icons/manifest.json"
-      ],
-      "destination": "docs/tasks/WP-0016/prototype/assets/icons/book-database.svg"
+      ]
     },
     {
       "path": "docs/prototypes/wp-0016/assets/icons/bot.svg",
-      "action": "move",
+      "action": "keep",
       "sha256": "740519a01562fb4423088bc6522f2dcf366c89ec441307179fcd13e7e4ae9704",
-      "reason": "保留已接受原型渲染资源、合成夹具、许可证和验证源码，内容不变",
+      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯",
       "references": [
         "docs/prototypes/wp-0016/assets/icons/manifest.json"
-      ],
-      "destination": "docs/tasks/WP-0016/prototype/assets/icons/bot.svg"
+      ]
     },
     {
       "path": "docs/prototypes/wp-0016/assets/icons/brain-circuit.svg",
-      "action": "move",
+      "action": "keep",
       "sha256": "1c3f81dba526461f73eee67be8eb7d1c422766b26876cb67433ed92f39a5bf21",
-      "reason": "保留已接受原型渲染资源、合成夹具、许可证和验证源码，内容不变",
+      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯",
       "references": [
         "docs/prototypes/wp-0016/assets/icons/manifest.json"
-      ],
-      "destination": "docs/tasks/WP-0016/prototype/assets/icons/brain-circuit.svg"
+      ]
     },
     {
       "path": "docs/prototypes/wp-0016/assets/icons/building-people.svg",
-      "action": "move",
+      "action": "keep",
       "sha256": "bdbfb4fa337cf0fb392ab1aa7a70c5e9069c78a0ef15e2e6bb54862fa2cfac30",
-      "reason": "保留已接受原型渲染资源、合成夹具、许可证和验证源码，内容不变",
+      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯",
       "references": [
         "docs/prototypes/wp-0016/assets/icons/manifest.json"
-      ],
-      "destination": "docs/tasks/WP-0016/prototype/assets/icons/building-people.svg"
+      ]
     },
     {
       "path": "docs/prototypes/wp-0016/assets/icons/data-usage.svg",
-      "action": "move",
+      "action": "keep",
       "sha256": "17c7bb5063672eef3d3dbe9c0ef66609d0f20214466cef59f3052832055f4911",
-      "reason": "保留已接受原型渲染资源、合成夹具、许可证和验证源码，内容不变",
+      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯",
       "references": [
         "docs/prototypes/wp-0016/assets/icons/manifest.json"
-      ],
-      "destination": "docs/tasks/WP-0016/prototype/assets/icons/data-usage.svg"
+      ]
     },
     {
       "path": "docs/prototypes/wp-0016/assets/icons/document-text.svg",
-      "action": "move",
+      "action": "keep",
       "sha256": "f76c2ec8378f3d0d2f6569b34ff54b7b3c3b7215a93745b92d4906aa882f84e5",
-      "reason": "保留已接受原型渲染资源、合成夹具、许可证和验证源码，内容不变",
+      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯",
       "references": [
         "docs/prototypes/wp-0016/assets/icons/manifest.json"
-      ],
-      "destination": "docs/tasks/WP-0016/prototype/assets/icons/document-text.svg"
+      ]
     },
     {
       "path": "docs/prototypes/wp-0016/assets/icons/home.svg",
-      "action": "move",
+      "action": "keep",
       "sha256": "f78ef623c07e6f40474ebd55b88ad29739d77bf9629e20ef462f4db86452acf0",
-      "reason": "保留已接受原型渲染资源、合成夹具、许可证和验证源码，内容不变",
+      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯",
       "references": [
         "docs/prototypes/wp-0016/assets/icons/manifest.json"
-      ],
-      "destination": "docs/tasks/WP-0016/prototype/assets/icons/home.svg"
+      ]
     },
     {
       "path": "docs/prototypes/wp-0016/assets/icons/manifest.json",
-      "action": "move",
+      "action": "keep",
       "sha256": "61c763949deac511d0f10217f1f81a27b83343517ad45ae4265bd75cf6466c24",
-      "reason": "保留已接受原型渲染资源、合成夹具、许可证和验证源码，内容不变",
-      "references": [],
-      "destination": "docs/tasks/WP-0016/prototype/assets/icons/manifest.json"
+      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯",
+      "references": []
     },
     {
       "path": "docs/prototypes/wp-0016/assets/icons/people-community.svg",
-      "action": "move",
+      "action": "keep",
       "sha256": "1ed63d669f084b767a2fdc4d6df592add1bb12fad30dd43f3621e36655caf98d",
-      "reason": "保留已接受原型渲染资源、合成夹具、许可证和验证源码，内容不变",
+      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯",
       "references": [
         "docs/prototypes/wp-0016/assets/icons/manifest.json"
-      ],
-      "destination": "docs/tasks/WP-0016/prototype/assets/icons/people-community.svg"
+      ]
     },
     {
       "path": "docs/prototypes/wp-0016/assets/icons/pulse.svg",
-      "action": "move",
+      "action": "keep",
       "sha256": "f6fee6e3c277f8e301d4060d93a51499bd4d3a902a6eb4eea324b563125af3ce",
-      "reason": "保留已接受原型渲染资源、合成夹具、许可证和验证源码，内容不变",
+      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯",
       "references": [
         "docs/prototypes/wp-0016/assets/icons/manifest.json"
-      ],
-      "destination": "docs/tasks/WP-0016/prototype/assets/icons/pulse.svg"
+      ]
     },
     {
       "path": "docs/prototypes/wp-0016/assets/icons/shield-task.svg",
-      "action": "move",
+      "action": "keep",
       "sha256": "253358263ec34c2f8842569fc79e5c51df8ef39bdfe3a3ed896a7f38475a54ce",
-      "reason": "保留已接受原型渲染资源、合成夹具、许可证和验证源码，内容不变",
+      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯",
       "references": [
         "docs/prototypes/wp-0016/assets/icons/manifest.json"
-      ],
-      "destination": "docs/tasks/WP-0016/prototype/assets/icons/shield-task.svg"
+      ]
     },
     {
       "path": "docs/prototypes/wp-0016/detail-context.js",
-      "action": "move",
+      "action": "keep",
       "sha256": "83bc03db91896c6d330810bf0d580733d413a3b46e4e321052a9c9d584c1c4ff",
-      "reason": "保留已接受原型渲染资源、合成夹具、许可证和验证源码，内容不变",
+      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯",
       "references": [
         "docs/prototypes/wp-0016/artifacts/full-closure-verification-20260906.json",
         "docs/prototypes/wp-0016/artifacts/opendesign-login-repair-save-20260907.json",
@@ -2296,14 +2260,13 @@
         "docs/prototypes/wp-0016/artifacts/opendesign-usability-save-20260907.json",
         "docs/prototypes/wp-0016/prototype-state.js",
         "docs/prototypes/wp-0016/prototype.js"
-      ],
-      "destination": "docs/tasks/WP-0016/prototype/detail-context.js"
+      ]
     },
     {
       "path": "docs/prototypes/wp-0016/directory-pagination.js",
-      "action": "move",
+      "action": "keep",
       "sha256": "b1d974552212e67542562251c497a277549453d378fa6e1fd37f3caf10795f5e",
-      "reason": "保留已接受原型渲染资源、合成夹具、许可证和验证源码，内容不变",
+      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯",
       "references": [
         "docs/prototypes/wp-0016/DESIGN.md",
         "docs/prototypes/wp-0016/artifacts/opendesign-member-provider-save-20260907.json",
@@ -2316,14 +2279,13 @@
         "docs/prototypes/wp-0016/scripts/directory-pagination.test.mjs",
         "docs/prototypes/wp-0016/scripts/stage-three-render.test.mjs",
         "docs/prototypes/wp-0016/scripts/stage-two-pressure.test.mjs"
-      ],
-      "destination": "docs/tasks/WP-0016/prototype/directory-pagination.js"
+      ]
     },
     {
       "path": "docs/prototypes/wp-0016/fixtures.json",
-      "action": "move",
+      "action": "keep",
       "sha256": "2755f806d3d7550faebef3d5445a5785f927835fec179b7b5662eb12aaf03265",
-      "reason": "保留已接受原型渲染资源、合成夹具、许可证和验证源码，内容不变",
+      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯",
       "references": [
         "docs/prototypes/wp-0016/DESIGN.md",
         "docs/prototypes/wp-0016/OPEN-DESIGN-FULL-PLATFORM-PROMPT.md",
@@ -2347,14 +2309,13 @@
         "docs/prototypes/wp-0016/scripts/verify-and-capture.cjs",
         "docs/prototypes/wp-0016/scripts/verify-static.mjs",
         "project/evidence/WP-0016-open-design-prototype-candidate.md"
-      ],
-      "destination": "docs/tasks/WP-0016/prototype/fixtures.json"
+      ]
     },
     {
       "path": "docs/prototypes/wp-0016/full-platform.js",
-      "action": "move",
+      "action": "keep",
       "sha256": "d650c1ae6c000263fd97be0d650f2c375ece3de8fb00998cb758955060a5adbe",
-      "reason": "保留已接受原型渲染资源、合成夹具、许可证和验证源码，内容不变",
+      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯",
       "references": [
         "docs/prototypes/wp-0016/artifacts/full-closure-verification-20260906.json",
         "docs/prototypes/wp-0016/artifacts/login-repair-verification-20260907.json",
@@ -2376,14 +2337,13 @@
         "docs/prototypes/wp-0016/scripts/verify-static.mjs",
         "project/evidence/WP-0016-open-design-full-platform-candidate.md",
         "project/evidence/WP-0016-visual-remediation-candidate-20260903.md"
-      ],
-      "destination": "docs/tasks/WP-0016/prototype/full-platform.js"
+      ]
     },
     {
       "path": "docs/prototypes/wp-0016/governance-directories.js",
-      "action": "move",
+      "action": "keep",
       "sha256": "3e7752ad133c761f0b62b7dcb2630d36358db07a1e9a695b3bdeb0fc021a48d6",
-      "reason": "保留已接受原型渲染资源、合成夹具、许可证和验证源码，内容不变",
+      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯",
       "references": [
         "docs/prototypes/wp-0016/artifacts/full-closure-verification-20260906.json",
         "docs/prototypes/wp-0016/artifacts/opendesign-login-repair-save-20260907.json",
@@ -2395,14 +2355,13 @@
         "docs/prototypes/wp-0016/artifacts/opendesign-usability-save-20260907.json",
         "docs/prototypes/wp-0016/prototype.js",
         "docs/prototypes/wp-0016/scripts/stage-three-render.test.mjs"
-      ],
-      "destination": "docs/tasks/WP-0016/prototype/governance-directories.js"
+      ]
     },
     {
       "path": "docs/prototypes/wp-0016/index.html",
-      "action": "move",
+      "action": "keep",
       "sha256": "718a5bee8606607fc6eabf353a47eb79556d7effa51f2d45f207ad6be2db65ec",
-      "reason": "保留已接受原型渲染资源、合成夹具、许可证和验证源码，内容不变",
+      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯",
       "references": [
         "docs/prototypes/wp-0016/ACCEPTANCE.md",
         "docs/prototypes/wp-0016/OPEN-DESIGN-FULL-PLATFORM-PROMPT.md",
@@ -2450,14 +2409,13 @@
         "project/evidence/WP-0016-usability-sample-20260908.md",
         "project/evidence/WP-0016-visual-polish-20260913.md",
         "project/evidence/WP-0016-visual-remediation-candidate-20260903.md"
-      ],
-      "destination": "docs/tasks/WP-0016/prototype/index.html"
+      ]
     },
     {
       "path": "docs/prototypes/wp-0016/index.html.artifact.json",
-      "action": "move",
+      "action": "keep",
       "sha256": "dd371e414816185d11ad2bf72363ab3ee6c286d2f2ce88382512eb392402644a",
-      "reason": "保留已接受原型渲染资源、合成夹具、许可证和验证源码，内容不变",
+      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯",
       "references": [
         "docs/prototypes/wp-0016/artifacts/opendesign-login-repair-save-20260907.json",
         "docs/prototypes/wp-0016/artifacts/opendesign-member-provider-save-20260907.json",
@@ -2466,28 +2424,26 @@
         "docs/prototypes/wp-0016/artifacts/opendesign-save-stage-three-20260908.json",
         "docs/prototypes/wp-0016/artifacts/opendesign-save-visual-polish-20260913.json",
         "docs/prototypes/wp-0016/artifacts/opendesign-usability-save-20260907.json"
-      ],
-      "destination": "docs/tasks/WP-0016/prototype/index.html.artifact.json"
+      ]
     },
     {
       "path": "docs/prototypes/wp-0016/member-drafts.js",
-      "action": "move",
+      "action": "keep",
       "sha256": "7b9fd206a71401038e0d792c90aafe8aa5982725b14cef40b262962a2e373873",
-      "reason": "保留已接受原型渲染资源、合成夹具、许可证和验证源码，内容不变",
+      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯",
       "references": [
         "docs/prototypes/wp-0016/artifacts/opendesign-save-20260908.json",
         "docs/prototypes/wp-0016/artifacts/opendesign-save-stage-three-20260908.json",
         "docs/prototypes/wp-0016/artifacts/opendesign-save-visual-polish-20260913.json",
         "docs/prototypes/wp-0016/prototype.js",
         "docs/prototypes/wp-0016/scripts/stage-two-closure.test.mjs"
-      ],
-      "destination": "docs/tasks/WP-0016/prototype/member-drafts.js"
+      ]
     },
     {
       "path": "docs/prototypes/wp-0016/member-workspace.js",
-      "action": "move",
+      "action": "keep",
       "sha256": "58226dae46f65e77776e87b6ec3be495a0980e1bf239a9e6e8c2120c40216d9d",
-      "reason": "保留已接受原型渲染资源、合成夹具、许可证和验证源码，内容不变",
+      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯",
       "references": [
         "docs/prototypes/wp-0016/artifacts/opendesign-save-20260908.json",
         "docs/prototypes/wp-0016/artifacts/opendesign-save-stage-three-20260908.json",
@@ -2495,14 +2451,13 @@
         "docs/prototypes/wp-0016/full-platform.js",
         "docs/prototypes/wp-0016/prototype.js",
         "docs/prototypes/wp-0016/scripts/stage-two-closure.test.mjs"
-      ],
-      "destination": "docs/tasks/WP-0016/prototype/member-workspace.js"
+      ]
     },
     {
       "path": "docs/prototypes/wp-0016/navigation.js",
-      "action": "move",
+      "action": "keep",
       "sha256": "cc822c849a98541e644b450f7a1863248595b98130bcbfaa2e78aaa6807493d6",
-      "reason": "保留已接受原型渲染资源、合成夹具、许可证和验证源码，内容不变",
+      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯",
       "references": [
         "docs/prototypes/wp-0016/DESIGN.md",
         "docs/prototypes/wp-0016/artifacts/business-closure-red.tap",
@@ -2520,14 +2475,13 @@
         "docs/prototypes/wp-0016/scripts/reviewer-regression.test.mjs",
         "docs/prototypes/wp-0016/scripts/stage-three-render.test.mjs",
         "docs/prototypes/wp-0016/scripts/verify-static.mjs"
-      ],
-      "destination": "docs/tasks/WP-0016/prototype/navigation.js"
+      ]
     },
     {
       "path": "docs/prototypes/wp-0016/object-workspaces.js",
-      "action": "move",
+      "action": "keep",
       "sha256": "5ca323a0e03cb7e59846cce7bae919b3c9a527287b05c5d9fcfc2abe4f27e00c",
-      "reason": "保留已接受原型渲染资源、合成夹具、许可证和验证源码，内容不变",
+      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯",
       "references": [
         "docs/prototypes/wp-0016/artifacts/opendesign-save-20260908.json",
         "docs/prototypes/wp-0016/artifacts/opendesign-save-stage-three-20260908.json",
@@ -2538,14 +2492,13 @@
         "docs/prototypes/wp-0016/scripts/stage-three-render.test.mjs",
         "docs/prototypes/wp-0016/scripts/stage-two-closure.test.mjs",
         "docs/prototypes/wp-0016/workspace-journeys.js"
-      ],
-      "destination": "docs/tasks/WP-0016/prototype/object-workspaces.js"
+      ]
     },
     {
       "path": "docs/prototypes/wp-0016/open-design-project.json",
-      "action": "move",
+      "action": "keep",
       "sha256": "e53c6fd0b1d6c6352ab0e86b0ba8ec3af0fa9d233f544b752f100d54b0d21700",
-      "reason": "保留已接受原型渲染资源、合成夹具、许可证和验证源码，内容不变",
+      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯",
       "references": [
         "docs/prototypes/wp-0016/artifacts/opendesign-login-repair-save-20260907.json",
         "docs/prototypes/wp-0016/artifacts/opendesign-member-provider-save-20260907.json",
@@ -2554,14 +2507,13 @@
         "docs/prototypes/wp-0016/artifacts/opendesign-save-stage-three-20260908.json",
         "docs/prototypes/wp-0016/artifacts/opendesign-save-visual-polish-20260913.json",
         "docs/prototypes/wp-0016/artifacts/opendesign-usability-save-20260907.json"
-      ],
-      "destination": "docs/tasks/WP-0016/prototype/open-design-project.json"
+      ]
     },
     {
       "path": "docs/prototypes/wp-0016/open-design.lock.json",
-      "action": "move",
+      "action": "keep",
       "sha256": "18348e51ae282fb78b4869da4b7f156852edfb2b430ef0c1494cfcbacec2b891",
-      "reason": "保留已接受原型渲染资源、合成夹具、许可证和验证源码，内容不变",
+      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯",
       "references": [
         "docs/prototypes/wp-0016/artifacts/opendesign-login-repair-save-20260907.json",
         "docs/prototypes/wp-0016/artifacts/opendesign-member-provider-save-20260907.json",
@@ -2571,14 +2523,13 @@
         "docs/prototypes/wp-0016/artifacts/opendesign-save-visual-polish-20260913.json",
         "docs/prototypes/wp-0016/artifacts/opendesign-usability-save-20260907.json",
         "docs/prototypes/wp-0016/scripts/save-opendesign.cjs"
-      ],
-      "destination": "docs/tasks/WP-0016/prototype/open-design.lock.json"
+      ]
     },
     {
       "path": "docs/prototypes/wp-0016/page-fixtures.json",
-      "action": "move",
+      "action": "keep",
       "sha256": "4ecbee7d7bb6cb0f174a24e4fec00f2a644c194ceb024342526341d5b6b0d819",
-      "reason": "保留已接受原型渲染资源、合成夹具、许可证和验证源码，内容不变",
+      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯",
       "references": [
         "docs/prototypes/wp-0016/DESIGN.md",
         "docs/prototypes/wp-0016/artifacts/opendesign-login-repair-save-20260907.json",
@@ -2596,14 +2547,13 @@
         "docs/prototypes/wp-0016/scripts/verify-and-capture.cjs",
         "docs/prototypes/wp-0016/scripts/verify-static.mjs",
         "project/evidence/WP-0016-open-design-full-platform-candidate.md"
-      ],
-      "destination": "docs/tasks/WP-0016/prototype/page-fixtures.json"
+      ]
     },
     {
       "path": "docs/prototypes/wp-0016/page-inventory.json",
-      "action": "move",
+      "action": "keep",
       "sha256": "bb53681c82e4b2f445316107ad689590660472aab550e7fc930aac72f9fd07c8",
-      "reason": "保留已接受原型渲染资源、合成夹具、许可证和验证源码，内容不变",
+      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯",
       "references": [
         "docs/prototypes/wp-0016/ACCEPTANCE.md",
         "docs/prototypes/wp-0016/DESIGN.md",
@@ -2631,14 +2581,13 @@
         "project/evidence/WP-0016-open-design-full-platform-candidate.md",
         "project/m6-implementation-map.json",
         "scripts/quality/test_m6_implementation_map.py"
-      ],
-      "destination": "docs/tasks/WP-0016/prototype/page-inventory.json"
+      ]
     },
     {
       "path": "docs/prototypes/wp-0016/prototype-state.js",
-      "action": "move",
+      "action": "keep",
       "sha256": "8abe82de03989c847794c0e8179dc07853970b55d728029f4a314ca4fec146f9",
-      "reason": "保留已接受原型渲染资源、合成夹具、许可证和验证源码，内容不变",
+      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯",
       "references": [
         "docs/prototypes/wp-0016/artifacts/business-closure-red.tap",
         "docs/prototypes/wp-0016/artifacts/full-closure-verification-20260906.json",
@@ -2688,14 +2637,13 @@
         "docs/prototypes/wp-0016/scripts/verify-static.mjs",
         "docs/prototypes/wp-0016/scripts/workspace-context.test.mjs",
         "project/evidence/WP-0016-session-boundaries-prototype-20260906.md"
-      ],
-      "destination": "docs/tasks/WP-0016/prototype/prototype-state.js"
+      ]
     },
     {
       "path": "docs/prototypes/wp-0016/prototype.css",
-      "action": "move",
+      "action": "keep",
       "sha256": "2e627c22e4a9ce1d37ce90ce95a92673b1bc13d3ddbcbf4f51f5eb33d215efa4",
-      "reason": "保留已接受原型渲染资源、合成夹具、许可证和验证源码，内容不变",
+      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯",
       "references": [
         "docs/prototypes/wp-0016/OPEN-DESIGN-FULL-PLATFORM-PROMPT.md",
         "docs/prototypes/wp-0016/artifacts/full-closure-verification-20260906.json",
@@ -2710,14 +2658,13 @@
         "docs/prototypes/wp-0016/index.html",
         "docs/prototypes/wp-0016/scripts/stage-two-design.test.mjs",
         "docs/prototypes/wp-0016/scripts/verify-static.mjs"
-      ],
-      "destination": "docs/tasks/WP-0016/prototype/prototype.css"
+      ]
     },
     {
       "path": "docs/prototypes/wp-0016/prototype.js",
-      "action": "move",
+      "action": "keep",
       "sha256": "915695859beb29cde8b34a050b85c20117a000c27cdccfad0df24923127349d9",
-      "reason": "保留已接受原型渲染资源、合成夹具、许可证和验证源码，内容不变",
+      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯",
       "references": [
         "docs/prototypes/wp-0016/OPEN-DESIGN-FULL-PLATFORM-PROMPT.md",
         "docs/prototypes/wp-0016/artifacts/full-closure-verification-20260906.json",
@@ -2737,14 +2684,13 @@
         "docs/prototypes/wp-0016/scripts/stage-three-render.test.mjs",
         "docs/prototypes/wp-0016/scripts/verify-static.mjs",
         "project/evidence/WP-0016-visual-remediation-candidate-20260903.md"
-      ],
-      "destination": "docs/tasks/WP-0016/prototype/prototype.js"
+      ]
     },
     {
       "path": "docs/prototypes/wp-0016/provider-presets.js",
-      "action": "move",
+      "action": "keep",
       "sha256": "0da0548dd28d442d8d45e08ca38adbb222f5f48eaa6557090cf331d51a08fa33",
-      "reason": "保留已接受原型渲染资源、合成夹具、许可证和验证源码，内容不变",
+      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯",
       "references": [
         "docs/prototypes/wp-0016/PROVIDER-PRESETS.md",
         "docs/prototypes/wp-0016/artifacts/member-provider-verification-20260907.json",
@@ -2756,113 +2702,101 @@
         "docs/prototypes/wp-0016/prototype.js",
         "docs/prototypes/wp-0016/scripts/provider-presets.test.mjs",
         "docs/prototypes/wp-0016/scripts/stage-three-render.test.mjs"
-      ],
-      "destination": "docs/tasks/WP-0016/prototype/provider-presets.js"
+      ]
     },
     {
       "path": "docs/prototypes/wp-0016/review-motion.js",
-      "action": "move",
+      "action": "keep",
       "sha256": "c51d82721928d8d262e4230cb53fc9e9a4481dafb4bbcfc3c7104976d72fe6a0",
-      "reason": "保留已接受原型渲染资源、合成夹具、许可证和验证源码，内容不变",
+      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯",
       "references": [
         "docs/prototypes/wp-0016/artifacts/opendesign-save-20260908.json",
         "docs/prototypes/wp-0016/artifacts/opendesign-save-stage-three-20260908.json",
         "docs/prototypes/wp-0016/artifacts/opendesign-save-visual-polish-20260913.json",
         "docs/prototypes/wp-0016/prototype.js"
-      ],
-      "destination": "docs/tasks/WP-0016/prototype/review-motion.js"
+      ]
     },
     {
       "path": "docs/prototypes/wp-0016/scripts/access-query-governance-state.test.mjs",
-      "action": "move",
+      "action": "keep",
       "sha256": "cb8e2fb37d0b83fde1e514ccea8a519fcdc249234d04ede064235047c5fc025a",
-      "reason": "保留已接受原型渲染资源、合成夹具、许可证和验证源码，内容不变",
-      "references": [],
-      "destination": "docs/tasks/WP-0016/prototype/scripts/access-query-governance-state.test.mjs"
+      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯",
+      "references": []
     },
     {
       "path": "docs/prototypes/wp-0016/scripts/access-query-governance.browser.test.cjs",
-      "action": "move",
+      "action": "keep",
       "sha256": "95e918856a2eefdec6c85b11dafe946eebdfd93244b2da5496f36e0cb23e7fc4",
-      "reason": "保留已接受原型渲染资源、合成夹具、许可证和验证源码，内容不变",
-      "references": [],
-      "destination": "docs/tasks/WP-0016/prototype/scripts/access-query-governance.browser.test.cjs"
+      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯",
+      "references": []
     },
     {
       "path": "docs/prototypes/wp-0016/scripts/account-entry.test.mjs",
-      "action": "move",
+      "action": "keep",
       "sha256": "74c585929b30da90144778fec883515e7cd2ff1a3890e5c71add823573788e05",
-      "reason": "保留已接受原型渲染资源、合成夹具、许可证和验证源码，内容不变",
-      "references": [],
-      "destination": "docs/tasks/WP-0016/prototype/scripts/account-entry.test.mjs"
+      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯",
+      "references": []
     },
     {
       "path": "docs/prototypes/wp-0016/scripts/account-lifecycle-state.test.mjs",
-      "action": "move",
+      "action": "keep",
       "sha256": "60e9650c224c9f54ef51323d4b32e4dcccfacacdabf1b950826ff0aa36922e73",
-      "reason": "保留已接受原型渲染资源、合成夹具、许可证和验证源码，内容不变",
+      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯",
       "references": [
         "docs/prototypes/wp-0016/artifacts/account-lifecycle-state-red.tap"
-      ],
-      "destination": "docs/tasks/WP-0016/prototype/scripts/account-lifecycle-state.test.mjs"
+      ]
     },
     {
       "path": "docs/prototypes/wp-0016/scripts/account-lifecycle.browser.test.cjs",
-      "action": "move",
+      "action": "keep",
       "sha256": "2701aa9644e96fe3ff7f895935bd8327ede40a1bd9776b84f63ed5c0f40ebf74",
-      "reason": "保留已接受原型渲染资源、合成夹具、许可证和验证源码，内容不变",
+      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯",
       "references": [
         "docs/prototypes/wp-0016/artifacts/account-lifecycle-browser-red.tap"
-      ],
-      "destination": "docs/tasks/WP-0016/prototype/scripts/account-lifecycle.browser.test.cjs"
+      ]
     },
     {
       "path": "docs/prototypes/wp-0016/scripts/account-login-closure.browser.test.cjs",
-      "action": "move",
+      "action": "keep",
       "sha256": "7c9a0cbfec976737417b7eced3b8ec98fce89b6920722958fc793664f8f30350",
-      "reason": "保留已接受原型渲染资源、合成夹具、许可证和验证源码，内容不变",
-      "references": [],
-      "destination": "docs/tasks/WP-0016/prototype/scripts/account-login-closure.browser.test.cjs"
+      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯",
+      "references": []
     },
     {
       "path": "docs/prototypes/wp-0016/scripts/account-login-closure.test.mjs",
-      "action": "move",
+      "action": "keep",
       "sha256": "dd0a0d4823940a2ed9dba85e76338885a07ffa0cbee9782caff21b4c2d4872b5",
-      "reason": "保留已接受原型渲染资源、合成夹具、许可证和验证源码，内容不变",
-      "references": [],
-      "destination": "docs/tasks/WP-0016/prototype/scripts/account-login-closure.test.mjs"
+      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯",
+      "references": []
     },
     {
       "path": "docs/prototypes/wp-0016/scripts/assistant-delivery-state.test.mjs",
-      "action": "move",
+      "action": "keep",
       "sha256": "1c8b3a48c284e67858864af0b8b4be310f02b3e03f0ba7075dabf8609962da9e",
-      "reason": "保留已接受原型渲染资源、合成夹具、许可证和验证源码，内容不变",
-      "references": [],
-      "destination": "docs/tasks/WP-0016/prototype/scripts/assistant-delivery-state.test.mjs"
+      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯",
+      "references": []
     },
     {
       "path": "docs/prototypes/wp-0016/scripts/assistant-delivery.browser.test.cjs",
-      "action": "move",
+      "action": "keep",
       "sha256": "8bb9e07ff190f466778746c0c73d2aab006257de1fd8a33f2a2f6c6ea539dbb8",
-      "reason": "保留已接受原型渲染资源、合成夹具、许可证和验证源码，内容不变",
-      "references": [],
-      "destination": "docs/tasks/WP-0016/prototype/scripts/assistant-delivery.browser.test.cjs"
+      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯",
+      "references": []
     },
     {
       "path": "docs/prototypes/wp-0016/scripts/audit-acceptance.cjs",
-      "action": "move",
+      "action": "keep",
       "sha256": "0f155cd07f7f5b08b572df2b3bfbd24fb3a4c11b639c72dca0b41f3c4c077585",
-      "reason": "保留已接受原型渲染资源、合成夹具、许可证和验证源码，内容不变",
+      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯",
       "references": [
         "project/evidence/WP-0016-acceptance-preflight-20260905.md"
-      ],
-      "destination": "docs/tasks/WP-0016/prototype/scripts/audit-acceptance.cjs"
+      ]
     },
     {
       "path": "docs/prototypes/wp-0016/scripts/browser-session.cjs",
-      "action": "move",
+      "action": "keep",
       "sha256": "f825ecaeb190007a4f70cde32fa0e3f35e5e2f13c9f6275c78d3fa15c48fe847",
-      "reason": "保留已接受原型渲染资源、合成夹具、许可证和验证源码，内容不变",
+      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯",
       "references": [
         "docs/prototypes/wp-0016/scripts/access-query-governance.browser.test.cjs",
         "docs/prototypes/wp-0016/scripts/account-lifecycle.browser.test.cjs",
@@ -2889,36 +2823,33 @@
         "docs/prototypes/wp-0016/scripts/usability-pressure.browser.test.cjs",
         "docs/prototypes/wp-0016/scripts/verify-and-capture.cjs",
         "docs/prototypes/wp-0016/scripts/visual-polish.browser.test.cjs"
-      ],
-      "destination": "docs/tasks/WP-0016/prototype/scripts/browser-session.cjs"
+      ]
     },
     {
       "path": "docs/prototypes/wp-0016/scripts/business-closure.test.mjs",
-      "action": "move",
+      "action": "keep",
       "sha256": "13d7c2e6be60f8ca204024a8168695477e2e8a2c75eb1c9a0fe92895374d6964",
-      "reason": "保留已接受原型渲染资源、合成夹具、许可证和验证源码，内容不变",
+      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯",
       "references": [
         "docs/prototypes/wp-0016/artifacts/business-closure-red.tap",
         "project/evidence/WP-0016-browser-review-20260903.md",
         "project/evidence/WP-0016-business-closure-candidate-20260903.md",
         "project/evidence/WP-0016-layout-remediation-20260903.md",
         "project/evidence/WP-0016-query-closure-20260903.md"
-      ],
-      "destination": "docs/tasks/WP-0016/prototype/scripts/business-closure.test.mjs"
+      ]
     },
     {
       "path": "docs/prototypes/wp-0016/scripts/directory-pagination.test.mjs",
-      "action": "move",
+      "action": "keep",
       "sha256": "8a3a0c5a435fac6fcfd31497e8f55328879e1d7b22dc46b5f4d87d17a8d1e991",
-      "reason": "保留已接受原型渲染资源、合成夹具、许可证和验证源码，内容不变",
-      "references": [],
-      "destination": "docs/tasks/WP-0016/prototype/scripts/directory-pagination.test.mjs"
+      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯",
+      "references": []
     },
     {
       "path": "docs/prototypes/wp-0016/scripts/enumerate-controls.cjs",
-      "action": "move",
+      "action": "keep",
       "sha256": "4e82674e56551a9bc0b6d6930757262f783243d125cf061981be34404d1db75e",
-      "reason": "保留已接受原型渲染资源、合成夹具、许可证和验证源码，内容不变",
+      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯",
       "references": [
         "project/evidence/WP-0016-full-closure-prototype-20260906.md",
         "project/evidence/WP-0016-legacy-login-repair-20260907.md",
@@ -2928,174 +2859,155 @@
         "project/evidence/WP-0016-usability-sample-20260908.md",
         "project/evidence/WP-0016-visual-polish-20260913.md",
         "project/work-packages/WP-0016.md"
-      ],
-      "destination": "docs/tasks/WP-0016/prototype/scripts/enumerate-controls.cjs"
+      ]
     },
     {
       "path": "docs/prototypes/wp-0016/scripts/evaluation-governance-state.test.mjs",
-      "action": "move",
+      "action": "keep",
       "sha256": "b7ea58518045461aeb84fef527a783829b5d113185925b47c4000c991390f3c4",
-      "reason": "保留已接受原型渲染资源、合成夹具、许可证和验证源码，内容不变",
-      "references": [],
-      "destination": "docs/tasks/WP-0016/prototype/scripts/evaluation-governance-state.test.mjs"
+      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯",
+      "references": []
     },
     {
       "path": "docs/prototypes/wp-0016/scripts/evaluation-governance.browser.test.cjs",
-      "action": "move",
+      "action": "keep",
       "sha256": "8f41d07684a1589f6fa2b9920bc94de3980467e7316a6da0f97148a4fc2826e1",
-      "reason": "保留已接受原型渲染资源、合成夹具、许可证和验证源码，内容不变",
-      "references": [],
-      "destination": "docs/tasks/WP-0016/prototype/scripts/evaluation-governance.browser.test.cjs"
+      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯",
+      "references": []
     },
     {
       "path": "docs/prototypes/wp-0016/scripts/index-lifecycle-state.test.mjs",
-      "action": "move",
+      "action": "keep",
       "sha256": "83228a564cc918027aa4c6a825cdc53c9572c23d3efdc9958deead60865e892d",
-      "reason": "保留已接受原型渲染资源、合成夹具、许可证和验证源码，内容不变",
-      "references": [],
-      "destination": "docs/tasks/WP-0016/prototype/scripts/index-lifecycle-state.test.mjs"
+      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯",
+      "references": []
     },
     {
       "path": "docs/prototypes/wp-0016/scripts/index-lifecycle.browser.test.cjs",
-      "action": "move",
+      "action": "keep",
       "sha256": "b5d39cffe0af7bdb8c32c29f27eb009305be61eb5a9132d117f18ff69b2ebc69",
-      "reason": "保留已接受原型渲染资源、合成夹具、许可证和验证源码，内容不变",
-      "references": [],
-      "destination": "docs/tasks/WP-0016/prototype/scripts/index-lifecycle.browser.test.cjs"
+      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯",
+      "references": []
     },
     {
       "path": "docs/prototypes/wp-0016/scripts/knowledge-ingestion-state.test.mjs",
-      "action": "move",
+      "action": "keep",
       "sha256": "659894b4bd656d69fe88bbacfa53137ccb94d180957f28f86d9de9ef578d4e03",
-      "reason": "保留已接受原型渲染资源、合成夹具、许可证和验证源码，内容不变",
-      "references": [],
-      "destination": "docs/tasks/WP-0016/prototype/scripts/knowledge-ingestion-state.test.mjs"
+      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯",
+      "references": []
     },
     {
       "path": "docs/prototypes/wp-0016/scripts/knowledge-ingestion.browser.test.cjs",
-      "action": "move",
+      "action": "keep",
       "sha256": "1d5d08c8d1a248ef92b848905f9c6530d6ecda3a2427abe9aa8f83e0587fdd17",
-      "reason": "保留已接受原型渲染资源、合成夹具、许可证和验证源码，内容不变",
-      "references": [],
-      "destination": "docs/tasks/WP-0016/prototype/scripts/knowledge-ingestion.browser.test.cjs"
+      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯",
+      "references": []
     },
     {
       "path": "docs/prototypes/wp-0016/scripts/layout-regression.test.cjs",
-      "action": "move",
+      "action": "keep",
       "sha256": "2a9c39f4d32b2337d7d976fad11d10047e17968e27f08ffaa62050bf545222ce",
-      "reason": "保留已接受原型渲染资源、合成夹具、许可证和验证源码，内容不变",
+      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯",
       "references": [
         "docs/prototypes/wp-0016/artifacts/layout-remediation-containment-red.tap",
         "docs/prototypes/wp-0016/artifacts/layout-remediation-red.tap",
         "project/evidence/WP-0016-layout-remediation-20260903.md"
-      ],
-      "destination": "docs/tasks/WP-0016/prototype/scripts/layout-regression.test.cjs"
+      ]
     },
     {
       "path": "docs/prototypes/wp-0016/scripts/legacy-login.browser.test.cjs",
-      "action": "move",
+      "action": "keep",
       "sha256": "6f340224857d6a43c2c1aa235e15c4f254e2611db86a68370def170802bcacdf",
-      "reason": "保留已接受原型渲染资源、合成夹具、许可证和验证源码，内容不变",
-      "references": [],
-      "destination": "docs/tasks/WP-0016/prototype/scripts/legacy-login.browser.test.cjs"
+      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯",
+      "references": []
     },
     {
       "path": "docs/prototypes/wp-0016/scripts/legacy-login.test.mjs",
-      "action": "move",
+      "action": "keep",
       "sha256": "4d869325031ead0a18bff65dcecb373ef764f15b8f3b45f7d114e3fc6f5e8fd9",
-      "reason": "保留已接受原型渲染资源、合成夹具、许可证和验证源码，内容不变",
-      "references": [],
-      "destination": "docs/tasks/WP-0016/prototype/scripts/legacy-login.test.mjs"
+      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯",
+      "references": []
     },
     {
       "path": "docs/prototypes/wp-0016/scripts/member-account-state.test.mjs",
-      "action": "move",
+      "action": "keep",
       "sha256": "49d8b93aae4cb03703ebb455f97480ebb5c5ae860d53dc518f1e0c5ce5767c80",
-      "reason": "保留已接受原型渲染资源、合成夹具、许可证和验证源码，内容不变",
-      "references": [],
-      "destination": "docs/tasks/WP-0016/prototype/scripts/member-account-state.test.mjs"
+      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯",
+      "references": []
     },
     {
       "path": "docs/prototypes/wp-0016/scripts/member-provider.browser.test.cjs",
-      "action": "move",
+      "action": "keep",
       "sha256": "4a7093e7149d2713afa0c2b59d26fb1afbaf16ddd433a72bd8e2d38c13d353d3",
-      "reason": "保留已接受原型渲染资源、合成夹具、许可证和验证源码，内容不变",
+      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯",
       "references": [
         "docs/prototypes/wp-0016/scripts/account-login-closure.browser.test.cjs"
-      ],
-      "destination": "docs/tasks/WP-0016/prototype/scripts/member-provider.browser.test.cjs"
+      ]
     },
     {
       "path": "docs/prototypes/wp-0016/scripts/migration-audit.browser.test.cjs",
-      "action": "move",
+      "action": "keep",
       "sha256": "f326f948be3da823a1828a5a1b608e10da0be73d7e097b17852a6ff816830195",
-      "reason": "保留已接受原型渲染资源、合成夹具、许可证和验证源码，内容不变",
-      "references": [],
-      "destination": "docs/tasks/WP-0016/prototype/scripts/migration-audit.browser.test.cjs"
+      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯",
+      "references": []
     },
     {
       "path": "docs/prototypes/wp-0016/scripts/model-governance-state.test.mjs",
-      "action": "move",
+      "action": "keep",
       "sha256": "37da536fe603aef2088dc7fa85cdf8c5fdffd61f513e3bffd44a704bf9ddaf6e",
-      "reason": "保留已接受原型渲染资源、合成夹具、许可证和验证源码，内容不变",
-      "references": [],
-      "destination": "docs/tasks/WP-0016/prototype/scripts/model-governance-state.test.mjs"
+      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯",
+      "references": []
     },
     {
       "path": "docs/prototypes/wp-0016/scripts/model-governance.browser.test.cjs",
-      "action": "move",
+      "action": "keep",
       "sha256": "56bc4a0976b46eab7b04f577806149dd6311299669d26907fcae712de2b72622",
-      "reason": "保留已接受原型渲染资源、合成夹具、许可证和验证源码，内容不变",
-      "references": [],
-      "destination": "docs/tasks/WP-0016/prototype/scripts/model-governance.browser.test.cjs"
+      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯",
+      "references": []
     },
     {
       "path": "docs/prototypes/wp-0016/scripts/platform-usability.browser.test.cjs",
-      "action": "move",
+      "action": "keep",
       "sha256": "28c7256c3a9e6ac64d58cb674052b57b9b11587c218b6865e6234f0a96259b1c",
-      "reason": "保留已接受原型渲染资源、合成夹具、许可证和验证源码，内容不变",
-      "references": [],
-      "destination": "docs/tasks/WP-0016/prototype/scripts/platform-usability.browser.test.cjs"
+      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯",
+      "references": []
     },
     {
       "path": "docs/prototypes/wp-0016/scripts/provider-presets.test.mjs",
-      "action": "move",
+      "action": "keep",
       "sha256": "7cf78e7b4a30ff535090410dfb1c0fb0547da359a45e42556c5e160ff77ddea9",
-      "reason": "保留已接受原型渲染资源、合成夹具、许可证和验证源码，内容不变",
-      "references": [],
-      "destination": "docs/tasks/WP-0016/prototype/scripts/provider-presets.test.mjs"
+      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯",
+      "references": []
     },
     {
       "path": "docs/prototypes/wp-0016/scripts/query-boundaries.test.mjs",
-      "action": "move",
+      "action": "keep",
       "sha256": "6d62fb3769265521cb826cfb1019c8aaa7ee108cd7404abd4c6328f353950985",
-      "reason": "保留已接受原型渲染资源、合成夹具、许可证和验证源码，内容不变",
+      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯",
       "references": [
         "docs/prototypes/wp-0016/artifacts/query-boundaries-red.tap",
         "docs/prototypes/wp-0016/artifacts/query-relogin-red.tap",
         "project/evidence/WP-0016-layout-remediation-20260903.md",
         "project/evidence/WP-0016-query-closure-20260903.md"
-      ],
-      "destination": "docs/tasks/WP-0016/prototype/scripts/query-boundaries.test.mjs"
+      ]
     },
     {
       "path": "docs/prototypes/wp-0016/scripts/query-journey.test.cjs",
-      "action": "move",
+      "action": "keep",
       "sha256": "9d57cbea18af860a11e8ec352d2c3a489b6be1668d1ddb31a0735ecc5641bb31",
-      "reason": "保留已接受原型渲染资源、合成夹具、许可证和验证源码，内容不变",
+      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯",
       "references": [
         "docs/prototypes/wp-0016/artifacts/query-closure-implementation-20260903/browser-blocked.tap",
         "docs/prototypes/wp-0016/artifacts/query-closure-red.tap",
         "project/evidence/WP-0016-layout-remediation-20260903.md",
         "project/evidence/WP-0016-query-closure-20260903.md"
-      ],
-      "destination": "docs/tasks/WP-0016/prototype/scripts/query-journey.test.cjs"
+      ]
     },
     {
       "path": "docs/prototypes/wp-0016/scripts/query-resilience.test.cjs",
-      "action": "move",
+      "action": "keep",
       "sha256": "a7d0979f01ed030b8068534450a53578b964ccf0107fac2692a5a0fcfbba09a2",
-      "reason": "保留已接受原型渲染资源、合成夹具、许可证和验证源码，内容不变",
+      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯",
       "references": [
         "docs/prototypes/wp-0016/artifacts/query-cross-tab-red.tap",
         "docs/prototypes/wp-0016/artifacts/query-history-controls-red.tap",
@@ -3105,42 +3017,38 @@
         "docs/prototypes/wp-0016/artifacts/query-stream-control-red.tap",
         "project/evidence/WP-0016-layout-remediation-20260903.md",
         "project/evidence/WP-0016-query-closure-20260903.md"
-      ],
-      "destination": "docs/tasks/WP-0016/prototype/scripts/query-resilience.test.cjs"
+      ]
     },
     {
       "path": "docs/prototypes/wp-0016/scripts/query-state.test.mjs",
-      "action": "move",
+      "action": "keep",
       "sha256": "3980d4f9c214074521f6e818c124ed829712ee454426f223924705e131929b9c",
-      "reason": "保留已接受原型渲染资源、合成夹具、许可证和验证源码，内容不变",
+      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯",
       "references": [
         "docs/prototypes/wp-0016/artifacts/query-closure-implementation-20260903/query-state-red.tap",
         "project/evidence/WP-0016-layout-remediation-20260903.md",
         "project/evidence/WP-0016-query-closure-20260903.md"
-      ],
-      "destination": "docs/tasks/WP-0016/prototype/scripts/query-state.test.mjs"
+      ]
     },
     {
       "path": "docs/prototypes/wp-0016/scripts/remaining-actions.test.mjs",
-      "action": "move",
+      "action": "keep",
       "sha256": "83d9ad99f021d7574d9fdf2bdfe1a5ce0fef4f789f3935fe87775d50ac56ead6",
-      "reason": "保留已接受原型渲染资源、合成夹具、许可证和验证源码，内容不变",
-      "references": [],
-      "destination": "docs/tasks/WP-0016/prototype/scripts/remaining-actions.test.mjs"
+      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯",
+      "references": []
     },
     {
       "path": "docs/prototypes/wp-0016/scripts/remaining-closure.browser.test.cjs",
-      "action": "move",
+      "action": "keep",
       "sha256": "580f3c8f7fbb139034bbad9aab71422ef5704335e06e7f2cd9d337ab3aad3821",
-      "reason": "保留已接受原型渲染资源、合成夹具、许可证和验证源码，内容不变",
-      "references": [],
-      "destination": "docs/tasks/WP-0016/prototype/scripts/remaining-closure.browser.test.cjs"
+      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯",
+      "references": []
     },
     {
       "path": "docs/prototypes/wp-0016/scripts/remediation-contract.test.mjs",
-      "action": "move",
+      "action": "keep",
       "sha256": "2c8c6f494b09ef7b644562562c0631f6182eed21446087c86570701d740b97f8",
-      "reason": "保留已接受原型渲染资源、合成夹具、许可证和验证源码，内容不变",
+      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯",
       "references": [
         "docs/prototypes/wp-0016/artifacts/remediation-contract-red.tap",
         "docs/prototypes/wp-0016/artifacts/remediation-user-copy-red.tap",
@@ -3149,14 +3057,13 @@
         "project/evidence/WP-0016-layout-remediation-20260903.md",
         "project/evidence/WP-0016-query-closure-20260903.md",
         "project/evidence/WP-0016-visual-remediation-candidate-20260903.md"
-      ],
-      "destination": "docs/tasks/WP-0016/prototype/scripts/remediation-contract.test.mjs"
+      ]
     },
     {
       "path": "docs/prototypes/wp-0016/scripts/reviewer-regression.test.mjs",
-      "action": "move",
+      "action": "keep",
       "sha256": "df3e689042dce4e76009dccb686abab570abd9861df55db24c6c8913920ab9f8",
-      "reason": "保留已接受原型渲染资源、合成夹具、许可证和验证源码，内容不变",
+      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯",
       "references": [
         "docs/prototypes/wp-0016/artifacts/reviewer-directory-red.tap",
         "docs/prototypes/wp-0016/artifacts/reviewer-object-scope-red.tap",
@@ -3167,14 +3074,13 @@
         "project/evidence/WP-0016-business-closure-candidate-20260903.md",
         "project/evidence/WP-0016-layout-remediation-20260903.md",
         "project/evidence/WP-0016-query-closure-20260903.md"
-      ],
-      "destination": "docs/tasks/WP-0016/prototype/scripts/reviewer-regression.test.mjs"
+      ]
     },
     {
       "path": "docs/prototypes/wp-0016/scripts/save-opendesign.cjs",
-      "action": "move",
+      "action": "keep",
       "sha256": "a8ff8d926d6ce1571944ea15cb360b9616d3e48df02b34bd5b559b45129c3d7c",
-      "reason": "保留已接受原型渲染资源、合成夹具、许可证和验证源码，内容不变",
+      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯",
       "references": [
         "project/evidence/WP-0016-full-closure-prototype-20260906.md",
         "project/evidence/WP-0016-human-acceptance-20260913.md",
@@ -3185,116 +3091,103 @@
         "project/evidence/WP-0016-usability-sample-20260908.md",
         "project/evidence/WP-0016-visual-polish-20260913.md",
         "project/work-packages/WP-0016.md"
-      ],
-      "destination": "docs/tasks/WP-0016/prototype/scripts/save-opendesign.cjs"
+      ]
     },
     {
       "path": "docs/prototypes/wp-0016/scripts/session-boundaries.browser.test.cjs",
-      "action": "move",
+      "action": "keep",
       "sha256": "ba11a1c29f30dce7fdee435319e957dd778bb751cdeae0410259b14920f03bd1",
-      "reason": "保留已接受原型渲染资源、合成夹具、许可证和验证源码，内容不变",
-      "references": [],
-      "destination": "docs/tasks/WP-0016/prototype/scripts/session-boundaries.browser.test.cjs"
+      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯",
+      "references": []
     },
     {
       "path": "docs/prototypes/wp-0016/scripts/session-boundaries.test.mjs",
-      "action": "move",
+      "action": "keep",
       "sha256": "9951faa4c5c9327eaba0c8c6383f84693716ec6560bb82eb7e08d89f01847b03",
-      "reason": "保留已接受原型渲染资源、合成夹具、许可证和验证源码，内容不变",
-      "references": [],
-      "destination": "docs/tasks/WP-0016/prototype/scripts/session-boundaries.test.mjs"
+      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯",
+      "references": []
     },
     {
       "path": "docs/prototypes/wp-0016/scripts/stage-three-migration.test.mjs",
-      "action": "move",
+      "action": "keep",
       "sha256": "e384ea5934b29c7732ce352b38d024b23ac496a1042cee47b6c30d4eb9298d96",
-      "reason": "保留已接受原型渲染资源、合成夹具、许可证和验证源码，内容不变",
-      "references": [],
-      "destination": "docs/tasks/WP-0016/prototype/scripts/stage-three-migration.test.mjs"
+      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯",
+      "references": []
     },
     {
       "path": "docs/prototypes/wp-0016/scripts/stage-three-render.test.mjs",
-      "action": "move",
+      "action": "keep",
       "sha256": "27386df5e51f8aa1cc097d6c73566ed4abfc0ac60110c7b9f9ce5339a6925a9d",
-      "reason": "保留已接受原型渲染资源、合成夹具、许可证和验证源码，内容不变",
-      "references": [],
-      "destination": "docs/tasks/WP-0016/prototype/scripts/stage-three-render.test.mjs"
+      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯",
+      "references": []
     },
     {
       "path": "docs/prototypes/wp-0016/scripts/stage-two-closure.test.mjs",
-      "action": "move",
+      "action": "keep",
       "sha256": "f644e67e26afe0dfca567353e819e5317ed06fa499544ed6a4ff0fd9704ea345",
-      "reason": "保留已接受原型渲染资源、合成夹具、许可证和验证源码，内容不变",
-      "references": [],
-      "destination": "docs/tasks/WP-0016/prototype/scripts/stage-two-closure.test.mjs"
+      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯",
+      "references": []
     },
     {
       "path": "docs/prototypes/wp-0016/scripts/stage-two-design.test.mjs",
-      "action": "move",
+      "action": "keep",
       "sha256": "b18ebc731f27746a303cb923e0f847eb7daf3b6f7d2286f1acf82aa01f4bb3ea",
-      "reason": "保留已接受原型渲染资源、合成夹具、许可证和验证源码，内容不变",
-      "references": [],
-      "destination": "docs/tasks/WP-0016/prototype/scripts/stage-two-design.test.mjs"
+      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯",
+      "references": []
     },
     {
       "path": "docs/prototypes/wp-0016/scripts/stage-two-pressure.test.mjs",
-      "action": "move",
+      "action": "keep",
       "sha256": "9f499d0e054db1beb34d2fed14b626bceb8a7ffc07a5feb82610fc0162de3185",
-      "reason": "保留已接受原型渲染资源、合成夹具、许可证和验证源码，内容不变",
-      "references": [],
-      "destination": "docs/tasks/WP-0016/prototype/scripts/stage-two-pressure.test.mjs"
+      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯",
+      "references": []
     },
     {
       "path": "docs/prototypes/wp-0016/scripts/structured-object-governance-state.test.mjs",
-      "action": "move",
+      "action": "keep",
       "sha256": "f1985aa20b29e8bb6f702b72e1248a7fdd22ef8fa4ff1f47dba8de169980a512",
-      "reason": "保留已接受原型渲染资源、合成夹具、许可证和验证源码，内容不变",
-      "references": [],
-      "destination": "docs/tasks/WP-0016/prototype/scripts/structured-object-governance-state.test.mjs"
+      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯",
+      "references": []
     },
     {
       "path": "docs/prototypes/wp-0016/scripts/structured-object-governance.browser.test.cjs",
-      "action": "move",
+      "action": "keep",
       "sha256": "a63da40cd35cd2961e12edcf03713b6013e67212a3d719556a0366cddab179a6",
-      "reason": "保留已接受原型渲染资源、合成夹具、许可证和验证源码，内容不变",
-      "references": [],
-      "destination": "docs/tasks/WP-0016/prototype/scripts/structured-object-governance.browser.test.cjs"
+      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯",
+      "references": []
     },
     {
       "path": "docs/prototypes/wp-0016/scripts/task-components.browser.test.cjs",
-      "action": "move",
+      "action": "keep",
       "sha256": "8497a43bc0f40207a574d41a13937aaff92d642a90c200a53f8a6fb552659b41",
-      "reason": "保留已接受原型渲染资源、合成夹具、许可证和验证源码，内容不变",
-      "references": [],
-      "destination": "docs/tasks/WP-0016/prototype/scripts/task-components.browser.test.cjs"
+      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯",
+      "references": []
     },
     {
       "path": "docs/prototypes/wp-0016/scripts/tenant-quota-state.test.mjs",
-      "action": "move",
+      "action": "keep",
       "sha256": "2034f07512389b931e807d558267fb5556f7644f2d120923b89541391543a9d9",
-      "reason": "保留已接受原型渲染资源、合成夹具、许可证和验证源码，内容不变",
+      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯",
       "references": [
         "docs/prototypes/wp-0016/artifacts/tenant-quota-state-red.tap",
         "project/evidence/WP-0016-tenant-setup-remediation-20260903.md"
-      ],
-      "destination": "docs/tasks/WP-0016/prototype/scripts/tenant-quota-state.test.mjs"
+      ]
     },
     {
       "path": "docs/prototypes/wp-0016/scripts/tenant-security-state.test.mjs",
-      "action": "move",
+      "action": "keep",
       "sha256": "3dda18016bb32d495de897a894fe22ffd6cb53882e857a7710da381de085d947",
-      "reason": "保留已接受原型渲染资源、合成夹具、许可证和验证源码，内容不变",
+      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯",
       "references": [
         "docs/prototypes/wp-0016/artifacts/tenant-security-state-red.tap",
         "project/evidence/WP-0016-tenant-setup-remediation-20260903.md"
-      ],
-      "destination": "docs/tasks/WP-0016/prototype/scripts/tenant-security-state.test.mjs"
+      ]
     },
     {
       "path": "docs/prototypes/wp-0016/scripts/tenant-setup.browser.test.cjs",
-      "action": "move",
+      "action": "keep",
       "sha256": "50dd0bd9e46afe6c9c8cee912653b6d8d6826928410fef68eed8ac20c775c86b",
-      "reason": "保留已接受原型渲染资源、合成夹具、许可证和验证源码，内容不变",
+      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯",
       "references": [
         "docs/prototypes/wp-0016/artifacts/tenant-duplicate-browser-red.tap",
         "docs/prototypes/wp-0016/artifacts/tenant-quotas-browser-red.tap",
@@ -3302,38 +3195,34 @@
         "docs/prototypes/wp-0016/artifacts/tenant-setup-red.tap",
         "docs/prototypes/wp-0016/artifacts/tenant-ui-first-review.tap",
         "project/evidence/WP-0016-tenant-setup-remediation-20260903.md"
-      ],
-      "destination": "docs/tasks/WP-0016/prototype/scripts/tenant-setup.browser.test.cjs"
+      ]
     },
     {
       "path": "docs/prototypes/wp-0016/scripts/usability-components.browser.test.cjs",
-      "action": "move",
+      "action": "keep",
       "sha256": "803fa0070263f05cb71676d8e23f8b86fb5a4f5c086aa99a10b6d9a18d4fe84d",
-      "reason": "保留已接受原型渲染资源、合成夹具、许可证和验证源码，内容不变",
-      "references": [],
-      "destination": "docs/tasks/WP-0016/prototype/scripts/usability-components.browser.test.cjs"
+      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯",
+      "references": []
     },
     {
       "path": "docs/prototypes/wp-0016/scripts/usability-flow.browser.test.cjs",
-      "action": "move",
+      "action": "keep",
       "sha256": "d126793b4136b127dc4b6a90d077b7f9446c8b7888e96744bfdbaa26085fd82e",
-      "reason": "保留已接受原型渲染资源、合成夹具、许可证和验证源码，内容不变",
-      "references": [],
-      "destination": "docs/tasks/WP-0016/prototype/scripts/usability-flow.browser.test.cjs"
+      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯",
+      "references": []
     },
     {
       "path": "docs/prototypes/wp-0016/scripts/usability-pressure.browser.test.cjs",
-      "action": "move",
+      "action": "keep",
       "sha256": "6eac87efed4fdb3fa617cbf5df64256beb4487cd82d641c99eba0222833f4907",
-      "reason": "保留已接受原型渲染资源、合成夹具、许可证和验证源码，内容不变",
-      "references": [],
-      "destination": "docs/tasks/WP-0016/prototype/scripts/usability-pressure.browser.test.cjs"
+      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯",
+      "references": []
     },
     {
       "path": "docs/prototypes/wp-0016/scripts/verify-and-capture.cjs",
-      "action": "move",
+      "action": "keep",
       "sha256": "af5937113f2bf79974fad98eb5f9e44c030215702095c42e2719607100334428",
-      "reason": "保留已接受原型渲染资源、合成夹具、许可证和验证源码，内容不变",
+      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯",
       "references": [
         "docs/prototypes/wp-0016/artifacts/browser-review-20260903-final/verification.json",
         "docs/prototypes/wp-0016/artifacts/browser-review-20260903/verification.json",
@@ -3358,14 +3247,13 @@
         "project/evidence/WP-0016-usability-sample-20260908.md",
         "project/evidence/WP-0016-visual-polish-20260913.md",
         "project/work-packages/WP-0016.md"
-      ],
-      "destination": "docs/tasks/WP-0016/prototype/scripts/verify-and-capture.cjs"
+      ]
     },
     {
       "path": "docs/prototypes/wp-0016/scripts/verify-static.mjs",
-      "action": "move",
+      "action": "keep",
       "sha256": "a80b5091a0d666236f3785f6cb72ebe3eb56b57984376d78d3f22a384d82c7a0",
-      "reason": "保留已接受原型渲染资源、合成夹具、许可证和验证源码，内容不变",
+      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯",
       "references": [
         "project/evidence/WP-0016-acceptance-preflight-20260905.md",
         "project/evidence/WP-0016-access-query-governance-prototype-20260904.md",
@@ -3393,32 +3281,29 @@
         "project/evidence/WP-0016-visual-polish-20260913.md",
         "project/evidence/WP-0016-visual-remediation-candidate-20260903.md",
         "project/work-packages/WP-0016.md"
-      ],
-      "destination": "docs/tasks/WP-0016/prototype/scripts/verify-static.mjs"
+      ]
     },
     {
       "path": "docs/prototypes/wp-0016/scripts/visual-polish.browser.test.cjs",
-      "action": "move",
+      "action": "keep",
       "sha256": "29350c7d42c744d7e9783103b1a7e369a58a8e0da700e9f4a613d5e84277e0a1",
-      "reason": "保留已接受原型渲染资源、合成夹具、许可证和验证源码，内容不变",
+      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯",
       "references": [
         "project/evidence/WP-0016-visual-polish-20260913.md"
-      ],
-      "destination": "docs/tasks/WP-0016/prototype/scripts/visual-polish.browser.test.cjs"
+      ]
     },
     {
       "path": "docs/prototypes/wp-0016/scripts/workspace-context.test.mjs",
-      "action": "move",
+      "action": "keep",
       "sha256": "bffa7a59617f05d47129513956a11f9b1a9cc21869d08a37d13a6020aeace0ff",
-      "reason": "保留已接受原型渲染资源、合成夹具、许可证和验证源码，内容不变",
-      "references": [],
-      "destination": "docs/tasks/WP-0016/prototype/scripts/workspace-context.test.mjs"
+      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯",
+      "references": []
     },
     {
       "path": "docs/prototypes/wp-0016/stress-fixtures.js",
-      "action": "move",
+      "action": "keep",
       "sha256": "64306fb8cdc8bf58c0f2943460d0b915739ec04577d79715d3ea0b5333855d45",
-      "reason": "保留已接受原型渲染资源、合成夹具、许可证和验证源码，内容不变",
+      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯",
       "references": [
         "docs/prototypes/wp-0016/artifacts/opendesign-save-20260908.json",
         "docs/prototypes/wp-0016/artifacts/opendesign-save-stage-three-20260908.json",
@@ -3427,28 +3312,26 @@
         "docs/prototypes/wp-0016/scripts/stage-two-closure.test.mjs",
         "docs/prototypes/wp-0016/scripts/stage-two-pressure.test.mjs",
         "docs/prototypes/wp-0016/scripts/usability-pressure.browser.test.cjs"
-      ],
-      "destination": "docs/tasks/WP-0016/prototype/stress-fixtures.js"
+      ]
     },
     {
       "path": "docs/prototypes/wp-0016/task-components.js",
-      "action": "move",
+      "action": "keep",
       "sha256": "aea427e71840e834861014d7d7f72e6566aaebb53afde8d6a8121c7c127f9776",
-      "reason": "保留已接受原型渲染资源、合成夹具、许可证和验证源码，内容不变",
+      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯",
       "references": [
         "docs/prototypes/wp-0016/artifacts/opendesign-save-stage-three-20260908.json",
         "docs/prototypes/wp-0016/artifacts/opendesign-save-visual-polish-20260913.json",
         "docs/prototypes/wp-0016/prototype.js",
         "docs/prototypes/wp-0016/scripts/task-components.browser.test.cjs",
         "docs/prototypes/wp-0016/scripts/visual-polish.browser.test.cjs"
-      ],
-      "destination": "docs/tasks/WP-0016/prototype/task-components.js"
+      ]
     },
     {
       "path": "docs/prototypes/wp-0016/tokens.css",
-      "action": "move",
+      "action": "keep",
       "sha256": "ad0cd644358eb724f3aa2261b2d86fe357bf10e7603bc3d21295132177d55385",
-      "reason": "保留已接受原型渲染资源、合成夹具、许可证和验证源码，内容不变",
+      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯",
       "references": [
         "docs/prototypes/wp-0016/DESIGN.md",
         "docs/prototypes/wp-0016/OPEN-DESIGN-FULL-PLATFORM-PROMPT.md",
@@ -3465,14 +3348,13 @@
         "docs/prototypes/wp-0016/prototype.css",
         "docs/prototypes/wp-0016/scripts/verify-static.mjs",
         "project/evidence/WP-0016-open-design-prototype-candidate.md"
-      ],
-      "destination": "docs/tasks/WP-0016/prototype/tokens.css"
+      ]
     },
     {
       "path": "docs/prototypes/wp-0016/workspace-journeys.js",
-      "action": "move",
+      "action": "keep",
       "sha256": "3fa872c8673954eb65abdd7d5a2e01f1f67405d93f7c9b15438289c117633d8a",
-      "reason": "保留已接受原型渲染资源、合成夹具、许可证和验证源码，内容不变",
+      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯",
       "references": [
         "docs/prototypes/wp-0016/artifacts/full-closure-verification-20260906.json",
         "docs/prototypes/wp-0016/artifacts/opendesign-login-repair-save-20260907.json",
@@ -3486,8 +3368,7 @@
         "docs/prototypes/wp-0016/scripts/stage-three-migration.test.mjs",
         "docs/prototypes/wp-0016/scripts/stage-three-render.test.mjs",
         "docs/prototypes/wp-0016/scripts/stage-two-design.test.mjs"
-      ],
-      "destination": "docs/tasks/WP-0016/prototype/workspace-journeys.js"
+      ]
     },
     {
       "path": "docs/research/WP-0003-framework-baseline.md",

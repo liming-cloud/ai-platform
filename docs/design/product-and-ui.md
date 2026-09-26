@@ -10,9 +10,9 @@
 
 ## 唯一原型
 
-OpenDesign 项目 `249f81f2-6f1a-46ff-988c-da3cdedb35e7`，人工接受的实现提交 `21b45c347a4008f5959b1b972e3ffd8a5aadcc6f`。
+OpenDesign 项目 `249f81f2-6f1a-46ff-988c-da3cdedb35e7`，人工接受的实现提交 `21b45c347a4008f5959b1b972e3ffd8a5aadcc6f`。唯一可编辑的[原项目源文件](../prototypes/wp-0016/index.html)位于 `docs/prototypes/wp-0016/`；该项目从此目录导入，不能在文档重整时移动源文件而不重建项目。
 
-[OpenDesign 项目入口](http://127.0.0.1:64093/projects/249f81f2-6f1a-46ff-988c-da3cdedb35e7/conversations/88968f9d-740d-4032-a1a7-6b3248d9d4d9/files/index.html)。本地端口可能失效，必须用项目、入口和固定提交重新定位，不能改为任意最新版本。原始接受记录见 [人审证据](../tasks/WP-0016/evidence/WP-0016-human-acceptance-20260913.md)，页面/操作机器清单位于该任务 prototype 内。
+在 OpenDesign 中按上述项目 ID 打开 `index.html`；本地预览端口随运行会话变化，不能作为固定版本。必须用项目、入口和固定提交重新定位，不能改为任意最新版本。原始接受记录见 [人审证据](../tasks/WP-0016/evidence/WP-0016-human-acceptance-20260913.md)，页面/操作机器清单位于原项目目录。
 
 保留已接受的 Claude 风格和 7/5/7 信息架构。暖色画布，正文 16px，标题 Georgia/中文宋体，15rem 侧栏；普通控件 36px、行内与分页 32px、登录及触控至少 44px；短按钮按内容宽度，不默认固定 96px。实际结构、文案和状态逐入口对照固定原型，不以本段摘要替代原型。
 

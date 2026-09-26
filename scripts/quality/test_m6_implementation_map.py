@@ -14,8 +14,8 @@ from scripts import project_governance as governance
 
 ROOT = Path(__file__).resolve().parents[2]
 MAP_PATH = "docs/tasks/milestones/M6/implementation-map.json"
-INVENTORY_PATH = "docs/tasks/WP-0016/prototype/page-inventory.json"
-LEDGER_PATH = "docs/tasks/WP-0016/prototype/ACTION-LEDGER.json"
+INVENTORY_PATH = "docs/prototypes/wp-0016/page-inventory.json"
+LEDGER_PATH = "docs/prototypes/wp-0016/ACTION-LEDGER.json"
 
 # 页面责任包与操作责任包分开校验，防止跨包任务被入口页面提前结项。
 PACKAGE_SCREENS = {
@@ -258,6 +258,18 @@ class M6ImplementationMapTest(unittest.TestCase):
         self.assertEqual({INVENTORY_PATH, LEDGER_PATH}, {source["path"] for source in self.mapping["sources"]})
         for source in self.mapping["sources"]:
             self.assertEqual(source["sha256"], hashlib.sha256((ROOT / source["path"]).read_bytes()).hexdigest())
+
+    def test_open_design_project_root_remains_available(self):
+        # 导入项目的目录不可改绑；入口必须在原项目的真实目录中。
+        project_root = ROOT / "docs/prototypes/wp-0016"
+        entry = project_root / "index.html"
+        self.assertFalse(project_root.is_symlink())
+        self.assertTrue(entry.is_file())
+        self.assertFalse(entry.is_symlink())
+        self.assertEqual(
+            "718a5bee8606607fc6eabf353a47eb79556d7effa51f2d45f207ad6be2db65ec",
+            hashlib.sha256(entry.read_bytes()).hexdigest(),
+        )
 
     def test_missing_or_duplicate_page_is_rejected(self):
         self.assert_invalid(lambda mapping: mapping["pages"].pop(), "页面存在遗漏")

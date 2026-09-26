@@ -7,11 +7,11 @@
   "updatedOn": "2026-09-20",
   "sources": [
     {
-      "path": "docs/tasks/WP-0016/prototype/page-inventory.json",
+      "path": "docs/prototypes/wp-0016/page-inventory.json",
       "sha256": "bb53681c82e4b2f445316107ad689590660472aab550e7fc930aac72f9fd07c8"
     },
     {
-      "path": "docs/tasks/WP-0016/prototype/ACTION-LEDGER.json",
+      "path": "docs/prototypes/wp-0016/ACTION-LEDGER.json",
       "sha256": "77ff6446f4707f0eb2fd46d3d546d1f638270565281a756ba9507713f3a4316f"
     }
   ],
