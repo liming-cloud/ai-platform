@@ -98,7 +98,8 @@ async function run(configuration) {
         "保存前未提示目标租户旧会话立即失效");
       const buttons = await dialog.getByRole("button").evaluateAll(elements => elements.map(element => ({
         label: element.textContent?.trim(), size: getComputedStyle(element).fontSize,
-        width: element.getBoundingClientRect().width,
+        // Dialog 进入缩放期间，布局宽度仍是稳定的最终控件宽度。
+        width: element.offsetWidth,
       })));
       requireCondition(buttons.length === 2 && buttons[0].label === "取消" && buttons[1].label === "保存策略"
         && buttons.every(button => button.size === "14px")
