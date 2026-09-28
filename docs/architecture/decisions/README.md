@@ -89,3 +89,4 @@
 | ADR-0081 | 已接受 | 统一文档控制面与可验证历史退役 | `docs/architecture/decisions/ADR-0081-document-control-plane-and-history-retirement.md` |
 | ADR-0082 | 已接受。依据用户明确要求执行《后端上下文依赖边界整改计划》；仅决定本次编译边界，不改变产品范围和里程碑结论 | 后端上下文与扩展的编译依赖边界 | `docs/architecture/decisions/ADR-0082-backend-context-dependency-boundary.md` |
 | ADR-0083 | 已接受 | 租户管理员设置页的资格与凭据边界 | `docs/architecture/decisions/ADR-0083-tenant-administrator-settings-scope.md` |
+| ADR-0084 | 已接受。用户于 2026-09-28 选择在本切片聚合现有来源的只读用量，允许下调至不低于核实用量；既有 ADR-0079、ADR-0080 和固定 OpenDesign 原型决定其余产品边界 | 租户资源配额独立编辑与已用量下限 | `docs/architecture/decisions/ADR-0084-tenant-quota-settings-and-observed-usage.md` |

@@ -46,10 +46,12 @@ import com.aiplatform.foundation.organizationaccess.application.member.service.T
 import com.aiplatform.foundation.organizationaccess.application.member.service.TenantMemberEstablishmentApplicationService;
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.port.out.TenantLifecycleBackfillStore;
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.port.out.TenantLifecycleReadPort;
+import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.port.out.TenantQuotaSettingsStore;
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.port.out.TenantLifecycleTransitionStore;
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.port.out.TenantProvisioningStore;
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.service.TenantLifecycleBackfillService;
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.service.TenantLifecycleQueryService;
+import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.service.TenantQuotaSettingsService;
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.service.TenantLifecycleTransitionService;
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.service.TenantProvisioningService;
 import com.aiplatform.foundation.organizationaccess.domain.authorization.repository.PlatformRoleBindingRepository;
@@ -349,6 +351,14 @@ public class OrganizationAccessCoreAutoConfiguration {
     @ConditionalOnMissingBean
     TenantLifecycleQueryService tenantLifecycleQueryService(TenantLifecycleReadPort readPort) {
         return new TenantLifecycleQueryService(readPort);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    @ConditionalOnProperty(name = "foundation.knowledge-data.persistence.enabled", havingValue = "true")
+    TenantQuotaSettingsService tenantQuotaSettingsService(TenantQuotaSettingsStore store,
+            com.aiplatform.foundation.knowledgedata.application.knowledge.facade.KnowledgeQuotaUsage usage) {
+        return new TenantQuotaSettingsService(store, usage);
     }
 
     @Bean

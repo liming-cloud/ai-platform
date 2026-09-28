@@ -20,6 +20,27 @@ describe("ControlPlaneClient", () => {
       ["GET", "http://localhost/api/v1/platform/tenants/610000000000000001/quotas"],
     ]);
   });
+  it("配额用量与编辑使用独立接口、版本和受保护写入头", async () => {
+    const requests: Request[] = [];
+    const client = authenticatedClient(async (input, init) => {
+      const request = new Request(input, init); requests.push(request);
+      return Response.json(request.method === "GET"
+        ? { knowledgeBases: 1, documentsPerKnowledgeBase: 3, bytesPerKnowledgeBase: "6888", complete: true }
+        : { knowledgeBases: 3, documentsPerKnowledgeBase: 1000, bytesPerKnowledgeBase: "10000000000", maxFileBytes: "50000000", maxTextBytes: "1048576", version: 2 });
+    });
+    expect((await client.getTenantQuotaUsage("610000000000000001")).bytesPerKnowledgeBase).toBe("6888");
+    await client.updateTenantQuotas("610000000000000001", {
+      knowledgeBases: 3, documentsPerKnowledgeBase: 1000,
+      bytesPerKnowledgeBase: "10000000000", maxFileBytes: "50000000", maxTextBytes: "1048576",
+      expectedVersion: 1,
+    });
+    expect(requests.map(request => [request.method, request.url])).toEqual([
+      ["GET", "http://localhost/api/v1/platform/tenants/610000000000000001/quotas/usage"],
+      ["PUT", "http://localhost/api/v1/platform/tenants/610000000000000001/quotas"],
+    ]);
+    expect(await requests[1]?.json()).toMatchObject({ expectedVersion: 1, bytesPerKnowledgeBase: "10000000000" });
+    expect(requests[1]?.headers.get("Content-Type")).toContain("application/json");
+  });
   it("运营总览和平台租户摘要只使用固定统计范围与服务端分页", async () => {
     const requests: Request[] = [];
     const client = authenticatedClient(async (input, init) => {

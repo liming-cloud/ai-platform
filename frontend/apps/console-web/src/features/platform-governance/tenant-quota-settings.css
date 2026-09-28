@@ -1,0 +1,38 @@
+/* 配额摘要和编辑框对齐已验收原型的五列、双列与响应式节奏。 */
+.tenant-quota-page { gap: 0; }
+.tenant-quota-page__section { overflow: hidden; border: 1px solid var(--foundation-border); border-radius: var(--foundation-control-radius); background: var(--foundation-surface); }
+.tenant-quota-page__heading { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; padding: 24px 32px; }
+.tenant-quota-page__heading > div { display: grid; gap: 4px; }
+.tenant-quota-page__heading span, .tenant-quota-page__kicker { color: var(--foundation-secondary-text); font-size: 14px; font-weight: 650; }
+.tenant-quota-page__heading h2 { margin: 0; font-family: var(--foundation-font-display); font-size: 24px; }
+.tenant-quota-page__summary { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); margin: 0; border-top: 1px solid var(--foundation-border); }
+.tenant-quota-page__summary > div { display: grid; gap: 4px; min-width: 0; padding: 16px 24px; border-right: 1px solid var(--foundation-border); }
+.tenant-quota-page__summary > div:last-child { border-right: 0; }
+.tenant-quota-page__summary dt { color: var(--foundation-secondary-text); font-size: 14px; }
+.tenant-quota-page__summary dd { display: grid; gap: 4px; margin: 0; overflow-wrap: anywhere; }
+.tenant-quota-page__summary strong { font-weight: 650; font-variant-numeric: tabular-nums; }
+.tenant-quota-page__summary small { color: var(--foundation-secondary-text); font-size: 14px; }
+.tenant-quota-page__dialog { width: min(48rem, calc(100vw - 2rem)) !important; max-width: 48rem !important; max-height: min(46rem, calc(100dvh - 2rem)) !important; overflow: auto; }
+.tenant-quota-page__dialog .fui-DialogTitle { display: grid; gap: 4px; font-family: var(--foundation-font-display); }
+.tenant-quota-page__dialog .fui-DialogContent { display: grid; gap: 16px; }
+.tenant-quota-page__dialog .fui-DialogContent p { margin: 0; }
+.tenant-quota-page__grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.tenant-quota-page__grid .fui-Field { min-width: 0; }
+.tenant-quota-page__grid .fui-Input { width: 100%; min-width: 0; min-height: 36px; }
+.tenant-quota-page__grid .fui-Input input { font-variant-numeric: tabular-nums; }
+.tenant-quota-page__validation { color: var(--foundation-danger); }
+.tenant-quota-page__dialog .fui-DialogActions { margin-top: 8px; padding-top: 16px; border-top: 1px solid var(--foundation-border); }
+@media (max-width: 1040px) and (min-width: 681px) {
+  .tenant-quota-page__summary { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .tenant-quota-page__summary > div:nth-child(3) { border-right: 0; }
+  .tenant-quota-page__summary > div:nth-child(n + 4) { border-top: 1px solid var(--foundation-border); }
+}
+@media (max-width: 680px) {
+  .tenant-quota-page__heading { padding: 16px; }
+  .tenant-quota-page__summary, .tenant-quota-page__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .tenant-quota-page__summary > div { padding: 16px; }
+  .tenant-quota-page__summary > div:nth-child(2n) { border-right: 0; }
+  .tenant-quota-page__summary > div:nth-child(n + 3) { border-top: 1px solid var(--foundation-border); }
+  .tenant-quota-page__dialog { width: calc(100vw - 2rem) !important; max-height: calc(100dvh - 1rem) !important; padding: 16px !important; }
+  .tenant-quota-page__grid .fui-Input, .tenant-quota-page__dialog .fui-DialogActions .fui-Button { min-height: 44px; }
+}

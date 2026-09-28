@@ -116,6 +116,30 @@
       "reason": "使用 PostgreSQL 事务级咨询锁串行化租户内知识空间名称约束。"
     },
     {
+      "path": "backend/contexts/knowledge-data/src/main/resources/mapper/knowledge-data/KnowledgeQuotaUsageMapper.xml",
+      "statementId": "countKnowledgeSpaces",
+      "category": "AGGREGATE",
+      "reason": "按租户聚合未删除知识库数量，作为配置下调的已用量下限。"
+    },
+    {
+      "path": "backend/contexts/knowledge-data/src/main/resources/mapper/knowledge-data/KnowledgeQuotaUsageMapper.xml",
+      "statementId": "maxDocumentsPerKnowledgeSpace",
+      "category": "AGGREGATE",
+      "reason": "按未删除知识库聚合旧文本来源数量并取最大值，防止下调越过现有文档。"
+    },
+    {
+      "path": "backend/contexts/knowledge-data/src/main/resources/mapper/knowledge-data/KnowledgeQuotaUsageMapper.xml",
+      "statementId": "maxBytesPerKnowledgeSpace",
+      "category": "AGGREGATE",
+      "reason": "按未删除知识库合计保留的文本内容版本字节数并取最大值。"
+    },
+    {
+      "path": "backend/contexts/knowledge-data/src/main/resources/mapper/knowledge-data/KnowledgeQuotaUsageMapper.xml",
+      "statementId": "countUnmeteredSources",
+      "category": "AGGREGATE",
+      "reason": "识别当前未能统一量化的受治理来源，阻止将不完整用量用于下调。"
+    },
+    {
       "path": "backend/contexts/knowledge-data/src/main/resources/mapper/knowledge-data/TextDataSourceMapper.xml",
       "statementId": "lockTenant",
       "category": "POSTGRES_ADVISORY_LOCK",

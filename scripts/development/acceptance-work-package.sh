@@ -3,11 +3,11 @@ set -euo pipefail
 
 # 切片绿灯不等于整包交付；未知范围必须在启动浏览器前拒绝。
 if [[ "${1:-}" != "WP-0017" ]]; then
-  echo "不支持的工作包，当前只实现 WP-0017 登录、原子开户和管理员设置切片。" >&2
+  echo "不支持的工作包，当前只实现 WP-0017 的明确独立切片。" >&2
   exit 2
 fi
-if [[ ( "${2:-}" != "login" && "${2:-}" != "onboarding" && "${2:-}" != "admins" ) || "$#" != "2" ]]; then
-  echo "WP-0017 整包尚未实现；必须明确 SLICE=login、SLICE=onboarding 或 SLICE=admins。" >&2
+if [[ ( "${2:-}" != "login" && "${2:-}" != "onboarding" && "${2:-}" != "admins" && "${2:-}" != "quotas" ) || "$#" != "2" ]]; then
+  echo "WP-0017 整包尚未实现；必须明确 SLICE=login、SLICE=onboarding、SLICE=admins 或 SLICE=quotas。" >&2
   exit 2
 fi
 if [[ -n "${SETUP:-}" && "${SETUP}" != "tenant" ]]; then

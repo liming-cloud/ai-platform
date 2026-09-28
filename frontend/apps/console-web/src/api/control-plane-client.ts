@@ -97,6 +97,14 @@ export interface TenantQuotas {
 /** 配额只读投影；配置版本不代表接入计量已启用。 */
 export interface TenantQuotaSummary extends TenantQuotas { version: number }
 
+/** 已核实的旧知识来源用量；不完整时不得据此下调前三项上限。 */
+export interface TenantQuotaUsage {
+  knowledgeBases: number;
+  documentsPerKnowledgeBase: number;
+  bytesPerKnowledgeBase: string;
+  complete: boolean;
+}
+
 export interface KnowledgeSpace {
   id: string;
   name: string;
@@ -696,6 +704,18 @@ export class ControlPlaneClient {
 
   async getTenantQuotas(tenantId: string): Promise<TenantQuotaSummary> {
     return this.request<TenantQuotaSummary>(`/platform/tenants/${encodeURIComponent(tenantId)}/quotas`);
+  }
+
+  async getTenantQuotaUsage(tenantId: string): Promise<TenantQuotaUsage> {
+    return this.request<TenantQuotaUsage>(`/platform/tenants/${encodeURIComponent(tenantId)}/quotas/usage`);
+  }
+
+  async updateTenantQuotas(tenantId: string, input: TenantQuotas & { expectedVersion: number }): Promise<TenantQuotaSummary> {
+    return this.request<TenantQuotaSummary>(`/platform/tenants/${encodeURIComponent(tenantId)}/quotas`, {
+      method: "PUT",
+      headers: this.writeHeaders("application/json"),
+      body: JSON.stringify(input),
+    });
   }
 
   async listTenantAdministrators(

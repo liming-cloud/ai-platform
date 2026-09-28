@@ -5,6 +5,7 @@ import com.aiplatform.foundation.knowledgedata.domain.datasource.repository.Text
 import com.aiplatform.foundation.knowledgedata.domain.datasource.repository.GovernedDataSourceRepository;
 import com.aiplatform.foundation.knowledgedata.application.datasource.port.out.GovernedFileDataSourceReadPort;
 import com.aiplatform.foundation.knowledgedata.application.operations.facade.KnowledgeOperationsFactSource;
+import com.aiplatform.foundation.knowledgedata.application.knowledge.facade.KnowledgeQuotaUsage;
 import com.aiplatform.foundation.knowledgedata.domain.indexversion.repository.IndexVersionRepository;
 import com.aiplatform.foundation.knowledgedata.domain.knowledge.repository.KnowledgeSpaceRepository;
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.datasource.mapper.TextDataSourceMapper;
@@ -27,8 +28,10 @@ import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.index.
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.index.mapper.IndexVersionRequestMapper;
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.index.repository.PostgresIndexVersionRepository;
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.knowledge.mapper.KnowledgeSpaceMapper;
+import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.knowledge.mapper.KnowledgeQuotaUsageMapper;
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.knowledge.mapper.KnowledgeSpaceRequestMapper;
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.knowledge.repository.PostgresKnowledgeSpaceRepository;
+import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.knowledge.repository.PostgresKnowledgeQuotaUsage;
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.operations.JdbcKnowledgeOperationsFactSource;
 import com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator;
 import org.apache.ibatis.session.SqlSessionFactory;
@@ -56,6 +59,12 @@ import org.springframework.transaction.PlatformTransactionManager;
     IndexVersionMapper.class
 })
 public class KnowledgeDataPersistenceAutoConfiguration {
+
+    @Bean
+    @ConditionalOnMissingBean
+    KnowledgeQuotaUsage knowledgeQuotaUsage(KnowledgeQuotaUsageMapper mapper) {
+        return new PostgresKnowledgeQuotaUsage(mapper);
+    }
 
     @Bean
     @ConditionalOnMissingBean

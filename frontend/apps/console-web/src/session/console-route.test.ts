@@ -15,6 +15,12 @@ describe("统一控制台路由", () => {
     expect(parseConsoleRoute("/platform/tenants/610000000000000001", "")).toEqual(route);
     expect(parseConsoleRoute("/platform/tenants/not-a-tenant", "")).toBeUndefined();
   });
+  it("资源配额设置由租户标识直接恢复", () => {
+    const route = { navigationId: "platform", task: "quotas", tenantId: "610000000000000001" } as const;
+    expect(formatConsoleRoute(route)).toBe("/platform/tenants/610000000000000001/quotas");
+    expect(parseConsoleRoute("/platform/tenants/610000000000000001/quotas", "")).toEqual(route);
+    expect(parseConsoleRoute("/platform/tenants/nope/quotas", "")).toBeUndefined();
+  });
   it("两级运营总览使用稳定入口并恢复平台租户摘要页码", () => {
     expect(defaultConsoleRoute("operations")).toEqual({
       navigationId: "operations",

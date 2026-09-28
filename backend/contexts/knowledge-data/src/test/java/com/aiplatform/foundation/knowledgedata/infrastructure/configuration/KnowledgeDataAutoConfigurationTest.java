@@ -53,6 +53,8 @@ import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.index.
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.index.mapper.IndexSourceMapper;
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.index.mapper.IndexVersionRequestMapper;
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.knowledge.mapper.KnowledgeSpaceMapper;
+import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.knowledge.mapper.KnowledgeQuotaUsageMapper;
+import com.aiplatform.foundation.knowledgedata.application.knowledge.facade.KnowledgeQuotaUsage;
 import com.aiplatform.foundation.knowledgedata.infrastructure.persistence.knowledge.mapper.KnowledgeSpaceRequestMapper;
 import com.aiplatform.foundation.knowledgedata.interfaces.web.datasource.controller.TextDataSourceController;
 import com.aiplatform.foundation.knowledgedata.interfaces.web.datasource.controller.GovernedFileDataSourceController;
@@ -304,12 +306,16 @@ class KnowledgeDataAutoConfigurationTest {
                         PlatformTransactionManager.class,
                         () -> mock(PlatformTransactionManager.class))
                 .withBean(
+                        KnowledgeQuotaUsageMapper.class,
+                        () -> mock(KnowledgeQuotaUsageMapper.class))
+                .withBean(
                         SqlSessionFactory.class,
                         () -> mock(SqlSessionFactory.class))
                 .withBean(EntityIdGenerator.class, () -> () -> 1001L)
                 .run(context -> {
                     assertThat(context).hasNotFailed();
                     assertThat(context).hasSingleBean(KnowledgeSpaceRepository.class);
+                    assertThat(context).hasSingleBean(KnowledgeQuotaUsage.class);
                     assertThat(context).hasSingleBean(TextDataSourceRepository.class);
                     assertThat(context).hasSingleBean(GovernedDataSourceRepository.class);
                     assertThat(context).hasSingleBean(GovernedFileDataSourceReadPort.class);

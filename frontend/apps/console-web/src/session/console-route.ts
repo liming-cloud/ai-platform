@@ -69,6 +69,7 @@ export type ConsoleRoute =
   | { navigationId: "platform"; task: "tenants"; page: number }
   | { navigationId: "platform"; task: "create"; step: 1 | 2 | 3 }
   | { navigationId: "platform"; task: "detail"; tenantId: string }
+  | { navigationId: "platform"; task: "quotas"; tenantId: string }
   | { navigationId: "platform"; task: "admins"; tenantId: string; query: string; status: "ALL" | "ENABLED" | "DISABLED"; page: number; pageSize: 10 | 20 | 50 | 100 }
   | { navigationId: "platform-accounts"; task: "accounts"; page: number }
   | { navigationId: "platform-accounts"; task: "roles" }
@@ -357,6 +358,8 @@ export function parseConsoleRoute(pathname: string, search: string): ConsoleRout
   }
   const tenantDetail = /^\/platform\/tenants\/([1-9]\d*)$/.exec(routePath);
   if (tenantDetail) return { navigationId: "platform", task: "detail", tenantId: tenantDetail[1]! };
+  const tenantQuotas = /^\/platform\/tenants\/([1-9]\d*)\/quotas$/.exec(routePath);
+  if (tenantQuotas) return { navigationId: "platform", task: "quotas", tenantId: tenantQuotas[1]! };
   const tenantAdministrators = /^\/platform\/tenants\/([1-9]\d*)\/admins$/.exec(routePath);
   if (tenantAdministrators) {
     const parameters = new URLSearchParams(search);
@@ -438,6 +441,7 @@ export function formatConsoleRoute(route: ConsoleRoute): string {
     return route.task === "tenants"
       ? `/platform/tenants?page=${route.page}`
       : route.task === "detail" ? `/platform/tenants/${encodeURIComponent(route.tenantId)}`
+        : route.task === "quotas" ? `/platform/tenants/${encodeURIComponent(route.tenantId)}/quotas`
         : route.task === "admins" ? `/platform/tenants/${encodeURIComponent(route.tenantId)}/admins?${new URLSearchParams({ q: route.query, status: route.status, page: String(route.page), pageSize: String(route.pageSize) })}`
         : `/platform/tenants/new?step=${route.step}`;
   }

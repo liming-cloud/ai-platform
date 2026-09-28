@@ -279,7 +279,7 @@ function AuthenticatedConsoleApp({
       compactHeading={platformActive && route.task === "create"}
       pageStatus={platformActive && route.task === "create" ? { label: "等待填写", tone: "warning" } : undefined}
       pageTitle={
-        operationsActive ? "运营总览" : platformOperationsActive ? "平台运营总览" : accessActive ? route.task === "roles" ? "租户角色" : "成员与权限" : platformActive ? route.task === "create" ? "建立新租户" : route.task === "detail" || route.task === "admins" ? undefined : "平台租户" : platformAccountsActive ? route.task === "roles" ? "角色目录" : "人员账户目录" : platformModelSupplyActive ? "平台模型供应链" : queryActive ? "从已授权资料中获得答案" : governanceActive ? route.task === "query" ? "查询用量与审计" : "受限评测运行" : modelsActive ? route.task === "configuration" ? "受控模型配置" : route.task === "providers" ? "供应商连接与模型发现" : "模型部署与能力验证" : dataPage?.title ?? "可信知识平台"
+        operationsActive ? "运营总览" : platformOperationsActive ? "平台运营总览" : accessActive ? route.task === "roles" ? "租户角色" : "成员与权限" : platformActive ? route.task === "create" ? "建立新租户" : route.task === "detail" || route.task === "admins" || route.task === "quotas" ? undefined : "平台租户" : platformAccountsActive ? route.task === "roles" ? "角色目录" : "人员账户目录" : platformModelSupplyActive ? "平台模型供应链" : queryActive ? "从已授权资料中获得答案" : governanceActive ? route.task === "query" ? "查询用量与审计" : "受限评测运行" : modelsActive ? route.task === "configuration" ? "受控模型配置" : route.task === "providers" ? "供应商连接与模型发现" : "模型部署与能力验证" : dataPage?.title ?? "可信知识平台"
       }
       pageSummary={
         operationsActive
@@ -294,7 +294,7 @@ function AuthenticatedConsoleApp({
           ? route.task === "create"
             ? "新租户"
             : route.task === "detail" ? "核对租户信息与资源配额，获取管理员登录入口。"
-              : route.task === "admins" ? undefined
+              : route.task === "admins" || route.task === "quotas" ? undefined
               : "建立、激活和暂停租户，不展示租户正文、成员详情或平台操作者信息。"
           : platformAccountsActive
           ? route.task === "roles" ? "查看平台固定角色的任务范围、能力和信息边界。" : "账户目录按页显示，不展示凭据、会话或权限快照。"

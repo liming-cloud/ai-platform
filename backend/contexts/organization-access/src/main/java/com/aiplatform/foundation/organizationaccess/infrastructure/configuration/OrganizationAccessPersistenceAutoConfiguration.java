@@ -6,6 +6,7 @@ import com.aiplatform.foundation.organizationaccess.domain.member.repository.Ten
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.port.out.TenantLifecycleBackfillStore;
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.port.out.TenantLifecycleReadPort;
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.port.out.TenantLifecycleTransitionStore;
+import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.port.out.TenantQuotaSettingsStore;
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.port.out.TenantProvisioningStore;
 import com.aiplatform.foundation.organizationaccess.application.authorization.port.out.TenantRoleBindingStore;
 import com.aiplatform.foundation.organizationaccess.application.authorization.port.out.PlatformAccountStore;
@@ -66,6 +67,7 @@ import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.t
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.repository.PostgresTenantLifecycleReadAdapter;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.repository.PostgresTenantLifecycleTransitionStore;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.repository.PostgresTenantProvisioningStore;
+import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.repository.PostgresTenantQuotaSettingsStore;
 import com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator;
 import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
@@ -245,6 +247,13 @@ public class OrganizationAccessPersistenceAutoConfiguration {
             TenantProvisioningMapper lifecycles,
             com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.mapper.TenantQuotaMapper quotas) {
         return new PostgresTenantLifecycleReadAdapter(mapper, lifecycles, quotas);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    TenantQuotaSettingsStore tenantQuotaSettingsStore(
+            com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.mapper.TenantQuotaMapper quotas) {
+        return new PostgresTenantQuotaSettingsStore(quotas);
     }
 
     @Bean

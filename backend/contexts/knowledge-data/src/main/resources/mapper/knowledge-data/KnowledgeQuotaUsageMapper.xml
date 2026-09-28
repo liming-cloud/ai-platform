@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aiplatform.foundation.knowledgedata.infrastructure.persistence.knowledge.mapper.KnowledgeQuotaUsageMapper">
+
+    <select id="countKnowledgeSpaces" resultType="long">
+        SELECT COUNT(*) FROM knowledge_data.knowledge_space
+        WHERE tenant_id = #{tenantId} AND status &lt;&gt; 'DELETED'
+    </select>
+
+    <select id="maxDocumentsPerKnowledgeSpace" resultType="long">
+        SELECT COALESCE(MAX(document_count), 0) FROM (
+            SELECT source.knowledge_space_id, COUNT(*) AS document_count
+            FROM knowledge_data.text_data_source source
+            JOIN knowledge_data.knowledge_space space
+              ON space.tenant_id = source.tenant_id AND space.id = source.knowledge_space_id
+            WHERE source.tenant_id = #{tenantId} AND source.content_version > 0
+              AND space.status &lt;&gt; 'DELETED'
+            GROUP BY source.knowledge_space_id
+        ) counted
+    </select>
+
+    <select id="maxBytesPerKnowledgeSpace" resultType="java.math.BigDecimal">
+        SELECT COALESCE(MAX(total_bytes), 0) FROM (
+            SELECT content.knowledge_space_id, SUM(content.byte_size::numeric) AS total_bytes
+            FROM knowledge_data.text_data_source_content content
+            JOIN knowledge_data.knowledge_space space
+              ON space.tenant_id = content.tenant_id AND space.id = content.knowledge_space_id
+            WHERE content.tenant_id = #{tenantId} AND space.status &lt;&gt; 'DELETED'
+            GROUP BY content.knowledge_space_id
+        ) counted
+    </select>
+
+    <select id="countUnmeteredSources" resultType="long">
+        SELECT COUNT(*) FROM knowledge_data.governed_data_source source
+        JOIN knowledge_data.knowledge_space space
+          ON space.tenant_id = source.tenant_id AND space.id = source.knowledge_space_id
+        WHERE source.tenant_id = #{tenantId} AND space.status &lt;&gt; 'DELETED'
+    </select>
+
+</mapper>

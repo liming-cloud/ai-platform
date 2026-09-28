@@ -16,6 +16,7 @@ import {
 import { TenantProvisioningFlow } from "./TenantProvisioningFlow";
 import { TenantOverview } from "./TenantOverview";
 import { TenantAdministratorSettings } from "./TenantAdministratorSettings";
+import { TenantQuotaSettings } from "./TenantQuotaSettings";
 import type { ConsoleRoute } from "../../session/console-route";
 
 type TenantRoute = Extract<ConsoleRoute, { navigationId: "platform" }>;
@@ -87,6 +88,7 @@ export function PlatformTenantLifecycleWorkspace({ client, route, onRouteChange 
 
   if (route.task === "create") return <TenantProvisioningFlow client={client} route={route} onRouteChange={onRouteChange} />;
   if (route.task === "detail") return <TenantOverview key={route.tenantId} client={client} tenantId={route.tenantId} onRouteChange={onRouteChange} />;
+  if (route.task === "quotas") return <TenantQuotaSettings key={route.tenantId} client={client} tenantId={route.tenantId} onRouteChange={onRouteChange} />;
   if (route.task === "admins") return <TenantAdministratorSettings
     key={`${route.tenantId}:${route.query}:${route.status}:${route.page}:${route.pageSize}`}
     client={client} route={route} onRouteChange={onRouteChange} />;
