@@ -119,10 +119,11 @@ export function TenantQuotaSettings({ client, tenantId, onRouteChange }: {
     </section>
     <Dialog open={form !== undefined} onOpenChange={(_, value) => { if (!value.open) close(); }}>
       <DialogSurface className="foundation-task-dialog tenant-quota-page__dialog">
+        <form onSubmit={event => { event.preventDefault(); void save(); }}>
         <DialogBody>
           <DialogTitle><span className="tenant-quota-page__kicker">资源配额</span>
             <span>编辑 {loaded?.tenant.displayName} 的配额</span></DialogTitle>
-          <form onSubmit={event => { event.preventDefault(); void save(); }}><DialogContent>
+          <DialogContent>
             <p>保存值必须大于 0，且不能低于当前已用量。</p>
             {!currentUsage?.complete ? <p role="status">当前用量尚未完整核实，不能下调知识库数量、每库文档数量或每库内容容量。</p> : null}
             <div className="tenant-quota-page__grid">{fields.map(({ key, label, unit, integer }) => <Field key={key}
@@ -136,8 +137,9 @@ export function TenantQuotaSettings({ client, tenantId, onRouteChange }: {
             {validation ? <p className="tenant-quota-page__validation" role="alert">{validation}</p> : null}
           </DialogContent>
           <DialogActions><Button type="button" appearance="secondary" disabled={saving} onClick={close}>取消</Button>
-            <Button type="submit" appearance="primary" disabled={saving}>{saving ? "正在保存" : "保存配额"}</Button></DialogActions></form>
+            <Button type="submit" appearance="primary" disabled={saving}>{saving ? "正在保存" : "保存配额"}</Button></DialogActions>
         </DialogBody>
+        </form>
       </DialogSurface>
     </Dialog>
   </>;
