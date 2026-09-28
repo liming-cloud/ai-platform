@@ -202,7 +202,7 @@ async function run(configuration) {
             headings: [...document.querySelectorAll("h1")].map(item => item.textContent.trim()) };
         });
         requireCondition(!layout.overflow && layout.summaryColumns === (width <= 680 ? 2 : 3)
-          && layout.inputColumns === 2
+          && layout.inputColumns === (width <= 680 ? 1 : 2)
           && layout.modalWidth <= width - 8 && layout.headings.length === 1
           && layout.headings[0] === "登录安全", `${width} 登录安全布局与原型不一致`);
         await withTextScale(platform, true, async () => {
