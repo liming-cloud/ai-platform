@@ -66,6 +66,17 @@ class SaTokenSessionGatewayTest {
     }
 
     @Test
+    void 租户策略时长应写入真实令牌期限而非仅改变响应字段() {
+        var issued = gateway.issue(context(), Duration.ofHours(4));
+
+        assertEquals(Duration.ofHours(4), issued.expiresIn());
+        var remaining = logic.getTokenTimeout(issued.tokenValue());
+        org.junit.jupiter.api.Assertions.assertTrue(remaining > Duration.ofHours(3).toSeconds());
+        org.junit.jupiter.api.Assertions.assertTrue(remaining <= Duration.ofHours(4).toSeconds());
+        assertEquals(context(), gateway.resolve(issued.tokenValue()));
+    }
+
+    @Test
     void 应在令牌会话字段损坏时失败关闭() {
         var issued = gateway.issue(context());
         logic.getTokenSessionByToken(issued.tokenValue()).set("tenantId", "非法标识");

@@ -108,6 +108,14 @@ export interface TenantFeatureSettings {
   version: number;
 }
 
+/** 每租户独立登录策略；失败观察窗口固定为 15 分钟，不开放修改。 */
+export interface TenantLoginSecurityPolicy {
+  sessionHours: number;
+  failedAttempts: number;
+  lockMinutes: number;
+  version: number;
+}
+
 /** 已核实的旧知识来源用量；不完整时不得据此下调前三项上限。 */
 export interface TenantQuotaUsage {
   knowledgeBases: number;
@@ -738,6 +746,18 @@ export class ControlPlaneClient {
       method: "PUT",
       headers: this.writeHeaders("application/json"),
       body: JSON.stringify({ availableFeatures: input, expectedVersion }),
+    });
+  }
+
+  async getTenantLoginSecurity(tenantId: string): Promise<TenantLoginSecurityPolicy> {
+    return this.request<TenantLoginSecurityPolicy>(`/platform/tenants/${encodeURIComponent(tenantId)}/security`);
+  }
+
+  async updateTenantLoginSecurity(tenantId: string, input: Omit<TenantLoginSecurityPolicy, "version"> & { expectedVersion: number }): Promise<TenantLoginSecurityPolicy> {
+    return this.request<TenantLoginSecurityPolicy>(`/platform/tenants/${encodeURIComponent(tenantId)}/security`, {
+      method: "PUT",
+      headers: this.writeHeaders("application/json"),
+      body: JSON.stringify(input),
     });
   }
 

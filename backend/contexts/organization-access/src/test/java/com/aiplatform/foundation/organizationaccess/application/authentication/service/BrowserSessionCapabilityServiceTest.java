@@ -5,8 +5,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import com.aiplatform.foundation.organizationaccess.application.authentication.dto.BrowserSessionCapability.DisplayRole;
 import com.aiplatform.foundation.organizationaccess.application.authentication.dto.BrowserSessionCapability.WorkspaceCategory;
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.port.out.TenantFeatureSettingsStore;
+import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.port.out.TenantLoginSecurityPolicyStore;
 import com.aiplatform.foundation.organizationaccess.domain.tenant.model.TenantFeature;
 import com.aiplatform.foundation.organizationaccess.domain.tenant.model.TenantFeatureSettings;
+import com.aiplatform.foundation.organizationaccess.domain.tenant.model.TenantLoginSecurityPolicy;
 import com.aiplatform.foundation.security.identity.AccessChannel;
 import com.aiplatform.foundation.security.identity.CredentialType;
 import com.aiplatform.foundation.security.identity.MembershipId;
@@ -47,11 +49,12 @@ class BrowserSessionCapabilityServiceTest {
             }
         };
         var service = new BrowserSessionCapabilityService(
-                tenantSessions(context), platformSessions(null), Duration.ofMinutes(30), store);
+                tenantSessions(context), platformSessions(null), Duration.ofMinutes(30), store, policySettings());
 
         var capability = service.inspect("tenant-session", null).capability().orElseThrow();
 
         assertEquals(Set.of("model:read"), capability.capabilityCodes());
+        assertEquals(8 * 3600, capability.maximumSessionAgeSeconds());
     }
 
     @Test
@@ -66,13 +69,14 @@ class BrowserSessionCapabilityServiceTest {
         var service = new BrowserSessionCapabilityService(
                 tenantSessions(null),
                 platformSessions(platformContext),
-                Duration.ofMinutes(30), featureSettings());
+                Duration.ofMinutes(30), featureSettings(), policySettings());
 
         var capability = service.inspect(null, "platform-session").capability().orElseThrow();
 
         assertEquals(Set.of(WorkspaceCategory.PLATFORM_TENANT_GOVERNANCE), capability.workspaceCategories());
         assertEquals(Set.of(DisplayRole.PLATFORM_ADMINISTRATOR), capability.displayRoles());
         assertEquals(Set.of("platform-session:access"), capability.capabilityCodes());
+        assertEquals(30 * 60, capability.maximumSessionAgeSeconds());
     }
 
     @Test
@@ -91,7 +95,7 @@ class BrowserSessionCapabilityServiceTest {
         var service = new BrowserSessionCapabilityService(
                 tenantSessions(null),
                 platformSessions(platformContext),
-                Duration.ofMinutes(30), featureSettings());
+                Duration.ofMinutes(30), featureSettings(), policySettings());
 
         var capability = service.inspect(null, "platform-session").capability().orElseThrow();
 
@@ -126,7 +130,7 @@ class BrowserSessionCapabilityServiceTest {
         var service = new BrowserSessionCapabilityService(
                 tenantSessions(tenantContext),
                 platformSessions(platformContext),
-                Duration.ofMinutes(30), featureSettings());
+                Duration.ofMinutes(30), featureSettings(), policySettings());
 
         var capability = service.inspect("tenant-session", "platform-session").capability().orElseThrow();
 
@@ -140,6 +144,7 @@ class BrowserSessionCapabilityServiceTest {
         assertEquals(
                 Set.of(DisplayRole.TENANT_USER, DisplayRole.PLATFORM_ADMINISTRATOR),
                 capability.displayRoles());
+        assertEquals(8 * 3600, capability.maximumSessionAgeSeconds());
     }
 
     private static AuthenticatedSessionGateway tenantSessions(TrustedRequestContext context) {
@@ -172,6 +177,17 @@ class BrowserSessionCapabilityServiceTest {
                 return Optional.of(TenantFeatureSettings.defaults(new TenantId(tenantId)));
             }
             @Override public boolean replace(TenantFeatureSettings next, long version) {
+                throw new UnsupportedOperationException();
+            }
+        };
+    }
+
+    private static TenantLoginSecurityPolicyStore policySettings() {
+        return new TenantLoginSecurityPolicyStore() {
+            @Override public Optional<TenantLoginSecurityPolicy> find(long tenantId) {
+                return Optional.of(TenantLoginSecurityPolicy.defaults(new TenantId(tenantId)));
+            }
+            @Override public boolean replace(TenantLoginSecurityPolicy next, long version) {
                 throw new UnsupportedOperationException();
             }
         };

@@ -1,12 +1,14 @@
 package com.aiplatform.foundation.organizationaccess.infrastructure.configuration;
 
 import com.aiplatform.foundation.organizationaccess.application.authentication.port.out.PasswordVerifier;
+import com.aiplatform.foundation.organizationaccess.application.authentication.port.out.TenantLoginAttemptStore;
 import com.aiplatform.foundation.organizationaccess.application.authentication.port.out.PasswordHasher;
 import com.aiplatform.foundation.organizationaccess.application.authentication.service.PersonAuthenticationService;
 import com.aiplatform.foundation.organizationaccess.application.authentication.service.PlatformAuthenticationService;
 import com.aiplatform.foundation.organizationaccess.application.authentication.service.BrowserAuthenticationService;
 import com.aiplatform.foundation.organizationaccess.application.authentication.service.BrowserSessionCapabilityService;
 import com.aiplatform.foundation.organizationaccess.application.authentication.service.BrowserSessionTerminationService;
+import com.aiplatform.foundation.organizationaccess.application.authentication.service.TenantLoginPolicyEnforcer;
 import com.aiplatform.foundation.organizationaccess.application.authorization.port.out.TenantMemberSessionRevoker;
 import com.aiplatform.foundation.organizationaccess.application.authorization.port.out.PersonSessionFamilyRevoker;
 import com.aiplatform.foundation.organizationaccess.application.authorization.port.out.PlatformAccountStore;
@@ -48,7 +50,9 @@ import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.port.out.TenantLifecycleReadPort;
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.port.out.TenantQuotaSettingsStore;
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.port.out.TenantFeatureSettingsStore;
-import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.port.out.TenantFeatureSessionRevoker;
+import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.port.out.TenantSessionRevoker;
+import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.port.out.TenantLoginSecurityPolicyStore;
+import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.service.TenantLoginSecuritySettingsService;
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.port.out.TenantLifecycleTransitionStore;
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.port.out.TenantProvisioningStore;
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.service.TenantLifecycleBackfillService;
@@ -106,6 +110,7 @@ public class OrganizationAccessCoreAutoConfiguration {
             SubjectIdentityRepository identities,
             TenantMembershipRepository memberships,
             AuthenticatedSessionGateway sessions,
+            TenantLoginPolicyEnforcer policy,
             Pbkdf2PasswordAdapter passwords) {
         var dummyPassword = "不存在成员的等价验证口令".toCharArray();
         try {
@@ -114,6 +119,7 @@ public class OrganizationAccessCoreAutoConfiguration {
                     memberships,
                     passwords,
                     sessions,
+                    policy,
                     passwords.encode(dummyPassword));
         } finally {
             Arrays.fill(dummyPassword, '\0');
@@ -142,12 +148,20 @@ public class OrganizationAccessCoreAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
+    TenantLoginPolicyEnforcer tenantLoginPolicyEnforcer(TenantLoginSecurityPolicyStore policies,
+            TenantLoginAttemptStore attempts) {
+        return new TenantLoginPolicyEnforcer(policies, attempts, Clock.systemUTC());
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
     BrowserAuthenticationService browserAuthenticationService(
             SubjectIdentityRepository identities,
             TenantMembershipRepository memberships,
             PlatformRoleBindingRepository bindings,
             AuthenticatedSessionGateway tenantSessions,
             PlatformSessionGateway platformSessions,
+            TenantLoginPolicyEnforcer policy,
             Pbkdf2PasswordAdapter passwords) {
         var dummyPassword = "不存在主体的等价验证口令".toCharArray();
         try {
@@ -158,6 +172,7 @@ public class OrganizationAccessCoreAutoConfiguration {
                     passwords,
                     tenantSessions,
                     platformSessions,
+                    policy,
                     passwords.encode(dummyPassword));
         } finally {
             Arrays.fill(dummyPassword, '\0');
@@ -170,9 +185,10 @@ public class OrganizationAccessCoreAutoConfiguration {
             AuthenticatedSessionGateway tenantSessions,
             PlatformSessionGateway platformSessions,
             TenantFeatureSettingsStore featureSettings,
+            TenantLoginSecurityPolicyStore loginPolicies,
             @Value("${foundation.security.session-timeout:PT1H}") String sessionTimeout) {
         return new BrowserSessionCapabilityService(
-                tenantSessions, platformSessions, Duration.parse(sessionTimeout), featureSettings);
+                tenantSessions, platformSessions, Duration.parse(sessionTimeout), featureSettings, loginPolicies);
     }
 
     @Bean
@@ -377,7 +393,7 @@ public class OrganizationAccessCoreAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    TenantFeatureSessionRevoker tenantFeatureSessionRevoker(TenantMembershipMapper memberships,
+    TenantSessionRevoker tenantSessionRevoker(TenantMembershipMapper memberships,
             AuthenticatedSessionGateway sessions) {
         return tenantId -> {
             var ids = memberships.selectObjs(new LambdaQueryWrapper<TenantMembershipEntity>()
@@ -393,8 +409,15 @@ public class OrganizationAccessCoreAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean
     TenantFeatureSettingsService tenantFeatureSettingsService(TenantFeatureSettingsStore store,
-            TenantFeatureSessionRevoker sessions) {
+            TenantSessionRevoker sessions) {
         return new TenantFeatureSettingsService(store, sessions);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    TenantLoginSecuritySettingsService tenantLoginSecuritySettingsService(
+            TenantLoginSecurityPolicyStore store, TenantSessionRevoker sessions) {
+        return new TenantLoginSecuritySettingsService(store, sessions);
     }
 
     @Bean

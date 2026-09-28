@@ -4,10 +4,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
 import com.aiplatform.foundation.organizationaccess.application.authentication.service.PersonAuthenticationService;
+import com.aiplatform.foundation.organizationaccess.application.authentication.port.out.TenantLoginAttemptStore;
 import com.aiplatform.foundation.organizationaccess.application.authentication.service.PlatformAuthenticationService;
 import com.aiplatform.foundation.organizationaccess.application.authentication.service.BrowserAuthenticationService;
 import com.aiplatform.foundation.organizationaccess.application.authentication.service.BrowserSessionCapabilityService;
 import com.aiplatform.foundation.organizationaccess.application.authentication.service.BrowserSessionTerminationService;
+import com.aiplatform.foundation.organizationaccess.application.authentication.service.TenantLoginPolicyEnforcer;
 import com.aiplatform.foundation.organizationaccess.application.authorization.service.TenantRoleBindingApplicationService;
 import com.aiplatform.foundation.organizationaccess.application.authorization.service.PlatformAccountGovernanceApplicationService;
 import com.aiplatform.foundation.organizationaccess.application.authorization.service.PlatformAccountEstablishmentApplicationService;
@@ -29,6 +31,7 @@ import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.service.TenantProvisioningService;
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.service.TenantFeatureSettingsService;
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.service.TenantFeatureAvailabilityService;
+import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.service.TenantLoginSecuritySettingsService;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.authorization.mapper.PlatformRoleBindingMapper;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.authorization.mapper.TenantCustomRoleBindingMapper;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.authorization.mapper.TenantCustomRoleLifecycleMapper;
@@ -51,12 +54,15 @@ import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.t
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.mapper.TenantAdministratorRoleMapper;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.mapper.TenantQuotaMapper;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.mapper.TenantFeatureSettingsMapper;
+import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.mapper.TenantLoginSecurityPolicyMapper;
+import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.mapper.TenantLoginAttemptMapper;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.mapper.TenantLifecycleOutboxMapper;
 import com.aiplatform.foundation.organizationaccess.interfaces.web.authentication.controller.AuthenticationController;
 import com.aiplatform.foundation.organizationaccess.interfaces.web.authentication.controller.BrowserAuthenticationController;
 import com.aiplatform.foundation.organizationaccess.interfaces.web.authentication.controller.PlatformAuthenticationController;
 import com.aiplatform.foundation.organizationaccess.interfaces.web.tenantlifecycle.controller.TenantLifecycleController;
 import com.aiplatform.foundation.organizationaccess.interfaces.web.tenantlifecycle.controller.TenantFeatureSettingsController;
+import com.aiplatform.foundation.organizationaccess.interfaces.web.tenantlifecycle.controller.TenantLoginSecuritySettingsController;
 import com.aiplatform.foundation.organizationaccess.interfaces.web.tenantlifecycle.controller.PlatformTenantAdministratorController;
 import com.aiplatform.foundation.organizationaccess.interfaces.web.authorization.controller.TenantRoleBindingController;
 import com.aiplatform.foundation.organizationaccess.interfaces.web.authorization.controller.PlatformRoleBindingController;
@@ -142,6 +148,9 @@ class OrganizationAccessAutoConfigurationTest {
             .withBean(TenantAdministratorRoleMapper.class, () -> mock(TenantAdministratorRoleMapper.class))
             .withBean(TenantQuotaMapper.class, () -> mock(TenantQuotaMapper.class))
             .withBean(TenantFeatureSettingsMapper.class, () -> mock(TenantFeatureSettingsMapper.class))
+            .withBean(TenantLoginSecurityPolicyMapper.class, () -> mock(TenantLoginSecurityPolicyMapper.class))
+            .withBean(TenantLoginAttemptMapper.class, () -> mock(TenantLoginAttemptMapper.class))
+            .withBean(TenantLoginAttemptStore.class, () -> mock(TenantLoginAttemptStore.class))
             .withBean(TenantLifecycleOutboxMapper.class, () -> mock(TenantLifecycleOutboxMapper.class))
             .withBean(
                     AuthenticatedSessionGateway.class,
@@ -160,6 +169,7 @@ class OrganizationAccessAutoConfigurationTest {
             assertThat(context).hasSingleBean(BrowserAuthenticationService.class);
             assertThat(context).hasSingleBean(BrowserSessionCapabilityService.class);
             assertThat(context).hasSingleBean(BrowserSessionTerminationService.class);
+            assertThat(context).hasSingleBean(TenantLoginPolicyEnforcer.class);
             assertThat(context).hasSingleBean(TenantRoleBindingApplicationService.class);
             assertThat(context).hasSingleBean(PlatformAccountGovernanceApplicationService.class);
             assertThat(context).hasSingleBean(PlatformAccountEstablishmentApplicationService.class);
@@ -181,11 +191,13 @@ class OrganizationAccessAutoConfigurationTest {
             assertThat(context).hasSingleBean(TenantProvisioningService.class);
             assertThat(context).hasSingleBean(TenantFeatureSettingsService.class);
             assertThat(context).hasSingleBean(TenantFeatureAvailabilityService.class);
+            assertThat(context).hasSingleBean(TenantLoginSecuritySettingsService.class);
             assertThat(context).hasSingleBean(AuthenticationController.class);
             assertThat(context).hasSingleBean(BrowserAuthenticationController.class);
             assertThat(context).hasSingleBean(PlatformAuthenticationController.class);
             assertThat(context).hasSingleBean(TenantLifecycleController.class);
             assertThat(context).hasSingleBean(TenantFeatureSettingsController.class);
+            assertThat(context).hasSingleBean(TenantLoginSecuritySettingsController.class);
             assertThat(context).hasSingleBean(PlatformTenantAdministratorController.class);
             assertThat(context).hasSingleBean(TenantRoleBindingController.class);
             assertThat(context).hasSingleBean(PlatformRoleBindingController.class);

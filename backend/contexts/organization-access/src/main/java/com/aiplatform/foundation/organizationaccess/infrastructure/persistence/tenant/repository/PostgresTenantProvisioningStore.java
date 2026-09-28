@@ -13,13 +13,16 @@ import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.t
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.entity.TenantAdministratorRoleEntity;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.entity.TenantQuotaEntity;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.entity.TenantFeatureSettingsEntity;
+import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.entity.TenantLoginSecurityPolicyEntity;
 import com.aiplatform.foundation.organizationaccess.domain.tenant.model.TenantFeatureSettings;
+import com.aiplatform.foundation.organizationaccess.domain.tenant.model.TenantLoginSecurityPolicy;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.mapper.TenantAnchorMapper;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.mapper.TenantProvisioningMapper;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.mapper.TenantLifecycleOutboxMapper;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.mapper.TenantAdministratorRoleMapper;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.mapper.TenantQuotaMapper;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.mapper.TenantFeatureSettingsMapper;
+import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.mapper.TenantLoginSecurityPolicyMapper;
 import com.aiplatform.foundation.shared.kernel.error.ApplicationException;
 import com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator;
 import org.springframework.dao.DuplicateKeyException;
@@ -35,6 +38,7 @@ public final class PostgresTenantProvisioningStore implements TenantProvisioning
     private final TenantAdministratorRoleMapper roles;
     private final TenantQuotaMapper quotas;
     private final TenantFeatureSettingsMapper features;
+    private final TenantLoginSecurityPolicyMapper security;
     private final TenantLifecycleOutboxMapper outbox;
     private final EntityIdGenerator identifiers;
 
@@ -42,6 +46,7 @@ public final class PostgresTenantProvisioningStore implements TenantProvisioning
     public PostgresTenantProvisioningStore(SubjectIdentityMapper identities, TenantAnchorMapper anchors,
             TenantProvisioningMapper lifecycles, TenantMembershipMapper memberships,
             TenantAdministratorRoleMapper roles, TenantQuotaMapper quotas, TenantFeatureSettingsMapper features,
+            TenantLoginSecurityPolicyMapper security,
             TenantLifecycleOutboxMapper outbox, EntityIdGenerator identifiers) {
         this.identities = Objects.requireNonNull(identities);
         this.anchors = Objects.requireNonNull(anchors);
@@ -50,6 +55,7 @@ public final class PostgresTenantProvisioningStore implements TenantProvisioning
         this.roles = Objects.requireNonNull(roles);
         this.quotas = Objects.requireNonNull(quotas);
         this.features = Objects.requireNonNull(features);
+        this.security = Objects.requireNonNull(security);
         this.outbox = Objects.requireNonNull(outbox);
         this.identifiers = Objects.requireNonNull(identifiers);
     }
@@ -105,6 +111,8 @@ public final class PostgresTenantProvisioningStore implements TenantProvisioning
         requireWrite(quotas.insert(TenantQuotaEntity.from(result.quotas())));
         requireWrite(features.insert(TenantFeatureSettingsEntity.from(
                 TenantFeatureSettings.defaults(lifecycle.id()))));
+        requireWrite(security.insert(TenantLoginSecurityPolicyEntity.from(
+                TenantLoginSecurityPolicy.defaults(lifecycle.id()))));
         var change = result.lifecycleChange();
         requireWrite(outbox.insert(new TenantLifecycleOutboxEntity(identifiers.nextId(), change.tenantId().value(),
                 "TENANT_LIFECYCLE_CHANGED", change.status().name(), change.version(), change.occurredAt())));

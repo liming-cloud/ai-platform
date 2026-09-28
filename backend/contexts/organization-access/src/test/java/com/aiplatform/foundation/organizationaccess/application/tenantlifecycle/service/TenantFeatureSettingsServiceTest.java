@@ -7,7 +7,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.port.out.TenantFeatureSettingsStore;
-import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.port.out.TenantFeatureSessionRevoker;
+import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.port.out.TenantSessionRevoker;
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.dto.TenantFeatureSettingsResult;
 import com.aiplatform.foundation.organizationaccess.domain.tenant.model.TenantFeatureSettings;
 import com.aiplatform.foundation.security.identity.AccessChannel;
@@ -23,7 +23,7 @@ import org.junit.jupiter.api.Test;
 class TenantFeatureSettingsServiceTest {
 
     private final TenantFeatureSettingsStore store = mock(TenantFeatureSettingsStore.class);
-    private final TenantFeatureSessionRevoker sessions = mock(TenantFeatureSessionRevoker.class);
+    private final TenantSessionRevoker sessions = mock(TenantSessionRevoker.class);
     private final TenantFeatureSettingsService service = new TenantFeatureSettingsService(store, sessions);
 
     @Test

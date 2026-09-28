@@ -1,0 +1,11 @@
+/* 三项登录策略沿用租户设置卡片和编辑框，仅按原型调整摘要列数。 */
+.tenant-security-page .tenant-quota-page__summary { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.tenant-security-page .tenant-quota-page__heading { align-items: center; }
+.tenant-security-page .tenant-quota-page__heading h2 { margin: 0; }
+.tenant-security-page .tenant-quota-page__summary dd { display: block; }
+.tenant-security-page__dialog .fui-DialogTitle { font-size: 25px; font-weight: 500; }
+.tenant-security-page__dialog .tenant-security-page__impact { color: var(--foundation-secondary-text); }
+@media (max-width: 680px) {
+  .tenant-security-page .tenant-quota-page__summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .tenant-security-page__dialog .tenant-quota-page__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}

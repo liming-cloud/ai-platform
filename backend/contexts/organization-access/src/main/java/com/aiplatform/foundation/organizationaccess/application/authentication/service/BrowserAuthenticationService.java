@@ -31,6 +31,7 @@ public final class BrowserAuthenticationService {
     private final PasswordVerifier passwords;
     private final AuthenticatedSessionGateway tenantSessions;
     private final PlatformSessionGateway platformSessions;
+    private final TenantLoginPolicyEnforcer tenantPolicy;
     private final String dummyEncodedPassword;
 
     public BrowserAuthenticationService(
@@ -40,6 +41,7 @@ public final class BrowserAuthenticationService {
             PasswordVerifier passwords,
             AuthenticatedSessionGateway tenantSessions,
             PlatformSessionGateway platformSessions,
+            TenantLoginPolicyEnforcer tenantPolicy,
             String dummyEncodedPassword) {
         this.identities = java.util.Objects.requireNonNull(identities, "主体仓储不能为空");
         this.memberships = java.util.Objects.requireNonNull(memberships, "成员资格仓储不能为空");
@@ -47,6 +49,7 @@ public final class BrowserAuthenticationService {
         this.passwords = java.util.Objects.requireNonNull(passwords, "密码验证器不能为空");
         this.tenantSessions = java.util.Objects.requireNonNull(tenantSessions, "租户会话网关不能为空");
         this.platformSessions = java.util.Objects.requireNonNull(platformSessions, "平台会话网关不能为空");
+        this.tenantPolicy = java.util.Objects.requireNonNull(tenantPolicy, "租户登录策略不能为空");
         this.dummyEncodedPassword = requireDummyPassword(dummyEncodedPassword);
     }
 
@@ -68,13 +71,17 @@ public final class BrowserAuthenticationService {
         } finally {
             Arrays.fill(candidate, '\0');
         }
-        if (identity.isEmpty() || !matched) {
-            throw new InvalidCredentialsException();
-        }
-        var authenticated = identity.orElseThrow();
-        var member = command.tenantCode() == null
+        var member = command.tenantCode() == null || identity.isEmpty()
                 ? Optional.<com.aiplatform.foundation.organizationaccess.domain.member.model.MemberAuthenticationProfile>empty()
-                : memberships.findEnabled(command.tenantCode(), authenticated.id());
+                : memberships.findEnabled(command.tenantCode(), identity.orElseThrow().id());
+        java.time.Duration tenantDuration = null;
+        if (member.isPresent()) {
+            var target = member.orElseThrow();
+            tenantDuration = tenantPolicy.afterPasswordCheck(target.tenantId(),
+                    new SubjectId(target.subjectId().value()), matched);
+        }
+        if (identity.isEmpty() || !matched) throw new InvalidCredentialsException();
+        var authenticated = identity.orElseThrow();
         if (command.tenantCode() != null && member.isEmpty()) {
             throw new InvalidCredentialsException();
         }
@@ -98,7 +105,7 @@ public final class BrowserAuthenticationService {
                         command.channel(),
                         current.permissionVersion(),
                         permissions,
-                        command.traceId()));
+                        command.traceId()), tenantDuration);
             }
             if (authorization.isPresent()) {
                 var current = authorization.orElseThrow();

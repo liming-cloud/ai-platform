@@ -8,6 +8,8 @@ import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.port.out.TenantLifecycleTransitionStore;
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.port.out.TenantQuotaSettingsStore;
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.port.out.TenantFeatureSettingsStore;
+import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.port.out.TenantLoginSecurityPolicyStore;
+import com.aiplatform.foundation.organizationaccess.application.authentication.port.out.TenantLoginAttemptStore;
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.port.out.TenantProvisioningStore;
 import com.aiplatform.foundation.organizationaccess.application.authorization.port.out.TenantRoleBindingStore;
 import com.aiplatform.foundation.organizationaccess.application.authorization.port.out.PlatformAccountStore;
@@ -70,7 +72,11 @@ import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.t
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.repository.PostgresTenantProvisioningStore;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.repository.PostgresTenantQuotaSettingsStore;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.repository.PostgresTenantFeatureSettingsStore;
+import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.repository.PostgresTenantLoginSecurityPolicyStore;
+import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.repository.PostgresTenantLoginAttemptStore;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.mapper.TenantFeatureSettingsMapper;
+import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.mapper.TenantLoginSecurityPolicyMapper;
+import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.mapper.TenantLoginAttemptMapper;
 import com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator;
 import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
@@ -103,7 +109,9 @@ import org.springframework.jdbc.core.simple.JdbcClient;
     TenantMemberEstablishmentMapper.class,
     TenantLifecycleBackfillMapper.class,
     TenantLifecycleReadMapper.class,
-    TenantLifecycleTransitionMapper.class
+    TenantLifecycleTransitionMapper.class,
+    TenantLoginSecurityPolicyMapper.class,
+    TenantLoginAttemptMapper.class
 })
 public class OrganizationAccessPersistenceAutoConfiguration {
 
@@ -267,6 +275,18 @@ public class OrganizationAccessPersistenceAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
+    TenantLoginSecurityPolicyStore tenantLoginSecurityPolicyStore(TenantLoginSecurityPolicyMapper mapper) {
+        return new PostgresTenantLoginSecurityPolicyStore(mapper);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    TenantLoginAttemptStore tenantLoginAttemptStore(TenantLoginAttemptMapper mapper) {
+        return new PostgresTenantLoginAttemptStore(mapper);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
     TenantLifecycleTransitionStore tenantLifecycleTransitionStore(
             TenantLifecycleTransitionMapper mapper,
             EntityIdGenerator identifiers) {
@@ -283,8 +303,10 @@ public class OrganizationAccessPersistenceAutoConfiguration {
             com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.mapper.TenantAdministratorRoleMapper roles,
             com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.mapper.TenantQuotaMapper quotas,
             TenantFeatureSettingsMapper features,
+            TenantLoginSecurityPolicyMapper security,
             com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.mapper.TenantLifecycleOutboxMapper outbox,
             EntityIdGenerator identifiers) {
-        return new PostgresTenantProvisioningStore(identities, anchors, mapper, memberships, roles, quotas, features, outbox, identifiers);
+        return new PostgresTenantProvisioningStore(identities, anchors, mapper, memberships, roles, quotas,
+                features, security, outbox, identifiers);
     }
 }

@@ -7,6 +7,9 @@ import com.aiplatform.foundation.organizationaccess.domain.member.model.MemberAu
 import com.aiplatform.foundation.organizationaccess.domain.member.model.MemberId;
 import com.aiplatform.foundation.organizationaccess.domain.member.model.SubjectId;
 import com.aiplatform.foundation.organizationaccess.domain.identity.model.SubjectIdentity;
+import com.aiplatform.foundation.organizationaccess.application.authentication.port.out.TenantLoginAttemptStore;
+import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.port.out.TenantLoginSecurityPolicyStore;
+import com.aiplatform.foundation.organizationaccess.domain.tenant.model.TenantLoginSecurityPolicy;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -25,6 +28,8 @@ import java.util.Optional;
 import java.util.Set;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.Clock;
+import java.time.ZoneOffset;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Test;
 
@@ -46,9 +51,10 @@ class PersonAuthenticationServiceTest {
                 Optional.of(subject()),
                 Optional.of(member()),
                 (password, encoded) -> encoded.equals("valid") && new String(password).equals("secret"),
-                context -> {
+                (context, duration) -> {
+                    assertEquals(Duration.ofHours(8), duration);
                     captured.set(context);
-                    return new IssuedSession("satoken", "token", Duration.ofHours(1));
+                    return new IssuedSession("satoken", "token", duration);
                 });
 
         IssuedSession result;
@@ -74,7 +80,7 @@ class PersonAuthenticationServiceTest {
                     verifiedHash.set(encoded);
                     return false;
                 },
-                context -> {
+                (context, duration) -> {
                     throw new AssertionError("认证失败时不得签发会话");
                 });
 
@@ -91,7 +97,7 @@ class PersonAuthenticationServiceTest {
                 Optional.of(subject()),
                 Optional.of(member()),
                 (password, encoded) -> false,
-                context -> {
+                (context, duration) -> {
                     throw new AssertionError("认证失败时不得签发会话");
                 });
 
@@ -112,7 +118,12 @@ class PersonAuthenticationServiceTest {
         AuthenticatedSessionGateway sessions = new AuthenticatedSessionGateway() {
             @Override
             public IssuedSession issue(TrustedRequestContext context) {
-                return sessionIssuer.issue(context);
+                throw new AssertionError("租户登录必须提交当前策略时长");
+            }
+
+            @Override
+            public IssuedSession issue(TrustedRequestContext context, Duration duration) {
+                return sessionIssuer.issue(context, duration);
             }
 
             @Override
@@ -136,6 +147,7 @@ class PersonAuthenticationServiceTest {
                 memberships,
                 passwordVerifier,
                 sessions,
+                policy(),
                 "dummy");
     }
 
@@ -166,6 +178,28 @@ class PersonAuthenticationServiceTest {
 
     @FunctionalInterface
     private interface SessionIssuer {
-        IssuedSession issue(TrustedRequestContext context);
+        IssuedSession issue(TrustedRequestContext context, Duration duration);
+    }
+
+    private static TenantLoginPolicyEnforcer policy() {
+        TenantLoginSecurityPolicyStore policies = new TenantLoginSecurityPolicyStore() {
+            @Override public Optional<TenantLoginSecurityPolicy> find(long tenantId) {
+                return Optional.of(TenantLoginSecurityPolicy.defaults(TENANT_ID));
+            }
+            @Override public boolean replace(TenantLoginSecurityPolicy next, long expectedVersion) {
+                throw new AssertionError("认证不写登录策略");
+            }
+        };
+        TenantLoginAttemptStore attempts = new TenantLoginAttemptStore() {
+            @Override public boolean isLocked(TenantId tenantId,
+                    com.aiplatform.foundation.security.identity.SubjectId subjectId, Instant now) { return false; }
+            @Override public void recordFailure(TenantId tenantId,
+                    com.aiplatform.foundation.security.identity.SubjectId subjectId,
+                    TenantLoginSecurityPolicy policy, Instant now) { }
+            @Override public boolean clearIfUnlocked(TenantId tenantId,
+                    com.aiplatform.foundation.security.identity.SubjectId subjectId, Instant now) { return true; }
+        };
+        return new TenantLoginPolicyEnforcer(policies, attempts,
+                Clock.fixed(Instant.parse("2026-09-28T00:00:00Z"), ZoneOffset.UTC));
     }
 }

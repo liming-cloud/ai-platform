@@ -5,6 +5,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.aiplatform.foundation.organizationaccess.application.authentication.command.BrowserLoginCommand;
 import com.aiplatform.foundation.organizationaccess.application.authentication.port.out.PasswordVerifier;
+import com.aiplatform.foundation.organizationaccess.application.authentication.port.out.TenantLoginAttemptStore;
+import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.port.out.TenantLoginSecurityPolicyStore;
+import com.aiplatform.foundation.organizationaccess.domain.tenant.model.TenantLoginSecurityPolicy;
 import com.aiplatform.foundation.organizationaccess.domain.authorization.model.PermissionCode;
 import com.aiplatform.foundation.organizationaccess.domain.authorization.model.platform.PlatformRole;
 import com.aiplatform.foundation.organizationaccess.domain.authorization.model.platform.PlatformRoleAuthorization;
@@ -26,6 +29,8 @@ import com.aiplatform.foundation.security.session.PlatformSessionGateway;
 import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.Clock;
+import java.time.ZoneOffset;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -50,6 +55,7 @@ class BrowserAuthenticationServiceTest {
                 },
                 tenantSessions(),
                 platformSessions(),
+                policy(),
                 "dummy");
 
         try (var command = new BrowserLoginCommand(
@@ -71,7 +77,13 @@ class BrowserAuthenticationServiceTest {
         return new AuthenticatedSessionGateway() {
             @Override
             public IssuedSession issue(TrustedRequestContext context) {
-                return new IssuedSession("satoken", "tenant-token", Duration.ofHours(1));
+                throw new AssertionError("租户登录必须提交当前策略时长");
+            }
+
+            @Override
+            public IssuedSession issue(TrustedRequestContext context, Duration duration) {
+                assertEquals(Duration.ofHours(8), duration);
+                return new IssuedSession("satoken", "tenant-token", duration);
             }
 
             @Override
@@ -90,6 +102,28 @@ class BrowserAuthenticationServiceTest {
                 throw new UnsupportedOperationException();
             }
         };
+    }
+
+    private static TenantLoginPolicyEnforcer policy() {
+        TenantLoginSecurityPolicyStore policies = new TenantLoginSecurityPolicyStore() {
+            @Override public Optional<TenantLoginSecurityPolicy> find(long tenantId) {
+                return Optional.of(TenantLoginSecurityPolicy.defaults(TENANT_ID));
+            }
+            @Override public boolean replace(TenantLoginSecurityPolicy next, long expectedVersion) {
+                throw new AssertionError("认证不写登录策略");
+            }
+        };
+        TenantLoginAttemptStore attempts = new TenantLoginAttemptStore() {
+            @Override public boolean isLocked(TenantId tenantId,
+                    com.aiplatform.foundation.security.identity.SubjectId subjectId, Instant now) { return false; }
+            @Override public void recordFailure(TenantId tenantId,
+                    com.aiplatform.foundation.security.identity.SubjectId subjectId,
+                    TenantLoginSecurityPolicy policy, Instant now) { }
+            @Override public boolean clearIfUnlocked(TenantId tenantId,
+                    com.aiplatform.foundation.security.identity.SubjectId subjectId, Instant now) { return true; }
+        };
+        return new TenantLoginPolicyEnforcer(policies, attempts,
+                Clock.fixed(Instant.parse("2026-09-28T00:00:00Z"), ZoneOffset.UTC));
     }
 
     private static PlatformSessionGateway platformSessions() {

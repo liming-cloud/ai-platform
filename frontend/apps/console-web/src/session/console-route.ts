@@ -71,6 +71,7 @@ export type ConsoleRoute =
   | { navigationId: "platform"; task: "detail"; tenantId: string }
   | { navigationId: "platform"; task: "quotas"; tenantId: string }
   | { navigationId: "platform"; task: "features"; tenantId: string }
+  | { navigationId: "platform"; task: "security"; tenantId: string }
   | { navigationId: "platform"; task: "admins"; tenantId: string; query: string; status: "ALL" | "ENABLED" | "DISABLED"; page: number; pageSize: 10 | 20 | 50 | 100 }
   | { navigationId: "platform-accounts"; task: "accounts"; page: number }
   | { navigationId: "platform-accounts"; task: "roles" }
@@ -363,6 +364,8 @@ export function parseConsoleRoute(pathname: string, search: string): ConsoleRout
   if (tenantQuotas) return { navigationId: "platform", task: "quotas", tenantId: tenantQuotas[1]! };
   const tenantFeatures = /^\/platform\/tenants\/([1-9]\d*)\/features$/.exec(routePath);
   if (tenantFeatures) return { navigationId: "platform", task: "features", tenantId: tenantFeatures[1]! };
+  const tenantSecurity = /^\/platform\/tenants\/([1-9]\d*)\/security$/.exec(routePath);
+  if (tenantSecurity) return { navigationId: "platform", task: "security", tenantId: tenantSecurity[1]! };
   const tenantAdministrators = /^\/platform\/tenants\/([1-9]\d*)\/admins$/.exec(routePath);
   if (tenantAdministrators) {
     const parameters = new URLSearchParams(search);
@@ -446,6 +449,7 @@ export function formatConsoleRoute(route: ConsoleRoute): string {
       : route.task === "detail" ? `/platform/tenants/${encodeURIComponent(route.tenantId)}`
         : route.task === "quotas" ? `/platform/tenants/${encodeURIComponent(route.tenantId)}/quotas`
         : route.task === "features" ? `/platform/tenants/${encodeURIComponent(route.tenantId)}/features`
+        : route.task === "security" ? `/platform/tenants/${encodeURIComponent(route.tenantId)}/security`
         : route.task === "admins" ? `/platform/tenants/${encodeURIComponent(route.tenantId)}/admins?${new URLSearchParams({ q: route.query, status: route.status, page: String(route.page), pageSize: String(route.pageSize) })}`
         : `/platform/tenants/new?step=${route.step}`;
   }

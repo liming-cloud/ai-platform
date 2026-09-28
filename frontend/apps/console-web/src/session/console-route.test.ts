@@ -27,6 +27,11 @@ describe("统一控制台路由", () => {
     expect(parseConsoleRoute("/platform/tenants/610000000000000001/features", "")).toEqual(route);
     expect(parseConsoleRoute("/platform/tenants/nope/features", "")).toBeUndefined();
   });
+  it("租户登录安全设置使用独立且可恢复的路由", () => {
+    const route = { navigationId: "platform", task: "security", tenantId: "610000000000000001" } as const;
+    expect(formatConsoleRoute(route)).toBe("/platform/tenants/610000000000000001/security");
+    expect(parseConsoleRoute("/platform/tenants/610000000000000001/security", "")).toEqual(route);
+  });
   it("两级运营总览使用稳定入口并恢复平台租户摘要页码", () => {
     expect(defaultConsoleRoute("operations")).toEqual({
       navigationId: "operations",

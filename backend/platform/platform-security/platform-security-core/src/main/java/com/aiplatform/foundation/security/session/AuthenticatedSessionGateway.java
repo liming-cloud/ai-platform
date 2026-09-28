@@ -3,6 +3,7 @@ package com.aiplatform.foundation.security.session;
 import com.aiplatform.foundation.security.identity.TrustedRequestContext;
 import com.aiplatform.foundation.security.identity.MembershipId;
 import com.aiplatform.foundation.security.identity.SubjectId;
+import java.time.Duration;
 
 /**
  * 应用层使用的认证会话端口。
@@ -10,6 +11,11 @@ import com.aiplatform.foundation.security.identity.SubjectId;
 public interface AuthenticatedSessionGateway {
 
     IssuedSession issue(TrustedRequestContext context);
+
+    /** 按已验证的租户策略签发绝对有效期；适配器不支持时必须失败关闭。 */
+    default IssuedSession issue(TrustedRequestContext context, Duration expiresIn) {
+        throw new UnsupportedOperationException("租户会话适配器未实现策略有效期");
+    }
 
     TrustedRequestContext resolve(String tokenValue);
 

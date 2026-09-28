@@ -52,11 +52,20 @@ public final class SaTokenSessionGateway implements AuthenticatedSessionGateway 
 
     @Override
     public IssuedSession issue(TrustedRequestContext context) {
+        return issue(context, timeout);
+    }
+
+    @Override
+    public IssuedSession issue(TrustedRequestContext context, Duration expiresIn) {
         Objects.requireNonNull(context, "可信请求上下文不能为空");
+        Objects.requireNonNull(expiresIn, "策略会话有效期不能为空");
+        if (expiresIn.isZero() || expiresIn.isNegative() || expiresIn.getNano() != 0) {
+            throw new IllegalArgumentException("策略会话有效期必须是正整数秒");
+        }
         String tokenValue = null;
         try {
             var parameter = SaLoginParameter.create()
-                    .setTimeout(timeout.getSeconds())
+                    .setTimeout(expiresIn.getSeconds())
                     .setDeviceType(context.channel().name().toLowerCase(java.util.Locale.ROOT))
                     .setIsConcurrent(false)
                     .setIsShare(false)
@@ -66,7 +75,7 @@ public final class SaTokenSessionGateway implements AuthenticatedSessionGateway 
                     parameter);
             writeContext(stpLogic.getTokenSessionByToken(tokenValue, true), context);
             recordSubjectToken(context.subjectId(), tokenValue);
-            return new IssuedSession(stpLogic.getTokenName(), tokenValue, timeout);
+            return new IssuedSession(stpLogic.getTokenName(), tokenValue, expiresIn);
         } catch (RuntimeException exception) {
             if (tokenValue != null) {
                 revokeAfterFailedIssue(tokenValue, exception);

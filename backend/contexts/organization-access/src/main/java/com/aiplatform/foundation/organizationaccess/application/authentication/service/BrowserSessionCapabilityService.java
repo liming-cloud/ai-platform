@@ -5,6 +5,7 @@ import com.aiplatform.foundation.organizationaccess.application.authentication.d
 import com.aiplatform.foundation.organizationaccess.application.authentication.dto.BrowserSessionCapability.WorkspaceCategory;
 import com.aiplatform.foundation.organizationaccess.application.authentication.dto.BrowserSessionCapabilityResult;
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.port.out.TenantFeatureSettingsStore;
+import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.port.out.TenantLoginSecurityPolicyStore;
 import com.aiplatform.foundation.organizationaccess.domain.tenant.model.TenantFeature;
 import com.aiplatform.foundation.organizationaccess.domain.tenant.model.TenantFeatureSettings;
 import com.aiplatform.foundation.security.identity.PlatformPermissions;
@@ -27,16 +28,19 @@ public final class BrowserSessionCapabilityService {
     private final PlatformSessionGateway platformSessions;
     private final Duration maximumSessionAge;
     private final TenantFeatureSettingsStore featureSettings;
+    private final TenantLoginSecurityPolicyStore loginPolicies;
 
     public BrowserSessionCapabilityService(
             AuthenticatedSessionGateway tenantSessions,
             PlatformSessionGateway platformSessions,
             Duration maximumSessionAge,
-            TenantFeatureSettingsStore featureSettings) {
+            TenantFeatureSettingsStore featureSettings,
+            TenantLoginSecurityPolicyStore loginPolicies) {
         this.tenantSessions = java.util.Objects.requireNonNull(tenantSessions, "租户会话网关不能为空");
         this.platformSessions = java.util.Objects.requireNonNull(platformSessions, "平台会话网关不能为空");
         this.maximumSessionAge = requireMaximumSessionAge(maximumSessionAge);
         this.featureSettings = java.util.Objects.requireNonNull(featureSettings, "租户功能配置存储不能为空");
+        this.loginPolicies = java.util.Objects.requireNonNull(loginPolicies, "租户登录策略存储不能为空");
     }
 
     /**
@@ -67,13 +71,19 @@ public final class BrowserSessionCapabilityService {
                 ? featureSettings.find(tenant.context.tenantId().value())
                         .orElseThrow(() -> new IllegalStateException("租户功能配置缺失"))
                 : null;
+        var tenantAge = tenant.isValid()
+                ? loginPolicies.find(tenant.context.tenantId().value())
+                        .orElseThrow(() -> new IllegalStateException("租户登录策略缺失"))
+                        .sessionDuration().toSeconds()
+                : 0;
+        var platformAge = platform.hasPlatformWorkspace() ? maximumSessionAge.toSeconds() : 0;
         return new BrowserSessionCapabilityResult(
                 Optional.of(new BrowserSessionCapability(
                         workspaces,
                         roles,
                         Stream.concat(tenant.permissionCodes().filter(code -> allowsNavigation(tenantFeatures, code)), platform.permissionCodes())
                                 .collect(Collectors.toUnmodifiableSet()),
-                        maximumSessionAge.toSeconds())),
+                        Math.max(tenantAge, platformAge))),
                 tenant.isInvalid(),
                 platform.isInvalid());
     }

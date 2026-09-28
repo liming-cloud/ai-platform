@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.mapper.TenantLoginAttemptMapper">
+    <resultMap id="attempt" type="com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.entity.TenantLoginAttemptEntity">
+        <result column="window_started_at" property="windowStartedAt"/>
+        <result column="failures" property="failures"/>
+        <result column="locked_until" property="lockedUntil"/>
+    </resultMap>
+
+    <select id="findLockedUntil" resultType="java.time.Instant">
+        SELECT locked_until FROM organization_access.tenant_login_attempt
+        WHERE tenant_id = #{tenantId} AND subject_id = #{subjectId}
+    </select>
+    <insert id="ensureRow">
+        INSERT INTO organization_access.tenant_login_attempt
+            (tenant_id, subject_id, window_started_at, failures)
+        VALUES (#{tenantId}, #{subjectId}, #{now}, 0)
+        ON CONFLICT (tenant_id, subject_id) DO NOTHING
+    </insert>
+    <select id="lock" resultMap="attempt">
+        SELECT window_started_at, failures, locked_until
+        FROM organization_access.tenant_login_attempt
+        WHERE tenant_id = #{tenantId} AND subject_id = #{subjectId}
+        FOR UPDATE
+    </select>
+    <update id="replace">
+        UPDATE organization_access.tenant_login_attempt
+        SET window_started_at = #{started}, failures = #{failures}, locked_until = #{until}
+        WHERE tenant_id = #{tenantId} AND subject_id = #{subjectId}
+    </update>
+    <delete id="delete">
+        DELETE FROM organization_access.tenant_login_attempt
+        WHERE tenant_id = #{tenantId} AND subject_id = #{subjectId}
+    </delete>
+</mapper>

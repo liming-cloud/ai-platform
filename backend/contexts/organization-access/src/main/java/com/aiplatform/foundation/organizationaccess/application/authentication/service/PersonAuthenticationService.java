@@ -26,6 +26,7 @@ public final class PersonAuthenticationService {
     private final TenantMembershipRepository memberships;
     private final PasswordVerifier passwords;
     private final AuthenticatedSessionGateway sessions;
+    private final TenantLoginPolicyEnforcer tenantPolicy;
     private final String dummyEncodedPassword;
 
     public PersonAuthenticationService(
@@ -33,11 +34,13 @@ public final class PersonAuthenticationService {
             TenantMembershipRepository memberships,
             PasswordVerifier passwords,
             AuthenticatedSessionGateway sessions,
+            TenantLoginPolicyEnforcer tenantPolicy,
             String dummyEncodedPassword) {
         this.identities = Objects.requireNonNull(identities, "主体仓储不能为空");
         this.memberships = Objects.requireNonNull(memberships, "成员资格仓储不能为空");
         this.passwords = Objects.requireNonNull(passwords, "密码验证器不能为空");
         this.sessions = Objects.requireNonNull(sessions, "会话网关不能为空");
+        this.tenantPolicy = Objects.requireNonNull(tenantPolicy, "租户登录策略不能为空");
         this.dummyEncodedPassword = requireDummyPassword(dummyEncodedPassword);
     }
 
@@ -55,11 +58,15 @@ public final class PersonAuthenticationService {
         } finally {
             Arrays.fill(candidate, '\0');
         }
-        if (identity.isEmpty() || !matched) {
-            throw new InvalidCredentialsException();
+        var member = identity.isEmpty() ? java.util.Optional.<MemberAuthenticationProfile>empty()
+                : memberships.findEnabled(command.tenantCode(), identity.orElseThrow().id());
+        java.time.Duration tenantDuration = null;
+        if (member.isPresent()) {
+            var target = member.orElseThrow();
+            tenantDuration = tenantPolicy.afterPasswordCheck(target.tenantId(),
+                    new SubjectId(target.subjectId().value()), matched);
         }
-
-        var member = memberships.findEnabled(command.tenantCode(), identity.orElseThrow().id());
+        if (identity.isEmpty() || !matched) throw new InvalidCredentialsException();
         if (member.isEmpty()) {
             throw new InvalidCredentialsException();
         }
@@ -76,7 +83,7 @@ public final class PersonAuthenticationService {
                 command.channel(),
                 authenticated.permissionVersion(),
                 permissions,
-                command.traceId()));
+                command.traceId()), tenantDuration);
     }
 
     private static String requireDummyPassword(String value) {

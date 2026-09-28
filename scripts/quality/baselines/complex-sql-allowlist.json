@@ -918,6 +918,36 @@
       "statementId": "countPublishedAvailable",
       "category": "SECURITY_PROJECTION",
       "reason": "使用与目录页相同的来源可用性谓词计算总数，避免分页元数据泄露或失真。"
+    },
+    {
+      "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/TenantLoginAttemptMapper.xml",
+      "statementId": "findLockedUntil",
+      "category": "SECURITY_PROJECTION",
+      "reason": "只按当前租户和主体读取锁定终点，不向浏览器公开失败计数。"
+    },
+    {
+      "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/TenantLoginAttemptMapper.xml",
+      "statementId": "ensureRow",
+      "category": "ATOMIC_STATE_TRANSITION",
+      "reason": "以租户和主体唯一键初始化失败观察行，避免并发首个失败重复插入。"
+    },
+    {
+      "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/TenantLoginAttemptMapper.xml",
+      "statementId": "lock",
+      "category": "ROW_LOCK",
+      "reason": "同一租户主体的失败计数和成功清除必须串行读取当前状态。"
+    },
+    {
+      "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/TenantLoginAttemptMapper.xml",
+      "statementId": "replace",
+      "category": "ATOMIC_STATE_TRANSITION",
+      "reason": "在行锁事务中更新观察窗口、失败次数和锁定终点。"
+    },
+    {
+      "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/TenantLoginAttemptMapper.xml",
+      "statementId": "delete",
+      "category": "ATOMIC_STATE_TRANSITION",
+      "reason": "只有确认未锁定的成功登录才清除目标租户主体的失败观察。"
     }
   ]
 }

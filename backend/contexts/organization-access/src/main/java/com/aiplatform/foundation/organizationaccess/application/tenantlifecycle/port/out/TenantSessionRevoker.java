@@ -2,8 +2,8 @@ package com.aiplatform.foundation.organizationaccess.application.tenantlifecycle
 
 import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
 
-/** 配置改变时撤销目标租户所有旧租户会话；失败必须抛出以回滚配置事务。 */
+/** 只撤销指定租户的租户范围会话；不触及平台会话和其他租户。 */
 @FunctionalInterface
-public interface TenantFeatureSessionRevoker {
+public interface TenantSessionRevoker {
     void revokeTenantSessions(TenantId tenantId);
 }

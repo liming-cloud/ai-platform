@@ -41,6 +41,24 @@ describe("ControlPlaneClient", () => {
     expect(await requests[1]?.json()).toMatchObject({ expectedVersion: 1, bytesPerKnowledgeBase: "10000000000" });
     expect(requests[1]?.headers.get("Content-Type")).toContain("application/json");
   });
+  it("租户登录安全按独立接口读取并以版本完整保存三项策略", async () => {
+    const requests: Request[] = [];
+    const client = authenticatedClient(async (input, init) => {
+      const request = new Request(input, init); requests.push(request);
+      return Response.json({ sessionHours: 8, failedAttempts: 5, lockMinutes: 15, version: 2 });
+    });
+    expect((await client.getTenantLoginSecurity("610000000000000001")).sessionHours).toBe(8);
+    await client.updateTenantLoginSecurity("610000000000000001", {
+      sessionHours: 8, failedAttempts: 5, lockMinutes: 15, expectedVersion: 1,
+    });
+    expect(requests.map(request => [request.method, request.url])).toEqual([
+      ["GET", "http://localhost/api/v1/platform/tenants/610000000000000001/security"],
+      ["PUT", "http://localhost/api/v1/platform/tenants/610000000000000001/security"],
+    ]);
+    expect(await requests[1]?.json()).toEqual({ sessionHours: 8, failedAttempts: 5,
+      lockMinutes: 15, expectedVersion: 1 });
+    expect(requests[1]?.headers.get("Content-Type")).toContain("application/json");
+  });
   it("运营总览和平台租户摘要只使用固定统计范围与服务端分页", async () => {
     const requests: Request[] = [];
     const client = authenticatedClient(async (input, init) => {

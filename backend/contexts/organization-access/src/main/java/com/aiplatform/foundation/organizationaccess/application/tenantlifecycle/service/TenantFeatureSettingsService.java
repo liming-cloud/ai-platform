@@ -2,7 +2,7 @@ package com.aiplatform.foundation.organizationaccess.application.tenantlifecycle
 
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.exception.TenantFeatureErrorCode;
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.exception.TenantOnboardingErrorCode;
-import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.port.out.TenantFeatureSessionRevoker;
+import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.port.out.TenantSessionRevoker;
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.port.out.TenantFeatureSettingsStore;
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.dto.TenantFeatureSettingsResult;
 import com.aiplatform.foundation.organizationaccess.domain.tenant.model.TenantFeature;
@@ -19,9 +19,9 @@ import org.springframework.transaction.annotation.Transactional;
 /** 平台功能配置用例；授权在读取前完成，变更后同步撤销旧租户会话。 */
 public class TenantFeatureSettingsService {
     private final TenantFeatureSettingsStore store;
-    private final TenantFeatureSessionRevoker sessions;
+    private final TenantSessionRevoker sessions;
 
-    public TenantFeatureSettingsService(TenantFeatureSettingsStore store, TenantFeatureSessionRevoker sessions) {
+    public TenantFeatureSettingsService(TenantFeatureSettingsStore store, TenantSessionRevoker sessions) {
         this.store = Objects.requireNonNull(store, "功能配置存储不能为空");
         this.sessions = Objects.requireNonNull(sessions, "租户会话撤销器不能为空");
     }

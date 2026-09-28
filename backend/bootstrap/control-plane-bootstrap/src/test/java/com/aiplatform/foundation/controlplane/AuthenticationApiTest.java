@@ -255,7 +255,7 @@ class AuthenticationApiTest {
         assertEquals(java.util.List.of("TENANT_ADMINISTRATOR"), response.getBody().get("displayRoles"));
         assertTrue(((java.util.List<?>) response.getBody().get("capabilityCodes"))
                 .containsAll(java.util.List.of("knowledge:read", "assistant:query")));
-        assertEquals(3600, response.getBody().get("maximumSessionAgeSeconds"));
+        assertEquals(8 * 60 * 60, response.getBody().get("maximumSessionAgeSeconds"));
         assertFalse(response.getBody().containsKey("token"));
         assertFalse(response.getBody().containsKey("subjectId"));
         assertFalse(response.getBody().containsKey("membershipId"));
@@ -618,6 +618,81 @@ class AuthenticationApiTest {
         assertNotNull(restored.getBody());
         assertEquals("ACTIVE", restored.getBody().status());
         assertEquals(HttpStatus.CREATED, tenantLogin(tenantCode).getStatusCode());
+    }
+
+    @Test
+    void 登录安全策略应隔离租户并按版本更新会话时长和失败锁定() {
+        var platformToken = platformLogin();
+        var tenantCode = "security-" + Long.toUnsignedString(System.nanoTime(), 36);
+        var created = http.exchange(url("/api/v1/platform/tenants"), HttpMethod.POST,
+                new HttpEntity<>(onboarding(tenantCode, "登录安全验收租户"), bearer(platformToken)),
+                TenantLifecycleResponse.class);
+        assertEquals(HttpStatus.CREATED, created.getStatusCode());
+        assertNotNull(created.getBody());
+        var path = "/api/v1/platform/tenants/" + created.getBody().tenantId() + "/security";
+
+        var defaults = http.exchange(url(path), HttpMethod.GET,
+                new HttpEntity<>(bearer(platformToken)), SecurityPolicyResponse.class);
+        assertEquals(HttpStatus.OK, defaults.getStatusCode());
+        assertEquals(new SecurityPolicyResponse(8, 5, 15, 0), defaults.getBody());
+        var oldToken = tenantLogin(tenantCode, "owner-" + tenantCode);
+
+        var denied = http.exchange(url(path), HttpMethod.GET,
+                new HttpEntity<>(bearer(oldToken)), ApiError.class);
+        assertEquals(HttpStatus.UNAUTHORIZED, denied.getStatusCode());
+        var invalid = http.exchange(url(path), HttpMethod.PUT,
+                new HttpEntity<>(Map.of("sessionHours", 25, "failedAttempts", 3,
+                        "lockMinutes", 5, "expectedVersion", 0), bearer(platformToken)), ApiError.class);
+        assertEquals(HttpStatus.BAD_REQUEST, invalid.getStatusCode());
+
+        var changed = http.exchange(url(path), HttpMethod.PUT,
+                new HttpEntity<>(Map.of("sessionHours", 4, "failedAttempts", 3,
+                        "lockMinutes", 5, "expectedVersion", 0), bearer(platformToken)),
+                SecurityPolicyResponse.class);
+        assertEquals(HttpStatus.OK, changed.getStatusCode());
+        assertEquals(new SecurityPolicyResponse(4, 3, 5, 1), changed.getBody());
+        assertThrows(InvalidAuthenticatedSessionException.class, () -> sessions.resolve(oldToken));
+        var stale = http.exchange(url(path), HttpMethod.PUT,
+                new HttpEntity<>(Map.of("sessionHours", 5, "failedAttempts", 4,
+                        "lockMinutes", 10, "expectedVersion", 0), bearer(platformToken)), ApiError.class);
+        assertEquals(HttpStatus.CONFLICT, stale.getStatusCode());
+
+        var valid = tenantLoginResponse(tenantCode, "owner-" + tenantCode);
+        assertEquals(HttpStatus.CREATED, valid.getStatusCode());
+        assertNotNull(valid.getBody());
+        assertEquals(4 * 60 * 60, valid.getBody().expiresInSeconds());
+        var csrf = browserCsrf();
+        var browser = http.exchange(url("/api/v1/auth/browser-sessions"), HttpMethod.POST,
+                new HttpEntity<>(Map.of("tenantCode", tenantCode, "loginName", "owner-" + tenantCode,
+                        "password", new String(DEMO_PASSWORD)), csrf.headers()), String.class);
+        assertEquals(HttpStatus.NO_CONTENT, browser.getStatusCode());
+        var browserHeaders = new HttpHeaders();
+        browserHeaders.set(HttpHeaders.COOKIE, cookiePair(browser.getHeaders(), "__Host-foundation-tenant-session="));
+        var capability = http.exchange(url("/api/v1/auth/browser-session"), HttpMethod.GET,
+                new HttpEntity<>(browserHeaders), Map.class);
+        assertEquals(HttpStatus.OK, capability.getStatusCode());
+        assertNotNull(capability.getBody());
+        assertEquals(4 * 60 * 60, capability.getBody().get("maximumSessionAgeSeconds"));
+        for (int attempt = 0; attempt < 2; attempt++) {
+            var failed = http.postForEntity(url("/api/v1/auth/sessions"),
+                    Map.of("tenantCode", tenantCode, "loginName", "owner-" + tenantCode,
+                            "password", "incorrect"), ApiError.class);
+            assertEquals(HttpStatus.UNAUTHORIZED, failed.getStatusCode());
+            assertNotNull(failed.getBody());
+            assertEquals("ORGANIZATION_ACCESS.AUTHENTICATION.0001", failed.getBody().code());
+        }
+        var browserFailure = http.exchange(url("/api/v1/auth/browser-sessions"), HttpMethod.POST,
+                new HttpEntity<>(Map.of("tenantCode", tenantCode, "loginName", "owner-" + tenantCode,
+                        "password", "incorrect"), browserCsrf().headers()), ApiError.class);
+        assertEquals(HttpStatus.UNAUTHORIZED, browserFailure.getStatusCode());
+        assertEquals(HttpStatus.UNAUTHORIZED, tenantLoginStatus(tenantCode, "owner-" + tenantCode));
+        var browserBlocked = http.exchange(url("/api/v1/auth/browser-sessions"), HttpMethod.POST,
+                new HttpEntity<>(Map.of("tenantCode", tenantCode, "loginName", "owner-" + tenantCode,
+                        "password", new String(DEMO_PASSWORD)), browserCsrf().headers()), ApiError.class);
+        assertEquals(HttpStatus.UNAUTHORIZED, browserBlocked.getStatusCode());
+        assertEquals(HttpStatus.CREATED, http.postForEntity(url("/api/v1/platform/auth/sessions"),
+                Map.of("loginName", "platform-admin", "password", new String(DEMO_PASSWORD)),
+                SessionResponse.class).getStatusCode());
     }
 
     @Test
@@ -1117,6 +1192,9 @@ class AuthenticationApiTest {
             String tokenName,
             String tokenValue,
             long expiresInSeconds) {
+    }
+
+    private record SecurityPolicyResponse(int sessionHours, int failedAttempts, int lockMinutes, long version) {
     }
 
     private record BrowserCsrf(HttpHeaders headers) {
