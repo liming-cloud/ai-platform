@@ -83,8 +83,10 @@ async function run(configuration) {
       const checkboxes = platform.locator(".tenant-feature-page__control input[type=checkbox]");
       requireCondition(await checkboxes.count() === 8, "功能勾选数量不正确");
       for (let index = 0; index < codes.length; index += 1) {
+        const control = platform.locator(".tenant-feature-page__control").nth(index);
         requireCondition(await checkboxes.nth(index).isChecked()
-          && await platform.getByText(labels[index], { exact: true }).isVisible(), "功能顺序或初值不一致");
+          && await control.isVisible()
+          && await control.locator("strong").innerText() === labels[index], "功能顺序或初值不一致");
       }
     });
     let writes = 0;
