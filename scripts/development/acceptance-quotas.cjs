@@ -179,6 +179,11 @@ async function run(configuration) {
         await platform.keyboard.press("Enter");
         const dialog = platform.getByRole("dialog");
         await dialog.getByRole("spinbutton", { name: "知识库数量 个" }).waitFor();
+        // Fluent 的焦点过渡会短暂报告 3px；只核验过渡结束后的原型 2px 描边。
+        await platform.waitForFunction(() => {
+          const focused = document.querySelector(".tenant-quota-page__grid .fui-Input:focus-within");
+          return focused && getComputedStyle(focused).outlineWidth === "2px";
+        }, undefined, { timeout: 3000 });
         const parity = await dialog.evaluate(surface => {
           const grid = surface.querySelector(".tenant-quota-page__grid");
           const form = surface.querySelector("form");
