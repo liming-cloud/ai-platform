@@ -1,5 +1,6 @@
 /* 固定原型的两列功能网格与独立保存节奏；窄屏改为单列。 */
-.tenant-feature-page { gap: 0; max-width: none; }
+.tenant-feature-page { gap: 0; max-width: none; margin-top: 24px; }
+.tenant-feature-page .tenant-overview__settings a:not([aria-current="page"]) { color: var(--foundation-text); }
 .tenant-feature-page__editor { display: grid; gap: 16px; margin-top: 20px; border-top: 1px solid var(--foundation-border); }
 .tenant-feature-page__heading { display: flex; align-items: start; justify-content: space-between; flex-wrap: wrap; gap: 16px; padding: 16px 20px; }
 .tenant-feature-page__heading > div { display: grid; }
@@ -11,12 +12,12 @@
 .tenant-feature-page__control { display: flex; align-items: start; gap: 12px; min-width: 0; min-height: 72px; padding: 12px 20px; border-bottom: 1px solid var(--foundation-border); cursor: pointer; }
 .tenant-feature-page__control:nth-child(odd) { border-right: 1px solid var(--foundation-border); }
 .tenant-feature-page__control:hover { background: var(--foundation-subtle-surface); }
-.tenant-feature-page__control input { width: 18px; height: 18px; flex: 0 0 auto; margin: 2px 0 0; accent-color: var(--foundation-accent); }
+.tenant-feature-page__control input { width: 18px; height: 18px; flex: 0 0 auto; margin: 2px 3px 3px 4px; accent-color: var(--foundation-accent); }
 .tenant-feature-page__control > span { display: grid; gap: 4px; min-width: 0; }
 .tenant-feature-page__control strong { font-weight: 620; }
-.tenant-feature-page__control small { color: var(--foundation-secondary-text); font-size: 14px; line-height: 1.5; }
+.tenant-feature-page__control small { color: var(--foundation-secondary-text); font-size: 14px; line-height: 1.524; }
 .tenant-feature-page__actions { display: flex; align-items: center; flex-wrap: wrap; gap: 16px; min-height: 68px; padding: 16px 20px; }
 .tenant-feature-page__actions > span { color: var(--foundation-secondary-text); }
 .tenant-feature-page__control:focus-within { outline: 2px solid var(--foundation-accent); outline-offset: -2px; }
-@media (max-width: 680px) { .tenant-feature-page__grid { grid-template-columns: minmax(0, 1fr); } .tenant-feature-page__control:nth-child(odd) { border-right: 0; } .tenant-feature-page__control { min-height: 72px; } }
+@media (max-width: 680px) { .page-heading:has(+ .tenant-feature-page) > .fui-Button { width: 100%; justify-self: stretch; } .tenant-feature-page__grid { grid-template-columns: minmax(0, 1fr); } .tenant-feature-page__control:nth-child(odd) { border-right: 0; } .tenant-feature-page__control { min-height: 72px; } }
 @media (prefers-reduced-motion: reduce) { .tenant-feature-page__control { transition: none; } }

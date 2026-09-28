@@ -222,11 +222,18 @@ async function run(configuration) {
           order: [...document.querySelectorAll(".tenant-feature-page__control strong")].map(item => item.textContent),
           headings: [...document.querySelectorAll("h1")].map(item => item.textContent.trim()),
           editorRight: document.querySelector(".tenant-feature-page__editor").getBoundingClientRect().right,
+          editorWidth: document.querySelector(".tenant-feature-page__editor").getBoundingClientRect().width,
+          saveWidth: [...document.querySelectorAll("button")].find(item => item.textContent?.trim() === "保存功能配置")
+            ?.getBoundingClientRect().width,
+          firstInputOffset: document.querySelector(".tenant-feature-page__control input").getBoundingClientRect().left
+            - document.querySelector(".tenant-feature-page__control").getBoundingClientRect().left,
         }));
         requireCondition(layout.columns === (width <= 680 ? 1 : 2) && !layout.overflow
           && labels.every((label, index) => layout.order[index] === label)
           && layout.headings.length === 1 && layout.headings[0] === "可用功能"
-          && Math.abs(width - layout.editorRight - (width <= 680 ? 16 : 32)) <= 1,
+          && Math.abs(width - layout.editorRight - (width <= 680 ? 16 : 32)) <= 1
+          && Math.abs(layout.firstInputOffset - 24) <= 1
+          && (width > 680 || Math.abs(layout.saveWidth - layout.editorWidth) <= 1),
         `${width} 功能页布局不符合原型`);
         await withTextScale(platform, true, async () => {
           const fits = await platform.evaluate(() => {
