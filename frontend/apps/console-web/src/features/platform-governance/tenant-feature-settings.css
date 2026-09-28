@@ -1,0 +1,21 @@
+/* 固定原型的两列功能网格与独立保存节奏；窄屏改为单列。 */
+.tenant-feature-page { gap: 0; }
+.tenant-feature-page__editor { margin-top: 20px; border-top: 1px solid var(--foundation-border); }
+.tenant-feature-page__heading { display: flex; align-items: start; justify-content: space-between; flex-wrap: wrap; gap: 16px; padding: 16px 20px; }
+.tenant-feature-page__heading > div { display: grid; }
+.tenant-feature-page__heading > div > span { color: var(--foundation-secondary-text); font-size: 14px; font-weight: 650; }
+.tenant-feature-page__heading h2 { margin: 4px 0 0; font-family: var(--foundation-font-display); font-size: 25px; font-weight: 500; }
+.tenant-feature-page__status { color: var(--foundation-accent); border: 1px solid var(--foundation-border); background: var(--foundation-accent-subtle); border-radius: var(--foundation-control-radius); padding: 2px 8px; font-size: 14px; }
+.tenant-feature-page__grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); border-block: 1px solid var(--foundation-border); }
+.tenant-feature-page__control { display: flex; align-items: start; gap: 12px; min-width: 0; min-height: 72px; padding: 12px 20px; border-bottom: 1px solid var(--foundation-border); cursor: pointer; }
+.tenant-feature-page__control:nth-child(odd) { border-right: 1px solid var(--foundation-border); }
+.tenant-feature-page__control:hover { background: var(--foundation-subtle-surface); }
+.tenant-feature-page__control input { width: 18px; height: 18px; flex: 0 0 auto; margin: 2px 0 0; accent-color: var(--foundation-accent); }
+.tenant-feature-page__control > span { display: grid; gap: 4px; min-width: 0; }
+.tenant-feature-page__control strong { font-weight: 620; }
+.tenant-feature-page__control small { color: var(--foundation-secondary-text); font-size: 14px; line-height: 1.5; }
+.tenant-feature-page__actions { display: flex; align-items: center; flex-wrap: wrap; gap: 16px; min-height: 68px; padding: 16px 20px; }
+.tenant-feature-page__actions > span { color: var(--foundation-secondary-text); }
+.tenant-feature-page__control:focus-within { outline: 2px solid var(--foundation-accent); outline-offset: -2px; }
+@media (max-width: 680px) { .tenant-feature-page__grid { grid-template-columns: minmax(0, 1fr); } .tenant-feature-page__control:nth-child(odd) { border-right: 0; } .tenant-feature-page__control { min-height: 72px; } }
+@media (prefers-reduced-motion: reduce) { .tenant-feature-page__control { transition: none; } }

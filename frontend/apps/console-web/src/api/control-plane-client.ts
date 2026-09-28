@@ -97,6 +97,17 @@ export interface TenantQuotas {
 /** 配额只读投影；配置版本不代表接入计量已启用。 */
 export interface TenantQuotaSummary extends TenantQuotas { version: number }
 
+/** 原型功能代码属于 API 契约，页面目录只负责可见标签与顺序。 */
+export type TenantFeatureCode = "knowledgeManagement" | "modelGovernance" | "assistantDelivery"
+  | "evaluationGovernance" | "assistantSelection" | "conversation" | "ownHistory" | "authorizedCitations";
+export type TenantFeatureFlags = Record<TenantFeatureCode, boolean>;
+
+/** 独立保存的八项租户功能上限，不代表下游能力已经发布。 */
+export interface TenantFeatureSettings {
+  availableFeatures: TenantFeatureFlags;
+  version: number;
+}
+
 /** 已核实的旧知识来源用量；不完整时不得据此下调前三项上限。 */
 export interface TenantQuotaUsage {
   knowledgeBases: number;
@@ -715,6 +726,18 @@ export class ControlPlaneClient {
       method: "PUT",
       headers: this.writeHeaders("application/json"),
       body: JSON.stringify(input),
+    });
+  }
+
+  async getTenantFeatures(tenantId: string): Promise<TenantFeatureSettings> {
+    return this.request<TenantFeatureSettings>(`/platform/tenants/${encodeURIComponent(tenantId)}/features`);
+  }
+
+  async updateTenantFeatures(tenantId: string, input: TenantFeatureSettings["availableFeatures"], expectedVersion: number): Promise<TenantFeatureSettings> {
+    return this.request<TenantFeatureSettings>(`/platform/tenants/${encodeURIComponent(tenantId)}/features`, {
+      method: "PUT",
+      headers: this.writeHeaders("application/json"),
+      body: JSON.stringify({ availableFeatures: input, expectedVersion }),
     });
   }
 

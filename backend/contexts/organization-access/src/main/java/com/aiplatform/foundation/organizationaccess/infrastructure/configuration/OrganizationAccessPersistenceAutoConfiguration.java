@@ -7,6 +7,7 @@ import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.port.out.TenantLifecycleReadPort;
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.port.out.TenantLifecycleTransitionStore;
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.port.out.TenantQuotaSettingsStore;
+import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.port.out.TenantFeatureSettingsStore;
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.port.out.TenantProvisioningStore;
 import com.aiplatform.foundation.organizationaccess.application.authorization.port.out.TenantRoleBindingStore;
 import com.aiplatform.foundation.organizationaccess.application.authorization.port.out.PlatformAccountStore;
@@ -68,6 +69,8 @@ import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.t
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.repository.PostgresTenantLifecycleTransitionStore;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.repository.PostgresTenantProvisioningStore;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.repository.PostgresTenantQuotaSettingsStore;
+import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.repository.PostgresTenantFeatureSettingsStore;
+import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.mapper.TenantFeatureSettingsMapper;
 import com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator;
 import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
@@ -258,6 +261,12 @@ public class OrganizationAccessPersistenceAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
+    TenantFeatureSettingsStore tenantFeatureSettingsStore(TenantFeatureSettingsMapper features) {
+        return new PostgresTenantFeatureSettingsStore(features);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
     TenantLifecycleTransitionStore tenantLifecycleTransitionStore(
             TenantLifecycleTransitionMapper mapper,
             EntityIdGenerator identifiers) {
@@ -273,8 +282,9 @@ public class OrganizationAccessPersistenceAutoConfiguration {
             com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.mapper.TenantAnchorMapper anchors,
             com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.mapper.TenantAdministratorRoleMapper roles,
             com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.mapper.TenantQuotaMapper quotas,
+            TenantFeatureSettingsMapper features,
             com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.mapper.TenantLifecycleOutboxMapper outbox,
             EntityIdGenerator identifiers) {
-        return new PostgresTenantProvisioningStore(identities, anchors, mapper, memberships, roles, quotas, outbox, identifiers);
+        return new PostgresTenantProvisioningStore(identities, anchors, mapper, memberships, roles, quotas, features, outbox, identifiers);
     }
 }

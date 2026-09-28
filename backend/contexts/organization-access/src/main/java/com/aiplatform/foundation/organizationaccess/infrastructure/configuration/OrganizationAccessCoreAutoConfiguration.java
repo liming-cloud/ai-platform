@@ -47,11 +47,18 @@ import com.aiplatform.foundation.organizationaccess.application.member.service.T
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.port.out.TenantLifecycleBackfillStore;
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.port.out.TenantLifecycleReadPort;
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.port.out.TenantQuotaSettingsStore;
+import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.port.out.TenantFeatureSettingsStore;
+import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.port.out.TenantFeatureSessionRevoker;
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.port.out.TenantLifecycleTransitionStore;
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.port.out.TenantProvisioningStore;
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.service.TenantLifecycleBackfillService;
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.service.TenantLifecycleQueryService;
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.service.TenantQuotaSettingsService;
+import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.service.TenantFeatureSettingsService;
+import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.service.TenantFeatureAvailabilityService;
+import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.membership.mapper.TenantMembershipMapper;
+import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.membership.entity.TenantMembershipEntity;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.service.TenantLifecycleTransitionService;
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.service.TenantProvisioningService;
 import com.aiplatform.foundation.organizationaccess.domain.authorization.repository.PlatformRoleBindingRepository;
@@ -80,6 +87,12 @@ import org.springframework.beans.factory.annotation.Value;
         name = "foundation.organization-access.enabled",
         havingValue = "true")
 public class OrganizationAccessCoreAutoConfiguration {
+
+    @Bean
+    @ConditionalOnMissingBean
+    TenantFeatureAvailabilityService tenantFeatureAvailabilityService(TenantFeatureSettingsStore store) {
+        return new TenantFeatureAvailabilityService(store);
+    }
 
     @Bean
     @ConditionalOnMissingBean
@@ -156,9 +169,10 @@ public class OrganizationAccessCoreAutoConfiguration {
     BrowserSessionCapabilityService browserSessionCapabilityService(
             AuthenticatedSessionGateway tenantSessions,
             PlatformSessionGateway platformSessions,
+            TenantFeatureSettingsStore featureSettings,
             @Value("${foundation.security.session-timeout:PT1H}") String sessionTimeout) {
         return new BrowserSessionCapabilityService(
-                tenantSessions, platformSessions, Duration.parse(sessionTimeout));
+                tenantSessions, platformSessions, Duration.parse(sessionTimeout), featureSettings);
     }
 
     @Bean
@@ -359,6 +373,28 @@ public class OrganizationAccessCoreAutoConfiguration {
     TenantQuotaSettingsService tenantQuotaSettingsService(TenantQuotaSettingsStore store,
             com.aiplatform.foundation.knowledgedata.application.knowledge.facade.KnowledgeQuotaUsage usage) {
         return new TenantQuotaSettingsService(store, usage);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    TenantFeatureSessionRevoker tenantFeatureSessionRevoker(TenantMembershipMapper memberships,
+            AuthenticatedSessionGateway sessions) {
+        return tenantId -> {
+            var ids = memberships.selectObjs(new LambdaQueryWrapper<TenantMembershipEntity>()
+                    .select(TenantMembershipEntity::getMembershipId)
+                    .eq(TenantMembershipEntity::getTenantId, tenantId.value()));
+            for (var id : ids) {
+                sessions.revokeMembershipSessions(new com.aiplatform.foundation.security.identity.MembershipId(
+                        ((Number) id).longValue()));
+            }
+        };
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    TenantFeatureSettingsService tenantFeatureSettingsService(TenantFeatureSettingsStore store,
+            TenantFeatureSessionRevoker sessions) {
+        return new TenantFeatureSettingsService(store, sessions);
     }
 
     @Bean

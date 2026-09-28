@@ -19,6 +19,7 @@ import com.aiplatform.foundation.security.identity.MembershipId;
 import com.aiplatform.foundation.security.identity.PermissionCode;
 import com.aiplatform.foundation.security.identity.SubjectId;
 import com.aiplatform.foundation.security.identity.TrustedRequestContext;
+import com.aiplatform.foundation.security.identity.TenantFeatureAvailability;
 import com.aiplatform.foundation.security.satoken.web.SaTokenTrustedContextArgumentResolver;
 import com.aiplatform.foundation.security.session.AuthenticatedSessionGateway;
 import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
@@ -35,12 +36,13 @@ class AssistantTestRunHttpTest {
     void 草稿测试接口应从Bearer令牌恢复上下文并忽略伪造身份字段() throws Exception {
         var sessions = mock(AuthenticatedSessionGateway.class);
         var tests = mock(AssistantTestRunService.class);
+        var features = mock(TenantFeatureAvailability.class);
         var tokenContext = tokenContext();
         when(sessions.resolve("signed-session-token")).thenReturn(tokenContext);
         when(tests.run(any())).thenReturn(new AssistantTestRunResult(
                 "91", AssistantTestRunStatus.REFUSED, null, List.of()));
         var mvc = MockMvcBuilders.standaloneSetup(new AssistantTestRunController(tests))
-                .setCustomArgumentResolvers(new SaTokenTrustedContextArgumentResolver(sessions, () -> 123L))
+                .setCustomArgumentResolvers(new SaTokenTrustedContextArgumentResolver(sessions, () -> 123L, features))
                 .build();
 
         mvc.perform(post("/api/v1/assistant-versions/11/test-runs")
@@ -55,6 +57,7 @@ class AssistantTestRunHttpTest {
 
         var command = ArgumentCaptor.forClass(RunAssistantDraftTestCommand.class);
         verify(sessions).resolve("signed-session-token");
+        verify(features).requireAvailable(tokenContext.tenantId(), "assistantDelivery");
         verify(tests).run(command.capture());
         org.junit.jupiter.api.Assertions.assertEquals(tokenContext.tenantId(), command.getValue().context().tenantId());
         org.junit.jupiter.api.Assertions.assertEquals(tokenContext.permissions(), command.getValue().context().permissions());

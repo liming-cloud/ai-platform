@@ -6,6 +6,7 @@ import com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelCo
 import com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelConfigurationOwnerId;
 import com.aiplatform.foundation.modelruntime.interfaces.web.configuration.request.ModelConfigurationAccessGrantRequest;
 import com.aiplatform.foundation.modelruntime.interfaces.web.configuration.view.ModelConfigurationAccessGrantView;
+import com.aiplatform.foundation.security.identity.RequiresTenantFeature;
 import com.aiplatform.foundation.security.identity.TrustedRequestContext;
 import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
 import java.util.Objects;
@@ -20,6 +21,7 @@ import org.springframework.web.bind.annotation.RestController;
 /**
  * 模型配置使用权授予与撤销入口。
  */
+@RequiresTenantFeature("modelGovernance")
 @RestController
 @RequestMapping("/api/v1/model-configurations")
 public class ModelConfigurationAccessController {

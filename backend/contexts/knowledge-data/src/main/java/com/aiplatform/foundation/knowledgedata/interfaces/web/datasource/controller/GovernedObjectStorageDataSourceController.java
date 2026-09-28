@@ -9,6 +9,7 @@ import com.aiplatform.foundation.knowledgedata.application.datasource.service.Go
 import com.aiplatform.foundation.knowledgedata.application.datasource.service.ObjectStorageDataSourceProbeService;
 import com.aiplatform.foundation.knowledgedata.application.datasource.service.ObjectStorageSynchronizationService;
 import com.aiplatform.foundation.knowledgedata.application.datasource.service.publication.ObjectStorageSyncArtifactPublicationService;
+import com.aiplatform.foundation.security.identity.RequiresTenantFeature;
 import com.aiplatform.foundation.security.identity.TrustedRequestContext;
 import java.util.Objects;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
@@ -20,6 +21,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /** OBJECT_STORAGE 受治理来源登记入口；只接收平台签发的范围选择。 */
+@RequiresTenantFeature("knowledgeManagement")
 @RestController
 @ConditionalOnBean({
         GovernedObjectStorageDataSourceRegistrationService.class,

@@ -17,6 +17,7 @@ import com.aiplatform.foundation.modelruntime.interfaces.web.provider.request.Pr
 import com.aiplatform.foundation.modelruntime.interfaces.web.provider.request.ProviderConnectionRequest;
 import com.aiplatform.foundation.modelruntime.interfaces.web.provider.request.ProviderConnectionCredentialRotateRequest;
 import com.aiplatform.foundation.modelruntime.interfaces.web.provider.request.ProviderModelDiscoveryRequest;
+import com.aiplatform.foundation.security.identity.RequiresTenantFeature;
 import com.aiplatform.foundation.security.identity.TrustedRequestContext;
 import com.aiplatform.foundation.security.secret.SecretValue;
 import com.aiplatform.foundation.shared.contract.paging.PageQuery;
@@ -38,6 +39,7 @@ import org.springframework.web.bind.annotation.RestController;
 /**
  * 供应商连接创建、列表、探测和受控模型发现入口。
  */
+@RequiresTenantFeature("modelGovernance")
 @RestController
 @RequestMapping("/api/v1/model-providers")
 @ConditionalOnBean({

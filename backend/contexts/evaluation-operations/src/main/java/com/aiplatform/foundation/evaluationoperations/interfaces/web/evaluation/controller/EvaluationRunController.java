@@ -2,6 +2,7 @@ package com.aiplatform.foundation.evaluationoperations.interfaces.web.evaluation
 
 import com.aiplatform.foundation.evaluationoperations.application.evaluation.request.EvaluationRunExecutionRequest;
 import com.aiplatform.foundation.evaluationoperations.application.evaluation.service.EvaluationRunExecutionService;
+import com.aiplatform.foundation.security.identity.RequiresTenantFeature;
 import com.aiplatform.foundation.security.identity.TrustedRequestContext;
 import java.util.Objects;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
@@ -15,6 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 /**
  * 受限评测运行入口；请求不接受任何身份、租户、私有正文或模型路由字段。
  */
+@RequiresTenantFeature("evaluationGovernance")
 @RestController
 @ConditionalOnBean(EvaluationRunExecutionService.class)
 @RequestMapping("/api/v1/evaluation-runs")

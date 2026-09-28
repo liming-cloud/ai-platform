@@ -13,6 +13,17 @@ INSERT INTO organization_access.tenant (
     (100000000000000002, 'demo-campus', '校园演示租户', 'ENABLED', 0)
 ON CONFLICT DO NOTHING;
 
+-- 演示租户在正式迁移后建立，须显式给出八项初值；运行时仍对缺行失败关闭。
+INSERT INTO organization_access.tenant_feature_settings (
+    tenant_id, knowledge_management, model_governance, assistant_delivery,
+    evaluation_governance, assistant_selection, conversation, own_history,
+    authorized_citations, version
+)
+SELECT tenant_id, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, 0
+FROM organization_access.tenant
+WHERE tenant_id IN (100000000000000001, 100000000000000002)
+ON CONFLICT DO NOTHING;
+
 INSERT INTO organization_access.subject_identity (
     subject_id,
     login_name,

@@ -6,6 +6,7 @@ import com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelCo
 import com.aiplatform.foundation.modelruntime.interfaces.web.configuration.request.ModelConfigurationCreateRequest;
 import com.aiplatform.foundation.modelruntime.interfaces.web.configuration.request.ModelConfigurationCredentialRotateRequest;
 import com.aiplatform.foundation.modelruntime.interfaces.web.configuration.view.ModelConfigurationView;
+import com.aiplatform.foundation.security.identity.RequiresTenantFeature;
 import com.aiplatform.foundation.security.identity.TrustedRequestContext;
 import com.aiplatform.foundation.security.secret.SecretValue;
 import java.util.Arrays;
@@ -22,6 +23,7 @@ import org.springframework.web.bind.annotation.RestController;
 /**
  * 创建模型配置的受控入口。API Key 只在方法作用域中保存为可清零秘密。
  */
+@RequiresTenantFeature("modelGovernance")
 @RestController
 @ConditionalOnBean(ModelConfigurationCredentialService.class)
 @RequestMapping("/api/v1/model-configurations")

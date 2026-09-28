@@ -7,6 +7,7 @@ import com.aiplatform.foundation.knowledgedata.application.indexversion.query.Li
 import com.aiplatform.foundation.knowledgedata.application.indexversion.command.PublishIndexVersionCommand;
 import com.aiplatform.foundation.knowledgedata.interfaces.web.indexversion.request.CreateIndexVersionRequest;
 import com.aiplatform.foundation.knowledgedata.interfaces.web.indexversion.request.PublishIndexVersionRequest;
+import com.aiplatform.foundation.security.identity.RequiresTenantFeature;
 import com.aiplatform.foundation.security.identity.TrustedRequestContext;
 import com.aiplatform.foundation.shared.contract.paging.PageQuery;
 import com.aiplatform.foundation.shared.contract.paging.PageResult;
@@ -26,6 +27,7 @@ import org.springframework.web.bind.annotation.RestController;
 /**
  * 知识空间索引版本的异步创建、查看和发布入口。
  */
+@RequiresTenantFeature("knowledgeManagement")
 @RestController
 @ConditionalOnBean(IndexVersionService.class)
 @RequestMapping("/api/v1/knowledge-spaces/{knowledgeSpaceId}/index-versions")

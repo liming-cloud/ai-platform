@@ -1,6 +1,7 @@
 package com.aiplatform.foundation.evaluationoperations.interfaces.web.release.controller;
 
 import com.aiplatform.foundation.evaluationoperations.application.release.service.ReleaseDecisionService;
+import com.aiplatform.foundation.security.identity.RequiresTenantFeature;
 import com.aiplatform.foundation.security.identity.TrustedRequestContext;
 import java.util.Objects;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
@@ -14,6 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 /**
  * 从既有评测运行形成发布决定的无请求体入口；身份与租户仅从可信令牌上下文取得。
  */
+@RequiresTenantFeature("evaluationGovernance")
 @RestController
 @ConditionalOnBean(ReleaseDecisionService.class)
 @RequestMapping("/api/v1/evaluation-runs")

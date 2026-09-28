@@ -4,6 +4,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.aiplatform.foundation.organizationaccess.application.authentication.dto.BrowserSessionCapability.DisplayRole;
 import com.aiplatform.foundation.organizationaccess.application.authentication.dto.BrowserSessionCapability.WorkspaceCategory;
+import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.port.out.TenantFeatureSettingsStore;
+import com.aiplatform.foundation.organizationaccess.domain.tenant.model.TenantFeature;
+import com.aiplatform.foundation.organizationaccess.domain.tenant.model.TenantFeatureSettings;
 import com.aiplatform.foundation.security.identity.AccessChannel;
 import com.aiplatform.foundation.security.identity.CredentialType;
 import com.aiplatform.foundation.security.identity.MembershipId;
@@ -17,6 +20,8 @@ import com.aiplatform.foundation.security.session.IssuedSession;
 import com.aiplatform.foundation.security.session.PlatformSessionGateway;
 import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
 import java.time.Duration;
+import java.util.EnumMap;
+import java.util.Optional;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
 
@@ -24,6 +29,30 @@ import org.junit.jupiter.api.Test;
  * 验证浏览器能力只投影已验证会话中的实际权限，不能由前端或静态菜单补写。
  */
 class BrowserSessionCapabilityServiceTest {
+
+    @Test
+    void 关闭租户功能后新浏览器投影不得保留对应导航能力() {
+        var tenantId = new TenantId(100000000000000001L);
+        var context = new TrustedRequestContext(tenantId, new SubjectId(4921825928971026434L),
+                new MembershipId(3382738893456539650L), CredentialType.PERSON, AccessChannel.CONSOLE,
+                3L, Set.of(new PermissionCode("knowledge:write"), new PermissionCode("model:read")), "trc_feature_nav");
+        var values = new EnumMap<>(TenantFeatureSettings.defaults(tenantId).availableFeatures());
+        values.put(TenantFeature.KNOWLEDGE_MANAGEMENT, false);
+        TenantFeatureSettingsStore store = new TenantFeatureSettingsStore() {
+            @Override public Optional<TenantFeatureSettings> find(long requested) {
+                return Optional.of(new TenantFeatureSettings(tenantId, values, 1));
+            }
+            @Override public boolean replace(TenantFeatureSettings next, long version) {
+                throw new UnsupportedOperationException();
+            }
+        };
+        var service = new BrowserSessionCapabilityService(
+                tenantSessions(context), platformSessions(null), Duration.ofMinutes(30), store);
+
+        var capability = service.inspect("tenant-session", null).capability().orElseThrow();
+
+        assertEquals(Set.of("model:read"), capability.capabilityCodes());
+    }
 
     @Test
     void 有效平台会话只投影平台管理员角色() {
@@ -37,7 +66,7 @@ class BrowserSessionCapabilityServiceTest {
         var service = new BrowserSessionCapabilityService(
                 tenantSessions(null),
                 platformSessions(platformContext),
-                Duration.ofMinutes(30));
+                Duration.ofMinutes(30), featureSettings());
 
         var capability = service.inspect(null, "platform-session").capability().orElseThrow();
 
@@ -62,7 +91,7 @@ class BrowserSessionCapabilityServiceTest {
         var service = new BrowserSessionCapabilityService(
                 tenantSessions(null),
                 platformSessions(platformContext),
-                Duration.ofMinutes(30));
+                Duration.ofMinutes(30), featureSettings());
 
         var capability = service.inspect(null, "platform-session").capability().orElseThrow();
 
@@ -97,7 +126,7 @@ class BrowserSessionCapabilityServiceTest {
         var service = new BrowserSessionCapabilityService(
                 tenantSessions(tenantContext),
                 platformSessions(platformContext),
-                Duration.ofMinutes(30));
+                Duration.ofMinutes(30), featureSettings());
 
         var capability = service.inspect("tenant-session", "platform-session").capability().orElseThrow();
 
@@ -132,6 +161,17 @@ class BrowserSessionCapabilityServiceTest {
 
             @Override
             public void revokeMembershipSessions(MembershipId membershipId) {
+                throw new UnsupportedOperationException();
+            }
+        };
+    }
+
+    private static TenantFeatureSettingsStore featureSettings() {
+        return new TenantFeatureSettingsStore() {
+            @Override public Optional<TenantFeatureSettings> find(long tenantId) {
+                return Optional.of(TenantFeatureSettings.defaults(new TenantId(tenantId)));
+            }
+            @Override public boolean replace(TenantFeatureSettings next, long version) {
                 throw new UnsupportedOperationException();
             }
         };

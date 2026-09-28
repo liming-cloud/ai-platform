@@ -90,3 +90,4 @@
 | ADR-0082 | 已接受。依据用户明确要求执行《后端上下文依赖边界整改计划》；仅决定本次编译边界，不改变产品范围和里程碑结论 | 后端上下文与扩展的编译依赖边界 | `docs/architecture/decisions/ADR-0082-backend-context-dependency-boundary.md` |
 | ADR-0083 | 已接受 | 租户管理员设置页的资格与凭据边界 | `docs/architecture/decisions/ADR-0083-tenant-administrator-settings-scope.md` |
 | ADR-0084 | 已接受。用户于 2026-09-28 选择在本切片聚合现有来源的只读用量，允许下调至不低于核实用量；既有 ADR-0079、ADR-0080 和固定 OpenDesign 原型决定其余产品边界 | 租户资源配额独立编辑与已用量下限 | `docs/architecture/decisions/ADR-0084-tenant-quota-settings-and-observed-usage.md` |
+| ADR-0085 | 已接受。2026-09-28。依据已接受的 ADR-0075、ADR-0079、WP-0017 和 OpenDesign 项目 `249f81f2-6f1a-46ff-988c-da3cdedb35e7` 的固定提交 `21b45c347a4008f5959b1b972e3ffd8a5aadcc6f`；本决策只冻结这些输入在生产中的保存和执行边界 | 租户可用功能的独立配置与即时撤销 | `docs/architecture/decisions/ADR-0085-tenant-feature-availability-and-revocation.md` |

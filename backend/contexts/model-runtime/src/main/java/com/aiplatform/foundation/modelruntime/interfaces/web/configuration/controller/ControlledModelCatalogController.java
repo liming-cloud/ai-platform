@@ -6,6 +6,7 @@ import com.aiplatform.foundation.modelruntime.domain.platformsupply.model.Platfo
 import com.aiplatform.foundation.modelruntime.interfaces.web.configuration.request.ControlledModelCatalogEntryCreateFromDeploymentRequest;
 import com.aiplatform.foundation.modelruntime.interfaces.web.configuration.view.ControlledModelCatalogEntryView;
 import com.aiplatform.foundation.security.identity.PlatformRequestContext;
+import com.aiplatform.foundation.security.identity.RequiresTenantFeature;
 import com.aiplatform.foundation.security.identity.TrustedRequestContext;
 import com.aiplatform.foundation.shared.contract.paging.PageQuery;
 import com.aiplatform.foundation.shared.contract.paging.PageResult;
@@ -52,6 +53,7 @@ public class ControlledModelCatalogController {
     /**
      * 返回配置者可选择的已发布目录，不返回草稿、凭据或配置所有权信息。
      */
+    @RequiresTenantFeature("modelGovernance")
     @GetMapping
     public PageResult<ControlledModelCatalogEntryView> list(
             TrustedRequestContext context,

@@ -12,6 +12,7 @@ import com.aiplatform.foundation.modelruntime.interfaces.web.deployment.request.
 import com.aiplatform.foundation.modelruntime.interfaces.web.deployment.request.ModelDeploymentDisableRequest;
 import com.aiplatform.foundation.modelruntime.interfaces.web.deployment.request.ModelDeploymentPublishRequest;
 import com.aiplatform.foundation.modelruntime.interfaces.web.deployment.request.ModelDeploymentRequest;
+import com.aiplatform.foundation.security.identity.RequiresTenantFeature;
 import com.aiplatform.foundation.security.identity.TrustedRequestContext;
 import com.aiplatform.foundation.shared.contract.paging.PageQuery;
 import com.aiplatform.foundation.shared.contract.paging.PageResult;
@@ -31,6 +32,7 @@ import org.springframework.web.bind.annotation.RestController;
 /**
  * 模型部署创建、列表、探测、发布和停用入口。
  */
+@RequiresTenantFeature("modelGovernance")
 @RestController
 @RequestMapping("/api/v1/model-deployments")
 public class ModelDeploymentController {

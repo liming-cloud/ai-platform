@@ -5,6 +5,7 @@ import com.aiplatform.foundation.knowledgedata.application.knowledge.command.Cre
 import com.aiplatform.foundation.knowledgedata.application.knowledge.dto.KnowledgeSpaceView;
 import com.aiplatform.foundation.knowledgedata.application.knowledge.query.ListKnowledgeSpacesQuery;
 import com.aiplatform.foundation.knowledgedata.interfaces.web.knowledge.request.KnowledgeSpaceRequest;
+import com.aiplatform.foundation.security.identity.RequiresTenantFeature;
 import com.aiplatform.foundation.security.identity.TrustedRequestContext;
 import com.aiplatform.foundation.shared.contract.paging.PageQuery;
 import com.aiplatform.foundation.shared.contract.paging.PageResult;
@@ -22,6 +23,7 @@ import org.springframework.web.bind.annotation.RestController;
 /**
  * 知识空间创建和列表入口。
  */
+@RequiresTenantFeature("knowledgeManagement")
 @RestController
 @RequestMapping("/api/v1/knowledge-spaces")
 public class KnowledgeSpaceController {

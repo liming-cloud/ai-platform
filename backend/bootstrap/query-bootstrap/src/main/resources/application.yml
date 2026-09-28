@@ -23,6 +23,10 @@ sa-token:
   auto-renew: true
 
 foundation:
+  organization-access:
+    # 查询进程只读取租户功能上限；账户与平台管理入口保持关闭。
+    feature-read:
+      enabled: true
   application-role-validation:
     enabled: true
   knowledge-data:

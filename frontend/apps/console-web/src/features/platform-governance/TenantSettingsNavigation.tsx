@@ -3,7 +3,7 @@ import type { ConsoleRoute } from "../../session/console-route";
 /** 仅开放已交付的租户设置入口；其余标题不伪装成可操作链接。 */
 export function TenantSettingsNavigation({ tenantId, active, onRouteChange }: {
   tenantId: string;
-  active: "detail" | "admins" | "quotas";
+  active: "detail" | "admins" | "quotas" | "features";
   onRouteChange: (route: ConsoleRoute) => void;
 }) {
   return <nav className="tenant-overview__settings" aria-label="租户设置">
@@ -17,6 +17,9 @@ export function TenantSettingsNavigation({ tenantId, active, onRouteChange }: {
     <a href={`/platform/tenants/${encodeURIComponent(tenantId)}/quotas`}
       aria-current={active === "quotas" ? "page" : undefined}
       onClick={event => { event.preventDefault(); onRouteChange({ navigationId: "platform", task: "quotas", tenantId }); }}>资源配额</a>
-    <span aria-disabled="true">可用功能</span><span aria-disabled="true">登录安全</span>
+    <a href={`/platform/tenants/${encodeURIComponent(tenantId)}/features`}
+      aria-current={active === "features" ? "page" : undefined}
+      onClick={event => { event.preventDefault(); onRouteChange({ navigationId: "platform", task: "features", tenantId }); }}>可用功能</a>
+    <span aria-disabled="true">登录安全</span>
   </nav>;
 }

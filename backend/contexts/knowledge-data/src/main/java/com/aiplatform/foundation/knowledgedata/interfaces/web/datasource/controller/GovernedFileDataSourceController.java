@@ -16,6 +16,7 @@ import com.aiplatform.foundation.knowledgedata.application.datasource.service.Go
 import com.aiplatform.foundation.knowledgedata.application.datasource.service.GovernedFileDataSourceRegistrationService;
 import com.aiplatform.foundation.knowledgedata.application.datasource.service.GovernedFileDataSourceQueryService;
 import com.aiplatform.foundation.knowledgedata.application.datasource.exception.TextContentProcessingException;
+import com.aiplatform.foundation.security.identity.RequiresTenantFeature;
 import com.aiplatform.foundation.security.identity.TrustedRequestContext;
 import com.aiplatform.foundation.shared.contract.paging.PageQuery;
 import com.aiplatform.foundation.shared.contract.paging.PageResult;
@@ -37,6 +38,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /** FILE 受治理来源登记入口；对象位置只由平台生成。 */
+@RequiresTenantFeature("knowledgeManagement")
 @RestController
 @ConditionalOnBean({
     GovernedFileDataSourceRegistrationService.class,

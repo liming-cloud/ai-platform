@@ -12,11 +12,14 @@ import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.t
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.entity.TenantLifecycleOutboxEntity;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.entity.TenantAdministratorRoleEntity;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.entity.TenantQuotaEntity;
+import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.entity.TenantFeatureSettingsEntity;
+import com.aiplatform.foundation.organizationaccess.domain.tenant.model.TenantFeatureSettings;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.mapper.TenantAnchorMapper;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.mapper.TenantProvisioningMapper;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.mapper.TenantLifecycleOutboxMapper;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.mapper.TenantAdministratorRoleMapper;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.mapper.TenantQuotaMapper;
+import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.mapper.TenantFeatureSettingsMapper;
 import com.aiplatform.foundation.shared.kernel.error.ApplicationException;
 import com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator;
 import org.springframework.dao.DuplicateKeyException;
@@ -31,13 +34,14 @@ public final class PostgresTenantProvisioningStore implements TenantProvisioning
     private final TenantMembershipMapper memberships;
     private final TenantAdministratorRoleMapper roles;
     private final TenantQuotaMapper quotas;
+    private final TenantFeatureSettingsMapper features;
     private final TenantLifecycleOutboxMapper outbox;
     private final EntityIdGenerator identifiers;
 
     /** 构造单表映射依赖；不允许可空或旧新并行存储路径。 */
     public PostgresTenantProvisioningStore(SubjectIdentityMapper identities, TenantAnchorMapper anchors,
             TenantProvisioningMapper lifecycles, TenantMembershipMapper memberships,
-            TenantAdministratorRoleMapper roles, TenantQuotaMapper quotas,
+            TenantAdministratorRoleMapper roles, TenantQuotaMapper quotas, TenantFeatureSettingsMapper features,
             TenantLifecycleOutboxMapper outbox, EntityIdGenerator identifiers) {
         this.identities = Objects.requireNonNull(identities);
         this.anchors = Objects.requireNonNull(anchors);
@@ -45,6 +49,7 @@ public final class PostgresTenantProvisioningStore implements TenantProvisioning
         this.memberships = Objects.requireNonNull(memberships);
         this.roles = Objects.requireNonNull(roles);
         this.quotas = Objects.requireNonNull(quotas);
+        this.features = Objects.requireNonNull(features);
         this.outbox = Objects.requireNonNull(outbox);
         this.identifiers = Objects.requireNonNull(identifiers);
     }
@@ -98,6 +103,8 @@ public final class PostgresTenantProvisioningStore implements TenantProvisioning
         requireWrite(roles.insert(new TenantAdministratorRoleEntity(role.tenantId().value(),
                 role.membershipId().value(), role.role().name(), role.boundAt())));
         requireWrite(quotas.insert(TenantQuotaEntity.from(result.quotas())));
+        requireWrite(features.insert(TenantFeatureSettingsEntity.from(
+                TenantFeatureSettings.defaults(lifecycle.id()))));
         var change = result.lifecycleChange();
         requireWrite(outbox.insert(new TenantLifecycleOutboxEntity(identifiers.nextId(), change.tenantId().value(),
                 "TENANT_LIFECYCLE_CHANGED", change.status().name(), change.version(), change.occurredAt())));

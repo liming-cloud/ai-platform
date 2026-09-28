@@ -4,6 +4,7 @@ import com.aiplatform.foundation.assistantdelivery.application.assistant.testrun
 import com.aiplatform.foundation.assistantdelivery.application.assistant.testrun.dto.AssistantTestRunResult;
 import com.aiplatform.foundation.assistantdelivery.application.assistant.testrun.service.AssistantTestRunService;
 import com.aiplatform.foundation.assistantdelivery.interfaces.web.assistant.request.AssistantDraftTestRequest;
+import com.aiplatform.foundation.security.identity.RequiresTenantFeature;
 import com.aiplatform.foundation.security.identity.TrustedRequestContext;
 import java.util.Objects;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
@@ -18,6 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 /**
  * 助手负责人发起草稿可信测试的受控入口。
  */
+@RequiresTenantFeature("assistantDelivery")
 @RestController
 @RequestMapping("/api/v1/assistant-versions")
 @ConditionalOnBean(AssistantTestRunService.class)

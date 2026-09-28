@@ -4,6 +4,9 @@ import com.aiplatform.foundation.organizationaccess.application.authentication.d
 import com.aiplatform.foundation.organizationaccess.application.authentication.dto.BrowserSessionCapability.DisplayRole;
 import com.aiplatform.foundation.organizationaccess.application.authentication.dto.BrowserSessionCapability.WorkspaceCategory;
 import com.aiplatform.foundation.organizationaccess.application.authentication.dto.BrowserSessionCapabilityResult;
+import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.port.out.TenantFeatureSettingsStore;
+import com.aiplatform.foundation.organizationaccess.domain.tenant.model.TenantFeature;
+import com.aiplatform.foundation.organizationaccess.domain.tenant.model.TenantFeatureSettings;
 import com.aiplatform.foundation.security.identity.PlatformPermissions;
 import com.aiplatform.foundation.security.identity.PlatformRequestContext;
 import com.aiplatform.foundation.security.session.AuthenticatedSessionGateway;
@@ -23,14 +26,17 @@ public final class BrowserSessionCapabilityService {
     private final AuthenticatedSessionGateway tenantSessions;
     private final PlatformSessionGateway platformSessions;
     private final Duration maximumSessionAge;
+    private final TenantFeatureSettingsStore featureSettings;
 
     public BrowserSessionCapabilityService(
             AuthenticatedSessionGateway tenantSessions,
             PlatformSessionGateway platformSessions,
-            Duration maximumSessionAge) {
+            Duration maximumSessionAge,
+            TenantFeatureSettingsStore featureSettings) {
         this.tenantSessions = java.util.Objects.requireNonNull(tenantSessions, "租户会话网关不能为空");
         this.platformSessions = java.util.Objects.requireNonNull(platformSessions, "平台会话网关不能为空");
         this.maximumSessionAge = requireMaximumSessionAge(maximumSessionAge);
+        this.featureSettings = java.util.Objects.requireNonNull(featureSettings, "租户功能配置存储不能为空");
     }
 
     /**
@@ -57,15 +63,30 @@ public final class BrowserSessionCapabilityService {
             workspaces.add(WorkspaceCategory.PLATFORM_TENANT_GOVERNANCE);
             roles.addAll(platform.displayRoles());
         }
+        var tenantFeatures = tenant.isValid()
+                ? featureSettings.find(tenant.context.tenantId().value())
+                        .orElseThrow(() -> new IllegalStateException("租户功能配置缺失"))
+                : null;
         return new BrowserSessionCapabilityResult(
                 Optional.of(new BrowserSessionCapability(
                         workspaces,
                         roles,
-                        Stream.concat(tenant.permissionCodes(), platform.permissionCodes())
+                        Stream.concat(tenant.permissionCodes().filter(code -> allowsNavigation(tenantFeatures, code)), platform.permissionCodes())
                                 .collect(Collectors.toUnmodifiableSet()),
                         maximumSessionAge.toSeconds())),
                 tenant.isInvalid(),
                 platform.isInvalid());
+    }
+
+    private static boolean allowsNavigation(TenantFeatureSettings settings, String code) {
+        return switch (code) {
+            case "knowledge:read", "knowledge:write" -> settings.allows(TenantFeature.KNOWLEDGE_MANAGEMENT);
+            case "model:read", "model:write" -> settings.allows(TenantFeature.MODEL_GOVERNANCE);
+            case "assistant:read", "assistant:write" -> settings.allows(TenantFeature.ASSISTANT_DELIVERY);
+            case "assistant:query" -> settings.allows(TenantFeature.ASSISTANT_SELECTION)
+                    && settings.allows(TenantFeature.CONVERSATION);
+            default -> true;
+        };
     }
 
     private ResolvedSession resolveTenant(String tokenValue) {

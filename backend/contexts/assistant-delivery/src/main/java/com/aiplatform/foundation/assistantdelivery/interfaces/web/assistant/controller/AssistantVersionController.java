@@ -4,6 +4,7 @@ import com.aiplatform.foundation.assistantdelivery.application.assistant.dto.Ass
 import com.aiplatform.foundation.assistantdelivery.application.assistant.command.PublishAssistantVersionCommand;
 import com.aiplatform.foundation.assistantdelivery.application.assistant.service.AssistantService;
 import com.aiplatform.foundation.assistantdelivery.interfaces.web.assistant.request.AssistantVersionPublishRequest;
+import com.aiplatform.foundation.security.identity.RequiresTenantFeature;
 import com.aiplatform.foundation.security.identity.TrustedRequestContext;
 import java.util.Objects;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
@@ -18,6 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 /**
  * 助手不可变版本的独立发布入口。
  */
+@RequiresTenantFeature("assistantDelivery")
 @RestController
 @RequestMapping("/api/v1/assistant-versions")
 @ConditionalOnBean(AssistantService.class)

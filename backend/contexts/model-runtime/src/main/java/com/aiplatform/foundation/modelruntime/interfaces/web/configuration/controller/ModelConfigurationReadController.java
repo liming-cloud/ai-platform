@@ -3,6 +3,7 @@ package com.aiplatform.foundation.modelruntime.interfaces.web.configuration.cont
 import com.aiplatform.foundation.modelruntime.application.configuration.service.ModelConfigurationReadService;
 import com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelConfigurationId;
 import com.aiplatform.foundation.modelruntime.interfaces.web.configuration.view.ModelConfigurationView;
+import com.aiplatform.foundation.security.identity.RequiresTenantFeature;
 import com.aiplatform.foundation.security.identity.TrustedRequestContext;
 import com.aiplatform.foundation.modelruntime.application.configuration.dto.ModelConfigurationListItem;
 import com.aiplatform.foundation.shared.contract.paging.PageQuery;
@@ -18,6 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 /**
  * 读取模型配置的受控入口，响应中绝不包含 API Key 或加密材料。
  */
+@RequiresTenantFeature("modelGovernance")
 @RestController
 @ConditionalOnBean(ModelConfigurationReadService.class)
 @RequestMapping("/api/v1/model-configurations")

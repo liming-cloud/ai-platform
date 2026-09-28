@@ -2,6 +2,7 @@ package com.aiplatform.foundation.knowledgedata.interfaces.web.datasource.contro
 
 import com.aiplatform.foundation.knowledgedata.application.datasource.dto.PlatformObjectRangeCandidate;
 import com.aiplatform.foundation.knowledgedata.application.datasource.service.candidate.PlatformObjectRangeCandidateService;
+import com.aiplatform.foundation.security.identity.RequiresTenantFeature;
 import com.aiplatform.foundation.security.identity.TrustedRequestContext;
 import com.aiplatform.foundation.shared.contract.paging.PageQuery;
 import com.aiplatform.foundation.shared.contract.paging.PageResult;
@@ -14,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /** 当前知识空间可用对象范围的名称化服务端分页入口。 */
+@RequiresTenantFeature("knowledgeManagement")
 @RestController
 @ConditionalOnBean(PlatformObjectRangeCandidateService.class)
 @RequestMapping("/api/v1/knowledge-spaces/{knowledgeSpaceId}/object-storage-ranges")

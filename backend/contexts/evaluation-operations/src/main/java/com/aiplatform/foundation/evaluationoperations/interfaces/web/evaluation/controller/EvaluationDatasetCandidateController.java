@@ -2,6 +2,7 @@ package com.aiplatform.foundation.evaluationoperations.interfaces.web.evaluation
 
 import com.aiplatform.foundation.evaluationoperations.application.evaluation.dto.EvaluationDatasetCandidate;
 import com.aiplatform.foundation.evaluationoperations.application.evaluation.service.EvaluationDatasetCandidateService;
+import com.aiplatform.foundation.security.identity.RequiresTenantFeature;
 import com.aiplatform.foundation.security.identity.TrustedRequestContext;
 import com.aiplatform.foundation.shared.contract.paging.PageQuery;
 import com.aiplatform.foundation.shared.contract.paging.PageResult;
@@ -13,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /** 评测发起页读取当前租户已发布数据集安全摘要的入口。 */
+@RequiresTenantFeature("evaluationGovernance")
 @RestController
 @ConditionalOnBean(EvaluationDatasetCandidateService.class)
 @RequestMapping("/api/v1/evaluation-datasets/candidates")

@@ -10,6 +10,7 @@ import com.aiplatform.foundation.knowledgedata.application.datasource.exception.
 import com.aiplatform.foundation.knowledgedata.domain.datasource.model.TextContentReference;
 import com.aiplatform.foundation.knowledgedata.interfaces.web.datasource.request.PublishTextDataSourceRequest;
 import com.aiplatform.foundation.knowledgedata.interfaces.web.datasource.request.TextDataSourceRequest;
+import com.aiplatform.foundation.security.identity.RequiresTenantFeature;
 import com.aiplatform.foundation.security.identity.TrustedRequestContext;
 import com.aiplatform.foundation.shared.contract.paging.PageQuery;
 import com.aiplatform.foundation.shared.contract.paging.PageResult;
@@ -33,6 +34,7 @@ import org.springframework.web.bind.annotation.RestController;
 /**
  * 文本数据源登记、列表和发布入口。
  */
+@RequiresTenantFeature("knowledgeManagement")
 @RestController
 @RequestMapping("/api/v1/data-sources")
 public class TextDataSourceController {

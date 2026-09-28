@@ -6,11 +6,13 @@ import com.aiplatform.foundation.security.satoken.web.SaTokenTrustedContextArgum
 import com.aiplatform.foundation.security.satoken.web.BrowserSessionCsrfFilter;
 import com.aiplatform.foundation.security.session.AuthenticatedSessionGateway;
 import com.aiplatform.foundation.security.session.PlatformSessionGateway;
+import com.aiplatform.foundation.security.identity.TenantFeatureAvailability;
 import java.util.List;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.context.annotation.Bean;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.core.Ordered;
 import org.springframework.web.method.support.HandlerMethodArgumentResolver;
@@ -35,8 +37,9 @@ public class SaTokenWebAutoConfiguration {
     @ConditionalOnBean(AuthenticatedSessionGateway.class)
     SaTokenTrustedContextArgumentResolver saTokenTrustedContextArgumentResolver(
             AuthenticatedSessionGateway sessions,
-            EntityIdGenerator identifiers) {
-        return new SaTokenTrustedContextArgumentResolver(sessions, identifiers);
+            EntityIdGenerator identifiers,
+            ObjectProvider<TenantFeatureAvailability> features) {
+        return new SaTokenTrustedContextArgumentResolver(sessions, identifiers, features.getIfAvailable());
     }
 
     @Bean

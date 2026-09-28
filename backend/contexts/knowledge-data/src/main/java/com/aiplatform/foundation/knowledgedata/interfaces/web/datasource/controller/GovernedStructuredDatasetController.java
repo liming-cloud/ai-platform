@@ -13,6 +13,7 @@ import com.aiplatform.foundation.knowledgedata.domain.datasource.revision.Struct
 import com.aiplatform.foundation.knowledgedata.domain.datasource.revision.StructuredDatasetSensitivityLevel;
 import com.aiplatform.foundation.knowledgedata.interfaces.web.datasource.request.StructuredDatasetRegistrationRequest;
 import com.aiplatform.foundation.knowledgedata.interfaces.web.datasource.request.StructuredDatasetFieldRequest;
+import com.aiplatform.foundation.security.identity.RequiresTenantFeature;
 import com.aiplatform.foundation.security.identity.TrustedRequestContext;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -31,6 +32,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 /** STRUCTURED_DATASET 私有 CSV 登记入口；不接收对象位置或外部连接参数。 */
+@RequiresTenantFeature("knowledgeManagement")
 @RestController
 @ConditionalOnBean({
     GovernedStructuredDatasetRegistrationService.class,

@@ -2,6 +2,7 @@ package com.aiplatform.foundation.modelruntime.interfaces.web.provider.controlle
 
 import com.aiplatform.foundation.modelruntime.application.provider.dto.ProviderModelCandidateView;
 import com.aiplatform.foundation.modelruntime.application.provider.service.ProviderModelDiscoveryCandidateReadService;
+import com.aiplatform.foundation.security.identity.RequiresTenantFeature;
 import com.aiplatform.foundation.security.identity.TrustedRequestContext;
 import com.aiplatform.foundation.shared.contract.paging.PageQuery;
 import com.aiplatform.foundation.shared.contract.paging.PageResult;
@@ -14,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /** 当前连接修订候选模型的按需读取入口。 */
+@RequiresTenantFeature("modelGovernance")
 @RestController
 @RequestMapping("/api/v1/model-providers")
 @ConditionalOnBean(ProviderModelDiscoveryCandidateReadService.class)

@@ -8,6 +8,7 @@ import com.aiplatform.foundation.assistantdelivery.application.assistant.query.L
 import com.aiplatform.foundation.assistantdelivery.application.assistant.service.AssistantService;
 import com.aiplatform.foundation.assistantdelivery.interfaces.web.assistant.request.AssistantRequest;
 import com.aiplatform.foundation.assistantdelivery.interfaces.web.assistant.request.AssistantVersionRequest;
+import com.aiplatform.foundation.security.identity.RequiresTenantFeature;
 import com.aiplatform.foundation.security.identity.TrustedRequestContext;
 import com.aiplatform.foundation.shared.contract.paging.PageQuery;
 import com.aiplatform.foundation.shared.contract.paging.PageResult;
@@ -27,6 +28,7 @@ import org.springframework.web.bind.annotation.RestController;
 /**
  * 助手创建、版本冻结与发布入口。
  */
+@RequiresTenantFeature("assistantDelivery")
 @RestController
 @RequestMapping("/api/v1/assistants")
 @ConditionalOnBean(AssistantService.class)

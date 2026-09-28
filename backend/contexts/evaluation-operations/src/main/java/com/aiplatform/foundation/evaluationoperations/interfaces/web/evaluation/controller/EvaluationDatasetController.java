@@ -2,6 +2,7 @@ package com.aiplatform.foundation.evaluationoperations.interfaces.web.evaluation
 
 import com.aiplatform.foundation.evaluationoperations.application.evaluation.request.EvaluationDatasetRegistrationRequest;
 import com.aiplatform.foundation.evaluationoperations.application.evaluation.service.EvaluationDatasetRegistrationService;
+import com.aiplatform.foundation.security.identity.RequiresTenantFeature;
 import com.aiplatform.foundation.security.identity.TrustedRequestContext;
 import java.io.IOException;
 import java.util.Objects;
@@ -17,6 +18,7 @@ import org.springframework.web.multipart.MultipartFile;
 /**
  * 私有合成评测数据集登记入口；身份、租户和权限一律由 `TrustedRequestContext` 从会话恢复。
  */
+@RequiresTenantFeature("evaluationGovernance")
 @RestController
 @ConditionalOnBean(EvaluationDatasetRegistrationService.class)
 @RequestMapping("/api/v1/evaluation-datasets")
