@@ -112,7 +112,7 @@ export function TenantQuotaSettings({ client, tenantId, onRouteChange }: {
         <div className="tenant-quota-page__heading"><div><span>平台配置</span><h2 id="tenant-quota-heading">资源配额</h2></div>
           <Button appearance="secondary" onClick={event => { trigger.current = event.currentTarget; setForm(quotaFormFrom(loaded.quotas)); setNotice(""); }}>编辑配额</Button></div>
         <dl className="tenant-quota-page__summary">{fields.map(({ key, label, unit }) => <div key={key}>
-          <dt>{label}</dt><dd><span><strong>{display[key]}</strong> {unit}</span>
+          <dt>{label}</dt><dd><strong>{display[key]}</strong><span>{unit}</span>
             {used[key] !== undefined ? <small>已用 {used[key]} {unit}</small> : null}</dd>
         </div>)}</dl>
       </section> : null}
@@ -126,7 +126,7 @@ export function TenantQuotaSettings({ client, tenantId, onRouteChange }: {
             <p>保存值必须大于 0，且不能低于当前已用量。</p>
             {!currentUsage?.complete ? <p role="status">当前用量尚未完整核实，不能下调知识库数量、每库文档数量或每库内容容量。</p> : null}
             <div className="tenant-quota-page__grid">{fields.map(({ key, label, unit, integer }) => <Field key={key}
-              label={`${label} ${unit}`}
+              label={<span className="tenant-quota-page__field-label"><span>{label}</span><small>{unit}</small></span>}
               hint={key === "fileMb" || key === "textMib" ? "降低后只影响后续新增内容。"
                 : `当前已用 ${used[key] ?? "0"} ${unit}，保存值不能低于已用量。`}>
               <Input type="number" inputMode="decimal" min={integer ? "1" : "0.01"} step={integer ? "1" : "0.01"}

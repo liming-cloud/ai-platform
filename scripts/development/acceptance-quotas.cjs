@@ -179,6 +179,25 @@ async function run(configuration) {
         await platform.keyboard.press("Enter");
         const dialog = platform.getByRole("dialog");
         await dialog.getByRole("spinbutton", { name: "知识库数量 个" }).waitFor();
+        const parity = await dialog.evaluate(surface => {
+          const grid = surface.querySelector(".tenant-quota-page__grid");
+          const form = surface.querySelector("form");
+          const actions = surface.querySelector(".fui-DialogActions");
+          const section = document.querySelector(".tenant-quota-page__section");
+          const number = document.querySelector(".tenant-quota-page__summary dd strong");
+          const unit = number?.nextElementSibling;
+          return {
+            columns: getComputedStyle(grid).gridTemplateColumns.split(" ").length,
+            formWide: form.getBoundingClientRect().width >= surface.getBoundingClientRect().width - 60,
+            unitBelowNumber: Boolean(number && unit && unit.getBoundingClientRect().top > number.getBoundingClientRect().top + 8),
+            sectionUnboxed: getComputedStyle(section).borderLeftWidth === "0px"
+              && getComputedStyle(section).borderRadius === "0px",
+            mobileActionsSticky: innerWidth > 680 || getComputedStyle(actions).position === "sticky",
+          };
+        });
+        requireCondition(parity.columns === (width <= 680 ? 1 : 2) && parity.formWide
+          && parity.unitBelowNumber && parity.sectionUnboxed && parity.mobileActionsSticky,
+        `${width} 配额原型结构或弹窗列宽不一致`);
         await withTextScale(platform, true, async () => {
           const bounds = await dialog.evaluate(surface => {
             const frame = surface.getBoundingClientRect();
