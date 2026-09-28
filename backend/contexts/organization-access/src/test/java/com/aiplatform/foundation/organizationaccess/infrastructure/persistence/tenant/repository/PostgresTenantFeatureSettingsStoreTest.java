@@ -7,13 +7,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import com.aiplatform.foundation.organizationaccess.domain.tenant.model.TenantFeature;
 import com.aiplatform.foundation.organizationaccess.domain.tenant.model.TenantFeatureSettings;
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.service.TenantFeatureSettingsService;
-import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.service.TenantFeatureAvailabilityService;
+import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.port.out.TenantFeatureSettingsStore;
+import com.aiplatform.foundation.security.identity.TenantFeatureAvailability;
 import com.aiplatform.foundation.security.identity.AccessChannel;
 import com.aiplatform.foundation.security.identity.CredentialType;
 import com.aiplatform.foundation.security.identity.PlatformPermissions;
 import com.aiplatform.foundation.security.identity.PlatformRequestContext;
 import com.aiplatform.foundation.security.identity.SubjectId;
-import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.mapper.TenantFeatureSettingsMapper;
 import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
 import java.util.EnumMap;
 import java.util.UUID;
@@ -21,7 +21,6 @@ import java.util.Set;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringBootConfiguration;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
@@ -36,7 +35,8 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /** 用真实 PostgreSQL 检查租户功能版本条件和跨租户隔离。 */
 @SpringBootTest(classes = PostgresTenantFeatureSettingsStoreTest.TestApplication.class,
-        properties = "foundation.organization-access.enabled=false")
+        properties = {"foundation.organization-access.enabled=false",
+                "foundation.organization-access.feature-read.enabled=true"})
 @Testcontainers
 class PostgresTenantFeatureSettingsStoreTest {
     @Container
@@ -44,7 +44,8 @@ class PostgresTenantFeatureSettingsStoreTest {
             .withDatabaseName("foundation_test").withUsername("foundation")
             .withPassword(UUID.randomUUID().toString());
 
-    @Autowired private PostgresTenantFeatureSettingsStore store;
+    @Autowired private TenantFeatureSettingsStore store;
+    @Autowired private TenantFeatureAvailability reader;
     @Autowired private JdbcTemplate jdbc;
     @Autowired private TenantFeatureSettingsService service;
 
@@ -105,7 +106,6 @@ class PostgresTenantFeatureSettingsStoreTest {
 
     @Test
     void 查询进程只读检查器以同一数据库事实拒绝关闭功能() {
-        var reader = new TenantFeatureAvailabilityService(store);
         reader.requireAvailable(new TenantId(201L), "knowledgeManagement");
         var current = store.find(201L).orElseThrow();
         var values = new EnumMap<>(current.availableFeatures());
@@ -121,15 +121,9 @@ class PostgresTenantFeatureSettingsStoreTest {
 
     @SpringBootConfiguration
     @EnableAutoConfiguration
-    @MapperScan(basePackageClasses = TenantFeatureSettingsMapper.class)
     static class TestApplication {
         @Bean
-        PostgresTenantFeatureSettingsStore tenantFeatureSettingsStore(TenantFeatureSettingsMapper mapper) {
-            return new PostgresTenantFeatureSettingsStore(mapper);
-        }
-
-        @Bean
-        TenantFeatureSettingsService tenantFeatureSettingsService(PostgresTenantFeatureSettingsStore store) {
+        TenantFeatureSettingsService tenantFeatureSettingsService(TenantFeatureSettingsStore store) {
             return new TenantFeatureSettingsService(store, tenantId -> { throw new IllegalStateException("撤销失败"); });
         }
     }
