@@ -1,11 +1,12 @@
 /* 固定原型的两列功能网格与独立保存节奏；窄屏改为单列。 */
-.tenant-feature-page { gap: 0; }
-.tenant-feature-page__editor { margin-top: 20px; border-top: 1px solid var(--foundation-border); }
+.tenant-feature-page { gap: 0; max-width: none; }
+.tenant-feature-page__editor { display: grid; gap: 16px; margin-top: 20px; border-top: 1px solid var(--foundation-border); }
 .tenant-feature-page__heading { display: flex; align-items: start; justify-content: space-between; flex-wrap: wrap; gap: 16px; padding: 16px 20px; }
 .tenant-feature-page__heading > div { display: grid; }
 .tenant-feature-page__heading > div > span { color: var(--foundation-secondary-text); font-size: 14px; font-weight: 650; }
 .tenant-feature-page__heading h2 { margin: 4px 0 0; font-family: var(--foundation-font-display); font-size: 25px; font-weight: 500; }
-.tenant-feature-page__status { color: var(--foundation-accent); border: 1px solid var(--foundation-border); background: var(--foundation-accent-subtle); border-radius: var(--foundation-control-radius); padding: 2px 8px; font-size: 14px; }
+.tenant-feature-page__status { display: inline-flex; align-items: center; gap: .35rem; color: var(--foundation-secondary-text); border: 1px solid var(--foundation-border); background: var(--foundation-canvas); border-radius: 9999px; padding: 2px 8px; font-size: 14px; font-weight: 650; white-space: nowrap; }
+.tenant-feature-page__status::before { content: ""; width: .4rem; height: .4rem; border-radius: 50%; background: currentColor; }
 .tenant-feature-page__grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); border-block: 1px solid var(--foundation-border); }
 .tenant-feature-page__control { display: flex; align-items: start; gap: 12px; min-width: 0; min-height: 72px; padding: 12px 20px; border-bottom: 1px solid var(--foundation-border); cursor: pointer; }
 .tenant-feature-page__control:nth-child(odd) { border-right: 1px solid var(--foundation-border); }

@@ -220,9 +220,14 @@ async function run(configuration) {
           columns: getComputedStyle(document.querySelector(".tenant-feature-page__grid")).gridTemplateColumns.split(" ").length,
           overflow: document.documentElement.scrollWidth > innerWidth + 1,
           order: [...document.querySelectorAll(".tenant-feature-page__control strong")].map(item => item.textContent),
+          headings: [...document.querySelectorAll("h1")].map(item => item.textContent.trim()),
+          editorRight: document.querySelector(".tenant-feature-page__editor").getBoundingClientRect().right,
         }));
         requireCondition(layout.columns === (width <= 680 ? 1 : 2) && !layout.overflow
-          && labels.every((label, index) => layout.order[index] === label), `${width} 功能网格不符合原型`);
+          && labels.every((label, index) => layout.order[index] === label)
+          && layout.headings.length === 1 && layout.headings[0] === "可用功能"
+          && Math.abs(width - layout.editorRight - (width <= 680 ? 16 : 32)) <= 1,
+        `${width} 功能页布局不符合原型`);
         await withTextScale(platform, true, async () => {
           const fits = await platform.evaluate(() => {
             const grid = document.querySelector(".tenant-feature-page__grid");
