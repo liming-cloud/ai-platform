@@ -1,7 +1,7 @@
 import { PageHeading } from "@foundation/design-system";
 import {
   Button, Dialog, DialogActions, DialogBody, DialogContent, DialogSurface, DialogTitle,
-  Field, Input, MessageBar, MessageBarBody, MessageBarTitle,
+  Input, MessageBar, MessageBarBody, MessageBarTitle,
 } from "@fluentui/react-components";
 import { useEffect, useRef, useState } from "react";
 import {
@@ -120,25 +120,28 @@ export function TenantQuotaSettings({ client, tenantId, onRouteChange }: {
     <Dialog open={form !== undefined} onOpenChange={(_, value) => { if (!value.open) close(); }}>
       <DialogSurface className="foundation-task-dialog tenant-quota-page__dialog">
         <form onSubmit={event => { event.preventDefault(); void save(); }}>
-        <DialogBody>
-          <DialogTitle><span className="tenant-quota-page__kicker">资源配额</span>
-            <span>编辑 {loaded?.tenant.displayName} 的配额</span></DialogTitle>
-          <DialogContent>
-            <p>保存值必须大于 0，且不能低于当前已用量。</p>
-            {!currentUsage?.complete ? <p role="status">当前用量尚未完整核实，不能下调知识库数量、每库文档数量或每库内容容量。</p> : null}
-            <div className="tenant-quota-page__grid">{fields.map(({ key, label, unit, integer }) => <Field key={key}
-              label={<span className="tenant-quota-page__field-label"><span>{label}</span><small>{unit}</small></span>}
-              hint={key === "fileMb" || key === "textMib" ? "降低后只影响后续新增内容。"
-                : `当前已用 ${used[key] ?? "0"} ${unit}，保存值不能低于已用量。`}>
-              <Input type="number" inputMode="decimal" min={integer ? "1" : "0.01"} step={integer ? "1" : "0.01"}
-                aria-label={`${label} ${unit}`} value={form?.[key] ?? ""}
-                onChange={(_, value) => setForm(previous => previous ? { ...previous, [key]: value.value } : previous)} />
-            </Field>)}</div>
-            {validation ? <p className="tenant-quota-page__validation" role="alert">{validation}</p> : null}
-          </DialogContent>
-          <DialogActions><Button type="button" appearance="secondary" disabled={saving} onClick={close}>取消</Button>
-            <Button type="submit" appearance="primary" disabled={saving}>{saving ? "正在保存" : "保存配额"}</Button></DialogActions>
-        </DialogBody>
+          <DialogBody>
+            <DialogTitle><span className="tenant-quota-page__kicker">资源配额</span>
+              <span>编辑 {loaded?.tenant.displayName} 的配额</span></DialogTitle>
+            <DialogContent>
+              <p>保存值必须大于 0，且不能低于当前已用量。</p>
+              {!currentUsage?.complete ? <p role="status">当前用量尚未完整核实，不能下调知识库数量、每库文档数量或每库内容容量。</p> : null}
+              <div className="tenant-quota-page__grid">{fields.map(({ key, label, unit, integer }) => <label key={key}
+                className="tenant-quota-page__field" htmlFor={`quota-${key}`}>
+                <span className="tenant-quota-page__field-label"><span>{label}</span><small>{unit}</small></span>
+                <Input type="number" inputMode="decimal" min={integer ? "1" : "0.01"} step={integer ? "1" : "0.01"}
+                  id={`quota-${key}`} aria-label={`${label} ${unit}`} aria-describedby={`quota-${key}-hint`}
+                  value={form?.[key] ?? ""}
+                  onChange={(_, value) => setForm(previous => previous ? { ...previous, [key]: value.value } : previous)} />
+                <small className="tenant-quota-page__field-hint" id={`quota-${key}-hint`}>{key === "fileMb" || key === "textMib"
+                  ? "降低后只影响后续新增内容。"
+                  : `当前已用 ${used[key] ?? "0"} ${unit}，保存值不能低于已用量。`}</small>
+              </label>)}</div>
+              {validation ? <p className="tenant-quota-page__validation" role="alert">{validation}</p> : null}
+            </DialogContent>
+            <DialogActions><Button type="button" appearance="secondary" disabled={saving} onClick={close}>取消</Button>
+              <Button type="submit" appearance="primary" disabled={saving}>{saving ? "正在保存" : "保存配额"}</Button></DialogActions>
+          </DialogBody>
         </form>
       </DialogSurface>
     </Dialog>

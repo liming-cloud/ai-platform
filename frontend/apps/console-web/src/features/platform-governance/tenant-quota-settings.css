@@ -19,15 +19,17 @@
 .tenant-quota-page__kicker { font-family: var(--foundation-font-body); }
 .tenant-quota-page__dialog .fui-DialogContent { display: grid; gap: 16px; }
 .tenant-quota-page__dialog .fui-DialogContent p { margin: 0; }
+.tenant-quota-page__dialog .fui-DialogContent > p:first-child { padding-bottom: 12px; border-bottom: 1px solid var(--foundation-border); }
 .tenant-quota-page__grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
-.tenant-quota-page__grid .fui-Field { min-width: 0; }
-.tenant-quota-page__grid .fui-Label { width: 100%; }
+.tenant-quota-page__field { display: grid; align-content: start; gap: 8px; min-width: 0; }
 .tenant-quota-page__field-label { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; width: 100%; }
 .tenant-quota-page__field-label small { color: var(--foundation-secondary-text); font-size: 14px; font-weight: 400; }
+.tenant-quota-page__field-hint { color: var(--foundation-secondary-text); font-size: 14px; line-height: 1.6; }
 .tenant-quota-page__grid .fui-Input { width: 100%; min-width: 0; min-height: 36px; }
 .tenant-quota-page__grid .fui-Input input { font-variant-numeric: tabular-nums; }
 .tenant-quota-page__validation { color: var(--foundation-danger); }
-.tenant-quota-page__dialog .fui-DialogActions { margin-top: 8px; padding-top: 16px; border-top: 1px solid var(--foundation-border); }
+.tenant-quota-page__dialog .fui-DialogActions { display: flex; flex-direction: row; justify-content: flex-end; justify-self: stretch; gap: 8px; width: 100%; margin-top: 8px; padding-top: 16px; border-top: 1px solid var(--foundation-border); }
+.tenant-quota-page__dialog .fui-DialogActions .fui-Button { flex: 0 0 auto; width: auto; min-width: 0; height: 36px; padding: 6px 12px; }
 @media (max-width: 1040px) and (min-width: 681px) {
   .tenant-quota-page__summary { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .tenant-quota-page__summary > div:nth-child(3) { border-right: 0; }
