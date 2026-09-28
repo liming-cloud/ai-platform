@@ -79,6 +79,9 @@ async function run(configuration) {
       requireCondition(await navigation.getByRole("link").count() === 5
         && await navigation.getByRole("link", { name: "登录安全" }).getAttribute("aria-current") === "page",
       "独立设置导航与原型不一致");
+      const inactiveColor = await navigation.getByRole("link", { name: "概览" })
+        .evaluate(element => getComputedStyle(element).color);
+      requireCondition(inactiveColor === "rgb(20, 20, 19)", "非当前导航项颜色与原型不一致");
       const summary = platform.locator(".tenant-security-page .tenant-quota-page__summary");
       requireCondition(await summary.locator("dt").allTextContents().then(values =>
         JSON.stringify(values) === JSON.stringify(["会话有效期", "登录失败次数", "锁定时长"])),
@@ -93,6 +96,14 @@ async function run(configuration) {
       const dialog = platform.getByRole("dialog");
       requireCondition(await dialog.getByText("保存后，此租户现有会话将立即失效。", { exact: true }).isVisible(),
         "保存前未提示目标租户旧会话立即失效");
+      const buttons = await dialog.getByRole("button").evaluateAll(elements => elements.map(element => ({
+        label: element.textContent?.trim(), size: getComputedStyle(element).fontSize,
+        width: element.getBoundingClientRect().width,
+      })));
+      requireCondition(buttons.length === 2 && buttons[0].label === "取消" && buttons[1].label === "保存策略"
+        && buttons.every(button => button.size === "14px")
+        && Math.abs(buttons[0].width - 54) <= 1 && Math.abs(buttons[1].width - 82) <= 1,
+      "弹窗短按钮字体和宽度与原型不一致");
       await dialog.getByRole("spinbutton", { name: "会话有效期（小时）" }).fill("4");
       await dialog.getByRole("button", { name: "取消" }).click();
       await platform.waitForFunction(() => document.activeElement?.textContent?.trim() === "编辑登录策略");
