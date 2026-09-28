@@ -167,6 +167,48 @@ async function run(configuration) {
           "功能恢复后新会话仍被阻断");
       } finally { await tenant.context.close(); }
     });
+    await check("八项开关落库并约束四类已发布直接入口", async () => {
+      const routes = ["/knowledge-spaces", "/model-configurations", "/assistants",
+        "/evaluation-datasets/candidates"];
+      const baseline = await tenantLogin(browser, configuration, created.tenant);
+      try {
+        for (const route of routes) {
+          requireCondition((await request(baseline.page, route)).status === 200,
+            `已发布入口 ${route} 在全开基线下不可用`);
+        }
+        const disabled = Object.fromEntries(codes.map(code => [code, false]));
+        const closed = await request(platform, api, "PUT", { availableFeatures: disabled, expectedVersion: 2 });
+        requireCondition(closed.status === 200 && closed.body?.version === 3
+          && codes.every(code => closed.body.availableFeatures[code] === false), "八项关闭未原子保存");
+        await assertAnonymous(baseline.page);
+      } finally { await baseline.context.close(); }
+      const blocked = await tenantLogin(browser, configuration, created.tenant);
+      try {
+        for (const route of routes) {
+          requireCondition((await request(blocked.page, route)).status === 403,
+            `关闭后直接入口 ${route} 未拒绝`);
+        }
+      } finally { await blocked.context.close(); }
+      const other = await tenantLogin(browser, configuration, created.otherTenant);
+      try {
+        for (const route of routes) {
+          requireCondition((await request(other.page, route)).status === 200,
+            `关闭目标租户时影响了对照租户入口 ${route}`);
+        }
+      } finally { await other.context.close(); }
+      const restored = await request(platform, api, "PUT", {
+        availableFeatures: Object.fromEntries(codes.map(code => [code, true])), expectedVersion: 3,
+      });
+      requireCondition(restored.status === 200 && restored.body?.version === 4
+        && codes.every(code => restored.body.availableFeatures[code] === true), "八项恢复未原子保存");
+      const reopened = await tenantLogin(browser, configuration, created.tenant);
+      try {
+        for (const route of routes) {
+          requireCondition((await request(reopened.page, route)).status === 200,
+            `恢复后直接入口 ${route} 仍被阻断`);
+        }
+      } finally { await reopened.context.close(); }
+    });
     await check("三尺寸、200% 文字、键盘与 reduced-motion 无裁切", async () => {
       for (const width of [390, 1024, 1440]) {
         await platform.setViewportSize({ width, height: 960 });
