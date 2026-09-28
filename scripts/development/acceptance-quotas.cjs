@@ -182,7 +182,9 @@ async function run(configuration) {
         const parity = await dialog.evaluate(surface => {
           const grid = surface.querySelector(".tenant-quota-page__grid");
           const form = surface.querySelector("form");
-          const actions = surface.querySelector(".fui-DialogActions");
+          const actions = surface.querySelector(".tenant-quota-page__actions");
+          const label = surface.querySelector(".tenant-quota-page__field-label");
+          const focused = surface.querySelector(".tenant-quota-page__grid .fui-Input:focus-within");
           const section = document.querySelector(".tenant-quota-page__section");
           const number = document.querySelector(".tenant-quota-page__summary dd strong");
           const unit = number?.nextElementSibling;
@@ -192,11 +194,16 @@ async function run(configuration) {
             unitBelowNumber: Boolean(number && unit && unit.getBoundingClientRect().top > number.getBoundingClientRect().top + 8),
             sectionUnboxed: getComputedStyle(section).borderLeftWidth === "0px"
               && getComputedStyle(section).borderRadius === "0px",
+            actionsFullWidth: actions.getBoundingClientRect().width >= form.getBoundingClientRect().width - 1,
+            labelEmphasized: Number.parseInt(getComputedStyle(label).fontWeight, 10) >= 600,
+            focusedInputOutlined: focused && getComputedStyle(focused).outlineStyle !== "none"
+              && getComputedStyle(focused).outlineWidth === "2px",
             mobileActionsSticky: innerWidth > 680 || getComputedStyle(actions).position === "sticky",
           };
         });
         requireCondition(parity.columns === (width <= 680 ? 1 : 2) && parity.formWide
-          && parity.unitBelowNumber && parity.sectionUnboxed && parity.mobileActionsSticky,
+          && parity.unitBelowNumber && parity.sectionUnboxed && parity.actionsFullWidth
+          && parity.labelEmphasized && parity.focusedInputOutlined && parity.mobileActionsSticky,
         `${width} 配额原型结构或弹窗列宽不一致`);
         await withTextScale(platform, true, async () => {
           const bounds = await dialog.evaluate(surface => {

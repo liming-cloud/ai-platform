@@ -1,6 +1,6 @@
 import { PageHeading } from "@foundation/design-system";
 import {
-  Button, Dialog, DialogActions, DialogBody, DialogContent, DialogSurface, DialogTitle,
+  Button, Dialog, DialogBody, DialogContent, DialogSurface, DialogTitle,
   Input, MessageBar, MessageBarBody, MessageBarTitle,
 } from "@fluentui/react-components";
 import { useEffect, useRef, useState } from "react";
@@ -139,9 +139,9 @@ export function TenantQuotaSettings({ client, tenantId, onRouteChange }: {
               </label>)}</div>
               {validation ? <p className="tenant-quota-page__validation" role="alert">{validation}</p> : null}
             </DialogContent>
-            <DialogActions><Button type="button" appearance="secondary" disabled={saving} onClick={close}>取消</Button>
-              <Button type="submit" appearance="primary" disabled={saving}>{saving ? "正在保存" : "保存配额"}</Button></DialogActions>
           </DialogBody>
+          <div className="tenant-quota-page__actions"><Button type="button" appearance="secondary" disabled={saving} onClick={close}>取消</Button>
+            <Button type="submit" appearance="primary" disabled={saving}>{saving ? "正在保存" : "保存配额"}</Button></div>
         </form>
       </DialogSurface>
     </Dialog>
