@@ -106,9 +106,12 @@ async function run(configuration) {
       await dialog.getByRole("button", { name: "保存策略" }).click();
       requireCondition(writes === 0 && await dialog.isVisible(), "超范围输入被发送或弹窗错误关闭");
       await dialog.getByRole("button", { name: "取消" }).click();
-      requireCondition((await request(platform, api, "PUT", {
+      const rejected = await request(platform, api, "PUT", {
         sessionHours: 25, failedAttempts: 3, lockMinutes: 5, expectedVersion: 0,
-      })).status === 400, "服务端接受超范围策略");
+      });
+      requireCondition(rejected.status === 400 && writes === 1, "服务端接受超范围策略");
+      // 上一请求是主动验证服务端拒绝，下一场景单独统计界面保存。
+      writes = 0;
     });
     const oldTarget = await tenantLogin(browser, configuration, created.securityTenant);
     const comparator = await tenantLogin(browser, configuration, created.tenant);
