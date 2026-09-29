@@ -43,6 +43,7 @@
   font-size: 14px;
   white-space: nowrap;
 }
+.platform-account-page__dialog .fui-DialogActions .fui-Button:first-child { width: 54px; }
 .platform-account-page__dialog .fui-DialogActions .fui-Button:last-child { width: 82px; }
 .platform-account-page__dialog .tenant-admin-page__revoke { margin-top: 0; padding-inline: 0; }
 .platform-account-page__dialog .tenant-admin-page__revoke .fui-Checkbox { margin-left: -8px; }
