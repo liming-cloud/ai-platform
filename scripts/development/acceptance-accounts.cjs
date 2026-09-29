@@ -76,9 +76,12 @@ async function run(configuration) {
           value.replace(/\s+/g, "") === "平台管理员账户可治理")
         && await platform.getByRole("button", { name: "授予平台治理权限" }).count() === 0,
       "目录结构或账户职责未承接原型");
+      await platform.getByRole("searchbox", { name: "按登录名搜索" }).fill(configuration.platform.loginName);
+      await platform.waitForURL(url => url.searchParams.get("q") === configuration.platform.loginName);
       const current = platform.locator(".platform-account-page tbody tr").filter({
         has: platform.getByRole("cell", { name: configuration.platform.loginName, exact: true }),
       });
+      await current.waitFor();
       requireCondition(await current.count() === 1
         && await current.getByRole("button", { name: "当前账户不能由此重置密码" }).isDisabled(),
       "当前操作者自我操作未关闭");
