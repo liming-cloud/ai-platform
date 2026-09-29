@@ -95,6 +95,15 @@ async function run(configuration) {
       await platform.waitForFunction(() => document.activeElement?.getAttribute("placeholder") === "例如：zhou.demo");
       requireCondition(await dialog.locator(".platform-account-page__note").count() === 1,
         "创建弹窗缺少原型安全提示卡");
+      const dialogLayout = await dialog.evaluate(surface => {
+        const content = surface.querySelector(".fui-DialogContent").getBoundingClientRect();
+        const actions = surface.querySelector(".fui-DialogActions").getBoundingClientRect();
+        const buttons = [...surface.querySelectorAll(".fui-DialogActions button")];
+        return Math.abs(content.width - actions.width) <= 2
+          && buttons.length === 2 && buttons[0].getBoundingClientRect().width < 72
+          && buttons[1].getBoundingClientRect().width < 96;
+      });
+      requireCondition(dialogLayout, "创建弹窗的分隔线或短按钮与原型不一致");
       await dialog.getByRole("textbox", { name: "登录名" }).fill(created.account.loginName);
       await dialog.getByLabel("初始密码").fill(created.account.password);
       await dialog.getByRole("button", { name: "取消" }).click();
