@@ -2,6 +2,7 @@ package com.aiplatform.foundation.organizationaccess.infrastructure.persistence.
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -10,6 +11,9 @@ import com.aiplatform.foundation.organizationaccess.domain.member.model.EncodedP
 import com.aiplatform.foundation.organizationaccess.domain.identity.model.SubjectIdentity;
 import com.aiplatform.foundation.organizationaccess.application.authorization.port.out.PersonSessionFamilyRevoker;
 import com.aiplatform.foundation.organizationaccess.application.authorization.service.PlatformAccountGovernanceApplicationService;
+import com.aiplatform.foundation.organizationaccess.application.authorization.service.PlatformAccountEstablishmentApplicationService;
+import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.authorization.repository.PostgresPlatformRoleBindingStore;
+import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.authorization.mapper.PlatformRoleBindingMapper;
 import com.aiplatform.foundation.organizationaccess.infrastructure.password.Pbkdf2PasswordAdapter;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.identity.mapper.PlatformAccountMapper;
 import com.aiplatform.foundation.security.identity.AccessChannel;
@@ -21,6 +25,9 @@ import com.baomidou.mybatisplus.annotation.DbType;
 import com.baomidou.mybatisplus.extension.plugins.MybatisPlusInterceptor;
 import com.baomidou.mybatisplus.extension.plugins.inner.PaginationInnerInterceptor;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.security.SecureRandom;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -67,6 +74,9 @@ class PostgresPlatformAccountStoreTest {
     private PlatformAccountGovernanceApplicationService governance;
 
     @Autowired
+    private PlatformAccountEstablishmentApplicationService establishment;
+
+    @Autowired
     private Pbkdf2PasswordAdapter passwords;
 
     @DynamicPropertySource
@@ -80,7 +90,9 @@ class PostgresPlatformAccountStoreTest {
     @BeforeEach
     void seedFacts() {
         REVOCATION_FAILURE.set(true);
+        jdbc.update("DELETE FROM organization_access.platform_account_operation_audit");
         jdbc.update("DELETE FROM organization_access.platform_role_binding");
+        jdbc.update("DELETE FROM organization_access.platform_subject_authorization");
         jdbc.update("DELETE FROM organization_access.subject_identity");
         insertSubject(ACCOUNT_ADMINISTRATOR, "account-admin", "ACTIVE");
         insertSubject(TARGET_SUBJECT, "target-account", "ACTIVE");
@@ -173,6 +185,107 @@ class PostgresPlatformAccountStoreTest {
         assertEquals("target-account", page.items().getFirst().loginName());
         assertEquals("ACTIVE", page.items().getFirst().status());
         assertEquals(java.util.Set.of("PLATFORM_ADMINISTRATOR"), page.items().getFirst().activeRoleCodes());
+        assertNull(page.items().getFirst().lastSecurityChangeAt());
+    }
+
+    @Test
+    void 目录不得混入无平台管理员绑定的身份且应在数据库先筛选后分页() {
+        insertSubject(TARGET_SUBJECT + 20L, "tenant-only", "ACTIVE");
+        jdbc.update("UPDATE organization_access.subject_identity SET status = 'DISABLED' WHERE subject_id = ?", TARGET_SUBJECT);
+
+        var active = store.list(new PageQuery(1, 10), "account", "ACTIVE");
+        var disabled = store.list(new PageQuery(1, 10), "target", "DISABLED");
+
+        assertEquals(1L, active.totalElements());
+        assertEquals("account-admin", active.items().getFirst().loginName());
+        assertEquals(1L, disabled.totalElements());
+        assertEquals("target-account", disabled.items().getFirst().loginName());
+        assertEquals(2L, store.list(new PageQuery(1, 10), "", "ALL").totalElements());
+    }
+
+    @Test
+    void 建立账户应原子写入身份平台资格权限修订和非秘密审计() {
+        var created = establishment.establish(accountAdministrator(), "created-admin", "new-password".toCharArray());
+
+        assertEquals(java.util.Set.of("PLATFORM_ADMINISTRATOR"), created.activeRoleCodes());
+        assertTrue(store.hasActiveAccountAdministratorRole(new SubjectId(created.subjectId())));
+        assertEquals(1L, jdbc.queryForObject(
+                "SELECT permission_version FROM organization_access.platform_subject_authorization WHERE subject_id = ?",
+                Long.class, created.subjectId()));
+        assertEquals(1L, jdbc.queryForObject(
+                "SELECT COUNT(*) FROM organization_access.platform_account_operation_audit "
+                        + "WHERE target_subject_id = ? AND operation = 'CREATE' AND result = 'SUCCEEDED'",
+                Long.class, created.subjectId()));
+    }
+
+    @Test
+    void 审计写入失败应回滚新身份和平台资格() {
+        var unauthorizedActor = new PlatformRequestContext(
+                new com.aiplatform.foundation.security.identity.SubjectId(TARGET_SUBJECT + 900L),
+                CredentialType.PERSON, AccessChannel.CONSOLE, 0L,
+                java.util.Set.of(PlatformPermissions.SESSION_ACCESS, PlatformPermissions.ACCOUNT_MANAGE),
+                "trc_missing_actor");
+
+        assertThrows(RuntimeException.class, () -> establishment.establish(
+                unauthorizedActor, "rollback-admin", "new-password".toCharArray()));
+        assertEquals(0L, jdbc.queryForObject(
+                "SELECT COUNT(*) FROM organization_access.subject_identity WHERE login_name = 'rollback-admin'",
+                Long.class));
+    }
+
+    @Test
+    void 审计失败不得提交停用也不得撤销目标会话() {
+        REVOCATION_FAILURE.set(false);
+        var unauthorizedActor = new PlatformRequestContext(
+                new com.aiplatform.foundation.security.identity.SubjectId(TARGET_SUBJECT + 900L),
+                CredentialType.PERSON, AccessChannel.CONSOLE, 0L,
+                java.util.Set.of(PlatformPermissions.SESSION_ACCESS, PlatformPermissions.ACCOUNT_MANAGE),
+                "trc_missing_actor");
+
+        assertThrows(RuntimeException.class, () -> governance.disable(unauthorizedActor, TARGET_SUBJECT));
+
+        assertEquals("ACTIVE", jdbc.queryForObject(
+                "SELECT status FROM organization_access.subject_identity WHERE subject_id = ?",
+                String.class, TARGET_SUBJECT));
+        assertEquals(0L, jdbc.queryForObject(
+                "SELECT COUNT(*) FROM organization_access.platform_account_operation_audit WHERE target_subject_id = ?",
+                Long.class, TARGET_SUBJECT));
+    }
+
+    @Test
+    void 并发停用不同平台管理员不得使可用管理员归零() throws Exception {
+        REVOCATION_FAILURE.set(false);
+        var secondAdministrator = new PlatformRequestContext(
+                new com.aiplatform.foundation.security.identity.SubjectId(TARGET_SUBJECT),
+                CredentialType.PERSON, AccessChannel.CONSOLE, 0L,
+                java.util.Set.of(PlatformPermissions.SESSION_ACCESS, PlatformPermissions.ACCOUNT_MANAGE),
+                "trc_second_administrator");
+        var start = new CountDownLatch(1);
+        try (var executor = Executors.newFixedThreadPool(2)) {
+            var first = executor.submit(() -> {
+                start.await();
+                governance.disable(accountAdministrator(), TARGET_SUBJECT);
+                return true;
+            });
+            var second = executor.submit(() -> {
+                start.await();
+                governance.disable(secondAdministrator, ACCOUNT_ADMINISTRATOR);
+                return true;
+            });
+            start.countDown();
+            var successes = 0;
+            for (var task : java.util.List.of(first, second)) {
+                try {
+                    if (task.get(10, TimeUnit.SECONDS)) successes++;
+                } catch (java.util.concurrent.ExecutionException expected) {
+                    assertTrue(expected.getCause() instanceof IllegalStateException);
+                }
+            }
+            assertEquals(1, successes);
+        }
+        assertEquals(1L, jdbc.queryForObject(
+                "SELECT COUNT(*) FROM organization_access.subject_identity WHERE status = 'ACTIVE'",
+                Long.class));
     }
 
     @Test
@@ -245,6 +358,9 @@ class PostgresPlatformAccountStoreTest {
                 "SELECT version FROM organization_access.subject_identity WHERE subject_id = ?",
                 Long.class,
                 TARGET_SUBJECT));
+        assertTrue(store.list(new PageQuery(1, 10)).items().stream()
+                .filter(item -> item.subjectId() == TARGET_SUBJECT)
+                .findFirst().orElseThrow().lastSecurityChangeAt() != null);
         assertEquals(new String(new char[newPassword.length]), new String(newPassword));
     }
 
@@ -274,6 +390,7 @@ class PostgresPlatformAccountStoreTest {
     @Test
     void 空目录应返回零总数而不是虚构第一页数据() {
         jdbc.update("DELETE FROM organization_access.platform_role_binding");
+        jdbc.update("DELETE FROM organization_access.platform_subject_authorization");
         jdbc.update("DELETE FROM organization_access.subject_identity");
 
         var page = store.list(new PageQuery(1, 20));
@@ -336,6 +453,11 @@ class PostgresPlatformAccountStoreTest {
                         + "SELECT ? + n, 'scale-account-' || n, 'test-password-hash', 'ACTIVE', 0 "
                         + "FROM generate_series(1, 1000) n",
                 TARGET_SUBJECT + 1000L);
+        jdbc.update("INSERT INTO organization_access.platform_role_binding "
+                        + "(binding_id, subject_id, role_code, status, version) "
+                        + "SELECT ? + n, ? + n, 'PLATFORM_ADMINISTRATOR', 'ACTIVE', 0 "
+                        + "FROM generate_series(1, 1000) n",
+                TARGET_SUBJECT + 3000L, TARGET_SUBJECT + 1000L);
         for (var index = 0; index < 10; index++) {
             store.list(new PageQuery(1, 20));
         }
@@ -377,8 +499,8 @@ class PostgresPlatformAccountStoreTest {
     @SpringBootConfiguration
     @EnableAutoConfiguration
     @EnableTransactionManagement
-    @MapperScan(basePackageClasses = PlatformAccountMapper.class)
-    @Import(PostgresPlatformAccountStore.class)
+    @MapperScan(basePackageClasses = { PlatformAccountMapper.class, PlatformRoleBindingMapper.class })
+    @Import({ PostgresPlatformAccountStore.class, PostgresPlatformRoleBindingStore.class })
     static class TestApplication {
 
         @Bean
@@ -402,6 +524,15 @@ class PostgresPlatformAccountStoreTest {
                 }
             };
             return new PlatformAccountGovernanceApplicationService(store, unavailableRevoker, passwords);
+        }
+
+        @Bean
+        PlatformAccountEstablishmentApplicationService platformAccountEstablishmentApplicationService(
+                PostgresPlatformAccountStore store,
+                PostgresPlatformRoleBindingStore bindings,
+                Pbkdf2PasswordAdapter passwords) {
+            var next = new java.util.concurrent.atomic.AtomicLong(TARGET_SUBJECT + 10000L);
+            return new PlatformAccountEstablishmentApplicationService(store, bindings, passwords, next::incrementAndGet);
         }
     }
 }

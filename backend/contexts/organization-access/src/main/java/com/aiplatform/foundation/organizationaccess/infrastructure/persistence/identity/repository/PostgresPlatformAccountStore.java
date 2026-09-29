@@ -25,6 +25,11 @@ public final class PostgresPlatformAccountStore implements PlatformAccountStore 
     }
 
     @Override
+    public void lockAdministratorDisableGate() {
+        mapper.lockAdministratorDisableGate();
+    }
+
+    @Override
     public Optional<SubjectIdentity> lock(SubjectId subjectId) {
         var row = mapper.lock(subjectId.value());
         if (row == null) {
@@ -74,14 +79,22 @@ public final class PostgresPlatformAccountStore implements PlatformAccountStore 
     }
 
     @Override
-    public PageResult<PlatformAccountSummary> list(PageQuery query) {
-        var page = mapper.list(new Page<>(query.pageNumber(), query.pageSize()));
+    public PageResult<PlatformAccountSummary> list(PageQuery query, String loginName, String status) {
+        var page = mapper.list(new Page<>(query.pageNumber(), query.pageSize()), loginName, status);
         var items = page.getRecords().stream()
                 .map(row -> new PlatformAccountSummary(
                         row.getSubjectId(), row.getLoginName(), row.getStatus(), row.getVersion(), row.getCreatedAt(),
-                        activeRoleCodes(row.getActiveRoleCodes())))
+                        activeRoleCodes(row.getActiveRoleCodes()),
+                        row.getVersion() == 0 ? null : row.getUpdatedAt()))
                 .toList();
         return PageResult.of(items, query, page.getTotal());
+    }
+
+    @Override
+    public void recordOperation(long operatorSubjectId, long targetSubjectId, String operation, long targetVersion) {
+        if (mapper.recordOperation(operatorSubjectId, targetSubjectId, operation, targetVersion) != 1) {
+            throw new IllegalStateException("平台账户操作审计写入失败");
+        }
     }
 
     private static Set<String> activeRoleCodes(String codes) {

@@ -1,293 +1,332 @@
+import { PageHeading, StatePanel } from "@foundation/design-system";
 import {
-  Badge,
-  Button,
-  Dialog,
-  DialogActions,
-  DialogBody,
-  DialogContent,
-  DialogSurface,
-  DialogTitle,
-  Drawer,
-  DrawerBody,
-  DrawerHeader,
-  DrawerHeaderTitle,
-  Field,
-  Input,
-  MessageBar,
-  MessageBarBody,
-  MessageBarTitle,
-  Menu,
-  MenuButton,
-  MenuItem,
-  MenuList,
-  MenuPopover,
-  MenuTrigger,
-  Text,
-  Title3,
+  Button, Checkbox, Dialog, DialogActions, DialogBody, DialogContent, DialogSurface, DialogTitle,
+  Field, Input, MessageBar, MessageBarBody, MessageBarTitle,
 } from "@fluentui/react-components";
-import { Dismiss20Regular } from "@fluentui/react-icons";
-import { StatePanel } from "@foundation/design-system";
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
-  presentApiError,
-  type ControlPlaneClient,
-  type PlatformAccountSummary,
+  presentApiError, type ControlPlaneClient, type PageResult, type PlatformAccountSummary,
   type UserFacingError,
 } from "../../api/control-plane-client";
 import type { ConsoleRoute } from "../../session/console-route";
+import { tenantAdministratorPageNumbers } from "./tenant-administrator-pagination";
+import "./tenant-onboarding.css";
+import "./tenant-administrator-settings.css";
+import "./platform-account-directory.css";
 
 type AccountRoute = Extract<ConsoleRoute, { task: "accounts" }>;
-type PlatformRoleCode = "PLATFORM_ADMINISTRATOR";
-type RoleDialogTarget = { kind: "role"; account: PlatformAccountSummary; roleCode: PlatformRoleCode; action: "bind" | "revoke" };
-type DialogTarget = RoleDialogTarget | { kind: "enable"; account: PlatformAccountSummary } | { kind: "create" } | { kind: "reset"; account: PlatformAccountSummary };
+type Loaded = { owner: string; page: PageResult<PlatformAccountSummary>; allCount: number; activeCount: number };
+type Pending =
+  | { kind: "create" }
+  | { kind: "reset" | "status"; target: PlatformAccountSummary };
 
-const roles: ReadonlyArray<{ code: PlatformRoleCode; label: string; navigation: string }> = [
-  { code: "PLATFORM_ADMINISTRATOR", label: "平台管理员", navigation: "运营、账户、租户和模型供应链" },
-];
-
-function roleLabel(code: string): string {
-  return roles.find((role) => role.code === code)?.label ?? code;
-}
-
-/**
- * 平台账户目录只呈现当前服务器页的安全摘要。角色写入必须逐项经单一 Dialog 确认，
- * 成功后重读服务端事实，避免把本地推断当作导航权限投影。
- */
-export function PlatformAccountDirectoryWorkspace({
-  client,
-  route,
-  onRouteChange,
-}: {
+/** 平台账户页只写平台管理员身份；行目标由受权目录给出，所有结果从服务端重读。 */
+export function PlatformAccountDirectoryWorkspace({ client, route, onRouteChange }: {
   client: ControlPlaneClient;
   route: AccountRoute;
   onRouteChange: (route: ConsoleRoute) => void;
 }) {
-  const [accounts, setAccounts] = useState<PlatformAccountSummary[]>([]);
-  const [total, setTotal] = useState(0);
-  const [hasPrevious, setHasPrevious] = useState(false);
-  const [hasNext, setHasNext] = useState(false);
-  const [busy, setBusy] = useState(false);
+  const [loaded, setLoaded] = useState<Loaded>();
   const [failure, setFailure] = useState<UserFacingError>();
-  const [dialog, setDialog] = useState<DialogTarget>();
-  const [detailAccount, setDetailAccount] = useState<PlatformAccountSummary>();
+  const [notice, setNotice] = useState("");
+  const [revision, setRevision] = useState(0);
+  const [searchDraft, setSearchDraft] = useState({ fromQuery: route.query, value: route.query });
+  const [jumpDraft, setJumpDraft] = useState({ fromPage: route.page, value: String(route.page) });
+  const [jumpError, setJumpError] = useState("");
+  const [pending, setPending] = useState<Pending>();
+  const [busy, setBusy] = useState(false);
   const [loginName, setLoginName] = useState("");
   const [password, setPassword] = useState("");
-
-  const reload = useCallback(async () => {
-    setBusy(true);
-    setFailure(undefined);
-    try {
-      const page = await client.listPlatformAccounts(route.page);
-      setAccounts(page.items);
-      setTotal(page.totalElements);
-      setHasPrevious(page.hasPrevious);
-      setHasNext(page.hasNext);
-    } catch (error) {
-      setAccounts([]);
-      setTotal(0);
-      setHasPrevious(false);
-      setHasNext(false);
-      setFailure(presentApiError(error, "加载平台账户"));
-    } finally {
-      setBusy(false);
-    }
-  }, [client, route.page]);
+  const [confirmation, setConfirmation] = useState("");
+  const [revokeAcknowledged, setRevokeAcknowledged] = useState(false);
+  const [dialogValidation, setDialogValidation] = useState("");
+  const loginInput = useRef<HTMLInputElement | null>(null);
+  const passwordInput = useRef<HTMLInputElement | null>(null);
+  const confirmationInput = useRef<HTMLInputElement | null>(null);
+  const revokeInput = useRef<HTMLInputElement | null>(null);
+  const trigger = useRef<HTMLElement | null>(null);
+  const owner = `${route.query}:${route.status}:${route.page}:${route.pageSize}:${revision}`;
+  const data = loaded?.owner === owner ? loaded : undefined;
+  const page = data?.page;
+  const search = searchDraft.fromQuery === route.query ? searchDraft.value : route.query;
+  const jump = jumpDraft.fromPage === route.page ? jumpDraft.value : String(route.page);
 
   useEffect(() => {
-    const timeout = window.setTimeout(() => void reload(), 0);
-    return () => window.clearTimeout(timeout);
-  }, [reload]);
+    if (search === route.query) return;
+    const timer = window.setTimeout(() => onRouteChange({ ...route, query: search.trim(), page: 1 }), 350);
+    return () => window.clearTimeout(timer);
+  }, [onRouteChange, route, search]);
 
-  async function changeRole(target: RoleDialogTarget) {
-    setBusy(true);
-    setFailure(undefined);
-    try {
-      await (target.action === "bind"
-        ? client.bindPlatformRole(target.account.subjectId, target.roleCode)
-        : client.revokePlatformRole(target.account.subjectId, target.roleCode));
-      setDialog(undefined);
-      await reload();
-    } catch (error) {
-      setFailure(presentApiError(error, "变更平台角色"));
-    } finally {
-      setBusy(false);
-    }
-  }
+  useEffect(() => {
+    let active = true;
+    Promise.all([
+      client.listPlatformAccounts(route.page, route.pageSize, route.query, route.status),
+      client.listPlatformAccounts(1, 10, "", "ALL"),
+      client.listPlatformAccounts(1, 10, "", "ACTIVE"),
+    ]).then(([result, all, enabled]) => {
+      if (!active) return;
+      if (route.page > Math.max(1, result.totalPages)) {
+        setJumpError(`当前筛选只有 ${Math.max(1, result.totalPages)} 页，请重新选择页码。`);
+        setLoaded({ owner, page: result, allCount: all.totalElements, activeCount: enabled.totalElements });
+        return;
+      }
+      setLoaded({ owner, page: result, allCount: all.totalElements, activeCount: enabled.totalElements });
+      setFailure(undefined);
+    }).catch(error => {
+      if (active) { setLoaded(undefined); setFailure(presentApiError(error, "读取平台账户")); }
+    });
+    const unsubscribe = client.subscribeSessionChange(isActive => {
+      if (!isActive) { active = false; setLoaded(undefined); }
+    });
+    return () => { active = false; unsubscribe(); };
+  }, [client, onRouteChange, owner, route]);
 
-  async function enableAccount(account: PlatformAccountSummary) {
-    setBusy(true);
-    setFailure(undefined);
-    try {
-      await client.enablePlatformAccount(account.subjectId);
-      setDialog(undefined);
-      await reload();
-    } catch (error) {
-      setFailure(presentApiError(error, "启用平台账户"));
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function resetAccountPassword(account: PlatformAccountSummary) {
-    setBusy(true);
-    setFailure(undefined);
-    try {
-      await client.resetPlatformAccountPassword(account.subjectId, password);
-      closeDialog();
-      await reload();
-    } catch (error) {
-      setFailure(presentApiError(error, "重置平台账户口令"));
-    } finally {
-      setPassword("");
-      setBusy(false);
-    }
+  function navigate(change: Partial<AccountRoute>) {
+    setNotice("");
+    setJumpError("");
+    onRouteChange({ ...route, ...change });
   }
 
   function closeDialog() {
-    setDialog(undefined);
+    if (busy) return;
+    setPending(undefined);
     setLoginName("");
     setPassword("");
+    setConfirmation("");
+    setRevokeAcknowledged(false);
+    setDialogValidation("");
+    window.requestAnimationFrame(() => trigger.current?.focus());
   }
 
-  async function createAccount() {
+  function openDialog(next: Pending, element: HTMLElement) {
+    trigger.current = element;
+    setFailure(undefined);
+    setDialogValidation("");
+    setPending(next);
+  }
+
+  async function commit() {
+    if (!pending) return;
+    if (pending.kind === "create" && !/^[a-z][a-z0-9._-]{2,63}$/.test(loginName.trim())) {
+      setDialogValidation("登录名应为 3–64 位小写字母、数字、点、下划线或连字符。");
+      loginInput.current?.focus();
+      return;
+    }
+    if (pending.kind !== "status") {
+      if (!password || !confirmation) {
+        setDialogValidation("请完整填写密码并再次输入。");
+        (password ? confirmationInput : passwordInput).current?.focus();
+        return;
+      }
+      if (password !== confirmation) {
+        setDialogValidation("两次输入不一致。");
+        confirmationInput.current?.focus();
+        return;
+      }
+      if (pending.kind === "reset" && !revokeAcknowledged) {
+        setDialogValidation("请确认撤销全部会话。");
+        revokeInput.current?.focus();
+        return;
+      }
+    }
     setBusy(true);
     setFailure(undefined);
     try {
-      await client.createPlatformAccount({ loginName: loginName.trim(), password });
-      closeDialog();
-      if (route.page === 1) {
-        await reload();
+      if (pending.kind === "create") {
+        await client.createPlatformAccount({ loginName: loginName.trim(), password });
+        setNotice(`平台管理员“${loginName.trim()}”已建立；请通过安全渠道交付初始密码。`);
+        if (route.page !== 1 || route.query || route.status !== "ALL") {
+          onRouteChange({ ...route, page: 1, query: "", status: "ALL" });
+        } else setRevision(value => value + 1);
+      } else if (pending.kind === "reset") {
+        await client.resetPlatformAccountPassword(pending.target.subjectId, password);
+        setNotice(`“${pending.target.loginName}”的密码已重置，全部旧会话已失效。`);
+        setRevision(value => value + 1);
       } else {
-        onRouteChange({ ...route, page: 1 });
+        const disabling = pending.target.status === "ACTIVE";
+        await (disabling
+          ? client.disablePlatformAccount(pending.target.subjectId)
+          : client.enablePlatformAccount(pending.target.subjectId));
+        setNotice(`“${pending.target.loginName}”已${disabling ? "停用" : "恢复"}，全部旧会话已失效。`);
+        setRevision(value => value + 1);
       }
+      setPending(undefined);
+      setLoginName("");
+      window.requestAnimationFrame(() => trigger.current?.focus());
     } catch (error) {
-      setFailure(presentApiError(error, "建立人员账户"));
+      const presented = presentApiError(error, pending.kind === "create" ? "创建平台账户"
+        : pending.kind === "reset" ? "重置平台账户密码" : "变更平台账户状态");
+      setFailure(presented);
+      setDialogValidation(`${presented.title}：${presented.description}`);
+      if (pending.kind !== "status") passwordInput.current?.focus();
     } finally {
       setPassword("");
+      setConfirmation("");
+      setRevokeAcknowledged(false);
       setBusy(false);
     }
   }
 
-  return (
-    <section className="platform-account-workspace" aria-live="polite">
-      <header className="task-heading task-heading--split">
-        <div>
-          <Title3>人员账户目录</Title3>
-          <Text>账户是全局登录身份，可在租户建立或成员管理中分配租户角色；平台治理权限需要单独授予。</Text>
-        </div>
-        <Button appearance="primary" disabled={busy} onClick={() => setDialog({ kind: "create" })}>建立人员账户</Button>
-      </header>
+  const first = page && page.totalElements > 0 ? (page.pageNumber - 1) * page.pageSize + 1 : 0;
+  const last = page ? Math.min(page.pageNumber * page.pageSize, page.totalElements) : 0;
+  const isStatus = pending?.kind === "status";
+  const disabling = isStatus && pending.target.status === "ACTIVE";
+  return <>
+    <PageHeading title="平台账户" context="平台治理"
+      summary="创建和管理平台管理员账户；凭据、会话与权限快照不在目录展示。"
+      action={<Button appearance="primary" onClick={event => openDialog({ kind: "create" }, event.currentTarget)}
+        disabled={busy}>创建平台账户</Button>} />
+    <section className="tenant-onboarding tenant-admin-page platform-account-page" aria-live="polite">
+      {notice ? <MessageBar intent="success"><MessageBarBody><MessageBarTitle>操作已生效</MessageBarTitle>{notice}</MessageBarBody></MessageBar> : null}
       {failure ? <MessageBar intent="error"><MessageBarBody><MessageBarTitle>{failure.title}</MessageBarTitle>{failure.description}</MessageBarBody></MessageBar> : null}
-      {busy && accounts.length === 0 ? <StatePanel kind="loading" title="正在加载平台账户" description="正在读取当前服务器页。" /> : null}
-      {!busy && accounts.length === 0 && !failure ? <StatePanel kind="empty" title="当前页没有账户" description="请切换到上一页或下一页继续查看。" /> : null}
-      <div className="platform-account-list">
-        {accounts.map((account) => (
-          <article className="platform-account-row" key={account.subjectId}>
-            <div className="platform-account-row__identity">
-              <Title3>{account.loginName}</Title3>
-              <Text>建立于 {new Date(account.createdAt).toLocaleString("zh-CN")}</Text>
-              <div className="platform-account-row__roles" aria-label={`${account.loginName} 的已绑定角色`}>
-                {account.activeRoleCodes.length === 0 ? <Text>尚未授予平台治理权限</Text> : account.activeRoleCodes.map((roleCode) => (
-                  <Badge key={roleCode} appearance="outline">{roleLabel(roleCode)}</Badge>
-                ))}
-              </div>
+      {!data && !failure ? <StatePanel kind="loading" title="正在加载平台账户" description="正在读取服务端账户目录。" /> : null}
+      {data ? <>
+        <dl className="tenant-admin-page__summary">
+          <div><dt>平台账户</dt><dd>{data.allCount}</dd></div>
+          <div><dt>可用账户</dt><dd>{data.activeCount}</dd></div>
+        </dl>
+        <div className="tenant-admin-page__toolbar">
+          <label>搜索账号
+            <Input type="search" aria-label="按登录名搜索" placeholder="按登录名搜索" maxLength={64}
+              value={search} onChange={(_, value) => setSearchDraft({
+                fromQuery: route.query, value: value.value })} />
+          </label>
+          <label>状态
+            <select aria-label="账户状态" value={route.status}
+              onChange={event => navigate({ status: event.target.value as AccountRoute["status"], page: 1 })}>
+              <option value="ALL">全部状态</option><option value="ACTIVE">可用</option>
+              <option value="DISABLED">已停用</option>
+            </select>
+          </label>
+        </div>
+        <div className="tenant-admin-page__table-shell">
+          <table><thead><tr><th scope="col">登录名</th><th scope="col">账号用途</th>
+            <th scope="col">状态</th><th scope="col">最近安全变更</th><th scope="col">操作</th></tr></thead>
+            <tbody>{page?.items.map(item => <tr key={item.subjectId}>
+              <td data-label="登录名"><strong>{item.loginName}</strong></td>
+              <td data-label="账号用途">平台管理员</td>
+              <td data-label="状态"><span className="tenant-admin-page__status" data-status={item.status}>
+                <span aria-hidden="true">●</span>{item.status === "ACTIVE" ? "可用" : "已停用"}</span></td>
+              <td data-label="最近安全变更">{item.lastSecurityChangeAt
+                ? new Date(item.lastSecurityChangeAt).toLocaleString("zh-CN") : "初始凭据已设置"}</td>
+              <td data-label="操作"><div className="tenant-admin-page__actions">
+                <Button appearance="secondary" disabled={busy || item.current}
+                  aria-label={item.current ? "当前账户不能由此重置密码" : undefined}
+                  onClick={event => openDialog({ kind: "reset", target: item }, event.currentTarget)}>重置密码</Button>
+                <details><summary>更多</summary><div>
+                  <button type="button" disabled={busy || item.current} onClick={event => {
+                    const details = event.currentTarget.closest("details");
+                    openDialog({ kind: "status", target: item },
+                      details?.querySelector<HTMLElement>("summary") ?? event.currentTarget);
+                    details?.removeAttribute("open");
+                  }}>{item.status === "ACTIVE" ? "停用账户" : "恢复账户"}</button>
+                </div></details>
+              </div></td>
+            </tr>)}</tbody>
+          </table>
+          {page?.items.length === 0 ? <div className="platform-account-page__empty">
+            <p>{data.allCount === 0 ? "当前没有平台管理员账户。" : "当前条件下没有平台账户。"}</p>
+            <Button appearance="secondary" onClick={event => openDialog({ kind: "create" }, event.currentTarget)}>
+              创建平台账户</Button>
+          </div> : null}
+          <div className="tenant-admin-page__pagination" aria-label="账户目录分页">
+            <span>共 {page?.totalElements ?? 0} 条 · {first}–{last} 条</span>
+            <label className="tenant-admin-page__page-size">每页 <select aria-label="每页条数" value={route.pageSize}
+              onChange={event => navigate({ pageSize: Number(event.target.value) as AccountRoute["pageSize"], page: 1 })}>
+              <option value="10">10 条</option><option value="20">20 条</option>
+              <option value="50">50 条</option><option value="100">100 条</option>
+            </select></label>
+            <div className="tenant-admin-page__page-actions">
+              <Button appearance="secondary" disabled={!page?.hasPrevious} onClick={() => navigate({ page: route.page - 1 })}>上一页</Button>
+              {tenantAdministratorPageNumbers(route.page, Math.max(1, page?.totalPages ?? 1)).map((number, index) =>
+                number === "…" ? <span key={`ellipsis-${index}`} aria-hidden="true">…</span>
+                  : <Button key={number} appearance={number === route.page ? "primary" : "secondary"}
+                    aria-label={`第 ${number} 页`} aria-current={number === route.page ? "page" : undefined}
+                    onClick={() => navigate({ page: number })}>{number}</Button>)}
+              <Button appearance="secondary" disabled={!page?.hasNext} onClick={() => navigate({ page: route.page + 1 })}>下一页</Button>
             </div>
-            <Badge className="platform-account-row__status" appearance="tint" color={account.status === "ACTIVE" ? "success" : "danger"}>{account.status === "ACTIVE" ? "已启用" : "已停用"}</Badge>
-            <div className="task-actions" aria-label={`${account.loginName} 的账户操作`}>
-              <Button appearance="secondary" disabled={busy} onClick={() => setDetailAccount(account)}>查看详情</Button>
-              <Menu>
-                <MenuTrigger disableButtonEnhancement>
-                  <MenuButton disabled={busy}>更多操作</MenuButton>
-                </MenuTrigger>
-                <MenuPopover><MenuList>
-                  {account.status === "DISABLED" && account.activeRoleCodes.includes("PLATFORM_ADMINISTRATOR") ? (
-                    <MenuItem onClick={() => setDialog({ kind: "enable", account })}>启用账户</MenuItem>
-                  ) : null}
-                  {account.activeRoleCodes.includes("PLATFORM_ADMINISTRATOR") ?
-                    <MenuItem onClick={() => setDialog({ kind: "reset", account })}>重置口令</MenuItem> : null}
-                  {account.status === "ACTIVE" ? roles.filter((role) => !account.activeRoleCodes.includes(role.code)).map((role) => (
-                    <MenuItem key={role.code} onClick={() => setDialog({ kind: "role", account, roleCode: role.code, action: "bind" })}>授予平台治理权限</MenuItem>
-                  )) : null}
-                  {account.status === "ACTIVE" ? account.activeRoleCodes.filter((code): code is PlatformRoleCode => roles.some((role) => role.code === code)).map((roleCode) => (
-                    <MenuItem key={roleCode} onClick={() => setDialog({ kind: "role", account, roleCode, action: "revoke" })}>撤销平台治理权限</MenuItem>
-                  )) : null}
-                </MenuList></MenuPopover>
-              </Menu>
-            </div>
-          </article>
-        ))}
-      </div>
-      <div className="platform-account-pagination" aria-label="人员账户目录分页">
-        <Text>第 {route.page} 页，共 {total} 个账户</Text>
-        <Button appearance="subtle" disabled={!hasPrevious || busy} onClick={() => onRouteChange({ ...route, page: route.page - 1 })}>上一页</Button>
-        <Button appearance="subtle" disabled={!hasNext || busy} onClick={() => onRouteChange({ ...route, page: route.page + 1 })}>下一页</Button>
-      </div>
-      <Drawer
-        className="foundation-detail-drawer"
-        type="overlay"
-        position="end"
-        size="medium"
-        open={detailAccount !== undefined}
-        onOpenChange={(_, data) => { if (!data.open) setDetailAccount(undefined); }}
-      >
-        <DrawerHeader>
-          <DrawerHeaderTitle
-            action={<Button appearance="subtle" aria-label="关闭账户详情" icon={<Dismiss20Regular />} onClick={() => setDetailAccount(undefined)} />}
-          >
-            账户详情
-          </DrawerHeaderTitle>
-        </DrawerHeader>
-        <DrawerBody>
-          {detailAccount === undefined ? null : (
-            <div className="account-detail">
-              <div className="account-detail__heading">
-                <span className="account-detail__context">全局人员账户</span>
-                <Title3>{detailAccount.loginName}</Title3>
-                <Badge appearance="tint" color={detailAccount.status === "ACTIVE" ? "success" : "danger"}>
-                  {detailAccount.status === "ACTIVE" ? "已启用" : "已停用"}
-                </Badge>
-              </div>
-              <dl className="account-detail__facts">
-                <div><dt>建立时间</dt><dd>{new Date(detailAccount.createdAt).toLocaleString("zh-CN")}</dd></div>
-                <div><dt>平台治理权限</dt><dd>{detailAccount.activeRoleCodes.length === 0 ? "未授予" : detailAccount.activeRoleCodes.map(roleLabel).join("、")}</dd></div>
-                <div><dt>会话影响</dt><dd>账户状态、口令或角色变化后，已有平台与租户会话都会失效。</dd></div>
-              </dl>
-              <div className="account-detail__boundary">
-                <strong>信息边界</strong>
-                <Text>详情不展示主体标识、账户修订、密码摘要、会话或权限快照。</Text>
-              </div>
-            </div>
-          )}
-        </DrawerBody>
-      </Drawer>
-      <Dialog open={dialog !== undefined} onOpenChange={(_, data) => { if (!data.open && !busy) closeDialog(); }}>
-        <DialogSurface className="foundation-task-dialog">
-          <DialogBody>
-            <DialogTitle>{dialog?.kind === "create" ? "建立人员账户" : dialog?.kind === "reset" ? "重置人员账户口令" : dialog?.kind === "enable" ? "确认启用人员账户" : dialog?.action === "bind" ? "确认授予平台治理权限" : "确认撤销平台治理权限"}</DialogTitle>
-            <DialogContent>{dialog?.kind === "create"
-              ? <>
-                <Text>新账户默认没有任何角色。要作为租户管理员，请在租户建立向导中选择该账户；不需要授予平台管理员权限。</Text>
-                <Field label="全局登录名" required>
-                  <Input size="large" value={loginName} onChange={(_, data) => setLoginName(data.value)} autoComplete="username" />
-                </Field>
-                <Field label="初始口令" required>
-                  <Input size="large" type="password" value={password} onChange={(_, data) => setPassword(data.value)} autoComplete="new-password" />
-                </Field>
-              </>
-              : dialog?.kind === "reset"
-                ? <><Text>{dialog.account.loginName} 的旧平台和租户会话会全部失效，需使用新口令重新认证。</Text><Field label="新口令" required><Input type="password" value={password} onChange={(_, data) => setPassword(data.value)} autoComplete="new-password" /></Field></>
-              : dialog?.kind === "enable"
-              ? `${dialog.account.loginName} 将恢复为活动账户。提交后该主体的全部平台与租户旧会话将失效，需重新认证。`
-              : dialog?.kind === "role"
-                ? `${dialog.account.loginName} 将${dialog.action === "bind" ? "获得" : "失去"}“${roleLabel(dialog.roleCode)}”平台治理权限。该权限可使用“${roles.find((role) => role.code === dialog.roleCode)?.navigation}”，但不会让账户自动成为任何租户的管理员；提交后目标账户的全部会话将失效。${dialog.action === "revoke" ? "平台必须至少保留一名可用的平台管理员。" : ""}`
-                : ""}</DialogContent>
-            <DialogActions>
-              <Button appearance="secondary" disabled={busy} onClick={closeDialog}>取消</Button>
-              <Button appearance="primary" disabled={busy || dialog === undefined || ((dialog.kind === "create" || dialog.kind === "reset") && (dialog.kind === "create" ? loginName.trim() === "" || password === "" : password === ""))} onClick={() => dialog && void (dialog.kind === "create" ? createAccount() : dialog.kind === "reset" ? resetAccountPassword(dialog.account) : dialog.kind === "enable" ? enableAccount(dialog.account) : changeRole(dialog))}>{busy ? "正在提交" : dialog?.kind === "create" ? "建立人员账户" : dialog?.kind === "reset" ? "重置口令" : "确认提交"}</Button>
-            </DialogActions>
-          </DialogBody>
-        </DialogSurface>
-      </Dialog>
+            <form noValidate onSubmit={event => {
+              event.preventDefault();
+              const target = Number(jump);
+              if (!Number.isSafeInteger(target) || target < 1 || target > Math.max(1, page?.totalPages ?? 1)) {
+                setJumpError(`请输入 1–${Math.max(1, page?.totalPages ?? 1)} 之间的整数页码。`);
+                event.currentTarget.querySelector("input")?.focus();
+                return;
+              }
+              navigate({ page: target });
+            }}>
+              <label>跳至 <input type="number" aria-label="跳转页码" min="1" max={page?.totalPages || 1}
+                aria-invalid={Boolean(jumpError)} value={jump}
+                onChange={event => { setJumpError(""); setJumpDraft({
+                  fromPage: route.page, value: event.target.value }); }} /> 页</label>
+              <Button type="submit" appearance="secondary">跳转</Button>
+            </form>
+            {jumpError ? <span className="tenant-admin-page__page-error" role="alert">{jumpError}</span> : null}
+          </div>
+        </div>
+      </> : null}
     </section>
-  );
+    <Dialog open={pending !== undefined} onOpenChange={(_, value) => { if (!value.open) closeDialog(); }}>
+      <DialogSurface className="foundation-task-dialog tenant-admin-page__dialog platform-account-page__dialog">
+        <DialogBody>
+          <DialogTitle><span className="tenant-admin-page__kicker">{pending?.kind === "create" ? "平台管理员账户"
+            : pending?.kind === "reset" ? "受控凭据重置" : "账户治理"}</span>
+            <span>{pending?.kind === "create" ? "创建平台账户" : pending?.kind === "reset" ? "重置密码" : "确认账户操作"}</span>
+          </DialogTitle>
+          <DialogContent>{pending?.kind === "create" ? <>
+            <p>设置一次性初始密码；提交后不再显示。</p>
+            <details className="tenant-admin-page__password-help"><summary>密码安全说明</summary>
+              <p>请为本人设置独立密码，并通过组织批准的安全渠道单独告知。</p>
+            </details>
+            <Field label="登录名" required hint="3–64 位小写字母、数字、点、下划线或连字符。">
+              <Input ref={loginInput} value={loginName} maxLength={64} placeholder="例如：zhou.demo"
+                autoComplete="off" onChange={(_, value) => { setDialogValidation(""); setLoginName(value.value); }} />
+            </Field>
+            <div className="tenant-admin-page__password-grid">
+              <Field label="初始密码" required><Input ref={passwordInput} type="password" maxLength={1024}
+                autoComplete="new-password" value={password}
+                onChange={(_, value) => { setDialogValidation(""); setPassword(value.value); }} /></Field>
+              <Field label="再次输入" required><Input ref={confirmationInput} type="password" maxLength={1024}
+                autoComplete="new-password" value={confirmation}
+                onChange={(_, value) => { setDialogValidation(""); setConfirmation(value.value); }} /></Field>
+            </div>
+            <p>请通过组织批准的安全渠道单独告知本人；页面、存储和审计均不保留明文。</p>
+          </> : pending?.kind === "reset" ? <>
+            <p>为“{pending.target.loginName}”重置密码。提交后全部旧会话失效。</p>
+            <details className="tenant-admin-page__password-help"><summary>密码安全说明</summary>
+              <p>当前密码无法查看。请设置独立的新密码，并通过安全渠道告知本人。</p>
+            </details>
+            <div className="tenant-admin-page__password-grid">
+              <Field label="新密码" required><Input ref={passwordInput} type="password" maxLength={1024}
+                autoComplete="new-password" value={password}
+                onChange={(_, value) => { setDialogValidation(""); setPassword(value.value); }} /></Field>
+              <Field label="再次输入" required><Input ref={confirmationInput} type="password" maxLength={1024}
+                autoComplete="new-password" value={confirmation}
+                onChange={(_, value) => { setDialogValidation(""); setConfirmation(value.value); }} /></Field>
+            </div>
+            <div className="tenant-admin-page__revoke"><Checkbox ref={revokeInput} checked={revokeAcknowledged}
+              aria-label="确认撤销全部会话"
+              onChange={(_, value) => { setDialogValidation(""); setRevokeAcknowledged(Boolean(value.checked)); }}
+              label={<span className="tenant-admin-page__revoke-copy"><strong>撤销全部会话</strong>
+                <small>平台与租户范围的既有会话同时失效。</small></span>} /></div>
+          </> : isStatus ? <>
+            <p>“{pending.target.loginName}”将{disabling ? "停用" : "恢复"}。</p>
+            <dl className="tenant-admin-page__impact">
+              <div><dt>影响</dt><dd>{disabling ? "该身份不能登录，全部旧会话立即失效。" : "该身份可重新登录，但旧会话不会恢复。"}</dd></div>
+              <div><dt>恢复</dt><dd>{disabling ? "之后可恢复账户；最后一名可用平台管理员不能停用。" : "可再次停用，恢复后须重新认证。"}</dd></div>
+              <div><dt>审计</dt><dd>记录操作者、目标账户、操作、结果与非秘密版本。</dd></div>
+            </dl>
+          </> : null}
+            {dialogValidation ? <p className="tenant-admin-page__validation" role="alert">{dialogValidation}</p> : null}
+          </DialogContent>
+          <DialogActions>
+            <Button appearance="secondary" disabled={busy} onClick={closeDialog}>取消</Button>
+            <Button appearance="primary" disabled={busy || !pending} onClick={() => void commit()}>
+              {busy ? "正在提交" : pending?.kind === "create" ? "创建账户" : pending?.kind === "reset" ? "重置密码"
+                : disabling ? "确认停用" : "确认恢复"}</Button>
+          </DialogActions>
+        </DialogBody>
+      </DialogSurface>
+    </Dialog>
+  </>;
 }

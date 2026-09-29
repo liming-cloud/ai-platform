@@ -73,7 +73,8 @@ export type ConsoleRoute =
   | { navigationId: "platform"; task: "features"; tenantId: string }
   | { navigationId: "platform"; task: "security"; tenantId: string }
   | { navigationId: "platform"; task: "admins"; tenantId: string; query: string; status: "ALL" | "ENABLED" | "DISABLED"; page: number; pageSize: 10 | 20 | 50 | 100 }
-  | { navigationId: "platform-accounts"; task: "accounts"; page: number }
+  | { navigationId: "platform-accounts"; task: "accounts"; query: string;
+      status: "ALL" | "ACTIVE" | "DISABLED"; page: number; pageSize: 10 | 20 | 50 | 100 }
   | { navigationId: "platform-accounts"; task: "roles" }
   | { navigationId: "platform-model-supply"; task: "connections"; page: number }
   | {
@@ -111,7 +112,7 @@ export function defaultConsoleRoute(navigationId: ConsoleNavigationId): ConsoleR
     case "platform":
       return { navigationId, task: "tenants", page: 1 };
     case "platform-accounts":
-      return { navigationId, task: "accounts", page: 1 };
+      return { navigationId, task: "accounts", query: "", status: "ALL", page: 1, pageSize: 20 };
     case "platform-model-supply":
       return { navigationId, task: "connections", page: 1 };
   }
@@ -352,10 +353,16 @@ export function parseConsoleRoute(pathname: string, search: string): ConsoleRout
     };
   }
   if (routePath === "/platform/accounts") {
+    const parameters = new URLSearchParams(search);
+    const status = parameters.get("status");
     return {
       navigationId: "platform-accounts",
       task: "accounts",
-      page: positivePage(new URLSearchParams(search).get("page")),
+      query: parameters.get("q")?.trim() ?? "",
+      status: status === "ACTIVE" || status === "DISABLED" ? status : "ALL",
+      page: positivePage(parameters.get("page")),
+      pageSize: [10, 20, 50, 100].includes(Number(parameters.get("pageSize")))
+        ? Number(parameters.get("pageSize")) as 10 | 20 | 50 | 100 : 20,
     };
   }
   const tenantDetail = /^\/platform\/tenants\/([1-9]\d*)$/.exec(routePath);
@@ -454,7 +461,10 @@ export function formatConsoleRoute(route: ConsoleRoute): string {
         : `/platform/tenants/new?step=${route.step}`;
   }
   if (route.navigationId === "platform-accounts") {
-    return route.task === "accounts" ? `/platform/accounts?page=${route.page}` : "/platform/roles";
+    return route.task === "accounts"
+      ? `/platform/accounts?${new URLSearchParams({ q: route.query, status: route.status,
+        page: String(route.page), pageSize: String(route.pageSize) })}`
+      : "/platform/roles";
   }
   return route.task === "connections"
     ? `/platform/model-supply?page=${route.page}`

@@ -23,6 +23,11 @@ public final class PostgresPlatformRoleBindingStore implements PlatformRoleBindi
     }
 
     @Override
+    public void lockAdministratorDisableGate() {
+        mapper.lockAdministratorDisableGate();
+    }
+
+    @Override
     public Optional<SubjectIdentity> lock(SubjectId subjectId) {
         var entity = mapper.lockSubject(Objects.requireNonNull(subjectId, "主体标识不能为空").value());
         if (entity == null) {

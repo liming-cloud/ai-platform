@@ -44,10 +44,13 @@ public final class PlatformAccountGovernanceController {
     public PageResult<PlatformAccountSummaryResponse> list(
             PlatformRequestContext platform,
             @RequestParam(defaultValue = "1") long pageNumber,
-            @RequestParam(defaultValue = "20") long pageSize) {
-        var page = directory.list(platform, new PageQuery(pageNumber, pageSize));
+            @RequestParam(defaultValue = "20") long pageSize,
+            @RequestParam(defaultValue = "") String q,
+            @RequestParam(defaultValue = "ALL") String status) {
+        var page = directory.list(platform, new PageQuery(pageNumber, pageSize), q, status);
         return new PageResult<>(
-                page.items().stream().map(PlatformAccountSummaryResponse::from).toList(),
+                page.items().stream().map(item -> PlatformAccountSummaryResponse.from(
+                        item, platform.subjectId().value())).toList(),
                 page.pageNumber(),
                 page.pageSize(),
                 page.totalElements(),

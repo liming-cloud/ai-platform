@@ -34,6 +34,7 @@ public class PlatformAccountGovernanceApplicationService {
         if (!context.hasPermission(PlatformPermissions.ACCOUNT_MANAGE)) {
             throw new IllegalArgumentException("当前主体没有账户治理权限");
         }
+        store.lockAdministratorDisableGate();
         var targetId = new SubjectId(subjectId);
         var target = store.lock(targetId)
                 .orElseThrow(() -> new IllegalArgumentException("目标账户不存在"));
@@ -44,6 +45,7 @@ public class PlatformAccountGovernanceApplicationService {
                 store.hasActiveAccountAdministratorRole(targetId),
                 store.countOtherActiveAccountAdministrators(targetId));
         store.update(result.identity());
+        store.recordOperation(context.subjectId().value(), subjectId, "DISABLE", result.identity().version());
         sessions.revokeAll(result.sessionRevocationSubjectId());
     }
 
@@ -61,6 +63,7 @@ public class PlatformAccountGovernanceApplicationService {
         var result = PlatformAccountGovernance.enable(
                 new SubjectId(context.subjectId().value()), target);
         store.update(result.identity());
+        store.recordOperation(context.subjectId().value(), subjectId, "ENABLE", result.identity().version());
         sessions.revokeAll(result.sessionRevocationSubjectId());
     }
 
@@ -86,6 +89,7 @@ public class PlatformAccountGovernanceApplicationService {
                     target,
                     new EncodedPassword(passwords.encode(replacementPassword)));
             store.update(result.identity());
+            store.recordOperation(context.subjectId().value(), subjectId, "RESET_PASSWORD", result.identity().version());
             sessions.revokeAll(result.sessionRevocationSubjectId());
         } finally {
             Arrays.fill(replacementPassword, '\0');

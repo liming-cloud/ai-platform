@@ -354,14 +354,23 @@ describe("统一控制台路由", () => {
       navigationId: "platform-accounts",
       task: "accounts",
       page: 1,
+      pageSize: 20,
+      query: "",
+      status: "ALL",
     });
-    expect(parseConsoleRoute("/platform/accounts", "?page=3")).toEqual({
+    expect(parseConsoleRoute("/platform/accounts", "?q=admin&status=DISABLED&page=3&pageSize=50")).toEqual({
       navigationId: "platform-accounts",
       task: "accounts",
       page: 3,
+      pageSize: 50,
+      query: "admin",
+      status: "DISABLED",
     });
-    expect(formatConsoleRoute({ navigationId: "platform-accounts", task: "accounts", page: 3 }))
-      .toBe("/platform/accounts?page=3");
+    expect(formatConsoleRoute({ navigationId: "platform-accounts", task: "accounts", page: 3,
+      pageSize: 50, query: "admin", status: "DISABLED" }))
+      .toBe("/platform/accounts?q=admin&status=DISABLED&page=3&pageSize=50");
+    expect(parseConsoleRoute("/platform/accounts", "?pageSize=101&status=unknown"))
+      .toMatchObject({ pageSize: 20, status: "ALL" });
   });
 
   it("平台模型供应链以独立能力入口和 URL 恢复服务端页码", () => {

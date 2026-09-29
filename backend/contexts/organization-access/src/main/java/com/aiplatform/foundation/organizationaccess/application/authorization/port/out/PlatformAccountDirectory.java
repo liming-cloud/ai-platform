@@ -7,5 +7,9 @@ import com.aiplatform.foundation.shared.contract.paging.PageResult;
 /** 平台账户的服务端分页读取端口。 */
 public interface PlatformAccountDirectory {
 
-    PageResult<PlatformAccountSummary> list(PageQuery query);
+    PageResult<PlatformAccountSummary> list(PageQuery query, String loginName, String status);
+
+    default PageResult<PlatformAccountSummary> list(PageQuery query) {
+        return list(query, "", "ALL");
+    }
 }

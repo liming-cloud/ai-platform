@@ -73,6 +73,7 @@ public class PlatformRoleBindingApplicationService {
             PlatformRequestContext context, long subjectId, String roleCode) {
         requireAccountManager(context);
         var role = publishedRole(roleCode);
+        store.lockAdministratorDisableGate();
         var targetId = new SubjectId(subjectId);
         var target = store.lock(targetId)
                 .orElseThrow(() -> new IllegalArgumentException("目标账户不存在"));

@@ -230,8 +230,9 @@ public class OrganizationAccessCoreAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean
     PlatformAccountEstablishmentApplicationService platformAccountEstablishmentApplicationService(
-            PlatformAccountStore store, PasswordHasher passwords, EntityIdGenerator identifiers) {
-        return new PlatformAccountEstablishmentApplicationService(store, passwords, identifiers);
+            PlatformAccountStore store, PlatformRoleBindingStore bindings,
+            PasswordHasher passwords, EntityIdGenerator identifiers) {
+        return new PlatformAccountEstablishmentApplicationService(store, bindings, passwords, identifiers);
     }
 
     @Bean

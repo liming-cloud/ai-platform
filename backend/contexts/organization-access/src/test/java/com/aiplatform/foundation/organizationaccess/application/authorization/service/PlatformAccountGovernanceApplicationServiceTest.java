@@ -147,6 +147,9 @@ class PlatformAccountGovernanceApplicationServiceTest {
         }
 
         @Override
+        public void lockAdministratorDisableGate() { }
+
+        @Override
         public Optional<SubjectIdentity> lock(SubjectId subjectId) {
             return Optional.of(SubjectIdentity.reconstitute(
                     subjectId,
@@ -178,8 +181,13 @@ class PlatformAccountGovernanceApplicationServiceTest {
         }
 
         @Override
+        public void recordOperation(long operatorSubjectId, long targetSubjectId, String operation, long targetVersion) {
+            if (operatorSubjectId != 101L || targetSubjectId != 102L) throw new AssertionError("账户操作审计主体错误");
+        }
+
+        @Override
         public com.aiplatform.foundation.shared.contract.paging.PageResult<com.aiplatform.foundation.organizationaccess.application.authorization.dto.PlatformAccountSummary> list(
-                com.aiplatform.foundation.shared.contract.paging.PageQuery query) {
+                com.aiplatform.foundation.shared.contract.paging.PageQuery query, String loginName, String status) {
             throw new AssertionError("禁用用例不得读取账户目录");
         }
     }

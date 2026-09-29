@@ -4,6 +4,9 @@
         "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.aiplatform.foundation.organizationaccess.infrastructure.persistence.authorization.mapper.PlatformRoleBindingMapper">
 
+    <!-- 与账户停用共用事务门禁，防止交叉并发撤销最后一名平台管理员。 -->
+    <select id="lockAdministratorDisableGate" resultType="java.lang.String">SELECT pg_advisory_xact_lock(17, 1)</select>
+
     <resultMap id="platformRoleAuthorization"
         type="com.aiplatform.foundation.organizationaccess.infrastructure.persistence.authorization.projection.PlatformRoleAuthorizationRow">
         <result column="subject_id" property="subjectId"/>

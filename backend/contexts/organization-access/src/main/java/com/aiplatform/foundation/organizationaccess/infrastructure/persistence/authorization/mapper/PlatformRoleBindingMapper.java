@@ -10,6 +10,8 @@ import org.apache.ibatis.annotations.Param;
 /** 读取活动平台角色绑定认证事实的 MyBatis 映射器。 */
 public interface PlatformRoleBindingMapper {
 
+    String lockAdministratorDisableGate();
+
     List<PlatformRoleAuthorizationRow> findActiveAuthorizationBySubject(@Param("subjectId") long subjectId);
 
     SubjectIdentityEntity lockSubject(@Param("subjectId") long subjectId);

@@ -4,24 +4,18 @@ import { describe, expect, it } from "vitest";
 
 const workspacePath = new URL("./PlatformAccountDirectoryWorkspace.tsx", import.meta.url).pathname;
 
-describe("平台账户详情", () => {
-  it("列表提供安全详情抽屉且不渲染内部标识", () => {
+describe("平台管理员账户页安全边界", () => {
+  it("账户页只提供平台管理员操作且不渲染内部标识", () => {
     const source = readFileSync(workspacePath, "utf8");
 
-    expect(source).toContain("查看详情");
-    expect(source).toContain("<Drawer");
-    expect(source).toContain("账户详情");
-    expect(source).not.toContain("{detailAccount.subjectId}");
-    expect(source).not.toContain("{detailAccount.version}");
-  });
-
-  it("把全局人员账户与平台管理员授权明确分开", () => {
-    const source = readFileSync(workspacePath, "utf8");
-
-    expect(source).toContain("人员账户目录");
-    expect(source).toContain("尚未授予平台治理权限");
-    expect(source).toContain("授予平台治理权限");
-    expect(source).not.toContain("尚未绑定平台角色");
-    expect(source).not.toContain("绑定平台管理员");
+    expect(source).toContain("创建平台账户");
+    expect(source).toContain("重置密码");
+    expect(source).toContain("停用账户");
+    expect(source).toContain("恢复账户");
+    expect(source).toContain("item.current");
+    expect(source).not.toContain("bindPlatformRole");
+    expect(source).not.toContain("revokePlatformRole");
+    expect(source).not.toContain("<td>{item.subjectId}</td>");
+    expect(source).not.toContain("<td>{item.version}</td>");
   });
 });

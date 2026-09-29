@@ -16,11 +16,11 @@ class PlatformAccountDirectoryApplicationServiceTest {
 
     @Test
     void 缺少账户治理权限的平台会话不得读取账户目录() {
-        PlatformAccountDirectory directory = query -> { throw new AssertionError("未授权请求不得访问目录"); };
+        PlatformAccountDirectory directory = (query, loginName, status) -> { throw new AssertionError("未授权请求不得访问目录"); };
         var service = new PlatformAccountDirectoryApplicationService(directory);
         var context = new PlatformRequestContext(new SubjectId(101L), CredentialType.PERSON,
                 AccessChannel.CONSOLE, 1L, Set.of(PlatformPermissions.SESSION_ACCESS), "trc_account_directory");
 
-        assertThrows(IllegalArgumentException.class, () -> service.list(context, new PageQuery(1, 20)));
+        assertThrows(IllegalArgumentException.class, () -> service.list(context, new PageQuery(1, 20), "", "ALL"));
     }
 }

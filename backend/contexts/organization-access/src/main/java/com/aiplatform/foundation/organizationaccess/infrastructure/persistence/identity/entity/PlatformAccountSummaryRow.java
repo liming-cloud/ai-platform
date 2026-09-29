@@ -10,6 +10,7 @@ public final class PlatformAccountSummaryRow {
     private String status;
     private long version;
     private Instant createdAt;
+    private Instant updatedAt;
     private String activeRoleCodes;
 
     public long getSubjectId() { return subjectId; }
@@ -22,6 +23,8 @@ public final class PlatformAccountSummaryRow {
     public void setVersion(long version) { this.version = version; }
     public Instant getCreatedAt() { return createdAt; }
     public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
+    public Instant getUpdatedAt() { return updatedAt; }
+    public void setUpdatedAt(Instant updatedAt) { this.updatedAt = updatedAt; }
     public String getActiveRoleCodes() { return activeRoleCodes; }
     public void setActiveRoleCodes(String activeRoleCodes) { this.activeRoleCodes = activeRoleCodes; }
 }

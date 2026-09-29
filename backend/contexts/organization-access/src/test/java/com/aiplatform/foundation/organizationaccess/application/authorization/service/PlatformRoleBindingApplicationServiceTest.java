@@ -97,6 +97,9 @@ class PlatformRoleBindingApplicationServiceTest {
 
     private static final class RecordingStore implements PlatformRoleBindingStore {
 
+        @Override
+        public void lockAdministratorDisableGate() { }
+
         private PlatformRoleBinding saved;
         private long authorizationRevisionCount;
         private long enabledTenantMemberships;

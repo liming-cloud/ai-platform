@@ -52,6 +52,8 @@ export interface PlatformAccountSummary {
   version: number;
   createdAt: string;
   activeRoleCodes: string[];
+  lastSecurityChangeAt?: string | null;
+  current: boolean;
 }
 
 /** 平台角色写操作的最小回显，不包含权限快照或会话信息。 */
@@ -868,9 +870,13 @@ export class ControlPlaneClient {
   async listPlatformAccounts(
     pageNumber = 1,
     pageSize = 20,
+    query = "",
+    status: "ALL" | "ACTIVE" | "DISABLED" = "ALL",
   ): Promise<PageResult<PlatformAccountSummary>> {
+    const parameters = new URLSearchParams({ pageNumber: String(pageNumber), pageSize: String(pageSize),
+      q: query.trim(), status });
     return this.request<PageResult<PlatformAccountSummary>>(
-      `/platform/accounts?pageNumber=${pageNumber}&pageSize=${pageSize}`,
+      `/platform/accounts?${parameters}`,
     );
   }
 
@@ -901,6 +907,13 @@ export class ControlPlaneClient {
   async enablePlatformAccount(subjectId: string): Promise<void> {
     return this.request<void>(
       `/platform/accounts/${encodeURIComponent(subjectId)}/enable`,
+      { method: "POST" },
+    );
+  }
+
+  async disablePlatformAccount(subjectId: string): Promise<void> {
+    return this.request<void>(
+      `/platform/accounts/${encodeURIComponent(subjectId)}/disable`,
       { method: "POST" },
     );
   }

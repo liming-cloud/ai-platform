@@ -24,7 +24,7 @@ class PlatformAccountGovernanceControllerTest {
     void HTTP目录从URL读取分页且不接收平台身份字段() throws Exception {
         var service = mock(PlatformAccountGovernanceApplicationService.class);
         var directory = mock(PlatformAccountDirectoryApplicationService.class);
-        when(directory.list(any(), any())).thenReturn(new com.aiplatform.foundation.shared.contract.paging.PageResult<>(
+        when(directory.list(any(), any(), any(), any())).thenReturn(new com.aiplatform.foundation.shared.contract.paging.PageResult<>(
                 java.util.List.of(new PlatformAccountSummary(4921825928971026436L, "target-account", "ACTIVE", 0L, Instant.parse("2026-08-11T00:00:00Z"), java.util.Set.of())),
                 2L, 20L, 21L, 2L, true, false));
         var context = context();
@@ -41,7 +41,7 @@ class PlatformAccountGovernanceControllerTest {
                 .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath("$.items[0].loginName").value("target-account"))
                 .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath("$.pageNumber").value(2));
 
-        verify(directory).list(org.mockito.Mockito.same(context), any());
+        verify(directory).list(org.mockito.Mockito.same(context), any(), org.mockito.Mockito.eq(""), org.mockito.Mockito.eq("ALL"));
     }
 
     @Test

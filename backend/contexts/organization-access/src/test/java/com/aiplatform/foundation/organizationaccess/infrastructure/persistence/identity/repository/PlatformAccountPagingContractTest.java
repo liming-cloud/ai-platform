@@ -11,7 +11,7 @@ class PlatformAccountPagingContractTest {
 
     @Test
     void 账户目录必须通过基础设施分页契约返回结果和总数() throws NoSuchMethodException {
-        var method = PlatformAccountMapper.class.getMethod("list", IPage.class);
+        var method = PlatformAccountMapper.class.getMethod("list", IPage.class, String.class, String.class);
 
         assertEquals(IPage.class, method.getReturnType());
     }

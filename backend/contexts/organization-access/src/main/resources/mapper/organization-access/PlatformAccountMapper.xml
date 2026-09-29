@@ -9,20 +9,30 @@
     <resultMap id="accountSummary" type="com.aiplatform.foundation.organizationaccess.infrastructure.persistence.identity.entity.PlatformAccountSummaryRow">
         <result column="subject_id" property="subjectId"/><result column="login_name" property="loginName"/>
         <result column="status" property="status"/><result column="version" property="version"/>
-        <result column="created_at" property="createdAt"/><result column="active_role_codes" property="activeRoleCodes"/>
+        <result column="created_at" property="createdAt"/><result column="updated_at" property="updatedAt"/>
+        <result column="active_role_codes" property="activeRoleCodes"/>
     </resultMap>
+    <!-- 同一事务串行化所有平台管理员停用请求，锁定目标行前先取得全局门禁。 -->
+    <select id="lockAdministratorDisableGate" resultType="java.lang.String">SELECT pg_advisory_xact_lock(17, 1)</select>
     <select id="lock" resultMap="subjectIdentity">SELECT subject_id, login_name, password_hash, status, version, created_at FROM organization_access.subject_identity WHERE subject_id = #{subjectId} FOR UPDATE</select>
     <select id="hasActiveAccountAdministratorRole" resultType="boolean">SELECT EXISTS (SELECT 1 FROM organization_access.platform_role_binding WHERE subject_id = #{subjectId} AND role_code = 'PLATFORM_ADMINISTRATOR' AND status = 'ACTIVE')</select>
     <select id="countOtherActiveAccountAdministrators" resultType="long">SELECT COUNT(*) FROM organization_access.platform_role_binding binding INNER JOIN organization_access.subject_identity subject ON subject.subject_id = binding.subject_id WHERE binding.role_code = 'PLATFORM_ADMINISTRATOR' AND binding.status = 'ACTIVE' AND subject.status = 'ACTIVE' AND binding.subject_id &lt;&gt; #{subjectId}</select>
     <insert id="insert">INSERT INTO organization_access.subject_identity (subject_id, login_name, password_hash, status, version, created_at) VALUES (#{subjectId}, #{loginName}, #{passwordHash}, #{status}, #{version}, #{createdAt}) ON CONFLICT (login_name) DO NOTHING</insert>
     <update id="update">UPDATE organization_access.subject_identity SET password_hash = #{passwordHash}, status = #{status}, version = #{version}, updated_at = CASE WHEN password_hash &lt;&gt; #{passwordHash} OR status &lt;&gt; #{status} THEN CURRENT_TIMESTAMP ELSE updated_at END WHERE subject_id = #{subjectId} AND version = #{expectedVersion}</update>
     <select id="list" resultMap="accountSummary">
-        SELECT subject.subject_id, subject.login_name, subject.status, subject.version, subject.created_at,
-               COALESCE(string_agg(binding.role_code, ',' ORDER BY binding.role_code), '') AS active_role_codes
+        SELECT subject.subject_id, subject.login_name, subject.status, subject.version,
+               subject.created_at, subject.updated_at, binding.role_code AS active_role_codes
         FROM organization_access.subject_identity subject
-        LEFT JOIN organization_access.platform_role_binding binding
-            ON binding.subject_id = subject.subject_id AND binding.status = 'ACTIVE'
-        GROUP BY subject.subject_id, subject.login_name, subject.status, subject.version, subject.created_at
+        INNER JOIN organization_access.platform_role_binding binding
+            ON binding.subject_id = subject.subject_id
+            AND binding.role_code = 'PLATFORM_ADMINISTRATOR' AND binding.status = 'ACTIVE'
+        WHERE (#{loginName} = '' OR POSITION(LOWER(#{loginName}) IN LOWER(subject.login_name)) &gt; 0)
+          AND (#{status} = 'ALL' OR subject.status = #{status})
         ORDER BY subject.created_at DESC, subject.subject_id DESC
     </select>
+    <insert id="recordOperation">
+        INSERT INTO organization_access.platform_account_operation_audit
+            (operator_subject_id, target_subject_id, operation, result, target_version)
+        VALUES (#{operatorSubjectId}, #{targetSubjectId}, #{operation}, 'SUCCEEDED', #{targetVersion})
+    </insert>
 </mapper>

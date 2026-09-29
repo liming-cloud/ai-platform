@@ -1142,9 +1142,9 @@ describe("ControlPlaneClient", () => {
       }), { status: 200, headers: { "Content-Type": "application/json" } });
     });
 
-    const page = await client.listPlatformAccounts(3, 20);
+    const page = await client.listPlatformAccounts(3, 20, "platform", "ACTIVE");
 
-    expect(request?.url).toBe("http://localhost/api/v1/platform/accounts?pageNumber=3&pageSize=20");
+    expect(request?.url).toBe("http://localhost/api/v1/platform/accounts?pageNumber=3&pageSize=20&q=platform&status=ACTIVE");
     expect(request?.method).toBe("GET");
     expect(request?.headers.get("Authorization")).toBeNull();
     expect(page.items[0]).not.toHaveProperty("passwordHash");

@@ -9,6 +9,9 @@ import java.util.Optional;
 /** 平台固定角色绑定写入所需的受锁账户与认证修订端口。 */
 public interface PlatformRoleBindingStore {
 
+    /** 撤销平台管理员资格前使用与账户停用相同的事务门禁。 */
+    void lockAdministratorDisableGate();
+
     Optional<SubjectIdentity> lock(SubjectId subjectId);
 
     boolean hasActiveBinding(SubjectId subjectId, PlatformRole role);

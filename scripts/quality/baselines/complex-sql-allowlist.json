@@ -723,6 +723,12 @@
     },
     {
       "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/PlatformAccountMapper.xml",
+      "statementId": "lockAdministratorDisableGate",
+      "category": "POSTGRES_ADVISORY_LOCK",
+      "reason": "停用不同目标时串行化最后平台管理员判断，防止并发请求均看到对方仍可用。"
+    },
+    {
+      "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/PlatformAccountMapper.xml",
       "statementId": "lock",
       "category": "ROW_LOCK",
       "reason": "账户状态变化前锁定目标主体，保证最后管理员判断和修订提交一致。"
@@ -755,7 +761,19 @@
       "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/PlatformAccountMapper.xml",
       "statementId": "list",
       "category": "SECURITY_PROJECTION",
-      "reason": "以单次服务端分页聚合投影账户安全摘要及有界活动固定角色代码。"
+      "reason": "仅连接活动平台管理员绑定，在相同范围先筛选再分页投影安全摘要及总数。"
+    },
+    {
+      "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/PlatformAccountMapper.xml",
+      "statementId": "recordOperation",
+      "category": "ATOMIC_STATE_TRANSITION",
+      "reason": "平台账户成功审计与身份、绑定或状态写入同事务提交，失败则整体回滚。"
+    },
+    {
+      "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/PlatformRoleBindingMapper.xml",
+      "statementId": "lockAdministratorDisableGate",
+      "category": "POSTGRES_ADVISORY_LOCK",
+      "reason": "撤销角色与账户停用共用最后管理员事务门禁，防止交叉并发均成功。"
     },
     {
       "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/PlatformRoleBindingMapper.xml",

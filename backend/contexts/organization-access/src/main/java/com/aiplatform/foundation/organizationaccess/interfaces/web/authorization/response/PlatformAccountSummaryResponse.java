@@ -11,7 +11,9 @@ public record PlatformAccountSummaryResponse(
         String status,
         long version,
         Instant createdAt,
-        Set<String> activeRoleCodes) {
+        Set<String> activeRoleCodes,
+        Instant lastSecurityChangeAt,
+        boolean current) {
 
     /** 从应用层安全摘要转换，避免 JavaScript 解析 64 位数时丢失精度。 */
     public static PlatformAccountSummaryResponse from(PlatformAccountSummary summary) {
@@ -21,6 +23,17 @@ public record PlatformAccountSummaryResponse(
                 summary.status(),
                 summary.version(),
                 summary.createdAt(),
-                summary.activeRoleCodes());
+                summary.activeRoleCodes(),
+                summary.lastSecurityChangeAt(),
+                false);
+    }
+
+    /** 当前主体标记由可信请求上下文计算，不接受浏览器传入身份声明。 */
+    public static PlatformAccountSummaryResponse from(PlatformAccountSummary summary, long currentSubjectId) {
+        var response = from(summary);
+        return new PlatformAccountSummaryResponse(
+                response.subjectId(), response.loginName(), response.status(), response.version(),
+                response.createdAt(), response.activeRoleCodes(), response.lastSecurityChangeAt(),
+                summary.subjectId() == currentSubjectId);
     }
 }

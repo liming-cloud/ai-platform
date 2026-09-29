@@ -7,7 +7,7 @@
 | 负责人 | 平台身份与租户开通 |
 | 分支 | main |
 | 里程碑 | M6 |
-| ADR | ADR-0022, ADR-0041, ADR-0048, ADR-0073, ADR-0074, ADR-0075, ADR-0079, ADR-0080, ADR-0083, ADR-0084, ADR-0085, ADR-0086 |
+| ADR | ADR-0022, ADR-0041, ADR-0048, ADR-0073, ADR-0074, ADR-0075, ADR-0079, ADR-0080, ADR-0083, ADR-0085, ADR-0086, ADR-0087 |
 | 证据 | pending |
 | 提交 | pending |
 | 输入提交 | e7a1d673229acf8c7932dcae85699e517f2adab5 |

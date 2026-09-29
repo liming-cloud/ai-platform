@@ -1,0 +1,26 @@
+/* 平台账户页复用已验收目录节奏，仅覆盖本页的双指标和空态。 */
+.platform-account-page .tenant-admin-page__summary {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+.platform-account-page__empty {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 20px;
+  border-top: 1px solid var(--foundation-border);
+}
+.platform-account-page__empty p { margin: 0; }
+.platform-account-page__dialog .fui-Field { min-width: 0; }
+.platform-account-page__dialog .fui-Input { min-height: 36px; }
+.platform-account-page__dialog .fui-Field__hint { color: var(--foundation-secondary-text); }
+.platform-account-page__dialog .fui-DialogContent > p:last-child { font-size: 14px; }
+.platform-account-page .tenant-admin-page__actions details button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+@media (max-width: 680px) {
+  .platform-account-page .tenant-admin-page__summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .platform-account-page__dialog .fui-Input { min-height: 44px; }
+}

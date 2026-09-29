@@ -6,6 +6,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.aiplatform.foundation.organizationaccess.application.authorization.exception.PlatformAccountLoginNameConflictException;
 import com.aiplatform.foundation.organizationaccess.application.authorization.port.out.PlatformAccountStore;
+import com.aiplatform.foundation.organizationaccess.application.authorization.port.out.PlatformRoleBindingStore;
+import com.aiplatform.foundation.organizationaccess.domain.authorization.model.platform.PlatformRole;
 import com.aiplatform.foundation.organizationaccess.domain.identity.model.SubjectIdentity;
 import com.aiplatform.foundation.organizationaccess.domain.member.model.SubjectId;
 import com.aiplatform.foundation.security.identity.AccessChannel;
@@ -19,16 +21,24 @@ import java.time.ZoneOffset;
 import java.util.Optional;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.ArgumentMatchers.argThat;
 
 class PlatformAccountEstablishmentApplicationServiceTest {
 
     @Test
     void 建立账户必须校验账户治理权限并在摘要后清除初始口令() {
         var store = new RecordingStore(true);
+        var bindings = mock(PlatformRoleBindingStore.class);
         var service = new PlatformAccountEstablishmentApplicationService(
                 store,
+                bindings,
                 password -> "encoded:" + String.valueOf(password),
-                () -> 102L,
+                new com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator() {
+                    private long next = 101L;
+                    public long nextId() { return ++next; }
+                },
                 Clock.fixed(Instant.parse("2026-08-11T04:00:00Z"), ZoneOffset.UTC));
         var password = "initial-password".toCharArray();
 
@@ -40,12 +50,16 @@ class PlatformAccountEstablishmentApplicationServiceTest {
         assertEquals(0L, created.version());
         assertArrayEquals(new char[password.length], password);
         assertEquals("encoded:initial-password", store.inserted.encodedPassword().verificationValue());
+        assertEquals(Set.of("PLATFORM_ADMINISTRATOR"), created.activeRoleCodes());
+        verify(bindings).bind(argThat(binding -> binding.subjectId().value() == 102L
+                && binding.role() == PlatformRole.PLATFORM_ADMINISTRATOR));
     }
 
     @Test
     void 无账户治理权限不得建立人员账户() {
         var service = new PlatformAccountEstablishmentApplicationService(
                 new RecordingStore(false),
+                mock(PlatformRoleBindingStore.class),
                 password -> "encoded:" + String.valueOf(password),
                 () -> 102L,
                 Clock.systemUTC());
@@ -57,6 +71,7 @@ class PlatformAccountEstablishmentApplicationServiceTest {
     void 重复登录名返回稳定冲突而不是请求格式错误() {
         var service = new PlatformAccountEstablishmentApplicationService(
                 new RecordingStore(false),
+                mock(PlatformRoleBindingStore.class),
                 password -> "encoded:" + String.valueOf(password),
                 () -> 102L,
                 Clock.systemUTC());
@@ -93,6 +108,11 @@ class PlatformAccountEstablishmentApplicationServiceTest {
         }
 
         @Override
+        public void lockAdministratorDisableGate() {
+            throw new AssertionError("建立账户不得获取停用门禁");
+        }
+
+        @Override
         public Optional<SubjectIdentity> lock(SubjectId subjectId) {
             throw new AssertionError("建立账户不得锁定既有账户");
         }
@@ -119,8 +139,13 @@ class PlatformAccountEstablishmentApplicationServiceTest {
         }
 
         @Override
+        public void recordOperation(long operatorSubjectId, long targetSubjectId, String operation, long targetVersion) {
+            if (targetSubjectId != 102L || !operation.equals("CREATE")) throw new AssertionError("创建审计目标或操作错误");
+        }
+
+        @Override
         public com.aiplatform.foundation.shared.contract.paging.PageResult<com.aiplatform.foundation.organizationaccess.application.authorization.dto.PlatformAccountSummary> list(
-                com.aiplatform.foundation.shared.contract.paging.PageQuery query) {
+                com.aiplatform.foundation.shared.contract.paging.PageQuery query, String loginName, String status) {
             throw new AssertionError("建立账户不得读取目录");
         }
     }
