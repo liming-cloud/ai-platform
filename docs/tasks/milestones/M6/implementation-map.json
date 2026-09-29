@@ -490,7 +490,7 @@
       "phase": "M6",
       "classification": "production",
       "workPackage": "WP-0017",
-      "status": "pending-contract",
+      "status": "in-progress",
       "operations": [
         {
           "id": "platform-accounts:0",
@@ -500,7 +500,17 @@
           "reason": "m6-approved-prototype",
           "workPackage": "WP-0017",
           "dependsOn": [],
-          "status": "pending-contract"
+          "status": "implemented",
+          "contract": {
+            "adr": "ADR-0087",
+            "target": {"kind": "api", "value": "POST /api/v1/platform/accounts"},
+            "saveBoundary": "同一事务创建唯一身份、活动平台管理员绑定和授权修订；任一步失败整体回滚，首次平台登录不产生租户资格。",
+            "authorizationTests": ["平台治理权限先于身份事实读取；重复登录名、无权、缺少 CSRF 与审计写入失败均拒绝", "创建取消零写入；新管理员可从独立平台入口首次登录，租户入口拒绝"]
+          },
+          "verification": {
+            "commands": ["./mvnw -q test", "make frontend-test", "make architecture-guard", "make acceptance-work-package WP=WP-0017 SLICE=accounts", "make acceptance-work-package WP=WP-0017 SLICE=login"],
+            "evidence": ["docs/tasks/WP-0017/evidence/WP-0017-platform-accounts-deploy-audit-20260929.md"]
+          }
         },
         {
           "id": "platform-accounts:1",
@@ -510,7 +520,17 @@
           "reason": "m6-approved-prototype",
           "workPackage": "WP-0017",
           "dependsOn": [],
-          "status": "pending-contract"
+          "status": "implemented",
+          "contract": {
+            "adr": "ADR-0087",
+            "target": {"kind": "api", "value": "POST /api/v1/platform/accounts/{subjectId}/password-reset"},
+            "saveBoundary": "只重置活动平台管理员的全局凭据并撤销该身份全部旧会话；撤销或审计失败整体回滚，取消零写入。",
+            "authorizationTests": ["两次密码一致且显式确认撤销全部会话；无权、错角色目标、自己、缺少 CSRF 均拒绝", "新凭据可登录，旧凭据与全部旧会话失效；响应与审计不含秘密"]
+          },
+          "verification": {
+            "commands": ["./mvnw -q test", "make frontend-test", "make architecture-guard", "make acceptance-work-package WP=WP-0017 SLICE=accounts", "make acceptance-work-package WP=WP-0017 SLICE=login"],
+            "evidence": ["docs/tasks/WP-0017/evidence/WP-0017-platform-accounts-deploy-audit-20260929.md"]
+          }
         },
         {
           "id": "platform-accounts:2",
@@ -520,7 +540,17 @@
           "reason": "m6-approved-prototype",
           "workPackage": "WP-0017",
           "dependsOn": [],
-          "status": "pending-contract"
+          "status": "implemented",
+          "contract": {
+            "adr": "ADR-0087",
+            "target": {"kind": "api", "value": "POST /api/v1/platform/accounts/{subjectId}/disable|enable"},
+            "saveBoundary": "停用立即阻断登录并撤销旧会话；恢复只恢复登录资格，不复活旧会话；审计与业务同事务。",
+            "authorizationTests": ["当前操作者、错角色目标和最后一名可用管理员不得停用；并发停用串行校验", "无权、缺少 CSRF、旧状态与会话撤销失败均拒绝；恢复后重新登录"]
+          },
+          "verification": {
+            "commands": ["./mvnw -q test", "make frontend-test", "make architecture-guard", "make acceptance-work-package WP=WP-0017 SLICE=accounts", "make acceptance-work-package WP=WP-0017 SLICE=login"],
+            "evidence": ["docs/tasks/WP-0017/evidence/WP-0017-platform-accounts-deploy-audit-20260929.md"]
+          }
         },
         {
           "id": "platform-accounts:3",
@@ -530,7 +560,17 @@
           "reason": "m6-approved-prototype",
           "workPackage": "WP-0017",
           "dependsOn": [],
-          "status": "pending-contract"
+          "status": "implemented",
+          "contract": {
+            "adr": "ADR-0087",
+            "target": {"kind": "navigation", "value": "/platform/accounts 空目录及筛选空态"},
+            "saveBoundary": "真实服务端目录为空时仍提供创建入口；筛选空态不改写目录，取消创建零写入。",
+            "authorizationTests": ["平台身份及目录读取权限先于列表事实", "空态创建复用同一受控原子接口，不建立第二套账户状态"]
+          },
+          "verification": {
+            "commands": ["make frontend-test", "make architecture-guard", "make acceptance-work-package WP=WP-0017 SLICE=accounts"],
+            "evidence": ["docs/tasks/WP-0017/evidence/WP-0017-platform-accounts-deploy-audit-20260929.md"]
+          }
         },
         {
           "id": "platform-accounts:4",
@@ -540,7 +580,17 @@
           "reason": "m6-approved-prototype",
           "workPackage": "WP-0017",
           "dependsOn": [],
-          "status": "pending-contract"
+          "status": "implemented",
+          "contract": {
+            "adr": "ADR-0087",
+            "target": {"kind": "api", "value": "GET /api/v1/platform/accounts"},
+            "saveBoundary": "只读服务端固定排序、登录名子串与状态筛选；URL 恢复页码、每页大小和筛选，越界跳页给出反馈。",
+            "authorizationTests": ["仅计入活动平台管理员绑定的身份；停用身份可恢复，其他全局身份不可见", "受权读取、10/20/50/100 页大小、总数与筛选同范围；刷新及前后退恢复"]
+          },
+          "verification": {
+            "commands": ["./mvnw -q test", "make frontend-test", "make architecture-guard", "make acceptance-work-package WP=WP-0017 SLICE=accounts"],
+            "evidence": ["docs/tasks/WP-0017/evidence/WP-0017-platform-accounts-deploy-audit-20260929.md"]
+          }
         }
       ]
     },
