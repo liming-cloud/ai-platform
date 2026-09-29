@@ -36,7 +36,13 @@
   font-size: 16px;
 }
 .platform-account-page__dialog .fui-DialogActions { grid-column: 1 / -1; width: 100%; box-sizing: border-box; }
-.platform-account-page__dialog .fui-DialogActions .fui-Button { width: auto; min-width: 0; padding-inline: 10px; }
+.platform-account-page__dialog .fui-DialogActions .fui-Button {
+  width: auto;
+  min-width: 0;
+  padding-inline: 10px;
+  font-size: 14px;
+  white-space: nowrap;
+}
 .platform-account-page__dialog .fui-DialogActions .fui-Button:last-child { width: 82px; }
 .platform-account-page__dialog .tenant-admin-page__revoke { margin-top: 0; padding-inline: 0; }
 .platform-account-page__dialog .tenant-admin-page__revoke .fui-Checkbox { margin-left: -8px; }
