@@ -1,4 +1,5 @@
 /* 平台账户页复用已验收目录节奏，仅覆盖本页的双指标和空态。 */
+.platform-account-page { max-width: none; }
 .platform-account-page .tenant-admin-page__summary {
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }
@@ -21,6 +22,8 @@
   opacity: 0.5;
 }
 @media (max-width: 680px) {
+  .page-heading:has(+ .platform-account-page) > .fui-Button { width: 100%; justify-self: stretch; }
   .platform-account-page .tenant-admin-page__summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .platform-account-page .tenant-admin-page__summary > div:nth-child(-n + 2) { border-bottom: 0; }
   .platform-account-page__dialog .fui-Input { min-height: 44px; }
 }

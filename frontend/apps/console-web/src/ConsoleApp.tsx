@@ -497,14 +497,14 @@ function AuthenticatedConsoleApp({
       <section hidden={!platformAccountsActive}>
         {platformAccountsActive ? (
           <>
-            <TaskNavigation
+            {route.task === "roles" ? <TaskNavigation
               ariaLabel="平台访问治理任务切换"
               activeValue={route.task}
               items={[{ value: "accounts", label: "平台账户" }, { value: "roles", label: "角色目录" }]}
               onSelect={(task) => navigate(task === "roles"
                 ? { navigationId: "platform-accounts", task: "roles" }
                 : defaultConsoleRoute("platform-accounts"))}
-            />
+            /> : null}
             <Suspense fallback={<StatePanel kind="loading" title="正在加载平台访问治理" description="正在准备账户与角色目录。" />}>
               {route.task === "accounts"
                 ? <PlatformAccountDirectoryWorkspace client={client} route={route} onRouteChange={navigate} />

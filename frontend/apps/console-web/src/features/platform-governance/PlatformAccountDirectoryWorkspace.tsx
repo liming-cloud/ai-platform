@@ -172,8 +172,8 @@ export function PlatformAccountDirectoryWorkspace({ client, route, onRouteChange
   const isStatus = pending?.kind === "status";
   const disabling = isStatus && pending.target.status === "ACTIVE";
   return <>
-    <PageHeading title="平台账户" context="平台治理"
-      summary="创建和管理平台管理员账户；凭据、会话与权限快照不在目录展示。"
+    <PageHeading title="平台账户" context="平台治理" summary="平台管理员账户"
+      status={{ label: "可治理", tone: "success" }}
       action={<Button appearance="primary" onClick={event => openDialog({ kind: "create" }, event.currentTarget)}
         disabled={busy}>创建平台账户</Button>} />
     <section className="tenant-onboarding tenant-admin-page platform-account-page" aria-live="polite">

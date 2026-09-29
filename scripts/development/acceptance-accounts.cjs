@@ -20,7 +20,7 @@ async function login(browser, configuration, identity, accepted = true) {
     && value.request().method() === "POST");
   await page.getByRole("button", { name: "登录", exact: true }).click();
   const status = (await response).status();
-  requireCondition(status === (accepted ? 200 : 401), "平台账户登录状态不符合当前凭据与账户状态");
+  requireCondition(status === (accepted ? 204 : 401), "平台账户登录状态不符合当前凭据与账户状态");
   if (accepted) { await assertWorkspace(page, "platform"); await assertIdentity(page, "platform"); }
   else await assertAnonymous(page);
   return { context, page };
@@ -66,14 +66,19 @@ async function run(configuration) {
     await check("平台账户页只展示管理员任务和原型目录结构", async () => {
       await platform.goto(`${configuration.baseUrl}/platform/accounts`, { waitUntil: "networkidle" });
       await platform.getByRole("heading", { name: "平台账户", exact: true }).waitFor();
-      requireCondition(await platform.locator(".platform-account-page__dialog").count() === 1
+      requireCondition(await platform.locator(".platform-account-page__dialog").count() === 0
         && await platform.locator(".tenant-admin-page__summary dt").allTextContents().then(values =>
           JSON.stringify(values) === JSON.stringify(["平台账户", "可用账户"]))
         && await platform.locator(".platform-account-page th").allTextContents().then(values =>
           JSON.stringify(values) === JSON.stringify(["登录名", "账号用途", "状态", "最近安全变更", "操作"]))
+        && await platform.getByRole("navigation", { name: "平台访问治理任务切换" }).count() === 0
+        && await platform.locator(".page-summary").innerText().then(value =>
+          value.replace(/\s+/g, "") === "平台管理员账户可治理")
         && await platform.getByRole("button", { name: "授予平台治理权限" }).count() === 0,
       "目录结构或账户职责未承接原型");
-      const current = platform.locator(".platform-account-page tbody tr").filter({ hasText: configuration.platform.loginName });
+      const current = platform.locator(".platform-account-page tbody tr").filter({
+        has: platform.getByRole("cell", { name: configuration.platform.loginName, exact: true }),
+      });
       requireCondition(await current.count() === 1
         && await current.getByRole("button", { name: "当前账户不能由此重置密码" }).isDisabled(),
       "当前操作者自我操作未关闭");
@@ -85,14 +90,18 @@ async function run(configuration) {
     await check("取消创建不写入且不保留密码", async () => {
       await platform.getByRole("button", { name: "创建平台账户" }).first().click();
       const dialog = platform.getByRole("dialog");
+      requireCondition(await platform.locator(".platform-account-page__dialog").count() === 1,
+        "创建弹窗未承接原型样式");
       await dialog.getByRole("textbox", { name: "登录名" }).fill(created.account.loginName);
       await dialog.getByLabel("初始密码").fill(created.account.password);
       await dialog.getByRole("button", { name: "取消" }).click();
-      requireCondition(accountWrites === 0 && await dialog.count() === 0, "取消创建仍写入或弹窗未关闭");
+      await dialog.waitFor({ state: "hidden" });
+      requireCondition(accountWrites === 0, "取消创建仍写入");
     });
     await check("密码确认不一致不得创建账户", async () => {
       await platform.getByRole("button", { name: "创建平台账户" }).first().click();
       const dialog = platform.getByRole("dialog");
+      requireCondition(await dialog.getByLabel("初始密码").inputValue() === "", "取消后仍保留初始密码");
       await dialog.getByRole("textbox", { name: "登录名" }).fill(created.account.loginName);
       await dialog.getByLabel("初始密码").fill(created.account.password);
       await dialog.getByLabel("再次输入").fill("mismatch");
@@ -135,7 +144,7 @@ async function run(configuration) {
       requireCondition(await dialog.getByRole("alert").innerText() === "请确认撤销全部会话。",
         "未确认会话撤销仍提交");
       await dialog.getByRole("button", { name: "取消" }).click();
-      requireCondition(await dialog.count() === 0, "重置取消未关闭");
+      await dialog.waitFor({ state: "hidden" });
     });
     await check("重置密码并撤销新管理员全部旧会话", async () => {
       const row = platform.locator(".platform-account-page tbody tr").filter({ hasText: created.account.loginName });
@@ -234,8 +243,12 @@ async function run(configuration) {
               .filter(element => element.getClientRects().length > 0)
               .some(element => element.clientWidth > 0 && element.scrollWidth > element.clientWidth + 1),
             motion: matchMedia("(prefers-reduced-motion: reduce)").matches,
+            aligned: Math.abs(document.querySelector(".page-heading").getBoundingClientRect().right
+              - document.querySelector(".platform-account-page").getBoundingClientRect().right) <= 1,
+            mobileAction: innerWidth > 680 || document.querySelector(".page-heading > button").getBoundingClientRect().width
+              >= document.querySelector(".page-heading").getBoundingClientRect().width - 2,
           }));
-          requireCondition(!boxes.overflow && !boxes.clipped && boxes.motion,
+          requireCondition(!boxes.overflow && !boxes.clipped && boxes.motion && boxes.aligned && boxes.mobileAction,
             "账户页在目标尺寸或放大文字下裁切");
         });
       }
