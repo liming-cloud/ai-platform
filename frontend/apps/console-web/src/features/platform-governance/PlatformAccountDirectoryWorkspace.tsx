@@ -52,6 +52,15 @@ export function PlatformAccountDirectoryWorkspace({ client, route, onRouteChange
   const jump = jumpDraft.fromPage === route.page ? jumpDraft.value : String(route.page);
 
   useEffect(() => {
+    if (!pending) return;
+    const frame = window.requestAnimationFrame(() => {
+      if (pending.kind === "create") loginInput.current?.focus();
+      if (pending.kind === "reset") passwordInput.current?.focus();
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [pending]);
+
+  useEffect(() => {
     if (search === route.query) return;
     const timer = window.setTimeout(() => onRouteChange({ ...route, query: search.trim(), page: 1 }), 350);
     return () => window.clearTimeout(timer);
@@ -290,7 +299,7 @@ export function PlatformAccountDirectoryWorkspace({ client, route, onRouteChange
                 autoComplete="new-password" value={confirmation}
                 onChange={(_, value) => { setDialogValidation(""); setConfirmation(value.value); }} /></Field>
             </div>
-            <p>请通过组织批准的安全渠道单独告知本人；页面、存储和审计均不保留明文。</p>
+            <p className="platform-account-page__note">请通过组织批准的安全渠道单独告知本人；页面、存储和审计均不保留明文。</p>
           </> : pending?.kind === "reset" ? <>
             <p>为“{pending.target.loginName}”重置密码。提交后全部旧会话失效。</p>
             <details className="tenant-admin-page__password-help"><summary>密码安全说明</summary>

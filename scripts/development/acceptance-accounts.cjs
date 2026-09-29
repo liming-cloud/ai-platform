@@ -92,6 +92,9 @@ async function run(configuration) {
       const dialog = platform.getByRole("dialog");
       requireCondition(await platform.locator(".platform-account-page__dialog").count() === 1,
         "创建弹窗未承接原型样式");
+      await platform.waitForFunction(() => document.activeElement?.getAttribute("placeholder") === "例如：zhou.demo");
+      requireCondition(await dialog.locator(".platform-account-page__note").count() === 1,
+        "创建弹窗缺少原型安全提示卡");
       await dialog.getByRole("textbox", { name: "登录名" }).fill(created.account.loginName);
       await dialog.getByLabel("初始密码").fill(created.account.password);
       await dialog.getByRole("button", { name: "取消" }).click();
