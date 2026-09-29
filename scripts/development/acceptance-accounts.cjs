@@ -161,6 +161,21 @@ async function run(configuration) {
       const dialog = platform.getByRole("dialog");
       requireCondition(await dialog.getByText(`为 ${created.account.loginName} 设置新密码。系统不会回显或保存明文。`).isVisible(),
         "重置说明与原型不一致");
+      await dialog.evaluate(async surface => {
+        await Promise.all(surface.getAnimations().map(animation => animation.finished.catch(() => undefined)));
+      });
+      const resetLayout = await dialog.evaluate(surface => {
+        const revoke = surface.querySelector(".tenant-admin-page__revoke").getBoundingClientRect();
+        const indicator = surface.querySelector(".fui-Checkbox__indicator").getBoundingClientRect();
+        const buttons = [...surface.querySelectorAll(".fui-DialogActions button")]
+          .map(button => button.getBoundingClientRect());
+        return Math.abs(indicator.left - revoke.left - 1) <= 1
+          && Math.abs(indicator.top - revoke.top - 15) <= 1
+          && Math.abs(indicator.width - 18) <= 1
+          && buttons.length === 2 && Math.abs(buttons[0].width - 54) <= 1
+          && Math.abs(buttons[1].width - 82) <= 1;
+      });
+      requireCondition(resetLayout, "重置弹窗勾选区或操作按钮未对齐原型");
       stage = "重置确认：填写新密码";
       await dialog.getByLabel("新密码").fill(created.account.replacementPassword);
       await dialog.getByLabel("再次输入").fill(created.account.replacementPassword);
