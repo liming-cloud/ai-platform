@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
-  "description": "已人工验收的 WP-0016 原型生产承接基线；只登记入口、操作责任和待实施状态，不代替生产契约或完成证据。",
+  "description": "已人工验收的 WP-0016 原型生产承接矩阵；逐项登记入口、操作责任、合同和验证状态，不代替各切片的实际部署与验收证据。",
   "openDesignProjectId": "249f81f2-6f1a-46ff-988c-da3cdedb35e7",
   "humanAcceptanceEvidence": "docs/tasks/WP-0016/evidence/WP-0016-human-acceptance-20260913.md",
   "prototypeImplementationCommit": "21b45c347a4008f5959b1b972e3ffd8a5aadcc6f",
-  "updatedOn": "2026-09-20",
+  "updatedOn": "2026-09-29",
   "sources": [
     {
       "path": "docs/prototypes/wp-0016/page-inventory.json",
@@ -449,7 +449,7 @@
       "phase": "M6",
       "classification": "production",
       "workPackage": "WP-0017",
-      "status": "pending-contract",
+      "status": "verified",
       "operations": [
         {
           "id": "platform-tenant-security:0",
@@ -459,7 +459,27 @@
           "reason": "m6-approved-prototype",
           "workPackage": "WP-0017",
           "dependsOn": [],
-          "status": "pending-contract"
+          "status": "verified",
+          "contract": {
+            "adr": "ADR-0086",
+            "target": {
+              "kind": "api",
+              "value": "GET/PUT /api/v1/platform/tenants/{tenantId}/security"
+            },
+            "saveBoundary": "只完整替换目标租户三项登录策略并递增版本；取消与刷新不写入；成功变更立即撤销该租户旧会话，撤销失败回滚。",
+            "authorizationTests": [
+              "平台治理权限先于目标租户事实读取，租户身份、缺少 CSRF、未知字段和旧版本均拒绝",
+              "租户两种登录入口共用按租户和主体隔离的失败观察与锁定；平台和对照租户不受影响",
+              "目标旧会话立即失效，新会话遵守目标时长；保存前明确告知影响"
+            ]
+          },
+          "verification": {
+            "commands": ["make backend-test", "make frontend-test", "make architecture-guard", "make acceptance-work-package WP=WP-0017 SLICE=security", "make acceptance-work-package WP=WP-0017 SLICE=login"],
+            "evidence": [
+              "docs/tasks/WP-0017/evidence/WP-0017-security-settings-prototype-parity-closure-20260929.md"
+            ]
+          },
+          "verifiedCommit": "07b2a3c26d3867a4aab0c388739700b2f0907df5"
         }
       ]
     },
