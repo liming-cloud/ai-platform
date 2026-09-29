@@ -280,7 +280,8 @@ export function PlatformAccountDirectoryWorkspace({ client, route, onRouteChange
         <DialogBody>
           <DialogTitle><span className="tenant-admin-page__kicker">{pending?.kind === "create" ? "平台管理员账户"
             : pending?.kind === "reset" ? "受控凭据重置" : "账户治理"}</span>
-            <span>{pending?.kind === "create" ? "创建平台账户" : pending?.kind === "reset" ? "重置密码" : "确认账户操作"}</span>
+            <span>{pending?.kind === "create" ? "创建平台账户" : pending?.kind === "reset" ? "重置密码"
+              : disabling ? "停用人员账户" : "恢复人员账户"}</span>
           </DialogTitle>
           <DialogContent>{pending?.kind === "create" ? <>
             <p>设置一次性初始密码；提交后不再显示。</p>
@@ -301,7 +302,7 @@ export function PlatformAccountDirectoryWorkspace({ client, route, onRouteChange
             </div>
             <p className="platform-account-page__note">请通过组织批准的安全渠道单独告知本人；页面、存储和审计均不保留明文。</p>
           </> : pending?.kind === "reset" ? <>
-            <p>为“{pending.target.loginName}”重置密码。提交后全部旧会话失效。</p>
+            <p>为 {pending.target.loginName} 设置新密码。系统不会回显或保存明文。</p>
             <details className="tenant-admin-page__password-help"><summary>密码安全说明</summary>
               <p>当前密码无法查看。请设置独立的新密码，并通过安全渠道告知本人。</p>
             </details>
@@ -319,10 +320,10 @@ export function PlatformAccountDirectoryWorkspace({ client, route, onRouteChange
               label={<span className="tenant-admin-page__revoke-copy"><strong>撤销全部会话</strong>
                 <small>平台与租户范围的既有会话同时失效。</small></span>} /></div>
           </> : isStatus ? <>
-            <p>“{pending.target.loginName}”将{disabling ? "停用" : "恢复"}。</p>
+            <p>确认{disabling ? "停用" : "恢复"} {pending.target.loginName}？</p>
             <dl className="tenant-admin-page__impact">
-              <div><dt>影响</dt><dd>{disabling ? "该身份不能登录，全部旧会话立即失效。" : "该身份可重新登录，但旧会话不会恢复。"}</dd></div>
-              <div><dt>恢复</dt><dd>{disabling ? "之后可恢复账户；最后一名可用平台管理员不能停用。" : "可再次停用，恢复后须重新认证。"}</dd></div>
+              <div><dt>影响</dt><dd>{disabling ? "立即禁止登录并撤销全部既有会话。" : "恢复登录资格，但不会恢复曾被撤销的会话。"}</dd></div>
+              <div><dt>恢复</dt><dd>{disabling ? "可由其他平台管理员恢复此账户。" : "需要时可再次停用。"}</dd></div>
               <div><dt>审计</dt><dd>记录操作者、目标账户、操作、结果与非秘密版本。</dd></div>
             </dl>
           </> : null}

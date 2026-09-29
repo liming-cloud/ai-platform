@@ -99,10 +99,10 @@ async function run(configuration) {
       requireCondition(await dialog.locator(".platform-account-page__note").count() === 1,
         "创建弹窗缺少原型安全提示卡");
       const dialogLayout = await dialog.evaluate(surface => {
-        const content = surface.querySelector(".fui-DialogContent").getBoundingClientRect();
         const actions = surface.querySelector(".fui-DialogActions").getBoundingClientRect();
+        const body = surface.querySelector(".fui-DialogBody").getBoundingClientRect();
         const buttons = [...surface.querySelectorAll(".fui-DialogActions button")];
-        return Math.abs(content.width - actions.width) <= 2
+        return Math.abs(body.width - actions.width) <= 1
           && buttons.length === 2 && buttons[0].getBoundingClientRect().width < 72
           && buttons[1].getBoundingClientRect().width < 96;
       });
@@ -138,6 +138,7 @@ async function run(configuration) {
       created.account.subjectId = body.subjectId;
       persist();
       await platform.locator(".platform-account-page tbody tr").filter({ hasText: created.account.loginName }).waitFor();
+      await platform.getByRole("dialog").waitFor({ state: "hidden" });
       requireCondition(accountWrites === 1, "创建写入次数不正确");
     });
     await check("全局重复登录名失败关闭", async () => {
@@ -150,14 +151,24 @@ async function run(configuration) {
       firstSession = await login(browser, configuration, created.account);
     });
     await check("重置密码必须确认撤销全部会话且取消零写入", async () => {
+      stage = "重置确认：筛选目标账户";
+      await platform.getByRole("searchbox", { name: "按登录名搜索" }).fill(created.account.loginName);
+      await platform.waitForURL(url => url.searchParams.get("q") === created.account.loginName);
       const row = platform.locator(".platform-account-page tbody tr").filter({ hasText: created.account.loginName });
+      stage = "重置确认：打开弹窗";
+      await row.waitFor();
       await row.getByRole("button", { name: "重置密码" }).click();
       const dialog = platform.getByRole("dialog");
+      requireCondition(await dialog.getByText(`为 ${created.account.loginName} 设置新密码。系统不会回显或保存明文。`).isVisible(),
+        "重置说明与原型不一致");
+      stage = "重置确认：填写新密码";
       await dialog.getByLabel("新密码").fill(created.account.replacementPassword);
       await dialog.getByLabel("再次输入").fill(created.account.replacementPassword);
+      stage = "重置确认：验证撤销提示";
       await dialog.getByRole("button", { name: "重置密码" }).click();
       requireCondition(await dialog.getByRole("alert").innerText() === "请确认撤销全部会话。",
         "未确认会话撤销仍提交");
+      stage = "重置确认：取消零写入";
       await dialog.getByRole("button", { name: "取消" }).click();
       await dialog.waitFor({ state: "hidden" });
     });
@@ -186,7 +197,8 @@ async function run(configuration) {
       await row.getByText("更多", { exact: true }).click();
       await row.getByRole("button", { name: "停用账户" }).click();
       const dialog = platform.getByRole("dialog");
-      requireCondition(await dialog.getByText(/最后一名可用平台管理员不能停用/).isVisible(),
+      requireCondition(await dialog.getByRole("heading", { name: "停用人员账户" }).isVisible()
+        && await dialog.getByText("可由其他平台管理员恢复此账户。").isVisible(),
         "停用影响与恢复说明不完整");
       const sent = platform.waitForResponse(response => new URL(response.url()).pathname.endsWith(
         `/platform/accounts/${created.account.subjectId}/disable`));
@@ -204,6 +216,8 @@ async function run(configuration) {
       await row.getByText("已停用").waitFor();
       await row.getByText("更多", { exact: true }).click();
       await row.getByRole("button", { name: "恢复账户" }).click();
+      requireCondition(await platform.getByRole("dialog").getByRole("heading", { name: "恢复人员账户" }).isVisible(),
+        "恢复弹窗标题与原型不一致");
       const sent = platform.waitForResponse(response => new URL(response.url()).pathname.endsWith(
         `/platform/accounts/${created.account.subjectId}/enable`));
       await platform.getByRole("dialog").getByRole("button", { name: "确认恢复" }).click();
