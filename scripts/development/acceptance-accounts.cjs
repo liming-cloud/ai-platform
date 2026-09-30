@@ -190,8 +190,10 @@ async function run(configuration) {
       await dialog.waitFor({ state: "hidden" });
     });
     await check("重置密码并撤销新管理员全部旧会话", async () => {
+      stage = "重置旧会话：打开弹窗";
       const row = platform.locator(".platform-account-page tbody tr").filter({ hasText: created.account.loginName });
       await row.getByRole("button", { name: "重置密码" }).click();
+      stage = "重置旧会话：填写并提交";
       const dialog = platform.getByRole("dialog");
       await dialog.getByLabel("新密码").fill(created.account.replacementPassword);
       await dialog.getByLabel("再次输入").fill(created.account.replacementPassword);
@@ -200,11 +202,14 @@ async function run(configuration) {
         `/platform/accounts/${created.account.subjectId}/password-reset`));
       await dialog.getByRole("button", { name: "重置密码" }).click();
       requireCondition((await sent).status() === 204, "重置接口未成功");
+      stage = "重置旧会话：核对旧会话撤销";
       await assertAnonymous(firstSession.page);
       await firstSession.context.close();
       firstSession = undefined;
+      stage = "重置旧会话：核对旧密码拒绝";
       const rejected = await login(browser, configuration, created.account, false);
       await rejected.context.close();
+      stage = "重置旧会话：核对新密码登录";
       const admitted = await login(browser, configuration,
         { ...created.account, password: created.account.replacementPassword });
       firstSession = admitted;
