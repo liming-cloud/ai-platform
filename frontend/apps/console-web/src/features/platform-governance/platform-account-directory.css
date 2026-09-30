@@ -61,5 +61,9 @@
   .page-heading:has(+ .platform-account-page) > .fui-Button { width: 100%; justify-self: stretch; }
   .platform-account-page .tenant-admin-page__summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .platform-account-page .tenant-admin-page__summary > div:nth-child(-n + 2) { border-bottom: 0; }
+  .platform-account-page .tenant-admin-page__table-shell td { min-height: 3em; box-sizing: border-box; }
+  /* 原型的行操作延伸到分页区；保持相同位置，同时让触发器盖过非交互的计数文字层。 */
+  .platform-account-page .tenant-admin-page__table-shell td:last-child { height: 3em; }
+  .platform-account-page .tenant-admin-page__actions details { position: relative; z-index: 1; }
   .platform-account-page__dialog .fui-Input { min-height: 44px; }
 }

@@ -299,6 +299,23 @@ async function run(configuration) {
         });
       }
     });
+    await check("390px 行操作对齐原型分页且保持可点击", async () => {
+      await platform.setViewportSize({ width: 390, height: 960 });
+      const summary = platform.locator(".platform-account-page tbody tr:last-child summary");
+      await summary.evaluate(element => element.scrollIntoView({ block: "center" }));
+      const layout = await summary.evaluate(element => {
+        const trigger = element.getBoundingClientRect();
+        const shell = element.closest(".tenant-admin-page__table-shell");
+        const pagination = shell.querySelector(".tenant-admin-page__pagination").getBoundingClientRect();
+        const hit = document.elementFromPoint(trigger.x + trigger.width / 2, trigger.y + trigger.height / 2);
+        return { aligned: Math.abs(trigger.y - pagination.y) <= 1,
+          tappable: trigger.height >= 44 && (hit === element || element.contains(hit)) };
+      });
+      requireCondition(layout.aligned && layout.tappable, "移动端行操作未对齐原型或被分页遮挡");
+      await summary.click();
+      requireCondition(await summary.evaluate(element => element.parentElement.open), "移动端行操作不能展开");
+      await summary.click();
+    });
     requireCondition(pageErrors === 0, "账户页出现浏览器脚本错误");
     created.status = "VERIFIED";
     persist();
