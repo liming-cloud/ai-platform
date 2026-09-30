@@ -307,6 +307,8 @@ async function run(configuration) {
     await check("390px 行操作对齐原型分页且保持可点击", async () => {
       await platform.setViewportSize({ width: 390, height: 960 });
       const summary = platform.locator(".platform-account-page tbody tr:last-child summary");
+      await platform.waitForFunction(() => document.querySelector(".platform-account-page tbody tr:last-child summary")
+        ?.getBoundingClientRect().height >= 44, null, { polling: "raf" });
       await summary.evaluate(element => element.scrollIntoView({ block: "center" }));
       const layout = await summary.evaluate(element => {
         const trigger = element.getBoundingClientRect();
