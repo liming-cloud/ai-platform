@@ -121,8 +121,8 @@ async function run(configuration) {
       await dialog.getByLabel("初始密码").fill(created.account.password);
       await dialog.getByLabel("再次输入").fill("mismatch");
       await dialog.getByRole("button", { name: "创建账户" }).click();
-      requireCondition(accountWrites === 0 && await dialog.getByRole("alert").innerText() === "两次输入不一致。",
-        "错误确认仍提交或缺少提示");
+      await dialog.getByRole("alert").getByText("两次输入不一致。", { exact: true }).waitFor();
+      requireCondition(accountWrites === 0, "错误确认仍提交账户创建请求");
     });
     await check("页面通过正式接口原子创建平台管理员", async () => {
       const dialog = platform.getByRole("dialog");
