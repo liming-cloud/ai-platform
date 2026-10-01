@@ -606,7 +606,7 @@
       "phase": "M6",
       "classification": "production",
       "workPackage": "WP-0017",
-      "status": "in-progress",
+      "status": "verified",
       "operations": [
         {
           "id": "platform-roles:0",
@@ -616,7 +616,7 @@
           "reason": "m6-approved-prototype",
           "workPackage": "WP-0017",
           "dependsOn": [],
-          "status": "contracted",
+          "status": "verified",
           "contract": {
             "adr": "ADR-0088",
             "target": {
@@ -628,7 +628,20 @@
               "平台会话具备账户治理能力才加载；租户、失效会话与缺少能力的直接访问拒绝",
               "仅展示唯一平台管理员固定模板；管理账户可刷新和前后退，点击零业务写入"
             ]
-          }
+          },
+          "verification": {
+            "commands": [
+              "make frontend-test",
+              "make architecture-guard",
+              "make acceptance-work-package WP=WP-0017 SLICE=roles",
+              "make acceptance-work-package WP=WP-0017 SLICE=login",
+              "make project-verify"
+            ],
+            "evidence": [
+              "docs/tasks/WP-0017/evidence/WP-0017-platform-roles-prototype-parity-closure-20261001.md"
+            ]
+          },
+          "verifiedCommit": "ad18b680c0fc8e5b61f5e028bf5087cb98ed57f7"
         }
       ]
     },

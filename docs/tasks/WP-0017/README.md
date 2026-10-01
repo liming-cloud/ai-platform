@@ -72,7 +72,7 @@
 
 ## 证据
 
-- docs/tasks/WP-0017/evidence/WP-0017-platform-roles-production-verification-20261001.md（固定角色功能通过；原型正文一致，共享 390px／200% 文字质量待决定）
+- docs/tasks/WP-0017/evidence/WP-0017-platform-roles-prototype-parity-closure-20261001.md（固定角色、新版原型共享布局、实际部署与零写入收口）
 - docs/tasks/WP-0017/evidence/WP-0017-platform-accounts-prototype-parity-closure-20261001.md（平台账户完整操作切片的最终部署、功能、登录、只读事实与固定原型收口）
 - docs/tasks/WP-0017/evidence/WP-0017-security-settings-prototype-parity-closure-20260929.md（登录安全独立设置的最终部署、功能、登录、只读事实与固定原型收口）
 - docs/tasks/WP-0017/evidence/WP-0017-feature-settings-prototype-parity-closure-20260928.md（功能上限独立设置的最终部署、功能、登录、只读事实与固定原型收口）
@@ -83,8 +83,8 @@
 
 ## 下一前沿
 
-管理员、资源配额、可用功能和登录安全四个独立设置切片，以及平台账户 `platform-accounts:0–4`，均已分别完成实际部署功能、登录、只读事实与固定原型对照；登录安全弹窗保留 ADR-0079 提示所致的单点限定差异。平台账户的 390px“更多”已恢复可操作性，五项操作和页面均为 `verified`。前沿仍为 WP-0017；当前 `platform-roles:0` 按 ADR-0088 在前端 `af1e0f45664c5ccd1818f8731e2782c10da8a9f8` 完成 11 项功能、15 项登录和只读事实验证，角色正文七组原型对照最大差 0.015625px。但固定原型与生产在 390px／200% 文字时均存在共享导航遮挡和顶栏说明挤压，人工复核阻止视觉收口，尚未标记 `verified`。下一动作是确认先修正并接受 OpenDesign 新版本或保留阻断，不自动豁免、不转入下一切片。`platform-tenant-detail:0` 仍为 `pending-contract`，WP-0017 整包提交和证据保持 `pending`，M6 未完成。
+管理员、资源配额、可用功能、登录安全、平台账户完整操作及固定角色独立切片均已完成各自部署、功能、登录、只读事实和原型收口。用户按 ADR-0088 修正并接受共享移动布局的新 OpenDesign 版本；固定角色 `platform-roles:0` 在前端 `ad18b680c0fc8e5b61f5e028bf5087cb98ed57f7` 通过 11 项角色、15 项登录、14 项共享布局回归和七组原型对照，已标为 `verified`。下一前沿是 `platform-tenant-detail:0` 的独立合同，仍为 `pending-contract`；平台概览、租户列表／生命周期和租户入口选取等按矩阵待实施。产品前沿保持 WP-0017，整包提交和证据保持 `pending`，M6 未完成。
 
 ## 固定输入与工作区
 
-依据输入提交的 Charter、ROADMAP、STATE、上述 ADR 和固定 OpenDesign 版本恢复。当前前端运行 `af1e0f45664c5ccd1818f8731e2782c10da8a9f8`，控制面后端运行 `9cd1f8ff5fea06c7d0b33b6a5a641c587464d1d4`，查询进程仍为 `ef11d6aad0ffb8d8a656d5a17a3477d93b95a5c8`；镜像、验收脚本和验证范围分别以各切片证据为准，历史验证提交仍由实现矩阵绑定，不用当前 HEAD 替代。五项人工 fixture 重命名已在 GOV-0002 完成验证与提交，本包未修改其内容。
+依据输入提交的 Charter、ROADMAP、STATE、上述 ADR 和固定 OpenDesign 版本恢复。原 66 页与操作清单仍绑定 `21b45c347a4008f5959b1b972e3ffd8a5aadcc6f`；共享移动布局按 ADR-0088 采用已接受修订 `47c4f6f31823617633ce0bac98074208781f5565`。当前前端运行 `ad18b680c0fc8e5b61f5e028bf5087cb98ed57f7`，控制面后端运行 `9cd1f8ff5fea06c7d0b33b6a5a641c587464d1d4`，查询进程仍为 `ef11d6aad0ffb8d8a656d5a17a3477d93b95a5c8`；镜像、验收脚本和验证范围分别以各切片证据为准，历史验证提交仍由实现矩阵绑定，不用当前 HEAD 替代。五项人工 fixture 重命名已在 GOV-0002 完成验证与提交，本包未修改其内容。
