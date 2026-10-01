@@ -303,7 +303,8 @@
     z-index: 60;
     display: block;
     width: 100%;
-    height: 4.75rem;
+    height: auto;
+    min-height: 4.75rem;
     padding: 0.35rem 0.5rem max(0.35rem, env(safe-area-inset-bottom));
     border-top: 1px solid var(--foundation-border);
     border-right: 0;
@@ -324,7 +325,8 @@
     display: contents;
   }
   .product-shell .product-navigation .fui-Button {
-    flex: 1 0 4.1rem;
+    /* 导航项保持原型宽度基线，标签换行不随已交付入口数量变化。 */
+    flex: 0 0 4.1rem;
     flex-direction: column;
     gap: 0.1rem;
     justify-content: center;
@@ -334,9 +336,22 @@
     font-size: 0.65rem;
     text-align: center;
   }
+  /* 窄屏只保留导航吸顶；放大文字时顶栏自然换行，不与导航叠放。 */
   .product-topbar {
+    position: static;
+    flex-wrap: wrap;
+    gap: 8px;
     min-height: 3.75rem;
+    padding-block: 8px;
     padding-inline: 16px;
+  }
+  .product-topbar__context {
+    flex-shrink: 0;
+    max-width: 100%;
+  }
+  .product-topbar .product-account {
+    max-width: 100%;
+    margin-inline-start: auto;
   }
   .product-main {
     padding: 20px 16px 40px;

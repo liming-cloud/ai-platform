@@ -45,6 +45,17 @@ async function layout(page, width) {
   const facts = await page.evaluate(() => {
     const button = [...document.querySelectorAll("button")].find(element => element.textContent.trim() === "管理账户");
     const rect = button.getBoundingClientRect();
+    const context = document.querySelector(".product-topbar__context").getBoundingClientRect();
+    const sidebar = document.querySelector(".product-sidebar").getBoundingClientRect();
+    const account = document.querySelector(".product-account");
+    const accountRect = account.getBoundingClientRect();
+    const nav = [...document.querySelectorAll(".product-navigation button")];
+    const navCollisions = nav.filter(element => {
+      const target = element.getBoundingClientRect();
+      return target.width > 0 && target.height > 0
+        && Math.min(target.right, context.right) - Math.max(target.left, context.left) > 1
+        && Math.min(target.bottom, context.bottom) - Math.max(target.top, context.top) > 1;
+    }).length;
     const clippedText = [...document.querySelectorAll(".platform-role-page h2,.platform-role-page dt,.platform-role-page dd")]
       .some(element => {
         const style = getComputedStyle(element);
@@ -52,11 +63,19 @@ async function layout(page, width) {
           || (style.overflowY !== "visible" && element.scrollHeight > element.clientHeight + 1);
       });
     return { overflow: document.documentElement.scrollWidth - innerWidth, buttonHeight: rect.height,
-      buttonWidth: rect.width, clippedText,
+      buttonWidth: rect.width, clippedText, navCollisions,
+      navContained: innerWidth > 680 || nav.every(element => element.getBoundingClientRect().bottom <= sidebar.bottom + 1),
+      scopeAccountCollision: Math.min(context.right, accountRect.right) - Math.max(context.left, accountRect.left) > 1
+        && Math.min(context.bottom, accountRect.bottom) - Math.max(context.top, accountRect.top) > 1,
+      accountHit: account.contains(document.elementFromPoint(accountRect.x + accountRect.width / 2,
+        accountRect.y + accountRect.height / 2)),
       hit: button.contains(document.elementFromPoint(rect.x + rect.width / 2, rect.y + rect.height / 2)) };
   });
   requireCondition(facts.overflow <= 1, "角色页出现文档级横向裁切");
   requireCondition(!facts.clippedText, "角色页职责文字发生裁切");
+  requireCondition(facts.navCollisions === 0, "共享导航遮挡平台范围说明");
+  requireCondition(facts.navContained && !facts.scopeAccountCollision && facts.accountHit,
+    "共享导航或账户菜单发生裁切、遮挡");
   requireCondition(facts.buttonHeight >= (width <= 680 ? 44 : 36) && facts.buttonWidth >= 44,
     "角色页主要操作未满足控件基线");
   requireCondition(facts.hit, "角色页主要操作被其他内容遮挡");
@@ -132,6 +151,26 @@ async function run(configuration) {
           elements.forEach((element, index) => { element.style.fontSize = `${sizes[index] * 2}px`; });
         });
         await layout(page, width);
+        if (width === 390) {
+          const topbar = page.locator(".product-topbar");
+          const start = await topbar.evaluate(element => element.getBoundingClientRect().top + scrollY);
+          await page.evaluate(() => scrollTo(0, document.documentElement.scrollHeight));
+          requireCondition(Math.abs(await topbar.evaluate(element => element.getBoundingClientRect().top + scrollY) - start) <= 1,
+            "窄屏顶栏仍与导航同时吸顶");
+          await page.evaluate(() => scrollTo(0, 0));
+          await page.locator(".product-account").click();
+          await page.getByRole("menuitem", { name: "退出登录", exact: true }).waitFor();
+          await page.keyboard.press("Escape");
+          const action = page.getByRole("button", { name: "管理账户", exact: true });
+          for (let index = 0; index < 30 && !await action.evaluate(element => element === document.activeElement); index += 1) {
+            await page.keyboard.press("Tab");
+          }
+          requireCondition(await action.evaluate(element => element === document.activeElement), "扩字后账户导航键盘不可达");
+          await action.press("Enter");
+          await page.getByRole("heading", { name: "平台账户", exact: true }).waitFor();
+          await page.goBack();
+          await page.getByRole("heading", { name: "平台固定角色", exact: true }).waitFor();
+        }
       }
     });
     await scenario("键盘进入账户与返回", async page => {
