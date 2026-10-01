@@ -2479,9 +2479,9 @@
     },
     {
       "path": "docs/prototypes/wp-0016/object-workspaces.js",
-      "action": "keep",
+      "action": "update",
       "sha256": "5ca323a0e03cb7e59846cce7bae919b3c9a527287b05c5d9fcfc2abe4f27e00c",
-      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯",
+      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯；2026-10-01 按用户已授权的目录原型修订及 ADR-0090，仅修正四列目录空结果的 colspan=20 缺陷，其他目录输出保持原文",
       "references": [
         "docs/prototypes/wp-0016/artifacts/opendesign-save-20260908.json",
         "docs/prototypes/wp-0016/artifacts/opendesign-save-stage-three-20260908.json",

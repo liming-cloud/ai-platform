@@ -197,3 +197,14 @@ test('390px reduced-motion 下键盘查看详情及建立入口取消', () => vi
   await page.evaluate(() => { document.activeElement?.blur(); window.scrollTo(0, 0); });
   await page.screenshot({ path: join(artifacts, 'directory-390-reduced-motion.png'), fullPage: true });
 }, 'reduce'));
+test('目录筛选为空时保留实际四列表头宽度', () => visit(1440, async page => {
+  await page.getByLabel('搜索租户', { exact: true }).fill('没有匹配的合成组织');
+  assert.equal(await page.locator('tbody td[colspan]').getAttribute('colspan'), '4');
+  const geometry = await page.locator('.data-table').evaluate(table => ({
+    width: table.getBoundingClientRect().width,
+    columns: [...table.querySelectorAll('thead th')].map(cell => cell.getBoundingClientRect().width),
+  }));
+  assert.equal(geometry.columns.length, 4);
+  assert.ok(geometry.columns.every(width => Math.abs(width - geometry.width / 4) <= 1));
+  assert.match(await page.locator('.pagination-summary').innerText(), /共 0 条/);
+}));

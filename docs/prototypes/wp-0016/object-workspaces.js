@@ -32,8 +32,10 @@ export function boundedDirectoryMarkup(html, params=new URLSearchParams()) {
   const barTag=html.slice(barStart+1).startsWith('nav')?'nav':'div';
   const tags=html.slice(barStart).matchAll(new RegExp(`<\\/?${barTag}\\b[^>]*>`,'g'));
   for(const tag of tags){depth+=tag[0].startsWith('</')?-1:1;if(depth===0){barEnd=barStart+tag.index+tag[0].length;break;}}
+  // 当前切片只恢复租户目录的四列结构，其他目录由所属切片复核。
+  const emptyColumns=html.includes('data-directory-search="platform-tenants"')?4:20;
   const pagination=`<div class="pagination" data-object-pagination>${directoryPaginationMarkup(page,rows.length,'object')}</div>`;
-  const result=(html.slice(0,barStart)+pagination+html.slice(barEnd)).replace(table[0],`<tbody>${rows.slice(page.start,page.end).join('') || '<tr><td colspan="20">没有匹配记录，请调整筛选条件。</td></tr>'}</tbody>`);
+  const result=(html.slice(0,barStart)+pagination+html.slice(barEnd)).replace(table[0],`<tbody>${rows.slice(page.start,page.end).join('') || '<tr><td colspan="'+emptyColumns+'">没有匹配记录，请调整筛选条件。</td></tr>'}</tbody>`);
   return result.includes('class="toolbar"')?result:result.replace(/<div class="table-shell"[^>]*>/,match=>'<div class="toolbar"><label class="field"><span>搜索当前目录</span><input class="input" type="search" placeholder="按名称或摘要搜索"></label></div>'+match);
 }
 export function documentWorkspace(source, view='preview', params=new URLSearchParams()) {

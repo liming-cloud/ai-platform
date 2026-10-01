@@ -1,3 +1,4 @@
+import { boundedDirectoryMarkup } from '../object-workspaces.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
@@ -58,4 +59,11 @@ test('未知状态不伪装为活动，租户内容继续转义', () => {
   assert.match(html, /data-label="状态">[\s\S]*?状态未知/);
   assert.match(html, /&lt;script&gt;目录测试&lt;\/script&gt;/);
   assert.doesNotMatch(html, /<script>目录测试<\/script>/);
+});
+
+
+test('四列租户目录空结果只跨实际四列，不凭空扩展表格', () => {
+  const html = boundedDirectoryMarkup(directory([]));
+  assert.match(html, /colspan="4"/);
+  assert.doesNotMatch(html, /colspan="20"/);
 });
