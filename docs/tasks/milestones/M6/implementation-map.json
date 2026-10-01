@@ -148,7 +148,7 @@
       "phase": "M6",
       "classification": "production",
       "workPackage": "WP-0017",
-      "status": "pending-contract",
+      "status": "verified",
       "operations": [
         {
           "id": "platform-tenants:0",
@@ -158,7 +158,32 @@
           "reason": "m6-approved-prototype",
           "workPackage": "WP-0017",
           "dependsOn": [],
-          "status": "pending-contract"
+          "status": "verified",
+          "contract": {
+            "adr": "ADR-0090",
+            "target": {
+              "kind": "navigation",
+              "value": "已交付原子开户向导；取消返回 /platform/tenants，不创建对象"
+            },
+            "saveBoundary": "只读导航到已交付开户向导；取消不保存、不中途建立租户或管理员。",
+            "authorizationTests": [
+              "平台身份打开建立入口并取消，业务写请求为 0",
+              "租户与匿名不能读取或进入平台目录",
+              "退出后精确拒绝平台目录请求"
+            ]
+          },
+          "verification": {
+            "commands": [
+              "make acceptance-work-package WP=WP-0017 SLICE=tenants",
+              "make acceptance-work-package WP=WP-0017 SLICE=login",
+              "make frontend-test",
+              "make architecture-guard"
+            ],
+            "evidence": [
+              "docs/tasks/WP-0017/evidence/WP-0017-tenant-directory-prototype-parity-closure-20261001.md"
+            ]
+          },
+          "verifiedCommit": "a908aaad7efab91f77c4221a2d27ba1754de2091"
         },
         {
           "id": "platform-tenants:1",
@@ -168,7 +193,32 @@
           "reason": "m6-approved-prototype",
           "workPackage": "WP-0017",
           "dependsOn": [],
-          "status": "pending-contract"
+          "status": "verified",
+          "contract": {
+            "adr": "ADR-0090",
+            "target": {
+              "kind": "api",
+              "value": "GET /api/v1/platform/tenants（query/status/page/pageSize）；同目标查看详情导航"
+            },
+            "saveBoundary": "同范围服务端过滤、分页与真实资格摘要；目录不执行业务写入，失效／迟到结果不恢复旧事实。",
+            "authorizationTests": [
+              "平台权限检查先于过滤、总数与管理员摘要读取",
+              "租户／匿名／失效会话精确拒绝且不返回 items/totalElements",
+              "字面查询、非法条件、实际延迟与离线恢复、URL／历史及分页边界"
+            ]
+          },
+          "verification": {
+            "commands": [
+              "make acceptance-work-package WP=WP-0017 SLICE=tenants",
+              "make acceptance-work-package WP=WP-0017 SLICE=login",
+              "make frontend-test",
+              "make architecture-guard"
+            ],
+            "evidence": [
+              "docs/tasks/WP-0017/evidence/WP-0017-tenant-directory-prototype-parity-closure-20261001.md"
+            ]
+          },
+          "verifiedCommit": "a908aaad7efab91f77c4221a2d27ba1754de2091"
         }
       ]
     },
