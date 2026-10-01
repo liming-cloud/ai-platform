@@ -72,6 +72,7 @@
 
 ## 证据
 
+- docs/tasks/WP-0017/evidence/WP-0017-login-entry-navigation-closure-20261001.md（三入口导航的最终部署、18 项导航／15 项登录回归、21 组导航原型对照与只读事实；问答整页仍属 WP-0024）
 - docs/tasks/WP-0017/evidence/WP-0017-tenant-directory-prototype-parity-closure-20261001.md（目录／建立入口／搜索的实际部署、原项目修订接受与最终原型一致性收口；关联查询及原型接受历史）
 - docs/tasks/WP-0017/evidence/WP-0017-tenant-overview-prototype-parity-closure-20261001.md（真实概览、五页只读导航、最终部署与原型一致性收口）
 - docs/tasks/WP-0017/evidence/WP-0017-platform-roles-prototype-parity-closure-20261001.md（固定角色、新版原型共享布局、实际部署与零写入收口）
@@ -79,14 +80,13 @@
 - docs/tasks/WP-0017/evidence/WP-0017-security-settings-prototype-parity-closure-20260929.md（登录安全独立设置的最终部署、功能、登录、只读事实与固定原型收口）
 - docs/tasks/WP-0017/evidence/WP-0017-feature-settings-prototype-parity-closure-20260928.md（功能上限独立设置的最终部署、功能、登录、只读事实与固定原型收口）
 - docs/tasks/WP-0017/evidence/WP-0017-quota-settings-prototype-parity-closure-20260928.md（资源配额独立设置切片的最终部署、功能、登录、只读事实与固定原型收口）
-- docs/tasks/WP-0017/evidence/WP-0017-admin-settings-prototype-parity-closure-20260924.md（管理员独立设置切片的部署、功能、数据与限定原型例外收口）
 
 ## 下一前沿
 
-原子开户、管理员、配额、功能、登录安全、平台账户、固定角色、租户概览与目录均已独立收口。目录前端 `a908aaad7efab91f77c4221a2d27ba1754de2091` 通过 15 项目录验收、15 项登录回归、10 组原型对照和只读事实复核；12 个入口中 10 个、21 项操作中 19 项已验证。用户选择保持 M6，当前唯一切片为 ADR-0091 的 `tenant-login:1` 三类登录入口导航；先失败测试，部署后执行 `SLICE=login-entries`、登录回归、只读事实及固定原型对照，再收口。`platform-overview:0` 依赖 M8 运维摘要与目标页，继续待实现且禁止修改已验收原型；既有分页门禁退出条件仍待处理。产品前沿保持 WP-0017，整包提交和证据保持 `pending`，M6 未完成。
+原子开户、独立设置、平台账户、固定角色、租户概览与目录均已独立收口。三入口导航 `tenant-login:1` 按 ADR-0091 在前端 `ee34520f3f00098634fd749992aa533c81eda139` 通过 18 项导航、15 项登录回归、21 组导航原型对照和只读事实复核；矩阵为 11/12 入口、20/21 操作已验证。仅导航闭合，普通成员建立／完整问答登录仍属 WP-0018／0024。用户选择保持 M6 并禁止修改原型；`platform-overview:0` 的 M8 事实及目标页继续待实现。下一独立事项为既有分页门禁反例、精确盘点与所属包登记；不自动实现运维依赖。产品前沿保持 WP-0017，整包提交和证据保持 `pending`，M6 未完成。
 
 原项目目录修订及四列空结果纠错的最新接受版本为 `d36c7f46d0187c0421d4989c12f601d5c190d73f`，原型 10 项及浏览器 12 项通过；生产已依据该版本完成目录切片，不新增视觉例外。全库现有 70 个目录对象均有管理员资格，零资格呈现由真实生产表格 SSR 与原型反例覆盖，不宣称生产存在零资格样本。没有创建新业务对象，不在本轮自动开始后续切片。
 
 ## 固定输入与工作区
 
-依据输入提交的 Charter、ROADMAP、STATE、上述 ADR 和固定 OpenDesign 版本恢复。原 66 页与操作清单仍绑定 `21b45c347a4008f5959b1b972e3ffd8a5aadcc6f`；共享移动布局按 ADR-0088 采用已接受修订 `47c4f6f31823617633ce0bac98074208781f5565`。当前前端运行 `a908aaad7efab91f77c4221a2d27ba1754de2091`，控制面后端运行 `90a28e1bed18fbbda628cb7831ee84982f847adb`，查询进程仍为 `ef11d6aad0ffb8d8a656d5a17a3477d93b95a5c8`；镜像和验收范围以各切片证据为准，原型及历史验证仍由实现矩阵绑定，不用 HEAD 替代。五项人工 fixture 重命名已在 GOV-0002 完成验证与提交，本包未修改其内容。
+依据输入提交的 Charter、ROADMAP、STATE、上述 ADR 和固定 OpenDesign 版本恢复。原 66 页与操作清单仍绑定 `21b45c347a4008f5959b1b972e3ffd8a5aadcc6f`；共享移动布局按 ADR-0088 采用已接受修订 `47c4f6f31823617633ce0bac98074208781f5565`。当前前端运行 `ee34520f3f00098634fd749992aa533c81eda139`，控制面后端运行 `90a28e1bed18fbbda628cb7831ee84982f847adb`，查询进程仍为 `ef11d6aad0ffb8d8a656d5a17a3477d93b95a5c8`；镜像和验收范围以各切片证据为准，原型及历史验证仍由实现矩阵绑定，不用 HEAD 替代。五项人工 fixture 重命名已在 GOV-0002 完成验证与提交，本包未修改其内容。

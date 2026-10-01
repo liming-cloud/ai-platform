@@ -75,7 +75,7 @@
       "phase": "M6",
       "classification": "production",
       "workPackage": "WP-0017",
-      "status": "in-progress",
+      "status": "verified",
       "operations": [
         {
           "id": "tenant-login:0",
@@ -106,13 +106,30 @@
           "reason": "m6-approved-prototype",
           "workPackage": "WP-0017",
           "dependsOn": [],
-          "status": "contracted",
+          "status": "verified",
           "contract": {
             "adr": "ADR-0091",
-            "target": { "kind": "navigation", "value": "/login、/tenant/login、/ask" },
+            "target": {
+              "kind": "navigation",
+              "value": "/login、/tenant/login、/ask"
+            },
             "saveBoundary": "仅导航，不写业务对象、不授予权限、不自动替换已有会话；离开页面清空密码。",
-            "authorizationTests": ["错误角色入口保持原身份", "链接访问不自动认证或退出", "密码不继承到下一入口"]
-          }
+            "authorizationTests": [
+              "错误角色入口保持原身份",
+              "链接访问不自动认证或退出",
+              "密码不继承到下一入口"
+            ]
+          },
+          "verification": {
+            "commands": [
+              "make acceptance-work-package WP=WP-0017 SLICE=login-entries",
+              "make acceptance-work-package WP=WP-0017 SLICE=login"
+            ],
+            "evidence": [
+              "docs/tasks/WP-0017/evidence/WP-0017-login-entry-navigation-closure-20261001.md"
+            ]
+          },
+          "verifiedCommit": "ee34520f3f00098634fd749992aa533c81eda139"
         },
         {
           "id": "tenant-login:2",
