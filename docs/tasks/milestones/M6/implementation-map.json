@@ -4,7 +4,7 @@
   "openDesignProjectId": "249f81f2-6f1a-46ff-988c-da3cdedb35e7",
   "humanAcceptanceEvidence": "docs/tasks/WP-0016/evidence/WP-0016-human-acceptance-20260913.md",
   "prototypeImplementationCommit": "21b45c347a4008f5959b1b972e3ffd8a5aadcc6f",
-  "updatedOn": "2026-09-29",
+  "updatedOn": "2026-10-01",
   "sources": [
     {
       "path": "docs/prototypes/wp-0016/page-inventory.json",
@@ -256,7 +256,7 @@
       "phase": "M6",
       "classification": "production",
       "workPackage": "WP-0017",
-      "status": "in-progress",
+      "status": "verified",
       "operations": [
         {
           "id": "platform-tenant-detail:0",
@@ -266,7 +266,32 @@
           "reason": "m6-approved-prototype",
           "workPackage": "WP-0017",
           "dependsOn": [],
-          "status": "pending-contract"
+          "status": "verified",
+          "contract": {
+            "adr": "ADR-0089",
+            "target": {
+              "kind": "api",
+              "value": "GET /api/v1/platform/tenants/{tenantId}；GET 同目标 administrators（pageSize=1）；五页独立设置路由"
+            },
+            "saveBoundary": "只读真实基本信息、管理员摘要与安全保障；五页导航保持目标，不执行业务保存或身份切换。",
+            "authorizationTests": [
+              "租户及匿名会话不能读取平台侧租户概览",
+              "退出、目标不存在、网络失败与迟到结果不恢复旧事实",
+              "五页目标、刷新与历史恢复保持业务零写入"
+            ]
+          },
+          "verification": {
+            "commands": [
+              "make acceptance-work-package WP=WP-0017 SLICE=overview",
+              "make acceptance-work-package WP=WP-0017 SLICE=login",
+              "make frontend-test",
+              "make architecture-guard"
+            ],
+            "evidence": [
+              "docs/tasks/WP-0017/evidence/WP-0017-tenant-overview-prototype-parity-closure-20261001.md"
+            ]
+          },
+          "verifiedCommit": "a82202465fdf62bc1b8d157fa5902c4e93db78c6"
         },
         {
           "id": "platform-tenant-detail:1",
