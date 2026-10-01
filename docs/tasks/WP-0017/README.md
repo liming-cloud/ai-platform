@@ -72,6 +72,7 @@
 
 ## 证据
 
+- docs/tasks/WP-0017/evidence/WP-0017-platform-roles-production-verification-20261001.md（固定角色功能通过；原型正文一致，共享 390px／200% 文字质量待决定）
 - docs/tasks/WP-0017/evidence/WP-0017-platform-accounts-prototype-parity-closure-20261001.md（平台账户完整操作切片的最终部署、功能、登录、只读事实与固定原型收口）
 - docs/tasks/WP-0017/evidence/WP-0017-security-settings-prototype-parity-closure-20260929.md（登录安全独立设置的最终部署、功能、登录、只读事实与固定原型收口）
 - docs/tasks/WP-0017/evidence/WP-0017-feature-settings-prototype-parity-closure-20260928.md（功能上限独立设置的最终部署、功能、登录、只读事实与固定原型收口）
@@ -79,12 +80,11 @@
 - docs/tasks/WP-0017/evidence/WP-0017-admin-settings-prototype-parity-closure-20260924.md（管理员独立设置切片的部署、功能、数据与限定原型例外收口）
 - docs/tasks/WP-0017/evidence/WP-0017-prototype-parity-closure-20260920.md
 - docs/tasks/WP-0017/evidence/WP-0017-parity-decisions-20260920.md
-- docs/tasks/WP-0017/evidence/WP-0017-independent-login-deploy-20260914.md
 
 ## 下一前沿
 
-管理员、资源配额、可用功能和登录安全四个独立设置切片，以及平台账户 `platform-accounts:0–4`，均已分别完成实际部署功能、登录、只读事实与固定原型对照；登录安全弹窗保留 ADR-0079 提示所致的单点限定差异。平台账户的 390px“更多”已在不移动原型视觉位置的前提下恢复可操作性，五项操作和页面均为 `verified`。前沿仍为 WP-0017；当前独立切片 `platform-roles:0` 已按 ADR-0088 冻结只读职责说明和账户导航，待实施与部署验收。概览导航操作 `platform-tenant-detail:0` 仍为 `pending-contract`，概览入口仍 `in-progress`，WP-0017 整包提交和证据保持 `pending`，M6 未完成。
+管理员、资源配额、可用功能和登录安全四个独立设置切片，以及平台账户 `platform-accounts:0–4`，均已分别完成实际部署功能、登录、只读事实与固定原型对照；登录安全弹窗保留 ADR-0079 提示所致的单点限定差异。平台账户的 390px“更多”已恢复可操作性，五项操作和页面均为 `verified`。前沿仍为 WP-0017；当前 `platform-roles:0` 按 ADR-0088 在前端 `af1e0f45664c5ccd1818f8731e2782c10da8a9f8` 完成 11 项功能、15 项登录和只读事实验证，角色正文七组原型对照最大差 0.015625px。但固定原型与生产在 390px／200% 文字时均存在共享导航遮挡和顶栏说明挤压，人工复核阻止视觉收口，尚未标记 `verified`。下一动作是确认先修正并接受 OpenDesign 新版本或保留阻断，不自动豁免、不转入下一切片。`platform-tenant-detail:0` 仍为 `pending-contract`，WP-0017 整包提交和证据保持 `pending`，M6 未完成。
 
 ## 固定输入与工作区
 
-依据输入提交的 Charter、ROADMAP、STATE、上述当前前沿 ADR 和固定 OpenDesign 版本恢复。原子开户被验前端为 0a46a64b9105574a86b64facb513be20be20f01e，实际后端为 5844fd3ba2b5909161b704df5fc7e1ff026d4a0a；管理员独立页最新被验前端为 dc6dea4dd27797c1119f23a4659dc13c6dc1d999，验收脚本提交为 40f17a08577c741eba3230e2a10860d06caba501，实际后端为 02298633ba4ee38669bf46431494505d607ef8df。配额页本轮被验前端为 078af0110d3e70b41fb708ae20792633cfe79795，实际后端为 dba24ab30e7c1748c412fba157c482d1da3c6cdb。功能页本轮被验前端为 35db34bf42a821fd4f8bc39353e157e2ab3616ae，控制面后端为 33b4aeeea399d15e01c92d58305a54caa373095a。登录安全切片被验前端为 07b2a3c26d3867a4aab0c388739700b2f0907df5，控制面后端为 da1c6bddac0378673de26a8ead75b784fcf14c01，验收脚本提交为 ca20fd33caa8278898cb74ed2f6cdff9afac48e4。平台账户旧候选前端与验收脚本为 11bb5abfec42b74eec127a622978fe8bcd07703e；最终被验前端为 f9f418ebc84d9d9cd2001db7717e0300998fa1db，验收脚本为 445642d53，控制面后端为 9cd1f8ff5fea06c7d0b33b6a5a641c587464d1d4；查询进程仍为 ef11d6aad0ffb8d8a656d5a17a3477d93b95a5c8。各自部署摘要和范围以对应证据为准，当前源码 HEAD 不能替代运行版本。五项人工 fixture 重命名已在 GOV-0002 完成验证与提交；本包历史验收不受影响。
+依据输入提交的 Charter、ROADMAP、STATE、上述 ADR 和固定 OpenDesign 版本恢复。当前前端运行 `af1e0f45664c5ccd1818f8731e2782c10da8a9f8`，控制面后端运行 `9cd1f8ff5fea06c7d0b33b6a5a641c587464d1d4`，查询进程仍为 `ef11d6aad0ffb8d8a656d5a17a3477d93b95a5c8`；镜像、验收脚本和验证范围分别以各切片证据为准，历史验证提交仍由实现矩阵绑定，不用当前 HEAD 替代。五项人工 fixture 重命名已在 GOV-0002 完成验证与提交，本包未修改其内容。
