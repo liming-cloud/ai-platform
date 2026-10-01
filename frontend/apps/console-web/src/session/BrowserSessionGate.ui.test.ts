@@ -9,8 +9,7 @@ describe("登录入口视觉结构", () => {
   it("独立入口使用可发现链接，不继续在同页切换身份标签", () => {
     const source = readFileSync(gatePath, "utf8");
     expect(source).not.toContain("<TabList");
-    expect(source).toContain('href="/login"');
-    expect(source).toContain('href="/tenant/login"');
+    expect(source).toContain("<LoginEntryLinks");
     expect(source).toContain("当前登录身份与入口不匹配");
     expect(source).toContain("canEnterLoginWorkspace");
   });

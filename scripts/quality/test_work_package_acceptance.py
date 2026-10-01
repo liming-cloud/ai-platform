@@ -80,6 +80,17 @@ class WorkPackageAcceptanceTest(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("目录切片只读，不提供业务对象准备", result.stderr)
 
+    def test_login_entries_is_a_named_navigation_slice(self):
+        result = self.invoke("WP-0017", "login-entries")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("必须提供 0600 验收凭据文件", result.stderr)
+
+    def test_login_entries_rejects_object_preparation(self):
+        result = self.invoke("WP-0017", "login-entries", SETUP="tenant",
+                             FOUNDATION_ACCEPTANCE_CREDENTIALS_FILE="/private/tmp/not-used.json")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("登录导航切片只读，不提供业务对象准备", result.stderr)
+
     def test_setup_requires_explicit_supported_value(self):
         result = self.invoke("WP-0017", "login", SETUP="reset")
         self.assertNotEqual(result.returncode, 0)

@@ -21,6 +21,7 @@ import {
   useState,
 } from "react";
 import type { ControlPlaneClient } from "../api/control-plane-client";
+import { LoginEntryLinks } from "./LoginEntryLinks";
 import {
   buildBrowserLoginCredentials,
   canEnterLoginWorkspace,
@@ -278,11 +279,8 @@ export function BrowserSessionGate({
           {state === "authenticating" ? "正在登录" : "登录"}
         </Button>
       </form>
-      <nav className="governance-login__entries" aria-label="其他登录入口">
-        {workspace === "platform"
-          ? <a href="/tenant/login" onClick={() => setPassword("")}>租户管理员登录</a>
-          : <a href="/login" onClick={() => setPassword("")}>平台管理登录</a>}
-      </nav>
+      <LoginEntryLinks entry={existingQueryEntry && !explicitLoginEntry ? "query" : workspace}
+        onNavigate={() => setPassword("")} />
     </LoginFrame>
   );
 }

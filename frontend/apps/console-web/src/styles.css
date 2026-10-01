@@ -1381,11 +1381,18 @@
   display: flex;
   flex-wrap: wrap;
   gap: 1rem;
+  margin-top: -0.25rem;
   padding-top: 1rem;
   border-top: 1px solid var(--foundation-border);
 }
 
-.governance-login__entries a,
+.governance-login__entries a {
+  color: var(--foundation-accent);
+  font-size: 0.875rem;
+  line-height: 1.6;
+  text-underline-offset: 4px;
+}
+
 .governance-login__link {
   display: inline-flex;
   align-items: center;
