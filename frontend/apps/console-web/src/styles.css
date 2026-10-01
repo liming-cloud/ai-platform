@@ -1319,6 +1319,15 @@
   box-sizing: border-box;
 }
 
+/* 原型管理表单与导航使用 16px 网格间距；标题额外保留 8px 分隔。 */
+.governance-login__card:has(> .governance-login__entries) {
+  gap: 1rem;
+}
+
+.governance-login__card:has(> .governance-login__entries) > .governance-login__heading {
+  margin-bottom: 0.5rem;
+}
+
 .governance-login__card--state .state-panel {
   padding: 0;
   border: 0;
@@ -1381,13 +1390,13 @@
   display: flex;
   flex-wrap: wrap;
   gap: 1rem;
-  margin-top: -0.25rem;
+  margin-top: 1.25rem;
   padding-top: 1rem;
   border-top: 1px solid var(--foundation-border);
 }
 
 .governance-login__entries a {
-  color: var(--foundation-accent);
+  color: color-mix(in oklab, var(--foundation-accent-reference), var(--foundation-text) 24%);
   font-size: 0.875rem;
   line-height: 1.6;
   text-underline-offset: 4px;
