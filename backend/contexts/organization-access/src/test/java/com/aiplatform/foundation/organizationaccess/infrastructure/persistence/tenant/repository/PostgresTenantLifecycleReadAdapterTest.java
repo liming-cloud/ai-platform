@@ -53,6 +53,7 @@ class PostgresTenantLifecycleReadAdapterTest {
 
     @BeforeEach
     void seedFacts() {
+        jdbc.update("DELETE FROM organization_access.tenant_membership");
         jdbc.update("DELETE FROM organization_access.tenant_lifecycle_outbox");
         jdbc.update("DELETE FROM organization_access.tenant_lifecycle");
         jdbc.update("DELETE FROM organization_access.subject_identity");
@@ -75,8 +76,8 @@ class PostgresTenantLifecycleReadAdapterTest {
 
     @Test
     void 应按最后变更时间分页并以创建时间回退() {
-        var first = adapter.page(new PageQuery(1L, 1L));
-        var second = adapter.page(new PageQuery(2L, 1L));
+        var first = adapter.page(new PageQuery(1L, 1L), filter("", ""));
+        var second = adapter.page(new PageQuery(2L, 1L), filter("", ""));
 
         assertEquals(2L, first.totalElements());
         assertEquals(2L, first.totalPages());
@@ -86,6 +87,58 @@ class PostgresTenantLifecycleReadAdapterTest {
         assertEquals("2026-08-03T05:00:00Z", first.items().getFirst().lastChangedAt().toString());
         assertEquals("projection-second", second.items().getFirst().tenantCode());
         assertEquals(second.items().getFirst().createdAt(), second.items().getFirst().lastChangedAt());
+    }
+
+    @Test
+    void 搜索条件在真实查询中不能被忽略() {
+        var page = adapter.page(new PageQuery(1, 10), filter("SECOND", ""));
+        assertEquals(1, page.totalElements());
+        assertEquals(1, page.items().size());
+        assertEquals("projection-second", page.items().getFirst().tenantCode());
+        assertEquals(1, adapter.page(new PageQuery(1, 10), filter("第二", "")).totalElements());
+    }
+
+    @Test
+    void 状态条件与目录结果使用相同范围() {
+        jdbc.update("UPDATE organization_access.tenant_lifecycle SET status = 'SUSPENDED' WHERE tenant_code = 'projection-second'");
+        var page = adapter.page(new PageQuery(1, 10), filter("", "SUSPENDED"));
+        assertEquals(1, page.totalElements());
+        assertEquals(1, page.items().size());
+        assertEquals("projection-second", page.items().getFirst().tenantCode());
+        assertEquals(0, adapter.page(new PageQuery(1, 10), filter("first", "SUSPENDED")).totalElements());
+    }
+
+    @Test
+    void 字面通配字符不能扩大读取范围且空页总数仍真实() {
+        insertLifecycle(100000000000000003L, "literal-third", "字面%_\\单位", "2026-08-03T04:00:00Z");
+        for (var query : java.util.List.of("%", "_", "\\", "%_\\")) {
+            var result = adapter.page(new PageQuery(1, 10), filter(query, ""));
+            assertEquals(1, result.totalElements());
+            assertEquals("literal-third", result.items().getFirst().tenantCode());
+        }
+        var outside = adapter.page(new PageQuery(2, 10), filter("%_\\", ""));
+        assertTrue(outside.items().isEmpty());
+        assertEquals(1, outside.totalElements());
+        assertEquals(0, adapter.page(new PageQuery(1, 20), filter("不存在", "")).totalElements());
+    }
+
+    @Test
+    void 管理员资格数量来自目标租户且不以初始主体伪造分配() {
+        jdbc.update("""
+                INSERT INTO organization_access.tenant_membership
+                    (membership_id, tenant_id, subject_id, membership_role, status,
+                     permission_version, version, created_at, updated_at)
+                VALUES (210000000000000001, 100000000000000001, 4921825928971026434,
+                        'TENANT_ADMINISTRATOR', 'ENABLED', 1, 0,
+                        CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                """);
+        assertEquals(1, adapter.page(new PageQuery(1, 10), filter("first", "")).items().getFirst().administratorCount());
+        assertEquals(0, adapter.page(new PageQuery(1, 10), filter("second", "")).items().getFirst().administratorCount());
+    }
+
+    private static com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.dto.TenantDirectoryFilter filter(
+            String query, String status) {
+        return new com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.dto.TenantDirectoryFilter(query, status);
     }
 
     private void insertLifecycle(long tenantId, String tenantCode, String displayName, String createdAt) {

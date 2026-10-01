@@ -17,7 +17,7 @@ export interface TenantLifecycle {
   version: number;
 }
 
-/** 平台工作区的服务端权威读取投影，不包含初始管理员、成员、权限或正文。 */
+/** 平台只读投影；管理员仅回显资格数量，不返回个人身份、成员明细、权限或正文。 */
 export interface TenantLifecycleSummary {
   tenantId: string;
   tenantCode: string;
@@ -26,6 +26,7 @@ export interface TenantLifecycleSummary {
   version: number;
   createdAt: string;
   lastChangedAt: string;
+  administratorCount: number;
 }
 
 /** 平台读取的租户管理员安全摘要，不包含主体标识、凭据或权限快照。 */
@@ -709,12 +710,18 @@ export class ControlPlaneClient {
     });
   }
 
+  /** 读取服务端过滤与分页结果；查询条件不构成身份或租户授权。 */
   async listTenantLifecycles(
     pageNumber = 1,
     pageSize = 20,
+    query = "",
+    status: "ALL" | "PROVISIONING" | "ACTIVE" | "SUSPENDED" = "ALL",
   ): Promise<PageResult<TenantLifecycleSummary>> {
+    const parameters = new URLSearchParams({ pageNumber: String(pageNumber), pageSize: String(pageSize) });
+    if (query.trim()) parameters.set("query", query.trim());
+    if (status !== "ALL") parameters.set("status", status);
     return this.request<PageResult<TenantLifecycleSummary>>(
-      `/platform/tenants?pageNumber=${pageNumber}&pageSize=${pageSize}`,
+      `/platform/tenants?${parameters}`,
     );
   }
 

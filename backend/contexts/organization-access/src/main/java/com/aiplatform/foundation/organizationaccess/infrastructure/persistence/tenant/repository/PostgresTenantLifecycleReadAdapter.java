@@ -1,6 +1,7 @@
 package com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.repository;
 
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.dto.TenantLifecycleSummary;
+import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.dto.TenantDirectoryFilter;
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.dto.TenantLifecycleView;
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.dto.TenantQuotaView;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.mapper.TenantProvisioningMapper;
@@ -32,9 +33,13 @@ public final class PostgresTenantLifecycleReadAdapter implements TenantLifecycle
     }
 
     @Override
-    public PageResult<TenantLifecycleSummary> page(PageQuery query) {
+    public PageResult<TenantLifecycleSummary> page(PageQuery query, TenantDirectoryFilter filter) {
         query = Objects.requireNonNull(query, "分页查询不能为空");
-        var page = mapper.selectPage(new Page<>(query.pageNumber(), query.pageSize()));
+        filter = Objects.requireNonNull(filter, "目录过滤条件不能为空");
+        // 查询作为字面子串绑定；用户输入不能扩大为 SQL 通配符或片段。
+        var pattern = filter.query().isEmpty() ? "" : "%" + filter.query()
+                .replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%";
+        var page = mapper.selectPage(new Page<>(query.pageNumber(), query.pageSize()), pattern, filter.status());
         var summaries = page.getRecords().stream()
                 .map(row -> new TenantLifecycleSummary(
                         row.getTenantId(),
@@ -43,7 +48,7 @@ public final class PostgresTenantLifecycleReadAdapter implements TenantLifecycle
                         row.getStatus(),
                         row.getVersion(),
                         row.getCreatedAt(),
-                        row.getLastChangedAt()))
+                        row.getLastChangedAt(), row.getAdministratorCount()))
                 .toList();
         return PageResult.of(summaries, query, page.getTotal());
     }

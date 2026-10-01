@@ -1,6 +1,7 @@
 package com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.port.out;
 
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.dto.TenantLifecycleSummary;
+import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.dto.TenantDirectoryFilter;
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.dto.TenantLifecycleView;
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.dto.TenantQuotaView;
 import java.util.Optional;
@@ -15,7 +16,7 @@ public interface TenantLifecycleReadPort {
     /**
      * 按受限分页边界读取最小生命周期投影。
      */
-    PageResult<TenantLifecycleSummary> page(PageQuery query);
+    PageResult<TenantLifecycleSummary> page(PageQuery query, TenantDirectoryFilter filter);
 
     /** 只读取指定租户的生命周期展示事实。 */
     Optional<TenantLifecycleView> find(long tenantId);

@@ -1067,6 +1067,21 @@ describe("ControlPlaneClient", () => {
     expect(page.items[0]?.lastChangedAt).toBe("2026-08-03T04:00:00Z");
   });
 
+  it("租户目录将字面搜索与状态提交给服务端而不在当前页过滤", async () => {
+    let request: Request | undefined;
+    const client = authenticatedClient(async (input, init) => {
+      request = new Request(input, init);
+      return new Response(JSON.stringify({ items: [], pageNumber: 1, pageSize: 10,
+        totalElements: 0, totalPages: 0, hasPrevious: false, hasNext: false }), { status: 200 });
+    });
+    await client.listTenantLifecycles(1, 10, "云杉 %_\\", "SUSPENDED");
+    const parameters = new URL(request!.url).searchParams;
+    expect(parameters.get("query")).toBe("云杉 %_\\");
+    expect(parameters.get("status")).toBe("SUSPENDED");
+    expect(parameters.get("pageSize")).toBe("10");
+    expect(request?.method).toBe("GET");
+  });
+
   it("平台租户管理员目录和生命周期只提交目标租户与受控资源引用", async () => {
     const requests: Request[] = [];
     const client = authenticatedClient(async (input, init) => {

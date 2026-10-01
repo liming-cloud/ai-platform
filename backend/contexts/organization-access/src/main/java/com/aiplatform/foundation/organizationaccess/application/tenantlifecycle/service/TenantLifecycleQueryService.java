@@ -1,6 +1,7 @@
 package com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.service;
 
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.dto.TenantLifecycleSummary;
+import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.dto.TenantDirectoryFilter;
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.dto.TenantLifecycleView;
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.dto.TenantQuotaView;
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.exception.TenantOnboardingErrorCode;
@@ -34,13 +35,13 @@ public class TenantLifecycleQueryService {
     @Transactional(readOnly = true)
     public PageResult<TenantLifecycleSummary> list(
             PlatformRequestContext platform,
-            PageQuery page) {
+            PageQuery page, String query, String status) {
         platform = Objects.requireNonNull(platform, "平台请求上下文不能为空");
         page = Objects.requireNonNull(page, "分页查询不能为空");
         if (!platform.hasPermission(PlatformPermissions.TENANT_GOVERNANCE_WRITE)) {
             throw new IllegalArgumentException("平台上下文缺少租户治理权限");
         }
-        return readPort.page(page);
+        return readPort.page(page, new TenantDirectoryFilter(query, status));
     }
 
     /** 按平台治理权限读取单个租户，不允许借详情接口探测未授权对象。 */

@@ -731,6 +731,23 @@ class AuthenticationApiTest {
         assertNotNull(summary.get("lastChangedAt"));
         assertFalse(summary.containsKey("initialAdministratorSubjectId"));
         assertFalse(summary.containsKey("permissions"));
+        assertEquals(1, summary.get("administratorCount"));
+
+        var filtered = http.exchange(url("/api/v1/platform/tenants?pageSize=10&query=" + tenantCode.toUpperCase()),
+                HttpMethod.GET, new HttpEntity<>(bearer(platformToken)), Map.class);
+        assertEquals(HttpStatus.OK, filtered.getStatusCode());
+        assertEquals(1, filtered.getBody().get("totalElements"));
+        assertEquals(1, ((java.util.List<?>) filtered.getBody().get("items")).size());
+        var excluded = http.exchange(url("/api/v1/platform/tenants?query=" + tenantCode + "&status=SUSPENDED"),
+                HttpMethod.GET, new HttpEntity<>(bearer(platformToken)), Map.class);
+        assertEquals(HttpStatus.OK, excluded.getStatusCode());
+        assertEquals(0, excluded.getBody().get("totalElements"));
+        for (var query : java.util.List.of("query=" + "x".repeat(65), "status=DISABLED")) {
+            assertEquals(HttpStatus.BAD_REQUEST, http.exchange(url("/api/v1/platform/tenants?" + query),
+                    HttpMethod.GET, new HttpEntity<>(bearer(platformToken)), ApiError.class).getStatusCode());
+        }
+        assertEquals(HttpStatus.UNAUTHORIZED, http.getForEntity(
+                url("/api/v1/platform/tenants?query=" + tenantCode + "&status=DISABLED"), ApiError.class).getStatusCode());
     }
 
     @Test

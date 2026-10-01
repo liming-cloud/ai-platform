@@ -7,7 +7,7 @@ import java.util.Objects;
 /**
  * 生命周期工作区使用的最小公开读取投影。
  *
- * <p>初始管理员、成员、权限、凭据与租户正文均不属于此契约。</p>
+ * <p>只回显管理员资格数量；个人身份、成员明细、权限、凭据与租户正文不属于此契约。</p>
  */
 public record TenantLifecycleSummaryResponse(
         String tenantId,
@@ -16,7 +16,8 @@ public record TenantLifecycleSummaryResponse(
         String status,
         long version,
         Instant createdAt,
-        Instant lastChangedAt) {
+        Instant lastChangedAt,
+        long administratorCount) {
 
     /**
      * 将应用读取投影转换为稳定 HTTP 字段。
@@ -30,6 +31,6 @@ public record TenantLifecycleSummaryResponse(
                 summary.status(),
                 summary.version(),
                 summary.createdAt(),
-                summary.lastChangedAt());
+                summary.lastChangedAt(), summary.administratorCount());
     }
 }

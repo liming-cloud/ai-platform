@@ -53,8 +53,10 @@ public final class TenantLifecycleController {
     public PageResult<TenantLifecycleSummaryResponse> list(
             PlatformRequestContext platform,
             @RequestParam(defaultValue = "1") long pageNumber,
-            @RequestParam(defaultValue = "20") long pageSize) {
-        var page = lifecycleQueries.list(platform, new PageQuery(pageNumber, pageSize));
+            @RequestParam(defaultValue = "20") long pageSize,
+            @RequestParam(defaultValue = "") String query,
+            @RequestParam(defaultValue = "") String status) {
+        var page = lifecycleQueries.list(platform, new PageQuery(pageNumber, pageSize), query, status);
         return new PageResult<>(
                 page.items().stream().map(TenantLifecycleSummaryResponse::from).toList(),
                 page.pageNumber(),

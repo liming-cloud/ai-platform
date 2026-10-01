@@ -66,7 +66,8 @@ export type ConsoleRoute =
   | { navigationId: "governance"; task: "evaluation" }
   | { navigationId: "query"; task: "ask"; assistantPage: number }
   | { navigationId: "platform-operations"; task: "overview"; page: number; range: OperationsRange }
-  | { navigationId: "platform"; task: "tenants"; page: number }
+  | { navigationId: "platform"; task: "tenants"; page: number; query?: string;
+      status?: "ALL" | "PROVISIONING" | "ACTIVE" | "SUSPENDED"; pageSize?: 10 | 20 | 50 | 100 }
   | { navigationId: "platform"; task: "create"; step: 1 | 2 | 3 }
   | { navigationId: "platform"; task: "detail"; tenantId: string }
   | { navigationId: "platform"; task: "quotas"; tenantId: string }
@@ -110,7 +111,7 @@ export function defaultConsoleRoute(navigationId: ConsoleNavigationId): ConsoleR
     case "platform-operations":
       return { navigationId, task: "overview", page: 1, range: "DAY_7" };
     case "platform":
-      return { navigationId, task: "tenants", page: 1 };
+      return { navigationId, task: "tenants", page: 1, query: "", status: "ALL", pageSize: 20 };
     case "platform-accounts":
       return { navigationId, task: "accounts", query: "", status: "ALL", page: 1, pageSize: 20 };
     case "platform-model-supply":
@@ -339,10 +340,16 @@ export function parseConsoleRoute(pathname: string, search: string): ConsoleRout
     };
   }
   if (routePath === "/platform/tenants") {
+    const parameters = new URLSearchParams(search);
+    const status = parameters.get("status");
     return {
       navigationId: "platform",
       task: "tenants",
-      page: positivePage(new URLSearchParams(search).get("page")),
+      page: positivePage(parameters.get("page")),
+      query: parameters.get("q")?.trim() ?? "",
+      status: status === "PROVISIONING" || status === "ACTIVE" || status === "SUSPENDED" ? status : "ALL",
+      pageSize: [10, 20, 50, 100].includes(Number(parameters.get("pageSize")))
+        ? Number(parameters.get("pageSize")) as 10 | 20 | 50 | 100 : 20,
     };
   }
   if (routePath === "/platform/tenants/new") {
@@ -452,7 +459,8 @@ export function formatConsoleRoute(route: ConsoleRoute): string {
   }
   if (route.navigationId === "platform") {
     return route.task === "tenants"
-      ? `/platform/tenants?page=${route.page}`
+      ? `/platform/tenants?${new URLSearchParams({ q: route.query ?? "", status: route.status ?? "ALL",
+          page: String(route.page), pageSize: String(route.pageSize ?? 20) })}`
       : route.task === "detail" ? `/platform/tenants/${encodeURIComponent(route.tenantId)}`
         : route.task === "quotas" ? `/platform/tenants/${encodeURIComponent(route.tenantId)}/quotas`
         : route.task === "features" ? `/platform/tenants/${encodeURIComponent(route.tenantId)}/features`

@@ -19,6 +19,7 @@ import { TenantAdministratorSettings } from "./TenantAdministratorSettings";
 import { TenantQuotaSettings } from "./TenantQuotaSettings";
 import { TenantFeatureSettings } from "./TenantFeatureSettings";
 import { TenantLoginSecuritySettings } from "./TenantLoginSecuritySettings";
+import { currentTenantDirectory, readTenantDirectory, type TenantDirectoryRead } from "./tenant-directory-loader";
 import type { ConsoleRoute } from "../../session/console-route";
 
 type TenantRoute = Extract<ConsoleRoute, { navigationId: "platform" }>;
@@ -31,43 +32,31 @@ export function PlatformTenantLifecycleWorkspace({ client, route, onRouteChange 
   route: TenantRoute;
   onRouteChange: (route: ConsoleRoute) => void;
 }) {
-  const [lifecycles, setLifecycles] = useState<TenantLifecycleSummary[]>([]);
-  const [hasPrevious, setHasPrevious] = useState(false);
-  const [hasNext, setHasNext] = useState(false);
-  const [total, setTotal] = useState(0);
+  const [read, setRead] = useState<TenantDirectoryRead>();
+  const [revision, setRevision] = useState(0);
   const [busy, setBusy] = useState(false);
-  const [failure, setFailure] = useState<UserFacingError>();
+  const [mutationFailure, setFailure] = useState<UserFacingError>();
   const [success, setSuccess] = useState("");
   const [transitionTarget, setTransitionTarget] = useState<TransitionTarget>();
   const [administratorTenant, setAdministratorTenant] = useState<TenantLifecycleSummary>();
   const administratorTrigger = useRef<HTMLButtonElement | null>(null);
   const listPage = route.task === "tenants" ? route.page : 1;
+  const listQuery = route.task === "tenants" ? route.query ?? "" : "";
+  const listStatus = route.task === "tenants" ? route.status ?? "ALL" : "ALL";
+  const listPageSize = route.task === "tenants" ? route.pageSize ?? 20 : 20;
 
-  const reload = useCallback(async () => {
-    if (route.task !== "tenants") return;
-    setBusy(true);
-    setFailure(undefined);
-    try {
-      const page = await client.listTenantLifecycles(listPage);
-      setLifecycles(page.items);
-      setHasPrevious(page.hasPrevious);
-      setHasNext(page.hasNext);
-      setTotal(page.totalElements);
-    } catch (error) {
-      setFailure(presentApiError(error, "加载租户目录"));
-      setLifecycles([]);
-      setHasPrevious(false);
-      setHasNext(false);
-      setTotal(0);
-    } finally {
-      setBusy(false);
-    }
-  }, [client, listPage, route.task]);
+  const owner = JSON.stringify([listPage, listPageSize, listQuery, listStatus, revision]);
+  const current = currentTenantDirectory(read, owner);
+  const lifecycles = current?.page?.items ?? [];
+  const hasPrevious = current?.page?.hasPrevious ?? false;
+  const hasNext = current?.page?.hasNext ?? false;
+  const total = current?.page?.totalElements ?? 0;
+  const failure = current?.error ?? mutationFailure;
 
   useEffect(() => {
-    const timeout = window.setTimeout(() => void reload(), 0);
-    return () => window.clearTimeout(timeout);
-  }, [reload]);
+    if (route.task !== "tenants") return;
+    return readTenantDirectory(client, owner, [listPage, listPageSize, listQuery, listStatus], setRead);
+  }, [client, owner, listPage, listPageSize, listQuery, listStatus, route.task]);
 
   async function transition(lifecycle: TenantLifecycleSummary, action: TenantAction) {
     setBusy(true);
@@ -80,7 +69,7 @@ export function PlatformTenantLifecycleWorkspace({ client, route, onRouteChange 
           : client.restoreTenant(lifecycle.tenantId));
       setTransitionTarget(undefined);
       setSuccess(`租户“${lifecycle.displayName}”已${action === "activate" ? "激活" : action === "suspend" ? "暂停" : "恢复"}。`);
-      await reload();
+      setRevision(value => value + 1);
     } catch (error) {
       setFailure(presentApiError(error, transitionLabel(action)));
     } finally {
@@ -105,8 +94,8 @@ export function PlatformTenantLifecycleWorkspace({ client, route, onRouteChange 
       </header>
       {success ? <MessageBar intent="success"><MessageBarBody><MessageBarTitle>操作成功</MessageBarTitle>{success}</MessageBarBody></MessageBar> : null}
       {failure ? <MessageBar intent="error"><MessageBarBody><MessageBarTitle>{failure.title}</MessageBarTitle>{failure.description}</MessageBarBody></MessageBar> : null}
-      {busy && lifecycles.length === 0 ? <StatePanel kind="loading" title="正在加载平台租户" description="正在读取当前服务器页的生命周期摘要。" /> : null}
-      {!busy && lifecycles.length === 0 && failure === undefined ? <StatePanel kind="empty" title="还没有租户" description="建立租户时直接填写新管理员账号与密码。" /> : null}
+      {!current && failure === undefined ? <StatePanel kind="loading" title="正在加载平台租户" description="正在读取当前服务器页的生命周期摘要。" /> : null}
+      {current?.page && !busy && lifecycles.length === 0 && failure === undefined ? <StatePanel kind="empty" title="还没有租户" description="建立租户时直接填写新管理员账号与密码。" /> : null}
       <div className="tenant-lifecycle-list">
         {lifecycles.map((lifecycle) => {
           const action = transitionAction(lifecycle);

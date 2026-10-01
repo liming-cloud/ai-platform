@@ -299,6 +299,7 @@ describe("统一控制台路由", () => {
         navigationId: "platform",
         task: "tenants",
         page: 1,
+        query: "", status: "ALL", pageSize: 20,
       },
     });
   });
@@ -308,14 +309,30 @@ describe("统一控制台路由", () => {
       navigationId: "platform",
       task: "tenants",
       page: 1,
+      query: "", status: "ALL", pageSize: 20,
     });
     expect(parseConsoleRoute("/platform/tenants", "?page=2")).toEqual({
       navigationId: "platform",
       task: "tenants",
       page: 2,
+      query: "", status: "ALL", pageSize: 20,
     });
     expect(formatConsoleRoute({ navigationId: "platform", task: "tenants", page: 2 }))
-      .toBe("/platform/tenants?page=2");
+      .toBe("/platform/tenants?q=&status=ALL&page=2&pageSize=20");
+  });
+
+  it("租户目录在刷新与历史中恢复查询、状态和完整分页", () => {
+    const route = { navigationId: "platform" as const, task: "tenants" as const,
+      query: "云杉 %_", status: "SUSPENDED" as const, page: 2, pageSize: 50 as const };
+    expect(parseConsoleRoute("/platform/tenants", "?q=%E4%BA%91%E6%9D%89+%25_&status=SUSPENDED&page=2&pageSize=50"))
+      .toEqual(route);
+    expect(formatConsoleRoute(route))
+      .toBe("/platform/tenants?q=%E4%BA%91%E6%9D%89+%25_&status=SUSPENDED&page=2&pageSize=50");
+  });
+
+  it("租户目录把未知状态和页大小恢复为明确默认值", () => {
+    expect(parseConsoleRoute("/platform/tenants", "?q=%20demo%20&status=DISABLED&page=-1&pageSize=7"))
+      .toEqual({ navigationId: "platform", task: "tenants", query: "demo", status: "ALL", page: 1, pageSize: 20 });
   });
 
   it("建立租户使用独立三步路由且拒绝无效步骤", () => {

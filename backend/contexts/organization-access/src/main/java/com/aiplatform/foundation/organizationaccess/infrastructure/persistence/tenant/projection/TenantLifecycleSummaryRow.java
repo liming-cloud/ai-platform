@@ -14,6 +14,7 @@ public final class TenantLifecycleSummaryRow {
     private long version;
     private Instant createdAt;
     private Instant lastChangedAt;
+    private long administratorCount;
 
     public long getTenantId() { return tenantId; }
     public void setTenantId(long value) { tenantId = value; }
@@ -29,4 +30,8 @@ public final class TenantLifecycleSummaryRow {
     public void setCreatedAt(Instant value) { createdAt = value; }
     public Instant getLastChangedAt() { return lastChangedAt; }
     public void setLastChangedAt(Instant value) { lastChangedAt = value; }
+    /** 只返回资格计数，不携带成员或主体明细。 */
+    public long getAdministratorCount() { return administratorCount; }
+    /** 保存数据库读取的资格计数，由应用投影拒绝非法负数。 */
+    public void setAdministratorCount(long value) { administratorCount = value; }
 }

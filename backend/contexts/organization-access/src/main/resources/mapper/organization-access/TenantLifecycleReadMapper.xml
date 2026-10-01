@@ -12,10 +12,22 @@
                lifecycle.status,
                lifecycle.version,
                lifecycle.created_at,
-               COALESCE(MAX(outbox.occurred_at), lifecycle.created_at) AS last_changed_at
+               COALESCE(MAX(outbox.occurred_at), lifecycle.created_at) AS last_changed_at,
+               (SELECT count(*) FROM organization_access.tenant_membership membership
+                WHERE membership.tenant_id = lifecycle.tenant_id
+                  AND membership.membership_role = 'TENANT_ADMINISTRATOR') AS administrator_count
         FROM organization_access.tenant_lifecycle lifecycle
         LEFT JOIN organization_access.tenant_lifecycle_outbox outbox
             ON outbox.tenant_id = lifecycle.tenant_id
+        <where>
+            <if test="queryPattern != ''">
+                (lifecycle.tenant_code ILIKE #{queryPattern} ESCAPE '\'
+                 OR lifecycle.display_name ILIKE #{queryPattern} ESCAPE '\')
+            </if>
+            <if test="status != ''">
+                AND lifecycle.status = #{status}
+            </if>
+        </where>
         GROUP BY lifecycle.tenant_id,
                  lifecycle.tenant_code,
                  lifecycle.display_name,
