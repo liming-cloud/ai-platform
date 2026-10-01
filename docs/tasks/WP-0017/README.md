@@ -72,7 +72,7 @@
 
 ## 证据
 
-- docs/tasks/WP-0017/evidence/WP-0017-tenant-directory-execution-20261001.md（搜索与读取归属修复、部署回归及待决定事项；目录切片未闭合）
+- docs/tasks/WP-0017/evidence/WP-0017-tenant-directory-opendesign-acceptance-20261001.md（目录原项目修订已接受；关联查询修复证据，生产切片仍未闭合）
 - docs/tasks/WP-0017/evidence/WP-0017-tenant-overview-prototype-parity-closure-20261001.md（真实概览、五页只读导航、最终部署与原型一致性收口）
 - docs/tasks/WP-0017/evidence/WP-0017-platform-roles-prototype-parity-closure-20261001.md（固定角色、新版原型共享布局、实际部署与零写入收口）
 - docs/tasks/WP-0017/evidence/WP-0017-platform-accounts-prototype-parity-closure-20261001.md（平台账户完整操作切片的最终部署、功能、登录、只读事实与固定原型收口）
@@ -85,7 +85,7 @@
 
 原子开户、管理员、资源配额、可用功能、登录安全、平台账户完整操作、固定角色及租户概览已完成各自独立收口。概览 `platform-tenant-detail:0` 按 ADR-0089 在前端 `a82202465fdf62bc1b8d157fa5902c4e93db78c6` 通过 15 项只读浏览器验收、15 项登录回归、七组原型对照及只读事实复核，已标为 `verified`。12 个入口中 9 个已验证，租户登录部分已验证，平台概览和租户目录仍待实施；21 项本包生产操作中 17 项已验证。下一独立切片是 `platform-tenants:0–1` 的租户目录／建立入口／搜索合同；平台概览首个阻断项、三类登录入口切换及既有分页门禁事项仍待处理。产品前沿保持 WP-0017，整包提交和证据保持 `pending`，M6 未完成。
 
-ADR-0090 修复 `90a28e1b` 已部署：后端 1030、前端 242 项，两项原失败复现、13 组只读回归、15 项登录通过，业务事实前后相同。区域列及“安全边界异常 0”无事实源，承接待确认；目录表格、控件、完整分页与原型验收未完成，本切片未闭合。
+ADR-0090 修复 `90a28e1b` 已部署，查询／归属回归通过。用户已接受原项目目录修订 `9a1747609d41bf546e78486954539cd4b79fbbb9`：去除区域、异常尚未核实，原型 9 项及浏览器 11 项通过。下一步按该版本承接生产目录；表格、控件、完整分页及最终部署原型验收尚未完成，本切片未闭合。
 
 ## 固定输入与工作区
 
