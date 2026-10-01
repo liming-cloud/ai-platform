@@ -20,6 +20,23 @@ function environment(file, extra = {}) {
   return { FOUNDATION_ACCEPTANCE_CREDENTIALS_FILE: file, ...extra };
 }
 
+test("目录只读配置拒绝任何对象准备，且不尝试读取凭据", () => {
+  const { tenantsConfiguration } = require("../development/acceptance-tenants.cjs");
+  assert.throws(() => tenantsConfiguration({ SETUP: "tenant" }), /目录切片只读/);
+});
+test("目录配置复用既有凭据边界并绑定精确验收对象", () => {
+  const { tenantsConfiguration } = require("../development/acceptance-tenants.cjs");
+  const file = credentialFile("directory.json");
+  const configuration = tenantsConfiguration(environment(file, { FOUNDATION_ACCEPTANCE_TENANT_ID: "2104457357567197185" }));
+  assert.equal(configuration.tenantId, "2104457357567197185");
+  assert.equal(configuration.setup, false);
+  assert.throws(() => tenantsConfiguration(environment(file)), /租户标识/);
+  assert.throws(() => tenantsConfiguration(environment(file, { FOUNDATION_ACCEPTANCE_TENANT_ID: "../other" })), /租户标识/);
+  assert.throws(() => tenantsConfiguration(environment(credentialFile("directory-public.json", fixture, 0o640), {
+    FOUNDATION_ACCEPTANCE_TENANT_ID: "2104457357567197185",
+  })), /0600/);
+});
+
 test("只接受当前账户独占的普通 0600 JSON 凭据文件", () => {
   const configuration = readConfiguration(environment(credentialFile("valid.json")));
   assert.equal(configuration.baseUrl, "http://127.0.0.1:13000");

@@ -1,9 +1,12 @@
 /// <reference types="node" />
 import { readFileSync } from "node:fs";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
+import { PlatformTenantLifecycleWorkspace } from "./PlatformTenantLifecycleWorkspace";
+import type { ControlPlaneClient } from "../../api/control-plane-client";
 
 const workspacePath = new URL("./PlatformTenantLifecycleWorkspace.tsx", import.meta.url).pathname;
-const stylesPath = new URL("../../styles.css", import.meta.url).pathname;
 
 describe("租户建立流程", () => {
   it("开户只通过原子向导提交，不提前创建人员账户", () => {
@@ -14,25 +17,17 @@ describe("租户建立流程", () => {
     expect(source).not.toContain("请先在平台账户页面创建并启用账户");
   });
 
-  it("平台租户目录提供管理员治理工作台且不展示内部标识", () => {
-    const source = readFileSync(workspacePath, "utf8");
-    const styles = readFileSync(stylesPath, "utf8");
-
-    expect(source).toContain("管理租户管理员");
-    expect(source).toContain("client.listTenantAdministrators");
-    expect(source).toContain("client.listTenantAdministratorCandidates");
-    expect(source).toContain("client.replaceTenantAdministrator");
-    expect(source).toContain("administratorTrigger.current = event.currentTarget");
-    expect(source).toContain("administratorTrigger.current?.focus()");
-    expect(source).toContain('className="tenant-administrator-dialog"');
-    expect(source).not.toContain("成员标识");
-    expect(source).not.toContain("主体标识");
-    expect(styles).toContain(".fui-DialogSurface.tenant-administrator-dialog");
-    expect(styles).toContain("max-width: none;");
-    expect(styles).toContain("grid-auto-rows: max-content;");
-    expect(styles).toMatch(
-      /\.tenant-administrator-dialog__content\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\);/s,
-    );
-    expect(styles).toContain("@media (prefers-reduced-motion: reduce)");
+  it("目录初始输出使用原型标题，未读取事实时不显示伪造计数或旧写操作", () => {
+    const html = renderToStaticMarkup(createElement(PlatformTenantLifecycleWorkspace, {
+      client: {} as ControlPlaneClient,
+      route: { navigationId: "platform", task: "tenants", page: 1 }, onRouteChange: () => undefined,
+    }));
+    expect(html).toMatch(/<h1[^>]*>租户目录<\/h1>/);
+    expect(html).toContain("建立新租户");
+    expect(html).toContain("只读目录");
+    expect(html).toContain("正在加载租户目录");
+    expect(html).not.toContain("共 0 个租户");
+    for (const label of ["管理租户管理员", "激活租户", "暂停租户", "分配管理员", "驻留区域"])
+      expect(html).not.toContain(label);
   });
 });
