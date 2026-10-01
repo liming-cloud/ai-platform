@@ -119,6 +119,16 @@ async function run(configuration) {
         return e.tagName === "H2" && style.fontSize === "20px" && style.fontWeight === "500"
           && style.lineHeight === "27px" && /Georgia/.test(style.fontFamily);
       }), "安全保障标题字体、字重或行高未承接原型");
+      requireCondition(await page.locator(".tenant-overview__settings a:not([aria-current])")
+        .evaluateAll(elements => elements.length === 4
+          && elements.every(element => getComputedStyle(element).color === "rgb(20, 20, 19)")),
+      "未选中的设置导航颜色未承接原型");
+      for (const selector of [".tenant-overview__settings a[href$='/admins']", ".tenant-overview__entry > a"]) {
+        const action = page.locator(selector);
+        await action.hover();
+        requireCondition(await action.evaluate(element => getComputedStyle(element).backgroundColor === "rgb(232, 230, 220)"),
+          "概览导航或登录入口缺少原型悬停状态");
+      }
       const tenant = await request(page, `/platform/tenants/${configuration.tenantId}`);
       const administrators = await request(page, `/platform/tenants/${configuration.tenantId}/administrators?pageNumber=1&pageSize=1`);
       requireCondition(tenant.status === 200 && administrators.status === 200
@@ -147,6 +157,9 @@ async function run(configuration) {
         requireCondition(new URL(page.url()).pathname === `/platform/tenants/${configuration.tenantId}${suffix}`,
           "设置导航切换了目标租户");
         requireCondition(await nav.locator('[aria-current="page"]').innerText() === label, "设置导航当前项错误");
+        requireCondition(await nav.locator("a:not([aria-current])")
+          .evaluateAll(elements => elements.every(element => getComputedStyle(element).color === "rgb(20, 20, 19)")),
+        "独立设置页的未选中导航颜色不一致");
       }
     });
     await scenario("刷新、历史与返回目录保持真实路由", async page => {
