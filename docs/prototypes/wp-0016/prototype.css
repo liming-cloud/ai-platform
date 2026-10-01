@@ -3957,3 +3957,30 @@ body[data-review="hidden"] .prototype-reviewer {
 @media (prefers-reduced-motion:reduce) {
   *, *::before, *::after { animation:none !important; transition:none !important; }
 }
+
+/* 租户目录保留完整标识；文字放大后由内容撑开事实行，避免编码与状态重叠。 */
+main[data-screen="platform-tenants"] .primary-cell strong,
+main[data-screen="platform-tenants"] .primary-cell span {
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.5;
+}
+
+main[data-screen="platform-tenants"] .data-table td {
+  height: auto;
+  min-height: var(--table-row-height);
+}
+
+main[data-screen="platform-tenants"] .compact-summary {
+  line-height: 1.5;
+}
+
+@media (max-width: 680px) {
+  main[data-screen="platform-tenants"] :is(button, input, select, a) {
+    /* 为已接受的吸顶导航留出文字放大后的滚动空间。 */
+    scroll-margin-block-start: 12rem;
+    scroll-margin-block-end: var(--space-4);
+  }
+}

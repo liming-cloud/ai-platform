@@ -333,16 +333,19 @@ function renderPlatformAccounts(demoState, tenantAdministrators = false) {
 }
 
 function renderPlatformTenants(demoState) {
+  const labels = { provisioning: "待启用", active: "活动", suspended: "已暂停" };
   const rows = (demoState?.tenants || [])
-    .map(
-      (tenant) =>
-        `<tr data-directory-state="${escapeHtml(tenant.status)}" data-search-text="${escapeHtml(`${tenant.organizationName} ${tenant.code} ${tenant.region}`)}"><td data-label="租户"><span class="primary-cell"><strong>${escapeHtml(tenant.organizationName)}</strong><span class="mono">${escapeHtml(tenant.code)}</span></span></td><td data-label="驻留区域">${escapeHtml(tenant.region)}</td><td data-label="状态">${statusTag(tenant.status === "active" ? "活动" : "已停用")}</td><td data-label="租户管理员">已分配</td><td data-label="操作"><button class="button secondary compact" type="button" data-select-tenant="${escapeHtml(tenant.id)}" data-nav-screen="platform-tenant-detail" data-control-status="navigation">查看详情</button></td></tr>`,
-    )
+    .map((tenant) => {
+      // 停用资格仍归属原租户；目录不暴露成员明细或凭据。
+      const assigned = (tenant.members || []).some(member => member.role === "tenantAdministrator");
+      const label = labels[tenant.status] || "状态未知";
+      return `<tr data-directory-state="${escapeHtml(tenant.status)}" data-search-text="${escapeHtml(`${tenant.organizationName} ${tenant.code}`)}"><td data-label="租户"><span class="primary-cell"><strong>${escapeHtml(tenant.organizationName)}</strong><span class="mono">${escapeHtml(tenant.code)}</span></span></td><td data-label="状态">${statusTag(label, tenant.status === "active" ? "success" : "warning")}</td><td data-label="租户管理员">${assigned ? "已分配" : "未分配"}</td><td data-label="操作"><button class="button secondary compact" type="button" data-select-tenant="${escapeHtml(tenant.id)}" data-nav-screen="platform-tenant-detail" data-control-status="navigation">查看详情</button></td></tr>`;
+    })
     .join("");
   return [
-    '<div class="compact-summary"><span><strong>租户目录</strong> · 合成生命周期数据</span><span>安全边界异常 0</span></div>',
-    '<div class="toolbar"><label class="field"><span>搜索租户</span><input class="input" type="search" data-directory-search="platform-tenants" placeholder="按组织名称或租户编码搜索" /></label><label class="field compact-field"><span>状态</span><select class="select" data-directory-status><option value="">全部状态</option><option value="active">活动</option><option value="suspended">已停用</option></select></label></div><p data-filter-summary class="form-feedback" role="status"></p>',
-    `<div class="table-shell"><table class="data-table"><thead><tr><th>租户</th><th>驻留区域</th><th>状态</th><th>租户管理员</th><th>操作</th></tr></thead><tbody>${rows}</tbody></table><div class="pagination" aria-label="租户目录分页"><span>第 1 页，共 ${demoState?.tenants?.length || 0} 个租户</span><div class="pagination-actions"><button class="button secondary compact" type="button" disabled>上一页</button><button class="button secondary compact" type="button" disabled>下一页</button></div></div></div>`,
+    '<div class="compact-summary"><span><strong>租户目录</strong> · 生命周期摘要</span><span>安全边界异常：尚未核实</span></div>',
+    '<div class="toolbar"><label class="field"><span>搜索租户</span><input class="input" type="search" data-directory-search="platform-tenants" placeholder="按组织名称或租户编码搜索" maxlength="64" /></label><label class="field compact-field"><span>状态</span><select class="select" data-directory-status aria-label="状态"><option value="">全部状态</option><option value="provisioning">待启用</option><option value="active">活动</option><option value="suspended">已暂停</option></select></label></div><p data-filter-summary class="form-feedback" role="status"></p>',
+    `<div class="table-shell"><table class="data-table"><thead><tr><th>租户</th><th>状态</th><th>租户管理员</th><th>操作</th></tr></thead><tbody>${rows}</tbody></table><div class="pagination" aria-label="租户目录分页"><span>第 1 页，共 ${demoState?.tenants?.length || 0} 个租户</span><div class="pagination-actions"><button class="button secondary compact" type="button" disabled>上一页</button><button class="button secondary compact" type="button" disabled>下一页</button></div></div></div>`,
   ].join("");
 }
 
@@ -807,6 +810,7 @@ export function renderInventoryPage(
     `<div class="page-content">${group.phase==='M8'?'<p class="future-stage-note">M8 前置信息架构 · 仅合成演示，不操作生产环境</p>':''}${taskBody(page, fixture, state, demoState)}</div>`,
     ["success", "partial", "disabled", "empty"].includes(state) &&
     ![
+      "platform-tenants",
       "platform-tenant-create",
       "platform-tenant-detail",
       "platform-tenant-admins",

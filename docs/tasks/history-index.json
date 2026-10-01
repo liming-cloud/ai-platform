@@ -2313,9 +2313,9 @@
     },
     {
       "path": "docs/prototypes/wp-0016/full-platform.js",
-      "action": "keep",
+      "action": "update",
       "sha256": "d650c1ae6c000263fd97be0d650f2c375ece3de8fb00998cb758955060a5adbe",
-      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯",
+      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯；2026-10-01 用户按 ADR-0090 要求修订并接受原项目租户目录，原 Git 来源、摘要和历史验收保留",
       "references": [
         "docs/prototypes/wp-0016/artifacts/full-closure-verification-20260906.json",
         "docs/prototypes/wp-0016/artifacts/login-repair-verification-20260907.json",
@@ -2527,9 +2527,9 @@
     },
     {
       "path": "docs/prototypes/wp-0016/page-fixtures.json",
-      "action": "keep",
+      "action": "update",
       "sha256": "4ecbee7d7bb6cb0f174a24e4fec00f2a644c194ceb024342526341d5b6b0d819",
-      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯",
+      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯；2026-10-01 用户按 ADR-0090 要求修订并接受原项目租户目录，原 Git 来源、摘要和历史验收保留",
       "references": [
         "docs/prototypes/wp-0016/DESIGN.md",
         "docs/prototypes/wp-0016/artifacts/opendesign-login-repair-save-20260907.json",
@@ -2643,7 +2643,7 @@
       "path": "docs/prototypes/wp-0016/prototype.css",
       "action": "update",
       "sha256": "2e627c22e4a9ce1d37ce90ce95a92673b1bc13d3ddbcbf4f51f5eb33d215efa4",
-      "reason": "保留原 OpenDesign 项目唯一源路径；用户 2026-10-01 按 ADR-0088 明确修正并接受共享移动布局，新原型版本 47c4f6f31823617633ce0bac98074208781f5565。原 21b45c347a4008f5959b1b972e3ffd8a5aadcc6f 及本索引来源正文／摘要继续从 Git 校验，不以当前修订替代历史验收。",
+      "reason": "保留原 OpenDesign 项目唯一源路径；用户 2026-10-01 按 ADR-0088 明确修正并接受共享移动布局，新原型版本 47c4f6f31823617633ce0bac98074208781f5565。原 21b45c347a4008f5959b1b972e3ffd8a5aadcc6f 及本索引来源正文／摘要继续从 Git 校验，不以当前修订替代历史验收。；2026-10-01 用户按 ADR-0090 要求修订并接受原项目租户目录，原 Git 来源、摘要和历史验收保留",
       "references": [
         "docs/prototypes/wp-0016/OPEN-DESIGN-FULL-PLATFORM-PROMPT.md",
         "docs/prototypes/wp-0016/artifacts/full-closure-verification-20260906.json",
