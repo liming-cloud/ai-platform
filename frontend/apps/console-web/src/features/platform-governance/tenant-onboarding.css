@@ -138,7 +138,7 @@
 .tenant-onboarding__actions button[type="button"] { color: var(--foundation-text); }
 .tenant-overview__identity-copy h2 { margin: 0; }
 .tenant-overview__entry > a { color: var(--foundation-text); text-decoration: none; font-weight: 620; line-height: 1.428572; min-height: var(--foundation-control-height); display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 6px 12px; background: var(--foundation-surface); }
-.tenant-overview__identity-heading > .fui-Badge { gap: 0.35rem; min-height: 24px; padding: 2px 8px; border-radius: 999px; font-size: 14px; font-weight: 650; line-height: 1.6; border: 1px solid var(--foundation-warning-border); color: var(--foundation-warning-foreground); background: var(--foundation-warning-background); }
+.tenant-overview__identity-heading > .fui-Badge { gap: 0.35rem; min-height: 24px; padding: 2px 8px; border-radius: 9999px; font-size: 14px; font-weight: 650; line-height: 1.6; border: 1px solid var(--foundation-warning-border); color: var(--foundation-warning-foreground); background: var(--foundation-warning-background); }
 .tenant-overview__identity-heading > .fui-Badge > span { font-size: 0; width: 0.4rem; height: 0.4rem; background: currentColor; border-radius: 50%; }
 
 /* 五页导航只改变目标路由；配置保存仍由各自独立页面负责。 */
