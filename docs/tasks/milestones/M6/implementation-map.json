@@ -606,7 +606,7 @@
       "phase": "M6",
       "classification": "production",
       "workPackage": "WP-0017",
-      "status": "pending-contract",
+      "status": "in-progress",
       "operations": [
         {
           "id": "platform-roles:0",
@@ -616,7 +616,19 @@
           "reason": "m6-approved-prototype",
           "workPackage": "WP-0017",
           "dependsOn": [],
-          "status": "pending-contract"
+          "status": "contracted",
+          "contract": {
+            "adr": "ADR-0088",
+            "target": {
+              "kind": "navigation",
+              "value": "/platform/accounts"
+            },
+            "saveBoundary": "仅改变浏览器导航；平台固定职责随产品发布，无账户、角色、租户或配置写入。",
+            "authorizationTests": [
+              "平台会话具备账户治理能力才加载；租户、失效会话与缺少能力的直接访问拒绝",
+              "仅展示唯一平台管理员固定模板；管理账户可刷新和前后退，点击零业务写入"
+            ]
+          }
         }
       ]
     },

@@ -7,7 +7,7 @@
 | 负责人 | 平台身份与租户开通 |
 | 分支 | main |
 | 里程碑 | M6 |
-| ADR | ADR-0022, ADR-0041, ADR-0048, ADR-0073, ADR-0074, ADR-0075, ADR-0079, ADR-0080, ADR-0083, ADR-0085, ADR-0086, ADR-0087 |
+| ADR | ADR-0022, ADR-0041, ADR-0048, ADR-0073, ADR-0074, ADR-0075, ADR-0079, ADR-0080, ADR-0083, ADR-0086, ADR-0087, ADR-0088 |
 | 证据 | pending |
 | 提交 | pending |
 | 输入提交 | e7a1d673229acf8c7932dcae85699e517f2adab5 |
@@ -83,7 +83,7 @@
 
 ## 下一前沿
 
-管理员、资源配额、可用功能和登录安全四个独立设置切片，以及平台账户 `platform-accounts:0–4`，均已分别完成实际部署功能、登录、只读事实与固定原型对照；登录安全弹窗保留 ADR-0079 提示所致的单点限定差异。平台账户的 390px“更多”已在不移动原型视觉位置的前提下恢复可操作性，五项操作和页面均为 `verified`。前沿仍为 WP-0017；下一独立切片为 `platform-roles:0`，须先冻结其合同与原型，不在本片实施。概览导航操作 `platform-tenant-detail:0` 仍为 `pending-contract`，概览入口仍 `in-progress`，WP-0017 整包提交和证据保持 `pending`，M6 未完成。
+管理员、资源配额、可用功能和登录安全四个独立设置切片，以及平台账户 `platform-accounts:0–4`，均已分别完成实际部署功能、登录、只读事实与固定原型对照；登录安全弹窗保留 ADR-0079 提示所致的单点限定差异。平台账户的 390px“更多”已在不移动原型视觉位置的前提下恢复可操作性，五项操作和页面均为 `verified`。前沿仍为 WP-0017；当前独立切片 `platform-roles:0` 已按 ADR-0088 冻结只读职责说明和账户导航，待实施与部署验收。概览导航操作 `platform-tenant-detail:0` 仍为 `pending-contract`，概览入口仍 `in-progress`，WP-0017 整包提交和证据保持 `pending`，M6 未完成。
 
 ## 固定输入与工作区
 
