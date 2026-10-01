@@ -1,3 +1,6 @@
+.platform-role-page { padding-top: 24px; }
+.page-heading:has(+ .platform-role-page) > .fui-Button { padding: 6px 12px; gap: 8px; font-weight: 620; }
+
 .platform-role-page__workspace {
   display: grid;
   grid-template-columns: minmax(0, 1.35fr) minmax(19rem, 0.65fr);
@@ -9,22 +12,23 @@
 .platform-role-page__facts { display: grid; gap: 16px; padding-bottom: 20px; }
 .platform-role-page__heading { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: start; gap: 16px; }
 .platform-role-page__heading > div { min-width: 0; flex: 1 1 12rem; }
-.platform-role-page__heading h2 { margin: 0; font-size: 25px; font-weight: 500; line-height: 1.35; }
-.platform-role-page__kicker { color: var(--foundation-muted-text); font-size: 14px; font-weight: 650; line-height: 1.6; }
+.platform-role-page__heading h2 { margin: 0; font-family: var(--foundation-font-display); font-size: 25px; font-weight: 500; line-height: 1.35; }
+.platform-role-page__kicker { color: var(--foundation-muted-text); font-size: 14px; font-weight: 650; line-height: 1.6; letter-spacing: 0.02em; }
 .platform-role-page__fact-list { display: grid; grid-template-columns: minmax(8rem, 0.35fr) minmax(0, 1fr); gap: 0; margin: 0; border-top: 1px solid var(--foundation-border); }
 .platform-role-page__fact-list > div { display: grid; grid-column: 1 / -1; grid-template-columns: minmax(8rem, 0.35fr) minmax(0, 1fr); min-width: 0; border-bottom: 1px solid var(--foundation-border); }
 .platform-role-page__fact-list > div:last-child { border-bottom: 0; }
 .platform-role-page__fact-list dt,
 .platform-role-page__fact-list dd { margin: 0; padding: 0.7rem 0; overflow-wrap: anywhere; }
-.platform-role-page__fact-list dt { color: var(--foundation-secondary-text); }
+.platform-role-page__fact-list dt { color: var(--foundation-muted-text); }
 .platform-role-page__attention { display: grid; align-content: start; align-self: stretch; gap: 12px; padding: 20px; border: 1px solid var(--foundation-border); border-radius: var(--foundation-panel-radius); background: var(--foundation-subtle-surface); }
-.platform-role-page__attention h2 { margin: 0; font-size: 20px; font-weight: 500; line-height: 1.35; }
+.platform-role-page__attention h2 { margin: 0; font-family: var(--foundation-font-display); font-size: 20px; font-weight: 500; line-height: 1.35; }
 
 @media (max-width: 1040px) {
   .platform-role-page__workspace { grid-template-columns: minmax(0, 1fr); }
 }
 
 @media (max-width: 680px) {
+  .page-heading:has(+ .platform-role-page) > .fui-Button { width: 100%; justify-self: stretch; }
   .platform-role-page__fact-list,
   .platform-role-page__fact-list > div { grid-template-columns: minmax(0, 1fr); }
   .platform-role-page__fact-list dt { padding-bottom: 0; font-size: 14px; }

@@ -22,6 +22,22 @@ async function roleView(page, baseUrl) {
   requireCondition(!/TENANT_|PLATFORM_|租户管理员|普通用户/.test(body), "角色页混入租户角色或内部代码");
   requireCondition(await page.getByRole("button", { name: "管理账户", exact: true }).count() === 1,
     "唯一账户导航缺失或重复");
+  const parity = await page.evaluate(() => {
+    const header = document.querySelector(".page-heading").getBoundingClientRect();
+    const workspace = document.querySelector(".platform-role-page__workspace").getBoundingClientRect();
+    const action = document.querySelector(".page-heading > button");
+    const title = document.querySelector(".platform-role-page__heading h2");
+    const attention = document.querySelector(".platform-role-page__attention h2");
+    return { gap: workspace.top - header.bottom, width: innerWidth,
+      fullWidthAction: Math.abs(action.getBoundingClientRect().width - header.width) <= 1,
+      actionWeight: getComputedStyle(action).fontWeight,
+      titleFont: getComputedStyle(title).fontFamily, attentionFont: getComputedStyle(attention).fontFamily,
+      labelColor: getComputedStyle(document.querySelector(".platform-role-page__fact-list dt")).color };
+  });
+  requireCondition(Math.abs(parity.gap - 24) <= 1 && /Georgia/.test(parity.titleFont)
+    && /Georgia/.test(parity.attentionFont) && parity.labelColor === "rgb(94, 93, 89)"
+    && parity.actionWeight === "620" && (parity.width > 680 || parity.fullWidthAction),
+  "角色职责的字体、间距或移动端主要操作与固定原型不符");
 }
 
 async function layout(page, width) {
@@ -102,7 +118,16 @@ async function run(configuration) {
         await page.setViewportSize({ width, height: 960 });
         await roleView(page, configuration.baseUrl);
         await page.evaluate(() => {
-          const elements = [...document.querySelectorAll("h1,h2,p,dt,dd,label,a,span,button")];
+          // 按可见文本的直属元素统一翻倍，避免原型与生产使用不同标签时遗漏文字。
+          const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+          const parents = new Set();
+          while (walker.nextNode()) {
+            const element = walker.currentNode.parentElement;
+            if (walker.currentNode.textContent.trim() && element instanceof HTMLElement
+              && element.getBoundingClientRect().width > 0 && element.getBoundingClientRect().height > 0
+              && getComputedStyle(element).visibility !== "hidden") parents.add(element);
+          }
+          const elements = [...parents];
           const sizes = elements.map(element => parseFloat(getComputedStyle(element).fontSize));
           elements.forEach((element, index) => { element.style.fontSize = `${sizes[index] * 2}px`; });
         });
@@ -143,6 +168,7 @@ async function run(configuration) {
     await scenario("退出后角色与账户均不可访问", async page => {
       await roleView(page, configuration.baseUrl);
       await logoutWorkspace(page);
+      await page.getByRole("heading", { name: "平台管理登录", exact: true }).waitFor();
       await assertAnonymous(page);
       await page.goto(`${configuration.baseUrl}/platform/roles`, { waitUntil: "networkidle" });
       await page.getByRole("heading", { name: "平台管理登录", exact: true }).waitFor();
