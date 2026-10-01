@@ -17,6 +17,8 @@ import {
   ShieldLock20Regular,
 } from "@fluentui/react-icons";
 import { useState } from "react";
+import { PageHeading } from "@foundation/design-system";
+import "./platform-role-directory.css";
 
 interface RoleCatalogEntry {
   code: "PLATFORM_ADMINISTRATOR" | "TENANT_ADMINISTRATOR" | "TENANT_USER";
@@ -31,9 +33,9 @@ const platformAdministratorRole: RoleCatalogEntry = {
   code: "PLATFORM_ADMINISTRATOR",
   label: "平台管理员",
   scopeLabel: "平台范围",
-  purpose: "建立人员账户和租户，维护模型供应链，并读取脱敏运营摘要。",
+  purpose: "建立平台账户和租户，维护模型供应链，并读取脱敏运营摘要。",
   capabilities: [
-    "人员账户与平台授权治理",
+    "平台账户治理",
     "租户建立及生命周期管理",
     "平台模型连接与部署供应",
     "脱敏平台运营摘要",
@@ -72,10 +74,9 @@ export const tenantRoleCatalog: readonly RoleCatalogEntry[] = [
   },
 ] as const;
 
-/** 平台管理员需要理解完整产品角色，但只有平台角色能在人员账户目录授予。 */
+/** 平台目录只解释已发布的平台模板，不把租户角色展示为平台授权选项。 */
 export const platformRoleCatalog: readonly RoleCatalogEntry[] = [
   platformAdministratorRole,
-  ...tenantRoleCatalog,
 ] as const;
 
 /**
@@ -88,15 +89,42 @@ export function RoleDirectoryWorkspace({
   scope: "PLATFORM" | "TENANT";
   onManageMembers: () => void;
 }) {
-  const catalog = scope === "PLATFORM" ? platformRoleCatalog : tenantRoleCatalog;
   const [selectedRole, setSelectedRole] = useState<RoleCatalogEntry>();
 
+  if (scope === "PLATFORM") return <>
+    <PageHeading title="平台固定角色" context="平台治理" summary="平台管理员"
+      status={{ label: "固定模板", tone: "success" }}
+      action={<Button appearance="primary" onClick={onManageMembers}>管理账户</Button>} />
+    <section className="platform-role-page" aria-label="平台固定角色职责">
+      <div className="platform-role-page__workspace">
+        <section className="platform-role-page__facts">
+          <div className="platform-role-page__heading">
+            <div><span className="platform-role-page__kicker">当前对象</span><h2>平台管理员</h2></div>
+            <span className="page-status" data-tone="success">固定模板</span>
+          </div>
+          <dl className="platform-role-page__fact-list">
+            <div><dt>平台治理</dt><dd>租户生命周期与模型供应链</dd></div>
+            <div><dt>运营读取</dt><dd>仅脱敏聚合</dd></div>
+            <div><dt>租户正文</dt><dd>禁止访问</dd></div>
+            <div><dt>成员明细</dt><dd>禁止访问</dd></div>
+          </dl>
+        </section>
+        <aside className="platform-role-page__attention">
+          <span className="platform-role-page__kicker">需要关注</span>
+          <h2>平台管理员只管理租户和模型供应，不读取租户知识或会话正文。</h2>
+        </aside>
+      </div>
+    </section>
+  </>;
+
+  const catalog = tenantRoleCatalog;
+
   return (
-    <section className="role-directory" aria-label={scope === "PLATFORM" ? "平台角色目录" : "租户角色目录"}>
+    <section className="role-directory" aria-label="租户角色目录">
       <header className="task-heading role-directory__heading">
         <div>
           <span className="role-directory__eyebrow">固定角色 · 能力投影</span>
-          <Title3>{scope === "PLATFORM" ? "平台角色" : "租户角色"}</Title3>
+          <Title3>租户角色</Title3>
         </div>
         <Text>
           角色目录解释每个角色的任务、能力和边界。角色分配在成员目录完成，服务端授权始终是最终事实。
@@ -116,9 +144,7 @@ export function RoleDirectoryWorkspace({
           <article className="role-directory__row" role="listitem" key={role.code}>
             <div className="role-directory__identity">
               <span className="role-directory__icon" aria-hidden="true">
-                {role.code === "PLATFORM_ADMINISTRATOR"
-                  ? <ShieldLock20Regular />
-                  : role.code === "TENANT_ADMINISTRATOR"
+                {role.code === "TENANT_ADMINISTRATOR"
                     ? <PeopleTeam20Regular />
                     : <Person20Regular />}
               </span>
@@ -140,13 +166,9 @@ export function RoleDirectoryWorkspace({
             </div>
             <div className="task-actions role-directory__actions">
               <Button appearance="secondary" onClick={() => setSelectedRole(role)}>查看详情</Button>
-              {scope === "PLATFORM" && role.code !== "PLATFORM_ADMINISTRATOR"
-                ? <Button appearance="subtle" disabled>租户内分配</Button>
-                : (
-                  <Button appearance="subtle" icon={<ArrowRight20Regular />} iconPosition="after" onClick={onManageMembers}>
-                    {scope === "PLATFORM" ? "管理人员账户" : "管理租户成员"}
-                  </Button>
-                )}
+              <Button appearance="subtle" icon={<ArrowRight20Regular />} iconPosition="after" onClick={onManageMembers}>
+                管理租户成员
+              </Button>
             </div>
           </article>
         ))}
@@ -191,13 +213,9 @@ export function RoleDirectoryWorkspace({
                 <h3 id="role-configuration-heading">权限配置状态</h3>
                 <Text>当前版本由固定模板派生。修改能力集合需要版本化角色模板、受影响会话撤销和独立安全验收。</Text>
               </section>
-              {scope === "PLATFORM" && selectedRole.code !== "PLATFORM_ADMINISTRATOR"
-                ? <Text>该角色由对应租户的租户管理员在成员目录分配，平台账户目录不会把它提升为平台权限。</Text>
-                : (
-                  <Button appearance="primary" onClick={() => { setSelectedRole(undefined); onManageMembers(); }}>
-                    前往{scope === "PLATFORM" ? "人员账户目录" : "租户成员目录"}
-                  </Button>
-                )}
+              <Button appearance="primary" onClick={() => { setSelectedRole(undefined); onManageMembers(); }}>
+                前往租户成员目录
+              </Button>
             </div>
           )}
         </DrawerBody>

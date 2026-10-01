@@ -279,7 +279,7 @@ function AuthenticatedConsoleApp({
       compactHeading={platformActive && route.task === "create"}
       pageStatus={platformActive && route.task === "create" ? { label: "等待填写", tone: "warning" } : undefined}
       pageTitle={
-        operationsActive ? "运营总览" : platformOperationsActive ? "平台运营总览" : accessActive ? route.task === "roles" ? "租户角色" : "成员与权限" : platformActive ? route.task === "create" ? "建立新租户" : route.task === "detail" || route.task === "admins" || route.task === "quotas" || route.task === "features" || route.task === "security" ? undefined : "平台租户" : platformAccountsActive ? route.task === "roles" ? "角色目录" : undefined : platformModelSupplyActive ? "平台模型供应链" : queryActive ? "从已授权资料中获得答案" : governanceActive ? route.task === "query" ? "查询用量与审计" : "受限评测运行" : modelsActive ? route.task === "configuration" ? "受控模型配置" : route.task === "providers" ? "供应商连接与模型发现" : "模型部署与能力验证" : dataPage?.title ?? "可信知识平台"
+        operationsActive ? "运营总览" : platformOperationsActive ? "平台运营总览" : accessActive ? route.task === "roles" ? "租户角色" : "成员与权限" : platformActive ? route.task === "create" ? "建立新租户" : route.task === "detail" || route.task === "admins" || route.task === "quotas" || route.task === "features" || route.task === "security" ? undefined : "平台租户" : platformAccountsActive ? undefined : platformModelSupplyActive ? "平台模型供应链" : queryActive ? "从已授权资料中获得答案" : governanceActive ? route.task === "query" ? "查询用量与审计" : "受限评测运行" : modelsActive ? route.task === "configuration" ? "受控模型配置" : route.task === "providers" ? "供应商连接与模型发现" : "模型部署与能力验证" : dataPage?.title ?? "可信知识平台"
       }
       pageSummary={
         operationsActive
@@ -297,7 +297,7 @@ function AuthenticatedConsoleApp({
               : route.task === "admins" || route.task === "quotas" || route.task === "features" || route.task === "security" ? undefined
               : "建立、激活和暂停租户，不展示租户正文、成员详情或平台操作者信息。"
           : platformAccountsActive
-          ? route.task === "roles" ? "查看平台固定角色的任务范围、能力和信息边界。" : "账户目录按页显示，不展示凭据、会话或权限快照。"
+          ? route.task === "roles" ? undefined : "账户目录按页显示，不展示凭据、会话或权限快照。"
           : platformModelSupplyActive
           ? "平台连接与后续部署独立于租户范围；Endpoint 和凭据始终受到保护。"
           : governanceActive && route.task === "query"
@@ -497,14 +497,6 @@ function AuthenticatedConsoleApp({
       <section hidden={!platformAccountsActive}>
         {platformAccountsActive ? (
           <>
-            {route.task === "roles" ? <TaskNavigation
-              ariaLabel="平台访问治理任务切换"
-              activeValue={route.task}
-              items={[{ value: "accounts", label: "平台账户" }, { value: "roles", label: "角色目录" }]}
-              onSelect={(task) => navigate(task === "roles"
-                ? { navigationId: "platform-accounts", task: "roles" }
-                : defaultConsoleRoute("platform-accounts"))}
-            /> : null}
             <Suspense fallback={<StatePanel kind="loading" title="正在加载平台访问治理" description="正在准备账户与角色目录。" />}>
               {route.task === "accounts"
                 ? <PlatformAccountDirectoryWorkspace client={client} route={route} onRouteChange={navigate} />
