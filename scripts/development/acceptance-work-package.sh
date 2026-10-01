@@ -6,8 +6,12 @@ if [[ "${1:-}" != "WP-0017" ]]; then
   echo "不支持的工作包，当前只实现 WP-0017 的明确独立切片。" >&2
   exit 2
 fi
-if [[ ( "${2:-}" != "login" && "${2:-}" != "onboarding" && "${2:-}" != "admins" && "${2:-}" != "quotas" && "${2:-}" != "features" && "${2:-}" != "security" && "${2:-}" != "accounts" && "${2:-}" != "roles" ) || "$#" != "2" ]]; then
-  echo "WP-0017 整包尚未实现；必须明确 SLICE=login、SLICE=onboarding、SLICE=admins、SLICE=quotas、SLICE=features、SLICE=security、SLICE=accounts 或 SLICE=roles。" >&2
+if [[ ( "${2:-}" != "login" && "${2:-}" != "onboarding" && "${2:-}" != "admins" && "${2:-}" != "quotas" && "${2:-}" != "features" && "${2:-}" != "security" && "${2:-}" != "accounts" && "${2:-}" != "roles" && "${2:-}" != "overview" ) || "$#" != "2" ]]; then
+  echo "WP-0017 整包尚未实现；必须明确 SLICE=login、SLICE=onboarding、SLICE=admins、SLICE=quotas、SLICE=features、SLICE=security、SLICE=accounts、SLICE=roles 或 SLICE=overview。" >&2
+  exit 2
+fi
+if [[ "${2}" == "overview" && -n "${SETUP:-}" ]]; then
+  echo "概览切片只读，不提供业务对象准备。" >&2
   exit 2
 fi
 if [[ -n "${SETUP:-}" && "${SETUP}" != "tenant" ]]; then

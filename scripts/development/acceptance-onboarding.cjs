@@ -290,7 +290,8 @@ async function assertOverviewStructure(page) {
   requireCondition(await page.locator("h1#page-title").innerText() === "租户概览", "概览页头仍未承接原型任务名称");
   requireCondition(await page.locator(".tenant-overview__identity a").count() === 1,
     "管理员登录入口未归属概览基本信息区");
-  requireCondition(await page.locator(".tenant-overview__safety h3").innerText() === "安全保障",
+  requireCondition(await page.locator(".tenant-overview__kicker").innerText() === "安全保障"
+    && await page.getByRole("heading", { name: "基础保护已开启", exact: true }).count() === 1,
     "概览安全保障区缺少原型分区标题");
   const frame = await page.evaluate(() => {
     const element = selector => document.querySelector(selector);

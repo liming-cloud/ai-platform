@@ -52,16 +52,15 @@
 .tenant-onboarding :is(input, button) { scroll-margin-block: 10rem; }
 .tenant-onboarding :focus-visible { outline: 2px solid var(--foundation-accent); outline-offset: 3px; }
 .tenant-onboarding__heading h2:focus { outline: none; }
-.tenant-overview__summary-grid { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(19rem, 0.65fr); gap: 24px; }
+.tenant-overview__summary-grid { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(19rem, 0.65fr); gap: 24px; align-items: start; }
 .tenant-overview__safety { padding: 20px; border: 1px solid var(--foundation-border); border-radius: var(--foundation-panel-radius); background: var(--foundation-subtle-surface); }
 .tenant-overview__safety ul { list-style: none; margin: 16px 0 0; padding: 0; display: grid; gap: 12px; color: var(--foundation-text); }
 .tenant-overview__safety li::before { content: "✓"; display: inline-block; color: var(--foundation-accent); margin-right: 8px; }
 .tenant-overview__actions { justify-content: flex-end; }
-.tenant-overview__identity { display: grid; gap: 16px; align-items: start; padding: 20px; border: 1px solid var(--foundation-border); border-radius: var(--foundation-panel-radius); background: var(--foundation-surface); overflow-wrap: anywhere; }
+.tenant-overview__identity { display: grid; gap: 16px; padding: 20px; border: 1px solid var(--foundation-border); border-radius: var(--foundation-panel-radius); overflow-wrap: anywhere; }
 .tenant-overview__identity-heading { display: flex; flex-wrap: wrap; align-items: start; justify-content: space-between; gap: 16px; }
 .tenant-overview__identity-copy { min-width: 0; flex: 1 1 12rem; }
-.tenant-overview__identity-copy > span, .tenant-overview__safety h3 { color: var(--foundation-muted-text); font-family: var(--foundation-font-body); font-size: 14px; font-weight: 650; letter-spacing: 0.02em; line-height: 1.6; }
-.tenant-overview__safety > p { font-family: var(--foundation-font-display); font-size: 22px; line-height: 1.4; }
+.tenant-overview__identity-copy > span, .tenant-overview__kicker { color: var(--foundation-muted-text); font-family: var(--foundation-font-body); font-size: 14px; font-weight: 650; letter-spacing: 0.02em; line-height: 1.6; }
 .tenant-overview__identity-heading > .fui-Badge { justify-self: end; height: auto; min-height: 20px; line-height: 1.4; }
 .tenant-overview__identity p { margin: 0; color: var(--foundation-muted-text); }
 .tenant-overview__entry { grid-column: 1 / -1; display: grid; gap: 16px; border-top: 1px solid var(--foundation-border); padding-top: 20px; }
@@ -117,11 +116,10 @@
 .tenant-overview__identity-facts > div { min-width: 0; border-bottom: 1px solid var(--foundation-border); padding: 12px 0; }
 .tenant-overview__identity-facts dt { color: var(--foundation-muted-text); font-size: 14px; margin-bottom: 8px; }
 .tenant-overview__identity-facts dd { margin: 0; font-weight: 550; line-height: 1.55; }
-.tenant-overview__identity-facts .tenant-overview__code { font-family: ui-monospace, Menlo, monospace; font-size: 0.92em; font-variant-numeric: tabular-nums; }
+.tenant-overview__identity-facts .tenant-overview__code { font-family: "Anthropic Mono", ui-monospace, "JetBrains Mono", Menlo, monospace; font-size: 0.92em; font-variant-numeric: tabular-nums; }
 .tenant-overview__entry { padding: 0; border: 0; }
-.tenant-overview__safety { display: grid; align-content: start; gap: 12px; }
-.tenant-overview__safety h3, .tenant-overview__safety > p { margin: 0; }
-.tenant-overview__safety > p { font-size: 20px; }
+.tenant-overview__safety { display: grid; align-content: start; align-self: stretch; gap: 12px; }
+.tenant-overview__safety h2 { margin: 0; font-family: var(--foundation-font-display); font-size: 20px; font-weight: 500; line-height: 1.35; }
 @media (max-width: 680px) {
   .tenant-onboarding__card { gap: 12px; padding: 16px; }
   .tenant-onboarding__heading h2 { font-size: 20px; }
@@ -143,7 +141,7 @@
 .tenant-overview__identity-heading > .fui-Badge { gap: 0.35rem; min-height: 24px; padding: 2px 8px; border-radius: 999px; font-size: 14px; font-weight: 650; line-height: 1.6; border: 1px solid var(--foundation-warning-border); color: var(--foundation-warning-foreground); background: var(--foundation-warning-background); }
 .tenant-overview__identity-heading > .fui-Badge > span { font-size: 0; width: 0.4rem; height: 0.4rem; background: currentColor; border-radius: 50%; }
 
-/* 仅概览与管理员是可操作入口；其余原型标题不提供虚假跳转。 */
+/* 五页导航只改变目标路由；配置保存仍由各自独立页面负责。 */
 .tenant-overview__settings { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; padding-bottom: 8px; border-bottom: 1px solid var(--foundation-border); }
 .tenant-overview__settings a, .tenant-overview__settings span { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: var(--foundation-control-height); padding: 6px 12px; border: 1px solid transparent; border-radius: var(--foundation-control-radius); font-size: 14px; font-weight: 620; line-height: 1.428572; text-decoration: none; }
 .tenant-overview__settings a[aria-current="page"] { background: var(--foundation-hover-surface); box-shadow: inset 0 -2px var(--foundation-accent); color: var(--foundation-accent); }
@@ -159,4 +157,4 @@
   .tenant-overview__return { width: 100%; }
 }
 
-.page-heading .tenant-overview__return { font-weight: 620; }
+.page-heading .tenant-overview__return { font-weight: 620; padding: 6px 12px; gap: 8px; }
