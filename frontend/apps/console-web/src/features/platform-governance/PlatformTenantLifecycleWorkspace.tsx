@@ -1,7 +1,7 @@
 import { Button, MessageBar, MessageBarBody, MessageBarTitle } from "@fluentui/react-components";
 import { PageHeading, StatePanel } from "@foundation/design-system";
-import { useEffect, useState } from "react";
-import type { ControlPlaneClient } from "../../api/control-plane-client";
+import { useEffect, useState, type ReactNode } from "react";
+import type { ControlPlaneClient, TenantLifecycleSummary } from "../../api/control-plane-client";
 import { TenantProvisioningFlow } from "./TenantProvisioningFlow";
 import { TenantOverview } from "./TenantOverview";
 import { TenantAdministratorSettings } from "./TenantAdministratorSettings";
@@ -67,12 +67,12 @@ function TenantDirectory({ client, route, onRouteChange }: {
   const submitJump = () => {
     const number = Number(jump);
     if (!/^[1-9]\d*$/.test(jump) || !Number.isSafeInteger(number) || number > totalPages) {
-      setJumpDraft({ owner, value: jump, error: `请输入 1–${totalPages} 之间的页码。` }); return;
+      setJumpDraft({ owner, value: jump, error: `请输入 1–${totalPages} 之间的整数页码。` }); return;
     }
     setJumpDraft({ owner, value: jump }); move(number);
   };
   return <>
-    <PageHeading title="租户目录" context="平台治理" summary="租户生命周期" status={{ label: "只读目录", tone: "info" }}
+    <PageHeading title="租户目录" context="平台治理" summary="租户生命周期" status={{ label: "只读目录", tone: "success" }}
       action={<Button appearance="primary" onClick={() => onRouteChange({ navigationId: "platform", task: "create", step: 1 })}>建立新租户</Button>} />
     <section className="tenant-directory-page" aria-labelledby="page-title">
       {error ? <><MessageBar intent="error"><MessageBarBody><MessageBarTitle>{error.title}</MessageBarTitle>{error.description}</MessageBarBody></MessageBar>
@@ -87,20 +87,11 @@ function TenantDirectory({ client, route, onRouteChange }: {
               <option value="ALL">全部状态</option><option value="PROVISIONING">待启用</option><option value="ACTIVE">活动</option><option value="SUSPENDED">已暂停</option>
             </select></label>
         </div>
-        <p className="tenant-directory-filter-feedback" role="status">{query || status !== "ALL" ? `找到 ${total} 个租户` : ""}</p>
-        <div className="tenant-directory-table-shell"><table className="tenant-directory-table"><thead><tr>
-          <th scope="col">租户</th><th scope="col">状态</th><th scope="col">租户管理员</th><th scope="col">操作</th>
-        </tr></thead><tbody>{page.items.map(tenant => <tr key={tenant.tenantId} data-tenant-id={tenant.tenantId}>
-          <td data-label="租户"><span className="tenant-directory-identity"><strong>{tenant.displayName}</strong><span>{tenant.tenantCode}</span></span></td>
-          <td data-label="状态"><span className="tenant-directory-status" data-tone={tenant.status === "ACTIVE" ? "success" : "warning"}>
-            {tenant.status === "ACTIVE" ? "活动" : tenant.status === "SUSPENDED" ? "已暂停" : tenant.status === "PROVISIONING" ? "待启用" : "状态未知"}</span></td>
-          <td data-label="租户管理员">{tenant.administratorCount > 0 ? "已分配" : "未分配"}</td>
-          <td data-label="操作"><Button size="small" onClick={() => onRouteChange({ navigationId: "platform", task: "detail", tenantId: tenant.tenantId })}>查看详情</Button></td>
-        </tr>)}{page.items.length === 0 ? <tr className="tenant-directory-empty"><td colSpan={4}>
-          {outOfRange ? <>当前页超出目录范围。<Button onClick={() => move(1)}>返回第一页</Button></> : "没有符合条件的租户。"}
-        </td></tr> : null}</tbody></table>
+        <p className="tenant-directory-filter-feedback" role="status" />
+        <div className="tenant-directory-table-shell"><TenantDirectoryTable tenants={page.items} onRouteChange={onRouteChange}
+          empty={outOfRange ? <>当前页超出目录范围。<Button onClick={() => move(1)}>返回第一页</Button></> : "没有符合条件的租户。"} />
           <div className="tenant-directory-pagination" aria-label="租户目录分页">
-            <span className="tenant-directory-pagination-summary">{first}–{last} / 共 {total} 个租户</span>
+            <span className="tenant-directory-pagination-summary" role="status">共 {total} 条 · {first}–{last} 条</span>
             <label className="tenant-directory-page-size">每页<select aria-label="每页条数" value={pageSize}
               onChange={event => onRouteChange({ ...route, pageSize: Number(event.target.value) as DirectoryRoute["pageSize"], page: 1 })}>
               {[10, 20, 50, 100].map(size => <option key={size} value={size}>{size} 条</option>)}</select></label>
@@ -111,9 +102,9 @@ function TenantDirectory({ client, route, onRouteChange }: {
                   appearance={number === route.page ? "primary" : "secondary"} onClick={() => move(number)}>{number}</Button>)}
               <Button size="small" disabled={route.page >= totalPages} onClick={() => move(route.page + 1)}>下一页</Button>
             </div>
-            <form className="tenant-directory-page-jump" onSubmit={event => { event.preventDefault(); submitJump(); }}>
-              <label>跳至<input type="text" inputMode="numeric" aria-label="跳转页码" value={jump} onChange={event => setJumpDraft({ owner, value: event.target.value })} />页</label>
-              <Button size="small" type="submit">确定</Button>
+            <form className="tenant-directory-page-jump" noValidate onSubmit={event => { event.preventDefault(); submitJump(); }}>
+              <label>跳至<input type="number" min="1" max={totalPages} aria-label="跳转页码" value={jump} onChange={event => setJumpDraft({ owner, value: event.target.value })} /></label><span>页</span>
+              <Button size="small" type="submit">跳转</Button>
             </form>
             {jumpError ? <span className="tenant-directory-page-error" role="alert">{jumpError}</span> : null}
           </div>
@@ -121,4 +112,21 @@ function TenantDirectory({ client, route, onRouteChange }: {
       </>}
     </section>
   </>;
+}
+
+/** 实际只读投影的表格；零资格、停用租户及未核实事实不能被模拟为成功。 */
+export function TenantDirectoryTable({ tenants, empty, onRouteChange }: {
+  tenants: readonly TenantLifecycleSummary[];
+  empty: ReactNode;
+  onRouteChange: (route: ConsoleRoute) => void;
+}) {
+  return <table className="tenant-directory-table"><thead><tr>
+    <th scope="col">租户</th><th scope="col">状态</th><th scope="col">租户管理员</th><th scope="col">操作</th>
+  </tr></thead><tbody>{tenants.map(tenant => <tr key={tenant.tenantId} data-tenant-id={tenant.tenantId}>
+    <td data-label="租户"><span className="tenant-directory-identity"><strong>{tenant.displayName}</strong><span>{tenant.tenantCode}</span></span></td>
+    <td data-label="状态"><span className="tenant-directory-status" data-tone={tenant.status === "ACTIVE" ? "success" : "warning"}>
+      {tenant.status === "ACTIVE" ? "活动" : tenant.status === "SUSPENDED" ? "已暂停" : tenant.status === "PROVISIONING" ? "待启用" : "状态未知"}</span></td>
+    <td data-label="租户管理员">{tenant.administratorCount > 0 ? "已分配" : "未分配"}</td>
+    <td data-label="操作"><Button size="small" onClick={() => onRouteChange({ navigationId: "platform", task: "detail", tenantId: tenant.tenantId })}>查看详情</Button></td>
+  </tr>)}{tenants.length === 0 ? <tr className="tenant-directory-empty"><td colSpan={4}>{empty}</td></tr> : null}</tbody></table>;
 }

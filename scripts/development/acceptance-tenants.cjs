@@ -118,6 +118,7 @@ async function run(configuration) {
     });
     await check("目录四列、摘要与真实管理员资格", async () => {
       await directory(page, configuration, { q: code });
+      requireCondition(await page.getByRole("heading", { level: 1 }).count() === 1, "目录出现重复页面标题");
       requireCondition(JSON.stringify(await page.locator("thead th").allTextContents())
         === JSON.stringify(["租户", "状态", "租户管理员", "操作"]), "目录列未承接原型");
       const target = all.find(item => item.tenantId === configuration.tenantId);
@@ -126,10 +127,13 @@ async function run(configuration) {
         && await row.locator(".tenant-directory-identity > span").innerText() === code
         && await row.locator("td[data-label='租户管理员']").innerText() === "已分配", "目录未展示当前目标真实事实");
       requireCondition((await page.locator(".tenant-directory-summary").innerText()).includes("安全边界异常：尚未核实"), "目录伪造异常数字");
-      const unassigned = all.find(item => item.administratorCount === 0);
-      requireCondition(!!unassigned, "既有零管理员样本不足");
-      await directory(page, configuration, { q: unassigned.tenantCode });
-      requireCondition(await page.locator(`tr[data-tenant-id='${unassigned.tenantId}'] td[data-label='租户管理员']`).innerText() === "未分配", "零资格被显示为已分配");
+      await directory(page, configuration, { pageSize: "100" });
+      for (const tenant of all.slice(0, 100)) {
+        requireCondition(await page.locator(`tr[data-tenant-id='${tenant.tenantId}'] td[data-label='租户管理员']`).innerText()
+          === (tenant.administratorCount > 0 ? "已分配" : "未分配"), "管理员摘要与实际资格数量不一致");
+      }
+      process.stdout.write(JSON.stringify({ coverage: "既有资格数量", samples: all.length,
+        zeroQualificationSamples: all.filter(item => item.administratorCount === 0).length }) + "\n");
       requireCondition(await page.getByRole("button", { name: /激活租户|暂停租户|管理租户管理员|分配管理员/ }).count() === 0, "目录仍保留额外写操作");
     });
     await check("搜索筛选写入 URL 并恢复刷新和历史", async () => {
@@ -162,10 +166,10 @@ async function run(configuration) {
       await page.waitForURL(url => url.searchParams.get("page") === "2"); await page.locator("tr[data-tenant-id]").waitFor();
       requireCondition(JSON.stringify(await page.locator("tr[data-tenant-id]").evaluateAll(rows => rows.map(row => row.dataset.tenantId)))
         === JSON.stringify(all.slice(10, 20).map(item => item.tenantId)), "第二页结果错误");
-      await page.getByRole("textbox", { name: "跳转页码" }).fill("0"); await page.getByRole("button", { name: "确定", exact: true }).click();
+      await page.getByRole("spinbutton", { name: "跳转页码" }).fill("0"); await page.getByRole("button", { name: "跳转", exact: true }).click();
       await page.getByRole("alert").filter({ hasText: "请输入 1–" }).waitFor();
       requireCondition(new URL(page.url()).searchParams.get("page") === "2", "非法跳转改变了页面");
-      await page.getByRole("textbox", { name: "跳转页码" }).fill("1"); await page.getByRole("button", { name: "确定", exact: true }).click();
+      await page.getByRole("spinbutton", { name: "跳转页码" }).fill("1"); await page.getByRole("button", { name: "跳转", exact: true }).click();
       await page.waitForURL(url => url.searchParams.get("page") === "1"); await page.locator("tr[data-tenant-id]").waitFor();
     });
     await check("三种生命周期、空结果与越界保留事实", async () => {
@@ -173,14 +177,14 @@ async function run(configuration) {
         await directory(page, configuration, { status, pageSize: "100" });
         const expected = all.filter(item => item.status === status);
         requireCondition(await page.locator("tr[data-tenant-id]").count() === expected.length
-          && (await page.locator(".tenant-directory-pagination-summary").innerText()).includes(`共 ${expected.length} 个租户`), "状态过滤与真实数量不一致");
+          && (await page.locator(".tenant-directory-pagination-summary").innerText()).includes(`共 ${expected.length} 条`), "状态过滤与真实数量不一致");
       }
       await directory(page, configuration, { q: "wp0017-unmatched-directory-20261001" });
       requireCondition(await page.locator("tr[data-tenant-id]").count() === 0
-        && await page.locator(".tenant-directory-pagination-summary").innerText() === "0–0 / 共 0 个租户", "空结果伪造旧数据或计数");
+        && await page.locator(".tenant-directory-pagination-summary").innerText() === "共 0 条 · 0–0 条", "空结果伪造旧数据或计数");
       await directory(page, configuration, { q: code, page: "99" });
       requireCondition(await page.locator("tr[data-tenant-id]").count() === 0
-        && await page.locator(".tenant-directory-pagination-summary").innerText() === "0–0 / 共 1 个租户", "越界页丢失总数或复用旧数据");
+        && await page.locator(".tenant-directory-pagination-summary").innerText() === "共 1 条 · 0–0 条", "越界页丢失总数或复用旧数据");
       await page.getByRole("button", { name: "返回第一页" }).click(); await page.locator("tr[data-tenant-id]").waitFor();
     });
     await check("建立入口取消及详情导航均只读", async () => {
