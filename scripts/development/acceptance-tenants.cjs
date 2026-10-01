@@ -140,16 +140,16 @@ async function run(configuration) {
       await directory(page, configuration);
       await page.getByRole("searchbox", { name: "搜索租户" }).fill(` ${code.toUpperCase()} `);
       await page.waitForURL(url => url.searchParams.get("q") === code.toUpperCase());
-      await page.locator("tr[data-tenant-id]").waitFor();
+      await page.locator("tr[data-tenant-id]").first().waitFor();
       requireCondition(await page.locator("tr[data-tenant-id]").count() === 1, "真实搜索未过滤唯一对象");
       await page.getByRole("combobox", { name: "状态", exact: true }).selectOption("ACTIVE");
-      await page.waitForURL(url => url.searchParams.get("status") === "ACTIVE"); await page.locator("tr[data-tenant-id]").waitFor();
+      await page.waitForURL(url => url.searchParams.get("status") === "ACTIVE"); await page.locator("tr[data-tenant-id]").first().waitFor();
       await page.reload({ waitUntil: "networkidle" });
       requireCondition(await page.getByRole("searchbox").inputValue() === code.toUpperCase()
         && await page.getByRole("combobox", { name: "状态", exact: true }).inputValue() === "ACTIVE", "刷新丢失搜索条件");
-      await page.goBack(); await page.locator("tr[data-tenant-id]").waitFor();
+      await page.goBack(); await page.locator("tr[data-tenant-id]").first().waitFor();
       requireCondition(await page.getByRole("combobox", { name: "状态", exact: true }).inputValue() === "ALL", "后退丢失上一筛选状态");
-      await page.goForward(); await page.locator("tr[data-tenant-id]").waitFor();
+      await page.goForward(); await page.locator("tr[data-tenant-id]").first().waitFor();
       requireCondition(await page.getByRole("combobox", { name: "状态", exact: true }).inputValue() === "ACTIVE", "前进丢失筛选状态");
     });
     await check("10/20/50/100、页码、跳转与错误反馈", async () => {
@@ -157,20 +157,20 @@ async function run(configuration) {
       for (const size of [10, 20, 50, 100]) {
         await page.getByRole("combobox", { name: "每页条数" }).selectOption(String(size));
         await page.waitForURL(url => url.searchParams.get("pageSize") === String(size));
-        await page.locator("tr[data-tenant-id]").waitFor();
+        await page.locator("tr[data-tenant-id]").first().waitFor();
         requireCondition(JSON.stringify(await page.locator("tr[data-tenant-id]").evaluateAll(rows => rows.map(row => row.dataset.tenantId)))
           === JSON.stringify(all.slice(0, size).map(item => item.tenantId)), "页大小改变后结果或排序错误");
       }
-      await page.getByRole("combobox", { name: "每页条数" }).selectOption("10"); await page.locator("tr[data-tenant-id]").waitFor();
+      await page.getByRole("combobox", { name: "每页条数" }).selectOption("10"); await page.locator("tr[data-tenant-id]").first().waitFor();
       await page.getByRole("button", { name: "下一页", exact: true }).click();
-      await page.waitForURL(url => url.searchParams.get("page") === "2"); await page.locator("tr[data-tenant-id]").waitFor();
+      await page.waitForURL(url => url.searchParams.get("page") === "2"); await page.locator("tr[data-tenant-id]").first().waitFor();
       requireCondition(JSON.stringify(await page.locator("tr[data-tenant-id]").evaluateAll(rows => rows.map(row => row.dataset.tenantId)))
         === JSON.stringify(all.slice(10, 20).map(item => item.tenantId)), "第二页结果错误");
       await page.getByRole("spinbutton", { name: "跳转页码" }).fill("0"); await page.getByRole("button", { name: "跳转", exact: true }).click();
       await page.getByRole("alert").filter({ hasText: "请输入 1–" }).waitFor();
       requireCondition(new URL(page.url()).searchParams.get("page") === "2", "非法跳转改变了页面");
       await page.getByRole("spinbutton", { name: "跳转页码" }).fill("1"); await page.getByRole("button", { name: "跳转", exact: true }).click();
-      await page.waitForURL(url => url.searchParams.get("page") === "1"); await page.locator("tr[data-tenant-id]").waitFor();
+      await page.waitForURL(url => url.searchParams.get("page") === "1"); await page.locator("tr[data-tenant-id]").first().waitFor();
     });
     await check("三种生命周期、空结果与越界保留事实", async () => {
       for (const status of ["PROVISIONING", "ACTIVE", "SUSPENDED"]) {
@@ -185,14 +185,14 @@ async function run(configuration) {
       await directory(page, configuration, { q: code, page: "99" });
       requireCondition(await page.locator("tr[data-tenant-id]").count() === 0
         && await page.locator(".tenant-directory-pagination-summary").innerText() === "共 1 条 · 0–0 条", "越界页丢失总数或复用旧数据");
-      await page.getByRole("button", { name: "返回第一页" }).click(); await page.locator("tr[data-tenant-id]").waitFor();
+      await page.getByRole("button", { name: "返回第一页" }).click(); await page.locator("tr[data-tenant-id]").first().waitFor();
     });
     await check("建立入口取消及详情导航均只读", async () => {
       await directory(page, configuration, { q: code });
       await page.getByRole("button", { name: "查看详情", exact: true }).click();
       await page.getByRole("heading", { name: "租户概览", exact: true }).waitFor();
       requireCondition(new URL(page.url()).pathname === `/platform/tenants/${configuration.tenantId}`, "详情导航目标错误");
-      await page.goBack(); await page.locator("tr[data-tenant-id]").waitFor();
+      await page.goBack(); await page.locator("tr[data-tenant-id]").first().waitFor();
       await page.getByRole("button", { name: "建立新租户", exact: true }).click();
       await page.getByRole("heading", { name: "建立新租户", exact: true }).waitFor();
       await page.getByRole("button", { name: "取消", exact: true }).click();
@@ -207,7 +207,7 @@ async function run(configuration) {
           && new URL(request.url()).searchParams.get("pageNumber") === "2");
         await page.getByRole("button", { name: "下一页", exact: true }).click(); await sent;
         requireCondition(await page.locator("tr[data-tenant-id]").count() === 0, "切换加载复用了旧数据");
-        await page.goBack(); await page.locator("tr[data-tenant-id]").waitFor(); await page.waitForLoadState("networkidle");
+        await page.goBack(); await page.locator("tr[data-tenant-id]").first().waitFor(); await page.waitForLoadState("networkidle");
         requireCondition(JSON.stringify(await page.locator("tr[data-tenant-id]").evaluateAll(rows => rows.map(row => row.dataset.tenantId)))
           === JSON.stringify(all.slice(0, 10).map(item => item.tenantId)), "迟到响应覆盖了恢复的第一页");
       } finally { await cdp.send("Network.emulateNetworkConditions", { offline: false, latency: 0, downloadThroughput: -1, uploadThroughput: -1 }); await cdp.detach(); }
@@ -219,7 +219,7 @@ async function run(configuration) {
         await page.getByRole("button", { name: "重新加载", exact: true }).waitFor();
         requireCondition(await page.locator("tr[data-tenant-id]").count() === 0, "失败后仍显示旧数据");
       } finally { await context.setOffline(false); }
-      await page.getByRole("button", { name: "重新加载", exact: true }).click(); await page.locator("tr[data-tenant-id]").waitFor();
+      await page.getByRole("button", { name: "重新加载", exact: true }).click(); await page.locator("tr[data-tenant-id]").first().waitFor();
     });
     for (const width of [390, 1024, 1440]) {
       await check(`${width}px 正常与 200% 文字`, async () => {
@@ -228,6 +228,7 @@ async function run(configuration) {
       });
     }
     await check("390px 键盘与 reduced-motion 导航", async () => {
+      await page.setViewportSize({ width: 390, height: 900 });
       await page.emulateMedia({ reducedMotion: "reduce" }); await directory(page, configuration, { q: code }); await layout(page, 390);
       await page.locator("body").click({ position: { x: 2, y: 2 } });
       const detail = page.getByRole("button", { name: "查看详情", exact: true });
@@ -250,7 +251,9 @@ async function run(configuration) {
       } finally { await tenant.close(); }
     });
     await check("退出、匿名与非法条件均先拒绝身份", async () => {
-      await directory(page, configuration, { q: code }); await logoutWorkspace(page); await assertAnonymous(page);
+      await page.setViewportSize({ width: 1440, height: 900 });
+      await directory(page, configuration, { q: code }); await logoutWorkspace(page);
+      await page.getByRole("heading", { name: "平台管理登录", exact: true }).waitFor(); await assertAnonymous(page);
       await page.goto(`${configuration.baseUrl}/platform/tenants`, { waitUntil: "networkidle" });
       await page.getByRole("heading", { name: "平台管理登录", exact: true }).waitFor();
       const denied = await query(page, { status: "DISABLED" });

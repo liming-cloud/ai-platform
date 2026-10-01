@@ -1,7 +1,8 @@
 /* ADR-0090 的只读目录，尺寸与换行承接固定 OpenDesign；不改变其他任务页面。 */
-.tenant-directory-page { display: grid; gap: 1.5rem; min-width: 0; padding-top: 1.5rem; line-height: 1.6; }
+.tenant-directory-page { display: grid; gap: 1.25rem; min-width: 0; padding-top: 1.5rem; line-height: 1.6; }
 .page-heading:has(+ .tenant-directory-page) .page-status { border-radius: 9999px; }
 .tenant-directory-page .fui-Button, .page-heading:has(+ .tenant-directory-page) > .fui-Button { font-weight: 620; gap: 0.5rem; }
+.page-heading:has(+ .tenant-directory-page) > .fui-Button { padding: 0.375rem 0.75rem; }
 .tenant-directory-summary { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 0.75rem; padding: 0.75rem 0; border-block: 1px solid var(--foundation-border); color: var(--foundation-muted-text); line-height: 1.5; }
 .tenant-directory-toolbar { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 0.75rem; }
 .tenant-directory-field { display: grid; align-content: start; gap: 0.5rem; width: min(100%, 22rem); min-width: 0; }
@@ -26,7 +27,6 @@
 .tenant-directory-status::before { content: ""; flex: none; width: 0.4rem; height: 0.4rem; border-radius: 50%; background: currentColor; }
 .tenant-directory-status[data-tone="success"] { color: var(--foundation-success-foreground); background: var(--foundation-success-background); border-color: var(--foundation-success-border); }
 .tenant-directory-status[data-tone="warning"] { color: var(--foundation-warning-foreground); background: var(--foundation-warning-background); border-color: var(--foundation-warning-border); }
-.tenant-directory-empty td { padding: 2rem 1rem; text-align: center !important; }
 .tenant-directory-empty button { margin-left: 0.75rem; }
 .tenant-directory-pagination { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 0.75rem; padding: 0.75rem 1rem; border-top: 1px solid var(--foundation-border); color: var(--foundation-muted-text); font-size: 14px; }
 .tenant-directory-pagination-summary { margin-right: auto; white-space: nowrap; }
@@ -47,8 +47,8 @@
   .tenant-directory-table tbody tr:last-child { border-bottom: 0; }
   .tenant-directory-table td { display: grid; grid-template-columns: 7.25rem minmax(0, 1fr); gap: 0.75rem; height: auto; padding: 0.5rem 0; border: 0; text-align: left !important; }
   .tenant-directory-table td::before { content: attr(data-label); font-size: 14px; font-weight: 650; color: var(--foundation-muted-text); }
-  .tenant-directory-empty td { display: block; text-align: center !important; }
-  .tenant-directory-table td:last-child .fui-Button { justify-self: end; }
+  .page-heading:has(+ .tenant-directory-page) > .fui-Button { width: 100%; }
+  .tenant-directory-table td:last-child .fui-Button { justify-self: stretch; }
   .tenant-directory-pagination { justify-content: flex-start; padding: 0.75rem; }
   .tenant-directory-pagination-summary { width: 100%; }
   .tenant-directory-page :is(button, input, select, a) { scroll-margin-block-start: 12rem; scroll-margin-block-end: 1rem; }

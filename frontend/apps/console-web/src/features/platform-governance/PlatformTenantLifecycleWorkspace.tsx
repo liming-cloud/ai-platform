@@ -89,7 +89,7 @@ function TenantDirectory({ client, route, onRouteChange }: {
         </div>
         <p className="tenant-directory-filter-feedback" role="status" />
         <div className="tenant-directory-table-shell"><TenantDirectoryTable tenants={page.items} onRouteChange={onRouteChange}
-          empty={outOfRange ? <>当前页超出目录范围。<Button onClick={() => move(1)}>返回第一页</Button></> : "没有符合条件的租户。"} />
+          empty={outOfRange ? <>当前页超出目录范围。<Button onClick={() => move(1)}>返回第一页</Button></> : "没有匹配记录，请调整筛选条件。"} />
           <div className="tenant-directory-pagination" aria-label="租户目录分页">
             <span className="tenant-directory-pagination-summary" role="status">共 {total} 条 · {first}–{last} 条</span>
             <label className="tenant-directory-page-size">每页<select aria-label="每页条数" value={pageSize}
