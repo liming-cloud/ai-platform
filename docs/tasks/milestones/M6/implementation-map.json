@@ -106,7 +106,13 @@
           "reason": "m6-approved-prototype",
           "workPackage": "WP-0017",
           "dependsOn": [],
-          "status": "pending-contract"
+          "status": "contracted",
+          "contract": {
+            "adr": "ADR-0091",
+            "target": { "kind": "navigation", "value": "/login、/tenant/login、/ask" },
+            "saveBoundary": "仅导航，不写业务对象、不授予权限、不自动替换已有会话；离开页面清空密码。",
+            "authorizationTests": ["错误角色入口保持原身份", "链接访问不自动认证或退出", "密码不继承到下一入口"]
+          }
         },
         {
           "id": "tenant-login:2",
