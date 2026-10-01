@@ -2242,7 +2242,8 @@ body[data-review="hidden"] .prototype-reviewer {
   }
 
   .nav-item {
-    flex: 1 0 4.1rem;
+    /* 导航项保持现有宽度基线，标签换行不随入口数量变化。 */
+    flex: 0 0 4.1rem;
     flex-direction: column;
     gap: 0.1rem;
     justify-content: center;
