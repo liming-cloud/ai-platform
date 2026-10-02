@@ -204,6 +204,107 @@ class BackendArchitectureGuardTest(unittest.TestCase):
 
         self.assertTrue(any("手工列表分页" in error for error in errors))
 
+    def write_select(self, statement_id, body, category="SECURITY_PROJECTION"):
+        mapper_path = "backend/contexts/demo/src/main/resources/mapper/demo/DemoMapper.xml"
+        self.write_pom(
+            mapper_path,
+            f'<mapper namespace="demo.DemoMapper"><select id="{statement_id}">{body}</select></mapper>',
+        )
+        self.write_allowlist([{
+            "path": mapper_path,
+            "statementId": statement_id,
+            "category": category,
+            "reason": "测试受控查询语句，分页仍须遵守框架合同。",
+        }])
+        return mapper_path + "#" + statement_id
+
+    def test_manual_pagination_does_not_depend_on_statement_or_parameter_names(self):
+        for statement_id, body in [
+            ("list", "SELECT * FROM demo LIMIT #{limit}"),
+            ("findItems", "SELECT * FROM demo limit #{pageSize} offset #{offset}"),
+            ("directory", "SELECT * FROM demo OFFSET #{offset} ROWS FETCH NEXT #{size} ROWS ONLY"),
+        ]:
+            with self.subTest(statement_id=statement_id):
+                key = self.write_select(statement_id, body)
+                actual = MODULE.scan(self.root)
+                self.assertEqual(1, actual["manualListLimitCount"])
+                self.assertEqual([key], actual["manualListLimitStatements"])
+
+    def test_limit_in_next_statement_does_not_contaminate_previous_select(self):
+        mapper_path = "backend/contexts/demo/src/main/resources/mapper/demo/DemoMapper.xml"
+        self.write_pom(mapper_path, '''<mapper namespace="demo.DemoMapper">
+          <select id="selectPage">SELECT * FROM demo</select>
+          <select id="claimableJob">SELECT * FROM job FOR UPDATE SKIP LOCKED LIMIT #{limit}</select>
+        </mapper>''')
+        self.write_allowlist([{
+            "path": mapper_path, "statementId": statement_id,
+            "category": category, "reason": "普通目录使用框架分页，任务领取保持内部批次协议。",
+        } for statement_id, category in [("selectPage", "SECURITY_PROJECTION"), ("claimableJob", "SKIP_LOCKED")]])
+
+        self.assertEqual(0, MODULE.scan(self.root)["manualListLimitCount"])
+
+    def test_nested_projection_limit_and_comments_are_not_outer_pagination(self):
+        self.write_select("selectPage", '''<![CDATA[
+            SELECT item.*, 'LIMIT 9' AS label FROM item
+            LEFT JOIN LATERAL (SELECT id FROM publication LIMIT 1) publication ON TRUE
+            -- LIMIT #{limit}
+            /* OFFSET #{offset} */
+        ]]>''')
+
+        self.assertEqual(0, MODULE.scan(self.root)["manualListLimitCount"])
+
+    def test_parameter_name_alone_is_not_sql_pagination(self):
+        self.write_select("selectPage", "SELECT * FROM demo WHERE attempts &lt;= #{limit}")
+
+        self.assertEqual(0, MODULE.scan(self.root)["manualListLimitCount"])
+
+    def test_pagination_in_sql_fragment_is_detected(self):
+        mapper_path = "backend/contexts/demo/src/main/resources/mapper/demo/DemoMapper.xml"
+        self.write_pom(mapper_path, '''<mapper namespace="demo.DemoMapper">
+          <sql id="bounds">LIMIT #{size} OFFSET #{start}</sql>
+          <select id="list">SELECT * FROM demo <include refid="bounds"/></select>
+        </mapper>''')
+
+        self.assertEqual(1, MODULE.scan(self.root)["manualListLimitCount"])
+
+    def test_wrapping_directory_query_cannot_hide_manual_pagination(self):
+        for body in [
+            "SELECT * FROM (SELECT * FROM demo LIMIT #{limit} OFFSET #{offset}) page",
+            "(SELECT * FROM demo LIMIT #{limit})",
+            "SELECT item.* FROM item JOIN LATERAL (SELECT * FROM demo LIMIT #{size}) page ON TRUE",
+        ]:
+            with self.subTest(body=body):
+                self.write_select("list", body)
+                self.assertEqual(1, MODULE.scan(self.root)["manualListLimitCount"])
+
+    def test_postgres_dollar_quoted_literal_is_not_pagination(self):
+        self.write_select("selectPage", "SELECT $$LIMIT 1$$, $note$OFFSET 3$note$ FROM demo")
+
+        self.assertEqual(0, MODULE.scan(self.root)["manualListLimitCount"])
+
+    def test_same_count_cannot_replace_registered_manual_pagination(self):
+        self.write_select("findPage", "SELECT * FROM demo LIMIT #{limit}")
+        baseline = MODULE.scan(self.root)
+        self.write_select("list", "SELECT * FROM demo LIMIT #{limit}")
+
+        errors = MODULE.compare(MODULE.scan(self.root), baseline)
+
+        self.assertTrue(any("手工列表分页" in error for error in errors))
+
+    def test_removing_manual_pagination_is_allowed(self):
+        self.write_select("findPage", "SELECT * FROM demo LIMIT #{limit}")
+        baseline = MODULE.scan(self.root)
+        self.write_select("findPage", "SELECT * FROM demo")
+
+        self.assertEqual([], MODULE.compare(MODULE.scan(self.root), baseline))
+
+    def test_task_claim_is_not_page_pagination(self):
+        self.write_select(
+            "claimableJob", "SELECT * FROM job FOR UPDATE SKIP LOCKED LIMIT 1", "SKIP_LOCKED",
+        )
+
+        self.assertEqual(0, MODULE.scan(self.root)["manualListLimitCount"])
+
     def test_unregistered_mapper_statement_is_rejected(self):
         mapper = self.root / (
             "backend/contexts/demo/src/main/resources/mapper/demo/DemoMapper.xml"

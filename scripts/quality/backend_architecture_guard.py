@@ -21,10 +21,13 @@ JAVA_SQL_EXECUTION_CALL = re.compile(
 UUID_REFERENCE = re.compile(r"\bUUID\b")
 SA_TOKEN_REFERENCE = re.compile(r"\bcn\.dev33\.satoken\b")
 CURSOR_LIST_CONTRACT = re.compile(r"\b(?:nextCursor|String\s+cursor)\b")
-MANUAL_LIST_SELECT = re.compile(
-    r"<select\b[^>]*\bid=\"(?P<id>[^\"]*(?:Page|After)[^\"]*)\"[^>]*>"
-    r".*?\bLIMIT\s+#\{limit\}",
-    flags=re.IGNORECASE | re.DOTALL,
+SQL_NON_CODE = re.compile(
+    r"--[^\r\n]*|/\*.*?\*/|'(?:''|[^'])*'|\"(?:\"\"|[^\"])*\"|[#\$]\{[^}]*\}"
+    r"|(?P<dollar>\$(?:[A-Za-z_]\w*)?\$).*?(?P=dollar)",
+    flags=re.DOTALL,
+)
+SQL_PAGINATION_TOKEN = re.compile(
+    r"\(|\)|\bJOIN\s+LATERAL\b|\b(?:LIMIT|OFFSET|FETCH)\b", re.IGNORECASE,
 )
 MAPPER_STATEMENT = re.compile(
     r"<(?P<kind>select|insert|update|delete)\b"
@@ -89,6 +92,7 @@ LIST_CATEGORIES = {
     "saTokenOutsidePlatformFiles": "Sa-Token 越界",
     "nonAggregateEntityFiles": "非聚合根实体",
     "applicationServiceDomainStateDependencies": "应用服务构造器领域状态依赖",
+    "manualListLimitStatements": "手工列表分页语句",
 }
 COUNT_CATEGORIES = {
     "legacyContextApiCount": "上下文 api 目录",
@@ -348,6 +352,55 @@ def mapper_statements(root, mapper_texts):
     }
 
 
+def manual_list_limit_statements(root, mapper_texts, registered):
+    """按独立查询的 SQL 检测分页，不依赖方法名或绑定参数名。"""
+    findings = []
+    for path, text in mapper_texts.items():
+        try:
+            mapper = ET.fromstring(text)
+        except ET.ParseError as error:
+            raise RuntimeError(f"分页扫描无法解析 Mapper XML：{relative(root, path)}：{error}") from error
+        fragments = {element.get("id"): element for element in mapper.findall("sql")}
+
+        def sql_text(element, active=()):
+            if element.tag == "include":
+                refid = element.get("refid")
+                if refid not in fragments or refid in active:
+                    raise RuntimeError(f"分页扫描无法解析 SQL 引用：{relative(root, path)}#{refid}")
+                return sql_text(fragments[refid], active + (refid,))
+            return " ".join([element.text or ""] + [
+                sql_text(child, active) + " " + (child.tail or "")
+                for child in element
+            ])
+
+        for select in mapper.findall("select"):
+            key = f"{relative(root, path)}#{select.get('id')}"
+            if registered.get(key, {}).get("category") in {"EVENT_REPLAY", "SKIP_LOCKED"}:
+                # 事件续传与任务领取沿用已登记的内部协议，不是普通目录分页。
+                continue
+            sql = SQL_NON_CODE.sub(" ", sql_text(select))
+            lateral_scopes = []
+            next_lateral = False
+            for match in SQL_PAGINATION_TOKEN.finditer(sql):
+                token = match.group(0).upper()
+                if token.startswith("JOIN"):
+                    next_lateral = True
+                elif token == "(":
+                    lateral_scopes.append(next_lateral)
+                    next_lateral = False
+                elif token == ")":
+                    if lateral_scopes:
+                        lateral_scopes.pop()
+                elif (token == "LIMIT" and any(lateral_scopes)
+                      and re.match(r"\s+1\s*\)", sql[match.end():])):
+                    # JOIN LATERAL 的固定单行投影不分页目录；普通子查询不豁免。
+                    continue
+                else:
+                    findings.append(key)
+                    break
+    return sorted(findings)
+
+
 def read_complex_sql_allowlist(root):
     path = Path(root) / COMPLEX_SQL_ALLOWLIST
     if not path.is_file():
@@ -476,6 +529,7 @@ def scan(root):
     allowlist_errors, registered_statements = validate_complex_sql_allowlist(
         root, statements
     )
+    manual_pagination = manual_list_limit_statements(root, mapper_texts, registered_statements)
     error_codes = [
         code
         for path, text in texts.items()
@@ -537,14 +591,8 @@ def scan(root):
             for path in context_files
             if CURSOR_LIST_CONTRACT.search(texts[path])
         ),
-        "manualListLimitCount": sum(
-            1
-            for path, text in mapper_texts.items()
-            for match in MANUAL_LIST_SELECT.finditer(text)
-            if registered_statements.get(
-                f"{relative(root, path)}#{match.group('id')}", {}
-            ).get("category") != "EVENT_REPLAY"
-        ),
+        "manualListLimitCount": len(manual_pagination),
+        "manualListLimitStatements": manual_pagination,
         "complexSqlAllowlistErrors": allowlist_errors,
         "duplicateFlywayMigrationVersions": duplicate_flyway_migration_versions(root),
         "invalidErrorCodes": sorted(

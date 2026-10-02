@@ -3532,9 +3532,9 @@
     },
     {
       "path": "project/architecture-debt/WP-0008-backend.json",
-      "action": "move",
+      "action": "merge",
       "sha256": "b2d4cd2c30a092780f9b11b249ff108fac611e1ac7104ab489349b3661382262",
-      "reason": "架构门禁消费的机器基线归质量工具，限制值不变",
+      "reason": "现行递减基线归质量工具维护；WP-0017 修复分页漏检后按语句身份登记七项存量并将本项预算由16收紧到7，其余预算不变。原提交、摘要及旧门禁结果由 Git 历史核验，不冻结现行基线",
       "references": [
         "project/evidence/WP-0008-mybatis-xml.md",
         "project/evidence/WP-0008-persistence-foundation.md",
