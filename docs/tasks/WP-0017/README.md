@@ -51,7 +51,7 @@
 
 每个独立切片必须记录实际部署的提交、镜像、健康检查和业务断言。`make acceptance-work-package WP=WP-0017 SLICE=login` 仅代表登录切片；未指定切片时必须拒绝把未完成的整包记为通过。验收禁止删除卷、重置账户或依赖旧演示业务库，合成验收数据由正式接口建立并单独登记。
 
-后续门禁事项由本包负责：手工分页正则只识别 Page/After 命名，漏计本次原 list 语句。退出条件为增加该命名反例、精确盘点，并把未触及目录登记给所属包；不以当前扫描数量声称全仓无债务。
+分页守卫的漏检退出条件已闭合：命名与参数反例、精确盘点和责任登记见[守卫收口证据](evidence/WP-0017-pagination-guard-closure-20261002.md)。七条 XML 普通列表债务仍存在；其中 `PlatformTenantAdministratorMapper#selectAdministratorPage`、`#selectCandidatePage` 由本包下一独立切片迁移至 infrastructure `Page/IPage`，保留搜索、状态、权限筛选、固定排序及同范围总数，通过反例和实际部署回归后递减精确基线。其余五条归 WP-0018／0019／0020；不声称全仓无分页债务。
 
 ## 验收标准
 
@@ -64,7 +64,7 @@
 
 ## 已确认决定
 
-原子开户按照 ADR-0080 及 2026-09-20 补充通过。平台与租户独立登录已通过。管理员独立页在实际 Compose 镜像上完成 9 组管理员浏览器场景、15 项本轮新管理员登录回归、18 项只读数据库事实；弹窗尺寸与固定原型三档误差约 0.2px，200% 文字与键盘复核通过。用户 2026-09-24 接受生产安全说明替代原型演示密码说明、未实现功能的原型一致性留到对应切片，以及 390px 固定原型“更多”被分页遮挡时生产页保持可操作的单点布局例外；见[管理员切片收口证据](evidence/WP-0017-admin-settings-prototype-parity-closure-20260924.md)和 ADR-0083。管理员独立设置切片在上述范围内闭合，`platform-tenant-admins:0`、`:1` 已验证。资源配额独立设置按 ADR-0084 在最终 Compose 镜像上完成 9 组浏览器验收、15 项本轮新管理员登录回归、只读数据库事实与三尺寸固定原型对照；见[配额切片收口证据](evidence/WP-0017-quota-settings-prototype-parity-closure-20260928.md)，`platform-tenant-quotas:0` 已验证。可用功能独立设置按 ADR-0085 在最终 Compose 镜像上完成 12 组功能浏览器验收、15 组本轮新管理员登录回归、只读数据库事实与三尺寸固定原型对照；见[功能切片收口证据](evidence/WP-0017-feature-settings-prototype-parity-closure-20260928.md)，`platform-tenant-features:0` 已验证。登录安全独立设置按 ADR-0086 在最终 Compose 镜像上完成 10 组安全浏览器验收、15 组本轮新管理员登录回归、只读数据库事实和三尺寸固定原型对照；ADR-0079 的保存前会话失效提示相对固定原型形成单点限定差异，见[登录安全切片收口证据](evidence/WP-0017-security-settings-prototype-parity-closure-20260929.md)，`platform-tenant-security:0` 已验证。不创建普通会员，不把局部通过计为 WP-0017 整包或 M6 通过。
+原子开户依据 ADR-0080 及 2026-09-20 补充通过；平台与租户独立登录已通过。管理员独立设置完成实际部署、9 组浏览器、15 项登录、18 项只读事实及三尺寸原型对照，见[管理员证据](evidence/WP-0017-admin-settings-prototype-parity-closure-20260924.md)。ADR-0083 记录用户接受的安全说明、未实现功能延期和 390px 行操作遮挡单点例外，未扩大到其他视觉项。配额按 ADR-0084、功能按 ADR-0085、安全按 ADR-0086 分别闭合，见[配额证据](evidence/WP-0017-quota-settings-prototype-parity-closure-20260928.md)、[功能证据](evidence/WP-0017-feature-settings-prototype-parity-closure-20260928.md)、[安全证据](evidence/WP-0017-security-settings-prototype-parity-closure-20260929.md)。各证据分别绑定实际部署、浏览器、登录、只读事实及固定原型；安全页保存前会话失效提示的限定差异仍按原接受范围。既有功能验收不代表本轮发现的分页实现债务已清零，也不代表普通会员、WP-0017 整包或 M6 完成。
 
 ## 验证
 
@@ -79,11 +79,11 @@
 - docs/tasks/WP-0017/evidence/WP-0017-platform-accounts-prototype-parity-closure-20261001.md（平台账户完整操作切片的最终部署、功能、登录、只读事实与固定原型收口）
 - docs/tasks/WP-0017/evidence/WP-0017-security-settings-prototype-parity-closure-20260929.md（登录安全独立设置的最终部署、功能、登录、只读事实与固定原型收口）
 - docs/tasks/WP-0017/evidence/WP-0017-feature-settings-prototype-parity-closure-20260928.md（功能上限独立设置的最终部署、功能、登录、只读事实与固定原型收口）
-- docs/tasks/WP-0017/evidence/WP-0017-quota-settings-prototype-parity-closure-20260928.md（资源配额独立设置切片的最终部署、功能、登录、只读事实与固定原型收口）
+- docs/tasks/WP-0017/evidence/WP-0017-pagination-guard-closure-20261002.md（分页守卫反例、七条精确债务及责任登记；配额证据仍见已确认决定）
 
 ## 下一前沿
 
-原子开户、独立设置、平台账户、固定角色、租户概览与目录均已独立收口。三入口导航 `tenant-login:1` 按 ADR-0091 在前端 `ee34520f3f00098634fd749992aa533c81eda139` 通过 18 项导航、15 项登录回归、21 组导航原型对照和只读事实复核；矩阵为 11/12 入口、20/21 操作已验证。仅导航闭合，普通成员建立／完整问答登录仍属 WP-0018／0024。用户选择保持 M6 并禁止修改原型；`platform-overview:0` 的 M8 事实及目标页继续待实现。下一独立事项为既有分页门禁反例、精确盘点与所属包登记；不自动实现运维依赖。产品前沿保持 WP-0017，整包提交和证据保持 `pending`，M6 未完成。
+原子开户、独立设置、平台账户、固定角色、租户概览与目录均已独立收口。三入口导航 `tenant-login:1` 按 ADR-0091 在前端 `ee34520f3f00098634fd749992aa533c81eda139` 通过 18 项导航、15 项登录、21 组导航原型对照和只读事实；矩阵仍为 11/12 入口、20/21 操作已验证。普通成员建立／完整问答登录仍属 WP-0018／0024。分页守卫漏检退出条件已闭合，下一独立任务是本包两条管理员目录的框架分页整改；不推进其他目录或 M8。用户选择保持 M6 并禁止修改原型，`platform-overview:0` 的 M8 事实及目标页继续待实现。产品前沿保持 WP-0017，整包提交和证据仍为 `pending`，M6 未完成。
 
 原项目目录修订及四列空结果纠错的最新接受版本为 `d36c7f46d0187c0421d4989c12f601d5c190d73f`，原型 10 项及浏览器 12 项通过；生产已依据该版本完成目录切片，不新增视觉例外。全库现有 70 个目录对象均有管理员资格，零资格呈现由真实生产表格 SSR 与原型反例覆盖，不宣称生产存在零资格样本。没有创建新业务对象，不在本轮自动开始后续切片。
 

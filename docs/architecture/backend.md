@@ -351,6 +351,8 @@ HTTP pageNumber/pageSize
 - `limit + 1`、`subList`、Base64 游标和 nextCursor。
 - 在 XML 列表查询中手写 LIMIT/OFFSET。
 
+`make architecture-guard` 按 Mapper 独立语句及引用片段检测 `LIMIT/OFFSET/FETCH`，不依赖方法名或参数名。普通子查询的分页仍计入；关联 `JOIN LATERAL` 的固定单行投影、已登记的事件续传和任务领取不属于目录分页。现有七条普通列表债务按精确 `路径#statementId` 递减，不能用旧数量预算换入新语句；责任及退出条件见 [WP-0017 分页守卫证据](../tasks/WP-0017/evidence/WP-0017-pagination-guard-closure-20261002.md)。该统计覆盖上下文 Mapper XML，不证明 Java 内联 SQL 或全后端无债务。
+
 ## 12. 包说明规范
 
 每个主要包的 `package-info.java` 至少回答：
