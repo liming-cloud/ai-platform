@@ -10,6 +10,9 @@ import com.aiplatform.foundation.security.identity.CredentialType;
 import com.aiplatform.foundation.security.identity.PlatformPermissions;
 import com.aiplatform.foundation.security.identity.PlatformRequestContext;
 import com.aiplatform.foundation.shared.contract.paging.PageQuery;
+import com.baomidou.mybatisplus.annotation.DbType;
+import com.baomidou.mybatisplus.extension.plugins.MybatisPlusInterceptor;
+import com.baomidou.mybatisplus.extension.plugins.inner.PaginationInnerInterceptor;
 import java.time.Instant;
 import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
@@ -18,6 +21,7 @@ import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringBootConfiguration;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
@@ -179,6 +183,63 @@ class PostgresPlatformTenantAdministratorDirectoryTest {
                 page.items().stream().map(item -> item.loginName()).toList());
     }
 
+    @Test
+    void 管理员翻页与越界页必须保留同范围总数和固定顺序() {
+        var first = service.list(platformAdministrator(), Long.toString(TENANT), "", "ALL", new PageQuery(1, 1));
+        var second = service.list(platformAdministrator(), Long.toString(TENANT), "", "ALL", new PageQuery(2, 1));
+        var beyond = service.list(platformAdministrator(), Long.toString(TENANT), "", "ALL", new PageQuery(3, 1));
+
+        assertEquals(2L, first.totalElements());
+        assertEquals(2L, second.totalElements());
+        assertEquals(2L, beyond.totalElements());
+        assertEquals("disabled-admin", first.items().getFirst().loginName());
+        assertEquals("8202", first.items().getFirst().membershipReference());
+        assertEquals("enabled-admin", second.items().getFirst().loginName());
+        assertEquals("8201", second.items().getFirst().membershipReference());
+        assertEquals(java.util.List.of(), beyond.items());
+    }
+
+    @Test
+    void 候选翻页与越界页必须只统计满足资格的身份() {
+        var first = service.candidates(platformAdministrator(), Long.toString(TENANT), "", new PageQuery(1, 1));
+        var second = service.candidates(platformAdministrator(), Long.toString(TENANT), "", new PageQuery(2, 1));
+        var beyond = service.candidates(platformAdministrator(), Long.toString(TENANT), "", new PageQuery(3, 1));
+
+        assertEquals(2L, first.totalElements());
+        assertEquals(2L, second.totalElements());
+        assertEquals(2L, beyond.totalElements());
+        assertEquals("fresh-candidate", first.items().getFirst().loginName());
+        assertEquals("8104", first.items().getFirst().accountReference());
+        assertEquals("ordinary-member", second.items().getFirst().loginName());
+        assertEquals("8103", second.items().getFirst().accountReference());
+        assertEquals(java.util.List.of(), beyond.items());
+    }
+
+    @Test
+    void 搜索后的越界页仍应保留筛选总数() {
+        var administrators = service.list(
+                platformAdministrator(), Long.toString(TENANT), "ADMIN", "DISABLED", new PageQuery(2, 1));
+        var candidates = service.candidates(platformAdministrator(), Long.toString(TENANT), "fresh", new PageQuery(2, 1));
+
+        assertEquals(1L, administrators.totalElements());
+        assertEquals(java.util.List.of(), administrators.items());
+        assertEquals(1L, candidates.totalElements());
+        assertEquals(java.util.List.of(), candidates.items());
+    }
+
+    @Test
+    void 两个目录的搜索必须将通配符和转义符视为字面量() {
+        for (var query : java.util.List.of("%", "_", "\\")) {
+            var administrators = service.list(
+                    platformAdministrator(), Long.toString(TENANT), query, "ALL", new PageQuery(1, 1));
+            var candidates = service.candidates(platformAdministrator(), Long.toString(TENANT), query, new PageQuery(1, 1));
+            assertEquals(0L, administrators.totalElements(), query);
+            assertEquals(java.util.List.of(), administrators.items(), query);
+            assertEquals(0L, candidates.totalElements(), query);
+            assertEquals(java.util.List.of(), candidates.items(), query);
+        }
+    }
+
     private static PlatformRequestContext platformAdministrator() {
         return new PlatformRequestContext(
                 new com.aiplatform.foundation.security.identity.SubjectId(1L),
@@ -199,5 +260,11 @@ class PostgresPlatformTenantAdministratorDirectoryTest {
             PostgresPlatformTenantAdministratorDirectory.class
     })
     static class TestApplication {
+        @Bean
+        MybatisPlusInterceptor paginationInterceptor() {
+            var interceptor = new MybatisPlusInterceptor();
+            interceptor.addInnerInterceptor(new PaginationInnerInterceptor(DbType.POSTGRE_SQL));
+            return interceptor;
+        }
     }
 }

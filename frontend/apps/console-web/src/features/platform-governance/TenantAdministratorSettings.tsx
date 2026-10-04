@@ -205,7 +205,7 @@ export function TenantAdministratorSettings({ client, route, onRouteChange }: {
       {!data ? <p role="status">正在读取租户管理员…</p> : <>
         <dl className="tenant-admin-page__summary">
           <div><dt>租户管理员</dt><dd>{data.administratorCount}</dd></div>
-          <div><dt>可用管理员资格</dt><dd>{data.enabledCount}</dd></div>
+          <div><dt>可用账户</dt><dd>{data.enabledCount}</dd></div>
         </dl>
         <div className="tenant-admin-page__toolbar">
           <label>搜索账号

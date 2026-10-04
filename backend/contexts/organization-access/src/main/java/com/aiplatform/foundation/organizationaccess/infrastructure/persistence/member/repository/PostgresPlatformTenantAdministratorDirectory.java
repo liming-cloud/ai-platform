@@ -4,9 +4,12 @@ import com.aiplatform.foundation.organizationaccess.application.authorization.dt
 import com.aiplatform.foundation.organizationaccess.application.member.dto.TenantAdministratorSummary;
 import com.aiplatform.foundation.organizationaccess.application.member.port.out.PlatformTenantAdministratorDirectory;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.member.mapper.PlatformTenantAdministratorMapper;
+import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.member.projection.PlatformTenantAdministratorCandidateRow;
+import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.member.projection.PlatformTenantAdministratorSummaryRow;
 import com.aiplatform.foundation.shared.contract.paging.PageQuery;
 import com.aiplatform.foundation.shared.contract.paging.PageResult;
 import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import java.util.Locale;
 import java.util.Objects;
 
@@ -27,8 +30,11 @@ public final class PostgresPlatformTenantAdministratorDirectory
         page = Objects.requireNonNull(page, "分页查询不能为空");
         var pattern = "%" + escapeLike(Objects.requireNonNull(query, "搜索词不能为空")
                 .toLowerCase(Locale.ROOT)) + "%";
-        var items = mapper.selectAdministratorPage(
-                        tenantId.value(), pattern, status, page.offset(), page.pageSize()).stream()
+        var pagination = new Page<PlatformTenantAdministratorSummaryRow>(page.pageNumber(), page.pageSize());
+        // 显式复用同范围计数，避免自动改写关联查询时丢失管理员资格或状态筛选。
+        pagination.setCountId("countAdministrators");
+        var result = mapper.selectAdministratorPage(pagination, tenantId.value(), pattern, status);
+        var items = result.getRecords().stream()
                 .map(row -> new TenantAdministratorSummary(
                         Long.toString(row.getMembershipId()),
                         row.getLoginName(),
@@ -37,7 +43,7 @@ public final class PostgresPlatformTenantAdministratorDirectory
                         row.getVersion(),
                         row.getCreatedAt(), row.getLastSecurityChangeAt()))
                 .toList();
-        return PageResult.of(items, page, mapper.countAdministrators(tenantId.value(), pattern, status));
+        return PageResult.of(items, page, result.getTotal());
     }
 
     @Override
@@ -49,12 +55,15 @@ public final class PostgresPlatformTenantAdministratorDirectory
         page = Objects.requireNonNull(page, "分页查询不能为空");
         var pattern = "%" + escapeLike(Objects.requireNonNull(query, "搜索词不能为空")
                 .toLowerCase(Locale.ROOT)) + "%";
-        var items = mapper.selectCandidatePage(
-                        tenantId.value(), pattern, page.offset(), page.pageSize()).stream()
+        var pagination = new Page<PlatformTenantAdministratorCandidateRow>(page.pageNumber(), page.pageSize());
+        // 候选总数沿用排除平台角色及任何租户管理员归属的完整安全谓词。
+        pagination.setCountId("countCandidates");
+        var result = mapper.selectCandidatePage(pagination, tenantId.value(), pattern);
+        var items = result.getRecords().stream()
                 .map(row -> new PlatformAccountCandidate(
                         Long.toString(row.getSubjectId()), row.getLoginName(), row.getStatus()))
                 .toList();
-        return PageResult.of(items, page, mapper.countCandidates(tenantId.value(), pattern));
+        return PageResult.of(items, page, result.getTotal());
     }
 
     private static String escapeLike(String value) {

@@ -4,8 +4,8 @@ import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.i
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.member.projection.PlatformTenantAdministratorCandidateRow;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.member.projection.PlatformTenantAdministratorSummaryRow;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.membership.entity.TenantMembershipEntity;
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import java.time.Instant;
-import java.util.List;
 import org.apache.ibatis.annotations.Param;
 
 /** 平台租户管理员生命周期所需的共同主体锁、成员事实和原子写入映射器。 */
@@ -65,23 +65,23 @@ public interface PlatformTenantAdministratorMapper {
             @Param("membershipId") long membershipId,
             @Param("boundAt") Instant boundAt);
 
-    List<PlatformTenantAdministratorSummaryRow> selectAdministratorPage(
+    /** 按租户、搜索和资格状态查询；边界与总数由分页拦截器处理。 */
+    IPage<PlatformTenantAdministratorSummaryRow> selectAdministratorPage(
+            IPage<PlatformTenantAdministratorSummaryRow> page,
             @Param("tenantId") long tenantId,
             @Param("pattern") String pattern,
-            @Param("status") String status,
-            @Param("offset") long offset,
-            @Param("pageSize") long pageSize);
+            @Param("status") String status);
 
     long countAdministrators(
             @Param("tenantId") long tenantId,
             @Param("pattern") String pattern,
             @Param("status") String status);
 
-    List<PlatformTenantAdministratorCandidateRow> selectCandidatePage(
+    /** 在分页前排除平台角色和任何租户管理员归属，禁止跨租户分配。 */
+    IPage<PlatformTenantAdministratorCandidateRow> selectCandidatePage(
+            IPage<PlatformTenantAdministratorCandidateRow> page,
             @Param("tenantId") long tenantId,
-            @Param("pattern") String pattern,
-            @Param("offset") long offset,
-            @Param("pageSize") long pageSize);
+            @Param("pattern") String pattern);
 
     long countCandidates(
             @Param("tenantId") long tenantId,

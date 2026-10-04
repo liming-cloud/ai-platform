@@ -153,8 +153,6 @@
           AND lower(subject.login_name) LIKE #{pattern} ESCAPE '\'
           AND (#{status} = 'ALL' OR membership.status = #{status})
         ORDER BY lower(subject.login_name), membership.membership_id
-        LIMIT #{pageSize}
-        OFFSET #{offset}
     </select>
 
     <select id="countAdministrators" resultType="long">
@@ -188,8 +186,6 @@
                 AND membership.membership_role = 'TENANT_ADMINISTRATOR'
           )
         ORDER BY lower(subject.login_name), subject.subject_id
-        LIMIT #{pageSize}
-        OFFSET #{offset}
     </select>
 
     <select id="countCandidates" resultType="long">
