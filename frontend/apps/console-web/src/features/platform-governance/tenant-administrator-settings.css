@@ -34,7 +34,7 @@
 .tenant-admin-page__pagination { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 12px; padding: 12px 16px; border-top: 1px solid var(--foundation-border); color: var(--foundation-muted-text); font-size: 14px; }
 .tenant-admin-page__pagination select, .tenant-admin-page__pagination input { color: inherit; }
 .tenant-admin-page__pagination input { line-height: 1.5; }
-.tenant-admin-page__actions .fui-Button, .tenant-admin-page__pagination .fui-Button { gap: 8px; }
+.tenant-admin-page .tenant-admin-page__actions .fui-Button, .tenant-admin-page .tenant-admin-page__pagination .fui-Button { gap: 8px; padding: 4px 8px; }
 .tenant-admin-page__pagination .fui-Button:disabled { color: var(--foundation-muted-text); border-color: var(--foundation-border); background: var(--foundation-subtle-surface); opacity: 0.76; }
 .tenant-admin-page__pagination > span:first-child { margin-right: auto; white-space: nowrap; }
 .tenant-admin-page__pagination .tenant-admin-page__page-actions, .tenant-admin-page__pagination form, .tenant-admin-page__pagination label { display: inline-flex; align-items: center; gap: 8px; }
@@ -93,7 +93,8 @@
   .tenant-admin-page form { padding-bottom: 0; }
   .tenant-admin-page__table-shell { overflow: visible; }
   .tenant-admin-page__table-shell table, .tenant-admin-page__table-shell tbody, .tenant-admin-page__table-shell tr, .tenant-admin-page__table-shell td { display: block; width: 100%; min-width: 0; }
-  .tenant-admin-page__table-shell thead { display: none; }
+  /* 移动端保留表头语义，与原型一致地隐藏视觉，不切断辅助技术的列关系。 */
+  .tenant-admin-page__table-shell thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); clip-path: inset(50%); }
   .tenant-admin-page__table-shell tr { padding: 12px 16px; border-top: 1px solid var(--foundation-border); }
   .tenant-admin-page__table-shell td, .tenant-admin-page__table-shell td:last-child { display: grid; grid-template-columns: 7.25rem minmax(0, 1fr); height: auto; gap: 12px; padding: 8px 0; border: 0; text-align: left; }
   .tenant-admin-page__table-shell td::before { content: attr(data-label); color: var(--foundation-muted-text); text-align: left; font-size: 14px; font-weight: 650; }
