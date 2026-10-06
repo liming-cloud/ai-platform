@@ -4,7 +4,7 @@
 
 | 文档 ID | 唯一主题 | 负责人 | 接受依据 |
 | --- | --- | --- | --- |
-| GOALS | [章程](foundation/charter.md)与[长期路线](foundation/roadmap.md) | 产品 | ADR-0001、0074、0079 |
+| GOALS | [章程](foundation/charter.md)与[长期路线](foundation/roadmap.md) | 产品 | ADR-0001、0074、0079、0092 |
 | GOVERNANCE | [文档与任务控制](standards/document-control.md) | 治理 | ADR-0081 |
 | REPOSITORY | [仓库结构与能力归属](architecture/repository.md) | 架构 | ADR-0002、0022、0059、0081 |
 | BACKEND | [后端工程约束](architecture/backend.md) | 后端 | ADR-0022、0031、0074 |

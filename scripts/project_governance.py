@@ -511,15 +511,34 @@ def verify_milestone_transition(previous: str, current: str, packages: dict[str,
             raise GovernanceError(f"M{number} 仍有未完成产品工作包")
 
 
+# ADR-0092 只调整 M6 内顺序；平台概览仍须在全量复验和人工评审前闭合。
+M6_DELIVERY_SEQUENCE = tuple(f"WP-{number:04d}" for number in range(17, 26)) + ("WP-0027", "WP-0026")
+
+
+def verify_m6_delivery_sequence(packages: dict[str, WorkPackage]) -> None:
+    """进行中、受阻或已完成的产品包都不能跳过已接受顺序中的前置结果。"""
+    for index, identifier in enumerate(M6_DELIVERY_SEQUENCE):
+        package = packages.get(identifier)
+        if package is None or package.milestone != "M6" or package.status == "pending":
+            continue
+        missing = [previous for previous in M6_DELIVERY_SEQUENCE[:index]
+                   if previous not in packages or packages[previous].milestone != "M6"
+                   or packages[previous].status != "done"]
+        if missing:
+            raise GovernanceError(f"顺排前置未完成：{identifier} 依赖 {', '.join(missing)}")
+
+
 def render_task_index(root: Path, state: dict, packages: dict[str, WorkPackage]) -> str:
     lines = ["# 任务索引", "", "> 由 make decisions-sync 生成；状态只编辑任务 README。", "",
              f"产品前沿：{state['productFrontier']}；当前执行：{state['currentTask']}；里程碑：{state['currentMilestone']}。",
              "", "| 任务 | 状态 | 负责人 | 恢复入口 |", "| --- | --- | --- | --- |"]
-    for identifier, package in sorted(packages.items()):
+    order = {identifier: index + 17 for index, identifier in enumerate(M6_DELIVERY_SEQUENCE)}
+    for identifier, package in sorted(packages.items(), key=lambda item: (
+            item[0].split("-")[0], order.get(item[0], int(item[0].split("-")[1])))):
         name = package.path.relative_to(root).as_posix()
         target = f"[{identifier}]({package.path.relative_to(root / 'docs/tasks').as_posix()})" if package.path.is_file() else f"Git 历史：`{name}`"
         lines.append(f"| {identifier} | {package.status} | {package.owner} | {target} |")
-    lines += ["", "待办按 ADR-0079 顺排，完成后回 WP-0014 人工复评；治理任务不推进产品。",
+    lines += ["", "M6 按 ADR-0092 顺排，其他边界沿用 ADR-0079；WP-0027 平台概览在 WP-0025 后、WP-0026 全量复验前闭合，最终回 WP-0014 人工复评。治理任务不推进产品。",
               "历史恢复：python3 -B scripts/project_governance.py history <原路径>。"]
     return "\n".join(lines) + "\n"
 
@@ -556,6 +575,7 @@ def verify(root: Path) -> tuple[dict, dict[str, WorkPackage]]:
     history = HistoryStore(root)
     history.verify()
     packages = load_packages(root, history)
+    verify_m6_delivery_sequence(packages)
     if "project/STATE.yaml" in history.entries:
         original = history.historical("project/STATE.yaml").decode()
         match = re.search(r"^currentMilestone:\s*(M\d+)\s*$", original, re.MULTILINE)

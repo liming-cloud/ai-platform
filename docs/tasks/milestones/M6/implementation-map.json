@@ -4,7 +4,7 @@
   "openDesignProjectId": "249f81f2-6f1a-46ff-988c-da3cdedb35e7",
   "humanAcceptanceEvidence": "docs/tasks/WP-0016/evidence/WP-0016-human-acceptance-20260913.md",
   "prototypeImplementationCommit": "21b45c347a4008f5959b1b972e3ffd8a5aadcc6f",
-  "updatedOn": "2026-10-01",
+  "updatedOn": "2026-10-06",
   "sources": [
     {
       "path": "docs/prototypes/wp-0016/page-inventory.json",
@@ -149,7 +149,7 @@
       "ledgerPointer": "/pages/4",
       "phase": "M6",
       "classification": "production",
-      "workPackage": "WP-0017",
+      "workPackage": "WP-0027",
       "status": "pending-contract",
       "operations": [
         {
@@ -158,7 +158,7 @@
           "label": "打开首个阻断项",
           "classification": "production",
           "reason": "m6-approved-prototype",
-          "workPackage": "WP-0017",
+          "workPackage": "WP-0027",
           "dependsOn": [],
           "status": "pending-contract"
         }

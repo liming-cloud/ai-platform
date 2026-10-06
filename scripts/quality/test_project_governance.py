@@ -277,6 +277,68 @@ updatedBy: test
         p.write_text(p.read_text().replace('| 验证范围 | 仅文档治理 |\n', ''))
         self.assertEqual(set(), g.current_evidence_bindings(self.root))
 
+    def m6_sequence(self, frontier, completed):
+        """用范围绑定的内存任务核对顺排，不借此接受实际产品完成。"""
+        for number in range(17, 28):
+            identifier = f'WP-{number:04d}'
+            status = '已完成' if identifier in completed else (
+                '进行中' if identifier == frontier else '待开始')
+            evidence = 'pending'
+            commit = 'pending'
+            if status == '已完成':
+                evidence = f'docs/tasks/{identifier}/verification.md'
+                commit = SHA
+                self.put(evidence, f'''# 证据
+
+| 字段 | 值 |
+| --- | --- |
+| 责任任务 | {identifier} |
+| 验证提交 | {SHA} |
+| 验证范围 | 顺排单元测试，非产品验收 |
+''')
+            self.write_task(identifier, status=status, owner=identifier, milestone='M6',
+                            evidence=evidence, commit=commit)
+        self.write_state(product=frontier, task=frontier, milestone='M6')
+
+    def test_member_frontier_requires_platform_package_completion(self):
+        self.m6_sequence('WP-0018', set())
+        with mock.patch.object(g, 'verify_m1_context_modules'):
+            with self.assertRaisesRegex(g.GovernanceError, '顺排前置未完成：WP-0018'):
+                self.verify()
+
+    def test_member_frontier_does_not_wait_for_late_platform_overview(self):
+        self.m6_sequence('WP-0018', {'WP-0017'})
+        with mock.patch.object(g, 'verify_m1_context_modules'):
+            state, _ = self.verify()
+        self.assertEqual('WP-0018', state['productFrontier'])
+
+    def test_m6_predecessor_cannot_move_to_another_milestone(self):
+        self.m6_sequence('WP-0018', {'WP-0017'})
+        p = self.root / 'docs/tasks/WP-0017/README.md'
+        p.write_text(p.read_text().replace('| 里程碑 | M6 |', '| 里程碑 | M7 |'))
+        with mock.patch.object(g, 'verify_m1_context_modules'):
+            with self.assertRaisesRegex(g.GovernanceError, '顺排前置未完成：WP-0018'):
+                self.verify()
+
+    def test_final_verification_requires_late_platform_overview(self):
+        self.m6_sequence('WP-0026', {f'WP-{number:04d}' for number in range(17, 26)})
+        with mock.patch.object(g, 'verify_m1_context_modules'):
+            with self.assertRaisesRegex(g.GovernanceError, '顺排前置未完成：WP-0026.*WP-0027'):
+                self.verify()
+
+    def test_late_platform_overview_follows_query_governance(self):
+        self.m6_sequence('WP-0027', {f'WP-{number:04d}' for number in range(17, 26)})
+        with mock.patch.object(g, 'verify_m1_context_modules'):
+            state, _ = self.verify()
+        self.assertEqual('WP-0027', state['productFrontier'])
+
+    def test_generated_index_places_overview_before_final_verification(self):
+        self.m6_sequence('WP-0018', {'WP-0017'})
+        self.sync()
+        text = (self.root / 'docs/tasks/README.md').read_text()
+        self.assertLess(text.index('| WP-0027 |'), text.index('| WP-0026 |'))
+        self.assertIn('ADR-0092', text)
+
     def test_milestone_advance_requires_previous_human_gate(self):
         self.write_task('WP-0014', owner='里程碑', milestone='M6',
                         extra='| 任务类型 | 里程碑 |', human='待人工验收')

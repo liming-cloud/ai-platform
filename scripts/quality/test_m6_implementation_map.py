@@ -19,7 +19,7 @@ LEDGER_PATH = "docs/prototypes/wp-0016/ACTION-LEDGER.json"
 
 # 页面责任包与操作责任包分开校验，防止跨包任务被入口页面提前结项。
 PACKAGE_SCREENS = {
-    "WP-0017": "console-login tenant-login platform-overview platform-tenants platform-tenant-create platform-tenant-detail platform-tenant-admins platform-tenant-quotas platform-tenant-features platform-tenant-security platform-accounts platform-roles".split(),
+    "WP-0017": "console-login tenant-login platform-tenants platform-tenant-create platform-tenant-detail platform-tenant-admins platform-tenant-quotas platform-tenant-features platform-tenant-security platform-accounts platform-roles".split(),
     "WP-0018": "tenant-overview tenant-members tenant-member-create tenant-member-account tenant-member-features tenant-member-assistants tenant-roles access-policies access-policy-detail".split(),
     "WP-0019": "platform-model-connections platform-model-connection-detail platform-model-deployments platform-model-deployment-detail model-providers model-provider-detail model-configurations model-configuration-detail model-deployments model-deployment-detail routing-policies".split(),
     "WP-0020": "knowledge-directory knowledge-overview knowledge-sources source-add source-detail processing-quality sync-result dataset-schema object-storage-scope quick-publication".split(),
@@ -28,6 +28,7 @@ PACKAGE_SCREENS = {
     "WP-0023": "assistants-directory assistant-create assistant-overview assistant-draft assistant-test assistant-evaluation assistant-release".split(),
     "WP-0024": "login assistants conversation".split(),
     "WP-0025": "governance-query usage-quotas audit-records audit-record-detail query-diagnostic".split(),
+    "WP-0027": ["platform-overview"],
 }
 PAGE_OWNERS = {
     screen: package for package, screens in PACKAGE_SCREENS.items() for screen in screens
@@ -108,6 +109,8 @@ def validate_implementation_map(mapping, inventory, ledger, *, accepted_adrs=(),
 
     def validate_progress(operation, classification, dependencies):
         op_id, status = operation.get("id"), operation.get("status")
+        require(classification != "production" or operation.get("workPackage") not in completed_packages
+                or status == "verified", f"{op_id} 已完成责任包仍有未验证生产操作")
         require(not any(key in operation for key in ("api", "endpoint", "productionEvidence")),
                 f"{op_id} 未冻结契约不得用零散接口或证据字段替代结构化事实")
         if classification != "production" or status == "pending-contract":
@@ -275,6 +278,27 @@ class M6ImplementationMapTest(unittest.TestCase):
         self.assert_invalid(lambda mapping: mapping["pages"].pop(), "页面存在遗漏")
         self.assert_invalid(lambda mapping: mapping["pages"].append(mapping["pages"][0]), "页面存在遗漏")
 
+    def test_platform_overview_keeps_m6_scope_with_a_late_owner(self):
+        page = next(page for page in self.mapping["pages"] if page["screen"] == "platform-overview")
+        self.assertEqual(("M6", "production", "WP-0027"),
+                         (page["phase"], page["classification"], page["workPackage"]))
+        self.assertEqual([("platform-overview:0", "WP-0027")],
+                         [(op["id"], op["workPackage"]) for op in page["operations"]])
+        self.assertNotEqual("excluded", page["status"])
+
+    def test_completed_package_cannot_hide_unverified_production(self):
+        mapping = copy.deepcopy(self.mapping)
+        page = next(page for page in mapping["pages"] if page["screen"] == "platform-overview")
+        page["status"] = "pending-contract"
+        for operation in page["operations"]:
+            operation["status"] = "pending-contract"
+            for field in ("contract", "verification", "verifiedCommit"):
+                operation.pop(field, None)
+        facts = copy.deepcopy(self.facts)
+        facts["completed_packages"].add(page["workPackage"])
+        errors = validate_implementation_map(mapping, self.inventory, self.ledger, **facts)
+        self.assertTrue(any("已完成责任包仍有未验证生产操作" in error for error in errors), errors)
+
     def test_missing_or_duplicate_operation_is_rejected(self):
         self.assert_invalid(lambda mapping: mapping["pages"][0]["operations"].pop(), "操作存在遗漏")
         self.assert_invalid(lambda mapping: mapping["pages"][0]["operations"].append(mapping["pages"][0]["operations"][0]), "操作存在遗漏")
@@ -332,7 +356,9 @@ class M6ImplementationMapTest(unittest.TestCase):
             },
             "accepted_adrs": self.facts["accepted_adrs"] | {"ADR-9999"},
             "existing_evidence": self.facts["existing_evidence"] | {"project/evidence/unit-test-only.md"},
-            "completed_packages": self.facts["completed_packages"].copy(),
+            "completed_packages": self.facts["completed_packages"] - {
+                operation["workPackage"] for operation in page["operations"]
+            },
         }
         return mapping, page, facts
 
@@ -442,6 +468,20 @@ class M6ImplementationMapTest(unittest.TestCase):
         errors = validate_implementation_map(mapping, self.inventory, self.ledger, **facts)
         self.assertTrue(any("依赖工作包尚未完成" in error for error in errors), errors)
         facts["completed_packages"] |= {"WP-0020", "WP-0022"}
+        # 正例同步建立前置包的全部操作事实，不能只翻转完成标记。
+        source = next(op for page in mapping["pages"] for op in page["operations"]
+                      if op["id"] == "quick-publication:0")
+        for page in mapping["pages"]:
+            for operation in page["operations"]:
+                if operation["classification"] != "production" or operation["workPackage"] not in {"WP-0020", "WP-0022"}:
+                    continue
+                operation.update(status="verified", contract=copy.deepcopy(source["contract"]),
+                                 verification=copy.deepcopy(source["verification"]), verifiedCommit="a" * 40)
+                facts["evidence_bindings"].add((operation["workPackage"], "project/evidence/unit-test-only.md", "a" * 40))
+            if page["classification"] == "production":
+                states = {op["status"] for op in page["operations"] if op["classification"] == "production"}
+                page["status"] = "verified" if states == {"verified"} else (
+                    "pending-contract" if states == {"pending-contract"} else "in-progress")
         self.assertEqual([], validate_implementation_map(mapping, self.inventory, self.ledger, **facts))
 
     def test_contract_progress_does_not_accept_unstructured_api_claims(self):
