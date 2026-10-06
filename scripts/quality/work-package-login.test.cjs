@@ -36,6 +36,25 @@ test("目录配置复用既有凭据边界并绑定精确验收对象", () => {
     FOUNDATION_ACCEPTANCE_TENANT_ID: "2104457357567197185",
   })), /0600/);
 });
+test("目录配置绑定已只读核实的多管理员精确数量，旧单管理员样本仍默认一名", () => {
+  const { tenantsConfiguration } = require("../development/acceptance-tenants.cjs");
+  const file = credentialFile("directory-multiple.json");
+  const scope = { FOUNDATION_ACCEPTANCE_TENANT_ID: "2104457357567197185" };
+  assert.equal(tenantsConfiguration(environment(file, scope)).administratorCount, 1);
+  assert.equal(tenantsConfiguration(environment(file, {
+    ...scope, FOUNDATION_ACCEPTANCE_ADMINISTRATOR_COUNT: "2",
+  })).administratorCount, 2);
+});
+test("目录期望管理员数量拒绝非正整数及不安全数值，不退化成非空判断", () => {
+  const { tenantsConfiguration } = require("../development/acceptance-tenants.cjs");
+  const file = credentialFile("directory-count-invalid.json");
+  for (const value of ["0", "-1", "1.5", "abc", "Infinity", "9007199254740992", " 2 "]) {
+    assert.throws(() => tenantsConfiguration(environment(file, {
+      FOUNDATION_ACCEPTANCE_TENANT_ID: "2104457357567197185",
+      FOUNDATION_ACCEPTANCE_ADMINISTRATOR_COUNT: value,
+    })), /管理员资格数量/);
+  }
+});
 
 test("只接受当前账户独占的普通 0600 JSON 凭据文件", () => {
   const configuration = readConfiguration(environment(credentialFile("valid.json")));

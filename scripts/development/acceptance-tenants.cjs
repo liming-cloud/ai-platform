@@ -12,7 +12,12 @@ function tenantsConfiguration(environment = process.env) {
   const tenantId = environment.FOUNDATION_ACCEPTANCE_TENANT_ID;
   requireCondition(typeof tenantId === "string" && /^[1-9][0-9]{0,18}$/.test(tenantId)
     && BigInt(tenantId) <= 9223372036854775807n, "需要显式提供有效的既有验收租户标识");
-  return { ...configuration, tenantId };
+  // 已有租户可以拥有多名管理员；数量须由本轮只读事实核实，仍作精确相等断言。
+  const rawCount = environment.FOUNDATION_ACCEPTANCE_ADMINISTRATOR_COUNT ?? "1";
+  const administratorCount = Number(rawCount);
+  requireCondition(typeof rawCount === "string" && /^[1-9][0-9]*$/.test(rawCount)
+    && Number.isSafeInteger(administratorCount), "需要有效的已核实管理员资格数量");
+  return { ...configuration, tenantId, administratorCount };
 }
 
 async function directory(page, configuration, parameters = {}) {
@@ -94,7 +99,7 @@ async function run(configuration) {
       const result = await query(page, { query: code });
       requireCondition(result.status === 200 && result.body.totalElements === 1
         && result.body.items.length === 1 && result.body.items[0].tenantId === configuration.tenantId
-        && result.body.items[0].administratorCount === 1, "目录未绑定真实既有租户与管理员资格数量");
+        && result.body.items[0].administratorCount === configuration.administratorCount, "目录未绑定真实既有租户与管理员资格数量");
       requireCondition(!/password|credential|token|secret|initialAdministratorSubjectId/i.test(JSON.stringify(result.body)), "目录返回秘密或身份明细");
     });
     let all;

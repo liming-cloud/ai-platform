@@ -7,7 +7,7 @@ if [[ "${1:-}" != "WP-0017" ]]; then
   exit 2
 fi
 if [[ ( "${2:-}" != "login" && "${2:-}" != "login-entries" && "${2:-}" != "onboarding" && "${2:-}" != "admins" && "${2:-}" != "quotas" && "${2:-}" != "features" && "${2:-}" != "security" && "${2:-}" != "accounts" && "${2:-}" != "roles" && "${2:-}" != "overview" && "${2:-}" != "tenants" ) || "$#" != "2" ]]; then
-  echo "WP-0017 整包尚未实现；必须明确 SLICE=login、SLICE=login-entries、SLICE=onboarding、SLICE=admins、SLICE=quotas、SLICE=features、SLICE=security、SLICE=accounts、SLICE=roles、SLICE=overview 或 SLICE=tenants。" >&2
+  echo "本入口只执行独立切片，整包收口依据任务范围的完整组合证据；必须明确 SLICE=login、SLICE=login-entries、SLICE=onboarding、SLICE=admins、SLICE=quotas、SLICE=features、SLICE=security、SLICE=accounts、SLICE=roles、SLICE=overview 或 SLICE=tenants。" >&2
   exit 2
 fi
 if [[ "${2}" == "overview" && -n "${SETUP:-}" ]]; then
