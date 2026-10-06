@@ -74,6 +74,7 @@ ADR-0092 仅将 `platform-overview` 与 `platform-overview:0` 转交 WP-0027，�
 
 ## 证据
 
+- [本机部署与人工验收清单](manual-acceptance.md)（2026-10-06 四应用最新部署、真实管理员登录、11 个可操作入口及原项目原型清单；不重跑业务写场景）
 - docs/tasks/WP-0017/evidence/WP-0017-adjusted-scope-closure-20261006.md（调整后完整 11 入口／20 操作的组合核验、最新登录标题修正、真实最终部署回归与完成依据）
 - docs/tasks/WP-0017/evidence/WP-0017-login-entry-navigation-closure-20261001.md（三入口导航的最终部署、18 项导航／15 项登录回归、21 组导航原型对照与只读事实；问答整页仍属 WP-0024）
 - docs/tasks/WP-0017/evidence/WP-0017-tenant-directory-prototype-parity-closure-20261001.md（目录／建立入口／搜索的实际部署、原项目修订接受与最终原型一致性收口；关联查询及原型接受历史）
@@ -94,4 +95,4 @@ ADR-0092 仅将 `platform-overview` 与 `platform-overview:0` 转交 WP-0027，�
 
 ## 固定输入与工作区
 
-依据输入提交的 Charter、ROADMAP、STATE、上述 ADR 和固定 OpenDesign 版本恢复。原 66 页与操作清单仍绑定 `21b45c347a4008f5959b1b972e3ffd8a5aadcc6f`；共享移动布局按 ADR-0088 采用已接受修订 `47c4f6f31823617633ce0bac98074208781f5565`。当前前端运行 `2cca286848e174f5f7d3561712a9b1b86b382914`，控制面后端运行 `a23ea28dca8dd32a36f235948a5e867ed1769def`，查询进程仍为 `ef11d6aad0ffb8d8a656d5a17a3477d93b95a5c8`；镜像及范围见各切片证据，原型与历史验证仍由实现矩阵绑定，不用 HEAD 替代。五项 fixture 重命名已在 GOV-0002 验证提交，本包未修改。
+依据输入提交的 Charter、ROADMAP、STATE、上述 ADR 和固定 OpenDesign 版本恢复。原 66 页与操作清单仍绑定 `21b45c347a4008f5959b1b972e3ffd8a5aadcc6f`；共享移动布局按 ADR-0088 采用已接受修订 `47c4f6f31823617633ce0bac98074208781f5565`。原整包收口时前端运行 `2cca286848e174f5f7d3561712a9b1b86b382914`，控制面后端运行 `a23ea28dca8dd32a36f235948a5e867ed1769def`，查询进程运行 `ef11d6aad0ffb8d8a656d5a17a3477d93b95a5c8`；历史镜像及范围保持原证据不变。2026-10-06 [人工验收交接](manual-acceptance.md)已将前端及三个后端全部真实构建、部署为 `460a3c76375da312d1f030abbce6a0d82b2001cf`，分别核实 OCI revision、镜像、健康和本轮只读验证；不以文档 HEAD 代替运行版本，也不改写原切片写操作的验证提交。五项 fixture 重命名已在 GOV-0002 验证提交，本包未修改。
