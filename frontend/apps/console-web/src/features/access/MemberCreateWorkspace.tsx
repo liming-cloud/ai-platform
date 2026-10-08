@@ -13,6 +13,7 @@ export function MemberCreateWorkspace({ client, route, onRouteChange }: {
   const [options, setOptions] = useState<MemberCreateOptions>();
   const [failure, setFailure] = useState("");
   const [busy, setBusy] = useState(false);
+  const [passwordRevision, setPasswordRevision] = useState(0);
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(1);
   const [choices, setChoices] = useState<{ key: string; items: MemberAssistantChoice[]; total: number; next: boolean }>();
@@ -64,6 +65,10 @@ export function MemberCreateWorkspace({ client, route, onRouteChange }: {
   }, [onRouteChange, ready, route.step, validLogin]);
 
   useEffect(() => {
+    if (failure && step === 3) form.current?.querySelector<HTMLInputElement>('[name="password"]')?.focus();
+  }, [failure, passwordRevision, step]);
+
+  useEffect(() => {
     if (step !== 2 || !options) return;
     let mounted = true;
     const timer = window.setTimeout(() => {
@@ -87,7 +92,9 @@ export function MemberCreateWorkspace({ client, route, onRouteChange }: {
     const fields = new FormData(submitted);
     const password = String(fields.get("password") ?? "");
     clearMemberPasswords(submitted);
-    if (!password || password !== fields.get("passwordConfirmation")) { setFailure("请完整填写两次相同密码。"); form.current?.querySelector<HTMLInputElement>('[name="password"]')?.focus(); return; }
+    // Fluent 的非受控输入仍保存内部状态；更换实例，防止错误重绘恢复已清空的密码。
+    setPasswordRevision(value => value + 1);
+    if (!password || password !== fields.get("passwordConfirmation")) { setFailure("请完整填写两次相同密码。"); return; }
     const command = { ...draft, expectedTenantFeatureVersion: options.tenantFeatureVersion, expectedAuthorizationRevision: options.authorizationRevision };
     const fingerprint = JSON.stringify(command);
     if (commandKey.current?.command !== fingerprint) commandKey.current = { command: fingerprint, key: crypto.randomUUID() };
@@ -127,8 +134,8 @@ export function MemberCreateWorkspace({ client, route, onRouteChange }: {
               onChange={(_, data) => change({ ...draft, assistantIds: data.checked ? [...new Set([...draft.assistantIds, item.assistantId])] : draft.assistantIds.filter(id => id !== item.assistantId) })} />)}</div>
             <p role="status">{choiceFailure || (!currentChoices ? "正在加载已发布助手…" : `匹配 ${currentChoices.total} 个，已选 ${draft.assistantIds.length} 个`)}</p>
             {currentChoices && (currentChoices.total > 20 || page > 1) ? <div className="member-page-actions"><Button type="button" disabled={page === 1} onClick={() => setPage(page - 1)}>上一页</Button><span>第 {page} 页</span><Button type="button" disabled={!currentChoices.next} onClick={() => setPage(page + 1)}>下一页</Button></div> : null}
-          </> : <><Field label="初始密码" required><Input name="password" type="password" maxLength={1024} autoComplete="new-password" /></Field>
-            <Field label="再次输入密码" required><Input name="passwordConfirmation" type="password" maxLength={1024} autoComplete="new-password" /></Field>
+          </> : <><Field label="初始密码" required><Input key={passwordRevision} name="password" type="password" maxLength={1024} autoComplete="new-password" /></Field>
+            <Field label="再次输入密码" required><Input key={passwordRevision} name="passwordConfirmation" type="password" maxLength={1024} autoComplete="new-password" /></Field>
             <p>刷新后请重新输入密码；请通过安全渠道单独告知本人。</p></>}
         </fieldset>
         {failure ? <p role="alert">{failure}</p> : null}
