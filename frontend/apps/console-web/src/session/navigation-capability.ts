@@ -37,25 +37,34 @@ export const NAVIGATION = [
   },
 ] as const;
 
-/** 以服务端会话投影过滤导航；结果只影响入口可见性，不参与接口授权。 */
-export function visibleNavigation({
-  canUseTenantWorkspace,
-  canUsePlatformGovernance,
-  capabilityCodes,
-}: {
+interface NavigationCapability {
   canUseTenantWorkspace: boolean;
   canUsePlatformGovernance: boolean;
   capabilityCodes: string[];
-}) {
-  const tenantNavigation = NAVIGATION.filter((item) =>
-    item.workspace === "TENANT"
-      && canUseTenantWorkspace
-      && capabilityCodes.includes(item.requiredCapability));
-  const platformNavigation = NAVIGATION.filter((item) =>
-    item.workspace === "PLATFORM_TENANT_GOVERNANCE"
-      && canUsePlatformGovernance
-      && capabilityCodes.includes(item.requiredCapability));
-  const result: NavigationItem[] = [...tenantNavigation];
+  tenantAdministrator?: boolean;
+}
+
+function availableNavigation(capability: NavigationCapability) {
+  return NAVIGATION.filter(item => capability.capabilityCodes.includes(item.requiredCapability)
+    && (item.workspace === "TENANT" ? capability.canUseTenantWorkspace : capability.canUsePlatformGovernance));
+}
+
+/** 可见入口与直达路由分别投影，隐藏未交付导航不能撤销已有路由能力。 */
+export function authorizedNavigationTargets(capability: NavigationCapability) {
+  return availableNavigation(capability).map(item => item.id);
+}
+
+/** 原型导航只承接真实已交付任务，接口授权仍由服务端执行。 */
+export function visibleNavigation(capability: NavigationCapability) {
+  const available = availableNavigation(capability);
+  const tenantNavigation = available.filter(item => item.workspace === "TENANT");
+  const platformNavigation = available.filter(item => item.workspace === "PLATFORM_TENANT_GOVERNANCE");
+  const result: NavigationItem[] = capability.tenantAdministrator ? [
+    { id: "tenant-workspace", label: "租户工作区", children: tenantNavigation.filter(item => item.id === "access").map(item => ({ ...item, label: "成员管理", icon: "accounts" as const })) },
+    { id: "tenant-content", label: "内容", children: tenantNavigation.filter(item => item.id === "data").map(item => ({ ...item, icon: "knowledge" as const })) },
+    { id: "tenant-governance", label: "治理", children: tenantNavigation.filter(item => item.id === "models").map(item => ({ ...item, label: "模型治理" })) },
+    { id: "tenant-delivery", label: "交付", children: tenantNavigation.filter(item => item.id === "governance").map(item => ({ ...item, label: "评测治理", icon: "evaluation" as const })) },
+  ].filter(group => group.children.length > 0) : [...tenantNavigation];
   const governance = platformNavigation.filter(item => item.id !== "platform-model-supply");
   const models = platformNavigation.filter(item => item.id === "platform-model-supply");
   if (governance.length > 0) result.push({ id: "platform-governance", label: "平台治理", icon: "governance", children: governance });

@@ -122,6 +122,14 @@ export function defaultConsoleRoute(navigationId: ConsoleNavigationId): ConsoleR
 }
 
 type KnowledgeDataRoute = Extract<ConsoleRoute, { navigationId: "data" }>;
+
+/** 原型导航进入已交付的对应任务，不改变既有深链接及其授权。 */
+export function navigationEntryRoute(navigationId: ConsoleNavigationId, tenantAdministrator: boolean): ConsoleRoute {
+  if (tenantAdministrator && navigationId === "models") return { navigationId, task: "providers", providerPage: 1, discoveryPage: 1 };
+  if (tenantAdministrator && navigationId === "governance") return { navigationId, task: "evaluation" };
+  return defaultConsoleRoute(navigationId);
+}
+
 export type KnowledgeDataTask = KnowledgeDataRoute["task"];
 
 /** 只接受统一控制台发布的知识库子任务标识，未知值失败关闭。 */

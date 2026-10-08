@@ -3,9 +3,25 @@ import {
   defaultNavigationTarget,
   previewNavigation,
   visibleNavigation,
+  authorizedNavigationTargets,
 } from "./navigation-capability";
 
 describe("visibleNavigation", () => {
+  it("租户管理员只承接已交付入口的原型分组名称，隐藏入口不撤销直达路由能力", () => {
+    const capability = { canUseTenantWorkspace: true, canUsePlatformGovernance: false,
+      capabilityCodes: ["access:manage", "knowledge:write", "model:read", "usage:read", "assistant:query"],
+      tenantAdministrator: true };
+    const navigation = visibleNavigation(capability);
+    expect(navigation.map(group => ({ label: group.label, items: group.children?.map(item => item.label) }))).toEqual([
+      { label: "租户工作区", items: ["成员管理"] },
+      { label: "内容", items: ["知识库"] },
+      { label: "治理", items: ["模型治理"] },
+      { label: "交付", items: ["评测治理"] },
+    ]);
+    expect(defaultNavigationTarget(navigation)).toBe("access");
+    expect(authorizedNavigationTargets(capability)).toEqual(["operations", "access", "data", "models", "governance", "query"]);
+  });
+
   it("已交付的平台入口承接原型分组与名称，不生成未交付的运行占位入口", () => {
     const navigation = visibleNavigation({ canUseTenantWorkspace: false, canUsePlatformGovernance: true,
       capabilityCodes: ["platform-operations:read", "tenant-governance:write", "platform:accounts:manage", "model-platform:write"] });

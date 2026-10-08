@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   defaultConsoleRoute,
+  navigationEntryRoute,
   formatConsoleRoute,
   knowledgeDataTaskRoute,
   parseConsoleRoute,
@@ -9,6 +10,12 @@ import {
 } from "./console-route";
 
 describe("统一控制台路由", () => {
+  it("已交付原型导航进入对应任务，旧直达路由保持独立", () => {
+    expect(navigationEntryRoute("models", true)).toEqual({ navigationId: "models", task: "providers", providerPage: 1, discoveryPage: 1 });
+    expect(navigationEntryRoute("governance", true)).toEqual({ navigationId: "governance", task: "evaluation" });
+    expect(navigationEntryRoute("query", true)).toEqual(defaultConsoleRoute("query"));
+    expect(navigationEntryRoute("governance", false)).toEqual(defaultConsoleRoute("governance"));
+  });
   it("成员目录 URL 不向服务端发送超过平台偏移上限的分页", () => {
     for (const [size, lastPage] of [[20, 5001], [100, 1001]] as const) {
       expect(parseConsoleRoute("/access/members", `?page=${lastPage}&size=${size}`)).toEqual({ navigationId: "access", task: "members", page: lastPage, pageSize: size });

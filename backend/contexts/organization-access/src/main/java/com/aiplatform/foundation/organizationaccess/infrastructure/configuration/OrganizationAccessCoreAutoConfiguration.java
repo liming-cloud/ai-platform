@@ -57,6 +57,7 @@ import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.port.out.TenantProvisioningStore;
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.service.TenantLifecycleBackfillService;
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.service.TenantLifecycleQueryService;
+import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.service.TenantWorkspaceContextQueryService;
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.service.TenantQuotaSettingsService;
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.service.TenantFeatureSettingsService;
 import com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.service.TenantFeatureAvailabilityService;
@@ -417,6 +418,14 @@ public class OrganizationAccessCoreAutoConfiguration {
     @ConditionalOnMissingBean
     TenantLifecycleQueryService tenantLifecycleQueryService(TenantLifecycleReadPort readPort) {
         return new TenantLifecycleQueryService(readPort);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    TenantWorkspaceContextQueryService tenantWorkspaceContextQueryService(
+            com.aiplatform.foundation.organizationaccess.application.member.service.MemberAccountApplicationService accounts,
+            TenantLifecycleReadPort readPort) {
+        return new TenantWorkspaceContextQueryService(accounts, readPort);
     }
 
     @Bean

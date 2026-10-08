@@ -46,6 +46,7 @@ class MemberAccountApiTest {
     @Autowired com.aiplatform.foundation.organizationaccess.application.authorization.port.out.TenantMemberSessionRevoker memberRevoker;
     @Autowired org.springframework.transaction.PlatformTransactionManager transactions;
     @MockitoSpyBean AuthenticatedSessionGateway sessions;
+    @MockitoSpyBean com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.port.out.TenantLifecycleReadPort tenantRead;
 
     @DynamicPropertySource
     static void infrastructure(DynamicPropertyRegistry properties) {
@@ -294,6 +295,50 @@ class MemberAccountApiTest {
         assertEquals(HttpStatus.FORBIDDEN, create(manager, forged, "forged-assistant").getStatusCode());
         assertEquals(HttpStatus.BAD_REQUEST, create(manager, Map.of("subjectId", "4921825928971026438"), "old-subject").getStatusCode());
         assertEquals(0, identityCount("member-rejected"));
+    }
+
+    @Test
+    void 工作区上下文只返回令牌所属租户的真实名称并拒绝外部范围参数() {
+        var token = login("admin", PASSWORD);
+        var tenantId = sessions.resolve(token).tenantId().value();
+        var endpoint = "http://localhost:" + port + "/api/v1/tenant/workspace-context";
+        var response = http.exchange(endpoint, HttpMethod.GET, new HttpEntity<>(headers(token, "unused")), RESPONSE);
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        var name = jdbc.queryForObject("SELECT display_name FROM organization_access.tenant_lifecycle WHERE tenant_id = ?", String.class, tenantId);
+        assertEquals(Map.of("displayName", name), response.getBody());
+        for (var field : List.of("tenantId", "subjectId", "sessionId", "displayName")) {
+            assertEquals(HttpStatus.BAD_REQUEST, http.exchange(endpoint + "?" + field + "=forged",
+                    HttpMethod.GET, new HttpEntity<>(headers(token, "unused")), RESPONSE).getStatusCode());
+        }
+    }
+
+    @Test
+    void 普通成员及平台会话不得读取租户工作区名称() {
+        var manager = login("admin", PASSWORD);
+        assertEquals(HttpStatus.CREATED, create(manager, input(manager, "workspace-context-member"), "workspace-context-member").getStatusCode());
+        var member = login("workspace-context-member", PASSWORD);
+        var platform = http.exchange("http://localhost:" + port + "/api/v1/platform/auth/sessions", HttpMethod.POST,
+                new HttpEntity<>(Map.of("loginName", "platform-admin", "password", PASSWORD)), RESPONSE);
+        assertEquals(HttpStatus.CREATED, platform.getStatusCode());
+        for (var token : List.of(member, (String) platform.getBody().get("tokenValue"))) {
+            var response = http.exchange("http://localhost:" + port + "/api/v1/tenant/workspace-context",
+                    HttpMethod.GET, new HttpEntity<>(headers(token, "unused")), RESPONSE);
+            assertTrue(List.of(HttpStatus.UNAUTHORIZED, HttpStatus.FORBIDDEN).contains(response.getStatusCode()));
+            assertFalse(response.getBody().containsKey("displayName"));
+        }
+    }
+
+    @Test
+    void 工作区租户事实缺失时失败关闭而不使用演示名称() {
+        var token = login("admin", PASSWORD);
+        var tenantId = sessions.resolve(token).tenantId().value();
+        org.mockito.Mockito.doReturn(java.util.Optional.empty()).when(tenantRead).find(tenantId);
+        try {
+            var response = http.exchange("http://localhost:" + port + "/api/v1/tenant/workspace-context",
+                    HttpMethod.GET, new HttpEntity<>(headers(token, "unused")), RESPONSE);
+            assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
+            assertFalse(response.getBody().containsKey("displayName"));
+        } finally { reset(tenantRead); }
     }
 
     private Map<String, Object> input(String token, String login) {

@@ -4,6 +4,7 @@ import com.aiplatform.foundation.organizationaccess.interfaces.web.authenticatio
 import com.aiplatform.foundation.organizationaccess.interfaces.web.authentication.controller.BrowserAuthenticationController;
 import com.aiplatform.foundation.organizationaccess.interfaces.web.authentication.controller.PlatformAuthenticationController;
 import com.aiplatform.foundation.organizationaccess.interfaces.web.tenantlifecycle.controller.TenantLifecycleController;
+import com.aiplatform.foundation.organizationaccess.interfaces.web.tenantlifecycle.controller.TenantWorkspaceContextController;
 import com.aiplatform.foundation.organizationaccess.interfaces.web.tenantlifecycle.controller.TenantQuotaSettingsController;
 import com.aiplatform.foundation.organizationaccess.interfaces.web.tenantlifecycle.controller.TenantFeatureSettingsController;
 import com.aiplatform.foundation.organizationaccess.interfaces.web.tenantlifecycle.controller.TenantLoginSecuritySettingsController;
@@ -31,6 +32,7 @@ import org.springframework.context.annotation.Import;
     BrowserAuthenticationController.class,
     PlatformAuthenticationController.class,
     TenantLifecycleController.class,
+    TenantWorkspaceContextController.class,
     TenantQuotaSettingsController.class,
     TenantFeatureSettingsController.class,
     TenantLoginSecuritySettingsController.class,

@@ -7,6 +7,19 @@ import {
 } from "./control-plane-client";
 
 describe("ControlPlaneClient", () => {
+  it("工作区名称只读当前会话接口，不发送租户或身份范围", async () => {
+    const requests: Request[] = [];
+    const client = authenticatedClient(async (input, init) => {
+      requests.push(new Request(input, init));
+      return Response.json({ displayName: "青岚科技" });
+    });
+    expect(await client.getTenantWorkspaceContext()).toEqual({ displayName: "青岚科技" });
+    expect(requests.map(request => [request.method, request.url])).toEqual([
+      ["GET", "http://localhost/api/v1/tenant/workspace-context"],
+    ]);
+    expect(requests[0]?.body).toBeNull();
+  });
+
   it("租户概览和配额从独立受保护接口读取且保留容量精度", async () => {
     const requests: Request[] = [];
     const client = authenticatedClient(async (input, init) => {

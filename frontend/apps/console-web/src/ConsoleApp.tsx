@@ -1,14 +1,15 @@
 import { Tab, TabList } from "@fluentui/react-components";
-import { ProductShell, StatePanel, type NavigationItem } from "@foundation/design-system";
+import { ProductShell, StatePanel } from "@foundation/design-system";
 import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { ControlPlaneClient } from "./api/control-plane-client";
 import { KnowledgePublicationFlow } from "./features/knowledge-publication/KnowledgePublicationFlow";
 import { BrowserSessionGate } from "./session/BrowserSessionGate";
 import { isConsoleLoginPath } from "./session/login-workspace-choice";
-import { defaultNavigationTarget, visibleNavigation } from "./session/navigation-capability";
+import { authorizedNavigationTargets, defaultNavigationTarget, visibleNavigation } from "./session/navigation-capability";
 import { resolvePostAuthenticationDestination } from "./session/post-authentication-navigation";
 import {
   defaultConsoleRoute,
+  navigationEntryRoute,
   formatConsoleRoute,
   isKnowledgeDataTask,
   knowledgeDataTaskRoute,
@@ -161,24 +162,43 @@ function AuthenticatedConsoleApp({
   displayRoles: string[];
   onLogout: () => Promise<void>;
 }) {
+  const tenantAdministrator = canUseTenantWorkspace && displayRoles.includes("TENANT_ADMINISTRATOR");
   const navigation = visibleNavigation({
     canUseTenantWorkspace,
     canUsePlatformGovernance,
     capabilityCodes,
+    tenantAdministrator,
   });
-  const navigationIds = navigationTargets(navigation);
+  const navigationIds = authorizedNavigationTargets({ canUseTenantWorkspace, canUsePlatformGovernance, capabilityCodes });
   const defaultNavigationId = defaultNavigationTarget(navigation);
   const [sessionRevision, setSessionRevision] = useState(0);
+  const [tenantContext, setTenantContext] = useState<{ epoch: number; displayName?: string; error?: boolean }>();
+  const contextEpoch = client.currentSessionRevision();
+  const tenantDisplayName = tenantAdministrator && tenantContext?.epoch === contextEpoch ? tenantContext.displayName : undefined;
+  const tenantContextError = tenantAdministrator && tenantContext?.epoch === contextEpoch && tenantContext.error;
   const [location, setLocation] = useState(readBrowserLocation);
   const parsedRoute = parseConsoleRoute(location.pathname, location.search);
   const requestedRoute = parsedRoute ?? ((location.pathname === "/" || isConsoleLoginPath(location.pathname)) && defaultNavigationId !== undefined
-    ? defaultConsoleRoute(defaultNavigationId)
+    ? navigationEntryRoute(defaultNavigationId, tenantAdministrator)
     : undefined);
   const resolvedRoute = resolveAuthorizedConsoleRoute(
     requestedRoute,
     navigationIds,
   );
   const accountLabel = browserSessionRoleLabel(displayRoles);
+
+  useEffect(() => {
+    if (!tenantAdministrator) return;
+    let cancelled = false;
+    // 同一组件中的迟到结果也必须绑定客户端会话世代，不能把上一身份名称带入新会话。
+    const current = () => !cancelled && client.hasSession() && client.currentSessionRevision() === contextEpoch;
+    void client.getTenantWorkspaceContext().then(context => {
+      if (current()) setTenantContext({ epoch: contextEpoch, displayName: context.displayName });
+    }).catch(() => {
+      if (current()) setTenantContext({ epoch: contextEpoch, error: true });
+    });
+    return () => { cancelled = true; };
+  }, [client, tenantAdministrator, contextEpoch, sessionRevision]);
 
   useEffect(() => {
     const refreshLocation = () => setLocation(readBrowserLocation());
@@ -204,7 +224,7 @@ function AuthenticatedConsoleApp({
     if (!navigationIds.includes(navigationId as ConsoleRoute["navigationId"])) {
       return;
     }
-    navigate(defaultConsoleRoute(navigationId as ConsoleRoute["navigationId"]));
+    navigate(navigationEntryRoute(navigationId as ConsoleRoute["navigationId"], tenantAdministrator));
   }
 
   function sessionChanged() {
@@ -216,6 +236,7 @@ function AuthenticatedConsoleApp({
       <ProductShell
         productName="可信 RAG"
         workspaceScope={canUsePlatformGovernance ? "platform" : "tenant"}
+        tenantDisplayName={tenantDisplayName}
         pageTitle="当前没有可用工作区"
         pageSummary="系统只显示与当前会话能力相符的入口，不会因此展示租户正文或管理入口。"
         navigation={[]}
@@ -240,6 +261,7 @@ function AuthenticatedConsoleApp({
       <ProductShell
         productName="可信 RAG"
         workspaceScope={canUsePlatformGovernance ? "platform" : "tenant"}
+        tenantDisplayName={tenantDisplayName}
         pageTitle={denied ? "当前会话无权访问此工作区" : "未找到工作区"}
         pageSummary={denied
           ? "该 URL 不会被静默替换为其他工作区，请使用当前会话被授权的入口。"
@@ -278,6 +300,7 @@ function AuthenticatedConsoleApp({
     <ProductShell
       productName="可信 RAG"
       workspaceScope={canUsePlatformGovernance ? "platform" : "tenant"}
+      tenantDisplayName={tenantDisplayName}
       compactHeading={platformActive && route.task === "create"}
       pageStatus={platformActive && route.task === "create" ? { label: "等待填写", tone: "warning" } : undefined}
       pageTitle={
@@ -320,6 +343,7 @@ function AuthenticatedConsoleApp({
       accountLabel={accountLabel}
       onLogout={() => void onLogout()}
     >
+      {tenantContextError ? <StatePanel kind="error" title="租户名称读取失败" description="无法核实当前工作区名称，请重试。" actionLabel="重试" onAction={sessionChanged} /> : null}
       <section hidden={!operationsActive && !platformOperationsActive}>
         {operationsActive || platformOperationsActive ? (
           <Suspense fallback={<StatePanel kind="loading" title="正在加载运营总览" description="正在汇总安全运营指标。" />}>
@@ -549,11 +573,6 @@ function browserSessionRoleLabel(displayRoles: readonly string[]) {
     .map((role) => SESSION_ROLE_LABELS[role])
     .filter((label): label is string => label !== undefined);
   return labels.length > 0 ? labels.join("、") : "当前账户";
-}
-
-function navigationTargets(navigation: readonly NavigationItem[]): ConsoleRoute["navigationId"][] {
-  return navigation.flatMap((item) =>
-    (item.children?.map((child) => child.id) ?? [item.id]) as ConsoleRoute["navigationId"][]);
 }
 
 function readBrowserLocation() {

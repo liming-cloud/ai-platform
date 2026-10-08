@@ -719,6 +719,11 @@ export class ControlPlaneClient {
     return this.sessionActive;
   }
 
+  /** 当前管理员外壳只读名称；租户范围由服务器会话决定。 */
+  async getTenantWorkspaceContext(): Promise<{ displayName: string }> {
+    return this.request("/tenant/workspace-context");
+  }
+
   async provisionTenant(input: TenantProvisioningInput): Promise<TenantLifecycle> {
     return this.request<TenantLifecycle>("/platform/tenants", {
       method: "POST",

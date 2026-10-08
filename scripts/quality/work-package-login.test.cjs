@@ -124,6 +124,9 @@ function workspacePage({ pathname, headings, passwordCount = 0, mobile = false }
         async waitFor() { assert.ok(headings.length); },
         async innerText() { return headings[0]; },
       };
+      if (selector === ".tenant-member-directory-table") return {
+        async waitFor() { assert.ok(headings.includes("成员目录"), "成员目录尚未加载"); },
+      };
       assert.equal(selector, 'input[type="password"]');
       return { async count() { return passwordCount; } };
     },
@@ -132,7 +135,7 @@ function workspacePage({ pathname, headings, passwordCount = 0, mobile = false }
 
 const workspaces = {
   platform: { pathname: "/platform/operations?range=DAY_7&page=1", headings: ["平台运营总览", "平台资源健康"] },
-  tenant: { pathname: "/operations?range=DAY_7", headings: ["运营总览", "当前租户资源"] },
+  tenant: { pathname: "/access/members?page=1", headings: ["成员与对话功能", "成员目录"] },
 };
 
 test("两个角色的默认工作区通过真实落点与内容定位，不依赖未展开的退出菜单", async () => {
@@ -150,6 +153,13 @@ test("错误路由、错误范围或错误默认参数不能当作登录成功",
 test("仅有外壳标题或仅有资源内容不能当作工作区加载成功", async () => {
   for (const headings of [["平台运营总览"], ["平台资源健康"]]) {
     await assert.rejects(assertWorkspace(workspacePage({ ...workspaces.platform, headings }), "platform"), /没有唯一可见的|未进入预期工作区/);
+  }
+  await assert.rejects(assertWorkspace(workspacePage({ ...workspaces.tenant, headings: ["成员与对话功能"] }), "tenant"), /成员目录尚未加载/);
+});
+
+test("租户登录不能把旧运营入口或错误成员页码当作原型导航首入口", async () => {
+  for (const pathname of ["/operations?range=DAY_7", "/access/members?page=2", "/platform/operations?range=DAY_7&page=1"]) {
+    await assert.rejects(assertWorkspace(workspacePage({ ...workspaces.tenant, pathname }), "tenant"), /预期默认工作区 URL/);
   }
 });
 

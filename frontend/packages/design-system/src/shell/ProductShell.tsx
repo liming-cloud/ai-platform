@@ -10,10 +10,12 @@ import {
 } from "@fluentui/react-components";
 import {
   BrainCircuit24Regular,
+  BookDatabase24Regular,
   BuildingPeople24Regular,
   Chat20Regular,
   CloudArrowUp20Regular,
   DataTrending20Regular,
+  DataUsage24Regular,
   Database20Regular,
   Grid20Regular,
   PeopleTeam20Regular,
@@ -37,6 +39,8 @@ export type NavigationIcon =
   | "overview"
   | "people"
   | "data"
+  | "knowledge"
+  | "evaluation"
   | "models"
   | "governance"
   | "query"
@@ -52,6 +56,8 @@ export interface ProductShellProps {
   pageSummary?: string;
   pageStatus?: { label: string; tone: "warning" | "success" | "info" };
   workspaceScope?: "platform" | "tenant";
+  /** 仅来自当前租户只读接口，不使用原型示例名称或本地推断。 */
+  tenantDisplayName?: string;
   /** 平板上的重复任务标题视觉收起，一级标题仍供辅助技术识别。 */
   compactHeading?: boolean;
   navigation: readonly NavigationItem[];
@@ -71,6 +77,7 @@ export function ProductShell({
   pageSummary,
   pageStatus,
   workspaceScope = "tenant",
+  tenantDisplayName,
   compactHeading,
   navigation,
   activeNavigationId,
@@ -91,10 +98,11 @@ export function ProductShell({
       <aside className="product-sidebar">
         <div className="product-brand">
           <span aria-hidden="true">R</span>
-          <div><Text weight="semibold">{productName}</Text><small>{platform ? "平台范围" : "租户范围"}</small></div>
+          <div><Text weight="semibold">{productName}</Text><small>{platform ? "平台范围" : tenantDisplayName ? "租户工作区" : "租户范围"}</small></div>
         </div>
-        <nav className="product-navigation" aria-label="主要导航">
+        <nav className="product-navigation" aria-label={tenantDisplayName ? "租户范围导航" : "主要导航"}>
           {platform ? <p className="product-navigation__scope">平台范围 / 脱敏治理</p> : null}
+          {!platform && tenantDisplayName ? <p className="product-navigation__scope">租户范围 / {tenantDisplayName}</p> : null}
           {directNavigation.map((item) => (
             <NavigationButton
               key={item.id}
@@ -117,12 +125,12 @@ export function ProductShell({
             </section>
           ))}
         </nav>
-        <div className="product-sidebar-account"><strong>{accountLabel}</strong><small>{platform ? "仅脱敏聚合" : "当前租户"}</small></div>
+        <div className="product-sidebar-account"><strong>{accountLabel}</strong><small>{platform ? "仅脱敏聚合" : tenantDisplayName ?? "当前租户"}</small></div>
       </aside>
 
       <div className="product-workspace">
         <header className="product-topbar">
-          <Text className="product-topbar__context">{platform ? "平台管理 / 不含租户内容" : contextLabel}</Text>
+          <Text className="product-topbar__context">{platform ? "平台管理 / 不含租户内容" : tenantDisplayName ? `${tenantDisplayName} / 租户管理` : contextLabel}</Text>
           <AccountMenu accountLabel={accountLabel} onLogout={onLogout} />
         </header>
         <main data-compact-heading={compactHeading} className="product-main">
@@ -170,6 +178,8 @@ function navigationIcon(icon?: NavigationIcon) {
     case "overview": return <DataTrending20Regular />;
     case "people": return <PeopleTeam20Regular />;
     case "data": return <Database20Regular />;
+    case "knowledge": return <BookDatabase24Regular />;
+    case "evaluation": return <DataUsage24Regular />;
     case "models": return <BrainCircuit24Regular />;
     case "governance": return <ShieldTask24Regular />;
     case "query": return <Chat20Regular />;
