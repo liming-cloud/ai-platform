@@ -118,6 +118,15 @@ public final class PostgresAssistantRepository implements AssistantRepository {
     }
 
     @Override
+    public Optional<Assistant> lockAssistant(TenantId tenantId, AssistantId assistantId) {
+        if (!org.springframework.transaction.support.TransactionSynchronizationManager.isActualTransactionActive()) {
+            throw new IllegalStateException("助手事实锁必须加入业务事务");
+        }
+        return Optional.ofNullable(mapper.findAssistantForUpdate(tenantId.value(), assistantId.value()))
+                .map(PostgresAssistantRepository::toAssistant);
+    }
+
+    @Override
     public AssistantPage findPage(
             TenantId tenantId,
             long pageNumber,

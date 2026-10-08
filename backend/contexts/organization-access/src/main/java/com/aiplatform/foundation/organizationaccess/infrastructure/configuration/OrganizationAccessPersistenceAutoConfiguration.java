@@ -117,6 +117,18 @@ public class OrganizationAccessPersistenceAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
+    com.aiplatform.foundation.organizationaccess.application.accesspolicy.AccessPolicyStore accessPolicyStore(
+            com.aiplatform.foundation.organizationaccess.infrastructure.persistence.authorization.mapper.AccessPolicyMapper policies,
+            com.aiplatform.foundation.organizationaccess.infrastructure.persistence.authorization.mapper.AccessPolicyVersionMapper versions,
+            com.aiplatform.foundation.organizationaccess.infrastructure.persistence.authorization.mapper.AccessPolicyVersionMemberMapper selections,
+            com.aiplatform.foundation.organizationaccess.infrastructure.persistence.authorization.mapper.AccessPolicyAuditMapper audits,
+            TenantMembershipMapper memberships) {
+        return new com.aiplatform.foundation.organizationaccess.infrastructure.persistence.authorization.repository.PostgresAccessPolicyStore(
+                policies, versions, selections, audits, memberships);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
     @ConditionalOnBean(JdbcClient.class)
     OrganizationOperationsFactSource organizationOperationsFactSource(JdbcClient jdbc) {
         return new JdbcOrganizationOperationsFactSource(jdbc);
@@ -176,8 +188,9 @@ public class OrganizationAccessPersistenceAutoConfiguration {
     @ConditionalOnMissingBean
     com.aiplatform.foundation.organizationaccess.application.member.port.out.MemberAccountStore memberAccountStore(
             com.aiplatform.foundation.organizationaccess.infrastructure.persistence.member.mapper.MemberAccountMapper mapper,
-            com.aiplatform.foundation.organizationaccess.infrastructure.persistence.member.mapper.MemberAccessMapper facts) {
-        return new com.aiplatform.foundation.organizationaccess.infrastructure.persistence.member.repository.PostgresMemberAccountStore(mapper, facts);
+            com.aiplatform.foundation.organizationaccess.infrastructure.persistence.member.mapper.MemberAccessMapper facts,
+            com.aiplatform.foundation.organizationaccess.infrastructure.persistence.member.mapper.MemberAssistantAuthorizationMapper authorizations) {
+        return new com.aiplatform.foundation.organizationaccess.infrastructure.persistence.member.repository.PostgresMemberAccountStore(mapper, facts, authorizations);
     }
 
     @Bean

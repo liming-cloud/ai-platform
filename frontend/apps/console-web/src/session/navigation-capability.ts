@@ -4,6 +4,7 @@ export const NAVIGATION = [
   { id: "operations", label: "运营总览", icon: "overview", requiredCapability: "access:manage", workspace: "TENANT" },
   { id: "access", label: "成员与权限", icon: "people", requiredCapability: "access:manage", workspace: "TENANT" },
   { id: "data", label: "知识库", icon: "data", requiredCapability: "knowledge:write", workspace: "TENANT" },
+  { id: "access-policies", label: "访问治理", icon: "governance", requiredCapability: "access:manage", workspace: "TENANT" },
   { id: "models", label: "模型", icon: "models", requiredCapability: "model:read", workspace: "TENANT" },
   { id: "governance", label: "治理", icon: "governance", requiredCapability: "usage:read", workspace: "TENANT" },
   { id: "query", label: "问答", icon: "query", requiredCapability: "assistant:query", workspace: "TENANT" },
@@ -62,7 +63,7 @@ export function visibleNavigation(capability: NavigationCapability) {
   const result: NavigationItem[] = capability.tenantAdministrator ? [
     { id: "tenant-workspace", label: "租户工作区", children: tenantNavigation.filter(item => item.id === "access").map(item => ({ ...item, label: "成员管理", icon: "accounts" as const })) },
     { id: "tenant-content", label: "内容", children: tenantNavigation.filter(item => item.id === "data").map(item => ({ ...item, icon: "knowledge" as const })) },
-    { id: "tenant-governance", label: "治理", children: tenantNavigation.filter(item => item.id === "models").map(item => ({ ...item, label: "模型治理" })) },
+    { id: "tenant-governance", label: "治理", children: tenantNavigation.filter(item => item.id === "access-policies" || item.id === "models").map(item => ({ ...item, label: item.id === "models" ? "模型治理" : item.label })) },
     { id: "tenant-delivery", label: "交付", children: tenantNavigation.filter(item => item.id === "governance").map(item => ({ ...item, label: "评测治理", icon: "evaluation" as const })) },
   ].filter(group => group.children.length > 0) : [...tenantNavigation];
   const governance = platformNavigation.filter(item => item.id !== "platform-model-supply");

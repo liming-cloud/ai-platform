@@ -355,21 +355,30 @@ def mapper_statements(root, mapper_texts):
 def manual_list_limit_statements(root, mapper_texts, registered):
     """按独立查询的 SQL 检测分页，不依赖方法名或绑定参数名。"""
     findings = []
+    parsed = {}
+    fragments = {}
     for path, text in mapper_texts.items():
         try:
             mapper = ET.fromstring(text)
         except ET.ParseError as error:
             raise RuntimeError(f"分页扫描无法解析 Mapper XML：{relative(root, path)}：{error}") from error
-        fragments = {element.get("id"): element for element in mapper.findall("sql")}
+        parsed[path] = mapper
+        namespace = mapper.get("namespace", "")
+        for element in mapper.findall("sql"):
+            fragments[f"{namespace}.{element.get('id')}"] = element
 
-        def sql_text(element, active=()):
+    for path, mapper in parsed.items():
+        namespace = mapper.get("namespace", "")
+
+        def sql_text(element, active=(), scope=namespace):
             if element.tag == "include":
-                refid = element.get("refid")
+                reference = element.get("refid", "")
+                refid = reference if "." in reference else f"{scope}.{reference}"
                 if refid not in fragments or refid in active:
                     raise RuntimeError(f"分页扫描无法解析 SQL 引用：{relative(root, path)}#{refid}")
-                return sql_text(fragments[refid], active + (refid,))
+                return sql_text(fragments[refid], active + (refid,), refid.rsplit(".", 1)[0])
             return " ".join([element.text or ""] + [
-                sql_text(child, active) + " " + (child.tail or "")
+                sql_text(child, active, scope) + " " + (child.tail or "")
                 for child in element
             ])
 

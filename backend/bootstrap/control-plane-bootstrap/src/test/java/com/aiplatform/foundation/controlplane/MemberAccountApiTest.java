@@ -517,6 +517,49 @@ class MemberAccountApiTest {
         } finally { reset(tenantRead); }
     }
 
+    @Test
+    void 助手独立页只读与空集合保存不推进其他设置且严格拒绝过时和越界请求() {
+        var manager = login("admin", PASSWORD);
+        var created = create(manager, input(manager, "member-assistant-boundary"), "assistant-boundary-create");
+        assertEquals(HttpStatus.CREATED, created.getStatusCode());
+        var id = (String) created.getBody().get("membershipId");
+        var endpoint = url("/" + id + "/assistants");
+        var read = http.exchange(endpoint, HttpMethod.GET, new HttpEntity<>(headers(manager, "unused")), RESPONSE);
+        assertEquals(HttpStatus.OK, read.getStatusCode());
+        assertEquals(List.of(), read.getBody().get("assistantIds"));
+        var revision = read.getBody().get("authorizationRevision");
+        var command = Map.of("assistantIds", List.of(), "expectedAuthorizationRevision", revision);
+        var saved = http.exchange(endpoint, HttpMethod.PUT, new HttpEntity<>(command, headers(manager, "unused")), RESPONSE);
+        assertEquals(HttpStatus.OK, saved.getStatusCode());
+        assertEquals(revision, saved.getBody().get("authorizationRevision"));
+        assertEquals(created.getBody(), http.exchange(url("/" + id), HttpMethod.GET,
+                new HttpEntity<>(headers(manager, "unused")), RESPONSE).getBody());
+        assertEquals(HttpStatus.CONFLICT, http.exchange(endpoint, HttpMethod.PUT,
+                new HttpEntity<>(Map.of("assistantIds", List.of(), "expectedAuthorizationRevision", 999999), headers(manager, "unused")), RESPONSE).getStatusCode());
+        for (var field : List.of("tenantId", "subjectId", "conversationFeatures")) {
+            var forged = new HashMap<String, Object>(command); forged.put(field, "forged");
+            assertEquals(HttpStatus.BAD_REQUEST, http.exchange(endpoint, HttpMethod.PUT,
+                    new HttpEntity<>(forged, headers(manager, "unused")), RESPONSE).getStatusCode());
+        }
+        assertEquals(HttpStatus.FORBIDDEN, http.exchange(endpoint, HttpMethod.PUT,
+                new HttpEntity<>(Map.of("assistantIds", List.of("999999"), "expectedAuthorizationRevision", revision), headers(manager, "unused")), RESPONSE).getStatusCode());
+        var member = login("member-assistant-boundary", PASSWORD);
+        assertEquals(HttpStatus.FORBIDDEN, http.exchange(endpoint, HttpMethod.GET, new HttpEntity<>(headers(member, "unused")), RESPONSE).getStatusCode());
+    }
+
+    @Test
+    void 策略目录是当前租户的真实分页且新草稿不能隐式授予助手() {
+        var manager = login("admin", PASSWORD);
+        var endpoint = "http://localhost:" + port + "/api/v1/tenant/access-policies";
+        var response = http.exchange(endpoint + "?pageNumber=1&pageSize=20", HttpMethod.GET,
+                new HttpEntity<>(headers(manager, "unused")), RESPONSE);
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(List.of(), response.getBody().get("items"));
+        assertEquals(0, ((Number) response.getBody().get("totalElements")).intValue());
+        assertEquals(HttpStatus.BAD_REQUEST, http.exchange(endpoint + "?tenantId=forged", HttpMethod.GET,
+                new HttpEntity<>(headers(manager, "unused")), RESPONSE).getStatusCode());
+    }
+
     private Map<String, Object> input(String token, String login) {
         var options = http.exchange(url("" + "/create-options"), HttpMethod.GET, new HttpEntity<>(headers(token, "unused")), Map.class);
         assertEquals(HttpStatus.OK, options.getStatusCode());

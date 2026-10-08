@@ -97,6 +97,15 @@ public final class PostgresKnowledgeSpaceRepository implements KnowledgeSpaceRep
                 > 0;
     }
 
+    @Override
+    public java.util.Optional<String> findName(TenantId tenantId, KnowledgeSpaceId knowledgeSpaceId) {
+        return java.util.Optional.ofNullable(mapper.selectOne(new LambdaQueryWrapper<KnowledgeSpaceEntity>()
+                .select(KnowledgeSpaceEntity::getName)
+                .eq(KnowledgeSpaceEntity::getTenantId, tenantId.value())
+                .eq(KnowledgeSpaceEntity::getId, knowledgeSpaceId.value())
+                .ne(KnowledgeSpaceEntity::getStatus, "DELETED"))).map(KnowledgeSpaceEntity::getName);
+    }
+
     private KnowledgeSpaceCreationOutcome createInTransaction(
             KnowledgeSpaceCreation creation,
             int tenantLimit) {

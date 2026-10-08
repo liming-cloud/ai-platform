@@ -204,6 +204,21 @@ class BackendArchitectureGuardTest(unittest.TestCase):
 
         self.assertTrue(any("手工列表分页" in error for error in errors))
 
+    def test_qualified_mapper_include_preserves_pagination_scan(self):
+        shared = self.root / "SharedMapper.xml"
+        local = self.root / "LocalMapper.xml"
+        texts = {
+            shared: '<mapper namespace="demo.Shared"><sql id="filter">WHERE active = TRUE</sql><sql id="bounds">LIMIT #{size}</sql></mapper>',
+            local: '<mapper namespace="demo.Local"><select id="page">SELECT * FROM item <include refid="demo.Shared.filter"/></select><select id="bad">SELECT * FROM item <include refid="demo.Shared.bounds"/></select></mapper>',
+        }
+        self.assertEqual(["LocalMapper.xml#bad"], MODULE.manual_list_limit_statements(self.root, texts, {}))
+
+    def test_qualified_mapper_include_cycle_and_missing_remain_rejected(self):
+        mapper = self.root / "Mapper.xml"
+        for reference in ["demo.Missing.filter", "demo.Local.loop"]:
+            with self.subTest(reference=reference), self.assertRaises(RuntimeError):
+                MODULE.manual_list_limit_statements(self.root, {mapper: f'<mapper namespace="demo.Local"><sql id="loop"><include refid="loop"/></sql><select id="page">SELECT * FROM item <include refid="{reference}"/></select></mapper>'}, {})
+
     def write_select(self, statement_id, body, category="SECURITY_PROJECTION"):
         mapper_path = "backend/contexts/demo/src/main/resources/mapper/demo/DemoMapper.xml"
         self.write_pom(

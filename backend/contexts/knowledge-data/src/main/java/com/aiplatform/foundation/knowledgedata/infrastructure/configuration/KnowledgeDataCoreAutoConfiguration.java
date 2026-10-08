@@ -91,6 +91,12 @@ public class KnowledgeDataCoreAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
+    com.aiplatform.foundation.knowledgedata.application.knowledge.facade.KnowledgeSpaceNameLookup knowledgeSpaceNameLookup(KnowledgeSpaceRepository repository) {
+        return (tenant, id) -> repository.findName(tenant, new com.aiplatform.foundation.knowledgedata.domain.knowledge.model.KnowledgeSpaceId(id));
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
     TextContentStagingPort textContentStagingPort(
             KnowledgeDataProperties properties) {
         return new LocalTextContentStagingAdapter(

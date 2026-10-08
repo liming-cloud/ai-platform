@@ -138,6 +138,16 @@ public final class TenantMembership implements AggregateRoot<MemberId> {
     }
 
     /**
+     * 对象授权变化仅推进本普通资格的版本，不改变启停状态或固定角色。
+     * @throws IllegalStateException 管理员不属于普通成员授权目标。
+     */
+    public TenantMembership reviseAssistantAuthorization() {
+        if (role != TenantMembershipRole.TENANT_USER) throw new IllegalStateException("管理员不能修改普通成员助手授权");
+        return new TenantMembership(id, tenantId, subjectId, role, status,
+                permissionVersion + 1L, version + 1L, createdAt);
+    }
+
+    /**
      * 停用当前租户成员资格，并推进会话必须校验的权限修订。
      *
      * <p>是否为最后一个访问管理员是跨成员不变量，由受锁成员目录上的领域服务在调用前保护。</p>

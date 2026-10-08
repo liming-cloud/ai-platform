@@ -15,6 +15,8 @@ public interface AssistantRepository {
     AssistantCreationOutcome create(AssistantCreation creation, int tenantLimit);
 
     Optional<Assistant> findAssistant(TenantId tenantId, AssistantId assistantId);
+    /** 在调用方事务内锁定助手，和版本发布共用同一行锁。 */
+    Optional<Assistant> lockAssistant(TenantId tenantId, AssistantId assistantId);
 
     AssistantPage findPage(
             TenantId tenantId,

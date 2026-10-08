@@ -107,6 +107,11 @@ const TenantMemberWorkspace = lazy(async () => {
   return { default: module.TenantMemberWorkspace };
 });
 
+const AccessPoliciesWorkspace = lazy(async () => {
+  const module = await import("./features/access/AccessPoliciesWorkspace");
+  return { default: module.AccessPoliciesWorkspace };
+});
+
 const RoleDirectoryWorkspace = lazy(async () => {
   const module = await import("./features/access/RoleDirectoryWorkspace");
   return { default: module.RoleDirectoryWorkspace };
@@ -308,6 +313,7 @@ function AuthenticatedConsoleApp({
       const operationsActive = route.navigationId === "operations";
   const dataActive = route.navigationId === "data";
   const accessActive = route.navigationId === "access";
+  const accessPoliciesActive = route.navigationId === "access-policies";
   const modelsActive = route.navigationId === "models";
   const governanceActive = route.navigationId === "governance";
   const queryActive = route.navigationId === "query";
@@ -325,7 +331,7 @@ function AuthenticatedConsoleApp({
       compactHeading={platformActive && route.task === "create"}
       pageStatus={platformActive && route.task === "create" ? { label: "等待填写", tone: "warning" } : undefined}
       pageTitle={
-        operationsActive ? "运营总览" : platformOperationsActive ? "平台运营总览" : accessActive ? route.task === "roles" ? "租户角色" : undefined : platformActive ? route.task === "create" ? "建立新租户" : route.task === "tenants" || route.task === "detail" || route.task === "admins" || route.task === "quotas" || route.task === "features" || route.task === "security" ? undefined : "平台租户" : platformAccountsActive ? undefined : platformModelSupplyActive ? "平台模型供应链" : queryActive ? "从已授权资料中获得答案" : governanceActive ? route.task === "query" ? "查询用量与审计" : "受限评测运行" : modelsActive ? route.task === "configuration" ? "受控模型配置" : route.task === "providers" ? "供应商连接与模型发现" : "模型部署与能力验证" : dataPage?.title ?? "可信知识平台"
+        operationsActive ? "运营总览" : platformOperationsActive ? "平台运营总览" : accessPoliciesActive ? undefined : accessActive ? route.task === "roles" ? "租户角色" : undefined : platformActive ? route.task === "create" ? "建立新租户" : route.task === "tenants" || route.task === "detail" || route.task === "admins" || route.task === "quotas" || route.task === "features" || route.task === "security" ? undefined : "平台租户" : platformAccountsActive ? undefined : platformModelSupplyActive ? "平台模型供应链" : queryActive ? "从已授权资料中获得答案" : governanceActive ? route.task === "query" ? "查询用量与审计" : "受限评测运行" : modelsActive ? route.task === "configuration" ? "受控模型配置" : route.task === "providers" ? "供应商连接与模型发现" : "模型部署与能力验证" : dataPage?.title ?? "可信知识平台"
       }
       pageSummary={
         operationsActive
@@ -334,6 +340,7 @@ function AuthenticatedConsoleApp({
           ? "查看全平台脱敏运营指标和按租户分组的安全摘要，不进入租户内容。"
           : queryActive
           ? "答案必须附带可核验来源。没有足够证据或没有访问权限时，系统会明确拒绝回答。"
+          : accessPoliciesActive ? undefined
           : accessActive
           ? route.task === "roles" ? "查看当前租户的固定角色、能力范围和安全边界。" : "成员目录按页显示；停用成员前必须二次确认。"
           : platformActive
@@ -449,6 +456,11 @@ function AuthenticatedConsoleApp({
               : <RoleDirectoryWorkspace scope="TENANT" onManageMembers={() => navigate({ navigationId: "access", task: "members", page: 1 })} />}
           </Suspense>
         </> : null}
+      </section>
+      <section hidden={!accessPoliciesActive}>
+        {route.navigationId === "access-policies" ? <Suspense fallback={<StatePanel kind="loading" title="正在加载访问治理" description="正在读取当前租户策略。" />}>
+          <AccessPoliciesWorkspace client={client} route={route} onRouteChange={navigate} registerDeparture={registerMemberFeatureDeparture} />
+        </Suspense> : null}
       </section>
       <section hidden={!modelsActive}>
         {modelsActive ? (

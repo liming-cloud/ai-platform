@@ -87,6 +87,7 @@ class QueryAssistantCatalogServiceTest {
     }
 
     private static final class RecordingRepository implements AssistantRepository {
+        @Override public Optional<Assistant> lockAssistant(TenantId tenant, AssistantId id) { return findAssistant(tenant, id); }
 
         private TenantId tenantId;
 

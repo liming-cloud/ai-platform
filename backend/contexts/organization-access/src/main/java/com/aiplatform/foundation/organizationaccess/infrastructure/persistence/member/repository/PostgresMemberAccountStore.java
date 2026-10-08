@@ -17,10 +17,13 @@ import java.util.Set;
 /** 仅转换组织拥有的无秘密数据库事实，所有写入加入调用方的业务事务。 */
 public final class PostgresMemberAccountStore extends PostgresMemberAccessFacts implements MemberAccountStore {
     private final MemberAccountMapper mapper;
+    private final com.aiplatform.foundation.organizationaccess.infrastructure.persistence.member.mapper.MemberAssistantAuthorizationMapper authorizations;
     public PostgresMemberAccountStore(MemberAccountMapper mapper,
-            com.aiplatform.foundation.organizationaccess.infrastructure.persistence.member.mapper.MemberAccessMapper facts) {
+            com.aiplatform.foundation.organizationaccess.infrastructure.persistence.member.mapper.MemberAccessMapper facts,
+            com.aiplatform.foundation.organizationaccess.infrastructure.persistence.member.mapper.MemberAssistantAuthorizationMapper authorizations) {
         super(facts);
         this.mapper = Objects.requireNonNull(mapper);
+        this.authorizations = Objects.requireNonNull(authorizations);
     }
     @Override public void lockTenant(TenantId tenant) {
         if (mapper.lockTenant(tenant.value()) == null) throw new IllegalArgumentException("租户不可用");
@@ -43,6 +46,13 @@ public final class PostgresMemberAccountStore extends PostgresMemberAccessFacts 
     }
     @Override public void advanceAuthorization(TenantId tenant, long expected) {
         write(mapper.advanceAuthorization(tenant.value(), expected));
+    }
+    @Override public void replaceAssistants(TenantId tenant, long member, Set<Long> assistants) {
+        var query = Wrappers.<com.aiplatform.foundation.organizationaccess.infrastructure.persistence.member.entity.MemberAssistantAuthorizationEntity>lambdaQuery()
+                .eq(com.aiplatform.foundation.organizationaccess.infrastructure.persistence.member.entity.MemberAssistantAuthorizationEntity::getTenantId, tenant.value())
+                .eq(com.aiplatform.foundation.organizationaccess.infrastructure.persistence.member.entity.MemberAssistantAuthorizationEntity::getMembershipId, member);
+        authorizations.delete(query);
+        for (var assistant : new java.util.TreeSet<>(assistants)) write(mapper.insertAssistant(tenant.value(), member, assistant));
     }
     @Override public void updateFeatures(TenantId tenant, long member, ConversationFeatures features, long expected) {
         var values = features.values();

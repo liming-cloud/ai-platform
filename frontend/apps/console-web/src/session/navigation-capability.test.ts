@@ -15,11 +15,11 @@ describe("visibleNavigation", () => {
     expect(navigation.map(group => ({ label: group.label, items: group.children?.map(item => item.label) }))).toEqual([
       { label: "租户工作区", items: ["成员管理"] },
       { label: "内容", items: ["知识库"] },
-      { label: "治理", items: ["模型治理"] },
+      { label: "治理", items: ["访问治理", "模型治理"] },
       { label: "交付", items: ["评测治理"] },
     ]);
     expect(defaultNavigationTarget(navigation)).toBe("access");
-    expect(authorizedNavigationTargets(capability)).toEqual(["operations", "access", "data", "models", "governance", "query"]);
+    expect(authorizedNavigationTargets(capability)).toEqual(["operations", "access", "data", "access-policies", "models", "governance", "query"]);
   });
 
   it("已交付的平台入口承接原型分组与名称，不生成未交付的运行占位入口", () => {
@@ -108,7 +108,7 @@ describe("visibleNavigation", () => {
       capabilityCodes: ["platform-session:access", "platform-operations:read"],
     });
 
-    expect(tenantNavigation.map((item) => item.id)).toEqual(["operations", "access", "data"]);
+    expect(tenantNavigation.map((item) => item.id)).toEqual(["operations", "access", "data", "access-policies"]);
     expect(defaultNavigationTarget(tenantNavigation)).toBe("operations");
     expect(platformNavigation[0]?.children?.map((item) => item.id)).toEqual([
       "platform-operations",
@@ -142,7 +142,7 @@ describe("visibleNavigation", () => {
         "model-platform:write",
       ],
     }).map((item) => item.id)).toEqual([
-      "operations", "access", "data", "models", "governance", "query", "platform-governance", "platform-model-governance",
+      "operations", "access", "data", "access-policies", "models", "governance", "query", "platform-governance", "platform-model-governance",
     ]);
   });
 
@@ -151,7 +151,7 @@ describe("visibleNavigation", () => {
       canUseTenantWorkspace: true,
       canUsePlatformGovernance: false,
       capabilityCodes: ["access:manage"],
-    }).map((item) => item.id)).toEqual(["operations", "access"]);
+    }).map((item) => item.id)).toEqual(["operations", "access", "access-policies"]);
     expect(visibleNavigation({
       canUseTenantWorkspace: true,
       canUsePlatformGovernance: false,
@@ -161,6 +161,6 @@ describe("visibleNavigation", () => {
 
   it("角色导航预览只映射其候选权限对应的租户入口", () => {
     expect(previewNavigation(["access:manage", "assistant:query"]).map((item) => item.id))
-      .toEqual(["operations", "access", "query"]);
+      .toEqual(["operations", "access", "access-policies", "query"]);
   });
 });

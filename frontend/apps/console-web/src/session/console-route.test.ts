@@ -10,6 +10,20 @@ import {
 } from "./console-route";
 
 describe("统一控制台路由", () => {
+  it("访问策略目录和冻结版本都有可恢复地址", () => {
+    expect(parseConsoleRoute("/tenant/access-policies", "?page=2&size=50&q=权限&status=DRAFT")).toEqual({
+      navigationId: "access-policies", task: "policies", page: 2, pageSize: 50, query: "权限", status: "DRAFT",
+    });
+    expect(parseConsoleRoute("/tenant/access-policies/3382738893456539650/versions/3382738893456539651", "")).toEqual({
+      navigationId: "access-policies", task: "policy-detail", policyId: "3382738893456539650", versionId: "3382738893456539651",
+    });
+    expect(parseConsoleRoute("/tenant/access-policies/0", "")).toBeUndefined();
+  });
+  it("成员助手独立页可直达且错误成员引用失败关闭", () => {
+    expect(parseConsoleRoute("/tenant/members/3382738893456539650/assistants", "")).toEqual({ navigationId: "access", task: "member-assistants", membershipId: "3382738893456539650" });
+    expect(parseConsoleRoute("/tenant/members/0/assistants", "")).toBeUndefined();
+    expect(parseConsoleRoute("/tenant/members/9223372036854775808/assistants", "")).toBeUndefined();
+  });
   it("成员对话功能有独立直接地址并拒绝无效成员标识", () => {
     const route = { navigationId: "access", task: "member-features", membershipId: "3382738893456539650" } as const;
     expect(parseConsoleRoute("/tenant/members/3382738893456539650/features", "")).toEqual(route);

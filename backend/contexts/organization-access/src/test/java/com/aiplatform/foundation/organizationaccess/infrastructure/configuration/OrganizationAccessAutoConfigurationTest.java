@@ -162,10 +162,24 @@ class OrganizationAccessAutoConfigurationTest {
                     () -> mock(com.aiplatform.foundation.organizationaccess.infrastructure.persistence.member.mapper.MemberAccountMapper.class))
             .withBean(com.aiplatform.foundation.organizationaccess.infrastructure.persistence.member.mapper.MemberAccessMapper.class,
                     () -> mock(com.aiplatform.foundation.organizationaccess.infrastructure.persistence.member.mapper.MemberAccessMapper.class))
+            .withBean(com.aiplatform.foundation.organizationaccess.infrastructure.persistence.member.mapper.MemberAssistantAuthorizationMapper.class,
+                    () -> mock(com.aiplatform.foundation.organizationaccess.infrastructure.persistence.member.mapper.MemberAssistantAuthorizationMapper.class))
+            .withBean(com.aiplatform.foundation.organizationaccess.infrastructure.persistence.authorization.mapper.AccessPolicyMapper.class,
+                    () -> mock(com.aiplatform.foundation.organizationaccess.infrastructure.persistence.authorization.mapper.AccessPolicyMapper.class))
+            .withBean(com.aiplatform.foundation.organizationaccess.infrastructure.persistence.authorization.mapper.AccessPolicyVersionMapper.class,
+                    () -> mock(com.aiplatform.foundation.organizationaccess.infrastructure.persistence.authorization.mapper.AccessPolicyVersionMapper.class))
+            .withBean(com.aiplatform.foundation.organizationaccess.infrastructure.persistence.authorization.mapper.AccessPolicyVersionMemberMapper.class,
+                    () -> mock(com.aiplatform.foundation.organizationaccess.infrastructure.persistence.authorization.mapper.AccessPolicyVersionMemberMapper.class))
+            .withBean(com.aiplatform.foundation.organizationaccess.infrastructure.persistence.authorization.mapper.AccessPolicyAuditMapper.class,
+                    () -> mock(com.aiplatform.foundation.organizationaccess.infrastructure.persistence.authorization.mapper.AccessPolicyAuditMapper.class))
             .withBean(com.aiplatform.foundation.assistantdelivery.application.catalog.facade.QueryAssistantCatalogService.class,
                     () -> mock(com.aiplatform.foundation.assistantdelivery.application.catalog.facade.QueryAssistantCatalogService.class))
             .withBean(com.aiplatform.foundation.assistantdelivery.application.assistant.facade.PublishedAssistantVersionLookup.class,
                     () -> mock(com.aiplatform.foundation.assistantdelivery.application.assistant.facade.PublishedAssistantVersionLookup.class))
+            .withBean(com.aiplatform.foundation.assistantdelivery.application.assistant.facade.PublishedAssistantAuthorizationLookup.class,
+                    () -> mock(com.aiplatform.foundation.assistantdelivery.application.assistant.facade.PublishedAssistantAuthorizationLookup.class))
+            .withBean(com.aiplatform.foundation.knowledgedata.application.knowledge.facade.KnowledgeSpaceNameLookup.class,
+                    () -> mock(com.aiplatform.foundation.knowledgedata.application.knowledge.facade.KnowledgeSpaceNameLookup.class))
             .withBean(org.springframework.transaction.PlatformTransactionManager.class,
                     () -> mock(org.springframework.transaction.PlatformTransactionManager.class))
             .withBean(EntityIdGenerator.class, () -> () -> 1001L);
@@ -192,6 +206,8 @@ class OrganizationAccessAutoConfigurationTest {
             assertThat(context).hasSingleBean(TenantCustomRoleDirectoryApplicationService.class);
             assertThat(context).hasSingleBean(TenantMemberStatusApplicationService.class);
             assertThat(context).hasSingleBean(com.aiplatform.foundation.organizationaccess.application.member.service.MemberFeatureSettingsService.class);
+            assertThat(context).hasSingleBean(com.aiplatform.foundation.organizationaccess.application.member.service.MemberAssistantSettingsService.class);
+            assertThat(context).hasSingleBean(com.aiplatform.foundation.organizationaccess.application.accesspolicy.AccessPolicyService.class);
             assertThat(context).hasSingleBean(TenantMemberDirectoryApplicationService.class);
             assertThat(context).hasSingleBean(TenantMemberEstablishmentApplicationService.class);
             assertThat(context).hasSingleBean(PlatformTenantAdministratorApplicationService.class);
@@ -218,6 +234,8 @@ class OrganizationAccessAutoConfigurationTest {
             assertThat(context).doesNotHaveBean(TenantCustomRoleBindingRevocationController.class);
             assertThat(context).hasSingleBean(TenantMemberStatusController.class);
             assertThat(context).hasSingleBean(com.aiplatform.foundation.organizationaccess.interfaces.web.member.controller.MemberFeatureSettingsController.class);
+            assertThat(context).hasSingleBean(com.aiplatform.foundation.organizationaccess.interfaces.web.member.controller.MemberAssistantSettingsController.class);
+            assertThat(context).hasSingleBean(com.aiplatform.foundation.organizationaccess.interfaces.web.authorization.controller.AccessPolicyController.class);
         });
     }
 
@@ -227,6 +245,10 @@ class OrganizationAccessAutoConfigurationTest {
                 .run(context -> {
                     assertThat(context).doesNotHaveBean(com.aiplatform.foundation.organizationaccess.application.member.service.MemberFeatureSettingsService.class);
                     assertThat(context).doesNotHaveBean(com.aiplatform.foundation.organizationaccess.interfaces.web.member.controller.MemberFeatureSettingsController.class);
+                    assertThat(context).doesNotHaveBean(com.aiplatform.foundation.organizationaccess.application.member.service.MemberAssistantSettingsService.class);
+                    assertThat(context).doesNotHaveBean(com.aiplatform.foundation.organizationaccess.application.accesspolicy.AccessPolicyService.class);
+                    assertThat(context).doesNotHaveBean(com.aiplatform.foundation.organizationaccess.interfaces.web.member.controller.MemberAssistantSettingsController.class);
+                    assertThat(context).doesNotHaveBean(com.aiplatform.foundation.organizationaccess.interfaces.web.authorization.controller.AccessPolicyController.class);
                     assertThat(context).hasNotFailed();
                     assertThat(context).doesNotHaveBean(
                             PersonAuthenticationService.class);

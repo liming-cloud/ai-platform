@@ -28,10 +28,7 @@ public class MemberEffectiveAccessService implements MemberAccessFacade {
         var administrator = member.membershipRole().equals("TENANT_ADMINISTRATOR");
         if (!administrator && (!member.membershipRole().equals("TENANT_USER") || member.features() == null)) throw denied();
         var ceiling = ceilings.find(context.tenantId().value()).orElseThrow(MemberEffectiveAccessService::denied);
-        var features = new TreeMap<String, Boolean>();
-        for (var code : ConversationFeatures.CODES) features.put(code, administrator
-                ? ceiling.allows(TenantFeature.fromCode(code)) : member.features().allows(code, ceiling));
-        return new MemberEffectiveAccess(administrator, features, member.assistantIds());
+        return MemberAccessEvaluation.evaluate(member, ceiling, member.assistantIds());
     }
     @Override public void requireFeature(TrustedRequestContext context, String feature) {
         if (!read(context).allows(feature)) throw denied();

@@ -105,6 +105,28 @@ export interface MemberProvisioningInput {
   expectedTenantFeatureVersion: number; expectedAuthorizationRevision: number;
 }
 export interface MemberAssistantChoice { assistantId: string; displayName: string; assistantVersionId: string; versionNumber: number }
+/** 助手页只修改唯一关系，授权修订号与功能页版本各自独立。 */
+export interface MemberAssistantSettings {
+  membershipId: string; loginName: string; status: "ENABLED" | "DISABLED"; readOnly: boolean;
+  assistantIds: string[]; authorizationRevision: number;
+}
+export interface MemberAssistantSettingsInput { assistantIds: string[]; expectedAuthorizationRevision: number }
+/** 策略命令绑定草稿、授权及租户上限，预览不能代替发布。 */
+export interface AccessPolicyExpected { expectedVersion: number; expectedAuthorizationRevision: number; expectedTenantFeatureVersion: number }
+export interface AccessPolicySelection { assistantId: string; membershipIds: string[] }
+export interface AccessPolicyInput extends AccessPolicyExpected, AccessPolicySelection {}
+export interface AccessPolicyCreateInput extends AccessPolicySelection {
+  name: string; expectedAuthorizationRevision: number; expectedTenantFeatureVersion: number;
+}
+export interface AccessPolicySummary { policyId: string; name: string; versionId: string; number: number; status: "DRAFT" | "PUBLISHED"; assistantName: string }
+export interface AccessPolicyMemberChoice { membershipId: string; loginName: string }
+export interface AccessPolicyAssistantOption { assistantId: string; assistantName: string; assistantVersionId: string; versionNumber: number; knowledgeSpaceName: string }
+export interface AccessPolicyView extends AccessPolicySelection {
+  policyId: string; name: string; versionId: string; number: number; status: "DRAFT" | "PUBLISHED" | "SUPERSEDED"; version: number;
+  assistantName: string; knowledgeSpaceName: string; memberNames: string[]; authorizationRevision: number; tenantFeatureVersion: number;
+  preview: { passed: boolean; allowCount: number; denyCount: number; leakCount: number; checks: { feature: string; allowCount: number; denyCount: number }[] } | null;
+  publishedAuthorizationRevision: number | null;
+}
 
 /** 原子开户只在最后一次提交携带凭据；不得持久化整个请求。 */
 export interface TenantProvisioningInput {
@@ -1490,6 +1512,49 @@ export class ControlPlaneClient {
   async listMemberAssistants(q = "", pageNumber = 1, pageSize = 20): Promise<PageResult<MemberAssistantChoice>> {
     const parameters = new URLSearchParams({ q, pageNumber: String(pageNumber), pageSize: String(pageSize) });
     return this.request(`/tenant/member-assistants?${parameters}`);
+  }
+  async getMemberAssistants(membershipId: string): Promise<MemberAssistantSettings> {
+    return this.request(`/tenant/members/${encodeURIComponent(membershipId)}/assistants`);
+  }
+  async updateMemberAssistants(membershipId: string, input: MemberAssistantSettingsInput): Promise<MemberAssistantSettings> {
+    return this.request(`/tenant/members/${encodeURIComponent(membershipId)}/assistants`, {
+      method: "PUT", headers: this.writeHeaders("application/json"), body: JSON.stringify(input),
+    });
+  }
+  async listAccessPolicies(pageNumber = 1, pageSize = 20, q = "", status = "ALL"): Promise<PageResult<AccessPolicySummary>> {
+    const parameters = new URLSearchParams({ pageNumber: String(pageNumber), pageSize: String(pageSize), q });
+    if (status !== "ALL") parameters.set("status", status);
+    return this.request(`/tenant/access-policies?${parameters}`);
+  }
+  async listAccessPolicyMembers(q = "", pageNumber = 1, pageSize = 20): Promise<PageResult<AccessPolicyMemberChoice>> {
+    return this.request(`/tenant/access-policies/member-options?${new URLSearchParams({ q, pageNumber: String(pageNumber), pageSize: String(pageSize) })}`);
+  }
+  async accessPolicyAssistant(assistantId: string): Promise<AccessPolicyAssistantOption> {
+    return this.request(`/tenant/access-policies/assistant-options/${encodeURIComponent(assistantId)}`);
+  }
+  async getAccessPolicy(policyId: string, versionId: string): Promise<AccessPolicyView> {
+    return this.request(`/tenant/access-policies/${encodeURIComponent(policyId)}/versions/${encodeURIComponent(versionId)}`);
+  }
+  async listAccessPolicyVersions(policyId: string, pageNumber = 1, pageSize = 20): Promise<PageResult<AccessPolicyView>> {
+    return this.request(`/tenant/access-policies/${encodeURIComponent(policyId)}/versions?${new URLSearchParams({ pageNumber: String(pageNumber), pageSize: String(pageSize) })}`);
+  }
+  async createAccessPolicy(input: AccessPolicyCreateInput): Promise<AccessPolicyView> {
+    return this.request("/tenant/access-policies", { method: "POST", headers: this.writeHeaders("application/json"), body: JSON.stringify(input) });
+  }
+  async newAccessPolicyVersion(value: AccessPolicyView): Promise<AccessPolicyView> {
+    return this.request(`/tenant/access-policies/${encodeURIComponent(value.policyId)}/versions`, {
+      method: "POST", headers: this.writeHeaders("application/json"), body: JSON.stringify({ sourceVersionId: value.versionId, expectedVersion: value.version }),
+    });
+  }
+  async saveAccessPolicy(policyId: string, versionId: string, input: AccessPolicyInput): Promise<AccessPolicyView> {
+    return this.request(`/tenant/access-policies/${encodeURIComponent(policyId)}/versions/${encodeURIComponent(versionId)}`, {
+      method: "PUT", headers: this.writeHeaders("application/json"), body: JSON.stringify(input),
+    });
+  }
+  async accessPolicyCommand(policyId: string, versionId: string, command: "preview" | "publish", input: AccessPolicyExpected): Promise<AccessPolicyView> {
+    return this.request(`/tenant/access-policies/${encodeURIComponent(policyId)}/versions/${encodeURIComponent(versionId)}/${command}`, {
+      method: "POST", headers: this.writeHeaders("application/json"), body: JSON.stringify(input),
+    });
   }
   /** 状态变更只作用于当前租户普通资格，并携带服务器读取的资格版本。 */
   async disableTenantMember(membershipId: string, expectedVersion: number): Promise<MemberAccount> {

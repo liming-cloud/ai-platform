@@ -2,6 +2,18 @@
   "schemaVersion": 1,
   "statements": [
     {
+      "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/AccessPolicyMapper.xml",
+      "statementId": "memberChoices",
+      "category": "MULTI_TABLE",
+      "reason": "普通成员授权候选联合当前身份、资格、固定角色及功能事实，在分页前统一筛选。"
+    },
+    {
+      "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/AccessPolicyMapper.xml",
+      "statementId": "findPage",
+      "category": "MULTI_TABLE",
+      "reason": "策略目录关联各自最新版本，在分页与总数前统一筛选名称、助手范围及状态。"
+    },
+    {
       "path": "backend/contexts/assistant-delivery/src/main/resources/mapper/assistant-delivery/AssistantMapper.xml",
       "statementId": "lockScope",
       "category": "POSTGRES_ADVISORY_LOCK",

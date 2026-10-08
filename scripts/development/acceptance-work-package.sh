@@ -3,12 +3,12 @@ set -euo pipefail
 
 # 切片绿灯不等于整包交付；未知范围必须在启动浏览器前拒绝。
 if [[ "${1:-}" == "WP-0018" ]]; then
-  if [[ "$#" != "2" || ( "${2:-}" != "account" && "${2:-}" != "features" ) ]]; then
-    echo "WP-0018 当前必须明确 SLICE=account 或 SLICE=features；独立切片不等于整包完成。" >&2
+  if [[ "$#" != "2" || ( "${2:-}" != "account" && "${2:-}" != "features" && "${2:-}" != "assistants" ) ]]; then
+    echo "WP-0018 当前必须明确 SLICE=account、SLICE=features 或 SLICE=assistants；独立切片不等于整包完成。" >&2
     exit 2
   fi
   if [[ -n "${SETUP:-}" ]]; then
-    echo "成员账户切片不创建或重置租户，必须使用已有租户管理员。" >&2
+    echo "WP-0018 验收由各切片限定本轮对象准备，不接受外部 SETUP，也不授权重置或删除历史数据。" >&2
     exit 2
   fi
   if [[ -z "${FOUNDATION_ACCEPTANCE_CREDENTIALS_FILE:-}" ]]; then
@@ -16,6 +16,9 @@ if [[ "${1:-}" == "WP-0018" ]]; then
     exit 2
   fi
   readonly MEMBER_SCRIPT_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  if [[ "${2}" == "assistants" ]]; then
+    exec node "${MEMBER_SCRIPT_DIRECTORY}/acceptance-member-authorization.cjs"
+  fi
   if [[ "${2}" == "features" ]]; then
     exec node "${MEMBER_SCRIPT_DIRECTORY}/acceptance-member-features.cjs"
   fi

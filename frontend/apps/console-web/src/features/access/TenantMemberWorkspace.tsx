@@ -5,6 +5,7 @@ import { presentApiError, type ControlPlaneClient, type MemberAccount, type Page
 import type { ConsoleRoute } from "../../session/console-route";
 import { MemberCreateWorkspace } from "./MemberCreateWorkspace";
 import { MemberFeatureWorkspace } from "./MemberFeatureWorkspace";
+import { MemberAssistantWorkspace } from "./MemberAssistantWorkspace";
 import { MemberObjectNavigation } from "./MemberObjectNavigation";
 import { clearMemberPasswords } from "./member-account-draft";
 import "./member-account.css";
@@ -26,6 +27,7 @@ export function TenantMemberWorkspace({ client, route, onRouteChange, registerMe
   if (route.task === "member-create") return <MemberCreateWorkspace key={epoch} client={client} route={route} onRouteChange={onRouteChange} />;
   if (route.task === "member-account") return <MemberAccountWorkspace key={`${epoch}:${route.membershipId}`} client={client} membershipId={route.membershipId} onRouteChange={onRouteChange} />;
   if (route.task === "member-features") return <MemberFeatureWorkspace key={`${epoch}:${route.membershipId}`} client={client} membershipId={route.membershipId} onRouteChange={onRouteChange} registerDeparture={registerMemberFeatureDeparture} />;
+  if (route.task === "member-assistants") return <MemberAssistantWorkspace key={`${epoch}:${route.membershipId}`} client={client} membershipId={route.membershipId} onRouteChange={onRouteChange} registerDeparture={registerMemberFeatureDeparture} />;
   if (route.task === "members") return <MemberDirectory key={epoch} client={client} route={route} onRouteChange={onRouteChange} />;
   return null;
 }

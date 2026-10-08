@@ -19,4 +19,6 @@ public interface KnowledgeSpaceRepository {
             long pageSize);
 
     boolean exists(TenantId tenantId, KnowledgeSpaceId knowledgeSpaceId);
+    /** 当前非删除知识库的名称；名称不代表内容读取授权。 */
+    java.util.Optional<String> findName(TenantId tenantId, KnowledgeSpaceId knowledgeSpaceId);
 }

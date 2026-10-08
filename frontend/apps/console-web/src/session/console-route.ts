@@ -10,7 +10,10 @@ export type ConsoleRoute =
   | { navigationId: "access"; task: "member-create"; step: 1 | 2 | 3 }
   | { navigationId: "access"; task: "member-account"; membershipId: string }
   | { navigationId: "access"; task: "member-features"; membershipId: string }
+  | { navigationId: "access"; task: "member-assistants"; membershipId: string }
   | { navigationId: "access"; task: "roles" }
+  | { navigationId: "access-policies"; task: "policies"; page: number; pageSize?: 10 | 20 | 50 | 100; query?: string; status?: "ALL" | "DRAFT" | "PUBLISHED" }
+  | { navigationId: "access-policies"; task: "policy-detail"; policyId: string; versionId: string }
   | { navigationId: "data"; task: "knowledge-bases"; page: number }
   | {
     navigationId: "data";
@@ -103,6 +106,8 @@ export function defaultConsoleRoute(navigationId: ConsoleNavigationId): ConsoleR
       return { navigationId, task: "overview", range: "DAY_7" };
     case "access":
       return { navigationId, task: "members", page: 1 };
+    case "access-policies":
+      return { navigationId, task: "policies", page: 1 };
     case "data":
       return { navigationId, task: "knowledge-bases", page: 1 };
     case "models":
@@ -274,12 +279,32 @@ export function parseConsoleRoute(pathname: string, search: string): ConsoleRout
   if (memberFeatures && BigInt(memberFeatures[1]!) <= 9223372036854775807n) {
     return { navigationId: "access", task: "member-features", membershipId: memberFeatures[1]! };
   }
+  const memberAssistants = /^\/tenant\/members\/([1-9][0-9]{0,18})\/assistants$/.exec(routePath);
+  if (memberAssistants && BigInt(memberAssistants[1]!) <= 9223372036854775807n) {
+    return { navigationId: "access", task: "member-assistants", membershipId: memberAssistants[1]! };
+  }
   const memberAccount = /^\/tenant\/members\/([1-9][0-9]{0,18})$/.exec(routePath);
   if (memberAccount && BigInt(memberAccount[1]!) <= 9223372036854775807n) {
     return { navigationId: "access", task: "member-account", membershipId: memberAccount[1]! };
   }
   if (routePath === "/access/roles") {
     return { navigationId: "access", task: "roles" };
+  }
+  if (routePath === "/tenant/access-policies") {
+    const parameters = new URLSearchParams(search);
+    const size = Number(parameters.get("size"));
+    const pageSize = [10, 20, 50, 100].includes(size) ? size as 10 | 20 | 50 | 100 : 20;
+    const requested = positivePage(parameters.get("page"));
+    const page = (requested - 1) * pageSize <= 100_000 ? requested : 1;
+    const status = parameters.get("status");
+    const query = parameters.get("q")?.slice(0, 80);
+    return { navigationId: "access-policies", task: "policies", page,
+      ...([10, 20, 50, 100].includes(size) ? { pageSize } : {}), ...(query ? { query } : {}),
+      ...(status === "DRAFT" || status === "PUBLISHED" ? { status } : {}) };
+  }
+  const policy = /^\/tenant\/access-policies\/([1-9][0-9]{0,18})\/versions\/([1-9][0-9]{0,18})$/.exec(routePath);
+  if (policy && BigInt(policy[1]!) <= 9223372036854775807n && BigInt(policy[2]!) <= 9223372036854775807n) {
+    return { navigationId: "access-policies", task: "policy-detail", policyId: policy[1]!, versionId: policy[2]! };
   }
   if (routePath === "/data/datasets") {
     const parameters = new URLSearchParams(search);
@@ -462,12 +487,21 @@ export function formatConsoleRoute(route: ConsoleRoute): string {
     if (route.task === "member-create") return `/tenant/members/new?step=${route.step}`;
     if (route.task === "member-account") return `/tenant/members/${encodeURIComponent(route.membershipId)}`;
     if (route.task === "member-features") return `/tenant/members/${encodeURIComponent(route.membershipId)}/features`;
+    if (route.task === "member-assistants") return `/tenant/members/${encodeURIComponent(route.membershipId)}/assistants`;
     if (route.task === "roles") return "/access/roles";
     const parameters = new URLSearchParams({ page: String(route.page) });
     if (route.query) parameters.set("q", route.query);
     if (route.status && route.status !== "ALL") parameters.set("status", route.status);
     if (route.pageSize) parameters.set("size", String(route.pageSize));
     return `/access/members?${parameters}`;
+  }
+  if (route.navigationId === "access-policies") {
+    if (route.task === "policy-detail") return `/tenant/access-policies/${encodeURIComponent(route.policyId)}/versions/${encodeURIComponent(route.versionId)}`;
+    const parameters = new URLSearchParams({ page: String(route.page) });
+    if (route.pageSize) parameters.set("size", String(route.pageSize));
+    if (route.query) parameters.set("q", route.query);
+    if (route.status && route.status !== "ALL") parameters.set("status", route.status);
+    return `/tenant/access-policies?${parameters}`;
   }
   if (route.navigationId === "data") {
     return route.task === "knowledge-bases"

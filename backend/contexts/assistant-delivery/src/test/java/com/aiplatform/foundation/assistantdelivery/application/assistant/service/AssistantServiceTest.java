@@ -270,6 +270,7 @@ class AssistantServiceTest {
     }
 
     private static final class MemoryRepository implements AssistantRepository {
+        @Override public Optional<Assistant> lockAssistant(TenantId tenant, AssistantId id) { return findAssistant(tenant, id); }
 
         private Assistant assistant;
         private AssistantVersion assistantVersion;

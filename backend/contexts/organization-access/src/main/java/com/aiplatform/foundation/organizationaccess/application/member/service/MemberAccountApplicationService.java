@@ -41,6 +41,7 @@ public class MemberAccountApplicationService {
     private final TenantMemberStatusStore membershipLocks;
     private final TenantFeatureSettingsStore ceilings;
     private final QueryAssistantCatalogService assistants;
+    private final com.aiplatform.foundation.assistantdelivery.application.assistant.facade.PublishedAssistantAuthorizationLookup assistantAuthorization;
     private final PasswordHasher hasher;
     private final PasswordVerifier verifier;
     private final PersonSessionFamilyRevoker sessions;
@@ -50,11 +51,13 @@ public class MemberAccountApplicationService {
     public MemberAccountApplicationService(MemberAccountStore store, PlatformAccountStore identities,
             TenantMemberEstablishmentApplicationService establishment, TenantMemberStatusApplicationService statuses,
             TenantMemberStatusStore membershipLocks, TenantFeatureSettingsStore ceilings,
-            QueryAssistantCatalogService assistants, PasswordHasher hasher, PasswordVerifier verifier,
+            QueryAssistantCatalogService assistants,
+            com.aiplatform.foundation.assistantdelivery.application.assistant.facade.PublishedAssistantAuthorizationLookup assistantAuthorization,
+            PasswordHasher hasher, PasswordVerifier verifier,
             PersonSessionFamilyRevoker sessions, EntityIdGenerator identifiers, Clock clock) {
         this.store = store; this.identities = identities; this.establishment = establishment;
         this.statuses = statuses; this.membershipLocks = membershipLocks; this.ceilings = ceilings;
-        this.assistants = assistants; this.hasher = hasher; this.verifier = verifier;
+        this.assistants = assistants; this.assistantAuthorization = assistantAuthorization; this.hasher = hasher; this.verifier = verifier;
         this.sessions = sessions; this.identifiers = identifiers; this.clock = clock;
     }
 
@@ -118,10 +121,9 @@ public class MemberAccountApplicationService {
                     || revision != command.expectedAuthorizationRevision()) throw conflict();
             var features = new com.aiplatform.foundation.organizationaccess.domain.member.model.ConversationFeatures(command.features());
             features.requireWithin(ceiling);
-            if (!command.assistantIds().isEmpty()) {
-                var selected = assistants.list(new ListQueryAssistantsQuery(context, new PageQuery(1, 100),
-                        "", command.assistantIds(), false));
-                if (selected.totalElements() != command.assistantIds().size()) throw denied();
+            // 发布事实与关系写入保持同一事务；拥有者也锁此助手行，不能先读候选再无锁赋权。
+            for (var assistant : new TreeSet<>(command.assistantIds())) {
+                assistantAuthorization.lock(context.tenantId(), assistant).orElseThrow(MemberAccountApplicationService::denied);
             }
             var identity = SubjectIdentity.register(new SubjectId(identifiers.nextId()), command.loginName(),
                     new EncodedPassword(hasher.encode(password)), clock.instant());

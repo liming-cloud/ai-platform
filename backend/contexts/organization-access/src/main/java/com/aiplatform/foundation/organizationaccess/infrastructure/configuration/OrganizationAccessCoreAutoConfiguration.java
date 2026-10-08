@@ -95,6 +95,20 @@ public class OrganizationAccessCoreAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
+    com.aiplatform.foundation.organizationaccess.application.accesspolicy.AccessPolicyService accessPolicyService(
+            com.aiplatform.foundation.organizationaccess.application.member.service.MemberAccountApplicationService accounts,
+            com.aiplatform.foundation.organizationaccess.application.member.port.out.MemberAccountStore members,
+            com.aiplatform.foundation.organizationaccess.application.accesspolicy.AccessPolicyStore policies,
+            PlatformAccountStore identities, TenantMemberStatusStore memberships, TenantFeatureSettingsStore ceilings,
+            com.aiplatform.foundation.assistantdelivery.application.assistant.facade.PublishedAssistantAuthorizationLookup assistants,
+            com.aiplatform.foundation.knowledgedata.application.knowledge.facade.KnowledgeSpaceNameLookup knowledge,
+            TenantMemberSessionRevoker sessions, EntityIdGenerator identifiers) {
+        return new com.aiplatform.foundation.organizationaccess.application.accesspolicy.AccessPolicyService(accounts, members, policies,
+                identities, memberships, ceilings, assistants, knowledge, sessions, identifiers, java.time.Clock.systemUTC());
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
     TenantFeatureAvailabilityService tenantFeatureAvailabilityService(TenantFeatureSettingsStore store) {
         return new TenantFeatureAvailabilityService(store);
     }
@@ -358,10 +372,11 @@ public class OrganizationAccessCoreAutoConfiguration {
             TenantMemberStatusApplicationService statuses, TenantMemberStatusStore membershipLocks,
             TenantFeatureSettingsStore ceilings,
             com.aiplatform.foundation.assistantdelivery.application.catalog.facade.QueryAssistantCatalogService assistants,
+            com.aiplatform.foundation.assistantdelivery.application.assistant.facade.PublishedAssistantAuthorizationLookup assistantAuthorization,
             PasswordHasher hasher, com.aiplatform.foundation.organizationaccess.application.authentication.port.out.PasswordVerifier verifier,
             PersonSessionFamilyRevoker sessions, EntityIdGenerator identifiers) {
         return new com.aiplatform.foundation.organizationaccess.application.member.service.MemberAccountApplicationService(
-                store, identities, establishment, statuses, membershipLocks, ceilings, assistants,
+                store, identities, establishment, statuses, membershipLocks, ceilings, assistants, assistantAuthorization,
                 hasher, verifier, sessions, identifiers, java.time.Clock.systemUTC());
     }
 
@@ -382,6 +397,18 @@ public class OrganizationAccessCoreAutoConfiguration {
             TenantFeatureSettingsStore ceilings, TenantMemberSessionRevoker sessions) {
         return new com.aiplatform.foundation.organizationaccess.application.member.service.MemberFeatureSettingsService(
                 accounts, store, identities, memberships, ceilings, sessions);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    com.aiplatform.foundation.organizationaccess.application.member.service.MemberAssistantSettingsService memberAssistantSettingsService(
+            com.aiplatform.foundation.organizationaccess.application.member.service.MemberAccountApplicationService accounts,
+            com.aiplatform.foundation.organizationaccess.application.member.port.out.MemberAccountStore store,
+            PlatformAccountStore identities, TenantMemberStatusStore memberships,
+            com.aiplatform.foundation.assistantdelivery.application.assistant.facade.PublishedAssistantAuthorizationLookup assistants,
+            TenantMemberSessionRevoker sessions) {
+        return new com.aiplatform.foundation.organizationaccess.application.member.service.MemberAssistantSettingsService(
+                accounts, store, identities, memberships, assistants, sessions);
     }
 
     @Bean

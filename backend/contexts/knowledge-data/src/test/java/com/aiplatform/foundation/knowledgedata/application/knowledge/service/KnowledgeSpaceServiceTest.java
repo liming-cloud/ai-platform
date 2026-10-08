@@ -108,6 +108,7 @@ class KnowledgeSpaceServiceTest {
     }
 
     private static final class RecordingRepository implements KnowledgeSpaceRepository {
+        @Override public java.util.Optional<String> findName(TenantId tenant, KnowledgeSpaceId id) { return java.util.Optional.empty(); }
 
         private KnowledgeSpaceCreation creation;
         private int tenantLimit;

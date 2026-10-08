@@ -42,6 +42,12 @@ public class AssistantDeliveryCoreAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
+    com.aiplatform.foundation.assistantdelivery.application.assistant.facade.PublishedAssistantAuthorizationLookup publishedAssistantAuthorizationLookup(AssistantRepository repository) {
+        return new com.aiplatform.foundation.assistantdelivery.application.assistant.service.PublishedAssistantAuthorizationLookupService(repository);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
     PublishedAssistantVersionLookup publishedAssistantVersionLookup(
             AssistantRepository repository) {
         return new PublishedAssistantVersionLookupService(repository);

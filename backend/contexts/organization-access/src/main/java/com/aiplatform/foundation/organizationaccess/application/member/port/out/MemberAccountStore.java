@@ -19,6 +19,8 @@ public interface MemberAccountStore extends MemberAccessFacts {
     void initialize(TenantId tenantId, long membershipId, ConversationFeatures features, Set<Long> assistants);
     /** 仅替换本成员四项功能并推进独立版本；不修改助手关系或租户授权 revision。 */
     void updateFeatures(TenantId tenantId, long membershipId, ConversationFeatures features, long expectedVersion);
+    /** 替换唯一成员—助手关系；调用方先持有租户、授权、主体及资格锁。 */
+    void replaceAssistants(TenantId tenantId, long membershipId, Set<Long> assistants);
     /** 仅在对象授权集合发生变化时推进租户 revision。 */
     void advanceAuthorization(TenantId tenantId, long expectedRevision);
     /** 审计与幂等结果同业务提交，不记录密码或请求正文。 */
