@@ -11,7 +11,7 @@
 .member-form-fields { display: grid; padding: 0; margin: 0; border: 0; min-width: 0; }
 .member-workspace .fui-Field, .member-account-dialog .fui-Field { min-width: 0; max-width: 100%; row-gap: 8px; }
 .member-workspace .fui-Field > .fui-Label, .member-account-dialog .fui-Field > .fui-Label { margin: 0; padding: 0; font-weight: 620; line-height: 1.6; }
-.member-workspace .fui-Field__hint { color: var(--foundation-secondary-text); font-size: .833333rem; line-height: 1.6; }
+.member-workspace .fui-Field__hint { margin: 0; color: var(--foundation-text); font-size: .833333rem; line-height: 1.6; }
 .member-workspace .fui-Input, .member-account-dialog .fui-Input { width: 100%; min-width: 0; min-height: max(var(--foundation-control-height), calc(1lh + 8px)); padding-block: 0; font-size: 16px; line-height: 1.5; }
 .member-workspace .fui-Input__input, .member-account-dialog .fui-Input__input { width: 100%; line-height: 1.5; }
 .member-conversation-features { display: grid; gap: 8px; margin: 16px 20px; padding: 12px 0 0; border: 0; border-top: 1px solid var(--foundation-border); min-width: 0; }
@@ -26,21 +26,21 @@
 .member-directory-workspace { gap: 0; }
 .member-directory-toolbar { display: flex; flex-wrap: wrap; align-items: end; gap: 12px; }
 .member-directory-toolbar > :first-child { width: min(100%, 22rem); }
-.member-directory-toolbar > span { margin-left: auto; color: var(--foundation-muted-text); }
+.member-directory-toolbar > span { margin-left: auto; color: var(--foundation-text); }
 /* 当前成员表格独占类名，避免继承模型目录的固定宽度，也不向模型页面传播响应式样式。 */
 .tenant-member-directory-table { min-width: 0; border: 1px solid var(--foundation-border); border-radius: var(--foundation-panel-radius); overflow: hidden; }
 .tenant-member-directory-table table { width: 100%; border-collapse: collapse; font-size: 15px; table-layout: fixed; }
 .tenant-member-directory-table th, .tenant-member-directory-table td { min-height: 48px; height: 48px; padding: 8px 16px; text-align: left; vertical-align: middle; border-bottom: 1px solid var(--foundation-border); overflow-wrap: anywhere; }
 .tenant-member-directory-table th { color: var(--foundation-secondary-text); font-weight: 700; background: var(--foundation-subtle-surface); }
-.member-read-only { color: var(--foundation-secondary-text); font-size: 13px; }
-.member-status { display: inline-flex; align-items: center; gap: .35rem; width: fit-content; min-height: 24px; border: 1px solid var(--foundation-border); border-radius: 999px; padding: 2px 8px; font-size: 12px; font-weight: 650; white-space: nowrap; }
+.member-read-only { color: var(--foundation-muted-text); font-size: 14px; }
+.member-status { display: inline-flex; align-items: center; gap: .35rem; width: fit-content; min-height: 24px; border: 1px solid var(--foundation-border); border-radius: 999px; padding: 2px 8px; font-size: 14px; font-weight: 650; white-space: nowrap; }
 .member-status::before { content: ""; width: .4rem; height: .4rem; border-radius: 50%; background: currentColor; }
 .member-status[data-tone="success"] { color: var(--foundation-success-foreground); border-color: var(--foundation-success-border); background: var(--foundation-success-background); }
 .member-status[data-tone="warning"] { color: var(--foundation-warning-foreground); border-color: var(--foundation-warning-border); background: var(--foundation-warning-background); }
 .member-row-actions { flex-wrap: wrap; }
 /* 普通文字保持同行；放大后按最小可读宽度换行，不能把字挤进按钮内边距。 */
 .member-row-actions .fui-Button { flex: 1 1 0; min-width: min-content; max-width: max-content; min-height: var(--foundation-control-height-compact); padding: .25rem .5rem; }
-.member-pagination { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 12px; padding: 12px 16px; border-top: 1px solid var(--foundation-border); color: var(--foundation-secondary-text); font-size: 13px; }
+.member-pagination { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 12px; padding: 12px 16px; border-top: 1px solid var(--foundation-border); color: var(--foundation-muted-text); font-size: 14px; }
 .member-pagination-summary { margin-right: auto; white-space: nowrap; }
 .member-pagination-size, .member-pagination-jump, .member-pagination-jump label, .member-pagination-pages { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .member-pagination-size, .member-pagination-jump label { flex-wrap: nowrap; white-space: nowrap; }
@@ -62,18 +62,30 @@
 /* 目录页头动作也需避开固定头栏；它与目录正文相邻，并不位于工作区内部。 */
 .member-workspace :is(input, button, select), .page-heading:has(+ .member-directory-workspace) button { scroll-margin-block: 12rem; }
 .member-workspace :focus-visible, .member-object-navigation :focus-visible { outline: 2px solid var(--foundation-accent); outline-offset: 3px; }
-@media (max-width: 760px) {
-  .tenant-member-directory-table table, .tenant-member-directory-table tbody, .tenant-member-directory-table tr, .tenant-member-directory-table td { display: block; }
-  .tenant-member-directory-table thead { display: none; }
-  .tenant-member-directory-table tr { padding: 8px 12px; border-bottom: 1px solid var(--foundation-border); }
-  .tenant-member-directory-table td { height: auto; min-height: 44px; padding: 8px 0; border: 0; }
-  .tenant-member-directory-table td::before { display: block; content: attr(data-label); color: var(--foundation-muted-text); font-size: 12px; }
+@media (max-width: 680px) {
+  .page-heading:has(+ .member-directory-workspace) > .fui-Button { width: 100%; justify-self: stretch; }
+  .member-directory-toolbar { display: grid; grid-template-columns: minmax(0, 1fr); min-height: 0; justify-content: space-between; }
+  .member-directory-toolbar > span { margin-left: 0; }
+  .tenant-member-directory-table table, .tenant-member-directory-table tbody, .tenant-member-directory-table tr, .tenant-member-directory-table td { display: block; width: 100%; }
+  /* 与原型一样只在视觉上收起列标题，继续为辅助技术保留表头语义。 */
+  .tenant-member-directory-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); }
+  .tenant-member-directory-table tr { min-height: 48px; padding: 12px 16px; border-bottom: 1px solid var(--foundation-border); }
+  .tenant-member-directory-table tbody tr:last-child { border-bottom: 0; }
+  /* 标签轨道沿用原型；内容按实际文字撑高，不能恢复固定单元格裁切。 */
+  .tenant-member-directory-table td { display: grid; grid-template-columns: 7.25rem minmax(0, 1fr); gap: 12px; height: auto; min-height: 48px; padding: 8px 0; border: 0; }
+  .tenant-member-directory-table td::before { display: block; content: attr(data-label); color: var(--foundation-muted-text); font-size: 14px; font-weight: 650; }
+  .member-directory-workspace .member-row-actions { justify-content: flex-start; }
+  .member-pagination { justify-content: flex-start; padding: 12px; }
+  .member-pagination-summary { width: 100%; }
   .member-account-facts { grid-template-columns: minmax(0, 1fr); }
-  .member-account-facts dt { padding-bottom: 0; border-bottom: 0; }
+  .member-account-facts dt { padding-bottom: 0; border-bottom: 0; font-size: 14px; }
+  .member-account-facts dd { padding-top: 4px; }
   .member-password-fields { grid-template-columns: minmax(0, 1fr); }
 }
 
 .member-account-workspace { max-width: 56rem; gap: 16px; margin-top: 0; }
+/* 原型对象导航后还有 20px 内容轨道间隙；当前普通流布局合并为 44px 留白。 */
+.member-object-navigation:has(+ .member-account-workspace) { margin-bottom: 44px; }
 .tenant-member-directory-table th:last-child, .tenant-member-directory-table td:last-child { text-align: right; }
 .tenant-member-directory-table tbody tr:last-child td { border-bottom: 0; }
 .member-row-actions { justify-content: flex-end; }
@@ -96,6 +108,8 @@
 .member-account-dialog .fui-Input { border-radius: var(--foundation-control-radius); }
 .member-account-dialog .fui-Input__input { font-size: 16px; line-height: 1.5; }
 .member-dialog-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; padding-top: 16px; border-top: 1px solid var(--foundation-border); }
+/* 原型停用确认区保留独立反馈行的间隙，不以空反馈节点制造留白。 */
+.member-status-form .member-dialog-actions { margin-top: 16px; }
 .member-create-form > .member-form-actions { position: sticky; bottom: 0; z-index: 1; }
 @media (max-width: 680px) {
   .member-account-dialog { width: calc(100vw - 16px); max-height: calc(100dvh - 16px); padding: 16px; }

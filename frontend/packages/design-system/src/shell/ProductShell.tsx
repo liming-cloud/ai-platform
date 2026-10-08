@@ -98,7 +98,7 @@ export function ProductShell({
       <aside className="product-sidebar">
         <div className="product-brand">
           <span aria-hidden="true">R</span>
-          <div><Text weight="semibold">{productName}</Text><small>{platform ? "平台范围" : tenantDisplayName ? "租户工作区" : "租户范围"}</small></div>
+          <div><Text weight="semibold">{productName}</Text><small>{platform ? "平台范围" : "租户范围"}</small></div>
         </div>
         <nav className={tenantDisplayName ? "product-navigation product-navigation--tenant-context" : "product-navigation"} aria-label={tenantDisplayName ? "租户范围导航" : "主要导航"}>
           {platform ? <p className="product-navigation__scope">平台范围 / 脱敏治理</p> : null}
