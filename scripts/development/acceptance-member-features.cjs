@@ -234,10 +234,13 @@ async function run(configuration) {
           });
           requireCondition(matches, "功能复选框、短按钮或 reduced-motion 与已接受原型不一致");
           for (const button of await page.locator(".member-form-actions button").all()) {
+            const borderColor = await button.evaluate(element => getComputedStyle(element).borderColor);
             await button.focus(); await page.keyboard.press("Shift");
-            requireCondition(await button.evaluate(element => element.matches(":focus-visible")
+            await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+            requireCondition(await button.evaluate((element, expectedBorderColor) => element.matches(":focus-visible")
               && getComputedStyle(element).outlineOffset === "2px" && getComputedStyle(element).borderRadius === "8px"
-              && getComputedStyle(element).boxShadow === "none"), "功能按钮键盘焦点样式与原型不一致");
+              && getComputedStyle(element).borderColor === expectedBorderColor
+              && getComputedStyle(element).boxShadow === "none", borderColor), "功能按钮键盘焦点样式与原型不一致");
           }
         });
         await page.getByRole("checkbox", { name: "本人历史", exact: true }).check();
@@ -251,10 +254,14 @@ async function run(configuration) {
             && getComputedStyle(element.querySelector(".member-dialog-actions")).marginTop === "16px");
           requireCondition(matches, "未保存提示尺寸或段落留白与已接受原型不一致");
           for (const button of await dialog.getByRole("button").all()) {
+            const borderColor = await button.evaluate(element => getComputedStyle(element).borderColor);
             await button.focus(); await page.keyboard.press("Shift");
-            requireCondition(await button.evaluate(element => element.matches(":focus-visible")
+            await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+            requireCondition(await button.evaluate((element, expectedBorderColor) => element.matches(":focus-visible")
               && getComputedStyle(element).outlineStyle === "solid" && getComputedStyle(element).outlineWidth === "2px"
-              && getComputedStyle(element).outlineOffset === "2px" && getComputedStyle(element).boxShadow === "none"), "未保存提示键盘焦点样式与原型不一致");
+              && getComputedStyle(element).outlineOffset === "2px"
+              && getComputedStyle(element).borderColor === expectedBorderColor
+              && getComputedStyle(element).boxShadow === "none", borderColor), "未保存提示键盘焦点样式与原型不一致");
           }
         }, '[role="dialog"]');
         await dialog.getByRole("button", { name: "保留当前", exact: true }).click(); await dialog.waitFor({ state: "hidden" });
