@@ -89,7 +89,7 @@ function PolicyDirectory({ client, route, onRouteChange }: { client: ControlPlan
     <Dialog open={creating} onOpenChange={(_, data) => { if (!data.open) close(); }}>
       <DialogSurface className="member-account-dialog policy-create-dialog" aria-labelledby="access-create-title" backdrop={{ className: "member-account-backdrop" }}>
         <form className="member-dialog-form" onSubmit={event => void create(event)} noValidate>
-          <DialogTitle id="access-create-title" className="member-dialog-title" action={null}>新建访问策略</DialogTitle>
+          <div className="member-dialog-header"><DialogTitle id="access-create-title" className="member-dialog-title" action={null}>新建访问策略</DialogTitle></div>
           <label className="member-native-field"><span>策略名称</span><input name="name" minLength={2} maxLength={80} required disabled={busy} /></label>
           <PublishedAssistantPicker client={client} single selectFirst selected={assistantId ? [assistantId] : []} disabled={busy} onChange={ids => setAssistant(ids[0] ?? "")} />
           <PolicyMemberPicker client={client} compact selected={membershipIds} disabled={busy} onChange={setMembers} />

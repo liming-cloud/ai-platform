@@ -35,7 +35,10 @@ async function measureParity(page, kind, original = false) {
       dialog: { surface: ['dialog[open]', '[role="dialog"]'], heading: ['dialog[open] h2', '[role="dialog"] h2'], actions: ['dialog[open] .dialog-actions', '[role="dialog"] .member-dialog-actions'] },
     };
     const group = kind === 'assistants' ? 'assistants' : kind === 'directory' ? 'directory' : kind === 'unsaved' || kind === 'create-dialog' ? 'dialog' : 'detail';
-    if (kind === 'create-dialog') pairs.dialog.actions = ['dialog[open] .dialog-actions', '[role="dialog"] .member-form-actions'];
+    if (kind === 'create-dialog') {
+      pairs.dialog.actions = ['dialog[open] .dialog-actions', '[role="dialog"] .member-form-actions'];
+      pairs.dialog.header = ['dialog[open] .dialog-header', '[role="dialog"] .member-dialog-header'];
+    }
     const selectors = { body: ['main', 'main'], ...(group === 'dialog' ? {} : { title: ['h1', 'h1'] }), ...pairs[group] };
     const keys = ['display', 'fontFamily', 'fontSize', 'fontWeight', 'lineHeight', 'color', 'backgroundColor', 'padding', 'margin', 'gap', 'borderColor', 'borderWidth', 'borderRadius', 'minHeight', 'minWidth', 'maxWidth', 'alignItems', 'flexWrap', 'boxShadow'];
     return Object.fromEntries(Object.entries(selectors).map(([name, choices]) => {
@@ -99,6 +102,12 @@ async function run(config) {
           requireCondition(clippedCounts === 0, "真实策略预览计数被省略或裁切");
           if (name === "directory") await verifyDirectorySpacing(page);
           if (name === "assistants") await verifyAssistantNavigation(page);
+          if (name === "create-dialog") {
+            const header = page.locator(".policy-create-dialog .member-dialog-header");
+            requireCondition(await header.count() === 1, "新建策略弹窗缺少原型标题分隔区");
+            const style = await header.evaluate(element => { const value = getComputedStyle(element); return { gap: value.gap, padding: value.paddingBottom, border: value.borderBottomWidth }; });
+            requireCondition(style.gap === "8px" && style.padding === "16px" && style.border === "1px", "新建策略弹窗标题分隔区未承接原型");
+          }
           await page.mouse.move(0, 0);
           const filename = path.join(directory, `isolated-${name}-${width}-${enlarged ? 200 : 100}-${crypto.randomBytes(3).toString("hex")}.png`);
           fs.writeFileSync(filename.replace(/\.png$/, ".json"), JSON.stringify({ kind: name, width, enlarged, metrics: await measureParity(page, name) }), { mode: 0o600, flag: "wx" });
@@ -177,9 +186,11 @@ async function run(config) {
     await check("真实预览发布与受影响会话撤销旧编辑冲突", async () => {
       const previewed = waitCommand(page, "POST", "/preview"); await page.getByRole("button", { name: "生成授权预览", exact: true }).click(); const preview = await previewed;
       requireCondition(preview.status() === 200, "授权预览失败"); policy = await preview.json(); verifyPreview(policy.preview);
+      await page.getByText("允许、拒绝、历史和引用样本预览全部通过。", { exact: true }).waitFor();
       requireCondition(policy.preview.allowCount === 8 && policy.preview.denyCount === 3992, "预览不是千成员四项真实判定"); await capture("preview");
       const published = waitCommand(page, "POST", "/publish"); await page.getByRole("button", { name: "发布策略版本", exact: true }).click(); const response = await published;
       requireCondition(response.status() === 200, "真实策略发布失败"); policy = await response.json();
+      await page.getByText(`策略 v${policy.number} 已发布，成员授权范围已更新。`, { exact: true }).waitFor();
       requireCondition((await readMember(secondId)).assistantIds.join() === credentials.assistantId && (await request(secondBefore.page, "/auth/browser-session")).status === 401, "策略与成员助手事实分叉或旧会话仍可用"); await secondBefore.context.close();
       await oldTab.locator(".assistant-choice-list input").first().uncheck(); requireCondition((await saveMember(oldTab)).status() === 409, "策略发布后旧助手草稿覆盖新授权"); await oldTab.close(); await capture("published");
     });
@@ -200,6 +211,7 @@ async function run(config) {
           memberCount: submitted.membershipIds?.length }) + "\n");
       }
       requireCondition(savedResponse.status() === 200, "草稿保存失败");
+      await page.getByText("策略草稿已保存；请重新生成授权预览。", { exact: true }).waitFor();
       const previewed = waitCommand(page, "POST", "/preview"); await page.getByRole("button", { name: "生成授权预览", exact: true }).click(); requireCondition((await previewed).status() === 200, "新版本真实预览失败");
       const published = waitCommand(page, "POST", "/publish"); await page.getByRole("button", { name: "发布策略版本", exact: true }).click(); const response = await published; requireCondition(response.status() === 200, "新预览发布失败");
       const next = await response.json(); await page.getByRole("button", { name: "创建策略新版本", exact: true }).waitFor();

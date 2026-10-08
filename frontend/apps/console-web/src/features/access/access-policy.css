@@ -35,6 +35,7 @@
 .policy-directory-table .fui-Button { min-height: var(--foundation-control-height-compact); padding: 4px 12px; }
 .policy-directory-table th { min-height: 0; color: var(--foundation-muted-text); }
 .policy-create-dialog { width: min(32rem, calc(100vw - 32px)); }
+.policy-create-dialog .member-dialog-header { gap: 8px; }
 .policy-create-dialog .member-form-actions { padding-top: 16px; border-top: 1px solid var(--foundation-border); }
 .policy-member-options { min-width: 0; padding: 0; margin: 0 2px; border: 2px groove; }
 .policy-member-options legend { color: var(--foundation-muted-text); padding: 0 2px; font-size: 14px; font-weight: 650; letter-spacing: .02em; }

@@ -86,7 +86,7 @@ export function AccessPolicyWorkspace({ client, route, onRouteChange, registerDe
       if (command === "new-version") setNextVersion(value);
       else {
         setFacts(value); setDraft(policyInput(value));
-        setFeedback(command === "save" ? "策略草稿已保存，发布前请重新生成授权预览。" : command === "preview" ? "授权预览已生成，尚未发布。" : "策略版本已发布。");
+        setFeedback(command === "save" ? "策略草稿已保存；请重新生成授权预览。" : command === "preview" ? "允许、拒绝、历史和引用样本预览全部通过。" : `策略 v${value.number} 已发布，成员授权范围已更新。`);
       }
     } catch (error) { if (current()) setFailure(presentApiError(error, "处理策略版本").description); }
     finally { writing.current = false; if (current()) setBusy(false); }
