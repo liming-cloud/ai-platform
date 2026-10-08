@@ -131,7 +131,7 @@ function MemberDirectory({ client, route, onRouteChange }: { client: ControlPlan
   return <>
     <PageHeading title="成员与对话功能" context="租户访问与知识" summary="普通成员" status={{ label: "可配置", tone: "success" }}
       action={<Button appearance="primary" disabled={busy} onClick={() => onRouteChange({ navigationId: "access", task: "member-create", step: 1 })}>添加成员</Button>} />
-    <section className="member-workspace" aria-busy={!page || busy}>
+    <section className="member-workspace member-directory-workspace" aria-busy={!page || busy}>
       <div className="member-directory-toolbar"><Field label="搜索成员"><Input type="search" placeholder="按姓名或角色搜索" maxLength={64} value={search}
         onChange={(_, data) => setSearchDraft({ routeQuery: query, value: data.value })} /></Field><span>管理员条目只读</span></div>
       {notice ? <p role="status">{notice}</p> : null}
@@ -142,11 +142,11 @@ function MemberDirectory({ client, route, onRouteChange }: { client: ControlPlan
             return <tr key={member.membershipId}><td data-label="成员"><strong>{member.loginName}</strong></td><td data-label="角色">{readOnly ? "租户管理员" : "普通成员"}</td>
               <td data-label="状态"><span className="member-status" data-tone={member.status === "ENABLED" ? "success" : "warning"}>{member.status === "ENABLED" ? "活动" : "已停用"}</span></td>
               <td data-label="助手范围">{readOnly ? "平台治理" : `${member.assistantCount} 个`}</td>
-              <td data-label="操作">{readOnly ? <span>只读</span> : <div className="member-row-actions">
+              <td data-label="操作">{readOnly ? <span className="member-read-only">只读</span> : <div className="member-row-actions">
                 <Button disabled={busy} onClick={() => onRouteChange({ navigationId: "access", task: "member-account", membershipId: member.membershipId })}>查看成员</Button>
-                <Button disabled={busy} onClick={event => void openReset(member, event.currentTarget)}>重置密码</Button>
-                {member.status === "ENABLED" ? <Button disabled={busy} onClick={event => { trigger.current = event.currentTarget; setDialogError(""); setPending({ kind: "disable", account: member }); }}>停用</Button>
-                  : <Button disabled={busy} onClick={event => void restore(member, event.currentTarget)}>恢复</Button>}
+                <Button appearance="subtle" disabled={busy} onClick={event => void openReset(member, event.currentTarget)}>重置密码</Button>
+                {member.status === "ENABLED" ? <Button appearance="subtle" disabled={busy} onClick={event => { trigger.current = event.currentTarget; setDialogError(""); setPending({ kind: "disable", account: member }); }}>停用</Button>
+                  : <Button appearance="subtle" disabled={busy} onClick={event => void restore(member, event.currentTarget)}>恢复</Button>}
               </div>}</td></tr>;
           }) : <tr><td colSpan={5}>没有匹配的成员。</td></tr>}</tbody></table>
           <div className="member-pagination"><span>共 {page.totalElements} 名成员</span><label>每页 <select aria-label="每页成员数" value={size} onChange={event => onRouteChange({ ...route, page: 1, pageSize: Number(event.target.value) as 10 | 20 | 50 | 100 })}>
