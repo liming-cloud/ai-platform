@@ -186,13 +186,22 @@ async function run(configuration) {
       requireCondition((await keyedRequest(oldMember.page, "/query-runs", { assistantVersionId: "1", question: "合成无授权访问" }, `denied-${suffix}`)).status === 403, "无助手成员可直接问答");
       requireCondition((await request(oldMember.page, "/platform/accounts")).status === 401, "普通成员取得平台范围");
     });
-    await check("重置取消零写入且确认撤销全部会话后旧密码会话失效", async () => {
+    await check("重置取消及错误确认零写入且正式重置撤销旧密码会话", async () => {
+      let resetWrites = 0;
+      page.on("request", sent => { if (sent.method() === "POST" && new URL(sent.url()).pathname.endsWith("/password-reset")) resetWrites += 1; });
       const row = await findTarget(); await row.getByRole("button", { name: "重置密码", exact: true }).click();
       let dialog = page.getByRole("dialog"); await dialog.getByLabel(/^新密码\*?$/).fill(generated.member.replacementPassword);
       await dialog.getByRole("button", { name: "取消", exact: true }).click();
       requireCondition((await request(oldMember.page, "/auth/browser-session")).status === 200, "取消重置撤销了旧会话");
       await row.getByRole("button", { name: "重置密码", exact: true }).click(); dialog = page.getByRole("dialog");
       requireCondition(await dialog.getByLabel(/^新密码\*?$/).inputValue() === "", "重新打开保留新密码");
+      await dialog.getByLabel(/^新密码\*?$/).fill(generated.member.replacementPassword);
+      await dialog.getByLabel(/^再次输入\*?$/).fill("mismatch");
+      await dialog.getByRole("checkbox", { name: "撤销全部会话", exact: false }).check();
+      await dialog.getByRole("button", { name: "重置密码", exact: true }).click(); await dialog.getByRole("alert").waitFor();
+      requireCondition(resetWrites === 0 && await dialog.getByLabel(/^新密码\*?$/).inputValue() === ""
+        && await dialog.getByLabel(/^再次输入\*?$/).inputValue() === "", "重置错误确认仍写入或恢复密码");
+      requireCondition((await request(oldMember.page, "/auth/browser-session")).status === 200, "错误确认撤销了旧会话");
       await dialog.getByLabel(/^新密码\*?$/).fill(generated.member.replacementPassword);
       await dialog.getByLabel(/^再次输入\*?$/).fill(generated.member.replacementPassword);
       await dialog.getByRole("checkbox", { name: "撤销全部会话", exact: false }).check();

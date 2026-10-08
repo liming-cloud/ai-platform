@@ -35,6 +35,7 @@ function MemberDirectory({ client, route, onRouteChange }: { client: ControlPlan
   const [busy, setBusy] = useState(false);
   const [dialogError, setDialogError] = useState("");
   const [acknowledged, setAcknowledged] = useState(false);
+  const [passwordRevision, setPasswordRevision] = useState(0);
   const query = route.query ?? "";
   const [searchDraft, setSearchDraft] = useState({ routeQuery: query, value: query });
   const search = searchDraft.routeQuery === query ? searchDraft.value : query;
@@ -71,10 +72,10 @@ function MemberDirectory({ client, route, onRouteChange }: { client: ControlPlan
     return () => window.clearTimeout(timer);
   }, [onRouteChange, query, route, search]);
   useEffect(() => {
-    if (pending?.kind !== "reset") return;
+    if (pending?.kind !== "reset" || busy) return;
     const timer = window.requestAnimationFrame(() => form.current?.querySelector<HTMLInputElement>('[name="password"]')?.focus());
     return () => window.cancelAnimationFrame(timer);
-  }, [pending]);
+  }, [pending, passwordRevision, busy]);
 
   function closeDialog() {
     if (writing.current) return;
@@ -105,9 +106,11 @@ function MemberDirectory({ client, route, onRouteChange }: { client: ControlPlan
     const fields = new FormData(submitted);
     const password = String(fields.get("password") ?? "");
     clearMemberPasswords(submitted);
+    // 原生值和 Fluent 内部状态一起清除，校验或请求失败不能恢复密码。
+    setPasswordRevision(value => value + 1);
     if (pending.kind === "reset" && (!password || password !== fields.get("confirmation") || !acknowledged)) {
       setDialogError("请完整填写两次相同密码，并确认撤销全部会话。");
-      form.current?.querySelector<HTMLInputElement>('[name="password"]')?.focus(); return;
+      return;
     }
     writing.current = true; setBusy(true); setDialogError(""); setNotice("");
     try {
@@ -159,8 +162,8 @@ function MemberDirectory({ client, route, onRouteChange }: { client: ControlPlan
           {pending?.kind === "reset" ? <p>为 {pending.account.loginName} 设置新密码。系统不会回显或保存明文。</p> : null}
         </div>
         <DialogContent>{pending?.kind === "reset" ? <>
-          <div className="member-password-fields"><Field label="新密码" required><Input name="password" type="password" disabled={busy} maxLength={1024} autoComplete="new-password" /></Field>
-            <Field label="再次输入" required><Input name="confirmation" type="password" disabled={busy} maxLength={1024} autoComplete="new-password" /></Field></div>
+          <div className="member-password-fields"><Field label="新密码" required><Input key={passwordRevision} name="password" type="password" disabled={busy} maxLength={1024} autoComplete="new-password" /></Field>
+            <Field label="再次输入" required><Input key={passwordRevision} name="confirmation" type="password" disabled={busy} maxLength={1024} autoComplete="new-password" /></Field></div>
           <Checkbox className="member-reset-consent" checked={acknowledged} disabled={busy} label={<span><strong>撤销全部会话</strong><small>平台与租户范围的既有会话同时失效。</small></span>} onChange={(_, data) => setAcknowledged(Boolean(data.checked))} />
         </> : <p>此成员将无法登录本租户，当前对话与历史访问立即失效。助手授权保留，可在成员目录恢复。</p>}
           {dialogError ? <p role="alert">{dialogError}</p> : null}</DialogContent>

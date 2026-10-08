@@ -33,7 +33,7 @@
 .member-account-facts dt, .member-account-facts dd { margin: 0; padding: .7rem 0; border-bottom: 1px solid var(--foundation-border); overflow-wrap: anywhere; }
 .member-account-facts dt { color: var(--foundation-muted-text); }
 .member-password-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-block: 16px; }
-.member-account-dialog { width: min(38rem, calc(100vw - 32px)); max-height: calc(100dvh - 32px); overflow: auto; line-height: 1.6; }
+.member-account-dialog { width: min(38rem, calc(100vw - 32px)); max-width: none; max-height: calc(100dvh - 32px); overflow: auto; line-height: 1.6; }
 .member-workspace :focus-visible, .member-object-navigation :focus-visible { outline: 2px solid var(--foundation-accent); outline-offset: 3px; scroll-margin-block: 8rem; }
 @media (max-width: 760px) {
   .member-directory-table table, .member-directory-table tbody, .member-directory-table tr, .member-directory-table td { display: block; }
@@ -57,10 +57,15 @@
 .member-reset-consent .fui-Checkbox__label { display: grid; padding: 0; line-height: 1.6; }
 .member-reset-consent .fui-Checkbox__label > span { display: grid; gap: 4px; }
 .member-reset-consent small { font-size: 13px; color: var(--foundation-secondary-text); }
-.member-dialog-title { font-family: var(--foundation-font-display); font-size: 25px; font-weight: 500; line-height: 1.35; }
-.member-dialog-header { grid-area: title; display: grid; gap: 4px; min-width: 0; }
+.member-dialog-title { grid-area: auto; font-family: var(--foundation-font-display); font-size: 25px; font-weight: 500; line-height: 1.35; }
+/* Fluent DialogBody 使用数字轨道；命名区域会生成隐式列，使操作落到遮罩下。 */
+.member-dialog-header { grid-column: 1 / -1; grid-row: 1; display: grid; gap: 4px; min-width: 0; }
 .member-dialog-header p { margin: 0; }
 .member-dialog-kicker { color: var(--foundation-secondary-text); font-size: 12px; font-weight: 650; letter-spacing: .02em; }
+/* 弹窗经 portal 离开应用根节点，仍使用同一套控件令牌。 */
+.member-account-dialog .fui-Button { min-width: 0; min-height: var(--foundation-control-height); font-size: 14px; line-height: 1.428572; border-radius: var(--foundation-control-radius); }
+.member-account-dialog .fui-Input { min-height: var(--foundation-control-height); border-radius: var(--foundation-control-radius); }
+.member-account-dialog .fui-DialogActions { grid-column: 1 / -1; grid-row: 3; flex-direction: row; flex-wrap: wrap; justify-content: flex-end; }
 .member-section:has(.member-form-fields) > .member-form-actions { position: sticky; bottom: 0; z-index: 1; }
 @media (max-width: 680px) {
   .member-account-dialog { width: calc(100vw - 16px); max-height: calc(100dvh - 16px); }
