@@ -3984,3 +3984,11 @@ main[data-screen="platform-tenants"] .compact-summary {
     scroll-margin-block-end: var(--space-4);
   }
 }
+
+/* 成员目录移动端按文字和操作内容撑高，保留表格行基准。 */
+@media (max-width: 680px) {
+  main[data-screen="tenant-members"] .data-table td {
+    height: auto;
+    min-height: var(--table-row-height);
+  }
+}
