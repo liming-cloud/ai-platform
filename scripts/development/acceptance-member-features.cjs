@@ -223,9 +223,18 @@ async function run(configuration) {
             return input.getBoundingClientRect().x - box.x === 24 && label.getBoundingClientRect().x - box.x === 57
               && getComputedStyle(input).margin === "2px 3px 3px 4px"
               && getComputedStyle(row).transitionDuration === "0s"
-              && [...document.querySelectorAll(".member-form-actions button")].every(button => getComputedStyle(button).paddingBlock === "6px");
+              && [...document.querySelectorAll(".member-form-actions button")].every(button => {
+                const style = getComputedStyle(button);
+                return style.paddingBlock === "6px" && button.getBoundingClientRect().height === Math.max(parseFloat(style.minHeight), parseFloat(style.fontSize) * 20 / 14 + 14);
+              });
           });
           requireCondition(matches, "功能复选框、短按钮或 reduced-motion 与已接受原型不一致");
+          for (const button of await page.locator(".member-form-actions button").all()) {
+            await button.focus(); await page.keyboard.press("Shift");
+            requireCondition(await button.evaluate(element => element.matches(":focus-visible")
+              && getComputedStyle(element).outlineOffset === "2px" && getComputedStyle(element).borderRadius === "8px"
+              && getComputedStyle(element).boxShadow === "none"), "功能按钮键盘焦点样式与原型不一致");
+          }
         });
         await page.getByRole("checkbox", { name: "本人历史", exact: true }).check();
         await page.getByRole("button", { name: "账号信息", exact: true }).click();
@@ -237,6 +246,12 @@ async function run(configuration) {
             && getComputedStyle(element.querySelector(".member-dialog-content")).marginTop === "16px"
             && getComputedStyle(element.querySelector(".member-dialog-actions")).marginTop === "16px");
           requireCondition(matches, "未保存提示尺寸或段落留白与已接受原型不一致");
+          for (const button of await dialog.getByRole("button").all()) {
+            await button.focus(); await page.keyboard.press("Shift");
+            requireCondition(await button.evaluate(element => element.matches(":focus-visible")
+              && getComputedStyle(element).outlineStyle === "solid" && getComputedStyle(element).outlineWidth === "2px"
+              && getComputedStyle(element).outlineOffset === "2px" && getComputedStyle(element).boxShadow === "none"), "未保存提示键盘焦点样式与原型不一致");
+          }
         }, '[role="dialog"]');
         await dialog.getByRole("button", { name: "保留当前", exact: true }).click(); await dialog.waitFor({ state: "hidden" });
         await page.getByRole("button", { name: "取消修改", exact: true }).click(); await direct(page);
