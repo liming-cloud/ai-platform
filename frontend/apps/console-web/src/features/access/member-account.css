@@ -10,12 +10,16 @@
 .member-create-form { gap: 24px; }
 .member-form-fields { display: grid; padding: 0; margin: 0; border: 0; min-width: 0; }
 .member-workspace .fui-Field, .member-account-dialog .fui-Field { min-width: 0; max-width: 100%; row-gap: 8px; }
-.member-workspace .fui-Label, .member-account-dialog .fui-Label { font-weight: 620; }
-.member-workspace .fui-Field__hint { color: var(--foundation-secondary-text); font-size: 13px; }
-.member-workspace .fui-Input, .member-account-dialog .fui-Input { width: 100%; min-width: 0; }
-.member-workspace .fui-Input__input, .member-account-dialog .fui-Input__input { width: 100%; }
+.member-workspace .fui-Field > .fui-Label, .member-account-dialog .fui-Field > .fui-Label { margin: 0; padding: 0; font-weight: 620; line-height: 1.6; }
+.member-workspace .fui-Field__hint { color: var(--foundation-secondary-text); font-size: .833333rem; line-height: 1.6; }
+.member-workspace .fui-Input, .member-account-dialog .fui-Input { width: 100%; min-width: 0; min-height: max(var(--foundation-control-height), calc(1lh + 8px)); padding-block: 0; font-size: 16px; line-height: 1.5; }
+.member-workspace .fui-Input__input, .member-account-dialog .fui-Input__input { width: 100%; line-height: 1.5; }
 .member-conversation-features { display: grid; gap: 8px; margin: 16px 20px; padding: 12px 0 0; border: 0; border-top: 1px solid var(--foundation-border); min-width: 0; }
 .member-conversation-features legend { padding-inline: 0 8px; color: var(--foundation-secondary-text); font-size: 14px; font-weight: 650; }
+.member-conversation-features .fui-Checkbox { min-height: 32px; width: 100%; max-width: none; }
+.member-conversation-features .fui-Checkbox__indicator { width: 18px; height: 18px; margin: 7px 11px 7px 4px; }
+.member-conversation-features .fui-Checkbox__label { flex: 1; align-self: center; padding: 0; font-weight: 400; line-height: 1.6; }
+.member-conversation-features .fui-Checkbox:has(input:not(:disabled)) .fui-Checkbox__label { color: var(--foundation-text); }
 .member-assistant-choices { display: grid; gap: 8px; max-height: 320px; overflow: auto; margin-block: 16px; }
 .member-assistant-choices > label { min-height: 44px; }
 .member-form-actions, .member-page-actions, .member-row-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
@@ -74,19 +78,21 @@
 .member-row-actions { justify-content: flex-end; }
 .member-create-steps li { display: grid; align-items: center; }
 .member-create-form > .member-form-actions { padding-block: 16px; border-top: 1px solid var(--foundation-border); background: var(--foundation-surface); }
-.member-reset-consent { width: 100%; max-width: none; min-height: 56px; padding: 16px; border: 1px solid var(--foundation-border-strong); border-radius: var(--foundation-control-radius); background: var(--foundation-subtle-surface); }
-.member-reset-consent .fui-Checkbox__label { display: grid; padding: 0; line-height: 1.6; }
+.member-reset-consent { width: 100%; max-width: none; min-height: 56px; padding: 12px 0; border: 1px solid var(--foundation-border-strong); border-radius: var(--foundation-control-radius); background: var(--foundation-subtle-surface); }
+.member-reset-consent .fui-Checkbox__indicator { width: 18px; height: 18px; margin: 2px 12px 0 0; }
+.member-reset-consent .fui-Checkbox__label { display: grid; padding: 0; font-weight: 400; line-height: 1.6; }
+.member-reset-consent:has(input:not(:disabled)) .fui-Checkbox__label { color: var(--foundation-text); }
 .member-reset-consent .fui-Checkbox__label > span { display: grid; gap: 4px; }
-.member-reset-consent small { font-size: 13px; color: var(--foundation-secondary-text); }
+.member-reset-consent small { font-size: .833333rem; font-weight: 400; color: var(--foundation-secondary-text); }
 .member-dialog-title { grid-area: auto; font-family: var(--foundation-font-display); font-size: 25px; font-weight: 500; line-height: 1.35; }
 /* 表单由单列原生布局拥有，避免 Fluent 数字轨道与原型区块产生隐式列。 */
 .member-dialog-form, .member-dialog-content { display: grid; gap: 16px; min-width: 0; }
-.member-dialog-header { display: grid; gap: 8px; min-width: 0; padding-bottom: 16px; border-bottom: 1px solid var(--foundation-border); }
+.member-dialog-header { display: grid; gap: 4px; min-width: 0; padding-bottom: 16px; border-bottom: 1px solid var(--foundation-border); }
 .member-dialog-form p { margin: 0; }
 .member-dialog-kicker { color: var(--foundation-secondary-text); font-size: 14px; font-weight: 650; letter-spacing: .02em; }
 /* 弹窗经 portal 离开应用根节点，仍使用同一套控件令牌。 */
 .member-account-dialog .fui-Button { min-width: 0; min-height: var(--foundation-control-height); font-size: 14px; line-height: 1.428572; border-radius: var(--foundation-control-radius); }
-.member-account-dialog .fui-Input { min-height: var(--foundation-control-height); border-radius: var(--foundation-control-radius); }
+.member-account-dialog .fui-Input { border-radius: var(--foundation-control-radius); }
 .member-account-dialog .fui-Input__input { font-size: 16px; line-height: 1.5; }
 .member-dialog-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; padding-top: 16px; border-top: 1px solid var(--foundation-border); }
 .member-create-form > .member-form-actions { position: sticky; bottom: 0; z-index: 1; }
