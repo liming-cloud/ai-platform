@@ -1,6 +1,6 @@
 import { Tab, TabList } from "@fluentui/react-components";
 import { ProductShell, StatePanel } from "@foundation/design-system";
-import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ControlPlaneClient } from "./api/control-plane-client";
 import { KnowledgePublicationFlow } from "./features/knowledge-publication/KnowledgePublicationFlow";
 import { BrowserSessionGate } from "./session/BrowserSessionGate";
@@ -177,6 +177,11 @@ function AuthenticatedConsoleApp({
   const tenantDisplayName = tenantAdministrator && tenantContext?.epoch === contextEpoch ? tenantContext.displayName : undefined;
   const tenantContextError = tenantAdministrator && tenantContext?.epoch === contextEpoch && tenantContext.error;
   const [location, setLocation] = useState(readBrowserLocation);
+  const memberFeatureDeparture = useRef<((proceed: () => void) => void) | undefined>(undefined);
+  const registerMemberFeatureDeparture = useCallback((guard: (proceed: () => void) => void) => {
+    memberFeatureDeparture.current = guard;
+    return () => { if (memberFeatureDeparture.current === guard) memberFeatureDeparture.current = undefined; };
+  }, []);
   const parsedRoute = parseConsoleRoute(location.pathname, location.search);
   const requestedRoute = parsedRoute ?? ((location.pathname === "/" || isConsoleLoginPath(location.pathname)) && defaultNavigationId !== undefined
     ? navigationEntryRoute(defaultNavigationId, tenantAdministrator)
@@ -201,15 +206,31 @@ function AuthenticatedConsoleApp({
   }, [client, tenantAdministrator, contextEpoch, sessionRevision]);
 
   useEffect(() => {
-    const refreshLocation = () => setLocation(readBrowserLocation());
+    const refreshLocation = () => {
+      const destination = readBrowserLocation();
+      const guard = memberFeatureDeparture.current;
+      if (guard && `${destination.pathname}${destination.search}` !== `${location.pathname}${location.search}`) {
+        // 后退已改变地址；按原型恢复当前编辑入口，放弃后再应用目标，不能先卸载草稿拥有者。
+        window.history.pushState(null, "", `${location.pathname}${location.search}`);
+        guard(() => {
+          window.history.replaceState(null, "", `${destination.pathname}${destination.search}`);
+          setLocation(readBrowserLocation());
+        });
+      } else setLocation(destination);
+    };
     window.addEventListener("popstate", refreshLocation);
     return () => window.removeEventListener("popstate", refreshLocation);
-  }, []);
+  }, [location]);
 
   const navigate = useCallback((route: ConsoleRoute, replace = false) => {
     const destination = formatConsoleRoute(route);
-    window.history[replace ? "replaceState" : "pushState"](null, "", destination);
-    setLocation(readBrowserLocation());
+    const proceed = () => {
+      window.history[replace ? "replaceState" : "pushState"](null, "", destination);
+      setLocation(readBrowserLocation());
+    };
+    const guard = memberFeatureDeparture.current;
+    if (guard && destination !== `${window.location.pathname}${window.location.search}`) guard(proceed);
+    else proceed();
   }, [setLocation]);
 
   useEffect(() => {
@@ -424,7 +445,7 @@ function AuthenticatedConsoleApp({
           /> : null}
           <Suspense fallback={<StatePanel kind="loading" title="正在加载成员与权限" description="正在准备受限访问治理入口。" />}>
             {route.navigationId === "access" && route.task !== "roles"
-              ? <TenantMemberWorkspace client={client} route={route} sessionRevision={sessionRevision} onRouteChange={navigate} />
+              ? <TenantMemberWorkspace client={client} route={route} sessionRevision={sessionRevision} onRouteChange={navigate} registerMemberFeatureDeparture={registerMemberFeatureDeparture} />
               : <RoleDirectoryWorkspace scope="TENANT" onManageMembers={() => navigate({ navigationId: "access", task: "members", page: 1 })} />}
           </Suspense>
         </> : null}

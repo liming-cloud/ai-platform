@@ -25,6 +25,19 @@ public record ConversationFeatures(Map<String, Boolean> values) {
         }
     }
 
+    /**
+     * 编辑只限制新增授权；上限关闭后的已有保存值保留，由有效权限交集阻断使用。
+     *
+     * @throws IllegalArgumentException 当新增授予超出租户当前上限时拒绝。
+     */
+    public void requireChangeWithin(ConversationFeatures previous, TenantFeatureSettings ceiling) {
+        for (var code : CODES) {
+            if (values.get(code) && !previous.values().get(code) && !ceiling.allows(TenantFeature.fromCode(code))) {
+                throw new IllegalArgumentException("成员功能超出租户开放范围");
+            }
+        }
+    }
+
     /** 有效值取保存事实与当前租户上限的交集。 */
     public boolean allows(String code, TenantFeatureSettings ceiling) {
         if (!CODES.contains(code)) throw new IllegalArgumentException("成员功能代码不合法");

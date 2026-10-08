@@ -375,6 +375,17 @@ public class OrganizationAccessCoreAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
+    com.aiplatform.foundation.organizationaccess.application.member.service.MemberFeatureSettingsService memberFeatureSettingsService(
+            com.aiplatform.foundation.organizationaccess.application.member.service.MemberAccountApplicationService accounts,
+            com.aiplatform.foundation.organizationaccess.application.member.port.out.MemberAccountStore store,
+            PlatformAccountStore identities, TenantMemberStatusStore memberships,
+            TenantFeatureSettingsStore ceilings, TenantMemberSessionRevoker sessions) {
+        return new com.aiplatform.foundation.organizationaccess.application.member.service.MemberFeatureSettingsService(
+                accounts, store, identities, memberships, ceilings, sessions);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
     TenantMemberEstablishmentApplicationService tenantMemberEstablishmentApplicationService(
             TenantMemberEstablishmentStore store, EntityIdGenerator identifiers) {
         return new TenantMemberEstablishmentApplicationService(store, identifiers);

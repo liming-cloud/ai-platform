@@ -43,7 +43,8 @@ import org.springframework.context.annotation.Import;
     PlatformAccountEstablishmentController.class,
     PlatformRoleBindingController.class,
     com.aiplatform.foundation.organizationaccess.interfaces.web.member.controller.MemberAssistantCandidateController.class,
-    TenantMemberStatusController.class
+    TenantMemberStatusController.class,
+    com.aiplatform.foundation.organizationaccess.interfaces.web.member.controller.MemberFeatureSettingsController.class
 })
 public class OrganizationAccessWebAutoConfiguration {
 }

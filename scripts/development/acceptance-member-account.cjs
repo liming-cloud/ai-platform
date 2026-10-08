@@ -9,13 +9,18 @@ const { withTextScale } = require("./acceptance-onboarding.cjs");
 function readConfiguration(environment = process.env) {
   requireCondition(!environment.SETUP, "成员账户切片不创建或重置租户");
   const result = readLoginConfiguration(environment);
+  return { ...result, outputFile: freshOutputFile(environment) };
+}
+
+/** 仅在当前用户独占临时目录新建结果，不能覆盖旧凭据或沿用宽权限目录。 */
+function freshOutputFile(environment) {
   const outputFile = environment.FOUNDATION_ACCEPTANCE_OUTPUT_FILE;
   requireCondition(typeof outputFile === "string" && path.isAbsolute(outputFile)
     && outputFile.startsWith("/private/tmp/") && !fs.existsSync(outputFile), "必须指定尚不存在的临时凭据输出文件");
   const parent = fs.statSync(path.dirname(outputFile));
   requireCondition(parent.isDirectory() && parent.uid === process.getuid() && (parent.mode & 0o777) === 0o700,
     "输出目录必须为当前用户独占的 0700 临时目录");
-  return { ...result, outputFile };
+  return outputFile;
 }
 
 /** 安全白名单拒绝额外主体、凭据或会话字段；所有失败只披露静态断言。 */
@@ -275,7 +280,7 @@ async function run(configuration) {
     throw new Error(`成员账户验收失败：${stage}${error instanceof SafeAssertionError ? `；${error.message}` : ""}；合成对象保留于独占临时文件，未输出秘密。`);
   } finally { fs.closeSync(descriptor); await browser?.close(); }
 }
-module.exports = { readConfiguration, verifyAccount };
+module.exports = { readConfiguration, freshOutputFile, verifyAccount, keyedRequest, memberLogin, verifyLayout };
 if (require.main === module) {
   try { run(readConfiguration()).catch(error => { process.stderr.write(`${error.message}\n`); process.exitCode = 1; }); }
   catch (error) { process.stderr.write(`${error.message}\n`); process.exitCode = 1; }

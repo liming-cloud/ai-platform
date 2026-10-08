@@ -14,6 +14,8 @@ const fixture = {
 function credentialFile(name, data = fixture, mode = 0o600) {
   const target = path.join(directory, name);
   fs.writeFileSync(target, JSON.stringify(data), { mode });
+  // 负例必须确实拥有指定权限；严格 umask 不能把组可读反例悄悄变成合法文件。
+  fs.chmodSync(target, mode);
   return target;
 }
 function environment(file, extra = {}) {

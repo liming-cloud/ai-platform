@@ -5,6 +5,8 @@ import com.aiplatform.foundation.organizationaccess.application.member.dto.Membe
 import com.aiplatform.foundation.organizationaccess.application.member.port.out.MemberAccountStore;
 import com.aiplatform.foundation.organizationaccess.domain.member.model.ConversationFeatures;
 import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.member.mapper.MemberAccountMapper;
+import com.aiplatform.foundation.organizationaccess.infrastructure.persistence.member.entity.MemberConversationFeaturesEntity;
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
 import java.time.Instant;
 import java.util.Map;
@@ -41,6 +43,19 @@ public final class PostgresMemberAccountStore extends PostgresMemberAccessFacts 
     }
     @Override public void advanceAuthorization(TenantId tenant, long expected) {
         write(mapper.advanceAuthorization(tenant.value(), expected));
+    }
+    @Override public void updateFeatures(TenantId tenant, long member, ConversationFeatures features, long expected) {
+        var values = features.values();
+        var update = Wrappers.<MemberConversationFeaturesEntity>lambdaUpdate()
+                .eq(MemberConversationFeaturesEntity::getTenantId, tenant.value())
+                .eq(MemberConversationFeaturesEntity::getMembershipId, member)
+                .eq(MemberConversationFeaturesEntity::getVersion, expected)
+                .set(MemberConversationFeaturesEntity::getAssistantSelection, values.get("assistantSelection"))
+                .set(MemberConversationFeaturesEntity::getConversation, values.get("conversation"))
+                .set(MemberConversationFeaturesEntity::getOwnHistory, values.get("ownHistory"))
+                .set(MemberConversationFeaturesEntity::getAuthorizedCitations, values.get("authorizedCitations"))
+                .set(MemberConversationFeaturesEntity::getVersion, expected + 1);
+        write(mapper.update(null, update));
     }
     @Override public void record(TenantId tenant, long actor, String key, MemberAccountOperation operation) {
         write(mapper.record(tenant.value(), actor, key, operation.operation(), operation.membershipId(),

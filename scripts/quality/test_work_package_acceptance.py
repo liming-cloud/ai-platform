@@ -24,13 +24,18 @@ class WorkPackageAcceptanceTest(unittest.TestCase):
         self.assertIn("必须提供 0600 验收凭据文件", result.stderr)
 
     def test_member_account_rejects_whole_package_and_tenant_setup(self):
-        for slice_name in ("", "all", "features"):
+        for slice_name in ("", "all", "assistants"):
             result = self.invoke("WP-0018", slice_name)
             self.assertNotEqual(result.returncode, 0)
             self.assertIn("必须明确 SLICE=account", result.stderr)
         result = self.invoke("WP-0018", "account", SETUP="tenant")
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("成员账户切片不创建或重置租户", result.stderr)
+
+    def test_member_features_is_named_slice_and_missing_credentials_fail_closed(self):
+        result = self.invoke("WP-0018", "features")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("必须提供 0600 验收凭据文件", result.stderr)
 
     def test_unknown_work_package_is_rejected(self):
         result = self.invoke("WP-9999", "login")

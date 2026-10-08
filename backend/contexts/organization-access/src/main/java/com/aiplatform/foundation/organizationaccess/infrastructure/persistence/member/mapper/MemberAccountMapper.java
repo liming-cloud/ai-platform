@@ -5,7 +5,7 @@ import java.util.Map;
 import org.apache.ibatis.annotations.Param;
 
 /** 组织成员配置和审计的受限 XML 映射，不读取凭据字段。 */
-public interface MemberAccountMapper {
+public interface MemberAccountMapper extends com.baomidou.mybatisplus.core.mapper.BaseMapper<com.aiplatform.foundation.organizationaccess.infrastructure.persistence.member.entity.MemberConversationFeaturesEntity> {
     Long lockTenant(@Param("tenantId") long tenantId);
     Long lockAuthorization(@Param("tenantId") long tenantId);
     Long authorizationRevision(@Param("tenantId") long tenantId);

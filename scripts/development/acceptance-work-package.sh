@@ -3,8 +3,8 @@ set -euo pipefail
 
 # 切片绿灯不等于整包交付；未知范围必须在启动浏览器前拒绝。
 if [[ "${1:-}" == "WP-0018" ]]; then
-  if [[ "$#" != "2" || "${2:-}" != "account" ]]; then
-    echo "WP-0018 当前必须明确 SLICE=account；账户切片不等于整包完成。" >&2
+  if [[ "$#" != "2" || ( "${2:-}" != "account" && "${2:-}" != "features" ) ]]; then
+    echo "WP-0018 当前必须明确 SLICE=account 或 SLICE=features；独立切片不等于整包完成。" >&2
     exit 2
   fi
   if [[ -n "${SETUP:-}" ]]; then
@@ -16,6 +16,9 @@ if [[ "${1:-}" == "WP-0018" ]]; then
     exit 2
   fi
   readonly MEMBER_SCRIPT_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  if [[ "${2}" == "features" ]]; then
+    exec node "${MEMBER_SCRIPT_DIRECTORY}/acceptance-member-features.cjs"
+  fi
   exec node "${MEMBER_SCRIPT_DIRECTORY}/acceptance-member-account.cjs"
 fi
 if [[ "${1:-}" != "WP-0017" ]]; then

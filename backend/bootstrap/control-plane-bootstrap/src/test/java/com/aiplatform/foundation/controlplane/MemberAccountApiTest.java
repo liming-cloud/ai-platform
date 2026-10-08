@@ -189,6 +189,182 @@ class MemberAccountApiTest {
         assertEquals(List.of("8104"), created.getBody().get("assistantIds"));
         assertEquals(revision + 1, jdbc.queryForObject("SELECT authorization_revision FROM organization_access.tenant_feature_settings WHERE tenant_id = ?", Long.class, tenant));
         access.requireAssistantVersion(sessions.resolve(login("member-selected-assistant", PASSWORD)), 8105, "conversation");
+        var id = (String) created.getBody().get("membershipId");
+        var configured = readFeatures(manager, id);
+        var changed = Map.of("assistantSelection", false, "conversation", true, "ownHistory", false, "authorizedCitations", true);
+        assertEquals(HttpStatus.OK, saveFeatures(manager, id, featureInput(configured.getBody(), changed)).getStatusCode());
+        assertEquals(List.of("8104"), http.exchange(url("/" + id), HttpMethod.GET,
+                new HttpEntity<>(headers(manager, "unused")), RESPONSE).getBody().get("assistantIds"));
+        assertEquals(revision + 1, jdbc.queryForObject("SELECT authorization_revision FROM organization_access.tenant_feature_settings WHERE tenant_id = ?", Long.class, tenant));
+        var context = sessions.resolve(login("member-selected-assistant", PASSWORD));
+        access.requireAssistantVersion(context, 8105, "conversation");
+        assertThrows(com.aiplatform.foundation.shared.kernel.error.ApplicationException.class, () -> access.requireFeature(context, "ownHistory"));
+    }
+
+    @Test
+    void 对话功能独立保存推进版本并仅撤销当前资格会话且无变化不写入() {
+        var manager = login("admin", PASSWORD);
+        var created = create(manager, input(manager, "feature-save"), "feature-save-create");
+        var id = (String) created.getBody().get("membershipId");
+        var oldToken = login("feature-save", PASSWORD);
+        var staleContext = sessions.resolve(oldToken);
+        var before = readFeatures(manager, id);
+        assertEquals(HttpStatus.OK, before.getStatusCode());
+        assertEquals(0, before.getBody().get("featureVersion"));
+        var changed = Map.of("assistantSelection", false, "conversation", true, "ownHistory", true, "authorizedCitations", false);
+        var saved = saveFeatures(manager, id, featureInput(before.getBody(), changed));
+        assertEquals(HttpStatus.OK, saved.getStatusCode());
+        assertEquals(changed, saved.getBody().get("conversationFeatures"));
+        assertEquals(1, saved.getBody().get("featureVersion"));
+        assertEquals(changed, saved.getBody().get("effectiveFeatures"));
+        assertThrows(InvalidAuthenticatedSessionException.class, () -> sessions.resolve(oldToken));
+        assertThrows(com.aiplatform.foundation.shared.kernel.error.ApplicationException.class, () -> access.requireFeature(staleContext, "conversation"));
+        assertNotNull(sessions.resolve(manager));
+        var member = login("feature-save", PASSWORD);
+        access.requireFeature(sessions.resolve(member), "ownHistory");
+        var auditCount = featureAuditCount(id);
+        assertEquals(HttpStatus.OK, saveFeatures(manager, id, featureInput(saved.getBody(), changed)).getStatusCode());
+        assertEquals(auditCount, featureAuditCount(id));
+        assertEquals(1, readFeatures(manager, id).getBody().get("featureVersion"));
+        assertNotNull(sessions.resolve(member));
+        assertEquals(HttpStatus.CONFLICT, saveFeatures(manager, id, featureInput(before.getBody(), changed)).getStatusCode());
+    }
+
+    @Test
+    void 对话功能拒绝未知缺失非布尔范围伪造和管理员写入() {
+        var manager = login("admin", PASSWORD);
+        var created = create(manager, input(manager, "feature-strict"), "feature-strict-create");
+        var id = (String) created.getBody().get("membershipId");
+        var facts = readFeatures(manager, id).getBody();
+        assertNotNull(facts);
+        var good = featureInput(facts, Map.of("assistantSelection", false, "conversation", false, "ownHistory", false, "authorizedCitations", false));
+        for (var field : List.of("tenantId", "subjectId", "assistantIds", "expectedAuthorizationRevision")) {
+            var invalid = new HashMap<>(good); invalid.put(field, "forged");
+            assertEquals(HttpStatus.BAD_REQUEST, saveFeatures(manager, id, invalid).getStatusCode());
+            assertEquals(HttpStatus.BAD_REQUEST, http.exchange(url("/" + id + "/features?" + field + "=forged"), HttpMethod.GET,
+                    new HttpEntity<>(headers(manager, "unused")), RESPONSE).getStatusCode());
+        }
+        for (var field : good.keySet()) {
+            var invalid = new HashMap<>(good); invalid.remove(field);
+            assertEquals(HttpStatus.BAD_REQUEST, saveFeatures(manager, id, invalid).getStatusCode());
+        }
+        for (var invalid : List.of(Map.of("conversation", true), Map.of("assistantSelection", false, "conversation", "true", "ownHistory", false, "authorizedCitations", false))) {
+            var body = new HashMap<>(good); body.put("conversationFeatures", invalid);
+            assertEquals(HttpStatus.BAD_REQUEST, saveFeatures(manager, id, body).getStatusCode());
+        }
+        var floating = new HashMap<>(good); floating.put("expectedFeatureVersion", 0.0);
+        assertEquals(HttpStatus.BAD_REQUEST, saveFeatures(manager, id, floating).getStatusCode());
+        var member = login("feature-strict", PASSWORD);
+        assertEquals(HttpStatus.FORBIDDEN, readFeatures(member, id).getStatusCode());
+        assertEquals(HttpStatus.FORBIDDEN, saveFeatures(member, id, good).getStatusCode());
+        var adminId = Long.toString(sessions.resolve(manager).membershipId().value());
+        assertEquals(true, readFeatures(manager, adminId).getBody().get("readOnly"));
+        assertEquals(HttpStatus.FORBIDDEN, saveFeatures(manager, adminId, good).getStatusCode());
+        assertEquals(HttpStatus.FORBIDDEN, readFeatures(manager, "3382738893456539999").getStatusCode());
+        assertEquals(0, featureAuditCount(id));
+    }
+
+    @Test
+    void 停用成员允许保存配置但不得恢复资格或登录() {
+        var manager = login("admin", PASSWORD);
+        var created = create(manager, input(manager, "feature-disabled"), "feature-disabled-create");
+        var id = (String) created.getBody().get("membershipId");
+        assertEquals(HttpStatus.OK, write(manager, "/" + id + "/disable", Map.of("expectedVersion", 0), "unused").getStatusCode());
+        var before = readFeatures(manager, id).getBody();
+        var values = Map.of("assistantSelection", false, "conversation", true, "ownHistory", true, "authorizedCitations", false);
+        var saved = saveFeatures(manager, id, featureInput(before, values));
+        assertEquals(HttpStatus.OK, saved.getStatusCode());
+        assertEquals("DISABLED", saved.getBody().get("status"));
+        assertEquals(values, saved.getBody().get("conversationFeatures"));
+        assertEquals(Map.of("assistantSelection", false, "conversation", false, "ownHistory", false, "authorizedCitations", false), saved.getBody().get("effectiveFeatures"));
+        assertEquals(HttpStatus.UNAUTHORIZED, loginResponse("feature-disabled", PASSWORD).getStatusCode());
+    }
+
+    @Test
+    void 租户上限关闭保留已有值但禁止新增授权并拒绝过时上限版本() {
+        var manager = login("admin", PASSWORD);
+        var created = create(manager, input(manager, "feature-ceiling"), "feature-ceiling-create");
+        var id = (String) created.getBody().get("membershipId");
+        var before = readFeatures(manager, id).getBody();
+        assertNotNull(before);
+        var tenant = sessions.resolve(manager).tenantId().value();
+        var ceiling = jdbc.queryForMap("SELECT conversation, own_history, version FROM organization_access.tenant_feature_settings WHERE tenant_id = ?", tenant);
+        try {
+            jdbc.update("UPDATE organization_access.tenant_feature_settings SET conversation = false, own_history = false, version = version + 1 WHERE tenant_id = ?", tenant);
+            var retained = Map.of("assistantSelection", false, "conversation", true, "ownHistory", false, "authorizedCitations", false);
+            assertEquals(HttpStatus.CONFLICT, saveFeatures(manager, id, featureInput(before, retained)).getStatusCode());
+            var current = readFeatures(manager, id).getBody();
+            var saved = saveFeatures(manager, id, featureInput(current, retained));
+            assertEquals(HttpStatus.OK, saved.getStatusCode());
+            assertEquals(true, ((Map<?, ?>) saved.getBody().get("conversationFeatures")).get("conversation"));
+            assertEquals(false, ((Map<?, ?>) saved.getBody().get("effectiveFeatures")).get("conversation"));
+            var escalated = Map.of("assistantSelection", false, "conversation", true, "ownHistory", true, "authorizedCitations", false);
+            assertEquals(HttpStatus.BAD_REQUEST, saveFeatures(manager, id, featureInput(saved.getBody(), escalated)).getStatusCode());
+            assertEquals(1, featureAuditCount(id));
+        } finally {
+            jdbc.update("UPDATE organization_access.tenant_feature_settings SET conversation = ?, own_history = ?, version = ? WHERE tenant_id = ?",
+                    ceiling.get("conversation"), ceiling.get("own_history"), ceiling.get("version"), tenant);
+        }
+    }
+
+    @Test
+    void 并发保存只允许一个版本获胜且撤销故障回滚配置与审计() {
+        var manager = login("admin", PASSWORD);
+        var created = create(manager, input(manager, "feature-concurrent"), "feature-concurrent-create");
+        var id = (String) created.getBody().get("membershipId");
+        var values = Map.of("assistantSelection", false, "conversation", true, "ownHistory", true, "authorizedCitations", false);
+        var command = featureInput(readFeatures(manager, id).getBody(), values);
+        var a = CompletableFuture.supplyAsync(() -> saveFeatures(manager, id, command));
+        var b = CompletableFuture.supplyAsync(() -> saveFeatures(manager, id, command));
+        assertEquals(java.util.Set.of(HttpStatus.OK, HttpStatus.CONFLICT), java.util.Set.of(a.join().getStatusCode(), b.join().getStatusCode()));
+        assertEquals(1, featureAuditCount(id));
+        var old = login("feature-concurrent", PASSWORD);
+        var before = readFeatures(manager, id).getBody();
+        doThrow(new IllegalStateException("合成撤销故障")).when(sessions).revokeMembershipSessions(new MembershipId(Long.parseLong(id)));
+        try {
+            var changed = Map.of("assistantSelection", false, "conversation", false, "ownHistory", true, "authorizedCitations", false);
+            assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, saveFeatures(manager, id, featureInput(before, changed)).getStatusCode());
+            assertEquals(before, readFeatures(manager, id).getBody());
+            assertEquals(1, featureAuditCount(id));
+            assertNotNull(sessions.resolve(old));
+        } finally { reset(sessions); }
+    }
+
+    private ResponseEntity<Map<String, Object>> readFeatures(String token, String id) {
+        return http.exchange(url("/" + id + "/features"), HttpMethod.GET, new HttpEntity<>(headers(token, "unused")), RESPONSE);
+    }
+
+    @Test
+    void 功能审计失败回滚保存值资格修订且不撤销会话() {
+        var manager = login("admin", PASSWORD);
+        var created = create(manager, input(manager, "feature-audit-failure"), "feature-audit-failure-create");
+        var id = (String) created.getBody().get("membershipId");
+        var old = login("feature-audit-failure", PASSWORD);
+        var before = readFeatures(manager, id).getBody();
+        var account = http.exchange(url("/" + id), HttpMethod.GET, new HttpEntity<>(headers(manager, "unused")), RESPONSE).getBody();
+        jdbc.execute("CREATE FUNCTION organization_access.fail_feature_audit_test() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION '合成功能审计故障'; END $$");
+        jdbc.execute("CREATE TRIGGER fail_feature_audit_test BEFORE INSERT ON organization_access.member_account_operation FOR EACH ROW EXECUTE FUNCTION organization_access.fail_feature_audit_test()");
+        try {
+            var values = Map.of("assistantSelection", false, "conversation", true, "ownHistory", true, "authorizedCitations", false);
+            assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, saveFeatures(manager, id, featureInput(before, values)).getStatusCode());
+            assertEquals(before, readFeatures(manager, id).getBody());
+            assertEquals(account, http.exchange(url("/" + id), HttpMethod.GET, new HttpEntity<>(headers(manager, "unused")), RESPONSE).getBody());
+            assertEquals(0, featureAuditCount(id));
+            assertNotNull(sessions.resolve(old));
+        } finally {
+            jdbc.execute("DROP TRIGGER fail_feature_audit_test ON organization_access.member_account_operation");
+            jdbc.execute("DROP FUNCTION organization_access.fail_feature_audit_test()");
+        }
+    }
+    private ResponseEntity<Map<String, Object>> saveFeatures(String token, String id, Map<String, ?> input) {
+        return http.exchange(url("/" + id + "/features"), HttpMethod.PUT, new HttpEntity<>(input, headers(token, "unused")), RESPONSE);
+    }
+    private Map<String, Object> featureInput(Map<String, Object> facts, Map<String, Boolean> values) {
+        return Map.of("conversationFeatures", values, "expectedFeatureVersion", facts.get("featureVersion"),
+                "expectedTenantFeatureVersion", facts.get("tenantFeatureVersion"));
+    }
+    private int featureAuditCount(String id) {
+        return jdbc.queryForObject("SELECT count(*) FROM organization_access.member_account_operation WHERE membership_id = ? AND operation = 'FEATURES'", Integer.class, Long.parseLong(id));
     }
 
     @Test

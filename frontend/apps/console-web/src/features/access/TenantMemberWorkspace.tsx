@@ -4,6 +4,8 @@ import { directoryPageNumbers, PageHeading } from "@foundation/design-system";
 import { presentApiError, type ControlPlaneClient, type MemberAccount, type PageResult, type TenantMemberSummary } from "../../api/control-plane-client";
 import type { ConsoleRoute } from "../../session/console-route";
 import { MemberCreateWorkspace } from "./MemberCreateWorkspace";
+import { MemberFeatureWorkspace } from "./MemberFeatureWorkspace";
+import { MemberObjectNavigation } from "./MemberObjectNavigation";
 import { clearMemberPasswords } from "./member-account-draft";
 import "./member-account.css";
 
@@ -16,12 +18,14 @@ export function memberIsReadOnly(member: Pick<TenantMemberSummary, "membershipRo
   return member.membershipRole === "TENANT_ADMINISTRATOR" || member.builtInRoles.includes("TENANT_ADMINISTRATOR");
 }
 
-export function TenantMemberWorkspace({ client, route, onRouteChange }: {
+export function TenantMemberWorkspace({ client, route, onRouteChange, registerMemberFeatureDeparture }: {
   client: ControlPlaneClient; sessionRevision: number; route: MemberRoute; onRouteChange: (route: ConsoleRoute) => void;
+  registerMemberFeatureDeparture: (guard: (proceed: () => void) => void) => () => void;
 }) {
   const epoch = client.currentSessionRevision();
   if (route.task === "member-create") return <MemberCreateWorkspace key={epoch} client={client} route={route} onRouteChange={onRouteChange} />;
   if (route.task === "member-account") return <MemberAccountWorkspace key={`${epoch}:${route.membershipId}`} client={client} membershipId={route.membershipId} onRouteChange={onRouteChange} />;
+  if (route.task === "member-features") return <MemberFeatureWorkspace key={`${epoch}:${route.membershipId}`} client={client} membershipId={route.membershipId} onRouteChange={onRouteChange} registerDeparture={registerMemberFeatureDeparture} />;
   if (route.task === "members") return <MemberDirectory key={epoch} client={client} route={route} onRouteChange={onRouteChange} />;
   return null;
 }
@@ -207,7 +211,7 @@ function MemberAccountWorkspace({ client, membershipId, onRouteChange }: { clien
   }, [client, epoch, membershipId]);
   return <>
     <PageHeading title="成员账号" context="租户访问与知识" summary="当前成员" status={{ label: "可查看", tone: "success" }} />
-    <nav className="member-object-navigation" aria-label="成员工作区"><button aria-current="page">账号信息</button><button disabled>对话功能</button><button disabled>可用助手</button></nav>
+    <MemberObjectNavigation membershipId={membershipId} current="member-account" onRouteChange={onRouteChange} />
     <section className="member-workspace member-section member-account-workspace">{failure ? <p role="alert">{failure}</p> : !account ? <p role="status">正在读取成员账号…</p> : account.membershipRole === "TENANT_ADMINISTRATOR" ? <>
       <h2>管理员账号只读</h2><p>管理员由平台维护。</p></> : <>
       <h2>{account.loginName}</h2><dl className="member-account-facts"><dt>成员</dt><dd>{account.loginName}</dd><dt>登录名</dt><dd>{account.loginName}</dd><dt>状态</dt><dd>{account.status === "ENABLED" ? "可用" : "已停用"}</dd></dl>

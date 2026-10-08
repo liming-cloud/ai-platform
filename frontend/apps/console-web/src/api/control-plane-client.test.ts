@@ -7,6 +7,23 @@ import {
 } from "./control-plane-client";
 
 describe("ControlPlaneClient", () => {
+  it("成员功能独立读写只携带四布尔值与两个版本，不混入助手或身份范围", async () => {
+    const requests: Request[] = [];
+    const client = authenticatedClient(async (input, init) => {
+      requests.push(new Request(input, init));
+      return Response.json({ membershipId: "3382738893456539659", featureVersion: 2 });
+    });
+    const features = { assistantSelection: false, conversation: true, ownHistory: true, authorizedCitations: false };
+    await client.getMemberFeatures("3382738893456539659");
+    await client.updateMemberFeatures("3382738893456539659", { conversationFeatures: features, expectedFeatureVersion: 1, expectedTenantFeatureVersion: 4 });
+    expect(requests.map(value => [value.method, value.url])).toEqual([
+      ["GET", "http://localhost/api/v1/tenant/members/3382738893456539659/features"],
+      ["PUT", "http://localhost/api/v1/tenant/members/3382738893456539659/features"],
+    ]);
+    expect(requests[0]?.body).toBeNull();
+    expect(await requests[1]?.json()).toEqual({ conversationFeatures: features, expectedFeatureVersion: 1, expectedTenantFeatureVersion: 4 });
+    expect(requests[1]?.headers.get("Authorization")).toBeNull();
+  });
   it("工作区名称只读当前会话接口，不发送租户或身份范围", async () => {
     const requests: Request[] = [];
     const client = authenticatedClient(async (input, init) => {

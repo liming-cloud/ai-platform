@@ -10,6 +10,13 @@ import {
 } from "./console-route";
 
 describe("统一控制台路由", () => {
+  it("成员对话功能有独立直接地址并拒绝无效成员标识", () => {
+    const route = { navigationId: "access", task: "member-features", membershipId: "3382738893456539650" } as const;
+    expect(parseConsoleRoute("/tenant/members/3382738893456539650/features", "")).toEqual(route);
+    expect(formatConsoleRoute(route)).toBe("/tenant/members/3382738893456539650/features");
+    expect(parseConsoleRoute("/tenant/members/0/features", "")).toBeUndefined();
+    expect(parseConsoleRoute("/tenant/members/9223372036854775808/features", "")).toBeUndefined();
+  });
   it("已交付原型导航进入对应任务，旧直达路由保持独立", () => {
     expect(navigationEntryRoute("models", true)).toEqual({ navigationId: "models", task: "providers", providerPage: 1, discoveryPage: 1 });
     expect(navigationEntryRoute("governance", true)).toEqual({ navigationId: "governance", task: "evaluation" });

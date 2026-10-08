@@ -125,6 +125,19 @@ public final class TenantMembership implements AggregateRoot<MemberId> {
     }
 
     /**
+     * 普通成员保存对话配置时推进权限修订；停用状态保持不变，不能借编辑恢复资格。
+     *
+     * @throws IllegalStateException 当目标为管理员资格时拒绝。
+     */
+    public TenantMembership reviseConversationFeatures() {
+        if (role != TenantMembershipRole.TENANT_USER) {
+            throw new IllegalStateException("管理员不能保存普通成员对话功能");
+        }
+        return new TenantMembership(id, tenantId, subjectId, role, status,
+                permissionVersion + 1L, version + 1L, createdAt);
+    }
+
+    /**
      * 停用当前租户成员资格，并推进会话必须校验的权限修订。
      *
      * <p>是否为最后一个访问管理员是跨成员不变量，由受锁成员目录上的领域服务在调用前保护。</p>

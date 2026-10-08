@@ -17,6 +17,8 @@ public interface MemberAccountStore extends MemberAccessFacts {
     Optional<MemberAccountOperation> operation(TenantId tenantId, long actorSubjectId, String key);
     /** 一次写入初始功能和助手关系；失败必须由外层业务事务回滚。 */
     void initialize(TenantId tenantId, long membershipId, ConversationFeatures features, Set<Long> assistants);
+    /** 仅替换本成员四项功能并推进独立版本；不修改助手关系或租户授权 revision。 */
+    void updateFeatures(TenantId tenantId, long membershipId, ConversationFeatures features, long expectedVersion);
     /** 仅在对象授权集合发生变化时推进租户 revision。 */
     void advanceAuthorization(TenantId tenantId, long expectedRevision);
     /** 审计与幂等结果同业务提交，不记录密码或请求正文。 */

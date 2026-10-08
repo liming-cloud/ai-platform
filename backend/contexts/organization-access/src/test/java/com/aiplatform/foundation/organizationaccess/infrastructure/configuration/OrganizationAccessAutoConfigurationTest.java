@@ -191,6 +191,7 @@ class OrganizationAccessAutoConfigurationTest {
             assertThat(context).hasSingleBean(TenantCustomRoleLifecycleApplicationService.class);
             assertThat(context).hasSingleBean(TenantCustomRoleDirectoryApplicationService.class);
             assertThat(context).hasSingleBean(TenantMemberStatusApplicationService.class);
+            assertThat(context).hasSingleBean(com.aiplatform.foundation.organizationaccess.application.member.service.MemberFeatureSettingsService.class);
             assertThat(context).hasSingleBean(TenantMemberDirectoryApplicationService.class);
             assertThat(context).hasSingleBean(TenantMemberEstablishmentApplicationService.class);
             assertThat(context).hasSingleBean(PlatformTenantAdministratorApplicationService.class);
@@ -216,6 +217,7 @@ class OrganizationAccessAutoConfigurationTest {
             assertThat(context).doesNotHaveBean(TenantCustomRoleBindingController.class);
             assertThat(context).doesNotHaveBean(TenantCustomRoleBindingRevocationController.class);
             assertThat(context).hasSingleBean(TenantMemberStatusController.class);
+            assertThat(context).hasSingleBean(com.aiplatform.foundation.organizationaccess.interfaces.web.member.controller.MemberFeatureSettingsController.class);
         });
     }
 
@@ -223,6 +225,8 @@ class OrganizationAccessAutoConfigurationTest {
     void 关闭上下文时不装配任何入口和应用服务() {
         runner.withPropertyValues("foundation.organization-access.enabled=false")
                 .run(context -> {
+                    assertThat(context).doesNotHaveBean(com.aiplatform.foundation.organizationaccess.application.member.service.MemberFeatureSettingsService.class);
+                    assertThat(context).doesNotHaveBean(com.aiplatform.foundation.organizationaccess.interfaces.web.member.controller.MemberFeatureSettingsController.class);
                     assertThat(context).hasNotFailed();
                     assertThat(context).doesNotHaveBean(
                             PersonAuthenticationService.class);

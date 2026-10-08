@@ -85,6 +85,15 @@ export interface TenantMemberSummary {
 /** 四项显式成员功能；租户上限仍由服务器裁决。 */
 export type MemberConversationFeatures = Record<"assistantSelection" | "conversation" | "ownHistory" | "authorizedCitations", boolean>;
 export interface MemberCreateOptions { availableFeatures: MemberConversationFeatures; tenantFeatureVersion: number; authorizationRevision: number }
+/** 功能保存独立于助手集合；读取保存事实、当前租户上限与有效交集。 */
+export interface MemberFeatureSettings {
+  membershipId: string; loginName: string; status: "ENABLED" | "DISABLED"; readOnly: boolean;
+  conversationFeatures: MemberConversationFeatures; featureVersion: number;
+  tenantAvailableFeatures: MemberConversationFeatures; tenantFeatureVersion: number; effectiveFeatures: MemberConversationFeatures;
+}
+export interface MemberFeatureSettingsInput {
+  conversationFeatures: MemberConversationFeatures; expectedFeatureVersion: number; expectedTenantFeatureVersion: number;
+}
 export interface MemberAccount {
   membershipId: string; loginName: string; membershipRole: string; status: "ENABLED" | "DISABLED";
   version: number; identityVersion: number; permissionVersion: number; createdAt: string;
@@ -1464,6 +1473,15 @@ export class ControlPlaneClient {
   async memberCreateOptions(): Promise<MemberCreateOptions> { return this.request("/tenant/members/create-options"); }
   async getTenantMember(membershipId: string): Promise<MemberAccount> {
     return this.request(`/tenant/members/${encodeURIComponent(membershipId)}`);
+  }
+  async getMemberFeatures(membershipId: string): Promise<MemberFeatureSettings> {
+    return this.request(`/tenant/members/${encodeURIComponent(membershipId)}/features`);
+  }
+  /** 只保存功能草稿及其原始版本，不附带助手、角色或客户端租户范围。 */
+  async updateMemberFeatures(membershipId: string, input: MemberFeatureSettingsInput): Promise<MemberFeatureSettings> {
+    return this.request(`/tenant/members/${encodeURIComponent(membershipId)}/features`, {
+      method: "PUT", headers: this.writeHeaders("application/json"), body: JSON.stringify(input),
+    });
   }
   /** 只传新登录名、显式功能及助手，不能复用既有主体或修改角色。 */
   async createTenantMember(input: MemberProvisioningInput, key: string): Promise<MemberAccount> {

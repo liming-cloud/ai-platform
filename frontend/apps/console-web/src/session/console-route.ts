@@ -9,6 +9,7 @@ export type ConsoleRoute =
   | { navigationId: "access"; task: "members"; page: number; query?: string; status?: "ALL" | "ENABLED" | "DISABLED"; pageSize?: 10 | 20 | 50 | 100 }
   | { navigationId: "access"; task: "member-create"; step: 1 | 2 | 3 }
   | { navigationId: "access"; task: "member-account"; membershipId: string }
+  | { navigationId: "access"; task: "member-features"; membershipId: string }
   | { navigationId: "access"; task: "roles" }
   | { navigationId: "data"; task: "knowledge-bases"; page: number }
   | {
@@ -269,6 +270,10 @@ export function parseConsoleRoute(pathname: string, search: string): ConsoleRout
     const step = Number(new URLSearchParams(search).get("step"));
     return { navigationId: "access", task: "member-create", step: step === 2 || step === 3 ? step : 1 };
   }
+  const memberFeatures = /^\/tenant\/members\/([1-9][0-9]{0,18})\/features$/.exec(routePath);
+  if (memberFeatures && BigInt(memberFeatures[1]!) <= 9223372036854775807n) {
+    return { navigationId: "access", task: "member-features", membershipId: memberFeatures[1]! };
+  }
   const memberAccount = /^\/tenant\/members\/([1-9][0-9]{0,18})$/.exec(routePath);
   if (memberAccount && BigInt(memberAccount[1]!) <= 9223372036854775807n) {
     return { navigationId: "access", task: "member-account", membershipId: memberAccount[1]! };
@@ -456,6 +461,7 @@ export function formatConsoleRoute(route: ConsoleRoute): string {
   if (route.navigationId === "access") {
     if (route.task === "member-create") return `/tenant/members/new?step=${route.step}`;
     if (route.task === "member-account") return `/tenant/members/${encodeURIComponent(route.membershipId)}`;
+    if (route.task === "member-features") return `/tenant/members/${encodeURIComponent(route.membershipId)}/features`;
     if (route.task === "roles") return "/access/roles";
     const parameters = new URLSearchParams({ page: String(route.page) });
     if (route.query) parameters.set("q", route.query);
