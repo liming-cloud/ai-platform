@@ -1,6 +1,7 @@
 .member-workspace { display: grid; gap: 20px; max-width: 73.75rem; min-width: 0; margin-top: 24px; line-height: 1.6; }
 .member-workspace h2 { margin: 0; font-family: var(--foundation-font-display); font-size: 25px; font-weight: 500; line-height: 1.35; overflow-wrap: anywhere; }
 .member-workspace p { margin: 0; }
+.member-workspace .fui-Button, .member-account-dialog .fui-Button, .page-heading:has(+ .member-directory-workspace) .fui-Button { font-weight: 620; }
 .member-section { display: grid; gap: 16px; padding-block: 20px; border-top: 1px solid var(--foundation-border); min-width: 0; }
 .member-create-steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 0; padding: 0; list-style: none; border-block: 1px solid var(--foundation-border); }
 .member-create-steps li { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 12px; align-items: center; min-height: 72px; padding: 12px; font-size: 14px; border-right: 1px solid var(--foundation-border); overflow-wrap: anywhere; }
@@ -17,7 +18,9 @@
 .member-conversation-features { display: grid; gap: 8px; margin: 16px 20px; padding: 12px 0 0; border: 0; border-top: 1px solid var(--foundation-border); min-width: 0; }
 .member-conversation-features legend { padding-inline: 0 8px; color: var(--foundation-secondary-text); font-size: 14px; font-weight: 650; }
 .member-conversation-features .fui-Checkbox { min-height: 32px; width: 100%; max-width: none; }
-.member-conversation-features .fui-Checkbox__indicator { width: 18px; height: 18px; margin: 7px 11px 7px 4px; }
+/* 保留 Fluent 的标签与状态契约，使用与原型相同的浏览器复选框绘制勾选符号。 */
+.member-conversation-features .fui-Checkbox__input { position: static; order: -1; width: 18px; height: 18px; margin: 7px 11px 7px 4px; opacity: 1; appearance: auto; accent-color: var(--foundation-accent); }
+.member-conversation-features .fui-Checkbox__indicator { display: none; }
 .member-conversation-features .fui-Checkbox__label { flex: 1; align-self: center; padding: 0; font-weight: 400; line-height: 1.6; }
 .member-conversation-features .fui-Checkbox:has(input:not(:disabled)) .fui-Checkbox__label { color: var(--foundation-text); }
 .member-assistant-choices { display: grid; gap: 8px; max-height: 320px; overflow: auto; margin-block: 16px; }
@@ -40,6 +43,7 @@
 .member-row-actions { flex-wrap: wrap; }
 /* 普通文字保持同行；放大后按最小可读宽度换行，不能把字挤进按钮内边距。 */
 .member-row-actions .fui-Button { flex: 1 1 0; min-width: min-content; max-width: max-content; min-height: var(--foundation-control-height-compact); padding: .25rem .5rem; }
+.member-row-actions .fui-Button:not(:disabled) { color: var(--foundation-text); }
 .member-pagination { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 12px; padding: 12px 16px; border-top: 1px solid var(--foundation-border); color: var(--foundation-muted-text); font-size: 14px; }
 .member-pagination-summary { margin-right: auto; white-space: nowrap; }
 .member-pagination-size, .member-pagination-jump, .member-pagination-jump label, .member-pagination-pages { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
@@ -57,11 +61,14 @@
 .member-account-facts dt, .member-account-facts dd { margin: 0; padding: .7rem 0; border-bottom: 1px solid var(--foundation-border); overflow-wrap: anywhere; }
 .member-account-facts dt { color: var(--foundation-muted-text); }
 .member-password-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
-.member-account-dialog { width: min(38rem, calc(100vw - 32px)); max-width: none; max-height: calc(100dvh - 32px); padding: 24px; overflow: auto; border: 1px solid var(--foundation-border-strong); border-radius: var(--foundation-panel-radius); color: var(--foundation-text); background: var(--foundation-surface); line-height: 1.6; }
+/* 原型使用原生 dialog；显式保留其视口上限，避免 Fluent 在小屏扩大弹窗。 */
+.member-account-dialog { width: min(38rem, calc(100vw - 32px)); max-width: calc(100% - 2em - 6px); max-height: calc(100dvh - 32px); padding: 24px; overflow: auto; border: 1px solid var(--foundation-border-strong); border-radius: var(--foundation-panel-radius); color: var(--foundation-text); background: var(--foundation-surface); box-shadow: 0 4px 24px rgb(0 0 0 / 5%); line-height: 1.6; }
+.member-account-backdrop { background: color-mix(in oklab, var(--foundation-text), transparent 64%); }
 /* 不依赖 focus-visible 状态：鼠标后的程序焦点与键盘焦点都避开吸顶导航和底部操作栏。 */
 /* 目录页头动作也需避开固定头栏；它与目录正文相邻，并不位于工作区内部。 */
 .member-workspace :is(input, button, select), .page-heading:has(+ .member-directory-workspace) button { scroll-margin-block: 12rem; }
 .member-workspace :focus-visible, .member-object-navigation :focus-visible { outline: 2px solid var(--foundation-accent); outline-offset: 3px; }
+.member-conversation-features input:focus-visible { outline-offset: 2px; }
 /* Fluent 输入由外层承载边框；焦点环也归外层，确保 portal 弹窗与原型使用同一焦点反馈。 */
 .member-workspace .fui-Input:has(input:focus-visible), .member-account-dialog .fui-Input:has(input:focus-visible) { outline: 2px solid var(--foundation-accent); outline-offset: 2px; border-color: var(--foundation-accent); }
 .member-workspace .fui-Input__input:focus-visible, .member-account-dialog .fui-Input__input:focus-visible { outline: none; }
@@ -118,7 +125,7 @@
 .member-status-form .member-dialog-actions { margin-top: 16px; }
 .member-create-form > .member-form-actions { position: sticky; bottom: 0; z-index: 1; }
 @media (max-width: 680px) {
-  .member-account-dialog { width: calc(100vw - 16px); max-height: calc(100dvh - 16px); padding: 16px; }
+  .member-account-dialog { padding: 16px; }
   .member-object-navigation { gap: 0; }
   .member-object-navigation button { padding-inline: 12px; }
   .member-create-form > .member-form-actions { bottom: 4.75rem; }

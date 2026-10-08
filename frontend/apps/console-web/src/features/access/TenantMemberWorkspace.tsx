@@ -175,7 +175,7 @@ function MemberDirectory({ client, route, onRouteChange }: { client: ControlPlan
         </div>}
     </section>
     <Dialog open={Boolean(pending)} onOpenChange={(_, data) => { if (!data.open) closeDialog(); }}>
-      <DialogSurface className="member-account-dialog"><form className={pending?.kind === "disable" ? "member-dialog-form member-status-form" : "member-dialog-form"} ref={form} onSubmit={event => void commit(event)} noValidate>
+      <DialogSurface className="member-account-dialog" backdrop={{ className: "member-account-backdrop" }}><form className={pending?.kind === "disable" ? "member-dialog-form member-status-form" : "member-dialog-form"} ref={form} onSubmit={event => void commit(event)} noValidate>
         <header className="member-dialog-header">
           {pending?.kind === "reset" ? <span className="member-dialog-kicker">受控凭据重置</span> : null}
           <DialogTitle className="member-dialog-title">{pending?.kind === "reset" ? "重置密码" : "停用普通成员"}</DialogTitle>
