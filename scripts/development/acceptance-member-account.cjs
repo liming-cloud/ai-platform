@@ -275,7 +275,7 @@ async function run(configuration) {
     });
     requireCondition(errors === 0, "成员界面出现浏览器脚本错误");
     generated.status = "VERIFIED"; persist();
-    process.stdout.write("WP-0018 / account 独立切片浏览器场景通过；独立功能、策略、其余页面及 M6 尚未完成。\n");
+    process.stdout.write("WP-0018 / account 独立切片浏览器场景通过；本结果仅覆盖账户切片，整包与 M6 结论以控制面证据为准。\n");
   } catch (error) {
     throw new Error(`成员账户验收失败：${stage}${error instanceof SafeAssertionError ? `；${error.message}` : ""}；合成对象保留于独占临时文件，未输出秘密。`);
   } finally { fs.closeSync(descriptor); await browser?.close(); }

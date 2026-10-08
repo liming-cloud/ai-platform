@@ -274,7 +274,7 @@ async function run(configuration) {
     });
     requireCondition(errors === 0, "功能页面出现浏览器脚本错误");
     generated.finalFacts = await read(); generated.status = "VERIFIED"; persist();
-    process.stdout.write("WP-0018 / features 独立切片浏览器场景通过；助手／策略、完整工作区、整包与 M6 未完成。\n");
+    process.stdout.write("WP-0018 / features 独立切片浏览器场景通过；本结果仅覆盖独立功能切片，整包与 M6 结论以控制面证据为准。\n");
   } catch (error) {
     throw new Error(`成员功能验收失败：${stage}${error instanceof SafeAssertionError ? `；${error.message}` : ""}；本轮合成对象与凭据保留于独占临时文件。`);
   } finally { fs.closeSync(descriptor); await browser?.close(); }
