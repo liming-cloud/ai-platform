@@ -1062,7 +1062,7 @@
       "phase": "M6",
       "classification": "production",
       "workPackage": "WP-0018",
-      "status": "in-progress",
+      "status": "verified",
       "operations": [
         {
           "id": "tenant-member-account:0",
@@ -1072,18 +1072,31 @@
           "reason": "m6-approved-prototype",
           "workPackage": "WP-0018",
           "dependsOn": [],
-          "status": "contracted",
+          "status": "verified",
           "contract": {
             "adr": "ADR-0093",
             "target": {
               "kind": "api",
               "value": "GET /api/v1/tenant/members/{membershipId}；独立功能／助手页由同一资格定位"
             },
-            "saveBoundary": "账号只读；重置和资格操作在目录。进入独立设置页的组合操作待第 2／3 片全部交付，当前不标验证。",
+            "saveBoundary": "账号只读；重置和资格操作在目录。账户、独立功能与助手页由同一资格定位，进入、往返和各页独立保存／取消已分别验证。",
             "authorizationTests": [
               "错租户及普通成员读取拒绝",
               "不返回主体标识或凭据",
               "功能／助手页分别保存、取消不影响其他页"
+            ]
+          },
+          "verifiedCommit": "9255ef44bd521a76bd4a1fea22a7f2c1aee8f217",
+          "verification": {
+            "commands": [
+              "make acceptance-work-package WP=WP-0018 SLICE=assistants",
+              "make acceptance-work-package WP=WP-0017 SLICE=login",
+              "make frontend-test",
+              "./mvnw -q verify",
+              "make architecture-guard"
+            ],
+            "evidence": [
+              "docs/tasks/WP-0018/evidence/WP-0018-authorization-production-parity-closure-20261008.md"
             ]
           }
         }
@@ -1145,7 +1158,7 @@
       "phase": "M6",
       "classification": "production",
       "workPackage": "WP-0018",
-      "status": "in-progress",
+      "status": "verified",
       "operations": [
         {
           "id": "tenant-member-assistants:0",
@@ -1155,7 +1168,7 @@
           "reason": "m6-approved-prototype",
           "workPackage": "WP-0018",
           "dependsOn": [],
-          "status": "contracted",
+          "status": "verified",
           "contract": {
             "adr": "ADR-0093",
             "target": {
@@ -1168,6 +1181,19 @@
               "旧授权快照拒绝",
               "目录分页前过滤与选择跨搜索保留",
               "撤权使直接访问及旧会话失效"
+            ]
+          },
+          "verifiedCommit": "9255ef44bd521a76bd4a1fea22a7f2c1aee8f217",
+          "verification": {
+            "commands": [
+              "make acceptance-work-package WP=WP-0018 SLICE=assistants",
+              "make acceptance-work-package WP=WP-0017 SLICE=login",
+              "make frontend-test",
+              "./mvnw -q verify",
+              "make architecture-guard"
+            ],
+            "evidence": [
+              "docs/tasks/WP-0018/evidence/WP-0018-authorization-production-parity-closure-20261008.md"
             ]
           }
         }
@@ -1343,18 +1369,31 @@
           "reason": "m6-approved-prototype",
           "workPackage": "WP-0018",
           "dependsOn": [],
-          "status": "contracted",
+          "status": "verified",
           "contract": {
             "adr": "ADR-0093",
             "target": {
               "kind": "api",
               "value": "PUT /api/v1/tenant/members/{membershipId}/features；PUT /api/v1/tenant/members/{membershipId}/assistants"
             },
-            "saveBoundary": "功能与助手分别独立保存，使用各自版本；组合操作待第 2／3 片齐备后验证。",
+            "saveBoundary": "功能与助手分别独立保存，使用各自版本；交错保存不互相覆盖，旧策略和旧预览不能恢复已撤销授权。",
             "authorizationTests": [
               "交错保存不互相覆盖",
               "旧版本与旧策略不能恢复撤权",
               "当前租户及已发布对象限制"
+            ]
+          },
+          "verifiedCommit": "9255ef44bd521a76bd4a1fea22a7f2c1aee8f217",
+          "verification": {
+            "commands": [
+              "make acceptance-work-package WP=WP-0018 SLICE=assistants",
+              "make acceptance-work-package WP=WP-0017 SLICE=login",
+              "make frontend-test",
+              "./mvnw -q verify",
+              "make architecture-guard"
+            ],
+            "evidence": [
+              "docs/tasks/WP-0018/evidence/WP-0018-authorization-production-parity-closure-20261008.md"
             ]
           }
         },
@@ -1553,7 +1592,7 @@
       "phase": "M6",
       "classification": "production",
       "workPackage": "WP-0018",
-      "status": "in-progress",
+      "status": "verified",
       "operations": [
         {
           "id": "access-policies:0",
@@ -1563,7 +1602,7 @@
           "reason": "m6-approved-prototype",
           "workPackage": "WP-0018",
           "dependsOn": [],
-          "status": "contracted",
+          "status": "verified",
           "contract": {
             "adr": "ADR-0093",
             "target": {
@@ -1576,6 +1615,19 @@
               "管理员目标拒绝",
               "草稿不产生有效授权"
             ]
+          },
+          "verifiedCommit": "9255ef44bd521a76bd4a1fea22a7f2c1aee8f217",
+          "verification": {
+            "commands": [
+              "make acceptance-work-package WP=WP-0018 SLICE=assistants",
+              "make acceptance-work-package WP=WP-0017 SLICE=login",
+              "make frontend-test",
+              "./mvnw -q verify",
+              "make architecture-guard"
+            ],
+            "evidence": [
+              "docs/tasks/WP-0018/evidence/WP-0018-authorization-production-parity-closure-20261008.md"
+            ]
           }
         }
       ]
@@ -1587,7 +1639,7 @@
       "phase": "M6",
       "classification": "production",
       "workPackage": "WP-0018",
-      "status": "in-progress",
+      "status": "verified",
       "operations": [
         {
           "id": "access-policy-detail:0",
@@ -1597,7 +1649,7 @@
           "reason": "m6-approved-prototype",
           "workPackage": "WP-0018",
           "dependsOn": [],
-          "status": "contracted",
+          "status": "verified",
           "contract": {
             "adr": "ADR-0093",
             "target": {
@@ -1611,6 +1663,19 @@
               "旧策略不能复活撤权",
               "发布失败零部分赋权"
             ]
+          },
+          "verifiedCommit": "9255ef44bd521a76bd4a1fea22a7f2c1aee8f217",
+          "verification": {
+            "commands": [
+              "make acceptance-work-package WP=WP-0018 SLICE=assistants",
+              "make acceptance-work-package WP=WP-0017 SLICE=login",
+              "make frontend-test",
+              "./mvnw -q verify",
+              "make architecture-guard"
+            ],
+            "evidence": [
+              "docs/tasks/WP-0018/evidence/WP-0018-authorization-production-parity-closure-20261008.md"
+            ]
           }
         },
         {
@@ -1621,7 +1686,7 @@
           "reason": "m6-approved-prototype",
           "workPackage": "WP-0018",
           "dependsOn": [],
-          "status": "contracted",
+          "status": "verified",
           "contract": {
             "adr": "ADR-0093",
             "target": {
@@ -1634,6 +1699,19 @@
               "授权 revision 冲突拒绝",
               "草稿取消不更改已发布权限"
             ]
+          },
+          "verifiedCommit": "9255ef44bd521a76bd4a1fea22a7f2c1aee8f217",
+          "verification": {
+            "commands": [
+              "make acceptance-work-package WP=WP-0018 SLICE=assistants",
+              "make acceptance-work-package WP=WP-0017 SLICE=login",
+              "make frontend-test",
+              "./mvnw -q verify",
+              "make architecture-guard"
+            ],
+            "evidence": [
+              "docs/tasks/WP-0018/evidence/WP-0018-authorization-production-parity-closure-20261008.md"
+            ]
           }
         },
         {
@@ -1644,7 +1722,7 @@
           "reason": "m6-approved-prototype",
           "workPackage": "WP-0018",
           "dependsOn": [],
-          "status": "contracted",
+          "status": "verified",
           "contract": {
             "adr": "ADR-0093",
             "target": {
@@ -1656,6 +1734,19 @@
               "第二草稿及并发版本拒绝",
               "已发布正文不可原地改写",
               "新草稿不改变有效权限"
+            ]
+          },
+          "verifiedCommit": "9255ef44bd521a76bd4a1fea22a7f2c1aee8f217",
+          "verification": {
+            "commands": [
+              "make acceptance-work-package WP=WP-0018 SLICE=assistants",
+              "make acceptance-work-package WP=WP-0017 SLICE=login",
+              "make frontend-test",
+              "./mvnw -q verify",
+              "make architecture-guard"
+            ],
+            "evidence": [
+              "docs/tasks/WP-0018/evidence/WP-0018-authorization-production-parity-closure-20261008.md"
             ]
           }
         }
