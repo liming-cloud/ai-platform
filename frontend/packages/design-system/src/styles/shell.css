@@ -382,6 +382,10 @@
 
 /* 导航是独立密度的复合控件，不继承普通按钮的 20px 图标槽与额外右边距。 */
 .product-navigation .fui-Button__icon { width: 24px; height: 24px; margin: 0; font-size: 24px; }
+
+/* 原型图标使用固定填色及非选中透明度，不继承导航文字的弱化颜色。 */
+.product-navigation--tenant-context .fui-Button__icon svg { color: #212121; opacity: 0.82; }
+.product-navigation--tenant-context .is-active .fui-Button__icon svg { opacity: 1; }
 @media (max-width: 680px) {
   .product-navigation .fui-Button__icon { width: 20px; height: 24px; }
   .product-navigation .fui-Button__icon svg { width: 20px; height: 24px; }
