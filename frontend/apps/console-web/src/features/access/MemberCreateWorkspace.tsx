@@ -118,14 +118,15 @@ export function MemberCreateWorkspace({ client, route, onRouteChange }: {
   }
 
   return <>
-    <PageHeading title="添加成员" context="当前租户" summary="当前租户" status={{ label: "待填写", tone: "info" }} />
+    <PageHeading title="添加成员" context="租户访问与知识" summary="当前租户" status={{ label: "待填写", tone: "success" }} />
     <section className="member-workspace" aria-busy={busy}>
       <ol className="member-create-steps" aria-label="添加成员步骤">{["成员信息", "使用权限", "密码并创建"].map((label, index) => <li key={label} aria-current={step === index + 1 ? "step" : undefined}>{index + 1} · {label}</li>)}</ol>
-      {!options ? <p role={failure ? "alert" : "status"}>{failure || "正在读取开户选项…"}</p> : <form ref={form} key={step} className="member-section" noValidate onSubmit={event => void submit(event)}>
+      {!options ? <p role={failure ? "alert" : "status"}>{failure || "正在读取开户选项…"}</p> : <form ref={form} key={step} className="member-section member-create-form" noValidate onSubmit={event => void submit(event)}>
+        <section className="member-create-step">
         <h2 ref={title} tabIndex={-1}>{["成员信息", "使用权限", "密码并创建"][step - 1]}</h2>
         <fieldset disabled={busy} className="member-form-fields">
-          {step === 1 ? <Field label="登录名" hint="3–64 位小写字母、数字、点、下划线或连字符。" required>
-            <Input name="loginName" maxLength={64} autoComplete="off" value={draft.loginName} onChange={(_, data) => change({ ...draft, loginName: data.value })} /></Field> : step === 2 ? <>
+          {step === 1 ? <Field label="登录名" hint="3–64 位小写字母、数字、点、下划线或连字符。">
+            <Input name="loginName" required maxLength={64} autoComplete="off" value={draft.loginName} onChange={(_, data) => change({ ...draft, loginName: data.value })} /></Field> : step === 2 ? <>
             <fieldset className="member-conversation-features"><legend>对话功能</legend>{(Object.keys(memberFeatureLabels) as (keyof MemberConversationFeatures)[]).map(code =>
               <Checkbox key={code} label={`${memberFeatureLabels[code]}${options.availableFeatures[code] ? "" : " · 租户未开放"}`} checked={draft.conversationFeatures[code]} disabled={!options.availableFeatures[code]}
                 onChange={(_, data) => change({ ...draft, conversationFeatures: { ...draft.conversationFeatures, [code]: Boolean(data.checked) } })} />)}</fieldset>
@@ -134,11 +135,12 @@ export function MemberCreateWorkspace({ client, route, onRouteChange }: {
               onChange={(_, data) => change({ ...draft, assistantIds: data.checked ? [...new Set([...draft.assistantIds, item.assistantId])] : draft.assistantIds.filter(id => id !== item.assistantId) })} />)}</div>
             <p role="status">{choiceFailure || (!currentChoices ? "正在加载已发布助手…" : `匹配 ${currentChoices.total} 个，已选 ${draft.assistantIds.length} 个`)}</p>
             {currentChoices && (currentChoices.total > 20 || page > 1) ? <div className="member-page-actions"><Button type="button" disabled={page === 1} onClick={() => setPage(page - 1)}>上一页</Button><span>第 {page} 页</span><Button type="button" disabled={!currentChoices.next} onClick={() => setPage(page + 1)}>下一页</Button></div> : null}
-          </> : <><Field label="初始密码" required><Input key={passwordRevision} name="password" type="password" maxLength={1024} autoComplete="new-password" /></Field>
-            <Field label="再次输入密码" required><Input key={passwordRevision} name="passwordConfirmation" type="password" maxLength={1024} autoComplete="new-password" /></Field>
+          </> : <><Field label="初始密码"><Input key={passwordRevision} name="password" type="password" required maxLength={1024} autoComplete="new-password" /></Field>
+            <Field label="再次输入密码"><Input key={passwordRevision} name="passwordConfirmation" type="password" required maxLength={1024} autoComplete="new-password" /></Field>
             <p>刷新后请重新输入密码；请通过安全渠道单独告知本人。</p></>}
         </fieldset>
-        {failure ? <p role="alert">{failure}</p> : null}
+        </section>
+        <p role="alert">{failure}</p>
         <div className="member-form-actions"><Button type="button" disabled={busy} onClick={() => { clearMemberPasswords(form.current); clearMemberDraft(); onRouteChange({ navigationId: "access", task: "members", page: 1 }); }}>取消</Button>
           {step > 1 ? <Button type="button" disabled={busy} onClick={() => navigate(step === 3 ? 2 : 1)}>上一步</Button> : null}
           <Button appearance="primary" type="submit" disabled={busy || (step === 2 && (!currentChoices || Boolean(choiceFailure)))}>{busy ? "正在创建…" : step === 3 ? "创建成员" : "下一步"}</Button></div>

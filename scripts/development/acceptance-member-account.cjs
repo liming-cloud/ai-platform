@@ -108,19 +108,19 @@ async function run(configuration) {
     const directory = async () => {
       await page.goto(`${configuration.baseUrl}/access/members?page=1`, { waitUntil: "networkidle" });
       await page.getByRole("heading", { name: "成员与对话功能", exact: true }).waitFor();
-      await page.locator(".member-directory-table tbody").waitFor();
+      await page.locator(".tenant-member-directory-table tbody").waitFor();
     };
     const create = async () => { await page.getByRole("button", { name: "添加成员", exact: true }).click(); await page.getByRole("heading", { name: "成员信息", exact: true }).waitFor(); };
     const next = async () => { await page.getByRole("button", { name: "下一步", exact: true }).click(); };
     const findTarget = async () => {
       await directory(); await page.getByRole("searchbox", { name: "搜索成员", exact: true }).fill(generated.member.loginName);
       await page.waitForURL(url => url.searchParams.get("q") === generated.member.loginName);
-      const row = page.locator(".member-directory-table tbody tr").filter({ hasText: generated.member.loginName }); await row.waitFor(); return row;
+      const row = page.locator(".tenant-member-directory-table tbody tr").filter({ hasText: generated.member.loginName }); await row.waitFor(); return row;
     };
     await check("当前租户管理员真实登录与目录管理员只读", async () => {
       await openLogin(page, configuration, "tenant"); await fillLogin(page, configuration.credentials.tenant, "tenant");
       await submitLogin(page); await assertWorkspace(page, "tenant"); await directory();
-      requireCondition(JSON.stringify(await page.locator(".member-directory-table th").allTextContents()) === JSON.stringify(["成员", "角色", "状态", "助手范围", "操作"]), "成员目录未承接原型五列表格");
+      requireCondition(JSON.stringify(await page.locator(".tenant-member-directory-table th").allTextContents()) === JSON.stringify(["成员", "角色", "状态", "助手范围", "操作"]), "成员目录未承接原型五列表格");
       const administrator = page.locator("tbody tr").filter({ hasText: "租户管理员" }).first(); await administrator.waitFor();
       requireCondition(await administrator.getByRole("button").count() === 0 && await administrator.getByText("只读", { exact: true }).isVisible(), "管理员目标未只读保护");
     });
@@ -245,7 +245,7 @@ async function run(configuration) {
         await page.locator(".member-account-facts").waitFor();
         for (const enlarged of [false, true]) await withTextScale(page, enlarged, () => verifyLayout(page));
         await page.getByRole("button", { name: "返回成员目录", exact: true }).click();
-        await page.locator(".member-directory-table tbody").waitFor();
+        await page.locator(".tenant-member-directory-table tbody").waitFor();
         await create(); for (const enlarged of [false, true]) await withTextScale(page, enlarged, () => verifyLayout(page));
         const login = page.getByRole("textbox", { name: "登录名", exact: true }); await login.focus();
         await page.keyboard.press("Tab"); requireCondition(await page.getByRole("button", { name: "取消", exact: true }).evaluate(element => element === document.activeElement), "键盘跳过取消或进入隐藏字段");

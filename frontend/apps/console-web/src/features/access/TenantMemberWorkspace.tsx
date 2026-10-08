@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { Button, Checkbox, Dialog, DialogActions, DialogBody, DialogContent, DialogSurface, DialogTitle, Field, Input } from "@fluentui/react-components";
+import { Button, Checkbox, Dialog, DialogSurface, DialogTitle, Field, Input } from "@fluentui/react-components";
 import { PageHeading } from "@foundation/design-system";
 import { presentApiError, type ControlPlaneClient, type MemberAccount, type PageResult, type TenantMemberSummary } from "../../api/control-plane-client";
 import type { ConsoleRoute } from "../../session/console-route";
@@ -129,14 +129,14 @@ function MemberDirectory({ client, route, onRouteChange }: { client: ControlPlan
   function changePage(next: number) { onRouteChange({ ...route, page: next }); }
 
   return <>
-    <PageHeading title="成员与对话功能" context="当前租户" summary="普通成员" status={{ label: "可配置", tone: "info" }}
+    <PageHeading title="成员与对话功能" context="租户访问与知识" summary="普通成员" status={{ label: "可配置", tone: "success" }}
       action={<Button appearance="primary" disabled={busy} onClick={() => onRouteChange({ navigationId: "access", task: "member-create", step: 1 })}>添加成员</Button>} />
     <section className="member-workspace" aria-busy={!page || busy}>
       <div className="member-directory-toolbar"><Field label="搜索成员"><Input type="search" placeholder="按姓名或角色搜索" maxLength={64} value={search}
         onChange={(_, data) => setSearchDraft({ routeQuery: query, value: data.value })} /></Field><span>管理员条目只读</span></div>
       {notice ? <p role="status">{notice}</p> : null}
       {failure ? <p role="alert">{failure} <Button onClick={() => setRevision(value => value + 1)}>重试</Button></p> : !page ? <p role="status">正在加载成员目录…</p> :
-        <div className="member-directory-table"><table><thead><tr>{["成员", "角色", "状态", "助手范围", "操作"].map(label => <th key={label} scope="col">{label}</th>)}</tr></thead>
+        <div className="tenant-member-directory-table"><table><thead><tr>{["成员", "角色", "状态", "助手范围", "操作"].map(label => <th key={label} scope="col">{label}</th>)}</tr></thead>
           <tbody>{page.items.length ? page.items.map(member => {
             const readOnly = memberIsReadOnly(member);
             return <tr key={member.membershipId}><td data-label="成员"><strong>{member.loginName}</strong></td><td data-label="角色">{readOnly ? "租户管理员" : "普通成员"}</td>
@@ -155,20 +155,20 @@ function MemberDirectory({ client, route, onRouteChange }: { client: ControlPlan
         </div>}
     </section>
     <Dialog open={Boolean(pending)} onOpenChange={(_, data) => { if (!data.open) closeDialog(); }}>
-      <DialogSurface className="foundation-task-dialog member-account-dialog"><form ref={form} onSubmit={event => void commit(event)} noValidate><DialogBody>
-        <div className="member-dialog-header">
+      <DialogSurface className="member-account-dialog"><form className="member-dialog-form" ref={form} onSubmit={event => void commit(event)} noValidate>
+        <header className="member-dialog-header">
           {pending?.kind === "reset" ? <span className="member-dialog-kicker">受控凭据重置</span> : null}
           <DialogTitle className="member-dialog-title">{pending?.kind === "reset" ? "重置密码" : "停用普通成员"}</DialogTitle>
           {pending?.kind === "reset" ? <p>为 {pending.account.loginName} 设置新密码。系统不会回显或保存明文。</p> : null}
-        </div>
-        <DialogContent>{pending?.kind === "reset" ? <>
-          <div className="member-password-fields"><Field label="新密码" required><Input key={passwordRevision} name="password" type="password" disabled={busy} maxLength={1024} autoComplete="new-password" /></Field>
-            <Field label="再次输入" required><Input key={passwordRevision} name="confirmation" type="password" disabled={busy} maxLength={1024} autoComplete="new-password" /></Field></div>
+        </header>
+        <div className="member-dialog-content">{pending?.kind === "reset" ? <>
+          <div className="member-password-fields"><Field label="新密码"><Input key={passwordRevision} name="password" type="password" required disabled={busy} maxLength={1024} autoComplete="new-password" /></Field>
+            <Field label="再次输入"><Input key={passwordRevision} name="confirmation" type="password" required disabled={busy} maxLength={1024} autoComplete="new-password" /></Field></div>
           <Checkbox className="member-reset-consent" checked={acknowledged} disabled={busy} label={<span><strong>撤销全部会话</strong><small>平台与租户范围的既有会话同时失效。</small></span>} onChange={(_, data) => setAcknowledged(Boolean(data.checked))} />
         </> : <p>此成员将无法登录本租户，当前对话与历史访问立即失效。助手授权保留，可在成员目录恢复。</p>}
-          {dialogError ? <p role="alert">{dialogError}</p> : null}</DialogContent>
-        <DialogActions><Button type="button" disabled={busy} onClick={closeDialog}>取消</Button><Button appearance="primary" type="submit" disabled={busy}>{busy ? "正在提交…" : pending?.kind === "reset" ? "重置密码" : "确认停用"}</Button></DialogActions>
-      </DialogBody></form></DialogSurface>
+          {dialogError ? <p role="alert">{dialogError}</p> : null}</div>
+        <footer className="member-dialog-actions"><Button type="button" disabled={busy} onClick={closeDialog}>取消</Button><Button appearance="primary" type="submit" disabled={busy}>{busy ? "正在提交…" : pending?.kind === "reset" ? "重置密码" : "确认停用"}</Button></footer>
+      </form></DialogSurface>
     </Dialog>
   </>;
 }
@@ -186,7 +186,7 @@ function MemberAccountWorkspace({ client, membershipId, onRouteChange }: { clien
     return () => { active = false; unsubscribe(); };
   }, [client, epoch, membershipId]);
   return <>
-    <PageHeading title="成员账号" context="当前租户" summary="当前成员" status={{ label: "可查看", tone: "info" }} />
+    <PageHeading title="成员账号" context="租户访问与知识" summary="当前成员" status={{ label: "可查看", tone: "success" }} />
     <nav className="member-object-navigation" aria-label="成员工作区"><button aria-current="page">账号信息</button><button disabled>对话功能</button><button disabled>可用助手</button></nav>
     <section className="member-workspace member-section member-account-workspace">{failure ? <p role="alert">{failure}</p> : !account ? <p role="status">正在读取成员账号…</p> : account.membershipRole === "TENANT_ADMINISTRATOR" ? <>
       <h2>管理员账号只读</h2><p>管理员由平台维护。</p></> : <>
