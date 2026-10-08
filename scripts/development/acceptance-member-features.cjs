@@ -182,7 +182,11 @@ async function run(configuration) {
       requireCondition((await request(page, `/tenant/members/${generated.member.membershipId}/enable`, "POST", { expectedVersion: disabled.version })).status === 200, "隔离成员恢复未成功");
       requireCondition((await request(old.page, "/auth/browser-session")).status === 401 && !(await read()).conversationFeatures.authorizedCitations, "恢复激活旧会话或覆盖保存配置");
       const current = await memberLogin(browser, memberConfiguration, generated.member);
-      requireCondition((await request(current.page, "/query-runs/1")).status === 403, "关闭本人历史仍可直接读取旧运行");
+      requireCondition((await request(current.page, "/query-runs/1")).status === 403, "关闭本人历史时运行读取入口未先拒绝");
+      const eventStatus = await current.page.evaluate(async () => (await fetch("/api/v1/query-runs/1/events", {
+        headers: { Accept: "text/event-stream" }, credentials: "same-origin", signal: AbortSignal.timeout(10_000),
+      })).status);
+      requireCondition(eventStatus === 403, "关闭本人历史时事件续传入口未先拒绝");
       await current.context.close(); await old.context.close(); await direct(page);
     });
     await check("退出清除功能草稿，新登录不继承上一代编辑", async () => {

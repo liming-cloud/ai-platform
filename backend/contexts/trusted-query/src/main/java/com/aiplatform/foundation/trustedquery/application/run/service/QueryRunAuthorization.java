@@ -18,6 +18,11 @@ public final class QueryRunAuthorization {
         access.requireAssistantVersion(context, assistantVersionId, "conversation");
     }
 
+    /** 未开放本人历史时先拒绝入口，不依据运行是否存在改变裁决；对象读取后仍须核对本人及助手。 */
+    public void requireHistoryFeature(TrustedRequestContext context) {
+        access.requireFeature(context, "ownHistory");
+    }
+
     /** 读取或续传只允许本人的运行，并重新核对当前助手及历史功能。 */
     public void requireHistory(TrustedRequestContext context, QueryRun run) {
         if (run.requestedBy().value() != context.membershipId().value()) {

@@ -261,6 +261,19 @@ class QueryRunServiceTest {
     }
 
     @Test
+    void 未开放本人历史时在运行存在性查询之前拒绝() {
+        var repository = org.mockito.Mockito.spy(new MemoryRepository());
+        var access = org.mockito.Mockito.mock(com.aiplatform.foundation.organizationaccess.application.member.facade.MemberAccessFacade.class);
+        var actor = context("assistant:query", "knowledge:read");
+        org.mockito.Mockito.doThrow(new CandidateSearchPermissionDeniedException()).when(access).requireFeature(actor, "ownHistory");
+        var service = service(repository, new RecordingModels(), new RecordingRetrieval(List.of()), new QueryRunAuthorization(access));
+
+        assertThrows(CandidateSearchPermissionDeniedException.class, () -> service.get(
+                new com.aiplatform.foundation.trustedquery.application.run.query.GetQueryRunQuery(actor, "1")));
+        org.mockito.Mockito.verifyNoInteractions(repository);
+    }
+
+    @Test
     void 历史和引用关闭仍可完成新对话但读取与重放必须拒绝() {
         var repository = new MemoryRepository();
         var access = org.mockito.Mockito.mock(com.aiplatform.foundation.organizationaccess.application.member.facade.MemberAccessFacade.class);

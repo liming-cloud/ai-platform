@@ -36,6 +36,21 @@ class QueryRunEventServiceTest {
     private static final Instant NOW = Instant.parse("2026-07-27T06:00:00Z");
 
     @Test
+    void 未开放本人历史时在事件及运行读取之前拒绝() {
+        var repository = org.mockito.Mockito.mock(QueryRunRepository.class);
+        var access = org.mockito.Mockito.mock(com.aiplatform.foundation.organizationaccess.application.member.facade.MemberAccessFacade.class);
+        var actor = context();
+        org.mockito.Mockito.doThrow(new com.aiplatform.foundation.trustedquery.application.candidate.exception.CandidateSearchPermissionDeniedException())
+                .when(access).requireFeature(actor, "ownHistory");
+        var service = new QueryRunEventService(repository, new QueryRunAuthorization(access));
+
+        org.junit.jupiter.api.Assertions.assertThrows(
+                com.aiplatform.foundation.trustedquery.application.candidate.exception.CandidateSearchPermissionDeniedException.class,
+                () -> service.list(new ListQueryRunEventsQuery(actor, "1", 0, 10)));
+        org.mockito.Mockito.verifyNoInteractions(repository);
+    }
+
+    @Test
     void 只从可信租户按游标返回终态事件() {
         var repository = new RecordingRepository();
         var service = new QueryRunEventService(repository, QueryAuthorizationFixture.allowed());

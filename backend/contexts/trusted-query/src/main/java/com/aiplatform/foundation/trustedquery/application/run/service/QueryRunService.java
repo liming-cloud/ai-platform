@@ -203,6 +203,7 @@ public final class QueryRunService  {
     public QueryRunView get(GetQueryRunQuery query) {
         Objects.requireNonNull(query, "查询运行读取请求不能为空");
         requirePermissions(query.context());
+        authorization.requireHistoryFeature(query.context());
         return repository
                 .find(
                         query.context().tenantId(),

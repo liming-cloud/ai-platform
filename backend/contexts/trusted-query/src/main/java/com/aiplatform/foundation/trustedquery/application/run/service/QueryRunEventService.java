@@ -34,6 +34,7 @@ public final class QueryRunEventService  {
     public QueryRunEventPage list(ListQueryRunEventsQuery query) {
         Objects.requireNonNull(query, "查询事件读取请求不能为空");
         requirePermissions(query);
+        authorization.requireHistoryFeature(query.context());
         var queryRunId = QueryRunId.parse(query.queryRunId());
         var run = repository
                 .find(query.context().tenantId(), queryRunId)
