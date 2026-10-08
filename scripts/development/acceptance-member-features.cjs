@@ -215,7 +215,31 @@ async function run(configuration) {
     await check("三尺寸两倍文字键盘与reduced-motion无裁切且账号可往返", async () => {
       for (const width of [390, 1024, 1440]) {
         await page.setViewportSize({ width, height: 960 }); await direct(page);
-        for (const enlarged of [false, true]) await withTextScale(page, enlarged, () => verifyLayout(page));
+        for (const enlarged of [false, true]) await withTextScale(page, enlarged, async () => {
+          await verifyLayout(page);
+          const matches = await page.evaluate(() => {
+            const row = document.querySelector(".member-feature-control"); const input = row.querySelector("input");
+            const label = row.querySelector("span"); const box = row.getBoundingClientRect();
+            return input.getBoundingClientRect().x - box.x === 24 && label.getBoundingClientRect().x - box.x === 57
+              && getComputedStyle(input).margin === "2px 3px 3px 4px"
+              && getComputedStyle(row).transitionDuration === "0s"
+              && [...document.querySelectorAll(".member-form-actions button")].every(button => getComputedStyle(button).paddingBlock === "6px");
+          });
+          requireCondition(matches, "功能复选框、短按钮或 reduced-motion 与已接受原型不一致");
+        });
+        await page.getByRole("checkbox", { name: "本人历史", exact: true }).check();
+        await page.getByRole("button", { name: "账号信息", exact: true }).click();
+        const dialog = page.getByRole("dialog"); await dialog.getByRole("heading", { name: "修改尚未保存", exact: true }).waitFor();
+        for (const enlarged of [false, true]) await withTextScale(page, enlarged, async () => {
+          await verifyLayout(page);
+          const matches = await dialog.evaluate(element => element.getBoundingClientRect().width === Math.min(512, innerWidth - 38)
+            && [...element.querySelectorAll("p")].every(paragraph => getComputedStyle(paragraph).margin === "0px")
+            && getComputedStyle(element.querySelector(".member-dialog-content")).marginTop === "16px"
+            && getComputedStyle(element.querySelector(".member-dialog-actions")).marginTop === "16px");
+          requireCondition(matches, "未保存提示尺寸或段落留白与已接受原型不一致");
+        }, '[role="dialog"]');
+        await dialog.getByRole("button", { name: "保留当前", exact: true }).click(); await dialog.waitFor({ state: "hidden" });
+        await page.getByRole("button", { name: "取消修改", exact: true }).click(); await direct(page);
         await page.getByRole("checkbox", { name: "选择助手", exact: true }).focus(); await page.keyboard.press("Tab");
         requireCondition(await page.getByRole("checkbox", { name: "发起和继续对话", exact: true }).evaluate(element => element === document.activeElement), "功能键盘顺序不正确");
         await page.getByRole("button", { name: "账号信息", exact: true }).click(); await page.locator(".member-account-facts").waitFor();

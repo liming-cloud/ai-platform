@@ -102,12 +102,16 @@
 .member-object-navigation:has(+ .member-feature-workspace) { margin-bottom: 44px; }
 .member-feature-stack { border-block: 1px solid var(--foundation-border); }
 .member-feature-control { display: flex; align-items: flex-start; gap: 12px; min-height: 56px; padding: 12px 20px; border-bottom: 1px solid var(--foundation-border); cursor: pointer; transition: background-color 120ms ease, transform 120ms ease; }
-.member-feature-control input { flex-shrink: 0; width: 18px; height: 18px; margin: 2px 0 0; accent-color: var(--foundation-accent); }
+.member-feature-control input { flex-shrink: 0; width: 18px; height: 18px; margin: 2px 3px 3px 4px; color: inherit; accent-color: var(--foundation-accent); }
 .member-feature-control span { display: grid; gap: 4px; min-width: 0; overflow-wrap: anywhere; }
 .member-feature-control:hover { background: var(--foundation-subtle-surface); }
 .member-feature-control:active { transform: translateY(1px); }
-.member-unsaved-dialog { display: grid; gap: 16px; }
-@media (prefers-reduced-motion: reduce) { .member-feature-control { transition: none; transform: none; } }
+.member-feature-workspace .fui-Button, .member-unsaved-dialog .fui-Button { padding-block: 6px; }
+/* 原型未保存提示采用 32rem 普通流；每段间距由直属容器承担，避免段落默认外边距叠加。 */
+.member-unsaved-dialog { display: block; width: min(32rem, calc(100vw - 32px)); }
+.member-unsaved-dialog > .member-dialog-content, .member-unsaved-dialog > .member-dialog-actions { margin-top: 16px; }
+.member-unsaved-dialog p { margin: 0; }
+@media (prefers-reduced-motion: reduce) { .member-feature-control { transition: none !important; transform: none; } }
 /* 原型对象导航后还有 20px 内容轨道间隙；当前普通流布局合并为 44px 留白。 */
 .member-object-navigation:has(+ .member-account-workspace) { margin-bottom: 44px; }
 .tenant-member-directory-table th:last-child, .tenant-member-directory-table td:last-child { text-align: right; }
