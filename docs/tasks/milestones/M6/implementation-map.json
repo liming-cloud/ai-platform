@@ -1096,7 +1096,7 @@
       "phase": "M6",
       "classification": "production",
       "workPackage": "WP-0018",
-      "status": "in-progress",
+      "status": "verified",
       "operations": [
         {
           "id": "tenant-member-features:0",
@@ -1106,7 +1106,7 @@
           "reason": "m6-approved-prototype",
           "workPackage": "WP-0018",
           "dependsOn": [],
-          "status": "contracted",
+          "status": "verified",
           "contract": {
             "adr": "ADR-0093",
             "target": {
@@ -1119,6 +1119,20 @@
               "旧版本与关闭上限拒绝",
               "历史关闭不隐含关闭新的有权对话",
               "取消刷新及交错保存不覆盖助手范围"
+            ]
+          },
+          "verifiedCommit": "6206dec074854ae253d555a389b582d78091aade",
+          "verification": {
+            "commands": [
+              "make acceptance-work-package WP=WP-0018 SLICE=features",
+              "make acceptance-work-package WP=WP-0018 SLICE=account",
+              "make acceptance-work-package WP=WP-0017 SLICE=login",
+              "make frontend-test",
+              "./mvnw -q verify",
+              "make architecture-guard"
+            ],
+            "evidence": [
+              "docs/tasks/WP-0018/evidence/WP-0018-features-production-parity-closure-20261008.md"
             ]
           }
         }
