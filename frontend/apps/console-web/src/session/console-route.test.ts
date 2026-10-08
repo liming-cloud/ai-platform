@@ -9,6 +9,13 @@ import {
 } from "./console-route";
 
 describe("统一控制台路由", () => {
+  it("成员目录 URL 不向服务端发送超过平台偏移上限的分页", () => {
+    for (const [size, lastPage] of [[20, 5001], [100, 1001]] as const) {
+      expect(parseConsoleRoute("/access/members", `?page=${lastPage}&size=${size}`)).toEqual({ navigationId: "access", task: "members", page: lastPage, pageSize: size });
+      expect(parseConsoleRoute("/access/members", `?page=${lastPage + 1}&size=${size}`)).toEqual({ navigationId: "access", task: "members", page: 1, pageSize: size });
+    }
+    expect(parseConsoleRoute("/access/members", "?page=99999")).toEqual({ navigationId: "access", task: "members", page: 1 });
+  });
   it("成员开户与账号使用独立直接地址，目录筛选和标准页大小可恢复", () => {
     expect(parseConsoleRoute("/tenant/members/new", "?step=3")).toEqual({ navigationId: "access", task: "member-create", step: 3 });
     expect(formatConsoleRoute({ navigationId: "access", task: "member-create", step: 2 })).toBe("/tenant/members/new?step=2");

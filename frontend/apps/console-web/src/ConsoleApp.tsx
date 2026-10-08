@@ -193,10 +193,12 @@ function AuthenticatedConsoleApp({
   }, [setLocation]);
 
   useEffect(() => {
-    if ((location.pathname === "/" || isConsoleLoginPath(location.pathname)) && resolvedRoute.kind === "route") {
+    const memberDirectory = resolvedRoute.kind === "route" && resolvedRoute.route.navigationId === "access" && resolvedRoute.route.task === "members";
+    if (resolvedRoute.kind === "route" && (location.pathname === "/" || isConsoleLoginPath(location.pathname)
+      || (memberDirectory && `${location.pathname}${location.search}` !== formatConsoleRoute(resolvedRoute.route)))) {
       window.history.replaceState(null, "", formatConsoleRoute(resolvedRoute.route));
     }
-  }, [location.pathname, resolvedRoute]);
+  }, [location.pathname, location.search, resolvedRoute]);
 
   function selectNavigation(navigationId: string) {
     if (!navigationIds.includes(navigationId as ConsoleRoute["navigationId"])) {

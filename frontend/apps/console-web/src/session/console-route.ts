@@ -248,7 +248,11 @@ export function parseConsoleRoute(pathname: string, search: string): ConsoleRout
     const query = parameters.get("q") ?? "";
     const status = parameters.get("status");
     const pageSize = Number(parameters.get("size"));
-    return { navigationId: "access", task: "members", page: positivePage(parameters.get("page")),
+    const requestedPage = positivePage(parameters.get("page"));
+    const effectivePageSize = [10, 20, 50, 100].includes(pageSize) ? pageSize : 20;
+    // 与 PageQuery 的平台偏移上限一致；无效直接地址先规范化，不放宽服务端保护。
+    const page = (requestedPage - 1) * effectivePageSize <= 100_000 ? requestedPage : 1;
+    return { navigationId: "access", task: "members", page,
       ...(query ? { query: query.slice(0, 64) } : {}),
       ...(status === "ENABLED" || status === "DISABLED" ? { status } : {}),
       ...([10, 20, 50, 100].includes(pageSize) ? { pageSize: pageSize as 10 | 20 | 50 | 100 } : {}) };
