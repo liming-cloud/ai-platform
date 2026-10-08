@@ -12,8 +12,9 @@
 .member-assistants-workspace .fui-Button, .access-policy-workspace .fui-Button, .access-policy-directory .fui-Button, .policy-create-dialog .fui-Button { min-width: auto; padding: 6px 12px; gap: 8px; font-weight: 620; line-height: calc(1em * 20 / 14); }
 .member-assistants-workspace .member-form-actions > .fui-Button:last-child, .access-policy-workspace .policy-release-decision > .fui-Button, .policy-create-dialog .member-form-actions > .fui-Button:last-child { border: 1px solid transparent; }
 .access-policy-workspace .fui-Button:disabled, .access-policy-directory .fui-Button:disabled, .policy-create-dialog .fui-Button:disabled { color: var(--foundation-muted-text); border-color: var(--foundation-border); background: var(--foundation-subtle-surface); opacity: .76; }
-.access-policy-directory { gap: 0; }
+.access-policy-directory { gap: 24px; }
 .foundation-app-root .policy-page-action { min-width: auto; padding: 6px 12px; gap: 8px; font-weight: 620; line-height: calc(1em * 20 / 14); }
+.foundation-app-root .policy-page-action:disabled { color: var(--foundation-muted-text); border-color: var(--foundation-border); background: var(--foundation-subtle-surface); opacity: .76; }
 .policy-directory-table .access-pagination .fui-Button { padding: 4px 8px; }
 .policy-directory-table .access-pagination .fui-Button[aria-current="page"] { padding-inline: 4px; }
 .access-pagination input { width: 4rem; min-width: 0; min-height: max(var(--foundation-control-height-compact), calc(1.5em + 8px)); padding: 0 12px; border: 1px solid var(--foundation-border-strong); border-radius: var(--foundation-control-radius); background: var(--foundation-surface); color: inherit; font: inherit; font-size: 16px; font-weight: 400; line-height: 1.5; }

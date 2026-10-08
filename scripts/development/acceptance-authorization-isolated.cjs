@@ -6,7 +6,7 @@ const crypto = require("node:crypto");
 const { request, requireCondition, SafeAssertionError, openLogin, fillLogin, submitLogin, assertWorkspace, logoutWorkspace } = require("./acceptance-login.cjs");
 const { withTextScale } = require("./acceptance-onboarding.cjs");
 const { memberLogin, verifyLayout } = require("./acceptance-member-account.cjs");
-const { verifyAssistants, verifyPreview } = require("./acceptance-member-authorization.cjs");
+const { verifyAssistants, verifyPreview, verifyDirectorySpacing } = require("./acceptance-member-authorization.cjs");
 
 function configuration(args) {
   requireCondition(args.length === 5, "隔离验收必须提供控制面、私有输入、目录、构建产物和独立查询应用");
@@ -97,6 +97,7 @@ async function run(config) {
           const clippedCounts = await page.locator('.policy-summary-strip dd').evaluateAll(values => values.filter(value =>
             value.scrollWidth > value.clientWidth + 1 || value.scrollHeight > value.clientHeight + 1).length);
           requireCondition(clippedCounts === 0, "真实策略预览计数被省略或裁切");
+          if (name === "directory") await verifyDirectorySpacing(page);
           await page.mouse.move(0, 0);
           const filename = path.join(directory, `isolated-${name}-${width}-${enlarged ? 200 : 100}-${crypto.randomBytes(3).toString("hex")}.png`);
           fs.writeFileSync(filename.replace(/\.png$/, ".json"), JSON.stringify({ kind: name, width, enlarged, metrics: await measureParity(page, name) }), { mode: 0o600, flag: "wx" });

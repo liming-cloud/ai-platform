@@ -29,6 +29,22 @@ function verifyPreview(body) {
     && body.denyCount === body.checks.reduce((total, check) => total + check.denyCount, 0), "预览缺少真实检查、计数不一致或存在越权泄漏");
 }
 
+/** 原型目录初始态保持 24px 区块间距和真实不可创建时的禁用样式。 */
+async function verifyDirectorySpacing(page) {
+  const create = page.getByRole("button", { name: "新建访问策略", exact: true });
+  if (await create.isDisabled()) {
+    const style = await create.evaluate(element => {
+      const value = getComputedStyle(element);
+      return { color: value.color, background: value.backgroundColor, border: value.borderColor, opacity: value.opacity };
+    });
+    requireCondition(style.color === "rgb(94, 93, 89)" && style.background === "rgb(245, 244, 237)"
+      && style.border === "rgb(232, 230, 220)" && style.opacity === "0.76", "策略目录不可创建状态未使用原型禁用样式");
+  }
+  const gap = await page.evaluate(() => document.querySelector(".policy-directory-table").getBoundingClientRect().top
+    - document.querySelector(".policy-directory-toolbar").getBoundingClientRect().bottom);
+  requireCondition(gap === 24, "策略目录筛选区与表格间距不是原型的24px");
+}
+
 async function run(configuration) {
   requireCondition(require("playwright/package.json").version === "1.62.1", "需要锁定的 Playwright 运行时");
   const suffix = crypto.randomBytes(6).toString("hex"); const password = () => `Aa9!${crypto.randomBytes(24).toString("base64url")}`;
@@ -106,7 +122,7 @@ async function run(configuration) {
         await page.getByRole("button", { name: "对话功能", exact: true }).click(); await page.locator(".member-feature-workspace").waitFor();
         await page.getByRole("button", { name: "可用助手", exact: true }).click(); await page.locator(".member-assistants-workspace").waitFor();
         await page.goto(configuration.baseUrl + "/tenant/access-policies?page=1", { waitUntil: "networkidle" }); await page.getByRole("heading", { name: "访问策略目录", exact: true }).waitFor();
-        for (const enlarged of [false, true]) await withTextScale(page, enlarged, () => verifyLayout(page));
+        for (const enlarged of [false, true]) await withTextScale(page, enlarged, async () => { await verifyLayout(page); await verifyDirectorySpacing(page); });
       }
     });
     await check("退出清理与重新登录后真实授权仍为空且没有脚本错误", async () => {
@@ -118,5 +134,5 @@ async function run(configuration) {
   } catch (error) { throw new Error(`统一授权生产验收失败：${stage}${error instanceof SafeAssertionError ? `；${error.message}` : ""}；本轮对象和凭据保留。`); }
   finally { fs.closeSync(descriptor); await browser?.close(); }
 }
-module.exports = { readConfiguration, verifyAssistants, verifyPreview };
+module.exports = { readConfiguration, verifyAssistants, verifyPreview, verifyDirectorySpacing };
 if (require.main === module) { try { run(readConfiguration()).catch(error => { process.stderr.write(`${error.message}\n`); process.exitCode = 1; }); } catch (error) { process.stderr.write(`${error.message}\n`); process.exitCode = 1; } }
