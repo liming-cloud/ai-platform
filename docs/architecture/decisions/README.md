@@ -98,3 +98,4 @@
 | ADR-0090 | 已接受。2026-10-01。查询与导航合同依据用户继续按 OpenDesign 闭环交付 WP-0017 的授权、已接受的 ADR-0022、ADR-0041、ADR-0079、ADR-0080 与 ADR-0089。原型为 OpenDesign 项目 `249f81f2-6f1a-46ff-988c-da3cdedb35e7`，原页面固定于 `21b45c347a4008f5959b1b972e3ffd8a5aadcc6f`，共享移动布局为 `47c4f6f31823617633ce0bac98074208781f5565`。目录的事实冲突按下节用户接受的原项目修订解决；新版本通过验证并固定提交前，不宣称视觉验收 | 租户目录搜索与只读导航 | `docs/architecture/decisions/ADR-0090-tenant-directory-search-and-read-only-navigation.md` |
 | ADR-0091 | 已接受。2026-10-01。依据用户明确选择“保持 M6 范围，先完成登录入口切换”，以及 ADR-0048、ADR-0067、ADR-0078、ADR-0079。用户同时要求保持已验收 OpenDesign，不修改原型；此前目录修订的授权不能扩展至本切片 | 三类登录入口导航 | `docs/architecture/decisions/ADR-0091-three-login-entry-navigation.md` |
 | ADR-0092 | 已接受 | M6 平台概览后移与成员授权前沿 | `docs/architecture/decisions/ADR-0092-m6-platform-overview-late-delivery.md` |
+| ADR-0093 | 已接受 | 普通成员账户与有效访问生产契约 | `docs/architecture/decisions/ADR-0093-member-account-and-effective-access.md` |
