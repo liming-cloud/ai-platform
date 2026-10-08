@@ -3992,3 +3992,11 @@ main[data-screen="platform-tenants"] .compact-summary {
     min-height: var(--table-row-height);
   }
 }
+
+/* 策略目录操作单元格同样按内容撑高，避免移动端按钮被固定行高裁切。 */
+@media (max-width: 680px) {
+  main[data-screen="access-policies"] .data-table td {
+    height: auto;
+    min-height: var(--table-row-height);
+  }
+}
