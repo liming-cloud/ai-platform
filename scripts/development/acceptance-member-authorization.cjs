@@ -45,6 +45,16 @@ async function verifyDirectorySpacing(page) {
   requireCondition(gap === 24, "策略目录筛选区与表格间距不是原型的24px");
 }
 
+/** 对象导航承接原型 flex 按钮，避免放大文字时原生块行框产生累积偏移。 */
+async function verifyAssistantNavigation(page) {
+  const styles = await page.locator(".member-object-navigation button").evaluateAll(elements => elements.map(element => {
+    const value = getComputedStyle(element);
+    return { display: value.display, align: value.alignItems, gap: value.gap };
+  }));
+  requireCondition(styles.length === 3 && styles.every(style => style.display === "flex" && style.align === "center" && style.gap === "8px"),
+    "助手页对象导航没有承接原型flex按钮行框");
+}
+
 async function run(configuration) {
   requireCondition(require("playwright/package.json").version === "1.62.1", "需要锁定的 Playwright 运行时");
   const suffix = crypto.randomBytes(6).toString("hex"); const password = () => `Aa9!${crypto.randomBytes(24).toString("base64url")}`;
@@ -117,7 +127,7 @@ async function run(configuration) {
     await check("三尺寸两倍文字键盘与reduced-motion及对象页往返", async () => {
       for (const width of [390, 1024, 1440]) {
         await page.setViewportSize({ width, height: 960 }); await direct();
-        for (const enlarged of [false, true]) await withTextScale(page, enlarged, () => verifyLayout(page));
+        for (const enlarged of [false, true]) await withTextScale(page, enlarged, async () => { await verifyLayout(page); await verifyAssistantNavigation(page); });
         await page.getByRole("button", { name: "账号信息", exact: true }).click(); await page.locator(".member-account-facts").waitFor();
         await page.getByRole("button", { name: "对话功能", exact: true }).click(); await page.locator(".member-feature-workspace").waitFor();
         await page.getByRole("button", { name: "可用助手", exact: true }).click(); await page.locator(".member-assistants-workspace").waitFor();
@@ -134,5 +144,5 @@ async function run(configuration) {
   } catch (error) { throw new Error(`统一授权生产验收失败：${stage}${error instanceof SafeAssertionError ? `；${error.message}` : ""}；本轮对象和凭据保留。`); }
   finally { fs.closeSync(descriptor); await browser?.close(); }
 }
-module.exports = { readConfiguration, verifyAssistants, verifyPreview, verifyDirectorySpacing };
+module.exports = { readConfiguration, verifyAssistants, verifyPreview, verifyDirectorySpacing, verifyAssistantNavigation };
 if (require.main === module) { try { run(readConfiguration()).catch(error => { process.stderr.write(`${error.message}\n`); process.exitCode = 1; }); } catch (error) { process.stderr.write(`${error.message}\n`); process.exitCode = 1; } }
