@@ -128,7 +128,8 @@ async function run(configuration) {
       await create(); await page.getByRole("textbox", { name: "登录名", exact: true }).fill(generated.member.loginName); await next();
       await page.getByText(/^匹配 [0-9]+ 个，已选 0 个$/).waitFor();
       await page.getByRole("button", { name: "下一步", exact: true }).waitFor({ state: "visible" }); await next();
-      await page.getByLabel("初始密码", { exact: true }).fill(generated.member.password);
+      // Fluent 必填标签包含隐藏的星号；锚定完整标签，避免误选确认字段。
+      await page.getByLabel(/^初始密码\*?$/).fill(generated.member.password);
       await page.getByRole("button", { name: "取消", exact: true }).click();
       await page.getByRole("heading", { name: "成员与对话功能", exact: true }).waitFor();
       requireCondition(writes === 0, "取消仍创建成员"); await create();
@@ -143,18 +144,18 @@ async function run(configuration) {
       requireCondition(await page.getByRole("checkbox", { name: "选择助手", exact: true }).isChecked()
         && await page.getByRole("checkbox", { name: "发起和继续对话", exact: true }).isChecked()
         && !await page.getByRole("checkbox", { name: "本人历史", exact: true }).isChecked(), "开户默认功能不符原型");
-      await next(); await page.getByLabel("初始密码", { exact: true }).fill(generated.member.password); await page.reload({ waitUntil: "networkidle" });
+      await next(); await page.getByLabel(/^初始密码\*?$/).fill(generated.member.password); await page.reload({ waitUntil: "networkidle" });
       await page.getByRole("heading", { name: "密码并创建", exact: true }).waitFor();
-      requireCondition(await page.getByLabel("初始密码", { exact: true }).inputValue() === "", "刷新保留密码");
+      requireCondition(await page.getByLabel(/^初始密码\*?$/).inputValue() === "", "刷新保留密码");
       const noSecret = await page.evaluate(secret => !JSON.stringify({ local: { ...localStorage }, session: { ...sessionStorage } }).includes(secret), generated.member.password);
       requireCondition(noSecret && writes === 0, "草稿持久化密码或提前写入");
-      await page.getByLabel("初始密码", { exact: true }).fill(generated.member.password); await page.getByLabel("再次输入密码", { exact: true }).fill("mismatch");
+      await page.getByLabel(/^初始密码\*?$/).fill(generated.member.password); await page.getByLabel(/^再次输入密码\*?$/).fill("mismatch");
       await page.getByRole("button", { name: "创建成员", exact: true }).click(); await page.getByRole("alert").waitFor();
-      requireCondition(writes === 0 && await page.getByLabel("初始密码", { exact: true }).inputValue() === ""
-        && await page.getByLabel("再次输入密码", { exact: true }).inputValue() === "", "错误确认仍写入或保留密码");
+      requireCondition(writes === 0 && await page.getByLabel(/^初始密码\*?$/).inputValue() === ""
+        && await page.getByLabel(/^再次输入密码\*?$/).inputValue() === "", "错误确认仍写入或保留密码");
     });
     await check("正式界面原子开户后进入真实成员账号页", async () => {
-      await page.getByLabel("初始密码", { exact: true }).fill(generated.member.password); await page.getByLabel("再次输入密码", { exact: true }).fill(generated.member.password);
+      await page.getByLabel(/^初始密码\*?$/).fill(generated.member.password); await page.getByLabel(/^再次输入密码\*?$/).fill(generated.member.password);
       const sent = page.waitForResponse(response => new URL(response.url()).pathname === "/api/v1/tenant/members" && response.request().method() === "POST");
       await page.getByRole("button", { name: "创建成员", exact: true }).click(); const response = await sent;
       requireCondition(response.status() === 201, "正式开户未成功"); const body = await response.json(); verifyAccount(body, generated.member.loginName);
@@ -187,13 +188,13 @@ async function run(configuration) {
     });
     await check("重置取消零写入且确认撤销全部会话后旧密码会话失效", async () => {
       const row = await findTarget(); await row.getByRole("button", { name: "重置密码", exact: true }).click();
-      let dialog = page.getByRole("dialog"); await dialog.getByLabel("新密码", { exact: true }).fill(generated.member.replacementPassword);
+      let dialog = page.getByRole("dialog"); await dialog.getByLabel(/^新密码\*?$/).fill(generated.member.replacementPassword);
       await dialog.getByRole("button", { name: "取消", exact: true }).click();
       requireCondition((await request(oldMember.page, "/auth/browser-session")).status === 200, "取消重置撤销了旧会话");
       await row.getByRole("button", { name: "重置密码", exact: true }).click(); dialog = page.getByRole("dialog");
-      requireCondition(await dialog.getByLabel("新密码", { exact: true }).inputValue() === "", "重新打开保留新密码");
-      await dialog.getByLabel("新密码", { exact: true }).fill(generated.member.replacementPassword);
-      await dialog.getByLabel("再次输入", { exact: true }).fill(generated.member.replacementPassword);
+      requireCondition(await dialog.getByLabel(/^新密码\*?$/).inputValue() === "", "重新打开保留新密码");
+      await dialog.getByLabel(/^新密码\*?$/).fill(generated.member.replacementPassword);
+      await dialog.getByLabel(/^再次输入\*?$/).fill(generated.member.replacementPassword);
       await dialog.getByRole("checkbox", { name: "撤销全部会话", exact: false }).check();
       const sent = page.waitForResponse(response => response.url().includes("/password-reset") && response.request().method() === "POST");
       await dialog.getByRole("button", { name: "重置密码", exact: true }).click(); requireCondition((await sent).status() === 204, "唯一归属重置未成功");
@@ -224,8 +225,8 @@ async function run(configuration) {
         for (const enlarged of [false, true]) await withTextScale(page, enlarged, () => verifyLayout(page));
         let row = await findTarget(); await row.getByRole("button", { name: "重置密码", exact: true }).click();
         for (const enlarged of [false, true]) await withTextScale(page, enlarged, () => verifyLayout(page), '[role="dialog"]');
-        const dialog = page.getByRole("dialog"); await dialog.getByLabel("新密码", { exact: true }).focus();
-        await page.keyboard.press("Tab"); requireCondition(await dialog.getByLabel("再次输入", { exact: true }).evaluate(element => element === document.activeElement), "重置密码键盘顺序不正确");
+        const dialog = page.getByRole("dialog"); await dialog.getByLabel(/^新密码\*?$/).focus();
+        await page.keyboard.press("Tab"); requireCondition(await dialog.getByLabel(/^再次输入\*?$/).evaluate(element => element === document.activeElement), "重置密码键盘顺序不正确");
         await page.keyboard.press("Escape"); await dialog.waitFor({ state: "hidden" });
         requireCondition(await row.getByRole("button", { name: "重置密码", exact: true }).evaluate(element => element === document.activeElement), "关闭重置未返回操作焦点");
         row = await findTarget(); await row.getByRole("button", { name: "停用", exact: true }).click();
@@ -244,8 +245,8 @@ async function run(configuration) {
         for (const enlarged of [false, true]) await withTextScale(page, enlarged, () => verifyLayout(page));
         await next(); await page.getByRole("heading", { name: "密码并创建", exact: true }).waitFor();
         for (const enlarged of [false, true]) await withTextScale(page, enlarged, () => verifyLayout(page));
-        await page.getByLabel("初始密码", { exact: true }).focus(); await page.keyboard.press("Tab");
-        requireCondition(await page.getByLabel("再次输入密码", { exact: true }).evaluate(element => element === document.activeElement), "开户密码字段键盘顺序不正确");
+        await page.getByLabel(/^初始密码\*?$/).focus(); await page.keyboard.press("Tab");
+        requireCondition(await page.getByLabel(/^再次输入密码\*?$/).evaluate(element => element === document.activeElement), "开户密码字段键盘顺序不正确");
         await page.getByRole("button", { name: "取消", exact: true }).click();
       }
     });
