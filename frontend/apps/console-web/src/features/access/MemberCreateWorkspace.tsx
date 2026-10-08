@@ -55,8 +55,10 @@ export function MemberCreateWorkspace({ client, route, onRouteChange }: {
 
   useEffect(() => {
     visibleStep.current = step;
-    title.current?.focus();
     const currentForm = form.current;
+    const firstInput = ready && step > 1 ? currentForm?.querySelector<HTMLInputElement>('input:not(:disabled)') : null;
+    if (firstInput) firstInput.focus();
+    else title.current?.focus();
     return () => clearMemberPasswords(currentForm);
   }, [step, ready]);
 

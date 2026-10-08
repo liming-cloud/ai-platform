@@ -3,7 +3,7 @@
 .member-workspace p { margin: 0; }
 .member-section { display: grid; gap: 16px; padding-block: 20px; border-top: 1px solid var(--foundation-border); min-width: 0; }
 .member-create-steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 0; padding: 0; list-style: none; border-block: 1px solid var(--foundation-border); }
-.member-create-steps li { min-height: 72px; padding: 12px; font-size: 14px; border-right: 1px solid var(--foundation-border); overflow-wrap: anywhere; }
+.member-create-steps li { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 12px; align-items: center; min-height: 72px; padding: 12px; font-size: 14px; border-right: 1px solid var(--foundation-border); overflow-wrap: anywhere; }
 .member-create-steps li:last-child { border-right: 0; }
 .member-create-steps li[aria-current="step"] { background: var(--foundation-accent-subtle); }
 .member-create-step { min-width: 0; }
@@ -51,7 +51,7 @@
 .member-pagination .fui-Button[aria-current="page"] { min-width: var(--foundation-control-height-compact); padding-inline: 4px; }
 .member-pagination-error { width: 100%; color: var(--foundation-danger); }
 .member-object-navigation { display: flex; flex-wrap: wrap; gap: 8px; margin-block: 24px; border-bottom: 1px solid var(--foundation-border); }
-.member-object-navigation button { min-height: var(--foundation-control-height); border: 0; border-bottom: 2px solid transparent; border-radius: 0; background: transparent; padding-inline: 16px; font-family: inherit; font-size: 14px; font-weight: 620; color: var(--foundation-muted-text); }
+.member-object-navigation button { min-height: var(--foundation-control-height); border: 0; border-bottom: 2px solid transparent; border-radius: 0; background: transparent; padding: 6px 16px; font-family: inherit; font-size: 14px; font-weight: 620; line-height: 1.428572; color: var(--foundation-muted-text); }
 .member-object-navigation button[aria-current="page"] { color: var(--foundation-accent); border-bottom-color: var(--foundation-accent); }
 .member-account-facts { display: grid; grid-template-columns: minmax(8rem, .35fr) minmax(0, 1fr); margin: 0; border-top: 1px solid var(--foundation-border); }
 .member-account-facts dt, .member-account-facts dd { margin: 0; padding: .7rem 0; border-bottom: 1px solid var(--foundation-border); overflow-wrap: anywhere; }
@@ -62,9 +62,15 @@
 /* 目录页头动作也需避开固定头栏；它与目录正文相邻，并不位于工作区内部。 */
 .member-workspace :is(input, button, select), .page-heading:has(+ .member-directory-workspace) button { scroll-margin-block: 12rem; }
 .member-workspace :focus-visible, .member-object-navigation :focus-visible { outline: 2px solid var(--foundation-accent); outline-offset: 3px; }
+/* Fluent 输入由外层承载边框；焦点环也归外层，确保 portal 弹窗与原型使用同一焦点反馈。 */
+.member-workspace .fui-Input:has(input:focus-visible), .member-account-dialog .fui-Input:has(input:focus-visible) { outline: 2px solid var(--foundation-accent); outline-offset: 2px; border-color: var(--foundation-accent); }
+.member-workspace .fui-Input__input:focus-visible, .member-account-dialog .fui-Input__input:focus-visible { outline: none; }
 @media (max-width: 680px) {
+  .member-create-steps li { min-height: 60px; border-right: 0; border-bottom: 1px solid var(--foundation-border); }
+  .member-create-steps li:last-child { border-bottom: 0; }
   .page-heading:has(+ .member-directory-workspace) > .fui-Button { width: 100%; justify-self: stretch; }
   .member-directory-toolbar { display: grid; grid-template-columns: minmax(0, 1fr); min-height: 0; justify-content: space-between; }
+  .member-directory-toolbar > :first-child { width: 100%; }
   .member-directory-toolbar > span { margin-left: 0; }
   .tenant-member-directory-table table, .tenant-member-directory-table tbody, .tenant-member-directory-table tr, .tenant-member-directory-table td { display: block; width: 100%; }
   /* 与原型一样只在视觉上收起列标题，继续为辅助技术保留表头语义。 */
@@ -75,6 +81,7 @@
   .tenant-member-directory-table td { display: grid; grid-template-columns: 7.25rem minmax(0, 1fr); gap: 12px; height: auto; min-height: 48px; padding: 8px 0; border: 0; }
   .tenant-member-directory-table td::before { display: block; content: attr(data-label); color: var(--foundation-muted-text); font-size: 14px; font-weight: 650; }
   .member-directory-workspace .member-row-actions { justify-content: flex-start; }
+  .tenant-member-directory-table td > .member-read-only { justify-self: start; }
   .member-pagination { justify-content: flex-start; padding: 12px; }
   .member-pagination-summary { width: 100%; }
   .member-account-facts { grid-template-columns: minmax(0, 1fr); }
@@ -89,7 +96,6 @@
 .tenant-member-directory-table th:last-child, .tenant-member-directory-table td:last-child { text-align: right; }
 .tenant-member-directory-table tbody tr:last-child td { border-bottom: 0; }
 .member-row-actions { justify-content: flex-end; }
-.member-create-steps li { display: grid; align-items: center; }
 .member-create-form > .member-form-actions { padding-block: 16px; border-top: 1px solid var(--foundation-border); background: var(--foundation-surface); }
 .member-reset-consent { width: 100%; max-width: none; min-height: 56px; padding: 12px 0; border: 1px solid var(--foundation-border-strong); border-radius: var(--foundation-control-radius); background: var(--foundation-subtle-surface); }
 .member-reset-consent .fui-Checkbox__indicator { width: 18px; height: 18px; margin: 2px 12px 0 0; }
