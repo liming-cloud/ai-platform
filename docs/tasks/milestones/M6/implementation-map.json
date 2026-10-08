@@ -4,7 +4,7 @@
   "openDesignProjectId": "249f81f2-6f1a-46ff-988c-da3cdedb35e7",
   "humanAcceptanceEvidence": "docs/tasks/WP-0016/evidence/WP-0016-human-acceptance-20260913.md",
   "prototypeImplementationCommit": "21b45c347a4008f5959b1b972e3ffd8a5aadcc6f",
-  "updatedOn": "2026-10-06",
+  "updatedOn": "2026-10-08",
   "sources": [
     {
       "path": "docs/prototypes/wp-0016/page-inventory.json",
@@ -46,13 +46,24 @@
           "status": "verified",
           "contract": {
             "adr": "ADR-0079",
-            "target": { "kind": "api", "value": "POST /api/v1/auth/browser-session；GET/DELETE 同一浏览器会话资源" },
+            "target": {
+              "kind": "api",
+              "value": "POST /api/v1/auth/browser-session；GET/DELETE 同一浏览器会话资源"
+            },
             "saveBoundary": "复用统一身份与 Cookie/CSRF 会话；平台入口只接受平台身份，退出清除会话。",
-            "authorizationTests": ["错误角色入口拒绝", "CSRF 拒绝", "刷新恢复及退出失效"]
+            "authorizationTests": [
+              "错误角色入口拒绝",
+              "CSRF 拒绝",
+              "刷新恢复及退出失效"
+            ]
           },
           "verification": {
-            "commands": ["make acceptance-work-package WP=WP-0017 SLICE=login"],
-            "evidence": ["docs/tasks/WP-0017/evidence/WP-0017-independent-login-deploy-20260914.md"]
+            "commands": [
+              "make acceptance-work-package WP=WP-0017 SLICE=login"
+            ],
+            "evidence": [
+              "docs/tasks/WP-0017/evidence/WP-0017-independent-login-deploy-20260914.md"
+            ]
           },
           "verifiedCommit": "f9ba767bf2b20716b2c04e812b45e616fe037f53"
         },
@@ -88,13 +99,24 @@
           "status": "verified",
           "contract": {
             "adr": "ADR-0079",
-            "target": { "kind": "api", "value": "POST /api/v1/auth/browser-session；GET/DELETE 同一浏览器会话资源" },
+            "target": {
+              "kind": "api",
+              "value": "POST /api/v1/auth/browser-session；GET/DELETE 同一浏览器会话资源"
+            },
             "saveBoundary": "租户管理员入口校验指定租户与角色；不因访问另一入口自动替换当前身份。",
-            "authorizationTests": ["指定租户认证", "平台身份从租户入口拒绝", "刷新恢复及退出失效"]
+            "authorizationTests": [
+              "指定租户认证",
+              "平台身份从租户入口拒绝",
+              "刷新恢复及退出失效"
+            ]
           },
           "verification": {
-            "commands": ["make acceptance-work-package WP=WP-0017 SLICE=login"],
-            "evidence": ["docs/tasks/WP-0017/evidence/WP-0017-independent-login-deploy-20260914.md"]
+            "commands": [
+              "make acceptance-work-package WP=WP-0017 SLICE=login"
+            ],
+            "evidence": [
+              "docs/tasks/WP-0017/evidence/WP-0017-independent-login-deploy-20260914.md"
+            ]
           },
           "verifiedCommit": "f9ba767bf2b20716b2c04e812b45e616fe037f53"
         },
@@ -421,12 +443,22 @@
           "status": "verified",
           "contract": {
             "adr": "ADR-0083",
-            "target": { "kind": "api", "value": "GET /api/v1/platform/tenants/{tenantId}/administrators" },
+            "target": {
+              "kind": "api",
+              "value": "GET /api/v1/platform/tenants/{tenantId}/administrators"
+            },
             "saveBoundary": "只读查询当前租户的管理员资格；服务端分页、登录名搜索和状态筛选，刷新及浏览器前后退恢复筛选，不暴露全局主体标识或其他租户成员详情。",
-            "authorizationTests": ["非平台身份拒绝", "跨租户成员详情不泄露", "分页与筛选由真实服务端返回"]
+            "authorizationTests": [
+              "非平台身份拒绝",
+              "跨租户成员详情不泄露",
+              "分页与筛选由真实服务端返回"
+            ]
           },
           "verification": {
-            "commands": ["make backend-test", "make acceptance-work-package WP=WP-0017 SLICE=admins"],
+            "commands": [
+              "make backend-test",
+              "make acceptance-work-package WP=WP-0017 SLICE=admins"
+            ],
             "evidence": [
               "docs/tasks/WP-0017/evidence/WP-0017-admin-settings-prototype-parity-closure-20260924.md"
             ]
@@ -444,12 +476,26 @@
           "status": "verified",
           "contract": {
             "adr": "ADR-0083",
-            "target": { "kind": "api", "value": "POST /api/v1/platform/tenants/{tenantId}/administrators/{membershipReference}/disable；POST /api/v1/platform/tenants/{tenantId}/administrators/{membershipReference}/restore；POST /api/v1/platform/tenants/{tenantId}/administrators/{membershipReference}/password-reset" },
+            "target": {
+              "kind": "api",
+              "value": "POST /api/v1/platform/tenants/{tenantId}/administrators/{membershipReference}/disable；POST /api/v1/platform/tenants/{tenantId}/administrators/{membershipReference}/restore；POST /api/v1/platform/tenants/{tenantId}/administrators/{membershipReference}/password-reset"
+            },
             "saveBoundary": "停用或恢复仅修改本租户管理员资格，停用后仍占原租户归属；密码重置作用于全局身份并撤销全部旧会话，不改变资格或全局账户状态。均使用服务端成员定位、预期版本及失败回滚。",
-            "authorizationTests": ["同一身份跨租户分配拒绝", "错租户及旧版本拒绝", "缺少 CSRF 拒绝", "最后启用管理员保护", "旧平台账户重置路径不可绕过资格校验", "重置后旧会话撤销"]
+            "authorizationTests": [
+              "同一身份跨租户分配拒绝",
+              "错租户及旧版本拒绝",
+              "缺少 CSRF 拒绝",
+              "最后启用管理员保护",
+              "旧平台账户重置路径不可绕过资格校验",
+              "重置后旧会话撤销"
+            ]
           },
           "verification": {
-            "commands": ["make backend-test", "make acceptance-work-package WP=WP-0017 SLICE=admins", "make acceptance-work-package WP=WP-0017 SLICE=login"],
+            "commands": [
+              "make backend-test",
+              "make acceptance-work-package WP=WP-0017 SLICE=admins",
+              "make acceptance-work-package WP=WP-0017 SLICE=login"
+            ],
             "evidence": [
               "docs/tasks/WP-0017/evidence/WP-0017-admin-settings-prototype-parity-closure-20260924.md"
             ]
@@ -490,7 +536,12 @@
             ]
           },
           "verification": {
-            "commands": ["make backend-test", "make frontend-test", "make acceptance-work-package WP=WP-0017 SLICE=quotas", "make acceptance-work-package WP=WP-0017 SLICE=login"],
+            "commands": [
+              "make backend-test",
+              "make frontend-test",
+              "make acceptance-work-package WP=WP-0017 SLICE=quotas",
+              "make acceptance-work-package WP=WP-0017 SLICE=login"
+            ],
             "evidence": [
               "docs/tasks/WP-0017/evidence/WP-0017-quota-settings-prototype-parity-closure-20260928.md"
             ]
@@ -531,7 +582,13 @@
             ]
           },
           "verification": {
-            "commands": ["make backend-test", "make frontend-test", "make architecture-guard", "make acceptance-work-package WP=WP-0017 SLICE=features", "make acceptance-work-package WP=WP-0017 SLICE=login"],
+            "commands": [
+              "make backend-test",
+              "make frontend-test",
+              "make architecture-guard",
+              "make acceptance-work-package WP=WP-0017 SLICE=features",
+              "make acceptance-work-package WP=WP-0017 SLICE=login"
+            ],
             "evidence": [
               "docs/tasks/WP-0017/evidence/WP-0017-feature-settings-prototype-parity-closure-20260928.md"
             ]
@@ -572,7 +629,13 @@
             ]
           },
           "verification": {
-            "commands": ["make backend-test", "make frontend-test", "make architecture-guard", "make acceptance-work-package WP=WP-0017 SLICE=security", "make acceptance-work-package WP=WP-0017 SLICE=login"],
+            "commands": [
+              "make backend-test",
+              "make frontend-test",
+              "make architecture-guard",
+              "make acceptance-work-package WP=WP-0017 SLICE=security",
+              "make acceptance-work-package WP=WP-0017 SLICE=login"
+            ],
             "evidence": [
               "docs/tasks/WP-0017/evidence/WP-0017-security-settings-prototype-parity-closure-20260929.md"
             ]
@@ -601,13 +664,27 @@
           "status": "verified",
           "contract": {
             "adr": "ADR-0087",
-            "target": {"kind": "api", "value": "POST /api/v1/platform/accounts"},
+            "target": {
+              "kind": "api",
+              "value": "POST /api/v1/platform/accounts"
+            },
             "saveBoundary": "同一事务创建唯一身份、活动平台管理员绑定和授权修订；任一步失败整体回滚，首次平台登录不产生租户资格。",
-            "authorizationTests": ["平台治理权限先于身份事实读取；重复登录名、无权、缺少 CSRF 与审计写入失败均拒绝", "创建取消零写入；新管理员可从独立平台入口首次登录，租户入口拒绝"]
+            "authorizationTests": [
+              "平台治理权限先于身份事实读取；重复登录名、无权、缺少 CSRF 与审计写入失败均拒绝",
+              "创建取消零写入；新管理员可从独立平台入口首次登录，租户入口拒绝"
+            ]
           },
           "verification": {
-            "commands": ["./mvnw -q test", "make frontend-test", "make architecture-guard", "make acceptance-work-package WP=WP-0017 SLICE=accounts", "make acceptance-work-package WP=WP-0017 SLICE=login"],
-            "evidence": ["docs/tasks/WP-0017/evidence/WP-0017-platform-accounts-prototype-parity-closure-20261001.md"]
+            "commands": [
+              "./mvnw -q test",
+              "make frontend-test",
+              "make architecture-guard",
+              "make acceptance-work-package WP=WP-0017 SLICE=accounts",
+              "make acceptance-work-package WP=WP-0017 SLICE=login"
+            ],
+            "evidence": [
+              "docs/tasks/WP-0017/evidence/WP-0017-platform-accounts-prototype-parity-closure-20261001.md"
+            ]
           },
           "verifiedCommit": "f9f418ebc84d9d9cd2001db7717e0300998fa1db"
         },
@@ -622,13 +699,27 @@
           "status": "verified",
           "contract": {
             "adr": "ADR-0087",
-            "target": {"kind": "api", "value": "POST /api/v1/platform/accounts/{subjectId}/password-reset"},
+            "target": {
+              "kind": "api",
+              "value": "POST /api/v1/platform/accounts/{subjectId}/password-reset"
+            },
             "saveBoundary": "只重置活动平台管理员的全局凭据并撤销该身份全部旧会话；撤销或审计失败整体回滚，取消零写入。",
-            "authorizationTests": ["两次密码一致且显式确认撤销全部会话；无权、错角色目标、自己、缺少 CSRF 均拒绝", "新凭据可登录，旧凭据与全部旧会话失效；响应与审计不含秘密"]
+            "authorizationTests": [
+              "两次密码一致且显式确认撤销全部会话；无权、错角色目标、自己、缺少 CSRF 均拒绝",
+              "新凭据可登录，旧凭据与全部旧会话失效；响应与审计不含秘密"
+            ]
           },
           "verification": {
-            "commands": ["./mvnw -q test", "make frontend-test", "make architecture-guard", "make acceptance-work-package WP=WP-0017 SLICE=accounts", "make acceptance-work-package WP=WP-0017 SLICE=login"],
-            "evidence": ["docs/tasks/WP-0017/evidence/WP-0017-platform-accounts-prototype-parity-closure-20261001.md"]
+            "commands": [
+              "./mvnw -q test",
+              "make frontend-test",
+              "make architecture-guard",
+              "make acceptance-work-package WP=WP-0017 SLICE=accounts",
+              "make acceptance-work-package WP=WP-0017 SLICE=login"
+            ],
+            "evidence": [
+              "docs/tasks/WP-0017/evidence/WP-0017-platform-accounts-prototype-parity-closure-20261001.md"
+            ]
           },
           "verifiedCommit": "f9f418ebc84d9d9cd2001db7717e0300998fa1db"
         },
@@ -643,13 +734,27 @@
           "status": "verified",
           "contract": {
             "adr": "ADR-0087",
-            "target": {"kind": "api", "value": "POST /api/v1/platform/accounts/{subjectId}/disable|enable"},
+            "target": {
+              "kind": "api",
+              "value": "POST /api/v1/platform/accounts/{subjectId}/disable|enable"
+            },
             "saveBoundary": "停用立即阻断登录并撤销旧会话；恢复只恢复登录资格，不复活旧会话；审计与业务同事务。",
-            "authorizationTests": ["当前操作者、错角色目标和最后一名可用管理员不得停用；并发停用串行校验", "无权、缺少 CSRF、旧状态与会话撤销失败均拒绝；恢复后重新登录"]
+            "authorizationTests": [
+              "当前操作者、错角色目标和最后一名可用管理员不得停用；并发停用串行校验",
+              "无权、缺少 CSRF、旧状态与会话撤销失败均拒绝；恢复后重新登录"
+            ]
           },
           "verification": {
-            "commands": ["./mvnw -q test", "make frontend-test", "make architecture-guard", "make acceptance-work-package WP=WP-0017 SLICE=accounts", "make acceptance-work-package WP=WP-0017 SLICE=login"],
-            "evidence": ["docs/tasks/WP-0017/evidence/WP-0017-platform-accounts-prototype-parity-closure-20261001.md"]
+            "commands": [
+              "./mvnw -q test",
+              "make frontend-test",
+              "make architecture-guard",
+              "make acceptance-work-package WP=WP-0017 SLICE=accounts",
+              "make acceptance-work-package WP=WP-0017 SLICE=login"
+            ],
+            "evidence": [
+              "docs/tasks/WP-0017/evidence/WP-0017-platform-accounts-prototype-parity-closure-20261001.md"
+            ]
           },
           "verifiedCommit": "f9f418ebc84d9d9cd2001db7717e0300998fa1db"
         },
@@ -664,13 +769,25 @@
           "status": "verified",
           "contract": {
             "adr": "ADR-0087",
-            "target": {"kind": "navigation", "value": "/platform/accounts 空目录及筛选空态"},
+            "target": {
+              "kind": "navigation",
+              "value": "/platform/accounts 空目录及筛选空态"
+            },
             "saveBoundary": "真实服务端目录为空时仍提供创建入口；筛选空态不改写目录，取消创建零写入。",
-            "authorizationTests": ["平台身份及目录读取权限先于列表事实", "空态创建复用同一受控原子接口，不建立第二套账户状态"]
+            "authorizationTests": [
+              "平台身份及目录读取权限先于列表事实",
+              "空态创建复用同一受控原子接口，不建立第二套账户状态"
+            ]
           },
           "verification": {
-            "commands": ["make frontend-test", "make architecture-guard", "make acceptance-work-package WP=WP-0017 SLICE=accounts"],
-            "evidence": ["docs/tasks/WP-0017/evidence/WP-0017-platform-accounts-prototype-parity-closure-20261001.md"]
+            "commands": [
+              "make frontend-test",
+              "make architecture-guard",
+              "make acceptance-work-package WP=WP-0017 SLICE=accounts"
+            ],
+            "evidence": [
+              "docs/tasks/WP-0017/evidence/WP-0017-platform-accounts-prototype-parity-closure-20261001.md"
+            ]
           },
           "verifiedCommit": "f9f418ebc84d9d9cd2001db7717e0300998fa1db"
         },
@@ -685,13 +802,26 @@
           "status": "verified",
           "contract": {
             "adr": "ADR-0087",
-            "target": {"kind": "api", "value": "GET /api/v1/platform/accounts"},
+            "target": {
+              "kind": "api",
+              "value": "GET /api/v1/platform/accounts"
+            },
             "saveBoundary": "只读服务端固定排序、登录名子串与状态筛选；URL 恢复页码、每页大小和筛选，越界跳页给出反馈。",
-            "authorizationTests": ["仅计入活动平台管理员绑定的身份；停用身份可恢复，其他全局身份不可见", "受权读取、10/20/50/100 页大小、总数与筛选同范围；刷新及前后退恢复"]
+            "authorizationTests": [
+              "仅计入活动平台管理员绑定的身份；停用身份可恢复，其他全局身份不可见",
+              "受权读取、10/20/50/100 页大小、总数与筛选同范围；刷新及前后退恢复"
+            ]
           },
           "verification": {
-            "commands": ["./mvnw -q test", "make frontend-test", "make architecture-guard", "make acceptance-work-package WP=WP-0017 SLICE=accounts"],
-            "evidence": ["docs/tasks/WP-0017/evidence/WP-0017-platform-accounts-prototype-parity-closure-20261001.md"]
+            "commands": [
+              "./mvnw -q test",
+              "make frontend-test",
+              "make architecture-guard",
+              "make acceptance-work-package WP=WP-0017 SLICE=accounts"
+            ],
+            "evidence": [
+              "docs/tasks/WP-0017/evidence/WP-0017-platform-accounts-prototype-parity-closure-20261001.md"
+            ]
           },
           "verifiedCommit": "f9f418ebc84d9d9cd2001db7717e0300998fa1db"
         }
@@ -884,7 +1014,7 @@
       "phase": "M6",
       "classification": "production",
       "workPackage": "WP-0018",
-      "status": "pending-contract",
+      "status": "verified",
       "operations": [
         {
           "id": "tenant-member-create:0",
@@ -894,7 +1024,34 @@
           "reason": "m6-approved-prototype",
           "workPackage": "WP-0018",
           "dependsOn": [],
-          "status": "pending-contract"
+          "status": "verified",
+          "contract": {
+            "adr": "ADR-0093",
+            "target": {
+              "kind": "api",
+              "value": "GET /api/v1/tenant/members/create-options；GET /api/v1/tenant/member-assistants；POST /api/v1/tenant/members"
+            },
+            "saveBoundary": "三步向导一次原子提交新身份、普通资格、初始功能、助手范围及审计；密码不持久化，取消零写入。",
+            "authorizationTests": [
+              "重复登录名与旧合同拒绝",
+              "伪造角色或范围拒绝",
+              "初始无助手本人登录及直接 API 拒绝",
+              "取消／刷新／错误确认清除密码"
+            ]
+          },
+          "verifiedCommit": "71e3b42a93ece6874a19009483952e267b7e4d58",
+          "verification": {
+            "commands": [
+              "make acceptance-work-package WP=WP-0018 SLICE=account",
+              "make acceptance-work-package WP=WP-0017 SLICE=login",
+              "make frontend-test",
+              "./mvnw -q verify",
+              "make architecture-guard"
+            ],
+            "evidence": [
+              "docs/tasks/WP-0018/evidence/WP-0018-account-prototype-parity-closure-20261008.md"
+            ]
+          }
         }
       ]
     },
@@ -905,7 +1062,7 @@
       "phase": "M6",
       "classification": "production",
       "workPackage": "WP-0018",
-      "status": "pending-contract",
+      "status": "in-progress",
       "operations": [
         {
           "id": "tenant-member-account:0",
@@ -915,7 +1072,20 @@
           "reason": "m6-approved-prototype",
           "workPackage": "WP-0018",
           "dependsOn": [],
-          "status": "pending-contract"
+          "status": "contracted",
+          "contract": {
+            "adr": "ADR-0093",
+            "target": {
+              "kind": "api",
+              "value": "GET /api/v1/tenant/members/{membershipId}；独立功能／助手页由同一资格定位"
+            },
+            "saveBoundary": "账号只读；重置和资格操作在目录。进入独立设置页的组合操作待第 2／3 片全部交付，当前不标验证。",
+            "authorizationTests": [
+              "错租户及普通成员读取拒绝",
+              "不返回主体标识或凭据",
+              "功能／助手页分别保存、取消不影响其他页"
+            ]
+          }
         }
       ]
     },
@@ -926,7 +1096,7 @@
       "phase": "M6",
       "classification": "production",
       "workPackage": "WP-0018",
-      "status": "pending-contract",
+      "status": "in-progress",
       "operations": [
         {
           "id": "tenant-member-features:0",
@@ -936,7 +1106,21 @@
           "reason": "m6-approved-prototype",
           "workPackage": "WP-0018",
           "dependsOn": [],
-          "status": "pending-contract"
+          "status": "contracted",
+          "contract": {
+            "adr": "ADR-0093",
+            "target": {
+              "kind": "api",
+              "value": "GET/PUT /api/v1/tenant/members/{membershipId}/features"
+            },
+            "saveBoundary": "仅保存完整四布尔功能，核对功能版本和租户上限版本；与助手保存独立，变化撤销旧权限。",
+            "authorizationTests": [
+              "管理员只读与错租户拒绝",
+              "旧版本与关闭上限拒绝",
+              "历史关闭不隐含关闭新的有权对话",
+              "取消刷新及交错保存不覆盖助手范围"
+            ]
+          }
         }
       ]
     },
@@ -947,7 +1131,7 @@
       "phase": "M6",
       "classification": "production",
       "workPackage": "WP-0018",
-      "status": "pending-contract",
+      "status": "in-progress",
       "operations": [
         {
           "id": "tenant-member-assistants:0",
@@ -957,7 +1141,21 @@
           "reason": "m6-approved-prototype",
           "workPackage": "WP-0018",
           "dependsOn": [],
-          "status": "pending-contract"
+          "status": "contracted",
+          "contract": {
+            "adr": "ADR-0093",
+            "target": {
+              "kind": "api",
+              "value": "GET/PUT /api/v1/tenant/members/{membershipId}/assistants；GET /api/v1/tenant/member-assistants"
+            },
+            "saveBoundary": "仅保存当前租户已发布助手的完整集合，核对 authorizationRevision；与策略共用一份授权事实。",
+            "authorizationTests": [
+              "未发布或跨租户助手拒绝",
+              "旧授权快照拒绝",
+              "目录分页前过滤与选择跨搜索保留",
+              "撤权使直接访问及旧会话失效"
+            ]
+          }
         }
       ]
     },
@@ -968,7 +1166,7 @@
       "phase": "M6",
       "classification": "production",
       "workPackage": "WP-0018",
-      "status": "pending-contract",
+      "status": "in-progress",
       "operations": [
         {
           "id": "tenant-overview:0",
@@ -978,7 +1176,20 @@
           "reason": "m6-approved-prototype",
           "workPackage": "WP-0018",
           "dependsOn": [],
-          "status": "pending-contract"
+          "status": "contracted",
+          "contract": {
+            "adr": "ADR-0093",
+            "target": {
+              "kind": "navigation",
+              "value": "tenant-overview → processing-quality；空范围 → knowledge-directory"
+            },
+            "saveBoundary": "概览摘要由当前租户真实知识／文档／来源／发布事实产生，阻断对象及目标页按后续依赖承接；不伪造计数或可用入口。",
+            "authorizationTests": [
+              "当前租户隔离",
+              "缺失事实不能模拟成功",
+              "阻断对象与跳转目标一致"
+            ]
+          }
         },
         {
           "id": "tenant-overview:1",
@@ -988,7 +1199,20 @@
           "reason": "m6-approved-prototype",
           "workPackage": "WP-0018",
           "dependsOn": [],
-          "status": "pending-contract"
+          "status": "contracted",
+          "contract": {
+            "adr": "ADR-0093",
+            "target": {
+              "kind": "api",
+              "value": "DELETE /api/v1/auth/browser-session"
+            },
+            "saveBoundary": "账户菜单展示当前身份；退出撤销当前会话并清理本会话草稿，不更改资格。",
+            "authorizationTests": [
+              "CSRF 拒绝",
+              "退出刷新及旧会话失效",
+              "当前身份与租户范围一致"
+            ]
+          }
         },
         {
           "id": "tenant-overview:2",
@@ -998,7 +1222,20 @@
           "reason": "m6-approved-prototype",
           "workPackage": "WP-0018",
           "dependsOn": [],
-          "status": "pending-contract"
+          "status": "contracted",
+          "contract": {
+            "adr": "ADR-0093",
+            "target": {
+              "kind": "navigation",
+              "value": "tenant-login → tenant-overview"
+            },
+            "saveBoundary": "新组织管理员只能进入自己的真实工作区；真实零计数形成空态，未交付摘要不能伪造。",
+            "authorizationTests": [
+              "错误身份入口拒绝",
+              "新组织不读取其他租户数据",
+              "工作区目标依赖未齐保持未验证"
+            ]
+          }
         }
       ]
     },
@@ -1009,7 +1246,7 @@
       "phase": "M6",
       "classification": "production",
       "workPackage": "WP-0018",
-      "status": "pending-contract",
+      "status": "in-progress",
       "operations": [
         {
           "id": "tenant-members:0",
@@ -1019,7 +1256,33 @@
           "reason": "m6-approved-prototype",
           "workPackage": "WP-0018",
           "dependsOn": [],
-          "status": "pending-contract"
+          "status": "verified",
+          "contract": {
+            "adr": "ADR-0093",
+            "target": {
+              "kind": "api",
+              "value": "POST /api/v1/tenant/members"
+            },
+            "saveBoundary": "管理员从目录进入唯一三步开户流程；不复用全局既有主体，不保留候选开户。",
+            "authorizationTests": [
+              "管理员保护",
+              "重复账号拒绝",
+              "普通成员无管理能力"
+            ]
+          },
+          "verifiedCommit": "71e3b42a93ece6874a19009483952e267b7e4d58",
+          "verification": {
+            "commands": [
+              "make acceptance-work-package WP=WP-0018 SLICE=account",
+              "make acceptance-work-package WP=WP-0017 SLICE=login",
+              "make frontend-test",
+              "./mvnw -q verify",
+              "make architecture-guard"
+            ],
+            "evidence": [
+              "docs/tasks/WP-0018/evidence/WP-0018-account-prototype-parity-closure-20261008.md"
+            ]
+          }
         },
         {
           "id": "tenant-members:1",
@@ -1029,7 +1292,34 @@
           "reason": "m6-approved-prototype",
           "workPackage": "WP-0018",
           "dependsOn": [],
-          "status": "pending-contract"
+          "status": "verified",
+          "contract": {
+            "adr": "ADR-0093",
+            "target": {
+              "kind": "api",
+              "value": "POST /api/v1/tenant/members/{membershipId}/disable；POST /api/v1/tenant/members/{membershipId}/enable"
+            },
+            "saveBoundary": "仅当前租户普通资格；核对版本、推进权限版本并撤销旧会话，保留功能与助手配置。",
+            "authorizationTests": [
+              "管理员及错租户目标拒绝",
+              "旧版本拒绝",
+              "取消零写入",
+              "恢复不恢复旧会话"
+            ]
+          },
+          "verifiedCommit": "71e3b42a93ece6874a19009483952e267b7e4d58",
+          "verification": {
+            "commands": [
+              "make acceptance-work-package WP=WP-0018 SLICE=account",
+              "make acceptance-work-package WP=WP-0017 SLICE=login",
+              "make frontend-test",
+              "./mvnw -q verify",
+              "make architecture-guard"
+            ],
+            "evidence": [
+              "docs/tasks/WP-0018/evidence/WP-0018-account-prototype-parity-closure-20261008.md"
+            ]
+          }
         },
         {
           "id": "tenant-members:2",
@@ -1039,7 +1329,20 @@
           "reason": "m6-approved-prototype",
           "workPackage": "WP-0018",
           "dependsOn": [],
-          "status": "pending-contract"
+          "status": "contracted",
+          "contract": {
+            "adr": "ADR-0093",
+            "target": {
+              "kind": "api",
+              "value": "PUT /api/v1/tenant/members/{membershipId}/features；PUT /api/v1/tenant/members/{membershipId}/assistants"
+            },
+            "saveBoundary": "功能与助手分别独立保存，使用各自版本；组合操作待第 2／3 片齐备后验证。",
+            "authorizationTests": [
+              "交错保存不互相覆盖",
+              "旧版本与旧策略不能恢复撤权",
+              "当前租户及已发布对象限制"
+            ]
+          }
         },
         {
           "id": "tenant-members:3",
@@ -1059,7 +1362,33 @@
           "reason": "m6-approved-prototype",
           "workPackage": "WP-0018",
           "dependsOn": [],
-          "status": "pending-contract"
+          "status": "verified",
+          "contract": {
+            "adr": "ADR-0093",
+            "target": {
+              "kind": "api",
+              "value": "GET /api/v1/tenant/members?q=&status=&pageNumber=&pageSize="
+            },
+            "saveBoundary": "当前租户同范围搜索、分页和总数，固定排序；Page/IPage 仅在 infrastructure，无浏览器全量分页。",
+            "authorizationTests": [
+              "跨租户拒绝",
+              "页边界与超大页码安全规范化",
+              "真实千成员分页及同范围总数"
+            ]
+          },
+          "verifiedCommit": "71e3b42a93ece6874a19009483952e267b7e4d58",
+          "verification": {
+            "commands": [
+              "make acceptance-work-package WP=WP-0018 SLICE=account",
+              "make acceptance-work-package WP=WP-0017 SLICE=login",
+              "make frontend-test",
+              "./mvnw -q verify",
+              "make architecture-guard"
+            ],
+            "evidence": [
+              "docs/tasks/WP-0018/evidence/WP-0018-account-prototype-parity-closure-20261008.md"
+            ]
+          }
         },
         {
           "id": "tenant-members:5",
@@ -1069,7 +1398,33 @@
           "reason": "m6-approved-prototype",
           "workPackage": "WP-0018",
           "dependsOn": [],
-          "status": "pending-contract"
+          "status": "verified",
+          "contract": {
+            "adr": "ADR-0093",
+            "target": {
+              "kind": "navigation",
+              "value": "tenant-member-create → tenant-members"
+            },
+            "saveBoundary": "取消不提交开户；仅本会话非秘密草稿可恢复，密码在回退、取消和退出时清除。",
+            "authorizationTests": [
+              "取消零业务写入",
+              "刷新不恢复密码",
+              "登录代次及租户草稿隔离"
+            ]
+          },
+          "verifiedCommit": "71e3b42a93ece6874a19009483952e267b7e4d58",
+          "verification": {
+            "commands": [
+              "make acceptance-work-package WP=WP-0018 SLICE=account",
+              "make acceptance-work-package WP=WP-0017 SLICE=login",
+              "make frontend-test",
+              "./mvnw -q verify",
+              "make architecture-guard"
+            ],
+            "evidence": [
+              "docs/tasks/WP-0018/evidence/WP-0018-account-prototype-parity-closure-20261008.md"
+            ]
+          }
         },
         {
           "id": "tenant-members:6",
@@ -1089,7 +1444,20 @@
           "reason": "m6-approved-prototype",
           "workPackage": "WP-0018",
           "dependsOn": [],
-          "status": "pending-contract"
+          "status": "contracted",
+          "contract": {
+            "adr": "ADR-0093",
+            "target": {
+              "kind": "navigation",
+              "value": "tenant-member-features → conversation"
+            },
+            "saveBoundary": "ownHistory 关闭使历史访问拒绝，不隐含关闭新的有权对话；新对话仍须全部访问交集。完整正向旅程在 WP-0023／0024 联验。",
+            "authorizationTests": [
+              "历史直接 API 拒绝",
+              "无助手不放行新查询",
+              "有权新会话正向旅程未齐不得提前标验证"
+            ]
+          }
         },
         {
           "id": "tenant-members:8",
@@ -1099,7 +1467,34 @@
           "reason": "m6-approved-prototype",
           "workPackage": "WP-0018",
           "dependsOn": [],
-          "status": "pending-contract"
+          "status": "verified",
+          "contract": {
+            "adr": "ADR-0093",
+            "target": {
+              "kind": "api",
+              "value": "POST /api/v1/tenant/members；POST .../{membershipId}/password-reset；POST .../{membershipId}/disable"
+            },
+            "saveBoundary": "原子开户；唯一归属普通身份重置；仅本资格停用。版本、幂等、审计与会话撤销随业务生效。",
+            "authorizationTests": [
+              "共享身份及管理员重置拒绝",
+              "旧密码与旧会话失效",
+              "撤销故障回滚",
+              "重复与伪造请求拒绝"
+            ]
+          },
+          "verifiedCommit": "71e3b42a93ece6874a19009483952e267b7e4d58",
+          "verification": {
+            "commands": [
+              "make acceptance-work-package WP=WP-0018 SLICE=account",
+              "make acceptance-work-package WP=WP-0017 SLICE=login",
+              "make frontend-test",
+              "./mvnw -q verify",
+              "make architecture-guard"
+            ],
+            "evidence": [
+              "docs/tasks/WP-0018/evidence/WP-0018-account-prototype-parity-closure-20261008.md"
+            ]
+          }
         }
       ]
     },
@@ -1110,7 +1505,7 @@
       "phase": "M6",
       "classification": "production",
       "workPackage": "WP-0018",
-      "status": "pending-contract",
+      "status": "in-progress",
       "operations": [
         {
           "id": "tenant-roles:0",
@@ -1120,7 +1515,20 @@
           "reason": "m6-approved-prototype",
           "workPackage": "WP-0018",
           "dependsOn": [],
-          "status": "pending-contract"
+          "status": "contracted",
+          "contract": {
+            "adr": "ADR-0093",
+            "target": {
+              "kind": "navigation",
+              "value": "tenant-roles → tenant-members"
+            },
+            "saveBoundary": "仅展示固定租户管理员／普通成员边界；进入成员目录，不开放自定义角色或同级管理员治理。",
+            "authorizationTests": [
+              "普通成员无管理入口",
+              "管理员条目只读",
+              "不得提升或降级固定角色"
+            ]
+          }
         }
       ]
     },
@@ -1131,7 +1539,7 @@
       "phase": "M6",
       "classification": "production",
       "workPackage": "WP-0018",
-      "status": "pending-contract",
+      "status": "in-progress",
       "operations": [
         {
           "id": "access-policies:0",
@@ -1141,7 +1549,20 @@
           "reason": "m6-approved-prototype",
           "workPackage": "WP-0018",
           "dependsOn": [],
-          "status": "pending-contract"
+          "status": "contracted",
+          "contract": {
+            "adr": "ADR-0093",
+            "target": {
+              "kind": "api",
+              "value": "/api/v1/tenant/access-policies"
+            },
+            "saveBoundary": "只在当前租户创建 DRAFT，使用本租户已发布助手及普通成员快照，不立即赋权。",
+            "authorizationTests": [
+              "跨租户及未发布助手拒绝",
+              "管理员目标拒绝",
+              "草稿不产生有效授权"
+            ]
+          }
         }
       ]
     },
@@ -1152,7 +1573,7 @@
       "phase": "M6",
       "classification": "production",
       "workPackage": "WP-0018",
-      "status": "pending-contract",
+      "status": "in-progress",
       "operations": [
         {
           "id": "access-policy-detail:0",
@@ -1162,7 +1583,21 @@
           "reason": "m6-approved-prototype",
           "workPackage": "WP-0018",
           "dependsOn": [],
-          "status": "pending-contract"
+          "status": "contracted",
+          "contract": {
+            "adr": "ADR-0093",
+            "target": {
+              "kind": "api",
+              "value": "/api/v1/tenant/access-policies/{policyId}/versions"
+            },
+            "saveBoundary": "保存、预览、发布独立；预览绑定当前草稿、授权 revision、成员功能、租户上限和助手发布事实，发布原子改变唯一授权集合。",
+            "authorizationTests": [
+              "未预览或事实过期拒绝发布",
+              "错租户拒绝",
+              "旧策略不能复活撤权",
+              "发布失败零部分赋权"
+            ]
+          }
         },
         {
           "id": "access-policy-detail:1",
@@ -1172,7 +1607,20 @@
           "reason": "m6-approved-prototype",
           "workPackage": "WP-0018",
           "dependsOn": [],
-          "status": "pending-contract"
+          "status": "contracted",
+          "contract": {
+            "adr": "ADR-0093",
+            "target": {
+              "kind": "api",
+              "value": "/api/v1/tenant/access-policies/{policyId}/versions"
+            },
+            "saveBoundary": "授权范围改变使旧预览失效，必须重新保存和预览；不能复用旧授权快照覆盖新撤权。",
+            "authorizationTests": [
+              "修改后旧预览拒绝",
+              "授权 revision 冲突拒绝",
+              "草稿取消不更改已发布权限"
+            ]
+          }
         },
         {
           "id": "access-policy-detail:2",
@@ -1182,7 +1630,20 @@
           "reason": "m6-approved-prototype",
           "workPackage": "WP-0018",
           "dependsOn": [],
-          "status": "pending-contract"
+          "status": "contracted",
+          "contract": {
+            "adr": "ADR-0093",
+            "target": {
+              "kind": "api",
+              "value": "POST /api/v1/tenant/access-policies/{policyId}/versions"
+            },
+            "saveBoundary": "已发布版本只读，最多一个新草稿；新版本未发布前保留现有有效授权，不重放历史发布。",
+            "authorizationTests": [
+              "第二草稿及并发版本拒绝",
+              "已发布正文不可原地改写",
+              "新草稿不改变有效权限"
+            ]
+          }
         }
       ]
     },

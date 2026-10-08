@@ -96,7 +96,7 @@ CodeGraph 已执行 `TenantMemberEstablishmentApplicationService`、`DefaultQuer
 
 ## 独立切片、19 项操作与收口条件
 
-所有操作 ID 继续以[实现矩阵](../milestones/M6/implementation-map.json)为唯一细项事实源，本次 9 页／19 项仍全部 pending-contract。以下只划分实施及联验责任，不转移操作、减少整包范围或更改顺排。
+所有操作 ID 继续以[实现矩阵](../milestones/M6/implementation-map.json)为唯一细项事实源。2026-10-06 调查时，9 页／19 项全部 pending-contract；2026-10-08 契约接受和账户切片收口后，当前状态见矩阵及[任务恢复入口](README.md)，不将下表的切片划分当作整包验证。以下只划分实施及联验责任，不转移操作、减少整包范围或更改顺排。
 
 | 切片 | 本次拟定交付 | 对应操作与退出条件 |
 | --- | --- | --- |
@@ -127,6 +127,8 @@ CodeGraph 已执行 `TenantMemberEstablishmentApplicationService`、`DefaultQuer
 
 ## 当前接受与执行前沿
 
-2026-10-08，用户在收到提案确认项及首片边界后要求“继续推进任务”，据此登记 [ADR-0093](../../architecture/decisions/ADR-0093-member-account-and-effective-access.md)。上节保留调查时点的未接受与验证事实；当前设计已接受，下一动作是按切片 1 执行真实红绿测试、实现和生产验收。接受不改变历史验证日期，不将上述静态检查转换为新生产证据，也不提前完成工作包或 M6。
+2026-10-08，用户在收到提案确认项及首片边界后要求“继续推进任务”，据此登记 [ADR-0093](../../architecture/decisions/ADR-0093-member-account-and-effective-access.md)。上节保留调查时点的未接受与验证事实；当前设计已接受，切片 1 已完成[生产与原型一致性收口](evidence/WP-0018-account-prototype-parity-closure-20261008.md)，下一动作见[任务恢复入口](README.md)。接受不改变历史验证日期，不将上述静态检查转换为新生产证据，也不提前完成工作包或 M6。
 
 同日实施前复核发现上述初稿遗漏生产 adapter 已有的普通固定角色写入；已按 `PostgresTenantMemberEstablishmentStore.insert`、`TenantMemberEstablishmentMapper.insertDefaultRole` 和现有真实 PostgreSQL 角色断言纠正事实。原子新身份、初始配置及授权、审计的增量契约不变，既有资格／角色写入应复用，不另造平行实现。
+
+用户随后接受 ADR-0093 的最小名称／导航提前承接和原型缺陷修复补充，账户片据此收口。表中 `tenant-member-account:0` 包含“读取并进入独立设置页”的完整组合操作；本片仅完成账号读取，进入功能／助手页仍待第 2／3 片，矩阵保持 contracted，不将切片关闭扩张为该组合操作已通过。
