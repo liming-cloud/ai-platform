@@ -29,12 +29,17 @@ public class TenantMemberDirectoryApplicationService {
     @Transactional(readOnly = true)
     public PageResult<TenantMemberSummary> list(
             TrustedRequestContext context,
-            PageQuery page) {
+            PageQuery page, String q, String status) {
         context = Objects.requireNonNull(context, "可信请求上下文不能为空");
         page = Objects.requireNonNull(page, "分页查询不能为空");
         if (!context.hasPermission(ACCESS_MANAGE)) {
             throw new IllegalArgumentException("当前成员没有成员治理权限");
         }
-        return directory.page(context.tenantId(), page);
+        q = Objects.requireNonNull(q, "搜索词不能为空").strip();
+        status = Objects.requireNonNull(status, "状态筛选不能为空");
+        if (q.length() > 64 || !java.util.Set.of("", "ENABLED", "DISABLED").contains(status)) {
+            throw new IllegalArgumentException("成员目录筛选不合法");
+        }
+        return directory.page(context.tenantId(), page, q, status);
     }
 }

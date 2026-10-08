@@ -292,11 +292,17 @@ class CandidateScenarioTest {
                 ActiveIndexLookup indexes,
                 ModelRuntimeResolver models,
                 PgVectorIndexStore vectors) {
+            // 本场景只证明向量隔离；组织授权另由独立进程的真实 HTTP／Redis 测试验证。
+            var access = org.mockito.Mockito.mock(com.aiplatform.foundation.organizationaccess.application.member.facade.MemberAccessFacade.class);
+            org.mockito.Mockito.when(access.read(org.mockito.ArgumentMatchers.any())).thenReturn(
+                    new com.aiplatform.foundation.organizationaccess.application.member.facade.MemberEffectiveAccess(true,
+                            java.util.Map.of("assistantSelection", true, "conversation", true, "ownHistory", true, "authorizedCitations", true), Set.of()));
             return new CandidateSearchService(
                     knowledgeSpaces,
                     indexes,
                     models,
-                    vectors);
+                    vectors,
+                    new com.aiplatform.foundation.trustedquery.application.run.service.QueryRunAuthorization(access));
         }
     }
 }

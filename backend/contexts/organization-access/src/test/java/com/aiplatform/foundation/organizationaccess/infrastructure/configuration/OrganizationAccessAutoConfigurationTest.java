@@ -158,6 +158,16 @@ class OrganizationAccessAutoConfigurationTest {
             .withBean(
                     PlatformSessionGateway.class,
                     () -> mock(PlatformSessionGateway.class))
+            .withBean(com.aiplatform.foundation.organizationaccess.infrastructure.persistence.member.mapper.MemberAccountMapper.class,
+                    () -> mock(com.aiplatform.foundation.organizationaccess.infrastructure.persistence.member.mapper.MemberAccountMapper.class))
+            .withBean(com.aiplatform.foundation.organizationaccess.infrastructure.persistence.member.mapper.MemberAccessMapper.class,
+                    () -> mock(com.aiplatform.foundation.organizationaccess.infrastructure.persistence.member.mapper.MemberAccessMapper.class))
+            .withBean(com.aiplatform.foundation.assistantdelivery.application.catalog.facade.QueryAssistantCatalogService.class,
+                    () -> mock(com.aiplatform.foundation.assistantdelivery.application.catalog.facade.QueryAssistantCatalogService.class))
+            .withBean(com.aiplatform.foundation.assistantdelivery.application.assistant.facade.PublishedAssistantVersionLookup.class,
+                    () -> mock(com.aiplatform.foundation.assistantdelivery.application.assistant.facade.PublishedAssistantVersionLookup.class))
+            .withBean(org.springframework.transaction.PlatformTransactionManager.class,
+                    () -> mock(org.springframework.transaction.PlatformTransactionManager.class))
             .withBean(EntityIdGenerator.class, () -> () -> 1001L);
 
     @Test

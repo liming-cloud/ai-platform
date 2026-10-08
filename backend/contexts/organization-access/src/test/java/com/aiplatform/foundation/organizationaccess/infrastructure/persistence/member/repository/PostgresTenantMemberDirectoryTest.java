@@ -45,6 +45,8 @@ class PostgresTenantMemberDirectoryTest {
 
     @DynamicPropertySource
     static void databaseProperties(DynamicPropertyRegistry registry) {
+        registry.add("foundation.persistence.snowflake.worker-id", () -> "1");
+        registry.add("foundation.persistence.snowflake.datacenter-id", () -> "1");
         registry.add("spring.datasource.url", POSTGRES::getJdbcUrl);
         registry.add("spring.datasource.username", POSTGRES::getUsername);
         registry.add("spring.datasource.password", POSTGRES::getPassword);
@@ -68,13 +70,70 @@ class PostgresTenantMemberDirectoryTest {
 
     @Test
     void 应按登录名稳定分页并隔离其他租户成员() {
-        var page = directory.page(TENANT, new PageQuery(1L, 1L));
+        var page = directory.page(TENANT, new PageQuery(1L, 1L), "", "");
 
         assertEquals(2L, page.totalElements());
         assertEquals(2L, page.totalPages());
         assertEquals("anna", page.items().getFirst().loginName());
         assertEquals("DISABLED", page.items().getFirst().status());
         assertEquals(true, page.hasNext());
+    }
+
+    @Test
+    void 搜索和状态筛选应在分页与总数计算前同时生效() {
+        var page = directory.page(TENANT, new PageQuery(1, 1), "AN", "DISABLED");
+        assertEquals(1, page.totalElements());
+        assertEquals("anna", page.items().getFirst().loginName());
+        assertEquals(0, directory.page(TENANT, new PageQuery(1, 20), "other", "").totalElements());
+        assertEquals(0, directory.page(TENANT, new PageQuery(1, 20), "%", "").totalElements());
+        assertEquals(0, directory.page(TENANT, new PageQuery(1, 20), "", "UNKNOWN").totalElements());
+    }
+
+    @Test
+    void 中文角色搜索必须在计数和分页前生效() {
+        assertEquals(2, directory.page(TENANT, new PageQuery(1, 1), "普通成员", "").totalElements());
+        assertEquals(0, directory.page(TENANT, new PageQuery(1, 20), "租户管理员", "").totalElements());
+    }
+
+    @Test
+    void 千成员目录必须保持数据库页边界总数及实际助手计数() {
+        jdbc.update("""
+                INSERT INTO organization_access.subject_identity (subject_id, login_name, password_hash, status, version)
+                SELECT 4921825928971030000 + value, 'bulk-' || lpad(value::text, 4, '0'), 'test-only', 'ACTIVE', 0
+                FROM generate_series(1, 1000) value
+                """);
+        jdbc.update("""
+                INSERT INTO organization_access.tenant_membership
+                  (membership_id, tenant_id, subject_id, membership_role, status, permission_version, version)
+                SELECT 3382738893456540000 + value, 100000000000000001, 4921825928971030000 + value,
+                  'TENANT_USER', 'ENABLED', 0, 0 FROM generate_series(1, 1000) value
+                """);
+        jdbc.update("""
+                INSERT INTO organization_access.member_assistant_authorization (tenant_id, membership_id, assistant_id)
+                VALUES (100000000000000001, 3382738893456540001, 410000000000000001),
+                       (100000000000000001, 3382738893456540001, 410000000000000002)
+                """);
+        var seen = new java.util.HashSet<String>();
+        for (int number = 1; number <= 10; number++) {
+            var page = directory.page(TENANT, new PageQuery(number, 100), "bulk-", "ENABLED");
+            assertEquals(1000, page.totalElements());
+            assertEquals(100, page.items().size());
+            if (number == 1) assertEquals(2, page.items().getFirst().assistantCount());
+            page.items().forEach(member -> org.junit.jupiter.api.Assertions.assertTrue(seen.add(member.membershipId())));
+        }
+        assertEquals(1000, seen.size());
+        var beyond = directory.page(TENANT, new PageQuery(11, 100), "bulk-", "ENABLED");
+        assertEquals(1000, beyond.totalElements());
+        assertEquals(0, beyond.items().size());
+    }
+
+    @Test
+    void 超出尾页仍应返回同范围总数且无重复成员() {
+        var second = directory.page(TENANT, new PageQuery(2, 1), "", "");
+        assertEquals("zoe", second.items().getFirst().loginName());
+        var overflow = directory.page(TENANT, new PageQuery(3, 1), "", "");
+        assertEquals(2, overflow.totalElements());
+        assertEquals(0, overflow.items().size());
     }
 
     private void insertTenant(long tenantId, String tenantCode) {
@@ -106,5 +165,12 @@ class PostgresTenantMemberDirectoryTest {
     @MapperScan(basePackageClasses = TenantMemberDirectoryMapper.class)
     @Import(PostgresTenantMemberDirectory.class)
     static class TestApplication {
+        @org.springframework.context.annotation.Bean
+        com.baomidou.mybatisplus.extension.plugins.MybatisPlusInterceptor pagination() {
+            var interceptor = new com.baomidou.mybatisplus.extension.plugins.MybatisPlusInterceptor();
+            interceptor.addInnerInterceptor(new com.baomidou.mybatisplus.extension.plugins.inner.PaginationInnerInterceptor(
+                    com.baomidou.mybatisplus.annotation.DbType.POSTGRE_SQL));
+            return interceptor;
+        }
     }
 }

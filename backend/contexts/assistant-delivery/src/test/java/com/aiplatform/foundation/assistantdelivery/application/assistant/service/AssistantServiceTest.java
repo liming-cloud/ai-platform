@@ -307,7 +307,8 @@ class AssistantServiceTest {
         public PublishedAssistantPage findPublishedPage(
                 TenantId tenantId,
                 long pageNumber,
-                long pageSize) {
+                long pageSize,
+                com.aiplatform.foundation.assistantdelivery.domain.assistant.repository.PublishedAssistantFilter filter) {
             return new PublishedAssistantPage(List.of(), 0L);
         }
 

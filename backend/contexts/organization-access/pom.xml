@@ -34,6 +34,19 @@
             <artifactId>knowledge-data</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <!-- 成员授权只经助手拥有者公开 facade 核对发布事实，禁止反向依赖组织。 -->
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>assistant-delivery</artifactId>
+            <version>${project.version}</version>
+            <!-- 公开 facade 不拥有平台装配；三个启动模块均显式引入并配置持久化平台。 -->
+            <exclusions>
+                <exclusion>
+                    <groupId>${project.groupId}</groupId>
+                    <artifactId>platform-persistence</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
         <dependency>
             <groupId>com.baomidou</groupId>
             <artifactId>mybatis-plus-spring-boot4-starter</artifactId>
@@ -91,4 +104,19 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <systemPropertyVariables>
+                        <!-- 模块隔离测试只装配组织；完整公开 facade 联验由 bootstrap 真正启用助手所有者。 -->
+                        <foundation.assistant-delivery.enabled>false</foundation.assistant-delivery.enabled>
+                    </systemPropertyVariables>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 </project>

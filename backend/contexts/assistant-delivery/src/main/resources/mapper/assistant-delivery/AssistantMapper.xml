@@ -47,7 +47,6 @@
     </select>
 
     <select id="findPublishedPage" resultMap="publishedAssistantRow">
-        <![CDATA[
         WITH latest_published AS (
             SELECT DISTINCT ON (assistant.id)
                    assistant.id AS assistant_id,
@@ -61,6 +60,18 @@
              AND version.assistant_id = assistant.id
             WHERE assistant.tenant_id = #{tenantId}
               AND version.status = 'PUBLISHED'
+            <if test="filter.q != ''">
+              AND position(lower(#{filter.q}) in lower(assistant.display_name)) &gt; 0
+            </if>
+            <if test="!filter.allPublished">
+              <choose>
+                <when test="filter.assistantIds.size() > 0">
+                  AND assistant.id IN
+                  <foreach collection="filter.assistantIds" item="id" open="(" separator="," close=")">#{id}</foreach>
+                </when>
+                <otherwise>AND FALSE</otherwise>
+              </choose>
+            </if>
             ORDER BY assistant.id,
                      version.version_number DESC,
                      version.id DESC
@@ -72,7 +83,6 @@
                published_at
         FROM latest_published
         ORDER BY published_at DESC, assistant_version_id DESC
-        ]]>
     </select>
 
 </mapper>

@@ -9,6 +9,7 @@ import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 
 /** PostgreSQL 成员目录读取适配器，只映射当前租户最小投影和分页元数据。 */
 public final class PostgresTenantMemberDirectory implements TenantMemberDirectory {
@@ -21,10 +22,11 @@ public final class PostgresTenantMemberDirectory implements TenantMemberDirector
     }
 
     @Override
-    public PageResult<TenantMemberSummary> page(TenantId tenantId, PageQuery page) {
+    public PageResult<TenantMemberSummary> page(TenantId tenantId, PageQuery page, String q, String status) {
         tenantId = Objects.requireNonNull(tenantId, "租户标识不能为空");
         page = Objects.requireNonNull(page, "分页查询不能为空");
-        var items = mapper.selectPage(tenantId.value(), page.offset(), page.pageSize()).stream()
+        var result = mapper.selectPage(new Page<>(page.pageNumber(), page.pageSize()), tenantId.value(), q, status);
+        var items = result.getRecords().stream()
                 .map(row -> new TenantMemberSummary(
                         Long.toString(row.getMembershipId()),
                         row.getLoginName(),
@@ -32,9 +34,9 @@ public final class PostgresTenantMemberDirectory implements TenantMemberDirector
                         row.getStatus(),
                         row.getPermissionVersion(),
                         roles(row.getBuiltInRoleCodes()),
-                        row.getCreatedAt()))
+                        row.getCreatedAt(), row.getVersion(), row.getAssistantCount()))
                 .toList();
-        return PageResult.of(items, page, mapper.count(tenantId.value()));
+        return PageResult.of(items, page, result.getTotal());
     }
 
     private static List<String> roles(String encodedRoles) {

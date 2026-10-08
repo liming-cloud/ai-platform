@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aiplatform.foundation.organizationaccess.infrastructure.persistence.member.mapper.MemberAccountMapper">
+  <select id="lockTenant" resultType="long">
+    SELECT tenant_id FROM organization_access.tenant_lifecycle WHERE tenant_id = #{tenantId} FOR UPDATE
+  </select>
+  <select id="lockAuthorization" resultType="long">
+    SELECT authorization_revision FROM organization_access.tenant_feature_settings
+    WHERE tenant_id = #{tenantId} FOR UPDATE
+  </select>
+  <select id="authorizationRevision" resultType="long">
+    SELECT authorization_revision FROM organization_access.tenant_feature_settings WHERE tenant_id = #{tenantId}
+  </select>
+  <select id="operation" resultType="map">
+    SELECT operation, membership_id, command_fingerprint, result_identity_version
+    FROM organization_access.member_account_operation
+    WHERE tenant_id = #{tenantId} AND actor_subject_id = #{actor} AND operation_key = #{key}
+  </select>
+  <insert id="insertFeatures">
+    INSERT INTO organization_access.member_conversation_features
+      (tenant_id, membership_id, assistant_selection, conversation, own_history, authorized_citations, version)
+    VALUES (#{tenantId}, #{membershipId}, #{features.assistantSelection}, #{features.conversation},
+      #{features.ownHistory}, #{features.authorizedCitations}, 0)
+  </insert>
+  <insert id="insertAssistant">
+    INSERT INTO organization_access.member_assistant_authorization (tenant_id, membership_id, assistant_id)
+    VALUES (#{tenantId}, #{membershipId}, #{assistantId})
+  </insert>
+  <update id="advanceAuthorization">
+    UPDATE organization_access.tenant_feature_settings SET authorization_revision = authorization_revision + 1
+    WHERE tenant_id = #{tenantId} AND authorization_revision = #{expected}
+  </update>
+  <insert id="record">
+    INSERT INTO organization_access.member_account_operation
+      (tenant_id, actor_subject_id, operation_key, operation, membership_id, command_fingerprint, result_identity_version)
+    VALUES (#{tenantId}, #{actor}, #{key}, #{operation}, #{membershipId}, #{fingerprint}, #{identityVersion})
+  </insert>
+  <select id="pendingRevocations" resultType="long">
+    SELECT membership_id FROM organization_access.tenant_membership
+    WHERE member_access_pending_revocation ORDER BY membership_id
+  </select>
+  <update id="markRevoked">
+    UPDATE organization_access.tenant_membership SET member_access_pending_revocation = FALSE
+    WHERE membership_id = #{membershipId} AND member_access_pending_revocation
+  </update>
+</mapper>

@@ -12,7 +12,9 @@ public record TenantMemberSummary(
         String status,
         long permissionVersion,
         List<String> builtInRoles,
-        Instant createdAt) {
+        Instant createdAt,
+        long version,
+        long assistantCount) {
 
     /** 校验目录投影的稳定展示字段。 */
     public TenantMemberSummary {

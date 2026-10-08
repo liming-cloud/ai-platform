@@ -13,7 +13,9 @@ public record TenantMemberSummaryResponse(
         String status,
         long permissionVersion,
         List<String> builtInRoles,
-        Instant createdAt) {
+        Instant createdAt,
+        long version,
+        long assistantCount) {
 
     /** 由应用层成员目录投影构造 HTTP 响应。 */
     public static TenantMemberSummaryResponse from(TenantMemberSummary summary) {
@@ -25,6 +27,6 @@ public record TenantMemberSummaryResponse(
                 summary.status(),
                 summary.permissionVersion(),
                 summary.builtInRoles(),
-                summary.createdAt());
+                summary.createdAt(), summary.version(), summary.assistantCount());
     }
 }

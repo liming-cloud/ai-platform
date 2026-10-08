@@ -186,9 +186,29 @@ public class OrganizationAccessCoreAutoConfiguration {
             PlatformSessionGateway platformSessions,
             TenantFeatureSettingsStore featureSettings,
             TenantLoginSecurityPolicyStore loginPolicies,
+            com.aiplatform.foundation.organizationaccess.application.member.facade.MemberAccessFacade memberAccess,
             @Value("${foundation.security.session-timeout:PT1H}") String sessionTimeout) {
         return new BrowserSessionCapabilityService(
-                tenantSessions, platformSessions, Duration.parse(sessionTimeout), featureSettings, loginPolicies);
+                tenantSessions, platformSessions, Duration.parse(sessionTimeout), featureSettings, loginPolicies, memberAccess);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean(com.aiplatform.foundation.organizationaccess.application.member.facade.MemberAccessFacade.class)
+    com.aiplatform.foundation.organizationaccess.application.member.facade.MemberAccessFacade memberAccessFacade(
+            com.aiplatform.foundation.organizationaccess.application.member.port.out.MemberAccessFacts facts,
+            TenantFeatureSettingsStore ceilings,
+            com.aiplatform.foundation.assistantdelivery.application.assistant.facade.PublishedAssistantVersionLookup versions) {
+        return new com.aiplatform.foundation.organizationaccess.application.member.service.MemberEffectiveAccessService(facts, ceilings, versions);
+    }
+
+    /** 迁移中登记的普通资格在接收新请求前撤销旧会话；失败阻止启动，不补授权。 */
+    @Bean
+    org.springframework.boot.ApplicationRunner memberAccessCutover(
+            com.aiplatform.foundation.organizationaccess.infrastructure.persistence.member.mapper.MemberAccountMapper mapper,
+            TenantMemberSessionRevoker sessions,
+            org.springframework.transaction.PlatformTransactionManager transactions) {
+        return args -> new com.aiplatform.foundation.organizationaccess.infrastructure.persistence.member.repository.MemberAccessCutover(
+                mapper, sessions, new org.springframework.transaction.support.TransactionTemplate(transactions)).run();
     }
 
     @Bean
@@ -327,6 +347,21 @@ public class OrganizationAccessCoreAutoConfiguration {
     TenantMemberDirectoryApplicationService tenantMemberDirectoryApplicationService(
             TenantMemberDirectory directory) {
         return new TenantMemberDirectoryApplicationService(directory);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    com.aiplatform.foundation.organizationaccess.application.member.service.MemberAccountApplicationService memberAccountApplicationService(
+            com.aiplatform.foundation.organizationaccess.application.member.port.out.MemberAccountStore store,
+            PlatformAccountStore identities, TenantMemberEstablishmentApplicationService establishment,
+            TenantMemberStatusApplicationService statuses, TenantMemberStatusStore membershipLocks,
+            TenantFeatureSettingsStore ceilings,
+            com.aiplatform.foundation.assistantdelivery.application.catalog.facade.QueryAssistantCatalogService assistants,
+            PasswordHasher hasher, com.aiplatform.foundation.organizationaccess.application.authentication.port.out.PasswordVerifier verifier,
+            PersonSessionFamilyRevoker sessions, EntityIdGenerator identifiers) {
+        return new com.aiplatform.foundation.organizationaccess.application.member.service.MemberAccountApplicationService(
+                store, identities, establishment, statuses, membershipLocks, ceilings, assistants,
+                hasher, verifier, sessions, identifiers, java.time.Clock.systemUTC());
     }
 
     @Bean

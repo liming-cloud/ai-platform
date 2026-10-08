@@ -45,10 +45,16 @@ class QueryAssistantControllerTest {
                     new PageQuery(2, 10),
                     11);
         });
-        var controller = new QueryAssistantController(service);
+        var access = mock(com.aiplatform.foundation.organizationaccess.application.member.facade.MemberAccessFacade.class);
+        when(access.read(any())).thenReturn(new com.aiplatform.foundation.organizationaccess.application.member.facade.MemberEffectiveAccess(
+                false, java.util.Map.of("assistantSelection", true), Set.of(Long.parseLong(ASSISTANT))));
+        var controller = new QueryAssistantController(service, access);
 
-        var page = controller.list(context(), 2, 10);
+        var page = controller.list(context(), 2, 10, "门店");
 
+        assertEquals(Set.of(Long.parseLong(ASSISTANT)), query.get().assistantIds());
+        assertEquals(false, query.get().allPublished());
+        assertEquals("门店", query.get().q());
         assertEquals(2, query.get().page().pageNumber());
         assertEquals(10, query.get().page().pageSize());
         assertEquals(ASSISTANT, page.items().getFirst().assistantId());

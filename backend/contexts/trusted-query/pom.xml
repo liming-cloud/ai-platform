@@ -34,12 +34,11 @@
             <artifactId>platform-security-core</artifactId>
             <version>${project.version}</version>
         </dependency>
-        <!-- 仓储集成测试按完整迁移链建库；生产装配由 bootstrap 选择上下文。 -->
+        <!-- ADR-0093：只通过组织公开 facade 读取当前成员功能和助手授权。 -->
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>organization-access</artifactId>
             <version>${project.version}</version>
-            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>

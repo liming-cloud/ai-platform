@@ -24,7 +24,7 @@ public interface AssistantRepository {
     PublishedAssistantPage findPublishedPage(
             TenantId tenantId,
             long pageNumber,
-            long pageSize);
+            long pageSize, PublishedAssistantFilter filter);
 
     AssistantVersionCreationOutcome createVersion(
             AssistantVersionCreation creation,

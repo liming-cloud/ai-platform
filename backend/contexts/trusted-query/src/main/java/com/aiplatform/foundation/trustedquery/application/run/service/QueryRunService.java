@@ -76,6 +76,7 @@ public final class QueryRunService  {
     private final QueryQuotaPolicy quota;
     private final Clock clock;
     private final EntityIdGenerator identifiers;
+    private final QueryRunAuthorization authorization;
 
     public QueryRunService(
             PublishedAssistantVersionLookup assistants,
@@ -85,10 +86,11 @@ public final class QueryRunService  {
             QueryRunTerminalCommitter terminalCommitter,
             QueryQuotaPolicy quota,
             Clock clock,
-            EntityIdGenerator identifiers) {
+            EntityIdGenerator identifiers,
+            QueryRunAuthorization authorization) {
         this(
                 assistants, models, null, null, null, null, candidates, repository, terminalCommitter,
-                quota, clock, identifiers);
+                quota, clock, identifiers, authorization);
     }
 
     public QueryRunService(
@@ -102,10 +104,11 @@ public final class QueryRunService  {
             QueryRunTerminalCommitter terminalCommitter,
             QueryQuotaPolicy quota,
             Clock clock,
-            EntityIdGenerator identifiers) {
+            EntityIdGenerator identifiers,
+            QueryRunAuthorization authorization) {
         this(
                 assistants, models, modelConfigurations, governedEmbeddings, governedChats, null,
-                candidates, repository, terminalCommitter, quota, clock, identifiers);
+                candidates, repository, terminalCommitter, quota, clock, identifiers, authorization);
     }
 
     public QueryRunService(
@@ -120,7 +123,9 @@ public final class QueryRunService  {
             QueryRunTerminalCommitter terminalCommitter,
             QueryQuotaPolicy quota,
             Clock clock,
-            EntityIdGenerator identifiers) {
+            EntityIdGenerator identifiers,
+            QueryRunAuthorization authorization) {
+        this.authorization = Objects.requireNonNull(authorization, "查询授权检查不能为空");
         this.assistants = Objects.requireNonNull(
                 assistants,
                 "已发布助手版本查询不能为空");
@@ -141,12 +146,12 @@ public final class QueryRunService  {
     public CreateQueryRunResult create(CreateQueryRunCommand command) {
         Objects.requireNonNull(command, "创建查询运行命令不能为空");
         requirePermissions(command.context());
+        var versionId = parsePositiveIdentifier(command.assistantVersionId(), "助手版本标识");
+        authorization.requireNew(command.context(), versionId);
         var assistant = assistants
                 .find(
                         command.context().tenantId(),
-                        parsePositiveIdentifier(
-                                command.assistantVersionId(),
-                                "助手版本标识"))
+                        versionId)
                 .orElseThrow(QueryAssistantUnavailableException::new);
         var started = QueryRun.start(
                 command.context().tenantId(),
@@ -161,7 +166,8 @@ public final class QueryRunService  {
                 fingerprint(command.assistantVersionId(), command.question()),
                 quota);
         if (claim.state() == QueryRunClaimState.REPLAYED) {
-            return new CreateQueryRunResult(toView(claim.queryRun()), true);
+            authorization.requireHistory(command.context(), claim.queryRun());
+            return new CreateQueryRunResult(toView(claim.queryRun(), authorization.citations(command.context())), true);
         }
         if (claim.state() == QueryRunClaimState.IN_PROGRESS) {
             throw new QueryRunInProgressException();
@@ -174,6 +180,7 @@ public final class QueryRunService  {
                     command.question(),
                     target,
                     claim.queryRun());
+            authorization.requireNew(command.context(), versionId);
         } catch (AssistantTrustedAnswerExecutionException exception) {
             terminalCommitter.commit(failed(
                     claim.queryRun(),
@@ -189,7 +196,8 @@ public final class QueryRunService  {
             throw exception;
         }
         terminalCommitter.commit(completed);
-        return new CreateQueryRunResult(toView(completed.queryRun()), false);
+        authorization.requireNew(command.context(), versionId);
+        return new CreateQueryRunResult(toView(completed.queryRun(), authorization.citations(command.context())), false);
     }
 
     public QueryRunView get(GetQueryRunQuery query) {
@@ -199,7 +207,10 @@ public final class QueryRunService  {
                 .find(
                         query.context().tenantId(),
                         QueryRunId.parse(query.queryRunId()))
-                .map(QueryRunService::toView)
+                .map(run -> {
+                    authorization.requireHistory(query.context(), run);
+                    return toView(run, authorization.citations(query.context()));
+                })
                 .orElseThrow(QueryRunNotFoundException::new);
     }
 
@@ -276,7 +287,7 @@ public final class QueryRunService  {
         }
     }
 
-    private static QueryRunView toView(QueryRun queryRun) {
+    private static QueryRunView toView(QueryRun queryRun, boolean citations) {
         return new QueryRunView(
                 queryRun.id().toString(),
                 Long.toString(queryRun.assistantVersionId()),
@@ -285,7 +296,7 @@ public final class QueryRunService  {
                 queryRun.refusalReason() == null
                         ? null
                         : queryRun.refusalReason().name(),
-                queryRun.citations().stream()
+                (citations ? queryRun.citations() : java.util.List.<QueryCitation>of()).stream()
                         .map(value -> new QueryCitationView(
                                 value.sequence(),
                                 Long.toString(value.dataSourceId()),

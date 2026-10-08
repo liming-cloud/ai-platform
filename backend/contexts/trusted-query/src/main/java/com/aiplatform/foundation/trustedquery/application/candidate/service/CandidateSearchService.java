@@ -36,13 +36,15 @@ public final class CandidateSearchService  {
     private final UsableModelConfigurationLookup modelConfigurations;
     private final GovernedEmbeddingRuntime governedEmbeddings;
     private final IndexCandidateRetriever candidates;
+    private final com.aiplatform.foundation.trustedquery.application.run.service.QueryRunAuthorization authorization;
 
     public CandidateSearchService(
             KnowledgeSpaceLookup knowledgeSpaces,
             ActiveIndexLookup indexes,
             ModelRuntimeResolver models,
-            IndexCandidateRetriever candidates) {
-        this(knowledgeSpaces, indexes, models, null, null, candidates);
+            IndexCandidateRetriever candidates,
+            com.aiplatform.foundation.trustedquery.application.run.service.QueryRunAuthorization authorization) {
+        this(knowledgeSpaces, indexes, models, null, null, candidates, authorization);
     }
 
     public CandidateSearchService(
@@ -51,7 +53,9 @@ public final class CandidateSearchService  {
             ModelRuntimeResolver models,
             UsableModelConfigurationLookup modelConfigurations,
             GovernedEmbeddingRuntime governedEmbeddings,
-            IndexCandidateRetriever candidates) {
+            IndexCandidateRetriever candidates,
+            com.aiplatform.foundation.trustedquery.application.run.service.QueryRunAuthorization authorization) {
+        this.authorization = Objects.requireNonNull(authorization);
         this.knowledgeSpaces = Objects.requireNonNull(
                 knowledgeSpaces,
                 "知识空间查询不能为空");
@@ -67,6 +71,7 @@ public final class CandidateSearchService  {
         if (!query.context().hasPermission(READ)) {
             throw new CandidateSearchPermissionDeniedException();
         }
+        authorization.requireAdministrativeSearch(query.context());
         var knowledgeSpaceId = parsePositiveIdentifier(query.knowledgeSpaceId());
         if (!knowledgeSpaces.exists(query.context().tenantId(), knowledgeSpaceId)) {
             throw new CandidateSearchTargetNotFoundException();
@@ -100,6 +105,7 @@ public final class CandidateSearchService  {
                 deployment.revision(),
                 embedded.vectors().getFirst().values(),
                 query.limit()));
+        authorization.requireAdministrativeSearch(query.context());
         return new CandidateSearchResult(found.stream()
                 .map(value -> new CandidateView(
                         Long.toString(value.dataSourceId()),
@@ -136,6 +142,7 @@ public final class CandidateSearchService  {
                 index.embedding(),
                 embedded.vectors().getFirst().values(),
                 query.limit()));
+        authorization.requireAdministrativeSearch(query.context());
         return new CandidateSearchResult(found.stream()
                 .map(value -> new CandidateView(
                         Long.toString(value.dataSourceId()),

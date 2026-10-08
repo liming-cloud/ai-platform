@@ -392,8 +392,8 @@ class PostgresAssistantRepositoryTest {
                 "catalog-publish-3",
                 "7".repeat(64)));
 
-        var firstPage = repository.findPublishedPage(STORE, 1, 1);
-        var secondPage = repository.findPublishedPage(STORE, 2, 1);
+        var firstPage = repository.findPublishedPage(STORE, 1, 1, new com.aiplatform.foundation.assistantdelivery.domain.assistant.repository.PublishedAssistantFilter("", java.util.Set.of(), true));
+        var secondPage = repository.findPublishedPage(STORE, 2, 1, new com.aiplatform.foundation.assistantdelivery.domain.assistant.repository.PublishedAssistantFilter("", java.util.Set.of(), true));
 
         assertEquals(1, firstPage.items().size());
         assertEquals(secondVersion.id().value(), firstPage.items()
@@ -403,9 +403,38 @@ class PostgresAssistantRepositoryTest {
         assertEquals(2L, firstPage.totalElements());
         assertEquals("校园问答助手", secondPage.items().getFirst().displayName());
         assertEquals(2L, secondPage.totalElements());
-        assertTrue(repository.findPublishedPage(CAMPUS, 1, 20)
+        assertTrue(repository.findPublishedPage(CAMPUS, 1, 20, new com.aiplatform.foundation.assistantdelivery.domain.assistant.repository.PublishedAssistantFilter("", java.util.Set.of(), true))
                 .items()
                 .isEmpty());
+    }
+
+    @Test
+    void 二百助手授权及搜索在分页和总数前过滤且空授权始终为空() {
+        var ids = new java.util.HashSet<Long>();
+        for (int index = 0; index < 200; index++) {
+            var fixture = createPublishedAssistant("授权助手-" + String.format("%03d", index),
+                    "scope-" + index, "8", NOW.plusSeconds(index));
+            if (index % 50 == 0) ids.add(fixture.assistant().id().value());
+        }
+        var empty = repository.findPublishedPage(STORE, 1, 20,
+                new com.aiplatform.foundation.assistantdelivery.domain.assistant.repository.PublishedAssistantFilter("", java.util.Set.of(), false));
+        assertEquals(0, empty.totalElements());
+        assertTrue(empty.items().isEmpty());
+        var scoped = repository.findPublishedPage(STORE, 2, 2,
+                new com.aiplatform.foundation.assistantdelivery.domain.assistant.repository.PublishedAssistantFilter("", ids, false));
+        assertEquals(4, scoped.totalElements());
+        assertEquals(2, scoped.items().size());
+        assertTrue(scoped.items().stream().allMatch(item -> ids.contains(item.assistantId())));
+        var filtered = repository.findPublishedPage(STORE, 1, 20,
+                new com.aiplatform.foundation.assistantdelivery.domain.assistant.repository.PublishedAssistantFilter("-050", ids, false));
+        assertEquals(1, filtered.totalElements());
+        assertEquals("授权助手-050", filtered.items().getFirst().displayName());
+        assertEquals(0, repository.findPublishedPage(CAMPUS, 1, 20,
+                new com.aiplatform.foundation.assistantdelivery.domain.assistant.repository.PublishedAssistantFilter("", ids, false)).totalElements());
+        assertEquals(0, repository.findPublishedPage(STORE, 1, 20,
+                new com.aiplatform.foundation.assistantdelivery.domain.assistant.repository.PublishedAssistantFilter("%", java.util.Set.of(), true)).totalElements());
+        assertEquals(200, repository.findPublishedPage(STORE, 10, 20,
+                new com.aiplatform.foundation.assistantdelivery.domain.assistant.repository.PublishedAssistantFilter("", java.util.Set.of(), true)).totalElements());
     }
 
     private static Assistant assistant(TenantId tenantId, String name) {
@@ -457,7 +486,7 @@ class PostgresAssistantRepositoryTest {
                         assistant,
                         "catalog-assistant-" + keySuffix,
                         fingerprintCharacter.repeat(64)),
-                5);
+                200);
         var advanced = assistant.advanceVersion();
         var draft = version(advanced);
         repository.createVersion(

@@ -51,7 +51,7 @@ class QueryAssistantCatalogServiceTest {
                 context(Set.of(
                         new PermissionCode("assistant:query"),
                         new PermissionCode("knowledge:read"))),
-                new PageQuery(1, 20)));
+                new PageQuery(1, 20), "", Set.of(ASSISTANT), false));
 
         assertEquals(TENANT, repository.tenantId);
         assertEquals(Long.toString(ASSISTANT), page.items().getFirst().assistantId());
@@ -71,7 +71,7 @@ class QueryAssistantCatalogServiceTest {
                 AssistantPermissionDeniedException.class,
                 () -> service.list(new ListQueryAssistantsQuery(
                         context(Set.of(new PermissionCode("assistant:query"))),
-                        new PageQuery(1, 20))));
+                        new PageQuery(1, 20), "", Set.of(ASSISTANT), false)));
     }
 
     private static TrustedRequestContext context(Set<PermissionCode> permissions) {
@@ -94,7 +94,8 @@ class QueryAssistantCatalogServiceTest {
         public PublishedAssistantPage findPublishedPage(
                 TenantId value,
                 long pageNumber,
-                long pageSize) {
+                long pageSize,
+                com.aiplatform.foundation.assistantdelivery.domain.assistant.repository.PublishedAssistantFilter filter) {
             tenantId = value;
             return new PublishedAssistantPage(
                     List.of(new PublishedAssistantSummary(

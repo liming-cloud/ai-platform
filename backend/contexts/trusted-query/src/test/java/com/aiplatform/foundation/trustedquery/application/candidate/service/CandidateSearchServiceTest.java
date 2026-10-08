@@ -58,7 +58,7 @@ class CandidateSearchServiceTest {
                                 List.of(new EmbeddingVector(
                                         0,
                                         new float[] {1, 0, 0, 0})))),
-                retriever);
+                retriever, com.aiplatform.foundation.trustedquery.application.run.service.QueryAuthorizationFixture.allowed());
 
         var result = service.search(new CandidateSearchQuery(
                 context("knowledge:read"),
@@ -83,7 +83,7 @@ class CandidateSearchServiceTest {
                 models(request -> {
                     throw new AssertionError("无权限请求不能调用嵌入模型");
                 }),
-                retriever);
+                retriever, com.aiplatform.foundation.trustedquery.application.run.service.QueryAuthorizationFixture.allowed());
 
         assertThrows(
                 CandidateSearchPermissionDeniedException.class,
@@ -129,7 +129,7 @@ class CandidateSearchServiceTest {
         var service = new CandidateSearchService(
                 knowledgeSpace(true), index, models(request -> {
                     throw new AssertionError("受控索引不得回退到旧部署运行时");
-                }), configurations, embeddings, retriever);
+                }), configurations, embeddings, retriever, com.aiplatform.foundation.trustedquery.application.run.service.QueryAuthorizationFixture.allowed());
 
         service.search(new CandidateSearchQuery(
                 context("knowledge:read"), Long.toString(SPACE), "一层有什么商品", 5));
@@ -147,7 +147,7 @@ class CandidateSearchServiceTest {
                 models(request -> {
                     throw new AssertionError("不可见资源不能调用嵌入模型");
                 }),
-                retriever);
+                retriever, com.aiplatform.foundation.trustedquery.application.run.service.QueryAuthorizationFixture.allowed());
 
         assertThrows(
                 CandidateSearchTargetNotFoundException.class,

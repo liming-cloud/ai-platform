@@ -49,7 +49,7 @@ class BrowserSessionCapabilityServiceTest {
             }
         };
         var service = new BrowserSessionCapabilityService(
-                tenantSessions(context), platformSessions(null), Duration.ofMinutes(30), store, policySettings());
+                tenantSessions(context), platformSessions(null), Duration.ofMinutes(30), store, policySettings(), memberAccess());
 
         var capability = service.inspect("tenant-session", null).capability().orElseThrow();
 
@@ -69,7 +69,7 @@ class BrowserSessionCapabilityServiceTest {
         var service = new BrowserSessionCapabilityService(
                 tenantSessions(null),
                 platformSessions(platformContext),
-                Duration.ofMinutes(30), featureSettings(), policySettings());
+                Duration.ofMinutes(30), featureSettings(), policySettings(), memberAccess());
 
         var capability = service.inspect(null, "platform-session").capability().orElseThrow();
 
@@ -95,7 +95,7 @@ class BrowserSessionCapabilityServiceTest {
         var service = new BrowserSessionCapabilityService(
                 tenantSessions(null),
                 platformSessions(platformContext),
-                Duration.ofMinutes(30), featureSettings(), policySettings());
+                Duration.ofMinutes(30), featureSettings(), policySettings(), memberAccess());
 
         var capability = service.inspect(null, "platform-session").capability().orElseThrow();
 
@@ -130,7 +130,7 @@ class BrowserSessionCapabilityServiceTest {
         var service = new BrowserSessionCapabilityService(
                 tenantSessions(tenantContext),
                 platformSessions(platformContext),
-                Duration.ofMinutes(30), featureSettings(), policySettings());
+                Duration.ofMinutes(30), featureSettings(), policySettings(), memberAccess());
 
         var capability = service.inspect("tenant-session", "platform-session").capability().orElseThrow();
 
@@ -210,5 +210,12 @@ class BrowserSessionCapabilityServiceTest {
                 throw new UnsupportedOperationException();
             }
         };
+    }
+    private static com.aiplatform.foundation.organizationaccess.application.member.facade.MemberAccessFacade memberAccess() {
+        var access = org.mockito.Mockito.mock(com.aiplatform.foundation.organizationaccess.application.member.facade.MemberAccessFacade.class);
+        org.mockito.Mockito.when(access.read(org.mockito.ArgumentMatchers.any())).thenReturn(
+                new com.aiplatform.foundation.organizationaccess.application.member.facade.MemberEffectiveAccess(
+                        true, java.util.Map.of("assistantSelection", true, "conversation", true, "ownHistory", true, "authorizedCitations", true), Set.of()));
+        return access;
     }
 }

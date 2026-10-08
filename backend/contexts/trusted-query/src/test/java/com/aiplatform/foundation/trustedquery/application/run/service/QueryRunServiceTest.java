@@ -5,6 +5,7 @@ import com.aiplatform.foundation.trustedquery.application.quota.QueryQuotaExceed
 import com.aiplatform.foundation.trustedquery.application.quota.QueryQuotaLimitType;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -176,7 +177,7 @@ class QueryRunServiceTest {
                 committer(repository),
                 new QueryQuotaPolicy(100, 4, Duration.ofMinutes(2)),
                 Clock.fixed(NOW, ZoneOffset.UTC),
-                () -> 430000000000000001L);
+                () -> 430000000000000001L, QueryAuthorizationFixture.allowed());
 
         var result = service.create(new CreateQueryRunCommand(
                 context("assistant:query", "knowledge:read"),
@@ -208,7 +209,7 @@ class QueryRunServiceTest {
                 committer(repository),
                 new QueryQuotaPolicy(100, 4, Duration.ofMinutes(2)),
                 Clock.fixed(NOW, ZoneOffset.UTC),
-                () -> 430000000000000001L);
+                () -> 430000000000000001L, QueryAuthorizationFixture.allowed());
 
         assertThrows(AssistantTrustedAnswerExecutionException.class, () -> service.create(new CreateQueryRunCommand(
                 context("assistant:query", "knowledge:read"),
@@ -246,10 +247,68 @@ class QueryRunServiceTest {
         assertEquals(1, repository.terminal.diagnostic().candidateCount());
     }
 
+    @Test
+    void 同租户另一个成员不能读取本人的查询正文和引用() {
+        var repository = new MemoryRepository();
+        var service = service(repository, new RecordingModels(), new RecordingRetrieval(List.of(candidate(0.9))));
+        var original = context("assistant:query", "knowledge:read");
+        var created = service.create(new CreateQueryRunCommand(original, "owner-isolation", Long.toString(ASSISTANT_VERSION), "牛奶在哪里"));
+        var other = new TrustedRequestContext(original.tenantId(), new SubjectId(7200000000000000099L),
+                new MembershipId(7300000000000000099L), original.credentialType(), original.channel(),
+                original.permissionVersion(), original.permissions(), "trace-other-member");
+        assertThrows(CandidateSearchPermissionDeniedException.class,
+                () -> service.get(new com.aiplatform.foundation.trustedquery.application.run.query.GetQueryRunQuery(other, created.queryRun().id())));
+    }
+
+    @Test
+    void 历史和引用关闭仍可完成新对话但读取与重放必须拒绝() {
+        var repository = new MemoryRepository();
+        var access = org.mockito.Mockito.mock(com.aiplatform.foundation.organizationaccess.application.member.facade.MemberAccessFacade.class);
+        org.mockito.Mockito.when(access.read(org.mockito.ArgumentMatchers.any())).thenReturn(
+                new com.aiplatform.foundation.organizationaccess.application.member.facade.MemberEffectiveAccess(false,
+                        java.util.Map.of("conversation", true, "ownHistory", false, "authorizedCitations", false), java.util.Set.of(1L)));
+        org.mockito.Mockito.doThrow(new CandidateSearchPermissionDeniedException()).when(access)
+                .requireAssistantVersion(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.anyLong(), org.mockito.ArgumentMatchers.eq("ownHistory"));
+        var models = new RecordingModels();
+        var service = service(repository, models, new RecordingRetrieval(List.of(candidate(0.9))), new QueryRunAuthorization(access));
+        var command = new CreateQueryRunCommand(context("assistant:query", "knowledge:read"), "history-disabled", Long.toString(ASSISTANT_VERSION), "牛奶在哪里");
+        var result = service.create(command);
+        assertEquals("ANSWERED", result.queryRun().status());
+        assertTrue(result.queryRun().citations().isEmpty());
+        assertEquals(1, models.chatCalls);
+        assertThrows(CandidateSearchPermissionDeniedException.class, () -> service.get(
+                new com.aiplatform.foundation.trustedquery.application.run.query.GetQueryRunQuery(command.context(), result.queryRun().id())));
+        assertThrows(CandidateSearchPermissionDeniedException.class, () -> service.create(command));
+        assertEquals(1, models.chatCalls);
+    }
+
+    @Test
+    void 模型期间撤权不得输出回答且提交失败终态() {
+        var repository = new MemoryRepository();
+        var allowed = new java.util.concurrent.atomic.AtomicBoolean(true);
+        var access = org.mockito.Mockito.mock(com.aiplatform.foundation.organizationaccess.application.member.facade.MemberAccessFacade.class);
+        org.mockito.Mockito.doAnswer(invocation -> {
+            if (!allowed.get()) throw new CandidateSearchPermissionDeniedException();
+            return null;
+        }).when(access).requireAssistantVersion(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.anyLong(), org.mockito.ArgumentMatchers.anyString());
+        var models = new RecordingModels(); models.afterChat = () -> allowed.set(false);
+        var service = service(repository, models, new RecordingRetrieval(List.of(candidate(0.9))), new QueryRunAuthorization(access));
+        assertThrows(CandidateSearchPermissionDeniedException.class, () -> service.create(new CreateQueryRunCommand(
+                context("assistant:query", "knowledge:read"), "revoked-during-model", Long.toString(ASSISTANT_VERSION), "牛奶在哪里")));
+        assertEquals("FAILED", repository.current.status().name());
+        assertNull(repository.current.answer());
+        assertEquals(1, models.chatCalls);
+    }
+
     private static QueryRunService service(
             QueryRunRepository repository,
             RecordingModels models,
             RecordingRetrieval retrieval) {
+        return service(repository, models, retrieval, QueryAuthorizationFixture.allowed());
+    }
+
+    private static QueryRunService service(QueryRunRepository repository, RecordingModels models,
+            RecordingRetrieval retrieval, QueryRunAuthorization authorization) {
         return new QueryRunService(
                 (tenantId, assistantVersionId) ->
                         tenantId.equals(TENANT)
@@ -262,7 +321,7 @@ class QueryRunServiceTest {
                 committer((MemoryRepository) repository),
                 new QueryQuotaPolicy(100, 4, Duration.ofMinutes(2)),
                 Clock.fixed(NOW, ZoneOffset.UTC),
-                () -> 430000000000000001L);
+                () -> 430000000000000001L, authorization);
     }
 
     private static com.aiplatform.foundation.trustedquery.application.diagnostic.port.out
@@ -375,6 +434,7 @@ class QueryRunServiceTest {
         private int chatCalls;
         private ChatRequest chatRequest;
         private String answer = "牛奶位于一层冷藏区。";
+        private Runnable afterChat = () -> {};
 
         @Override
         public ChatModelPort resolveChat(TenantId tenantId, long deploymentId) {
@@ -383,6 +443,7 @@ class QueryRunServiceTest {
                 public ChatResult chat(ChatRequest request) {
                     chatCalls++;
                     chatRequest = request;
+                    afterChat.run();
                     return new ChatResult(
                             request.deployment(),
                             answer,

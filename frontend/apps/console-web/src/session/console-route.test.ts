@@ -9,6 +9,16 @@ import {
 } from "./console-route";
 
 describe("统一控制台路由", () => {
+  it("成员开户与账号使用独立直接地址，目录筛选和标准页大小可恢复", () => {
+    expect(parseConsoleRoute("/tenant/members/new", "?step=3")).toEqual({ navigationId: "access", task: "member-create", step: 3 });
+    expect(formatConsoleRoute({ navigationId: "access", task: "member-create", step: 2 })).toBe("/tenant/members/new?step=2");
+    expect(parseConsoleRoute("/tenant/members/3382738893456539650", "")).toEqual({ navigationId: "access", task: "member-account", membershipId: "3382738893456539650" });
+    expect(parseConsoleRoute("/tenant/members/9223372036854775808", "")).toBeUndefined();
+    expect(parseConsoleRoute("/tenant/members/0", "")).toBeUndefined();
+    const route = { navigationId: "access", task: "members", page: 3, pageSize: 50, query: "普通成员", status: "DISABLED" } as const;
+    const url = new URL(formatConsoleRoute(route), "https://example.invalid");
+    expect(parseConsoleRoute(url.pathname, url.search)).toEqual(route);
+  });
   it("租户概览由稳定标识恢复，未知子路径不猜测目标", () => {
     const route = { navigationId: "platform", task: "detail", tenantId: "610000000000000001" } as const;
     expect(formatConsoleRoute(route)).toBe("/platform/tenants/610000000000000001");

@@ -1,254 +1,195 @@
-import {
-  Badge,
-  Button,
-  Dialog,
-  DialogActions,
-  DialogBody,
-  DialogContent,
-  DialogSurface,
-  DialogTitle,
-  Input,
-  MessageBar,
-  MessageBarBody,
-  MessageBarTitle,
-  Radio,
-  RadioGroup,
-  Text,
-  Title3,
-} from "@fluentui/react-components";
-import { StatePanel } from "@foundation/design-system";
-import { useCallback, useEffect, useState } from "react";
-import {
-  presentApiError,
-  type ControlPlaneClient,
-  type TenantMemberCandidate,
-  type TenantMemberSummary,
-} from "../../api/control-plane-client";
+import { useEffect, useRef, useState, type FormEvent } from "react";
+import { Button, Checkbox, Dialog, DialogActions, DialogBody, DialogContent, DialogSurface, DialogTitle, Field, Input } from "@fluentui/react-components";
+import { PageHeading } from "@foundation/design-system";
+import { presentApiError, type ControlPlaneClient, type MemberAccount, type PageResult, type TenantMemberSummary } from "../../api/control-plane-client";
 import type { ConsoleRoute } from "../../session/console-route";
+import { MemberCreateWorkspace } from "./MemberCreateWorkspace";
+import { clearMemberPasswords } from "./member-account-draft";
+import "./member-account.css";
 
-type MemberRoute = Extract<ConsoleRoute, { navigationId: "access"; task: "members" }>;
-type ViewState = "unauthenticated" | "loading" | "ready" | "error";
+type MemberRoute = Extract<ConsoleRoute, { navigationId: "access" }>;
+type MemberDirectoryRoute = Extract<ConsoleRoute, { task: "members" }>;
+type PendingOperation = { kind: "reset"; account: MemberAccount; key: string } | { kind: "disable"; account: TenantMemberSummary };
 
-/**
- * 当前租户成员目录只使用服务端分页，并将停用操作限制在明确的二次确认弹窗内。
- */
-export function TenantMemberWorkspace({
-  client,
-  route,
-  sessionRevision,
-  onRouteChange,
-}: {
-  client: ControlPlaneClient;
-  route: MemberRoute;
-  sessionRevision: number;
-  onRouteChange: (route: MemberRoute) => void;
+/** 不一致的历史角色也按管理员保护；服务器仍重新裁决权限。 */
+export function memberIsReadOnly(member: Pick<TenantMemberSummary, "membershipRole" | "builtInRoles">): boolean {
+  return member.membershipRole === "TENANT_ADMINISTRATOR" || member.builtInRoles.includes("TENANT_ADMINISTRATOR");
+}
+
+export function TenantMemberWorkspace({ client, route, onRouteChange }: {
+  client: ControlPlaneClient; sessionRevision: number; route: MemberRoute; onRouteChange: (route: ConsoleRoute) => void;
 }) {
-  const [state, setState] = useState<ViewState>("unauthenticated");
-  const [members, setMembers] = useState<TenantMemberSummary[]>([]);
-  const [total, setTotal] = useState(0);
-  const [hasPrevious, setHasPrevious] = useState(false);
-  const [hasNext, setHasNext] = useState(false);
-  const [failure, setFailure] = useState<string>();
-  const [target, setTarget] = useState<TenantMemberSummary>();
-  const [roleTarget, setRoleTarget] = useState<TenantMemberSummary>();
-  const [roleToRevoke, setRoleToRevoke] = useState<string>();
-  const [selectedRole, setSelectedRole] = useState("TENANT_USER");
-  const [establishmentOpen, setEstablishmentOpen] = useState(false);
-  const [candidateQuery, setCandidateQuery] = useState("");
-  const [candidatePage, setCandidatePage] = useState(1);
-  const [candidates, setCandidates] = useState<TenantMemberCandidate[]>([]);
-  const [candidateHasPrevious, setCandidateHasPrevious] = useState(false);
-  const [candidateHasNext, setCandidateHasNext] = useState(false);
-  const [selectedCandidate, setSelectedCandidate] = useState<TenantMemberCandidate>();
-  const [submitting, setSubmitting] = useState(false);
+  const epoch = client.currentSessionRevision();
+  if (route.task === "member-create") return <MemberCreateWorkspace key={epoch} client={client} route={route} onRouteChange={onRouteChange} />;
+  if (route.task === "member-account") return <MemberAccountWorkspace key={`${epoch}:${route.membershipId}`} client={client} membershipId={route.membershipId} onRouteChange={onRouteChange} />;
+  if (route.task === "members") return <MemberDirectory key={epoch} client={client} route={route} onRouteChange={onRouteChange} />;
+  return null;
+}
 
-  const load = useCallback(async () => {
-    if (!client.hasSession()) {
-      setState("unauthenticated");
-      return;
-    }
-    setState("loading");
-    setFailure(undefined);
-    try {
-      const page = await client.listTenantMembers(route.page);
-      setMembers(page.items);
-      setTotal(page.totalElements);
-      setHasPrevious(page.hasPrevious);
-      setHasNext(page.hasNext);
-      setState("ready");
-    } catch (error) {
-      setFailure(description(error));
-      setState("error");
-    }
-  }, [client, route.page]);
+function MemberDirectory({ client, route, onRouteChange }: { client: ControlPlaneClient; route: MemberDirectoryRoute; onRouteChange: (route: ConsoleRoute) => void }) {
+  const [loaded, setLoaded] = useState<{ owner: string; page: PageResult<TenantMemberSummary> }>();
+  const [failure, setFailure] = useState("");
+  const [notice, setNotice] = useState("");
+  const [revision, setRevision] = useState(0);
+  const [pending, setPending] = useState<PendingOperation>();
+  const [busy, setBusy] = useState(false);
+  const [dialogError, setDialogError] = useState("");
+  const [acknowledged, setAcknowledged] = useState(false);
+  const query = route.query ?? "";
+  const [searchDraft, setSearchDraft] = useState({ routeQuery: query, value: query });
+  const search = searchDraft.routeQuery === query ? searchDraft.value : query;
+  const alive = useRef(false);
+  const writing = useRef(false);
+  const form = useRef<HTMLFormElement>(null);
+  const trigger = useRef<HTMLButtonElement | null>(null);
+  const epoch = client.currentSessionRevision();
+  const size = route.pageSize ?? 20;
+  const status = route.status ?? "ALL";
+  const owner = `${epoch}:${route.page}:${size}:${query}:${status}:${revision}`;
+  const page = loaded?.owner === owner ? loaded.page : undefined;
+  function current() { return alive.current && client.hasSession() && epoch === client.currentSessionRevision(); }
+  function restoreFocus() { window.requestAnimationFrame(() => { if (current()) trigger.current?.focus(); }); }
 
   useEffect(() => {
-    const timer = window.setTimeout(() => void load(), 0);
-    return () => window.clearTimeout(timer);
-  }, [load, sessionRevision]);
-
-  const loadCandidates = useCallback(async () => {
-    if (!establishmentOpen) return;
-    setSubmitting(true);
-    setFailure(undefined);
-    try {
-      const page = await client.listTenantMemberCandidates(candidateQuery, candidatePage, 20);
-      setCandidates(page.items);
-      setCandidateHasPrevious(page.hasPrevious);
-      setCandidateHasNext(page.hasNext);
-    } catch (error) {
-      setFailure(description(error, "加载成员候选"));
-      setCandidates([]);
-    } finally {
-      setSubmitting(false);
-    }
-  }, [candidatePage, candidateQuery, client, establishmentOpen]);
-
+    alive.current = true;
+    const currentForm = form.current;
+    const unsubscribe = client.subscribeSessionChange(active => {
+      if (!active) { alive.current = false; clearMemberPasswords(form.current); setPending(undefined); setLoaded(undefined); }
+    });
+    return () => { alive.current = false; unsubscribe(); clearMemberPasswords(currentForm); };
+  }, [client, epoch]);
   useEffect(() => {
-    if (!establishmentOpen) return undefined;
-    const timer = window.setTimeout(() => void loadCandidates(), 0);
+    let active = true;
+    client.listTenantMembers(route.page, size, query, status).then(value => {
+      if (active && alive.current && epoch === client.currentSessionRevision() && client.hasSession()) { setLoaded({ owner, page: value }); setFailure(""); }
+    }).catch(error => { if (active && alive.current && epoch === client.currentSessionRevision()) setFailure(presentApiError(error, "读取成员目录").description); });
+    return () => { active = false; };
+  }, [client, epoch, owner, query, route.page, size, status]);
+  useEffect(() => {
+    if (search.trim() === query) return;
+    const timer = window.setTimeout(() => onRouteChange({ ...route, page: 1, query: search.trim() }), 350);
     return () => window.clearTimeout(timer);
-  }, [establishmentOpen, loadCandidates]);
+  }, [onRouteChange, query, route, search]);
+  useEffect(() => {
+    if (pending?.kind !== "reset") return;
+    const timer = window.requestAnimationFrame(() => form.current?.querySelector<HTMLInputElement>('[name="password"]')?.focus());
+    return () => window.cancelAnimationFrame(timer);
+  }, [pending]);
 
-  async function confirmDisable() {
-    if (target === undefined) return;
-    setSubmitting(true);
-    setFailure(undefined);
+  function closeDialog() {
+    if (writing.current) return;
+    clearMemberPasswords(form.current); setPending(undefined); setDialogError(""); setAcknowledged(false); restoreFocus();
+  }
+  async function openReset(member: TenantMemberSummary, button: HTMLButtonElement) {
+    if (writing.current || !current()) return;
+    trigger.current = button; writing.current = true; setBusy(true); setNotice("");
     try {
-      await client.disableTenantMember(target.membershipId);
-      setTarget(undefined);
-      await load();
+      const account = await client.getTenantMember(member.membershipId);
+      if (!current()) return;
+      if (!account.passwordResetEligible) { setNotice("此身份另有资格或属于管理员，不能在当前租户重置密码。"); restoreFocus(); return; }
+      setDialogError(""); setAcknowledged(false); setPending({ kind: "reset", account, key: crypto.randomUUID() });
+    } catch (error) { if (current()) setNotice(presentApiError(error, "读取成员账号").description); }
+    finally { writing.current = false; if (current()) setBusy(false); }
+  }
+  async function restore(member: TenantMemberSummary, button: HTMLButtonElement) {
+    if (writing.current || !current()) return;
+    trigger.current = button; writing.current = true; setBusy(true); setNotice("");
+    try { await client.enableTenantMember(member.membershipId, member.version); if (current()) setNotice("成员资格已恢复；请使用有效凭据重新登录。"); }
+    catch (error) { if (current()) setNotice(presentApiError(error, "恢复成员").description); }
+    finally { writing.current = false; if (current()) { setBusy(false); setRevision(value => value + 1); restoreFocus(); } }
+  }
+  async function commit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!pending || writing.current || !current()) return;
+    const submitted = event.currentTarget;
+    const fields = new FormData(submitted);
+    const password = String(fields.get("password") ?? "");
+    clearMemberPasswords(submitted);
+    if (pending.kind === "reset" && (!password || password !== fields.get("confirmation") || !acknowledged)) {
+      setDialogError("请完整填写两次相同密码，并确认撤销全部会话。");
+      form.current?.querySelector<HTMLInputElement>('[name="password"]')?.focus(); return;
+    }
+    writing.current = true; setBusy(true); setDialogError(""); setNotice("");
+    try {
+      if (pending.kind === "reset") await client.resetTenantMemberPassword(pending.account, password, pending.key);
+      else await client.disableTenantMember(pending.account.membershipId, pending.account.version);
+      if (!current()) return;
+      setNotice(pending.kind === "reset" ? "密码已重置，既有会话已撤销。" : "普通成员已停用，助手授权保留。");
+      setPending(undefined); setAcknowledged(false); restoreFocus();
     } catch (error) {
-      setFailure(description(error));
+      if (current()) setDialogError(`${presentApiError(error, pending.kind === "reset" ? "重置密码" : "停用成员").description} 请取消后重新选择目标。`);
     } finally {
-      setSubmitting(false);
+      clearMemberPasswords(submitted); writing.current = false;
+      if (current()) { setBusy(false); setRevision(value => value + 1); }
     }
   }
+  function changePage(next: number) { onRouteChange({ ...route, page: next }); }
 
-  async function enable(member: TenantMemberSummary) {
-    setSubmitting(true);
-    setFailure(undefined);
-    try {
-      await client.enableTenantMember(member.membershipId);
-      await load();
-    } catch (error) {
-      setFailure(description(error));
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
-  async function establish() {
-    if (selectedCandidate === undefined) return;
-    setSubmitting(true);
-    setFailure(undefined);
-    try {
-      await client.establishTenantMember(selectedCandidate.accountReference);
-      setSelectedCandidate(undefined);
-      setCandidates([]);
-      setCandidateQuery("");
-      setCandidatePage(1);
-      setEstablishmentOpen(false);
-      await load();
-    } catch (error) {
-      setFailure(description(error));
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
-  async function bindRole() {
-    if (roleTarget === undefined) return;
-    setSubmitting(true);
-    setFailure(undefined);
-    try {
-      await client.bindTenantMemberRole(roleTarget.membershipId, selectedRole);
-      await load();
-    } catch (error) {
-      setFailure(description(error));
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
-  async function confirmRevokeRole() {
-    if (roleTarget === undefined || roleToRevoke === undefined) return;
-    setSubmitting(true);
-    setFailure(undefined);
-    try {
-      await client.revokeTenantMemberRole(roleTarget.membershipId, roleToRevoke);
-      const page = await client.listTenantMembers(route.page);
-      const refreshed = page.items.find((member) => member.membershipId === roleTarget.membershipId);
-      setMembers(page.items);
-      setTotal(page.totalElements);
-      setHasPrevious(page.hasPrevious);
-      setHasNext(page.hasNext);
-      setRoleTarget(refreshed);
-      setRoleToRevoke(undefined);
-    } catch (error) {
-      setFailure(description(error));
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
-  if (state === "unauthenticated") {
-    return <StatePanel kind="stale" title="浏览器会话已经失效" description="成员目录已清除，请返回统一登录入口。" actionLabel="返回登录入口" onAction={() => window.location.assign("/")} />;
-  }
-  if (state === "loading") {
-    return <StatePanel kind="loading" title="正在加载成员目录" description="正在读取当前租户的最小成员投影。" />;
-  }
-  if (state === "error") {
-    return <StatePanel kind="error" title="成员目录暂时不可用" description={failure ?? "请稍后重试。"} actionLabel="重新加载" onAction={() => void load()} />;
-  }
-
-  return (
-    <section className="model-configuration-section" aria-label="成员目录">
-      <header className="task-heading">
-        <Title3>成员与权限</Title3>
-        <Text>仅展示当前租户成员的最小身份、状态与已绑定内置角色。角色绑定、撤销与停用均会撤销目标成员的旧会话。</Text>
-      </header>
-      {failure === undefined ? null : <MessageBar intent="error"><MessageBarBody><MessageBarTitle>操作未完成</MessageBarTitle>{failure}</MessageBarBody></MessageBar>}
-      <div className="governance-toolbar"><Text>第 {route.page} 页，共 {total} 名成员。可使用上一页和下一页浏览名单。</Text><div><Button appearance="secondary" onClick={() => setEstablishmentOpen(true)}>新建成员</Button><Button appearance="subtle" onClick={() => void load()}>刷新</Button></div></div>
-      <div className="member-directory-table" role="region" aria-label="成员分页表格">
-        <table>
-          <thead><tr><th>登录名</th><th>角色</th><th>状态</th><th>加入时间</th><th>操作</th></tr></thead>
-          <tbody>{members.length === 0 ? <tr><td colSpan={5}>当前页没有成员。</td></tr> : members.map((member) => {
-            const platformManaged = member.builtInRoles.includes("TENANT_ADMINISTRATOR");
-            return <tr key={member.membershipId}>
-              <td>{member.loginName}</td><td>{member.builtInRoles.length === 0 ? "普通用户" : member.builtInRoles.map(roleLabel).join("、")}</td><td><Badge appearance="tint" color={member.status === "ENABLED" ? "success" : "danger"}>{member.status === "ENABLED" ? "已启用" : "已停用"}</Badge></td><td>{new Date(member.createdAt).toLocaleDateString("zh-CN")}</td>
-              <td>{platformManaged ? <Text>由平台治理</Text> : <><Button appearance="secondary" disabled={submitting || member.status !== "ENABLED"} onClick={() => setRoleTarget(member)}>管理角色</Button>{member.status === "ENABLED" ? <Button appearance="secondary" disabled={submitting} onClick={() => setTarget(member)}>停用</Button> : <Button appearance="secondary" disabled={submitting} onClick={() => void enable(member)}>启用</Button>}</>}</td>
-            </tr>;
-          })}</tbody>
-        </table>
-      </div>
-      <div className="task-actions" aria-label="成员目录分页"><Button appearance="subtle" disabled={!hasPrevious} onClick={() => onRouteChange({ ...route, page: route.page - 1 })}>上一页</Button><Button appearance="subtle" disabled={!hasNext} onClick={() => onRouteChange({ ...route, page: route.page + 1 })}>下一页</Button></div>
-      <Dialog open={target !== undefined} onOpenChange={(_, data) => { if (!data.open && !submitting) setTarget(undefined); }}>
-        <DialogSurface><DialogBody><DialogTitle>确认停用成员</DialogTitle><DialogContent>将停用“{target?.loginName}”并立即撤销其已签发的租户会话。该操作不删除主体，也不会移除其历史审计事实。</DialogContent><DialogActions><Button appearance="secondary" disabled={submitting} onClick={() => setTarget(undefined)}>取消</Button><Button appearance="primary" disabled={submitting} onClick={() => void confirmDisable()}>{submitting ? "正在停用" : "确认停用"}</Button></DialogActions></DialogBody></DialogSurface>
-      </Dialog>
-      <Dialog open={roleTarget !== undefined} onOpenChange={(_, data) => { if (!data.open && !submitting) setRoleTarget(undefined); }}>
-        <DialogSurface><DialogBody><DialogTitle>管理成员内置角色</DialogTitle><DialogContent>为“{roleTarget?.loginName}”分配或撤销已发布的内置角色。每次变更都会立即撤销该成员的旧租户会话。<div className="role-management-list">{roleTarget?.builtInRoles.length === 0 ? <Text>当前没有已绑定的内置角色。</Text> : roleTarget?.builtInRoles.map((role) => <div key={role}><Text>{roleLabel(role)}</Text><Button appearance="subtle" disabled={submitting} onClick={() => setRoleToRevoke(role)}>撤销</Button></div>)}</div><label>新增内置角色<select aria-label="新增内置角色" value={selectedRole} onChange={(event) => setSelectedRole(event.target.value)}>{ROLE_CATALOG.map((role) => <option key={role.code} value={role.code} disabled={roleTarget?.builtInRoles.includes(role.code)}>{role.label}</option>)}</select></label></DialogContent><DialogActions><Button appearance="secondary" disabled={submitting} onClick={() => setRoleTarget(undefined)}>关闭</Button><Button appearance="primary" disabled={submitting || roleTarget?.builtInRoles.includes(selectedRole)} onClick={() => void bindRole()}>{submitting ? "正在提交" : "分配角色"}</Button></DialogActions></DialogBody></DialogSurface>
-      </Dialog>
-      <Dialog open={roleToRevoke !== undefined} onOpenChange={(_, data) => { if (!data.open && !submitting) setRoleToRevoke(undefined); }}>
-        <DialogSurface><DialogBody><DialogTitle>确认撤销内置角色</DialogTitle><DialogContent>将撤销“{roleTarget?.loginName}”的“{roleToRevoke === undefined ? "" : roleLabel(roleToRevoke)}”，并立即使其旧租户会话失效。若这会移除租户最后一个访问管理员，系统将拒绝本次操作。</DialogContent><DialogActions><Button appearance="secondary" disabled={submitting} onClick={() => setRoleToRevoke(undefined)}>取消</Button><Button appearance="primary" disabled={submitting} onClick={() => void confirmRevokeRole()}>{submitting ? "正在撤销" : "确认撤销"}</Button></DialogActions></DialogBody></DialogSurface>
-      </Dialog>
-      <Dialog open={establishmentOpen} onOpenChange={(_, data) => { if (!data.open && !submitting) setEstablishmentOpen(false); }}>
-        <DialogSurface><DialogBody><DialogTitle>新建租户成员</DialogTitle><DialogContent><Text>从已启用的平台账户中选择。已有成员不会再次出现。</Text><form className="member-candidate-search" onSubmit={(event) => { event.preventDefault(); setCandidatePage(1); void loadCandidates(); }}><Input aria-label="搜索登录名" placeholder="输入登录名关键词" value={candidateQuery} onChange={(_, data) => setCandidateQuery(data.value)} /><Button type="submit" appearance="secondary" disabled={submitting}>搜索</Button></form><RadioGroup value={selectedCandidate?.accountReference} onChange={(_, data) => setSelectedCandidate(candidates.find((candidate) => candidate.accountReference === data.value))}>{candidates.length === 0 ? <Text>{submitting ? "正在加载账户…" : "没有可加入的账户。"}</Text> : candidates.map((candidate) => <Radio key={candidate.accountReference} value={candidate.accountReference} label={candidate.loginName} />)}</RadioGroup><div className="task-actions"><Button appearance="subtle" disabled={!candidateHasPrevious || submitting} onClick={() => setCandidatePage(candidatePage - 1)}>上一页</Button><Text>第 {candidatePage} 页</Text><Button appearance="subtle" disabled={!candidateHasNext || submitting} onClick={() => setCandidatePage(candidatePage + 1)}>下一页</Button></div></DialogContent><DialogActions><Button appearance="secondary" disabled={submitting} onClick={() => setEstablishmentOpen(false)}>取消</Button><Button appearance="primary" disabled={submitting || selectedCandidate === undefined} onClick={() => void establish()}>{submitting ? "正在建立" : "建立成员"}</Button></DialogActions></DialogBody></DialogSurface>
-      </Dialog>
+  return <>
+    <PageHeading title="成员与对话功能" context="当前租户" summary="普通成员" status={{ label: "可配置", tone: "info" }}
+      action={<Button appearance="primary" disabled={busy} onClick={() => onRouteChange({ navigationId: "access", task: "member-create", step: 1 })}>添加成员</Button>} />
+    <section className="member-workspace" aria-busy={!page || busy}>
+      <div className="member-directory-toolbar"><Field label="搜索成员"><Input type="search" placeholder="按姓名或角色搜索" maxLength={64} value={search}
+        onChange={(_, data) => setSearchDraft({ routeQuery: query, value: data.value })} /></Field><span>管理员条目只读</span></div>
+      {notice ? <p role="status">{notice}</p> : null}
+      {failure ? <p role="alert">{failure} <Button onClick={() => setRevision(value => value + 1)}>重试</Button></p> : !page ? <p role="status">正在加载成员目录…</p> :
+        <div className="member-directory-table"><table><thead><tr>{["成员", "角色", "状态", "助手范围", "操作"].map(label => <th key={label} scope="col">{label}</th>)}</tr></thead>
+          <tbody>{page.items.length ? page.items.map(member => {
+            const readOnly = memberIsReadOnly(member);
+            return <tr key={member.membershipId}><td data-label="成员"><strong>{member.loginName}</strong></td><td data-label="角色">{readOnly ? "租户管理员" : "普通成员"}</td>
+              <td data-label="状态"><span className="member-status" data-tone={member.status === "ENABLED" ? "success" : "warning"}>{member.status === "ENABLED" ? "活动" : "已停用"}</span></td>
+              <td data-label="助手范围">{readOnly ? "平台治理" : `${member.assistantCount} 个`}</td>
+              <td data-label="操作">{readOnly ? <span>只读</span> : <div className="member-row-actions">
+                <Button disabled={busy} onClick={() => onRouteChange({ navigationId: "access", task: "member-account", membershipId: member.membershipId })}>查看成员</Button>
+                <Button disabled={busy} onClick={event => void openReset(member, event.currentTarget)}>重置密码</Button>
+                {member.status === "ENABLED" ? <Button disabled={busy} onClick={event => { trigger.current = event.currentTarget; setDialogError(""); setPending({ kind: "disable", account: member }); }}>停用</Button>
+                  : <Button disabled={busy} onClick={event => void restore(member, event.currentTarget)}>恢复</Button>}
+              </div>}</td></tr>;
+          }) : <tr><td colSpan={5}>没有匹配的成员。</td></tr>}</tbody></table>
+          <div className="member-pagination"><span>共 {page.totalElements} 名成员</span><label>每页 <select aria-label="每页成员数" value={size} onChange={event => onRouteChange({ ...route, page: 1, pageSize: Number(event.target.value) as 10 | 20 | 50 | 100 })}>
+            {[10, 20, 50, 100].map(value => <option key={value} value={value}>{value}</option>)}</select> 条</label>
+            <Button disabled={route.page <= 1 || busy} onClick={() => changePage(route.page - 1)}>上一页</Button><span>第 {route.page} 页</span><Button disabled={!page.hasNext || busy} onClick={() => changePage(route.page + 1)}>下一页</Button></div>
+        </div>}
     </section>
-  );
+    <Dialog open={Boolean(pending)} onOpenChange={(_, data) => { if (!data.open) closeDialog(); }}>
+      <DialogSurface className="foundation-task-dialog member-account-dialog"><form ref={form} onSubmit={event => void commit(event)} noValidate><DialogBody>
+        <div className="member-dialog-header">
+          {pending?.kind === "reset" ? <span className="member-dialog-kicker">受控凭据重置</span> : null}
+          <DialogTitle className="member-dialog-title">{pending?.kind === "reset" ? "重置密码" : "停用普通成员"}</DialogTitle>
+          {pending?.kind === "reset" ? <p>为 {pending.account.loginName} 设置新密码。系统不会回显或保存明文。</p> : null}
+        </div>
+        <DialogContent>{pending?.kind === "reset" ? <>
+          <div className="member-password-fields"><Field label="新密码" required><Input name="password" type="password" disabled={busy} maxLength={1024} autoComplete="new-password" /></Field>
+            <Field label="再次输入" required><Input name="confirmation" type="password" disabled={busy} maxLength={1024} autoComplete="new-password" /></Field></div>
+          <Checkbox className="member-reset-consent" checked={acknowledged} disabled={busy} label={<span><strong>撤销全部会话</strong><small>平台与租户范围的既有会话同时失效。</small></span>} onChange={(_, data) => setAcknowledged(Boolean(data.checked))} />
+        </> : <p>此成员将无法登录本租户，当前对话与历史访问立即失效。助手授权保留，可在成员目录恢复。</p>}
+          {dialogError ? <p role="alert">{dialogError}</p> : null}</DialogContent>
+        <DialogActions><Button type="button" disabled={busy} onClick={closeDialog}>取消</Button><Button appearance="primary" type="submit" disabled={busy}>{busy ? "正在提交…" : pending?.kind === "reset" ? "重置密码" : "确认停用"}</Button></DialogActions>
+      </DialogBody></form></DialogSurface>
+    </Dialog>
+  </>;
 }
 
-const ROLE_CATALOG = [
-  { code: "TENANT_USER", label: "普通用户" },
-] as const;
-
-function roleLabel(code: string): string {
-  if (code === "TENANT_ADMINISTRATOR") return "租户管理员";
-  return ROLE_CATALOG.find((role) => role.code === code)?.label ?? "其他角色";
-}
-
-function description(error: unknown, operation = "成员操作"): string {
-  const failure = presentApiError(error, operation);
-  return `${failure.title}。${failure.description}`;
+function MemberAccountWorkspace({ client, membershipId, onRouteChange }: { client: ControlPlaneClient; membershipId: string; onRouteChange: (route: ConsoleRoute) => void }) {
+  const [account, setAccount] = useState<MemberAccount>();
+  const [failure, setFailure] = useState("");
+  const epoch = client.currentSessionRevision();
+  useEffect(() => {
+    let active = true;
+    const unsubscribe = client.subscribeSessionChange(isActive => { if (!isActive) { active = false; setAccount(undefined); } });
+    client.getTenantMember(membershipId).then(value => {
+      if (active && epoch === client.currentSessionRevision() && client.hasSession()) setAccount(value);
+    }).catch(error => { if (active && epoch === client.currentSessionRevision()) setFailure(presentApiError(error, "读取成员账号").description); });
+    return () => { active = false; unsubscribe(); };
+  }, [client, epoch, membershipId]);
+  return <>
+    <PageHeading title="成员账号" context="当前租户" summary="当前成员" status={{ label: "可查看", tone: "info" }} />
+    <nav className="member-object-navigation" aria-label="成员工作区"><button aria-current="page">账号信息</button><button disabled>对话功能</button><button disabled>可用助手</button></nav>
+    <section className="member-workspace member-section member-account-workspace">{failure ? <p role="alert">{failure}</p> : !account ? <p role="status">正在读取成员账号…</p> : account.membershipRole === "TENANT_ADMINISTRATOR" ? <>
+      <h2>管理员账号只读</h2><p>管理员由平台维护。</p></> : <>
+      <h2>{account.loginName}</h2><dl className="member-account-facts"><dt>成员</dt><dd>{account.loginName}</dd><dt>登录名</dt><dd>{account.loginName}</dd><dt>状态</dt><dd>{account.status === "ENABLED" ? "可用" : "已停用"}</dd></dl>
+      <p>密码不显示。账号停用和密码重置可返回成员目录操作。</p></>}
+      <div className="member-form-actions"><Button appearance="primary" onClick={() => onRouteChange({ navigationId: "access", task: "members", page: 1 })}>返回成员目录</Button></div>
+    </section>
+  </>;
 }

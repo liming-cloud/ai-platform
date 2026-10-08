@@ -331,11 +331,11 @@ class AuthenticationApiTest {
         var disable = http.exchange(
                 url("/api/v1/tenant/members/3382738893456539650/disable"),
                 HttpMethod.POST,
-                new HttpEntity<>(bearer(tenantLogin())),
+                new HttpEntity<>(Map.of("expectedVersion", 0), bearer(tenantLogin())),
                 ApiError.class);
         assertEquals(HttpStatus.FORBIDDEN, disable.getStatusCode());
         assertNotNull(disable.getBody());
-        assertEquals("ORGANIZATION_ACCESS.AUTHORIZATION.0002", disable.getBody().code());
+        assertEquals("ORGANIZATION_ACCESS.AUTHORIZATION.0093", disable.getBody().code());
         assertFalse(disable.getBody().message().contains("TENANT_ADMINISTRATOR"));
         assertFalse(disable.getBody().message().contains("3382738893456539650"));
     }
@@ -373,6 +373,17 @@ class AuthenticationApiTest {
                 ON CONFLICT (tenant_id, membership_id) DO UPDATE
                     SET status = 'ENABLED', permission_version = 0, version = 0
                 """, targetMembershipId);
+        jdbc.update("""
+                INSERT INTO organization_access.tenant_membership_role_binding (tenant_id, membership_id, role_code, bound_at)
+                VALUES (100000000000000001, ?, 'TENANT_USER', CURRENT_TIMESTAMP)
+                ON CONFLICT DO NOTHING
+                """, targetMembershipId);
+        jdbc.update("""
+                INSERT INTO organization_access.member_conversation_features
+                    (tenant_id, membership_id, assistant_selection, conversation, own_history, authorized_citations, version)
+                VALUES (100000000000000001, ?, FALSE, FALSE, FALSE, FALSE, 0)
+                ON CONFLICT DO NOTHING
+                """, targetMembershipId);
         var targetSession = tenantLoginWithName("tenant-admin-candidate");
         var managerToken = tenantLogin();
         var directory = http.exchange(
@@ -393,7 +404,7 @@ class AuthenticationApiTest {
         var response = http.exchange(
                 url("/api/v1/tenant/members/" + targetMembershipId + "/disable"),
                 HttpMethod.POST,
-                new HttpEntity<>(bearer(managerToken)),
+                new HttpEntity<>(Map.of("expectedVersion", 0), bearer(managerToken)),
                 Map.class);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
@@ -408,7 +419,7 @@ class AuthenticationApiTest {
     }
 
     @Test
-    void 租户访问管理员建立成员时应只接受主体标识且写入普通成员资格() {
+    void 旧主体关联合同必须拒绝且不复用既有身份建立资格() {
         var subjectId = 4921825928971026440L;
         jdbc.update("DELETE FROM organization_access.tenant_membership WHERE subject_id = ?", subjectId);
         jdbc.update("""
@@ -420,34 +431,38 @@ class AuthenticationApiTest {
                 """, subjectId);
         var managerToken = tenantLogin();
 
+        var headers = bearer(managerToken);
+        headers.set("Idempotency-Key", "legacy-subject-rejected");
         var response = http.exchange(
                 url("/api/v1/tenant/members"),
                 HttpMethod.POST,
-                new HttpEntity<>(Map.of("subjectId", Long.toString(subjectId)), bearer(managerToken)),
+                new HttpEntity<>(Map.of("subjectId", Long.toString(subjectId)), headers),
                 Map.class);
 
-        assertEquals(HttpStatus.CREATED, response.getStatusCode());
-        assertNotNull(response.getBody());
-        assertEquals("ENABLED", response.getBody().get("status"));
-        assertEquals(0, response.getBody().get("permissionVersion"));
-        assertEquals("TENANT_USER", jdbc.queryForObject("""
-                SELECT membership_role FROM organization_access.tenant_membership
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        assertEquals(0, jdbc.queryForObject("""
+                SELECT count(*) FROM organization_access.tenant_membership
                 WHERE tenant_id = 100000000000000001 AND subject_id = ?
-                """, String.class, subjectId));
+                """, Integer.class, subjectId));
     }
 
     @Test
     void 双向人员范围冲突必须由真实HTTP安全拒绝() {
+        var token = tenantLogin();
+        var headers = bearer(token);
+        headers.set("Idempotency-Key", "reserved-platform-identity");
+        var options = http.exchange(url("/api/v1/tenant/members/create-options"), HttpMethod.GET,
+                new HttpEntity<>(headers), Map.class).getBody();
         var tenantConflict = http.exchange(
-                url("/api/v1/tenant/members"),
-                HttpMethod.POST,
-                new HttpEntity<>(
-                        Map.of("subjectId", "4921825928971026436"),
-                        bearer(tenantLogin())),
-                ApiError.class);
+                url("/api/v1/tenant/members"), HttpMethod.POST,
+                new HttpEntity<>(Map.of("loginName", "platform-admin", "password", new String(DEMO_PASSWORD),
+                        "conversationFeatures", Map.of("assistantSelection", true, "conversation", true,
+                                "ownHistory", false, "authorizedCitations", false), "assistantIds", java.util.List.of(),
+                        "expectedTenantFeatureVersion", options.get("tenantFeatureVersion"),
+                        "expectedAuthorizationRevision", options.get("authorizationRevision")), headers), ApiError.class);
         assertEquals(HttpStatus.CONFLICT, tenantConflict.getStatusCode());
         assertNotNull(tenantConflict.getBody());
-        assertEquals("ORGANIZATION_ACCESS.CONFLICT.0002", tenantConflict.getBody().code());
+        assertEquals("ORGANIZATION_ACCESS.CONFLICT.0093", tenantConflict.getBody().code());
         assertFalse(tenantConflict.getBody().message().contains("4921825928971026436"));
 
         var platformConflict = http.exchange(
@@ -1027,6 +1042,47 @@ class AuthenticationApiTest {
         assertEquals(HttpStatus.CREATED, response.getStatusCode());
         assertNotNull(response.getBody());
         return response.getBody().tokenValue();
+    }
+
+    @Test
+    void 普通成员应由新凭据原子开户并只能以本人进入普通成员范围() {
+        var manager = tenantLogin();
+        var options = http.exchange(url("/api/v1/tenant/members/create-options"), HttpMethod.GET,
+                new HttpEntity<>(bearer(manager)), Map.class);
+        assertEquals(HttpStatus.OK, options.getStatusCode());
+        assertNotNull(options.getBody());
+        var payload = Map.of("loginName", "member-atomic-new-http", "password", new String(DEMO_PASSWORD),
+                "conversationFeatures", Map.of("assistantSelection", true, "conversation", true,
+                        "ownHistory", false, "authorizedCitations", false),
+                "assistantIds", java.util.List.of(),
+                "expectedTenantFeatureVersion", options.getBody().get("tenantFeatureVersion"),
+                "expectedAuthorizationRevision", options.getBody().get("authorizationRevision"));
+        var headers = bearer(manager);
+        headers.set("Idempotency-Key", "member-atomic-new-http");
+        var created = http.exchange(url("/api/v1/tenant/members"), HttpMethod.POST,
+                new HttpEntity<>(payload, headers), Map.class);
+        assertEquals(HttpStatus.CREATED, created.getStatusCode());
+        assertNotNull(created.getBody());
+        var membership = created.getBody().get("membershipId");
+        assertNotNull(membership);
+        assertEquals("member-atomic-new-http", created.getBody().get("loginName"));
+        assertFalse(created.getBody().containsKey("password"));
+        assertFalse(created.getBody().containsKey("subjectId"));
+        assertEquals(1, jdbc.queryForObject("""
+                SELECT count(*) FROM organization_access.tenant_membership membership
+                JOIN organization_access.subject_identity identity USING (subject_id)
+                JOIN organization_access.tenant_membership_role_binding role
+                  ON role.tenant_id = membership.tenant_id AND role.membership_id = membership.membership_id
+                WHERE identity.login_name = 'member-atomic-new-http'
+                  AND membership.membership_role = 'TENANT_USER' AND membership.status = 'ENABLED'
+                  AND role.role_code = 'TENANT_USER'
+                """, Integer.class));
+        var member = tenantLoginWithName("member-atomic-new-http");
+        assertEquals(HttpStatus.FORBIDDEN, http.exchange(url("/api/v1/tenant/members"), HttpMethod.GET,
+                new HttpEntity<>(bearer(member)), Map.class).getStatusCode());
+        // 租户令牌不属于平台认证范围，必须拒绝为 401，不能转换为平台身份。
+        assertEquals(HttpStatus.UNAUTHORIZED, http.exchange(url("/api/v1/platform/tenants"), HttpMethod.GET,
+                new HttpEntity<>(bearer(member)), Map.class).getStatusCode());
     }
 
     private String tenantLogin() {

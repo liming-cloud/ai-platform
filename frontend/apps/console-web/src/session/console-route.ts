@@ -6,7 +6,9 @@ export type ConsoleNavigationId = typeof NAVIGATION[number]["id"];
 /** 统一控制台的可恢复工作区状态；列表页码只描述服务端分页位置。 */
 export type ConsoleRoute =
   | { navigationId: "operations"; task: "overview"; range: OperationsRange }
-  | { navigationId: "access"; task: "members"; page: number }
+  | { navigationId: "access"; task: "members"; page: number; query?: string; status?: "ALL" | "ENABLED" | "DISABLED"; pageSize?: 10 | 20 | 50 | 100 }
+  | { navigationId: "access"; task: "member-create"; step: 1 | 2 | 3 }
+  | { navigationId: "access"; task: "member-account"; membershipId: string }
   | { navigationId: "access"; task: "roles" }
   | { navigationId: "data"; task: "knowledge-bases"; page: number }
   | {
@@ -243,7 +245,21 @@ export function parseConsoleRoute(pathname: string, search: string): ConsoleRout
   }
   if (routePath === "/access/members") {
     const parameters = new URLSearchParams(search);
-    return { navigationId: "access", task: "members", page: positivePage(parameters.get("page")) };
+    const query = parameters.get("q") ?? "";
+    const status = parameters.get("status");
+    const pageSize = Number(parameters.get("size"));
+    return { navigationId: "access", task: "members", page: positivePage(parameters.get("page")),
+      ...(query ? { query: query.slice(0, 64) } : {}),
+      ...(status === "ENABLED" || status === "DISABLED" ? { status } : {}),
+      ...([10, 20, 50, 100].includes(pageSize) ? { pageSize: pageSize as 10 | 20 | 50 | 100 } : {}) };
+  }
+  if (routePath === "/tenant/members/new") {
+    const step = Number(new URLSearchParams(search).get("step"));
+    return { navigationId: "access", task: "member-create", step: step === 2 || step === 3 ? step : 1 };
+  }
+  const memberAccount = /^\/tenant\/members\/([1-9][0-9]{0,18})$/.exec(routePath);
+  if (memberAccount && BigInt(memberAccount[1]!) <= 9223372036854775807n) {
+    return { navigationId: "access", task: "member-account", membershipId: memberAccount[1]! };
   }
   if (routePath === "/access/roles") {
     return { navigationId: "access", task: "roles" };
@@ -426,7 +442,14 @@ export function formatConsoleRoute(route: ConsoleRoute): string {
     return `/operations?range=${route.range}`;
   }
   if (route.navigationId === "access") {
-    return route.task === "members" ? `/access/members?page=${route.page}` : "/access/roles";
+    if (route.task === "member-create") return `/tenant/members/new?step=${route.step}`;
+    if (route.task === "member-account") return `/tenant/members/${encodeURIComponent(route.membershipId)}`;
+    if (route.task === "roles") return "/access/roles";
+    const parameters = new URLSearchParams({ page: String(route.page) });
+    if (route.query) parameters.set("q", route.query);
+    if (route.status && route.status !== "ALL") parameters.set("status", route.status);
+    if (route.pageSize) parameters.set("size", String(route.pageSize));
+    return `/access/members?${parameters}`;
   }
   if (route.navigationId === "data") {
     return route.task === "knowledge-bases"

@@ -78,7 +78,24 @@ export interface TenantMemberSummary {
   /** 已绑定的内置角色最多为当前发布目录大小，不属于无界数据平铺。 */
   builtInRoles: string[];
   createdAt: string;
+  version: number;
+  assistantCount: number;
 }
+
+/** 四项显式成员功能；租户上限仍由服务器裁决。 */
+export type MemberConversationFeatures = Record<"assistantSelection" | "conversation" | "ownHistory" | "authorizedCitations", boolean>;
+export interface MemberCreateOptions { availableFeatures: MemberConversationFeatures; tenantFeatureVersion: number; authorizationRevision: number }
+export interface MemberAccount {
+  membershipId: string; loginName: string; membershipRole: string; status: "ENABLED" | "DISABLED";
+  version: number; identityVersion: number; permissionVersion: number; createdAt: string;
+  conversationFeatures: MemberConversationFeatures; featureVersion: number; assistantIds: string[]; passwordResetEligible: boolean;
+}
+/** 密码只在最后提交时合成请求，禁止保存到草稿或 URL。 */
+export interface MemberProvisioningInput {
+  loginName: string; password: string; conversationFeatures: MemberConversationFeatures; assistantIds: string[];
+  expectedTenantFeatureVersion: number; expectedAuthorizationRevision: number;
+}
+export interface MemberAssistantChoice { assistantId: string; displayName: string; assistantVersionId: string; versionNumber: number }
 
 /** 原子开户只在最后一次提交携带凭据；不得持久化整个请求。 */
 export interface TenantProvisioningInput {
@@ -1430,58 +1447,44 @@ export class ControlPlaneClient {
     );
   }
 
-  async listTenantMembers(
-    pageNumber = 1,
-    pageSize = 20,
-  ): Promise<PageResult<TenantMemberSummary>> {
-    return this.request<PageResult<TenantMemberSummary>>(
-      `/tenant/members?pageNumber=${pageNumber}&pageSize=${pageSize}`,
-    );
-  }
+  /** 本地请求世代只用于丢弃退出／换登录后的异步结果，不构成服务器授权。 */
+  currentSessionRevision(): number { return this.sessionRevision; }
 
-  /** 建立成员只指定既有全局主体；租户与操作者始终由浏览器会话恢复。 */
-  async establishTenantMember(
-    subjectId: string,
-  ): Promise<Pick<TenantMemberSummary, "membershipId" | "status" | "permissionVersion">> {
-    return this.request(
-      "/tenant/members",
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ subjectId }),
-      },
-    );
+  async listTenantMembers(pageNumber = 1, pageSize = 20, q = "", status = "ALL"): Promise<PageResult<TenantMemberSummary>> {
+    const parameters = new URLSearchParams({ pageNumber: String(pageNumber), pageSize: String(pageSize) });
+    if (q.trim()) parameters.set("q", q.trim());
+    if (status !== "ALL") parameters.set("status", status);
+    return this.request(`/tenant/members?${parameters}`);
   }
-
-  async listTenantMemberCandidates(
-    query = "",
-    page = 1,
-    size = 20,
-  ): Promise<PageResult<TenantMemberCandidate>> {
-    const parameters = new URLSearchParams({
-      q: query.trim(),
-      page: String(page),
-      size: String(size),
+  async memberCreateOptions(): Promise<MemberCreateOptions> { return this.request("/tenant/members/create-options"); }
+  async getTenantMember(membershipId: string): Promise<MemberAccount> {
+    return this.request(`/tenant/members/${encodeURIComponent(membershipId)}`);
+  }
+  /** 只传新登录名、显式功能及助手，不能复用既有主体或修改角色。 */
+  async createTenantMember(input: MemberProvisioningInput, key: string): Promise<MemberAccount> {
+    return this.request("/tenant/members", { method: "POST", headers: this.writeHeaders("application/json", key), body: JSON.stringify(input) });
+  }
+  async listMemberAssistants(q = "", pageNumber = 1, pageSize = 20): Promise<PageResult<MemberAssistantChoice>> {
+    const parameters = new URLSearchParams({ q, pageNumber: String(pageNumber), pageSize: String(pageSize) });
+    return this.request(`/tenant/member-assistants?${parameters}`);
+  }
+  /** 状态变更只作用于当前租户普通资格，并携带服务器读取的资格版本。 */
+  async disableTenantMember(membershipId: string, expectedVersion: number): Promise<MemberAccount> {
+    return this.request(`/tenant/members/${encodeURIComponent(membershipId)}/disable`, {
+      method: "POST", headers: this.writeHeaders("application/json"), body: JSON.stringify({ expectedVersion }),
     });
-    return this.request<PageResult<TenantMemberCandidate>>(
-      `/tenant/member-candidates?${parameters}`,
-    );
   }
-
-  /** 停用前由页面展示确认弹窗；主体和租户始终由浏览器会话恢复。 */
-  async disableTenantMember(membershipId: string): Promise<Pick<TenantMemberSummary, "membershipId" | "status" | "permissionVersion">> {
-    return this.request(
-      `/tenant/members/${encodeURIComponent(membershipId)}/disable`,
-      { method: "POST" },
-    );
+  async enableTenantMember(membershipId: string, expectedVersion: number): Promise<MemberAccount> {
+    return this.request(`/tenant/members/${encodeURIComponent(membershipId)}/enable`, {
+      method: "POST", headers: this.writeHeaders("application/json"), body: JSON.stringify({ expectedVersion }),
+    });
   }
-
-  /** 启用不会恢复旧会话；后续认证会按当前活动角色重新计算权限。 */
-  async enableTenantMember(membershipId: string): Promise<Pick<TenantMemberSummary, "membershipId" | "status" | "permissionVersion">> {
-    return this.request(
-      `/tenant/members/${encodeURIComponent(membershipId)}/enable`,
-      { method: "POST" },
-    );
+  /** 唯一归属由后端重新核对；不把客户端标记当作重置授权。 */
+  async resetTenantMemberPassword(member: MemberAccount, password: string, key: string): Promise<void> {
+    return this.request(`/tenant/members/${encodeURIComponent(member.membershipId)}/password-reset`, {
+      method: "POST", headers: this.writeHeaders("application/json", key),
+      body: JSON.stringify({ password, expectedVersion: member.version, expectedIdentityVersion: member.identityVersion }),
+    });
   }
 
   /** 角色变更目标由路径指定，租户、操作者和会话均由浏览器会话恢复。 */

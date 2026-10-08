@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aiplatform.foundation.organizationaccess.infrastructure.persistence.member.mapper.MemberAccessMapper">
+  <!-- 固定角色既须存在又须唯一匹配；异常管理员绑定不能通过普通资格继续访问。 -->
+  <sql id="fixedRole">
+    EXISTS (SELECT 1 FROM organization_access.tenant_membership_role_binding fixed_role
+            WHERE fixed_role.tenant_id = membership.tenant_id
+              AND fixed_role.membership_id = membership.membership_id
+              AND fixed_role.role_code = membership.membership_role)
+    AND NOT EXISTS (SELECT 1 FROM organization_access.tenant_membership_role_binding unexpected_role
+                    WHERE unexpected_role.tenant_id = membership.tenant_id
+                      AND unexpected_role.membership_id = membership.membership_id
+                      AND unexpected_role.role_code &lt;&gt; membership.membership_role)
+  </sql>
+  <select id="find" resultType="map">
+    SELECT membership.membership_id, membership.subject_id, identity.login_name,
+      membership.membership_role, membership.status, identity.status AS identity_status,
+      identity.version AS identity_version, membership.version, membership.permission_version, membership.created_at,
+      (NOT membership.member_access_pending_revocation AND <include refid="fixedRole"/>) AS access_ready,
+      features.assistant_selection, features.conversation, features.own_history, features.authorized_citations,
+      features.version AS feature_version,
+      (membership.membership_role = 'TENANT_USER' AND <include refid="fixedRole"/>
+       AND (SELECT count(*) FROM organization_access.tenant_membership scope
+            WHERE scope.subject_id = membership.subject_id) = 1
+       AND NOT EXISTS (SELECT 1 FROM organization_access.platform_role_binding platform
+                       WHERE platform.subject_id = membership.subject_id)) AS password_reset_eligible
+    FROM organization_access.tenant_membership membership
+    JOIN organization_access.tenant_lifecycle lifecycle ON lifecycle.tenant_id = membership.tenant_id AND lifecycle.status = 'ACTIVE'
+    JOIN organization_access.subject_identity identity ON identity.subject_id = membership.subject_id
+    LEFT JOIN organization_access.member_conversation_features features
+      ON features.tenant_id = membership.tenant_id AND features.membership_id = membership.membership_id
+    WHERE membership.tenant_id = #{tenantId} AND membership.membership_id = #{membershipId}
+  </select>
+  <select id="assistants" resultType="long">
+    SELECT assistant_id FROM organization_access.member_assistant_authorization
+    WHERE tenant_id = #{tenantId} AND membership_id = #{membershipId} ORDER BY assistant_id
+  </select>
+</mapper>

@@ -12,6 +12,8 @@ public final class TenantMemberSummaryRow {
     private long permissionVersion;
     private String builtInRoleCodes;
     private Instant createdAt;
+    private long version;
+    private long assistantCount;
 
     public long getMembershipId() { return membershipId; }
     public void setMembershipId(long value) { membershipId = value; }
@@ -27,4 +29,8 @@ public final class TenantMemberSummaryRow {
     public void setBuiltInRoleCodes(String value) { builtInRoleCodes = value; }
     public Instant getCreatedAt() { return createdAt; }
     public void setCreatedAt(Instant value) { createdAt = value; }
+    public long getVersion() { return version; }
+    public void setVersion(long value) { version = value; }
+    public long getAssistantCount() { return assistantCount; }
+    public void setAssistantCount(long value) { assistantCount = value; }
 }

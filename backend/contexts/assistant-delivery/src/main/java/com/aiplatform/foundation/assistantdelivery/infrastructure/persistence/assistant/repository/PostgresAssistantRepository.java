@@ -142,14 +142,15 @@ public final class PostgresAssistantRepository implements AssistantRepository {
     public PublishedAssistantPage findPublishedPage(
             TenantId tenantId,
             long pageNumber,
-            long pageSize) {
+            long pageSize,
+            com.aiplatform.foundation.assistantdelivery.domain.assistant.repository.PublishedAssistantFilter filter) {
         Objects.requireNonNull(tenantId, "租户标识不能为空");
         if (pageNumber < 1L || pageSize < 1L || pageSize > 100L) {
             throw new IllegalArgumentException("分页参数不正确");
         }
         var page = mapper.findPublishedPage(
                 new Page<PublishedAssistantRow>(pageNumber, pageSize),
-                tenantId.value());
+                tenantId.value(), filter);
         var items = page.getRecords().stream()
                 .map(PostgresAssistantRepository::toPublishedSummary)
                 .toList();

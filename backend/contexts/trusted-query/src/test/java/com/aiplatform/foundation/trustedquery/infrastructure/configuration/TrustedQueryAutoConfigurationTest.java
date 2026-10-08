@@ -61,6 +61,8 @@ class TrustedQueryAutoConfigurationTest {
                     .withBean(
                             QueryFeedbackRepository.class,
                             () -> mock(QueryFeedbackRepository.class))
+                    .withBean(com.aiplatform.foundation.organizationaccess.application.member.facade.MemberAccessFacade.class,
+                            () -> mock(com.aiplatform.foundation.organizationaccess.application.member.facade.MemberAccessFacade.class))
                     .withBean(EntityIdGenerator.class, () -> () -> 1L);
 
     @Test
@@ -120,6 +122,8 @@ class TrustedQueryAutoConfigurationTest {
                 .withBean(
                         QueryDiagnosticService.class,
                         () -> mock(QueryDiagnosticService.class))
+                .withBean(com.aiplatform.foundation.organizationaccess.application.member.facade.MemberAccessFacade.class,
+                        () -> mock(com.aiplatform.foundation.organizationaccess.application.member.facade.MemberAccessFacade.class))
                 .withBean(
                         QueryAssistantCatalogService.class,
                         () -> mock(QueryAssistantCatalogService.class))

@@ -122,6 +122,12 @@ class PostgresTenantFeatureSettingsStoreTest {
     @SpringBootConfiguration
     @EnableAutoConfiguration
     static class TestApplication {
+        /** 此隔离测试不拥有助手；对象查询明确无发布结果，不能授予隐式助手权限。 */
+        @Bean
+        com.aiplatform.foundation.assistantdelivery.application.assistant.facade.PublishedAssistantVersionLookup publishedAssistants() {
+            return (tenant, version) -> java.util.Optional.empty();
+        }
+
         @Bean
         TenantFeatureSettingsService tenantFeatureSettingsService(TenantFeatureSettingsStore store) {
             return new TenantFeatureSettingsService(store, tenantId -> { throw new IllegalStateException("撤销失败"); });

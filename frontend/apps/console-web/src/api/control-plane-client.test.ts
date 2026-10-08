@@ -104,7 +104,7 @@ describe("ControlPlaneClient", () => {
     });
   });
 
-  it("租户成员候选由当前会话限定范围并使用名称搜索", async () => {
+  it("成员助手候选只读取本租户真实已发布助手并使用服务端分页", async () => {
     let request: Request | undefined;
     const client = authenticatedClient(async (input, init) => {
       request = new Request(input, init);
@@ -115,9 +115,9 @@ describe("ControlPlaneClient", () => {
       }), { status: 200, headers: { "Content-Type": "application/json" } });
     });
 
-    await client.listTenantMemberCandidates("tenant user", 1, 20);
+    await client.listMemberAssistants("tenant user", 1, 20);
 
-    expect(request?.url).toBe("http://localhost/api/v1/tenant/member-candidates?q=tenant+user&page=1&size=20");
+    expect(request?.url).toBe("http://localhost/api/v1/tenant/member-assistants?q=tenant+user&pageNumber=1&pageSize=20");
   });
 
   it("评测资源通过服务端分页安全摘要选择", async () => {
@@ -1208,23 +1208,21 @@ describe("ControlPlaneClient", () => {
     expect(await request?.text()).toBe("");
   });
 
-  it("建立租户成员时只提交目标主体标识", async () => {
+  it("普通成员原子开户显式携带初始授权版本且不提交主体角色或租户", async () => {
     let request: Request | undefined;
     const client = authenticatedClient(async (input, init) => {
       request = new Request(input, init);
-      return new Response(JSON.stringify({
-        membershipId: "3382738893456539659",
-        status: "ENABLED",
-        permissionVersion: 0,
-      }), { status: 201, headers: { "Content-Type": "application/json" } });
+      return Response.json({ membershipId: "3382738893456539659", status: "ENABLED", version: 0 });
     });
-
-    await client.establishTenantMember("4921825928971026438");
-
+    const command = { loginName: "member.test", password: "Public-synthetic-test-only!",
+      conversationFeatures: { assistantSelection: true, conversation: true, ownHistory: false, authorizedCitations: false },
+      assistantIds: [], expectedTenantFeatureVersion: 2, expectedAuthorizationRevision: 3 };
+    await client.createTenantMember(command, "member-command-1");
     expect(request?.url).toBe("http://localhost/api/v1/tenant/members");
     expect(request?.method).toBe("POST");
     expect(request?.headers.get("Authorization")).toBeNull();
-    expect(await request?.json()).toEqual({ subjectId: "4921825928971026438" });
+    expect(request?.headers.get("Idempotency-Key")).toBe("member-command-1");
+    expect(await request?.json()).toEqual(command);
   });
 
   it("模型供应链只读取安全发现摘要，并把服务端分页位置传递给接口", async () => {

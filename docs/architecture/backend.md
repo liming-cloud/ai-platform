@@ -69,6 +69,8 @@ contexts/*/adapter/
 
 上下文之间存在 Maven 编译依赖本身不违规，但每条边必须有实际的公开 facade 使用且图无环。业务引用只能进入被依赖上下文的 `application/.../facade`；扩展只能进入所需的公开端口或专用 facade 契约。公开请求、结果和值类型不能泄露拥有者的领域类型。各上下文自行注册自动配置，调用方不导入他方 `infrastructure`；条件装配确需排序时使用类名字符串并由启动集成测试验证。`scripts/quality/backend_architecture_guard.py` 检查 POM 编译图与主代码 Java 导入；自动配置与公开契约还需后端测试证明行为。不能只以 Maven 无环或旧守卫通过宣称边界合规。
 
+ADR-0093 的成员账户切片新增两条公开契约边：`organization-access → assistant-delivery` 通过 `QueryAssistantCatalogService`／`PublishedAssistantVersionLookup` 核对可授权发布对象；`trusted-query → organization-access` 通过 `MemberAccessFacade` 读取实时功能与助手范围。查询进程仅装配组织只读 Mapper 和 facade，不注册账户写入或管理接口。助手不反向依赖组织，实际编译图须由守卫验证无环；HTTP、数据库和自动配置测试分别验证过滤、撤权与只读装配。
+
 ## 4. shared-kernel
 
 ```text

@@ -38,7 +38,7 @@ class QueryRunEventServiceTest {
     @Test
     void 只从可信租户按游标返回终态事件() {
         var repository = new RecordingRepository();
-        var service = new QueryRunEventService(repository);
+        var service = new QueryRunEventService(repository, QueryAuthorizationFixture.allowed());
 
         var page = service.list(new ListQueryRunEventsQuery(
                 context(),

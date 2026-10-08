@@ -27,13 +27,15 @@ public final class DefaultQueryAssistantCatalogService implements QueryAssistant
     public PageResult<QueryAssistantView> list(ListQueryAssistantsQuery query) {
         Objects.requireNonNull(query, "查询助手目录请求不能为空");
         if (!query.context().hasPermission(QUERY)
-                || !query.context().hasPermission(KNOWLEDGE_READ)) {
+                || !query.context().hasPermission(KNOWLEDGE_READ)
+                || (query.allPublished() && !query.context().hasPermission(new PermissionCode("access:manage")))) {
             throw new AssistantPermissionDeniedException();
         }
         var page = assistants.findPublishedPage(
                 query.context().tenantId(),
                 query.page().pageNumber(),
-                query.page().pageSize());
+                query.page().pageSize(), new com.aiplatform.foundation.assistantdelivery.domain.assistant.repository.PublishedAssistantFilter(
+                        query.q(), query.assistantIds(), query.allPublished()));
         return PageResult.of(
                 page.items().stream().map(DefaultQueryAssistantCatalogService::toView).toList(),
                 query.page(), page.totalElements());

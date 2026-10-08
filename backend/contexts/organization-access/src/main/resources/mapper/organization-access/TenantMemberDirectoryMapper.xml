@@ -17,19 +17,26 @@
                    WHERE binding.tenant_id = membership.tenant_id
                      AND binding.membership_id = membership.membership_id
                ), '') AS built_in_role_codes,
-               membership.created_at
+               membership.created_at, membership.version,
+               (SELECT count(*) FROM organization_access.member_assistant_authorization grant_fact
+                WHERE grant_fact.tenant_id = membership.tenant_id
+                  AND grant_fact.membership_id = membership.membership_id) AS assistant_count
         FROM organization_access.tenant_membership membership
         INNER JOIN organization_access.subject_identity subject
             ON subject.subject_id = membership.subject_id
         WHERE membership.tenant_id = #{tenantId}
+        <if test="q != null and q != ''">
+            AND (position(lower(#{q}) in lower(subject.login_name)) &gt; 0
+                 OR position(#{q} in CASE WHEN membership.membership_role = 'TENANT_ADMINISTRATOR'
+                     OR EXISTS (SELECT 1 FROM organization_access.tenant_membership_role_binding role_fact
+                                WHERE role_fact.tenant_id = membership.tenant_id
+                                  AND role_fact.membership_id = membership.membership_id
+                                  AND role_fact.role_code = 'TENANT_ADMINISTRATOR')
+                     THEN '租户管理员' ELSE '普通成员' END) &gt; 0)
+        </if>
+        <if test="status != null and status != ''">
+            AND membership.status = #{status}
+        </if>
         ORDER BY subject.login_name ASC, membership.membership_id ASC
-        LIMIT #{pageSize}
-        OFFSET #{offset}
-    </select>
-
-    <select id="count" resultType="long">
-        SELECT COUNT(*)
-        FROM organization_access.tenant_membership
-        WHERE tenant_id = #{tenantId}
     </select>
 </mapper>

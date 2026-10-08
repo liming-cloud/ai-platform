@@ -2,8 +2,24 @@
 set -euo pipefail
 
 # 切片绿灯不等于整包交付；未知范围必须在启动浏览器前拒绝。
+if [[ "${1:-}" == "WP-0018" ]]; then
+  if [[ "$#" != "2" || "${2:-}" != "account" ]]; then
+    echo "WP-0018 当前必须明确 SLICE=account；账户切片不等于整包完成。" >&2
+    exit 2
+  fi
+  if [[ -n "${SETUP:-}" ]]; then
+    echo "成员账户切片不创建或重置租户，必须使用已有租户管理员。" >&2
+    exit 2
+  fi
+  if [[ -z "${FOUNDATION_ACCEPTANCE_CREDENTIALS_FILE:-}" ]]; then
+    echo "必须提供 0600 验收凭据文件：FOUNDATION_ACCEPTANCE_CREDENTIALS_FILE。" >&2
+    exit 2
+  fi
+  readonly MEMBER_SCRIPT_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  exec node "${MEMBER_SCRIPT_DIRECTORY}/acceptance-member-account.cjs"
+fi
 if [[ "${1:-}" != "WP-0017" ]]; then
-  echo "不支持的工作包，当前只实现 WP-0017 的明确独立切片。" >&2
+  echo "不支持的工作包，当前只实现 WP-0017 与 WP-0018 的明确独立切片。" >&2
   exit 2
 fi
 if [[ ( "${2:-}" != "login" && "${2:-}" != "login-entries" && "${2:-}" != "onboarding" && "${2:-}" != "admins" && "${2:-}" != "quotas" && "${2:-}" != "features" && "${2:-}" != "security" && "${2:-}" != "accounts" && "${2:-}" != "roles" && "${2:-}" != "overview" && "${2:-}" != "tenants" ) || "$#" != "2" ]]; then

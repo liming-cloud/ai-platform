@@ -12,7 +12,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 
-/** 只读查询进程仅获取功能上限，不开启组织身份与管理控制面。 */
+/** 只读查询进程获取当前功能、资格和助手授权，不开启身份与管理控制面。 */
 @AutoConfiguration
 @ConditionalOnProperty(name = "foundation.organization-access.feature-read.enabled", havingValue = "true")
 public class OrganizationAccessFeatureReadAutoConfiguration {
@@ -35,5 +35,29 @@ public class OrganizationAccessFeatureReadAutoConfiguration {
     @ConditionalOnMissingBean(TenantFeatureAvailability.class)
     TenantFeatureAvailability tenantFeatureAvailability(TenantFeatureSettingsStore store) {
         return new TenantFeatureAvailabilityService(store);
+    }
+    /** 仅注册无写入成员 Mapper，不扫描账户管理映射器。 */
+    @Bean
+    @ConditionalOnMissingBean(com.aiplatform.foundation.organizationaccess.infrastructure.persistence.member.mapper.MemberAccessMapper.class)
+    MapperFactoryBean<com.aiplatform.foundation.organizationaccess.infrastructure.persistence.member.mapper.MemberAccessMapper> memberAccessMapper(SqlSessionFactory sessions) {
+        var mapper = new MapperFactoryBean<>(com.aiplatform.foundation.organizationaccess.infrastructure.persistence.member.mapper.MemberAccessMapper.class);
+        mapper.setSqlSessionFactory(sessions);
+        return mapper;
+    }
+
+    @Bean
+    @ConditionalOnMissingBean(com.aiplatform.foundation.organizationaccess.application.member.port.out.MemberAccessFacts.class)
+    com.aiplatform.foundation.organizationaccess.application.member.port.out.MemberAccessFacts memberAccessFacts(
+            com.aiplatform.foundation.organizationaccess.infrastructure.persistence.member.mapper.MemberAccessMapper mapper) {
+        return new com.aiplatform.foundation.organizationaccess.infrastructure.persistence.member.repository.PostgresMemberAccessFacts(mapper);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean(com.aiplatform.foundation.organizationaccess.application.member.facade.MemberAccessFacade.class)
+    com.aiplatform.foundation.organizationaccess.application.member.facade.MemberAccessFacade memberAccessFacade(
+            com.aiplatform.foundation.organizationaccess.application.member.port.out.MemberAccessFacts facts,
+            TenantFeatureSettingsStore ceilings,
+            com.aiplatform.foundation.assistantdelivery.application.assistant.facade.PublishedAssistantVersionLookup versions) {
+        return new com.aiplatform.foundation.organizationaccess.application.member.service.MemberEffectiveAccessService(facts, ceilings, versions);
     }
 }

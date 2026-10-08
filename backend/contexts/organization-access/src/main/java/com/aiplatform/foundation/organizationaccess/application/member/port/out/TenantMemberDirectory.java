@@ -9,5 +9,5 @@ import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
 public interface TenantMemberDirectory {
 
     /** 只读取当前租户内的最小成员投影及其分页元数据。 */
-    PageResult<TenantMemberSummary> page(TenantId tenantId, PageQuery page);
+    PageResult<TenantMemberSummary> page(TenantId tenantId, PageQuery page, String q, String status);
 }

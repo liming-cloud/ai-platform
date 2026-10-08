@@ -39,17 +39,25 @@ public class TrustedQueryCoreAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
+    com.aiplatform.foundation.trustedquery.application.run.service.QueryRunAuthorization queryRunAuthorization(
+            com.aiplatform.foundation.organizationaccess.application.member.facade.MemberAccessFacade access) {
+        return new com.aiplatform.foundation.trustedquery.application.run.service.QueryRunAuthorization(access);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
     CandidateSearchService candidateSearchService(
             KnowledgeSpaceLookup knowledgeSpaces,
             ActiveIndexLookup indexes,
             ModelRuntimeResolver models,
             ObjectProvider<UsableModelConfigurationLookup> modelConfigurations,
             ObjectProvider<GovernedEmbeddingRuntime> governedEmbeddings,
-            IndexCandidateRetriever candidates) {
+            IndexCandidateRetriever candidates,
+            com.aiplatform.foundation.trustedquery.application.run.service.QueryRunAuthorization authorization) {
         return new CandidateSearchService(
                 knowledgeSpaces, indexes, models,
                 modelConfigurations.getIfAvailable(),
-                governedEmbeddings.getIfAvailable(), candidates);
+                governedEmbeddings.getIfAvailable(), candidates, authorization);
     }
 
     @Bean
@@ -65,7 +73,8 @@ public class TrustedQueryCoreAutoConfiguration {
             QueryRunRepository repository,
             QueryRunTerminalCommitter terminalCommitter,
             EntityIdGenerator identifiers,
-            TrustedQueryProperties properties) {
+            TrustedQueryProperties properties,
+            com.aiplatform.foundation.trustedquery.application.run.service.QueryRunAuthorization authorization) {
         return new QueryRunService(
                 assistants,
                 models,
@@ -81,13 +90,14 @@ public class TrustedQueryCoreAutoConfiguration {
                         properties.concurrentLimit(),
                         properties.runningLease()),
                 Clock.systemUTC(),
-                identifiers);
+                identifiers, authorization);
     }
 
     @Bean
     @ConditionalOnMissingBean
-    QueryRunEventService queryRunEventService(QueryRunRepository repository) {
-        return new QueryRunEventService(repository);
+    QueryRunEventService queryRunEventService(QueryRunRepository repository,
+            com.aiplatform.foundation.trustedquery.application.run.service.QueryRunAuthorization authorization) {
+        return new QueryRunEventService(repository, authorization);
     }
 
     @Bean
@@ -104,11 +114,12 @@ public class TrustedQueryCoreAutoConfiguration {
     QueryFeedbackService queryFeedbackService(
             QueryRunRepository runs,
             QueryFeedbackRepository feedback,
-            EntityIdGenerator identifiers) {
+            EntityIdGenerator identifiers,
+            com.aiplatform.foundation.trustedquery.application.run.service.QueryRunAuthorization authorization) {
         return new QueryFeedbackService(
                 runs,
                 feedback,
                 Clock.systemUTC(),
-                identifiers);
+                identifiers, authorization);
     }
 }

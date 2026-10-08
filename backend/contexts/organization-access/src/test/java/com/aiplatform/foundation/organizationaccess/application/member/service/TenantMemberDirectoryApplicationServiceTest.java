@@ -26,16 +26,16 @@ class TenantMemberDirectoryApplicationServiceTest {
     void 访问管理员应分页读取当前租户的最小成员目录() {
         var service = new TenantMemberDirectoryApplicationService(new TenantMemberDirectory() {
             @Override
-            public PageResult<TenantMemberSummary> page(TenantId tenantId, PageQuery page) {
+            public PageResult<TenantMemberSummary> page(TenantId tenantId, PageQuery page, String q, String status) {
                 assertEquals(TENANT, tenantId);
                 assertEquals(new PageQuery(2L, 20L), page);
                 return PageResult.of(List.of(new TenantMemberSummary(
                         "3382738893456539650", "admin", "TENANT_ADMINISTRATOR",
-                        "ENABLED", 2L, List.of(), Instant.parse("2026-08-10T08:00:00Z"))), page, 21L);
+                        "ENABLED", 2L, List.of(), Instant.parse("2026-08-10T08:00:00Z"), 0L, 0L)), page, 21L);
             }
         });
 
-        var result = service.list(accessManager(), new PageQuery(2L, 20L));
+        var result = service.list(accessManager(), new PageQuery(2L, 20L), "", "");
 
         assertEquals(21L, result.totalElements());
         assertEquals("admin", result.items().getFirst().loginName());
@@ -43,12 +43,12 @@ class TenantMemberDirectoryApplicationServiceTest {
 
     @Test
     void 无成员治理权限的租户会话不得读取成员目录() {
-        var service = new TenantMemberDirectoryApplicationService((tenantId, page) -> {
+        var service = new TenantMemberDirectoryApplicationService((tenantId, page, q, status) -> {
             throw new AssertionError("未授权请求不得触发成员目录读取");
         });
 
         assertThrows(IllegalArgumentException.class,
-                () -> service.list(member(), new PageQuery(1L, 20L)));
+                () -> service.list(member(), new PageQuery(1L, 20L), "", ""));
     }
 
     private static TrustedRequestContext accessManager() {

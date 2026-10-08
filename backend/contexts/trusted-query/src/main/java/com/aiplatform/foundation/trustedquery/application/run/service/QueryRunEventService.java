@@ -24,8 +24,10 @@ public final class QueryRunEventService  {
             new PermissionCode("knowledge:read");
 
     private final QueryRunRepository repository;
+    private final QueryRunAuthorization authorization;
 
-    public QueryRunEventService(QueryRunRepository repository) {
+    public QueryRunEventService(QueryRunRepository repository, QueryRunAuthorization authorization) {
+        this.authorization = Objects.requireNonNull(authorization);
         this.repository = Objects.requireNonNull(repository, "查询运行仓储不能为空");
     }
 
@@ -36,24 +38,27 @@ public final class QueryRunEventService  {
         var run = repository
                 .find(query.context().tenantId(), queryRunId)
                 .orElseThrow(QueryRunNotFoundException::new);
+        authorization.requireHistory(query.context(), run);
+        var citations = authorization.citations(query.context());
         var events = repository.findEvents(
                 query.context().tenantId(),
                 queryRunId,
                 query.afterSequence(),
                 query.limit());
         var views = events.stream()
-                .map(QueryRunEventService::toView)
+                .map(event -> toView(event, citations))
                 .toList();
         var resumeAfterSequence = events.isEmpty()
                 ? query.afterSequence()
                 : events.getLast().sequence();
+        authorization.requireHistory(query.context(), run);
         return new QueryRunEventPage(
                 views,
                 resumeAfterSequence,
                 run.status() != QueryRunStatus.RUNNING);
     }
 
-    private static QueryRunEventView toView(QueryRunEvent event) {
+    private static QueryRunEventView toView(QueryRunEvent event, boolean citations) {
         return new QueryRunEventView(
                 event.sequence(),
                 event.type().name(),
@@ -62,7 +67,7 @@ public final class QueryRunEventService  {
                 event.refusalReason() == null
                         ? null
                         : event.refusalReason().name(),
-                event.citations().stream()
+                (citations ? event.citations() : java.util.List.<QueryCitation>of()).stream()
                         .map(QueryRunEventService::toView)
                         .toList(),
                 event.usage(),

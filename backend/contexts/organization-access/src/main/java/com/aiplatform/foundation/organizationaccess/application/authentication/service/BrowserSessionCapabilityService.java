@@ -29,17 +29,20 @@ public final class BrowserSessionCapabilityService {
     private final Duration maximumSessionAge;
     private final TenantFeatureSettingsStore featureSettings;
     private final TenantLoginSecurityPolicyStore loginPolicies;
+    private final com.aiplatform.foundation.organizationaccess.application.member.facade.MemberAccessFacade memberAccess;
 
     public BrowserSessionCapabilityService(
             AuthenticatedSessionGateway tenantSessions,
             PlatformSessionGateway platformSessions,
             Duration maximumSessionAge,
             TenantFeatureSettingsStore featureSettings,
-            TenantLoginSecurityPolicyStore loginPolicies) {
+            TenantLoginSecurityPolicyStore loginPolicies,
+            com.aiplatform.foundation.organizationaccess.application.member.facade.MemberAccessFacade memberAccess) {
         this.tenantSessions = java.util.Objects.requireNonNull(tenantSessions, "租户会话网关不能为空");
         this.platformSessions = java.util.Objects.requireNonNull(platformSessions, "平台会话网关不能为空");
         this.maximumSessionAge = requireMaximumSessionAge(maximumSessionAge);
         this.featureSettings = java.util.Objects.requireNonNull(featureSettings, "租户功能配置存储不能为空");
+        this.memberAccess = java.util.Objects.requireNonNull(memberAccess);
         this.loginPolicies = java.util.Objects.requireNonNull(loginPolicies, "租户登录策略存储不能为空");
     }
 
@@ -71,6 +74,7 @@ public final class BrowserSessionCapabilityService {
                 ? featureSettings.find(tenant.context.tenantId().value())
                         .orElseThrow(() -> new IllegalStateException("租户功能配置缺失"))
                 : null;
+        var effectiveMember = tenant.isValid() ? memberAccess.read(tenant.context) : null;
         var tenantAge = tenant.isValid()
                 ? loginPolicies.find(tenant.context.tenantId().value())
                         .orElseThrow(() -> new IllegalStateException("租户登录策略缺失"))
@@ -81,7 +85,8 @@ public final class BrowserSessionCapabilityService {
                 Optional.of(new BrowserSessionCapability(
                         workspaces,
                         roles,
-                        Stream.concat(tenant.permissionCodes().filter(code -> allowsNavigation(tenantFeatures, code)), platform.permissionCodes())
+                        Stream.concat(tenant.permissionCodes().filter(code -> allowsNavigation(tenantFeatures, code)
+                                && (!code.equals("assistant:query") || effectiveMember.allows("assistantSelection") && effectiveMember.allows("conversation"))), platform.permissionCodes())
                                 .collect(Collectors.toUnmodifiableSet()),
                         Math.max(tenantAge, platformAge))),
                 tenant.isInvalid(),

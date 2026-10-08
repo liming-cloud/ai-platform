@@ -22,8 +22,11 @@ import org.springframework.web.bind.annotation.RestController;
 public class QueryAssistantController {
 
     private final QueryAssistantCatalogService assistants;
+    private final com.aiplatform.foundation.organizationaccess.application.member.facade.MemberAccessFacade access;
 
-    public QueryAssistantController(QueryAssistantCatalogService assistants) {
+    public QueryAssistantController(QueryAssistantCatalogService assistants,
+            com.aiplatform.foundation.organizationaccess.application.member.facade.MemberAccessFacade access) {
+        this.access = Objects.requireNonNull(access, "成员访问事实不能为空");
         this.assistants = Objects.requireNonNull(assistants, "查询助手目录不能为空");
     }
 
@@ -31,9 +34,12 @@ public class QueryAssistantController {
     public PageResult<QueryAssistantView> list(
             TrustedRequestContext context,
             @RequestParam(defaultValue = "1") long pageNumber,
-            @RequestParam(defaultValue = "20") long pageSize) {
+            @RequestParam(defaultValue = "20") long pageSize,
+            @RequestParam(defaultValue = "") String q) {
+        access.requireFeature(context, "assistantSelection");
+        var scope = access.read(context);
         return assistants.list(new ListQueryAssistantsQuery(
                 context,
-                new PageQuery(pageNumber, pageSize)));
+                new PageQuery(pageNumber, pageSize), q, scope.assistantIds(), scope.tenantAdministrator()));
     }
 }

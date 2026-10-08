@@ -30,7 +30,7 @@
 
 | 当前源码／原型 | 查明事实 | 设计影响 |
 | --- | --- | --- |
-| `TenantMemberWorkspace`、`TenantMemberStatusController`、`TenantMemberEstablishmentApplicationService` | 当前从全局候选选择既有主体，再建立成员资格；POST 只接收 subjectId，不创建身份或自动绑定普通角色 | 新开户替代这条入口，不复制既有密码或保留两个可编辑的新建流程 |
+| `TenantMemberWorkspace`、`TenantMemberStatusController`、`TenantMemberEstablishmentApplicationService` | 当前从全局候选选择既有主体；POST 只接收 subjectId，不创建身份。生产 `PostgresTenantMemberEstablishmentStore.insert` 已在同一事务写入资格和固定 TENANT_USER 绑定，尚未写成员功能、助手范围和开户审计 | 新开户替代候选入口，复用已有资格／固定角色原子写入，不复制密码或保留两个可编辑的新建流程 |
 | `TenantMemberGovernance`、`TenantMemberStatusApplicationService`、`TenantMembership` | 已有管理员保护、成员锁、资格状态、permissionVersion 和会话撤销；状态 HTTP 未携带预期版本 | 复用领域与会话机制，补当前资源版本拒绝；不从前端隐藏推断授权已成立 |
 | `SubjectIdentity`、`PlatformTenantAdministratorCredentialService` | 身份与凭据全局唯一，已有密码端口、主体锁、全范围撤销及字符数组清理 | 普通成员重置另核对唯一归属；不能直接复用平台权限入口或另传主体标识 |
 | `TenantFeature`、`TenantFeatureAvailabilityService`、`BrowserSessionCapabilityService` | 已有八项租户上限，尚无本包四项成员配置事实 | 成员只保存后四项，不能新增管理权限或把租户开关当作成员授权 |
@@ -128,3 +128,5 @@ CodeGraph 已执行 `TenantMemberEstablishmentApplicationService`、`DefaultQuer
 ## 当前接受与执行前沿
 
 2026-10-08，用户在收到提案确认项及首片边界后要求“继续推进任务”，据此登记 [ADR-0093](../../architecture/decisions/ADR-0093-member-account-and-effective-access.md)。上节保留调查时点的未接受与验证事实；当前设计已接受，下一动作是按切片 1 执行真实红绿测试、实现和生产验收。接受不改变历史验证日期，不将上述静态检查转换为新生产证据，也不提前完成工作包或 M6。
+
+同日实施前复核发现上述初稿遗漏生产 adapter 已有的普通固定角色写入；已按 `PostgresTenantMemberEstablishmentStore.insert`、`TenantMemberEstablishmentMapper.insertDefaultRole` 和现有真实 PostgreSQL 角色断言纠正事实。原子新身份、初始配置及授权、审计的增量契约不变，既有资格／角色写入应复用，不另造平行实现。

@@ -19,6 +19,7 @@ public interface AssistantMapper extends BaseMapper<AssistantEntity> {
 
     IPage<PublishedAssistantRow> findPublishedPage(
             IPage<PublishedAssistantRow> page,
-            @Param("tenantId") long tenantId);
+            @Param("tenantId") long tenantId,
+            @Param("filter") com.aiplatform.foundation.assistantdelivery.domain.assistant.repository.PublishedAssistantFilter filter);
 
 }

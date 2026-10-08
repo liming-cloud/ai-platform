@@ -602,12 +602,6 @@
       "reason": "按当前可信租户连接成员资格和全局主体，仅返回无凭据、无会话的最小成员目录分页投影。"
     },
     {
-      "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/TenantMemberDirectoryMapper.xml",
-      "statementId": "count",
-      "category": "SECURITY_PROJECTION",
-      "reason": "使用与成员目录相同的租户范围计算总数，避免通过分页元数据泄露其他租户成员数量。"
-    },
-    {
       "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/TenantMemberCandidateMapper.xml",
       "statementId": "selectEligiblePage",
       "category": "SECURITY_PROJECTION",
@@ -966,6 +960,78 @@
       "statementId": "delete",
       "category": "ATOMIC_STATE_TRANSITION",
       "reason": "只有确认未锁定的成功登录才清除目标租户主体的失败观察。"
+    },
+    {
+      "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/MemberAccessMapper.xml",
+      "statementId": "find",
+      "category": "SECURITY_PROJECTION",
+      "reason": "ADR-0093：同租户关联当前身份、资格、唯一固定角色及功能，唯一归属重置排除全部历史平台／租户绑定；只返回无秘密事实。"
+    },
+    {
+      "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/MemberAccessMapper.xml",
+      "statementId": "assistants",
+      "category": "SECURITY_PROJECTION",
+      "reason": "ADR-0093：按当前可信租户和资格读取组织拥有的显式助手关系，空集合不补全授权。"
+    },
+    {
+      "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/MemberAccountMapper.xml",
+      "statementId": "lockTenant",
+      "category": "ROW_LOCK",
+      "reason": "ADR-0093：与租户治理共用生命周期行锁，串行核对关闭、开户与上限状态。"
+    },
+    {
+      "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/MemberAccountMapper.xml",
+      "statementId": "lockAuthorization",
+      "category": "ROW_LOCK",
+      "reason": "ADR-0093：锁定组织唯一授权 revision，开户检查与关系写入同事务完成。"
+    },
+    {
+      "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/MemberAccountMapper.xml",
+      "statementId": "authorizationRevision",
+      "category": "SECURITY_PROJECTION",
+      "reason": "ADR-0093：仅读取当前可信租户授权版本，用于显式预期版本冲突检查。"
+    },
+    {
+      "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/MemberAccountMapper.xml",
+      "statementId": "operation",
+      "category": "SECURITY_PROJECTION",
+      "reason": "ADR-0093：按租户、真实操作者和幂等标识读取无秘密命令事实，不读取凭据。"
+    },
+    {
+      "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/MemberAccountMapper.xml",
+      "statementId": "insertFeatures",
+      "category": "ATOMIC_STATE_TRANSITION",
+      "reason": "ADR-0093：开户外层事务写入全部四项显式功能，任何后续失败回滚身份及资格。"
+    },
+    {
+      "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/MemberAccountMapper.xml",
+      "statementId": "insertAssistant",
+      "category": "ATOMIC_STATE_TRANSITION",
+      "reason": "ADR-0093：只写入由公开助手 facade 验证的本租户发布对象，与开户配置和审计原子提交。"
+    },
+    {
+      "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/MemberAccountMapper.xml",
+      "statementId": "advanceAuthorization",
+      "category": "ATOMIC_STATE_TRANSITION",
+      "reason": "ADR-0093：按预期 revision 推进唯一授权版本，影响行数不为一则拒绝整次事务。"
+    },
+    {
+      "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/MemberAccountMapper.xml",
+      "statementId": "record",
+      "category": "ATOMIC_STATE_TRANSITION",
+      "reason": "ADR-0093：业务同事务记录操作者、资格、动作、非秘密命令摘要及版本；不含密码或会话。"
+    },
+    {
+      "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/MemberAccountMapper.xml",
+      "statementId": "pendingRevocations",
+      "category": "SECURITY_PROJECTION",
+      "reason": "ADR-0093：MyBatis-Plus 有界分页读取迁移明确标记的待撤销资格，不查询会话值。"
+    },
+    {
+      "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/MemberAccountMapper.xml",
+      "statementId": "markRevoked",
+      "category": "ATOMIC_STATE_TRANSITION",
+      "reason": "ADR-0093：正式撤销端口成功后清除迁移标记，失败保留标记并阻止启动接收请求。"
     }
   ]
 }

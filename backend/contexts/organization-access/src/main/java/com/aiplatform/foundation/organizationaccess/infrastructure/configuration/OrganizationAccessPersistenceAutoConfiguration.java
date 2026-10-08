@@ -174,6 +174,14 @@ public class OrganizationAccessPersistenceAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
+    com.aiplatform.foundation.organizationaccess.application.member.port.out.MemberAccountStore memberAccountStore(
+            com.aiplatform.foundation.organizationaccess.infrastructure.persistence.member.mapper.MemberAccountMapper mapper,
+            com.aiplatform.foundation.organizationaccess.infrastructure.persistence.member.mapper.MemberAccessMapper facts) {
+        return new com.aiplatform.foundation.organizationaccess.infrastructure.persistence.member.repository.PostgresMemberAccountStore(mapper, facts);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
     TenantMemberCandidateDirectory tenantMemberCandidateDirectory(TenantMemberCandidateMapper mapper) {
         return new PostgresTenantMemberCandidateDirectory(mapper);
     }

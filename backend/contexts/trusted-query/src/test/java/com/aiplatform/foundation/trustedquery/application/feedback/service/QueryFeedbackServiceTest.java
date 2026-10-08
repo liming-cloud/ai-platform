@@ -51,7 +51,7 @@ class QueryFeedbackServiceTest {
     @BeforeEach
     void setUp() {
         service = new QueryFeedbackService(
-                runs, feedback, Clock.fixed(NOW, ZoneOffset.UTC), identifiers);
+                runs, feedback, Clock.fixed(NOW, ZoneOffset.UTC), identifiers, com.aiplatform.foundation.trustedquery.application.run.service.QueryAuthorizationFixture.allowed());
     }
 
     @Test

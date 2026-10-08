@@ -279,7 +279,7 @@ function AuthenticatedConsoleApp({
       compactHeading={platformActive && route.task === "create"}
       pageStatus={platformActive && route.task === "create" ? { label: "等待填写", tone: "warning" } : undefined}
       pageTitle={
-        operationsActive ? "运营总览" : platformOperationsActive ? "平台运营总览" : accessActive ? route.task === "roles" ? "租户角色" : "成员与权限" : platformActive ? route.task === "create" ? "建立新租户" : route.task === "tenants" || route.task === "detail" || route.task === "admins" || route.task === "quotas" || route.task === "features" || route.task === "security" ? undefined : "平台租户" : platformAccountsActive ? undefined : platformModelSupplyActive ? "平台模型供应链" : queryActive ? "从已授权资料中获得答案" : governanceActive ? route.task === "query" ? "查询用量与审计" : "受限评测运行" : modelsActive ? route.task === "configuration" ? "受控模型配置" : route.task === "providers" ? "供应商连接与模型发现" : "模型部署与能力验证" : dataPage?.title ?? "可信知识平台"
+        operationsActive ? "运营总览" : platformOperationsActive ? "平台运营总览" : accessActive ? route.task === "roles" ? "租户角色" : undefined : platformActive ? route.task === "create" ? "建立新租户" : route.task === "tenants" || route.task === "detail" || route.task === "admins" || route.task === "quotas" || route.task === "features" || route.task === "security" ? undefined : "平台租户" : platformAccountsActive ? undefined : platformModelSupplyActive ? "平台模型供应链" : queryActive ? "从已授权资料中获得答案" : governanceActive ? route.task === "query" ? "查询用量与审计" : "受限评测运行" : modelsActive ? route.task === "configuration" ? "受控模型配置" : route.task === "providers" ? "供应商连接与模型发现" : "模型部署与能力验证" : dataPage?.title ?? "可信知识平台"
       }
       pageSummary={
         operationsActive
@@ -388,16 +388,16 @@ function AuthenticatedConsoleApp({
       </section>
       <section hidden={!accessActive}>
         {accessActive ? <>
-          <TaskNavigation
+          {route.task === "roles" ? <TaskNavigation
             ariaLabel="访问治理任务切换"
             activeValue={route.task}
             items={[{ value: "members", label: "成员目录" }, { value: "roles", label: "角色目录" }]}
             onSelect={(task) => navigate(task === "roles"
               ? { navigationId: "access", task: "roles" }
               : { navigationId: "access", task: "members", page: 1 })}
-          />
+          /> : null}
           <Suspense fallback={<StatePanel kind="loading" title="正在加载成员与权限" description="正在准备受限访问治理入口。" />}>
-            {route.navigationId === "access" && route.task === "members"
+            {route.navigationId === "access" && route.task !== "roles"
               ? <TenantMemberWorkspace client={client} route={route} sessionRevision={sessionRevision} onRouteChange={navigate} />
               : <RoleDirectoryWorkspace scope="TENANT" onManageMembers={() => navigate({ navigationId: "access", task: "members", page: 1 })} />}
           </Suspense>
