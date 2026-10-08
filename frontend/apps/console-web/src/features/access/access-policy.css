@@ -6,7 +6,8 @@
 .policy-readonly-value { display: flex; align-items: center; overflow-wrap: anywhere; color: var(--foundation-muted-text); background: var(--foundation-subtle-surface); }
 .member-assistants-workspace { max-width: 56rem; gap: 16px; margin-top: 0; }
 .member-object-navigation:has(+ .member-assistants-workspace) { margin-bottom: 44px; }
-.member-object-navigation:has(+ .member-assistants-workspace) button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+/* 用精确比例避免构建压缩截断小数，使两倍文字下的导航行框仍与原型一致。 */
+.member-object-navigation:has(+ .member-assistants-workspace) button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; line-height: calc(1em * 20 / 14); }
 .published-assistant-picker { min-width: 0; }
 .assistant-choice-list { display: grid; gap: 8px; max-height: 320px; overflow-y: auto; margin-block: 16px; }
 .assistant-choice-list label { min-height: 44px; display: flex; align-items: center; gap: 12px; }

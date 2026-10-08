@@ -45,14 +45,16 @@ async function verifyDirectorySpacing(page) {
   requireCondition(gap === 24, "策略目录筛选区与表格间距不是原型的24px");
 }
 
-/** 对象导航承接原型 flex 按钮，避免放大文字时原生块行框产生累积偏移。 */
+/** 对象导航承接原型行框；校验构建后的高度，防止压缩器截断行高比值。 */
 async function verifyAssistantNavigation(page) {
   const styles = await page.locator(".member-object-navigation button").evaluateAll(elements => elements.map(element => {
     const value = getComputedStyle(element);
-    return { display: value.display, align: value.alignItems, gap: value.gap };
+    return { display: value.display, align: value.alignItems, gap: value.gap,
+      height: element.getBoundingClientRect().height, expectedHeight: Math.max(Number.parseFloat(value.minHeight), Number.parseFloat(value.fontSize) * 20 / 14 + 14) };
   }));
   requireCondition(styles.length === 3 && styles.every(style => style.display === "flex" && style.align === "center" && style.gap === "8px"),
     "助手页对象导航没有承接原型flex按钮行框");
+  requireCondition(styles.every(style => style.height === style.expectedHeight), "助手页对象导航构建后行高被截断，未与原型一致");
 }
 
 async function run(configuration) {

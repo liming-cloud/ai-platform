@@ -112,9 +112,12 @@ async function run(config) {
       await page.getByRole("heading", { name: "访问策略目录", exact: true }).waitFor();
       requireCondition((await page.locator(".access-policy-directory > .policy-feedback").first().textContent()) === "", "目录初始态新增了原型不存在的辅助文案");
       await page.setViewportSize({ width: 390, height: 960 });
-      const action = await page.locator(".page-heading > button").boundingBox(); const heading = await page.locator(".page-heading").boundingBox();
-      requireCondition(action && heading && Math.abs(action.width - heading.width) <= .01, "策略目录小屏主要操作未按原型占满行宽");
-      requireCondition((await page.locator(".member-pagination select").evaluate(element => getComputedStyle(element).fontSize)) === "16px", "策略目录页大小字号未承接原型");
+      // 复用布局稳定检查，不能在媒体查询尚未绘制时比较新旧视口的边界。
+      await withTextScale(page, false, async () => {
+        const action = await page.locator(".page-heading > button").boundingBox(); const heading = await page.locator(".page-heading").boundingBox();
+        requireCondition(action && heading && Math.abs(action.width - heading.width) <= .01, "策略目录小屏主要操作未按原型占满行宽");
+        requireCondition((await page.locator(".member-pagination select").evaluate(element => getComputedStyle(element).fontSize)) === "16px", "策略目录页大小字号未承接原型");
+      });
       await page.setViewportSize({ width: 1440, height: 960 });
       const members = await request(page, "/tenant/access-policies/member-options?pageNumber=50&pageSize=20"); const assistants = await request(page, "/tenant/member-assistants?pageNumber=10&pageSize=20");
       requireCondition(members.body?.totalElements === 1000 && members.body.items.length === 20 && !members.body.hasNext, "千成员分页不是真实完整事实");
