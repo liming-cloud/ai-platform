@@ -4000,3 +4000,11 @@ main[data-screen="platform-tenants"] .compact-summary {
     min-height: var(--table-row-height);
   }
 }
+
+/* 按实际摘要容器调整列数，四位真实计数不能被窄侧栏的省略号隐藏。 */
+main[data-screen="access-policy-detail"] .release-decision { container-type: inline-size; }
+@container (max-width: 32rem) {
+  main[data-screen="access-policy-detail"] .summary-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  main[data-screen="access-policy-detail"] .summary-item:nth-child(2) { border-right: 0; }
+  main[data-screen="access-policy-detail"] .summary-item:nth-child(-n + 2) { border-bottom: 1px solid var(--color-border); }
+}
