@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Button, Checkbox, Dialog, DialogSurface, DialogTitle, Field, Input } from "@fluentui/react-components";
-import { PageHeading } from "@foundation/design-system";
+import { directoryPageNumbers, PageHeading } from "@foundation/design-system";
 import { presentApiError, type ControlPlaneClient, type MemberAccount, type PageResult, type TenantMemberSummary } from "../../api/control-plane-client";
 import type { ConsoleRoute } from "../../session/console-route";
 import { MemberCreateWorkspace } from "./MemberCreateWorkspace";
@@ -30,6 +30,7 @@ function MemberDirectory({ client, route, onRouteChange }: { client: ControlPlan
   const [loaded, setLoaded] = useState<{ owner: string; page: PageResult<TenantMemberSummary> }>();
   const [failure, setFailure] = useState("");
   const [notice, setNotice] = useState("");
+  const [pageError, setPageError] = useState("");
   const [revision, setRevision] = useState(0);
   const [pending, setPending] = useState<PendingOperation>();
   const [busy, setBusy] = useState(false);
@@ -126,14 +127,26 @@ function MemberDirectory({ client, route, onRouteChange }: { client: ControlPlan
       if (current()) { setBusy(false); setRevision(value => value + 1); }
     }
   }
-  function changePage(next: number) { onRouteChange({ ...route, page: next }); }
+  function changePage(next: number) { setPageError(""); onRouteChange({ ...route, page: next }); }
+  function jumpPage(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const next = Number(new FormData(event.currentTarget).get("page"));
+    const pages = Math.max(1, Math.ceil((page?.totalElements ?? 0) / size));
+    if (!Number.isSafeInteger(next) || next < 1 || next > pages) { setPageError(`请输入 1–${pages} 之间的整数页码。`); return; }
+    changePage(next);
+  }
+  useEffect(() => {
+    if (!page) return;
+    const lastPage = Math.max(1, Math.ceil(page.totalElements / size));
+    if (route.page > lastPage) onRouteChange({ ...route, page: lastPage });
+  }, [onRouteChange, page, route, size]);
 
   return <>
     <PageHeading title="成员与对话功能" context="租户访问与知识" summary="普通成员" status={{ label: "可配置", tone: "success" }}
       action={<Button appearance="primary" disabled={busy} onClick={() => onRouteChange({ navigationId: "access", task: "member-create", step: 1 })}>添加成员</Button>} />
     <section className="member-workspace member-directory-workspace" aria-busy={!page || busy}>
       <div className="member-directory-toolbar"><Field label="搜索成员"><Input type="search" placeholder="按姓名或角色搜索" maxLength={64} value={search}
-        onChange={(_, data) => setSearchDraft({ routeQuery: query, value: data.value })} /></Field><span>管理员条目只读</span></div>
+        onChange={(_, data) => { setPageError(""); setSearchDraft({ routeQuery: query, value: data.value }); }} /></Field><span>管理员条目只读</span></div>
       {notice ? <p role="status">{notice}</p> : null}
       {failure ? <p role="alert">{failure} <Button onClick={() => setRevision(value => value + 1)}>重试</Button></p> : !page ? <p role="status">正在加载成员目录…</p> :
         <div className="tenant-member-directory-table"><table><thead><tr>{["成员", "角色", "状态", "助手范围", "操作"].map(label => <th key={label} scope="col">{label}</th>)}</tr></thead>
@@ -149,9 +162,16 @@ function MemberDirectory({ client, route, onRouteChange }: { client: ControlPlan
                   : <Button appearance="subtle" disabled={busy} onClick={event => void restore(member, event.currentTarget)}>恢复</Button>}
               </div>}</td></tr>;
           }) : <tr><td colSpan={5}>没有匹配的成员。</td></tr>}</tbody></table>
-          <div className="member-pagination"><span>共 {page.totalElements} 名成员</span><label>每页 <select aria-label="每页成员数" value={size} onChange={event => onRouteChange({ ...route, page: 1, pageSize: Number(event.target.value) as 10 | 20 | 50 | 100 })}>
-            {[10, 20, 50, 100].map(value => <option key={value} value={value}>{value}</option>)}</select> 条</label>
-            <Button disabled={route.page <= 1 || busy} onClick={() => changePage(route.page - 1)}>上一页</Button><span>第 {route.page} 页</span><Button disabled={!page.hasNext || busy} onClick={() => changePage(route.page + 1)}>下一页</Button></div>
+          <nav className="member-pagination" aria-label="成员目录分页"><span className="member-pagination-summary" role="status">共 {page.totalElements} 条 · {page.totalElements ? (route.page - 1) * size + 1 : 0}–{Math.min(page.totalElements, route.page * size)} 条</span>
+            <label className="member-pagination-size">每页<select aria-label="每页条数" disabled={busy} value={size} onChange={event => { setPageError(""); onRouteChange({ ...route, page: 1, pageSize: Number(event.target.value) as 10 | 20 | 50 | 100 }); }}>
+              {[10, 20, 50, 100].map(value => <option key={value} value={value}>{value} 条</option>)}</select></label>
+            <div className="member-pagination-pages"><Button disabled={route.page <= 1 || busy} onClick={() => changePage(route.page - 1)}>上一页</Button>
+              {directoryPageNumbers(route.page, Math.ceil(page.totalElements / size)).map((number, index) => number === "…" ? <span key={`gap-${index}`} aria-hidden="true">…</span>
+                : <Button key={number} aria-label={`第 ${number} 页`} aria-current={number === route.page ? "page" : undefined} appearance={number === route.page ? "primary" : "secondary"} disabled={busy} onClick={() => changePage(number)}>{number}</Button>)}
+              <Button disabled={!page.hasNext || busy} onClick={() => changePage(route.page + 1)}>下一页</Button></div>
+            <form className="member-pagination-jump" key={`${route.page}:${size}`} onSubmit={jumpPage} noValidate><label>跳至<Input type="number" name="page" aria-label="跳转页码" min={1} max={Math.max(1, Math.ceil(page.totalElements / size))} defaultValue={String(route.page)} disabled={busy} /></label><span>页</span><Button type="submit" disabled={busy}>跳转</Button></form>
+            {pageError ? <span className="member-pagination-error" role="alert">{pageError}</span> : null}
+          </nav>
         </div>}
     </section>
     <Dialog open={Boolean(pending)} onOpenChange={(_, data) => { if (!data.open) closeDialog(); }}>

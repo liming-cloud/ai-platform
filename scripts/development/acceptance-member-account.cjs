@@ -121,6 +121,15 @@ async function run(configuration) {
       await openLogin(page, configuration, "tenant"); await fillLogin(page, configuration.credentials.tenant, "tenant");
       await submitLogin(page); await assertWorkspace(page, "tenant"); await directory();
       requireCondition(JSON.stringify(await page.locator(".tenant-member-directory-table th").allTextContents()) === JSON.stringify(["成员", "角色", "状态", "助手范围", "操作"]), "成员目录未承接原型五列表格");
+      const pagination = page.getByRole("navigation", { name: "成员目录分页", exact: true });
+      requireCondition(await pagination.getByRole("button", { name: "第 1 页", exact: true }).isVisible(), "成员目录缺少原型页码");
+      await pagination.getByRole("spinbutton", { name: "跳转页码", exact: true }).fill("0");
+      await pagination.getByRole("button", { name: "跳转", exact: true }).click(); await pagination.getByRole("alert").waitFor();
+      requireCondition(new URL(page.url()).searchParams.get("page") === "1", "无效页码仍进入目录请求");
+      await pagination.getByRole("spinbutton", { name: "跳转页码", exact: true }).fill("1"); await pagination.getByRole("button", { name: "跳转", exact: true }).click();
+      await page.goto(`${configuration.baseUrl}/access/members?page=99999`, { waitUntil: "networkidle" });
+      await page.waitForURL(url => url.pathname === "/access/members" && url.searchParams.get("page") === "1");
+      await page.locator(".tenant-member-directory-table tbody").waitFor();
       const administrator = page.locator("tbody tr").filter({ hasText: "租户管理员" }).first(); await administrator.waitFor();
       requireCondition(await administrator.getByRole("button").count() === 0 && await administrator.getByText("只读", { exact: true }).isVisible(), "管理员目标未只读保护");
     });

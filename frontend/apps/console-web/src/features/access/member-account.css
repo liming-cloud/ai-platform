@@ -36,8 +36,16 @@
 .member-row-actions { flex-wrap: wrap; }
 /* 普通文字保持同行；放大后按最小可读宽度换行，不能把字挤进按钮内边距。 */
 .member-row-actions .fui-Button { flex: 1 1 0; min-width: min-content; max-width: max-content; min-height: var(--foundation-control-height-compact); padding: .25rem .5rem; }
-.member-pagination { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 12px 16px; font-size: 14px; }
-.member-pagination select { min-height: var(--foundation-control-height-compact); border: 1px solid var(--foundation-border); background: var(--foundation-surface); color: inherit; }
+.member-pagination { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 12px; padding: 12px 16px; border-top: 1px solid var(--foundation-border); color: var(--foundation-secondary-text); font-size: 13px; }
+.member-pagination-summary { margin-right: auto; white-space: nowrap; }
+.member-pagination-size, .member-pagination-jump, .member-pagination-jump label, .member-pagination-pages { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.member-pagination-size, .member-pagination-jump label { flex-wrap: nowrap; white-space: nowrap; }
+.member-pagination select { width: 5.5rem; min-height: var(--foundation-control-height-compact); padding-inline: 12px; border: 1px solid var(--foundation-border-strong); border-radius: var(--foundation-control-radius); background: var(--foundation-surface); color: inherit; font: inherit; }
+.member-pagination-jump .fui-Input { width: 4rem; }
+.member-pagination .fui-Button, .member-pagination .fui-Input { min-height: var(--foundation-control-height-compact); }
+.member-pagination .fui-Button { padding: 4px 8px; }
+.member-pagination .fui-Button[aria-current="page"] { min-width: var(--foundation-control-height-compact); padding-inline: 4px; }
+.member-pagination-error { width: 100%; color: var(--foundation-danger); }
 .member-object-navigation { display: flex; flex-wrap: wrap; gap: 8px; margin-block: 24px; border-bottom: 1px solid var(--foundation-border); }
 .member-object-navigation button { min-height: var(--foundation-control-height); border: 0; border-bottom: 2px solid transparent; border-radius: 0; background: transparent; padding-inline: 16px; font-family: inherit; font-size: 14px; font-weight: 620; color: var(--foundation-muted-text); }
 .member-object-navigation button[aria-current="page"] { color: var(--foundation-accent); border-bottom-color: var(--foundation-accent); }
