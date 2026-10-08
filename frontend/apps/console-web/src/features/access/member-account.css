@@ -41,8 +41,8 @@
 .member-status[data-tone="success"] { color: var(--foundation-success-foreground); border-color: var(--foundation-success-border); background: var(--foundation-success-background); }
 .member-status[data-tone="warning"] { color: var(--foundation-warning-foreground); border-color: var(--foundation-warning-border); background: var(--foundation-warning-background); }
 .member-row-actions { flex-wrap: nowrap; align-items: stretch; }
-/* 依原型按各按钮内容比例收缩并等高，避免把较长操作按均分宽度挤成四行。 */
-.member-row-actions .fui-Button { flex: 0 1 auto; min-width: auto; max-width: none; min-height: var(--foundation-control-height-compact); padding: .25rem .5rem; line-height: 1.428572; white-space: normal; overflow-wrap: normal; }
+/* 依原型按内容比例收缩并等高；取消 Fluent 裁切，让放大文字参与自动最小宽度计算。 */
+.member-row-actions .fui-Button { flex: 0 1 auto; min-width: auto; max-width: none; min-height: var(--foundation-control-height-compact); padding: .25rem .5rem; line-height: 1.428572; white-space: normal; overflow-wrap: normal; overflow: visible; }
 .member-row-actions .fui-Button:not(:disabled) { color: var(--foundation-text); }
 .member-pagination { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 12px; padding: 12px 16px; border-top: 1px solid var(--foundation-border); color: var(--foundation-muted-text); font-size: 14px; }
 .member-pagination-summary { margin-right: auto; white-space: nowrap; }
