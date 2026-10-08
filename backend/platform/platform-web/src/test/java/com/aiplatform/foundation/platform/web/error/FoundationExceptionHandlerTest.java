@@ -1,6 +1,10 @@
 package com.aiplatform.foundation.platform.web.error;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.aiplatform.foundation.shared.kernel.error.ApplicationException;
 import com.aiplatform.foundation.shared.kernel.error.ErrorCode;
@@ -8,14 +12,55 @@ import com.aiplatform.foundation.shared.kernel.error.ErrorType;
 import java.util.Map;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
-import org.springframework.http.HttpStatus;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 class FoundationExceptionHandlerTest {
 
     private final FoundationExceptionHandler handler =
             new FoundationExceptionHandler(() -> 1001L);
+
+    @ParameterizedTest
+    @CsvSource({
+        "foundation, 429, TEST.QUOTA.0001",
+        "invalid, 400, COMMON.REQUEST.0001",
+        "missing, 404, COMMON.RESOURCE.0001",
+        "unexpected, 500, COMMON.SYSTEM.0001"
+    })
+    void SSE拒绝仍返回统一JSON错误而不因媒体协商变为服务故障(String failure, int expectedStatus, String expectedCode) throws Exception {
+        var mvc = MockMvcBuilders
+                .standaloneSetup(new SseProbeController()).setControllerAdvice(handler).build();
+
+        var result = mvc.perform(get("/test-sse/{failure}", failure).accept(MediaType.TEXT_EVENT_STREAM))
+                .andExpect(status().is(expectedStatus))
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.code").value(expectedCode))
+                .andExpect(jsonPath("$.details").isEmpty()).andReturn();
+        assertThat(result.getResponse().getContentAsString()).doesNotContain("内部");
+    }
+
+    @RestController
+    private static final class SseProbeController {
+        /** 在写出 SSE 首帧前拒绝请求，检验统一错误契约。 */
+        @GetMapping(value = "/test-sse/{failure}", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+        public SseEmitter stream(@PathVariable String failure) throws NoResourceFoundException {
+            switch (failure) {
+                case "foundation" -> throw new ApplicationException(TestError.QUOTA);
+                case "invalid" -> throw new IllegalArgumentException("内部校验原文");
+                case "missing" -> throw new NoResourceFoundException(HttpMethod.GET, "test-sse", "");
+                default -> throw new IllegalStateException("内部失败原文");
+            }
+        }
+    }
 
     @Test
     void 按错误类别映射状态并只返回安全详情() {

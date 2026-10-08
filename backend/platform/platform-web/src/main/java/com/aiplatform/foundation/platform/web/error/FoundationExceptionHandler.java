@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.Objects;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MissingRequestHeaderException;
@@ -19,7 +20,8 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 /**
- * 将平台异常映射为统一错误响应，并阻止内部实现信息泄漏。
+ * 将平台异常映射为统一 JSON 错误响应，并阻止内部实现信息泄漏。
+ * SSE 等成功响应的媒体类型不能覆盖拒绝响应，否则媒体协商会把权限拒绝变为服务故障。
  */
 @RestControllerAdvice
 public class FoundationExceptionHandler {
@@ -40,6 +42,7 @@ public class FoundationExceptionHandler {
             FoundationException exception) {
         var code = exception.errorCode();
         return ResponseEntity.status(HttpErrorTypeMapping.status(code.type()))
+                .contentType(MediaType.APPLICATION_JSON)
                 .body(response(
                         code.code(),
                         code.defaultMessage(),
@@ -58,6 +61,7 @@ public class FoundationExceptionHandler {
     public ResponseEntity<ApiErrorResponse> invalidRequest(Exception exception) {
         var code = CommonErrorCode.INVALID_REQUEST;
         return ResponseEntity.status(HttpErrorTypeMapping.status(code.type()))
+                .contentType(MediaType.APPLICATION_JSON)
                 .body(response(
                         code.code(),
                         code.defaultMessage(),
@@ -70,6 +74,7 @@ public class FoundationExceptionHandler {
         if (exception instanceof NoResourceFoundException) {
             var code = CommonErrorCode.RESOURCE_NOT_FOUND;
             return ResponseEntity.status(HttpErrorTypeMapping.status(code.type()))
+                    .contentType(MediaType.APPLICATION_JSON)
                     .body(response(
                             code.code(),
                             code.defaultMessage(),
@@ -80,6 +85,7 @@ public class FoundationExceptionHandler {
         LOGGER.error("未识别异常，追踪标识：{}", traceId, exception);
         var code = CommonErrorCode.SYSTEM_FAILURE;
         return ResponseEntity.status(HttpErrorTypeMapping.status(code.type()))
+                .contentType(MediaType.APPLICATION_JSON)
                 .body(response(
                         code.code(),
                         code.defaultMessage(),
