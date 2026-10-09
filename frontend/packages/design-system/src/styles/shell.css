@@ -33,7 +33,7 @@
   place-items: center;
   width: 2rem;
   height: 2rem;
-  color: var(--foundation-surface);
+  color: var(--foundation-on-accent);
   border-radius: var(--foundation-control-radius);
   background: var(--foundation-text);
   font-size: 14px;
@@ -47,6 +47,8 @@
 
 .product-brand > div > .fui-Text {
   font-size: 16px;
+  font-weight: 700;
+  line-height: 1.2;
 }
 
 .product-brand small {

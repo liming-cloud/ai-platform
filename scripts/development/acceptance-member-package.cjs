@@ -150,7 +150,28 @@ async function run(configuration) {
       for (const [screen, route, title, ready] of screens) for (const width of [390, 1024, 1440]) for (const enlarged of [false, true]) {
         await check(`${screen}-${width}-${enlarged ? 200 : 100}文字与键盘`, async () => {
           await page.setViewportSize({ width, height: 960 }); await direct(route, title, ready);
-          await withTextScale(page, enlarged, () => verifyLayout(page));
+          await withTextScale(page, enlarged, async () => {
+            await verifyLayout(page);
+            const paint = await page.evaluate(() => {
+              const brand = getComputedStyle(document.querySelector(".product-brand div > span"));
+              const mark = getComputedStyle(document.querySelector(".product-brand > span"));
+              return { weight: brand.fontWeight, lineHeight: brand.lineHeight, markColor: mark.color,
+                buttons: [...document.querySelectorAll(".member-create-form > .member-form-actions button, .member-account-workspace .member-form-actions button")].map(button => {
+                  const style = getComputedStyle(button);
+                  return { height: button.getBoundingClientRect().height, accountReturn: button.closest(".member-account-workspace") !== null,
+                    color: style.color, background: style.backgroundColor };
+                }) };
+            });
+            requireCondition(paint.weight === "700" && paint.lineHeight === "19.2px" && paint.markColor === "rgb(255, 255, 255)",
+              "共享品牌绘制与原项目不一致");
+            for (const button of paint.buttons) {
+              requireCondition(Math.abs(button.height - (enlarged ? 54 : width <= 680 ? 44 : 36)) < 0.01,
+                "成员创建或账号按钮实际高度与原项目不一致");
+              // 原项目先选择普通成员后，此操作为主按钮；未选对象的返回按钮属于另一状态。
+              if (button.accountReturn) requireCondition(button.color === "rgb(255, 255, 255)"
+                && button.background === "oklab(0.514837 0.0810745 0.066312)", "有效成员页返回操作与原项目主按钮绘制不一致");
+            }
+          });
         });
       }
       await check("伪造租户参数与无权对象失败关闭", async () => {

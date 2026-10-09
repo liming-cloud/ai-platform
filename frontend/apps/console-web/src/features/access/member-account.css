@@ -26,6 +26,9 @@
 .member-assistant-choices { display: grid; gap: 8px; max-height: 320px; overflow: auto; margin-block: 16px; }
 .member-assistant-choices > label { min-height: 44px; }
 .member-form-actions, .member-page-actions, .member-row-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+/* Fluent 默认 5px 内边距在两倍文字下少 2px；保留原型的内边距和不被压缩舍入的行高。 */
+.member-create-form > .member-form-actions > .fui-Button,
+.member-account-workspace .member-form-actions > .fui-Button { padding: 6px 12px; line-height: calc(1em * 20 / 14); }
 .member-directory-workspace { gap: 0; }
 .member-directory-toolbar { display: flex; flex-wrap: wrap; align-items: end; gap: 12px; }
 .member-directory-toolbar > :first-child { width: min(100%, 22rem); }
