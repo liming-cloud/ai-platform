@@ -17,6 +17,14 @@ function readRoleConfiguration(environment = process.env) {
   return { ...configuration, outputFile: freshOutputFile(environment) };
 }
 
+function verifyAdministratorAccount(account) {
+  const keys = ["membershipId", "loginName", "membershipRole", "status", "version", "identityVersion", "permissionVersion",
+    "createdAt", "conversationFeatures", "featureVersion", "assistantIds", "passwordResetEligible"];
+  requireCondition(account && Object.keys(account).length === keys.length && keys.every(key => Object.hasOwn(account, key))
+    && account.membershipRole === "TENANT_ADMINISTRATOR" && account.passwordResetEligible === false,
+  "管理员账户投影缺少固定角色保护，或包含非公开字段");
+}
+
 async function roleView(page, baseUrl) {
   await page.goto(`${baseUrl}/access/roles`, { waitUntil: "networkidle" });
   await page.getByRole("heading", { name: "租户固定角色", exact: true }).waitFor();
@@ -135,7 +143,8 @@ async function run(configuration) {
       requireCondition(await row.getByText("只读", { exact: true }).count() === 1
         && await row.getByRole("button").count() === 0, "管理员目录出现编辑入口");
       const account = await request(page, `/tenant/members/${administrator.membershipId}`);
-      requireCondition(account.status === 200 && account.body.readOnly === true, "管理员账户事实允许编辑");
+      requireCondition(account.status === 200, "管理员账户事实不可读取");
+      verifyAdministratorAccount(account.body);
       await page.goBack(); await page.getByRole("heading", { name: "租户固定角色", exact: true }).waitFor();
       await page.reload({ waitUntil: "networkidle" });
       await page.getByRole("heading", { name: "租户固定角色", exact: true }).waitFor();
@@ -196,7 +205,7 @@ async function run(configuration) {
   }
 }
 
-module.exports = { readRoleConfiguration };
+module.exports = { readRoleConfiguration, verifyAdministratorAccount };
 if (require.main === module) {
   try { run(readRoleConfiguration()).catch(error => { process.stderr.write(`${error.message}\n`); process.exitCode = 1; }); }
   catch (error) { process.stderr.write(`${error.message}\n`); process.exitCode = 1; }

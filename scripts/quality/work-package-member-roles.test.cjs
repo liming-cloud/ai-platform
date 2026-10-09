@@ -2,7 +2,7 @@ const { test, after } = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
-const { readRoleConfiguration } = require("../development/acceptance-member-roles.cjs");
+const { readRoleConfiguration, verifyAdministratorAccount } = require("../development/acceptance-member-roles.cjs");
 const directory = fs.mkdtempSync("/private/tmp/wp0018-roles-test-");
 after(() => fs.rmSync(directory, { recursive: true, force: true }));
 const credentialsFile = path.join(directory, "credentials.json");
@@ -30,4 +30,13 @@ test("缺失普通成员凭据必须失败，错误不得回显输入秘密", ()
       && !error.message.includes("synthetic-only"));
   }
   persist(credentials);
+});
+test("管理员保护使用账户既有固定角色和重置资格，不虚构只读字段", () => {
+  const account = { membershipId: "123", loginName: "synthetic-admin", membershipRole: "TENANT_ADMINISTRATOR",
+    status: "ENABLED", version: 0, identityVersion: 0, permissionVersion: 0, createdAt: "2026-10-09T00:00:00Z",
+    conversationFeatures: {}, featureVersion: 0, assistantIds: [], passwordResetEligible: false };
+  assert.doesNotThrow(() => verifyAdministratorAccount(account));
+  for (const change of [{ membershipRole: "TENANT_USER" }, { passwordResetEligible: true }, { passwordHash: "synthetic-only" }]) {
+    assert.throws(() => verifyAdministratorAccount({ ...account, ...change }));
+  }
 });
