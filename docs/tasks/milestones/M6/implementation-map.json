@@ -4,7 +4,7 @@
   "openDesignProjectId": "249f81f2-6f1a-46ff-988c-da3cdedb35e7",
   "humanAcceptanceEvidence": "docs/tasks/WP-0016/evidence/WP-0016-human-acceptance-20260913.md",
   "prototypeImplementationCommit": "21b45c347a4008f5959b1b972e3ffd8a5aadcc6f",
-  "updatedOn": "2026-10-08",
+  "updatedOn": "2026-10-09",
   "sources": [
     {
       "path": "docs/prototypes/wp-0016/page-inventory.json",
@@ -1558,7 +1558,7 @@
       "phase": "M6",
       "classification": "production",
       "workPackage": "WP-0018",
-      "status": "in-progress",
+      "status": "verified",
       "operations": [
         {
           "id": "tenant-roles:0",
@@ -1568,7 +1568,7 @@
           "reason": "m6-approved-prototype",
           "workPackage": "WP-0018",
           "dependsOn": [],
-          "status": "contracted",
+          "status": "verified",
           "contract": {
             "adr": "ADR-0093",
             "target": {
@@ -1580,6 +1580,18 @@
               "普通成员无管理入口",
               "管理员条目只读",
               "不得提升或降级固定角色"
+            ]
+          },
+          "verifiedCommit": "1359a3bac9c00b7f23709387bfbdcd8f75d22ac2",
+          "verification": {
+            "commands": [
+              "make acceptance-work-package WP=WP-0018 SLICE=roles",
+              "make acceptance-work-package WP=WP-0017 SLICE=login",
+              "make frontend-test",
+              "make architecture-guard"
+            ],
+            "evidence": [
+              "docs/tasks/WP-0018/evidence/WP-0018-fixed-roles-production-parity-closure-20261009.md"
             ]
           }
         }
