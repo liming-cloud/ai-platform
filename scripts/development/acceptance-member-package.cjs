@@ -132,6 +132,16 @@ async function run(configuration) {
           requireCondition(await page.locator('main input[type="password"]').count() === 0, "管理员页面意外提供密码修改");
         }
       });
+      await check("无权策略版本承接原型受限状态", async () => {
+        requireCondition((await request(page, "/tenant/access-policies/1/versions/1")).status === 403, "无权版本未失败关闭");
+        await direct("/tenant/access-policies/1/versions/1", "访问策略版本");
+        await page.getByRole("heading", { name: "当前会话不能访问此任务", exact: true }).waitFor();
+        await page.getByRole("link", { name: "返回已授权入口", exact: true }).waitFor();
+        requireCondition(await page.getByRole("link", { name: "返回已授权入口", exact: true }).getAttribute("href") === "/tenant/login",
+          "受限状态未返回当前真实角色的既有登录入口");
+        requireCondition(await page.locator(".policy-read-state[data-kind=denied]").count() === 1
+          && await page.getByRole("button", { name: "重新读取策略", exact: true }).count() === 0, "无权版本错误提供读取或编辑流程");
+      });
       const policy = before[4].items[0];
       const policyRoute = policy ? `/tenant/access-policies/${policy.policyId}/versions/${policy.versionId}`
         : "/tenant/access-policies/1/versions/1";

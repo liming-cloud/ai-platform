@@ -8,7 +8,7 @@ import { clearAuthorizationDraft, loadAuthorizationDraft, observeAuthorizationDr
 import { useAuthorizationDeparture, type RegisterAuthorizationDeparture } from "./AuthorizationDeparture";
 import { PublishedAssistantPicker } from "./PublishedAssistantPicker";
 import { PolicyMemberPicker } from "./PolicyMemberPicker";
-import { policyExpected, policyInput, policyRoute, policyStatusLabel } from "./access-policy-state";
+import { policyExpected, policyInput, policyReadFailure, policyRoute, policyStatusLabel } from "./access-policy-state";
 
 const previewLabels = ["已选活动普通成员可以看到并使用助手", "未选成员不能通过目录或直接路由使用助手", "引用访问沿用同一助手授权范围", "权限撤销后历史和引用立即失败关闭"];
 
@@ -21,6 +21,7 @@ export function AccessPolicyWorkspace({ client, route, onRouteChange, registerDe
   const [historyPage, setHistoryPage] = useState(1); const [failure, setFailure] = useState(""); const [feedback, setFeedback] = useState("");
   const [busy, setBusy] = useState(false); const [dirty, setDirty] = useState(false); const [reload, setReload] = useState(0);
   const [nextVersion, setNextVersion] = useState<AccessPolicyView>();
+  const [readFailure, setReadFailure] = useState<ReturnType<typeof policyReadFailure>>();
   const active = useRef(false); const writing = useRef(false); const owner = useRef<string | undefined>(undefined); const assistantRequest = useRef(0);
   const epoch = client.currentSessionRevision(); const target = `policy:${route.versionId}`;
   const current = () => active.current && client.hasSession() && client.currentSessionRevision() === epoch;
@@ -38,13 +39,13 @@ export function AccessPolicyWorkspace({ client, route, onRouteChange, registerDe
     const unsubscribe = client.subscribeSessionChange(isActive => { if (!isActive) { active.current = false; owner.current = undefined; setFacts(undefined); setDraft(undefined); setVersions(undefined); setAssistant(undefined); } });
     Promise.all([client.getAccessPolicy(route.policyId, route.versionId), memberDraftOwner(client)]).then(([value, scope]) => {
       if (!mounted || !active.current || !client.hasSession() || client.currentSessionRevision() !== epoch) return;
-      owner.current = scope; setFacts(value); setDraft(policyInput(value)); setFailure(""); setFeedback("");
+      owner.current = scope; setFacts(value); setDraft(policyInput(value)); setFailure(""); setReadFailure(undefined); setFeedback("");
       if (value.status === "DRAFT" && scope) {
         try { const restored = loadAuthorizationDraft(scope, target);
           if (restored?.kind === "policy") { setDraft({ assistantId: restored.assistantId, membershipIds: restored.membershipIds, expectedVersion: restored.expectedVersion, expectedAuthorizationRevision: restored.expectedAuthorizationRevision, expectedTenantFeatureVersion: restored.expectedTenantFeatureVersion }); setDirty(true); setFeedback("已恢复本页未保存修改。"); }
         } catch { setFeedback("无法恢复草稿，当前显示已保存策略。"); }
       }
-    }).catch(error => { if (mounted && active.current && client.currentSessionRevision() === epoch) setFailure(presentApiError(error, "读取策略版本").description); });
+    }).catch(error => { if (mounted && active.current && client.currentSessionRevision() === epoch) setReadFailure(policyReadFailure(error)); });
     return () => { mounted = false; active.current = false; unsubscribe(); };
   }, [client, epoch, route.policyId, route.versionId, target, reload]);
   useEffect(() => {
@@ -94,14 +95,18 @@ export function AccessPolicyWorkspace({ client, route, onRouteChange, registerDe
   function refresh() {
     if (!current() || writing.current) return;
     try { clearAuthorizationDraft(target); } catch { setFailure("无法清除草稿，请重试。"); return; }
-    setDirty(false); setFacts(undefined); setDraft(undefined); setFailure(""); setFeedback(""); setReload(value => value + 1);
+    setDirty(false); setFacts(undefined); setDraft(undefined); setFailure(""); setReadFailure(undefined); setFeedback(""); setReload(value => value + 1);
   }
   const preview = !dirty && facts?.preview?.passed ? facts.preview : undefined;
   const knowledgeName = editable ? assistant?.knowledgeSpaceName ?? (draft?.assistantId === facts?.assistantId ? facts?.knowledgeSpaceName : "正在核对…") : facts?.knowledgeSpaceName;
   return <>
-    <PageHeading title={facts ? `${facts.name} v${facts.number}` : "访问策略版本"} context="访问治理" summary="成员助手授权版本"
-      action={<Button className="policy-page-action" disabled={busy} onClick={() => onRouteChange({ navigationId: "access-policies", task: "policies", page: 1 })}>返回策略目录</Button>} />
-    {!facts || !draft ? <section className="member-workspace"><p role={failure ? "alert" : "status"}>{failure || "正在读取策略版本…"}</p>{failure ? <Button onClick={refresh}>重新读取策略</Button> : null}</section> : <div className="member-workspace access-policy-workspace" aria-busy={busy}>
+    <PageHeading title={facts ? `${facts.name} v${facts.number}` : "访问策略版本"} context="访问治理" summary={readFailure?.summary ?? "成员助手授权版本"}
+      action={!readFailure ? <Button className="policy-page-action" disabled={busy} onClick={() => onRouteChange({ navigationId: "access-policies", task: "policies", page: 1 })}>返回策略目录</Button> : undefined} />
+    {!facts || !draft ? readFailure ? <section className="policy-read-state" data-kind={readFailure.kind} role="alert">
+      <p className="policy-read-eyebrow">{readFailure.kind === "denied" ? "无权访问" : "任务失败"}</p><h2>{readFailure.title}</h2><p>{readFailure.description}</p>
+      {readFailure.kind === "denied" ? <Button as="a" className="policy-page-action" href="/tenant/login">{readFailure.action}</Button>
+        : <Button className="policy-page-action" onClick={refresh}>{readFailure.action}</Button>}
+    </section> : <section className="member-workspace"><p role="status">正在读取策略版本…</p></section> : <div className="member-workspace access-policy-workspace" aria-busy={busy}>
       <div className="policy-inline-note">策略只配置普通成员可用的助手；知识库由助手的关联关系确定，不能在这里另选。</div>
       {versions && versions.totalElements > 1 ? <div className="policy-version-navigation"><label className="member-native-field"><span>策略版本</span><select aria-label="策略版本" value={route.versionId} disabled={busy} onChange={event => {
         const value = versions.items.find(item => item.versionId === event.target.value); if (value) onRouteChange(policyRoute(value));

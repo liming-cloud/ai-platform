@@ -17,6 +17,11 @@
 .access-policy-directory { gap: 24px; }
 .foundation-app-root .policy-page-action { min-width: auto; padding: 6px 12px; gap: 8px; font-weight: 620; line-height: calc(1em * 20 / 14); }
 .foundation-app-root .policy-page-action:disabled { color: var(--foundation-muted-text); border-color: var(--foundation-border); background: var(--foundation-subtle-surface); opacity: .76; }
+/* 读取拒绝和读取失败承接原型状态面板；不向其他工作区传播局部状态样式。 */
+.policy-read-state { display: grid; justify-items: start; align-content: center; gap: 12px; min-height: 16rem; margin-top: 24px; padding: 32px; border: 1px solid color-mix(in oklab, var(--foundation-danger), var(--foundation-surface) 65%); border-radius: var(--foundation-panel-radius); background: color-mix(in oklab, var(--foundation-danger), var(--foundation-surface) 94%); line-height: 1.6; }
+.policy-read-state h2 { margin: 0; font-family: var(--foundation-font-display); font-size: 25px; font-weight: 500; line-height: 1.35; }
+.policy-read-state p { margin: 0; max-width: 42rem; color: var(--foundation-muted-text); }
+.policy-read-state .policy-read-eyebrow { font-size: 14px; font-weight: 750; letter-spacing: .07em; }
 .policy-directory-table .access-pagination .fui-Button { padding: 4px 8px; }
 .policy-directory-table .access-pagination .fui-Button[aria-current="page"] { padding-inline: 4px; }
 .access-pagination input { width: 4rem; min-width: 0; min-height: max(var(--foundation-control-height-compact), calc(1.5em + 8px)); padding: 0 12px; border: 1px solid var(--foundation-border-strong); border-radius: var(--foundation-control-radius); background: var(--foundation-surface); color: inherit; font: inherit; font-size: 16px; font-weight: 400; line-height: 1.5; }
