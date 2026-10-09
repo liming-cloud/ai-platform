@@ -155,7 +155,15 @@ async function run(configuration) {
             const paint = await page.evaluate(() => {
               const brand = getComputedStyle(document.querySelector(".product-brand div > span"));
               const mark = getComputedStyle(document.querySelector(".product-brand > span"));
+              const pageSize = document.querySelector(".member-pagination select");
               return { weight: brand.fontWeight, lineHeight: brand.lineHeight, markColor: mark.color,
+                pageSize: pageSize ? { fontSize: getComputedStyle(pageSize).fontSize, lineHeight: getComputedStyle(pageSize).lineHeight,
+                  height: pageSize.getBoundingClientRect().height } : null,
+                directoryButtons: [...document.querySelectorAll(".page-heading:has(+ .member-directory-workspace) > button, .member-pagination button")].map(button => {
+                  const style = getComputedStyle(button);
+                  return { header: button.closest(".page-heading") !== null, disabled: button.disabled, height: button.getBoundingClientRect().height,
+                    color: style.color, background: style.backgroundColor, border: style.borderTopColor, opacity: style.opacity };
+                }),
                 buttons: [...document.querySelectorAll(".member-create-form > .member-form-actions button, .member-account-workspace .member-form-actions button")].map(button => {
                   const style = getComputedStyle(button);
                   return { height: button.getBoundingClientRect().height, accountReturn: button.closest(".member-account-workspace") !== null,
@@ -164,6 +172,17 @@ async function run(configuration) {
             });
             requireCondition(paint.weight === "700" && paint.lineHeight === "19.2px" && paint.markColor === "rgb(255, 255, 255)",
               "共享品牌绘制与原项目不一致");
+            for (const button of paint.directoryButtons) {
+              const expected = enlarged ? button.header ? 54 : 50 : width <= 680 ? 44 : button.header ? 36 : 32;
+              requireCondition(Math.abs(button.height - expected) < 0.01, "成员目录按钮实际高度与原项目不一致");
+              if (button.disabled) requireCondition(button.color === "rgb(94, 93, 89)" && button.background === "rgb(245, 244, 237)"
+                && button.border === "rgb(232, 230, 220)" && button.opacity === "0.76", "成员目录禁用分页绘制与原项目不一致");
+            }
+            // Chrome 原生 select 的绘制行高返回 normal；盒高仍按原项目单独精确核对。
+            if (paint.pageSize) requireCondition(paint.pageSize.fontSize === (enlarged ? "32px" : "16px")
+              && paint.pageSize.lineHeight === "normal"
+              && Math.abs(paint.pageSize.height - (enlarged ? 56 : width <= 680 ? 44 : 32)) < 0.01,
+            "成员目录原生分页选择框与原项目不一致");
             for (const button of paint.buttons) {
               requireCondition(Math.abs(button.height - (enlarged ? 54 : width <= 680 ? 44 : 36)) < 0.01,
                 "成员创建或账号按钮实际高度与原项目不一致");

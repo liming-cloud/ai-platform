@@ -28,7 +28,8 @@
 .member-form-actions, .member-page-actions, .member-row-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 /* Fluent 默认 5px 内边距在两倍文字下少 2px；保留原型的内边距和不被压缩舍入的行高。 */
 .member-create-form > .member-form-actions > .fui-Button,
-.member-account-workspace .member-form-actions > .fui-Button { padding: 6px 12px; line-height: calc(1em * 20 / 14); }
+.member-account-workspace .member-form-actions > .fui-Button,
+.page-heading:has(+ .member-directory-workspace) > .fui-Button { padding: 6px 12px; line-height: calc(1em * 20 / 14); }
 .member-directory-workspace { gap: 0; }
 .member-directory-toolbar { display: flex; flex-wrap: wrap; align-items: end; gap: 12px; }
 .member-directory-toolbar > :first-child { width: min(100%, 22rem); }
@@ -51,10 +52,12 @@
 .member-pagination-summary { margin-right: auto; white-space: nowrap; }
 .member-pagination-size, .member-pagination-jump, .member-pagination-jump label, .member-pagination-pages { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .member-pagination-size, .member-pagination-jump label { flex-wrap: nowrap; white-space: nowrap; }
-.member-pagination select { width: 5.5rem; min-height: var(--foundation-control-height-compact); padding-inline: 12px; border: 1px solid var(--foundation-border-strong); border-radius: var(--foundation-control-radius); background: var(--foundation-surface); color: inherit; font: inherit; }
+.member-pagination select { width: 5.5rem; height: var(--foundation-control-height-compact); min-height: max(var(--foundation-control-height-compact), calc(1lh + 8px)); padding: 0 12px; border: 1px solid var(--foundation-border-strong); border-radius: var(--foundation-control-radius); background: var(--foundation-surface); color: inherit; font: inherit; font-size: 16px; line-height: 1.5; }
 .member-pagination-jump .fui-Input { width: 4rem; }
 .member-pagination .fui-Button, .member-pagination .fui-Input { min-height: var(--foundation-control-height-compact); }
-.member-pagination .fui-Button { padding: 4px 8px; }
+.member-pagination .fui-Button { padding: 4px 8px; line-height: calc(1em * 20 / 14); }
+/* 禁用语义仍由原按钮控制；绘制使用原型的暖色令牌及透明度。 */
+.member-pagination .fui-Button:disabled { color: var(--foundation-muted-text); border-color: var(--foundation-border); background: var(--foundation-subtle-surface); opacity: .76; }
 .member-pagination .fui-Button[aria-current="page"] { min-width: var(--foundation-control-height-compact); padding-inline: 4px; }
 .member-pagination-error { width: 100%; color: var(--foundation-danger); }
 .member-object-navigation { display: flex; flex-wrap: wrap; gap: 8px; margin-block: 24px; border-bottom: 1px solid var(--foundation-border); }
