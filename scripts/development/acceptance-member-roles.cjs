@@ -50,7 +50,7 @@ async function roleView(page, baseUrl) {
     "固定角色页泄漏内部代码或暗示角色可编辑");
 }
 
-async function roleLayout(page, width) {
+async function roleLayout(page, width, enlarged) {
   await verifyLayout(page);
   await page.evaluate(() => scrollTo(0, 0));
   const facts = await page.evaluate(() => {
@@ -68,6 +68,7 @@ async function roleLayout(page, width) {
       attentionFont: style(".tenant-role-page__attention h2").fontFamily,
       labelColor: style(".tenant-role-page__fact-list dt").color,
       actionWeight: getComputedStyle(action).fontWeight,
+      actionHeight: action.getBoundingClientRect().height,
       fullWidthAction: Math.abs(action.getBoundingClientRect().width - header.width) <= 1,
       overflow: document.documentElement.scrollWidth - innerWidth,
       shellCollision: overlaps(scope, account) || nav.some(rect => overlaps(rect, scope)),
@@ -80,6 +81,8 @@ async function roleLayout(page, width) {
   "固定角色页字体、间距或移动端操作与原型不符");
   requireCondition(facts.overflow <= 1 && !facts.shellCollision && facts.navContained && facts.reducedMotion,
     "固定角色页或共享导航裁切、遮挡，或 reduced-motion 未生效");
+  requireCondition(Math.abs(facts.actionHeight - (enlarged ? 54 : width <= 680 ? 44 : 36)) < 0.01,
+    "固定角色主要操作实际高度与原型不符");
 }
 
 async function run(configuration) {
@@ -164,7 +167,7 @@ async function run(configuration) {
       await scenario(`${width}px ${enlarged ? "200%" : "100%"}文字、键盘与reduced-motion`, async page => {
         await page.setViewportSize({ width, height: 960 });
         await roleView(page, configuration.baseUrl);
-        await withTextScale(page, enlarged, () => roleLayout(page, width), "body");
+        await withTextScale(page, enlarged, () => roleLayout(page, width, enlarged), "body");
       });
     }
     for (const [identity, expected] of [["member", 403], ["platform", 401]]) {

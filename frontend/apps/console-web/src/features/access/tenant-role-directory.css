@@ -1,5 +1,6 @@
 .tenant-role-page { padding-top: 24px; }
-.page-heading:has(+ .tenant-role-page) > .fui-Button { padding: 6px 12px; gap: 8px; font-weight: 620; }
+/* 保留精确行高比例，避免构建压缩使两倍文字按钮及下方内容产生亚像素偏移。 */
+.page-heading:has(+ .tenant-role-page) > .fui-Button { padding: 6px 12px; gap: 8px; font-weight: 620; line-height: calc(1em * 20 / 14); }
 
 .tenant-role-page__workspace {
   display: grid;
