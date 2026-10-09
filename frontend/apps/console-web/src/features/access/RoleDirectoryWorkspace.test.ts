@@ -37,4 +37,26 @@ describe("固定角色目录", () => {
     expect(roles.every((role) => role.capabilities.length > 0)).toBe(true);
     expect(roles.flatMap((role) => role.capabilities).join(" ")).not.toContain(":");
   });
+
+  it("租户页只解释原型的两个固定模板，不提供角色分配或修改", () => {
+    const markup = renderToStaticMarkup(createElement(RoleDirectoryWorkspace, {
+      scope: "TENANT",
+      onManageMembers: () => undefined,
+    }));
+
+    expect(markup).toMatch(/<h1\b[^>]*>租户固定角色<\/h1>/);
+    expect(markup).toContain("租户访问与知识");
+    expect(markup).toContain("2 个固定模板");
+    expect(markup).toContain("管理本组织知识、模型、助手与普通成员");
+    expect(markup).toContain("仅使用已授权助手、本人历史与引用");
+    expect(markup).toContain("不属于当前产品契约");
+    expect(markup).toContain("服务端能力投影");
+    expect(markup).toContain("管理员与普通成员职责固定；配置成员功能不会改变角色。");
+    expect(markup).toContain(">管理成员</button>");
+    expect(markup).not.toContain("角色分配");
+    expect(markup).not.toContain("角色绑定管理");
+    expect(markup).not.toContain("查看详情");
+    expect(markup).not.toContain("TENANT_ADMINISTRATOR");
+    expect(markup).not.toContain("TENANT_USER");
+  });
 });

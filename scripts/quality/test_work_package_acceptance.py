@@ -1,4 +1,4 @@
-"""WP-0017 登录切片验收入口必须明确范围并在缺失依赖时失败关闭。"""
+"""工作包验收入口必须明确独立范围，并在缺失依赖时失败关闭。"""
 
 from pathlib import Path
 import os
@@ -24,13 +24,29 @@ class WorkPackageAcceptanceTest(unittest.TestCase):
         self.assertIn("必须提供 0600 验收凭据文件", result.stderr)
 
     def test_member_account_rejects_whole_package_and_tenant_setup(self):
-        for slice_name in ("", "all", "assistants"):
+        for slice_name in ("", "all"):
             result = self.invoke("WP-0018", slice_name)
             self.assertNotEqual(result.returncode, 0)
             self.assertIn("必须明确 SLICE=account", result.stderr)
         result = self.invoke("WP-0018", "account", SETUP="tenant")
         self.assertNotEqual(result.returncode, 0)
-        self.assertIn("成员账户切片不创建或重置租户", result.stderr)
+        self.assertIn("不接受外部 SETUP", result.stderr)
+
+    def test_member_assistants_is_named_slice_and_missing_credentials_fail_closed(self):
+        result = self.invoke("WP-0018", "assistants")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("必须提供 0600 验收凭据文件", result.stderr)
+
+    def test_tenant_roles_is_named_read_only_slice(self):
+        result = self.invoke("WP-0018", "roles")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("必须提供 0600 验收凭据文件", result.stderr)
+
+    def test_tenant_roles_rejects_object_preparation(self):
+        result = self.invoke("WP-0018", "roles", SETUP="tenant",
+                             FOUNDATION_ACCEPTANCE_CREDENTIALS_FILE="/private/tmp/not-used.json")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("不接受外部 SETUP", result.stderr)
 
     def test_member_features_is_named_slice_and_missing_credentials_fail_closed(self):
         result = self.invoke("WP-0018", "features")
