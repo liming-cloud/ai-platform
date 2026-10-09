@@ -2,7 +2,7 @@
 
 > 由 make decisions-sync 生成；状态只编辑任务 README。
 
-产品前沿：WP-0018；当前执行：WP-0018；里程碑：M6。
+产品前沿：WP-0019；当前执行：WP-0019；里程碑：M6。
 
 | 任务 | 状态 | 负责人 | 恢复入口 |
 | --- | --- | --- | --- |
@@ -26,8 +26,8 @@
 | WP-0015 | done | 工程治理 | Git 历史：`project/work-packages/WP-0015.md` |
 | WP-0016 | done | 产品设计 | Git 历史：`project/work-packages/WP-0016.md` |
 | WP-0017 | done | 平台身份与租户开通 | [WP-0017](WP-0017/README.md) |
-| WP-0018 | active | 成员与访问授权 | [WP-0018](WP-0018/README.md) |
-| WP-0019 | pending | 模型供应与租户使用 | [WP-0019](backlog/WP-0019.md) |
+| WP-0018 | done | 成员与访问授权 | [WP-0018](WP-0018/README.md) |
+| WP-0019 | active | 模型供应与租户使用 | [WP-0019](WP-0019/README.md) |
 | WP-0020 | pending | 知识数据 | [WP-0020](backlog/WP-0020.md) |
 | WP-0021 | pending | 评测与可信执行 | [WP-0021](backlog/WP-0021.md) |
 | WP-0022 | pending | 检索与索引 | [WP-0022](backlog/WP-0022.md) |

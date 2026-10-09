@@ -6606,7 +6606,7 @@
       "sha256": "e5a85e8da15477395bb994c547ac9e5d52270a9787fe06c13c3f92a545f3c794",
       "reason": "待办范围与状态保持，只把有效验收引用迁到现行路径；原计划仍由 Git 恢复",
       "references": [],
-      "destination": "docs/tasks/backlog/WP-0019.md"
+      "destination": "docs/tasks/WP-0019/README.md"
     },
     {
       "path": "project/work-packages/WP-0020.md",
