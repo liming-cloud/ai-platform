@@ -165,3 +165,7 @@ CodeGraph 已执行 `TenantMemberEstablishmentApplicationService`、`DefaultQuer
 本轮只读反例已确认：把本包虚假标为完成会被四项未验证操作拒绝；提前激活 WP-0019 会被顺排拒绝；直接写入拟议责任也被现行矩阵拒绝。非秘密机器结果位于 `/private/tmp/wp0018-dependency-review-oo6mtytm/dependency-facts.json`，仅证明依赖调查和覆盖守恒。七个 Compose 服务健康，实际前端仍为 `1359a3bac9c00b7f23709387bfbdcd8f75d22ac2`、后端仍为 `46fb0dd5f0149e7bac155b87a8aa9a9f21d16914`。本轮 OpenDesign Cloud MCP 返回 Transport closed，但原项目 HTTP 五项关键来源均 200 且逐字节匹配固定 `35571b0f823390bd6b80f5771e512b11be9403a4`；没有新的浏览器或视觉验收结论。当前决定未获明确选择前，STATE、责任矩阵和 WP-0019 状态均不变。
 
 提案验证：`make project-status` 保持 M6／WP-0018；`make project-verify` 77 项、30 个任务及历史对象校验通过；`make architecture-guard` 50 项通过，后端边界违规 0；`make resume-context` 输出 11,725 字节，低于 12 KiB。固定差异仅三份任务文档，未改业务源码、fixture、原型、部署或机器归属。Local Codex 当前提供的个人工程助手技能 wayfinder、codebase-design、code-review 已显式加载，使用 HITL 与证据审计约束；内联任务未产生 Runtime／StageRunResult，阶段结果校验不适用。CodeGraph 的 workspaceJourney／renderScreen 结果用于排除旧运营摘要替代方案；未修改共享代码，不需执行重构影响分析。以上结论只接受本轮调查与提案可复核性，不接受提案中的归属变更或产品完成。
+
+## 2026-10-09 责任移交已接受
+
+用户在收到上述固定提案后明确答复“同意并推进任务”，接受依据登记于 [ADR-0094](../../architecture/decisions/ADR-0094-member-scope-handoff-and-closure.md)。当前矩阵按精确表移交四项，仍保持 contracted，生产契约、原型、已验证提交和证据不变。上节保留提案当时事实；接受与移交不等于整包已验收。当前执行前沿为调整范围的整包只读集成、实际部署／原型对照、精确只读事实和十五项原证据差异复核，全部完成前不激活 WP-0019。

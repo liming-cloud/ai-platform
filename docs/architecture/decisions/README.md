@@ -99,3 +99,4 @@
 | ADR-0091 | 已接受。2026-10-01。依据用户明确选择“保持 M6 范围，先完成登录入口切换”，以及 ADR-0048、ADR-0067、ADR-0078、ADR-0079。用户同时要求保持已验收 OpenDesign，不修改原型；此前目录修订的授权不能扩展至本切片 | 三类登录入口导航 | `docs/architecture/decisions/ADR-0091-three-login-entry-navigation.md` |
 | ADR-0092 | 已接受 | M6 平台概览后移与成员授权前沿 | `docs/architecture/decisions/ADR-0092-m6-platform-overview-late-delivery.md` |
 | ADR-0093 | 已接受 | 普通成员账户与有效访问生产契约 | `docs/architecture/decisions/ADR-0093-member-account-and-effective-access.md` |
+| ADR-0094 | 已接受 | 成员工作包后置依赖移交与整包收口 | `docs/architecture/decisions/ADR-0094-member-scope-handoff-and-closure.md` |

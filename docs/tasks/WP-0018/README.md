@@ -7,7 +7,7 @@
 | 负责人 | 成员与访问授权 |
 | 分支 | main |
 | 里程碑 | M6 |
-| ADR | ADR-0012, ADR-0022, ADR-0067, ADR-0073, ADR-0075, ADR-0078, ADR-0079, ADR-0082, ADR-0083, ADR-0085, ADR-0092, ADR-0093 |
+| ADR | ADR-0012, ADR-0022, ADR-0067, ADR-0073, ADR-0075, ADR-0079, ADR-0082, ADR-0083, ADR-0085, ADR-0092, ADR-0093, ADR-0094 |
 | 证据 | docs/tasks/WP-0018/production-contract-review.md, docs/tasks/WP-0018/evidence/WP-0018-account-production-verification-20261008.md, docs/tasks/WP-0018/evidence/WP-0018-account-prototype-parity-closure-20261008.md, docs/tasks/WP-0018/evidence/WP-0018-features-production-parity-closure-20261008.md, docs/tasks/WP-0018/evidence/WP-0018-authorization-production-parity-closure-20261008.md, docs/tasks/WP-0018/evidence/WP-0018-fixed-roles-production-parity-closure-20261009.md |
 | 提交 | pending |
 | 输入提交 | 2cca286848e174f5f7d3561712a9b1b86b382914 |
@@ -16,7 +16,7 @@
 
 ## 问题
 
-普通成员账户、独立功能及助手／策略统一授权三个切片和固定角色独立子片已闭合；完整租户工作区、跨包正向旅程和整包验收尚未完成，后置依赖与顺排的冲突待决定。原 WP-0018 检索目标按 ADR-0079 转入 WP-0022。
+普通成员账户、独立功能、助手／策略统一授权和固定角色独立子片已闭合。后置依赖按已接受 ADR-0094 移交，调整范围的整包集成复验尚未完成；不能仅凭责任移交关闭工作包。原 WP-0018 检索目标按 ADR-0079 转入 WP-0022。
 
 ## 本工作包唯一结果
 
@@ -24,7 +24,7 @@
 
 ## 范围内
 
-原型入口：tenant-overview、tenant-members、tenant-member-create、tenant-member-account、tenant-member-features、tenant-member-assistants、tenant-roles、access-policies、access-policy-detail。
+八个主要原型入口：tenant-members、tenant-member-create、tenant-member-account、tenant-member-features、tenant-member-assistants、tenant-roles、access-policies、access-policy-detail；本包负责十五项生产操作。
 
 - 依赖 WP-0017 完成；身份与普通成员资格原子创建，登录名全局唯一。
 - 重置仅允许目标身份唯一归属于本租户普通成员，不影响其他组织；停用仅撤销当前租户成员资格。
@@ -34,7 +34,7 @@
 
 ## 范围外
 
-邮件邀请、自助注册、自定义角色、同级管理员治理、跨租户重置、平台账户治理和提前实现问答。
+邮件邀请、自助注册、自定义角色、同级管理员治理、跨租户重置、平台账户治理和提前实现问答。ADR-0094 将 tenant-overview 页面及三项操作移交 WP-0027，将 tenant-members:7 的有权新会话正例移交 WP-0024；四项仍 contracted，M6 全部目标保留。成员页继续汇总跨包操作，保持 in-progress。
 
 ## 公共接口与数据
 
@@ -51,7 +51,7 @@
 - 原子开户、重复账号、唯一归属重置、停用恢复、跨租户和管理员保护通过。
 - 功能交集、助手/策略同一事实、并发覆盖、撤权及直接访问反例通过。
 - 真实验收会员存在且无管理能力；无助手负例通过，后续正向旅程明确联验责任。
-- 9 页真实保存、取消刷新、标准分页、千成员/二百助手、三尺寸和键盘通过。
+- 八个主要页面与十五项责任操作的真实保存、取消刷新、标准分页、千成员／二百助手、三尺寸和键盘证据通过；整包只读集成与各切片真实写入／规模证据分别核对，不冒称重新执行。
 
 ## 验证
 
@@ -62,6 +62,8 @@
     make frontend-test
 
 前三片正式入口均为 `make acceptance-work-package WP=WP-0018`，分别明确 `SLICE=account`、`SLICE=features`、`SLICE=assistants`；固定源码、不同运行版本、对象准备边界和完整结果见下列证据。文档或角色只读复验不重复运行会创建对象的切片。凭据和输出仅在独占临时目录，不覆盖旧文件、不调整历史对象。
+
+整包入口 `make acceptance-work-package WP=WP-0018` 留空 SLICE，执行 ADR-0094 的只读集成复验：复用三类既有身份与安全输出，不接受 SETUP；任何业务写请求失败。该入口与实际运行、原型对照、只读数据库前后事实及十五项历史操作的完整证据／后续差异审计共同构成收口门禁，单个绿灯不代替整包。
 
 固定角色独立子片入口为 `make acceptance-work-package WP=WP-0018 SLICE=roles`，只复用现有身份读取和导航，禁止 SETUP，不创建对象。最终源码／前端 `1359a3bac9c00b7f23709387bfbdcd8f75d22ac2`、后端仍为 `46fb0dd5f0149e7bac155b87a8aa9a9f21d16914`；十三组角色、十五组登录、精确只读事实及本片原型对照通过。完整工作区及第四片其余依赖未完成。
 
@@ -85,10 +87,8 @@
 
 前置 WP-0017 已按 ADR-0092 的调整范围完成，依据[完整范围收口](../WP-0017/evidence/WP-0017-adjusted-scope-closure-20261006.md)，固定验证提交为 `2cca286848e174f5f7d3561712a9b1b86b382914`。本包前三片的源码、部署、生产功能、只读事实与各自原型门禁均已通过；整体状态仍为进行中。
 
-已按 ADR-0093 接受[生产契约](production-contract-review.md)。账户、独立功能、助手／策略统一授权及固定角色独立子片已交付；第 4 片完整租户工作区仍未完成。9 页／19 项中十五项 verified、四项 contracted；三页进入与独立交错保存已验证，整包和跨包正向旅程不提前标验证。
+已按 ADR-0093 接受生产契约、按 [ADR-0094](../../architecture/decisions/ADR-0094-member-scope-handoff-and-closure.md) 接受四项后置依赖移交。账户、独立功能、助手／策略和固定角色已交付；调整后八个主要入口／十五项责任操作已有各片 verified 证据，成员页因 WP-0024 跨包操作仍为 in-progress。未完成操作不因归属改变而通过。
 
-下一动作：接受[剩余依赖调整提案](production-contract-review.md#2026-10-09-剩余依赖的调整提案待选择)的归属选择，再实施对应门禁。建议概览三项移交既有 WP-0027、新会话正例移交 WP-0024，保留全部原型与 M6 验收；当前决定未接受，十九项归属及四项 contracted 不变，不激活 WP-0019。整包入口尚未实现，不能只凭移交或十五项 verified 收口；仍须完整集成复验与提交绑定。固定角色子片已闭合，当前没有审批容量阻塞。
+下一动作：完成整包只读入口及门禁红绿测试，核对十五项原生产证据和后续源码差异，执行当前源码回归、真实部署三角色集成、精确只读事实与固定原项目对照。全部通过且绑定提交后才关闭本包并激活 WP-0019 的设计；本轮不开始模型业务实现。
 
-顺序和本包生产决定均已接受，不重新索取已冻结三角色／原型边界的确认。租户概览、历史／引用的后续依赖明确登记在契约，未经决定不转移责任、伪造完成或绕过顺排门禁。普通成员验收数据和部署只用于本片实际已实现的行为。
-
-未经新的归属决定，WP-0018 四片及整包门禁全部闭合后才进入 WP-0019；已发布助手与问答正向旅程分别在 WP-0023/WP-0024 联验，WP-0027 当前仍只承接平台概览，WP-0026 最终复验。M6 未完成。
+完整工作区交由 WP-0027，授权新会话正例交由 WP-0024，二者原型与 M6 生产责任均保留。平台概览 M6/M8 事实及目标边界仍待专属决定；WP-0026 负责最终复验，M6 仍须 WP-0014 人工接受。当前没有审批容量阻塞。

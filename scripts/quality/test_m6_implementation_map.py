@@ -20,7 +20,7 @@ LEDGER_PATH = "docs/prototypes/wp-0016/ACTION-LEDGER.json"
 # 页面责任包与操作责任包分开校验，防止跨包任务被入口页面提前结项。
 PACKAGE_SCREENS = {
     "WP-0017": "console-login tenant-login platform-tenants platform-tenant-create platform-tenant-detail platform-tenant-admins platform-tenant-quotas platform-tenant-features platform-tenant-security platform-accounts platform-roles".split(),
-    "WP-0018": "tenant-overview tenant-members tenant-member-create tenant-member-account tenant-member-features tenant-member-assistants tenant-roles access-policies access-policy-detail".split(),
+    "WP-0018": "tenant-members tenant-member-create tenant-member-account tenant-member-features tenant-member-assistants tenant-roles access-policies access-policy-detail".split(),
     "WP-0019": "platform-model-connections platform-model-connection-detail platform-model-deployments platform-model-deployment-detail model-providers model-provider-detail model-configurations model-configuration-detail model-deployments model-deployment-detail routing-policies".split(),
     "WP-0020": "knowledge-directory knowledge-overview knowledge-sources source-add source-detail processing-quality sync-result dataset-schema object-storage-scope quick-publication".split(),
     "WP-0021": "evaluation-datasets evaluation-dataset-detail evaluation-run-create evaluation-run-detail evaluation-comparison evaluation-failure-analysis".split(),
@@ -28,7 +28,7 @@ PACKAGE_SCREENS = {
     "WP-0023": "assistants-directory assistant-create assistant-overview assistant-draft assistant-test assistant-evaluation assistant-release".split(),
     "WP-0024": "login assistants conversation".split(),
     "WP-0025": "governance-query usage-quotas audit-records audit-record-detail query-diagnostic".split(),
-    "WP-0027": ["platform-overview"],
+    "WP-0027": ["platform-overview", "tenant-overview"],
 }
 PAGE_OWNERS = {
     screen: package for package, screens in PACKAGE_SCREENS.items() for screen in screens
@@ -40,6 +40,10 @@ CROSS_PACKAGE_OPERATIONS = {
     "source-detail:5": ("WP-0022", ["WP-0020"]),
     "sync-result:0": ("WP-0022", ["WP-0020"]),
     "quick-publication:0": ("WP-0023", ["WP-0020", "WP-0022"]),
+    "tenant-overview:0": ("WP-0027", ["WP-0018", "WP-0020", "WP-0022", "WP-0023"]),
+    "tenant-overview:1": ("WP-0027", ["WP-0018", "WP-0020", "WP-0022", "WP-0023"]),
+    "tenant-overview:2": ("WP-0027", ["WP-0018", "WP-0020", "WP-0022", "WP-0023"]),
+    "tenant-members:7": ("WP-0024", ["WP-0018", "WP-0023"]),
 }
 
 
@@ -192,6 +196,8 @@ def validate_implementation_map(mapping, inventory, ledger, *, accepted_adrs=(),
         require(page.get("phase") == phase, f"{screen} 原型阶段不一致")
         require(page.get("classification") == page_class, f"{screen} 页面范围分类错误")
         require(page.get("workPackage") == PAGE_OWNERS.get(screen), f"{screen} 页面责任包错误")
+        if screen == "tenant-overview":
+            require("ADR-0094" in accepted_adrs, f"{screen} 责任移交缺少已接受的 ADR-0094")
         controls = page.get("operations", [])
         production_controls = [operation for operation in controls if operation.get("classification") == "production"]
         page_status = "excluded"
@@ -229,6 +235,8 @@ def validate_implementation_map(mapping, inventory, ledger, *, accepted_adrs=(),
                 expected_owner, dependencies = None, []
             require(operation.get("workPackage") == expected_owner, f"{expected_id} 操作责任包错误")
             require(operation.get("dependsOn") == dependencies, f"{expected_id} 跨包交接依赖错误")
+            if expected_id == "tenant-members:7":
+                require("ADR-0094" in accepted_adrs, f"{expected_id} 责任移交缺少已接受的 ADR-0094")
             validate_progress(operation, classification, dependencies)
     require(Counter(actual_operation_ids) == Counter(expected_operation_ids), "操作稳定标识存在遗漏或重复")
     return errors
@@ -286,6 +294,48 @@ class M6ImplementationMapTest(unittest.TestCase):
                          [(op["id"], op["workPackage"]) for op in page["operations"]])
         self.assertNotEqual("excluded", page["status"])
 
+    def test_member_handoff_preserves_operations_and_adjusts_only_responsibility(self):
+        pages = [page for page in self.mapping["pages"] if page["workPackage"] == "WP-0018"]
+        operations = [op for page in self.mapping["pages"] for op in page["operations"]
+                      if op["workPackage"] == "WP-0018" and op["classification"] == "production"]
+        self.assertEqual(8, len(pages))
+        self.assertEqual(15, len(operations))
+        self.assertEqual({"verified"}, {op["status"] for op in operations})
+        overview = next(page for page in self.mapping["pages"] if page["screen"] == "tenant-overview")
+        self.assertEqual("WP-0027", overview["workPackage"])
+        for op in overview["operations"]:
+            self.assertEqual(("WP-0027", ["WP-0018", "WP-0020", "WP-0022", "WP-0023"]),
+                             (op["workPackage"], op["dependsOn"]))
+        members = next(page for page in self.mapping["pages"] if page["screen"] == "tenant-members")
+        journey = next(op for op in members["operations"] if op["id"] == "tenant-members:7")
+        self.assertEqual(("WP-0024", ["WP-0018", "WP-0023"]),
+                         (journey["workPackage"], journey["dependsOn"]))
+        self.assertEqual("verified" if journey["status"] == "verified" else "in-progress", members["status"])
+
+    def test_member_handoff_requires_accepted_decision(self):
+        facts = copy.deepcopy(self.facts)
+        facts["accepted_adrs"].discard("ADR-0094")
+        errors = validate_implementation_map(self.mapping, self.inventory, self.ledger, **facts)
+        self.assertTrue(any("责任移交缺少已接受的 ADR-0094" in error for error in errors), errors)
+
+    def test_member_package_can_close_without_finishing_transferred_journey(self):
+        facts = copy.deepcopy(self.facts)
+        facts["completed_packages"].add("WP-0018")
+        self.assertEqual([], validate_implementation_map(self.mapping, self.inventory, self.ledger, **facts))
+
+    def test_query_package_cannot_close_without_transferred_member_journey(self):
+        mapping = copy.deepcopy(self.mapping)
+        page = next(page for page in mapping["pages"] if page["screen"] == "tenant-members")
+        operation = next(op for op in page["operations"] if op["id"] == "tenant-members:7")
+        operation["status"] = "contracted"
+        operation.pop("verification", None)
+        operation.pop("verifiedCommit", None)
+        page["status"] = "in-progress"
+        facts = copy.deepcopy(self.facts)
+        facts["completed_packages"].add("WP-0024")
+        errors = validate_implementation_map(mapping, self.inventory, self.ledger, **facts)
+        self.assertIn("tenant-members:7 已完成责任包仍有未验证生产操作", errors)
+
     def test_completed_package_cannot_hide_unverified_production(self):
         mapping = copy.deepcopy(self.mapping)
         page = next(page for page in mapping["pages"] if page["screen"] == "platform-overview")
@@ -318,7 +368,13 @@ class M6ImplementationMapTest(unittest.TestCase):
             def assign_to_source_page(mapping):
                 page = next(page for page in mapping["pages"] if page["screen"] == target.split(":")[0])
                 next(op for op in page["operations"] if op["id"] == target)["workPackage"] = page["workPackage"]
-            self.assert_invalid(assign_to_source_page, "操作责任包错误")
+            if CROSS_PACKAGE_OPERATIONS[target][0] != PAGE_OWNERS[target.split(":")[0]]:
+                self.assert_invalid(assign_to_source_page, "操作责任包错误")
+            # 概览页面与操作一起移交，仍须保留全部后置依赖，不能借同包归属清空。
+            def remove_dependencies(mapping):
+                next(op for page in mapping["pages"] for op in page["operations"]
+                     if op["id"] == target)["dependsOn"] = []
+            self.assert_invalid(remove_dependencies, "跨包交接依赖错误")
 
     def test_prototype_success_cannot_become_production_evidence(self):
         self.assert_invalid(lambda mapping: mapping["pages"][0]["operations"][0].update(status="completed"), "编造生产完成事实")

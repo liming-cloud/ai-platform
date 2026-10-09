@@ -3,6 +3,7 @@
 from pathlib import Path
 import os
 import subprocess
+import tempfile
 import unittest
 
 
@@ -23,12 +24,32 @@ class WorkPackageAcceptanceTest(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("必须提供 0600 验收凭据文件", result.stderr)
 
-    def test_member_account_rejects_whole_package_and_tenant_setup(self):
-        for slice_name in ("", "all"):
-            result = self.invoke("WP-0018", slice_name)
-            self.assertNotEqual(result.returncode, 0)
-            self.assertIn("必须明确 SLICE=account", result.stderr)
+    def test_member_whole_package_requires_credentials(self):
+        result = self.invoke("WP-0018")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("必须提供 0600 验收凭据文件", result.stderr)
+
+    def test_member_whole_package_dispatches_only_read_only_integration(self):
+        with tempfile.TemporaryDirectory() as directory:
+            node = Path(directory) / "node"
+            node.write_text('#!/bin/sh\nprintf "%s\\n" "$1"\n')
+            node.chmod(0o700)
+            result = self.invoke("WP-0018", PATH=f"{directory}:{os.environ['PATH']}",
+                                 FOUNDATION_ACCEPTANCE_CREDENTIALS_FILE="/private/tmp/not-used.json")
+        self.assertEqual(0, result.returncode, result.stderr)
+        self.assertEqual(str(ROOT / "scripts/development/acceptance-member-package.cjs"), result.stdout.strip())
+
+    def test_member_account_rejects_unknown_slice_and_tenant_setup(self):
+        result = self.invoke("WP-0018", "all")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("不支持的 WP-0018 验收范围", result.stderr)
         result = self.invoke("WP-0018", "account", SETUP="tenant")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("不接受外部 SETUP", result.stderr)
+
+    def test_member_whole_package_rejects_object_preparation(self):
+        result = self.invoke("WP-0018", SETUP="tenant",
+                             FOUNDATION_ACCEPTANCE_CREDENTIALS_FILE="/private/tmp/not-used.json")
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("不接受外部 SETUP", result.stderr)
 

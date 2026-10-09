@@ -1205,7 +1205,7 @@
       "ledgerPointer": "/pages/18",
       "phase": "M6",
       "classification": "production",
-      "workPackage": "WP-0018",
+      "workPackage": "WP-0027",
       "status": "in-progress",
       "operations": [
         {
@@ -1214,8 +1214,13 @@
           "label": "进入阻断项",
           "classification": "production",
           "reason": "m6-approved-prototype",
-          "workPackage": "WP-0018",
-          "dependsOn": [],
+          "workPackage": "WP-0027",
+          "dependsOn": [
+            "WP-0018",
+            "WP-0020",
+            "WP-0022",
+            "WP-0023"
+          ],
           "status": "contracted",
           "contract": {
             "adr": "ADR-0093",
@@ -1237,8 +1242,13 @@
           "label": "管理端账户菜单与退出",
           "classification": "production",
           "reason": "m6-approved-prototype",
-          "workPackage": "WP-0018",
-          "dependsOn": [],
+          "workPackage": "WP-0027",
+          "dependsOn": [
+            "WP-0018",
+            "WP-0020",
+            "WP-0022",
+            "WP-0023"
+          ],
           "status": "contracted",
           "contract": {
             "adr": "ADR-0093",
@@ -1260,8 +1270,13 @@
           "label": "新组织登录与自己的空工作区",
           "classification": "production",
           "reason": "m6-approved-prototype",
-          "workPackage": "WP-0018",
-          "dependsOn": [],
+          "workPackage": "WP-0027",
+          "dependsOn": [
+            "WP-0018",
+            "WP-0020",
+            "WP-0022",
+            "WP-0023"
+          ],
           "status": "contracted",
           "contract": {
             "adr": "ADR-0093",
@@ -1495,8 +1510,11 @@
           "label": "关闭本人历史后继续新会话",
           "classification": "production",
           "reason": "m6-approved-prototype",
-          "workPackage": "WP-0018",
-          "dependsOn": [],
+          "workPackage": "WP-0024",
+          "dependsOn": [
+            "WP-0018",
+            "WP-0023"
+          ],
           "status": "contracted",
           "contract": {
             "adr": "ADR-0093",

@@ -34,8 +34,8 @@
 | WP-0023 | pending | 助手交付 | [WP-0023](backlog/WP-0023.md) |
 | WP-0024 | pending | 可信问答 | [WP-0024](backlog/WP-0024.md) |
 | WP-0025 | pending | 评测运营与审计 | [WP-0025](backlog/WP-0025.md) |
-| WP-0027 | pending | 平台治理概览 | [WP-0027](backlog/WP-0027.md) |
+| WP-0027 | pending | 平台与租户治理概览 | [WP-0027](backlog/WP-0027.md) |
 | WP-0026 | pending | 质量与安全 | [WP-0026](backlog/WP-0026.md) |
 
-M6 按 ADR-0092 顺排，其他边界沿用 ADR-0079；WP-0027 平台概览在 WP-0025 后、WP-0026 全量复验前闭合，最终回 WP-0014 人工复评。治理任务不推进产品。
+M6 按 ADR-0092 顺排，ADR-0094 调整成员后置依赖归属，其余边界沿用 ADR-0079；WP-0027 平台与租户概览在 WP-0025 后、WP-0026 全量复验前闭合，最终回 WP-0014 人工复评。治理任务不推进产品。
 历史恢复：python3 -B scripts/project_governance.py history <原路径>。
