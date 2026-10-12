@@ -100,3 +100,4 @@
 | ADR-0092 | 已接受 | M6 平台概览后移与成员授权前沿 | `docs/architecture/decisions/ADR-0092-m6-platform-overview-late-delivery.md` |
 | ADR-0093 | 已接受 | 普通成员账户与有效访问生产契约 | `docs/architecture/decisions/ADR-0093-member-account-and-effective-access.md` |
 | ADR-0094 | 已接受 | 成员工作包后置依赖移交与整包收口 | `docs/architecture/decisions/ADR-0094-member-scope-handoff-and-closure.md` |
+| ADR-0095 | 已接受。用户于 2026-10-12 明确回复“人工接受，继续推进任务”，接受 WP-0019 生产契约提案 D1～D5。可评审提案提交为 `ac1859cc66078bb5c1d1a89dd16e342ef4ef3a71`，设计执行证据提交为 `531a4bd4f2680deda86ac66c4b875af87fe485c3`。此为设计接受，不是功能、工作包或 M6 验收通过 | 模型供应与租户使用生产契约 | `docs/architecture/decisions/ADR-0095-model-supply-and-tenant-use-contract.md` |
