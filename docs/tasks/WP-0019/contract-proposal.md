@@ -11,3 +11,5 @@
 依据 ADR-0095，创建平台连接新增必填的 `providerPresetId`、`providerPresetVersion`、`capability`；仅阿里云 Chat／Rerank 提交 `workspaceId`。预设目录由 `GET /api/v1/platform/model-supply/connections/presets` 返回。创建沿用现有幂等键、显式协议、区域、地址和专用凭据字段；后端拒绝未知／过期预设、能力／协议／区域／地址不一致以及非法空间标识，不能由浏览器选择推导授权。
 
 连接修订持久化预设来源和能力意图。公开摘要只返回预设 ID／版本／能力，不返回工作空间、运行地址或凭据。旧记录缺少来源时保留空值，不按主机名猜测厂商或能力，不补造已验证事实。RERANK 意图的真实执行能力仍由 S2 验证；本次不扩充运行能力枚举。
+
+摘要中的 `credentialConfigured`、`discoveryCredentialsConfigured` 仅表示用途槽存在及独立 AK/SK 成对齐备，`published` 仅表示当前连接修订持有发布事实。它们不证明厂商可用，不返回秘密引用、指纹或密文；对象与修订不一致时拒绝混合展示。详情发布查询显式携带 `expectedVersion`，发布写入仅提交该版本，操作者由正式平台会话确定。
