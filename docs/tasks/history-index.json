@@ -2585,9 +2585,9 @@
     },
     {
       "path": "docs/prototypes/wp-0016/prototype-state.js",
-      "action": "keep",
+      "action": "update",
       "sha256": "8abe82de03989c847794c0e8179dc07853970b55d728029f4a314ca4fec146f9",
-      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯",
+      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯；2026-10-12 用户同意按 ADR-0070 修订原项目方舟独立发现凭据区，当前候选待人工接受；原 Git 来源、摘要及历史验收保持不变",
       "references": [
         "docs/prototypes/wp-0016/artifacts/business-closure-red.tap",
         "docs/prototypes/wp-0016/artifacts/full-closure-verification-20260906.json",
@@ -2664,9 +2664,9 @@
     },
     {
       "path": "docs/prototypes/wp-0016/prototype.js",
-      "action": "keep",
+      "action": "update",
       "sha256": "915695859beb29cde8b34a050b85c20117a000c27cdccfad0df24923127349d9",
-      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯",
+      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯；2026-10-12 用户同意按 ADR-0070 修订原项目方舟独立发现凭据区，当前候选待人工接受；原 Git 来源、摘要及历史验收保持不变",
       "references": [
         "docs/prototypes/wp-0016/OPEN-DESIGN-FULL-PLATFORM-PROMPT.md",
         "docs/prototypes/wp-0016/artifacts/full-closure-verification-20260906.json",
@@ -2976,9 +2976,9 @@
     },
     {
       "path": "docs/prototypes/wp-0016/scripts/provider-presets.test.mjs",
-      "action": "keep",
+      "action": "update",
       "sha256": "7cf78e7b4a30ff535090410dfb1c0fb0547da359a45e42556c5e160ff77ddea9",
-      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯",
+      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯；2026-10-12 用户同意按 ADR-0070 修订原项目方舟独立发现凭据区，当前候选待人工接受；原 Git 来源、摘要及历史验收保持不变",
       "references": []
     },
     {

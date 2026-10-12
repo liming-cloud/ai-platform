@@ -1674,7 +1674,12 @@ function renderPlatformModelConnections(state, demoState) {
       <label class="field" data-provider-workspace hidden><span>业务空间 ID</span><input class="input" name="workspaceId" autocomplete="off" maxlength="63" placeholder="填写百炼控制台的业务空间 ID"></label>
       <div class="compact-summary"><span data-provider-region>自行配置</span><span data-provider-protocol>OpenAI 兼容协议</span></div>
       <label class="field"><span>运行地址</span><input class="input mono" name="runtimeBaseUrl" type="url" placeholder="https://models.example.invalid/v1" required><small data-provider-address-help>仅接受公网 HTTPS；不使用真实密钥测试原型。</small></label>
-      <label class="field"><span>一次性访问密钥</span><input class="input" name="accessKey" type="password" autocomplete="new-password" required minlength="8"><small>选择厂商或能力后重新填写，不保存到原型。</small></label>
+      <label class="field"><span>一次性访问密钥</span><input class="input" name="accessKey" type="password" autocomplete="new-password" required minlength="8"><small data-provider-inference-help>选择厂商或能力后重新填写，不保存到原型。</small></label>
+      <div data-provider-discovery-credentials hidden role="group" aria-labelledby="platform-discovery-credentials-title"><section class="section-block">
+        <h3 id="platform-discovery-credentials-title">独立模型发现认证</h3><p class="field-help">仅用于方舟控制面模型发现，与推理访问密钥分别管理；不使用真实凭据测试原型。</p>
+        <label class="field"><span>模型发现 Access Key ID</span><input class="input" name="discoveryAccessKeyId" type="password" autocomplete="new-password" maxlength="4096" disabled></label>
+        <label class="field"><span>模型发现 Secret Access Key</span><input class="input" name="discoverySecretAccessKey" type="password" autocomplete="new-password" maxlength="4096" disabled></label>
+      </section></div>
       <p id="platform-connection-feedback" class="form-feedback" role="alert"></p><div class="release-actions"><button class="button secondary" type="button" data-close-dialog="platform-connection-dialog">取消</button><button class="button primary" type="submit">保存连接草稿</button></div>
     </form></dialog>`,
   ].join("");
@@ -1695,10 +1700,12 @@ function renderPlatformModelConnectionDetail(state, demoState) {
   const operation = connection.status === "VERIFIED"
     ? '<button class="button primary" type="button" data-publish-platform-connection data-primary-action>发布连接</button>'
     : '<button class="button primary" type="button" data-probe-platform-connection data-primary-action>执行连接探测</button>';
+  const discoveryAuthentication = connection.discoveryProfile === "VOLCENGINE_ARK_CONTROL_PLANE"
+    ? `<div class="description-row"><dt>模型发现认证</dt><dd>${connection.discoveryCredentialsConfigured ? "独立 AK/SK 已配置（不回显）" : "待配置独立 AK/SK"}</dd></div>` : "";
   const content = [
     `<div class="inline-note${connection.status === "FAILED" ? " danger" : ""}">${escapeHtml(connection.probeResult || (connection.status === "PUBLISHED" ? "初始演示快照保留了最近探测时间；可重新探测查看详细结果。" : connection.status === "VERIFIED" ? "连接探测已通过，可以发布连接。" : "尚未执行本版本的连接探测。"))}</div>`,
     '<div class="split-detail"><div>',
-    `<section class="section-block" data-model-status="${escapeHtml(connection.status)}"><div class="section-heading"><div><span class="section-kicker">连接版本 v${escapeHtml(connection.version)}</span><h2>${escapeHtml(connection.name)}</h2></div>${statusTag(connection.status)}</div><dl class="description-list"><div class="description-row"><dt>供应商类型</dt><dd>${escapeHtml(connection.providerName || "自定义连接")}</dd></div><div class="description-row"><dt>运行协议</dt><dd>${escapeHtml(connection.runtimeProtocol === "OPENAI_COMPATIBLE" ? "OpenAI 兼容接口" : "独立重排序适配")}</dd></div><div class="description-row"><dt>能力范围</dt><dd>${escapeHtml(modelCapabilityLabel(connection.capability))}</dd></div><div class="description-row"><dt>访问认证</dt><dd>${escapeHtml(connection.authenticationState === "CONFIGURED" ? "已配置（不回显）" : "待配置")}</dd></div><div class="description-row"><dt>最近探测</dt><dd>${escapeHtml(connection.lastProbe || "尚未探测")}</dd></div></dl></section>`,
+    `<section class="section-block" data-model-status="${escapeHtml(connection.status)}"><div class="section-heading"><div><span class="section-kicker">连接版本 v${escapeHtml(connection.version)}</span><h2>${escapeHtml(connection.name)}</h2></div>${statusTag(connection.status)}</div><dl class="description-list"><div class="description-row"><dt>供应商类型</dt><dd>${escapeHtml(connection.providerName || "自定义连接")}</dd></div><div class="description-row"><dt>运行协议</dt><dd>${escapeHtml(connection.runtimeProtocol === "OPENAI_COMPATIBLE" ? "OpenAI 兼容接口" : "独立重排序适配")}</dd></div><div class="description-row"><dt>能力范围</dt><dd>${escapeHtml(modelCapabilityLabel(connection.capability))}</dd></div><div class="description-row"><dt>访问认证</dt><dd>${escapeHtml(connection.authenticationState === "CONFIGURED" ? "已配置（不回显）" : "待配置")}</dd></div>${discoveryAuthentication}<div class="description-row"><dt>最近探测</dt><dd>${escapeHtml(connection.lastProbe || "尚未探测")}</dd></div></dl></section>`,
     `<section class="section-block"><div class="section-heading"><h2>发现模型</h2><span class="status-tag" data-tone="info">${connection.discoveredModels.length} 个</span></div>${pagedTable(connection.discoveredModels.map(item=>({...item,name:modelProductName(item.name),capabilityName:modelCapabilityLabel(item.capability)})),[{key:"name",label:"发现模型"},{key:"capabilityName",label:"能力"}],new URLSearchParams(location.search))}</section>`,
     '</div><aside><section class="release-decision"><span class="section-kicker">当前动作</span><h2>' + (connection.status === "PUBLISHED" ? "连接已发布" : "探测后再发布") + '</h2><p>验证公网 HTTPS、认证、能力和响应边界；发布后仍需建立平台部署并显式授权租户。</p><div class="form-actions">' + operation + '</div>' + (modelFeedback ? `<p class="form-feedback" role="status">${escapeHtml(modelFeedback)}</p>` : "") + '</section></aside></div>',
   ].join("");
@@ -2696,6 +2703,9 @@ function bindModelGovernance() {
   const platformConnectionDialog = root.querySelector("#platform-connection-dialog");
   const connectionForm = root.querySelector("#platform-connection-form");
   let suggestedConnectionName = "";
+  function clearConnectionSecrets() {
+    for (const name of ["accessKey", "discoveryAccessKeyId", "discoverySecretAccessKey"]) connectionForm.elements[name].value = "";
+  }
   function updateProviderFields() {
     const controls = connectionForm.elements;
     const preset = PROVIDER_PRESETS.find(item => item.id === controls.providerId.value);
@@ -2709,7 +2719,16 @@ function bindModelGovernance() {
     const resolved = resolveProviderPreset({ providerId: preset.id, capability: controls.capability.value, workspaceId: controls.workspaceId.value, runtimeBaseUrl: controls.runtimeBaseUrl.value });
     controls.runtimeBaseUrl.readOnly = preset.id !== "CUSTOM";
     controls.runtimeBaseUrl.value = resolved.runtimeBaseUrl || "";
-    controls.accessKey.value = "";
+    clearConnectionSecrets();
+    const requiresDiscoveryCredentials = preset.id === "VOLCENGINE";
+    connectionForm.querySelector("[data-provider-discovery-credentials]").hidden = !requiresDiscoveryCredentials;
+    for (const name of ["discoveryAccessKeyId", "discoverySecretAccessKey"]) {
+      controls[name].required = requiresDiscoveryCredentials;
+      controls[name].disabled = !requiresDiscoveryCredentials;
+    }
+    connectionForm.querySelector("[data-provider-inference-help]").textContent = requiresDiscoveryCredentials
+      ? "仅用于推理调用；模型发现需要下方独立 AK/SK。选择厂商或能力后重新填写，不保存到原型。"
+      : "选择厂商或能力后重新填写，不保存到原型。";
     const nextName = preset.id === "CUSTOM" ? "" : `${preset.name} · ${modelCapabilityLabel(controls.capability.value)}`;
     if (!controls.name.value || controls.name.value === suggestedConnectionName) controls.name.value = nextName;
     suggestedConnectionName = nextName;
@@ -2741,8 +2760,10 @@ function bindModelGovernance() {
       runtimeBaseUrl: form.get("runtimeBaseUrl"),
       capability: form.get("capability"),
       accessKey: form.get("accessKey"),
+      discoveryAccessKeyId: form.get("discoveryAccessKeyId"),
+      discoverySecretAccessKey: form.get("discoverySecretAccessKey"),
     }, prototypeStore.getSession().accountId);
-    event.currentTarget.elements.accessKey.value = "";
+    clearConnectionSecrets();
     if (!result.ok) {
       root.querySelector("#platform-connection-feedback").textContent = {
         WORKSPACE_REQUIRED: "业务空间 ID 仅允许小写字母、数字和连字符。",
@@ -2750,6 +2771,8 @@ function bindModelGovernance() {
         PROVIDER_ENDPOINT_MISMATCH: "运行地址与厂商预设不一致，请重新选择厂商。",
         UNSAFE_RUNTIME_ENDPOINT: "运行地址必须是公网 HTTPS，不能使用本机或私网目标。",
         ACCESS_KEY_REQUIRED: "请输入至少 8 个字符的一次性访问密钥。",
+        DISCOVERY_CREDENTIALS_REQUIRED: "请填写独立模型发现 AK 和 SK，不能使用推理访问密钥代替。",
+        DISCOVERY_CREDENTIALS_UNEXPECTED: "当前厂商不使用方舟发现凭据，请重新选择厂商。",
         CONNECTION_NAME_CONFLICT: "连接名称已存在。",
       }[result.reason] || "连接草稿未保存，请核对输入后重试。";
       return;

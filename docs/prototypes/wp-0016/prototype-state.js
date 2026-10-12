@@ -1566,7 +1566,7 @@ export function createPrototypeStore(storage = browserStorage()) {
     }
   }
 
-  /** 访问密钥仅参与当前校验，不进入返回对象、状态或持久化快照。 */
+  /** 推理与方舟发现凭据分别校验；只保存配置状态，三项秘密均不进入返回对象或持久化快照。 */
   function createPlatformModelConnection(input = {}, actorAccountId) {
     if (!canManagePlatformModels(actorAccountId)) return { ok: false, reason: "FORBIDDEN" };
     const name = typeof input.name === "string" ? input.name.trim() : "";
@@ -1579,6 +1579,9 @@ export function createPrototypeStore(storage = browserStorage()) {
     if (!runtimeOrigin) return { ok: false, reason: "UNSAFE_RUNTIME_ENDPOINT" };
     if (!MODEL_CAPABILITIES.includes(capability)) return { ok: false, reason: "MODEL_CAPABILITY_INVALID" };
     if (typeof input.accessKey !== "string" || input.accessKey.length < 8) return { ok: false, reason: "ACCESS_KEY_REQUIRED" };
+    const requiresDiscoveryCredentials = preset.providerId === "VOLCENGINE";
+    if (requiresDiscoveryCredentials && [input.discoveryAccessKeyId, input.discoverySecretAccessKey].some(value => typeof value !== "string" || !value.trim() || value.length > 4096)) return { ok: false, reason: "DISCOVERY_CREDENTIALS_REQUIRED" };
+    if (!requiresDiscoveryCredentials && [input.discoveryAccessKeyId, input.discoverySecretAccessKey].some(value => value != null && value !== "")) return { ok: false, reason: "DISCOVERY_CREDENTIALS_UNEXPECTED" };
     if (state.models.platformConnections.some(item => item.name === name)) return { ok: false, reason: "CONNECTION_NAME_CONFLICT" };
     const connection = {
       id: `pc-custom-${state.models.platformConnections.length + 1}`,
@@ -1593,6 +1596,7 @@ export function createPrototypeStore(storage = browserStorage()) {
       status: "DRAFT",
       version: 1,
       authenticationState: "CONFIGURED",
+      ...(requiresDiscoveryCredentials ? { discoveryProfile: "VOLCENGINE_ARK_CONTROL_PLANE", discoveryCredentialsConfigured: true } : {}),
       lastProbe: null,
       discoveredModels: [],
     };
