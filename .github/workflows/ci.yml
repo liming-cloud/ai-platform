@@ -27,7 +27,10 @@ jobs:
         run: make demo-fixtures-verify
       - name: 验证工作包验收分派与执行模式
         # 只运行合成输入的本地测试，不连接业务系统、Docker 或真实厂商。
-        run: make work-package-acceptance-test
+        run: |
+          # Linux 运行器补齐正式验收合同的临时根目录；各测试仍使用独占的 0700 子目录。
+          sudo install -d -m 1777 /private/tmp
+          make work-package-acceptance-test
       - name: 验证当前状态与有界恢复入口
         run: |
           make project-status
