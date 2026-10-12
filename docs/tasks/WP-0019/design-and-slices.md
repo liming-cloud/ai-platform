@@ -161,7 +161,7 @@ Chat／Embedding 继续用内部 Port 与 Spring AI；RERANK 用查询、候选�
 - 先红：预设／地址不一致、伪造工作空间、私网及重定向、缺密钥、非平台身份、过期探测发布、重复或迟到探测、取消后秘密残留。
 - 结果：平台可保存连接草稿、刷新恢复详情、查看来源清楚的发现摘要并单独发布；失败可重试、不会发布或生成租户模型。
 - 证据：真实 API 与事务、受控厂商连接／发现合同、分页、密钥不回显和两页／新增弹窗对照。选择 RERANK 只声明意图，部署能力仍由 S2 证明。
-- 拟验收参数：`SLICE=platform-connection`。
+- 正式验收参数：`SLICE=platform-connection`，执行模式见下文；入口已实现不表示生产验收通过。
 
 ### S2：平台部署、能力验证与租户授权，4 项操作
 
@@ -209,7 +209,20 @@ Chat／Embedding 继续用内部 Port 与 Spring AI；RERANK 用查询、候选�
 
 视觉以原项目当前固定版本为准：七态 `loading / empty / error / denied / partial / disabled / success`，尺寸 `390×844 / 1024×900 / 1440×1000`；全包至少 231 个页面状态与尺寸组合，另外覆盖所有操作表单／弹窗、200% 文字、键盘焦点和 reduced-motion。核对暖色画布、16px 正文、Georgia／中文宋体标题、15rem 侧栏、36／32／44px 控件和短按钮内容宽度；具体选择器与尺寸从原型获取，不新设放宽容差。不得出现裁切、遮挡、横向溢出或无法操作的焦点；不能自行增加模型页面视觉例外。
 
-本包的 `make acceptance-work-package WP=WP-0019` 及上述六个 SLICE **尚未实现**。每片实施时同步建立自己的入口；未知 SLICE、缺证据和不安全凭据文件失败关闭。现有 `make acceptance-model-provider`／`make acceptance-model-deployment` 只作为旧合同回归，不自动覆盖本包。完整验收要区分非生产受控写入、只读复验、真实厂商调用和视觉对照，不能在只读模式隐式建对象。
+本包正式入口当前仅实现 `make acceptance-work-package WP=WP-0019 SLICE=platform-connection`。S2～S6 及不带 SLICE 的整包入口未实现，未知 SLICE、缺证据和不安全凭据文件失败关闭。现有 `make acceptance-model-provider`／`make acceptance-model-deployment` 只作为旧合同回归，不自动覆盖本包。完整验收区分受控写入、只读复验、真实厂商调用和视觉对照，不能在只读模式隐式建对象。
+
+S1 共同输入为 `FOUNDATION_ACCEPTANCE_CREDENTIALS_FILE`（当前用户拥有的普通 0600 文件，含平台及租户验收身份），以及分别固定的 `FOUNDATION_ACCEPTANCE_FRONTEND_REVISION`、`FOUNDATION_ACCEPTANCE_BACKEND_REVISION`（完整 SHA）。执行前只读检查已提交且干净的源码及本项目七个 Compose 服务，四应用 OCI revision 必须分别匹配；不能把 HEAD 当作运行版本。Playwright 固定为 1.62.1，仍由既有 NODE_PATH 提供。入口不读取容器环境、导出数据库秘密或重设密码。
+
+| `FOUNDATION_ACCEPTANCE_MODE` | 额外输入与边界 |
+| --- | --- |
+| `read-only`（默认） | 精确 `FOUNDATION_ACCEPTANCE_CONNECTION_ID`、`FOUNDATION_ACCEPTANCE_CONNECTION_VERSION`。真实会话、平台／租户／匿名隔离、分页、详情刷新、五厂商联动、取消及三尺寸／200% 文字；拦截全部模型业务写入，前后连接事实相同，不读取创建材料。 |
+| `create-draft` | 普通 0600 的 `FOUNDATION_ACCEPTANCE_CONNECTION_FILE` 及新的输出文件，不能同时指定既有 ID／版本。材料含 providerPresetId、capability、只写 apiKey，按选择补充 workspaceId、自定义 endpoint 或方舟独立 AK/SK；拒绝未知字段和固定地址覆盖。正式表单仅保存一个合成名称草稿，不探测、不发布，不删除对象。 |
+| `vendor-discovery` | 精确既有 ID／版本及新的输出文件。协议与用途凭据匹配时只执行一次正式最小发现；不能用确定性结果、空候选或 HTTP 200 的失败结果冒充真实合同，不推理、不发布，不自动重试。 |
+| `publish-current` | 精确既有 ID／版本及新的输出文件。当前修订验证未过期且未发布时，仅通过真实详情发布本修订，不自动探测，不建立部署或租户授权。 |
+
+除默认只读外，执行模式须与用户授权的动作和对象匹配；发现授权不包含发布。`FOUNDATION_ACCEPTANCE_OUTPUT_FILE` 必须为 `/private/tmp` 下当前用户独占 0700 目录中的新文件，以 0600 建立；只读不指定时不生成报告。输出只保存模式、检查结果、运行事实及精确对象，不保存输入材料、认证信息、浏览器 trace 或截图。每个模式通过只证明该模式范围，输出始终保留 `sliceComplete=false`、`prototypeParity=NOT_RUN`；数据库事实与固定版本原型视觉单独登记。
+
+本地及 CI 执行 `make work-package-acceptance-test`，只验证分派、模式、版本、用途、分页和安全输出合同，不启动生产浏览器或访问厂商。创建、发现与发布仍需各自真实执行证据，入口测试不替代这些门禁。
 
 每片收口记录：责任操作、完整源码 SHA、前端运行 revision／镜像、后端运行 revision／镜像、原型项目／版本、验证时间、命令与范围、厂商真实调用的授权及脱敏结论、精确对象的只读数据库计数／状态、视觉结论及临时截图位置。控制面提交与运行源码分开，历史证据不改日期。凭据由安全文件提供，只记录安全性检查结果，不记录内容；截图、详细日志和一次性报告仅放仓库外。
 
@@ -225,6 +238,7 @@ Chat／Embedding 继续用内部 Port 与 Spring AI；RERANK 用查询、候选�
 - 原型修订已接受：用户明确接受 `d5deddaa1955814c5f08795b0b1ca58a7e6ac784` 并要求按该版本继续 S1，见[人工接受记录](evidence/WP-0019-S1-prototype-acceptance-20261012.md)。只读连接详情源码及原型状态／浏览器回归已验证，见[候选执行证据](evidence/WP-0019-S1-discovery-credentials-and-detail-source-20261012.md)，没有部署或真实厂商调用。
 - 预设来源子任务：`c52669a9bdba52b25aba2efdbd7694c617df6aa1` 已通过来源绑定、草稿安全及分页源码回归，见[执行证据](evidence/WP-0019-S1-preset-source-and-existing-connection-check-20261012.md)。现有登录已复用；旧连接的发现被 DNS 出站策略拒绝且缺少方舟独立 AK/SK，未到达厂商，不构成真实厂商通过。
 - 源码进展：`fc970f9ec5a07da1eb41cc80ec84f31d93469f48` 已完成重发现时效／原子 CAS、非秘密配置事实、五厂商表单及详情交互验证，见[源码执行证据](evidence/WP-0019-S1-connection-consistency-source-20261012.md)；完整后端 1124 项、前端 267 项、隔离浏览器 29 项通过，不代替生产验收。
-- 待完成：正式 S1 验收入口、受控真实厂商证据、最新部署功能与事实及生产视觉验证；S2～S6 和二十九项生产完成状态不提升。
-- 下一动作：按任务 README 的恢复顺序继续 S1 正式验收入口，核实安全 DNS／独立发现认证后执行完整生产验证。已有登录凭据继续复用；不重复征求已确认方案，不修改原型来迁就生产，不进入 S2。
+- 验收工具：正式 S1 入口已落地，默认只读，草稿、真实发现与发布分别显式选择；本地／CI 合同测试不代替实际执行证据。
+- 待完成：受控真实厂商证据、最新部署功能与事实及生产视觉验证；S2～S6 和二十九项生产完成状态不提升。
+- 下一动作：按任务 README 的恢复顺序使用 S1 正式入口，核实运行版本、安全 DNS／独立发现认证后执行完整生产验证。已有登录凭据继续复用；不重复征求已确认方案，不修改原型来迁就生产，不进入 S2。
 - WP-0019 整包与 M6 未完成；WP-0020～后续知识、索引、助手、普通问答和治理概览仍按原责任包推进。

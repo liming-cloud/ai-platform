@@ -79,6 +79,34 @@ class WorkPackageAcceptanceTest(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("不支持的工作包", result.stderr)
 
+    def test_platform_connection_requires_explicit_slice(self):
+        for slice_name in ("", "all", "platform-supply", "routing"):
+            result = self.invoke("WP-0019", slice_name)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("必须明确 SLICE=platform-connection", result.stderr)
+
+    def test_platform_connection_requires_credentials(self):
+        result = self.invoke("WP-0019", "platform-connection")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("必须提供 0600 验收凭据文件", result.stderr)
+
+    def test_platform_connection_rejects_setup(self):
+        result = self.invoke("WP-0019", "platform-connection", SETUP="tenant")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("不接受外部 SETUP", result.stderr)
+
+    def test_platform_connection_dispatches_scoped_entry(self):
+        with tempfile.TemporaryDirectory() as directory:
+            node = Path(directory) / "node"
+            node.write_text('#!/bin/sh\nprintf "%s\\n" "$1"\n')
+            node.chmod(0o700)
+            result = self.invoke("WP-0019", "platform-connection",
+                                 PATH=f"{directory}:{os.environ['PATH']}",
+                                 FOUNDATION_ACCEPTANCE_CREDENTIALS_FILE="/private/tmp/not-used.json")
+        self.assertEqual(0, result.returncode, result.stderr)
+        self.assertEqual(str(ROOT / "scripts/development/acceptance-platform-connection.cjs"),
+                         result.stdout.strip())
+
     def test_whole_package_cannot_be_claimed_by_login_slice(self):
         result = self.invoke("WP-0017")
         self.assertNotEqual(result.returncode, 0)

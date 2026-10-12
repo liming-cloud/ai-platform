@@ -65,6 +65,13 @@ deploy-smoke:
 acceptance-work-package:
 	bash scripts/development/acceptance-work-package.sh "$(WP)" "$(SLICE)"
 
+.PHONY: work-package-acceptance-test
+work-package-acceptance-test:
+	python3 -B -m unittest scripts.quality.test_work_package_acceptance
+	node --test scripts/quality/platform-connection-acceptance.test.cjs
+	node --check scripts/development/acceptance-platform-connection.cjs
+	bash -n scripts/development/acceptance-work-package.sh
+
 acceptance-knowledge-space:
 	bash scripts/development/acceptance-knowledge-space.sh
 

@@ -25,6 +25,9 @@ jobs:
         run: make architecture-guard
       - name: 验证参考数据与离线评测
         run: make demo-fixtures-verify
+      - name: 验证工作包验收分派与执行模式
+        # 只运行合成输入的本地测试，不连接业务系统、Docker 或真实厂商。
+        run: make work-package-acceptance-test
       - name: 验证当前状态与有界恢复入口
         run: |
           make project-status
