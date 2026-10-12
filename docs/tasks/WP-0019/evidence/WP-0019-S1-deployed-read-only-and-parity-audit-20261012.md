@@ -125,3 +125,22 @@ make acceptance-work-package WP=WP-0019 SLICE=platform-connection
 代码图谱探索 `formatConsoleRoute`、`BrowserSessionClient`、`PlatformModelSupplyWorkspace`、`PlatformProviderConnectionDetail`、发布服务／领域门禁及 `SaTokenPlatformSessionGateway`。两页影响分析各涉及 4 个符号；共享凭据读取影响分析涉及 11 个符号，因此复用而未修改共享解析器。仓储影响分析涉及 111 个聚合符号，因此未借视觉核对批量重写后端。图谱确定 SPA／API 路径差异、24 小时独占边界与同设备会话替换，促成三项验收工具局部修复、前端时效修复及串行执行；编译与测试结论仍来自真实验证。
 
 本批没有改变 STATE、M6 实现矩阵或工作包完成状态。下一前沿仍为 S1：先承接剩余查询与原型差异，再恢复真实厂商条件及分别授权的写模式验收；功能和完整原型分别闭环后才进入 S2。
+
+## CI 环境纠错
+
+证据提交 `590f0384be360bb4f797915293521a8001805501` 的[首次 GitHub 治理运行](https://github.com/liming-cloud/ai-platform/actions/runs/38232148045)未通过：Ubuntu 运行器没有 `/private/tmp`，Node 的 11 项测试在创建合成数据目录时以 ENOENT 失败，另 11 项通过。此前控制面、架构和参考数据步骤通过；该失败不能改记为通过，也不改变已经取得的生产只读结果。
+
+用既有 Linux Node 镜像 `sha256:e58326d0d441090181ac150dc2078d3e2cf6a0d42e809aebba3ef5880935ffdd`，在禁网、只读源码挂载、非 root 用户和临时文件系统的独立容器中复现相同 11 项失败。补齐 `/private/tmp` 后，同一镜像、同一测试的 22 项全部通过。测试仍实际检查目录／文件权限、符号链接和独占输出，没有改为模拟文件系统或跳过反例；容器不接入业务部署网络、数据库或真实厂商。
+
+修复提交 `2e2c46ed34fc6c221fc0af3c320eb92c2f4d1851` 仅在 `.github/workflows/ci.yml` 的验收测试步骤准备 `1777` 临时根目录，各测试继续使用当前用户独占的 `0700` 子目录及 `0600` 文件。未放宽正式入口的 `/private/tmp` 输出边界，未改变运行应用、业务对象、原型或 S1 完成状态。本机完整入口测试和 81 项治理测试复验通过。
+
+该精确修复提交的[GitHub 治理复验](https://github.com/liming-cloud/ai-platform/actions/runs/38232990788)已完成，`head_sha=2e2c46ed34fc6c221fc0af3c320eb92c2f4d1851`、`conclusion=success`。控制面、架构、参考数据、工作包入口测试及状态／恢复步骤全部执行通过；这是治理流水线结论，不是完整产品测试或真实厂商验收。本机追加证据后也重新通过 `project-status`、`project-verify`、`architecture-guard`、`demo-fixtures-verify` 和 `resume-context`，恢复入口为 11134 字节，前沿仍为 S1。
+
+以下安全日志保存在本轮仓库外目录；原 40 项产物清单不改写，本次四项追加产物单独登记：
+
+| CI 纠错产物 | SHA-256 |
+| --- | --- |
+| github-actions-first-failure.log | f7c794e9a9e462e530bc385c21934fe10afb4ef9012197766c9b7f5b1fddf6ec |
+| linux-ci-tmp-red.log | c4cf01f2d52ff142264e2deaacb64ef95ae77d0b7efd4be7e6d0b6bd8ff05c28 |
+| linux-ci-tmp-green.log | 4e55e477e3aaf9035ded0f1702804ea3ae8a88a2c0e0f4f86bb93c35d43acc6f |
+| acceptance-test-ci-fix.log | cc7a011efb0167a823e0c6624f49fe22af342fb94e7fdbb23b7d663b079c7700 |
