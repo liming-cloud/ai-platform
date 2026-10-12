@@ -10,7 +10,7 @@ const { enlargeText } = require("./acceptance-overview.cjs");
 const modes = ["read-only", "create-draft", "vendor-discovery", "publish-current"];
 const repository = path.resolve(__dirname, "../..");
 const api = "/platform/model-supply/connections";
-const directoryPath = "/platform/model-supply/connections";
+const directoryPath = "/platform/model-supply";
 const prototype = { projectId: "249f81f2-6f1a-46ff-988c-da3cdedb35e7",
   revision: "d5deddaa1955814c5f08795b0b1ca58a7e6ac784" };
 const longId = value => typeof value === "string" && /^[1-9][0-9]{0,18}$/.test(value)
@@ -226,9 +226,9 @@ async function directory(page, configuration) {
 }
 
 async function detail(page, configuration) {
-  await page.goto(configuration.baseUrl + directoryPath + "/" + configuration.connectionId + "?candidatePage=1", { waitUntil: "networkidle" });
+  await page.goto(configuration.baseUrl + directoryPath + "/connections/" + configuration.connectionId + "?candidatePage=1", { waitUntil: "networkidle" });
   await page.getByRole("heading", { name: "供应商连接探测", exact: true }).waitFor();
-  requireCondition(new URL(page.url()).pathname === directoryPath + "/" + configuration.connectionId, "详情未恢复精确连接");
+  requireCondition(new URL(page.url()).pathname === directoryPath + "/connections/" + configuration.connectionId, "详情未恢复精确连接");
 }
 
 /** 布局检查只证明当前生产页面可操作，不代替固定版本原型的人工视觉对照。 */
@@ -506,7 +506,7 @@ async function run(configuration) {
 }
 
 module.exports = { platformConnectionConfiguration, validateOutputFile, readConnectionInput, inspectRuntime,
-  assertSafeResponse, verifyConnection, verifyPublication, verifyPage, permittedMutation, requireActionReady, run };
+  assertSafeResponse, verifyConnection, verifyPublication, verifyPage, permittedMutation, requireActionReady, directory, detail, run };
 if (require.main === module) {
   try { run(platformConnectionConfiguration()).catch(error => {
     process.stderr.write((error instanceof SafeAssertionError ? error.message : "平台连接验收未完成") + "\n"); process.exitCode = 1;

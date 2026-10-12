@@ -4,7 +4,7 @@ const path = require("node:path");
 const assert = require("node:assert/strict");
 const { test } = require("node:test");
 const { platformConnectionConfiguration, readConnectionInput, inspectRuntime, permittedMutation,
-  verifyConnection, verifyPublication, verifyPage, assertSafeResponse, requireActionReady } = require("../development/acceptance-platform-connection.cjs");
+  verifyConnection, verifyPublication, verifyPage, assertSafeResponse, requireActionReady, directory, detail } = require("../development/acceptance-platform-connection.cjs");
 
 const frontendRevision = "a".repeat(40);
 const backendRevision = "b".repeat(40);
@@ -249,4 +249,15 @@ test("运行事实绑定四应用各自 revision 与七服务健康，不读取�
   assert.throws(() => inspectRuntime(configuration, runtimeFixture(values => values.map(value =>
     value.service === "redis" ? { ...value, health: "unhealthy" } : value))), /不健康/);
   assert.throws(() => inspectRuntime(configuration, runtimeFixture(values => [...values.slice(1), values[1]])), /重复/);
+});
+
+test("浏览器目录与详情沿用 SPA 正式路由，不把 API 集合路径当作页面", async () => {
+  let url;
+  const page = { goto: async value => { url = value; }, url: () => url,
+    getByRole: () => ({ waitFor: async () => {} }) };
+  const configuration = { baseUrl: "http://127.0.0.1:13000", connectionId: "123" };
+  await directory(page, configuration);
+  assert.equal(new URL(url).pathname, "/platform/model-supply");
+  await detail(page, configuration);
+  assert.equal(new URL(url).pathname, "/platform/model-supply/connections/123");
 });
