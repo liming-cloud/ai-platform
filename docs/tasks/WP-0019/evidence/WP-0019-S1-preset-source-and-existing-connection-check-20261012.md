@@ -8,6 +8,7 @@
 | 原型项目 | OpenDesign Cloud 原项目 249f81f2-6f1a-46ff-988c-da3cdedb35e7 |
 | 已接受原型 | d5deddaa1955814c5f08795b0b1ca58a7e6ac784，见[人工接受记录](WP-0019-S1-prototype-acceptance-20261012.md) |
 | 原型入口 | platform-model-connections、platform-model-connection-detail；通过原项目取得当前预览地址 |
+| 本轮原项目预览 | [平台连接目录](http://127.0.0.1:58138/api/projects/249f81f2-6f1a-46ff-988c-da3cdedb35e7/raw/index.html?screen=platform-model-connections&state=success&review=1)、[连接详情](http://127.0.0.1:58138/api/projects/249f81f2-6f1a-46ff-988c-da3cdedb35e7/raw/index.html?screen=platform-model-connection-detail&state=success&review=1)；会话地址，不作为稳定端口契约 |
 | 执行日期 | 2026-10-12 |
 | 结论 | 本批次源码验证通过；既有连接发现失败关闭；S1 功能与生产原型一致性未完成 |
 
@@ -88,3 +89,5 @@ Local Codex 显式加载当前安装包的 `engineering-assistant:wayfinder`、`
 S1 剩余门禁是五厂商生产表单及详情／探测／发现／发布交互、状态时效与原子 CAS 反例、正式验收入口、可用出站环境及真实厂商发现认证、最新 Compose 会话浏览器、两页及弹窗七态三尺寸和专项原型一致性。本轮 CUA 入口因工作区符号链接配置在启动前失败，未发生浏览器操作；同时前端尚未完整承接，因此不能将浏览器未执行仅归因于环境，也不能以源码回归替代视觉验收。没有生成或提交截图，没有修改原型。
 
 本证据不提升二十九项生产操作状态，不标记 S1、WP-0019 或 M6 完成，不进入 S2～S6。
+
+本轮两个原项目预览链接只读 HTTP 检查均为 200、`text/html`；这只证明入口可访问，不作为生产浏览器、交互或视觉通过证据。服务地址变化后从原项目重新取得预览，仍按表首固定版本判断设计依据。
