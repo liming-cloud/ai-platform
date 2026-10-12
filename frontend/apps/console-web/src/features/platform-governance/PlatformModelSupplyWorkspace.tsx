@@ -66,7 +66,7 @@ export function PlatformModelSupplyWorkspace({ client, route, sessionRevision, o
 
   return <div className="platform-connection-page">
     <header className="platform-connection-page__heading">
-      <div><p className="platform-connection-page__context">模型治理 / 平台模型连接</p><h1 ref={headingRef} tabIndex={-1}>平台模型连接</h1></div>
+      <div><p className="platform-connection-page__context">模型治理</p><h1 ref={headingRef} tabIndex={-1}>平台模型连接</h1></div>
       <Button ref={createConnectionTriggerRef} appearance="primary" onClick={() => setCreating(true)}>新增供应商连接</Button>
     </header>
     <div className="platform-connection-note">先添加供应商连接，再探测模型与发布。租户只看已授权模型，不显示平台地址或访问密钥。</div>

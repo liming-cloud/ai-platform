@@ -62,7 +62,7 @@ const client={hasSession:()=>true,
     if(window.testState.pending) await new Promise(resolve=>window.resolveProbe=resolve);
     const succeeded=!window.testState.failProbe;
     window.testState.connection={...window.testState.connection,version:version+1,published:false,
-      status:succeeded?"VERIFIED":"DRAFT",lastProbeSucceeded:succeeded,lastProbedAt:"2026-10-12T00:00:00Z"};
+      status:succeeded?"VERIFIED":"DRAFT",lastProbeSucceeded:succeeded,lastProbedAt:new Date().toISOString()};
     return {succeeded};
   },
   publishPlatformProviderConnection:async(id,version)=>{
@@ -231,6 +231,18 @@ window.renderWorkspace(1);`;
       assert.equal(await page.getByText("已配置（不回显）", { exact: true }).count(), 1);
       assert.equal(await page.locator('input[type="password"]').count(), 0);
     });
+    await check("旧 VERIFIED 不能显示可发布，必须重新探测", async () => {
+      await page.evaluate(() => {
+        window.testState.connection = { ...window.testState.connection, status: "VERIFIED", lastProbeSucceeded: true,
+          lastProbedAt: "2026-08-29T00:00:00Z" }; window.renderDetail(1, 20);
+      });
+      await page.getByRole("heading", { name: "供应商连接探测", exact: true }).waitFor();
+      assert.equal(await page.getByRole("button", { name: "发布连接", exact: true }).count(), 0);
+      await page.getByText("连接探测已失效，请重新执行连接探测。", { exact: true }).waitFor();
+      assert.equal(await page.evaluate(() => window.testState.detailCalls.length), 0);
+      await page.evaluate(() => { window.resetDetail(); window.renderDetail(1, 21); });
+      await page.getByRole("button", { name: "执行连接探测", exact: true }).waitFor();
+    });
     await check("成功探测读取新版本候选后才允许发布", async () => {
       await page.getByRole("button", { name: "执行连接探测", exact: true }).click();
       await page.getByRole("button", { name: "发布连接", exact: true }).waitFor();
@@ -297,6 +309,34 @@ window.renderWorkspace(1);`;
       await page.waitForFunction(() => document.activeElement?.textContent === "供应商连接探测");
       assert.equal(await page.getByRole("button", { name: "执行连接探测", exact: true }).isEnabled(), true);
       assert.equal(await page.getByRole("dialog").count(), 0);
+    });
+    await check("页面停留跨过24小时有效期时撤下发布动作，不发起任何业务请求", async () => {
+      // 只在到期场景接管时钟，避免改变既有 Fluent 模态清理的计时环境。
+      await page.clock.install();
+      await page.evaluate(() => {
+        window.resetDetail(); window.testState.connection = { ...window.testState.connection, status: "VERIFIED",
+          lastProbeSucceeded: true, lastProbedAt: new Date(Date.now() - 24 * 60 * 60 * 1000 + 10_000).toISOString() };
+        window.renderDetail(1, 30);
+      });
+      await page.getByRole("button", { name: "发布连接", exact: true }).waitFor();
+      await page.clock.fastForward(10_001);
+      await page.getByRole("button", { name: "执行连接探测", exact: true }).waitFor();
+      assert.equal(await page.getByRole("button", { name: "发布连接", exact: true }).count(), 0);
+      assert.equal(await page.evaluate(() => window.testState.detailCalls.length), 0);
+    });
+    await check("两页标题在三尺寸下精确承接已接受原型字号、行高和页头文案", async () => {
+      for (const [width, size, line] of [[390, "26.4px", "35.64px"], [1024, "30.72px", "41.472px"], [1440, "32px", "43.2px"]]) {
+        await page.setViewportSize({ width, height: 1000 });
+        for (const screen of ["directory", "detail"]) {
+          await page.evaluate(screen => screen === "directory" ? window.renderWorkspace(40) : window.renderDetail(1, 40), screen);
+          const heading = page.getByRole("heading", { name: screen === "directory" ? "平台模型连接" : "供应商连接探测", exact: true });
+          await heading.waitFor(); await page.evaluate(() => document.fonts.ready);
+          assert.deepEqual(await heading.evaluate(element => {
+            const style = getComputedStyle(element); return [style.fontSize, style.lineHeight, style.fontWeight];
+          }), [size, line, "500"]);
+          assert.equal(await page.locator(".platform-connection-page__context").textContent(), "模型治理");
+        }
+      }
     });
     assert.equal(pageErrors, 0, "隔离页面不得产生脚本错误");
     process.stdout.write(`${JSON.stringify({ passed, status: "PASSED", productionAcceptance: false })}\n`);

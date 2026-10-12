@@ -6,6 +6,7 @@ import { describe, expect, it } from "vitest";
 import type { ControlPlaneClient, PlatformProviderConnectionSummary, PlatformProviderPresets } from "../../api/control-plane-client";
 import { ConnectionStatus } from "./PlatformModelSupplyWorkspace";
 import { PlatformProviderConnectionForm } from "./PlatformProviderConnectionForm";
+import { hasCurrentConnectionProbe } from "./PlatformProviderConnectionDetail";
 
 const sharedStyles = readFileSync(new URL("../../styles.css", import.meta.url), "utf8");
 const styles = readFileSync(new URL("./platform-model-connections.css", import.meta.url), "utf8");
@@ -18,6 +19,24 @@ const base: PlatformProviderConnectionSummary = {
 };
 
 describe("平台供应商连接呈现", () => {
+  it.each([
+    ["2026-10-12T00:00:01Z", true],
+    ["2026-10-12T00:00:00Z", false],
+    ["2026-10-11T23:59:59Z", false],
+    ["2026-10-13T00:00:01Z", false],
+    [null, false],
+    ["invalid-date", false],
+  ] as const)("发布提示拒绝过期、缺失及未来探测：%s", (lastProbedAt, valid) => {
+    expect(hasCurrentConnectionProbe({ ...base, status: "VERIFIED", lastProbeSucceeded: true, lastProbedAt },
+      Date.parse("2026-10-13T00:00:00Z"))).toBe(valid);
+  });
+  it("有效时间不能替代当前连接的成功状态", () => {
+    const current = { ...base, status: "VERIFIED" as const, lastProbeSucceeded: true, lastProbedAt: "2026-10-12T01:00:00Z" };
+    const now = Date.parse("2026-10-13T00:00:00Z");
+    expect(hasCurrentConnectionProbe({ ...current, status: "DISABLED" }, now)).toBe(false);
+    expect(hasCurrentConnectionProbe({ ...current, status: "DRAFT" }, now)).toBe(false);
+    expect(hasCurrentConnectionProbe({ ...current, lastProbeSucceeded: false }, now)).toBe(false);
+  });
   it.each([
     [{ status: "DRAFT" }, "草稿"],
     [{ status: "VERIFIED", lastProbeSucceeded: true }, "验证通过"],

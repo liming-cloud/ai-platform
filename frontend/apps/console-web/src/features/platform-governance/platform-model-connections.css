@@ -1,7 +1,7 @@
 .platform-connection-page { display: grid; gap: 1.5rem; color: var(--foundation-text); font-size: 1rem; font-family: var(--foundation-font-body); line-height: 1.6; }
 .platform-connection-page__heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 1.5rem; }
 .platform-connection-page__context, .platform-connection-kicker { margin: 0 0 0.5rem; color: var(--foundation-muted-text); font-size: 0.875rem; }
-.platform-connection-page h1 { margin: 0; font-family: var(--foundation-font-display); font-size: 2rem; line-height: 1.25; }
+.platform-connection-page h1 { margin: 0; max-width: 48rem; font-family: var(--foundation-font-display); font-size: clamp(1.75rem, 3vw, 2rem); font-weight: 500; line-height: 1.35; }
 .platform-connection-page h2, .platform-connection-dialog h2 { margin: 0; font-family: var(--foundation-font-display); font-size: 1.5625rem; line-height: 1.3; }
 .platform-connection-note { padding: 0.75rem 1rem; border: 1px solid var(--foundation-border); border-radius: var(--foundation-control-radius); background: var(--foundation-canvas); color: var(--foundation-secondary-text); }
 .platform-connection-note--danger { color: var(--foundation-danger); background: color-mix(in oklab, var(--foundation-danger), var(--foundation-surface) 94%); border-color: color-mix(in oklab, var(--foundation-danger), var(--foundation-surface) 65%); }
@@ -39,6 +39,7 @@
 .platform-connection-form .form-feedback, .platform-connection-release .form-feedback { min-height: 1.5rem; font-size: 0.875rem; color: var(--foundation-success-foreground); }
 .platform-connection-form .platform-connection-feedback--danger, .platform-connection-release .platform-connection-feedback--danger { color: var(--foundation-danger); }
 @media (max-width: 64rem) { .platform-connection-detail { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 680px) { .platform-connection-page h1 { font-size: 1.65rem; } }
 @media (max-width: 42rem) {
   .platform-connection-page__heading { align-items: start; flex-direction: column; }
   .platform-connection-form__grid { grid-template-columns: minmax(0, 1fr); }

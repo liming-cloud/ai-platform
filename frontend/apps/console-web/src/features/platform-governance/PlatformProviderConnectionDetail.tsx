@@ -10,6 +10,7 @@ import "./platform-model-connections.css";
 type DetailRoute = Extract<ConsoleRoute, { navigationId: "platform-model-supply"; task: "connection-detail" }>;
 type Candidates = { items: PlatformProviderModelCandidate[]; totalElements: number; hasPrevious: boolean; hasNext: boolean };
 const EMPTY_CANDIDATES: Candidates = { items: [], totalElements: 0, hasPrevious: false, hasNext: false };
+const PROBE_VALIDITY_MILLIS = 24 * 60 * 60 * 1000;
 
 /** 精确恢复连接及当前版本的发现与发布事实；网络操作不得乐观伪造验证状态。 */
 export function PlatformProviderConnectionDetail({ client, route, onRouteChange }: {
@@ -22,6 +23,7 @@ export function PlatformProviderConnectionDetail({ client, route, onRouteChange 
   const [failure, setFailure] = useState("");
   const [feedback, setFeedback] = useState<{ failed: boolean; text: string }>();
   const [operation, setOperation] = useState<"probe" | "publish">();
+  const [observedAt, setObservedAt] = useState(() => Date.now());
   const owner = useRef(0);
   const pending = useRef(false);
   const headingRef = useRef<HTMLHeadingElement>(null);
@@ -43,7 +45,8 @@ export function PlatformProviderConnectionDetail({ client, route, onRouteChange 
       if (current.id !== route.connectionId || publication.connectionId !== current.id || publication.connectionRevision !== current.version) {
         throw new Error("connection-binding-mismatch");
       }
-      setConnection({ ...current, published: publication.published }); setDirectory(presets); setCandidates(models); setState("ready");
+      setConnection({ ...current, published: publication.published }); setObservedAt(Date.now());
+      setDirectory(presets); setCandidates(models); setState("ready");
     } catch (error) {
       if (requestOwner !== owner.current) return;
       setConnection(undefined); setDirectory(undefined); setCandidates(EMPTY_CANDIDATES);
@@ -61,6 +64,14 @@ export function PlatformProviderConnectionDetail({ client, route, onRouteChange 
     // 保存后和身份替换后，焦点归属新页面，不能留在已卸载的供应商凭据弹窗。
     if (state === "ready" && !focused.current) { focused.current = true; headingRef.current?.focus(); }
   }, [state]);
+
+  useEffect(() => {
+    if (!connection || !hasCurrentConnectionProbe(connection, observedAt)) return;
+    // 页面停留跨过有效期时撤下发布提示，不能等下一次刷新才反映到期。
+    const remaining = Date.parse(connection.lastProbedAt!) + PROBE_VALIDITY_MILLIS - Date.now();
+    const timer = window.setTimeout(() => setObservedAt(Date.now()), Math.max(0, remaining));
+    return () => window.clearTimeout(timer);
+  }, [connection, observedAt]);
 
   async function perform(action: "probe" | "publish") {
     if (!connection || pending.current) return;
@@ -91,16 +102,18 @@ export function PlatformProviderConnectionDetail({ client, route, onRouteChange 
   if (state === "error" || !connection) return <StatePanel kind="error" title="供应商连接暂时不可用" description={failure} actionLabel="重新加载" onAction={() => void load()} />;
   const preset = directory?.items.find(item => item.id === connection.preset?.id);
   const capability = connection.preset?.capability;
-  const publish = !connection.published && connection.status === "VERIFIED" && connection.lastProbeSucceeded === true;
+  const verified = hasCurrentConnectionProbe(connection, observedAt);
+  const publish = !connection.published && verified;
   const disabled = !!operation || connection.status === "DISABLED" || !connection.credentialConfigured
     || (connection.discoveryProfile === "VOLCENGINE_ARK_CONTROL_PLANE" && !connection.discoveryCredentialsConfigured);
   const failed = connection.lastProbeSucceeded === false;
   return <div className="platform-connection-page">
-    <header className="platform-connection-page__heading"><div><p className="platform-connection-page__context">模型治理 / 连接探测</p><h1 ref={headingRef} tabIndex={-1}>供应商连接探测</h1></div>
+    <header className="platform-connection-page__heading"><div><p className="platform-connection-page__context">模型治理</p><h1 ref={headingRef} tabIndex={-1}>供应商连接探测</h1></div>
       <Button appearance="secondary" onClick={() => onRouteChange({ navigationId: "platform-model-supply", task: "connections", page: 1 })}>返回连接目录</Button></header>
     <div className={"platform-connection-note" + (failed ? " platform-connection-note--danger" : "")}>
       {failed ? "连接探测失败，未发布任何能力。" : connection.published ? "连接已发布，可重新探测查看详细结果。"
-        : connection.status === "VERIFIED" ? "连接探测已通过，可以发布连接。" : "尚未执行本版本的连接探测。"}</div>
+        : verified ? "连接探测已通过，可以发布连接。"
+          : connection.status === "VERIFIED" ? "连接探测已失效，请重新执行连接探测。" : "尚未执行本版本的连接探测。"}</div>
     <div className="platform-connection-detail">
       <div><section className="platform-connection-section"><div className="platform-connection-section__heading">
         <div><span className="platform-connection-kicker">连接版本 v{connection.version}</span><h2>{connection.displayName}</h2></div><ConnectionStatus connection={connection} /></div>
@@ -132,6 +145,13 @@ export function PlatformProviderConnectionDetail({ client, route, onRouteChange 
       </section></aside>
     </div>
   </div>;
+}
+
+/** 页面提示承接 ADR-0095 的 24 小时边界；缺失、未来或到期探测失败关闭，最终发布仍由服务端复核。 */
+export function hasCurrentConnectionProbe(connection: PlatformProviderConnectionSummary, now: number): boolean {
+  const probedAt = connection.lastProbedAt ? Date.parse(connection.lastProbedAt) : Number.NaN;
+  return connection.status === "VERIFIED" && connection.lastProbeSucceeded === true
+    && probedAt <= now && now < probedAt + PROBE_VALIDITY_MILLIS;
 }
 
 function capabilityLabel(value: string): string {
