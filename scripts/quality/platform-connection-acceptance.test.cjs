@@ -4,7 +4,7 @@ const path = require("node:path");
 const assert = require("node:assert/strict");
 const { test } = require("node:test");
 const { platformConnectionConfiguration, readConnectionInput, inspectRuntime, permittedMutation,
-  verifyConnection, verifyPublication, verifyPage, assertSafeResponse, requireActionReady, directory, detail, verifyLayout } = require("../development/acceptance-platform-connection.cjs");
+  verifyConnection, verifyPublication, verifyPage, assertSafeResponse, requireActionReady, directory, detail, verifyLayout, logoutCurrent } = require("../development/acceptance-platform-connection.cjs");
 
 const frontendRevision = "a".repeat(40);
 const backendRevision = "b".repeat(40);
@@ -272,4 +272,17 @@ test("模态开启时只验当前可交互区域，背景被遮罩不作为裁�
     getByRole: () => ({ isVisible: async () => true, locator: () => active }), locator: () => background };
   await verifyLayout(page);
   assert.equal(checked, 1);
+});
+
+test("退出检查等待正式注销响应与登录入口恢复，不能把菜单点击当成注销完成", async () => {
+  const events = [];
+  const page = { getByRole: () => ({ click: async () => events.push("click") }),
+    waitForResponse: async predicate => {
+      const response = { url: () => "http://127.0.0.1/api/v1/auth/browser-session",
+        request: () => ({ method: () => "DELETE" }), status: () => 204 };
+      assert.equal(predicate(response), true); events.push("response"); return response;
+    }, waitForURL: async predicate => { assert.equal(predicate(new URL("http://127.0.0.1/login")), true); events.push("entry"); } };
+  await logoutCurrent(page);
+  assert.equal(events.includes("response"), true);
+  assert.equal(events.at(-1), "entry");
 });

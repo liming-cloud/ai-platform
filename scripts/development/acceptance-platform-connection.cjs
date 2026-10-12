@@ -490,7 +490,7 @@ async function run(configuration) {
     }
     await check("退出后受保护读取拒绝且未持久化秘密", async () => {
       assertSafeResponse(await page.evaluate(() => ({ ...localStorage, ...sessionStorage })), secrets);
-      await logoutWorkspace(page); await assertAnonymous(page);
+      await logoutCurrent(page); await assertAnonymous(page);
       requireCondition((await request(page, api)).status === 401, "退出后仍可读取平台模型供应");
     });
     requireCondition(report.businessWrites === (configuration.mode === "read-only" ? 0 : 1), "业务写入数量不符合明确模式");
@@ -508,8 +508,17 @@ async function run(configuration) {
   }
 }
 
+/** 菜单点击不会等待异步注销；以正式响应和平台登录入口恢复作为完成条件。 */
+async function logoutCurrent(page) {
+  const completed = page.waitForResponse(response => new URL(response.url()).pathname === "/api/v1/auth/browser-session"
+    && response.request().method() === "DELETE");
+  await logoutWorkspace(page);
+  requireCondition((await completed).status() === 204, "正式注销未成功");
+  await page.waitForURL(url => url.pathname === "/login");
+}
+
 module.exports = { platformConnectionConfiguration, validateOutputFile, readConnectionInput, inspectRuntime,
-  assertSafeResponse, verifyConnection, verifyPublication, verifyPage, permittedMutation, requireActionReady, directory, detail, verifyLayout, run };
+  assertSafeResponse, verifyConnection, verifyPublication, verifyPage, permittedMutation, requireActionReady, directory, detail, verifyLayout, logoutCurrent, run };
 if (require.main === module) {
   try { run(platformConnectionConfiguration()).catch(error => {
     process.stderr.write((error instanceof SafeAssertionError ? error.message : "平台连接验收未完成") + "\n"); process.exitCode = 1;
