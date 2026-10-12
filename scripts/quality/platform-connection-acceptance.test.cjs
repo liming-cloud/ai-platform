@@ -4,7 +4,7 @@ const path = require("node:path");
 const assert = require("node:assert/strict");
 const { test } = require("node:test");
 const { platformConnectionConfiguration, readConnectionInput, inspectRuntime, permittedMutation,
-  verifyConnection, verifyPublication, verifyPage, assertSafeResponse, requireActionReady, directory, detail } = require("../development/acceptance-platform-connection.cjs");
+  verifyConnection, verifyPublication, verifyPage, assertSafeResponse, requireActionReady, directory, detail, verifyLayout } = require("../development/acceptance-platform-connection.cjs");
 
 const frontendRevision = "a".repeat(40);
 const backendRevision = "b".repeat(40);
@@ -260,4 +260,16 @@ test("浏览器目录与详情沿用 SPA 正式路由，不把 API 集合路径�
   assert.equal(new URL(url).pathname, "/platform/model-supply");
   await detail(page, configuration);
   assert.equal(new URL(url).pathname, "/platform/model-supply/connections/123");
+});
+
+test("模态开启时只验当前可交互区域，背景被遮罩不作为裁切失败", async () => {
+  let checked = 0;
+  const active = { count: async () => 1, nth: () => ({ isEnabled: async () => true,
+    scrollIntoViewIfNeeded: async () => {}, evaluate: async () => { checked += 1; return true; } }) };
+  const background = { count: async () => 1, nth: () => ({ isEnabled: async () => true,
+    scrollIntoViewIfNeeded: async () => {}, evaluate: async () => false }) };
+  const page = { evaluate: async () => ({ exists: true, overflow: 0, clipped: false }),
+    getByRole: () => ({ isVisible: async () => true, locator: () => active }), locator: () => background };
+  await verifyLayout(page);
+  assert.equal(checked, 1);
 });

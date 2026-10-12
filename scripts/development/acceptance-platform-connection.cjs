@@ -246,7 +246,10 @@ async function verifyLayout(page) {
     return { exists: !!root, overflow: document.documentElement.scrollWidth - innerWidth, clipped };
   });
   requireCondition(result.exists && result.overflow <= 1 && !result.clipped, "当前页面存在横向溢出或文字裁切");
-  const controls = page.locator('[role="dialog"] button:visible, .platform-connection-page button:visible');
+  const dialog = page.getByRole("dialog");
+  // 模态打开时背景必须被遮罩，控件基线只检查当前可交互区域。
+  const controls = await dialog.isVisible() ? dialog.locator("button:visible")
+    : page.locator(".platform-connection-page button:visible");
   for (let index = 0; index < await controls.count(); index += 1) {
     const control = controls.nth(index);
     if (!await control.isEnabled()) continue;
@@ -506,7 +509,7 @@ async function run(configuration) {
 }
 
 module.exports = { platformConnectionConfiguration, validateOutputFile, readConnectionInput, inspectRuntime,
-  assertSafeResponse, verifyConnection, verifyPublication, verifyPage, permittedMutation, requireActionReady, directory, detail, run };
+  assertSafeResponse, verifyConnection, verifyPublication, verifyPage, permittedMutation, requireActionReady, directory, detail, verifyLayout, run };
 if (require.main === module) {
   try { run(platformConnectionConfiguration()).catch(error => {
     process.stderr.write((error instanceof SafeAssertionError ? error.message : "平台连接验收未完成") + "\n"); process.exitCode = 1;
