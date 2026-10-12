@@ -3,6 +3,7 @@ package com.aiplatform.foundation.modelruntime.application.platformsupply.comman
 import com.aiplatform.foundation.modelruntime.domain.provider.model.AuthenticationType;
 import com.aiplatform.foundation.modelruntime.domain.provider.model.ProviderKind;
 import com.aiplatform.foundation.modelruntime.domain.platformsupply.model.PlatformModelDiscoveryProfile;
+import com.aiplatform.foundation.modelruntime.domain.platformsupply.model.preset.PlatformProviderPresetSelection;
 import com.aiplatform.foundation.security.identity.PlatformRequestContext;
 import com.aiplatform.foundation.security.secret.SecretValue;
 import java.net.URI;
@@ -15,6 +16,7 @@ public record CreatePlatformProviderConnectionCommand(
         String idempotencyKey,
         ProviderKind providerKind,
         PlatformModelDiscoveryProfile discoveryProfile,
+        PlatformProviderPresetSelection preset,
         String displayName,
         URI endpoint,
         String region,
@@ -34,6 +36,7 @@ public record CreatePlatformProviderConnectionCommand(
         }
         Objects.requireNonNull(providerKind, "供应商类型不能为空");
         Objects.requireNonNull(discoveryProfile, "模型发现协议不能为空");
+        Objects.requireNonNull(preset, "厂商预设来源不能为空");
         Objects.requireNonNull(displayName, "连接名称不能为空");
         if (!discoveryProfile.supports(providerKind)) {
             throw new IllegalArgumentException("模型发现协议与供应商类型不兼容");
@@ -43,7 +46,8 @@ public record CreatePlatformProviderConnectionCommand(
         Objects.requireNonNull(authenticationType, "认证方式不能为空");
         Objects.requireNonNull(apiKey, "API Key不能为空");
         var arkDiscovery = discoveryProfile == PlatformModelDiscoveryProfile.VOLCENGINE_ARK_CONTROL_PLANE;
-        if (arkDiscovery != (discoveryAccessKeyId != null && discoverySecretAccessKey != null)) {
+        if (arkDiscovery ? discoveryAccessKeyId == null || discoverySecretAccessKey == null
+                : discoveryAccessKeyId != null || discoverySecretAccessKey != null) {
             throw new IllegalArgumentException("火山方舟控制面发现必须且只能配置独立 AK/SK");
         }
         if (arkDiscovery && !region.matches("[a-z]{2}-[a-z0-9]+(?:-[a-z0-9]+)*")) {
@@ -51,33 +55,19 @@ public record CreatePlatformProviderConnectionCommand(
         }
     }
 
-    /** 兼容不使用控制面 AK/SK 的连接。 */
+    /** 创建不需要控制面 AK/SK 的连接，仍须显式冻结预设和发现协议。 */
     public CreatePlatformProviderConnectionCommand(
             PlatformRequestContext context,
             String idempotencyKey,
             ProviderKind providerKind,
             PlatformModelDiscoveryProfile discoveryProfile,
+            PlatformProviderPresetSelection preset,
             String displayName,
             URI endpoint,
             String region,
             AuthenticationType authenticationType,
             SecretValue apiKey) {
-        this(context, idempotencyKey, providerKind, discoveryProfile, displayName, endpoint, region,
+        this(context, idempotencyKey, providerKind, discoveryProfile, preset, displayName, endpoint, region,
                 authenticationType, apiKey, null, null);
-    }
-
-    /** 仅供历史内部调用兼容；公共 HTTP 写入必须显式提交发现协议。 */
-    public CreatePlatformProviderConnectionCommand(
-            PlatformRequestContext context,
-            String idempotencyKey,
-            ProviderKind providerKind,
-            String displayName,
-            URI endpoint,
-            String region,
-            AuthenticationType authenticationType,
-            SecretValue apiKey) {
-        this(context, idempotencyKey, providerKind,
-                PlatformModelDiscoveryProfile.legacyDefault(providerKind), displayName,
-                endpoint, region, authenticationType, apiKey, null, null);
     }
 }

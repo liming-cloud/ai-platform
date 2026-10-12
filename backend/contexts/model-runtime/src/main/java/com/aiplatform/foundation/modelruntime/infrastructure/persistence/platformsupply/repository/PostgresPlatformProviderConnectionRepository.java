@@ -5,6 +5,7 @@ import com.aiplatform.foundation.modelruntime.application.provider.exception.Pro
 import com.aiplatform.foundation.modelruntime.domain.platformsupply.model.PlatformProviderConnection;
 import com.aiplatform.foundation.modelruntime.domain.platformsupply.model.PlatformProviderConnectionId;
 import com.aiplatform.foundation.modelruntime.domain.platformsupply.model.PlatformModelDiscoveryProfile;
+import com.aiplatform.foundation.modelruntime.domain.platformsupply.model.preset.PlatformProviderPresetSelection;
 import com.aiplatform.foundation.modelruntime.domain.platformsupply.repository.PlatformProviderConnectionCreation;
 import com.aiplatform.foundation.modelruntime.domain.platformsupply.repository.PlatformProviderConnectionCreationOutcome;
 import com.aiplatform.foundation.modelruntime.domain.platformsupply.repository.PlatformProviderConnectionPage;
@@ -13,90 +14,63 @@ import com.aiplatform.foundation.modelruntime.domain.provider.model.Authenticati
 import com.aiplatform.foundation.modelruntime.domain.provider.model.CredentialReference;
 import com.aiplatform.foundation.modelruntime.domain.provider.model.ProviderConnectionStatus;
 import com.aiplatform.foundation.modelruntime.domain.provider.model.ProviderKind;
+import com.aiplatform.foundation.modelruntime.infrastructure.persistence.platformsupply.entity.PlatformProviderConnectionEntity;
+import com.aiplatform.foundation.modelruntime.infrastructure.persistence.platformsupply.entity.PlatformProviderConnectionRequestEntity;
+import com.aiplatform.foundation.modelruntime.infrastructure.persistence.platformsupply.mapper.PlatformProviderConnectionMapper;
+import com.aiplatform.foundation.modelruntime.infrastructure.persistence.platformsupply.mapper.PlatformProviderConnectionRequestMapper;
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.sql.ResultSet;
-import java.sql.Timestamp;
 import java.util.HexFormat;
 import java.util.Objects;
 import java.util.Optional;
 import org.springframework.dao.DuplicateKeyException;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
-/** 使用独立平台表保存平台供应商连接及其幂等事实。 */
-public final class PostgresPlatformProviderConnectionRepository
-        implements PlatformProviderConnectionRepository {
-
+/** 使用独立平台表原子保存连接、预设来源及幂等事实，普通分页由 MyBatis-Plus 处理。 */
+public final class PostgresPlatformProviderConnectionRepository implements PlatformProviderConnectionRepository {
     private static final long CREATION_LOCK = 6_613_000_066L;
-
-    private final JdbcTemplate jdbc;
+    private final PlatformProviderConnectionMapper mapper;
+    private final PlatformProviderConnectionRequestMapper requests;
     private final TransactionTemplate transactions;
 
-    public PostgresPlatformProviderConnectionRepository(
-            JdbcTemplate jdbc,
-            PlatformTransactionManager transactionManager) {
-        this.jdbc = Objects.requireNonNull(jdbc, "数据库访问器不能为空");
-        this.transactions = new TransactionTemplate(
-                Objects.requireNonNull(transactionManager, "事务管理器不能为空"));
+    public PostgresPlatformProviderConnectionRepository(PlatformProviderConnectionMapper mapper,
+            PlatformProviderConnectionRequestMapper requests, PlatformTransactionManager transactionManager) {
+        this.mapper = Objects.requireNonNull(mapper, "平台连接映射器不能为空");
+        this.requests = Objects.requireNonNull(requests, "幂等请求映射器不能为空");
+        this.transactions = new TransactionTemplate(Objects.requireNonNull(transactionManager, "事务管理器不能为空"));
     }
 
     @Override
     public PlatformProviderConnectionCreationOutcome create(PlatformProviderConnectionCreation creation) {
         Objects.requireNonNull(creation, "平台供应商连接创建请求不能为空");
-        var outcome = transactions.execute(status -> createInTransaction(creation));
-        return Objects.requireNonNull(outcome, "平台供应商连接创建事务没有返回结果");
+        return Objects.requireNonNull(transactions.execute(status -> createInTransaction(creation)), "创建事务没有返回结果");
     }
 
-    private PlatformProviderConnectionCreationOutcome createInTransaction(
-            PlatformProviderConnectionCreation creation) {
-        jdbc.execute((java.sql.Connection connection) -> {
-            try (var statement = connection.prepareStatement("SELECT pg_advisory_xact_lock(?)")) {
-                statement.setLong(1, CREATION_LOCK);
-                statement.execute();
-            }
-            return null;
-        });
+    private PlatformProviderConnectionCreationOutcome createInTransaction(PlatformProviderConnectionCreation creation) {
+        mapper.lockCreation(CREATION_LOCK);
         var keyHash = sha256(creation.idempotencyKey());
-        var existing = jdbc.query("""
-                SELECT request_fingerprint, platform_provider_connection_id
-                FROM model_runtime.platform_provider_connection_request
-                WHERE idempotency_key_hash = ?
-                """, rs -> rs.next()
-                        ? new ExistingRequest(rs.getString(1), rs.getLong(2))
-                        : null, keyHash);
+        var existing = requests.selectById(keyHash);
         if (existing != null) {
-            if (!existing.fingerprint().equals(creation.requestFingerprint())) {
+            if (!existing.getRequestFingerprint().equals(creation.requestFingerprint())) {
                 throw new ProviderConnectionIdempotencyConflictException();
             }
             return new PlatformProviderConnectionCreationOutcome(
-                    findById(new PlatformProviderConnectionId(existing.connectionId()))
-                            .orElseThrow(() -> new IllegalStateException("幂等记录引用的平台连接不存在")),
-                    true);
+                    findById(new PlatformProviderConnectionId(existing.getPlatformProviderConnectionId()))
+                            .orElseThrow(() -> new IllegalStateException("幂等记录引用的平台连接不存在")), true);
         }
         var connection = creation.connection();
         try {
-            jdbc.update("""
-                    INSERT INTO model_runtime.platform_provider_connection (
-                        id, scope, provider_kind, discovery_profile, display_name, endpoint, region, authentication_type,
-                        credential_reference, status, version, last_probe_succeeded, last_probe_code,
-                        last_probed_at, created_at)
-                    VALUES (?, 'PLATFORM', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                    """,
-                    connection.id().value(), connection.providerKind().name(), connection.discoveryProfile().name(),
-                    connection.displayName(),
-                    connection.endpoint().toString(), connection.region(), connection.authenticationType().name(),
-                    connection.credentialReference().value(), connection.status().name(), connection.version(),
-                    connection.lastProbeSucceeded(), connection.lastProbeCode(), timestamp(connection.lastProbedAt()),
-                    timestamp(connection.createdAt()));
-            jdbc.update("""
-                    INSERT INTO model_runtime.platform_provider_connection_request (
-                        idempotency_key_hash, request_fingerprint, platform_provider_connection_id)
-                    VALUES (?, ?, ?)
-                    """, keyHash, creation.requestFingerprint(), connection.id().value());
+            mapper.insert(toEntity(connection));
+            var request = new PlatformProviderConnectionRequestEntity();
+            request.setIdempotencyKeyHash(keyHash);
+            request.setRequestFingerprint(creation.requestFingerprint());
+            request.setPlatformProviderConnectionId(connection.id().value());
+            requests.insert(request);
         } catch (DuplicateKeyException exception) {
             throw new ProviderConnectionNameConflictException();
         }
@@ -106,77 +80,81 @@ public final class PostgresPlatformProviderConnectionRepository
     @Override
     public Optional<PlatformProviderConnection> findById(PlatformProviderConnectionId id) {
         Objects.requireNonNull(id, "平台供应商连接标识不能为空");
-        return Optional.ofNullable(jdbc.query("""
-                SELECT id, provider_kind, discovery_profile, display_name, endpoint, region, authentication_type,
-                    credential_reference, status, version, last_probe_succeeded, last_probe_code,
-                    last_probed_at, created_at
-                FROM model_runtime.platform_provider_connection
-                WHERE id = ? AND scope = 'PLATFORM'
-                """, rs -> rs.next() ? toDomain(rs) : null, id.value())
-                );
+        return Optional.ofNullable(mapper.selectOne(Wrappers.<PlatformProviderConnectionEntity>lambdaQuery()
+                .eq(PlatformProviderConnectionEntity::getId, id.value())
+                .eq(PlatformProviderConnectionEntity::getScope, "PLATFORM")))
+                .map(PostgresPlatformProviderConnectionRepository::toDomain);
     }
 
     @Override
     public PlatformProviderConnectionPage findPage(long pageNumber, long pageSize) {
-        if (pageNumber < 1L || pageSize < 1L || pageSize > 100L) {
-            throw new IllegalArgumentException("分页参数不正确");
-        }
-        var items = jdbc.query("""
-                SELECT id, provider_kind, discovery_profile, display_name, endpoint, region, authentication_type,
-                    credential_reference, status, version, last_probe_succeeded, last_probe_code,
-                    last_probed_at, created_at
-                FROM model_runtime.platform_provider_connection
-                WHERE scope = 'PLATFORM'
-                ORDER BY created_at DESC, id DESC
-                LIMIT ? OFFSET ?
-                """, (rs, row) -> toDomain(rs), pageSize, (pageNumber - 1L) * pageSize);
-        var total = jdbc.queryForObject(
-                "SELECT COUNT(*) FROM model_runtime.platform_provider_connection WHERE scope = 'PLATFORM'",
-                Long.class);
-        return new PlatformProviderConnectionPage(items, Objects.requireNonNull(total));
+        if (pageNumber < 1L || pageSize < 1L || pageSize > 100L) throw new IllegalArgumentException("分页参数不正确");
+        var page = mapper.selectPage(new Page<PlatformProviderConnectionEntity>(pageNumber, pageSize),
+                Wrappers.<PlatformProviderConnectionEntity>lambdaQuery()
+                        .eq(PlatformProviderConnectionEntity::getScope, "PLATFORM")
+                        .orderByDesc(PlatformProviderConnectionEntity::getCreatedAt, PlatformProviderConnectionEntity::getId));
+        return new PlatformProviderConnectionPage(page.getRecords().stream()
+                .map(PostgresPlatformProviderConnectionRepository::toDomain).toList(), page.getTotal());
     }
 
     @Override
     public boolean update(PlatformProviderConnection connection, long expectedVersion) {
         Objects.requireNonNull(connection, "平台供应商连接不能为空");
-        if (connection.version() != expectedVersion + 1L) {
-            throw new IllegalArgumentException("平台供应商连接新旧版本关系不正确");
-        }
-        return jdbc.update("""
-                UPDATE model_runtime.platform_provider_connection
-                SET status = ?, version = ?, last_probe_succeeded = ?, last_probe_code = ?, last_probed_at = ?
-                WHERE id = ? AND scope = 'PLATFORM' AND version = ?
-                """, connection.status().name(), connection.version(), connection.lastProbeSucceeded(),
-                connection.lastProbeCode(), timestamp(connection.lastProbedAt()), connection.id().value(), expectedVersion) == 1;
+        if (connection.version() != expectedVersion + 1L) throw new IllegalArgumentException("平台供应商连接新旧版本关系不正确");
+        // 探测和凭据轮换只改变当前修订事实，不能丢失或替换冻结的预设来源。
+        return mapper.update(Wrappers.<PlatformProviderConnectionEntity>lambdaUpdate()
+                .eq(PlatformProviderConnectionEntity::getId, connection.id().value())
+                .eq(PlatformProviderConnectionEntity::getScope, "PLATFORM")
+                .eq(PlatformProviderConnectionEntity::getVersion, expectedVersion)
+                .set(PlatformProviderConnectionEntity::getStatus, connection.status().name())
+                .set(PlatformProviderConnectionEntity::getVersion, connection.version())
+                .set(PlatformProviderConnectionEntity::getLastProbeSucceeded, connection.lastProbeSucceeded())
+                .set(PlatformProviderConnectionEntity::getLastProbeCode, connection.lastProbeCode())
+                .set(PlatformProviderConnectionEntity::getLastProbedAt, connection.lastProbedAt())) == 1;
     }
 
-    private static PlatformProviderConnection toDomain(ResultSet row) throws java.sql.SQLException {
-        return PlatformProviderConnection.reconstitute(
-                new PlatformProviderConnectionId(row.getLong("id")),
-                ProviderKind.valueOf(row.getString("provider_kind")),
-                PlatformModelDiscoveryProfile.valueOf(row.getString("discovery_profile")),
-                row.getString("display_name"),
-                URI.create(row.getString("endpoint")), row.getString("region"),
-                AuthenticationType.valueOf(row.getString("authentication_type")),
-                new CredentialReference(row.getString("credential_reference")),
-                ProviderConnectionStatus.valueOf(row.getString("status")), row.getLong("version"),
-                (Boolean) row.getObject("last_probe_succeeded"), row.getString("last_probe_code"),
-                row.getTimestamp("last_probed_at") == null ? null : row.getTimestamp("last_probed_at").toInstant(),
-                row.getTimestamp("created_at").toInstant());
+    private static PlatformProviderConnectionEntity toEntity(PlatformProviderConnection connection) {
+        var row = new PlatformProviderConnectionEntity();
+        row.setId(connection.id().value());
+        row.setScope(connection.scope().name());
+        row.setProviderKind(connection.providerKind().name());
+        row.setDiscoveryProfile(connection.discoveryProfile().name());
+        if (connection.preset() != null) {
+            row.setProviderPresetId(connection.preset().providerId());
+            row.setProviderPresetVersion(connection.preset().version());
+            row.setCapabilityIntent(connection.preset().capability());
+            row.setWorkspaceId(connection.preset().workspaceId());
+        }
+        row.setDisplayName(connection.displayName());
+        row.setEndpoint(connection.endpoint().toString());
+        row.setRegion(connection.region());
+        row.setAuthenticationType(connection.authenticationType().name());
+        row.setCredentialReference(connection.credentialReference().value());
+        row.setStatus(connection.status().name());
+        row.setVersion(connection.version());
+        row.setLastProbeSucceeded(connection.lastProbeSucceeded());
+        row.setLastProbeCode(connection.lastProbeCode());
+        row.setLastProbedAt(connection.lastProbedAt());
+        row.setCreatedAt(connection.createdAt());
+        return row;
+    }
+
+    private static PlatformProviderConnection toDomain(PlatformProviderConnectionEntity row) {
+        var preset = row.getProviderPresetId() == null ? null : new PlatformProviderPresetSelection(
+                row.getProviderPresetId(), row.getProviderPresetVersion(), row.getCapabilityIntent(), row.getWorkspaceId());
+        return PlatformProviderConnection.reconstitute(new PlatformProviderConnectionId(row.getId()),
+                ProviderKind.valueOf(row.getProviderKind()), PlatformModelDiscoveryProfile.valueOf(row.getDiscoveryProfile()),
+                preset, row.getDisplayName(), URI.create(row.getEndpoint()), row.getRegion(),
+                AuthenticationType.valueOf(row.getAuthenticationType()), new CredentialReference(row.getCredentialReference()),
+                ProviderConnectionStatus.valueOf(row.getStatus()), row.getVersion(), row.getLastProbeSucceeded(),
+                row.getLastProbeCode(), row.getLastProbedAt(), row.getCreatedAt());
     }
 
     private static String sha256(String value) {
         try {
-            return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256")
-                    .digest(value.getBytes(StandardCharsets.UTF_8)));
+            return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(value.getBytes(StandardCharsets.UTF_8)));
         } catch (NoSuchAlgorithmException exception) {
             throw new IllegalStateException("当前 JDK 不支持 SHA-256", exception);
         }
     }
-
-    private static Timestamp timestamp(java.time.Instant value) {
-        return value == null ? null : Timestamp.from(value);
-    }
-
-    private record ExistingRequest(String fingerprint, long connectionId) {}
 }

@@ -51,6 +51,8 @@ public class PlatformProviderConnectionController {
                         requireIdempotencyKey(idempotencyKey),
                         request.providerKind(),
                         request.discoveryProfile(),
+                        new com.aiplatform.foundation.modelruntime.domain.platformsupply.model.preset.PlatformProviderPresetSelection(
+                                request.providerPresetId(), request.providerPresetVersion(), request.capability(), request.workspaceId()),
                         request.displayName(),
                         request.endpoint(),
                         request.region(),
@@ -78,6 +80,14 @@ public class PlatformProviderConnectionController {
             @PathVariable String providerConnectionId, @RequestParam java.util.Map<String, String> query) {
         if (!query.isEmpty()) throw new IllegalArgumentException("平台连接详情不接受范围或未知参数");
         return connections.get(context, providerConnectionId);
+    }
+
+    /** 只读预设目录不接受客户端替换作用域、地址或目录版本。 */
+    @GetMapping("/presets")
+    public com.aiplatform.foundation.modelruntime.application.platformsupply.dto.preset.PlatformProviderPresetsView presets(
+            PlatformRequestContext context, @RequestParam java.util.Map<String, String> query) {
+        if (!query.isEmpty()) throw new IllegalArgumentException("平台连接预设不接受范围或未知参数");
+        return connections.presets(context);
     }
 
     @PostMapping("/{providerConnectionId}/probe")

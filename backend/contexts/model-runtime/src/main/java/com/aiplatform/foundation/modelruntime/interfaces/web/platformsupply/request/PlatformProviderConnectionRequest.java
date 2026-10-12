@@ -7,6 +7,10 @@ import java.net.URI;
 
 /** 创建平台供应商连接的 HTTP 输入；方舟控制面 AK/SK 仅允许在创建时提交。 */
 public record PlatformProviderConnectionRequest(
+        String providerPresetId,
+        String providerPresetVersion,
+        String capability,
+        String workspaceId,
         ProviderKind providerKind,
         PlatformModelDiscoveryProfile discoveryProfile,
         String displayName,
@@ -16,4 +20,6 @@ public record PlatformProviderConnectionRequest(
         String apiKey,
         String discoveryAccessKeyId,
         String discoverySecretAccessKey) {
+    /** 日志和异常不得通过 record 默认格式回显三个凭据输入。 */
+    @Override public String toString() { return "PlatformProviderConnectionRequest[已脱敏]"; }
 }

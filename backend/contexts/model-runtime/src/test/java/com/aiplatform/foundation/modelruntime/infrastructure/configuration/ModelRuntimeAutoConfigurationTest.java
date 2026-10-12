@@ -83,6 +83,7 @@ class ModelRuntimeAutoConfigurationTest {
                         "foundation.model-catalog.enabled=true",
                         "foundation.model-catalog.provider-connection-limit=4",
                         "foundation.model-catalog.model-deployment-limit=8")
+                .withBean(OutboundEndpointPolicy.class, () -> mock(OutboundEndpointPolicy.class))
                 .withBean(
                         ProviderConnectionRepository.class,
                         () -> mock(ProviderConnectionRepository.class))
@@ -281,6 +282,10 @@ class ModelRuntimeAutoConfigurationTest {
                         "foundation.model-runtime.persistence.enabled=true")
                 .withBean(PlatformProviderConnectionPublicationMapper.class,
                         () -> mock(PlatformProviderConnectionPublicationMapper.class))
+                .withBean(com.aiplatform.foundation.modelruntime.infrastructure.persistence.platformsupply.mapper.PlatformProviderConnectionMapper.class,
+                        () -> mock(com.aiplatform.foundation.modelruntime.infrastructure.persistence.platformsupply.mapper.PlatformProviderConnectionMapper.class))
+                .withBean(com.aiplatform.foundation.modelruntime.infrastructure.persistence.platformsupply.mapper.PlatformProviderConnectionRequestMapper.class,
+                        () -> mock(com.aiplatform.foundation.modelruntime.infrastructure.persistence.platformsupply.mapper.PlatformProviderConnectionRequestMapper.class))
                 .withBean(
                         ProviderConnectionMapper.class,
                         () -> mock(ProviderConnectionMapper.class))

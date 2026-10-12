@@ -6,6 +6,7 @@ import com.aiplatform.foundation.modelruntime.domain.provider.model.ProviderConn
 import com.aiplatform.foundation.modelruntime.domain.provider.model.ProviderConnectionStatus;
 import com.aiplatform.foundation.modelruntime.domain.provider.model.ProviderKind;
 import com.aiplatform.foundation.shared.kernel.domain.AggregateRoot;
+import com.aiplatform.foundation.modelruntime.domain.platformsupply.model.preset.PlatformProviderPresetSelection;
 import java.net.URI;
 import java.time.Instant;
 import java.util.Objects;
@@ -27,6 +28,7 @@ public final class PlatformProviderConnection
     private final PlatformProviderConnectionId id;
     private final ProviderKind providerKind;
     private final PlatformModelDiscoveryProfile discoveryProfile;
+    private final PlatformProviderPresetSelection preset;
     private final String displayName;
     private final URI endpoint;
     private final String region;
@@ -44,6 +46,7 @@ public final class PlatformProviderConnection
             PlatformProviderConnectionId id,
             ProviderKind providerKind,
             PlatformModelDiscoveryProfile discoveryProfile,
+            PlatformProviderPresetSelection preset,
             String displayName,
             URI endpoint,
             String region,
@@ -62,6 +65,7 @@ public final class PlatformProviderConnection
         this.id = Objects.requireNonNull(id, "平台供应商连接标识不能为空");
         this.providerKind = Objects.requireNonNull(providerKind, "供应商类型不能为空");
         this.discoveryProfile = Objects.requireNonNull(discoveryProfile, "模型发现协议不能为空");
+        this.preset = preset;
         if (!discoveryProfile.supports(providerKind)) {
             throw new IllegalArgumentException("模型发现协议与供应商类型不兼容");
         }
@@ -93,25 +97,12 @@ public final class PlatformProviderConnection
         this.createdAt = Objects.requireNonNull(createdAt, "创建时间不能为空");
     }
 
-    public static PlatformProviderConnection create(
-            PlatformProviderConnectionId id,
-            ProviderKind providerKind,
-            String displayName,
-            URI endpoint,
-            String region,
-            AuthenticationType authenticationType,
-            CredentialReference credentialReference,
-            Instant createdAt) {
-        return create(
-                id, providerKind, PlatformModelDiscoveryProfile.legacyDefault(providerKind), displayName,
-                endpoint, region, authenticationType, credentialReference, createdAt);
-    }
-
-    /** 建立显式冻结权威发现协议的平台连接。 */
+    /** 建立冻结预设来源、能力意图和权威发现协议的平台连接，不允许推断缺失来源。 */
     public static PlatformProviderConnection create(
             PlatformProviderConnectionId id,
             ProviderKind providerKind,
             PlatformModelDiscoveryProfile discoveryProfile,
+            PlatformProviderPresetSelection preset,
             String displayName,
             URI endpoint,
             String region,
@@ -123,6 +114,7 @@ public final class PlatformProviderConnection
                 id,
                 providerKind,
                 discoveryProfile,
+                Objects.requireNonNull(preset, "新连接必须冻结厂商预设来源"),
                 displayName,
                 endpoint,
                 region,
@@ -136,31 +128,12 @@ public final class PlatformProviderConnection
                 createdAt);
     }
 
-    public static PlatformProviderConnection reconstitute(
-            PlatformProviderConnectionId id,
-            ProviderKind providerKind,
-            String displayName,
-            URI endpoint,
-            String region,
-            AuthenticationType authenticationType,
-            CredentialReference credentialReference,
-            ProviderConnectionStatus status,
-            long version,
-            Boolean lastProbeSucceeded,
-            String lastProbeCode,
-            Instant lastProbedAt,
-            Instant createdAt) {
-        return reconstitute(
-                id, providerKind, PlatformModelDiscoveryProfile.legacyDefault(providerKind), displayName,
-                endpoint, region, authenticationType, credentialReference, status, version,
-                lastProbeSucceeded, lastProbeCode, lastProbedAt, createdAt);
-    }
-
-    /** 从持久化事实恢复显式发现协议。 */
+    /** 从持久化事实恢复；历史来源为空时原样保留，不能按地址猜测预设或能力。 */
     public static PlatformProviderConnection reconstitute(
             PlatformProviderConnectionId id,
             ProviderKind providerKind,
             PlatformModelDiscoveryProfile discoveryProfile,
+            PlatformProviderPresetSelection preset,
             String displayName,
             URI endpoint,
             String region,
@@ -177,6 +150,7 @@ public final class PlatformProviderConnection
                 id,
                 providerKind,
                 discoveryProfile,
+                preset,
                 displayName,
                 endpoint,
                 region,
@@ -238,6 +212,7 @@ public final class PlatformProviderConnection
     @Override public PlatformProviderConnectionId id() { return id; }
     public ProviderKind providerKind() { return providerKind; }
     public PlatformModelDiscoveryProfile discoveryProfile() { return discoveryProfile; }
+    public PlatformProviderPresetSelection preset() { return preset; }
     public String displayName() { return displayName; }
     public URI endpoint() { return endpoint; }
     public String region() { return region; }
@@ -257,7 +232,7 @@ public final class PlatformProviderConnection
             String probeCode,
             Instant probedAt) {
         return new PlatformProviderConnection(
-                scope, id, providerKind, discoveryProfile, displayName, endpoint, region, authenticationType,
+                scope, id, providerKind, discoveryProfile, preset, displayName, endpoint, region, authenticationType,
                 nextCredential, nextStatus, version + 1, probeSucceeded, probeCode, probedAt, createdAt);
     }
 

@@ -52,9 +52,16 @@ class PlatformProviderConnectionPublicationTest {
     }
 
     private static PlatformProviderConnection draft() {
-        return PlatformProviderConnection.create(new PlatformProviderConnectionId(310000000000000001L),
-                ProviderKind.DETERMINISTIC, PlatformModelDiscoveryProfile.DETERMINISTIC_CATALOG,
-                "合成连接", URI.create("memory://synthetic"), "local", AuthenticationType.API_KEY,
-                new CredentialReference("secret://platform-provider-connection/310000000000000001"), NOW);
+        return PlatformProviderConnection.create(
+                new PlatformProviderConnectionId(310000000000000001L),
+                ProviderKind.DETERMINISTIC,
+                PlatformModelDiscoveryProfile.DETERMINISTIC_CATALOG,
+                new com.aiplatform.foundation.modelruntime.domain.platformsupply.model.preset.PlatformProviderPresetSelection("CUSTOM", "2026-10-12", "CHAT", null),
+                "合成连接",
+                URI.create("memory://synthetic"),
+                "local",
+                AuthenticationType.API_KEY,
+                new CredentialReference("secret://platform-provider-connection/310000000000000001"),
+                NOW);
     }
 }

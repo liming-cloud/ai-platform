@@ -103,6 +103,7 @@ class PlatformProviderModelDiscoveryServiceTest {
                 new PlatformProviderConnectionId(610000000000000002L),
                 ProviderKind.OPENAI_COMPATIBLE,
                 PlatformModelDiscoveryProfile.VOLCENGINE_ARK_CONTROL_PLANE,
+                new com.aiplatform.foundation.modelruntime.domain.platformsupply.model.preset.PlatformProviderPresetSelection("VOLCENGINE", "2026-10-12", "CHAT", null),
                 "火山方舟",
                 URI.create("https://ark.cn-beijing.volces.com/api/v3"),
                 "cn-beijing",
@@ -135,6 +136,8 @@ class PlatformProviderModelDiscoveryServiceTest {
         return PlatformProviderConnection.create(
                 new PlatformProviderConnectionId(610000000000000001L),
                 ProviderKind.DETERMINISTIC,
+                com.aiplatform.foundation.modelruntime.domain.platformsupply.model.PlatformModelDiscoveryProfile.DETERMINISTIC_CATALOG,
+                new com.aiplatform.foundation.modelruntime.domain.platformsupply.model.preset.PlatformProviderPresetSelection("CUSTOM", "2026-10-12", "CHAT", null),
                 "平台确定性连接",
                 URI.create("memory://platform-model"),
                 "local",

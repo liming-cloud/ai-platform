@@ -352,6 +352,10 @@ export type PlatformModelDiscoveryProfile =
 
 /** 平台连接必须显式冻结权威模型发现协议。 */
 export interface PlatformProviderConnectionCreateInput extends ProviderConnectionCreateInput {
+  providerPresetId: string;
+  providerPresetVersion: string;
+  capability: "CHAT" | "EMBEDDING" | "RERANK";
+  workspaceId?: string;
   discoveryProfile: PlatformModelDiscoveryProfile;
   discoveryAccessKeyId?: string;
   discoverySecretAccessKey?: string;
@@ -360,7 +364,19 @@ export interface PlatformProviderConnectionCreateInput extends ProviderConnectio
 /** 平台范围厂商连接的安全摘要；端点和凭据永不返回浏览器。 */
 export type PlatformProviderConnectionSummary = ProviderConnectionSummary & {
   discoveryProfile: PlatformModelDiscoveryProfile;
+  preset?: { id: string; version: string; capability: "CHAT" | "EMBEDDING" | "RERANK" } | null;
 };
+
+/** 后端受控的非秘密厂商目录；版本用于创建时校验，不表示能力已经验证。 */
+export interface PlatformProviderPresets {
+  version: string;
+  items: Array<{
+    id: string; name: string; region: string; regionLabel: string; capabilities: string[];
+    discoveryProfile: PlatformModelDiscoveryProfile;
+    variants: Array<{ capability: string; endpointTemplate: string; workspaceRequired: boolean;
+      runtimeProtocol: string; discoveryProfile: PlatformModelDiscoveryProfile }>;
+  }>;
+}
 
 /** 平台模型发现的安全摘要；候选只用于后续受控部署选择。 */
 export interface PlatformProviderModelDiscoverySummary {
@@ -1685,6 +1701,11 @@ export class ControlPlaneClient {
     return this.request<PageResult<PlatformProviderConnectionSummary>>(
       `/platform/model-supply/connections?pageNumber=${pageNumber}&pageSize=${pageSize}`,
     );
+  }
+
+  /** 读取预设不创建连接、不读取密钥、不访问厂商。 */
+  async getPlatformProviderPresets(): Promise<PlatformProviderPresets> {
+    return this.request("/platform/model-supply/connections/presets");
   }
 
   async createPlatformProviderConnection(

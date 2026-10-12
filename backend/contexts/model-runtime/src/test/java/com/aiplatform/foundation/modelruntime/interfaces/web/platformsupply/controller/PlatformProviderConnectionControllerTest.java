@@ -39,6 +39,54 @@ import org.springframework.web.method.support.ModelAndViewContainer;
 class PlatformProviderConnectionControllerTest {
 
     @Test
+    void 创建平台连接缺少预设来源时不能触及服务() throws Exception {
+        var service = mock(PlatformProviderConnectionService.class);
+        when(service.create(any())).thenReturn(new CreatePlatformProviderConnectionResult(view(), false));
+        var mvc = MockMvcBuilders.standaloneSetup(new PlatformProviderConnectionController(service))
+                .setCustomArgumentResolvers(platformContext(mock(PlatformRequestContext.class))).build();
+        var failure = org.junit.jupiter.api.Assertions.assertThrows(jakarta.servlet.ServletException.class,
+                () -> mvc.perform(post("/api/v1/platform/model-supply/connections")
+                        .header("Idempotency-Key", "platform-preset-required-0001")
+                        .contentType("application/json")
+                        .content("""
+                                {"providerKind":"OPENAI_COMPATIBLE","discoveryProfile":"OPENAI_MODELS_API",
+                                 "displayName":"缺少预设的连接","endpoint":"https://models.example.invalid/v1",
+                                 "region":"unspecified","authenticationType":"API_KEY","apiKey":"synthetic-test-key"}
+                                """)));
+        org.junit.jupiter.api.Assertions.assertInstanceOf(IllegalArgumentException.class, failure.getCause());
+        org.mockito.Mockito.verifyNoInteractions(service);
+    }
+
+    @Test
+    void 平台连接预设提供原型五厂商和显式能力而不访问凭据() throws Exception {
+        var repository = mock(PlatformProviderConnectionRepository.class);
+        var credentials = mock(PlatformProviderConnectionCredentialWriter.class);
+        var transactions = mock(com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.PlatformProviderConnectionCredentialTransaction.class);
+        var identifiers = mock(com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator.class);
+        var probes = mock(PlatformProbeProviderService.class);
+        var service = new PlatformProviderConnectionService(repository, credentials, transactions,
+                probes, java.time.Clock.systemUTC(), identifiers, endpoint -> {});
+        var context = mock(PlatformRequestContext.class);
+        when(context.hasPermission(PlatformPermissions.MODEL_PLATFORM_WRITE)).thenReturn(true);
+        var mvc = MockMvcBuilders.standaloneSetup(new PlatformProviderConnectionController(service))
+                .setCustomArgumentResolvers(platformContext(context)).build();
+
+        mvc.perform(get("/api/v1/platform/model-supply/connections/presets"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.version").isString())
+                .andExpect(jsonPath("$.items.length()").value(5))
+                .andExpect(jsonPath("$.items[0].id").value("CUSTOM"))
+                .andExpect(jsonPath("$.items[1].id").value("DEEPSEEK"))
+                .andExpect(jsonPath("$.items[2].id").value("ALIYUN"))
+                .andExpect(jsonPath("$.items[3].id").value("SILICONFLOW"))
+                .andExpect(jsonPath("$.items[4].id").value("VOLCENGINE"))
+                .andExpect(jsonPath("$.items[4].capabilities[0]").value("CHAT"))
+                .andExpect(jsonPath("$.items[4].discoveryProfile").value("VOLCENGINE_ARK_CONTROL_PLANE"))
+                .andExpect(jsonPath("$.apiKey").doesNotExist());
+        org.mockito.Mockito.verifyNoInteractions(repository, credentials, transactions, identifiers, probes);
+    }
+
+    @Test
     void 平台连接详情按不透明标识只读恢复安全摘要() throws Exception {
         var repository = mock(PlatformProviderConnectionRepository.class);
         var credentials = mock(PlatformProviderConnectionCredentialWriter.class);
@@ -46,13 +94,20 @@ class PlatformProviderConnectionControllerTest {
         var identifiers = mock(com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator.class);
         var probes = mock(PlatformProbeProviderService.class);
         var service = new PlatformProviderConnectionService(repository, credentials, transactions,
-                probes, java.time.Clock.systemUTC(), identifiers);
+                probes, java.time.Clock.systemUTC(), identifiers, endpoint -> {});
         var context = mock(PlatformRequestContext.class);
         when(context.hasPermission(PlatformPermissions.MODEL_PLATFORM_WRITE)).thenReturn(true);
         var id = new PlatformProviderConnectionId(320000000000000001L);
         when(repository.findById(id)).thenReturn(java.util.Optional.of(PlatformProviderConnection.create(
-                id, ProviderKind.OPENAI_COMPATIBLE, "平台模型", java.net.URI.create("https://models.example.invalid/v1"),
-                "cn-beijing", AuthenticationType.API_KEY, new CredentialReference("secret://platform-provider-connection/320000000000000001"),
+                id,
+                ProviderKind.OPENAI_COMPATIBLE,
+                com.aiplatform.foundation.modelruntime.domain.platformsupply.model.PlatformModelDiscoveryProfile.OPENAI_MODELS_API,
+                new com.aiplatform.foundation.modelruntime.domain.platformsupply.model.preset.PlatformProviderPresetSelection("CUSTOM", "2026-10-12", "CHAT", null),
+                "平台模型",
+                java.net.URI.create("https://models.example.invalid/v1"),
+                "cn-beijing",
+                AuthenticationType.API_KEY,
+                new CredentialReference("secret://platform-provider-connection/320000000000000001"),
                 Instant.parse("2026-10-12T00:00:00Z"))));
         var mvc = MockMvcBuilders.standaloneSetup(new PlatformProviderConnectionController(service))
                 .setCustomArgumentResolvers(platformContext(context)).build();
@@ -102,9 +157,10 @@ class PlatformProviderConnectionControllerTest {
                         .header("Idempotency-Key", "platform-request-0001")
                         .contentType("application/json")
                         .content("{" +
-                                "\"providerKind\":\"DETERMINISTIC\",\"displayName\":\"平台模型\","
-                                + "\"discoveryProfile\":\"DETERMINISTIC_CATALOG\","
-                                + "\"endpoint\":\"memory://deterministic\",\"region\":\"本地\","
+                                "\"providerKind\":\"OPENAI_COMPATIBLE\",\"displayName\":\"平台模型\","
+                                + "\"providerPresetId\":\"CUSTOM\",\"providerPresetVersion\":\"2026-10-12\",\"capability\":\"CHAT\","
+                                + "\"discoveryProfile\":\"OPENAI_MODELS_API\","
+                                + "\"endpoint\":\"https://models.example.invalid/v1\",\"region\":\"unspecified\","
                                 + "\"authenticationType\":\"API_KEY\",\"apiKey\":\"test-api-key\"}"))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.credentialConfigured").value(true))
@@ -117,7 +173,7 @@ class PlatformProviderConnectionControllerTest {
         org.junit.jupiter.api.Assertions.assertSame(context, command.getValue().context());
         org.junit.jupiter.api.Assertions.assertEquals(
                 com.aiplatform.foundation.modelruntime.domain.platformsupply.model.PlatformModelDiscoveryProfile
-                        .DETERMINISTIC_CATALOG,
+                        .OPENAI_MODELS_API,
                 command.getValue().discoveryProfile());
         org.junit.jupiter.api.Assertions.assertEquals("[已脱敏]", command.getValue().apiKey().toString());
     }
@@ -136,6 +192,7 @@ class PlatformProviderConnectionControllerTest {
                         .contentType("application/json")
                         .content("{"+
                                 "\"providerKind\":\"OPENAI_COMPATIBLE\",\"displayName\":\"火山方舟\","+
+                                "\"providerPresetId\":\"VOLCENGINE\",\"providerPresetVersion\":\"2026-10-12\",\"capability\":\"CHAT\","+
                                 "\"discoveryProfile\":\"VOLCENGINE_ARK_CONTROL_PLANE\","+
                                 "\"endpoint\":\"https://ark.cn-beijing.volces.com/api/v3\","+
                                 "\"region\":\"cn-beijing\",\"authenticationType\":\"API_KEY\","+
@@ -243,8 +300,20 @@ class PlatformProviderConnectionControllerTest {
 
     private static PlatformProviderConnectionView view() {
         return new PlatformProviderConnectionView(
-                "320000000000000001", "DETERMINISTIC", "平台模型", "本地", "API_KEY",
-                true, "DRAFT", 0L, null, null, null, Instant.parse("2026-08-13T01:00:00Z"));
+                "320000000000000001",
+                "DETERMINISTIC",
+                "平台模型",
+                "DETERMINISTIC_CATALOG",
+                "本地",
+                "API_KEY",
+                true,
+                "DRAFT",
+                0L,
+                null,
+                null,
+                null,
+                Instant.parse("2026-08-13T01:00:00Z"),
+                null);
     }
 
     private static HandlerMethodArgumentResolver platformContext(PlatformRequestContext context) {

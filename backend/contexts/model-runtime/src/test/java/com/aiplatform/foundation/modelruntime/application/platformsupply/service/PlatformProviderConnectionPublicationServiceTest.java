@@ -36,9 +36,17 @@ class PlatformProviderConnectionPublicationServiceTest {
 
     @Test void 当前修订没有发布事实时不能借用历史发布() {
         var id = new PlatformProviderConnectionId(310000000000000001L);
-        var connection = PlatformProviderConnection.create(id, ProviderKind.DETERMINISTIC,
-                "合成连接", URI.create("memory://synthetic"), "local", AuthenticationType.API_KEY,
-                new CredentialReference("secret://platform-provider-connection/" + id.value()), Instant.parse("2026-10-12T00:00:00Z"))
+        var connection = PlatformProviderConnection.create(
+                id,
+                ProviderKind.DETERMINISTIC,
+                com.aiplatform.foundation.modelruntime.domain.platformsupply.model.PlatformModelDiscoveryProfile.DETERMINISTIC_CATALOG,
+                new com.aiplatform.foundation.modelruntime.domain.platformsupply.model.preset.PlatformProviderPresetSelection("CUSTOM", "2026-10-12", "CHAT", null),
+                "合成连接",
+                URI.create("memory://synthetic"),
+                "local",
+                AuthenticationType.API_KEY,
+                new CredentialReference("secret://platform-provider-connection/" + id.value()),
+                Instant.parse("2026-10-12T00:00:00Z"))
                 .recordSuccessfulProbe("CONNECTION_OK", Instant.parse("2026-10-12T00:00:00Z"));
         when(connections.findById(id)).thenReturn(Optional.of(connection));
         when(publications.find(id, 1L)).thenReturn(Optional.empty());

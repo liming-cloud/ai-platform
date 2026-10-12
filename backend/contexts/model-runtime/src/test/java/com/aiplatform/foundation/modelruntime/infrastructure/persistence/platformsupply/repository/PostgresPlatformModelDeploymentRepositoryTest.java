@@ -74,9 +74,17 @@ class PostgresPlatformModelDeploymentRepositoryTest {
         jdbc.update("DELETE FROM model_runtime.platform_provider_connection_credential");
         jdbc.update("DELETE FROM model_runtime.platform_provider_connection");
         connectionId = new PlatformProviderConnectionId(IDENTIFIERS.incrementAndGet());
-        connections.create(new PlatformProviderConnectionCreation(PlatformProviderConnection.create(connectionId,
-                ProviderKind.DETERMINISTIC, "平台连接" + connectionId.value(), URI.create("memory://deterministic"), "local",
-                AuthenticationType.API_KEY, new CredentialReference("secret://platform-provider-connection/" + connectionId.value()), CREATED_AT),
+        connections.create(new PlatformProviderConnectionCreation(PlatformProviderConnection.create(
+                connectionId,
+                ProviderKind.DETERMINISTIC,
+                com.aiplatform.foundation.modelruntime.domain.platformsupply.model.PlatformModelDiscoveryProfile.DETERMINISTIC_CATALOG,
+                new com.aiplatform.foundation.modelruntime.domain.platformsupply.model.preset.PlatformProviderPresetSelection("CUSTOM", "2026-10-12", "CHAT", null),
+                "平台连接" + connectionId.value(),
+                URI.create("memory://deterministic"),
+                "local",
+                AuthenticationType.API_KEY,
+                new CredentialReference("secret://platform-provider-connection/" + connectionId.value()),
+                CREATED_AT),
                 "platform-connection-" + connectionId.value(), "a".repeat(64)));
     }
 
@@ -128,8 +136,11 @@ class PostgresPlatformModelDeploymentRepositoryTest {
                 Set.of(ModelCapability.EMBEDDING), 8192, null, 1536, CREATED_AT), idempotencyKey, fingerprint);
     }
 
-    @SpringBootConfiguration @EnableAutoConfiguration static class TestApplication {
-        @Bean PlatformProviderConnectionRepository platformProviderConnectionRepository(JdbcTemplate jdbc, PlatformTransactionManager transactions) { return new PostgresPlatformProviderConnectionRepository(jdbc, transactions); }
+    @SpringBootConfiguration @EnableAutoConfiguration
+    @org.mybatis.spring.annotation.MapperScan(basePackageClasses = com.aiplatform.foundation.modelruntime.infrastructure.persistence.platformsupply.mapper.PlatformProviderConnectionMapper.class)
+    static class TestApplication {
+        @Bean PlatformProviderConnectionRepository platformProviderConnectionRepository(com.aiplatform.foundation.modelruntime.infrastructure.persistence.platformsupply.mapper.PlatformProviderConnectionMapper mapper,
+                com.aiplatform.foundation.modelruntime.infrastructure.persistence.platformsupply.mapper.PlatformProviderConnectionRequestMapper requests, PlatformTransactionManager transactions) { return new PostgresPlatformProviderConnectionRepository(mapper, requests, transactions); }
         @Bean PlatformModelDeploymentRepository platformModelDeploymentRepository(JdbcTemplate jdbc, PlatformTransactionManager transactions) { return new PostgresPlatformModelDeploymentRepository(jdbc, transactions); }
         @Bean PlatformModelDeploymentVerificationStore platformModelDeploymentVerificationStore(JdbcTemplate jdbc, PlatformTransactionManager transactions) { return new PostgresPlatformModelDeploymentVerificationStore(jdbc, transactions); }
     }

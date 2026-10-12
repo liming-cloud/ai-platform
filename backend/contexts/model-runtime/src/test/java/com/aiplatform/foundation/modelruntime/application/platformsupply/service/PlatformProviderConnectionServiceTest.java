@@ -36,6 +36,42 @@ import org.junit.jupiter.api.Test;
 class PlatformProviderConnectionServiceTest {
 
     @Test
+    void 自定义连接指向私网时创建即失败且不保存凭据() {
+        var writer = new CapturingCredentialWriter();
+        var service = new PlatformProviderConnectionService(new CreatingRepository(), writer,
+                java.util.function.Supplier::get, new PlatformProbeProviderService(List.of(), Clock.systemUTC()),
+                Clock.systemUTC(), () -> 320000000000000001L, new com.aiplatform.foundation.security.egress.PublicHttpsEndpointPolicy());
+        try (var key = SecretValue.copyOf("synthetic-private-key".toCharArray())) {
+            assertThrows(com.aiplatform.foundation.security.egress.UnsafeOutboundEndpointException.class,
+                    () -> service.create(new CreatePlatformProviderConnectionCommand(platformModelWriter(),
+                            "private-endpoint-denied-0001", ProviderKind.OPENAI_COMPATIBLE,
+                            PlatformModelDiscoveryProfile.OPENAI_MODELS_API,
+                            new com.aiplatform.foundation.modelruntime.domain.platformsupply.model.preset.PlatformProviderPresetSelection(
+                                    "CUSTOM", "2026-10-12", "CHAT", null),
+                            "禁止私网", URI.create("https://127.0.0.1/v1"), "unspecified", AuthenticationType.API_KEY, key)));
+        }
+        assertEquals(List.of(), writer.references);
+    }
+
+    @Test
+    void 非方舟发现不得携带单个AK或SK() {
+        try (var key = SecretValue.copyOf("synthetic-inference-key".toCharArray());
+                var discoveryKey = SecretValue.copyOf("synthetic-discovery-key".toCharArray())) {
+            for (boolean accessKeyOnly : List.of(true, false)) {
+                assertThrows(IllegalArgumentException.class,
+                        () -> new CreatePlatformProviderConnectionCommand(platformModelWriter(),
+                                "partial-discovery-denied-0001", ProviderKind.OPENAI_COMPATIBLE,
+                                PlatformModelDiscoveryProfile.OPENAI_MODELS_API,
+                                new com.aiplatform.foundation.modelruntime.domain.platformsupply.model.preset.PlatformProviderPresetSelection(
+                                        "CUSTOM", "2026-10-12", "CHAT", null),
+                                "不应接收控制面凭据", URI.create("https://models.example.invalid/v1"), "unspecified",
+                                AuthenticationType.API_KEY, key, accessKeyOnly ? discoveryKey : null,
+                                accessKeyOnly ? null : discoveryKey));
+            }
+        }
+    }
+
+    @Test
     void 无平台模型权限时详情查询不能读取仓储或解析对象标识() {
         var repository = org.mockito.Mockito.mock(PlatformProviderConnectionRepository.class);
         var writer = org.mockito.Mockito.mock(PlatformProviderConnectionCredentialWriter.class);
@@ -43,7 +79,7 @@ class PlatformProviderConnectionServiceTest {
         var probes = org.mockito.Mockito.mock(PlatformProbeProviderService.class);
         var identifiers = org.mockito.Mockito.mock(com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator.class);
         var service = new PlatformProviderConnectionService(repository, writer, transactions, probes,
-                Clock.systemUTC(), identifiers);
+                Clock.systemUTC(), identifiers, endpoint -> {});
         assertThrows(ModelCatalogPermissionDeniedException.class,
                 () -> service.get(sessionWithoutPlatformModelWrite(), "invalid-id"));
         org.mockito.Mockito.verifyNoInteractions(repository, writer, transactions, probes, identifiers);
@@ -56,7 +92,7 @@ class PlatformProviderConnectionServiceTest {
         org.mockito.Mockito.when(repository.findById(id)).thenReturn(Optional.empty());
         var service = new PlatformProviderConnectionService(repository, new ForbiddenPathCredentialWriter(),
                 java.util.function.Supplier::get, new PlatformProbeProviderService(List.of(), Clock.systemUTC()),
-                Clock.systemUTC(), () -> { throw new AssertionError("详情查询不能生成标识"); });
+                Clock.systemUTC(), () -> { throw new AssertionError("详情查询不能生成标识"); }, endpoint -> {});
         assertThrows(com.aiplatform.foundation.modelruntime.application.provider.exception.ProviderConnectionNotFoundException.class,
                 () -> service.get(platformModelWriter(), id.toString()));
         org.mockito.Mockito.verify(repository).findById(id);
@@ -68,7 +104,7 @@ class PlatformProviderConnectionServiceTest {
         var repository = org.mockito.Mockito.mock(PlatformProviderConnectionRepository.class);
         var service = new PlatformProviderConnectionService(repository, new ForbiddenPathCredentialWriter(),
                 java.util.function.Supplier::get, new PlatformProbeProviderService(List.of(), Clock.systemUTC()),
-                Clock.systemUTC(), () -> { throw new AssertionError("详情查询不能生成标识"); });
+                Clock.systemUTC(), () -> { throw new AssertionError("详情查询不能生成标识"); }, endpoint -> {});
         assertThrows(IllegalArgumentException.class, () -> service.get(platformModelWriter(), "other-tenant/1"));
         org.mockito.Mockito.verifyNoInteractions(repository);
     }
@@ -83,7 +119,7 @@ class PlatformProviderConnectionServiceTest {
                 java.util.function.Supplier::get,
                 new PlatformProbeProviderService(java.util.List.of(), Clock.systemUTC()),
                 Clock.fixed(Instant.parse("2026-08-24T09:00:00Z"), java.time.ZoneOffset.UTC),
-                () -> 320000000000000001L);
+                () -> 320000000000000001L, endpoint -> {});
         try (var apiKey = SecretValue.copyOf("inference-api-key".toCharArray());
                 var accessKeyId = SecretValue.copyOf("AK_TEST".toCharArray());
                 var secretAccessKey = SecretValue.copyOf("SK_TEST".toCharArray())) {
@@ -92,6 +128,7 @@ class PlatformProviderConnectionServiceTest {
                     "platform-ark-request-0001",
                     ProviderKind.OPENAI_COMPATIBLE,
                     PlatformModelDiscoveryProfile.VOLCENGINE_ARK_CONTROL_PLANE,
+                    new com.aiplatform.foundation.modelruntime.domain.platformsupply.model.preset.PlatformProviderPresetSelection("VOLCENGINE", "2026-10-12", "CHAT", null),
                     "火山方舟",
                     URI.create("https://ark.cn-beijing.volces.com/api/v3"),
                     "cn-beijing",
@@ -115,7 +152,7 @@ class PlatformProviderConnectionServiceTest {
                 java.util.function.Supplier::get,
                 new PlatformProbeProviderService(java.util.List.of(), Clock.systemUTC()),
                 Clock.systemUTC(),
-                () -> 310000000000000001L);
+                () -> 310000000000000001L, endpoint -> {});
         try (var apiKey = SecretValue.copyOf("test-api-key".toCharArray())) {
             assertThrows(
                     ModelCatalogPermissionDeniedException.class,
@@ -123,6 +160,8 @@ class PlatformProviderConnectionServiceTest {
                             sessionWithoutPlatformModelWrite(),
                             "platform-connection-0001",
                             ProviderKind.OPENAI_COMPATIBLE,
+                            com.aiplatform.foundation.modelruntime.domain.platformsupply.model.PlatformModelDiscoveryProfile.OPENAI_MODELS_API,
+                            new com.aiplatform.foundation.modelruntime.domain.platformsupply.model.preset.PlatformProviderPresetSelection("CUSTOM", "2026-10-12", "CHAT", null),
                             "平台连接",
                             URI.create("https://models.example.com/v1"),
                             "本地研发",
@@ -139,7 +178,7 @@ class PlatformProviderConnectionServiceTest {
                 java.util.function.Supplier::get,
                 new PlatformProbeProviderService(java.util.List.of(), Clock.systemUTC()),
                 Clock.systemUTC(),
-                () -> 310000000000000001L);
+                () -> 310000000000000001L, endpoint -> {});
         assertThrows(
                 ModelCatalogPermissionDeniedException.class,
                 () -> service.probe(new ProbePlatformProviderConnectionCommand(
@@ -153,10 +192,17 @@ class PlatformProviderConnectionServiceTest {
     @Test
     void 成功探测只推进平台连接而不需要租户标识() {
         var connection = PlatformProviderConnection.create(
-                new PlatformProviderConnectionId(610000000000000001L), ProviderKind.DETERMINISTIC,
-                "平台确定性连接", URI.create("memory://platform-model"), "local", AuthenticationType.API_KEY,
+                new PlatformProviderConnectionId(610000000000000001L),
+                ProviderKind.DETERMINISTIC,
+                com.aiplatform.foundation.modelruntime.domain.platformsupply.model.PlatformModelDiscoveryProfile.DETERMINISTIC_CATALOG,
+                new com.aiplatform.foundation.modelruntime.domain.platformsupply.model.preset.PlatformProviderPresetSelection("CUSTOM", "2026-10-12", "CHAT", null),
+                "平台确定性连接",
+                URI.create("memory://platform-model"),
+                "local",
+                AuthenticationType.API_KEY,
                 new com.aiplatform.foundation.modelruntime.domain.provider.model.CredentialReference(
-                        "secret://platform-provider-connection/610000000000000001"), Instant.parse("2026-08-13T00:00:00Z"));
+                        "secret://platform-provider-connection/610000000000000001"),
+                Instant.parse("2026-08-13T00:00:00Z"));
         var repository = new SingleConnectionRepository(connection);
         var probe = new PlatformProviderConnectionProbe() {
             @Override public com.aiplatform.foundation.modelruntime.application.extension.facade.ProviderKind providerKind() { return com.aiplatform.foundation.modelruntime.application.extension.facade.ProviderKind.DETERMINISTIC; }
@@ -166,7 +212,7 @@ class PlatformProviderConnectionServiceTest {
         };
         var service = new PlatformProviderConnectionService(repository, new ForbiddenPathCredentialWriter(),
                 java.util.function.Supplier::get, new PlatformProbeProviderService(java.util.List.of(probe), Clock.systemUTC()),
-                Clock.systemUTC(), () -> 610000000000000002L);
+                Clock.systemUTC(), () -> 610000000000000002L, endpoint -> {});
         var result = service.probe(new ProbePlatformProviderConnectionCommand(platformModelWriter(),
                 connection.id().toString(), connection.version(), "deterministic-embedding", java.time.Duration.ofSeconds(3)));
         assertEquals("VERIFIED", result.status());

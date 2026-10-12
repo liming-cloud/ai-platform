@@ -17,7 +17,8 @@ public record PlatformProviderConnectionView(
         Boolean lastProbeSucceeded,
         String lastProbeCode,
         Instant lastProbedAt,
-        Instant createdAt) {
+        Instant createdAt,
+        Preset preset) {
 
     public PlatformProviderConnectionView {
         Objects.requireNonNull(id, "平台供应商连接标识不能为空");
@@ -30,25 +31,6 @@ public record PlatformProviderConnectionView(
         Objects.requireNonNull(createdAt, "创建时间不能为空");
     }
 
-    /** 兼容历史测试与内部装配；新响应始终返回显式发现协议。 */
-    public PlatformProviderConnectionView(
-            String id,
-            String providerKind,
-            String displayName,
-            String region,
-            String authenticationType,
-            boolean credentialConfigured,
-            String status,
-            long version,
-            Boolean lastProbeSucceeded,
-            String lastProbeCode,
-            Instant lastProbedAt,
-            Instant createdAt) {
-        this(id, providerKind, displayName,
-                com.aiplatform.foundation.modelruntime.domain.platformsupply.model.PlatformModelDiscoveryProfile
-                        .legacyDefault(com.aiplatform.foundation.modelruntime.domain.provider.model.ProviderKind.valueOf(providerKind))
-                        .name(),
-                region, authenticationType, credentialConfigured, status, version,
-                lastProbeSucceeded, lastProbeCode, lastProbedAt, createdAt);
-    }
+    /** 仅公开来源和能力意图，不公开构造运行地址所用的工作空间。 */
+    public record Preset(String id, String version, String capability) {}
 }

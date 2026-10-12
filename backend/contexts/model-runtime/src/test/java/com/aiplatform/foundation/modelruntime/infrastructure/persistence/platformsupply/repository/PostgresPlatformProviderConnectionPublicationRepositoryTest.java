@@ -131,9 +131,17 @@ class PostgresPlatformProviderConnectionPublicationRepositoryTest {
 
     private PlatformProviderConnection verified() {
         var id = new PlatformProviderConnectionId(IDS.incrementAndGet());
-        var connection = PlatformProviderConnection.create(id, ProviderKind.DETERMINISTIC,
-                "合成连接" + id.value(), URI.create("memory://synthetic"), "local", AuthenticationType.API_KEY,
-                new CredentialReference("secret://platform-provider-connection/" + id.value()), NOW);
+        var connection = PlatformProviderConnection.create(
+                id,
+                ProviderKind.DETERMINISTIC,
+                com.aiplatform.foundation.modelruntime.domain.platformsupply.model.PlatformModelDiscoveryProfile.DETERMINISTIC_CATALOG,
+                new com.aiplatform.foundation.modelruntime.domain.platformsupply.model.preset.PlatformProviderPresetSelection("CUSTOM", "2026-10-12", "CHAT", null),
+                "合成连接" + id.value(),
+                URI.create("memory://synthetic"),
+                "local",
+                AuthenticationType.API_KEY,
+                new CredentialReference("secret://platform-provider-connection/" + id.value()),
+                NOW);
         connections.create(new PlatformProviderConnectionCreation(connection, "synthetic-connection-" + id.value(), "a".repeat(64)));
         var verified = connection.recordSuccessfulProbe("CONNECTION_OK", NOW);
         assertTrue(connections.update(verified, connection.version()));
@@ -143,8 +151,9 @@ class PostgresPlatformProviderConnectionPublicationRepositoryTest {
     @SpringBootConfiguration @EnableAutoConfiguration
     @MapperScan(basePackageClasses = PlatformProviderConnectionPublicationMapper.class)
     static class TestApplication {
-        @Bean PlatformProviderConnectionRepository connections(JdbcTemplate jdbc, PlatformTransactionManager transactions) {
-            return new PostgresPlatformProviderConnectionRepository(jdbc, transactions);
+        @Bean PlatformProviderConnectionRepository connections(com.aiplatform.foundation.modelruntime.infrastructure.persistence.platformsupply.mapper.PlatformProviderConnectionMapper mapper,
+                com.aiplatform.foundation.modelruntime.infrastructure.persistence.platformsupply.mapper.PlatformProviderConnectionRequestMapper requests, PlatformTransactionManager transactions) {
+            return new PostgresPlatformProviderConnectionRepository(mapper, requests, transactions);
         }
         @Bean PlatformProviderConnectionPublicationRepository publications(PlatformProviderConnectionPublicationMapper mapper,
                 PlatformProviderConnectionRepository connections, PlatformTransactionManager transactions) {

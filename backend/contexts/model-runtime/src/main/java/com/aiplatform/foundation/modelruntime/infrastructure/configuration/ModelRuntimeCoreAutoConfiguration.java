@@ -74,7 +74,7 @@ import org.springframework.beans.factory.ObjectProvider;
 /**
  * 注册模型目录用例、探测编排和跨上下文发布查询门面。
  */
-@AutoConfiguration(after = ModelRuntimePersistenceAutoConfiguration.class)
+@AutoConfiguration(after = {ModelRuntimePersistenceAutoConfiguration.class, ModelRuntimeExecutionAutoConfiguration.class})
 @ConditionalOnProperty(
         name = "foundation.model-catalog.enabled",
         havingValue = "true")
@@ -117,7 +117,8 @@ public class ModelRuntimeCoreAutoConfiguration {
     @Bean
     @ConditionalOnBean({
         PlatformProviderConnectionCredentialWriter.class,
-        PlatformProviderConnectionCredentialTransaction.class
+        PlatformProviderConnectionCredentialTransaction.class,
+        com.aiplatform.foundation.security.egress.OutboundEndpointPolicy.class
     })
     @ConditionalOnMissingBean
     PlatformProviderConnectionService platformProviderConnectionService(
@@ -125,9 +126,10 @@ public class ModelRuntimeCoreAutoConfiguration {
             PlatformProviderConnectionCredentialWriter credentials,
             PlatformProviderConnectionCredentialTransaction transactions,
             PlatformProbeProviderService probes,
-            EntityIdGenerator identifiers) {
+            EntityIdGenerator identifiers,
+            com.aiplatform.foundation.security.egress.OutboundEndpointPolicy endpointPolicy) {
         return new PlatformProviderConnectionService(
-                repository, credentials, transactions, probes, Clock.systemUTC(), identifiers);
+                repository, credentials, transactions, probes, Clock.systemUTC(), identifiers, endpointPolicy);
     }
 
     @Bean

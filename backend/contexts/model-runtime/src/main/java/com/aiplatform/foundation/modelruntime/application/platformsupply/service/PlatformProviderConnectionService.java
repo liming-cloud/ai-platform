@@ -40,6 +40,7 @@ public final class PlatformProviderConnectionService {
     private final Clock clock;
     private final EntityIdGenerator identifiers;
     private final PlatformProbeProviderService probeProvider;
+    private final com.aiplatform.foundation.security.egress.OutboundEndpointPolicy endpointPolicy;
 
     public PlatformProviderConnectionService(
             PlatformProviderConnectionRepository repository,
@@ -47,24 +48,31 @@ public final class PlatformProviderConnectionService {
             PlatformProviderConnectionCredentialTransaction transactions,
             PlatformProbeProviderService probeProvider,
             Clock clock,
-            EntityIdGenerator identifiers) {
+            EntityIdGenerator identifiers,
+            com.aiplatform.foundation.security.egress.OutboundEndpointPolicy endpointPolicy) {
         this.repository = Objects.requireNonNull(repository, "平台供应商连接仓储不能为空");
         this.credentials = Objects.requireNonNull(credentials, "平台供应商连接凭据写入器不能为空");
         this.transactions = Objects.requireNonNull(transactions, "平台供应商连接事务不能为空");
         this.probeProvider = Objects.requireNonNull(probeProvider, "平台供应商探测用例不能为空");
         this.clock = Objects.requireNonNull(clock, "时钟不能为空");
         this.identifiers = Objects.requireNonNull(identifiers, "标识生成器不能为空");
+        this.endpointPolicy = Objects.requireNonNull(endpointPolicy, "出站安全策略不能为空");
     }
 
     public CreatePlatformProviderConnectionResult create(
             CreatePlatformProviderConnectionCommand command) {
         Objects.requireNonNull(command, "创建命令不能为空");
         requirePermission(command.context());
+        PlatformProviderPresets.validate(command.preset(), command.providerKind(), command.discoveryProfile(),
+                command.endpoint(), command.region());
+        // 草稿也不能保存禁止地址；探测时仍会再次校验，不能复用本次 DNS 结论。
+        endpointPolicy.verify(command.endpoint());
         var connectionId = new PlatformProviderConnectionId(identifiers.nextId());
         var connection = PlatformProviderConnection.create(
                 connectionId,
                 command.providerKind(),
                 command.discoveryProfile(),
+                command.preset(),
                 command.displayName(),
                 command.endpoint(),
                 command.region(),
@@ -102,6 +110,13 @@ public final class PlatformProviderConnectionService {
         var slice = repository.findPage(query.page().pageNumber(), query.page().pageSize());
         return PageResult.of(slice.items().stream().map(PlatformProviderConnectionService::toView).toList(),
                 query.page(), slice.totalElements());
+    }
+
+    /** 平台预设是受控非秘密配置，读取仍要求可信平台身份。 */
+    public com.aiplatform.foundation.modelruntime.application.platformsupply.dto.preset.PlatformProviderPresetsView presets(
+            PlatformRequestContext context) {
+        requirePermission(Objects.requireNonNull(context, "平台请求上下文不能为空"));
+        return PlatformProviderPresets.view();
     }
 
     /** 只读恢复平台连接；先检查平台权限，不读取凭据、写入探测或建立发布事实。 */
@@ -144,7 +159,9 @@ public final class PlatformProviderConnectionService {
                 connection.discoveryProfile().name(),
                 connection.region(), connection.authenticationType().name(), true, connection.status().name(),
                 connection.version(), connection.lastProbeSucceeded(), connection.lastProbeCode(),
-                connection.lastProbedAt(), connection.createdAt());
+                connection.lastProbedAt(), connection.createdAt(), connection.preset() == null ? null
+                        : new PlatformProviderConnectionView.Preset(connection.preset().providerId(),
+                                connection.preset().version(), connection.preset().capability()));
     }
 
     private static String fingerprint(CreatePlatformProviderConnectionCommand command) {
@@ -152,6 +169,10 @@ public final class PlatformProviderConnectionService {
             var digest = MessageDigest.getInstance("SHA-256");
             update(digest, command.providerKind().name());
             update(digest, command.discoveryProfile().name());
+            update(digest, command.preset().providerId());
+            update(digest, command.preset().version());
+            update(digest, command.preset().capability());
+            update(digest, command.preset().workspaceId() == null ? "" : command.preset().workspaceId());
             update(digest, command.displayName());
             update(digest, command.endpoint().toString());
             update(digest, command.region());

@@ -83,6 +83,8 @@ class PostgresPlatformProviderModelDiscoveryStoreTest {
                 PlatformProviderConnection.create(
                         new PlatformProviderConnectionId(IDENTIFIERS.incrementAndGet()),
                         ProviderKind.DETERMINISTIC,
+                        com.aiplatform.foundation.modelruntime.domain.platformsupply.model.PlatformModelDiscoveryProfile.DETERMINISTIC_CATALOG,
+                        new com.aiplatform.foundation.modelruntime.domain.platformsupply.model.preset.PlatformProviderPresetSelection("CUSTOM", "2026-10-12", "CHAT", null),
                         "平台模型发现连接",
                         URI.create("memory://deterministic"),
                         "本地",
@@ -119,6 +121,8 @@ class PostgresPlatformProviderModelDiscoveryStoreTest {
                 PlatformProviderConnection.create(
                         new PlatformProviderConnectionId(IDENTIFIERS.incrementAndGet()),
                         ProviderKind.DETERMINISTIC,
+                        com.aiplatform.foundation.modelruntime.domain.platformsupply.model.PlatformModelDiscoveryProfile.DETERMINISTIC_CATALOG,
+                        new com.aiplatform.foundation.modelruntime.domain.platformsupply.model.preset.PlatformProviderPresetSelection("CUSTOM", "2026-10-12", "CHAT", null),
                         "平台候选分页连接",
                         URI.create("memory://deterministic"),
                         "本地",
@@ -152,8 +156,14 @@ class PostgresPlatformProviderModelDiscoveryStoreTest {
     void 候选分页只返回同一连接修订最新成功发现() {
         var connection = connections.create(new PlatformProviderConnectionCreation(
                 PlatformProviderConnection.create(
-                        new PlatformProviderConnectionId(IDENTIFIERS.incrementAndGet()), ProviderKind.DETERMINISTIC,
-                        "平台当前候选连接", URI.create("memory://deterministic"), "本地", AuthenticationType.API_KEY,
+                        new PlatformProviderConnectionId(IDENTIFIERS.incrementAndGet()),
+                        ProviderKind.DETERMINISTIC,
+                        com.aiplatform.foundation.modelruntime.domain.platformsupply.model.PlatformModelDiscoveryProfile.DETERMINISTIC_CATALOG,
+                        new com.aiplatform.foundation.modelruntime.domain.platformsupply.model.preset.PlatformProviderPresetSelection("CUSTOM", "2026-10-12", "CHAT", null),
+                        "平台当前候选连接",
+                        URI.create("memory://deterministic"),
+                        "本地",
+                        AuthenticationType.API_KEY,
                         new CredentialReference("secret://platform-provider-connection/" + IDENTIFIERS.get()),
                         Instant.parse("2026-08-13T02:00:00Z")), "platform-discovery-current-request-0001", "c".repeat(64))).connection();
         discoveries.record(PlatformProviderModelDiscovery.capture(
@@ -180,6 +190,8 @@ class PostgresPlatformProviderModelDiscoveryStoreTest {
                 PlatformProviderConnection.create(
                         new PlatformProviderConnectionId(IDENTIFIERS.incrementAndGet()),
                         ProviderKind.OPENAI_COMPATIBLE,
+                        com.aiplatform.foundation.modelruntime.domain.platformsupply.model.PlatformModelDiscoveryProfile.OPENAI_MODELS_API,
+                        new com.aiplatform.foundation.modelruntime.domain.platformsupply.model.preset.PlatformProviderPresetSelection("CUSTOM", "2026-10-12", "CHAT", null),
                         "OpenAI-compatible 平台连接",
                         URI.create("https://models.example.test/v1"),
                         "global",
@@ -229,10 +241,12 @@ class PostgresPlatformProviderModelDiscoveryStoreTest {
 
     @SpringBootConfiguration
     @EnableAutoConfiguration
+    @org.mybatis.spring.annotation.MapperScan(basePackageClasses = com.aiplatform.foundation.modelruntime.infrastructure.persistence.platformsupply.mapper.PlatformProviderConnectionMapper.class)
     static class TestApplication {
         @Bean PlatformProviderConnectionRepository platformProviderConnectionRepository(
-                JdbcTemplate jdbc, PlatformTransactionManager transactions) {
-            return new PostgresPlatformProviderConnectionRepository(jdbc, transactions);
+                com.aiplatform.foundation.modelruntime.infrastructure.persistence.platformsupply.mapper.PlatformProviderConnectionMapper mapper,
+                com.aiplatform.foundation.modelruntime.infrastructure.persistence.platformsupply.mapper.PlatformProviderConnectionRequestMapper requests, PlatformTransactionManager transactions) {
+            return new PostgresPlatformProviderConnectionRepository(mapper, requests, transactions);
         }
 
         @Bean PlatformProviderModelDiscoveryStore platformProviderModelDiscoveryStore(

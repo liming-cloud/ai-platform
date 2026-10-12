@@ -2,6 +2,12 @@
   "schemaVersion": 1,
   "statements": [
     {
+      "path": "backend/contexts/model-runtime/src/main/resources/mapper/model-runtime/PlatformProviderConnectionMapper.xml",
+      "statementId": "lockCreation",
+      "category": "POSTGRES_ADVISORY_LOCK",
+      "reason": "平台连接全局名称与幂等请求共享咨询锁，在同一事务内完成检查和创建。"
+    },
+    {
       "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/AccessPolicyMapper.xml",
       "statementId": "memberChoices",
       "category": "MULTI_TABLE",

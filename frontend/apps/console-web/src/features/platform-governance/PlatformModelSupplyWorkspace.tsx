@@ -23,6 +23,7 @@ import {
   type ControlPlaneClient,
   type PlatformModelDiscoveryProfile,
   type PlatformProviderConnectionSummary,
+  type PlatformProviderPresets,
 } from "../../api/control-plane-client";
 import type { ConsoleRoute } from "../../session/console-route";
 
@@ -64,7 +65,7 @@ const PROVIDER_PRESETS: Record<ProviderPreset, ProviderPresetConfiguration> = {
     providerKind: "OPENAI_COMPATIBLE",
     discoveryProfile: "OPENAI_MODELS_API",
     endpoint: "",
-    region: "global",
+    region: "unspecified",
     discoveryLabel: "OpenAI Models API",
     guidance: "供应商必须实现 OpenAI Models API；候选能力缺少权威元数据时由管理员确认。",
   },
@@ -94,6 +95,7 @@ export function PlatformModelSupplyWorkspace({
   const [hasPrevious, setHasPrevious] = useState(false);
   const [hasNext, setHasNext] = useState(false);
   const [failure, setFailure] = useState<Failure>();
+  const [presets, setPresets] = useState<PlatformProviderPresets>();
   const [creating, setCreating] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [apiKey, setApiKey] = useState("");
@@ -114,7 +116,10 @@ export function PlatformModelSupplyWorkspace({
     setViewState("loading");
     setFailure(undefined);
     try {
-      const page = await client.listPlatformProviderConnections(route.page);
+      const [page, directory] = await Promise.all([
+        client.listPlatformProviderConnections(route.page), client.getPlatformProviderPresets(),
+      ]);
+      setPresets(directory);
       setConnections(page.items);
       setTotal(page.totalElements);
       setHasPrevious(page.hasPrevious);
@@ -143,7 +148,7 @@ export function PlatformModelSupplyWorkspace({
     const submittedEndpoint = endpoint.trim();
     const submittedRegion = region.trim();
     const submittedArkDiscovery = providerPreset === "VOLCENGINE_ARK";
-    if (!displayName || !submittedEndpoint || !submittedRegion || !submittedApiKey.trim()
+    if (!presets || !displayName || !submittedEndpoint || !submittedRegion || !submittedApiKey.trim()
       || (submittedArkDiscovery
         && (!submittedDiscoveryAccessKeyId.trim() || !submittedDiscoverySecretAccessKey.trim()))) {
       setFailure({ message: submittedArkDiscovery
@@ -155,6 +160,9 @@ export function PlatformModelSupplyWorkspace({
     setFailure(undefined);
     try {
       await client.createPlatformProviderConnection({
+        providerPresetId: submittedArkDiscovery ? "VOLCENGINE" : "CUSTOM",
+        providerPresetVersion: presets.version,
+        capability: "CHAT",
         displayName,
         endpoint: submittedEndpoint,
         region: submittedRegion,
@@ -213,6 +221,9 @@ export function PlatformModelSupplyWorkspace({
   }
 
   function closeCreateDialog() {
+    setApiKey("");
+    setDiscoveryAccessKeyId("");
+    setDiscoverySecretAccessKey("");
     setCreating(false);
     window.requestAnimationFrame(() => createConnectionTriggerRef.current?.focus());
   }
@@ -257,6 +268,7 @@ export function PlatformModelSupplyWorkspace({
             setProviderPreset(next);
             setEndpoint(nextConfiguration.endpoint);
             setRegion(nextConfiguration.region);
+            setApiKey("");
             setDiscoveryAccessKeyId("");
             setDiscoverySecretAccessKey("");
           }}>

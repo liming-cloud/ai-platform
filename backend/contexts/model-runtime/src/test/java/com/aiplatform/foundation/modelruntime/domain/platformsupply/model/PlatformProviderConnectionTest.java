@@ -20,6 +20,8 @@ class PlatformProviderConnectionTest {
         var connection = PlatformProviderConnection.create(
                 new PlatformProviderConnectionId(310000000000000001L),
                 ProviderKind.OPENAI_COMPATIBLE,
+                com.aiplatform.foundation.modelruntime.domain.platformsupply.model.PlatformModelDiscoveryProfile.OPENAI_MODELS_API,
+                new com.aiplatform.foundation.modelruntime.domain.platformsupply.model.preset.PlatformProviderPresetSelection("CUSTOM", "2026-10-12", "CHAT", null),
                 "平台确定性模型连接",
                 URI.create("https://models.example.com/v1"),
                 "本地研发",
@@ -38,14 +40,16 @@ class PlatformProviderConnectionTest {
     @Test
     void 平台连接轮换凭据必须清除成功探测而不能复用旧修订() {
         var rotated = PlatformProviderConnection.create(
-                        new PlatformProviderConnectionId(310000000000000001L),
-                        ProviderKind.OPENAI_COMPATIBLE,
-                        "平台确定性模型连接",
-                        URI.create("https://models.example.com/v1"),
-                        "本地研发",
-                        AuthenticationType.API_KEY,
-                        new CredentialReference("secret://platform-provider-connection/310000000000000001"),
-                        NOW)
+                new PlatformProviderConnectionId(310000000000000001L),
+                ProviderKind.OPENAI_COMPATIBLE,
+                com.aiplatform.foundation.modelruntime.domain.platformsupply.model.PlatformModelDiscoveryProfile.OPENAI_MODELS_API,
+                new com.aiplatform.foundation.modelruntime.domain.platformsupply.model.preset.PlatformProviderPresetSelection("CUSTOM", "2026-10-12", "CHAT", null),
+                "平台确定性模型连接",
+                URI.create("https://models.example.com/v1"),
+                "本地研发",
+                AuthenticationType.API_KEY,
+                new CredentialReference("secret://platform-provider-connection/310000000000000001"),
+                NOW)
                 .recordSuccessfulProbe("OPENAI_COMPATIBLE_OK", NOW)
                 .rotateCredential(new CredentialReference(
                         "secret://platform-provider-connection/310000000000000001"));
@@ -64,6 +68,8 @@ class PlatformProviderConnectionTest {
                 () -> PlatformProviderConnection.create(
                         new PlatformProviderConnectionId(310000000000000001L),
                         ProviderKind.OPENAI_COMPATIBLE,
+                        com.aiplatform.foundation.modelruntime.domain.platformsupply.model.PlatformModelDiscoveryProfile.OPENAI_MODELS_API,
+                        new com.aiplatform.foundation.modelruntime.domain.platformsupply.model.preset.PlatformProviderPresetSelection("CUSTOM", "2026-10-12", "CHAT", null),
                         "平台确定性模型连接",
                         URI.create("https://models.example.com/v1"),
                         "本地研发",

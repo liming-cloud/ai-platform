@@ -83,6 +83,34 @@ class PostgresPlatformProviderConnectionRepositoryTest {
     }
 
     @Test
+    void 预设来源和能力意图经过数据库恢复后不丢失且探测不改变绑定() {
+        var created = repository.create(creation("platform-preset-roundtrip-0001", "e".repeat(64), "预设绑定" )).connection();
+        var restored = repository.findById(created.id()).orElseThrow();
+        assertEquals(created.preset(), restored.preset());
+        var probed = restored.recordSuccessfulProbe("SYNTHETIC_PROBE_OK", CREATED_AT.plusSeconds(1));
+        assertTrue(repository.update(probed, restored.version()));
+        assertFalse(repository.update(probed, restored.version()));
+        assertEquals(created.preset(), repository.findById(created.id()).orElseThrow().preset());
+    }
+
+    @Test
+    void 平台目录按稳定排序分页且末页总数和空页保持一致() {
+        for (int i = 0; i < 21; i++) {
+            repository.create(creation("platform-paging-0001-" + i, "a".repeat(64), "分页连接" + i));
+        }
+        var first = repository.findPage(1, 20);
+        var last = repository.findPage(2, 20);
+        var empty = repository.findPage(3, 20);
+        assertEquals(21L, first.totalElements());
+        assertEquals(21L, last.totalElements());
+        assertEquals(21L, empty.totalElements());
+        assertEquals(20, first.items().size());
+        assertEquals(1, last.items().size());
+        assertTrue(empty.items().isEmpty());
+        assertTrue(first.items().get(19).id().value() > last.items().get(0).id().value());
+    }
+
+    @Test
     void 同幂等键不同请求和全局重名均失败关闭() {
         repository.create(creation("platform-request-0002", "a".repeat(64), "平台模型"));
 
@@ -103,6 +131,8 @@ class PostgresPlatformProviderConnectionRepositoryTest {
                 PlatformProviderConnection.create(
                         id,
                         ProviderKind.DETERMINISTIC,
+                        com.aiplatform.foundation.modelruntime.domain.platformsupply.model.PlatformModelDiscoveryProfile.DETERMINISTIC_CATALOG,
+                        new com.aiplatform.foundation.modelruntime.domain.platformsupply.model.preset.PlatformProviderPresetSelection("CUSTOM", "2026-10-12", "CHAT", null),
                         displayName,
                         URI.create("memory://deterministic"),
                         "本地",
@@ -115,12 +145,25 @@ class PostgresPlatformProviderConnectionRepositoryTest {
 
     @SpringBootConfiguration
     @EnableAutoConfiguration
+    @org.mybatis.spring.annotation.MapperScan(basePackageClasses = com.aiplatform.foundation.modelruntime.infrastructure.persistence.platformsupply.mapper.PlatformProviderConnectionMapper.class)
     static class TestApplication {
         @Bean
+        com.baomidou.mybatisplus.extension.plugins.MybatisPlusInterceptor pagination() {
+            var interceptor = new com.baomidou.mybatisplus.extension.plugins.MybatisPlusInterceptor();
+            var pagination = new com.baomidou.mybatisplus.extension.plugins.inner.PaginationInnerInterceptor(
+                    com.baomidou.mybatisplus.annotation.DbType.POSTGRE_SQL);
+            pagination.setOverflow(false);
+            pagination.setMaxLimit(100L);
+            interceptor.addInnerInterceptor(pagination);
+            return interceptor;
+        }
+
+        @Bean
         PlatformProviderConnectionRepository platformProviderConnectionRepository(
-                JdbcTemplate jdbc,
+                com.aiplatform.foundation.modelruntime.infrastructure.persistence.platformsupply.mapper.PlatformProviderConnectionMapper mapper,
+                com.aiplatform.foundation.modelruntime.infrastructure.persistence.platformsupply.mapper.PlatformProviderConnectionRequestMapper requests,
                 PlatformTransactionManager transactions) {
-            return new PostgresPlatformProviderConnectionRepository(jdbc, transactions);
+            return new PostgresPlatformProviderConnectionRepository(mapper, requests, transactions);
         }
     }
 }
