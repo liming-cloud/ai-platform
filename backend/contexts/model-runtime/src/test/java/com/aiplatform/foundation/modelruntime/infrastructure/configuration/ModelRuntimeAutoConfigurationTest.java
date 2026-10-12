@@ -21,6 +21,9 @@ import com.aiplatform.foundation.modelruntime.application.runtime.facade.ChatRou
 import com.aiplatform.foundation.modelruntime.application.configuration.port.out.ModelConfigurationCredentialWriter;
 import com.aiplatform.foundation.modelruntime.application.probe.service.ProbeProviderService;
 import com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.PlatformProviderModelDiscoveryStore;
+import com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.PlatformProviderConnectionCredentialWriter;
+import com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.PlatformProviderConnectionCredentialTransaction;
+import com.aiplatform.foundation.modelruntime.application.platformsupply.service.PlatformProviderConnectionPublicationService;
 import com.aiplatform.foundation.modelruntime.application.platformsupply.service.PlatformProviderConnectionService;
 import com.aiplatform.foundation.modelruntime.application.platformsupply.service.PlatformProviderModelDiscoveryService;
 import com.aiplatform.foundation.modelruntime.application.provider.port.out.ProviderModelDiscoveryStore;
@@ -54,11 +57,14 @@ import com.aiplatform.foundation.modelruntime.interfaces.web.configuration.contr
 import com.aiplatform.foundation.modelruntime.interfaces.web.configuration.controller.ModelConfigurationReadController;
 import com.aiplatform.foundation.modelruntime.interfaces.web.provider.controller.ProviderConnectionController;
 import com.aiplatform.foundation.modelruntime.interfaces.web.platformsupply.controller.PlatformProviderConnectionController;
+import com.aiplatform.foundation.modelruntime.interfaces.web.platformsupply.controller.PlatformProviderConnectionPublicationController;
 import com.aiplatform.foundation.modelruntime.interfaces.web.platformsupply.controller.PlatformProviderModelDiscoveryController;
 import com.aiplatform.foundation.security.egress.OutboundEndpointPolicy;
 import com.aiplatform.foundation.security.secret.SecretResolver;
 import com.aiplatform.foundation.security.secret.SecretEncryptionKeyProvider;
 import com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator;
+import com.aiplatform.foundation.modelruntime.domain.platformsupply.repository.PlatformProviderConnectionPublicationRepository;
+import com.aiplatform.foundation.modelruntime.infrastructure.persistence.platformsupply.mapper.PlatformProviderConnectionPublicationMapper;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
@@ -70,7 +76,7 @@ class ModelRuntimeAutoConfigurationTest {
 
     @Test
     void 核心能力仅在显式启用且依赖完整时注册() {
-        new ApplicationContextRunner()
+        var runner = new ApplicationContextRunner()
                 .withConfiguration(AutoConfigurations.of(
                         ModelRuntimeCoreAutoConfiguration.class))
                 .withPropertyValues(
@@ -83,6 +89,12 @@ class ModelRuntimeAutoConfigurationTest {
                 .withBean(
                         PlatformProviderConnectionRepository.class,
                         () -> mock(PlatformProviderConnectionRepository.class))
+                .withBean(
+                        PlatformProviderConnectionCredentialWriter.class,
+                        () -> mock(PlatformProviderConnectionCredentialWriter.class))
+                .withBean(
+                        PlatformProviderConnectionCredentialTransaction.class,
+                        () -> mock(PlatformProviderConnectionCredentialTransaction.class))
                 .withBean(
                         PlatformProviderModelDiscoveryStore.class,
                         () -> mock(PlatformProviderModelDiscoveryStore.class))
@@ -119,7 +131,10 @@ class ModelRuntimeAutoConfigurationTest {
                 .withBean(
                         ModelConfigurationCredentialUser.class,
                         () -> mock(ModelConfigurationCredentialUser.class))
-                .withBean(EntityIdGenerator.class, () -> () -> 1001L)
+                .withBean(EntityIdGenerator.class, () -> () -> 1001L);
+
+        runner.withBean(PlatformProviderConnectionPublicationRepository.class,
+                        () -> mock(PlatformProviderConnectionPublicationRepository.class))
                 .run(context -> {
                     assertThat(context).hasNotFailed();
                     assertThat(context).hasSingleBean(ProbeProviderService.class);
@@ -127,6 +142,8 @@ class ModelRuntimeAutoConfigurationTest {
                     assertThat(context).hasSingleBean(ProviderModelDiscoveryService.class);
                     assertThat(context).hasSingleBean(ProviderModelDiscoveryReadService.class);
                     assertThat(context).hasSingleBean(PlatformProviderModelDiscoveryService.class);
+                    assertThat(context).hasSingleBean(PlatformProviderConnectionService.class);
+                    assertThat(context).hasSingleBean(PlatformProviderConnectionPublicationService.class);
                     assertThat(context).hasSingleBean(ModelDeploymentService.class);
                     assertThat(context).hasSingleBean(ModelConfigurationService.class);
                     assertThat(context).hasSingleBean(ModelConfigurationAccessService.class);
@@ -136,6 +153,14 @@ class ModelRuntimeAutoConfigurationTest {
                     assertThat(context).hasSingleBean(PublishedChatDeploymentLookup.class);
                     assertThat(context).hasSingleBean(PublishedEmbeddingDeploymentLookup.class);
                 });
+
+        // 已允许连接写入时，缺少发布持久化不能静默退化为部分可写服务。
+        runner.run(context -> {
+            assertThat(context).hasFailed();
+            assertThat(context.getStartupFailure()).hasRootCauseInstanceOf(
+                    org.springframework.beans.factory.NoSuchBeanDefinitionException.class)
+                    .hasStackTraceContaining(PlatformProviderConnectionPublicationRepository.class.getName());
+        });
     }
 
     @Test
@@ -174,6 +199,9 @@ class ModelRuntimeAutoConfigurationTest {
                         PlatformProviderConnectionService.class,
                         () -> mock(PlatformProviderConnectionService.class))
                 .withBean(
+                        PlatformProviderConnectionPublicationService.class,
+                        () -> mock(PlatformProviderConnectionPublicationService.class))
+                .withBean(
                         PlatformProviderModelDiscoveryService.class,
                         () -> mock(PlatformProviderModelDiscoveryService.class))
                 .withBean(
@@ -198,6 +226,7 @@ class ModelRuntimeAutoConfigurationTest {
                     assertThat(context).hasNotFailed();
                     assertThat(context).hasSingleBean(ProviderConnectionController.class);
                     assertThat(context).hasSingleBean(PlatformProviderConnectionController.class);
+                    assertThat(context).hasSingleBean(PlatformProviderConnectionPublicationController.class);
                     assertThat(context).hasSingleBean(PlatformProviderModelDiscoveryController.class);
                     assertThat(context).hasSingleBean(ModelDeploymentController.class);
                     assertThat(context).hasSingleBean(ModelConfigurationController.class);
@@ -250,6 +279,8 @@ class ModelRuntimeAutoConfigurationTest {
                         ModelRuntimePersistenceAutoConfiguration.class))
                 .withPropertyValues(
                         "foundation.model-runtime.persistence.enabled=true")
+                .withBean(PlatformProviderConnectionPublicationMapper.class,
+                        () -> mock(PlatformProviderConnectionPublicationMapper.class))
                 .withBean(
                         ProviderConnectionMapper.class,
                         () -> mock(ProviderConnectionMapper.class))
@@ -299,6 +330,7 @@ class ModelRuntimeAutoConfigurationTest {
                     assertThat(context).hasSingleBean(ProviderModelDiscoveryHistoryReader.class);
                     assertThat(context).hasSingleBean(ProviderModelDiscoveryLookup.class);
                     assertThat(context).hasSingleBean(PlatformProviderConnectionRepository.class);
+                    assertThat(context).hasSingleBean(PlatformProviderConnectionPublicationRepository.class);
                     assertThat(context).hasSingleBean(PlatformProviderModelDiscoveryStore.class);
                     assertThat(context).hasSingleBean(ModelConfigurationRepository.class);
                     assertThat(context).hasSingleBean(ModelConfigurationAccessRepository.class);

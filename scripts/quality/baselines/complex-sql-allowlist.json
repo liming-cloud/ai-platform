@@ -1044,6 +1044,18 @@
       "statementId": "markRevoked",
       "category": "ATOMIC_STATE_TRANSITION",
       "reason": "ADR-0093：正式撤销端口成功后清除迁移标记，失败保留标记并阻止启动接收请求。"
+    },
+    {
+      "path": "backend/contexts/model-runtime/src/main/resources/mapper/model-runtime/PlatformProviderConnectionPublicationMapper.xml",
+      "statementId": "lockConnection",
+      "category": "ROW_LOCK",
+      "reason": "ADR-0095：发布和探测／轮换共用连接行锁，事务内复验精确修订及有效探测。"
+    },
+    {
+      "path": "backend/contexts/model-runtime/src/main/resources/mapper/model-runtime/PlatformProviderConnectionPublicationMapper.xml",
+      "statementId": "latestRevision",
+      "category": "AGGREGATE",
+      "reason": "ADR-0095：连接行锁内读取已有发布最大修订，分配连续不可变发布事实。"
     }
   ]
 }

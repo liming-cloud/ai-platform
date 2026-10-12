@@ -39,6 +39,7 @@ import com.aiplatform.foundation.modelruntime.application.provider.port.out.Prov
 import com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.PlatformProviderConnectionCredentialTransaction;
 import com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.PlatformProviderConnectionCredentialWriter;
 import com.aiplatform.foundation.modelruntime.application.platformsupply.service.PlatformProviderConnectionService;
+import com.aiplatform.foundation.modelruntime.application.platformsupply.service.PlatformProviderConnectionPublicationService;
 import com.aiplatform.foundation.modelruntime.application.platformsupply.service.PlatformProbeProviderService;
 import com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.PlatformProviderConnectionProbe;
 import com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.PlatformProviderModelDiscoverer;
@@ -57,6 +58,7 @@ import com.aiplatform.foundation.modelruntime.domain.configuration.repository.Mo
 import com.aiplatform.foundation.modelruntime.domain.configuration.repository.ModelConfigurationAccessRepository;
 import com.aiplatform.foundation.modelruntime.domain.provider.repository.ProviderConnectionRepository;
 import com.aiplatform.foundation.modelruntime.domain.platformsupply.repository.PlatformProviderConnectionRepository;
+import com.aiplatform.foundation.modelruntime.domain.platformsupply.repository.PlatformProviderConnectionPublicationRepository;
 import com.aiplatform.foundation.modelruntime.domain.platformsupply.repository.PlatformModelDeploymentRepository;
 import com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator;
 import java.time.Clock;
@@ -126,6 +128,16 @@ public class ModelRuntimeCoreAutoConfiguration {
             EntityIdGenerator identifiers) {
         return new PlatformProviderConnectionService(
                 repository, credentials, transactions, probes, Clock.systemUTC(), identifiers);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    @ConditionalOnBean(PlatformProviderConnectionService.class)
+    PlatformProviderConnectionPublicationService platformProviderConnectionPublicationService(
+            PlatformProviderConnectionRepository connections, PlatformProviderConnectionPublicationRepository publications,
+            EntityIdGenerator identifiers, ModelCatalogProperties properties) {
+        return new PlatformProviderConnectionPublicationService(connections, publications, identifiers,
+                properties.getCapabilityVerificationValidity());
     }
 
     @Bean

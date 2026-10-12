@@ -144,6 +144,45 @@ class PlatformProviderConnectionControllerTest {
         org.junit.jupiter.api.Assertions.assertEquals("320000000000000001", command.getValue().providerConnectionId());
     }
 
+    @Test
+    void 平台连接拥有独立发布入口而不是用已验证状态代替发布() throws Exception {
+        var connections = mock(PlatformProviderConnectionService.class);
+        var publications = mock(com.aiplatform.foundation.modelruntime.application.platformsupply.service.PlatformProviderConnectionPublicationService.class);
+        var context = mock(PlatformRequestContext.class);
+        when(publications.publish(any())).thenReturn(new com.aiplatform.foundation.modelruntime.application.platformsupply.dto.PlatformProviderConnectionPublicationView(
+                "320000000000000001", true, 1L, 1L, Instant.parse("2026-10-12T00:00:00Z"), Instant.parse("2026-10-12T00:00:00Z")));
+        var mvc = MockMvcBuilders.standaloneSetup(new PlatformProviderConnectionController(connections),
+                        new PlatformProviderConnectionPublicationController(publications))
+                .setCustomArgumentResolvers(platformContext(context)).build();
+        mvc.perform(post("/api/v1/platform/model-supply/connections/320000000000000001/publish")
+                        .param("tenantId", "100000000000000099")
+                        .contentType("application/json")
+                        .content("{\"expectedVersion\":1}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.published").value(true))
+                .andExpect(jsonPath("$.connectionRevision").value(1))
+                .andExpect(jsonPath("$.publicationRevision").value(1))
+                .andExpect(jsonPath("$.endpoint").doesNotExist())
+                .andExpect(jsonPath("$.credentialReference").doesNotExist())
+                .andExpect(jsonPath("$.publishedBySubjectId").doesNotExist());
+        var command = ArgumentCaptor.forClass(com.aiplatform.foundation.modelruntime.application.platformsupply.command.PublishPlatformProviderConnectionCommand.class);
+        verify(publications).publish(command.capture());
+        org.junit.jupiter.api.Assertions.assertSame(context, command.getValue().context());
+        org.junit.jupiter.api.Assertions.assertEquals(1L, command.getValue().expectedVersion());
+    }
+
+    @Test
+    void 连接发布不能把缺失预期版本当作零版本() throws Exception {
+        var publications = mock(com.aiplatform.foundation.modelruntime.application.platformsupply.service.PlatformProviderConnectionPublicationService.class);
+        var context = mock(PlatformRequestContext.class);
+        var mvc = MockMvcBuilders.standaloneSetup(new PlatformProviderConnectionPublicationController(publications))
+                .setCustomArgumentResolvers(platformContext(context)).build();
+        mvc.perform(post("/api/v1/platform/model-supply/connections/320000000000000001/publish")
+                        .contentType("application/json").content("{}"))
+                .andExpect(status().isBadRequest());
+        org.mockito.Mockito.verifyNoInteractions(publications);
+    }
+
     private static PlatformProviderConnectionView view() {
         return new PlatformProviderConnectionView(
                 "320000000000000001", "DETERMINISTIC", "平台模型", "本地", "API_KEY",

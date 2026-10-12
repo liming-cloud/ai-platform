@@ -12,6 +12,7 @@ import com.aiplatform.foundation.modelruntime.interfaces.web.platformsupply.cont
 import com.aiplatform.foundation.modelruntime.interfaces.web.platformsupply.controller.PlatformProviderModelDiscoveryController;
 import com.aiplatform.foundation.modelruntime.interfaces.web.platformsupply.controller.PlatformProviderModelCandidateController;
 import com.aiplatform.foundation.modelruntime.interfaces.web.platformsupply.controller.PlatformModelDeploymentController;
+import com.aiplatform.foundation.modelruntime.interfaces.web.platformsupply.controller.PlatformProviderConnectionPublicationController;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Import;
@@ -29,6 +30,7 @@ import org.springframework.context.annotation.Import;
 @Import({
     ProviderConnectionController.class,
     PlatformProviderConnectionController.class,
+    PlatformProviderConnectionPublicationController.class,
     PlatformProviderModelDiscoveryController.class,
     PlatformProviderModelCandidateController.class,
     PlatformModelDeploymentController.class,

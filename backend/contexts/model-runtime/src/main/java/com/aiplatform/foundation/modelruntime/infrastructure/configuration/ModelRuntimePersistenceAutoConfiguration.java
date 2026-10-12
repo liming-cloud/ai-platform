@@ -37,9 +37,12 @@ import com.aiplatform.foundation.modelruntime.application.platformsupply.port.ou
 import com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.PlatformModelDeploymentVerificationStore;
 import com.aiplatform.foundation.modelruntime.domain.platformsupply.repository.PlatformModelDeploymentRepository;
 import com.aiplatform.foundation.modelruntime.domain.platformsupply.repository.PlatformProviderConnectionRepository;
+import com.aiplatform.foundation.modelruntime.domain.platformsupply.repository.PlatformProviderConnectionPublicationRepository;
 import com.aiplatform.foundation.modelruntime.infrastructure.persistence.platformsupply.PostgresEncryptedPlatformProviderConnectionCredentialStore;
 import com.aiplatform.foundation.modelruntime.infrastructure.persistence.platformsupply.SpringPlatformProviderConnectionCredentialTransaction;
 import com.aiplatform.foundation.modelruntime.infrastructure.persistence.platformsupply.repository.PostgresPlatformProviderConnectionRepository;
+import com.aiplatform.foundation.modelruntime.infrastructure.persistence.platformsupply.repository.PostgresPlatformProviderConnectionPublicationRepository;
+import com.aiplatform.foundation.modelruntime.infrastructure.persistence.platformsupply.mapper.PlatformProviderConnectionPublicationMapper;
 import com.aiplatform.foundation.modelruntime.infrastructure.persistence.platformsupply.repository.PostgresPlatformProviderModelDiscoveryStore;
 import com.aiplatform.foundation.modelruntime.infrastructure.persistence.platformsupply.repository.PostgresPlatformModelDeploymentRepository;
 import com.aiplatform.foundation.modelruntime.infrastructure.persistence.platformsupply.repository.PostgresPlatformModelDeploymentVerificationStore;
@@ -67,6 +70,7 @@ import com.aiplatform.foundation.security.secret.SecretEncryptionKeyProvider;
         havingValue = "true")
 @ConditionalOnBean(SqlSessionFactory.class)
 @MapperScan(basePackageClasses = {
+    PlatformProviderConnectionPublicationMapper.class,
     ProviderConnectionMapper.class,
     ModelDeploymentMapper.class,
     ModelConfigurationMapper.class
@@ -106,6 +110,15 @@ public class ModelRuntimePersistenceAutoConfiguration {
             JdbcTemplate jdbc,
             PlatformTransactionManager transactions) {
         return new PostgresPlatformProviderConnectionRepository(jdbc, transactions);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean(PlatformProviderConnectionPublicationRepository.class)
+    PlatformProviderConnectionPublicationRepository platformProviderConnectionPublicationRepository(
+            PlatformProviderConnectionPublicationMapper mapper, PlatformProviderConnectionRepository connections,
+            PlatformTransactionManager transactions) {
+        return new PostgresPlatformProviderConnectionPublicationRepository(
+                mapper, connections, transactions, java.time.Clock.systemUTC());
     }
 
     @Bean

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aiplatform.foundation.modelruntime.infrastructure.persistence.platformsupply.mapper.PlatformProviderConnectionPublicationMapper">
+  <select id="lockConnection" resultType="long">
+    SELECT id FROM model_runtime.platform_provider_connection WHERE id = #{id} AND scope = 'PLATFORM' FOR UPDATE
+  </select>
+  <select id="latestRevision" resultType="long">
+    SELECT MAX(revision) FROM model_runtime.platform_provider_connection_publication WHERE connection_id = #{id}
+  </select>
+</mapper>
