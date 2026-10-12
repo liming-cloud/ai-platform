@@ -15,6 +15,15 @@ import com.aiplatform.foundation.modelruntime.application.platformsupply.dto.Cre
 import com.aiplatform.foundation.modelruntime.application.platformsupply.dto.PlatformProviderConnectionView;
 import com.aiplatform.foundation.modelruntime.application.platformsupply.query.ListPlatformProviderConnectionsQuery;
 import com.aiplatform.foundation.modelruntime.application.platformsupply.service.PlatformProviderConnectionService;
+import com.aiplatform.foundation.modelruntime.application.platformsupply.service.PlatformProbeProviderService;
+import com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.PlatformProviderConnectionCredentialWriter;
+import com.aiplatform.foundation.modelruntime.domain.platformsupply.repository.PlatformProviderConnectionRepository;
+import com.aiplatform.foundation.modelruntime.domain.platformsupply.model.PlatformProviderConnection;
+import com.aiplatform.foundation.modelruntime.domain.platformsupply.model.PlatformProviderConnectionId;
+import com.aiplatform.foundation.modelruntime.domain.provider.model.ProviderKind;
+import com.aiplatform.foundation.modelruntime.domain.provider.model.AuthenticationType;
+import com.aiplatform.foundation.modelruntime.domain.provider.model.CredentialReference;
+import com.aiplatform.foundation.security.identity.PlatformPermissions;
 import com.aiplatform.foundation.security.identity.PlatformRequestContext;
 import com.aiplatform.foundation.shared.contract.paging.PageQuery;
 import com.aiplatform.foundation.shared.contract.paging.PageResult;
@@ -28,6 +37,55 @@ import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 import org.springframework.web.method.support.ModelAndViewContainer;
 
 class PlatformProviderConnectionControllerTest {
+
+    @Test
+    void 平台连接详情按不透明标识只读恢复安全摘要() throws Exception {
+        var repository = mock(PlatformProviderConnectionRepository.class);
+        var credentials = mock(PlatformProviderConnectionCredentialWriter.class);
+        var transactions = mock(com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.PlatformProviderConnectionCredentialTransaction.class);
+        var identifiers = mock(com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator.class);
+        var probes = mock(PlatformProbeProviderService.class);
+        var service = new PlatformProviderConnectionService(repository, credentials, transactions,
+                probes, java.time.Clock.systemUTC(), identifiers);
+        var context = mock(PlatformRequestContext.class);
+        when(context.hasPermission(PlatformPermissions.MODEL_PLATFORM_WRITE)).thenReturn(true);
+        var id = new PlatformProviderConnectionId(320000000000000001L);
+        when(repository.findById(id)).thenReturn(java.util.Optional.of(PlatformProviderConnection.create(
+                id, ProviderKind.OPENAI_COMPATIBLE, "平台模型", java.net.URI.create("https://models.example.invalid/v1"),
+                "cn-beijing", AuthenticationType.API_KEY, new CredentialReference("secret://platform-provider-connection/320000000000000001"),
+                Instant.parse("2026-10-12T00:00:00Z"))));
+        var mvc = MockMvcBuilders.standaloneSetup(new PlatformProviderConnectionController(service))
+                .setCustomArgumentResolvers(platformContext(context)).build();
+
+        mvc.perform(get("/api/v1/platform/model-supply/connections/{id}", id.toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(id.toString()))
+                .andExpect(jsonPath("$.displayName").value("平台模型"))
+                .andExpect(jsonPath("$.version").value(0))
+                .andExpect(jsonPath("$.credentialConfigured").value(true))
+                .andExpect(jsonPath("$.endpoint").doesNotExist())
+                .andExpect(jsonPath("$.credentialReference").doesNotExist())
+                .andExpect(jsonPath("$.apiKey").doesNotExist())
+                .andExpect(jsonPath("$.discoveryAccessKeyId").doesNotExist())
+                .andExpect(jsonPath("$.discoverySecretAccessKey").doesNotExist());
+        verify(repository).findById(id);
+        org.mockito.Mockito.verifyNoMoreInteractions(repository);
+        org.mockito.Mockito.verifyNoInteractions(credentials, transactions, identifiers, probes);
+    }
+
+    @Test
+    void 平台连接详情拒绝外部租户与未知参数且不调用服务() throws Exception {
+        var service = mock(PlatformProviderConnectionService.class);
+        var mvc = MockMvcBuilders.standaloneSetup(new PlatformProviderConnectionController(service))
+                .setCustomArgumentResolvers(platformContext(mock(PlatformRequestContext.class))).build();
+        for (var field : java.util.List.of("tenantId", "subjectId", "unknown")) {
+            // 此模块不依赖平台 Web；验证真实控制器拒绝，HTTP 错误映射由平台既有合同负责。
+            var failure = org.junit.jupiter.api.Assertions.assertThrows(jakarta.servlet.ServletException.class,
+                    () -> mvc.perform(get("/api/v1/platform/model-supply/connections/320000000000000001").param(field, "100")));
+            org.junit.jupiter.api.Assertions.assertInstanceOf(IllegalArgumentException.class, failure.getCause());
+        }
+        org.mockito.Mockito.verifyNoInteractions(service);
+    }
 
     @Test
     void 平台连接HTTP只从平台会话取身份且不回显秘密或端点() throws Exception {

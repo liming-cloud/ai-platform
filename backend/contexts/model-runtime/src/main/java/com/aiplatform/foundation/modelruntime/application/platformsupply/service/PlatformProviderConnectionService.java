@@ -9,6 +9,7 @@ import com.aiplatform.foundation.modelruntime.application.platformsupply.port.ou
 import com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.PlatformProviderConnectionCredentialWriter;
 import com.aiplatform.foundation.modelruntime.application.platformsupply.query.ListPlatformProviderConnectionsQuery;
 import com.aiplatform.foundation.modelruntime.application.provider.exception.ModelCatalogPermissionDeniedException;
+import com.aiplatform.foundation.modelruntime.application.provider.exception.ProviderConnectionNotFoundException;
 import com.aiplatform.foundation.modelruntime.domain.platformsupply.model.PlatformProviderConnection;
 import com.aiplatform.foundation.modelruntime.domain.platformsupply.model.PlatformProviderConnectionId;
 import com.aiplatform.foundation.modelruntime.domain.platformsupply.repository.PlatformProviderConnectionCreation;
@@ -101,6 +102,13 @@ public final class PlatformProviderConnectionService {
         var slice = repository.findPage(query.page().pageNumber(), query.page().pageSize());
         return PageResult.of(slice.items().stream().map(PlatformProviderConnectionService::toView).toList(),
                 query.page(), slice.totalElements());
+    }
+
+    /** 只读恢复平台连接；先检查平台权限，不读取凭据、写入探测或建立发布事实。 */
+    public PlatformProviderConnectionView get(PlatformRequestContext context, String providerConnectionId) {
+        requirePermission(Objects.requireNonNull(context, "平台请求上下文不能为空"));
+        return toView(repository.findById(PlatformProviderConnectionId.parse(providerConnectionId))
+                .orElseThrow(ProviderConnectionNotFoundException::new));
     }
 
     /** 平台探测只处理平台连接及其独立密钥引用，不得引入租户上下文。 */

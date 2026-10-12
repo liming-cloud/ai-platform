@@ -134,3 +134,14 @@ for (const width of [390, 1024, 1440]) for (const textScale of [1, 2]) test(`${w
   assert.ok(bounds && bounds.y >= 0 && bounds.y + bounds.height <= (width === 390 ? 844 : width === 1024 ? 900 : 1000));
   if (temporaryScreenshots) await page.screenshot({ path: path.join(temporaryScreenshots, `ark-dialog-${width}-${textScale}.png`) });
 }, width));
+
+for (const width of [390, 1024, 1440]) test(`${width} 宽度下平台连接两页七态无异常或横向溢出`, () => visit(async page => {
+  for (const screen of ['platform-model-connections', 'platform-model-connection-detail']) {
+    for (const state of ['loading', 'empty', 'error', 'denied', 'partial', 'disabled', 'success']) {
+      await openForReview(page, `${base}?screen=${screen}&state=${state}&review=0`);
+      await page.locator(`main[data-screen="${screen}"]`).waitFor();
+      assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), true, `${screen}/${state}`);
+      assert.doesNotMatch(await page.locator('main').innerText(), /synthetic-(inference|access|secret)-only/);
+    }
+  }
+}, width));

@@ -17,6 +17,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
@@ -24,7 +25,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-/** 平台范围连接的创建和分页读取入口。 */
+/** 平台范围连接的创建、只读详情、分页与独立探测入口。 */
 @RestController
 @RequestMapping("/api/v1/platform/model-supply/connections")
 @ConditionalOnBean(PlatformProviderConnectionService.class)
@@ -69,6 +70,14 @@ public class PlatformProviderConnectionController {
             @RequestParam(defaultValue = "20") long pageSize) {
         return connections.list(new ListPlatformProviderConnectionsQuery(
                 context, new PageQuery(pageNumber, pageSize)));
+    }
+
+    /** 对象标识只用于定位；拒绝外部范围及未知参数，身份由可信平台会话提供。 */
+    @GetMapping("/{providerConnectionId}")
+    public PlatformProviderConnectionView get(PlatformRequestContext context,
+            @PathVariable String providerConnectionId, @RequestParam java.util.Map<String, String> query) {
+        if (!query.isEmpty()) throw new IllegalArgumentException("平台连接详情不接受范围或未知参数");
+        return connections.get(context, providerConnectionId);
     }
 
     @PostMapping("/{providerConnectionId}/probe")

@@ -36,6 +36,44 @@ import org.junit.jupiter.api.Test;
 class PlatformProviderConnectionServiceTest {
 
     @Test
+    void 无平台模型权限时详情查询不能读取仓储或解析对象标识() {
+        var repository = org.mockito.Mockito.mock(PlatformProviderConnectionRepository.class);
+        var writer = org.mockito.Mockito.mock(PlatformProviderConnectionCredentialWriter.class);
+        var transactions = org.mockito.Mockito.mock(PlatformProviderConnectionCredentialTransaction.class);
+        var probes = org.mockito.Mockito.mock(PlatformProbeProviderService.class);
+        var identifiers = org.mockito.Mockito.mock(com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator.class);
+        var service = new PlatformProviderConnectionService(repository, writer, transactions, probes,
+                Clock.systemUTC(), identifiers);
+        assertThrows(ModelCatalogPermissionDeniedException.class,
+                () -> service.get(sessionWithoutPlatformModelWrite(), "invalid-id"));
+        org.mockito.Mockito.verifyNoInteractions(repository, writer, transactions, probes, identifiers);
+    }
+
+    @Test
+    void 详情不存在时返回既有安全错误且不创建连接() {
+        var repository = org.mockito.Mockito.mock(PlatformProviderConnectionRepository.class);
+        var id = new PlatformProviderConnectionId(610000000000000001L);
+        org.mockito.Mockito.when(repository.findById(id)).thenReturn(Optional.empty());
+        var service = new PlatformProviderConnectionService(repository, new ForbiddenPathCredentialWriter(),
+                java.util.function.Supplier::get, new PlatformProbeProviderService(List.of(), Clock.systemUTC()),
+                Clock.systemUTC(), () -> { throw new AssertionError("详情查询不能生成标识"); });
+        assertThrows(com.aiplatform.foundation.modelruntime.application.provider.exception.ProviderConnectionNotFoundException.class,
+                () -> service.get(platformModelWriter(), id.toString()));
+        org.mockito.Mockito.verify(repository).findById(id);
+        org.mockito.Mockito.verifyNoMoreInteractions(repository);
+    }
+
+    @Test
+    void 非法详情标识不能触及仓储() {
+        var repository = org.mockito.Mockito.mock(PlatformProviderConnectionRepository.class);
+        var service = new PlatformProviderConnectionService(repository, new ForbiddenPathCredentialWriter(),
+                java.util.function.Supplier::get, new PlatformProbeProviderService(List.of(), Clock.systemUTC()),
+                Clock.systemUTC(), () -> { throw new AssertionError("详情查询不能生成标识"); });
+        assertThrows(IllegalArgumentException.class, () -> service.get(platformModelWriter(), "other-tenant/1"));
+        org.mockito.Mockito.verifyNoInteractions(repository);
+    }
+
+    @Test
     void 方舟连接创建必须在同一事务写入推理APIKey和发现AKSK() {
         var repository = new CreatingRepository();
         var writer = new CapturingCredentialWriter();
