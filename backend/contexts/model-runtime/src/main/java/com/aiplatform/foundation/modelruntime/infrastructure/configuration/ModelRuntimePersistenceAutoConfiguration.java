@@ -114,6 +114,16 @@ public class ModelRuntimePersistenceAutoConfiguration {
     }
 
     @Bean
+    @ConditionalOnMissingBean
+    com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.PlatformProviderConnectionFacts platformProviderConnectionFacts(
+            com.aiplatform.foundation.modelruntime.infrastructure.persistence.platformsupply.mapper.PlatformProviderConnectionMapper mapper) {
+        return ids -> ids.isEmpty() ? java.util.Map.of() : mapper.selectFacts(ids).stream().collect(
+                java.util.stream.Collectors.toUnmodifiableMap(
+                        com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.PlatformProviderConnectionFacts.Fact::connectionId,
+                        java.util.function.Function.identity()));
+    }
+
+    @Bean
     @ConditionalOnMissingBean(PlatformProviderConnectionPublicationRepository.class)
     PlatformProviderConnectionPublicationRepository platformProviderConnectionPublicationRepository(
             PlatformProviderConnectionPublicationMapper mapper, PlatformProviderConnectionRepository connections,

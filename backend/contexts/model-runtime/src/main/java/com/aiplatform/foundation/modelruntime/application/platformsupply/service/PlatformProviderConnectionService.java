@@ -41,6 +41,7 @@ public final class PlatformProviderConnectionService {
     private final EntityIdGenerator identifiers;
     private final PlatformProbeProviderService probeProvider;
     private final com.aiplatform.foundation.security.egress.OutboundEndpointPolicy endpointPolicy;
+    private final com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.PlatformProviderConnectionFacts facts;
 
     public PlatformProviderConnectionService(
             PlatformProviderConnectionRepository repository,
@@ -49,7 +50,8 @@ public final class PlatformProviderConnectionService {
             PlatformProbeProviderService probeProvider,
             Clock clock,
             EntityIdGenerator identifiers,
-            com.aiplatform.foundation.security.egress.OutboundEndpointPolicy endpointPolicy) {
+            com.aiplatform.foundation.security.egress.OutboundEndpointPolicy endpointPolicy,
+            com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.PlatformProviderConnectionFacts facts) {
         this.repository = Objects.requireNonNull(repository, "平台供应商连接仓储不能为空");
         this.credentials = Objects.requireNonNull(credentials, "平台供应商连接凭据写入器不能为空");
         this.transactions = Objects.requireNonNull(transactions, "平台供应商连接事务不能为空");
@@ -57,6 +59,7 @@ public final class PlatformProviderConnectionService {
         this.clock = Objects.requireNonNull(clock, "时钟不能为空");
         this.identifiers = Objects.requireNonNull(identifiers, "标识生成器不能为空");
         this.endpointPolicy = Objects.requireNonNull(endpointPolicy, "出站安全策略不能为空");
+        this.facts = Objects.requireNonNull(facts, "平台连接事实源不能为空");
     }
 
     public CreatePlatformProviderConnectionResult create(
@@ -108,7 +111,9 @@ public final class PlatformProviderConnectionService {
         Objects.requireNonNull(query, "列表查询不能为空");
         requirePermission(query.context());
         var slice = repository.findPage(query.page().pageNumber(), query.page().pageSize());
-        return PageResult.of(slice.items().stream().map(PlatformProviderConnectionService::toView).toList(),
+        var currentFacts = facts.find(slice.items().stream().map(connection -> connection.id().value())
+                .collect(java.util.stream.Collectors.toUnmodifiableSet()));
+        return PageResult.of(slice.items().stream().map(connection -> toView(connection, currentFacts.get(connection.id().value()))).toList(),
                 query.page(), slice.totalElements());
     }
 
@@ -153,15 +158,25 @@ public final class PlatformProviderConnectionService {
         }
     }
 
-    private static PlatformProviderConnectionView toView(PlatformProviderConnection connection) {
+    private PlatformProviderConnectionView toView(PlatformProviderConnection connection) {
+        return toView(connection, facts.find(java.util.Set.of(connection.id().value())).get(connection.id().value()));
+    }
+
+    private static PlatformProviderConnectionView toView(PlatformProviderConnection connection,
+            com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.PlatformProviderConnectionFacts.Fact fact) {
+        // 分开读取的摘要若遇到并发更新，要求重新读取，不能混用两个修订的状态。
+        if (fact == null || fact.connectionId() != connection.id().value() || fact.version() != connection.version()) {
+            throw new com.aiplatform.foundation.modelruntime.application.provider.exception.ProviderConnectionConcurrentModificationException();
+        }
         return new PlatformProviderConnectionView(
                 connection.id().toString(), connection.providerKind().name(), connection.displayName(),
                 connection.discoveryProfile().name(),
-                connection.region(), connection.authenticationType().name(), true, connection.status().name(),
+                connection.region(), connection.authenticationType().name(), fact.credentialConfigured(), connection.status().name(),
                 connection.version(), connection.lastProbeSucceeded(), connection.lastProbeCode(),
                 connection.lastProbedAt(), connection.createdAt(), connection.preset() == null ? null
                         : new PlatformProviderConnectionView.Preset(connection.preset().providerId(),
-                                connection.preset().version(), connection.preset().capability()));
+                                connection.preset().version(), connection.preset().capability()),
+                fact.discoveryCredentialsConfigured(), fact.published());
     }
 
     private static String fingerprint(CreatePlatformProviderConnectionCommand command) {

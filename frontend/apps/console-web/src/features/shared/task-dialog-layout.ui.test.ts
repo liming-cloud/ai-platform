@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 const stylesPath = new URL("../../styles.css", import.meta.url).pathname;
 const dialogFiles = [
   "../platform-governance/PlatformModelSupplyWorkspace.tsx",
+  "../platform-governance/PlatformProviderConnectionForm.tsx",
   "../platform-governance/PlatformModelDeploymentWorkspace.tsx",
   "../model-configuration/ModelProviderWorkspace.tsx",
   "../model-configuration/ModelDeploymentWorkspace.tsx",

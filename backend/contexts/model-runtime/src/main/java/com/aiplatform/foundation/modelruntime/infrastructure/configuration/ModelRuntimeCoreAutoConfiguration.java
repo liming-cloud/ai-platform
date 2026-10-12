@@ -118,6 +118,7 @@ public class ModelRuntimeCoreAutoConfiguration {
     @ConditionalOnBean({
         PlatformProviderConnectionCredentialWriter.class,
         PlatformProviderConnectionCredentialTransaction.class,
+        com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.PlatformProviderConnectionFacts.class,
         com.aiplatform.foundation.security.egress.OutboundEndpointPolicy.class
     })
     @ConditionalOnMissingBean
@@ -127,9 +128,10 @@ public class ModelRuntimeCoreAutoConfiguration {
             PlatformProviderConnectionCredentialTransaction transactions,
             PlatformProbeProviderService probes,
             EntityIdGenerator identifiers,
-            com.aiplatform.foundation.security.egress.OutboundEndpointPolicy endpointPolicy) {
+            com.aiplatform.foundation.security.egress.OutboundEndpointPolicy endpointPolicy,
+            com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.PlatformProviderConnectionFacts facts) {
         return new PlatformProviderConnectionService(
-                repository, credentials, transactions, probes, Clock.systemUTC(), identifiers, endpointPolicy);
+                repository, credentials, transactions, probes, Clock.systemUTC(), identifiers, endpointPolicy, facts);
     }
 
     @Bean

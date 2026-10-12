@@ -18,7 +18,9 @@ public record PlatformProviderConnectionView(
         String lastProbeCode,
         Instant lastProbedAt,
         Instant createdAt,
-        Preset preset) {
+        Preset preset,
+        boolean discoveryCredentialsConfigured,
+        boolean published) {
 
     public PlatformProviderConnectionView {
         Objects.requireNonNull(id, "平台供应商连接标识不能为空");

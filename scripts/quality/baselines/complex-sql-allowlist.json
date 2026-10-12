@@ -3,6 +3,12 @@
   "statements": [
     {
       "path": "backend/contexts/model-runtime/src/main/resources/mapper/model-runtime/PlatformProviderConnectionMapper.xml",
+      "statementId": "selectFacts",
+      "category": "MULTI_TABLE",
+      "reason": "WP-0019 S1 按连接 ID 批量投影用途槽存在性和当前修订发布事实；只用 EXISTS，不读取秘密字段，避免逐条查询。"
+    },
+    {
+      "path": "backend/contexts/model-runtime/src/main/resources/mapper/model-runtime/PlatformProviderConnectionMapper.xml",
       "statementId": "lockCreation",
       "category": "POSTGRES_ADVISORY_LOCK",
       "reason": "平台连接全局名称与幂等请求共享咨询锁，在同一事务内完成检查和创建。"

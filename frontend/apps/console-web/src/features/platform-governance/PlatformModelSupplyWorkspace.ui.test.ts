@@ -1,109 +1,66 @@
 /// <reference types="node" />
 import { readFileSync } from "node:fs";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
+import type { ControlPlaneClient, PlatformProviderConnectionSummary, PlatformProviderPresets } from "../../api/control-plane-client";
+import { ConnectionStatus } from "./PlatformModelSupplyWorkspace";
+import { PlatformProviderConnectionForm } from "./PlatformProviderConnectionForm";
 
-const workspacePath = new URL("./PlatformModelSupplyWorkspace.tsx", import.meta.url).pathname;
-const stylesPath = new URL("../../styles.css", import.meta.url).pathname;
+const sharedStyles = readFileSync(new URL("../../styles.css", import.meta.url), "utf8");
+const styles = readFileSync(new URL("./platform-model-connections.css", import.meta.url), "utf8");
+const base: PlatformProviderConnectionSummary = {
+  id: "610000000000000001", displayName: "合成连接", providerKind: "OPENAI_COMPATIBLE",
+  discoveryProfile: "OPENAI_MODELS_API", region: "unspecified", authenticationType: "API_KEY",
+  credentialConfigured: true, discoveryCredentialsConfigured: false, published: false,
+  status: "DRAFT", version: 0, createdAt: "2026-10-12T00:00:00Z",
+  lastProbeSucceeded: null, lastProbeCode: null, lastProbedAt: null,
+};
 
-describe("平台模型供应链呈现", () => {
-  it("失败发现使用警告语义且不伪装成成功", () => {
-    const source = readFileSync(workspacePath, "utf8");
-
-    expect(source).toContain("intent={discoverySummary.intent}");
-    expect(source).toContain("模型发现未完成");
-    expect(source).not.toContain('<MessageBar intent="success"><MessageBarBody><MessageBarTitle>模型发现已记录');
+describe("平台供应商连接呈现", () => {
+  it.each([
+    [{ status: "DRAFT" }, "草稿"],
+    [{ status: "VERIFIED", lastProbeSucceeded: true }, "验证通过"],
+    [{ status: "VERIFIED", published: true, lastProbeSucceeded: true }, "已发布"],
+    [{ status: "DRAFT", lastProbeSucceeded: false }, "失败"],
+    [{ status: "DISABLED", lastProbeSucceeded: true }, "已停用"],
+  ] as const)("状态标签仅使用当前事实：%j", (change, label) => {
+    const markup = renderToStaticMarkup(createElement(ConnectionStatus, { connection: { ...base, ...change } }));
+    expect(markup).toContain(label);
+    if (label === "失败" || label === "已停用") expect(markup).not.toContain("验证通过");
   });
 
-  it("统一资源表格占满可用宽度并在窄视口横向滚动", () => {
-    const styles = readFileSync(stylesPath, "utf8");
-
-    expect(styles).toMatch(/\.member-directory-table\s*\{[^}]*overflow-x:\s*auto;[^}]*width:\s*100%;/s);
-    expect(styles).toMatch(/\.member-directory-table table\s*\{[^}]*width:\s*100%;[^}]*min-width:/s);
+  it("表单从服务端目录呈现厂商，不把客户端地址或能力清单当成权威", () => {
+    const directory: PlatformProviderPresets = { version: "synthetic-version", items: [{
+      id: "CUSTOM", name: "目录中的合成厂商", region: "unspecified", regionLabel: "自行配置",
+      capabilities: ["CHAT"], discoveryProfile: "OPENAI_MODELS_API", variants: [{
+        capability: "CHAT", runtimeProtocol: "OPENAI_COMPATIBLE", endpointTemplate: "", workspaceRequired: false,
+        discoveryProfile: "OPENAI_MODELS_API",
+      }],
+    }] };
+    const markup = renderToStaticMarkup(createElement(PlatformProviderConnectionForm, {
+      client: {} as ControlPlaneClient, directory, onCancel: () => undefined, onCreated: () => undefined,
+    }));
+    expect(markup).toContain("目录中的合成厂商");
+    expect(markup).not.toContain("DeepSeek");
+    expect(markup).toContain("运行能力");
+    expect(markup).toContain("一次性访问密钥");
+    expect(markup).toContain('type="password"');
+    expect(markup).toContain("保存连接草稿");
   });
 
-  it("厂商 Endpoint 字段解释需要填写 API 基础地址", () => {
-    const source = readFileSync(workspacePath, "utf8");
-
-    expect(source).toContain("API 基础地址");
-    expect(source).toContain("https://ark.cn-beijing.volces.com/api/v3");
-    expect(source).not.toContain('placeholder="https://…/v1"');
+  it("弹窗在文字放大时保留滚动及完整操作区，短按钮不受固定最小宽度限制", () => {
+    expect(sharedStyles).toMatch(/\.foundation-task-dialog\s*\{[^}]*max-height:\s*calc\(100dvh\s*-\s*2rem\)\s*!important;[^}]*overflow-y:\s*auto\s*!important;/s);
+    expect(styles).toMatch(/\.platform-connection-dialog \.fui-Button\s*\{[^}]*min-width:\s*0;/s);
+    expect(styles).toContain("grid-template-columns: minmax(0, 1fr)");
   });
 
-  it("创建连接按接入预设锁定权威发现协议并说明未知能力需管理员确认", () => {
-    const source = readFileSync(workspacePath, "utf8");
-
-    expect(source).toContain('label="接入预设"');
-    expect(source).toContain('value="VOLCENGINE_ARK"');
-    expect(source).toContain('value="OPENAI_COMPATIBLE"');
-    expect(source).toContain("resolveProviderPreset(providerPreset)");
-    expect(source).not.toContain('name="discoveryProfile"');
-    expect(source).toContain("元数据不足的候选需要管理员确认能力");
-  });
-
-  it("火山方舟预设自动填充数据面地址和签名区域", () => {
-    const source = readFileSync(workspacePath, "utf8");
-
-    expect(source).toContain('endpoint: "https://ark.cn-beijing.volces.com/api/v3"');
-    expect(source).toContain('region: "cn-beijing"');
-    expect(source).toContain('discoveryProfile: "VOLCENGINE_ARK_CONTROL_PLANE"');
-    expect(source).toContain("方舟控制面使用 Access Key 签名发现模型，API Key 只用于数据面探测和推理");
-  });
-
-  it("OpenAI兼容预设只要求基础地址和APIKey", () => {
-    const source = readFileSync(workspacePath, "utf8");
-
-    expect(source).toContain('discoveryProfile: "OPENAI_MODELS_API"');
-    expect(source).toContain("供应商必须实现 OpenAI Models API");
-    expect(source).toContain('const arkDiscovery = providerPreset === "VOLCENGINE_ARK"');
-  });
-
-  it("方舟控制面凭据与推理APIKey分开录入且只在对应协议展示", () => {
-    const source = readFileSync(workspacePath, "utf8");
-
-    expect(source).toContain('providerPreset === "VOLCENGINE_ARK"');
-    expect(source).toContain('label="Access Key ID"');
-    expect(source).toContain('label="Secret Access Key"');
-    expect(source).toContain("仅用于模型发现");
-    expect(source).toContain("仅用于推理与能力探测");
-    expect(source).toContain("discoveryAccessKeyId");
-    expect(source).toContain("discoverySecretAccessKey");
-  });
-
-  it("平台连接表单在 200% 缩放下保留纵向滚动和完整操作区", () => {
-    const source = readFileSync(workspacePath, "utf8");
-    const styles = readFileSync(stylesPath, "utf8");
-
-    expect(source).toContain('<DialogSurface className="foundation-task-dialog"><DialogBody><DialogTitle>新建平台厂商连接</DialogTitle>');
-    expect(styles).toMatch(
-      /\.foundation-task-dialog\s*\{[^}]*max-height:\s*calc\(100dvh\s*-\s*2rem\)\s*!important;[^}]*overflow-y:\s*auto\s*!important;/s,
-    );
-  });
-
-  it("关闭平台连接表单后把键盘焦点还给触发按钮", () => {
-    const source = readFileSync(workspacePath, "utf8");
-
-    expect(source).toContain("const createConnectionTriggerRef = useRef<HTMLButtonElement>(null)");
-    expect(source).toContain("ref={createConnectionTriggerRef}");
-    expect(source).toContain("createConnectionTriggerRef.current?.focus()");
-  });
-
-  it("连接表格固定厂商与操作列布局", () => {
-    const source = readFileSync(workspacePath, "utf8");
-    const styles = readFileSync(stylesPath, "utf8");
-
-    expect(source).toContain('className="platform-model-supply-table"');
-    expect(source).toContain('className="platform-model-supply-table__provider"');
-    expect(source).toContain('className="platform-model-supply-table__actions"');
-    expect(styles).toMatch(/\.platform-model-supply-table__provider\s*\{[^}]*min-width:\s*16rem;[^}]*white-space:\s*nowrap;/s);
-    expect(styles).toMatch(/\.platform-model-supply-table__actions\s*\{[^}]*text-align:\s*right;/s);
-  });
-
-  it("重新发现失败时明确当前修订需要重新验证", () => {
-    const source = readFileSync(workspacePath, "utf8");
-
-    expect(source).toContain("<th>连接验证</th>");
-    expect(source).toContain("连接未通过验证，不能发布连接");
-    expect(source).not.toContain("连接既有验证状态和未过期候选不会自动失效");
-    expect(source).not.toContain("<th>最近探测</th>");
+  it("目录与详情复用已验收暖色令牌、16px 正文及 48px 表格基线", () => {
+    expect(styles).toContain("font-size: 1rem");
+    expect(styles).toContain("font-family: var(--foundation-font-display)");
+    expect(styles).toContain("background: var(--foundation-canvas)");
+    expect(styles).toContain("height: 3rem");
+    expect(styles).not.toContain("#eef6fb");
+    expect(styles).toMatch(/\.platform-connection-table\s*\{[^}]*width:\s*100%;[^}]*overflow-x:\s*auto;/s);
   });
 });

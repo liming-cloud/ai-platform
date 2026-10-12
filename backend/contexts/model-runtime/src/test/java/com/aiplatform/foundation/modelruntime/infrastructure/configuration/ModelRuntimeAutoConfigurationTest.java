@@ -90,6 +90,8 @@ class ModelRuntimeAutoConfigurationTest {
                 .withBean(
                         PlatformProviderConnectionRepository.class,
                         () -> mock(PlatformProviderConnectionRepository.class))
+                .withBean(com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.PlatformProviderConnectionFacts.class,
+                        () -> mock(com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.PlatformProviderConnectionFacts.class))
                 .withBean(
                         PlatformProviderConnectionCredentialWriter.class,
                         () -> mock(PlatformProviderConnectionCredentialWriter.class))

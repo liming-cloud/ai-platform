@@ -22,6 +22,7 @@ import com.aiplatform.foundation.modelruntime.domain.platformsupply.repository.P
 import com.aiplatform.foundation.modelruntime.domain.provider.model.AuthenticationType;
 import com.aiplatform.foundation.modelruntime.domain.provider.model.CredentialReference;
 import com.aiplatform.foundation.modelruntime.domain.provider.model.ProviderKind;
+import com.aiplatform.foundation.modelruntime.infrastructure.persistence.platformsupply.mapper.PlatformProviderConnectionMapper;
 import java.net.URI;
 import java.time.Duration;
 import java.time.Instant;
@@ -60,6 +61,7 @@ class PostgresPlatformProviderModelDiscoveryStoreTest {
     @Autowired private PlatformProviderModelDiscoveryLookup discoveryLookup;
     @Autowired private PlatformProviderModelCandidateConfirmationStore confirmations;
     @Autowired private JdbcTemplate jdbc;
+    @Autowired private PlatformProviderConnectionMapper connectionMapper;
 
     @DynamicPropertySource
     static void databaseProperties(DynamicPropertyRegistry registry) {
@@ -71,6 +73,7 @@ class PostgresPlatformProviderModelDiscoveryStoreTest {
 
     @BeforeEach
     void clearFacts() {
+        jdbc.update("DELETE FROM model_runtime.platform_provider_connection_publication");
         jdbc.update("DELETE FROM model_runtime.platform_model_candidate_confirmation");
         jdbc.update("DELETE FROM model_runtime.platform_discovered_model");
         jdbc.update("DELETE FROM model_runtime.platform_provider_model_discovery");
@@ -353,6 +356,38 @@ class PostgresPlatformProviderModelDiscoveryStoreTest {
 
         assertEquals(connection.version(), connections.findById(connection.id()).orElseThrow().version());
         assertEquals(0L, jdbc.queryForObject("SELECT COUNT(*) FROM model_runtime.platform_provider_model_discovery", Long.class));
+    }
+
+    @Test
+    void 配置事实按真实凭据槽及当前发布修订批量返回() {
+        var connection = createDraftConnection("配置事实连接");
+        var other = createDraftConnection("未配置连接");
+        var ids = Set.of(connection.id().value(), other.id().value());
+        assertTrue(connectionMapper.selectFacts(ids).stream().noneMatch(value -> value.credentialConfigured()
+                || value.discoveryCredentialsConfigured() || value.published()));
+        for (var purpose : java.util.List.of("INFERENCE_API_KEY", "DISCOVERY_ACCESS_KEY_ID", "DISCOVERY_SECRET_ACCESS_KEY")) {
+            // 无法解密的合成密文仍只能证明槽已配置；该查询不得尝试读取或解密它。
+            jdbc.update("INSERT INTO model_runtime.platform_provider_connection_credential "
+                            + "(platform_provider_connection_id,credential_purpose,algorithm,master_key_version,"
+                            + "data_key_nonce,encrypted_data_key,ciphertext_nonce,ciphertext,fingerprint,rotated_at) "
+                            + "VALUES (?,?,'AES-256-GCM','synthetic',?,?,?,?,'synthetic',?)",
+                    connection.id().value(), purpose, new byte[12], new byte[16], new byte[12], new byte[16],
+                    java.sql.Timestamp.from(Instant.parse("2026-10-12T02:01:00Z")));
+            var fact = connectionMapper.selectFacts(ids).stream().filter(value -> value.connectionId() == connection.id().value()).findFirst().orElseThrow();
+            assertTrue(fact.credentialConfigured());
+            assertEquals(purpose.equals("DISCOVERY_SECRET_ACCESS_KEY"), fact.discoveryCredentialsConfigured());
+        }
+        var at = Instant.parse("2026-10-12T02:02:00Z");
+        var verified = connection.recordSuccessfulProbe("DISCOVERY_OK", at);
+        assertTrue(connections.update(verified, connection.version()));
+        jdbc.update("INSERT INTO model_runtime.platform_provider_connection_publication "
+                        + "(id,connection_id,revision,connection_revision,published_by_subject_id,probed_at,published_at) "
+                        + "VALUES (?,?,1,?,102,?,?)", IDENTIFIERS.incrementAndGet(), connection.id().value(), verified.version(),
+                java.sql.Timestamp.from(at), java.sql.Timestamp.from(at.plusSeconds(1)));
+        assertTrue(connectionMapper.selectFacts(Set.of(connection.id().value())).getFirst().published());
+        assertTrue(connections.update(verified.disable(), verified.version()));
+        assertFalse(connectionMapper.selectFacts(Set.of(connection.id().value())).getFirst().published());
+        assertFalse(connectionMapper.selectFacts(Set.of(other.id().value())).getFirst().credentialConfigured());
     }
 
     private PlatformProviderConnection createDraftConnection(String name) {

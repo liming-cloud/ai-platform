@@ -7,6 +7,28 @@ import {
 } from "./control-plane-client";
 
 describe("ControlPlaneClient", () => {
+  it("平台连接详情绑定精确 ID 与版本，发布使用受保护写入且不携带身份范围", async () => {
+    const requests: Request[] = [];
+    const client = authenticatedClient(async (input, init) => {
+      requests.push(new Request(input, init));
+      return Response.json({ connectionId: "610000000000000001", connectionRevision: 7, published: true });
+    });
+    await client.getPlatformProviderConnection("610000000000000001");
+    await client.getPlatformProviderConnectionPublication("610000000000000001", 7);
+    await client.publishPlatformProviderConnection("610000000000000001", 7);
+    expect(requests.map(request => [request.method, request.url])).toEqual([
+      ["GET", "http://localhost/api/v1/platform/model-supply/connections/610000000000000001"],
+      ["GET", "http://localhost/api/v1/platform/model-supply/connections/610000000000000001/publication?expectedVersion=7"],
+      ["POST", "http://localhost/api/v1/platform/model-supply/connections/610000000000000001/publish"],
+    ]);
+    expect(requests[0]?.body).toBeNull();
+    expect(requests[1]?.body).toBeNull();
+    expect(await requests[2]?.json()).toEqual({ expectedVersion: 7 });
+    expect(requests[2]?.headers.get("Idempotency-Key")).toBe("request-key-002");
+    expect(requests[2]?.headers.get("Content-Type")).toContain("application/json");
+    expect(requests.every(request => ["Authorization", "X-Tenant-Id", "X-Subject-Id"]
+      .every(name => request.headers.get(name) === null))).toBe(true);
+  });
   it("成员功能独立读写只携带四布尔值与两个版本，不混入助手或身份范围", async () => {
     const requests: Request[] = [];
     const client = authenticatedClient(async (input, init) => {

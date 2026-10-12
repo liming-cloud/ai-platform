@@ -4,4 +4,24 @@
     <select id="lockCreation" resultType="java.lang.String">
         SELECT pg_advisory_xact_lock(#{key})
     </select>
+    <!-- 仅检查用途槽存在性；禁止将密文、指纹或秘密引用投影到浏览器。 -->
+    <select id="selectFacts" resultType="com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.PlatformProviderConnectionFacts$Fact">
+        SELECT connection.id AS connection_id, connection.version,
+               EXISTS (SELECT 1 FROM model_runtime.platform_provider_connection_credential credential
+                       WHERE credential.platform_provider_connection_id = connection.id
+                         AND credential.credential_purpose = 'INFERENCE_API_KEY') AS credential_configured,
+               (EXISTS (SELECT 1 FROM model_runtime.platform_provider_connection_credential credential
+                        WHERE credential.platform_provider_connection_id = connection.id
+                          AND credential.credential_purpose = 'DISCOVERY_ACCESS_KEY_ID')
+                AND EXISTS (SELECT 1 FROM model_runtime.platform_provider_connection_credential credential
+                            WHERE credential.platform_provider_connection_id = connection.id
+                              AND credential.credential_purpose = 'DISCOVERY_SECRET_ACCESS_KEY')) AS discovery_credentials_configured,
+               EXISTS (SELECT 1 FROM model_runtime.platform_provider_connection_publication publication
+                       WHERE publication.connection_id = connection.id
+                         AND publication.connection_revision = connection.version
+                         AND connection.status = 'VERIFIED') AS published
+        FROM model_runtime.platform_provider_connection connection
+        WHERE connection.id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">#{id}</foreach>
+    </select>
 </mapper>

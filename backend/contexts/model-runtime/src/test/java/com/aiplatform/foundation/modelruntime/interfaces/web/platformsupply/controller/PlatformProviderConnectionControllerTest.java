@@ -65,7 +65,7 @@ class PlatformProviderConnectionControllerTest {
         var identifiers = mock(com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator.class);
         var probes = mock(PlatformProbeProviderService.class);
         var service = new PlatformProviderConnectionService(repository, credentials, transactions,
-                probes, java.time.Clock.systemUTC(), identifiers, endpoint -> {});
+                probes, java.time.Clock.systemUTC(), identifiers, endpoint -> {}, ids -> java.util.Map.of());
         var context = mock(PlatformRequestContext.class);
         when(context.hasPermission(PlatformPermissions.MODEL_PLATFORM_WRITE)).thenReturn(true);
         var mvc = MockMvcBuilders.standaloneSetup(new PlatformProviderConnectionController(service))
@@ -94,7 +94,10 @@ class PlatformProviderConnectionControllerTest {
         var identifiers = mock(com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator.class);
         var probes = mock(PlatformProbeProviderService.class);
         var service = new PlatformProviderConnectionService(repository, credentials, transactions,
-                probes, java.time.Clock.systemUTC(), identifiers, endpoint -> {});
+                probes, java.time.Clock.systemUTC(), identifiers, endpoint -> {}, ids -> ids.stream().collect(
+                        java.util.stream.Collectors.toMap(java.util.function.Function.identity(),
+                                idValue -> new com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.PlatformProviderConnectionFacts.Fact(
+                                        idValue, 0, true, false, false))));
         var context = mock(PlatformRequestContext.class);
         when(context.hasPermission(PlatformPermissions.MODEL_PLATFORM_WRITE)).thenReturn(true);
         var id = new PlatformProviderConnectionId(320000000000000001L);
@@ -118,6 +121,8 @@ class PlatformProviderConnectionControllerTest {
                 .andExpect(jsonPath("$.displayName").value("平台模型"))
                 .andExpect(jsonPath("$.version").value(0))
                 .andExpect(jsonPath("$.credentialConfigured").value(true))
+                .andExpect(jsonPath("$.discoveryCredentialsConfigured").value(false))
+                .andExpect(jsonPath("$.published").value(false))
                 .andExpect(jsonPath("$.endpoint").doesNotExist())
                 .andExpect(jsonPath("$.credentialReference").doesNotExist())
                 .andExpect(jsonPath("$.apiKey").doesNotExist())
@@ -313,7 +318,7 @@ class PlatformProviderConnectionControllerTest {
                 null,
                 null,
                 Instant.parse("2026-08-13T01:00:00Z"),
-                null);
+                null, false, false);
     }
 
     private static HandlerMethodArgumentResolver platformContext(PlatformRequestContext context) {

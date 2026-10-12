@@ -472,6 +472,17 @@ describe("统一控制台路由", () => {
     })).toBe("/platform/model-supply/deployments?connectionId=610000000000000001&connectionVersion=2&candidatePage=3&deploymentPage=4");
   });
 
+  it("平台连接详情深链接恢复精确连接和候选页，不回退其他连接", () => {
+    expect(formatConsoleRoute({ navigationId: "platform-model-supply", task: "connection-detail",
+      connectionId: "610000000000000001", candidatePage: 2 }))
+      .toBe("/platform/model-supply/connections/610000000000000001?candidatePage=2");
+    expect(parseConsoleRoute("/platform/model-supply/connections/610000000000000001", "?candidatePage=2"))
+      .toEqual({ navigationId: "platform-model-supply", task: "connection-detail",
+        connectionId: "610000000000000001", candidatePage: 2 });
+    expect(parseConsoleRoute("/platform/model-supply/connections/0", "")).toBeUndefined();
+    expect(parseConsoleRoute("/platform/model-supply/connections/9223372036854775808", "")).toBeUndefined();
+  });
+
   it("受治理文件任务从 URL 恢复资源选择器的服务端页码", () => {
     expect(parseConsoleRoute(
       "/data/files",

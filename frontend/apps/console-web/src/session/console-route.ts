@@ -84,6 +84,7 @@ export type ConsoleRoute =
       status: "ALL" | "ACTIVE" | "DISABLED"; page: number; pageSize: 10 | 20 | 50 | 100 }
   | { navigationId: "platform-accounts"; task: "roles" }
   | { navigationId: "platform-model-supply"; task: "connections"; page: number }
+  | { navigationId: "platform-model-supply"; task: "connection-detail"; connectionId: string; candidatePage: number }
   | {
     navigationId: "platform-model-supply";
     task: "deployments";
@@ -475,6 +476,11 @@ export function parseConsoleRoute(pathname: string, search: string): ConsoleRout
       deploymentPage: positivePage(parameters.get("deploymentPage")),
     };
   }
+  const platformConnection = /^\/platform\/model-supply\/connections\/([1-9][0-9]{0,18})$/.exec(routePath);
+  if (platformConnection && BigInt(platformConnection[1]!) <= 9223372036854775807n) {
+    return { navigationId: "platform-model-supply", task: "connection-detail", connectionId: platformConnection[1]!,
+      candidatePage: positivePage(new URLSearchParams(search).get("candidatePage")) };
+  }
   return undefined;
 }
 
@@ -549,6 +555,7 @@ export function formatConsoleRoute(route: ConsoleRoute): string {
         page: String(route.page), pageSize: String(route.pageSize) })}`
       : "/platform/roles";
   }
+  if (route.task === "connection-detail") return `/platform/model-supply/connections/${encodeURIComponent(route.connectionId)}?candidatePage=${route.candidatePage}`;
   return route.task === "connections"
     ? `/platform/model-supply?page=${route.page}`
     : formatPlatformDeploymentRoute(route);

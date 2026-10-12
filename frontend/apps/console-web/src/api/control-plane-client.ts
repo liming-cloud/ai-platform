@@ -365,6 +365,8 @@ export interface PlatformProviderConnectionCreateInput extends ProviderConnectio
 export type PlatformProviderConnectionSummary = ProviderConnectionSummary & {
   discoveryProfile: PlatformModelDiscoveryProfile;
   preset?: { id: string; version: string; capability: "CHAT" | "EMBEDDING" | "RERANK" } | null;
+  discoveryCredentialsConfigured: boolean;
+  published: boolean;
 };
 
 /** 后端受控的非秘密厂商目录；版本用于创建时校验，不表示能力已经验证。 */
@@ -376,6 +378,16 @@ export interface PlatformProviderPresets {
     variants: Array<{ capability: string; endpointTemplate: string; workspaceRequired: boolean;
       runtimeProtocol: string; discoveryProfile: PlatformModelDiscoveryProfile }>;
   }>;
+}
+
+/** 独立发布只绑定当前连接版本；历史发布不会被当作当前可用事实。 */
+export interface PlatformProviderConnectionPublication {
+  connectionId: string;
+  published: boolean;
+  publicationRevision: number | null;
+  connectionRevision: number;
+  probedAt: string | null;
+  publishedAt: string | null;
 }
 
 /** 平台模型发现的安全摘要；候选只用于后续受控部署选择。 */
@@ -1706,6 +1718,23 @@ export class ControlPlaneClient {
   /** 读取预设不创建连接、不读取密钥、不访问厂商。 */
   async getPlatformProviderPresets(): Promise<PlatformProviderPresets> {
     return this.request("/platform/model-supply/connections/presets");
+  }
+
+  /** 深链接只读取精确平台连接，不猜测或回退列表首项。 */
+  async getPlatformProviderConnection(id: string): Promise<PlatformProviderConnectionSummary> {
+    return this.request(`/platform/model-supply/connections/${encodeURIComponent(id)}`);
+  }
+
+  /** 发布事实绑定当前连接版本，不从历史验证标签推断可用性。 */
+  async getPlatformProviderConnectionPublication(id: string, expectedVersion: number): Promise<PlatformProviderConnectionPublication> {
+    return this.request(`/platform/model-supply/connections/${encodeURIComponent(id)}/publication?expectedVersion=${expectedVersion}`);
+  }
+
+  /** 发布由服务端复核当前探测及版本；不会隐式建立部署或租户授权。 */
+  async publishPlatformProviderConnection(id: string, expectedVersion: number): Promise<PlatformProviderConnectionPublication> {
+    return this.request(`/platform/model-supply/connections/${encodeURIComponent(id)}/publish`, {
+      method: "POST", headers: this.writeHeaders("application/json"), body: JSON.stringify({ expectedVersion }),
+    });
   }
 
   async createPlatformProviderConnection(
