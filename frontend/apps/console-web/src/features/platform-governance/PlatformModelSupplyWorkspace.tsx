@@ -210,7 +210,7 @@ export function PlatformModelSupplyWorkspace({
         : {
           intent: "warning",
           title: "模型发现未完成",
-          message: "本次刷新没有返回可用候选。连接既有验证状态和未过期候选不会自动失效；请检查预设凭据与平台网络策略后重试。",
+          message: "本次刷新没有返回可用候选。连接未通过验证，不能发布连接；请检查厂商凭据与平台网络后重试。",
         });
       await load();
     } catch (error) {

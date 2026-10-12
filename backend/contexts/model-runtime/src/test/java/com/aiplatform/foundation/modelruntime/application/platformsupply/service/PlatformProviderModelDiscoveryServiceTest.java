@@ -1,6 +1,8 @@
 package com.aiplatform.foundation.modelruntime.application.platformsupply.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.aiplatform.foundation.modelruntime.application.platformsupply.command.DiscoverPlatformProviderModelsCommand;
@@ -45,7 +47,7 @@ class PlatformProviderModelDiscoveryServiceTest {
         var service = new PlatformProviderModelDiscoveryService(
                 new ForbiddenConnectionRepository(),
                 List.of(),
-                discovery -> { throw new AssertionError("无权请求不得写入平台模型发现"); },
+                (connection, version, discovery) -> { throw new AssertionError("无权请求不得写入平台模型发现"); },
                 CLOCK,
                 () -> 620000000000000001L,
                 Duration.ofHours(1));
@@ -61,7 +63,7 @@ class PlatformProviderModelDiscoveryServiceTest {
         var service = new PlatformProviderModelDiscoveryService(
                 new SingleConnectionRepository(connection),
                 List.of(new ForbiddenDiscoverer()),
-                discovery -> {
+                (updated, version, discovery) -> {
                     throw new AssertionError("旧修订不得写入平台模型发现");
                 },
                 CLOCK,
@@ -77,7 +79,7 @@ class PlatformProviderModelDiscoveryServiceTest {
     void 草稿平台连接通过发现完成验证且不需要模型代码() {
         var connection = draftConnection();
         var repository = new SingleConnectionRepository(connection);
-        var store = new CapturingStore();
+        var store = new CapturingStore(repository);
         var service = new PlatformProviderModelDiscoveryService(
                 repository,
                 List.of(new DeterministicDiscoverer()),
@@ -111,7 +113,7 @@ class PlatformProviderModelDiscoveryServiceTest {
                 new CredentialReference("secret://platform-provider-connection/610000000000000002"),
                 Instant.parse("2026-08-13T00:00:00Z"));
         var repository = new SingleConnectionRepository(connection);
-        var store = new CapturingStore();
+        var store = new CapturingStore(repository);
         var discoverer = new CapturingArkDiscoverer();
         var service = new PlatformProviderModelDiscoveryService(
                 repository, List.of(discoverer), store, CLOCK,
@@ -126,6 +128,74 @@ class PlatformProviderModelDiscoveryServiceTest {
                 references.accessKeyId());
         assertEquals("secret://platform-provider-discovery-secret-key/610000000000000002",
                 references.secretAccessKey());
+    }
+
+    @Test
+    void 已验证连接重新发现成功必须刷新验证时间和修订() {
+        var connection = verifiedConnection();
+        var repository = new SingleConnectionRepository(connection);
+        var store = new CapturingStore(repository);
+        var service = new PlatformProviderModelDiscoveryService(repository,
+                List.of(new DeterministicDiscoverer()), store, CLOCK,
+                () -> 620000000000000003L, Duration.ofHours(1));
+
+        service.discover(new DiscoverPlatformProviderModelsCommand(platformModelWriter(),
+                connection.id().toString(), connection.version(), Duration.ofSeconds(3)));
+
+        assertEquals(CLOCK.instant(), repository.connection.lastProbedAt());
+        assertEquals(connection.version() + 1, repository.connection.version());
+        assertEquals(repository.connection.version(), store.discovery.connectionRevision());
+    }
+
+    @Test
+    void 已验证连接重新发现失败必须撤销旧验证结果() {
+        var connection = verifiedConnection();
+        var repository = new SingleConnectionRepository(connection);
+        var store = new CapturingStore(repository);
+        var discoverer = new DeterministicDiscoverer() {
+            @Override public com.aiplatform.foundation.modelruntime.application.extension.facade.PlatformProviderModelDiscoveryObservation discover(
+                    PlatformProviderModelDiscoveryRequest request) {
+                return new com.aiplatform.foundation.modelruntime.application.extension.facade.PlatformProviderModelDiscoveryObservation(
+                        false, Set.of(), "DISCOVERY_UNAVAILABLE", Duration.ZERO, CLOCK.instant());
+            }
+        };
+        var service = new PlatformProviderModelDiscoveryService(repository, List.of(discoverer),
+                store, CLOCK, () -> 620000000000000004L, Duration.ofHours(1));
+
+        service.discover(new DiscoverPlatformProviderModelsCommand(platformModelWriter(),
+                connection.id().toString(), connection.version(), Duration.ofSeconds(3)));
+
+        assertEquals(com.aiplatform.foundation.modelruntime.domain.provider.model.ProviderConnectionStatus.DRAFT,
+                repository.connection.status());
+        assertFalse(repository.connection.lastProbeSucceeded());
+        assertEquals(CLOCK.instant(), repository.connection.lastProbedAt());
+        assertEquals(connection.version() + 1, repository.connection.version());
+        assertEquals(repository.connection.version(), store.discovery.connectionRevision());
+        assertNull(store.discovery.expiresAt());
+    }
+
+    @Test
+    void 外部发现期间停用连接必须拒绝迟到响应且不得写入候选() {
+        var connection = verifiedConnection();
+        var repository = new SingleConnectionRepository(connection);
+        var store = new CapturingStore(repository);
+        var discoverer = new DeterministicDiscoverer() {
+            @Override public com.aiplatform.foundation.modelruntime.application.extension.facade.PlatformProviderModelDiscoveryObservation discover(
+                    PlatformProviderModelDiscoveryRequest request) {
+                repository.update(connection.disable(), connection.version());
+                return super.discover(request);
+            }
+        };
+        var service = new PlatformProviderModelDiscoveryService(repository, List.of(discoverer),
+                store, CLOCK, () -> 620000000000000005L, Duration.ofHours(1));
+
+        assertThrows(ProviderConnectionConcurrentModificationException.class, () -> service.discover(
+                new DiscoverPlatformProviderModelsCommand(platformModelWriter(), connection.id().toString(),
+                        connection.version(), Duration.ofSeconds(3))));
+
+        assertEquals(com.aiplatform.foundation.modelruntime.domain.provider.model.ProviderConnectionStatus.DISABLED,
+                repository.connection.status());
+        assertNull(store.discovery);
     }
 
     private static PlatformProviderConnection verifiedConnection() {
@@ -159,7 +229,7 @@ class PlatformProviderModelDiscoveryServiceTest {
                 "trc_platform_discovery_writer");
     }
 
-    private static final class DeterministicDiscoverer implements PlatformProviderModelDiscoverer {
+    private static class DeterministicDiscoverer implements PlatformProviderModelDiscoverer {
         @Override public com.aiplatform.foundation.modelruntime.application.extension.facade.ProviderKind providerKind() { return com.aiplatform.foundation.modelruntime.application.extension.facade.ProviderKind.DETERMINISTIC; }
         @Override public com.aiplatform.foundation.modelruntime.application.extension.facade.PlatformModelDiscoveryProfile discoveryProfile() {
             return com.aiplatform.foundation.modelruntime.application.extension.facade.PlatformModelDiscoveryProfile.DETERMINISTIC_CATALOG;
@@ -209,8 +279,16 @@ class PlatformProviderModelDiscoveryServiceTest {
     }
 
     private static final class CapturingStore implements PlatformProviderModelDiscoveryStore {
+        private final SingleConnectionRepository connections;
         private PlatformProviderModelDiscovery discovery;
-        @Override public void record(PlatformProviderModelDiscovery discovery) { this.discovery = discovery; }
+        private CapturingStore(SingleConnectionRepository connections) { this.connections = connections; }
+        @Override public void record(PlatformProviderConnection connection, long expectedVersion,
+                PlatformProviderModelDiscovery discovery) {
+            if (!connections.update(connection, expectedVersion)) {
+                throw new ProviderConnectionConcurrentModificationException();
+            }
+            this.discovery = discovery;
+        }
     }
 
     private static final class SingleConnectionRepository implements PlatformProviderConnectionRepository {

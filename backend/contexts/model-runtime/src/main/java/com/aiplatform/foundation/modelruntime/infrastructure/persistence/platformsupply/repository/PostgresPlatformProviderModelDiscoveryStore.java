@@ -3,12 +3,15 @@ package com.aiplatform.foundation.modelruntime.infrastructure.persistence.platfo
 import com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.PlatformProviderModelDiscoveryStore;
 import com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.PlatformProviderModelDiscoveryLookup;
 import com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.PlatformProviderModelCandidateConfirmationStore;
+import com.aiplatform.foundation.modelruntime.application.provider.exception.ProviderConnectionConcurrentModificationException;
 import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelCapability;
 import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelType;
 import com.aiplatform.foundation.modelruntime.domain.platformsupply.model.discovery.PlatformDiscoveredModelCandidate;
 import com.aiplatform.foundation.modelruntime.domain.platformsupply.model.discovery.PlatformModelCandidateClassification;
 import com.aiplatform.foundation.modelruntime.domain.platformsupply.model.PlatformProviderConnectionId;
+import com.aiplatform.foundation.modelruntime.domain.platformsupply.model.PlatformProviderConnection;
 import com.aiplatform.foundation.modelruntime.domain.platformsupply.model.PlatformProviderModelDiscovery;
+import com.aiplatform.foundation.modelruntime.domain.platformsupply.repository.PlatformProviderConnectionRepository;
 import com.aiplatform.foundation.shared.contract.paging.PageQuery;
 import com.aiplatform.foundation.shared.contract.paging.PageResult;
 import java.sql.Timestamp;
@@ -21,27 +24,45 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
-/** PostgreSQL 在同一事务内写入平台模型发现根与候选。 */
+/** PostgreSQL 在同一短事务内提交连接验证修订、平台模型发现根与候选。 */
 public final class PostgresPlatformProviderModelDiscoveryStore
         implements PlatformProviderModelDiscoveryStore, PlatformProviderModelDiscoveryLookup,
         PlatformProviderModelCandidateConfirmationStore {
 
     private final JdbcTemplate jdbc;
     private final TransactionTemplate transactions;
+    private final PlatformProviderConnectionRepository connections;
 
     public PostgresPlatformProviderModelDiscoveryStore(
             JdbcTemplate jdbc,
-            PlatformTransactionManager transactionManager) {
+            PlatformTransactionManager transactionManager,
+            PlatformProviderConnectionRepository connections) {
         this.jdbc = Objects.requireNonNull(jdbc, "JDBC 模板不能为空");
         this.transactions = new TransactionTemplate(
                 Objects.requireNonNull(transactionManager, "事务管理器不能为空"));
+        this.connections = Objects.requireNonNull(connections, "平台连接仓储不能为空");
     }
 
     @Override
-    public void record(PlatformProviderModelDiscovery discovery) {
-        discovery = Objects.requireNonNull(discovery, "平台模型发现事实不能为空");
-        var captured = discovery;
-        transactions.executeWithoutResult(status -> recordInTransaction(captured));
+    public void record(PlatformProviderConnection connection, long expectedVersion,
+            PlatformProviderModelDiscovery discovery) {
+        Objects.requireNonNull(connection, "平台连接不能为空");
+        Objects.requireNonNull(discovery, "平台模型发现事实不能为空");
+        if (expectedVersion < 0 || connection.version() != expectedVersion + 1
+                || !connection.id().equals(discovery.connectionId())
+                || connection.version() != discovery.connectionRevision()
+                || !Objects.equals(connection.lastProbeSucceeded(), discovery.succeeded())
+                || !Objects.equals(connection.lastProbeCode(), discovery.resultCode())
+                || !Objects.equals(connection.lastProbedAt(), discovery.discoveredAt())) {
+            throw new IllegalArgumentException("平台模型发现必须绑定本次连接验证的新修订");
+        }
+        transactions.executeWithoutResult(status -> {
+            // 先通过 CAS 占用当前修订，停用或轮换后的迟到响应不能留下发现事实。
+            if (!connections.update(connection, expectedVersion)) {
+                throw new ProviderConnectionConcurrentModificationException();
+            }
+            recordInTransaction(discovery);
+        });
     }
 
     @Override

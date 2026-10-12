@@ -56,7 +56,7 @@ public final class PlatformProviderModelDiscoveryService {
     }
 
     /**
-     * 固化已验证平台连接当前修订的模型候选。
+     * 重新验证平台连接，并原子固化新修订的模型候选。
      *
      * @throws ModelCatalogPermissionDeniedException 当前会话不具有 `model-platform:write` 时抛出。
      */
@@ -80,22 +80,17 @@ public final class PlatformProviderModelDiscoveryService {
                 : discoveredAtNow(ExtensionContractMapper.domainPlatformDiscovery(discoverer.discover(ExtensionContractMapper.platformDiscovery(new PlatformProviderModelDiscoveryRequest(
                         connection.providerKind(), discoveryProfile, connection.endpoint(), connection.region(),
                         connection.credentialReference(), discoveryCredentials(connection), command.timeout())))));
-        var discoveredConnection = connection;
-        if (connection.status() != ProviderConnectionStatus.VERIFIED) {
-            discoveredConnection = observation.succeeded()
-                    ? connection.recordSuccessfulProbe(observation.resultCode(), observation.discoveredAt())
-                    : connection.recordFailedProbe(observation.resultCode(), observation.discoveredAt());
-            if (!connections.update(discoveredConnection, command.expectedVersion())) {
-                throw new ProviderConnectionConcurrentModificationException();
-            }
-        }
+        // 每次发现都替换旧验证事实；失败不得沿用历史的 VERIFIED 或发布时间。
+        var discoveredConnection = observation.succeeded()
+                ? connection.recordSuccessfulProbe(observation.resultCode(), observation.discoveredAt())
+                : connection.recordFailedProbe(observation.resultCode(), observation.discoveredAt());
         var discovery = PlatformProviderModelDiscovery.capture(
                 new PlatformProviderModelDiscoveryId(identifiers.nextId()),
                 discoveredConnection.id(),
                 discoveredConnection.version(),
                 observation,
                 observation.discoveredAt().plus(validity));
-        store.record(discovery);
+        store.record(discoveredConnection, command.expectedVersion(), discovery);
         return new DiscoverPlatformProviderModelsResult(
                 discovery.id().toString(),
                 discovery.succeeded(),

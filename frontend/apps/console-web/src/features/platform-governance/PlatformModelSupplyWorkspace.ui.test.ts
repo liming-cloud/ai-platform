@@ -98,11 +98,12 @@ describe("平台模型供应链呈现", () => {
     expect(styles).toMatch(/\.platform-model-supply-table__actions\s*\{[^}]*text-align:\s*right;/s);
   });
 
-  it("区分连接验证与候选刷新结果", () => {
+  it("重新发现失败时明确当前修订需要重新验证", () => {
     const source = readFileSync(workspacePath, "utf8");
 
     expect(source).toContain("<th>连接验证</th>");
-    expect(source).toContain("连接既有验证状态和未过期候选不会自动失效");
+    expect(source).toContain("连接未通过验证，不能发布连接");
+    expect(source).not.toContain("连接既有验证状态和未过期候选不会自动失效");
     expect(source).not.toContain("<th>最近探测</th>");
   });
 });
