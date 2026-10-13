@@ -193,6 +193,13 @@ if(initial?.navigationId==="platform-model-supply")window.draw(initial);else win
         await pager.getByRole("status").filter({hasText:"共 101 条 · 1–10 条"}).waitFor();
         for(const enlarged of [false,true]) {
           await page.evaluate(enlarged=>document.documentElement.style.fontSize=enlarged?"200%":"",enlarged);
+          if(!enlarged) {
+            const expectedHeight=width<=680?44:32;
+            assert.equal(await page.getByRole("searchbox",{name:"搜索当前目录",exact:true}).evaluate(item=>item.getBoundingClientRect().height),width<=680?44:36);
+            for(const control of await pager.locator("button,input,select").all()) {
+              assert.equal(await control.evaluate(item=>item.getBoundingClientRect().height),expectedHeight);
+            }
+          }
           assert.equal(await pager.evaluate(item=>item.scrollWidth<=item.clientWidth+1),true);
           for(const control of await pager.locator("button,input,select").all()) {
             if(await control.isDisabled())continue;
