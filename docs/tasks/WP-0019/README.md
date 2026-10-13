@@ -7,7 +7,7 @@
 | 负责人 | 模型供应与租户使用 |
 | 分支 | main |
 | 里程碑 | M6 |
-| ADR | ADR-0010, ADR-0022, ADR-0023, ADR-0040, ADR-0058, ADR-0060, ADR-0066, ADR-0070, ADR-0074, ADR-0079, ADR-0082, ADR-0095 |
+| ADR | ADR-0010, ADR-0022, ADR-0023, ADR-0058, ADR-0060, ADR-0066, ADR-0070, ADR-0074, ADR-0079, ADR-0082, ADR-0095, ADR-0096 |
 | 证据 | pending |
 | 提交 | pending |
 | 输入提交 | 8ade6bbe15a53fdf73a1fea794e642632f59b835 |
