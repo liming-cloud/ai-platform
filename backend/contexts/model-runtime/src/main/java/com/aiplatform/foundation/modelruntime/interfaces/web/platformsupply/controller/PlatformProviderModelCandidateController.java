@@ -43,9 +43,14 @@ public class PlatformProviderModelCandidateController {
             @PathVariable String providerConnectionId,
             @RequestParam long expectedConnectionVersion,
             @RequestParam(defaultValue = "1") long pageNumber,
-            @RequestParam(defaultValue = "20") long pageSize) {
+            @RequestParam(defaultValue = "20") long pageSize,
+            @RequestParam(defaultValue = "") String q,
+            @RequestParam org.springframework.util.MultiValueMap<String, String> parameters) {
+        if (parameters.entrySet().stream().anyMatch(entry -> !java.util.Set.of("expectedConnectionVersion", "pageNumber", "pageSize", "q").contains(entry.getKey()) || entry.getValue().size() != 1)) {
+            throw new IllegalArgumentException("平台候选目录不接受范围、重复或未知参数");
+        }
         return candidates.list(new ListPlatformProviderModelCandidatesQuery(
-                context, providerConnectionId, expectedConnectionVersion, new PageQuery(pageNumber, pageSize)));
+                context, providerConnectionId, expectedConnectionVersion, new PageQuery(pageNumber, pageSize), q));
     }
 
     @PostMapping("/{providerConnectionId}/model-candidates/confirmation")

@@ -17,8 +17,13 @@ public interface PlatformProviderConnectionRepository {
         throw new UnsupportedOperationException("平台供应商连接仓储未实现按标识读取");
     }
 
-    default PlatformProviderConnectionPage findPage(long pageNumber, long pageSize) {
+    default PlatformProviderConnectionPage findPage(long pageNumber, long pageSize, String q) {
         throw new UnsupportedOperationException("平台供应商连接仓储未实现分页读取");
+    }
+
+    /** 只统计当前修订的独立发布事实，不读取凭据或探测正文。 */
+    default long countPublished() {
+        throw new UnsupportedOperationException("平台供应商连接仓储未实现发布计数");
     }
 
     default boolean update(PlatformProviderConnection connection, long expectedVersion) {

@@ -1,6 +1,38 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.aiplatform.foundation.modelruntime.infrastructure.persistence.platformsupply.mapper.PlatformProviderConnectionMapper">
+    <!-- 只搜索已公开名称与摘要；连接地址、工作空间、凭据及原始探测结果不参与匹配。 -->
+    <sql id="directoryFilter">
+        FROM model_runtime.platform_provider_connection connection
+        LEFT JOIN model_runtime.platform_provider_connection_publication publication
+          ON publication.connection_id = connection.id AND publication.connection_revision = connection.version
+         AND connection.status = 'VERIFIED'
+        WHERE connection.scope = 'PLATFORM'
+          AND concat_ws(' ', connection.display_name,
+              CASE connection.provider_preset_id WHEN 'CUSTOM' THEN '自定义连接' WHEN 'DEEPSEEK' THEN 'DeepSeek'
+                   WHEN 'ALIYUN' THEN '阿里云百炼' WHEN 'SILICONFLOW' THEN '硅基流动'
+                   WHEN 'VOLCENGINE' THEN '火山方舟' ELSE '已有连接' END,
+              CASE connection.capability_intent WHEN 'CHAT' THEN '对话模型' WHEN 'EMBEDDING' THEN '向量模型'
+                   WHEN 'RERANK' THEN '重排序模型' ELSE '待确认' END,
+              CASE WHEN connection.capability_intent = 'RERANK' THEN '厂商重排适配'
+                   WHEN connection.provider_kind = 'OPENAI_COMPATIBLE' THEN 'OpenAI 兼容协议' ELSE '待确认协议' END,
+              CASE WHEN connection.status = 'DISABLED' THEN '已停用' WHEN connection.last_probe_succeeded = FALSE THEN '失败'
+                   WHEN publication.id IS NOT NULL THEN '已发布' WHEN connection.status = 'VERIFIED' THEN '验证通过' ELSE '草稿' END)
+              ILIKE #{q} ESCAPE '\'
+    </sql>
+    <select id="selectDirectoryPage" resultType="com.aiplatform.foundation.modelruntime.infrastructure.persistence.platformsupply.entity.PlatformProviderConnectionEntity">
+        SELECT connection.* <include refid="directoryFilter"/>
+        ORDER BY connection.created_at DESC, connection.id DESC
+    </select>
+    <select id="countDirectory" resultType="long">
+        SELECT COUNT(*) <include refid="directoryFilter"/>
+    </select>
+    <select id="countPublished" resultType="long">
+        SELECT COUNT(*) FROM model_runtime.platform_provider_connection connection
+        JOIN model_runtime.platform_provider_connection_publication publication
+          ON publication.connection_id = connection.id AND publication.connection_revision = connection.version
+        WHERE connection.scope = 'PLATFORM' AND connection.status = 'VERIFIED'
+    </select>
     <select id="lockCreation" resultType="java.lang.String">
         SELECT pg_advisory_xact_lock(#{key})
     </select>

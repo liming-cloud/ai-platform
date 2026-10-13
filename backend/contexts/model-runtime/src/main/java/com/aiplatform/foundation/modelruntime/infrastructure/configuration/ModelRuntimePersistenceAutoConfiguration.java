@@ -137,8 +137,9 @@ public class ModelRuntimePersistenceAutoConfiguration {
     PostgresPlatformProviderModelDiscoveryStore platformProviderModelDiscoveryStore(
             JdbcTemplate jdbc,
             PlatformTransactionManager transactions,
-            PlatformProviderConnectionRepository connections) {
-        return new PostgresPlatformProviderModelDiscoveryStore(jdbc, transactions, connections);
+            PlatformProviderConnectionRepository connections,
+            com.aiplatform.foundation.modelruntime.infrastructure.persistence.platformsupply.mapper.PlatformProviderModelCandidateMapper candidateMapper) {
+        return new PostgresPlatformProviderModelDiscoveryStore(jdbc, transactions, connections, candidateMapper);
     }
 
     @Bean

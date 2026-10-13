@@ -51,6 +51,7 @@ const draft=()=>({id:"610000000000000001",displayName:"源码隔离连接",provi
 window.testState={writes:[],fail:false,pending:false,route:null,connection:draft(),detailCalls:[],failProbe:false,badBinding:false,autoRoute:false};
 const client={hasSession:()=>true,
   listPlatformProviderConnections:async()=>({items:[],totalElements:0,hasPrevious:false,hasNext:false}),
+  getPlatformProviderConnectionDirectorySummary:async()=>({publishedConnections:0}),
   getPlatformProviderPresets:async()=>directory,
   getPlatformProviderConnection:async()=>({...window.testState.connection}),
   getPlatformProviderConnectionPublication:async(id,version)=>({connectionId:id,
@@ -261,7 +262,8 @@ window.renderWorkspace(1);`;
       await page.getByRole("alert").filter({ hasText: "不能发布连接" }).waitFor();
       assert.equal(await page.getByRole("button", { name: "发布连接", exact: true }).count(), 0);
       assert.equal(await page.getByText("source-chat", { exact: true }).count(), 0);
-      assert.equal(await page.getByText("失败", { exact: true }).count(), 1);
+      assert.equal(await page.locator(".platform-connection-object-line").textContent(), "失败");
+      assert.equal(await page.locator(".platform-connection-section__heading").getByText("失败", { exact: true }).count(), 1);
     });
     await check("缺少方舟独立 AK/SK 时显示待配置且禁止探测", async () => {
       await page.evaluate(() => {

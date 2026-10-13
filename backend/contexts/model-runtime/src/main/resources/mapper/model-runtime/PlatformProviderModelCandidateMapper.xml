@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aiplatform.foundation.modelruntime.infrastructure.persistence.platformsupply.mapper.PlatformProviderModelCandidateMapper">
+    <!-- 最新发现根以 PostgreSQL DISTINCT ON 归一；候选窗口和总数由 MyBatis-Plus 生成。 -->
+    <sql id="currentCandidates">
+        WITH current_discovery AS (
+            SELECT DISTINCT ON (discovery.platform_provider_connection_id, discovery.platform_provider_connection_revision) discovery.id FROM model_runtime.platform_provider_model_discovery discovery
+            JOIN model_runtime.platform_provider_connection connection ON connection.id = discovery.platform_provider_connection_id
+            WHERE connection.id = #{connectionId} AND connection.scope = 'PLATFORM'
+              AND connection.version = #{revision} AND connection.status = 'VERIFIED'
+              AND discovery.platform_provider_connection_revision = #{revision}
+              AND discovery.succeeded = TRUE AND discovery.expires_at &gt; #{now}
+            ORDER BY discovery.platform_provider_connection_id, discovery.platform_provider_connection_revision, discovery.discovered_at DESC, discovery.id DESC
+        ), candidate_projection AS (
+            SELECT candidate.model_code, candidate.candidate_key,
+                   COALESCE(confirmation.model_type, candidate.model_type) AS model_type,
+                   CASE WHEN confirmation.discovery_id IS NOT NULL THEN 'CONFIRMED_BY_ADMIN'
+                        ELSE candidate.classification END AS classification,
+                   COALESCE(array_to_string(confirmation.capabilities, ','), array_to_string(candidate.capabilities, ',')) AS capabilities
+            FROM model_runtime.platform_discovered_model candidate
+            JOIN current_discovery ON current_discovery.id = candidate.discovery_id
+            LEFT JOIN model_runtime.platform_model_candidate_confirmation confirmation
+              ON confirmation.discovery_id = candidate.discovery_id AND confirmation.model_code = candidate.model_code
+        )
+    </sql>
+    <sql id="candidateFilter">
+        FROM candidate_projection
+        WHERE concat_ws(' ', model_code,
+              CASE WHEN classification = 'REQUIRES_ADMIN_CONFIRMATION' THEN '待管理员确认'
+                   WHEN model_type = 'CHAT' THEN '对话模型' WHEN model_type = 'EMBEDDING' THEN '向量模型' ELSE '待确认' END)
+              ILIKE #{q} ESCAPE '\'
+    </sql>
+    <select id="selectCandidatePage" resultType="com.aiplatform.foundation.modelruntime.infrastructure.persistence.platformsupply.entity.PlatformProviderModelCandidateRow">
+        <include refid="currentCandidates"/>
+        SELECT model_code, model_type, capabilities, classification <include refid="candidateFilter"/>
+        ORDER BY model_code ASC, candidate_key ASC
+    </select>
+    <select id="countCandidates" resultType="long">
+        <include refid="currentCandidates"/>
+        SELECT COUNT(*) <include refid="candidateFilter"/>
+    </select>
+</mapper>

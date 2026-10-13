@@ -42,7 +42,7 @@ public final class PlatformProviderModelCandidateReadService {
                 || connection.status() != ProviderConnectionStatus.VERIFIED) {
             throw new IllegalStateException("平台供应商连接不可用");
         }
-        var candidates = discoveries.findCurrentCandidates(connection.id(), connection.version(), query.page(), clock.instant());
+        var candidates = discoveries.findCurrentCandidates(connection.id(), connection.version(), query.page(), clock.instant(), query.q());
         return PageResult.of(candidates.items().stream()
                         .map(candidate -> new PlatformProviderModelCandidateView(
                                 candidate.modelCode(),

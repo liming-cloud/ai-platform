@@ -288,6 +288,8 @@ class ModelRuntimeAutoConfigurationTest {
                         () -> mock(com.aiplatform.foundation.modelruntime.infrastructure.persistence.platformsupply.mapper.PlatformProviderConnectionMapper.class))
                 .withBean(com.aiplatform.foundation.modelruntime.infrastructure.persistence.platformsupply.mapper.PlatformProviderConnectionRequestMapper.class,
                         () -> mock(com.aiplatform.foundation.modelruntime.infrastructure.persistence.platformsupply.mapper.PlatformProviderConnectionRequestMapper.class))
+                .withBean(com.aiplatform.foundation.modelruntime.infrastructure.persistence.platformsupply.mapper.PlatformProviderModelCandidateMapper.class,
+                        () -> mock(com.aiplatform.foundation.modelruntime.infrastructure.persistence.platformsupply.mapper.PlatformProviderModelCandidateMapper.class))
                 .withBean(
                         ProviderConnectionMapper.class,
                         () -> mock(ProviderConnectionMapper.class))

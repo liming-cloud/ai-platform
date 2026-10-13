@@ -1068,6 +1068,36 @@
       "statementId": "latestRevision",
       "category": "AGGREGATE",
       "reason": "ADR-0095：连接行锁内读取已有发布最大修订，分配连续不可变发布事实。"
+    },
+    {
+      "path": "backend/contexts/model-runtime/src/main/resources/mapper/model-runtime/PlatformProviderConnectionMapper.xml",
+      "statementId": "selectDirectoryPage",
+      "category": "MULTI_TABLE",
+      "reason": "WP-0019 S1 / ADR-0096：当前修订、发布或管理员确认参与目录筛选，数据与总数共用完整安全谓词；MyBatis-Plus 生成候选窗口。"
+    },
+    {
+      "path": "backend/contexts/model-runtime/src/main/resources/mapper/model-runtime/PlatformProviderConnectionMapper.xml",
+      "statementId": "countDirectory",
+      "category": "MULTI_TABLE",
+      "reason": "WP-0019 S1 / ADR-0096：当前修订、发布或管理员确认参与目录筛选，数据与总数共用完整安全谓词；MyBatis-Plus 生成候选窗口。"
+    },
+    {
+      "path": "backend/contexts/model-runtime/src/main/resources/mapper/model-runtime/PlatformProviderConnectionMapper.xml",
+      "statementId": "countPublished",
+      "category": "MULTI_TABLE",
+      "reason": "WP-0019 S1 / ADR-0096：当前修订、发布或管理员确认参与目录筛选，数据与总数共用完整安全谓词；MyBatis-Plus 生成候选窗口。"
+    },
+    {
+      "path": "backend/contexts/model-runtime/src/main/resources/mapper/model-runtime/PlatformProviderModelCandidateMapper.xml",
+      "statementId": "selectCandidatePage",
+      "category": "MULTI_TABLE",
+      "reason": "WP-0019 S1 / ADR-0096：当前修订、发布或管理员确认参与目录筛选，数据与总数共用完整安全谓词；MyBatis-Plus 生成候选窗口。"
+    },
+    {
+      "path": "backend/contexts/model-runtime/src/main/resources/mapper/model-runtime/PlatformProviderModelCandidateMapper.xml",
+      "statementId": "countCandidates",
+      "category": "MULTI_TABLE",
+      "reason": "WP-0019 S1 / ADR-0096：当前修订、发布或管理员确认参与目录筛选，数据与总数共用完整安全谓词；MyBatis-Plus 生成候选窗口。"
     }
   ]
 }

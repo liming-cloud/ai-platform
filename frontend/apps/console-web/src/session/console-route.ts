@@ -83,8 +83,9 @@ export type ConsoleRoute =
   | { navigationId: "platform-accounts"; task: "accounts"; query: string;
       status: "ALL" | "ACTIVE" | "DISABLED"; page: number; pageSize: 10 | 20 | 50 | 100 }
   | { navigationId: "platform-accounts"; task: "roles" }
-  | { navigationId: "platform-model-supply"; task: "connections"; page: number }
-  | { navigationId: "platform-model-supply"; task: "connection-detail"; connectionId: string; candidatePage: number }
+  | { navigationId: "platform-model-supply"; task: "connections"; page: number; pageSize?: 10 | 20 | 50 | 100; query?: string }
+  | { navigationId: "platform-model-supply"; task: "connection-detail"; connectionId: string; candidatePage: number;
+      pageSize?: 10 | 20 | 50 | 100; query?: string; directory?: { page: number; pageSize?: 10 | 20 | 50 | 100; query?: string } }
   | {
     navigationId: "platform-model-supply";
     task: "deployments";
@@ -458,10 +459,14 @@ export function parseConsoleRoute(pathname: string, search: string): ConsoleRout
     return { navigationId: "platform-accounts", task: "roles" };
   }
   if (routePath === "/platform/model-supply") {
+    const parameters = new URLSearchParams(search);
+    const pagination = platformConnectionPagination(parameters, "page");
     return {
       navigationId: "platform-model-supply",
       task: "connections",
-      page: positivePage(new URLSearchParams(search).get("page")),
+      page: pagination.page,
+      ...(pagination.size === undefined ? {} : { pageSize: pagination.size }),
+      ...(parameters.has("q") ? { query: parameters.get("q")! } : {}),
     };
   }
   if (routePath === "/platform/model-supply/deployments") {
@@ -478,8 +483,17 @@ export function parseConsoleRoute(pathname: string, search: string): ConsoleRout
   }
   const platformConnection = /^\/platform\/model-supply\/connections\/([1-9][0-9]{0,18})$/.exec(routePath);
   if (platformConnection && BigInt(platformConnection[1]!) <= 9223372036854775807n) {
+    const parameters = new URLSearchParams(search);
+    const pagination = platformConnectionPagination(parameters, "candidatePage");
+    const directoryParameters = new URLSearchParams({ page: parameters.get("directoryPage") ?? "1" });
+    if (parameters.has("directorySize")) directoryParameters.set("size", parameters.get("directorySize")!);
+    const directory = platformConnectionPagination(directoryParameters, "page");
     return { navigationId: "platform-model-supply", task: "connection-detail", connectionId: platformConnection[1]!,
-      candidatePage: positivePage(new URLSearchParams(search).get("candidatePage")) };
+      candidatePage: pagination.page, ...(pagination.size === undefined ? {} : { pageSize: pagination.size }),
+      ...(parameters.has("q") ? { query: parameters.get("q")! } : {}),
+      ...(parameters.has("directoryPage") ? { directory: { page: directory.page,
+        ...(directory.size === undefined ? {} : { pageSize: directory.size }),
+        ...(parameters.has("directoryQuery") ? { query: parameters.get("directoryQuery")! } : {}) } } : {}) };
   }
   return undefined;
 }
@@ -555,10 +569,16 @@ export function formatConsoleRoute(route: ConsoleRoute): string {
         page: String(route.page), pageSize: String(route.pageSize) })}`
       : "/platform/roles";
   }
-  if (route.task === "connection-detail") return `/platform/model-supply/connections/${encodeURIComponent(route.connectionId)}?candidatePage=${route.candidatePage}`;
-  return route.task === "connections"
-    ? `/platform/model-supply?page=${route.page}`
-    : formatPlatformDeploymentRoute(route);
+  if (route.task === "deployments") return formatPlatformDeploymentRoute(route);
+  const parameters = new URLSearchParams(route.task === "connections" ? { page: String(route.page) } : { candidatePage: String(route.candidatePage) });
+  if (route.pageSize !== undefined) parameters.set("size", String(route.pageSize));
+  if (route.query !== undefined) parameters.set("q", route.query);
+  if (route.task === "connection-detail" && route.directory) {
+    parameters.set("directoryPage", String(route.directory.page));
+    if (route.directory.pageSize !== undefined) parameters.set("directorySize", String(route.directory.pageSize));
+    if (route.directory.query !== undefined) parameters.set("directoryQuery", route.directory.query);
+  }
+  return `${route.task === "connections" ? "/platform/model-supply" : `/platform/model-supply/connections/${encodeURIComponent(route.connectionId)}`}?${parameters}`;
 }
 
 /**
@@ -586,6 +606,16 @@ function positivePage(value: string | null): number {
     return 1;
   }
   return Number(value);
+}
+
+/** 平台连接只恢复已接受的页大小及有界偏移，不把失控数字传给服务端。 */
+function platformConnectionPagination(parameters: URLSearchParams, key: "page" | "candidatePage"): {
+  page: number; size?: 10 | 20 | 50 | 100;
+} {
+  const rawSize = Number(parameters.get("size"));
+  const size = parameters.has("size") ? ([10, 20, 50, 100].includes(rawSize) ? rawSize : 20) as 10 | 20 | 50 | 100 : undefined;
+  const requested = positivePage(parameters.get(key));
+  return { page: Number.isSafeInteger(requested) && (requested - 1) * (size ?? 20) <= 100_000 ? requested : 1, size };
 }
 
 function provisioningStep(value: string | null): 1 | 2 | 3 {

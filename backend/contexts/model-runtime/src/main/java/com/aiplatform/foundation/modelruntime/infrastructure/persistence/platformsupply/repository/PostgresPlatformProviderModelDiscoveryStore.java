@@ -29,6 +29,8 @@ public final class PostgresPlatformProviderModelDiscoveryStore
         implements PlatformProviderModelDiscoveryStore, PlatformProviderModelDiscoveryLookup,
         PlatformProviderModelCandidateConfirmationStore {
 
+    private final com.aiplatform.foundation.modelruntime.infrastructure.persistence.platformsupply.mapper.PlatformProviderModelCandidateMapper candidateMapper;
+    private final TransactionTemplate reads;
     private final JdbcTemplate jdbc;
     private final TransactionTemplate transactions;
     private final PlatformProviderConnectionRepository connections;
@@ -36,7 +38,12 @@ public final class PostgresPlatformProviderModelDiscoveryStore
     public PostgresPlatformProviderModelDiscoveryStore(
             JdbcTemplate jdbc,
             PlatformTransactionManager transactionManager,
-            PlatformProviderConnectionRepository connections) {
+            PlatformProviderConnectionRepository connections,
+            com.aiplatform.foundation.modelruntime.infrastructure.persistence.platformsupply.mapper.PlatformProviderModelCandidateMapper candidateMapper) {
+        this.candidateMapper = Objects.requireNonNull(candidateMapper, "候选分页映射器不能为空");
+        this.reads = new TransactionTemplate(transactionManager);
+        reads.setReadOnly(true);
+        reads.setIsolationLevel(org.springframework.transaction.TransactionDefinition.ISOLATION_REPEATABLE_READ);
         this.jdbc = Objects.requireNonNull(jdbc, "JDBC 模板不能为空");
         this.transactions = new TransactionTemplate(
                 Objects.requireNonNull(transactionManager, "事务管理器不能为空"));
@@ -113,56 +120,26 @@ public final class PostgresPlatformProviderModelDiscoveryStore
             PlatformProviderConnectionId connectionId,
             long connectionRevision,
             PageQuery page,
-            Instant now) {
-        connectionId = Objects.requireNonNull(connectionId, "平台供应商连接标识不能为空");
-        page = Objects.requireNonNull(page, "分页查询不能为空");
-        now = Objects.requireNonNull(now, "当前时间不能为空");
+            Instant now, String q) {
+        Objects.requireNonNull(connectionId, "平台供应商连接标识不能为空");
+        Objects.requireNonNull(page, "分页查询不能为空");
+        Objects.requireNonNull(now, "当前时间不能为空");
         if (connectionRevision < 0) throw new IllegalArgumentException("平台供应商连接修订不能为负数");
-        var items = jdbc.query("""
-                WITH current_discovery AS (
-                    SELECT id FROM model_runtime.platform_provider_model_discovery
-                    WHERE platform_provider_connection_id = ?
-                      AND platform_provider_connection_revision = ?
-                      AND succeeded = TRUE
-                      AND expires_at > ?
-                    ORDER BY discovered_at DESC, id DESC
-                    LIMIT 1
-                )
-                SELECT candidate.model_code,
-                       COALESCE(confirmation.model_type, candidate.model_type) AS model_type,
-                       CASE WHEN confirmation.discovery_id IS NOT NULL
-                           THEN 'CONFIRMED_BY_ADMIN' ELSE candidate.classification END AS classification,
-                       COALESCE(array_to_string(confirmation.capabilities, ','),
-                                array_to_string(candidate.capabilities, ',')) AS capabilities
-                FROM model_runtime.platform_discovered_model candidate
-                JOIN current_discovery ON current_discovery.id = candidate.discovery_id
-                LEFT JOIN model_runtime.platform_model_candidate_confirmation confirmation
-                  ON confirmation.discovery_id = candidate.discovery_id
-                 AND confirmation.model_code = candidate.model_code
-                ORDER BY candidate.model_code ASC, candidate.candidate_key ASC
-                LIMIT ? OFFSET ?
-                """, (rs, ignored) -> new PlatformDiscoveredModelCandidate(
-                        rs.getString("model_code"),
-                        rs.getString("model_type") == null ? null : ModelType.valueOf(rs.getString("model_type")),
-                        Arrays.stream(rs.getString("capabilities").split(",", -1))
-                                .filter(value -> !value.isEmpty())
-                                .map(ModelCapability::valueOf).collect(Collectors.toUnmodifiableSet()),
-                        PlatformModelCandidateClassification.valueOf(rs.getString("classification"))),
-                connectionId.value(), connectionRevision, Timestamp.from(now), page.pageSize(), page.offset());
-        var total = jdbc.queryForObject("""
-                WITH current_discovery AS (
-                    SELECT id FROM model_runtime.platform_provider_model_discovery
-                    WHERE platform_provider_connection_id = ?
-                      AND platform_provider_connection_revision = ?
-                      AND succeeded = TRUE
-                      AND expires_at > ?
-                    ORDER BY discovered_at DESC, id DESC
-                    LIMIT 1
-                )
-                SELECT COUNT(*) FROM model_runtime.platform_discovered_model candidate
-                JOIN current_discovery ON current_discovery.id = candidate.discovery_id
-                """, Long.class, connectionId.value(), connectionRevision, Timestamp.from(now));
-        return PageResult.of(items, page, total == null ? 0L : total);
+        var pattern = "%" + Objects.requireNonNull(q, "搜索词不能为空")
+                .replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%";
+        // 同一只读快照生成数据与总数；不能让重发现或确认夹在两次查询之间。
+        return Objects.requireNonNull(reads.execute(status -> {
+            var pagination = new com.baomidou.mybatisplus.extension.plugins.pagination.Page<
+                    com.aiplatform.foundation.modelruntime.infrastructure.persistence.platformsupply.entity.PlatformProviderModelCandidateRow>(page.pageNumber(), page.pageSize());
+            pagination.setCountId("countCandidates");
+            var result = candidateMapper.selectCandidatePage(pagination, connectionId.value(), connectionRevision, now, pattern);
+            var items = result.getRecords().stream().map(row -> new PlatformDiscoveredModelCandidate(row.modelCode(),
+                    row.modelType() == null ? null : ModelType.valueOf(row.modelType()),
+                    Arrays.stream(row.capabilities().split(",", -1)).filter(value -> !value.isEmpty())
+                            .map(ModelCapability::valueOf).collect(Collectors.toUnmodifiableSet()),
+                    PlatformModelCandidateClassification.valueOf(row.classification()))).toList();
+            return PageResult.of(items, page, result.getTotal());
+        }), "候选只读查询没有返回结果");
     }
 
     @Override

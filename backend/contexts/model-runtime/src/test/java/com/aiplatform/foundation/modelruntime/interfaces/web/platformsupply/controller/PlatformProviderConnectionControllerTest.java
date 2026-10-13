@@ -227,7 +227,7 @@ class PlatformProviderConnectionControllerTest {
         when(service.list(any())).thenReturn(PageResult.of(java.util.List.of(view()), new PageQuery(2, 20), 21));
 
         mvc.perform(get("/api/v1/platform/model-supply/connections")
-                        .param("tenantId", "100000000000000099")
+                        .param("q", " 平台%_\\ ")
                         .param("pageNumber", "2")
                         .param("pageSize", "20"))
                 .andExpect(status().isOk())
@@ -241,6 +241,61 @@ class PlatformProviderConnectionControllerTest {
         org.junit.jupiter.api.Assertions.assertSame(context, query.getValue().context());
         org.junit.jupiter.api.Assertions.assertEquals(2L, query.getValue().page().pageNumber());
         org.junit.jupiter.api.Assertions.assertEquals(20L, query.getValue().page().pageSize());
+        org.junit.jupiter.api.Assertions.assertEquals("平台%_\\", query.getValue().q());
+    }
+
+    @Test
+    void 目录查询拒绝范围注入未知或重复字段和超长搜索词() throws Exception {
+        var service = mock(PlatformProviderConnectionService.class);
+        var mvc = MockMvcBuilders.standaloneSetup(new PlatformProviderConnectionController(service))
+                .setCustomArgumentResolvers(platformContext(mock(PlatformRequestContext.class))).build();
+        for (var field : java.util.List.of("tenantId", "subjectId", "sort", "unknown")) {
+            var failure = org.junit.jupiter.api.Assertions.assertThrows(jakarta.servlet.ServletException.class,
+                    () -> mvc.perform(get("/api/v1/platform/model-supply/connections").param(field, "100")));
+            org.junit.jupiter.api.Assertions.assertInstanceOf(IllegalArgumentException.class, failure.getCause());
+        }
+        org.junit.jupiter.api.Assertions.assertThrows(jakarta.servlet.ServletException.class,
+                () -> mvc.perform(get("/api/v1/platform/model-supply/connections").param("q", "a", "b")));
+        org.junit.jupiter.api.Assertions.assertThrows(jakarta.servlet.ServletException.class,
+                () -> mvc.perform(get("/api/v1/platform/model-supply/connections").param("q", "中".repeat(65))));
+        org.mockito.Mockito.verifyNoInteractions(service);
+    }
+
+    @Test
+    void 发布摘要是独立只读契约且拒绝范围和分页字段() throws Exception {
+        var service = mock(PlatformProviderConnectionService.class);
+        var context = mock(PlatformRequestContext.class);
+        when(service.summary(context)).thenReturn(new com.aiplatform.foundation.modelruntime.application.platformsupply.dto.directory.PlatformProviderConnectionDirectorySummary(21));
+        var mvc = MockMvcBuilders.standaloneSetup(new PlatformProviderConnectionController(service))
+                .setCustomArgumentResolvers(platformContext(context)).build();
+        mvc.perform(get("/api/v1/platform/model-supply/connections/summary"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.publishedConnections").value(21))
+                .andExpect(jsonPath("$.items").doesNotExist()).andExpect(jsonPath("$.endpoint").doesNotExist());
+        for (var key : java.util.List.of("tenantId", "q", "pageNumber", "unknown")) {
+            org.junit.jupiter.api.Assertions.assertThrows(jakarta.servlet.ServletException.class,
+                    () -> mvc.perform(get("/api/v1/platform/model-supply/connections/summary").param(key, "1")));
+        }
+        verify(service).summary(context); org.mockito.Mockito.verifyNoMoreInteractions(service);
+    }
+
+    @Test
+    void 发布摘要先验证平台权限且只调用计数仓储() {
+        var repository = mock(PlatformProviderConnectionRepository.class);
+        var credentials = mock(PlatformProviderConnectionCredentialWriter.class);
+        var transactions = mock(com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.PlatformProviderConnectionCredentialTransaction.class);
+        var identifiers = mock(com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator.class);
+        var probes = mock(PlatformProbeProviderService.class);
+        var context = mock(PlatformRequestContext.class);
+        var service = new PlatformProviderConnectionService(repository, credentials, transactions, probes,
+                java.time.Clock.systemUTC(), identifiers, endpoint -> {}, ids -> java.util.Map.of());
+        org.junit.jupiter.api.Assertions.assertThrows(com.aiplatform.foundation.modelruntime.application.provider.exception.ModelCatalogPermissionDeniedException.class,
+                () -> service.summary(context));
+        org.mockito.Mockito.verifyNoInteractions(repository, credentials, transactions, identifiers, probes);
+        when(context.hasPermission(PlatformPermissions.MODEL_PLATFORM_WRITE)).thenReturn(true);
+        when(repository.countPublished()).thenReturn(21L);
+        org.junit.jupiter.api.Assertions.assertEquals(21L, service.summary(context).publishedConnections());
+        verify(repository).countPublished(); org.mockito.Mockito.verifyNoMoreInteractions(repository);
+        org.mockito.Mockito.verifyNoInteractions(credentials, transactions, identifiers, probes);
     }
 
     @Test

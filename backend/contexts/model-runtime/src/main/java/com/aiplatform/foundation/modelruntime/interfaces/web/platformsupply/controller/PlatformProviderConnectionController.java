@@ -69,9 +69,22 @@ public class PlatformProviderConnectionController {
     public PageResult<PlatformProviderConnectionView> list(
             PlatformRequestContext context,
             @RequestParam(defaultValue = "1") long pageNumber,
-            @RequestParam(defaultValue = "20") long pageSize) {
+            @RequestParam(defaultValue = "20") long pageSize,
+            @RequestParam(defaultValue = "") String q,
+            @RequestParam org.springframework.util.MultiValueMap<String, String> parameters) {
+        if (parameters.entrySet().stream().anyMatch(entry -> !java.util.Set.of("pageNumber", "pageSize", "q").contains(entry.getKey()) || entry.getValue().size() != 1)) {
+            throw new IllegalArgumentException("平台连接目录不接受范围、重复或未知参数");
+        }
         return connections.list(new ListPlatformProviderConnectionsQuery(
-                context, new PageQuery(pageNumber, pageSize)));
+                context, new PageQuery(pageNumber, pageSize), q));
+    }
+
+    /** 全目录发布摘要只接受可信平台会话，不接受筛选、分页或范围覆盖。 */
+    @GetMapping("/summary")
+    public com.aiplatform.foundation.modelruntime.application.platformsupply.dto.directory.PlatformProviderConnectionDirectorySummary summary(
+            PlatformRequestContext context, @RequestParam java.util.Map<String, String> parameters) {
+        if (!parameters.isEmpty()) throw new IllegalArgumentException("平台连接摘要不接受查询参数");
+        return connections.summary(context);
     }
 
     /** 对象标识只用于定位；拒绝外部范围及未知参数，身份由可信平台会话提供。 */

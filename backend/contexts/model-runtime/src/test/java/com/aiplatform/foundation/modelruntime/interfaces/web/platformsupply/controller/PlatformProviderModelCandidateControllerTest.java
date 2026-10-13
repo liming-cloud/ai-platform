@@ -24,6 +24,31 @@ import org.springframework.web.method.support.ModelAndViewContainer;
 class PlatformProviderModelCandidateControllerTest {
 
     @Test
+    void 候选搜索传递规范词组并拒绝范围或重复参数() throws Exception {
+        var reads = mock(PlatformProviderModelCandidateReadService.class);
+        var confirmations = mock(PlatformProviderModelCandidateConfirmationService.class);
+        var context = mock(PlatformRequestContext.class);
+        var mvc = MockMvcBuilders.standaloneSetup(new PlatformProviderModelCandidateController(reads, confirmations))
+                .setCustomArgumentResolvers(platformContext(context)).build();
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get(
+                        "/api/v1/platform/model-supply/connections/320000000000000001/model-candidates")
+                .param("expectedConnectionVersion", "3").param("q", " 中文%_\\ ").param("pageNumber", "2").param("pageSize", "10"))
+                .andExpect(status().isOk());
+        var query = ArgumentCaptor.forClass(com.aiplatform.foundation.modelruntime.application.platformsupply.query.ListPlatformProviderModelCandidatesQuery.class);
+        verify(reads).list(query.capture());
+        org.junit.jupiter.api.Assertions.assertEquals("中文%_\\", query.getValue().q());
+        org.junit.jupiter.api.Assertions.assertEquals(3, query.getValue().expectedConnectionVersion());
+        org.junit.jupiter.api.Assertions.assertEquals(2, query.getValue().page().pageNumber());
+        for (var key : java.util.List.of("tenantId", "scope", "unknown")) {
+            org.junit.jupiter.api.Assertions.assertThrows(jakarta.servlet.ServletException.class,
+                    () -> mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get(
+                            "/api/v1/platform/model-supply/connections/320000000000000001/model-candidates")
+                            .param("expectedConnectionVersion", "3").param(key, "100")));
+        }
+        org.mockito.Mockito.verifyNoMoreInteractions(reads); org.mockito.Mockito.verifyNoInteractions(confirmations);
+    }
+
+    @Test
     void 管理员确认只接收平台契约并返回安全候选() throws Exception {
         var reads = mock(PlatformProviderModelCandidateReadService.class);
         var confirmations = mock(PlatformProviderModelCandidateConfirmationService.class);

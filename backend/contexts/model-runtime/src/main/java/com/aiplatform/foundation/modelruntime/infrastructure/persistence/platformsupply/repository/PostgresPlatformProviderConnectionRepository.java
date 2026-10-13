@@ -37,12 +37,16 @@ public final class PostgresPlatformProviderConnectionRepository implements Platf
     private final PlatformProviderConnectionMapper mapper;
     private final PlatformProviderConnectionRequestMapper requests;
     private final TransactionTemplate transactions;
+    private final TransactionTemplate reads;
 
     public PostgresPlatformProviderConnectionRepository(PlatformProviderConnectionMapper mapper,
             PlatformProviderConnectionRequestMapper requests, PlatformTransactionManager transactionManager) {
         this.mapper = Objects.requireNonNull(mapper, "平台连接映射器不能为空");
         this.requests = Objects.requireNonNull(requests, "幂等请求映射器不能为空");
         this.transactions = new TransactionTemplate(Objects.requireNonNull(transactionManager, "事务管理器不能为空"));
+        this.reads = new TransactionTemplate(transactionManager);
+        reads.setReadOnly(true);
+        reads.setIsolationLevel(org.springframework.transaction.TransactionDefinition.ISOLATION_REPEATABLE_READ);
     }
 
     @Override
@@ -87,15 +91,21 @@ public final class PostgresPlatformProviderConnectionRepository implements Platf
     }
 
     @Override
-    public PlatformProviderConnectionPage findPage(long pageNumber, long pageSize) {
-        if (pageNumber < 1L || pageSize < 1L || pageSize > 100L) throw new IllegalArgumentException("分页参数不正确");
-        var page = mapper.selectPage(new Page<PlatformProviderConnectionEntity>(pageNumber, pageSize),
-                Wrappers.<PlatformProviderConnectionEntity>lambdaQuery()
-                        .eq(PlatformProviderConnectionEntity::getScope, "PLATFORM")
-                        .orderByDesc(PlatformProviderConnectionEntity::getCreatedAt, PlatformProviderConnectionEntity::getId));
-        return new PlatformProviderConnectionPage(page.getRecords().stream()
-                .map(PostgresPlatformProviderConnectionRepository::toDomain).toList(), page.getTotal());
+    public PlatformProviderConnectionPage findPage(long pageNumber, long pageSize, String q) {
+        if (pageNumber < 1L || pageSize < 1L || pageSize > 100L || (pageNumber - 1) > 100_000 / pageSize) throw new IllegalArgumentException("分页参数不正确");
+        // 数据和总数在同一只读快照中计算，发布变化不能制造跨页假总数。
+        return Objects.requireNonNull(reads.execute(status -> {
+            var pagination = new Page<PlatformProviderConnectionEntity>(pageNumber, pageSize);
+            pagination.setCountId("countDirectory");
+            var page = mapper.selectDirectoryPage(pagination, "%" + Objects.requireNonNull(q, "搜索词不能为空")
+                    .replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%");
+            return new PlatformProviderConnectionPage(page.getRecords().stream()
+                    .map(PostgresPlatformProviderConnectionRepository::toDomain).toList(), page.getTotal());
+        }), "平台目录只读查询没有返回结果");
     }
+
+    @Override
+    public long countPublished() { return mapper.countPublished(); }
 
     @Override
     public boolean update(PlatformProviderConnection connection, long expectedVersion) {

@@ -7,10 +7,14 @@ import java.util.Objects;
 /** 读取平台供应商连接的标准分页查询。 */
 public record ListPlatformProviderConnectionsQuery(
         PlatformRequestContext context,
-        PageQuery page) {
+        PageQuery page,
+        String q) {
 
+    /** @throws IllegalArgumentException 搜索词超过六十四个 Unicode 码点。 */
     public ListPlatformProviderConnectionsQuery {
         Objects.requireNonNull(context, "平台请求上下文不能为空");
         Objects.requireNonNull(page, "分页参数不能为空");
+        q = q == null ? "" : q.strip();
+        if (q.codePointCount(0, q.length()) > 64) throw new IllegalArgumentException("目录搜索词不能超过六十四个字符");
     }
 }

@@ -61,7 +61,7 @@ class PlatformModelDeploymentServiceTest {
     }
     private static final class ForbiddenDiscoveryLookup implements PlatformProviderModelDiscoveryLookup {
         @Override public Optional<com.aiplatform.foundation.modelruntime.domain.platformsupply.model.discovery.PlatformDiscoveredModelCandidate> findCurrentCandidate(PlatformProviderConnectionId connectionId, long connectionRevision, String modelCode, ModelType modelType, java.time.Instant now) { throw new AssertionError("无权请求不得读取平台候选"); }
-        @Override public com.aiplatform.foundation.shared.contract.paging.PageResult<com.aiplatform.foundation.modelruntime.domain.platformsupply.model.discovery.PlatformDiscoveredModelCandidate> findCurrentCandidates(PlatformProviderConnectionId connectionId, long connectionRevision, com.aiplatform.foundation.shared.contract.paging.PageQuery page, java.time.Instant now) { throw new AssertionError("无权请求不得读取平台候选"); }
+        @Override public com.aiplatform.foundation.shared.contract.paging.PageResult<com.aiplatform.foundation.modelruntime.domain.platformsupply.model.discovery.PlatformDiscoveredModelCandidate> findCurrentCandidates(PlatformProviderConnectionId connectionId, long connectionRevision, com.aiplatform.foundation.shared.contract.paging.PageQuery page, java.time.Instant now, String q) { throw new AssertionError("无权请求不得读取平台候选"); }
     }
     private static final class ForbiddenVerificationStore implements PlatformModelDeploymentVerificationStore {
         @Override public void commit(PlatformModelDeploymentVerificationResult verification, long expectedDeploymentVersion) { throw new AssertionError("无权请求不得写入平台验证事实"); }

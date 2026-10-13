@@ -275,6 +275,35 @@ async function verifyReadOnlyPages(page, configuration, presets, check) {
     await directory(page, configuration);
     requireCondition(JSON.stringify(await page.locator(".platform-connection-table thead th").allTextContents())
       === JSON.stringify(["连接", "运行能力", "状态", "操作"]), "连接目录列未承接当前原型");
+    const summary = await request(page, api + "/summary");
+    requireCondition(summary.status === 200 && Number.isSafeInteger(summary.body?.publishedConnections)
+      && summary.body.publishedConnections >= 0, "全目录发布摘要未取得真实计数");
+    await page.getByText(summary.body.publishedConnections + " 个已发布连接", { exact: true }).waitFor();
+    const pager = page.getByRole("navigation", { name: "目录分页", exact: true });
+    requireCondition(JSON.stringify(await pager.getByLabel("每页条数", { exact: true }).locator("option")
+      .evaluateAll(options => options.map(option => option.value))) === JSON.stringify(["10", "20", "50", "100"]), "正式目录缺少原型页大小");
+    for (const size of [10, 20, 50, 100]) {
+      await pager.getByLabel("每页条数", { exact: true }).selectOption(String(size));
+      await page.waitForLoadState("networkidle");
+      requireCondition(new URL(page.url()).searchParams.get("size") === String(size), "页大小未写入正式 URL");
+      const current = await request(page, api + "?pageNumber=1&pageSize=" + size);
+      requireCondition(current.status === 200, "正式目录页大小请求失败"); verifyPage(current.body, 1, size, item => item.id);
+    }
+    const missing = "s1-no-match-" + crypto.randomBytes(8).toString("hex");
+    await page.getByRole("searchbox", { name: "搜索当前目录", exact: true }).fill(missing);
+    await page.waitForLoadState("networkidle");
+    const filtered = await request(page, api + "?pageNumber=1&pageSize=100&q=" + encodeURIComponent(missing));
+    requireCondition(filtered.status === 200 && filtered.body.totalElements === 0 && filtered.body.items.length === 0,
+      "正式搜索未按服务端筛选生成同范围空结果");
+    await page.getByText("没有匹配记录，请调整筛选条件。", { exact: true }).waitFor();
+    await page.getByText(summary.body.publishedConnections + " 个已发布连接", { exact: true }).waitFor();
+    await page.reload({ waitUntil: "networkidle" });
+    requireCondition(await page.getByRole("searchbox", { name: "搜索当前目录", exact: true }).inputValue() === missing,
+      "刷新丢失正式搜索位置");
+    for (const query of ["tenantId=1", "sort=id", "q=" + "a".repeat(65), "q=a&q=b"]) {
+      const rejected = await request(page, api + "?" + query);
+      requireCondition(rejected.status === 400, "目录接受了未知、范围、重复或超长查询");
+    }
     await detail(page, configuration); await page.reload({ waitUntil: "networkidle" });
     await page.getByRole("heading", { name: "供应商连接探测", exact: true }).waitFor();
   });
@@ -432,7 +461,9 @@ async function run(configuration) {
             await fillLogin(probe, configuration.credentials.tenant, "tenant"); await submitLogin(probe);
             await assertIdentity(probe, "tenant");
           }
-          for (const target of [api, api + "/presets", ...(configuration.connectionId ? [api + "/" + configuration.connectionId] : [])]) {
+          for (const target of [api, api + "/presets", api + "/summary", api + "?q=s1-scope-check",
+            ...(configuration.connectionId ? [api + "/" + configuration.connectionId,
+              api + "/" + configuration.connectionId + "/model-candidates?expectedConnectionVersion=" + configuration.expectedVersion + "&q=s1-scope-check"] : [])]) {
             const denied = await request(probe, target);
             requireCondition([401, 403].includes(denied.status), "非平台会话读取到平台模型供应");
           }

@@ -156,7 +156,7 @@ class PostgresPlatformProviderModelDiscoveryStoreTest {
                 Instant.parse("2026-08-13T03:01:00Z")));
 
         var page = discoveryLookup.findCurrentCandidates(connection.id(), connection.version(),
-                new PageQuery(1, 1), Instant.parse("2026-08-13T02:30:00Z"));
+                new PageQuery(1, 1), Instant.parse("2026-08-13T02:30:00Z"), "");
 
         assertEquals(2L, page.totalElements());
         assertEquals(1, page.items().size());
@@ -189,7 +189,7 @@ class PostgresPlatformProviderModelDiscoveryStoreTest {
                         Instant.parse("2026-08-13T02:02:00Z")), Instant.parse("2026-08-13T03:02:00Z")));
 
         var page = discoveryLookup.findCurrentCandidates(connection.id(), connection.version(), new PageQuery(1, 20),
-                Instant.parse("2026-08-13T02:30:00Z"));
+                Instant.parse("2026-08-13T02:30:00Z"), "");
 
         assertEquals(1L, page.totalElements());
         assertEquals("current-model", page.items().getFirst().modelCode());
@@ -226,7 +226,7 @@ class PostgresPlatformProviderModelDiscoveryStoreTest {
 
         var page = discoveryLookup.findCurrentCandidates(
                 connection.id(), connection.version(), new PageQuery(1, 20),
-                Instant.parse("2026-08-24T02:30:00Z"));
+                Instant.parse("2026-08-24T02:30:00Z"), "");
 
         assertEquals(1L, page.totalElements());
         assertNull(page.items().getFirst().modelType());
@@ -319,6 +319,32 @@ class PostgresPlatformProviderModelDiscoveryStoreTest {
     }
 
     @Test
+    void 候选全目录字面搜索在分页前执行且名称不推断能力() {
+        var connection = createDraftConnection("分页搜索候选连接");
+        var at = Instant.parse("2026-10-12T02:02:00Z");
+        var models = java.util.stream.IntStream.range(0, 101).mapToObj(index ->
+                PlatformDiscoveredModelCandidate.confirmedByProvider("Model-" + String.format("%03d", index), ModelType.CHAT,
+                        Set.of(ModelCapability.CHAT))).collect(java.util.stream.Collectors.toCollection(java.util.HashSet::new));
+        models.add(PlatformDiscoveredModelCandidate.requiresAdministratorConfirmation("literal%_\\model"));
+        connection = recordDiscovery(connection, PlatformProviderModelDiscovery.capture(
+                new PlatformProviderModelDiscoveryId(IDENTIFIERS.incrementAndGet()), connection.id(), connection.version(),
+                new PlatformProviderModelDiscoveryObservation(true, models, "SYNTHETIC_DISCOVERY_OK", Duration.ZERO, at), at.plusSeconds(3600)));
+        var now = at.plusSeconds(1);
+        var exact = discoveryLookup.findCurrentCandidates(connection.id(), connection.version(), new PageQuery(1, 20), now, "model-100");
+        assertEquals(1, exact.totalElements());
+        assertEquals("Model-100", exact.items().getFirst().modelCode());
+        assertEquals(1, discoveryLookup.findCurrentCandidates(connection.id(), connection.version(), new PageQuery(1, 20), now, "%_\\").totalElements());
+        var last = discoveryLookup.findCurrentCandidates(connection.id(), connection.version(), new PageQuery(6, 20), now, "对话模型");
+        assertEquals(101, last.totalElements());
+        assertEquals(1, last.items().size());
+        var unknown = discoveryLookup.findCurrentCandidates(connection.id(), connection.version(), new PageQuery(1, 20), now, "待管理员确认");
+        assertEquals(1, unknown.totalElements());
+        assertNull(unknown.items().getFirst().modelType());
+        assertEquals(0, discoveryLookup.findCurrentCandidates(connection.id(), connection.version(), new PageQuery(1, 20), now, "secret://").totalElements());
+        assertEquals(0, discoveryLookup.findCurrentCandidates(connection.id(), connection.version(), new PageQuery(1, 20), at.plusSeconds(3600), "model").totalElements());
+    }
+
+    @Test
     void 停用后的迟到提交被真实仓储拒绝且不留下发现事实() {
         var connection = createDraftConnection("迟到发现连接");
         var at = Instant.parse("2026-10-12T02:02:00Z");
@@ -405,6 +431,11 @@ class PostgresPlatformProviderModelDiscoveryStoreTest {
     @EnableAutoConfiguration
     @org.mybatis.spring.annotation.MapperScan(basePackageClasses = com.aiplatform.foundation.modelruntime.infrastructure.persistence.platformsupply.mapper.PlatformProviderConnectionMapper.class)
     static class TestApplication {
+        @Bean com.baomidou.mybatisplus.extension.plugins.MybatisPlusInterceptor pagination() {
+            var result = new com.baomidou.mybatisplus.extension.plugins.MybatisPlusInterceptor();
+            var pagination = new com.baomidou.mybatisplus.extension.plugins.inner.PaginationInnerInterceptor(com.baomidou.mybatisplus.annotation.DbType.POSTGRE_SQL);
+            pagination.setOverflow(false); pagination.setMaxLimit(100L); result.addInnerInterceptor(pagination); return result;
+        }
         @Bean PlatformProviderConnectionRepository platformProviderConnectionRepository(
                 com.aiplatform.foundation.modelruntime.infrastructure.persistence.platformsupply.mapper.PlatformProviderConnectionMapper mapper,
                 com.aiplatform.foundation.modelruntime.infrastructure.persistence.platformsupply.mapper.PlatformProviderConnectionRequestMapper requests, PlatformTransactionManager transactions) {
@@ -413,8 +444,9 @@ class PostgresPlatformProviderModelDiscoveryStoreTest {
 
         @Bean PlatformProviderModelDiscoveryStore platformProviderModelDiscoveryStore(
                 JdbcTemplate jdbc, PlatformTransactionManager transactions,
-                PlatformProviderConnectionRepository connections) {
-            return new PostgresPlatformProviderModelDiscoveryStore(jdbc, transactions, connections);
+                PlatformProviderConnectionRepository connections,
+                com.aiplatform.foundation.modelruntime.infrastructure.persistence.platformsupply.mapper.PlatformProviderModelCandidateMapper candidateMapper) {
+            return new PostgresPlatformProviderModelDiscoveryStore(jdbc, transactions, connections, candidateMapper);
         }
     }
 }

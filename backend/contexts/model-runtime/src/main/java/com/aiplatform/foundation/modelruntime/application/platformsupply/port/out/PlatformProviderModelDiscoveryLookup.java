@@ -26,5 +26,5 @@ public interface PlatformProviderModelDiscoveryLookup {
             PlatformProviderConnectionId connectionId,
             long connectionRevision,
             PageQuery page,
-            Instant now);
+            Instant now, String q);
 }

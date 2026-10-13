@@ -472,6 +472,38 @@ describe("统一控制台路由", () => {
     })).toBe("/platform/model-supply/deployments?connectionId=610000000000000001&connectionVersion=2&candidatePage=3&deploymentPage=4");
   });
 
+  it("平台连接两页恢复已接受的页大小并限制最大偏移", () => {
+    const connectionId = "610000000000000001";
+    for (const pageSize of [10, 20, 50, 100] as const) {
+      expect(parseConsoleRoute("/platform/model-supply", `?page=3&size=${pageSize}`))
+        .toMatchObject({ page: 3, pageSize });
+      expect(parseConsoleRoute(`/platform/model-supply/connections/${connectionId}`, `?candidatePage=3&size=${pageSize}`))
+        .toMatchObject({ connectionId, candidatePage: 3, pageSize });
+      expect(formatConsoleRoute({ navigationId: "platform-model-supply", task: "connections", page: 3, pageSize }))
+        .toBe(`/platform/model-supply?page=3&size=${pageSize}`);
+      expect(formatConsoleRoute({ navigationId: "platform-model-supply", task: "connection-detail", connectionId, candidatePage: 3, pageSize }))
+        .toBe(`/platform/model-supply/connections/${connectionId}?candidatePage=3&size=${pageSize}`);
+    }
+    for (const value of ["0", "-1", "1.5", "999999999999999999999999999999", "10002"]) {
+      expect(parseConsoleRoute("/platform/model-supply", `?page=${value}&size=10`)).toMatchObject({ page: 1, pageSize: 10 });
+      expect(parseConsoleRoute(`/platform/model-supply/connections/${connectionId}`, `?candidatePage=${value}&size=10`))
+        .toMatchObject({ candidatePage: 1, pageSize: 10 });
+    }
+    expect(parseConsoleRoute("/platform/model-supply", "?page=10001&size=10")).toMatchObject({ page: 10001, pageSize: 10 });
+    expect(parseConsoleRoute("/platform/model-supply", "?page=2&size=101")).toMatchObject({ page: 2, pageSize: 20 });
+  });
+
+  it("模型连接搜索与详情返回保持两个独立目录位置", () => {
+    const directory = { page: 3, pageSize: 10 as const, query: "中文 %_\\&" };
+    const url = formatConsoleRoute({ navigationId: "platform-model-supply", task: "connection-detail",
+      connectionId: "610000000000000001", candidatePage: 2, pageSize: 50, query: "对话模型", directory });
+    const parsed = new URL(url, "http://localhost");
+    expect(parseConsoleRoute(parsed.pathname, parsed.search)).toMatchObject({
+      candidatePage: 2, pageSize: 50, query: "对话模型", directory });
+    expect(parseConsoleRoute("/platform/model-supply", "?page=3&size=10&q=%E4%B8%AD%E6%96%87%20%25_"))
+      .toMatchObject({ page: 3, pageSize: 10, query: "中文 %_" });
+  });
+
   it("平台连接详情深链接恢复精确连接和候选页，不回退其他连接", () => {
     expect(formatConsoleRoute({ navigationId: "platform-model-supply", task: "connection-detail",
       connectionId: "610000000000000001", candidatePage: 2 }))

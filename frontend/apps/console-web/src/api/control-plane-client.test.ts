@@ -7,6 +7,20 @@ import {
 } from "./control-plane-client";
 
 describe("ControlPlaneClient", () => {
+  it("连接与候选字面搜索安全编码且发布摘要独立只读", async () => {
+    const requests: Request[] = [];
+    const client = authenticatedClient(async (input, init) => {
+      requests.push(new Request(input, init)); return Response.json({ publishedConnections: 21 });
+    });
+    await client.listPlatformProviderConnections(2, 10, "中文 %_\\&");
+    await client.listPlatformProviderModelCandidates("610000000000000001", 3, 6, 20, "对话模型");
+    expect(new URL(requests[0]!.url).searchParams.get("q")).toBe("中文 %_\\&");
+    expect(new URL(requests[1]!.url).searchParams.get("q")).toBe("对话模型");
+    expect(new URL(requests[1]!.url).searchParams.get("expectedConnectionVersion")).toBe("3");
+    expect(await client.getPlatformProviderConnectionDirectorySummary()).toEqual({ publishedConnections: 21 });
+    expect(requests[2]!.url).toBe("http://localhost/api/v1/platform/model-supply/connections/summary");
+    expect(requests.every(request => request.method === "GET" && request.body === null && request.headers.get("X-Tenant-Id") === null)).toBe(true);
+  });
   it("平台连接详情绑定精确 ID 与版本，发布使用受保护写入且不携带身份范围", async () => {
     const requests: Request[] = [];
     const client = authenticatedClient(async (input, init) => {

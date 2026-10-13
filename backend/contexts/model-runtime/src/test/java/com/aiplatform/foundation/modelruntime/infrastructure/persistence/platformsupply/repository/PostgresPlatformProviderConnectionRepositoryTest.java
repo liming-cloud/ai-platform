@@ -62,6 +62,7 @@ class PostgresPlatformProviderConnectionRepositoryTest {
 
     @BeforeEach
     void clearFacts() {
+        jdbc.update("DELETE FROM model_runtime.platform_provider_connection_publication");
         jdbc.update("DELETE FROM model_runtime.platform_provider_connection_request");
         jdbc.update("DELETE FROM model_runtime.platform_provider_connection_credential");
         jdbc.update("DELETE FROM model_runtime.platform_provider_connection");
@@ -98,9 +99,9 @@ class PostgresPlatformProviderConnectionRepositoryTest {
         for (int i = 0; i < 21; i++) {
             repository.create(creation("platform-paging-0001-" + i, "a".repeat(64), "分页连接" + i));
         }
-        var first = repository.findPage(1, 20);
-        var last = repository.findPage(2, 20);
-        var empty = repository.findPage(3, 20);
+        var first = repository.findPage(1, 20, "");
+        var last = repository.findPage(2, 20, "");
+        var empty = repository.findPage(3, 20, "");
         assertEquals(21L, first.totalElements());
         assertEquals(21L, last.totalElements());
         assertEquals(21L, empty.totalElements());
@@ -120,6 +121,40 @@ class PostgresPlatformProviderConnectionRepositoryTest {
         assertThrows(
                 ProviderConnectionNameConflictException.class,
                 () -> repository.create(creation("platform-request-0003", "c".repeat(64), "平台模型")));
+    }
+
+    @Test
+    void 全目录搜索先于分页且字面通配符与大小写保持同范围总数() {
+        for (int i = 0; i < 101; i++) repository.create(creation("directory-search-" + i, "d".repeat(64), "搜索连接" + i));
+        repository.create(creation("directory-search-literal", "e".repeat(64), "中文 Alpha%_\\连接"));
+        assertEquals(101, repository.findPage(1, 20, "搜索连接").totalElements());
+        assertEquals(1, repository.findPage(1, 20, "alpha%_\\").totalElements());
+        assertEquals("中文 Alpha%_\\连接", repository.findPage(1, 20, "alpha%_\\").items().getFirst().displayName());
+        assertEquals(0, repository.findPage(1, 20, "无匹配名称").totalElements());
+        assertEquals(102, repository.findPage(1, 20, "自定义连接").totalElements());
+        assertEquals(102, repository.findPage(1, 20, "对话模型").totalElements());
+        assertEquals(0, repository.findPage(1, 20, "secret://").totalElements());
+        assertEquals(0, repository.findPage(1, 20, "memory://").totalElements());
+        assertEquals(101, repository.findPage(99, 20, "搜索连接").totalElements());
+        assertTrue(repository.findPage(99, 20, "搜索连接").items().isEmpty());
+    }
+
+    @Test
+    void 发布计数只取当前连接修订且不以验证状态或历史发布代替() {
+        var first = repository.create(creation("count-published-1", "1".repeat(64), "发布连接一")).connection();
+        var second = repository.create(creation("count-published-2", "2".repeat(64), "发布连接二")).connection();
+        for (var connection : java.util.List.of(first, second)) {
+            assertTrue(repository.update(connection.recordSuccessfulProbe("SYNTHETIC_PROBE_OK", CREATED_AT), 0));
+        }
+        assertEquals(0, repository.countPublished());
+        jdbc.update("INSERT INTO model_runtime.platform_provider_connection_publication(id,connection_id,revision,connection_revision,published_by_subject_id,probed_at,published_at) VALUES (?,?,1,1,?,?,?)",
+                IDENTIFIERS.incrementAndGet(), first.id().value(), 101L, java.sql.Timestamp.from(CREATED_AT), java.sql.Timestamp.from(CREATED_AT));
+        assertEquals(1, repository.countPublished());
+        assertEquals(1, repository.findPage(1, 20, "已发布").totalElements());
+        assertEquals(1, repository.findPage(1, 20, "验证通过").totalElements());
+        assertTrue(repository.update(repository.findById(first.id()).orElseThrow().recordSuccessfulProbe("SYNTHETIC_PROBE_OK", CREATED_AT.plusSeconds(1)), 1));
+        assertEquals(0, repository.countPublished());
+        assertEquals(0, repository.findPage(1, 20, "已发布").totalElements());
     }
 
     private static PlatformProviderConnectionCreation creation(

@@ -3,6 +3,11 @@
 .idea
 .codegraph
 .codex-runtime
+# 本地环境文件只供宿主机受控加载，不能进入构建上下文或镜像缓存。
+.env
+.env.*
+**/.env
+**/.env.*
 **/node_modules
 **/target
 **/dist

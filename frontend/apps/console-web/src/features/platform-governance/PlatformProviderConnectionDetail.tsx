@@ -4,7 +4,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { ApiRequestError, type ControlPlaneClient, type PlatformProviderConnectionSummary,
   type PlatformProviderModelCandidate, type PlatformProviderPresets } from "../../api/control-plane-client";
 import type { ConsoleRoute } from "../../session/console-route";
-import { ConnectionStatus } from "./PlatformModelSupplyWorkspace";
+import { ConnectionStatus, connectionStatusLabel } from "./PlatformModelSupplyWorkspace";
+import { PlatformConnectionPagination, PlatformConnectionSearch } from "./PlatformConnectionPagination";
 import "./platform-model-connections.css";
 
 type DetailRoute = Extract<ConsoleRoute, { navigationId: "platform-model-supply"; task: "connection-detail" }>;
@@ -14,15 +15,18 @@ const PROBE_VALIDITY_MILLIS = 24 * 60 * 60 * 1000;
 
 /** 精确恢复连接及当前版本的发现与发布事实；网络操作不得乐观伪造验证状态。 */
 export function PlatformProviderConnectionDetail({ client, route, onRouteChange }: {
-  client: ControlPlaneClient; route: DetailRoute; onRouteChange: (route: ConsoleRoute) => void;
+  client: ControlPlaneClient; route: DetailRoute; onRouteChange: (route: ConsoleRoute, replace?: boolean) => void;
 }) {
   const [state, setState] = useState<"loading" | "ready" | "error" | "stale">("loading");
   const [connection, setConnection] = useState<PlatformProviderConnectionSummary>();
   const [directory, setDirectory] = useState<PlatformProviderPresets>();
   const [candidates, setCandidates] = useState<Candidates>(EMPTY_CANDIDATES);
+  const [discoveredTotal, setDiscoveredTotal] = useState(0);
   const [failure, setFailure] = useState("");
   const [feedback, setFeedback] = useState<{ failed: boolean; text: string }>();
   const [operation, setOperation] = useState<"probe" | "publish">();
+  const [busy, setBusy] = useState(true);
+  const [pagination, setPagination] = useState({ page: route.candidatePage, size: route.pageSize ?? 20 });
   const [observedAt, setObservedAt] = useState(() => Date.now());
   const owner = useRef(0);
   const pending = useRef(false);
@@ -31,29 +35,39 @@ export function PlatformProviderConnectionDetail({ client, route, onRouteChange 
   const load = useCallback(async () => {
     const requestOwner = ++owner.current;
     pending.current = false;
-    setOperation(undefined); setState("loading"); setFailure("");
+    setOperation(undefined); setState(current => current === "ready" ? "ready" : "loading"); setBusy(true); setFailure("");
     try {
       const [current, presets] = await Promise.all([client.getPlatformProviderConnection(route.connectionId), client.getPlatformProviderPresets()]);
       if (requestOwner !== owner.current) return;
       const [publication, models] = await Promise.all([
         client.getPlatformProviderConnectionPublication(current.id, current.version),
         current.status === "VERIFIED"
-          ? client.listPlatformProviderModelCandidates(current.id, current.version, route.candidatePage)
+          ? client.listPlatformProviderModelCandidates(current.id, current.version, route.candidatePage, route.pageSize ?? 20, route.query ?? "")
           : Promise.resolve(EMPTY_CANDIDATES),
       ]);
+      if (requestOwner !== owner.current) return;
+      // 原型的发现总数独立于搜索结果；仅多读一个有界窗口，不能拉全量模型再过滤。
+      const full = route.query && current.status === "VERIFIED"
+        ? await client.listPlatformProviderModelCandidates(current.id, current.version, 1, 1)
+        : models;
       if (requestOwner !== owner.current) return;
       if (current.id !== route.connectionId || publication.connectionId !== current.id || publication.connectionRevision !== current.version) {
         throw new Error("connection-binding-mismatch");
       }
+      const last = Math.max(1, Math.ceil(models.totalElements / (route.pageSize ?? 20)));
+      // 越界入口必须替换历史，避免后退再次落入同一无效页。
+      if (route.candidatePage > last) { onRouteChange({ ...route, candidatePage: last }, true); return; }
       setConnection({ ...current, published: publication.published }); setObservedAt(Date.now());
+      setPagination({ page: route.candidatePage, size: route.pageSize ?? 20 });
       setDirectory(presets); setCandidates(models); setState("ready");
+      setDiscoveredTotal(full.totalElements);
     } catch (error) {
       if (requestOwner !== owner.current) return;
       setConnection(undefined); setDirectory(undefined); setCandidates(EMPTY_CANDIDATES);
       setFailure(error instanceof ApiRequestError ? error.message : "请求未完成，请稍后重试。");
       setState(client.hasSession() ? "error" : "stale");
-    }
-  }, [client, route.connectionId, route.candidatePage]);
+    } finally { if (requestOwner === owner.current) setBusy(false); }
+  }, [client, route, onRouteChange]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => void load(), 0);
@@ -104,12 +118,13 @@ export function PlatformProviderConnectionDetail({ client, route, onRouteChange 
   const capability = connection.preset?.capability;
   const verified = hasCurrentConnectionProbe(connection, observedAt);
   const publish = !connection.published && verified;
-  const disabled = !!operation || connection.status === "DISABLED" || !connection.credentialConfigured
+  const disabled = busy || !!operation || connection.status === "DISABLED" || !connection.credentialConfigured
     || (connection.discoveryProfile === "VOLCENGINE_ARK_CONTROL_PLANE" && !connection.discoveryCredentialsConfigured);
   const failed = connection.lastProbeSucceeded === false;
   return <div className="platform-connection-page">
-    <header className="platform-connection-page__heading"><div><p className="platform-connection-page__context">模型治理</p><h1 ref={headingRef} tabIndex={-1}>供应商连接探测</h1></div>
-      <Button appearance="secondary" onClick={() => onRouteChange({ navigationId: "platform-model-supply", task: "connections", page: 1 })}>返回连接目录</Button></header>
+    <header className="platform-connection-page__heading"><div><p className="platform-connection-page__context">模型治理</p><h1 ref={headingRef} tabIndex={-1}>供应商连接探测</h1>
+      <div className="platform-connection-object-line">{connectionStatusLabel(connection)}</div></div>
+      <Button appearance="secondary" onClick={() => onRouteChange({ navigationId: "platform-model-supply", task: "connections", page: 1, ...route.directory })}>返回连接目录</Button></header>
     <div className={"platform-connection-note" + (failed ? " platform-connection-note--danger" : "")}>
       {failed ? "连接探测失败，未发布任何能力。" : connection.published ? "连接已发布，可重新探测查看详细结果。"
         : verified ? "连接探测已通过，可以发布连接。"
@@ -127,13 +142,13 @@ export function PlatformProviderConnectionDetail({ client, route, onRouteChange 
             <dd>{connection.discoveryCredentialsConfigured ? "独立 AK/SK 已配置（不回显）" : "待配置独立 AK/SK"}</dd></div> : null}
           <div><dt>最近探测</dt><dd>{connection.lastProbedAt ? new Date(connection.lastProbedAt).toLocaleString("zh-CN") : "尚未探测"}</dd></div>
         </dl></section>
-        <section className="platform-connection-section"><div className="platform-connection-section__heading"><h2>发现模型</h2><Badge appearance="tint">{candidates.totalElements} 个</Badge></div>
-          <div className="platform-connection-table" role="region" aria-label="发现模型"><table><thead><tr><th scope="col">发现模型</th><th scope="col">能力</th></tr></thead>
-            <tbody>{candidates.items.length === 0 ? <tr><td colSpan={2}>当前没有可用的模型发现结果。</td></tr> : candidates.items.map(item => <tr key={item.modelCode + ":" + item.modelType}>
+        <section className="platform-connection-section"><div className="platform-connection-section__heading"><h2>发现模型</h2><Badge appearance="tint">{discoveredTotal} 个</Badge></div>
+          <PlatformConnectionSearch query={route.query ?? ""} disabled={!!operation} onChange={query => onRouteChange({ ...route, query, candidatePage: 1 })} />
+          <div className="platform-connection-table" role="region" aria-label="发现模型" aria-busy={busy}><table><thead><tr><th scope="col">发现模型</th><th scope="col">能力</th></tr></thead>
+            <tbody>{candidates.items.length === 0 ? <tr><td colSpan={2}>{route.query ? "没有匹配记录，请调整筛选条件或返回目录。" : "当前没有可用的模型发现结果。"}</td></tr> : candidates.items.map(item => <tr key={item.modelCode + ":" + item.modelType}>
               <td>{item.modelCode}</td><td>{item.classification === "REQUIRES_ADMIN_CONFIRMATION" ? "待管理员确认" : capabilityLabel(item.modelType ?? "")}</td></tr>)}</tbody></table>
-            <nav className="platform-connection-pagination" aria-label="发现模型分页"><span>共 {candidates.totalElements} 项</span>
-              <Button disabled={!candidates.hasPrevious || !!operation} onClick={() => onRouteChange({ ...route, candidatePage: route.candidatePage - 1 })}>上一页</Button>
-              <span>第 {route.candidatePage} 页</span><Button disabled={!candidates.hasNext || !!operation} onClick={() => onRouteChange({ ...route, candidatePage: route.candidatePage + 1 })}>下一页</Button></nav>
+            <PlatformConnectionPagination total={candidates.totalElements} page={pagination.page} size={pagination.size}
+              disabled={busy || !!operation} label="发现模型分页" onChange={(candidatePage, pageSize) => onRouteChange({ ...route, candidatePage, pageSize })} />
           </div></section></div>
       <aside><section className="platform-connection-release"><span className="platform-connection-kicker">当前动作</span>
         <h2>{connection.published ? "连接已发布" : "探测后再发布"}</h2>

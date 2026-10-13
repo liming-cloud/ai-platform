@@ -110,11 +110,18 @@ public final class PlatformProviderConnectionService {
             ListPlatformProviderConnectionsQuery query) {
         Objects.requireNonNull(query, "列表查询不能为空");
         requirePermission(query.context());
-        var slice = repository.findPage(query.page().pageNumber(), query.page().pageSize());
+        var slice = repository.findPage(query.page().pageNumber(), query.page().pageSize(), query.q());
         var currentFacts = facts.find(slice.items().stream().map(connection -> connection.id().value())
                 .collect(java.util.stream.Collectors.toUnmodifiableSet()));
         return PageResult.of(slice.items().stream().map(connection -> toView(connection, currentFacts.get(connection.id().value()))).toList(),
                 query.page(), slice.totalElements());
+    }
+
+    /** 平台权限通过后只统计独立发布事实，不解析秘密或向厂商外呼。 */
+    public com.aiplatform.foundation.modelruntime.application.platformsupply.dto.directory.PlatformProviderConnectionDirectorySummary summary(
+            PlatformRequestContext context) {
+        requirePermission(context);
+        return new com.aiplatform.foundation.modelruntime.application.platformsupply.dto.directory.PlatformProviderConnectionDirectorySummary(repository.countPublished());
     }
 
     /** 平台预设是受控非秘密配置，读取仍要求可信平台身份。 */

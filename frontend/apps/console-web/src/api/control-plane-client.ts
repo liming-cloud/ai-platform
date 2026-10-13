@@ -1709,10 +1709,18 @@ export class ControlPlaneClient {
   async listPlatformProviderConnections(
     pageNumber = 1,
     pageSize = 20,
+    q = "",
   ): Promise<PageResult<PlatformProviderConnectionSummary>> {
+    const parameters = new URLSearchParams({ pageNumber: String(pageNumber), pageSize: String(pageSize) });
+    if (q) parameters.set("q", q);
     return this.request<PageResult<PlatformProviderConnectionSummary>>(
-      `/platform/model-supply/connections?pageNumber=${pageNumber}&pageSize=${pageSize}`,
+      `/platform/model-supply/connections?${parameters}`,
     );
+  }
+
+  /** 全目录发布计数独立读取，不随当前搜索或分页改变，不代表模型运行能力。 */
+  async getPlatformProviderConnectionDirectorySummary(): Promise<{ publishedConnections: number }> {
+    return this.request("/platform/model-supply/connections/summary");
   }
 
   /** 读取预设不创建连接、不读取密钥、不访问厂商。 */
@@ -1784,12 +1792,14 @@ export class ControlPlaneClient {
     expectedConnectionVersion: number,
     pageNumber = 1,
     pageSize = 20,
+    q = "",
   ): Promise<PageResult<PlatformProviderModelCandidate>> {
     const parameters = new URLSearchParams({
       expectedConnectionVersion: String(expectedConnectionVersion),
       pageNumber: String(pageNumber),
       pageSize: String(pageSize),
     });
+    if (q) parameters.set("q", q);
     return this.request<PageResult<PlatformProviderModelCandidate>>(
       `/platform/model-supply/connections/${encodeURIComponent(providerConnectionId)}/model-candidates?${parameters}`,
     );
