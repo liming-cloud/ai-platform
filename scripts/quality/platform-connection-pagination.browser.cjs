@@ -250,6 +250,12 @@ if(initial?.navigationId==="platform-model-supply")window.draw(initial);else win
       assert.equal(await page.getByRole("navigation",{name:"目录分页",exact:true})
         .evaluate(item=>getComputedStyle(item).justifyContent),"flex-start");
     });
+    await check("手机目录真实200%文字放大时查看操作不被卡片行高裁切",async()=>{
+      const {enlargeText}=require("../development/acceptance-overview.cjs");
+      const {verifyLayout}=require("../development/acceptance-platform-connection.cjs");
+      await enlargeText(page);
+      await verifyLayout(page);
+    });
     assert.equal(pageErrors,0);
     process.stdout.write(JSON.stringify({status:"PASSED",checks:passed,productionAcceptance:false})+"\n");
   }catch(error){

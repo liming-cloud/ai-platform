@@ -22,6 +22,8 @@
 .platform-connection-table tbody tr:last-child td { border-bottom: 0; }
 .platform-connection-table td strong, .platform-connection-table td small { display: block; }
 .platform-connection-table td small { color: var(--foundation-muted-text); font-size: inherit; }
+/* 卡片操作保留触控基线，额外纵向内边距会挤压 200% 文字的行盒。 */
+.platform-connection-table .fui-Button { padding-block: 0; }
 .platform-connection-page .platform-connection-status { width: fit-content; min-height: 1.5rem; height: auto; gap: 0.35rem; padding: 0.125rem 0.5rem; border: 1px solid; border-radius: 999px; font-size: 0.875rem; font-weight: 650; line-height: 1.6; }
 .platform-connection-status::before { content: ""; flex-shrink: 0; width: 0.4rem; height: 0.4rem; border-radius: 50%; background: currentColor; }
 .platform-connection-page .platform-connection-status[data-tone="success"] { color: var(--foundation-success-foreground); background: var(--foundation-success-background); border-color: var(--foundation-success-border); }
