@@ -16,6 +16,7 @@ async function run() {
   const harness = `import React from "react";
 import {createRoot} from "react-dom/client";
 import {FoundationProvider} from "/@fs/${frontend}/packages/design-system/src/providers/FoundationProvider.tsx";
+import {ProductShell} from "/@fs/${frontend}/packages/design-system/src/shell/ProductShell.tsx";
 import {PlatformModelSupplyWorkspace} from "/@fs/${frontend}/apps/console-web/src/features/platform-governance/PlatformModelSupplyWorkspace.tsx";
 import {PlatformProviderConnectionDetail} from "/@fs/${frontend}/apps/console-web/src/features/platform-governance/PlatformProviderConnectionDetail.tsx";
 import {formatConsoleRoute,parseConsoleRoute} from "/@fs/${frontend}/apps/console-web/src/session/console-route.ts";
@@ -38,6 +39,8 @@ const client={hasSession:()=>window.testState.session,listPlatformProviderConnec
  getPlatformProviderConnection:async id=>({...connection,id,displayName:"分页连接"+id.slice(-3)}),getPlatformProviderConnectionPublication:async id=>({connectionId:id,connectionRevision:3,published:true}),
  listPlatformProviderModelCandidates:async(id,version,page,size,q)=>result("candidates",page,size,q)};
 const root=createRoot(document.getElementById("root"));
+window.showShell=scope=>root.render(<FoundationProvider><ProductShell productName="可信 RAG" workspaceScope={scope}
+ navigation={[]} activeNavigationId="" accountLabel="样式验收账户"><h1>样式验收</h1></ProductShell></FoundationProvider>);
 window.draw=(route,mode="replaceState")=>{window.testState.route=route;history[mode]({},"",formatConsoleRoute(route));
  root.render(<FoundationProvider>{route.task==="connections"
  ?<PlatformModelSupplyWorkspace key={window.testState.identity} client={client} route={route} sessionRevision={window.testState.identity} onRouteChange={(next,replace=false)=>window.draw(next,replace?"replaceState":"pushState")}/>
@@ -271,6 +274,56 @@ if(initial?.navigationId==="platform-model-supply")window.draw(initial);else win
       const {verifyLayout}=require("../development/acceptance-platform-connection.cjs");
       await enlargeText(page);
       await verifyLayout(page);
+    });
+    await check("S1两页手机卡片在正常与真实200%文字下不进入相邻单元格或分页",async()=>{
+      const {enlargeText}=require("../development/acceptance-overview.cjs");
+      const observations=[];
+      for(const detail of [false,true]) {
+        await page.reload();await page.evaluate(detail=>window.start(detail,21),detail);
+        await page.getByText(detail?"分页模型001":"分页连接001",{exact:true}).waitFor();
+        await page.getByRole("status").filter({hasText:"共 21 条 · 1–20 条"}).waitFor();
+        const normalTitleSize=await page.locator("h1").evaluate(item=>parseFloat(getComputedStyle(item).fontSize));
+        for(const enlarged of [false,true]) {
+          if(enlarged) {
+            await enlargeText(page);
+            await page.waitForFunction(expected=>Math.abs(parseFloat(getComputedStyle(document.querySelector("h1")).fontSize)-expected)<0.01,normalTitleSize*2);
+          }
+          const metrics=await page.evaluate(()=>{
+            const pager=document.querySelector(".platform-connection-pagination").getBoundingClientRect();
+            const cells=[...document.querySelectorAll("tbody td")];
+            const overlap=cells.filter(cell=>{
+              const box=cell.getBoundingClientRect(),walker=document.createTreeWalker(cell,NodeFilter.SHOW_TEXT);
+              while(walker.nextNode()) {
+                if(!walker.currentNode.textContent.trim())continue;
+                const range=document.createRange();range.selectNodeContents(walker.currentNode);
+                if([...range.getClientRects()].some(rect=>rect.top<box.top-1||rect.bottom>box.bottom+1||rect.bottom>pager.top+1))return true;
+              }
+              return cell.scrollHeight>cell.clientHeight+1;
+            }).length;
+            const title=document.querySelector("h1");
+            return {overlap,overflow:document.documentElement.scrollWidth-innerWidth,
+              titleSize:parseFloat(getComputedStyle(title).fontSize)};
+          });
+          observations.push({detail,enlarged,normalTitleSize,...metrics});
+        }
+      }
+      process.stdout.write(JSON.stringify({cardReflow:observations})+"\n");
+      assert.equal(observations.some(item=>Math.abs(item.titleSize-item.normalTitleSize*(item.enlarged?2:1))>=0.01),false,"标题文字必须实际放大");
+      assert.equal(observations.some(item=>item.overlap>0),false,"手机卡片文字不能进入相邻单元格或分页");
+      assert.equal(observations.some(item=>item.overflow>1),false,"手机页面不能横向溢出");
+    });
+    await check("平台与租户共享顶栏范围说明沿用原型中性色和文字基线",async()=>{
+      await page.reload();
+      for(const scope of ["platform","tenant"]) {
+        await page.evaluate(scope=>window.showShell(scope),scope);
+        const context=page.locator(`.product-shell[data-scope="${scope}"] .product-topbar__context`);
+        await context.waitFor();
+        const style=await context.evaluate(item=>{
+          const value=getComputedStyle(item);return {color:value.color,fontSize:value.fontSize,fontWeight:value.fontWeight,lineHeight:value.lineHeight};
+        });
+        process.stdout.write(JSON.stringify({scopeContext:{scope,...style}})+"\n");
+        assert.deepEqual(style,{color:"rgb(94, 93, 89)",fontSize:"14px",fontWeight:"650",lineHeight:"22.4px"});
+      }
     });
     assert.equal(pageErrors,0);
     process.stdout.write(JSON.stringify({status:"PASSED",checks:passed,productionAcceptance:false})+"\n");

@@ -377,11 +377,6 @@
   }
 }
 
-.product-shell[data-scope="platform"] .product-topbar__context {
-  color: var(--foundation-warning-foreground);
-  font-weight: 700;
-}
-
 /* 导航是独立密度的复合控件，不继承普通按钮的 20px 图标槽与额外右边距。 */
 .product-navigation .fui-Button__icon { width: 24px; height: 24px; margin: 0; font-size: 24px; }
 

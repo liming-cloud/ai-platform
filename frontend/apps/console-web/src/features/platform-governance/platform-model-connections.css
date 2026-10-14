@@ -91,7 +91,8 @@
   .platform-connection-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); clip-path: inset(50%); }
   .platform-connection-table tbody tr { padding: 0.75rem 1rem; border-bottom: 1px solid var(--foundation-border); }
   .platform-connection-table tbody tr:last-child { border-bottom: 0; }
-  .platform-connection-table td { display: grid; grid-template-columns: 7.25rem minmax(0, 1fr); gap: 0.75rem; padding: 0.5rem 0; border: 0; }
+  /* 手机卡片保持 48px 普通行基线，多行及放大文字按内容排布，不进入下一单元格。 */
+  .platform-connection-table td { display: grid; grid-template-columns: 7.25rem minmax(0, 1fr); gap: 0.75rem; height: auto; min-height: 3rem; padding: 0.5rem 0; border: 0; }
   .platform-connection-table td::before { content: attr(data-label); color: var(--foundation-secondary-text); font-size: 0.875rem; font-weight: 650; }
   .platform-connection-pagination { justify-content: flex-start; padding: 0.75rem; }
   .platform-connection-pagination__summary { width: 100%; }

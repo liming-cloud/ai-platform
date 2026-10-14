@@ -12,7 +12,7 @@ const repository = path.resolve(__dirname, "../..");
 const api = "/platform/model-supply/connections";
 const directoryPath = "/platform/model-supply";
 const prototype = { projectId: "249f81f2-6f1a-46ff-988c-da3cdedb35e7",
-  revision: "616713f84d3872f5880eac47e933a2b2235013ff" };
+  revision: "9008c62e7524f7bd2e96c2688c845388c6ef05d1" };
 const longId = value => typeof value === "string" && /^[1-9][0-9]{0,18}$/.test(value)
   && BigInt(value) <= 9223372036854775807n;
 
