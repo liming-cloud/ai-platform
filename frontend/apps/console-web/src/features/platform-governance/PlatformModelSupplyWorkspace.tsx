@@ -76,11 +76,12 @@ export function PlatformModelSupplyWorkspace({ client, route, sessionRevision, o
   const empty = total === 0 && !route.query;
   return <div className={"platform-connection-page" + (empty ? " platform-connection-page--empty" : "")}>
     <header className="platform-connection-page__heading">
-      <div><p className="platform-connection-page__context">模型治理</p><h1 ref={headingRef} tabIndex={-1}>平台模型连接</h1>
+      <p className="platform-connection-page__context">模型治理</p>
+      <div><h1 ref={headingRef} tabIndex={-1}>平台模型连接</h1>
         <div className="platform-connection-object-line">{empty ? "暂无记录" : `${published} 个已发布连接`}</div></div>
       <Dialog open={creating} onOpenChange={(_, data) => { if (data.open) setCreating(true); else closeCreateDialog(); }}>
         {/* 正式触发器登记焦点恢复目标，身份替换卸载模态时也能清理原隐藏范围。 */}
-        <DialogTrigger disableButtonEnhancement><Button ref={createConnectionTriggerRef} appearance="primary">新增供应商连接</Button></DialogTrigger>
+        <DialogTrigger disableButtonEnhancement><Button ref={createConnectionTriggerRef} className="platform-connection-create" appearance="primary">新增供应商连接</Button></DialogTrigger>
         <DialogSurface className="foundation-task-dialog platform-connection-dialog"><DialogBody>
           <span className="platform-connection-kicker">模型治理 · 连接草稿</span><DialogTitle>新增供应商连接</DialogTitle>
           {creating && directory ? <PlatformProviderConnectionForm client={client} directory={directory} onCancel={closeCreateDialog}
@@ -126,7 +127,8 @@ export function PlatformConnectionEmptyState({ detail = false }: { detail?: bool
 export function ConnectionStatus({ connection }: { connection: PlatformProviderConnectionSummary }) {
   const failed = connection.lastProbeSucceeded === false;
   const label = connectionStatusLabel(connection);
-  return <Badge appearance="tint" color={failed ? "danger" : connection.published || connection.status === "VERIFIED" ? "success" : "warning"}>{label}</Badge>;
+  const tone = failed ? "danger" : connection.published || connection.status === "VERIFIED" ? "success" : "warning";
+  return <Badge className="platform-connection-status" data-tone={tone} appearance="tint" color={tone}>{label}</Badge>;
 }
 
 /** 页头和表格复用同一当前对象状态，不把验证状态换算成发布事实。 */

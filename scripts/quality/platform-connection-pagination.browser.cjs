@@ -223,6 +223,33 @@ if(initial?.navigationId==="platform-model-supply")window.draw(initial);else win
         await page.evaluate(()=>document.documentElement.style.fontSize="");
       });
     }
+    await check("连接目录桌面操作与已接受原型的标题首行对齐",async()=>{
+      await page.setViewportSize({width:1440,height:1000});
+      await page.evaluate(()=>window.start(false));
+      await page.waitForFunction(()=>getComputedStyle(document.documentElement).fontSize==="16px");
+      const heading=page.getByRole("heading",{name:"平台模型连接",exact:true});
+      const create=page.getByRole("button",{name:"新增供应商连接",exact:true});
+      await page.getByText("分页连接001",{exact:true}).waitFor();
+      const titleBox=await heading.boundingBox(),buttonBox=await create.boundingBox();
+      assert.ok(Math.abs(titleBox.y-buttonBox.y)<=1,"桌面创建操作应与标题首行对齐");
+    });
+    await check("连接目录手机视图沿用原型满宽创建操作、卡片表格及左对齐分页",async()=>{
+      await page.setViewportSize({width:390,height:1000});
+      const header=page.locator(".platform-connection-page__heading");
+      const create=page.getByRole("button",{name:"新增供应商连接",exact:true});
+      const headerBox=await header.boundingBox(),buttonBox=await create.boundingBox();
+      assert.ok(Math.abs(headerBox.width-buttonBox.width)<=1,"手机创建操作应占满页头宽度");
+      assert.equal(await page.locator("tbody tr").first().evaluate(item=>getComputedStyle(item).display),"block");
+      assert.equal(await page.locator("tbody td").first().evaluate(item=>getComputedStyle(item).display),"grid");
+      const tableHead=await page.locator("thead").evaluate(item=>{
+        const box=item.getBoundingClientRect(),style=getComputedStyle(item);
+        return {width:box.width,height:box.height,position:style.position,clipPath:style.clipPath};
+      });
+      assert.deepEqual(tableHead,{width:1,height:1,position:"absolute",clipPath:"inset(50%)"});
+      assert.equal(await page.locator("thead th").count(),4,"手机视图保留可访问表头");
+      assert.equal(await page.getByRole("navigation",{name:"目录分页",exact:true})
+        .evaluate(item=>getComputedStyle(item).justifyContent),"flex-start");
+    });
     assert.equal(pageErrors,0);
     process.stdout.write(JSON.stringify({status:"PASSED",checks:passed,productionAcceptance:false})+"\n");
   }catch(error){

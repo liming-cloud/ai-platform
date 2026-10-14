@@ -120,7 +120,8 @@ export function PlatformProviderConnectionDetail({ client, route, onRouteChange 
   if (state === "stale") return <StatePanel kind="stale" title="浏览器会话已经失效" description="请重新登录后查看平台连接。" />;
   if (state === "loading") return <StatePanel kind="loading" title="正在加载供应商连接" description="正在读取连接及探测结果。" />;
   if (state === "empty" || state === "error" || !connection) return <div className={"platform-connection-page" + (state === "empty" ? " platform-connection-page--empty" : "")}>
-    <header className="platform-connection-page__heading"><div><p className="platform-connection-page__context">模型治理</p><h1 ref={headingRef} tabIndex={-1}>供应商连接探测</h1>
+    <header className="platform-connection-page__heading"><p className="platform-connection-page__context">模型治理</p>
+      <div><h1 ref={headingRef} tabIndex={-1}>供应商连接探测</h1>
       {state === "empty" ? <div className="platform-connection-object-line">暂无记录</div> : null}</div>
       <Button appearance="secondary" onClick={() => onRouteChange({ navigationId: "platform-model-supply", task: "connections", page: 1, ...route.directory })}>返回连接目录</Button></header>
     {state === "empty" ? <PlatformConnectionEmptyState detail />
@@ -134,7 +135,8 @@ export function PlatformProviderConnectionDetail({ client, route, onRouteChange 
     || (connection.discoveryProfile === "VOLCENGINE_ARK_CONTROL_PLANE" && !connection.discoveryCredentialsConfigured);
   const failed = connection.lastProbeSucceeded === false;
   return <div className="platform-connection-page">
-    <header className="platform-connection-page__heading"><div><p className="platform-connection-page__context">模型治理</p><h1 ref={headingRef} tabIndex={-1}>供应商连接探测</h1>
+    <header className="platform-connection-page__heading"><p className="platform-connection-page__context">模型治理</p>
+      <div><h1 ref={headingRef} tabIndex={-1}>供应商连接探测</h1>
       <div className="platform-connection-object-line">{connectionStatusLabel(connection)}</div></div>
       <Button appearance="secondary" onClick={() => onRouteChange({ navigationId: "platform-model-supply", task: "connections", page: 1, ...route.directory })}>返回连接目录</Button></header>
     <div className={"platform-connection-note" + (failed ? " platform-connection-note--danger" : "")}>
