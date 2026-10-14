@@ -230,8 +230,12 @@ if(initial?.navigationId==="platform-model-supply")window.draw(initial);else win
       const heading=page.getByRole("heading",{name:"平台模型连接",exact:true});
       const create=page.getByRole("button",{name:"新增供应商连接",exact:true});
       await page.getByText("分页连接001",{exact:true}).waitFor();
-      const titleBox=await heading.boundingBox(),buttonBox=await create.boundingBox();
-      assert.ok(Math.abs(titleBox.y-buttonBox.y)<=1,"桌面创建操作应与标题首行对齐");
+      await heading.scrollIntoViewIfNeeded();
+      const alignment=await page.locator(".platform-connection-page__heading").evaluate(header=>{
+        const title=header.querySelector("h1").getBoundingClientRect(),button=header.querySelector("button").getBoundingClientRect();
+        return Math.abs(title.y-button.y);
+      });
+      assert.ok(alignment<=1,"桌面创建操作应与标题首行对齐");
     });
     await check("连接目录手机视图沿用原型满宽创建操作、卡片表格及左对齐分页",async()=>{
       await page.setViewportSize({width:390,height:1000});
@@ -249,6 +253,18 @@ if(initial?.navigationId==="platform-model-supply")window.draw(initial);else win
       assert.equal(await page.locator("thead th").count(),4,"手机视图保留可访问表头");
       assert.equal(await page.getByRole("navigation",{name:"目录分页",exact:true})
         .evaluate(item=>getComputedStyle(item).justifyContent),"flex-start");
+    });
+    await check("目录搜索标签与已接受原型的字重和边框一致",async()=>{
+      const search=page.getByRole("searchbox",{name:"搜索当前目录",exact:true});
+      const styles=await search.evaluate(item=>{
+        const label=item.closest("label").querySelector("span"),style=getComputedStyle(item);
+        const reference=document.createElement("div");reference.style.border="1px solid var(--foundation-border-strong)";document.body.append(reference);
+        const border=getComputedStyle(reference).border;reference.remove();
+        return {weight:getComputedStyle(label).fontWeight,lineHeight:style.lineHeight,border:style.border,expectedBorder:border};
+      });
+      assert.equal(styles.weight,"620");
+      assert.equal(styles.lineHeight,"24px");
+      assert.equal(styles.border,styles.expectedBorder);
     });
     await check("手机目录真实200%文字放大时查看操作不被卡片行高裁切",async()=>{
       const {enlargeText}=require("../development/acceptance-overview.cjs");

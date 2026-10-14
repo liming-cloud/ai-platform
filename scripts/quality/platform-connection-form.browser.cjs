@@ -237,6 +237,30 @@ window.renderWorkspace(1);`;
     await page.getByRole("button", { name: /新建平台连接|新增供应商连接/ }).click();
     const providers = page.locator('select[name="providerPreset"]');
     const secretInputs = () => page.getByRole("dialog").locator('input[type="password"]');
+    await check("方舟弹窗标签和发现认证分区精确承接已接受原型", async () => {
+      await providers.selectOption("VOLCENGINE");
+      await page.getByRole("dialog").evaluate(async dialog=>{
+        await document.fonts.ready;
+        await Promise.all(dialog.getAnimations({subtree:true}).map(animation=>animation.finished.catch(()=>{})));
+      });
+      const properties=await page.getByRole("dialog").evaluate(dialog=>{
+        const label=getComputedStyle(dialog.querySelector(".fui-Label"));
+        const title=getComputedStyle(dialog.querySelector(".platform-connection-form__discovery h3"));
+        return {labelWeight:label.fontWeight,labelLineHeight:label.lineHeight,
+          titleSize:title.fontSize,titleWeight:title.fontWeight,titleLineHeight:title.lineHeight};
+      });
+      assert.deepEqual(properties,{labelWeight:"620",labelLineHeight:"25.6px",
+        titleSize:"16px",titleWeight:"500",titleLineHeight:"21.6px"});
+      const bounds=await page.getByRole("dialog").evaluate(dialog=>{
+        const box=dialog.getBoundingClientRect(),action=dialog.querySelector("button[type='submit']").getBoundingClientRect();
+        return {width:box.width,actionFits:action.top>=0&&action.bottom<=innerHeight&&action.bottom<=box.bottom,
+          boxSizing:getComputedStyle(dialog).boxSizing,padding:getComputedStyle(dialog).padding,
+          actionBottom:action.bottom,dialogBottom:box.bottom};
+      });
+      process.stdout.write(JSON.stringify({dialogLayout:bounds})+"\n");
+      assert.ok(Math.abs(bounds.width-608)<=1,"桌面方舟表单沿用原型38rem宽度");
+      assert.equal(bounds.actionFits,true,"正常桌面方舟表单的保存操作应完整显示");
+    });
     await check("五厂商选择来自受控目录", async () => {
       const ids = await providers.locator("option").evaluateAll(options => options.map(option => option.value));
       assert.deepEqual(ids, directory.items.map(item => item.id));

@@ -8,7 +8,8 @@
 .platform-connection-empty p { margin: 0; max-width: 42rem; color: var(--foundation-muted-text); }
 .platform-connection-empty__label { font-size: 0.875rem; font-weight: 750; letter-spacing: 0.07em; }
 .platform-connection-search label { display: grid; gap: 0.5rem; width: min(100%, 22rem); }
-.platform-connection-search input { box-sizing: border-box; width: 100%; min-width: 0; min-height: var(--foundation-control-height); padding: 0 0.75rem; border: 1px solid var(--foundation-border); border-radius: var(--foundation-control-radius); background: var(--foundation-surface); color: var(--foundation-text); font: inherit; }
+.platform-connection-search label > span { font-weight: 620; }
+.platform-connection-search input { box-sizing: border-box; width: 100%; min-width: 0; min-height: max(var(--foundation-control-height), calc(1lh + 0.5rem)); padding: 0 0.75rem; border: 1px solid var(--foundation-border-strong); border-radius: var(--foundation-control-radius); background: var(--foundation-surface); color: var(--foundation-text); font: inherit; line-height: 1.5; }
 .platform-connection-search p { margin: 0.5rem 0 0; color: var(--foundation-danger); }
 .platform-connection-page h1 { margin: 0; max-width: 48rem; font-family: var(--foundation-font-display); font-size: clamp(1.75rem, 3vw, 2rem); font-weight: 500; line-height: 1.35; }
 .platform-connection-page h2, .platform-connection-dialog h2 { margin: 0; font-family: var(--foundation-font-display); font-size: 1.5625rem; line-height: 1.3; }
@@ -24,7 +25,7 @@
 .platform-connection-table td small { color: var(--foundation-muted-text); font-size: inherit; }
 /* 卡片操作保留触控基线，额外纵向内边距会挤压 200% 文字的行盒。 */
 .platform-connection-table .fui-Button { padding-block: 0; }
-.platform-connection-page .platform-connection-status { width: fit-content; min-height: 1.5rem; height: auto; gap: 0.35rem; padding: 0.125rem 0.5rem; border: 1px solid; border-radius: 999px; font-size: 0.875rem; font-weight: 650; line-height: 1.6; }
+.platform-connection-page .platform-connection-status { width: fit-content; min-height: 1.5rem; height: auto; gap: 0.35rem; padding: 0.125rem 0.5rem; border: 1px solid; border-radius: 9999px; font-family: var(--foundation-font-body); font-size: 0.875rem; font-weight: 650; line-height: 1.6; }
 .platform-connection-status::before { content: ""; flex-shrink: 0; width: 0.4rem; height: 0.4rem; border-radius: 50%; background: currentColor; }
 .platform-connection-page .platform-connection-status[data-tone="success"] { color: var(--foundation-success-foreground); background: var(--foundation-success-background); border-color: var(--foundation-success-border); }
 .platform-connection-page .platform-connection-status[data-tone="warning"] { color: var(--foundation-warning-foreground); background: var(--foundation-warning-background); border-color: var(--foundation-warning-border); }
@@ -40,21 +41,32 @@
 .platform-connection-pagination select { width: 5.5rem; font-size: 1rem; }
 .platform-connection-pagination input { width: 4rem; font-size: 1rem; }
 .platform-connection-pagination__error { color: var(--foundation-danger); flex-basis: 100%; }
-.platform-connection-dialog { width: min(38rem, calc(100vw - 2rem)) !important; }
+.foundation-task-dialog.platform-connection-dialog { width: min(38rem, calc(100vw - 2rem)) !important; max-width: calc(100vw - 2rem - 6px); padding: 1.5rem; border: 1px solid var(--foundation-border-strong); border-radius: var(--foundation-panel-radius); box-shadow: 0 4px 24px rgb(0 0 0 / 5%); font-family: var(--foundation-font-body); font-size: 1rem; line-height: 1.6; }
+.platform-connection-dialog__header { display: grid; gap: 0.5rem; padding-bottom: 1rem; border-bottom: 1px solid var(--foundation-border); }
+.platform-connection-dialog__header .fui-DialogTitle { grid-column: 1 / -1; grid-row: auto; }
+.fui-DialogSurface__backdrop.platform-connection-backdrop { background: color-mix(in oklab, var(--foundation-text), transparent 64%); }
 .platform-connection-dialog .platform-connection-kicker { grid-column: 1 / -1; margin: 0; font-weight: 650; letter-spacing: 0.02em; }
-.platform-connection-dialog .fui-DialogBody { display: flex; flex-direction: column; gap: 1rem; }
+.platform-connection-dialog .fui-DialogBody { display: flex; flex-direction: column; gap: 1rem; max-height: none; }
 .platform-connection-dialog .fui-DialogTitle { font-family: var(--foundation-font-display); font-size: 1.5625rem; font-weight: 500; line-height: 1.35; }
-.platform-connection-dialog [class*="DialogContent"] { color: var(--foundation-text); line-height: 1.6; }
+.platform-connection-dialog [class*="DialogContent"] { color: var(--foundation-text); line-height: 1.6; overflow: visible; }
 .platform-connection-dialog .fui-Button { min-width: 0; min-height: var(--foundation-control-height); border-radius: var(--foundation-control-radius); }
 .platform-connection-dialog .fui-Input, .platform-connection-dialog .fui-Select { min-height: var(--foundation-control-height); border-radius: var(--foundation-control-radius); min-width: 0; }
-.platform-connection-dialog .fui-Input input, .platform-connection-dialog .fui-Select select, .platform-connection-dialog .fui-Label { font-size: 1rem; line-height: 1.5; }
+.platform-connection-dialog .fui-Input input, .platform-connection-dialog .fui-Select select { font-family: var(--foundation-font-body); font-size: 1rem; line-height: 1.5; }
+.platform-connection-dialog .fui-Label { font-family: var(--foundation-font-body); font-size: 1rem; font-weight: 620; line-height: 1.6; }
+.platform-connection-dialog input[name="endpoint"] { font-family: "Anthropic Mono", ui-monospace, "JetBrains Mono", Menlo, monospace; }
+.platform-connection-dialog .fui-Field__hint { color: var(--foundation-text); font-family: var(--foundation-font-body); font-size: calc(5rem / 6); line-height: 1.6; }
 .platform-connection-dialog .fui-Select select { height: auto; min-height: max(var(--foundation-control-height), calc(1.5em + 0.5rem)); }
+/* 表单嵌套后自行排布，不能沿用 `DialogBody` 直属槽位的固定行号。 */
+.platform-connection-form { margin: 0; }
+.platform-connection-form .fui-DialogContent { grid-column: 1 / -1; grid-row: auto; margin: 0; padding: 0; }
 .platform-connection-form__grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
 .platform-connection-form__summary { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 0.75rem; padding: 0.75rem 0; border-block: 1px solid var(--foundation-border); color: var(--foundation-muted-text); }
-.platform-connection-form__discovery { display: grid; gap: 1rem; padding-block: 1.25rem; border-top: 1px solid var(--foundation-border); }
+.platform-connection-form__discovery { display: grid; gap: 1rem; padding-bottom: 1.25rem; }
 .platform-connection-form__discovery h3, .platform-connection-form__discovery p { margin: 0; }
-.platform-connection-form__discovery h3 { font-family: var(--foundation-font-display); font-size: 1.25rem; }
-.platform-connection-form__discovery p { color: var(--foundation-muted-text); font-size: 0.875rem; line-height: 1.5; }
+.platform-connection-form__discovery h3 { font-family: var(--foundation-font-display); font-size: 1rem; font-weight: 500; line-height: 1.35; }
+.platform-connection-form__discovery p { color: var(--foundation-text); font-size: 1rem; line-height: 1.6; }
+.platform-connection-form .form-feedback:empty { display: none; }
+.platform-connection-form .fui-DialogActions { grid-column: 1 / -1; grid-row: auto; gap: 0.5rem; padding-top: 1rem; border-top: 1px solid var(--foundation-border); }
 .platform-connection-detail { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(18rem, 0.6fr); gap: 1.5rem; align-items: start; }
 .platform-connection-section { display: grid; gap: 1rem; padding-block: 1.25rem; border-top: 1px solid var(--foundation-border); }
 .platform-connection-section:first-child { padding-top: 0; border-top: 0; }
@@ -69,6 +81,7 @@
 .platform-connection-form .platform-connection-feedback--danger, .platform-connection-release .platform-connection-feedback--danger { color: var(--foundation-danger); }
 @media (max-width: 64rem) { .platform-connection-detail { grid-template-columns: minmax(0, 1fr); } }
 @media (max-width: 680px) {
+  .foundation-task-dialog.platform-connection-dialog { width: calc(100vw - 1rem) !important; padding: 1rem; max-height: calc(100dvh - 1rem) !important; }
   .platform-connection-page h1 { font-size: 1.65rem; }
   .platform-connection-page__heading { grid-template-columns: minmax(0, 1fr); }
   .platform-connection-page__heading > .fui-Button { justify-self: start; margin-top: 0.25rem; }

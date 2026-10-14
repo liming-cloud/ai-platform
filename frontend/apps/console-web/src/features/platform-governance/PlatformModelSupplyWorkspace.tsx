@@ -82,8 +82,8 @@ export function PlatformModelSupplyWorkspace({ client, route, sessionRevision, o
       <Dialog open={creating} onOpenChange={(_, data) => { if (data.open) setCreating(true); else closeCreateDialog(); }}>
         {/* 正式触发器登记焦点恢复目标，身份替换卸载模态时也能清理原隐藏范围。 */}
         <DialogTrigger disableButtonEnhancement><Button ref={createConnectionTriggerRef} className="platform-connection-create" appearance="primary">新增供应商连接</Button></DialogTrigger>
-        <DialogSurface className="foundation-task-dialog platform-connection-dialog"><DialogBody>
-          <span className="platform-connection-kicker">模型治理 · 连接草稿</span><DialogTitle>新增供应商连接</DialogTitle>
+        <DialogSurface className="foundation-task-dialog platform-connection-dialog" backdrop={{ className: "platform-connection-backdrop" }}><DialogBody>
+          <header className="platform-connection-dialog__header"><span className="platform-connection-kicker">模型治理 · 连接草稿</span><DialogTitle>新增供应商连接</DialogTitle></header>
           {creating && directory ? <PlatformProviderConnectionForm client={client} directory={directory} onCancel={closeCreateDialog}
             onCreated={id => { setCreating(false); onRouteChange({ navigationId: "platform-model-supply", task: "connection-detail", connectionId: id, candidatePage: 1,
               directory: { page: route.page, pageSize: route.pageSize, query: route.query } }); }} /> : null}
