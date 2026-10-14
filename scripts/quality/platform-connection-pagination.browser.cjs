@@ -348,6 +348,7 @@ if(initial?.navigationId==="platform-model-supply")window.draw(initial);else win
         await page.evaluate(detail=>{window.testState.delayPage=1;window.start(detail,21);},detail);
         await page.locator('.state-panel-loading,section[data-kind="loading"]').waitFor();
         assert.equal(await page.getByRole("heading",{name:detail?"供应商连接探测":"平台模型连接",exact:true}).count(),1);
+        assert.equal(await page.locator("h1").evaluate(item=>getComputedStyle(item).minHeight),"auto","页头正文沿用原型 grid 排布");
         await page.evaluate(()=>{window.testState.delayPage=0;window.testState.readFail=true;window.testState.resolves.splice(0).forEach(resolve=>resolve());window.start(window.testState.route.task==="connection-detail",21);});
         const panel=page.locator('section[data-kind="error"]');await panel.waitFor();
         await panel.getByRole("heading",{name:detail?"暂时无法加载供应商连接探测":"暂时无法加载平台模型连接",exact:true}).waitFor();

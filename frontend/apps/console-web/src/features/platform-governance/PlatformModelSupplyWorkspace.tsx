@@ -119,7 +119,7 @@ export function PlatformConnectionReadState({ kind, detail = false, onRetry }: {
   const title = detail ? "供应商连接探测" : "平台模型连接";
   return <div className="platform-connection-page">
     <header className="platform-connection-page__heading"><p className="platform-connection-page__context">模型治理</p>
-      <div><h1 tabIndex={-1}>{title}</h1></div></header>
+      <div className="platform-connection-page__copy"><h1 tabIndex={-1}>{title}</h1></div></header>
     <section className="platform-connection-empty platform-connection-read-state" data-kind={kind}
       aria-live="polite" aria-busy={kind === "loading"} role={kind === "error" ? "alert" : undefined}>
       {kind === "loading" ? <div className="platform-connection-skeleton" aria-label="正在加载"><span /><span /><span /></div>
