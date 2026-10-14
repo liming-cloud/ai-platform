@@ -81,6 +81,8 @@
 .platform-connection-form .platform-connection-feedback--danger, .platform-connection-release .platform-connection-feedback--danger { color: var(--foundation-danger); }
 @media (max-width: 64rem) { .platform-connection-detail { grid-template-columns: minmax(0, 1fr); } }
 @media (max-width: 680px) {
+  /* 为吸顶导航保留文字放大后的焦点滚动空间；沿用原型已接受的 12rem 避让基线。 */
+  .platform-connection-page :is(button, input, select, a) { scroll-margin-block-start: 12rem; scroll-margin-block-end: 1rem; }
   .foundation-task-dialog.platform-connection-dialog { width: calc(100vw - 1rem) !important; padding: 1rem; max-height: calc(100dvh - 1rem) !important; }
   .platform-connection-page h1 { font-size: 1.65rem; }
   .platform-connection-page__heading { grid-template-columns: minmax(0, 1fr); }

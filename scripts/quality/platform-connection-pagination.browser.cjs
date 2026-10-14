@@ -42,9 +42,13 @@ const root=createRoot(document.getElementById("root"));
 window.showShell=scope=>root.render(<FoundationProvider><ProductShell productName="可信 RAG" workspaceScope={scope}
  navigation={[]} activeNavigationId="" accountLabel="样式验收账户"><h1>样式验收</h1></ProductShell></FoundationProvider>);
 window.draw=(route,mode="replaceState")=>{window.testState.route=route;history[mode]({},"",formatConsoleRoute(route));
- root.render(<FoundationProvider>{route.task==="connections"
+ const content=route.task==="connections"
  ?<PlatformModelSupplyWorkspace key={window.testState.identity} client={client} route={route} sessionRevision={window.testState.identity} onRouteChange={(next,replace=false)=>window.draw(next,replace?"replaceState":"pushState")}/>
- :<PlatformProviderConnectionDetail key={window.testState.identity} client={client} route={route} onRouteChange={(next,replace=false)=>window.draw(next,replace?"replaceState":"pushState")}/>}</FoundationProvider>);};
+ :<PlatformProviderConnectionDetail key={window.testState.identity} client={client} route={route} onRouteChange={(next,replace=false)=>window.draw(next,replace?"replaceState":"pushState")}/>;
+ root.render(<FoundationProvider>{window.testState.withShell
+ ?<ProductShell productName="可信 RAG" workspaceScope="platform" activeNavigationId="models" accountLabel="样式验收账户"
+ navigation={[{id:"overview",label:"平台治理概览",icon:"overview"},{id:"tenants",label:"租户管理",icon:"data"},{id:"accounts",label:"平台账户",icon:"accounts"},{id:"models",label:"模型治理",icon:"models"}]}>{content}</ProductShell>
+ :content}</FoundationProvider>);};
 window.start=(detail=false,total=101)=>{window.testState.total=total;window.testState.calls=[];window.testState.identity++;window.testState.session=true;
  window.draw(detail?{navigationId:"platform-model-supply",task:"connection-detail",connectionId:connection.id,candidatePage:1}
  :{navigationId:"platform-model-supply",task:"connections",page:1});};
@@ -324,6 +328,17 @@ if(initial?.navigationId==="platform-model-supply")window.draw(initial);else win
         process.stdout.write(JSON.stringify({scopeContext:{scope,...style}})+"\n");
         assert.deepEqual(style,{color:"rgb(94, 93, 89)",fontSize:"14px",fontWeight:"650",lineHeight:"22.4px"});
       }
+    });
+    await check("手机200%文字下真实外壳吸顶导航不遮挡目录操作",async()=>{
+      const {enlargeText}=require("../development/acceptance-overview.cjs");
+      const {verifyLayout}=require("../development/acceptance-platform-connection.cjs");
+      await page.setViewportSize({width:390,height:844});await page.reload();
+      await page.evaluate(()=>{window.testState.withShell=true;window.start(false,1);});
+      await page.getByRole("status").filter({hasText:"共 1 条 · 1–1 条"}).waitFor();
+      await verifyLayout(page);
+      await enlargeText(page);
+      await page.waitForFunction(()=>Math.abs(parseFloat(getComputedStyle(document.querySelector("h1")).fontSize)-52.8)<0.01);
+      await verifyLayout(page);
     });
     assert.equal(pageErrors,0);
     process.stdout.write(JSON.stringify({status:"PASSED",checks:passed,productionAcceptance:false})+"\n");

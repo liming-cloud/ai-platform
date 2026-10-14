@@ -60,8 +60,10 @@ export function PlatformModelSupplyWorkspace({ client, route, sessionRevision, o
   }, [load, sessionRevision]);
 
   useEffect(() => {
-    // 新会话不能恢复到已移除的旧弹窗；把焦点交给新页面，解除旧模态的隐藏范围。
-    if (state === "ready" && !focused.current) { focused.current = true; headingRef.current?.focus(); }
+    if (state !== "ready" || focused.current) return;
+    // 旧模态先完成本帧释放，再把焦点交给新会话页面，避免旧隐藏范围覆盖新触发器。
+    const frame = window.requestAnimationFrame(() => { focused.current = true; headingRef.current?.focus(); });
+    return () => window.cancelAnimationFrame(frame);
   }, [state]);
 
   function closeCreateDialog() {
