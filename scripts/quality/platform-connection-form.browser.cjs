@@ -255,10 +255,13 @@ window.renderWorkspace(1);`;
         const box=dialog.getBoundingClientRect(),action=dialog.querySelector("button[type='submit']").getBoundingClientRect();
         return {width:box.width,actionFits:action.top>=0&&action.bottom<=innerHeight&&action.bottom<=box.bottom,
           boxSizing:getComputedStyle(dialog).boxSizing,padding:getComputedStyle(dialog).padding,
-          actionBottom:action.bottom,dialogBottom:box.bottom};
+          actionBottom:action.bottom,dialogBottom:box.bottom,
+          actionsWidth:dialog.querySelector(".fui-DialogActions").getBoundingClientRect().width,
+          contentWidth:dialog.querySelector(".fui-DialogContent").getBoundingClientRect().width};
       });
       process.stdout.write(JSON.stringify({dialogLayout:bounds})+"\n");
       assert.ok(Math.abs(bounds.width-608)<=1,"桌面方舟表单沿用原型38rem宽度");
+      assert.ok(Math.abs(bounds.actionsWidth-bounds.contentWidth)<=1,"原型操作区分隔线应覆盖完整表单宽度");
       assert.equal(bounds.actionFits,true,"正常桌面方舟表单的保存操作应完整显示");
     });
     await check("五厂商选择来自受控目录", async () => {
