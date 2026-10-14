@@ -7,6 +7,13 @@
 .platform-connection-page .platform-connection-empty h2 { font-size: 1.5625rem; font-weight: 500; line-height: 1.35; letter-spacing: 0; }
 .platform-connection-empty p { margin: 0; max-width: 42rem; color: var(--foundation-muted-text); }
 .platform-connection-empty__label { font-size: 0.875rem; font-weight: 750; letter-spacing: 0.07em; }
+.platform-connection-read-state[data-kind="error"] { border-color: color-mix(in oklab, var(--foundation-danger), var(--foundation-surface) 65%); background: color-mix(in oklab, var(--foundation-danger), var(--foundation-surface) 94%); }
+.platform-connection-skeleton { display: grid; gap: 0.75rem; width: min(100%, 38rem); }
+.platform-connection-skeleton span { height: 0.75rem; border-radius: var(--foundation-control-radius); background: var(--foundation-border); animation: platform-connection-state-enter var(--foundation-motion-base) cubic-bezier(0.2, 0, 0, 1) both; }
+.platform-connection-skeleton span:first-child { width: 44%; height: 1.25rem; }
+.platform-connection-skeleton span:nth-child(2) { width: 90%; }
+.platform-connection-skeleton span:nth-child(3) { width: 68%; }
+@keyframes platform-connection-state-enter { from { opacity: 0; transform: translateY(0.35rem); } to { opacity: 1; transform: translateY(0); } }
 .platform-connection-search label { display: grid; gap: 0.5rem; width: min(100%, 22rem); }
 .platform-connection-search label > span { font-weight: 620; }
 .platform-connection-search input { box-sizing: border-box; width: 100%; min-width: 0; min-height: max(var(--foundation-control-height), calc(1lh + 0.5rem)); padding: 0 0.75rem; border: 1px solid var(--foundation-border-strong); border-radius: var(--foundation-control-radius); background: var(--foundation-surface); color: var(--foundation-text); font: inherit; line-height: 1.5; }

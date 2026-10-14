@@ -30,6 +30,7 @@ const result=async(kind,page,size=20,q="")=>{const rows=Array.from({length:windo
    :{modelCode:"分页模型"+String(number).padStart(3,"0"),modelType:"CHAT",classification:"CONFIRMED_BY_PROVIDER"};});
  const matches=rows.filter(row=>(row.displayName||row.modelCode).includes(q.trim()));const total=matches.length;
  window.testState.calls.push({kind,page,size,...(q?{q}:{})});
+ if(window.testState.readFail)throw new Error("受控只读请求失败");
  const response={items:matches.slice((page-1)*size,page*size),
  pageNumber:page,pageSize:size,totalElements:total,totalPages:Math.ceil(total/size),hasPrevious:page>1,hasNext:page*size<total};
  if(page===window.testState.delayPage)await new Promise(resolve=>window.testState.resolves.push(resolve));return response;};
@@ -339,6 +340,24 @@ if(initial?.navigationId==="platform-model-supply")window.draw(initial);else win
       await enlargeText(page);
       await page.waitForFunction(()=>Math.abs(parseFloat(getComputedStyle(document.querySelector("h1")).fontSize)-52.8)<0.01);
       await verifyLayout(page);
+    });
+    await check("S1两页加载和错误保留已接受原型页头及说明面板",async()=>{
+      await page.setViewportSize({width:390,height:844});
+      for(const detail of [false,true]) {
+        await page.reload();
+        await page.evaluate(detail=>{window.testState.delayPage=1;window.start(detail,21);},detail);
+        await page.locator('.state-panel-loading,section[data-kind="loading"]').waitFor();
+        assert.equal(await page.getByRole("heading",{name:detail?"供应商连接探测":"平台模型连接",exact:true}).count(),1);
+        await page.evaluate(()=>{window.testState.delayPage=0;window.testState.readFail=true;window.testState.resolves.splice(0).forEach(resolve=>resolve());window.start(window.testState.route.task==="connection-detail",21);});
+        const panel=page.locator('section[data-kind="error"]');await panel.waitFor();
+        await panel.getByRole("heading",{name:detail?"暂时无法加载供应商连接探测":"暂时无法加载平台模型连接",exact:true}).waitFor();
+        await panel.getByRole("button",{name:"重新加载",exact:true}).click();
+        await panel.waitFor();
+        assert.equal(await panel.isVisible(),true,"再次失败不能使用旧成功结果");
+        await page.evaluate(()=>{window.testState.readFail=false;});
+        await panel.getByRole("button",{name:"重新加载",exact:true}).click();
+        await page.getByRole("status").filter({hasText:"共 21 条 · 1–20 条"}).waitFor();
+      }
     });
     assert.equal(pageErrors,0);
     process.stdout.write(JSON.stringify({status:"PASSED",checks:passed,productionAcceptance:false})+"\n");

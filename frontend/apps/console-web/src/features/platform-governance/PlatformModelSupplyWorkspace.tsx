@@ -1,7 +1,7 @@
 import { Badge, Button, Dialog, DialogBody, DialogSurface, DialogTitle, DialogTrigger } from "@fluentui/react-components";
 import { StatePanel } from "@foundation/design-system";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ApiRequestError, type ControlPlaneClient, type PlatformProviderConnectionSummary, type PlatformProviderPresets } from "../../api/control-plane-client";
+import { type ControlPlaneClient, type PlatformProviderConnectionSummary, type PlatformProviderPresets } from "../../api/control-plane-client";
 import type { ConsoleRoute } from "../../session/console-route";
 import { PlatformProviderConnectionForm } from "./PlatformProviderConnectionForm";
 import { PlatformConnectionPagination, PlatformConnectionSearch } from "./PlatformConnectionPagination";
@@ -21,7 +21,6 @@ export function PlatformModelSupplyWorkspace({ client, route, sessionRevision, o
   const [published, setPublished] = useState<number>();
   const [busy, setBusy] = useState(true);
   const [pagination, setPagination] = useState({ page: route.page, size: route.pageSize ?? 20 });
-  const [failure, setFailure] = useState("");
   const [creating, setCreating] = useState(false);
   const owner = useRef(0);
   const createConnectionTriggerRef = useRef<HTMLButtonElement>(null);
@@ -30,7 +29,7 @@ export function PlatformModelSupplyWorkspace({ client, route, sessionRevision, o
   const load = useCallback(async () => {
     const requestOwner = ++owner.current;
     if (!client.hasSession()) { setConnections([]); setDirectory(undefined); setState("stale"); return; }
-    setState(current => current === "ready" ? "ready" : "loading"); setBusy(true); setFailure("");
+    setState(current => current === "ready" ? "ready" : "loading"); setBusy(true);
     try {
       const size = route.pageSize ?? 20;
       const [page, presets, summary] = await Promise.all([client.listPlatformProviderConnections(route.page, size, route.query ?? ""),
@@ -46,10 +45,9 @@ export function PlatformModelSupplyWorkspace({ client, route, sessionRevision, o
       setConnections(page.items); setDirectory(presets); setTotal(page.totalElements);
       setPublished(summary.publishedConnections);
       setPagination({ page: route.page, size }); setState("ready");
-    } catch (error) {
+    } catch {
       if (requestOwner !== owner.current) return;
       setConnections([]); setDirectory(undefined);
-      setFailure(error instanceof ApiRequestError ? error.message : "请求未完成，请稍后重试。");
       setState(client.hasSession() ? "error" : "stale");
     } finally { if (requestOwner === owner.current) setBusy(false); }
   }, [client, route, onRouteChange]);
@@ -72,8 +70,7 @@ export function PlatformModelSupplyWorkspace({ client, route, sessionRevision, o
   }
 
   if (state === "stale") return <StatePanel kind="stale" title="浏览器会话已经失效" description="请重新登录后查看平台连接。" />;
-  if (state === "loading") return <StatePanel kind="loading" title="正在加载平台连接" description="正在读取连接目录。" />;
-  if (state === "error") return <StatePanel kind="error" title="平台连接暂时不可用" description={failure} actionLabel="重新加载" onAction={() => void load()} />;
+  if (state === "loading" || state === "error") return <PlatformConnectionReadState kind={state} onRetry={() => void load()} />;
 
   const empty = total === 0 && !route.query;
   return <div className={"platform-connection-page" + (empty ? " platform-connection-page--empty" : "")}>
@@ -112,6 +109,24 @@ export function PlatformModelSupplyWorkspace({ client, route, sessionRevision, o
         onChange={(page, pageSize) => onRouteChange({ ...route, page, pageSize })} />
     </div>
     </>}
+  </div>;
+}
+
+/** 两页读取失败关闭且保留原型页头；重试只读接口，不展示旧成功结果。 */
+export function PlatformConnectionReadState({ kind, detail = false, onRetry }: {
+  kind: "loading" | "error"; detail?: boolean; onRetry: () => void;
+}) {
+  const title = detail ? "供应商连接探测" : "平台模型连接";
+  return <div className="platform-connection-page">
+    <header className="platform-connection-page__heading"><p className="platform-connection-page__context">模型治理</p>
+      <div><h1 tabIndex={-1}>{title}</h1></div></header>
+    <section className="platform-connection-empty platform-connection-read-state" data-kind={kind}
+      aria-live="polite" aria-busy={kind === "loading"} role={kind === "error" ? "alert" : undefined}>
+      {kind === "loading" ? <div className="platform-connection-skeleton" aria-label="正在加载"><span /><span /><span /></div>
+        : <><p className="platform-connection-empty__label">任务失败</p><h2>暂时无法加载{title}</h2>
+          <p>当前任务没有完成，也没有使用过期结果。请检查连接后安全重试。</p>
+          <Button appearance="secondary" onClick={onRetry}>重新加载</Button></>}
+    </section>
   </div>;
 }
 
