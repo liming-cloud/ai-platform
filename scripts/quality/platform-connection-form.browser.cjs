@@ -37,27 +37,32 @@ async function run() {
   assert.equal(require("playwright/package.json").version, "1.62.1", "需要已锁定的 Playwright 运行时");
   const temporary = fs.mkdtempSync(path.join("/private/tmp/", "wp0019-form-source-"));
   fs.chmodSync(temporary, 0o700);
+  process.stdout.write(`${JSON.stringify({ sourceArtifacts: temporary, productionAcceptance: false })}\n`);
   const harness = `import React from "react";
 import {createRoot} from "react-dom/client";
-import {FluentProvider, webLightTheme} from "@fluentui/react-components";
+import {FoundationProvider} from "/@fs/${repository}/frontend/packages/design-system/src/providers/FoundationProvider.tsx";
 import {PlatformModelSupplyWorkspace} from "/@fs/${repository}/frontend/apps/console-web/src/features/platform-governance/PlatformModelSupplyWorkspace.tsx";
 import {PlatformProviderConnectionDetail} from "/@fs/${repository}/frontend/apps/console-web/src/features/platform-governance/PlatformProviderConnectionDetail.tsx";
+import {ApiRequestError} from "/@fs/${repository}/frontend/apps/console-web/src/api/control-plane-client.ts";
 import "/@fs/${repository}/frontend/apps/console-web/src/styles.css";
 import "/@fs/${repository}/frontend/packages/design-system/src/styles/tokens.css";
 const directory=${JSON.stringify(directory)};
 const draft=()=>({id:"610000000000000001",displayName:"源码隔离连接",providerKind:"OPENAI_COMPATIBLE",version:0,status:"DRAFT",published:false,
   credentialConfigured:true,discoveryCredentialsConfigured:false,discoveryProfile:"OPENAI_MODELS_API",
   authenticationType:"API_KEY",preset:{id:"CUSTOM",capability:"CHAT"}});
-window.testState={writes:[],fail:false,pending:false,route:null,connection:draft(),detailCalls:[],failProbe:false,badBinding:false,autoRoute:false};
+window.testState={writes:[],fail:false,pending:false,route:null,connection:draft(),detailCalls:[],failProbe:false,badBinding:false,autoRoute:false,
+  connectionError:null,presetError:null,candidateError:null,emptyCandidates:false,directoryContext:undefined};
+const failRead=error=>{if(error)throw new ApiRequestError(error.status,error.code,"合成读取失败","source-check");};
 const client={hasSession:()=>true,
   listPlatformProviderConnections:async()=>({items:[],totalElements:0,hasPrevious:false,hasNext:false}),
   getPlatformProviderConnectionDirectorySummary:async()=>({publishedConnections:0}),
-  getPlatformProviderPresets:async()=>directory,
-  getPlatformProviderConnection:async()=>({...window.testState.connection}),
+  getPlatformProviderPresets:async()=>{failRead(window.testState.presetError);return directory;},
+  getPlatformProviderConnection:async()=>{failRead(window.testState.connectionError);return {...window.testState.connection};},
   getPlatformProviderConnectionPublication:async(id,version)=>({connectionId:id,
     connectionRevision:window.testState.badBinding?version+1:version,published:window.testState.connection.published}),
-  listPlatformProviderModelCandidates:async(id,version,page)=>({items:[{modelCode:"source-chat",modelType:"CHAT",classification:"KNOWN"}],
-    pageNumber:page,totalElements:1,hasPrevious:page>1,hasNext:false}),
+  listPlatformProviderModelCandidates:async(id,version,page)=>{failRead(window.testState.candidateError);return {
+    items:window.testState.emptyCandidates?[]:[{modelCode:"source-chat",modelType:"CHAT",classification:"KNOWN"}],
+    pageNumber:page,totalElements:window.testState.emptyCandidates?0:1,hasPrevious:page>1,hasNext:false};},
   discoverPlatformProviderModels:async(id,version)=>{
     window.testState.detailCalls.push({action:"probe",id,version});
     if(window.testState.pending) await new Promise(resolve=>window.resolveProbe=resolve);
@@ -79,17 +84,18 @@ const client={hasSession:()=>true,
   }};
 const root=createRoot(document.getElementById("root"));
 window.renderWorkspace=revision=>root.render(
-  <FluentProvider className="foundation-app-root" theme={webLightTheme}><PlatformModelSupplyWorkspace key={revision} client={client}
+  <FoundationProvider><PlatformModelSupplyWorkspace key={revision} client={client}
     route={{navigationId:"platform-model-supply",task:"connections",page:1}}
     sessionRevision={revision} onRouteChange={route=>{
       window.testState.route=route;
       if(window.testState.autoRoute && route.task==="connection-detail") window.renderDetail(1,11);
-    }}/></FluentProvider>);
+    }}/></FoundationProvider>);
 window.renderDetail=(candidatePage=1,identity=1)=>root.render(
-  <FluentProvider className="foundation-app-root" theme={webLightTheme}><PlatformProviderConnectionDetail
+  <FoundationProvider><PlatformProviderConnectionDetail
     key={identity+":"+window.testState.connection.id} client={client}
-    route={{navigationId:"platform-model-supply",task:"connection-detail",connectionId:window.testState.connection.id,candidatePage}}
-    onRouteChange={route=>window.testState.route=route}/></FluentProvider>);
+    route={{navigationId:"platform-model-supply",task:"connection-detail",connectionId:window.testState.connection.id,candidatePage,
+      directory:window.testState.directoryContext}}
+    onRouteChange={route=>window.testState.route=route}/></FoundationProvider>);
 window.resetDetail=()=>{window.testState.connection=draft();window.testState.detailCalls=[];window.testState.badBinding=false;};
 window.renderWorkspace(1);`;
   fs.writeFileSync(path.join(temporary, "index.html"), '<div id="root"></div><script type="module" src="/harness.tsx"></script>');
@@ -105,6 +111,7 @@ window.renderWorkspace(1);`;
   let stage = "启动隔离浏览器";
   let phase = "";
   let passed = 0;
+  const emptyMetrics = [];
   const check = async (name, action) => { stage = name; await action(); passed += 1;
     process.stdout.write(`${JSON.stringify({ assertion: name, result: "通过" })}\n`); };
   try {
@@ -116,6 +123,117 @@ window.renderWorkspace(1);`;
     let pageErrors = 0;
     page.on("pageerror", () => { pageErrors += 1; });
     await page.goto(`http://127.0.0.1:${address.port}`);
+    for (const width of [390, 1024, 1440]) await check(`${width}px 空目录按原型保留说明、200%文字及键盘创建取消`, async () => {
+      await page.setViewportSize({ width, height: 1000 });
+      await page.reload();
+      await page.waitForLoadState("networkidle");
+      const create = page.getByRole("button", { name: "新增供应商连接", exact: true });
+      await create.waitFor();
+      assert.equal(await page.getByRole("heading", { name: "平台模型连接目前为空", exact: true }).count(), 1);
+      assert.equal(await page.getByText("当前还没有供应商连接。请先保存连接草稿，探测通过后再单独发布。", { exact: true }).count(), 1);
+      assert.equal(await page.getByText("暂无记录", { exact: true }).count(), 1);
+      assert.equal(await page.locator("table").count(), 0);
+      assert.equal(await page.getByRole("navigation", { name: "目录分页", exact: true }).count(), 0);
+      emptyMetrics.push({ width, screen: "platform-model-connections", properties: await page.locator(".platform-connection-empty").evaluate(panel => {
+        const properties = element => { const style = getComputedStyle(element); return Object.fromEntries([
+          "fontFamily", "fontSize", "fontWeight", "lineHeight", "letterSpacing", "color", "backgroundColor", "borderColor",
+          "borderWidth", "borderRadius", "padding", "gap", "minHeight", "maxWidth", "boxSizing",
+        ].map(key => [key, style[key]])); };
+        return { panel: properties(panel), title: properties(panel.querySelector("h2")), label: properties(panel.querySelector("p")), description: properties(panel.querySelector("p:last-child")) };
+      }) });
+      const baselineImage = path.join(temporary, `empty-directory-${width}-1.png`);
+      await page.screenshot({ path: baselineImage, fullPage: true }); fs.chmodSync(baselineImage, 0o600);
+      await page.evaluate(() => {
+        const sizes = [...document.querySelectorAll("body, body *")].map(element => [element, parseFloat(getComputedStyle(element).fontSize)]);
+        for (const [element, size] of sizes) if (Number.isFinite(size)) element.style.setProperty("font-size", size * 2 + "px", "important");
+      });
+      await page.waitForFunction(() => getComputedStyle(document.querySelector(".platform-connection-empty > p:last-child")).fontSize === "32px");
+      assert.equal(await page.getByText("当前还没有供应商连接。请先保存连接草稿，探测通过后再单独发布。", { exact: true }).evaluate(item => getComputedStyle(item).fontSize), "32px");
+      assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), true);
+      const enlargedImage = path.join(temporary, `empty-directory-${width}-2.png`);
+      await page.screenshot({ path: enlargedImage, fullPage: true }); fs.chmodSync(enlargedImage, 0o600);
+      await create.focus(); await page.keyboard.press("Enter");
+      await page.getByRole("dialog").waitFor();
+      await page.getByRole("dialog").evaluate(dialog => {
+        const sizes = [dialog, ...dialog.querySelectorAll("*")].map(element => [element, parseFloat(getComputedStyle(element).fontSize)]);
+        for (const [element, size] of sizes) if (Number.isFinite(size)) element.style.setProperty("font-size", size * 2 + "px", "important");
+      });
+      const input = page.getByLabel("一次性访问密钥", { exact: true });
+      await page.waitForFunction(() => getComputedStyle(document.querySelector('input[type="password"]')).fontSize === "32px");
+      assert.equal(await input.evaluate(element => element.scrollHeight <= element.clientHeight + 1), true);
+      for (const select of await page.getByRole("dialog").locator("select").all()) {
+        assert.equal(await select.evaluate(element => element.clientHeight >= Math.ceil(parseFloat(getComputedStyle(element).lineHeight))), true, "放大文字不能被下拉框固定高度裁切");
+      }
+      const kicker = await page.getByRole("dialog").locator(".platform-connection-kicker").boundingBox();
+      const title = await page.getByRole("dialog").getByRole("heading", { name: "新增供应商连接", exact: true }).boundingBox();
+      assert.ok(kicker && title && kicker.y + kicker.height <= title.y, "模型治理说明必须保持原型中位于标题之前的顺序");
+      assert.equal(await page.getByRole("dialog").evaluate(element => element.scrollWidth <= element.clientWidth + 1), true);
+      const dialogImage = path.join(temporary, `empty-dialog-${width}-2.png`);
+      await page.screenshot({ path: dialogImage }); fs.chmodSync(dialogImage, 0o600);
+      await page.keyboard.press("Escape");
+      await page.getByRole("dialog").waitFor({ state: "hidden" });
+      await page.waitForFunction(() => document.activeElement?.textContent === "新增供应商连接");
+      assert.equal(await page.evaluate(() => window.testState.writes.length), 0);
+    });
+    await page.setViewportSize({ width: 1440, height: 960 });
+    await check("精确连接404展示已接受空态并保留返回查询位置", async () => {
+      await page.reload(); await page.getByRole("button", { name: "新增供应商连接", exact: true }).waitFor();
+      await page.evaluate(() => {
+        window.testState.connectionError = { status: 404, code: "MODEL_RUNTIME.RESOURCE.0001" };
+        window.testState.directoryContext = { page: 2, pageSize: 10, query: "合成" }; window.renderDetail(1, 60);
+      });
+      await page.getByRole("heading", { name: "供应商连接探测", exact: true }).waitFor();
+      assert.equal(await page.getByRole("heading", { name: "供应商连接探测目前为空", exact: true }).count(), 1);
+      assert.equal(await page.getByText("当前还没有可查看的连接。请先从连接目录选择或建立连接草稿。", { exact: true }).count(), 1);
+      assert.equal(await page.getByRole("button", { name: /执行连接探测|发布连接/ }).count(), 0);
+      const detailImage = path.join(temporary, "empty-detail-1440-1.png");
+      await page.screenshot({ path: detailImage, fullPage: true }); fs.chmodSync(detailImage, 0o600);
+      await page.getByRole("button", { name: "返回连接目录", exact: true }).click();
+      assert.deepEqual(await page.evaluate(() => window.testState.route), {
+        navigationId: "platform-model-supply", task: "connections", page: 2, pageSize: 10, query: "合成",
+      });
+      assert.equal(await page.evaluate(() => window.testState.detailCalls.length), 0);
+    });
+    for (const source of ["presetError", "candidateError", "connectionError"]) await check(`${source} 的404或拒绝不伪装为连接空态`, async () => {
+      await page.reload(); await page.getByRole("button", { name: "新增供应商连接", exact: true }).waitFor();
+      await page.evaluate(source => {
+        window.testState.connection = { ...window.testState.connection, status: "VERIFIED", lastProbeSucceeded: true, lastProbedAt: new Date().toISOString() };
+        window.testState[source] = { status: source === "connectionError" ? 403 : 404,
+          code: source === "connectionError" ? "MODEL_RUNTIME.AUTHORIZATION.0001" : "MODEL_RUNTIME.RESOURCE.0001" };
+        window.renderDetail(1, 61);
+      }, source);
+      await page.getByText("供应商连接暂时不可用", { exact: true }).waitFor();
+      assert.equal(await page.getByRole("heading", { name: "供应商连接探测目前为空", exact: true }).count(), 0);
+      assert.equal(await page.getByRole("button", { name: /执行连接探测|发布连接/ }).count(), 0);
+      assert.equal(await page.getByRole("button", { name: "返回连接目录", exact: true }).isVisible(), true);
+      await page.evaluate(() => { window.testState.connectionError = null; window.testState.presetError = null; window.testState.candidateError = null; });
+      await page.getByRole("button", { name: "重新加载", exact: true }).click();
+      await page.getByRole("heading", { name: "源码隔离连接", exact: true }).waitFor();
+      await page.waitForFunction(() => document.activeElement?.textContent === "供应商连接探测");
+    });
+    await check("连接404与预设403并发返回时不把权限失败伪装为空态", async () => {
+      await page.reload(); await page.getByRole("button", { name: "新增供应商连接", exact: true }).waitFor();
+      await page.evaluate(() => {
+        window.testState.connectionError = { status: 404, code: "MODEL_RUNTIME.RESOURCE.0001" };
+        window.testState.presetError = { status: 403, code: "MODEL_RUNTIME.AUTHORIZATION.0001" }; window.renderDetail(1, 63);
+      });
+      await page.getByText("供应商连接暂时不可用", { exact: true }).waitFor();
+      assert.equal(await page.getByRole("heading", { name: "供应商连接探测目前为空", exact: true }).count(), 0);
+      assert.equal(await page.getByRole("button", { name: /执行连接探测|发布连接/ }).count(), 0);
+    });
+    await check("存在的连接无发现候选仍展示真实详情和独立操作", async () => {
+      await page.reload(); await page.getByRole("button", { name: "新增供应商连接", exact: true }).waitFor();
+      await page.evaluate(() => {
+        window.testState.connection = { ...window.testState.connection, status: "VERIFIED", lastProbeSucceeded: true, lastProbedAt: new Date().toISOString() };
+        window.testState.emptyCandidates = true; window.renderDetail(1, 62);
+      });
+      await page.getByRole("heading", { name: "源码隔离连接", exact: true }).waitFor();
+      assert.equal(await page.getByText("当前没有可用的模型发现结果。", { exact: true }).count(), 1);
+      assert.equal(await page.getByRole("heading", { name: "供应商连接探测目前为空", exact: true }).count(), 0);
+      assert.equal(await page.getByRole("button", { name: "发布连接", exact: true }).isVisible(), true);
+      assert.equal(await page.evaluate(() => window.testState.detailCalls.length), 0);
+    });
+    await page.reload();
     await page.getByRole("button", { name: /新建平台连接|新增供应商连接/ }).click();
     const providers = page.locator('select[name="providerPreset"]');
     const secretInputs = () => page.getByRole("dialog").locator('input[type="password"]');
@@ -341,9 +459,19 @@ window.renderWorkspace(1);`;
       }
     });
     assert.equal(pageErrors, 0, "隔离页面不得产生脚本错误");
+    fs.writeFileSync(path.join(temporary, "empty-state-metrics.json"), JSON.stringify({ emptyMetrics }, null, 2) + "\n", { mode: 0o600, flag: "wx" });
     process.stdout.write(`${JSON.stringify({ passed, status: "PASSED", productionAcceptance: false })}\n`);
   } catch (error) {
     process.stdout.write(`${JSON.stringify({ assertion: stage, phase, errorKind: error?.code === "ERR_ASSERTION" ? "ASSERTION" : "UI_WAIT", result: "失败", passed, productionAcceptance: false })}\n`);
+    if (page) process.stdout.write(`${JSON.stringify({ sourceLine: error?.stack?.split("\n").find(line => line.includes(__filename)), layout: await page.evaluate(() => ({
+      viewport: innerWidth, document: document.documentElement.scrollWidth,
+      heading: document.querySelector(".platform-connection-page__heading")?.getBoundingClientRect().width,
+      panel: document.querySelector(".platform-connection-empty")?.getBoundingClientRect().width,
+      descriptionFont: document.querySelector(".platform-connection-empty > p:last-child") && getComputedStyle(document.querySelector(".platform-connection-empty > p:last-child")).fontSize,
+      descriptionInlineFont: document.querySelector(".platform-connection-empty > p:last-child")?.style.fontSize,
+      descriptionTransition: document.querySelector(".platform-connection-empty > p:last-child") && getComputedStyle(document.querySelector(".platform-connection-empty > p:last-child")).transition,
+    })) })}\n`);
+    if (page && stage.includes("空目录")) { const image = path.join(temporary, "failure-layout.png"); await page.screenshot({ path: image, fullPage: true }); fs.chmodSync(image, 0o600); }
     if (phase && page) process.stdout.write(`${JSON.stringify(await page.evaluate(() => ({
       diagnostic: "身份切换后的非秘密 DOM 状态",
       buttons: Array.from(document.querySelectorAll("button")).map(button => ({ text: button.textContent, disabled: button.disabled,

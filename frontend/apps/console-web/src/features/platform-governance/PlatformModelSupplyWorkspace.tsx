@@ -1,4 +1,4 @@
-import { Badge, Button, Dialog, DialogBody, DialogSurface, DialogTitle } from "@fluentui/react-components";
+import { Badge, Button, Dialog, DialogBody, DialogSurface, DialogTitle, DialogTrigger } from "@fluentui/react-components";
 import { StatePanel } from "@foundation/design-system";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ApiRequestError, type ControlPlaneClient, type PlatformProviderConnectionSummary, type PlatformProviderPresets } from "../../api/control-plane-client";
@@ -73,12 +73,23 @@ export function PlatformModelSupplyWorkspace({ client, route, sessionRevision, o
   if (state === "loading") return <StatePanel kind="loading" title="正在加载平台连接" description="正在读取连接目录。" />;
   if (state === "error") return <StatePanel kind="error" title="平台连接暂时不可用" description={failure} actionLabel="重新加载" onAction={() => void load()} />;
 
-  return <div className="platform-connection-page">
+  const empty = total === 0 && !route.query;
+  return <div className={"platform-connection-page" + (empty ? " platform-connection-page--empty" : "")}>
     <header className="platform-connection-page__heading">
       <div><p className="platform-connection-page__context">模型治理</p><h1 ref={headingRef} tabIndex={-1}>平台模型连接</h1>
-        <div className="platform-connection-object-line">{published} 个已发布连接</div></div>
-      <Button ref={createConnectionTriggerRef} appearance="primary" onClick={() => setCreating(true)}>新增供应商连接</Button>
+        <div className="platform-connection-object-line">{empty ? "暂无记录" : `${published} 个已发布连接`}</div></div>
+      <Dialog open={creating} onOpenChange={(_, data) => { if (data.open) setCreating(true); else closeCreateDialog(); }}>
+        {/* 正式触发器登记焦点恢复目标，身份替换卸载模态时也能清理原隐藏范围。 */}
+        <DialogTrigger disableButtonEnhancement><Button ref={createConnectionTriggerRef} appearance="primary">新增供应商连接</Button></DialogTrigger>
+        <DialogSurface className="foundation-task-dialog platform-connection-dialog"><DialogBody>
+          <span className="platform-connection-kicker">模型治理 · 连接草稿</span><DialogTitle>新增供应商连接</DialogTitle>
+          {creating && directory ? <PlatformProviderConnectionForm client={client} directory={directory} onCancel={closeCreateDialog}
+            onCreated={id => { setCreating(false); onRouteChange({ navigationId: "platform-model-supply", task: "connection-detail", connectionId: id, candidatePage: 1,
+              directory: { page: route.page, pageSize: route.pageSize, query: route.query } }); }} /> : null}
+        </DialogBody></DialogSurface>
+      </Dialog>
     </header>
+    {empty ? <div role="region" aria-label="平台模型连接目录" aria-busy={busy}><PlatformConnectionEmptyState /></div> : <>
     <div className="platform-connection-note">先添加供应商连接，再探测模型与发布。租户只看已授权模型，不显示平台地址或访问密钥。</div>
     <PlatformConnectionSearch query={route.query ?? ""} onChange={query => onRouteChange({ ...route, query, page: 1 })} />
     <div className="platform-connection-table" role="region" aria-label="平台模型连接目录" aria-busy={busy}>
@@ -97,15 +108,18 @@ export function PlatformModelSupplyWorkspace({ client, route, sessionRevision, o
       <PlatformConnectionPagination total={total} page={pagination.page} size={pagination.size} disabled={busy} label="目录分页"
         onChange={(page, pageSize) => onRouteChange({ ...route, page, pageSize })} />
     </div>
-    <Dialog open={creating} onOpenChange={(_, data) => { if (!data.open) closeCreateDialog(); }}>
-      <DialogSurface className="foundation-task-dialog platform-connection-dialog"><DialogBody>
-        <span className="platform-connection-kicker">模型治理 · 连接草稿</span><DialogTitle>新增供应商连接</DialogTitle>
-        {creating && directory ? <PlatformProviderConnectionForm client={client} directory={directory} onCancel={closeCreateDialog}
-          onCreated={id => { setCreating(false); onRouteChange({ navigationId: "platform-model-supply", task: "connection-detail", connectionId: id, candidatePage: 1,
-            directory: { page: route.page, pageSize: route.pageSize, query: route.query } }); }} /> : null}
-      </DialogBody></DialogSurface>
-    </Dialog>
+    </>}
   </div>;
+}
+
+/** 只呈现已接受的两种无记录说明；存在连接但没有发现候选时不得使用详情空态。 */
+export function PlatformConnectionEmptyState({ detail = false }: { detail?: boolean }) {
+  return <section className="platform-connection-empty" aria-live="polite" data-kind="empty">
+    <p className="platform-connection-empty__label">暂无内容</p>
+    <h2>{detail ? "供应商连接探测目前为空" : "平台模型连接目前为空"}</h2>
+    <p>{detail ? "当前还没有可查看的连接。请先从连接目录选择或建立连接草稿。"
+      : "当前还没有供应商连接。请先保存连接草稿，探测通过后再单独发布。"}</p>
+  </section>;
 }
 
 /** 状态来自当前版本的验证与发布事实；失败或停用不会沿用旧的通过标签。 */

@@ -12,9 +12,10 @@ async function run() {
   assert.equal(require("playwright/package.json").version, "1.62.1");
   const temporary = fs.mkdtempSync("/private/tmp/wp0019-pagination-source-");
   fs.chmodSync(temporary, 0o700);
+  process.stdout.write(JSON.stringify({sourceArtifacts:temporary,productionAcceptance:false})+"\n");
   const harness = `import React from "react";
 import {createRoot} from "react-dom/client";
-import {FluentProvider,webLightTheme} from "@fluentui/react-components";
+import {FoundationProvider} from "/@fs/${frontend}/packages/design-system/src/providers/FoundationProvider.tsx";
 import {PlatformModelSupplyWorkspace} from "/@fs/${frontend}/apps/console-web/src/features/platform-governance/PlatformModelSupplyWorkspace.tsx";
 import {PlatformProviderConnectionDetail} from "/@fs/${frontend}/apps/console-web/src/features/platform-governance/PlatformProviderConnectionDetail.tsx";
 import {formatConsoleRoute,parseConsoleRoute} from "/@fs/${frontend}/apps/console-web/src/session/console-route.ts";
@@ -38,9 +39,9 @@ const client={hasSession:()=>window.testState.session,listPlatformProviderConnec
  listPlatformProviderModelCandidates:async(id,version,page,size,q)=>result("candidates",page,size,q)};
 const root=createRoot(document.getElementById("root"));
 window.draw=(route,mode="replaceState")=>{window.testState.route=route;history[mode]({},"",formatConsoleRoute(route));
- root.render(<FluentProvider className="foundation-app-root" theme={webLightTheme}>{route.task==="connections"
+ root.render(<FoundationProvider>{route.task==="connections"
  ?<PlatformModelSupplyWorkspace key={window.testState.identity} client={client} route={route} sessionRevision={window.testState.identity} onRouteChange={(next,replace=false)=>window.draw(next,replace?"replaceState":"pushState")}/>
- :<PlatformProviderConnectionDetail key={window.testState.identity} client={client} route={route} onRouteChange={(next,replace=false)=>window.draw(next,replace?"replaceState":"pushState")}/>}</FluentProvider>);};
+ :<PlatformProviderConnectionDetail key={window.testState.identity} client={client} route={route} onRouteChange={(next,replace=false)=>window.draw(next,replace?"replaceState":"pushState")}/>}</FoundationProvider>);};
 window.start=(detail=false,total=101)=>{window.testState.total=total;window.testState.calls=[];window.testState.identity++;window.testState.session=true;
  window.draw(detail?{navigationId:"platform-model-supply",task:"connection-detail",connectionId:connection.id,candidatePage:1}
  :{navigationId:"platform-model-supply",task:"connections",page:1});};
@@ -131,9 +132,18 @@ if(initial?.navigationId==="platform-model-supply")window.draw(initial);else win
         await pager.getByRole("button",{name:"下一页",exact:true}).click();
         await pager.getByRole("status").filter({hasText:"共 21 条 · 21–21 条"}).waitFor();
         await page.evaluate(detail=>window.start(detail,0),detail);
-        await pager.getByRole("status").filter({hasText:"共 0 条 · 0–0 条"}).waitFor();
-        assert.equal(await pager.getByRole("button",{name:"上一页",exact:true}).isDisabled(),true);
-        assert.equal(await pager.getByRole("button",{name:"下一页",exact:true}).isDisabled(),true);
+        if(detail) {
+          // 候选为空仍是已有连接的详情；分页与连接不存在的空态不能混用。
+          await pager.getByRole("status").filter({hasText:"共 0 条 · 0–0 条"}).waitFor();
+          assert.equal(await pager.getByRole("button",{name:"上一页",exact:true}).isDisabled(),true);
+          assert.equal(await pager.getByRole("button",{name:"下一页",exact:true}).isDisabled(),true);
+        } else {
+          // 新接受原型的真实空目录仅有说明和创建入口，不保留无数据分页表格。
+          await page.getByRole("heading",{name:"平台模型连接目前为空",exact:true}).waitFor();
+          assert.equal(await page.locator("table").count(),0);
+          assert.equal(await pager.count(),0);
+          assert.equal(await page.getByRole("button",{name:"新增供应商连接",exact:true}).isEnabled(),true);
+        }
       });
       await check(`${prefix}搜索跨页命中由服务端计算且重置页码`,async()=>{
         await page.evaluate(detail=>window.start(detail),detail);
@@ -193,6 +203,9 @@ if(initial?.navigationId==="platform-model-supply")window.draw(initial);else win
         await pager.getByRole("status").filter({hasText:"共 101 条 · 1–10 条"}).waitFor();
         for(const enlarged of [false,true]) {
           await page.evaluate(enlarged=>document.documentElement.style.fontSize=enlarged?"200%":"",enlarged);
+          await page.waitForFunction(enlarged=>getComputedStyle(document.documentElement).fontSize===(enlarged?"32px":"16px"),enlarged);
+          await page.waitForFunction(enlarged=>[...document.querySelectorAll('.platform-connection-search input,.platform-connection-pagination select')]
+            .every(item=>getComputedStyle(item).fontSize===(enlarged?"32px":"16px")),enlarged);
           if(!enlarged) {
             const expectedHeight=width<=680?44:32;
             assert.equal(await page.getByRole("searchbox",{name:"搜索当前目录",exact:true}).evaluate(item=>item.getBoundingClientRect().height),width<=680?44:36);
@@ -212,7 +225,20 @@ if(initial?.navigationId==="platform-model-supply")window.draw(initial);else win
     }
     assert.equal(pageErrors,0);
     process.stdout.write(JSON.stringify({status:"PASSED",checks:passed,productionAcceptance:false})+"\n");
-  }catch{process.stderr.write(JSON.stringify({status:"FAILED",stage,checks:passed,productionAcceptance:false})+"\n");process.exitCode=1;}
+  }catch(error){
+    process.stderr.write(JSON.stringify({status:"FAILED",stage,checks:passed,sourceLine:error?.stack?.split("\n").find(line=>line.includes(__filename)),productionAcceptance:false})+"\n");
+    if(browser) {
+      const pages=browser.contexts().flatMap(context=>context.pages());const current=pages[0];
+      if(current) {
+        process.stderr.write(JSON.stringify(await current.evaluate(()=>({viewport:innerWidth,document:document.documentElement.scrollWidth,rootFont:getComputedStyle(document.documentElement).fontSize,rootInlineFont:document.documentElement.style.fontSize,
+          controls:[...document.querySelectorAll('.platform-connection-pagination button,.platform-connection-pagination input,.platform-connection-pagination select')].map(item=>{
+            const box=item.getBoundingClientRect(),style=getComputedStyle(item);return {tag:item.tagName,width:box.width,height:box.height,x:box.x,y:box.y,disabled:item.disabled,font:style.fontSize,cssWidth:style.width,transition:style.transition};
+          })})))+"\n");
+        const image=path.join(temporary,"failure-layout.png");await current.screenshot({path:image,fullPage:true});fs.chmodSync(image,0o600);
+      }
+    }
+    process.exitCode=1;
+  }
   finally{if(browser)await browser.close();await server.close();}
 }
 run().catch(()=>{process.stderr.write("隔离分页回归未能启动。\n");process.exitCode=1;});

@@ -2,6 +2,11 @@
 .platform-connection-page__heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 1.5rem; }
 .platform-connection-page__context, .platform-connection-kicker { margin: 0 0 0.5rem; color: var(--foundation-muted-text); font-size: 0.875rem; }
 .platform-connection-object-line { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.5rem; color: var(--foundation-secondary-text); }
+.platform-connection-page--empty .platform-connection-page__heading { padding-bottom: 1.5rem; border-bottom: 1px solid var(--foundation-border); }
+.platform-connection-empty { box-sizing: border-box; display: grid; justify-items: start; align-content: center; gap: 0.75rem; min-height: 16rem; padding: 2rem; border: 1px solid var(--foundation-border); border-radius: var(--foundation-panel-radius); background: var(--foundation-subtle-surface); }
+.platform-connection-page .platform-connection-empty h2 { font-size: 1.5625rem; font-weight: 500; line-height: 1.35; letter-spacing: 0; }
+.platform-connection-empty p { margin: 0; max-width: 42rem; color: var(--foundation-muted-text); }
+.platform-connection-empty__label { font-size: 0.875rem; font-weight: 750; letter-spacing: 0.07em; }
 .platform-connection-search label { display: grid; gap: 0.5rem; width: min(100%, 22rem); }
 .platform-connection-search input { box-sizing: border-box; width: 100%; min-width: 0; min-height: var(--foundation-control-height); padding: 0 0.75rem; border: 1px solid var(--foundation-border); border-radius: var(--foundation-control-radius); background: var(--foundation-surface); color: var(--foundation-text); font: inherit; }
 .platform-connection-search p { margin: 0.5rem 0 0; color: var(--foundation-danger); }
@@ -28,11 +33,14 @@
 .platform-connection-pagination input { width: 4rem; font-size: 1rem; }
 .platform-connection-pagination__error { color: var(--foundation-danger); flex-basis: 100%; }
 .platform-connection-dialog { width: min(38rem, calc(100vw - 2rem)) !important; }
-.platform-connection-dialog .platform-connection-kicker { grid-column: 1 / -1; }
+.platform-connection-dialog .platform-connection-kicker { grid-column: 1 / -1; margin: 0; font-weight: 650; letter-spacing: 0.02em; }
+.platform-connection-dialog .fui-DialogBody { display: flex; flex-direction: column; gap: 1rem; }
+.platform-connection-dialog .fui-DialogTitle { font-family: var(--foundation-font-display); font-size: 1.5625rem; font-weight: 500; line-height: 1.35; }
 .platform-connection-dialog [class*="DialogContent"] { color: var(--foundation-text); line-height: 1.6; }
 .platform-connection-dialog .fui-Button { min-width: 0; min-height: var(--foundation-control-height); border-radius: var(--foundation-control-radius); }
 .platform-connection-dialog .fui-Input, .platform-connection-dialog .fui-Select { min-height: var(--foundation-control-height); border-radius: var(--foundation-control-radius); min-width: 0; }
 .platform-connection-dialog .fui-Input input, .platform-connection-dialog .fui-Select select, .platform-connection-dialog .fui-Label { font-size: 1rem; line-height: 1.5; }
+.platform-connection-dialog .fui-Select select { height: auto; min-height: max(var(--foundation-control-height), calc(1.5em + 0.5rem)); }
 .platform-connection-form__grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
 .platform-connection-form__summary { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 0.75rem; padding: 0.75rem 0; border-block: 1px solid var(--foundation-border); color: var(--foundation-muted-text); }
 .platform-connection-form__discovery { display: grid; gap: 1rem; padding-block: 1.25rem; border-top: 1px solid var(--foundation-border); }

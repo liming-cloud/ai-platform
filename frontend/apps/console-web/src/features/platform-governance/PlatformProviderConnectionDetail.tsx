@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { ApiRequestError, type ControlPlaneClient, type PlatformProviderConnectionSummary,
   type PlatformProviderModelCandidate, type PlatformProviderPresets } from "../../api/control-plane-client";
 import type { ConsoleRoute } from "../../session/console-route";
-import { ConnectionStatus, connectionStatusLabel } from "./PlatformModelSupplyWorkspace";
+import { ConnectionStatus, connectionStatusLabel, PlatformConnectionEmptyState } from "./PlatformModelSupplyWorkspace";
 import { PlatformConnectionPagination, PlatformConnectionSearch } from "./PlatformConnectionPagination";
 import "./platform-model-connections.css";
 
@@ -17,7 +17,7 @@ const PROBE_VALIDITY_MILLIS = 24 * 60 * 60 * 1000;
 export function PlatformProviderConnectionDetail({ client, route, onRouteChange }: {
   client: ControlPlaneClient; route: DetailRoute; onRouteChange: (route: ConsoleRoute, replace?: boolean) => void;
 }) {
-  const [state, setState] = useState<"loading" | "ready" | "error" | "stale">("loading");
+  const [state, setState] = useState<"loading" | "ready" | "empty" | "error" | "stale">("loading");
   const [connection, setConnection] = useState<PlatformProviderConnectionSummary>();
   const [directory, setDirectory] = useState<PlatformProviderPresets>();
   const [candidates, setCandidates] = useState<Candidates>(EMPTY_CANDIDATES);
@@ -34,10 +34,15 @@ export function PlatformProviderConnectionDetail({ client, route, onRouteChange 
   const focused = useRef(false);
   const load = useCallback(async () => {
     const requestOwner = ++owner.current;
+    let missingConnection: ApiRequestError | undefined;
     pending.current = false;
     setOperation(undefined); setState(current => current === "ready" ? "ready" : "loading"); setBusy(true); setFailure("");
     try {
-      const [current, presets] = await Promise.all([client.getPlatformProviderConnection(route.connectionId), client.getPlatformProviderPresets()]);
+      const [current, presets] = await Promise.all([client.getPlatformProviderConnection(route.connectionId).catch(error => {
+        // 只有精确连接读取的既有资源错误代表连接不存在；预设或候选失败不改变对象存在事实。
+        if (error instanceof ApiRequestError && error.status === 404 && error.code === "MODEL_RUNTIME.RESOURCE.0001") missingConnection = error;
+        throw error;
+      }), client.getPlatformProviderPresets()]);
       if (requestOwner !== owner.current) return;
       const [publication, models] = await Promise.all([
         client.getPlatformProviderConnectionPublication(current.id, current.version),
@@ -65,7 +70,8 @@ export function PlatformProviderConnectionDetail({ client, route, onRouteChange 
       if (requestOwner !== owner.current) return;
       setConnection(undefined); setDirectory(undefined); setCandidates(EMPTY_CANDIDATES);
       setFailure(error instanceof ApiRequestError ? error.message : "请求未完成，请稍后重试。");
-      setState(client.hasSession() ? "error" : "stale");
+      // 并发读取可能先收到其他失败；必须匹配该错误本身，不能让连接的 404 标记覆盖权限拒绝。
+      setState(client.hasSession() ? missingConnection !== undefined && error === missingConnection ? "empty" : "error" : "stale");
     } finally { if (requestOwner === owner.current) setBusy(false); }
   }, [client, route, onRouteChange]);
 
@@ -76,7 +82,7 @@ export function PlatformProviderConnectionDetail({ client, route, onRouteChange 
 
   useEffect(() => {
     // 保存后和身份替换后，焦点归属新页面，不能留在已卸载的供应商凭据弹窗。
-    if (state === "ready" && !focused.current) { focused.current = true; headingRef.current?.focus(); }
+    if ((state === "ready" || state === "empty" || state === "error") && !focused.current) { focused.current = true; headingRef.current?.focus(); }
   }, [state]);
 
   useEffect(() => {
@@ -113,7 +119,13 @@ export function PlatformProviderConnectionDetail({ client, route, onRouteChange 
 
   if (state === "stale") return <StatePanel kind="stale" title="浏览器会话已经失效" description="请重新登录后查看平台连接。" />;
   if (state === "loading") return <StatePanel kind="loading" title="正在加载供应商连接" description="正在读取连接及探测结果。" />;
-  if (state === "error" || !connection) return <StatePanel kind="error" title="供应商连接暂时不可用" description={failure} actionLabel="重新加载" onAction={() => void load()} />;
+  if (state === "empty" || state === "error" || !connection) return <div className={"platform-connection-page" + (state === "empty" ? " platform-connection-page--empty" : "")}>
+    <header className="platform-connection-page__heading"><div><p className="platform-connection-page__context">模型治理</p><h1 ref={headingRef} tabIndex={-1}>供应商连接探测</h1>
+      {state === "empty" ? <div className="platform-connection-object-line">暂无记录</div> : null}</div>
+      <Button appearance="secondary" onClick={() => onRouteChange({ navigationId: "platform-model-supply", task: "connections", page: 1, ...route.directory })}>返回连接目录</Button></header>
+    {state === "empty" ? <PlatformConnectionEmptyState detail />
+      : <StatePanel kind="error" title="供应商连接暂时不可用" description={failure} actionLabel="重新加载" onAction={() => { focused.current = false; void load(); }} />}
+  </div>;
   const preset = directory?.items.find(item => item.id === connection.preset?.id);
   const capability = connection.preset?.capability;
   const verified = hasCurrentConnectionProbe(connection, observedAt);
