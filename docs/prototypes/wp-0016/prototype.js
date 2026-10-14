@@ -1662,12 +1662,13 @@ function modelDirectoryTable(headers, rows) {
 
 function renderPlatformModelConnections(state, demoState) {
   const models = demoState.models;
+  const empty = state === "empty" || !models.platformConnections.length;
   const rows = models.platformConnections.map(connection =>
     `<tr><td><strong>${escapeHtml(connection.name)}</strong><small>${escapeHtml(`${connection.providerName || "已有连接"} · ${connection.runtimeProtocol === "VENDOR_POST_PROCESSOR" || connection.capability === "RERANK" ? "厂商重排适配" : "OpenAI 兼容协议"}`)}</small></td><td>${escapeHtml(modelCapabilityLabel(connection.capability))}</td><td>${statusTag(connection.status)}</td><td><button class="button subtle" type="button" data-select-platform-connection="${escapeHtml(connection.id)}" data-nav-screen="platform-model-connection-detail" aria-label="查看${escapeHtml(connection.name)}">查看</button></td></tr>`
   );
   const content = [
-    '<div class="inline-note">先添加供应商连接，再探测模型与发布。租户只看已授权模型，不显示平台地址或访问密钥。</div>',
-    modelDirectoryTable(["连接", "运行能力", "状态", "操作"], rows),
+    empty ? "" : '<div class="inline-note">先添加供应商连接，再探测模型与发布。租户只看已授权模型，不显示平台地址或访问密钥。</div>',
+    empty ? genericState("platform-model-connections", "empty") : modelDirectoryTable(["连接", "运行能力", "状态", "操作"], rows),
     `<dialog id="platform-connection-dialog" class="dialog-surface account-dialog" aria-labelledby="platform-connection-title"><form id="platform-connection-form" novalidate>
       <span class="section-kicker">模型治理 · 连接草稿</span><h2 id="platform-connection-title">新增供应商连接</h2>
       <div class="wizard-field-grid"><label class="field"><span>厂商类型</span><select class="select" name="providerId" aria-label="厂商类型">${PROVIDER_PRESETS.map(preset => `<option value="${preset.id}">${preset.name}</option>`).join('')}</select></label>
@@ -1883,6 +1884,11 @@ function renderRoutingPolicies(state, demoState) {
 
 function renderModelGovernance(screen, state, demoState) {
   const platform = screen.startsWith("platform-model-");
+  // 评审空态复用既有创建弹窗，不重置合成列表；真实空目录同样保留首次创建路径。
+  if (screen === "platform-model-connections" && state === "empty") return renderPlatformModelConnections(state, demoState);
+  if (screen === "platform-model-connection-detail" && (state === "empty" || (["success", "partial", "disabled"].includes(state) && !demoState.models.platformConnections.length))) {
+    return adminShell(screen, pageFixtures.pages[screen].title, "", '<button class="button secondary" type="button" data-nav-screen="platform-model-connections">返回连接目录</button>', genericState(screen, "empty"), state, "模型治理 / 连接探测", "platform");
+  }
   const generic = genericState(screen, state);
   if (generic) {
     return adminShell(screen, pageFixtures.pages[screen].title, "", "", generic, state, "模型治理", platform ? "platform" : "tenant");

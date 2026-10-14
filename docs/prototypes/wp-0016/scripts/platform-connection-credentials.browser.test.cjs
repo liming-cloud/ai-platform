@@ -43,6 +43,107 @@ async function assertSecretsCleared(form) {
   for (const name of ['accessKey', 'discoveryAccessKeyId', 'discoverySecretAccessKey']) assert.equal(await form.locator(`[name="${name}"]`).inputValue(), '');
 }
 
+async function prepareEmptyConnections(page) {
+  // 只准备独立浏览器中的合成列表，不清除登录态或调用任何生产接口。
+  await page.evaluate(async () => {
+    const { createPrototypeStore, PROTOTYPE_STATE_KEY } = await import('./prototype-state.js');
+    const snapshot = createPrototypeStore().getWorkspaceSnapshot();
+    snapshot.models.platformConnections = [];
+    snapshot.models.selectedPlatformConnectionId = null;
+    localStorage.setItem(PROTOTYPE_STATE_KEY, JSON.stringify(snapshot));
+  });
+}
+
+async function connectionFacts(page) {
+  return page.evaluate(async () => {
+    const { createPrototypeStore } = await import('./prototype-state.js');
+    const models = createPrototypeStore().getWorkspaceSnapshot().models;
+    return { selectedId: models.selectedPlatformConnectionId, connections: models.platformConnections.map(item => ({ id: item.id, name: item.name, status: item.status })) };
+  });
+}
+
+async function doubleText(page) {
+  await page.evaluate(() => {
+    const sizes = [...document.querySelectorAll('body, body *')].map(element => [element, parseFloat(getComputedStyle(element).fontSize)]);
+    for (const [element, size] of sizes) if (Number.isFinite(size)) element.style.setProperty('font-size', `${size * 2}px`, 'important');
+  });
+}
+
+for (const realEmpty of [false, true]) for (const width of [390, 1024, 1440]) test(`${realEmpty ? '业务空目录' : '评审空态'}在 ${width}px、200% 文字下可取消、保存首个草稿并刷新返回`, () => visit(async page => {
+  if (realEmpty) await prepareEmptyConnections(page);
+  await openForReview(page, `${base}?screen=platform-model-connections&state=${realEmpty ? 'success' : 'empty'}&review=0`);
+  const before = await connectionFacts(page);
+  assert.equal(await page.locator('main .state-panel[data-kind="empty"]').count(), 1, '空目录必须有说明面板');
+  assert.match(await page.locator('main').innerText(), /当前还没有供应商连接。请先保存连接草稿/);
+  assert.equal(await page.locator('main [data-open-platform-connection]').count(), 1, '空态必须挂载既有创建操作');
+  assert.equal(await page.locator('main tbody tr').count(), 0);
+  const initialFont = await page.locator('#platform-connection-form [name="accessKey"]').evaluate(element => parseFloat(getComputedStyle(element).fontSize));
+  await doubleText(page);
+  const create = page.getByRole('button', { name: '新增供应商连接', exact: true });
+  assert.equal(await page.evaluate(() => matchMedia('(prefers-reduced-motion: reduce)').matches), true);
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), true);
+  await create.focus();
+  await page.keyboard.press('Enter');
+  const dialog = page.locator('#platform-connection-dialog');
+  await dialog.waitFor({ state: 'visible' });
+  assert.equal(await dialog.evaluate(element => element.scrollWidth <= element.clientWidth + 1), true);
+  const form = page.locator('#platform-connection-form');
+  assert.equal(await form.locator('[name="accessKey"]').evaluate(element => parseFloat(getComputedStyle(element).fontSize)), initialFont * 2);
+  await form.getByLabel('厂商类型', { exact: true }).selectOption('VOLCENGINE');
+  await fillSecrets(form);
+  // 原生 close 事件异步执行重置；等待既有关闭处理，而非仅检查 open 属性或浏览器自动归还的焦点。
+  await dialog.evaluate(element => {
+    element.dataset.closeHandled = 'false';
+    element.addEventListener('close', () => { element.dataset.closeHandled = 'true'; }, { once: true });
+  });
+  if (width === 390) await page.keyboard.press('Escape');
+  else await form.getByRole('button', { name: '取消', exact: true }).click();
+  await page.waitForFunction(() => document.querySelector('#platform-connection-dialog')?.dataset.closeHandled === 'true');
+  await dialog.waitFor({ state: 'hidden' });
+  await assertSecretsCleared(form);
+  assert.equal(await create.evaluate(element => element === document.activeElement), true);
+  assert.deepEqual(await connectionFacts(page), before, '取消不能创建连接或替换原有列表');
+  await page.reload();
+  assert.deepEqual(await connectionFacts(page), before, '刷新不能恢复默认演示连接');
+  await doubleText(page);
+  const reopened = await openArk(page);
+  assert.equal(await reopened.locator('[name="accessKey"]').evaluate(element => parseFloat(getComputedStyle(element).fontSize)), initialFont * 2);
+  await assertSecretsCleared(reopened);
+  const name = `空目录连接-${width}`;
+  await reopened.getByLabel('连接名称', { exact: true }).fill(name);
+  await fillSecrets(reopened);
+  await reopened.getByRole('button', { name: '保存连接草稿', exact: true }).click();
+  await page.locator('main[data-screen="platform-model-connection-detail"] [data-model-status="DRAFT"]').waitFor();
+  const saved = await connectionFacts(page);
+  assert.equal(new URL(page.url()).searchParams.get('connectionId'), saved.selectedId, '详情必须定位本次精确草稿');
+  assert.equal(saved.connections.length, before.connections.length + 1);
+  assert.equal(saved.connections.find(item => item.id === saved.selectedId)?.name, name);
+  assert.doesNotMatch(await page.locator('main').innerText(), /当前还没有可查看的连接/);
+  assert.match(await page.locator('main').innerText(), /发现模型/);
+  await page.reload();
+  assert.deepEqual(await connectionFacts(page), saved);
+  assert.match(await page.locator('main').innerText(), new RegExp(name));
+  await page.getByRole('button', { name: '返回连接目录', exact: true }).click();
+  await page.locator('main[data-screen="platform-model-connections"]').waitFor();
+  assert.deepEqual(await connectionFacts(page), saved);
+  assert.equal(await page.locator('main tbody tr').count(), saved.connections.length);
+  const storage = await page.evaluate(() => JSON.stringify([Object.entries(localStorage), Object.entries(sessionStorage)]));
+  assert.doesNotMatch(storage + page.url() + await page.locator('body').innerText(), /synthetic-(inference|access|secret)-only/);
+}, width));
+
+for (const realEmpty of [false, true]) test(`${realEmpty ? '业务无连接' : '评审空态'}详情可返回目录且不创建默认连接`, () => visit(async page => {
+  if (realEmpty) await prepareEmptyConnections(page);
+  await openForReview(page, `${base}?screen=platform-model-connection-detail&state=${realEmpty ? 'success' : 'empty'}&review=0`);
+  const before = await connectionFacts(page);
+  assert.match(await page.locator('main').innerText(), /当前还没有可查看的连接。请先从连接目录选择或建立连接草稿。/);
+  assert.equal(await page.getByRole('button', { name: '返回连接目录', exact: true }).count(), 1);
+  await page.getByRole('button', { name: '返回连接目录', exact: true }).click();
+  await page.locator('main[data-screen="platform-model-connections"]').waitFor();
+  assert.deepEqual(await connectionFacts(page), before);
+  assert.equal(await page.getByRole('button', { name: '新增供应商连接', exact: true }).isVisible(), true);
+  if (realEmpty) assert.equal(await page.locator('main .state-panel[data-kind="empty"]').count(), 1);
+}));
+
 test('方舟显示独立发现认证，缺少 AK/SK 不保存并清空推理密钥', () => visit(async page => {
   const form = await openArk(page);
   for (const label of ['模型发现 Access Key ID', '模型发现 Secret Access Key']) {
