@@ -2361,6 +2361,13 @@ body[data-review="hidden"] .prototype-reviewer {
     border: 0;
   }
 
+  /* 模型连接的手机卡片保持普通行基线，放大文字后使用内容高度，不能进入下一行。 */
+  main[data-screen="platform-model-connections"] .data-table td,
+  main[data-screen="platform-model-connection-detail"] .data-table td {
+    height: auto;
+    min-height: var(--table-row-height);
+  }
+
   .data-table td::before {
     color: var(--color-text-secondary);
     content: attr(data-label);
