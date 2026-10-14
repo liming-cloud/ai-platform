@@ -135,13 +135,14 @@ for (const width of [390, 1024, 1440]) for (const textScale of [1, 2]) test(`${w
   if (temporaryScreenshots) await page.screenshot({ path: path.join(temporaryScreenshots, `ark-dialog-${width}-${textScale}.png`) });
 }, width));
 
-for (const width of [390, 1024, 1440]) test(`${width} 宽度下平台连接两页七态无异常或横向溢出`, () => visit(async page => {
+for (const width of [390, 1024, 1440]) test(`${width} 宽度下平台连接两页七态无异常、缺失文案或横向溢出`, () => visit(async page => {
   for (const screen of ['platform-model-connections', 'platform-model-connection-detail']) {
     for (const state of ['loading', 'empty', 'error', 'denied', 'partial', 'disabled', 'success']) {
       await openForReview(page, `${base}?screen=${screen}&state=${state}&review=0`);
       await page.locator(`main[data-screen="${screen}"]`).waitFor();
       assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), true, `${screen}/${state}`);
       assert.doesNotMatch(await page.locator('main').innerText(), /synthetic-(inference|access|secret)-only/);
+      if (state === 'empty') assert.doesNotMatch(await page.locator('main').innerText(), /\b(?:undefined|null)\b/, `${screen} 空态说明必须为可读文案`);
     }
   }
 }, width));

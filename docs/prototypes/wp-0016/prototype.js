@@ -696,6 +696,8 @@ function emptyDescription(screen) {
     "query-diagnostic": "当前没有可读取的终态诊断事实。",
     "dataset-schema": "当前没有可维护的结构草稿。请先上传受控 UTF-8 CSV。",
     "object-storage-scope": "平台尚未向当前租户签发可用对象范围。",
+    "platform-model-connections": "当前还没有供应商连接。请先保存连接草稿，探测通过后再单独发布。",
+    "platform-model-connection-detail": "当前还没有可查看的连接。请先从连接目录选择或建立连接草稿。",
   }[screen];
 }
 
