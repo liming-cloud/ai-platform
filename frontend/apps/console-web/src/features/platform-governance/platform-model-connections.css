@@ -66,7 +66,7 @@
 .platform-connection-form__discovery h3 { font-family: var(--foundation-font-display); font-size: 1rem; font-weight: 500; line-height: 1.35; }
 .platform-connection-form__discovery p { color: var(--foundation-text); font-size: 1rem; line-height: 1.6; }
 .platform-connection-form .form-feedback:empty { display: none; }
-.platform-connection-form .fui-DialogActions { grid-column: 1 / -1; grid-row: auto; justify-self: stretch; width: 100%; gap: 0.5rem; padding-top: 1rem; border-top: 1px solid var(--foundation-border); }
+.platform-connection-form .fui-DialogActions { grid-column: 1 / -1; grid-row: auto; justify-self: stretch; justify-content: flex-end; width: 100%; gap: 0.5rem; padding-top: 1rem; border-top: 1px solid var(--foundation-border); }
 .platform-connection-detail { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(18rem, 0.6fr); gap: 1.5rem; align-items: start; }
 .platform-connection-section { display: grid; gap: 1rem; padding-block: 1.25rem; border-top: 1px solid var(--foundation-border); }
 .platform-connection-section:first-child { padding-top: 0; border-top: 0; }
