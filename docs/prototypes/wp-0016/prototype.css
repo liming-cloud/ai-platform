@@ -3945,6 +3945,11 @@ body[data-review="hidden"] .prototype-reviewer {
   }
 }
 .field[data-provider-workspace][hidden] { display: none; }
+/* 完整预设地址按可用宽度换行，长业务空间和文字放大不能撑宽弹窗。 */
+#platform-connection-dialog [data-provider-address-value] {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
 
 /* 分步页面不继承旧弹窗的限高；当前操作栏保持可达。 */
 #add-member-form { display:grid; gap:var(--space-6); }

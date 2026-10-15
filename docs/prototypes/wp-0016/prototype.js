@@ -1676,7 +1676,7 @@ function renderPlatformModelConnections(state, demoState) {
       <label class="field"><span>连接名称</span><input class="input" name="name" autocomplete="off" required maxlength="80"></label>
       <label class="field" data-provider-workspace hidden><span>业务空间 ID</span><input class="input" name="workspaceId" autocomplete="off" maxlength="63" placeholder="填写百炼控制台的业务空间 ID"></label>
       <div class="compact-summary"><span data-provider-region>自行配置</span><span data-provider-protocol>OpenAI 兼容协议</span></div>
-      <label class="field"><span>运行地址</span><input class="input mono" name="runtimeBaseUrl" type="url" placeholder="https://models.example.invalid/v1" required><small data-provider-address-help>仅接受公网 HTTPS；不使用真实密钥测试原型。</small></label>
+      <label class="field"><span>运行地址</span><input class="input mono" name="runtimeBaseUrl" type="url" placeholder="https://models.example.invalid/v1" required><small id="platform-connection-runtime-preview" class="field-hint mono" data-provider-address-value hidden></small><small id="platform-connection-address-help" data-provider-address-help>仅接受公网 HTTPS；不使用真实密钥测试原型。</small></label>
       <label class="field"><span>一次性访问密钥</span><input class="input" name="accessKey" type="password" autocomplete="new-password" required minlength="8"><small data-provider-inference-help>选择厂商或能力后重新填写，不保存到原型。</small></label>
       <div data-provider-discovery-credentials hidden role="group" aria-labelledby="platform-discovery-credentials-title"><section class="section-block">
         <h3 id="platform-discovery-credentials-title">独立模型发现认证</h3><p class="field-help">仅用于方舟控制面模型发现，与推理访问密钥分别管理；不使用真实凭据测试原型。</p>
@@ -2727,6 +2727,11 @@ function bindModelGovernance() {
     const resolved = resolveProviderPreset({ providerId: preset.id, capability: controls.capability.value, workspaceId: controls.workspaceId.value, runtimeBaseUrl: controls.runtimeBaseUrl.value });
     controls.runtimeBaseUrl.readOnly = preset.id !== "CUSTOM";
     controls.runtimeBaseUrl.value = resolved.runtimeBaseUrl || "";
+    // 固定预设地址提供可换行的完整说明，不依赖原生只读输入框的键盘滚动。
+    const addressPreview = connectionForm.querySelector("[data-provider-address-value]");
+    const showAddress = preset.id !== "CUSTOM" && resolved.ok;
+    addressPreview.hidden = !showAddress;
+    addressPreview.textContent = showAddress ? resolved.runtimeBaseUrl : "";
     clearConnectionSecrets();
     const requiresDiscoveryCredentials = preset.id === "VOLCENGINE";
     connectionForm.querySelector("[data-provider-discovery-credentials]").hidden = !requiresDiscoveryCredentials;

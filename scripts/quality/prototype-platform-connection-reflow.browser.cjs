@@ -88,3 +88,66 @@ for (const width of [390, 1024, 1440]) {
     }
   }, width));
 }
+
+for (const width of [390, 1024, 1440]) {
+  test(`${width}px 固定预设地址在正常和200%文字下完整可读，且不镜像自定义输入`, () => visit(async page => {
+    await reset(page, "platform-model-connections");
+    for (const provider of ["DEEPSEEK", "ALIYUN", "SILICONFLOW", "VOLCENGINE"]) {
+      await page.getByRole("button", { name: "新增供应商连接", exact: true }).click();
+      const dialog = page.getByRole("dialog");
+      await dialog.locator('[name="providerId"]').selectOption(provider);
+      const capabilities = await dialog.locator('[name="capability"] option').evaluateAll(options => options.map(option => option.value));
+      for (const capability of capabilities) {
+        // 每个状态从未放大的原始表单开始，避免连续遍历重复放大。
+        await dialog.getByRole("button", { name: "取消", exact: true }).click();
+        await reset(page, "platform-model-connections");
+        await page.getByRole("button", { name: "新增供应商连接", exact: true }).click();
+        await dialog.locator('[name="providerId"]').selectOption(provider);
+        await dialog.locator('[name="capability"]').selectOption(capability);
+        const workspace = dialog.locator('[name="workspaceId"]');
+        if (await workspace.isVisible()) {
+          assert.equal(await dialog.locator("[data-provider-address-value]").isVisible(), false, "缺少业务空间时不展示未解析地址");
+          assert.equal(await dialog.locator("[data-provider-address-value]").textContent(), "");
+          await workspace.fill("w".repeat(63));
+        }
+        const input = dialog.locator('[name="runtimeBaseUrl"]');
+        const preview = dialog.locator("[data-provider-address-value]");
+        const address = await input.inputValue();
+        await preview.waitFor({ state: "visible" });
+        assert.equal(await preview.textContent(), address, "完整地址必须与本次已解析预设一致");
+        assert.equal(await input.getAttribute("aria-describedby"), "platform-connection-runtime-preview platform-connection-address-help");
+        const normalSize = await preview.evaluate(element => parseFloat(getComputedStyle(element).fontSize));
+        for (const enlarged of [false, true]) {
+          if (enlarged) await enlargeText(page);
+          await preview.scrollIntoViewIfNeeded();
+          await page.waitForFunction(({ enlarged, normalSize }) => Math.abs(parseFloat(getComputedStyle(document.querySelector("[data-provider-address-value]")).fontSize) - normalSize * (enlarged ? 2 : 1)) < 0.01, { enlarged, normalSize });
+          const metrics = await preview.evaluate(element => {
+            const box = element.getBoundingClientRect(), range = document.createRange();
+            range.selectNodeContents(element);
+            return { fits: [...range.getClientRects()].every(rect => rect.left >= box.left - 1 && rect.right <= box.right + 1 && rect.top >= box.top - 1 && rect.bottom <= box.bottom + 1),
+              contentFits: element.scrollHeight <= element.clientHeight + 1,
+              nextTop: element.parentElement.querySelector("[data-provider-address-help]").getBoundingClientRect().top,
+              bottom: box.bottom, pageOverflow: document.documentElement.scrollWidth - innerWidth };
+          });
+          assert.ok(metrics.fits && metrics.contentFits, "完整预设地址不得裁切或依赖原生单行滚动");
+          assert.ok(metrics.nextTop >= metrics.bottom - 1, "地址不得遮挡帮助说明");
+          assert.ok(metrics.pageOverflow <= 1, "地址不得撑宽页面");
+          assert.equal(await input.inputValue(), address, "展示地址不得改变保存值");
+          assert.equal(await input.evaluate(element => element.readOnly), true);
+        }
+        await dialog.locator('[name="providerId"]').selectOption("CUSTOM");
+        assert.equal(await preview.isVisible(), false);
+        assert.equal(await preview.textContent(), "", "切回自定义时必须立即清除旧预设地址");
+        assert.equal(await input.evaluate(element => element.readOnly), false);
+      }
+      await dialog.getByRole("button", { name: "取消", exact: true }).click();
+      await reset(page, "platform-model-connections");
+    }
+    await page.getByRole("button", { name: "新增供应商连接", exact: true }).click();
+    const dialog = page.getByRole("dialog");
+    await dialog.locator('[name="providerId"]').selectOption("CUSTOM");
+    await dialog.locator('[name="runtimeBaseUrl"]').fill("https://public.example.invalid/v1");
+    assert.equal(await dialog.locator("[data-provider-address-value]").isVisible(), false);
+    assert.equal(await dialog.locator("[data-provider-address-value]").textContent(), "", "自定义输入不得复制到额外展示区");
+  }, width));
+}
