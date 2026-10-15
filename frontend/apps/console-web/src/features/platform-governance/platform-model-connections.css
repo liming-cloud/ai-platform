@@ -4,7 +4,7 @@
 .platform-connection-page__heading > .platform-connection-page__context { grid-column: 1 / -1; margin: 0; }
 .platform-connection-page__copy { display: grid; gap: 0.5rem; }
 .platform-connection-object-line { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.5rem; color: var(--foundation-secondary-text); }
-.platform-connection-page__copy > .platform-connection-object-line { margin-top: 0; }
+.platform-connection-page__copy > .platform-connection-object-line { margin-top: 0; color: var(--foundation-muted-text); }
 .platform-connection-empty { box-sizing: border-box; display: grid; justify-items: start; align-content: center; gap: 0.75rem; min-height: 16rem; padding: 2rem; border: 1px solid var(--foundation-border); border-radius: var(--foundation-panel-radius); background: var(--foundation-subtle-surface); }
 .platform-connection-page .platform-connection-empty h2 { font-size: 1.5625rem; font-weight: 500; line-height: 1.35; letter-spacing: 0; }
 .platform-connection-empty p { margin: 0; max-width: 42rem; color: var(--foundation-muted-text); }

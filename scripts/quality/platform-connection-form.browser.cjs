@@ -203,6 +203,7 @@ window.renderWorkspace(1);`;
       await page.getByRole("heading", { name: "当前会话不能访问此任务", exact: true }).waitFor();
       assert.equal(await page.getByText("无权访问", { exact: true }).count(), 1);
       assert.equal(await page.getByText("访问受限", { exact: true }).count(), 1);
+      assert.equal(await page.getByText("访问受限", { exact: true }).evaluate(element => getComputedStyle(element).color), "rgb(94, 93, 89)");
       assert.equal(await page.getByText("页面不会确认目标资源是否存在，也不会加载正文、引用或历史消息。", { exact: true }).count(), 1);
       assert.equal(await page.locator("table, .platform-connection-detail").count(), 0);
       assert.equal(await page.getByRole("heading", { name: "源码隔离连接", exact: true }).count(), 0);
