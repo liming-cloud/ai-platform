@@ -340,6 +340,13 @@ if(initial?.navigationId==="platform-model-supply")window.draw(initial);else win
       await enlargeText(page);
       await page.waitForFunction(()=>Math.abs(parseFloat(getComputedStyle(document.querySelector("h1")).fontSize)-52.8)<0.01);
       await verifyLayout(page);
+      const wrappedAccount=await page.evaluate(()=>{
+        const bar=document.querySelector(".product-topbar"),context=bar.querySelector(".product-topbar__context").getBoundingClientRect();
+        const account=bar.querySelector(".product-account").getBoundingClientRect();
+        return {wrapped:account.top>=context.bottom-1,offset:account.left-bar.getBoundingClientRect().left-parseFloat(getComputedStyle(bar).paddingLeft)};
+      });
+      assert.equal(wrappedAccount.wrapped,true,"必须真实触发账户菜单换行");
+      assert.ok(Math.abs(wrappedAccount.offset)<=1,"换行账户菜单应与原型一致，从顶栏内容起始位置排列");
     });
     await check("S1两页加载和错误保留已接受原型页头及说明面板",async()=>{
       await page.setViewportSize({width:390,height:844});
