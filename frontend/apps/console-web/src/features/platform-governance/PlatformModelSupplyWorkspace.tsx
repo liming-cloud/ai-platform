@@ -1,8 +1,8 @@
 import { Badge, Button, Dialog, DialogBody, DialogSurface, DialogTitle, DialogTrigger } from "@fluentui/react-components";
 import { StatePanel } from "@foundation/design-system";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { type ControlPlaneClient, type PlatformProviderConnectionSummary, type PlatformProviderPresets } from "../../api/control-plane-client";
-import type { ConsoleRoute } from "../../session/console-route";
+import { ApiRequestError, type ControlPlaneClient, type PlatformProviderConnectionSummary, type PlatformProviderPresets } from "../../api/control-plane-client";
+import { defaultConsoleRoute, type ConsoleRoute } from "../../session/console-route";
 import { PlatformProviderConnectionForm } from "./PlatformProviderConnectionForm";
 import { PlatformConnectionPagination, PlatformConnectionSearch } from "./PlatformConnectionPagination";
 import "./platform-model-connections.css";
@@ -14,7 +14,7 @@ export function PlatformModelSupplyWorkspace({ client, route, sessionRevision, o
   client: ControlPlaneClient; route: ConnectionRoute; sessionRevision: number;
   onRouteChange: (route: ConsoleRoute, replace?: boolean) => void;
 }) {
-  const [state, setState] = useState<"loading" | "ready" | "error" | "stale">("loading");
+  const [state, setState] = useState<"loading" | "ready" | "error" | "denied" | "stale">("loading");
   const [connections, setConnections] = useState<PlatformProviderConnectionSummary[]>([]);
   const [directory, setDirectory] = useState<PlatformProviderPresets>();
   const [total, setTotal] = useState(0);
@@ -45,10 +45,11 @@ export function PlatformModelSupplyWorkspace({ client, route, sessionRevision, o
       setConnections(page.items); setDirectory(presets); setTotal(page.totalElements);
       setPublished(summary.publishedConnections);
       setPagination({ page: route.page, size }); setState("ready");
-    } catch {
+    } catch (error) {
       if (requestOwner !== owner.current) return;
       setConnections([]); setDirectory(undefined);
-      setState(client.hasSession() ? "error" : "stale");
+      // 拒绝读取不确认目录内容，也不能借重试恢复旧数据；会话失效仍优先返回登录边界。
+      setState(!client.hasSession() ? "stale" : error instanceof ApiRequestError && error.status === 403 ? "denied" : "error");
     } finally { if (requestOwner === owner.current) setBusy(false); }
   }, [client, route, onRouteChange]);
 
@@ -70,7 +71,8 @@ export function PlatformModelSupplyWorkspace({ client, route, sessionRevision, o
   }
 
   if (state === "stale") return <StatePanel kind="stale" title="浏览器会话已经失效" description="请重新登录后查看平台连接。" />;
-  if (state === "loading" || state === "error") return <PlatformConnectionReadState kind={state} onRetry={() => void load()} />;
+  if (state === "loading" || state === "error" || state === "denied") return <PlatformConnectionReadState kind={state}
+    onRetry={() => void load()} onReturn={() => onRouteChange(defaultConsoleRoute("platform"))} />;
 
   const empty = total === 0 && !route.query;
   return <div className={"platform-connection-page" + (empty ? " platform-connection-page--empty" : "")}>
@@ -112,17 +114,22 @@ export function PlatformModelSupplyWorkspace({ client, route, sessionRevision, o
   </div>;
 }
 
-/** 两页读取失败关闭且保留原型页头；重试只读接口，不展示旧成功结果。 */
-export function PlatformConnectionReadState({ kind, detail = false, onRetry }: {
-  kind: "loading" | "error"; detail?: boolean; onRetry: () => void;
+/** 两页读取失败关闭且保留原型页头；拒绝只返回既有平台入口，不确认目标资源是否存在。 */
+export function PlatformConnectionReadState({ kind, detail = false, onRetry, onReturn }: {
+  kind: "loading" | "error" | "denied"; detail?: boolean; onRetry: () => void; onReturn: () => void;
 }) {
   const title = detail ? "供应商连接探测" : "平台模型连接";
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  useEffect(() => { if (kind === "denied") headingRef.current?.focus(); }, [kind]);
   return <div className="platform-connection-page">
     <header className="platform-connection-page__heading"><p className="platform-connection-page__context">模型治理</p>
-      <div className="platform-connection-page__copy"><h1 tabIndex={-1}>{title}</h1></div></header>
+      <div className="platform-connection-page__copy"><h1 ref={headingRef} tabIndex={-1}>{title}</h1></div></header>
     <section className="platform-connection-empty platform-connection-read-state" data-kind={kind}
       aria-live="polite" aria-busy={kind === "loading"} role={kind === "error" ? "alert" : undefined}>
       {kind === "loading" ? <div className="platform-connection-skeleton" aria-label="正在加载"><span /><span /><span /></div>
+        : kind === "denied" ? <><p className="platform-connection-empty__label">无权访问</p><h2>当前会话不能访问此任务</h2>
+          <p>页面不会确认目标资源是否存在，也不会加载正文、引用或历史消息。</p>
+          <Button appearance="secondary" onClick={onReturn}>返回已授权入口</Button></>
         : <><p className="platform-connection-empty__label">任务失败</p><h2>暂时无法加载{title}</h2>
           <p>当前任务没有完成，也没有使用过期结果。请检查连接后安全重试。</p>
           <Button appearance="secondary" onClick={onRetry}>重新加载</Button></>}

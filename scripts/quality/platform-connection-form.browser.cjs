@@ -42,6 +42,7 @@ async function run() {
   const harness = `import React from "react";
 import {createRoot} from "react-dom/client";
 import {FoundationProvider} from "/@fs/${repository}/frontend/packages/design-system/src/providers/FoundationProvider.tsx";
+import {ProductShell} from "/@fs/${repository}/frontend/packages/design-system/src/shell/ProductShell.tsx";
 import {PlatformModelSupplyWorkspace} from "/@fs/${repository}/frontend/apps/console-web/src/features/platform-governance/PlatformModelSupplyWorkspace.tsx";
 import {PlatformProviderConnectionDetail} from "/@fs/${repository}/frontend/apps/console-web/src/features/platform-governance/PlatformProviderConnectionDetail.tsx";
 import {ApiRequestError} from "/@fs/${repository}/frontend/apps/console-web/src/api/control-plane-client.ts";
@@ -52,15 +53,15 @@ const draft=()=>({id:"610000000000000001",displayName:"源码隔离连接",provi
   credentialConfigured:true,discoveryCredentialsConfigured:false,discoveryProfile:"OPENAI_MODELS_API",
   authenticationType:"API_KEY",preset:{id:"CUSTOM",capability:"CHAT"}});
 window.testState={writes:[],fail:false,pending:false,route:null,connection:draft(),detailCalls:[],failProbe:false,badBinding:false,autoRoute:false,
-  connectionError:null,presetError:null,candidateError:null,emptyCandidates:false,directoryContext:undefined};
+  connectionError:null,presetError:null,candidateError:null,directoryError:null,summaryError:null,publicationError:null,emptyCandidates:false,directoryContext:undefined};
 const failRead=error=>{if(error)throw new ApiRequestError(error.status,error.code,"合成读取失败","source-check");};
 const client={hasSession:()=>true,
-  listPlatformProviderConnections:async()=>({items:[],totalElements:0,hasPrevious:false,hasNext:false}),
-  getPlatformProviderConnectionDirectorySummary:async()=>({publishedConnections:0}),
+  listPlatformProviderConnections:async()=>{failRead(window.testState.directoryError);return {items:[],totalElements:0,hasPrevious:false,hasNext:false};},
+  getPlatformProviderConnectionDirectorySummary:async()=>{failRead(window.testState.summaryError);return {publishedConnections:0};},
   getPlatformProviderPresets:async()=>{failRead(window.testState.presetError);return directory;},
   getPlatformProviderConnection:async()=>{failRead(window.testState.connectionError);return {...window.testState.connection};},
-  getPlatformProviderConnectionPublication:async(id,version)=>({connectionId:id,
-    connectionRevision:window.testState.badBinding?version+1:version,published:window.testState.connection.published}),
+  getPlatformProviderConnectionPublication:async(id,version)=>{failRead(window.testState.publicationError);return {connectionId:id,
+    connectionRevision:window.testState.badBinding?version+1:version,published:window.testState.connection.published};},
   listPlatformProviderModelCandidates:async(id,version,page)=>{failRead(window.testState.candidateError);return {
     items:window.testState.emptyCandidates?[]:[{modelCode:"source-chat",modelType:"CHAT",classification:"KNOWN"}],
     pageNumber:page,totalElements:window.testState.emptyCandidates?0:1,hasPrevious:page>1,hasNext:false};},
@@ -84,19 +85,22 @@ const client={hasSession:()=>true,
     return {id:"610000000000000001",version:0};
   }};
 const root=createRoot(document.getElementById("root"));
-window.renderWorkspace=revision=>root.render(
-  <FoundationProvider><PlatformModelSupplyWorkspace key={revision} client={client}
+// 与生产一致保留外壳生命周期，避免页面替换时销毁整份 Fluent 焦点管理器。
+const frame=content=><FoundationProvider><ProductShell productName="可信 RAG" workspaceScope="platform" activeNavigationId="models" accountLabel="源码验收账户"
+  navigation={[{id:"overview",label:"平台治理概览",icon:"overview"},{id:"tenants",label:"租户管理",icon:"data"},{id:"accounts",label:"平台账户",icon:"accounts"},{id:"models",label:"模型治理",icon:"models"}]}>{content}</ProductShell></FoundationProvider>;
+window.renderWorkspace=revision=>root.render(frame(
+  <PlatformModelSupplyWorkspace key={revision} client={client}
     route={{navigationId:"platform-model-supply",task:"connections",page:1}}
     sessionRevision={revision} onRouteChange={route=>{
       window.testState.route=route;
       if(window.testState.autoRoute && route.task==="connection-detail") window.renderDetail(1,11);
-    }}/></FoundationProvider>);
-window.renderDetail=(candidatePage=1,identity=1)=>root.render(
-  <FoundationProvider><PlatformProviderConnectionDetail
+    }}/>));
+window.renderDetail=(candidatePage=1,identity=1)=>root.render(frame(
+  <PlatformProviderConnectionDetail
     key={identity+":"+window.testState.connection.id} client={client}
     route={{navigationId:"platform-model-supply",task:"connection-detail",connectionId:window.testState.connection.id,candidatePage,
       directory:window.testState.directoryContext}}
-    onRouteChange={route=>window.testState.route=route}/></FoundationProvider>);
+    onRouteChange={route=>window.testState.route=route}/>));
 window.resetDetail=()=>{window.testState.connection=draft();window.testState.detailCalls=[];window.testState.badBinding=false;};
 window.renderWorkspace(1);`;
   fs.writeFileSync(path.join(temporary, "index.html"), '<div id="root"></div><script type="module" src="/harness.tsx"></script>');
@@ -195,12 +199,46 @@ window.renderWorkspace(1);`;
       });
       assert.equal(await page.evaluate(() => window.testState.detailCalls.length), 0);
     });
-    for (const source of ["presetError", "candidateError", "connectionError"]) await check(`${source} 的404或拒绝不伪装为连接空态`, async () => {
+    const verifyDeniedRecovery = async title => {
+      await page.getByRole("heading", { name: "当前会话不能访问此任务", exact: true }).waitFor();
+      assert.equal(await page.getByText("无权访问", { exact: true }).count(), 1);
+      assert.equal(await page.getByText("页面不会确认目标资源是否存在，也不会加载正文、引用或历史消息。", { exact: true }).count(), 1);
+      assert.equal(await page.locator("table, .platform-connection-detail").count(), 0);
+      assert.equal(await page.getByRole("heading", { name: "源码隔离连接", exact: true }).count(), 0);
+      assert.equal(await page.getByRole("button", { name: /新增供应商连接|执行连接探测|发布连接|返回连接目录|重新加载/ }).count(), 0);
+      assert.deepEqual(await page.getByRole("button", { name: "返回已授权入口", exact: true }).evaluate(button => {
+        const style = getComputedStyle(button);
+        return [style.fontWeight, style.padding, style.gap, style.minWidth];
+      }), ["620", "6px 12px", "8px", "auto"]);
+      await page.waitForFunction(title => document.activeElement?.textContent === title, title);
+      await page.keyboard.press("Tab");
+      assert.equal(await page.getByRole("button", { name: "返回已授权入口", exact: true }).evaluate(button => button === document.activeElement), true);
+      await page.keyboard.press("Enter");
+      assert.deepEqual(await page.evaluate(() => window.testState.route), {
+        navigationId: "platform", task: "tenants", page: 1, query: "", status: "ALL", pageSize: 20,
+      });
+      assert.equal(await page.evaluate(() => window.testState.writes.length + window.testState.detailCalls.length), 0);
+    };
+    for (const source of ["directoryError", "presetError", "summaryError"]) await check(`目录 ${source} 的403按原型拒绝并通过键盘返回平台租户管理`, async () => {
+      await page.reload(); await page.getByRole("button", { name: "新增供应商连接", exact: true }).waitFor();
+      await page.evaluate(source => {
+        window.testState[source] = { status: 403, code: "MODEL_RUNTIME.AUTHORIZATION.0001" }; window.renderWorkspace(60);
+      }, source);
+      await verifyDeniedRecovery("平台模型连接");
+    });
+    for (const source of ["connectionError", "presetError", "candidateError", "publicationError"]) await check(`详情 ${source} 的403不泄露对象并恢复到平台租户管理`, async () => {
       await page.reload(); await page.getByRole("button", { name: "新增供应商连接", exact: true }).waitFor();
       await page.evaluate(source => {
         window.testState.connection = { ...window.testState.connection, status: "VERIFIED", lastProbeSucceeded: true, lastProbedAt: new Date().toISOString() };
-        window.testState[source] = { status: source === "connectionError" ? 403 : 404,
-          code: source === "connectionError" ? "MODEL_RUNTIME.AUTHORIZATION.0001" : "MODEL_RUNTIME.RESOURCE.0001" };
+        window.testState[source] = { status: 403, code: "MODEL_RUNTIME.AUTHORIZATION.0001" }; window.renderDetail(1, 61);
+      }, source);
+      await verifyDeniedRecovery("供应商连接探测");
+    });
+    for (const source of ["presetError", "candidateError"]) await check(`${source} 的404不伪装为连接空态`, async () => {
+      await page.reload(); await page.getByRole("button", { name: "新增供应商连接", exact: true }).waitFor();
+      await page.evaluate(source => {
+        window.testState.connection = { ...window.testState.connection, status: "VERIFIED", lastProbeSucceeded: true, lastProbedAt: new Date().toISOString() };
+        window.testState[source] = { status: 404, code: "MODEL_RUNTIME.RESOURCE.0001" };
         window.renderDetail(1, 61);
       }, source);
       await page.getByRole("heading", { name: "暂时无法加载供应商连接探测", exact: true }).waitFor();
@@ -219,9 +257,8 @@ window.renderWorkspace(1);`;
         window.testState.connectionError = { status: 404, code: "MODEL_RUNTIME.RESOURCE.0001" };
         window.testState.presetError = { status: 403, code: "MODEL_RUNTIME.AUTHORIZATION.0001" }; window.renderDetail(1, 63);
       });
-      await page.getByRole("heading", { name: "暂时无法加载供应商连接探测", exact: true }).waitFor();
+      await verifyDeniedRecovery("供应商连接探测");
       assert.equal(await page.getByRole("heading", { name: "供应商连接探测目前为空", exact: true }).count(), 0);
-      assert.equal(await page.getByRole("button", { name: /执行连接探测|发布连接/ }).count(), 0);
     });
     await check("存在的连接无发现候选仍展示真实详情和独立操作", async () => {
       await page.reload(); await page.getByRole("button", { name: "新增供应商连接", exact: true }).waitFor();
@@ -531,12 +568,20 @@ window.renderWorkspace(1);`;
       assert.equal(await page.evaluate(() => window.testState.detailCalls.length), 0);
     });
     await check("两页标题在三尺寸下精确承接已接受原型字号、行高和页头文案", async () => {
+      await page.clock.resume();
+      await page.reload();
       for (const [width, size, line] of [[390, "26.4px", "35.64px"], [1024, "30.72px", "41.472px"], [1440, "32px", "43.2px"]]) {
         await page.setViewportSize({ width, height: 1000 });
         for (const screen of ["directory", "detail"]) {
           await page.evaluate(screen => screen === "directory" ? window.renderWorkspace(40) : window.renderDetail(1, 40), screen);
           const heading = page.getByRole("heading", { name: screen === "directory" ? "平台模型连接" : "供应商连接探测", exact: true });
           await heading.waitFor(); await page.evaluate(() => document.fonts.ready);
+          await page.waitForFunction(({ title, size, line }) => {
+            const element = [...document.querySelectorAll("h1")].find(item => item.textContent === title);
+            if (!element) return false;
+            const style = getComputedStyle(element);
+            return style.fontSize === size && style.lineHeight === line && style.fontWeight === "500";
+          }, { title: screen === "directory" ? "平台模型连接" : "供应商连接探测", size, line });
           assert.deepEqual(await heading.evaluate(element => {
             const style = getComputedStyle(element); return [style.fontSize, style.lineHeight, style.fontWeight];
           }), [size, line, "500"]);
@@ -552,6 +597,7 @@ window.renderWorkspace(1);`;
     if (page) process.stdout.write(`${JSON.stringify({ sourceLine: error?.stack?.split("\n").find(line => line.includes(__filename)), layout: await page.evaluate(() => ({
       viewport: innerWidth, document: document.documentElement.scrollWidth,
       heading: document.querySelector(".platform-connection-page__heading")?.getBoundingClientRect().width,
+      headingTypography: document.querySelector("h1") && ["fontSize", "lineHeight", "fontWeight"].map(key => getComputedStyle(document.querySelector("h1"))[key]),
       panel: document.querySelector(".platform-connection-empty")?.getBoundingClientRect().width,
       descriptionFont: document.querySelector(".platform-connection-empty > p:last-child") && getComputedStyle(document.querySelector(".platform-connection-empty > p:last-child")).fontSize,
       descriptionInlineFont: document.querySelector(".platform-connection-empty > p:last-child")?.style.fontSize,

@@ -3,7 +3,7 @@ import { StatePanel } from "@foundation/design-system";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ApiRequestError, type ControlPlaneClient, type PlatformProviderConnectionSummary,
   type PlatformProviderModelCandidate, type PlatformProviderPresets } from "../../api/control-plane-client";
-import type { ConsoleRoute } from "../../session/console-route";
+import { defaultConsoleRoute, type ConsoleRoute } from "../../session/console-route";
 import { ConnectionStatus, connectionStatusLabel, PlatformConnectionEmptyState, PlatformConnectionReadState } from "./PlatformModelSupplyWorkspace";
 import { PlatformConnectionPagination, PlatformConnectionSearch } from "./PlatformConnectionPagination";
 import "./platform-model-connections.css";
@@ -17,7 +17,7 @@ const PROBE_VALIDITY_MILLIS = 24 * 60 * 60 * 1000;
 export function PlatformProviderConnectionDetail({ client, route, onRouteChange }: {
   client: ControlPlaneClient; route: DetailRoute; onRouteChange: (route: ConsoleRoute, replace?: boolean) => void;
 }) {
-  const [state, setState] = useState<"loading" | "ready" | "empty" | "error" | "stale">("loading");
+  const [state, setState] = useState<"loading" | "ready" | "empty" | "error" | "denied" | "stale">("loading");
   const [connection, setConnection] = useState<PlatformProviderConnectionSummary>();
   const [directory, setDirectory] = useState<PlatformProviderPresets>();
   const [candidates, setCandidates] = useState<Candidates>(EMPTY_CANDIDATES);
@@ -71,7 +71,8 @@ export function PlatformProviderConnectionDetail({ client, route, onRouteChange 
       setConnection(undefined); setDirectory(undefined); setCandidates(EMPTY_CANDIDATES);
       setFailure(error instanceof ApiRequestError ? error.message : "请求未完成，请稍后重试。");
       // 并发读取可能先收到其他失败；必须匹配该错误本身，不能让连接的 404 标记覆盖权限拒绝。
-      setState(client.hasSession() ? missingConnection !== undefined && error === missingConnection ? "empty" : "error" : "stale");
+      setState(!client.hasSession() ? "stale" : error instanceof ApiRequestError && error.status === 403 ? "denied"
+        : missingConnection !== undefined && error === missingConnection ? "empty" : "error");
     } finally { if (requestOwner === owner.current) setBusy(false); }
   }, [client, route, onRouteChange]);
 
@@ -118,8 +119,9 @@ export function PlatformProviderConnectionDetail({ client, route, onRouteChange 
   }
 
   if (state === "stale") return <StatePanel kind="stale" title="浏览器会话已经失效" description="请重新登录后查看平台连接。" />;
-  if (state === "loading" || state === "error" || (state === "ready" && !connection)) return <PlatformConnectionReadState detail
-    kind={state === "loading" ? "loading" : "error"} onRetry={() => { focused.current = false; void load(); }} />;
+  if (state === "loading" || state === "error" || state === "denied" || (state === "ready" && !connection)) return <PlatformConnectionReadState detail
+    kind={state === "loading" ? "loading" : state === "denied" ? "denied" : "error"}
+    onRetry={() => { focused.current = false; void load(); }} onReturn={() => onRouteChange(defaultConsoleRoute("platform"))} />;
   if (state === "empty" || !connection) return <div className="platform-connection-page platform-connection-page--empty">
     <header className="platform-connection-page__heading"><p className="platform-connection-page__context">模型治理</p>
       <div><h1 ref={headingRef} tabIndex={-1}>供应商连接探测</h1>
