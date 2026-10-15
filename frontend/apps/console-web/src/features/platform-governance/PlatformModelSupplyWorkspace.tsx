@@ -123,7 +123,8 @@ export function PlatformConnectionReadState({ kind, detail = false, onRetry, onR
   useEffect(() => { if (kind === "denied") headingRef.current?.focus(); }, [kind]);
   return <div className="platform-connection-page">
     <header className="platform-connection-page__heading"><p className="platform-connection-page__context">模型治理</p>
-      <div className="platform-connection-page__copy"><h1 ref={headingRef} tabIndex={-1}>{title}</h1></div></header>
+      <div className="platform-connection-page__copy"><h1 ref={headingRef} tabIndex={-1}>{title}</h1>
+        <div className="platform-connection-object-line">{kind === "denied" ? "访问受限" : kind === "loading" ? "正在载入" : "载入失败"}</div></div></header>
     <section className="platform-connection-empty platform-connection-read-state" data-kind={kind}
       aria-live="polite" aria-busy={kind === "loading"} role={kind === "error" ? "alert" : undefined}>
       {kind === "loading" ? <div className="platform-connection-skeleton" aria-label="正在加载"><span /><span /><span /></div>
