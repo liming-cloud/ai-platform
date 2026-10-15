@@ -267,12 +267,17 @@ window.renderWorkspace(1);`;
           await page.waitForFunction(({ normalSize, enlarged }) => Math.abs(parseFloat(getComputedStyle(document.querySelector("[data-provider-address-value]")).fontSize) - normalSize * (enlarged ? 2 : 1)) < 0.01, { normalSize, enlarged });
           const metrics = await preview.evaluate(element => {
             const box = element.getBoundingClientRect(), range = document.createRange(); range.selectNodeContents(element);
+            const control = element.closest(".fui-Field").querySelector(".fui-Input");
             return { fits: [...range.getClientRects()].every(rect => rect.left >= box.left - 1 && rect.right <= box.right + 1 && rect.top >= box.top - 1 && rect.bottom <= box.bottom + 1),
               contentFits: element.scrollHeight <= element.clientHeight + 1,
               helpTop: document.querySelector("[data-provider-address-help]").getBoundingClientRect().top,
+              inputToPreview: box.top - control.getBoundingClientRect().bottom,
+              hintMarginTop: getComputedStyle(element.closest(".fui-Field__hint")).marginTop,
               bottom: box.bottom, overflow: document.documentElement.scrollWidth - innerWidth };
           });
           assert.ok(metrics.fits && metrics.contentFits, "完整地址不得裁切或依赖原生单行滚动");
+          if (Math.abs(metrics.inputToPreview - 8) > 1) process.stdout.write(JSON.stringify({ addressLayout: metrics }) + "\n");
+          assert.ok(Math.abs(metrics.inputToPreview - 8) <= 1, "输入框与完整地址之间须保留原型8px间距");
           assert.ok(metrics.helpTop >= metrics.bottom - 1, "地址不得遮挡帮助说明");
           assert.ok(metrics.overflow <= 1, "完整地址不得撑宽页面");
           assert.equal(await input.inputValue(), address);
