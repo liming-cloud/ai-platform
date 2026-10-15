@@ -2,7 +2,7 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const { enlargeText } = require("../development/acceptance-overview.cjs");
-const { openForReview } = require("../../docs/prototypes/wp-0016/scripts/browser-session.cjs");
+const { openForReview, loginConsole } = require("../../docs/prototypes/wp-0016/scripts/browser-session.cjs");
 const { test, before, after } = require("node:test");
 const assert = require("node:assert/strict");
 const { chromium } = require("playwright");
@@ -149,5 +149,26 @@ for (const width of [390, 1024, 1440]) {
     await dialog.locator('[name="runtimeBaseUrl"]').fill("https://public.example.invalid/v1");
     assert.equal(await dialog.locator("[data-provider-address-value]").isVisible(), false);
     assert.equal(await dialog.locator("[data-provider-address-value]").textContent(), "", "自定义输入不得复制到额外展示区");
+  }, width));
+}
+
+for (const width of [390, 1024, 1440]) {
+  test(`${width}px S1拒绝态恢复保留平台范围，租户不能借此进入平台`, () => visit(async page => {
+    for (const screen of ["platform-model-connections", "platform-model-connection-detail"]) {
+      await openForReview(page, `${base}?screen=${screen}&state=denied&review=0`);
+      await page.locator(`main[data-screen="${screen}"][data-state="denied"]`).waitFor();
+      await enlargeText(page);
+      await page.getByRole("button", { name: "返回已授权入口", exact: true }).click();
+      await page.waitForURL(current => current.searchParams.get("screen") !== screen);
+      assert.equal(new URL(page.url()).searchParams.get("screen"), "platform-tenants", "平台连接任务应恢复到已交付的租户管理，不能转入普通会员入口");
+      await page.locator('main[data-screen="platform-tenants"][data-state="success"]').waitFor();
+    }
+    await loginConsole(page, "tenant");
+    await page.goto(`${base}?screen=platform-model-connections&state=denied&review=0`);
+    await page.getByRole("heading", { name: "无法访问此页面", exact: true }).waitFor();
+    assert.equal(await page.getByRole("button", { name: "返回已授权入口", exact: true }).count(), 0, "租户拒绝页不能取得平台任务恢复入口");
+    assert.equal(await page.locator("main .data-table").count(), 0, "拒绝时不呈现平台连接数据");
+    await page.getByRole("button", { name: "返回我的工作区", exact: true }).click();
+    await page.locator('main[data-screen="tenant-overview"][data-state="success"]').waitFor();
   }, width));
 }

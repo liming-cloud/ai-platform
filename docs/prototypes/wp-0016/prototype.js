@@ -665,6 +665,7 @@ function genericState(screen, state) {
       screen,
     );
   }
+  // 两个 S1 平台任务恢复到既有平台目录，租户和会员仍由原权限守卫拒绝。
   return statePanel(
     "denied",
     "当前会话不能访问此任务",
@@ -672,11 +673,13 @@ function genericState(screen, state) {
     screen === "login" ? "返回登录" : "返回已授权入口",
     screen === "login"
       ? "login"
-      : screen.startsWith("knowledge") ||
-          screen.includes("index") ||
-          screen.includes("release")
-        ? "knowledge-directory"
-        : "assistants",
+      : ["platform-model-connections", "platform-model-connection-detail"].includes(screen)
+        ? "platform-tenants"
+        : screen.startsWith("knowledge") ||
+            screen.includes("index") ||
+            screen.includes("release")
+          ? "knowledge-directory"
+          : "assistants",
   );
 }
 
