@@ -12,7 +12,7 @@ const repository = path.resolve(__dirname, "../..");
 const api = "/platform/model-supply/connections";
 const directoryPath = "/platform/model-supply";
 const prototype = { projectId: "249f81f2-6f1a-46ff-988c-da3cdedb35e7",
-  revision: "9008c62e7524f7bd2e96c2688c845388c6ef05d1" };
+  revision: "dc470d95d8dd905d65f2c3fadeb865e78b0d20a9" };
 const longId = value => typeof value === "string" && /^[1-9][0-9]{0,18}$/.test(value)
   && BigInt(value) <= 9223372036854775807n;
 
@@ -322,6 +322,23 @@ async function verifyReadOnlyPages(page, configuration, presets, check) {
       await verifyLayout(page); await enlargeText(page); await verifyLayout(page);
       await page.getByRole("button", { name: "取消", exact: true }).click();
       await page.getByRole("dialog").waitFor({ state: "hidden" });
+      await directory(page, configuration);
+      await page.getByRole("button", { name: "新增供应商连接", exact: true }).click();
+      await page.getByLabel("厂商类型", { exact: true }).selectOption("VOLCENGINE");
+      const preview = page.getByRole("dialog").locator("[data-provider-address-value]");
+      await preview.waitFor({ state: "visible" });
+      const originalSize = await preview.evaluate(element => parseFloat(getComputedStyle(element).fontSize));
+      await enlargeText(page);
+      await page.waitForFunction(size => Math.abs(parseFloat(getComputedStyle(document.querySelector("[data-provider-address-value]")).fontSize) - size * 2) < 0.01, originalSize);
+      await preview.scrollIntoViewIfNeeded(); await verifyLayout(page);
+      const addressFits = await preview.evaluate(element => {
+        const box = element.getBoundingClientRect(), range = document.createRange(); range.selectNodeContents(element);
+        return { fontSize: parseFloat(getComputedStyle(element).fontSize),
+          fits: [...range.getClientRects()].every(rect => rect.left >= box.left - 1 && rect.right <= box.right + 1 && rect.top >= box.top - 1 && rect.bottom <= box.bottom + 1) };
+      });
+      requireCondition(addressFits.fits && Math.abs(addressFits.fontSize - originalSize * 2) < 0.01, "完整预设地址未真实放大或存在裁切");
+      await page.getByRole("button", { name: "取消", exact: true }).click();
+      await page.getByRole("dialog").waitFor({ state: "hidden" });
     });
   }
   await check("五厂商联动、秘密取消清理、键盘及 reduced-motion", async () => {
@@ -339,6 +356,10 @@ async function verifyReadOnlyPages(page, configuration, presets, check) {
         requireCondition(await endpoint.evaluate(element => element.readOnly) === (preset.id !== "CUSTOM"), "固定厂商地址可被编辑");
         if (preset.id !== "CUSTOM") requireCondition(await endpoint.inputValue()
           === variant.endpointTemplate.replace("{workspaceId}", "s1-acceptance"), "预设地址联动不匹配");
+        const preview = dialog.locator("[data-provider-address-value]");
+        requireCondition(await preview.isVisible() === (preset.id !== "CUSTOM")
+          && await preview.textContent() === (preset.id === "CUSTOM" ? "" : await endpoint.inputValue()),
+        "完整地址展示未绑定当前固定预设，或复制了自定义输入");
       }
     }
     await dialog.getByLabel("厂商类型", { exact: true }).selectOption("VOLCENGINE");

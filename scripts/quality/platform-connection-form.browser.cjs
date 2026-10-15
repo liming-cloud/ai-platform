@@ -4,6 +4,7 @@ const path = require("node:path");
 const { createRequire } = require("node:module");
 const { pathToFileURL } = require("node:url");
 const assert = require("node:assert/strict");
+const { enlargeText } = require("../development/acceptance-overview.cjs");
 
 const repository = path.resolve(__dirname, "../..");
 const frontend = path.join(repository, "frontend");
@@ -238,6 +239,56 @@ window.renderWorkspace(1);`;
     await page.getByRole("button", { name: /新建平台连接|新增供应商连接/ }).click();
     const providers = page.locator('select[name="providerPreset"]');
     const secretInputs = () => page.getByRole("dialog").locator('input[type="password"]');
+    for (const width of [390, 1024, 1440]) await check(`${width}px 完整预设地址按已接受原型换行并可真实放大`, async () => {
+      await page.setViewportSize({ width, height: width === 390 ? 844 : width === 1024 ? 900 : 1000 });
+      for (const provider of directory.items.filter(item => item.id !== "CUSTOM")) for (const choice of provider.variants) {
+        await page.reload();
+        await page.getByRole("button", { name: "新增供应商连接", exact: true }).click();
+        await providers.selectOption(provider.id);
+        await page.getByLabel("运行能力", { exact: true }).selectOption(choice.capability);
+        const dialog = page.getByRole("dialog");
+        const preview = dialog.locator("[data-provider-address-value]");
+        if (choice.workspaceRequired) {
+          assert.equal(await preview.isVisible(), false);
+          assert.equal(await preview.textContent(), "", "业务空间未解析时不得复制不完整地址");
+          await page.getByLabel("业务空间 ID", { exact: true }).fill("w".repeat(63));
+        }
+        const input = page.getByLabel("运行地址", { exact: true });
+        const address = await input.inputValue();
+        await preview.waitFor({ state: "visible" });
+        assert.equal(await preview.textContent(), address, "完整展示必须与本次预设保存值一致");
+        assert.equal(await input.evaluate(element => (element.getAttribute("aria-describedby") || "").split(/\s+/).some(id => document.getElementById(id)?.querySelector("[data-provider-address-value]"))), true,
+          "运行地址的辅助说明必须包含完整地址");
+        const normalSize = await preview.evaluate(element => parseFloat(getComputedStyle(element).fontSize));
+        assert.equal(normalSize, 14, "完整地址沿用原型14px辅助字体");
+        for (const enlarged of [false, true]) {
+          if (enlarged) await enlargeText(page);
+          await preview.scrollIntoViewIfNeeded();
+          await page.waitForFunction(({ normalSize, enlarged }) => Math.abs(parseFloat(getComputedStyle(document.querySelector("[data-provider-address-value]")).fontSize) - normalSize * (enlarged ? 2 : 1)) < 0.01, { normalSize, enlarged });
+          const metrics = await preview.evaluate(element => {
+            const box = element.getBoundingClientRect(), range = document.createRange(); range.selectNodeContents(element);
+            return { fits: [...range.getClientRects()].every(rect => rect.left >= box.left - 1 && rect.right <= box.right + 1 && rect.top >= box.top - 1 && rect.bottom <= box.bottom + 1),
+              contentFits: element.scrollHeight <= element.clientHeight + 1,
+              helpTop: document.querySelector("[data-provider-address-help]").getBoundingClientRect().top,
+              bottom: box.bottom, overflow: document.documentElement.scrollWidth - innerWidth };
+          });
+          assert.ok(metrics.fits && metrics.contentFits, "完整地址不得裁切或依赖原生单行滚动");
+          assert.ok(metrics.helpTop >= metrics.bottom - 1, "地址不得遮挡帮助说明");
+          assert.ok(metrics.overflow <= 1, "完整地址不得撑宽页面");
+          assert.equal(await input.inputValue(), address);
+          assert.equal(await input.evaluate(element => element.readOnly), true);
+        }
+        await providers.selectOption("CUSTOM");
+        assert.equal(await preview.isVisible(), false);
+        assert.equal(await preview.textContent(), "", "切回自定义时清除旧预设地址");
+        await input.fill("https://public.example.invalid/v1");
+        assert.equal(await preview.textContent(), "", "自定义输入不复制到展示区");
+        assert.equal(await page.evaluate(() => window.testState.writes.length), 0);
+      }
+    });
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    await page.reload();
+    await page.getByRole("button", { name: "新增供应商连接", exact: true }).click();
     await check("方舟弹窗标签和发现认证分区精确承接已接受原型", async () => {
       await providers.selectOption("VOLCENGINE");
       await page.getByRole("dialog").evaluate(async dialog=>{

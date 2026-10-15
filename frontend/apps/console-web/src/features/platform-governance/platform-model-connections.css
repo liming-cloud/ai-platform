@@ -63,6 +63,8 @@
 .platform-connection-dialog .fui-Label { font-family: var(--foundation-font-body); font-size: 1rem; font-weight: 620; line-height: 1.6; }
 .platform-connection-dialog input[name="endpoint"] { font-family: "Anthropic Mono", ui-monospace, "JetBrains Mono", Menlo, monospace; }
 .platform-connection-dialog .fui-Field__hint { color: var(--foundation-text); font-family: var(--foundation-font-body); font-size: calc(5rem / 6); line-height: 1.6; }
+.platform-connection-dialog .platform-connection-address-hint { display: grid; gap: 0.5rem; min-width: 0; }
+.platform-connection-dialog [data-provider-address-value] { min-width: 0; overflow-wrap: anywhere; color: var(--foundation-muted-text); font-family: "Anthropic Mono", ui-monospace, "JetBrains Mono", Menlo, monospace; font-size: 0.875rem; line-height: 1.6; }
 .platform-connection-dialog .fui-Select select { height: auto; min-height: max(var(--foundation-control-height), calc(1.5em + 0.5rem)); }
 /* 表单嵌套后自行排布，不能沿用 `DialogBody` 直属槽位的固定行号。 */
 .platform-connection-form { margin: 0; }

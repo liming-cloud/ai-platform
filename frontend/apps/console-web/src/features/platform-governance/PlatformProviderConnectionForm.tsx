@@ -94,10 +94,14 @@ export function PlatformProviderConnectionForm({ client, directory, onCancel, on
         onChange={(_, data) => { setWorkspaceId(data.value); clearSecrets(); setFailure(""); }} /></Field> : null}
       <div className="platform-connection-form__summary"><span>{preset.regionLabel}</span>
         <span>{variant.runtimeProtocol === "VENDOR_POST_PROCESSOR" ? "厂商重排适配 · 非统一 OpenAI 标准" : "OpenAI 兼容协议"}</span></div>
-      <Field label="运行地址" hint={variant.workspaceRequired && !validWorkspace
-        ? "先填写业务空间 ID，自动生成北京地域地址。" : providerId === "CUSTOM"
-          ? "填写服务商提供的公网 HTTPS 地址；重排填写完整端点。"
-          : "地址由已核实的厂商预设生成；如需其他区域，请使用自定义连接。"}>
+      <Field label="运行地址" hint={{ className: "platform-connection-address-hint", children: <>
+        {/* 固定预设地址完整换行；自定义输入不复制，保存值仍只由原字段持有。 */}
+        <span data-provider-address-value hidden={providerId === "CUSTOM" || !endpoint}>{providerId !== "CUSTOM" ? endpoint : ""}</span>
+        <span data-provider-address-help>{variant.workspaceRequired && !validWorkspace
+          ? "先填写业务空间 ID，自动生成北京地域地址。" : providerId === "CUSTOM"
+            ? "填写服务商提供的公网 HTTPS 地址；重排填写完整端点。"
+            : "地址由已核实的厂商预设生成；如需其他区域，请使用自定义连接。"}</span>
+      </> }}>
         <Input type="url" name="endpoint" value={endpoint} required readOnly={providerId !== "CUSTOM"}
           placeholder="https://models.example.invalid/v1" disabled={submitting}
           onChange={(_, data) => setCustomEndpoint(data.value)} />
