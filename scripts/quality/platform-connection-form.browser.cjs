@@ -179,14 +179,60 @@ window.renderWorkspace(1);`;
             await Promise.all(element.getAnimations().map(animation => animation.finished.catch(() => {})));
             const s = getComputedStyle(element), after = getComputedStyle(element, "::after");
             return { color: s.outlineColor, style: s.outlineStyle, width: s.outlineWidth, offset: s.outlineOffset,
-              shadow: s.boxShadow, extraIndicator: after.display !== "none" && !["none", "normal"].includes(after.content) && parseFloat(after.borderWidth) > 0 };
+              shadow: s.boxShadow, borders: [s.borderTopColor, s.borderRightColor, s.borderBottomColor, s.borderLeftColor],
+              extraIndicator: after.display !== "none" && !["none", "normal"].includes(after.content) && parseFloat(after.borderWidth) > 0 };
           });
-          assert.deepEqual(focus, { color: focusAccent, style: "solid", width: "2px", offset: "2px", shadow: "none", extraIndicator: false },
+          const border = await button.getAttribute("type") === "submit" ? "rgba(0, 0, 0, 0)" : "oklab(0.665396 -0.000483552 0.00399556)";
+          assert.deepEqual(focus, { color: focusAccent, style: "solid", width: "2px", offset: "2px", shadow: "none", borders: Array(4).fill(border), extraIndicator: false },
             "完整表单按钮的键盘焦点应为原型强调色2px外环及2px偏移，不保留额外黑色边框");
+        }
+        for (const control of [dialog.locator('input[type="url"]'), dialog.getByLabel("厂商类型", { exact: true })]) {
+          await dialog.getByLabel("连接名称", { exact: true }).click(); await control.hover();
+          const borders = await control.evaluate(async element => {
+            const outer = element.closest(".fui-Input") ?? element;
+            getComputedStyle(outer).borderColor;
+            await Promise.all(outer.getAnimations().map(animation => animation.finished.catch(() => {})));
+            const s = getComputedStyle(outer);
+            return [s.borderTopColor, s.borderRightColor, s.borderBottomColor, s.borderLeftColor];
+          });
+          assert.deepEqual(borders, Array(4).fill("rgb(94, 93, 89)"), "输入与下拉悬停四边应承接原型中性色");
         }
       }
       await dialog.getByRole("button", { name: "取消", exact: true }).click();
       await dialog.waitFor({ state: "hidden" });
+    });
+    for (const width of [390, 1024, 1440]) await check(`${width}px 完整表单校验反馈保持原型间距及实际200%文字`, async () => {
+      await page.setViewportSize({ width, height: 1000 }); await page.reload();
+      await page.getByRole("button", { name: "新增供应商连接", exact: true }).click();
+      const dialog = page.getByRole("dialog");
+      await dialog.getByRole("button", { name: "保存连接草稿", exact: true }).click();
+      const alert = dialog.getByRole("alert"); await alert.filter({ hasText: "请输入不超过 80 个字符" }).waitFor();
+      await dialog.evaluate(async element => {
+        await new Promise(requestAnimationFrame);
+        getComputedStyle(element).transform;
+        await Promise.all(element.getAnimations({ subtree: true }).map(animation => animation.finished.catch(() => {})));
+      });
+      for (const doubled of [false, true]) {
+        if (doubled) await enlargeText(page);
+        await page.waitForFunction(size => {
+          const alert = document.querySelector('.platform-connection-form [role="alert"]');
+          return alert && getComputedStyle(alert).fontSize === size;
+        }, doubled ? "28px" : "14px");
+        const feedback = await alert.evaluate(element => {
+          const s = getComputedStyle(element), r = element.getBoundingClientRect();
+          let previous = element.previousElementSibling;
+          while (previous && previous.getBoundingClientRect().height === 0) previous = previous.previousElementSibling;
+          return { margin: s.margin, color: s.color, size: s.fontSize,
+            above: r.top - previous.getBoundingClientRect().bottom,
+            below: element.closest("form").querySelector(".fui-DialogActions").getBoundingClientRect().top - r.bottom };
+        });
+        process.stdout.write(JSON.stringify({ validationLayout: { width, doubled, ...feedback } }) + "\n");
+        assert.equal(feedback.margin, "0px");
+        assert.equal(feedback.color, "rgb(181, 51, 51)", "错误不使用成功绿色");
+        assert.equal(feedback.size, doubled ? "28px" : "14px");
+        assert.ok(Math.abs(feedback.above - 16) <= 1 && Math.abs(feedback.below - 16) <= 1, "错误段与相邻区域保持16px间隔");
+      }
+      await dialog.getByRole("button", { name: "取消", exact: true }).click(); await dialog.waitFor({ state: "hidden" });
     });
     for (const width of [390, 1024, 1440]) await check(`${width}px 空目录按原型保留说明、200%文字及键盘创建取消`, async () => {
       await page.setViewportSize({ width, height: 1000 });
