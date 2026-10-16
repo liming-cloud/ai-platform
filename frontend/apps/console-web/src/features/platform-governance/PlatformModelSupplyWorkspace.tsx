@@ -73,11 +73,11 @@ export function PlatformModelSupplyWorkspace({ client, route, sessionRevision, o
     onRetry={() => void load()} onReturn={() => onRouteChange(defaultConsoleRoute("platform"))} />;
 
   const empty = total === 0 && !route.query;
-  return <div className={"platform-connection-page" + (empty ? " platform-connection-page--empty" : "")}>
+  return <div className={"platform-connection-page" + (empty ? " platform-connection-page--empty" : "")} data-read-state={state}>
     <header className="platform-connection-page__heading">
       <p className="platform-connection-page__context">模型治理</p>
       <div><h1 ref={headingRef} tabIndex={-1}>平台模型连接</h1>
-        <div className="platform-connection-object-line">{state === "partial" ? "部分完成" : empty ? "暂无记录" : `${published} 个已发布连接`}</div></div>
+        <div className="platform-connection-object-line">{state === "partial" ? <span>部分完成</span> : empty ? "暂无记录" : `${published} 个已发布连接`}</div></div>
       <Dialog open={creating && state === "ready" && !busy} onOpenChange={(_, data) => { if (data.open && state === "ready" && !busy) setCreating(true); else closeCreateDialog(); }}>
         {/* 正式触发器登记焦点恢复目标，身份替换卸载模态时也能清理原隐藏范围。 */}
         <DialogTrigger disableButtonEnhancement><Button ref={createConnectionTriggerRef} className="platform-connection-create" appearance="primary" disabled={busy || state === "partial"}>新增供应商连接</Button></DialogTrigger>

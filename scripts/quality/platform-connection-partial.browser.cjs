@@ -186,6 +186,10 @@ for (const width of [390, 1024, 1440]) test(`${width}px partial 200%文字与键
     .some(e => getComputedStyle(e).fontSize === "32px"));
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), true);
   assert.equal(await page.getByText("发现模型暂未取得，重新载入后再试。", { exact: true }).evaluate(e => getComputedStyle(e).fontSize), "32px");
+  assert.equal(await page.locator(".fui-Badge,.platform-connection-status").evaluateAll(elements => elements.every(e => {
+    const box = e.getBoundingClientRect(), range = document.createRange(); range.selectNodeContents(e);
+    return [...range.getClientRects()].every(r => r.top >= box.top - 1 && r.bottom <= box.bottom + 1);
+  })), true, "200%文字下连接与候选状态标签均不得裁切");
   config.faults = {}; await page.getByRole("button", { name: "重新载入", exact: true }).focus(); await page.keyboard.press("Enter");
   await page.getByRole("heading", { name: "连接已发布", exact: true }).waitFor();
   assert.equal(await page.getByRole("button", { name: "执行连接探测", exact: true }).isEnabled(), true);

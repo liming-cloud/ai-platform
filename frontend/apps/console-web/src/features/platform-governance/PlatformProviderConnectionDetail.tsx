@@ -1,4 +1,4 @@
-import { Badge, Button } from "@fluentui/react-components";
+import { Button } from "@fluentui/react-components";
 import { StatePanel } from "@foundation/design-system";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ApiRequestError, type ControlPlaneClient, type PlatformProviderConnectionSummary, type PlatformProviderPresets } from "../../api/control-plane-client";
@@ -116,10 +116,10 @@ export function PlatformProviderConnectionDetail({ client, route, onRouteChange 
   const disabled = state === "partial" || busy || !!operation || connection.status === "DISABLED" || !connection.credentialConfigured
     || (connection.discoveryProfile === "VOLCENGINE_ARK_CONTROL_PLANE" && !connection.discoveryCredentialsConfigured);
   const failed = connection.lastProbeSucceeded === false;
-  return <div className="platform-connection-page">
+  return <div className="platform-connection-page" data-read-state={state}>
     <header className="platform-connection-page__heading"><p className="platform-connection-page__context">模型治理</p>
       <div><h1 ref={headingRef} tabIndex={-1}>供应商连接探测</h1>
-      <div className="platform-connection-object-line">{state === "partial" ? "部分完成" : connectionStatusLabel(connection)}</div></div>
+      <div className="platform-connection-object-line">{state === "partial" ? <span>部分完成</span> : connectionStatusLabel(connection)}</div></div>
       <Button appearance="secondary" onClick={() => onRouteChange({ navigationId: "platform-model-supply", task: "connections", page: 1, ...route.directory })}>返回连接目录</Button></header>
     <div className={"platform-connection-note" + (failed && state !== "partial" ? " platform-connection-note--danger" : "")} role={state === "partial" ? "status" : undefined}>
       {state === "partial" ? <><p>部分辅助信息暂未取得，暂不能探测或发布。已确认的连接事实保持可读；重新载入后再试。</p>
@@ -140,7 +140,7 @@ export function PlatformProviderConnectionDetail({ client, route, onRouteChange 
             <dd>{connection.discoveryCredentialsConfigured ? "独立 AK/SK 已配置（不回显）" : "待配置独立 AK/SK"}</dd></div> : null}
           <div><dt>最近探测</dt><dd>{connection.lastProbedAt ? new Date(connection.lastProbedAt).toLocaleString("zh-CN") : "尚未探测"}</dd></div>
         </dl></section>
-        <section className="platform-connection-section"><div className="platform-connection-section__heading"><h2>发现模型</h2><Badge appearance="tint">{discoveredTotal === undefined ? "暂未取得" : `${discoveredTotal} 个`}</Badge></div>
+        <section className="platform-connection-section"><div className="platform-connection-section__heading"><h2>发现模型</h2><span className="platform-connection-status" data-tone="info">{discoveredTotal === undefined ? "暂未取得" : `${discoveredTotal} 个`}</span></div>
           {candidates ? <>
           <PlatformConnectionSearch query={route.query ?? ""} disabled={!!operation} onChange={query => onRouteChange({ ...route, query, candidatePage: 1 })} />
           <div className="platform-connection-table" role="region" aria-label="发现模型" aria-busy={busy}><table><thead><tr><th scope="col">发现模型</th><th scope="col">能力</th></tr></thead>
