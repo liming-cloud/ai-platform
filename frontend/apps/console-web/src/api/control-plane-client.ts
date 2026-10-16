@@ -2053,9 +2053,16 @@ export class ControlPlaneClient {
         );
       }
     }
-    const response = authenticated
-      ? await this.browserSession.request(path, { ...init, headers })
-      : await this.fetcher(`${this.baseUrl}${path}`, { ...init, headers });
+    let response: Response;
+    try {
+      response = authenticated
+        ? await this.browserSession.request(path, { ...init, headers })
+        : await this.fetcher(`${this.baseUrl}${path}`, { ...init, headers });
+    } catch (error) {
+      // 只标记发送阶段的网络拒绝；响应解码失败及身份错误不能被降级成网络可用性问题。
+      if (error instanceof TypeError) throw new ApiRequestError(0, "NETWORK_UNAVAILABLE", "请求未完成，请稍后重试。", "");
+      throw error;
+    }
     if (!response.ok) {
       const error = await toApiRequestError(response);
       if (

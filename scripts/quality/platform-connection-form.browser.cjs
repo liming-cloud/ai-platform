@@ -63,7 +63,7 @@ const client={hasSession:()=>true,
   getPlatformProviderConnectionPublication:async(id,version)=>{failRead(window.testState.publicationError);return {connectionId:id,
     connectionRevision:window.testState.badBinding?version+1:version,published:window.testState.connection.published};},
   listPlatformProviderModelCandidates:async(id,version,page)=>{failRead(window.testState.candidateError);return {
-    items:window.testState.emptyCandidates?[]:[{modelCode:"source-chat",modelType:"CHAT",classification:"KNOWN"}],
+    items:window.testState.emptyCandidates?[]:[{modelCode:"source-chat",modelType:"CHAT",classification:"CONFIRMED_BY_PROVIDER"}],
     pageNumber:page,totalElements:window.testState.emptyCandidates?0:1,hasPrevious:page>1,hasNext:false};},
   discoverPlatformProviderModels:async(id,version)=>{
     window.testState.detailCalls.push({action:"probe",id,version});

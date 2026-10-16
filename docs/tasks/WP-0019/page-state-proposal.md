@@ -1,6 +1,6 @@
 # S1 页面部分可用与禁用：触发合同提案
 
-状态：有限辅助读取降级方向已于 2026-10-16 人工接受，登记 [ADR-0097](../../architecture/decisions/ADR-0097-platform-connection-auxiliary-read-degradation.md)。尚未承接生产；原型候选须另行接受。页面 `disabled` 仍未定义合法触发，不替代 ADR-0095／0096。
+状态：有限辅助读取降级方向已于 2026-10-16 人工接受，登记 [ADR-0097](../../architecture/decisions/ADR-0097-platform-connection-auxiliary-read-degradation.md)；原型 `e7cd0ec22b3539033f374f4a8ca53c6b77d98ccc` 随后单独[人工接受](evidence/WP-0019-S1-prototype-acceptance-20261012.md)，生产承接与验收进行中。页面 `disabled` 仍未定义合法触发，不替代 ADR-0095／0096。
 
 调查基线为 `9fd7601a4681c45ee520d10983cb4648691055b7`，验收工具修复为 `6d0f1324dff036f19d59425d65a3035d0b54ded0`。原型唯一来源为 OpenDesign Cloud 项目 `249f81f2-6f1a-46ff-988c-da3cdedb35e7`，接受版本 `877a813652da2c96f960b71e29ed7a14eccb89c9`。本提案没有修改原型。
 

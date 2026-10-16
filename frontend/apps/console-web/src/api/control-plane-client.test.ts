@@ -7,6 +7,22 @@ import {
 } from "./control-plane-client";
 
 describe("ControlPlaneClient", () => {
+  it("将发送阶段网络失败标识为可区分的安全错误，不泄漏底层消息", async () => {
+    const client = authenticatedClient(async () => { throw new TypeError("synthetic-network-private-detail"); });
+    await expect(client.getPlatformProviderConnectionDirectorySummary()).rejects.toEqual(
+      new ApiRequestError(0, "NETWORK_UNAVAILABLE", "请求未完成，请稍后重试。", ""),
+    );
+    expect(client.hasSession()).toBe(true);
+  });
+
+  it("成功响应解析失败不伪装为网络不可用", async () => {
+    const response = new Response("invalid-json");
+    const client = authenticatedClient(async () => response);
+    await expect(client.getPlatformProviderConnectionDirectorySummary()).rejects.toBeInstanceOf(SyntaxError);
+    const consumed = Response.json({}); await consumed.json();
+    const bodyClient = authenticatedClient(async () => consumed);
+    await expect(bodyClient.getPlatformProviderConnectionDirectorySummary()).rejects.not.toBeInstanceOf(ApiRequestError);
+  });
   it("连接与候选字面搜索安全编码且发布摘要独立只读", async () => {
     const requests: Request[] = [];
     const client = authenticatedClient(async (input, init) => {
