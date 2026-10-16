@@ -2792,6 +2792,8 @@ function bindModelGovernance() {
     }, prototypeStore.getSession().accountId);
     clearConnectionSecrets();
     if (!result.ok) {
+      // 校验失败沿用既有错误语义，不能继承反馈段默认的成功色。
+      root.querySelector("#platform-connection-feedback").dataset.tone = "danger";
       root.querySelector("#platform-connection-feedback").textContent = {
         WORKSPACE_REQUIRED: "业务空间 ID 仅允许小写字母、数字和连字符。",
         PROVIDER_CAPABILITY_INVALID: "该厂商预设未覆盖此能力，请重新选择。",
