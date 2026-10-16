@@ -128,6 +128,52 @@ window.renderWorkspace(1);`;
     let pageErrors = 0;
     page.on("pageerror", () => { pageErrors += 1; });
     await page.goto(`http://127.0.0.1:${address.port}`);
+    for (const width of [390, 1024, 1440]) await check(`${width}px 完整表单底部动作按原型排列并保留实际200%文字`, async () => {
+      await page.setViewportSize({ width, height: 1000 });
+      await page.reload();
+      await page.getByRole("button", { name: "新增供应商连接", exact: true }).click();
+      const dialog = page.getByRole("dialog");
+      for (const doubled of [false, true]) {
+        if (doubled) await enlargeText(page);
+        await dialog.evaluate(async element => {
+          await document.fonts.ready;
+          await Promise.all(element.getAnimations({ subtree: true }).map(animation => animation.finished.catch(() => {})));
+        });
+        const actions = await dialog.locator(".fui-DialogActions").evaluate(element => {
+          const buttons = [...element.querySelectorAll("button")];
+          const [cancel, save] = buttons.map(button => button.getBoundingClientRect());
+          return { fonts: buttons.map(button => {
+            const s = getComputedStyle(button);
+            return { size: s.fontSize, weight: s.fontWeight, line: s.lineHeight, padding: s.padding };
+          }), sameRow: Math.abs(cancel.top - save.top) <= 1,
+          gap: save.left - cancel.right, right: element.getBoundingClientRect().right - save.right,
+          contentWidth: element.getBoundingClientRect().width, widths: [cancel.width, save.width] };
+        });
+        assert.deepEqual(actions.fonts, [0, 1].map(() => ({ size: doubled ? "28px" : "14px", weight: "620",
+          line: doubled ? "40px" : "20px", padding: "6px 12px" })));
+        assert.equal(actions.sameRow, true, "取消与保存按内容宽度同排，不被手机默认样式拉成整行");
+        assert.ok(Math.abs(actions.gap - 8) <= 1, "操作间隔保持原型8px");
+        assert.ok(Math.abs(actions.right) <= 1, "保存操作对齐完整表单右边缘");
+        assert.ok(actions.widths.every(value => value < actions.contentWidth));
+        for (const input of await dialog.locator("input:visible,select:visible").all()) {
+          await input.focus();
+          const focus = await input.evaluate(async element => {
+            const outer = element.closest(".fui-Input") ?? element;
+            await Promise.all(outer.getAnimations().map(animation => animation.finished.catch(() => {})));
+            const sample = document.createElement("span");
+            sample.style.color = "var(--foundation-accent)";
+            element.closest("form").append(sample);
+            const accent = getComputedStyle(sample).color;
+            sample.remove();
+            const s = getComputedStyle(outer);
+            return { accent, borders: [s.borderTopColor, s.borderRightColor, s.borderBottomColor, s.borderLeftColor] };
+          });
+          assert.deepEqual(focus.borders, Array(4).fill(focus.accent), "输入和下拉焦点四边沿用原型强调色");
+        }
+      }
+      await dialog.getByRole("button", { name: "取消", exact: true }).click();
+      await dialog.waitFor({ state: "hidden" });
+    });
     for (const width of [390, 1024, 1440]) await check(`${width}px 空目录按原型保留说明、200%文字及键盘创建取消`, async () => {
       await page.setViewportSize({ width, height: 1000 });
       await page.reload();
@@ -317,8 +363,14 @@ window.renderWorkspace(1);`;
           assert.deepEqual(await dialog.locator("input, select, textarea").evaluateAll(elements => elements.map(element =>
             parseFloat(getComputedStyle(element).fontSize))), nativeSizes.map(size => size * (enlarged ? 2 : 1)),
           "原生输入值、占位及选项必须与可见正文一起真实放大，不能只放大辅助文本");
-          await page.mouse.move(0, 0); await page.evaluate(() => document.activeElement?.blur());
+          // 保持模态内合法焦点，避免 `blur` 到 BODY 后被焦点陷阱送回输入而误测焦点边框。
+          await page.mouse.move(0, 0); await dialog.getByRole("button", { name: "取消", exact: true }).focus();
           await page.evaluate(() => new Promise(requestAnimationFrame));
+          await dialog.evaluate(async element => {
+            const controls = [...element.querySelectorAll(".fui-Input, .fui-Select select")];
+            controls.forEach(control => getComputedStyle(control).borderColor);
+            await Promise.all(controls.flatMap(control => control.getAnimations()).map(animation => animation.finished.catch(() => {})));
+          });
           assert.deepEqual(await dialog.locator(".fui-Input, .fui-Select select").evaluateAll(elements => elements.map(element => {
             const style = getComputedStyle(element);
             return [style.borderTopColor, style.borderRightColor, style.borderBottomColor, style.borderLeftColor, style.borderRadius];
