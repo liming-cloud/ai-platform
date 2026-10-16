@@ -62,6 +62,8 @@
 .platform-connection-dialog .fui-Button { min-width: 0; min-height: var(--foundation-control-height); border-radius: var(--foundation-control-radius); }
 .platform-connection-dialog .fui-Input, .platform-connection-dialog .fui-Select { min-height: var(--foundation-control-height); border-radius: var(--foundation-control-radius); min-width: 0; }
 .platform-connection-dialog .fui-Input input, .platform-connection-dialog .fui-Select select { font-family: var(--foundation-font-body); font-size: 1rem; line-height: 1.5; }
+/* 原生文字放大后由输入行盒撑高外框，扣除外框双边1px；正常字号仍保持36／44px基线。 */
+.platform-connection-dialog .fui-Input input { min-height: max(calc(var(--foundation-control-height) - 2px), calc(1lh + 0.5rem - 2px)); }
 .platform-connection-dialog .fui-Label { font-family: var(--foundation-font-body); font-size: 1rem; font-weight: 620; line-height: 1.6; }
 .platform-connection-dialog input[name="endpoint"] { font-family: "Anthropic Mono", ui-monospace, "JetBrains Mono", Menlo, monospace; }
 .platform-connection-dialog .fui-Field__hint { color: var(--foundation-text); font-family: var(--foundation-font-body); font-size: calc(5rem / 6); line-height: 1.6; }

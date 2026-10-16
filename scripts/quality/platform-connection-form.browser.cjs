@@ -311,6 +311,12 @@ window.renderWorkspace(1);`;
           assert.deepEqual(await dialog.locator("input, select, textarea").evaluateAll(elements => elements.map(element =>
             parseFloat(getComputedStyle(element).fontSize))), nativeSizes.map(size => size * (enlarged ? 2 : 1)),
           "原生输入值、占位及选项必须与可见正文一起真实放大，不能只放大辅助文本");
+          if (enlarged) {
+            const heights = await dialog.locator("input").evaluateAll(elements => elements.map(element =>
+              (element.closest(".fui-Input") || element).getBoundingClientRect().height));
+            if (heights.some(height => Math.abs(height - 56) > 1)) process.stdout.write(JSON.stringify({ nativeInputHeights: heights }) + "\n");
+            assert.ok(heights.every(height => Math.abs(height - 56) <= 1), "原生32px文字的输入框必须承接原型56px高度");
+          }
           await preview.scrollIntoViewIfNeeded();
           await page.waitForFunction(({ normalSize, enlarged }) => Math.abs(parseFloat(getComputedStyle(document.querySelector("[data-provider-address-value]")).fontSize) - normalSize * (enlarged ? 2 : 1)) < 0.01, { normalSize, enlarged });
           const metrics = await preview.evaluate(element => {
