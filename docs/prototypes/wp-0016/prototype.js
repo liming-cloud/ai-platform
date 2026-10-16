@@ -1670,7 +1670,9 @@ function renderPlatformModelConnections(state, demoState) {
     `<tr><td><strong>${escapeHtml(connection.name)}</strong><small>${escapeHtml(`${connection.providerName || "已有连接"} · ${connection.runtimeProtocol === "VENDOR_POST_PROCESSOR" || connection.capability === "RERANK" ? "厂商重排适配" : "OpenAI 兼容协议"}`)}</small></td><td>${escapeHtml(modelCapabilityLabel(connection.capability))}</td><td>${statusTag(connection.status)}</td><td><button class="button subtle" type="button" data-select-platform-connection="${escapeHtml(connection.id)}" data-nav-screen="platform-model-connection-detail" aria-label="查看${escapeHtml(connection.name)}">查看</button></td></tr>`
   );
   const content = [
-    empty ? "" : '<div class="inline-note">先添加供应商连接，再探测模型与发布。租户只看已授权模型，不显示平台地址或访问密钥。</div>',
+    state === "partial"
+      ? '<div class="inline-note" role="status"><p>发布摘要暂未取得，暂不能新增连接。连接目录仍可查询；重新载入后再试。</p><button class="button secondary" type="button" data-nav-screen="platform-model-connections" data-nav-state="success">重新载入</button></div>'
+      : empty ? "" : '<div class="inline-note">先添加供应商连接，再探测模型与发布。租户只看已授权模型，不显示平台地址或访问密钥。</div>',
     empty ? genericState("platform-model-connections", "empty") : modelDirectoryTable(["连接", "运行能力", "状态", "操作"], rows),
     `<dialog id="platform-connection-dialog" class="dialog-surface account-dialog" aria-labelledby="platform-connection-title"><form id="platform-connection-form" novalidate>
       <span class="section-kicker">模型治理 · 连接草稿</span><h2 id="platform-connection-title">新增供应商连接</h2>
@@ -1703,17 +1705,26 @@ function renderPlatformModelConnections(state, demoState) {
 
 function renderPlatformModelConnectionDetail(state, demoState) {
   const connection = selectedModelItem(demoState.models, "platformConnections", "selectedPlatformConnectionId");
+  // 仅供原型评审选择辅助事实缺失组合；不模拟生产权限或改变连接生命周期。
+  const requestedAuxiliary = new URLSearchParams(location.search).get("auxiliary");
+  const auxiliary = ["candidates", "publication"].includes(requestedAuxiliary) ? requestedAuxiliary : "both";
+  const candidatesUnavailable = state === "partial" && auxiliary !== "publication";
+  const publicationUnavailable = state === "partial" && auxiliary !== "candidates";
+  // 演示快照将发布与验证合并为状态；发布未知时仅展示已确认的连接验证事实。
+  const visibleStatus = publicationUnavailable && connection.status === "PUBLISHED" ? "VERIFIED" : connection.status;
   const operation = connection.status === "VERIFIED"
     ? '<button class="button primary" type="button" data-publish-platform-connection data-primary-action>发布连接</button>'
     : '<button class="button primary" type="button" data-probe-platform-connection data-primary-action>执行连接探测</button>';
   const discoveryAuthentication = connection.discoveryProfile === "VOLCENGINE_ARK_CONTROL_PLANE"
     ? `<div class="description-row"><dt>模型发现认证</dt><dd>${connection.discoveryCredentialsConfigured ? "独立 AK/SK 已配置（不回显）" : "待配置独立 AK/SK"}</dd></div>` : "";
   const content = [
-    `<div class="inline-note${connection.status === "FAILED" ? " danger" : ""}">${escapeHtml(connection.probeResult || (connection.status === "PUBLISHED" ? "初始演示快照保留了最近探测时间；可重新探测查看详细结果。" : connection.status === "VERIFIED" ? "连接探测已通过，可以发布连接。" : "尚未执行本版本的连接探测。"))}</div>`,
+    state === "partial"
+      ? '<div class="inline-note" role="status"><p>部分辅助信息暂未取得，暂不能探测或发布。已确认的连接事实保持可读；重新载入后再试。</p><button class="button secondary" type="button" data-nav-screen="platform-model-connection-detail" data-nav-state="success">重新载入</button></div>'
+      : `<div class="inline-note${connection.status === "FAILED" ? " danger" : ""}">${escapeHtml(connection.probeResult || (connection.status === "PUBLISHED" ? "初始演示快照保留了最近探测时间；可重新探测查看详细结果。" : connection.status === "VERIFIED" ? "连接探测已通过，可以发布连接。" : "尚未执行本版本的连接探测。"))}</div>`,
     '<div class="split-detail"><div>',
-    `<section class="section-block" data-model-status="${escapeHtml(connection.status)}"><div class="section-heading"><div><span class="section-kicker">连接版本 v${escapeHtml(connection.version)}</span><h2>${escapeHtml(connection.name)}</h2></div>${statusTag(connection.status)}</div><dl class="description-list"><div class="description-row"><dt>供应商类型</dt><dd>${escapeHtml(connection.providerName || "自定义连接")}</dd></div><div class="description-row"><dt>运行协议</dt><dd>${escapeHtml(connection.runtimeProtocol === "OPENAI_COMPATIBLE" ? "OpenAI 兼容接口" : "独立重排序适配")}</dd></div><div class="description-row"><dt>能力范围</dt><dd>${escapeHtml(modelCapabilityLabel(connection.capability))}</dd></div><div class="description-row"><dt>访问认证</dt><dd>${escapeHtml(connection.authenticationState === "CONFIGURED" ? "已配置（不回显）" : "待配置")}</dd></div>${discoveryAuthentication}<div class="description-row"><dt>最近探测</dt><dd>${escapeHtml(connection.lastProbe || "尚未探测")}</dd></div></dl></section>`,
-    `<section class="section-block"><div class="section-heading"><h2>发现模型</h2><span class="status-tag" data-tone="info">${connection.discoveredModels.length} 个</span></div>${pagedTable(connection.discoveredModels.map(item=>({...item,name:modelProductName(item.name),capabilityName:modelCapabilityLabel(item.capability)})),[{key:"name",label:"发现模型"},{key:"capabilityName",label:"能力"}],new URLSearchParams(location.search))}</section>`,
-    '</div><aside><section class="release-decision"><span class="section-kicker">当前动作</span><h2>' + (connection.status === "PUBLISHED" ? "连接已发布" : "探测后再发布") + '</h2><p>验证公网 HTTPS、认证、能力和响应边界；发布后仍需建立平台部署并显式授权租户。</p><div class="form-actions">' + operation + '</div>' + (modelFeedback ? `<p class="form-feedback" role="status">${escapeHtml(modelFeedback)}</p>` : "") + '</section></aside></div>',
+    `<section class="section-block" data-model-status="${escapeHtml(visibleStatus)}"><div class="section-heading"><div><span class="section-kicker">连接版本 v${escapeHtml(connection.version)}</span><h2>${escapeHtml(connection.name)}</h2></div>${statusTag(visibleStatus)}</div><dl class="description-list"><div class="description-row"><dt>供应商类型</dt><dd>${escapeHtml(connection.providerName || "自定义连接")}</dd></div><div class="description-row"><dt>运行协议</dt><dd>${escapeHtml(connection.runtimeProtocol === "OPENAI_COMPATIBLE" ? "OpenAI 兼容接口" : "独立重排序适配")}</dd></div><div class="description-row"><dt>能力范围</dt><dd>${escapeHtml(modelCapabilityLabel(connection.capability))}</dd></div><div class="description-row"><dt>访问认证</dt><dd>${escapeHtml(connection.authenticationState === "CONFIGURED" ? "已配置（不回显）" : "待配置")}</dd></div>${discoveryAuthentication}<div class="description-row"><dt>最近探测</dt><dd>${escapeHtml(connection.lastProbe || "尚未探测")}</dd></div></dl></section>`,
+    `<section class="section-block"><div class="section-heading"><h2>发现模型</h2><span class="status-tag" data-tone="info">${candidatesUnavailable ? "暂未取得" : connection.discoveredModels.length + " 个"}</span></div>${candidatesUnavailable ? '<p>发现模型暂未取得，重新载入后再试。</p>' : pagedTable(connection.discoveredModels.map(item=>({...item,name:modelProductName(item.name),capabilityName:modelCapabilityLabel(item.capability)})),[{key:"name",label:"发现模型"},{key:"capabilityName",label:"能力"}],new URLSearchParams(location.search))}</section>`,
+    '</div><aside><section class="release-decision"><span class="section-kicker">当前动作</span><h2>' + (publicationUnavailable ? "发布状态暂未取得" : connection.status === "PUBLISHED" ? "连接已发布" : "探测后再发布") + '</h2><p>验证公网 HTTPS、认证、能力和响应边界；发布后仍需建立平台部署并显式授权租户。</p><div class="form-actions">' + operation + '</div>' + (modelFeedback ? `<p class="form-feedback" role="status">${escapeHtml(modelFeedback)}</p>` : "") + '</section></aside></div>',
   ].join("");
   return adminShell("platform-model-connection-detail", "供应商连接探测", "", '<button class="button secondary" type="button" data-nav-screen="platform-model-connections">返回连接目录</button>', content, state, "模型治理 / 连接探测", "platform");
 }
