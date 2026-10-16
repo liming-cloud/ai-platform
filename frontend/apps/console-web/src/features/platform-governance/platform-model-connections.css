@@ -64,12 +64,22 @@
 /* Fluent原生下拉和输入外框默认底边、圆角不同；本表单按已接受原型统一四边。 */
 .platform-connection-dialog .platform-connection-form .fui-Input,
 .platform-connection-dialog .platform-connection-form .fui-Select select { border-color: var(--foundation-border-strong); border-radius: var(--foundation-control-radius); }
+/* 原型采用原生下拉箭头，不能同时保留Fluent图标及其额外右侧留白。 */
+.platform-connection-dialog .fui-Select select { appearance: auto; padding-inline: 0.75rem; }
+.platform-connection-dialog .fui-Select__icon { display: none; }
+/* 输入以完整外框呈现可见焦点，避免底部光条与原型焦点环叠加。 */
+.platform-connection-dialog .fui-Input::after { display: none; }
+.platform-connection-dialog .platform-connection-form .fui-Input:focus-within,
+.platform-connection-dialog .platform-connection-form .fui-Select select:focus-visible { outline: 2px solid var(--foundation-accent); outline-offset: 2px; box-shadow: none; }
 .platform-connection-dialog .fui-Input input, .platform-connection-dialog .fui-Select select { font-family: var(--foundation-font-body); font-size: 1rem; line-height: 1.5; }
 /* 原生文字放大后由输入行盒撑高外框，扣除外框双边1px；正常字号仍保持36／44px基线。 */
 .platform-connection-dialog .fui-Input input { min-height: max(calc(var(--foundation-control-height) - 2px), calc(1lh + 0.5rem - 2px)); }
 .platform-connection-dialog .fui-Label { font-family: var(--foundation-font-body); font-size: 1rem; font-weight: 620; line-height: 1.6; }
+/* Field默认标签内边距和2px间隔会压缩行距，标签及说明均按原型保留8px间隔。 */
+.platform-connection-dialog .platform-connection-form .fui-Label { padding-block: 0; margin-bottom: 0.5rem; }
 .platform-connection-dialog input[name="endpoint"] { font-family: "Anthropic Mono", ui-monospace, "JetBrains Mono", Menlo, monospace; }
 .platform-connection-dialog .fui-Field__hint { color: var(--foundation-text); font-family: var(--foundation-font-body); font-size: calc(5rem / 6); line-height: 1.6; }
+.platform-connection-dialog .platform-connection-form .fui-Field__hint { margin-top: 0.5rem; }
 .platform-connection-dialog .platform-connection-address-hint { display: grid; gap: 0.5rem; min-width: 0; margin-top: 0.5rem; }
 .platform-connection-dialog [data-provider-address-value] { min-width: 0; overflow-wrap: anywhere; color: var(--foundation-muted-text); font-family: "Anthropic Mono", ui-monospace, "JetBrains Mono", Menlo, monospace; font-size: 0.875rem; line-height: 1.6; }
 .platform-connection-dialog .fui-Select select { height: auto; min-height: max(var(--foundation-control-height), calc(1.5em + 0.5rem)); }

@@ -167,7 +167,13 @@ window.renderWorkspace(1);`;
       await page.waitForFunction(() => getComputedStyle(document.querySelector('input[type="password"]')).fontSize === "32px");
       assert.equal(await input.evaluate(element => element.scrollHeight <= element.clientHeight + 1), true);
       for (const select of await page.getByRole("dialog").locator("select").all()) {
-        assert.equal(await select.evaluate(element => element.clientHeight >= Math.ceil(parseFloat(getComputedStyle(element).lineHeight))), true, "放大文字不能被下拉框固定高度裁切");
+        assert.equal(await select.evaluate(element => {
+          const style = getComputedStyle(element), line = parseFloat(style.lineHeight), context = document.createElement("canvas").getContext("2d");
+          context.font = `${style.fontStyle} ${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
+          const metrics = context.measureText("国Ag09()");
+          // 原生下拉可能返回`normal`；此时仍用实际字体边界证明未裁切，不能跳过断言。
+          return element.clientHeight >= Math.ceil(Number.isFinite(line) ? line : metrics.fontBoundingBoxAscent + metrics.fontBoundingBoxDescent);
+        }), true, "放大文字不能被下拉框固定高度裁切");
       }
       const kicker = await page.getByRole("dialog").locator(".platform-connection-kicker").boundingBox();
       const title = await page.getByRole("dialog").getByRole("heading", { name: "新增供应商连接", exact: true }).boundingBox();
@@ -318,6 +324,31 @@ window.renderWorkspace(1);`;
             return [style.borderTopColor, style.borderRightColor, style.borderBottomColor, style.borderLeftColor, style.borderRadius];
           })), nativeSizes.map(() => [...Array(4).fill("oklab(0.665396 -0.000483552 0.00399556)"), "8px"]),
           "原生控件四边颜色及圆角必须承接原型，不能保留Fluent默认深色底边与4px下拉圆角");
+          await input.focus();
+          // 即使启用reduced-motion，过渡仍需一次样式刷新；不能量测中间的默认焦点帧。
+          await page.waitForFunction(() => {
+            const outer = document.querySelector('input[type="url"]').closest(".fui-Input"), style = getComputedStyle(outer);
+            return style.outlineWidth === "2px" && style.outlineStyle === "solid" && style.outlineOffset === "2px"
+              && getComputedStyle(outer, "::after").display === "none";
+          });
+          assert.deepEqual(await input.evaluate(element => {
+            const outer = element.closest(".fui-Input"), style = getComputedStyle(outer);
+            return [style.outlineWidth, style.outlineStyle, style.outlineOffset, getComputedStyle(outer, "::after").display];
+          }), ["2px", "solid", "2px", "none"], "输入焦点须使用原型外框焦点环，不能保留Fluent底部光条");
+          await input.evaluate(element => element.blur());
+          const fields = await dialog.locator(".fui-Field").evaluateAll(elements => elements.map(field => {
+            const label = field.querySelector("label"), control = field.querySelector(".fui-Input, .fui-Select"), hint = field.querySelector(".fui-Field__hint");
+            return { labelGap: control.getBoundingClientRect().top - label.getBoundingClientRect().bottom,
+              hintGap: hint && hint.getBoundingClientRect().height > 0 ? hint.getBoundingClientRect().top - control.getBoundingClientRect().bottom : null };
+          }));
+          if (fields.some(field => Math.abs(field.labelGap - 8) > 1 || field.hintGap !== null && Math.abs(field.hintGap - 8) > 1)) process.stdout.write(JSON.stringify({ nativeFieldSpacing: fields }) + "\n");
+          assert.ok(fields.every(field => Math.abs(field.labelGap - 8) <= 1 && (field.hintGap === null || Math.abs(field.hintGap - 8) <= 1)),
+            "标签、控件和说明之间须保持原型8px间距");
+          assert.equal(await dialog.locator(".fui-Select select").evaluateAll(elements => elements.every(element => {
+            const style = getComputedStyle(element);
+            return style.appearance === "auto" && style.paddingRight === "12px";
+          })), true, "下拉须使用原型的原生箭头及12px内边距");
+          assert.equal(await dialog.locator(".fui-Select__icon:visible").count(), 0, "不得叠加Fluent自定义箭头");
           if (enlarged) {
             const heights = await dialog.locator("input").evaluateAll(elements => elements.map(element =>
               (element.closest(".fui-Input") || element).getBoundingClientRect().height));
