@@ -300,8 +300,17 @@ window.renderWorkspace(1);`;
           "运行地址的辅助说明必须包含完整地址");
         const normalSize = await preview.evaluate(element => parseFloat(getComputedStyle(element).fontSize));
         assert.equal(normalSize, 14, "完整地址沿用原型14px辅助字体");
+        const nativeSizes = await dialog.locator("input, select, textarea").evaluateAll(elements => elements.map(element =>
+          parseFloat(getComputedStyle(element).fontSize)));
         for (const enlarged of [false, true]) {
           if (enlarged) await enlargeText(page);
+          await page.waitForFunction(expected => {
+            const controls = [...document.querySelector('[role="dialog"]').querySelectorAll("input, select, textarea")];
+            return controls.every((element, index) => parseFloat(getComputedStyle(element).fontSize) === expected[index]);
+          }, nativeSizes.map(size => size * (enlarged ? 2 : 1)));
+          assert.deepEqual(await dialog.locator("input, select, textarea").evaluateAll(elements => elements.map(element =>
+            parseFloat(getComputedStyle(element).fontSize))), nativeSizes.map(size => size * (enlarged ? 2 : 1)),
+          "原生输入值、占位及选项必须与可见正文一起真实放大，不能只放大辅助文本");
           await preview.scrollIntoViewIfNeeded();
           await page.waitForFunction(({ normalSize, enlarged }) => Math.abs(parseFloat(getComputedStyle(document.querySelector("[data-provider-address-value]")).fontSize) - normalSize * (enlarged ? 2 : 1)) < 0.01, { normalSize, enlarged });
           const metrics = await preview.evaluate(element => {
@@ -508,6 +517,24 @@ window.renderWorkspace(1);`;
       assert.equal(await page.locator(".platform-connection-object-line").textContent(), "失败");
       assert.equal(await page.locator(".platform-connection-section__heading").getByText("失败", { exact: true }).count(), 1);
     });
+    for (const width of [390, 1024, 1440]) await check(`${width}px 已停用连接只禁用对象写入并保留键盘返回`, async () => {
+      await page.setViewportSize({ width, height: width === 390 ? 844 : width === 1024 ? 900 : 1000 });
+      for (const doubled of [false, true]) {
+        await page.reload(); await page.getByRole("button", { name: "新增供应商连接", exact: true }).waitFor();
+        await page.evaluate(() => {
+          window.resetDetail(); window.testState.connection.status = "DISABLED"; window.renderDetail(1, 70);
+        });
+        await page.getByRole("heading", { name: "源码隔离连接", exact: true }).waitFor();
+        if (doubled) await enlargeText(page);
+        assert.equal(await page.locator(".platform-connection-object-line").textContent(), "已停用");
+        assert.equal(await page.getByRole("button", { name: "执行连接探测", exact: true }).isDisabled(), true);
+        assert.equal(await page.getByRole("button", { name: "发布连接", exact: true }).count(), 0);
+        const back = page.getByRole("button", { name: "返回连接目录", exact: true });
+        await back.focus(); await page.keyboard.press("Enter");
+        await page.waitForFunction(() => window.testState.route?.task === "connections");
+        assert.equal(await page.evaluate(() => window.testState.detailCalls.length + window.testState.writes.length), 0);
+      }
+    });
     await check("缺少方舟独立 AK/SK 时显示待配置且禁止探测", async () => {
       await page.evaluate(() => {
         window.resetDetail(); window.testState.connection.discoveryProfile = "VOLCENGINE_ARK_CONTROL_PLANE";
@@ -577,6 +604,8 @@ window.renderWorkspace(1);`;
         for (const screen of ["directory", "detail"]) {
           await page.evaluate(screen => screen === "directory" ? window.renderWorkspace(40) : window.renderDetail(1, 40), screen);
           const heading = page.getByRole("heading", { name: screen === "directory" ? "平台模型连接" : "供应商连接探测", exact: true });
+          // 加载页标题与正文标题同名，必须等最终正文出现，不能量测即将卸载的标题。
+          await page.locator(screen === "directory" ? ".platform-connection-empty" : ".platform-connection-detail").waitFor();
           await heading.waitFor(); await page.evaluate(() => document.fonts.ready);
           await page.waitForFunction(({ title, size, line }) => {
             const element = [...document.querySelectorAll("h1")].find(item => item.textContent === title);
@@ -604,6 +633,10 @@ window.renderWorkspace(1);`;
       descriptionFont: document.querySelector(".platform-connection-empty > p:last-child") && getComputedStyle(document.querySelector(".platform-connection-empty > p:last-child")).fontSize,
       descriptionInlineFont: document.querySelector(".platform-connection-empty > p:last-child")?.style.fontSize,
       descriptionTransition: document.querySelector(".platform-connection-empty > p:last-child") && getComputedStyle(document.querySelector(".platform-connection-empty > p:last-child")).transition,
+      nativeTypography: [...document.querySelectorAll('[role="dialog"] input, [role="dialog"] select, [role="dialog"] textarea')].map(element => ({
+        tag: element.tagName, type: element.getAttribute("type"), fontSize: getComputedStyle(element).fontSize,
+        targetSize: element.style.fontSize, visible: element.getBoundingClientRect().height > 0,
+      })),
     })) })}\n`);
     if (page && stage.includes("空目录")) { const image = path.join(temporary, "failure-layout.png"); await page.screenshot({ path: image, fullPage: true }); fs.chmodSync(image, 0o600); }
     if (phase && page) process.stdout.write(`${JSON.stringify(await page.evaluate(() => ({

@@ -18,17 +18,20 @@ function overviewConfiguration(environment = process.env) {
   return { ...configuration, tenantId };
 }
 
-/** 只扩大可见文本一次，避免父子元素重复翻倍或遗漏不同语义标签。 */
+/** 同时放大可见文本和原生表单文字；先固定字号，避免继承造成重复翻倍，不读取输入值。 */
 async function enlargeText(page) {
   await page.evaluate(() => {
     const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
     const parents = new Set();
+    const visible = element => element instanceof HTMLElement
+      && element.getBoundingClientRect().width > 0 && element.getBoundingClientRect().height > 0
+      && getComputedStyle(element).visibility !== "hidden";
     while (walker.nextNode()) {
       const element = walker.currentNode.parentElement;
-      if (walker.currentNode.textContent.trim() && element instanceof HTMLElement
-        && element.getBoundingClientRect().width > 0 && element.getBoundingClientRect().height > 0
-        && getComputedStyle(element).visibility !== "hidden") parents.add(element);
+      if (walker.currentNode.textContent.trim() && visible(element)) parents.add(element);
     }
+    // 输入值、占位文本和选中项不是可见的 DOM 文本节点，必须显式覆盖。
+    document.querySelectorAll("input, textarea, select").forEach(element => { if (visible(element)) parents.add(element); });
     const elements = [...parents];
     const sizes = elements.map(element => parseFloat(getComputedStyle(element).fontSize));
     elements.forEach((element, index) => { element.style.fontSize = `${sizes[index] * 2}px`; });
