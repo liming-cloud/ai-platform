@@ -311,6 +311,13 @@ window.renderWorkspace(1);`;
           assert.deepEqual(await dialog.locator("input, select, textarea").evaluateAll(elements => elements.map(element =>
             parseFloat(getComputedStyle(element).fontSize))), nativeSizes.map(size => size * (enlarged ? 2 : 1)),
           "原生输入值、占位及选项必须与可见正文一起真实放大，不能只放大辅助文本");
+          await page.mouse.move(0, 0); await page.evaluate(() => document.activeElement?.blur());
+          await page.evaluate(() => new Promise(requestAnimationFrame));
+          assert.deepEqual(await dialog.locator(".fui-Input, .fui-Select select").evaluateAll(elements => elements.map(element => {
+            const style = getComputedStyle(element);
+            return [style.borderTopColor, style.borderRightColor, style.borderBottomColor, style.borderLeftColor, style.borderRadius];
+          })), nativeSizes.map(() => [...Array(4).fill("oklab(0.665396 -0.000483552 0.00399556)"), "8px"]),
+          "原生控件四边颜色及圆角必须承接原型，不能保留Fluent默认深色底边与4px下拉圆角");
           if (enlarged) {
             const heights = await dialog.locator("input").evaluateAll(elements => elements.map(element =>
               (element.closest(".fui-Input") || element).getBoundingClientRect().height));
