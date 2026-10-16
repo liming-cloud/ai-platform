@@ -155,6 +155,7 @@ window.renderWorkspace(1);`;
         assert.ok(Math.abs(actions.gap - 8) <= 1, "操作间隔保持原型8px");
         assert.ok(Math.abs(actions.right) <= 1, "保存操作对齐完整表单右边缘");
         assert.ok(actions.widths.every(value => value < actions.contentWidth));
+        let focusAccent;
         for (const input of await dialog.locator("input:visible,select:visible").all()) {
           await input.focus();
           const focus = await input.evaluate(async element => {
@@ -168,7 +169,20 @@ window.renderWorkspace(1);`;
             const s = getComputedStyle(outer);
             return { accent, borders: [s.borderTopColor, s.borderRightColor, s.borderBottomColor, s.borderLeftColor] };
           });
+          focusAccent = focus.accent;
           assert.deepEqual(focus.borders, Array(4).fill(focus.accent), "输入和下拉焦点四边沿用原型强调色");
+        }
+        for (const button of await dialog.locator("button:visible").all()) {
+          await button.focus(); await page.keyboard.press("Tab"); await page.keyboard.press("Shift+Tab");
+          const focus = await button.evaluate(async element => {
+            getComputedStyle(element).outlineWidth;
+            await Promise.all(element.getAnimations().map(animation => animation.finished.catch(() => {})));
+            const s = getComputedStyle(element), after = getComputedStyle(element, "::after");
+            return { color: s.outlineColor, style: s.outlineStyle, width: s.outlineWidth, offset: s.outlineOffset,
+              shadow: s.boxShadow, extraIndicator: after.display !== "none" && !["none", "normal"].includes(after.content) && parseFloat(after.borderWidth) > 0 };
+          });
+          assert.deepEqual(focus, { color: focusAccent, style: "solid", width: "2px", offset: "2px", shadow: "none", extraIndicator: false },
+            "完整表单按钮的键盘焦点应为原型强调色2px外环及2px偏移，不保留额外黑色边框");
         }
       }
       await dialog.getByRole("button", { name: "取消", exact: true }).click();
