@@ -76,7 +76,7 @@ export function PlatformModelSupplyWorkspace({ client, route, sessionRevision, o
   return <div className={"platform-connection-page" + (empty ? " platform-connection-page--empty" : "")} data-read-state={state}>
     <header className="platform-connection-page__heading">
       <p className="platform-connection-page__context">模型治理</p>
-      <div><h1 ref={headingRef} tabIndex={-1}>平台模型连接</h1>
+      <div className={state === "partial" ? "platform-connection-page__copy" : undefined}><h1 ref={headingRef} tabIndex={-1}>平台模型连接</h1>
         <div className="platform-connection-object-line">{state === "partial" ? <span>部分完成</span> : empty ? "暂无记录" : `${published} 个已发布连接`}</div></div>
       <Dialog open={creating && state === "ready" && !busy} onOpenChange={(_, data) => { if (data.open && state === "ready" && !busy) setCreating(true); else closeCreateDialog(); }}>
         {/* 正式触发器登记焦点恢复目标，身份替换卸载模态时也能清理原隐藏范围。 */}

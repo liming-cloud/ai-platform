@@ -99,7 +99,7 @@ export function PlatformProviderConnectionDetail({ client, route, onRouteChange 
   }
 
   if (state === "stale") return <StatePanel kind="stale" title="浏览器会话已经失效" description="请重新登录后查看平台连接。" />;
-  if (state === "loading" || state === "error" || state === "denied" || (state === "ready" && !connection)) return <PlatformConnectionReadState detail
+  if (state === "loading" || state === "error" || state === "denied" || ((state === "ready" || state === "partial") && !connection)) return <PlatformConnectionReadState detail
     kind={state === "loading" ? "loading" : state === "denied" ? "denied" : "error"}
     onRetry={() => { focused.current = false; void load(); }} onReturn={() => onRouteChange(defaultConsoleRoute("platform"))} />;
   if (state === "empty" || !connection) return <div className="platform-connection-page platform-connection-page--empty">
@@ -118,7 +118,7 @@ export function PlatformProviderConnectionDetail({ client, route, onRouteChange 
   const failed = connection.lastProbeSucceeded === false;
   return <div className="platform-connection-page" data-read-state={state}>
     <header className="platform-connection-page__heading"><p className="platform-connection-page__context">模型治理</p>
-      <div><h1 ref={headingRef} tabIndex={-1}>供应商连接探测</h1>
+      <div className={state === "partial" ? "platform-connection-page__copy" : undefined}><h1 ref={headingRef} tabIndex={-1}>供应商连接探测</h1>
       <div className="platform-connection-object-line">{state === "partial" ? <span>部分完成</span> : connectionStatusLabel(connection)}</div></div>
       <Button appearance="secondary" onClick={() => onRouteChange({ navigationId: "platform-model-supply", task: "connections", page: 1, ...route.directory })}>返回连接目录</Button></header>
     <div className={"platform-connection-note" + (failed && state !== "partial" ? " platform-connection-note--danger" : "")} role={state === "partial" ? "status" : undefined}>
@@ -152,7 +152,7 @@ export function PlatformProviderConnectionDetail({ client, route, onRouteChange 
       <aside><section className="platform-connection-release"><span className="platform-connection-kicker">当前动作</span>
         <h2>{connection.published === undefined ? "发布状态暂未取得" : connection.published ? "连接已发布" : "探测后再发布"}</h2>
         <p>验证公网 HTTPS、认证、能力和响应边界；发布后仍需建立平台部署并显式授权租户。</p>
-        <div><Button appearance="primary" disabled={disabled} onClick={() => void perform(publish ? "publish" : "probe")}>
+        <div className="platform-connection-release-actions"><Button appearance="primary" disabled={disabled} onClick={() => void perform(publish ? "publish" : "probe")}>
           {operation ? operation === "probe" ? "正在探测" : "正在发布" : publish ? "发布连接" : "执行连接探测"}</Button></div>
         {feedback ? <p className={"form-feedback" + (feedback.failed ? " platform-connection-feedback--danger" : "")} role={feedback.failed ? "alert" : "status"}>{feedback.text}</p> : null}
         {failure ? <p className="form-feedback platform-connection-feedback--danger" role="alert">{failure}</p> : null}
