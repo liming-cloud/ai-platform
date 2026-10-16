@@ -190,6 +190,10 @@ for (const width of [390, 1024, 1440]) test(`${width}px partial 200%文字与键
     const box = e.getBoundingClientRect(), range = document.createRange(); range.selectNodeContents(e);
     return [...range.getClientRects()].every(r => r.top >= box.top - 1 && r.bottom <= box.bottom + 1);
   })), true, "200%文字下连接与候选状态标签均不得裁切");
+  if (width === 390) assert.equal(await page.locator(".platform-connection-descriptions > div").first().evaluate(e => {
+    const label = e.querySelector("dt").getBoundingClientRect(), value = e.querySelector("dd").getBoundingClientRect();
+    return Math.abs(label.left - value.left) <= 1 && label.bottom <= value.top + 1;
+  }), true, "手机事实区须按已接受原型将标签与值上下排列");
   config.faults = {}; await page.getByRole("button", { name: "重新载入", exact: true }).focus(); await page.keyboard.press("Enter");
   await page.getByRole("heading", { name: "连接已发布", exact: true }).waitFor();
   assert.equal(await page.getByRole("button", { name: "执行连接探测", exact: true }).isEnabled(), true);
