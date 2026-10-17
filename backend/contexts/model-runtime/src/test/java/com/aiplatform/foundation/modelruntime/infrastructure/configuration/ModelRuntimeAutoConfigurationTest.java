@@ -185,6 +185,13 @@ class ModelRuntimeAutoConfigurationTest {
                             context.getBean(PlatformProviderModelDiscoveryStore.class),
                             context.getBean(PlatformProviderConnectionPublicationRepository.class),
                             context.getBean(OutboundEndpointPolicy.class));
+                    // 暂停不能先于授权暴露配置事实，四类命令继续返回原权限拒绝。
+                    org.mockito.Mockito.when(identity.hasPermission(com.aiplatform.foundation.security.identity.PlatformPermissions.MODEL_PLATFORM_WRITE)).thenReturn(false);
+                    org.junit.jupiter.api.Assertions.assertAll(
+                            () -> org.assertj.core.api.Assertions.assertThatThrownBy(() -> connections.create(create)).isInstanceOf(com.aiplatform.foundation.modelruntime.application.provider.exception.ModelCatalogPermissionDeniedException.class),
+                            () -> org.assertj.core.api.Assertions.assertThatThrownBy(() -> connections.probe(probe)).isInstanceOf(com.aiplatform.foundation.modelruntime.application.provider.exception.ModelCatalogPermissionDeniedException.class),
+                            () -> org.assertj.core.api.Assertions.assertThatThrownBy(() -> context.getBean(PlatformProviderModelDiscoveryService.class).discover(discover)).isInstanceOf(com.aiplatform.foundation.modelruntime.application.provider.exception.ModelCatalogPermissionDeniedException.class),
+                            () -> org.assertj.core.api.Assertions.assertThatThrownBy(() -> context.getBean(PlatformProviderConnectionPublicationService.class).publish(publish)).isInstanceOf(com.aiplatform.foundation.modelruntime.application.provider.exception.ModelCatalogPermissionDeniedException.class));
                 });
 
         // 已允许连接写入时，缺少发布持久化不能静默退化为部分可写服务。
