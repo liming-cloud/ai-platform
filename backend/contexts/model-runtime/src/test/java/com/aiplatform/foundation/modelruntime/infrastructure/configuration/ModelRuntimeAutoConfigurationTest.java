@@ -157,6 +157,36 @@ class ModelRuntimeAutoConfigurationTest {
                     assertThat(context).hasSingleBean(PublishedEmbeddingDeploymentLookup.class);
                 });
 
+        runner.withBean(PlatformProviderConnectionPublicationRepository.class,
+                        () -> mock(PlatformProviderConnectionPublicationRepository.class))
+                .withPropertyValues("foundation.model-runtime.platform-connection-writes-enabled=false")
+                .run(context -> {
+                    assertThat(context).hasNotFailed();
+                    var identity = mock(com.aiplatform.foundation.security.identity.PlatformRequestContext.class);
+                    org.mockito.Mockito.when(identity.hasPermission(com.aiplatform.foundation.security.identity.PlatformPermissions.MODEL_PLATFORM_WRITE)).thenReturn(true);
+                    var create = mock(com.aiplatform.foundation.modelruntime.application.platformsupply.command.CreatePlatformProviderConnectionCommand.class);
+                    var probe = mock(com.aiplatform.foundation.modelruntime.application.platformsupply.command.ProbePlatformProviderConnectionCommand.class);
+                    var discover = mock(com.aiplatform.foundation.modelruntime.application.platformsupply.command.DiscoverPlatformProviderModelsCommand.class);
+                    var publish = mock(com.aiplatform.foundation.modelruntime.application.platformsupply.command.PublishPlatformProviderConnectionCommand.class);
+                    org.mockito.Mockito.when(create.context()).thenReturn(identity);
+                    org.mockito.Mockito.when(probe.context()).thenReturn(identity);
+                    org.mockito.Mockito.when(discover.context()).thenReturn(identity);
+                    org.mockito.Mockito.when(publish.context()).thenReturn(identity);
+                    var connections = context.getBean(PlatformProviderConnectionService.class);
+                    org.junit.jupiter.api.Assertions.assertAll(
+                            () -> assertThat(connections.presets(identity).toString()).contains("writesAvailable=false"),
+                            () -> org.assertj.core.api.Assertions.assertThatThrownBy(() -> connections.create(create)).hasMessage("平台连接写入暂不可用"),
+                            () -> org.assertj.core.api.Assertions.assertThatThrownBy(() -> connections.probe(probe)).hasMessage("平台连接写入暂不可用"),
+                            () -> org.assertj.core.api.Assertions.assertThatThrownBy(() -> context.getBean(PlatformProviderModelDiscoveryService.class).discover(discover)).hasMessage("平台连接写入暂不可用"),
+                            () -> org.assertj.core.api.Assertions.assertThatThrownBy(() -> context.getBean(PlatformProviderConnectionPublicationService.class).publish(publish)).hasMessage("平台连接写入暂不可用"));
+                    org.mockito.Mockito.verifyNoInteractions(context.getBean(PlatformProviderConnectionRepository.class),
+                            context.getBean(PlatformProviderConnectionCredentialWriter.class),
+                            context.getBean(PlatformProviderConnectionCredentialTransaction.class),
+                            context.getBean(PlatformProviderModelDiscoveryStore.class),
+                            context.getBean(PlatformProviderConnectionPublicationRepository.class),
+                            context.getBean(OutboundEndpointPolicy.class));
+                });
+
         // 已允许连接写入时，缺少发布持久化不能静默退化为部分可写服务。
         runner.run(context -> {
             assertThat(context).hasFailed();

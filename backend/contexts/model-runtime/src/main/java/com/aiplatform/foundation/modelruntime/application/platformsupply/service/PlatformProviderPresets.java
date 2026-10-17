@@ -28,7 +28,7 @@ public final class PlatformProviderPresets {
                     variant("RERANK", "https://api.siliconflow.cn/v1/rerank", false))),
             new Preset("VOLCENGINE", "火山方舟", "cn-beijing", "中国北京", List.of("CHAT"),
                     "VOLCENGINE_ARK_CONTROL_PLANE", List.of(new Variant("CHAT",
-                    "https://ark.cn-beijing.volces.com/api/v3", false, "OPENAI_COMPATIBLE", "VOLCENGINE_ARK_CONTROL_PLANE")))));
+                    "https://ark.cn-beijing.volces.com/api/v3", false, "OPENAI_COMPATIBLE", "VOLCENGINE_ARK_CONTROL_PLANE")))), true);
 
     private PlatformProviderPresets() {}
 

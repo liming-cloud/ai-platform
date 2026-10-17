@@ -8,7 +8,7 @@ const connection: PlatformProviderConnectionSummary = { id, displayName: "合成
   status: "VERIFIED", discoveryProfile: "OPENAI_MODELS_API", credentialConfigured: true, discoveryCredentialsConfigured: false,
   published: true, region: "unspecified", authenticationType: "API_KEY", createdAt: "2026-10-16T00:00:00Z",
   lastProbeCode: null, lastProbeSucceeded: true, lastProbedAt: "2026-10-16T00:00:00Z" };
-const presets: PlatformProviderPresets = { version: "synthetic", items: [{ id: "CUSTOM", name: "自定义连接", region: "unspecified",
+const presets: PlatformProviderPresets = { writesAvailable: true, version: "synthetic", items: [{ id: "CUSTOM", name: "自定义连接", region: "unspecified",
   regionLabel: "自行配置", capabilities: ["CHAT"], discoveryProfile: "OPENAI_MODELS_API", variants: [{ capability: "CHAT",
     endpointTemplate: "", workspaceRequired: false, runtimeProtocol: "OPENAI_COMPATIBLE", discoveryProfile: "OPENAI_MODELS_API" }] }] };
 const candidate: PlatformProviderModelCandidate = { modelCode: "合成模型", modelType: "CHAT", capabilities: ["CHAT"], classification: "CONFIRMED_BY_PROVIDER" };
@@ -127,5 +127,22 @@ describe("S1 辅助读取有限降级", () => {
     const result = await detail(c);
     expect(result).toMatchObject({ kind: "ready", connection: { status: "DISABLED" }, discoveredTotal: 0 });
     expect(c.listPlatformProviderModelCandidates).not.toHaveBeenCalled();
+  });
+});
+
+// 暂停事实来自必读预设，不从单对象状态、故障或客户端参数推导。
+describe("S1 写入可用性读取合同", () => {
+  it.each([undefined, null, "false", 0])("可用性字段%s非法时两页失败关闭", async writesAvailable => {
+    const c = client(); c.getPlatformProviderPresets.mockResolvedValue(Object.assign({}, presets, { writesAvailable }) as PlatformProviderPresets);
+    await expect(directory(c)).rejects.toThrow("invalid-connection-presets");
+    await expect(detail(c)).rejects.toThrow("invalid-connection-presets");
+  });
+  it("完整读取且明确暂停时详情进入disabled，部分辅助失败优先保留partial", async () => {
+    const c = client(); c.getPlatformProviderPresets.mockResolvedValue(Object.assign({}, presets, { writesAvailable: false }));
+    expect((await detail(c)).kind).toBe("disabled");
+    c.listPlatformProviderModelCandidates.mockRejectedValue(error(503));
+    expect((await detail(c)).kind).toBe("partial");
+    c.listPlatformProviderModelCandidates.mockRejectedValue(error(403));
+    await expect(detail(c)).rejects.toMatchObject({ status: 403 });
   });
 });

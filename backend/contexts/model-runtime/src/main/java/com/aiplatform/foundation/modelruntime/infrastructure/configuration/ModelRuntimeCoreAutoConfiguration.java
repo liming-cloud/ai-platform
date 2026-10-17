@@ -78,8 +78,13 @@ import org.springframework.beans.factory.ObjectProvider;
 @ConditionalOnProperty(
         name = "foundation.model-catalog.enabled",
         havingValue = "true")
-@EnableConfigurationProperties(ModelCatalogProperties.class)
+@EnableConfigurationProperties({ModelCatalogProperties.class, ModelRuntimeProperties.class})
 public class ModelRuntimeCoreAutoConfiguration {
+
+    @Bean
+    com.aiplatform.foundation.modelruntime.application.platformsupply.service.PlatformProviderConnectionWritePolicy platformProviderConnectionWritePolicy(ModelRuntimeProperties properties) {
+        return new com.aiplatform.foundation.modelruntime.application.platformsupply.service.PlatformProviderConnectionWritePolicy(properties.isPlatformConnectionWritesEnabled());
+    }
 
     @Bean
     @ConditionalOnMissingBean
@@ -129,9 +134,10 @@ public class ModelRuntimeCoreAutoConfiguration {
             PlatformProbeProviderService probes,
             EntityIdGenerator identifiers,
             com.aiplatform.foundation.security.egress.OutboundEndpointPolicy endpointPolicy,
-            com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.PlatformProviderConnectionFacts facts) {
+            com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.PlatformProviderConnectionFacts facts,
+            com.aiplatform.foundation.modelruntime.application.platformsupply.service.PlatformProviderConnectionWritePolicy writes) {
         return new PlatformProviderConnectionService(
-                repository, credentials, transactions, probes, Clock.systemUTC(), identifiers, endpointPolicy, facts);
+                repository, credentials, transactions, probes, Clock.systemUTC(), identifiers, endpointPolicy, facts, writes);
     }
 
     @Bean
@@ -139,9 +145,10 @@ public class ModelRuntimeCoreAutoConfiguration {
     @ConditionalOnBean(PlatformProviderConnectionService.class)
     PlatformProviderConnectionPublicationService platformProviderConnectionPublicationService(
             PlatformProviderConnectionRepository connections, PlatformProviderConnectionPublicationRepository publications,
-            EntityIdGenerator identifiers, ModelCatalogProperties properties) {
+            EntityIdGenerator identifiers, ModelCatalogProperties properties,
+            com.aiplatform.foundation.modelruntime.application.platformsupply.service.PlatformProviderConnectionWritePolicy writes) {
         return new PlatformProviderConnectionPublicationService(connections, publications, identifiers,
-                properties.getCapabilityVerificationValidity());
+                properties.getCapabilityVerificationValidity(), writes);
     }
 
     @Bean
@@ -151,14 +158,15 @@ public class ModelRuntimeCoreAutoConfiguration {
             List<PlatformProviderModelDiscoverer> discoverers,
             PlatformProviderModelDiscoveryStore store,
             EntityIdGenerator identifiers,
-            ModelCatalogProperties properties) {
+            ModelCatalogProperties properties,
+            com.aiplatform.foundation.modelruntime.application.platformsupply.service.PlatformProviderConnectionWritePolicy writes) {
         return new PlatformProviderModelDiscoveryService(
                 connections,
                 discoverers,
                 store,
                 Clock.systemUTC(),
                 identifiers,
-                properties.getCapabilityVerificationValidity());
+                properties.getCapabilityVerificationValidity(), writes);
     }
 
     @Bean

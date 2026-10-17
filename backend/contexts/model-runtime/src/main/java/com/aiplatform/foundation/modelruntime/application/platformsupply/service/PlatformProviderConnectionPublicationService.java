@@ -16,6 +16,7 @@ import java.util.Objects;
 
 /** 独立连接发布用例；不创建模型部署、目录或租户授权。 */
 public final class PlatformProviderConnectionPublicationService {
+    private final PlatformProviderConnectionWritePolicy writes;
     private final PlatformProviderConnectionRepository connections;
     private final PlatformProviderConnectionPublicationRepository publications;
     private final EntityIdGenerator identifiers;
@@ -23,7 +24,8 @@ public final class PlatformProviderConnectionPublicationService {
 
     public PlatformProviderConnectionPublicationService(PlatformProviderConnectionRepository connections,
             PlatformProviderConnectionPublicationRepository publications,
-            EntityIdGenerator identifiers, Duration validity) {
+            EntityIdGenerator identifiers, Duration validity, PlatformProviderConnectionWritePolicy writes) {
+        this.writes = Objects.requireNonNull(writes, "连接写入策略不能为空");
         this.connections = Objects.requireNonNull(connections, "连接仓储不能为空");
         this.publications = Objects.requireNonNull(publications, "发布仓储不能为空");
         this.identifiers = Objects.requireNonNull(identifiers, "标识生成器不能为空");
@@ -35,6 +37,7 @@ public final class PlatformProviderConnectionPublicationService {
     public PlatformProviderConnectionPublicationView publish(PublishPlatformProviderConnectionCommand command) {
         Objects.requireNonNull(command, "发布命令不能为空");
         requirePermission(command.context());
+        writes.requireAvailable();
         return PlatformProviderConnectionPublicationView.from(publications.publish(
                 PlatformProviderConnectionId.parse(command.providerConnectionId()), command.expectedVersion(),
                 identifiers.nextId(), command.context().subjectId().value(), validity));

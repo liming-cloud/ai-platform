@@ -53,7 +53,7 @@ function gate() { let release, arrive; return { wait: new Promise(r => { release
 async function visit(action, width = 1440) {
   const context = await browser.newContext({ viewport: { width, height: width === 390 ? 844 : 1000 }, reducedMotion: "reduce" });
   const page = await context.newPage(); page.setDefaultTimeout(5000);
-  const config = { faults: {}, label: "本轮连接", count: 21, calls: [], writes: 0 };
+  const config = { writesAvailable: true, faults: {}, label: "本轮连接", count: 21, calls: [], writes: 0 };
   const errors = [];
   page.on("pageerror", e => errors.push(e.message));
   await page.route("**/api/v1/**", async route => {
@@ -68,7 +68,7 @@ async function visit(action, width = 1440) {
       lastProbedAt: new Date().toISOString(), preset: { id: "CUSTOM", capability: "CHAT" } };
     const item = { modelCode: "本轮模型", modelType: "CHAT", capabilities: ["CHAT"], classification: "CONFIRMED_BY_PROVIDER" };
     const rows = key === "directory" ? [connection] : [item];
-    const body = key === "presets" ? { version: "synthetic", items: [{ id: "CUSTOM", name: "自定义连接", capabilities: ["CHAT"], variants: [{
+    const body = key === "presets" ? { writesAvailable: config.writesAvailable, version: "synthetic", items: [{ id: "CUSTOM", name: "自定义连接", capabilities: ["CHAT"], variants: [{
       capability: "CHAT", runtimeProtocol: "OPENAI_COMPATIBLE", endpointTemplate: "", workspaceRequired: false, discoveryProfile: "OPENAI_MODELS_API",
     }] }] } : key === "summary" ? { publishedConnections: config.count } : key === "connection" ? connection
       : key === "publication" ? { connectionId: id, connectionRevision: 3, published: true }
@@ -198,3 +198,44 @@ for (const width of [390, 1024, 1440]) test(`${width}px partial 200%文字与键
   await page.getByRole("heading", { name: "连接已发布", exact: true }).waitFor();
   assert.equal(await page.getByRole("button", { name: "执行连接探测", exact: true }).isEnabled(), true);
 }, width));
+
+for (const width of [390, 1024, 1440]) for (const detail of [false, true]) test(`${width}px ${detail ? "详情" : "目录"} 真实读取字段暂停及200%文字`, () => visit(async (page, config) => {
+  config.writesAvailable = false;
+  await page.evaluate(detail => window.start(detail), detail);
+  await page.locator('[data-read-state="disabled"]').waitFor();
+  await page.getByText("暂不可用", { exact: true }).waitFor();
+  const command = page.getByRole("button", { name: detail ? "执行连接探测" : "新增供应商连接", exact: true });
+  assert.equal(await command.isDisabled(), true);
+  assert.equal(await page.getByRole("searchbox").first().isEnabled(), true);
+  const heading = page.getByRole("heading", { level: 1 });
+  const size = await heading.evaluate(e => parseFloat(getComputedStyle(e).fontSize));
+  await enlargeText(page);
+  await page.waitForFunction(size => parseFloat(getComputedStyle(document.querySelector("h1")).fontSize) >= size * 2, size);
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), true);
+  await page.getByRole("searchbox").first().focus();
+  assert.equal(await page.getByRole("searchbox").first().evaluate(e => e === document.activeElement), true);
+  config.writesAvailable = true;
+  await page.evaluate(() => window.refreshRead());
+  await page.locator('[data-read-state="ready"]').waitFor();
+  assert.equal(await command.isEnabled(), true);
+}, width));
+
+test("暂停优先级不掩盖辅助未知与安全拒绝", () => visit(async (page, config) => {
+  config.writesAvailable = false; config.faults.summary = { status: 503 };
+  await page.evaluate(() => window.refreshRead()); await assertPartial(page, false);
+  config.faults.summary = { status: 403 };
+  await page.evaluate(() => window.refreshRead());
+  await page.getByText("当前会话不能访问此任务", { exact: true }).waitFor();
+  assert.equal(await page.getByText("暂不可用", { exact: true }).count(), 0);
+}));
+
+test("旧表单重读暂停时卸载秘密且不能恢复提交", () => visit(async (page, config) => {
+  await page.getByRole("button", { name: "新增供应商连接", exact: true }).click();
+  await page.locator('input[type="password"]').first().fill("synthetic-local-only-value");
+  config.writesAvailable = false;
+  await page.evaluate(() => window.refreshRead());
+  await page.locator('[data-read-state="disabled"]').waitFor();
+  await page.getByRole("dialog").waitFor({ state: "detached" });
+  assert.equal(await page.locator('input[type="password"]').count(), 0);
+  assert.equal(await page.getByRole("button", { name: "新增供应商连接", exact: true }).isDisabled(), true);
+}));

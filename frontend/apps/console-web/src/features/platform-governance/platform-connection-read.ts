@@ -53,7 +53,8 @@ export async function readPlatformConnectionDetail(client: ReadClient, id: strin
   }
   const candidates = auxiliary[1].status === "fulfilled" ? auxiliary[1].value : undefined;
   const connection: ConnectionProjection = { ...current, published };
-  return { kind: published === undefined || candidates === undefined ? "partial" as const : "ready" as const,
+  return { kind: published === undefined || candidates === undefined ? "partial" as const
+      : presets.writesAvailable ? "ready" as const : "disabled" as const,
     connection, presets, candidates: candidates?.page, discoveredTotal: candidates?.total };
 }
 
@@ -114,7 +115,7 @@ function requirePage<T>(page: Pick<PageResult<T>, "items" | "totalElements" | "h
     || typeof page.hasPrevious !== "boolean" || typeof page.hasNext !== "boolean") throw new Error("invalid-connection-page");
 }
 function requirePresets(presets: PlatformProviderPresets): void {
-  if (!presets || !Array.isArray(presets.items) || !presets.items.length || presets.items.some(item => !item
+  if (!presets || typeof presets.writesAvailable !== "boolean" || !Array.isArray(presets.items) || !presets.items.length || presets.items.some(item => !item
     || !Array.isArray(item.capabilities) || !item.capabilities.length || !Array.isArray(item.variants) || !item.variants.length)) {
     throw new Error("invalid-connection-presets");
   }

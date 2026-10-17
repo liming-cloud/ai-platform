@@ -34,6 +34,7 @@ public final class PlatformProviderConnectionService {
     private static final String DISCOVERY_SECRET_KEY_PREFIX =
             "secret://platform-provider-discovery-secret-key/";
 
+    private final PlatformProviderConnectionWritePolicy writes;
     private final PlatformProviderConnectionRepository repository;
     private final PlatformProviderConnectionCredentialWriter credentials;
     private final PlatformProviderConnectionCredentialTransaction transactions;
@@ -51,7 +52,9 @@ public final class PlatformProviderConnectionService {
             Clock clock,
             EntityIdGenerator identifiers,
             com.aiplatform.foundation.security.egress.OutboundEndpointPolicy endpointPolicy,
-            com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.PlatformProviderConnectionFacts facts) {
+            com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.PlatformProviderConnectionFacts facts,
+            PlatformProviderConnectionWritePolicy writes) {
+        this.writes = Objects.requireNonNull(writes, "连接写入策略不能为空");
         this.repository = Objects.requireNonNull(repository, "平台供应商连接仓储不能为空");
         this.credentials = Objects.requireNonNull(credentials, "平台供应商连接凭据写入器不能为空");
         this.transactions = Objects.requireNonNull(transactions, "平台供应商连接事务不能为空");
@@ -66,6 +69,7 @@ public final class PlatformProviderConnectionService {
             CreatePlatformProviderConnectionCommand command) {
         Objects.requireNonNull(command, "创建命令不能为空");
         requirePermission(command.context());
+        writes.requireAvailable();
         PlatformProviderPresets.validate(command.preset(), command.providerKind(), command.discoveryProfile(),
                 command.endpoint(), command.region());
         // 草稿也不能保存禁止地址；探测时仍会再次校验，不能复用本次 DNS 结论。
@@ -128,7 +132,9 @@ public final class PlatformProviderConnectionService {
     public com.aiplatform.foundation.modelruntime.application.platformsupply.dto.preset.PlatformProviderPresetsView presets(
             PlatformRequestContext context) {
         requirePermission(Objects.requireNonNull(context, "平台请求上下文不能为空"));
-        return PlatformProviderPresets.view();
+        var presets = PlatformProviderPresets.view();
+        return new com.aiplatform.foundation.modelruntime.application.platformsupply.dto.preset.PlatformProviderPresetsView(
+                presets.version(), presets.items(), writes.writesAvailable());
     }
 
     /** 只读恢复平台连接；先检查平台权限，不读取凭据、写入探测或建立发布事实。 */
@@ -142,6 +148,7 @@ public final class PlatformProviderConnectionService {
     public PlatformProviderConnectionView probe(ProbePlatformProviderConnectionCommand command) {
         Objects.requireNonNull(command, "平台连接探测命令不能为空");
         requirePermission(command.context());
+        writes.requireAvailable();
         var connection = repository.findById(PlatformProviderConnectionId.parse(command.providerConnectionId()))
                 .orElseThrow(() -> new IllegalArgumentException("平台供应商连接不存在"));
         if (connection.version() != command.expectedVersion()) {

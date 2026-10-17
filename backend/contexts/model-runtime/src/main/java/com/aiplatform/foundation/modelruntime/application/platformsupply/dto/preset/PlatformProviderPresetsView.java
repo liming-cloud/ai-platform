@@ -3,7 +3,7 @@ package com.aiplatform.foundation.modelruntime.application.platformsupply.dto.pr
 import java.util.List;
 
 /** 平台批准的非秘密预设；公开地址模板不来自任何已保存连接。 */
-public record PlatformProviderPresetsView(String version, List<Preset> items) {
+public record PlatformProviderPresetsView(String version, List<Preset> items, boolean writesAvailable) {
     public PlatformProviderPresetsView { items = List.copyOf(items); }
 
     /** 厂商和能力仅表示连接意图，不能代替真实模型能力验证。 */

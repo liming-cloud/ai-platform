@@ -41,7 +41,7 @@ class PlatformProviderConnectionServiceTest {
         var writer = new CapturingCredentialWriter();
         var service = new PlatformProviderConnectionService(new CreatingRepository(), writer,
                 java.util.function.Supplier::get, new PlatformProbeProviderService(List.of(), Clock.systemUTC()),
-                Clock.systemUTC(), () -> 320000000000000001L, new com.aiplatform.foundation.security.egress.PublicHttpsEndpointPolicy(), facts(0));
+                Clock.systemUTC(), () -> 320000000000000001L, new com.aiplatform.foundation.security.egress.PublicHttpsEndpointPolicy(), facts(0), new com.aiplatform.foundation.modelruntime.application.platformsupply.service.PlatformProviderConnectionWritePolicy(true));
         try (var key = SecretValue.copyOf("synthetic-private-key".toCharArray())) {
             assertThrows(com.aiplatform.foundation.security.egress.UnsafeOutboundEndpointException.class,
                     () -> service.create(new CreatePlatformProviderConnectionCommand(platformModelWriter(),
@@ -81,7 +81,7 @@ class PlatformProviderConnectionServiceTest {
         var identifiers = org.mockito.Mockito.mock(com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator.class);
         var facts = org.mockito.Mockito.mock(PlatformProviderConnectionFacts.class);
         var service = new PlatformProviderConnectionService(repository, writer, transactions, probes,
-                Clock.systemUTC(), identifiers, endpoint -> {}, facts);
+                Clock.systemUTC(), identifiers, endpoint -> {}, facts, new com.aiplatform.foundation.modelruntime.application.platformsupply.service.PlatformProviderConnectionWritePolicy(true));
         assertThrows(ModelCatalogPermissionDeniedException.class,
                 () -> service.get(sessionWithoutPlatformModelWrite(), "invalid-id"));
         org.mockito.Mockito.verifyNoInteractions(repository, writer, transactions, probes, identifiers, facts);
@@ -102,7 +102,7 @@ class PlatformProviderConnectionServiceTest {
         for (var projection : invalid) {
             var service = new PlatformProviderConnectionService(repository, new ForbiddenPathCredentialWriter(),
                     java.util.function.Supplier::get, new PlatformProbeProviderService(List.of(), Clock.systemUTC()),
-                    Clock.systemUTC(), () -> { throw new AssertionError("只读查询不能生成标识"); }, endpoint -> {}, ids -> projection);
+                    Clock.systemUTC(), () -> { throw new AssertionError("只读查询不能生成标识"); }, endpoint -> {}, ids -> projection, new com.aiplatform.foundation.modelruntime.application.platformsupply.service.PlatformProviderConnectionWritePolicy(true));
             assertThrows(com.aiplatform.foundation.modelruntime.application.provider.exception.ProviderConnectionConcurrentModificationException.class,
                     () -> service.get(platformModelWriter(), id.toString()));
         }
@@ -115,7 +115,7 @@ class PlatformProviderConnectionServiceTest {
         org.mockito.Mockito.when(repository.findById(id)).thenReturn(Optional.empty());
         var service = new PlatformProviderConnectionService(repository, new ForbiddenPathCredentialWriter(),
                 java.util.function.Supplier::get, new PlatformProbeProviderService(List.of(), Clock.systemUTC()),
-                Clock.systemUTC(), () -> { throw new AssertionError("详情查询不能生成标识"); }, endpoint -> {}, facts(0));
+                Clock.systemUTC(), () -> { throw new AssertionError("详情查询不能生成标识"); }, endpoint -> {}, facts(0), new com.aiplatform.foundation.modelruntime.application.platformsupply.service.PlatformProviderConnectionWritePolicy(true));
         assertThrows(com.aiplatform.foundation.modelruntime.application.provider.exception.ProviderConnectionNotFoundException.class,
                 () -> service.get(platformModelWriter(), id.toString()));
         org.mockito.Mockito.verify(repository).findById(id);
@@ -127,7 +127,7 @@ class PlatformProviderConnectionServiceTest {
         var repository = org.mockito.Mockito.mock(PlatformProviderConnectionRepository.class);
         var service = new PlatformProviderConnectionService(repository, new ForbiddenPathCredentialWriter(),
                 java.util.function.Supplier::get, new PlatformProbeProviderService(List.of(), Clock.systemUTC()),
-                Clock.systemUTC(), () -> { throw new AssertionError("详情查询不能生成标识"); }, endpoint -> {}, facts(0));
+                Clock.systemUTC(), () -> { throw new AssertionError("详情查询不能生成标识"); }, endpoint -> {}, facts(0), new com.aiplatform.foundation.modelruntime.application.platformsupply.service.PlatformProviderConnectionWritePolicy(true));
         assertThrows(IllegalArgumentException.class, () -> service.get(platformModelWriter(), "other-tenant/1"));
         org.mockito.Mockito.verifyNoInteractions(repository);
     }
@@ -142,7 +142,7 @@ class PlatformProviderConnectionServiceTest {
                 java.util.function.Supplier::get,
                 new PlatformProbeProviderService(java.util.List.of(), Clock.systemUTC()),
                 Clock.fixed(Instant.parse("2026-08-24T09:00:00Z"), java.time.ZoneOffset.UTC),
-                () -> 320000000000000001L, endpoint -> {}, facts(0));
+                () -> 320000000000000001L, endpoint -> {}, facts(0), new com.aiplatform.foundation.modelruntime.application.platformsupply.service.PlatformProviderConnectionWritePolicy(true));
         try (var apiKey = SecretValue.copyOf("inference-api-key".toCharArray());
                 var accessKeyId = SecretValue.copyOf("AK_TEST".toCharArray());
                 var secretAccessKey = SecretValue.copyOf("SK_TEST".toCharArray())) {
@@ -175,7 +175,7 @@ class PlatformProviderConnectionServiceTest {
                 java.util.function.Supplier::get,
                 new PlatformProbeProviderService(java.util.List.of(), Clock.systemUTC()),
                 Clock.systemUTC(),
-                () -> 310000000000000001L, endpoint -> {}, facts(0));
+                () -> 310000000000000001L, endpoint -> {}, facts(0), new com.aiplatform.foundation.modelruntime.application.platformsupply.service.PlatformProviderConnectionWritePolicy(true));
         try (var apiKey = SecretValue.copyOf("test-api-key".toCharArray())) {
             assertThrows(
                     ModelCatalogPermissionDeniedException.class,
@@ -201,7 +201,7 @@ class PlatformProviderConnectionServiceTest {
                 java.util.function.Supplier::get,
                 new PlatformProbeProviderService(java.util.List.of(), Clock.systemUTC()),
                 Clock.systemUTC(),
-                () -> 310000000000000001L, endpoint -> {}, facts(0));
+                () -> 310000000000000001L, endpoint -> {}, facts(0), new com.aiplatform.foundation.modelruntime.application.platformsupply.service.PlatformProviderConnectionWritePolicy(true));
         assertThrows(
                 ModelCatalogPermissionDeniedException.class,
                 () -> service.probe(new ProbePlatformProviderConnectionCommand(
@@ -235,7 +235,7 @@ class PlatformProviderConnectionServiceTest {
         };
         var service = new PlatformProviderConnectionService(repository, new ForbiddenPathCredentialWriter(),
                 java.util.function.Supplier::get, new PlatformProbeProviderService(java.util.List.of(probe), Clock.systemUTC()),
-                Clock.systemUTC(), () -> 610000000000000002L, endpoint -> {}, facts(1));
+                Clock.systemUTC(), () -> 610000000000000002L, endpoint -> {}, facts(1), new com.aiplatform.foundation.modelruntime.application.platformsupply.service.PlatformProviderConnectionWritePolicy(true));
         var result = service.probe(new ProbePlatformProviderConnectionCommand(platformModelWriter(),
                 connection.id().toString(), connection.version(), "deterministic-embedding", java.time.Duration.ofSeconds(3)));
         assertEquals("VERIFIED", result.status());

@@ -36,7 +36,7 @@ const result=async(kind,page,size=20,q="")=>{const rows=Array.from({length:windo
  if(page===window.testState.delayPage)await new Promise(resolve=>window.testState.resolves.push(resolve));return response;};
 const client={hasSession:()=>window.testState.session,listPlatformProviderConnections:(page,size,q)=>result("connections",page,size,q),
  getPlatformProviderConnectionDirectorySummary:async()=>({publishedConnections:21}),
- getPlatformProviderPresets:async()=>({items:[{id:"CUSTOM",name:"自定义连接",capabilities:["CHAT"],variants:[{capability:"CHAT"}]}]}),
+ getPlatformProviderPresets:async()=>({writesAvailable:true,items:[{id:"CUSTOM",name:"自定义连接",capabilities:["CHAT"],variants:[{capability:"CHAT"}]}]}),
  getPlatformProviderConnection:async id=>({...connection,id,displayName:"分页连接"+id.slice(-3)}),getPlatformProviderConnectionPublication:async id=>({connectionId:id,connectionRevision:3,published:true}),
  listPlatformProviderModelCandidates:async(id,version,page,size,q)=>result("candidates",page,size,q)};
 const root=createRoot(document.getElementById("root"));

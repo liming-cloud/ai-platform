@@ -50,7 +50,7 @@ class PlatformProviderModelDiscoveryServiceTest {
                 (connection, version, discovery) -> { throw new AssertionError("无权请求不得写入平台模型发现"); },
                 CLOCK,
                 () -> 620000000000000001L,
-                Duration.ofHours(1));
+                Duration.ofHours(1), new com.aiplatform.foundation.modelruntime.application.platformsupply.service.PlatformProviderConnectionWritePolicy(true));
 
         assertThrows(ModelCatalogPermissionDeniedException.class, () -> service.discover(
                 new DiscoverPlatformProviderModelsCommand(
@@ -68,7 +68,7 @@ class PlatformProviderModelDiscoveryServiceTest {
                 },
                 CLOCK,
                 () -> 620000000000000001L,
-                Duration.ofHours(1));
+                Duration.ofHours(1), new com.aiplatform.foundation.modelruntime.application.platformsupply.service.PlatformProviderConnectionWritePolicy(true));
 
         assertThrows(ProviderConnectionConcurrentModificationException.class, () -> service.discover(
                 new DiscoverPlatformProviderModelsCommand(
@@ -86,7 +86,7 @@ class PlatformProviderModelDiscoveryServiceTest {
                 store,
                 CLOCK,
                 () -> 620000000000000001L,
-                Duration.ofHours(1));
+                Duration.ofHours(1), new com.aiplatform.foundation.modelruntime.application.platformsupply.service.PlatformProviderConnectionWritePolicy(true));
 
         var result = service.discover(new DiscoverPlatformProviderModelsCommand(
                 platformModelWriter(), connection.id().toString(), connection.version(), Duration.ofSeconds(3)));
@@ -117,7 +117,7 @@ class PlatformProviderModelDiscoveryServiceTest {
         var discoverer = new CapturingArkDiscoverer();
         var service = new PlatformProviderModelDiscoveryService(
                 repository, List.of(discoverer), store, CLOCK,
-                () -> 620000000000000002L, Duration.ofHours(1));
+                () -> 620000000000000002L, Duration.ofHours(1), new com.aiplatform.foundation.modelruntime.application.platformsupply.service.PlatformProviderConnectionWritePolicy(true));
 
         service.discover(new DiscoverPlatformProviderModelsCommand(
                 platformModelWriter(), connection.id().toString(), 0, Duration.ofSeconds(3)));
@@ -137,7 +137,7 @@ class PlatformProviderModelDiscoveryServiceTest {
         var store = new CapturingStore(repository);
         var service = new PlatformProviderModelDiscoveryService(repository,
                 List.of(new DeterministicDiscoverer()), store, CLOCK,
-                () -> 620000000000000003L, Duration.ofHours(1));
+                () -> 620000000000000003L, Duration.ofHours(1), new com.aiplatform.foundation.modelruntime.application.platformsupply.service.PlatformProviderConnectionWritePolicy(true));
 
         service.discover(new DiscoverPlatformProviderModelsCommand(platformModelWriter(),
                 connection.id().toString(), connection.version(), Duration.ofSeconds(3)));
@@ -160,7 +160,7 @@ class PlatformProviderModelDiscoveryServiceTest {
             }
         };
         var service = new PlatformProviderModelDiscoveryService(repository, List.of(discoverer),
-                store, CLOCK, () -> 620000000000000004L, Duration.ofHours(1));
+                store, CLOCK, () -> 620000000000000004L, Duration.ofHours(1), new com.aiplatform.foundation.modelruntime.application.platformsupply.service.PlatformProviderConnectionWritePolicy(true));
 
         service.discover(new DiscoverPlatformProviderModelsCommand(platformModelWriter(),
                 connection.id().toString(), connection.version(), Duration.ofSeconds(3)));
@@ -187,7 +187,7 @@ class PlatformProviderModelDiscoveryServiceTest {
             }
         };
         var service = new PlatformProviderModelDiscoveryService(repository, List.of(discoverer),
-                store, CLOCK, () -> 620000000000000005L, Duration.ofHours(1));
+                store, CLOCK, () -> 620000000000000005L, Duration.ofHours(1), new com.aiplatform.foundation.modelruntime.application.platformsupply.service.PlatformProviderConnectionWritePolicy(true));
 
         assertThrows(ProviderConnectionConcurrentModificationException.class, () -> service.discover(
                 new DiscoverPlatformProviderModelsCommand(platformModelWriter(), connection.id().toString(),

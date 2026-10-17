@@ -15,7 +15,7 @@ const PROBE_VALIDITY_MILLIS = 24 * 60 * 60 * 1000;
 export function PlatformProviderConnectionDetail({ client, route, onRouteChange }: {
   client: ControlPlaneClient; route: DetailRoute; onRouteChange: (route: ConsoleRoute, replace?: boolean) => void;
 }) {
-  const [state, setState] = useState<"loading" | "ready" | "partial" | "empty" | "error" | "denied" | "stale">("loading");
+  const [state, setState] = useState<"loading" | "ready" | "partial" | "disabled" | "empty" | "error" | "denied" | "stale">("loading");
   const [connection, setConnection] = useState<ConnectionProjection>();
   const [directory, setDirectory] = useState<PlatformProviderPresets>();
   const [candidates, setCandidates] = useState<ConnectionCandidates>();
@@ -33,7 +33,7 @@ export function PlatformProviderConnectionDetail({ client, route, onRouteChange 
   const load = useCallback(async () => {
     const requestOwner = ++owner.current;
     pending.current = false;
-    setOperation(undefined); setState(current => current === "ready" || current === "partial" ? current : "loading"); setBusy(true); setFailure("");
+    setOperation(undefined); setState(current => current === "ready" || current === "partial" || current === "disabled" ? current : "loading"); setBusy(true); setFailure("");
     try {
       const result = await readPlatformConnectionDetail(client, route.connectionId, route.candidatePage, route.pageSize ?? 20, route.query ?? "");
       if (requestOwner !== owner.current) return;
@@ -47,7 +47,7 @@ export function PlatformProviderConnectionDetail({ client, route, onRouteChange 
       setPagination({ page: route.candidatePage, size: route.pageSize ?? 20 });
       setDirectory(result.presets); setCandidates(result.candidates); setState(result.kind);
       setDiscoveredTotal(result.discoveredTotal);
-      if (result.kind === "partial") setFeedback(undefined);
+      if (result.kind !== "ready") setFeedback(undefined);
     } catch (error) {
       if (requestOwner !== owner.current) return;
       setConnection(undefined); setDirectory(undefined); setCandidates(undefined); setDiscoveredTotal(undefined); setFeedback(undefined);
@@ -63,7 +63,7 @@ export function PlatformProviderConnectionDetail({ client, route, onRouteChange 
 
   useEffect(() => {
     // 保存后和身份替换后，焦点归属新页面，不能留在已卸载的供应商凭据弹窗。
-    if ((state === "ready" || state === "partial" || state === "empty" || state === "error") && !focused.current) { focused.current = true; headingRef.current?.focus(); }
+    if ((state === "ready" || state === "partial" || state === "disabled" || state === "empty" || state === "error") && !focused.current) { focused.current = true; headingRef.current?.focus(); }
   }, [state]);
 
   useEffect(() => {
@@ -113,13 +113,13 @@ export function PlatformProviderConnectionDetail({ client, route, onRouteChange 
   const capability = connection.preset?.capability;
   const verified = hasCurrentConnectionProbe(connection, observedAt);
   const publish = connection.published === false && verified;
-  const disabled = state === "partial" || busy || !!operation || connection.status === "DISABLED" || !connection.credentialConfigured
+  const disabled = state !== "ready" || busy || !!operation || connection.status === "DISABLED" || !connection.credentialConfigured
     || (connection.discoveryProfile === "VOLCENGINE_ARK_CONTROL_PLANE" && !connection.discoveryCredentialsConfigured);
   const failed = connection.lastProbeSucceeded === false;
   return <div className="platform-connection-page" data-read-state={state}>
     <header className="platform-connection-page__heading"><p className="platform-connection-page__context">模型治理</p>
-      <div className={state === "partial" ? "platform-connection-page__copy" : undefined}><h1 ref={headingRef} tabIndex={-1}>供应商连接探测</h1>
-      <div className="platform-connection-object-line">{state === "partial" ? <span>部分完成</span> : connectionStatusLabel(connection)}</div></div>
+      <div className={state === "partial" || state === "disabled" ? "platform-connection-page__copy" : undefined}><h1 ref={headingRef} tabIndex={-1}>供应商连接探测</h1>
+      <div className="platform-connection-object-line">{state === "partial" ? <span>部分完成</span> : state === "disabled" ? <span>暂不可用</span> : connectionStatusLabel(connection)}</div></div>
       <Button appearance="secondary" onClick={() => onRouteChange({ navigationId: "platform-model-supply", task: "connections", page: 1, ...route.directory })}>返回连接目录</Button></header>
     <div className={"platform-connection-note" + (failed && state !== "partial" ? " platform-connection-note--danger" : "")} role={state === "partial" ? "status" : undefined}>
       {state === "partial" ? <><p>部分辅助信息暂未取得，暂不能探测或发布。已确认的连接事实保持可读；重新载入后再试。</p>

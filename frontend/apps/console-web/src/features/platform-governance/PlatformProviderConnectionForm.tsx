@@ -48,6 +48,8 @@ export function PlatformProviderConnectionForm({ client, directory, onCancel, on
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (submitting) return;
+    // 旧表单即使仍被引用也不能提交；正式后端继续独立复核启动配置。
+    if (!directory.writesAvailable) { clearSecrets(); return; }
     let message = "";
     if (!name.trim() || name.trim().length > 80) message = "请输入不超过 80 个字符的连接名称。";
     else if (variant.workspaceRequired && !validWorkspace) message = "业务空间 ID 仅允许小写字母、数字和连字符。";
@@ -78,19 +80,19 @@ export function PlatformProviderConnectionForm({ client, directory, onCancel, on
   return <form className="foundation-dialog-form platform-connection-form" noValidate onSubmit={event => void submit(event)}>
     <DialogContent>
       <div className="platform-connection-form__grid">
-        <Field label="厂商类型"><Select name="providerPreset" value={providerId} disabled={submitting}
+        <Field label="厂商类型"><Select name="providerPreset" value={providerId} disabled={submitting || !directory.writesAvailable}
           onChange={(_, data) => select(data.value, capability)}>
           {directory.items.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}
         </Select></Field>
-        <Field label="运行能力"><Select name="capability" value={capability} disabled={submitting}
+        <Field label="运行能力"><Select name="capability" value={capability} disabled={submitting || !directory.writesAvailable}
           onChange={(_, data) => select(providerId, data.value)}>
           {preset.capabilities.map(value => <option key={value} value={value}>{capabilityLabel(value)}</option>)}
         </Select></Field>
       </div>
       <Field label="连接名称"><Input name="displayName" value={name} maxLength={80} required autoComplete="off"
-        disabled={submitting} onChange={(_, data) => setName(data.value)} /></Field>
+        disabled={submitting || !directory.writesAvailable} onChange={(_, data) => setName(data.value)} /></Field>
       {variant.workspaceRequired ? <Field label="业务空间 ID"><Input value={workspaceId} maxLength={63} required
-        autoComplete="off" placeholder="填写百炼控制台的业务空间 ID" disabled={submitting}
+        autoComplete="off" placeholder="填写百炼控制台的业务空间 ID" disabled={submitting || !directory.writesAvailable}
         onChange={(_, data) => { setWorkspaceId(data.value); clearSecrets(); setFailure(""); }} /></Field> : null}
       <div className="platform-connection-form__summary"><span>{preset.regionLabel}</span>
         <span>{variant.runtimeProtocol === "VENDOR_POST_PROCESSOR" ? "厂商重排适配 · 非统一 OpenAI 标准" : "OpenAI 兼容协议"}</span></div>
@@ -103,27 +105,27 @@ export function PlatformProviderConnectionForm({ client, directory, onCancel, on
             : "地址由已核实的厂商预设生成；如需其他区域，请使用自定义连接。"}</span>
       </> }}>
         <Input type="url" name="endpoint" value={endpoint} required readOnly={providerId !== "CUSTOM"}
-          placeholder="https://models.example.invalid/v1" disabled={submitting}
+          placeholder="https://models.example.invalid/v1" disabled={submitting || !directory.writesAvailable}
           onChange={(_, data) => setCustomEndpoint(data.value)} />
       </Field>
       <Field label="一次性访问密钥" hint={arkDiscovery
         ? "仅用于推理调用；模型发现需要下方独立 AK/SK。选择厂商或能力后重新填写，保存后不会回显。"
         : "选择厂商或能力后重新填写，保存后不会回显。"}>
         <Input type="password" value={apiKey} required minLength={8} maxLength={4096} autoComplete="new-password"
-          disabled={submitting} onChange={(_, data) => setApiKey(data.value)} />
+          disabled={submitting || !directory.writesAvailable} onChange={(_, data) => setApiKey(data.value)} />
       </Field>
       {arkDiscovery ? <section className="platform-connection-form__discovery" role="group" aria-labelledby="platform-discovery-credentials-title">
         <h3 id="platform-discovery-credentials-title">独立模型发现认证</h3>
         <p>仅用于方舟控制面模型发现，与推理访问密钥分别管理。</p>
         <Field label="模型发现 Access Key ID"><Input type="password" value={discoveryAccessKeyId} required maxLength={4096}
-          autoComplete="new-password" disabled={submitting} onChange={(_, data) => setDiscoveryAccessKeyId(data.value)} /></Field>
+          autoComplete="new-password" disabled={submitting || !directory.writesAvailable} onChange={(_, data) => setDiscoveryAccessKeyId(data.value)} /></Field>
         <Field label="模型发现 Secret Access Key"><Input type="password" value={discoverySecretAccessKey} required maxLength={4096}
-          autoComplete="new-password" disabled={submitting} onChange={(_, data) => setDiscoverySecretAccessKey(data.value)} /></Field>
+          autoComplete="new-password" disabled={submitting || !directory.writesAvailable} onChange={(_, data) => setDiscoverySecretAccessKey(data.value)} /></Field>
       </section> : null}
       <p className="form-feedback platform-connection-feedback--danger" role="alert">{failure}</p>
     </DialogContent>
     <DialogActions><Button appearance="secondary" onClick={() => { clearSecrets(); onCancel(); }}>取消</Button>
-      <Button appearance="primary" type="submit" disabled={submitting}>{submitting ? "正在保存" : "保存连接草稿"}</Button></DialogActions>
+      <Button appearance="primary" type="submit" disabled={submitting || !directory.writesAvailable}>{submitting ? "正在保存" : "保存连接草稿"}</Button></DialogActions>
   </form>;
 }
 

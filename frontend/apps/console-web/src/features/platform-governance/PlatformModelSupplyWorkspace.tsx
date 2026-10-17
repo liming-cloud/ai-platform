@@ -15,7 +15,7 @@ export function PlatformModelSupplyWorkspace({ client, route, sessionRevision, o
   client: ControlPlaneClient; route: ConnectionRoute; sessionRevision: number;
   onRouteChange: (route: ConsoleRoute, replace?: boolean) => void;
 }) {
-  const [state, setState] = useState<"loading" | "ready" | "partial" | "error" | "denied" | "stale">("loading");
+  const [state, setState] = useState<"loading" | "ready" | "partial" | "disabled" | "error" | "denied" | "stale">("loading");
   const [connections, setConnections] = useState<PlatformProviderConnectionSummary[]>([]);
   const [directory, setDirectory] = useState<PlatformProviderPresets>();
   const [total, setTotal] = useState(0);
@@ -32,7 +32,7 @@ export function PlatformModelSupplyWorkspace({ client, route, sessionRevision, o
     // 每次重读撤下旧表单；辅助事实未确认期间不能提交旧草稿或保留秘密输入。
     setCreating(false);
     if (!client.hasSession()) { setConnections([]); setDirectory(undefined); setState("stale"); return; }
-    setState(current => current === "ready" || current === "partial" ? current : "loading"); setBusy(true);
+    setState(current => current === "ready" || current === "partial" || current === "disabled" ? current : "loading"); setBusy(true);
     try {
       const size = route.pageSize ?? 20;
       const { connections: page, presets, publishedConnections, partial } = await readPlatformConnectionDirectory(client, route.page, size, route.query ?? "");
@@ -42,7 +42,7 @@ export function PlatformModelSupplyWorkspace({ client, route, sessionRevision, o
       if (route.page > last) { onRouteChange({ ...route, page: last }, true); return; }
       setConnections(page.items); setDirectory(presets); setTotal(page.totalElements);
       setPublished(publishedConnections);
-      setPagination({ page: route.page, size }); setState(partial ? "partial" : "ready");
+      setPagination({ page: route.page, size }); setState(partial ? "partial" : presets.writesAvailable ? "ready" : "disabled");
     } catch (error) {
       if (requestOwner !== owner.current) return;
       setConnections([]); setDirectory(undefined); setPublished(undefined); setTotal(0);
@@ -57,7 +57,7 @@ export function PlatformModelSupplyWorkspace({ client, route, sessionRevision, o
   }, [load, sessionRevision]);
 
   useEffect(() => {
-    if ((state !== "ready" && state !== "partial") || focused.current) return;
+    if ((state !== "ready" && state !== "partial" && state !== "disabled") || focused.current) return;
     // 旧模态先完成本帧释放，再把焦点交给新会话页面，避免旧隐藏范围覆盖新触发器。
     const frame = window.requestAnimationFrame(() => { focused.current = true; headingRef.current?.focus(); });
     return () => window.cancelAnimationFrame(frame);
@@ -76,11 +76,11 @@ export function PlatformModelSupplyWorkspace({ client, route, sessionRevision, o
   return <div className={"platform-connection-page" + (empty ? " platform-connection-page--empty" : "")} data-read-state={state}>
     <header className="platform-connection-page__heading">
       <p className="platform-connection-page__context">模型治理</p>
-      <div className={state === "partial" ? "platform-connection-page__copy" : undefined}><h1 ref={headingRef} tabIndex={-1}>平台模型连接</h1>
-        <div className="platform-connection-object-line">{state === "partial" ? <span>部分完成</span> : empty ? "暂无记录" : `${published} 个已发布连接`}</div></div>
+      <div className={state === "partial" || state === "disabled" ? "platform-connection-page__copy" : undefined}><h1 ref={headingRef} tabIndex={-1}>平台模型连接</h1>
+        <div className="platform-connection-object-line">{state === "partial" ? <span>部分完成</span> : state === "disabled" ? <span>暂不可用</span> : empty ? "暂无记录" : `${published} 个已发布连接`}</div></div>
       <Dialog open={creating && state === "ready" && !busy} onOpenChange={(_, data) => { if (data.open && state === "ready" && !busy) setCreating(true); else closeCreateDialog(); }}>
         {/* 正式触发器登记焦点恢复目标，身份替换卸载模态时也能清理原隐藏范围。 */}
-        <DialogTrigger disableButtonEnhancement><Button ref={createConnectionTriggerRef} className="platform-connection-create" appearance="primary" disabled={busy || state === "partial"}>新增供应商连接</Button></DialogTrigger>
+        <DialogTrigger disableButtonEnhancement><Button ref={createConnectionTriggerRef} className="platform-connection-create" appearance="primary" disabled={busy || state !== "ready"}>新增供应商连接</Button></DialogTrigger>
         <DialogSurface className="foundation-task-dialog platform-connection-dialog" backdrop={{ className: "platform-connection-backdrop" }}><DialogBody>
           <header className="platform-connection-dialog__header"><span className="platform-connection-kicker">模型治理 · 连接草稿</span><DialogTitle>新增供应商连接</DialogTitle></header>
           {creating && directory && state === "ready" && !busy ? <PlatformProviderConnectionForm client={client} directory={directory} onCancel={closeCreateDialog}

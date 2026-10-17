@@ -286,7 +286,7 @@ class PostgresPlatformProviderModelDiscoveryStoreTest {
                                 "DISCOVERY_OK", Duration.ZERO, Instant.parse("2026-10-12T02:02:00Z"));
                     }
                 }), discoveries, java.time.Clock.fixed(Instant.parse("2026-10-12T02:02:00Z"), java.time.ZoneOffset.UTC),
-                () -> discoveryId, Duration.ofHours(1));
+                () -> discoveryId, Duration.ofHours(1), new com.aiplatform.foundation.modelruntime.application.platformsupply.service.PlatformProviderConnectionWritePolicy(true));
         var context = new com.aiplatform.foundation.security.identity.PlatformRequestContext(
                 new com.aiplatform.foundation.security.identity.SubjectId(102L),
                 com.aiplatform.foundation.security.identity.CredentialType.PERSON,

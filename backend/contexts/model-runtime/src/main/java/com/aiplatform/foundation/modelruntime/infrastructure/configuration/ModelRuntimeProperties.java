@@ -16,6 +16,13 @@ public class ModelRuntimeProperties {
     private Duration cacheIdleTimeout = Duration.ofMinutes(30);
     private Duration callTimeout = Duration.ofSeconds(30);
     private List<URI> allowedEndpoints = new ArrayList<>();
+    private boolean platformConnectionWritesEnabled = true;
+
+    /** 仅控制 S1 连接写命令，不影响读取、推理或租户配置。 */
+    public boolean isPlatformConnectionWritesEnabled() { return platformConnectionWritesEnabled; }
+
+    /** 启动时绑定；应用服务接收不可变快照，不支持浏览器或热配置覆盖。 */
+    public void setPlatformConnectionWritesEnabled(boolean enabled) { platformConnectionWritesEnabled = enabled; }
 
     public int getCacheMaximumSize() {
         return cacheMaximumSize;

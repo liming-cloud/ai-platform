@@ -33,6 +33,7 @@ import java.util.Optional;
 /** 编排平台范围模型发现；外部发现调用不处于数据库事务内。 */
 public final class PlatformProviderModelDiscoveryService {
 
+    private final PlatformProviderConnectionWritePolicy writes;
     private final PlatformProviderConnectionRepository connections;
     private final Map<DiscovererKey, PlatformProviderModelDiscoverer> discoverers;
     private final PlatformProviderModelDiscoveryStore store;
@@ -46,7 +47,8 @@ public final class PlatformProviderModelDiscoveryService {
             PlatformProviderModelDiscoveryStore store,
             Clock clock,
             EntityIdGenerator identifiers,
-            Duration validity) {
+            Duration validity, PlatformProviderConnectionWritePolicy writes) {
+        this.writes = Objects.requireNonNull(writes, "连接写入策略不能为空");
         this.connections = Objects.requireNonNull(connections, "平台供应商连接仓储不能为空");
         this.discoverers = index(discoverers);
         this.store = Objects.requireNonNull(store, "平台模型发现存储不能为空");
@@ -64,6 +66,7 @@ public final class PlatformProviderModelDiscoveryService {
             DiscoverPlatformProviderModelsCommand command) {
         Objects.requireNonNull(command, "平台模型发现命令不能为空");
         requirePermission(command.context());
+        writes.requireAvailable();
         var connection = connections.findById(
                         PlatformProviderConnectionId.parse(command.providerConnectionId()))
                 .orElseThrow(() -> new IllegalArgumentException("平台供应商连接不存在"));

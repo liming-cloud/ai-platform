@@ -19,7 +19,7 @@ const preset = (id, name, region, regionLabel, variants) => ({
   discoveryProfile: variants[0].discoveryProfile,
 });
 // 夹具只用于固定前端请求合同；厂商真实性和后端预设另有独立验收。
-const directory = { version: "2026-10-12", items: [
+const directory = { writesAvailable: true, version: "2026-10-12", items: [
   preset("CUSTOM", "自定义连接", "unspecified", "自行配置", capabilities.map(value => variant(value, ""))),
   preset("DEEPSEEK", "DeepSeek", "provider-default", "厂商默认", [variant("CHAT", "https://api.deepseek.com")]),
   preset("ALIYUN", "阿里云百炼", "cn-beijing", "中国北京", [

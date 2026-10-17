@@ -371,6 +371,8 @@ export type PlatformProviderConnectionSummary = ProviderConnectionSummary & {
 
 /** 后端受控的非秘密厂商目录；版本用于创建时校验，不表示能力已经验证。 */
 export interface PlatformProviderPresets {
+  /** 实例级 S1 写入事实；不能替代权限、对象状态或探测时效。 */
+  writesAvailable: boolean;
   version: string;
   items: Array<{
     id: string; name: string; region: string; regionLabel: string; capabilities: string[];

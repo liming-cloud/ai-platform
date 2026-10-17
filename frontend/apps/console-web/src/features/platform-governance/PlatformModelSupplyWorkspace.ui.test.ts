@@ -50,7 +50,7 @@ describe("平台供应商连接呈现", () => {
   });
 
   it("表单从服务端目录呈现厂商，不把客户端地址或能力清单当成权威", () => {
-    const directory: PlatformProviderPresets = { version: "synthetic-version", items: [{
+    const directory: PlatformProviderPresets = { writesAvailable: true, version: "synthetic-version", items: [{
       id: "CUSTOM", name: "目录中的合成厂商", region: "unspecified", regionLabel: "自行配置",
       capabilities: ["CHAT"], discoveryProfile: "OPENAI_MODELS_API", variants: [{
         capability: "CHAT", runtimeProtocol: "OPENAI_COMPATIBLE", endpointTemplate: "", workspaceRequired: false,

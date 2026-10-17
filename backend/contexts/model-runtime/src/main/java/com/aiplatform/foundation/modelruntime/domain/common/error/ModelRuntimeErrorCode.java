@@ -52,6 +52,8 @@ public enum ModelRuntimeErrorCode implements ErrorCode {
             "MODEL_RUNTIME.CONFLICT.0010",
             ErrorType.CONFLICT,
             "相同厂商、地址、模型和类型的目录条目已经存在"),
+    PLATFORM_CONNECTION_WRITES_PAUSED("MODEL_RUNTIME.CONFLICT.0011", ErrorType.CONFLICT,
+            "平台连接写入暂不可用"),
     UNSUPPORTED_PROVIDER("MODEL_RUNTIME.REQUEST.0001", ErrorType.REQUEST,
             "当前运行进程未装配请求的供应商协议");
 

@@ -65,7 +65,7 @@ class PlatformProviderConnectionControllerTest {
         var identifiers = mock(com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator.class);
         var probes = mock(PlatformProbeProviderService.class);
         var service = new PlatformProviderConnectionService(repository, credentials, transactions,
-                probes, java.time.Clock.systemUTC(), identifiers, endpoint -> {}, ids -> java.util.Map.of());
+                probes, java.time.Clock.systemUTC(), identifiers, endpoint -> {}, ids -> java.util.Map.of(), new com.aiplatform.foundation.modelruntime.application.platformsupply.service.PlatformProviderConnectionWritePolicy(true));
         var context = mock(PlatformRequestContext.class);
         when(context.hasPermission(PlatformPermissions.MODEL_PLATFORM_WRITE)).thenReturn(true);
         var mvc = MockMvcBuilders.standaloneSetup(new PlatformProviderConnectionController(service))
@@ -74,6 +74,7 @@ class PlatformProviderConnectionControllerTest {
         mvc.perform(get("/api/v1/platform/model-supply/connections/presets"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.version").isString())
+                .andExpect(jsonPath("$.writesAvailable").value(true))
                 .andExpect(jsonPath("$.items.length()").value(5))
                 .andExpect(jsonPath("$.items[0].id").value("CUSTOM"))
                 .andExpect(jsonPath("$.items[1].id").value("DEEPSEEK"))
@@ -97,7 +98,7 @@ class PlatformProviderConnectionControllerTest {
                 probes, java.time.Clock.systemUTC(), identifiers, endpoint -> {}, ids -> ids.stream().collect(
                         java.util.stream.Collectors.toMap(java.util.function.Function.identity(),
                                 idValue -> new com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.PlatformProviderConnectionFacts.Fact(
-                                        idValue, 0, true, false, false))));
+                                        idValue, 0, true, false, false))), new com.aiplatform.foundation.modelruntime.application.platformsupply.service.PlatformProviderConnectionWritePolicy(true));
         var context = mock(PlatformRequestContext.class);
         when(context.hasPermission(PlatformPermissions.MODEL_PLATFORM_WRITE)).thenReturn(true);
         var id = new PlatformProviderConnectionId(320000000000000001L);
@@ -287,7 +288,7 @@ class PlatformProviderConnectionControllerTest {
         var probes = mock(PlatformProbeProviderService.class);
         var context = mock(PlatformRequestContext.class);
         var service = new PlatformProviderConnectionService(repository, credentials, transactions, probes,
-                java.time.Clock.systemUTC(), identifiers, endpoint -> {}, ids -> java.util.Map.of());
+                java.time.Clock.systemUTC(), identifiers, endpoint -> {}, ids -> java.util.Map.of(), new com.aiplatform.foundation.modelruntime.application.platformsupply.service.PlatformProviderConnectionWritePolicy(true));
         org.junit.jupiter.api.Assertions.assertThrows(com.aiplatform.foundation.modelruntime.application.provider.exception.ModelCatalogPermissionDeniedException.class,
                 () -> service.summary(context));
         org.mockito.Mockito.verifyNoInteractions(repository, credentials, transactions, identifiers, probes);

@@ -23,7 +23,7 @@ class PlatformProviderConnectionPublicationServiceTest {
     private final PlatformProviderConnectionRepository connections = mock(PlatformProviderConnectionRepository.class);
     private final PlatformProviderConnectionPublicationRepository publications = mock(PlatformProviderConnectionPublicationRepository.class);
     private final PlatformProviderConnectionPublicationService service = new PlatformProviderConnectionPublicationService(
-            connections, publications, () -> 320000000000000001L, Duration.ofHours(24));
+            connections, publications, () -> 320000000000000001L, Duration.ofHours(24), new com.aiplatform.foundation.modelruntime.application.platformsupply.service.PlatformProviderConnectionWritePolicy(true));
 
     @Test void 无平台模型权限不得发布或读取且不能触及存储() {
         var context = context(Set.of(PlatformPermissions.SESSION_ACCESS));
@@ -61,7 +61,7 @@ class PlatformProviderConnectionPublicationServiceTest {
 
     @Test void 必需发布依赖缺失不能装配可写服务() {
         assertThrows(NullPointerException.class, () -> new PlatformProviderConnectionPublicationService(
-                connections, null, () -> 1L, Duration.ofHours(24)));
+                connections, null, () -> 1L, Duration.ofHours(24), new com.aiplatform.foundation.modelruntime.application.platformsupply.service.PlatformProviderConnectionWritePolicy(true)));
     }
 
     private static PlatformRequestContext context(Set<PermissionCode> permissions) {
