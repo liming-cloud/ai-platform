@@ -1,6 +1,6 @@
 # S1 页面部分可用与禁用：触发合同提案
 
-状态：有限辅助读取降级方向已于 2026-10-16 人工接受，登记 [ADR-0097](../../architecture/decisions/ADR-0097-platform-connection-auxiliary-read-degradation.md)；原型 `e7cd0ec22b3539033f374f4a8ca53c6b77d98ccc` 随后单独[人工接受](evidence/WP-0019-S1-prototype-acceptance-20261012.md)，[生产承接子任务已闭环](evidence/WP-0019-S1-partial-production-delivery-20261016.md)。下文新增的页面 `disabled` 最小合同待人工确认，尚未实施；S1 整体未完成，不替代 ADR-0095／0096／0097。
+状态：有限辅助读取降级方向已于 2026-10-16 人工接受，登记 [ADR-0097](../../architecture/decisions/ADR-0097-platform-connection-auxiliary-read-degradation.md)；原型 `e7cd0ec22b3539033f374f4a8ca53c6b77d98ccc` 随后单独[人工接受](evidence/WP-0019-S1-prototype-acceptance-20261012.md)，[生产承接子任务已闭环](evidence/WP-0019-S1-partial-production-delivery-20261016.md)。页面 `disabled` 最小合同已于 2026-10-17 人工接受并登记 [ADR-0098](../../architecture/decisions/ADR-0098-platform-connection-write-availability.md)，实现与验收尚待执行；S1 整体未完成，不替代 ADR-0095／0096／0097。
 
 调查基线为 `9fd7601a4681c45ee520d10983cb4648691055b7`，验收工具修复为 `6d0f1324dff036f19d59425d65a3035d0b54ded0`。原型唯一来源为 OpenDesign Cloud 项目 `249f81f2-6f1a-46ff-988c-da3cdedb35e7`，接受版本 `877a813652da2c96f960b71e29ed7a14eccb89c9`。本提案没有修改原型。
 
@@ -85,3 +85,7 @@
 ### 本轮并行独立前沿
 
 完整表单验收与本提案不互相阻塞：一次覆盖 CUSTOM 三能力、DeepSeek 对话、百炼三能力、硅基流动三能力、方舟对话共 11 组合；对照完整标题、分区、标签、说明、字段、按钮、校验、三尺寸与实际 200%，详细观测和截图仅写 `/private/tmp`。本轮不重新创建草稿、发现或发布；可独立确认的视觉缺陷先失败复现再局部修复。新方舟独立 AK/SK 未配置及最小 ListEndpoints 合同仍单独阻断，不能靠表单或暂停态测试消除。
+
+## 2026-10-17 接受登记
+
+用户明确接受本提案，固定输入为 `e1e1459c8bd8f161aa477d36289c0cbcb1a89d49`；按 ADR-0098 冻结 writesAvailable、启动配置及 CONFLICT.0011 后实施。以上调查中的“待接受／未实施”保留提案形成时点含义，现行决定以 ADR-0098 为准；接受不代表生产验收通过。
