@@ -1,6 +1,6 @@
 # S1 页面部分可用与禁用：触发合同提案
 
-状态：有限辅助读取降级方向已于 2026-10-16 人工接受，登记 [ADR-0097](../../architecture/decisions/ADR-0097-platform-connection-auxiliary-read-degradation.md)；原型 `e7cd0ec22b3539033f374f4a8ca53c6b77d98ccc` 随后单独[人工接受](evidence/WP-0019-S1-prototype-acceptance-20261012.md)，[生产承接子任务已闭环](evidence/WP-0019-S1-partial-production-delivery-20261016.md)。页面 `disabled` 最小合同已于 2026-10-17 人工接受并登记 [ADR-0098](../../architecture/decisions/ADR-0098-platform-connection-write-availability.md)，实现与验收尚待执行；S1 整体未完成，不替代 ADR-0095／0096／0097。
+状态：有限辅助读取降级方向已于 2026-10-16 人工接受，登记 [ADR-0097](../../architecture/decisions/ADR-0097-platform-connection-auxiliary-read-degradation.md)；原型 `e7cd0ec22b3539033f374f4a8ca53c6b77d98ccc` 随后单独[人工接受](evidence/WP-0019-S1-prototype-acceptance-20261012.md)，[生产承接子任务已闭环](evidence/WP-0019-S1-partial-production-delivery-20261016.md)。页面 `disabled` 最小合同已于 2026-10-17 人工接受并登记 [ADR-0098](../../architecture/decisions/ADR-0098-platform-connection-write-availability.md)，[源码验证已完成](evidence/WP-0019-S1-write-availability-source-20261017.md)，生产部署与验收因 Docker 不可用尚待执行；S1 整体未完成，不替代 ADR-0095／0096／0097。
 
 调查基线为 `9fd7601a4681c45ee520d10983cb4648691055b7`，验收工具修复为 `6d0f1324dff036f19d59425d65a3035d0b54ded0`。原型唯一来源为 OpenDesign Cloud 项目 `249f81f2-6f1a-46ff-988c-da3cdedb35e7`，接受版本 `877a813652da2c96f960b71e29ed7a14eccb89c9`。本提案没有修改原型。
 
@@ -40,7 +40,7 @@
 
 测试必须区分网络／5xx 降级与 401／403／404 拒绝，覆盖并发读取、修订替换、身份失效、恢复和零写入；原型与最新部署分别覆盖两页、390／1024／1440、实际 200% 原生文字、键盘和 reduced-motion。真实停用对象及受控响应验收分别标注，不停用既有生产连接来制造条件。未筛选真实空目录和新方舟真实认证合同仍是独立缺口。
 
-## 页面 disabled：独立待接受提案
+## 页面 disabled：独立提案（已接受）
 
 本节调查固定于 `46e37094955df0aa1c1bf68bd4143bd284954d6b`，不重开已经闭环的 partial。产品目标仍是 S1 五项连接操作及已接受原型，两页页面禁用必须来自正式事实，不能只为七态截图制造开关。
 
