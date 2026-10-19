@@ -70,3 +70,34 @@ Charter、ROADMAP、STATE、任务、十二条直接 ADR 及输入祖先关系�
 证据根目录 `/private/tmp/wp0019-s1-c01-20261019-e9kyx4ua`，目录 0700、文件 0600；截图只在其中，不进入仓库。`safe-evidence-digests.json` 绑定 95 项非秘密产物，SHA-256 `98468588249cf1b4666b1d98259b02816787f1de7dd6f14fe4ad81a248138214`，受保护值及待提交 diff 扫描均 0 命中；保留所有原始失败，排除凭据、秘密摘要、截图、trace 和可重建缓存。
 
 收口实际执行 `make decisions-sync`、`make project-status`、`make project-verify`（81 项／30 个任务）、`make architecture-guard`（50 项及双端守卫）、`make resume-context` 均退出 0，日志为本目录 `closeout-*.log`；恢复输出 11,428 字节，低于 12 KiB。STATE 及整片完成事实未变，最终固定文档 diff 再校验后精确路径提交，正常推送 main；最终 Git／CI 回执在推送后独立核对。
+
+## 名称修复后五项操作复核
+
+本次输入为 `main@c636f3aeb3ce6ded2190ca50c044ba5e782e2fc0`。复核 Charter、ROADMAP、STATE、S1 合同和十二条直接 ADR；ADR 与前轮完整读取的 Git 对象相同。**五项本地交付证据齐备，S1-C01 已闭合；在已接受 S1 范围内未发现 CI 之外的已证实阻断。** CI 尚未实际执行成功，因此 S1 整片、WP-0019、M6 仍未完成，不进入 S2。
+
+| 稳定操作 ID | 已有证据组合及名称修复后的适用性 |
+| --- | --- |
+| `platform-model-connections:0` 新增 | 正式 `create-draft` 4 项，2026-10-19 13:48 创建精确连接；原前端 569eb54d／后端 e022。创建表单、命令及发布前的草稿事实不因名称修复改变，没有重新保存或把原执行版本改为最新 |
+| `platform-model-connections:1` 查看 | 原正式 `read-only` 10 项与两页七态 84 组，补本报告最新 12 组候选对照及原始只读事实；目录导航、深链接不变，独立名称、明确缺名与编码隐藏已有受影响验证 |
+| `platform-model-connections:2` 厂商／能力／地址联动 | 五厂商／十一组合、66 组表单／23,310 项比较、840 次键盘、66 次必填拒绝；表单与客户端写命令未变，ADR-0098 三处文案及原精确归因保留，不将能力选择说成能力实测 |
+| `platform-model-connection-detail:0` 探测 | 正式 `vendor-discovery` 6 项，15:54 在原后端 41c9fa89 完成双来源非空发现，修订 2／两个待确认候选。名称采集、冻结及回读的变化由本报告 1,172／314／60 项源码和最新 12 组部署证据补齐；保留同源接口执行与 UI 接线证据的区别，未再外呼或生成发现 |
+| `platform-model-connection-detail:1` 独立发布 | 用户对修订 2 单独授权后，正式详情 `publish-current` 6 项，16:04 形成发布 `2112092416361103361`。发布服务和公开命令未变；名称修复后原始聚合事实证明修订、发布和候选分类保留，没有再次发布 |
+
+表中短提交仅便于阅读，完整版本、镜像和原执行时间见[原五项证据链](WP-0019-S1-page-states-and-ark-diagnostics-20261019.md#五项操作证据链复核)及各原始报告。真实未筛选空目录为额外门禁：17:01 的独立新空库正式 5 项通过，原数据保留、临时资源已回收；不是第六项操作，也不是在最新版本重新执行。五份正式报告均保持 `prototypeParity=NOT_RUN`、`sliceComplete=false`，独立原型证据不能由这些字段替代。
+
+本轮逐一校验七份安全清单和 **262 个文件条目**的摘要、大小及存在性，全部匹配，不把条目数当作验收次数。原全景 FAILED／12 项与表单 FAILED／167 项保持原状态；分类绑定原始摘要，未解释差异及新增例外为 0。独立复算名称修复后的 12 组样式、两倍字号、裁切与键盘结果通过，并核对原数据库前后聚合相同；**本轮没有查询数据库、登录产品或重复任何验收**，未读取凭据、新建截图、部署或改动数据。
+
+当前只读 Docker 快照逐一确认七个容器与名称修复最终验收时的容器标识、镜像相同且 running／healthy；前端 7b465a2d、三后端 09fafd33，不能用本次文档提交替代 OCI revision。源码差异复核确认创建／发布服务、平台连接控制器、表单、目录导航不变；客户端只增候选名称字段。图谱复核 `PlatformProviderModelCandidateView`、`readPlatformConnectionDetail`、`PlatformModelSupplyWorkspace`，据此限定证据补齐范围；本轮不改源码，无新增影响分析或全量测试。
+
+### 人工处理与恢复
+
+输入提交的 [Actions 39246718151](https://github.com/liming-cloud/ai-platform/actions/runs/39246718151)仍为 failure，唯一作业 **0 步骤**，消息为付款失败或 spending limit；消息不能判定具体是哪一种账户原因。当前不需要人工再提供密码、AK／SK、确认候选类型、创建云资源或重复发布。
+
+1. 仓库所有者打开[个人账单](https://github.com/settings/billing) → Billing & Licensing → Payment information，核查失败付款或支付授权验证；若确有异常，由本人处理。即使没有欠款或活跃订阅，失败的授权验证也可能锁住 Actions；依据[官方账户解锁说明](https://docs.github.com/en/billing/how-tos/troubleshooting/locked-account)。
+2. 在 Budgets and alerts 检查覆盖 Actions 的账户／仓库及产品／SKU 预算，特别是启用 Stop usage when budget limit is reached 的预算。若耗尽，由本人选择等待周期恢复或设定可接受额度；本任务不改变额度或解除上限。依据[官方预算说明](https://docs.github.com/en/billing/how-tos/set-up-budgets)。
+3. 若付款和预算没有可处理问题，进入 [GitHub Support](https://support.github.com/)，提供失败运行链接和原错误消息，请其检查 billing lock；无需在聊天中提供付款信息、密码或 Token。
+4. 解锁后到[仓库 Actions](https://github.com/liming-cloud/ai-platform/actions)，选择**本轮最终推送的 main 提交**，执行 Re-run all jobs。实际作业通过后再核对 S1 组合门禁并登记整片收口；不使用旧提交绿灯、不预判 CI 一定通过，不自动进入 S2。完整 IAM 审计、真实能力／推理和 M6 人工门禁仍由原责任切片处理。
+
+本轮使用 Local Codex 当前安装的 `engineering-assistant:code-review` 与 `references/evidence-and-stage-audit.md` 内联审计，未创建 Runtime／StageRunResult，阶段校验不适用。审计产物位于 `/private/tmp/wp0019-s1-closeout-review-20261019-821jx_sz`（0700），日志和 JSON 为 0600；原始证据不搬迁，当前文档只保留本节与恢复入口，不另增一份报告。
+
+本轮 `make decisions-sync`、`make project-status`、`make project-verify`（81 项／30 任务）、`make architecture-guard`（50 项及双端守卫）、`make resume-context` 均实际退出 0，恢复输出 11,794 字节。`evidence-digests.json` 绑定 11 项非秘密复核产物／43,814 字节，SHA-256 `b360333dc289b93846f8e6279140e4569471158ae3b576e944f4ee91316193b0`；最终文档差异再评审校验后精确提交推送，Git 与最终 CI 回执在同目录另行保存。状态、实现矩阵、运行镜像及原验收事实未变。
