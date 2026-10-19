@@ -372,6 +372,43 @@ if(initial?.navigationId==="platform-model-supply")window.draw(initial);else win
         await page.getByRole("status").filter({hasText:"共 21 条 · 1–20 条"}).waitFor();
       }
     });
+    for(const width of [390,1024,1440])for(const detail of [false,true])await check(`${detail?"发现模型":"连接目录"}${width}分页外观与原型一致且真实200%文字不裁切`,async()=>{
+      const {enlargeText}=require("../development/acceptance-overview.cjs");
+      await page.setViewportSize({width,height:1000});await page.reload();
+      await page.evaluate(detail=>window.start(detail,1),detail);
+      const pager=page.getByRole("navigation",{name:detail?"发现模型分页":"目录分页",exact:true});
+      await pager.getByRole("status").filter({hasText:"共 1 条 · 1–1 条"}).waitFor();
+      for(const enlarged of [false,true]) {
+        if(enlarged)await enlargeText(page);
+        await page.waitForFunction(size=>getComputedStyle(document.querySelector('.platform-connection-pagination select')).fontSize===size,enlarged?"32px":"16px");
+        for(const hover of [false,true]) {
+          const previous=pager.getByRole("button",{name:"上一页",exact:true});
+          if(hover)await previous.hover({force:true});else await page.mouse.move(0,0);
+          await pager.evaluate(async nav=>{
+            const controls=[...nav.querySelectorAll("button,input,select")];controls.forEach(e=>getComputedStyle(e).color);
+            await Promise.all(controls.flatMap(e=>e.getAnimations()).map(a=>a.finished.catch(()=>{})));
+          });
+          for(const name of ["上一页","下一页"]) {
+            const button=pager.getByRole("button",{name,exact:true});assert.equal(await button.isDisabled(),true);
+            const style=await button.evaluate(e=>{const s=getComputedStyle(e),b=e.getBoundingClientRect();return {weight:s.fontWeight,color:s.color,background:s.backgroundColor,border:s.borderTopColor,padding:s.padding,gap:s.gap,opacity:s.opacity,width:b.width,height:b.height};});
+            assert.deepEqual(style,{weight:"620",color:"rgb(94, 93, 89)",background:"rgb(245, 244, 237)",border:"rgb(232, 230, 220)",padding:"4px 8px",gap:"8px",opacity:"0.76",width:enlarged?102:60,height:enlarged?50:width<=680?44:32});
+          }
+          const current=pager.locator('[aria-current="page"]');
+          const currentStyle=await current.evaluate(e=>{const s=getComputedStyle(e);return {weight:s.fontWeight,padding:s.padding,border:s.borderTopColor,background:s.backgroundColor,cursor:s.cursor};});
+          assert.deepEqual(currentStyle,{weight:"620",padding:"4px",border:"oklab(0.514837 0.0810745 0.066312)",background:"oklab(0.514837 0.0810745 0.066312)",cursor:"pointer"});
+          for(const control of await pager.locator("input,select").all()) {
+            const style=await control.evaluate(e=>{const s=getComputedStyle(e),b=e.getBoundingClientRect();return {color:s.color,border:s.borderTopColor,padding:s.padding,lineHeight:s.lineHeight,height:b.height};});
+            const tag=await control.evaluate(e=>e.tagName);
+            // Chrome 对原生 `select` 的计算行高保留 `normal`；`input` 必须匹配原型的实际像素行高。
+            assert.deepEqual(style,{color:"rgb(94, 93, 89)",border:"oklab(0.665396 -0.000483552 0.00399556)",padding:"0px 12px",lineHeight:tag==="SELECT"?"normal":enlarged?"48px":"24px",height:enlarged?56:width<=680?44:32});
+          }
+        }
+        await pager.locator('[aria-current="page"]').focus();await page.keyboard.press("Tab");
+        assert.equal(await pager.getByLabel("跳转页码",{exact:true}).evaluate(e=>e===document.activeElement),true,"Tab应跳过不可用的下一页");
+        await page.keyboard.press("Tab");assert.equal(await pager.getByRole("button",{name:"跳转",exact:true}).evaluate(e=>e===document.activeElement),true);
+        assert.equal(await pager.evaluate(e=>e.scrollWidth<=e.clientWidth+1),true);
+      }
+    });
     assert.equal(pageErrors,0);
     process.stdout.write(JSON.stringify({status:"PASSED",checks:passed,productionAcceptance:false})+"\n");
   }catch(error){
