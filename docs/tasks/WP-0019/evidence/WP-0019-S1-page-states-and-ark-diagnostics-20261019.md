@@ -133,3 +133,47 @@ Local Codex 使用当前工程助手安装提供的 `wayfinder`、`tdd`、`code-
 Local Codex 显式使用当前安装的工程助手 `wayfinder`、`diagnosing-bugs`、`tdd`、`code-review`，加载各 SKILL.md、HITL 和安全 seam 参考。图谱探索 `PlatformProviderConnectionService`、`PlatformProviderModelDiscoveryService`、`ExtensionContractMapper`、`PlatformProviderModelDiscovery.capture` 与方舟发现器，并对后者执行影响分析；据此只修改扩展的空结果分类，不改领域不变量或上下文边界。固定 diff 为调查基线至修复提交，评审未发现新增阻断。内联执行无 Runtime／StageRunResult，阶段结果校验不适用；不复用历史 Runtime 宣称通过。
 
 后续收口实际执行 `make decisions-sync`、`make project-status`、`make project-verify`、`make architecture-guard`、`make resume-context`，均退出 0。治理 81 项／30 个任务、架构 50 项及前后端守卫通过，恢复输出 11,758 字节；日志位于本次根目录 `closeout-*.log`。重新核对 Charter、ROADMAP、STATE 与 S1 边界，产品前沿／执行任务仍为 WP-0019，STATE 和 M6 实现矩阵未提升。文档集中补充现有证据及恢复入口，不为本次排查新增任务或报告文件；最终证据提交与推送回执单独核对。
+
+## default 项目与候选来源核查
+
+2026-10-19 14:34（Asia/Taipei）只读调用，调查基线 `d1ed234e5c235ef850ef3488addebb107cca95c2`。本子任务响应“优先核查 default 接入点与权限、明确零候选最小方案”，没有重跑页面验收、执行生产发现或创建云端资源。前文“尚未核对”保留其原时点含义，当前可见资源范围由以下新增事实承接。
+
+### 新事实与可排除的假设
+
+复用 `AccessKey.txt`，普通 0600、当前用户所有、Git 忽略；内存确认既有受保护解析文件与当前源匹配，没有复制或记录秘密／秘密摘要。临时诊断复用生产 `VolcengineSignerV4` 与 `PublicHttpsEndpointPolicy`，只允许以下三个已查官方文档的 Action，每次第一页、每页一项、10 秒超时、响应至多 1 MiB、无重定向及自动重试；原始响应仅在内存处理，不写入报告。
+
+| 只读 Action | 精确范围 | HTTP 与结果 | 证明边界 |
+| --- | --- | --- | --- |
+| `ListEndpoints` | cn-beijing，显式 `ProjectName=default`，无筛选 | 200；Items 0、TotalCount 0 | 当前凭据本轮可见的自定义接入点为空，不证明所有身份／项目为空 |
+| `InnerDescribeModelEndpoints` | 同区域、显式 default，无筛选 | 200；Items 1、TotalCount 2；抽查行属于 default、Running，具备 ModelId 和基础模型引用 | 确认有现存预置来源；未读取第二项，不宣称两项均运行或可调用 |
+| `ListModelActivations` | 精确过滤上述第一项的基础模型、Available、排除已下线；不读取价格／免费用量 | 200；Items 1、TotalCount 1；名称匹配且 State=Available | 仅证明该 AK／SK 视角下该模型已开通，不证明独立推理 Key 的权限或真实能力 |
+
+三个响应均无厂商错误、Action 与分页结构匹配。这个结果反驳“方舟账号完全没有候选来源”和“先创建自定义接入点才能继续”的假设；当前生产零候选的直接原因已收敛为**只读取自定义接入点，未承接现存预置来源**。HTTP 200 只证明本次这三个读取被受理，不证明 IAM 全局权限、所有资源可见或推理授权。
+
+依据：[预置列表](https://docs.volcengine.com/docs/ark/inner-describe-model-endpoints-api?lang=zh)、[开通列表](https://docs.volcengine.com/docs/ark/list-model-activations-api?lang=en)及[预置／自定义调用区别](https://docs.volcengine.com/docs/ark/online-inference-standard?lang=en)。公共模型目录不能代替当前账号资源；管理面预置 `Id` 与推理 `ModelId` 也不能混用。最小方案及备选比较已并入[既有 S1 设计](../design-and-slices.md#s1-方舟-default-预置候选补齐提案待人工接受)，等待接受，不更换 Action 填充本轮正式验收结果。
+
+### 身份／权限核查的实际限制与人工步骤
+
+宿主 DNS 本轮只读核验：Ark 域名 12 个地址均公网；`sts.volcengineapi.com` 和 `iam.volcengineapi.com` 各两个非公网地址，均含 fake-IP。按[官方 GetCallerIdentity](https://docs.volcengine.com/docs/IAM/GetCallerIdentity-Getrequestoridentityinformation?lang=zh)本可用 GET／sts／2018-01-01 识别 Account、User、Role；但当前不符合公网地址策略，**身份及 IAM HTTP 请求均未发出，调用身份与完整策略尚未核验**。未绕过 DNS、SSRF、TLS 或修改 Clash；这是本机网络限制，不是厂商 401／403 或缺权证据，也不阻止已取得的三项 Ark 事实。
+
+需要完整人工核对时，以下步骤只查看，不提交权限或资源变更：
+
+1. 打开[方舟北京控制台](https://console.volcengine.com/ark/region:cn-beijing)，确认登录的是 `AccessKey.txt` 所属账号，项目切至 default。进入“在线推理”核对自定义接入点；再进入“模型列表”或“开通管理”核对现有预置模型及开通状态。不要点“创建并接入”“开通”或发布；无需提供密钥、账号 ID 或截图。
+2. 如需查明 IAM 可见性，由有查看权限的账号进入[火山引擎控制台](https://console.volcengine.com/)右上角头像 → 访问控制 → 用户管理／用户。若 AK 属于 IAM 用户，打开其详情检查直接策略、所属用户组及 default 项目限制；若为角色，检查对应角色及会话策略；若为主账号，核对账号归属即可，不必寻找不存在的子用户。只需反馈身份类别、是否覆盖 default 及拒绝条件；不要复制身份标识或秘密。
+3. [官方 IAM 指南](https://docs.volcengine.com/docs/ark/use-iam-to-manage-permissions?lang=en)区分控制面与推理 API Key 权限，并给出全局基础读取与项目只读策略组合。只检查 `ark:ListEndpoints` 等相关读取的有效授权；目前三个请求均成功，**没有证据要求扩权，不建议授予 ArkFullAccess／AdministratorAccess 或立即变更策略**。若后续出现明确拒绝，再按精确 Action／default 范围处理，不泛化为全账号写权限。
+
+本轮必须的产品决定只有是否接受预置来源最小提案；完整 IAM 策略查看是尚未验证的独立事项，不以它替代已经查明的来源缺口，也不再次索取凭据。后续若要修改仓库外 DNS 配置或发布新连接，仍须各自的范围授权。
+
+### 零写入复核与后续门槛
+
+`REPEATABLE READ READ ONLY` 对比上轮精确三对象与聚合，全部未变：连接 3、凭据行 5、发现 12、历史候选 785、发布 1、平台部署／目录／授权 0；新连接 `2112058351855599618` 仍修订 1、DRAFT、`VOLCENGINE_ARK_DISCOVERY_NO_MODELS`、未发布。未查询秘密列或解密；不以三个直接厂商读取冒充正式发现、连接验证或发布。
+
+只读 Compose 检查七服务均 healthy，前端仍 `569eb54dc66fb8cbd97ebf70076824cbf77068b2`／`sha256:e81664078edb16bd243a2bbcd6b679d54c82b38f404bf7ccc66325bcadab2eec`；三后端仍 `5f489fcffe106170ff21dd12751e91f45ec153c7`，镜像分别与前节相同，没有构建或部署。前端、后端及原型源码未改；已接受 OpenDesign Cloud `cce686e4634ca3c523e4c8aeffd95752f1a04c3a` 和已有页面证据未改变，本轮不新增视觉通过结论。
+
+证据目录 `/private/tmp/wp0019-s1-default-permissions-20261019-wo6g4ut6` 为 0700，八项非秘密产物为 0600，包含四例分页解析自检、三次真实只读响应摘要、DNS、只读数据库和运行元数据；不含原始响应、厂商资源名称／ID、身份 TRN 或秘密。`safe-evidence-digests.json` SHA-256 为 `d03cbc3dc2deca6eab110ecba000f4a76ee56496c900ebb41893f7871cca6e0d`，真实读取摘要为 `574519c0e3a54738b84596935e7a93a3f76b373b0c9b8850bbe0f17435ba4759`。临时 Java 类缓存收口时删除，保留诊断源码和证据。
+
+Local Codex 显式加载当前工程助手 `wayfinder`、`diagnosing-bugs`、`code-review`，使用 HITL 参考；代码图谱探索生产签名器、方舟 `parsePage` 和候选确认工厂，确认现有解析只取自定义 Id、分类保持待确认，因而将方案限定在扩展，不新增模块或权限框架。本轮无源码修改，未执行非局部源码影响分析、未重跑 Maven／浏览器，不冒称源码修复已完成；接受后实施前执行影响分析。无 Runtime／StageRunResult，阶段校验不适用。
+
+本子任务交付资源来源事实、权限核查边界、可审阅最小方案及人工查看步骤。S1 正式非空厂商合同、新修订发布和真实未筛选空目录仍未闭合；外部 CI 账单阻断未解除。S1、WP-0019、M6 未完成，不进入后续切片。
+
+本轮 `make decisions-sync`、`make project-status`、`make project-verify`、`make architecture-guard`、`make resume-context` 实际退出均为 0；治理 81 项／30 个任务、架构 50 项及双端守卫通过，恢复输出 11,939 字节。日志为本证据目录 `closeout-*.log`，STATE 与实现矩阵未改。固定差异评审限于基线至本轮三份文档，核对事实抽样、待接受状态和权限边界后无新增阻断；提交、推送与 CI 结果以最终 GitHub 回执另核对。
