@@ -226,6 +226,10 @@ public final class VolcengineArkPlatformProviderModelDiscoverer implements Platf
     private PlatformProviderModelDiscoveryObservation success(
             long startedAt,
             Set<PlatformDiscoveredModelCandidate> candidates) {
+        // 零候选不能建立可发布验证，须作为失败事实保存，避免触发领域成功记录的非空约束。
+        if (candidates.isEmpty()) {
+            return failure(startedAt, "VOLCENGINE_ARK_DISCOVERY_NO_MODELS");
+        }
         return new PlatformProviderModelDiscoveryObservation(
                 true, Set.copyOf(candidates), "VOLCENGINE_ARK_DISCOVERY_OK",
                 elapsedSince(startedAt), clock.instant());

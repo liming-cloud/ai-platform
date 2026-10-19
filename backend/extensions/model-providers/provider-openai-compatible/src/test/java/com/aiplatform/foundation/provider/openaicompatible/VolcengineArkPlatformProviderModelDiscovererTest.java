@@ -89,6 +89,30 @@ class VolcengineArkPlatformProviderModelDiscovererTest {
     }
 
     @Test
+    void 空接入点列表不能形成成功验证且只请求一次() {
+        var calls = new AtomicInteger();
+        server.createContext("/", exchange -> {
+            calls.incrementAndGet();
+            respond(exchange, 200, """
+                    {"ResponseMetadata":{},"Result":{
+                      "Items":[],"PageNumber":1,"PageSize":100,"TotalCount":0}}
+                    """);
+        });
+        var discoverer = new VolcengineArkPlatformProviderModelDiscoverer(
+                reference -> SecretValue.copyOf("TEST_DISCOVERY_CREDENTIAL".toCharArray()),
+                endpoint -> {},
+                Clock.fixed(NOW, ZoneOffset.UTC),
+                region -> URI.create("http://127.0.0.1:" + server.getAddress().getPort()));
+
+        var observation = discoverer.discover(request());
+
+        assertFalse(observation.succeeded());
+        assertEquals("VOLCENGINE_ARK_DISCOVERY_NO_MODELS", observation.resultCode());
+        assertTrue(observation.candidates().isEmpty());
+        assertEquals(1, calls.get());
+    }
+
+    @Test
     void 应隐藏方舟原始错误和内部标识() {
         server.createContext("/", exchange -> respond(exchange, 200, """
                 {"ResponseMetadata":{"RequestId":"vendor-request-secret","Error":{
