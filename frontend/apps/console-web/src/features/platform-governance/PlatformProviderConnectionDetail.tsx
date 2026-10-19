@@ -145,7 +145,7 @@ export function PlatformProviderConnectionDetail({ client, route, onRouteChange 
           <PlatformConnectionSearch query={route.query ?? ""} disabled={!!operation} onChange={query => onRouteChange({ ...route, query, candidatePage: 1 })} />
           <div className="platform-connection-table" role="region" aria-label="发现模型" aria-busy={busy}><table><thead><tr><th scope="col">发现模型</th><th scope="col">能力</th></tr></thead>
             <tbody>{candidates.items.length === 0 ? <tr><td colSpan={2}>{route.query ? "没有匹配记录，请调整筛选条件或返回目录。" : "当前没有可用的模型发现结果。"}</td></tr> : candidates.items.map(item => <tr key={item.modelCode + ":" + item.modelType}>
-              <td>{item.displayName}</td><td>{item.classification === "REQUIRES_ADMIN_CONFIRMATION" ? "待管理员确认" : capabilityLabel(item.modelType ?? "")}</td></tr>)}</tbody></table>
+              <td data-label="发现模型">{item.displayName}</td><td data-label="能力">{item.classification === "REQUIRES_ADMIN_CONFIRMATION" ? "待管理员确认" : capabilityLabel(item.modelType ?? "")}</td></tr>)}</tbody></table>
             <PlatformConnectionPagination total={candidates.totalElements} page={pagination.page} size={pagination.size}
               disabled={busy || !!operation} label="发现模型分页" onChange={(candidatePage, pageSize) => onRouteChange({ ...route, candidatePage, pageSize })} />
           </div></> : <p>发现模型暂未取得，重新载入后再试。</p>}</section></div>

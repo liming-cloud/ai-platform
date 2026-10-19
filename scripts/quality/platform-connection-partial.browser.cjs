@@ -104,6 +104,14 @@ test("候选只显示受控名称，不将供应商编码作为可见文本", ()
   assert.doesNotMatch(text, /ep-synthetic-opaque-code/);
 }));
 
+test("390px非空候选卡片保留原型模型与能力字段标签", () => visit(async page => {
+  await page.evaluate(() => window.start(true));
+  await page.locator("table tbody tr").waitFor();
+  const labels = await page.locator("table tbody tr").first().locator("td").evaluateAll(cells =>
+    cells.map(cell => getComputedStyle(cell, "::before").content));
+  assert.deepEqual(labels, ['"发现模型"', '"能力"']);
+}, 390));
+
 test("辅助摘要503保留本轮目录、未知计数与只读恢复", () => visit(async (page, config) => {
   config.faults.summary = { status: 503 }; await page.evaluate(() => window.refreshRead());
   await assertPartial(page, false); assert.match(await page.locator("main").innerText(), /发布摘要暂未取得|本轮连接/);
