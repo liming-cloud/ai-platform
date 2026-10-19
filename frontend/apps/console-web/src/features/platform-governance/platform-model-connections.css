@@ -128,6 +128,10 @@
 /* 操作按原型内容宽度同排，覆盖 Fluent 在窄屏将两个短按钮拉成整行的默认布局。 */
 .platform-connection-form .fui-DialogActions { display: flex; flex-direction: row; flex-wrap: wrap; align-items: center; grid-column: 1 / -1; grid-row: auto; justify-self: stretch; justify-content: flex-end; width: 100%; gap: 0.5rem; padding-top: 1rem; border-top: 1px solid var(--foundation-border); }
 .platform-connection-detail { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(18rem, 0.6fr); gap: 1.5rem; align-items: start; }
+.platform-connection-detail > * { min-width: 0; overflow-wrap: anywhere; }
+/* 事实标题按已接受原型收缩、换行，长名称和放大文字不能撑宽同页候选区域。 */
+.platform-connection-section--facts .platform-connection-section__heading { flex-wrap: wrap; }
+.platform-connection-section--facts .platform-connection-section__heading > div:first-child { min-width: 0; flex: 1 1 12rem; }
 .platform-connection-section { display: grid; gap: 1rem; padding-block: 1.25rem; border-top: 1px solid var(--foundation-border); }
 .platform-connection-section:first-child { padding-top: 0; border-top: 0; }
 .platform-connection-section__heading { display: flex; align-items: start; justify-content: space-between; gap: 1rem; }
@@ -162,7 +166,7 @@
   .platform-connection-table tbody tr:last-child { border-bottom: 0; }
   /* 手机卡片保持 48px 普通行基线，多行及放大文字按内容排布，不进入下一单元格。 */
   .platform-connection-table td { display: grid; grid-template-columns: 7.25rem minmax(0, 1fr); gap: 0.75rem; height: auto; min-height: 3rem; padding: 0.5rem 0; border: 0; }
-  .platform-connection-table td::before { content: attr(data-label); color: var(--foundation-secondary-text); font-size: 0.875rem; font-weight: 650; }
+  .platform-connection-table td::before { content: attr(data-label); color: var(--foundation-muted-text); font-size: 0.875rem; font-weight: 650; }
   .platform-connection-table .fui-Button { min-width: auto; }
   .platform-connection-pagination { justify-content: flex-start; padding: 0.75rem; }
   .platform-connection-pagination__summary { width: 100%; }

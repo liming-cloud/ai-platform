@@ -117,6 +117,11 @@ describe("S1 辅助读取有限降级", () => {
       publicationRevision: 1, probedAt: null, publishedAt: null });
     await expect(detail(c)).rejects.toThrow("invalid-publication-binding");
   });
+  it.each([undefined, null, "", "  "])("候选名称缺失或空白时拒绝投影：%s", async displayName => {
+    const c = client();
+    c.listPlatformProviderModelCandidates.mockResolvedValue(page([{ ...candidate, displayName } as unknown as PlatformProviderModelCandidate]));
+    await expect(detail(c)).rejects.toThrow("invalid-connection-page");
+  });
   it("一侧网络失败不能掩盖另一侧畸形成功投影", async () => {
     const c = client(); c.getPlatformProviderConnectionPublication.mockRejectedValue(error(503));
     c.listPlatformProviderModelCandidates.mockResolvedValue({ ...page([candidate]), totalElements: -1 });

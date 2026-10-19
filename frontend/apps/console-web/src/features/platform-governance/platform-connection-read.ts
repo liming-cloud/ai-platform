@@ -107,6 +107,7 @@ function validConnection(value: unknown): value is PlatformProviderConnectionSum
 }
 function validCandidate(value: unknown): value is PlatformProviderModelCandidate {
   return record(value) && typeof value.modelCode === "string"
+    && typeof value.displayName === "string" && value.displayName.trim().length > 0
     && ["CONFIRMED_BY_PROVIDER", "CONFIRMED_BY_CONTROLLED_MAPPING", "CONFIRMED_BY_ADMIN", "REQUIRES_ADMIN_CONFIRMATION"].includes(String(value.classification))
     && (value.modelType === null || value.modelType === "CHAT" || value.modelType === "EMBEDDING");
 }

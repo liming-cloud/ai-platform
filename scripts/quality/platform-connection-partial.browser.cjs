@@ -108,8 +108,23 @@ test("390px非空候选卡片保留原型模型与能力字段标签", () => vis
   await page.evaluate(() => window.start(true));
   await page.locator("table tbody tr").waitFor();
   const labels = await page.locator("table tbody tr").first().locator("td").evaluateAll(cells =>
-    cells.map(cell => getComputedStyle(cell, "::before").content));
-  assert.deepEqual(labels, ['"发现模型"', '"能力"']);
+    cells.map(cell => { const style = getComputedStyle(cell, "::before"); return [style.content, style.color]; }));
+  assert.deepEqual(labels, [['"发现模型"', "rgb(94, 93, 89)"], ['"能力"', "rgb(94, 93, 89)"]]);
+}, 390));
+
+test("390px长连接名称在200%文字下按原型换行且不撑宽候选详情", () => visit(async (page, config) => {
+  config.label = "S1-C01-" + "controlled-connection-name-".repeat(3);
+  await page.evaluate(() => window.start(true));
+  const heading = page.getByRole("heading", { name: config.label, exact: true });
+  await heading.scrollIntoViewIfNeeded(); await page.evaluate(() => document.fonts.ready);
+  await enlargeText(page);
+  await page.waitForFunction(() => getComputedStyle(document.querySelector(".platform-connection-section h2")).fontSize === "50px");
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), true,
+    "长连接名称必须像已接受原型一样换行，不能将同页候选区域撑出视口");
+  assert.equal(await heading.evaluate(element => {
+    const box = element.getBoundingClientRect(), range = document.createRange(); range.selectNodeContents(element);
+    return box.right <= innerWidth + 1 && [...range.getClientRects()].every(rect => rect.left >= box.left - 1 && rect.right <= box.right + 1);
+  }), true);
 }, 390));
 
 test("辅助摘要503保留本轮目录、未知计数与只读恢复", () => visit(async (page, config) => {

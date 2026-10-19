@@ -128,7 +128,7 @@ export function PlatformProviderConnectionDetail({ client, route, onRouteChange 
         : verified ? "连接探测已通过，可以发布连接。"
           : connection.status === "VERIFIED" ? "连接探测已失效，请重新执行连接探测。" : "尚未执行本版本的连接探测。"}</div>
     <div className="platform-connection-detail">
-      <div><section className="platform-connection-section"><div className="platform-connection-section__heading">
+      <div><section className="platform-connection-section platform-connection-section--facts"><div className="platform-connection-section__heading">
         <div><span className="platform-connection-kicker">连接版本 v{connection.version}</span><h2>{connection.displayName}</h2></div><ConnectionStatus connection={connection} /></div>
         <dl className="platform-connection-descriptions">
           <div><dt>供应商类型</dt><dd>{preset?.name ?? "已有连接"}</dd></div>
