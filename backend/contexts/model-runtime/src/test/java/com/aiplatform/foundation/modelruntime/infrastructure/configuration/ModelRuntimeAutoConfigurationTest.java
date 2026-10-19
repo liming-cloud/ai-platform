@@ -21,6 +21,9 @@ import com.aiplatform.foundation.modelruntime.application.runtime.facade.ChatRou
 import com.aiplatform.foundation.modelruntime.application.configuration.port.out.ModelConfigurationCredentialWriter;
 import com.aiplatform.foundation.modelruntime.application.probe.service.ProbeProviderService;
 import com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.PlatformProviderModelDiscoveryStore;
+import com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.PlatformProviderModelDiscoveryLookup;
+import com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.PlatformModelDeploymentVerificationStore;
+import com.aiplatform.foundation.modelruntime.application.platformsupply.service.PlatformModelDeploymentService;
 import com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.PlatformProviderConnectionCredentialWriter;
 import com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.PlatformProviderConnectionCredentialTransaction;
 import com.aiplatform.foundation.modelruntime.application.platformsupply.service.PlatformProviderConnectionPublicationService;
@@ -39,6 +42,7 @@ import com.aiplatform.foundation.modelruntime.domain.configuration.repository.Mo
 import com.aiplatform.foundation.modelruntime.domain.configuration.repository.ModelConfigurationAccessRepository;
 import com.aiplatform.foundation.modelruntime.domain.provider.repository.ProviderConnectionRepository;
 import com.aiplatform.foundation.modelruntime.domain.platformsupply.repository.PlatformProviderConnectionRepository;
+import com.aiplatform.foundation.modelruntime.domain.platformsupply.repository.PlatformModelDeploymentRepository;
 import com.aiplatform.foundation.modelruntime.infrastructure.persistence.deployment.mapper.ModelDeploymentMapper;
 import com.aiplatform.foundation.modelruntime.infrastructure.persistence.deployment.mapper.ModelDeploymentRequestMapper;
 import com.aiplatform.foundation.modelruntime.infrastructure.persistence.deployment.mapper.ModelCapabilityVerificationMapper;
@@ -101,6 +105,12 @@ class ModelRuntimeAutoConfigurationTest {
                 .withBean(
                         PlatformProviderModelDiscoveryStore.class,
                         () -> mock(PlatformProviderModelDiscoveryStore.class))
+                .withBean(PlatformProviderModelDiscoveryLookup.class,
+                        () -> mock(PlatformProviderModelDiscoveryLookup.class))
+                .withBean(PlatformModelDeploymentRepository.class,
+                        () -> mock(PlatformModelDeploymentRepository.class))
+                .withBean(PlatformModelDeploymentVerificationStore.class,
+                        () -> mock(PlatformModelDeploymentVerificationStore.class))
                 .withBean(
                         ModelDeploymentRepository.class,
                         () -> mock(ModelDeploymentRepository.class))
@@ -147,6 +157,7 @@ class ModelRuntimeAutoConfigurationTest {
                     assertThat(context).hasSingleBean(PlatformProviderModelDiscoveryService.class);
                     assertThat(context).hasSingleBean(PlatformProviderConnectionService.class);
                     assertThat(context).hasSingleBean(PlatformProviderConnectionPublicationService.class);
+                    assertThat(context).hasSingleBean(PlatformModelDeploymentService.class);
                     assertThat(context).hasSingleBean(ModelDeploymentService.class);
                     assertThat(context).hasSingleBean(ModelConfigurationService.class);
                     assertThat(context).hasSingleBean(ModelConfigurationAccessService.class);

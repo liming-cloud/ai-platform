@@ -206,13 +206,14 @@ public class ModelRuntimeCoreAutoConfiguration {
     PlatformModelDeploymentService platformModelDeploymentService(
             PlatformModelDeploymentRepository deployments,
             PlatformProviderConnectionRepository connections,
+            PlatformProviderConnectionPublicationRepository publications,
             PlatformProviderModelDiscoveryLookup discoveries,
             PlatformModelProbeProviderService probes,
             PlatformModelDeploymentVerificationStore verificationStore,
             EntityIdGenerator identifiers,
             ModelCatalogProperties properties) {
         return new PlatformModelDeploymentService(
-                deployments, connections, discoveries, probes, verificationStore, Clock.systemUTC(), identifiers,
+                deployments, connections, publications, discoveries, probes, verificationStore, Clock.systemUTC(), identifiers,
                 properties.getCapabilityVerificationValidity());
     }
 

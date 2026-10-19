@@ -23,6 +23,7 @@ import com.aiplatform.foundation.modelruntime.domain.platformsupply.model.Platfo
 import com.aiplatform.foundation.modelruntime.domain.platformsupply.model.PlatformProviderConnectionId;
 import com.aiplatform.foundation.modelruntime.domain.platformsupply.repository.PlatformModelDeploymentCreation;
 import com.aiplatform.foundation.modelruntime.domain.platformsupply.repository.PlatformModelDeploymentRepository;
+import com.aiplatform.foundation.modelruntime.domain.platformsupply.repository.PlatformProviderConnectionPublicationRepository;
 import com.aiplatform.foundation.modelruntime.domain.platformsupply.repository.PlatformProviderConnectionRepository;
 import com.aiplatform.foundation.modelruntime.domain.platformsupply.service.PlatformModelDeploymentVerification;
 import com.aiplatform.foundation.security.identity.PlatformPermissions;
@@ -42,6 +43,7 @@ import java.util.Objects;
 public final class PlatformModelDeploymentService {
     private final PlatformModelDeploymentRepository deployments;
     private final PlatformProviderConnectionRepository connections;
+    private final PlatformProviderConnectionPublicationRepository publications;
     private final PlatformProviderModelDiscoveryLookup discoveries;
     private final PlatformModelProbeProviderService probeProvider;
     private final PlatformModelDeploymentVerificationStore verificationStore;
@@ -51,11 +53,13 @@ public final class PlatformModelDeploymentService {
 
     public PlatformModelDeploymentService(
             PlatformModelDeploymentRepository deployments, PlatformProviderConnectionRepository connections,
+            PlatformProviderConnectionPublicationRepository publications,
             PlatformProviderModelDiscoveryLookup discoveries, PlatformModelProbeProviderService probeProvider,
             PlatformModelDeploymentVerificationStore verificationStore, Clock clock,
             EntityIdGenerator identifiers, Duration verificationValidity) {
         this.deployments = Objects.requireNonNull(deployments, "平台模型部署仓储不能为空");
         this.connections = Objects.requireNonNull(connections, "平台供应商连接仓储不能为空");
+        this.publications = Objects.requireNonNull(publications, "平台连接发布仓储不能为空");
         this.discoveries = Objects.requireNonNull(discoveries, "平台模型发现读取端口不能为空");
         this.probeProvider = Objects.requireNonNull(probeProvider, "平台模型探测用例不能为空");
         this.verificationStore = Objects.requireNonNull(verificationStore, "平台模型能力验证存储不能为空");
@@ -64,10 +68,16 @@ public final class PlatformModelDeploymentService {
         this.verificationValidity = requirePositive(verificationValidity);
     }
 
+    /**
+     * 从当前已发布且发现候选仍有效的连接创建草稿，不自动验证或授予租户使用权。
+     *
+     * @throws IllegalStateException 来源修订未验证、未发布或发现候选不可用时拒绝创建。
+     */
     public CreatePlatformModelDeploymentResult create(CreatePlatformModelDeploymentCommand command) {
         Objects.requireNonNull(command, "平台模型部署创建命令不能为空");
         requirePermission(command.context());
         var connection = loadVerifiedConnection(command.providerConnectionId(), command.expectedConnectionVersion());
+        requirePublishedConnection(connection);
         var candidate = discoveries.findCurrentCandidate(connection.id(), connection.version(), command.modelCode(),
                 command.modelType(), clock.instant()).orElseThrow(() -> new IllegalStateException("平台模型发现候选不可用"));
         if (!candidate.capabilities().containsAll(command.capabilities())) {
@@ -143,6 +153,14 @@ public final class PlatformModelDeploymentService {
             throw new IllegalStateException("平台供应商连接不可用");
         }
         return connection;
+    }
+
+    /** 验证与发布各自持有事实；只有当前连接修订的明确发布才能作为新部署来源。 */
+    private void requirePublishedConnection(PlatformProviderConnection connection) {
+        var published = publications.find(connection.id(), connection.version())
+                .filter(publication -> publication.connectionId().equals(connection.id())
+                        && publication.connectionRevision() == connection.version());
+        if (published.isEmpty()) throw new IllegalStateException("平台供应商连接当前修订尚未发布");
     }
 
     private PlatformProviderConnection loadFrozenConnection(PlatformModelDeployment deployment) {
