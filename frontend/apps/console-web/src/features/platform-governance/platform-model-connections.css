@@ -62,7 +62,7 @@
 .platform-connection-pagination .fui-Button:disabled { color: var(--foundation-muted-text); background: var(--foundation-subtle-surface); border-color: var(--foundation-border); opacity: 0.76; cursor: not-allowed; }
 .platform-connection-pagination .fui-Button[aria-current="page"] { border-color: var(--foundation-accent); }
 .platform-connection-pagination .fui-Button[aria-current="page"]:disabled { color: white; background: var(--foundation-accent); }
-.platform-connection-pagination__actions .fui-Button[aria-label^="第"] { min-width: 2rem; padding-inline: 0.25rem; }
+.platform-connection-pagination__actions .fui-Button[aria-label^="第"] { min-width: var(--foundation-control-height-compact); padding-inline: 0.25rem; }
 .platform-connection-pagination select, .platform-connection-pagination input { box-sizing: border-box; height: var(--foundation-control-height-compact); min-height: max(var(--foundation-control-height-compact), calc(1lh + 8px)); min-width: 0; padding: 0 0.75rem; border: 1px solid var(--foundation-border-strong); border-radius: var(--foundation-control-radius); background: var(--foundation-surface); color: inherit; font: inherit; line-height: 1.5; }
 .platform-connection-pagination select { width: 5.5rem; min-width: auto; font-size: 1rem; }
 .platform-connection-pagination input { width: 4rem; font-size: 1rem; }

@@ -394,8 +394,8 @@ if(initial?.navigationId==="platform-model-supply")window.draw(initial);else win
             assert.deepEqual(style,{weight:"620",color:"rgb(94, 93, 89)",background:"rgb(245, 244, 237)",border:"rgb(232, 230, 220)",padding:"4px 8px",gap:"8px",opacity:"0.76",width:enlarged?102:60,height:enlarged?50:width<=680?44:32});
           }
           const current=pager.locator('[aria-current="page"]');
-          const currentStyle=await current.evaluate(e=>{const s=getComputedStyle(e);return {weight:s.fontWeight,padding:s.padding,border:s.borderTopColor,background:s.backgroundColor,cursor:s.cursor};});
-          assert.deepEqual(currentStyle,{weight:"620",padding:"4px",border:"oklab(0.514837 0.0810745 0.066312)",background:"oklab(0.514837 0.0810745 0.066312)",cursor:"pointer"});
+          const currentStyle=await current.evaluate(e=>{const s=getComputedStyle(e);return {weight:s.fontWeight,padding:s.padding,border:s.borderTopColor,background:s.backgroundColor,cursor:s.cursor,minWidth:s.minWidth,width:e.getBoundingClientRect().width};});
+          assert.deepEqual(currentStyle,{weight:"620",padding:"4px",border:"oklab(0.514837 0.0810745 0.066312)",background:"oklab(0.514837 0.0810745 0.066312)",cursor:"pointer",minWidth:width<=680?"44px":"32px",width:width<=680?44:32});
           for(const control of await pager.locator("input,select").all()) {
             const style=await control.evaluate(e=>{const s=getComputedStyle(e),b=e.getBoundingClientRect();return {color:s.color,border:s.borderTopColor,padding:s.padding,lineHeight:s.lineHeight,height:b.height};});
             const tag=await control.evaluate(e=>e.tagName);
