@@ -32,7 +32,7 @@ const connection={id:"610000000000000001",displayName:"分页连接001",provider
 window.testState={total:101,calls:[],delayPage:0,resolves:[],route:null,identity:1,session:true};
 const result=async(kind,page,size=20,q="")=>{const rows=Array.from({length:window.testState.total},(_,index)=>{
   const number=index+1;return kind==="connections"?{...connection,id:String(610000000000000000n+BigInt(number)),displayName:"分页连接"+String(number).padStart(3,"0")}
-   :{modelCode:"分页模型"+String(number).padStart(3,"0"),modelType:"CHAT",classification:"CONFIRMED_BY_PROVIDER"};});
+   :{modelCode:"分页模型"+String(number).padStart(3,"0"),displayName:"分页模型"+String(number).padStart(3,"0"),modelType:"CHAT",classification:"CONFIRMED_BY_PROVIDER"};});
  const matches=rows.filter(row=>(row.displayName||row.modelCode).includes(q.trim()));const total=matches.length;
  window.testState.calls.push({kind,page,size,...(q?{q}:{})});
  if(window.testState.readFail)throw new Error("受控只读请求失败");

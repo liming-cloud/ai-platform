@@ -124,6 +124,16 @@ class PostgresPlatformProviderModelDiscoveryStoreTest {
         assertTrue(committed.lastProbeSucceeded());
         assertEquals(committed.version(), jdbc.queryForObject(
                 "SELECT platform_provider_connection_revision FROM model_runtime.platform_provider_model_discovery", Long.class));
+        // 只在本测试容器构造旧表形态，真实执行新增列 SQL，证明历史候选不被回填或改写。
+        var before = jdbc.queryForList("SELECT discovery_id, model_code, model_type, array_to_string(capabilities, ',') AS capabilities, classification FROM model_runtime.platform_discovered_model");
+        jdbc.execute("ALTER TABLE model_runtime.platform_discovered_model DROP COLUMN display_name");
+        new org.springframework.jdbc.datasource.init.ResourceDatabasePopulator(
+                new org.springframework.core.io.ClassPathResource(
+                        "db/migration/model-runtime/V202610190001__freeze_platform_candidate_display_name.sql"))
+                .execute(java.util.Objects.requireNonNull(jdbc.getDataSource()));
+        assertEquals(before, jdbc.queryForList("SELECT discovery_id, model_code, model_type, array_to_string(capabilities, ',') AS capabilities, classification FROM model_runtime.platform_discovered_model"));
+        assertEquals(1L, jdbc.queryForObject(
+                "SELECT COUNT(*) FROM model_runtime.platform_discovered_model WHERE display_name IS NULL", Long.class));
     }
 
     @Test
@@ -147,8 +157,10 @@ class PostgresPlatformProviderModelDiscoveryStoreTest {
                 connection.id(), connection.version(), new PlatformProviderModelDiscoveryObservation(
                         true,
                         Set.of(
-                                PlatformDiscoveredModelCandidate.confirmedByProvider("deterministic-chat", ModelType.CHAT,
-                                        Set.of(ModelCapability.CHAT)),
+                                new PlatformDiscoveredModelCandidate("deterministic-chat", ModelType.CHAT,
+                                        Set.of(ModelCapability.CHAT),
+                                        com.aiplatform.foundation.modelruntime.domain.platformsupply.model.discovery.PlatformModelCandidateClassification.CONFIRMED_BY_PROVIDER,
+                                        "独立对话模型名称"),
                                 PlatformDiscoveredModelCandidate.confirmedByProvider("deterministic-embedding", ModelType.EMBEDDING,
                                         Set.of(ModelCapability.EMBEDDING))),
                         "DETERMINISTIC_DISCOVERY_OK", Duration.ZERO,
@@ -161,6 +173,10 @@ class PostgresPlatformProviderModelDiscoveryStoreTest {
         assertEquals(2L, page.totalElements());
         assertEquals(1, page.items().size());
         assertEquals("deterministic-chat", page.items().getFirst().modelCode());
+        assertEquals("独立对话模型名称", page.items().getFirst().displayName());
+        assertEquals("独立对话模型名称", discoveryLookup.findCurrentCandidate(connection.id(), connection.version(),
+                "deterministic-chat", ModelType.CHAT, Instant.parse("2026-08-13T02:30:00Z"))
+                .orElseThrow().displayName());
     }
 
     @Test
@@ -218,7 +234,7 @@ class PostgresPlatformProviderModelDiscoveryStoreTest {
                 new PlatformProviderModelDiscoveryObservation(
                         true,
                         Set.of(PlatformDiscoveredModelCandidate.requiresAdministratorConfirmation(
-                                "embedding-looking-name")),
+                                "embedding-looking-name", "独立待确认名称")),
                         "OPENAI_COMPATIBLE_DISCOVERY_OK",
                         Duration.ofMillis(8),
                         Instant.parse("2026-08-24T02:01:00Z")),
@@ -239,6 +255,7 @@ class PostgresPlatformProviderModelDiscoveryStoreTest {
                 connection.id(), connection.version(), "embedding-looking-name", ModelType.EMBEDDING,
                 102L, Instant.parse("2026-08-24T02:31:00Z"), Instant.parse("2026-08-24T02:30:00Z"));
 
+        assertEquals("独立待确认名称", confirmed.displayName());
         assertEquals(ModelType.EMBEDDING, confirmed.modelType());
         assertEquals(Set.of(ModelCapability.EMBEDDING), confirmed.capabilities());
         assertEquals("CONFIRMED_BY_ADMIN", confirmed.classification().name());
@@ -323,8 +340,10 @@ class PostgresPlatformProviderModelDiscoveryStoreTest {
         var connection = createDraftConnection("分页搜索候选连接");
         var at = Instant.parse("2026-10-12T02:02:00Z");
         var models = java.util.stream.IntStream.range(0, 101).mapToObj(index ->
-                PlatformDiscoveredModelCandidate.confirmedByProvider("Model-" + String.format("%03d", index), ModelType.CHAT,
-                        Set.of(ModelCapability.CHAT))).collect(java.util.stream.Collectors.toCollection(java.util.HashSet::new));
+                new PlatformDiscoveredModelCandidate("Model-" + String.format("%03d", index), ModelType.CHAT,
+                        Set.of(ModelCapability.CHAT),
+                        com.aiplatform.foundation.modelruntime.domain.platformsupply.model.discovery.PlatformModelCandidateClassification.CONFIRMED_BY_PROVIDER,
+                        "受控名-" + String.format("%03d", index))).collect(java.util.stream.Collectors.toCollection(java.util.HashSet::new));
         models.add(PlatformDiscoveredModelCandidate.requiresAdministratorConfirmation("literal%_\\model"));
         connection = recordDiscovery(connection, PlatformProviderModelDiscovery.capture(
                 new PlatformProviderModelDiscoveryId(IDENTIFIERS.incrementAndGet()), connection.id(), connection.version(),
@@ -333,6 +352,10 @@ class PostgresPlatformProviderModelDiscoveryStoreTest {
         var exact = discoveryLookup.findCurrentCandidates(connection.id(), connection.version(), new PageQuery(1, 20), now, "model-100");
         assertEquals(1, exact.totalElements());
         assertEquals("Model-100", exact.items().getFirst().modelCode());
+        var byName = discoveryLookup.findCurrentCandidates(connection.id(), connection.version(), new PageQuery(1, 20), now, "受控名-100");
+        assertEquals(1, byName.totalElements());
+        assertEquals("Model-100", byName.items().getFirst().modelCode());
+        assertEquals("受控名-100", byName.items().getFirst().displayName());
         assertEquals(1, discoveryLookup.findCurrentCandidates(connection.id(), connection.version(), new PageQuery(1, 20), now, "%_\\").totalElements());
         var last = discoveryLookup.findCurrentCandidates(connection.id(), connection.version(), new PageQuery(6, 20), now, "对话模型");
         assertEquals(101, last.totalElements());
@@ -443,10 +466,10 @@ class PostgresPlatformProviderModelDiscoveryStoreTest {
         }
 
         @Bean PlatformProviderModelDiscoveryStore platformProviderModelDiscoveryStore(
-                JdbcTemplate jdbc, PlatformTransactionManager transactions,
+                PlatformTransactionManager transactions,
                 PlatformProviderConnectionRepository connections,
                 com.aiplatform.foundation.modelruntime.infrastructure.persistence.platformsupply.mapper.PlatformProviderModelCandidateMapper candidateMapper) {
-            return new PostgresPlatformProviderModelDiscoveryStore(jdbc, transactions, connections, candidateMapper);
+            return new PostgresPlatformProviderModelDiscoveryStore(transactions, connections, candidateMapper);
         }
     }
 }

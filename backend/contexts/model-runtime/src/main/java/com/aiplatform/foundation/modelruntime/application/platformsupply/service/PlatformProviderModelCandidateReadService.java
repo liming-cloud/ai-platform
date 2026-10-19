@@ -49,7 +49,7 @@ public final class PlatformProviderModelCandidateReadService {
                                 candidate.modelType() == null ? null : candidate.modelType().name(),
                                 candidate.capabilities().stream().map(Enum::name)
                                         .collect(java.util.stream.Collectors.toUnmodifiableSet()),
-                                candidate.classification().name()))
+                                candidate.classification().name(), candidate.displayName()))
                         .toList(),
                 query.page(), candidates.totalElements());
     }

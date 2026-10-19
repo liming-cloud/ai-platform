@@ -8,12 +8,23 @@ public record PlatformDiscoveredModelCandidate(
         String modelCode,
         ModelType modelType,
         Set<ModelCapability> capabilities,
-        PlatformModelCandidateClassification classification) {
+        PlatformModelCandidateClassification classification,
+        String displayName) {
 
+    /**
+     * 校验不可变候选；缺失名称不得改变原分类，显式名称不接受空白或控制字符。
+     *
+     * @throws IllegalArgumentException 编码、名称或类型与能力不满足候选不变量。
+     */
     public PlatformDiscoveredModelCandidate {
         Objects.requireNonNull(modelCode, "发现模型代码不能为空");
         if (modelCode.isBlank() || !modelCode.equals(modelCode.trim()) || modelCode.length() > 200) {
             throw new IllegalArgumentException("发现模型代码格式不正确");
+        }
+        // 名称只来自受控发现元数据；历史或无名称来源保持缺失，不能用调用编码补齐。
+        if (displayName != null && (displayName.isBlank() || !displayName.equals(displayName.trim())
+                || displayName.length() > 120 || displayName.codePoints().anyMatch(Character::isISOControl))) {
+            throw new IllegalArgumentException("模型显示名称格式不正确");
         }
         classification = Objects.requireNonNull(classification, "模型候选分类不能为空");
         capabilities = Set.copyOf(Objects.requireNonNull(capabilities, "发现模型能力不能为空"));
@@ -33,6 +44,19 @@ public record PlatformDiscoveredModelCandidate(
                 throw new IllegalArgumentException("已确认嵌入候选必须包含嵌入能力");
             }
         }
+    }
+
+    /** 无名称的既有候选保持明确缺失，不改变类型和能力事实。 */
+    public PlatformDiscoveredModelCandidate(String modelCode, ModelType modelType,
+            Set<ModelCapability> capabilities, PlatformModelCandidateClassification classification) {
+        this(modelCode, modelType, capabilities, classification, null);
+    }
+
+    /** 从独立名称元数据建立待确认候选，不从名称推导模型能力。 */
+    public static PlatformDiscoveredModelCandidate requiresAdministratorConfirmation(
+            String modelCode, String displayName) {
+        return new PlatformDiscoveredModelCandidate(modelCode, null, Set.of(),
+                PlatformModelCandidateClassification.REQUIRES_ADMIN_CONFIRMATION, displayName);
     }
 
     public static PlatformDiscoveredModelCandidate requiresAdministratorConfirmation(String modelCode) {

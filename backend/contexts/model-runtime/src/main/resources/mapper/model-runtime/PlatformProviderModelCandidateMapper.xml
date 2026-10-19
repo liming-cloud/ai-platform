@@ -12,7 +12,7 @@
               AND discovery.succeeded = TRUE AND discovery.expires_at &gt; #{now}
             ORDER BY discovery.platform_provider_connection_id, discovery.platform_provider_connection_revision, discovery.discovered_at DESC, discovery.id DESC
         ), candidate_projection AS (
-            SELECT candidate.model_code, candidate.candidate_key,
+            SELECT candidate.model_code, candidate.display_name, candidate.candidate_key,
                    COALESCE(confirmation.model_type, candidate.model_type) AS model_type,
                    CASE WHEN confirmation.discovery_id IS NOT NULL THEN 'CONFIRMED_BY_ADMIN'
                         ELSE candidate.classification END AS classification,
@@ -25,18 +25,67 @@
     </sql>
     <sql id="candidateFilter">
         FROM candidate_projection
-        WHERE concat_ws(' ', model_code,
+        WHERE concat_ws(' ', model_code, display_name,
               CASE WHEN classification = 'REQUIRES_ADMIN_CONFIRMATION' THEN '待管理员确认'
                    WHEN model_type = 'CHAT' THEN '对话模型' WHEN model_type = 'EMBEDDING' THEN '向量模型' ELSE '待确认' END)
               ILIKE #{q} ESCAPE '\'
     </sql>
     <select id="selectCandidatePage" resultType="com.aiplatform.foundation.modelruntime.infrastructure.persistence.platformsupply.entity.PlatformProviderModelCandidateRow">
         <include refid="currentCandidates"/>
-        SELECT model_code, model_type, capabilities, classification <include refid="candidateFilter"/>
+        SELECT model_code, model_type, capabilities, classification, display_name <include refid="candidateFilter"/>
         ORDER BY model_code ASC, candidate_key ASC
     </select>
     <select id="countCandidates" resultType="long">
         <include refid="currentCandidates"/>
         SELECT COUNT(*) <include refid="candidateFilter"/>
     </select>
+    <!-- 已冻结名称与编码同属一次发现；只插入新事实，不回填已有候选。 -->
+    <insert id="insertDiscovery">
+        INSERT INTO model_runtime.platform_provider_model_discovery
+            (id, platform_provider_connection_id, platform_provider_connection_revision,
+             succeeded, result_code, elapsed_millis, discovered_at, expires_at)
+        VALUES (#{id}, #{connectionId}, #{revision}, #{succeeded}, #{resultCode}, #{elapsedMillis}, #{discoveredAt}, #{expiresAt})
+    </insert>
+    <insert id="insertCandidate">
+        INSERT INTO model_runtime.platform_discovered_model
+            (discovery_id, model_code, model_type, capabilities, classification, display_name)
+        VALUES (#{discoveryId}, #{modelCode}, #{modelType}, string_to_array(#{capabilities}, ','), #{classification}, #{displayName})
+    </insert>
+    <!-- 选择值仍为原始编码，页面名称不能改变精确模型匹配、分类及过期边界。 -->
+    <select id="selectCurrentCandidate" resultType="com.aiplatform.foundation.modelruntime.infrastructure.persistence.platformsupply.entity.PlatformProviderModelCandidateRow">
+        SELECT DISTINCT ON (candidate.model_code) candidate.model_code,
+               COALESCE(confirmation.model_type, candidate.model_type) AS model_type,
+               COALESCE(array_to_string(confirmation.capabilities, ','), array_to_string(candidate.capabilities, ',')) AS capabilities,
+               CASE WHEN confirmation.discovery_id IS NOT NULL THEN 'CONFIRMED_BY_ADMIN' ELSE candidate.classification END AS classification,
+               candidate.display_name
+        FROM model_runtime.platform_provider_model_discovery discovery
+        JOIN model_runtime.platform_discovered_model candidate ON candidate.discovery_id = discovery.id
+        LEFT JOIN model_runtime.platform_model_candidate_confirmation confirmation
+          ON confirmation.discovery_id = candidate.discovery_id AND confirmation.model_code = candidate.model_code
+        WHERE discovery.platform_provider_connection_id = #{connectionId}
+          AND discovery.platform_provider_connection_revision = #{revision}
+          AND discovery.succeeded = TRUE AND discovery.expires_at &gt; #{now}
+          AND candidate.model_code = #{modelCode}
+          AND COALESCE(confirmation.model_type, candidate.model_type) = #{modelType}
+          AND (candidate.classification &lt;&gt; 'REQUIRES_ADMIN_CONFIRMATION' OR confirmation.discovery_id IS NOT NULL)
+        ORDER BY candidate.model_code ASC, discovery.discovered_at DESC, discovery.id DESC
+    </select>
+    <insert id="confirmCandidate">
+        INSERT INTO model_runtime.platform_model_candidate_confirmation
+            (discovery_id, model_code, model_type, capabilities, confirmed_by_subject_id, confirmed_at)
+        SELECT candidate.discovery_id, candidate.model_code, #{modelType}, ARRAY[#{capability}]::VARCHAR[], #{subjectId}, #{confirmedAt}
+        FROM model_runtime.platform_discovered_model candidate
+        WHERE candidate.discovery_id = (
+            SELECT discovery.id FROM model_runtime.platform_provider_model_discovery discovery
+            WHERE discovery.platform_provider_connection_id = #{connectionId}
+              AND discovery.platform_provider_connection_revision = #{revision}
+              AND discovery.succeeded = TRUE AND discovery.expires_at &gt; #{now}
+            ORDER BY discovery.discovered_at DESC, discovery.id DESC LIMIT 1
+        )
+          AND candidate.model_code = #{modelCode} AND candidate.classification = 'REQUIRES_ADMIN_CONFIRMATION'
+          AND NOT EXISTS (
+              SELECT 1 FROM model_runtime.platform_model_candidate_confirmation confirmation
+              WHERE confirmation.discovery_id = candidate.discovery_id AND confirmation.model_code = candidate.model_code
+          )
+    </insert>
 </mapper>

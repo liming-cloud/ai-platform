@@ -405,7 +405,10 @@ export interface PlatformProviderModelDiscoverySummary {
 
 /** 平台连接当前修订中可创建部署的安全模型候选。 */
 export interface PlatformProviderModelCandidate {
+  /** 只用于受控资源选择与调用，不能作为页面可见名称。 */
   modelCode: string;
+  /** 已冻结名称；历史来源缺失时由服务端明确表达，不以编码补齐。 */
+  displayName: string;
   modelType: "CHAT" | "EMBEDDING" | null;
   capabilities: string[];
   classification: "CONFIRMED_BY_PROVIDER" | "CONFIRMED_BY_CONTROLLED_MAPPING" | "CONFIRMED_BY_ADMIN" | "REQUIRES_ADMIN_CONFIRMATION";

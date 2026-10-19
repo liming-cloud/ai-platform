@@ -135,11 +135,10 @@ public class ModelRuntimePersistenceAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean(PlatformProviderModelDiscoveryStore.class)
     PostgresPlatformProviderModelDiscoveryStore platformProviderModelDiscoveryStore(
-            JdbcTemplate jdbc,
             PlatformTransactionManager transactions,
             PlatformProviderConnectionRepository connections,
             com.aiplatform.foundation.modelruntime.infrastructure.persistence.platformsupply.mapper.PlatformProviderModelCandidateMapper candidateMapper) {
-        return new PostgresPlatformProviderModelDiscoveryStore(jdbc, transactions, connections, candidateMapper);
+        return new PostgresPlatformProviderModelDiscoveryStore(transactions, connections, candidateMapper);
     }
 
     @Bean

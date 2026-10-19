@@ -70,7 +70,7 @@ async function visit(action, width = 1440) {
     const connection = { id, displayName: config.label, providerKind: "OPENAI_COMPATIBLE", version: 3, status: "VERIFIED", published: true,
       credentialConfigured: true, discoveryCredentialsConfigured: false, discoveryProfile: "OPENAI_MODELS_API", lastProbeSucceeded: true,
       lastProbedAt: new Date().toISOString(), preset: { id: "CUSTOM", capability: "CHAT" } };
-    const item = { modelCode: "本轮模型", modelType: "CHAT", capabilities: ["CHAT"], classification: "CONFIRMED_BY_PROVIDER" };
+    const item = { modelCode: "本轮模型", displayName: "本轮模型", modelType: "CHAT", capabilities: ["CHAT"], classification: "CONFIRMED_BY_PROVIDER" };
     const rows = key === "directory" ? [connection] : [item];
     const body = key === "presets" ? { writesAvailable: config.writesAvailable, version: "synthetic", items: [{ id: "CUSTOM", name: "自定义连接", capabilities: ["CHAT"], variants: [{
       capability: "CHAT", runtimeProtocol: "OPENAI_COMPATIBLE", endpointTemplate: "", workspaceRequired: false, discoveryProfile: "OPENAI_MODELS_API",
@@ -92,6 +92,17 @@ async function assertPartial(page, detail) {
   assert.equal(await page.getByRole("button", { name: detail ? "执行连接探测" : "新增供应商连接", exact: true }).isDisabled(), true);
   assert.equal(await page.getByRole("button", { name: "重新载入", exact: true }).isEnabled(), true);
 }
+
+test("候选只显示受控名称，不将供应商编码作为可见文本", () => visit(async (page, config) => {
+  config.faults.candidates = { body: JSON.stringify({ items: [{ modelCode: "ep-synthetic-opaque-code",
+    displayName: "独立的受控模型名称", modelType: null, capabilities: [], classification: "REQUIRES_ADMIN_CONFIRMATION" }],
+    pageNumber: 1, pageSize: 20, totalElements: 1, hasPrevious: false, hasNext: false }) };
+  await page.evaluate(() => window.start(true));
+  await page.locator("table tbody tr").waitFor();
+  const text = await page.locator("main").innerText();
+  assert.match(text, /独立的受控模型名称/);
+  assert.doesNotMatch(text, /ep-synthetic-opaque-code/);
+}));
 
 test("辅助摘要503保留本轮目录、未知计数与只读恢复", () => visit(async (page, config) => {
   config.faults.summary = { status: 503 }; await page.evaluate(() => window.refreshRead());

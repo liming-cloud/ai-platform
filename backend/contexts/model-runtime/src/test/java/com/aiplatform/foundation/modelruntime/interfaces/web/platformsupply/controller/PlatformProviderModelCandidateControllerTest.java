@@ -24,6 +24,58 @@ import org.springframework.web.method.support.ModelAndViewContainer;
 class PlatformProviderModelCandidateControllerTest {
 
     @Test
+    void 实际读取用例将冻结名称与选择编码分别投影到HTTP() throws Exception {
+        var repository = mock(com.aiplatform.foundation.modelruntime.domain.platformsupply.repository.PlatformProviderConnectionRepository.class);
+        var lookup = mock(com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.PlatformProviderModelDiscoveryLookup.class);
+        var connection = mock(com.aiplatform.foundation.modelruntime.domain.platformsupply.model.PlatformProviderConnection.class);
+        var id = com.aiplatform.foundation.modelruntime.domain.platformsupply.model.PlatformProviderConnectionId.parse("320000000000000001");
+        var context = mock(PlatformRequestContext.class);
+        when(context.hasPermission(com.aiplatform.foundation.security.identity.PlatformPermissions.MODEL_PLATFORM_WRITE)).thenReturn(true);
+        when(repository.findById(id)).thenReturn(java.util.Optional.of(connection));
+        when(connection.id()).thenReturn(id);
+        when(connection.version()).thenReturn(3L);
+        when(connection.status()).thenReturn(com.aiplatform.foundation.modelruntime.domain.provider.model.ProviderConnectionStatus.VERIFIED);
+        var now = java.time.Instant.parse("2026-10-19T08:00:00Z");
+        when(lookup.findCurrentCandidates(any(), org.mockito.ArgumentMatchers.eq(3L), any(), any(), any()))
+                .thenReturn(com.aiplatform.foundation.shared.contract.paging.PageResult.of(java.util.List.of(
+                        com.aiplatform.foundation.modelruntime.domain.platformsupply.model.discovery.PlatformDiscoveredModelCandidate
+                                .requiresAdministratorConfirmation("ep-synthetic-opaque-code", "独立受控模型名称")),
+                        new com.aiplatform.foundation.shared.contract.paging.PageQuery(1, 20), 1));
+        var reads = new PlatformProviderModelCandidateReadService(repository, lookup,
+                java.time.Clock.fixed(now, java.time.ZoneOffset.UTC));
+        var confirmations = mock(PlatformProviderModelCandidateConfirmationService.class);
+        var mvc = MockMvcBuilders.standaloneSetup(new PlatformProviderModelCandidateController(reads, confirmations))
+                .setCustomArgumentResolvers(platformContext(context)).build();
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get(
+                        "/api/v1/platform/model-supply/connections/320000000000000001/model-candidates")
+                        .param("expectedConnectionVersion", "3"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items[0].displayName").value("独立受控模型名称"))
+                .andExpect(jsonPath("$.items[0].modelCode").value("ep-synthetic-opaque-code"))
+                .andExpect(jsonPath("$.items[0].classification").value("REQUIRES_ADMIN_CONFIRMATION"));
+        org.mockito.Mockito.verifyNoInteractions(confirmations);
+    }
+
+    @Test
+    void 历史候选缺少名称时返回明确缺失而不是将供应商编码当作名称() throws Exception {
+        var reads = mock(PlatformProviderModelCandidateReadService.class);
+        var confirmations = mock(PlatformProviderModelCandidateConfirmationService.class);
+        var context = mock(PlatformRequestContext.class);
+        when(reads.list(any())).thenReturn(com.aiplatform.foundation.shared.contract.paging.PageResult.of(
+                java.util.List.of(new PlatformProviderModelCandidateView(
+                        "ep-synthetic-opaque-code", null, java.util.Set.of(), "REQUIRES_ADMIN_CONFIRMATION")),
+                new com.aiplatform.foundation.shared.contract.paging.PageQuery(1, 20), 1));
+        var mvc = MockMvcBuilders.standaloneSetup(new PlatformProviderModelCandidateController(reads, confirmations))
+                .setCustomArgumentResolvers(platformContext(context)).build();
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get(
+                        "/api/v1/platform/model-supply/connections/320000000000000001/model-candidates")
+                        .param("expectedConnectionVersion", "3"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items[0].displayName").value("名称暂未提供"))
+                .andExpect(jsonPath("$.items[0].modelCode").value("ep-synthetic-opaque-code"));
+    }
+
+    @Test
     void 候选搜索传递规范词组并拒绝范围或重复参数() throws Exception {
         var reads = mock(PlatformProviderModelCandidateReadService.class);
         var confirmations = mock(PlatformProviderModelCandidateConfirmationService.class);

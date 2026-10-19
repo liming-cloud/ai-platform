@@ -11,7 +11,7 @@ const connection: PlatformProviderConnectionSummary = { id, displayName: "合成
 const presets: PlatformProviderPresets = { writesAvailable: true, version: "synthetic", items: [{ id: "CUSTOM", name: "自定义连接", region: "unspecified",
   regionLabel: "自行配置", capabilities: ["CHAT"], discoveryProfile: "OPENAI_MODELS_API", variants: [{ capability: "CHAT",
     endpointTemplate: "", workspaceRequired: false, runtimeProtocol: "OPENAI_COMPATIBLE", discoveryProfile: "OPENAI_MODELS_API" }] }] };
-const candidate: PlatformProviderModelCandidate = { modelCode: "合成模型", modelType: "CHAT", capabilities: ["CHAT"], classification: "CONFIRMED_BY_PROVIDER" };
+const candidate: PlatformProviderModelCandidate = { modelCode: "合成模型", displayName: "合成模型", modelType: "CHAT", capabilities: ["CHAT"], classification: "CONFIRMED_BY_PROVIDER" };
 const page = <T,>(items: T[]): PageResult<T> => ({ items, pageNumber: 1, pageSize: 20, totalElements: items.length, totalPages: 1, hasPrevious: false, hasNext: false });
 function client() {
   return {

@@ -130,6 +130,7 @@ class VolcengineArkPlatformProviderModelDiscovererTest {
         assertEquals(1, observation.candidates().size());
         var candidate = observation.candidates().iterator().next();
         assertEquals("official-model-id", candidate.modelCode());
+        assertEquals("embedding-looking-name", candidate.displayName());
         assertEquals(PlatformModelCandidateClassification.REQUIRES_ADMIN_CONFIRMATION,
                 candidate.classification());
         assertNull(candidate.modelType());
@@ -164,19 +165,23 @@ class VolcengineArkPlatformProviderModelDiscovererTest {
     void 两来源非空时应合并并按模型编码去重() {
         server.createContext("/", exchange -> respond(exchange, 200, isPreset(exchange)
                 ? page("""
-                        [{"ModelId":"official-model-id","ProjectName":"default","Status":"Running"},
-                         {"ModelId":"official-model-id","ProjectName":"default","Status":"Running"}]
+                        [{"ModelId":"official-model-id","Name":"预置来源名称","ProjectName":"default","Status":"Running"},
+                         {"ModelId":"official-model-id","Name":"同码其他名称","ProjectName":"default","Status":"Running"}]
                         """, 1, 100, 2)
                 : page("""
                         [{"Id":"ep-custom","ProjectName":"default"},
-                         {"Id":"official-model-id","ProjectName":"default"}]
+                         {"Id":"official-model-id","Name":"自定义来源名称","ProjectName":"default"}]
                         """, 1, 100, 2)));
 
         var observation = discoverer().discover(request());
 
         assertTrue(observation.succeeded());
+        assertEquals(2, observation.candidates().size());
         assertEquals(Set.of("ep-custom", "official-model-id"), observation.candidates().stream()
                 .map(candidate -> candidate.modelCode()).collect(java.util.stream.Collectors.toSet()));
+        assertEquals("自定义来源名称", observation.candidates().stream()
+                .filter(candidate -> candidate.modelCode().equals("official-model-id"))
+                .findFirst().orElseThrow().displayName());
     }
 
     @ParameterizedTest

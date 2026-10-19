@@ -18,7 +18,7 @@ import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.Clock;
 import java.time.Duration;
-import java.util.LinkedHashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -125,7 +125,7 @@ public final class VolcengineArkPlatformProviderModelDiscoverer implements Platf
             char[] accessKeyId,
             char[] secretAccessKey,
             long startedAt) {
-        var candidates = new LinkedHashSet<PlatformDiscoveredModelCandidate>();
+        var candidates = new LinkedHashMap<String, PlatformDiscoveredModelCandidate>();
         var requestedPages = 0;
         // 两个来源共同形成一次发现；共享请求上限，任一来源失败都不能提交部分候选。
         for (var action : List.of("ListEndpoints", "InnerDescribeModelEndpoints")) {
@@ -145,7 +145,8 @@ public final class VolcengineArkPlatformProviderModelDiscoverer implements Platf
                 }
                 totalCount = pageResult.totalCount();
                 pageSize = pageResult.pageSize();
-                candidates.addAll(pageResult.candidates());
+                // 名称不是身份；同一编码的两个来源按既有来源顺序只保留一个候选。
+                pageResult.candidates().forEach(candidate -> candidates.putIfAbsent(candidate.modelCode(), candidate));
                 if (candidates.size() > MAX_CANDIDATES) {
                     return failure(startedAt, "VOLCENGINE_ARK_DISCOVERY_RESPONSE_INVALID");
                 }
@@ -154,7 +155,7 @@ public final class VolcengineArkPlatformProviderModelDiscoverer implements Platf
                 }
             }
         }
-        return success(startedAt, candidates);
+        return success(startedAt, Set.copyOf(candidates.values()));
     }
 
     private PageResult callPage(
@@ -239,7 +240,7 @@ public final class VolcengineArkPlatformProviderModelDiscoverer implements Platf
         if (result.path("Items").size() != Math.min(pageSize, remaining)) {
             throw new IOException("方舟 Endpoint 分页记录不完整");
         }
-        var candidates = new LinkedHashSet<PlatformDiscoveredModelCandidate>();
+        var candidates = new LinkedHashMap<String, PlatformDiscoveredModelCandidate>();
         for (var item : result.path("Items")) {
             if (item == null || !item.isObject() || !"default".equals(item.path("ProjectName").asText())) {
                 throw new IOException("方舟 Endpoint 项目不匹配");
@@ -258,9 +259,15 @@ public final class VolcengineArkPlatformProviderModelDiscoverer implements Platf
                     continue;
                 }
             }
-            candidates.add(PlatformDiscoveredModelCandidate.requiresAdministratorConfirmation(id.textValue()));
+            var name = item.get("Name");
+            if (name != null && !name.isNull() && !name.isTextual()) {
+                throw new IOException("方舟 Endpoint 名称格式不正确");
+            }
+            var candidate = PlatformDiscoveredModelCandidate.requiresAdministratorConfirmation(
+                    id.textValue(), name == null || name.isNull() ? null : name.textValue());
+            candidates.putIfAbsent(candidate.modelCode(), candidate);
         }
-        return new PageResult(Set.copyOf(candidates), totalCount, pageSize,
+        return new PageResult(Set.copyOf(candidates.values()), totalCount, pageSize,
                 (long) pageNumber * pageSize >= totalCount, null);
     }
 

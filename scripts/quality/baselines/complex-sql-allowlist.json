@@ -1098,6 +1098,30 @@
       "statementId": "countCandidates",
       "category": "MULTI_TABLE",
       "reason": "WP-0019 S1 / ADR-0096：当前修订、发布或管理员确认参与目录筛选，数据与总数共用完整安全谓词；MyBatis-Plus 生成候选窗口。"
+    },
+    {
+      "path": "backend/contexts/model-runtime/src/main/resources/mapper/model-runtime/PlatformProviderModelCandidateMapper.xml",
+      "statementId": "insertDiscovery",
+      "category": "ATOMIC_STATE_TRANSITION",
+      "reason": "WP-0019 S1 / ADR-0070：从候选存储迁出的发现根插入，与连接 CAS 及候选名称冻结共用短事务，不改历史事实。"
+    },
+    {
+      "path": "backend/contexts/model-runtime/src/main/resources/mapper/model-runtime/PlatformProviderModelCandidateMapper.xml",
+      "statementId": "insertCandidate",
+      "category": "POSTGRES_TYPE",
+      "reason": "WP-0019 S1 / ADR-0070：新候选同时冻结独立名称和调用编码，能力数组仍用 PostgreSQL 转换；不回填旧名称。"
+    },
+    {
+      "path": "backend/contexts/model-runtime/src/main/resources/mapper/model-runtime/PlatformProviderModelCandidateMapper.xml",
+      "statementId": "selectCurrentCandidate",
+      "category": "MULTI_TABLE",
+      "reason": "WP-0019 S1 / ADR-0070：按精确编码、类型和修订读取未过期候选，合并独立确认；DISTINCT ON 选择唯一最新事实，不是手工列表分页。"
+    },
+    {
+      "path": "backend/contexts/model-runtime/src/main/resources/mapper/model-runtime/PlatformProviderModelCandidateMapper.xml",
+      "statementId": "confirmCandidate",
+      "category": "ATOMIC_STATE_TRANSITION",
+      "reason": "WP-0019 S1 / ADR-0070：迁出既有候选确认语句，当前修订及防重复谓词保持；原候选名称与编码不更新。"
     }
   ]
 }

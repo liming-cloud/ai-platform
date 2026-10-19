@@ -47,6 +47,6 @@ public final class PlatformProviderModelCandidateConfirmationService {
         return new PlatformProviderModelCandidateView(
                 candidate.modelCode(), candidate.modelType().name(),
                 candidate.capabilities().stream().map(Enum::name).collect(Collectors.toUnmodifiableSet()),
-                candidate.classification().name());
+                candidate.classification().name(), candidate.displayName());
     }
 }
