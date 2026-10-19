@@ -286,3 +286,21 @@ test("退出检查等待正式注销响应与登录入口恢复，不能把菜�
   assert.equal(events.includes("response"), true);
   assert.equal(events.at(-1), "entry");
 });
+
+for (const [name, width, scope, height, covered, passes] of [
+  ["桌面表格32px紧凑操作", 1024, "table", 32, false, true],
+  ["桌面表格31px必须拒绝", 1440, "table", 31, false, false],
+  ["普通32px操作仍拒绝", 1024, "page", 32, false, false],
+  ["手机表格43px仍拒绝", 390, "table", 43, false, false],
+  ["手机表格44px通过", 390, "table", 44, false, true],
+  ["紧凑操作被遮挡仍拒绝", 1024, "table", 32, true, false],
+  ["既有分页32px仍通过", 1440, "pagination", 32, false, true],
+]) test(`布局合同：${name}`, async () => {
+  const target = {};
+  const element = { getBoundingClientRect: () => ({x:0,y:0,width:80,height}), contains: hit => hit === target,
+    closest: selectors => selectors.split(",").some(selector => selector.trim() === (scope === "table" ? ".platform-connection-table" : scope === "pagination" ? ".platform-connection-pagination" : "")) ? {} : null };
+  const controls = {count:async () => 1,nth:() => ({isEnabled:async () => true,scrollIntoViewIfNeeded:async () => {},
+    evaluate:async callback => require("node:vm").runInNewContext(`(${callback})(element)`, {element,innerWidth:width,document:{elementFromPoint:() => covered ? {} : target}})})};
+  const page = {evaluate:async () => ({exists:true,overflow:0,clipped:false}),getByRole:() => ({isVisible:async () => false}),locator:() => controls};
+  if (passes) await verifyLayout(page); else await assert.rejects(() => verifyLayout(page), /被遮挡或未达到控件基线/);
+});

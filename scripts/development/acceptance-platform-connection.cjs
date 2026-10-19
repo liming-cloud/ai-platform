@@ -257,8 +257,9 @@ async function verifyLayout(page) {
     requireCondition(await control.evaluate(element => {
       const box = element.getBoundingClientRect();
       const target = document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2);
+      // 原型的表格操作与分页均为紧凑控件；手机仍统一要求44px，遮挡检查不豁免。
       return element.contains(target) && box.height >= (innerWidth <= 680 ? 44
-        : element.closest(".platform-connection-pagination") ? 32 : 36);
+        : element.closest(".platform-connection-pagination, .platform-connection-table") ? 32 : 36);
     }), "当前页面操作被遮挡或未达到控件基线");
   }
 }
