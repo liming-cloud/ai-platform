@@ -177,3 +177,45 @@ Local Codex 显式加载当前工程助手 `wayfinder`、`diagnosing-bugs`、`co
 本子任务交付资源来源事实、权限核查边界、可审阅最小方案及人工查看步骤。S1 正式非空厂商合同、新修订发布和真实未筛选空目录仍未闭合；外部 CI 账单阻断未解除。S1、WP-0019、M6 未完成，不进入后续切片。
 
 本轮 `make decisions-sync`、`make project-status`、`make project-verify`、`make architecture-guard`、`make resume-context` 实际退出均为 0；治理 81 项／30 个任务、架构 50 项及双端守卫通过，恢复输出 11,939 字节。日志为本证据目录 `closeout-*.log`，STATE 与实现矩阵未改。固定差异评审限于基线至本轮三份文档，核对事实抽样、待接受状态和权限边界后无新增阻断；提交、推送与 CI 结果以最终 GitHub 回执另核对。
+
+## 双来源发现生产承接
+
+用户随后回复“同意并推进任务”，接受 `ff5e7c1a5ceb239ab4cada1c1104e258bb0c2161` 的最小提案，先在 `556d6cbc17b368a6dd2f2a274001c4a2a013252e` 登记 [ADR-0099](../../../architecture/decisions/ADR-0099-ark-default-preset-candidate-discovery.md)并正常推送。该节接受前摘要仍可由原提交恢复；没有把接受写成生产验收。当前任务直接 ADR 保持 12 条，ADR-0022 经 ADR-0082 继续生效；STATE、M6 矩阵及前沿未提升。
+
+### 红绿、实现与源码闭环
+
+只修改方舟发现器及其测试，源码为 `41c9fa89cb5f3caef146f4b64ff9665c513dca9e`。先增加本地 HTTP 的“自定义 0、预置非空”反例：原五项中一项实际失败，`expected true but was false`，并非环境／导入错误。实现后同一类定向 36 项转绿；再补三项非运行及分页回归，最终完整后端实际执行退出 0：**348 套件／1,168 项，失败、错误、跳过均 0，其中方舟适配器 39 项**。原签名固定向量和错误脱敏保留，未降低正式非空断言。
+
+两 Action 均显式 default、分别完整分页后合并，预置只用 Running 的官方 ModelId，自定义仍用 Id；候选统一待管理员确认，不推断能力。两个来源共享 100 次请求、10,000 候选、1 MiB 响应边界，逐次验证出站。任一来源 401／403／429／5xx、字段／项目错误、分页漂移／缺失／超限均使整次失败，不保存部分成功集合；独立 AK／SK 正常及失败均释放，不解析推理 Key。本次同时收紧触及路径的分页完整性检查，没有扩大到公共协议、Schema 或其他厂商。
+
+图谱探索发现器与测试，对唯一装配入口 `volcengineArkPlatformProviderModelDiscoverer` 完成影响查询，命中 7 个装配符号；类名查询存在重载歧义，不冒称完整跨模块图。固定 diff 评审基线为决策提交，实际只含上述两个文件；受影响模型服务、事务、HTTP 和三启动模块由完整后端覆盖，架构 50 项及双端守卫通过，公开 facade／port 与 POM 未变。源码已正常提交推送；其 CI [39217772132](https://github.com/liming-cloud/ai-platform/actions/runs/39217772132)仍因付款／spending limit 未启动，作业步骤数 0，不是源码测试失败。
+
+### 固定镜像与实际部署
+
+只从固定 Git 提交取 `.mvn`、Maven 入口、backend 和既有 Dockerfile 构建，不带 `pwd.txt`、`AccessKey.txt` 或 deploy/.env。三镜像 OCI revision 均为上述源码：
+
+| 服务 | 实际运行镜像 |
+| --- | --- |
+| control-plane | `sha256:8ddb2dc0c6b0b56f31f6c31a4d0ac8a5fb6482953c7bf3b594dffb2ad00c189d` |
+| query-runtime | `sha256:bfdd3e7db343c4bd8ca898156ab8633f3945ec651e05340775eb2d7ecef60e7c` |
+| ingestion-worker | `sha256:301e72d6f9dd7d0b6a30749ed55c938dfc1e7916348a8171ce15446fc76bca30` |
+
+完整验证通过后，正常 Compose 仅更新这三个服务，七服务 healthy、四入口冒烟通过。前端、PostgreSQL、Redis、MinIO 容器标识不变，部署前后数据库聚合及精确三对象事实相同；不重启 Docker、清卷、重置数据或修改网络。固定 Git 上下文已由 finally 清除（Docker 报告传输 6.59 MB）；日志与证据保留。
+
+前端仍运行 `569eb54dc66fb8cbd97ebf70076824cbf77068b2`／`sha256:e81664078edb16bd243a2bbcd6b679d54c82b38f404bf7ccc66325bcadab2eec`。相对调查基线，frontend 与原型源码差异均为空，前端容器未换；OpenDesign Cloud 原项目及已接受 `cce686e4634ca3c523e4c8aeffd95752f1a04c3a` 不变。本轮没有重跑已通过页面矩阵，没有生成截图，也不新增视觉通过结论；既有原型一致性证据保留各自原日期与范围。
+
+### 最新部署的正式发现与独立事实
+
+2026-10-19 15:53:53–15:54:05（Asia/Taipei），复用普通 0600 `pwd.txt`，按正式 `make acceptance-work-package WP=WP-0019 SLICE=platform-connection`、`FOUNDATION_ACCEPTANCE_MODE=vendor-discovery` 执行一次。输入精确连接 `2112058351855599618`／修订 1、前端与后端分别固定上述版本。**PASSED／退出 0，六项真实浏览器检查，一笔模型业务写入**：平台登录、平台预设及匿名／租户拒绝、当前配置与发布读取、动作前提、唯一真实发现及新修订读取、退出后受保护读取拒绝均通过。没有只读模式暗写、重新创建连接、重跑页面矩阵、自动重试、推理或发布。
+
+`REPEATABLE READ READ ONLY` 独立确认当前连接修订 2、VERIFIED；发现 `2112089882397507585` 绑定同修订，`succeeded=true`、`VOLCENGINE_ARK_DISCOVERY_OK`，有效期至 `2026-10-20T07:54:03.352863Z`。两条候选均 `REQUIRES_ADMIN_CONFIRMATION`、模型类型未设置、能力集合为空，管理面 ep-m 编码计数为 0；这只证明真实发现成功，不能证明推理 Key 可用或 Chat／Embedding 能力。
+
+发现从 12 增至 13、历史候选从 785 增至 787；连接 3、凭据行 5、发布 1、平台部署／目录／租户授权 0 均未变。两个旧对象及新连接修订 1 的失败历史保留，没有读取秘密列、解密旧凭据或输出实际模型编码。当前新修订未发布，已提出精确修订 2 的独立授权请求；ADR-0099 及发现授权不包含发布，不自动推进 S2。
+
+### 证据与当前边界
+
+本轮目录 `/private/tmp/wp0019-s1-preset-discovery-20261019-zezd2q2g` 为 0700，日志及报告为 0600。`safe-evidence-digests.json` 绑定 19 项非秘密证据，SHA-256 `a2ae8d007ab17753408af16e9805ba1e94e35bf0b2679e8859bdd8567675d741`；不含凭据及其摘要或截图。红灯、36 项定向绿灯、39 项最终适配器及 1,168 项后端、构建、部署、正式浏览器、只读事实、未变 UI 与外部 CI 各自独立保留，不互相替代。
+
+Local Codex 显式使用当前安装工程助手 `wayfinder`、`tdd`、`code-review`，加载安全 seam 参考并执行固定 diff 内联评审；图谱结论将修复限定在扩展及其现有装配。发布用例／仓储／领域图谱另核对修订、连接状态和时效门禁，仅调查，没有修改或执行发布。无 Runtime／StageRunResult，阶段校验不适用。
+
+方舟零候选和匹配新协议的正式非空合同已闭环。用户随后明确回复“允许仅发布该连接修订（推荐）”，单独授权连接 `2112058351855599618` 的修订 2；截至本段登记尚未执行发布，不包含模型部署、目录、租户授权或推理。剩余为该精确发布验收、真实未筛选空目录及外部 CI 账单阻断；完整 IAM 策略审计仍因假地址未执行，但两个必需 Action 已真实成功，不再把猜测缺权当作发现阻断。S1 五操作整体、WP-0019、M6 尚未完成，不进入 S2～S6，不删除现有数据制造空目录。
