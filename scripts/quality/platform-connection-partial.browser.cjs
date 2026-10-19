@@ -210,11 +210,31 @@ for (const width of [390, 1024, 1440]) for (const detail of [false, true]) test(
   await page.getByText("暂不可用", { exact: true }).waitFor();
   const command = page.getByRole("button", { name: detail ? "执行连接探测" : "新增供应商连接", exact: true });
   assert.equal(await command.isDisabled(), true);
+  const assertDisabledAppearance = async doubled => {
+    // 等待已有颜色过渡结束，再比较最终可见状态，不取样旧状态的动画起点。
+    await command.evaluate(async e => {
+      getComputedStyle(e).color;
+      await Promise.all(e.getAnimations().map(animation => animation.finished));
+    });
+    assert.deepEqual(await command.evaluate(e => {
+      const style = getComputedStyle(e);
+      return Object.fromEntries(["fontWeight", "color", "backgroundColor", "borderColor", "padding", "minWidth", "opacity"].map(key => [key, style[key]]));
+    }), {
+      fontWeight: "620", color: "rgb(94, 93, 89)", backgroundColor: "rgb(245, 244, 237)",
+      borderColor: "rgb(232, 230, 220)", padding: "6px 12px", minWidth: "auto", opacity: "0.76",
+    }, "暂停操作须使用已接受原型的暖色禁用样式");
+    if (doubled) assert.ok(Math.abs((await command.boundingBox()).height - 54) <= 1,
+      "200%文字下暂停操作须保留原型的54px内容高度");
+  };
+  await assertDisabledAppearance(false);
+  await command.hover({ force: true });
+  await assertDisabledAppearance(false);
   assert.equal(await page.getByRole("searchbox").first().isEnabled(), true);
   const heading = page.getByRole("heading", { level: 1 });
   const size = await heading.evaluate(e => parseFloat(getComputedStyle(e).fontSize));
   await enlargeText(page);
   await page.waitForFunction(size => parseFloat(getComputedStyle(document.querySelector("h1")).fontSize) >= size * 2, size);
+  await assertDisabledAppearance(true);
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), true);
   await page.getByRole("searchbox").first().focus();
   assert.equal(await page.getByRole("searchbox").first().evaluate(e => e === document.activeElement), true);
