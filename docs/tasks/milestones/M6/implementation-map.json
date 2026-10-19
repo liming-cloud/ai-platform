@@ -4,7 +4,7 @@
   "openDesignProjectId": "249f81f2-6f1a-46ff-988c-da3cdedb35e7",
   "humanAcceptanceEvidence": "docs/tasks/WP-0016/evidence/WP-0016-human-acceptance-20260913.md",
   "prototypeImplementationCommit": "21b45c347a4008f5959b1b972e3ffd8a5aadcc6f",
-  "updatedOn": "2026-10-09",
+  "updatedOn": "2026-10-19",
   "sources": [
     {
       "path": "docs/prototypes/wp-0016/page-inventory.json",
@@ -880,7 +880,7 @@
       "phase": "M6",
       "classification": "production",
       "workPackage": "WP-0019",
-      "status": "pending-contract",
+      "status": "in-progress",
       "operations": [
         {
           "id": "platform-model-connections:0",
@@ -890,7 +890,31 @@
           "reason": "m6-approved-prototype",
           "workPackage": "WP-0019",
           "dependsOn": [],
-          "status": "pending-contract"
+          "status": "implemented",
+          "contract": {
+            "adr": "ADR-0095",
+            "target": {
+              "kind": "api",
+              "value": "POST /api/v1/platform/model-supply/connections"
+            },
+            "saveBoundary": "仅由正式表单幂等建立连接草稿并按用途加密保存凭据；不执行发现、发布、模型部署或租户授权。",
+            "authorizationTests": [
+              "非平台身份及伪造范围拒绝，平台身份与可信权限取交集。",
+              "预设、地址、工作空间及凭据用途不匹配失败关闭；失败不留下半成品，取消不提交。"
+            ]
+          },
+          "verification": {
+            "commands": [
+              "FOUNDATION_ACCEPTANCE_MODE=create-draft make acceptance-work-package WP=WP-0019 SLICE=platform-connection",
+              "make frontend-test",
+              "./mvnw -q -pl backend/contexts/model-runtime -am test",
+              "make architecture-guard",
+              "make project-verify"
+            ],
+            "evidence": [
+              "docs/tasks/WP-0019/evidence/WP-0019-S1-page-states-and-ark-diagnostics-20261019.md"
+            ]
+          }
         },
         {
           "id": "platform-model-connections:1",
@@ -900,7 +924,31 @@
           "reason": "m6-approved-prototype",
           "workPackage": "WP-0019",
           "dependsOn": [],
-          "status": "pending-contract"
+          "status": "implemented",
+          "contract": {
+            "adr": "ADR-0096",
+            "target": {
+              "kind": "api",
+              "value": "GET /api/v1/platform/model-supply/connections；GET /api/v1/platform/model-supply/connections/{id}；GET /api/v1/platform/model-supply/connections/{id}/model-candidates；GET /api/v1/platform/model-supply/connections/{id}/publication"
+            },
+            "saveBoundary": "目录与精确详情只读，保持页码、筛选和对象修订；不读取秘密或因查看建立新对象。候选名称合同缺口 S1-C01 尚未闭合。",
+            "authorizationTests": [
+              "平台、租户和匿名范围分别拒绝不允许读取；注销后读取拒绝。",
+              "重复／未知范围参数、旧修订及失效会话失败关闭，不恢复旧敏感表单。"
+            ]
+          },
+          "verification": {
+            "commands": [
+              "FOUNDATION_ACCEPTANCE_MODE=read-only make acceptance-work-package WP=WP-0019 SLICE=platform-connection",
+              "make frontend-test",
+              "./mvnw -q -pl backend/contexts/model-runtime -am test",
+              "make architecture-guard",
+              "make project-verify"
+            ],
+            "evidence": [
+              "docs/tasks/WP-0019/evidence/WP-0019-S1-page-states-and-ark-diagnostics-20261019.md"
+            ]
+          }
         },
         {
           "id": "platform-model-connections:2",
@@ -910,7 +958,31 @@
           "reason": "m6-approved-prototype",
           "workPackage": "WP-0019",
           "dependsOn": [],
-          "status": "pending-contract"
+          "status": "implemented",
+          "contract": {
+            "adr": "ADR-0095",
+            "target": {
+              "kind": "api",
+              "value": "GET /api/v1/platform/model-supply/connections/presets；POST /api/v1/platform/model-supply/connections"
+            },
+            "saveBoundary": "预设只读；厂商、能力与工作空间变更在表单内重算受控地址并清空秘密，显式保存前无业务写入；选择不证明能力可调用。",
+            "authorizationTests": [
+              "匿名与租户不能读取平台预设；客户端不能伪造厂商固定地址或发现用途。",
+              "缺失或非法 writesAvailable 失败关闭；partial／disabled 时不能提交旧表单，取消清空秘密并恢复焦点。"
+            ]
+          },
+          "verification": {
+            "commands": [
+              "FOUNDATION_ACCEPTANCE_MODE=read-only make acceptance-work-package WP=WP-0019 SLICE=platform-connection",
+              "make frontend-test",
+              "./mvnw -q -pl backend/contexts/model-runtime -am test",
+              "make architecture-guard",
+              "make project-verify"
+            ],
+            "evidence": [
+              "docs/tasks/WP-0019/evidence/WP-0019-S1-page-states-and-ark-diagnostics-20261019.md"
+            ]
+          }
         }
       ]
     },
@@ -921,7 +993,7 @@
       "phase": "M6",
       "classification": "production",
       "workPackage": "WP-0019",
-      "status": "pending-contract",
+      "status": "in-progress",
       "operations": [
         {
           "id": "platform-model-connection-detail:0",
@@ -931,7 +1003,31 @@
           "reason": "m6-approved-prototype",
           "workPackage": "WP-0019",
           "dependsOn": [],
-          "status": "pending-contract"
+          "status": "implemented",
+          "contract": {
+            "adr": "ADR-0099",
+            "target": {
+              "kind": "api",
+              "value": "POST /api/v1/platform/model-supply/connections/{id}/model-discovery"
+            },
+            "saveBoundary": "平台权限及写入可用性复核后在事务外有界读取厂商；按当前修订原子保存发现及候选并更新连接，失败记录保留且不发布；候选可见名称缺口 S1-C01 待修复。",
+            "authorizationTests": [
+              "非平台身份、暂停写入、缺用途凭据及旧版本拒绝；并发迟到结果不能覆盖新修订。",
+              "任一来源鉴权、网络、分页或结构错误使整个发现失败，双空不得冒充成功；未知分类不猜测能力。"
+            ]
+          },
+          "verification": {
+            "commands": [
+              "FOUNDATION_ACCEPTANCE_MODE=vendor-discovery make acceptance-work-package WP=WP-0019 SLICE=platform-connection",
+              "make frontend-test",
+              "./mvnw -q -pl backend/contexts/model-runtime -am test",
+              "make architecture-guard",
+              "make project-verify"
+            ],
+            "evidence": [
+              "docs/tasks/WP-0019/evidence/WP-0019-S1-page-states-and-ark-diagnostics-20261019.md"
+            ]
+          }
         },
         {
           "id": "platform-model-connection-detail:1",
@@ -941,7 +1037,31 @@
           "reason": "m6-approved-prototype",
           "workPackage": "WP-0019",
           "dependsOn": [],
-          "status": "pending-contract"
+          "status": "implemented",
+          "contract": {
+            "adr": "ADR-0095",
+            "target": {
+              "kind": "api",
+              "value": "POST /api/v1/platform/model-supply/connections/{id}/publish；GET /api/v1/platform/model-supply/connections/{id}/publication"
+            },
+            "saveBoundary": "独立授权后发布已验证且未过期的精确连接修订，保存发布序号并重读服务器事实；不再次发现，不创建部署、目录或租户授权。",
+            "authorizationTests": [
+              "非平台身份、暂停写入、未验证、过期、旧修订及并发版本冲突拒绝。",
+              "发布审计与业务事实保持原子性；发现授权不包含发布，重复请求不伪造新成功。"
+            ]
+          },
+          "verification": {
+            "commands": [
+              "FOUNDATION_ACCEPTANCE_MODE=publish-current make acceptance-work-package WP=WP-0019 SLICE=platform-connection",
+              "make frontend-test",
+              "./mvnw -q -pl backend/contexts/model-runtime -am test",
+              "make architecture-guard",
+              "make project-verify"
+            ],
+            "evidence": [
+              "docs/tasks/WP-0019/evidence/WP-0019-S1-page-states-and-ark-diagnostics-20261019.md"
+            ]
+          }
         }
       ]
     },

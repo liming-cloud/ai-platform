@@ -1,6 +1,6 @@
 # WP-0019 S1：页面七态与方舟零候选调查
 
-执行日期：2026-10-19（Asia/Shanghai）。本轮已闭合零候选原因调查，以及下文声明范围的页面七态、全景与完整表单验收；真实厂商非空合同、正式新建流程及外部 CI 仍未闭合。S1、WP-0019、M6 未完成，不进入 S2～S6。本文件集中维护本轮两个子任务的独立结果，不改变历史验收。
+执行日期：2026-10-19（Asia/Shanghai）。本文件按执行阶段保留原时点结论，后续阶段不改写前面的失败或未执行事实。最新交付清单和剩余阻断见文末“五项操作证据链复核”：真实创建、非空发现、精确授权发布及真实空目录均已有证据；除外部 CI 账单外，候选显示名称与供应商编码未分离的合同缺口仍须修复。S1、WP-0019、M6 未完成，不进入 S2～S6。
 
 ## 固定输入与保护边界
 
@@ -268,3 +268,52 @@ Local Codex 显式加载当前工程助手 `wayfinder`、`diagnosing-bugs`、`td
 4. 问题解除后进入 ai-platform → Actions → 最终提交对应运行 → Re-run all jobs，确认作业实际启动并通过。依据[官方重跑说明](https://docs.github.com/en/actions/how-tos/manage-workflow-runs/re-run-workflows-and-jobs)。本地测试与本次真实空目录通过不替代该 CI 结果。
 
 本轮 `make decisions-sync`、`make project-status`、`make project-verify`、`make architecture-guard`、`make resume-context` 均退出 0，治理 81 项／30 任务、架构 50 项及双端守卫通过，恢复输出 11,891 字节；日志为本临时目录 `closeout-*.log`。真实未筛选空目录子任务已闭环；S1 组合收口仍等待实际 CI 门禁，不提升 WP-0019、M6 或实现矩阵完成状态，不进入 S2。
+
+## 五项操作证据链复核
+
+本次只读审计基线为 `main@5c67c49223ad186a288bf7530e508e07ec9da8bd`，起始工作区干净、与 `origin/main` 相同；工作包输入提交为祖先。复核 Charter、ROADMAP、STATE、工作包及十二项直接 ADR，前沿仍为 WP-0019／S1。没有重新运行浏览器、调用厂商、登录、查询秘密、部署或改动业务数据。
+
+### 交付清单与证据边界
+
+下表按原执行范围组合证据，操作实施状态仍只在 [M6 实现矩阵](../../milestones/M6/implementation-map.json)维护。本次将五项由过时的 `pending-contract` 更正为已有的 `implemented`，补充已接受合同及验证引用；两页汇总为 `in-progress`，没有登记 `verifiedCommit` 或提升完成状态。
+
+| 操作稳定 ID | 已有生产／源码证据 | 独立事实与剩余限制 |
+| --- | --- | --- |
+| `platform-model-connections:0` 新增供应商连接 | 正式 `create-draft` 4 项通过，创建 `2112058351855599618`；完整表单 66 组及取消清密由独立对照覆盖 | 原后端为 `e0224fa9847fdaf297b3ad896e37ae7796e29a50`；只读事实确认草稿及三用途凭据计数，不复写创建日期或冒称当时运行 41c9fa89 |
+| `platform-model-connections:1` 查看连接 | 正式 `read-only` 10 项覆盖目录、详情刷新、分页、平台／租户／匿名边界及退出拒绝；两页七态 84 组独立对照 | 目录到精确详情的导航接线与深链接分别由 `PlatformModelSupplyWorkspace` 和既有浏览器回归覆盖；候选区的名称／编码合同仍有下述缺口 |
+| `platform-model-connections:2` 厂商／能力／地址联动 | 正式只读联动、五厂商／十一组合完整表单 66 组、23,310 项比较、840 次键盘和 66 次必填拒绝 | ADR-0098 三处文案映射及其换行影响单独归因；选择能力不证明真实能力；不重复提交其他厂商表单 |
+| `platform-model-connection-detail:0` 执行连接探测 | 正式 `vendor-discovery` 6 项通过；当前后端 41c9fa89 的真实双来源发现使精确连接进入修订 2／VERIFIED | 独立只读事实确认发现 `2112089882397507585` 与两个待确认候选；正式模式经浏览器同源接口执行，UI 按钮接线由源码／既有回归补充，不冒称该模式点击了按钮；候选可见名称合同未闭合 |
+| `platform-model-connection-detail:1` 发布连接 | 用户精确独立授权后，正式详情 `publish-current` 6 项通过，发布 `2112092416361103361` | 发布序号 1 绑定连接修订 2；独立只读确认发布总数增加 1，其余连接／发现／候选不变，部署／目录／租户授权仍为 0；不重复发布 |
+
+真实未筛选空目录是独立补充门禁，不是第六项操作：相同七镜像、独立新空库，正式 `empty-directory` 5 项通过，前后八类模型计数为 0，原部署不变且临时资源已回收。五份正式报告逐项核对状态、检查数、业务写入数、运行版本，并保留各自 `prototypeParity=NOT_RUN`、`sliceComplete=false`；不将模式通过合并成整片通过。
+
+### 原始证据、源码与部署绑定
+
+本轮新目录 `/private/tmp/wp0019-s1-evidence-review-20261019-667dg0vk` 为 0700。逐一核验前文五份安全清单的原 SHA-256，以及清单内 **156 个文件条目**的存在性、内容摘要和已声明大小，全部匹配；条目含重复引用，不冒称 156 份独立验收。没有读取、计算或保存凭据摘要。原始失败报告、截图和日志均保留原位置，没有复制到仓库。
+
+独立解析原始全景仍为 FAILED／12 项，全部为详情 success／disabled 的真实空候选行与原型示例数据行的单元格存在性差异；完整表单仍为 FAILED／167 项，其中 72 项字面差异逐字匹配 ADR-0098 三个映射，95 项几何差异沿用原精确换行分类。分类文件与原始报告摘要匹配，不增加视觉例外，不把摘要复核称为新视觉验收。既有对照时候选为空，因此它也不能证明后来真实非空候选的显示合同正确。
+
+本轮只读快照确认原项目七服务 running／healthy；前端仍为 `569eb54dc66fb8cbd97ebf70076824cbf77068b2`、三后端仍为 `41c9fa89cb5f3caef146f4b64ff9665c513dca9e`，四镜像逐一匹配前文摘要。`git diff 569eb54d..5c67c492 -- frontend` 为空。创建／只读当时的后端 e022 至当前 41c9fa89 只有 Ark 发现器、其测试和自动配置测试三个文件变化；创建、查询、预设、权限及持久化结构未改，据此复用原证据，不伪造同一次全链新验收。
+
+### 除 CI 外的已确认合同缺口
+
+**S1-C01：候选显示名称与供应商调用编码没有分离。** [ADR-0070](../../../architecture/decisions/ADR-0070-authoritative-platform-model-discovery.md)要求冻结受控显示名称，普通候选显示用户可理解名称，内部供应商标识只用作受控选择值；ADR-0099 明确继承此不变量，没有授权编码可见例外。
+
+静态源码链已闭合：`PlatformProviderModelCandidateView` 仅有 `modelCode/modelType/capabilities/classification`，没有独立显示名称；`PlatformProviderModelCandidateReadService.list` 直接投影 `candidate.modelCode()`；`PlatformProviderConnectionDetail` 的候选单元格直接渲染 `item.modelCode`。三个文件分别与实际前端／后端运行提交中的 Git 对象完全相同。因而现有投影无法独立表达用户名称和供应商调用标识，查看及探测后候选区不满足已接受合同。本结论来自源码，不冒称新增生产浏览器失败，也不推导为秘密泄露或厂商鉴权失败。
+
+下一 S1 局部修复应先以不同的合成显示名称／不透明供应商编码复现，再按 ADR-0070 补齐受控名称的来源、投影与页面消费，保留编码的选择／调用用途、未知分类、修订及时效约束。若来源缺失，须明确安全降级，不能用复制编码或猜测能力掩盖。涉及扩展和持久化时先做图谱影响分析，按实际范围补验；只复验受影响的非空候选及原型区域，不重跑已通过且未变的全部页面，不使用现有数据制造状态。本轮只登记缺口，不修改公共字段、模型事实或原型。
+
+### 阻断与下一动作
+
+| 类别 | 当前结论与负责动作 |
+| --- | --- |
+| S1 产品合同 | **S1-C01 未闭合**。留在 S1 局部修复；不需要人工重新提供登录或厂商凭据，也不转入 S2 |
+| 外部 CI | 基线 [Actions 39227797693](https://github.com/liming-cloud/ai-platform/actions/runs/39227797693) 为 failure，唯一作业步骤数 0，原始消息为付款失败或 spending limit；按前节账单步骤由账号所有者处理。Ubuntu 26 提示只是 notice，不算产品测试失败 |
+| 本轮控制面收口 | 五项合同、证据引用与恢复入口可以独立修正；本轮本地验证和最终推送另行记录，不替代云端 CI |
+| 非 S1 阻断 | 真实推理 Key 可用性、模型分类后的 Chat／Embedding／RERANK 实测、平台部署及租户授权属于 S2；完整 IAM 审计未做不影响两个已成功 Action 的原结论；不为这些后续内容重复当前验收 |
+
+本轮工程助手环境为 Local Codex 当前安装插件，显式加载 `engineering-assistant:wayfinder`、`engineering-assistant:code-review` 及 `references/evidence-and-stage-audit.md`；依本包控制面与 ADR 内联审计，未复用其他任务 Runtime。无 StageRunResult，阶段结果校验不适用。代码图谱探索 `PlatformModelSupplyWorkspace`、详情动作及候选 Controller／ReadService／View，使收口从“只待 CI”改为同时保留 S1-C01；图谱同名候选对象误定位时按精确文件补读。未修改重要服务或共享契约，本轮不需要实施影响分析。
+
+本轮已执行 `make decisions-sync`、`make project-status`、`make project-verify`、`make architecture-guard`、`make resume-context`，退出均为 0；治理 81 项／30 任务、架构 50 项及双端守卫通过，恢复输出 11,822 字节。固定 diff 仅含任务恢复入口、本证据和实现矩阵，其他页面操作、STATE、业务代码及原型不变；差异格式检查通过。没有重跑前后端全量或已通过的业务验收。
+
+新目录的 `evidence-digests.json` 绑定 11 项非秘密审计产物，SHA-256 为 `4e28dec083e1fb4e55a78ae08fdc6221db8c86892358a9ab0bcd8b8db8747d8d`；包含原证据摘要复核、五模式状态／版本、原始视觉分类复算、源码／运行快照、候选合同链、CI 原因、本地门禁与固定差异评审，均为 0600。此次“证据链复核与交付清单纠偏”子任务已闭环，最终提交／推送与 CI 在 GitHub 回执核对；S1-C01 和外部 CI 仍未闭合，S1 整片、WP-0019、M6 均不标记完成。
