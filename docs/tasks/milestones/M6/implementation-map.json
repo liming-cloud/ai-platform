@@ -880,7 +880,7 @@
       "phase": "M6",
       "classification": "production",
       "workPackage": "WP-0019",
-      "status": "in-progress",
+      "status": "verified",
       "operations": [
         {
           "id": "platform-model-connections:0",
@@ -890,7 +890,7 @@
           "reason": "m6-approved-prototype",
           "workPackage": "WP-0019",
           "dependsOn": [],
-          "status": "implemented",
+          "status": "verified",
           "contract": {
             "adr": "ADR-0095",
             "target": {
@@ -912,9 +912,11 @@
               "make project-verify"
             ],
             "evidence": [
-              "docs/tasks/WP-0019/evidence/WP-0019-S1-page-states-and-ark-diagnostics-20261019.md"
+              "docs/tasks/WP-0019/evidence/WP-0019-S1-page-states-and-ark-diagnostics-20261019.md",
+              "docs/tasks/WP-0019/evidence/WP-0019-S1-slice-closure-20261019.md"
             ]
-          }
+          },
+          "verifiedCommit": "c563d04ef7dd14d4eee00b2e7b4a0277c34548f3"
         },
         {
           "id": "platform-model-connections:1",
@@ -924,7 +926,7 @@
           "reason": "m6-approved-prototype",
           "workPackage": "WP-0019",
           "dependsOn": [],
-          "status": "implemented",
+          "status": "verified",
           "contract": {
             "adr": "ADR-0096",
             "target": {
@@ -947,9 +949,11 @@
             ],
             "evidence": [
               "docs/tasks/WP-0019/evidence/WP-0019-S1-page-states-and-ark-diagnostics-20261019.md",
-              "docs/tasks/WP-0019/evidence/WP-0019-S1-candidate-name-delivery-20261019.md"
+              "docs/tasks/WP-0019/evidence/WP-0019-S1-candidate-name-delivery-20261019.md",
+              "docs/tasks/WP-0019/evidence/WP-0019-S1-slice-closure-20261019.md"
             ]
-          }
+          },
+          "verifiedCommit": "c563d04ef7dd14d4eee00b2e7b4a0277c34548f3"
         },
         {
           "id": "platform-model-connections:2",
@@ -959,7 +963,7 @@
           "reason": "m6-approved-prototype",
           "workPackage": "WP-0019",
           "dependsOn": [],
-          "status": "implemented",
+          "status": "verified",
           "contract": {
             "adr": "ADR-0095",
             "target": {
@@ -981,9 +985,11 @@
               "make project-verify"
             ],
             "evidence": [
-              "docs/tasks/WP-0019/evidence/WP-0019-S1-page-states-and-ark-diagnostics-20261019.md"
+              "docs/tasks/WP-0019/evidence/WP-0019-S1-page-states-and-ark-diagnostics-20261019.md",
+              "docs/tasks/WP-0019/evidence/WP-0019-S1-slice-closure-20261019.md"
             ]
-          }
+          },
+          "verifiedCommit": "c563d04ef7dd14d4eee00b2e7b4a0277c34548f3"
         }
       ]
     },
@@ -994,7 +1000,7 @@
       "phase": "M6",
       "classification": "production",
       "workPackage": "WP-0019",
-      "status": "in-progress",
+      "status": "verified",
       "operations": [
         {
           "id": "platform-model-connection-detail:0",
@@ -1004,7 +1010,7 @@
           "reason": "m6-approved-prototype",
           "workPackage": "WP-0019",
           "dependsOn": [],
-          "status": "implemented",
+          "status": "verified",
           "contract": {
             "adr": "ADR-0099",
             "target": {
@@ -1027,9 +1033,11 @@
             ],
             "evidence": [
               "docs/tasks/WP-0019/evidence/WP-0019-S1-page-states-and-ark-diagnostics-20261019.md",
-              "docs/tasks/WP-0019/evidence/WP-0019-S1-candidate-name-delivery-20261019.md"
+              "docs/tasks/WP-0019/evidence/WP-0019-S1-candidate-name-delivery-20261019.md",
+              "docs/tasks/WP-0019/evidence/WP-0019-S1-slice-closure-20261019.md"
             ]
-          }
+          },
+          "verifiedCommit": "c563d04ef7dd14d4eee00b2e7b4a0277c34548f3"
         },
         {
           "id": "platform-model-connection-detail:1",
@@ -1039,7 +1047,7 @@
           "reason": "m6-approved-prototype",
           "workPackage": "WP-0019",
           "dependsOn": [],
-          "status": "implemented",
+          "status": "verified",
           "contract": {
             "adr": "ADR-0095",
             "target": {
@@ -1061,9 +1069,11 @@
               "make project-verify"
             ],
             "evidence": [
-              "docs/tasks/WP-0019/evidence/WP-0019-S1-page-states-and-ark-diagnostics-20261019.md"
+              "docs/tasks/WP-0019/evidence/WP-0019-S1-page-states-and-ark-diagnostics-20261019.md",
+              "docs/tasks/WP-0019/evidence/WP-0019-S1-slice-closure-20261019.md"
             ]
-          }
+          },
+          "verifiedCommit": "c563d04ef7dd14d4eee00b2e7b4a0277c34548f3"
         }
       ]
     },
