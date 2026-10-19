@@ -53,6 +53,12 @@ test("平台部署完成建草稿、能力验证、租户授权和发布", () =>
   await page.getByRole("button", { name: "建立部署草稿", exact: true }).click();
   const dialog = page.locator("#platform-deployment-dialog");
   await dialog.getByLabel("部署名称").fill("企业对话模型 v7");
+  await dialog.getByLabel("已发现模型").selectOption("pc-chat|model-chat-v6");
+  await dialog.getByLabel("上下文窗口（Token）", { exact: true }).fill("4096");
+  await dialog.getByLabel("最大输出（Token）", { exact: true }).fill("64");
+  await dialog.getByLabel("参数来源", { exact: true }).fill("合成厂商资料 v1");
+  await dialog.getByLabel("我已确认模型类型、能力和参数来源", { exact: true }).check();
+  await dialog.locator('[name="authorizeTenant"][value="tenant-spruce"]').check();
   await dialog.getByRole("button", { name: "保存部署草稿", exact: true }).click();
   await page.locator('main[data-screen="platform-model-deployment-detail"]').waitFor();
   await page.getByRole("button", { name: "执行能力验证", exact: true }).click();

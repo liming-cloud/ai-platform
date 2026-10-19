@@ -4020,3 +4020,22 @@ main[data-screen="access-policy-detail"] .release-decision { container-type: inl
   main[data-screen="access-policy-detail"] .summary-item:nth-child(2) { border-right: 0; }
   main[data-screen="access-policy-detail"] .summary-item:nth-child(-n + 2) { border-bottom: 1px solid var(--color-border); }
 }
+
+/* S2 长表单只滚动正文，200% 文字下标题、动作和焦点区域保持可达。 */
+#platform-deployment-dialog { overflow:hidden; }
+#platform-deployment-dialog > form {
+  display:flex;
+  flex-direction:column;
+  max-height:calc(100dvh - 32px - 2 * var(--space-6) - 2px);
+  min-height:0;
+}
+#platform-deployment-dialog .dialog-header,
+#platform-deployment-dialog .dialog-actions { flex-shrink:0; }
+#platform-deployment-dialog .dialog-body {
+  min-height:0;
+  overflow-y:auto;
+  overscroll-behavior:contain;
+  overflow-wrap:anywhere;
+  scroll-padding-block:var(--space-2);
+}
+.platform-deployment-residency { display:block; color:var(--muted); overflow-wrap:anywhere; }

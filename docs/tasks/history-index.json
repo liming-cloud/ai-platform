@@ -2955,16 +2955,16 @@
     },
     {
       "path": "docs/prototypes/wp-0016/scripts/model-governance-state.test.mjs",
-      "action": "keep",
+      "action": "update",
       "sha256": "37da536fe603aef2088dc7fa85cdf8c5fdffd61f513e3bffd44a704bf9ddaf6e",
-      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯",
+      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯；2026-10-19 用户接受 ADR-0100 的 S2 输入合同，当前测试源码仅补齐显式模型、参数来源和租户选择；原 Git 来源、摘要及历史执行结果保持不变，不放宽原断言",
       "references": []
     },
     {
       "path": "docs/prototypes/wp-0016/scripts/model-governance.browser.test.cjs",
-      "action": "keep",
+      "action": "update",
       "sha256": "56bc4a0976b46eab7b04f577806149dd6311299669d26907fcae712de2b72622",
-      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯",
+      "reason": "已验收原型的原 OpenDesign 项目导入目录不可改绑；恢复此唯一可编辑源路径，内容摘要不变，2026-09-21 迁移仍由 Git 提交追溯；2026-10-19 用户接受 ADR-0100 的 S2 输入合同，当前测试源码仅补齐显式模型、参数来源和租户选择；原 Git 来源、摘要及历史执行结果保持不变，不放宽原断言",
       "references": []
     },
     {

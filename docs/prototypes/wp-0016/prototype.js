@@ -665,7 +665,7 @@ function genericState(screen, state) {
       screen,
     );
   }
-  // 两个 S1 平台任务恢复到既有平台目录，租户和会员仍由原权限守卫拒绝。
+  // 平台模型任务恢复到已交付的平台入口，租户和会员仍由原权限守卫拒绝。
   return statePanel(
     "denied",
     "当前会话不能访问此任务",
@@ -673,7 +673,7 @@ function genericState(screen, state) {
     screen === "login" ? "返回登录" : "返回已授权入口",
     screen === "login"
       ? "login"
-      : ["platform-model-connections", "platform-model-connection-detail"].includes(screen)
+      : ["platform-model-connections", "platform-model-connection-detail", "platform-model-deployments", "platform-model-deployment-detail"].includes(screen)
         ? "platform-tenants"
         : screen.startsWith("knowledge") ||
             screen.includes("index") ||
@@ -701,12 +701,16 @@ function emptyDescription(screen) {
     "object-storage-scope": "平台尚未向当前租户签发可用对象范围。",
     "platform-model-connections": "当前还没有供应商连接。请先保存连接草稿，探测通过后再单独发布。",
     "platform-model-connection-detail": "当前还没有可查看的连接。请先从连接目录选择或建立连接草稿。",
+    "platform-model-deployments": "当前还没有平台模型部署。请选择已发布连接的模型，确认参数和拟授权租户后保存草稿。",
+    "platform-model-deployment-detail": "当前没有可查看的平台部署。请返回部署目录选择或建立草稿。",
   }[screen];
 }
 
 function emptyAction(screen) {
   return {
     login: "使用普通用户账户登录",
+    "platform-model-deployments": "",
+    "platform-model-deployment-detail": "返回部署目录",
     assistants: "",
     conversation: "发送第一个问题",
     "knowledge-directory": "创建知识库",
@@ -724,6 +728,8 @@ function emptyAction(screen) {
 function emptyActionScreen(screen) {
   return {
     login: "login",
+    "platform-model-deployments": "platform-model-deployments",
+    "platform-model-deployment-detail": "platform-model-deployments",
     assistants: "assistants",
     conversation: "conversation",
     "knowledge-directory": "knowledge-directory",
@@ -1733,34 +1739,84 @@ function renderPlatformModelDeployments(state, demoState) {
   const models = demoState.models;
   const publishedConnections = models.platformConnections.filter(item => item.status === "PUBLISHED" && item.discoveredModels.length);
   const modelOptions = publishedConnections.flatMap(connection =>
-    connection.discoveredModels.map(model => `<option value="${escapeHtml(connection.id)}|${escapeHtml(model.id)}">${escapeHtml(model.name)} / ${escapeHtml(modelCapabilityLabel(model.capability))}</option>`)
+    connection.discoveredModels.map(model => `<option value="${escapeHtml(connection.id)}|${escapeHtml(model.id)}">${escapeHtml(model.name)} / ${escapeHtml(["CHAT", "EMBEDDING", "RERANK"].includes(model.capability) ? modelCapabilityLabel(model.capability) : "待确认")}</option>`)
   ).join("");
+  const partial = state === "partial";
+  const writable = ["success", "empty"].includes(state);
   const rows = models.platformDeployments.map(deployment =>
-    `<tr><td><strong>${escapeHtml(modelProductName(deployment.name))}</strong><small>${escapeHtml(deployment.residency)}</small></td><td>${escapeHtml(modelCapabilityLabel(deployment.capability))}</td><td>${escapeHtml(deployment.tenantIds.length)} 个租户</td><td>${statusTag(deployment.status)}</td><td><button class="button subtle" type="button" data-select-platform-deployment="${escapeHtml(deployment.id)}" data-nav-screen="platform-model-deployment-detail" aria-label="查看${escapeHtml(modelProductName(deployment.name))}">查看</button></td></tr>`
+    `<tr><td><strong>${escapeHtml(modelProductName(deployment.name))}</strong><small class="platform-deployment-residency">${escapeHtml(deployment.residency)}</small></td><td>${escapeHtml(modelCapabilityLabel(deployment.capability))}</td><td>${partial ? "暂未取得" : `${deployment.status === "PUBLISHED" ? "" : "拟授权 "}${deployment.tenantIds.length} 个租户`}</td><td>${statusTag(deployment.status)}</td><td><button class="button subtle" type="button" data-select-platform-deployment="${escapeHtml(deployment.id)}" data-nav-screen="platform-model-deployment-detail" aria-label="查看${escapeHtml(modelProductName(deployment.name))}">查看</button></td></tr>`
   );
   const content = [
-    '<div class="inline-note">平台部署发布后只进入可授权目录，不会自动授予租户，也不会修改租户配置、索引或助手。</div>',
-    modelDirectoryTable(["部署", "能力", "授权范围", "状态", "操作"], rows),
-    `<dialog id="platform-deployment-dialog" class="dialog-surface"><form id="platform-deployment-form"><span class="section-kicker">部署草稿</span><h2>建立可授权模型部署</h2><div class="field-stack"><label class="field"><span>部署名称</span><input class="input" name="name" required></label><label class="field"><span>已发现模型</span><select class="select" name="modelSelection">${modelOptions}</select></label><fieldset class="assistant-scope"><legend>授权租户</legend>${demoState.tenants.filter(item => item.status === "active").map(item => `<label><input type="checkbox" name="authorizeTenant" value="${escapeHtml(item.id)}"${item.id === DEFAULT_TENANT_ID ? " checked" : ""}>${escapeHtml(item.organizationName)}</label>`).join("")}</fieldset></div><p id="platform-deployment-feedback" class="form-feedback" role="alert"></p><div class="release-actions"><button class="button secondary" type="button" data-close-dialog="platform-deployment-dialog">取消</button><button class="button primary" type="submit">保存部署草稿</button></div></form></dialog>`,
+    partial
+      ? '<div class="inline-note" role="status"><p>授权摘要暂未取得，本页暂为只读；已确认的部署仍可查看。</p><button class="button secondary" type="button" data-nav-screen="platform-model-deployments" data-nav-state="success">重新载入</button></div>'
+      : '<div class="inline-note">平台部署发布后只进入可授权目录，不会自动授予未选择的租户，也不会修改租户配置、索引或助手。</div>',
+    state === "empty" || !rows.length ? genericState("platform-model-deployments", "empty") : modelDirectoryTable(["部署", "能力", "授权范围", "状态", "操作"], rows),
+    `<dialog id="platform-deployment-dialog" class="dialog-surface" aria-labelledby="platform-deployment-title"><form id="platform-deployment-form" novalidate>
+      <header class="dialog-header"><span class="section-kicker">部署草稿</span><h2 id="platform-deployment-title">建立可授权模型部署</h2></header>
+      <div class="dialog-body">
+        <label class="field"><span>部署名称</span><input class="input" name="name" autocomplete="off" required minlength="2" maxlength="80"></label>
+        <label class="field"><span>已发现模型</span><select class="select" name="modelSelection" aria-label="已发现模型" required><option value="">请选择已发布连接的模型</option>${modelOptions}</select><small>未知类型必须显式确认，不能从名称推断能力。</small><small data-platform-deployment-selected-model></small></label>
+        <div class="field-stack" data-platform-deployment-parameters><p class="field-help">选择模型后确认类型、参数来源及驻留范围。</p></div>
+        <fieldset class="assistant-scope"><legend>授权租户</legend>${demoState.tenants.filter(item => item.status === "active").map(item => `<label><input type="checkbox" name="authorizeTenant" value="${escapeHtml(item.id)}">${escapeHtml(item.organizationName)}</label>`).join("")}<p class="field-help">请明确选择。草稿仅保存拟授权范围，发布后才生效。</p></fieldset>
+        <div class="inline-note">能力验证使用版本化合成样本，并受本次请求、输出和超时上限约束；不代表月度费用已核验。</div>
+        <p id="platform-deployment-feedback" class="form-feedback" role="alert"></p>
+      </div>
+      <footer class="dialog-actions"><button class="button secondary" type="button" data-close-dialog="platform-deployment-dialog">取消</button><button class="button primary" type="submit">保存部署草稿</button></footer>
+    </form></dialog>`,
   ].join("");
-  return adminShell("platform-model-deployments", "平台模型部署", "", '<button class="button primary" type="button" data-open-platform-deployment data-primary-action>建立部署草稿</button>', content, state, "模型治理 / 平台模型部署", "platform");
+  return adminShell("platform-model-deployments", "平台模型部署", "", `<button class="button primary" type="button" data-open-platform-deployment data-primary-action${writable ? "" : " disabled"}>建立部署草稿</button>`, content, state, "模型治理 / 平台模型部署", "platform");
+}
+
+function platformDeploymentParameterFields(connection, model) {
+  const known = ["CHAT", "EMBEDDING", "RERANK"].includes(model.capability);
+  const availableTypes = ["CHAT", "EMBEDDING", "RERANK"].filter(type => type === connection.capability);
+  return [
+    known
+      ? `<label class="field"><span>模型类型</span><input class="input" aria-label="模型类型" value="${escapeHtml(modelCapabilityLabel(model.capability))}" readonly><input type="hidden" name="capability" value="${escapeHtml(model.capability)}"><small>类型来自当前候选，参数仍需明确确认。</small></label>`
+      : `<label class="field"><span>模型类型</span><select class="select" name="capability" aria-label="模型类型" required><option value="">请选择并确认模型类型</option>${availableTypes.map(type => `<option value="${type}">${escapeHtml(modelCapabilityLabel(type))}</option>`).join("")}</select><small>仅允许当前连接声明的能力；分类确认不替代真实验证。</small></label>`,
+    '<div data-platform-deployment-limits></div>',
+    '<label class="field"><span>参数来源</span><input class="input" name="parameterSource" aria-label="参数来源" autocomplete="off" required maxlength="160" placeholder="厂商资料版本或受控目录版本"><small>填写非秘密的可复核依据；文档上限不冒充实测上限。</small></label>',
+    `<label class="field"><span>驻留范围</span><input class="input" aria-label="驻留范围" value="${escapeHtml(connection.residency || "来源尚未提供")}" readonly><small>随连接冻结，不能在本表单修改。</small></label>`,
+    '<fieldset class="assistant-scope"><legend>模型确认</legend><label><input type="checkbox" name="modelConfirmed" required><span>我已确认模型类型、能力和参数来源</span></label><p class="field-help">保存时登记本候选的分类确认及参数声明，仍须单独执行能力验证。</p></fieldset>',
+  ].join("");
+}
+
+function platformDeploymentLimitFields(capability) {
+  const extra = {
+    CHAT: '<label class="field"><span>最大输出（Token）</span><input class="input" name="outputLimit" aria-label="最大输出（Token）" type="number" min="1" step="1" required><small>为本部署声明的输出上限，不得超过上下文窗口。</small></label>',
+    EMBEDDING: '<label class="field"><span>向量维度</span><input class="input" name="embeddingDimension" aria-label="向量维度" type="number" min="1" step="1" required><small>保存的是声明值，必须与真实响应维度核对。</small></label>',
+    RERANK: '<label class="field"><span>重排候选上限</span><input class="input" name="rerankCandidateLimit" aria-label="重排候选上限" type="number" min="1" step="1" required><small>验证返回数量、索引范围与重复结果。</small></label>',
+  }[capability];
+  if (!extra) return '<p class="field-help">先明确模型类型，再填写对应能力参数。</p>';
+  return '<div class="wizard-field-grid"><label class="field"><span>上下文窗口（Token）</span><input class="input" name="contextWindow" aria-label="上下文窗口（Token）" type="number" min="1" step="1" required><small>来源明确的声明上限，尚不代表已完成边界实测。</small></label>' + extra + '</div>';
 }
 
 function renderPlatformModelDeploymentDetail(state, demoState) {
   const models = demoState.models;
   const deployment = selectedModelItem(models, "platformDeployments", "selectedPlatformDeploymentId");
+  if (state === "empty" || !deployment) {
+    return adminShell("platform-model-deployment-detail", "平台部署发布", "", '<button class="button secondary" type="button" data-nav-screen="platform-model-deployments">返回部署目录</button>', genericState("platform-model-deployment-detail", "empty"), state, "模型治理 / 平台部署发布", "platform");
+  }
   const connection = models.platformConnections.find(item => item.id === deployment.connectionId);
+  const partial = state === "partial";
+  const disabled = ["partial", "disabled"].includes(state) ? " disabled" : "";
   const operation = deployment.status === "VERIFIED"
-    ? '<button class="button primary" type="button" data-publish-platform-deployment data-primary-action>发布部署</button>'
+    ? `<button class="button primary" type="button" data-publish-platform-deployment data-primary-action${disabled}>发布部署</button>`
     : deployment.status === "PUBLISHED"
       ? '<button class="button primary" type="button" data-nav-screen="platform-model-deployments" data-primary-action>返回部署目录</button>'
-      : '<button class="button primary" type="button" data-verify-platform-deployment data-primary-action>执行能力验证</button>';
+      : `<button class="button primary" type="button" data-verify-platform-deployment data-primary-action${disabled}>执行能力验证</button>`;
   const tenantNames = deployment.tenantIds.map(tenantId => demoState.tenants.find(item => item.id === tenantId)?.organizationName || "已授权租户").join("、");
+  const parameters = deployment.parameters;
+  const parameterRows = parameters
+    ? `<div class="description-row"><dt>声明上下文</dt><dd>${escapeHtml(parameters.contextWindow)} Token</dd></div>${parameters.outputLimit !== null ? `<div class="description-row"><dt>声明输出上限</dt><dd>${escapeHtml(parameters.outputLimit)} Token</dd></div>` : ""}${parameters.embeddingDimension !== null ? `<div class="description-row"><dt>声明向量维度</dt><dd>${escapeHtml(parameters.embeddingDimension)}</dd></div>` : ""}${parameters.rerankCandidateLimit !== null ? `<div class="description-row"><dt>声明候选上限</dt><dd>${escapeHtml(parameters.rerankCandidateLimit)}</dd></div>` : ""}<div class="description-row"><dt>参数来源</dt><dd>${escapeHtml(parameters.parameterSource)}</dd></div>`
+    : '<div class="description-row"><dt>参数来源</dt><dd>历史演示快照；不作为生产验证依据</dd></div>';
   const content = [
-    `<div class="inline-note${deployment.status === "FAILED" ? " danger" : ""}">${escapeHtml(deployment.verificationResult || "冻结连接版本、模型能力、租户授权和驻留范围后执行验证。")}</div>`,
+    partial
+      ? '<div class="inline-note" role="status"><p>租户授权事实暂未取得，本页只读；不能发布或扩大授权。</p><button class="button secondary" type="button" data-nav-screen="platform-model-deployment-detail" data-nav-state="success">重新载入</button></div>'
+      : `<div class="inline-note${deployment.status === "FAILED" ? " danger" : ""}">${escapeHtml(deployment.verificationResult || "冻结连接版本、模型能力、拟授权租户和驻留范围后执行验证。")}</div>`,
     '<div class="split-detail"><div>',
-    `<section class="section-block" data-model-status="${escapeHtml(deployment.status)}"><div class="section-heading"><div><span class="section-kicker">平台部署</span><h2>${escapeHtml(modelProductName(deployment.name))}</h2></div>${statusTag(deployment.status)}</div><dl class="description-list"><div class="description-row"><dt>连接</dt><dd>${escapeHtml(connection?.name || "不可用连接")}</dd></div><div class="description-row"><dt>能力</dt><dd>${escapeHtml(modelCapabilityLabel(deployment.capability))}</dd></div><div class="description-row"><dt>驻留范围</dt><dd>${escapeHtml(deployment.residency)}</dd></div><div class="description-row"><dt>已授权租户</dt><dd>${escapeHtml(tenantNames || "尚未授权")}</dd></div><div class="description-row"><dt>最近验证</dt><dd>${escapeHtml(deployment.verifiedAt || "尚未验证")}</dd></div></dl></section>`,
-    '</div><aside><section class="release-decision"><span class="section-kicker">发布决定</span><h2>验证通过后进入授权目录</h2><p>发布不会自动生成租户配置，也不会触发索引或助手变更。</p><div class="form-actions">' + operation + '</div>' + (modelFeedback ? `<p class="form-feedback" role="status">${escapeHtml(modelFeedback)}</p>` : "") + '</section></aside></div>',
+    `<section class="section-block" data-model-status="${escapeHtml(deployment.status)}"><div class="section-heading"><div><span class="section-kicker">平台部署</span><h2>${escapeHtml(modelProductName(deployment.name))}</h2></div>${statusTag(deployment.status)}</div><dl class="description-list"><div class="description-row"><dt>连接</dt><dd>${escapeHtml(connection?.name || "不可用连接")}</dd></div><div class="description-row"><dt>能力</dt><dd>${escapeHtml(modelCapabilityLabel(deployment.capability))}</dd></div><div class="description-row"><dt>驻留范围</dt><dd>${escapeHtml(deployment.residency)}</dd></div><div class="description-row"><dt>${deployment.status === "PUBLISHED" ? "已授权租户" : "拟授权租户"}</dt><dd>${partial ? "暂未取得" : escapeHtml(tenantNames || "尚未选择")}</dd></div>${parameterRows}<div class="description-row"><dt>最近验证</dt><dd>${escapeHtml(deployment.verifiedAt || "尚未验证")}</dd></div></dl></section>`,
+    '</div><aside><section class="release-decision"><span class="section-kicker">发布决定</span><h2>验证通过后进入授权目录</h2><p>发布只对明确选中的有效租户生效，不会自动生成租户配置、索引或助手变更。</p><p class="field-help">本次验证：最多 3 次请求、128 字符合成输入、单次输出上限 64 Token、总超时 30 秒。月度费用未核验。</p><div class="form-actions">' + operation + '</div>' + (modelFeedback ? `<p class="form-feedback" role="status">${escapeHtml(modelFeedback)}</p>` : "") + '</section></aside></div>',
   ].join("");
   return adminShell("platform-model-deployment-detail", "平台部署发布", "", '<button class="button secondary" type="button" data-nav-screen="platform-model-deployments">返回部署目录</button>', content, state, "模型治理 / 平台部署发布", "platform");
 }
@@ -2824,31 +2880,70 @@ function bindModelGovernance() {
   });
 
   const platformDeploymentDialog = root.querySelector("#platform-deployment-dialog");
-  root.querySelector("[data-open-platform-deployment]")?.addEventListener("click", () => platformDeploymentDialog?.showModal());
-  root.querySelector("#platform-deployment-form")?.addEventListener("submit", event => {
+  const platformDeploymentForm = root.querySelector("#platform-deployment-form");
+  const deploymentParameters = root.querySelector("[data-platform-deployment-parameters]");
+  function resetPlatformDeploymentDraft() {
+    platformDeploymentForm?.reset();
+    const selectedModel = root.querySelector("[data-platform-deployment-selected-model]");
+    if (selectedModel) selectedModel.textContent = "";
+    if (deploymentParameters) deploymentParameters.innerHTML = '<p class="field-help">选择模型后确认类型、参数来源及驻留范围。</p>';
+    const feedback = root.querySelector("#platform-deployment-feedback");
+    if (feedback) { feedback.textContent = ""; delete feedback.dataset.tone; }
+  }
+  root.querySelector("[data-open-platform-deployment]")?.addEventListener("click", () => {
+    resetPlatformDeploymentDraft(); platformDeploymentDialog?.showModal();
+  });
+  platformDeploymentDialog?.addEventListener("close", resetPlatformDeploymentDraft);
+  platformDeploymentDialog?.addEventListener("cancel", resetPlatformDeploymentDraft);
+  platformDeploymentForm?.elements.modelSelection?.addEventListener("change", () => {
+    const [connectionId, modelId] = String(platformDeploymentForm.elements.modelSelection.value || "").split("|");
+    const connection = prototypeStore.getWorkspaceSnapshot().models.platformConnections.find(item => item.id === connectionId);
+    const model = connection?.discoveredModels.find(item => item.id === modelId);
+    if (!model) { resetPlatformDeploymentDraft(); return; }
+    deploymentParameters.innerHTML = platformDeploymentParameterFields(connection, model);
+    root.querySelector("[data-platform-deployment-selected-model]").textContent = model.name + " / " + (["CHAT", "EMBEDDING", "RERANK"].includes(model.capability) ? modelCapabilityLabel(model.capability) : "待确认");
+    const capability = platformDeploymentForm.elements.capability;
+    const renderLimits = () => {
+      deploymentParameters.querySelector("[data-platform-deployment-limits]").innerHTML = platformDeploymentLimitFields(capability.value);
+      if (platformDeploymentForm.elements.modelConfirmed) platformDeploymentForm.elements.modelConfirmed.checked = false;
+    };
+    capability.addEventListener("change", renderLimits); renderLimits();
+  });
+  platformDeploymentForm?.addEventListener("submit", event => {
     event.preventDefault();
+    const pageState = new URLSearchParams(location.search).get("state") || "success";
+    if (!["success", "empty"].includes(pageState)) return;
     const form = new FormData(event.currentTarget);
     const [connectionId, modelId] = String(form.get("modelSelection") || "").split("|");
     const result = prototypeStore.createPlatformModelDeployment({
-      name: form.get("name"),
-      connectionId,
-      modelId,
-      tenantIds: form.getAll("authorizeTenant"),
+      name: form.get("name"), connectionId, modelId, tenantIds: form.getAll("authorizeTenant"),
+      capability: form.get("capability"), contextWindow: form.get("contextWindow"),
+      outputLimit: form.get("outputLimit"), embeddingDimension: form.get("embeddingDimension"),
+      rerankCandidateLimit: form.get("rerankCandidateLimit"), parameterSource: form.get("parameterSource"),
+      modelConfirmed: form.has("modelConfirmed"),
     }, prototypeStore.getSession().accountId);
     if (!result.ok) {
-      root.querySelector("#platform-deployment-feedback").textContent = result.reason === "TENANT_AUTHORIZATION_REQUIRED"
-        ? "请至少选择一个可发现此部署的租户。"
-        : "部署草稿未保存，请核对连接、模型和名称。";
+      const feedback = root.querySelector("#platform-deployment-feedback");
+      feedback.dataset.tone = "danger";
+      feedback.textContent = {
+        TENANT_AUTHORIZATION_REQUIRED: "请至少选择一个拟授权租户，发布后才生效。",
+        TENANT_AUTHORIZATION_INVALID: "所选租户已不可授权，请重新载入后明确选择。",
+        MODEL_PARAMETERS_REQUIRED: "请填写当前能力的正整数参数；输出上限不得超过上下文窗口。",
+        MODEL_CONFIRMATION_REQUIRED: "请明确确认模型类型、能力和非秘密参数来源。",
+        MODEL_CAPABILITY_MISMATCH: "候选类型与当前连接声明能力不一致，请重新选择。",
+        MODEL_CONFIRMATION_CONFLICT: "该候选已有不可变分类确认，不能改变为其他类型。",
+        RESIDENCY_UNCONFIRMED: "连接尚未提供可冻结的驻留范围，不能保存部署。",
+      }[result.reason] || "部署草稿未保存，请核对连接、模型和名称。";
       return;
     }
-    modelFeedback = "部署草稿已建立；验证通过前不会进入租户目录。";
+    modelFeedback = "部署草稿与分类确认已保存；验证、发布前授权不生效。";
     platformDeploymentDialog?.close();
     navigate("platform-model-deployment-detail");
   });
   root.querySelector("[data-verify-platform-deployment]")?.addEventListener("click", () => {
     const snapshot = prototypeStore.getWorkspaceSnapshot();
     const result = prototypeStore.verifyPlatformModelDeployment(snapshot.models.selectedPlatformDeploymentId, prototypeStore.getSession().accountId);
-    modelFeedback = result.ok ? "能力、预算与安全样本验证通过。" : "验证失败，部署未进入授权目录。";
+    modelFeedback = result.ok ? "能力与本次受控样本通过；月度费用未核验。" : "验证失败，部署未进入授权目录。";
     render();
   });
   root.querySelector("[data-publish-platform-deployment]")?.addEventListener("click", () => {

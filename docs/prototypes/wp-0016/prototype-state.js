@@ -289,6 +289,7 @@ function modelParameters(capability, overrides = {}) {
 
 function defaultModelGovernance() {
   return {
+    platformCandidateConfirmations: [],
     platformConnections: [
       {
         id: "pc-chat",
@@ -301,7 +302,11 @@ function defaultModelGovernance() {
         version: 4,
         authenticationState: "CONFIGURED",
         lastProbe: "今天 16:20",
-        discoveredModels: [{ id: "model-chat-v6", name: "企业对话模型 v6", capability: "CHAT" }],
+        residency: "华东受控区",
+        discoveredModels: [
+          { id: "model-chat-v6", name: "企业对话模型 v6", capability: "CHAT" },
+          { id: "model-unconfirmed-s2", name: "待确认合成模型", capability: "待确认" },
+        ],
       },
       {
         id: "pc-embedding",
@@ -314,6 +319,7 @@ function defaultModelGovernance() {
         version: 3,
         authenticationState: "CONFIGURED",
         lastProbe: "今天 16:05",
+        residency: "华东受控区",
         discoveredModels: [{ id: "model-embedding-v4", name: "企业向量模型 v4", capability: "EMBEDDING", embeddingDimension: 1024 }],
       },
       {
@@ -327,6 +333,7 @@ function defaultModelGovernance() {
         version: 2,
         authenticationState: "CONFIGURED",
         lastProbe: "今天 15:48",
+        residency: "华东受控区",
         discoveredModels: [{ id: "model-rerank-v2", name: "企业重排模型 v2", capability: "RERANK" }],
       },
     ],
@@ -1657,26 +1664,55 @@ export function createPrototypeStore(storage = browserStorage()) {
     if (!connection || connection.status !== "PUBLISHED") return { ok: false, reason: "CONNECTION_NOT_PUBLISHED" };
     const model = connection.discoveredModels.find(item => item.id === input.modelId);
     if (!model) return { ok: false, reason: "DISCOVERED_MODEL_NOT_FOUND" };
+    const allowedTypes = ["CHAT", "EMBEDDING", "RERANK"];
+    const sourceConfirmed = allowedTypes.includes(model.capability);
+    const capability = sourceConfirmed ? model.capability : input.capability;
+    if (!allowedTypes.includes(capability)) return { ok: false, reason: "MODEL_CONFIRMATION_REQUIRED" };
+    if ((input.capability && input.capability !== capability) || capability !== connection.capability) {
+      return { ok: false, reason: "MODEL_CAPABILITY_MISMATCH" };
+    }
+    const contextWindow = Number(input.contextWindow);
+    const outputLimit = capability === "CHAT" ? Number(input.outputLimit) : null;
+    const embeddingDimension = capability === "EMBEDDING" ? Number(input.embeddingDimension) : null;
+    const rerankCandidateLimit = capability === "RERANK" ? Number(input.rerankCandidateLimit) : null;
+    const positiveInteger = value => Number.isSafeInteger(value) && value > 0;
+    if (!positiveInteger(contextWindow)
+      || (outputLimit !== null && (!positiveInteger(outputLimit) || outputLimit > contextWindow))
+      || (embeddingDimension !== null && !positiveInteger(embeddingDimension))
+      || (rerankCandidateLimit !== null && !positiveInteger(rerankCandidateLimit))) {
+      return { ok: false, reason: "MODEL_PARAMETERS_REQUIRED" };
+    }
+    const parameterSource = typeof input.parameterSource === "string" ? input.parameterSource.trim() : "";
+    if (input.modelConfirmed !== true || !parameterSource || parameterSource.length > 160 || /[\r\n]/.test(parameterSource)) {
+      return { ok: false, reason: "MODEL_CONFIRMATION_REQUIRED" };
+    }
+    if (!connection.residency) return { ok: false, reason: "RESIDENCY_UNCONFIRMED" };
     const name = typeof input.name === "string" ? input.name.trim() : "";
     if (name.length < 2 || name.length > 80) return { ok: false, reason: "DEPLOYMENT_NAME_INVALID" };
-    const tenantIds = [...new Set(Array.isArray(input.tenantIds) ? input.tenantIds : [])]
-      .filter(tenantId => Boolean(tenantById(tenantId)));
+    const tenantIds = [...new Set(Array.isArray(input.tenantIds) ? input.tenantIds : [])];
     if (!tenantIds.length) return { ok: false, reason: "TENANT_AUTHORIZATION_REQUIRED" };
+    if (tenantIds.some(id => tenantById(id)?.status !== "active")) return { ok: false, reason: "TENANT_AUTHORIZATION_INVALID" };
+    const confirmations = state.models.platformCandidateConfirmations || [];
+    const confirmed = confirmations.find(item => item.connectionId === connection.id
+      && item.connectionVersion === connection.version && item.modelId === model.id);
+    if (confirmed && confirmed.capability !== capability) return { ok: false, reason: "MODEL_CONFIRMATION_CONFLICT" };
+    const confirmation = confirmed || {
+      connectionId: connection.id, connectionVersion: connection.version, modelId: model.id,
+      capability, origin: sourceConfirmed ? "SOURCE_CONFIRMED" : "CONFIRMED_BY_ADMIN",
+      confirmedBy: actorAccountId, confirmedAt: "刚刚", parameterSource,
+    };
     const deployment = {
       id: `pd-custom-${state.models.platformDeployments.length + 1}`,
-      name,
-      connectionId: connection.id,
-      modelId: model.id,
-      capability: model.capability,
-      status: "DRAFT",
-      tenantIds,
-      residency: "华东受控区",
-      verifiedAt: null,
+      name, connectionId: connection.id, connectionVersion: connection.version,
+      modelId: model.id, capability, status: "DRAFT", tenantIds, authorizationStatus: "PLANNED",
+      residency: connection.residency, verifiedAt: null, modelConfirmation: clone(confirmation),
+      parameters: { contextWindow, outputLimit, embeddingDimension, rerankCandidateLimit, parameterSource },
     };
     const saved = commitState({
       ...state,
       models: {
         ...state.models,
+        platformCandidateConfirmations: confirmed ? confirmations : [...confirmations, confirmation],
         platformDeployments: [...state.models.platformDeployments, deployment],
         selectedPlatformDeploymentId: deployment.id,
       },
@@ -1689,11 +1725,25 @@ export function createPrototypeStore(storage = browserStorage()) {
     const current = modelItem("platformDeployments", deploymentId);
     if (!current) return { ok: false, reason: "DEPLOYMENT_NOT_FOUND" };
     if (!["DRAFT", "FAILED"].includes(current.status)) return { ok: false, reason: "DEPLOYMENT_NOT_VERIFIABLE" };
+    const connection = modelItem("platformConnections", current.connectionId);
+    if (!connection || connection.status !== "PUBLISHED" || connection.version !== current.connectionVersion) {
+      return { ok: false, reason: "CONNECTION_CHANGED" };
+    }
+    if (!current.parameters || !current.modelConfirmation) return { ok: false, reason: "MODEL_CONFIRMATION_REQUIRED" };
+    // 这里只演示受控样本的结果和上限，不调用厂商，也不把演示值视为生产能力证据。
+    const failed = options.fail === true || options.budgetExceeded === true || options.safetyFailure === true;
     const deployment = {
-      ...current,
-      status: options.fail === true ? "FAILED" : "VERIFIED",
-      verifiedAt: "刚刚",
-      verificationResult: options.fail === true ? "能力验证失败，未进入授权目录。" : "能力、预算和安全样本通过。",
+      ...current, status: failed ? "FAILED" : "VERIFIED", verifiedAt: "刚刚",
+      verification: {
+        sampleVersion: "s2-capability-samples-v1", requestLimit: 3, inputCharacterLimit: 128,
+        outputTokenLimit: 64, totalTimeoutMillis: 30000, mode: "PROTOTYPE_SIMULATION",
+        budgetResult: options.budgetExceeded === true ? "FAILED" : "PASSED",
+        sampleResult: failed ? "FAILED" : "PASSED", monthlyCostVerified: false,
+      },
+      verificationResult: options.budgetExceeded === true
+        ? "验证超出本次请求或输出上限，部署未发布。"
+        : options.safetyFailure === true ? "合成安全样本未通过，部署未发布。"
+          : failed ? "能力验证失败，未进入授权目录。" : "能力与本次受控样本通过；月度费用未核验。",
     };
     const saved = commitState(replaceModelItem("platformDeployments", deployment));
     return saved.ok ? { ...saved, deployment: clone(deployment) } : saved;
@@ -1704,7 +1754,11 @@ export function createPrototypeStore(storage = browserStorage()) {
     const current = modelItem("platformDeployments", deploymentId);
     if (!current) return { ok: false, reason: "DEPLOYMENT_NOT_FOUND" };
     if (current.status !== "VERIFIED") return { ok: false, reason: "DEPLOYMENT_NOT_VERIFIED" };
-    const deployment = { ...current, status: "PUBLISHED", publishedAt: "刚刚" };
+    const connection = modelItem("platformConnections", current.connectionId);
+    if (!connection || connection.status !== "PUBLISHED" || connection.version !== current.connectionVersion
+      || connection.residency !== current.residency) return { ok: false, reason: "CONNECTION_CHANGED" };
+    if (current.tenantIds.some(id => tenantById(id)?.status !== "active")) return { ok: false, reason: "TENANT_AUTHORIZATION_INVALID" };
+    const deployment = { ...current, status: "PUBLISHED", authorizationStatus: "EFFECTIVE", publishedAt: "刚刚" };
     const saved = commitState(replaceModelItem("platformDeployments", deployment));
     return saved.ok ? { ...saved, deployment: clone(deployment) } : saved;
   }

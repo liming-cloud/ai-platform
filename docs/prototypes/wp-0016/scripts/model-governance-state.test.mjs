@@ -58,6 +58,8 @@ test("平台部署只有连接探测通过后才能发布并明确授权租户",
     name: "企业对话模型 v7",
     connectionId: "pc-chat",
     modelId: "model-chat-v6",
+    capability: "CHAT", contextWindow: 4096, outputLimit: 64,
+    parameterSource: "合成厂商资料 v1", modelConfirmed: true,
     tenantIds: [TENANT_ID],
   }, PLATFORM_ACTOR);
   assert.equal(created.deployment.status, "DRAFT");
