@@ -7,7 +7,7 @@ const { readConfiguration, requireCondition, SafeAssertionError, request,
   openLogin, fillLogin, submitLogin, assertIdentity, logoutWorkspace, assertAnonymous } = require("./acceptance-login.cjs");
 const { enlargeText } = require("./acceptance-overview.cjs");
 
-const modes = ["read-only", "create-draft", "vendor-discovery", "publish-current"];
+const modes = ["read-only", "empty-directory", "create-draft", "vendor-discovery", "publish-current"];
 const repository = path.resolve(__dirname, "../..");
 const api = "/platform/model-supply/connections";
 const directoryPath = "/platform/model-supply";
@@ -15,6 +15,17 @@ const prototype = { projectId: "249f81f2-6f1a-46ff-988c-da3cdedb35e7",
   revision: "cce686e4634ca3c523e4c8aeffd95752f1a04c3a" };
 const longId = value => typeof value === "string" && /^[1-9][0-9]{0,18}$/.test(value)
   && BigInt(value) <= 9223372036854775807n;
+
+/** 空目录只能验收独立项目的本机入口，不能借此改指现有部署或外部网站。 */
+function emptyDirectoryTarget(composeProject, baseUrl) {
+  let url;
+  try { url = new URL(baseUrl); } catch { throw new SafeAssertionError("空目录隔离目标无效"); }
+  requireCondition(typeof composeProject === "string" && /^wp0019-s1-empty-[a-z0-9-]{1,32}$/.test(composeProject)
+    && url.protocol === "http:" && url.hostname === "127.0.0.1" && Number(url.port) >= 20000
+    && url.pathname === "/" && !url.search && !url.hash && !url.username && !url.password,
+  "空目录隔离目标必须是独立 Compose 项目及本机独立端口");
+  return { composeProject, baseUrl: url.origin };
+}
 
 /** 输出只写本轮显式指定的新文件；不覆盖凭据、历史记录或仓库文件。 */
 function validateOutputFile(file, required) {
@@ -68,15 +79,20 @@ function readConnectionInput(file) {
 function platformConnectionConfiguration(environment = process.env) {
   requireCondition(!environment.SETUP, "平台连接验收不接受外部 SETUP");
   const mode = environment.FOUNDATION_ACCEPTANCE_MODE ?? "read-only";
-  requireCondition(modes.includes(mode), "执行模式只允许 read-only、create-draft、vendor-discovery 或 publish-current");
+  requireCondition(modes.includes(mode), "执行模式只允许 read-only、empty-directory、create-draft、vendor-discovery 或 publish-current");
+  const isolated = mode === "empty-directory" ? emptyDirectoryTarget(environment.FOUNDATION_ACCEPTANCE_COMPOSE_PROJECT,
+    environment.FOUNDATION_ACCEPTANCE_BASE_URL) : undefined;
+  requireCondition(isolated || environment.FOUNDATION_ACCEPTANCE_COMPOSE_PROJECT === undefined,
+    "独立 Compose 目标只允许空目录只读模式");
   const frontendRevision = environment.FOUNDATION_ACCEPTANCE_FRONTEND_REVISION;
   const backendRevision = environment.FOUNDATION_ACCEPTANCE_BACKEND_REVISION;
   requireCondition([frontendRevision, backendRevision].every(value => typeof value === "string" && /^[a-f0-9]{40}$/.test(value)),
     "必须分别提供精确的前端及后端运行提交");
   const connectionId = environment.FOUNDATION_ACCEPTANCE_CONNECTION_ID;
   const rawVersion = environment.FOUNDATION_ACCEPTANCE_CONNECTION_VERSION;
-  if (mode === "create-draft") {
-    requireCondition(connectionId === undefined && rawVersion === undefined, "创建材料不能同时指定既有连接标识或版本");
+  if (mode === "create-draft" || isolated) {
+    requireCondition(connectionId === undefined && rawVersion === undefined, "当前模式不能同时指定既有连接标识或版本");
+    if (isolated) requireCondition(environment.FOUNDATION_ACCEPTANCE_CONNECTION_FILE === undefined, "空目录模式不能读取创建材料");
   } else {
     requireCondition(longId(connectionId), "必须指定精确的既有连接标识");
     requireCondition(typeof rawVersion === "string" && /^(0|[1-9][0-9]*)$/.test(rawVersion)
@@ -86,12 +102,16 @@ function platformConnectionConfiguration(environment = process.env) {
   const outputFile = environment.FOUNDATION_ACCEPTANCE_OUTPUT_FILE;
   validateOutputFile(outputFile, mode !== "read-only");
   const input = mode === "create-draft" ? readConnectionInput(environment.FOUNDATION_ACCEPTANCE_CONNECTION_FILE) : undefined;
-  return { ...readConfiguration(environment), mode, frontendRevision, backendRevision, connectionId,
+  // 隔离入口已在本函数严格限定；只复用登录读取器的凭据校验，普通模式仍固定原入口。
+  return { ...readConfiguration(isolated ? { ...environment, FOUNDATION_ACCEPTANCE_BASE_URL: undefined } : environment),
+    ...isolated, mode, frontendRevision, backendRevision, connectionId,
     expectedVersion: rawVersion === undefined ? undefined : Number(rawVersion), outputFile, input };
 }
 
 /** 只选择健康、服务名、镜像摘要及 OCI revision，不读取容器环境或认证材料。 */
 function inspectRuntime(configuration, execute = execFileSync) {
+  const isolated = configuration.mode === "empty-directory"
+    ? emptyDirectoryTarget(configuration.composeProject, configuration.baseUrl) : undefined;
   const invoke = (command, arguments_) => execute(command, arguments_, { cwd: repository,
     encoding: "utf8", timeout: 15_000, stdio: ["ignore", "pipe", "pipe"] }).trim();
   let containers;
@@ -101,10 +121,10 @@ function inspectRuntime(configuration, execute = execFileSync) {
     sourceCommit = invoke("git", ["rev-parse", "HEAD"]);
     requireCondition(!invoke("git", ["status", "--porcelain=v1", "--untracked-files=all"]), "验收源码工作区必须干净并已提交");
     containers = invoke("docker", ["ps", "--all", "--filter",
-      "label=com.docker.compose.project=trusted-rag-foundation-v1", "--format", "{{.ID}}"]).split(/\s+/);
+      "label=com.docker.compose.project=" + (isolated?.composeProject ?? "trusted-rag-foundation-v1"), "--format", "{{.ID}}"]).split(/\s+/);
     requireCondition(containers.length === 7 && containers.every(id => /^[a-f0-9]{12,64}$/.test(id)),
       "需要本项目七个精确 Compose 服务");
-    const format = '{"service":{{json (index .Config.Labels "com.docker.compose.service")}},'
+    const format = '{"container":{{json .Id}},"service":{{json (index .Config.Labels "com.docker.compose.service")}},'
       + '"health":{{json .State.Health.Status}},"image":{{json .Image}},'
       + '"revision":{{json (index .Config.Labels "org.opencontainers.image.revision")}}}';
     facts = invoke("docker", ["inspect", "--format", format, ...containers]).split("\n").map(line => JSON.parse(line));
@@ -121,8 +141,15 @@ function inspectRuntime(configuration, execute = execFileSync) {
     requireCondition(fact.revision === (fact.service === "console-web" ? configuration.frontendRevision : configuration.backendRevision),
       "运行版本不匹配：" + fact.service);
   }
-  return { sourceCommit, services: facts.map(({ service, health, image, revision }) =>
-    ({ service, health, image, ...(services.slice(0, 4).includes(service) ? { revision } : {}) })) };
+  if (isolated) {
+    const console = facts.find(item => item.service === "console-web");
+    requireCondition(/^[a-f0-9]{12,64}$/.test(console.container)
+      && invoke("docker", ["port", console.container, "8080/tcp"]) === new URL(isolated.baseUrl).host,
+    "空目录浏览器入口未绑定所验独立 Compose 容器");
+  }
+  return { sourceCommit, ...isolated, services: facts.map(({ container, service, health, image, revision }) =>
+    ({ service, health, image, ...(isolated ? { containerId: container } : {}),
+      ...(services.slice(0, 4).includes(service) ? { revision } : {}) })) };
 }
 
 /** 公共读取不能携带秘密或存储细节；失败消息不拼接响应正文。 */
@@ -384,6 +411,47 @@ async function verifyReadOnlyPages(page, configuration, presets, check) {
   });
 }
 
+/** 真实空目录必须来自未筛选列表及独立摘要，搜索空结果、越界和辅助缺失均不能替代。 */
+function verifyEmptyDirectoryFacts(list, summary) {
+  verifyPage(list, 1, 20, item => item.id);
+  requireCondition(list.totalElements === 0 && summary?.publishedConnections === 0,
+    "真实空目录要求未筛选总数与已发布总数均为零");
+  assertSafeResponse(summary);
+}
+
+async function verifyEmptyDirectory(page, configuration, report, check) {
+  const read = async () => {
+    const list = await request(page, api + "?pageNumber=1&pageSize=20");
+    const summary = await request(page, api + "/summary");
+    requireCondition(list.status === 200 && summary.status === 200, "空目录主读取或摘要未成功");
+    verifyEmptyDirectoryFacts(list.body, summary.body);
+    return { totalElements: list.body.totalElements, publishedConnections: summary.body.publishedConnections };
+  };
+  await check("真实未筛选空目录及新增入口", async () => {
+    report.emptyDirectory = await read();
+    await directory(page, configuration);
+    const url = new URL(page.url());
+    requireCondition([...url.searchParams.keys()].every(key => key === "page") && url.searchParams.get("page") === "1",
+      "空目录不能使用搜索、状态模拟或越界参数");
+    await page.getByRole("heading", { name: "平台模型连接目前为空", exact: true }).waitFor();
+    await page.getByText("暂无记录", { exact: true }).waitFor();
+    await verifyLayout(page);
+    const create = page.getByRole("button", { name: "新增供应商连接", exact: true });
+    requireCondition(await create.isEnabled(), "真实空目录不能关闭首次新增入口");
+    await create.click(); await page.getByRole("dialog").waitFor();
+    await page.getByLabel("连接名称", { exact: true }).waitFor();
+    await page.getByRole("button", { name: "取消", exact: true }).click();
+    await page.getByRole("dialog").waitFor({ state: "hidden" });
+    await page.waitForFunction(() => document.activeElement?.textContent === "新增供应商连接");
+  });
+  await check("空目录刷新与取消后仍为真实零记录", async () => {
+    await page.reload({ waitUntil: "networkidle" });
+    await page.getByRole("heading", { name: "平台模型连接目前为空", exact: true }).waitFor();
+    requireCondition(JSON.stringify(await read()) === JSON.stringify(report.emptyDirectory)
+      && report.businessWrites === 0, "空目录验收改变了业务事实");
+  });
+}
+
 async function createDraft(page, configuration, presets, report, persist) {
   const input = configuration.input;
   const preset = presets.items.find(item => item.id === input.providerPresetId);
@@ -469,12 +537,13 @@ async function run(configuration) {
       await assertIdentity(page, "platform");
     });
     let presets;
-    await check("正式五厂商预设及匿名、租户范围拒绝", async () => {
+    await check(configuration.mode === "empty-directory" ? "正式五厂商预设及匿名范围拒绝" : "正式五厂商预设及匿名、租户范围拒绝", async () => {
       const response = await request(page, api + "/presets");
       requireCondition(response.status === 200 && response.body?.items?.length === 5
         && response.body.items.reduce((sum, item) => sum + item.variants.length, 0) === 11, "正式五厂商目录或十一组能力缺失");
       assertSafeResponse(response.body, secrets); presets = response.body;
-      for (const role of ["anonymous", "tenant"]) {
+      // 新空库没有租户身份；租户隔离沿用原部署证据，不能为此验收伪造或创建租户。
+      for (const role of configuration.mode === "empty-directory" ? ["anonymous"] : ["anonymous", "tenant"]) {
         const other = await browser.newContext(); await observe(other);
         try {
           const probe = await other.newPage(); await probe.goto(configuration.baseUrl);
@@ -493,7 +562,7 @@ async function run(configuration) {
       }
     });
     let before;
-    if (configuration.mode !== "create-draft") await check("精确连接、当前发布与非秘密配置事实", async () => {
+    if (!["create-draft", "empty-directory"].includes(configuration.mode)) await check("精确连接、当前发布与非秘密配置事实", async () => {
       before = await readCurrent(page, configuration, secrets); report.connection = connectionFact(before);
       report.connectionBefore = connectionFact(before);
     });
@@ -503,6 +572,8 @@ async function run(configuration) {
         const after = await readCurrent(page, configuration, secrets);
         requireCondition(JSON.stringify(after) === JSON.stringify(before) && report.businessWrites === 0, "只读复验改变了连接事实");
       });
+    } else if (configuration.mode === "empty-directory") {
+      await verifyEmptyDirectory(page, configuration, report, check);
     } else if (configuration.mode === "create-draft") {
       await check("正式表单仅创建一个可追溯草稿", async () => {
         const created = await createDraft(page, configuration, presets, report, persist);
@@ -546,7 +617,7 @@ async function run(configuration) {
       await logoutCurrent(page); await assertAnonymous(page);
       requireCondition((await request(page, api)).status === 401, "退出后仍可读取平台模型供应");
     });
-    requireCondition(report.businessWrites === (configuration.mode === "read-only" ? 0 : 1), "业务写入数量不符合明确模式");
+    requireCondition(report.businessWrites === (["read-only", "empty-directory"].includes(configuration.mode) ? 0 : 1), "业务写入数量不符合明确模式");
     report.status = "PASSED"; report.completedAt = new Date().toISOString(); persist();
     process.stdout.write(JSON.stringify(report) + "\n");
     return report;
@@ -571,7 +642,7 @@ async function logoutCurrent(page) {
 }
 
 module.exports = { platformConnectionConfiguration, validateOutputFile, readConnectionInput, inspectRuntime,
-  assertSafeResponse, verifyConnection, verifyPublication, verifyPage, permittedMutation, requireActionReady, directory, detail, verifyLayout, logoutCurrent, run };
+  assertSafeResponse, verifyConnection, verifyPublication, verifyPage, verifyEmptyDirectoryFacts, permittedMutation, requireActionReady, directory, detail, verifyLayout, logoutCurrent, run };
 if (require.main === module) {
   try { run(platformConnectionConfiguration()).catch(error => {
     process.stderr.write((error instanceof SafeAssertionError ? error.message : "平台连接验收未完成") + "\n"); process.exitCode = 1;

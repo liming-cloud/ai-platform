@@ -4,7 +4,7 @@ const path = require("node:path");
 const assert = require("node:assert/strict");
 const { test } = require("node:test");
 const { platformConnectionConfiguration, readConnectionInput, inspectRuntime, permittedMutation,
-  verifyConnection, verifyPublication, verifyPage, assertSafeResponse, requireActionReady, directory, detail, verifyLayout, logoutCurrent } = require("../development/acceptance-platform-connection.cjs");
+  verifyConnection, verifyPublication, verifyPage, verifyEmptyDirectoryFacts, assertSafeResponse, requireActionReady, directory, detail, verifyLayout, logoutCurrent } = require("../development/acceptance-platform-connection.cjs");
 
 const frontendRevision = "a".repeat(40);
 const backendRevision = "b".repeat(40);
@@ -34,6 +34,45 @@ test("默认只读并固定既有对象、独立前后端运行版本", () => fi
   assert.equal(configuration.expectedVersion, 3);
   assert.equal(configuration.frontendRevision, frontendRevision);
   assert.equal(configuration.backendRevision, backendRevision);
+}));
+
+test("真实空目录模式绑定独立 Compose 与本机端口，不要求伪造既有连接", () => fixture((environment, directory) => {
+  const configuration = platformConnectionConfiguration({ ...environment,
+    FOUNDATION_ACCEPTANCE_MODE: "empty-directory",
+    FOUNDATION_ACCEPTANCE_COMPOSE_PROJECT: "wp0019-s1-empty-contract",
+    FOUNDATION_ACCEPTANCE_BASE_URL: "http://127.0.0.1:23019",
+    FOUNDATION_ACCEPTANCE_CONNECTION_ID: undefined, FOUNDATION_ACCEPTANCE_CONNECTION_VERSION: undefined,
+    FOUNDATION_ACCEPTANCE_OUTPUT_FILE: path.join(directory, "empty.json") });
+  assert.equal(configuration.mode, "empty-directory");
+  assert.equal(configuration.composeProject, "wp0019-s1-empty-contract");
+  assert.equal(configuration.baseUrl, "http://127.0.0.1:23019");
+  assert.equal(configuration.connectionId, undefined);
+  assert.equal(configuration.input, undefined);
+}));
+
+test("空目录不能指向原部署、外部地址、混入对象或创建材料", () => fixture((environment, directory) => {
+  const empty = { ...environment, FOUNDATION_ACCEPTANCE_MODE: "empty-directory",
+    FOUNDATION_ACCEPTANCE_COMPOSE_PROJECT: "wp0019-s1-empty-contract",
+    FOUNDATION_ACCEPTANCE_BASE_URL: "http://127.0.0.1:23019",
+    FOUNDATION_ACCEPTANCE_CONNECTION_ID: undefined, FOUNDATION_ACCEPTANCE_CONNECTION_VERSION: undefined,
+    FOUNDATION_ACCEPTANCE_OUTPUT_FILE: path.join(directory, "empty.json") };
+  for (const changed of [
+    { FOUNDATION_ACCEPTANCE_COMPOSE_PROJECT: undefined },
+    { FOUNDATION_ACCEPTANCE_COMPOSE_PROJECT: "trusted-rag-foundation-v1" },
+    { FOUNDATION_ACCEPTANCE_COMPOSE_PROJECT: "wp0019-s1-empty-../escape" },
+    { FOUNDATION_ACCEPTANCE_BASE_URL: undefined },
+    { FOUNDATION_ACCEPTANCE_BASE_URL: "http://127.0.0.1:13000" },
+    { FOUNDATION_ACCEPTANCE_BASE_URL: "http://127.0.0.1:13443" },
+    { FOUNDATION_ACCEPTANCE_BASE_URL: "http://example.com:23019" },
+    { FOUNDATION_ACCEPTANCE_BASE_URL: "http://127.0.0.1:23019/?q=empty" },
+    { FOUNDATION_ACCEPTANCE_BASE_URL: "http://user:input@127.0.0.1:23019" },
+    { FOUNDATION_ACCEPTANCE_CONNECTION_ID: "123" },
+    { FOUNDATION_ACCEPTANCE_CONNECTION_VERSION: "0" },
+    { FOUNDATION_ACCEPTANCE_CONNECTION_FILE: "/private/tmp/should-not-be-read.json" },
+    { FOUNDATION_ACCEPTANCE_OUTPUT_FILE: undefined },
+  ]) assert.throws(() => platformConnectionConfiguration({ ...empty, ...changed }));
+  assert.throws(() => platformConnectionConfiguration({ ...environment,
+    FOUNDATION_ACCEPTANCE_COMPOSE_PROJECT: empty.FOUNDATION_ACCEPTANCE_COMPOSE_PROJECT }), /只允许空目录/);
 }));
 
 test("未知执行模式及 SETUP 在打开浏览器前失败关闭", () => fixture(environment => {
@@ -144,7 +183,7 @@ test("创建材料允许方舟成对的独立发现认证且不允许符号链�
 test("只读和各写入模式严格隔离，不能把发现授权扩成发布或其他对象", () => {
   const base = "/api/v1/platform/model-supply/connections";
   const cases = [
-    ["read-only", undefined], ["create-draft", base],
+    ["read-only", undefined], ["empty-directory", undefined], ["create-draft", base],
     ["vendor-discovery", base + "/123/model-discovery"], ["publish-current", base + "/123/publish"],
   ];
   for (const [mode, permitted] of cases) {
@@ -224,9 +263,22 @@ test("分页保留总数及越界语义，拒绝重复 ID 与手工截断", () =
     hasPrevious: false, hasNext: false }, 1, 20, key), /分页/);
 });
 
+test("空目录事实拒绝非空、越界、缺摘要或未知发布计数", () => {
+  const empty = { items: [], totalElements: 0, hasPrevious: false, hasNext: false };
+  verifyEmptyDirectoryFacts(empty, { publishedConnections: 0 });
+  for (const list of [
+    { ...empty, totalElements: 3 }, { ...empty, hasPrevious: true },
+    { ...empty, items: [{ id: "1" }], totalElements: 1 },
+  ]) assert.throws(() => verifyEmptyDirectoryFacts(list, { publishedConnections: 0 }));
+  for (const summary of [undefined, {}, { publishedConnections: null }, { publishedConnections: "0" },
+    { publishedConnections: 1 }, { publishedConnections: 0, password: "synthetic-input" }]) {
+    assert.throws(() => verifyEmptyDirectoryFacts(empty, summary));
+  }
+});
+
 function runtimeFixture(change = value => value, dirty = "") {
   const services = ["console-web", "control-plane", "query-runtime", "ingestion-worker", "postgres", "redis", "minio"];
-  const facts = services.map(service => ({ service, health: "healthy", image: "sha256:" + "c".repeat(64),
+  const facts = services.map((service, index) => ({ service, container: String(index + 1).repeat(12), health: "healthy", image: "sha256:" + "c".repeat(64),
     revision: service === "console-web" ? frontendRevision : backendRevision }));
   return (command, args) => {
     if (command === "git") return args[0] === "status" ? dirty : "d".repeat(40);
@@ -249,6 +301,23 @@ test("运行事实绑定四应用各自 revision 与七服务健康，不读取�
   assert.throws(() => inspectRuntime(configuration, runtimeFixture(values => values.map(value =>
     value.service === "redis" ? { ...value, health: "unhealthy" } : value))), /不健康/);
   assert.throws(() => inspectRuntime(configuration, runtimeFixture(values => [...values.slice(1), values[1]])), /重复/);
+});
+
+test("独立空目录必须绑定同一 Compose 的实际浏览器端口", () => {
+  const configuration = { mode: "empty-directory", frontendRevision, backendRevision,
+    composeProject: "wp0019-s1-empty-contract", baseUrl: "http://127.0.0.1:23019" };
+  const runtime = runtimeFixture();
+  const execute = port => (command, args) => {
+    if (command === "docker" && args[0] === "ps") {
+      assert.ok(args.includes("label=com.docker.compose.project=" + configuration.composeProject));
+    }
+    if (command === "docker" && args[0] === "port") return port;
+    return runtime(command, args);
+  };
+  assert.equal(inspectRuntime(configuration, execute("127.0.0.1:23019")).services.length, 7);
+  for (const port of ["127.0.0.1:13000", "0.0.0.0:23019", "127.0.0.1:23020", "127.0.0.1:23019\n[::]:23019"]) {
+    assert.throws(() => inspectRuntime(configuration, execute(port)), /未绑定/);
+  }
 });
 
 test("浏览器目录与详情沿用 SPA 正式路由，不把 API 集合路径当作页面", async () => {

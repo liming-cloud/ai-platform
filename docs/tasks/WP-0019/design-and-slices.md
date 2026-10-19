@@ -253,9 +253,12 @@ Chat／Embedding 继续用内部 Port 与 Spring AI；RERANK 用查询、候选�
 
 S1 共同输入为 `FOUNDATION_ACCEPTANCE_CREDENTIALS_FILE`（当前用户拥有的普通 0600 文件，含平台及租户验收身份），以及分别固定的 `FOUNDATION_ACCEPTANCE_FRONTEND_REVISION`、`FOUNDATION_ACCEPTANCE_BACKEND_REVISION`（完整 SHA）。执行前只读检查已提交且干净的源码及本项目七个 Compose 服务，四应用 OCI revision 必须分别匹配；不能把 HEAD 当作运行版本。Playwright 固定为 1.62.1，仍由既有 NODE_PATH 提供。入口不读取容器环境、导出数据库秘密或重设密码。
 
+真实未筛选空目录使用独立 Compose 项目及全新存储，复用当前部署的精确镜像，不删除现有连接。`empty-directory` 必须显式指定 `FOUNDATION_ACCEPTANCE_COMPOSE_PROJECT=wp0019-s1-empty-<唯一后缀>`、`FOUNDATION_ACCEPTANCE_BASE_URL=http://127.0.0.1:<独立端口>`（端口至少 20000）及新输出文件；七服务健康、四应用 revision 和实际前端发布端口全部核对。原部署模式仍固定原入口，不能借此改指其他项目。只用 `pwd.txt` 的平台身份登录空库；空库未建立租户，匿名拒绝单独验证，租户隔离继续由原部署证据证明，不伪造身份或创建租户。数据前后以只读事务确认零连接；只检查真实空态、首次新增入口、取消及刷新，不重复其他页面矩阵。仅移除本轮新建的独立容器、网络和存储，原部署资源不变。
+
 | `FOUNDATION_ACCEPTANCE_MODE` | 额外输入与边界 |
 | --- | --- |
 | `read-only`（默认） | 精确 `FOUNDATION_ACCEPTANCE_CONNECTION_ID`、`FOUNDATION_ACCEPTANCE_CONNECTION_VERSION`。真实会话、平台／租户／匿名隔离、分页、详情刷新、五厂商联动、取消及三尺寸／200% 文字；拦截全部模型业务写入，前后连接事实相同，不读取创建材料。 |
+| `empty-directory` | 上述独立目标及新输出文件；不得指定既有连接／版本或创建材料。正式未筛选列表和发布摘要均须为零，首次新增入口可打开并取消，刷新保持空态，模型业务写入为零；搜索无结果、越界页或受控响应不能替代。 |
 | `create-draft` | 普通 0600 的 `FOUNDATION_ACCEPTANCE_CONNECTION_FILE` 及新的输出文件，不能同时指定既有 ID／版本。材料含 providerPresetId、capability、只写 apiKey，按选择补充 workspaceId、自定义 endpoint 或方舟独立 AK/SK；拒绝未知字段和固定地址覆盖。正式表单仅保存一个合成名称草稿，不探测、不发布，不删除对象。 |
 | `vendor-discovery` | 精确既有 ID／版本及新的输出文件。协议与用途凭据匹配时只执行一次正式最小发现；不能用确定性结果、空候选或 HTTP 200 的失败结果冒充真实合同，不推理、不发布，不自动重试。 |
 | `publish-current` | 精确既有 ID／版本及新的输出文件。当前修订验证未过期且未发布时，仅通过真实详情发布本修订，不自动探测，不建立部署或租户授权。 |
