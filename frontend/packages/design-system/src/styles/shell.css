@@ -96,6 +96,7 @@
   gap: 12px;
   width: 100%;
   min-height: 36px;
+  min-width: auto;
   padding: 8px 12px;
   color: var(--foundation-muted-text);
   border: 1px solid transparent;
@@ -160,6 +161,7 @@
 
 .product-topbar .product-account {
   flex: 0 0 auto;
+  gap: 8px;
   min-height: var(--foundation-control-height);
   padding: 6px 12px;
   color: var(--foundation-text);
@@ -272,14 +274,15 @@
   }
   .product-brand {
     justify-content: center;
-    padding: 0;
   }
-  .product-brand > div, .product-navigation__label, .product-navigation__group > span, .product-navigation__scope, .product-sidebar-account {
+  /* 平板只收起身份正文，保留原型侧栏底部的账户分隔区。 */
+  .product-brand > div, .product-navigation__label, .product-navigation__group > span, .product-navigation__scope,
+  .product-sidebar-account strong, .product-sidebar-account small {
     display: none;
   }
   .product-shell .product-navigation .fui-Button {
     justify-content: center;
-    min-width: 0;
+    min-width: auto;
     padding: 8px;
   }
   /* 原型在平板开户页隐藏重复任务页头，保留可访问的一级标题。 */

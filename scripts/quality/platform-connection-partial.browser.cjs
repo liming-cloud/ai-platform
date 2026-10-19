@@ -339,3 +339,18 @@ for (const width of [390, 1024, 1440]) for (const detail of [false, true]) test(
       : {table:{color:"rgb(20, 20, 19)",lineHeight:"24px"},name:{color:"rgb(20, 20, 19)",fontSize:doubled?"30px":"15px",lineHeight:doubled?"48px":"24px"},summary:{color:"rgb(20, 20, 19)",lineHeight:doubled?"48px":"24px"}});
   }
 }, width));
+
+for (const detail of [false, true]) test(`${detail ? "详情" : "目录"} 路由标题焦点使用原型强调环`, () => visit(async page => {
+  await page.evaluate(detail => window.start(detail), detail);
+  await page.locator('[data-read-state="ready"]').waitFor();
+  const heading = page.getByRole("heading", { level: 1 }); await heading.focus();
+  assert.equal(await heading.evaluate(e => e === document.activeElement && e.matches(":focus-visible")), true);
+  assert.deepEqual(await heading.evaluate(e => { const s = getComputedStyle(e);return {style:s.outlineStyle,width:s.outlineWidth,color:s.outlineColor,offset:s.outlineOffset}; }),
+    {style:"solid",width:"2px",color:"oklab(0.514837 0.0810745 0.066312)",offset:"2px"});
+}));
+
+test("平板侧栏保留原型账户分隔区但隐藏身份正文", () => visit(async page => {
+  assert.deepEqual(await page.locator(".product-sidebar-account").evaluate(e => ({height:e.getBoundingClientRect().height,
+    border:getComputedStyle(e).borderTopWidth,hidden:[...e.children].every(child => getComputedStyle(child).display === "none")})),
+    {height:25,border:"1px",hidden:true});
+}, 1024));
