@@ -3,10 +3,11 @@
 | 字段 | 值 |
 | --- | --- |
 | 责任任务 | WP-0019 |
-| 状态 | 三项细化提案已接受，依据 ADR-0100；具体原型候选已形成，待固定版本及单独接受，S2 未完成 |
+| 状态 | 三项细化提案已接受，依据 ADR-0100；具体原型候选已形成并固定，待单独接受，S2 未完成 |
 | 输入提交 | 6d12bad8347e76fd06a0e69e9d97c670d18645a6 |
 | 验证提交 | 4ad62393847549a92593068f79ce6ee6f1ec5cb0 |
-| 验证范围 | 连接发布前置约束的源码与装配；不包括 S2 四操作、生产部署或原型候选接受 |
+| 验证范围 | 连接发布前置约束的源码与装配、原项目候选技术验证；不包括 S2 四操作、生产部署或原型候选接受 |
+| 候选提交 | f3216dffe717e194e96fa20b4afee7983a9ff420；2026-10-20 固定，未接受 |
 | 决策依据 | ADR-0010、0060、0066、0070、0079、0082、0095、0100；S1 专属 ADR 不自动扩大到 S2 |
 | 原型 | OpenDesign Cloud 原项目 249f81f2-6f1a-46ff-988c-da3cdedb35e7；已接受 cce686e4634ca3c523e4c8aeffd95752f1a04c3a |
 | 日期 | 2026-10-19 |
@@ -80,4 +81,10 @@
 
 浏览器脚本共 15 个逻辑用例分批执行；标题滚动、可访问名称、空态 `undefined` 等首轮失败日志均保留。最终页面矩阵与表单检查分别取上述最终观察，不把首轮失败或旧截图当作通过证据；仅定向复验新增或受影响行为，没有重复 S1 生产验收。截图均未进入仓库。
 
-具体候选尚未人工接受；原接受基线仍为 `cce686e4634ca3c523e4c8aeffd95752f1a04c3a`。下一动作是在原项目审阅完整表单与 partial／disabled 正文并接受固定候选，随后承接生产。真实三能力合同、提交原子性、当前部署与独立生产原型对照仍是 S2 的剩余工作，不以本节技术验证宣称 S2 完成。
+具体候选 `f3216dffe717e194e96fa20b4afee7983a9ff420` 尚未人工接受；原接受基线仍为 `cce686e4634ca3c523e4c8aeffd95752f1a04c3a`。下一动作是在原项目审阅完整表单与 partial／disabled 正文并接受固定候选，随后承接生产。真实三能力合同、提交原子性、当前部署与独立生产原型对照仍是 S2 的剩余工作，不以本节技术验证宣称 S2 完成。
+
+审阅入口为原项目 → 模型治理 → [平台模型部署](http://127.0.0.1:58138/api/projects/249f81f2-6f1a-46ff-988c-da3cdedb35e7/raw/index.html?screen=platform-model-deployments&state=success&review=1) → 建立部署草稿，以及[部署详情 partial](http://127.0.0.1:58138/api/projects/249f81f2-6f1a-46ff-988c-da3cdedb35e7/raw/index.html?screen=platform-model-deployment-detail&state=partial&review=1)。链接生命周期限当前 OpenDesign Cloud 服务；服务端口变化时按同一项目和入口恢复，固定版本以完整提交为准，不创建第二份可编辑原型。
+
+执行证据摘要清单位于上述临时目录的 `evidence-digests.json`，SHA-256 为 `2c2e71bc68275e3c45e08efa6a2d0175a1e72305f980958a8198b893342a6154`，绑定源码修复及候选完整提交，共 323 个日志／观察／截图等文件、29,151,831 字节；包括原失败链，截图未提交。此清单不包含自身及此后 Git 推送／云端 CI 回执，后两者单独保存，不能用候选本地通过替代最终 main CI。
+
+候选形成后 `make decisions-sync`、`make project-status`、`make project-verify`（81 项及 30 任务）、`make architecture-guard`（50 项及双端守卫）、`make resume-context` 均实际退出 0，日志为 `candidate-closeout-*.log`；650 项历史原对象及摘要的独立复核见 `history-current-verification.json`。源码、部署、已接受原型、候选版本和人工接受分别记录，STATE 仍为 WP-0019／M6，四项操作仍未完成。
