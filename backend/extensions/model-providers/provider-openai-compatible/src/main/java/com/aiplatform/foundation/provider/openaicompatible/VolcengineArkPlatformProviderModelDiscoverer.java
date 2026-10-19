@@ -19,12 +19,13 @@ import java.nio.charset.StandardCharsets;
 import java.time.Clock;
 import java.time.Duration;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.regex.Pattern;
 
-/** 使用火山方舟官方 `ListEndpoints` 控制面接口发现可调用 Endpoint 候选。 */
+/** 完整读取方舟 `default` 项目的两类接入点，仅产生待确认候选；任一来源失败不返回部分结果。 */
 public final class VolcengineArkPlatformProviderModelDiscoverer implements PlatformProviderModelDiscoverer {
 
     private static final int PAGE_SIZE = 100;
@@ -125,20 +126,35 @@ public final class VolcengineArkPlatformProviderModelDiscoverer implements Platf
             char[] secretAccessKey,
             long startedAt) {
         var candidates = new LinkedHashSet<PlatformDiscoveredModelCandidate>();
-        for (var page = 1; page <= MAX_PAGES; page++) {
-            var pageResult = callPage(endpoint, region, timeout, accessKeyId, secretAccessKey, page, startedAt);
-            if (pageResult.failure() != null) {
-                return pageResult.failure();
-            }
-            candidates.addAll(pageResult.candidates());
-            if (candidates.size() > MAX_CANDIDATES) {
-                return failure(startedAt, "VOLCENGINE_ARK_DISCOVERY_RESPONSE_INVALID");
-            }
-            if (pageResult.complete()) {
-                return success(startedAt, candidates);
+        var requestedPages = 0;
+        // 两个来源共同形成一次发现；共享请求上限，任一来源失败都不能提交部分候选。
+        for (var action : List.of("ListEndpoints", "InnerDescribeModelEndpoints")) {
+            var totalCount = -1;
+            var pageSize = -1;
+            for (var page = 1; ; page++) {
+                if (++requestedPages > MAX_PAGES) {
+                    return failure(startedAt, "VOLCENGINE_ARK_DISCOVERY_RESPONSE_INVALID");
+                }
+                var pageResult = callPage(
+                        endpoint, region, timeout, accessKeyId, secretAccessKey, action, page, startedAt);
+                if (pageResult.failure() != null) {
+                    return pageResult.failure();
+                }
+                if (page > 1 && (pageResult.totalCount() != totalCount || pageResult.pageSize() != pageSize)) {
+                    return failure(startedAt, "VOLCENGINE_ARK_DISCOVERY_RESPONSE_INVALID");
+                }
+                totalCount = pageResult.totalCount();
+                pageSize = pageResult.pageSize();
+                candidates.addAll(pageResult.candidates());
+                if (candidates.size() > MAX_CANDIDATES) {
+                    return failure(startedAt, "VOLCENGINE_ARK_DISCOVERY_RESPONSE_INVALID");
+                }
+                if (pageResult.complete()) {
+                    break;
+                }
             }
         }
-        return failure(startedAt, "VOLCENGINE_ARK_DISCOVERY_RESPONSE_INVALID");
+        return success(startedAt, candidates);
     }
 
     private PageResult callPage(
@@ -147,13 +163,19 @@ public final class VolcengineArkPlatformProviderModelDiscoverer implements Platf
             Duration timeout,
             char[] accessKeyId,
             char[] secretAccessKey,
+            String action,
             int page,
             long startedAt) {
-        var body = ("{\"PageNumber\":" + page + ",\"PageSize\":" + PAGE_SIZE + '}')
+        var body = ("{\"PageNumber\":" + page + ",\"PageSize\":" + PAGE_SIZE + ",\"ProjectName\":\"default\"}")
                 .getBytes(StandardCharsets.UTF_8);
         var uri = URI.create(endpoint.toString()
                 + (endpoint.toString().contains("?") ? "&" : "?")
-                + "Action=ListEndpoints&Version=2024-01-01");
+                + "Action=" + action + "&Version=2024-01-01");
+        try {
+            endpointPolicy.verify(uri);
+        } catch (IllegalArgumentException exception) {
+            return PageResult.failed(failure(startedAt, "VOLCENGINE_ARK_DISCOVERY_ENDPOINT_REJECTED"));
+        }
         var signed = VolcengineSignerV4.sign(
                 uri, "POST", body, accessKeyId, secretAccessKey, region, "ark", clock.instant());
         var request = HttpRequest.newBuilder(uri)
@@ -188,39 +210,58 @@ public final class VolcengineArkPlatformProviderModelDiscoverer implements Platf
             if (bytes.length > MAX_RESPONSE_BYTES) {
                 return PageResult.failed(failure(startedAt, "VOLCENGINE_ARK_DISCOVERY_RESPONSE_INVALID"));
             }
-            return parsePage(bytes, page, startedAt);
+            return parsePage(bytes, action.equals("InnerDescribeModelEndpoints"), page, startedAt);
         } catch (IOException | RuntimeException exception) {
             return PageResult.failed(failure(startedAt, "VOLCENGINE_ARK_DISCOVERY_RESPONSE_INVALID"));
         }
     }
 
-    private PageResult parsePage(byte[] bytes, int expectedPage, long startedAt) throws IOException {
+    private PageResult parsePage(byte[] bytes, boolean preset, int expectedPage, long startedAt) throws IOException {
         JsonNode root = JSON.readTree(bytes);
         if (root == null || root.path("ResponseMetadata").has("Error")) {
             return PageResult.failed(failure(startedAt, "VOLCENGINE_ARK_DISCOVERY_CALL_FAILED"));
         }
         var result = root.get("Result");
         if (result == null || !result.isObject() || !result.path("Items").isArray()
-                || !result.path("PageNumber").canConvertToInt()
-                || !result.path("PageSize").canConvertToInt()
-                || !result.path("TotalCount").canConvertToInt()) {
+                || !result.path("PageNumber").isIntegralNumber() || !result.path("PageNumber").canConvertToInt()
+                || !result.path("PageSize").isIntegralNumber() || !result.path("PageSize").canConvertToInt()
+                || !result.path("TotalCount").isIntegralNumber() || !result.path("TotalCount").canConvertToInt()) {
             throw new IOException("方舟 Endpoint 列表格式不正确");
         }
         var pageNumber = result.path("PageNumber").intValue();
         var pageSize = result.path("PageSize").intValue();
         var totalCount = result.path("TotalCount").intValue();
-        if (pageNumber != expectedPage || pageSize <= 0 || totalCount < 0) {
+        if (pageNumber != expectedPage || pageSize <= 0 || pageSize > PAGE_SIZE
+                || totalCount < 0 || totalCount > MAX_CANDIDATES) {
             throw new IOException("方舟 Endpoint 分页格式不正确");
+        }
+        var remaining = Math.max(0L, totalCount - (long) (pageNumber - 1) * pageSize);
+        if (result.path("Items").size() != Math.min(pageSize, remaining)) {
+            throw new IOException("方舟 Endpoint 分页记录不完整");
         }
         var candidates = new LinkedHashSet<PlatformDiscoveredModelCandidate>();
         for (var item : result.path("Items")) {
-            var id = item == null ? null : item.get("Id");
+            if (item == null || !item.isObject() || !"default".equals(item.path("ProjectName").asText())) {
+                throw new IOException("方舟 Endpoint 项目不匹配");
+            }
+            // 预置管理面 `Id` 不是推理编码；只使用官方 `ModelId`，不能按名称猜测类型和能力。
+            var id = item.get(preset ? "ModelId" : "Id");
             if (id == null || !id.isTextual() || id.textValue().isBlank()) {
                 throw new IOException("方舟 Endpoint 标识格式不正确");
             }
+            if (preset) {
+                var status = item.path("Status");
+                if (!status.isTextual() || status.textValue().isBlank()) {
+                    throw new IOException("方舟预置 Endpoint 状态格式不正确");
+                }
+                if (!status.textValue().equals("Running")) {
+                    continue;
+                }
+            }
             candidates.add(PlatformDiscoveredModelCandidate.requiresAdministratorConfirmation(id.textValue()));
         }
-        return new PageResult(Set.copyOf(candidates), (long) pageNumber * pageSize >= totalCount, null);
+        return new PageResult(Set.copyOf(candidates), totalCount, pageSize,
+                (long) pageNumber * pageSize >= totalCount, null);
     }
 
     private PlatformProviderModelDiscoveryObservation success(
@@ -246,11 +287,13 @@ public final class VolcengineArkPlatformProviderModelDiscoverer implements Platf
 
     private record PageResult(
             Set<PlatformDiscoveredModelCandidate> candidates,
+            int totalCount,
+            int pageSize,
             boolean complete,
             PlatformProviderModelDiscoveryObservation failure) {
 
         private static PageResult failed(PlatformProviderModelDiscoveryObservation failure) {
-            return new PageResult(Set.of(), true, failure);
+            return new PageResult(Set.of(), 0, 0, true, failure);
         }
     }
 }
