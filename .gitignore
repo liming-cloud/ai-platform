@@ -21,6 +21,8 @@ docs/prototypes/**/*.[wW][eE][bB][pP]
 !.env.example
 !**/.env.example
 deploy/.local/
+# 本地验收账号由用户维护，禁止将真实凭据加入 Git。
+/pwd.txt
 
 # Build outputs
 target/
