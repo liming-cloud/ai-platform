@@ -263,3 +263,79 @@ test("旧表单重读暂停时卸载秘密且不能恢复提交", () => visit(as
   assert.equal(await page.locator('input[type="password"]').count(), 0);
   assert.equal(await page.getByRole("button", { name: "新增供应商连接", exact: true }).isDisabled(), true);
 }));
+
+for (const width of [390, 1024, 1440]) for (const kind of ["loading", "empty", "error", "denied"]) test(`${width}px ${kind} 两页页头与恢复操作匹配原型`, () => visit(async (page, config) => {
+  for (const detail of [false, true]) {
+    config.faults = {}; config.count = 0; const key = detail ? "connection" : "directory"; let pending;
+    if (kind === "loading") { pending = gate(); config.faults[key] = { gate: pending }; }
+    else if (kind === "empty") config.faults[key] = detail
+      ? { status: 404, body: JSON.stringify({ code: "MODEL_RUNTIME.RESOURCE.0001", message: "资源不存在" }) }
+      : { body: JSON.stringify({ items: [], pageNumber: 1, pageSize: 20, totalElements: 0, hasPrevious: false, hasNext: false }) };
+    else config.faults[key] = { status: kind === "denied" ? 403 : 503 };
+    try {
+      await page.reload({ waitUntil: "domcontentloaded" });
+      if (detail) await page.evaluate(() => window.start(true));
+      const panel = page.locator(`main section[data-kind="${kind}"]`); await panel.waitFor();
+      const heading = page.getByRole("heading", { level: 1 });
+      const normal = await heading.evaluate(e => parseFloat(getComputedStyle(e).fontSize));
+      for (const doubled of [false, true]) {
+        if (doubled) await enlargeText(page);
+        await page.waitForFunction(expected => Math.abs(parseFloat(getComputedStyle(document.querySelector("h1")).fontSize) - expected) < 0.01, normal * (doubled ? 2 : 1));
+        if (kind === "empty") {
+          assert.equal(await heading.evaluate(e => getComputedStyle(e.parentElement).display), "grid", "空态页头须沿用原型网格与状态间距");
+          const line = page.locator(".platform-connection-object-line");
+          assert.equal(await line.evaluate(e => getComputedStyle(e).color), "rgb(94, 93, 89)");
+          assert.equal(await line.evaluate(e => getComputedStyle(e).fontSize), doubled ? "32px" : "16px");
+        }
+        const action = kind === "loading" ? undefined : kind === "empty"
+          ? page.getByRole("button", { name: detail ? "返回连接目录" : "新增供应商连接", exact: true }) : panel.getByRole("button");
+        if (action) {
+          const appearance = await action.evaluate(async e => {
+            getComputedStyle(e).color; await Promise.all(e.getAnimations().map(a => a.finished));
+            const s = getComputedStyle(e); return { weight: s.fontWeight, padding: s.padding, gap: s.gap, minimum: s.minWidth, font: s.fontSize, height: e.getBoundingClientRect().height };
+          });
+          assert.deepEqual(appearance, { weight: "620", padding: "6px 12px", gap: "8px", minimum: "auto", font: doubled ? "28px" : "14px", height: doubled ? 54 : width <= 680 ? 44 : 36 });
+          await action.focus(); assert.equal(await action.evaluate(e => e === document.activeElement), true);
+        }
+        assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), true);
+        assert.equal(await panel.evaluate(e => [...e.querySelectorAll("h2,p,button")].every(x => x.scrollHeight <= x.clientHeight + 1)), true);
+      }
+    } finally { pending?.release(); }
+  }
+}, width));
+
+for (const width of [390, 1024, 1440]) for (const detail of [false, true]) test(`${width}px ${detail ? "详情" : "目录"} 正常页原型动作`, () => visit(async page => {
+  await page.evaluate(detail => window.start(detail), detail);
+  await page.locator('[data-read-state="ready"]').waitFor();
+  const commands = detail ? [page.getByRole("button", { name: "返回连接目录", exact: true }), page.getByRole("button", { name: "执行连接探测", exact: true })]
+    : [page.getByRole("button", { name: "新增供应商连接", exact: true }), page.getByRole("button", { name: "查看本轮连接", exact: true })];
+  for (const doubled of [false, true]) {
+    if (doubled) await enlargeText(page);
+    for (const command of commands) {
+      await command.scrollIntoViewIfNeeded();
+      await page.waitForFunction(({label,doubled}) => [...document.querySelectorAll("button")].some(e => (e.getAttribute("aria-label") || e.textContent.trim()) === label && getComputedStyle(e).fontSize === (doubled ? "28px" : "14px")), {label: await command.getAttribute("aria-label") || (await command.innerText()).trim(), doubled});
+      const actual = await command.evaluate(e => { const s = getComputedStyle(e);return {weight:s.fontWeight,padding:s.padding,gap:s.gap,minWidth:s.minWidth,height:e.getBoundingClientRect().height};});
+      const tableAction = !detail && command === commands[1];
+      assert.deepEqual(actual, {weight:"620",padding:tableAction?"4px 12px":"6px 12px",gap:"8px",minWidth:tableAction&&width>680?"0px":"auto",height:doubled?(tableAction?50:54):width<=680?44:tableAction?32:36});
+    }
+  }
+}, width));
+
+for (const width of [390, 1024, 1440]) for (const detail of [false, true]) test(`${width}px ${detail ? "详情" : "目录"} 正常页正文遵循原型排版`, () => visit(async page => {
+  await page.evaluate(detail => window.start(detail), detail);
+  await page.locator('[data-read-state="ready"]').waitFor();
+  assert.equal(await page.locator('input[type="search"]').evaluate(e => getComputedStyle(e).minWidth), "auto");
+  for (const doubled of [false, true]) {
+    if (doubled) await enlargeText(page);
+    await page.waitForFunction(({detail, doubled}) => getComputedStyle(document.querySelector(detail ? ".platform-connection-page h2" : ".platform-connection-table strong")).fontSize === (detail ? doubled ? "50px" : "25px" : doubled ? "30px" : "15px"), {detail, doubled});
+    const appearance = await page.locator(".platform-connection-page").evaluate((root, detail) => {
+      const read = (selector, properties) => { const s = getComputedStyle(root.querySelector(selector)); return Object.fromEntries(properties.map(key => [key, s[key]])); };
+      if (!detail) return { table:read("table", ["color", "lineHeight"]), name:read("tbody strong", ["color", "fontSize", "lineHeight"]), summary:read("tbody small", ["color", "lineHeight"]) };
+      return { titles:[...root.querySelectorAll("h2")].map(e => { const s = getComputedStyle(e); return [s.fontWeight, s.lineHeight]; }),
+        kicker:read(".platform-connection-kicker", ["fontWeight", "letterSpacing"]), description:read(".platform-connection-release > p", ["lineHeight"]) };
+    }, detail);
+    assert.deepEqual(appearance, detail
+      ? {titles:Array(3).fill(["500", doubled?"67.5px":"33.75px"]), kicker:{fontWeight:"650",letterSpacing:doubled?"0.56px":"0.28px"}, description:{lineHeight:doubled?"51.2px":"25.6px"}}
+      : {table:{color:"rgb(20, 20, 19)",lineHeight:"24px"},name:{color:"rgb(20, 20, 19)",fontSize:doubled?"30px":"15px",lineHeight:doubled?"48px":"24px"},summary:{color:"rgb(20, 20, 19)",lineHeight:doubled?"48px":"24px"}});
+  }
+}, width));

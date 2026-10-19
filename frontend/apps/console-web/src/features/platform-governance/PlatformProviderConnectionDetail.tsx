@@ -104,7 +104,7 @@ export function PlatformProviderConnectionDetail({ client, route, onRouteChange 
     onRetry={() => { focused.current = false; void load(); }} onReturn={() => onRouteChange(defaultConsoleRoute("platform"))} />;
   if (state === "empty" || !connection) return <div className="platform-connection-page platform-connection-page--empty">
     <header className="platform-connection-page__heading"><p className="platform-connection-page__context">模型治理</p>
-      <div><h1 ref={headingRef} tabIndex={-1}>供应商连接探测</h1>
+      <div className="platform-connection-page__copy"><h1 ref={headingRef} tabIndex={-1}>供应商连接探测</h1>
       {state === "empty" ? <div className="platform-connection-object-line">暂无记录</div> : null}</div>
       <Button appearance="secondary" onClick={() => onRouteChange({ navigationId: "platform-model-supply", task: "connections", page: 1, ...route.directory })}>返回连接目录</Button></header>
     <PlatformConnectionEmptyState detail />
@@ -118,7 +118,7 @@ export function PlatformProviderConnectionDetail({ client, route, onRouteChange 
   const failed = connection.lastProbeSucceeded === false;
   return <div className="platform-connection-page" data-read-state={state}>
     <header className="platform-connection-page__heading"><p className="platform-connection-page__context">模型治理</p>
-      <div className={state === "partial" || state === "disabled" ? "platform-connection-page__copy" : undefined}><h1 ref={headingRef} tabIndex={-1}>供应商连接探测</h1>
+      <div className="platform-connection-page__copy"><h1 ref={headingRef} tabIndex={-1}>供应商连接探测</h1>
       <div className="platform-connection-object-line">{state === "partial" ? <span>部分完成</span> : state === "disabled" ? <span>暂不可用</span> : connectionStatusLabel(connection)}</div></div>
       <Button appearance="secondary" onClick={() => onRouteChange({ navigationId: "platform-model-supply", task: "connections", page: 1, ...route.directory })}>返回连接目录</Button></header>
     <div className={"platform-connection-note" + (failed && state !== "partial" ? " platform-connection-note--danger" : "")} role={state === "partial" ? "status" : undefined}>
