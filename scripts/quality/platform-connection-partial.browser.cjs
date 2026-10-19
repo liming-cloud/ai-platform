@@ -7,14 +7,18 @@ const { test, before, after } = require("node:test");
 const assert = require("node:assert/strict");
 const { chromium } = require("playwright");
 const { enlargeText } = require("../development/acceptance-overview.cjs");
+const { createBrowserTestCache } = require("./browser-test-cache.cjs");
 const repository = path.resolve(__dirname, "../..");
 const frontend = path.join(repository, "frontend");
 const fromFrontend = createRequire(path.join(frontend, "package.json"));
 const id = "610000000000000001";
-let server, browser, origin, temporary;
+let server, browser, origin, temporary, cache;
 
 before(async () => {
   temporary = fs.mkdtempSync("/private/tmp/wp0019-partial-source-"); fs.chmodSync(temporary, 0o700);
+  cache = createBrowserTestCache(temporary, async () => {
+    try { await browser?.close(); } finally { await server?.close(); }
+  });
   const harness = `import React from "react"; import {createRoot} from "react-dom/client";
 import {FoundationProvider} from "/@fs/${frontend}/packages/design-system/src/providers/FoundationProvider.tsx";
 import {ProductShell} from "/@fs/${frontend}/packages/design-system/src/shell/ProductShell.tsx";
@@ -42,12 +46,12 @@ window.start();`;
   const react = (await import(pathToFileURL(fromFrontend.resolve("@vitejs/plugin-react")))).default;
   const alias = ["react/jsx-runtime", "react/jsx-dev-runtime", "react", "react-dom/client", "react-dom", "@fluentui/react-components"]
     .map(name => ({ find: new RegExp(`^${name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`), replacement: fromFrontend.resolve(name) }));
-  server = await createServer({ configFile: false, root: temporary, plugins: [react()], resolve: { alias },
+  server = await createServer({ configFile: false, root: temporary, cacheDir: cache.cacheDir, plugins: [react()], resolve: { alias },
     server: { host: "127.0.0.1", port: 0, fs: { allow: [temporary, frontend] } }, logLevel: "error" });
   await server.listen(); origin = `http://127.0.0.1:${server.httpServer.address().port}`;
   browser = await chromium.launch({ channel: "chrome", headless: true });
 });
-after(async () => { await browser?.close(); await server?.close(); });
+after(async () => { await cache?.close(); });
 
 function gate() { let release, arrive; return { wait: new Promise(r => { release = r; }), reached: new Promise(r => { arrive = r; }), release: () => release(), arrive: () => arrive() }; }
 async function visit(action, width = 1440) {

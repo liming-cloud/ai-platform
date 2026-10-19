@@ -4,6 +4,7 @@ const path = require("node:path");
 const assert = require("node:assert/strict");
 const { createRequire } = require("node:module");
 const { pathToFileURL } = require("node:url");
+const { createBrowserTestCache } = require("./browser-test-cache.cjs");
 const repository = path.resolve(__dirname, "../..");
 const frontend = path.join(repository, "frontend");
 const fromFrontend = createRequire(path.join(frontend, "package.json"));
@@ -12,6 +13,10 @@ async function run() {
   assert.equal(require("playwright/package.json").version, "1.62.1");
   const temporary = fs.mkdtempSync("/private/tmp/wp0019-pagination-source-");
   fs.chmodSync(temporary, 0o700);
+  let server, browser;
+  const cache = createBrowserTestCache(temporary, async () => {
+    try { await browser?.close(); } finally { await server?.close(); }
+  });
   process.stdout.write(JSON.stringify({sourceArtifacts:temporary,productionAcceptance:false})+"\n");
   const harness = `import React from "react";
 import {createRoot} from "react-dom/client";
@@ -62,9 +67,9 @@ if(initial?.navigationId==="platform-model-supply")window.draw(initial);else win
   const react = (await import(pathToFileURL(fromFrontend.resolve("@vitejs/plugin-react")))).default;
   const alias = ["react/jsx-runtime", "react/jsx-dev-runtime", "react", "react-dom/client", "react-dom", "@fluentui/react-components"]
     .map(name => ({ find: new RegExp(`^${name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`), replacement: fromFrontend.resolve(name) }));
-  const server = await createServer({ configFile:false,root:temporary,plugins:[react()],resolve:{alias},
+  server = await createServer({ configFile:false,root:temporary,cacheDir:cache.cacheDir,plugins:[react()],resolve:{alias},
     server:{host:"127.0.0.1",port:0,fs:{allow:[temporary,frontend]}},logLevel:"error" });
-  let browser; let passed=0; let stage="启动隔离浏览器";
+  let passed=0; let stage="启动隔离浏览器";
   const check=async(name,action)=>{stage=name;await action();passed++;process.stdout.write(JSON.stringify({assertion:name,result:"通过"})+"\n");};
   try {
     await server.listen();
@@ -383,6 +388,6 @@ if(initial?.navigationId==="platform-model-supply")window.draw(initial);else win
     }
     process.exitCode=1;
   }
-  finally{if(browser)await browser.close();await server.close();}
+  finally{await cache.close();}
 }
 run().catch(()=>{process.stderr.write("隔离分页回归未能启动。\n");process.exitCode=1;});

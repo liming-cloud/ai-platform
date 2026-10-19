@@ -5,6 +5,7 @@ const { createRequire } = require("node:module");
 const { pathToFileURL } = require("node:url");
 const assert = require("node:assert/strict");
 const { enlargeText } = require("../development/acceptance-overview.cjs");
+const { createBrowserTestCache } = require("./browser-test-cache.cjs");
 
 const repository = path.resolve(__dirname, "../..");
 const frontend = path.join(repository, "frontend");
@@ -38,6 +39,10 @@ async function run() {
   assert.equal(require("playwright/package.json").version, "1.62.1", "需要已锁定的 Playwright 运行时");
   const temporary = fs.mkdtempSync(path.join("/private/tmp/", "wp0019-form-source-"));
   fs.chmodSync(temporary, 0o700);
+  let server, browser;
+  const cache = createBrowserTestCache(temporary, async () => {
+    try { await browser?.close(); } finally { await server?.close(); }
+  });
   process.stdout.write(`${JSON.stringify({ sourceArtifacts: temporary, productionAcceptance: false })}\n`);
   const harness = `import React from "react";
 import {createRoot} from "react-dom/client";
@@ -109,9 +114,8 @@ window.renderWorkspace(1);`;
   const react = (await import(pathToFileURL(fromFrontend.resolve("@vitejs/plugin-react")))).default;
   const aliases = ["react/jsx-runtime", "react/jsx-dev-runtime", "react", "react-dom/client", "react-dom", "@fluentui/react-components"]
     .map(name => ({ find: new RegExp(`^${name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`), replacement: fromFrontend.resolve(name) }));
-  const server = await createServer({ configFile: false, root: temporary, plugins: [react()],
+  server = await createServer({ configFile: false, root: temporary, cacheDir: cache.cacheDir, plugins: [react()],
     resolve: { alias: aliases }, server: { host: "127.0.0.1", port: 0, fs: { allow: [temporary, frontend] } }, logLevel: "error" });
-  let browser;
   let page;
   let stage = "启动隔离浏览器";
   let phase = "";
@@ -803,7 +807,7 @@ window.renderWorkspace(1);`;
       overlays: Array.from(document.querySelectorAll('[aria-modal="true"], [inert], [aria-hidden="true"]')).map(element => ({ tag: element.tagName, className: element.className })),
     }))) }\n`);
     process.exitCode = 1;
-  } finally { if (browser) await browser.close(); await server.close(); }
+  } finally { await cache.close(); }
 }
 
 run().catch(() => { process.stdout.write('{"result":"隔离回归启动失败"}\n'); process.exitCode = 1; });
