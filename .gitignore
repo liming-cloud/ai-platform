@@ -23,6 +23,8 @@ docs/prototypes/**/*.[wW][eE][bB][pP]
 deploy/.local/
 # 本地验收账号由用户维护，禁止将真实凭据加入 Git。
 /pwd.txt
+# 方舟控制面 AK/SK 由用户在本地提供，不进入源码或构建输入。
+/AccessKey.txt
 
 # Build outputs
 target/
