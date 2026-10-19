@@ -7,7 +7,7 @@
 | 负责人 | 模型供应与租户使用 |
 | 分支 | main |
 | 里程碑 | M6 |
-| ADR | ADR-0010, ADR-0022, ADR-0060, ADR-0066, ADR-0070, ADR-0074, ADR-0079, ADR-0082, ADR-0095, ADR-0096, ADR-0097, ADR-0098 |
+| ADR | ADR-0010, ADR-0060, ADR-0066, ADR-0070, ADR-0074, ADR-0079, ADR-0082, ADR-0095, ADR-0096, ADR-0097, ADR-0098, ADR-0099 |
 | 证据 | pending |
 | 提交 | pending |
 | 输入提交 | 8ade6bbe15a53fdf73a1fea794e642632f59b835 |
@@ -96,6 +96,6 @@ S1 已落地 make acceptance-work-package WP=WP-0019 SLICE=platform-connection�
 
 账号继续使用 Git 忽略的普通 0600 `pwd.txt`；已找到仓库登记的既有受保护推理 Key 来源，无需重新提供密码或密钥。配合 `AccessKey.txt`，正式表单新建方舟连接 `2112058351855599618`，四项创建验收及三用途密文槽计数通过。首次发现暴露“零候选误报成功、领域拒绝且不保存事实”；红绿用例及完整后端 1,133 项通过后部署修复。当前连接为修订 1、DRAFT、未发布，已保存 `VOLCENGINE_ARK_DISCOVERY_NO_MODELS` 失败事实；正式非空合同仍 FAILED，新连接发布未执行。旧连接及其修订 4 发布事实保留。
 
-本轮[default 核查](evidence/WP-0019-S1-page-states-and-ark-diagnostics-20261019.md#default-项目与候选来源核查)已确认自定义接入点 0、预置总数 2；抽查一项 Running，关联模型 Available，三个读取均 HTTP 200。下一步是接受[最小补齐提案](design-and-slices.md#s1-方舟-default-预置候选补齐提案待人工接受)，登记 ADR 后承接现有预置候选；无需创建云资源或重新提供密钥。STS／IAM 假地址阻断完整身份／策略核验，具体人工查看步骤见同证据；不据此认定缺权。正式非空合同仍未通过，新发布须独立授权；CI 账单阻断及真实未筛选空目录仍未闭合，不进入 S2～S6。
+本轮[default 核查](evidence/WP-0019-S1-page-states-and-ark-diagnostics-20261019.md#default-项目与候选来源核查)已确认自定义接入点 0、预置总数 2；抽查一项 Running，关联模型 Available。用户已接受[最小补齐方案](design-and-slices.md#s1-方舟-default-预置候选补齐提案已接受)，登记 ADR-0099，下一步以红绿测试承接预置来源、固定提交部署并复验正式发现。无需创建云资源或重新提供密钥；STS／IAM 假地址仍阻断完整策略核验，不据此认定缺权。正式非空合同、新发布、CI 账单和真实未筛选空目录尚未闭合，不进入 S2～S6。ADR-0022 经 ADR-0082 继承，直接导航保持 12 条。
 
 平台／租户概览、普通会员问答及 M6 全量和人工门禁仍由原责任包完成；WP-0019、M6 和实现矩阵完成事实不提升。
