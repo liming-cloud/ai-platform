@@ -80,6 +80,8 @@ S1 已落地 make acceptance-work-package WP=WP-0019 SLICE=platform-connection�
 
 [写入可用性决定与源码验证](evidence/WP-0019-S1-write-availability-source-20261017.md)绑定产品候选 `e0224fa9847fdaf297b3ad896e37ae7796e29a50`：348 套件／1,132 项后端、310 项前端，表单 60、partial／disabled 30、分页 37 项通过。三项人工决定已登记 ADR-0098；两候选镜像构建成功，两后端构建因 Docker Desktop 不可用以 EOF 结束，尚未替换运行服务。最新部署、完整表单及 disabled 生产验收未执行；原始 66 组和上一轮辅助读取证据从本报告恢复。
 
+2026-10-19 验收工具维护已绑定源码 `14914427775415a0b1686a7b312df4394a139d07`：三个源码浏览器入口只清除本轮 `.vite`，先关闭资源再清理，异常启动／未捕获异常／显式退出同步兜底，SIGINT／SIGTERM／SIGHUP 有界退出；截图、日志和验收证据保留。12 项旧实现反例真实失败，最终 21 项退出测试及正式入口 29 项 Python／43 项 Node 通过；真实 Chrome 表单 60、分页 37、partial／disabled 30 项通过，四次运行（含首次失败）均无缓存残留，原有 72 项证据摘要一致。首次分页导航失败未进入断言，只增加只读观测后通过，失败证据保留；SIGKILL／断电不在用户态清理保证内。复验命令为 `make work-package-acceptance-test` 及三个 `scripts/quality/platform-connection-{form,pagination,partial}.browser.cjs`；日志在 `/private/tmp/wp0019-cache-cleanup-20261019-d8_wd8i8`，`cache-evidence.json` SHA-256 为 `b32150c9457447a13505a150646fec1c12d7b1ce58a499a40b3763254dbfdcc7`。本项只闭合验收工具缺陷，不提升以下生产验收状态。
+
 ## 下一前沿
 
 当前仍为 S1，五项操作的生产验收尚未整体闭合。当前唯一原型为 OpenDesign Cloud 原项目 `249f81f2-6f1a-46ff-988c-da3cdedb35e7`、已接受 `cce686e4634ca3c523e4c8aeffd95752f1a04c3a`；此前凭据区、空态、手机重排、完整地址和拒绝态接受继续有效，不建立副本、不改写历史日期。
