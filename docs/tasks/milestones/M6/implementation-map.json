@@ -931,7 +931,7 @@
               "kind": "api",
               "value": "GET /api/v1/platform/model-supply/connections；GET /api/v1/platform/model-supply/connections/{id}；GET /api/v1/platform/model-supply/connections/{id}/model-candidates；GET /api/v1/platform/model-supply/connections/{id}/publication"
             },
-            "saveBoundary": "目录与精确详情只读，保持页码、筛选和对象修订；不读取秘密或因查看建立新对象。候选名称合同缺口 S1-C01 尚未闭合。",
+            "saveBoundary": "目录与精确详情只读，保持页码、筛选和对象修订；不读取秘密或因查看建立新对象。候选只显示独立名称，历史缺名明确说明，不以供应商编码补齐。",
             "authorizationTests": [
               "平台、租户和匿名范围分别拒绝不允许读取；注销后读取拒绝。",
               "重复／未知范围参数、旧修订及失效会话失败关闭，不恢复旧敏感表单。"
@@ -946,7 +946,8 @@
               "make project-verify"
             ],
             "evidence": [
-              "docs/tasks/WP-0019/evidence/WP-0019-S1-page-states-and-ark-diagnostics-20261019.md"
+              "docs/tasks/WP-0019/evidence/WP-0019-S1-page-states-and-ark-diagnostics-20261019.md",
+              "docs/tasks/WP-0019/evidence/WP-0019-S1-candidate-name-delivery-20261019.md"
             ]
           }
         },
@@ -1010,7 +1011,7 @@
               "kind": "api",
               "value": "POST /api/v1/platform/model-supply/connections/{id}/model-discovery"
             },
-            "saveBoundary": "平台权限及写入可用性复核后在事务外有界读取厂商；按当前修订原子保存发现及候选并更新连接，失败记录保留且不发布；候选可见名称缺口 S1-C01 待修复。",
+            "saveBoundary": "平台权限及写入可用性复核后在事务外有界读取厂商；按当前修订原子保存发现及候选独立名称并更新连接，失败记录保留且不发布；历史候选不回填，未知分类不猜测。",
             "authorizationTests": [
               "非平台身份、暂停写入、缺用途凭据及旧版本拒绝；并发迟到结果不能覆盖新修订。",
               "任一来源鉴权、网络、分页或结构错误使整个发现失败，双空不得冒充成功；未知分类不猜测能力。"
@@ -1025,7 +1026,8 @@
               "make project-verify"
             ],
             "evidence": [
-              "docs/tasks/WP-0019/evidence/WP-0019-S1-page-states-and-ark-diagnostics-20261019.md"
+              "docs/tasks/WP-0019/evidence/WP-0019-S1-page-states-and-ark-diagnostics-20261019.md",
+              "docs/tasks/WP-0019/evidence/WP-0019-S1-candidate-name-delivery-20261019.md"
             ]
           }
         },
