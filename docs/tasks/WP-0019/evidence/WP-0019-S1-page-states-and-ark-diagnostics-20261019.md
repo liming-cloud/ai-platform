@@ -233,3 +233,38 @@ Local Codex 显式使用当前安装工程助手 `wayfinder`、`tdd`、`code-rev
 本次发布报告明确 `prototypeParity=NOT_RUN`、`sliceComplete=false`：前端及已接受原型未变，不重复已通过页面矩阵，也不把这次操作通过写成新视觉验收。新方舟连接“真实创建 → 失败事实保留 → 双来源非空发现 → 精确授权发布”已闭环；真实未筛选空目录、外部 CI 未启动以及 S1 五操作整体仍未闭合。下一前沿保持 S1，不提升 WP-0019、M6 或实现矩阵完成事实，不进入候选能力分类及后续切片。
 
 收口实际执行 `make decisions-sync`、`make project-status`、`make project-verify`、`make architecture-guard`、`make resume-context` 均退出 0；治理 81 项／30 个任务、架构 50 项及双端守卫通过，恢复输出 11,828 字节。日志为本临时目录 `final-*.log`。固定评审基线为发现证据提交，仅更新本证据与任务恢复入口，核对独立授权、真实发布及部署版本分离后无新增阻断；外部 CI 与最终 Git 同步回执在推送后单独核对，不将本地通过冒称云端 CI 通过。
+
+## 真实未筛选空目录独立验收
+
+2026-10-19 17:01:10–17:01:17（Asia/Taipei），正式 `SLICE=platform-connection`、`FOUNDATION_ACCEPTANCE_MODE=empty-directory` **PASSED，五项真实浏览器检查、模型业务写入及被阻断写入均为 0**。平台登录、五厂商预设及匿名拒绝、未筛选空目录／首次新增、取消后焦点恢复及刷新、退出后拒绝均通过。没有使用搜索空结果、越界页、`state/review` 参数或响应桩，没有提交表单、探测或发布。
+
+### 隔离、版本与独立事实
+
+本轮基线 `c18c5783a4d7db4fbb9d64e1ce7c70f46eef5f34`；验收源码 `3a5418ada8105bbc9f1785c17a2370358b0220cf` 已正常提交推送，仅增补正式入口、对应测试及使用说明。根据 ADR-0079 的隔离数据库种子边界，在新项目 `wp0019-s1-empty-20261019-dbd8d2` 使用与原部署逐一相同的七个镜像、独立网络及全新卷；不重新构建，不导入业务数据。四应用 OCI 分别固定后端 `41c9fa89cb5f3caef146f4b64ff9665c513dca9e`、前端 `569eb54dc66fb8cbd97ebf70076824cbf77068b2`，七服务健康，实际前端发布端口核对为 `http://127.0.0.1:56631`。该临时入口验收后已关闭，人工继续使用原部署入口。
+
+本地 profile 在新空库按既有迁移初始化平台身份，复用普通 0600 `pwd.txt` 完成正式登录；没有读取或重置原账号，没有复制密码或摘要。新库没有租户身份，因此匿名拒绝在本轮验证，租户隔离沿用原部署证据，没有伪造身份或开通租户。
+
+正式未筛选列表 `pageNumber=1&pageSize=20` 的 `totalElements=0`、`items=[]`，独立发布摘要为 0；页面为“平台模型连接目前为空”，“新增供应商连接”可操作，打开后取消并刷新仍为空。独立 `REPEATABLE READ READ ONLY` 前后确认：新库身份 1、租户及成员 0，连接／凭据／发现／候选／发布／部署／目录／授权全部 0。原部署前后容器标识、镜像、健康及聚合事实相同：连接 3、凭据 5、发现 13、历史候选 787、发布 2、部署／目录／授权 0。
+
+每次执行仅回收本轮新建的隔离容器、网络和卷，最终残留均为 0；原部署及历史数据保留。前端与原型相对本轮基线无修改，原 OpenDesign Cloud 项目及已接受 `cce686e4634ca3c523e4c8aeffd95752f1a04c3a` 不变；未重复已通过页面矩阵、未生成截图，报告继续明确 `prototypeParity=NOT_RUN`、`sliceComplete=false`，不新增视觉或整片通过结论。
+
+### 反例、失败记录与证据
+
+先新增最小入口反例，旧实现实际因不支持 `empty-directory` 失败，再实现后同一入口 33 项通过；`make work-package-acceptance-test` 54 项及 Node／Shell 语法通过。反例覆盖原部署／外部目标拒绝、实际端口绑定、无连接 ID／创建材料、禁止模型写入、非空／越界／未知摘要拒绝；普通模式的原目标及租户隔离保持不变。源码阶段 `make project-verify` 81 项／30 任务、`make architecture-guard` 50 项及双端守卫通过；本轮没有改 Java／前端，不重跑其既有全量测试。
+
+三次准备失败原样保留：首轮临时主密钥版本误用小写，服务端按既有大写格式拒绝；第二轮停在浏览器启动前端口核对，最小 Redis 复现证明本机 `internal` 网络没有实际宿主端口；第三轮临时执行器错误假设 Compose 会保留默认 `internal=false` 字段，创建资源前退出。修正均限于临时执行配置／读取，最终使用与既有 Compose 相同的普通桥接语义，保持独立存储、127.0.0.1 端口和原 SSRF；没有放宽版本、健康、空目录或写入断言。失败轮次及最小复现资源均回收，原部署事实未变。
+
+产物集中在 `/private/tmp/wp0019-s1-real-empty-20261019-s2_h52sa`，成功记录位于 `attempt-4/`；目录 0700、文件 0600。`evidence-digests.json` 绑定 68 项／213,510 字节的非秘密证据，SHA-256 `b958bb2a9d3d1b657f762a0ba0dbb5c22741059b0e7c6fcae92da0653d303794`，包含各轮失败、正式浏览器、只读事实、原部署未变及回收记录，不含凭据、密码摘要或截图。受保护值命中 0；未留下新增构建上下文或存储卷。
+
+Local Codex 显式加载当前工程助手 `wayfinder`、`diagnosing-bugs`、`tdd`、`code-review` 与安全 seam 参考，依据本包控制面及 ADR-0079／0095～0099 内联推进。图谱定位 `PlatformConnectionEmptyState` 文案、正式入口调用链，并对 `platformConnectionConfiguration`、`inspectRuntime` 执行影响分析，分别命中 2、3 个符号；据此只增补验收入口，不改产品 UI、登录工具或业务契约。临时配置错误由 `EnvironmentSecretEncryptionKeyProvider.VERSION` 明确拒绝。无 Runtime／StageRunResult，阶段校验不适用。
+
+### CI 账单阻断与人工处理步骤
+
+验收源码的 [Actions 39226062504](https://github.com/liming-cloud/ai-platform/actions/runs/39226062504) 返回付款失败或 spending limit 消息，步骤数 **0**，任务没有启动；未因该消息重跑或修改 CI。此通用消息不能区分账号的具体付款／预算原因，本轮没有读取私人账单或改变付款设置。
+
+1. 使用仓库所有者账号进入[个人账单](https://github.com/settings/billing)：Settings → Billing & Licensing → Payment information，查看失败付款或授权验证；存在问题时由本人更新付款信息或处理欠款。依据[官方解锁步骤](https://docs.github.com/en/billing/how-tos/troubleshooting/locked-account)。
+2. 在 Budgets and alerts 检查覆盖此仓库的 Actions 产品／SKU 及账户／仓库预算是否耗尽并停止用量。预算耗尽时由本人决定等待新周期或设置可接受的明确额度；不自动解除上限。依据[官方预算说明](https://docs.github.com/en/billing/how-tos/set-up-budgets)。
+3. 若付款信息、余额和预算均无异常仍被阻断，向 [GitHub Support](https://support.github.com/) 提供失败运行链接及原消息，请求检查 billing lock；无需在聊天中提供密码、Token 或付款资料。官方说明指出授权验证失败也可能阻断 Actions，即使账单页没有可处理的余额。
+4. 问题解除后进入 ai-platform → Actions → 最终提交对应运行 → Re-run all jobs，确认作业实际启动并通过。依据[官方重跑说明](https://docs.github.com/en/actions/how-tos/manage-workflow-runs/re-run-workflows-and-jobs)。本地测试与本次真实空目录通过不替代该 CI 结果。
+
+本轮 `make decisions-sync`、`make project-status`、`make project-verify`、`make architecture-guard`、`make resume-context` 均退出 0，治理 81 项／30 任务、架构 50 项及双端守卫通过，恢复输出 11,891 字节；日志为本临时目录 `closeout-*.log`。真实未筛选空目录子任务已闭环；S1 组合收口仍等待实际 CI 门禁，不提升 WP-0019、M6 或实现矩阵完成状态，不进入 S2。
