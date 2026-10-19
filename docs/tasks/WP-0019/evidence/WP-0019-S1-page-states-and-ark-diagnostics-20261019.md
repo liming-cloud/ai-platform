@@ -86,3 +86,50 @@ Playwright 1.62.1／独立 Chrome，两个页面 × 七态 × 390／1024／1440 
 Local Codex 使用当前工程助手安装提供的 `wayfinder`、`tdd`、`code-review`，显式加载各 SKILL.md 和 `references/security-seams.md`；固定 diff 评审无新增阻断，无 Runtime／StageRunResult，阶段结果校验不适用。CJS 正式布局函数未被图谱命中，才定向读取两个已知脚本；TS 图谱定位两页、读取投影、`ProductShell`、默认／格式化路由及方舟解析器，并分别执行页面／外壳影响分析；据此限定局部样式和验收分类，不改后端边界或后续切片。
 
 收口命令 `make decisions-sync`、`make project-status`、`make project-verify`（81 项／30 个任务）、`make architecture-guard`（50 项及前后端守卫）、`make resume-context` 均实际通过，输出见同证据根目录 `closeout-*.log`；恢复入口 11,736 字节，低于 12 KiB。后端源码未变，本轮没有重跑 Maven 或将旧后端测试说成最新执行。最终提交推送与 CI 准确状态另以 GitHub 回执核对，外部未启动不算通过。
+
+## 后续执行
+
+2026-10-19 13:48–14:04（Asia/Taipei）的业务操作绑定调查基线 `a9b2cf811da324b15c5bb41fb077491b926b8661`，局部修复提交为 `5f489fcffe106170ff21dd12751e91f45ec153c7`，已正常推送。以下补充更新剩余阻断；前文原时点的调用、部署与验收数字保留，**不再把材料缺失或“整个账号没有模型”作为当前结论**。
+
+### 正式方舟新建已通过
+
+复用本地 `pwd.txt`、`AccessKey.txt`，并沿[真实模型说明](../../../../deploy/compose/README.real-model.md)中的精确历史路径找到已有推理 Key 文件：当前用户所有、普通 0600，内存格式检查通过。该 Key 的实际推理有效性未验证；本轮没有推理调用，不以草稿保存证明模型可用。未解密旧连接、导出密文或使用公开凭据引用，凭据内容及摘要均不记录。
+
+以新 0700 临时目录下的 0600 创建材料，执行正式入口 `make acceptance-work-package WP=WP-0019 SLICE=platform-connection`，显式 `FOUNDATION_ACCEPTANCE_MODE=create-draft`：**PASSED，四项检查，恰好一笔业务写入**。创建时前端为 `569eb54dc66fb8cbd97ebf70076824cbf77068b2`，三后端仍为 `e0224fa9847fdaf297b3ad896e37ae7796e29a50`，不将它写成后续修复版本的创建验收。新连接 `2112058351855599618` 为 `VOLCENGINE_ARK_CONTROL_PLANE`、CHAT、DRAFT 修订 0、未发布；详情读取和退出拒绝通过，没有探测或发布该草稿。
+
+`REPEATABLE READ READ ONLY` 独立核验：连接由 2 增至 3；凭据行由 2 增至 5，新对象恰好具备 `INFERENCE_API_KEY`、`DISCOVERY_ACCESS_KEY_ID`、`DISCOVERY_SECRET_ACCESS_KEY` 三用途。该时点新对象发现／发布均为 0，两个旧对象未变；只核对用途、计数与状态，不读取秘密字段。
+
+### 零候选的两个不同问题
+
+1. **请求范围需要限定。** [官方 ListEndpoints 参数](https://api.volcengine.com/api-explorer/?action=ListEndpoints&groupName=%E7%AE%A1%E7%90%86%E6%8E%A8%E7%90%86%E6%8E%A5%E5%85%A5%E7%82%B9%EF%BC%88Endpoint%EF%BC%89&serviceCode=ark&version=2024-01-01)明确省略 `ProjectName` 时默认 `default`。前文只发送页码／页大小，因此原 HTTP 200、Items／TotalCount 为 0 的结论限于当前凭据、北京区域及默认项目，未验证其他项目。官方另区分[预置 Model ID 推理与自定义接入点](https://docs.volcengine.com/docs/ark/deployment-overview?lang=zh&redirect=1)；不能由接入点空结果推断公共模型或已开通模型均为空。用户回复账号内事实“尚未核对”，本轮没有跨项目／区域扫描或更换动作填充候选。
+2. **生产失败事实丢失是源码缺陷。** 新对象第一次正式 `vendor-discovery` 返回非 200（原入口未记录精确状态码），修订仍为 0、发现记录 0。代码图谱定位适配器将合法空列表返回 `succeeded=true`，而 `PlatformProviderModelDiscovery.capture` 要求成功记录非空，触发领域拒绝，发现未能保存。同期只读 DNS 核验宿主和容器各 12 个地址均公网，没有 fake-IP；七秒窗口日志无可用异常，未靠猜测重试。
+
+先增加本地 HTTP 零列表反例：四项测试中一项实际失败，`expected false but was true`。仅在方舟适配器的成功出口增加空集合失败分支，使用稳定安全码 `VOLCENGINE_ARK_DISCOVERY_NO_MODELS`；保留领域非空约束、正式验收非空断言、签名、TLS、SSRF、分页和用途隔离。同一四项转绿，随后 `./mvnw -q test` 实际退出 0：348 套件／1,133 项，失败、错误、跳过均 0。未改公共字段、Schema、原型或后续切片，无需新增产品决策。
+
+### 新部署和一次针对性复验
+
+只从固定 Git 提交创建构建上下文，不带本地秘密；三个后端镜像均绑定修复提交的 OCI revision：
+
+| 服务 | 运行镜像 |
+| --- | --- |
+| control-plane | `sha256:6a83d7e5025993780320a2913b150e9360d8a1b0e9a4e56c389f81bb1be4703b` |
+| query-runtime | `sha256:f5dcfc4ffd23235bae1530916aa8e852fd41587f23c717a9ec044b5e3820a3e3` |
+| ingestion-worker | `sha256:46ec6414b837e7799a6c0db1a46406ecff3013a8ca62045040151e3dd63ceb68` |
+
+正常 Compose 仅更新这三个服务，七服务健康、四入口冒烟通过；前端、PostgreSQL、Redis、MinIO 四个容器标识未变。前端继续运行前文 `569eb54d…`／`sha256:e81664078edb16bd243a2bbcd6b679d54c82b38f404bf7ccc66325bcadab2eec`；前端与原型源码相对调查基线无差异，**未重跑已通过的页面矩阵、完整表单或原型对照**。OpenDesign Cloud 已接受 `cce686e4…` 和原证据范围继续有效，本次不新增视觉通过结论。
+
+新运行版本仅对本轮精确连接执行一次 `vendor-discovery`，仍用 `pwd.txt`，不读取创建材料。正式入口确认 HTTP 200、`succeeded=false`，连接更新至修订 1、DRAFT、未发布。**原始验收仍 FAILED／退出 2**，失败原因明确为未通过真实发现或没有候选，非空门槛没有放宽。修复前后部署输入不同，没有对同一失败条件自动重试，也未重复旧连接发现／修订 4 发布。
+
+独立只读事务确认新失败事实 `2112062317435813889`：修订 1、`succeeded=false`、`VOLCENGINE_ARK_DISCOVERY_NO_MODELS`、无有效期、模型数 0。累计发现由 11 增至 12，累计历史候选仍 785、发布仍 1；部署、目录、授权均 0，旧对象不变。因此**零候选失败保存回归 PASSED，真实非空厂商合同仍 FAILED，新连接发布未执行**；不把负态通过当作完整供应链通过。
+
+### 当前剩余事项与证据
+
+- 人工在[方舟北京控制台](https://console.volcengine.com/ark/region:cn-beijing)确认该 AK／SK 所属账号的 `default` 自定义接入点和读取可见性；若位于其他项目，给出项目名称，若只使用预置 Model ID，确认该事实即可。取得事实后再决定 S1 内的项目／候选来源提案，不能先增加参数、改协议或创建云端资源制造通过。无需重新提供登录密码、AK／SK 或已找到的推理 Key。
+- [修复提交的 CI](https://github.com/liming-cloud/ai-platform/actions/runs/39206942173)作业步骤数 0，注解明确为付款／spending limit，须由所有者处理 Billing & plans；另一个 Ubuntu 标签迁移注解不作为产品失败依据。本地测试与外部未执行分别结论，不绕过或反复重跑。
+- 真实未筛选空目录保留未执行；现有三条连接保留。当前修订没有成功验证，发布不执行；后续新发布仍需范围匹配的独立授权。S1、WP-0019、M6 未完成，不进入 S2～S6／WP-0020。
+
+本次证据根目录 `/private/tmp/wp0019-s1-blockers-20261019-p5i22853` 为 0700，日志和报告为 0600。`safe-evidence-digests.json` 绑定 32 项非秘密产物，SHA-256 `66fa75c4043be9bdce212181c750b4da2876ec3cc55859a2cac335a89665bc93`；受保护值扫描 0 命中，凭据文件、秘密摘要、截图均排除。正式创建、修复前后发现、只读事实、红绿日志、完整后端、构建和部署分别保留；可重建构建上下文已在 finally 清除。
+
+Local Codex 显式使用当前安装的工程助手 `wayfinder`、`diagnosing-bugs`、`tdd`、`code-review`，加载各 SKILL.md、HITL 和安全 seam 参考。图谱探索 `PlatformProviderConnectionService`、`PlatformProviderModelDiscoveryService`、`ExtensionContractMapper`、`PlatformProviderModelDiscovery.capture` 与方舟发现器，并对后者执行影响分析；据此只修改扩展的空结果分类，不改领域不变量或上下文边界。固定 diff 为调查基线至修复提交，评审未发现新增阻断。内联执行无 Runtime／StageRunResult，阶段结果校验不适用；不复用历史 Runtime 宣称通过。
+
+后续收口实际执行 `make decisions-sync`、`make project-status`、`make project-verify`、`make architecture-guard`、`make resume-context`，均退出 0。治理 81 项／30 个任务、架构 50 项及前后端守卫通过，恢复输出 11,758 字节；日志位于本次根目录 `closeout-*.log`。重新核对 Charter、ROADMAP、STATE 与 S1 边界，产品前沿／执行任务仍为 WP-0019，STATE 和 M6 实现矩阵未提升。文档集中补充现有证据及恢复入口，不为本次排查新增任务或报告文件；最终证据提交与推送回执单独核对。
