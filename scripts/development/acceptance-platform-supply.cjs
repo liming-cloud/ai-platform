@@ -133,16 +133,15 @@ async function run(config) {
       const extra = input.modelType === "CHAT" ? ["最大输出（Token）", input.outputLimit] : input.modelType === "EMBEDDING" ? ["向量维度", input.embeddingDimension] : ["重排候选上限", input.rerankCandidateLimit];
       await modal.getByLabel(extra[0], { exact: true }).fill(String(extra[1])); await modal.getByLabel("参数来源", { exact: true }).fill(input.parameterSource);
       await modal.getByLabel("我已确认模型类型、能力和参数来源", { exact: true }).check();
-      for (const tenantId of input.plannedTenantIds) {
-        const name = tenants.items.find(tenant => tenant.tenantId === tenantId).displayName;
-        await modal.getByRole("group", { name: "授权租户", exact: true }).getByLabel(name, { exact: true }).check();
-      }
+      await selectPlannedTenants(modal, tenants.items, input.plannedTenantIds);
       armed = true;
       const response = page.waitForResponse(response => new URL(response.url()).pathname === `/api/v1${api}` && response.request().method() === "POST");
       await modal.getByRole("button", { name: "保存部署草稿", exact: true }).click();
       const saved = await response; armed = false;
+      report.saveResponse = { status: saved.status() }; persist();
       requireCondition(saved.status() === 201, "正式保存草稿失败");
       const record = await saved.json(); assertSafeResponse(record, secrets);
+      if (longId(record?.id)) { report.savedDeploymentId = record.id; persist(); }
       requireCondition(longId(record.id) && record.status === "DRAFT" && record.version === 0 && record.verifiedAt === null && record.verificationExpiresAt === null
         && record.providerConnectionId === input.connectionId && record.providerConnectionRevision === input.connectionRevision
         && record.modelCode === input.modelCode && record.modelType === input.modelType && record.contextWindow === input.contextWindow
@@ -227,7 +226,12 @@ async function run(config) {
     report.completed = true; report.writes = writes; persist();
     return report;
   } catch (error) {
-    if (descriptor !== undefined) { report.failedStage = stage; report.completed = false; persist(); }
+    if (descriptor !== undefined) {
+      report.failedStage = stage; report.completed = false;
+      report.failureType = error.name;
+      if (error instanceof SafeAssertionError) report.failedAssertion = error.message;
+      persist();
+    }
     throw new SafeAssertionError(`S2 验收未完成：${stage}`);
   } finally { try { await cache?.close(); } finally { if (descriptor !== undefined) fs.closeSync(descriptor); } }
 }
@@ -244,7 +248,21 @@ function styleFacts(element) {
     background: style.backgroundColor, border: style.borderColor, radius: style.borderRadius,
     width: rect.width, height: rect.height, padding: style.padding, maxWidth: style.maxWidth, maxHeight: style.maxHeight, boxSizing: style.boxSizing };
 }
-module.exports = { configuration, readDraftInput, permittedMutation, run, layout };
+/** 仅使用本轮读取的活动租户集合，不以显示名推断身份。 */
+async function selectPlannedTenants(modal, tenants, selectedIds) {
+  const choices = modal.getByRole("group", { name: "授权租户", exact: true }).locator('input[name="authorizeTenant"]');
+  requireCondition(await choices.count() === tenants.length, "当前表单租户集合已变化，不能继续保存");
+  for (const tenantId of selectedIds) {
+    const index = tenants.findIndex(item => item.tenantId === tenantId && item.status === "ACTIVE");
+    requireCondition(longId(tenantId) && index >= 0 && tenants.filter(item => item.tenantId === tenantId).length === 1, "精确活动租户已不可用");
+    const choice = choices.nth(index);
+    // 表单以受控序号映射本轮 API 身份；同名项不能降级成按名称勾选。
+    requireCondition(await choice.getAttribute("value") === String(index)
+      && await choice.evaluate(element => element.closest("label").textContent.trim()) === tenants[index].displayName, "表单与当前租户身份投影不一致");
+    await choice.check();
+  }
+}
+module.exports = { configuration, readDraftInput, permittedMutation, run, layout, selectPlannedTenants };
 if (require.main === module) {
   try { run(configuration()).catch(error => { process.stderr.write((error instanceof SafeAssertionError ? error.message : "S2 验收未完成") + "\n"); process.exitCode = 1; }); }
   catch (error) { process.stderr.write((error instanceof SafeAssertionError ? error.message : "S2 验收配置不可用") + "\n"); process.exitCode = 1; }

@@ -7,7 +7,7 @@ const { test, before, after } = require("node:test");
 const assert = require("node:assert/strict");
 const { chromium } = require("playwright");
 const { enlargeText } = require("../development/acceptance-overview.cjs");
-const { layout } = require("../development/acceptance-platform-supply.cjs");
+const { layout, selectPlannedTenants } = require("../development/acceptance-platform-supply.cjs");
 const { createBrowserTestCache } = require("./browser-test-cache.cjs");
 const frontend = path.resolve(__dirname, "../../frontend");
 const fromFrontend = createRequire(path.join(frontend, "package.json"));
@@ -50,10 +50,10 @@ window.start=detail=>window.draw(detail?{navigationId:"platform-model-supply",ta
 });
 after(async () => { fs.writeFileSync(path.join(temporary, "observations.json"), JSON.stringify({ kind: "ISOLATED_HTTP_UI", observations }, null, 2), { mode: 0o600 }); await cache?.close(); process.stdout.write(JSON.stringify({ evidence: temporary }) + "\n"); });
 
-async function open(state = "success", detail = false, width = 1440) {
+async function open(state = "success", detail = false, width = 1440, duplicateTenants = false) {
   const page = await browser.newPage({ viewport: { width, height: 1000 }, reducedMotion: "reduce" });
   const errors = []; page.on("pageerror", error => errors.push(error.name));
-  let writes = 0, created;
+  let writes = 0, created, writtenInput;
   await page.route("**/api/v1/**", async route => {
     const request = route.request(), pathname = new URL(request.url()).pathname;
     const reply = (status, body) => route.fulfill({ status, contentType: "application/json", body: JSON.stringify(body) });
@@ -61,10 +61,12 @@ async function open(state = "success", detail = false, width = 1440) {
     if (pathname.endsWith("/facts")) return state === "partial" ? reply(503, { code: "SYNTHETIC_UNAVAILABLE", message: "合成不可用", traceId: "trc_synthetic" })
       : reply(200, { writesAvailable: state !== "disabled", counts: { total: 1, drafts: 1, verified: 0, published: 0, disabled: 0 } });
     if (pathname.endsWith("/candidates")) return reply(200, pageOf(options, 100));
-    if (pathname === "/api/v1/platform/tenants") return reply(200, pageOf([{ tenantId: "21", tenantCode: "synthetic-tenant", displayName: "合成租户", status: "ACTIVE" }], 100));
-    if (pathname === "/api/v1/platform/tenants/21") return reply(200, { tenantId: "21", displayName: "合成租户", status: "ACTIVE" });
+    if (pathname === "/api/v1/platform/tenants") return reply(200, pageOf(duplicateTenants
+      ? ["21", "22"].map(tenantId => ({ tenantId, tenantCode: "synthetic-" + tenantId, displayName: "合成同名租户", status: "ACTIVE" }))
+      : [{ tenantId: "21", tenantCode: "synthetic-tenant", displayName: "合成租户", status: "ACTIVE" }], 100));
+    if (/^\/api\/v1\/platform\/tenants\/(21|22)$/.test(pathname)) return reply(200, { tenantId: pathname.split("/").at(-1), displayName: duplicateTenants ? "合成同名租户" : "合成租户", status: "ACTIVE" });
     if (request.method() === "POST" && pathname === "/api/v1/platform/model-supply/deployments") {
-      writes++; const input = request.postDataJSON(); assert.equal(input.modelConfirmed, true);
+      writes++; const input = request.postDataJSON(); writtenInput = input; assert.equal(input.modelConfirmed, true);
       created = { ...deployment, ...input, id: "124", inputs: { ...deployment.inputs, parameterSource: input.parameterSource, plannedTenantIds: input.plannedTenantIds, rerankCandidateLimit: input.rerankCandidateLimit } };
       await new Promise(resolve => setTimeout(resolve, 350)); return reply(201, created);
     }
@@ -79,7 +81,7 @@ async function open(state = "success", detail = false, width = 1440) {
   await page.goto(origin, { waitUntil: "domcontentloaded" }); await page.waitForFunction(() => typeof window.start === "function");
   if (detail) await page.evaluate(() => window.start(true));
   await page.locator(`.platform-deployment-page[data-read-state="${state === "success" || (state === "empty" && !detail) ? "ready" : state}"]`).waitFor();
-  return { page, errors, writes: () => writes };
+  return { page, errors, writes: () => writes, writtenInput: () => writtenInput };
 }
 
 test("S2 两页七态、三尺寸与原生两档文字", async () => {
@@ -98,6 +100,26 @@ test("S2 两页七态、三尺寸与原生两档文字", async () => {
       if (["partial", "disabled"].includes(state)) assert.equal(await page.getByRole("button", { name: detail ? "执行能力验证" : "建立部署草稿", exact: true }).isDisabled(), true);
     } finally { await page.close(); }
   }
+});
+
+test("S2 验收在同名租户中只选择精确身份", async () => {
+  const { page, errors, writes, writtenInput } = await open("success", false, 1440, true);
+  try {
+    await page.getByRole("button", { name: "建立部署草稿", exact: true }).click();
+    const modal = page.getByRole("dialog");
+    await page.waitForFunction(() => !document.querySelector('.platform-deployment-form button[type="submit"]')?.disabled);
+    await modal.getByLabel("部署名称", { exact: true }).fill("同名租户精确草稿");
+    await modal.getByLabel("已发现模型", { exact: true }).selectOption("0");
+    await modal.getByLabel("上下文窗口（Token）", { exact: true }).fill("128");
+    await modal.getByLabel("最大输出（Token）", { exact: true }).fill("64");
+    await modal.getByLabel("参数来源", { exact: true }).fill("合成文档 v1");
+    await modal.getByLabel("我已确认模型类型、能力和参数来源", { exact: true }).check();
+    await selectPlannedTenants(modal, ["21", "22"].map(tenantId => ({ tenantId, displayName: "合成同名租户", status: "ACTIVE" })), ["22"]);
+    await modal.getByRole("button", { name: "保存部署草稿", exact: true }).click();
+    await page.getByRole("heading", { name: "同名租户精确草稿", exact: true }).waitFor();
+    assert.deepEqual(writtenInput().plannedTenantIds, ["22"]);
+    assert.equal(writes(), 1); assert.deepEqual(errors, []);
+  } finally { await page.close(); }
 });
 
 test("S2 三类型和未知候选完整表单、键盘、取消及单次保存", async () => {
