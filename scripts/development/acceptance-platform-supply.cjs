@@ -181,7 +181,8 @@ async function run(config) {
         requireCondition(!observed.overflow && observed.clipped.length === 0, "S2 页面存在裁切或横向溢出");
         const screenshot = path.join(directory, `${target.view}-${width}-${textScale}.png`);
         await page.screenshot({ path: screenshot, fullPage: true }); fs.chmodSync(screenshot, 0o600);
-        report.observations.push({ view: target.view, width, textScale, ...observed, screenshot });
+        report.observations.push({ view: target.view, width, textScale, ...observed, screenshot,
+          headingStyle: await page.locator("h1").first().evaluate(styleFacts) });
       }
     });
     if (previewSource) await check("生产完整表单原生文字、固定操作区与键盘", async () => {
@@ -215,7 +216,10 @@ async function run(config) {
         requireCondition(header.y >= 0 && footer.y + footer.height <= 1001 && !(await modal.evaluate(element => element.scrollWidth > element.clientWidth + 1)), "完整表单标题或操作区被裁切");
         const screenshot = path.join(directory, `form-${width}-${textScale}.png`);
         await page.screenshot({ path: screenshot }); fs.chmodSync(screenshot, 0o600);
-        report.observations.push({ view: "form", width, textScale, nativeFonts: fonts, header, footer, screenshot });
+        const styles = {};
+        for (const [key, locator] of Object.entries({ surface: modal, title: modal.locator("h2"), input: modal.locator('input[name="name"]'), header: modal.locator("header"), footer: modal.locator("footer"), form: modal.locator("form"), button: modal.getByRole("button", { name: "取消", exact: true }) }))
+          styles[key] = await locator.evaluate(styleFacts);
+        report.observations.push({ view: "form", width, textScale, nativeFonts: fonts, header, footer, screenshot, styles });
         await page.keyboard.press("Escape"); await modal.waitFor({ state: "hidden" });
       }
     });
@@ -232,6 +236,13 @@ async function layout(page) {
   return page.evaluate(() => ({ overflow: document.documentElement.scrollWidth > innerWidth + 1,
     clipped: [...document.querySelectorAll('h1,h2,button,label,p,td,dt,dd')].filter(element => element.getBoundingClientRect().width > 0 && element.clientHeight > 0 && element.scrollHeight > element.clientHeight + 1)
       .map(element => element.tagName), reducedMotion: matchMedia("(prefers-reduced-motion: reduce)").matches }));
+}
+/** 仅记录排版事实，不读取输入值、秘密或浏览器会话状态。 */
+function styleFacts(element) {
+  const style = getComputedStyle(element), rect = element.getBoundingClientRect();
+  return { font: style.fontFamily, size: style.fontSize, lineHeight: style.lineHeight, color: style.color,
+    background: style.backgroundColor, border: style.borderColor, radius: style.borderRadius,
+    width: rect.width, height: rect.height, padding: style.padding, maxWidth: style.maxWidth, maxHeight: style.maxHeight, boxSizing: style.boxSizing };
 }
 module.exports = { configuration, readDraftInput, permittedMutation, run, layout };
 if (require.main === module) {
