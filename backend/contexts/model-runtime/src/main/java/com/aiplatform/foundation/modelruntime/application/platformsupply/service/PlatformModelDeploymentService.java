@@ -99,6 +99,11 @@ public final class PlatformModelDeploymentService {
                 query.page(), page.totalElements());
     }
 
+    /**
+     * 能力外呼前复核冻结来源的当前验证与独立发布事实，不能沿用旧草稿的创建检查。
+     *
+     * @throws IllegalStateException 来源修订变化、不可用或尚未发布时拒绝探测。
+     */
     public ProbePlatformModelDeploymentResult probe(ProbePlatformModelDeploymentCommand command) {
         Objects.requireNonNull(command, "平台模型部署探测命令不能为空");
         requirePermission(command.context());
@@ -116,6 +121,11 @@ public final class PlatformModelDeploymentService {
                 verification.verification().resultCode(), result.probedAt());
     }
 
+    /**
+     * 仅发布验证有效且冻结来源仍已独立发布的部署；不因旧验证成功放宽来源要求。
+     *
+     * @throws IllegalStateException 来源失效、尚未发布或部署修订变化时拒绝发布。
+     */
     public PlatformModelDeploymentView publish(PublishPlatformModelDeploymentCommand command) {
         Objects.requireNonNull(command, "平台模型部署发布命令不能为空");
         requirePermission(command.context());
@@ -164,7 +174,9 @@ public final class PlatformModelDeploymentService {
     }
 
     private PlatformProviderConnection loadFrozenConnection(PlatformModelDeployment deployment) {
-        return loadVerifiedConnection(deployment.providerConnectionId().toString(), deployment.providerConnectionRevision());
+        var connection = loadVerifiedConnection(deployment.providerConnectionId().toString(), deployment.providerConnectionRevision());
+        requirePublishedConnection(connection);
+        return connection;
     }
 
     private static void requirePermission(PlatformRequestContext context) {
