@@ -4,7 +4,7 @@
   "openDesignProjectId": "249f81f2-6f1a-46ff-988c-da3cdedb35e7",
   "humanAcceptanceEvidence": "docs/tasks/WP-0016/evidence/WP-0016-human-acceptance-20260913.md",
   "prototypeImplementationCommit": "21b45c347a4008f5959b1b972e3ffd8a5aadcc6f",
-  "updatedOn": "2026-10-19",
+  "updatedOn": "2026-10-20",
   "sources": [
     {
       "path": "docs/prototypes/wp-0016/page-inventory.json",
@@ -1084,7 +1084,7 @@
       "phase": "M6",
       "classification": "production",
       "workPackage": "WP-0019",
-      "status": "pending-contract",
+      "status": "verified",
       "operations": [
         {
           "id": "platform-model-deployments:0",
@@ -1094,7 +1094,33 @@
           "reason": "m6-approved-prototype",
           "workPackage": "WP-0019",
           "dependsOn": [],
-          "status": "pending-contract"
+          "status": "verified",
+          "contract": {
+            "adr": "ADR-0100",
+            "target": {
+              "kind": "api",
+              "value": "POST /api/v1/platform/model-supply/deployments"
+            },
+            "saveBoundary": "正式完整表单只冻结当前已发布连接、可靠发现根、能力参数声明及拟授权租户；未知类型显式确认，分类、草稿、审计和幂等同事务；不推理、发布或赋权。",
+            "authorizationTests": [
+              "非平台权限及客户端伪造范围拒绝；modelConfirmed 仅接受真正布尔 true。",
+              "过期或轮换来源、失效租户、同键异参及分类确认或审计失败均回滚，不遗留半成品。"
+            ]
+          },
+          "verification": {
+            "commands": [
+              "FOUNDATION_ACCEPTANCE_MODE=create-draft make acceptance-work-package WP=WP-0019 SLICE=platform-supply",
+              "make frontend-test",
+              "./mvnw -q test",
+              "make work-package-acceptance-test",
+              "make architecture-guard",
+              "make project-verify"
+            ],
+            "evidence": [
+              "docs/tasks/WP-0019/evidence/WP-0019-S2-draft-detail-delivery-20261020.md"
+            ]
+          },
+          "verifiedCommit": "98ffdd5b0fa6cc388cef82d8ca8fca0782fd4671"
         },
         {
           "id": "platform-model-deployments:1",
@@ -1104,7 +1130,33 @@
           "reason": "m6-approved-prototype",
           "workPackage": "WP-0019",
           "dependsOn": [],
-          "status": "pending-contract"
+          "status": "verified",
+          "contract": {
+            "adr": "ADR-0100",
+            "target": {
+              "kind": "api",
+              "value": "GET /api/v1/platform/model-supply/deployments；GET /api/v1/platform/model-supply/deployments/{id}；GET /api/v1/platform/model-supply/deployments/facts"
+            },
+            "saveBoundary": "服务端分页和精确详情只读，刷新与返回保留对象和页码；不复制原型模拟事实。仅已定义的辅助读取可降级，安全拒绝失败关闭；目录搜索另属 S2 后续合同。",
+            "authorizationTests": [
+              "无平台读取权限、注销与迟到拒绝不能恢复旧数据；精确缺失不回退其他对象。",
+              "partial／disabled 禁止写操作；目录与详情往返不能共享旧读取投影。"
+            ]
+          },
+          "verification": {
+            "commands": [
+              "FOUNDATION_ACCEPTANCE_MODE=read-only make acceptance-work-package WP=WP-0019 SLICE=platform-supply",
+              "make frontend-test",
+              "./mvnw -q test",
+              "make work-package-acceptance-test",
+              "make architecture-guard",
+              "make project-verify"
+            ],
+            "evidence": [
+              "docs/tasks/WP-0019/evidence/WP-0019-S2-draft-detail-delivery-20261020.md"
+            ]
+          },
+          "verifiedCommit": "98ffdd5b0fa6cc388cef82d8ca8fca0782fd4671"
         }
       ]
     },
