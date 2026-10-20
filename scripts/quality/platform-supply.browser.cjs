@@ -122,6 +122,19 @@ test("S2 验收在同名租户中只选择精确身份", async () => {
   } finally { await page.close(); }
 });
 
+test("S2 目录与精确详情往返不能复用另一种读取投影", async () => {
+  const { page, errors, writes } = await open("success", false, 1440);
+  try {
+    for (let turn = 0; turn < 2; turn++) {
+      await page.getByRole("button", { name: "查看合成对话部署", exact: true }).click();
+      await page.getByRole("heading", { name: "合成对话部署", exact: true }).waitFor();
+      await page.getByRole("button", { name: "返回部署目录", exact: true }).first().click();
+      await page.getByRole("button", { name: "查看合成对话部署", exact: true }).waitFor({ timeout: 3000 });
+    }
+    assert.deepEqual(errors, []); assert.equal(writes(), 0);
+  } finally { await page.close(); }
+});
+
 test("S2 三类型和未知候选完整表单、键盘、取消及单次保存", async () => {
   for (const selection of [0, 1, 2, 3]) for (const width of [390, 1024, 1440]) for (const scale of [1, 2]) {
     if (process.env.S2_FORM_CASE && process.env.S2_FORM_CASE !== `${selection}-${width}-${scale}`) continue;

@@ -2,7 +2,7 @@ import { PlatformModelSupplyNavigation } from "./PlatformModelSupplyNavigation";
 import { Button, Dialog, DialogSurface } from "@fluentui/react-components";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ApiRequestError, type ControlPlaneClient, type PageResult, type PlatformModelDeploymentSummary } from "../../api/control-plane-client";
-import type { ConsoleRoute } from "../../session/console-route";
+import { formatConsoleRoute, type ConsoleRoute } from "../../session/console-route";
 import { PlatformConnectionPagination } from "./PlatformConnectionPagination";
 import { PlatformModelDeploymentForm, typeLabel } from "./PlatformModelDeploymentForm";
 import { readPlatformDeployments, settleDeploymentReads } from "./platform-deployment-read";
@@ -12,11 +12,18 @@ import "./platform-model-deployments.css";
 type DeploymentRoute = Extract<ConsoleRoute, { navigationId: "platform-model-supply"; task: "deployments" | "deployment-detail" }>;
 type ReadState = "loading" | "ready" | "partial" | "disabled" | "empty" | "error" | "denied" | "stale";
 
-/** 目录与精确详情承接同一草稿快照；身份替换、重读和离开页面均撤下旧表单及迟到响应。 */
-export function PlatformModelDeploymentWorkspace({ client, route, sessionRevision, onRouteChange }: {
+type WorkspaceProps = {
   client: ControlPlaneClient; route: DeploymentRoute; sessionRevision: number;
   onRouteChange: (route: ConsoleRoute, replace?: boolean) => void;
-}) {
+};
+
+/** 规范 URL 与会话共同拥有投影，切换时同步撤下旧状态，不能等待 effect 后才清理。 */
+export function PlatformModelDeploymentWorkspace(props: WorkspaceProps) {
+  return <PlatformDeploymentPage key={`${props.sessionRevision}:${formatConsoleRoute(props.route)}`} {...props} />;
+}
+
+/** 目录和精确对象各自拥有读取、焦点和表单状态，迟到响应不能跨页面恢复。 */
+function PlatformDeploymentPage({ client, route, sessionRevision, onRouteChange }: WorkspaceProps) {
   const [state, setState] = useState<ReadState>("loading");
   const [result, setResult] = useState<Awaited<ReturnType<typeof readPlatformDeployments>>>();
   const [creating, setCreating] = useState(false);

@@ -155,11 +155,6 @@ async function run(config) {
       requireCondition(exact.status === 200 && exact.body.id === record.id && exact.body.inputs.discoveryId === record.inputs.discoveryId, "精确详情未恢复冻结来源");
       report.created = { id: record.id, connectionId: record.providerConnectionId, connectionRevision: record.providerConnectionRevision,
         discoveryId: record.inputs.discoveryId, modelType: record.modelType, plannedTenantIds: record.inputs.plannedTenantIds, status: record.status };
-      await page.reload({ waitUntil: "networkidle" }); await page.getByRole("heading", { name: input.displayName, exact: true }).waitFor();
-      requireCondition((await page.locator("dl").innerText()).includes(input.parameterSource), "刷新后声明丢失");
-      await page.getByRole("button", { name: "返回部署目录", exact: true }).first().click();
-      await page.getByRole("button", { name: "查看" + input.displayName, exact: true }).click();
-      await page.getByRole("heading", { name: input.displayName, exact: true }).waitFor();
     });
     const targetId = report.created?.id ?? config.targetId;
     const targets = [{ view: "directory", url: "/platform/model-supply/deployments" }];
@@ -170,6 +165,19 @@ async function run(config) {
       previewSource = { connectionId: target.body.providerConnectionId, connectionRevision: target.body.providerConnectionRevision,
         modelCode: target.body.modelCode, modelType: target.body.modelType };
       targets.push({ view: "detail", url: "/platform/model-supply/deployments/" + targetId }); report.targetId = targetId;
+      await check("精确详情刷新与返回恢复", async () => {
+        const record = target.body;
+        requireCondition(record.inputs && longId(record.inputs.discoveryId), "精确对象缺少本片冻结声明");
+        await page.goto(config.baseUrl + "/platform/model-supply/deployments/" + targetId, { waitUntil: "networkidle" });
+        await page.getByRole("heading", { name: record.displayName, exact: true }).waitFor();
+        await page.reload({ waitUntil: "networkidle" });
+        await page.getByRole("heading", { name: record.displayName, exact: true }).waitFor();
+        requireCondition((await page.locator("dl").innerText()).includes(record.inputs.parameterSource), "刷新后声明丢失");
+        await page.getByRole("button", { name: "返回部署目录", exact: true }).first().click();
+        await page.getByRole("button", { name: "查看" + record.displayName, exact: true }).click();
+        await page.getByRole("heading", { name: record.displayName, exact: true }).waitFor();
+        report.recoveredTarget = { id: record.id, discoveryId: record.inputs.discoveryId, status: record.status, version: record.version };
+      });
     }
     await check("三尺寸原生文字与只读布局", async () => {
       for (const target of targets) for (const width of [390, 1024, 1440]) for (const textScale of [1, 2]) {
