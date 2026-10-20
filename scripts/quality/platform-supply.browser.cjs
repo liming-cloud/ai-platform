@@ -135,6 +135,20 @@ test("S2 目录与精确详情往返不能复用另一种读取投影", async ()
   } finally { await page.close(); }
 });
 
+test("S2 页签紧接页头并保留原型内容间距", async () => {
+  const { page, errors } = await open("success", true, 1440);
+  try {
+    const heading = await page.locator('.platform-connection-page__heading').boundingBox();
+    const navigation = await page.getByRole("navigation", { name: "对象工作区", exact: true }).boundingBox();
+    const note = await page.locator('.platform-connection-note').boundingBox();
+    const detail = await page.locator('.platform-connection-detail').boundingBox();
+    assert.equal(navigation.y - heading.y - heading.height, 0, "原型页签紧随页头，不能额外插入一层网格间距");
+    assert.equal(note.y - navigation.y - navigation.height, 48);
+    assert.equal(detail.y - note.y - note.height, 24);
+    assert.deepEqual(errors, []);
+  } finally { await page.close(); }
+});
+
 test("S2 三类型和未知候选完整表单、键盘、取消及单次保存", async () => {
   for (const selection of [0, 1, 2, 3]) for (const width of [390, 1024, 1440]) for (const scale of [1, 2]) {
     if (process.env.S2_FORM_CASE && process.env.S2_FORM_CASE !== `${selection}-${width}-${scale}`) continue;
