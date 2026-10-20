@@ -96,6 +96,12 @@ async function run(config) {
       requireCondition(facts.status === 200 && typeof facts.body?.writesAvailable === "boolean" && list.status === 200 && Array.isArray(list.body?.items), "正式部署事实读取失败");
       report.before = { total: list.body.totalElements, writesAvailable: facts.body.writesAvailable };
       assertSafeResponse(facts.body, secrets); assertSafeResponse(list.body, secrets);
+      if (list.body.totalElements === 0) {
+        await page.getByRole("region", { name: "空状态", exact: true }).waitFor();
+        const screenshot = path.join(directory, "unfiltered-empty-directory.png");
+        await page.screenshot({ path: screenshot, fullPage: true }); fs.chmodSync(screenshot, 0o600);
+        report.emptyDirectory = { unfiltered: true, total: 0, screenshot };
+      }
     });
     let options, tenants;
     await check("完整表单无默认参数且取消后清空", async () => {
