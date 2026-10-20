@@ -148,7 +148,7 @@ export function PlatformModelDeploymentWorkspace({ client, route, sessionRevisio
 function Fact({ label, value }: { label: string; value: string }) { return <div><dt>{label}</dt><dd>{value}</dd></div>; }
 function statusLabel(status: PlatformModelDeploymentSummary["status"]): string { return ({ DRAFT: "草稿", VERIFIED: "验证通过", PUBLISHED: "已发布", DISABLED: "已停用" })[status]; }
 function DeploymentStatus({ deployment }: { deployment: PlatformModelDeploymentSummary }) {
-  return <span className="platform-connection-status" data-tone={deployment.status === "PUBLISHED" ? "success" : deployment.status === "VERIFIED" ? "info" : deployment.status === "DISABLED" ? "danger" : "warning"}>{statusLabel(deployment.status)}</span>;
+  return <span className="platform-connection-status" data-tone={deployment.status === "PUBLISHED" || deployment.status === "VERIFIED" ? "success" : deployment.status === "DISABLED" ? "danger" : "info"}>{statusLabel(deployment.status)}</span>;
 }
 function ReadState({ kind, detail, onRetry }: { kind: ReadState; detail: boolean; onRetry: () => void }) {
   const failed = kind === "error" || kind === "denied" || kind === "stale";

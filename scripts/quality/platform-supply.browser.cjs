@@ -90,6 +90,10 @@ test("S2 两页七态、三尺寸与原生两档文字", async () => {
       if (scale === 2) await enlargeText(page);
       const observed = await layout(page); assert.equal(observed.overflow, false, JSON.stringify({ state, detail, width, scale, observed })); assert.deepEqual(observed.clipped, []);
       assert.deepEqual(errors, []); observations.push({ case: "page", state, detail, width, scale, ...observed });
+      if (state === "success" && scale === 1) {
+        assert.equal(await page.getByRole("navigation", { name: "对象工作区", exact: true }).evaluate(element => getComputedStyle(element).marginBottom), "24px");
+        assert.equal(await page.locator('.platform-connection-status').first().evaluate(element => getComputedStyle(element).backgroundColor), "rgb(245, 244, 237)", "草稿沿用原型中性状态色");
+      }
       if (state === "success" && width === 390) await page.screenshot({ path: path.join(temporary, `page-${detail ? "detail" : "list"}-${scale}.png`), fullPage: true });
       if (["partial", "disabled"].includes(state)) assert.equal(await page.getByRole("button", { name: detail ? "执行能力验证" : "建立部署草稿", exact: true }).isDisabled(), true);
     } finally { await page.close(); }
@@ -112,6 +116,21 @@ test("S2 三类型和未知候选完整表单、键盘、取消及单次保存",
       await modal.getByLabel("上下文窗口（Token）", { exact: true }).fill("128");
       await modal.getByLabel(type === "CHAT" ? "最大输出（Token）" : type === "EMBEDDING" ? "向量维度" : "重排候选上限", { exact: true }).fill("20");
       await modal.getByLabel("参数来源", { exact: true }).fill("合成文档 v1");
+      const styles = await modal.evaluate(element => {
+        const fact = target => { const style = getComputedStyle(target), rect = target.getBoundingClientRect(); return {
+          width: rect.width, height: rect.height, size: style.fontSize, lineHeight: style.lineHeight, color: style.color,
+          padding: style.padding, margin: style.margin, inset: style.inset, maxHeight: style.maxHeight, maxWidth: style.maxWidth,
+          display: style.display, position: style.position, boxSizing: style.boxSizing, overflow: style.overflow }; };
+        return { surface: fact(element), form: fact(element.querySelector("form")), button: fact(element.querySelector("footer button")),
+          small: fact(element.querySelector(".deployment-field > small")), help: fact(element.querySelector(".deployment-help")), note: fact(element.querySelector(".platform-connection-note")) };
+      });
+      observations.push({ case: "styles", selection, width, scale, styles });
+      assert.equal(styles.surface.width, Math.min(512, width - 38), "手机弹窗必须匹配已接受原生 dialog 的边界");
+      assert.equal(styles.form.margin, "0px", "表单不能继承全局底部外距");
+      assert.equal(styles.surface.overflow, "hidden", "只能滚动正文，不能滚动整个弹窗");
+      assert.equal(styles.small.size, "13.3333px");
+      assert.equal(styles.help.size, "16px");
+      assert.equal(styles.note.size, "16px");
       const fontSnapshot = () => modal.locator('.deployment-field input,.deployment-field select').evaluateAll(elements => elements.map(element => ({ font: getComputedStyle(element).fontSize, inline: element.style.fontSize, visible: getComputedStyle(element).visibility, transition: getComputedStyle(element).transition, animation: getComputedStyle(element).animation, width: element.getBoundingClientRect().width, height: element.getBoundingClientRect().height })));
       const beforeFonts = await fontSnapshot();
       if (scale === 2) await enlargeText(page);

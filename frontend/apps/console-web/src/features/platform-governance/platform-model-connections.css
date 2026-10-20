@@ -177,7 +177,7 @@
 }
 
 /* 平台模型复用原型页内导航，侧栏只保留模型治理。 */
-.platform-model-object-navigation { display: flex; flex-wrap: wrap; gap: 0.5rem; border-bottom: 1px solid var(--foundation-border); }
+.platform-model-object-navigation { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1.5rem; border-bottom: 1px solid var(--foundation-border); }
 .platform-model-object-navigation .fui-Button { min-width: 0; min-height: var(--foundation-control-height); border: 0; border-bottom: 2px solid transparent; border-radius: 0; background: transparent; box-shadow: none; padding-inline: 1rem; color: var(--foundation-muted-text); }
 .platform-model-object-navigation .fui-Button[aria-current="page"] { color: var(--foundation-accent); border-bottom-color: var(--foundation-accent); }
 @media (max-width: 640px) { .platform-model-object-navigation { gap: 0; } .platform-model-object-navigation .fui-Button { padding-inline: 0.75rem; } }
