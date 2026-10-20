@@ -3,6 +3,7 @@ package com.aiplatform.foundation.provider.openaicompatible;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.aiplatform.foundation.shared.kernel.tenant.TenantId;
 import com.aiplatform.foundation.modelruntime.application.extension.facade.ModelCapability;
@@ -19,9 +20,14 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.json.JsonMapper;
 
 class OpenAiCompatibleConnectionProbeTest {
 
@@ -120,6 +126,63 @@ class OpenAiCompatibleConnectionProbeTest {
         assertFalse(observation.reachable());
         assertEquals("OPENAI_COMPATIBLE_AUTHENTICATION_FAILED", observation.detailCode());
         assertFalse(observation.detailCode().contains(SECRET));
+    }
+
+    @Test
+    void 应拒绝重排及混合意图而不解析秘密或发送请求() {
+        for (var capabilities : java.util.List.of(Set.of(ModelCapability.RERANK),
+                Set.of(ModelCapability.CHAT, ModelCapability.EMBEDDING))) {
+            var resolved = new AtomicBoolean();
+            var checked = new AtomicBoolean();
+            var probe = new OpenAiCompatibleConnectionProbe(reference -> {
+                resolved.set(true); return SecretValue.copyOf(SECRET.toCharArray());
+            }, endpoint -> checked.set(true));
+            var result = probe.probe(request("synthetic-model", capabilities));
+            assertFalse(result.reachable());
+            assertTrue(result.capabilities().isEmpty());
+            assertEquals("OPENAI_COMPATIBLE_CAPABILITY_UNSUPPORTED", result.detailCode());
+            assertFalse(resolved.get()); assertFalse(checked.get());
+        }
+    }
+
+    @Test
+    void 应拒绝HTTP成功但没有正文的聊天响应() {
+        server.createContext("/v1/chat/completions", exchange ->
+                respond(exchange, 200, successResponse().replace("\"content\": \"ok\"", "\"content\": \" \"")));
+        var secret = SecretValue.copyOf(SECRET.toCharArray());
+        var result = new OpenAiCompatibleConnectionProbe(reference -> secret, endpoint -> {}).probe(request());
+        assertFalse(result.reachable()); assertTrue(result.capabilities().isEmpty());
+        assertEquals("OPENAI_COMPATIBLE_RESPONSE_INVALID", result.detailCode());
+        assertThrows(IllegalStateException.class, () -> secret.use(chars -> null));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"[]", "[1e100, 0.2]", "[0.0, 0.0]"})
+    void 应拒绝空向量非有限值及零向量(String vector) {
+        server.createContext("/v1/embeddings", exchange -> respond(exchange, 200,
+                "{\"object\":\"list\",\"model\":\"demo-embedding\",\"data\":[{\"object\":\"embedding\",\"index\":0,\"embedding\":"
+                        + vector + "}],\"usage\":{\"prompt_tokens\":1,\"total_tokens\":1}}"));
+        var result = new OpenAiCompatibleConnectionProbe(reference -> SecretValue.copyOf(SECRET.toCharArray()), endpoint -> {})
+                .probe(request("demo-embedding", Set.of(ModelCapability.EMBEDDING)));
+        assertFalse(result.reachable()); assertTrue(result.capabilities().isEmpty());
+        assertEquals("OPENAI_COMPATIBLE_RESPONSE_INVALID", result.detailCode());
+    }
+
+    @Test
+    void 最小调用必须明确限制输出且输入为有界合成样本() {
+        var sent = new AtomicReference<JsonNode>();
+        server.createContext("/v1/chat/completions", exchange -> {
+            sent.set(JsonMapper.builder().build().readTree(exchange.getRequestBody().readAllBytes()));
+            respond(exchange, 200, successResponse());
+        });
+        var result = new OpenAiCompatibleConnectionProbe(reference -> SecretValue.copyOf(SECRET.toCharArray()), endpoint -> {})
+                .probe(request());
+        assertTrue(result.reachable());
+        assertTrue(sent.get().has("max_completion_tokens"));
+        assertEquals(64, sent.get().get("max_completion_tokens").intValue());
+        var input = sent.get().get("messages").get(0).get("content").asString();
+        assertTrue(input.codePointCount(0, input.length()) <= 128);
+        assertFalse(sent.get().has("tools"));
     }
 
     private ProviderProbeRequest request() {

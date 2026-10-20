@@ -6,6 +6,7 @@ import static org.mockito.Mockito.mock;
 import com.aiplatform.foundation.modelruntime.application.probe.port.out.ProviderConnectionProbe;
 import com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.PlatformProviderModelDiscoverer;
 import com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.PlatformProviderCredentialResolver;
+import com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.PlatformModelDeploymentProbe;
 import com.aiplatform.foundation.modelruntime.application.runtime.port.out.ChatModelFactory;
 import com.aiplatform.foundation.modelruntime.application.runtime.port.out.EmbeddingModelFactory;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.ModelRuntimeCallSettings;
@@ -47,6 +48,21 @@ class OpenAiCompatibleProviderAutoConfigurationTest {
                 .run(context -> {
                     assertThat(context).hasNotFailed();
                     assertThat(context).getBeans(PlatformProviderModelDiscoverer.class).hasSize(2);
+                });
+    }
+
+    @Test
+    void 平台能力探测只依赖平台凭据不能借用租户解析器() {
+        var runner = new ApplicationContextRunner()
+                .withConfiguration(AutoConfigurations.of(OpenAiCompatibleProviderAutoConfiguration.class))
+                .withBean(OutboundEndpointPolicy.class, () -> mock(OutboundEndpointPolicy.class));
+        runner.withBean(SecretResolver.class, () -> mock(SecretResolver.class))
+                .run(context -> assertThat(context).doesNotHaveBean(PlatformModelDeploymentProbe.class));
+        runner.withBean(PlatformProviderCredentialResolver.class, () -> mock(PlatformProviderCredentialResolver.class))
+                .run(context -> {
+                    assertThat(context).hasNotFailed();
+                    assertThat(context).hasSingleBean(PlatformModelDeploymentProbe.class);
+                    assertThat(context).doesNotHaveBean(ProviderConnectionProbe.class);
                 });
     }
 }

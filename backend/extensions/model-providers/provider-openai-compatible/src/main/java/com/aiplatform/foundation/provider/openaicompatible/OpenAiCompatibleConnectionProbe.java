@@ -5,6 +5,7 @@ import com.aiplatform.foundation.modelruntime.application.extension.facade.Model
 import com.aiplatform.foundation.modelruntime.application.extension.facade.ProviderKind;
 import com.aiplatform.foundation.modelruntime.application.extension.facade.ProviderProbeObservation;
 import com.aiplatform.foundation.modelruntime.application.extension.facade.request.ProviderProbeRequest;
+import com.aiplatform.foundation.modelruntime.application.extension.facade.request.PlatformModelDeploymentProbeRequest;
 import com.aiplatform.foundation.security.egress.OutboundEndpointPolicy;
 import com.aiplatform.foundation.security.egress.UnsafeOutboundEndpointException;
 import com.aiplatform.foundation.security.secret.SecretResolver;
@@ -14,6 +15,7 @@ import com.openai.errors.OpenAIException;
 import com.openai.errors.PermissionDeniedException;
 import com.openai.errors.RateLimitException;
 import com.openai.errors.UnauthorizedException;
+import java.net.URI;
 import java.time.Duration;
 import java.util.Objects;
 import java.util.Set;
@@ -49,16 +51,33 @@ public final class OpenAiCompatibleConnectionProbe implements ProviderConnection
         return ProviderKind.OPENAI_COMPATIBLE;
     }
 
+    /** 执行一次单能力最小探测，拒绝未验证的流式、重排及混合意图。 */
     @Override
     public ProviderProbeObservation probe(ProviderProbeRequest request) {
         Objects.requireNonNull(request, "探测请求不能为空");
+        return probe(request.providerKind(), request.endpoint(), request.credentialReference(), request.modelCode(),
+                request.requestedCapabilities(), request.timeout());
+    }
+
+    // 平台适配器只注入平台解析器，不借助虚构租户或租户范围请求复用协议实现。
+    ProviderProbeObservation probePlatform(PlatformModelDeploymentProbeRequest request) {
+        Objects.requireNonNull(request, "平台探测请求不能为空");
+        return probe(request.providerKind(), request.endpoint(), request.credentialReference(), request.modelCode(),
+                request.requestedCapabilities(), request.timeout());
+    }
+
+    private ProviderProbeObservation probe(ProviderKind kind, URI endpoint, String credentialReference,
+            String modelCode, Set<ModelCapability> capabilities, Duration timeout) {
         var startedAt = System.nanoTime();
-        if (request.providerKind() != providerKind()) {
+        if (kind != providerKind()) {
             return failure(startedAt, "OPENAI_COMPATIBLE_PROVIDER_MISMATCH");
         }
+        // OpenAI-compatible 不是重排标准；不允许混合意图落入默认 Chat 分支。
+        if (!CHAT_CAPABILITIES.equals(capabilities) && !EMBEDDING_CAPABILITIES.equals(capabilities))
+            return failure(startedAt, "OPENAI_COMPATIBLE_CAPABILITY_UNSUPPORTED");
 
         try {
-            endpointPolicy.verify(request.endpoint());
+            endpointPolicy.verify(endpoint);
         } catch (UnsafeOutboundEndpointException exception) {
             return failure(startedAt, "OPENAI_COMPATIBLE_ENDPOINT_REJECTED");
         }
@@ -67,20 +86,18 @@ public final class OpenAiCompatibleConnectionProbe implements ProviderConnection
         try {
             secret = Objects.requireNonNull(
                     secretResolver.resolve(new SecretReference(
-                            request.credentialReference())),
+                            credentialReference)),
                     "密钥解析结果不能为空");
         } catch (RuntimeException exception) {
             return failure(startedAt, "OPENAI_COMPATIBLE_SECRET_RESOLUTION_FAILED");
         }
 
         try (secret) {
-            secret.use(chars -> {
-                callModel(request, new String(chars));
-                return null;
-            });
+            if (!secret.use(chars -> callModel(endpoint, modelCode, capabilities, timeout, new String(chars))))
+                return failure(startedAt, "OPENAI_COMPATIBLE_RESPONSE_INVALID");
             return ProviderProbeObservation.of(
                     true,
-                    detectedCapabilities(request),
+                    capabilities,
                     elapsedSince(startedAt),
                     "OPENAI_COMPATIBLE_OK");
         } catch (UnauthorizedException | PermissionDeniedException exception) {
@@ -94,47 +111,51 @@ public final class OpenAiCompatibleConnectionProbe implements ProviderConnection
         }
     }
 
-    private static void callModel(ProviderProbeRequest request, String apiKey) {
-        if (request.requestedCapabilities().contains(ModelCapability.EMBEDDING)) {
-            callEmbeddingModel(request, apiKey);
-            return;
+    private static boolean callModel(URI endpoint, String modelCode, Set<ModelCapability> capabilities,
+            Duration timeout, String apiKey) {
+        if (EMBEDDING_CAPABILITIES.equals(capabilities)) {
+            return callEmbeddingModel(endpoint, modelCode, timeout, apiKey);
         }
-        callChatModel(request, apiKey);
+        return callChatModel(endpoint, modelCode, timeout, apiKey);
     }
 
-    private static void callChatModel(ProviderProbeRequest request, String apiKey) {
+    private static boolean callChatModel(URI endpoint, String modelCode, Duration timeout, String apiKey) {
         var options = OpenAiChatOptions.builder()
-                .baseUrl(request.endpoint().toString())
+                .baseUrl(endpoint.toString())
                 .apiKey(apiKey)
-                .model(request.modelCode())
-                .timeout(request.timeout())
+                .model(modelCode)
+                .timeout(timeout)
                 .maxRetries(0)
+                // 同时限制回答与推理 Token；厂商不支持此字段时失败关闭，不重试无界请求。
+                .maxCompletionTokens(64)
                 .build();
         var model = OpenAiChatModel.builder()
                 .options(options)
                 .build();
 
-        model.call(PROBE_PROMPT);
+        var output = model.call(PROBE_PROMPT);
+        return output != null && !output.isBlank();
     }
 
-    private static void callEmbeddingModel(ProviderProbeRequest request, String apiKey) {
+    private static boolean callEmbeddingModel(URI endpoint, String modelCode, Duration timeout, String apiKey) {
         var options = OpenAiEmbeddingOptions.builder()
-                .baseUrl(request.endpoint().toString())
+                .baseUrl(endpoint.toString())
                 .apiKey(apiKey)
-                .model(request.modelCode())
-                .timeout(request.timeout())
+                .model(modelCode)
+                .timeout(timeout)
                 .maxRetries(0)
                 .build();
         var model = OpenAiEmbeddingModel.builder()
                 .options(options)
                 .build();
-        model.embed(PROBE_PROMPT);
-    }
-
-    private static Set<ModelCapability> detectedCapabilities(ProviderProbeRequest request) {
-        return request.requestedCapabilities().contains(ModelCapability.EMBEDDING)
-                ? EMBEDDING_CAPABILITIES
-                : CHAT_CAPABILITIES;
+        var vector = model.embed(PROBE_PROMPT);
+        if (vector == null || vector.length == 0) return false;
+        var nonZero = false;
+        for (var value : vector) {
+            if (!Float.isFinite(value)) return false;
+            nonZero |= value != 0;
+        }
+        return nonZero;
     }
 
     private static ProviderProbeObservation failure(long startedAt, String detailCode) {

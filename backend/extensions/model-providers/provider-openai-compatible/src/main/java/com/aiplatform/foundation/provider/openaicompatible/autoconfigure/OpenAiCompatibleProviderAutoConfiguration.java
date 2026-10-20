@@ -3,11 +3,13 @@ package com.aiplatform.foundation.provider.openaicompatible.autoconfigure;
 import com.aiplatform.foundation.modelruntime.application.probe.port.out.ProviderConnectionProbe;
 import com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.PlatformProviderModelDiscoverer;
 import com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.PlatformProviderCredentialResolver;
+import com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.PlatformModelDeploymentProbe;
 import com.aiplatform.foundation.modelruntime.application.runtime.port.out.ChatModelFactory;
 import com.aiplatform.foundation.modelruntime.application.runtime.port.out.EmbeddingModelFactory;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.ModelRuntimeCallSettings;
 import com.aiplatform.foundation.provider.openaicompatible.OpenAiCompatibleChatModelFactory;
 import com.aiplatform.foundation.provider.openaicompatible.OpenAiCompatibleConnectionProbe;
+import com.aiplatform.foundation.provider.openaicompatible.OpenAiCompatiblePlatformModelDeploymentProbe;
 import com.aiplatform.foundation.provider.openaicompatible.OpenAiCompatiblePlatformProviderModelDiscoverer;
 import com.aiplatform.foundation.provider.openaicompatible.VolcengineArkPlatformProviderModelDiscoverer;
 import com.aiplatform.foundation.provider.openaicompatible.OpenAiCompatibleEmbeddingModelFactory;
@@ -30,6 +32,13 @@ public class OpenAiCompatibleProviderAutoConfiguration {
             SecretResolver secrets,
             OutboundEndpointPolicy endpointPolicy) {
         return new OpenAiCompatibleConnectionProbe(secrets, endpointPolicy);
+    }
+
+    @Bean
+    @ConditionalOnBean(PlatformProviderCredentialResolver.class)
+    PlatformModelDeploymentProbe openAiCompatiblePlatformModelDeploymentProbe(
+            PlatformProviderCredentialResolver secrets, OutboundEndpointPolicy endpointPolicy) {
+        return new OpenAiCompatiblePlatformModelDeploymentProbe(secrets, endpointPolicy);
     }
 
     @Bean
