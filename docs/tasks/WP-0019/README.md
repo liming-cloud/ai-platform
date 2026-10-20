@@ -80,7 +80,7 @@ S1 已落地 make acceptance-work-package WP=WP-0019 SLICE=platform-connection�
 
 [S2 受控验证准备](evidence/WP-0019-S2-capability-preparation-20261020.md)绑定源码提交 `dbf482ce1d9eee0af2cc1716ec00d648113b8e6b`：厂商／模型／预算／样本的[可审阅方案](s2-capability-verification.md)已形成，最小平台协议与反例通过完整后端；没有真实推理、部署、发布或赋权，不增加产品操作完成数。
 
-[S2 预算与安全样本离线验证](evidence/WP-0019-S2-budget-safety-offline-20261020.md)绑定源码提交 `77cda4b01e7e29552adfc8ca316cd8b3883bb13f`：组合与预算方向已接受，固定三样本、费用上界、实际计量、总截止时间与取消的 29 项离线合同及 1,240 项完整后端通过。尚未装配生产或执行真实调用；[RERANK 来源合同](s2-rerank-source-proposal.md)已接受并登记 ADR-0101，正在完成提交推送与对应 CI 核验，不提升“执行能力验证”状态。
+[S2 预算与安全样本离线验证](evidence/WP-0019-S2-budget-safety-offline-20261020.md)绑定源码提交 `77cda4b01e7e29552adfc8ca316cd8b3883bb13f`：组合与预算方向已接受，固定三样本、费用上界、实际计量、总截止时间与取消的 29 项离线合同及 1,240 项完整后端通过。尚未装配生产或执行真实调用；[RERANK 来源合同](s2-rerank-source-proposal.md)已接受并登记 ADR-0101，源码与接受记录已推送，提交 `dda345d2082320add8aeace400ce1fcff59e2564` 的 [CI](https://github.com/liming-cloud/ai-platform/actions/runs/39389463323)九步骤 success，不提升“执行能力验证”状态。
 
 ## 下一前沿
 
