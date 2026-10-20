@@ -5,8 +5,8 @@
 | 责任任务 | WP-0019 |
 | 状态 | 三项细化提案已接受，依据 ADR-0100；具体原型候选已形成并固定，待单独接受，S2 未完成 |
 | 输入提交 | 6d12bad8347e76fd06a0e69e9d97c670d18645a6 |
-| 验证提交 | 4ad62393847549a92593068f79ce6ee6f1ec5cb0 |
-| 验证范围 | 连接发布前置约束的源码与装配、原项目候选技术验证；不包括 S2 四操作、生产部署或原型候选接受 |
+| 验证提交 | 2fa170d0283bd4d5fa1ef986acefb3a9062500ff；包含 4ad62393847549a92593068f79ce6ee6f1ec5cb0 的创建前置修复 |
+| 验证范围 | 创建、探测和发布前的连接发布事实约束、装配及原项目候选技术验证；不包括 S2 四操作的完整交付验收、生产部署或原型候选接受 |
 | 候选提交 | f3216dffe717e194e96fa20b4afee7983a9ff420；2026-10-20 固定，未接受 |
 | 决策依据 | ADR-0010、0060、0066、0070、0079、0082、0095、0100；S1 专属 ADR 不自动扩大到 S2 |
 | 原型 | OpenDesign Cloud 原项目 249f81f2-6f1a-46ff-988c-da3cdedb35e7；已接受 cce686e4634ca3c523e4c8aeffd95752f1a04c3a |
@@ -54,7 +54,7 @@
 
 源码修复验证为 `./mvnw -q -pl backend/contexts/model-runtime -am test`、`make architecture-guard`、`make project-verify`、`make project-status`、`make resume-context`；触及扩展、共享能力或前端后再补受影响模块／完整后端、`make frontend-test` 和正式 S2 验收。本轮不运行旧 `acceptance-model-deployment` 来冒充新合同。
 
-## 本轮前置约束执行记录
+## 2026-10-19：创建前置约束执行记录
 
 临时证据目录为 `/private/tmp/wp0019-s2-preflight-20261019-g_hin5bc`，0700；产物为 0600，凭据不进入产物，截图仅在该临时目录的观察子目录。有效红灯 `red-platform-deployment.log` 为“应抛出拒绝异常，实际没有抛出”，确实命中未发布连接绕过；最初测试身份缺少会话准入权限的准备失败另存 `fixture-setup-failure.log`，不作为红灯证据。同一反例修复后通过，受影响上下文及依赖最终 284 项／85 测试类通过，失败／错误／跳过均为 0（`model-runtime-regression.json`）；补充正例首次的 DTO 字符串／枚举断言准备错误保留原日志，不计作产品红灯。
 
@@ -88,3 +88,25 @@
 执行证据摘要清单位于上述临时目录的 `evidence-digests.json`，SHA-256 为 `2c2e71bc68275e3c45e08efa6a2d0175a1e72305f980958a8198b893342a6154`，绑定源码修复及候选完整提交，共 323 个日志／观察／截图等文件、29,151,831 字节；包括原失败链，截图未提交。此清单不包含自身及此后 Git 推送／云端 CI 回执，后两者单独保存，不能用候选本地通过替代最终 main CI。
 
 候选形成后 `make decisions-sync`、`make project-status`、`make project-verify`（81 项及 30 任务）、`make architecture-guard`（50 项及双端守卫）、`make resume-context` 均实际退出 0，日志为 `candidate-closeout-*.log`；650 项历史原对象及摘要的独立复核见 `history-current-verification.json`。源码、部署、已接受原型、候选版本和人工接受分别记录，STATE 仍为 WP-0019／M6，四项操作仍未完成。
+
+## 2026-10-20：旧部署来源复核子任务
+
+前次提交 `3076e4847ae785b862ef0abd54fb72133d9d76f7` 的[云端 CI](https://github.com/liming-cloud/ai-platform/actions/runs/39282750976)已完成，九步骤全部 success；原排队项已消除。该结果只绑定前次提交，新变更推送后单独核对对应 CI，不沿用旧绿灯。
+
+图谱复核确认 `loadFrozenConnection` 被能力探测和部署发布共用，却只检查 VERIFIED 与连接版本：旧草稿或已验证部署即使没有来源发布事实，也能继续。两条新增反例在原代码实际失败，均为应抛拒绝异常、实际未抛出，未触及真实厂商。依据已接受 ADR-0095，在此共享入口复用现有 `requirePublishedConnection`，修复提交 `2fa170d0283bd4d5fa1ef986acefb3a9062500ff`；不修改公开请求、原型表单、数据库或部署。
+
+| 应用边界 | 实际结果 |
+| --- | --- |
+| 未发布来源的旧草稿探测 | 拒绝，未调用 provider 或验证写入 |
+| 未发布来源的已验证部署发布 | 拒绝，未更新部署 |
+| 错连接／旧修订的发布事实 | 两个入口均拒绝 |
+| 精确当前发布事实 | 原探测和发布正例继续通过 |
+| 无平台写权限 | 创建、探测、发布在来源读取前拒绝 |
+
+同一初始 7 项测试由两项失败转为全部通过；扩展后服务测试共 11 项，`./mvnw -q -pl backend/contexts/model-runtime -am test` 最终 290 项／85 测试类通过，失败、错误、跳过均为 0。评审另保留创建入口不得触发 provider 或验证写入的断言，定向复验 11 项通过，见 `final-service-creation-no-side-effects.*`，没有因共用 mock 夹具放宽创建检查。`make project-status`、`make project-verify`（81 项及 30 任务）、`make architecture-guard`（50 项及双端守卫）、`make resume-context` 通过。独立发布事实检查在两个入口各增加一次精确读取，未做性能测量。
+
+本子任务证据集中在 `/private/tmp/wp0019-s2-source-guard-20261020-3kpx81ra`，目录 0700、产物 0600；`red-source-publication-on-use.log` → `green-source-publication-on-use-initial.log`、`model-runtime-regression.json`、`reviewed-source.diff` 与 `source-review.txt` 保留红绿、范围及自审。`evidence-digests.json` 绑定上述源码提交，记录 13 项、198,023 字节，SHA-256 为 `b2187e11b7c821f81447adfb128b656818be3d8b755f618d210362a0be066dbf`；后续连接检查与推送／CI 回执另存，不包含凭据或截图。
+
+当前图谱对 `PlatformModelDeploymentService` 的二层影响分析返回 30 个符号，据此只修改共享调用前检查及服务测试；不改写前次 69 个符号的历史分析。当前 Local Codex 显式加载 `engineering-assistant:wayfinder`、`tdd`、`code-review` 及其 HITL、安全 seam、证据审计规则，内联执行，未创建 Runtime／StageRunResult，阶段结果校验不适用。
+
+原型目录与候选 `f3216dffe717e194e96fa20b4afee7983a9ff420` 差异为零，仍未登记具体候选接受。原项目元数据和预览 HTTP 均为 200；本轮 MCP `get_project` 返回 `Transport closed`，不把工具通道失败描述为原型不可用。未部署、未操作生产数据、未真实推理、未赋权，未重复 S1 或原型矩阵。此修复仅证明应用调用前约束，真实提交时复核、CAS、迟到结果、审计及发布授权原子性仍待 S2 后续实施；不以 mock 正例替代真实事务或厂商证据。

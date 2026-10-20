@@ -70,6 +70,7 @@ class PlatformModelDeploymentServiceTest {
         assertEquals("DRAFT", result.deployment().status());
         assertEquals(CONNECTION_ID.toString(), result.deployment().providerConnectionId());
         assertEquals(1L, result.deployment().providerConnectionRevision());
+        verifyNoInteractions(fixture.probeProvider(), fixture.verificationStore());
     }
 
     @Test
@@ -201,6 +202,7 @@ class PlatformModelDeploymentServiceTest {
         var failure = assertThrows(IllegalStateException.class, () -> fixture.service().create(command()));
         assertEquals("平台供应商连接当前修订尚未发布", failure.getMessage());
         verifyNoInteractions(fixture.discoveries(), fixture.deployments());
+        verifyNoInteractions(fixture.probeProvider(), fixture.verificationStore());
     }
 
     private static PlatformProviderConnectionPublication publication(PlatformProviderConnectionId id, long connectionVersion) {
