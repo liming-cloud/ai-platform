@@ -205,7 +205,7 @@ Chat／Embedding 继续用内部 Port 与 Spring AI；RERANK 用查询、候选�
 
 ### S2：平台部署、能力验证与租户授权，4 项操作
 
-2026-10-19 开始的输入核对、已接受边界、细化提案和源码前置修复集中在 [S2 实施边界](s2-platform-supply.md)，不改写本节已接受的切片目标。三项细化提案已接受并登记 ADR-0100，具体原型候选需单独接受，不提升四项操作状态。
+2026-10-19 开始的输入核对、已接受边界、细化提案和源码前置修复集中在 [S2 实施边界](s2-platform-supply.md)，不改写本节已接受的切片目标。三项细化提案已接受并登记 ADR-0100，具体候选 f3216dffe717e194e96fa20b4afee7983a9ff420 已于 2026-10-20 接受；草稿与查看部署两项已独立闭合，不提升其余操作状态。
 
 - 输入：S1 发布连接；真实模型候选和独立受控调用授权。补最小 RERANK Port 与厂商适配，不建立通用插件框架。
 - 先红：未经确认候选、只探测连接即发布、维度与响应不符、RERANK 越界／重复结果、过期验证、连接轮换竞态、未授权租户可见、撤权后继续调用。
@@ -251,7 +251,7 @@ Chat／Embedding 继续用内部 Port 与 Spring AI；RERANK 用查询、候选�
 
 视觉以原项目当前固定版本为准：七态 `loading / empty / error / denied / partial / disabled / success`，尺寸 `390×844 / 1024×900 / 1440×1000`；全包至少 231 个页面状态与尺寸组合，另外覆盖所有操作表单／弹窗、200% 文字、键盘焦点和 reduced-motion。核对暖色画布、16px 正文、Georgia／中文宋体标题、15rem 侧栏、36／32／44px 控件和短按钮内容宽度；具体选择器与尺寸从原型获取，不新设放宽容差。不得出现裁切、遮挡、横向溢出或无法操作的焦点；不能自行增加模型页面视觉例外。
 
-本包正式入口当前仅实现 `make acceptance-work-package WP=WP-0019 SLICE=platform-connection`。S2～S6 及不带 SLICE 的整包入口未实现，未知 SLICE、缺证据和不安全凭据文件失败关闭。现有 `make acceptance-model-provider`／`make acceptance-model-deployment` 只作为旧合同回归，不自动覆盖本包。完整验收区分受控写入、只读复验、真实厂商调用和视觉对照，不能在只读模式隐式建对象。
+本包正式入口已实现 `SLICE=platform-connection`，以及 `SLICE=platform-supply` 的默认只读／单次草稿模式，均通过 `make acceptance-work-package WP=WP-0019 SLICE=...` 调用。S2 真实能力调用／发布／赋权、S3～S6 及不带 SLICE 的整包入口未实现；未知模式、缺证据和不安全凭据文件失败关闭。现有 `make acceptance-model-provider`／`make acceptance-model-deployment` 只作为旧合同回归，不自动覆盖本包。完整验收区分受控写入、只读复验、真实厂商调用和视觉对照，不能在只读模式隐式建对象。
 
 S1 共同输入为 `FOUNDATION_ACCEPTANCE_CREDENTIALS_FILE`（当前用户拥有的普通 0600 文件，含平台及租户验收身份），以及分别固定的 `FOUNDATION_ACCEPTANCE_FRONTEND_REVISION`、`FOUNDATION_ACCEPTANCE_BACKEND_REVISION`（完整 SHA）。执行前只读检查已提交且干净的源码及本项目七个 Compose 服务，四应用 OCI revision 必须分别匹配；不能把 HEAD 当作运行版本。Playwright 固定为 1.62.1，仍由既有 NODE_PATH 提供。入口不读取容器环境、导出数据库秘密或重设密码。
 
